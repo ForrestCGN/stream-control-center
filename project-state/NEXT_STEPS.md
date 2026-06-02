@@ -3,7 +3,42 @@
 ## Direkt nächster Schritt
 
 ```text
-CAN-36.0 neuen Arbeitsblock bewusst auswählen.
+CAN-36.2 anwenden.
+```
+
+## Danach sinnvoll
+
+```text
+CAN-36.3 - Message-Rotator Dashboard Read-only Diagnosekarte planen
+```
+
+Möglicher Inhalt:
+
+```text
+- Modulversion anzeigen
+- Runtime-State anzeigen
+- active / startedAt / stoppedAt anzeigen
+- Chat-Zähler anzeigen
+- SendCount anzeigen
+- letzte Ausgabe anzeigen
+- Config-Quelle anzeigen
+- Item-Zähler anzeigen
+- Textvarianten-/Texthelper-Status anzeigen
+- Integration-Check anzeigen
+- Live-Status-Config anzeigen, ohne Force-Abfrage
+- Read-only Routen als erlaubt markieren
+- Start/Stop/Tick/Next/Manual/Reload/Admin-POST-Routen als gesperrt markieren
+```
+
+## Wichtiger Sicherheits- und Stabilitätshinweis
+
+```text
+CAN-36.3 direkt als eigener Diagnose-Tab planen.
+Keine MutationObserver-Schleife.
+Kein Dauer-Rendering.
+Nur kontrolliertes Click-/Show-Handling wie CAN-34.3c.
+Keine /next oder /manual Vorschau in der Diagnosekarte.
+Keine /live-status Force-Abfrage in der Diagnosekarte.
 ```
 
 ## Zuletzt abgeschlossen
@@ -16,30 +51,7 @@ CAN-32: Bus-Diagnose Übersicht um read-only Sicherheits-Zusammenfassung erweite
 CAN-33: Commands-Modul dokumentiert und Dashboard Read-only Diagnosekarte sichtbar geprüft.
 CAN-34: Todo-Modul dokumentiert und Dashboard Read-only Diagnosekarte nach Stabilitätsfix sichtbar geprüft.
 CAN-35: Tagebuch-Modul dokumentiert und Dashboard Read-only Diagnosekarte sichtbar geprüft.
-```
-
-## Mögliche Kandidaten
-
-```text
-1. Nächstes Modul an Status-/Doku-Regeln anpassen.
-2. EventBus read-only Diagnose weiter ausbauen.
-3. Overlay-Monitor Dashboard-Details optisch weiter vereinfachen.
-4. Bus-Diagnose Unterseiten weiter glätten, z. B. Recovery/Issues/Raw klarer strukturieren.
-5. Langfristigen DB-Core-Treiberwechsel separat planen, aber nicht direkt umsetzen.
-```
-
-## Empfehlung
-
-```text
-CAN-36.0: Nächsten kleinen, sicheren Arbeitsblock bewusst auswählen.
-```
-
-Mögliche sichere Richtung nach Commands/Todo/Tagebuch:
-
-```text
-- Message-Rotator analysieren und dokumentieren
-- Hug-System analysieren und dokumentieren
-- EventBus read-only Diagnose ausbauen
+CAN-36.1: Message-Rotator-Modul analysiert.
 ```
 
 ## Weiterhin nicht machen ohne separaten Go-Schritt
@@ -61,4 +73,5 @@ Keine Dashboard-Testbuttons fuer produktive Aktionen.
 Keine Commands-Execute-/Upsert-/Delete-Tests ohne eigenen Go-Schritt.
 Keine Todo-Add-/Reload-/Admin-POST-Tests ohne eigenen Go-Schritt.
 Keine Tagebuch-Entry-/Stream-/Reset-/Reload-/Admin-POST-Tests ohne eigenen Go-Schritt.
+Keine Message-Rotator-Start-/Stop-/Tick-/Next-/Manual-/Reload-/Live-Status-/Admin-POST-Tests ohne eigenen Go-Schritt.
 ```

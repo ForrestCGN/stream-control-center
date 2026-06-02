@@ -1,15 +1,5 @@
 # TODO
 
-## CAN-34 abgeschlossen
-
-- [x] CAN-34.0 neuen Arbeitsblock bewusst auswählen.
-- [x] CAN-34.1 Todo-Modul analysieren.
-- [x] CAN-34.2 Todo-Modul Doku und Read-only/Write-Regeln ergänzen.
-- [x] CAN-34.3 Todo Dashboard Read-only Diagnosekarte anwenden und prüfen.
-- [x] CAN-34.3b Todo Read-only Diagnose in eigenen Tab verschieben.
-- [x] CAN-34.3c Todo Diagnose Tab Stabilitäts-Hotfix anwenden und prüfen.
-- [x] CAN-34.4 Testergebnis dokumentieren.
-
 ## CAN-35 abgeschlossen
 
 - [x] CAN-35.0 neuen Arbeitsblock bewusst auswählen.
@@ -20,7 +10,10 @@
 
 ## CAN-36
 
-- [ ] CAN-36.0 neuen Arbeitsblock bewusst auswählen.
+- [x] CAN-36.0 neuen Arbeitsblock bewusst auswählen.
+- [x] CAN-36.1 Message-Rotator-Modul analysieren.
+- [ ] CAN-36.2 Message-Rotator-Modul Doku und Read-only/Write-Regeln ergänzen.
+- [ ] CAN-36.3 optional: Message-Rotator Dashboard Read-only Diagnosekarte planen.
 
 ## Offene/zu beobachtende Punkte
 
@@ -31,4 +24,5 @@
 - [ ] Commands: keine Execute-/Upsert-/Delete-Tests ohne eigenen Go-Schritt.
 - [ ] Todo: keine Add-/Reload-/Admin-POST-Tests ohne eigenen Go-Schritt.
 - [ ] Tagebuch: keine Entry-/Stream-/Reset-/Reload-/Admin-POST-Tests ohne eigenen Go-Schritt.
+- [ ] Message-Rotator: keine Start-/Stop-/Tick-/Next-/Manual-/Reload-/Live-Status-/Admin-POST-Tests ohne eigenen Go-Schritt.
 - [ ] Keine OBS-Reparatur / kein Source-Refresh / keine automatische Recovery ohne eigene Planung.

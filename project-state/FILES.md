@@ -1,76 +1,46 @@
 # FILES
 
-## Aktueller Arbeitsstand CAN-35.4
+## Aktueller Arbeitsstand CAN-36.2
 
 Wichtige geaenderte/zuletzt relevante Dateien:
 
 ```text
+docs/modules/message_rotator.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/CHANGELOG.md
 project-state/FILES.md
-docs/current/CURRENT_CHAT_HANDOFF_CAN35_4.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN36_2.md
 ```
 
-## CAN-35 ZIPs aus dem Chat
+## CAN-36 ZIPs aus dem Chat
 
 ```text
-CAN-35.2_tagebuch_module_docs_readonly_write_rules.zip
-CAN-35.3_tagebuch_dashboard_readonly_diagnostics.zip
-CAN-35.4_document_tagebuch_readonly_diagnostics_test.zip
+CAN-36.2_message_rotator_module_docs_readonly_write_rules.zip
 ```
 
-## CAN-35 relevante Runtime-/Dashboard-Dateien
+## CAN-36 Analyse-relevante Dateien
 
 ```text
-docs/modules/tagebuch.md
-htdocs/dashboard/index.html
-htdocs/dashboard/modules/tagebuch_readonly_diagnostics.js
-htdocs/dashboard/modules/tagebuch_readonly_diagnostics.css
+backend/modules/message_rotator.js
+htdocs/dashboard/modules/message_rotator.js
+htdocs/dashboard/modules/message_rotator.css
 ```
 
-CAN-35.4 selbst ändert keine Runtime-/Dashboard-Datei.
-
-## Bestätigter CAN-35.3 Sichttest
+## Neue Doku
 
 ```text
-Dashboard > Tagebuch > Diagnose
-Tagebuch Read-only Diagnose sichtbar
-READ-ONLY OK
-Schema 5
-Soll 5
-Status OK: ja
-Schema OK: ja
-Integration OK: ja
-DB: ok / sqlite
-Aktuelle Seite: 36
-Seitendatum: 2026-06-02
-Heute lokal: 2026-06-02
-Nächste Seite: 36
-Stream aktiv: nein
-Einträge heute: ja
-Leer-Hinweis gepostet: nein
-Runtime-Events: 265
-User-Stats: 11
-Daily-Stats: 42
-Settings: 20
-Textvarianten: 17
-Text-Kategorien: 5
-Config-Quelle: database_with_json_fallback
+docs/modules/message_rotator.md
 ```
 
 ## Sicherheitsnotiz
 
 ```text
-Keine Entry-/Stream-/Reset-/Reload-/Admin-POST-Buttons in der Diagnosekarte.
-Keine Tagebuch-Einträge.
-Kein Streamstart/Streamende.
-Kein Reset.
-Kein Reload.
+CAN-36.2 ändert keinen Runtime-Code.
+Keine Message-Rotator-Start-/Stop-/Tick-/Next-/Manual-/Reload-/Live-Status-/Admin-POST-Tests.
+Keine Chat-/Twitch-/Discord-Nachricht.
 Keine Settings-/Textvarianten-Änderung.
-Keine Discord-Nachricht.
-Keine Statistik-Erhöhung.
 Keine DB-Migration.
 ```
 
@@ -79,6 +49,6 @@ Keine DB-Migration.
 ```text
 Repo: D:\Git\stream-control-center
 Live: D:\Streaming\stramAssets
-Tagebuch Backend: D:\Streaming\stramAssets\backend\modules\tagebuch.js
-Tagebuch Dashboard: D:\Streaming\stramAssets\htdocs\dashboard\modules\tagebuch.js
+Message-Rotator Backend: D:\Streaming\stramAssets\backend\modules\message_rotator.js
+Message-Rotator Dashboard: D:\Streaming\stramAssets\htdocs\dashboard\modules\message_rotator.js
 ```

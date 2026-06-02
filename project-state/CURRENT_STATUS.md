@@ -1,136 +1,138 @@
 # CURRENT_STATUS
 
-## Stand: CAN-35.4 abgeschlossen
+## Stand: CAN-36.2 vorbereitet
 
-CAN-35.4 dokumentiert den erfolgreichen Sicht- und Stabilitätstest der Tagebuch Read-only Diagnosekarte aus CAN-35.3.
+CAN-36.2 ergänzt eine dedizierte Message-Rotator-Modul-Doku mit Read-only-/Write-Regeln.
 
 ## Aktueller Arbeitsbereich
 
 ```text
-CAN-35: Tagebuch-Modul Status/Doku/Diagnose prüfen und glätten
+CAN-36: Message-Rotator-Modul Status/Doku/Diagnose prüfen und glätten
 ```
 
-## Bestätigter Sichttest
+## Ergebnis CAN-36.1 Analyse
 
-In der Dashboard-Seite:
+Das Message-Rotator-Modul ist produktiv sensibler als Todo/Tagebuch:
 
 ```text
-Tagebuch > Diagnose
+backend/modules/message_rotator.js
+MODULE_NAME = message_rotator
+MODULE_VERSION = 0.1.0
+routesPrefix = /api/message-rotator, /message-rotator
 ```
 
-ist die Read-only Diagnosekarte sichtbar:
+Vorhanden:
 
 ```text
-Tagebuch Read-only Diagnose
+MODULE_META
+publicState()
+/api/message-rotator/status
+/api/message-rotator/config
+/api/message-rotator/settings
+/api/message-rotator/routes
+/api/message-rotator/integration-check
+DB-Settings
+DB-Textvarianten
+Runtime-State
+direkte Twitch-Chat-Message-Delivery
+direkte Twitch-Announcement-Delivery
+Dashboard-Anbindung
 ```
 
-Bestätigte Werte aus dem Screenshot:
+Nicht vorhanden war bisher:
 
 ```text
-READ-ONLY OK
-Schema 5
-Soll 5
-Status OK: ja
-Schema OK: ja
-Integration OK: ja
-DB: ok / sqlite
-Aktuelle Seite: 36
-Seitendatum: 2026-06-02
-Heute lokal: 2026-06-02
-Nächste Seite: 36
-Stream aktiv: nein
-Einträge heute: ja
-Leer-Hinweis gepostet: nein
-Zuletzt aktualisiert: 2026-06-02T18:48:44.803Z
-State: 1
-Runtime-Events: 265
-User-Stats: 11
-Daily-Stats: 42
-Settings: 20
-Textvarianten: 17
-Text-Kategorien: 5
-Config-Quelle: database_with_json_fallback
+docs/modules/message_rotator.md
 ```
 
-## Bestätigte UX
+## Änderung CAN-36.2
+
+Neu:
 
 ```text
-Die Diagnose ist im eigenen Tab.
-Die Diagnose ist in mehrere Abschnitte/Karten getrennt.
-Nicht alles liegt auf einer langen gemeinsamen Übersicht.
-Tabs reagieren laut Rückmeldung normal.
-Kein Firefox-Hänger gemeldet.
+docs/modules/message_rotator.md
 ```
 
-## Bestätigte Read-only Nutzung
-
-Die Karte nutzt nur:
+Darin festgehalten:
 
 ```text
-GET /api/tagebuch/status
-GET /api/tagebuch/routes
-GET /api/tagebuch/integration-check
+- Modulzweck
+- MODULE_META / Version / Routenprefix
+- Status-Endpunkt
+- Read-only Routen
+- produktive/schreibende Routen
+- Dashboard-Schreibfunktionen
+- Integration-Check als sichere Diagnose
+- besondere Warnung zu next/manual/start/stop/tick/live-status/reload
+- Regeln für spätere Message-Rotator-Diagnosekarten
 ```
 
-## Bestätigte produktive Routen: nicht genutzt
+## Wichtigste Sicherheitsentscheidung
+
+Read-only Diagnose darf nutzen:
 
 ```text
-GET/POST /api/tagebuch/stream/start
-GET/POST /api/tagebuch/stream/end
-GET/POST /api/tagebuch/entry
-GET/POST /api/tagebuch/reset
-GET/POST /api/tagebuch/reload
-GET/POST /discord/stream/start
-GET/POST /discord/stream/end
-GET/POST /discord/tagebuch
-GET/POST /discord/tagebuch/reset
-POST /api/tagebuch/admin/settings
-POST /api/tagebuch/admin/texts
+GET /api/message-rotator/status
+GET /api/message-rotator/config
+GET /api/message-rotator/settings
+GET /api/message-rotator/routes
+GET /api/message-rotator/integration-check
+GET /api/message-rotator/admin/settings
+GET /api/message-rotator/admin/texts
+GET /message-rotator/status
+GET /message-rotator/config
+GET /message-rotator/settings
+GET /message-rotator/routes
+GET /message-rotator/integration-check
+GET /message-rotator/admin/settings
+GET /message-rotator/admin/texts
 ```
 
-## Ergebnis
+Nicht automatisch verwenden:
 
 ```text
-CAN-35.3 Ziel erfüllt.
-Dashboard-only Erweiterung aktiv.
-Read-only Diagnosekarte im Tagebuch-Diagnose-Tab sichtbar.
-Diagnose in mehrere Abschnitte/Karten getrennt.
-Produktive Routen nicht ausgelöst.
-Keine Entry-/Stream-/Reset-/Reload-/Admin-POST-Buttons in der Diagnosekarte.
-Keine Tagebuch-Einträge erstellt.
-Keine Streamstart-/Streamende-Aktion.
-Kein Reset.
-Kein Reload.
-Keine Settings gespeichert.
-Keine Textvarianten gespeichert oder gelöscht.
-Keine Discord-Nachricht gepostet.
-Keine Statistik erhöht.
-Keine DB-Migration.
-Keine Funktionalität entfernt.
+GET/POST /api/message-rotator/reload
+GET/POST /api/message-rotator/start
+GET/POST /api/message-rotator/stop
+GET/POST /api/message-rotator/tick
+GET/POST /api/message-rotator/next
+GET/POST /api/message-rotator/manual
+GET/POST /api/message-rotator/live-status
+POST /api/message-rotator/admin/settings
+POST /api/message-rotator/admin/texts
+GET/POST /message-rotator/reload
+GET/POST /message-rotator/start
+GET/POST /message-rotator/stop
+GET/POST /message-rotator/tick
+GET/POST /message-rotator/next
+GET/POST /message-rotator/manual
+GET/POST /message-rotator/live-status
+POST /message-rotator/admin/settings
+POST /message-rotator/admin/texts
 ```
 
-## Nicht geändert in CAN-35.4
+## Nicht geändert
 
 ```text
 Keine Codeänderung.
-Keine Backend-Dateien.
-Keine Tagebuch-Moduldatei.
-Keine API-Routen.
-Keine Tagebuch-Funktion.
-Keine Tagebuch-Einträge.
+Keine Message gesendet.
+Kein Rotator gestartet/gestoppt.
+Kein Tick ausgelöst.
+Kein Next/Manual ausgelöst.
 Keine Settings gespeichert.
-Keine Texte/Varianten gespeichert oder gelöscht.
+Keine Texte/Varianten gespeichert/gelöscht.
 Kein Reload ausgelöst.
+Keine Live-Status-Abfrage erzwungen.
 Keine DB-Migration.
 Keine Dashboard-Write-Buttons getestet.
-Keine Discord-Nachricht gepostet.
-Keine Statistik erhöht.
-Keine Twitch-/Streamer.bot-Aktion.
+Keine Discord-/Twitch-/Chat-Nachricht gepostet.
 Keine OBS-/Sound-/Queue-Aktion.
+Keine Funktionalität entfernt.
 ```
 
 ## Nächster Schritt
 
 ```text
-CAN-36.0 neuen Arbeitsblock bewusst auswählen.
+CAN-36.2 anwenden.
+Danach optional CAN-36.3 Message-Rotator Dashboard Read-only Diagnosekarte planen.
 ```
