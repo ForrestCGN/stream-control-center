@@ -1,12 +1,15 @@
 # CHANGELOG
 
-## CAN-23.13
+## CAN-23.14
 
-- `GET /api/overlay-monitor/client-control/status` als read-only Route in `overlay_monitor.js` ergaenzt.
-- Bus-Integration-Matrix liest Overlay-Client-Kontrollstatus mit aus.
-- Dashboard-Bus-Matrix zeigt Overlay-Client online/warning/error Status.
-- Kein OBS-Refresh.
-- Keine OBS-Reparatur.
-- Kein Browser-Source-Refresh.
+- `GET /api/channelpoints/bus/request-readiness` als read-only Route in `channelpoints.js` ergaenzt.
+- Bus-Integration-Matrix liest Channelpoints Bus-Request-Readiness mit aus.
+- Dashboard-Bus-Matrix zeigt Reward-/Sound-/Alert-Kandidaten beim Channelpoints-System.
+- Keine Reward-Aenderung.
+- Keine Redemption-Aenderung.
+- Keine Twitch-Aktion.
+- Keine Reward-Ausfuehrung.
+- Kein Sound.
+- Kein Alert.
 - Kein EventBus-Emit.
 - Keine Recovery.

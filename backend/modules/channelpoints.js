@@ -2558,6 +2558,109 @@ function buildTwitchSyncStatus() {
   };
 }
 
+function buildChannelpointsBusRequestReadinessStatus() {
+  const rewards = Array.isArray(listRewards({ query: {} })) ? listRewards({ query: {} }) : [];
+  const bus = buildBusStatus();
+  const config = getConfig();
+  const counts = {
+    total: rewards.length,
+    executable: 0,
+    soundCandidates: 0,
+    alertCandidates: 0,
+    otherCandidates: 0,
+    inactive: 0,
+    paused: 0,
+    missingAction: 0
+  };
+
+  const rows = rewards.map(reward => {
+    const actionType = cleanString(reward.action_type || reward.actionType || '').toLowerCase();
+    const actionKey = cleanString(reward.action_key || reward.actionKey || '');
+    const enabled = reward.system_enabled !== false && reward.system_enabled !== 0;
+    const paused = reward.is_paused === true || reward.is_paused === 1;
+    const executable = enabled && !paused && isExecutableReward(reward);
+    const soundCandidate = actionType === 'sound' || actionType === 'media' || !!rewardMediaId(reward);
+    const alertCandidate = actionType === 'alert' || actionType === 'overlay' || actionType === 'message';
+
+    if (executable) counts.executable += 1;
+    if (!enabled) counts.inactive += 1;
+    if (paused) counts.paused += 1;
+    if (!isExecutableReward(reward)) counts.missingAction += 1;
+    if (soundCandidate) counts.soundCandidates += 1;
+    else if (alertCandidate) counts.alertCandidates += 1;
+    else counts.otherCandidates += 1;
+
+    return {
+      id: reward.id || '',
+      rewardKey: reward.reward_key || reward.rewardKey || '',
+      title: reward.title || '',
+      twitchRewardId: reward.twitch_reward_id || '',
+      enabled,
+      paused,
+      executable,
+      actionType,
+      actionKey,
+      mediaAssetId: rewardMediaId(reward),
+      soundCandidate,
+      alertCandidate,
+      currentExecutionTarget: soundCandidate ? (config.mediaExecutionTargetUrl || '/api/sound/play') : '',
+      plannedBusCommand: soundCandidate ? 'sound.play.request' : (alertCandidate ? 'alert.request' : ''),
+      migrationStatus: executable && (soundCandidate || alertCandidate) ? 'candidate' : 'not_ready',
+      reason: !enabled ? 'reward_inactive' : (paused ? 'reward_paused' : (!isExecutableReward(reward) ? 'reward_action_missing' : 'ready'))
+    };
+  });
+
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    feature: 'channelpoints_bus_request_readiness',
+    mode: 'read_only_bus_request_readiness',
+    readOnly: true,
+    rewardsTouched: false,
+    redemptionsTouched: false,
+    executionTouched: false,
+    soundSystemTouched: false,
+    alertTouched: false,
+    twitchTouched: false,
+    eventBusEmit: false,
+    recoveryTriggered: false,
+    summary: counts,
+    rewards: rows,
+    bus,
+    currentFlow: {
+      eventSubRedemptionStatus: `${ROUTE_PREFIX}/eventsub/redemption/status`,
+      eventSubRedemptionPreview: `${ROUTE_PREFIX}/eventsub/redemption/preview`,
+      directExecute: `${ROUTE_PREFIX}/execute`,
+      rewardExecute: `${ROUTE_PREFIX}/rewards/:idOrKey/execute`,
+      currentMediaExecutionTarget: config.mediaExecutionTargetUrl || '/api/sound/play'
+    },
+    plannedFlow: {
+      soundCommand: 'sound.play.request',
+      alertCommand: 'alert.request',
+      migrateOneRewardAtATime: true,
+      keepLegacyExecutionUntilAccepted: true,
+      requireDryRunFirst: true
+    },
+    safety: {
+      statusRouteTouchesRewards: false,
+      statusRouteTouchesRedemptions: false,
+      statusRouteExecutesRewards: false,
+      statusRouteTouchesTwitch: false,
+      statusRouteEmitsBus: false,
+      productiveExecutionUnchanged: true
+    },
+    nextSteps: [
+      'Use this status to pick one sound reward as first migration candidate.',
+      'Validate the chosen reward against sound dry-run before changing productive execution.',
+      'Keep EventSub redemption handling unchanged until one candidate is accepted.',
+      'Do not fulfill/cancel Twitch redemptions from this diagnostic route.'
+    ],
+    updatedAt: nowIso()
+  };
+}
+
 function buildStatus(extra = {}) {
   const config = getConfig();
   let counts = { rewards: 0, categories: 0, redemptions: 0 };
@@ -2639,6 +2742,7 @@ function buildStatus(extra = {}) {
     bus: buildBusStatus(),
     routes: [
       `${ROUTE_PREFIX}/status`,
+      `${ROUTE_PREFIX}/bus/request-readiness`,
       `${ROUTE_PREFIX}/model`,
       `${ROUTE_PREFIX}/media-plan`,
       `${ROUTE_PREFIX}/schema-preview`,
@@ -2873,6 +2977,9 @@ function init({ app }) {
 
   app.get(`${ROUTE_PREFIX}/status`, (req, res) => {
     try { heartbeatBus("status_route"); publishStatus("status_route"); res.json(buildStatus()); } catch (err) { sendError(res, 500, err); }
+  });
+  app.get(`${ROUTE_PREFIX}/bus/request-readiness`, (req, res) => {
+    try { res.json(buildChannelpointsBusRequestReadinessStatus()); } catch (err) { sendError(res, 500, err); }
   });
   app.get(`${ROUTE_PREFIX}/model`, (req, res) => { try { res.json(buildModel()); } catch (err) { sendError(res, 500, err); } });
   app.get(`${ROUTE_PREFIX}/media-plan`, (req, res) => { try { res.json(buildMediaPlan()); } catch (err) { sendError(res, 500, err); } });

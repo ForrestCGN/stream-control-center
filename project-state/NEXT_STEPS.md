@@ -3,17 +3,13 @@
 ## Naechster Schritt
 
 ```text
-Channelpoints: Rewards nach Sound/Alert schrittweise ueber Bus-Requests fuehren.
+Produktive Overlays von Test-/Alt-Overlays in der Matrix unterscheidbar machen.
 ```
-
-## Ziel
-
-Channelpoints-Status, Reward-Redemption und Sound-/Alert-Abhaengigkeiten sichtbar machen, ohne produktive Reward-Ausfuehrung zu veraendern.
 
 ## Danach
 
 ```text
-Produktive Overlays von Test-/Alt-Overlays trennen
 Overlay-Client-IDs und Capabilities vereinheitlichen
+Legacy/direct REST-/broadcastWS-Wege pro Modul markieren
 Recovery/Selbstheilung spaeter
 ```

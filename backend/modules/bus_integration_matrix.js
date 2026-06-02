@@ -48,6 +48,7 @@ const ENDPOINTS = {
   alertStatus: '/api/alerts/status',
   alertCorrelation: '/api/alerts/eventbus/correlation/status',
   channelpointsStatus: '/api/channelpoints/status',
+  channelpointsBusRequestReadiness: '/api/channelpoints/bus/request-readiness',
   channelpointsReadonlySync: '/api/channelpoints/twitch/manage/status',
   overlayMonitor: '/api/overlay-monitor/status',
   overlayClientControl: '/api/overlay-monitor/client-control/status',
@@ -130,6 +131,8 @@ const SYSTEMS = [
     busClientIds: ['module:channelpoints'],
     statusKey: 'channelpointsStatus',
     statusRoute: ENDPOINTS.channelpointsStatus,
+    channelpointsReadinessKey: 'channelpointsBusRequestReadiness',
+    channelpointsReadinessRoute: ENDPOINTS.channelpointsBusRequestReadiness,
     eventBusKey: '',
     commandStatus: 'status_only',
     legacyDirect: true,
@@ -311,6 +314,7 @@ function buildSystemRow(system, clients, fetched) {
   const alertDryRunFetch = system.alertDryRunKey ? fetched[system.alertDryRunKey] : null;
   const vipOverlayFetch = system.vipOverlayKey ? fetched[system.vipOverlayKey] : null;
   const overlayClientControlFetch = system.overlayClientControlKey ? fetched[system.overlayClientControlKey] : null;
+  const channelpointsReadinessFetch = system.channelpointsReadinessKey ? fetched[system.channelpointsReadinessKey] : null;
 
   const statusBody = bodyOf(statusFetch);
   const eventBusBody = bodyOf(eventBusFetch);
@@ -325,6 +329,7 @@ function buildSystemRow(system, clients, fetched) {
   const alertDryRunBody = bodyOf(alertDryRunFetch);
   const vipOverlayBody = bodyOf(vipOverlayFetch);
   const overlayClientControlBody = bodyOf(overlayClientControlFetch);
+  const channelpointsReadinessBody = bodyOf(channelpointsReadinessFetch);
 
   const registered = system.id === 'communication_bus' || matchingClients.length > 0;
   const connected = system.id === 'communication_bus' || matchingClients.some(client => client.connected === true);
@@ -342,6 +347,7 @@ function buildSystemRow(system, clients, fetched) {
   const alertDryRunOk = alertDryRunFetch ? alertDryRunFetch.ok === true && (!alertDryRunBody || alertDryRunBody.ok !== false) : null;
   const vipOverlayOk = vipOverlayFetch ? vipOverlayFetch.ok === true && (!vipOverlayBody || vipOverlayBody.ok !== false) : null;
   const overlayClientControlOk = overlayClientControlFetch ? overlayClientControlFetch.ok === true && (!overlayClientControlBody || overlayClientControlBody.ok !== false) : null;
+  const channelpointsReadinessOk = channelpointsReadinessFetch ? channelpointsReadinessFetch.ok === true && (!channelpointsReadinessBody || channelpointsReadinessBody.ok !== false) : null;
   const ackCapable = matchingClients.some(client => includesCapability(client, 'ack') || includesCapability(client, 'bus.ack'));
   const commandCapable = ['core', 'partial', 'bridge'].includes(system.commandStatus);
 
@@ -355,7 +361,7 @@ function buildSystemRow(system, clients, fetched) {
     eventBusOk,
     commandCapable
   });
-  const risk = determineRisk({ system, registered, connected, statusOk, eventBusOk, integrationOk, commandOk, contractOk, lifecycleOk, compatibilityOk, queueStatusOk, ackStatusOk, alertContractOk, alertDryRunOk, vipOverlayOk, overlayClientControlOk });
+  const risk = determineRisk({ system, registered, connected, statusOk, eventBusOk, integrationOk, commandOk, contractOk, lifecycleOk, compatibilityOk, queueStatusOk, ackStatusOk, alertContractOk, alertDryRunOk, vipOverlayOk, overlayClientControlOk, channelpointsReadinessOk });
 
   return {
     id: system.id,
@@ -443,6 +449,13 @@ function buildSystemRow(system, clients, fetched) {
     overlayClientHeartbeat: Number(overlayClientControlBody && overlayClientControlBody.summary ? overlayClientControlBody.summary.heartbeat || 0 : 0),
     overlayClientProductiveHint: Number(overlayClientControlBody && overlayClientControlBody.summary ? overlayClientControlBody.summary.productiveHint || 0 : 0),
     overlayClientTestOrLegacyHint: Number(overlayClientControlBody && overlayClientControlBody.summary ? overlayClientControlBody.summary.testOrLegacyHint || 0 : 0),
+    channelpointsReadinessRoute: system.channelpointsReadinessRoute || '',
+    channelpointsReadinessOk,
+    channelpointsRewardTotal: Number(channelpointsReadinessBody && channelpointsReadinessBody.summary ? channelpointsReadinessBody.summary.total || 0 : 0),
+    channelpointsExecutable: Number(channelpointsReadinessBody && channelpointsReadinessBody.summary ? channelpointsReadinessBody.summary.executable || 0 : 0),
+    channelpointsSoundCandidates: Number(channelpointsReadinessBody && channelpointsReadinessBody.summary ? channelpointsReadinessBody.summary.soundCandidates || 0 : 0),
+    channelpointsAlertCandidates: Number(channelpointsReadinessBody && channelpointsReadinessBody.summary ? channelpointsReadinessBody.summary.alertCandidates || 0 : 0),
+    channelpointsCurrentMediaTarget: channelpointsReadinessBody && channelpointsReadinessBody.currentFlow ? (channelpointsReadinessBody.currentFlow.currentMediaExecutionTarget || '') : '',
     ackCapable,
     commandStatus: system.commandStatus,
     commandCapable,
@@ -467,7 +480,7 @@ function determineRisk(input) {
   if (input.system.id === 'communication_bus') return input.statusOk === false ? 'error' : 'ok';
   if (input.statusOk === false && input.eventBusOk === false) return 'error';
   if (!input.registered && input.statusOk !== true) return 'warning';
-  if (input.statusOk === false || input.eventBusOk === false || input.integrationOk === false || input.commandOk === false || input.contractOk === false || input.lifecycleOk === false || input.compatibilityOk === false || input.queueStatusOk === false || input.ackStatusOk === false || input.alertContractOk === false || input.alertDryRunOk === false || input.vipOverlayOk === false || input.overlayClientControlOk === false) return 'warning';
+  if (input.statusOk === false || input.eventBusOk === false || input.integrationOk === false || input.commandOk === false || input.contractOk === false || input.lifecycleOk === false || input.compatibilityOk === false || input.queueStatusOk === false || input.ackStatusOk === false || input.alertContractOk === false || input.alertDryRunOk === false || input.vipOverlayOk === false || input.overlayClientControlOk === false || input.channelpointsReadinessOk === false) return 'warning';
   return 'ok';
 }
 

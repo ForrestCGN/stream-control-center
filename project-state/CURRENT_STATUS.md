@@ -1,22 +1,25 @@
 # CURRENT_STATUS
 
-## Stand: CAN-23.13 abgeschlossen
+## Stand: CAN-23.14 abgeschlossen
 
-CAN-23.13 hat Overlay-Clients/Heartbeat als Kontrollsicht read-only sichtbar gemacht.
+CAN-23.14 hat Channelpoints Bus-Request-Readiness read-only sichtbar gemacht.
 
 ## Neu
 
 ```text
-GET /api/overlay-monitor/client-control/status
+GET /api/channelpoints/bus/request-readiness
 ```
 
 ## Sicherheitsstatus
 
 ```text
 readOnly: true
-obsRefresh: false
-obsRepair: false
-browserSourceRefresh: false
+rewardChanged: false
+redemptionChanged: false
+twitchTouched: false
+executionTouched: false
+soundTouched: false
+alertTouched: false
 eventBusEmit: false
 recoveryExecution: false
 ```
@@ -24,5 +27,5 @@ recoveryExecution: false
 ## Naechster Schritt
 
 ```text
-Channelpoints: Rewards nach Sound/Alert schrittweise ueber Bus-Requests fuehren.
+Produktive Overlays von Test-/Alt-Overlays in der Matrix unterscheidbar machen.
 ```
