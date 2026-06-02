@@ -1,69 +1,73 @@
 # CURRENT_STATUS
 
-## Stand: CAN-31.2 abgeschlossen
+## Stand: CAN-32.1 vorbereitet
 
-CAN-31.2 dokumentiert den erfolgreichen Live-Test von CAN-31.1.
+CAN-32.1 ergänzt die Bus-Diagnose-Übersicht um eine kleine Sicherheits-/Read-only-Zusammenfassung.
 
 ## Aktueller Arbeitsbereich
 
 ```text
-CAN-31: WS connect/disconnect Log prüfen und drosseln
+CAN-32: Dashboard/EventBus read-only Diagnose glätten
 ```
 
-## Bestätigter Live-Test
+## Änderung CAN-32.1
 
-Die vielen einzelnen WebSocket-Connect-Zeilen wurden erfolgreich durch Summary-Zeilen ersetzt:
+Betroffene Dateien:
 
 ```text
-[WS] clients=15 connectedDelta=15 disconnectedDelta=0 connectedTotal=15 disconnectedTotal=0
-[WS] clients=16 connectedDelta=1 disconnectedDelta=0 connectedTotal=16 disconnectedTotal=0
+htdocs/dashboard/index.html
+htdocs/dashboard/modules/bus_diagnostics_readonly_summary.js
+htdocs/dashboard/modules/bus_diagnostics_readonly_summary.css
 ```
 
-## Weiterhin sauber
+Wichtig:
 
 ```text
-[module-loader] summary loaded=52 skipped=1 failed=0 warnings=0 routes=1180 duplicateRoutes=0
-[discord] ready as Erschreck-Bär#5808
+Die bestehende htdocs/dashboard/modules/bus_diagnostics.js bleibt unverändert.
+Die Ergänzung wird nach bus_diagnostics.js geladen.
 ```
 
-## Ergebnis
+## Inhalt
+
+Neue Karte in Bus-Diagnose > Übersicht:
 
 ```text
-WS Summary aktiv.
-Keine einzelnen [WS] client connected Spam-Zeilen mehr.
-WebSocket-Clients verbinden weiterhin.
-Module weiterhin sauber geladen.
-Discord weiterhin ready.
-Keine Loader-Warnings.
-Keine FAILED-Module.
+Sicherheits- / Read-only-Zusammenfassung
+- Status read-only
+- Recovery Route read-only
+- Flow touched
+- Queue touched
+- Sound touched
+- Overlay touched
+- Recovery prepare
+- Recovery execute
 ```
 
-## Nicht geändert in CAN-31.2
+## Sicherheit
 
 ```text
-Keine Codeänderung.
-Keine WebSocket-Routen.
-Kein dispatchWsMessage.
-Keine Modul-Handler.
-Keine Broadcast-Logik.
-Keine Overlay-Logik.
-Keine Dashboard-Dateien.
-Keine DB.
+Nur read-only Anzeige.
+Nur GET /api/bus-diagnostics/status.
+Nur GET /api/bus-diagnostics/recovery-preflight.
+Keine produktiven Aktionen.
+Keine Recovery-Ausführung.
 Keine OBS-Aktion.
-Keine produktiven Flows.
+Keine Sound-/Queue-/Twitch-/DB-Aktion.
 Keine Funktionalität entfernt.
 ```
 
-## Bekannte verbleibende Beobachtung
+## Erwartete Prüfung
 
 ```text
-ExperimentalWarning: SQLite is an experimental feature and might change at any time
+Dashboard öffnen.
+Bus-Diagnose > Übersicht öffnen.
+Karte "Sicherheits- / Read-only-Zusammenfassung" erscheint oben.
+Werte zeigen "ja/nein".
+Recovery execute bleibt nein / gesperrt.
 ```
-
-Diese Warning ist seit CAN-30.1 bekannt, dokumentiert und aktuell akzeptiert.
 
 ## Nächster Schritt
 
 ```text
-CAN-32.0 neuen Arbeitsblock bewusst auswählen.
+CAN-32.1 anwenden und Dashboard-Sichtprüfung machen.
 ```

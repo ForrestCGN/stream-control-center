@@ -64,7 +64,9 @@
 
 ## CAN-32
 
-- [ ] CAN-32.0 neuen Arbeitsblock bewusst auswählen.
+- [x] CAN-32.0 neuen Arbeitsblock bewusst auswählen.
+- [ ] CAN-32.1 Bus-Diagnose Übersicht Read-only Summary anwenden und prüfen.
+- [ ] CAN-32.2 Testergebnis dokumentieren.
 
 ## Offene/zu beobachtende Punkte
 

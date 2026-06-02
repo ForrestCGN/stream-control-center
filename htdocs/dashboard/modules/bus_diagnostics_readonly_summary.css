@@ -1,0 +1,67 @@
+.busdiag-readonly-summary-card {
+  border-color: rgba(134, 239, 172, 0.28);
+  background: linear-gradient(135deg, rgba(7, 24, 34, 0.92), rgba(22, 20, 50, 0.84));
+  box-shadow: 0 0 26px rgba(34, 197, 94, 0.08), 0 0 30px rgba(103, 232, 249, 0.06);
+}
+
+.busdiag-readonly-summary-card h3 {
+  color: rgba(226, 255, 241, 0.98);
+}
+
+.busdiag-readonly-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.busdiag-readonly-metric {
+  min-height: 62px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.045);
+  padding: 10px;
+}
+
+.busdiag-readonly-metric.ok {
+  border-color: rgba(134, 239, 172, 0.24);
+  background: rgba(22, 163, 74, 0.08);
+}
+
+.busdiag-readonly-metric.warning {
+  border-color: rgba(250, 204, 21, 0.28);
+  background: rgba(202, 138, 4, 0.09);
+}
+
+.busdiag-readonly-metric span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.busdiag-readonly-metric strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 16px;
+}
+
+.busdiag-readonly-metric small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+@media(max-width:1200px){
+  .busdiag-readonly-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media(max-width:760px){
+  .busdiag-readonly-grid {
+    grid-template-columns: 1fr;
+  }
+}

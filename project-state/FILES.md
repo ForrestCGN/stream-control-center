@@ -1,45 +1,42 @@
 # FILES
 
-## Aktueller Arbeitsstand CAN-31.2
+## Aktueller Arbeitsstand CAN-32.1
 
 Wichtige geaenderte/zuletzt relevante Dateien:
 
 ```text
+htdocs/dashboard/index.html
+htdocs/dashboard/modules/bus_diagnostics_readonly_summary.js
+htdocs/dashboard/modules/bus_diagnostics_readonly_summary.css
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/CHANGELOG.md
 project-state/FILES.md
-docs/current/CURRENT_CHAT_HANDOFF_CAN31_2.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN32_1.md
 ```
 
-## CAN-31 ZIPs aus dem Chat
+## CAN-32 ZIPs aus dem Chat
 
 ```text
-CAN-31.1_ws_connect_log_summary.zip
-CAN-31.2_document_ws_log_summary_test.zip
+CAN-32.1_bus_diagnostics_readonly_summary.zip
 ```
 
-## CAN-31 relevante Runtime-Datei
+## Wichtige Sicherheitsnotiz
 
 ```text
-backend/server.js
+htdocs/dashboard/modules/bus_diagnostics.js bleibt unverändert.
+Die neue Erweiterung wird nach bus_diagnostics.js geladen.
+Sie nutzt nur read-only GET-Routen.
 ```
 
-CAN-31.2 selbst ändert keine Runtime-Datei.
-
-## Bestätigter CAN-31.1 Live-Test
+## Prüfung
 
 ```text
-[WS] clients=15 connectedDelta=15 disconnectedDelta=0 connectedTotal=15 disconnectedTotal=0
-[WS] clients=16 connectedDelta=1 disconnectedDelta=0 connectedTotal=16 disconnectedTotal=0
-```
-
-## Weitere bestätigte Live-Statuswerte
-
-```text
-[module-loader] summary loaded=52 skipped=1 failed=0 warnings=0 routes=1180 duplicateRoutes=0
-[discord] ready as Erschreck-Bär#5808
+Dashboard > Bus-Diagnose > Übersicht
+Karte "Sicherheits- / Read-only-Zusammenfassung" sichtbar.
+Recovery execute bleibt nein.
+Keine produktiven Buttons.
 ```
 
 ## Lokale Pfade
@@ -47,6 +44,5 @@ CAN-31.2 selbst ändert keine Runtime-Datei.
 ```text
 Repo: D:\Git\stream-control-center
 Live: D:\Streaming\stramAssets
-Server: D:\Streaming\stramAssets\backend\server.js
-Produktive SQLite-DB: D:\Streaming\stramAssets\data\sqlite\app.sqlite
+Dashboard: D:\Streaming\stramAssets\htdocs\dashboard\index.html
 ```

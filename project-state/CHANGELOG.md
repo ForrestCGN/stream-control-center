@@ -1,37 +1,33 @@
 # CHANGELOG
 
+## CAN-32.1
+
+- Bus-Diagnose Dashboard um read-only Sicherheits-Zusammenfassung vorbereitet.
+- Neue Dateien:
+  - `htdocs/dashboard/modules/bus_diagnostics_readonly_summary.js`
+  - `htdocs/dashboard/modules/bus_diagnostics_readonly_summary.css`
+- Geändert:
+  - `htdocs/dashboard/index.html` lädt CSS und JS nach dem bestehenden Bus-Diagnose-Modul.
+- Bestehende `bus_diagnostics.js` bleibt unverändert.
+- Neue Karte in `Bus-Diagnose > Übersicht`:
+  - Status read-only
+  - Recovery Route read-only
+  - Flow touched
+  - Queue touched
+  - Sound touched
+  - Overlay touched
+  - Recovery prepare
+  - Recovery execute
+- Nur read-only GET-Routen:
+  - `/api/bus-diagnostics/status`
+  - `/api/bus-diagnostics/recovery-preflight`
+- Keine produktiven Aktionen, keine Recovery-Ausführung, keine DB/OBS/Sound/Queue/Twitch-Aktion.
+
 ## CAN-31.2
 
 - Erfolgreichen Live-Test von CAN-31.1 dokumentiert.
-- Bestätigtes Ergebnis:
-  - WebSocket-Connect-Spam wurde durch Summary-Zeilen ersetzt.
-  - Beispiel:
-    - `[WS] clients=15 connectedDelta=15 disconnectedDelta=0 connectedTotal=15 disconnectedTotal=0`
-    - `[WS] clients=16 connectedDelta=1 disconnectedDelta=0 connectedTotal=16 disconnectedTotal=0`
-  - Modul-Loader bleibt sauber mit `loaded=52`, `skipped=1`, `failed=0`, `warnings=0`, `duplicateRoutes=0`.
-  - Discord bleibt ready.
-- Keine Codeänderung in CAN-31.2.
-
-## CAN-31.1
-
-- `backend/server.js` WebSocket connect/disconnect Logging umgesetzt:
-  - Einzelne `[WS] client connected` / `[WS] client disconnected` Zeilen werden nicht mehr pro Client ausgegeben.
-  - Neue gedrosselte Summary:
-    - `[WS] clients=... connectedDelta=... disconnectedDelta=... connectedTotal=... disconnectedTotal=...`
-  - `/api/_status` ergänzt um `wsLogSummaryVersion` und `wsLogSummary`.
-  - `SERVER_VERSION` auf `0.1.2-can31-1-ws-log-summary` erhöht.
-- Keine WebSocket-Funktionalität geändert.
+- WebSocket-Connect-Spam wurde durch Summary-Zeilen ersetzt.
 
 ## CAN-30.1
 
-- SQLite ExperimentalWarning dokumentiert.
-- Ursache festgehalten:
-  - `backend/modules/sqlite_core.js`
-  - `require("node:sqlite")`
-  - `DatabaseSync`
-- Keine Codeänderung, keine DB-Änderung, kein Treiberwechsel.
-
-## CAN-29.2
-
-- Erfolgreichen Live-Test von CAN-29.1 dokumentiert.
-- Discord.js DeprecationWarning `ready -> clientReady` erscheint nicht mehr.
+- SQLite ExperimentalWarning dokumentiert und akzeptiert.
