@@ -1,10 +1,10 @@
 # CHANGELOG
 
-## CAN-21.2
+## CAN-22.0
 
-- Recovery Safety Master Documentation / Index / Closure abgeschlossen.
-- Naechster sicherer Kandidat entschieden: CAN-22.0 Safety Architecture Backend Shape Implementation Planning no-code.
-- Weiterhin harte Blocker und No-Go-Grenzen bestaetigt.
+- Safety Architecture Backend Shape Implementation Planning no-code erstellt.
+- Betroffene echte Dateien, moegliche interne Funktionen, Tests, Rollback- und Abnahme-Grenzen dokumentiert.
+- CAN-22.1 Safety Architecture Backend Shape File Inspection Planning als naechster Schritt festgelegt.
 - Keine Code-Aenderungen.
 - Keine API.
 - Keine Route.
@@ -13,3 +13,4 @@
 - Kein EventBus-Emit.
 - Keine Dashboard-Aenderung.
 - Keine Recovery-Ausfuehrung.
+- Kein Validation-Code.

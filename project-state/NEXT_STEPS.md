@@ -3,25 +3,25 @@
 ## Naechster Schritt
 
 ```text
-CAN-22.0 - Safety Architecture Backend Shape Implementation Planning no-code
+CAN-22.1 - Safety Architecture Backend Shape File Inspection Planning
 ```
 
-## Ziel CAN-22.0
+## Ziel CAN-22.1
 
-Planen, welche echten Dateien spaeter fuer ein internes Safety Architecture Backend Shape betroffen waeren und welche Tests/Grenzen gelten muessen.
+Vor einer spaeteren technischen Planung die echten GitHub/dev-Dateien gezielt pruefen und dokumentieren, welche vorhandenen Strukturen genutzt werden koennen.
 
-## CAN-22.0 darf klaeren
+## CAN-22.1 darf klaeren
 
 ```text
-betroffene echte Dateien
-notwendige Funktionen
-no-code Implementierungsgrenzen
-spaetere Tests
-spaetere Rollback-/Abnahmegrenzen
-weiterhin blockierte Bereiche
+welche Funktionen in backend/modules/bus_diagnostics.js existieren
+welche Routen dort bereits vorhanden sind
+welche Status-/Safety-Felder bereits vorhanden sind
+welche Dashboard-Struktur in htdocs/dashboard/modules/bus_diagnostics.js existiert
+ob communication_bus.js relevant ist
+welche bestehende Helfer genutzt werden koennen
 ```
 
-## CAN-22.0 darf NICHT enthalten
+## CAN-22.1 darf NICHT enthalten
 
 ```text
 Code-Aenderung
