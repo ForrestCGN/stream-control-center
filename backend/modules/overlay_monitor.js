@@ -21,14 +21,14 @@ try { database = require('../core/database'); } catch (_) { database = null; }
 try { obsSharedModule = require('./obs_shared'); } catch (_) { obsSharedModule = null; }
 
 const MODULE = 'overlay_monitor';
-const VERSION = '0.1.7';
+const VERSION = '0.1.8';
 const MODULE_VERSION = VERSION;
-const STATUS_API_VERSION = '1.0.7';
+const STATUS_API_VERSION = '1.0.8';
 
 const MODULE_META = {
   name: MODULE,
   version: VERSION,
-  build: 'CAN-26.1',
+  build: 'CAN-26.2',
   type: 'runtime',
   category: 'diagnostics',
   description: 'Read-only Overlay-Monitor mit robuster Scene-Awareness-Diagnose, OBS-Inventar und manuellen Reparaturaktionen.',
@@ -1658,6 +1658,7 @@ function buildOverlayClientIdentityContractStatus() {
 
 function buildOverlayClientClassificationStatus() {
   const control = buildOverlayClientControlStatus();
+  const sceneAwarenessDiagnostics = isPlainObject(control.sceneAwareness) ? control.sceneAwareness : {};
   const rows = Array.isArray(control.clients) ? control.clients.map(client => {
     const classification = classifyOverlayClientPurpose(client);
     return {
@@ -1832,6 +1833,14 @@ function buildOverlayClientControlStatus() {
     eventBusEmit: false,
     recoveryTriggered: false,
     summary,
+    sceneAwareness: sceneAwarenessDiagnostics,
+    currentProgramSceneName: cleanString(sceneAwarenessDiagnostics.currentProgramSceneName),
+    currentPreviewSceneName: cleanString(sceneAwarenessDiagnostics.currentPreviewSceneName),
+    currentProgramSceneKnown: sceneAwarenessDiagnostics.currentProgramSceneKnown === true,
+    sceneAwarenessMode: cleanString(sceneAwarenessDiagnostics.sceneAwarenessMode),
+    inventoryUpdatedAt: cleanString(sceneAwarenessDiagnostics.inventoryUpdatedAt),
+    inventoryFromCache: sceneAwarenessDiagnostics.inventoryFromCache === true,
+    inventoryFromMemory: sceneAwarenessDiagnostics.inventoryFromMemory === true,
     clients: rows,
     thresholds: {
       staleAfterMs,

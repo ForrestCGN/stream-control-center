@@ -24,12 +24,14 @@
 - [x] CAN-25.24 Overlay-Monitor Dashboard Scene-Aware.
 - [x] CAN-25.25b Bus-Matrix Systeme wirklich kompakt.
 
-## Naechster Block
+## CAN-26
 
-- [ ] CAN-26.0 GitHub/dev und Live-Ziel abgleichen.
-- [ ] CAN-26.0 Dashboard Bus-Diagnose nach Strg+F5 final visuell pruefen.
-- [ ] CAN-26.0 Overlay-Monitor Status pruefen.
-- [ ] CAN-26.0 entscheiden, ob weiterer Dashboard-Feinschliff noetig ist.
+- [x] CAN-26.0 GitHub/dev und Live-Ziel abgleichen.
+- [x] CAN-26.0 Overlay-Monitor Status pruefen.
+- [x] CAN-26.1 Overlay-Monitor Scene-Awareness gegen echte Program-Szene korrigieren.
+- [x] CAN-26.1 Szene ohne Rahmen getestet: frame_overlay expected_inactive, warning 0, error 0.
+- [ ] CAN-26.2 Top-Level-Diagnosefelder in /api/overlay-monitor/client-control/status nach Deploy pruefen.
+- [ ] CAN-26.3 naechsten technischen Kandidaten planen.
 
 ## Offene/zu beobachtende Punkte
 

@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## CAN-26.2
+
+- Overlay-Monitor `backend/modules/overlay_monitor.js` auf Version 0.1.8 / Status API 1.0.8 erhoeht.
+- `/api/overlay-monitor/client-control/status` liefert Scene-Awareness-Diagnose jetzt auch auf Top-Level:
+  - `sceneAwareness`
+  - `currentProgramSceneName`
+  - `currentPreviewSceneName`
+  - `currentProgramSceneKnown`
+  - `sceneAwarenessMode`
+  - `inventoryUpdatedAt`
+  - `inventoryFromCache`
+  - `inventoryFromMemory`
+- Keine OBS-Reparatur, kein Source-Refresh, keine DB-Migration, keine produktive Aktion.
+
+## CAN-26.1
+
+- Overlay-Monitor `backend/modules/overlay_monitor.js` auf Version 0.1.7 / Status API 1.0.7 erhoeht.
+- `currentProgramSceneName` faellt nicht mehr blind auf `sceneNames[0]` zurueck.
+- Wenn keine echte Program-Szene bekannt ist, wird kein Overlay als `activeExpected` markiert.
+- Test mit Szene ohne Rahmen bestaetigte: `frame_overlay` wird `expected_inactive`, `warning=0`, `error=0`.
+- Keine OBS-Reparatur, kein Source-Refresh, keine DB-Migration, keine produktive Aktion.
+
 ## CAN-25.25b
 
 - Bus-Matrix SYSTEME-Bereich im Dashboard wieder wirklich kompakt gemacht.

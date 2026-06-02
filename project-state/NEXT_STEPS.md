@@ -1,35 +1,53 @@
 # NEXT_STEPS
 
-## Direkt naechster Schritt im neuen Chat
+## Direkt naechster Schritt
 
 ```text
-CAN-26.0: Abschluss-/Qualitaetscheck fuer Bus-Diagnose + Git/Live-Synchronisation pruefen.
+CAN-26.2: Overlay-Monitor client-control/status Top-Level-Diagnosefelder pruefen und abschliessen.
 ```
 
-## Start im neuen Chat
+## CAN-26.2 Test
 
-1. Master-Prompt beachten.
-2. `docs/current/CURRENT_CHAT_HANDOFF_CAN25_25B.md` lesen.
-3. GitHub/dev und Live-Ziel bewusst abgleichen.
-4. Nur dann naechsten CAN-Schritt planen.
+Nach Entpacken, Syntaxcheck, Deploy und Node-Neustart pruefen:
 
-## Empfohlener CAN-26.0 Check
+```powershell
+$o = Invoke-RestMethod "http://127.0.0.1:8080/api/overlay-monitor/client-control/status"
+$o | Select-Object currentProgramSceneName,currentPreviewSceneName,currentProgramSceneKnown,sceneAwarenessMode,inventoryUpdatedAt,inventoryFromCache,inventoryFromMemory | Format-List
+```
+
+Erwartung:
 
 ```text
-- Pruefen, ob CAN-25.24 und CAN-25.25b im Repo/dev und Live identisch sind.
-- Dashboard Bus-Diagnose mit Strg+F5 pruefen.
-- /api/overlay-monitor/client-control/status kurz pruefen.
-- SYSTEME-Bereich visuell pruefen.
-- Overlay-Monitor Summary pruefen: warning 0 / error 0, sofern keine echte aktive Quelle fehlt.
-- Node-Log auf unnoetigen Overlay-Flap-Spam beobachten.
+currentProgramSceneName  : <echte OBS Program-Szene>
+currentProgramSceneKnown : True
+sceneAwarenessMode       : program_scene_known
+inventoryUpdatedAt       : <Zeitstempel>
+inventoryFromCache       : True/False
+inventoryFromMemory      : True/False
+```
+
+Zusatztest Szene ohne Rahmen:
+
+```powershell
+$o.clients |
+  Where-Object { $_.id -eq "overlay:frame_overlay" } |
+  Select-Object id,name,status,monitorStatus,rawStatus,activeExpected,expectedInactive,expectedIdle,expectedNotActive,currentProgramSceneName,currentProgramSceneKnown,sceneAwarenessMode |
+  Format-List
+```
+
+Erwartung:
+
+```text
+status/monitorStatus: expected_inactive
+activeExpected: False
+expectedNotActive: True
+warning/error in summary: 0
 ```
 
 ## Danach sinnvoll
 
 ```text
-CAN-26.1: Dashboard-Feinschliff fuer Overlay-Monitor Info/Idle/Inactive Anzeige, falls noetig.
-CAN-26.2: Doku-/Strukturabgleich, falls noch alte CAN-25.4 Hinweise in docs/current stehen.
-CAN-26.3: Erst dann neuen technischen Kandidaten planen.
+CAN-26.3: Naechsten technischen Kandidaten planen oder Dashboard-Feinschliff fuer Overlay-Monitor Info/Idle/Inactive Anzeige entscheiden.
 ```
 
 ## Weiterhin nicht machen ohne separaten Go-Schritt
