@@ -1146,6 +1146,32 @@ function renderSoundMigrationCandidateCard(matrix){
       </div>
     `, 'busdiag-wide') : '';
 
+    const overlayRow = allRows.find(row => row && row.id === 'overlay_monitor') || null;
+    const overlayWarningActive = !!(overlayRow && rowRisk(overlayRow) === 'warning');
+    const overlayClientSummary = overlayRow ? `${String(overlayRow.overlayClientOnline || 0)}/${String(overlayRow.overlayClientTotal || 0)} online · warn ${String(overlayRow.overlayClientWarning || 0)} · err ${String(overlayRow.overlayClientError || 0)} · heartbeat ${String(overlayRow.overlayClientHeartbeat || 0)}` : '-';
+    const overlayClassificationSummary = overlayRow ? `produktiv ${String(overlayRow.overlayProductiveCandidates || 0)} · test/alt ${String(overlayRow.overlayTestOrLegacy || 0)} · unbekannt ${String(overlayRow.overlayUnknown || 0)} · high ${String(overlayRow.overlayClassificationHighConfidence || 0)}` : '-';
+    const overlayIdentitySummary = overlayRow ? `format ${overlayRow.overlayIdentityContractFormat || '-'} · dup ${String(overlayRow.overlayIdentityDuplicates || 0)} · caps ${String(overlayRow.overlayCapabilityKinds || 0)}` : '-';
+    const overlayDiagnosisHtml = overlayRow ? card('Overlay-Monitor Diagnose-Zusammenfassung', `
+      <div class="busdiag-status-line">
+        ${badge(overlayWarningActive ? 'warning sichtbar' : 'read-only Diagnose', overlayWarningActive ? 'warning' : 'ok')}
+        <span>${esc(overlayRow.statusRoute || '/api/overlay-monitor/status')}</span>
+      </div>
+      <div class="busdiag-metrics">
+        ${metric('Status', overlayRow.statusOk === null ? '-' : bool(overlayRow.statusOk))}
+        ${metric('Client-Control', overlayRow.overlayClientControlOk === null ? '-' : bool(overlayRow.overlayClientControlOk))}
+        ${metric('Clients', overlayClientSummary, '', 'busdiag-metric-wide')}
+        ${metric('Klassifikation', overlayRow.overlayClientClassificationOk === null ? '-' : bool(overlayRow.overlayClientClassificationOk))}
+        ${metric('Klassenwerte', overlayClassificationSummary, '', 'busdiag-metric-wide')}
+        ${metric('Identity', overlayRow.overlayClientIdentityOk === null ? '-' : bool(overlayRow.overlayClientIdentityOk))}
+        ${metric('Identity-Werte', overlayIdentitySummary, '', 'busdiag-metric-wide')}
+      </div>
+      <div class="busdiag-note-list" style="margin-top:10px;">
+        <div class="busdiag-note-item"><strong>Bewertung:</strong> Overlay-Monitor ist erreichbar, aber Health/Heartbeat/Client-Klassifikation muessen vor spaeterer kontrollierter Anzeige oder Selbstheilung sauber bewertet werden.</div>
+        <div class="busdiag-note-item"><strong>Naechster Fokus:</strong> Overlay-Clients eindeutig identifizieren, Heartbeats bewerten und Produktiv-/Test-/Legacy-Clients sauber trennen.</div>
+        <div class="busdiag-note-item">Keine produktive Aktion erforderlich: Diese Diagnose repariert keine OBS-Quelle, fuehrt keinen Refresh aus und aendert keinen Overlay-, Sound-, Queue-, Twitch- oder Redemption-Status.</div>
+      </div>
+    `, 'busdiag-wide') : '';
+
     const filterItems = [
       ['all', 'Alle'],
       ['warnings', 'Warnungen'],
@@ -1277,6 +1303,7 @@ function renderSoundMigrationCandidateCard(matrix){
       ${setupHint}
       ${diagnosisHtml}
       ${alertDiagnosisHtml}
+      ${overlayDiagnosisHtml}
       ${renderSoundDryRunCard(matrix)}
       ${renderSoundShadowSummaryCard(matrix)}
 ${renderSoundMigrationCandidateCard(matrix)}
