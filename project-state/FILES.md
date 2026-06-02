@@ -1,6 +1,6 @@
 # FILES
 
-## Aktueller Arbeitsstand CAN-26.3
+## Aktueller Arbeitsstand CAN-26.4
 
 Wichtige geaenderte/zuletzt relevante Dateien:
 
@@ -21,6 +21,7 @@ docs/current/CURRENT_CHAT_HANDOFF_CAN26_3.md
 CAN-26.1_overlay_monitor_scene_awareness_fix.zip
 CAN-26.2_overlay_monitor_client_control_top_level_diagnostics.zip
 CAN-26.3_documentation_handoff.zip
+CAN-26.4_live_doc_sync_next_steps_cleanup.zip
 ```
 
 ## CAN-26 relevante Routen fuer Nachpruefung
@@ -40,6 +41,38 @@ $o = Invoke-RestMethod "http://127.0.0.1:8080/api/overlay-monitor/client-control
 $o | Select-Object currentProgramSceneName,currentPreviewSceneName,currentProgramSceneKnown,sceneAwarenessMode,inventoryUpdatedAt,inventoryFromCache,inventoryFromMemory | Format-List
 
 $o.summary | Select-Object total,online,info,warning,error,heartbeat,stale,dead,expectedInactive,expectedIdle,expectedNotActive,activeExpected | Format-List
+```
+
+## CAN-26.4 relevante Sync-Pruefung
+
+```powershell
+$repo = "D:\Git\stream-control-center"
+$live = "D:\Streaming\stramAssets"
+
+$files = @(
+  "backend\modules\overlay_monitor.js",
+  "htdocs\dashboard\modules\bus_diagnostics.js",
+  "project-state\CURRENT_STATUS.md",
+  "project-state\NEXT_STEPS.md",
+  "project-state\TODO.md",
+  "project-state\CHANGELOG.md",
+  "project-state\FILES.md",
+  "docs\current\CURRENT_CHAT_HANDOFF_CAN26_3.md"
+)
+
+$files | ForEach-Object {
+  $repoPath = Join-Path $repo $_
+  $livePath = Join-Path $live $_
+  $repoHash = if (Test-Path $repoPath) { (Get-FileHash $repoPath -Algorithm SHA256).Hash } else { "" }
+  $liveHash = if (Test-Path $livePath) { (Get-FileHash $livePath -Algorithm SHA256).Hash } else { "" }
+
+  [pscustomobject]@{
+    File = $_
+    RepoExists = Test-Path $repoPath
+    LiveExists = Test-Path $livePath
+    Same = ($repoHash -ne "" -and $repoHash -eq $liveHash)
+  }
+} | Format-Table -AutoSize
 ```
 
 ## CAN-25.24 / CAN-25.25b ZIPs aus dem Chat

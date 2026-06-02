@@ -3,16 +3,17 @@
 ## Direkt naechster Schritt
 
 ```text
-CAN-26.3 abschliessen: Doku/Handoff committen und Live synchronisieren.
-```
-
-## Danach sinnvoll
-
-```text
 CAN-27.0: Neuen Arbeitsblock bewusst planen.
 ```
 
-Moegliche Kandidaten:
+## Vor CAN-27.0 erledigt
+
+```text
+CAN-26.3 wurde abgeschlossen und dokumentiert.
+CAN-26.4 dient nur dem Live-Doku-Sync und der Bereinigung dieses NEXT_STEPS-Hinweises.
+```
+
+## Moegliche Kandidaten
 
 ```text
 - Dashboard-Kosmetik fuer Overlay-Monitor Details, falls optisch noetig.

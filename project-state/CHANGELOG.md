@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## CAN-26.4
+
+- Reiner Doku-/Sync-Schritt vorbereitet.
+- `project-state/NEXT_STEPS.md` bereinigt: direkter naechster Schritt ist jetzt CAN-27.0 Planung.
+- Fehlende Live-Handoff-Datei `docs/current/CURRENT_CHAT_HANDOFF_CAN26_3.md` ist in der ZIP enthalten.
+- Keine Runtime-Dateien geaendert.
+- Keine Backend-Logik geaendert.
+- Keine Dashboard-Logik geaendert.
+- Keine produktive Aktion ausgefuehrt.
+
 ## CAN-26.3
 
 - Dokumentation und Handoff auf abgeschlossenen CAN-26 Stand aktualisiert.
