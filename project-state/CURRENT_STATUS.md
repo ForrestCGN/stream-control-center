@@ -1,55 +1,62 @@
 # CURRENT_STATUS
 
-## Stand: CAN-28.2 abgeschlossen
+## Stand: CAN-29.1 vorbereitet
 
-CAN-28.2 dokumentiert den erfolgreichen Live-Test von CAN-28.1.
+CAN-29.1 behebt die Discord.js DeprecationWarning zum alten `ready`-Event.
 
 ## Aktueller Arbeitsbereich
 
 ```text
-CAN-28: Node-Log / Modul-Loader-Diagnose
+CAN-29: Runtime-Warnings gezielt bereinigen
 ```
 
-## Aktueller stabiler Stand
+## Ausgangsbefund
 
-CAN-28.1 wurde live geprüft und ist erfolgreich.
-
-Bestätigtes Node-Log:
+Im Node-Log erschien nach Discord-Login:
 
 ```text
-[module] skipped: obs_shared.js name=obs_shared version=unknown meta=no shared=yes reason=no_init_export
-[module-loader] summary loaded=52 skipped=1 failed=0 warnings=0 routes=1180 duplicateRoutes=0
-[module-loader] skipped file=obs_shared.js reason=no_init_export shared=yes
+DeprecationWarning: The ready event has been renamed to clientReady to distinguish it from the gateway READY event and will only emit under that name in v15. Please use clientReady instead.
 ```
 
-## Ergebnis
+Die Ursache lag in:
 
 ```text
-loaded=52
-skipped=1
-failed=0
-warnings=0
-duplicateRoutes=0
+backend/modules/discord.js
 ```
 
-Damit ist das Modul-Loader-Logging aktuell sauber:
+## Änderung CAN-29.1
 
 ```text
-- Modulname und Version werden beim Laden angezeigt.
-- obs_shared.js wird korrekt als Shared-Helper ohne init behandelt.
-- Keine irritierenden module-warning-Zeilen fuer obs_shared.js.
-- Keine FAILED-Module.
-- Keine duplicateRoutes.
+const MODULE_VERSION = '0.1.0';
+```
+
+wurde zu:
+
+```text
+const MODULE_VERSION = '0.1.1';
+```
+
+und:
+
+```text
+client.once('ready', () => {
+```
+
+wurde zu:
+
+```text
+client.once('clientReady', () => {
 ```
 
 ## Nicht geändert
 
 ```text
-Keine Codeänderung in CAN-28.2.
-Keine Modul-Ladereihenfolge.
-Keine require-/init-Logik.
-Keine Routen.
-Keine EventBus-Logik.
+Keine Login-Logik.
+Kein Token-/Config-Verhalten.
+Keine Voice-/Sound-Funktionen.
+Keine Discord-Routen.
+Keine Bridge-Funktionen.
+Keine Queue-Funktionen.
 Keine DB.
 Keine OBS-Aktion.
 Keine Dashboard-Dateien.
@@ -57,19 +64,30 @@ Keine produktiven Flows.
 Keine Funktionalität entfernt.
 ```
 
-## Beobachtungen
+## Erwartete Tests
 
-Die folgenden Runtime-Warnings sind nicht Teil des Modul-Loader-Problems:
-
-```text
-- SQLite ExperimentalWarning von Node.
-- Discord DeprecationWarning ready -> clientReady.
+```powershell
+cd D:\Git\stream-control-center
+node -c backend\modules\discord.js
+.\stepdone.cmd "CAN-29.1 Discord clientReady Deprecation Fix"
 ```
 
-Diese können später separat betrachtet werden.
+Danach Node neu starten und prüfen:
+
+```text
+[discord] ready as ...
+```
+
+soll weiterhin erscheinen.
+
+Diese Warnung soll nicht mehr erscheinen:
+
+```text
+DeprecationWarning: The ready event has been renamed to clientReady
+```
 
 ## Naechster Schritt
 
 ```text
-CAN-29.0 neuen Arbeitsblock bewusst auswählen.
+CAN-29.1 anwenden und Live-Log prüfen.
 ```

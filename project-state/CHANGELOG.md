@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## CAN-29.1
+
+- `backend/modules/discord.js` Discord.js DeprecationWarning vorbereitet/behebt:
+  - `client.once('ready', ...)` auf `client.once('clientReady', ...)` umgestellt.
+  - `MODULE_VERSION` von `0.1.0` auf `0.1.1` erhöht.
+- Ziel: Node-Warnung entfernen:
+  - `DeprecationWarning: The ready event has been renamed to clientReady`
+- Keine Login-Logik, Routen, Voice-/Sound-Funktionen, Queue-Funktionen, DB oder produktiven Flows geändert.
+
 ## CAN-28.2
 
 - Erfolgreichen Live-Test von CAN-28.1 dokumentiert.
@@ -38,21 +47,3 @@
 - Repo/Live-Doku-Sync geprüft.
 - `project-state/*` und `docs/current/CURRENT_CHAT_HANDOFF_CAN27_1.md` waren Repo/Live synchron.
 - Doku-Deploy-Weg nach CAN-26.5 bestätigt.
-
-## CAN-27.1
-
-- Getrackten Doppelordner `htdocs/htdocs/...` entfernt.
-- Echte Zielpfade blieben vorhanden:
-  - `htdocs/dashboard/modules/overlays.js`
-  - `htdocs/overlays/_overlay-birthday.html`
-  - `htdocs/overlays/_rahmen.html`
-- Keine Runtime-Funktionalität entfernt.
-
-## CAN-26.5
-
-- `tools/deploy_repo_to_streamassets.ps1` um Doku-/Projektstand-Deploy erweitert:
-  - `docs/current`
-  - `docs/system-inspection`
-  - `docs/modules`
-  - `project-state`
-- Doku-Deploy funktioniert seitdem über `stepdone.cmd`.

@@ -1,53 +1,49 @@
 # FILES
 
-## Aktueller Arbeitsstand CAN-28.2
+## Aktueller Arbeitsstand CAN-29.1
 
 Wichtige geaenderte/zuletzt relevante Dateien:
 
 ```text
+backend/modules/discord.js
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/CHANGELOG.md
 project-state/FILES.md
-docs/current/CURRENT_CHAT_HANDOFF_CAN28_2.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN29_1.md
 ```
 
-## CAN-28 ZIPs aus dem Chat
+## CAN-29 ZIPs aus dem Chat
 
 ```text
-CAN-28.1_module_loader_log_summary.zip
-CAN-28.2_document_loader_summary_test.zip
+CAN-29.1_discord_clientReady_deprecation_fix.zip
 ```
 
-## CAN-28 relevante Runtime-Datei
+## CAN-29 relevante Tests
+
+```powershell
+node -c backend\modules\discord.js
+.\stepdone.cmd "CAN-29.1 Discord clientReady Deprecation Fix"
+```
+
+Nach Node-Neustart:
 
 ```text
-backend/server.js
+[discord] ready as ...
 ```
 
-CAN-28.2 selbst ändert keine Runtime-Datei.
+Folgende Warnung soll nicht mehr erscheinen:
 
-## Bestätigter CAN-28.1 Live-Test
+```text
+DeprecationWarning: The ready event has been renamed to clientReady
+```
+
+## CAN-28 bestätigter Live-Test
 
 ```text
 [module-loader] summary loaded=52 skipped=1 failed=0 warnings=0 routes=1180 duplicateRoutes=0
 [module-loader] skipped file=obs_shared.js reason=no_init_export shared=yes
-```
-
-## CAN-27 relevante Ergebnisse
-
-```text
-htdocs/htdocs Doppelordner entfernt.
-Repo sauber.
-Live htdocs/htdocs existiert nicht mehr.
-Echte Zielpfade blieben vorhanden.
-```
-
-## CAN-26 relevante Ergebnisse
-
-```text
-Deploy-Script zieht docs/current, docs/system-inspection, docs/modules und project-state nach Live.
 ```
 
 ## Lokale Pfade
@@ -55,6 +51,6 @@ Deploy-Script zieht docs/current, docs/system-inspection, docs/modules und proje
 ```text
 Repo: D:\Git\stream-control-center
 Live: D:\Streaming\stramAssets
-Backend Server: D:\Streaming\stramAssets\backend\server.js
+Discord Modul: D:\Streaming\stramAssets\backend\modules\discord.js
 Produktive SQLite-DB: D:\Streaming\stramAssets\data\sqlite\app.sqlite
 ```

@@ -47,7 +47,9 @@
 
 ## CAN-29
 
-- [ ] CAN-29.0 neuen Arbeitsblock bewusst auswählen.
+- [x] CAN-29.0 Discord ready/clientReady DeprecationWarning prüfen.
+- [ ] CAN-29.1 Discord clientReady Deprecation Fix anwenden und live prüfen.
+- [ ] CAN-29.2 Testergebnis dokumentieren.
 
 ## Offene/zu beobachtende Punkte
 
@@ -56,7 +58,6 @@
 - [ ] Dashboard SYSTEME-Bereich kann spaeter optisch noch flacher/feiner werden, ist aber nach CAN-25.25b/CAN-26 lesbar.
 - [ ] Optional: Overlay-Monitor Dashboard-Details optisch weiter vereinfachen, falls gewuenscht.
 - [ ] Optional: WS connect/disconnect Log prüfen, falls zu laut.
-- [ ] Optional: Discord ready/clientReady DeprecationWarning separat prüfen.
 - [ ] Optional: SQLite ExperimentalWarning separat bewerten.
 
 ## Weiterhin hart blockiert

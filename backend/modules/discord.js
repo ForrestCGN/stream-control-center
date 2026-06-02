@@ -19,7 +19,7 @@ const routes = require('./helpers/helper_routes');
 const configHelper = require('./helpers/helper_config');
 
 const MODULE_NAME = 'discord';
-const MODULE_VERSION = '0.1.0';
+const MODULE_VERSION = '0.1.1';
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
@@ -1051,7 +1051,7 @@ async function loginDiscord() {
     client = createDiscordClient();
   }
 
-  client.once('ready', () => {
+  client.once('clientReady', () => {
     discordReady = true;
     lastReadyAt = nowIso();
     lastError = '';
