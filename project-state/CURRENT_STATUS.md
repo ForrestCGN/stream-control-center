@@ -1,8 +1,8 @@
 # CURRENT_STATUS
 
-## Stand: CAN-22.3 abgeschlossen
+## Stand: CAN-22.4 abgeschlossen
 
-CAN-22.3 hat Safety Architecture Backend Shape Internal Function Code Plan no-code erstellt.
+CAN-22.4 hat Safety Architecture Backend Shape Test and Rollback Plan no-code erstellt.
 
 ## Aktueller stabiler Stand
 
@@ -20,14 +20,15 @@ Safety Architecture Backend Shape Implementation Planning no-code
 Safety Architecture Backend Shape File Inspection Planning
 Safety Architecture Backend Shape Implementation Candidate Decision no-code
 Safety Architecture Backend Shape Internal Function Code Plan no-code
+Safety Architecture Backend Shape Test and Rollback Plan no-code
 ```
 
-## Internal-Function-Plan-Status
+## Test-Rollback-Plan-Status
 
 ```text
-internalFunctionCodePlan: true
-plannedFunctionName: buildSafetyArchitectureStatusShape
-primaryFileCandidate: backend/modules/bus_diagnostics.js
+testRollbackPlan: true
+minimalCodeScope: backend/modules/bus_diagnostics.js
+requiredSyntaxTest: node -c backend/modules/bus_diagnostics.js
 codeChanged: false
 apiCreated: false
 routeCreated: false
@@ -80,5 +81,5 @@ POST Command Route
 ## Naechster Schritt
 
 ```text
-CAN-22.4 - Safety Architecture Backend Shape Test and Rollback Plan no-code
+CAN-22.5 - Safety Architecture Backend Shape Planning Closure / Handoff
 ```

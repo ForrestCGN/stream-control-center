@@ -3,25 +3,24 @@
 ## Naechster Schritt
 
 ```text
-CAN-22.4 - Safety Architecture Backend Shape Test and Rollback Plan no-code
+CAN-22.5 - Safety Architecture Backend Shape Planning Closure / Handoff
 ```
 
-## Ziel CAN-22.4
+## Ziel CAN-22.5
 
-Planen, welche Tests, Abnahmen und Rollback-Grenzen fuer eine spaetere echte Implementierung noetig waeren.
+Den CAN-22 Planungsstrang abschliessen und entscheiden, ob danach ein echter minimaler Code-Step vorbereitet werden darf.
 
-## CAN-22.4 darf klaeren
+## CAN-22.5 darf klaeren
 
 ```text
-Syntax-Tests
-Runtime-Checks
-Negative Checks
-Rollback-Regeln
-Abnahme-Kriterien
-Welche Dateien bei echtem Code-Step betroffen sein duerfen
+CAN-22 Abschlussstatus
+finaler Kandidat fuer spaeter
+finale No-Go-Grenzen
+ob CAN-23.0 als echter Code-Step empfohlen wird
+welche Dateien bei CAN-23.0 maximal betroffen sein duerfen
 ```
 
-## CAN-22.4 darf NICHT enthalten
+## CAN-22.5 darf NICHT enthalten
 
 ```text
 Code-Aenderung
