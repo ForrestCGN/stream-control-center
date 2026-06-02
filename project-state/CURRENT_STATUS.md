@@ -1,16 +1,14 @@
 # CURRENT_STATUS
 
-## Stand: CAN-23.3 abgeschlossen
+## Stand: CAN-23.4 abgeschlossen
 
-CAN-23.3 hat die Bus-Integration-Matrix um Sound-Bus-Command-Readiness erweitert.
+CAN-23.4 hat den Sound-Bus-Command-Vertrag als read-only Route sichtbar gemacht.
 
 ## Neu
 
 ```text
-GET /api/sound/eventbus/command/status
+GET /api/sound/eventbus/command/contract
 ```
-
-wird read-only durch `backend/modules/bus_integration_matrix.js` ausgewertet.
 
 ## Sicherheitsstatus
 
@@ -18,6 +16,8 @@ wird read-only durch `backend/modules/bus_integration_matrix.js` ausgewertet.
 readOnly: true
 soundPlayed: false
 queueTouched: false
+dryRunExecuted: false
+playTestExecuted: false
 eventBusEmit: false
 recoveryExecution: false
 ```
@@ -25,5 +25,5 @@ recoveryExecution: false
 ## Naechster Schritt
 
 ```text
-Sound-Request/ACK/Fehler/Queue-Status sauber definieren und produktionssicher vorbereiten.
+Sound-System: ACK/accepted/queued/started/failed/finished Event-Namen vereinheitlichen und pruefen.
 ```

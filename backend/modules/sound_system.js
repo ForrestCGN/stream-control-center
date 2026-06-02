@@ -1223,6 +1223,80 @@ module.exports.init = function init(ctx) {
     };
   }
 
+  function publicSoundBusCommandContract() {
+    const commandConfig = soundBusCommandConfig();
+    const prefix = config.routes?.prefix || "/api/sound";
+    return {
+      ok: true,
+      module: MODULE_NAME,
+      version: MODULE_VERSION,
+      capability: SOUND_BUS_COMMAND_CAPABILITY,
+      statusApiVersion: SOUND_BUS_COMMAND_API_VERSION,
+      feature: "sound_bus_command_contract",
+      mode: "read_only_contract",
+      readOnly: true,
+      commandLayerReady: commandConfig.enabled !== false,
+      productiveEntryPointChanged: false,
+      soundSystemTouched: false,
+      queueTouched: false,
+      audioTouched: false,
+      eventBusEmit: false,
+      contract: {
+        name: "sound.play.request",
+        version: SOUND_BUS_COMMAND_API_VERSION,
+        command: "sound.play.request",
+        requiredFields: ["command", "soundId"],
+        recommendedFields: ["requestId", "source", "requestedBy", "category", "target", "priority", "reason", "meta"],
+        optionalFields: ["label", "outputTarget", "visual", "volume", "durationMs", "queueIfBusy", "dropIfBusy"],
+        identity: {
+          requestId: "Unique request id. Generated for dry-run/play-test if missing.",
+          source: "Originating module or system, e.g. alerts, channelpoints, vip_sound_overlay.",
+          requestedBy: "User, system or module that requested the sound."
+        },
+        lifecycle: [
+          { event: "accepted", meaning: "Payload valid and accepted by the sound command layer." },
+          { event: "queued", meaning: "Request would be or was queued because another sound is active." },
+          { event: "started", meaning: "Request started playback immediately." },
+          { event: "failed", meaning: "Request was rejected or could not be processed." },
+          { event: "finished", meaning: "Playback/visual lifecycle finished." },
+          { event: "timeout", meaning: "Overlay/client did not finish before fallback timeout." }
+        ],
+        resultFields: ["ok", "accepted", "started", "queued", "dropped", "parallel", "queuePosition", "reason", "retryAfterMs", "error"],
+        queueStatusFields: ["current", "queue", "queuedCount", "stats"],
+        acknowledgement: {
+          requiredNow: false,
+          planned: true,
+          recommendedAckFields: ["requestId", "clientId", "event", "receivedAt", "accepted", "error"]
+        }
+      },
+      routes: {
+        status: `${prefix}/eventbus/command/status`,
+        contract: `${prefix}/eventbus/command/contract`,
+        dryRun: `${prefix}/eventbus/command/dry-run`,
+        playTest: `${prefix}/eventbus/command/play-test`,
+        productiveLegacyPlay: `${prefix}/play`
+      },
+      safety: {
+        contractRouteTouchesQueue: false,
+        contractRouteTouchesAudio: false,
+        dryRunTouchesQueue: false,
+        dryRunTouchesAudio: false,
+        playTestTouchesQueue: true,
+        playTestTouchesAudio: true,
+        productiveLegacyPlayUnchanged: true,
+        requireConfirmForQueueClear: true,
+        requireConfirmForReplay: true
+      },
+      nextSteps: [
+        "Use dry-run for command validation without queue/audio touch.",
+        "Do not use play-test from dashboard automation without explicit manual action.",
+        "Unify ACK/accepted/queued/started/failed/finished event names before productive migration.",
+        "Keep legacy /api/sound/play as productive entry point until the bus request flow is accepted."
+      ],
+      updatedAt: core.nowIso()
+    };
+  }
+
   function resetSoundBusCommandRuntime() {
     if (!state.soundBusCommand) state.soundBusCommand = {};
     state.soundBusCommand.emitted = 0;
@@ -3323,6 +3397,7 @@ module.exports.init = function init(ctx) {
   app.get(`${prefix}/eventbus/test`, (req, res) => res.json(emitSoundBusTest(req.query || {})));
   app.post(`${prefix}/eventbus/test`, (req, res) => res.json(emitSoundBusTest(req.body || {})));
   app.get(`${prefix}/eventbus/command/status`, (req, res) => res.json(publicSoundBusCommandStatus({ includeRecentCommands: true })));
+  app.get(`${prefix}/eventbus/command/contract`, (req, res) => res.json(publicSoundBusCommandContract()));
   app.get(`${prefix}/eventbus/command/reset`, (req, res) => res.json({ ...resetSoundBusCommandRuntime(), reset: true, resetAt: core.nowIso() }));
   app.get(`${prefix}/eventbus/command/test`, (req, res) => res.json(emitSoundBusCommandTest(req.query || {})));
   app.post(`${prefix}/eventbus/command/test`, (req, res) => res.json(emitSoundBusCommandTest(req.body || {})));

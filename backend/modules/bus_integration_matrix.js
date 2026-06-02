@@ -37,6 +37,7 @@ const ENDPOINTS = {
   soundEventBus: '/api/sound/eventbus/status',
   soundStatus: '/api/sound/status',
   soundCommandStatus: '/api/sound/eventbus/command/status',
+  soundCommandContract: '/api/sound/eventbus/command/contract',
   alertEventBus: '/api/alerts/eventbus/status',
   alertStatus: '/api/alerts/status',
   alertCorrelation: '/api/alerts/eventbus/correlation/status',
@@ -71,6 +72,8 @@ const SYSTEMS = [
     eventBusRoute: ENDPOINTS.soundEventBus,
     commandKey: 'soundCommandStatus',
     commandRoute: ENDPOINTS.soundCommandStatus,
+    contractKey: 'soundCommandContract',
+    contractRoute: ENDPOINTS.soundCommandContract,
     commandStatus: 'partial',
     legacyDirect: true,
     nextStep: 'Als erstes Modul sauber ueber Bus-Requests/ACKs steuerbar machen.'
@@ -275,11 +278,13 @@ function buildSystemRow(system, clients, fetched) {
   const eventBusFetch = system.eventBusKey ? fetched[system.eventBusKey] : null;
   const integrationFetch = system.integrationKey ? fetched[system.integrationKey] : null;
   const commandFetch = system.commandKey ? fetched[system.commandKey] : null;
+  const contractFetch = system.contractKey ? fetched[system.contractKey] : null;
 
   const statusBody = bodyOf(statusFetch);
   const eventBusBody = bodyOf(eventBusFetch);
   const integrationBody = bodyOf(integrationFetch);
   const commandBody = bodyOf(commandFetch);
+  const contractBody = bodyOf(contractFetch);
 
   const registered = system.id === 'communication_bus' || matchingClients.length > 0;
   const connected = system.id === 'communication_bus' || matchingClients.some(client => client.connected === true);
@@ -288,6 +293,7 @@ function buildSystemRow(system, clients, fetched) {
   const eventBusOk = eventBusFetch ? eventBusFetch.ok === true && (!eventBusBody || eventBusBody.ok !== false) : null;
   const integrationOk = integrationFetch ? integrationFetch.ok === true && (!integrationBody || integrationBody.ok !== false) : null;
   const commandOk = commandFetch ? commandFetch.ok === true && (!commandBody || commandBody.ok !== false) : null;
+  const contractOk = contractFetch ? contractFetch.ok === true && (!contractBody || contractBody.ok !== false) : null;
   const ackCapable = matchingClients.some(client => includesCapability(client, 'ack') || includesCapability(client, 'bus.ack'));
   const commandCapable = ['core', 'partial', 'bridge'].includes(system.commandStatus);
 
@@ -301,7 +307,7 @@ function buildSystemRow(system, clients, fetched) {
     eventBusOk,
     commandCapable
   });
-  const risk = determineRisk({ system, registered, connected, statusOk, eventBusOk, integrationOk, commandOk });
+  const risk = determineRisk({ system, registered, connected, statusOk, eventBusOk, integrationOk, commandOk, contractOk });
 
   return {
     id: system.id,
@@ -327,6 +333,13 @@ function buildSystemRow(system, clients, fetched) {
     commandDryRunAvailable: !!(commandBody && commandBody.commandRoutes && commandBody.commandRoutes.dryRun),
     commandPlayTestAvailable: !!(commandBody && commandBody.commandRoutes && commandBody.commandRoutes.playTest),
     commandQueueTouchAllowed: !!(commandBody && commandBody.safety && commandBody.safety.allowQueueTouch),
+    contractRoute: system.contractRoute || '',
+    contractOk,
+    contractName: contractBody && contractBody.contract && contractBody.contract.name ? contractBody.contract.name : '',
+    contractRequiredFields: contractBody && contractBody.contract && Array.isArray(contractBody.contract.requiredFields) ? contractBody.contract.requiredFields : [],
+    contractLifecycle: contractBody && contractBody.contract && Array.isArray(contractBody.contract.lifecycle) ? contractBody.contract.lifecycle.map(item => item && item.event).filter(Boolean) : [],
+    ackPlanned: !!(contractBody && contractBody.contract && contractBody.contract.acknowledgement && contractBody.contract.acknowledgement.planned),
+    ackRequiredNow: !!(contractBody && contractBody.contract && contractBody.contract.acknowledgement && contractBody.contract.acknowledgement.requiredNow),
     ackCapable,
     commandStatus: system.commandStatus,
     commandCapable,
@@ -351,7 +364,7 @@ function determineRisk(input) {
   if (input.system.id === 'communication_bus') return input.statusOk === false ? 'error' : 'ok';
   if (input.statusOk === false && input.eventBusOk === false) return 'error';
   if (!input.registered && input.statusOk !== true) return 'warning';
-  if (input.statusOk === false || input.eventBusOk === false || input.integrationOk === false || input.commandOk === false) return 'warning';
+  if (input.statusOk === false || input.eventBusOk === false || input.integrationOk === false || input.commandOk === false || input.contractOk === false) return 'warning';
   return 'ok';
 }
 

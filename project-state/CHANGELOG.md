@@ -1,11 +1,13 @@
 # CHANGELOG
 
-## CAN-23.3
+## CAN-23.4
 
-- Bus-Integration-Matrix um `/api/sound/eventbus/command/status` erweitert.
-- Dashboard-Bus-Matrix zeigt beim Sound-System jetzt Command-Status/Route an.
-- TODO um Sound-Request/ACK/Fehler/Queue-Status-Vertrag erweitert.
+- `GET /api/sound/eventbus/command/contract` als read-only Route in `sound_system.js` ergaenzt.
+- Bus-Integration-Matrix liest den Sound-Command-Contract mit aus.
+- Dashboard-Bus-Matrix zeigt Contract-Status/Route beim Sound-System.
 - Kein Sound-Play.
 - Keine Queue-Mutation.
+- Kein Dry-Run.
+- Kein Play-Test.
 - Kein EventBus-Emit.
 - Keine Recovery.

@@ -6,9 +6,10 @@
 - [x] CAN-23.1 Upload-Stand gegen Bus-Integration pruefen.
 - [x] CAN-23.2 Dashboard-Anzeige fuer `/api/bus-integration-matrix/status` bauen.
 - [x] CAN-23.3 Sound-Bus-Command-Readiness in Bus-Matrix aufnehmen.
-- [ ] Sound-System: Request/ACK/Fehler/Queue-Status-Vertrag definieren.
+- [x] CAN-23.4 Sound-Bus-Command-Vertrag als read-only Route sichtbar machen.
+- [ ] Sound-System: ACK/accepted/queued/started/failed/finished Event-Namen vereinheitlichen und pruefen.
+- [ ] Sound-System: Dry-Run im Dashboard manuell pruefbar machen, ohne Queue/Audio.
 - [ ] Sound-System: produktive `/api/sound/play`-Logik auf Bus-Request-Kompatibilitaet pruefen.
-- [ ] Sound-System: ACK/Started/Queued/Failed/Finished Events vereinheitlichen.
 - [ ] Sound-System: Queue-Status in Bus-Matrix/Status sauber sichtbar machen.
 - [ ] Alert-System: Alert-Request, Overlay-ACK, Sound-ACK und Finish-ACK ueber Bus vereinheitlichen.
 - [ ] VIP-Sound-Overlay: Show/Hide/Update/ACK ueber Bus pruefen und danach anbinden.
