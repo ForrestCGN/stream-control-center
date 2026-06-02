@@ -1,49 +1,37 @@
 # FILES
 
-## Aktueller Arbeitsstand CAN-29.1
+## Aktueller Arbeitsstand CAN-29.2
 
 Wichtige geaenderte/zuletzt relevante Dateien:
 
 ```text
-backend/modules/discord.js
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/CHANGELOG.md
 project-state/FILES.md
-docs/current/CURRENT_CHAT_HANDOFF_CAN29_1.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN29_2.md
 ```
 
 ## CAN-29 ZIPs aus dem Chat
 
 ```text
 CAN-29.1_discord_clientReady_deprecation_fix.zip
+CAN-29.2_document_discord_clientReady_test.zip
 ```
 
-## CAN-29 relevante Tests
-
-```powershell
-node -c backend\modules\discord.js
-.\stepdone.cmd "CAN-29.1 Discord clientReady Deprecation Fix"
-```
-
-Nach Node-Neustart:
+## Bestätigter CAN-29.1 Live-Test
 
 ```text
-[discord] ready as ...
+[module] loaded: discord.js name=discord version=0.1.1 meta=yes
+[discord] ready as Erschreck-Bär#5808
+[module-loader] summary loaded=52 skipped=1 failed=0 warnings=0 routes=1180 duplicateRoutes=0
 ```
 
-Folgende Warnung soll nicht mehr erscheinen:
+Nicht mehr vorhanden:
 
 ```text
 DeprecationWarning: The ready event has been renamed to clientReady
-```
-
-## CAN-28 bestätigter Live-Test
-
-```text
-[module-loader] summary loaded=52 skipped=1 failed=0 warnings=0 routes=1180 duplicateRoutes=0
-[module-loader] skipped file=obs_shared.js reason=no_init_export shared=yes
 ```
 
 ## Lokale Pfade

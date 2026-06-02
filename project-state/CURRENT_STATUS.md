@@ -1,58 +1,42 @@
 # CURRENT_STATUS
 
-## Stand: CAN-29.1 vorbereitet
+## Stand: CAN-29.2 abgeschlossen
 
-CAN-29.1 behebt die Discord.js DeprecationWarning zum alten `ready`-Event.
+CAN-29.2 dokumentiert den erfolgreichen Live-Test von CAN-29.1.
 
-## Aktueller Arbeitsbereich
+## Bestätigter Stand
 
 ```text
-CAN-29: Runtime-Warnings gezielt bereinigen
+[module] loaded: discord.js name=discord version=0.1.1 meta=yes
+[discord] ready as Erschreck-Bär#5808
+[module-loader] summary loaded=52 skipped=1 failed=0 warnings=0 routes=1180 duplicateRoutes=0
 ```
 
-## Ausgangsbefund
-
-Im Node-Log erschien nach Discord-Login:
+## Ergebnis
 
 ```text
-DeprecationWarning: The ready event has been renamed to clientReady to distinguish it from the gateway READY event and will only emit under that name in v15. Please use clientReady instead.
+Discord Modulversion: 0.1.1
+clientReady-Fix aktiv
+Discord Bot verbindet weiterhin korrekt
+DeprecationWarning ready -> clientReady entfernt
+Keine FAILED-Module
+Keine Loader-Warnings
 ```
 
-Die Ursache lag in:
+## Verbleibende Beobachtung
 
 ```text
-backend/modules/discord.js
+ExperimentalWarning: SQLite is an experimental feature and might change at any time
 ```
 
-## Änderung CAN-29.1
+Diese Warning gehört nicht zum Discord-Fix und soll separat bewertet werden.
+
+## Nicht geändert in CAN-29.2
 
 ```text
-const MODULE_VERSION = '0.1.0';
-```
-
-wurde zu:
-
-```text
-const MODULE_VERSION = '0.1.1';
-```
-
-und:
-
-```text
-client.once('ready', () => {
-```
-
-wurde zu:
-
-```text
-client.once('clientReady', () => {
-```
-
-## Nicht geändert
-
-```text
+Keine Codeänderung.
 Keine Login-Logik.
-Kein Token-/Config-Verhalten.
+Keine Token-/Config-Änderung.
 Keine Voice-/Sound-Funktionen.
 Keine Discord-Routen.
 Keine Bridge-Funktionen.
@@ -64,30 +48,8 @@ Keine produktiven Flows.
 Keine Funktionalität entfernt.
 ```
 
-## Erwartete Tests
-
-```powershell
-cd D:\Git\stream-control-center
-node -c backend\modules\discord.js
-.\stepdone.cmd "CAN-29.1 Discord clientReady Deprecation Fix"
-```
-
-Danach Node neu starten und prüfen:
+## Nächster Schritt
 
 ```text
-[discord] ready as ...
-```
-
-soll weiterhin erscheinen.
-
-Diese Warnung soll nicht mehr erscheinen:
-
-```text
-DeprecationWarning: The ready event has been renamed to clientReady
-```
-
-## Naechster Schritt
-
-```text
-CAN-29.1 anwenden und Live-Log prüfen.
+CAN-30.0 neuen Arbeitsblock bewusst auswählen.
 ```

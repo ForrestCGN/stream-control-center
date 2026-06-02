@@ -1,44 +1,25 @@
 # NEXT_STEPS
 
-## Direkt naechster Schritt
+## Direkt nächster Schritt
 
 ```text
-CAN-29.1 anwenden und Live-Log prüfen.
+CAN-30.0 neuen Arbeitsblock bewusst auswählen.
 ```
 
-## Tests
-
-```powershell
-cd D:\Git\stream-control-center
-node -c backend\modules\discord.js
-.\stepdone.cmd "CAN-29.1 Discord clientReady Deprecation Fix"
-```
-
-Danach Node neu starten und prüfen:
-
-```text
-[discord] ready as ...
-```
-
-Die folgende Warnung soll nicht mehr auftreten:
-
-```text
-DeprecationWarning: The ready event has been renamed to clientReady
-```
-
-## Danach sinnvoll
-
-```text
-CAN-29.2 Testergebnis dokumentieren.
-```
-
-## Weitere Kandidaten danach
+## Mögliche Kandidaten
 
 ```text
 1. SQLite ExperimentalWarning separat bewerten, ohne DB-Logik anzufassen.
 2. WS connect/disconnect Log optional drosseln oder zusammenfassen.
 3. Dashboard-Kosmetik Overlay-Monitor / Bus-Diagnose weiter glätten.
 4. EventBus read-only Diagnose weiter ausbauen.
+5. Ein konkretes Modul als nächstes an Bus-/Status-/Doku-Regeln anpassen.
+```
+
+## Empfehlung
+
+```text
+CAN-30.0: SQLite ExperimentalWarning erst analysieren, nicht direkt ändern.
 ```
 
 ## Weiterhin nicht machen ohne separaten Go-Schritt

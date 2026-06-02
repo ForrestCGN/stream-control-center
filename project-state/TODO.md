@@ -45,28 +45,19 @@
 - [x] CAN-28.1 Modul-Loader Log Summary anwenden und live prüfen.
 - [x] CAN-28.2 Testergebnis dokumentieren.
 
-## CAN-29
+## CAN-29 abgeschlossen
 
 - [x] CAN-29.0 Discord ready/clientReady DeprecationWarning prüfen.
-- [ ] CAN-29.1 Discord clientReady Deprecation Fix anwenden und live prüfen.
-- [ ] CAN-29.2 Testergebnis dokumentieren.
+- [x] CAN-29.1 Discord clientReady Deprecation Fix anwenden und live prüfen.
+- [x] CAN-29.2 Testergebnis dokumentieren.
+
+## CAN-30
+
+- [ ] CAN-30.0 neuen Arbeitsblock bewusst auswählen.
 
 ## Offene/zu beobachtende Punkte
 
-- [ ] Node-Log beobachten: Overlay-Flap-Spam sollte durch scene-aware Bewertung nicht mehr als echte Warnlogik eskalieren.
-- [ ] OBS-Browserquellen koennen je nach Szene erwartbar pausieren/entladen; nicht automatisch reparieren.
-- [ ] Dashboard SYSTEME-Bereich kann spaeter optisch noch flacher/feiner werden, ist aber nach CAN-25.25b/CAN-26 lesbar.
-- [ ] Optional: Overlay-Monitor Dashboard-Details optisch weiter vereinfachen, falls gewuenscht.
+- [ ] SQLite ExperimentalWarning separat bewerten, ohne DB-Logik anzufassen.
 - [ ] Optional: WS connect/disconnect Log prüfen, falls zu laut.
-- [ ] Optional: SQLite ExperimentalWarning separat bewerten.
-
-## Weiterhin hart blockiert
-
-- [ ] Keine produktive Sound-Migration ohne eigenen kleinen Go-Schritt.
-- [ ] Kein produktiver Sound-Bus-Play.
-- [ ] Kein Queue-Clear.
-- [ ] Keine Twitch-/Redemption-Write-Aktion durch Shadow.
-- [ ] Kein automatischer Shadow-Mitulauf fuer alle Rewards.
-- [ ] Kein EventSub-/Twitch-Redemption-Test ohne separate Freigabe.
-- [ ] Keine Enable/Test/Migration-Buttons in der Sound-Shadow Card.
+- [ ] Optional: Overlay-Monitor Dashboard-Details optisch weiter vereinfachen.
 - [ ] Keine OBS-Reparatur / kein Source-Refresh / keine automatische Recovery ohne eigene Planung.
