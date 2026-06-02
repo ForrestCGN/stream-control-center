@@ -4312,10 +4312,110 @@ module.exports.init = function init(ctx) {
     state.updatedAt = nowIso();
   }
 
+  function publicVipOverlayBusStatus(prefix = "/api/vip-sound") {
+    const overlay = state.overlay && typeof state.overlay === "object" ? { ...state.overlay } : {};
+    const client = state.client && typeof state.client === "object" ? { ...state.client } : {};
+    const queueItems = Array.isArray(state.queue) ? state.queue.map(item => ({
+      requestId: item && item.requestId ? item.requestId : "",
+      login: item && item.login ? item.login : "",
+      displayName: item && item.displayName ? item.displayName : "",
+      soundType: item && item.soundType ? item.soundType : "",
+      phase: item && item.phase ? item.phase : "",
+      queuedAt: item && item.queuedAt ? item.queuedAt : 0
+    })) : [];
+
+    const lifecycle = [
+      { event: "show", required: true, meaning: "Overlay state becomes visible for a VIP/Mod sound request." },
+      { event: "update", required: true, meaning: "Overlay state changes phase or payload while active." },
+      { event: "audio_started", required: true, meaning: "Overlay client acknowledged audio start." },
+      { event: "audio_ended", required: true, meaning: "Overlay client acknowledged audio end and outro." },
+      { event: "finished", required: true, meaning: "Overlay client finished the visual lifecycle." },
+      { event: "hide", required: true, meaning: "Overlay state becomes invisible/empty after finish or reset." },
+      { event: "failed", required: true, meaning: "VIP overlay request failed or was rejected." },
+      { event: "timeout", required: true, meaning: "Client did not acknowledge before a future watchdog timeout." }
+    ];
+
+    return {
+      ok: true,
+      module: MODULE_NAME,
+      version: MODULE_VERSION,
+      feature: "vip_sound_overlay_bus_status",
+      mode: "read_only_overlay_status",
+      readOnly: true,
+      vipTouched: false,
+      queueTouched: false,
+      soundSystemTouched: false,
+      overlayTouched: false,
+      eventBusEmit: false,
+      resetTriggered: false,
+      recoveryTriggered: false,
+      lifecycle,
+      summary: {
+        active: !!state.isActive,
+        queueLength: queueItems.length,
+        overlayVisible: !!overlay.visible,
+        overlayPhase: overlay.phase || "",
+        overlayRequestId: overlay.requestId || "",
+        overlaySoundType: overlay.soundType || "",
+        clientConnected: !!client.connected,
+        clientLastSeenAt: client.lastSeenAt || 0,
+        clientAgeMs: client.lastSeenAt ? Math.max(0, Date.now() - Number(client.lastSeenAt || 0)) : 0,
+        currentEndsAt: overlay.endsAt || 0,
+        gapAfterMs: overlay.gapAfterMs || 0
+      },
+      overlay,
+      client,
+      queue: queueItems,
+      contract: {
+        name: "vip.overlay.request",
+        command: "vip.overlay.request",
+        requiredFields: ["command", "requestId", "soundType", "displayName"],
+        recommendedFields: ["source", "requestedBy", "correlationId", "soundId", "title", "text", "avatarUrl"],
+        lifecycle: lifecycle.map(item => ({ event: item.event, required: item.required, meaning: item.meaning })),
+        acknowledgement: {
+          requiredNow: true,
+          planned: true,
+          currentAckRoutes: [
+            `${prefix}/client/audio-started`,
+            `${prefix}/client/audio-ended`,
+            `${prefix}/client/finished`
+          ],
+          recommendedAckFields: ["requestId", "clientId", "event", "receivedAt", "accepted", "error"]
+        }
+      },
+      routes: {
+        status: `${prefix}/status`,
+        state: `${prefix}/state`,
+        busStatus: `${prefix}/eventbus/overlay/status`,
+        soundCommandStatus: `${prefix}/eventbus/sound-command/status`,
+        soundCommandDryRun: `${prefix}/eventbus/sound-command/dry-run`,
+        audioStarted: `${prefix}/client/audio-started`,
+        audioEnded: `${prefix}/client/audio-ended`,
+        finished: `${prefix}/client/finished`
+      },
+      safety: {
+        statusRouteTouchesQueue: false,
+        statusRouteTouchesSound: false,
+        statusRouteTouchesOverlay: false,
+        statusRouteTriggersReset: false,
+        productiveFlowUnchanged: true,
+        resetRequiresConfirmLater: true
+      },
+      nextSteps: [
+        "Use this route to inspect VIP overlay visibility, client ACK and queue state.",
+        "Do not reset or recover VIP overlay from this diagnostic route.",
+        "Add a dry-run contract later before moving productive VIP calls to bus commands.",
+        "Keep existing /api/vip-sound/enqueue and client ACK routes unchanged."
+      ],
+      updatedAt: nowIso()
+    };
+  }
+
   function vipRouteDefinitions(prefix) {
     const routes = [
       { method: "GET", path: `${prefix}/state`, purpose: "public overlay state" },
       { method: "GET", path: `${prefix}/status`, purpose: "runtime and DB status" },
+      { method: "GET", path: `${prefix}/eventbus/overlay/status`, purpose: "read-only VIP overlay show/update/hide/client ACK bus status" },
       { method: "GET", path: `${prefix}/db/status`, purpose: "VIP schema and table status" },
       { method: "GET", path: `${prefix}/config`, purpose: "DB-backed config view with JSON fallback info" },
       { method: "GET", path: `${prefix}/settings`, purpose: "VIP settings from DB/fallback" },
@@ -4761,6 +4861,15 @@ module.exports.init = function init(ctx) {
       try {
         markClientSeen();
         return res.json(buildVipEventBusStatus(prefix));
+      } catch (err) {
+        return fail(res, 500, err.message || String(err));
+      }
+    });
+
+    app.get(`${prefix}/eventbus/overlay/status`, (req, res) => {
+      try {
+        markClientSeen();
+        return res.json(publicVipOverlayBusStatus(prefix));
       } catch (err) {
         return fail(res, 500, err.message || String(err));
       }

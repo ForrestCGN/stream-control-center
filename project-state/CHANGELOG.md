@@ -1,14 +1,13 @@
 # CHANGELOG
 
-## CAN-23.11
+## CAN-23.12
 
-- `GET/POST /api/alerts/eventbus/command/dry-run` in `alert_system.js` ergaenzt.
-- Bus-Integration-Matrix liest Alert-Dry-Run-Status mit aus.
-- Dashboard-Bus-Matrix zeigt Alert-Dry-Run-Status beim Alert-System.
-- Kein Alert-Replay.
+- `GET /api/vip-sound/eventbus/overlay/status` als read-only Route in `vip_sound_overlay.js` ergaenzt.
+- Bus-Integration-Matrix liest VIP-Overlay-Status mit aus.
+- Dashboard-Bus-Matrix zeigt VIP-Overlay visible/client/queue Status.
+- Kein VIP-Overlay-Reset.
 - Keine Queue-Mutation.
 - Kein Sound.
 - Kein Overlay-Send.
-- Kein Overlay-Recovery.
 - Kein EventBus-Emit.
 - Keine Recovery.

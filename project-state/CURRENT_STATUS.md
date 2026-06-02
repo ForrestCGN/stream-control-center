@@ -1,23 +1,23 @@
 # CURRENT_STATUS
 
-## Stand: CAN-23.11 abgeschlossen
+## Stand: CAN-23.12 abgeschlossen
 
-CAN-23.11 hat den Alert-Bus-Dry-Run ergaenzt.
+CAN-23.12 hat VIP-Sound-Overlay Show/Update/Hide/ACK read-only sichtbar gemacht.
 
 ## Neu
 
 ```text
-GET/POST /api/alerts/eventbus/command/dry-run
+GET /api/vip-sound/eventbus/overlay/status
 ```
 
 ## Sicherheitsstatus
 
 ```text
-dryRunOnly: true
-alertReplay: false
+readOnly: true
+vipOverlayReset: false
 queueTouched: false
 soundTouched: false
-overlayTouched: false
+overlaySend: false
 eventBusEmit: false
 recoveryExecution: false
 ```
@@ -25,5 +25,5 @@ recoveryExecution: false
 ## Naechster Schritt
 
 ```text
-VIP-Sound-Overlay: Show/Hide/Update/ACK ueber Bus pruefen und danach anbinden.
+Overlay-Monitor: Overlay-Clients/Heartbeat als Kontrollsicht fuer aktive Szenen nutzen.
 ```
