@@ -20,7 +20,10 @@
 
 ## CAN-35
 
-- [ ] CAN-35.0 neuen Arbeitsblock bewusst auswählen.
+- [x] CAN-35.0 neuen Arbeitsblock bewusst auswählen.
+- [x] CAN-35.1 Tagebuch-Modul analysieren.
+- [ ] CAN-35.2 Tagebuch-Modul Doku und Read-only/Write-Regeln ergänzen.
+- [ ] CAN-35.3 optional: Tagebuch Dashboard Read-only Diagnosekarte planen.
 
 ## Offene/zu beobachtende Punkte
 
@@ -30,4 +33,5 @@
 - [ ] Optional: ein konkretes Modul an Bus-/Status-/Doku-Regeln anpassen.
 - [ ] Commands: keine Execute-/Upsert-/Delete-Tests ohne eigenen Go-Schritt.
 - [ ] Todo: keine Add-/Reload-/Admin-POST-Tests ohne eigenen Go-Schritt.
+- [ ] Tagebuch: keine Entry-/Stream-/Reset-/Reload-/Admin-POST-Tests ohne eigenen Go-Schritt.
 - [ ] Keine OBS-Reparatur / kein Source-Refresh / keine automatische Recovery ohne eigene Planung.

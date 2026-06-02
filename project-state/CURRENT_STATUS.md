@@ -1,127 +1,128 @@
 # CURRENT_STATUS
 
-## Stand: CAN-34.4 abgeschlossen
+## Stand: CAN-35.2 vorbereitet
 
-CAN-34.4 dokumentiert den erfolgreichen Sicht- und Stabilitätstest des Todo Read-only Diagnose-Tabs nach CAN-34.3c.
+CAN-35.2 ergänzt eine dedizierte Tagebuch-Modul-Doku mit Read-only-/Write-Regeln.
 
 ## Aktueller Arbeitsbereich
 
 ```text
-CAN-34: Todo-Modul Status/Doku/Diagnose prüfen und glätten
+CAN-35: Tagebuch-Modul Status/Doku/Diagnose prüfen und glätten
 ```
 
-## Bestätigter Sichttest
+## Ergebnis CAN-35.1 Analyse
 
-In der Dashboard-Seite:
+Das Tagebuch-Modul ist technisch schon weit aufgestellt:
 
 ```text
-Todo > Diagnose
+backend/modules/tagebuch.js
+MODULE_NAME = tagebuch
+MODULE_VERSION = 0.1.0
+SCHEMA_VERSION = 5
+routesPrefix = /api/tagebuch, /tagebuch, /discord/tagebuch
 ```
 
-ist die Read-only Diagnosekarte sichtbar:
+Vorhanden:
 
 ```text
-Todo Read-only Diagnose
+MODULE_META
+buildStatus()
+/api/tagebuch/status
+/api/tagebuch/routes
+/api/tagebuch/integration-check
+read-only Integration-Check
+Dashboard-Anbindung
+DB-Settings
+DB-Textvarianten
+Statistiken
+Discord/Webhook-Posting
+Streamstart-/Streamende-State
 ```
 
-Bestätigte Werte:
+Nicht vorhanden war bisher:
 
 ```text
-READ-ONLY OK
-v2
-schema 1
-Status OK: ja
-Schema OK: ja
-Integration OK: ja
-Targets: 4
-Channels: 4/4
-Fehlende Channels: 0
-User-Stats: 10
-Daily-Stats: 24
-Settings: 5
-Textvarianten: 13
-Legacy-Texte: 13
-DB: ok / sqlite
+docs/modules/tagebuch.md
 ```
 
-## Bestätigte Read-only Routen
+## Änderung CAN-35.2
+
+Neu:
 
 ```text
-GET /api/todo/status
-GET /api/todo/config
-GET /api/todo/settings
-GET /api/todo/routes
-GET /api/todo/integration-check
-GET /api/todo/stats
-GET /api/todo/stats/top
-GET /api/todo/stats/today
-GET /api/todo/admin/settings
-GET /api/todo/admin/texts
-GET /discord/todo/status
+docs/modules/tagebuch.md
 ```
 
-## Bestätigte produktiv gesperrte Routen
+Darin festgehalten:
 
 ```text
-GET/POST /api/todo/add
-GET/POST /discord/todo
-GET/POST /api/todo/reload
-POST /api/todo/admin/settings
-POST /api/todo/admin/texts
+- Modulzweck
+- MODULE_META / Version / Routenprefix
+- Status-Endpunkt
+- Read-only Routen
+- produktive/schreibende Routen
+- Dashboard-Schreibfunktionen
+- Integration-Check als sichere Diagnose
+- Regeln für spätere Tagebuch-Diagnosekarten
 ```
 
-## Stabilitätsfix
+## Wichtigste Sicherheitsentscheidung
 
-CAN-34.3b hatte eine MutationObserver-/Render-Schleife ausgelöst. CAN-34.3c hat diese Logik entfernt.
-
-Bestätigt:
+Read-only Diagnose darf nutzen:
 
 ```text
-CAN-34.3c Stabilitätsfix ohne MutationObserver aktiv.
-Kein dauerhafter Firefox-Hänger mehr sichtbar.
-Diagnosekarte rendert sauber.
+GET /api/tagebuch/status
+GET /api/tagebuch/config
+GET /api/tagebuch/settings
+GET /api/tagebuch/routes
+GET /api/tagebuch/integration-check
+GET /api/tagebuch/stats
+GET /api/tagebuch/stats/top
+GET /api/tagebuch/stats/today
+GET /api/tagebuch/stats/user
+GET /api/tagebuch/admin/settings
+GET /api/tagebuch/admin/texts
+GET /discord/tagebuch/status
 ```
 
-## Ergebnis
+Nicht automatisch verwenden:
 
 ```text
-CAN-34.3c Ziel erfüllt.
-Dashboard-only Erweiterung aktiv.
-Read-only Diagnosekarte im Diagnose-Tab sichtbar.
-Produktive Routen klar als gesperrt markiert.
-Keine Add-/Reload-/Admin-POST-Buttons in der Diagnosekarte.
-Keine Todo-Einträge erstellt.
-Kein Reload ausgelöst.
-Keine Settings gespeichert.
-Keine Textvarianten gespeichert oder gelöscht.
-Keine Discord-Nachricht gepostet.
-Keine Statistik erhöht.
-Keine DB-Migration.
-Keine Funktionalität entfernt.
+GET/POST /api/tagebuch/stream/start
+GET/POST /api/tagebuch/stream/end
+GET/POST /api/tagebuch/entry
+GET/POST /api/tagebuch/reset
+GET/POST /api/tagebuch/reload
+GET/POST /discord/stream/start
+GET/POST /discord/stream/end
+GET/POST /discord/tagebuch
+GET/POST /discord/tagebuch/reset
+POST /api/tagebuch/admin/settings
+POST /api/tagebuch/admin/texts
 ```
 
-## Nicht geändert in CAN-34.4
+## Nicht geändert
 
 ```text
 Keine Codeänderung.
-Keine Backend-Dateien.
-Keine Todo-Moduldatei.
-Keine API-Routen.
-Keine Todo-Funktion.
-Keine Todo-Einträge.
+Keine Tagebuch-Funktion geändert.
+Keine Tagebuch-Einträge erstellt/geändert/gelöscht.
+Keine Streamstart-/Streamende-Aktion.
+Kein Reset.
 Keine Settings gespeichert.
-Keine Texte/Varianten gespeichert oder gelöscht.
+Keine Texte/Varianten gespeichert/gelöscht.
 Kein Reload ausgelöst.
 Keine DB-Migration.
 Keine Dashboard-Write-Buttons getestet.
 Keine Discord-Nachricht gepostet.
-Keine Statistik erhöht.
 Keine Twitch-/Streamer.bot-Aktion.
 Keine OBS-/Sound-/Queue-Aktion.
+Keine Funktionalität entfernt.
 ```
 
 ## Nächster Schritt
 
 ```text
-CAN-35.0 neuen Arbeitsblock bewusst auswählen.
+CAN-35.2 anwenden.
+Danach optional CAN-35.3 Tagebuch Dashboard Read-only Diagnosekarte planen.
 ```
