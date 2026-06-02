@@ -1,91 +1,30 @@
 # CURRENT_STATUS
 
-## Stand: CAN-22.5 abgeschlossen
+## Stand: CAN-23.1 abgeschlossen
 
-CAN-22 ist abgeschlossen als:
+CAN-23.1 hat den echten Upload-Stand aus `backend.zip`, `dashboard.zip` und `overlays.zip` gegen die Bus-Integration geprueft.
+
+## Feststellung
 
 ```text
-Safety Architecture Backend Shape Implementation Planning no-code / File Inspection / Candidate Decision / Code Plan / Test Rollback Plan / Closure
+backend/modules/bus_integration_matrix.js ist im Upload-Stand noch nicht vorhanden.
+Dashboard hat Bus-Diagnostics, aber noch keine Matrix-Anzeige.
+Overlays haben bereits viele WS-/Heartbeat-/ACK-Bezuege.
 ```
 
-## Aktueller stabiler Stand
+## Sicherheitsstatus
 
 ```text
-read-only Recovery/Safety Diagnose- und Anzeige-Strang
-Safety Status View read-only
-Audit Planning no-write/no-data
-SafetyStop Planning read-only/no-api
-Roles/Rights Planning no-mutation/no-implementation
-Confirm Planning no-action/no-implementation
-Recovery Safety Architecture Planning / Consolidation
-Safety Architecture Backend Shape Planning read-only/no-route/no-code
-Recovery Safety Master Documentation / Index / Closure
-Safety Architecture Backend Shape Implementation Planning no-code / Closure
-```
-
-## CAN-22 Status
-
-```text
-implementationPlanningNoCode: true
-fileInspectionPlanning: true
-implementationCandidateDecision: true
-internalFunctionCodePlan: true
-testRollbackPlan: true
-planningClosure: true
-selectedCandidate: internal_function_only_not_embedded
-plannedFunctionName: buildSafetyArchitectureStatusShape
-primaryFileCandidate: backend/modules/bus_diagnostics.js
 codeChanged: false
-apiCreated: false
-routeCreated: false
 dbChanged: false
 dashboardChanged: false
-eventBusEmit: false
+overlayChanged: false
+apiChanged: false
 recoveryExecution: false
-validationCode: false
 ```
 
-## Technischer Sicherheitsstand
+## Naechster Schritt
 
 ```text
-readOnly: true
-canPrepare: false
-canExecute: false
-commandRoute: false
-prepareRoute: false
-executeRoute: false
-recoveryExecution: false
-dashboardRecoveryButtons: false
-safetyStatusApi: false
-backendSafetyStatusShapeImplemented: false
-```
-
-## Weiterhin hart blockiert
-
-```text
-Alert Replay
-Sound Replay
-Queue Clear
-Overlay State Repair
-Execute Recovery
-Auto Recovery
-Auto Retry Overlay
-Streamer.bot Action Retry
-OBS Source Refresh
-SafetyStop Clear
-SafetyStop Reset
-Audit Write Route
-Audit Read Route
-Confirm API
-Confirm Execution
-Rollen-/Rechte-Mutation
-Prepare Route
-Execute Route
-POST Command Route
-```
-
-## Naechster Kandidat
-
-```text
-CAN-23.0 - Safety Architecture Backend Shape Internal Function read-only implementation
+CAN-23.2 - Dashboard Bus-Integration-Matrix Anzeige
 ```

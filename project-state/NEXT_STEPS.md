@@ -1,53 +1,32 @@
 # NEXT_STEPS
 
-## Naechster Kandidat
+## Naechster Schritt
 
 ```text
-CAN-23.0 - Safety Architecture Backend Shape Internal Function read-only implementation
+CAN-23.2 - Dashboard Bus-Integration-Matrix Anzeige
 ```
 
-## Ziel CAN-23.0
+## Ziel
 
-Eine interne read-only Funktion in `backend/modules/bus_diagnostics.js` ergaenzen.
+Die neue read-only Matrix aus `/api/bus-integration-matrix/status` im Dashboard sichtbar machen.
 
-## CAN-23.0 darf maximal enthalten
+## Empfohlener Ort
 
 ```text
-eine interne Funktion in backend/modules/bus_diagnostics.js
-keine Einbindung in Response
-keine neue Route
-keine neue API
-keine Dashboard-Aenderung
-keine DB
-kein EventBus-Emit
-keine Recovery
+dashboard/modules/bus_diagnostics.js
 ```
 
-## Pflicht bei CAN-23.0
+Als neuer Tab:
 
 ```text
-echte Datei erneut aus GitHub/dev lesen
-keine bestehende Funktionalitaet entfernen
-node -c backend\modules\bus_diagnostics.js ausfuehren
-ZIP mit echter Datei liefern
-Doku/Projektstatus aktualisieren
-Rollback-Hinweis dokumentieren
+Bus-Matrix
 ```
 
-## CAN-23.0 darf NICHT enthalten
+## Danach
 
 ```text
-API
-Route
-DB
-Middleware
-Dashboard-Aenderung
-EventBus-Emit
-Recovery-Ausfuehrung
-SafetyStop Clear
-Confirm Trigger
-Rollen-/Rechte-Mutation
-Queue-/Sound-/Alert-/Overlay-Mutation
-Response-Einbindung
-Validation-Code ausserhalb der internen Planung
+Sound-System: Bus-Request/ACK/Fehler/Queue-Status
+Alert-System: Alert-Request/Overlay-ACK/Sound-ACK/Finish-ACK
+VIP/Overlay/Channelpoints nachziehen
+Recovery/Selbstheilung spaeter
 ```

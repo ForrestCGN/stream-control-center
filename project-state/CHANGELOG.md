@@ -1,17 +1,13 @@
 # CHANGELOG
 
-## CAN-22.5
+## CAN-23.1
 
-- CAN-22 Safety Architecture Backend Shape Planungsstrang abgeschlossen.
-- Finaler Kandidat festgelegt: interne Funktion `buildSafetyArchitectureStatusShape(statusResult)` in `backend/modules/bus_diagnostics.js`, nicht eingebunden.
-- CAN-23.0 als naechster Kandidat dokumentiert.
-- Harte CAN-23.0-Grenzen, Pflicht-Tests und Rollback-Anforderungen festgelegt.
-- Keine Code-Aenderungen.
-- Keine API.
-- Keine Route.
-- Keine DB.
-- Keine Middleware.
-- Kein EventBus-Emit.
+- Upload-Stand aus `backend.zip`, `dashboard.zip` und `overlays.zip` geprueft.
+- Festgestellt: `backend/modules/bus_integration_matrix.js` ist im Upload-Backend noch nicht vorhanden.
+- Backend-/Dashboard-/Overlay-Bus-Anbindungsstand dokumentiert.
+- TODO um praktische Bus-Restaufgaben erweitert.
+- Keine Code-Aenderung.
+- Keine DB-Aenderung.
 - Keine Dashboard-Aenderung.
-- Keine Recovery-Ausfuehrung.
-- Kein Validation-Code.
+- Keine Overlay-Aenderung.
+- Keine Recovery.
