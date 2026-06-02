@@ -1568,7 +1568,7 @@ function publicSoundBusQueueStatus() {
         name: "sound.play.request",
         version: SOUND_BUS_COMMAND_API_VERSION,
         command: "sound.play.request",
-        requiredFields: ["command", "soundId"],
+        requiredFields: ["command", "soundId OR mediaId/mediaAssetId"],
         recommendedFields: ["requestId", "source", "requestedBy", "category", "target", "priority", "reason", "meta"],
         optionalFields: ["label", "outputTarget", "visual", "volume", "durationMs", "queueIfBusy", "dropIfBusy"],
         identity: {
@@ -1767,6 +1767,7 @@ function publicSoundBusQueueStatus() {
     const payload = isPlainObject(body.payload) ? body.payload : body;
     const command = String(payload.command || body.command || "sound.play.request").trim();
     const soundId = String(payload.soundId || payload.sound || body.soundId || body.sound || "").trim();
+    const mediaId = String(payload.mediaId || payload.media_id || payload.mediaAssetId || payload.assetId || body.mediaId || body.media_id || body.mediaAssetId || body.assetId || "").trim();
     const requestId = String(payload.requestId || body.requestId || `dry_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`).trim();
     const requestedBy = String(payload.requestedBy || payload.user || body.requestedBy || "sound_bus_dry_run").trim();
 
@@ -1776,7 +1777,10 @@ function publicSoundBusQueueStatus() {
       requestId,
       soundId,
       sound: soundId,
-      label: String(payload.label || body.label || `Dry-Run ${soundId || "Sound"}`).trim(),
+      mediaId,
+      mediaAssetId: String(payload.mediaAssetId || body.mediaAssetId || mediaId || "").trim(),
+      assetId: String(payload.assetId || body.assetId || mediaId || "").trim(),
+      label: String(payload.label || body.label || `Dry-Run ${soundId || mediaId || "Sound"}`).trim(),
       category: String(payload.category || body.category || "system").trim(),
       target: String(payload.target || body.target || "stream").trim(),
       outputTarget: String(payload.outputTarget || body.outputTarget || "overlay").trim(),
@@ -1828,15 +1832,29 @@ function publicSoundBusQueueStatus() {
     try {
       if (commandConfig.enabled === false) throw new Error("sound_bus_command_disabled");
       if (payload.command !== "sound.play.request") throw new Error(`unsupported_command: ${payload.command}`);
-      if (!payload.soundId) throw new Error("missing_soundId");
+      const mediaId = String(payload.mediaId || payload.media_id || payload.mediaAssetId || payload.assetId || "").trim();
+      if (!payload.soundId && !mediaId) throw new Error("missing_soundId_or_mediaId");
 
-      const normalized = normalizePlayRequest({
+      const soundPreset = payload.soundId ? findSound(payload.soundId) : null;
+      const playRequest = {
         ...payload,
-        soundId: payload.soundId,
-        sound: payload.soundId,
         source: payload.source || "sound_bus_command_dry_run",
         requestedBy: payload.requestedBy || "sound_bus_dry_run"
-      });
+      };
+      if (soundPreset) {
+        playRequest.soundId = payload.soundId;
+        playRequest.sound = payload.soundId;
+      } else if (mediaId) {
+        delete playRequest.soundId;
+        delete playRequest.sound;
+        playRequest.mediaId = mediaId;
+        playRequest.mediaAssetId = mediaId;
+      } else {
+        playRequest.soundId = payload.soundId;
+        playRequest.sound = payload.soundId;
+      }
+
+      const normalized = normalizePlayRequest(playRequest);
 
       const dryRunResult = {
         ok: true,
@@ -1857,6 +1875,7 @@ function publicSoundBusQueueStatus() {
         command: payload.command,
         requestId: payload.requestId,
         soundId: payload.soundId,
+        mediaId: payload.mediaId || payload.mediaAssetId || "",
         requestedBy: payload.requestedBy,
         source: payload.source,
         dryRunOnly: true,
@@ -1894,6 +1913,7 @@ function publicSoundBusQueueStatus() {
         command: payload.command,
         requestId: payload.requestId,
         soundId: payload.soundId,
+        mediaId: payload.mediaId || payload.mediaAssetId || "",
         requestedBy: payload.requestedBy,
         source: payload.source,
         dryRunOnly: true,

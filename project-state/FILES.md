@@ -1,6 +1,6 @@
 # FILES
 
-## CAN24.10 ZIP
+## CAN24.11 ZIP
 
 Enthaltene Dateien:
 
@@ -16,7 +16,8 @@ Enthaltene Dateien:
 - `docs/system-inspection/CAN24_8_LOCAL_TEST_PLAN.md`
 - `docs/system-inspection/CAN24_9_TEST_RESULT_PENDING.md`
 - `docs/system-inspection/CAN24_10_TEST_RESULT_AND_SOUND_ID_DIAGNOSIS.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN24_10.md`
+- `docs/system-inspection/CAN24_11_SOUND_BUS_MEDIAID_DRYRUN_COMPAT.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN24_11.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`

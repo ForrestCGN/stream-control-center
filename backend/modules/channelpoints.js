@@ -2595,6 +2595,8 @@ function buildChannelpointsSoundMigrationCandidatesStatus() {
         command: 'sound.play.request',
         requestId,
         soundId: mediaId || rewardKey || `reward_${reward.id || 'unknown'}`,
+        mediaId: mediaId || '',
+        mediaAssetId: mediaId || '',
         label: `Channelpoints: ${title}`,
         category: 'channelpoints',
         target: 'stream',

@@ -1,28 +1,20 @@
 # CURRENT_STATUS
 
-## Stand: CAN-24.10 abgeschlossen
+## Stand: CAN-24.11 abgeschlossen
 
-CAN-24.10 dokumentiert den echten lokalen Test und fuegt Sound-Katalog-/ID-Diagnose hinzu.
+CAN-24.11 macht Sound-Bus-DryRun mediaId/mediaAssetId-kompatibel.
 
-## Testergebnis
-
-```text
-Routen erreichbar: ja
-404: nein
-500: nein
-DryRun: HTTP 400 wegen Sound wurde nicht gefunden
-```
-
-## Neu
+## Korrigiertes Problem
 
 ```text
-GET /api/sound/eventbus/command/catalog-status?soundId=1423
+mediaAssetId 1423 wurde vorher als soundId 1423 behandelt.
+Jetzt kann der DryRun Media-Registry Assets ueber mediaId/mediaAssetId validieren.
 ```
 
 ## Sicherheitsstatus
 
 ```text
-readOnly: true
+dryRunOnly: true
 soundPlay: false
 queueTouched: false
 rewardExecutedViaBus: false
@@ -34,5 +26,5 @@ productiveMigration: false
 ## Naechster Schritt
 
 ```text
-CAN-24.11: Mapping-Entscheidung zwischen Channelpoints mediaAssetId und Sound-System soundId/mediaId.
+Lokalen DryRun erneut testen und Ergebnis dokumentieren.
 ```

@@ -1,23 +1,21 @@
 # NEXT_STEPS
 
-## Naechster Schritt
+## Sofort testen
 
-```text
-CAN-24.11: Mapping-Entscheidung treffen
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/bus/sound-migration-candidates/dry-run" | ConvertTo-Json -Depth 10
 ```
 
-## Zu klaeren
+## Danach
 
 ```text
-Soll Channelpoints im Bus-Payload mediaId/mediaAssetId uebergeben?
-Soll Sound-DryRun mediaId/mediaAssetId akzeptieren?
-Soll ein Mapping mediaAssetId -> Sound-Preset-ID gebaut werden?
+CAN-24.12: Testergebnis mediaId-DryRun dokumentieren.
 ```
 
-## Nicht weiterbauen, bevor klar ist
+## Weiter blockiert
 
 ```text
-Keine produktive Migration.
+Keine produktive Sound-Migration.
 Kein EventSub-/Execute-Hook.
 Kein Sound-Play ueber Bus.
 ```
