@@ -1,8 +1,8 @@
 # CURRENT_STATUS
 
-## Stand: CAN-24.4 abgeschlossen
+## Stand: CAN-24.5 abgeschlossen
 
-CAN-24.4 hat Channelpoints Sound Shadow-DryRun vorbereitet.
+CAN-24.5 wertet Shadow-DryRun Ergebnisse sichtbar aus.
 
 ## Sicherheitsstatus
 
@@ -19,5 +19,5 @@ legacyFlowUnchanged: true
 ## Naechster Schritt
 
 ```text
-CAN-24.5: Shadow-DryRun Ergebnis pruefen / Dashboard-Auswertung.
+CAN-24.6: Abschluss/Entscheidung fuer spaeteren produktiven Shadow-DryRun-Mitulauf.
 ```

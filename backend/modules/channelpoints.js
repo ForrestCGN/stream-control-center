@@ -2680,6 +2680,48 @@ const channelpointsSoundShadowDryRunState = {
   note: 'Shadow-DryRun is diagnostic only and does not change productive execution.'
 };
 
+function buildChannelpointsSoundShadowDryRunEvaluation(result = null) {
+  const dryRun = result && result.dryRun ? result.dryRun : null;
+  const soundDryRun = dryRun && dryRun.soundDryRun ? dryRun.soundDryRun : null;
+  const soundResult = soundDryRun && soundDryRun.result ? soundDryRun.result : {};
+  const ok = !!(dryRun && dryRun.ok === true);
+  const accepted = !!(dryRun && dryRun.accepted === true);
+  const queueTouched = !!(
+    dryRun && dryRun.queueTouched ||
+    soundDryRun && soundDryRun.queueTouched ||
+    soundResult && soundResult.queueTouched
+  );
+  const soundTouched = !!(
+    dryRun && dryRun.soundSystemTouched ||
+    dryRun && dryRun.soundSystemTouched === true ||
+    soundDryRun && soundDryRun.soundSystemTouched ||
+    soundResult && soundResult.audioTouched
+  );
+  const rewardExecuted = !!(dryRun && dryRun.rewardExecuted);
+  const redemptionChanged = !!(dryRun && dryRun.redemptionChanged);
+  const twitchTouched = !!(dryRun && dryRun.twitchTouched);
+  const productiveMigration = !!(dryRun && dryRun.productiveMigration);
+  const safe = ok && accepted && !queueTouched && !soundTouched && !rewardExecuted && !redemptionChanged && !twitchTouched && !productiveMigration;
+
+  return {
+    hasResult: !!result,
+    ok,
+    accepted,
+    safe,
+    queueTouched,
+    soundTouched,
+    rewardExecuted,
+    redemptionChanged,
+    twitchTouched,
+    productiveMigration,
+    statusCode: dryRun && dryRun.statusCode ? dryRun.statusCode : 0,
+    error: dryRun && dryRun.error ? dryRun.error : (soundDryRun && soundDryRun.error ? soundDryRun.error : ''),
+    candidateRewardKey: dryRun && dryRun.candidate ? (dryRun.candidate.rewardKey || '') : '',
+    candidateTitle: dryRun && dryRun.candidate ? (dryRun.candidate.title || '') : '',
+    checkedAt: result && result.updatedAt ? result.updatedAt : ''
+  };
+}
+
 function buildChannelpointsSoundShadowDryRunStatus() {
   const candidatesStatus = buildChannelpointsSoundMigrationCandidatesStatus();
   const candidates = Array.isArray(candidatesStatus.candidates) ? candidatesStatus.candidates : [];
@@ -2701,6 +2743,7 @@ function buildChannelpointsSoundShadowDryRunStatus() {
     selectedCandidate: selected || null,
     lastResult: channelpointsSoundShadowDryRunState.lastResult || null,
     lastPreparedAt: channelpointsSoundShadowDryRunState.lastPreparedAt || '',
+    evaluation: buildChannelpointsSoundShadowDryRunEvaluation(channelpointsSoundShadowDryRunState.lastResult || null),
     rewardsTouched: false,
     redemptionsTouched: false,
     executionTouched: false,
@@ -3056,6 +3099,7 @@ function buildStatus(extra = {}) {
       `${ROUTE_PREFIX}/bus/sound-migration-candidates`,
       `${ROUTE_PREFIX}/bus/sound-migration-candidates/dry-run`,
       `${ROUTE_PREFIX}/bus/sound-shadow-dry-run/status`,
+      `${ROUTE_PREFIX}/bus/sound-shadow-dry-run/evaluation`,
       `${ROUTE_PREFIX}/bus/sound-shadow-dry-run/prepare`,
       `${ROUTE_PREFIX}/model`,
       `${ROUTE_PREFIX}/media-plan`,
@@ -3312,6 +3356,27 @@ function init({ app }) {
   });
   app.get(`${ROUTE_PREFIX}/bus/sound-shadow-dry-run/status`, (req, res) => {
     try { res.json(buildChannelpointsSoundShadowDryRunStatus()); } catch (err) { sendError(res, 500, err); }
+  });
+  app.get(`${ROUTE_PREFIX}/bus/sound-shadow-dry-run/evaluation`, (req, res) => {
+    try {
+      const status = buildChannelpointsSoundShadowDryRunStatus();
+      res.json({
+        ok: true,
+        module: MODULE_NAME,
+        moduleVersion: MODULE_VERSION,
+        moduleBuild: MODULE_BUILD,
+        feature: 'channelpoints_sound_shadow_dry_run_evaluation',
+        mode: 'read_only_shadow_dry_run_evaluation',
+        readOnly: true,
+        evaluation: status.evaluation,
+        selectedRewardKey: status.selectedRewardKey,
+        selectedCandidate: status.selectedCandidate,
+        lastResult: status.lastResult,
+        safety: status.safety,
+        routes: status.routes,
+        updatedAt: nowIso()
+      });
+    } catch (err) { sendError(res, 500, err); }
   });
   app.post(`${ROUTE_PREFIX}/bus/sound-shadow-dry-run/prepare`, async (req, res) => {
     try {

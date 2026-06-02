@@ -7,7 +7,8 @@
 - [x] CAN-24.2 Ergebnis im Dashboard als eigene Candidate-Card anzeigen.
 - [x] CAN-24.3 Entscheidung: nur Shadow-/DryRun-Caller vorbereiten, keine produktive Migration.
 - [x] CAN-24.4 Channelpoints Sound Shadow-DryRun vorbereiten.
-- [ ] CAN-24.5 Shadow-DryRun Ergebnis pruefen / Dashboard-Auswertung.
+- [x] CAN-24.5 Shadow-DryRun Ergebnis pruefen / Dashboard-Auswertung.
+- [ ] CAN-24.6 Abschluss/Entscheidung fuer produktiven Shadow-DryRun-Mitulauf.
 - [ ] Erst danach entscheiden, ob ein echter produktiver Caller testweise umgestellt werden darf.
 
 ## Weiterhin hart blockiert

@@ -3,26 +3,23 @@
 ## Naechster Schritt
 
 ```text
-CAN-24.5: Shadow-DryRun Ergebnis pruefen / Dashboard-Auswertung.
+CAN-24.6: Abschluss/Entscheidung, ob ein produktiver Caller spaeter testweise mit Shadow-DryRun mitlaufen darf.
 ```
 
-## Ziel
-
-Shadow-DryRun-Ergebnis sauber auswerten:
+## Entscheidungsfragen
 
 ```text
-ok/accepted
-queueTouched false
-soundPlay false
-rewardExecuted false
-redemptionChanged false
-twitchTouched false
-payload sichtbar
-Fehler sichtbar
+Soll Shadow-DryRun beim echten EventSub-Redemption-Eingang mitlaufen?
+Nur fuer genau einen Reward?
+Default aus?
+Dashboard-Config noetig?
+Welche Logs/Audit-Eintraege muessen vorher sichtbar sein?
 ```
 
 ## Weiter blockiert
 
 ```text
 Keine produktive Migration ohne eigenen kleinen Go-Schritt.
+Kein Sound-Play ueber Testbutton.
+Keine Redemption-/Twitch-Aenderung.
 ```

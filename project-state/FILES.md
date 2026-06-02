@@ -1,6 +1,6 @@
 # FILES
 
-## CAN24.4 ZIP
+## CAN24.5 ZIP
 
 Enthaltene Dateien:
 
@@ -12,8 +12,8 @@ Enthaltene Dateien:
 - `backend/modules/bus_integration_matrix.js`
 - `htdocs/dashboard/modules/bus_diagnostics.js`
 - `htdocs/dashboard/modules/bus_diagnostics.css`
-- `docs/system-inspection/CAN24_4_CHANNELPOINTS_SOUND_SHADOW_DRYRUN.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN24_4.md`
+- `docs/system-inspection/CAN24_5_SHADOW_DRYRUN_EVALUATION.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN24_5.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`

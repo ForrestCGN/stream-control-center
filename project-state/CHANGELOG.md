@@ -1,12 +1,11 @@
 # CHANGELOG
 
-## CAN-24.4
+## CAN-24.5
 
-- Channelpoints Sound Shadow-DryRun State ergaenzt.
-- `GET /api/channelpoints/bus/sound-shadow-dry-run/status` ergaenzt.
-- `GET/POST /api/channelpoints/bus/sound-shadow-dry-run/prepare` ergaenzt.
-- Bus-Matrix liest Shadow-DryRun Status mit aus.
-- Dashboard zeigt Shadow-Status in der Candidate-Card.
+- Shadow-DryRun Evaluation Helper ergaenzt.
+- `GET /api/channelpoints/bus/sound-shadow-dry-run/evaluation` ergaenzt.
+- Bus-Matrix liest Shadow-DryRun Safety-Felder mit aus.
+- Dashboard-Candidate-Card zeigt Shadow safe, Queue/Sound/Reward/Redemption/Twitch Safety.
 - Kein Sound-Play.
 - Keine Queue.
 - Keine Reward-/Redemption-/Twitch-Aenderung.
