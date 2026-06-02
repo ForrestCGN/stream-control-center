@@ -1,18 +1,29 @@
 # NEXT_STEPS
 
-## Naechster Schritt
+## Empfohlener naechster Block
 
 ```text
-CAN-23 Abschluss konsolidieren und danach naechsten Migrationskandidaten entscheiden.
+CAN-24: Sound-Migration Candidate 1 vorbereiten
 ```
 
-## Moegliche Kandidaten danach
+## Ziel
+
+Einen echten Sound-Kandidaten aus Channelpoints/Caller-Liste nehmen und nur per Dry-Run pruefbar machen.
+
+## Vorgehen
 
 ```text
-Sound: einen echten Reward/Caller testweise ueber Dry-Run vorbereiten
-Alert: Alert-Dry-Run ins Dashboard aufnehmen
-Overlay: produktive Overlay-IDs in HTML-Dateien vereinheitlichen
-Dashboard: Bus-Matrix uebersichtlicher gruppieren
+1. /api/channelpoints/bus/request-readiness auswerten.
+2. Einen Kandidaten mit plannedBusCommand = sound.play.request auswaehlen.
+3. Payload gegen /api/sound/eventbus/command/dry-run pruefen.
+4. Ergebnis im Dashboard sichtbar machen.
+5. Keine produktive Ausfuehrung umstellen.
+```
+
+## Alternative naechste Arbeit
+
+```text
+Dashboard-Bus-Matrix UX Cleanup / Gruppierung
 ```
 
 ## Weiter blockiert

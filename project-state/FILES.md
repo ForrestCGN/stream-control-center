@@ -1,6 +1,6 @@
 # FILES
 
-## CAN23.17 ZIP
+## CAN23.18 ZIP
 
 Enthaltene Dateien:
 
@@ -12,10 +12,14 @@ Enthaltene Dateien:
 - `backend/modules/bus_integration_matrix.js`
 - `htdocs/dashboard/modules/bus_diagnostics.js`
 - `htdocs/dashboard/modules/bus_diagnostics.css`
-- `docs/system-inspection/EVENTBUS_CAN23_17_LEGACY_DIRECT_PATHS_READONLY.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN23_17.md`
+- `docs/system-inspection/EVENTBUS_CAN23_18_CAN23_CLOSURE_CONSOLIDATION.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN23_18.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
+
+## Hinweis
+
+Die Code-Dateien entsprechen dem konsolidierten CAN-23.17 Stand. CAN-23.18 ist der Abschluss-/Doku-/Handoff-Stand.

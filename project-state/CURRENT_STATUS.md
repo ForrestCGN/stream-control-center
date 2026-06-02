@@ -1,25 +1,43 @@
 # CURRENT_STATUS
 
-## Stand: CAN-23.17 abgeschlossen
+## Stand: CAN-23.18 abgeschlossen
 
-CAN-23.17 hat Legacy/direct REST-/broadcastWS-Wege pro Modul read-only sichtbar gemacht.
+CAN-23 ist als Sichtbarkeits-/Readiness-/Safety-Block abgeschlossen.
+
+## Ergebnis
+
+```text
+Bus-Matrix vorhanden
+Sound-Readiness sichtbar
+Alert-Readiness sichtbar
+VIP-Overlay-Status sichtbar
+Overlay-Monitor-Kontrollsicht sichtbar
+Channelpoints-Readiness sichtbar
+Legacy/direct Pfade sichtbar
+```
 
 ## Sicherheitsstatus
 
 ```text
-readOnly: true
-routesChanged: false
-legacyRouteExecuted: false
-soundTouched: false
-alertTouched: false
-overlayTouched: false
-obsTouched: false
-eventBusEmit: false
-recoveryExecution: false
+productiveMigration: false
+autoRecovery: false
+queueClear: false
+alertReplay: false
+soundReplay: false
+obsRefresh: false
+obsRepair: false
+twitchWrite: false
+dbReplacement: false
 ```
 
-## Naechster Schritt
+## Naechster empfohlener Block
 
 ```text
-CAN-23 Abschluss konsolidieren und danach naechsten Migrationskandidaten entscheiden.
+CAN-24: Sound-Migration Candidate 1 vorbereiten
+```
+
+## Alternative
+
+```text
+Dashboard-Bus-Matrix UX Cleanup / Gruppierung
 ```
