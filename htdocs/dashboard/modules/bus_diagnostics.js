@@ -37,7 +37,9 @@
     busMatrix: null,
     busMatrixLoading: false,
     busMatrixError: '',
-    busMatrixFilter: 'all',
+    overlayClientControl: null,
+    overlayClientControlLoading: false,
+    overlayClientControlError: '',
     soundDryRunResult: null,
     soundDryRunRunning: false,
     soundDryRunError: ''
@@ -93,6 +95,9 @@
   function getClients(){ return asList(getBusStatus().clients); }
   function getEvents(){ return asList(getBusStatus().events); }
   function getIssues(){ return asList(getBusStatus().issues); }
+  function getOverlayClientControl(){ return state.overlayClientControl || {}; }
+  function getOverlayMonitorClients(){ return asList(getOverlayClientControl().clients); }
+  function getOverlayMonitorSummary(){ return getOverlayClientControl().summary || {}; }
 
   function isOverlayClient(client){
     const id = String(client?.id || '').toLowerCase();
@@ -246,18 +251,6 @@
     if (tabId === 'config') loadSettings(false);
   }
 
-  function setBusMatrixFilter(filterId){
-    const allowed = ['all', 'warnings', 'errors', 'legacy', 'channelpoints', 'sound', 'alert', 'overlay'];
-    state.busMatrixFilter = allowed.includes(filterId) ? filterId : 'all';
-    renderCurrentTab();
-  }
-
-  function bindBusMatrixActions(){
-    panel()?.querySelectorAll('[data-busmatrix-filter]').forEach(btn => {
-      btn.addEventListener('click', () => setBusMatrixFilter(btn.dataset.busmatrixFilter));
-    });
-  }
-
   function setRecoverySubTab(tabId){
     const allowed = ['overview', 'details', 'readiness', 'preflight', 'safety', 'locks'];
     if (!allowed.includes(tabId)) return;
@@ -338,6 +331,32 @@
       return fallback;
     } finally {
       state.busMatrixLoading = false;
+    }
+  }
+
+
+  async function loadOverlayClientControlStatus(){
+    if (state.overlayClientControlLoading) return state.overlayClientControl;
+    state.overlayClientControlLoading = true;
+    state.overlayClientControlError = '';
+    try {
+      const status = await window.CGN.api('/api/overlay-monitor/client-control/status');
+      state.overlayClientControl = status;
+      state.overlayClientControlError = '';
+      return status;
+    } catch (err) {
+      state.overlayClientControl = {
+        ok: false,
+        readOnly: true,
+        feature: 'overlay_client_control_status',
+        error: err.message || String(err),
+        summary: {},
+        clients: []
+      };
+      state.overlayClientControlError = state.overlayClientControl.error;
+      return state.overlayClientControl;
+    } finally {
+      state.overlayClientControlLoading = false;
     }
   }
 
@@ -582,6 +601,7 @@
         });
       }
       data.busIntegrationMatrix = await loadBusIntegrationMatrix();
+      await loadOverlayClientControlStatus();
       state.lastData = data;
       await loadSettings(true);
       renderCurrentTab();
@@ -646,10 +666,25 @@
     content.innerHTML = (renderers[state.activeTab] || renderOverview)();
     bindConfigActions();
     bindRecoveryActions();
-    bindBusMatrixActions();
   }
 
   function renderOverlayOverviewCard(overlays){
+    const monitor = getOverlayClientControl();
+    const monitorSummary = getOverlayMonitorSummary();
+    const monitorClients = getOverlayMonitorClients();
+    if (monitor && (monitor.ok === true || monitorClients.length || monitor.error)) {
+      const warningCount = Number(monitorSummary.warning || 0);
+      const errorCount = Number(monitorSummary.error || 0);
+      const infoCount = Number(monitorSummary.info || 0);
+      const total = Number(monitorSummary.total || monitorClients.length || overlays.length || 0);
+      const activeExpected = Number(monitorSummary.activeExpected || 0);
+      const expectedNotActive = Number(monitorSummary.expectedNotActive || 0);
+      const status = errorCount > 0 ? 'error' : (warningCount > 0 ? 'warning' : 'ok');
+      const note = total === 0
+        ? 'keine Overlay-Clients registriert'
+        : `${warningCount} Warnungen / ${errorCount} Fehler · ${infoCount} Info · ${activeExpected} aktiv erwartet`;
+      return card('Overlay-Clients', `<div class="busdiag-status-line">${badge(status === 'ok' ? 'ok' : 'prüfen', status)}<span>${esc(note)}</span></div><div class="busdiag-metrics">${metric('Gesamt', total)}${metric('Aktiv erwartet', activeExpected)}${metric('Erwartbar nicht aktiv', expectedNotActive)}${metric('Info', infoCount)}${metric('Warnungen', warningCount)}${metric('Fehler', errorCount)}${metric('Letzter Heartbeat', fmtTime(newestClientTime(monitorClients, ['lastHeartbeatAt','lastSeenAt'])))}</div><p class="busdiag-muted">Scene-aware Bewertung aus <code>/api/overlay-monitor/client-control/status</code>. Erwartbar inaktive oder Event-/Idle-Overlays zählen hier nicht als echte Warnung.</p>`, 'busdiag-overlay-card');
+    }
     const counts = countByStatus(overlays);
     const problemCount = counts.stale + counts.offline + counts.dead;
     const status = overlays.length === 0 ? 'warning' : (problemCount > 0 ? 'warning' : 'ok');
@@ -681,6 +716,14 @@
     `;
   }
 
+
+  function overlayMonitorStatusLabel(client){
+    if (client?.expectedIdle) return 'Event-/Idle-Overlay';
+    if (client?.expectedInactive || client?.expectedNotActive) return 'Erwartbar inaktiv';
+    if (client?.activeExpected) return 'Aktiv erwartet';
+    return 'Status';
+  }
+
   function renderClientTable(title, clients, emptyText, options = {}){
     const sorted = sortClientsForDisplay(clients);
     const tableClass = options.overlay === true ? 'busdiag-table-clients busdiag-table-overlays' : 'busdiag-table-clients';
@@ -690,7 +733,13 @@
     const rows = sorted.map(client => {
       const status = client.status || (client.connected ? 'online' : 'offline');
       if (options.overlay === true) {
-        return `<div class="busdiag-table-row"><span><strong>${esc(client.id || '-')}</strong><small>${esc(client.name || '-')}</small></span><span>${badge(status, status)}<small>${client.connected ? 'verbunden' : 'getrennt'}</small></span><span><strong>${esc(client.module || '-')}</strong><small>${esc(client.version || '-')}</small></span><span><strong>${esc(fmtTime(client.lastHeartbeatAt))}</strong><small>Heartbeat</small></span><span><strong>${esc(fmtTime(client.lastSeenAt || client.connectedAt || client.registeredAt))}</strong><small>${esc(client.disconnectReason || client.mode || '')}</small></span><span class="busdiag-cap-list">${renderCapabilityChips(client.capabilities || [])}</span></div>`;
+        const monitorStatus = client.monitorStatus || status;
+        const risk = client.risk || monitorStatus;
+        const rawStatus = client.rawStatus || status;
+        const sceneText = overlayMonitorStatusLabel(client);
+        const heartbeatNote = client.ageMs !== undefined && client.ageMs !== null ? `${Math.round(Number(client.ageMs) / 1000)}s alt` : 'Heartbeat';
+        const detailText = client.expectedIdle ? 'Idle/Event normal' : (client.expectedInactive || client.expectedNotActive ? 'nicht in aktueller Szene erwartet' : (client.activeExpected ? 'aktuelle Szene' : (client.disconnectReason || client.mode || '')));
+        return `<div class="busdiag-table-row"><span><strong>${esc(client.id || '-')}</strong><small>${esc(client.name || '-')}</small></span><span>${badge(monitorStatus, risk)}<small>${esc(sceneText)} · raw ${esc(rawStatus)}</small></span><span><strong>${esc(client.module || '-')}</strong><small>${esc(client.version || '-')}</small></span><span><strong>${esc(fmtTime(client.lastHeartbeatAt))}</strong><small>${esc(heartbeatNote)}</small></span><span><strong>${esc(detailText)}</strong><small>active ${esc(bool(client.activeExpected))} · inaktiv ${esc(bool(client.expectedInactive))} · idle ${esc(bool(client.expectedIdle))}</small></span><span class="busdiag-cap-list">${renderCapabilityChips(client.capabilities || [])}</span></div>`;
       }
       return `<div class="busdiag-table-row"><span><strong>${esc(client.id)}</strong><small>${esc(client.type || '-')} / ${esc(client.mode || '-')}</small></span><span><strong>${esc(client.name || '-')}</strong><small>${esc(client.module || '-')} ${client.version ? '· ' + esc(client.version) : ''}</small></span><span>${badge(status, status)}<small>${client.connected ? 'verbunden' : 'getrennt'}</small></span><span><strong>${esc(fmtTime(client.lastHeartbeatAt || client.lastSeenAt))}</strong><small>${esc(client.disconnectReason || '')}</small></span><span class="busdiag-cap-list">${renderCapabilityChips(client.capabilities || [])}</span></div>`;
     }).join('');
@@ -698,6 +747,12 @@
   }
 
   function renderOverlaySummary(overlays){
+    const monitor = getOverlayClientControl();
+    const monitorSummary = getOverlayMonitorSummary();
+    const monitorClients = getOverlayMonitorClients();
+    if (monitor && (monitor.ok === true || monitorClients.length || monitor.error)) {
+      return card('Overlay-Verbindungen', `<div class="busdiag-overlay-summary"><div>${metric('Overlays gesamt', monitorSummary.total ?? monitorClients.length)}${metric('Aktiv erwartet', monitorSummary.activeExpected ?? 0)}${metric('Erwartbar inaktiv', monitorSummary.expectedInactive ?? 0)}${metric('Event-/Idle', monitorSummary.expectedIdle ?? 0)}${metric('Erwartbar nicht aktiv', monitorSummary.expectedNotActive ?? 0)}${metric('Info', monitorSummary.info ?? 0)}${metric('Warnung', monitorSummary.warning ?? 0)}${metric('Fehler', monitorSummary.error ?? 0)}</div><p class="busdiag-muted">Quelle: Overlay-Monitor Client-Control. <strong>Warnung/Fehler</strong> zählt nur, wenn ein Overlay in der aktuellen Programmszene aktiv erwartet wird oder wirklich kritisch ist. <strong>Erwartbar inaktiv</strong> und <strong>Event-/Idle</strong> sind Info-Zustände, keine Reparaturaufforderung.</p></div>`, 'busdiag-wide busdiag-overlay-summary-card');
+    }
     const counts = countByStatus(overlays);
     const problemCount = counts.stale + counts.offline + counts.dead;
     return card('Overlay-Verbindungen', `<div class="busdiag-overlay-summary"><div>${metric('Overlays gesamt', overlays.length)}${metric('Online', counts.online)}${metric('Stale', counts.stale)}${metric('Offline', counts.offline)}${metric('Dead', counts.dead)}${metric('Ignored/Sonstige', counts.ignored + counts.other)}</div><p class="busdiag-muted">Quelle: Communication-Bus Client-Registry. Ein Overlay gilt hier nur als echter Overlay-Client, wenn <code>type=overlay</code>, <code>id=overlay:*</code> oder <code>mode=overlay</code>. Backend-Module mit Overlay im Namen werden nicht als Overlay gezählt.</p></div>`, 'busdiag-wide busdiag-overlay-summary-card');
@@ -705,7 +760,10 @@
 
   function renderClientsTab(){
     const split = splitClients();
-    return `${renderOverlaySummary(split.overlays)}${renderClientTable('Overlay-Clients', split.overlays, 'Keine Overlay-Clients registriert.', { overlay: true, extraClass: 'busdiag-wide busdiag-overlay-table-card' })}${renderClientTable('Backend-Module', split.modules, 'Keine Backend-Module registriert.')}${renderClientTable('Tools / Debug / Dashboard', split.tools, 'Keine Tool- oder Debug-Clients registriert.')}${renderClientTable('Unbekannte Clients', split.unknown, 'Keine unbekannten Clients.')}`;
+    const monitorClients = getOverlayMonitorClients();
+    const overlayClients = monitorClients.length ? monitorClients : split.overlays;
+    const overlayTitle = monitorClients.length ? 'Overlay-Clients (scene-aware)' : 'Overlay-Clients';
+    return `${renderOverlaySummary(split.overlays)}${renderClientTable(overlayTitle, overlayClients, 'Keine Overlay-Clients registriert.', { overlay: true, extraClass: 'busdiag-wide busdiag-overlay-table-card' })}${renderClientTable('Backend-Module', split.modules, 'Keine Backend-Module registriert.')}${renderClientTable('Tools / Debug / Dashboard', split.tools, 'Keine Tool- oder Debug-Clients registriert.')}${renderClientTable('Unbekannte Clients', split.unknown, 'Keine unbekannten Clients.')}`;
   }
 
   function renderEventsTab(){
@@ -819,81 +877,19 @@ function textValue(value, fallback = '—') {
 }
 
 function pickSoundShadowStatus(matrix) {
-  const channelpointsRow = asList(matrix && matrix.rows).find(row => row && row.id === 'channelpoints') || null;
-  if (!channelpointsRow) return null;
-
-  const hasShadowData = [
-    'channelpointsSoundShadowAutoEnabled',
-    'channelpointsSoundShadowAutoRewardKey',
-    'channelpointsSoundShadowAutoCandidateFound',
-    'channelpointsSoundShadowAutoHookInstalled',
-    'channelpointsSoundShadowAutoAttempts',
-    'channelpointsSoundShadowAutoOkCount',
-    'channelpointsSoundShadowAutoFailedCount',
-    'channelpointsSoundShadowAutoLastAccepted',
-    'channelpointsSoundShadowQueueTouched',
-    'channelpointsSoundShadowSoundTouched',
-    'channelpointsSoundShadowRewardExecuted',
-    'channelpointsSoundShadowRedemptionChanged',
-    'channelpointsSoundShadowTwitchTouched',
-    'channelpointsSoundDryRunResult'
-  ].some(key => Object.prototype.hasOwnProperty.call(channelpointsRow, key));
-
-  if (!hasShadowData) return null;
-
-  const dryRunResult = channelpointsRow.channelpointsSoundDryRunResult || {};
-  const soundDryRun = dryRunResult.soundDryRun || {};
-  const soundResult = soundDryRun.result || {};
-  const normalizedItem = soundResult.normalizedItem || {};
-  const selectedCandidate = {
-    rewardKey: channelpointsRow.channelpointsFirstCandidateRewardKey || channelpointsRow.channelpointsSoundShadowAutoRewardKey || channelpointsRow.channelpointsSoundShadowSelectedRewardKey || '',
-    title: channelpointsRow.channelpointsFirstCandidateTitle || '',
-    mediaAssetId: channelpointsRow.channelpointsFirstCandidateMediaAssetId || normalizedItem.meta?.mediaRegistry?.id || '',
-    currentExecutionTarget: channelpointsRow.channelpointsFirstCandidateExecutionTarget || normalizedItem.meta?.currentExecutionTarget || ''
-  };
-
-  return {
-    enabled: channelpointsRow.channelpointsSoundShadowAutoEnabled === true,
-    rewardKey: channelpointsRow.channelpointsSoundShadowAutoRewardKey || channelpointsRow.channelpointsSoundShadowSelectedRewardKey || channelpointsRow.channelpointsFirstCandidateRewardKey || '',
-    candidateFound: channelpointsRow.channelpointsSoundShadowAutoCandidateFound,
-    autoHookInstalled: channelpointsRow.channelpointsSoundShadowAutoHookInstalled,
-    executeHookInstalled: false,
-    eventSubHookInstalled: false,
-    legacyFlowUnchanged: true,
-    attempts: channelpointsRow.channelpointsSoundShadowAutoAttempts,
-    okCount: channelpointsRow.channelpointsSoundShadowAutoOkCount,
-    failedCount: channelpointsRow.channelpointsSoundShadowAutoFailedCount,
-    skipped: channelpointsRow.channelpointsSoundShadowAutoSkipped,
-    lastSkipReason: channelpointsRow.channelpointsSoundShadowAutoLastSkipReason,
-    queueTouched: channelpointsRow.channelpointsSoundShadowQueueTouched,
-    audioTouched: channelpointsRow.channelpointsSoundShadowSoundTouched,
-    soundTouched: channelpointsRow.channelpointsSoundShadowSoundTouched,
-    rewardExecuted: channelpointsRow.channelpointsSoundShadowRewardExecuted,
-    redemptionChanged: channelpointsRow.channelpointsSoundShadowRedemptionChanged,
-    twitchTouched: channelpointsRow.channelpointsSoundShadowTwitchTouched,
-    productiveMigration: false,
-    updatedAt: channelpointsRow.channelpointsSoundShadowAutoUpdatedAt || channelpointsRow.channelpointsSoundShadowUpdatedAt || soundDryRun.updatedAt || '',
-    selectedCandidate,
-    candidate: channelpointsRow.channelpointsFirstCandidatePayload || selectedCandidate,
-    firstCandidate: selectedCandidate,
-    lastAutoResult: {
-      accepted: channelpointsRow.channelpointsSoundShadowAutoLastAccepted,
-      skipped: channelpointsRow.channelpointsSoundShadowAutoLastAccepted === false,
-      dryRunOnly: true,
-      updatedAt: channelpointsRow.channelpointsSoundShadowAutoUpdatedAt || soundDryRun.updatedAt || '',
-      dryRun: dryRunResult
-    },
-    safety: {
-      queueTouched: channelpointsRow.channelpointsSoundShadowQueueTouched,
-      audioTouched: channelpointsRow.channelpointsSoundShadowSoundTouched,
-      soundTouched: channelpointsRow.channelpointsSoundShadowSoundTouched,
-      rewardExecuted: channelpointsRow.channelpointsSoundShadowRewardExecuted,
-      redemptionChanged: channelpointsRow.channelpointsSoundShadowRedemptionChanged,
-      twitchTouched: channelpointsRow.channelpointsSoundShadowTwitchTouched
-    },
-    dryRunResult,
-    normalizedItem
-  };
+  return (
+    matrix?.channelpoints?.soundShadowAuto ||
+    matrix?.channelpoints?.soundShadowDryRunAuto ||
+    matrix?.channelpoints?.soundShadow ||
+    matrix?.channelpoints?.sound_shadow ||
+    matrix?.channelpoints_sound_shadow ||
+    matrix?.soundShadow ||
+    matrix?.sound_shadow ||
+    matrix?.modules?.channelpoints?.soundShadowAuto ||
+    matrix?.modules?.channelpoints?.soundShadowDryRunAuto ||
+    matrix?.modules?.channelpoints?.soundShadow ||
+    null
+  );
 }
 
 function renderSoundShadowSummaryCard(matrix) {
@@ -939,14 +935,6 @@ function renderSoundShadowSummaryCard(matrix) {
 
   const stateLabel = critical ? 'kritisch' : warning ? 'hinweis' : 'ok';
   const stateClass = critical ? 'bus-pill-danger' : warning ? 'bus-pill-warn' : 'bus-pill-ok';
-  const autoHookDisabled = shadow.autoHookInstalled === true && shadow.enabled !== true;
-  const autoAttempts = Number(shadow.attempts || 0);
-  const autoSkipped = Number(shadow.skipped || 0);
-  const hasAutoRun = autoAttempts > 0 || autoSkipped > 0 || !!shadow.lastSkipReason || !!last.updatedAt;
-  const autoStatusText = autoHookDisabled
-    ? 'Auto-Hook ist deaktiviert; Zähler steigen erst bei aktiviertem Shadow-Hook-Test.'
-    : (shadow.enabled ? 'Auto-Hook ist aktiviert; Zähler zeigen echte Shadow-Hook-Läufe.' : 'Auto-Hook ist nicht aktiv.');
-  const noAutoRunBadge = '<span class="bus-pill bus-pill-muted">—</span>';
 
   return `
     <section class="bus-card bus-sound-shadow-card">
@@ -984,16 +972,15 @@ function renderSoundShadowSummaryCard(matrix) {
           <div class="bus-kv"><span>Failed</span><strong>${textValue(shadow.failedCount, '0')}</strong></div>
           <div class="bus-kv"><span>Skipped</span><strong>${textValue(shadow.skipped, '0')}</strong></div>
           <div class="bus-kv"><span>Last Skip</span><strong>${textValue(shadow.lastSkipReason)}</strong></div>
-          <div class="bus-kv"><span>Status</span><strong>${autoHookDisabled ? 'deaktiviert' : (shadow.enabled ? 'aktiv' : 'inaktiv')}</strong></div>
         </div>
 
         <div class="bus-shadow-block">
           <h4>Letztes Ergebnis</h4>
-          <div class="bus-kv"><span>accepted</span><strong>${hasAutoRun ? boolBadge(!!last.accepted) : noAutoRunBadge}</strong></div>
-          <div class="bus-kv"><span>skipped</span><strong>${hasAutoRun ? dangerBadge(!!last.skipped, 'ja', 'nein') : noAutoRunBadge}</strong></div>
-          <div class="bus-kv"><span>dryRunOnly</span><strong>${hasAutoRun ? boolBadge(!!last.dryRunOnly) : noAutoRunBadge}</strong></div>
-          <div class="bus-kv"><span>Sound</span><strong>${hasAutoRun ? textValue(normalized.soundId) : 'kein Auto-Hook-Lauf'}</strong></div>
-          <div class="bus-kv"><span>Update</span><strong>${hasAutoRun ? textValue(shadow.updatedAt || last.updatedAt) : '—'}</strong></div>
+          <div class="bus-kv"><span>accepted</span><strong>${boolBadge(!!last.accepted)}</strong></div>
+          <div class="bus-kv"><span>skipped</span><strong>${dangerBadge(!!last.skipped, 'ja', 'nein')}</strong></div>
+          <div class="bus-kv"><span>dryRunOnly</span><strong>${boolBadge(!!last.dryRunOnly)}</strong></div>
+          <div class="bus-kv"><span>Sound</span><strong>${textValue(normalized.soundId)}</strong></div>
+          <div class="bus-kv"><span>Update</span><strong>${textValue(shadow.updatedAt || last.updatedAt)}</strong></div>
         </div>
       </div>
 
@@ -1007,7 +994,8 @@ function renderSoundShadowSummaryCard(matrix) {
       </div>
 
       <div class="bus-card-note">
-        ${esc(autoStatusText)} Diese Karte ist read-only: kein Sound-Play, keine Queue, keine Twitch-/Redemption-Änderung, keine Migration.
+        Deaktivierung read-only Hinweis:
+        <code>curl -s "http://127.0.0.1:8080/api/channelpoints/bus/sound-shadow-dry-run/auto-config?rewardKey=bauernweisheit&amp;enabled=false&amp;configuredBy=manual_disable"</code>
       </div>
     </section>
   `;
@@ -1068,228 +1056,69 @@ function renderSoundMigrationCandidateCard(matrix){
     `, 'busdiag-wide');
   }
 
+
+  function renderOverlayMonitorSceneAwareCard(){
+    const monitor = getOverlayClientControl();
+    const summary = getOverlayMonitorSummary();
+    const clients = getOverlayMonitorClients();
+    if (!monitor || (!clients.length && monitor.ok !== true && !monitor.error)) return '';
+    const warningCount = Number(summary.warning || 0);
+    const errorCount = Number(summary.error || 0);
+    const status = errorCount > 0 ? 'error' : (warningCount > 0 ? 'warning' : 'ok');
+    const rows = clients
+      .slice()
+      .sort((a, b) => String(a.id || '').localeCompare(String(b.id || '')))
+      .map(client => {
+        const monitorStatus = client.monitorStatus || client.status || '-';
+        const risk = client.risk || monitorStatus;
+        const rawStatus = client.rawStatus || client.status || '-';
+        return `<div class="busdiag-table-row"><span><strong>${esc(client.id || '-')}</strong><small>${esc(client.name || '-')}</small></span><span>${badge(monitorStatus, risk)}<small>raw ${esc(rawStatus)}</small></span><span><strong>${esc(overlayMonitorStatusLabel(client))}</strong><small>active ${esc(bool(client.activeExpected))} · inactive ${esc(bool(client.expectedInactive))} · idle ${esc(bool(client.expectedIdle))}</small></span><span><strong>${esc(fmtTime(client.lastHeartbeatAt))}</strong><small>${client.ageMs !== undefined && client.ageMs !== null ? esc(`${Math.round(Number(client.ageMs) / 1000)}s alt`) : 'Heartbeat'}</small></span></div>`;
+      }).join('');
+    return card('Overlay-Monitor: Scene-aware Bewertung', `
+      <div class="busdiag-status-line">
+        ${badge(status === 'ok' ? 'ok' : 'prüfen', status)}
+        <span>${esc(summary.activeExpected || 0)} aktiv erwartet · ${esc(summary.expectedInactive || 0)} erwartbar inaktiv · ${esc(summary.expectedIdle || 0)} Event-/Idle · ${esc(summary.warning || 0)} Warnungen</span>
+      </div>
+      <div class="busdiag-metrics">
+        ${metric('Gesamt', summary.total ?? clients.length)}
+        ${metric('Aktiv erwartet', summary.activeExpected ?? 0)}
+        ${metric('Erwartbar inaktiv', summary.expectedInactive ?? 0)}
+        ${metric('Event-/Idle', summary.expectedIdle ?? 0)}
+        ${metric('Erwartbar nicht aktiv', summary.expectedNotActive ?? 0)}
+        ${metric('Info', summary.info ?? 0)}
+        ${metric('Warnung', summary.warning ?? 0)}
+        ${metric('Fehler', summary.error ?? 0)}
+      </div>
+      <p class="busdiag-muted">Diese Karte nutzt die neue Overlay-Monitor-Bewertung aus CAN-25.22/25.23. <strong>Info</strong> bedeutet: aktuell nicht aktiv erwartet oder Event-/Idle-Overlay. Es wird nichts repariert und keine OBS-Quelle refreshed.</p>
+      <details class="busdiag-details" open>
+        <summary>Overlay-Details</summary>
+        <div class="busdiag-table busdiag-table-events"><div class="busdiag-table-head"><span>Overlay</span><span>Status</span><span>Einordnung</span><span>Heartbeat</span></div>${rows || '<div class="busdiag-table-row"><span>Keine Clients</span><span>-</span><span>-</span><span>-</span></div>'}</div>
+      </details>
+    `, 'busdiag-wide');
+  }
+
   function renderBusMatrixTab(){
     const matrix = state.busMatrix || getStatus().busIntegrationMatrix || {};
     const summary = matrix.summary || {};
-    const allRows = asList(matrix.rows);
-    const activeFilter = state.busMatrixFilter || 'all';
-    const hasRoute = matrix.fetchOk !== false && (matrix.ok === true || allRows.length > 0 || matrix.generatedAt);
+    const rows = asList(matrix.rows);
+    const hasRoute = matrix.fetchOk !== false && (matrix.ok === true || rows.length > 0 || matrix.generatedAt);
     const headlineStatus = hasRoute ? (summary.errors > 0 ? 'warning' : 'ok') : 'warning';
     const headlineText = hasRoute ? 'read-only aktiv' : 'Route noch nicht verfügbar';
     const todo = asList(matrix.todoNextSteps);
 
     const setupHint = hasRoute ? '' : card('Einrichtung fehlt noch', `<p class="busdiag-muted">Die Route <code>/api/bus-integration-matrix/status</code> ist noch nicht erreichbar. Spiele CAN-23.0/CAN-23.2 vollständig ein und starte Node neu.</p><div class="busdiag-metrics">${metric('Read-only', bool(matrix.readOnly !== false))}${metric('Fehler', matrix.error || state.busMatrixError || '-')}</div>`, 'busdiag-wide');
 
-    const rowText = row => `${row.id || ''} ${row.label || ''} ${row.category || ''}`.toLowerCase();
-    const rowRisk = row => row.risk || (row.statusOk === false ? 'warning' : 'ok');
-    const rowMatchesFilter = (row, filterId) => {
-      if (!row) return false;
-      const text = rowText(row);
-      const risk = rowRisk(row);
-      if (filterId === 'warnings') return risk === 'warning';
-      if (filterId === 'errors') return risk === 'error';
-      if (filterId === 'legacy') return row.legacyDirect === true || Number(row.legacyDirectSummary && row.legacyDirectSummary.total || 0) > 0;
-      if (filterId === 'channelpoints') return text.includes('channelpoints');
-      if (filterId === 'sound') return text.includes('sound');
-      if (filterId === 'alert') return text.includes('alert');
-      if (filterId === 'overlay') return text.includes('overlay') || text.includes('vip');
-      return true;
-    };
-    const rows = allRows.filter(row => rowMatchesFilter(row, activeFilter));
-    const warningRows = allRows.filter(row => rowRisk(row) === 'warning');
-    const errorRows = allRows.filter(row => rowRisk(row) === 'error');
-    const legacyRows = allRows.filter(row => rowMatchesFilter(row, 'legacy'));
-    const focusRows = [...errorRows, ...warningRows].filter((row, index, list) => list.findIndex(item => item && row && item.id === row.id) === index);
-    const focusLabel = focusRows.length ? focusRows.map(row => row.label || row.id || 'System').join(' + ') : 'kein akuter UI-Blocker';
-    const diagnosticNoteItems = focusRows.length
-      ? focusRows.map(row => `<div class="busdiag-note-item"><strong>${esc(row.label || row.id || 'System')}</strong>: ${esc(row.nextStep || 'Warnung vorhanden, Detailbereich pruefen.')}</div>`).join('')
-      : '<div class="busdiag-note-item">Keine Warnung oder Fehler in der aktuellen Matrix. Read-only Diagnose bleibt aktiv.</div>';
-    const diagnosisStatus = errorRows.length ? 'error' : (warningRows.length ? 'warning' : 'ok');
-    const diagnosisHtml = card('Bus-Matrix Diagnose-Zusammenfassung', `
-      <div class="busdiag-status-line">
-        ${badge(errorRows.length ? 'Fehler pruefen' : (warningRows.length ? 'Warnungen vorhanden' : 'read-only stabil'), diagnosisStatus)}
-        <span>${esc(matrix.generatedAt || '-')}</span>
-      </div>
-      <div class="busdiag-metrics">
-        ${metric('Warnungen', warningRows.length)}
-        ${metric('Fehler', errorRows.length)}
-        ${metric('Legacy/direct', legacyRows.length)}
-        ${metric('Nächster Fokus', focusLabel, '', 'busdiag-metric-wide')}
-      </div>
-      <div class="busdiag-note-list" style="margin-top:10px;">
-        ${diagnosticNoteItems}
-        <div class="busdiag-note-item">Keine produktive Aktion erforderlich: Diese Zusammenfassung ist rein lokal/read-only und veraendert keine Queue, keinen Sound, keine Redemption und Twitch nicht.</div>
-      </div>
-    `, 'busdiag-wide');
-    const alertRow = allRows.find(row => row && row.id === 'alert_system') || null;
-    const alertWarningActive = !!(alertRow && rowRisk(alertRow) === 'warning');
-    const alertLegacyCount = Number(alertRow && alertRow.legacyDirectSummary && alertRow.legacyDirectSummary.total || 0);
-    const alertLegacyProductive = Number(alertRow && alertRow.legacyDirectSummary && alertRow.legacyDirectSummary.productive || 0);
-    const alertAckSummary = alertRow ? `Overlay ${String(alertRow.overlayAckCount || 0)} · Missing ${String(alertRow.overlayMissingAckCount || 0)} · Sound ${String(alertRow.soundMatchedCount || 0)} · Finish Missing ${String(alertRow.finishAckMissingCount || 0)}` : '-';
-    const alertDiagnosisHtml = alertRow ? card('Alert-System Diagnose-Zusammenfassung', `
-      <div class="busdiag-status-line">
-        ${badge(alertWarningActive ? 'warning sichtbar' : 'read-only Diagnose', alertWarningActive ? 'warning' : 'ok')}
-        <span>${esc(alertRow.statusRoute || '/api/alerts/status')}</span>
-      </div>
-      <div class="busdiag-metrics">
-        ${metric('EventBus', alertRow.eventBusOk === null ? '-' : bool(alertRow.eventBusOk))}
-        ${metric('ACK Status', alertRow.ackStatusOk === null ? '-' : bool(alertRow.ackStatusOk))}
-        ${metric('ACK Werte', alertAckSummary, '', 'busdiag-metric-wide')}
-        ${metric('Contract', alertRow.alertContractOk === null ? '-' : bool(alertRow.alertContractOk))}
-        ${metric('Dry-Run', alertRow.alertDryRunOk === null ? '-' : bool(alertRow.alertDryRunOk))}
-        ${metric('Legacy/direct', `${String(alertLegacyCount)} Pfade · produktiv ${String(alertLegacyProductive)}`, '', 'busdiag-metric-wide')}
-      </div>
-      <div class="busdiag-note-list" style="margin-top:10px;">
-        <div class="busdiag-note-item"><strong>Bewertung:</strong> Alert-System ist erreichbar, aber ACK-/Finish-ACK-/Legacy-direct-Status muss vor spaeterer Automatik sauber bewertet werden.</div>
-        <div class="busdiag-note-item"><strong>Naechster Fokus:</strong> Alert-Request, Overlay-ACK, Sound-ACK und Finish-ACK ueber Bus sauber definieren.</div>
-        <div class="busdiag-note-item">Keine produktive Aktion erforderlich: Diese Diagnose startet keinen Alert, keinen Sound, keine Queue und aendert keine OBS-/Twitch-/Redemption-Daten.</div>
-      </div>
-    `, 'busdiag-wide') : '';
-
-    const overlayRow = allRows.find(row => row && row.id === 'overlay_monitor') || null;
-    const overlayWarningActive = !!(overlayRow && rowRisk(overlayRow) === 'warning');
-    const overlayClientSummary = overlayRow ? `${String(overlayRow.overlayClientOnline || 0)}/${String(overlayRow.overlayClientTotal || 0)} online · warn ${String(overlayRow.overlayClientWarning || 0)} · err ${String(overlayRow.overlayClientError || 0)} · heartbeat ${String(overlayRow.overlayClientHeartbeat || 0)}` : '-';
-    const overlayClassificationSummary = overlayRow ? `produktiv ${String(overlayRow.overlayProductiveCandidates || 0)} · test/alt ${String(overlayRow.overlayTestOrLegacy || 0)} · unbekannt ${String(overlayRow.overlayUnknown || 0)} · high ${String(overlayRow.overlayClassificationHighConfidence || 0)}` : '-';
-    const overlayIdentitySummary = overlayRow ? `format ${overlayRow.overlayIdentityContractFormat || '-'} · dup ${String(overlayRow.overlayIdentityDuplicates || 0)} · caps ${String(overlayRow.overlayCapabilityKinds || 0)}` : '-';
-    const overlayDiagnosisHtml = overlayRow ? card('Overlay-Monitor Diagnose-Zusammenfassung', `
-      <div class="busdiag-status-line">
-        ${badge(overlayWarningActive ? 'warning sichtbar' : 'read-only Diagnose', overlayWarningActive ? 'warning' : 'ok')}
-        <span>${esc(overlayRow.statusRoute || '/api/overlay-monitor/status')}</span>
-      </div>
-      <div class="busdiag-metrics">
-        ${metric('Status', overlayRow.statusOk === null ? '-' : bool(overlayRow.statusOk))}
-        ${metric('Client-Control', overlayRow.overlayClientControlOk === null ? '-' : bool(overlayRow.overlayClientControlOk))}
-        ${metric('Clients', overlayClientSummary, '', 'busdiag-metric-wide')}
-        ${metric('Klassifikation', overlayRow.overlayClientClassificationOk === null ? '-' : bool(overlayRow.overlayClientClassificationOk))}
-        ${metric('Klassenwerte', overlayClassificationSummary, '', 'busdiag-metric-wide')}
-        ${metric('Identity', overlayRow.overlayClientIdentityOk === null ? '-' : bool(overlayRow.overlayClientIdentityOk))}
-        ${metric('Identity-Werte', overlayIdentitySummary, '', 'busdiag-metric-wide')}
-      </div>
-      <div class="busdiag-note-list" style="margin-top:10px;">
-        <div class="busdiag-note-item"><strong>Bewertung:</strong> Overlay-Monitor ist erreichbar, aber Health/Heartbeat/Client-Klassifikation muessen vor spaeterer kontrollierter Anzeige oder Selbstheilung sauber bewertet werden.</div>
-        <div class="busdiag-note-item"><strong>Naechster Fokus:</strong> Overlay-Clients eindeutig identifizieren, Heartbeats bewerten und Produktiv-/Test-/Legacy-Clients sauber trennen.</div>
-        <div class="busdiag-note-item">Keine produktive Aktion erforderlich: Diese Diagnose repariert keine OBS-Quelle, fuehrt keinen Refresh aus und aendert keinen Overlay-, Sound-, Queue-, Twitch- oder Redemption-Status.</div>
-      </div>
-    `, 'busdiag-wide') : '';
-
-    const filterItems = [
-      ['all', 'Alle'],
-      ['warnings', 'Warnungen'],
-      ['errors', 'Fehler'],
-      ['legacy', 'Legacy/direct'],
-      ['channelpoints', 'Channelpoints'],
-      ['sound', 'Sound'],
-      ['alert', 'Alert'],
-      ['overlay', 'Overlay']
-    ];
-    const filterHtml = `<div class="busdiag-filterbar" style="display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px 0;align-items:center;"><span class="busdiag-muted" style="font-size:12px;margin-right:4px;">Sichtfilter:</span>${filterItems.map(item => {
-      const id = item[0];
-      const label = item[1];
-      const count = id === 'all' ? allRows.length : allRows.filter(row => rowMatchesFilter(row, id)).length;
-      const active = id === activeFilter;
-      return `<button type="button" data-busmatrix-filter="${esc(id)}" class="${active ? 'active' : ''}" style="border:1px solid ${active ? 'rgba(34,211,238,.75)' : 'rgba(148,163,184,.24)'};background:${active ? 'rgba(34,211,238,.14)' : 'rgba(15,23,42,.35)'};color:${active ? '#67e8f9' : '#cbd5e1'};border-radius:999px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;">${esc(label)} <span style="opacity:.72;">${esc(String(count))}</span></button>`;
-    }).join('')}</div>`;
-
     const rowsHtml = rows.length ? rows.map(row => {
       const risk = row.risk || (row.statusOk === false ? 'warning' : 'ok');
       const commandLabel = row.commandStatus || (row.commandCapable ? 'partial' : 'status_only');
-      const clientIds = row.primaryClientId || asList(row.clientIds).join(', ') || '-';
-      const commandSummary = `ACK ${bool(row.ackCapable)} · Legacy ${bool(row.legacyDirect)} · Command ${row.commandOk === null ? '-' : bool(row.commandOk)}`;
-      const detailItem = (label, value) => [label, value];
-      const renderDetailGroup = (title, items) => {
-        const visibleItems = asList(items).filter(item => item && item[1] !== '' && item[1] !== null && item[1] !== undefined);
-        if (!visibleItems.length) return '';
-        const detailRows = visibleItems.map(item => `
-          <div style="display:grid;grid-template-columns:minmax(150px,220px) minmax(0,1fr);gap:10px;align-items:start;padding:5px 0;border-bottom:1px solid rgba(148,163,184,.08);">
-            <span style="font-size:11px;color:#9fb0c8;line-height:1.35;white-space:normal;overflow-wrap:break-word;">${esc(item[0])}</span>
-            <strong style="font-size:12px;color:#f8fafc;line-height:1.35;white-space:normal;word-break:normal;overflow-wrap:anywhere;min-width:0;">${esc(item[1])}</strong>
-          </div>
-        `).join('');
-        return `<section class="busdiag-matrix-detail-group" style="min-width:0;width:100%;padding:12px 14px;border:1px solid rgba(148,163,184,.18);border-radius:12px;background:rgba(15,23,42,.36);box-sizing:border-box;"><h4 style="margin:0 0 8px 0;font-size:13px;letter-spacing:.04em;color:#e5e7eb;">${esc(title)}</h4><div style="display:block;min-width:0;">${detailRows}</div></section>`;
-      };
-      const detailGroups = [
-        ['Basis', [
-          detailItem('System-ID', row.id || '-'),
-          detailItem('Kategorie', row.category || '-'),
-          detailItem('Primary Client', clientIds),
-          detailItem('Client Status', row.primaryClientStatus || '-'),
-          detailItem('Status Route', row.statusRoute || '-'),
-          detailItem('EventBus Route', row.eventBusRoute || '-')
-        ]],
-        ['Bus / Command', [
-          detailItem('ACK', bool(row.ackCapable)),
-          detailItem('Legacy/direct', bool(row.legacyDirect)),
-          detailItem('Command', row.commandOk === null ? '-' : bool(row.commandOk)),
-          detailItem('Command Route', row.commandRoute || '-'),
-          detailItem('Contract', `${row.contractOk === null ? '-' : bool(row.contractOk)} · ${row.contractName || '-'}`),
-          detailItem('Contract Route', row.contractRoute || '-'),
-          detailItem('Lifecycle', `${row.lifecycleOk === null ? '-' : bool(row.lifecycleOk)} · ${(row.lifecycleEvents || []).join(', ') || '-'}`),
-          detailItem('Lifecycle Route', row.lifecycleRoute || '-')
-        ]],
-        ['Sound-System', [
-          detailItem('Play-Kompatibel', `${row.compatibilityOk === null ? '-' : bool(row.compatibilityOk)} · ${row.compatibilityLevel || '-'}`),
-          detailItem('Compatibility Route', row.compatibilityRoute || '-'),
-          detailItem('Queue', `${row.queueStatusOk === null ? '-' : bool(row.queueStatusOk)} · ${row.queueBusy ? 'busy' : 'idle'} · ${String(row.queuedCount || 0)}/${String(row.queueMaxLength || '-')}`),
-          detailItem('Queue Route', row.queueStatusRoute || '-'),
-          detailItem('Catalog', `${row.catalogStatusOk === null ? '-' : bool(row.catalogStatusOk)} · presets ${String(row.catalogSoundPresetCount || 0)} · soundId1423 ${bool(row.catalogRequestedSoundPresetFound)} · media1423 ${bool(row.catalogRequestedMediaAssetFound)}`),
-          detailItem('Catalog Route', `${row.catalogStatusRoute || '-'} ${row.catalogLikelyIssue || ''}`.trim())
-        ]],
-        ['Alert-System', [
-          detailItem('Alert-ACK', `${row.ackStatusOk === null ? '-' : bool(row.ackStatusOk)} · Overlay ${String(row.overlayAckCount || 0)} · Missing ${String(row.overlayMissingAckCount || 0)} · Sound ${String(row.soundMatchedCount || 0)}`),
-          detailItem('Alert-ACK Route', row.ackStatusRoute || '-'),
-          detailItem('Alert-Contract', `${row.alertContractOk === null ? '-' : bool(row.alertContractOk)} · ${row.alertContractName || '-'}`),
-          detailItem('Alert-Contract Route', row.alertContractRoute || '-'),
-          detailItem('Alert-Dry-Run', `${row.alertDryRunOk === null ? '-' : bool(row.alertDryRunOk)} · accepted ${bool(row.alertDryRunAccepted)}`),
-          detailItem('Alert-Dry-Run Route', row.alertDryRunRoute || '-')
-        ]],
-        ['VIP / Overlay', [
-          detailItem('VIP-Overlay', `${row.vipOverlayOk === null ? '-' : bool(row.vipOverlayOk)} · ${row.vipOverlayVisible ? 'visible' : 'hidden'} · client ${bool(row.vipClientConnected)} · queue ${String(row.vipQueueLength || 0)}`),
-          detailItem('VIP-Overlay Route', row.vipOverlayRoute || '-'),
-          detailItem('Overlay-Clients', `${row.overlayClientControlOk === null ? '-' : bool(row.overlayClientControlOk)} · ${String(row.overlayClientOnline || 0)}/${String(row.overlayClientTotal || 0)} online · warn ${String(row.overlayClientWarning || 0)} · err ${String(row.overlayClientError || 0)}`),
-          detailItem('Overlay-Clients Route', row.overlayClientControlRoute || '-'),
-          detailItem('Overlay-Klasse', `${row.overlayClientClassificationOk === null ? '-' : bool(row.overlayClientClassificationOk)} · produktiv ${String(row.overlayProductiveCandidates || 0)} · test/alt ${String(row.overlayTestOrLegacy || 0)} · unbekannt ${String(row.overlayUnknown || 0)}`),
-          detailItem('Overlay-Klasse Route', row.overlayClientClassificationRoute || '-'),
-          detailItem('Overlay-ID', `${row.overlayClientIdentityOk === null ? '-' : bool(row.overlayClientIdentityOk)} · format ${row.overlayIdentityContractFormat || '-'} · dup ${String(row.overlayIdentityDuplicates || 0)} · caps ${String(row.overlayCapabilityKinds || 0)}`),
-          detailItem('Overlay-ID Route', row.overlayClientIdentityRoute || '-')
-        ]],
-        ['Channelpoints / Shadow', [
-          detailItem('Channelpoints', `${row.channelpointsReadinessOk === null ? '-' : bool(row.channelpointsReadinessOk)} · rewards ${String(row.channelpointsRewardTotal || 0)} · sound ${String(row.channelpointsSoundCandidates || 0)} · alert ${String(row.channelpointsAlertCandidates || 0)}`),
-          detailItem('Channelpoints Route', row.channelpointsReadinessRoute || '-'),
-          detailItem('CAN24 Sound-Kandidat', `${row.channelpointsSoundCandidatesOk === null ? '-' : bool(row.channelpointsSoundCandidatesOk)} · ready ${String(row.channelpointsMigrationCandidateReady || 0)}/${String(row.channelpointsMigrationCandidateTotal || 0)} · ${row.channelpointsFirstCandidateRewardKey || '-'}`),
-          detailItem('CAN24 Sound-Kandidat Route', row.channelpointsSoundCandidatesRoute || '-'),
-          detailItem('CAN24 Dry-Run', `${row.channelpointsSoundDryRunOk === null ? '-' : bool(row.channelpointsSoundDryRunOk)} · accepted ${bool(row.channelpointsSoundDryRunAccepted)} · ${row.channelpointsSoundDryRunCandidate || '-'}`),
-          detailItem('CAN24 Dry-Run Route', row.channelpointsSoundDryRunRoute || '-'),
-          detailItem('CAN24 Shadow', `${row.channelpointsSoundShadowOk === null ? '-' : bool(row.channelpointsSoundShadowOk)} · ${row.channelpointsSoundShadowEnabled ? 'aktiv' : 'bereit'} · ${row.channelpointsSoundShadowSelectedRewardKey || '-'}`),
-          detailItem('CAN24 Shadow Route', row.channelpointsSoundShadowRoute || '-'),
-          detailItem('CAN24 Shadow-Safety', `safe ${bool(row.channelpointsSoundShadowSafe)} · q ${bool(row.channelpointsSoundShadowQueueTouched)} · sound ${bool(row.channelpointsSoundShadowSoundTouched)} · reward ${bool(row.channelpointsSoundShadowRewardExecuted)} · twitch ${bool(row.channelpointsSoundShadowTwitchTouched)}`),
-          detailItem('CAN24 Shadow-Safety Route', row.channelpointsSoundShadowEvaluationRoute || '-'),
-          detailItem('CAN24 Auto-Prep', `${row.channelpointsSoundShadowAutoOk === null ? '-' : bool(row.channelpointsSoundShadowAutoOk)} · enabled ${bool(row.channelpointsSoundShadowAutoEnabled)} · key ${row.channelpointsSoundShadowAutoRewardKey || '-'} · hook ${bool(row.channelpointsSoundShadowAutoHookInstalled)}`),
-          detailItem('CAN24 Auto-Prep Route', row.channelpointsSoundShadowAutoRoute || '-'),
-          detailItem('CAN24 Shadow-Hook', `attempts ${String(row.channelpointsSoundShadowAutoAttempts || 0)} · ok ${String(row.channelpointsSoundShadowAutoOkCount || 0)} · fail ${String(row.channelpointsSoundShadowAutoFailedCount || 0)} · lastAccepted ${bool(row.channelpointsSoundShadowAutoLastAccepted)}`),
-          detailItem('CAN24 Shadow-Hook Last Skip', row.channelpointsSoundShadowAutoLastSkipReason || '-')
-        ]],
-        ['Legacy/direct', [
-          detailItem('Summary', `${String((row.legacyDirectSummary && row.legacyDirectSummary.total) || 0)} · produktiv ${String((row.legacyDirectSummary && row.legacyDirectSummary.productive) || 0)} · high ${String((row.legacyDirectSummary && row.legacyDirectSummary.highRisk) || 0)}`),
-          detailItem('Pfade', (row.legacyDirectPaths || []).map(item => item.path).join(' | ') || '-')
-        ]]
-      ];
-      const detailHtml = detailGroups.map(group => renderDetailGroup(group[0], group[1])).join('');
-      return `<div class="busdiag-table-row-wrap">
-        <div class="busdiag-table-row busdiag-table-row-compact">
-          <span><strong>${esc(row.label || row.id || '-')}</strong><small>${esc(row.id || '-')} · ${esc(row.category || '-')}</small></span>
-          <span>${badge(row.registeredOnBus ? 'ja' : 'nein', row.registeredOnBus ? 'ok' : 'warning')}<small>${esc(clientIds)}</small></span>
-          <span>${badge(row.heartbeat ? 'ja' : 'nein', row.heartbeat ? 'ok' : 'warning')}<small>${esc(row.primaryClientStatus || '-')}</small></span>
-          <span>${badge(row.statusOk === null ? '-' : (row.statusOk ? 'ok' : 'fehlt'), row.statusOk === false ? 'warning' : 'ok')}<small>${esc(row.statusRoute || '-')}</small></span>
-          <span>${badge(row.eventBusOk === null ? '-' : (row.eventBusOk ? 'ok' : 'fehlt'), row.eventBusOk === false ? 'warning' : 'ok')}<small>${esc(row.eventBusRoute || '-')}</small></span>
-          <span>${badge(commandLabel, row.commandCapable ? 'ok' : 'neutral')}<small>${esc(commandSummary)}</small></span>
-          <span>${badge(risk, risk)}<small>${esc(row.nextStep || '-')}</small></span>
-        </div>
-        <details class="busdiag-details busdiag-matrix-row-details" style="margin:6px 0 12px 0;padding:10px 12px;border:1px solid rgba(148,163,184,.16);border-radius:14px;background:rgba(15,23,42,.32);">
-          <summary>Details zu ${esc(row.label || row.id || 'System')}</summary>
-          <p class="busdiag-muted" style="margin:8px 0 10px 0;">Strukturierte Diagnosewerte. Keine Aktion, kein Refresh und keine Migration wird durch das Oeffnen ausgefuehrt.</p>
-          <div class="busdiag-matrix-detail-groups" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(520px,1fr));gap:12px;align-items:start;margin-top:10px;min-width:0;width:100%;">${detailHtml}</div>
-          <details class="busdiag-details" style="margin-top:10px;"><summary>Rohdaten dieser Zeile (kopierbar)</summary><pre style="max-height:360px;overflow:auto;white-space:pre;">${esc(compactJson(row))}</pre></details>
-        </details>
+      return `<div class="busdiag-table-row">
+        <span><strong>${esc(row.label || row.id || '-')}</strong><small>${esc(row.id || '-')} · ${esc(row.category || '-')}</small></span>
+        <span>${badge(row.registeredOnBus ? 'ja' : 'nein', row.registeredOnBus ? 'ok' : 'warning')}<small>${esc(row.primaryClientId || row.clientIds?.join(', ') || '-')}</small></span>
+        <span>${badge(row.heartbeat ? 'ja' : 'nein', row.heartbeat ? 'ok' : 'warning')}<small>${esc(row.primaryClientStatus || '-')}</small></span>
+        <span>${badge(row.statusOk === null ? '-' : (row.statusOk ? 'ok' : 'fehlt'), row.statusOk === false ? 'warning' : 'ok')}<small>${esc(row.statusRoute || '-')}</small></span>
+        <span>${badge(row.eventBusOk === null ? '-' : (row.eventBusOk ? 'ok' : 'fehlt'), row.eventBusOk === false ? 'warning' : 'ok')}<small>${esc(row.eventBusRoute || '-')}</small></span>
+        <span class="busdiag-compact-cell">${badge(commandLabel, row.commandCapable ? 'ok' : 'neutral')}<small>ACK ${esc(bool(row.ackCapable))} · Legacy ${esc(bool(row.legacyDirect))}</small><small>Cmd ${esc(row.commandOk === null ? '-' : bool(row.commandOk))} · Contract ${esc(row.contractOk === null ? '-' : bool(row.contractOk))} · Lifecycle ${esc(row.lifecycleOk === null ? '-' : bool(row.lifecycleOk))}</small><small>Queue ${esc(row.queueStatusOk === null ? '-' : bool(row.queueStatusOk))} · ${esc(row.queueBusy ? 'busy' : 'idle')} · ${esc(String(row.queuedCount || 0))}/${esc(String(row.queueMaxLength || '-'))}</small><small>Overlay ${esc(String(row.overlayClientOnline || 0))}/${esc(String(row.overlayClientTotal || 0))} · Info ${esc(String(row.overlayClientInfo || 0))} · Warn ${esc(String(row.overlayClientWarning || 0))} · Err ${esc(String(row.overlayClientError || 0))}</small></span>
+        <span>${badge(risk, risk)}<small>${esc(row.nextStep || '-')}</small></span>
       </div>`;
     }).join('') : `<div class="busdiag-empty glass">Noch keine Matrixdaten geladen.</div>`;
 
@@ -1297,19 +1126,17 @@ function renderSoundMigrationCandidateCard(matrix){
 
     return `
       <div class="busdiag-grid busdiag-grid-top">
-        ${card('Bus-Integration-Matrix', `<div class="busdiag-status-line">${badge(headlineText, headlineStatus)}<span>${esc(matrix.generatedAt || '-')}</span></div><div class="busdiag-metrics">${metric('Systeme', summary.total ?? allRows.length)}${metric('Registriert', summary.registeredOnBus ?? '-')}${metric('Verbunden', summary.connectedOnBus ?? '-')}${metric('Heartbeat', summary.heartbeat ?? '-')}${metric('Legacy/direct', summary.legacyDirect ?? '-')}</div>`)}
+        ${card('Bus-Integration-Matrix', `<div class="busdiag-status-line">${badge(headlineText, headlineStatus)}<span>${esc(matrix.generatedAt || '-')}</span></div><div class="busdiag-metrics">${metric('Systeme', summary.total ?? rows.length)}${metric('Registriert', summary.registeredOnBus ?? '-')}${metric('Verbunden', summary.connectedOnBus ?? '-')}${metric('Heartbeat', summary.heartbeat ?? '-')}${metric('Legacy/direct', summary.legacyDirect ?? '-')}</div>`)}
         ${card('Sicherheitsgrenze', `<div class="busdiag-status-line">${badge('read-only', 'ok')}<span>keine Aktion wird ausgeführt</span></div><div class="busdiag-metrics">${metric('Queue touch', bool(matrix.queueTouched))}${metric('Sound touch', bool(matrix.soundSystemTouched))}${metric('Alert touch', bool(matrix.alertSystemTouched))}${metric('Overlay touch', bool(matrix.overlayTouched))}</div>`)}
       </div>
       ${setupHint}
-      ${diagnosisHtml}
-      ${alertDiagnosisHtml}
-      ${overlayDiagnosisHtml}
       ${renderSoundDryRunCard(matrix)}
       ${renderSoundShadowSummaryCard(matrix)}
 ${renderSoundMigrationCandidateCard(matrix)}
-      ${card('Systeme', `<p class="busdiag-muted" style="margin:0 0 10px 0;">Kompakte Uebersicht. Die Sichtfilter sind rein lokal und fuehren keine Aktion aus. Die Details pro System bleiben standardmaessig geschlossen; Rohdaten sind nur bei Bedarf aufklappbar und kopierbar.</p>${filterHtml}<div class="busdiag-status-line" style="margin:0 0 10px 0;">${badge(activeFilter === 'all' ? 'alle Systeme' : `Filter: ${activeFilter}`, 'neutral')}<span>${esc(String(rows.length))} von ${esc(String(allRows.length))} Systemen sichtbar</span></div><div class="busdiag-table busdiag-table-busmatrix"><div class="busdiag-table-head"><span>System</span><span>Bus-Client</span><span>Heartbeat</span><span>Status</span><span>EventBus</span><span>Command/ACK</span><span>Risiko / nächster Schritt</span></div>${rowsHtml}</div>`, 'busdiag-wide')}
+      ${renderOverlayMonitorSceneAwareCard()}
+      ${card('Systeme', `<div class="busdiag-table busdiag-table-busmatrix"><div class="busdiag-table-head"><span>System</span><span>Bus-Client</span><span>Heartbeat</span><span>Status</span><span>EventBus</span><span>Command/ACK</span><span>Risiko / nächster Schritt</span></div>${rowsHtml}</div>`, 'busdiag-wide')}
       ${todoHtml}
-      ${card('Rohdaten Matrix', `<details class="busdiag-details"><summary>Komplette Matrix anzeigen (kopierbar)</summary><pre style="max-height:520px;overflow:auto;white-space:pre;">${esc(compactJson(matrix))}</pre></details>`, 'busdiag-wide')}
+      ${card('Rohdaten Matrix', `<details class="busdiag-details"><summary>Matrix anzeigen</summary><pre>${esc(compactJson(matrix))}</pre></details>`, 'busdiag-wide')}
     `;
   }
 
