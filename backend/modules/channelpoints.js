@@ -2722,6 +2722,132 @@ function buildChannelpointsSoundShadowDryRunEvaluation(result = null) {
   };
 }
 
+const channelpointsSoundShadowDryRunAutoState = {
+  enabled: false,
+  rewardKey: '',
+  configuredAt: '',
+  configuredBy: '',
+  lastPreview: null,
+  note: 'Prepared only. Not hooked into EventSub or Execute in CAN-24.7.'
+};
+
+function buildChannelpointsSoundShadowDryRunAutoStatus() {
+  const candidatesStatus = buildChannelpointsSoundMigrationCandidatesStatus();
+  const candidates = Array.isArray(candidatesStatus.candidates) ? candidatesStatus.candidates : [];
+  const selected = channelpointsSoundShadowDryRunAutoState.rewardKey
+    ? candidates.find(candidate => candidate.rewardKey === channelpointsSoundShadowDryRunAutoState.rewardKey)
+    : null;
+
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    feature: 'channelpoints_sound_shadow_dry_run_auto_config',
+    mode: 'prepared_exactly_one_reward_not_hooked',
+    diagnosticOnly: true,
+    enabled: channelpointsSoundShadowDryRunAutoState.enabled === true,
+    rewardKey: channelpointsSoundShadowDryRunAutoState.rewardKey || '',
+    selectedCandidate: selected || null,
+    candidateFound: !!selected,
+    configuredAt: channelpointsSoundShadowDryRunAutoState.configuredAt || '',
+    configuredBy: channelpointsSoundShadowDryRunAutoState.configuredBy || '',
+    lastPreview: channelpointsSoundShadowDryRunAutoState.lastPreview || null,
+    exactlyOneReward: !!channelpointsSoundShadowDryRunAutoState.rewardKey,
+    autoHookInstalled: false,
+    eventSubHookInstalled: false,
+    executeHookInstalled: false,
+    legacyFlowUnchanged: true,
+    soundPlay: false,
+    queueTouched: false,
+    rewardExecutedViaBus: false,
+    redemptionChanged: false,
+    twitchTouched: false,
+    productiveMigration: false,
+    routes: {
+      status: `${ROUTE_PREFIX}/bus/sound-shadow-dry-run/auto-status`,
+      configure: `${ROUTE_PREFIX}/bus/sound-shadow-dry-run/auto-config`,
+      shadowStatus: `${ROUTE_PREFIX}/bus/sound-shadow-dry-run/status`,
+      shadowEvaluation: `${ROUTE_PREFIX}/bus/sound-shadow-dry-run/evaluation`,
+      candidates: `${ROUTE_PREFIX}/bus/sound-migration-candidates`
+    },
+    safety: {
+      defaultEnabled: false,
+      onlyOneRewardAllowed: true,
+      eventSubHookInstalled: false,
+      executeHookInstalled: false,
+      noSoundPlay: true,
+      noQueueMutation: true,
+      noTwitchWrite: true,
+      noRedemptionWrite: true,
+      noProductiveMigration: true
+    },
+    nextSteps: [
+      'Configure exactly one rewardKey only if the candidate is known.',
+      'Keep enabled=false until the next explicit GO step decides otherwise.',
+      'Do not hook into EventSub/Execute in this CAN step.',
+      'Next step may add a guarded shadow-run hook for this one reward only.'
+    ],
+    updatedAt: nowIso()
+  };
+}
+
+function configureChannelpointsSoundShadowDryRunAuto(input = {}) {
+  const data = input && typeof input === 'object' ? input : {};
+  const rewardKey = cleanString(data.rewardKey || data.reward_key || data.key || '');
+  const enabled = data.enabled === true || data.enabled === 'true' || data.enabled === 1 || data.enabled === '1';
+  const candidatesStatus = buildChannelpointsSoundMigrationCandidatesStatus();
+  const candidates = Array.isArray(candidatesStatus.candidates) ? candidatesStatus.candidates : [];
+  const selected = rewardKey ? candidates.find(candidate => candidate.rewardKey === rewardKey || String(candidate.id || '') === rewardKey) : null;
+
+  if (!rewardKey) {
+    return {
+      ok: false,
+      error: 'reward_key_required',
+      diagnosticOnly: true,
+      legacyFlowUnchanged: true,
+      productiveMigration: false,
+      updatedAt: nowIso()
+    };
+  }
+
+  channelpointsSoundShadowDryRunAutoState.rewardKey = selected ? selected.rewardKey : rewardKey;
+  channelpointsSoundShadowDryRunAutoState.enabled = enabled;
+  channelpointsSoundShadowDryRunAutoState.configuredAt = nowIso();
+  channelpointsSoundShadowDryRunAutoState.configuredBy = cleanString(data.configuredBy || data.requestedBy || 'manual_api');
+  channelpointsSoundShadowDryRunAutoState.lastPreview = {
+    requestedRewardKey: rewardKey,
+    selectedCandidate: selected || null,
+    enabled,
+    candidateFound: !!selected,
+    note: 'Configuration only. No EventSub/Execute hook installed.'
+  };
+
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    feature: 'channelpoints_sound_shadow_dry_run_auto_configure',
+    mode: 'configure_exactly_one_reward_not_hooked',
+    diagnosticOnly: true,
+    status: buildChannelpointsSoundShadowDryRunAutoStatus(),
+    selectedCandidate: selected || null,
+    candidateFound: !!selected,
+    autoHookInstalled: false,
+    eventSubHookInstalled: false,
+    executeHookInstalled: false,
+    legacyFlowUnchanged: true,
+    soundPlay: false,
+    queueTouched: false,
+    rewardExecutedViaBus: false,
+    redemptionChanged: false,
+    twitchTouched: false,
+    productiveMigration: false,
+    updatedAt: channelpointsSoundShadowDryRunAutoState.configuredAt
+  };
+}
+
 function buildChannelpointsSoundShadowDryRunStatus() {
   const candidatesStatus = buildChannelpointsSoundMigrationCandidatesStatus();
   const candidates = Array.isArray(candidatesStatus.candidates) ? candidatesStatus.candidates : [];
@@ -3100,6 +3226,8 @@ function buildStatus(extra = {}) {
       `${ROUTE_PREFIX}/bus/sound-migration-candidates/dry-run`,
       `${ROUTE_PREFIX}/bus/sound-shadow-dry-run/status`,
       `${ROUTE_PREFIX}/bus/sound-shadow-dry-run/evaluation`,
+      `${ROUTE_PREFIX}/bus/sound-shadow-dry-run/auto-status`,
+      `${ROUTE_PREFIX}/bus/sound-shadow-dry-run/auto-config`,
       `${ROUTE_PREFIX}/bus/sound-shadow-dry-run/prepare`,
       `${ROUTE_PREFIX}/model`,
       `${ROUTE_PREFIX}/media-plan`,
@@ -3376,6 +3504,21 @@ function init({ app }) {
         routes: status.routes,
         updatedAt: nowIso()
       });
+    } catch (err) { sendError(res, 500, err); }
+  });
+  app.get(`${ROUTE_PREFIX}/bus/sound-shadow-dry-run/auto-status`, (req, res) => {
+    try { res.json(buildChannelpointsSoundShadowDryRunAutoStatus()); } catch (err) { sendError(res, 500, err); }
+  });
+  app.post(`${ROUTE_PREFIX}/bus/sound-shadow-dry-run/auto-config`, (req, res) => {
+    try {
+      const result = configureChannelpointsSoundShadowDryRunAuto(req.body || {});
+      res.status(result.ok ? 200 : 400).json(result);
+    } catch (err) { sendError(res, 500, err); }
+  });
+  app.get(`${ROUTE_PREFIX}/bus/sound-shadow-dry-run/auto-config`, (req, res) => {
+    try {
+      const result = configureChannelpointsSoundShadowDryRunAuto(req.query || {});
+      res.status(result.ok ? 200 : 400).json(result);
     } catch (err) { sendError(res, 500, err); }
   });
   app.post(`${ROUTE_PREFIX}/bus/sound-shadow-dry-run/prepare`, async (req, res) => {

@@ -3,26 +3,17 @@
 ## Naechster Schritt
 
 ```text
-CAN-24.7: Channelpoints Sound Shadow-DryRun Mitlauf fuer genau einen Reward vorbereiten
+CAN-24.8: Entscheiden, ob ein streng begrenzter Live-Hook fuer genau diesen Reward vorbereitet werden darf.
 ```
 
-## Ziel
-
-Ein einzelner explizit ausgewaehlter Channelpoints-Sound-Reward darf spaeter beim echten produktiven Legacy-Flow zusaetzlich einen diagnostischen Shadow-DryRun erzeugen.
-
-## Wichtig
+## Entscheidungsgrenze
 
 ```text
-Default aus.
-Nur ein Reward-Key.
-Legacy-Flow bleibt unveraendert.
-Kein Sound-Play ueber Bus.
-Keine Queue.
-Keine Redemption-/Twitch-Aenderung.
-```
-
-## Danach
-
-```text
-CAN-24.8: Live-Test-Auswertung des Shadow-DryRun-Mitulaufs.
+Nur ein Reward-Key
+Default aus
+Kein Sound-Play
+Keine Queue
+Legacy-Flow bleibt produktiv
+Shadow-DryRun nur Diagnose
+Abschaltbar
 ```

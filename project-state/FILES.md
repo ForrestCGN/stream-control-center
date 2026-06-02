@@ -1,6 +1,6 @@
 # FILES
 
-## CAN24.6 ZIP
+## CAN24.7 ZIP
 
 Enthaltene Dateien:
 
@@ -12,14 +12,10 @@ Enthaltene Dateien:
 - `backend/modules/bus_integration_matrix.js`
 - `htdocs/dashboard/modules/bus_diagnostics.js`
 - `htdocs/dashboard/modules/bus_diagnostics.css`
-- `docs/system-inspection/CAN24_6_SOUND_SHADOW_DRYRUN_DECISION_CLOSURE.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN24_6.md`
+- `docs/system-inspection/CAN24_7_SHADOW_DRYRUN_ONE_REWARD_PREP.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN24_7.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
-
-## Hinweis
-
-Die Code-Dateien entsprechen dem CAN-24.5 Stand. CAN-24.6 ist ein Abschluss-/Decision-Stand ohne Code-Umbau.
