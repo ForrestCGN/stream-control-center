@@ -78,7 +78,10 @@
 
 ## CAN-34
 
-- [ ] CAN-34.0 neuen Arbeitsblock bewusst auswählen.
+- [x] CAN-34.0 neuen Arbeitsblock bewusst auswählen.
+- [x] CAN-34.1 Todo-Modul analysieren.
+- [ ] CAN-34.2 Todo-Modul Doku und Read-only/Write-Regeln ergänzen.
+- [ ] CAN-34.3 optional: Todo Dashboard Read-only Diagnosekarte planen.
 
 ## Offene/zu beobachtende Punkte
 
@@ -87,4 +90,5 @@
 - [ ] Optional: EventBus read-only Diagnose weiter ausbauen.
 - [ ] Optional: ein konkretes Modul an Bus-/Status-/Doku-Regeln anpassen.
 - [ ] Commands: keine Execute-/Upsert-/Delete-Tests ohne eigenen Go-Schritt.
+- [ ] Todo: keine Add-/Reload-/Admin-POST-Tests ohne eigenen Go-Schritt.
 - [ ] Keine OBS-Reparatur / kein Source-Refresh / keine automatische Recovery ohne eigene Planung.

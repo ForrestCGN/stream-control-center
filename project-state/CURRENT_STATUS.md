@@ -1,95 +1,116 @@
 # CURRENT_STATUS
 
-## Stand: CAN-33.4 abgeschlossen
+## Stand: CAN-34.2 vorbereitet
 
-CAN-33.4 dokumentiert die erfolgreiche Dashboard-Sichtprüfung von CAN-33.3.
+CAN-34.2 ergänzt eine dedizierte Todo-Modul-Doku mit Read-only-/Write-Regeln.
 
 ## Aktueller Arbeitsbereich
 
 ```text
-CAN-33: Commands-Modul Status/Doku/Diagnose prüfen und glätten
+CAN-34: Todo-Modul Status/Doku/Diagnose prüfen und glätten
 ```
 
-## Bestätigter Sichttest
+## Ergebnis CAN-34.1 Analyse
 
-In der Dashboard-Seite:
+Das Todo-Modul ist technisch schon weit aufgestellt:
 
 ```text
-Commands > Diagnose
+backend/modules/todo.js
+MODULE_NAME = todo
+MODULE_VERSION = 0.1.0
+SCHEMA_VERSION = 1
+routesPrefix = /api/todo, /todo, /discord/todo
 ```
 
-ist die neue Karte sichtbar:
+Vorhanden:
 
 ```text
-Commands Read-only Diagnose
+MODULE_META
+buildStatus()
+/api/todo/status
+/api/todo/routes
+/api/todo/integration-check
+read-only Integration-Check
+Dashboard-Anbindung
+DB-Settings
+DB-Textvarianten
+Statistiken
 ```
 
-Bestätigte Werte:
+Nicht vorhanden war bisher:
 
 ```text
-READ-ONLY OK
-v0.1.6
-channel-guard
-Status OK: ja
-Schema OK: ja
-Light Status: ja
-Schema Touch: nein
-Commands: 15
-Logs geladen: 15
-Katalog-Kategorien: 7
-Katalog-Aktionen: 24
+docs/modules/todo.md
 ```
 
-## Bestätigte Read-only Routen
+## Änderung CAN-34.2
+
+Neu:
 
 ```text
-GET /api/commands/status
-GET /api/commands/list
-GET /api/commands/catalog
-GET /api/commands/logs
-GET /api/commands/history
-GET /api/commands/media-command-preview
+docs/modules/todo.md
 ```
 
-## Bestätigte produktiv gesperrte Routen
+Darin festgehalten:
 
 ```text
-POST /api/commands/upsert
-POST /api/commands/delete
-GET/POST /api/commands/execute
+- Modulzweck
+- MODULE_META / Version / Routenprefix
+- Status-Endpunkt
+- Read-only Routen
+- produktive/schreibende Routen
+- Dashboard-Schreibfunktionen
+- Integration-Check als sichere Diagnose
+- Regeln für spätere Todo-Diagnosekarten
 ```
 
-## Ergebnis
+## Wichtigste Sicherheitsentscheidung
+
+Read-only Diagnose darf nutzen:
 
 ```text
-CAN-33.3 Ziel erfüllt.
-Dashboard-only Erweiterung aktiv.
-Read-only Diagnosekarte sichtbar.
-Produktive Routen klar als gesperrt markiert.
-Keine Execute-/Upsert-/Delete-Buttons sichtbar.
-Keine Command-Ausführung.
-Keine Speicherung.
-Kein Löschen.
-Keine Zielmodule ausgelöst.
-Keine Funktionalität entfernt.
+GET /api/todo/status
+GET /api/todo/config
+GET /api/todo/settings
+GET /api/todo/routes
+GET /api/todo/integration-check
+GET /api/todo/stats
+GET /api/todo/stats/top
+GET /api/todo/stats/today
+GET /api/todo/admin/settings
+GET /api/todo/admin/texts
+GET /discord/todo/status
 ```
 
-## Nicht geändert in CAN-33.4
+Nicht automatisch verwenden:
+
+```text
+GET/POST /api/todo/add
+GET/POST /discord/todo
+GET/POST /api/todo/reload
+POST /api/todo/admin/settings
+POST /api/todo/admin/texts
+```
+
+## Nicht geändert
 
 ```text
 Keine Codeänderung.
-Keine Backend-Dateien.
-Keine API-Routen.
-Keine Command-Funktion.
-Keine Chat-Ausgaben.
-Keine Execute-/Upsert-/Delete-Tests.
+Keine Todo-Funktion geändert.
+Keine Todo-Einträge erstellt/geändert/gelöscht.
+Keine Settings gespeichert.
+Keine Texte/Varianten gespeichert/gelöscht.
+Kein Reload ausgelöst.
 Keine DB-Migration.
+Keine Dashboard-Write-Buttons getestet.
 Keine Twitch-/Streamer.bot-Aktion.
 Keine OBS-/Sound-/Queue-Aktion.
+Keine Funktionalität entfernt.
 ```
 
 ## Nächster Schritt
 
 ```text
-CAN-34.0 neuen Arbeitsblock bewusst auswählen.
+CAN-34.2 anwenden.
+Danach optional CAN-34.3 Todo Dashboard Read-only Diagnosekarte planen.
 ```
