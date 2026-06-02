@@ -2,9 +2,10 @@
 
 ## CAN-25
 
-- [x] CAN-25.2 Dashboard Sound-Shadow Summary Card read-only verbessern.
-- [ ] CAN-25.3 Dashboard lokal pruefen.
-- [ ] Danach ggf. UI-Cleanup oder Abschluss dokumentieren.
+- [x] CAN-25.3 lokalen Dashboard-/Backend-Check vorbereiten.
+- [ ] `tools\can25_3_dashboard_shadow_check.cmd` lokal ausfuehren.
+- [ ] Dashboard/Bus-Diagnostics lokal pruefen.
+- [ ] CAN-25.4 Ergebnis dokumentieren oder UI-Cleanup vornehmen.
 
 ## Weiterhin hart blockiert
 

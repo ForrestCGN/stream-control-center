@@ -1,18 +1,24 @@
 # NEXT_STEPS
 
-## Naechster Schritt
+## Sofortiger naechster Schritt
 
-Dashboard lokal pruefen:
+```bat
+tools\can25_3_dashboard_shadow_check.cmd
+```
+
+Danach im Dashboard pruefen:
 
 ```text
-Bus-Diagnostics / Bus-Matrix oeffnen
-Sound-Shadow Summary Card suchen
-Status/Felder optisch pruefen
-Screenshot oder Feedback posten
+Bus-Diagnostics / Bus-Matrix
+Sound-Shadow Status Card sichtbar
+read-only
+keine Buttons
+Safety Flags sichtbar
+Layout ok
 ```
 
 ## Danach
 
 ```text
-CAN-25.3: Dashboard-Check Ergebnis dokumentieren oder UI-Cleanup vornehmen.
+CAN-25.4: Ergebnis dokumentieren oder UI-Cleanup.
 ```
