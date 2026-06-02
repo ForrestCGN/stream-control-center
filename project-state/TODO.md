@@ -10,13 +10,17 @@
 - [x] CAN-34.3c Todo Diagnose Tab Stabilitäts-Hotfix anwenden und prüfen.
 - [x] CAN-34.4 Testergebnis dokumentieren.
 
-## CAN-35
+## CAN-35 abgeschlossen
 
 - [x] CAN-35.0 neuen Arbeitsblock bewusst auswählen.
 - [x] CAN-35.1 Tagebuch-Modul analysieren.
 - [x] CAN-35.2 Tagebuch-Modul Doku und Read-only/Write-Regeln ergänzen.
-- [ ] CAN-35.3 Tagebuch Dashboard Read-only Diagnosekarte anwenden und prüfen.
-- [ ] CAN-35.4 Testergebnis dokumentieren.
+- [x] CAN-35.3 Tagebuch Dashboard Read-only Diagnosekarte anwenden und prüfen.
+- [x] CAN-35.4 Testergebnis dokumentieren.
+
+## CAN-36
+
+- [ ] CAN-36.0 neuen Arbeitsblock bewusst auswählen.
 
 ## Offene/zu beobachtende Punkte
 

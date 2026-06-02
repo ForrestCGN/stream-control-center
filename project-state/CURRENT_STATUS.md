@@ -1,8 +1,8 @@
 # CURRENT_STATUS
 
-## Stand: CAN-35.3 vorbereitet
+## Stand: CAN-35.4 abgeschlossen
 
-CAN-35.3 ergänzt eine nachgeladene Read-only-Diagnosekarte im Tagebuch-Dashboard.
+CAN-35.4 dokumentiert den erfolgreichen Sicht- und Stabilitätstest der Tagebuch Read-only Diagnosekarte aus CAN-35.3.
 
 ## Aktueller Arbeitsbereich
 
@@ -10,50 +10,59 @@ CAN-35.3 ergänzt eine nachgeladene Read-only-Diagnosekarte im Tagebuch-Dashboar
 CAN-35: Tagebuch-Modul Status/Doku/Diagnose prüfen und glätten
 ```
 
-## Änderung CAN-35.3
+## Bestätigter Sichttest
 
-Betroffene Dateien:
-
-```text
-htdocs/dashboard/index.html
-htdocs/dashboard/modules/tagebuch_readonly_diagnostics.js
-htdocs/dashboard/modules/tagebuch_readonly_diagnostics.css
-project-state/*
-docs/current/CURRENT_CHAT_HANDOFF_CAN35_3.md
-```
-
-Wichtig:
+In der Dashboard-Seite:
 
 ```text
-htdocs/dashboard/modules/tagebuch.js bleibt unverändert.
-backend/modules/tagebuch.js bleibt unverändert.
+Tagebuch > Diagnose
 ```
 
-## Neue Dashboard-Karte
-
-Ort:
+ist die Read-only Diagnosekarte sichtbar:
 
 ```text
-Dashboard > Tagebuch > Diagnose
+Tagebuch Read-only Diagnose
 ```
 
-Die bestehenden Tabs bleiben getrennt:
+Bestätigte Werte aus dem Screenshot:
 
 ```text
-Übersicht | Settings | Texte | Statistik | Diagnose
+READ-ONLY OK
+Schema 5
+Soll 5
+Status OK: ja
+Schema OK: ja
+Integration OK: ja
+DB: ok / sqlite
+Aktuelle Seite: 36
+Seitendatum: 2026-06-02
+Heute lokal: 2026-06-02
+Nächste Seite: 36
+Stream aktiv: nein
+Einträge heute: ja
+Leer-Hinweis gepostet: nein
+Zuletzt aktualisiert: 2026-06-02T18:48:44.803Z
+State: 1
+Runtime-Events: 265
+User-Stats: 11
+Daily-Stats: 42
+Settings: 20
+Textvarianten: 17
+Text-Kategorien: 5
+Config-Quelle: database_with_json_fallback
 ```
 
-Die Diagnose ist bewusst nicht als langer Block auf derselben Seite gebaut, sondern als eigener Tab mit mehreren Abschnitten:
+## Bestätigte UX
 
 ```text
-Status & Schema
-Aktueller Tagebuch-State
-Tabellen & Texte
-Webhook & Dateien
-Routen-Sicherheit
+Die Diagnose ist im eigenen Tab.
+Die Diagnose ist in mehrere Abschnitte/Karten getrennt.
+Nicht alles liegt auf einer langen gemeinsamen Übersicht.
+Tabs reagieren laut Rückmeldung normal.
+Kein Firefox-Hänger gemeldet.
 ```
 
-## Sicherheit
+## Bestätigte Read-only Nutzung
 
 Die Karte nutzt nur:
 
@@ -63,7 +72,7 @@ GET /api/tagebuch/routes
 GET /api/tagebuch/integration-check
 ```
 
-Nicht genutzt:
+## Bestätigte produktive Routen: nicht genutzt
 
 ```text
 GET/POST /api/tagebuch/stream/start
@@ -79,24 +88,36 @@ POST /api/tagebuch/admin/settings
 POST /api/tagebuch/admin/texts
 ```
 
-## Stabilitätsregel
+## Ergebnis
 
 ```text
-Kein MutationObserver.
-Kein Dauer-Rendering.
-Nur kontrolliertes Click-/Show-Handling wie CAN-34.3c.
+CAN-35.3 Ziel erfüllt.
+Dashboard-only Erweiterung aktiv.
+Read-only Diagnosekarte im Tagebuch-Diagnose-Tab sichtbar.
+Diagnose in mehrere Abschnitte/Karten getrennt.
+Produktive Routen nicht ausgelöst.
+Keine Entry-/Stream-/Reset-/Reload-/Admin-POST-Buttons in der Diagnosekarte.
+Keine Tagebuch-Einträge erstellt.
+Keine Streamstart-/Streamende-Aktion.
+Kein Reset.
+Kein Reload.
+Keine Settings gespeichert.
+Keine Textvarianten gespeichert oder gelöscht.
+Keine Discord-Nachricht gepostet.
+Keine Statistik erhöht.
+Keine DB-Migration.
+Keine Funktionalität entfernt.
 ```
 
-## Nicht geändert
+## Nicht geändert in CAN-35.4
 
 ```text
+Keine Codeänderung.
 Keine Backend-Dateien.
 Keine Tagebuch-Moduldatei.
 Keine API-Routen.
 Keine Tagebuch-Funktion.
 Keine Tagebuch-Einträge.
-Keine Streamstart-/Streamende-Aktion.
-Kein Reset.
 Keine Settings gespeichert.
 Keine Texte/Varianten gespeichert oder gelöscht.
 Kein Reload ausgelöst.
@@ -106,11 +127,10 @@ Keine Discord-Nachricht gepostet.
 Keine Statistik erhöht.
 Keine Twitch-/Streamer.bot-Aktion.
 Keine OBS-/Sound-/Queue-Aktion.
-Keine Funktionalität entfernt.
 ```
 
 ## Nächster Schritt
 
 ```text
-CAN-35.3 anwenden und Dashboard-Sichtprüfung machen.
+CAN-36.0 neuen Arbeitsblock bewusst auswählen.
 ```
