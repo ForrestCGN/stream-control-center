@@ -1,11 +1,11 @@
 # CHANGELOG
 
-## CAN-22.4
+## CAN-22.5
 
-- Safety Architecture Backend Shape Test and Rollback Plan no-code erstellt.
-- Minimal-Code-Scope, Syntax-Tests, Runtime-Checks, Negative Checks, Code-Review-Checks und Rollback-Grenzen dokumentiert.
-- Abnahme-Kriterien fuer spaeteren Code-Step festgelegt.
-- CAN-22.5 Safety Architecture Backend Shape Planning Closure / Handoff als naechster Schritt festgelegt.
+- CAN-22 Safety Architecture Backend Shape Planungsstrang abgeschlossen.
+- Finaler Kandidat festgelegt: interne Funktion `buildSafetyArchitectureStatusShape(statusResult)` in `backend/modules/bus_diagnostics.js`, nicht eingebunden.
+- CAN-23.0 als naechster Kandidat dokumentiert.
+- Harte CAN-23.0-Grenzen, Pflicht-Tests und Rollback-Anforderungen festgelegt.
 - Keine Code-Aenderungen.
 - Keine API.
 - Keine Route.

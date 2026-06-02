@@ -1,8 +1,12 @@
 # CURRENT_STATUS
 
-## Stand: CAN-22.4 abgeschlossen
+## Stand: CAN-22.5 abgeschlossen
 
-CAN-22.4 hat Safety Architecture Backend Shape Test and Rollback Plan no-code erstellt.
+CAN-22 ist abgeschlossen als:
+
+```text
+Safety Architecture Backend Shape Implementation Planning no-code / File Inspection / Candidate Decision / Code Plan / Test Rollback Plan / Closure
+```
 
 ## Aktueller stabiler Stand
 
@@ -16,19 +20,21 @@ Confirm Planning no-action/no-implementation
 Recovery Safety Architecture Planning / Consolidation
 Safety Architecture Backend Shape Planning read-only/no-route/no-code
 Recovery Safety Master Documentation / Index / Closure
-Safety Architecture Backend Shape Implementation Planning no-code
-Safety Architecture Backend Shape File Inspection Planning
-Safety Architecture Backend Shape Implementation Candidate Decision no-code
-Safety Architecture Backend Shape Internal Function Code Plan no-code
-Safety Architecture Backend Shape Test and Rollback Plan no-code
+Safety Architecture Backend Shape Implementation Planning no-code / Closure
 ```
 
-## Test-Rollback-Plan-Status
+## CAN-22 Status
 
 ```text
+implementationPlanningNoCode: true
+fileInspectionPlanning: true
+implementationCandidateDecision: true
+internalFunctionCodePlan: true
 testRollbackPlan: true
-minimalCodeScope: backend/modules/bus_diagnostics.js
-requiredSyntaxTest: node -c backend/modules/bus_diagnostics.js
+planningClosure: true
+selectedCandidate: internal_function_only_not_embedded
+plannedFunctionName: buildSafetyArchitectureStatusShape
+primaryFileCandidate: backend/modules/bus_diagnostics.js
 codeChanged: false
 apiCreated: false
 routeCreated: false
@@ -78,8 +84,8 @@ Execute Route
 POST Command Route
 ```
 
-## Naechster Schritt
+## Naechster Kandidat
 
 ```text
-CAN-22.5 - Safety Architecture Backend Shape Planning Closure / Handoff
+CAN-23.0 - Safety Architecture Backend Shape Internal Function read-only implementation
 ```
