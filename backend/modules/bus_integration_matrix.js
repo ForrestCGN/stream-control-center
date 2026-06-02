@@ -43,6 +43,7 @@ const ENDPOINTS = {
   soundQueueStatus: '/api/sound/eventbus/command/queue-status',
   alertEventBus: '/api/alerts/eventbus/status',
   alertAckStatus: '/api/alerts/eventbus/ack-status',
+  alertCommandContract: '/api/alerts/eventbus/command/contract',
   alertStatus: '/api/alerts/status',
   alertCorrelation: '/api/alerts/eventbus/correlation/status',
   channelpointsStatus: '/api/channelpoints/status',
@@ -99,6 +100,8 @@ const SYSTEMS = [
     eventBusRoute: ENDPOINTS.alertEventBus,
     ackStatusKey: 'alertAckStatus',
     ackStatusRoute: ENDPOINTS.alertAckStatus,
+    alertContractKey: 'alertCommandContract',
+    alertContractRoute: ENDPOINTS.alertCommandContract,
     commandStatus: 'partial',
     legacyDirect: true,
     nextStep: 'Alert-Request, Overlay-ACK, Sound-ACK und Finish-ACK ueber Bus sauber definieren.'
@@ -295,6 +298,7 @@ function buildSystemRow(system, clients, fetched) {
   const compatibilityFetch = system.compatibilityKey ? fetched[system.compatibilityKey] : null;
   const queueStatusFetch = system.queueStatusKey ? fetched[system.queueStatusKey] : null;
   const ackStatusFetch = system.ackStatusKey ? fetched[system.ackStatusKey] : null;
+  const alertContractFetch = system.alertContractKey ? fetched[system.alertContractKey] : null;
 
   const statusBody = bodyOf(statusFetch);
   const eventBusBody = bodyOf(eventBusFetch);
@@ -305,6 +309,7 @@ function buildSystemRow(system, clients, fetched) {
   const compatibilityBody = bodyOf(compatibilityFetch);
   const queueStatusBody = bodyOf(queueStatusFetch);
   const ackStatusBody = bodyOf(ackStatusFetch);
+  const alertContractBody = bodyOf(alertContractFetch);
 
   const registered = system.id === 'communication_bus' || matchingClients.length > 0;
   const connected = system.id === 'communication_bus' || matchingClients.some(client => client.connected === true);
@@ -318,6 +323,7 @@ function buildSystemRow(system, clients, fetched) {
   const compatibilityOk = compatibilityFetch ? compatibilityFetch.ok === true && (!compatibilityBody || compatibilityBody.ok !== false) : null;
   const queueStatusOk = queueStatusFetch ? queueStatusFetch.ok === true && (!queueStatusBody || queueStatusBody.ok !== false) : null;
   const ackStatusOk = ackStatusFetch ? ackStatusFetch.ok === true && (!ackStatusBody || ackStatusBody.ok !== false) : null;
+  const alertContractOk = alertContractFetch ? alertContractFetch.ok === true && (!alertContractBody || alertContractBody.ok !== false) : null;
   const ackCapable = matchingClients.some(client => includesCapability(client, 'ack') || includesCapability(client, 'bus.ack'));
   const commandCapable = ['core', 'partial', 'bridge'].includes(system.commandStatus);
 
@@ -331,7 +337,7 @@ function buildSystemRow(system, clients, fetched) {
     eventBusOk,
     commandCapable
   });
-  const risk = determineRisk({ system, registered, connected, statusOk, eventBusOk, integrationOk, commandOk, contractOk, lifecycleOk, compatibilityOk, queueStatusOk, ackStatusOk });
+  const risk = determineRisk({ system, registered, connected, statusOk, eventBusOk, integrationOk, commandOk, contractOk, lifecycleOk, compatibilityOk, queueStatusOk, ackStatusOk, alertContractOk });
 
   return {
     id: system.id,
@@ -390,6 +396,10 @@ function buildSystemRow(system, clients, fetched) {
     overlayMissingAckCount: Number(ackStatusBody && ackStatusBody.summary ? ackStatusBody.summary.overlayMissing || 0 : 0),
     soundMatchedCount: Number(ackStatusBody && ackStatusBody.summary ? ackStatusBody.summary.soundMatched || 0 : 0),
     finishAckMissingCount: Number(ackStatusBody && ackStatusBody.summary ? ackStatusBody.summary.watchdogMissingFinishAck || 0 : 0),
+    alertContractRoute: system.alertContractRoute || '',
+    alertContractOk,
+    alertContractName: alertContractBody && alertContractBody.contract && alertContractBody.contract.name ? alertContractBody.contract.name : '',
+    alertContractLifecycle: alertContractBody && alertContractBody.contract && Array.isArray(alertContractBody.contract.lifecycle) ? alertContractBody.contract.lifecycle.map(item => item && item.event).filter(Boolean) : [],
     ackCapable,
     commandStatus: system.commandStatus,
     commandCapable,
@@ -414,7 +424,7 @@ function determineRisk(input) {
   if (input.system.id === 'communication_bus') return input.statusOk === false ? 'error' : 'ok';
   if (input.statusOk === false && input.eventBusOk === false) return 'error';
   if (!input.registered && input.statusOk !== true) return 'warning';
-  if (input.statusOk === false || input.eventBusOk === false || input.integrationOk === false || input.commandOk === false || input.contractOk === false || input.lifecycleOk === false || input.compatibilityOk === false || input.queueStatusOk === false || input.ackStatusOk === false) return 'warning';
+  if (input.statusOk === false || input.eventBusOk === false || input.integrationOk === false || input.commandOk === false || input.contractOk === false || input.lifecycleOk === false || input.compatibilityOk === false || input.queueStatusOk === false || input.ackStatusOk === false || input.alertContractOk === false) return 'warning';
   return 'ok';
 }
 

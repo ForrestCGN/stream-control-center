@@ -293,6 +293,7 @@ module.exports.init = function init(ctx) {
   routes.registerGet(app, '/api/alerts/health', (req, res) => res.json(buildHealth(req)));
   routes.registerGet(app, '/api/alerts/eventbus/status', guard, (req, res) => res.json(buildAlertEventBusStatus({ includeRecentEvents: req.query.recent !== '0' })));
   routes.registerGet(app, '/api/alerts/eventbus/ack-status', guard, (req, res) => res.json(buildAlertEventBusAckStatus({ includeRecent: req.query.recent !== '0' })));
+  routes.registerGet(app, '/api/alerts/eventbus/command/contract', guard, (req, res) => res.json(buildAlertEventBusCommandContract()));
   routes.registerGet(app, '/api/alerts/eventbus/test', guard, (req, res) => res.json(emitAlertEventBusTest(req.query || {})));
   routes.registerGet(app, '/api/alerts/eventbus/reset', guard, (req, res) => res.json(resetAlertEventBusDiagnostics()));
   routes.registerGet(app, '/api/alerts/eventbus/correlation/status', guard, async (req, res) => {
@@ -445,6 +446,7 @@ function buildAlertRoutes(req = null) {
     { method: 'GET', path: '/api/alerts/health', auth: 'public/local', category: 'status', description: 'Kurzprüfung des Alert-Systems.' },
     { method: 'GET', path: '/api/alerts/eventbus/status', auth: 'local_or_auth', category: 'communication', description: 'Alert EventBus Status lesen.' },
     { method: 'GET', path: '/api/alerts/eventbus/ack-status', auth: 'local_or_auth', category: 'communication', description: 'Read-only Alert-Request/Overlay-ACK/Sound-ACK/Finish-ACK Status lesen.' },
+    { method: 'GET', path: '/api/alerts/eventbus/command/contract', auth: 'local_or_auth', category: 'communication', description: 'Read-only Alert-Bus-Command-Vertrag lesen.' },
     { method: 'GET', path: '/api/alerts/eventbus/test', auth: 'local_or_auth', category: 'communication', description: 'Test-only Alert EventBus Event senden, ohne Queue/Sound/Overlay zu verändern.' },
     { method: 'GET', path: '/api/alerts/eventbus/reset', auth: 'local_or_auth', category: 'communication', description: 'Alert EventBus Diagnosezähler zurücksetzen.' },
     { method: 'GET', path: '/api/alerts/eventbus/correlation/status', auth: 'local_or_auth', category: 'communication', description: 'Read-only Korrelation zwischen Alert-EventBus und Sound-EventBus prüfen.' },
@@ -1159,6 +1161,81 @@ function buildAlertEventBusStatus(options = {}) {
     ],
     stats,
     recentEvents: options.includeRecentEvents === false ? [] : [...(state.alertEventBus.recentEvents || [])]
+  };
+}
+
+function buildAlertEventBusCommandContract() {
+  return {
+    ok: true,
+    module: MODULE,
+    version: MODULE_VERSION,
+    capability: ALERT_EVENTBUS_CAPABILITY,
+    statusApiVersion: ALERT_EVENTBUS_STATUS_API_VERSION,
+    feature: 'alert_eventbus_command_contract',
+    mode: 'read_only_contract',
+    readOnly: true,
+    alertTouched: false,
+    queueTouched: false,
+    soundSystemTouched: false,
+    overlayTouched: false,
+    eventBusEmit: false,
+    replayTriggered: false,
+    recoveryTriggered: false,
+    productiveEntryPointChanged: false,
+    contract: {
+      name: 'alert.request',
+      version: ALERT_EVENTBUS_STATUS_API_VERSION,
+      command: 'alert.request',
+      requiredFields: ['command', 'type', 'user'],
+      recommendedFields: ['requestId', 'source', 'requestedBy', 'correlationId', 'message', 'avatarUrl', 'soundId', 'priority'],
+      optionalFields: ['title', 'subtitle', 'durationMs', 'holdMs', 'visual', 'meta', 'tags', 'category'],
+      identity: {
+        requestId: 'Unique request id for the alert flow.',
+        correlationId: 'Shared id for alert, overlay and sound correlation.',
+        source: 'Originating module or system, e.g. twitch, channelpoints, dashboard, vip.',
+        requestedBy: 'User, system or module that requested the alert.'
+      },
+      lifecycle: [
+        { event: 'alert_request', required: true, meaning: 'Alert command/request was accepted by the alert layer.' },
+        { event: 'overlay_ack', required: true, meaning: 'Overlay client acknowledged receiving or displaying the alert.' },
+        { event: 'sound_ack', required: true, meaning: 'Sound system accepted, queued or started the linked sound request.' },
+        { event: 'finish_ack', required: true, meaning: 'Overlay/client finished the visual alert lifecycle.' },
+        { event: 'failed', required: true, meaning: 'Alert request failed or was rejected.' },
+        { event: 'timeout', required: true, meaning: 'Overlay/client did not finish before watchdog timeout.' }
+      ],
+      resultFields: ['ok', 'accepted', 'queued', 'displayed', 'soundAccepted', 'finished', 'failed', 'timeout', 'error'],
+      correlationFields: ['requestId', 'correlationId', 'alertEventId', 'soundEventId', 'overlayClientId'],
+      acknowledgement: {
+        requiredNow: false,
+        planned: true,
+        recommendedAckFields: ['requestId', 'correlationId', 'clientId', 'event', 'receivedAt', 'accepted', 'error']
+      }
+    },
+    routes: {
+      status: '/api/alerts/eventbus/status',
+      ackStatus: '/api/alerts/eventbus/ack-status',
+      contract: '/api/alerts/eventbus/command/contract',
+      correlationStatus: '/api/alerts/eventbus/correlation/status',
+      overlayWatchdogStatus: '/api/alerts/overlay-watchdog/status',
+      productiveLegacyAlerts: '/api/alerts'
+    },
+    safety: {
+      contractRouteTouchesQueue: false,
+      contractRouteTouchesSound: false,
+      contractRouteTouchesOverlay: false,
+      contractRouteReplaysAlert: false,
+      productiveLegacyFlowUnchanged: true,
+      requireConfirmForReplay: true,
+      requireConfirmForRecovery: true,
+      requireSafetyStopForRecovery: true
+    },
+    nextSteps: [
+      'Use alert_request/overlay_ack/sound_ack/finish_ack as canonical labels.',
+      'Do not migrate productive alerts until Sound lifecycle and queue status are accepted.',
+      'Keep existing productive alert routes unchanged.',
+      'Add an Alert dry-run later without sound/queue/overlay touch.'
+    ],
+    updatedAt: nowIso()
   };
 }
 

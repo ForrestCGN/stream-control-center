@@ -1,10 +1,10 @@
 # CHANGELOG
 
-## CAN-23.9
+## CAN-23.10
 
-- `GET /api/alerts/eventbus/ack-status` als read-only Route in `alert_system.js` ergaenzt.
-- Bus-Integration-Matrix liest Alert-ACK-Status mit aus.
-- Dashboard-Bus-Matrix zeigt Alert-ACK-Status beim Alert-System.
+- `GET /api/alerts/eventbus/command/contract` als read-only Route in `alert_system.js` ergaenzt.
+- Bus-Integration-Matrix liest den Alert-Command-Contract mit aus.
+- Dashboard-Bus-Matrix zeigt Alert-Contract beim Alert-System.
 - Kein Alert-Replay.
 - Keine Queue-Mutation.
 - Kein Sound.

@@ -3,26 +3,16 @@
 ## Naechster Schritt
 
 ```text
-Alert-System: Alert-Bus-Command-Vertrag read-only sichtbar machen.
+Alert-System: Alert-Dry-Run ohne Queue/Sound/Overlay.
 ```
 
 ## Ziel
 
-Einen Vertrag fuer Alert-Bus-Kommunikation definieren:
-
-```text
-alert.request
-overlay.ack
-sound.ack
-finish.ack
-failed
-timeout
-```
+Alert-Command-Payload validieren, ohne produktive Alert-Anzeige, Sound oder Overlay-Auslieferung auszufuehren.
 
 ## Danach
 
 ```text
-Alert-Dry-Run ohne Queue/Sound/Overlay
 VIP/Overlay nachziehen
 Channelpoints nachziehen
 Recovery/Selbstheilung spaeter

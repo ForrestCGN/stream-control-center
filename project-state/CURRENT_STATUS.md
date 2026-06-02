@@ -1,13 +1,13 @@
 # CURRENT_STATUS
 
-## Stand: CAN-23.9 abgeschlossen
+## Stand: CAN-23.10 abgeschlossen
 
-CAN-23.9 hat Alert-Request, Overlay-ACK, Sound-ACK und Finish-ACK read-only sichtbar gemacht.
+CAN-23.10 hat den Alert-Bus-Command-Vertrag read-only sichtbar gemacht.
 
 ## Neu
 
 ```text
-GET /api/alerts/eventbus/ack-status
+GET /api/alerts/eventbus/command/contract
 ```
 
 ## Sicherheitsstatus
@@ -25,5 +25,5 @@ recoveryExecution: false
 ## Naechster Schritt
 
 ```text
-Alert-System: Alert-Bus-Command-Vertrag read-only sichtbar machen.
+Alert-System: Alert-Dry-Run ohne Queue/Sound/Overlay.
 ```
