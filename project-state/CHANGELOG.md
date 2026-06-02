@@ -1,10 +1,9 @@
 # CHANGELOG
 
-## CAN-24.19
+## CAN-24.20
 
-- Erfolgreichen enabled=true Shadow-DryRun-Test dokumentiert.
-- Testergebnis `accepted:true`, `skipped:false`, `queueTouched:false`, `audioTouched:false` festgehalten.
-- Auto-Deaktivierung auf `enabled:false` dokumentiert.
-- Status/NEXT_STEPS/TODO aktualisiert.
+- Entscheidung fuer einen echten lokalen Execute-/Redemption-Shadow-Test dokumentiert.
+- Grenze auf genau `rewardKey=bauernweisheit` festgelegt.
+- Wichtige Unterscheidung zwischen Legacy-Sound-Pfad und Sound-Bus-Play dokumentiert.
 - Keine Code-Logik geaendert.
 - Keine produktive Aktion ausgefuehrt.

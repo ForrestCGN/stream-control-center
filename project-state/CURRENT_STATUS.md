@@ -1,46 +1,31 @@
 # CURRENT_STATUS
 
-## Stand: CAN-24.19 abgeschlossen
+## Stand: CAN-24.20 abgeschlossen
 
-CAN-24.19 dokumentiert den erfolgreichen enabled=true Shadow-DryRun-Test.
+CAN-24.20 trifft die Entscheidung fuer den naechsten Testschritt.
 
-## Bestaetigt
-
-```text
-enabled temporaer true
-rewardKey bauernweisheit
-auto-test accepted true
-skipped false
-queueTouched false
-audioTouched false
-productiveMigration false
-enabled danach wieder false
-```
-
-## Endstatus
+## Freigegeben fuer naechsten Schritt
 
 ```text
-enabled: false
-attempts: 1
-okCount: 1
-failedCount: 0
-eventSubHookInstalled: false
-executeHookInstalled: true
+Ein kontrollierter lokaler Execute-/Redemption-Shadow-Test fuer genau bauernweisheit darf vorbereitet werden.
 ```
 
-## Weiter blockiert
+## Wichtige Grenze
 
 ```text
-Echter Execute-/Redemption-Shadow-Test: nein
-Produktive Sound-Migration: nein
-Sound-Play ueber Bus: nein
-Queue-Aktion: nein
-Redemption-/Twitch-Aenderung: nein
-Hook fuer alle Rewards: nein
+Shadow-Hook bleibt DryRun/Diagnose
+Kein produktiver Sound-Bus-Play
+Kein Queue-Touch durch Shadow
+Keine Twitch-/Redemption-Aenderung durch Shadow
+Kein Hook fuer alle Rewards
 ```
+
+## Hinweis
+
+Ein echter Execute-Test kann den bestehenden Legacy-Sound-Pfad `/api/sound/play` nutzen. Das ist kein Sound-Bus-Play und keine Migration.
 
 ## Naechster Schritt
 
 ```text
-CAN-24.20: Entscheidung ueber echten Execute-/Redemption-Shadow-Test fuer bauernweisheit.
+CAN-24.21: Testplan/Script fuer genau einen lokalen Execute-/Redemption-Shadow-Test vorbereiten.
 ```

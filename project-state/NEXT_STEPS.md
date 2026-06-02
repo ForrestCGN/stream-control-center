@@ -3,36 +3,34 @@
 ## Naechster Schritt
 
 ```text
-CAN-24.20: Entscheidung, ob ein echter Execute-/Redemption-Shadow-Test fuer bauernweisheit erlaubt wird.
+CAN-24.21: Testplan/Script fuer genau einen lokalen Execute-/Redemption-Shadow-Test vorbereiten.
 ```
 
-## Entscheidungsbasis
+## Testziel
 
 ```text
-Shadow-Hook vorbereitet
-Disabled-Test erfolgreich
-mediaId-DryRun erfolgreich
-enabled=true Auto-Test erfolgreich
-Auto-Deaktivierung erfolgreich
-kein Sound/Queue-Touch im DryRun
+enabled=true temporaer setzen
+bauernweisheit lokal ueber kontrollierten Execute-/Redemption-Test ausloesen
+Shadow-Hook schreibt parallel DryRun-Diagnose
+enabled danach wieder false
+Status danach pruefen
 ```
 
-## Moegliche Bedingungen fuer Freigabe
+## Erwartung
 
 ```text
-Nur rewardKey bauernweisheit
-Nur ein kontrollierter lokaler Test
-Legacy-Flow bleibt produktiv
-Shadow-Hook schreibt nur Diagnose
-Kein produktiver Sound-Bus-Play
-Kein Queue-Touch durch Shadow
-Keine Twitch-/Redemption-Aenderung
+Shadow lastAutoResult.accepted true
+Shadow queueTouched false
+Shadow audioTouched false
+Shadow productiveMigration false
+enabled nach Test false
 ```
 
 ## Weiterhin blockiert
 
 ```text
-Keine produktive Sound-Migration.
+Keine produktive Sound-Bus-Migration.
+Kein produktiver Sound-Bus-Play.
 Kein Hook fuer alle Rewards.
-Kein echter Sound-Bus-Play.
+Keine Twitch-Write-Aktion.
 ```
