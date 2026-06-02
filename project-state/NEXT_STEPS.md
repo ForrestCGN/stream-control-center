@@ -3,39 +3,28 @@
 ## Direkt nächster Schritt
 
 ```text
-CAN-34.3 anwenden und Dashboard-Sichtprüfung machen.
+CAN-34.3b anwenden und Dashboard-Sichtprüfung machen.
 ```
 
 ## Prüfung
 
 ```text
-Dashboard > Todo > Übersicht
+Dashboard > Todo
 ```
 
 Erwartung:
 
 ```text
-Todo Read-only Diagnose sichtbar.
-READ-ONLY OK oder PRÜFEN sichtbar.
-Status OK / Schema OK / Integration OK sichtbar.
-Read-only Routen als erlaubt sichtbar.
-Produktive Routen als gesperrt sichtbar.
-Keine Add-/Reload-/Admin-POST-Buttons in der Karte.
+Tabs zeigen: Übersicht | Settings | Texte | Statistik | Diagnose
+Todo Read-only Diagnose erscheint nur im Diagnose-Tab.
+Übersicht zeigt wieder nur die normale Todo-Übersicht.
+Keine Add-/Reload-/Admin-POST-Buttons in der Diagnosekarte.
 ```
 
 ## Danach sinnvoll
 
 ```text
 CAN-34.4 Testergebnis dokumentieren.
-```
-
-## Mögliche Kandidaten danach
-
-```text
-1. Todo-Diagnosekarte bei Bedarf optisch glätten.
-2. Nächstes Modul an Status-/Doku-Regeln anpassen.
-3. EventBus read-only Diagnose weiter ausbauen.
-4. Overlay-Monitor Dashboard-Details optisch weiter vereinfachen.
 ```
 
 ## Weiterhin nicht machen ohne separaten Go-Schritt

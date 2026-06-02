@@ -1,8 +1,8 @@
 # CURRENT_STATUS
 
-## Stand: CAN-34.3 vorbereitet
+## Stand: CAN-34.3b vorbereitet
 
-CAN-34.3 ergänzt eine nachgeladene Read-only-Diagnosekarte im Todo-Dashboard.
+CAN-34.3b korrigiert die Todo Read-only Diagnosekarte: Sie wird aus dem Bereich oberhalb der Tabs in einen eigenen Diagnose-Tab verschoben.
 
 ## Aktueller Arbeitsbereich
 
@@ -10,16 +10,25 @@ CAN-34.3 ergänzt eine nachgeladene Read-only-Diagnosekarte im Todo-Dashboard.
 CAN-34: Todo-Modul Status/Doku/Diagnose prüfen und glätten
 ```
 
-## Änderung CAN-34.3
+## Anlass
+
+CAN-34.3 war funktional sicher und sichtbar, aber UX-seitig falsch platziert:
+
+```text
+Todo Read-only Diagnose
+danach erst die alten Tabs:
+Übersicht / Settings / Texte / Statistik
+```
+
+## Änderung CAN-34.3b
 
 Betroffene Dateien:
 
 ```text
-htdocs/dashboard/index.html
 htdocs/dashboard/modules/todo_readonly_diagnostics.js
 htdocs/dashboard/modules/todo_readonly_diagnostics.css
 project-state/*
-docs/current/CURRENT_CHAT_HANDOFF_CAN34_3.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN34_3b.md
 ```
 
 Wichtig:
@@ -27,45 +36,20 @@ Wichtig:
 ```text
 htdocs/dashboard/modules/todo.js bleibt unverändert.
 backend/modules/todo.js bleibt unverändert.
+htdocs/dashboard/index.html bleibt unverändert.
 ```
 
-## Neue Dashboard-Karte
-
-Ort:
+## Zielzustand
 
 ```text
-Dashboard > Todo > Übersicht
+Übersicht | Settings | Texte | Statistik | Diagnose
 ```
 
-Karte:
-
-```text
-Todo Read-only Diagnose
-```
-
-Sie zeigt:
-
-```text
-Modulversion / Schema-Version
-Status OK
-Schema OK
-Integration OK
-Targets/Ziele
-konfigurierte Discord-Channels
-fehlende Discord-Channels
-User-Stats-Zähler
-Daily-Stats-Zähler
-Settings-Zähler
-Textvarianten-Zähler
-Legacy-Texte-Zähler
-DB-Status
-Read-only Routen erlaubt
-Produktive Routen gesperrt
-```
+Die Read-only Karte erscheint nur im neuen Diagnose-Tab.
 
 ## Sicherheit
 
-Die Karte nutzt nur:
+Die Karte nutzt weiterhin nur:
 
 ```text
 GET /api/todo/status
@@ -106,5 +90,5 @@ Keine Funktionalität entfernt.
 ## Nächster Schritt
 
 ```text
-CAN-34.3 anwenden und Dashboard-Sichtprüfung machen.
+CAN-34.3b anwenden und Dashboard-Sichtprüfung machen.
 ```
