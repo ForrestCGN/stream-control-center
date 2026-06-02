@@ -1,57 +1,66 @@
 # CURRENT_STATUS
 
-## Stand: CAN-34.3c vorbereitet
+## Stand: CAN-34.4 abgeschlossen
 
-CAN-34.3c ist ein Stabilitäts-Hotfix für CAN-34.3b.
+CAN-34.4 dokumentiert den erfolgreichen Sicht- und Stabilitätstest des Todo Read-only Diagnose-Tabs nach CAN-34.3c.
 
-## Problem
-
-CAN-34.3b hat per MutationObserver versucht, den Diagnose-Tab nach jeder Todo-Renderänderung erneut zu setzen. In Firefox führte das zu einer Render-/Observer-Schleife:
+## Aktueller Arbeitsbereich
 
 ```text
-Diese Seite verlangsamt Firefox.
-Tabs reagieren nicht mehr sauber.
+CAN-34: Todo-Modul Status/Doku/Diagnose prüfen und glätten
 ```
 
-## Änderung CAN-34.3c
+## Bestätigter Sichttest
 
-Geändert:
+In der Dashboard-Seite:
 
 ```text
-htdocs/dashboard/modules/todo_readonly_diagnostics.js
-project-state/*
-docs/current/CURRENT_CHAT_HANDOFF_CAN34_3c.md
+Todo > Diagnose
 ```
 
-Nicht geändert:
+ist die Read-only Diagnosekarte sichtbar:
 
 ```text
-htdocs/dashboard/modules/todo_readonly_diagnostics.css
-htdocs/dashboard/modules/todo.js
-backend/modules/todo.js
-htdocs/dashboard/index.html
+Todo Read-only Diagnose
 ```
 
-## Fix
+Bestätigte Werte:
 
 ```text
-MutationObserver entfernt.
-Kein Dauer-Rendering mehr.
-Diagnose-Tab wird per kontrolliertem Click-/Show-Handling gesetzt.
-Native Tabs werden wieder normal nutzbar.
+READ-ONLY OK
+v2
+schema 1
+Status OK: ja
+Schema OK: ja
+Integration OK: ja
+Targets: 4
+Channels: 4/4
+Fehlende Channels: 0
+User-Stats: 10
+Daily-Stats: 24
+Settings: 5
+Textvarianten: 13
+Legacy-Texte: 13
+DB: ok / sqlite
 ```
 
-## Sicherheit
-
-Die Karte nutzt weiterhin nur:
+## Bestätigte Read-only Routen
 
 ```text
 GET /api/todo/status
+GET /api/todo/config
+GET /api/todo/settings
 GET /api/todo/routes
 GET /api/todo/integration-check
+GET /api/todo/stats
+GET /api/todo/stats/top
+GET /api/todo/stats/today
+GET /api/todo/admin/settings
+GET /api/todo/admin/texts
+GET /discord/todo/status
 ```
 
-Nicht genutzt:
+## Bestätigte produktiv gesperrte Routen
 
 ```text
 GET/POST /api/todo/add
@@ -61,8 +70,58 @@ POST /api/todo/admin/settings
 POST /api/todo/admin/texts
 ```
 
+## Stabilitätsfix
+
+CAN-34.3b hatte eine MutationObserver-/Render-Schleife ausgelöst. CAN-34.3c hat diese Logik entfernt.
+
+Bestätigt:
+
+```text
+CAN-34.3c Stabilitätsfix ohne MutationObserver aktiv.
+Kein dauerhafter Firefox-Hänger mehr sichtbar.
+Diagnosekarte rendert sauber.
+```
+
+## Ergebnis
+
+```text
+CAN-34.3c Ziel erfüllt.
+Dashboard-only Erweiterung aktiv.
+Read-only Diagnosekarte im Diagnose-Tab sichtbar.
+Produktive Routen klar als gesperrt markiert.
+Keine Add-/Reload-/Admin-POST-Buttons in der Diagnosekarte.
+Keine Todo-Einträge erstellt.
+Kein Reload ausgelöst.
+Keine Settings gespeichert.
+Keine Textvarianten gespeichert oder gelöscht.
+Keine Discord-Nachricht gepostet.
+Keine Statistik erhöht.
+Keine DB-Migration.
+Keine Funktionalität entfernt.
+```
+
+## Nicht geändert in CAN-34.4
+
+```text
+Keine Codeänderung.
+Keine Backend-Dateien.
+Keine Todo-Moduldatei.
+Keine API-Routen.
+Keine Todo-Funktion.
+Keine Todo-Einträge.
+Keine Settings gespeichert.
+Keine Texte/Varianten gespeichert oder gelöscht.
+Kein Reload ausgelöst.
+Keine DB-Migration.
+Keine Dashboard-Write-Buttons getestet.
+Keine Discord-Nachricht gepostet.
+Keine Statistik erhöht.
+Keine Twitch-/Streamer.bot-Aktion.
+Keine OBS-/Sound-/Queue-Aktion.
+```
+
 ## Nächster Schritt
 
 ```text
-CAN-34.3c anwenden und Dashboard-Stabilität prüfen.
+CAN-35.0 neuen Arbeitsblock bewusst auswählen.
 ```
