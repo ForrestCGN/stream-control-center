@@ -1234,6 +1234,107 @@ module.exports.init = function init(ctx) {
     return "unknown";
   }
 
+  function publicSoundPlayCompatibilityStatus() {
+    const prefix = config.routes?.prefix || "/api/sound";
+    const commandConfig = soundBusCommandConfig();
+    const queueConfig = config.queue || {};
+    const compatibility = {
+      ok: true,
+      module: MODULE_NAME,
+      version: MODULE_VERSION,
+      capability: SOUND_BUS_COMMAND_CAPABILITY,
+      statusApiVersion: SOUND_BUS_COMMAND_API_VERSION,
+      feature: "sound_play_bus_request_compatibility",
+      mode: "read_only_compatibility",
+      readOnly: true,
+      productiveEntryPoint: `${prefix}/play`,
+      productiveEntryPointChanged: false,
+      soundSystemTouched: false,
+      queueTouched: false,
+      audioTouched: false,
+      dryRunExecuted: false,
+      playTestExecuted: false,
+      eventBusEmit: false,
+      usesSharedNormalizer: true,
+      normalizer: "normalizePlayRequest",
+      queueEntryPoint: "enqueueOrStart",
+      busCommandName: "sound.play.request",
+      busCommandLayerEnabled: commandConfig.enabled !== false,
+      compatibilityLevel: "compatible_with_mapping",
+      compatibleFields: [
+        "requestId",
+        "soundId",
+        "sound",
+        "label",
+        "category",
+        "target",
+        "outputTarget",
+        "requestedBy",
+        "source",
+        "reason",
+        "priority",
+        "volume",
+        "durationMs",
+        "queueIfBusy",
+        "dropIfBusy",
+        "meta",
+        "visual"
+      ],
+      requiredBusFields: ["command", "soundId"],
+      productiveAcceptedInputAliases: {
+        soundId: ["soundId", "sound", "id", "key"],
+        requestedBy: ["requestedBy", "user", "username"],
+        source: ["source"],
+        category: ["category"],
+        target: ["target"],
+        outputTarget: ["outputTarget"]
+      },
+      productiveResultFields: [
+        "started",
+        "queued",
+        "dropped",
+        "parallel",
+        "queuePosition",
+        "reason",
+        "retryAfterMs",
+        "item",
+        "status"
+      ],
+      lifecycleMapping: {
+        accepted: "Payload normalized and enqueueOrStart returned a result.",
+        queued: "result.queued === true",
+        started: "result.started === true or result.parallel === true",
+        failed: "normalization or processing error",
+        finished: "item lifecycle finish event from existing sound flow",
+        timeout: "overlay/client fallback finish event"
+      },
+      queuePolicy: {
+        defaultMaxLength: Number(queueConfig.maxLength || 0),
+        defaultPriority: Number(queueConfig.defaultPriority || 0),
+        sortByPriority: queueConfig.sortByPriority !== false,
+        queueIfBusyDefault: queueConfig.queueIfBusy !== false,
+        dropWhenFull: queueConfig.dropWhenFull !== false
+      },
+      migrationSafety: {
+        keepLegacyPlayRoute: true,
+        doNotReplaceProductiveEntryPointYet: true,
+        requireDryRunAcceptanceFirst: true,
+        requireDashboardVisibilityFirst: true,
+        requireAlertSoundAckMappingBeforeAlertMigration: true,
+        requireNoFunctionalityRemoval: true
+      },
+      nextSteps: [
+        "Keep /api/sound/play as productive entry point for now.",
+        "Map sound.play.request payloads through normalizePlayRequest only after dry-run acceptance.",
+        "Expose queue/status visibility before moving callers away from direct /api/sound/play.",
+        "Migrate one caller at a time after alert/vip/channelpoints dependencies are documented."
+      ],
+      updatedAt: core.nowIso()
+    };
+
+    return compatibility;
+  }
+
   function publicSoundBusCommandLifecycleStatus() {
     const recent = Array.isArray(state.soundBusCommand && state.soundBusCommand.recentCommands)
       ? state.soundBusCommand.recentCommands
@@ -3488,6 +3589,7 @@ module.exports.init = function init(ctx) {
   app.get(`${prefix}/eventbus/command/status`, (req, res) => res.json(publicSoundBusCommandStatus({ includeRecentCommands: true })));
   app.get(`${prefix}/eventbus/command/contract`, (req, res) => res.json(publicSoundBusCommandContract()));
   app.get(`${prefix}/eventbus/command/lifecycle`, (req, res) => res.json(publicSoundBusCommandLifecycleStatus()));
+  app.get(`${prefix}/eventbus/command/play-compatibility`, (req, res) => res.json(publicSoundPlayCompatibilityStatus()));
   app.get(`${prefix}/eventbus/command/reset`, (req, res) => res.json({ ...resetSoundBusCommandRuntime(), reset: true, resetAt: core.nowIso() }));
   app.get(`${prefix}/eventbus/command/test`, (req, res) => res.json(emitSoundBusCommandTest(req.query || {})));
   app.post(`${prefix}/eventbus/command/test`, (req, res) => res.json(emitSoundBusCommandTest(req.body || {})));

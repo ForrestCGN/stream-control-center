@@ -39,6 +39,7 @@ const ENDPOINTS = {
   soundCommandStatus: '/api/sound/eventbus/command/status',
   soundCommandContract: '/api/sound/eventbus/command/contract',
   soundCommandLifecycle: '/api/sound/eventbus/command/lifecycle',
+  soundPlayCompatibility: '/api/sound/eventbus/command/play-compatibility',
   alertEventBus: '/api/alerts/eventbus/status',
   alertStatus: '/api/alerts/status',
   alertCorrelation: '/api/alerts/eventbus/correlation/status',
@@ -77,6 +78,8 @@ const SYSTEMS = [
     contractRoute: ENDPOINTS.soundCommandContract,
     lifecycleKey: 'soundCommandLifecycle',
     lifecycleRoute: ENDPOINTS.soundCommandLifecycle,
+    compatibilityKey: 'soundPlayCompatibility',
+    compatibilityRoute: ENDPOINTS.soundPlayCompatibility,
     commandStatus: 'partial',
     legacyDirect: true,
     nextStep: 'Als erstes Modul sauber ueber Bus-Requests/ACKs steuerbar machen.'
@@ -283,6 +286,7 @@ function buildSystemRow(system, clients, fetched) {
   const commandFetch = system.commandKey ? fetched[system.commandKey] : null;
   const contractFetch = system.contractKey ? fetched[system.contractKey] : null;
   const lifecycleFetch = system.lifecycleKey ? fetched[system.lifecycleKey] : null;
+  const compatibilityFetch = system.compatibilityKey ? fetched[system.compatibilityKey] : null;
 
   const statusBody = bodyOf(statusFetch);
   const eventBusBody = bodyOf(eventBusFetch);
@@ -290,6 +294,7 @@ function buildSystemRow(system, clients, fetched) {
   const commandBody = bodyOf(commandFetch);
   const contractBody = bodyOf(contractFetch);
   const lifecycleBody = bodyOf(lifecycleFetch);
+  const compatibilityBody = bodyOf(compatibilityFetch);
 
   const registered = system.id === 'communication_bus' || matchingClients.length > 0;
   const connected = system.id === 'communication_bus' || matchingClients.some(client => client.connected === true);
@@ -300,6 +305,7 @@ function buildSystemRow(system, clients, fetched) {
   const commandOk = commandFetch ? commandFetch.ok === true && (!commandBody || commandBody.ok !== false) : null;
   const contractOk = contractFetch ? contractFetch.ok === true && (!contractBody || contractBody.ok !== false) : null;
   const lifecycleOk = lifecycleFetch ? lifecycleFetch.ok === true && (!lifecycleBody || lifecycleBody.ok !== false) : null;
+  const compatibilityOk = compatibilityFetch ? compatibilityFetch.ok === true && (!compatibilityBody || compatibilityBody.ok !== false) : null;
   const ackCapable = matchingClients.some(client => includesCapability(client, 'ack') || includesCapability(client, 'bus.ack'));
   const commandCapable = ['core', 'partial', 'bridge'].includes(system.commandStatus);
 
@@ -313,7 +319,7 @@ function buildSystemRow(system, clients, fetched) {
     eventBusOk,
     commandCapable
   });
-  const risk = determineRisk({ system, registered, connected, statusOk, eventBusOk, integrationOk, commandOk, contractOk, lifecycleOk });
+  const risk = determineRisk({ system, registered, connected, statusOk, eventBusOk, integrationOk, commandOk, contractOk, lifecycleOk, compatibilityOk });
 
   return {
     id: system.id,
@@ -350,6 +356,12 @@ function buildSystemRow(system, clients, fetched) {
     lifecycleOk,
     lifecycleEvents: lifecycleBody && Array.isArray(lifecycleBody.canonicalLifecycle) ? lifecycleBody.canonicalLifecycle.map(item => item && item.event).filter(Boolean) : [],
     lifecycleCounts: lifecycleBody && lifecycleBody.counts ? lifecycleBody.counts : {},
+    compatibilityRoute: system.compatibilityRoute || '',
+    compatibilityOk,
+    compatibilityLevel: compatibilityBody && compatibilityBody.compatibilityLevel ? compatibilityBody.compatibilityLevel : '',
+    productiveEntryPoint: compatibilityBody && compatibilityBody.productiveEntryPoint ? compatibilityBody.productiveEntryPoint : '',
+    productiveEntryPointChanged: !!(compatibilityBody && compatibilityBody.productiveEntryPointChanged),
+    usesSharedNormalizer: !!(compatibilityBody && compatibilityBody.usesSharedNormalizer),
     ackCapable,
     commandStatus: system.commandStatus,
     commandCapable,
@@ -374,7 +386,7 @@ function determineRisk(input) {
   if (input.system.id === 'communication_bus') return input.statusOk === false ? 'error' : 'ok';
   if (input.statusOk === false && input.eventBusOk === false) return 'error';
   if (!input.registered && input.statusOk !== true) return 'warning';
-  if (input.statusOk === false || input.eventBusOk === false || input.integrationOk === false || input.commandOk === false || input.contractOk === false || input.lifecycleOk === false) return 'warning';
+  if (input.statusOk === false || input.eventBusOk === false || input.integrationOk === false || input.commandOk === false || input.contractOk === false || input.lifecycleOk === false || input.compatibilityOk === false) return 'warning';
   return 'ok';
 }
 

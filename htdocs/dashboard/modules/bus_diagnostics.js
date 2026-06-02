@@ -777,6 +777,7 @@
         ${metric('Command', bool(commandOk))}
         ${metric('Contract', bool(contractOk))}
         ${metric('Lifecycle', bool(lifecycleOk))}
+        ${metric('Play-kompatibel', bool(soundRow.compatibilityOk))}
         ${metric('Queue/Audio', 'nein')}
       </div>
       <div class="busdiag-actions-row">
@@ -808,7 +809,7 @@
         <span>${badge(row.heartbeat ? 'ja' : 'nein', row.heartbeat ? 'ok' : 'warning')}<small>${esc(row.primaryClientStatus || '-')}</small></span>
         <span>${badge(row.statusOk === null ? '-' : (row.statusOk ? 'ok' : 'fehlt'), row.statusOk === false ? 'warning' : 'ok')}<small>${esc(row.statusRoute || '-')}</small></span>
         <span>${badge(row.eventBusOk === null ? '-' : (row.eventBusOk ? 'ok' : 'fehlt'), row.eventBusOk === false ? 'warning' : 'ok')}<small>${esc(row.eventBusRoute || '-')}</small></span>
-        <span>${badge(commandLabel, row.commandCapable ? 'ok' : 'neutral')}<small>ACK: ${esc(bool(row.ackCapable))} · Legacy: ${esc(bool(row.legacyDirect))}</small><small>Command: ${esc(row.commandOk === null ? '-' : bool(row.commandOk))}</small><small>${esc(row.commandRoute || '-')}</small><small>Contract: ${esc(row.contractOk === null ? '-' : bool(row.contractOk))}</small><small>${esc(row.contractRoute || '-')}</small><small>Lifecycle: ${esc(row.lifecycleOk === null ? '-' : bool(row.lifecycleOk))}</small><small>${esc(row.lifecycleRoute || '-')}</small></span>
+        <span>${badge(commandLabel, row.commandCapable ? 'ok' : 'neutral')}<small>ACK: ${esc(bool(row.ackCapable))} · Legacy: ${esc(bool(row.legacyDirect))}</small><small>Command: ${esc(row.commandOk === null ? '-' : bool(row.commandOk))}</small><small>${esc(row.commandRoute || '-')}</small><small>Contract: ${esc(row.contractOk === null ? '-' : bool(row.contractOk))}</small><small>${esc(row.contractRoute || '-')}</small><small>Lifecycle: ${esc(row.lifecycleOk === null ? '-' : bool(row.lifecycleOk))}</small><small>${esc(row.lifecycleRoute || '-')}</small><small>Play-Kompatibel: ${esc(row.compatibilityOk === null ? '-' : bool(row.compatibilityOk))}</small><small>${esc(row.compatibilityRoute || '-')}</small></span>
         <span>${badge(risk, risk)}<small>${esc(row.nextStep || '-')}</small></span>
       </div>`;
     }).join('') : `<div class="busdiag-empty glass">Noch keine Matrixdaten geladen.</div>`;

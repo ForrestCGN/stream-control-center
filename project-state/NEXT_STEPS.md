@@ -3,17 +3,25 @@
 ## Naechster Schritt
 
 ```text
-Produktive /api/sound/play Logik auf Bus-Request-Kompatibilitaet pruefen.
+Sound-System: Queue-Status in Bus-Matrix/Status sauber sichtbar machen.
 ```
 
 ## Ziel
 
-Pruefen, wie der bestehende produktive Sound-Play-Flow spaeter bus-kompatibel werden kann, ohne die bestehende Funktionalitaet zu entfernen.
+Die Bus-Matrix soll beim Sound-System klar zeigen:
+
+```text
+current
+queuedCount
+queueLength
+busy/idle
+active requestId
+queue capacity/risk
+```
 
 ## Danach
 
 ```text
-Queue-Status sichtbarer machen
 Alert-System an Sound-Bus-Status koppeln
 VIP/Overlay nachziehen
 Channelpoints nachziehen

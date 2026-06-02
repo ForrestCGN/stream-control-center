@@ -1,11 +1,14 @@
 # CHANGELOG
 
-## CAN-23.6
+## CAN-23.7
 
-- Dashboard-Bus-Matrix um manuellen Sound-Bus-Dry-Run erweitert.
-- Button nutzt `POST /api/sound/eventbus/command/dry-run`.
-- Ergebnis wird im Dashboard angezeigt.
+- `GET /api/sound/eventbus/command/play-compatibility` als read-only Route in `sound_system.js` ergaenzt.
+- Bus-Integration-Matrix liest die Sound-Play-Kompatibilitaet mit aus.
+- Dashboard-Bus-Matrix zeigt Play-Kompatibilitaet beim Sound-System.
+- Produktiver `/api/sound/play` Entry-Point bleibt unveraendert.
 - Kein Sound-Play.
 - Keine Queue-Mutation.
+- Kein Dry-Run.
 - Kein Play-Test.
+- Kein EventBus-Emit.
 - Keine Recovery.

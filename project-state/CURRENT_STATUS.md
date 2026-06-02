@@ -1,27 +1,30 @@
 # CURRENT_STATUS
 
-## Stand: CAN-23.6 abgeschlossen
+## Stand: CAN-23.7 abgeschlossen
 
-CAN-23.6 hat den Sound-Bus-Dry-Run im Dashboard manuell pruefbar gemacht.
+CAN-23.7 hat die produktive `/api/sound/play`-Logik read-only auf Bus-Request-Kompatibilitaet sichtbar gemacht.
 
 ## Neu
 
 ```text
-Bus-Diagnostics -> Bus-Matrix -> Sound-Bus Dry-Run
+GET /api/sound/eventbus/command/play-compatibility
 ```
 
 ## Sicherheitsstatus
 
 ```text
-dryRunOnly: true
+readOnly: true
 soundPlayed: false
 queueTouched: false
+dryRunExecuted: false
 playTestExecuted: false
+eventBusEmit: false
 recoveryExecution: false
+productiveEntryPointChanged: false
 ```
 
 ## Naechster Schritt
 
 ```text
-Produktive /api/sound/play Logik auf Bus-Request-Kompatibilitaet pruefen.
+Sound-System: Queue-Status in Bus-Matrix/Status sauber sichtbar machen.
 ```
