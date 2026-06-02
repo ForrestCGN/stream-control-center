@@ -2558,6 +2558,120 @@ function buildTwitchSyncStatus() {
   };
 }
 
+function buildChannelpointsSoundMigrationCandidatesStatus() {
+  const config = getConfig();
+  const rewards = Array.isArray(listRewards({ query: {} })) ? listRewards({ query: {} }) : [];
+  const candidates = [];
+
+  for (const reward of rewards) {
+    const actionType = cleanString(reward.action_type || reward.actionType || '').toLowerCase();
+    const mediaId = rewardMediaId(reward);
+    const enabled = reward.system_enabled !== false && reward.system_enabled !== 0;
+    const paused = reward.is_paused === true || reward.is_paused === 1;
+    const executable = enabled && !paused && isExecutableReward(reward);
+    const soundCandidate = actionType === 'sound' || actionType === 'media' || !!mediaId;
+    if (!soundCandidate) continue;
+
+    const rewardKey = cleanString(reward.reward_key || reward.rewardKey || reward.id || '');
+    const title = cleanString(reward.title || rewardKey || 'Channelpoints Sound');
+    const requestId = `cp_sound_candidate_${reward.id || rewardKey || 'unknown'}`;
+
+    candidates.push({
+      id: reward.id || '',
+      rewardKey,
+      title,
+      twitchRewardId: reward.twitch_reward_id || '',
+      enabled,
+      paused,
+      executable,
+      actionType,
+      actionKey: cleanString(reward.action_key || reward.actionKey || ''),
+      mediaAssetId: mediaId,
+      currentExecutionTarget: config.mediaExecutionTargetUrl || '/api/sound/play',
+      candidateRank: executable ? 1 : 9,
+      candidateStatus: executable ? 'ready_for_dry_run_preview' : 'not_ready',
+      blockedReason: !enabled ? 'reward_inactive' : (paused ? 'reward_paused' : (!isExecutableReward(reward) ? 'reward_action_missing' : '')),
+      proposedSoundCommandPayload: {
+        command: 'sound.play.request',
+        requestId,
+        soundId: mediaId || rewardKey || `reward_${reward.id || 'unknown'}`,
+        label: `Channelpoints: ${title}`,
+        category: 'channelpoints',
+        target: 'stream',
+        outputTarget: 'overlay',
+        priority: Number(reward.priority || 60) || 60,
+        queueIfBusy: true,
+        requestedBy: 'channelpoints',
+        source: 'channelpoints_sound_migration_candidate',
+        reason: 'can24_candidate_preview_only',
+        meta: {
+          can: 'CAN-24.0',
+          rewardId: reward.id || '',
+          rewardKey,
+          twitchRewardId: reward.twitch_reward_id || '',
+          title,
+          currentExecutionTarget: config.mediaExecutionTargetUrl || '/api/sound/play'
+        }
+      },
+      safety: {
+        dryRunExecuted: false,
+        productiveExecutionChanged: false,
+        soundTouched: false,
+        queueTouched: false,
+        twitchTouched: false,
+        redemptionTouched: false
+      }
+    });
+  }
+
+  candidates.sort((a, b) => {
+    if (a.candidateRank !== b.candidateRank) return a.candidateRank - b.candidateRank;
+    return String(a.title || '').localeCompare(String(b.title || ''));
+  });
+
+  const firstCandidate = candidates.find(candidate => candidate.executable) || candidates[0] || null;
+
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    feature: 'channelpoints_sound_migration_candidates',
+    mode: 'read_only_candidate_payload_preview',
+    readOnly: true,
+    rewardsTouched: false,
+    redemptionsTouched: false,
+    executionTouched: false,
+    soundSystemTouched: false,
+    queueTouched: false,
+    twitchTouched: false,
+    eventBusEmit: false,
+    dryRunExecuted: false,
+    productiveMigration: false,
+    summary: {
+      totalCandidates: candidates.length,
+      readyCandidates: candidates.filter(candidate => candidate.executable).length,
+      blockedCandidates: candidates.filter(candidate => !candidate.executable).length,
+      firstCandidateRewardKey: firstCandidate ? firstCandidate.rewardKey : '',
+      firstCandidateTitle: firstCandidate ? firstCandidate.title : ''
+    },
+    firstCandidate,
+    candidates,
+    routes: {
+      readiness: `${ROUTE_PREFIX}/bus/request-readiness`,
+      candidates: `${ROUTE_PREFIX}/bus/sound-migration-candidates`,
+      soundDryRun: '/api/sound/eventbus/command/dry-run'
+    },
+    nextSteps: [
+      'Select firstCandidate or another ready candidate manually.',
+      'Validate proposedSoundCommandPayload against /api/sound/eventbus/command/dry-run in a separate explicit step.',
+      'Do not change productive channelpoints execution in this CAN step.',
+      'Keep /api/channelpoints/eventsub/redemption and /api/channelpoints/execute unchanged.'
+    ],
+    updatedAt: nowIso()
+  };
+}
+
 function buildChannelpointsBusRequestReadinessStatus() {
   const rewards = Array.isArray(listRewards({ query: {} })) ? listRewards({ query: {} }) : [];
   const bus = buildBusStatus();
@@ -2743,6 +2857,7 @@ function buildStatus(extra = {}) {
     routes: [
       `${ROUTE_PREFIX}/status`,
       `${ROUTE_PREFIX}/bus/request-readiness`,
+      `${ROUTE_PREFIX}/bus/sound-migration-candidates`,
       `${ROUTE_PREFIX}/model`,
       `${ROUTE_PREFIX}/media-plan`,
       `${ROUTE_PREFIX}/schema-preview`,
@@ -2980,6 +3095,9 @@ function init({ app }) {
   });
   app.get(`${ROUTE_PREFIX}/bus/request-readiness`, (req, res) => {
     try { res.json(buildChannelpointsBusRequestReadinessStatus()); } catch (err) { sendError(res, 500, err); }
+  });
+  app.get(`${ROUTE_PREFIX}/bus/sound-migration-candidates`, (req, res) => {
+    try { res.json(buildChannelpointsSoundMigrationCandidatesStatus()); } catch (err) { sendError(res, 500, err); }
   });
   app.get(`${ROUTE_PREFIX}/model`, (req, res) => { try { res.json(buildModel()); } catch (err) { sendError(res, 500, err); } });
   app.get(`${ROUTE_PREFIX}/media-plan`, (req, res) => { try { res.json(buildMediaPlan()); } catch (err) { sendError(res, 500, err); } });

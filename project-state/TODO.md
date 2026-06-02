@@ -1,35 +1,17 @@
 # TODO
 
-## CAN-23 abgeschlossen
+## CAN-24
 
-- [x] Bus-Matrix aufgebaut.
-- [x] Sound Contract/Lifecycle/Dry-Run/Queue/Kompatibilitaet sichtbar.
-- [x] Alert ACK/Contract/Dry-Run sichtbar.
-- [x] VIP-Overlay Show/Update/Hide/ACK sichtbar.
-- [x] Overlay-Monitor Clients/Heartbeat sichtbar.
-- [x] Overlay Produktiv/Test/Alt-Klassifikation sichtbar.
-- [x] Overlay Client-ID-/Capability-Vertrag sichtbar.
-- [x] Channelpoints Bus-Request-Readiness sichtbar.
-- [x] Legacy/direct REST-/broadcastWS-Pfade sichtbar.
-- [x] CAN-23 Abschluss konsolidiert.
-
-## Naechster Block
-
-- [ ] CAN-24 Sound-Migration Candidate 1 vorbereiten.
-- [ ] Einen echten Sound-Kandidaten aus Channelpoints/Caller auswaehlen.
-- [ ] Kandidaten nur gegen Sound-Dry-Run validieren.
-- [ ] Dashboard-Ergebnis sichtbar machen.
-- [ ] Produktive Ausfuehrung unveraendert lassen.
-
-## Optional vorher
-
-- [ ] Bus-Matrix Dashboard UX gruppieren/aufraeumen.
+- [x] CAN-24.0 Sound-Migration Candidate 1 vorbereiten.
+- [ ] CAN-24.1 Ausgewaehlten Kandidaten gegen Sound-Dry-Run validierbar machen.
+- [ ] CAN-24.2 Ergebnis im Dashboard besser anzeigen.
+- [ ] CAN-24.3 Erst danach entscheiden, ob ein produktiver Caller testweise umgestellt werden darf.
 
 ## Weiterhin hart blockiert
 
-- [ ] Keine automatische Heilung ohne separaten Safety-/Confirm-/Audit-Step.
-- [ ] Kein Queue-Clear ueber Bus ohne Confirm/SafetyStop.
-- [ ] Kein Alert-Replay ueber Bus ohne Confirm/SafetyStop.
-- [ ] Kein Sound-Replay ueber Bus ohne Confirm/SafetyStop.
-- [ ] Kein OBS-Refresh ueber Bus ohne Confirm/SafetyStop.
 - [ ] Keine produktive Migration ohne eigenen kleinen Go-Schritt.
+- [ ] Kein Sound-Play ueber Testbutton.
+- [ ] Kein Queue-Clear.
+- [ ] Keine Redemption-Aenderung.
+- [ ] Keine Twitch-Aktion.
+- [ ] Keine automatische Heilung ohne separaten Safety-/Confirm-/Audit-Step.

@@ -1,43 +1,31 @@
 # CURRENT_STATUS
 
-## Stand: CAN-23.18 abgeschlossen
+## Stand: CAN-24.0 abgeschlossen
 
-CAN-23 ist als Sichtbarkeits-/Readiness-/Safety-Block abgeschlossen.
+CAN-24.0 hat Sound-Migrationskandidaten read-only vorbereitet.
 
-## Ergebnis
+## Neu
 
 ```text
-Bus-Matrix vorhanden
-Sound-Readiness sichtbar
-Alert-Readiness sichtbar
-VIP-Overlay-Status sichtbar
-Overlay-Monitor-Kontrollsicht sichtbar
-Channelpoints-Readiness sichtbar
-Legacy/direct Pfade sichtbar
+GET /api/channelpoints/bus/sound-migration-candidates
 ```
 
 ## Sicherheitsstatus
 
 ```text
+readOnly: true
+soundTouched: false
+dryRunExecuted: false
+queueTouched: false
+rewardExecuted: false
+redemptionChanged: false
+twitchTouched: false
 productiveMigration: false
-autoRecovery: false
-queueClear: false
-alertReplay: false
-soundReplay: false
-obsRefresh: false
-obsRepair: false
-twitchWrite: false
-dbReplacement: false
+eventBusEmit: false
 ```
 
-## Naechster empfohlener Block
+## Naechster Schritt
 
 ```text
-CAN-24: Sound-Migration Candidate 1 vorbereiten
-```
-
-## Alternative
-
-```text
-Dashboard-Bus-Matrix UX Cleanup / Gruppierung
+CAN-24.1: Ausgewaehlten Kandidaten gegen /api/sound/eventbus/command/dry-run validierbar machen.
 ```
