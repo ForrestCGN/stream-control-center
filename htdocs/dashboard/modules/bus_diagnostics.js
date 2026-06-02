@@ -1096,6 +1096,31 @@ function renderSoundMigrationCandidateCard(matrix){
       return true;
     };
     const rows = allRows.filter(row => rowMatchesFilter(row, activeFilter));
+    const warningRows = allRows.filter(row => rowRisk(row) === 'warning');
+    const errorRows = allRows.filter(row => rowRisk(row) === 'error');
+    const legacyRows = allRows.filter(row => rowMatchesFilter(row, 'legacy'));
+    const focusRows = [...errorRows, ...warningRows].filter((row, index, list) => list.findIndex(item => item && row && item.id === row.id) === index);
+    const focusLabel = focusRows.length ? focusRows.map(row => row.label || row.id || 'System').join(' + ') : 'kein akuter UI-Blocker';
+    const diagnosticNoteItems = focusRows.length
+      ? focusRows.map(row => `<div class="busdiag-note-item"><strong>${esc(row.label || row.id || 'System')}</strong>: ${esc(row.nextStep || 'Warnung vorhanden, Detailbereich pruefen.')}</div>`).join('')
+      : '<div class="busdiag-note-item">Keine Warnung oder Fehler in der aktuellen Matrix. Read-only Diagnose bleibt aktiv.</div>';
+    const diagnosisStatus = errorRows.length ? 'error' : (warningRows.length ? 'warning' : 'ok');
+    const diagnosisHtml = card('Bus-Matrix Diagnose-Zusammenfassung', `
+      <div class="busdiag-status-line">
+        ${badge(errorRows.length ? 'Fehler pruefen' : (warningRows.length ? 'Warnungen vorhanden' : 'read-only stabil'), diagnosisStatus)}
+        <span>${esc(matrix.generatedAt || '-')}</span>
+      </div>
+      <div class="busdiag-metrics">
+        ${metric('Warnungen', warningRows.length)}
+        ${metric('Fehler', errorRows.length)}
+        ${metric('Legacy/direct', legacyRows.length)}
+        ${metric('Nächster Fokus', focusLabel, '', 'busdiag-metric-wide')}
+      </div>
+      <div class="busdiag-note-list" style="margin-top:10px;">
+        ${diagnosticNoteItems}
+        <div class="busdiag-note-item">Keine produktive Aktion erforderlich: Diese Zusammenfassung ist rein lokal/read-only und veraendert keine Queue, keinen Sound, keine Redemption und Twitch nicht.</div>
+      </div>
+    `, 'busdiag-wide');
     const filterItems = [
       ['all', 'Alle'],
       ['warnings', 'Warnungen'],
@@ -1225,6 +1250,7 @@ function renderSoundMigrationCandidateCard(matrix){
         ${card('Sicherheitsgrenze', `<div class="busdiag-status-line">${badge('read-only', 'ok')}<span>keine Aktion wird ausgeführt</span></div><div class="busdiag-metrics">${metric('Queue touch', bool(matrix.queueTouched))}${metric('Sound touch', bool(matrix.soundSystemTouched))}${metric('Alert touch', bool(matrix.alertSystemTouched))}${metric('Overlay touch', bool(matrix.overlayTouched))}</div>`)}
       </div>
       ${setupHint}
+      ${diagnosisHtml}
       ${renderSoundDryRunCard(matrix)}
       ${renderSoundShadowSummaryCard(matrix)}
 ${renderSoundMigrationCandidateCard(matrix)}
