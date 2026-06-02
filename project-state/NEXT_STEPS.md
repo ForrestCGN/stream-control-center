@@ -3,17 +3,17 @@
 ## Naechster Schritt
 
 ```text
-Alert-System: Alert-Dry-Run ohne Queue/Sound/Overlay.
+VIP-Sound-Overlay: Show/Hide/Update/ACK ueber Bus pruefen und danach anbinden.
 ```
 
 ## Ziel
 
-Alert-Command-Payload validieren, ohne produktive Alert-Anzeige, Sound oder Overlay-Auslieferung auszufuehren.
+VIP-Sound-Overlay-Status, Client-ACK und Show/Hide/Update-Vertrag sichtbar machen.
 
 ## Danach
 
 ```text
-VIP/Overlay nachziehen
+Overlay-Monitor als Kontrollsicht
 Channelpoints nachziehen
 Recovery/Selbstheilung spaeter
 ```

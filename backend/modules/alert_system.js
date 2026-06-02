@@ -294,6 +294,11 @@ module.exports.init = function init(ctx) {
   routes.registerGet(app, '/api/alerts/eventbus/status', guard, (req, res) => res.json(buildAlertEventBusStatus({ includeRecentEvents: req.query.recent !== '0' })));
   routes.registerGet(app, '/api/alerts/eventbus/ack-status', guard, (req, res) => res.json(buildAlertEventBusAckStatus({ includeRecent: req.query.recent !== '0' })));
   routes.registerGet(app, '/api/alerts/eventbus/command/contract', guard, (req, res) => res.json(buildAlertEventBusCommandContract()));
+  routes.registerGet(app, '/api/alerts/eventbus/command/dry-run', guard, (req, res) => res.json(buildAlertEventBusDryRun(req.query || {})));
+  routes.registerPost(app, '/api/alerts/eventbus/command/dry-run', guard, (req, res) => {
+    const result = buildAlertEventBusDryRun(req.body || {});
+    return res.status(result.ok ? 200 : 400).json(result);
+  });
   routes.registerGet(app, '/api/alerts/eventbus/test', guard, (req, res) => res.json(emitAlertEventBusTest(req.query || {})));
   routes.registerGet(app, '/api/alerts/eventbus/reset', guard, (req, res) => res.json(resetAlertEventBusDiagnostics()));
   routes.registerGet(app, '/api/alerts/eventbus/correlation/status', guard, async (req, res) => {
@@ -447,6 +452,7 @@ function buildAlertRoutes(req = null) {
     { method: 'GET', path: '/api/alerts/eventbus/status', auth: 'local_or_auth', category: 'communication', description: 'Alert EventBus Status lesen.' },
     { method: 'GET', path: '/api/alerts/eventbus/ack-status', auth: 'local_or_auth', category: 'communication', description: 'Read-only Alert-Request/Overlay-ACK/Sound-ACK/Finish-ACK Status lesen.' },
     { method: 'GET', path: '/api/alerts/eventbus/command/contract', auth: 'local_or_auth', category: 'communication', description: 'Read-only Alert-Bus-Command-Vertrag lesen.' },
+    { method: 'GET/POST', path: '/api/alerts/eventbus/command/dry-run', auth: 'local_or_auth', category: 'communication', description: 'Alert-Bus-Command-Payload validieren ohne Alert/Sound/Overlay/Queue.' },
     { method: 'GET', path: '/api/alerts/eventbus/test', auth: 'local_or_auth', category: 'communication', description: 'Test-only Alert EventBus Event senden, ohne Queue/Sound/Overlay zu verändern.' },
     { method: 'GET', path: '/api/alerts/eventbus/reset', auth: 'local_or_auth', category: 'communication', description: 'Alert EventBus Diagnosezähler zurücksetzen.' },
     { method: 'GET', path: '/api/alerts/eventbus/correlation/status', auth: 'local_or_auth', category: 'communication', description: 'Read-only Korrelation zwischen Alert-EventBus und Sound-EventBus prüfen.' },
@@ -1161,6 +1167,90 @@ function buildAlertEventBusStatus(options = {}) {
     ],
     stats,
     recentEvents: options.includeRecentEvents === false ? [] : [...(state.alertEventBus.recentEvents || [])]
+  };
+}
+
+function buildAlertEventBusDryRun(input = {}) {
+  const body = input && typeof input === 'object' ? input : {};
+  const at = nowIso();
+  const requestId = cleanKey(body.requestId || `alert_dry_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
+  const correlationId = cleanKey(body.correlationId || requestId);
+  const command = cleanKey(body.command || 'alert.request');
+  const type = cleanKey(body.type || body.alertType || 'dashboard_dry_run');
+  const user = String(body.user || body.username || 'DashboardDryRun').trim();
+  const source = cleanKey(body.source || 'bus_diagnostics_dashboard');
+  const requestedBy = String(body.requestedBy || 'dashboard').trim();
+
+  const payload = {
+    command,
+    requestId,
+    correlationId,
+    type,
+    user,
+    source,
+    requestedBy,
+    title: String(body.title || 'Dashboard Alert Dry-Run').trim(),
+    message: String(body.message || 'Dieser Alert wird nur validiert und nicht angezeigt.').trim(),
+    soundId: String(body.soundId || '').trim(),
+    priority: Number.isFinite(Number(body.priority)) ? Number(body.priority) : 50,
+    meta: objectValue(body.meta || {})
+  };
+
+  const errors = [];
+  if (command !== 'alert.request') errors.push(`unsupported_command:${command}`);
+  if (!type) errors.push('missing_type');
+  if (!user) errors.push('missing_user');
+
+  const accepted = errors.length === 0;
+
+  return {
+    ok: accepted,
+    module: MODULE,
+    version: MODULE_VERSION,
+    capability: ALERT_EVENTBUS_CAPABILITY,
+    statusApiVersion: ALERT_EVENTBUS_STATUS_API_VERSION,
+    feature: 'alert_eventbus_command_dry_run',
+    mode: 'dry_run',
+    dryRunOnly: true,
+    readOnly: false,
+    accepted,
+    alertTouched: false,
+    queueTouched: false,
+    soundSystemTouched: false,
+    overlayTouched: false,
+    eventBusEmit: false,
+    replayTriggered: false,
+    recoveryTriggered: false,
+    productiveEntryPointChanged: false,
+    request: payload,
+    validation: {
+      accepted,
+      errors,
+      requiredFields: ['command', 'type', 'user'],
+      recommendedFields: ['requestId', 'source', 'requestedBy', 'correlationId', 'message', 'avatarUrl', 'soundId', 'priority'],
+      lifecycleWouldBe: accepted ? ['alert_request'] : ['failed'],
+      queueWouldBeTouched: false,
+      soundWouldBeTouched: false,
+      overlayWouldBeTouched: false
+    },
+    result: {
+      ok: accepted,
+      accepted,
+      wouldQueue: false,
+      wouldPlaySound: false,
+      wouldSendOverlay: false,
+      wouldEmitEventBus: false,
+      error: accepted ? '' : errors.join(','),
+      message: accepted
+        ? 'Alert payload validated in dry-run mode. No alert, sound, overlay or queue action was executed.'
+        : 'Alert payload rejected in dry-run mode. No alert, sound, overlay or queue action was executed.'
+    },
+    routes: {
+      contract: '/api/alerts/eventbus/command/contract',
+      dryRun: '/api/alerts/eventbus/command/dry-run',
+      ackStatus: '/api/alerts/eventbus/ack-status'
+    },
+    updatedAt: at
   };
 }
 

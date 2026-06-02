@@ -1,6 +1,6 @@
 # FILES
 
-## CAN23.10 ZIP
+## CAN23.11 ZIP
 
 Enthaltene Dateien:
 
@@ -9,8 +9,8 @@ Enthaltene Dateien:
 - `backend/modules/bus_integration_matrix.js`
 - `htdocs/dashboard/modules/bus_diagnostics.js`
 - `htdocs/dashboard/modules/bus_diagnostics.css`
-- `docs/system-inspection/EVENTBUS_CAN23_10_ALERT_BUS_COMMAND_CONTRACT_READONLY.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN23_10.md`
+- `docs/system-inspection/EVENTBUS_CAN23_11_ALERT_BUS_DRY_RUN.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN23_11.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`

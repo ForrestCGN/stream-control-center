@@ -1,23 +1,23 @@
 # CURRENT_STATUS
 
-## Stand: CAN-23.10 abgeschlossen
+## Stand: CAN-23.11 abgeschlossen
 
-CAN-23.10 hat den Alert-Bus-Command-Vertrag read-only sichtbar gemacht.
+CAN-23.11 hat den Alert-Bus-Dry-Run ergaenzt.
 
 ## Neu
 
 ```text
-GET /api/alerts/eventbus/command/contract
+GET/POST /api/alerts/eventbus/command/dry-run
 ```
 
 ## Sicherheitsstatus
 
 ```text
-readOnly: true
+dryRunOnly: true
 alertReplay: false
 queueTouched: false
 soundTouched: false
-overlayRecovery: false
+overlayTouched: false
 eventBusEmit: false
 recoveryExecution: false
 ```
@@ -25,5 +25,5 @@ recoveryExecution: false
 ## Naechster Schritt
 
 ```text
-Alert-System: Alert-Dry-Run ohne Queue/Sound/Overlay.
+VIP-Sound-Overlay: Show/Hide/Update/ACK ueber Bus pruefen und danach anbinden.
 ```
