@@ -1161,8 +1161,9 @@ function renderSoundMigrationCandidateCard(matrix){
         </div>
         <details class="busdiag-details busdiag-matrix-row-details" style="margin:6px 0 12px 0;padding:10px 12px;border:1px solid rgba(148,163,184,.16);border-radius:14px;background:rgba(15,23,42,.32);">
           <summary>Details zu ${esc(row.label || row.id || 'System')}</summary>
+          <p class="busdiag-muted" style="margin:8px 0 10px 0;">Strukturierte Diagnosewerte. Keine Aktion, kein Refresh und keine Migration wird durch das Oeffnen ausgefuehrt.</p>
           <div class="busdiag-matrix-detail-groups" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(520px,1fr));gap:12px;align-items:start;margin-top:10px;min-width:0;width:100%;">${detailHtml}</div>
-          <details class="busdiag-details" style="margin-top:10px;"><summary>Rohdaten dieser Zeile</summary><pre>${esc(compactJson(row))}</pre></details>
+          <details class="busdiag-details" style="margin-top:10px;"><summary>Rohdaten dieser Zeile (kopierbar)</summary><pre style="max-height:360px;overflow:auto;white-space:pre;">${esc(compactJson(row))}</pre></details>
         </details>
       </div>`;
     }).join('') : `<div class="busdiag-empty glass">Noch keine Matrixdaten geladen.</div>`;
@@ -1178,9 +1179,9 @@ function renderSoundMigrationCandidateCard(matrix){
       ${renderSoundDryRunCard(matrix)}
       ${renderSoundShadowSummaryCard(matrix)}
 ${renderSoundMigrationCandidateCard(matrix)}
-      ${card('Systeme', `<div class="busdiag-table busdiag-table-busmatrix"><div class="busdiag-table-head"><span>System</span><span>Bus-Client</span><span>Heartbeat</span><span>Status</span><span>EventBus</span><span>Command/ACK</span><span>Risiko / nächster Schritt</span></div>${rowsHtml}</div>`, 'busdiag-wide')}
+      ${card('Systeme', `<p class="busdiag-muted" style="margin:0 0 10px 0;">Kompakte Uebersicht. Die Details pro System bleiben standardmaessig geschlossen; Rohdaten sind nur bei Bedarf aufklappbar und kopierbar.</p><div class="busdiag-table busdiag-table-busmatrix"><div class="busdiag-table-head"><span>System</span><span>Bus-Client</span><span>Heartbeat</span><span>Status</span><span>EventBus</span><span>Command/ACK</span><span>Risiko / nächster Schritt</span></div>${rowsHtml}</div>`, 'busdiag-wide')}
       ${todoHtml}
-      ${card('Rohdaten Matrix', `<details class="busdiag-details"><summary>Matrix anzeigen</summary><pre>${esc(compactJson(matrix))}</pre></details>`, 'busdiag-wide')}
+      ${card('Rohdaten Matrix', `<details class="busdiag-details"><summary>Komplette Matrix anzeigen (kopierbar)</summary><pre style="max-height:520px;overflow:auto;white-space:pre;">${esc(compactJson(matrix))}</pre></details>`, 'busdiag-wide')}
     `;
   }
 
