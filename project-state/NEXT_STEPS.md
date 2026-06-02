@@ -3,24 +3,27 @@
 ## Naechster Schritt
 
 ```text
-CAN-22.2 - Safety Architecture Backend Shape Implementation Candidate Decision no-code
+CAN-22.3 - Safety Architecture Backend Shape Internal Function Code Plan no-code
 ```
 
-## Ziel CAN-22.2
+## Ziel CAN-22.3
 
-Entscheiden, welche spaetere technische Variante am sichersten waere.
+Konkret planen, wie eine spaetere interne Funktion in `backend/modules/bus_diagnostics.js` aussehen duerfte, ohne Code zu schreiben.
 
-## CAN-22.2 darf klaeren
+## CAN-22.3 darf klaeren
 
 ```text
-nur interne Funktion oder bestehende read-only Response erweitern
-ob dashboard spaeter separat bleibt
-welche Datei spaeter primaer betroffen waere
-welche Tests spaeter Pflicht waeren
-welche No-Go-Grenzen weiter gelten
+moegliche Position in der Datei
+Funktionsname
+Eingaben
+Ausgabe
+genutzte bestehende Felder
+harte Default-Werte
+No-Mutation-Grenzen
+spaetere Tests
 ```
 
-## CAN-22.2 darf NICHT enthalten
+## CAN-22.3 darf NICHT enthalten
 
 ```text
 Code-Aenderung

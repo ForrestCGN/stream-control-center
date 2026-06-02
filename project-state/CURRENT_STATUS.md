@@ -1,8 +1,8 @@
 # CURRENT_STATUS
 
-## Stand: CAN-22.1 abgeschlossen
+## Stand: CAN-22.2 abgeschlossen
 
-CAN-22.1 hat Safety Architecture Backend Shape File Inspection Planning erstellt.
+CAN-22.2 hat Safety Architecture Backend Shape Implementation Candidate Decision no-code erstellt.
 
 ## Aktueller stabiler Stand
 
@@ -18,15 +18,15 @@ Safety Architecture Backend Shape Planning read-only/no-route/no-code
 Recovery Safety Master Documentation / Index / Closure
 Safety Architecture Backend Shape Implementation Planning no-code
 Safety Architecture Backend Shape File Inspection Planning
+Safety Architecture Backend Shape Implementation Candidate Decision no-code
 ```
 
-## File-Inspection-Status
+## Candidate-Decision-Status
 
 ```text
-fileInspectionPlanning: true
-backendBusDiagnosticsInspected: true
-backendCommunicationBusInspected: true
-dashboardBusDiagnosticsInspected: true
+implementationCandidateDecision: true
+selectedCandidate: internal_function_only_not_embedded
+primaryFileCandidate: backend/modules/bus_diagnostics.js
 codeChanged: false
 apiCreated: false
 routeCreated: false
@@ -79,5 +79,5 @@ POST Command Route
 ## Naechster Schritt
 
 ```text
-CAN-22.2 - Safety Architecture Backend Shape Implementation Candidate Decision no-code
+CAN-22.3 - Safety Architecture Backend Shape Internal Function Code Plan no-code
 ```
