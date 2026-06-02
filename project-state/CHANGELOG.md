@@ -1,30 +1,28 @@
 # CHANGELOG
 
-## CAN-34.3b
+## CAN-34.3c
 
-- UX-Fix für Todo Read-only Diagnosekarte vorbereitet.
-- Die Karte wird aus dem Bereich oberhalb der Todo-Tabs in einen eigenen Tab verschoben.
-- Neuer Tab:
-  - `Diagnose`
-- Ziel:
-  - `Übersicht | Settings | Texte | Statistik | Diagnose`
-  - Karte nur bei aktivem Diagnose-Tab sichtbar.
+- Stabilitäts-Hotfix für Todo Read-only Diagnose-Tab vorbereitet.
+- Problem in CAN-34.3b:
+  - MutationObserver konnte Render-Schleife auslösen.
+  - Firefox meldete Seitenverlangsamung.
+  - Todo-Tabs konnten hängen.
+- Fix:
+  - MutationObserver entfernt.
+  - Tab-Handling auf kontrollierte Click-/Show-Events reduziert.
+  - Kein Dauer-Rendering mehr.
 - Geändert:
   - `htdocs/dashboard/modules/todo_readonly_diagnostics.js`
-  - `htdocs/dashboard/modules/todo_readonly_diagnostics.css`
 - Nicht geändert:
   - `htdocs/dashboard/modules/todo.js`
   - `backend/modules/todo.js`
   - `htdocs/dashboard/index.html`
 - Keine produktiven Aktionen.
 
+## CAN-34.3b
+
+- UX-Fix: Diagnose in eigenen Tab verschoben.
+
 ## CAN-34.3
 
 - Todo-Dashboard Read-only-Diagnosekarte umgesetzt.
-- Sichtprüfung zeigte: Karte war sichtbar und sicher, aber UX-seitig oberhalb der bestehenden Tabs platziert.
-
-## CAN-34.2
-
-- Todo-Modul-Doku ergänzt:
-  - `docs/modules/todo.md`
-- Read-only-/Write-Regeln dokumentiert.

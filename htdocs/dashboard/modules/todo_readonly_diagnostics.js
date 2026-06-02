@@ -1,7 +1,7 @@
 "use strict";
 
 (function(){
-  const MODULE_VERSION = "0.1.1-can34-3b-own-tab";
+  const MODULE_VERSION = "0.1.2-can34-3c-stability";
   const PANEL_ID = "todoModule";
   const CARD_ID = "todoReadonlyDiagnosticsCard";
   const TAB_ID = "todoReadonlyDiagnosticsTab";
@@ -13,9 +13,7 @@
     lastLoadedAt: 0,
     payload: null,
     error: "",
-    renderTimer: null,
-    observerReady: false,
-    clickBound: false
+    timers: []
   };
 
   const READ_ONLY_ROUTES = [
@@ -45,10 +43,18 @@
   }
 
   function panel(){ return document.getElementById(PANEL_ID); }
+  function isVisible(){ const root = panel(); return Boolean(root && !root.hidden); }
 
-  function isVisible(){
-    const root = panel();
-    return Boolean(root && !root.hidden);
+  function clearOwnedTimers(){
+    while (state.timers.length) clearTimeout(state.timers.pop());
+  }
+
+  function schedule(fn, delay){
+    const timer = setTimeout(() => {
+      state.timers = state.timers.filter(item => item !== timer);
+      fn();
+    }, delay);
+    state.timers.push(timer);
   }
 
   async function api(path){
@@ -70,7 +76,6 @@
         api("/api/todo/routes"),
         api("/api/todo/integration-check")
       ]);
-
       state.payload = { status, routes, integration };
       state.lastLoadedAt = Date.now();
       state.error = "";
@@ -162,7 +167,7 @@
           </div>
         </div>
 
-        <p class="todo-muted">CAN-34.3b: Diese Karte ist jetzt ein eigener Diagnose-Tab. Sie nutzt nur GET /status, /routes und /integration-check. Sie postet nichts nach Discord, erhöht keine Statistik, speichert keine Settings/Textvarianten und löst keinen Reload aus.</p>
+        <p class="todo-muted">CAN-34.3c: Stabilitätsfix ohne MutationObserver. Diese Karte nutzt nur GET /status, /routes und /integration-check. Sie postet nichts nach Discord, erhöht keine Statistik, speichert keine Settings/Textvarianten und löst keinen Reload aus.</p>
       </section>
     `;
   }
@@ -171,26 +176,37 @@
     return panel()?.querySelector(".todo-tabs") || null;
   }
 
+  function removeCard(){
+    const existing = document.getElementById(CARD_ID);
+    if (existing) existing.remove();
+  }
+
+  function restoreNativeContent(){
+    const root = panel();
+    if (!root) return;
+    root.querySelectorAll("[data-todo-readonly-hidden='1']").forEach(node => {
+      delete node.dataset.todoReadonlyHidden;
+      node.style.display = "";
+    });
+  }
+
   function ensureTab(){
     const tabs = tabsNode();
-    if (!tabs) return null;
+    if (!tabs || document.getElementById(TAB_ID)) return;
 
-    let tab = document.getElementById(TAB_ID);
-    if (!tab) {
-      tab = document.createElement("button");
-      tab.type = "button";
-      tab.id = TAB_ID;
-      tab.dataset.todoReadonlyTab = "diagnostics";
-      tab.textContent = "Diagnose";
-      tabs.appendChild(tab);
-    }
+    const tab = document.createElement("button");
+    tab.type = "button";
+    tab.id = TAB_ID;
+    tab.dataset.todoReadonlyTab = "diagnostics";
+    tab.textContent = "Diagnose";
+    tabs.appendChild(tab);
+  }
 
-    tab.classList.toggle("active", state.active);
-    tabs.querySelectorAll("[data-todo-tab]").forEach(btn => {
-      if (state.active) btn.classList.remove("active");
-    });
-
-    return tab;
+  function setTabActive(){
+    const tabs = tabsNode();
+    if (!tabs) return;
+    tabs.querySelectorAll("button").forEach(btn => btn.classList.remove("active"));
+    document.getElementById(TAB_ID)?.classList.add("active");
   }
 
   function hideNativeContent(){
@@ -207,106 +223,82 @@
     }
   }
 
-  function restoreNativeContent(){
-    const root = panel();
-    if (!root) return;
-    root.querySelectorAll("[data-todo-readonly-hidden='1']").forEach(node => {
-      delete node.dataset.todoReadonlyHidden;
-      node.style.display = "";
-    });
-  }
-
-  function removeCard(){
-    const existing = document.getElementById(CARD_ID);
-    if (existing) existing.remove();
-  }
-
-  async function render(force = false){
-    if (!isVisible()) {
-      restoreNativeContent();
-      removeCard();
-      return;
-    }
-
+  async function renderDiagnostics(force = false){
+    if (!isVisible()) return;
     ensureTab();
-
-    if (!state.active) {
-      restoreNativeContent();
-      removeCard();
-      return;
-    }
-
     const tabs = tabsNode();
     if (!tabs) return;
 
+    state.active = true;
+    setTabActive();
     hideNativeContent();
 
     const payload = await loadPayload(force);
-    const existing = document.getElementById(CARD_ID);
-    if (!payload) {
-      if (existing) existing.remove();
-      return;
-    }
+    if (!payload) return;
 
     const html = renderCard(payload);
+    const existing = document.getElementById(CARD_ID);
     if (existing) existing.outerHTML = html;
     else tabs.insertAdjacentHTML("afterend", html);
 
-    ensureTab();
+    setTabActive();
     hideNativeContent();
   }
 
-  function scheduleRender(force = false){
-    if (state.renderTimer) clearTimeout(state.renderTimer);
-    state.renderTimer = setTimeout(() => {
-      state.renderTimer = null;
-      render(force);
-    }, 100);
+  function showNative(){
+    state.active = false;
+    restoreNativeContent();
+    removeCard();
+    ensureTab();
   }
 
-  function bindGlobalClick(){
-    if (state.clickBound) return;
-    state.clickBound = true;
+  function scheduleEnsure(){
+    schedule(() => {
+      if (!isVisible()) return;
+      ensureTab();
+      if (state.active) renderDiagnostics(false);
+    }, 120);
+    schedule(() => {
+      if (!isVisible()) return;
+      ensureTab();
+      if (state.active) renderDiagnostics(false);
+    }, 600);
+  }
 
+  function boot(){
     document.addEventListener("click", ev => {
       const diagTab = ev.target.closest?.(`#${TAB_ID}`);
       if (diagTab) {
         ev.preventDefault();
-        state.active = true;
-        scheduleRender(true);
+        ev.stopPropagation();
+        clearOwnedTimers();
+        renderDiagnostics(true);
         return;
       }
 
       const nativeTab = ev.target.closest?.("#todoModule [data-todo-tab]");
       if (nativeTab) {
-        state.active = false;
-        restoreNativeContent();
-        removeCard();
-        scheduleRender(false);
+        showNative();
+        scheduleEnsure();
+        return;
+      }
+
+      if (ev.target.closest?.("#todoModule [data-todo-refresh], #todoModule [data-todo-reload]")) {
+        scheduleEnsure();
       }
     }, true);
-  }
 
-  function installObserver(){
-    if (state.observerReady) return;
-    const root = panel();
-    if (!root) return;
-
-    const observer = new MutationObserver(() => {
-      ensureTab();
-      scheduleRender(false);
+    window.addEventListener("cgn:module-show", ev => {
+      if (ev.detail?.module !== "todo") return;
+      showNative();
+      scheduleEnsure();
     });
-    observer.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden", "class"] });
-    state.observerReady = true;
-  }
 
-  function boot(){
-    bindGlobalClick();
-    installObserver();
-    scheduleRender(false);
     document.addEventListener("visibilitychange", () => {
-      if (!document.hidden) scheduleRender(false);
+      if (!document.hidden) scheduleEnsure();
     });
+
+    scheduleEnsure();
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
@@ -314,16 +306,8 @@
 
   window.CGNTodoReadonlyDiagnostics = {
     version: MODULE_VERSION,
-    refresh: () => render(true),
-    activate: () => {
-      state.active = true;
-      scheduleRender(true);
-    },
-    deactivate: () => {
-      state.active = false;
-      restoreNativeContent();
-      removeCard();
-      scheduleRender(false);
-    }
+    refresh: () => renderDiagnostics(true),
+    activate: () => renderDiagnostics(true),
+    deactivate: showNative
   };
 })();
