@@ -10,15 +10,16 @@
 - [x] CAN-24.5 Shadow-DryRun Ergebnis pruefen / Dashboard-Auswertung.
 - [x] CAN-24.6 Abschluss/Entscheidung fuer spaeteren produktiven Shadow-DryRun-Mitulauf.
 - [x] CAN-24.7 Shadow-DryRun-Mitulauf fuer genau einen Reward vorbereiten.
-- [ ] CAN-24.8 Entscheiden, ob ein streng begrenzter Live-Hook fuer genau diesen Reward vorbereitet werden darf.
-- [ ] Erst danach entscheiden, ob ein echter produktiver Caller testweise umgestellt werden darf.
+- [x] CAN-24.8 Lokalen Route-/Dashboard-Testplan bereitstellen.
+- [ ] Lokalen Test auf Forrest-System ausfuehren.
+- [ ] CAN-24.9 Testergebnis dokumentieren.
+- [ ] Danach entscheiden, ob ein streng begrenzter Live-Hook fuer genau einen Reward gebaut wird.
 
 ## Weiterhin hart blockiert
 
-- [ ] Keine produktive Sound-Migration ohne eigenen kleinen Go-Schritt.
+- [ ] Keine produktive Sound-Migration ohne lokalen Test.
 - [ ] Kein Sound-Play ueber Bus-Testbutton.
 - [ ] Kein Queue-Clear.
 - [ ] Keine Redemption-Aenderung.
 - [ ] Keine Twitch-Aktion.
 - [ ] Kein automatischer Shadow-Mitulauf fuer alle Rewards.
-- [ ] Keine automatische Heilung ohne separaten Safety-/Confirm-/Audit-Step.
