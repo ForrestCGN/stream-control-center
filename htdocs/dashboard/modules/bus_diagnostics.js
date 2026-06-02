@@ -831,7 +831,12 @@ function pickSoundShadowStatus(matrix) {
   const soundDryRun = dryRunResult.soundDryRun || {};
   const soundResult = soundDryRun.result || {};
   const normalizedItem = soundResult.normalizedItem || {};
-  const payload = channelpointsRow.channelpointsFirstCandidatePayload || {};
+  const selectedCandidate = {
+    rewardKey: channelpointsRow.channelpointsFirstCandidateRewardKey || channelpointsRow.channelpointsSoundShadowAutoRewardKey || channelpointsRow.channelpointsSoundShadowSelectedRewardKey || '',
+    title: channelpointsRow.channelpointsFirstCandidateTitle || '',
+    mediaAssetId: channelpointsRow.channelpointsFirstCandidateMediaAssetId || normalizedItem.meta?.mediaRegistry?.id || '',
+    currentExecutionTarget: channelpointsRow.channelpointsFirstCandidateExecutionTarget || normalizedItem.meta?.currentExecutionTarget || ''
+  };
 
   return {
     enabled: channelpointsRow.channelpointsSoundShadowAutoEnabled === true,
@@ -853,19 +858,15 @@ function pickSoundShadowStatus(matrix) {
     redemptionChanged: channelpointsRow.channelpointsSoundShadowRedemptionChanged,
     twitchTouched: channelpointsRow.channelpointsSoundShadowTwitchTouched,
     productiveMigration: false,
-    updatedAt: channelpointsRow.channelpointsSoundShadowAutoUpdatedAt || channelpointsRow.channelpointsSoundShadowUpdatedAt || '',
-    selectedCandidate: {
-      rewardKey: channelpointsRow.channelpointsFirstCandidateRewardKey || channelpointsRow.channelpointsSoundShadowAutoRewardKey || '',
-      title: channelpointsRow.channelpointsFirstCandidateTitle || payload.title || '',
-      mediaAssetId: channelpointsRow.channelpointsFirstCandidateMediaAssetId || payload.mediaAssetId || payload.media_asset_id || '',
-      currentExecutionTarget: channelpointsRow.channelpointsFirstCandidateExecutionTarget || payload.currentExecutionTarget || ''
-    },
-    candidate: payload,
+    updatedAt: channelpointsRow.channelpointsSoundShadowAutoUpdatedAt || channelpointsRow.channelpointsSoundShadowUpdatedAt || soundDryRun.updatedAt || '',
+    selectedCandidate,
+    candidate: channelpointsRow.channelpointsFirstCandidatePayload || selectedCandidate,
+    firstCandidate: selectedCandidate,
     lastAutoResult: {
       accepted: channelpointsRow.channelpointsSoundShadowAutoLastAccepted,
       skipped: channelpointsRow.channelpointsSoundShadowAutoLastAccepted === false,
       dryRunOnly: true,
-      updatedAt: channelpointsRow.channelpointsSoundShadowAutoUpdatedAt || '',
+      updatedAt: channelpointsRow.channelpointsSoundShadowAutoUpdatedAt || soundDryRun.updatedAt || '',
       dryRun: dryRunResult
     },
     safety: {
@@ -924,6 +925,14 @@ function renderSoundShadowSummaryCard(matrix) {
 
   const stateLabel = critical ? 'kritisch' : warning ? 'hinweis' : 'ok';
   const stateClass = critical ? 'bus-pill-danger' : warning ? 'bus-pill-warn' : 'bus-pill-ok';
+  const autoHookDisabled = shadow.autoHookInstalled === true && shadow.enabled !== true;
+  const autoAttempts = Number(shadow.attempts || 0);
+  const autoSkipped = Number(shadow.skipped || 0);
+  const hasAutoRun = autoAttempts > 0 || autoSkipped > 0 || !!shadow.lastSkipReason || !!last.updatedAt;
+  const autoStatusText = autoHookDisabled
+    ? 'Auto-Hook ist deaktiviert; Zähler steigen erst bei aktiviertem Shadow-Hook-Test.'
+    : (shadow.enabled ? 'Auto-Hook ist aktiviert; Zähler zeigen echte Shadow-Hook-Läufe.' : 'Auto-Hook ist nicht aktiv.');
+  const noAutoRunBadge = '<span class="bus-pill bus-pill-muted">—</span>';
 
   return `
     <section class="bus-card bus-sound-shadow-card">
@@ -961,15 +970,16 @@ function renderSoundShadowSummaryCard(matrix) {
           <div class="bus-kv"><span>Failed</span><strong>${textValue(shadow.failedCount, '0')}</strong></div>
           <div class="bus-kv"><span>Skipped</span><strong>${textValue(shadow.skipped, '0')}</strong></div>
           <div class="bus-kv"><span>Last Skip</span><strong>${textValue(shadow.lastSkipReason)}</strong></div>
+          <div class="bus-kv"><span>Status</span><strong>${autoHookDisabled ? 'deaktiviert' : (shadow.enabled ? 'aktiv' : 'inaktiv')}</strong></div>
         </div>
 
         <div class="bus-shadow-block">
           <h4>Letztes Ergebnis</h4>
-          <div class="bus-kv"><span>accepted</span><strong>${boolBadge(!!last.accepted)}</strong></div>
-          <div class="bus-kv"><span>skipped</span><strong>${dangerBadge(!!last.skipped, 'ja', 'nein')}</strong></div>
-          <div class="bus-kv"><span>dryRunOnly</span><strong>${boolBadge(!!last.dryRunOnly)}</strong></div>
-          <div class="bus-kv"><span>Sound</span><strong>${textValue(normalized.soundId)}</strong></div>
-          <div class="bus-kv"><span>Update</span><strong>${textValue(shadow.updatedAt || last.updatedAt)}</strong></div>
+          <div class="bus-kv"><span>accepted</span><strong>${hasAutoRun ? boolBadge(!!last.accepted) : noAutoRunBadge}</strong></div>
+          <div class="bus-kv"><span>skipped</span><strong>${hasAutoRun ? dangerBadge(!!last.skipped, 'ja', 'nein') : noAutoRunBadge}</strong></div>
+          <div class="bus-kv"><span>dryRunOnly</span><strong>${hasAutoRun ? boolBadge(!!last.dryRunOnly) : noAutoRunBadge}</strong></div>
+          <div class="bus-kv"><span>Sound</span><strong>${hasAutoRun ? textValue(normalized.soundId) : 'kein Auto-Hook-Lauf'}</strong></div>
+          <div class="bus-kv"><span>Update</span><strong>${hasAutoRun ? textValue(shadow.updatedAt || last.updatedAt) : '—'}</strong></div>
         </div>
       </div>
 
@@ -983,8 +993,7 @@ function renderSoundShadowSummaryCard(matrix) {
       </div>
 
       <div class="bus-card-note">
-        Deaktivierung read-only Hinweis:
-        <code>curl -s "http://127.0.0.1:8080/api/channelpoints/bus/sound-shadow-dry-run/auto-config?rewardKey=bauernweisheit&amp;enabled=false&amp;configuredBy=manual_disable"</code>
+        ${esc(autoStatusText)} Diese Karte ist read-only: kein Sound-Play, keine Queue, keine Twitch-/Redemption-Änderung, keine Migration.
       </div>
     </section>
   `;
