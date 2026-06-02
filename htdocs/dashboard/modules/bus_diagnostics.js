@@ -790,6 +790,45 @@
     `, 'busdiag-wide');
   }
 
+  function renderSoundMigrationCandidateCard(matrix){
+    const channelpointsRow = asList(matrix && matrix.rows).find(row => row && row.id === 'channelpoints') || {};
+    const payload = channelpointsRow.channelpointsFirstCandidatePayload || {};
+    const result = channelpointsRow.channelpointsSoundDryRunResult || {};
+    const soundDryRun = result.soundDryRun || {};
+    const soundResult = soundDryRun.result || {};
+    const hasCandidateRoute = !!channelpointsRow.channelpointsSoundCandidatesRoute;
+    const hasDryRunRoute = !!channelpointsRow.channelpointsSoundDryRunRoute;
+
+    return card('CAN24 Sound-Migration Kandidat', `
+      <div class="busdiag-status-line">
+        ${badge(channelpointsRow.channelpointsSoundDryRunOk === true ? 'dry-run ok' : (hasCandidateRoute ? 'bereit' : 'nicht bereit'), channelpointsRow.channelpointsSoundDryRunOk === false ? 'warning' : 'ok')}
+        <span>${esc(channelpointsRow.channelpointsFirstCandidateTitle || channelpointsRow.channelpointsFirstCandidateRewardKey || 'kein Kandidat')}</span>
+      </div>
+      <div class="busdiag-metrics">
+        ${metric('Kandidaten', `${channelpointsRow.channelpointsMigrationCandidateReady || 0}/${channelpointsRow.channelpointsMigrationCandidateTotal || 0}`)}
+        ${metric('Reward-Key', channelpointsRow.channelpointsFirstCandidateRewardKey || '-')}
+        ${metric('Dry-Run accepted', channelpointsRow.channelpointsSoundDryRunOk === null ? '-' : bool(channelpointsRow.channelpointsSoundDryRunAccepted))}
+        ${metric('Queue touched', bool(result.queueTouched || soundResult.queueTouched))}
+        ${metric('Audio/Sound touched', bool(result.soundSystemTouched || soundDryRun.soundSystemTouched || soundResult.audioTouched))}
+      </div>
+      <p class="busdiag-muted">Diese Karte zeigt nur Kandidat, Payload und Dry-Run-Diagnose. Kein Sound-Play, keine Reward-Ausführung, keine Redemption-/Twitch-Aktion.</p>
+      <div class="busdiag-metrics">
+        ${metric('Candidates Route', hasCandidateRoute ? 'ok' : '-')}
+        ${metric('Dry-Run Route', hasDryRunRoute ? 'ok' : '-')}
+        ${metric('StatusCode', result.statusCode || '-')}
+        ${metric('Fehler', result.error || (soundDryRun.error || '-'))}
+      </div>
+      <details class="busdiag-details">
+        <summary>Vorgeschlagener sound.play.request Payload</summary>
+        <pre>${esc(compactJson(payload))}</pre>
+      </details>
+      <details class="busdiag-details">
+        <summary>Dry-Run Ergebnis</summary>
+        <pre>${esc(compactJson(result))}</pre>
+      </details>
+    `, 'busdiag-wide');
+  }
+
   function renderBusMatrixTab(){
     const matrix = state.busMatrix || getStatus().busIntegrationMatrix || {};
     const summary = matrix.summary || {};
@@ -824,6 +863,7 @@
       </div>
       ${setupHint}
       ${renderSoundDryRunCard(matrix)}
+      ${renderSoundMigrationCandidateCard(matrix)}
       ${card('Systeme', `<div class="busdiag-table busdiag-table-busmatrix"><div class="busdiag-table-head"><span>System</span><span>Bus-Client</span><span>Heartbeat</span><span>Status</span><span>EventBus</span><span>Command/ACK</span><span>Risiko / nächster Schritt</span></div>${rowsHtml}</div>`, 'busdiag-wide')}
       ${todoHtml}
       ${card('Rohdaten Matrix', `<details class="busdiag-details"><summary>Matrix anzeigen</summary><pre>${esc(compactJson(matrix))}</pre></details>`, 'busdiag-wide')}

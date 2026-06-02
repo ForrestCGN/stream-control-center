@@ -1,20 +1,14 @@
 # CURRENT_STATUS
 
-## Stand: CAN-24.1 abgeschlossen
+## Stand: CAN-24.2 abgeschlossen
 
-CAN-24.1 hat die Dry-Run-Validierung fuer einen Channelpoints-Sound-Migrationskandidaten ergaenzt.
-
-## Neu
-
-```text
-GET/POST /api/channelpoints/bus/sound-migration-candidates/dry-run
-```
+CAN-24.2 zeigt den Sound-Migrationskandidaten als eigene Dashboard-Karte.
 
 ## Sicherheitsstatus
 
 ```text
 soundPlay: false
-queueTouched: false
+queueAction: false
 rewardExecuted: false
 redemptionChanged: false
 twitchTouched: false
@@ -25,5 +19,5 @@ soundSystemDryRunTouched: true
 ## Naechster Schritt
 
 ```text
-CAN-24.2: Dry-Run Ergebnis im Dashboard als eigene Candidate-Card anzeigen.
+CAN-24.3: Entscheiden, ob ein produktiver Caller testweise auf Bus-Dry-Run vorbereitet werden darf.
 ```

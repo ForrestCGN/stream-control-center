@@ -3,24 +3,21 @@
 ## Naechster Schritt
 
 ```text
-CAN-24.2: Dry-Run Ergebnis im Dashboard als eigene Candidate-Card anzeigen.
+CAN-24.3: Entscheiden, ob ein produktiver Caller testweise auf Bus-Dry-Run vorbereitet werden darf.
 ```
 
-## Ziel
-
-In der Bus-Matrix oder einem Sound-Migration-Bereich soll sichtbar werden:
+## Optionen
 
 ```text
-firstCandidate
-Payload
-Dry-Run OK/Accepted
-QueueTouched false
-AudioTouched false
-Fehlerdetails
+A) Nur Entscheidung/Doku: Kandidat auswaehlen, keine Code-Umstellung.
+B) Dashboard-Button: Kandidaten-Dry-Run manuell ausloesen.
+C) Produktiven Caller vorbereiten, aber noch nicht umstellen.
 ```
 
 ## Weiter blockiert
 
 ```text
 Keine produktive Migration ohne eigenen kleinen Go-Schritt.
+Kein Sound-Play ueber Testbutton.
+Keine Redemption-/Twitch-Aenderung.
 ```

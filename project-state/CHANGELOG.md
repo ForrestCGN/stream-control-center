@@ -1,12 +1,12 @@
 # CHANGELOG
 
-## CAN-24.1
+## CAN-24.2
 
-- `GET/POST /api/channelpoints/bus/sound-migration-candidates/dry-run` ergaenzt.
-- Route validiert firstCandidate oder expliziten rewardKey gegen `/api/sound/eventbus/command/dry-run`.
-- Bus-Matrix liest Dry-Run-Status mit aus.
+- Bus-Matrix Row um Payload-/Dry-Run-Detailfelder erweitert.
+- Dashboard-Bus-Matrix um eigene `CAN24 Sound-Migration Kandidat` Karte erweitert.
+- Payload und Dry-Run-Ergebnis sind sichtbar.
 - Kein Sound-Play.
-- Keine Queue.
-- Keine Reward-Ausfuehrung.
+- Keine Queue-Aktion.
+- Keine produktive Reward-Ausfuehrung.
 - Keine Redemption-/Twitch-Aenderung.
 - Keine produktive Migration.
