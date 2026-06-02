@@ -2,10 +2,10 @@
 
 ## CAN-23 Bus-Integration
 
+- [x] CAN-23.0 Read-only Bus-Integration-Matrix als Backend-Modul ergaenzen.
 - [x] CAN-23.1 Upload-Stand gegen Bus-Integration pruefen.
-- [ ] CAN-23.0 ZIP einspielen, falls noch nicht passiert: `backend/modules/bus_integration_matrix.js`.
-- [ ] CAN-23.2 Dashboard-Anzeige fuer `/api/bus-integration-matrix/status` bauen.
-- [ ] Bus-Diagnostics Dashboard um Tab `Bus-Matrix` erweitern.
+- [x] CAN-23.2 Dashboard-Anzeige fuer `/api/bus-integration-matrix/status` bauen.
+- [x] Bus-Diagnostics Dashboard um Tab `Bus-Matrix` erweitern.
 - [ ] Sound-System: Bus-Request/ACK/Fehler/Queue-Status als erster echter Kommunikationsschritt.
 - [ ] Alert-System: Alert-Request, Overlay-ACK, Sound-ACK und Finish-ACK ueber Bus vereinheitlichen.
 - [ ] VIP-Sound-Overlay: Show/Hide/Update/ACK ueber Bus pruefen und danach anbinden.

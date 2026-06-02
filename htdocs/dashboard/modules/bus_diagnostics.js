@@ -33,7 +33,10 @@
     manualStatusResyncCanPrepare: false,
     manualStatusResyncCanExecute: false,
     manualStatusResyncSources: [],
-    manualStatusResyncGuards: {}
+    manualStatusResyncGuards: {},
+    busMatrix: null,
+    busMatrixLoading: false,
+    busMatrixError: ''
   };
 
   const TABS = [
@@ -41,6 +44,7 @@
     { id: 'clients', label: 'Clients' },
     { id: 'events', label: 'Events & ACKs' },
     { id: 'integrations', label: 'Integrationen' },
+    { id: 'busmatrix', label: 'Bus-Matrix' },
     { id: 'recovery', label: 'Recovery' },
     { id: 'issues', label: 'Issues' },
     { id: 'config', label: 'Config' },
@@ -288,6 +292,38 @@
     }
   }
 
+  async function loadBusIntegrationMatrix(){
+    if (state.busMatrixLoading) return state.busMatrix;
+    state.busMatrixLoading = true;
+    state.busMatrixError = '';
+    try {
+      const matrix = await window.CGN.api('/api/bus-integration-matrix/status');
+      state.busMatrix = matrix;
+      state.busMatrixError = '';
+      return matrix;
+    } catch (err) {
+      const fallback = {
+        ok: false,
+        fetchOk: false,
+        readOnly: true,
+        module: 'bus_integration_matrix',
+        feature: 'bus_integration_matrix',
+        error: err.message || String(err),
+        summary: {},
+        rows: [],
+        todoNextSteps: [
+          'backend/modules/bus_integration_matrix.js einspielen und Node neu starten.',
+          'Danach diese Seite erneut laden.'
+        ]
+      };
+      state.busMatrix = fallback;
+      state.busMatrixError = fallback.error;
+      return fallback;
+    } finally {
+      state.busMatrixLoading = false;
+    }
+  }
+
   async function manualDiagnosticsRefresh(){
     if (state.loading || state.manualDiagnosticsRefreshLoading) return;
     state.manualDiagnosticsRefreshLoading = true;
@@ -528,6 +564,7 @@
           recoveryPreflightRouteFetchOk: preflightRoute.fetchOk !== false
         });
       }
+      data.busIntegrationMatrix = await loadBusIntegrationMatrix();
       state.lastData = data;
       await loadSettings(true);
       renderCurrentTab();
@@ -588,7 +625,7 @@
     const content = panel()?.querySelector('[data-busdiag-content]');
     if (!content) return;
     if (!state.lastData) { content.innerHTML = '<div class="busdiag-empty glass">Noch keine Daten geladen.</div>'; return; }
-    const renderers = { overview: renderOverview, clients: renderClientsTab, events: renderEventsTab, integrations: renderIntegrationsTab, recovery: renderRecoveryTab, issues: renderIssuesTab, config: renderConfigTab, raw: renderRawTab };
+    const renderers = { overview: renderOverview, clients: renderClientsTab, events: renderEventsTab, integrations: renderIntegrationsTab, busmatrix: renderBusMatrixTab, recovery: renderRecoveryTab, issues: renderIssuesTab, config: renderConfigTab, raw: renderRawTab };
     content.innerHTML = (renderers[state.activeTab] || renderOverview)();
     bindConfigActions();
     bindRecoveryActions();
@@ -656,6 +693,45 @@
   function renderEventsTab(){
     const events = getEvents().slice(0, 40);
     return card('Events & ACKs', events.length ? `<div class="busdiag-table busdiag-table-events"><div class="busdiag-table-head"><span>Zeit</span><span>Channel/Action</span><span>Ziel</span><span>ACK</span><span>Delivery</span></div>${events.map(event => `<div class="busdiag-table-row"><span>${esc(fmtTime(event.createdAt))}<small>${esc(event.id || '-')}</small></span><span><strong>${esc(event.channel || '-')}</strong><small>${esc(event.action || '-')}</small></span><span><strong>${esc(event.target?.type || '-')}</strong><small>${esc(event.target?.id || event.target?.module || '')}</small></span><span>${badge(event.requireAck ? 'ACK Pflicht' : 'kein ACK', event.requireAck && !event.ackCount ? 'warning' : 'ok')}<small>${esc(event.ackCount ?? 0)} ACKs</small></span><span><strong>${esc(asList(event.deliveredTo).length)}</strong><small>${event.expired ? 'expired' : esc(event.expiresAt || '')}</small></span></div>`).join('')}</div>` : '<p class="busdiag-muted">Keine Events im Bus-Speicher.</p>', 'busdiag-wide');
+  }
+
+  function renderBusMatrixTab(){
+    const matrix = state.busMatrix || getStatus().busIntegrationMatrix || {};
+    const summary = matrix.summary || {};
+    const rows = asList(matrix.rows);
+    const hasRoute = matrix.fetchOk !== false && (matrix.ok === true || rows.length > 0 || matrix.generatedAt);
+    const headlineStatus = hasRoute ? (summary.errors > 0 ? 'warning' : 'ok') : 'warning';
+    const headlineText = hasRoute ? 'read-only aktiv' : 'Route noch nicht verfügbar';
+    const todo = asList(matrix.todoNextSteps);
+
+    const setupHint = hasRoute ? '' : card('Einrichtung fehlt noch', `<p class="busdiag-muted">Die Route <code>/api/bus-integration-matrix/status</code> ist noch nicht erreichbar. Spiele CAN-23.0/CAN-23.2 vollständig ein und starte Node neu.</p><div class="busdiag-metrics">${metric('Read-only', bool(matrix.readOnly !== false))}${metric('Fehler', matrix.error || state.busMatrixError || '-')}</div>`, 'busdiag-wide');
+
+    const rowsHtml = rows.length ? rows.map(row => {
+      const risk = row.risk || (row.statusOk === false ? 'warning' : 'ok');
+      const commandLabel = row.commandStatus || (row.commandCapable ? 'partial' : 'status_only');
+      return `<div class="busdiag-table-row">
+        <span><strong>${esc(row.label || row.id || '-')}</strong><small>${esc(row.id || '-')} · ${esc(row.category || '-')}</small></span>
+        <span>${badge(row.registeredOnBus ? 'ja' : 'nein', row.registeredOnBus ? 'ok' : 'warning')}<small>${esc(row.primaryClientId || row.clientIds?.join(', ') || '-')}</small></span>
+        <span>${badge(row.heartbeat ? 'ja' : 'nein', row.heartbeat ? 'ok' : 'warning')}<small>${esc(row.primaryClientStatus || '-')}</small></span>
+        <span>${badge(row.statusOk === null ? '-' : (row.statusOk ? 'ok' : 'fehlt'), row.statusOk === false ? 'warning' : 'ok')}<small>${esc(row.statusRoute || '-')}</small></span>
+        <span>${badge(row.eventBusOk === null ? '-' : (row.eventBusOk ? 'ok' : 'fehlt'), row.eventBusOk === false ? 'warning' : 'ok')}<small>${esc(row.eventBusRoute || '-')}</small></span>
+        <span>${badge(commandLabel, row.commandCapable ? 'ok' : 'neutral')}<small>ACK: ${esc(bool(row.ackCapable))} · Legacy: ${esc(bool(row.legacyDirect))}</small></span>
+        <span>${badge(risk, risk)}<small>${esc(row.nextStep || '-')}</small></span>
+      </div>`;
+    }).join('') : `<div class="busdiag-empty glass">Noch keine Matrixdaten geladen.</div>`;
+
+    const todoHtml = todo.length ? card('Nächste praktische Schritte', `<div class="busdiag-note-list">${todo.map(item => `<div class="busdiag-note-item">${esc(item)}</div>`).join('')}</div>`, 'busdiag-wide') : '';
+
+    return `
+      <div class="busdiag-grid busdiag-grid-top">
+        ${card('Bus-Integration-Matrix', `<div class="busdiag-status-line">${badge(headlineText, headlineStatus)}<span>${esc(matrix.generatedAt || '-')}</span></div><div class="busdiag-metrics">${metric('Systeme', summary.total ?? rows.length)}${metric('Registriert', summary.registeredOnBus ?? '-')}${metric('Verbunden', summary.connectedOnBus ?? '-')}${metric('Heartbeat', summary.heartbeat ?? '-')}${metric('Legacy/direct', summary.legacyDirect ?? '-')}</div>`)}
+        ${card('Sicherheitsgrenze', `<div class="busdiag-status-line">${badge('read-only', 'ok')}<span>keine Aktion wird ausgeführt</span></div><div class="busdiag-metrics">${metric('Queue touch', bool(matrix.queueTouched))}${metric('Sound touch', bool(matrix.soundSystemTouched))}${metric('Alert touch', bool(matrix.alertSystemTouched))}${metric('Overlay touch', bool(matrix.overlayTouched))}</div>`)}
+      </div>
+      ${setupHint}
+      ${card('Systeme', `<div class="busdiag-table busdiag-table-busmatrix"><div class="busdiag-table-head"><span>System</span><span>Bus-Client</span><span>Heartbeat</span><span>Status</span><span>EventBus</span><span>Command/ACK</span><span>Risiko / nächster Schritt</span></div>${rowsHtml}</div>`, 'busdiag-wide')}
+      ${todoHtml}
+      ${card('Rohdaten Matrix', `<details class="busdiag-details"><summary>Matrix anzeigen</summary><pre>${esc(compactJson(matrix))}</pre></details>`, 'busdiag-wide')}
+    `;
   }
 
   function renderIntegrationsTab(){

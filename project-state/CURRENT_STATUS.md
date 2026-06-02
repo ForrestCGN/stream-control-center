@@ -1,30 +1,38 @@
 # CURRENT_STATUS
 
-## Stand: CAN-23.1 abgeschlossen
+## Stand: CAN-23.2 abgeschlossen
 
-CAN-23.1 hat den echten Upload-Stand aus `backend.zip`, `dashboard.zip` und `overlays.zip` gegen die Bus-Integration geprueft.
+CAN-23.2 hat die read-only Bus-Integration-Matrix im Dashboard sichtbar gemacht.
 
-## Feststellung
+## Neu
 
 ```text
-backend/modules/bus_integration_matrix.js ist im Upload-Stand noch nicht vorhanden.
-Dashboard hat Bus-Diagnostics, aber noch keine Matrix-Anzeige.
-Overlays haben bereits viele WS-/Heartbeat-/ACK-Bezuege.
+backend/modules/bus_integration_matrix.js
+htdocs/dashboard/modules/bus_diagnostics.js
+htdocs/dashboard/modules/bus_diagnostics.css
+```
+
+## Dashboard
+
+```text
+Bus-Diagnostics -> Tab "Bus-Matrix"
 ```
 
 ## Sicherheitsstatus
 
 ```text
-codeChanged: false
+readOnly: true
 dbChanged: false
-dashboardChanged: false
-overlayChanged: false
-apiChanged: false
+eventBusEmit: false
 recoveryExecution: false
+queueTouched: false
+soundSystemTouched: false
+alertSystemTouched: false
+overlayTouched: false
 ```
 
 ## Naechster Schritt
 
 ```text
-CAN-23.2 - Dashboard Bus-Integration-Matrix Anzeige
+Sound-System ueber Bus-Request/ACK/Fehler/Queue-Status vorbereiten
 ```
