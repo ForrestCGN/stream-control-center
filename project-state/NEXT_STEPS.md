@@ -3,28 +3,26 @@
 ## Naechster Schritt
 
 ```text
-CAN-24.4: Channelpoints Sound Shadow-DryRun vorbereiten
+CAN-24.5: Shadow-DryRun Ergebnis pruefen / Dashboard-Auswertung.
 ```
 
 ## Ziel
 
-Einen ausgewaehlten Channelpoints-Sound-Kandidaten so vorbereiten, dass er diagnostisch als Shadow-DryRun validiert werden kann, ohne den produktiven Legacy-Flow zu veraendern.
-
-## Anforderungen
+Shadow-DryRun-Ergebnis sauber auswerten:
 
 ```text
-Default sicher
-kein Sound
-keine Queue-Mutation
-keine Reward-Ausfuehrung ueber neuen Bus-Pfad
-keine Redemption-Aenderung
-keine Twitch-Aktion
-klar sichtbar im Dashboard
-abschaltbar / nicht automatisch fuer alle Rewards
+ok/accepted
+queueTouched false
+soundPlay false
+rewardExecuted false
+redemptionChanged false
+twitchTouched false
+payload sichtbar
+Fehler sichtbar
 ```
 
-## Danach
+## Weiter blockiert
 
 ```text
-CAN-24.5: Live-Test-Auswertung / Shadow-DryRun Ergebnis pruefen
+Keine produktive Migration ohne eigenen kleinen Go-Schritt.
 ```

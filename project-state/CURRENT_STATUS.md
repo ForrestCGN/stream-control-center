@@ -1,15 +1,8 @@
 # CURRENT_STATUS
 
-## Stand: CAN-24.3 abgeschlossen
+## Stand: CAN-24.4 abgeschlossen
 
-CAN-24.3 ist das Decision-Gate fuer die erste Sound-Migration.
-
-## Entscheidung
-
-```text
-Produktive Migration: nein
-Naechster Schritt: Shadow-/Dry-Run-Caller vorbereiten
-```
+CAN-24.4 hat Channelpoints Sound Shadow-DryRun vorbereitet.
 
 ## Sicherheitsstatus
 
@@ -26,5 +19,5 @@ legacyFlowUnchanged: true
 ## Naechster Schritt
 
 ```text
-CAN-24.4: Channelpoints Sound Shadow-DryRun vorbereiten
+CAN-24.5: Shadow-DryRun Ergebnis pruefen / Dashboard-Auswertung.
 ```

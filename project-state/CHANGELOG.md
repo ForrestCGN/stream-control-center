@@ -1,9 +1,13 @@
 # CHANGELOG
 
-## CAN-24.3
+## CAN-24.4
 
-- Sound-Migration Decision-Gate dokumentiert.
-- Produktive Migration weiterhin nicht freigegeben.
-- Naechster Schritt auf Shadow-/DryRun-Caller begrenzt.
-- Keine Code-Logik geaendert.
-- Keine produktive Aktion ausgefuehrt.
+- Channelpoints Sound Shadow-DryRun State ergaenzt.
+- `GET /api/channelpoints/bus/sound-shadow-dry-run/status` ergaenzt.
+- `GET/POST /api/channelpoints/bus/sound-shadow-dry-run/prepare` ergaenzt.
+- Bus-Matrix liest Shadow-DryRun Status mit aus.
+- Dashboard zeigt Shadow-Status in der Candidate-Card.
+- Kein Sound-Play.
+- Keine Queue.
+- Keine Reward-/Redemption-/Twitch-Aenderung.
+- Keine produktive Migration.

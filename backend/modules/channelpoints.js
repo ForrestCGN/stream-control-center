@@ -2672,6 +2672,101 @@ function buildChannelpointsSoundMigrationCandidatesStatus() {
   };
 }
 
+const channelpointsSoundShadowDryRunState = {
+  enabled: false,
+  selectedRewardKey: '',
+  lastResult: null,
+  lastPreparedAt: '',
+  note: 'Shadow-DryRun is diagnostic only and does not change productive execution.'
+};
+
+function buildChannelpointsSoundShadowDryRunStatus() {
+  const candidatesStatus = buildChannelpointsSoundMigrationCandidatesStatus();
+  const candidates = Array.isArray(candidatesStatus.candidates) ? candidatesStatus.candidates : [];
+  const selected = channelpointsSoundShadowDryRunState.selectedRewardKey
+    ? candidates.find(candidate => candidate.rewardKey === channelpointsSoundShadowDryRunState.selectedRewardKey)
+    : (candidatesStatus.firstCandidate || null);
+
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    feature: 'channelpoints_sound_shadow_dry_run',
+    mode: 'manual_shadow_dry_run_preparation',
+    readOnly: false,
+    diagnosticOnly: true,
+    enabled: channelpointsSoundShadowDryRunState.enabled === true,
+    selectedRewardKey: channelpointsSoundShadowDryRunState.selectedRewardKey || (selected ? selected.rewardKey : ''),
+    selectedCandidate: selected || null,
+    lastResult: channelpointsSoundShadowDryRunState.lastResult || null,
+    lastPreparedAt: channelpointsSoundShadowDryRunState.lastPreparedAt || '',
+    rewardsTouched: false,
+    redemptionsTouched: false,
+    executionTouched: false,
+    soundSystemTouched: false,
+    queueTouched: false,
+    twitchTouched: false,
+    eventBusEmit: false,
+    productiveMigration: false,
+    legacyFlowUnchanged: true,
+    safety: {
+      soundPlay: false,
+      queueMutation: false,
+      rewardExecutionViaBus: false,
+      redemptionChange: false,
+      twitchWrite: false,
+      automaticHookIntoEventSub: false
+    },
+    routes: {
+      status: `${ROUTE_PREFIX}/bus/sound-shadow-dry-run/status`,
+      prepare: `${ROUTE_PREFIX}/bus/sound-shadow-dry-run/prepare`,
+      dryRunCandidate: `${ROUTE_PREFIX}/bus/sound-migration-candidates/dry-run`,
+      candidates: `${ROUTE_PREFIX}/bus/sound-migration-candidates`
+    },
+    nextSteps: [
+      'Use prepare manually for one selected rewardKey.',
+      'Inspect lastResult and Sound-DryRun result before any productive change.',
+      'Do not hook into EventSub automatically in this step.',
+      'Keep legacy execution unchanged.'
+    ],
+    updatedAt: nowIso()
+  };
+}
+
+async function prepareChannelpointsSoundShadowDryRun(input = {}) {
+  const data = input && typeof input === 'object' ? input : {};
+  const result = await validateChannelpointsSoundMigrationCandidateDryRun(data);
+  const candidate = result && result.candidate ? result.candidate : null;
+  channelpointsSoundShadowDryRunState.enabled = true;
+  channelpointsSoundShadowDryRunState.selectedRewardKey = candidate ? (candidate.rewardKey || '') : cleanString(data.rewardKey || '');
+  channelpointsSoundShadowDryRunState.lastResult = result;
+  channelpointsSoundShadowDryRunState.lastPreparedAt = nowIso();
+
+  return {
+    ok: result.ok === true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    feature: 'channelpoints_sound_shadow_dry_run_prepare',
+    mode: 'manual_shadow_dry_run_prepare',
+    diagnosticOnly: true,
+    shadowEnabled: channelpointsSoundShadowDryRunState.enabled === true,
+    selectedRewardKey: channelpointsSoundShadowDryRunState.selectedRewardKey,
+    dryRun: result,
+    rewardsTouched: false,
+    redemptionsTouched: false,
+    executionTouched: false,
+    soundSystemTouched: false,
+    queueTouched: false,
+    twitchTouched: false,
+    eventBusEmit: false,
+    productiveMigration: false,
+    legacyFlowUnchanged: true,
+    updatedAt: channelpointsSoundShadowDryRunState.lastPreparedAt
+  };
+}
+
 async function validateChannelpointsSoundMigrationCandidateDryRun(input = {}) {
   const data = input && typeof input === 'object' ? input : {};
   const candidatesStatus = buildChannelpointsSoundMigrationCandidatesStatus();
@@ -2960,6 +3055,8 @@ function buildStatus(extra = {}) {
       `${ROUTE_PREFIX}/bus/request-readiness`,
       `${ROUTE_PREFIX}/bus/sound-migration-candidates`,
       `${ROUTE_PREFIX}/bus/sound-migration-candidates/dry-run`,
+      `${ROUTE_PREFIX}/bus/sound-shadow-dry-run/status`,
+      `${ROUTE_PREFIX}/bus/sound-shadow-dry-run/prepare`,
       `${ROUTE_PREFIX}/model`,
       `${ROUTE_PREFIX}/media-plan`,
       `${ROUTE_PREFIX}/schema-preview`,
@@ -3211,6 +3308,21 @@ function init({ app }) {
     try {
       const result = await validateChannelpointsSoundMigrationCandidateDryRun(req.body || {});
       res.status(result.ok ? 200 : (result.error === 'candidate_not_found' ? 404 : 400)).json(result);
+    } catch (err) { sendError(res, 500, err); }
+  });
+  app.get(`${ROUTE_PREFIX}/bus/sound-shadow-dry-run/status`, (req, res) => {
+    try { res.json(buildChannelpointsSoundShadowDryRunStatus()); } catch (err) { sendError(res, 500, err); }
+  });
+  app.post(`${ROUTE_PREFIX}/bus/sound-shadow-dry-run/prepare`, async (req, res) => {
+    try {
+      const result = await prepareChannelpointsSoundShadowDryRun(req.body || {});
+      res.status(result.ok ? 200 : 400).json(result);
+    } catch (err) { sendError(res, 500, err); }
+  });
+  app.get(`${ROUTE_PREFIX}/bus/sound-shadow-dry-run/prepare`, async (req, res) => {
+    try {
+      const result = await prepareChannelpointsSoundShadowDryRun(req.query || {});
+      res.status(result.ok ? 200 : 400).json(result);
     } catch (err) { sendError(res, 500, err); }
   });
   app.get(`${ROUTE_PREFIX}/model`, (req, res) => { try { res.json(buildModel()); } catch (err) { sendError(res, 500, err); } });
