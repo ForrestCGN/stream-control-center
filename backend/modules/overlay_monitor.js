@@ -21,17 +21,17 @@ try { database = require('../core/database'); } catch (_) { database = null; }
 try { obsSharedModule = require('./obs_shared'); } catch (_) { obsSharedModule = null; }
 
 const MODULE = 'overlay_monitor';
-const VERSION = '0.1.6';
+const VERSION = '0.1.7';
 const MODULE_VERSION = VERSION;
-const STATUS_API_VERSION = '1.0.6';
+const STATUS_API_VERSION = '1.0.7';
 
 const MODULE_META = {
   name: MODULE,
   version: VERSION,
-  build: 'STEP278',
+  build: 'CAN-26.1',
   type: 'runtime',
   category: 'diagnostics',
-  description: 'Read-only Overlay-Monitor mit OBS-Inventar und manuellen Reparaturaktionen.',
+  description: 'Read-only Overlay-Monitor mit robuster Scene-Awareness-Diagnose, OBS-Inventar und manuellen Reparaturaktionen.',
   routesPrefix: ['/api/overlay-monitor'],
   bus: {
     registered: true,
@@ -767,8 +767,30 @@ function buildOverlaySceneAwarenessMap(overlays = []) {
   const awareness = new Map();
   const inventory = normalizeInventoryStatuses(state.obsInventory || loadInventoryCache());
   const sources = inventory && Array.isArray(inventory.sources) ? inventory.sources : [];
+  const scenes = inventory && Array.isArray(inventory.scenes) ? inventory.scenes : [];
   const currentProgramSceneName = cleanString(inventory && inventory.currentProgramSceneName);
+  const currentPreviewSceneName = cleanString(inventory && inventory.currentPreviewSceneName);
+  const currentProgramSceneKnown = currentProgramSceneName
+    ? (inventory && inventory.currentProgramSceneKnown === true)
+      || scenes.some(scene => inventoryKey(scene.sceneName || scene.name || scene) === inventoryKey(currentProgramSceneName))
+    : false;
+  const sceneAwarenessMode = currentProgramSceneKnown ? 'program_scene_known' : 'program_scene_unknown_safe_inactive';
   const overlayList = Array.isArray(overlays) ? overlays : [];
+
+  awareness.diagnostics = {
+    inventoryAvailable: !!inventory,
+    inventoryOk: !!(inventory && inventory.ok !== false),
+    inventoryUpdatedAt: cleanString(inventory && inventory.updatedAt),
+    inventoryFromCache: !!(inventory && inventory.fromCache === true),
+    inventoryFromMemory: !!(inventory && inventory.fromMemory === true),
+    refreshError: cleanString(inventory && inventory.refreshError),
+    currentProgramSceneName,
+    currentPreviewSceneName,
+    currentProgramSceneKnown,
+    sceneAwarenessMode,
+    sceneCount: scenes.length,
+    sourceCount: sources.length
+  };
 
   function ensure(id, overlay = null) {
     const key = cleanString(id);
@@ -777,6 +799,12 @@ function buildOverlaySceneAwarenessMap(overlays = []) {
       awareness.set(key, {
         known: false,
         currentProgramSceneName,
+        currentPreviewSceneName,
+        currentProgramSceneKnown,
+        sceneAwarenessMode,
+        inventoryUpdatedAt: awareness.diagnostics.inventoryUpdatedAt,
+        inventoryFromCache: awareness.diagnostics.inventoryFromCache,
+        inventoryFromMemory: awareness.diagnostics.inventoryFromMemory,
         sourceCount: 0,
         activeInProgramCount: 0,
         inactiveCount: 0,
@@ -827,7 +855,8 @@ function buildOverlaySceneAwarenessMap(overlays = []) {
       pathText: cleanString(source.pathText),
       url: cleanString(source.url),
       effectiveVisible: source.effectiveVisible === true,
-      activeInProgram: source.activeInProgram === true,
+      activeInProgram: currentProgramSceneKnown === true && source.activeInProgram === true,
+      rawActiveInProgram: source.activeInProgram === true,
       status: cleanString(source.status)
     };
 
@@ -872,6 +901,12 @@ function applyOverlaySceneAwareness(overlay = {}, awarenessRecord = null) {
     sceneAwareness: record ? {
       known: record.known === true,
       currentProgramSceneName: cleanString(record.currentProgramSceneName),
+      currentPreviewSceneName: cleanString(record.currentPreviewSceneName),
+      currentProgramSceneKnown: record.currentProgramSceneKnown === true,
+      sceneAwarenessMode: cleanString(record.sceneAwarenessMode),
+      inventoryUpdatedAt: cleanString(record.inventoryUpdatedAt),
+      inventoryFromCache: record.inventoryFromCache === true,
+      inventoryFromMemory: record.inventoryFromMemory === true,
       sourceCount: Number(record.sourceCount || 0),
       activeInProgramCount: Number(record.activeInProgramCount || 0),
       inactiveCount: Number(record.inactiveCount || 0),
@@ -884,6 +919,12 @@ function applyOverlaySceneAwareness(overlay = {}, awarenessRecord = null) {
     } : {
       known: false,
       currentProgramSceneName: '',
+      currentPreviewSceneName: '',
+      currentProgramSceneKnown: false,
+      sceneAwarenessMode: 'no_inventory_record',
+      inventoryUpdatedAt: '',
+      inventoryFromCache: false,
+      inventoryFromMemory: false,
       sourceCount: 0,
       activeInProgramCount: 0,
       inactiveCount: 0,
@@ -953,7 +994,9 @@ async function collectObsInventory(env = {}, options = {}) {
     if (sourceKey && !sourceMap.has(sourceKey)) sourceMap.set(sourceKey, src);
   }
   const sceneSet = new Set(sceneNames.map(inventoryKey).filter(Boolean));
-  const currentProgramSceneName = cleanString(publicStatus.currentProgramSceneName || (sceneNames[0] || ''));
+  const currentProgramSceneName = cleanString(publicStatus.currentProgramSceneName);
+  const currentPreviewSceneName = cleanString(publicStatus.currentPreviewSceneName);
+  const currentProgramSceneKnown = !!currentProgramSceneName && sceneNames.some(sceneName => inventoryKey(sceneName) === inventoryKey(currentProgramSceneName));
   const overlayStatus = getOverlayStatus({ limitEvents: 0 });
   const allSources = [];
 
@@ -1054,7 +1097,7 @@ async function collectObsInventory(env = {}, options = {}) {
   }
 
   const sceneTrees = sceneNames.map(sceneName => {
-    const rootActive = inventoryKey(sceneName) === inventoryKey(currentProgramSceneName);
+    const rootActive = currentProgramSceneKnown === true && inventoryKey(sceneName) === inventoryKey(currentProgramSceneName);
     return sceneNode(sceneName, true, rootActive, [sceneName], new Set(), 0);
   });
   const currentSceneTree = sceneTrees.find(tree => inventoryKey(tree.sceneName) === inventoryKey(currentProgramSceneName)) || null;
@@ -1069,7 +1112,9 @@ async function collectObsInventory(env = {}, options = {}) {
     fromCache: false,
     updatedAt: nowIso(),
     currentProgramSceneName,
-    currentPreviewSceneName: cleanString(publicStatus.currentPreviewSceneName),
+    currentPreviewSceneName,
+    currentProgramSceneKnown,
+    sceneAwarenessMode: currentProgramSceneKnown ? 'program_scene_known' : 'program_scene_unknown_safe_inactive',
     obsConnected: publicStatus.obsConnected === true,
     sceneCount: sceneNames.length,
     browserSourceCount: browserSources.length,
@@ -1367,6 +1412,7 @@ function getOverlayStatus(options = {}) {
     .map(client => normalizeOverlayClient(client, currentMs))
     .sort((a, b) => a.id.localeCompare(b.id));
   const sceneAwareness = buildOverlaySceneAwarenessMap(rawOverlays);
+  const sceneAwarenessDiagnostics = isPlainObject(sceneAwareness.diagnostics) ? safeJson(sceneAwareness.diagnostics) || {} : {};
   const overlays = rawOverlays.map(overlay => applyOverlaySceneAwareness(overlay, sceneAwareness.get(overlay.id)));
 
   const summary = buildSummary(overlays);
@@ -1400,6 +1446,7 @@ function getOverlayStatus(options = {}) {
       emitStatusChangesToBus: config.emitStatusChangesToBus === true
     },
     summary,
+    sceneAwareness: sceneAwarenessDiagnostics,
     overlays,
     issues,
     recentEvents: state.events.slice(0, options.limitEvents || 20),
@@ -1644,6 +1691,14 @@ function buildOverlayClientClassificationStatus() {
     eventBusEmit: false,
     recoveryTriggered: false,
     summary,
+    sceneAwareness: sceneAwarenessDiagnostics,
+    currentProgramSceneName: cleanString(sceneAwarenessDiagnostics.currentProgramSceneName),
+    currentPreviewSceneName: cleanString(sceneAwarenessDiagnostics.currentPreviewSceneName),
+    currentProgramSceneKnown: sceneAwarenessDiagnostics.currentProgramSceneKnown === true,
+    sceneAwarenessMode: cleanString(sceneAwarenessDiagnostics.sceneAwarenessMode),
+    inventoryUpdatedAt: cleanString(sceneAwarenessDiagnostics.inventoryUpdatedAt),
+    inventoryFromCache: sceneAwarenessDiagnostics.inventoryFromCache === true,
+    inventoryFromMemory: sceneAwarenessDiagnostics.inventoryFromMemory === true,
     clients: rows,
     classifier: {
       productivePurpose: 'productive_candidate',
@@ -1675,6 +1730,7 @@ function buildOverlayClientClassificationStatus() {
 function buildOverlayClientControlStatus() {
   const status = getOverlayStatus({ includeConfig: false, limitEvents: 30 });
   const overlays = Array.isArray(status.overlays) ? status.overlays : [];
+  const sceneAwarenessDiagnostics = isPlainObject(status.sceneAwareness) ? status.sceneAwareness : {};
   const now = Date.now();
   const thresholds = isPlainObject(config.thresholds) ? config.thresholds : {};
   const staleAfterMs = Math.max(1000, asInt(thresholds.staleAfterMs, DEFAULT_CONFIG.thresholds.staleAfterMs));
@@ -1723,6 +1779,12 @@ function buildOverlayClientControlStatus() {
       expectedIdle,
       expectedNotActive,
       sceneAwareness: client.sceneAwareness || null,
+      currentProgramSceneName: cleanString(client.sceneAwareness && client.sceneAwareness.currentProgramSceneName),
+      currentProgramSceneKnown: !!(client.sceneAwareness && client.sceneAwareness.currentProgramSceneKnown === true),
+      sceneAwarenessMode: cleanString(client.sceneAwareness && client.sceneAwareness.sceneAwarenessMode),
+      inventoryUpdatedAt: cleanString(client.sceneAwareness && client.sceneAwareness.inventoryUpdatedAt),
+      inventoryFromCache: !!(client.sceneAwareness && client.sceneAwareness.inventoryFromCache === true),
+      inventoryFromMemory: !!(client.sceneAwareness && client.sceneAwareness.inventoryFromMemory === true),
       hasHeartbeat,
       lastHeartbeatAt,
       ageMs,
