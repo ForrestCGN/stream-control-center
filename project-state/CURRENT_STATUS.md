@@ -1,8 +1,8 @@
 # CURRENT_STATUS
 
-## Stand: CAN-28.1 vorbereitet
+## Stand: CAN-28.2 abgeschlossen
 
-CAN-28.1 verbessert das bestehende Node-Modul-Loader-Logging rein diagnostisch.
+CAN-28.2 dokumentiert den erfolgreichen Live-Test von CAN-28.1.
 
 ## Aktueller Arbeitsbereich
 
@@ -12,34 +12,40 @@ CAN-28: Node-Log / Modul-Loader-Diagnose
 
 ## Aktueller stabiler Stand
 
-Bis CAN-27.2 abgeschlossen:
+CAN-28.1 wurde live geprüft und ist erfolgreich.
+
+Bestätigtes Node-Log:
 
 ```text
-CAN-26.5 Deploy-Script um docs/project-state erweitert.
-CAN-27.1 getrackten htdocs/htdocs-Doppelordner entfernt.
-CAN-27.2 Repo/Live-Doku-Sync erfolgreich geprüft.
+[module] skipped: obs_shared.js name=obs_shared version=unknown meta=no shared=yes reason=no_init_export
+[module-loader] summary loaded=52 skipped=1 failed=0 warnings=0 routes=1180 duplicateRoutes=0
+[module-loader] skipped file=obs_shared.js reason=no_init_export shared=yes
 ```
 
-CAN-28.0 hat gezeigt, dass Modulname und Version beim Laden bereits sichtbar sind.
-
-CAN-28.1 ergänzt darauf aufbauend:
+## Ergebnis
 
 ```text
-- Kompakte Modul-Loader-Summary nach dem Modulscan.
-- Bekannte Shared-Helper ohne init, aktuell obs_shared.js, werden nicht mehr als irritierende fehlende MODULE_META/version-Warnung behandelt.
-- Failed-Module werden am Ende kompakt gelistet.
-- Server-/Loader-Diagnostikversion wird auf 0.1.1 erhöht.
+loaded=52
+skipped=1
+failed=0
+warnings=0
+duplicateRoutes=0
 ```
 
-## Betroffene Runtime-Datei
+Damit ist das Modul-Loader-Logging aktuell sauber:
 
 ```text
-backend/server.js
+- Modulname und Version werden beim Laden angezeigt.
+- obs_shared.js wird korrekt als Shared-Helper ohne init behandelt.
+- Keine irritierenden module-warning-Zeilen fuer obs_shared.js.
+- Keine FAILED-Module.
+- Keine duplicateRoutes.
 ```
 
 ## Nicht geändert
 
 ```text
+Keine Codeänderung in CAN-28.2.
 Keine Modul-Ladereihenfolge.
 Keine require-/init-Logik.
 Keine Routen.
@@ -51,24 +57,19 @@ Keine produktiven Flows.
 Keine Funktionalität entfernt.
 ```
 
-## Erwartete Tests
+## Beobachtungen
 
-```powershell
-node -c backend\server.js
-.\stepdone.cmd "CAN-28.1 Modul-Loader Log Summary"
-```
-
-Danach Node starten und prüfen:
+Die folgenden Runtime-Warnings sind nicht Teil des Modul-Loader-Problems:
 
 ```text
-[module-loader] summary loaded=... skipped=... failed=... warnings=...
-[module-loader] skipped file=obs_shared.js reason=no_init_export shared=yes
-Keine module-warning fuer obs_shared.js wegen fehlender MODULE_META/version.
-Keine FAILED-Module.
+- SQLite ExperimentalWarning von Node.
+- Discord DeprecationWarning ready -> clientReady.
 ```
+
+Diese können später separat betrachtet werden.
 
 ## Naechster Schritt
 
 ```text
-CAN-28.1 nach Entpacken, stepdone und Node-Neustart live prüfen.
+CAN-29.0 neuen Arbeitsblock bewusst auswählen.
 ```

@@ -39,10 +39,15 @@
 - [x] CAN-27.1 getrackten htdocs/htdocs Doppelordner entfernen.
 - [x] CAN-27.2 Repo/Live-Doku-Sync prüfen.
 
-## CAN-28
+## CAN-28 abgeschlossen
 
 - [x] CAN-28.0 Node-Log Modulname + Version prüfen.
-- [ ] CAN-28.1 Modul-Loader Log Summary anwenden und live prüfen.
+- [x] CAN-28.1 Modul-Loader Log Summary anwenden und live prüfen.
+- [x] CAN-28.2 Testergebnis dokumentieren.
+
+## CAN-29
+
+- [ ] CAN-29.0 neuen Arbeitsblock bewusst auswählen.
 
 ## Offene/zu beobachtende Punkte
 
@@ -50,7 +55,9 @@
 - [ ] OBS-Browserquellen koennen je nach Szene erwartbar pausieren/entladen; nicht automatisch reparieren.
 - [ ] Dashboard SYSTEME-Bereich kann spaeter optisch noch flacher/feiner werden, ist aber nach CAN-25.25b/CAN-26 lesbar.
 - [ ] Optional: Overlay-Monitor Dashboard-Details optisch weiter vereinfachen, falls gewuenscht.
-- [ ] Optional: Nach CAN-28.1 prüfen, ob WS/EventSub-Logs noch zu laut sind.
+- [ ] Optional: WS connect/disconnect Log prüfen, falls zu laut.
+- [ ] Optional: Discord ready/clientReady DeprecationWarning separat prüfen.
+- [ ] Optional: SQLite ExperimentalWarning separat bewerten.
 
 ## Weiterhin hart blockiert
 

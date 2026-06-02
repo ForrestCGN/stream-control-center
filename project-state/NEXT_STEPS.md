@@ -3,37 +3,30 @@
 ## Direkt naechster Schritt
 
 ```text
-CAN-28.1 anwenden und live prüfen: Modul-Loader Log Summary.
+CAN-29.0 neuen Arbeitsblock bewusst auswählen.
 ```
 
-## Tests
-
-```powershell
-cd D:\Git\stream-control-center
-node -c backend\server.js
-.\stepdone.cmd "CAN-28.1 Modul-Loader Log Summary"
-```
-
-Danach Node neu starten und Log prüfen:
+## Mögliche Kandidaten
 
 ```text
-[module-loader] summary loaded=... skipped=... failed=... warnings=...
-[module-loader] skipped file=obs_shared.js reason=no_init_export shared=yes
+1. WS connect/disconnect Log optional drosseln oder zusammenfassen.
+2. Discord ready/clientReady DeprecationWarning separat prüfen.
+3. SQLite ExperimentalWarning bewerten, ohne DB-Logik anzufassen.
+4. Dashboard-Kosmetik Overlay-Monitor / Bus-Diagnose weiter glätten.
+5. EventBus read-only Diagnose weiter ausbauen.
+6. Ein konkretes Modul als nächstes an Bus-/Status-/Doku-Regeln anpassen.
 ```
 
-## Danach sinnvoll
+## Empfehlung
 
 ```text
-CAN-28.2: Nach Live-Prüfung entscheiden, ob weitere Log-Bereiche verbessert werden sollen.
+CAN-29.0 zunächst nur planen und echten Bedarf wählen.
 ```
 
-Moegliche Kandidaten:
+Aktuell ist CAN-28 sauber abgeschlossen:
 
 ```text
-- WS connect/disconnect Log zusammenfassen oder optional drosseln.
-- EventSub Startup-Log kompakter machen.
-- Dashboard/Statusroute fuer Loader-Summary erweitern.
-- Kein weiterer Log-Umbau, wenn CAN-28.1 ausreicht.
+[module-loader] summary loaded=52 skipped=1 failed=0 warnings=0 routes=1180 duplicateRoutes=0
 ```
 
 ## Weiterhin nicht machen ohne separaten Go-Schritt

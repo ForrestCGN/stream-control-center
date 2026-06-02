@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## CAN-28.2
+
+- Erfolgreichen Live-Test von CAN-28.1 dokumentiert.
+- Bestätigtes Ergebnis:
+  - `loaded=52`
+  - `skipped=1`
+  - `failed=0`
+  - `warnings=0`
+  - `routes=1180`
+  - `duplicateRoutes=0`
+- `obs_shared.js` wird korrekt als Shared-Helper ohne init geloggt:
+  - `shared=yes`
+  - `reason=no_init_export`
+- Keine irritierenden `module-warning`-Zeilen fuer `obs_shared.js` mehr.
+- Keine Codeänderung in CAN-28.2.
+
 ## CAN-28.1
 
 - `backend/server.js` Modul-Loader-Diagnostik rein lesbarer gemacht.
@@ -40,15 +56,3 @@
   - `docs/modules`
   - `project-state`
 - Doku-Deploy funktioniert seitdem über `stepdone.cmd`.
-
-## CAN-26.3
-
-- Dokumentation und Handoff auf abgeschlossenen CAN-26 Stand aktualisiert.
-- Dashboard-Sichtpruefung dokumentiert.
-- SYSTEME-Bereich ist lesbar.
-- Keine langen Detailbloecke in Tabellenzellen sichtbar.
-- Overlay-Monitor zeigt 0 Warnungen / 0 Fehler.
-- `overlay:frame_overlay` wird in Szene ohne Rahmen korrekt als `EXPECTED_INACTIVE` angezeigt.
-- Sicherheitsgrenze weiterhin read-only: keine Aktion wird ausgefuehrt.
-- Keine Code-Logik geaendert.
-- Keine produktive Aktion ausgefuehrt.
