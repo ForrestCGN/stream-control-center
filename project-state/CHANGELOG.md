@@ -1,11 +1,11 @@
 # CHANGELOG
 
-## CAN-19.1
+## CAN-19.2
 
-- Safety Architecture Status Display read-only/no-api geplant.
-- Statuskarten fuer Gesamtstatus, Audit, SafetyStop, Roles/Rights, Confirm, harte Blocker und technische Grenzen dokumentiert.
-- Display Contract und No-Button-/No-API-/No-Mock-Regeln festgelegt.
-- CAN-19.2 Safety Architecture Implementation Readiness Matrix Planning als naechster Schritt festgelegt.
+- Safety Architecture Implementation Readiness Matrix geplant.
+- Readiness-Werte, Gesamtmatrix und fehlende Voraussetzungen je Sicherheitsbaustein dokumentiert.
+- Read-only Kandidaten und nicht umsetzungsbereite Bereiche getrennt.
+- CAN-19.3 Safety Architecture Contracts Consolidation Planning als naechster Schritt festgelegt.
 - Keine Code-Aenderungen.
 - Keine API.
 - Keine Route.

@@ -3,26 +3,24 @@
 ## Naechster Schritt
 
 ```text
-CAN-19.2 - Safety Architecture Implementation Readiness Matrix Planning
+CAN-19.3 - Safety Architecture Contracts Consolidation Planning
 ```
 
-## Ziel CAN-19.2
+## Ziel CAN-19.3
 
-Planen, welche Sicherheitsbausteine theoretisch umsetzungsbereit waeren und welche Vorbedingungen fehlen.
+Die bisherigen Display-/Status-Contracts fuer Audit, SafetyStop, Roles/Rights, Confirm und Hard Blocker zu einem gemeinsamen Contract-Konzept zusammenfuehren.
 
-## CAN-19.2 darf klaeren
+## CAN-19.3 darf klaeren
 
 ```text
-Readiness fuer Audit
-Readiness fuer SafetyStop
-Readiness fuer Roles/Rights
-Readiness fuer Confirm
-fehlende Voraussetzungen
-sichere erste technische Kandidaten
-weiterhin blockierte Bereiche
+gemeinsame Contract-Felder
+gemeinsame Status-Level
+gemeinsame readOnly/hasApi/hasMutation-Regeln
+gemeinsame Hard-Blocker-Struktur
+gemeinsame Notes/Warnings-Struktur
 ```
 
-## CAN-19.2 darf NICHT enthalten
+## CAN-19.3 darf NICHT enthalten
 
 ```text
 API
