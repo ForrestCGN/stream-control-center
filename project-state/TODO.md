@@ -62,11 +62,15 @@
 - [x] CAN-31.1 WS Connect Log Summary anwenden und live prüfen.
 - [x] CAN-31.2 Testergebnis dokumentieren.
 
-## CAN-32
+## CAN-32 abgeschlossen
 
 - [x] CAN-32.0 neuen Arbeitsblock bewusst auswählen.
-- [ ] CAN-32.1 Bus-Diagnose Übersicht Read-only Summary anwenden und prüfen.
-- [ ] CAN-32.2 Testergebnis dokumentieren.
+- [x] CAN-32.1 Bus-Diagnose Übersicht Read-only Summary anwenden und prüfen.
+- [x] CAN-32.2 Testergebnis dokumentieren.
+
+## CAN-33
+
+- [ ] CAN-33.0 neuen Arbeitsblock bewusst auswählen.
 
 ## Offene/zu beobachtende Punkte
 

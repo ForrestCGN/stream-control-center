@@ -1,8 +1,8 @@
 # CURRENT_STATUS
 
-## Stand: CAN-32.1 vorbereitet
+## Stand: CAN-32.2 abgeschlossen
 
-CAN-32.1 ergänzt die Bus-Diagnose-Übersicht um eine kleine Sicherheits-/Read-only-Zusammenfassung.
+CAN-32.2 dokumentiert die erfolgreiche Dashboard-Sichtprüfung von CAN-32.1.
 
 ## Aktueller Arbeitsbereich
 
@@ -10,64 +10,73 @@ CAN-32.1 ergänzt die Bus-Diagnose-Übersicht um eine kleine Sicherheits-/Read-o
 CAN-32: Dashboard/EventBus read-only Diagnose glätten
 ```
 
-## Änderung CAN-32.1
+## Bestätigter Sichttest
 
-Betroffene Dateien:
-
-```text
-htdocs/dashboard/index.html
-htdocs/dashboard/modules/bus_diagnostics_readonly_summary.js
-htdocs/dashboard/modules/bus_diagnostics_readonly_summary.css
-```
-
-Wichtig:
+In der Dashboard-Seite:
 
 ```text
-Die bestehende htdocs/dashboard/modules/bus_diagnostics.js bleibt unverändert.
-Die Ergänzung wird nach bus_diagnostics.js geladen.
+Bus-Diagnose > Übersicht
 ```
 
-## Inhalt
-
-Neue Karte in Bus-Diagnose > Übersicht:
+ist die neue Karte sichtbar:
 
 ```text
 Sicherheits- / Read-only-Zusammenfassung
-- Status read-only
-- Recovery Route read-only
-- Flow touched
-- Queue touched
-- Sound touched
-- Overlay touched
-- Recovery prepare
-- Recovery execute
 ```
 
-## Sicherheit
+Bestätigte Werte:
 
 ```text
-Nur read-only Anzeige.
-Nur GET /api/bus-diagnostics/status.
-Nur GET /api/bus-diagnostics/recovery-preflight.
-Keine produktiven Aktionen.
+READ-ONLY OK
+Status read-only: ja
+Recovery Route read-only: ja
+Flow touched: nein
+Queue touched: nein
+Sound touched: nein
+Overlay touched: nein
+Recovery prepare: nein
+Recovery execute: nein
+```
+
+## Weitere sichtbare Bestätigung
+
+Die bestehende Übersicht darunter bleibt sauber sichtbar:
+
+```text
+Gesamtstatus: ok
+Communication Bus: ok
+Overlay Clients: ok
+Schutz: Flow/Queue/Sound/Overlay touched jeweils nein
+```
+
+## Ergebnis
+
+```text
+CAN-32.1 Ziel erfüllt.
+Dashboard-only Erweiterung aktiv.
+Read-only Status ist klar sichtbar.
+Keine produktiven Buttons sichtbar.
 Keine Recovery-Ausführung.
-Keine OBS-Aktion.
-Keine Sound-/Queue-/Twitch-/DB-Aktion.
+Keine OBS-/Sound-/Queue-/Twitch-/DB-Aktion.
 Keine Funktionalität entfernt.
 ```
 
-## Erwartete Prüfung
+## Nicht geändert in CAN-32.2
 
 ```text
-Dashboard öffnen.
-Bus-Diagnose > Übersicht öffnen.
-Karte "Sicherheits- / Read-only-Zusammenfassung" erscheint oben.
-Werte zeigen "ja/nein".
-Recovery execute bleibt nein / gesperrt.
+Keine Codeänderung.
+Keine API-Routen.
+Keine Backend-Logik.
+Keine EventBus-Funktionalität.
+Keine produktiven Actions.
+Keine Recovery-Ausführung.
+Keine OBS-Reparatur.
+Keine DB-Migration.
+Keine Sound-/Queue-/Twitch-Änderung.
 ```
 
 ## Nächster Schritt
 
 ```text
-CAN-32.1 anwenden und Dashboard-Sichtprüfung machen.
+CAN-33.0 neuen Arbeitsblock bewusst auswählen.
 ```

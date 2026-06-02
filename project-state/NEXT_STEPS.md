@@ -3,40 +3,32 @@
 ## Direkt nächster Schritt
 
 ```text
-CAN-32.1 anwenden und Dashboard-Sichtprüfung machen.
+CAN-33.0 neuen Arbeitsblock bewusst auswählen.
 ```
 
-## Prüfung
+## Zuletzt abgeschlossen
 
 ```text
-Dashboard öffnen.
-Bus-Diagnose > Übersicht.
-Karte "Sicherheits- / Read-only-Zusammenfassung" muss sichtbar sein.
+CAN-29: Discord ready/clientReady DeprecationWarning behoben.
+CAN-30: SQLite ExperimentalWarning analysiert und dokumentiert/akzeptiert.
+CAN-31: WS connect/disconnect Log durch Summary entschärft und live bestätigt.
+CAN-32: Bus-Diagnose Übersicht um read-only Sicherheits-Zusammenfassung erweitert und sichtbar geprüft.
 ```
 
-Erwartung:
-
-```text
-Read-only sichtbar.
-Flow/Queue/Sound/Overlay touched bleiben nein.
-Recovery execute bleibt nein.
-Keine produktiven Buttons.
-Keine Recovery-Ausführung.
-```
-
-## Danach sinnvoll
-
-```text
-CAN-32.2 Testergebnis dokumentieren.
-```
-
-## Mögliche Kandidaten danach
+## Mögliche Kandidaten
 
 ```text
 1. EventBus read-only Diagnose weiter ausbauen.
-2. Ein konkretes Modul an Bus-/Status-/Doku-Regeln anpassen.
-3. Dashboard-Kosmetik in Overlay-Monitor / Bus-Diagnose weiter glätten.
-4. Langfristigen DB-Core-Treiberwechsel separat planen, aber nicht direkt umsetzen.
+2. Ein konkretes Modul als nächstes an Bus-/Status-/Doku-Regeln anpassen.
+3. Overlay-Monitor Dashboard-Details optisch weiter vereinfachen.
+4. Bus-Diagnose Unterseiten weiter glätten, z. B. Recovery/Issues/Raw klarer strukturieren.
+5. Langfristigen DB-Core-Treiberwechsel separat planen, aber nicht direkt umsetzen.
+```
+
+## Empfehlung
+
+```text
+CAN-33.0: Ein konkretes Modul an Bus-/Status-/Doku-Regeln anpassen oder EventBus read-only Diagnose weiter ausbauen.
 ```
 
 ## Weiterhin nicht machen ohne separaten Go-Schritt
