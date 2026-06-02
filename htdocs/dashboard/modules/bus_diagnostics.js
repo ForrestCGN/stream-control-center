@@ -1070,61 +1070,100 @@ function renderSoundMigrationCandidateCard(matrix){
       const commandLabel = row.commandStatus || (row.commandCapable ? 'partial' : 'status_only');
       const clientIds = row.primaryClientId || asList(row.clientIds).join(', ') || '-';
       const commandSummary = `ACK ${bool(row.ackCapable)} · Legacy ${bool(row.legacyDirect)} · Command ${row.commandOk === null ? '-' : bool(row.commandOk)}`;
-      const detailRows = [
-        ['Command Route', row.commandRoute || '-'],
-        ['Contract', `${row.contractOk === null ? '-' : bool(row.contractOk)} · ${row.contractName || '-'}`],
-        ['Contract Route', row.contractRoute || '-'],
-        ['Lifecycle', `${row.lifecycleOk === null ? '-' : bool(row.lifecycleOk)} · ${(row.lifecycleEvents || []).join(', ') || '-'}`],
-        ['Lifecycle Route', row.lifecycleRoute || '-'],
-        ['Play-Kompatibel', `${row.compatibilityOk === null ? '-' : bool(row.compatibilityOk)} · ${row.compatibilityLevel || '-'}`],
-        ['Compatibility Route', row.compatibilityRoute || '-'],
-        ['Queue', `${row.queueStatusOk === null ? '-' : bool(row.queueStatusOk)} · ${row.queueBusy ? 'busy' : 'idle'} · ${String(row.queuedCount || 0)}/${String(row.queueMaxLength || '-')}`],
-        ['Queue Route', row.queueStatusRoute || '-'],
-        ['Catalog', `${row.catalogStatusOk === null ? '-' : bool(row.catalogStatusOk)} · presets ${String(row.catalogSoundPresetCount || 0)} · soundId1423 ${bool(row.catalogRequestedSoundPresetFound)} · media1423 ${bool(row.catalogRequestedMediaAssetFound)}`],
-        ['Catalog Route', `${row.catalogStatusRoute || '-'} ${row.catalogLikelyIssue || ''}`.trim()],
-        ['Alert-ACK', `${row.ackStatusOk === null ? '-' : bool(row.ackStatusOk)} · Overlay ${String(row.overlayAckCount || 0)} · Missing ${String(row.overlayMissingAckCount || 0)} · Sound ${String(row.soundMatchedCount || 0)}`],
-        ['Alert-ACK Route', row.ackStatusRoute || '-'],
-        ['Alert-Contract', `${row.alertContractOk === null ? '-' : bool(row.alertContractOk)} · ${row.alertContractName || '-'}`],
-        ['Alert-Contract Route', row.alertContractRoute || '-'],
-        ['Alert-Dry-Run', `${row.alertDryRunOk === null ? '-' : bool(row.alertDryRunOk)} · accepted ${bool(row.alertDryRunAccepted)}`],
-        ['Alert-Dry-Run Route', row.alertDryRunRoute || '-'],
-        ['VIP-Overlay', `${row.vipOverlayOk === null ? '-' : bool(row.vipOverlayOk)} · ${row.vipOverlayVisible ? 'visible' : 'hidden'} · client ${bool(row.vipClientConnected)} · queue ${String(row.vipQueueLength || 0)}`],
-        ['VIP-Overlay Route', row.vipOverlayRoute || '-'],
-        ['Overlay-Clients', `${row.overlayClientControlOk === null ? '-' : bool(row.overlayClientControlOk)} · ${String(row.overlayClientOnline || 0)}/${String(row.overlayClientTotal || 0)} online · warn ${String(row.overlayClientWarning || 0)} · err ${String(row.overlayClientError || 0)}`],
-        ['Overlay-Clients Route', row.overlayClientControlRoute || '-'],
-        ['Channelpoints', `${row.channelpointsReadinessOk === null ? '-' : bool(row.channelpointsReadinessOk)} · rewards ${String(row.channelpointsRewardTotal || 0)} · sound ${String(row.channelpointsSoundCandidates || 0)} · alert ${String(row.channelpointsAlertCandidates || 0)}`],
-        ['Channelpoints Route', row.channelpointsReadinessRoute || '-'],
-        ['Overlay-Klasse', `${row.overlayClientClassificationOk === null ? '-' : bool(row.overlayClientClassificationOk)} · produktiv ${String(row.overlayProductiveCandidates || 0)} · test/alt ${String(row.overlayTestOrLegacy || 0)} · unbekannt ${String(row.overlayUnknown || 0)}`],
-        ['Overlay-Klasse Route', row.overlayClientClassificationRoute || '-'],
-        ['Overlay-ID', `${row.overlayClientIdentityOk === null ? '-' : bool(row.overlayClientIdentityOk)} · format ${row.overlayIdentityContractFormat || '-'} · dup ${String(row.overlayIdentityDuplicates || 0)} · caps ${String(row.overlayCapabilityKinds || 0)}`],
-        ['Overlay-ID Route', row.overlayClientIdentityRoute || '-'],
-        ['Legacy/direct', `${String((row.legacyDirectSummary && row.legacyDirectSummary.total) || 0)} · produktiv ${String((row.legacyDirectSummary && row.legacyDirectSummary.productive) || 0)} · high ${String((row.legacyDirectSummary && row.legacyDirectSummary.highRisk) || 0)}`],
-        ['Legacy/direct Pfade', (row.legacyDirectPaths || []).map(item => item.path).join(' | ') || '-'],
-        ['CAN24 Sound-Kandidat', `${row.channelpointsSoundCandidatesOk === null ? '-' : bool(row.channelpointsSoundCandidatesOk)} · ready ${String(row.channelpointsMigrationCandidateReady || 0)}/${String(row.channelpointsMigrationCandidateTotal || 0)} · ${row.channelpointsFirstCandidateRewardKey || '-'}`],
-        ['CAN24 Sound-Kandidat Route', row.channelpointsSoundCandidatesRoute || '-'],
-        ['CAN24 Dry-Run', `${row.channelpointsSoundDryRunOk === null ? '-' : bool(row.channelpointsSoundDryRunOk)} · accepted ${bool(row.channelpointsSoundDryRunAccepted)} · ${row.channelpointsSoundDryRunCandidate || '-'}`],
-        ['CAN24 Dry-Run Route', row.channelpointsSoundDryRunRoute || '-'],
-        ['CAN24 Shadow', `${row.channelpointsSoundShadowOk === null ? '-' : bool(row.channelpointsSoundShadowOk)} · ${row.channelpointsSoundShadowEnabled ? 'aktiv' : 'bereit'} · ${row.channelpointsSoundShadowSelectedRewardKey || '-'}`],
-        ['CAN24 Shadow Route', row.channelpointsSoundShadowRoute || '-'],
-        ['CAN24 Shadow-Safety', `safe ${bool(row.channelpointsSoundShadowSafe)} · q ${bool(row.channelpointsSoundShadowQueueTouched)} · sound ${bool(row.channelpointsSoundShadowSoundTouched)} · reward ${bool(row.channelpointsSoundShadowRewardExecuted)} · twitch ${bool(row.channelpointsSoundShadowTwitchTouched)}`],
-        ['CAN24 Shadow-Safety Route', row.channelpointsSoundShadowEvaluationRoute || '-'],
-        ['CAN24 Auto-Prep', `${row.channelpointsSoundShadowAutoOk === null ? '-' : bool(row.channelpointsSoundShadowAutoOk)} · enabled ${bool(row.channelpointsSoundShadowAutoEnabled)} · key ${row.channelpointsSoundShadowAutoRewardKey || '-'} · hook ${bool(row.channelpointsSoundShadowAutoHookInstalled)}`],
-        ['CAN24 Auto-Prep Route', row.channelpointsSoundShadowAutoRoute || '-'],
-        ['CAN24 Shadow-Hook', `attempts ${String(row.channelpointsSoundShadowAutoAttempts || 0)} · ok ${String(row.channelpointsSoundShadowAutoOkCount || 0)} · fail ${String(row.channelpointsSoundShadowAutoFailedCount || 0)} · lastAccepted ${bool(row.channelpointsSoundShadowAutoLastAccepted)}`],
-        ['CAN24 Shadow-Hook Last Skip', row.channelpointsSoundShadowAutoLastSkipReason || '-']
+      const detailItem = (label, value) => [label, value];
+      const renderDetailGroup = (title, items) => {
+        const visibleItems = asList(items).filter(item => item && item[1] !== '' && item[1] !== null && item[1] !== undefined);
+        if (!visibleItems.length) return '';
+        const detailRows = visibleItems.map(item => `
+          <div style="display:grid;grid-template-columns:minmax(150px,220px) minmax(0,1fr);gap:10px;align-items:start;padding:5px 0;border-bottom:1px solid rgba(148,163,184,.08);">
+            <span style="font-size:11px;color:#9fb0c8;line-height:1.35;white-space:normal;overflow-wrap:break-word;">${esc(item[0])}</span>
+            <strong style="font-size:12px;color:#f8fafc;line-height:1.35;white-space:normal;word-break:normal;overflow-wrap:anywhere;min-width:0;">${esc(item[1])}</strong>
+          </div>
+        `).join('');
+        return `<section class="busdiag-matrix-detail-group" style="min-width:0;width:100%;padding:12px 14px;border:1px solid rgba(148,163,184,.18);border-radius:12px;background:rgba(15,23,42,.36);box-sizing:border-box;"><h4 style="margin:0 0 8px 0;font-size:13px;letter-spacing:.04em;color:#e5e7eb;">${esc(title)}</h4><div style="display:block;min-width:0;">${detailRows}</div></section>`;
+      };
+      const detailGroups = [
+        ['Basis', [
+          detailItem('System-ID', row.id || '-'),
+          detailItem('Kategorie', row.category || '-'),
+          detailItem('Primary Client', clientIds),
+          detailItem('Client Status', row.primaryClientStatus || '-'),
+          detailItem('Status Route', row.statusRoute || '-'),
+          detailItem('EventBus Route', row.eventBusRoute || '-')
+        ]],
+        ['Bus / Command', [
+          detailItem('ACK', bool(row.ackCapable)),
+          detailItem('Legacy/direct', bool(row.legacyDirect)),
+          detailItem('Command', row.commandOk === null ? '-' : bool(row.commandOk)),
+          detailItem('Command Route', row.commandRoute || '-'),
+          detailItem('Contract', `${row.contractOk === null ? '-' : bool(row.contractOk)} · ${row.contractName || '-'}`),
+          detailItem('Contract Route', row.contractRoute || '-'),
+          detailItem('Lifecycle', `${row.lifecycleOk === null ? '-' : bool(row.lifecycleOk)} · ${(row.lifecycleEvents || []).join(', ') || '-'}`),
+          detailItem('Lifecycle Route', row.lifecycleRoute || '-')
+        ]],
+        ['Sound-System', [
+          detailItem('Play-Kompatibel', `${row.compatibilityOk === null ? '-' : bool(row.compatibilityOk)} · ${row.compatibilityLevel || '-'}`),
+          detailItem('Compatibility Route', row.compatibilityRoute || '-'),
+          detailItem('Queue', `${row.queueStatusOk === null ? '-' : bool(row.queueStatusOk)} · ${row.queueBusy ? 'busy' : 'idle'} · ${String(row.queuedCount || 0)}/${String(row.queueMaxLength || '-')}`),
+          detailItem('Queue Route', row.queueStatusRoute || '-'),
+          detailItem('Catalog', `${row.catalogStatusOk === null ? '-' : bool(row.catalogStatusOk)} · presets ${String(row.catalogSoundPresetCount || 0)} · soundId1423 ${bool(row.catalogRequestedSoundPresetFound)} · media1423 ${bool(row.catalogRequestedMediaAssetFound)}`),
+          detailItem('Catalog Route', `${row.catalogStatusRoute || '-'} ${row.catalogLikelyIssue || ''}`.trim())
+        ]],
+        ['Alert-System', [
+          detailItem('Alert-ACK', `${row.ackStatusOk === null ? '-' : bool(row.ackStatusOk)} · Overlay ${String(row.overlayAckCount || 0)} · Missing ${String(row.overlayMissingAckCount || 0)} · Sound ${String(row.soundMatchedCount || 0)}`),
+          detailItem('Alert-ACK Route', row.ackStatusRoute || '-'),
+          detailItem('Alert-Contract', `${row.alertContractOk === null ? '-' : bool(row.alertContractOk)} · ${row.alertContractName || '-'}`),
+          detailItem('Alert-Contract Route', row.alertContractRoute || '-'),
+          detailItem('Alert-Dry-Run', `${row.alertDryRunOk === null ? '-' : bool(row.alertDryRunOk)} · accepted ${bool(row.alertDryRunAccepted)}`),
+          detailItem('Alert-Dry-Run Route', row.alertDryRunRoute || '-')
+        ]],
+        ['VIP / Overlay', [
+          detailItem('VIP-Overlay', `${row.vipOverlayOk === null ? '-' : bool(row.vipOverlayOk)} · ${row.vipOverlayVisible ? 'visible' : 'hidden'} · client ${bool(row.vipClientConnected)} · queue ${String(row.vipQueueLength || 0)}`),
+          detailItem('VIP-Overlay Route', row.vipOverlayRoute || '-'),
+          detailItem('Overlay-Clients', `${row.overlayClientControlOk === null ? '-' : bool(row.overlayClientControlOk)} · ${String(row.overlayClientOnline || 0)}/${String(row.overlayClientTotal || 0)} online · warn ${String(row.overlayClientWarning || 0)} · err ${String(row.overlayClientError || 0)}`),
+          detailItem('Overlay-Clients Route', row.overlayClientControlRoute || '-'),
+          detailItem('Overlay-Klasse', `${row.overlayClientClassificationOk === null ? '-' : bool(row.overlayClientClassificationOk)} · produktiv ${String(row.overlayProductiveCandidates || 0)} · test/alt ${String(row.overlayTestOrLegacy || 0)} · unbekannt ${String(row.overlayUnknown || 0)}`),
+          detailItem('Overlay-Klasse Route', row.overlayClientClassificationRoute || '-'),
+          detailItem('Overlay-ID', `${row.overlayClientIdentityOk === null ? '-' : bool(row.overlayClientIdentityOk)} · format ${row.overlayIdentityContractFormat || '-'} · dup ${String(row.overlayIdentityDuplicates || 0)} · caps ${String(row.overlayCapabilityKinds || 0)}`),
+          detailItem('Overlay-ID Route', row.overlayClientIdentityRoute || '-')
+        ]],
+        ['Channelpoints / Shadow', [
+          detailItem('Channelpoints', `${row.channelpointsReadinessOk === null ? '-' : bool(row.channelpointsReadinessOk)} · rewards ${String(row.channelpointsRewardTotal || 0)} · sound ${String(row.channelpointsSoundCandidates || 0)} · alert ${String(row.channelpointsAlertCandidates || 0)}`),
+          detailItem('Channelpoints Route', row.channelpointsReadinessRoute || '-'),
+          detailItem('CAN24 Sound-Kandidat', `${row.channelpointsSoundCandidatesOk === null ? '-' : bool(row.channelpointsSoundCandidatesOk)} · ready ${String(row.channelpointsMigrationCandidateReady || 0)}/${String(row.channelpointsMigrationCandidateTotal || 0)} · ${row.channelpointsFirstCandidateRewardKey || '-'}`),
+          detailItem('CAN24 Sound-Kandidat Route', row.channelpointsSoundCandidatesRoute || '-'),
+          detailItem('CAN24 Dry-Run', `${row.channelpointsSoundDryRunOk === null ? '-' : bool(row.channelpointsSoundDryRunOk)} · accepted ${bool(row.channelpointsSoundDryRunAccepted)} · ${row.channelpointsSoundDryRunCandidate || '-'}`),
+          detailItem('CAN24 Dry-Run Route', row.channelpointsSoundDryRunRoute || '-'),
+          detailItem('CAN24 Shadow', `${row.channelpointsSoundShadowOk === null ? '-' : bool(row.channelpointsSoundShadowOk)} · ${row.channelpointsSoundShadowEnabled ? 'aktiv' : 'bereit'} · ${row.channelpointsSoundShadowSelectedRewardKey || '-'}`),
+          detailItem('CAN24 Shadow Route', row.channelpointsSoundShadowRoute || '-'),
+          detailItem('CAN24 Shadow-Safety', `safe ${bool(row.channelpointsSoundShadowSafe)} · q ${bool(row.channelpointsSoundShadowQueueTouched)} · sound ${bool(row.channelpointsSoundShadowSoundTouched)} · reward ${bool(row.channelpointsSoundShadowRewardExecuted)} · twitch ${bool(row.channelpointsSoundShadowTwitchTouched)}`),
+          detailItem('CAN24 Shadow-Safety Route', row.channelpointsSoundShadowEvaluationRoute || '-'),
+          detailItem('CAN24 Auto-Prep', `${row.channelpointsSoundShadowAutoOk === null ? '-' : bool(row.channelpointsSoundShadowAutoOk)} · enabled ${bool(row.channelpointsSoundShadowAutoEnabled)} · key ${row.channelpointsSoundShadowAutoRewardKey || '-'} · hook ${bool(row.channelpointsSoundShadowAutoHookInstalled)}`),
+          detailItem('CAN24 Auto-Prep Route', row.channelpointsSoundShadowAutoRoute || '-'),
+          detailItem('CAN24 Shadow-Hook', `attempts ${String(row.channelpointsSoundShadowAutoAttempts || 0)} · ok ${String(row.channelpointsSoundShadowAutoOkCount || 0)} · fail ${String(row.channelpointsSoundShadowAutoFailedCount || 0)} · lastAccepted ${bool(row.channelpointsSoundShadowAutoLastAccepted)}`),
+          detailItem('CAN24 Shadow-Hook Last Skip', row.channelpointsSoundShadowAutoLastSkipReason || '-')
+        ]],
+        ['Legacy/direct', [
+          detailItem('Summary', `${String((row.legacyDirectSummary && row.legacyDirectSummary.total) || 0)} · produktiv ${String((row.legacyDirectSummary && row.legacyDirectSummary.productive) || 0)} · high ${String((row.legacyDirectSummary && row.legacyDirectSummary.highRisk) || 0)}`),
+          detailItem('Pfade', (row.legacyDirectPaths || []).map(item => item.path).join(' | ') || '-')
+        ]]
       ];
-      const detailHtml = detailRows
-        .filter(item => item && (item[1] !== '' && item[1] !== null && item[1] !== undefined))
-        .map(item => `<div class="bus-kv"><span>${esc(item[0])}</span><strong>${esc(item[1])}</strong></div>`)
-        .join('');
-      return `<div class="busdiag-table-row busdiag-table-row-compact">
-        <span><strong>${esc(row.label || row.id || '-')}</strong><small>${esc(row.id || '-')} · ${esc(row.category || '-')}</small></span>
-        <span>${badge(row.registeredOnBus ? 'ja' : 'nein', row.registeredOnBus ? 'ok' : 'warning')}<small>${esc(clientIds)}</small></span>
-        <span>${badge(row.heartbeat ? 'ja' : 'nein', row.heartbeat ? 'ok' : 'warning')}<small>${esc(row.primaryClientStatus || '-')}</small></span>
-        <span>${badge(row.statusOk === null ? '-' : (row.statusOk ? 'ok' : 'fehlt'), row.statusOk === false ? 'warning' : 'ok')}<small>${esc(row.statusRoute || '-')}</small></span>
-        <span>${badge(row.eventBusOk === null ? '-' : (row.eventBusOk ? 'ok' : 'fehlt'), row.eventBusOk === false ? 'warning' : 'ok')}<small>${esc(row.eventBusRoute || '-')}</small></span>
-        <span>${badge(commandLabel, row.commandCapable ? 'ok' : 'neutral')}<small>${esc(commandSummary)}</small><details class="busdiag-inline-details"><summary>Details</summary><div class="bus-shadow-grid">${detailHtml}</div><pre>${esc(compactJson(row))}</pre></details></span>
-        <span>${badge(risk, risk)}<small>${esc(row.nextStep || '-')}</small></span>
+      const detailHtml = detailGroups.map(group => renderDetailGroup(group[0], group[1])).join('');
+      return `<div class="busdiag-table-row-wrap">
+        <div class="busdiag-table-row busdiag-table-row-compact">
+          <span><strong>${esc(row.label || row.id || '-')}</strong><small>${esc(row.id || '-')} · ${esc(row.category || '-')}</small></span>
+          <span>${badge(row.registeredOnBus ? 'ja' : 'nein', row.registeredOnBus ? 'ok' : 'warning')}<small>${esc(clientIds)}</small></span>
+          <span>${badge(row.heartbeat ? 'ja' : 'nein', row.heartbeat ? 'ok' : 'warning')}<small>${esc(row.primaryClientStatus || '-')}</small></span>
+          <span>${badge(row.statusOk === null ? '-' : (row.statusOk ? 'ok' : 'fehlt'), row.statusOk === false ? 'warning' : 'ok')}<small>${esc(row.statusRoute || '-')}</small></span>
+          <span>${badge(row.eventBusOk === null ? '-' : (row.eventBusOk ? 'ok' : 'fehlt'), row.eventBusOk === false ? 'warning' : 'ok')}<small>${esc(row.eventBusRoute || '-')}</small></span>
+          <span>${badge(commandLabel, row.commandCapable ? 'ok' : 'neutral')}<small>${esc(commandSummary)}</small></span>
+          <span>${badge(risk, risk)}<small>${esc(row.nextStep || '-')}</small></span>
+        </div>
+        <details class="busdiag-details busdiag-matrix-row-details" style="margin:6px 0 12px 0;padding:10px 12px;border:1px solid rgba(148,163,184,.16);border-radius:14px;background:rgba(15,23,42,.32);">
+          <summary>Details zu ${esc(row.label || row.id || 'System')}</summary>
+          <div class="busdiag-matrix-detail-groups" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(520px,1fr));gap:12px;align-items:start;margin-top:10px;min-width:0;width:100%;">${detailHtml}</div>
+          <details class="busdiag-details" style="margin-top:10px;"><summary>Rohdaten dieser Zeile</summary><pre>${esc(compactJson(row))}</pre></details>
+        </details>
       </div>`;
     }).join('') : `<div class="busdiag-empty glass">Noch keine Matrixdaten geladen.</div>`;
 
