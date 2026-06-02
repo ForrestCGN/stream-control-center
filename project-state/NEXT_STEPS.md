@@ -3,21 +3,28 @@
 ## Naechster Schritt
 
 ```text
-CAN-24.3: Entscheiden, ob ein produktiver Caller testweise auf Bus-Dry-Run vorbereitet werden darf.
+CAN-24.4: Channelpoints Sound Shadow-DryRun vorbereiten
 ```
 
-## Optionen
+## Ziel
+
+Einen ausgewaehlten Channelpoints-Sound-Kandidaten so vorbereiten, dass er diagnostisch als Shadow-DryRun validiert werden kann, ohne den produktiven Legacy-Flow zu veraendern.
+
+## Anforderungen
 
 ```text
-A) Nur Entscheidung/Doku: Kandidat auswaehlen, keine Code-Umstellung.
-B) Dashboard-Button: Kandidaten-Dry-Run manuell ausloesen.
-C) Produktiven Caller vorbereiten, aber noch nicht umstellen.
+Default sicher
+kein Sound
+keine Queue-Mutation
+keine Reward-Ausfuehrung ueber neuen Bus-Pfad
+keine Redemption-Aenderung
+keine Twitch-Aktion
+klar sichtbar im Dashboard
+abschaltbar / nicht automatisch fuer alle Rewards
 ```
 
-## Weiter blockiert
+## Danach
 
 ```text
-Keine produktive Migration ohne eigenen kleinen Go-Schritt.
-Kein Sound-Play ueber Testbutton.
-Keine Redemption-/Twitch-Aenderung.
+CAN-24.5: Live-Test-Auswertung / Shadow-DryRun Ergebnis pruefen
 ```

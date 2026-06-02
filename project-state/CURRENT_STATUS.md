@@ -1,23 +1,30 @@
 # CURRENT_STATUS
 
-## Stand: CAN-24.2 abgeschlossen
+## Stand: CAN-24.3 abgeschlossen
 
-CAN-24.2 zeigt den Sound-Migrationskandidaten als eigene Dashboard-Karte.
+CAN-24.3 ist das Decision-Gate fuer die erste Sound-Migration.
+
+## Entscheidung
+
+```text
+Produktive Migration: nein
+Naechster Schritt: Shadow-/Dry-Run-Caller vorbereiten
+```
 
 ## Sicherheitsstatus
 
 ```text
 soundPlay: false
-queueAction: false
-rewardExecuted: false
+queueTouched: false
+rewardExecutedViaBus: false
 redemptionChanged: false
 twitchTouched: false
 productiveMigration: false
-soundSystemDryRunTouched: true
+legacyFlowUnchanged: true
 ```
 
 ## Naechster Schritt
 
 ```text
-CAN-24.3: Entscheiden, ob ein produktiver Caller testweise auf Bus-Dry-Run vorbereitet werden darf.
+CAN-24.4: Channelpoints Sound Shadow-DryRun vorbereiten
 ```
