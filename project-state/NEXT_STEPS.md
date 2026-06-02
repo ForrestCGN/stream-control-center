@@ -1,26 +1,26 @@
 # NEXT_STEPS
 
-## Naechster empfohlener Schritt
+## Naechster Schritt
 
 ```text
-CAN-19.0 - Recovery Safety Architecture Consolidation
+CAN-19.1 - Safety Architecture Status Display Planning read-only/no-api
 ```
 
-## Ziel CAN-19.0
+## Ziel CAN-19.1
 
-Audit, SafetyStop, Roles/Rights und Confirm als gemeinsame Recovery-/Safety-Architektur konsolidieren.
+Planen, wie der Gesamtstatus der Sicherheitsarchitektur spaeter read-only angezeigt werden koennte.
 
-## CAN-19.0 soll klaeren
+## CAN-19.1 darf klaeren
 
 ```text
-wie die vier Sicherheitsbausteine zusammenhaengen
-welche Reihenfolge spaeter gelten muss
-welche Bausteine weiterhin nur geplant sind
-welche technischen Phasen weiterhin blockiert sind
-welche Umsetzungsschritte zuerst sicher waeren
+welche Statuskarten spaeter sinnvoll sind
+wie Audit/SafetyStop/Roles/Confirm zusammen angezeigt werden
+welche Bausteine geplant/nicht implementiert sind
+wie harte Blocker dargestellt werden
+wie keine Buttons/keine API klar sichtbar bleiben
 ```
 
-## CAN-19.0 darf NICHT enthalten
+## CAN-19.1 darf NICHT enthalten
 
 ```text
 API

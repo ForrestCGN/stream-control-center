@@ -1,11 +1,12 @@
 # CHANGELOG
 
-## CAN-18.3
+## CAN-19.0
 
-- CAN-18 Confirm-Planungsstrang abgeschlossen.
-- Confirm Planning als no-action/no-implementation final dokumentiert.
-- Finales Handoff `CURRENT_CHAT_HANDOFF_CAN18_3_FINAL.md` erstellt.
-- CAN-19.0 Recovery Safety Architecture Consolidation als naechster empfohlener Schritt festgelegt.
+- Recovery Safety Architecture konsolidiert.
+- Audit, SafetyStop, Roles/Rights und Confirm als gemeinsame Sicherheitsarchitektur zusammengefuehrt.
+- Gemeinsame Sicherheitsreihenfolge und Fail-safe-Gesamtregel dokumentiert.
+- Harte Blocker und technische Grenzen bestaetigt.
+- CAN-19.1 Safety Architecture Status Display Planning read-only/no-api als naechster Schritt festgelegt.
 - Keine Code-Aenderungen.
 - Keine API.
 - Keine Route.

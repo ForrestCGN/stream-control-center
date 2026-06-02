@@ -1,12 +1,8 @@
 # CURRENT_STATUS
 
-## Stand: CAN-18.3 abgeschlossen
+## Stand: CAN-19.0 abgeschlossen
 
-CAN-18 ist abgeschlossen als:
-
-```text
-Confirm Planning no-action / no-implementation
-```
+CAN-19.0 hat die Recovery Safety Architecture konsolidiert.
 
 ## Aktueller stabiler Stand
 
@@ -17,24 +13,20 @@ Audit Planning no-write/no-data
 SafetyStop Planning read-only/no-api
 Roles/Rights Planning no-mutation/no-implementation
 Confirm Planning no-action/no-implementation
+Recovery Safety Architecture Consolidation
 ```
 
-## Confirm-Status
+## Sicherheitsarchitektur-Status
 
 ```text
+auditPlanning: true
+safetyStopPlanning: true
+rolesRightsPlanning: true
 confirmPlanning: true
-confirmActionMatrix: true
-confirmDisplayBoundary: true
-confirmApi: false
-confirmToken: false
-confirmDb: false
-confirmRoute: false
-confirmButton: false
-confirmExecution: false
-eventBusEmit: false
+architectureConsolidated: true
 ```
 
-## Sicherheitsstand
+## Technischer Sicherheitsstand
 
 ```text
 readOnly: true
@@ -73,8 +65,8 @@ Execute Route
 POST Command Route
 ```
 
-## Naechster empfohlener Schritt
+## Naechster Schritt
 
 ```text
-CAN-19.0 - Recovery Safety Architecture Consolidation
+CAN-19.1 - Safety Architecture Status Display Planning read-only/no-api
 ```
