@@ -22,6 +22,7 @@ try { obsSharedModule = require('./obs_shared'); } catch (_) { obsSharedModule =
 
 const MODULE = 'overlay_monitor';
 const VERSION = '0.1.6';
+const MODULE_VERSION = VERSION;
 const STATUS_API_VERSION = '1.0.6';
 
 const MODULE_META = {
