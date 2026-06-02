@@ -1,28 +1,26 @@
 # NEXT_STEPS
 
-## Naechster Schritt
+## Sofort testen
 
-```text
-CAN-24.14: Shadow-Hook fuer genau rewardKey bauernweisheit vorbereiten.
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/bus/sound-shadow-dry-run/auto-status" | ConvertTo-Json -Depth 10
 ```
 
-## Anforderungen
-
-```text
-Default sicher
-Nur bauernweisheit
-Nur DryRun
-Legacy-Flow bleibt unveraendert
-Status/Matrix/Dashboard sichtbar
-Sofort abschaltbar
-Fehler nur als Diagnose-State speichern
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/channelpoints/bus/sound-shadow-dry-run/auto-test?rewardKey=bauernweisheit" | ConvertTo-Json -Depth 10
 ```
 
-## Weiterhin blockiert
+## Erwartung
 
 ```text
-Keine produktive Migration.
-Kein Sound-Play ueber Bus.
-Kein Queue-Touch.
-Kein automatischer Hook fuer alle Rewards.
+enabled: false
+hookInstalled: true
+auto-test skipped: true
+reason: hook_disabled
+```
+
+## Danach
+
+```text
+CAN-24.15 Testergebnis dokumentieren und entscheiden, ob enabled=true fuer einen begrenzten Test erlaubt ist.
 ```

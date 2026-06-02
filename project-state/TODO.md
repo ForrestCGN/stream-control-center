@@ -2,12 +2,10 @@
 
 ## CAN-24
 
-- [x] CAN-24.10 Lokales Testergebnis dokumentieren und Sound-ID-Diagnose ergaenzen.
-- [x] CAN-24.11 Sound-Bus-DryRun mediaId/mediaAssetId-kompatibel machen.
-- [x] CAN-24.12 Erfolgreichen mediaId-DryRun dokumentieren.
-- [x] CAN-24.13 Entscheidung fuer streng begrenzten Shadow-Hook treffen.
-- [ ] CAN-24.14 Shadow-Hook fuer `bauernweisheit` vorbereiten.
-- [ ] Danach lokalen Shadow-Hook-Test planen und auswerten.
+- [x] CAN-24.14 Shadow-Hook fuer `bauernweisheit` vorbereiten.
+- [ ] CAN-24.15 Lokalen Shadow-Hook-Status testen.
+- [ ] Danach entscheiden, ob `enabled=true` fuer genau `bauernweisheit` testweise erlaubt ist.
+- [ ] Danach echten Redemption-/Execute-Shadow-Test planen.
 
 ## Weiterhin hart blockiert
 

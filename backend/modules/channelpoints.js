@@ -1978,6 +1978,10 @@ async function executeReward(idOrKey, input = {}) {
   if (!isExecutableMediaReward(reward)) throw new Error("reward_not_executable");
   const targetUrl = cleanString(config.mediaExecutionTargetUrl || "/api/sound/play");
   const payload = buildRewardExecutionPayload(reward, input);
+  await maybeRunChannelpointsSoundShadowDryRunForReward(reward, {
+    ...(input || {}),
+    source: input && input.source || 'executeReward'
+  });
   try {
     const result = await httpJsonRequest("POST", targetUrl, payload);
     const summary = summarizeExecutionResult(result);
@@ -2726,11 +2730,21 @@ function buildChannelpointsSoundShadowDryRunEvaluation(result = null) {
 
 const channelpointsSoundShadowDryRunAutoState = {
   enabled: false,
-  rewardKey: '',
+  rewardKey: 'bauernweisheit',
   configuredAt: '',
   configuredBy: '',
+  hookInstalled: true,
+  hookMode: 'executeReward_shadow_dry_run_only',
+  allowedRewardKey: 'bauernweisheit',
+  attempts: 0,
+  skipped: 0,
+  ok: 0,
+  failed: 0,
+  lastAutoAt: '',
+  lastSkipReason: '',
+  lastAutoResult: null,
   lastPreview: null,
-  note: 'Prepared only. Not hooked into EventSub or Execute in CAN-24.7.'
+  note: 'CAN-24.14: Hook installed but disabled by default. Only rewardKey bauernweisheit may run a shadow dry-run.'
 };
 
 function buildChannelpointsSoundShadowDryRunAutoStatus() {
@@ -2746,7 +2760,7 @@ function buildChannelpointsSoundShadowDryRunAutoStatus() {
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
     feature: 'channelpoints_sound_shadow_dry_run_auto_config',
-    mode: 'prepared_exactly_one_reward_not_hooked',
+    mode: 'hook_installed_disabled_by_default_exactly_one_reward',
     diagnosticOnly: true,
     enabled: channelpointsSoundShadowDryRunAutoState.enabled === true,
     rewardKey: channelpointsSoundShadowDryRunAutoState.rewardKey || '',
@@ -2755,10 +2769,17 @@ function buildChannelpointsSoundShadowDryRunAutoStatus() {
     configuredAt: channelpointsSoundShadowDryRunAutoState.configuredAt || '',
     configuredBy: channelpointsSoundShadowDryRunAutoState.configuredBy || '',
     lastPreview: channelpointsSoundShadowDryRunAutoState.lastPreview || null,
-    exactlyOneReward: !!channelpointsSoundShadowDryRunAutoState.rewardKey,
-    autoHookInstalled: false,
+    attempts: Number(channelpointsSoundShadowDryRunAutoState.attempts || 0),
+    skipped: Number(channelpointsSoundShadowDryRunAutoState.skipped || 0),
+    okCount: Number(channelpointsSoundShadowDryRunAutoState.ok || 0),
+    failedCount: Number(channelpointsSoundShadowDryRunAutoState.failed || 0),
+    lastAutoAt: channelpointsSoundShadowDryRunAutoState.lastAutoAt || '',
+    lastSkipReason: channelpointsSoundShadowDryRunAutoState.lastSkipReason || '',
+    lastAutoResult: channelpointsSoundShadowDryRunAutoState.lastAutoResult || null,
+    exactlyOneReward: channelpointsSoundShadowDryRunAutoState.rewardKey === 'bauernweisheit',
+    autoHookInstalled: channelpointsSoundShadowDryRunAutoState.hookInstalled === true,
     eventSubHookInstalled: false,
-    executeHookInstalled: false,
+    executeHookInstalled: channelpointsSoundShadowDryRunAutoState.hookInstalled === true,
     legacyFlowUnchanged: true,
     soundPlay: false,
     queueTouched: false,
@@ -2777,7 +2798,7 @@ function buildChannelpointsSoundShadowDryRunAutoStatus() {
       defaultEnabled: false,
       onlyOneRewardAllowed: true,
       eventSubHookInstalled: false,
-      executeHookInstalled: false,
+      executeHookInstalled: channelpointsSoundShadowDryRunAutoState.hookInstalled === true,
       noSoundPlay: true,
       noQueueMutation: true,
       noTwitchWrite: true,
@@ -2849,6 +2870,98 @@ function configureChannelpointsSoundShadowDryRunAuto(input = {}) {
     updatedAt: channelpointsSoundShadowDryRunAutoState.configuredAt
   };
 }
+
+async function maybeRunChannelpointsSoundShadowDryRunForReward(reward, context = {}) {
+  const rewardKey = cleanString(reward && (reward.reward_key || reward.rewardKey) || '');
+  const allowedRewardKey = 'bauernweisheit';
+  const at = nowIso();
+
+  function skip(reason) {
+    channelpointsSoundShadowDryRunAutoState.skipped = Number(channelpointsSoundShadowDryRunAutoState.skipped || 0) + 1;
+    channelpointsSoundShadowDryRunAutoState.lastSkipReason = reason;
+    channelpointsSoundShadowDryRunAutoState.lastAutoAt = at;
+    channelpointsSoundShadowDryRunAutoState.lastAutoResult = {
+      ok: true,
+      skipped: true,
+      reason,
+      rewardKey,
+      allowedRewardKey,
+      dryRunOnly: true,
+      queueTouched: false,
+      audioTouched: false,
+      productiveMigration: false,
+      updatedAt: at
+    };
+    return channelpointsSoundShadowDryRunAutoState.lastAutoResult;
+  }
+
+  if (channelpointsSoundShadowDryRunAutoState.hookInstalled !== true) return skip('hook_not_installed');
+  if (channelpointsSoundShadowDryRunAutoState.enabled !== true) return skip('hook_disabled');
+  if (rewardKey !== allowedRewardKey) return skip('reward_key_not_allowed');
+  if (channelpointsSoundShadowDryRunAutoState.rewardKey && channelpointsSoundShadowDryRunAutoState.rewardKey !== allowedRewardKey) return skip('configured_reward_key_not_allowed');
+
+  channelpointsSoundShadowDryRunAutoState.attempts = Number(channelpointsSoundShadowDryRunAutoState.attempts || 0) + 1;
+  channelpointsSoundShadowDryRunAutoState.lastAutoAt = at;
+  channelpointsSoundShadowDryRunAutoState.lastSkipReason = '';
+
+  try {
+    const dryRun = await validateChannelpointsSoundMigrationCandidateDryRun({
+      rewardKey: allowedRewardKey,
+      source: 'channelpoints_shadow_hook',
+      reason: 'can24_14_execute_reward_shadow_dry_run',
+      context: {
+        userLogin: context.userLogin || '',
+        userDisplayName: context.userDisplayName || '',
+        twitchRedemptionId: context.twitchRedemptionId || '',
+        source: context.source || ''
+      }
+    });
+    const result = {
+      ok: dryRun && dryRun.ok === true,
+      skipped: false,
+      accepted: dryRun && dryRun.accepted === true,
+      rewardKey,
+      allowedRewardKey,
+      dryRun,
+      dryRunOnly: true,
+      queueTouched: !!(dryRun && dryRun.queueTouched),
+      audioTouched: false,
+      soundSystemTouched: false,
+      rewardExecuted: false,
+      redemptionChanged: false,
+      twitchTouched: false,
+      productiveMigration: false,
+      updatedAt: nowIso()
+    };
+    if (result.ok && result.accepted) channelpointsSoundShadowDryRunAutoState.ok = Number(channelpointsSoundShadowDryRunAutoState.ok || 0) + 1;
+    else channelpointsSoundShadowDryRunAutoState.failed = Number(channelpointsSoundShadowDryRunAutoState.failed || 0) + 1;
+    channelpointsSoundShadowDryRunAutoState.lastAutoResult = result;
+    return result;
+  } catch (err) {
+    const result = {
+      ok: false,
+      skipped: false,
+      accepted: false,
+      rewardKey,
+      allowedRewardKey,
+      error: err && err.message ? err.message : String(err),
+      dryRun: err && err.data ? err.data : null,
+      dryRunOnly: true,
+      queueTouched: false,
+      audioTouched: false,
+      soundSystemTouched: false,
+      rewardExecuted: false,
+      redemptionChanged: false,
+      twitchTouched: false,
+      productiveMigration: false,
+      updatedAt: nowIso()
+    };
+    channelpointsSoundShadowDryRunAutoState.failed = Number(channelpointsSoundShadowDryRunAutoState.failed || 0) + 1;
+    channelpointsSoundShadowDryRunAutoState.lastAutoResult = result;
+    return result;
+  }
+}
+
 
 function buildChannelpointsSoundShadowDryRunStatus() {
   const candidatesStatus = buildChannelpointsSoundMigrationCandidatesStatus();
@@ -3229,6 +3342,7 @@ function buildStatus(extra = {}) {
       `${ROUTE_PREFIX}/bus/sound-shadow-dry-run/status`,
       `${ROUTE_PREFIX}/bus/sound-shadow-dry-run/evaluation`,
       `${ROUTE_PREFIX}/bus/sound-shadow-dry-run/auto-status`,
+      `${ROUTE_PREFIX}/bus/sound-shadow-dry-run/auto-test`,
       `${ROUTE_PREFIX}/bus/sound-shadow-dry-run/auto-config`,
       `${ROUTE_PREFIX}/bus/sound-shadow-dry-run/prepare`,
       `${ROUTE_PREFIX}/model`,
@@ -3510,6 +3624,24 @@ function init({ app }) {
   });
   app.get(`${ROUTE_PREFIX}/bus/sound-shadow-dry-run/auto-status`, (req, res) => {
     try { res.json(buildChannelpointsSoundShadowDryRunAutoStatus()); } catch (err) { sendError(res, 500, err); }
+  });
+  app.post(`${ROUTE_PREFIX}/bus/sound-shadow-dry-run/auto-test`, async (req, res) => {
+    try {
+      const rewardKey = cleanString((req.body && (req.body.rewardKey || req.body.reward_key)) || req.query.rewardKey || req.query.reward_key || 'bauernweisheit');
+      const reward = getRewardByIdOrKey(rewardKey);
+      if (!reward) return res.status(404).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: 'reward_not_found', rewardKey });
+      const result = await maybeRunChannelpointsSoundShadowDryRunForReward(reward, { ...(req.body || {}), source: 'manual_shadow_auto_test' });
+      res.status(result && result.ok === false ? 400 : 200).json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, feature: 'channelpoints_sound_shadow_auto_test', result, status: buildChannelpointsSoundShadowDryRunAutoStatus() });
+    } catch (err) { sendError(res, 500, err); }
+  });
+  app.get(`${ROUTE_PREFIX}/bus/sound-shadow-dry-run/auto-test`, async (req, res) => {
+    try {
+      const rewardKey = cleanString(req.query.rewardKey || req.query.reward_key || 'bauernweisheit');
+      const reward = getRewardByIdOrKey(rewardKey);
+      if (!reward) return res.status(404).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: 'reward_not_found', rewardKey });
+      const result = await maybeRunChannelpointsSoundShadowDryRunForReward(reward, { source: 'manual_shadow_auto_test' });
+      res.status(result && result.ok === false ? 400 : 200).json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, feature: 'channelpoints_sound_shadow_auto_test', result, status: buildChannelpointsSoundShadowDryRunAutoStatus() });
+    } catch (err) { sendError(res, 500, err); }
   });
   app.post(`${ROUTE_PREFIX}/bus/sound-shadow-dry-run/auto-config`, (req, res) => {
     try {

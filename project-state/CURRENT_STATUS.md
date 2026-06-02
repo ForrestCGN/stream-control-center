@@ -1,29 +1,29 @@
 # CURRENT_STATUS
 
-## Stand: CAN-24.13 abgeschlossen
+## Stand: CAN-24.14 abgeschlossen
 
-CAN-24.13 trifft die Entscheidung fuer den naechsten technischen Schritt.
+Shadow-Hook fuer genau einen Reward ist vorbereitet.
 
-## Freigegeben fuer den naechsten kleinen Schritt
+## Status
 
 ```text
-Streng begrenzter Shadow-Hook fuer genau einen Reward-Key: bauernweisheit
+hookInstalled: true
+enabled: false
+allowedRewardKey: bauernweisheit
 ```
 
-## Nicht freigegeben
+## Sicherheitsstatus
 
 ```text
-Produktive Sound-Migration
-Sound-Play ueber Bus
-Queue-Aktion
-Redemption-Aenderung
-Twitch-Aktion
-Hook fuer alle Rewards
-Ersatz des Legacy-Flows
+soundPlay: false
+queueTouched: false
+redemptionChanged: false
+twitchTouched: false
+productiveMigration: false
 ```
 
 ## Naechster Schritt
 
 ```text
-CAN-24.14: Shadow-Hook fuer bauernweisheit vorbereiten.
+CAN-24.15: Lokalen Shadow-Hook-Status testen.
 ```

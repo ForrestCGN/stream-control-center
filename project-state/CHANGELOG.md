@@ -1,9 +1,13 @@
 # CHANGELOG
 
-## CAN-24.13
+## CAN-24.14
 
-- Entscheidung fuer naechsten Schritt dokumentiert.
-- Streng begrenzter Shadow-Hook fuer genau `bauernweisheit` als naechster technischer Kandidat freigegeben.
-- Sicherheitsgrenzen erneut festgehalten.
-- Keine Code-Logik geaendert.
-- Keine produktive Aktion ausgefuehrt.
+- Shadow-Hook im Channelpoints-Execute-Pfad vorbereitet.
+- Hook ist hart auf `rewardKey=bauernweisheit` begrenzt.
+- Hook ist default deaktiviert.
+- Auto-Status um Hook-/Counter-/LastResult-Felder erweitert.
+- Manuelle Auto-Test-Route ergaenzt.
+- Dashboard/Matrix zeigt Hook-Status und Counters.
+- Keine produktive Migration.
+- Kein Sound-Play.
+- Keine Queue.

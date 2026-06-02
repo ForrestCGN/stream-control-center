@@ -606,6 +606,11 @@ function buildSystemRow(system, clients, fetched) {
     channelpointsSoundShadowAutoRewardKey: channelpointsSoundShadowAutoBody ? (channelpointsSoundShadowAutoBody.rewardKey || '') : '',
     channelpointsSoundShadowAutoCandidateFound: !!(channelpointsSoundShadowAutoBody && channelpointsSoundShadowAutoBody.candidateFound),
     channelpointsSoundShadowAutoHookInstalled: !!(channelpointsSoundShadowAutoBody && (channelpointsSoundShadowAutoBody.autoHookInstalled || channelpointsSoundShadowAutoBody.eventSubHookInstalled || channelpointsSoundShadowAutoBody.executeHookInstalled)),
+    channelpointsSoundShadowAutoAttempts: Number(channelpointsSoundShadowAutoBody && channelpointsSoundShadowAutoBody.attempts || 0),
+    channelpointsSoundShadowAutoOkCount: Number(channelpointsSoundShadowAutoBody && channelpointsSoundShadowAutoBody.okCount || 0),
+    channelpointsSoundShadowAutoFailedCount: Number(channelpointsSoundShadowAutoBody && channelpointsSoundShadowAutoBody.failedCount || 0),
+    channelpointsSoundShadowAutoLastSkipReason: channelpointsSoundShadowAutoBody ? (channelpointsSoundShadowAutoBody.lastSkipReason || '') : '',
+    channelpointsSoundShadowAutoLastAccepted: !!(channelpointsSoundShadowAutoBody && channelpointsSoundShadowAutoBody.lastAutoResult && channelpointsSoundShadowAutoBody.lastAutoResult.accepted),
     channelpointsSoundDryRunResult: channelpointsSoundDryRunBody ? {
       ok: channelpointsSoundDryRunBody.ok === true,
       accepted: channelpointsSoundDryRunBody.accepted === true,
