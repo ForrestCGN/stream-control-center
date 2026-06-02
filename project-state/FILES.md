@@ -1,6 +1,6 @@
 # FILES
 
-## CAN23.14 ZIP
+## CAN23.15 ZIP
 
 Enthaltene Dateien:
 
@@ -12,8 +12,8 @@ Enthaltene Dateien:
 - `backend/modules/bus_integration_matrix.js`
 - `htdocs/dashboard/modules/bus_diagnostics.js`
 - `htdocs/dashboard/modules/bus_diagnostics.css`
-- `docs/system-inspection/EVENTBUS_CAN23_14_CHANNELPOINTS_BUS_REQUEST_READINESS.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN23_14.md`
+- `docs/system-inspection/EVENTBUS_CAN23_15_OVERLAY_PRODUCTIVE_CLASSIFICATION_READONLY.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN23_15.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`

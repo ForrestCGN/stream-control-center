@@ -1240,6 +1240,116 @@ function emitBusEvent(channel, action, payload, options = {}) {
   }
 }
 
+function classifyOverlayClientPurpose(client = {}) {
+  const raw = [
+    client.id,
+    client.clientId,
+    client.name,
+    client.module,
+    client.scene,
+    client.sceneName,
+    client.source,
+    client.sourceName,
+    client.path,
+    client.url
+  ].map(value => cleanString(value)).join('|').toLowerCase();
+
+  const testTokens = ['test', 'debug', 'demo', 'preview', 'sample', 'old', 'alt', 'legacy', 'backup', 'bak', 'tmp'];
+  const productiveTokens = [
+    'alert', 'alerts', 'vip', 'sound', 'overlay', 'birthday', 'geburtstag',
+    'fireworks', 'deathcounter', 'start', 'challenge', 'hug', 'shoutout',
+    'mso', 'credits', 'frame', 'rahmen'
+  ];
+
+  const matchedTestTokens = testTokens.filter(token => raw.includes(token));
+  const matchedProductiveTokens = productiveTokens.filter(token => raw.includes(token));
+
+  let purpose = 'unknown';
+  let confidence = 'low';
+  let reason = 'no_known_token';
+
+  if (matchedTestTokens.length > 0) {
+    purpose = 'test_or_legacy';
+    confidence = 'medium';
+    reason = `matched_test_token:${matchedTestTokens[0]}`;
+  } else if (matchedProductiveTokens.length > 0) {
+    purpose = 'productive_candidate';
+    confidence = matchedProductiveTokens.length > 1 ? 'high' : 'medium';
+    reason = `matched_productive_token:${matchedProductiveTokens[0]}`;
+  }
+
+  return {
+    purpose,
+    confidence,
+    reason,
+    matchedProductiveTokens,
+    matchedTestTokens
+  };
+}
+
+function buildOverlayClientClassificationStatus() {
+  const control = buildOverlayClientControlStatus();
+  const rows = Array.isArray(control.clients) ? control.clients.map(client => {
+    const classification = classifyOverlayClientPurpose(client);
+    return {
+      ...client,
+      classification
+    };
+  }) : [];
+
+  const summary = {
+    total: rows.length,
+    productiveCandidates: rows.filter(row => row.classification && row.classification.purpose === 'productive_candidate').length,
+    testOrLegacy: rows.filter(row => row.classification && row.classification.purpose === 'test_or_legacy').length,
+    unknown: rows.filter(row => !row.classification || row.classification.purpose === 'unknown').length,
+    highConfidence: rows.filter(row => row.classification && row.classification.confidence === 'high').length,
+    mediumConfidence: rows.filter(row => row.classification && row.classification.confidence === 'medium').length,
+    lowConfidence: rows.filter(row => row.classification && row.classification.confidence === 'low').length
+  };
+
+  return {
+    ok: true,
+    module: MODULE,
+    version: MODULE_VERSION,
+    statusApiVersion: STATUS_API_VERSION,
+    feature: 'overlay_client_classification_status',
+    mode: 'read_only_overlay_classification',
+    readOnly: true,
+    overlayTouched: false,
+    obsTouched: false,
+    obsRefreshTriggered: false,
+    obsRepairTriggered: false,
+    eventBusEmit: false,
+    recoveryTriggered: false,
+    summary,
+    clients: rows,
+    classifier: {
+      productivePurpose: 'productive_candidate',
+      testPurpose: 'test_or_legacy',
+      unknownPurpose: 'unknown',
+      note: 'Token-based first-pass classification only. Do not hide/move/remove overlays based on this without manual confirmation.'
+    },
+    routes: {
+      clientControl: '/api/overlay-monitor/client-control/status',
+      classification: '/api/overlay-monitor/client-control/classification'
+    },
+    safety: {
+      classificationTouchesObs: false,
+      classificationRefreshesBrowserSources: false,
+      classificationRepairsObs: false,
+      automaticRecovery: false,
+      destructiveActionAllowed: false
+    },
+    nextSteps: [
+      'Use this view to identify likely productive overlays and likely test/legacy overlays.',
+      'Confirm classifications manually before any future cleanup or dashboard filtering.',
+      'Standardize overlay client IDs and capabilities next.',
+      'Keep OBS refresh/repair behind Confirm/SafetyStop later.'
+    ],
+    updatedAt: nowIso()
+  };
+}
+
 function buildOverlayClientControlStatus() {
   const status = getOverlayStatus({ includeConfig: false, limitEvents: 30 });
   const overlays = Array.isArray(status.overlays) ? status.overlays : [];
@@ -1630,6 +1740,10 @@ function init({ app, env } = {}) {
 
   registerGet(app, '/api/overlay-monitor/client-control/status', (req, res) => {
     res.json(buildOverlayClientControlStatus());
+  });
+
+  registerGet(app, '/api/overlay-monitor/client-control/classification', (req, res) => {
+    res.json(buildOverlayClientClassificationStatus());
   });
 
   registerGet(app, '/api/overlay-monitor/issues', (req, res) => {

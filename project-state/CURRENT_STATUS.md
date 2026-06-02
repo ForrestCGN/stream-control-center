@@ -1,25 +1,24 @@
 # CURRENT_STATUS
 
-## Stand: CAN-23.14 abgeschlossen
+## Stand: CAN-23.15 abgeschlossen
 
-CAN-23.14 hat Channelpoints Bus-Request-Readiness read-only sichtbar gemacht.
+CAN-23.15 hat produktive Overlays von Test-/Alt-Overlays read-only unterscheidbar gemacht.
 
 ## Neu
 
 ```text
-GET /api/channelpoints/bus/request-readiness
+GET /api/overlay-monitor/client-control/classification
 ```
 
 ## Sicherheitsstatus
 
 ```text
 readOnly: true
-rewardChanged: false
-redemptionChanged: false
-twitchTouched: false
-executionTouched: false
-soundTouched: false
-alertTouched: false
+obsTouched: false
+browserSourceRefresh: false
+obsRepair: false
+overlayHidden: false
+overlayRemoved: false
 eventBusEmit: false
 recoveryExecution: false
 ```
@@ -27,5 +26,5 @@ recoveryExecution: false
 ## Naechster Schritt
 
 ```text
-Produktive Overlays von Test-/Alt-Overlays in der Matrix unterscheidbar machen.
+Overlay-Client-IDs und Capabilities vereinheitlichen.
 ```

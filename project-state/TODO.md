@@ -2,8 +2,7 @@
 
 ## CAN-23 Bus-Integration
 
-- [x] CAN-23.14 Channelpoints: Rewards nach Sound/Alert schrittweise ueber Bus-Requests sichtbar vorbereiten.
-- [ ] Produktive Overlays von Test-/Alt-Overlays in der Matrix unterscheidbar machen.
+- [x] CAN-23.15 Produktive Overlays von Test-/Alt-Overlays in der Matrix unterscheidbar machen.
 - [ ] Overlay-Client-IDs und Capabilities vereinheitlichen.
 - [ ] Legacy/direct REST-/broadcastWS-Wege pro Modul sichtbar markieren.
 - [ ] Recovery/Selbstheilung spaeter planen, erst wenn Bus-Kommunikation stabil und sichtbar ist.
