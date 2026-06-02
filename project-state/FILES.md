@@ -1,6 +1,6 @@
 # FILES
 
-## CAN24.24 ZIP
+## CAN25.0 ZIP
 
 Enthaltene Dateien:
 
@@ -32,7 +32,8 @@ Enthaltene Dateien:
 - `docs/system-inspection/CAN24_22_EXECUTE_SHADOW_TEST_SUCCESS.md`
 - `docs/system-inspection/CAN24_23_SHADOW_STAGE_CLOSURE_DECISION.md`
 - `docs/system-inspection/CAN24_24_SOUND_SHADOW_STAGE_CLOSURE.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN24_24.md`
+- `docs/system-inspection/CAN25_0_SOUND_SHADOW_DASHBOARD_DIAGNOSTICS_DECISION.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN25_0.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
@@ -41,4 +42,4 @@ Enthaltene Dateien:
 
 ## Hinweis
 
-Die Code-Dateien entsprechen dem CAN-24.23/CAN-24.22 Stand. CAN-24.24 ist Abschlussdokumentation der Sound-Shadow-Stufe.
+Die Code-Dateien entsprechen dem CAN-24.24 Stand. CAN-25.0 ist Entscheidung/Planung fuer Dashboard-/Bus-Diagnose.

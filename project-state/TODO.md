@@ -1,17 +1,11 @@
 # TODO
 
-## CAN-24
+## CAN-25
 
-- [x] CAN-24.24 Sound-Shadow-Stufe Abschlussdokumentation erstellen.
-- [ ] Naechste Richtung entscheiden.
-
-## Offene Optionen
-
-- [ ] Sound-Migration pausieren und anderes Modul bearbeiten.
-- [ ] Dashboard/Bus-Diagnose fuer Sound-Shadow verbessern.
-- [ ] Zweiten Sound-Reward als Shadow-Kandidat vorbereiten.
-- [ ] Produktive Migration fuer genau einen Reward separat planen.
-- [ ] EventSub-/Twitch-Redemption-Test separat planen.
+- [x] CAN-25.0 Entscheidung: Dashboard/Bus-Diagnose fuer Sound-Shadow verbessern.
+- [ ] CAN-25.1 vorhandene Dashboard-/Bus-Diagnose-Daten inspizieren.
+- [ ] CAN-25.2 ggf. Sound-Shadow Summary Card verbessern.
+- [ ] Danach entscheiden, ob weiterer Reward, Dashboard-Verfeinerung oder produktive Migration separat geplant wird.
 
 ## Weiterhin hart blockiert
 

@@ -1,41 +1,26 @@
 # CURRENT_STATUS
 
-## Stand: CAN-24.24 abgeschlossen
+## Stand: CAN-25.0 abgeschlossen
 
-Die Sound-Shadow-Stufe fuer Channelpoints-Soundmigration ist abgeschlossen und dokumentiert.
+CAN-24 Sound-Shadow-Stufe ist abgeschlossen.
 
-## Erfolgreich bestaetigt
+CAN-25 startet mit der sicheren Richtung:
 
 ```text
-mediaId-DryRun erfolgreich
-Shadow-Hook Disabled-Test erfolgreich
-enabled=true Auto-Test erfolgreich
-Execute-Shadow-Test erfolgreich
-Legacy-Flow weiterhin ok
-Shadow-Hook ohne Queue/Audio-Touch
-Endstatus enabled=false
+Dashboard/Bus-Diagnose fuer Sound-Shadow verbessern.
 ```
 
-## Getesteter Reward
+## Keine produktive Migration
 
 ```text
-rewardKey: bauernweisheit
-mediaAssetId: 1423
-file: media/channelpoints/general/bauernweisheit.mp3
+Produktive Sound-Bus-Migration: nein
+Produktiver Sound-Bus-Play: nein
+Hook fuer alle Rewards: nein
+EventSub-/Twitch-Redemption-Test: nein
 ```
 
-## Weiter blockiert
+## Naechster Schritt
 
 ```text
-Produktive Sound-Bus-Migration
-Produktiver Sound-Bus-Play
-Hook fuer alle Rewards
-EventSub-/Twitch-Redemption-Test
-```
-
-## Naechste Entscheidung
-
-```text
-Naechste Projekt-Richtung waehlen:
-Sound-Migration pausieren, Dashboard verbessern, zweiter Reward, produktive Migration separat planen oder EventSub-Test separat planen.
+CAN-25.1: vorhandene Dashboard-/Bus-Diagnose-Daten inspizieren und fehlende Sichtfelder festlegen.
 ```
