@@ -1,11 +1,11 @@
 # CHANGELOG
 
-## CAN-18.2
+## CAN-18.3
 
-- Confirm Display Boundary no-action geplant.
-- Anzeigezustaende, Anzeige-Level und Display Contract dokumentiert.
-- Confirm-Typ-Anzeige, UX-Regeln und Datenschutzregel festgelegt.
-- CAN-18.3 Confirm Planning Closure / Handoff als naechster Schritt festgelegt.
+- CAN-18 Confirm-Planungsstrang abgeschlossen.
+- Confirm Planning als no-action/no-implementation final dokumentiert.
+- Finales Handoff `CURRENT_CHAT_HANDOFF_CAN18_3_FINAL.md` erstellt.
+- CAN-19.0 Recovery Safety Architecture Consolidation als naechster empfohlener Schritt festgelegt.
 - Keine Code-Aenderungen.
 - Keine API.
 - Keine Route.

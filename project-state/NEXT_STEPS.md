@@ -1,35 +1,37 @@
 # NEXT_STEPS
 
-## Naechster Schritt
+## Naechster empfohlener Schritt
 
 ```text
-CAN-18.3 - Confirm Planning Closure / Handoff
+CAN-19.0 - Recovery Safety Architecture Consolidation
 ```
 
-## Ziel CAN-18.3
+## Ziel CAN-19.0
 
-Den CAN-18 Confirm-Planungsstrang abschliessen und den naechsten sicheren Arbeitsbereich festlegen.
+Audit, SafetyStop, Roles/Rights und Confirm als gemeinsame Recovery-/Safety-Architektur konsolidieren.
 
-## CAN-18.3 soll zusammenfassen
+## CAN-19.0 soll klaeren
 
 ```text
-CAN-18.0 Confirm Boundary
-CAN-18.1 Confirm Action Matrix
-CAN-18.2 Confirm Display Boundary
+wie die vier Sicherheitsbausteine zusammenhaengen
+welche Reihenfolge spaeter gelten muss
+welche Bausteine weiterhin nur geplant sind
+welche technischen Phasen weiterhin blockiert sind
+welche Umsetzungsschritte zuerst sicher waeren
 ```
 
-## CAN-18.3 darf NICHT enthalten
+## CAN-19.0 darf NICHT enthalten
 
 ```text
-Confirm API
-Confirm Token
-Confirm DB
-Confirm Route
-Confirm Button
-Confirm Ausfuehrung
+API
+Route
+DB
+Middleware
+Dashboard-Aenderung
+EventBus-Emit
 Recovery-Ausfuehrung
-POST-Route
 SafetyStop Clear
+Confirm Trigger
 Rollen-/Rechte-Mutation
 Queue-/Sound-/Alert-/Overlay-Mutation
 ```

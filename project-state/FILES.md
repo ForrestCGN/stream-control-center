@@ -1,18 +1,18 @@
 # FILES
 
-## CAN18.2 Confirm-Display-Boundary-ZIP
+## CAN18.3 Closure-/Handoff-ZIP
 
 Enthaltene Dateien:
 
-- `docs/system-inspection/EVENTBUS_CAN18_2_CONFIRM_DISPLAY_BOUNDARY_NOACTION_PLANNING.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN18_2.md`
+- `docs/system-inspection/EVENTBUS_CAN18_3_CONFIRM_PLANNING_CLOSURE_HANDOFF.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN18_3_FINAL.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 
-## Technisch relevant, aber in CAN-18.2 nicht geaendert
+## Technisch relevant, aber in CAN-18.3 nicht geaendert
 
 - `htdocs/dashboard/modules/bus_diagnostics.js`
 - `backend/modules/bus_diagnostics.js`

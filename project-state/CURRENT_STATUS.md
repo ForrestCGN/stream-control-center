@@ -1,8 +1,23 @@
 # CURRENT_STATUS
 
-## Stand: CAN-18.2 abgeschlossen
+## Stand: CAN-18.3 abgeschlossen
 
-CAN-18.2 hat die Confirm Display Boundary no-action geplant.
+CAN-18 ist abgeschlossen als:
+
+```text
+Confirm Planning no-action / no-implementation
+```
+
+## Aktueller stabiler Stand
+
+```text
+read-only Recovery/Safety Diagnose- und Anzeige-Strang
+Safety Status View read-only
+Audit Planning no-write/no-data
+SafetyStop Planning read-only/no-api
+Roles/Rights Planning no-mutation/no-implementation
+Confirm Planning no-action/no-implementation
+```
 
 ## Confirm-Status
 
@@ -30,15 +45,8 @@ prepareRoute: false
 executeRoute: false
 recoveryExecution: false
 dashboardRecoveryButtons: false
-```
-
-## CAN-18.2 Ergebnis
-
-```text
-Confirm-Anzeige nur geplant.
-Keine API, keine Route, keine Datenquelle.
-Confirm-Anzeige darf keine Aktion starten.
-Confirm ersetzt keine Rechte, SafetyStop, Guards, Preflight oder Audit.
+safetyStatusApi: false
+backendSafetyStatusShapeImplemented: false
 ```
 
 ## Weiterhin hart blockiert
@@ -65,8 +73,8 @@ Execute Route
 POST Command Route
 ```
 
-## Naechster Schritt
+## Naechster empfohlener Schritt
 
 ```text
-CAN-18.3 - Confirm Planning Closure / Handoff
+CAN-19.0 - Recovery Safety Architecture Consolidation
 ```
