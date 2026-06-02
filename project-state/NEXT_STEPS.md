@@ -3,24 +3,23 @@
 ## Naechster Schritt
 
 ```text
-CAN-21.1 - Recovery Safety Master Index / File Map Consolidation
+CAN-21.2 - Recovery Safety Master Closure / Next Technical Candidate Decision
 ```
 
-## Ziel CAN-21.1
+## Ziel CAN-21.2
 
-Alle relevanten Safety-Dokumente und Handoffs von CAN-13 bis CAN-21 in einer strukturierten Datei-Landkarte zusammenfassen.
+Den Master-Doku-Strang abschliessen und entscheiden, ob der naechste Schritt weiterhin Planung bleibt oder ob eine echte read-only technische Umsetzung vorbereitet werden soll.
 
-## CAN-21.1 darf klaeren
+## CAN-21.2 darf klaeren
 
 ```text
-welche Dokumente zu welchem CAN-Schritt gehoeren
-welche Handoff-Dateien relevant sind
-welche Projektstatusdateien aktualisiert wurden
-welche technischen Dateien bewusst unveraendert blieben
-welche Datei als Einstieg im neuen Chat gilt
+ob die Master-Doku als abgeschlossen gilt
+welche Option als naechster sicherer Kandidat gilt
+welche technischen Dateien betroffen waeren, falls spaeter Umsetzung geplant wird
+welche No-Go-Grenzen weiter gelten
 ```
 
-## CAN-21.1 darf NICHT enthalten
+## CAN-21.2 darf NICHT enthalten
 
 ```text
 API

@@ -1,8 +1,8 @@
 # CURRENT_STATUS
 
-## Stand: CAN-21.0 abgeschlossen
+## Stand: CAN-21.1 abgeschlossen
 
-CAN-21.0 hat die Recovery Safety Master Documentation konsolidiert.
+CAN-21.1 hat den Recovery Safety Master Index / File Map konsolidiert.
 
 ## Aktueller stabiler Stand
 
@@ -16,13 +16,15 @@ Confirm Planning no-action/no-implementation
 Recovery Safety Architecture Planning / Consolidation
 Safety Architecture Backend Shape Planning read-only/no-route/no-code
 Recovery Safety Master Documentation Consolidation
+Recovery Safety Master Index / File Map Consolidation
 ```
 
 ## Master-Dokumentationsstatus
 
 ```text
 masterDocumentationConsolidation: true
-masterIndexFileMap: false
+masterIndexFileMap: true
+masterClosureDecision: false
 ```
 
 ## Technischer Sicherheitsstand
@@ -67,5 +69,5 @@ POST Command Route
 ## Naechster Schritt
 
 ```text
-CAN-21.1 - Recovery Safety Master Index / File Map Consolidation
+CAN-21.2 - Recovery Safety Master Closure / Next Technical Candidate Decision
 ```

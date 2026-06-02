@@ -1,11 +1,11 @@
 # CHANGELOG
 
-## CAN-21.0
+## CAN-21.1
 
-- Recovery Safety Master Documentation von CAN-13 bis CAN-20 konsolidiert.
-- Safety Planning, Safety Status View, Audit, SafetyStop, Roles/Rights, Confirm, Safety Architecture und Backend Shape zusammengefuehrt.
-- Gemeinsame Sicherheitsreihenfolge, Fail-safe-Regel und harte Blocker erneut bestaetigt.
-- CAN-21.1 Recovery Safety Master Index / File Map Consolidation als naechster Schritt festgelegt.
+- Recovery Safety Master Index / File Map konsolidiert.
+- Dokumente und Handoffs von CAN-13 bis CAN-21 als Datei-Landkarte zusammengefuehrt.
+- Technisch unveraenderte Dateien und harte Blocker erneut dokumentiert.
+- CAN-21.2 Recovery Safety Master Closure / Next Technical Candidate Decision als naechster Schritt festgelegt.
 - Keine Code-Aenderungen.
 - Keine API.
 - Keine Route.
