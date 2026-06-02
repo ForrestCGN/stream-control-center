@@ -1,31 +1,38 @@
 # CURRENT_STATUS
 
-## Stand: CAN-24.9 abgeschlossen
+## Stand: CAN-24.10 abgeschlossen
 
-CAN-24.9 dokumentiert den Teststatus als pending.
+CAN-24.10 dokumentiert den echten lokalen Test und fuegt Sound-Katalog-/ID-Diagnose hinzu.
 
-## Aktueller Status
+## Testergebnis
 
 ```text
-CAN-24.8 Testplan vorhanden
-CAN-24.9 Ergebnisdokumentation pending vorhanden
-Lokaler Test noch nicht bestaetigt
+Routen erreichbar: ja
+404: nein
+500: nein
+DryRun: HTTP 400 wegen Sound wurde nicht gefunden
 ```
 
-## Weiter blockiert
+## Neu
 
 ```text
-Live-Hook: nein
-Produktive Migration: nein
-Sound-Play ueber Bus: nein
-Queue-Aktion: nein
-Redemption-/Twitch-Aenderung: nein
+GET /api/sound/eventbus/command/catalog-status?soundId=1423
+```
+
+## Sicherheitsstatus
+
+```text
+readOnly: true
+soundPlay: false
+queueTouched: false
+rewardExecutedViaBus: false
+redemptionChanged: false
+twitchTouched: false
+productiveMigration: false
 ```
 
 ## Naechster Schritt
 
 ```text
-tools\can24_8_check_routes.cmd lokal ausfuehren
-Ausgabe im Chat posten
-CAN-24.10 Testergebnis auswerten
+CAN-24.11: Mapping-Entscheidung zwischen Channelpoints mediaAssetId und Sound-System soundId/mediaId.
 ```

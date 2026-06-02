@@ -383,6 +383,7 @@ function buildSystemRow(system, clients, fetched) {
   const lifecycleFetch = system.lifecycleKey ? fetched[system.lifecycleKey] : null;
   const compatibilityFetch = system.compatibilityKey ? fetched[system.compatibilityKey] : null;
   const queueStatusFetch = system.queueStatusKey ? fetched[system.queueStatusKey] : null;
+  const catalogStatusFetch = system.catalogStatusKey ? fetched[system.catalogStatusKey] : null;
   const ackStatusFetch = system.ackStatusKey ? fetched[system.ackStatusKey] : null;
   const alertContractFetch = system.alertContractKey ? fetched[system.alertContractKey] : null;
   const alertDryRunFetch = system.alertDryRunKey ? fetched[system.alertDryRunKey] : null;
@@ -405,6 +406,7 @@ function buildSystemRow(system, clients, fetched) {
   const lifecycleBody = bodyOf(lifecycleFetch);
   const compatibilityBody = bodyOf(compatibilityFetch);
   const queueStatusBody = bodyOf(queueStatusFetch);
+  const catalogStatusBody = bodyOf(catalogStatusFetch);
   const ackStatusBody = bodyOf(ackStatusFetch);
   const alertContractBody = bodyOf(alertContractFetch);
   const alertDryRunBody = bodyOf(alertDryRunFetch);
@@ -430,6 +432,7 @@ function buildSystemRow(system, clients, fetched) {
   const lifecycleOk = lifecycleFetch ? lifecycleFetch.ok === true && (!lifecycleBody || lifecycleBody.ok !== false) : null;
   const compatibilityOk = compatibilityFetch ? compatibilityFetch.ok === true && (!compatibilityBody || compatibilityBody.ok !== false) : null;
   const queueStatusOk = queueStatusFetch ? queueStatusFetch.ok === true && (!queueStatusBody || queueStatusBody.ok !== false) : null;
+  const catalogStatusOk = catalogStatusFetch ? catalogStatusFetch.ok === true && (!catalogStatusBody || catalogStatusBody.ok !== false) : null;
   const ackStatusOk = ackStatusFetch ? ackStatusFetch.ok === true && (!ackStatusBody || ackStatusBody.ok !== false) : null;
   const alertContractOk = alertContractFetch ? alertContractFetch.ok === true && (!alertContractBody || alertContractBody.ok !== false) : null;
   const alertDryRunOk = alertDryRunFetch ? alertDryRunFetch.ok === true && (!alertDryRunBody || alertDryRunBody.ok !== false) : null;
@@ -456,7 +459,7 @@ function buildSystemRow(system, clients, fetched) {
     eventBusOk,
     commandCapable
   });
-  const risk = determineRisk({ system, registered, connected, statusOk, eventBusOk, integrationOk, commandOk, contractOk, lifecycleOk, compatibilityOk, queueStatusOk, ackStatusOk, alertContractOk, alertDryRunOk, vipOverlayOk, overlayClientControlOk, channelpointsReadinessOk, overlayClientClassificationOk, overlayClientIdentityOk, channelpointsSoundCandidatesOk, channelpointsSoundDryRunOk, channelpointsSoundShadowOk, channelpointsSoundShadowEvaluationOk, channelpointsSoundShadowAutoOk });
+  const risk = determineRisk({ system, registered, connected, statusOk, eventBusOk, integrationOk, commandOk, contractOk, lifecycleOk, compatibilityOk, queueStatusOk, catalogStatusOk, ackStatusOk, alertContractOk, alertDryRunOk, vipOverlayOk, overlayClientControlOk, channelpointsReadinessOk, overlayClientClassificationOk, overlayClientIdentityOk, channelpointsSoundCandidatesOk, channelpointsSoundDryRunOk, channelpointsSoundShadowOk, channelpointsSoundShadowEvaluationOk, channelpointsSoundShadowAutoOk });
 
   return {
     id: system.id,
@@ -504,6 +507,12 @@ function buildSystemRow(system, clients, fetched) {
     queueBusy: !!(queueStatusBody && queueStatusBody.summary && queueStatusBody.summary.busy),
     queueIdle: !!(queueStatusBody && queueStatusBody.summary && queueStatusBody.summary.idle),
     queuedCount: Number(queueStatusBody && queueStatusBody.summary ? queueStatusBody.summary.queuedCount || 0 : 0),
+    catalogStatusRoute: system.catalogStatusRoute || '',
+    catalogStatusOk,
+    catalogSoundPresetCount: Number(catalogStatusBody && catalogStatusBody.summary ? catalogStatusBody.summary.soundPresetCount || 0 : 0),
+    catalogRequestedSoundPresetFound: !!(catalogStatusBody && catalogStatusBody.summary && catalogStatusBody.summary.requestedSoundPresetFound),
+    catalogRequestedMediaAssetFound: !!(catalogStatusBody && catalogStatusBody.summary && catalogStatusBody.summary.requestedMediaAssetFound),
+    catalogLikelyIssue: catalogStatusBody && catalogStatusBody.diagnosis ? (catalogStatusBody.diagnosis.likelyIssue || '') : '',
     queueMaxLength: Number(queueStatusBody && queueStatusBody.summary ? queueStatusBody.summary.maxLength || 0 : 0),
     queueFull: !!(queueStatusBody && queueStatusBody.summary && queueStatusBody.summary.full),
     currentRequestId: queueStatusBody && queueStatusBody.summary ? (queueStatusBody.summary.currentRequestId || '') : '',
@@ -635,7 +644,7 @@ function determineRisk(input) {
   if (input.system.id === 'communication_bus') return input.statusOk === false ? 'error' : 'ok';
   if (input.statusOk === false && input.eventBusOk === false) return 'error';
   if (!input.registered && input.statusOk !== true) return 'warning';
-  if (input.statusOk === false || input.eventBusOk === false || input.integrationOk === false || input.commandOk === false || input.contractOk === false || input.lifecycleOk === false || input.compatibilityOk === false || input.queueStatusOk === false || input.ackStatusOk === false || input.alertContractOk === false || input.alertDryRunOk === false || input.vipOverlayOk === false || input.overlayClientControlOk === false || input.channelpointsReadinessOk === false || input.overlayClientClassificationOk === false || input.overlayClientIdentityOk === false || input.channelpointsSoundCandidatesOk === false || input.channelpointsSoundDryRunOk === false || input.channelpointsSoundShadowOk === false || input.channelpointsSoundShadowEvaluationOk === false || input.channelpointsSoundShadowAutoOk === false) return 'warning';
+  if (input.statusOk === false || input.eventBusOk === false || input.integrationOk === false || input.commandOk === false || input.contractOk === false || input.lifecycleOk === false || input.compatibilityOk === false || input.queueStatusOk === false || input.catalogStatusOk === false || input.ackStatusOk === false || input.alertContractOk === false || input.alertDryRunOk === false || input.vipOverlayOk === false || input.overlayClientControlOk === false || input.channelpointsReadinessOk === false || input.overlayClientClassificationOk === false || input.overlayClientIdentityOk === false || input.channelpointsSoundCandidatesOk === false || input.channelpointsSoundDryRunOk === false || input.channelpointsSoundShadowOk === false || input.channelpointsSoundShadowEvaluationOk === false || input.channelpointsSoundShadowAutoOk === false) return 'warning';
   return 'ok';
 }
 

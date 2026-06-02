@@ -1234,7 +1234,77 @@ module.exports.init = function init(ctx) {
     return "unknown";
   }
 
-  function publicSoundBusQueueStatus() {
+  function publicSoundBusCatalogStatus(query = {}) {
+    const requestedSoundId = normalizeId(query.soundId || query.id || query.sound || query.mediaId || "");
+    const requestedMediaId = Number(query.mediaId || query.media_id || query.mediaAssetId || query.assetId || (requestedSoundId && /^[0-9]+$/.test(requestedSoundId) ? requestedSoundId : 0)) || 0;
+    const sounds = getSoundList();
+    const soundRows = sounds.map(sound => ({
+      id: String(sound.id || ""),
+      normalizedId: normalizeId(sound.id || ""),
+      label: String(sound.label || sound.name || sound.title || sound.id || ""),
+      file: String(sound.file || ""),
+      type: String(sound.type || "file"),
+      category: String(sound.category || "")
+    }));
+    const soundMatch = requestedSoundId ? soundRows.find(sound => sound.normalizedId === requestedSoundId) || null : null;
+
+    let mediaMatch = null;
+    let mediaError = "";
+    try {
+      if (requestedMediaId) {
+        mediaMatch = database.get("SELECT id, display_name, file_name, relative_path, web_path, type, status, duration_ms, has_audio, has_video FROM media_assets WHERE id = :id LIMIT 1", { id: requestedMediaId }) || null;
+      }
+    } catch (err) {
+      mediaError = err && err.message ? err.message : String(err);
+    }
+
+    return {
+      ok: true,
+      module: MODULE_NAME,
+      version: MODULE_VERSION,
+      capability: SOUND_BUS_COMMAND_CAPABILITY,
+      statusApiVersion: SOUND_BUS_COMMAND_API_VERSION,
+      feature: "sound_bus_catalog_status",
+      mode: "read_only_catalog_diagnosis",
+      readOnly: true,
+      soundSystemTouched: false,
+      queueTouched: false,
+      audioTouched: false,
+      legacyApiFlow: "unchanged",
+      legacyWebSocketFlow: "unchanged",
+      requested: {
+        soundId: requestedSoundId,
+        mediaId: requestedMediaId
+      },
+      summary: {
+        soundPresetCount: soundRows.length,
+        requestedSoundPresetFound: !!soundMatch,
+        requestedMediaAssetFound: !!mediaMatch,
+        mediaRegistryChecked: !!requestedMediaId,
+        mediaRegistryError: mediaError
+      },
+      soundMatch,
+      mediaMatch,
+      samples: {
+        soundPresets: soundRows.slice(0, 50)
+      },
+      diagnosis: {
+        likelyIssue: requestedSoundId && !soundMatch && !!mediaMatch
+          ? "requested id exists as media_assets id but not as sound preset id"
+          : (requestedSoundId && !soundMatch ? "requested sound preset id not found" : ""),
+        currentDryRunExpectation: "sound.play.request currently validates payload through normalizePlayRequest(soundId), so numeric mediaAssetId alone is not enough unless mapped or passed as mediaId.",
+        suggestedNextStep: "Map Channelpoints mediaAssetId to mediaId in Sound-Bus payload or teach dry-run to accept mediaId/mediaAssetId separately."
+      },
+      routes: {
+        list: `${(config.routes && config.routes.prefix) || "/api/sound"}/list`,
+        catalogStatus: `${(config.routes && config.routes.prefix) || "/api/sound"}/eventbus/command/catalog-status`,
+        dryRun: `${(config.routes && config.routes.prefix) || "/api/sound"}/eventbus/command/dry-run`
+      },
+      updatedAt: core.nowIso()
+    };
+  }
+
+function publicSoundBusQueueStatus() {
     const current = state.current ? publicItem(state.current) : null;
     const queueItems = Array.isArray(state.queue) ? state.queue.map(publicItem) : [];
     const parallelItems = Array.isArray(state.parallel) ? state.parallel.map(publicItem) : [];
@@ -3654,6 +3724,7 @@ module.exports.init = function init(ctx) {
   app.get(`${prefix}/eventbus/command/lifecycle`, (req, res) => res.json(publicSoundBusCommandLifecycleStatus()));
   app.get(`${prefix}/eventbus/command/play-compatibility`, (req, res) => res.json(publicSoundPlayCompatibilityStatus()));
   app.get(`${prefix}/eventbus/command/queue-status`, (req, res) => res.json(publicSoundBusQueueStatus()));
+  app.get(`${prefix}/eventbus/command/catalog-status`, (req, res) => res.json(publicSoundBusCatalogStatus(req.query || {})));
   app.get(`${prefix}/eventbus/command/reset`, (req, res) => res.json({ ...resetSoundBusCommandRuntime(), reset: true, resetAt: core.nowIso() }));
   app.get(`${prefix}/eventbus/command/test`, (req, res) => res.json(emitSoundBusCommandTest(req.query || {})));
   app.post(`${prefix}/eventbus/command/test`, (req, res) => res.json(emitSoundBusCommandTest(req.body || {})));

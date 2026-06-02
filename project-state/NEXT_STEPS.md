@@ -1,27 +1,23 @@
 # NEXT_STEPS
 
-## Sofortiger naechster Schritt
-
-Lokalen Test ausfuehren:
-
-```bat
-tools\can24_8_check_routes.cmd
-```
-
-## Danach
-
-Testergebnis hier im Chat posten.
-
-## Naechster CAN-Step
+## Naechster Schritt
 
 ```text
-CAN-24.10 Testergebnis auswerten
+CAN-24.11: Mapping-Entscheidung treffen
 ```
 
-## Nicht weiterbauen, bevor der Test da ist
+## Zu klaeren
 
 ```text
-Kein EventSub-/Execute-Live-Hook.
-Keine produktive Sound-Migration.
-Keine weitere Sound-Flow-Umstellung.
+Soll Channelpoints im Bus-Payload mediaId/mediaAssetId uebergeben?
+Soll Sound-DryRun mediaId/mediaAssetId akzeptieren?
+Soll ein Mapping mediaAssetId -> Sound-Preset-ID gebaut werden?
+```
+
+## Nicht weiterbauen, bevor klar ist
+
+```text
+Keine produktive Migration.
+Kein EventSub-/Execute-Hook.
+Kein Sound-Play ueber Bus.
 ```
