@@ -68,13 +68,17 @@
 - [x] CAN-32.1 Bus-Diagnose Übersicht Read-only Summary anwenden und prüfen.
 - [x] CAN-32.2 Testergebnis dokumentieren.
 
-## CAN-33
+## CAN-33 abgeschlossen
 
 - [x] CAN-33.0 neuen Arbeitsblock bewusst auswählen.
 - [x] CAN-33.1 Commands-Modul analysieren.
 - [x] CAN-33.2 Commands-Modul Doku und Read-only Diagnose-Regeln ergänzen.
-- [ ] CAN-33.3 Commands Dashboard Read-only Diagnosekarte anwenden und prüfen.
-- [ ] CAN-33.4 Testergebnis dokumentieren.
+- [x] CAN-33.3 Commands Dashboard Read-only Diagnosekarte anwenden und prüfen.
+- [x] CAN-33.4 Testergebnis dokumentieren.
+
+## CAN-34
+
+- [ ] CAN-34.0 neuen Arbeitsblock bewusst auswählen.
 
 ## Offene/zu beobachtende Punkte
 

@@ -1,8 +1,43 @@
 # CHANGELOG
 
+## CAN-33.4
+
+- Erfolgreiche Dashboard-Sichtprüfung von CAN-33.3 dokumentiert.
+- Bestätigt sichtbar:
+  - `Commands Read-only Diagnose`
+  - `READ-ONLY OK`
+  - `v0.1.6`
+  - `channel-guard`
+  - Status OK: ja
+  - Schema OK: ja
+  - Light Status: ja
+  - Schema Touch: nein
+  - Commands: 15
+  - Logs geladen: 15
+  - Katalog-Kategorien: 7
+  - Katalog-Aktionen: 24
+- Bestätigte Read-only Routen:
+  - `GET /api/commands/status`
+  - `GET /api/commands/list`
+  - `GET /api/commands/catalog`
+  - `GET /api/commands/logs`
+  - `GET /api/commands/history`
+  - `GET /api/commands/media-command-preview`
+- Bestätigte produktiv gesperrte Routen:
+  - `POST /api/commands/upsert`
+  - `POST /api/commands/delete`
+  - `GET/POST /api/commands/execute`
+- Bestätigt:
+  - Keine Execute-/Upsert-/Delete-Buttons.
+  - Keine Command-Ausführung.
+  - Keine Speicherung.
+  - Kein Löschen.
+  - Keine Zielmodule ausgelöst.
+- Keine Codeänderung in CAN-33.4.
+
 ## CAN-33.3
 
-- Commands-Dashboard Read-only-Diagnosekarte vorbereitet.
+- Commands-Dashboard Read-only-Diagnosekarte umgesetzt.
 - Neue Dateien:
   - `htdocs/dashboard/modules/commands_readonly_diagnostics.js`
   - `htdocs/dashboard/modules/commands_readonly_diagnostics.css`
@@ -11,16 +46,6 @@
 - Nicht geändert:
   - `htdocs/dashboard/modules/commands.js`
   - `backend/modules/commands.js`
-- Die Karte nutzt nur:
-  - `GET /api/commands/status`
-  - `GET /api/commands/list`
-  - `GET /api/commands/logs?limit=15`
-  - `GET /api/commands/catalog`
-- Gesperrt/nicht genutzt:
-  - `/api/commands/execute`
-  - `/api/commands/upsert`
-  - `/api/commands/delete`
-- Keine produktiven Aktionen, keine Command-Ausführung, keine DB-Migration.
 
 ## CAN-33.2
 
@@ -31,11 +56,3 @@
 ## CAN-33.1
 
 - Commands-Modul analysiert.
-- Ergebnis:
-  - Backend `commands.js` besitzt MODULE_META, Status, Routenliste und DryRun/Testpfad.
-  - Dashboard `commands.js` ist umfangreich und nutzt Status/List/Logs/Catalog/Test/Execute/Upsert/Delete.
-  - Dedizierte Doku `docs/modules/commands.md` fehlte.
-
-## CAN-32.2
-
-- Erfolgreiche Dashboard-Sichtprüfung von CAN-32.1 dokumentiert.
