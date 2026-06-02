@@ -59,6 +59,55 @@ const ENDPOINTS = {
   vipIntegration: '/api/vip-sound/integration-check'
 };
 
+const LEGACY_DIRECT_PATHS = {
+  sound_system: [
+    { type: 'productive_rest', path: '/api/sound/play', risk: 'medium', note: 'Produktiver Sound-Start bleibt Legacy/direct bis Bus-Migration freigegeben ist.' },
+    { type: 'state_rest', path: '/api/sound/current', risk: 'low', note: 'Read-only aktueller Soundstatus.' },
+    { type: 'state_rest', path: '/api/sound/queue', risk: 'low', note: 'Read-only Queue-Status; keine Queue-Aktion.' }
+  ],
+  alert_system: [
+    { type: 'productive_rest', path: '/api/alerts', risk: 'medium', note: 'Produktiver Alert-Flow bleibt Legacy/direct bis Bus-Migration freigegeben ist.' },
+    { type: 'legacy_broadcast', path: 'broadcastWS/overlay', risk: 'medium', note: 'Overlay-Auslieferung kann noch parallel zu Bus-Status laufen.' },
+    { type: 'state_rest', path: '/api/alerts/eventbus/status', risk: 'low', note: 'Status-/Diagnosepfad.' }
+  ],
+  vip_sound_overlay: [
+    { type: 'productive_rest', path: '/api/vip-sound/enqueue', risk: 'medium', note: 'Produktiver VIP-Overlay-Flow bleibt Legacy/direct.' },
+    { type: 'client_ack_rest', path: '/api/vip-sound/client/audio-started', risk: 'low', note: 'Client-ACK Route.' },
+    { type: 'client_ack_rest', path: '/api/vip-sound/client/audio-ended', risk: 'low', note: 'Client-ACK Route.' },
+    { type: 'client_ack_rest', path: '/api/vip-sound/client/finished', risk: 'low', note: 'Client-Finish ACK Route.' }
+  ],
+  overlay_monitor: [
+    { type: 'manual_repair_rest', path: '/api/overlay-monitor/obs-source/action', risk: 'high', note: 'Manuelle OBS-Reparaturroute; niemals automatisch aus Matrix/Status ausfuehren.' },
+    { type: 'manual_refresh_rest', path: '/api/overlay-monitor/obs-inventory?refresh=1', risk: 'medium', note: 'Manueller OBS-Inventarrefresh; nicht automatisch ausfuehren.' }
+  ],
+  channelpoints: [
+    { type: 'productive_rest', path: '/api/channelpoints/execute', risk: 'medium', note: 'Direkte Reward-Ausfuehrung bleibt Legacy/direct.' },
+    { type: 'productive_rest', path: '/api/channelpoints/rewards/:idOrKey/execute', risk: 'medium', note: 'Reward-spezifische Ausfuehrung bleibt Legacy/direct.' },
+    { type: 'eventsub_rest', path: '/api/channelpoints/eventsub/redemption', risk: 'medium', note: 'EventSub-Redemption-Handler bleibt produktiver direkter Eingang.' }
+  ]
+};
+
+function buildLegacyDirectSummary(rows = []) {
+  const summary = {
+    total: rows.length,
+    productive: 0,
+    highRisk: 0,
+    mediumRisk: 0,
+    lowRisk: 0,
+    byType: {}
+  };
+  for (const row of rows) {
+    if (!row) continue;
+    const type = row.type || 'unknown';
+    summary.byType[type] = (summary.byType[type] || 0) + 1;
+    if (type.includes('productive') || type.includes('eventsub')) summary.productive += 1;
+    if (row.risk === 'high') summary.highRisk += 1;
+    else if (row.risk === 'medium') summary.mediumRisk += 1;
+    else summary.lowRisk += 1;
+  }
+  return summary;
+}
+
 const SYSTEMS = [
   {
     id: 'communication_bus',
@@ -269,6 +318,8 @@ async function buildMatrix(query) {
 
   const rows = SYSTEMS.map(system => buildSystemRow(system, clients, fetched));
   const summary = summarizeRows(rows);
+  const legacyDirectRows = rows.flatMap(row => Array.isArray(row.legacyDirectPaths) ? row.legacyDirectPaths.map(item => ({ systemId: row.id, systemName: row.name, ...item })) : []);
+  const legacyDirectSummary = buildLegacyDirectSummary(legacyDirectRows);
 
   return {
     ok: rows.every(row => row.risk !== 'error'),
@@ -283,6 +334,8 @@ async function buildMatrix(query) {
     baseUrl,
     endpoints: ENDPOINTS,
     summary,
+    legacyDirectSummary,
+    legacyDirectRows,
     rows,
     todoNextSteps: TODO_NEXT_STEPS,
     fetched: compactFetched(fetched),
@@ -480,6 +533,8 @@ function buildSystemRow(system, clients, fetched) {
     overlayIdentityDuplicates: Number(overlayClientIdentityBody && overlayClientIdentityBody.summary ? overlayClientIdentityBody.summary.duplicates || 0 : 0),
     overlayCapabilityKinds: Number(overlayClientIdentityBody && overlayClientIdentityBody.summary ? overlayClientIdentityBody.summary.capabilityKinds || 0 : 0),
     overlayIdentityContractFormat: overlayClientIdentityBody && overlayClientIdentityBody.contract ? (overlayClientIdentityBody.contract.idFormat || '') : '',
+    legacyDirectPaths: Array.isArray(LEGACY_DIRECT_PATHS[system.id]) ? LEGACY_DIRECT_PATHS[system.id] : [],
+    legacyDirectSummary: buildLegacyDirectSummary(Array.isArray(LEGACY_DIRECT_PATHS[system.id]) ? LEGACY_DIRECT_PATHS[system.id] : []),
     ackCapable,
     commandStatus: system.commandStatus,
     commandCapable,

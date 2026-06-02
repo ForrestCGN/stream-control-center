@@ -1,13 +1,11 @@
 # CHANGELOG
 
-## CAN-23.16
+## CAN-23.17
 
-- `GET /api/overlay-monitor/client-control/identity-contract` als read-only Route in `overlay_monitor.js` ergaenzt.
-- Normalisierte Overlay-ID-Empfehlung `overlay:<stable-id>` sichtbar gemacht.
-- Capability-Empfehlungen und duplicate normalized IDs sichtbar gemacht.
-- Bus-Integration-Matrix liest Overlay-ID-/Capability-Vertrag mit aus.
-- Dashboard-Bus-Matrix zeigt ID-Format, Duplikate und Capability-Anzahl.
-- Keine Client-Umbenennung.
-- Keine Overlay-/OBS-Aktion.
-- Kein EventBus-Emit.
+- Legacy/direct REST-/broadcastWS-Wege pro Modul in `bus_integration_matrix.js` ergaenzt.
+- Bus-Matrix liefert `legacyDirectPaths`, `legacyDirectSummary`, `legacyDirectRows`.
+- Dashboard-Bus-Matrix zeigt Legacy/direct Anzahl, produktive Pfade und High-Risk-Pfade.
+- Keine Route wurde umgestellt.
+- Keine Legacy-Route wird ausgefuehrt.
+- Kein Sound/Alert/Overlay/OBS/EventBus-Emit.
 - Keine Recovery.

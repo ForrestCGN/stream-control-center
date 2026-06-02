@@ -1,23 +1,19 @@
 # CURRENT_STATUS
 
-## Stand: CAN-23.16 abgeschlossen
+## Stand: CAN-23.17 abgeschlossen
 
-CAN-23.16 hat Overlay-Client-ID-/Capability-Vertrag read-only sichtbar gemacht.
-
-## Neu
-
-```text
-GET /api/overlay-monitor/client-control/identity-contract
-```
+CAN-23.17 hat Legacy/direct REST-/broadcastWS-Wege pro Modul read-only sichtbar gemacht.
 
 ## Sicherheitsstatus
 
 ```text
 readOnly: true
-clientRenamed: false
-overlayChanged: false
+routesChanged: false
+legacyRouteExecuted: false
+soundTouched: false
+alertTouched: false
+overlayTouched: false
 obsTouched: false
-browserSourceRefresh: false
 eventBusEmit: false
 recoveryExecution: false
 ```
@@ -25,5 +21,5 @@ recoveryExecution: false
 ## Naechster Schritt
 
 ```text
-Legacy/direct REST-/broadcastWS-Wege pro Modul sichtbar markieren.
+CAN-23 Abschluss konsolidieren und danach naechsten Migrationskandidaten entscheiden.
 ```

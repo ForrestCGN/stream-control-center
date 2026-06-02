@@ -3,11 +3,20 @@
 ## Naechster Schritt
 
 ```text
-Legacy/direct REST-/broadcastWS-Wege pro Modul sichtbar markieren.
+CAN-23 Abschluss konsolidieren und danach naechsten Migrationskandidaten entscheiden.
 ```
 
-## Danach
+## Moegliche Kandidaten danach
 
 ```text
-Recovery/Selbstheilung spaeter planen, erst wenn Bus-Kommunikation stabil und sichtbar ist.
+Sound: einen echten Reward/Caller testweise ueber Dry-Run vorbereiten
+Alert: Alert-Dry-Run ins Dashboard aufnehmen
+Overlay: produktive Overlay-IDs in HTML-Dateien vereinheitlichen
+Dashboard: Bus-Matrix uebersichtlicher gruppieren
+```
+
+## Weiter blockiert
+
+```text
+Recovery/Selbstheilung erst nach SafetyStop/Confirm/Rollen/Audit.
 ```

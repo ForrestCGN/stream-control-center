@@ -2,8 +2,9 @@
 
 ## CAN-23 Bus-Integration
 
-- [x] CAN-23.16 Overlay-Client-IDs und Capabilities vereinheitlicht sichtbar machen.
-- [ ] Legacy/direct REST-/broadcastWS-Wege pro Modul sichtbar markieren.
+- [x] CAN-23.17 Legacy/direct REST-/broadcastWS-Wege pro Modul sichtbar markieren.
+- [ ] CAN-23 Abschluss konsolidieren.
+- [ ] Naechsten echten Migrationskandidaten entscheiden.
 - [ ] Recovery/Selbstheilung spaeter planen, erst wenn Bus-Kommunikation stabil und sichtbar ist.
 
 ## Weiterhin hart blockiert
