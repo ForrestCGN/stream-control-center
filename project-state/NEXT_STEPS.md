@@ -1,35 +1,31 @@
 # NEXT_STEPS
 
-## Sofortiger naechster Schritt
-
-Lokalen Execute-Shadow-Test ausfuehren:
-
-```bat
-tools\can24_21_execute_shadow_test.cmd
-```
-
-## Erwartung
+## Naechster Schritt
 
 ```text
-Legacy Execute ok
-Shadow lastAutoResult accepted true
-Shadow queueTouched false
-Shadow audioTouched false
-Shadow productiveMigration false
-enabled danach false
+CAN-24.23: Entscheidung, ob ein EventSub-/Redemption-Test noetig und sicher ist oder ob die Sound-Migration zunaechst als Shadow-Stufe abgeschlossen wird.
 ```
 
-## Danach
+## Entscheidungsbasis
 
 ```text
-CAN-24.22: Testergebnis auswerten und dokumentieren.
+mediaId-DryRun erfolgreich
+Shadow-Hook Disabled-Test erfolgreich
+enabled=true Auto-Test erfolgreich
+Execute-Shadow-Test erfolgreich
+Legacy-Flow weiterhin funktionsfaehig
+Shadow-Hook ohne Queue/Audio-Touch
 ```
+
+## Vorsicht
+
+Ein EventSub-/Redemption-Test ist riskanter als der lokale Execute-Test, weil je nach Config Completion-/Statuslogik greifen kann.
 
 ## Weiterhin blockiert
 
 ```text
-Kein EventSub-/Twitch-Redemption-Test.
 Keine produktive Sound-Bus-Migration.
+Kein produktiver Sound-Bus-Play.
 Kein Hook fuer alle Rewards.
 Keine Twitch-Write-Aktion durch Shadow.
 ```

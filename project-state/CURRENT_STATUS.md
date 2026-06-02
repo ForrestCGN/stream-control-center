@@ -1,33 +1,39 @@
 # CURRENT_STATUS
 
-## Stand: CAN-24.21 abgeschlossen
+## Stand: CAN-24.22 abgeschlossen
 
-CAN-24.21 stellt ein lokales Testscript fuer den kontrollierten Execute-Shadow-Test bereit.
+CAN-24.22 dokumentiert den erfolgreichen lokalen Execute-Shadow-Test.
 
-## Neu
-
-```text
-tools/can24_21_execute_shadow_test.cmd
-```
-
-## Sicherheitsstatus
+## Bestaetigt
 
 ```text
-Nur bauernweisheit
-Shadow bleibt DryRun/Diagnose
-Auto-Deaktivierung danach
-kein produktiver Sound-Bus-Play
-keine Sound-Bus-Migration
-kein Hook fuer alle Rewards
+Legacy Execute: ok
+Legacy Sound ueber /api/sound/play: gestartet
+Shadow lastAutoResult.accepted: true
+Shadow skipped: false
+Shadow queueTouched: false
+Shadow audioTouched: false
+Shadow productiveMigration: false
+Endstatus enabled: false
 ```
 
-## Hinweis
+## Korrigiert
 
-Der lokale Execute-Test kann den bestehenden Legacy-Sound ueber `/api/sound/play` ausloesen.
+```text
+Veralteter Config-Note-Text im Shadow-Auto-Status wurde aktualisiert.
+```
+
+## Weiter blockiert
+
+```text
+EventSub-/Twitch-Redemption-Test: nein
+Produktive Sound-Bus-Migration: nein
+Produktiver Sound-Bus-Play: nein
+Hook fuer alle Rewards: nein
+```
 
 ## Naechster Schritt
 
 ```text
-Lokalen Test ausfuehren.
-CAN-24.22 Testergebnis dokumentieren.
+CAN-24.23: Entscheidung ueber EventSub-/Redemption-Test oder Abschluss der Shadow-Stufe.
 ```

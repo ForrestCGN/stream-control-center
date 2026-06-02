@@ -1,10 +1,10 @@
 # CHANGELOG
 
-## CAN-24.21
+## CAN-24.22
 
-- Lokales Execute-Shadow-Testscript fuer `bauernweisheit` ergaenzt.
-- Script aktiviert Shadow temporaer, ruft Legacy-Execute auf und deaktiviert danach wieder.
-- Script enthaelt bestaetigende Abfrage vor dem echten Execute-Test.
-- Dokumentiert, dass Legacy-Sound ueber `/api/sound/play` moeglich ist.
-- Kein produktiver Sound-Bus-Play.
+- Erfolgreichen lokalen Execute-Shadow-Test dokumentiert.
+- Bestaetigt: Legacy Execute ok, Shadow accepted true, keine Queue/Audio-Beruehrung durch Shadow.
+- Endstatus `enabled:false` dokumentiert.
+- Veralteten Config-Note-Text korrigiert.
 - Keine produktive Sound-Bus-Migration.
+- Kein produktiver Sound-Bus-Play.

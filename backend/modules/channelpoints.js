@@ -2843,7 +2843,7 @@ function configureChannelpointsSoundShadowDryRunAuto(input = {}) {
     selectedCandidate: selected || null,
     enabled,
     candidateFound: !!selected,
-    note: 'Configuration only. No EventSub/Execute hook installed.'
+    note: 'Configuration only. Execute shadow hook is installed but remains disabled unless explicitly enabled.'
   };
 
   return {

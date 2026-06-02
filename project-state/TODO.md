@@ -3,9 +3,10 @@
 ## CAN-24
 
 - [x] CAN-24.21 Testplan/Script fuer genau einen lokalen Execute-Shadow-Test vorbereiten.
-- [ ] Lokalen Test mit `tools\can24_21_execute_shadow_test.cmd` ausfuehren.
-- [ ] CAN-24.22 Testergebnis auswerten und dokumentieren.
-- [ ] Danach entscheiden, ob ein echter EventSub-/Redemption-Test ueberhaupt noetig und sicher ist.
+- [x] CAN-24.22 Execute-Shadow-Test Ergebnis dokumentieren und Config-Note korrigieren.
+- [ ] CAN-24.23 Entscheidung, ob ein EventSub-/Redemption-Test noetig und sicher ist oder ob die Shadow-Stufe abgeschlossen wird.
+- [ ] Danach ggf. EventSub-/Redemption-Test separat planen.
+- [ ] Danach ggf. Abschlussdokumentation fuer Sound-Shadow-Stufe erstellen.
 
 ## Weiterhin hart blockiert
 

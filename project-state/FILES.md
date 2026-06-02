@@ -1,6 +1,6 @@
 # FILES
 
-## CAN24.21 ZIP
+## CAN24.22 ZIP
 
 Enthaltene Dateien:
 
@@ -29,7 +29,8 @@ Enthaltene Dateien:
 - `docs/system-inspection/CAN24_19_SHADOW_ENABLED_TEST_SUCCESS.md`
 - `docs/system-inspection/CAN24_20_EXECUTE_REDEMPTION_SHADOW_TEST_DECISION.md`
 - `docs/system-inspection/CAN24_21_EXECUTE_SHADOW_TEST_PLAN.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN24_21.md`
+- `docs/system-inspection/CAN24_22_EXECUTE_SHADOW_TEST_SUCCESS.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN24_22.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
@@ -38,4 +39,4 @@ Enthaltene Dateien:
 
 ## Hinweis
 
-Die Code-Dateien entsprechen dem CAN-24.20 Stand. CAN-24.21 ergaenzt ein lokales Testscript und Dokumentation.
+CAN-24.22 enthaelt eine Text-/Statuskorrektur in `backend/modules/channelpoints.js` und Dokumentation des erfolgreichen Tests.
