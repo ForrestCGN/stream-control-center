@@ -2672,6 +2672,107 @@ function buildChannelpointsSoundMigrationCandidatesStatus() {
   };
 }
 
+async function validateChannelpointsSoundMigrationCandidateDryRun(input = {}) {
+  const data = input && typeof input === 'object' ? input : {};
+  const candidatesStatus = buildChannelpointsSoundMigrationCandidatesStatus();
+  const candidates = Array.isArray(candidatesStatus.candidates) ? candidatesStatus.candidates : [];
+  const requested = cleanString(data.rewardKey || data.id || data.rewardId || data.candidate || '');
+  const selected = requested
+    ? candidates.find(candidate => String(candidate.rewardKey || '') === requested || String(candidate.id || '') === requested)
+    : (candidatesStatus.firstCandidate || null);
+
+  if (!selected) {
+    return {
+      ok: false,
+      module: MODULE_NAME,
+      moduleVersion: MODULE_VERSION,
+      moduleBuild: MODULE_BUILD,
+      feature: 'channelpoints_sound_migration_candidate_dry_run',
+      mode: 'sound_dry_run_proxy',
+      dryRunOnly: true,
+      accepted: false,
+      error: 'candidate_not_found',
+      soundSystemTouched: false,
+      queueTouched: false,
+      rewardExecuted: false,
+      redemptionChanged: false,
+      twitchTouched: false,
+      eventBusEmit: false,
+      updatedAt: nowIso()
+    };
+  }
+
+  const payload = {
+    ...(selected.proposedSoundCommandPayload || {}),
+    ...(data.payload && typeof data.payload === 'object' ? data.payload : {}),
+    meta: {
+      ...((selected.proposedSoundCommandPayload || {}).meta || {}),
+      ...((data.payload && data.payload.meta && typeof data.payload.meta === 'object') ? data.payload.meta : {}),
+      can: 'CAN-24.1',
+      dryRunProxy: 'channelpoints'
+    }
+  };
+
+  try {
+    const targetUrl = cleanString(data.soundDryRunUrl || '/api/sound/eventbus/command/dry-run');
+    const response = await httpJsonRequest('POST', targetUrl, payload);
+    const dryRun = response && response.data ? response.data : {};
+    return {
+      ok: !!(dryRun && dryRun.ok),
+      module: MODULE_NAME,
+      moduleVersion: MODULE_VERSION,
+      moduleBuild: MODULE_BUILD,
+      feature: 'channelpoints_sound_migration_candidate_dry_run',
+      mode: 'sound_dry_run_proxy',
+      dryRunOnly: true,
+      accepted: !!(dryRun && dryRun.accepted),
+      candidate: selected,
+      payload,
+      soundDryRun: dryRun,
+      statusCode: response.statusCode,
+      soundSystemDryRunTouched: true,
+      soundSystemTouched: false,
+      queueTouched: false,
+      rewardExecuted: false,
+      redemptionChanged: false,
+      twitchTouched: false,
+      eventBusEmit: false,
+      productiveMigration: false,
+      routes: {
+        candidates: `${ROUTE_PREFIX}/bus/sound-migration-candidates`,
+        dryRunCandidate: `${ROUTE_PREFIX}/bus/sound-migration-candidates/dry-run`,
+        soundDryRun: targetUrl
+      },
+      updatedAt: nowIso()
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      module: MODULE_NAME,
+      moduleVersion: MODULE_VERSION,
+      moduleBuild: MODULE_BUILD,
+      feature: 'channelpoints_sound_migration_candidate_dry_run',
+      mode: 'sound_dry_run_proxy',
+      dryRunOnly: true,
+      accepted: false,
+      candidate: selected,
+      payload,
+      error: err && err.message ? err.message : String(err),
+      soundDryRun: err && err.data ? err.data : null,
+      statusCode: err && err.statusCode ? err.statusCode : 500,
+      soundSystemDryRunTouched: true,
+      soundSystemTouched: false,
+      queueTouched: false,
+      rewardExecuted: false,
+      redemptionChanged: false,
+      twitchTouched: false,
+      eventBusEmit: false,
+      productiveMigration: false,
+      updatedAt: nowIso()
+    };
+  }
+}
+
 function buildChannelpointsBusRequestReadinessStatus() {
   const rewards = Array.isArray(listRewards({ query: {} })) ? listRewards({ query: {} }) : [];
   const bus = buildBusStatus();
@@ -2858,6 +2959,7 @@ function buildStatus(extra = {}) {
       `${ROUTE_PREFIX}/status`,
       `${ROUTE_PREFIX}/bus/request-readiness`,
       `${ROUTE_PREFIX}/bus/sound-migration-candidates`,
+      `${ROUTE_PREFIX}/bus/sound-migration-candidates/dry-run`,
       `${ROUTE_PREFIX}/model`,
       `${ROUTE_PREFIX}/media-plan`,
       `${ROUTE_PREFIX}/schema-preview`,
@@ -3098,6 +3200,18 @@ function init({ app }) {
   });
   app.get(`${ROUTE_PREFIX}/bus/sound-migration-candidates`, (req, res) => {
     try { res.json(buildChannelpointsSoundMigrationCandidatesStatus()); } catch (err) { sendError(res, 500, err); }
+  });
+  app.get(`${ROUTE_PREFIX}/bus/sound-migration-candidates/dry-run`, async (req, res) => {
+    try {
+      const result = await validateChannelpointsSoundMigrationCandidateDryRun(req.query || {});
+      res.status(result.ok ? 200 : (result.error === 'candidate_not_found' ? 404 : 400)).json(result);
+    } catch (err) { sendError(res, 500, err); }
+  });
+  app.post(`${ROUTE_PREFIX}/bus/sound-migration-candidates/dry-run`, async (req, res) => {
+    try {
+      const result = await validateChannelpointsSoundMigrationCandidateDryRun(req.body || {});
+      res.status(result.ok ? 200 : (result.error === 'candidate_not_found' ? 404 : 400)).json(result);
+    } catch (err) { sendError(res, 500, err); }
   });
   app.get(`${ROUTE_PREFIX}/model`, (req, res) => { try { res.json(buildModel()); } catch (err) { sendError(res, 500, err); } });
   app.get(`${ROUTE_PREFIX}/media-plan`, (req, res) => { try { res.json(buildMediaPlan()); } catch (err) { sendError(res, 500, err); } });

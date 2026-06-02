@@ -1,31 +1,29 @@
 # CURRENT_STATUS
 
-## Stand: CAN-24.0 abgeschlossen
+## Stand: CAN-24.1 abgeschlossen
 
-CAN-24.0 hat Sound-Migrationskandidaten read-only vorbereitet.
+CAN-24.1 hat die Dry-Run-Validierung fuer einen Channelpoints-Sound-Migrationskandidaten ergaenzt.
 
 ## Neu
 
 ```text
-GET /api/channelpoints/bus/sound-migration-candidates
+GET/POST /api/channelpoints/bus/sound-migration-candidates/dry-run
 ```
 
 ## Sicherheitsstatus
 
 ```text
-readOnly: true
-soundTouched: false
-dryRunExecuted: false
+soundPlay: false
 queueTouched: false
 rewardExecuted: false
 redemptionChanged: false
 twitchTouched: false
 productiveMigration: false
-eventBusEmit: false
+soundSystemDryRunTouched: true
 ```
 
 ## Naechster Schritt
 
 ```text
-CAN-24.1: Ausgewaehlten Kandidaten gegen /api/sound/eventbus/command/dry-run validierbar machen.
+CAN-24.2: Dry-Run Ergebnis im Dashboard als eigene Candidate-Card anzeigen.
 ```

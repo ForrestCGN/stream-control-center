@@ -1,12 +1,12 @@
 # CHANGELOG
 
-## CAN-24.0
+## CAN-24.1
 
-- `GET /api/channelpoints/bus/sound-migration-candidates` als read-only Route ergaenzt.
-- Kandidaten enthalten vorgeschlagenes `sound.play.request` Payload.
-- Bus-Matrix zeigt Kandidatenstatus und ersten Kandidaten.
-- Keine produktive Ausfuehrung.
-- Kein Sound.
-- Kein Dry-Run.
+- `GET/POST /api/channelpoints/bus/sound-migration-candidates/dry-run` ergaenzt.
+- Route validiert firstCandidate oder expliziten rewardKey gegen `/api/sound/eventbus/command/dry-run`.
+- Bus-Matrix liest Dry-Run-Status mit aus.
+- Kein Sound-Play.
 - Keine Queue.
-- Keine Twitch-/Redemption-Aenderung.
+- Keine Reward-Ausfuehrung.
+- Keine Redemption-/Twitch-Aenderung.
+- Keine produktive Migration.

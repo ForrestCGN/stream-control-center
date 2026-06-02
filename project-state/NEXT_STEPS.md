@@ -3,19 +3,24 @@
 ## Naechster Schritt
 
 ```text
-CAN-24.1: Ausgewaehlten Kandidaten gegen /api/sound/eventbus/command/dry-run validierbar machen.
+CAN-24.2: Dry-Run Ergebnis im Dashboard als eigene Candidate-Card anzeigen.
 ```
 
 ## Ziel
 
-Ein einzelner Sound-Migrationskandidat soll manuell validierbar werden.
-
-## Sicherheitsgrenze
+In der Bus-Matrix oder einem Sound-Migration-Bereich soll sichtbar werden:
 
 ```text
-Dry-Run darf nur Diagnose-State beruehren.
-Kein Sound.
-Keine produktive Reward-Ausfuehrung.
-Keine Redemption-Aenderung.
-Keine Twitch-Aktion.
+firstCandidate
+Payload
+Dry-Run OK/Accepted
+QueueTouched false
+AudioTouched false
+Fehlerdetails
+```
+
+## Weiter blockiert
+
+```text
+Keine produktive Migration ohne eigenen kleinen Go-Schritt.
 ```

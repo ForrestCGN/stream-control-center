@@ -3,7 +3,7 @@
 ## CAN-24
 
 - [x] CAN-24.0 Sound-Migration Candidate 1 vorbereiten.
-- [ ] CAN-24.1 Ausgewaehlten Kandidaten gegen Sound-Dry-Run validierbar machen.
+- [x] CAN-24.1 Ausgewaehlten Kandidaten gegen Sound-Dry-Run validierbar machen.
 - [ ] CAN-24.2 Ergebnis im Dashboard besser anzeigen.
 - [ ] CAN-24.3 Erst danach entscheiden, ob ein produktiver Caller testweise umgestellt werden darf.
 

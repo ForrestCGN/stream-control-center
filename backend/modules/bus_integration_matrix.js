@@ -50,6 +50,7 @@ const ENDPOINTS = {
   channelpointsStatus: '/api/channelpoints/status',
   channelpointsBusRequestReadiness: '/api/channelpoints/bus/request-readiness',
   channelpointsSoundMigrationCandidates: '/api/channelpoints/bus/sound-migration-candidates',
+  channelpointsSoundMigrationDryRun: '/api/channelpoints/bus/sound-migration-candidates/dry-run',
   channelpointsReadonlySync: '/api/channelpoints/twitch/manage/status',
   overlayMonitor: '/api/overlay-monitor/status',
   overlayClientControl: '/api/overlay-monitor/client-control/status',
@@ -187,6 +188,8 @@ const SYSTEMS = [
     channelpointsReadinessRoute: ENDPOINTS.channelpointsBusRequestReadiness,
     channelpointsSoundCandidatesKey: 'channelpointsSoundMigrationCandidates',
     channelpointsSoundCandidatesRoute: ENDPOINTS.channelpointsSoundMigrationCandidates,
+    channelpointsSoundDryRunKey: 'channelpointsSoundMigrationDryRun',
+    channelpointsSoundDryRunRoute: ENDPOINTS.channelpointsSoundMigrationDryRun,
     eventBusKey: '',
     commandStatus: 'status_only',
     legacyDirect: true,
@@ -380,6 +383,7 @@ function buildSystemRow(system, clients, fetched) {
   const overlayClientClassificationFetch = system.overlayClientClassificationKey ? fetched[system.overlayClientClassificationKey] : null;
   const overlayClientIdentityFetch = system.overlayClientIdentityKey ? fetched[system.overlayClientIdentityKey] : null;
   const channelpointsSoundCandidatesFetch = system.channelpointsSoundCandidatesKey ? fetched[system.channelpointsSoundCandidatesKey] : null;
+  const channelpointsSoundDryRunFetch = system.channelpointsSoundDryRunKey ? fetched[system.channelpointsSoundDryRunKey] : null;
 
   const statusBody = bodyOf(statusFetch);
   const eventBusBody = bodyOf(eventBusFetch);
@@ -398,6 +402,7 @@ function buildSystemRow(system, clients, fetched) {
   const overlayClientClassificationBody = bodyOf(overlayClientClassificationFetch);
   const overlayClientIdentityBody = bodyOf(overlayClientIdentityFetch);
   const channelpointsSoundCandidatesBody = bodyOf(channelpointsSoundCandidatesFetch);
+  const channelpointsSoundDryRunBody = bodyOf(channelpointsSoundDryRunFetch);
 
   const registered = system.id === 'communication_bus' || matchingClients.length > 0;
   const connected = system.id === 'communication_bus' || matchingClients.some(client => client.connected === true);
@@ -419,6 +424,7 @@ function buildSystemRow(system, clients, fetched) {
   const overlayClientClassificationOk = overlayClientClassificationFetch ? overlayClientClassificationFetch.ok === true && (!overlayClientClassificationBody || overlayClientClassificationBody.ok !== false) : null;
   const overlayClientIdentityOk = overlayClientIdentityFetch ? overlayClientIdentityFetch.ok === true && (!overlayClientIdentityBody || overlayClientIdentityBody.ok !== false) : null;
   const channelpointsSoundCandidatesOk = channelpointsSoundCandidatesFetch ? channelpointsSoundCandidatesFetch.ok === true && (!channelpointsSoundCandidatesBody || channelpointsSoundCandidatesBody.ok !== false) : null;
+  const channelpointsSoundDryRunOk = channelpointsSoundDryRunFetch ? channelpointsSoundDryRunFetch.ok === true && (!channelpointsSoundDryRunBody || channelpointsSoundDryRunBody.ok !== false) : null;
   const ackCapable = matchingClients.some(client => includesCapability(client, 'ack') || includesCapability(client, 'bus.ack'));
   const commandCapable = ['core', 'partial', 'bridge'].includes(system.commandStatus);
 
@@ -432,7 +438,7 @@ function buildSystemRow(system, clients, fetched) {
     eventBusOk,
     commandCapable
   });
-  const risk = determineRisk({ system, registered, connected, statusOk, eventBusOk, integrationOk, commandOk, contractOk, lifecycleOk, compatibilityOk, queueStatusOk, ackStatusOk, alertContractOk, alertDryRunOk, vipOverlayOk, overlayClientControlOk, channelpointsReadinessOk, overlayClientClassificationOk, overlayClientIdentityOk, channelpointsSoundCandidatesOk });
+  const risk = determineRisk({ system, registered, connected, statusOk, eventBusOk, integrationOk, commandOk, contractOk, lifecycleOk, compatibilityOk, queueStatusOk, ackStatusOk, alertContractOk, alertDryRunOk, vipOverlayOk, overlayClientControlOk, channelpointsReadinessOk, overlayClientClassificationOk, overlayClientIdentityOk, channelpointsSoundCandidatesOk, channelpointsSoundDryRunOk });
 
   return {
     id: system.id,
@@ -547,6 +553,10 @@ function buildSystemRow(system, clients, fetched) {
     channelpointsMigrationCandidateReady: Number(channelpointsSoundCandidatesBody && channelpointsSoundCandidatesBody.summary ? channelpointsSoundCandidatesBody.summary.readyCandidates || 0 : 0),
     channelpointsFirstCandidateRewardKey: channelpointsSoundCandidatesBody && channelpointsSoundCandidatesBody.summary ? (channelpointsSoundCandidatesBody.summary.firstCandidateRewardKey || '') : '',
     channelpointsFirstCandidateTitle: channelpointsSoundCandidatesBody && channelpointsSoundCandidatesBody.summary ? (channelpointsSoundCandidatesBody.summary.firstCandidateTitle || '') : '',
+    channelpointsSoundDryRunRoute: system.channelpointsSoundDryRunRoute || '',
+    channelpointsSoundDryRunOk,
+    channelpointsSoundDryRunAccepted: !!(channelpointsSoundDryRunBody && channelpointsSoundDryRunBody.accepted),
+    channelpointsSoundDryRunCandidate: channelpointsSoundDryRunBody && channelpointsSoundDryRunBody.candidate ? (channelpointsSoundDryRunBody.candidate.rewardKey || channelpointsSoundDryRunBody.candidate.title || '') : '',
     ackCapable,
     commandStatus: system.commandStatus,
     commandCapable,
@@ -571,7 +581,7 @@ function determineRisk(input) {
   if (input.system.id === 'communication_bus') return input.statusOk === false ? 'error' : 'ok';
   if (input.statusOk === false && input.eventBusOk === false) return 'error';
   if (!input.registered && input.statusOk !== true) return 'warning';
-  if (input.statusOk === false || input.eventBusOk === false || input.integrationOk === false || input.commandOk === false || input.contractOk === false || input.lifecycleOk === false || input.compatibilityOk === false || input.queueStatusOk === false || input.ackStatusOk === false || input.alertContractOk === false || input.alertDryRunOk === false || input.vipOverlayOk === false || input.overlayClientControlOk === false || input.channelpointsReadinessOk === false || input.overlayClientClassificationOk === false || input.overlayClientIdentityOk === false || input.channelpointsSoundCandidatesOk === false) return 'warning';
+  if (input.statusOk === false || input.eventBusOk === false || input.integrationOk === false || input.commandOk === false || input.contractOk === false || input.lifecycleOk === false || input.compatibilityOk === false || input.queueStatusOk === false || input.ackStatusOk === false || input.alertContractOk === false || input.alertDryRunOk === false || input.vipOverlayOk === false || input.overlayClientControlOk === false || input.channelpointsReadinessOk === false || input.overlayClientClassificationOk === false || input.overlayClientIdentityOk === false || input.channelpointsSoundCandidatesOk === false || input.channelpointsSoundDryRunOk === false) return 'warning';
   return 'ok';
 }
 
