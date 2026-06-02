@@ -1,8 +1,8 @@
 # CURRENT_STATUS
 
-## Stand: CAN-31.1 vorbereitet
+## Stand: CAN-31.2 abgeschlossen
 
-CAN-31.1 reduziert das laute WebSocket connect/disconnect Log durch eine kurze Summary.
+CAN-31.2 dokumentiert den erfolgreichen Live-Test von CAN-31.1.
 
 ## Aktueller Arbeitsbereich
 
@@ -10,39 +10,38 @@ CAN-31.1 reduziert das laute WebSocket connect/disconnect Log durch eine kurze S
 CAN-31: WS connect/disconnect Log prüfen und drosseln
 ```
 
-## Änderung CAN-31.1
+## Bestätigter Live-Test
 
-Betroffene Datei:
+Die vielen einzelnen WebSocket-Connect-Zeilen wurden erfolgreich durch Summary-Zeilen ersetzt:
 
 ```text
-backend/server.js
+[WS] clients=15 connectedDelta=15 disconnectedDelta=0 connectedTotal=15 disconnectedTotal=0
+[WS] clients=16 connectedDelta=1 disconnectedDelta=0 connectedTotal=16 disconnectedTotal=0
 ```
 
-Änderung:
+## Weiterhin sauber
 
 ```text
-Einzelne [WS] client connected / disconnected Zeilen werden durch eine gedrosselte Summary ersetzt.
+[module-loader] summary loaded=52 skipped=1 failed=0 warnings=0 routes=1180 duplicateRoutes=0
+[discord] ready as Erschreck-Bär#5808
 ```
 
-Neues erwartetes Format:
+## Ergebnis
 
 ```text
-[WS] clients=14 connectedDelta=14 disconnectedDelta=0 connectedTotal=14 disconnectedTotal=0
+WS Summary aktiv.
+Keine einzelnen [WS] client connected Spam-Zeilen mehr.
+WebSocket-Clients verbinden weiterhin.
+Module weiterhin sauber geladen.
+Discord weiterhin ready.
+Keine Loader-Warnings.
+Keine FAILED-Module.
 ```
 
-Zusätzlich in `/api/_status`:
+## Nicht geändert in CAN-31.2
 
 ```text
-wsLogSummaryVersion
-wsLogSummary.connectedTotal
-wsLogSummary.disconnectedTotal
-wsLogSummary.pendingConnected
-wsLogSummary.pendingDisconnected
-```
-
-## Nicht geändert
-
-```text
+Keine Codeänderung.
 Keine WebSocket-Routen.
 Kein dispatchWsMessage.
 Keine Modul-Handler.
@@ -55,29 +54,16 @@ Keine produktiven Flows.
 Keine Funktionalität entfernt.
 ```
 
-## Erwartete Tests
-
-```powershell
-cd D:\Git\stream-control-center
-node -c backend\server.js
-.\stepdone.cmd "CAN-31.1 WS Connect Log Summary"
-```
-
-Danach Node neu starten und prüfen:
+## Bekannte verbleibende Beobachtung
 
 ```text
-[WS] clients=... connectedDelta=... disconnectedDelta=... connectedTotal=... disconnectedTotal=...
+ExperimentalWarning: SQLite is an experimental feature and might change at any time
 ```
 
-statt vieler einzelner:
-
-```text
-[WS] client connected
-[WS] client connected
-```
+Diese Warning ist seit CAN-30.1 bekannt, dokumentiert und aktuell akzeptiert.
 
 ## Nächster Schritt
 
 ```text
-CAN-31.1 anwenden und Live-Log prüfen.
+CAN-32.0 neuen Arbeitsblock bewusst auswählen.
 ```

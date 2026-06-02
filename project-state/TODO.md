@@ -56,15 +56,20 @@
 - [x] CAN-30.0 SQLite ExperimentalWarning analysieren.
 - [x] CAN-30.1 SQLite ExperimentalWarning dokumentieren und akzeptieren.
 
-## CAN-31
+## CAN-31 abgeschlossen
 
 - [x] CAN-31.0 WS connect/disconnect Log prüfen.
-- [ ] CAN-31.1 WS Connect Log Summary anwenden und live prüfen.
-- [ ] CAN-31.2 Testergebnis dokumentieren.
+- [x] CAN-31.1 WS Connect Log Summary anwenden und live prüfen.
+- [x] CAN-31.2 Testergebnis dokumentieren.
+
+## CAN-32
+
+- [ ] CAN-32.0 neuen Arbeitsblock bewusst auswählen.
 
 ## Offene/zu beobachtende Punkte
 
 - [ ] SQLite ExperimentalWarning ist bekannt und akzeptiert; kein DB-Core-Umbau ohne eigenen Plan.
 - [ ] Optional: Overlay-Monitor Dashboard-Details optisch weiter vereinfachen.
 - [ ] Optional: EventBus read-only Diagnose weiter ausbauen.
+- [ ] Optional: ein konkretes Modul an Bus-/Status-/Doku-Regeln anpassen.
 - [ ] Keine OBS-Reparatur / kein Source-Refresh / keine automatische Recovery ohne eigene Planung.
