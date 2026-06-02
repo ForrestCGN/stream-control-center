@@ -1,13 +1,5 @@
 # TODO
 
-## CAN-33 abgeschlossen
-
-- [x] CAN-33.0 neuen Arbeitsblock bewusst auswählen.
-- [x] CAN-33.1 Commands-Modul analysieren.
-- [x] CAN-33.2 Commands-Modul Doku und Read-only Diagnose-Regeln ergänzen.
-- [x] CAN-33.3 Commands Dashboard Read-only Diagnosekarte anwenden und prüfen.
-- [x] CAN-33.4 Testergebnis dokumentieren.
-
 ## CAN-34 abgeschlossen
 
 - [x] CAN-34.0 neuen Arbeitsblock bewusst auswählen.
@@ -22,8 +14,9 @@
 
 - [x] CAN-35.0 neuen Arbeitsblock bewusst auswählen.
 - [x] CAN-35.1 Tagebuch-Modul analysieren.
-- [ ] CAN-35.2 Tagebuch-Modul Doku und Read-only/Write-Regeln ergänzen.
-- [ ] CAN-35.3 optional: Tagebuch Dashboard Read-only Diagnosekarte planen.
+- [x] CAN-35.2 Tagebuch-Modul Doku und Read-only/Write-Regeln ergänzen.
+- [ ] CAN-35.3 Tagebuch Dashboard Read-only Diagnosekarte anwenden und prüfen.
+- [ ] CAN-35.4 Testergebnis dokumentieren.
 
 ## Offene/zu beobachtende Punkte
 

@@ -1,16 +1,22 @@
-# CURRENT_STATUS
+# Current Chat Handoff - CAN35.3
 
-## Stand: CAN-35.3 vorbereitet
+## Projekt
 
-CAN-35.3 ergänzt eine nachgeladene Read-only-Diagnosekarte im Tagebuch-Dashboard.
-
-## Aktueller Arbeitsbereich
+ForrestCGN `stream-control-center`
 
 ```text
-CAN-35: Tagebuch-Modul Status/Doku/Diagnose prüfen und glätten
+Repo: https://github.com/ForrestCGN/stream-control-center
+Branch: dev
+Lokales Repo: D:\Git\stream-control-center
+Live-Ziel: D:\Streaming\stramAssets
+Produktive SQLite-DB: D:\Streaming\stramAssets\data\sqlite\app.sqlite
 ```
 
-## Änderung CAN-35.3
+## Aktueller Stand
+
+CAN-35.3 vorbereitet: Tagebuch Dashboard bekommt eine nachgeladene Read-only-Diagnosekarte.
+
+## CAN-35.3 Inhalt
 
 Betroffene Dateien:
 
@@ -18,29 +24,19 @@ Betroffene Dateien:
 htdocs/dashboard/index.html
 htdocs/dashboard/modules/tagebuch_readonly_diagnostics.js
 htdocs/dashboard/modules/tagebuch_readonly_diagnostics.css
-project-state/*
-docs/current/CURRENT_CHAT_HANDOFF_CAN35_3.md
 ```
 
-Wichtig:
+Nicht geändert:
 
 ```text
-htdocs/dashboard/modules/tagebuch.js bleibt unverändert.
-backend/modules/tagebuch.js bleibt unverändert.
+htdocs/dashboard/modules/tagebuch.js
+backend/modules/tagebuch.js
 ```
 
-## Neue Dashboard-Karte
-
-Ort:
+Neue Karte:
 
 ```text
-Dashboard > Tagebuch > Diagnose
-```
-
-Die bestehenden Tabs bleiben getrennt:
-
-```text
-Übersicht | Settings | Texte | Statistik | Diagnose
+Dashboard > Tagebuch > Diagnose > Tagebuch Read-only Diagnose
 ```
 
 Die Diagnose ist bewusst nicht als langer Block auf derselben Seite gebaut, sondern als eigener Tab mit mehreren Abschnitten:
@@ -55,7 +51,7 @@ Routen-Sicherheit
 
 ## Sicherheit
 
-Die Karte nutzt nur:
+Genutzte Routen:
 
 ```text
 GET /api/tagebuch/status
@@ -79,7 +75,7 @@ POST /api/tagebuch/admin/settings
 POST /api/tagebuch/admin/texts
 ```
 
-## Stabilitätsregel
+## Stabilitätsentscheidung
 
 ```text
 Kein MutationObserver.
@@ -109,8 +105,33 @@ Keine OBS-/Sound-/Queue-Aktion.
 Keine Funktionalität entfernt.
 ```
 
-## Nächster Schritt
+## Erwartete Tests
+
+```powershell
+cd D:\Git\stream-control-center
+.\stepdone.cmd "CAN-35.3 Tagebuch Dashboard Readonly Diagnosekarte"
+```
+
+Danach Dashboard öffnen:
 
 ```text
-CAN-35.3 anwenden und Dashboard-Sichtprüfung machen.
+Tagebuch
+```
+
+Prüfen:
+
+```text
+Tabs zeigen: Übersicht | Settings | Texte | Statistik | Diagnose.
+Tagebuch Read-only Diagnose ist nur im Diagnose-Tab sichtbar.
+Diagnose ist in mehrere Abschnitte/Karten getrennt.
+Übersicht zeigt weiterhin nur die normale Tagebuch-Übersicht.
+Keine Entry-/Stream-/Reset-/Reload-/Admin-POST-Buttons in der Diagnosekarte.
+Kein Firefox-Hänger / keine Tab-Blockade.
+```
+
+## Empfohlener nächster Schritt
+
+```text
+CAN-35.3 Dashboard-Sichtprüfung auswerten.
+Danach CAN-35.4 Testergebnis dokumentieren.
 ```

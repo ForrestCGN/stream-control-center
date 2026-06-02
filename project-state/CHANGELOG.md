@@ -1,38 +1,37 @@
 # CHANGELOG
 
+## CAN-35.3
+
+- Tagebuch-Dashboard Read-only-Diagnosekarte vorbereitet.
+- Neue Dateien:
+  - `htdocs/dashboard/modules/tagebuch_readonly_diagnostics.js`
+  - `htdocs/dashboard/modules/tagebuch_readonly_diagnostics.css`
+- Geändert:
+  - `htdocs/dashboard/index.html` lädt CSS/JS nach dem bestehenden Tagebuch-Modul.
+- Nicht geändert:
+  - `htdocs/dashboard/modules/tagebuch.js`
+  - `backend/modules/tagebuch.js`
+- Die Karte nutzt nur:
+  - `GET /api/tagebuch/status`
+  - `GET /api/tagebuch/routes`
+  - `GET /api/tagebuch/integration-check`
+- Gesperrt/nicht genutzt:
+  - Streamstart-/Streamende-Routen
+  - Entry-Routen
+  - Reset-Routen
+  - Reload-Routen
+  - Admin-POST-Routen
+  - Legacy-Discord-Write-Routen
+- Kein MutationObserver, kein Dauer-Rendering.
+- Diagnose ist eigener Tab und in mehrere Abschnitte/Karten gegliedert.
+- Keine produktiven Aktionen, keine Tagebuch-Einträge, keine Settings-/Textspeicherung, keine DB-Migration.
+
 ## CAN-35.2
 
-- Tagebuch-Modul-Doku vorbereitet:
+- Tagebuch-Modul-Doku ergänzt:
   - `docs/modules/tagebuch.md`
-- Dokumentiert:
-  - Modulzweck
-  - MODULE_META / Version / Routenprefix
-  - Status-Endpunkt
-  - Read-only Routen
-  - produktive/schreibende Routen
-  - Dashboard-Schreibfunktionen
-  - Integration-Check als sichere Diagnose
-  - Regeln für spätere Tagebuch-Diagnosekarten
-- Keine Codeänderung.
-- Keine Tagebuch-Funktion geändert.
-- Keine Tagebuch-Einträge erstellt/geändert/gelöscht.
-- Keine Streamstart-/Streamende-Aktion.
-- Kein Reset.
-- Keine Settings gespeichert.
-- Keine Texte/Varianten gespeichert/gelöscht.
-- Kein Reload ausgelöst.
-- Keine DB-Migration.
-- Keine Dashboard-Write-Buttons getestet.
-- Keine Discord-Nachricht gepostet.
+- Read-only-/Write-Regeln dokumentiert.
 
 ## CAN-35.1
 
 - Tagebuch-Modul analysiert.
-- Ergebnis:
-  - Backend `tagebuch.js` besitzt MODULE_META, Status, Routenliste und Integration-Check.
-  - Dashboard `tagebuch.js` nutzt Status/Settings/Texts/Stats/Reload.
-  - Dedizierte Doku `docs/modules/tagebuch.md` fehlte.
-
-## CAN-34.4
-
-- Erfolgreiche Sicht- und Stabilitätsprüfung der Todo Read-only Diagnosekarte dokumentiert.
