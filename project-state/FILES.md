@@ -1,6 +1,6 @@
 # FILES
 
-## CAN24.15 ZIP
+## CAN24.16 ZIP
 
 Enthaltene Dateien:
 
@@ -21,9 +21,14 @@ Enthaltene Dateien:
 - `docs/system-inspection/CAN24_13_SHADOW_HOOK_DECISION_BOUNDARY.md`
 - `docs/system-inspection/CAN24_14_SHADOW_HOOK_ONE_REWARD_PREP.md`
 - `docs/system-inspection/CAN24_15_SHADOW_HOOK_DISABLED_TEST_SUCCESS.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN24_15.md`
+- `docs/system-inspection/CAN24_16_SHADOW_HOOK_ENABLE_TEST_DECISION.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN24_16.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
+
+## Hinweis
+
+Die Code-Dateien entsprechen dem CAN-24.15 Stand. CAN-24.16 ist Entscheidung/Boundary-Dokumentation.

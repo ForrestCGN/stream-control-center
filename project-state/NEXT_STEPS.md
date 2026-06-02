@@ -3,25 +3,25 @@
 ## Naechster Schritt
 
 ```text
-CAN-24.16: Entscheidung, ob enabled=true fuer genau bauernweisheit und einen kontrollierten lokalen Test erlaubt wird.
+CAN-24.17: enabled=true fuer genau bauernweisheit vorbereiten und lokalen Auto-Test ausfuehren lassen.
 ```
 
-## Bedingungen fuer Freigabe
+## Erwartung nach Aktivierung
 
 ```text
-Nur rewardKey bauernweisheit
-Nur Shadow-DryRun
-Legacy-Flow bleibt produktiv unveraendert
-Kein Sound-Play ueber Bus
-Keine Queue
-Keine Redemption-/Twitch-Aenderung
-Sofort wieder deaktivierbar
+enabled: true
+rewardKey: bauernweisheit
+auto-test accepted: true
+queueTouched: false
+audioTouched: false
+productiveMigration: false
 ```
 
 ## Weiterhin blockiert
 
 ```text
 Keine produktive Sound-Migration.
-Kein Hook fuer alle Rewards.
 Kein echter Sound-Bus-Play.
+Kein Hook fuer alle Rewards.
+Keine Twitch-/Redemption-Aenderung.
 ```
