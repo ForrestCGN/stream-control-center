@@ -1,8 +1,8 @@
 # CURRENT_STATUS
 
-## Stand: CAN-19.2 abgeschlossen
+## Stand: CAN-19.3 abgeschlossen
 
-CAN-19.2 hat die Safety Architecture Implementation Readiness Matrix geplant.
+CAN-19.3 hat die Safety Architecture Contracts Consolidation geplant.
 
 ## Aktueller stabiler Stand
 
@@ -16,6 +16,7 @@ Confirm Planning no-action/no-implementation
 Recovery Safety Architecture Consolidation
 Safety Architecture Status Display Planning read-only/no-api
 Safety Architecture Implementation Readiness Matrix Planning
+Safety Architecture Contracts Consolidation Planning
 ```
 
 ## Sicherheitsarchitektur-Status
@@ -28,6 +29,7 @@ confirmPlanning: true
 architectureConsolidated: true
 architectureStatusDisplayPlanning: true
 implementationReadinessMatrix: true
+contractsConsolidationPlanning: true
 ```
 
 ## Technischer Sicherheitsstand
@@ -72,5 +74,5 @@ POST Command Route
 ## Naechster Schritt
 
 ```text
-CAN-19.3 - Safety Architecture Contracts Consolidation Planning
+CAN-19.4 - Safety Architecture Planning Closure / Handoff
 ```

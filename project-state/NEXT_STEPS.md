@@ -3,24 +3,23 @@
 ## Naechster Schritt
 
 ```text
-CAN-19.3 - Safety Architecture Contracts Consolidation Planning
+CAN-19.4 - Safety Architecture Planning Closure / Handoff
 ```
 
-## Ziel CAN-19.3
+## Ziel CAN-19.4
 
-Die bisherigen Display-/Status-Contracts fuer Audit, SafetyStop, Roles/Rights, Confirm und Hard Blocker zu einem gemeinsamen Contract-Konzept zusammenfuehren.
+Den CAN-19 Safety-Architecture-Planungsstrang abschliessen und den naechsten sicheren Arbeitsbereich festlegen.
 
-## CAN-19.3 darf klaeren
+## CAN-19.4 soll zusammenfassen
 
 ```text
-gemeinsame Contract-Felder
-gemeinsame Status-Level
-gemeinsame readOnly/hasApi/hasMutation-Regeln
-gemeinsame Hard-Blocker-Struktur
-gemeinsame Notes/Warnings-Struktur
+CAN-19.0 Recovery Safety Architecture Consolidation
+CAN-19.1 Safety Architecture Status Display Planning
+CAN-19.2 Implementation Readiness Matrix Planning
+CAN-19.3 Contracts Consolidation Planning
 ```
 
-## CAN-19.3 darf NICHT enthalten
+## CAN-19.4 darf NICHT enthalten
 
 ```text
 API

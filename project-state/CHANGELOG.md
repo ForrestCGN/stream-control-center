@@ -1,11 +1,11 @@
 # CHANGELOG
 
-## CAN-19.2
+## CAN-19.3
 
-- Safety Architecture Implementation Readiness Matrix geplant.
-- Readiness-Werte, Gesamtmatrix und fehlende Voraussetzungen je Sicherheitsbaustein dokumentiert.
-- Read-only Kandidaten und nicht umsetzungsbereite Bereiche getrennt.
-- CAN-19.3 Safety Architecture Contracts Consolidation Planning als naechster Schritt festgelegt.
+- Safety Architecture Contracts Consolidation geplant.
+- Gemeinsame Root-Felder, Modulstruktur, Status-Level und HardBlocker-Struktur dokumentiert.
+- Technische Grenzen, Notes/Warnungen und vollständiges Contract-Beispiel geplant.
+- CAN-19.4 Safety Architecture Planning Closure / Handoff als naechster Schritt festgelegt.
 - Keine Code-Aenderungen.
 - Keine API.
 - Keine Route.
