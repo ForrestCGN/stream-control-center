@@ -37,6 +37,7 @@
     busMatrix: null,
     busMatrixLoading: false,
     busMatrixError: '',
+    busMatrixFilter: 'all',
     soundDryRunResult: null,
     soundDryRunRunning: false,
     soundDryRunError: ''
@@ -243,6 +244,18 @@
     refreshTabs();
     renderCurrentTab();
     if (tabId === 'config') loadSettings(false);
+  }
+
+  function setBusMatrixFilter(filterId){
+    const allowed = ['all', 'warnings', 'errors', 'legacy', 'channelpoints', 'sound', 'alert', 'overlay'];
+    state.busMatrixFilter = allowed.includes(filterId) ? filterId : 'all';
+    renderCurrentTab();
+  }
+
+  function bindBusMatrixActions(){
+    panel()?.querySelectorAll('[data-busmatrix-filter]').forEach(btn => {
+      btn.addEventListener('click', () => setBusMatrixFilter(btn.dataset.busmatrixFilter));
+    });
   }
 
   function setRecoverySubTab(tabId){
@@ -633,6 +646,7 @@
     content.innerHTML = (renderers[state.activeTab] || renderOverview)();
     bindConfigActions();
     bindRecoveryActions();
+    bindBusMatrixActions();
   }
 
   function renderOverlayOverviewCard(overlays){
@@ -1057,13 +1071,48 @@ function renderSoundMigrationCandidateCard(matrix){
   function renderBusMatrixTab(){
     const matrix = state.busMatrix || getStatus().busIntegrationMatrix || {};
     const summary = matrix.summary || {};
-    const rows = asList(matrix.rows);
-    const hasRoute = matrix.fetchOk !== false && (matrix.ok === true || rows.length > 0 || matrix.generatedAt);
+    const allRows = asList(matrix.rows);
+    const activeFilter = state.busMatrixFilter || 'all';
+    const hasRoute = matrix.fetchOk !== false && (matrix.ok === true || allRows.length > 0 || matrix.generatedAt);
     const headlineStatus = hasRoute ? (summary.errors > 0 ? 'warning' : 'ok') : 'warning';
     const headlineText = hasRoute ? 'read-only aktiv' : 'Route noch nicht verfügbar';
     const todo = asList(matrix.todoNextSteps);
 
     const setupHint = hasRoute ? '' : card('Einrichtung fehlt noch', `<p class="busdiag-muted">Die Route <code>/api/bus-integration-matrix/status</code> ist noch nicht erreichbar. Spiele CAN-23.0/CAN-23.2 vollständig ein und starte Node neu.</p><div class="busdiag-metrics">${metric('Read-only', bool(matrix.readOnly !== false))}${metric('Fehler', matrix.error || state.busMatrixError || '-')}</div>`, 'busdiag-wide');
+
+    const rowText = row => `${row.id || ''} ${row.label || ''} ${row.category || ''}`.toLowerCase();
+    const rowRisk = row => row.risk || (row.statusOk === false ? 'warning' : 'ok');
+    const rowMatchesFilter = (row, filterId) => {
+      if (!row) return false;
+      const text = rowText(row);
+      const risk = rowRisk(row);
+      if (filterId === 'warnings') return risk === 'warning';
+      if (filterId === 'errors') return risk === 'error';
+      if (filterId === 'legacy') return row.legacyDirect === true || Number(row.legacyDirectSummary && row.legacyDirectSummary.total || 0) > 0;
+      if (filterId === 'channelpoints') return text.includes('channelpoints');
+      if (filterId === 'sound') return text.includes('sound');
+      if (filterId === 'alert') return text.includes('alert');
+      if (filterId === 'overlay') return text.includes('overlay') || text.includes('vip');
+      return true;
+    };
+    const rows = allRows.filter(row => rowMatchesFilter(row, activeFilter));
+    const filterItems = [
+      ['all', 'Alle'],
+      ['warnings', 'Warnungen'],
+      ['errors', 'Fehler'],
+      ['legacy', 'Legacy/direct'],
+      ['channelpoints', 'Channelpoints'],
+      ['sound', 'Sound'],
+      ['alert', 'Alert'],
+      ['overlay', 'Overlay']
+    ];
+    const filterHtml = `<div class="busdiag-filterbar" style="display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px 0;align-items:center;"><span class="busdiag-muted" style="font-size:12px;margin-right:4px;">Sichtfilter:</span>${filterItems.map(item => {
+      const id = item[0];
+      const label = item[1];
+      const count = id === 'all' ? allRows.length : allRows.filter(row => rowMatchesFilter(row, id)).length;
+      const active = id === activeFilter;
+      return `<button type="button" data-busmatrix-filter="${esc(id)}" class="${active ? 'active' : ''}" style="border:1px solid ${active ? 'rgba(34,211,238,.75)' : 'rgba(148,163,184,.24)'};background:${active ? 'rgba(34,211,238,.14)' : 'rgba(15,23,42,.35)'};color:${active ? '#67e8f9' : '#cbd5e1'};border-radius:999px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;">${esc(label)} <span style="opacity:.72;">${esc(String(count))}</span></button>`;
+    }).join('')}</div>`;
 
     const rowsHtml = rows.length ? rows.map(row => {
       const risk = row.risk || (row.statusOk === false ? 'warning' : 'ok');
@@ -1172,14 +1221,14 @@ function renderSoundMigrationCandidateCard(matrix){
 
     return `
       <div class="busdiag-grid busdiag-grid-top">
-        ${card('Bus-Integration-Matrix', `<div class="busdiag-status-line">${badge(headlineText, headlineStatus)}<span>${esc(matrix.generatedAt || '-')}</span></div><div class="busdiag-metrics">${metric('Systeme', summary.total ?? rows.length)}${metric('Registriert', summary.registeredOnBus ?? '-')}${metric('Verbunden', summary.connectedOnBus ?? '-')}${metric('Heartbeat', summary.heartbeat ?? '-')}${metric('Legacy/direct', summary.legacyDirect ?? '-')}</div>`)}
+        ${card('Bus-Integration-Matrix', `<div class="busdiag-status-line">${badge(headlineText, headlineStatus)}<span>${esc(matrix.generatedAt || '-')}</span></div><div class="busdiag-metrics">${metric('Systeme', summary.total ?? allRows.length)}${metric('Registriert', summary.registeredOnBus ?? '-')}${metric('Verbunden', summary.connectedOnBus ?? '-')}${metric('Heartbeat', summary.heartbeat ?? '-')}${metric('Legacy/direct', summary.legacyDirect ?? '-')}</div>`)}
         ${card('Sicherheitsgrenze', `<div class="busdiag-status-line">${badge('read-only', 'ok')}<span>keine Aktion wird ausgeführt</span></div><div class="busdiag-metrics">${metric('Queue touch', bool(matrix.queueTouched))}${metric('Sound touch', bool(matrix.soundSystemTouched))}${metric('Alert touch', bool(matrix.alertSystemTouched))}${metric('Overlay touch', bool(matrix.overlayTouched))}</div>`)}
       </div>
       ${setupHint}
       ${renderSoundDryRunCard(matrix)}
       ${renderSoundShadowSummaryCard(matrix)}
 ${renderSoundMigrationCandidateCard(matrix)}
-      ${card('Systeme', `<p class="busdiag-muted" style="margin:0 0 10px 0;">Kompakte Uebersicht. Die Details pro System bleiben standardmaessig geschlossen; Rohdaten sind nur bei Bedarf aufklappbar und kopierbar.</p><div class="busdiag-table busdiag-table-busmatrix"><div class="busdiag-table-head"><span>System</span><span>Bus-Client</span><span>Heartbeat</span><span>Status</span><span>EventBus</span><span>Command/ACK</span><span>Risiko / nächster Schritt</span></div>${rowsHtml}</div>`, 'busdiag-wide')}
+      ${card('Systeme', `<p class="busdiag-muted" style="margin:0 0 10px 0;">Kompakte Uebersicht. Die Sichtfilter sind rein lokal und fuehren keine Aktion aus. Die Details pro System bleiben standardmaessig geschlossen; Rohdaten sind nur bei Bedarf aufklappbar und kopierbar.</p>${filterHtml}<div class="busdiag-status-line" style="margin:0 0 10px 0;">${badge(activeFilter === 'all' ? 'alle Systeme' : `Filter: ${activeFilter}`, 'neutral')}<span>${esc(String(rows.length))} von ${esc(String(allRows.length))} Systemen sichtbar</span></div><div class="busdiag-table busdiag-table-busmatrix"><div class="busdiag-table-head"><span>System</span><span>Bus-Client</span><span>Heartbeat</span><span>Status</span><span>EventBus</span><span>Command/ACK</span><span>Risiko / nächster Schritt</span></div>${rowsHtml}</div>`, 'busdiag-wide')}
       ${todoHtml}
       ${card('Rohdaten Matrix', `<details class="busdiag-details"><summary>Komplette Matrix anzeigen (kopierbar)</summary><pre style="max-height:520px;overflow:auto;white-space:pre;">${esc(compactJson(matrix))}</pre></details>`, 'busdiag-wide')}
     `;
