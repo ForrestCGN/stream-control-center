@@ -1,82 +1,106 @@
 # CURRENT_STATUS
 
-## Stand: CAN-32.2 abgeschlossen
+## Stand: CAN-33.2 vorbereitet
 
-CAN-32.2 dokumentiert die erfolgreiche Dashboard-Sichtprüfung von CAN-32.1.
+CAN-33.2 ergänzt eine dedizierte Commands-Modul-Doku mit Read-only-/Produktiv-Regeln.
 
 ## Aktueller Arbeitsbereich
 
 ```text
-CAN-32: Dashboard/EventBus read-only Diagnose glätten
+CAN-33: Commands-Modul Status/Doku/Diagnose prüfen und glätten
 ```
 
-## Bestätigter Sichttest
+## Ergebnis CAN-33.1 Analyse
 
-In der Dashboard-Seite:
+Das Commands-Modul ist grundsätzlich sauber aufgestellt:
 
 ```text
-Bus-Diagnose > Übersicht
+backend/modules/commands.js
+MODULE_NAME = commands
+MODULE_VERSION = 0.1.6
+MODULE_BUILD = channel-guard
+API_PREFIX = /api/commands
 ```
 
-ist die neue Karte sichtbar:
+Vorhanden:
 
 ```text
-Sicherheits- / Read-only-Zusammenfassung
+MODULE_META
+MODULE_VERSION Export
+getStatus/statusPayload
+Routenliste via buildRoutes()
+Dashboard-Anbindung
+DryRun/Testpfad
+Execution-Log
 ```
 
-Bestätigte Werte:
+Nicht vorhanden war bisher:
 
 ```text
-READ-ONLY OK
-Status read-only: ja
-Recovery Route read-only: ja
-Flow touched: nein
-Queue touched: nein
-Sound touched: nein
-Overlay touched: nein
-Recovery prepare: nein
-Recovery execute: nein
+docs/modules/commands.md
 ```
 
-## Weitere sichtbare Bestätigung
+## Änderung CAN-33.2
 
-Die bestehende Übersicht darunter bleibt sauber sichtbar:
+Neu:
 
 ```text
-Gesamtstatus: ok
-Communication Bus: ok
-Overlay Clients: ok
-Schutz: Flow/Queue/Sound/Overlay touched jeweils nein
+docs/modules/commands.md
 ```
 
-## Ergebnis
+Darin festgehalten:
 
 ```text
-CAN-32.1 Ziel erfüllt.
-Dashboard-only Erweiterung aktiv.
-Read-only Status ist klar sichtbar.
-Keine produktiven Buttons sichtbar.
-Keine Recovery-Ausführung.
-Keine OBS-/Sound-/Queue-/Twitch-/DB-Aktion.
-Keine Funktionalität entfernt.
+- Modulzweck
+- Backend-Routen
+- Dashboard-Routen
+- Status-Endpunkt
+- DryRun/Test vs Execute
+- Read-only Routen
+- Produktive Routen
+- Sicherheitsregeln für spätere Diagnosekarten
 ```
 
-## Nicht geändert in CAN-32.2
+## Wichtigste Sicherheitsentscheidung
+
+Read-only Diagnose darf nur lesende bzw. sichere Diagnose-Endpunkte nutzen:
+
+```text
+GET /api/commands/status
+GET /api/commands/list
+GET /api/commands/catalog
+GET /api/commands/logs
+GET /api/commands/history
+GET /api/commands/media-command-preview
+```
+
+Nicht automatisch verwenden:
+
+```text
+POST /api/commands/upsert
+POST /api/commands/delete
+GET/POST /api/commands/execute
+```
+
+`/api/commands/test` nur als DryRun/Parse-Test.
+
+## Nicht geändert
 
 ```text
 Keine Codeänderung.
-Keine API-Routen.
-Keine Backend-Logik.
-Keine EventBus-Funktionalität.
-Keine produktiven Actions.
-Keine Recovery-Ausführung.
-Keine OBS-Reparatur.
+Keine Command-Funktion geändert.
+Keine Chat-Ausgaben geändert.
+Keine Twitch-/Streamer.bot-Aktion.
 Keine DB-Migration.
-Keine Sound-/Queue-/Twitch-Änderung.
+Keine produktiven Buttons.
+Keine Execute-/Upsert-/Delete-Tests.
+Keine OBS-/Sound-/Queue-Aktion.
+Keine Funktionalität entfernt.
 ```
 
 ## Nächster Schritt
 
 ```text
-CAN-33.0 neuen Arbeitsblock bewusst auswählen.
+CAN-33.2 anwenden.
+Danach optional CAN-33.3 Commands Dashboard Read-only Diagnosekarte planen.
 ```

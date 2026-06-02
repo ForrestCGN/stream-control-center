@@ -70,7 +70,10 @@
 
 ## CAN-33
 
-- [ ] CAN-33.0 neuen Arbeitsblock bewusst auswählen.
+- [x] CAN-33.0 neuen Arbeitsblock bewusst auswählen.
+- [x] CAN-33.1 Commands-Modul analysieren.
+- [ ] CAN-33.2 Commands-Modul Doku und Read-only Diagnose-Regeln ergänzen.
+- [ ] CAN-33.3 optional: Commands Dashboard Read-only Diagnosekarte planen.
 
 ## Offene/zu beobachtende Punkte
 
@@ -78,4 +81,5 @@
 - [ ] Optional: Overlay-Monitor Dashboard-Details optisch weiter vereinfachen.
 - [ ] Optional: EventBus read-only Diagnose weiter ausbauen.
 - [ ] Optional: ein konkretes Modul an Bus-/Status-/Doku-Regeln anpassen.
+- [ ] Commands: keine Execute-/Upsert-/Delete-Tests ohne eigenen Go-Schritt.
 - [ ] Keine OBS-Reparatur / kein Source-Refresh / keine automatische Recovery ohne eigene Planung.

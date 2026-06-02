@@ -1,43 +1,40 @@
 # CHANGELOG
 
+## CAN-33.2
+
+- Commands-Modul-Doku vorbereitet:
+  - `docs/modules/commands.md`
+- Dokumentiert:
+  - Modulzweck
+  - MODULE_META / Version / Build
+  - Backend-Routen
+  - Dashboard-Routen
+  - Status-Endpunkt
+  - DryRun/Test vs Execute
+  - Read-only Routen
+  - produktive/potenziell produktive Routen
+  - Sicherheitsregeln für spätere Diagnosekarten
+- Keine Codeänderung.
+- Keine Command-Funktion geändert.
+- Keine Chat-Ausgaben geändert.
+- Keine DB-Migration.
+- Keine produktiven Buttons.
+- Keine Execute-/Upsert-/Delete-Tests.
+
+## CAN-33.1
+
+- Commands-Modul analysiert.
+- Ergebnis:
+  - Backend `commands.js` besitzt MODULE_META, Status, Routenliste und DryRun/Testpfad.
+  - Dashboard `commands.js` ist umfangreich und nutzt Status/List/Logs/Catalog/Test/Execute/Upsert/Delete.
+  - Dedizierte Doku `docs/modules/commands.md` fehlte.
+
 ## CAN-32.2
 
 - Erfolgreiche Dashboard-Sichtprüfung von CAN-32.1 dokumentiert.
-- Bestätigt sichtbar:
-  - Karte `Sicherheits- / Read-only-Zusammenfassung`
-  - `READ-ONLY OK`
-  - Status read-only: ja
-  - Recovery Route read-only: ja
-  - Flow touched: nein
-  - Queue touched: nein
-  - Sound touched: nein
-  - Overlay touched: nein
-  - Recovery prepare: nein
-  - Recovery execute: nein
-- Bestätigt:
-  - Keine produktiven Buttons.
-  - Keine Recovery-Ausführung.
-  - Keine OBS-/Sound-/Queue-/Twitch-/DB-Aktion.
-- Keine Codeänderung in CAN-32.2.
-
-## CAN-32.1
-
-- Bus-Diagnose Dashboard um read-only Sicherheits-Zusammenfassung erweitert.
-- Neue Dateien:
-  - `htdocs/dashboard/modules/bus_diagnostics_readonly_summary.js`
-  - `htdocs/dashboard/modules/bus_diagnostics_readonly_summary.css`
-- Geändert:
-  - `htdocs/dashboard/index.html` lädt CSS und JS nach dem bestehenden Bus-Diagnose-Modul.
-- Bestehende `bus_diagnostics.js` bleibt unverändert.
-- Nur read-only GET-Routen:
-  - `/api/bus-diagnostics/status`
-  - `/api/bus-diagnostics/recovery-preflight`
+- Bus-Diagnose Read-only-Sicherheitskarte sichtbar geprüft.
 
 ## CAN-31.2
 
 - Erfolgreichen Live-Test von CAN-31.1 dokumentiert.
 - WebSocket-Connect-Spam wurde durch Summary-Zeilen ersetzt.
-
-## CAN-30.1
-
-- SQLite ExperimentalWarning dokumentiert und akzeptiert.
