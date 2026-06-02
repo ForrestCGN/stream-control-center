@@ -1,12 +1,11 @@
 # CHANGELOG
 
-## CAN-19.0
+## CAN-19.1
 
-- Recovery Safety Architecture konsolidiert.
-- Audit, SafetyStop, Roles/Rights und Confirm als gemeinsame Sicherheitsarchitektur zusammengefuehrt.
-- Gemeinsame Sicherheitsreihenfolge und Fail-safe-Gesamtregel dokumentiert.
-- Harte Blocker und technische Grenzen bestaetigt.
-- CAN-19.1 Safety Architecture Status Display Planning read-only/no-api als naechster Schritt festgelegt.
+- Safety Architecture Status Display read-only/no-api geplant.
+- Statuskarten fuer Gesamtstatus, Audit, SafetyStop, Roles/Rights, Confirm, harte Blocker und technische Grenzen dokumentiert.
+- Display Contract und No-Button-/No-API-/No-Mock-Regeln festgelegt.
+- CAN-19.2 Safety Architecture Implementation Readiness Matrix Planning als naechster Schritt festgelegt.
 - Keine Code-Aenderungen.
 - Keine API.
 - Keine Route.

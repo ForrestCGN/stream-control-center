@@ -3,24 +3,26 @@
 ## Naechster Schritt
 
 ```text
-CAN-19.1 - Safety Architecture Status Display Planning read-only/no-api
+CAN-19.2 - Safety Architecture Implementation Readiness Matrix Planning
 ```
 
-## Ziel CAN-19.1
+## Ziel CAN-19.2
 
-Planen, wie der Gesamtstatus der Sicherheitsarchitektur spaeter read-only angezeigt werden koennte.
+Planen, welche Sicherheitsbausteine theoretisch umsetzungsbereit waeren und welche Vorbedingungen fehlen.
 
-## CAN-19.1 darf klaeren
+## CAN-19.2 darf klaeren
 
 ```text
-welche Statuskarten spaeter sinnvoll sind
-wie Audit/SafetyStop/Roles/Confirm zusammen angezeigt werden
-welche Bausteine geplant/nicht implementiert sind
-wie harte Blocker dargestellt werden
-wie keine Buttons/keine API klar sichtbar bleiben
+Readiness fuer Audit
+Readiness fuer SafetyStop
+Readiness fuer Roles/Rights
+Readiness fuer Confirm
+fehlende Voraussetzungen
+sichere erste technische Kandidaten
+weiterhin blockierte Bereiche
 ```
 
-## CAN-19.1 darf NICHT enthalten
+## CAN-19.2 darf NICHT enthalten
 
 ```text
 API

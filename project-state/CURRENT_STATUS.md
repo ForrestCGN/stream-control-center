@@ -1,8 +1,8 @@
 # CURRENT_STATUS
 
-## Stand: CAN-19.0 abgeschlossen
+## Stand: CAN-19.1 abgeschlossen
 
-CAN-19.0 hat die Recovery Safety Architecture konsolidiert.
+CAN-19.1 hat Safety Architecture Status Display read-only/no-api geplant.
 
 ## Aktueller stabiler Stand
 
@@ -14,6 +14,7 @@ SafetyStop Planning read-only/no-api
 Roles/Rights Planning no-mutation/no-implementation
 Confirm Planning no-action/no-implementation
 Recovery Safety Architecture Consolidation
+Safety Architecture Status Display Planning read-only/no-api
 ```
 
 ## Sicherheitsarchitektur-Status
@@ -24,6 +25,7 @@ safetyStopPlanning: true
 rolesRightsPlanning: true
 confirmPlanning: true
 architectureConsolidated: true
+architectureStatusDisplayPlanning: true
 ```
 
 ## Technischer Sicherheitsstand
@@ -68,5 +70,5 @@ POST Command Route
 ## Naechster Schritt
 
 ```text
-CAN-19.1 - Safety Architecture Status Display Planning read-only/no-api
+CAN-19.2 - Safety Architecture Implementation Readiness Matrix Planning
 ```
