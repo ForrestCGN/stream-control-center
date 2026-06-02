@@ -1,25 +1,27 @@
 # NEXT_STEPS
 
-## Naechster Schritt
+## Naechster empfohlener Schritt
 
 ```text
-CAN-19.4 - Safety Architecture Planning Closure / Handoff
+CAN-20.0 - Safety Architecture Backend Shape read-only/no-route Planning
 ```
 
-## Ziel CAN-19.4
+## Ziel CAN-20.0
 
-Den CAN-19 Safety-Architecture-Planungsstrang abschliessen und den naechsten sicheren Arbeitsbereich festlegen.
+Planen, wie ein spaeteres internes Backend-Objekt fuer die Safety Architecture aussehen koennte, ohne Route/API/DB/Dashboard zu bauen.
 
-## CAN-19.4 soll zusammenfassen
+## CAN-20.0 darf klaeren
 
 ```text
-CAN-19.0 Recovery Safety Architecture Consolidation
-CAN-19.1 Safety Architecture Status Display Planning
-CAN-19.2 Implementation Readiness Matrix Planning
-CAN-19.3 Contracts Consolidation Planning
+interne Objektstruktur
+read-only Feldwerte
+Modulstatus-Struktur
+HardBlocker-Struktur
+technicalBoundaries-Struktur
+Fehler-/Warning-Struktur
 ```
 
-## CAN-19.4 darf NICHT enthalten
+## CAN-20.0 darf NICHT enthalten
 
 ```text
 API

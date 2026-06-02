@@ -1,11 +1,11 @@
 # CHANGELOG
 
-## CAN-19.3
+## CAN-19.4
 
-- Safety Architecture Contracts Consolidation geplant.
-- Gemeinsame Root-Felder, Modulstruktur, Status-Level und HardBlocker-Struktur dokumentiert.
-- Technische Grenzen, Notes/Warnungen und vollständiges Contract-Beispiel geplant.
-- CAN-19.4 Safety Architecture Planning Closure / Handoff als naechster Schritt festgelegt.
+- CAN-19 Safety-Architecture-Planungsstrang abgeschlossen.
+- Recovery Safety Architecture Planning / Consolidation final dokumentiert.
+- Finales Handoff `CURRENT_CHAT_HANDOFF_CAN19_4_FINAL.md` erstellt.
+- CAN-20.0 Safety Architecture Backend Shape read-only/no-route Planning als naechster empfohlener Schritt festgelegt.
 - Keine Code-Aenderungen.
 - Keine API.
 - Keine Route.

@@ -1,8 +1,12 @@
 # CURRENT_STATUS
 
-## Stand: CAN-19.3 abgeschlossen
+## Stand: CAN-19.4 abgeschlossen
 
-CAN-19.3 hat die Safety Architecture Contracts Consolidation geplant.
+CAN-19 ist abgeschlossen als:
+
+```text
+Recovery Safety Architecture Planning / Consolidation
+```
 
 ## Aktueller stabiler Stand
 
@@ -13,10 +17,7 @@ Audit Planning no-write/no-data
 SafetyStop Planning read-only/no-api
 Roles/Rights Planning no-mutation/no-implementation
 Confirm Planning no-action/no-implementation
-Recovery Safety Architecture Consolidation
-Safety Architecture Status Display Planning read-only/no-api
-Safety Architecture Implementation Readiness Matrix Planning
-Safety Architecture Contracts Consolidation Planning
+Recovery Safety Architecture Planning / Consolidation
 ```
 
 ## Sicherheitsarchitektur-Status
@@ -30,6 +31,7 @@ architectureConsolidated: true
 architectureStatusDisplayPlanning: true
 implementationReadinessMatrix: true
 contractsConsolidationPlanning: true
+architecturePlanningClosure: true
 ```
 
 ## Technischer Sicherheitsstand
@@ -71,8 +73,8 @@ Execute Route
 POST Command Route
 ```
 
-## Naechster Schritt
+## Naechster empfohlener Schritt
 
 ```text
-CAN-19.4 - Safety Architecture Planning Closure / Handoff
+CAN-20.0 - Safety Architecture Backend Shape read-only/no-route Planning
 ```
