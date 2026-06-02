@@ -3,59 +3,37 @@
 ## Direkt naechster Schritt
 
 ```text
-CAN-27.1: Getrackten Doppelordner htdocs/htdocs sauber entfernen und dokumentieren.
+CAN-28.1 anwenden und live prüfen: Modul-Loader Log Summary.
 ```
 
-## CAN-27.1 Anwendung
+## Tests
 
 ```powershell
 cd D:\Git\stream-control-center
-
-git rm "htdocs/htdocs/dashboard/modules/overlays.js"
-git rm "htdocs/htdocs/overlays/Overlay Birthday.html"
-git rm "htdocs/htdocs/overlays/_rahmen.html"
-
-.\stepdone.cmd "CAN-27.1 Entferne getrackten htdocs-htdocs Doppelordner"
+node -c backend\server.js
+.\stepdone.cmd "CAN-28.1 Modul-Loader Log Summary"
 ```
 
-## Danach pruefen
-
-```powershell
-git ls-files "htdocs/htdocs/*"
-Test-Path "D:\Git\stream-control-center\htdocs\htdocs"
-Test-Path "D:\Git\stream-control-center\htdocs\dashboard\modules\overlays.js"
-Test-Path "D:\Git\stream-control-center\htdocs\overlays\_overlay-birthday.html"
-Test-Path "D:\Git\stream-control-center\htdocs\overlays\_rahmen.html"
-```
-
-Erwartung:
+Danach Node neu starten und Log prüfen:
 
 ```text
-git ls-files "htdocs/htdocs/*" gibt nichts aus.
-Die echten Zielpfad-Dateien existieren weiterhin.
+[module-loader] summary loaded=... skipped=... failed=... warnings=...
+[module-loader] skipped file=obs_shared.js reason=no_init_export shared=yes
 ```
 
 ## Danach sinnvoll
 
 ```text
-CAN-27.2: Repo/Live kurz abgleichen und entscheiden, welcher technische Block als naechstes kommt.
+CAN-28.2: Nach Live-Prüfung entscheiden, ob weitere Log-Bereiche verbessert werden sollen.
 ```
 
 Moegliche Kandidaten:
 
 ```text
-- Dashboard-Kosmetik fuer Overlay-Monitor Details, falls optisch noetig.
-- Weitere Bus-Diagnose nur read-only ergaenzen.
-- Naechstes Modul bewusst auswaehlen und mit Bus-/Status-/Doku-Regeln planen.
-```
-
-## Vor jedem naechsten Code-Step
-
-```text
-1. GitHub/dev und Live-Ziel abgleichen.
-2. Echte Dateien lesen.
-3. Ziel / Dateien / Aenderung / Nicht geaendert / Tests nennen.
-4. Auf ausdrueckliches go warten.
+- WS connect/disconnect Log zusammenfassen oder optional drosseln.
+- EventSub Startup-Log kompakter machen.
+- Dashboard/Statusroute fuer Loader-Summary erweitern.
+- Kein weiterer Log-Umbau, wenn CAN-28.1 ausreicht.
 ```
 
 ## Weiterhin nicht machen ohne separaten Go-Schritt
@@ -64,8 +42,9 @@ Moegliche Kandidaten:
 Keine produktive Sound-Bus-Migration.
 Kein produktiver Sound-Bus-Play.
 Kein Queue-Clear.
-Keine Twitch-/Redemption-Write-Aktion.
+Keine Twitch-/Redemption-Write-Aktion durch Shadow.
 Kein automatischer Shadow-Mitulauf fuer alle Rewards.
+Kein EventSub-/Twitch-Redemption-Test ohne separate Freigabe.
 Keine Enable/Test/Migration-Buttons in der Sound-Shadow Card.
 Keine OBS-Reparatur.
 Kein Source-Refresh.

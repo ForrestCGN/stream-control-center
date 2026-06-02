@@ -19,11 +19,11 @@ const wss = new WebSocket.Server({ server });
 
 const PORT = 8080;
 
-const SERVER_VERSION = "0.1.0-step278-loader-diagnostics";
-const MODULE_LOADER_DIAGNOSTICS_VERSION = "0.1.0";
+const SERVER_VERSION = "0.1.1-can28-1-loader-log-summary";
+const MODULE_LOADER_DIAGNOSTICS_VERSION = "0.1.1";
 
 // --------------------------------------------------
-// STEP278 loader/route diagnostics
+// STEP278 / CAN-28.1 loader/route diagnostics
 // --------------------------------------------------
 // Diagnostic-only layer. It does not change module loading behaviour.
 // It records which owner registered which HTTP route and warns about duplicates.
@@ -31,6 +31,10 @@ const routeRegistry = [];
 const duplicateRoutes = [];
 const moduleDiagnostics = [];
 let currentRouteOwner = "server.js";
+
+const KNOWN_SHARED_MODULE_FILES = new Set([
+  "obs_shared.js"
+]);
 
 function routePathToList(routePath) {
   if (Array.isArray(routePath)) return routePath.flatMap(routePathToList);
@@ -109,8 +113,13 @@ function readModuleMeta(mod, file) {
     hasModuleMeta: Boolean(meta),
     type: meta && meta.type ? meta.type : "unknown",
     legacy: Boolean(meta && meta.legacy),
-    routesPrefix: meta && meta.routesPrefix ? meta.routesPrefix : null
+    routesPrefix: meta && meta.routesPrefix ? meta.routesPrefix : null,
+    knownShared: KNOWN_SHARED_MODULE_FILES.has(file)
   };
+}
+
+function suppressMissingModuleMetaWarnings(meta, status) {
+  return Boolean(meta && meta.knownShared && status === "skipped");
 }
 
 function logModuleDiagnostic(file, meta, status, extra = {}) {
@@ -121,6 +130,7 @@ function logModuleDiagnostic(file, meta, status, extra = {}) {
     hasModuleMeta: meta.hasModuleMeta,
     type: meta.type,
     legacy: meta.legacy,
+    knownShared: meta.knownShared,
     status,
     ...extra
   };
@@ -129,11 +139,50 @@ function logModuleDiagnostic(file, meta, status, extra = {}) {
 
   const metaFlag = meta.hasModuleMeta ? "meta=yes" : "meta=no";
   const legacyFlag = meta.legacy ? " legacy=yes" : "";
-  console.log(`[module] ${status}: ${file} name=${meta.name} version=${meta.version} ${metaFlag}${legacyFlag}`);
+  const sharedFlag = meta.knownShared ? " shared=yes" : "";
+  const reasonFlag = extra.reason ? ` reason=${extra.reason}` : "";
+  console.log(`[module] ${status}: ${file} name=${meta.name} version=${meta.version} ${metaFlag}${legacyFlag}${sharedFlag}${reasonFlag}`);
 
-  if (!meta.hasModuleMeta) console.warn(`[module-warning] ${file} has no exported MODULE_META`);
-  if (!meta.version || meta.version === "unknown") console.warn(`[module-warning] ${file} has no exported version`);
+  const suppressMissingWarnings = suppressMissingModuleMetaWarnings(meta, status);
+
+  if (!suppressMissingWarnings && !meta.hasModuleMeta) console.warn(`[module-warning] ${file} has no exported MODULE_META`);
+  if (!suppressMissingWarnings && (!meta.version || meta.version === "unknown")) console.warn(`[module-warning] ${file} has no exported version`);
   if (meta.legacy) console.warn(`[module-warning] ${file} is marked as legacy but was loaded`);
+}
+
+function getModuleDiagnosticWarningCount() {
+  let count = duplicateRoutes.length;
+
+  for (const entry of moduleDiagnostics) {
+    const suppressMissingWarnings = suppressMissingModuleMetaWarnings(entry, entry.status);
+    if (!suppressMissingWarnings && !entry.hasModuleMeta) count += 1;
+    if (!suppressMissingWarnings && (!entry.version || entry.version === "unknown")) count += 1;
+    if (entry.legacy) count += 1;
+  }
+
+  return count;
+}
+
+function logModuleLoaderSummary() {
+  const failedItems = skippedModules.filter(item => item.reason === "load_failed");
+  const skippedItems = skippedModules.filter(item => item.reason !== "load_failed");
+  const warningCount = getModuleDiagnosticWarningCount();
+
+  console.log(`[module-loader] summary loaded=${loadedModules.length} skipped=${skippedItems.length} failed=${failedItems.length} warnings=${warningCount} routes=${routeRegistry.length} duplicateRoutes=${duplicateRoutes.length}`);
+
+  if (skippedItems.length) {
+    for (const item of skippedItems) {
+      const diagnostic = moduleDiagnostics.find(entry => entry.file === item.file);
+      const sharedFlag = diagnostic && diagnostic.knownShared ? " shared=yes" : "";
+      console.log(`[module-loader] skipped file=${item.file} reason=${item.reason}${sharedFlag}`);
+    }
+  }
+
+  if (failedItems.length) {
+    for (const item of failedItems) {
+      console.error(`[module-loader] failed file=${item.file} reason=${item.reason} error=${item.error || "unknown"}`);
+    }
+  }
 }
 
 installRouteDiagnostics(app);
@@ -328,6 +377,8 @@ if (fs.existsSync(modulesDir)) {
     }
   });
 }
+
+logModuleLoaderSummary();
 
 // --------------------------------------------------
 // Start server
