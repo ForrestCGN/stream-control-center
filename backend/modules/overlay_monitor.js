@@ -1485,12 +1485,29 @@ function buildOverlayClientControlStatus() {
   const status = getOverlayStatus({ includeConfig: false, limitEvents: 30 });
   const overlays = Array.isArray(status.overlays) ? status.overlays : [];
   const now = Date.now();
+  const thresholds = isPlainObject(config.thresholds) ? config.thresholds : {};
+  const staleAfterMs = Math.max(1000, asInt(thresholds.staleAfterMs, DEFAULT_CONFIG.thresholds.staleAfterMs));
+  const deadAfterMs = Math.max(staleAfterMs, asInt(thresholds.deadAfterMs, DEFAULT_CONFIG.thresholds.deadAfterMs));
 
   const rows = overlays.map(client => {
-    const lastHeartbeatAt = Number(client.lastHeartbeatAt || client.lastSeenAt || client.lastAt || 0);
-    const ageMs = lastHeartbeatAt ? Math.max(0, now - lastHeartbeatAt) : 0;
-    const clientStatus = cleanString(client.status || client.busStatus || '').toLowerCase();
-    const heartbeatOk = client.hasHeartbeat === true || client.heartbeat === true || (lastHeartbeatAt && ageMs <= config.staleAfterMs);
+    const lastHeartbeatAt = cleanString(client.lastHeartbeatAt || client.lastSeenAt || client.lastAt || '');
+    const lastHeartbeatMs = parseTimeMs(lastHeartbeatAt);
+    const heartbeatAgeFromStatus = Number(client.heartbeatAgeMs);
+    const ageMs = Number.isFinite(heartbeatAgeFromStatus)
+      ? Math.max(0, heartbeatAgeFromStatus)
+      : (lastHeartbeatMs > 0 ? Math.max(0, now - lastHeartbeatMs) : 0);
+    const busStatus = cleanString(client.busStatus || '').toLowerCase();
+    const clientStatus = cleanString(client.status || busStatus || '').toLowerCase();
+    const hasHeartbeat = client.hasHeartbeat === true || client.heartbeat === true || lastHeartbeatMs > 0;
+    const stale = hasHeartbeat && ageMs > staleAfterMs;
+    const dead = hasHeartbeat && ageMs > deadAfterMs;
+    const connected = client.connected !== false;
+    const effectiveStatus = !connected
+      ? 'offline'
+      : (dead ? 'dead' : (stale ? 'stale' : (hasHeartbeat ? 'online' : (clientStatus || 'unknown'))));
+    const risk = effectiveStatus === 'dead' || effectiveStatus === 'offline'
+      ? 'error'
+      : (effectiveStatus === 'stale' || effectiveStatus === 'registered' || effectiveStatus === 'unknown' || !hasHeartbeat ? 'warning' : 'ok');
     const productiveHint = !/test|debug|demo|preview|sample|old|alt/i.test([
       client.id,
       client.name,
@@ -1503,19 +1520,21 @@ function buildOverlayClientControlStatus() {
       id: cleanString(client.id || client.clientId || client.name || 'unknown'),
       name: cleanString(client.name || client.id || ''),
       module: cleanString(client.module || ''),
-      status: clientStatus || (heartbeatOk ? 'online' : 'unknown'),
-      hasHeartbeat: !!heartbeatOk,
+      status: effectiveStatus,
+      busStatus,
+      rawStatus: clientStatus,
+      hasHeartbeat,
       lastHeartbeatAt,
       ageMs,
-      stale: ageMs > config.staleAfterMs,
-      dead: ageMs > config.deadAfterMs,
+      stale,
+      dead,
       capabilities: Array.isArray(client.capabilities) ? client.capabilities : [],
       scene: cleanString(client.scene || client.sceneName || ''),
       source: cleanString(client.source || client.sourceName || ''),
       path: cleanString(client.path || client.url || ''),
       productiveHint,
       testOrLegacyHint: !productiveHint,
-      risk: clientStatus === 'dead' || ageMs > config.deadAfterMs ? 'error' : (clientStatus === 'stale' || ageMs > config.staleAfterMs || !heartbeatOk ? 'warning' : 'ok')
+      risk
     };
   });
 
@@ -1548,8 +1567,8 @@ function buildOverlayClientControlStatus() {
     summary,
     clients: rows,
     thresholds: {
-      staleAfterMs: config.staleAfterMs,
-      deadAfterMs: config.deadAfterMs
+      staleAfterMs,
+      deadAfterMs
     },
     routes: {
       status: '/api/overlay-monitor/status',
