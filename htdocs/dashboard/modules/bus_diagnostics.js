@@ -790,7 +790,146 @@
     `, 'busdiag-wide');
   }
 
-  function renderSoundMigrationCandidateCard(matrix){
+  
+function boolBadge(value, trueLabel = 'ja', falseLabel = 'nein') {
+  return `<span class="bus-pill ${value ? 'bus-pill-ok' : 'bus-pill-muted'}">${value ? trueLabel : falseLabel}</span>`;
+}
+
+function dangerBadge(value, trueLabel = 'kritisch', falseLabel = 'ok') {
+  return `<span class="bus-pill ${value ? 'bus-pill-danger' : 'bus-pill-ok'}">${value ? trueLabel : falseLabel}</span>`;
+}
+
+function textValue(value, fallback = '—') {
+  if (value === null || value === undefined || value === '') return fallback;
+  return String(value);
+}
+
+function pickSoundShadowStatus(matrix) {
+  return (
+    matrix?.channelpoints?.soundShadowAuto ||
+    matrix?.channelpoints?.soundShadowDryRunAuto ||
+    matrix?.channelpoints?.soundShadow ||
+    matrix?.channelpoints?.sound_shadow ||
+    matrix?.channelpoints_sound_shadow ||
+    matrix?.soundShadow ||
+    matrix?.sound_shadow ||
+    matrix?.modules?.channelpoints?.soundShadowAuto ||
+    matrix?.modules?.channelpoints?.soundShadowDryRunAuto ||
+    matrix?.modules?.channelpoints?.soundShadow ||
+    null
+  );
+}
+
+function renderSoundShadowSummaryCard(matrix) {
+  const shadow = pickSoundShadowStatus(matrix);
+  if (!shadow) {
+    return `
+      <section class="bus-card bus-sound-shadow-card">
+        <div class="bus-card-header">
+          <div>
+            <h3>Sound-Shadow Status</h3>
+            <p>Read-only Diagnose</p>
+          </div>
+          <span class="bus-pill bus-pill-muted">keine Daten</span>
+        </div>
+        <div class="bus-card-note">Keine Sound-Shadow-Daten in der aktuellen Bus-Matrix gefunden.</div>
+      </section>
+    `;
+  }
+
+  const candidate = shadow.selectedCandidate || shadow.candidate || shadow.firstCandidate || {};
+  const last = shadow.lastAutoResult || {};
+  const dry = last.dryRun || {};
+  const drySound = dry.soundDryRun || {};
+  const dryResult = drySound.result || {};
+  const normalized = dryResult.normalizedItem || {};
+  const safety = shadow.safety || {};
+
+  const critical = !!(
+    shadow.productiveMigration ||
+    shadow.redemptionChanged ||
+    shadow.twitchTouched ||
+    shadow.queueTouched ||
+    shadow.audioTouched ||
+    shadow.eventSubHookInstalled
+  );
+
+  const warning = !critical && !!(
+    shadow.enabled ||
+    shadow.failedCount > 0 ||
+    shadow.lastSkipReason ||
+    shadow.candidateFound === false
+  );
+
+  const stateLabel = critical ? 'kritisch' : warning ? 'hinweis' : 'ok';
+  const stateClass = critical ? 'bus-pill-danger' : warning ? 'bus-pill-warn' : 'bus-pill-ok';
+
+  return `
+    <section class="bus-card bus-sound-shadow-card">
+      <div class="bus-card-header">
+        <div>
+          <h3>Sound-Shadow Status</h3>
+          <p>Read-only Diagnose für Channelpoints-Soundmigration</p>
+        </div>
+        <span class="bus-pill ${stateClass}">${stateLabel}</span>
+      </div>
+
+      <div class="bus-shadow-grid">
+        <div class="bus-shadow-block">
+          <h4>Kandidat</h4>
+          <div class="bus-kv"><span>Reward</span><strong>${textValue(shadow.rewardKey || candidate.rewardKey)}</strong></div>
+          <div class="bus-kv"><span>Titel</span><strong>${textValue(candidate.title)}</strong></div>
+          <div class="bus-kv"><span>Media Asset</span><strong>${textValue(candidate.mediaAssetId || candidate.media_asset_id || normalized.meta?.mediaRegistry?.id)}</strong></div>
+          <div class="bus-kv"><span>Ziel</span><strong>${textValue(candidate.currentExecutionTarget)}</strong></div>
+          <div class="bus-kv"><span>Kandidat gefunden</span><strong>${boolBadge(!!shadow.candidateFound)}</strong></div>
+        </div>
+
+        <div class="bus-shadow-block">
+          <h4>Hooks</h4>
+          <div class="bus-kv"><span>enabled</span><strong>${dangerBadge(!!shadow.enabled, 'aktiv', 'aus')}</strong></div>
+          <div class="bus-kv"><span>Auto Hook</span><strong>${boolBadge(!!shadow.autoHookInstalled)}</strong></div>
+          <div class="bus-kv"><span>Execute Hook</span><strong>${boolBadge(!!shadow.executeHookInstalled)}</strong></div>
+          <div class="bus-kv"><span>EventSub Hook</span><strong>${dangerBadge(!!shadow.eventSubHookInstalled, 'installiert', 'nein')}</strong></div>
+          <div class="bus-kv"><span>Legacy unverändert</span><strong>${boolBadge(!!shadow.legacyFlowUnchanged)}</strong></div>
+        </div>
+
+        <div class="bus-shadow-block">
+          <h4>Tests</h4>
+          <div class="bus-kv"><span>Attempts</span><strong>${textValue(shadow.attempts, '0')}</strong></div>
+          <div class="bus-kv"><span>OK</span><strong>${textValue(shadow.okCount, '0')}</strong></div>
+          <div class="bus-kv"><span>Failed</span><strong>${textValue(shadow.failedCount, '0')}</strong></div>
+          <div class="bus-kv"><span>Skipped</span><strong>${textValue(shadow.skipped, '0')}</strong></div>
+          <div class="bus-kv"><span>Last Skip</span><strong>${textValue(shadow.lastSkipReason)}</strong></div>
+        </div>
+
+        <div class="bus-shadow-block">
+          <h4>Letztes Ergebnis</h4>
+          <div class="bus-kv"><span>accepted</span><strong>${boolBadge(!!last.accepted)}</strong></div>
+          <div class="bus-kv"><span>skipped</span><strong>${dangerBadge(!!last.skipped, 'ja', 'nein')}</strong></div>
+          <div class="bus-kv"><span>dryRunOnly</span><strong>${boolBadge(!!last.dryRunOnly)}</strong></div>
+          <div class="bus-kv"><span>Sound</span><strong>${textValue(normalized.soundId)}</strong></div>
+          <div class="bus-kv"><span>Update</span><strong>${textValue(shadow.updatedAt || last.updatedAt)}</strong></div>
+        </div>
+      </div>
+
+      <div class="bus-shadow-safety">
+        <span>Safety:</span>
+        ${dangerBadge(!!shadow.queueTouched, 'queue touched', 'queue ok')}
+        ${dangerBadge(!!shadow.audioTouched, 'audio touched', 'audio ok')}
+        ${dangerBadge(!!shadow.productiveMigration, 'migration aktiv', 'keine migration')}
+        ${dangerBadge(!!shadow.redemptionChanged, 'redemption changed', 'redemption ok')}
+        ${dangerBadge(!!shadow.twitchTouched, 'twitch touched', 'twitch ok')}
+      </div>
+
+      <div class="bus-card-note">
+        Deaktivierung read-only Hinweis:
+        <code>curl -s "http://127.0.0.1:8080/api/channelpoints/bus/sound-shadow-dry-run/auto-config?rewardKey=bauernweisheit&amp;enabled=false&amp;configuredBy=manual_disable"</code>
+      </div>
+    </section>
+  `;
+}
+
+function renderSoundMigrationCandidateCard(matrix){
     const channelpointsRow = asList(matrix && matrix.rows).find(row => row && row.id === 'channelpoints') || {};
     const payload = channelpointsRow.channelpointsFirstCandidatePayload || {};
     const result = channelpointsRow.channelpointsSoundDryRunResult || {};
@@ -879,7 +1018,8 @@
       </div>
       ${setupHint}
       ${renderSoundDryRunCard(matrix)}
-      ${renderSoundMigrationCandidateCard(matrix)}
+      ${renderSoundShadowSummaryCard(matrix)}
+${renderSoundMigrationCandidateCard(matrix)}
       ${card('Systeme', `<div class="busdiag-table busdiag-table-busmatrix"><div class="busdiag-table-head"><span>System</span><span>Bus-Client</span><span>Heartbeat</span><span>Status</span><span>EventBus</span><span>Command/ACK</span><span>Risiko / nächster Schritt</span></div>${rowsHtml}</div>`, 'busdiag-wide')}
       ${todoHtml}
       ${card('Rohdaten Matrix', `<details class="busdiag-details"><summary>Matrix anzeigen</summary><pre>${esc(compactJson(matrix))}</pre></details>`, 'busdiag-wide')}

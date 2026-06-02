@@ -2,10 +2,9 @@
 
 ## CAN-25
 
-- [x] CAN-25.1 vorhandene Dashboard-/Bus-Diagnose-Daten inspizieren.
-- [ ] CAN-25.2 Dashboard Sound-Shadow Summary Card read-only verbessern.
-- [ ] Danach lokal Dashboard pruefen.
-- [ ] Danach ggf. UI-Cleanup dokumentieren.
+- [x] CAN-25.2 Dashboard Sound-Shadow Summary Card read-only verbessern.
+- [ ] CAN-25.3 Dashboard lokal pruefen.
+- [ ] Danach ggf. UI-Cleanup oder Abschluss dokumentieren.
 
 ## Weiterhin hart blockiert
 

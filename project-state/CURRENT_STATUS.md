@@ -1,20 +1,21 @@
 # CURRENT_STATUS
 
-## Stand: CAN-25.1 abgeschlossen
+## Stand: CAN-25.2 abgeschlossen
 
-CAN-25.1 hat die vorhandenen Sound-Shadow-Diagnosefelder inspiziert und die sichtbaren Felder fuer eine Dashboard-Summary definiert.
+Dashboard/Bus-Diagnose wurde um eine read-only Sound-Shadow Summary Card erweitert.
+
+## Sicherheitsstatus
+
+```text
+read-only UI
+kein Button
+keine Schreibroute
+kein Sound-Play
+keine produktive Migration
+```
 
 ## Naechster Schritt
 
 ```text
-CAN-25.2: Dashboard Sound-Shadow Summary Card read-only verbessern.
-```
-
-## Sicherheitsgrenze
-
-```text
-Nur read-only UI.
-Keine Schreibbuttons.
-Keine Produktiv-Migration.
-Kein Sound-Bus-Play.
+CAN-25.3: lokaler Dashboard-Check pending.
 ```

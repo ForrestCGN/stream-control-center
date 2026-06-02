@@ -39,3 +39,116 @@
   opacity:.55;
   cursor:not-allowed;
 }
+
+.bus-sound-shadow-card {
+  border-color: rgba(112, 231, 255, 0.28);
+}
+
+.bus-shadow-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.bus-shadow-block {
+  background: rgba(8, 14, 28, 0.58);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 14px;
+  padding: 12px;
+  min-width: 0;
+}
+
+.bus-shadow-block h4 {
+  margin: 0 0 10px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(203, 213, 225, 0.82);
+}
+
+.bus-kv {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 12px;
+}
+
+.bus-kv span {
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.bus-kv strong {
+  color: rgba(248, 250, 252, 0.96);
+  font-weight: 650;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.bus-shadow-safety {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  color: rgba(203, 213, 225, 0.86);
+  font-size: 12px;
+}
+
+.bus-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.bus-pill-ok {
+  color: #bbf7d0;
+  border-color: rgba(34, 197, 94, 0.42);
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.bus-pill-warn {
+  color: #fde68a;
+  border-color: rgba(245, 158, 11, 0.42);
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.bus-pill-danger {
+  color: #fecaca;
+  border-color: rgba(239, 68, 68, 0.42);
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.bus-pill-muted {
+  color: rgba(203, 213, 225, 0.78);
+  border-color: rgba(148, 163, 184, 0.22);
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.bus-card-note code {
+  display: inline-block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  color: rgba(226, 232, 240, 0.95);
+}
+
+@media (max-width: 1200px) {
+  .bus-shadow-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .bus-shadow-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,8 +1,13 @@
 # FILES
 
-## CAN25.1 ZIP
+## CAN25.2 ZIP
 
-Enthaltene Dateien:
+Enthaltene/veraenderte Dateien:
+
+- `htdocs/dashboard/modules/bus_diagnostics.js`
+- `htdocs/dashboard/modules/bus_diagnostics.css`
+
+Weiter enthaltene Referenzdateien:
 
 - `backend/modules/channelpoints.js`
 - `backend/modules/overlay_monitor.js`
@@ -10,14 +15,11 @@ Enthaltene Dateien:
 - `backend/modules/alert_system.js`
 - `backend/modules/sound_system.js`
 - `backend/modules/bus_integration_matrix.js`
-- `htdocs/dashboard/modules/bus_diagnostics.js`
-- `htdocs/dashboard/modules/bus_diagnostics.css`
 - `tools/can24_8_check_routes.cmd`
 - `tools/can24_17_shadow_enabled_test.cmd`
 - `tools/can24_21_execute_shadow_test.cmd`
-- `docs/system-inspection/CAN25_0_SOUND_SHADOW_DASHBOARD_DIAGNOSTICS_DECISION.md`
-- `docs/system-inspection/CAN25_1_SOUND_SHADOW_DASHBOARD_FIELD_INSPECTION.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN25_1.md`
+- `docs/system-inspection/CAN25_2_SOUND_SHADOW_SUMMARY_CARD_READONLY.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN25_2.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
@@ -26,4 +28,4 @@ Enthaltene Dateien:
 
 ## Hinweis
 
-CAN-25.1 ist Feldinspektion/Planung. Keine Code-Logik wurde geaendert.
+CAN-25.2 ist eine read-only Dashboard-/CSS-Erweiterung.

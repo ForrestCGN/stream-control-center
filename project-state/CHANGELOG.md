@@ -1,9 +1,9 @@
 # CHANGELOG
 
-## CAN-25.1
+## CAN-25.2
 
-- Vorhandene Sound-Shadow-Diagnosefelder inspiziert und dokumentiert.
-- Felder fuer read-only Dashboard Summary Card festgelegt.
-- Kritische/OK/Warn-Flags fuer UI-Bewertung definiert.
-- Keine Code-Logik geaendert.
-- Keine produktive Aktion ausgefuehrt.
+- Read-only Sound-Shadow Summary Card fuer Bus-Diagnostics ergaenzt.
+- CSS fuer Sound-Shadow Card/Badges ergaenzt.
+- Keine Buttons, keine Schreibaktion.
+- Keine Produktivroute geaendert.
+- Keine Sound-/Queue-/Twitch-Aktion.
