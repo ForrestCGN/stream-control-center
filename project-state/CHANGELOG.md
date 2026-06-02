@@ -1,11 +1,12 @@
 # CHANGELOG
 
-## CAN-19.4
+## CAN-20.0
 
-- CAN-19 Safety-Architecture-Planungsstrang abgeschlossen.
-- Recovery Safety Architecture Planning / Consolidation final dokumentiert.
-- Finales Handoff `CURRENT_CHAT_HANDOFF_CAN19_4_FINAL.md` erstellt.
-- CAN-20.0 Safety Architecture Backend Shape read-only/no-route Planning als naechster empfohlener Schritt festgelegt.
+- Safety Architecture Backend Shape read-only/no-route geplant.
+- Root, Overall, Module, Audit, SafetyStop, Roles/Rights, Confirm und RecoveryExecution Shapes dokumentiert.
+- HardBlockedActions, TechnicalBoundaries, Warning und Notes Shapes geplant.
+- No-route-/No-code-/No-mock-Regeln festgelegt.
+- CAN-20.1 Safety Architecture Backend Shape Validation Planning als naechster Schritt festgelegt.
 - Keine Code-Aenderungen.
 - Keine API.
 - Keine Route.

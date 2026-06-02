@@ -1,12 +1,8 @@
 # CURRENT_STATUS
 
-## Stand: CAN-19.4 abgeschlossen
+## Stand: CAN-20.0 abgeschlossen
 
-CAN-19 ist abgeschlossen als:
-
-```text
-Recovery Safety Architecture Planning / Consolidation
-```
+CAN-20.0 hat Safety Architecture Backend Shape read-only/no-route geplant.
 
 ## Aktueller stabiler Stand
 
@@ -18,20 +14,20 @@ SafetyStop Planning read-only/no-api
 Roles/Rights Planning no-mutation/no-implementation
 Confirm Planning no-action/no-implementation
 Recovery Safety Architecture Planning / Consolidation
+Safety Architecture Backend Shape read-only/no-route Planning
 ```
 
-## Sicherheitsarchitektur-Status
+## Backend-Shape-Status
 
 ```text
-auditPlanning: true
-safetyStopPlanning: true
-rolesRightsPlanning: true
-confirmPlanning: true
-architectureConsolidated: true
-architectureStatusDisplayPlanning: true
-implementationReadinessMatrix: true
-contractsConsolidationPlanning: true
-architecturePlanningClosure: true
+backendShapePlanning: true
+backendShapeValidationPlanning: false
+safetyArchitectureApi: false
+safetyArchitectureRoute: false
+safetyArchitectureDb: false
+safetyArchitectureMiddleware: false
+dashboardMutation: false
+eventBusEmit: false
 ```
 
 ## Technischer Sicherheitsstand
@@ -73,8 +69,8 @@ Execute Route
 POST Command Route
 ```
 
-## Naechster empfohlener Schritt
+## Naechster Schritt
 
 ```text
-CAN-20.0 - Safety Architecture Backend Shape read-only/no-route Planning
+CAN-20.1 - Safety Architecture Backend Shape Validation Planning
 ```

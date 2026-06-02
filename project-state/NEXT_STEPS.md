@@ -1,27 +1,28 @@
 # NEXT_STEPS
 
-## Naechster empfohlener Schritt
+## Naechster Schritt
 
 ```text
-CAN-20.0 - Safety Architecture Backend Shape read-only/no-route Planning
+CAN-20.1 - Safety Architecture Backend Shape Validation Planning
 ```
 
-## Ziel CAN-20.0
+## Ziel CAN-20.1
 
-Planen, wie ein spaeteres internes Backend-Objekt fuer die Safety Architecture aussehen koennte, ohne Route/API/DB/Dashboard zu bauen.
+Planen, wie ein spaeteres internes Backend-Shape validiert werden muesste, ohne Code oder Route zu bauen.
 
-## CAN-20.0 darf klaeren
+## CAN-20.1 darf klaeren
 
 ```text
-interne Objektstruktur
-read-only Feldwerte
-Modulstatus-Struktur
-HardBlocker-Struktur
-technicalBoundaries-Struktur
-Fehler-/Warning-Struktur
+Pflichtfelder
+Typregeln
+Fail-safe Checks
+Mutation Checks
+HardBlocker Checks
+Module Checks
+Warning/Error-Regeln
 ```
 
-## CAN-20.0 darf NICHT enthalten
+## CAN-20.1 darf NICHT enthalten
 
 ```text
 API
