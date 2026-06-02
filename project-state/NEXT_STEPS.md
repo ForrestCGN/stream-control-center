@@ -3,6 +3,12 @@
 ## Direkt naechster Schritt
 
 ```text
+CAN-26.5: Deploy-Script um docs/project-state-Sync erweitern und danach Hash-Abgleich pruefen.
+```
+
+## Danach sinnvoll
+
+```text
 CAN-27.0: Neuen Arbeitsblock bewusst planen.
 ```
 
@@ -10,7 +16,8 @@ CAN-27.0: Neuen Arbeitsblock bewusst planen.
 
 ```text
 CAN-26.3 wurde abgeschlossen und dokumentiert.
-CAN-26.4 dient nur dem Live-Doku-Sync und der Bereinigung dieses NEXT_STEPS-Hinweises.
+CAN-26.4 hat die Doku-/Projektstandsdateien im Repo bereinigt.
+CAN-26.5 soll sicherstellen, dass docs/current, docs/system-inspection, docs/modules und project-state auch ins Live-System deployt werden.
 ```
 
 ## Moegliche Kandidaten
@@ -55,4 +62,36 @@ $o = Invoke-RestMethod "http://127.0.0.1:8080/api/overlay-monitor/client-control
 $o | Select-Object currentProgramSceneName,currentPreviewSceneName,currentProgramSceneKnown,sceneAwarenessMode,inventoryUpdatedAt,inventoryFromCache,inventoryFromMemory | Format-List
 
 $o.summary | Select-Object total,online,info,warning,error,heartbeat,stale,dead,expectedInactive,expectedIdle,expectedNotActive,activeExpected | Format-List
+```
+
+## Standardtests fuer Deploy-Doku-Sync
+
+```powershell
+Test-Path "D:\Streaming\stramAssets\docs\current\CURRENT_CHAT_HANDOFF_CAN26_3.md"
+
+$repo = "D:\Git\stream-control-center"
+$live = "D:\Streaming\stramAssets"
+
+$files = @(
+  "project-state\CURRENT_STATUS.md",
+  "project-state\NEXT_STEPS.md",
+  "project-state\TODO.md",
+  "project-state\CHANGELOG.md",
+  "project-state\FILES.md",
+  "docs\current\CURRENT_CHAT_HANDOFF_CAN26_3.md"
+)
+
+$files | ForEach-Object {
+  $repoPath = Join-Path $repo $_
+  $livePath = Join-Path $live $_
+  $repoHash = if (Test-Path $repoPath) { (Get-FileHash $repoPath -Algorithm SHA256).Hash } else { "" }
+  $liveHash = if (Test-Path $livePath) { (Get-FileHash $livePath -Algorithm SHA256).Hash } else { "" }
+
+  [pscustomobject]@{
+    File = $_
+    RepoExists = Test-Path $repoPath
+    LiveExists = Test-Path $livePath
+    Same = ($repoHash -ne "" -and $repoHash -eq $liveHash)
+  }
+} | Format-Table -AutoSize
 ```

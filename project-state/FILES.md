@@ -1,10 +1,11 @@
 # FILES
 
-## Aktueller Arbeitsstand CAN-26.4
+## Aktueller Arbeitsstand CAN-26.5
 
 Wichtige geaenderte/zuletzt relevante Dateien:
 
 ```text
+tools/deploy_repo_to_streamassets.ps1
 backend/modules/overlay_monitor.js
 htdocs/dashboard/modules/bus_diagnostics.js
 project-state/CURRENT_STATUS.md
@@ -22,7 +23,19 @@ CAN-26.1_overlay_monitor_scene_awareness_fix.zip
 CAN-26.2_overlay_monitor_client_control_top_level_diagnostics.zip
 CAN-26.3_documentation_handoff.zip
 CAN-26.4_live_doc_sync_next_steps_cleanup.zip
+CAN-26.5_deploy_docs_project_state_sync.zip
 ```
+
+## CAN-26.5 relevante Deploy-Pfade
+
+```text
+docs/current
+docs/system-inspection
+docs/modules
+project-state
+```
+
+Diese Pfade werden durch `tools/deploy_repo_to_streamassets.ps1` nach Live synchronisiert, damit Handoffs, Systemdoku, Moduldoku und Projektstand nicht nur im Repo liegen.
 
 ## CAN-26 relevante Routen fuer Nachpruefung
 
@@ -43,15 +56,15 @@ $o | Select-Object currentProgramSceneName,currentPreviewSceneName,currentProgra
 $o.summary | Select-Object total,online,info,warning,error,heartbeat,stale,dead,expectedInactive,expectedIdle,expectedNotActive,activeExpected | Format-List
 ```
 
-## CAN-26.4 relevante Sync-Pruefung
+## CAN-26.5 relevante Sync-Tests
 
 ```powershell
+Test-Path "D:\Streaming\stramAssets\docs\current\CURRENT_CHAT_HANDOFF_CAN26_3.md"
+
 $repo = "D:\Git\stream-control-center"
 $live = "D:\Streaming\stramAssets"
 
 $files = @(
-  "backend\modules\overlay_monitor.js",
-  "htdocs\dashboard\modules\bus_diagnostics.js",
   "project-state\CURRENT_STATUS.md",
   "project-state\NEXT_STEPS.md",
   "project-state\TODO.md",

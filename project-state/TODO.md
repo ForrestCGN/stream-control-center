@@ -24,7 +24,7 @@
 - [x] CAN-25.24 Overlay-Monitor Dashboard Scene-Aware.
 - [x] CAN-25.25b Bus-Matrix Systeme wirklich kompakt.
 
-## CAN-26 abgeschlossen
+## CAN-26 abgeschlossen / vorbereitet
 
 - [x] CAN-26.0 GitHub/dev und Live-Ziel abgleichen.
 - [x] CAN-26.0 Dashboard Bus-Diagnose nach Strg+F5 final visuell pruefen.
@@ -32,6 +32,8 @@
 - [x] CAN-26.1 Overlay-Monitor Scene-Awareness Diagnose-Fix.
 - [x] CAN-26.2 Overlay-Monitor client-control Top-Level Diagnosefelder.
 - [x] CAN-26.3 Doku- und Handoff-Aktualisierung inkl. Dashboard-Sichtpruefung.
+- [x] CAN-26.4 Live-Doku-Sync und NEXT_STEPS-Bereinigung im Repo vorbereitet.
+- [ ] CAN-26.5 Deploy-Script um docs/project-state-Sync erweitern und live pruefen.
 
 ## Naechster Block
 

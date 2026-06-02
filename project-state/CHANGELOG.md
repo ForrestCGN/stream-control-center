@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## CAN-26.5
+
+- Deploy-Script `tools/deploy_repo_to_streamassets.ps1` vorbereitet, damit Doku-/Projektstandsdateien kuenftig nach Live synchronisiert werden.
+- Backup-/Deploy-Pfade ergaenzt fuer:
+  - `docs/current`
+  - `docs/system-inspection`
+  - `docs/modules`
+  - `project-state`
+- Keine Backend-Logik geaendert.
+- Kein Dashboard-Code geaendert.
+- Keine DB-Migration.
+- Keine produktive Aktion ausgefuehrt.
+
+
 ## CAN-26.4
 
 - Reiner Doku-/Sync-Schritt vorbereitet.

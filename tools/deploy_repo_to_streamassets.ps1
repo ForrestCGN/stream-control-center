@@ -146,6 +146,10 @@ $backupPaths = @(
   "htdocs\alerts",
   "htdocs\overlays",
   "htdocs\public",
+  "docs\current",
+  "docs\system-inspection",
+  "docs\modules",
+  "project-state",
   "htdocs\ws-client.js",
   "htdocs\index.htm",
   "htdocs\index.html"
@@ -169,6 +173,11 @@ Copy-DirectorySafe -RelativePath "htdocs\dashboard\modules" -Include @("*.html",
 Copy-DirectorySafe -RelativePath "htdocs\alerts" -Include @("*.html", "*.css", "*.js")
 Copy-DirectorySafe -RelativePath "htdocs\overlays" -Include @("*.html", "*.css", "*.js")
 Copy-DirectorySafe -RelativePath "htdocs\public" -Include @("*.html", "*.css", "*.js")
+
+Copy-DirectorySafe -RelativePath "docs\current" -Include @("*.md")
+Copy-DirectorySafe -RelativePath "docs\system-inspection" -Include @("*.md")
+Copy-DirectorySafe -RelativePath "docs\modules" -Include @("*.md")
+Copy-DirectorySafe -RelativePath "project-state" -Include @("*.md")
 
 Copy-FileSafe "htdocs\ws-client.js"
 Copy-FileSafe "htdocs\index.htm"

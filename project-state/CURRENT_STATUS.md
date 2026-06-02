@@ -1,13 +1,13 @@
 # CURRENT_STATUS
 
-## Stand: CAN-26.3 vorbereitet
+## Stand: CAN-26.5 vorbereitet
 
-Dokumentation, TODO, Next Steps, FILES, CHANGELOG und Handoff wurden auf den abgeschlossenen CAN-26 Stand aktualisiert.
+Deploy-Doku-Sync wurde als eigener Mini-Schritt vorbereitet. CAN-26.4 hatte die Doku-/Projektstandsdateien im Repo aktualisiert, aber der bestehende Deploy-Workflow kopierte `docs` und `project-state` nicht ins Live-System.
 
 ## Aktueller Arbeitsbereich
 
 ```text
-CAN-26: Git/Live-Abgleich, Overlay-Monitor Scene-Awareness, Bus-Diagnose und Dashboard-Sichtpruefung
+CAN-26: Git/Live-Abgleich, Overlay-Monitor Scene-Awareness, Bus-Diagnose, Dashboard-Sichtpruefung und Deploy-Doku-Sync
 ```
 
 ## Aktueller stabiler Stand
@@ -21,6 +21,13 @@ CAN-26.0 GitHub/dev und Live-System bewusst abgeglichen.
 CAN-26.1 Overlay-Monitor Scene-Awareness Diagnose-Fix.
 CAN-26.2 Overlay-Monitor client-control Top-Level Diagnosefelder.
 CAN-26.3 Doku- und Handoff-Aktualisierung inkl. Dashboard-Sichtpruefung.
+CAN-26.4 Live-Doku-Sync und NEXT_STEPS-Bereinigung im Repo vorbereitet.
+```
+
+CAN-26.5 vorbereitet:
+
+```text
+tools/deploy_repo_to_streamassets.ps1 soll docs/current, docs/system-inspection, docs/modules und project-state mit nach Live deployen.
 ```
 
 ## Technischer Stand Overlay-Monitor
@@ -111,6 +118,7 @@ rawStatus bleibt sichtbar, monitorStatus bewertet scene-aware.
 currentProgramSceneName ist die entscheidende Diagnosequelle, nicht Preview.
 Ohne Studio-Modus kann currentPreviewSceneName leer sein; das ist nicht kritisch.
 OBS-Inventar-Refresh ueber /api/overlay-monitor/obs-inventory?refresh=1 bleibt read-only und fuehrt keine Reparatur aus.
+stepdone.cmd staged docs/project-state, aber deploy_repo_to_streamassets.ps1 muss diese Pfade explizit nach Live kopieren.
 ```
 
 ## Weiterhin verboten / nicht passiert
@@ -131,6 +139,5 @@ Keine Dashboard-Buttons fuer produktive Aktionen.
 ## Naechster Schritt
 
 ```text
-CAN-27.0 erst planen, wenn Repo/dev und Live wieder sauber abgeglichen sind.
-Empfohlener Fokus: naechsten technischen Kandidaten bewusst waehlen, z. B. Doku-Feinschliff, Dashboard-Kosmetik oder neuer separater Modulbereich.
+CAN-26.5 ZIP entpacken, stepdone ausfuehren und danach Hash-Abgleich fuer docs/project-state pruefen. Danach CAN-27.0 planen.
 ```
