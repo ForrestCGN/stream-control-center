@@ -1,24 +1,23 @@
 # CURRENT_STATUS
 
-## Stand: CAN-23.8 abgeschlossen
+## Stand: CAN-23.9 abgeschlossen
 
-CAN-23.8 hat den Sound-Queue-Status read-only sichtbar gemacht.
+CAN-23.9 hat Alert-Request, Overlay-ACK, Sound-ACK und Finish-ACK read-only sichtbar gemacht.
 
 ## Neu
 
 ```text
-GET /api/sound/eventbus/command/queue-status
+GET /api/alerts/eventbus/ack-status
 ```
 
 ## Sicherheitsstatus
 
 ```text
 readOnly: true
-soundPlayed: false
+alertReplay: false
 queueTouched: false
-queueCleared: false
-dryRunExecuted: false
-playTestExecuted: false
+soundTouched: false
+overlayRecovery: false
 eventBusEmit: false
 recoveryExecution: false
 ```
@@ -26,5 +25,5 @@ recoveryExecution: false
 ## Naechster Schritt
 
 ```text
-Alert-System: Alert-Request, Overlay-ACK, Sound-ACK und Finish-ACK ueber Bus vereinheitlichen.
+Alert-System: Alert-Bus-Command-Vertrag read-only sichtbar machen.
 ```

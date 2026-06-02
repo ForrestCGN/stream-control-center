@@ -292,6 +292,7 @@ module.exports.init = function init(ctx) {
   routes.registerGet(app, '/api/alerts/status', (req, res) => res.json(buildStatus(req)));
   routes.registerGet(app, '/api/alerts/health', (req, res) => res.json(buildHealth(req)));
   routes.registerGet(app, '/api/alerts/eventbus/status', guard, (req, res) => res.json(buildAlertEventBusStatus({ includeRecentEvents: req.query.recent !== '0' })));
+  routes.registerGet(app, '/api/alerts/eventbus/ack-status', guard, (req, res) => res.json(buildAlertEventBusAckStatus({ includeRecent: req.query.recent !== '0' })));
   routes.registerGet(app, '/api/alerts/eventbus/test', guard, (req, res) => res.json(emitAlertEventBusTest(req.query || {})));
   routes.registerGet(app, '/api/alerts/eventbus/reset', guard, (req, res) => res.json(resetAlertEventBusDiagnostics()));
   routes.registerGet(app, '/api/alerts/eventbus/correlation/status', guard, async (req, res) => {
@@ -443,6 +444,7 @@ function buildAlertRoutes(req = null) {
     { method: 'GET', path: '/api/alerts/status', auth: 'public/local', category: 'status', description: 'Alert-System Status und Laufzeitinformationen.' },
     { method: 'GET', path: '/api/alerts/health', auth: 'public/local', category: 'status', description: 'Kurzprüfung des Alert-Systems.' },
     { method: 'GET', path: '/api/alerts/eventbus/status', auth: 'local_or_auth', category: 'communication', description: 'Alert EventBus Status lesen.' },
+    { method: 'GET', path: '/api/alerts/eventbus/ack-status', auth: 'local_or_auth', category: 'communication', description: 'Read-only Alert-Request/Overlay-ACK/Sound-ACK/Finish-ACK Status lesen.' },
     { method: 'GET', path: '/api/alerts/eventbus/test', auth: 'local_or_auth', category: 'communication', description: 'Test-only Alert EventBus Event senden, ohne Queue/Sound/Overlay zu verändern.' },
     { method: 'GET', path: '/api/alerts/eventbus/reset', auth: 'local_or_auth', category: 'communication', description: 'Alert EventBus Diagnosezähler zurücksetzen.' },
     { method: 'GET', path: '/api/alerts/eventbus/correlation/status', auth: 'local_or_auth', category: 'communication', description: 'Read-only Korrelation zwischen Alert-EventBus und Sound-EventBus prüfen.' },
@@ -1157,6 +1159,89 @@ function buildAlertEventBusStatus(options = {}) {
     ],
     stats,
     recentEvents: options.includeRecentEvents === false ? [] : [...(state.alertEventBus.recentEvents || [])]
+  };
+}
+
+function buildAlertEventBusAckStatus(options = {}) {
+  const recentAlertEvents = Array.isArray(state.alertEventBus && state.alertEventBus.recentEvents)
+    ? state.alertEventBus.recentEvents
+    : [];
+  const overlayRows = Array.from(state.overlayDeliveryByEvent && typeof state.overlayDeliveryByEvent.values === 'function' ? state.overlayDeliveryByEvent.values() : [])
+    .map(record => publicOverlayDelivery(record));
+  const soundRows = Array.isArray(state.alertSoundCorrelation && state.alertSoundCorrelation.recent)
+    ? state.alertSoundCorrelation.recent
+    : [];
+
+  const overlayAcknowledged = overlayRows.filter(row => row && row.status === 'acknowledged').length;
+  const overlayWaiting = overlayRows.filter(row => row && row.status === 'waiting_for_finish_ack').length;
+  const overlayMissing = overlayRows.filter(row => row && row.status === 'missing_finish_ack').length;
+  const overlayNoClient = overlayRows.filter(row => row && row.status === 'no_overlay_client').length;
+
+  const alertRequests = recentAlertEvents.filter(entry => {
+    const action = cleanKey(entry && (entry.action || entry.eventType || entry.type || ''));
+    return action === 'queued' || action === 'playing' || action === 'overlay_sent' || action === 'status' || action === 'mirrored' || action === 'rejected';
+  }).length;
+
+  const soundMatched = soundRows.filter(row => row && (row.soundMatched || row.status === 'matched_and_visual_acknowledged' || row.matched === true)).length;
+  const soundMissing = soundRows.filter(row => row && (row.soundMatched === false || row.status === 'unmatched')).length;
+
+  const lifecycle = [
+    { event: 'alert_request', source: 'alert_eventbus', ready: true, meaning: 'Alert request/lifecycle event visible on Alert EventBus.' },
+    { event: 'overlay_ack', source: 'overlay_watchdog', ready: true, meaning: 'Overlay sends ack/finished and delivery is tracked.' },
+    { event: 'sound_ack', source: 'alert_sound_correlation', ready: true, meaning: 'Alert/Sound correlation can match alert and sound bus rows.' },
+    { event: 'finish_ack', source: 'overlay_watchdog', ready: true, meaning: 'Overlay finished/ack message is tracked as final visual acknowledgement.' }
+  ];
+
+  return {
+    ok: true,
+    module: MODULE,
+    version: MODULE_VERSION,
+    capability: ALERT_EVENTBUS_CAPABILITY,
+    statusApiVersion: ALERT_EVENTBUS_STATUS_API_VERSION,
+    feature: 'alert_eventbus_ack_status',
+    mode: 'read_only_ack_status',
+    readOnly: true,
+    alertTouched: false,
+    queueTouched: false,
+    soundSystemTouched: false,
+    overlayTouched: false,
+    eventBusEmit: false,
+    replayTriggered: false,
+    recoveryTriggered: false,
+    lifecycle,
+    summary: {
+      alertRequests,
+      overlayRows: overlayRows.length,
+      overlayAcknowledged,
+      overlayWaiting,
+      overlayMissing,
+      overlayNoClient,
+      soundRows: soundRows.length,
+      soundMatched,
+      soundMissing,
+      overlayClients: state.overlayClients ? state.overlayClients.size : 0,
+      watchdogIssues: Number((state.alertOverlayWatchdog || {}).issues || 0),
+      watchdogMissingFinishAck: Number((state.alertOverlayWatchdog || {}).missingFinishAck || 0),
+      watchdogAcknowledged: Number((state.alertOverlayWatchdog || {}).acknowledged || 0)
+    },
+    routes: {
+      status: '/api/alerts/eventbus/status',
+      ackStatus: '/api/alerts/eventbus/ack-status',
+      correlationStatus: '/api/alerts/eventbus/correlation/status',
+      overlayWatchdogStatus: '/api/alerts/overlay-watchdog/status'
+    },
+    recent: options.includeRecent === false ? [] : {
+      alertEvents: recentAlertEvents.slice(0, 20),
+      overlayDeliveries: overlayRows.slice(0, 20),
+      soundCorrelation: soundRows.slice(0, 20)
+    },
+    nextSteps: [
+      'Keep Alert replay and overlay recovery separate from this read-only status.',
+      'Use alert_request/overlay_ack/sound_ack/finish_ack as canonical labels for the next Alert/Sound integration step.',
+      'Do not migrate productive alert execution until sound command lifecycle and queue status are accepted.',
+      'Dashboard should show missing overlay finish ACK and sound match state before any recovery work.'
+    ],
+    updatedAt: nowIso()
   };
 }
 

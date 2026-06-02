@@ -3,24 +3,26 @@
 ## Naechster Schritt
 
 ```text
-Alert-System: Alert-Request, Overlay-ACK, Sound-ACK und Finish-ACK ueber Bus vereinheitlichen.
+Alert-System: Alert-Bus-Command-Vertrag read-only sichtbar machen.
 ```
 
 ## Ziel
 
-Beim Alert-System sichtbar machen:
+Einen Vertrag fuer Alert-Bus-Kommunikation definieren:
 
 ```text
-Alert-Request
-Overlay-ACK
-Sound-ACK
-Finish-ACK
-Korrelation Alert/Sound
+alert.request
+overlay.ack
+sound.ack
+finish.ack
+failed
+timeout
 ```
 
 ## Danach
 
 ```text
+Alert-Dry-Run ohne Queue/Sound/Overlay
 VIP/Overlay nachziehen
 Channelpoints nachziehen
 Recovery/Selbstheilung spaeter
