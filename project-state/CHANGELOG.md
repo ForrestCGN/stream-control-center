@@ -1,10 +1,9 @@
 # CHANGELOG
 
-## CAN-24.8
+## CAN-24.9
 
-- Lokaler Route-/Dashboard-Testplan ergaenzt.
-- `tools/can24_8_check_routes.cmd` hinzugefuegt.
-- Doku/Handoff/Status/TODO aktualisiert.
-- Keine produktive Logik geaendert.
-- Keine neue Backend-Route.
-- Kein Sound/Queue/Twitch/Redemption-Eingriff.
+- Testergebnis-Dokumentation als pending angelegt.
+- Ergebnis-Vorlage fuer lokale Testausgabe ergaenzt.
+- Status/NEXT_STEPS/TODO aktualisiert.
+- Keine Code-Logik geaendert.
+- Keine produktive Aktion ausgefuehrt.

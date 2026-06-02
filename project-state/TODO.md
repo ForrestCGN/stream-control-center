@@ -11,8 +11,9 @@
 - [x] CAN-24.6 Abschluss/Entscheidung fuer spaeteren produktiven Shadow-DryRun-Mitulauf.
 - [x] CAN-24.7 Shadow-DryRun-Mitulauf fuer genau einen Reward vorbereiten.
 - [x] CAN-24.8 Lokalen Route-/Dashboard-Testplan bereitstellen.
+- [x] CAN-24.9 Testergebnis-Dokumentation pending anlegen.
 - [ ] Lokalen Test auf Forrest-System ausfuehren.
-- [ ] CAN-24.9 Testergebnis dokumentieren.
+- [ ] CAN-24.10 Testergebnis auswerten.
 - [ ] Danach entscheiden, ob ein streng begrenzter Live-Hook fuer genau einen Reward gebaut wird.
 
 ## Weiterhin hart blockiert

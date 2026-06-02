@@ -1,29 +1,27 @@
 # NEXT_STEPS
 
-## Jetzt testen
+## Sofortiger naechster Schritt
+
+Lokalen Test ausfuehren:
 
 ```bat
 tools\can24_8_check_routes.cmd
 ```
 
-## Danach pruefen
+## Danach
+
+Testergebnis hier im Chat posten.
+
+## Naechster CAN-Step
 
 ```text
-Backend Log
-Dashboard Bus-Matrix
-CAN24 Candidate Card
-Shadow-DryRun Evaluation
+CAN-24.10 Testergebnis auswerten
 ```
 
-## Naechster Chat-/Arbeitsstep
+## Nicht weiterbauen, bevor der Test da ist
 
 ```text
-CAN-24.9: Testergebnis dokumentieren und Entscheidung treffen.
-```
-
-## Weiter blockiert
-
-```text
-Kein Live-Hook fuer EventSub/Execute, bevor der lokale Test bestaetigt ist.
+Kein EventSub-/Execute-Live-Hook.
 Keine produktive Sound-Migration.
+Keine weitere Sound-Flow-Umstellung.
 ```
