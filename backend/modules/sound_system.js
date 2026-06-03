@@ -16,7 +16,8 @@ try {
 }
 
 const MODULE_NAME = "sound_system";
-const MODULE_VERSION = "0.1.20";
+const MODULE_VERSION = "0.1.21";
+const MODULE_BUILD = "diagnostics-standard";
 const SOUND_BUS_CAPABILITY = "sound.event_output";
 const SOUND_BUS_COMMAND_CAPABILITY = "sound.command_input";
 const SOUND_BUS_STATUS_API_VERSION = "1.0.0";
@@ -31,6 +32,7 @@ const MESSAGES_FILE = "messages/sound_system.json";
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
+  build: MODULE_BUILD,
   type: "runtime",
   legacy: false,
   statusApiVersion: SOUND_BUS_STATUS_API_VERSION,
@@ -2298,11 +2300,132 @@ function publicSoundBusQueueStatus() {
     return results;
   }
 
+
+  function safeCountTableRows(tableName) {
+    const clean = String(tableName || "").trim();
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(clean)) return { ok: false, count: 0, error: "invalid_table" };
+    try {
+      database.ensureReady();
+      const row = database.get(`SELECT COUNT(*) AS count FROM ${clean}`) || {};
+      return { ok: true, count: Number(row.count || 0), error: "" };
+    } catch (err) {
+      return { ok: false, count: 0, error: err && err.message ? err.message : String(err) };
+    }
+  }
+
+  function buildStandardDiagnostics(routeInfo = null) {
+    const warnings = [];
+    const errors = [];
+    const dbSettings = safeCountTableRows(SOUND_SETTINGS_TABLE);
+    const dbOk = dbSettings.ok;
+    const routeList = routeInfo && Array.isArray(routeInfo.routes) ? routeInfo.routes : publicSoundRoutes((config.routes && config.routes.prefix) || "/api/sound").routes;
+    const soundList = getSoundList();
+    const outputTargets = config.output && isPlainObject(config.output.targets) ? Object.keys(config.output.targets) : [];
+    const legacyTargets = config.targets && isPlainObject(config.targets) ? Object.keys(config.targets) : [];
+    const allowedExtensions = Array.isArray(config.allowedExtensions) ? config.allowedExtensions : [];
+
+    if (state.enabled === false) warnings.push("sound_system_disabled");
+    if (state.paused === true) warnings.push("sound_system_paused");
+    if (state.configOk === false) errors.push(state.configError || "config_not_ok");
+    if (state.messagesOk === false) warnings.push(state.messagesError || "messages_not_ok");
+    if (!dbOk) warnings.push(dbSettings.error || "sound_settings_table_unavailable");
+    if (state.device.lastError) warnings.push(state.device.lastError);
+    if (state.discord.lastError) warnings.push(state.discord.lastError);
+    if (state.soundBus.lastError) warnings.push(state.soundBus.lastError);
+    if (state.soundBusCommand.lastError) warnings.push(state.soundBusCommand.lastError);
+    if (state.canBus.lastError) warnings.push(state.canBus.lastError);
+
+    const ok = errors.length === 0;
+    const health = ok ? (warnings.length ? "warn" : "ok") : "error";
+
+    return {
+      ok,
+      health,
+      module: MODULE_NAME,
+      version: MODULE_VERSION,
+      build: MODULE_BUILD,
+      schemaVersion: SOUND_SETTINGS_SCHEMA_VERSION,
+      schemaReady: dbOk,
+      configSource: "database_with_json_fallback",
+      textSource: state.messagesOk ? "json" : "json_fallback",
+      database: {
+        ok: dbOk,
+        adapter: typeof database.getAdapter === "function" ? database.getAdapter() : "sqlite",
+        path: typeof database.getDbPath === "function" ? (database.getDbPath() || "") : "",
+        schemaVersion: typeof database.getSchemaVersion === "function" ? (dbOk ? database.getSchemaVersion(SOUND_SETTINGS_SCHEMA_MODULE) : 0) : SOUND_SETTINGS_SCHEMA_VERSION,
+        expectedSchemaVersion: SOUND_SETTINGS_SCHEMA_VERSION,
+        table: SOUND_SETTINGS_TABLE,
+        error: dbSettings.error || ""
+      },
+      counts: {
+        current: state.current ? 1 : 0,
+        parallel: state.parallel.length,
+        queued: state.queue.length,
+        activeBundleLock: state.activeBundleLock ? 1 : 0,
+        configuredSounds: soundList.length,
+        outputTargets: outputTargets.length,
+        legacyTargets: legacyTargets.length,
+        allowedExtensions: allowedExtensions.length,
+        settingsRows: dbSettings.count,
+        routes: routeList.length,
+        started: Number(state.stats.started || 0),
+        queuedTotal: Number(state.stats.queued || 0),
+        stopped: Number(state.stats.stopped || 0),
+        skipped: Number(state.stats.skipped || 0),
+        failed: Number(state.stats.failed || 0),
+        deviceStarted: Number(state.stats.deviceStarted || 0),
+        deviceFailed: Number(state.stats.deviceFailed || 0),
+        discordStarted: Number(state.stats.discordStarted || 0),
+        discordFailed: Number(state.stats.discordFailed || 0),
+        parallelStarted: Number(state.stats.parallelStarted || 0),
+        bundlesQueued: Number(state.stats.bundlesQueued || 0),
+        bundleItemsQueued: Number(state.stats.bundleItemsQueued || 0),
+        levelCorrected: Number(state.stats.levelCorrected || 0),
+        levelCorrectionSkipped: Number(state.stats.levelCorrectionSkipped || 0),
+        levelCorrectionFailed: Number(state.stats.levelCorrectionFailed || 0),
+        soundBusEmitted: Number(state.soundBus.emitted || 0),
+        soundBusSkipped: Number(state.soundBus.skipped || 0),
+        soundBusErrors: Number(state.soundBus.errors || 0),
+        soundBusCommandEmitted: Number(state.soundBusCommand.emitted || 0),
+        soundBusCommandConsumed: Number(state.soundBusCommand.consumed || 0),
+        soundBusCommandErrors: Number(state.soundBusCommand.errors || 0),
+        canBusHeartbeats: Number(state.canBus.heartbeatCount || 0),
+        canBusStatusPublished: Number(state.canBus.statusPublished || 0)
+      },
+      state: {
+        enabled: state.enabled !== false,
+        paused: state.paused === true,
+        phase: state.current ? "playing" : (state.queue.length ? "queued" : "idle"),
+        clientConnected: !!state.client.connected,
+        clientLastSeenAt: Number(state.client.lastSeenAt || 0),
+        clientLastEvent: state.client.lastEvent || "",
+        deviceLastOk: !!state.device.lastOk,
+        deviceLastAt: Number(state.device.lastAt || 0),
+        discordLastOk: !!state.discord.lastOk,
+        discordLastAt: Number(state.discord.lastAt || 0),
+        defaultTarget: config.defaults?.target || "",
+        defaultOutputTarget: config.defaults?.outputTarget || "",
+        soundBusMode: soundBusMode(soundBusConfig()),
+        soundBusEnabled: soundBusConfig().enabled !== false,
+        soundBusCommandMode: soundBusCommandConfig().mode || "",
+        soundBusCommandConsumerMode: soundBusCommandConfig().consumerMode || "",
+        canBusRegistered: !!state.canBus.registered
+      },
+      warnings,
+      errors,
+      lastError: errors[0] || warnings[0] || ""
+    };
+  }
+
   function publicState() {
+    const routeInfo = publicSoundRoutes((config.routes && config.routes.prefix) || "/api/sound");
     return {
       ok: true,
       module: MODULE_NAME,
+      moduleVersion: MODULE_VERSION,
+      moduleBuild: MODULE_BUILD,
       version: state.version,
+      diagnosticVersion: MODULE_VERSION,
       enabled: state.enabled,
       paused: state.paused,
       current: state.current ? publicItem(state.current) : null,
@@ -2319,6 +2442,18 @@ function publicSoundBusQueueStatus() {
       soundBus: publicSoundBusStatus(),
       soundBusCommand: publicSoundBusCommandStatus({ includeRecentCommands: false }),
       canBus: { ...state.canBus },
+      routes: routeInfo.routes,
+      routeCount: routeInfo.routes.length,
+      dataEndpoints: {
+        current: `${(config.routes && config.routes.prefix) || "/api/sound"}/current`,
+        queue: `${(config.routes && config.routes.prefix) || "/api/sound"}/queue`,
+        list: `${(config.routes && config.routes.prefix) || "/api/sound"}/list`,
+        settings: `${(config.routes && config.routes.prefix) || "/api/sound"}/settings`,
+        integrationCheck: `${(config.routes && config.routes.prefix) || "/api/sound"}/integration-check`,
+        eventBus: `${(config.routes && config.routes.prefix) || "/api/sound"}/eventbus/status`,
+        commandBus: `${(config.routes && config.routes.prefix) || "/api/sound"}/eventbus/command/status`
+      },
+      diagnostics: buildStandardDiagnostics(routeInfo),
       stats: { ...state.stats },
       config: {
         path: state.configPath,
