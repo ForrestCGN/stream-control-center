@@ -18,7 +18,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.18";
+const MODULE_VERSION = "0.2.19";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -3896,6 +3896,121 @@ async function handleAutoShoutoutChatActivity(parsed, source = {}, env = process
   }
 }
 
+function resetAutoShoutoutRuntimeState(reason = 'manual_reset') {
+  state.autoShoutout.lastCheckedAt = '';
+  state.autoShoutout.lastTriggeredAt = '';
+  state.autoShoutout.lastTriggeredLogin = '';
+  state.autoShoutout.lastSkippedAt = '';
+  state.autoShoutout.lastSkippedLogin = '';
+  state.autoShoutout.lastSkipReason = '';
+  state.autoShoutout.lastError = '';
+  state.autoShoutout.noticeMemory = {};
+  emitShoutoutBus('shoutout.auto.runtime_reset', { reason: String(reason || 'manual_reset') }, shoutoutConfig());
+}
+
+function autoResetStartIso(mode = 'today') {
+  const now = new Date();
+  const normalized = String(mode || 'today').trim().toLowerCase();
+  if (normalized === 'stream' || normalized === 'streamday' || normalized === 'current_stream') {
+    const cfg = shoutoutConfig();
+    const streamDay = resolveCurrentStreamDay(process.env, cfg);
+    const started = streamDay && streamDay.row && streamDay.row.stream_started_at ? String(streamDay.row.stream_started_at || '') : '';
+    if (started) return { mode: normalized, since: started, streamDayId: String(streamDay.streamDayId || '') };
+  }
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  return { mode: 'today', since: start.toISOString(), streamDayId: '' };
+}
+
+function autoResetTargetLogins(body = {}, cfg = null) {
+  const currentCfg = cfg || shoutoutConfig();
+  const raw = body.login || body.target || body.user || body.name || body.channel || '';
+  const explicit = cleanLogin(raw);
+  if (explicit) return [explicit];
+  const streamers = listAutoStreamers(currentCfg).map(row => cleanLogin(row.login)).filter(Boolean);
+  return Array.from(new Set(streamers));
+}
+
+function resetAutoShoutoutDay(body = {}) {
+  ensureAutoShoutoutSchema();
+  ensureDisplayQueueSchema();
+  ensureOfficialShoutoutSchema();
+
+  const cfg = shoutoutConfig();
+  const mode = String(body.mode || body.scope || 'today').trim().toLowerCase();
+  const resetInfo = autoResetStartIso(mode);
+  const since = String(body.since || body.start || resetInfo.since || '').trim();
+  const targets = autoResetTargetLogins(body, cfg);
+  const now = nowIso();
+  const params = { since, now };
+  const targetParams = {};
+  const targetSql = targets.length
+    ? ` AND target_login IN (${targets.map((login, idx) => { const key = `login${idx}`; targetParams[key] = login; return `:${key}`; }).join(',')})`
+    : '';
+
+  const affectedDisplayRows = database.all(`
+    SELECT id,target_login,status,stream_day_id,created_at,meta_json,input_json
+    FROM clip_shoutout_display_queue
+    WHERE created_at >= :since
+      ${targetSql}
+      AND status IN ('queued','waiting','active','failed','done')
+  `, { ...params, ...targetParams }) || [];
+  const displayIds = affectedDisplayRows.map(row => Number(row.id || 0)).filter(Boolean);
+  const displayIdParams = {};
+  const displayIdSql = displayIds.length
+    ? ` OR display_queue_id IN (${displayIds.map((id, idx) => { const key = `displayId${idx}`; displayIdParams[key] = id; return `:${key}`; }).join(',')})`
+    : '';
+
+  const removedOfficial = database.run(`
+    UPDATE clip_shoutout_official_queue
+    SET status='removed', updated_at=:now, last_error='auto_shoutout_reset'
+    WHERE status IN ('queued','waiting','failed')
+      AND (
+        created_at >= :since
+        ${targetSql}
+        ${displayIdSql}
+      )
+  `, { ...params, ...targetParams, ...displayIdParams });
+
+  const removedDisplay = database.run(`
+    UPDATE clip_shoutout_display_queue
+    SET status='removed', updated_at=:now, last_error='auto_shoutout_reset'
+    WHERE created_at >= :since
+      ${targetSql}
+      AND status IN ('queued','waiting','active','failed','done')
+  `, { ...params, ...targetParams });
+
+  const deletedEvents = database.run(`
+    DELETE FROM clip_shoutout_auto_events
+    WHERE created_at >= :since
+      ${targetSql}
+  `, { ...params, ...targetParams });
+
+  resetAutoShoutoutRuntimeState('auto_reset_day');
+  emitShoutoutBus('shoutout.auto.day_reset', {
+    mode: resetInfo.mode || mode || 'today',
+    since,
+    streamDayId: resetInfo.streamDayId || '',
+    targets,
+    removedDisplay: Number(removedDisplay && (removedDisplay.changes ?? removedDisplay.affectedRows) || 0),
+    removedOfficial: Number(removedOfficial && (removedOfficial.changes ?? removedOfficial.affectedRows) || 0),
+    deletedEvents: Number(deletedEvents && (deletedEvents.changes ?? deletedEvents.affectedRows) || 0)
+  }, cfg);
+
+  return {
+    ok: true,
+    mode: resetInfo.mode || mode || 'today',
+    since,
+    streamDayId: resetInfo.streamDayId || '',
+    targets,
+    affectedDisplayQueueIds: displayIds,
+    removedDisplay: Number(removedDisplay && (removedDisplay.changes ?? removedDisplay.affectedRows) || 0),
+    removedOfficial: Number(removedOfficial && (removedOfficial.changes ?? removedOfficial.affectedRows) || 0),
+    deletedEvents: Number(deletedEvents && (deletedEvents.changes ?? deletedEvents.affectedRows) || 0),
+    runtimeReset: true
+  };
+}
+
 function autoShoutoutStatus(cfg) {
   const acfg = autoShoutoutConfig(cfg);
   return {
@@ -4170,6 +4285,7 @@ module.exports.init = function init(ctx) {
         { method: "GET/POST", path: `${API_PREFIX}/auto/streamers` },
         { method: "POST", path: `${API_PREFIX}/auto/streamers/remove` },
         { method: "POST", path: `${API_PREFIX}/auto/test-chat` },
+        { method: "POST", path: `${API_PREFIX}/auto/reset-day` },
         { method: "POST", path: `${API_PREFIX}/inbound/debug` },
         { method: "GET", path: `${API_PREFIX}/production-check` },
         { method: "GET", path: `${API_PREFIX}/live-test` },
@@ -4451,6 +4567,17 @@ module.exports.init = function init(ctx) {
       };
       const result = await handleAutoShoutoutChatActivity(parsed, { source: 'api_auto_test', channel: String(req.query?.channel || body.channel || '') }, env);
       res.json({ ok: result && result.ok !== false, result, autoShoutout: autoShoutoutStatus(shoutoutConfig()) });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
+    }
+  });
+
+
+  app.post(`${API_PREFIX}/auto/reset-day`, (req, res) => {
+    try {
+      const body = req.body || {};
+      const result = resetAutoShoutoutDay({ ...body, ...(req.query || {}) });
+      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, result, autoShoutout: autoShoutoutStatus(shoutoutConfig()), queue: { displayQueue: displayQueueStatus(shoutoutConfig()), officialQueue: officialQueueStatus(shoutoutConfig()) } });
     } catch (err) {
       res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
     }
