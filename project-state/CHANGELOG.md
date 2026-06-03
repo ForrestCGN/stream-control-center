@@ -1,5 +1,24 @@
 # Changelog
 
+## CAN-43.5
+
+- `message_rotator` als viertes CAN-43-Fachmodul nach neuem Diagnose-/Registry-Standard geprüft.
+- Repo/Live-Abgleich dokumentiert.
+- Live-Status von `/api/message-rotator/status` dokumentiert.
+- `diagnostics`-Block von `message_rotator` dokumentiert.
+- Routenübersicht `/api/message-rotator/routes` dokumentiert.
+- Integration-Check `/api/message-rotator/integration-check` dokumentiert.
+- Registry-Coverage dokumentiert.
+- Neue Modul-Doku `docs/modules/MESSAGE_ROTATOR.md` ergänzt.
+- Neue Handoff-Datei `docs/current/CURRENT_CHAT_HANDOFF_CAN43_5.md` erstellt.
+- Bewusst behaltene Dashboard-Extension `message_rotator_diagnostics_ext.css/js` dokumentiert.
+- Keine Codeänderung.
+- Keine Backend-Route geändert.
+- Keine Dashboard-Datei geändert.
+- Keine Datenbank geändert.
+- Keine Modulversion erhöht.
+- Keine produktive Rotator-Aktion ausgelöst.
+
 ## CAN-43.4
 
 - `birthday` als drittes CAN-43-Fachmodul nach neuem Diagnose-/Registry-Standard geprüft.
@@ -7,7 +26,6 @@
 - Live-Status von `/api/birthday/status` dokumentiert.
 - `diagnostics`-Block von `birthday` dokumentiert.
 - Registry-Coverage dokumentiert.
-- Read-only-Endpunkte `/api/birthday/today` und `/api/birthday/show/queue` dokumentiert.
 - Neue Modul-Doku `docs/modules/BIRTHDAY.md` ergänzt.
 - Neue Handoff-Datei `docs/current/CURRENT_CHAT_HANDOFF_CAN43_4.md` erstellt.
 - Keine Codeänderung.
@@ -15,7 +33,6 @@
 - Keine Dashboard-Datei geändert.
 - Keine Datenbank geändert.
 - Keine Modulversion erhöht.
-- Keine produktive Birthday-Aktion ausgelöst.
 
 ## CAN-43.3
 
@@ -23,9 +40,8 @@
 - Repo/Live-Abgleich dokumentiert.
 - Live-Status von `/api/hug/status` dokumentiert.
 - `diagnostics`-Block von `hug` dokumentiert.
-- Integration-Check von `hug` dokumentiert.
+- Integration-Check dokumentiert.
 - Registry-Coverage dokumentiert.
-- Dashboard-Extension `hug_diagnostics_ext.css/js` als bewusst behaltene Read-only-Erweiterung dokumentiert.
 - Neue Modul-Doku `docs/modules/HUG.md` ergänzt.
 - Neue Handoff-Datei `docs/current/CURRENT_CHAT_HANDOFF_CAN43_3.md` erstellt.
 - Keine Codeänderung.
@@ -48,16 +64,3 @@
 - Keine Dashboard-Datei geändert.
 - Keine Datenbank geändert.
 - Keine Modulversion erhöht.
-
-## CAN-43.1
-
-- Handoff-Dokumentation für neuen Chat erstellt.
-- `CURRENT_STATUS.md` aktualisiert.
-- `NEXT_STEPS.md` aktualisiert.
-- `TODO.md` aktualisiert.
-- `FILES.md` aktualisiert.
-- Aktuellen Diagnose-Cleanup-Stand dokumentiert.
-- Neue Modul-Regeln erneut als verbindlicher Standard festgehalten.
-- Keine Codeänderung.
-- Keine Backend-Route geändert.
-- Keine Dashboard-Datei geändert.

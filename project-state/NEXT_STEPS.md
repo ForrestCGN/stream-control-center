@@ -1,41 +1,40 @@
 # Next Steps
 
-## Direkt nach CAN-43.4
+## Direkt nach CAN-43.5
 
-1. CAN-43.4 ZIP nach `D:\Git\stream-control-center` entpacken.
+1. CAN-43.5 ZIP nach `D:\Git\stream-control-center` entpacken.
 2. Optional prüfen:
 
 ```powershell
-node -c backend\modules\birthday.js
+node -c backend\modules\message_rotator.js
 ```
 
 3. Step abschließen:
 
 ```powershell
-.\stepdone.cmd "CAN-43.4 Birthday diagnostics review"
+.\stepdone.cmd "CAN-43.5 Message-Rotator diagnostics review"
 ```
 
 4. Doku committen/pushen.
 
 ## Nächster fachlicher Schritt
 
-CAN-43.5: Ein weiteres Modul nach neuem Diagnose-/Registry-Standard prüfen.
+CAN-43.6: Ein weiteres Modul nach neuem Diagnose-/Registry-Standard prüfen.
 
 Empfohlener Kandidat:
 
-1. `message_rotator`
+1. `tagebuch`
 
 Grund:
 
-- systemnahes Modul
-- bewusst behaltene Dashboard-Diagnose-Extension vorhanden
+- wichtiges Community-/Discord-Modul
+- bereits Teil der zentralen Registry
 - guter nächster Kandidat für denselben Prüfstandard
 
 Alternative Kandidaten:
 
-1. `tagebuch`
-2. `todo`
-3. `vip_sound_overlay`
+1. `todo`
+2. `vip_sound_overlay`
 
 ## Pflicht bei jedem Modul
 

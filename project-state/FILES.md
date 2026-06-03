@@ -1,5 +1,21 @@
 # Files
 
+## CAN-43.5 neu/geändert
+
+### Handoff / Doku
+
+- `docs/current/CAN-43.5_message_rotator_diagnostics_review.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN43_5.md`
+- `docs/modules/MESSAGE_ROTATOR.md`
+
+### Project State
+
+- `project-state/CURRENT_STATUS.md`
+- `project-state/NEXT_STEPS.md`
+- `project-state/TODO.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+
 ## CAN-43.4 neu/geändert
 
 ### Handoff / Doku
@@ -50,6 +66,12 @@
 
 ## Relevante bestehende Dateien
 
+### Message-Rotator
+
+- `backend/modules/message_rotator.js`
+- `htdocs/dashboard/modules/message_rotator_diagnostics_ext.js`
+- `htdocs/dashboard/modules/message_rotator_diagnostics_ext.css`
+
 ### Birthday
 
 - `backend/modules/birthday.js`
@@ -76,5 +98,4 @@
 
 - `docs/modules/DASHBOARD_EXTENSIONS.md`
 - `docs/modules/DIAGNOSTICS_NEW_MODULE_RULES.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN43_3.md`
-- `docs/current/CAN-43.0_next_module_diagnostics_standard_start.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN43_5.md`
