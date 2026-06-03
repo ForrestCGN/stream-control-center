@@ -1,90 +1,78 @@
 # CURRENT_STATUS
 
-## Stand: CAN-39.4 abgeschlossen
+## Stand: CAN-40.2 vorbereitet
 
-CAN-39.4 dokumentiert den erfolgreichen Sichttest des Overlay-Monitor Sicherheits-Hinweises nach CAN-39.3b.
+CAN-40.2 ergänzt Bus-Diagnose-Unterseiten um Sicherheits-/Read-only-Hinweise.
 
 ## Aktueller Arbeitsbereich
 
 ```text
-CAN-39: Overlay-Monitor / Overlay-Dashboard read-only Analyse und Glättung
+CAN-40: Bus-Diagnose Unterseiten read-only glätten
 ```
 
-## Bestätigter Sichttest
+## Änderung CAN-40.2
 
-Dashboard:
+Geändert:
 
 ```text
-Dashboard > Control > Overlays / Overlay-Monitor
+htdocs/dashboard/index.html
+htdocs/dashboard/modules/bus_diagnostics_subpage_safety_ext.js
+htdocs/dashboard/modules/bus_diagnostics_subpage_safety_ext.css
+project-state/*
+docs/current/CURRENT_CHAT_HANDOFF_CAN40_2.md
 ```
 
-Bestätigter Zustand:
+Nicht geändert:
 
 ```text
-Overlay-Monitor Sicherheits-Hinweis sichtbar.
-Text sichtbar: "Read-only / manuelle Aktionen getrennt".
-Text sichtbar: "Overlay-Monitor Sicherheits-Hinweis".
-Hinweise sichtbar:
-- Status lesen
-- keine Recovery
-- kein Auto-Refresh von Quellen
-- OBS-Aktionen gesperrt
-Kein zusätzlicher Tab.
-Übersicht bleibt bedienbar.
-Bestehende Kennzahlen bleiben sichtbar.
-Bestehende Tabs bleiben sichtbar:
-- Übersicht
-- Quellenstatus
-- Overlay-Details
-- OBS-Inventar
-- Bus-Clients
-- OBS-Rohquellen
-- Probleme
-- Rohdaten
-Keine OBS-Reparatur erkennbar.
-Kein Source-Refresh erkennbar.
-Keine Recovery erkennbar.
-Keine DB-/Chat-Aktion erkennbar.
+backend/modules/bus_diagnostics.js
+htdocs/dashboard/modules/bus_diagnostics.js
+htdocs/dashboard/modules/bus_diagnostics.css
+htdocs/dashboard/modules/bus_diagnostics_readonly_summary.js
+htdocs/dashboard/modules/bus_diagnostics_readonly_summary.css
 ```
 
-## Ergebnis
+## Ziel
 
 ```text
-CAN-39.3b Ziel erfüllt.
-Sicherheits-Hinweis wird stabil im Overlay-Monitor angezeigt.
+Bestehende Tabs behalten.
 Kein Extra-Tab.
-Keine Backend-Änderung.
-Keine Änderung an overlays.js.
-Keine produktive Aktion ausgelöst.
-Keine Funktionalität entfernt.
+Recovery-Unterseite klarer als read-only/preflight markieren.
+Sound-Bus Dry-Run klarer als manuelle Diagnose-Aktion markieren.
+Raw/Config/Issues optisch als Diagnose/Anzeige markieren.
+Keine POSTs automatisch auslösen.
 ```
 
-## Produktive Aktionen: nicht genutzt
+## Nicht ausgelöst
 
 ```text
+Keine Recovery.
 Keine OBS-Reparatur.
 Kein Source-Refresh.
 Keine automatische Recovery.
-Keine Overlay-Refresh-Aktion.
 Keine Queue-Aktion.
-Keine produktive Sound-/Alert-Aktion.
+Kein Sound-Bus Dry-Run.
+Keine produktive Sound-Bus-Aktion.
 Keine DB-Migration.
-Keine API-POSTs.
+Keine Dashboard-Testbuttons für produktive Aktionen.
 Keine Twitch-/Chat-/Discord-Nachricht.
+Keine Funktionalität entfernt.
 ```
 
-## Nicht geändert in CAN-39.4
+## Technische Umsetzung
 
 ```text
-Keine Codeänderung.
-Keine Backend-Dateien.
-Keine Dashboard-Runtime-Dateien.
-Keine API-Routen.
-Keine Funktionalität entfernt.
+Zusätzliche Dashboard-Erweiterung nach bus_diagnostics.js und bus_diagnostics_readonly_summary.js.
+Kein MutationObserver.
+Begrenzter Retry nach Navigation/Render.
+Keine API-Calls.
+Keine API-POSTs.
+Nur DOM-Hinweise und Klassenmarkierung.
 ```
 
 ## Nächster Schritt
 
 ```text
-CAN-40.0 neuen Arbeitsblock bewusst auswählen.
+CAN-40.2 anwenden und Bus-Diagnose-Unterseiten prüfen.
+Danach CAN-40.3 Testergebnis dokumentieren.
 ```
