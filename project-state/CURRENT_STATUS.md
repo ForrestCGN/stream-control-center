@@ -1,10 +1,20 @@
 # Current Status
 
-## Aktueller Stand
+## Stand
 
-CAN-43 ist abgeschlossen.
+CAN-43 ist fachlich abgeschlossen.
 
-Die Diagnose-/Registry-Runde für die wichtigsten Registry-Module wurde in CAN-43.16 konsolidiert.
+CAN-43.16 hat die Diagnose-/Registry-Runde konsolidiert.
+
+## Offene lokale Abschlussaktion
+
+Falls noch nicht erledigt:
+
+```powershell
+.\stepdone.cmd "CAN-43.16 Diagnostics registry consolidation"
+```
+
+Danach committen/pushen.
 
 ## Finaler Coverage-Stand
 
@@ -19,43 +29,29 @@ registryOnlyEntries=0
 
 ## Geprüfte Module
 
-- `commands`
-- `hug`
-- `birthday`
-- `message_rotator`
-- `tagebuch`
-- `todo`
-- `vip` / `vip_sound_overlay`
-- `alerts` / `alert_system`
-- `sound_system`
-- `media`
-- `obs`
-- `overlay_monitor`
-- `bus_diagnostics`
-- `communication_bus`
+- commands
+- hug
+- birthday
+- message_rotator
+- tagebuch
+- todo
+- vip / vip_sound_overlay
+- alerts / alert_system
+- sound_system
+- media
+- obs
+- overlay_monitor
+- bus_diagnostics
+- communication_bus
 
-## Ergebnis
+## Nächster Fokus
 
-Alle geprüften Registry-Module sind dokumentiert und sauber bewertet.
+Der nächste Arbeitsblock soll wieder Feature-/Modulbau im Control-Center sein, nicht weitere Einzel-Diagnosemodule.
 
-Bekannte Beobachtungen sind dokumentiert und werden nicht als Fehler behandelt:
+Mögliche Richtungen:
 
-- VIP JSON-Fallback optional.
-- Sound-System Legacy-Targets bewusst erhalten.
-- Media Repair-Namen-Check nur read-only.
-- Overlay-Monitor Inventory-Warnungen nur Klassifizierung.
-- Bus-Diagnostics Debug-Clients optional.
-- Communication-Bus Einzelrouten nicht vorhanden, Statusroute bündelt Daten.
-
-## Nicht geändert
-
-- Kein Backend-Code.
-- Keine Dashboard-Datei.
-- Keine Datenbank.
-- Keine Registry.
-- Keine Modulversion.
-- Keine produktiven Flows.
-
-## Nächster sinnvoller Schritt
-
-Zurück zur Feature-/Umbauplanung im Control-Center oder ein neues konkretes Modul-/Dashboard-Thema planen.
+- Dashboard/Admin-Config
+- Benutzer/Rollen/Rechte
+- Alert-/Sound-/Media-Verwaltung
+- Geburtstags-Plugin
+- anderes konkretes Modul
