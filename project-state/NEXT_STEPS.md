@@ -3,32 +3,25 @@
 ## Direkt nächster Schritt
 
 ```text
-CAN-42.4 anwenden und Sichttest machen.
+CAN-42.4b anwenden und Sichttest machen.
 ```
 
 ## Prüfung
 
 ```text
-Dashboard > Admin > Diagnose > Todo
+Dashboard > Admin > Diagnose
 ```
 
 Erwartung:
 
 ```text
-Generische Todo-Werte sichtbar
-Todo-spezifische Diagnose sichtbar
-Status OK
-Schema OK
-Integration OK
-Targets
-Channels
-Fehlende Channels
-User-Stats
-Daily-Stats
-Settings
-Textvarianten
-Legacy-Texte
-DB
+OK/Warnung/Fehler/Unbekannt-Zähler sichtbar
+kompakte Modulliste mit Ampelstatus sichtbar
+Dropdown zur Modulwahl bleibt
+Todo-Details sichtbar
+markierter Routen-Hinweissatz weg
+keine API-POSTs
+keine produktive Aktion
 ```
 
 ## Danach
@@ -41,15 +34,4 @@ Voraussetzung:
 
 ```text
 Admin > Diagnose > Todo bildet die bisherigen Todo-Diagnosewerte ausreichend ab.
-```
-
-## Weiterhin nicht machen ohne separaten Go-Schritt
-
-```text
-Keine produktiven Aktionen auslösen.
-Keine Backend-Routen entfernen.
-Keine Todo-Routen entfernen.
-Keine DB-Migration.
-Keine Dashboard-Testbuttons für produktive Aktionen.
-Keine Funktionalität entfernen.
 ```

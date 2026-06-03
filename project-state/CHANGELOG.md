@@ -1,29 +1,19 @@
 # CHANGELOG
 
-## CAN-42.4
+## CAN-42.4b
 
-- Zentrale Admin-Diagnose erweitert:
-  - `Admin > Diagnose > Todo` zeigt Todo-spezifische Diagnosewerte.
-  - Zusätzlich zu `GET /api/todo/status` wird `GET /api/todo/integration-check` gelesen.
-- Abgebildete Werte:
-  - Status OK
-  - Schema OK
-  - Integration OK
-  - Targets
-  - Channels
-  - Fehlende Channels
-  - User-Stats
-  - Daily-Stats
-  - Settings
-  - Textvarianten
-  - Legacy-Texte
-  - DB
-- Todo-Modul selbst nicht geändert.
-- Alter Todo-Diagnose-Tab bleibt vorerst erhalten.
+- Zentrale Admin-Diagnose um Ampel-/Statusübersicht erweitert:
+  - OK/Warnung/Fehler/Unbekannt-Zähler
+  - kompakte Modulliste mit Ampelstatus
+  - Klick auf Modul in der Liste öffnet Details
+- Unnötiger Routen-Hinweissatz aus Moduldetails entfernt.
+- Todo-spezifische Detailwerte bleiben erhalten.
+- Keine Backend-Änderung.
+- Keine bestehenden Modul-Dateien geändert.
 - Keine API-POSTs.
 - Keine produktive Aktion.
 - Keine Funktionalität entfernt.
 
-## CAN-42.3
+## CAN-42.4
 
-- Modul-Diagnose-/Hinweis-Inventar erstellt.
+- Todo-spezifische Diagnosewerte zentral in Admin > Diagnose abgebildet.

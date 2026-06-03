@@ -160,12 +160,85 @@ window.DiagnosticsModule = (function(){
     return `<article class="diag-metric"><span>${esc(label)}</span><strong>${esc(value || '-')}</strong></article>`;
   }
 
+
+  function computeModuleHealth(item) {
+    const raw = item.raw || {};
+    const lastError = item.lastError || state.errors[item.key] || '';
+    if (!item.ok) return { level: 'error', label: 'Fehler', reason: lastError || 'Status nicht erreichbar' };
+
+    const warnings = [];
+    if (lastError) warnings.push(lastError);
+
+    if (item.key === 'todo') {
+      const result = state.results.todo || {};
+      const status = result.status || {};
+      const integration = result.integration || {};
+      const checks = integration.checks || {};
+      const channels = checks.channels || {};
+      const schemaOk = status.schemaReady === true || status.schemaOk === true || status.schema?.ready === true;
+      const integrationOk = integration.ok === true || integration.healthy === true;
+      const missingChannels = Array.isArray(channels.missing) ? channels.missing : [];
+      if (!schemaOk) warnings.push('Schema nicht bereit');
+      if (!integrationOk) warnings.push('Integration auffällig');
+      if (missingChannels.length) warnings.push('fehlende Channels');
+    }
+
+    if (raw.warning || raw.warnings?.length) warnings.push('Warnungen vorhanden');
+    if (raw.healthy === false || raw.ok === false) return { level: 'error', label: 'Fehler', reason: warnings[0] || 'Status meldet Fehler' };
+    if (warnings.length) return { level: 'warn', label: 'Warnung', reason: warnings[0] };
+    return { level: 'ok', label: 'OK', reason: 'keine Auffälligkeit' };
+  }
+
+  function healthIcon(level) {
+    if (level === 'ok') return '🟢';
+    if (level === 'warn') return '🟡';
+    if (level === 'error') return '🔴';
+    return '⚪';
+  }
+
+  function healthClass(level) {
+    return `health-${level || 'unknown'}`;
+  }
+
+  function healthSummary(entries) {
+    const counts = { ok: 0, warn: 0, error: 0, unknown: 0 };
+    const withHealth = entries.map(item => {
+      const health = computeModuleHealth(item);
+      counts[health.level || 'unknown'] = (counts[health.level || 'unknown'] || 0) + 1;
+      return { ...item, health };
+    });
+    return { counts, entries: withHealth };
+  }
+
+  function renderHealthOverview(entries) {
+    const summary = healthSummary(entries);
+    return `
+      <section class="diagnostics-card diagnostics-health-overview">
+        <div class="diagnostics-health-counters">
+          <article class="health-counter health-ok"><span>🟢 OK</span><strong>${summary.counts.ok || 0}</strong></article>
+          <article class="health-counter health-warn"><span>🟡 Warnung</span><strong>${summary.counts.warn || 0}</strong></article>
+          <article class="health-counter health-error"><span>🔴 Fehler</span><strong>${summary.counts.error || 0}</strong></article>
+          <article class="health-counter health-unknown"><span>⚪ Unbekannt</span><strong>${summary.counts.unknown || 0}</strong></article>
+        </div>
+        <div class="diagnostics-health-list">
+          ${summary.entries.map(item => `<button type="button" class="diagnostics-health-row ${healthClass(item.health.level)}" data-diagnostics-pick="${esc(item.key)}">
+            <span class="health-icon">${healthIcon(item.health.level)}</span>
+            <span class="health-title">${esc(item.title)}</span>
+            <span class="health-state">${esc(item.health.label)}</span>
+            <small>${esc(item.health.reason || '')}</small>
+          </button>`).join('')}
+        </div>
+      </section>
+    `;
+  }
+
   function renderOverview(entries) {
     const okCount = entries.filter(item => item.ok).length;
     const enabledCount = entries.filter(item => item.enabled).length;
     const routeCount = entries.reduce((sum, item) => sum + Number(item.routeCount || 0), 0);
     const errCount = entries.length - okCount;
     return `
+      ${renderHealthOverview(entries)}
       <div class="diagnostics-grid">
         ${metric('Module in Diagnose', entries.length)}
         ${metric('Status erreichbar', `${okCount}/${entries.length}`)}
@@ -245,14 +318,18 @@ window.DiagnosticsModule = (function(){
     const raw = result.status || result || {};
     const today = result.today || raw.today || {};
     const show = result.showState?.state || raw.show || {};
+    const health = computeModuleHealth(item);
     return `
       <section class="diagnostics-card diagnostics-card-main">
         <div class="diagnostics-headline-row">
           <div>
-            <h3>${esc(item.title)}</h3>
+            <h3>${healthIcon(health.level)} ${esc(item.title)}</h3>
             <p>${esc(item.key)} · ${esc(item.statusEndpoint)}</p>
           </div>
-          ${pill(item.ok ? 'GET Status erreichbar' : 'Statusfehler', item.ok)}
+          <div class="diagnostics-detail-pills">
+            <span class="diag-pill ${health.level === 'error' ? 'warn' : 'ok'}">${esc(health.label)}</span>
+            ${pill(item.ok ? 'GET Status erreichbar' : 'Statusfehler', item.ok)}
+          </div>
         </div>
         <div class="diagnostics-grid">
           ${metric('Version', item.version || '-')}
@@ -271,7 +348,6 @@ window.DiagnosticsModule = (function(){
           ${metric('Queue-Abfrage', 'nicht genutzt')}
         </div>` : ''}
         ${entry.key === 'todo' ? renderTodoSpecific(result) : ''}
-        <p class="diagnostics-note">Routen werden hier nicht als Liste angezeigt. Die Anzahl bleibt oben sichtbar; Details stehen bei Bedarf in den Rohdaten.</p>
         <details class="diagnostics-raw">
           <summary>Rohdaten anzeigen</summary>
           <pre>${esc(JSON.stringify(raw, null, 2))}</pre>
@@ -321,6 +397,12 @@ window.DiagnosticsModule = (function(){
     root?.querySelector('[data-diagnostics-select]')?.addEventListener('change', ev => {
       state.selected = ev.target.value || 'overview';
       render();
+    });
+    root?.querySelectorAll('[data-diagnostics-pick]')?.forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.selected = btn.dataset.diagnosticsPick || 'overview';
+        render();
+      });
     });
   }
 

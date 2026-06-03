@@ -1,8 +1,8 @@
 # CURRENT_STATUS
 
-## Stand: CAN-42.4 vorbereitet
+## Stand: CAN-42.4b vorbereitet
 
-CAN-42.4 bildet die Todo-spezifischen Diagnosewerte zentral in `Admin > Diagnose > Todo` ab.
+CAN-42.4b baut die zentrale Admin-Diagnose in Richtung Ampel-/Statusübersicht um.
 
 ## Änderung
 
@@ -10,52 +10,33 @@ Geändert:
 
 ```text
 htdocs/dashboard/modules/diagnostics.js
-docs/current/TODO_DIAGNOSTICS_CENTRALIZATION_CAN42_4.md
+htdocs/dashboard/modules/diagnostics.css
+docs/current/ADMIN_DIAGNOSTICS_TRAFFIC_LIGHT_CAN42_4B.md
 project-state/*
-docs/current/CURRENT_CHAT_HANDOFF_CAN42_4.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN42_4B.md
 ```
 
 Nicht geändert:
 
 ```text
-backend/modules/todo.js
-htdocs/dashboard/modules/todo.js
-htdocs/dashboard/modules/todo_readonly_diagnostics.js
-htdocs/dashboard/modules/todo_readonly_diagnostics.css
-htdocs/dashboard/index.html
+backend/*
+bestehende Modul-Dateien
+Todo-Diagnose-Tab
 ```
 
-## Neue zentrale Todo-Werte
+## Ergebnis
 
 ```text
-Status OK
-Schema OK
-Integration OK
-Targets
-Channels
-Fehlende Channels
-User-Stats
-Daily-Stats
-Settings
-Textvarianten
-Legacy-Texte
-DB
+Gesamtübersicht mit OK/Warnung/Fehler/Unbekannt
+kompakte Modulliste mit Ampelsymbol
+Moduldetails weiterhin per Dropdown
+Todo-spezifische Details bleiben erhalten
+unnötiger Routen-Hinweissatz entfernt
 ```
-
-## Genutzte Routen
-
-```text
-GET /api/todo/status
-GET /api/todo/integration-check
-```
-
-## Wichtig
-
-Der alte Todo-Diagnose-Tab bleibt vorerst eingebunden. Entfernt wird er erst nach positivem Sichttest.
 
 ## Nächster Schritt
 
 ```text
-CAN-42.4 anwenden und Admin > Diagnose > Todo prüfen.
-Danach CAN-42.5 Todo-Diagnose-Tab aus Todo-Modul entfernen/deaktivieren.
+CAN-42.4b anwenden und Sichttest machen.
+Danach CAN-42.5 Todo-Diagnose-Tab aus Todo-Modul entfernen/deaktivieren, wenn zentrale Ansicht passt.
 ```
