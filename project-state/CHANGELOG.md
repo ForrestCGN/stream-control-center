@@ -1,20 +1,18 @@
 # CHANGELOG
 
-## CAN-42.5b
+## CAN-42.5c
 
-- Todo-Detailwerte in `Admin > Diagnose > Todo` robuster gemappt:
-  - User-Stats
-  - Daily-Stats
-  - Settings
-  - Textvarianten
-  - Legacy-Texte
-  - DB
-- Verschachtelte Antwortformen werden robuster erkannt.
+- Todo-Count-Mapping in `Admin > Diagnose > Todo` korrigiert:
+  - leere Alias-Werte werden übersprungen.
+  - Counts werden korrekt aus `integration-check` gelesen.
+- Todo-Rohdaten zeigen jetzt kombiniert:
+  - `status`
+  - `integrationCheck`
 - Keine Backend-Änderung.
 - Keine API-POSTs.
 - Keine produktive Aktion.
 - Keine Funktionalität entfernt.
 
-## CAN-42.5
+## CAN-42.5b
 
-- Todo-Diagnose-Tab in der Todo-Modulseite deaktiviert.
+- Todo-Detailwerte robuster gemappt.

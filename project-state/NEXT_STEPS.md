@@ -3,7 +3,7 @@
 ## Direkt nächster Schritt
 
 ```text
-CAN-42.5b anwenden und Sichttest machen.
+CAN-42.5c anwenden und Sichttest machen.
 ```
 
 ## Prüfung
@@ -21,6 +21,7 @@ Settings gefüllt
 Textvarianten gefüllt
 Legacy-Texte gefüllt
 DB gefüllt
+Rohdaten zeigen status und integrationCheck
 Todo bleibt OK
 ```
 
@@ -28,14 +29,4 @@ Todo bleibt OK
 
 ```text
 CAN-42.6 - Tagebuch-Diagnosewerte zentral abbilden
-```
-
-## Weiterhin nicht machen ohne separaten Go-Schritt
-
-```text
-Keine produktiven Aktionen auslösen.
-Keine Backend-Routen entfernen.
-Keine DB-Migration.
-Keine Dashboard-Testbuttons für produktive Aktionen.
-Keine Funktionalität entfernen.
 ```

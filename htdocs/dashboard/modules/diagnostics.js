@@ -179,11 +179,13 @@ window.DiagnosticsModule = (function(){
 
   function checkCount(...checks) {
     for (const check of checks) {
-      if (typeof check === 'number') return check;
+      if (check === undefined || check === null || check === '') continue;
+      if (typeof check === 'number' && Number.isFinite(check)) return check;
       if (check && typeof check === 'object') {
         if (typeof check.count === 'number') return check.count;
         if (typeof check.value === 'number') return check.value;
         if (typeof check.rows === 'number') return check.rows;
+        if (Array.isArray(check.rows)) return check.rows.length;
       }
     }
     return '-';
@@ -391,6 +393,16 @@ window.DiagnosticsModule = (function(){
   }
 
 
+  function combinedRawPayload(entry, result, raw) {
+    if (entry.key === 'todo') {
+      return {
+        status: unwrapDiagnosticsPayload(result.status || {}),
+        integrationCheck: unwrapDiagnosticsPayload(result.integration || {})
+      };
+    }
+    return raw;
+  }
+
   function renderModuleDetails(entry) {
     const item = normalize(entry, state.results[entry.key]);
     const result = state.results[entry.key] || {};
@@ -429,7 +441,7 @@ window.DiagnosticsModule = (function(){
         ${entry.key === 'todo' ? renderTodoSpecific(result) : ''}
         <details class="diagnostics-raw">
           <summary>Rohdaten anzeigen</summary>
-          <pre>${esc(JSON.stringify(raw, null, 2))}</pre>
+          <pre>${esc(JSON.stringify(combinedRawPayload(entry, result, raw), null, 2))}</pre>
         </details>
       </section>
     `;
