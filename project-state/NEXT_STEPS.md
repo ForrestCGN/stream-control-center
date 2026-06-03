@@ -3,34 +3,40 @@
 ## Direkt nächster Schritt
 
 ```text
-CAN-42.6b anwenden.
+CAN-42.7 anwenden und Sichttest machen.
+```
+
+## Prüfung
+
+```text
+Dashboard > Admin > Diagnose > Todo
+```
+
+Erwartung:
+
+```text
+Todo bleibt OK
+User-Stats = 10
+Daily-Stats = 27
+Settings = 5
+Textvarianten = 13
+Legacy-Texte = 13
+DB = sqlite oder ok
+Rohdaten enthalten status.diagnostics
 ```
 
 ## Danach
 
 ```text
-CAN-42.7 - Admin-Diagnose liest Todo diagnostics-Block bevorzugt
+CAN-42.8 - Tagebuch /status auf diagnostics-Standard prüfen/angleichen
 ```
 
-Ziel:
+## Weiterhin nicht machen ohne separaten Go-Schritt
 
 ```text
-Admin > Diagnose > Todo soll primär status.diagnostics lesen.
-Spezial-Mappings für Todo können danach reduziert werden.
-```
-
-## Danach weiter
-
-```text
-CAN-42.8 - Tagebuch /status auf diagnostics-Standard prüfen/angleichen.
-CAN-42.9 - Admin-Diagnose liest Tagebuch diagnostics-Block bevorzugt.
-CAN-42.10 - Tagebuch-Diagnose-Extension aus Modul-Seite entfernen/deaktivieren.
-```
-
-## Projektweite ToDo-Linie
-
-```text
-Alle Module auf diagnostics-Standard prüfen/angleichen.
-Alte Diagnose-Module/-Extensions aus Modul-Seiten entfernen, sobald zentral abgebildet.
+Keine produktiven Aktionen auslösen.
+Keine Backend-Routen entfernen.
+Keine DB-Migration.
+Keine Dashboard-Testbuttons für produktive Aktionen.
 Keine Funktionalität entfernen.
 ```

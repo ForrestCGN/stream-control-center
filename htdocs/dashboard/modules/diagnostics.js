@@ -99,15 +99,15 @@ window.DiagnosticsModule = (function(){
       title: meta.module.title || meta.catalog.label || entry.label,
       enabled: meta.catalog.enabled !== false,
       panelId: meta.module.panelId || '',
-      version: data.version || data.moduleVersion || moduleMetaData.version || cfg.version || '',
-      moduleName: data.module || data.name || moduleMetaData.name || entry.key,
+      version: data.diagnostics?.version || data.version || data.moduleVersion || moduleMetaData.version || cfg.version || '',
+      moduleName: data.diagnostics?.module || data.module || data.name || moduleMetaData.name || entry.key,
       category: moduleMetaData.category || entry.group || meta.module.group || '',
-      schemaVersion: data.schemaVersion || data.schema?.version || data.schema?.current || '',
-      configSource: cfg.settingsSource || data.configSource || data.settingsSource || '',
-      textSource: data.textsSource || data.textSource || data.texts?._textsSource || '',
+      schemaVersion: data.diagnostics?.schemaVersion || data.schemaVersion || data.schema?.version || data.schema?.current || '',
+      configSource: data.diagnostics?.configSource || cfg.settingsSource || data.configSource || data.settingsSource || '',
+      textSource: data.diagnostics?.textSource || data.textsSource || data.textSource || data.texts?._textsSource || '',
       statusEndpoint: entry.status || '',
       routeCount: routes.length,
-      lastError: stats.lastError || data.lastError || data.error || '',
+      lastError: data.diagnostics?.lastError || stats.lastError || data.lastError || data.error || '',
       raw: data
     };
   }
@@ -227,9 +227,23 @@ window.DiagnosticsModule = (function(){
     return false;
   }
 
+  function standardDiagnosticsBlock(raw) {
+    const data = unwrapDiagnosticsPayload(raw || {});
+    if (data.diagnostics && typeof data.diagnostics === 'object') return data.diagnostics;
+    if (data.status && data.status.diagnostics && typeof data.status.diagnostics === 'object') return data.status.diagnostics;
+    return null;
+  }
+
   function computeModuleHealth(item) {
     const raw = item.raw || {};
-    const lastError = item.lastError || state.errors[item.key] || '';
+    const diagnostics = standardDiagnosticsBlock(raw);
+    const lastError = item.lastError || state.errors[item.key] || diagnostics?.lastError || '';
+    if (item.ok && diagnostics) {
+      if (diagnostics.health === 'error' || diagnostics.ok === false) return { level: 'error', label: 'Fehler', reason: cleanDiagnosticError(diagnostics.lastError || diagnostics.errors?.[0]) || 'Diagnostics meldet Fehler' };
+      if (diagnostics.health === 'warn' || (Array.isArray(diagnostics.warnings) && diagnostics.warnings.length)) return { level: 'warn', label: 'Warnung', reason: diagnostics.warnings?.[0] || 'Diagnostics meldet Warnung' };
+      if (diagnostics.health === 'unknown') return { level: 'unknown', label: 'Unbekannt', reason: diagnostics.lastError || 'Diagnostics unbekannt' };
+      return { level: 'ok', label: 'OK', reason: 'diagnostics.ok' };
+    }
     if (!item.ok) {
       if (isMissingStatusEndpoint(lastError)) return { level: 'unknown', label: 'Unbekannt', reason: 'Statusroute fehlt' };
       return { level: 'error', label: 'Fehler', reason: cleanDiagnosticError(lastError) || 'Status nicht erreichbar' };
@@ -350,6 +364,7 @@ window.DiagnosticsModule = (function(){
 
   function renderTodoSpecific(result) {
     const status = unwrapDiagnosticsPayload(result.status || result || {});
+    const diagnostics = standardDiagnosticsBlock(status);
     const integration = unwrapDiagnosticsPayload(result.integration || {});
     const checks = integration.checks || {};
     const channels = checks.channels || {};
@@ -357,20 +372,26 @@ window.DiagnosticsModule = (function(){
     const settings = checks.settings || {};
     const texts = checks.texts || {};
     const database = checks.database || {};
-    const missingChannels = Array.isArray(channels.missing) ? channels.missing : [];
-    const targetCount = checkCount(checks.targets) !== '-' ? checkCount(checks.targets) : (checks.targets?.count ?? countObject(status.targets));
-    const configuredChannels = Object.values(status.channels || channels.targets || {}).filter(item => item && item.configured).length;
-    const totalChannels = countObject(status.channels || channels.targets || {});
-    const statusOk = status.ok !== false;
-    const schemaOk = status.schemaReady === true || status.schemaOk === true || status.schema?.ready === true || integration.schemaVersion >= 1;
-    const integrationOk = todoIntegrationLooksOk(status, integration);
+    const counts = diagnostics?.counts || {};
 
-    const userStats = checkCount(tables.userStats, checks.userStats, integration.userStats);
-    const dailyStats = checkCount(tables.dailyStats, checks.dailyStats, integration.dailyStats);
-    const settingsCount = checkCount(settings, tables.settings, checks.settings);
-    const textVariants = checkCount(texts.count, texts, tables.textVariants, checks.textVariants);
-    const legacyTexts = checkCount(texts.legacyCount, tables.legacyTexts, checks.legacyTexts);
-    const dbValue = database.ok === false ? 'prüfen' : firstDefined(database.adapter, database.path, status.databasePath, 'ok');
+    const missingChannelsFromCheck = Array.isArray(channels.missing) ? channels.missing : [];
+    const missingChannels = Number.isFinite(Number(counts.missingChannels)) ? Number(counts.missingChannels) : missingChannelsFromCheck.length;
+    const targetCount = firstDefined(counts.targets, checkCount(checks.targets), countObject(status.targets));
+    const configuredChannels = firstDefined(counts.channelsConfigured, Object.values(status.channels || channels.targets || {}).filter(item => item && item.configured).length);
+    const totalChannels = firstDefined(counts.channelsTotal, countObject(status.channels || channels.targets || {}));
+
+    const statusOk = status.ok !== false && diagnostics?.ok !== false;
+    const schemaOk = diagnostics?.schemaReady === true || status.schemaReady === true || status.schemaOk === true || status.schema?.ready === true || integration.schemaVersion >= 1;
+    const integrationOk = diagnostics ? diagnostics.ok !== false && diagnostics.health !== 'error' : todoIntegrationLooksOk(status, integration);
+
+    const userStats = firstDefined(counts.userStats, checkCount(tables.userStats, checks.userStats, integration.userStats));
+    const dailyStats = firstDefined(counts.dailyStats, checkCount(tables.dailyStats, checks.dailyStats, integration.dailyStats));
+    const settingsCount = firstDefined(counts.settings, checkCount(settings, tables.settings, checks.settings));
+    const textVariants = firstDefined(counts.textVariants, checkCount(texts.count, texts, tables.textVariants, checks.textVariants));
+    const legacyTexts = firstDefined(counts.legacyTexts, checkCount(texts.legacyCount, tables.legacyTexts, checks.legacyTexts));
+    const dbValue = diagnostics?.database?.ok === false || database.ok === false
+      ? 'prüfen'
+      : firstDefined(diagnostics?.database?.adapter, database.adapter, database.path, status.databasePath, 'ok');
 
     return `<section class="diagnostics-card diagnostics-module-extra">
       <h4>Todo-spezifische Diagnose</h4>
@@ -380,7 +401,7 @@ window.DiagnosticsModule = (function(){
         ${metric('Integration OK', integrationOk ? 'ja' : 'nein')}
         ${metric('Targets', targetCount || '-')}
         ${metric('Channels', totalChannels ? `${configuredChannels}/${totalChannels}` : '-')}
-        ${metric('Fehlende Channels', missingChannels.length)}
+        ${metric('Fehlende Channels', missingChannels)}
         ${metric('User-Stats', userStats)}
         ${metric('Daily-Stats', dailyStats)}
         ${metric('Settings', settingsCount)}
@@ -388,7 +409,7 @@ window.DiagnosticsModule = (function(){
         ${metric('Legacy-Texte', legacyTexts)}
         ${metric('DB', dbValue)}
       </div>
-      ${missingChannels.length ? `<p class="diagnostics-note warn">Fehlende Channels: ${esc(missingChannels.map(item => item.key || item).join(', '))}</p>` : '<p class="diagnostics-note">Todo-Integration meldet keine fehlenden Channels.</p>'}
+      ${missingChannels ? `<p class="diagnostics-note warn">Fehlende Channels: ${esc(missingChannelsFromCheck.map(item => item.key || item).join(', ') || missingChannels)}</p>` : '<p class="diagnostics-note">Todo-Diagnostics meldet keine fehlenden Channels.</p>'}
     </section>`;
   }
 
