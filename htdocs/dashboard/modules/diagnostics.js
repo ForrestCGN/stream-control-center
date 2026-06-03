@@ -287,14 +287,17 @@ window.DiagnosticsModule = (function(){
         <div class="diagnostics-table-wrap">
           <table>
             <thead><tr><th>Modul</th><th>Gruppe</th><th>Status</th><th>Version</th><th>Schema</th><th>Letzter Fehler</th></tr></thead>
-            <tbody>${entries.map(item => `<tr>
-              <td><strong>${esc(item.title)}</strong><small>${esc(item.key)} · ${esc(item.statusEndpoint)}</small></td>
-              <td>${esc(item.group || item.category || '-')}</td>
-              <td>${pill(item.ok ? 'erreichbar' : 'Fehler', item.ok)}</td>
-              <td>${esc(item.version || '-')}</td>
-              <td>${esc(item.schemaVersion || '-')}</td>
-              <td>${esc(cleanDiagnosticError(item.lastError || state.errors[item.key]) || '-')}</td>
-            </tr>`).join('')}</tbody>
+            <tbody>${entries.map(item => {
+              const health = computeModuleHealth(item);
+              return `<tr>
+                <td><strong>${esc(item.title)}</strong><small>${esc(item.key)} · ${esc(item.statusEndpoint)}</small></td>
+                <td>${esc(item.group || item.category || '-')}</td>
+                <td><span class="diag-pill ${health.level === 'ok' ? 'ok' : 'warn'}">${esc(health.label)}</span></td>
+                <td>${esc(item.version || '-')}</td>
+                <td>${esc(item.schemaVersion || '-')}</td>
+                <td>${esc(cleanDiagnosticError(item.lastError || state.errors[item.key]) || '-')}</td>
+              </tr>`;
+            }).join('')}</tbody>
           </table>
         </div>
         ${errCount ? `<p class="diagnostics-note warn">${esc(errCount)} Status-Endpunkt(e) nicht erreichbar. Das ist bei noch nicht angebundenen Modulen okay.</p>` : ''}

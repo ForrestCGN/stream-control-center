@@ -10,7 +10,8 @@
 - [x] CAN-42.4 Todo-Diagnosewerte zentral in Admin > Diagnose abbilden.
 - [x] CAN-42.4b Admin Diagnose Ampelübersicht bauen.
 - [x] CAN-42.4c Admin Diagnose Statusmapping korrigieren.
-- [ ] CAN-42.4d Todo Integration-Mapping final korrigieren.
+- [x] CAN-42.4d Todo Integration-Mapping final korrigieren.
+- [ ] CAN-42.4e Modultabelle an Ampelstatus angleichen.
 - [ ] CAN-42.5 Todo-Diagnose-Tab aus Todo-Modul entfernen/deaktivieren.
 
 ## Später
