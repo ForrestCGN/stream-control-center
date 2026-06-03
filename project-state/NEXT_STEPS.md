@@ -3,26 +3,52 @@
 ## Direkt nächster Schritt
 
 ```text
-CAN-42.4e anwenden und Sichttest machen.
+CAN-42.5 anwenden und Sichttest machen.
 ```
 
-## Prüfung
+## Prüfung Todo-Modul
 
 ```text
-Dashboard > Admin > Diagnose > Gesamtübersicht
+Dashboard > Community > Todo
 ```
 
 Erwartung:
 
 ```text
-Ampel oben: OK 11, Warnung 0, Fehler 0, Unbekannt 1
-VIP-System in der Modultabelle: Unbekannt statt Fehler
-Todo: OK
-keine langen HTML-Fehlertexte
+Übersicht sichtbar
+Settings sichtbar
+Texte sichtbar
+Statistik sichtbar
+Diagnose-Tab nicht mehr sichtbar
+Todo-Funktionen unverändert
+```
+
+## Prüfung zentrale Diagnose
+
+```text
+Dashboard > Admin > Diagnose > Todo
+```
+
+Erwartung:
+
+```text
+Todo OK
+Todo-spezifische Diagnosewerte sichtbar
 ```
 
 ## Danach
 
 ```text
-CAN-42.5 - Todo-Diagnose-Tab aus Todo-Modul entfernen/deaktivieren
+CAN-42.6 - Tagebuch-Diagnosewerte zentral abbilden
+CAN-42.7 - Tagebuch-Diagnose-Tab aus Tagebuch-Modul entfernen/deaktivieren
+```
+
+## Weiterhin nicht machen ohne separaten Go-Schritt
+
+```text
+Keine produktiven Aktionen auslösen.
+Keine Backend-Routen entfernen.
+Keine DB-Migration.
+Keine Dashboard-Testbuttons für produktive Aktionen.
+Keine Funktionalität entfernen.
 ```

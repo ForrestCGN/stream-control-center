@@ -11,8 +11,10 @@
 - [x] CAN-42.4b Admin Diagnose Ampelübersicht bauen.
 - [x] CAN-42.4c Admin Diagnose Statusmapping korrigieren.
 - [x] CAN-42.4d Todo Integration-Mapping final korrigieren.
-- [ ] CAN-42.4e Modultabelle an Ampelstatus angleichen.
+- [x] CAN-42.4e Modultabelle an Ampelstatus angleichen.
 - [ ] CAN-42.5 Todo-Diagnose-Tab aus Todo-Modul entfernen/deaktivieren.
+- [ ] CAN-42.6 Tagebuch-Diagnosewerte zentral abbilden.
+- [ ] CAN-42.7 Tagebuch-Diagnose-Tab entfernen/deaktivieren.
 
 ## Später
 

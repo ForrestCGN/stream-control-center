@@ -1,40 +1,41 @@
 # CURRENT_STATUS
 
-## Stand: CAN-42.4e vorbereitet
+## Stand: CAN-42.5 vorbereitet
 
-CAN-42.4e gleicht die Modulübersicht-Tabelle an die Ampel-/Health-Logik an.
+CAN-42.5 deaktiviert den alten Todo-Diagnose-Tab in der Todo-Modulseite.
 
 ## Änderung
 
 Geändert:
 
 ```text
-htdocs/dashboard/modules/diagnostics.js
-htdocs/dashboard/modules/diagnostics.css
-docs/current/ADMIN_DIAGNOSTICS_TABLE_HEALTH_CAN42_4E.md
+htdocs/dashboard/index.html
+docs/current/TODO_DIAGNOSTICS_TAB_DISABLED_CAN42_5.md
 project-state/*
-docs/current/CURRENT_CHAT_HANDOFF_CAN42_4E.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN42_5.md
 ```
 
 Nicht geändert:
 
 ```text
-backend/*
-bestehende Modul-Dateien
-Todo-Diagnose-Tab
+backend/modules/todo.js
+htdocs/dashboard/modules/todo.js
+htdocs/dashboard/modules/todo_readonly_diagnostics.js
+htdocs/dashboard/modules/todo_readonly_diagnostics.css
 ```
 
 ## Ergebnis
 
 ```text
-Ampel oben und Tabelle unten nutzen dieselbe Health-Bewertung.
-VIP-System wird in der Tabelle als Unbekannt angezeigt, wenn die Statusroute fehlt.
-Fehlerzähler bleibt 0, solange kein echter Modulfehler vorliegt.
+Todo-Diagnose-Extension wird nicht mehr geladen.
+Todo-Diagnose-Tab verschwindet aus der Todo-Modulseite.
+Todo-Bedienbereiche bleiben erhalten.
+Admin > Diagnose > Todo bleibt zentrale Diagnose.
 ```
 
 ## Nächster Schritt
 
 ```text
-CAN-42.4e anwenden und Sichttest machen.
-Danach CAN-42.5 Todo-Diagnose-Tab aus Todo-Modul entfernen/deaktivieren.
+CAN-42.5 anwenden und Sichttest machen.
+Danach CAN-42.6 Tagebuch-Diagnosewerte zentral abbilden.
 ```
