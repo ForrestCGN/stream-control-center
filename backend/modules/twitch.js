@@ -1,4 +1,4 @@
-﻿// modules/twitch.js — exakt an dein funktionierendes Muster angelehnt, in Modul-Form
+// modules/twitch.js — exakt an dein funktionierendes Muster angelehnt, in Modul-Form
 const path = require('path');
 const fs = require('fs');
 const axios = require('axios');
@@ -10,7 +10,7 @@ const configHelper = require('./helpers/helper_config');
 const database = require('../core/database');
 
 const MODULE_NAME = 'twitch';
-const MODULE_VERSION = '0.1.0';
+const MODULE_VERSION = '0.1.1';
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
@@ -743,6 +743,135 @@ module.exports.init = function init(ctx) {
   async function getAccessToken(){const user=await getUserAccessTokenWithRefresh();if(user)return user;if(env.TWITCH_ACCESS_TOKEN&&env.TWITCH_ACCESS_TOKEN.length>0)return env.TWITCH_ACCESS_TOKEN;return await getAppAccessToken();}
   function helixHeaders(token){if(!TW_CLIENT_ID)throw new Error('Missing TWITCH_CLIENT_ID header value');return {'Client-ID':TW_CLIENT_ID,Authorization:`Bearer ${token}`};}
   async function helixGet(pathname,params){const token=await getAccessToken();const url=new URL('https://api.twitch.tv/helix'+pathname);Object.entries(params||{}).forEach(([k,v])=>{if(v!==undefined&&v!==null&&v!=='')url.searchParams.set(k,v);});const r=await axios.get(url.toString(),{headers:helixHeaders(token)});return r.data;}
+  async function helixGetWithDebug(pathname,params){
+    const token=await getAccessToken();
+    const url=new URL('https://api.twitch.tv/helix'+pathname);
+    Object.entries(params||{}).forEach(([k,v])=>{if(v!==undefined&&v!==null&&v!=='')url.searchParams.set(k,v);});
+    const startedAt = core.nowIso();
+    const r=await axios.get(url.toString(),{headers:helixHeaders(token)});
+    return {
+      ok: true,
+      url: url.toString(),
+      pathname,
+      params: params || {},
+      status: r.status,
+      requestedAt: startedAt,
+      receivedAt: core.nowIso(),
+      data: r.data
+    };
+  }
+
+  function isTruthyParam(value) {
+    const v = String(value ?? '').trim().toLowerCase();
+    return v === '1' || v === 'true' || v === 'yes' || v === 'on' || v === 'debug';
+  }
+
+  function pickExactLiveSearchChannel(searchData, user) {
+    const login = String(user?.login || '').toLowerCase();
+    const display = String(user?.display_name || '').toLowerCase();
+    const rows = Array.isArray(searchData?.data) ? searchData.data : [];
+    return rows.find((row) => {
+      const rowLogin = String(row?.broadcaster_login || '').toLowerCase();
+      const rowName = String(row?.display_name || '').toLowerCase();
+      return !!row?.is_live && (rowLogin === login || rowName === display || rowName === login);
+    }) || null;
+  }
+
+  function buildSearchFallbackStream(user, searchRow) {
+    if (!user || !searchRow) return null;
+    return {
+      id: `search_channels:${user.id}`,
+      user_id: String(user.id || ''),
+      user_login: String(user.login || searchRow.broadcaster_login || '').toLowerCase(),
+      user_name: user.display_name || searchRow.display_name || searchRow.broadcaster_login || '',
+      game_id: searchRow.game_id || '',
+      game_name: searchRow.game_name || '',
+      type: 'live',
+      title: searchRow.title || '',
+      viewer_count: null,
+      started_at: '',
+      language: '',
+      thumbnail_url: searchRow.thumbnail_url || '',
+      tag_ids: [],
+      tags: [],
+      is_mature: null,
+      _source: 'search_channels_fallback',
+      _fallback: true
+    };
+  }
+
+  async function getStreamInfoResolved(login, opts = {}) {
+    const debug = !!opts.debug;
+    const allowSearchFallback = opts.allowSearchFallback !== false;
+    const u = debug
+      ? await helixGetWithDebug('/users', { login })
+      : { data: await helixGet('/users', { login }) };
+    const usersPayload = debug ? u.data : u.data;
+    const user = usersPayload?.data?.[0];
+    if (!user) {
+      const err = new Error('User not found');
+      err.statusCode = 404;
+      err.debug = debug ? { usersByLogin: u } : null;
+      throw err;
+    }
+
+    const [byId, byLogin, searchLive] = await Promise.all([
+      debug ? helixGetWithDebug('/streams', { user_id: user.id }) : helixGet('/streams', { user_id: user.id }),
+      debug ? helixGetWithDebug('/streams', { user_login: user.login || login }) : helixGet('/streams', { user_login: user.login || login }),
+      debug || allowSearchFallback ? helixGetWithDebug('/search/channels', { query: user.login || login, live_only: true, first: 20 }).catch((e) => ({ ok:false, error: e.response?.data || e.message })) : Promise.resolve(null)
+    ]);
+
+    const byIdData = debug ? byId.data : byId;
+    const byLoginData = debug ? byLogin.data : byLogin;
+    let selectedSource = 'streams_user_id';
+    let selectedPayload = byIdData;
+    let selectedStream = byIdData?.data?.[0] || null;
+
+    if (!selectedStream && byLoginData?.data?.[0]) {
+      selectedSource = 'streams_user_login';
+      selectedPayload = byLoginData;
+      selectedStream = byLoginData.data[0];
+    }
+
+    const searchPayload = searchLive?.data || searchLive;
+    const exactLiveSearch = pickExactLiveSearchChannel(searchPayload, user);
+    if (!selectedStream && exactLiveSearch && allowSearchFallback) {
+      selectedSource = 'search_channels_fallback';
+      selectedStream = buildSearchFallbackStream(user, exactLiveSearch);
+      selectedPayload = { data: [selectedStream], pagination: searchPayload?.pagination || {} };
+    }
+
+    if (selectedPayload && Array.isArray(selectedPayload.data)) {
+      selectedPayload.data = selectedPayload.data.map((row) => ({ ...row, _source: row?._source || selectedSource }));
+    }
+
+    const diagnostics = {
+      selectedSource,
+      loginRequested: login,
+      resolvedUserId: user.id,
+      resolvedLogin: user.login,
+      resolvedDisplayName: user.display_name,
+      streamsByIdCount: byIdData?.data?.length || 0,
+      streamsByLoginCount: byLoginData?.data?.length || 0,
+      searchLiveExactMatch: !!exactLiveSearch,
+      searchLiveCount: Array.isArray(searchPayload?.data) ? searchPayload.data.length : 0,
+      searchFallbackUsed: selectedSource === 'search_channels_fallback'
+    };
+
+    if (!debug) return { user, payload: selectedPayload || { data: [], pagination: {} }, diagnostics };
+
+    return {
+      user,
+      payload: selectedPayload || { data: [], pagination: {} },
+      diagnostics,
+      raw: {
+        usersByLogin: u,
+        streamsByUserId: byId,
+        streamsByUserLogin: byLogin,
+        searchChannelsLiveOnly: searchLive
+      }
+    };
+  }
   async function helixPost(pathname, body){
     const token = await getAccessToken();
     const url = 'https://api.twitch.tv/helix' + pathname;
@@ -1198,13 +1327,26 @@ module.exports.init = function init(ctx) {
   const handleStreamInfo = async (req, res) => {
     try {
       const login = core.getParam(req, 'login', '').toString().trim();
+      const debug = isTruthyParam(core.getParam(req, 'debug', '')) || isTruthyParam(core.getParam(req, 'raw', ''));
+      const noFallback = isTruthyParam(core.getParam(req, 'noFallback', '')) || isTruthyParam(core.getParam(req, 'no_fallback', ''));
       if (!login) return res.status(400).json({ ok:false, error:'Missing ?login=' });
-      const u = await helixGet('/users', { login });
-      const user = u?.data?.[0];
-      if (!user) return res.status(404).json({ ok:false, error:'User not found' });
-      res.json(await helixGet('/streams', { user_id: user.id }));
+      const result = await getStreamInfoResolved(login, { debug, allowSearchFallback: !noFallback });
+      if (debug) {
+        return res.json({
+          ok: true,
+          module: MODULE_NAME,
+          moduleVersion: MODULE_VERSION,
+          route: '/api/twitch/stream',
+          data: result.payload?.data || [],
+          pagination: result.payload?.pagination || {},
+          diagnostics: result.diagnostics,
+          raw: result.raw
+        });
+      }
+      res.json(result.payload || { data: [], pagination: {} });
     } catch (e) {
-      res.status(e.response?.status || 500).json({ ok:false, error: e.response?.data || e.message });
+      const status = e.statusCode || e.response?.status || 500;
+      res.status(status).json({ ok:false, error: e.response?.data || e.message, debug: e.debug || undefined });
     }
   };
 
@@ -1256,23 +1398,31 @@ module.exports.init = function init(ctx) {
     try {
       let userId = core.getParam(req, 'id', '').toString().trim();
       const login = core.getParam(req, 'login', '').toString().trim();
+      const debug = isTruthyParam(core.getParam(req, 'debug', '')) || isTruthyParam(core.getParam(req, 'raw', ''));
 
       if (!userId && !login) return res.status(400).json({ ok:false, error:'Missing ?id= or ?login=' });
 
-      if (!userId) {
-        const u = await helixGet('/users', { login });
-        const user = u?.data?.[0];
-        if (!user) return res.status(404).json({ ok:false, error:'User not found' });
-        userId = String(user.id);
+      let userInfo;
+      let user;
+      let streamInfo;
+      let streamDiagnostics = null;
+      let streamDebugRaw = null;
+
+      if (login) {
+        const resolved = await getStreamInfoResolved(login, { debug, allowSearchFallback: true });
+        user = resolved.user || null;
+        userId = String(user?.id || userId || '');
+        streamInfo = resolved.payload || { data: [] };
+        streamDiagnostics = resolved.diagnostics || null;
+        streamDebugRaw = resolved.raw || null;
+        userInfo = { data: user ? [user] : [] };
+      } else {
+        userInfo = await helixGet('/users', { id: userId });
+        user = userInfo?.data?.[0] || null;
+        streamInfo = await helixGet('/streams', { user_id: userId });
       }
 
-      const [userInfo, streamInfo, channelInfo] = await Promise.all([
-        helixGet('/users', { id: userId }),
-        helixGet('/streams', { user_id: userId }),
-        helixGet('/channels', { broadcaster_id: userId })
-      ]);
-
-      const user = userInfo?.data?.[0] || null;
+      const channelInfo = await helixGet('/channels', { broadcaster_id: userId });
       const stream = streamInfo?.data?.[0] || null;
       const channel = channelInfo?.data?.[0] || null;
 
@@ -1283,16 +1433,20 @@ module.exports.init = function init(ctx) {
         display_name: user?.display_name || null,
         profile_image_url: user?.profile_image_url || null,
         is_live: !!stream,
+        live_source: stream?._source || (stream ? 'streams_user_id' : ''),
         title: channel?.title || stream?.title || null,
         game_name: channel?.game_name || stream?.game_name || null,
         game_id: channel?.game_id || stream?.game_id || null,
         viewer_count: stream?.viewer_count ?? null,
         started_at: stream?.started_at || null,
         stream_id: stream?.id || null,
-        thumbnail_url: stream?.thumbnail_url || null
+        thumbnail_url: stream?.thumbnail_url || null,
+        diagnostics: streamDiagnostics || undefined,
+        raw: debug ? streamDebugRaw : undefined
       });
     } catch (e) {
-      res.status(e.response?.status || 500).json({ ok:false, error: e.response?.data || e.message });
+      const status = e.statusCode || e.response?.status || 500;
+      res.status(status).json({ ok:false, error: e.response?.data || e.message, debug: e.debug || undefined });
     }
   };
 
