@@ -1,60 +1,39 @@
 # CURRENT_STATUS
 
-## Aktueller Stand: CAN-42.12b vorbereitet
+## Aktueller Stand: CAN-42.12c vorbereitet
 
-CAN-42.12b ergänzt einen kleinen Dashboard-Fix für die zentrale Admin-Diagnose.
-
-Auslöser:
-
-- `/api/hug/status` liefert nach CAN-42.12 korrekt `moduleVersion = 0.1.1` und `diagnostics.version = 0.1.1`.
-- In der Diagnose-Oberfläche wurde beim Hug-System trotzdem `Version 0.1` angezeigt.
-- Außerdem wurde bei Hug `Routen -` angezeigt, obwohl mindestens die Statusroute `/api/hug/status` existiert.
-
-Geändert:
+Die zentrale Dashboard-Diagnose wurde nach CAN-42.12b erweitert:
 
 ```text
-htdocs/dashboard/index.html
-htdocs/dashboard/modules/diagnostics_hug_display_fix.js
+CAN-42.10 Tagebuch Modul-Diagnose aus Modul-Seite entfernt/deaktiviert
+CAN-42.11 Commands /status mit standardisiertem diagnostics-Block
+CAN-42.12 Hug /status mit standardisiertem diagnostics-Block
+CAN-42.12b Dashboard Hug-Diagnose Anzeige-Fix
+CAN-42.12c Dashboard generischer Diagnostics-Details-Renderer
 ```
 
-Ergebnis:
+## Ergebnis CAN-42.12c
 
-- Das Dashboard lädt nach `diagnostics.js` zusätzlich `diagnostics_hug_display_fix.js`.
-- Der Fix ist read-only und betrifft nur die Anzeige im zentralen Diagnosepanel.
-- Wenn die Hug-Diagnosekarte sichtbar ist, wird `/api/hug/status` GET-only erneut gelesen und die sichtbaren Metriken `Version`, `Schema`, `Routen`, `Config-Quelle`, `Textsystem` und `Letzter Fehler` nachgezogen.
-- Die Version wird explizit als String aus `diagnostics.version`, `moduleVersion` oder `version` angezeigt.
-- `Routen` zeigt mindestens `1`, wenn keine Routenliste geliefert wird, aber die Statusroute erreichbar ist.
-
-Nicht geändert:
+Ein neuer read-only Frontend-Renderer ergänzt auf Diagnose-Detailseiten generisch vorhandene Inhalte aus `diagnostics`:
 
 ```text
-Kein Backend geändert
-Keine Hug-/Rehug-Logik geändert
-Keine Statusroute geändert
-Keine DB-Migration
-Keine produktive Aktion
-Keine Admin-Aktion
-Keine Funktionalität entfernt
+counts
+database
+state
+queue
+runtime
+warnings
+errors
 ```
 
-Lokaler Syntax-Check im Chat:
+Dadurch bekommen Hug, Commands und künftige Module automatisch mehr Detailwerte angezeigt, sobald ihre Statusroute einen standardisierten `diagnostics`-Block liefert.
 
-```powershell
-node --check htdocs/dashboard/modules/diagnostics_hug_display_fix.js
-```
-
-Nächster Schritt nach dem Entpacken:
-
-```powershell
-.\stepdone.cmd "CAN-42.12b Dashboard Hug diagnostics display fix"
-node -c htdocs\dashboard\modules\diagnostics_hug_display_fix.js
-```
-
-Danach im Dashboard prüfen:
+## Nicht geändert
 
 ```text
-Admin > Diagnose > Hug-System
-Version = 0.1.1
-Routen = 1 oder echte Routenzahl
-GET Status erreichbar = OK
+Backend-Module
+produktive POST-Routen
+Hug-/Command-/Tagebuch-/Todo-Logik
+DB-Schema
+Streamer.bot-/OBS-Flows
 ```

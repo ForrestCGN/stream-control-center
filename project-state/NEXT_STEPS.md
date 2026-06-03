@@ -1,49 +1,35 @@
 # NEXT_STEPS
 
-## Direkt nächster Schritt
+## Direkt als nächstes
 
-CAN-42.12b anwenden und testen:
+CAN-42.12c anwenden und Dashboard prüfen:
 
 ```powershell
-.\stepdone.cmd "CAN-42.12b Dashboard Hug diagnostics display fix"
-node -c htdocs\dashboard\modules\diagnostics_hug_display_fix.js
+.\stepdone.cmd "CAN-42.12c Dashboard generic diagnostics details renderer"
+node -c htdocs\dashboard\modules\diagnostics_generic_details.js
 ```
 
-Danach im Browser/Dashboard:
+Danach im Dashboard mit hartem Reload prüfen:
 
 ```text
-1. Dashboard hart neu laden, notfalls STRG+F5.
-2. Admin > Diagnose öffnen.
-3. Hug-System auswählen.
-4. Status aktualisieren klicken.
+Admin > Diagnose > Hug-System
+Admin > Diagnose > Commands
+Admin > Diagnose > Tagebuch
+Admin > Diagnose > Todo
 ```
 
-Erwartung:
-
-```text
-Version = 0.1.1
-Routen = 1 oder echte Routenzahl
-Config-Quelle = database
-Textsystem = database
-Letzter Fehler = -
-```
+Erwartung: Bei Modulen mit `diagnostics.counts` erscheint ein generischer Block „Standard-Diagnostics“.
 
 ## Danach
 
-Nächstes Modul auf diagnostics-Standard prüfen/angleichen. Sinnvolle Kandidaten:
-
-```text
-Message-Rotator
-VIP-System / VIP-Sound
-Media / Sound-System Detailstatus
-```
+CAN-42.13: Message-Rotator auf Diagnostics-Standard prüfen/angleichen.
 
 ## Weiterhin nicht ohne separaten Go-Schritt
 
 ```text
-Keine produktiven Aktionen auslösen
+Keine produktiven Aktionen
+Keine POST-Testbuttons in Diagnose
 Keine Backend-Routen entfernen
-Keine DB-Migration erzwingen
-Keine Dashboard-Testbuttons für produktive Aktionen ergänzen
+Keine DB-Migration
 Keine Funktionalität entfernen
 ```
