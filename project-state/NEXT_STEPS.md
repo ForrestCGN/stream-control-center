@@ -3,32 +3,35 @@
 ## Direkt nächster Schritt
 
 ```text
-CAN-42.7 anwenden und Sichttest machen.
+CAN-42.8 anwenden und prüfen.
 ```
 
 ## Prüfung
 
 ```text
-Dashboard > Admin > Diagnose > Todo
+GET http://127.0.0.1:8080/api/tagebuch/status
 ```
 
 Erwartung:
 
 ```text
-Todo bleibt OK
-User-Stats = 10
-Daily-Stats = 27
-Settings = 5
-Textvarianten = 13
-Legacy-Texte = 13
-DB = sqlite oder ok
-Rohdaten enthalten status.diagnostics
+diagnostics.ok
+diagnostics.health
+diagnostics.counts.state
+diagnostics.counts.runtimeEvents
+diagnostics.counts.userStats
+diagnostics.counts.dailyUserStats
+diagnostics.counts.settings
+diagnostics.counts.textVariants
+diagnostics.counts.legacyTexts
+diagnostics.state
+diagnostics.webhook
 ```
 
 ## Danach
 
 ```text
-CAN-42.8 - Tagebuch /status auf diagnostics-Standard prüfen/angleichen
+CAN-42.9 - Admin-Diagnose liest Tagebuch diagnostics-Block bevorzugt
 ```
 
 ## Weiterhin nicht machen ohne separaten Go-Schritt

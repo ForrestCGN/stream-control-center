@@ -1,39 +1,35 @@
 # CURRENT_STATUS
 
-## Stand: CAN-42.7 vorbereitet
+## Stand: CAN-42.8 vorbereitet
 
-CAN-42.7 passt die zentrale Admin-Diagnose an, sodass `Admin > Diagnose > Todo` bevorzugt den neuen standardisierten `diagnostics`-Block aus `GET /api/todo/status` liest.
+CAN-42.8 erweitert `GET /api/tagebuch/status` um einen standardisierten `diagnostics`-Block.
 
 ## Änderung
 
 Geändert:
 
 ```text
-htdocs/dashboard/modules/diagnostics.js
-htdocs/dashboard/modules/diagnostics.css
-docs/current/ADMIN_DIAGNOSTICS_TODO_STANDARD_BLOCK_CAN42_7.md
+backend/modules/tagebuch.js
+docs/modules/tagebuch.md
+docs/current/TAGEBUCH_STATUS_DIAGNOSTICS_STANDARD_CAN42_8.md
 project-state/*
-docs/current/CURRENT_CHAT_HANDOFF_CAN42_7.md
-```
-
-Nicht geändert:
-
-```text
-backend/*
-bestehende Modul-Dateien
+docs/current/CURRENT_CHAT_HANDOFF_CAN42_8.md
 ```
 
 ## Ergebnis
 
 ```text
-Todo-Health/Ampel liest diagnostics.health/diagnostics.ok.
-Todo-Details lesen diagnostics.counts.
-Fallback auf integration-check bleibt erhalten.
+Tagebuch /status liefert zusätzlich diagnostics.
+Bestehende Statusfelder bleiben erhalten.
+Keine Route entfernt.
+Keine DB-Migration.
+Keine produktive Aktion.
+Keine Funktionalität entfernt.
 ```
 
 ## Nächster Schritt
 
 ```text
-CAN-42.7 anwenden und Admin > Diagnose > Todo prüfen.
-Danach CAN-42.8 Tagebuch /status auf diagnostics-Standard prüfen/angleichen.
+CAN-42.8 anwenden und /api/tagebuch/status prüfen.
+Danach CAN-42.9 Admin-Diagnose liest Tagebuch diagnostics-Block bevorzugt.
 ```

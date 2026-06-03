@@ -1078,6 +1078,110 @@ function publicState(state = getState()) {
   };
 }
 
+
+function countTableRowsWhere(tableName, where = '', params = {}) {
+  try {
+    const safeTable = safeString(tableName);
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(safeTable)) {
+      return { ok: false, table: safeTable, count: 0, error: 'invalid_table' };
+    }
+    const clause = where ? ` WHERE ${where}` : '';
+    const row = database.get(`SELECT COUNT(*) AS count FROM ${safeTable}${clause}`, params);
+    return { ok: true, table: safeTable, count: Number(row?.count || 0), error: '' };
+  } catch (err) {
+    return { ok: false, table: tableName, count: 0, error: err.message };
+  }
+}
+
+function buildStandardDiagnostics() {
+  const warnings = [];
+  const errors = [];
+
+  const cfg = getConfig();
+  const publicCfg = safePublicConfig(cfg);
+  const state = getState();
+  const schemaVersion = database.getSchemaVersion(MODULE_NAME);
+
+  if (Number(schemaVersion || 0) < SCHEMA_VERSION) {
+    warnings.push('schema_version_below_expected');
+  }
+
+  const db = {
+    ok: true,
+    adapter: typeof database.getAdapter === 'function' ? database.getAdapter() : 'sqlite',
+    path: typeof database.getDbPath === 'function' ? database.getDbPath() : null,
+    schemaVersion,
+    expectedSchemaVersion: SCHEMA_VERSION,
+    error: ''
+  };
+
+  const tableCounts = {
+    state: countTableRows('tagebuch_state'),
+    runtimeEvents: countTableRows('tagebuch_runtime_events'),
+    userStats: countTableRows('tagebuch_user_stats'),
+    dailyUserStats: countTableRows('tagebuch_daily_user_stats'),
+    settings: countTableRows(SETTINGS_TABLE),
+    textVariants: countTableRowsWhere(texts.DEFAULT_MODULE_TEXT_VARIANTS_TABLE, 'module_name = :module', { module: TEXTS_MODULE }),
+    legacyTexts: countTableRowsWhere(texts.DEFAULT_MODULE_TEXTS_TABLE, 'module_name = :module', { module: TEXTS_MODULE })
+  };
+
+  for (const check of Object.values(tableCounts)) {
+    if (!check.ok) errors.push(`${check.table}:${check.error}`);
+  }
+
+  const configFile = fileCheck('config', cfg.configPath);
+  const messagesFile = fileCheck('messages', cfg.messagesPath);
+  if (!configFile.ok) warnings.push('config_file_missing_or_not_file');
+  if (!messagesFile.ok) warnings.push('messages_file_missing_or_not_file');
+
+  if (cfg.useDiscordWebhook && !cfg.webhookUrl) {
+    warnings.push('discord_webhook_enabled_but_missing_url');
+  }
+
+  const ok = errors.length === 0;
+  const health = ok ? (warnings.length ? 'warn' : 'ok') : 'error';
+
+  return {
+    ok,
+    health,
+    module: MODULE_NAME,
+    version: MODULE_VERSION,
+    schemaVersion,
+    schemaReady: Number(schemaVersion || 0) >= SCHEMA_VERSION,
+    configSource: publicCfg.settingsSource || 'unknown',
+    textSource: publicCfg.textsSource || 'unknown',
+    database: db,
+    counts: {
+      state: tableCounts.state.count,
+      runtimeEvents: tableCounts.runtimeEvents.count,
+      userStats: tableCounts.userStats.count,
+      dailyUserStats: tableCounts.dailyUserStats.count,
+      settings: tableCounts.settings.count,
+      textVariants: tableCounts.textVariants.count,
+      legacyTexts: tableCounts.legacyTexts.count
+    },
+    state: {
+      activeStream: Boolean(state.active_stream),
+      currentPageNumber: Number(state.current_page_number || 0),
+      currentPageDate: state.current_page_date || null,
+      hasEntriesForCurrentDate: Boolean(state.has_entries_for_current_date),
+      endNoticePostedForCurrentDate: Boolean(state.end_notice_posted_for_current_date)
+    },
+    files: {
+      config: configFile,
+      messages: messagesFile
+    },
+    webhook: {
+      useDiscordWebhook: Boolean(cfg.useDiscordWebhook),
+      hasWebhookUrl: Boolean(cfg.webhookUrl),
+      webhookUrlEnv: cfg.webhookUrlEnv || ''
+    },
+    warnings,
+    errors,
+    lastError: errors[0] || publicCfg.settingsError || runtimeMessages?._textsError || null
+  };
+}
+
 function buildStatus() {
   const cfg = getConfig();
   const state = getState();
@@ -1091,6 +1195,7 @@ function buildStatus() {
     messagesPath: cfg.messagesPath,
     config: safePublicConfig(cfg),
     state: publicState(state),
+    diagnostics: buildStandardDiagnostics(),
   };
 }
 

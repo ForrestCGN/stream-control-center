@@ -1,15 +1,18 @@
 # CHANGELOG
 
-## CAN-42.7
+## CAN-42.8
 
-- `Admin > Diagnose > Todo` liest bevorzugt den standardisierten `diagnostics`-Block aus `GET /api/todo/status`.
-- Todo-Health, Version, Schema, Config/Textquelle und Counts nutzen den Standardblock.
-- Fallback auf `integration-check` bleibt vorerst erhalten.
-- Keine Backend-Änderung.
-- Keine API-POSTs.
+- `backend/modules/tagebuch.js` erweitert:
+  - `countTableRowsWhere()` ergänzt.
+  - `buildStandardDiagnostics()` ergänzt.
+  - `GET /api/tagebuch/status` liefert zusätzlich `diagnostics`.
+- Bestehende Statusfelder bleiben erhalten.
+- Keine neue Route.
+- Keine Route entfernt.
+- Keine DB-Migration.
 - Keine produktive Aktion.
 - Keine Funktionalität entfernt.
 
-## CAN-42.6b
+## CAN-42.7
 
-- Projektweites ToDo für Diagnose-Standardisierung ergänzt.
+- Admin-Diagnose liest Todo diagnostics-Block bevorzugt.
