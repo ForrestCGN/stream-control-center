@@ -1,6 +1,6 @@
 # FILES
 
-## Aktueller Arbeitsstand CAN-42.14b
+## Aktueller Arbeitsstand CAN-42.14c
 
 Geänderte Dateien:
 
@@ -11,8 +11,8 @@ project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/CHANGELOG.md
 project-state/FILES.md
-docs/current/DIAGNOSTICS_LABEL_TIME_CLEANUP_CAN42_14B.md
-docs/current/CURRENT_CHAT_HANDOFF_CAN42_14B.md
+docs/current/DIAGNOSTICS_LABEL_FINE_TUNING_CAN42_14C.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN42_14C.md
 ```
 
 Nicht geändert:
@@ -27,5 +27,5 @@ htdocs/dashboard/modules/diagnostics_hug_display_fix.js
 ## ZIP aus dem Chat
 
 ```text
-CAN-42.14b_dashboard_diagnostics_label_time_cleanup.zip
+CAN-42.14c_dashboard_diagnostics_label_fine_tuning.zip
 ```

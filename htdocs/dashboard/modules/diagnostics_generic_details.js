@@ -1,7 +1,7 @@
 window.DiagnosticsGenericDetails = (function(){
   'use strict';
 
-  const MODULE_VERSION = '0.1.2-can42-14b';
+  const MODULE_VERSION = '0.1.3-can42-14c';
   const ENDPOINTS = {
     birthday: '/api/birthday/status',
     todo: '/api/todo/status',
@@ -98,7 +98,7 @@ window.DiagnosticsGenericDetails = (function(){
     currentPageDate: 'Seitendatum',
     hasEntriesForCurrentDate: 'Einträge für aktuelles Datum',
     endNoticePostedForCurrentDate: 'Endhinweis für aktuelles Datum gepostet',
-    phase: 'Phase',
+    phase: 'Statusphase',
     visible: 'Sichtbar',
     isActive: 'Aktiv',
     queuedCount: 'Warteschlange',
@@ -282,12 +282,12 @@ window.DiagnosticsGenericDetails = (function(){
   function databaseMetrics(database) {
     if (!database || typeof database !== 'object') return [];
     const out = [];
-    if (hasValue(database.ok)) out.push(metric('DB OK', database.ok));
-    if (hasValue(database.adapter)) out.push(metric('DB Adapter', database.adapter));
-    if (hasValue(database.path)) out.push(metric('DB Pfad', database.path));
-    if (hasValue(database.schemaVersion)) out.push(metric('DB Schema', database.schemaVersion));
-    if (hasValue(database.expectedSchemaVersion)) out.push(metric('DB Erwartet', database.expectedSchemaVersion));
-    if (hasValue(database.error)) out.push(metric('DB Fehler', database.error));
+    if (hasValue(database.ok)) out.push(metric('Datenbank OK', database.ok));
+    if (hasValue(database.adapter)) out.push(metric('Datenbank-Typ', database.adapter));
+    if (hasValue(database.path)) out.push(metric('Datenbank-Pfad', database.path));
+    if (hasValue(database.schemaVersion)) out.push(metric('Datenbank-Schema', database.schemaVersion));
+    if (hasValue(database.expectedSchemaVersion)) out.push(metric('Erwartetes Schema', database.expectedSchemaVersion));
+    if (hasValue(database.error)) out.push(metric('Datenbank-Fehler', database.error));
     return out;
   }
 
@@ -323,8 +323,8 @@ window.DiagnosticsGenericDetails = (function(){
       ${countCards.length ? `<h5>Zähler</h5><div class="diagnostics-grid">${countCards.join('')}</div>` : ''}
       ${databaseCards.length ? `<h5>Datenbank</h5><div class="diagnostics-grid">${databaseCards.join('')}</div>` : ''}
       ${stateCards.length ? `<h5>Status</h5><div class="diagnostics-grid">${stateCards.join('')}</div>` : ''}
-      ${queueCards.length ? `<h5>Queue</h5><div class="diagnostics-grid">${queueCards.join('')}</div>` : ''}
-      ${runtimeCards.length ? `<h5>Runtime</h5><div class="diagnostics-grid">${runtimeCards.join('')}</div>` : ''}
+      ${queueCards.length ? `<h5>Warteschlange</h5><div class="diagnostics-grid">${queueCards.join('')}</div>` : ''}
+      ${runtimeCards.length ? `<h5>Laufzeit</h5><div class="diagnostics-grid">${runtimeCards.join('')}</div>` : ''}
       ${listBlock('Warnungen', diagnostics.warnings, 'warn')}
       ${listBlock('Fehler', diagnostics.errors, 'warn')}
     </section>`;

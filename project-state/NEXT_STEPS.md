@@ -2,10 +2,10 @@
 
 ## Direkt nächster Schritt
 
-CAN-42.14b anwenden und Dashboard prüfen:
+CAN-42.14c anwenden und Dashboard prüfen:
 
 ```powershell
-.\stepdone.cmd "CAN-42.14b Dashboard diagnostics labels and time display"
+.\stepdone.cmd "CAN-42.14c Dashboard diagnostics label fine tuning"
 node -c htdocs\dashboard\modules\diagnostics_generic_details.js
 ```
 
@@ -18,7 +18,7 @@ Admin > Diagnose > Commands
 Admin > Diagnose > Message-Rotator
 ```
 
-Erwartung: Standard-Diagnose zeigt lesbarere Labels und Zeitwerte mit Datum/Einheit.
+Erwartung: Datenbank-/Status-/Abschnittslabels im generischen Standard-Diagnoseblock sind weiter geglättet.
 
 ## Danach
 

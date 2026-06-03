@@ -9,6 +9,7 @@ Erledigt:
 - CAN-42.13 Message-Rotator Status-Diagnostics
 - CAN-42.14 VIP-Sound Status-Diagnostics + Dateiumbenennung zu `vip-sound.js`
 - CAN-42.14b Dashboard Diagnostics Label-/Zeit-Anzeige-Cleanup
+- CAN-42.14c Dashboard Diagnostics Label-Feinschliff
 
 Offen:
 
