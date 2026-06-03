@@ -1,17 +1,17 @@
 # CHANGELOG
 
-## CAN-42.2
+## CAN-42.3
 
-- Diagnose-Standard definiert:
-  - `docs/modules/diagnostics_standard.md`
-- `docs/modules/diagnostics.md` aktualisiert.
-- Umgang mit leeren Feldern dokumentiert.
-- Mindest-/Empfehlungsfelder für Modulstatus festgelegt.
+- Modul-Diagnose-/Hinweis-Inventar erstellt:
+  - `docs/current/MODULE_DIAGNOSTICS_HINT_INVENTORY_CAN42_3.md`
+- Direkt in Modul-Seiten eingebundene Diagnose-/Hinweis-Erweiterungen dokumentiert.
+- Birthday Safety/Diagnose als bereits nicht mehr eingebunden markiert.
+- Nächste Bereinigungsreihenfolge vorgeschlagen.
 - Keine Backend-Änderung.
 - Keine Dashboard-Codeänderung.
 - Keine API-POSTs.
 - Keine produktive Aktion.
 
-## CAN-42.1b
+## CAN-42.2
 
-- Sichtbare Routenliste aus zentraler Diagnose entfernt.
+- Diagnose-Standard definiert.

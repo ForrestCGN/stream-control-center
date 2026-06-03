@@ -3,37 +3,42 @@
 ## Direkt nächster Schritt
 
 ```text
-CAN-42.2 anwenden.
+CAN-42.3 anwenden.
 ```
 
-## Danach
+## Danach empfohlen
 
 ```text
-CAN-42.3 - Modul-Diagnose-/Hinweis-Inventar erstellen
+CAN-42.4 - Todo-Modul-Diagnose aus Modul-Seite entfernen und zentral prüfen
 ```
 
-Ziel:
+Warum Todo zuerst:
 
 ```text
-Welche Diagnose-/Hinweisdateien liegen aktuell noch direkt in Modul-Seiten?
-Welche davon sind nur Frontend-Erweiterungen?
-Welche können später aus index/app entfernt werden?
-Welche Statuswerte sollen in Admin > Diagnose nachgebildet werden?
-Welche Module liefern welche Standardfelder bereits?
+kleines Modul
+bereits Statuswerte in Admin > Diagnose sichtbar
+guter Test für die neue Zentralisierungsregel
+geringes Risiko
 ```
 
-## Zu prüfen in CAN-42.3
+## Geplanter Ablauf für CAN-42.4
 
 ```text
-commands_readonly_diagnostics
-todo_readonly_diagnostics
-tagebuch_readonly_diagnostics
-hug_diagnostics_ext
-message_rotator_diagnostics_ext
-bus_diagnostics_readonly_summary
-bus_diagnostics_subpage_safety_ext
-overlay_monitor_safety_ext
-birthday_readonly_diagnostics, falls noch eingebunden
+1. Prüfen, was todo_readonly_diagnostics.js/css genau macht.
+2. Prüfen, ob Admin > Diagnose die wichtigen Todo-Werte abdeckt.
+3. Falls ja: Einbindung aus index.html entfernen.
+4. Dateien physisch nur entfernen, wenn sicher nicht mehr gebraucht.
+5. Keine Backend-Routen entfernen.
+6. Keine Todo-Funktionalität entfernen.
+```
+
+## Weitere Reihenfolge
+
+```text
+CAN-42.5 Tagebuch Diagnose aus Modul-Seite entfernen.
+CAN-42.6 Commands Diagnose aus Modul-Seite entfernen.
+CAN-42.7 Hug/Message-Rotator prüfen.
+CAN-42.x Bus-Diagnose/Overlay-Monitor gesondert prüfen.
 ```
 
 ## Weiterhin nicht machen ohne separaten Go-Schritt

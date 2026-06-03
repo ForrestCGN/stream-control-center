@@ -1,67 +1,48 @@
 # CURRENT_STATUS
 
-## Stand: CAN-42.2 vorbereitet
+## Stand: CAN-42.3 vorbereitet
 
-CAN-42.2 definiert den Standard für zentrale Admin-Diagnosefelder.
+CAN-42.3 erstellt ein Inventar der direkt in Modul-Seiten eingebundenen Diagnose-/Hinweis-Erweiterungen.
 
-## Entscheidung
+## Ergebnis
+
+Zentrale Diagnose ist aktiv:
+
+```text
+Admin > Diagnose
+```
+
+Direkte Modul-Diagnosen/Hinweise sind noch eingebunden bei:
+
+```text
+overlay_monitor_safety_ext
+bus_diagnostics_readonly_summary
+bus_diagnostics_subpage_safety_ext
+message_rotator_diagnostics_ext
+hug_diagnostics_ext
+tagebuch_readonly_diagnostics
+todo_readonly_diagnostics
+commands_readonly_diagnostics
+```
+
+Birthday-Diagnose/Safety ist nicht mehr eingebunden:
+
+```text
+birthday_readonly_safety_ext
+birthday_readonly_diagnostics
+```
+
+## Neue Arbeitslinie
 
 ```text
 Diagnose gehört zentral nach Admin > Diagnose.
 Modul-Seiten bleiben Bedienseiten.
-Keine neuen Diagnosekarten direkt in einzelne Module.
-Fehlende Diagnosefelder sind kein Fehler, sondern zeigen Standardisierungsbedarf.
-```
-
-## Änderung CAN-42.2
-
-Geändert:
-
-```text
-docs/modules/diagnostics.md
-docs/modules/diagnostics_standard.md
-project-state/*
-docs/current/CURRENT_CHAT_HANDOFF_CAN42_2.md
-```
-
-Nicht geändert:
-
-```text
-backend/*
-htdocs/dashboard/*
-bestehende Modul-Dateien
-```
-
-## Kernaussage
-
-Jedes Modul soll langfristig vergleichbare Statusfelder liefern:
-
-```text
-module
-version
-enabled
-status
-schemaVersion
-configSource
-textSource
-database
-routesCount
-lastError
-lastLoadedAt
-eventBus später
-```
-
-## Umgang mit leeren Feldern
-
-```text
-- als "-" anzeigen
-- nicht als Fehler werten
-- im Inventar notieren
-- später Modulstatus sanft erweitern
+Bestehende Modul-Diagnosen werden schrittweise zentralisiert oder entfernt.
+Keine Funktionalität entfernen.
 ```
 
 ## Nächster Schritt
 
 ```text
-CAN-42.3 Modul-Diagnose-/Hinweis-Inventar erstellen.
+CAN-42.4 Todo-Modul-Diagnose aus Modul-Seite entfernen und zentral prüfen.
 ```
