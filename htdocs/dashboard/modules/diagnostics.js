@@ -2,8 +2,8 @@
 window.DiagnosticsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = '0.1.2-can42-23';
-  const READONLY_ENDPOINTS = [
+  const MODULE_VERSION = '0.2.0-can42-27';
+  const FALLBACK_ENDPOINTS = [
     { key:'birthday', label:'Birthday', group:'community', status:'/api/birthday/status', today:'/api/birthday/today', showState:'/api/birthday/show/state' },
     { key:'todo', label:'Todo', group:'community', status:'/api/todo/status', integration:'/api/todo/integration-check' },
     { key:'tagebuch', label:'Tagebuch', group:'community', status:'/api/tagebuch/status', integration:'/api/tagebuch/integration-check' },
@@ -22,6 +22,9 @@ window.DiagnosticsModule = (function(){
 
   const state = {
     selected: 'overview',
+    registrySource: 'fallback',
+    registryError: '',
+    endpoints: FALLBACK_ENDPOINTS.slice(),
     loading: false,
     loadedAt: '',
     results: {},
@@ -77,6 +80,44 @@ window.DiagnosticsModule = (function(){
     const data = await res.json().catch(() => ({}));
     if (!res.ok || data?.ok === false) throw new Error(data?.error || data?.message || `HTTP ${res.status}`);
     return data;
+  }
+
+
+  function normalizeRegistryEntry(entry) {
+    if (!entry || typeof entry !== 'object') return null;
+    const key = String(entry.key || '').trim();
+    const status = String(entry.status || entry.statusRoute || entry.statusEndpoint || '').trim();
+    if (!key || !status) return null;
+    return {
+      key,
+      label: String(entry.label || entry.title || key).trim() || key,
+      group: String(entry.group || entry.category || 'system').trim() || 'system',
+      status,
+      today: entry.today ? String(entry.today) : undefined,
+      showState: entry.showState ? String(entry.showState) : undefined,
+      integration: entry.integration ? String(entry.integration) : undefined
+    };
+  }
+
+  async function loadRegistry() {
+    try {
+      const registry = await getJson('/api/diagnostics/registry');
+      const rows = Array.isArray(registry?.entries) ? registry.entries.map(normalizeRegistryEntry).filter(Boolean) : [];
+      if (!rows.length) throw new Error('registry_empty');
+      state.endpoints = rows;
+      state.registrySource = registry.source || 'backend';
+      state.registryError = '';
+      return rows;
+    } catch (err) {
+      state.endpoints = FALLBACK_ENDPOINTS.slice();
+      state.registrySource = 'fallback';
+      state.registryError = err?.message || String(err || 'registry_unavailable');
+      return state.endpoints;
+    }
+  }
+
+  function readonlyEndpoints() {
+    return Array.isArray(state.endpoints) && state.endpoints.length ? state.endpoints : FALLBACK_ENDPOINTS;
   }
 
   function moduleMeta(key) {
@@ -140,9 +181,10 @@ window.DiagnosticsModule = (function(){
     state.error = '';
     render();
 
+    const entries = await loadRegistry();
     const results = {};
     const errors = {};
-    for (const entry of READONLY_ENDPOINTS) {
+    for (const entry of entries) {
       const result = await loadEntry(entry);
       results[entry.key] = result;
       if (result.__error) errors[entry.key] = result.__error;
@@ -156,7 +198,7 @@ window.DiagnosticsModule = (function(){
   }
 
   function currentEntries() {
-    return READONLY_ENDPOINTS.map(entry => normalize(entry, state.results[entry.key]));
+    return readonlyEndpoints().map(entry => normalize(entry, state.results[entry.key]));
   }
 
   function pill(value, ok) {
@@ -711,7 +753,7 @@ window.DiagnosticsModule = (function(){
     ensurePanel();
     if (!root) return;
     const entries = currentEntries();
-    const selectedEntry = READONLY_ENDPOINTS.find(entry => entry.key === state.selected);
+    const selectedEntry = readonlyEndpoints().find(entry => entry.key === state.selected);
     root.innerHTML = `
       <div class="diagnostics-wrap">
         <section class="diagnostics-hero">
@@ -729,14 +771,14 @@ window.DiagnosticsModule = (function(){
           <label>Modul
             <select data-diagnostics-select>
               <option value="overview" ${state.selected === 'overview' ? 'selected' : ''}>Gesamtübersicht</option>
-              ${READONLY_ENDPOINTS.map(entry => `<option value="${esc(entry.key)}" ${state.selected === entry.key ? 'selected' : ''}>${esc(entry.label)}</option>`).join('')}
+              ${readonlyEndpoints().map(entry => `<option value="${esc(entry.key)}" ${state.selected === entry.key ? 'selected' : ''}>${esc(entry.label)}</option>`).join('')}
             </select>
           </label>
           <div class="diagnostics-readonly-line">GET-only Diagnose · keine Show · kein Sound · kein Chat · keine Admin-Aktion</div>
         </section>
 
         ${state.error ? `<div class="diagnostics-error">${esc(state.error)}</div>` : ''}
-        ${state.loadedAt ? `<p class="diagnostics-loaded">Letztes Laden: ${esc(state.loadedAt)}</p>` : ''}
+        ${state.loadedAt ? `<p class="diagnostics-loaded">Letztes Laden: ${esc(state.loadedAt)} · Registry: ${esc(state.registrySource)}${state.registryError ? ` (${esc(state.registryError)})` : ''}</p>` : ''}
         ${state.loading && !Object.keys(state.results).length ? '<section class="diagnostics-card">Lade Diagnosewerte...</section>' : ''}
         ${state.selected === 'overview' ? renderOverview(entries) : selectedEntry ? renderModuleDetails(selectedEntry) : renderOverview(entries)}
       </div>`;
@@ -770,5 +812,5 @@ window.DiagnosticsModule = (function(){
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 
-  return { init, loadAll, render, version: MODULE_VERSION };
+  return { init, loadAll, render, version: MODULE_VERSION, registrySource: () => state.registrySource };
 })();
