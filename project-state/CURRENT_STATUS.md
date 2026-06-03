@@ -8,54 +8,57 @@ CAN-43.0 wurde als Startpunkt für die nächste Fachrunde vorbereitet.
 
 CAN-43.1 aktualisierte die Projektübergabe für den neuen Chat.
 
-CAN-43.2 bis CAN-43.11 haben mehrere Registry-Module nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
+CAN-43.2 bis CAN-43.12 haben mehrere Registry-Module nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
 
-CAN-43.12 hat das Modul `obs` nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
+CAN-43.13 hat `overlay_monitor` geprüft und dokumentiert.
 
-## CAN-43.12 Ergebnis
+CAN-43.14 hat `bus_diagnostics` geprüft und dokumentiert.
 
-`obs` ist sauber.
+## CAN-43.13 Ergebnis
 
-- Repo/Branch: `dev`
-- HEAD: `f42053a1 CAN-43.11 Media diagnostics review`
-- Lokaler Git-Status: sauber
-- Backend-Datei: `backend/modules/obs.js`
-- Live-Modul: `obs`
-- Registry-Key: `obs`
-- Modulversion: `0.1.1`
+`overlay_monitor` ist sauber.
+
+- Backend-Datei: `backend/modules/overlay_monitor.js`
+- Modulversion: `0.1.9`
 - Build: `diagnostics-standard`
-- Statusroute: `GET /api/obs/status`
-- Health: `GET /api/obs/health`
-- Config: `GET /api/obs/config`
-- Settings: `GET /api/obs/settings`
-- Routenübersicht: `GET /api/obs/routes`
-- Integration-Check: `GET /api/obs/integration-check`
-- Szenen: `GET /api/obs/scenes`
-- Sources: `GET /api/obs/sources`
-- Browser-Sources: `GET /api/obs/browser-sources`
-- Schema-Version: `0`
+- Status-API-Version: `1.0.9`
+- Statusroute: `GET /api/overlay-monitor/status`
+- Feature: `overlay_monitor_read_only`
+- Read-only: `True`
+- Overlay touched: `False`
+- OBS touched: `False`
+- Refresh touched: `False`
+- RouteCount: `9`
+- Overlays: `10`
+- Online: `7`
+- Expected Inactive: `1`
+- Expected Idle: `2`
+- With Heartbeat: `10`
+- Active Issues: `0`
 - Diagnostics: `ok=True`, `health=ok`, `schemaReady=True`
-- Integration-Check: `7/7 ok`, keine Warnings, keine Errors
-- OBS: verbunden und erkannt
-- Current Program Scene: `Live Gameplay Forrest`
-- Szenen: `18`
-- Browser Sources: `17`
-- Coverage: sauber
+- Warnings/Errors: keine
 - Codeänderung: keine
-- Modulversion erhöht: nein
 
-## Diagnose-Standard
+## CAN-43.14 Ergebnis
 
-Zentrale Dashboard-Diagnose:
+`bus_diagnostics` ist sauber.
 
-- `htdocs/dashboard/modules/diagnostics.js`
-- `htdocs/dashboard/modules/diagnostics.css`
+- Backend-Datei: `backend/modules/bus_diagnostics.js`
+- Modulversion: `1.2.9`
+- Status-API-Version: `1.0.0`
+- Statusroute: `GET /api/bus-diagnostics/status`
+- Routenübersicht: `GET /api/bus-diagnostics/routes`
+- Feature: `bus_dashboard_diagnostics`
+- Mode: `read_only_dashboard_preparation`
+- Summary Status: `ok`
+- Warnings: keine
+- Errors: keine
+- Optional Info: Debug-Clients nicht verbunden
+- Codeänderung: keine
 
-Backend-Registry:
+## Coverage
 
-- `GET /api/diagnostics/registry`
-
-Letzter bestätigter Coverage-Stand:
+Letzter bestätigter Coverage-Stand aus Batch:
 
 - `ok: True`
 - `registryEntries: 14`
@@ -63,6 +66,16 @@ Letzter bestätigter Coverage-Stand:
 - `coveredLoadedModules: 14`
 - `missingLoadedModules: 0`
 - `registryOnlyEntries: 0`
+
+## Offener Punkt
+
+`communication_bus` wurde im Batch mit falschen URLs abgefragt und ist noch nicht als eigener CAN-Step abgeschlossen.
+
+Echte bekannte Route aus `bus_diagnostics`:
+
+```text
+/api/communication/status
+```
 
 ## Neue Modul-Regel
 

@@ -1,26 +1,20 @@
 # TODO
 
-## CAN-43.12
+## CAN-43.13 / CAN-43.14
 
-- [ ] CAN-43.12 ZIP entpacken.
-- [ ] Optional `node -c backend\modules\obs.js` ausführen.
-- [ ] `stepdone.cmd "CAN-43.12 OBS diagnostics review"` ausführen.
+- [ ] CAN-43.13-43.14 ZIP entpacken.
+- [ ] Optional `node -c backend\modules\overlay_monitor.js` ausführen.
+- [ ] Optional `node -c backend\modules\bus_diagnostics.js` ausführen.
+- [ ] `stepdone.cmd "CAN-43.13-43.14 Overlay-Monitor and Bus-Diagnostics reviews"` ausführen.
 - [ ] Doku committen/pushen.
 
-## CAN-43.13 nächste Fachrunde
+## CAN-43.15
 
-- [ ] Konkretes Modul/Thema auswählen.
-- [ ] Empfehlung prüfen: `overlay_monitor`.
-- [ ] Vor Umsetzung echten Dateistand prüfen.
-- [ ] Repo/GitHub/dev und Live-System bewusst abgleichen.
-- [ ] Diagnose-Standard anwenden:
-  - [ ] Statusroute
-  - [ ] `diagnostics`-Block
-  - [ ] Registry-Eintrag
-  - [ ] Coverage-Test
-  - [ ] Doku/project-state
-- [ ] Keine neue Dashboard-Diagnose-Extra-Datei ohne explizite Begründung anlegen.
-- [ ] Vor Umsetzung auf `go` warten.
+- [ ] `communication_bus` mit echten `/api/communication/*`-Routen prüfen.
+- [ ] Mini-Export ausführen.
+- [ ] ZIP hochladen.
+- [ ] Echte Routen dokumentieren.
+- [ ] Doku/project-state aktualisieren.
 
 ## Standardtest
 

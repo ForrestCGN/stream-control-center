@@ -1,28 +1,14 @@
 # Files
 
-## CAN-43.12 neu/geändert
+## CAN-43.13 / CAN-43.14 neu/geändert
 
 ### Handoff / Doku
 
-- `docs/current/CAN-43.12_obs_diagnostics_review.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN43_12.md`
-- `docs/modules/OBS.md`
-
-### Project State
-
-- `project-state/CURRENT_STATUS.md`
-- `project-state/NEXT_STEPS.md`
-- `project-state/TODO.md`
-- `project-state/CHANGELOG.md`
-- `project-state/FILES.md`
-
-## CAN-43.11 neu/geändert
-
-### Handoff / Doku
-
-- `docs/current/CAN-43.11_media_diagnostics_review.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN43_11.md`
-- `docs/modules/MEDIA.md`
+- `docs/current/CAN-43.13_overlay_monitor_diagnostics_review.md`
+- `docs/current/CAN-43.14_bus_diagnostics_review.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN43_14.md`
+- `docs/modules/OVERLAY_MONITOR.md`
+- `docs/modules/BUS_DIAGNOSTICS.md`
 
 ### Project State
 
@@ -34,22 +20,17 @@
 
 ## Relevante bestehende Dateien
 
-### OBS
+### Overlay Monitor
 
-- `backend/modules/obs.js`
-- `backend/modules/obs_shared.js`
+- `backend/modules/overlay_monitor.js`
 
-### Media
+### Bus Diagnostics
 
-- `backend/modules/media.js`
+- `backend/modules/bus_diagnostics.js`
 
-### Sound-System
+### Communication Bus
 
-- `backend/modules/sound_system.js`
-
-### Alerts
-
-- `backend/modules/alert_system.js`
+- `backend/modules/communication_bus.js`
 
 ### Diagnose
 
@@ -61,4 +42,4 @@
 
 - `docs/modules/DASHBOARD_EXTENSIONS.md`
 - `docs/modules/DIAGNOSTICS_NEW_MODULE_RULES.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN43_11.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN43_12.md`
