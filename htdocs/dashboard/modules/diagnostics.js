@@ -2,7 +2,7 @@
 window.DiagnosticsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = '0.2.1-can42-28';
+  const MODULE_VERSION = '0.2.2-can42-29';
   const FALLBACK_ENDPOINTS = [
     { key:'birthday', label:'Birthday', group:'community', status:'/api/birthday/status', today:'/api/birthday/today', showState:'/api/birthday/show/state' },
     { key:'todo', label:'Todo', group:'community', status:'/api/todo/status', integration:'/api/todo/integration-check' },
@@ -123,14 +123,25 @@ window.DiagnosticsModule = (function(){
     }
   }
 
+  function registrySourceLabel(source) {
+    const value = String(source || '').trim();
+    if (!value || value === 'fallback') return 'lokale Fallback-Liste';
+    if (value.includes('backend_static_registry')) return 'Backend-Registry';
+    return value;
+  }
+
   function registryLine() {
-    const parts = [`Registry: ${state.registrySource}`];
+    const parts = [`Registry: ${registrySourceLabel(state.registrySource)}`];
     const counts = state.registryMeta?.counts || {};
     const coverage = state.registryMeta?.coverage || null;
     if (Number.isFinite(Number(counts.entries))) parts.push(`${Number(counts.entries)} Einträge`);
-    if (coverage && Number.isFinite(Number(coverage.coveredLoadedModules)) && Number.isFinite(Number(coverage.loadedModules))) {
-      parts.push(`Abdeckung: ${Number(coverage.coveredLoadedModules)}/${Number(coverage.loadedModules)}`);
-      if (Number(coverage.missingLoadedModules || 0) > 0) parts.push(`fehlend: ${Number(coverage.missingLoadedModules)}`);
+    if (coverage && Number.isFinite(Number(coverage.coveredLoadedModules))) {
+      const covered = Number(coverage.coveredLoadedModules || 0);
+      const missing = Number(coverage.missingLoadedModules || 0);
+      const registryOnly = Number(coverage.registryOnlyEntries || 0);
+      parts.push(`Diagnose-Abdeckung: ${covered} ok`);
+      if (missing > 0) parts.push(`fehlend: ${missing}`);
+      if (registryOnly > 0) parts.push(`Registry-only: ${registryOnly}`);
     }
     if (state.registryError) parts.push(`Fallback-Grund: ${state.registryError}`);
     return parts.join(' · ');
@@ -363,6 +374,49 @@ window.DiagnosticsModule = (function(){
     return { counts, entries: withHealth };
   }
 
+
+  function renderRegistryCoverageCard() {
+    const meta = state.registryMeta || {};
+    const counts = meta.counts || {};
+    const coverage = meta.coverage || null;
+    const fromFallback = state.registrySource === 'fallback';
+    const entries = Number(counts.entries ?? coverage?.registryEntries ?? readonlyEndpoints().length);
+    const covered = Number(coverage?.coveredLoadedModules ?? 0);
+    const missing = Number(coverage?.missingLoadedModules ?? 0);
+    const registryOnly = Number(coverage?.registryOnlyEntries ?? 0);
+    const loadedModules = Number(coverage?.loadedModules ?? counts.loadedModules ?? 0);
+    const ok = !fromFallback && (!coverage || coverage.ok !== false);
+    const missingRows = Array.isArray(coverage?.missingLoadedModuleRows) ? coverage.missingLoadedModuleRows : [];
+    const registryOnlyRows = Array.isArray(coverage?.registryOnlyRows) ? coverage.registryOnlyRows : [];
+    const warnings = [];
+    if (fromFallback) warnings.push(`Backend-Registry nicht erreichbar: ${state.registryError || 'unbekannt'}`);
+    if (missing > 0) warnings.push(`${missing} diagnosefähige geladene Module fehlen in der Registry.`);
+    if (registryOnly > 0) warnings.push(`${registryOnly} Registry-Einträge wurden aktuell nicht als geladen erkannt.`);
+
+    return `<section class="diagnostics-card diagnostics-registry-coverage ${ok ? 'is-ok' : 'is-warn'}">
+      <div class="diagnostics-headline-row">
+        <div>
+          <h3>${ok ? '🟢' : '🟡'} Diagnose-Registry</h3>
+          <p>${esc(registrySourceLabel(state.registrySource))}${meta.registryVersion ? ` · Registry v${esc(meta.registryVersion)}` : ''}</p>
+        </div>
+        <div class="diagnostics-detail-pills">
+          <span class="diag-pill ${ok ? 'ok' : 'warn'}">${ok ? 'OK' : 'Prüfen'}</span>
+        </div>
+      </div>
+      <div class="diagnostics-grid">
+        ${metric('Registry-Einträge', entries || '-')}
+        ${metric('Geladene Module', loadedModules || '-')}
+        ${metric('Diagnosefähig abgedeckt', covered || '-')}
+        ${metric('Fehlende Diagnosemodule', missing)}
+        ${metric('Registry-only', registryOnly)}
+        ${metric('Quelle', registrySourceLabel(state.registrySource))}
+      </div>
+      ${warnings.length ? `<div class="diagnostics-note warn">${esc(warnings.join(' '))}</div>` : '<div class="diagnostics-note">Registry und Coverage sind sauber. Technische Module ohne Diagnose-Statusroute werden nicht als fehlend gewertet.</div>'}
+      ${missingRows.length ? `<details class="diagnostics-raw"><summary>Fehlende Module anzeigen</summary><pre>${esc(JSON.stringify(missingRows, null, 2))}</pre></details>` : ''}
+      ${registryOnlyRows.length ? `<details class="diagnostics-raw"><summary>Registry-only Einträge anzeigen</summary><pre>${esc(JSON.stringify(registryOnlyRows, null, 2))}</pre></details>` : ''}
+    </section>`;
+  }
+
   function renderHealthOverview(entries) {
     const summary = healthSummary(entries);
     return `
@@ -391,6 +445,7 @@ window.DiagnosticsModule = (function(){
     const routeCount = entries.reduce((sum, item) => sum + Number(item.routeCount || 0), 0);
     const errCount = entries.length - okCount;
     return `
+      ${renderRegistryCoverageCard()}
       ${renderHealthOverview(entries)}
       <div class="diagnostics-grid">
         ${metric('Module in Diagnose', entries.length)}
