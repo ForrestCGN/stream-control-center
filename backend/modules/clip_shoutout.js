@@ -18,7 +18,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.17";
+const MODULE_VERSION = "0.2.18";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -225,7 +225,9 @@ const state = {
     lastSkippedAt: "",
     lastSkippedLogin: "",
     lastSkipReason: "",
-    lastError: ""
+    lastError: "",
+    noticeMemory: {},
+    noticeMemoryMax: 500
   },
   sceneGate: {
     lastCheckedAt: "",
@@ -419,8 +421,50 @@ function renderAutoMessage(template, vars = {}) {
     .trim();
 }
 
+function pruneAutoNoticeMemory() {
+  const mem = state.autoShoutout.noticeMemory || {};
+  const max = Math.max(50, Number(state.autoShoutout.noticeMemoryMax || 500));
+  const keys = Object.keys(mem);
+  if (keys.length <= max) return;
+  keys
+    .sort((a, b) => Number(mem[a] || 0) - Number(mem[b] || 0))
+    .slice(0, Math.max(0, keys.length - max))
+    .forEach(key => { delete mem[key]; });
+}
+
+function autoNoticeMemoryKey(key, vars = {}) {
+  const noticeKey = String(key || '').trim();
+  const login = cleanLogin(vars.login || vars.targetLogin || '');
+  const streamDayId = String(vars.streamDayId || '').trim() || 'no_stream_day';
+  if (!noticeKey || !login) return '';
+  if (noticeKey === 'alreadyReceived') return `${noticeKey}:${login}:${streamDayId}`;
+  if (noticeKey === 'alreadyQueued') {
+    const queueId = Number(vars.displayQueueId || vars.existingDisplayQueueId || 0);
+    return `${noticeKey}:${login}:${queueId > 0 ? `queue_${queueId}` : streamDayId}`;
+  }
+  if (noticeKey === 'cooldown') {
+    const next = String(vars.cooldown && vars.cooldown.nextAllowedAt || vars.nextAllowedAt || vars.waitUntil || streamDayId || '').trim();
+    return `${noticeKey}:${login}:${next || streamDayId}`;
+  }
+  if (noticeKey === 'disabled') return `${noticeKey}:${login}`;
+  return '';
+}
+
+function shouldSuppressAutoChatNotice(key, vars = {}) {
+  const noticeKey = String(key || '').trim();
+  if (!['alreadyReceived', 'alreadyQueued', 'cooldown', 'disabled'].includes(noticeKey)) return false;
+  const memKey = autoNoticeMemoryKey(noticeKey, vars);
+  if (!memKey) return false;
+  const mem = state.autoShoutout.noticeMemory || (state.autoShoutout.noticeMemory = {});
+  if (mem[memKey]) return true;
+  mem[memKey] = Date.now();
+  pruneAutoNoticeMemory();
+  return false;
+}
+
 async function sendAutoChatNotice(acfg, key, vars = {}, cfg = null) {
   if (!acfg || acfg.sendChatMessage === false) return false;
+  if (shouldSuppressAutoChatNotice(key, vars)) return false;
   const messages = normalizeAutoMessages(acfg.messages || {}, acfg || {});
   const template = messages[key] || acfg[`${key}Message`] || '';
   const msg = renderAutoMessage(template, vars);
@@ -3872,7 +3916,16 @@ function autoShoutoutStatus(cfg) {
     configuredStreamers: listAutoStreamers(cfg),
     configuredStreamerCount: listAutoStreamers(cfg).length,
     recentEvents: listAutoShoutoutEvents(20),
-    state: state.autoShoutout
+    state: {
+      lastCheckedAt: state.autoShoutout.lastCheckedAt,
+      lastTriggeredAt: state.autoShoutout.lastTriggeredAt,
+      lastTriggeredLogin: state.autoShoutout.lastTriggeredLogin,
+      lastSkippedAt: state.autoShoutout.lastSkippedAt,
+      lastSkippedLogin: state.autoShoutout.lastSkippedLogin,
+      lastSkipReason: state.autoShoutout.lastSkipReason,
+      lastError: state.autoShoutout.lastError,
+      noticeMemoryCount: Object.keys(state.autoShoutout.noticeMemory || {}).length
+    }
   };
 }
 

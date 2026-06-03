@@ -95,6 +95,7 @@ window.AutoShoutoutModule = (function(){
   }
 
   function maybeResumeMainShoutoutRefresh(){
+    if (isShoutoutVisible()) return;
     const root = getRoot();
     const cb = root?.querySelector?.('[data-shoutout-auto]');
     if (cb && mainRefreshWasPausedByAutoTab && !cb.checked) {
@@ -569,10 +570,16 @@ window.AutoShoutoutModule = (function(){
   }
 
   function maintain(){
-    if (!isShoutoutVisible()) return;
+    if (!isShoutoutVisible()) {
+      maybeResumeMainShoutoutRefresh();
+      return;
+    }
+    // Stream-sicher: solange das Shoutout-System geöffnet ist, darf der
+    // Haupt-Auto-Refresh nicht die Tab-Leiste neu rendern und den Auto-Tab
+    // kurzzeitig entfernen. Manuell bleibt „Aktualisieren“ weiterhin möglich.
+    pauseMainShoutoutRefresh();
     ensureTab();
     if (state.activeInShoutout) {
-      pauseMainShoutoutRefresh();
       hideNativePanel(true);
       const btn = ensureTab();
       if (btn) {
@@ -590,6 +597,7 @@ window.AutoShoutoutModule = (function(){
     window.addEventListener('cgn:module-show', ev => {
       if (ev.detail?.module === 'shoutout') {
         setTimeout(() => {
+          pauseMainShoutoutRefresh();
           ensureTab();
           if (state.activeInShoutout) activateAutoTab();
         }, 0);
@@ -597,7 +605,7 @@ window.AutoShoutoutModule = (function(){
         deactivateAutoTab();
       }
     });
-    setInterval(maintain, 1000);
+    setInterval(maintain, 250);
     if (document.readyState !== 'loading') setTimeout(maintain, 0);
     else document.addEventListener('DOMContentLoaded', () => setTimeout(maintain, 0));
   }
