@@ -1,42 +1,61 @@
 # CURRENT_STATUS
 
-## Stand: CAN-40.2b vorbereitet
+## Stand: CAN-40.3 abgeschlossen
 
-CAN-40.2b reduziert die Bus-Diagnose-Sicherheits-Hinweise.
+CAN-40.3 dokumentiert den erfolgreichen Sichttest der reduzierten Bus-Diagnose-Hinweise nach CAN-40.2b.
 
-## Änderung CAN-40.2b
-
-Geändert:
+## Aktueller Arbeitsbereich
 
 ```text
-htdocs/dashboard/index.html
-htdocs/dashboard/modules/bus_diagnostics_subpage_safety_ext.js
-htdocs/dashboard/modules/bus_diagnostics_subpage_safety_ext.css
-project-state/*
-docs/current/CURRENT_CHAT_HANDOFF_CAN40_2b.md
+CAN-40: Bus-Diagnose Unterseiten read-only glätten
 ```
 
-Nicht geändert:
+## Bestätigter Sichttest
+
+Dashboard:
 
 ```text
-backend/modules/bus_diagnostics.js
-htdocs/dashboard/modules/bus_diagnostics.js
-htdocs/dashboard/modules/bus_diagnostics.css
-htdocs/dashboard/modules/bus_diagnostics_readonly_summary.js
-htdocs/dashboard/modules/bus_diagnostics_readonly_summary.css
+Dashboard > Bus-Diagnose
 ```
 
-## Ziel
+Bestätigter Zustand:
 
 ```text
-Großen Safety-Hinweis nur auf Übersicht behalten.
-Auf Recovery nur kleinen Hinweis lassen.
-Auf Bus-Matrix nur Sound-Bus Dry-Run als manuell markieren.
-Auf Issues / Config / Rohdaten keinen großen Hinweis mehr anzeigen.
-Keine produktive Aktion.
+Übersicht: großer Read-only/Safety-Hinweis weiterhin sichtbar.
+Recovery: nur kleiner Hinweis sichtbar.
+Bus-Matrix: Sound-Bus Dry-Run als manuell markiert.
+Issues: kein großer Hinweis.
+Config: kein großer Hinweis.
+Rohdaten: kein großer Hinweis.
+Keine Recovery ausgelöst.
+Kein Sound-Dry-Run ausgelöst.
+Keine OBS-/Sound-/Queue-/DB-/Chat-Aktion erkennbar.
 ```
 
-## Nicht ausgelöst
+## Screenshot-Prüfung
+
+Für Rohdaten wurde bestätigt:
+
+```text
+Tab: Rohdaten
+Komplette Bus-Diagnose sichtbar.
+Bus-Config Rohdaten sichtbar.
+Kein großer Safety-Hinweis mehr sichtbar.
+```
+
+## Ergebnis
+
+```text
+CAN-40.2b Ziel erfüllt.
+Großer Hinweis nur noch auf Übersicht.
+Unterseiten sind weniger überladen.
+Recovery und Bus-Matrix behalten nur gezielte Hinweise.
+Issues/Config/Rohdaten bleiben sauber und frei von großem Hinweis.
+Keine produktive Aktion ausgelöst.
+Keine Funktionalität entfernt.
+```
+
+## Produktive Aktionen: nicht genutzt
 
 ```text
 Keine Recovery.
@@ -49,12 +68,20 @@ Keine produktive Sound-Bus-Aktion.
 Keine DB-Migration.
 Keine API-POSTs.
 Keine Twitch-/Chat-/Discord-Nachricht.
+```
+
+## Nicht geändert in CAN-40.3
+
+```text
+Keine Codeänderung.
+Keine Backend-Dateien.
+Keine Dashboard-Runtime-Dateien.
+Keine API-Routen.
 Keine Funktionalität entfernt.
 ```
 
 ## Nächster Schritt
 
 ```text
-CAN-40.2b anwenden und Sichtprüfung machen.
-Danach CAN-40.3 Testergebnis dokumentieren.
+CAN-41.0 neuen Arbeitsblock bewusst auswählen.
 ```
