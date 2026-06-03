@@ -3942,7 +3942,8 @@ function resetAutoShoutoutDay(body = {}) {
   const since = String(body.since || body.start || resetInfo.since || '').trim();
   const targets = autoResetTargetLogins(body, cfg);
   const now = nowIso();
-  const params = { since, now };
+  const params = { since };
+  const updateParams = { since, now };
   const targetParams = {};
   const targetSql = targets.length
     ? ` AND target_login IN (${targets.map((login, idx) => { const key = `login${idx}`; targetParams[key] = login; return `:${key}`; }).join(',')})`
@@ -3970,7 +3971,7 @@ function resetAutoShoutoutDay(body = {}) {
         ${targetSql}
         ${displayIdSql}
       )
-  `, { ...params, ...targetParams, ...displayIdParams });
+  `, { ...updateParams, ...targetParams, ...displayIdParams });
 
   const removedDisplay = database.run(`
     UPDATE clip_shoutout_display_queue
@@ -3978,7 +3979,7 @@ function resetAutoShoutoutDay(body = {}) {
     WHERE created_at >= :since
       ${targetSql}
       AND status IN ('queued','waiting','active','failed','done')
-  `, { ...params, ...targetParams });
+  `, { ...updateParams, ...targetParams });
 
   const deletedEvents = database.run(`
     DELETE FROM clip_shoutout_auto_events
