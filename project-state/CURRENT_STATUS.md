@@ -1,102 +1,141 @@
 # CURRENT_STATUS
 
-## Stand: CAN-37.4 abgeschlossen
+## Stand: CAN-38.2 vorbereitet
 
-CAN-37.4 dokumentiert den erfolgreichen Sichttest der Hug-Diagnose-Erweiterung aus CAN-37.3.
+CAN-38.2 ergänzt eine dedizierte Bus-Diagnose/EventBus-Read-only-Doku mit Read-only-/Write-Regeln.
 
 ## Aktueller Arbeitsbereich
 
 ```text
-CAN-37: Hug-System Status/Doku/Diagnose prüfen und glätten
+CAN-38: EventBus / Bus-Diagnose Read-only Diagnose prüfen und glätten
 ```
 
-## Bestätigter Sichttest
+## Ergebnis CAN-38.1 Analyse
 
-Dashboard:
+Nicht gefunden:
 
 ```text
-Dashboard > Hug-System > Diagnose
+backend/core/event_bus.js
 ```
 
-Bestätigter Zustand:
+Aktives Bus-Diagnose-Modul:
 
 ```text
-Kein zusätzlicher Tab.
-Tabs bleiben: Übersicht | Texte | Config | Statistiken | Diagnose.
-Im Tab Diagnose erscheint zusätzlich die erweiterte Read-only-Diagnose.
-Die bestehenden Buttons "Neu laden" / "Hug-Reload testen" wurden nicht automatisch ausgelöst.
-Keine Hug-/Rehug-/Reload-/Admin-POST-Aktion.
+backend/modules/bus_diagnostics.js
 ```
 
-## Ergebnis
+Modulstand:
 
 ```text
-CAN-37.3 Ziel erfüllt.
-Hug Diagnose-Erweiterung ist korrekt im vorhandenen Tab Diagnose platziert.
-Kein Extra-Tab.
-Die bestehende Hug-Diagnose bleibt erhalten.
-Die Erweiterung ist read-only.
-Keine produktive Aktion ausgelöst.
-Keine Funktionalität entfernt.
+MODULE = bus_diagnostics
+VERSION = 1.2.9
+STATUS_API_VERSION = 1.0.0
+build = STEP_CAN9_4
+routesPrefix = /api/bus-diagnostics
 ```
 
-## Read-only Routen der Erweiterung
+Vorhanden:
 
 ```text
-GET /api/hug/status
-GET /api/hug/routes
-GET /api/hug/integration-check
-GET /api/hug/admin/text-pairs
-GET /api/hug/admin/hug-all-texts
-GET /api/hug/admin/response-texts
-GET /api/hug/admin/top-title-texts
+MODULE_META
+/api/bus-diagnostics/status
+/api/bus-diagnostics/check
+/api/bus-diagnostics/recovery-preflight
+/api/bus-diagnostics/recovery-simulation/status
+/api/bus-diagnostics/recovery-simulation/test
+/api/bus-diagnostics/routes
+Dashboard bus_diagnostics.js
+Dashboard bus_diagnostics_readonly_summary.js
 ```
 
-## Produktive Routen: nicht genutzt
+Nicht vorhanden war bisher:
 
 ```text
-POST /api/hug/action
-GET/POST /api/hug/command
-GET /api/hug/cmd
-GET /api/hug/statscmd
-GET /api/hug/top
-GET/POST /api/hug/reload
-POST /api/hug/text-store/reload
-POST /api/hug/db/output-mode
-POST /api/hug/admin/text-pairs
-POST /api/hug/admin/hug-all-texts
-POST /api/hug/admin/response-texts
-POST /api/hug/admin/top-title-texts
+docs/modules/bus_diagnostics.md
 ```
 
-## Nicht geändert in CAN-37.4
+## Änderung CAN-38.2
+
+Neu:
+
+```text
+docs/modules/bus_diagnostics.md
+```
+
+Darin festgehalten:
+
+```text
+- Modulzweck
+- MODULE_META / Version / Routenprefix
+- interne Status-Endpunkte
+- read-only Status-Felder
+- Recovery-Preflight-Sicherheit
+- Recovery-Readiness
+- Read-only Routen
+- produktive/verbotene Aktionen
+- Dashboard-Tabs und Dashboard-Routen
+- Read-only Summary Card
+- bekannter MutationObserver-Stabilitätspunkt
+- Regeln für spätere Bus-Diagnose-Erweiterungen
+```
+
+## Wichtigste Sicherheitsentscheidung
+
+Bus-Diagnose ist als Anzeige-/Diagnose-System zu behandeln.
+
+Erlaubt:
+
+```text
+GET /api/bus-diagnostics/status
+GET /api/bus-diagnostics/check
+GET /api/bus-diagnostics/recovery-preflight
+GET /api/bus-diagnostics/recovery-simulation/status
+GET /api/bus-diagnostics/recovery-simulation/test
+GET /api/bus-diagnostics/routes
+GET-Status-Endpunkte der angeschlossenen Systeme
+```
+
+Nicht automatisch auslösen:
+
+```text
+Recovery ausführen
+Recovery vorbereiten
+OBS-Reparatur
+OBS-Source-Refresh
+Overlay-Refresh
+Queue-Clear
+Queue-Retry
+Sound-Bus-Play
+Sound-Bus-Migration
+Alert-Replay
+Sound-Replay
+Twitch-/Redemption-Write
+Chat-/Discord-Nachricht
+DB-Migration
+Settings speichern
+Config schreiben
+Admin-POST
+```
+
+## Nicht geändert
 
 ```text
 Keine Codeänderung.
-Keine Backend-Dateien.
-Keine Hug-Hauptdatei.
-Keine API-Routen.
-Kein Hug ausgelöst.
-Kein Rehug ausgelöst.
-Kein HugAll.
-Kein on/off.
-Keine Stats-/Top-Chat-Ausgabe ausgelöst.
-Kein Reload.
-Kein Text-Store-Reload.
-Keine Output-Mode-Änderung.
-Keine Textpaare gespeichert/gelöscht.
-Keine Hug-All-Texte gespeichert/gelöscht.
-Keine Response-Texte gespeichert/gelöscht.
-Keine TopTitle-Texte gespeichert/gelöscht.
+Keine Recovery ausgelöst.
+Keine OBS-Reparatur.
+Kein Source-Refresh.
+Keine automatische Recovery.
+Keine Queue-Aktion.
+Keine produktive Sound-Bus-Aktion.
 Keine DB-Migration.
-Keine Dashboard-Write-Buttons getestet.
-Keine Discord-/Twitch-/Chat-Nachricht gepostet.
-Keine OBS-/Sound-/Queue-Aktion.
+Keine Dashboard-Testbuttons für produktive Aktionen.
+Keine Twitch-/Chat-/Discord-Nachricht.
 Keine Funktionalität entfernt.
 ```
 
 ## Nächster Schritt
 
 ```text
-CAN-38.0 neuen Arbeitsblock bewusst auswählen.
+CAN-38.2 anwenden.
+Danach optional CAN-38.3 Bus-Diagnose Read-only Summary ohne MutationObserver stabilisieren.
 ```

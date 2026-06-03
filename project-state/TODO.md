@@ -10,7 +10,11 @@
 
 ## CAN-38
 
-- [ ] CAN-38.0 neuen Arbeitsblock bewusst auswählen.
+- [x] CAN-38.0 neuen Arbeitsblock bewusst auswählen.
+- [x] CAN-38.1 EventBus / Bus-Diagnose read-only analysieren.
+- [ ] CAN-38.2 Bus-Diagnose Doku und Read-only/Write-Regeln ergänzen.
+- [ ] CAN-38.3 optional: Bus-Diagnose Read-only Summary ohne MutationObserver stabilisieren.
+- [ ] CAN-38.4 optional: Testergebnis dokumentieren.
 
 ## Offene/zu beobachtende Punkte
 
@@ -18,5 +22,5 @@
 - [ ] Optional: Overlay-Monitor Dashboard-Details optisch weiter vereinfachen.
 - [ ] Optional: EventBus read-only Diagnose weiter ausbauen.
 - [ ] Optional: ein konkretes Modul an Bus-/Status-/Doku-Regeln anpassen.
-- [ ] Hug: keine Hug-/Rehug-/HugAll-/on-off-/Stats-/Top-/Reload-/Text-Store-Reload-/Admin-POST-Tests ohne eigenen Go-Schritt.
+- [ ] Bus-Diagnose: keine Recovery-/OBS-/Refresh-/Queue-/Sound-/DB-/Chat-Aktion ohne eigenen Go-Schritt.
 - [ ] Keine OBS-Reparatur / kein Source-Refresh / keine automatische Recovery ohne eigene Planung.

@@ -1,36 +1,38 @@
 # CHANGELOG
 
-## CAN-37.4
+## CAN-38.2
 
-- Erfolgreiche Sichtprüfung der Hug-Diagnose-Erweiterung dokumentiert.
-- Bestätigt:
-  - Kein zusätzlicher Tab.
-  - Tabs bleiben: Übersicht | Texte | Config | Statistiken | Diagnose.
-  - Im vorhandenen Tab Diagnose erscheint zusätzlich die erweiterte Read-only-Diagnose.
-  - Die bestehenden Buttons "Neu laden" / "Hug-Reload testen" wurden nicht automatisch ausgelöst.
-  - Keine Hug-/Rehug-/Reload-/Admin-POST-Aktion.
-- Keine Codeänderung in CAN-37.4.
+- Bus-Diagnose/EventBus-Doku vorbereitet:
+  - `docs/modules/bus_diagnostics.md`
+- Dokumentiert:
+  - Modulzweck
+  - MODULE_META / Version / Routenprefix
+  - interne Status-Endpunkte
+  - read-only Status-Felder
+  - Recovery-Preflight-Sicherheit
+  - Recovery-Readiness
+  - Read-only Routen
+  - produktive/verbotene Aktionen
+  - Dashboard-Tabs und Dashboard-Routen
+  - Read-only Summary Card
+  - bekannter MutationObserver-Stabilitätspunkt
+  - Regeln für spätere Bus-Diagnose-Erweiterungen
+- Keine Codeänderung.
+- Keine Recovery ausgelöst.
+- Keine OBS-Reparatur.
+- Kein Source-Refresh.
+- Keine automatische Recovery.
+- Keine Queue-Aktion.
+- Keine produktive Sound-Bus-Aktion.
+- Keine DB-Migration.
+- Keine Dashboard-Testbuttons für produktive Aktionen.
+- Keine Twitch-/Chat-/Discord-Nachricht.
 
-## CAN-37.3
+## CAN-38.1
 
-- Hug-Dashboard Diagnose-Tab um erweiterte Read-only-Diagnose ergänzt.
-- Neue Dateien:
-  - `htdocs/dashboard/modules/hug_diagnostics_ext.js`
-  - `htdocs/dashboard/modules/hug_diagnostics_ext.css`
-- `htdocs/dashboard/index.html` lädt CSS/JS.
-- Keine Änderung an `backend/modules/hug.js`.
-- Keine Änderung an `htdocs/dashboard/modules/hug.js`.
-- Keine produktive Aktion.
-
-## CAN-37.2
-
-- Hug-System-Doku ergänzt:
-  - `docs/modules/hug.md`
-
-## CAN-37.1
-
-- Hug-System analysiert.
+- EventBus / Bus-Diagnose read-only analysiert.
 - Ergebnis:
-  - Aktives Backend ist `backend/modules/hug.js`.
-  - Dedizierte Doku `docs/modules/hug.md` fehlte.
-  - Modul ist produktiv sensibel wegen DB-Stats und Chat-Output.
+  - `backend/core/event_bus.js` wurde nicht gefunden.
+  - Aktives Bus-Diagnose-Modul ist `backend/modules/bus_diagnostics.js`.
+  - Dedizierte Doku `docs/modules/bus_diagnostics.md` fehlte.
+  - `bus_diagnostics_readonly_summary.js` nutzt aktuell einen MutationObserver und ist Kandidat für Stabilitäts-Cleanup.

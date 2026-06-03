@@ -1,58 +1,58 @@
 # FILES
 
-## Aktueller Arbeitsstand CAN-37.4
+## Aktueller Arbeitsstand CAN-38.2
 
 Wichtige geaenderte/zuletzt relevante Dateien:
 
 ```text
+docs/modules/bus_diagnostics.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/CHANGELOG.md
 project-state/FILES.md
-docs/current/CURRENT_CHAT_HANDOFF_CAN37_4.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN38_2.md
 ```
 
-## CAN-37 ZIPs aus dem Chat
+## CAN-38 ZIPs aus dem Chat
 
 ```text
-CAN-37.2_hug_module_docs_readonly_write_rules.zip
-CAN-37.3_hug_existing_diagnose_readonly_extension.zip
-CAN-37.4_document_hug_readonly_diagnose_test.zip
+CAN-38.2_bus_diagnostics_docs_readonly_write_rules.zip
 ```
 
-## CAN-37 relevante Runtime-/Dashboard-Dateien
+## CAN-38 Analyse-relevante Dateien
 
 ```text
-docs/modules/hug.md
-backend/modules/hug.js
-htdocs/dashboard/modules/hug.js
-htdocs/dashboard/modules/hug.css
-htdocs/dashboard/modules/hug_diagnostics_ext.js
-htdocs/dashboard/modules/hug_diagnostics_ext.css
+backend/modules/bus_diagnostics.js
+htdocs/dashboard/modules/bus_diagnostics.js
+htdocs/dashboard/modules/bus_diagnostics.css
+htdocs/dashboard/modules/bus_diagnostics_readonly_summary.js
+htdocs/dashboard/modules/bus_diagnostics_readonly_summary.css
 ```
 
-CAN-37.4 selbst ändert keine Runtime-/Dashboard-Datei.
-
-## Bestätigter CAN-37.3 Sichttest
+## Nicht gefunden
 
 ```text
-Dashboard > Hug-System > Diagnose
-Kein zusätzlicher Tab.
-Tabs: Übersicht | Texte | Config | Statistiken | Diagnose.
-Im Tab Diagnose erscheint zusätzlich die erweiterte Read-only-Diagnose.
-Die bestehenden Buttons "Neu laden" / "Hug-Reload testen" wurden nicht automatisch ausgelöst.
-Keine Hug-/Rehug-/Reload-/Admin-POST-Aktion.
+backend/core/event_bus.js
+docs/modules/bus_diagnostics.md
 ```
+
+`docs/modules/bus_diagnostics.md` wird mit CAN-38.2 neu angelegt.
 
 ## Sicherheitsnotiz
 
 ```text
-Keine Hug-/Rehug-/HugAll-/on-off-/Stats-/Top-/Reload-/Text-Store-Reload-/Admin-POST-Tests.
-Keine Chat-/Twitch-/Discord-Nachricht.
-Keine Settings-/Textvarianten-Änderung.
+CAN-38.2 ändert keinen Runtime-Code.
+Keine Recovery.
+Keine OBS-Reparatur.
+Kein Source-Refresh.
+Keine automatische Recovery.
+Keine Queue-Aktion.
+Keine produktive Sound-Bus-Aktion.
 Keine DB-Migration.
-Keine OBS-/Sound-/Queue-Aktion.
+Keine Dashboard-Testbuttons für produktive Aktionen.
+Keine Twitch-/Chat-/Discord-Nachricht.
+Keine Funktionalität entfernt.
 ```
 
 ## Lokale Pfade
@@ -60,6 +60,7 @@ Keine OBS-/Sound-/Queue-Aktion.
 ```text
 Repo: D:\Git\stream-control-center
 Live: D:\Streaming\stramAssets
-Hug Backend: D:\Streaming\stramAssets\backend\modules\hug.js
-Hug Dashboard: D:\Streaming\stramAssets\htdocs\dashboard\modules\hug.js
+Bus-Diagnose Backend: D:\Streaming\stramAssets\backend\modules\bus_diagnostics.js
+Bus-Diagnose Dashboard: D:\Streaming\stramAssets\htdocs\dashboard\modules\bus_diagnostics.js
+Read-only Summary: D:\Streaming\stramAssets\htdocs\dashboard\modules\bus_diagnostics_readonly_summary.js
 ```
