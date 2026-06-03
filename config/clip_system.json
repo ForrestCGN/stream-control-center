@@ -49,6 +49,33 @@
     "ttsCategory": "tts",
     "ttsSource": "clip_shoutout_tts",
     "overlaySubline": "🧓 Altersheim-TV",
-    "gqlClientId": "kimne78kx3ncx6brgo4mv6wki5h1ko"
+    "gqlClientId": "kimne78kx3ncx6brgo4mv6wki5h1ko",
+    "officialShoutout": {
+      "enabled": true,
+      "enqueueAfterDisplay": true,
+      "sendChatMessages": true,
+      "globalCooldownMs": 120000,
+      "targetCooldownMs": 3600000,
+      "workerIntervalMs": 5000,
+      "maxAttempts": 5,
+      "displayFinishPaddingMs": 1500,
+      "streamWaitRetryMs": 120000,
+      "liveGateEnabled": false,
+      "liveGateRetryMs": 120000,
+      "broadcasterId": "",
+      "moderatorId": ""
+    },
+    "autoShoutout": {
+      "enabled": false,
+      "onlyWhenLive": false,
+      "triggerOnFirstMessageOnly": true,
+      "respectStreamDayLimit": true,
+      "globalCooldownMs": 120000,
+      "perStreamerCooldownMs": 43200000,
+      "sendChatMessage": true,
+      "queuedMessage": "📺 @{displayName} ist im Chat — Video-Shoutout wird vorbereitet!",
+      "streamers": [],
+      "storeSkippedEvents": false
+    }
   }
 }
