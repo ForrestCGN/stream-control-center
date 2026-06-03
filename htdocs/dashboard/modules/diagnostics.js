@@ -175,13 +175,24 @@ window.DiagnosticsModule = (function(){
 
   function todoIntegrationLooksOk(status, integration) {
     const checks = integration?.checks || {};
-    const channels = checks.channels || {};
-    const missingChannels = Array.isArray(channels.missing) ? channels.missing : [];
+    const channelsCheck = checks.channels || {};
+    const databaseCheck = checks.database || {};
+    const missingChannels = Array.isArray(channelsCheck.missing) ? channelsCheck.missing : [];
+    const statusChannels = status?.channels || {};
+    const configuredChannels = Object.values(statusChannels).filter(item => item && item.configured).length;
+    const totalChannels = countObject(statusChannels);
+    const schemaOk = status?.schemaReady === true || status?.schemaOk === true || status?.schema?.ready === true;
+
+    if (integration?.__error) return false;
     if (integration?.ok === false || integration?.healthy === false) return false;
-    if (checks.database?.ok === false) return false;
+    if (databaseCheck.ok === false) return false;
     if (missingChannels.length) return false;
+
     if (integration?.ok === true || integration?.healthy === true) return true;
-    return Object.keys(checks).length > 0;
+    if (schemaOk && totalChannels > 0 && configuredChannels === totalChannels) return true;
+    if (schemaOk && Object.keys(checks).length > 0 && !missingChannels.length) return true;
+
+    return false;
   }
 
   function computeModuleHealth(item) {

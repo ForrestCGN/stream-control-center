@@ -3,7 +3,7 @@
 ## Direkt nächster Schritt
 
 ```text
-CAN-42.4c anwenden und Sichttest machen.
+CAN-42.4d anwenden und Sichttest machen.
 ```
 
 ## Prüfung
@@ -15,10 +15,9 @@ Dashboard > Admin > Diagnose
 Erwartung:
 
 ```text
-VIP-System erscheint als Unbekannt / Statusroute fehlt, nicht als Fehler
-Todo erscheint OK, wenn Status/Schema/Channels/DB ok sind
-keine langen HTML-Fehlertexte in der Ampel
-Dropdown und Moduldetails funktionieren weiter
+Todo -> OK, wenn Status/Schema/Channels/DB ok sind
+VIP-System -> Unbekannt / Statusroute fehlt
+Fehlerzähler bleibt 0, sofern keine echte Route defekt ist
 ```
 
 ## Danach
@@ -31,4 +30,11 @@ Voraussetzung:
 
 ```text
 Admin > Diagnose > Todo bildet die bisherigen Todo-Diagnosewerte ausreichend ab.
+```
+
+## Später
+
+```text
+VIP-System Statusroute ergänzen:
+GET /api/vip/status
 ```

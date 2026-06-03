@@ -9,5 +9,10 @@
 - [x] CAN-42.3 Modul-Diagnose-/Hinweis-Inventar erstellen.
 - [x] CAN-42.4 Todo-Diagnosewerte zentral in Admin > Diagnose abbilden.
 - [x] CAN-42.4b Admin Diagnose Ampelübersicht bauen.
-- [ ] CAN-42.4c Admin Diagnose Statusmapping korrigieren.
+- [x] CAN-42.4c Admin Diagnose Statusmapping korrigieren.
+- [ ] CAN-42.4d Todo Integration-Mapping final korrigieren.
 - [ ] CAN-42.5 Todo-Diagnose-Tab aus Todo-Modul entfernen/deaktivieren.
+
+## Später
+
+- [ ] VIP-System Statusroute ergänzen: `GET /api/vip/status`.
