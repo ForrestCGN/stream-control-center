@@ -3,30 +3,34 @@
 ## Direkt nächster Schritt
 
 ```text
-CAN-38.3 anwenden und Dashboard-Sichtprüfung machen.
+CAN-39.0 neuen Arbeitsblock bewusst auswählen.
 ```
 
-## Prüfung
+## Zuletzt abgeschlossen
 
 ```text
-Dashboard > Bus-Diagnose > Übersicht
+CAN-33: Commands-Modul dokumentiert und Dashboard Read-only Diagnosekarte sichtbar geprüft.
+CAN-34: Todo-Modul dokumentiert und Dashboard Read-only Diagnosekarte nach Stabilitätsfix sichtbar geprüft.
+CAN-35: Tagebuch-Modul dokumentiert und Dashboard Read-only Diagnosekarte sichtbar geprüft.
+CAN-36: Message-Rotator-Modul dokumentiert und vorhandener Diagnose-Tab erweitert; Positionstest erfolgreich.
+CAN-37: Hug-System dokumentiert und vorhandener Diagnose-Tab erweitert; Sichttest erfolgreich.
+CAN-38: Bus-Diagnose/EventBus dokumentiert und Read-only Summary ohne MutationObserver sichtbar geprüft.
 ```
 
-Erwartung:
+## Mögliche nächste Kandidaten
 
 ```text
-Sicherheits- / Read-only-Zusammenfassung wird angezeigt.
-Kein zusätzlicher Tab.
-Dashboard bleibt bedienbar.
-Kein Firefox-Hänger.
-Keine Recovery-/OBS-/Sound-/Queue-/DB-/Chat-Aktion.
-Read-only Karte nutzt nur Status + Recovery-Preflight.
+1. Overlay-Monitor Dashboard-Details optisch weiter vereinfachen.
+2. Bus-Diagnose Unterseiten weiter glätten, z. B. Recovery/Issues/Raw klarer strukturieren.
+3. Nächstes Community-/Runtime-Modul an Status-/Doku-Regeln anpassen.
+4. EventBus-/Modul-Heartbeat-Konzept weiter planen.
+5. Langfristigen DB-Core-Treiberwechsel separat planen, aber nicht direkt umsetzen.
 ```
 
-## Danach
+## Empfehlung
 
 ```text
-CAN-38.4 Testergebnis dokumentieren.
+CAN-39.0: Nächsten kleinen, sicheren Arbeitsblock bewusst auswählen.
 ```
 
 ## Weiterhin nicht machen ohne separaten Go-Schritt
@@ -44,5 +48,10 @@ Keine automatische Recovery.
 Keine DB-Migration.
 Kein DB-Treiberwechsel.
 Keine Dashboard-Testbuttons fuer produktive Aktionen.
+Keine Commands-Execute-/Upsert-/Delete-Tests ohne eigenen Go-Schritt.
+Keine Todo-Add-/Reload-/Admin-POST-Tests ohne eigenen Go-Schritt.
+Keine Tagebuch-Entry-/Stream-/Reset-/Reload-/Admin-POST-Tests ohne eigenen Go-Schritt.
+Keine Message-Rotator-Start-/Stop-/Tick-/Next-/Manual-/Reload-/Live-Status-/Admin-POST-Tests ohne eigenen Go-Schritt.
+Keine Hug-/Rehug-/HugAll-/on-off-/Stats-/Top-/Reload-/Text-Store-Reload-/Admin-POST-Tests ohne eigenen Go-Schritt.
 Keine Bus-Diagnose-Recovery-/OBS-/Refresh-/Queue-/Sound-/DB-/Chat-Aktion ohne eigenen Go-Schritt.
 ```
