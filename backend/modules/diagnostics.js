@@ -2,7 +2,7 @@
 const core = require('./helpers/helper_core');
 const routes = require('./helpers/helper_routes');
 
-const MODULE_VERSION = '0.2.1';
+const MODULE_VERSION = '0.2.2';
 
 const DIAGNOSTICS_REGISTRY_VERSION = 1;
 
@@ -47,7 +47,9 @@ const REGISTRY_COVERAGE_EXCLUDE = new Set([
 ]);
 
 function cleanKey(value) {
-  return String(value || '').trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '_').replace(/^_+|_+$/g, '');
+  let key = String(value || '').trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '_').replace(/^_+|_+$/g, '');
+  if (key.endsWith('_js')) key = key.slice(0, -3);
+  return key;
 }
 
 function normalizeLoadedModuleName(item) {
@@ -73,11 +75,15 @@ function buildRegistryCoverage(loadedModules, entries) {
     const registryKey = toRegistryKey(rawName);
     const row = { name: rawName, registryKey };
     loadedNames.push(row);
-    if (registryKeys.has(registryKey)) coveredLoadedModules.push(row);
-    else if (!REGISTRY_COVERAGE_EXCLUDE.has(registryKey)) missingLoadedModules.push(row);
+
+    if (registryKeys.has(registryKey)) {
+      coveredLoadedModules.push(row);
+    } else if (!REGISTRY_COVERAGE_EXCLUDE.has(registryKey) && REGISTRY_KEY_ALIASES[registryKey]) {
+      missingLoadedModules.push(row);
+    }
   }
 
-  const loadedRegistryKeys = new Set(loadedNames.map(item => item.registryKey).filter(Boolean));
+  const loadedRegistryKeys = new Set(coveredLoadedModules.map(item => item.registryKey).filter(Boolean));
   const registryOnlyEntries = entries
     .filter(entry => !loadedRegistryKeys.has(cleanKey(entry.key)))
     .map(entry => ({ key: cleanKey(entry.key), label: entry.label || entry.key, status: entry.status || '' }));
