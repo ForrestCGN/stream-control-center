@@ -2,45 +2,12 @@
 'use strict';
 
 (function(){
-  const VERSION = '0.1.0-can40-2';
+  const VERSION = '0.1.1-can40-2b-reduced';
   const PANEL_ID = 'busDiagnosticsModule';
   const BANNER_ID = 'busdiagSubpageSafetyHint';
   let timer = null;
   let retryTimer = null;
   let retryUntil = 0;
-
-  const tabHints = {
-    recovery: {
-      title: 'Recovery-Unterseite: Read-only Preflight',
-      text: 'Diese Ansicht bewertet Recovery-Bereitschaft, Guards, Sperren und Preflight. Sie führt keine Recovery aus.',
-      pills: ['GET-Diagnose', 'Prepare gesperrt', 'Execute gesperrt', 'keine OBS-Aktion']
-    },
-    issues: {
-      title: 'Issues-Unterseite: Anzeige',
-      text: 'Diese Ansicht zeigt gemeldete Bus-/Client-/Integration-Issues. Keine Queue, kein Sound und keine Recovery wird verändert.',
-      pills: ['Issues lesen', 'keine Mutation', 'kein Retry', 'kein Queue-Clear']
-    },
-    raw: {
-      title: 'Rohdaten-Unterseite: Nur Anzeige',
-      text: 'Rohdaten sind Debug-Ausgaben aus bereits geladenen Diagnosewerten. Keine Aktion, kein POST, keine Reparatur.',
-      pills: ['JSON lesen', 'kein POST', 'keine Recovery', 'keine Reparatur']
-    },
-    config: {
-      title: 'Config-Unterseite: Diagnose / Einstellungen lesen',
-      text: 'Diese Ansicht liest Communication-Settings für Diagnose. Werte nicht automatisch speichern oder ändern.',
-      pills: ['Settings lesen', 'kein Speichern', 'kein Admin-POST', 'keine Migration']
-    },
-    busmatrix: {
-      title: 'Bus-Matrix: Integrationsdiagnose',
-      text: 'Diese Ansicht bewertet Modul- und Bus-Verträge. Der Sound-Bus Dry-Run ist manuell und darf nicht automatisch ausgelöst werden.',
-      pills: ['Matrix lesen', 'Dry-Run manuell', 'kein Sound', 'keine Queue']
-    },
-    overview: {
-      title: 'Bus-Diagnose: Read-only Überblick',
-      text: 'Die Übersicht aggregiert Status- und Preflight-Daten. Keine Recovery, keine OBS-/Sound-/Queue-Aktion.',
-      pills: ['Status lesen', 'Preflight lesen', 'keine Recovery', 'kein POST']
-    }
-  };
 
   function esc(value){
     return window.CGN && window.CGN.esc
@@ -62,23 +29,22 @@
     return active && active.dataset ? String(active.dataset.busdiagTab || '') : 'overview';
   }
 
-  function hintFor(tab){
-    return tabHints[tab] || {
-      title: 'Bus-Diagnose: Read-only Hinweis',
-      text: 'Diese Unterseite ist als Diagnose gedacht. Produktive Aktionen bleiben gesperrt oder manuell.',
-      pills: ['read-only', 'keine Recovery', 'kein OBS', 'kein Queue/Sound']
-    };
+  function buildOverviewBanner(){
+    return '<section id="'+BANNER_ID+'" class="busdiag-subpage-safety is-overview" data-version="'+esc(VERSION)+'" data-busdiag-safety-tab="overview">'
+      + '<div><span class="busdiag-safety-kicker">Read-only / Safety-Hinweis</span>'
+      + '<h3>Bus-Diagnose: Read-only Überblick</h3>'
+      + '<p>Die Übersicht aggregiert Status- und Preflight-Daten. Keine Recovery, keine OBS-/Sound-/Queue-Aktion.</p></div>'
+      + '<div class="busdiag-safety-pills">'
+      + '<span class="busdiag-safety-pill ok">Status lesen</span>'
+      + '<span class="busdiag-safety-pill ok">Preflight lesen</span>'
+      + '<span class="busdiag-safety-pill warn">keine Recovery</span>'
+      + '<span class="busdiag-safety-pill warn">kein POST</span>'
+      + '</div></section>';
   }
 
-  function buildBanner(tab){
-    const hint = hintFor(tab);
-    return '<section id="'+BANNER_ID+'" class="busdiag-subpage-safety" data-version="'+esc(VERSION)+'" data-busdiag-safety-tab="'+esc(tab)+'">'
-      + '<div><span class="busdiag-safety-kicker">Read-only / Safety-Hinweis</span>'
-      + '<h3>'+esc(hint.title)+'</h3>'
-      + '<p>'+esc(hint.text)+'</p></div>'
-      + '<div class="busdiag-safety-pills">'
-      + hint.pills.map((pill, idx) => '<span class="busdiag-safety-pill '+(idx < 2 ? 'ok' : 'warn')+'">'+esc(pill)+'</span>').join('')
-      + '</div></section>';
+  function removeBanner(){
+    const old = document.getElementById(BANNER_ID);
+    if (old) old.remove();
   }
 
   function findInsertTarget(){
@@ -87,12 +53,15 @@
     return r.querySelector('[data-busdiag-tabs]') || r.querySelector('.busdiag-livebar') || r.querySelector('.busdiag-hero') || null;
   }
 
-  function insertBanner(){
+  function insertOverviewBanner(){
+    if (activeTab() !== 'overview') {
+      removeBanner();
+      return true;
+    }
     const target = findInsertTarget();
     if (!target) return false;
-    const old = document.getElementById(BANNER_ID);
-    if (old) old.remove();
-    target.insertAdjacentHTML('afterend', buildBanner(activeTab() || 'overview'));
+    removeBanner();
+    target.insertAdjacentHTML('afterend', buildOverviewBanner());
     return true;
   }
 
@@ -122,40 +91,34 @@
     return changed;
   }
 
-  function addInlineNotes(){
+  function addFocusedNotes(){
     const r = root();
     if (!r || r.hidden) return;
     const tab = activeTab();
 
-    if (tab === 'busmatrix' && !r.querySelector('[data-busdiag-sound-dryrun-note]')) {
+    r.querySelectorAll('[data-busdiag-recovery-note], [data-busdiag-sound-dryrun-note], [data-busdiag-passive-note]').forEach(node => node.remove());
+
+    if (tab === 'recovery') {
+      const content = r.querySelector('[data-busdiag-content]');
+      if (content) {
+        content.insertAdjacentHTML('afterbegin', '<div class="busdiag-safety-inline-note busdiag-safety-note-small" data-busdiag-recovery-note="1"><strong>Recovery:</strong> Preflight, Readiness und Sperren werden nur angezeigt. Keine Recovery-Ausführung.</div>');
+      }
+    }
+
+    if (tab === 'busmatrix') {
       const btn = r.querySelector('[data-busdiag-action="sound-dry-run"]');
       const card = btn ? btn.closest('.busdiag-card') : null;
       if (card) {
-        card.insertAdjacentHTML('afterbegin', '<div class="busdiag-safety-inline-note" data-busdiag-sound-dryrun-note="1"><strong>Manuell:</strong> Der Sound-Bus Dry-Run ist ein Diagnose-POST und wird nicht automatisch ausgelöst. Kein Sound, keine Queue.</div>');
-      }
-    }
-
-    if (tab === 'recovery' && !r.querySelector('[data-busdiag-recovery-note]')) {
-      const content = r.querySelector('[data-busdiag-content]');
-      if (content) {
-        content.insertAdjacentHTML('afterbegin', '<div class="busdiag-safety-inline-note" data-busdiag-recovery-note="1"><strong>Recovery-Sicherheit:</strong> Diese Unterseite zeigt Preflight, Readiness und Sperren. Sie führt keine Recovery aus.</div>');
-      }
-    }
-
-    if ((tab === 'raw' || tab === 'config' || tab === 'issues') && !r.querySelector('[data-busdiag-passive-note]')) {
-      const content = r.querySelector('[data-busdiag-content]');
-      if (content) {
-        const label = tab === 'raw' ? 'Rohdaten' : (tab === 'config' ? 'Config' : 'Issues');
-        content.insertAdjacentHTML('afterbegin', '<div class="busdiag-safety-inline-note" data-busdiag-passive-note="1"><strong>'+esc(label)+':</strong> Anzeige-/Diagnosebereich. Keine automatische Änderung, keine Recovery, kein Queue-/Sound-/OBS-Eingriff.</div>');
+        card.insertAdjacentHTML('afterbegin', '<div class="busdiag-safety-inline-note busdiag-safety-note-small" data-busdiag-sound-dryrun-note="1"><strong>Sound-Bus Dry-Run:</strong> manuelle Diagnose-Aktion. Nicht automatisch auslösen.</div>');
       }
     }
   }
 
   function enhance(){
     if (!visible()) return false;
-    const ok = insertBanner();
+    const ok = insertOverviewBanner();
     markManualActions();
-    addInlineNotes();
+    addFocusedNotes();
     return ok;
   }
 

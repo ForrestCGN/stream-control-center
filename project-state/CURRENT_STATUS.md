@@ -1,16 +1,10 @@
 # CURRENT_STATUS
 
-## Stand: CAN-40.2 vorbereitet
+## Stand: CAN-40.2b vorbereitet
 
-CAN-40.2 ergänzt Bus-Diagnose-Unterseiten um Sicherheits-/Read-only-Hinweise.
+CAN-40.2b reduziert die Bus-Diagnose-Sicherheits-Hinweise.
 
-## Aktueller Arbeitsbereich
-
-```text
-CAN-40: Bus-Diagnose Unterseiten read-only glätten
-```
-
-## Änderung CAN-40.2
+## Änderung CAN-40.2b
 
 Geändert:
 
@@ -19,7 +13,7 @@ htdocs/dashboard/index.html
 htdocs/dashboard/modules/bus_diagnostics_subpage_safety_ext.js
 htdocs/dashboard/modules/bus_diagnostics_subpage_safety_ext.css
 project-state/*
-docs/current/CURRENT_CHAT_HANDOFF_CAN40_2.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN40_2b.md
 ```
 
 Nicht geändert:
@@ -35,12 +29,11 @@ htdocs/dashboard/modules/bus_diagnostics_readonly_summary.css
 ## Ziel
 
 ```text
-Bestehende Tabs behalten.
-Kein Extra-Tab.
-Recovery-Unterseite klarer als read-only/preflight markieren.
-Sound-Bus Dry-Run klarer als manuelle Diagnose-Aktion markieren.
-Raw/Config/Issues optisch als Diagnose/Anzeige markieren.
-Keine POSTs automatisch auslösen.
+Großen Safety-Hinweis nur auf Übersicht behalten.
+Auf Recovery nur kleinen Hinweis lassen.
+Auf Bus-Matrix nur Sound-Bus Dry-Run als manuell markieren.
+Auf Issues / Config / Rohdaten keinen großen Hinweis mehr anzeigen.
+Keine produktive Aktion.
 ```
 
 ## Nicht ausgelöst
@@ -54,25 +47,14 @@ Keine Queue-Aktion.
 Kein Sound-Bus Dry-Run.
 Keine produktive Sound-Bus-Aktion.
 Keine DB-Migration.
-Keine Dashboard-Testbuttons für produktive Aktionen.
+Keine API-POSTs.
 Keine Twitch-/Chat-/Discord-Nachricht.
 Keine Funktionalität entfernt.
-```
-
-## Technische Umsetzung
-
-```text
-Zusätzliche Dashboard-Erweiterung nach bus_diagnostics.js und bus_diagnostics_readonly_summary.js.
-Kein MutationObserver.
-Begrenzter Retry nach Navigation/Render.
-Keine API-Calls.
-Keine API-POSTs.
-Nur DOM-Hinweise und Klassenmarkierung.
 ```
 
 ## Nächster Schritt
 
 ```text
-CAN-40.2 anwenden und Bus-Diagnose-Unterseiten prüfen.
+CAN-40.2b anwenden und Sichtprüfung machen.
 Danach CAN-40.3 Testergebnis dokumentieren.
 ```

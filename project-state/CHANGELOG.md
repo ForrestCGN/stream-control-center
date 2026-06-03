@@ -1,26 +1,18 @@
 # CHANGELOG
 
-## CAN-40.2
+## CAN-40.2b
 
-- Bus-Diagnose-Unterseiten Sicherheits-/Read-only-Hinweise vorbereitet.
-- Neue Dateien:
-  - `htdocs/dashboard/modules/bus_diagnostics_subpage_safety_ext.js`
-  - `htdocs/dashboard/modules/bus_diagnostics_subpage_safety_ext.css`
-- `htdocs/dashboard/index.html` lädt CSS/JS.
-- Keine Änderung an `backend/modules/bus_diagnostics.js`.
-- Keine Änderung an `htdocs/dashboard/modules/bus_diagnostics.js`.
-- Keine Änderung an bestehender Read-only-Summary.
-- Kein Extra-Tab.
+- Bus-Diagnose Sicherheits-Hinweise reduziert.
+- Großer Hinweis bleibt nur auf Übersicht.
+- Recovery bekommt nur kleinen Hinweis.
+- Bus-Matrix markiert Sound-Bus Dry-Run als manuell.
+- Issues/Config/Rohdaten bekommen keinen großen Hinweis mehr.
+- Keine Backend-Änderung.
+- Keine Änderung an `bus_diagnostics.js`.
 - Keine API-Calls.
 - Keine API-POSTs.
 - Keine produktive Aktion.
-- Kein MutationObserver.
 
-## CAN-40.1
+## CAN-40.2
 
-- Bus-Diagnose-Unterseiten read-only analysiert.
-- Ergebnis:
-  - Tabs und Recovery-Subtabs sind vorhanden.
-  - Recovery/Safety sind bereits umfangreich.
-  - Sound-Bus Dry-Run ist ein manueller POST-Button und darf nicht automatisch getestet werden.
-  - Zusätzliche optische Read-only-/Safety-Hinweise sind sinnvoll.
+- Bus-Diagnose-Unterseiten Sicherheits-/Read-only-Hinweise vorbereitet.

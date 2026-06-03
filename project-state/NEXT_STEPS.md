@@ -3,44 +3,31 @@
 ## Direkt nächster Schritt
 
 ```text
-CAN-40.2 anwenden und Dashboard-Sichtprüfung machen.
+CAN-40.2b anwenden und Dashboard-Sichtprüfung machen.
 ```
 
 ## Prüfung
 
 ```text
-Dashboard > System/Control > Bus-Diagnose
+Dashboard > Bus-Diagnose
 ```
 
-Zu prüfen:
+Erwartung:
 
 ```text
-Übersicht: Read-only Hinweis sichtbar.
-Recovery: Safety-Hinweis sichtbar, kein Execute/Prepare ausgelöst.
+Übersicht: großer Read-only/Safety-Hinweis sichtbar.
+Recovery: nur kleiner Hinweis sichtbar.
 Bus-Matrix: Sound-Bus Dry-Run als manuell markiert.
-Issues: Anzeige-/Diagnosehinweis sichtbar.
-Config: Anzeige-/Settings-Lesehinweis sichtbar.
-Rohdaten: Nur-Anzeige-Hinweis sichtbar.
+Issues: kein großer Hinweis.
+Config: kein großer Hinweis.
+Rohdaten: kein großer Hinweis.
+Keine Recovery.
+Kein Sound-Dry-Run.
+Keine OBS-/Sound-/Queue-/DB-/Chat-Aktion.
 ```
 
 ## Danach
 
 ```text
 CAN-40.3 Testergebnis dokumentieren.
-```
-
-## Weiterhin nicht machen ohne separaten Go-Schritt
-
-```text
-Keine Recovery auslösen.
-Keine OBS-Reparatur.
-Kein Source-Refresh.
-Keine automatische Recovery.
-Keine Queue-Aktion.
-Kein Sound-Bus Dry-Run auslösen.
-Keine produktive Sound-Bus-Aktion.
-Keine DB-Migration.
-Keine Dashboard-Testbuttons für produktive Aktionen.
-Keine Twitch-/Chat-/Discord-Nachricht.
-Keine Funktionalität entfernen.
 ```
