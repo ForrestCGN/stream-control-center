@@ -1,32 +1,25 @@
 # Changelog
 
-## CAN-43.14
+## CAN-43.15
 
-- `bus_diagnostics` als dreizehntes CAN-43-Fachmodul per Batch-Export geprüft.
-- Echte Backend-Datei `backend/modules/bus_diagnostics.js` dokumentiert.
-- Live-Status von `/api/bus-diagnostics/status` dokumentiert.
-- Routenübersicht `/api/bus-diagnostics/routes` dokumentiert.
-- Read-only-Modus dokumentiert.
-- Summary-Status `ok` dokumentiert.
-- Optionale Debug-Client-Hinweise dokumentiert.
-- Keine Codeänderung.
-- Keine produktiven Flows.
-
-## CAN-43.13
-
-- `overlay_monitor` als zwölftes CAN-43-Fachmodul per Batch-Export geprüft.
-- Echte Backend-Datei `backend/modules/overlay_monitor.js` dokumentiert.
-- Live-Status von `/api/overlay-monitor/status` dokumentiert.
+- `communication_bus` als vierzehntes CAN-43-Fachmodul per Mini-Export geprüft.
+- Echte Backend-Datei `backend/modules/communication_bus.js` dokumentiert.
+- Live-Status von `/api/communication/status` dokumentiert.
 - `diagnostics`-Block dokumentiert.
-- Client-Control, Classification, Identity-Contract, Issues, OBS-Inventar, Events und Routes dokumentiert.
-- Manuelle OBS-Reparaturroute als nicht ausgelöst dokumentiert.
+- Routenliste aus Statusroute dokumentiert.
+- Client-/Event-/Issue-/Settings-Counts dokumentiert.
+- Nicht vorhandene Einzelrouten `/api/communication/routes`, `/clients`, `/diagnostics` dokumentiert.
+- Neue Modul-Doku `docs/modules/COMMUNICATION_BUS.md` ergänzt.
+- Neue Handoff-Datei `docs/current/CURRENT_CHAT_HANDOFF_CAN43_15.md` erstellt.
 - Keine Codeänderung.
-- Keine OBS-Reparatur.
-- Kein Browserquellen-Refresh.
+- Keine Backend-Route geändert.
+- Keine Dashboard-Datei geändert.
+- Keine Datenbank geändert.
+- Keine Modulversion erhöht.
+- Kein Testevent/Testalert/Mirror/Reset/Forget ausgelöst.
+- Keine Settings geändert.
 - Keine produktiven Flows.
 
-## Batch-Erkenntnis
+## CAN-43.13 / CAN-43.14
 
-- `communication_bus` wurde mit falschen `/api/communication-bus/*`-URLs abgefragt.
-- Echte bekannte Route laut `bus_diagnostics`: `/api/communication/status`.
-- `communication_bus` bleibt offen für CAN-43.15.
+- `overlay_monitor` und `bus_diagnostics` per Batch-Export geprüft und dokumentiert.

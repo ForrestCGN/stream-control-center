@@ -8,57 +8,39 @@ CAN-43.0 wurde als Startpunkt für die nächste Fachrunde vorbereitet.
 
 CAN-43.1 aktualisierte die Projektübergabe für den neuen Chat.
 
-CAN-43.2 bis CAN-43.12 haben mehrere Registry-Module nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
+CAN-43.2 bis CAN-43.14 haben mehrere Registry-Module nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
 
-CAN-43.13 hat `overlay_monitor` geprüft und dokumentiert.
+CAN-43.15 hat `communication_bus` mit den echten `/api/communication/*`-Routen geprüft und dokumentiert.
 
-CAN-43.14 hat `bus_diagnostics` geprüft und dokumentiert.
+## CAN-43.15 Ergebnis
 
-## CAN-43.13 Ergebnis
+`communication_bus` ist sauber.
 
-`overlay_monitor` ist sauber.
-
-- Backend-Datei: `backend/modules/overlay_monitor.js`
-- Modulversion: `0.1.9`
+- Backend-Datei: `backend/modules/communication_bus.js`
+- Modulversion: `0.8.4`
 - Build: `diagnostics-standard`
-- Status-API-Version: `1.0.9`
-- Statusroute: `GET /api/overlay-monitor/status`
-- Feature: `overlay_monitor_read_only`
-- Read-only: `True`
-- Overlay touched: `False`
-- OBS touched: `False`
-- Refresh touched: `False`
-- RouteCount: `9`
-- Overlays: `10`
-- Online: `7`
-- Expected Inactive: `1`
-- Expected Idle: `2`
-- With Heartbeat: `10`
-- Active Issues: `0`
+- Core: `communication_core`
+- Core-Version: `0.3.0`
+- Statusroute: `GET /api/communication/status`
+- RouteCount: `18`
+- Bus: `cgn`
+- Bus-Version: `1`
+- Phase: `running`
+- Clients: `16`
+- Connected Clients: `16`
+- Overlay Clients: `10`
+- Clients mit Heartbeat: `16`
+- Issues: `0`
+- Dropped Events: `0`
+- Subscriber Errors: `0`
+- Audit Errors: `0`
 - Diagnostics: `ok=True`, `health=ok`, `schemaReady=True`
 - Warnings/Errors: keine
 - Codeänderung: keine
 
-## CAN-43.14 Ergebnis
-
-`bus_diagnostics` ist sauber.
-
-- Backend-Datei: `backend/modules/bus_diagnostics.js`
-- Modulversion: `1.2.9`
-- Status-API-Version: `1.0.0`
-- Statusroute: `GET /api/bus-diagnostics/status`
-- Routenübersicht: `GET /api/bus-diagnostics/routes`
-- Feature: `bus_dashboard_diagnostics`
-- Mode: `read_only_dashboard_preparation`
-- Summary Status: `ok`
-- Warnings: keine
-- Errors: keine
-- Optional Info: Debug-Clients nicht verbunden
-- Codeänderung: keine
-
 ## Coverage
 
-Letzter bestätigter Coverage-Stand aus Batch:
+Letzter bestätigter Coverage-Stand aus Mini-Export:
 
 - `ok: True`
 - `registryEntries: 14`
@@ -67,15 +49,15 @@ Letzter bestätigter Coverage-Stand aus Batch:
 - `missingLoadedModules: 0`
 - `registryOnlyEntries: 0`
 
-## Offener Punkt
+## Nicht vorhandene Einzelrouten
 
-`communication_bus` wurde im Batch mit falschen URLs abgefragt und ist noch nicht als eigener CAN-Step abgeschlossen.
+Für `communication_bus` existieren nicht:
 
-Echte bekannte Route aus `bus_diagnostics`:
+- `/api/communication/routes`
+- `/api/communication/clients`
+- `/api/communication/diagnostics`
 
-```text
-/api/communication/status
-```
+Das ist kein Fehler, da `/api/communication/status` Routen, Clients und Diagnostics bündelt.
 
 ## Neue Modul-Regel
 

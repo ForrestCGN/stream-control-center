@@ -1,14 +1,12 @@
 # Files
 
-## CAN-43.13 / CAN-43.14 neu/geändert
+## CAN-43.15 neu/geändert
 
 ### Handoff / Doku
 
-- `docs/current/CAN-43.13_overlay_monitor_diagnostics_review.md`
-- `docs/current/CAN-43.14_bus_diagnostics_review.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN43_14.md`
-- `docs/modules/OVERLAY_MONITOR.md`
-- `docs/modules/BUS_DIAGNOSTICS.md`
+- `docs/current/CAN-43.15_communication_bus_diagnostics_review.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN43_15.md`
+- `docs/modules/COMMUNICATION_BUS.md`
 
 ### Project State
 
@@ -20,6 +18,10 @@
 
 ## Relevante bestehende Dateien
 
+### Communication Bus
+
+- `backend/modules/communication_bus.js`
+
 ### Overlay Monitor
 
 - `backend/modules/overlay_monitor.js`
@@ -27,10 +29,6 @@
 ### Bus Diagnostics
 
 - `backend/modules/bus_diagnostics.js`
-
-### Communication Bus
-
-- `backend/modules/communication_bus.js`
 
 ### Diagnose
 
@@ -42,4 +40,4 @@
 
 - `docs/modules/DASHBOARD_EXTENSIONS.md`
 - `docs/modules/DIAGNOSTICS_NEW_MODULE_RULES.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN43_12.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN43_14.md`
