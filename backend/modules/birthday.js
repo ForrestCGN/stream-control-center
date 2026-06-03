@@ -19,10 +19,12 @@ const SCHEMA_VERSION = 7;
 const SETTINGS_TABLE = 'birthday_settings';
 const TEXTS_MODULE = 'birthday';
 const API_PREFIX = '/api/birthday';
-const MODULE_VERSION = '0.6.0';
+const MODULE_VERSION = '0.6.1';
+const MODULE_BUILD = 'diagnostics-standard';
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
+  build: MODULE_BUILD,
   type: 'runtime',
   category: 'community',
   legacy: false,
@@ -3301,13 +3303,139 @@ function buildBirthdayShowAssets() {
   };
 }
 
+
+function countTableRows(tableName, whereSql = '', params = {}) {
+  if (!state.schemaOk) return 0;
+  try {
+    if (!/^[a-zA-Z0-9_]+$/.test(String(tableName || ''))) return 0;
+    const sql = `SELECT COUNT(*) AS count FROM ${tableName} ${whereSql || ''}`;
+    const row = database.get(sql, params || {});
+    return Number(row?.count || 0);
+  } catch (_) {
+    return 0;
+  }
+}
+
+function buildRoutes() {
+  return [
+    { method: 'GET', path: `${API_PREFIX}/status` },
+    { method: 'POST', path: `${API_PREFIX}/command` },
+    { method: 'GET', path: `${API_PREFIX}/today` },
+    { method: 'GET', path: `${API_PREFIX}/show/state` },
+    { method: 'GET', path: `${API_PREFIX}/show/queue` },
+    { method: 'POST', path: `${API_PREFIX}/show/queue/clear-stale` },
+    { method: 'POST', path: `${API_PREFIX}/show/stop` },
+    { method: 'POST', path: `${API_PREFIX}/admin/show/upload` },
+    { method: 'POST', path: `${API_PREFIX}/admin/show/import-media` },
+    { method: 'GET', path: `${API_PREFIX}/admin/show/assets` },
+    { method: 'POST', path: `${API_PREFIX}/admin/show/recheck` },
+    { method: 'GET/POST', path: `${API_PREFIX}/admin/show/parties` },
+    { method: 'POST', path: `${API_PREFIX}/admin/show/profile` },
+    { method: 'GET', path: `${API_PREFIX}/admin/resolve-user` },
+    { method: 'GET', path: `${API_PREFIX}/admin/users` },
+    { method: 'POST', path: `${API_PREFIX}/admin/user` },
+    { method: 'POST', path: `${API_PREFIX}/admin/user/delete` },
+    { method: 'GET/POST', path: `${API_PREFIX}/admin/settings` },
+    { method: 'GET/POST', path: `${API_PREFIX}/admin/texts` },
+    { method: 'POST', path: `${API_PREFIX}/reload` }
+  ];
+}
+
+function buildStandardDiagnostics(context = {}) {
+  const warnings = [];
+  const errors = [];
+  const cfg = getConfig();
+  const todayRows = Array.isArray(context.todayRows) ? context.todayRows : [];
+  const routeList = Array.isArray(context.routeList) ? context.routeList : buildRoutes();
+
+  if (!state.initialized) warnings.push('not_initialized');
+  if (!cfg.enabled) warnings.push('module_disabled');
+  if (!state.schemaOk || !state.schemaReady) warnings.push('schema_not_ready');
+  if (state.schemaError) errors.push(state.schemaError);
+  if (state.lastError) warnings.push(`last_error:${state.lastError}`);
+
+  const showStatePublic = publicShowState().state || {};
+  const counts = {
+    users: countTableRows('birthday_users'),
+    activeUsers: countTableRows('birthday_users', 'WHERE active = 1'),
+    inactiveUsers: countTableRows('birthday_users', 'WHERE active = 0'),
+    todayBirthdays: todayRows.length,
+    greetingLog: countTableRows('birthday_greetings_log'),
+    showEvents: countTableRows('birthday_show_events'),
+    showProfiles: countTableRows('birthday_show_profiles'),
+    activeShowProfiles: countTableRows('birthday_show_profiles', 'WHERE active = 1'),
+    parties: countTableRows('birthday_parties'),
+    enabledParties: countTableRows('birthday_parties', 'WHERE enabled = 1'),
+    showQueue: countTableRows('birthday_show_queue'),
+    pendingShowQueue: countTableRows('birthday_show_queue', "WHERE status IN ('queued','submitted','active','running')"),
+    settingsRows: countTableRows(SETTINGS_TABLE),
+    textVariants: countTableRows(texts.DEFAULT_MODULE_TEXT_VARIANTS_TABLE || 'module_text_variants', 'WHERE module_name = :moduleName', { moduleName: TEXTS_MODULE }),
+    routes: routeList.length,
+    automaticChecks: state.automaticChecks,
+    automaticGreetings: state.automaticGreetings,
+    commandExecutions: state.commandExecutions
+  };
+
+  const databaseInfo = {
+    ok: state.schemaOk && !state.schemaError,
+    adapter: typeof database.getAdapterName === 'function' ? database.getAdapterName() : 'sqlite',
+    path: typeof database.getDbPath === 'function' ? database.getDbPath() : '',
+    schemaVersion: typeof database.getSchemaVersion === 'function' ? database.getSchemaVersion(MODULE_NAME) : SCHEMA_VERSION,
+    expectedSchemaVersion: SCHEMA_VERSION,
+    error: state.schemaError || ''
+  };
+
+  const stateInfo = {
+    initialized: state.initialized,
+    enabled: !!cfg.enabled,
+    registrationEnabled: !!cfg.registration?.enabled,
+    automaticGreetingEnabled: !!cfg.automaticGreeting?.enabled,
+    commandEnabled: !!cfg.command?.enabled,
+    showEnabled: !!cfg.show?.enabled,
+    commandSeeded: state.commandSeeded,
+    chatHookInstalled: state.chatHookInstalled,
+    showActive: !!showStatePublic.active,
+    showVisible: !!showStatePublic.visible,
+    showPhase: showStatePublic.phase || '',
+    showQueueLength: counts.pendingShowQueue,
+    lastAutomaticCheckAt: state.lastAutomaticCheckAt,
+    lastGreetingAt: state.lastGreetingAt,
+    lastCommandAt: state.lastCommandAt,
+    lastShowStartedAt: state.lastShowStartedAt,
+    lastShowEndedAt: state.lastShowEndedAt
+  };
+
+  const ok = errors.length === 0;
+  return {
+    ok,
+    health: ok ? (warnings.length ? 'warn' : 'ok') : 'error',
+    module: MODULE_NAME,
+    version: MODULE_VERSION,
+    build: MODULE_BUILD,
+    schemaVersion: databaseInfo.schemaVersion,
+    schemaReady: state.schemaReady === true,
+    configSource: cfg.configPath ? 'file+db' : 'defaults+db',
+    textSource: getMessages()._textsSource || 'unknown',
+    database: databaseInfo,
+    counts,
+    state: stateInfo,
+    warnings,
+    errors,
+    lastError: errors[0] || state.lastError || null
+  };
+}
+
 function buildStatus() {
   const today = localParts();
   const todayRows = state.schemaOk ? listBirthdaysFor(today.day, today.month) : [];
+  const routeList = buildRoutes();
   return {
     ok: true,
     module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
     version: 1,
+    diagnosticVersion: MODULE_VERSION,
     step: 'STEP_BIRTHDAY_006E',
     initialized: state.initialized,
     loadedAt: state.loadedAt,
@@ -3338,28 +3466,17 @@ function buildStatus() {
     },
     show: publicShowState().state,
     showAssets: buildBirthdayShowAssets(),
-    routes: [
-      { method: 'GET', path: `${API_PREFIX}/status` },
-      { method: 'POST', path: `${API_PREFIX}/command` },
-      { method: 'GET', path: `${API_PREFIX}/today` },
-      { method: 'GET', path: `${API_PREFIX}/show/state` },
-      { method: 'GET', path: `${API_PREFIX}/show/queue` },
-      { method: 'POST', path: `${API_PREFIX}/show/queue/clear-stale` },
-      { method: 'POST', path: `${API_PREFIX}/show/stop` },
-      { method: 'POST', path: `${API_PREFIX}/admin/show/upload` },
-      { method: 'POST', path: `${API_PREFIX}/admin/show/import-media` },
-      { method: 'GET', path: `${API_PREFIX}/admin/show/assets` },
-      { method: 'POST', path: `${API_PREFIX}/admin/show/recheck` },
-      { method: 'GET/POST', path: `${API_PREFIX}/admin/show/parties` },
-      { method: 'POST', path: `${API_PREFIX}/admin/show/profile` },
-      { method: 'GET', path: `${API_PREFIX}/admin/resolve-user` },
-      { method: 'GET', path: `${API_PREFIX}/admin/users` },
-      { method: 'POST', path: `${API_PREFIX}/admin/user` },
-      { method: 'POST', path: `${API_PREFIX}/admin/user/delete` },
-      { method: 'GET/POST', path: `${API_PREFIX}/admin/settings` },
-      { method: 'GET/POST', path: `${API_PREFIX}/admin/texts` },
-      { method: 'POST', path: `${API_PREFIX}/reload` }
-    ]
+    routes: routeList,
+    routeCount: routeList.length,
+    dataEndpoints: {
+      today: `${API_PREFIX}/today`,
+      showState: `${API_PREFIX}/show/state`,
+      showQueue: `${API_PREFIX}/show/queue`,
+      users: `${API_PREFIX}/admin/users`,
+      settings: `${API_PREFIX}/admin/settings`,
+      texts: `${API_PREFIX}/admin/texts`
+    },
+    diagnostics: buildStandardDiagnostics({ today, todayRows, routeList })
   };
 }
 

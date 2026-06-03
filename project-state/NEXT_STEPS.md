@@ -2,38 +2,39 @@
 
 ## Direkt nächster Schritt
 
-CAN-42.17 anwenden und testen:
+CAN-42.18 anwenden und testen:
 
 ```powershell
-.\stepdone.cmd "CAN-42.17 Alerts status diagnostics-standard"
+.\stepdone.cmd "CAN-42.18 Birthday status diagnostics-standard"
 
-node -c backend\modules\alert_system.js
+node -c backend\modulesirthday.js
 
-$a = Invoke-RestMethod "http://127.0.0.1:8080/api/alerts/status"
-$a | Select-Object ok,module,moduleVersion,moduleBuild,version,diagnosticVersion,enabled,overlayEnabled,queueEnabled,routeCount
-$a.diagnostics | Select-Object ok,health,module,version,build,schemaVersion,schemaReady,lastError
-$a.diagnostics.counts
+$b = Invoke-RestMethod "http://127.0.0.1:8080/api/birthday/status"
+$b | Select-Object ok,module,moduleVersion,moduleBuild,version,diagnosticVersion,initialized,routeCount
+$b.diagnostics | Select-Object ok,health,module,version,build,schemaVersion,schemaReady,lastError
+$b.diagnostics.counts
 ```
 
 Danach Dashboard hart neu laden (`STRG+F5`) und prüfen:
 
 ```text
-Admin > Diagnose > Alerts
+Admin > Diagnose > Birthday
 ```
 
-Erwartung: Alerts zeigt Status `OK` oder ggf. `Warnung`, wenn optionale Diagnosepunkte wie `ffprobe`, `multer` oder Sound-Dauer-Metadaten auffällig sind. Die produktive Alert-Logik bleibt unverändert.
+Erwartung: Birthday zeigt Status `OK` oder ggf. `Warnung`, wenn optionale Diagnosepunkte auffällig sind. Die produktive Birthday-Logik bleibt unverändert.
 
 ## Danach
 
-Nächstes Modul auf Diagnostics-Standard prüfen/angleichen, z. B. Birthday oder Overlay-Monitor.
+Nächstes Modul auf Diagnostics-Standard prüfen/angleichen, z. B. Overlay-Monitor oder Bus-Diagnose-Folgeprüfung.
 
 ## Nicht ohne separaten Go-Schritt
 
-- keine Alert-Ausführung ändern
-- keine Queue-/Clear-/Reload-/Enqueue-/Test-Logik ändern
-- keine Twitch-/Provider-Routen ändern
-- keine Rules-/Assets-/Upload-/Duration-Scan-Logik ändern
-- keine EventBus-/Overlay-Watchdog-/Bus-Mirror-Produktivlogik ändern
+- keine Birthday-Command-Ausführung ändern
+- keine automatischen Geburtstagsgrüße ändern
+- keine Tagebuch-/Chat-Ausgabe ändern
+- keine Birthday-Show-/Party-/Queue-Logik ändern
+- keine Upload-/Import-/Media-Logik ändern
+- keine Admin-User-/Settings-/Texteditor-Routen ändern
 - keine DB-Migration
 - keine neuen Dashboard-Module ohne Rückfrage
 - keine Funktionalität entfernen

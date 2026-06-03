@@ -1,39 +1,38 @@
 # CURRENT_STATUS
 
-## Aktueller Arbeitsstand CAN-42.17
+## Aktueller Arbeitsstand CAN-42.18
 
-CAN-42.17 vorbereitet: Alerts `/api/alerts/status` liefert zusätzlich einen standardisierten `diagnostics`-Block für die zentrale Admin-Diagnose.
+CAN-42.18 vorbereitet: Birthday `/api/birthday/status` liefert zusätzlich einen standardisierten `diagnostics`-Block für die zentrale Admin-Diagnose.
 
 Geändert:
 
 ```text
-backend/modules/alert_system.js
+backend/modules/birthday.js
 ```
 
 Ergebnis:
 
-- `MODULE_VERSION` wurde auf `3.1.10` erhöht.
-- `MODULE_BUILD` wurde als `diagnostics-standard` ergänzt.
+- `MODULE_VERSION` wurde auf `0.6.1` erhöht.
+- `MODULE_BUILD = "diagnostics-standard"` wurde ergänzt.
 - `MODULE_META.build` wurde ergänzt.
-- `/api/alerts/status` liefert zusätzlich:
+- `/api/birthday/status` liefert zusätzlich:
   - `moduleVersion`
   - `moduleBuild`
   - `diagnosticVersion`
-  - `routes`
   - `routeCount`
   - `dataEndpoints`
   - `diagnostics`
 - Der `diagnostics`-Block enthält `counts`, `database`, `state`, `warnings`, `errors` und `lastError`.
-- `module.exports.getStatus` wurde ergänzt.
 
 Nicht geändert:
 
 ```text
-Alert-Ausführung
-Queue-/Clear-/Reload-/Enqueue-/Test-Logik
-Twitch-/Provider-Routen
-Rules-/Assets-/Upload-/Duration-Scan-Logik
-EventBus-/Overlay-Watchdog-/Bus-Mirror-Produktivlogik
+Birthday-Command-Ausführung
+automatische Geburtstagsgrüße
+Tagebuch-/Chat-Ausgabe
+Birthday-Show-/Party-/Queue-Logik
+Upload-/Import-/Media-Logik
+Admin-User-/Settings-/Texteditor-Routen
 DB-Migrationen
 Dashboard-Dateien
 ```

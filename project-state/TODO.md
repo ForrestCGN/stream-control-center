@@ -13,6 +13,7 @@ Erledigt:
 - CAN-42.15 Sound-System Status-Diagnostics
 - CAN-42.16 Media Status-Diagnostics
 - CAN-42.17 Alerts Status-Diagnostics
+- CAN-42.18 Birthday Status-Diagnostics
 
 Offen:
 
