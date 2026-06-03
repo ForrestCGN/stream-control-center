@@ -1,30 +1,57 @@
 # Current Status
 
-CAN-42.35 abgeschlossen/vorbereitet: Dashboard-Diagnose-Cleanup und Extension-Dokumentation sind konsolidiert.
+## Aktueller Stand
 
-Aktueller Diagnose-Standard:
+CAN-42 Diagnose-Aufräumrunde ist abgeschlossen.
 
-- Zentrale Dashboard-Diagnose: `htdocs/dashboard/modules/diagnostics.js`
-- Styling: `htdocs/dashboard/modules/diagnostics.css`
-- Backend-Registry: `GET /api/diagnostics/registry`
-- Registry-Coverage zuletzt grün:
-  - `ok: True`
-  - `registryEntries: 14`
-  - `loadedModules: 52`
-  - `coveredLoadedModules: 14`
-  - `missingLoadedModules: 0`
-  - `registryOnlyEntries: 0`
+CAN-43.0 wurde als Startpunkt für die nächste Fachrunde vorbereitet.
 
-Alte nicht mehr geladene Diagnose-Dateien wurden aus Repo und Live entfernt.
+CAN-43.1 aktualisiert die Projektübergabe für den nächsten Chat.
 
-Bewusst behaltene Dashboard-Extensions sind dokumentiert in:
+## Diagnose-Standard
+
+Zentrale Dashboard-Diagnose:
+
+- `htdocs/dashboard/modules/diagnostics.js`
+- `htdocs/dashboard/modules/diagnostics.css`
+
+Backend-Registry:
+
+- `GET /api/diagnostics/registry`
+
+Letzter bestätigter Coverage-Stand:
+
+- `ok: True`
+- `registryEntries: 14`
+- `loadedModules: 52`
+- `coveredLoadedModules: 14`
+- `missingLoadedModules: 0`
+- `registryOnlyEntries: 0`
+
+## Cleanup-Stand
+
+Alte nicht mehr geladene Dashboard-Diagnose-Dateien sind aus Repo und Live entfernt.
+
+Live-/Repo-Check war sauber:
+
+- lokale Altdateien: 0
+- lokale Alt-Referenzen: 0
+- Live-Altdateien: 0
+- Live-Alt-Referenzen: 0
+
+## Dokumentierte Extensions
+
+Bewusst behaltene Extensions sind dokumentiert in:
 
 - `docs/modules/DASHBOARD_EXTENSIONS.md`
 
-Regel für neue Module:
+## Neue Modul-Regel
 
-- keine neuen Diagnose-Extra-Dateien pro Modul
-- Statusroute mit `diagnostics`-Block prüfen
-- Registry-Eintrag prüfen
-- Coverage-Test muss grün bleiben
-- Modul- und Projekt-Doku aktualisieren
+Bei neuen oder geänderten Modulen muss direkt geprüft werden:
+
+- Statusroute
+- `diagnostics`-Block
+- Registry-Eintrag
+- Coverage-Test
+- Doku/project-state
+- keine neue Dashboard-Diagnose-Extra-Datei ohne explizite Begründung
