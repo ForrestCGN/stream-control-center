@@ -2,7 +2,7 @@
 'use strict';
 
 (function(){
-  const VERSION = '0.1.0-can36-3c';
+  const VERSION = '0.1.0-can36-3d';
   const MODULE_ID = 'messageRotatorModule';
   const EXT_ID = 'messageRotatorDiagnosisExtension';
   let busy = false;
@@ -30,6 +30,17 @@
       : String(v == null ? '' : v).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   }
   function root(){ return document.getElementById(MODULE_ID); }
+  function tabs(){ return root() ? root().querySelector('.mr-tabs') : null; }
+  function originalDiagnosisCard(){
+    const t = tabs();
+    if (!t) return null;
+    let node = t.nextElementSibling;
+    while (node) {
+      if (node.id !== EXT_ID && node.classList && node.classList.contains('mr-card')) return node;
+      node = node.nextElementSibling;
+    }
+    return null;
+  }
   function isDiagnosis(){
     const r = root();
     if (!r || r.hidden) return false;
@@ -71,7 +82,7 @@
     const healthy = integration && integration.ok === true && integration.healthy !== false && errors.length === 0;
 
     return '<section id="'+EXT_ID+'" class="mr-diag-ext" data-version="'+esc(VERSION)+'">'
-      + '<section class="mr-card mr-diag-ext-card mr-diag-ext-head"><div><h3>Erweiterte Read-only-Diagnose</h3><p>In den vorhandenen Diagnose-Tab integriert. Kein Start/Stop, kein Tick, kein Next/Manual, keine Preview, kein Reload, kein Live-Status-Force.</p></div><div class="mr-diag-ext-pills"><span class="mr-pill '+(healthy?'ok':'warn')+'">'+(healthy?'READ-ONLY OK':'PRÜFEN')+'</span><span class="mr-pill '+(status && status.active?'ok':'warn')+'">'+(status && status.active?'läuft':'gestoppt')+'</span><span class="mr-pill '+(opts.deliveryMode === 'backend'?'warn':'ok')+'">'+esc(opts.deliveryMode || 'backend')+'</span></div></section>'
+      + '<section class="mr-card mr-diag-ext-card mr-diag-ext-head"><div><h3>Erweiterte Read-only-Diagnose</h3><p>In den vorhandenen Diagnose-Tab integriert. Die Tab-Leiste bleibt oben unverändert.</p></div><div class="mr-diag-ext-pills"><span class="mr-pill '+(healthy?'ok':'warn')+'">'+(healthy?'READ-ONLY OK':'PRÜFEN')+'</span><span class="mr-pill '+(status && status.active?'ok':'warn')+'">'+(status && status.active?'läuft':'gestoppt')+'</span><span class="mr-pill '+(opts.deliveryMode === 'backend'?'warn':'ok')+'">'+esc(opts.deliveryMode || 'backend')+'</span></div></section>'
       + '<section class="mr-diag-ext-section"><div class="mr-diag-ext-title"><h4>Status & Runtime</h4><span>nur Statusdaten</span></div><div class="mr-diag-ext-grid">'
       + metric('Integration', healthy ? 'ok' : 'prüfen', 'Integration-Check', healthy?'ok':'warn')
       + metric('Rotator aktiv', yes(status && status.active), status && status.active ? 'läuft' : 'gestoppt', status && status.active?'ok':'')
@@ -128,11 +139,11 @@
         api('/api/message-rotator/integration-check')
       ]);
       removeOld();
-      const target = root() && root().querySelector('.mr-card');
+      const target = originalDiagnosisCard();
       if (target) target.insertAdjacentHTML('afterend', render(data[0], data[1], data[2]));
     } catch (err) {
       removeOld();
-      const target = root() && root().querySelector('.mr-card');
+      const target = originalDiagnosisCard();
       if (target) target.insertAdjacentHTML('afterend', '<section id="'+EXT_ID+'" class="mr-card mr-diag-ext-card"><h3>Erweiterte Read-only-Diagnose</h3><p class="mr-error">'+esc(err.message || String(err))+'</p></section>');
     } finally {
       busy = false;

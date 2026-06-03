@@ -1,17 +1,23 @@
 # CURRENT_STATUS
 
-## Stand: CAN-36.3c vorbereitet
+## Stand: CAN-36.3d vorbereitet
 
-CAN-36.3c integriert die erweiterte Message-Rotator-Read-only-Diagnose in den vorhandenen Tab `Diagnose`.
+CAN-36.3d behebt die Einfügeposition der Message-Rotator-Diagnose-Erweiterung.
 
-## Änderung
+## Fehlerbild
+
+Die erweiterte Diagnose wurde vor der Tab-Leiste eingefügt. Dadurch rutschte die Navigation nach unten.
+
+## Fix
+
+Die Erweiterung wird jetzt nur noch im vorhandenen Tab `Diagnose` hinter der bestehenden Diagnosekarte eingefügt.
+
+## Geändert
 
 ```text
-htdocs/dashboard/index.html
 htdocs/dashboard/modules/message_rotator_diagnostics_ext.js
-htdocs/dashboard/modules/message_rotator_diagnostics_ext.css
 project-state/*
-docs/current/CURRENT_CHAT_HANDOFF_CAN36_3c.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN36_3d.md
 ```
 
 Nicht geändert:
@@ -20,13 +26,3 @@ Nicht geändert:
 backend/modules/message_rotator.js
 htdocs/dashboard/modules/message_rotator.js
 ```
-
-Genutzte Routen:
-
-```text
-GET /api/message-rotator/status
-GET /api/message-rotator/routes
-GET /api/message-rotator/integration-check
-```
-
-Keine produktiven Aktionen.

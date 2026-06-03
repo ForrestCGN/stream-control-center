@@ -3,7 +3,7 @@
 ## Direkt nächster Schritt
 
 ```text
-CAN-36.3c anwenden und Dashboard-Sichtprüfung machen.
+CAN-36.3d anwenden und Dashboard-Sichtprüfung machen.
 ```
 
 ## Prüfung
@@ -15,14 +15,7 @@ Dashboard > Message-Rotator > Diagnose
 Erwartung:
 
 ```text
-Kein zusätzlicher Tab.
-Vorhandener Diagnose-Tab enthält zusätzlich mehrere neue Read-only-Abschnitte.
+Tab-Leiste bleibt oben direkt unter der Message-Rotator-Kopfkarte.
+Erweiterte Read-only-Diagnose erscheint erst innerhalb des Diagnose-Tabs hinter der vorhandenen Diagnosekarte.
 Keine Start-/Stop-/Tick-/Next-/Manual-/Reload-/Admin-POST-Aktion.
-Kein Firefox-Hänger / keine Tab-Blockade.
-```
-
-Danach:
-
-```text
-CAN-36.4 Testergebnis dokumentieren.
 ```

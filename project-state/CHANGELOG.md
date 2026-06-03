@@ -1,12 +1,9 @@
 # CHANGELOG
 
-## CAN-36.3c
+## CAN-36.3d
 
-- Erweiterte Message-Rotator Read-only-Diagnose in den vorhandenen Tab `Diagnose` integriert.
-- Kein zusätzlicher Tab.
-- Neue Dateien:
-  - `htdocs/dashboard/modules/message_rotator_diagnostics_ext.js`
-  - `htdocs/dashboard/modules/message_rotator_diagnostics_ext.css`
-- `htdocs/dashboard/index.html` lädt die Erweiterung.
-- Keine Änderung an Backend oder bestehendem Message-Rotator-Dashboard.
+- Fix für CAN-36.3c:
+  - Erweiterte Diagnose wird nicht mehr vor der Tab-Leiste eingefügt.
+  - Erweiterte Diagnose wird im vorhandenen Diagnose-Tab hinter der bestehenden Diagnosekarte eingefügt.
+- Keine Backend-Änderung.
 - Keine produktive Aktion.
