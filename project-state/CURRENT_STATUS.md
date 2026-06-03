@@ -16,25 +16,26 @@ CAN-43.4 hat das Modul `birthday` als drittes CAN-43-Fachmodul nach neuem Diagno
 
 CAN-43.5 hat das Modul `message_rotator` als viertes CAN-43-Fachmodul nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
 
-## CAN-43.5 Ergebnis
+CAN-43.6 hat das Modul `tagebuch` als fünftes CAN-43-Fachmodul nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
 
-`message_rotator` ist sauber.
+## CAN-43.6 Ergebnis
+
+`tagebuch` ist sauber.
 
 - Repo/Branch: `dev`
-- HEAD: `ab6e7a1d CAN-43.4 Birthday diagnostics review`
+- HEAD: `d196fee2 CAN-43.5 Message-Rotator diagnostics review`
 - Lokaler Git-Status: sauber
-- Live-Modul: `message_rotator`
-- Modulversion: `0.1.1`
-- Build: `diagnostics-standard`
-- Statusroute: `GET /api/message-rotator/status`
-- Routenübersicht: `GET /api/message-rotator/routes`
-- Integration-Check: `GET /api/message-rotator/integration-check`
-- `diagnostics`-Block: vorhanden
-- Registry-Eintrag: vorhanden
+- Live-Modul: `tagebuch`
+- Modulversion: `0.1.0`
+- Statusroute: `GET /api/tagebuch/status`
+- Routenübersicht: `GET /api/tagebuch/routes`
+- Integration-Check: `GET /api/tagebuch/integration-check`
+- Schema-Version: `5`
+- Diagnostics: `ok=True`, `health=ok`, `schemaReady=True`
+- Integration-Check: `healthy=True`, keine Warnings, keine Errors
+- Webhook: vorhanden
+- Active Stream: `False`
 - Coverage: sauber
-- Integration-Check: healthy, keine Warnings/Errors
-- Rotator beim Test aktiv: nein
-- Chat-Ausgabe ausgelöst: nein
 - Codeänderung: keine
 - Modulversion erhöht: nein
 
@@ -58,22 +59,27 @@ Letzter bestätigter Coverage-Stand:
 - `missingLoadedModules: 0`
 - `registryOnlyEntries: 0`
 
+## Cleanup-Stand
+
+Alte nicht mehr geladene Dashboard-Diagnose-Dateien sind aus Repo und Live entfernt.
+
+Live-/Repo-Check war sauber:
+
+- lokale Altdateien: 0
+- lokale Alt-Referenzen: 0
+- Live-Altdateien: 0
+- Live-Alt-Referenzen: 0
+
 ## Dokumentierte Extensions
 
 Bewusst behaltene Extensions sind dokumentiert in:
 
 - `docs/modules/DASHBOARD_EXTENSIONS.md`
 
-Für `commands` relevant:
+Für bisher geprüfte CAN-43-Module relevant:
 
 - `commands_readonly_diagnostics.css/js` bleiben bewusst erhalten.
-
-Für `hug` relevant:
-
 - `hug_diagnostics_ext.css/js` bleiben bewusst erhalten.
-
-Für `message_rotator` relevant:
-
 - `message_rotator_diagnostics_ext.css/js` bleiben bewusst erhalten.
 
 ## Neue Modul-Regel

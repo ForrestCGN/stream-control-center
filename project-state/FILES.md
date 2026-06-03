@@ -1,5 +1,21 @@
 # Files
 
+## CAN-43.6 neu/geändert
+
+### Handoff / Doku
+
+- `docs/current/CAN-43.6_tagebuch_diagnostics_review.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN43_6.md`
+- `docs/modules/TAGEBUCH.md`
+
+### Project State
+
+- `project-state/CURRENT_STATUS.md`
+- `project-state/NEXT_STEPS.md`
+- `project-state/TODO.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+
 ## CAN-43.5 neu/geändert
 
 ### Handoff / Doku
@@ -16,57 +32,13 @@
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 
-## CAN-43.4 neu/geändert
-
-### Handoff / Doku
-
-- `docs/current/CAN-43.4_birthday_diagnostics_review.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN43_4.md`
-- `docs/modules/BIRTHDAY.md`
-
-### Project State
-
-- `project-state/CURRENT_STATUS.md`
-- `project-state/NEXT_STEPS.md`
-- `project-state/TODO.md`
-- `project-state/CHANGELOG.md`
-- `project-state/FILES.md`
-
-## CAN-43.3 neu/geändert
-
-### Handoff / Doku
-
-- `docs/current/CAN-43.3_hug_diagnostics_review.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN43_3.md`
-- `docs/modules/HUG.md`
-
-### Project State
-
-- `project-state/CURRENT_STATUS.md`
-- `project-state/NEXT_STEPS.md`
-- `project-state/TODO.md`
-- `project-state/CHANGELOG.md`
-- `project-state/FILES.md`
-
-## CAN-43.2 neu/geändert
-
-### Handoff / Doku
-
-- `docs/current/CAN-43.2_commands_diagnostics_review.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN43_2.md`
-- `docs/modules/COMMANDS.md`
-
-### Project State
-
-- `project-state/CURRENT_STATUS.md`
-- `project-state/NEXT_STEPS.md`
-- `project-state/TODO.md`
-- `project-state/CHANGELOG.md`
-- `project-state/FILES.md`
-
 ## Relevante bestehende Dateien
 
-### Message-Rotator
+### Tagebuch
+
+- `backend/modules/tagebuch.js`
+
+### Message Rotator
 
 - `backend/modules/message_rotator.js`
 - `htdocs/dashboard/modules/message_rotator_diagnostics_ext.js`
