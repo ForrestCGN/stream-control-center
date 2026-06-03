@@ -12,7 +12,10 @@
 
 ## CAN-37
 
-- [ ] CAN-37.0 neuen Arbeitsblock bewusst auswählen.
+- [x] CAN-37.0 neuen Arbeitsblock bewusst auswählen.
+- [x] CAN-37.1 Hug-System analysieren.
+- [ ] CAN-37.2 Hug-System Doku und Read-only/Write-Regeln ergänzen.
+- [ ] CAN-37.3 optional: Hug Dashboard Diagnose-Tab prüfen/erweitern.
 
 ## Offene/zu beobachtende Punkte
 
@@ -20,8 +23,5 @@
 - [ ] Optional: Overlay-Monitor Dashboard-Details optisch weiter vereinfachen.
 - [ ] Optional: EventBus read-only Diagnose weiter ausbauen.
 - [ ] Optional: ein konkretes Modul an Bus-/Status-/Doku-Regeln anpassen.
-- [ ] Commands: keine Execute-/Upsert-/Delete-Tests ohne eigenen Go-Schritt.
-- [ ] Todo: keine Add-/Reload-/Admin-POST-Tests ohne eigenen Go-Schritt.
-- [ ] Tagebuch: keine Entry-/Stream-/Reset-/Reload-/Admin-POST-Tests ohne eigenen Go-Schritt.
-- [ ] Message-Rotator: keine Start-/Stop-/Tick-/Next-/Manual-/Reload-/Live-Status-/Admin-POST-Tests ohne eigenen Go-Schritt.
+- [ ] Hug: keine Hug-/Rehug-/HugAll-/on-off-/Stats-/Top-/Reload-/Text-Store-Reload-/Admin-POST-Tests ohne eigenen Go-Schritt.
 - [ ] Keine OBS-Reparatur / kein Source-Refresh / keine automatische Recovery ohne eigene Planung.

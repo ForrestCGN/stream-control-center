@@ -1,68 +1,47 @@
 # FILES
 
-## Aktueller Arbeitsstand CAN-36.4
+## Aktueller Arbeitsstand CAN-37.2
 
 Wichtige geaenderte/zuletzt relevante Dateien:
 
 ```text
+docs/modules/hug.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/CHANGELOG.md
 project-state/FILES.md
-docs/current/CURRENT_CHAT_HANDOFF_CAN36_4.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN37_2.md
 ```
 
-## CAN-36 ZIPs aus dem Chat
+## CAN-37 ZIPs aus dem Chat
 
 ```text
-CAN-36.2_message_rotator_module_docs_readonly_write_rules.zip
-CAN-36.3_message_rotator_dashboard_readonly_diagnostics.zip
-CAN-36.3b_message_rotator_remove_extra_readonly_tab.zip
-CAN-36.3c_message_rotator_integrate_existing_diagnose.zip
-CAN-36.3d_message_rotator_diagnose_insert_position_fix.zip
-CAN-36.4_document_message_rotator_diagnose_position_test.zip
+CAN-37.2_hug_module_docs_readonly_write_rules.zip
 ```
 
-## CAN-36 relevante Runtime-/Dashboard-Dateien
+## CAN-37 Analyse-relevante Dateien
 
 ```text
-docs/modules/message_rotator.md
-htdocs/dashboard/index.html
-htdocs/dashboard/modules/message_rotator.js
-htdocs/dashboard/modules/message_rotator.css
-htdocs/dashboard/modules/message_rotator_diagnostics_ext.js
-htdocs/dashboard/modules/message_rotator_diagnostics_ext.css
+backend/modules/hug.js
+htdocs/dashboard/modules/hug.js
+htdocs/dashboard/modules/hug.css
 ```
 
-CAN-36.4 selbst ändert keine Runtime-/Dashboard-Datei.
-
-## Bestätigter CAN-36.3d Sichttest
+## Neue Doku
 
 ```text
-Dashboard > Message-Rotator
-Tab-Leiste bleibt direkt unter der Message-Rotator-Kopfkarte.
-Tabs: Übersicht | Settings | Items | Nachrichten | Diagnose.
-Kein Read-only-Tab.
-Im Tab Diagnose steht zuerst die normale Diagnose.
-Darunter kommt die erweiterte Read-only-Diagnose.
-Keine produktive Aktion ausgelöst.
+docs/modules/hug.md
 ```
 
 ## Sicherheitsnotiz
 
 ```text
-Keine Message.
-Kein Rotator-Start/Stop.
-Kein Tick.
-Kein Next/Manual.
-Keine Preview.
-Kein Reload.
-Keine Live-Status-Force-Abfrage.
+CAN-37.2 ändert keinen Runtime-Code.
+Keine Hug-/Rehug-/HugAll-/on-off-/Stats-/Top-/Reload-/Text-Store-Reload-/Admin-POST-Tests.
+Keine Chat-/Twitch-/Discord-Nachricht.
 Keine Settings-/Textvarianten-Änderung.
 Keine DB-Migration.
-Keine Twitch-/Chat-Nachricht.
-Keine OBS-/Sound-/Queue-Aktion.
 ```
 
 ## Lokale Pfade
@@ -70,6 +49,6 @@ Keine OBS-/Sound-/Queue-Aktion.
 ```text
 Repo: D:\Git\stream-control-center
 Live: D:\Streaming\stramAssets
-Message-Rotator Backend: D:\Streaming\stramAssets\backend\modules\message_rotator.js
-Message-Rotator Dashboard: D:\Streaming\stramAssets\htdocs\dashboard\modules\message_rotator.js
+Hug Backend: D:\Streaming\stramAssets\backend\modules\hug.js
+Hug Dashboard: D:\Streaming\stramAssets\htdocs\dashboard\modules\hug.js
 ```
