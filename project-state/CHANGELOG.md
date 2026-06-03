@@ -1,22 +1,16 @@
 # CHANGELOG
 
-## CAN-42.1
+## CAN-42.1b
 
-- Zentrale Admin-Diagnose-Grundseite vorbereitet:
-  - `htdocs/dashboard/modules/diagnostics.js`
-  - `htdocs/dashboard/modules/diagnostics.css`
-- `htdocs/dashboard/index.html` erweitert:
-  - CSS eingebunden
-  - `diagnosticsModule` Section ergänzt
-  - JS eingebunden
-- `docs/modules/diagnostics.md` neu erstellt.
-- Diagnose wird zentral unter Admin > Diagnose registriert.
-- Nur GET-Statusabfragen.
+- Zentrale Admin-Diagnose bereinigt:
+  - sichtbare Routenliste in der Moduldetailansicht entfernt.
+  - Routenanzahl bleibt erhalten.
+  - Rohdaten bleiben einklappbar.
 - Keine Backend-Änderung.
 - Keine API-POSTs.
 - Keine produktive Aktion.
 - Keine Funktionalität entfernt.
 
-## CAN-42.0
+## CAN-42.1
 
-- Entscheidung: Diagnose wird zentral im Admin-Bereich gebündelt.
+- Zentrale Admin-Diagnose-Grundseite vorbereitet.

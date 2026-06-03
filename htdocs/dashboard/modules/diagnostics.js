@@ -198,8 +198,6 @@ window.DiagnosticsModule = (function(){
     const raw = result.status || result || {};
     const today = result.today || raw.today || {};
     const show = result.showState?.state || raw.show || {};
-    const routes = Array.isArray(raw.routes) ? raw.routes : [];
-
     return `
       <section class="diagnostics-card diagnostics-card-main">
         <div class="diagnostics-headline-row">
@@ -225,8 +223,7 @@ window.DiagnosticsModule = (function(){
           ${metric('Show-Ziel', show.targetDisplayName || show.targetLogin || '-')}
           ${metric('Queue-Abfrage', 'nicht genutzt')}
         </div>` : ''}
-        <h4>Routen aus Status</h4>
-        ${routes.length ? `<div class="diagnostics-route-list">${routes.map(route => `<span class="${String(route.method || '').includes('POST') ? 'write' : 'read'}">${esc(route.method || '?')} ${esc(route.path || '')}</span>`).join('')}</div>` : '<p class="diagnostics-note">Keine Routenliste im Status gefunden.</p>'}
+        <p class="diagnostics-note">Routen werden hier nicht als Liste angezeigt. Die Anzahl bleibt oben sichtbar; Details stehen bei Bedarf in den Rohdaten.</p>
         <details class="diagnostics-raw">
           <summary>Rohdaten anzeigen</summary>
           <pre>${esc(JSON.stringify(raw, null, 2))}</pre>

@@ -1,65 +1,47 @@
 # CURRENT_STATUS
 
-## Stand: CAN-42.1 vorbereitet
+## Stand: CAN-42.1b vorbereitet
 
-CAN-42.1 baut eine zentrale Admin-Diagnose-Grundseite.
+CAN-42.1b entfernt in der zentralen Admin-Diagnose die sichtbare Routenliste aus der Moduldetailansicht.
 
-## Entscheidung
-
-```text
-Diagnose gehört zentral nach Admin > Diagnose.
-Modul-Seiten bleiben Bedienseiten.
-Keine neuen Diagnosekarten mehr direkt in einzelne Module einbauen.
-Bestehende Modul-Diagnosen werden später schrittweise zentral nachgebildet oder entfernt.
-```
-
-## Änderung CAN-42.1
+## Änderung
 
 Geändert:
 
 ```text
-htdocs/dashboard/index.html
 htdocs/dashboard/modules/diagnostics.js
-htdocs/dashboard/modules/diagnostics.css
-docs/modules/diagnostics.md
 project-state/*
-docs/current/CURRENT_CHAT_HANDOFF_CAN42_1.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN42_1b.md
 ```
 
 Nicht geändert:
 
 ```text
 backend/*
-bestehende Modul-JS-Dateien
-bestehende Modul-CSS-Dateien
+htdocs/dashboard/index.html
+htdocs/dashboard/modules/diagnostics.css
+bestehende Modul-Dateien
 ```
 
 ## Verhalten
 
 ```text
-Admin > Diagnose wird als Dashboard-Modul aktiviert.
-Die Seite zeigt Gesamtübersicht und Moduldetails.
-Die Seite nutzt nur GET-Statusendpunkte.
+Admin > Diagnose bleibt zentrale Diagnose-Grundseite.
+Routenanzahl bleibt als Kennzahl sichtbar.
+Routenliste unten in den Moduldetails wird nicht mehr angezeigt.
+Rohdaten bleiben einklappbar verfügbar.
 Keine API-POSTs.
-Keine produktiven Aktionen.
+Keine produktive Aktion.
 Kein MutationObserver.
 ```
 
-## Besonderheit Birthday
+## Grund
 
-```text
-GET /api/birthday/show/queue wird bewusst nicht genutzt.
-```
-
-Grund:
-
-```text
-Die Route kann intern stale Queue-Cleanup ausführen und ist nicht streng read-only.
-```
+Die sichtbare Routenliste war zu viel Detailinformation für die normale Diagnoseansicht. Für Alltag und Owner-/Admin-Blick reichen Statuswerte und Routenanzahl. Technische Details können bei Bedarf über Rohdaten oder Doku geprüft werden.
 
 ## Nächster Schritt
 
 ```text
-CAN-42.1 anwenden und Sichttest machen.
-Danach CAN-42.2 Testergebnis dokumentieren oder Standardformat erweitern.
+CAN-42.1b anwenden und Sichttest machen.
+Danach CAN-42.2 Modul-Diagnose-/Hinweis-Inventar erstellen.
 ```

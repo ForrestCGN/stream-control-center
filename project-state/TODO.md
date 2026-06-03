@@ -3,10 +3,10 @@
 ## CAN-42
 
 - [x] CAN-42.0 Zentrale Admin-Diagnose konzipieren.
-- [ ] CAN-42.1 Admin Diagnose Grundseite bauen.
-- [ ] CAN-42.2 Sichttest dokumentieren / Standardformat verfeinern.
-- [ ] CAN-42.3 erste alte Modul-Diagnosen zentral nachbilden.
-- [ ] CAN-42.x alte Modul-Diagnosen schrittweise entfernen oder ersetzen.
+- [x] CAN-42.1 Admin Diagnose Grundseite bauen.
+- [ ] CAN-42.1b Admin Diagnose Routenliste aus Detailansicht entfernen.
+- [ ] CAN-42.2 Modul-Diagnose-/Hinweis-Inventar erstellen.
+- [ ] CAN-42.3 erste alte Modul-Diagnosen zentral nachbilden/aus Modul entfernen.
 
 ## Neue Diagnose-Regel
 
@@ -17,5 +17,5 @@
 
 ## Offene/zu beobachtende Punkte
 
-- [ ] Birthday: keine Show-/Sound-/Chat-/Tagebuch-/Upload-/Import-/Admin-POST-Aktion ohne eigenen Go-Schritt.
-- [ ] SQLite ExperimentalWarning ist bekannt und akzeptiert; kein DB-Core-Umbau ohne eigenen Plan.
+- [ ] Nach CAN-42.1b prüfen: keine sichtbare Routenliste in Moduldetails.
+- [ ] Bestehende Modul-Diagnose-Extensions inventarisieren.
