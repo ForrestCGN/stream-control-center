@@ -1,40 +1,17 @@
 # CHANGELOG
 
-## CAN-39.2
+## CAN-39.3b
 
-- Overlay-Monitor-Doku vorbereitet:
-  - `docs/modules/overlay_monitor.md`
-- Dokumentiert:
-  - Modulzweck
-  - MODULE_META / Version / Routenprefix
-  - Bus-Registrierung und Heartbeat
-  - Konfiguration
-  - Monitoring-Issues und Inventory-Cache
-  - Hintergrund-Monitoring
-  - read-only Statusrouten
-  - Overlay Client Control Status
-  - OBS-Inventar-Route
-  - produktive/manuelle OBS-Reparaturroute
-  - Dashboard-Routen
-  - Dashboard-Auto-Refresh
-  - produktive Dashboard-Aktionen
-  - Regeln für spätere Overlay-Monitor-Erweiterungen
-- Keine Codeänderung.
-- Keine OBS-Reparatur.
-- Kein Source-Refresh.
-- Keine automatische Recovery.
-- Keine Overlay-Refresh-Aktion.
-- Keine Queue-Aktion.
-- Keine produktive Sound-/Alert-Aktion.
-- Keine DB-Migration.
-- Keine Dashboard-Testbuttons für produktive Aktionen.
-- Keine Twitch-/Chat-/Discord-Nachricht.
+- Overlay-Monitor Sicherheits-Hinweis stabilisiert.
+- `overlay_monitor_safety_ext.js` mit begrenztem Retry nach Render ergänzt.
+- Stabilere Einfügeposition nach `.ovm-head`.
+- Keine Backend-Änderung.
+- Keine Änderung an `overlays.js`.
+- Kein Extra-Tab.
+- Keine produktive Aktion.
+- Keine API-POSTs.
+- Keine MutationObserver.
 
-## CAN-39.1
+## CAN-39.3
 
-- Overlay-Monitor / Overlay-Dashboard read-only analysiert.
-- Ergebnis:
-  - Aktives Backend ist `backend/modules/overlay_monitor.js`.
-  - Dedizierte Doku `docs/modules/overlay_monitor.md` fehlte.
-  - Das Modul hat sichere Read-only-Statusrouten, aber auch eine produktive manuelle OBS-Reparaturroute.
-  - Dashboard `htdocs/dashboard/modules/overlays.js` enthält Auto-Refresh, OBS-Inventar-Refresh und manuelle Reparaturbuttons.
+- Overlay-Monitor UI-Sicherheitsmarkierung vorbereitet.
