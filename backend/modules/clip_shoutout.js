@@ -18,7 +18,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.16";
+const MODULE_VERSION = "0.2.17";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -273,13 +273,36 @@ function normalizeStringArray(value, fallback = []) {
 function normalizeAutoMessages(input = {}, fallback = {}) {
   const base = isPlainObject(fallback) ? fallback : {};
   const raw = isPlainObject(input) ? input : {};
+  const defaults = DEFAULT_CONFIG.clipShoutout.autoShoutout.messages || {};
+  const fixWaitTimeTemplate = (value, fallbackValue) => {
+    const text = String(value ?? fallbackValue ?? "");
+    if (!text.trim()) return String(fallbackValue || "");
+    if (text.includes("{waitTime}")) return text;
+    return String(fallbackValue || text);
+  };
+  const queued = fixWaitTimeTemplate(
+    raw.queued ?? base.queued ?? raw.queuedMessage ?? base.queuedMessage ?? DEFAULT_CONFIG.clipShoutout.autoShoutout.queuedMessage,
+    defaults.queued || DEFAULT_CONFIG.clipShoutout.autoShoutout.queuedMessage
+  );
+  const alreadyQueued = fixWaitTimeTemplate(
+    raw.alreadyQueued ?? base.alreadyQueued,
+    defaults.alreadyQueued || "⏳ @{displayName} steht bereits auf der Shoutout-Warteliste. Wartezeit: ca. {waitTime}."
+  );
+  const cooldown = fixWaitTimeTemplate(
+    raw.cooldown ?? base.cooldown,
+    defaults.cooldown || "⏳ @{displayName} ist im Auto-SO-Cooldown. Nächster Versuch in ca. {waitTime}."
+  );
+  const waitingStartScene = fixWaitTimeTemplate(
+    raw.waitingStartScene ?? base.waitingStartScene,
+    defaults.waitingStartScene || "⏳ @{displayName} ist eingetragen. Shoutout wartet bis nach der Start-Szene. Wartezeit: ca. {waitTime}."
+  );
   return {
-    queued: String((raw.queued ?? base.queued ?? raw.queuedMessage ?? base.queuedMessage ?? DEFAULT_CONFIG.clipShoutout.autoShoutout.queuedMessage) || ""),
-    alreadyQueued: String(raw.alreadyQueued ?? base.alreadyQueued ?? "⏳ @{displayName} steht bereits auf der Shoutout-Warteliste. Wartezeit: ca. {waitTime}."),
-    alreadyReceived: String(raw.alreadyReceived ?? base.alreadyReceived ?? "✅ @{displayName} hat bereits einen Shouti erhalten."),
-    cooldown: String(raw.cooldown ?? base.cooldown ?? "⏳ @{displayName} ist im Auto-SO-Cooldown. Nächster Versuch in ca. {waitTime}."),
-    waitingStartScene: String(raw.waitingStartScene ?? base.waitingStartScene ?? "⏳ @{displayName} ist eingetragen. Shoutout wartet bis nach der Start-Szene. Wartezeit: ca. {waitTime}."),
-    disabled: String(raw.disabled ?? base.disabled ?? "ℹ️ Auto-Shoutouts sind aktuell deaktiviert.")
+    queued,
+    alreadyQueued,
+    alreadyReceived: String(raw.alreadyReceived ?? base.alreadyReceived ?? defaults.alreadyReceived ?? "✅ @{displayName} hat bereits einen Shouti erhalten."),
+    cooldown,
+    waitingStartScene,
+    disabled: String(raw.disabled ?? base.disabled ?? defaults.disabled ?? "ℹ️ Auto-Shoutouts sind aktuell deaktiviert.")
   };
 }
 

@@ -12,6 +12,7 @@ window.AutoShoutoutModule = (function(){
 
   let root = null;
   let refreshTimer = null;
+  let observer = null;
   const state = {
     data: null,
     streamers: [],
@@ -19,22 +20,38 @@ window.AutoShoutoutModule = (function(){
     loading: false,
     error: '',
     notice: '',
-    autoRefresh: true
+    autoRefresh: true,
+    embeddedActive: false,
+    formDirty: false,
+    lastLoadAt: ''
   };
 
   function esc(v){
     return window.CGN?.esc
       ? window.CGN.esc(v)
-      : String(v ?? '').replace(/[&<>\"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+      : String(v ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
   }
 
+  function standaloneRoot(){ return document.getElementById('autoShoutoutModule'); }
+  function embeddedRoot(){ return document.getElementById('shoutoutAutoEmbedded'); }
+  function resolveRoot(){
+    const embedded = embeddedRoot();
+    if (state.embeddedActive && embedded) return embedded;
+    return standaloneRoot() || embedded || null;
+  }
+  function shoutoutRoot(){ return document.getElementById('shoutoutModule'); }
+  function shoutoutVisible(){ const r = shoutoutRoot(); return !!r && r.hidden !== true; }
+  function standaloneVisible(){ const r = standaloneRoot(); return !!r && r.hidden !== true; }
+  function activeRootVisible(){ return (state.embeddedActive && shoutoutVisible()) || standaloneVisible(); }
+
   function registerDashboardModule(){
-    if (!window.CGN) return;
+    // CAN-44.4: AutoShoutout is anchored inside the Shoutout-System tab.
+    // No separate navigation entry is registered anymore. A standalone panel is still supported
+    // if an older index.html contains #autoShoutoutModule.
+    const standalone = standaloneRoot();
+    if (!standalone || !window.CGN) return;
     window.CGN.modules = window.CGN.modules || {};
     window.CGN.moduleCatalog = window.CGN.moduleCatalog || {};
-    window.CGN.sections = window.CGN.sections || {};
-    window.CGN.favorites = Array.isArray(window.CGN.favorites) ? window.CGN.favorites : [];
-
     window.CGN.modules.auto_shoutout = {
       title: 'Auto-Shoutouts',
       panelId: 'autoShoutoutModule',
@@ -42,27 +59,12 @@ window.AutoShoutoutModule = (function(){
       overlayLink: '',
       reload(){ return window.AutoShoutoutModule?.loadAll?.(true); }
     };
-
     window.CGN.moduleCatalog.auto_shoutout = {
       label: 'Auto-Shoutouts',
       icon: '📣',
       enabled: true,
       description: 'Automatische Video-/Twitch-Shoutouts für konfigurierte Streamer im Chat.'
     };
-
-    const community = window.CGN.sections.community;
-    if (community && Array.isArray(community.items) && !community.items.includes('auto_shoutout')) {
-      const afterShoutout = community.items.indexOf('shoutout');
-      const afterCommands = community.items.indexOf('commands');
-      if (afterShoutout >= 0) community.items.splice(afterShoutout + 1, 0, 'auto_shoutout');
-      else if (afterCommands >= 0) community.items.splice(afterCommands + 1, 0, 'auto_shoutout');
-      else community.items.push('auto_shoutout');
-    }
-
-    if (!window.CGN.favorites.includes('auto_shoutout')) {
-      const after = window.CGN.favorites.indexOf('shoutout');
-      if (after >= 0) window.CGN.favorites.splice(after + 1, 0, 'auto_shoutout');
-    }
   }
 
   async function api(path, options = {}){
@@ -99,8 +101,8 @@ window.AutoShoutoutModule = (function(){
   function statusBadge(value){
     const raw = String(value || '').toLowerCase();
     let cls = 'neutral';
-    if (['ok','active','triggered','queued','live','fresh','database'].includes(raw)) cls = 'ok';
-    else if (['waiting','offline','fallback','false','warn','unknown','stale'].includes(raw)) cls = 'warn';
+    if (['ok','active','triggered','queued','live','fresh','database','frei'].includes(raw)) cls = 'ok';
+    else if (['waiting','offline','fallback','false','warn','unknown','stale','aktiv','waiting_start_scene','start_scene_active'].includes(raw)) cls = 'warn';
     else if (['failed','error','bad','removed'].includes(raw)) cls = 'bad';
     return `<span class="auto-so-badge ${cls}">${esc(value || '-')}</span>`;
   }
@@ -108,13 +110,31 @@ window.AutoShoutoutModule = (function(){
   function settings(){ return state.data?.autoShoutout || {}; }
   function streamStatus(){ return state.data?.streamStatus || {}; }
 
+  function isFormElement(el){
+    return !!el && !!el.closest && !!el.closest('[data-auto-so-settings-form], [data-auto-so-streamer-form]') && /^(INPUT|TEXTAREA|SELECT)$/i.test(el.tagName || '');
+  }
+
+  function isEditingForm(){
+    const r = resolveRoot();
+    if (!r) return false;
+    const active = document.activeElement;
+    return state.formDirty || (active && r.contains(active) && isFormElement(active));
+  }
+
+  function markDirty(){ state.formDirty = true; }
+  function clearDirty(){ state.formDirty = false; }
+
   async function loadAll(force){
-    root = document.getElementById('autoShoutoutModule');
+    root = resolveRoot();
     if (!root) return;
+    if (!force && isEditingForm()) {
+      scheduleRefresh();
+      return;
+    }
     if (state.loading && !force) return;
     state.loading = true;
     state.error = '';
-    render();
+    if (force || !isEditingForm()) render();
     try {
       const [auto, streamers, queue] = await Promise.all([
         api(API.auto),
@@ -124,11 +144,12 @@ window.AutoShoutoutModule = (function(){
       state.data = auto;
       state.streamers = Array.isArray(streamers.streamers) ? streamers.streamers : (Array.isArray(auto?.autoShoutout?.configuredStreamers) ? auto.autoShoutout.configuredStreamers : []);
       state.queue = queue;
+      state.lastLoadAt = new Date().toISOString();
     } catch (err) {
       state.error = err && err.message ? err.message : String(err);
     } finally {
       state.loading = false;
-      render();
+      if (force || !isEditingForm()) render();
       scheduleRefresh();
     }
   }
@@ -138,13 +159,13 @@ window.AutoShoutoutModule = (function(){
     refreshTimer = null;
     if (!state.autoRefresh) return;
     refreshTimer = setTimeout(() => {
-      if (!document.getElementById('autoShoutoutModule')?.hidden) loadAll(false);
+      if (activeRootVisible()) loadAll(false);
       else scheduleRefresh();
     }, 5000);
   }
 
   async function saveSettings(){
-    const form = root?.querySelector('[data-auto-so-settings-form]');
+    const form = resolveRoot()?.querySelector('[data-auto-so-settings-form]');
     if (!form) return;
     const body = {
       enabled: form.querySelector('[name="enabled"]')?.checked === true,
@@ -155,7 +176,7 @@ window.AutoShoutoutModule = (function(){
       storeSkippedEvents: form.querySelector('[name="storeSkippedEvents"]')?.checked === true,
       globalCooldownMs: Number(form.querySelector('[name="globalCooldownMs"]')?.value || 0),
       perStreamerCooldownMs: Number(form.querySelector('[name="perStreamerCooldownMs"]')?.value || 0),
-      queuedMessage: String(form.querySelector('[name="queuedMessage"]')?.value || ''),
+      queuedMessage: String(form.querySelector('[name="msgQueued"]')?.value || ''),
       messages: {
         queued: String(form.querySelector('[name="msgQueued"]')?.value || ''),
         alreadyQueued: String(form.querySelector('[name="msgAlreadyQueued"]')?.value || ''),
@@ -174,7 +195,7 @@ window.AutoShoutoutModule = (function(){
   }
 
   async function saveStreamer(){
-    const form = root?.querySelector('[data-auto-so-streamer-form]');
+    const form = resolveRoot()?.querySelector('[data-auto-so-streamer-form]');
     if (!form) return;
     const nameRaw = String(form.querySelector('[name="name"]')?.value || '').trim().replace(/^@+/, '');
     const login = nameRaw.toLowerCase();
@@ -193,9 +214,11 @@ window.AutoShoutoutModule = (function(){
       note: String(form.querySelector('[name="note"]')?.value || '').trim()
     };
     await doAction(API.streamers, body, `@${login} gespeichert.`);
-    form.reset();
-    const checks = ['enabled','officialShoutout','videoShoutout'];
-    checks.forEach(name => { const el = form.querySelector(`[name="${name}"]`); if (el) el.checked = true; });
+    const nextForm = resolveRoot()?.querySelector('[data-auto-so-streamer-form]');
+    if (nextForm) {
+      nextForm.reset();
+      ['enabled','officialShoutout','videoShoutout'].forEach(name => { const el = nextForm.querySelector(`[name="${name}"]`); if (el) el.checked = true; });
+    }
   }
 
   async function doAction(path, body, notice){
@@ -204,6 +227,7 @@ window.AutoShoutoutModule = (function(){
     try {
       await api(path, { method: 'POST', body: JSON.stringify(body || {}) });
       state.notice = notice || 'Aktion ausgeführt.';
+      clearDirty();
       await loadAll(true);
     } catch (err) {
       state.error = err && err.message ? err.message : String(err);
@@ -231,47 +255,46 @@ window.AutoShoutoutModule = (function(){
     }, `@${row.login} ${enabled ? 'aktiviert' : 'deaktiviert'}.`);
   }
 
-  async function fillStreamerForm(login){
+  function fillStreamerForm(login){
     const row = state.streamers.find(item => String(item.login || '').toLowerCase() === String(login || '').toLowerCase());
-    const form = root?.querySelector('[data-auto-so-streamer-form]');
+    const form = resolveRoot()?.querySelector('[data-auto-so-streamer-form]');
     if (!row || !form) return;
     form.querySelector('[name="name"]').value = row.displayName || row.login || '';
     form.querySelector('[name="enabled"]').checked = row.enabled !== false;
     form.querySelector('[name="officialShoutout"]').checked = row.officialShoutout !== false;
     form.querySelector('[name="videoShoutout"]').checked = row.videoShoutout !== false;
     form.querySelector('[name="note"]').value = row.note || '';
+    markDirty();
     form.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   async function testChat(login){
     const row = state.streamers.find(item => String(item.login || '').toLowerCase() === String(login || '').toLowerCase());
-    const clean = String(row?.login || login || '').trim().replace(/^@+/, '').toLowerCase();
-    const display = String(row?.displayName || clean || '').trim();
-    if (!clean) return;
-    const url = `${API.testChat}?login=${encodeURIComponent(clean)}&displayName=${encodeURIComponent(display)}`;
-    await doAction(url, {}, `Test-Chat für @${clean} gesendet.`);
+    const displayName = row?.displayName || row?.login || login;
+    await doAction(`${API.testChat}?login=${encodeURIComponent(login)}&displayName=${encodeURIComponent(displayName)}`, {}, `Test-Chat für @${login} ausgelöst.`);
   }
 
   function renderHero(){
     const s = settings();
     const ss = streamStatus();
-    const display = state.queue?.displayQueue || {};
-    const official = state.queue?.officialQueue || {};
+    const q = state.queue || {};
+    const display = q.displayQueue || {};
+    const official = q.officialQueue || {};
+    const sg = s.sceneGate || {};
     return `
       <div class="auto-so-hero glass">
         <div>
-          <div class="auto-so-kicker">Auto-Shoutout / Dashboard</div>
+          <div class="auto-so-kicker">Shoutout-System / Auto-Shoutouts</div>
           <h2>Auto-Shoutouts</h2>
-          <p>Streamer-Liste aus der Datenbank verwalten, Live-Status kontrollieren und Test-Trigger auslösen.</p>
+          <p>Automatische Shoutouts für konfigurierte Streamer im Chat. Nutzt DisplayQueue, Video-Shoutout und OfficialQueue des bestehenden Shoutout-Systems.</p>
         </div>
         <div class="auto-so-hero-grid">
-          <div class="auto-so-metric"><small>Auto-SO</small><strong>${s.enabled ? 'AKTIV' : 'AUS'}</strong><span>${boolBadge(s.enabled)}</span></div>
-          <div class="auto-so-metric"><small>Live-Gate</small><strong>${s.onlyWhenLive ? 'aktiv' : 'aus'}</strong><span>${s.onlyWhenLive ? 'blockiert offline' : 'nur Anzeige'}</span></div>
-          <div class="auto-so-metric"><small>Start-Szene</small><strong>${s.sceneGate?.active ? 'SPERRE' : 'frei'}</strong><span>${esc(s.sceneGate?.currentScene || '-')}</span></div>
-          <div class="auto-so-metric"><small>Stream</small><strong>${ss.live ? 'LIVE' : (ss.statusKnown === false ? 'UNBEKANNT' : 'OFFLINE')}</strong><span>${esc(ss.upstreamSource || ss.source || '-')} · ${ss.stale ? 'stale' : 'frisch'}</span></div>
-          <div class="auto-so-metric"><small>Streamer</small><strong>${esc(s.configuredStreamerCount || state.streamers.length || 0)}</strong><span>${statusBadge(s.configSource || '-')}</span></div>
-          <div class="auto-so-metric"><small>Display offen</small><strong>${esc(display.pending ?? 0)}</strong><span>${display.cooldownRunning ? fmtMs(display.cooldownRemainingMs) : 'bereit'}</span></div>
-          <div class="auto-so-metric"><small>Official offen</small><strong>${esc(official.pending ?? 0)}</strong><span>${official.lastError ? 'Fehler vorhanden' : 'bereit'}</span></div>
+          <div class="auto-so-metric"><small>Auto-SO</small><strong>${s.enabled ? 'AN' : 'AUS'}</strong><span>${statusBadge(s.configSource || '-')}</span></div>
+          <div class="auto-so-metric"><small>Streamer</small><strong>${esc(s.configuredStreamerCount || state.streamers.length || 0)}</strong><span>DB-Liste</span></div>
+          <div class="auto-so-metric"><small>Display offen</small><strong>${esc(display.pending ?? 0)}</strong><span>${display.cooldownRunning ? `Cooldown ${fmtMs(display.cooldownRemainingMs)}` : 'bereit'}</span></div>
+          <div class="auto-so-metric"><small>Official offen</small><strong>${esc(official.pending ?? 0)}</strong><span>${official.workerStarted ? 'Worker aktiv' : '-'}</span></div>
+          <div class="auto-so-metric"><small>Start-Sperre</small><strong>${sg.active ? 'AKTIV' : 'frei'}</strong><span>${esc(sg.currentScene || '-')}</span></div>
+          <div class="auto-so-metric"><small>Stream</small><strong>${ss.live ? 'LIVE' : (ss.statusKnown === false ? 'UNKLAR' : 'OFFLINE')}</strong><span>${esc(ss.upstreamSource || ss.source || '-')}</span></div>
         </div>
       </div>
     `;
@@ -282,8 +305,8 @@ window.AutoShoutoutModule = (function(){
     const m = s.messages || {};
     const sg = s.sceneGate || {};
     return `
-      <div class="auto-so-card">
-        <div class="auto-so-card-head"><div><h3>Globale Auto-SO-Einstellungen</h3><p>DB-Settings, Chatmeldungen und Start-Szene-Sperre. Live-Gate bleibt getrennt davon.</p></div></div>
+      <div class="auto-so-card auto-so-wide">
+        <div class="auto-so-card-head"><div><h3>Auto-SO Einstellungen</h3><p>DB-basierte Settings. Auto-Refresh pausiert, sobald du hier etwas bearbeitest.</p></div></div>
         <form data-auto-so-settings-form class="auto-so-settings-grid">
           <label class="auto-so-check"><input type="checkbox" name="enabled" ${s.enabled ? 'checked' : ''}> Auto-Shoutout aktiv</label>
           <label class="auto-so-check"><input type="checkbox" name="onlyWhenLive" ${s.onlyWhenLive ? 'checked' : ''}> Nur wenn Live</label>
@@ -302,7 +325,6 @@ window.AutoShoutoutModule = (function(){
           <label class="auto-so-wide"><span>Bereits Shouti erhalten</span><input type="text" name="msgAlreadyReceived" value="${esc(m.alreadyReceived || '')}"></label>
           <label class="auto-so-wide"><span>Cooldown-Meldung</span><input type="text" name="msgCooldown" value="${esc(m.cooldown || '')}"></label>
           <label class="auto-so-wide"><span>Wartet wegen Start-Szene</span><input type="text" name="msgWaitingStartScene" value="${esc(m.waitingStartScene || '')}"></label>
-          <input type="hidden" name="queuedMessage" value="${esc(m.queued || s.queuedMessage || '')}">
           <div class="auto-so-form-actions"><button type="button" data-auto-so-save-settings>Speichern</button></div>
         </form>
       </div>
@@ -329,7 +351,7 @@ window.AutoShoutoutModule = (function(){
     const rows = state.streamers || [];
     return `
       <div class="auto-so-card auto-so-wide">
-        <div class="auto-so-card-head"><div><h3>Konfigurierte Streamer</h3><p>Schreibt einer dieser Streamer im Chat, wird ein Auto-SO ausgelöst, sofern Cooldowns und Limits passen.</p></div><div>${esc(rows.length)} Einträge</div></div>
+        <div class="auto-so-card-head"><div><h3>Konfigurierte Streamer</h3><p>Schreibt einer dieser Streamer im Chat, wird ein Auto-SO ausgelöst, sofern Cooldowns, Limits und Start-Szene-Sperre passen.</p></div><div>${esc(rows.length)} Einträge</div></div>
         <div class="auto-so-table-wrap">
           <table class="auto-so-table">
             <thead><tr><th>Login</th><th>Status</th><th>Video</th><th>Official</th><th>Notiz</th><th>Aktualisiert</th><th>Aktion</th></tr></thead>
@@ -395,11 +417,12 @@ window.AutoShoutoutModule = (function(){
     const sg = settings().sceneGate || {};
     return `
       <div class="auto-so-card">
-        <div class="auto-so-card-head"><div><h3>Status / Start-Szene-Sperre</h3><p>Start-Szene blockiert Shoutouts unabhängig vom Live-Gate.</p></div></div>
+        <div class="auto-so-card-head"><div><h3>Status / Start-Szene-Sperre</h3><p>Start-Szene blockiert Shoutouts unabhängig vom Live-Gate. Nach dem Szenenwechsel laufen die Queues mit normalen Wartezeiten weiter.</p></div></div>
         <div class="auto-so-facts">
           <div><small>Shoutout-Sperre</small><strong>${sg.active ? statusBadge('AKTIV') : statusBadge('frei')}</strong><span>${esc(sg.reason || '')}</span></div>
           <div><small>Aktuelle Szene</small><strong>${esc(sg.currentScene || '-')}</strong><span>${sg.enabled === false ? 'Gate aus' : 'Gate an'}</span></div>
           <div><small>Start-Szenen</small><strong>${esc(Array.isArray(sg.startSceneNames) ? sg.startSceneNames.length : 0)}</strong><span>${esc(Array.isArray(sg.startSceneNames) ? sg.startSceneNames.join(', ') : '')}</span></div>
+          <div><small>Retry</small><strong>${fmtMs(sg.retryMs || 15000)}</strong><span>kein Parallelstart</span></div>
           <div><small>Status</small><strong>${ss.live ? statusBadge('LIVE') : statusBadge(ss.statusKnown === false ? 'UNBEKANNT' : 'OFFLINE')}</strong></div>
           <div><small>Quelle</small><strong>${esc(ss.source || '-')}</strong><span>${esc(ss.upstreamSource || '')}</span></div>
           <div><small>Stale</small><strong>${boolBadge(ss.stale, 'stale', 'frisch')}</strong></div>
@@ -414,12 +437,12 @@ window.AutoShoutoutModule = (function(){
   }
 
   function render(){
-    root = document.getElementById('autoShoutoutModule');
+    root = resolveRoot();
     if (!root) return;
     root.innerHTML = `
       <div class="auto-so-shell">
         <div class="auto-so-toolbar">
-          <div><strong>Auto-Shoutout Dashboard</strong><span>${state.loading ? 'lädt...' : 'bereit'}</span></div>
+          <div><strong>Auto-Shoutouts im Shoutout-System</strong><span>${state.loading ? 'lädt...' : (isEditingForm() ? 'Bearbeitung aktiv – Auto-Refresh pausiert' : 'bereit')}</span></div>
           <div class="auto-so-toolbar-actions">
             <label class="auto-so-check"><input type="checkbox" data-auto-so-auto-refresh ${state.autoRefresh ? 'checked' : ''}> Auto-Refresh</label>
             <button type="button" data-auto-so-refresh>Aktualisieren</button>
@@ -439,10 +462,66 @@ window.AutoShoutoutModule = (function(){
     `;
   }
 
+  function ensureShoutoutIntegration(){
+    const shout = shoutoutRoot();
+    if (!shout || shout.hidden === true) return;
+    const tabs = shout.querySelector('.shoutout-tabs');
+    if (!tabs) return;
+    let btn = tabs.querySelector('[data-auto-so-shoutout-tab]');
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.type = 'button';
+      btn.role = 'tab';
+      btn.className = 'shoutout-tab';
+      btn.dataset.autoSoShoutoutTab = '1';
+      btn.textContent = 'Auto-Shoutouts';
+      tabs.appendChild(btn);
+    }
+    btn.classList.toggle('active', state.embeddedActive);
+    btn.setAttribute('aria-selected', state.embeddedActive ? 'true' : 'false');
+
+    let embed = embeddedRoot();
+    if (!embed) {
+      embed = document.createElement('div');
+      embed.id = 'shoutoutAutoEmbedded';
+      embed.className = 'shoutout-tab-panel auto-so-embedded';
+      tabs.insertAdjacentElement('afterend', embed);
+    }
+
+    const shell = tabs.parentElement;
+    if (shell) {
+      let cursor = tabs.nextElementSibling;
+      while (cursor) {
+        if (cursor.id !== 'shoutoutAutoEmbedded') cursor.hidden = state.embeddedActive;
+        cursor = cursor.nextElementSibling;
+      }
+    }
+    embed.hidden = !state.embeddedActive;
+    if (state.embeddedActive) {
+      root = embed;
+      if (!state.data && !state.loading) loadAll(true);
+      else render();
+    }
+  }
+
   function bind(){
     document.addEventListener('click', ev => {
       const target = ev.target;
       if (!target) return;
+
+      if (target.closest('[data-auto-so-shoutout-tab]')) {
+        state.embeddedActive = true;
+        clearDirty();
+        ensureShoutoutIntegration();
+        loadAll(true);
+        return;
+      }
+      if (target.closest('[data-shoutout-tab]')) {
+        state.embeddedActive = false;
+        clearDirty();
+        setTimeout(ensureShoutoutIntegration, 0);
+        return;
+      }
       if (target.closest('[data-auto-so-refresh]')) return loadAll(true);
       if (target.closest('[data-auto-so-save-settings]')) return saveSettings();
       if (target.closest('[data-auto-so-save-streamer]')) return saveStreamer();
@@ -456,11 +535,17 @@ window.AutoShoutoutModule = (function(){
       if (toggle) return toggleStreamer(toggle.dataset.autoSoToggle || '', toggle.dataset.enabledNext === '1');
     });
 
+    document.addEventListener('input', ev => {
+      if (ev.target?.closest?.('[data-auto-so-settings-form], [data-auto-so-streamer-form]')) markDirty();
+    });
+
     document.addEventListener('change', ev => {
       if (ev.target?.matches?.('[data-auto-so-auto-refresh]')) {
         state.autoRefresh = ev.target.checked === true;
         scheduleRefresh();
+        return;
       }
+      if (ev.target?.closest?.('[data-auto-so-settings-form], [data-auto-so-streamer-form]')) markDirty();
     });
 
     document.addEventListener('keydown', ev => {
@@ -471,16 +556,35 @@ window.AutoShoutoutModule = (function(){
     });
   }
 
+  function initObserver(){
+    const shout = shoutoutRoot();
+    if (!shout || observer) return;
+    observer = new MutationObserver(() => {
+      if (shoutoutVisible()) ensureShoutoutIntegration();
+    });
+    observer.observe(shout, { childList: true, subtree: true });
+  }
+
   function init(){
     registerDashboardModule();
-    root = document.getElementById('autoShoutoutModule');
-    if (root) render();
-    if (localStorage.getItem('cgn-dashboard-active-module') === 'auto_shoutout' && window.CGN?.setActiveModule) {
+    initObserver();
+    ensureShoutoutIntegration();
+    root = resolveRoot();
+    if (standaloneRoot()) render();
+    if (localStorage.getItem('cgn-dashboard-active-module') === 'auto_shoutout' && window.CGN?.setActiveModule && standaloneRoot()) {
       window.CGN.setActiveModule('auto_shoutout', { initial: true });
     }
   }
 
   window.addEventListener('cgn:module-show', ev => {
+    if (ev.detail?.module === 'shoutout') {
+      setTimeout(() => {
+        initObserver();
+        ensureShoutoutIntegration();
+        if (state.embeddedActive) loadAll(true);
+      }, 0);
+      return;
+    }
     if (ev.detail?.module === 'auto_shoutout') loadAll(true);
   });
 
@@ -488,5 +592,5 @@ window.AutoShoutoutModule = (function(){
   else init();
   bind();
 
-  return { init, loadAll, render };
+  return { init, loadAll, render, ensureShoutoutIntegration };
 })();
