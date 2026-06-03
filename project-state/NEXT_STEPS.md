@@ -3,7 +3,27 @@
 ## Direkt nächster Schritt
 
 ```text
-CAN-41.0 neuen Arbeitsblock bewusst auswählen.
+CAN-41.2 anwenden.
+```
+
+## Danach sinnvoll
+
+```text
+CAN-41.3 - Birthday Dashboard Read-only Diagnose/Sicherheits-Hinweis ergänzen
+```
+
+Möglicher Inhalt:
+
+```text
+- keine Backend-Änderung
+- produktive Birthday-Show-/Sound-/Upload-/Admin-Aktionen klarer markieren
+- GET-only Statusübersicht anzeigen
+- GET /show/queue vermeiden oder klar als nicht streng read-only markieren
+- keine POSTs
+- keine Show
+- kein Sound
+- kein Chat
+- kein Tagebuch
 ```
 
 ## Zuletzt abgeschlossen
@@ -17,22 +37,7 @@ CAN-37: Hug-System dokumentiert und vorhandener Diagnose-Tab erweitert; Sichttes
 CAN-38: Bus-Diagnose/EventBus dokumentiert und Read-only Summary ohne MutationObserver sichtbar geprüft.
 CAN-39: Overlay-Monitor dokumentiert und Sicherheits-Hinweis sichtbar geprüft.
 CAN-40: Bus-Diagnose-Unterseiten reduziert und Sichttest erfolgreich.
-```
-
-## Mögliche nächste Kandidaten
-
-```text
-1. Nächstes Community-/Runtime-Modul an Status-/Doku-Regeln anpassen.
-2. EventBus-/Modul-Heartbeat-Konzept weiter planen.
-3. Bus-Diagnose Unterseiten weiter glätten, falls im Alltag noch etwas stört.
-4. Overlay-Monitor produktive Aktionen später sauber hinter Rollen/Rechte/Confirm/Logging planen.
-5. Langfristigen DB-Core-Treiberwechsel separat planen, aber nicht direkt umsetzen.
-```
-
-## Empfehlung
-
-```text
-CAN-41.0: Nächsten kleinen, sicheren Arbeitsblock bewusst auswählen.
+CAN-41.1: Birthday-/Geburtstags-Modul read-only analysiert.
 ```
 
 ## Weiterhin nicht machen ohne separaten Go-Schritt
@@ -57,4 +62,5 @@ Keine Message-Rotator-Start-/Stop-/Tick-/Next-/Manual-/Reload-/Live-Status-/Admi
 Keine Hug-/Rehug-/HugAll-/on-off-/Stats-/Top-/Reload-/Text-Store-Reload-/Admin-POST-Tests ohne eigenen Go-Schritt.
 Keine Bus-Diagnose-Recovery-/OBS-/Refresh-/Queue-/Sound-/DB-/Chat-Aktion ohne eigenen Go-Schritt.
 Keine Overlay-Monitor-OBS-Reparatur-/Source-Refresh-/Show-Hide-Toggle-Cycle-Aktion ohne eigenen Go-Schritt.
+Keine Birthday-Show-/Sound-/Chat-/Tagebuch-/Upload-/Import-/Admin-POST-Aktion ohne eigenen Go-Schritt.
 ```

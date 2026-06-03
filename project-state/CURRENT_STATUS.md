@@ -1,87 +1,126 @@
 # CURRENT_STATUS
 
-## Stand: CAN-40.3 abgeschlossen
+## Stand: CAN-41.2 vorbereitet
 
-CAN-40.3 dokumentiert den erfolgreichen Sichttest der reduzierten Bus-Diagnose-Hinweise nach CAN-40.2b.
+CAN-41.2 aktualisiert die Birthday-Modul-Doku und hält Read-only-/Write-Regeln fest.
 
 ## Aktueller Arbeitsbereich
 
 ```text
-CAN-40: Bus-Diagnose Unterseiten read-only glätten
+CAN-41: Birthday-/Geburtstags-Modul read-only analysieren und dokumentieren
 ```
 
-## Bestätigter Sichttest
+## Ergebnis CAN-41.1 Analyse
+
+Aktives Backend:
+
+```text
+backend/modules/birthday.js
+```
+
+Aktueller Modulstand:
+
+```text
+MODULE_NAME = birthday
+MODULE_VERSION = 0.6.0
+SCHEMA_VERSION = 7
+API_PREFIX = /api/birthday
+SETTINGS_TABLE = birthday_settings
+TEXTS_MODULE = birthday
+```
 
 Dashboard:
 
 ```text
-Dashboard > Bus-Diagnose
+htdocs/dashboard/modules/birthday.js
+htdocs/dashboard/modules/birthday.css
 ```
 
-Bestätigter Zustand:
+Alte Doku war veraltet:
 
 ```text
-Übersicht: großer Read-only/Safety-Hinweis weiterhin sichtbar.
-Recovery: nur kleiner Hinweis sichtbar.
-Bus-Matrix: Sound-Bus Dry-Run als manuell markiert.
-Issues: kein großer Hinweis.
-Config: kein großer Hinweis.
-Rohdaten: kein großer Hinweis.
-Keine Recovery ausgelöst.
-Kein Sound-Dry-Run ausgelöst.
-Keine OBS-/Sound-/Queue-/DB-/Chat-Aktion erkennbar.
+docs/modules/birthday.md
 ```
 
-## Screenshot-Prüfung
+Die alte Doku sagte noch, dass keine klare Versionskennung erkannt wurde. Das stimmt nicht mehr: `MODULE_VERSION = 0.6.0` ist vorhanden.
 
-Für Rohdaten wurde bestätigt:
+## Änderung CAN-41.2
+
+Aktualisiert:
 
 ```text
-Tab: Rohdaten
-Komplette Bus-Diagnose sichtbar.
-Bus-Config Rohdaten sichtbar.
-Kein großer Safety-Hinweis mehr sichtbar.
+docs/modules/birthday.md
 ```
 
-## Ergebnis
+Darin dokumentiert:
 
 ```text
-CAN-40.2b Ziel erfüllt.
-Großer Hinweis nur noch auf Übersicht.
-Unterseiten sind weniger überladen.
-Recovery und Bus-Matrix behalten nur gezielte Hinweise.
-Issues/Config/Rohdaten bleiben sauber und frei von großem Hinweis.
-Keine produktive Aktion ausgelöst.
-Keine Funktionalität entfernt.
+Modulzweck
+Moduldateien
+MODULE_META / Version / Routenprefix
+Konfiguration
+DB / Schema
+Textsystem
+automatische Gratulation
+manuelle Geburtstagsshow
+Medien / Upload / Import
+Backend-Routen
+Dashboard-Routen und produktive Dashboard-Funktionen
+Read-only geeignete Diagnose
+Sicherheitsregeln für spätere Arbeiten
 ```
 
-## Produktive Aktionen: nicht genutzt
+## Wichtigste Sicherheitsentscheidung
+
+Read-only geeignet:
 
 ```text
-Keine Recovery.
-Keine OBS-Reparatur.
-Kein Source-Refresh.
-Keine automatische Recovery.
-Keine Queue-Aktion.
-Kein Sound-Bus Dry-Run.
-Keine produktive Sound-Bus-Aktion.
-Keine DB-Migration.
-Keine API-POSTs.
-Keine Twitch-/Chat-/Discord-Nachricht.
+GET /api/birthday/status
+GET /api/birthday/today
+GET /api/birthday/show/state
+GET /api/birthday/admin/users?includeInactive=true
+GET /api/birthday/admin/settings
+GET /api/birthday/admin/texts
+GET /api/birthday/admin/show/assets
+GET /api/birthday/admin/show/parties
 ```
 
-## Nicht geändert in CAN-40.3
+Vorsicht:
+
+```text
+GET /api/birthday/show/queue
+```
+
+weil intern stale Queue-Cleanup passieren kann.
+
+Nicht ohne eigenen Go-Schritt:
+
+```text
+POST /api/birthday/*
+```
+
+## Nicht geändert
 
 ```text
 Keine Codeänderung.
-Keine Backend-Dateien.
-Keine Dashboard-Runtime-Dateien.
-Keine API-Routen.
+Keine Geburtstags-Show.
+Kein Intro/Video/Song.
+Keine Sound-Bundle-Aktion.
+Keine Chat-/Discord-Nachricht.
+Kein Tagebuch-Eintrag.
+Keine User gespeichert/gelöscht.
+Keine Settings/Textvarianten gespeichert.
+Kein Media-Import/Upload/Recheck.
+Kein Reload.
+Keine DB-Migration.
+Keine Admin-POSTs.
+Keine Dashboard-Testbuttons ausgelöst.
 Keine Funktionalität entfernt.
 ```
 
 ## Nächster Schritt
 
 ```text
-CAN-41.0 neuen Arbeitsblock bewusst auswählen.
+CAN-41.2 anwenden.
+Danach optional CAN-41.3 Birthday Dashboard Read-only Diagnose/Sicherheits-Hinweis ergänzen.
 ```

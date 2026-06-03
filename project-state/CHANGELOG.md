@@ -1,37 +1,43 @@
 # CHANGELOG
 
-## CAN-40.3
+## CAN-41.2
 
-- Erfolgreiche Sichtprüfung der reduzierten Bus-Diagnose-Hinweise nach CAN-40.2b dokumentiert.
-- Bestätigt:
-  - Übersicht: großer Read-only/Safety-Hinweis weiterhin sichtbar.
-  - Recovery: nur kleiner Hinweis sichtbar.
-  - Bus-Matrix: Sound-Bus Dry-Run als manuell markiert.
-  - Issues: kein großer Hinweis.
-  - Config: kein großer Hinweis.
-  - Rohdaten: kein großer Hinweis.
-  - Keine Recovery.
-  - Kein Sound-Dry-Run.
-  - Keine OBS-/Sound-/Queue-/DB-/Chat-Aktion.
-- Keine Codeänderung in CAN-40.3.
+- Birthday-Modul-Doku aktualisiert:
+  - `docs/modules/birthday.md`
+- Dokumentiert:
+  - Modulzweck
+  - Moduldateien
+  - MODULE_META / Version / Routenprefix
+  - Konfiguration
+  - DB / Schema
+  - Textsystem
+  - automatische Gratulation
+  - manuelle Geburtstagsshow
+  - Medien / Upload / Import
+  - Backend-Routen
+  - Dashboard-Routen und produktive Dashboard-Funktionen
+  - Read-only geeignete Diagnose
+  - Sicherheitsregeln für spätere Arbeiten
+- Keine Codeänderung.
+- Keine Geburtstags-Show.
+- Kein Intro/Video/Song.
+- Keine Sound-Bundle-Aktion.
+- Keine Chat-/Discord-Nachricht.
+- Kein Tagebuch-Eintrag.
+- Keine User gespeichert/gelöscht.
+- Keine Settings/Textvarianten gespeichert.
+- Kein Media-Import/Upload/Recheck.
+- Kein Reload.
+- Keine DB-Migration.
+- Keine Admin-POSTs.
+- Keine Dashboard-Testbuttons ausgelöst.
 
-## CAN-40.2b
+## CAN-41.1
 
-- Bus-Diagnose Sicherheits-Hinweise reduziert.
-- Großer Hinweis bleibt nur auf Übersicht.
-- Recovery bekommt nur kleinen Hinweis.
-- Bus-Matrix markiert Sound-Bus Dry-Run als manuell.
-- Issues/Config/Rohdaten bekommen keinen großen Hinweis mehr.
-- Keine Backend-Änderung.
-- Keine Änderung an `bus_diagnostics.js`.
-- Keine API-Calls.
-- Keine API-POSTs.
-- Keine produktive Aktion.
-
-## CAN-40.2
-
-- Bus-Diagnose-Unterseiten Sicherheits-/Read-only-Hinweise vorbereitet.
-
-## CAN-40.1
-
-- Bus-Diagnose-Unterseiten read-only analysiert.
+- Birthday-/Geburtstags-Modul read-only analysiert.
+- Ergebnis:
+  - Backend: `backend/modules/birthday.js`
+  - Dashboard: `htdocs/dashboard/modules/birthday.js`
+  - Modul-Version: 0.6.0
+  - Schema-Version: 7
+  - Alte Doku war veraltet und wird mit CAN-41.2 aktualisiert.
