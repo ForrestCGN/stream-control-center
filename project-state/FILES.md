@@ -1,5 +1,21 @@
 # Files
 
+## CAN-43.7 neu/geändert
+
+### Handoff / Doku
+
+- `docs/current/CAN-43.7_todo_diagnostics_review.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN43_7.md`
+- `docs/modules/TODO.md`
+
+### Project State
+
+- `project-state/CURRENT_STATUS.md`
+- `project-state/NEXT_STEPS.md`
+- `project-state/TODO.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+
 ## CAN-43.6 neu/geändert
 
 ### Handoff / Doku
@@ -16,23 +32,11 @@
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 
-## CAN-43.5 neu/geändert
-
-### Handoff / Doku
-
-- `docs/current/CAN-43.5_message_rotator_diagnostics_review.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN43_5.md`
-- `docs/modules/MESSAGE_ROTATOR.md`
-
-### Project State
-
-- `project-state/CURRENT_STATUS.md`
-- `project-state/NEXT_STEPS.md`
-- `project-state/TODO.md`
-- `project-state/CHANGELOG.md`
-- `project-state/FILES.md`
-
 ## Relevante bestehende Dateien
+
+### Todo
+
+- `backend/modules/todo.js`
 
 ### Tagebuch
 
@@ -70,4 +74,4 @@
 
 - `docs/modules/DASHBOARD_EXTENSIONS.md`
 - `docs/modules/DIAGNOSTICS_NEW_MODULE_RULES.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN43_5.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN43_6.md`

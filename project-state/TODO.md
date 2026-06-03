@@ -1,13 +1,13 @@
 # TODO
 
-## CAN-43.6
+## CAN-43.7
 
-- [ ] CAN-43.6 ZIP entpacken.
-- [ ] Optional `node -c backend\modules\tagebuch.js` ausführen.
-- [ ] `stepdone.cmd "CAN-43.6 Tagebuch diagnostics review"` ausführen.
+- [ ] CAN-43.7 ZIP entpacken.
+- [ ] Optional `node -c backend\modules\todo.js` ausführen.
+- [ ] `stepdone.cmd "CAN-43.7 Todo diagnostics review"` ausführen.
 - [ ] Doku committen/pushen.
 
-## CAN-43.7 nächste Fachrunde
+## CAN-43.8 nächste Fachrunde
 
 - [ ] Konkretes Modul/Thema auswählen.
 - [ ] Vor Umsetzung echten Dateistand prüfen.

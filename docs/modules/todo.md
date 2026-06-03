@@ -1,79 +1,122 @@
-# Todo-Modul
+# Todo Modul
 
-## Stand
+## Kurzbeschreibung
 
-```text
-CAN-42.6
-```
+Das Modul `todo` stellt eine Todo-API mit Discord-Posting bereit.
 
-## Modul
+Es verwaltet:
 
-```text
-Datei: backend/modules/todo.js
-Modulname: todo
-MODULE_VERSION: 0.1.0
-SCHEMA_VERSION: 1
-```
+- Todo-Einträge für konfigurierte Zielpersonen
+- Discord-Channel-Zuordnung
+- User-/Tagesstatistiken
+- DB-basierte Settings
+- DB-basierte Textvarianten
+- Legacy-Routen für bestehende Discord-/Streamer.bot-Integrationen
 
-## Zweck
+## Modulstand
 
-Todo API, Discord-Posting und Text-/Settings-Verwaltung.
+- Backend-Datei: `backend/modules/todo.js`
+- Modulname: `todo`
+- Modulversion: `0.1.0`
+- Schema-Version: `1`
+- Kategorie: `content`
+- Hauptprefix: `/api/todo`
+- Legacy-Prefix: `/discord/todo`
 
-## Diagnose-Standard
+## Diagnose-Status CAN-43.7
 
-Seit CAN-42.6 liefert `GET /api/todo/status` zusätzlich einen standardisierten `diagnostics`-Block.
+CAN-43.7 hat das Modul nach dem neuen Diagnose-/Registry-Standard geprüft.
 
-Dieser Block ist für `Admin > Diagnose` vorgesehen und ergänzt bestehende Statusfelder nur. Bestehende Felder bleiben erhalten.
+Ergebnis:
 
-## Diagnostics-Felder
+- Statusroute vorhanden.
+- `diagnostics`-Block vorhanden.
+- Routenübersicht vorhanden.
+- Integration-Check vorhanden.
+- Registry-Coverage sauber.
+- Live-Status sauber.
+- 4/4 Channels konfiguriert.
+- Keine Codeänderung nötig.
 
-```text
-ok
-health
-module
-version
-schemaVersion
-schemaReady
-configSource
-textSource
-database
-counts
-warnings
-errors
-lastError
-```
+## Wichtige Read-only Routen
 
-## Counts
+- `GET /api/todo/status`
+- `GET /api/todo/config`
+- `GET /api/todo/settings`
+- `GET /api/todo/routes`
+- `GET /api/todo/integration-check`
+- `GET /api/todo/stats`
+- `GET /api/todo/stats/top`
+- `GET /api/todo/stats/today`
 
-```text
-targets
-channelsConfigured
-channelsTotal
-missingChannels
-userStats
-dailyStats
-settings
-textVariants
-legacyTexts
-```
+## Produktive Routen
 
-## Schreibende Aktionen
+Diese Routen sind produktiv und wurden im CAN-43.7 Review nicht ausgelöst:
 
-Folgende Aktionen bleiben produktiv und dürfen nicht durch Diagnose ausgelöst werden:
+- `GET/POST /api/todo/add`
+- `GET/POST /api/todo/reload`
+- `POST /api/todo/admin/settings`
+- `POST /api/todo/admin/texts`
+- `GET/POST /discord/todo`
 
-```text
-/api/todo/add
-/discord/todo
-/api/todo/reload
-/api/todo/admin/settings
-/api/todo/admin/texts
-```
-
-## Regeln
+## Bestätigte Live-Werte CAN-43.7
 
 ```text
-Keine Funktionalität entfernen.
-Keine DB neu bauen oder überschreiben.
-Diagnose zentral unter Admin > Diagnose.
-Todo-Modul-Seite bleibt Bedienseite.
+ok=True
+module=todo
+version=2
+schemaVersion=1
+schemaReady=True
+databasePath=D:\Streaming\stramAssets\data\sqlite\app.sqlite
+discordChannelsPath=D:\Streaming\stramAssets\config\discord_channels.json
+messagesPath=D:\Streaming\stramAssets\config\messages\todo.json
 ```
+
+```text
+diagnostics:
+ok=True
+health=ok
+module=todo
+version=0.1.0
+schemaVersion=1
+schemaReady=True
+lastError=
+```
+
+```text
+counts:
+targets=4
+channelsConfigured=4
+channelsTotal=4
+missingChannels=0
+userStats=10
+dailyStats=27
+settings=5
+textVariants=13
+legacyTexts=13
+```
+
+```text
+integration-check:
+ok=True
+healthy=True
+schemaVersion=1
+warnings leer
+errors leer
+```
+
+## Targets
+
+Aktuell bestätigt:
+
+- `forrest`
+- `engel`
+- `roxxy`
+- `gecko`
+
+## Hinweise
+
+- Die produktive SQLite-Datenbank bleibt `D:\Streaming\stramAssets\data\sqlite\app.sqlite`.
+- Keine Funktionalität entfernen.
+- Produktive Add-/Reload-/Admin-Routen nur bewusst und gezielt testen.
+- Doku/project-state bei Änderungen aktualisieren.

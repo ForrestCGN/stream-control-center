@@ -18,23 +18,24 @@ CAN-43.5 hat das Modul `message_rotator` als viertes CAN-43-Fachmodul nach neuem
 
 CAN-43.6 hat das Modul `tagebuch` als fünftes CAN-43-Fachmodul nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
 
-## CAN-43.6 Ergebnis
+CAN-43.7 hat das Modul `todo` als sechstes CAN-43-Fachmodul nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
 
-`tagebuch` ist sauber.
+## CAN-43.7 Ergebnis
+
+`todo` ist sauber.
 
 - Repo/Branch: `dev`
-- HEAD: `d196fee2 CAN-43.5 Message-Rotator diagnostics review`
+- HEAD: `976909e5 CAN-43.6 Tagebuch diagnostics review`
 - Lokaler Git-Status: sauber
-- Live-Modul: `tagebuch`
+- Live-Modul: `todo`
 - Modulversion: `0.1.0`
-- Statusroute: `GET /api/tagebuch/status`
-- Routenübersicht: `GET /api/tagebuch/routes`
-- Integration-Check: `GET /api/tagebuch/integration-check`
-- Schema-Version: `5`
+- Statusroute: `GET /api/todo/status`
+- Routenübersicht: `GET /api/todo/routes`
+- Integration-Check: `GET /api/todo/integration-check`
+- Schema-Version: `1`
 - Diagnostics: `ok=True`, `health=ok`, `schemaReady=True`
 - Integration-Check: `healthy=True`, keine Warnings, keine Errors
-- Webhook: vorhanden
-- Active Stream: `False`
+- Channels: 4/4 konfiguriert
 - Coverage: sauber
 - Codeänderung: keine
 - Modulversion erhöht: nein
@@ -62,13 +63,6 @@ Letzter bestätigter Coverage-Stand:
 ## Cleanup-Stand
 
 Alte nicht mehr geladene Dashboard-Diagnose-Dateien sind aus Repo und Live entfernt.
-
-Live-/Repo-Check war sauber:
-
-- lokale Altdateien: 0
-- lokale Alt-Referenzen: 0
-- Live-Altdateien: 0
-- Live-Alt-Referenzen: 0
 
 ## Dokumentierte Extensions
 
