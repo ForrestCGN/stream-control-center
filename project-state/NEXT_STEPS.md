@@ -1,47 +1,45 @@
 # Next Steps
 
-## Direkt nach CAN-43.3
+## Direkt nach CAN-43.4
 
-1. CAN-43.3 ZIP nach `D:\Git\stream-control-center` entpacken.
+1. CAN-43.4 ZIP nach `D:\Git\stream-control-center` entpacken.
 2. Optional prüfen:
 
 ```powershell
-node -c backend\modules\hug.js
+node -c backend\modules\birthday.js
 ```
 
 3. Step abschließen:
 
 ```powershell
-.\stepdone.cmd "CAN-43.3 Hug diagnostics review"
+.\stepdone.cmd "CAN-43.4 Birthday diagnostics review"
 ```
 
 4. Doku committen/pushen.
 
 ## Nächster fachlicher Schritt
 
-CAN-43.4: Ein weiteres Modul nach neuem Diagnose-/Registry-Standard prüfen.
+CAN-43.5: Ein weiteres Modul nach neuem Diagnose-/Registry-Standard prüfen.
 
 Empfohlener Kandidat:
 
-1. `birthday`
+1. `message_rotator`
 
 Grund:
 
-- fachlich wichtiges Community-Modul
-- Diagnose-/Safety-Historie vorhanden
-- nach CAN-42 Cleanup guter nächster Kandidat für denselben Prüfstandard
+- systemnahes Modul
+- bewusst behaltene Dashboard-Diagnose-Extension vorhanden
+- guter nächster Kandidat für denselben Prüfstandard
 
 Alternative Kandidaten:
 
-1. `message_rotator`
-2. `tagebuch`
-3. `todo`
-4. `vip_sound_overlay`
+1. `tagebuch`
+2. `todo`
+3. `vip_sound_overlay`
 
 ## Pflicht bei jedem Modul
 
 - echten Dateistand prüfen
-- Repo/GitHub/dev und Live-System bewusst abgleichen
 - Statusroute prüfen
 - `diagnostics`-Block prüfen
 - Registry-Eintrag prüfen
