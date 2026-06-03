@@ -10,7 +10,11 @@
 
 ## CAN-39
 
-- [ ] CAN-39.0 neuen Arbeitsblock bewusst auswählen.
+- [x] CAN-39.0 neuen Arbeitsblock bewusst auswählen.
+- [x] CAN-39.1 Overlay-Monitor / Overlay-Dashboard read-only analysieren.
+- [ ] CAN-39.2 Overlay-Monitor Doku und Read-only/Write-Regeln ergänzen.
+- [ ] CAN-39.3 optional: Overlay-Monitor Übersicht optisch vereinfachen / produktive Aktionen klarer markieren.
+- [ ] CAN-39.4 optional: Testergebnis dokumentieren.
 
 ## Offene/zu beobachtende Punkte
 
@@ -18,5 +22,5 @@
 - [ ] Optional: Overlay-Monitor Dashboard-Details optisch weiter vereinfachen.
 - [ ] Optional: Bus-Diagnose Unterseiten weiter glätten.
 - [ ] Optional: EventBus-/Modul-Heartbeat-Konzept weiter planen.
-- [ ] Bus-Diagnose: keine Recovery-/OBS-/Refresh-/Queue-/Sound-/DB-/Chat-Aktion ohne eigenen Go-Schritt.
+- [ ] Overlay-Monitor: keine OBS-Reparatur-/Source-Refresh-/Show-Hide-Toggle-Cycle-Aktion ohne eigenen Go-Schritt.
 - [ ] Keine OBS-Reparatur / kein Source-Refresh / keine automatische Recovery ohne eigene Planung.
