@@ -2,7 +2,7 @@
 window.DiagnosticsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = '0.1.1-can42-21d';
+  const MODULE_VERSION = '0.1.2-can42-23';
   const READONLY_ENDPOINTS = [
     { key:'birthday', label:'Birthday', group:'community', status:'/api/birthday/status', today:'/api/birthday/today', showState:'/api/birthday/show/state' },
     { key:'todo', label:'Todo', group:'community', status:'/api/todo/status', integration:'/api/todo/integration-check' },

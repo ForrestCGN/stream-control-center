@@ -1,7 +1,7 @@
 window.DiagnosticsGenericDetails = (function(){
   'use strict';
 
-  const MODULE_VERSION = '0.1.6-can42-21d';
+  const MODULE_VERSION = '0.1.7-can42-23';
   const ENDPOINTS = {
     birthday: '/api/birthday/status',
     todo: '/api/todo/status',
@@ -19,8 +19,6 @@ window.DiagnosticsGenericDetails = (function(){
     obs: '/api/obs/status'
   };
 
-  const DYNAMIC_ENTRIES = {};
-  const BASE_SELECT_ENTRIES = [];
 
   let pending = false;
   let lastPatchAt = 0;
@@ -177,13 +175,6 @@ window.DiagnosticsGenericDetails = (function(){
     return value && value !== 'overview' ? value : '';
   }
 
-  function ensureRegistryOptions(root) {
-    return root;
-  }
-
-  function readAllEntriesForSelect() {
-    return [];
-  }
 
   function metricArticles(root) {
     return Array.from(root.querySelectorAll('.diag-metric'));
@@ -343,10 +334,6 @@ window.DiagnosticsGenericDetails = (function(){
   }
 
 
-  function patchOverviewDynamicEntries(root) {
-    return root;
-  }
-
   async function fetchStatus(key) {
     const url = ENDPOINTS[key];
     if (!url) return null;
@@ -366,7 +353,6 @@ window.DiagnosticsGenericDetails = (function(){
     if (!root || root.hidden) return;
     const key = selectedKey();
     if (!key) {
-      patchOverviewDynamicEntries(root);
       try {
         const status = await fetchStatus('vip');
         const data = unwrap(status || {});
