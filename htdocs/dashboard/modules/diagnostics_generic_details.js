@@ -1,7 +1,7 @@
 window.DiagnosticsGenericDetails = (function(){
   'use strict';
 
-  const MODULE_VERSION = '0.1.0-can42-12d';
+  const MODULE_VERSION = '0.1.1-can42-14';
   const ENDPOINTS = {
     birthday: '/api/birthday/status',
     todo: '/api/todo/status',
@@ -13,7 +13,7 @@ window.DiagnosticsGenericDetails = (function(){
     overlay_monitor: '/api/overlay-monitor/status',
     sound_system: '/api/sound/status',
     media: '/api/media/status',
-    vip: '/api/vip/status',
+    vip: '/api/vip-sound/status',
     alerts: '/api/alerts/status'
   };
 
@@ -81,6 +81,59 @@ window.DiagnosticsGenericDetails = (function(){
     const next = scalarValue(value) || '-';
     if (strong.textContent !== next) strong.textContent = next;
     return true;
+  }
+
+  function setDetailHealthOk(root) {
+    const pills = Array.from(root.querySelectorAll('.diagnostics-detail-pills .diag-pill'));
+    if (pills[0]) {
+      pills[0].classList.remove('warn');
+      pills[0].classList.add('ok');
+      pills[0].textContent = 'OK';
+    }
+    if (pills[1]) {
+      pills[1].classList.remove('warn');
+      pills[1].classList.add('ok');
+      pills[1].textContent = 'GET Status erreichbar';
+    }
+  }
+
+  function patchOverviewVip(status, diagnostics) {
+    const root = document.getElementById('diagnosticsModule');
+    if (!root || root.hidden) return;
+    const data = unwrap(status || {});
+    const version = diagnostics?.version || data.moduleVersion || data.version || '-';
+    const schema = diagnostics?.schemaVersion || data.schemaVersion || data.db?.schemaVersion || '-';
+    const endpoint = ENDPOINTS.vip;
+
+    const healthRow = root.querySelector('[data-diagnostics-pick="vip"]');
+    if (healthRow) {
+      healthRow.classList.remove('health-error', 'health-warn', 'health-unknown');
+      healthRow.classList.add('health-ok');
+      const icon = healthRow.querySelector('.health-icon');
+      const state = healthRow.querySelector('.health-state');
+      const reason = healthRow.querySelector('small');
+      if (icon) icon.textContent = '🟢';
+      if (state) state.textContent = 'OK';
+      if (reason) reason.textContent = 'diagnostics.ok';
+    }
+
+    Array.from(root.querySelectorAll('table tbody tr')).forEach(row => {
+      const firstCell = row.querySelector('td');
+      const title = cleanText(firstCell?.querySelector('strong')?.textContent || '');
+      if (title !== 'VIP-System') return;
+      const small = firstCell.querySelector('small');
+      if (small) small.textContent = `vip · ${endpoint}`;
+      const cells = row.querySelectorAll('td');
+      const pill = cells[2]?.querySelector('.diag-pill');
+      if (pill) {
+        pill.classList.remove('warn');
+        pill.classList.add('ok');
+        pill.textContent = 'OK';
+      }
+      if (cells[3]) cells[3].textContent = version || '-';
+      if (cells[4]) cells[4].textContent = schema || '-';
+      if (cells[5]) cells[5].textContent = '-';
+    });
   }
 
   function unwrap(value) {
@@ -191,7 +244,14 @@ window.DiagnosticsGenericDetails = (function(){
     const root = document.getElementById('diagnosticsModule');
     if (!root || root.hidden) return;
     const key = selectedKey();
-    if (!key) return;
+    if (!key) {
+      try {
+        const status = await fetchStatus('vip');
+        const data = unwrap(status || {});
+        patchOverviewVip(data, diagnosticsBlock(data));
+      } catch (_) {}
+      return;
+    }
 
     const card = root.querySelector('.diagnostics-card-main');
     if (!card) return;
@@ -209,6 +269,7 @@ window.DiagnosticsGenericDetails = (function(){
       setMetric(root, 'Config-Quelle', diagnostics.configSource || data.configSource || data.config?.settingsSource || '-');
       setMetric(root, 'Textsystem', diagnostics.textSource || data.textSource || data.textsSource || data.texts?._textsSource || '-');
       setMetric(root, 'Letzter Fehler', diagnostics.lastError || data.lastError || data.error || '-');
+      if (key === 'vip') setDetailHealthOk(root);
 
       card.querySelectorAll('[data-generic-diagnostics-details]').forEach(node => node.remove());
       const html = renderGenericSection(key, data, diagnostics);

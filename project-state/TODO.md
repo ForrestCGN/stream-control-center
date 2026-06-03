@@ -12,11 +12,12 @@ Erledigt/vorbereitet:
 [x] CAN-42.12c Generische Standard-Diagnostics für Module
 [x] CAN-42.12d Dashboard Diagnostics Textcleanup
 [x] CAN-42.13 Message-Rotator /status diagnostics-standard
+[x] CAN-42.14 VIP-Sound /status diagnostics-standard + Datei auf vip-sound.js umgestellt
 ```
 
 Offen:
 
 ```text
 [ ] weitere Module nach und nach prüfen
-[ ] Kandidaten: VIP-System, Alerts, Sound-System, Media, Overlay-Monitor
+[ ] Kandidaten: Alerts, Sound-System, Media, Overlay-Monitor
 ```

@@ -15,7 +15,8 @@ const media = require("./helpers/helper_media");
 
 const MODULE_META = {
   name: 'vip_sound_overlay',
-  version: '0.1.0',
+  version: '0.1.1',
+  build: 'diagnostics-standard',
   type: 'runtime',
   category: 'vip_sound',
   legacy: false,
@@ -4654,6 +4655,145 @@ module.exports.init = function init(ctx) {
     };
   }
 
+  function safeDatabaseAdapter() {
+    try {
+      return typeof database.getAdapter === "function" ? String(database.getAdapter() || "") : "";
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function safeDatabasePath() {
+    try {
+      return typeof database.getDbPath === "function" ? String(database.getDbPath() || "") : "";
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function buildStandardDiagnostics(prefix = "/api/vip-sound") {
+    const warnings = [];
+    const errors = [];
+    let schemaReady = false;
+
+    try {
+      ensureVipSchema();
+      refreshDbStats();
+      schemaReady = !!state.db.initialized;
+    } catch (err) {
+      schemaReady = false;
+      errors.push(err && err.message ? err.message : String(err));
+    }
+
+    if (!schemaReady) errors.push("schema_not_ready");
+    if (state.db.lastError) errors.push(state.db.lastError);
+    if (multerLoadError) warnings.push(`upload_middleware:${multerLoadError}`);
+    if (state.chat.lastError) warnings.push(`chat:${state.chat.lastError}`);
+    if (state.eventBus.lastError) warnings.push(`eventbus:${state.eventBus.lastError}`);
+    if (state.soundBusCommand.lastError) warnings.push(`sound_bus_command:${state.soundBusCommand.lastError}`);
+
+    const routeCount = vipRouteDefinitions(prefix).length;
+    const now = Date.now();
+    const clientLastSeenAt = Number(state.client.lastSeenAt || 0);
+    const clientAgeMs = clientLastSeenAt > 0 ? Math.max(0, now - clientLastSeenAt) : 0;
+    const ok = errors.length === 0;
+
+    return {
+      ok,
+      health: ok ? (warnings.length ? "warn" : "ok") : "error",
+      module: MODULE_NAME,
+      version: MODULE_VERSION,
+      build: MODULE_META.build || "",
+      runtimeVersion: state.version,
+      schemaVersion: state.db.schemaVersion || 0,
+      expectedSchemaVersion: VIP_SCHEMA_VERSION,
+      schemaReady,
+      configSource: "database_with_json_fallback",
+      textSource: "database_with_default_seed",
+      database: {
+        ok: schemaReady && !state.db.lastError,
+        adapter: safeDatabaseAdapter(),
+        path: safeDatabasePath(),
+        schemaVersion: state.db.schemaVersion || 0,
+        expectedSchemaVersion: VIP_SCHEMA_VERSION,
+        error: state.db.lastError || ""
+      },
+      counts: {
+        queued: state.queue.length,
+        active: state.isActive ? 1 : 0,
+        overlayVisible: state.overlay.visible ? 1 : 0,
+        messageTemplates: state.db.messageTemplates || 0,
+        dailyUsageRows: state.db.dailyUsageRows || 0,
+        settingsRows: state.db.settingsRows || 0,
+        eventsRows: state.db.eventsRows || 0,
+        roleOverridesRows: state.db.roleOverridesRows || 0,
+        twitchUsersRows: state.db.twitchUsersRows || 0,
+        routes: routeCount,
+        eventBusEmitted: Number(state.eventBus.emitted || 0),
+        eventBusSkipped: Number(state.eventBus.skipped || 0),
+        eventBusErrors: Number(state.eventBus.errors || 0),
+        soundBusEmitted: Number(state.soundBusCommand.emitted || 0),
+        soundBusErrors: Number(state.soundBusCommand.errors || 0),
+        soundBusRecentCommands: Array.isArray(state.soundBusCommand.recentCommands) ? state.soundBusCommand.recentCommands.length : 0
+      },
+      state: {
+        phase: state.overlay.phase || "",
+        visible: !!state.overlay.visible,
+        isActive: !!state.isActive,
+        queuedCount: state.queue.length,
+        requestId: state.overlay.requestId || "",
+        clientConnected: !!state.client.connected,
+        clientLastSeenAt,
+        clientAgeMs,
+        twitchSyncRunning: !!state.twitchSync.running,
+        vipBusMode: state.soundBusCommand.vipBusMode || ""
+      },
+      warnings,
+      errors,
+      lastError: errors[0] || state.db.lastError || state.chat.lastError || state.eventBus.lastError || state.soundBusCommand.lastError || ""
+    };
+  }
+
+  function vipStatusPayload(prefix = "/api/vip-sound") {
+    markClientSeen();
+    refreshDbStats();
+    const routes = vipRouteDefinitions(prefix);
+    return {
+      ok: true,
+      module: MODULE_NAME,
+      moduleVersion: MODULE_VERSION,
+      moduleBuild: MODULE_META.build || "",
+      version: state.version,
+      diagnosticVersion: MODULE_VERSION,
+      canonicalPrefix: "/api/vip-sound",
+      prefix,
+      aliases: apiPrefixes.slice(),
+      phase: state.overlay.phase,
+      visible: state.overlay.visible,
+      isActive: state.isActive,
+      queuedCount: state.queue.length,
+      requestId: state.overlay.requestId || "",
+      lastFinishedAt: state.lastFinishedAt,
+      client: { ...state.client },
+      db: { ...state.db },
+      eventBus: { ...state.eventBus },
+      soundBusCommand: publicVipSoundBusCommandStatus(prefix),
+      routes,
+      routeCount: routes.length,
+      dataEndpoints: {
+        state: `${prefix}/state`,
+        routes: `${prefix}/routes`,
+        integrationCheck: `${prefix}/integration-check`,
+        dbStatus: `${prefix}/db/status`,
+        events: `${prefix}/events`,
+        stats: `${prefix}/stats`,
+        twitchSyncStatus: `${prefix}/twitch-sync/status`
+      },
+      diagnostics: buildStandardDiagnostics(prefix),
+      updatedAt: state.updatedAt
+    };
+  }
+
   function buildVipIntegrationCheck(prefix) {
     const checks = [];
     let schemaReady = false;
@@ -5134,22 +5274,7 @@ module.exports.init = function init(ctx) {
     });
 
     app.get(`${prefix}/status`, (req, res) => {
-      markClientSeen();
-      refreshDbStats();
-      return res.json({
-        ok: true,
-        version: state.version,
-        phase: state.overlay.phase,
-        visible: state.overlay.visible,
-        isActive: state.isActive,
-        queuedCount: state.queue.length,
-        requestId: state.overlay.requestId || "",
-        lastFinishedAt: state.lastFinishedAt,
-        client: { ...state.client },
-        db: { ...state.db },
-        eventBus: { ...state.eventBus },
-        updatedAt: state.updatedAt
-      });
+      return res.json(vipStatusPayload(prefix));
     });
 
     app.get(`${prefix}/db/status`, (req, res) => {
@@ -5928,6 +6053,8 @@ module.exports.init = function init(ctx) {
 
   ensureVipSchema();
   apiPrefixes.forEach(registerApiPrefix);
+
+
   startTwitchSyncTimer();
 
   console.log(`[${MODULE_NAME}] loaded`);
