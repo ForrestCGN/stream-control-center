@@ -1,41 +1,45 @@
 # CURRENT_STATUS
 
-## Stand: CAN-42.10 vorbereitet
+## Stand: CAN-42.11 vorbereitet
 
-CAN-42.10 deaktiviert die direkte Tagebuch-Diagnose-Extension in der Modul-Seite. Die zentrale Diagnose ist jetzt unter `Admin > Diagnose > Tagebuch` zuständig.
+CAN-42.11 gleicht `GET /api/commands/status` an den zentralen diagnostics-Standard an.
 
 ## Änderung
 
 Geändert:
 
 ```text
-htdocs/dashboard/index.html
-docs/current/TAGEBUCH_DIAGNOSTICS_TAB_DISABLED_CAN42_10.md
+backend/modules/commands.js
 project-state/*
-docs/current/CURRENT_CHAT_HANDOFF_CAN42_10.md
-```
-
-Nicht geändert:
-
-```text
-backend/*
-htdocs/dashboard/modules/tagebuch.js
-htdocs/dashboard/modules/tagebuch_readonly_diagnostics.js
-htdocs/dashboard/modules/tagebuch_readonly_diagnostics.css
+docs/current/CURRENT_CHAT_HANDOFF_CAN42_11.md
+docs/current/COMMANDS_STATUS_DIAGNOSTICS_CAN42_11.md
 ```
 
 ## Ergebnis
 
 ```text
-Tagebuch-Modul-Seite bleibt Bedienseite.
-Direkter Diagnose-Tab/Extension wird nicht mehr geladen.
-Admin > Diagnose bleibt zentrale Diagnose.
+/api/commands/status liefert weiterhin den bisherigen leichten Status.
+Zusätzlich liefert /api/commands/status jetzt einen standardisierten diagnostics-Block.
+Admin > Diagnose > Commands kann Commands damit nach dem zentralen Diagnose-Standard auswerten.
+```
+
+## Nicht geändert
+
+```text
+Keine Command-Ausführung geändert.
+Keine Trigger geändert.
+Keine Aliase geändert.
+Keine Permissions geändert.
+Keine Cooldowns geändert.
+Keine Zielrouten geändert.
+Keine DB-Migration.
+Keine produktiven Flows geändert.
 Keine Funktionalität entfernt.
 ```
 
 ## Nächster Schritt
 
 ```text
-CAN-42.10 anwenden und Tagebuch-Modul-Seite prüfen.
-Danach nächstes Modul standardisieren, z. B. Commands oder Hug.
+CAN-42.11 anwenden und prüfen.
+Danach nächstes Modul auf diagnostics-Standard prüfen/angleichen, z. B. Hug oder Message-Rotator.
 ```

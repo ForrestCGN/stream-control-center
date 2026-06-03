@@ -5,8 +5,8 @@ const database = require('../core/database');
 const core = require('./helpers/helper_core');
 
 const MODULE_NAME = 'commands';
-const MODULE_VERSION = '0.1.6';
-const MODULE_BUILD = 'channel-guard';
+const MODULE_VERSION = '0.1.7';
+const MODULE_BUILD = 'channel-guard-diagnostics';
 const SCHEMA_MODULE = 'command_system';
 const SCHEMA_VERSION = 2;
 const API_PREFIX = '/api/commands';
@@ -469,6 +469,91 @@ function recentLogs(limit = 25) {
   }));
 }
 
+function countTableRows(table) {
+  try {
+    const safeTable = String(table || '').trim();
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(safeTable)) return { ok: false, table: safeTable, count: 0, error: 'invalid_table' };
+    const row = database.get(`SELECT COUNT(*) AS c FROM ${safeTable}`) || {};
+    return { ok: true, table: safeTable, count: Number(row.c || 0), error: '' };
+  } catch (err) {
+    return { ok: false, table, count: 0, error: err?.message || 'count_failed' };
+  }
+}
+
+function safeDatabaseInfo() {
+  const info = {
+    ok: true,
+    adapter: 'unknown',
+    path: '',
+    schemaVersion: 0,
+    expectedSchemaVersion: SCHEMA_VERSION,
+    error: ''
+  };
+
+  try { info.adapter = typeof database.getAdapter === 'function' ? database.getAdapter() : 'unknown'; }
+  catch (err) { info.ok = false; info.error = info.error || `adapter:${err?.message || 'failed'}`; }
+
+  try { info.path = typeof database.getDbPath === 'function' ? (database.getDbPath() || '') : ''; }
+  catch (err) { info.ok = false; info.error = info.error || `path:${err?.message || 'failed'}`; }
+
+  try { info.schemaVersion = typeof database.getSchemaVersion === 'function' ? Number(database.getSchemaVersion(SCHEMA_MODULE) || 0) : 0; }
+  catch (err) { info.ok = false; info.error = info.error || `schemaVersion:${err?.message || 'failed'}`; }
+
+  if (state.schemaError) {
+    info.ok = false;
+    info.error = info.error || state.schemaError;
+  }
+
+  return info;
+}
+
+function buildStandardDiagnostics() {
+  const warnings = [];
+  const errors = [];
+  const db = safeDatabaseInfo();
+  const commandCount = countTableRows('command_definitions');
+  const logCount = countTableRows('command_execution_log');
+  const catalog = buildCommandCatalog();
+
+  if (!state.enabled) warnings.push('command_system_disabled');
+  if (!state.initialized) warnings.push('module_not_initialized');
+  if (!state.schemaReady || !state.schemaOk) errors.push(state.schemaError || 'schema_not_ready');
+  if (!db.ok) errors.push(`database:${db.error || 'unavailable'}`);
+  if (!commandCount.ok) errors.push(`command_definitions:${commandCount.error}`);
+  if (!logCount.ok) warnings.push(`command_execution_log:${logCount.error}`);
+  if (state.lastError) warnings.push(state.lastError);
+
+  const ok = errors.length === 0;
+  const health = ok ? (warnings.length ? 'warn' : 'ok') : 'error';
+
+  return {
+    ok,
+    health,
+    module: MODULE_NAME,
+    version: MODULE_VERSION,
+    build: MODULE_BUILD,
+    schemaVersion: db.schemaVersion,
+    schemaReady: state.schemaReady,
+    configSource: 'database',
+    textSource: 'not_used',
+    database: db,
+    counts: {
+      commands: commandCount.count,
+      catalogGroups: Array.isArray(catalog.categories) ? catalog.categories.length : 0,
+      catalogActions: Array.isArray(catalog.actions) ? catalog.actions.length : 0,
+      logs: logCount.count,
+      handled: state.handled,
+      ignored: state.ignored,
+      executed: state.executed,
+      failed: state.failed,
+      cooldowns: state.cooldowns instanceof Map ? state.cooldowns.size : 0
+    },
+    warnings,
+    errors,
+    lastError: errors[0] || state.lastError || null
+  };
+}
+
 function httpJsonRequest(method, targetUrl, payload = {}) {
   const cleanUrl = cleanText(targetUrl);
   if (!cleanUrl) return Promise.reject(new Error('target_url_missing'));
@@ -666,6 +751,7 @@ function statusPayload() {
     removedHeavyFields: ['commands', 'moduleCatalog', 'recent'],
     mediaPlaybackBridge: { enabled: true, target: '/api/sound/play', legacyTargetRewritten: '/api/sound/play-media' },
     commandChannelGuard: { enabled: true, expectedChannel: cleanChannel(process.env.TWITCH_BOT_CHANNEL || ''), mismatchReason: 'channel_mismatch' },
+    diagnostics: buildStandardDiagnostics(),
     updatedAt: nowIso()
   };
 }
