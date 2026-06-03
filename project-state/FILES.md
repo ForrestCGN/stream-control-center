@@ -10,3 +10,7 @@
 - `project-state/TODO.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
+
+
+## CAN-42.21b
+- `htdocs/dashboard/modules/diagnostics_generic_details.js` – erweitert vorhandene Diagnose-Ergänzung um Communication-Bus und OBS.

@@ -1,7 +1,7 @@
 window.DiagnosticsGenericDetails = (function(){
   'use strict';
 
-  const MODULE_VERSION = '0.1.3-can42-14c';
+  const MODULE_VERSION = '0.1.4-can42-21b';
   const ENDPOINTS = {
     birthday: '/api/birthday/status',
     todo: '/api/todo/status',
@@ -14,8 +14,35 @@ window.DiagnosticsGenericDetails = (function(){
     sound_system: '/api/sound/status',
     media: '/api/media/status',
     vip: '/api/vip-sound/status',
-    alerts: '/api/alerts/status'
+    alerts: '/api/alerts/status',
+    communication_bus: '/api/communication/status',
+    obs: '/api/obs/status'
   };
+
+  const DYNAMIC_ENTRIES = {
+    communication_bus: { key: 'communication_bus', label: 'Communication-Bus', group: 'admin', status: '/api/communication/status' },
+    obs: { key: 'obs', label: 'OBS', group: 'control', status: '/api/obs/status' }
+  };
+
+  const BASE_SELECT_ENTRIES = [
+    { key: 'birthday', label: 'Birthday' },
+    { key: 'todo', label: 'Todo' },
+    { key: 'tagebuch', label: 'Tagebuch' },
+    { key: 'hug', label: 'Hug-System' },
+    { key: 'commands', label: 'Commands' },
+    { key: 'message_rotator', label: 'Message-Rotator' },
+    { key: 'bus_diagnostics', label: 'Bus-Diagnose' },
+    { key: 'overlay_monitor', label: 'Overlay-Monitor' },
+    { key: 'sound_system', label: 'Sound-System' },
+    { key: 'media', label: 'Medienverwaltung' },
+    { key: 'vip', label: 'VIP-System' },
+    { key: 'alerts', label: 'Alerts' },
+    { key: 'communication_bus', label: 'Communication-Bus' },
+    { key: 'obs', label: 'OBS' }
+  ];
+
+  let dynamicSelectedKey = '';
+  let dynamicRendering = false;
 
   let pending = false;
   let lastPatchAt = 0;
@@ -170,7 +197,25 @@ window.DiagnosticsGenericDetails = (function(){
     const select = document.querySelector('#diagnosticsModule [data-diagnostics-select]');
     const value = cleanText(select?.value || '');
     if (value && value !== 'overview') return value;
+    if (dynamicSelectedKey && DYNAMIC_ENTRIES[dynamicSelectedKey]) return dynamicSelectedKey;
     return '';
+  }
+
+  function ensureRegistryOptions(root) {
+    const select = root?.querySelector('[data-diagnostics-select]');
+    if (!select) return;
+    for (const entry of Object.values(DYNAMIC_ENTRIES)) {
+      if (select.querySelector(`option[value="${entry.key}"]`)) continue;
+      const option = document.createElement('option');
+      option.value = entry.key;
+      option.textContent = entry.label;
+      select.appendChild(option);
+    }
+    if (dynamicSelectedKey && DYNAMIC_ENTRIES[dynamicSelectedKey]) select.value = dynamicSelectedKey;
+  }
+
+  function readAllEntriesForSelect() {
+    return BASE_SELECT_ENTRIES.slice();
   }
 
   function metricArticles(root) {
@@ -330,6 +375,147 @@ window.DiagnosticsGenericDetails = (function(){
     </section>`;
   }
 
+
+  function dynamicDetailHtml(entry, data, diagnostics) {
+    const health = diagnostics?.health || (diagnostics?.ok === false ? 'error' : 'ok');
+    const healthLabel = health === 'error' ? 'Fehler' : (health === 'warn' ? 'Warnung' : 'OK');
+    const routeNum = routeCount(data, diagnostics);
+    const version = diagnostics?.version || data.moduleVersion || data.version || '-';
+    const schema = diagnostics?.schemaVersion ?? data.schemaVersion ?? '-';
+    const lastError = diagnostics?.lastError || data.lastError || data.error || '';
+    const generic = renderGenericSection(entry.key, data, diagnostics);
+    return `<section class="diagnostics-card diagnostics-card-main">
+      <div class="diagnostics-headline-row">
+        <div>
+          <h3>${health === 'ok' ? '🟢' : health === 'warn' ? '🟡' : '🔴'} ${esc(entry.label)}</h3>
+          <p>${esc(entry.key)} · ${esc(entry.status)}</p>
+        </div>
+        <div class="diagnostics-detail-pills">
+          <span class="diag-pill ${health === 'ok' ? 'ok' : 'warn'}">${esc(healthLabel)}</span>
+          <span class="diag-pill ok">GET Status erreichbar</span>
+        </div>
+      </div>
+      <div class="diagnostics-grid">
+        ${metric('Version', version)}
+        ${metric('Schema', schema)}
+        ${metric('Gruppe/Kategorie', entry.group || '-')}
+        ${metric('Routen', routeNum || '-')}
+        ${metric('Config-Quelle', diagnostics?.configSource || data.configSource || '-')}
+        ${metric('Textsystem', diagnostics?.textSource || data.textSource || '-')}
+        ${metric('Panel', '-')}
+        ${metric('Letzter Fehler', cleanDiagnosticError(lastError) || '-')}
+      </div>
+      ${generic}
+      <details class="diagnostics-raw">
+        <summary>Rohdaten anzeigen</summary>
+        <pre>${esc(JSON.stringify(data, null, 2))}</pre>
+      </details>
+    </section>`;
+  }
+
+  function dynamicToolbarHtml(selectedKey) {
+    return `<section class="diagnostics-toolbar">
+      <label>Modul
+        <select data-diagnostics-select>
+          <option value="overview">Gesamtübersicht</option>
+          ${readAllEntriesForSelect().map(entry => `<option value="${esc(entry.key)}" ${selectedKey === entry.key ? 'selected' : ''}>${esc(entry.label)}</option>`).join('')}
+        </select>
+      </label>
+      <div class="diagnostics-readonly-line">GET-only Diagnose · keine Show · kein Sound · kein Chat · keine Admin-Aktion</div>
+    </section>`;
+  }
+
+  async function renderDynamicModule(key) {
+    const entry = DYNAMIC_ENTRIES[key];
+    const root = document.getElementById('diagnosticsModule');
+    if (!entry || !root || root.hidden || dynamicRendering) return false;
+    dynamicRendering = true;
+    try {
+      const status = await fetchStatus(key);
+      const data = unwrap(status || {});
+      const diagnostics = diagnosticsBlock(data) || { ok: status?.ok !== false, health: status?.ok === false ? 'error' : 'ok', version: data.moduleVersion || data.version || '', schemaReady: true, schemaVersion: data.schemaVersion ?? '' };
+      root.innerHTML = `<div class="diagnostics-wrap">
+        <section class="diagnostics-hero">
+          <div>
+            <span class="diagnostics-kicker">Admin / Diagnose</span>
+            <h2>🩺 Zentrale Moduldiagnose</h2>
+            <p>Ein zentraler Ort für Read-only Statuswerte. Modul-Seiten bleiben Bedienseiten.</p>
+          </div>
+          <div class="diagnostics-actions">
+            <button type="button" data-diagnostics-refresh>Status aktualisieren</button>
+          </div>
+        </section>
+        ${dynamicToolbarHtml(key)}
+        <p class="diagnostics-loaded">Letztes Laden: ${esc(new Date().toLocaleString('de-DE'))}</p>
+        ${dynamicDetailHtml(entry, data, diagnostics)}
+      </div>`;
+      bindDynamicToolbar(root);
+      lastKey = key;
+      lastPatchAt = Date.now();
+      return true;
+    } catch (err) {
+      console.warn('[diagnostics_generic_details] dynamischer Diagnose-Eintrag fehlgeschlagen:', key, err?.message || err);
+      return false;
+    } finally {
+      dynamicRendering = false;
+    }
+  }
+
+  function bindDynamicToolbar(root) {
+    root?.querySelector('[data-diagnostics-select]')?.addEventListener('change', ev => {
+      const value = cleanText(ev.target.value || '');
+      if (DYNAMIC_ENTRIES[value]) {
+        dynamicSelectedKey = value;
+        renderDynamicModule(value);
+        return;
+      }
+      dynamicSelectedKey = '';
+      window.DiagnosticsModule?.loadAll?.(true);
+    });
+    root?.querySelector('[data-diagnostics-refresh]')?.addEventListener('click', () => {
+      if (dynamicSelectedKey && DYNAMIC_ENTRIES[dynamicSelectedKey]) renderDynamicModule(dynamicSelectedKey);
+      else window.DiagnosticsModule?.loadAll?.(true);
+    });
+  }
+
+  function patchOverviewDynamicEntries(root) {
+    if (!root || root.hidden) return;
+    ensureRegistryOptions(root);
+    const overviewTable = root.querySelector('.diagnostics-card-main table tbody');
+    const healthList = root.querySelector('.diagnostics-health-list');
+    const moduleMetric = Array.from(root.querySelectorAll('.diag-metric')).find(item => cleanText(item.querySelector('span')?.textContent).toLowerCase() === 'module in diagnose');
+    const currentCount = Number(cleanText(moduleMetric?.querySelector('strong')?.textContent || '0'));
+    const expectedCount = Math.max(currentCount, BASE_SELECT_ENTRIES.length);
+    if (moduleMetric?.querySelector('strong')) moduleMetric.querySelector('strong').textContent = String(expectedCount);
+
+    for (const entry of Object.values(DYNAMIC_ENTRIES)) {
+      if (healthList && !healthList.querySelector(`[data-diagnostics-pick="${entry.key}"]`)) {
+        healthList.insertAdjacentHTML('beforeend', `<button type="button" class="diagnostics-health-row health-unknown" data-diagnostics-pick="${esc(entry.key)}">
+          <span class="health-icon">⚪</span><span class="health-title">${esc(entry.label)}</span><span class="health-state">Bereit</span><small>${esc(entry.status)}</small>
+        </button>`);
+      }
+      if (overviewTable && !Array.from(overviewTable.querySelectorAll('tr small')).some(small => cleanText(small.textContent).includes(entry.status))) {
+        overviewTable.insertAdjacentHTML('beforeend', `<tr>
+          <td><strong>${esc(entry.label)}</strong><small>${esc(entry.key)} · ${esc(entry.status)}</small></td>
+          <td>${esc(entry.group)}</td>
+          <td><span class="diag-pill warn">Bereit</span></td>
+          <td>-</td><td>-</td><td>-</td>
+        </tr>`);
+      }
+    }
+    root.querySelectorAll('[data-diagnostics-pick]').forEach(btn => {
+      if (btn.dataset.dynamicRegistryBound === '1') return;
+      btn.dataset.dynamicRegistryBound = '1';
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.diagnosticsPick || '';
+        if (DYNAMIC_ENTRIES[key]) {
+          dynamicSelectedKey = key;
+          renderDynamicModule(key);
+        }
+      });
+    });
+  }
+
   async function fetchStatus(key) {
     const url = ENDPOINTS[key];
     if (!url) return null;
@@ -347,8 +533,14 @@ window.DiagnosticsGenericDetails = (function(){
   async function patchCurrentModule() {
     const root = document.getElementById('diagnosticsModule');
     if (!root || root.hidden) return;
+    ensureRegistryOptions(root);
     const key = selectedKey();
+    if (DYNAMIC_ENTRIES[key]) {
+      renderDynamicModule(key);
+      return;
+    }
     if (!key) {
+      patchOverviewDynamicEntries(root);
       try {
         const status = await fetchStatus('vip');
         const data = unwrap(status || {});
@@ -406,9 +598,18 @@ window.DiagnosticsGenericDetails = (function(){
       observer.observe(root, { childList: true, subtree: true });
     }
     document.addEventListener('change', ev => {
-      if (ev.target && ev.target.matches('[data-diagnostics-select]')) schedulePatch();
+      if (ev.target && ev.target.matches('[data-diagnostics-select]')) {
+        const value = cleanText(ev.target.value || '');
+        dynamicSelectedKey = DYNAMIC_ENTRIES[value] ? value : '';
+        schedulePatch();
+      }
     });
     document.addEventListener('click', ev => {
+      const pick = ev.target && ev.target.closest('[data-diagnostics-pick]');
+      if (pick) {
+        const value = cleanText(pick.dataset.diagnosticsPick || '');
+        dynamicSelectedKey = DYNAMIC_ENTRIES[value] ? value : '';
+      }
       if (ev.target && ev.target.closest('[data-diagnostics-pick], [data-diagnostics-refresh]')) schedulePatch();
     });
     schedulePatch();
