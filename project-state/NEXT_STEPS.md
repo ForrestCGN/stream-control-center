@@ -1,38 +1,37 @@
 # Next Steps
 
-## Direkt nach CAN-43.11
+## Direkt nach CAN-43.12
 
-1. CAN-43.11 ZIP nach `D:\Git\stream-control-center` entpacken.
+1. CAN-43.12 ZIP nach `D:\Git\stream-control-center` entpacken.
 2. Optional prüfen:
 
 ```powershell
-node -c backend\modules\media.js
+node -c backend\modules\obs.js
 ```
 
 3. Step abschließen:
 
 ```powershell
-.\stepdone.cmd "CAN-43.11 Media diagnostics review"
+.\stepdone.cmd "CAN-43.12 OBS diagnostics review"
 ```
 
 4. Doku committen/pushen.
 
 ## Nächster fachlicher Schritt
 
-CAN-43.12: Weiteres Registry-Modul nach neuem Diagnose-/Registry-Standard prüfen.
+CAN-43.13: Weiteres Registry-Modul nach neuem Diagnose-/Registry-Standard prüfen.
 
 Empfohlener Kandidat:
 
-1. `obs`
+1. `overlay_monitor`
 
 Grund:
 
-- OBS-Steuerung und Overlay-/Szenenstatus sind Kernbestandteile des Control-Centers.
-- Nach Sound-System/Media ist OBS ein sinnvoller nächster Prüfpunkt.
+- Nach OBS schließt die Overlay-/Browserquellen-Überwachung fachlich direkt an.
+- Das Modul ist wichtig für Stabilität und Sichtbarkeit von Overlay-Problemen.
 
 Alternative Kandidaten:
 
-- `overlay_monitor`
 - `communication_bus`
 - `bus_diagnostics`
 

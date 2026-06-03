@@ -1,16 +1,16 @@
 # TODO
 
-## CAN-43.11
+## CAN-43.12
 
-- [ ] CAN-43.11 ZIP entpacken.
-- [ ] Optional `node -c backend\modules\media.js` ausführen.
-- [ ] `stepdone.cmd "CAN-43.11 Media diagnostics review"` ausführen.
+- [ ] CAN-43.12 ZIP entpacken.
+- [ ] Optional `node -c backend\modules\obs.js` ausführen.
+- [ ] `stepdone.cmd "CAN-43.12 OBS diagnostics review"` ausführen.
 - [ ] Doku committen/pushen.
 
-## CAN-43.12 nächste Fachrunde
+## CAN-43.13 nächste Fachrunde
 
 - [ ] Konkretes Modul/Thema auswählen.
-- [ ] Empfehlung prüfen: `obs`.
+- [ ] Empfehlung prüfen: `overlay_monitor`.
 - [ ] Vor Umsetzung echten Dateistand prüfen.
 - [ ] Repo/GitHub/dev und Live-System bewusst abgleichen.
 - [ ] Diagnose-Standard anwenden:

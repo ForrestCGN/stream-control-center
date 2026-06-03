@@ -8,34 +8,38 @@ CAN-43.0 wurde als Startpunkt für die nächste Fachrunde vorbereitet.
 
 CAN-43.1 aktualisierte die Projektübergabe für den neuen Chat.
 
-CAN-43.2 bis CAN-43.10 haben mehrere Registry-Module nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
+CAN-43.2 bis CAN-43.11 haben mehrere Registry-Module nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
 
-CAN-43.11 hat das Modul `media` nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
+CAN-43.12 hat das Modul `obs` nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
 
-## CAN-43.11 Ergebnis
+## CAN-43.12 Ergebnis
 
-`media` ist sauber.
+`obs` ist sauber.
 
 - Repo/Branch: `dev`
-- HEAD: `33f11858 CAN-43.10 Sound-System diagnostics review`
+- HEAD: `f42053a1 CAN-43.11 Media diagnostics review`
 - Lokaler Git-Status: sauber
-- Backend-Datei: `backend/modules/media.js`
-- Live-Modul: `media`
-- Registry-Key: `media`
+- Backend-Datei: `backend/modules/obs.js`
+- Live-Modul: `obs`
+- Registry-Key: `obs`
 - Modulversion: `0.1.1`
 - Build: `diagnostics-standard`
-- Step: `STEP524`
-- Statusroute: `GET /api/media/status`
-- Kategorien: `GET /api/media/categories`
-- Medienliste: `GET /api/media/list`
-- Picker: `GET /api/media/picker-options`
-- Repair-Check read-only: `GET /api/media/repair-names?apply=false&renameFiles=false`
-- Schema-Version: `2`
+- Statusroute: `GET /api/obs/status`
+- Health: `GET /api/obs/health`
+- Config: `GET /api/obs/config`
+- Settings: `GET /api/obs/settings`
+- Routenübersicht: `GET /api/obs/routes`
+- Integration-Check: `GET /api/obs/integration-check`
+- Szenen: `GET /api/obs/scenes`
+- Sources: `GET /api/obs/sources`
+- Browser-Sources: `GET /api/obs/browser-sources`
+- Schema-Version: `0`
 - Diagnostics: `ok=True`, `health=ok`, `schemaReady=True`
-- Diagnostics-Warnings: keine
-- Diagnostics-Errors: keine
-- Active Assets: `334`
-- Kategorien: `32`
+- Integration-Check: `7/7 ok`, keine Warnings, keine Errors
+- OBS: verbunden und erkannt
+- Current Program Scene: `Live Gameplay Forrest`
+- Szenen: `18`
+- Browser Sources: `17`
 - Coverage: sauber
 - Codeänderung: keine
 - Modulversion erhöht: nein

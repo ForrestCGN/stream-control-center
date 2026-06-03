@@ -1,5 +1,21 @@
 # Files
 
+## CAN-43.12 neu/geändert
+
+### Handoff / Doku
+
+- `docs/current/CAN-43.12_obs_diagnostics_review.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN43_12.md`
+- `docs/modules/OBS.md`
+
+### Project State
+
+- `project-state/CURRENT_STATUS.md`
+- `project-state/NEXT_STEPS.md`
+- `project-state/TODO.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+
 ## CAN-43.11 neu/geändert
 
 ### Handoff / Doku
@@ -16,23 +32,12 @@
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 
-## CAN-43.10 neu/geändert
-
-### Handoff / Doku
-
-- `docs/current/CAN-43.10_sound_system_diagnostics_review.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN43_10.md`
-- `docs/modules/SOUND_SYSTEM.md`
-
-### Project State
-
-- `project-state/CURRENT_STATUS.md`
-- `project-state/NEXT_STEPS.md`
-- `project-state/TODO.md`
-- `project-state/CHANGELOG.md`
-- `project-state/FILES.md`
-
 ## Relevante bestehende Dateien
+
+### OBS
+
+- `backend/modules/obs.js`
+- `backend/modules/obs_shared.js`
 
 ### Media
 
@@ -46,18 +51,6 @@
 
 - `backend/modules/alert_system.js`
 
-### VIP Sound
-
-- `backend/modules/vip-sound.js`
-
-### Todo
-
-- `backend/modules/todo.js`
-
-### Tagebuch
-
-- `backend/modules/tagebuch.js`
-
 ### Diagnose
 
 - `htdocs/dashboard/modules/diagnostics.js`
@@ -68,4 +61,4 @@
 
 - `docs/modules/DASHBOARD_EXTENSIONS.md`
 - `docs/modules/DIAGNOSTICS_NEW_MODULE_RULES.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN43_10.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN43_11.md`
