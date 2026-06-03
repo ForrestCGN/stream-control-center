@@ -288,6 +288,7 @@ const state = {
   initialized: false,
   loadedAt: '',
   schemaOk: false,
+  schemaReady: false,
   schemaError: '',
   configPath: '',
   commandSeeded: false,
@@ -1432,11 +1433,13 @@ function ensureSchema() {
 
     });
     state.schemaOk = true;
+    state.schemaReady = true;
     state.schemaError = '';
     ensureDefaultBirthdayParties();
     return true;
   } catch (err) {
     state.schemaOk = false;
+    state.schemaReady = false;
     state.schemaError = err.message || String(err);
     state.lastError = state.schemaError;
     return false;

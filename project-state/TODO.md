@@ -2,21 +2,18 @@
 
 ## CAN-42 Diagnose-Standard
 
-Erledigt:
+- [x] Commands Diagnostics-Standard
+- [x] Hug Diagnostics-Standard
+- [x] Message-Rotator Diagnostics-Standard
+- [x] VIP-Sound Diagnostics-Standard
+- [x] Sound-System Diagnostics-Standard
+- [x] Medienverwaltung Diagnostics-Standard
+- [x] Alerts Diagnostics-Standard
+- [x] Birthday Diagnostics-Standard
+- [ ] CAN-42.18b testen: Birthday schemaReady Diagnostics Fix
 
-- CAN-42.11 Commands Status-Diagnostics
-- CAN-42.12 Hug Status-Diagnostics
-- CAN-42.13 Message-Rotator Status-Diagnostics
-- CAN-42.14 VIP-Sound Status-Diagnostics + Dateiumbenennung zu `vip-sound.js`
-- CAN-42.14b Dashboard Diagnostics Label-/Zeit-Anzeige-Cleanup
-- CAN-42.14c Dashboard Diagnostics Label-Feinschliff
-- CAN-42.15 Sound-System Status-Diagnostics
-- CAN-42.16 Media Status-Diagnostics
-- CAN-42.17 Alerts Status-Diagnostics
-- CAN-42.18 Birthday Status-Diagnostics
+## Grundregeln
 
-Offen:
-
-- weitere Module auf standardisierten `diagnostics`-Block prüfen
-- zentrale Diagnose weiterhin read-only halten
-- keine Modul-Sonderdateien anlegen, wenn vorhandene Dateien reichen
+- Keine Funktionalität entfernen.
+- Keine neuen Module/Parallelstrukturen, wenn nicht nötig.
+- Bestehende Statusrouten bevorzugt minimal erweitern.
