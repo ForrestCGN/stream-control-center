@@ -1,17 +1,20 @@
 # CHANGELOG
 
-## CAN-42.5
+## CAN-42.5b
 
-- Todo-Diagnose-Tab in der Todo-Modulseite deaktiviert:
-  - `todo_readonly_diagnostics.css` nicht mehr in `index.html` geladen.
-  - `todo_readonly_diagnostics.js` nicht mehr in `index.html` geladen.
-- Die Diagnose-Dateien bleiben physisch vorhanden.
-- Todo-Backend und Todo-Modul bleiben unverändert.
-- Zentrale Diagnose bleibt unter `Admin > Diagnose > Todo`.
+- Todo-Detailwerte in `Admin > Diagnose > Todo` robuster gemappt:
+  - User-Stats
+  - Daily-Stats
+  - Settings
+  - Textvarianten
+  - Legacy-Texte
+  - DB
+- Verschachtelte Antwortformen werden robuster erkannt.
+- Keine Backend-Änderung.
 - Keine API-POSTs.
 - Keine produktive Aktion.
 - Keine Funktionalität entfernt.
 
-## CAN-42.4e
+## CAN-42.5
 
-- Modultabelle an Ampelstatus angeglichen.
+- Todo-Diagnose-Tab in der Todo-Modulseite deaktiviert.

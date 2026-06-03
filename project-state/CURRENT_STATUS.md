@@ -1,41 +1,45 @@
 # CURRENT_STATUS
 
-## Stand: CAN-42.5 vorbereitet
+## Stand: CAN-42.5b vorbereitet
 
-CAN-42.5 deaktiviert den alten Todo-Diagnose-Tab in der Todo-Modulseite.
+CAN-42.5b korrigiert das Mapping der Todo-Detailwerte in `Admin > Diagnose > Todo`.
 
 ## Änderung
 
 Geändert:
 
 ```text
-htdocs/dashboard/index.html
-docs/current/TODO_DIAGNOSTICS_TAB_DISABLED_CAN42_5.md
+htdocs/dashboard/modules/diagnostics.js
+htdocs/dashboard/modules/diagnostics.css
+docs/current/TODO_DETAIL_VALUES_MAPPING_CAN42_5B.md
 project-state/*
-docs/current/CURRENT_CHAT_HANDOFF_CAN42_5.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN42_5B.md
 ```
 
 Nicht geändert:
 
 ```text
-backend/modules/todo.js
-htdocs/dashboard/modules/todo.js
-htdocs/dashboard/modules/todo_readonly_diagnostics.js
-htdocs/dashboard/modules/todo_readonly_diagnostics.css
+backend/*
+bestehende Modul-Dateien
+Todo-Diagnose-Tab bleibt gemäß CAN-42.5 deaktiviert, wenn CAN-42.5 angewendet wurde
 ```
 
 ## Ergebnis
 
+Todo-Detailwerte werden robuster gelesen:
+
 ```text
-Todo-Diagnose-Extension wird nicht mehr geladen.
-Todo-Diagnose-Tab verschwindet aus der Todo-Modulseite.
-Todo-Bedienbereiche bleiben erhalten.
-Admin > Diagnose > Todo bleibt zentrale Diagnose.
+User-Stats
+Daily-Stats
+Settings
+Textvarianten
+Legacy-Texte
+DB
 ```
 
 ## Nächster Schritt
 
 ```text
-CAN-42.5 anwenden und Sichttest machen.
+CAN-42.5b anwenden und Admin > Diagnose > Todo prüfen.
 Danach CAN-42.6 Tagebuch-Diagnosewerte zentral abbilden.
 ```

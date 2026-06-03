@@ -161,6 +161,34 @@ window.DiagnosticsModule = (function(){
   }
 
 
+  function unwrapDiagnosticsPayload(value) {
+    if (!value || typeof value !== 'object') return {};
+    if (value.checks || value.schemaVersion || value.version || value.module) return value;
+    if (value.data && typeof value.data === 'object') return unwrapDiagnosticsPayload(value.data);
+    if (value.result && typeof value.result === 'object') return unwrapDiagnosticsPayload(value.result);
+    if (value.status && typeof value.status === 'object' && value.status.checks) return unwrapDiagnosticsPayload(value.status);
+    return value;
+  }
+
+  function firstDefined(...values) {
+    for (const value of values) {
+      if (value !== undefined && value !== null && value !== '') return value;
+    }
+    return undefined;
+  }
+
+  function checkCount(...checks) {
+    for (const check of checks) {
+      if (typeof check === 'number') return check;
+      if (check && typeof check === 'object') {
+        if (typeof check.count === 'number') return check.count;
+        if (typeof check.value === 'number') return check.value;
+        if (typeof check.rows === 'number') return check.rows;
+      }
+    }
+    return '-';
+  }
+
   function isMissingStatusEndpoint(error) {
     const text = String(error || '').toLowerCase();
     return text.includes('cannot get') || text.includes('http 404') || text.includes('<!doctype html') || text.includes('not found');
@@ -174,6 +202,8 @@ window.DiagnosticsModule = (function(){
   }
 
   function todoIntegrationLooksOk(status, integration) {
+    status = unwrapDiagnosticsPayload(status || {});
+    integration = unwrapDiagnosticsPayload(integration || {});
     const checks = integration?.checks || {};
     const channelsCheck = checks.channels || {};
     const databaseCheck = checks.database || {};
@@ -208,8 +238,8 @@ window.DiagnosticsModule = (function(){
 
     if (item.key === 'todo') {
       const result = state.results.todo || {};
-      const status = result.status || {};
-      const integration = result.integration || {};
+      const status = unwrapDiagnosticsPayload(result.status || {});
+      const integration = unwrapDiagnosticsPayload(result.integration || {});
       const checks = integration.checks || {};
       const channels = checks.channels || {};
       const schemaOk = status.schemaReady === true || status.schemaOk === true || status.schema?.ready === true;
@@ -317,20 +347,28 @@ window.DiagnosticsModule = (function(){
   }
 
   function renderTodoSpecific(result) {
-    const status = result.status || result || {};
-    const integration = result.integration || {};
+    const status = unwrapDiagnosticsPayload(result.status || result || {});
+    const integration = unwrapDiagnosticsPayload(result.integration || {});
     const checks = integration.checks || {};
     const channels = checks.channels || {};
     const tables = checks.tables || {};
     const settings = checks.settings || {};
     const texts = checks.texts || {};
+    const database = checks.database || {};
     const missingChannels = Array.isArray(channels.missing) ? channels.missing : [];
-    const targetCount = checks.targets?.count ?? countObject(status.targets);
-    const configuredChannels = Object.values(status.channels || {}).filter(item => item && item.configured).length;
-    const totalChannels = countObject(status.channels);
+    const targetCount = checkCount(checks.targets) !== '-' ? checkCount(checks.targets) : (checks.targets?.count ?? countObject(status.targets));
+    const configuredChannels = Object.values(status.channels || channels.targets || {}).filter(item => item && item.configured).length;
+    const totalChannels = countObject(status.channels || channels.targets || {});
     const statusOk = status.ok !== false;
-    const schemaOk = status.schemaReady === true || status.schemaOk === true || status.schema?.ready === true;
+    const schemaOk = status.schemaReady === true || status.schemaOk === true || status.schema?.ready === true || integration.schemaVersion >= 1;
     const integrationOk = todoIntegrationLooksOk(status, integration);
+
+    const userStats = checkCount(tables.userStats, checks.userStats, integration.userStats);
+    const dailyStats = checkCount(tables.dailyStats, checks.dailyStats, integration.dailyStats);
+    const settingsCount = checkCount(settings, tables.settings, checks.settings);
+    const textVariants = checkCount(texts.count, texts, tables.textVariants, checks.textVariants);
+    const legacyTexts = checkCount(texts.legacyCount, tables.legacyTexts, checks.legacyTexts);
+    const dbValue = database.ok === false ? 'prüfen' : firstDefined(database.adapter, database.path, status.databasePath, 'ok');
 
     return `<section class="diagnostics-card diagnostics-module-extra">
       <h4>Todo-spezifische Diagnose</h4>
@@ -341,16 +379,17 @@ window.DiagnosticsModule = (function(){
         ${metric('Targets', targetCount || '-')}
         ${metric('Channels', totalChannels ? `${configuredChannels}/${totalChannels}` : '-')}
         ${metric('Fehlende Channels', missingChannels.length)}
-        ${metric('User-Stats', safeCheckCount(tables.userStats))}
-        ${metric('Daily-Stats', safeCheckCount(tables.dailyStats))}
-        ${metric('Settings', settings.count ?? safeCheckCount(tables.settings))}
-        ${metric('Textvarianten', texts.count ?? safeCheckCount(tables.textVariants))}
-        ${metric('Legacy-Texte', texts.legacyCount ?? safeCheckCount(tables.legacyTexts))}
-        ${metric('DB', checks.database?.ok === false ? 'prüfen' : (checks.database?.adapter || 'ok'))}
+        ${metric('User-Stats', userStats)}
+        ${metric('Daily-Stats', dailyStats)}
+        ${metric('Settings', settingsCount)}
+        ${metric('Textvarianten', textVariants)}
+        ${metric('Legacy-Texte', legacyTexts)}
+        ${metric('DB', dbValue)}
       </div>
       ${missingChannels.length ? `<p class="diagnostics-note warn">Fehlende Channels: ${esc(missingChannels.map(item => item.key || item).join(', '))}</p>` : '<p class="diagnostics-note">Todo-Integration meldet keine fehlenden Channels.</p>'}
     </section>`;
   }
+
 
   function renderModuleDetails(entry) {
     const item = normalize(entry, state.results[entry.key]);

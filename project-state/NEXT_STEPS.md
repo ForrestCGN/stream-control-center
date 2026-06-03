@@ -3,27 +3,10 @@
 ## Direkt nächster Schritt
 
 ```text
-CAN-42.5 anwenden und Sichttest machen.
+CAN-42.5b anwenden und Sichttest machen.
 ```
 
-## Prüfung Todo-Modul
-
-```text
-Dashboard > Community > Todo
-```
-
-Erwartung:
-
-```text
-Übersicht sichtbar
-Settings sichtbar
-Texte sichtbar
-Statistik sichtbar
-Diagnose-Tab nicht mehr sichtbar
-Todo-Funktionen unverändert
-```
-
-## Prüfung zentrale Diagnose
+## Prüfung
 
 ```text
 Dashboard > Admin > Diagnose > Todo
@@ -32,15 +15,19 @@ Dashboard > Admin > Diagnose > Todo
 Erwartung:
 
 ```text
-Todo OK
-Todo-spezifische Diagnosewerte sichtbar
+User-Stats gefüllt
+Daily-Stats gefüllt
+Settings gefüllt
+Textvarianten gefüllt
+Legacy-Texte gefüllt
+DB gefüllt
+Todo bleibt OK
 ```
 
 ## Danach
 
 ```text
 CAN-42.6 - Tagebuch-Diagnosewerte zentral abbilden
-CAN-42.7 - Tagebuch-Diagnose-Tab aus Tagebuch-Modul entfernen/deaktivieren
 ```
 
 ## Weiterhin nicht machen ohne separaten Go-Schritt
