@@ -3,10 +3,23 @@
 ## Direkt nächster Schritt
 
 ```text
-CAN-42.9 anwenden und Sichttest machen.
+CAN-42.10 anwenden und Sichttest machen.
 ```
 
 ## Prüfung
+
+```text
+Dashboard > Community > Tagebuch
+```
+
+Erwartung:
+
+```text
+Tagebuch-Bedienseite funktioniert weiterhin.
+Direkte Diagnose-Extension/Tab ist nicht mehr sichtbar.
+```
+
+Zusätzlich prüfen:
 
 ```text
 Dashboard > Admin > Diagnose > Tagebuch
@@ -15,23 +28,14 @@ Dashboard > Admin > Diagnose > Tagebuch
 Erwartung:
 
 ```text
-Tagebuch bleibt OK
-State = 1
-Runtime-Events gefüllt
-User-Stats gefüllt
-Daily-Stats gefüllt
-Settings gefüllt
-Textvarianten gefüllt
-Legacy-Texte gefüllt
-DB = sqlite oder ok
-Webhook = ok
-Rohdaten enthalten status.diagnostics
+Tagebuch-Diagnose bleibt zentral sichtbar und OK.
 ```
 
 ## Danach
 
 ```text
-CAN-42.10 - Tagebuch-Diagnose-Extension aus Modul-Seite entfernen/deaktivieren
+Nächstes Modul auf diagnostics-Standard prüfen/angleichen.
+Vorschlag: Commands oder Hug.
 ```
 
 ## Weiterhin nicht machen ohne separaten Go-Schritt

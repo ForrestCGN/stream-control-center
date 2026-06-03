@@ -19,7 +19,7 @@
 - [x] CAN-42.6b Diagnose-Standard ToDo projektweit ergänzen.
 - [x] CAN-42.7 Admin-Diagnose liest Todo diagnostics-Block bevorzugt.
 - [x] CAN-42.8 Tagebuch /status auf diagnostics-Standard prüfen/angleichen.
-- [ ] CAN-42.9 Admin-Diagnose liest Tagebuch diagnostics-Block bevorzugt.
+- [x] CAN-42.9 Admin-Diagnose liest Tagebuch diagnostics-Block bevorzugt.
 - [ ] CAN-42.10 Tagebuch-Diagnose-Extension aus Modul-Seite entfernen/deaktivieren.
 
 ## Diagnose-Standard für alle Module
@@ -29,6 +29,9 @@
 - [ ] Alte Diagnose-Module/-Extensions aus Modul-Seiten entfernen/deaktivieren, sobald zentral abgebildet.
 - [ ] Keine Funktionalität entfernen.
 
-## Später
+## Nächste Kandidaten
 
+- [ ] Commands auf diagnostics-Standard prüfen/angleichen.
+- [ ] Hug auf diagnostics-Standard prüfen/angleichen.
+- [ ] Message-Rotator auf diagnostics-Standard prüfen/angleichen.
 - [ ] VIP-System Statusroute ergänzen: `GET /api/vip/status`.
