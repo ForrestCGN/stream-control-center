@@ -1,42 +1,12 @@
 # CHANGELOG
 
-## CAN-37.2
+## CAN-37.3
 
-- Hug-System-Doku vorbereitet:
-  - `docs/modules/hug.md`
-- Dokumentiert:
-  - Modulzweck
-  - MODULE_META / Version / Routenprefix
-  - Datenbanktabellen
-  - produktive Hug/Rehug-Kernlogik
-  - Status-Endpunkt
-  - Read-only Routen
-  - produktive/schreibende Routen
-  - Dashboard-Schreibfunktionen
-  - Integration-Check als sichere Diagnose
-  - besondere Warnung zu Hug/Rehug/HugAll/on-off/stats/top/reload/admin-post
-  - Regeln für spätere Hug-Diagnosekarten
-- Keine Codeänderung.
-- Kein Hug ausgelöst.
-- Kein Rehug ausgelöst.
-- Kein HugAll.
-- Kein on/off.
-- Keine Stats-/Top-Chat-Ausgabe ausgelöst.
-- Kein Reload.
-- Kein Text-Store-Reload.
-- Keine Output-Mode-Änderung.
-- Keine Textpaare gespeichert/gelöscht.
-- Keine Hug-All-Texte gespeichert/gelöscht.
-- Keine Response-Texte gespeichert/gelöscht.
-- Keine TopTitle-Texte gespeichert/gelöscht.
-- Keine DB-Migration.
-- Keine Dashboard-Write-Buttons getestet.
-- Keine Discord-/Twitch-/Chat-Nachricht gepostet.
-
-## CAN-37.1
-
-- Hug-System analysiert.
-- Ergebnis:
-  - Aktives Backend ist `backend/modules/hug.js`.
-  - Dedizierte Doku `docs/modules/hug.md` fehlte.
-  - Modul ist produktiv sensibel wegen DB-Stats und Chat-Output.
+- Hug-Dashboard Diagnose-Tab um erweiterte Read-only-Diagnose vorbereitet.
+- Neue Dateien:
+  - `htdocs/dashboard/modules/hug_diagnostics_ext.js`
+  - `htdocs/dashboard/modules/hug_diagnostics_ext.css`
+- `htdocs/dashboard/index.html` lädt CSS/JS.
+- Keine Änderung an `backend/modules/hug.js`.
+- Keine Änderung an `htdocs/dashboard/modules/hug.js`.
+- Keine produktive Aktion.

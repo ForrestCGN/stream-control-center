@@ -1,112 +1,39 @@
 # CURRENT_STATUS
 
-## Stand: CAN-37.2 vorbereitet
+## Stand: CAN-37.3 vorbereitet
 
-CAN-37.2 ergänzt eine dedizierte Hug-System-Doku mit Read-only-/Write-Regeln.
+CAN-37.3 erweitert den vorhandenen Hug-Tab `Diagnose` um eine zusätzliche Read-only-Diagnose.
 
-## Aktueller Arbeitsbereich
+## Änderung
 
 ```text
-CAN-37: Hug-System Status/Doku/Diagnose prüfen und glätten
+htdocs/dashboard/index.html
+htdocs/dashboard/modules/hug_diagnostics_ext.js
+htdocs/dashboard/modules/hug_diagnostics_ext.css
+project-state/*
+docs/current/CURRENT_CHAT_HANDOFF_CAN37_3.md
 ```
 
-## Ergebnis CAN-37.1 Analyse
-
-Das aktive Hug-Modul ist:
+Nicht geändert:
 
 ```text
 backend/modules/hug.js
+htdocs/dashboard/modules/hug.js
 ```
 
-Nicht vorhanden ist:
-
-```text
-backend/modules/hug_system.js
-```
-
-Das Modul ist produktiv relevant:
-
-```text
-MODULE_NAME = hug
-MODULE_VERSION = 0.1.0
-SCHEMA_VERSION = 3
-routesPrefix = /api/hug, /hug, /api/dashboard/community/hug
-```
-
-Vorhanden:
-
-```text
-MODULE_META
-/api/hug/status
-/api/hug/config
-/api/hug/settings
-/api/hug/routes
-/api/hug/integration-check
-DB-Settings
-DB-Textpaare
-User-Stats
-Pair-Stats
-Pending-Rehugs
-Chat-Output-Anbindung
-Dashboard-Anbindung
-```
-
-Nicht vorhanden war bisher:
-
-```text
-docs/modules/hug.md
-```
-
-## Änderung CAN-37.2
-
-Neu:
-
-```text
-docs/modules/hug.md
-```
-
-Darin festgehalten:
-
-```text
-- Modulzweck
-- MODULE_META / Version / Routenprefix
-- Datenbanktabellen
-- produktive Hug/Rehug-Kernlogik
-- Status-Endpunkt
-- Read-only Routen
-- produktive/schreibende Routen
-- Dashboard-Schreibfunktionen
-- Integration-Check als sichere Diagnose
-- besondere Warnung zu Hug/Rehug/HugAll/on/off/stats/top/reload/admin-post
-- Regeln für spätere Hug-Diagnosekarten
-```
-
-## Wichtigste Sicherheitsentscheidung
-
-Read-only Diagnose darf nutzen:
+## Genutzte Routen
 
 ```text
 GET /api/hug/status
-GET /api/hug/db/status
-GET /api/dashboard/community/hug/status
-GET /api/hug/config
-GET /api/hug/settings
 GET /api/hug/routes
 GET /api/hug/integration-check
-GET /api/hug/db/output-mode
-GET /api/hug/types
-GET /api/hug/texts
 GET /api/hug/admin/text-pairs
-GET /api/dashboard/community/hug/text-pairs
 GET /api/hug/admin/hug-all-texts
-GET /api/dashboard/community/hug/hug-all-texts
 GET /api/hug/admin/response-texts
-GET /api/dashboard/community/hug/response-texts
 GET /api/hug/admin/top-title-texts
-GET /api/dashboard/community/hug/top-title-texts
 ```
 
-Nicht automatisch verwenden:
+## Nicht genutzt
 
 ```text
 POST /api/hug/action
@@ -126,29 +53,15 @@ POST /api/hug/admin/top-title-texts
 ## Nicht geändert
 
 ```text
-Keine Codeänderung.
-Kein Hug ausgelöst.
-Kein Rehug ausgelöst.
-Kein HugAll.
-Kein on/off.
-Keine Stats-/Top-Chat-Ausgabe ausgelöst.
+Keine Backend-Dateien.
+Keine Hug-Hauptdatei.
+Keine API-Routen.
+Kein Hug/Rehug/HugAll/on/off.
+Keine Stats-/Top-Chat-Ausgabe.
 Kein Reload.
 Kein Text-Store-Reload.
 Keine Output-Mode-Änderung.
-Keine Textpaare gespeichert/gelöscht.
-Keine Hug-All-Texte gespeichert/gelöscht.
-Keine Response-Texte gespeichert/gelöscht.
-Keine TopTitle-Texte gespeichert/gelöscht.
+Keine Text-/Setting-Änderung.
 Keine DB-Migration.
-Keine Dashboard-Write-Buttons getestet.
-Keine Discord-/Twitch-/Chat-Nachricht gepostet.
-Keine OBS-/Sound-/Queue-Aktion.
 Keine Funktionalität entfernt.
-```
-
-## Nächster Schritt
-
-```text
-CAN-37.2 anwenden.
-Danach optional CAN-37.3 Hug Dashboard Diagnose-Tab prüfen/erweitern.
 ```

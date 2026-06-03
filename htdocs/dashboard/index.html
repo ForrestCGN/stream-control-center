@@ -27,6 +27,7 @@
   <link rel="stylesheet" href="/dashboard/modules/message_rotator_diagnostics_ext.css" />
   <link rel="stylesheet" href="/dashboard/modules/tts.css" />
   <link rel="stylesheet" href="/dashboard/modules/hug.css" />
+  <link rel="stylesheet" href="/dashboard/modules/hug_diagnostics_ext.css" />
   <link rel="stylesheet" href="/dashboard/modules/deathcounter.css" />
   <link rel="stylesheet" href="/dashboard/modules/tagebuch.css" />
   <link rel="stylesheet" href="/dashboard/modules/tagebuch_readonly_diagnostics.css" />
@@ -64,9 +65,18 @@
     </aside>
     <main class="main">
       <header class="topbar glass">
-        <div><div id="pageBreadcrumb" class="page-breadcrumb">Live / Übersicht</div><h1 id="pageTitle">Live</h1></div>
-        <div class="top-actions"><button id="navToggle" class="nav-toggle" title="Navigation ein-/ausklappen">☰</button><button id="themeToggle" class="theme-toggle" title="Hell/Dunkel umschalten">🌙 Dunkel</button><a id="overlayOpenLink" class="ghost-link" href="/overlays/_overlay-alerts-v2.html" target="_blank" hidden>Overlay öffnen</a><button id="reloadBtn">Reload</button></div>
+        <div>
+          <div id="pageBreadcrumb" class="page-breadcrumb">Live / Übersicht</div>
+          <h1 id="pageTitle">Live</h1>
+        </div>
+        <div class="top-actions">
+          <button id="navToggle" class="nav-toggle" title="Navigation ein-/ausklappen">☰</button>
+          <button id="themeToggle" class="theme-toggle" title="Hell/Dunkel umschalten">🌙 Dunkel</button>
+          <a id="overlayOpenLink" class="ghost-link" href="/overlays/_overlay-alerts-v2.html" target="_blank" hidden>Overlay öffnen</a>
+          <button id="reloadBtn">Reload</button>
+        </div>
       </header>
+
       <section id="sectionhomeModule" class="dashboard-module sectionhome-admin" data-module-panel="sectionhome"></section>
       <section id="streamdeskModule" class="dashboard-module streamdesk-admin" data-module-panel="streamdesk" hidden></section>
       <section id="clipsModule" class="dashboard-module clips-admin" data-module-panel="clips" hidden></section>
@@ -119,6 +129,7 @@
   <script src="/dashboard/modules/message_rotator.js"></script>
   <script src="/dashboard/modules/message_rotator_diagnostics_ext.js"></script>
   <script src="/dashboard/modules/hug.js"></script>
+  <script src="/dashboard/modules/hug_diagnostics_ext.js"></script>
   <script src="/dashboard/modules/deathcounter.js"></script>
   <script src="/dashboard/modules/tagebuch.js"></script>
   <script src="/dashboard/modules/tagebuch_readonly_diagnostics.js"></script>
