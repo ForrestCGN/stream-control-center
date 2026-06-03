@@ -1,16 +1,17 @@
 # CHANGELOG
 
-## CAN-42.1b
+## CAN-42.2
 
-- Zentrale Admin-Diagnose bereinigt:
-  - sichtbare Routenliste in der Moduldetailansicht entfernt.
-  - Routenanzahl bleibt erhalten.
-  - Rohdaten bleiben einklappbar.
+- Diagnose-Standard definiert:
+  - `docs/modules/diagnostics_standard.md`
+- `docs/modules/diagnostics.md` aktualisiert.
+- Umgang mit leeren Feldern dokumentiert.
+- Mindest-/Empfehlungsfelder für Modulstatus festgelegt.
 - Keine Backend-Änderung.
+- Keine Dashboard-Codeänderung.
 - Keine API-POSTs.
 - Keine produktive Aktion.
-- Keine Funktionalität entfernt.
 
-## CAN-42.1
+## CAN-42.1b
 
-- Zentrale Admin-Diagnose-Grundseite vorbereitet.
+- Sichtbare Routenliste aus zentraler Diagnose entfernt.

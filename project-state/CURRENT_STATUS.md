@@ -1,47 +1,67 @@
 # CURRENT_STATUS
 
-## Stand: CAN-42.1b vorbereitet
+## Stand: CAN-42.2 vorbereitet
 
-CAN-42.1b entfernt in der zentralen Admin-Diagnose die sichtbare Routenliste aus der Moduldetailansicht.
+CAN-42.2 definiert den Standard für zentrale Admin-Diagnosefelder.
 
-## Änderung
+## Entscheidung
+
+```text
+Diagnose gehört zentral nach Admin > Diagnose.
+Modul-Seiten bleiben Bedienseiten.
+Keine neuen Diagnosekarten direkt in einzelne Module.
+Fehlende Diagnosefelder sind kein Fehler, sondern zeigen Standardisierungsbedarf.
+```
+
+## Änderung CAN-42.2
 
 Geändert:
 
 ```text
-htdocs/dashboard/modules/diagnostics.js
+docs/modules/diagnostics.md
+docs/modules/diagnostics_standard.md
 project-state/*
-docs/current/CURRENT_CHAT_HANDOFF_CAN42_1b.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN42_2.md
 ```
 
 Nicht geändert:
 
 ```text
 backend/*
-htdocs/dashboard/index.html
-htdocs/dashboard/modules/diagnostics.css
+htdocs/dashboard/*
 bestehende Modul-Dateien
 ```
 
-## Verhalten
+## Kernaussage
+
+Jedes Modul soll langfristig vergleichbare Statusfelder liefern:
 
 ```text
-Admin > Diagnose bleibt zentrale Diagnose-Grundseite.
-Routenanzahl bleibt als Kennzahl sichtbar.
-Routenliste unten in den Moduldetails wird nicht mehr angezeigt.
-Rohdaten bleiben einklappbar verfügbar.
-Keine API-POSTs.
-Keine produktive Aktion.
-Kein MutationObserver.
+module
+version
+enabled
+status
+schemaVersion
+configSource
+textSource
+database
+routesCount
+lastError
+lastLoadedAt
+eventBus später
 ```
 
-## Grund
+## Umgang mit leeren Feldern
 
-Die sichtbare Routenliste war zu viel Detailinformation für die normale Diagnoseansicht. Für Alltag und Owner-/Admin-Blick reichen Statuswerte und Routenanzahl. Technische Details können bei Bedarf über Rohdaten oder Doku geprüft werden.
+```text
+- als "-" anzeigen
+- nicht als Fehler werten
+- im Inventar notieren
+- später Modulstatus sanft erweitern
+```
 
 ## Nächster Schritt
 
 ```text
-CAN-42.1b anwenden und Sichttest machen.
-Danach CAN-42.2 Modul-Diagnose-/Hinweis-Inventar erstellen.
+CAN-42.3 Modul-Diagnose-/Hinweis-Inventar erstellen.
 ```

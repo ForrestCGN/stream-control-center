@@ -4,18 +4,20 @@
 
 - [x] CAN-42.0 Zentrale Admin-Diagnose konzipieren.
 - [x] CAN-42.1 Admin Diagnose Grundseite bauen.
-- [ ] CAN-42.1b Admin Diagnose Routenliste aus Detailansicht entfernen.
-- [ ] CAN-42.2 Modul-Diagnose-/Hinweis-Inventar erstellen.
-- [ ] CAN-42.3 erste alte Modul-Diagnosen zentral nachbilden/aus Modul entfernen.
+- [x] CAN-42.1b Admin Diagnose Routenliste aus Detailansicht entfernen.
+- [ ] CAN-42.2 Diagnose-Standard definieren.
+- [ ] CAN-42.3 Modul-Diagnose-/Hinweis-Inventar erstellen.
+- [ ] CAN-42.4 erste alte Modul-Diagnosen zentral nachbilden/aus Modul entfernen.
 
-## Neue Diagnose-Regel
+## Diagnose-Standard
 
-- [x] Diagnose gehört zentral nach Admin > Diagnose.
-- [x] Modul-Seiten bleiben Bedienseiten.
-- [x] Keine neuen Diagnosekarten direkt in einzelne Module.
-- [ ] Bestehende Modul-Diagnosen später schrittweise zentralisieren.
+- [x] Zentrale Diagnose-Regel definiert.
+- [x] Mindestfelder definiert.
+- [x] Umgang mit fehlenden Feldern definiert.
+- [ ] Modulstatus-Felder inventarisieren.
+- [ ] Module nach und nach sanft standardisieren.
 
 ## Offene/zu beobachtende Punkte
 
-- [ ] Nach CAN-42.1b prüfen: keine sichtbare Routenliste in Moduldetails.
 - [ ] Bestehende Modul-Diagnose-Extensions inventarisieren.
+- [ ] Fehlende Diagnosefelder je Modul dokumentieren.
