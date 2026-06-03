@@ -1,7 +1,7 @@
 window.DiagnosticsGenericDetails = (function(){
   'use strict';
 
-  const MODULE_VERSION = '0.1.0-can42-12c';
+  const MODULE_VERSION = '0.1.0-can42-12d';
   const ENDPOINTS = {
     birthday: '/api/birthday/status',
     todo: '/api/todo/status',
@@ -139,6 +139,18 @@ window.DiagnosticsGenericDetails = (function(){
     return `<div class="diagnostics-note ${cls || ''}"><strong>${esc(title)}:</strong> ${esc(items.map(item => cleanText(item)).filter(Boolean).join(', '))}</div>`;
   }
 
+  function removeLegacyExplainNotes(root) {
+    if (!root) return;
+    const removableTexts = [
+      'Tagebuch-Diagnose liest den standardisierten diagnostics-Block aus /api/tagebuch/status.',
+      'Dieser Block wird generisch aus diagnostics der jeweiligen Statusroute erzeugt.'
+    ];
+    root.querySelectorAll('.diagnostics-note').forEach(node => {
+      const text = cleanText(node.textContent).replace(/\s+/g, ' ');
+      if (removableTexts.includes(text)) node.remove();
+    });
+  }
+
   function renderGenericSection(key, status, diagnostics) {
     if (!diagnostics || typeof diagnostics !== 'object') return '';
     const countCards = entriesFromObject(diagnostics.counts || {}, { max: 48 });
@@ -158,7 +170,6 @@ window.DiagnosticsGenericDetails = (function(){
       ${runtimeCards.length ? `<h5>Runtime</h5><div class="diagnostics-grid">${runtimeCards.join('')}</div>` : ''}
       ${listBlock('Warnungen', diagnostics.warnings, 'warn')}
       ${listBlock('Fehler', diagnostics.errors, 'warn')}
-      <p class="diagnostics-note">Dieser Block wird generisch aus <code>diagnostics</code> der jeweiligen Statusroute erzeugt.</p>
     </section>`;
   }
 
@@ -184,6 +195,7 @@ window.DiagnosticsGenericDetails = (function(){
 
     const card = root.querySelector('.diagnostics-card-main');
     if (!card) return;
+    removeLegacyExplainNotes(card);
 
     try {
       const status = await fetchStatus(key);
@@ -205,6 +217,7 @@ window.DiagnosticsGenericDetails = (function(){
         if (details) details.insertAdjacentHTML('beforebegin', html);
         else card.insertAdjacentHTML('beforeend', html);
       }
+      removeLegacyExplainNotes(card);
       lastKey = key;
       lastPatchAt = Date.now();
     } catch (err) {

@@ -1,35 +1,34 @@
 # NEXT_STEPS
 
-## Direkt als nächstes
+## Direkt nächster Schritt
 
-CAN-42.12c anwenden und Dashboard prüfen:
+CAN-42.12d anwenden und prüfen:
 
 ```powershell
-.\stepdone.cmd "CAN-42.12c Dashboard generic diagnostics details renderer"
+.\stepdone.cmd "CAN-42.12d Dashboard diagnostics text cleanup"
 node -c htdocs\dashboard\modules\diagnostics_generic_details.js
+node -c htdocs\dashboard\modules\diagnostics_hug_display_fix.js
 ```
 
-Danach im Dashboard mit hartem Reload prüfen:
+Dann Dashboard hart neu laden und prüfen:
 
 ```text
+Admin > Diagnose > Tagebuch
 Admin > Diagnose > Hug-System
 Admin > Diagnose > Commands
-Admin > Diagnose > Tagebuch
-Admin > Diagnose > Todo
 ```
 
-Erwartung: Bei Modulen mit `diagnostics.counts` erscheint ein generischer Block „Standard-Diagnostics“.
+Erwartung: Die Diagnosewerte bleiben sichtbar, die erklärenden Fußnoten sind verschwunden.
 
 ## Danach
 
-CAN-42.13: Message-Rotator auf Diagnostics-Standard prüfen/angleichen.
+CAN-42.13: Message-Rotator auf diagnostics-Standard prüfen/angleichen.
 
-## Weiterhin nicht ohne separaten Go-Schritt
+## Nicht ohne separaten Go-Schritt
 
 ```text
-Keine produktiven Aktionen
-Keine POST-Testbuttons in Diagnose
 Keine Backend-Routen entfernen
+Keine produktiven Aktionen ändern
 Keine DB-Migration
 Keine Funktionalität entfernen
 ```

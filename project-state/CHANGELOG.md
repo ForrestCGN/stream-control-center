@@ -1,23 +1,20 @@
 # CHANGELOG
 
-## CAN-42.12c - Dashboard generischer Diagnostics-Details-Renderer
+## CAN-42.12d
+
+Dashboard-Diagnose-Textcleanup vorbereitet.
 
 Geändert:
 
 ```text
-htdocs/dashboard/index.html
 htdocs/dashboard/modules/diagnostics_generic_details.js
-project-state/*
-docs/current/*
 ```
 
-Details:
+Entfernt werden nur erklärende Fußnoten aus der Anzeige:
 
 ```text
-- Neuer read-only Renderer für generische Detailwerte aus diagnostics-Blöcken.
-- Anzeige von diagnostics.counts, diagnostics.database, diagnostics.state, diagnostics.queue, diagnostics.runtime, warnings und errors, wenn vorhanden.
-- Version/Schema/Routen/Config/Textsystem/Fehler werden generisch aus diagnostics nachgezogen.
-- Keine Backend-Änderung.
-- Keine produktiven Aktionen.
-- Keine Funktionalität entfernt.
+Tagebuch-Diagnose liest den standardisierten diagnostics-Block aus /api/tagebuch/status.
+Dieser Block wird generisch aus diagnostics der jeweiligen Statusroute erzeugt.
 ```
+
+Keine Backend-Änderung, keine Statusrouten-Änderung, keine produktive Aktion, keine Funktionalität entfernt.

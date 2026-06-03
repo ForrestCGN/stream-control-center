@@ -1,39 +1,31 @@
 # CURRENT_STATUS
 
-## Aktueller Stand: CAN-42.12c vorbereitet
+## Aktueller Arbeitsstand
 
-Die zentrale Dashboard-Diagnose wurde nach CAN-42.12b erweitert:
+CAN-42.12d vorbereitet: Dashboard-Diagnose-Textcleanup.
 
-```text
-CAN-42.10 Tagebuch Modul-Diagnose aus Modul-Seite entfernt/deaktiviert
-CAN-42.11 Commands /status mit standardisiertem diagnostics-Block
-CAN-42.12 Hug /status mit standardisiertem diagnostics-Block
-CAN-42.12b Dashboard Hug-Diagnose Anzeige-Fix
-CAN-42.12c Dashboard generischer Diagnostics-Details-Renderer
-```
+## Ergebnis
 
-## Ergebnis CAN-42.12c
+Die generischen Diagnose-Details bleiben aktiv und zeigen zusätzliche Werte aus `diagnostics.counts`, `diagnostics.database`, `diagnostics.state`, `diagnostics.queue`, `diagnostics.runtime`, `diagnostics.warnings` und `diagnostics.errors`, wenn vorhanden. Die erklärenden Fußnoten unter Tagebuch-/Standard-Diagnostics werden entfernt.
 
-Ein neuer read-only Frontend-Renderer ergänzt auf Diagnose-Detailseiten generisch vorhandene Inhalte aus `diagnostics`:
+## Geändert
 
 ```text
-counts
-database
-state
-queue
-runtime
-warnings
-errors
+htdocs/dashboard/modules/diagnostics_generic_details.js
+docs/current/DIAGNOSTICS_TEXT_CLEANUP_CAN42_12D.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN42_12D.md
+project-state/*
 ```
-
-Dadurch bekommen Hug, Commands und künftige Module automatisch mehr Detailwerte angezeigt, sobald ihre Statusroute einen standardisierten `diagnostics`-Block liefert.
 
 ## Nicht geändert
 
 ```text
-Backend-Module
-produktive POST-Routen
-Hug-/Command-/Tagebuch-/Todo-Logik
-DB-Schema
-Streamer.bot-/OBS-Flows
+backend/*
+Statusrouten
+Produktive Aktionen
+DB/Migrationen
 ```
+
+## Nächster Schritt
+
+CAN-42.12d anwenden und Sichttest in Admin > Diagnose durchführen. Danach CAN-42.13 Message-Rotator prüfen/angleichen.
