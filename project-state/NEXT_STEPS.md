@@ -1,36 +1,41 @@
 # Next Steps
 
-## Direkt nach CAN-43.7
+## Direkt nach CAN-43.8
 
-1. CAN-43.7 ZIP nach `D:\Git\stream-control-center` entpacken.
+1. CAN-43.8 ZIP nach `D:\Git\stream-control-center` entpacken.
 2. Optional prüfen:
 
 ```powershell
-node -c backend\modules\todo.js
+node -c backend\modules\vip-sound.js
 ```
 
 3. Step abschließen:
 
 ```powershell
-.\stepdone.cmd "CAN-43.7 Todo diagnostics review"
+.\stepdone.cmd "CAN-43.8 VIP-Sound diagnostics review"
 ```
 
 4. Doku committen/pushen.
 
 ## Nächster fachlicher Schritt
 
-CAN-43.8: Ein weiteres Modul nach neuem Diagnose-/Registry-Standard prüfen.
+Die kleine CAN-43-Handoff-Liste ist im Wesentlichen abgearbeitet.
 
-Empfohlener Kandidat:
+Sinnvolle nächste Wege:
 
-1. `vip_sound_overlay`
+1. Weitere Registry-Module prüfen:
+   - `alerts`
+   - `sound_system`
+   - `media`
+   - `obs`
+   - `overlay_monitor`
+   - `communication_bus`
+   - `bus_diagnostics`
+2. Oder bewusst zurück zu einem fachlichen Feature / Umbau.
 
-Hinweis:
+Empfehlung:
 
-Nach `vip_sound_overlay` ist die kleine CAN-43-Handoff-Liste weitgehend abgearbeitet. Danach bewusst entscheiden:
-
-- weitere Registry-Module prüfen
-- oder zurück zu einem fachlichen Feature / Umbau
+Vor dem nächsten Step bewusst entscheiden, ob CAN-43 als Registry-Abnahmerunde weiterläuft oder ob ein Feature-Thema aufgenommen wird.
 
 ## Pflicht bei jedem Modul
 

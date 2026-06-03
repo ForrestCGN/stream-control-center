@@ -20,22 +20,30 @@ CAN-43.6 hat das Modul `tagebuch` als fünftes CAN-43-Fachmodul nach neuem Diagn
 
 CAN-43.7 hat das Modul `todo` als sechstes CAN-43-Fachmodul nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
 
-## CAN-43.7 Ergebnis
+CAN-43.8 hat das Modul `vip_sound_overlay` als siebtes CAN-43-Fachmodul nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
 
-`todo` ist sauber.
+## CAN-43.8 Ergebnis
+
+`vip_sound_overlay` ist sauber.
 
 - Repo/Branch: `dev`
-- HEAD: `976909e5 CAN-43.6 Tagebuch diagnostics review`
+- HEAD: `1774edb0 CAN-43.7 Todo diagnostics review`
 - Lokaler Git-Status: sauber
-- Live-Modul: `todo`
-- Modulversion: `0.1.0`
-- Statusroute: `GET /api/todo/status`
-- Routenübersicht: `GET /api/todo/routes`
-- Integration-Check: `GET /api/todo/integration-check`
-- Schema-Version: `1`
+- Backend-Datei: `backend/modules/vip-sound.js`
+- Live-Modul: `vip_sound_overlay`
+- Modulversion: `0.1.1`
+- Runtime-Version: `1.8.15`
+- Build: `diagnostics-standard`
+- Statusroute: `GET /api/vip-sound/status`
+- Routenübersicht: `GET /api/vip-sound/routes`
+- Integration-Check: `GET /api/vip-sound/integration-check`
+- Schema-Version: `5`
 - Diagnostics: `ok=True`, `health=ok`, `schemaReady=True`
-- Integration-Check: `healthy=True`, keine Warnings, keine Errors
-- Channels: 4/4 konfiguriert
+- Integration-Check: `ok=True`, `14/15 ok`, `1 warning`, `0 errors`
+- Einzige Warnung: `config_fallback file_not_found`, JSON-Fallback fehlt, DB-Settings sind primär
+- Queue: leer
+- Overlay: nicht sichtbar
+- Active Sound: nein
 - Coverage: sauber
 - Codeänderung: keine
 - Modulversion erhöht: nein
