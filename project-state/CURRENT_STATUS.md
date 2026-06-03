@@ -1,21 +1,25 @@
 # CURRENT_STATUS
 
-## Stand: CAN-41.3b vorbereitet
+## Stand: CAN-41.4 vorbereitet
 
-CAN-41.3b entfernt/deaktiviert den Birthday-Safety-Hinweis und die Button-Badges aus CAN-41.3 wieder.
+CAN-41.4 ergänzt eine echte Birthday Read-only Diagnosekarte.
 
-## Grund
+## Aktueller Arbeitsbereich
 
-Aktuell nutzen nur Forrest/Owner das Dashboard. Große Warn-/Safety-Schilder und Badge-Flut sind daher nicht sinnvoll. Wenn später Mods Zugriff bekommen, wird das sauber über Rollen/Rechte/Freigaben, Confirm-Dialoge und Audit-Logging gelöst.
+```text
+CAN-41: Birthday-/Geburtstags-Modul read-only analysieren und diagnosefähig machen
+```
 
-## Änderung CAN-41.3b
+## Änderung CAN-41.4
 
 Geändert:
 
 ```text
 htdocs/dashboard/index.html
+htdocs/dashboard/modules/birthday_readonly_diagnostics.js
+htdocs/dashboard/modules/birthday_readonly_diagnostics.css
 project-state/*
-docs/current/CURRENT_CHAT_HANDOFF_CAN41_3b.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN41_4.md
 ```
 
 Nicht geändert:
@@ -26,30 +30,46 @@ htdocs/dashboard/modules/birthday.js
 htdocs/dashboard/modules/birthday.css
 ```
 
-Effekt:
+## Verhalten
+
+Die Diagnosekarte liest nur:
 
 ```text
-birthday_readonly_safety_ext.css wird nicht mehr geladen.
-birthday_readonly_safety_ext.js wird nicht mehr geladen.
-Der große Birthday-Safety-Hinweis ist weg.
-Die Badge-Markierungen an Buttons sind weg.
+GET /api/birthday/status
+GET /api/birthday/today
+GET /api/birthday/show/state
 ```
 
-Hinweis:
+Nicht abgefragt:
 
 ```text
-Die alten Extension-Dateien können physisch noch im Ordner liegen, werden aber nicht mehr eingebunden und sind damit inaktiv.
+GET /api/birthday/show/queue
 ```
 
-## Neue Dashboard-Regel
+Grund:
 
 ```text
-Keine großen Warn-/Safety-Schilder mehr als Standard.
-Keine Badge-Flut an normalen Buttons.
-Spätere Mod-Freigaben über Rollen/Rechte/Freigaben.
-Kritische Aktionen später gezielt mit Confirm + Audit-Logging.
-Hinweise nur dort, wo sie wirklich fachlich helfen.
-Diagnosekarten sollen echte Statuswerte zeigen, nicht nur Warntexte.
+/show/queue kann intern stale Queue-Cleanup ausführen und ist deshalb nicht streng read-only.
+```
+
+## Angezeigte Werte
+
+```text
+Modul-Version
+Schema-Version
+Modul aktiv
+Auto-Gratulation aktiv
+Tagebuch-Autoeintrag aktiv
+Nur wenn live
+Chat-Hook installiert
+heutige Geburtstage
+registrierte Einträge, falls im Status vorhanden
+Show aktiv/inaktiv
+Show-Phase/Ziel
+Routenanzahl
+Local Date
+letzte Auto-/Greeting-/Command-Zeit
+letzter Fehler
 ```
 
 ## Nicht ausgelöst
@@ -73,6 +93,6 @@ Keine Funktionalität entfernt.
 ## Nächster Schritt
 
 ```text
-CAN-41.3b anwenden und Sichtprüfung machen.
-Danach CAN-41.4 Birthday Read-only Diagnosekarte planen/umsetzen.
+CAN-41.4 anwenden und Sichttest machen.
+Danach CAN-41.5 Testergebnis dokumentieren.
 ```

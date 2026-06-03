@@ -1,17 +1,19 @@
 # FILES
 
-## Aktueller Arbeitsstand CAN-41.3b
+## Aktueller Arbeitsstand CAN-41.4
 
 Geänderte Dateien:
 
 ```text
 htdocs/dashboard/index.html
+htdocs/dashboard/modules/birthday_readonly_diagnostics.js
+htdocs/dashboard/modules/birthday_readonly_diagnostics.css
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/CHANGELOG.md
 project-state/FILES.md
-docs/current/CURRENT_CHAT_HANDOFF_CAN41_3b.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN41_4.md
 ```
 
 Nicht geändert:
@@ -22,31 +24,19 @@ htdocs/dashboard/modules/birthday.js
 htdocs/dashboard/modules/birthday.css
 ```
 
-Nicht mehr eingebunden:
-
-```text
-htdocs/dashboard/modules/birthday_readonly_safety_ext.js
-htdocs/dashboard/modules/birthday_readonly_safety_ext.css
-```
-
-Hinweis:
-
-```text
-Die Extension-Dateien können physisch noch vorhanden sein, sind aber ohne Index-Einbindung inaktiv.
-```
-
 ## CAN-41 ZIPs aus dem Chat
 
 ```text
 CAN-41.2_birthday_docs_readonly_write_rules.zip
 CAN-41.3_birthday_dashboard_readonly_safety_hint.zip
 CAN-41.3b_birthday_remove_safety_hint_badges.zip
+CAN-41.4_birthday_readonly_diagnostics_card.zip
 ```
 
 ## Sicherheitsnotiz
 
 ```text
-CAN-41.3b ändert keinen Backend-Code.
+CAN-41.4 ändert keinen Backend-Code.
 Keine Geburtstags-Show.
 Kein Intro/Video/Song.
 Keine Sound-Bundle-Aktion.

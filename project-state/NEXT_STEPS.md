@@ -3,7 +3,7 @@
 ## Direkt nächster Schritt
 
 ```text
-CAN-41.3b anwenden und Sichtprüfung machen.
+CAN-41.4 anwenden und Sichttest machen.
 ```
 
 ## Prüfung
@@ -15,9 +15,16 @@ Dashboard > Community > Birthday-System
 Erwartung:
 
 ```text
-kein großer Safety-Hinweis mehr
-keine admin/media/show/reload Badges an Buttons
-Birthday-Modul funktioniert optisch wieder normal
+Birthday Read-only Diagnosekarte sichtbar
+Modul-Version sichtbar
+Schema-Version sichtbar
+Modul aktiv/inaktiv sichtbar
+Auto-Gratulation sichtbar
+Chat-Hook sichtbar
+Heute-Anzahl sichtbar
+Show aktiv/inaktiv sichtbar
+letzter Fehler sichtbar
+keine Warnschild-Flut
 keine Show
 kein Sound
 kein Chat
@@ -25,36 +32,10 @@ kein Tagebuch
 keine Admin-POSTs
 ```
 
-## Danach sinnvoll
+## Danach
 
 ```text
-CAN-41.4 - Birthday Read-only Diagnosekarte planen/umsetzen
-```
-
-Ziel für Diagnose:
-
-```text
-echte Statuswerte statt Warntext
-Modulversion
-Schema-Version
-Modul aktiv
-Auto-Gratulation aktiv
-Chat-Hook installiert
-heutige Geburtstage
-registrierte Einträge
-Show aktiv/inaktiv
-letzter Fehler
-```
-
-## Dashboard-Regel ab CAN-41.3b
-
-```text
-Keine großen Warn-/Safety-Schilder mehr als Standard.
-Keine Badge-Flut an normalen Buttons.
-Spätere Mod-Freigaben über Rollen/Rechte/Freigaben.
-Kritische Aktionen später gezielt mit Confirm + Audit-Logging.
-Hinweise nur dort, wo sie wirklich fachlich helfen.
-Diagnosekarten sollen echte Statuswerte zeigen, nicht nur Warntexte.
+CAN-41.5 Testergebnis dokumentieren.
 ```
 
 ## Weiterhin nicht machen ohne separaten Go-Schritt
