@@ -21,14 +21,16 @@ const config = require('./helpers/helper_config');
 const mediaHelper = require('./helpers/helper_media');
 
 const MODULE_NAME = 'media';
-const MODULE_VERSION = '0.1.0';
+const MODULE_VERSION = '0.1.1';
+const MODULE_BUILD = 'diagnostics-standard';
 const SCHEMA_VERSION = 2;
 const API_PREFIX = '/api/media';
 const MEDIA_STEP = 'STEP524';
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
-  build: MEDIA_STEP,
+  build: MODULE_BUILD,
+  step: MEDIA_STEP,
   type: 'runtime',
   category: 'media',
   description: 'Zentrale Medien-Registry fuer Audio, Video, Bilder und Animationen.',
@@ -1198,6 +1200,129 @@ function deleteAsset(req, res) {
   }
 }
 
+
+function buildRoutes() {
+  return [
+    { method: 'GET', path: `${API_PREFIX}/status`, purpose: 'Media-Core Status und Zaehlwerte' },
+    { method: 'GET', path: `${API_PREFIX}/list`, purpose: 'Registrierte Medien auflisten' },
+    { method: 'GET', path: `${API_PREFIX}/resolve`, purpose: 'Ein Medium zentral fuer Module/Use-Cases aufloesen' },
+    { method: 'GET', path: `${API_PREFIX}/categories`, purpose: 'Modul-/Zusatzkategorien fuer Upload und Picker auflisten' },
+    { method: 'POST', path: `${API_PREFIX}/category/upsert`, purpose: 'Zusatzkategorie fuer ein Modul anlegen/aktualisieren' },
+    { method: 'GET', path: `${API_PREFIX}/picker-options`, purpose: 'Picker-Ansicht inklusive view=recent&limit=20 vorbereiten' },
+    { method: 'GET/POST', path: `${API_PREFIX}/scan`, purpose: 'Bestehende Medienordner scannen' },
+    { method: 'POST', path: `${API_PREFIX}/upload`, purpose: 'Medium hochladen und registrieren' },
+    { method: 'POST', path: `${API_PREFIX}/update`, purpose: 'Metadaten aendern' },
+    { method: 'POST', path: `${API_PREFIX}/delete`, purpose: 'Medium soft-delete oder Datei loeschen' },
+    { method: 'GET/POST', path: `${API_PREFIX}/repair-names`, purpose: 'Mediennamen/Dateinamen mit Umlaut-/Mojibake-Artefakten pruefen oder reparieren' }
+  ];
+}
+
+function buildDataEndpoints() {
+  return {
+    assets: `${API_PREFIX}/list`,
+    categories: `${API_PREFIX}/categories`,
+    pickerOptions: `${API_PREFIX}/picker-options`,
+    resolve: `${API_PREFIX}/resolve`
+  };
+}
+
+function safeCountTableRows(tableName, whereSql = '', params = {}) {
+  try {
+    if (!state.schemaOk) return 0;
+    const safeTable = String(tableName || '').replace(/[^a-zA-Z0-9_]/g, '');
+    if (!safeTable) return 0;
+    const row = db.get(`SELECT COUNT(*) AS count FROM ${safeTable} ${whereSql || ''}`, params || {});
+    return Number(row?.count || 0);
+  } catch (_) {
+    return 0;
+  }
+}
+
+function safeDatabaseInfo() {
+  const schemaVersion = (() => {
+    try { return typeof db.getSchemaVersion === 'function' ? db.getSchemaVersion(MODULE_NAME) : SCHEMA_VERSION; }
+    catch (_) { return SCHEMA_VERSION; }
+  })();
+  const adapter = (() => {
+    try { return typeof db.getAdapter === 'function' ? db.getAdapter() : 'sqlite'; }
+    catch (_) { return 'unknown'; }
+  })();
+  const dbPath = (() => {
+    try { return typeof db.getDbPath === 'function' ? db.getDbPath() : ''; }
+    catch (_) { return ''; }
+  })();
+  return {
+    ok: state.schemaOk !== false,
+    adapter,
+    path: dbPath || '',
+    schemaVersion,
+    expectedSchemaVersion: SCHEMA_VERSION,
+    error: state.schemaError || ''
+  };
+}
+
+function buildStandardDiagnostics(context = {}) {
+  const warnings = [];
+  const errors = [];
+  const routes = Array.isArray(context.routes) ? context.routes : buildRoutes();
+  const categories = Array.isArray(context.categories) ? context.categories : [];
+  const counts = context.counts && typeof context.counts === 'object' ? context.counts : {};
+
+  if (!state.initialized) warnings.push('not_initialized');
+  if (!state.schemaOk || state.schemaError) errors.push(state.schemaError || 'schema_not_ready');
+  if (state.lastError && !errors.includes(state.lastError)) warnings.push(state.lastError);
+
+  const assetsDir = getAssetsDir();
+  const mediaRootDir = path.join(assetsDir, 'media');
+  if (!fs.existsSync(assetsDir)) warnings.push('assets_dir_missing');
+  if (!fs.existsSync(mediaRootDir)) warnings.push('media_root_dir_missing');
+
+  const activeAssets = Number(counts.total || 0);
+  const ok = errors.length === 0;
+  const health = ok ? (warnings.length ? 'warn' : 'ok') : 'error';
+
+  return {
+    ok,
+    health,
+    module: MODULE_NAME,
+    version: MODULE_VERSION,
+    build: MODULE_BUILD,
+    step: MEDIA_STEP,
+    schemaVersion: safeDatabaseInfo().schemaVersion,
+    schemaReady: state.schemaOk === true,
+    configSource: 'database_with_json_fallback',
+    textSource: 'not_used',
+    database: safeDatabaseInfo(),
+    counts: {
+      activeAssets,
+      recentAssets: Number(counts.recent || 0),
+      categories: Number(counts.categories || categories.length || 0),
+      audio: Number(counts.audio || 0),
+      video: Number(counts.video || 0),
+      image: Number(counts.image || 0),
+      animation: Number(counts.animation || 0),
+      assetRows: safeCountTableRows('media_assets'),
+      categoryRows: safeCountTableRows('media_categories'),
+      inactiveAssets: safeCountTableRows('media_assets', 'WHERE status != :status', { status: 'active' }),
+      routes: routes.length,
+      mediaTypes: Object.keys(MEDIA_TYPES).length,
+      defaultCategories: DEFAULT_MEDIA_CATEGORIES.length
+    },
+    state: {
+      initialized: state.initialized === true,
+      loadedAt: state.loadedAt || '',
+      lastScanAt: state.lastScanAt || '',
+      lastUploadAt: state.lastUploadAt || '',
+      lastChangeAt: state.lastChangeAt || '',
+      assetsDir,
+      mediaRootDir: normalizeSlashes(mediaRootDir)
+    },
+    warnings,
+    errors,
+    lastError: errors[0] || state.lastError || null
+  };
+}
+
 function statusPayload() {
   ensureSchema();
   const counts = {};
@@ -1208,10 +1333,15 @@ function statusPayload() {
   const total = db.get('SELECT COUNT(*) AS count FROM media_assets WHERE status = :status', { status: 'active' });
   const recent = listAssets({ view: 'recent', status: 'active', limit: 20 });
   const categories = listCategories();
+  const routes = buildRoutes();
+  const countsPayload = { total: Number(total?.count || 0), recent: recent.length, categories: categories.length, ...counts };
   return {
     ok: true,
     module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
     version: 1,
+    diagnosticVersion: MODULE_VERSION,
     step: MEDIA_STEP,
     initialized: state.initialized,
     schemaOk: state.schemaOk,
@@ -1224,24 +1354,15 @@ function statusPayload() {
     assetsDir: getAssetsDir(),
     mediaRootDir: normalizeSlashes(path.join(getAssetsDir(), 'media')),
     mediaDirs: Object.fromEntries(categories.map(cat => [`${cat.moduleKey}/${cat.categoryKey}`, normalizeSlashes(path.join(getAssetsDir(), 'media', cat.moduleKey, cat.categoryKey))])),
-    counts: { total: Number(total?.count || 0), recent: recent.length, categories: categories.length, ...counts },
+    counts: countsPayload,
     types: Object.entries(MEDIA_TYPES).map(([id, meta]) => ({ id, label: meta.label, icon: meta.icon, extensions: meta.extensions })),
     categories,
     recentUploads: recent.map(asset => mediaOptionFromAsset(asset)),
     categoryRules: { moduleKey: 'vom aufrufenden Modul vorgegeben', categoryKey: 'vom User waehlbar/anlegbar', recentUploads: 'virtuelle Ansicht, keine echte Speicher-Kategorie' },
-    routes: [
-      { method: 'GET', path: `${API_PREFIX}/status`, purpose: 'Media-Core Status und Zaehlwerte' },
-      { method: 'GET', path: `${API_PREFIX}/list`, purpose: 'Registrierte Medien auflisten' },
-      { method: 'GET', path: `${API_PREFIX}/resolve`, purpose: 'Ein Medium zentral fuer Module/Use-Cases aufloesen' },
-      { method: 'GET', path: `${API_PREFIX}/categories`, purpose: 'Modul-/Zusatzkategorien fuer Upload und Picker auflisten' },
-      { method: 'POST', path: `${API_PREFIX}/category/upsert`, purpose: 'Zusatzkategorie fuer ein Modul anlegen/aktualisieren' },
-      { method: 'GET', path: `${API_PREFIX}/picker-options`, purpose: 'Picker-Ansicht inklusive view=recent&limit=20 vorbereiten' },
-      { method: 'GET/POST', path: `${API_PREFIX}/scan`, purpose: 'Bestehende Medienordner scannen' },
-      { method: 'POST', path: `${API_PREFIX}/upload`, purpose: 'Medium hochladen und registrieren' },
-      { method: 'POST', path: `${API_PREFIX}/update`, purpose: 'Metadaten aendern' },
-      { method: 'POST', path: `${API_PREFIX}/delete`, purpose: 'Medium soft-delete oder Datei loeschen' },
-      { method: 'GET/POST', path: `${API_PREFIX}/repair-names`, purpose: 'Mediennamen/Dateinamen mit Umlaut-/Mojibake-Artefakten pruefen oder reparieren' }
-    ],
+    routes,
+    routeCount: routes.length,
+    dataEndpoints: buildDataEndpoints(),
+    diagnostics: buildStandardDiagnostics({ counts: countsPayload, categories, recent, routes }),
     note: 'STEP274K bereitet Modul-Kategorien, frei waehlbare Zusatzkategorien und die virtuelle Ansicht Neueste Uploads vor. Neue Uploads landen unter htdocs/assets/media/<module>/<category>/.',
     updatedAt: nowIso()
   };
@@ -1379,4 +1500,4 @@ function init(ctx) {
   return { name: MODULE_NAME, step: MEDIA_STEP };
 }
 
-module.exports = { MODULE_META, MODULE_VERSION, version: MODULE_VERSION, init, statusPayload, listAssets, scanAssets, upsertAsset, getAsset, resolveAssetForUse, mediaOptionFromAsset, soundSystemFileFor, listCategories, ensureCategory, resolveUploadContextFromValues, repairMediaAssetNames, repairTextEncoding, safeAsciiFileName };
+module.exports = { MODULE_META, MODULE_VERSION, version: MODULE_VERSION, init, statusPayload, getStatus: statusPayload, listAssets, scanAssets, upsertAsset, getAsset, resolveAssetForUse, mediaOptionFromAsset, soundSystemFileFor, listCategories, ensureCategory, resolveUploadContextFromValues, repairMediaAssetNames, repairTextEncoding, safeAsciiFileName };

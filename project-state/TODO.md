@@ -11,6 +11,7 @@ Erledigt:
 - CAN-42.14b Dashboard Diagnostics Label-/Zeit-Anzeige-Cleanup
 - CAN-42.14c Dashboard Diagnostics Label-Feinschliff
 - CAN-42.15 Sound-System Status-Diagnostics
+- CAN-42.16 Media Status-Diagnostics
 
 Offen:
 

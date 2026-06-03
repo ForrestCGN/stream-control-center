@@ -1,25 +1,25 @@
 # CURRENT_STATUS
 
-## Aktueller Arbeitsstand CAN-42.15
+## Aktueller Arbeitsstand CAN-42.16
 
-CAN-42.15 vorbereitet: Sound-System `/api/sound/status` liefert zusätzlich einen standardisierten `diagnostics`-Block für die zentrale Admin-Diagnose.
+CAN-42.16 vorbereitet: Medienverwaltung `/api/media/status` liefert zusätzlich einen standardisierten `diagnostics`-Block für die zentrale Admin-Diagnose.
 
 Geändert:
 
 ```text
-backend/modules/sound_system.js
+backend/modules/media.js
 ```
 
 Ergebnis:
 
-- `MODULE_VERSION` wurde auf `0.1.21` erhöht.
+- `MODULE_VERSION` wurde auf `0.1.1` erhöht.
 - `MODULE_BUILD` wurde als `diagnostics-standard` ergänzt.
-- `MODULE_META.build` wurde ergänzt.
-- `/api/sound/status` liefert zusätzlich:
+- `MODULE_META.build` wurde angepasst.
+- `MODULE_META.step` hält den bisherigen STEP-Hinweis weiter fest.
+- `/api/media/status` liefert zusätzlich:
   - `moduleVersion`
   - `moduleBuild`
   - `diagnosticVersion`
-  - `routes`
   - `routeCount`
   - `dataEndpoints`
   - `diagnostics`
@@ -28,11 +28,11 @@ Ergebnis:
 Nicht geändert:
 
 ```text
-Sound-Ausführung
-Queue-/Parallel-Logik
-Play-/Bundle-/Stop-/Skip-/Pause-/Resume-Routen
-EventBus-Test-/Command-Routen
-Overlay-/Device-/Discord-Playback
+Upload-Logik
+Scan-Logik
+Delete-/Update-/Resolve-Logik
+Picker-/Kategorie-Logik
+Asset-Pfade
 DB-Migrationen
 Dashboard-Dateien
 ```

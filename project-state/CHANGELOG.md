@@ -1,31 +1,32 @@
 # CHANGELOG
 
-## CAN-42.15 - Sound-System Status-Diagnostics
+## CAN-42.16 - Media Status-Diagnostics
 
 Geändert:
 
-- `backend/modules/sound_system.js`
-  - `MODULE_VERSION` auf `0.1.21` erhöht.
+- `backend/modules/media.js`
+  - `MODULE_VERSION` auf `0.1.1` erhöht.
   - `MODULE_BUILD = "diagnostics-standard"` ergänzt.
-  - `MODULE_META.build` ergänzt.
-  - Read-only Helper `safeCountTableRows()` ergänzt.
-  - Read-only Helper `buildStandardDiagnostics()` ergänzt.
-  - `/api/sound/status` liefert zusätzlich `moduleVersion`, `moduleBuild`, `diagnosticVersion`, `routes`, `routeCount`, `dataEndpoints` und `diagnostics`.
+  - `MODULE_META.build` angepasst.
+  - `MODULE_META.step` ergänzt, damit der bestehende STEP524-Hinweis erhalten bleibt.
+  - Read-only Helper `buildRoutes()`, `buildDataEndpoints()`, `safeCountTableRows()`, `safeDatabaseInfo()` und `buildStandardDiagnostics()` ergänzt.
+  - `/api/media/status` liefert zusätzlich `moduleVersion`, `moduleBuild`, `diagnosticVersion`, `routeCount`, `dataEndpoints` und `diagnostics`.
+  - `module.exports.getStatus` ergänzt.
 
 Der neue `diagnostics`-Block enthält:
 
-- `counts` für Queue, aktive Sounds, konfigurierte Sounds, Routen, Settings, SoundBus-, CommandBus- und CAN-Bus-Zähler.
-- `database` mit Adapter, Pfad, Schema-Version und Settings-Tabelle.
-- `state` mit Enabled/Pause/Phase, Client-, Device-, Discord-, SoundBus- und CAN-Bus-Status.
+- `counts` für aktive Medien, letzte Medien, Kategorien, Media-Typen, Tabellenzeilen und Routen.
+- `database` mit Adapter, Pfad, Schema-Version und erwarteter Schema-Version.
+- `state` mit Initialisierung, Ladezeit, letztem Scan, letztem Upload, letzter Änderung und Pfaden.
 - `warnings`, `errors`, `lastError`.
 
 Nicht geändert:
 
-- keine Sound-Ausführung
-- keine Queue-/Parallel-/Bundle-Logik
-- keine Play-/Stop-/Skip-/Pause-/Resume-Routen
-- keine EventBus-Test-/Command-Routen
-- keine Overlay-/Device-/Discord-Playback-Logik
+- keine Upload-Logik
+- keine Scan-Logik
+- keine Delete-/Update-/Resolve-Logik
+- keine Picker-/Kategorie-Logik
+- keine Asset-Pfade
 - keine DB-Migration
 - keine Dashboard-Dateien
 - keine Funktionalität entfernt
