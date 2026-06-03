@@ -18,7 +18,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.19";
+const MODULE_VERSION = "0.2.20";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -141,6 +141,8 @@ const DEFAULT_CONFIG = {
       perStreamerCooldownMs: 43200000,
       sendChatMessage: true,
       storeSkippedEvents: false,
+      suppressImmediateQueuedMessage: true,
+      immediateQueuedMessageThresholdMs: 10000,
       queuedMessage: "📺 @{displayName} wurde der Shoutout-Warteliste hinzugefügt. Wartezeit: ca. {waitTime}.",
       messages: {
         queued: "📺 @{displayName} wurde der Shoutout-Warteliste hinzugefügt. Wartezeit: ca. {waitTime}.",
@@ -380,13 +382,14 @@ function blockQueueBySceneGate(tableName, row, gate, eventName, cfg) {
 
 function formatApproxDuration(ms) {
   const n = Math.max(0, Number(ms || 0));
-  if (!n) return "kurz";
+  if (!n) return "wenige Sekunden";
   const totalSeconds = Math.ceil(n / 1000);
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
   if (hours > 0) return `${hours} Std. ${minutes} Min.`;
   if (minutes > 0) return `${minutes} Min. ${seconds ? seconds + " Sek." : ""}`.trim();
+  if (seconds <= 10) return "wenige Sekunden";
   return `${seconds} Sek.`;
 }
 
@@ -3491,6 +3494,8 @@ function normalizeAutoSettings(input = {}, fallback = {}) {
     globalCooldownMs: Math.max(0, Number(input.globalCooldownMs === undefined ? base.globalCooldownMs : input.globalCooldownMs) || 0),
     perStreamerCooldownMs: Math.max(0, Number(input.perStreamerCooldownMs === undefined ? base.perStreamerCooldownMs : input.perStreamerCooldownMs) || 0),
     sendChatMessage: input.sendChatMessage === undefined ? base.sendChatMessage !== false : database.boolFromDb(database.normalizeBool(input.sendChatMessage)),
+    suppressImmediateQueuedMessage: input.suppressImmediateQueuedMessage === undefined ? base.suppressImmediateQueuedMessage !== false : database.boolFromDb(database.normalizeBool(input.suppressImmediateQueuedMessage)),
+    immediateQueuedMessageThresholdMs: Math.max(0, Number(input.immediateQueuedMessageThresholdMs === undefined ? base.immediateQueuedMessageThresholdMs : input.immediateQueuedMessageThresholdMs) || 0),
     storeSkippedEvents: input.storeSkippedEvents === undefined ? base.storeSkippedEvents === true : database.boolFromDb(database.normalizeBool(input.storeSkippedEvents)),
     queuedMessage,
     messages,
@@ -3787,7 +3792,7 @@ async function handleAutoShoutoutChatActivity(parsed, source = {}, env = process
 
   const streamDay = resolveCurrentStreamDay(env, cfg);
   const streamDayId = streamDay && streamDay.streamDayId ? String(streamDay.streamDayId) : '';
-  const varsBase = { login, displayName: streamer.displayName || displayName || login, waitTime: 'kurz', streamDayId };
+  const varsBase = { login, displayName: streamer.displayName || displayName || login, waitTime: 'wenige Sekunden', streamDayId };
 
   const pendingDisplay = findPendingDisplayShoutout(login);
   if (pendingDisplay) {
@@ -3855,7 +3860,8 @@ async function handleAutoShoutoutChatActivity(parsed, source = {}, env = process
     const ok = Boolean(data.ok && data.queued !== false && !data.blocked);
     const status = ok ? 'triggered' : 'skipped';
     const reason = ok ? (sceneGate.active ? 'queued_waiting_start_scene' : 'queued') : (data.reason || data.error || 'handle_run_not_queued');
-    const waitTime = formatApproxDuration(estimateDisplayWaitMsForQueueId(displayQueueId, cfg));
+    const waitMs = estimateDisplayWaitMsForQueueId(displayQueueId, cfg);
+    const waitTime = formatApproxDuration(waitMs);
 
     insertAutoShoutoutEvent({
       targetLogin: login,
@@ -3866,7 +3872,7 @@ async function handleAutoShoutoutChatActivity(parsed, source = {}, env = process
       status,
       reason,
       displayQueueId,
-      meta: { source, streamState, sceneGate, streamDay, result: data, waitTime }
+      meta: { source, streamState, sceneGate, streamDay, result: data, waitTime, waitMs }
     });
 
     if (ok) {
@@ -3876,10 +3882,14 @@ async function handleAutoShoutoutChatActivity(parsed, source = {}, env = process
       state.autoShoutout.lastError = '';
       if (acfg.sendChatMessage !== false) {
         const key = sceneGate.active ? 'waitingStartScene' : 'queued';
-        sendAutoChatNotice(acfg, key, { login, displayName: streamer.displayName || displayName || login, waitTime, reason, displayQueueId }, cfg).catch(err => { state.autoShoutout.lastError = err && err.message ? err.message : String(err); });
+        const thresholdMs = Math.max(0, Number(acfg.immediateQueuedMessageThresholdMs || 0));
+        const isImmediate = !sceneGate.active && waitMs <= thresholdMs;
+        if (!(acfg.suppressImmediateQueuedMessage !== false && isImmediate)) {
+          sendAutoChatNotice(acfg, key, { login, displayName: streamer.displayName || displayName || login, waitTime, reason, displayQueueId, waitMs }, cfg).catch(err => { state.autoShoutout.lastError = err && err.message ? err.message : String(err); });
+        }
       }
-      emitShoutoutBus('shoutout.auto.triggered', { targetLogin: login, displayName: streamer.displayName || displayName || login, displayQueueId, streamDayId, sceneGate, waitTime }, cfg);
-      return { ok: true, triggered: true, targetLogin: login, displayQueueId, reason, waitTime, sceneGate, result: data };
+      emitShoutoutBus('shoutout.auto.triggered', { targetLogin: login, displayName: streamer.displayName || displayName || login, displayQueueId, streamDayId, sceneGate, waitTime, waitMs }, cfg);
+      return { ok: true, triggered: true, targetLogin: login, displayQueueId, reason, waitTime, waitMs, sceneGate, result: data };
     }
 
     state.stats.autoSkipped += 1;
