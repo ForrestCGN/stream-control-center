@@ -1,35 +1,50 @@
 # CURRENT_STATUS
 
-## Stand: CAN-42.6 vorbereitet
+## Stand: CAN-42.6b vorbereitet
 
-CAN-42.6 erweitert `GET /api/todo/status` um einen standardisierten `diagnostics`-Block.
+CAN-42.6b ergänzt das Projekt-ToDo: Alle Module sollen nach und nach auf den standardisierten Diagnose-Block geprüft/angeglichen werden. Alte Diagnose-Module/-Extensions sollen danach entfernt/deaktiviert werden, soweit die zentrale Diagnose die Informationen abbildet.
 
-## Änderung
+## Todo Referenzstatus
+
+`GET /api/todo/status` liefert jetzt erfolgreich:
+
+```text
+diagnostics.ok = true
+diagnostics.health = ok
+diagnostics.counts.targets = 4
+diagnostics.counts.channelsConfigured = 4
+diagnostics.counts.channelsTotal = 4
+diagnostics.counts.missingChannels = 0
+diagnostics.counts.userStats = 10
+diagnostics.counts.dailyStats = 27
+diagnostics.counts.settings = 5
+diagnostics.counts.textVariants = 13
+diagnostics.counts.legacyTexts = 13
+```
+
+## Änderung CAN-42.6b
 
 Geändert:
 
 ```text
-backend/modules/todo.js
-docs/modules/todo.md
-docs/current/TODO_STATUS_DIAGNOSTICS_STANDARD_CAN42_6.md
-project-state/*
-docs/current/CURRENT_CHAT_HANDOFF_CAN42_6.md
+project-state/TODO.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+docs/current/DIAGNOSTICS_STANDARD_ALL_MODULES_TODO_CAN42_6B.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN42_6B.md
 ```
 
-## Ergebnis
+Nicht geändert:
 
 ```text
-Todo /status liefert zusätzlich diagnostics.
-Bestehende Statusfelder bleiben erhalten.
-Keine Route entfernt.
-Keine DB-Migration.
-Keine produktive Aktion.
-Keine Funktionalität entfernt.
+backend/*
+htdocs/dashboard/*
 ```
 
 ## Nächster Schritt
 
 ```text
-CAN-42.6 anwenden und /api/todo/status prüfen.
-Danach CAN-42.7 Admin-Diagnose liest Todo diagnostics-Block bevorzugt.
+CAN-42.7 - Admin-Diagnose liest Todo diagnostics-Block bevorzugt.
 ```

@@ -1,17 +1,17 @@
 # CHANGELOG
 
-## CAN-42.6
+## CAN-42.6b
 
-- `backend/modules/todo.js` erweitert:
-  - `buildStandardDiagnostics()` ergänzt.
-  - `GET /api/todo/status` liefert zusätzlich `diagnostics`.
-- Bestehende Statusfelder bleiben erhalten.
-- Keine neue Route.
-- Keine Route entfernt.
-- Keine DB-Migration.
+- Projekt-ToDo ergänzt:
+  - Alle Module auf standardisierten `diagnostics`-Block prüfen/angleichen.
+  - Alte Diagnose-Module/-Extensions aus Modul-Seiten entfernen/deaktivieren, sobald zentral abgebildet.
+- Todo als erste Referenzumsetzung dokumentiert.
+- Keine Backend-Änderung.
+- Keine Dashboard-Codeänderung.
+- Keine API-POSTs.
 - Keine produktive Aktion.
 - Keine Funktionalität entfernt.
 
-## CAN-42.5c
+## CAN-42.6
 
-- Todo integration-check Rohdaten und Counts in Admin-Diagnose korrigiert.
+- Todo `/api/todo/status` liefert zusätzlich `diagnostics`.
