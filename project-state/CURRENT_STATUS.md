@@ -1,45 +1,49 @@
 # CURRENT_STATUS
 
-## Stand: CAN-42.11 vorbereitet
+## Aktueller Stand: CAN-42.12 vorbereitet
 
-CAN-42.11 gleicht `GET /api/commands/status` an den zentralen diagnostics-Standard an.
-
-## Änderung
+CAN-42.12 erweitert das Hug-Modul um einen standardisierten `diagnostics`-Block im bestehenden Status-Payload.
 
 Geändert:
 
 ```text
-backend/modules/commands.js
-project-state/*
-docs/current/CURRENT_CHAT_HANDOFF_CAN42_11.md
-docs/current/COMMANDS_STATUS_DIAGNOSTICS_CAN42_11.md
+backend/modules/hug.js
 ```
 
-## Ergebnis
+Ergebnis:
+
+- `/api/hug/status` liefert weiterhin den bestehenden Hug-Dashboard-Status.
+- Zusätzlich enthält der Status jetzt `diagnostics` mit `ok`, `health`, `module`, `version`, `build`, `schemaVersion`, `schemaReady`, `database`, `counts`, `warnings`, `errors` und `lastError`.
+- `MODULE_VERSION` wurde auf `0.1.1` gesetzt.
+- `MODULE_BUILD` wurde als `diagnostics-standard` ergänzt.
+- Bestehende Hug-/Rehug-Commands, Texteditoren, Reloads, Stats, Toplisten, Datenbanktabellen und produktive POST-/GET-Flows wurden nicht verändert.
+
+Nicht geändert:
 
 ```text
-/api/commands/status liefert weiterhin den bisherigen leichten Status.
-Zusätzlich liefert /api/commands/status jetzt einen standardisierten diagnostics-Block.
-Admin > Diagnose > Commands kann Commands damit nach dem zentralen Diagnose-Standard auswerten.
+Keine Command-Ausführung
+Keine Hug-/Rehug-Logik
+Keine Textbearbeitungslogik
+Keine Output-/Chat-Ausgabe
+Keine DB-Migration
+Keine Route entfernt
+Keine Funktionalität entfernt
 ```
 
-## Nicht geändert
+Letzter lokaler Syntax-Check im Chat:
 
-```text
-Keine Command-Ausführung geändert.
-Keine Trigger geändert.
-Keine Aliase geändert.
-Keine Permissions geändert.
-Keine Cooldowns geändert.
-Keine Zielrouten geändert.
-Keine DB-Migration.
-Keine produktiven Flows geändert.
-Keine Funktionalität entfernt.
+```powershell
+node --check backend/modules/hug.js
 ```
 
-## Nächster Schritt
+Nächster Schritt nach dem Entpacken:
 
-```text
-CAN-42.11 anwenden und prüfen.
-Danach nächstes Modul auf diagnostics-Standard prüfen/angleichen, z. B. Hug oder Message-Rotator.
+```powershell
+.\stepdone.cmd "CAN-42.12 Hug status diagnostics-standard"
+node -c backend\modules\hug.js
+
+$h = Invoke-RestMethod "http://127.0.0.1:8080/api/hug/status"
+$h | Select-Object ok,module,moduleVersion,moduleBuild,version,enabled,schemaVersion,lastError
+$h.diagnostics | Select-Object ok,health,module,version,build,schemaVersion,schemaReady,lastError
+$h.diagnostics.counts
 ```

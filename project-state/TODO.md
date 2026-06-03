@@ -1,37 +1,29 @@
 # TODO
 
-## CAN-42
+## CAN-42 Diagnose-Standard
 
-- [x] CAN-42.0 Zentrale Admin-Diagnose konzipieren.
-- [x] CAN-42.1 Admin Diagnose Grundseite bauen.
-- [x] CAN-42.1b Admin Diagnose Routenliste aus Detailansicht entfernen.
-- [x] CAN-42.2 Diagnose-Standard definieren.
-- [x] CAN-42.3 Modul-Diagnose-/Hinweis-Inventar erstellen.
-- [x] CAN-42.4 Todo-Diagnosewerte zentral in Admin > Diagnose abbilden.
-- [x] CAN-42.4b Admin Diagnose Ampelübersicht bauen.
-- [x] CAN-42.4c Admin Diagnose Statusmapping korrigieren.
-- [x] CAN-42.4d Todo Integration-Mapping final korrigieren.
-- [x] CAN-42.4e Modultabelle an Ampelstatus angleichen.
-- [x] CAN-42.5 Todo-Diagnose-Tab aus Todo-Modul entfernen/deaktivieren.
-- [x] CAN-42.5b Todo Detailwerte in Admin-Diagnose korrekt mappen.
-- [x] CAN-42.5c Todo integration-check Rohdaten und Counts korrekt anzeigen.
-- [x] CAN-42.6 Todo /status um diagnostics-Block erweitern.
-- [x] CAN-42.6b Diagnose-Standard ToDo projektweit ergänzen.
-- [x] CAN-42.7 Admin-Diagnose liest Todo diagnostics-Block bevorzugt.
-- [x] CAN-42.8 Tagebuch /status auf diagnostics-Standard prüfen/angleichen.
-- [x] CAN-42.9 Admin-Diagnose liest Tagebuch diagnostics-Block bevorzugt.
-- [x] CAN-42.10 Tagebuch-Diagnose-Extension aus Modul-Seite entfernen/deaktivieren.
-- [ ] CAN-42.11 Commands /status auf diagnostics-Standard anwenden und prüfen.
+Erledigt:
 
-## Diagnose-Standard für alle Module
+```text
+CAN-42.0 bis CAN-42.10: Zentrale Admin-Diagnose und Tagebuch-Diagnose-Seiten bereinigt/standardisiert.
+CAN-42.11: Commands /status um standardisierten diagnostics-Block erweitert.
+CAN-42.12: Hug /status um standardisierten diagnostics-Block erweitert.
+```
 
-- [ ] Alle Module prüfen, ob sie einen standardisierten `diagnostics`-Block liefern.
-- [ ] Alle Module nach und nach an den Diagnose-Standard angleichen.
-- [ ] Alte Diagnose-Module/-Extensions aus Modul-Seiten entfernen/deaktivieren, sobald zentral abgebildet.
-- [ ] Keine Funktionalität entfernen.
+Offen:
 
-## Nächste Kandidaten
+```text
+Message-Rotator auf diagnostics-Standard prüfen/angleichen.
+VIP-System / VIP-Sound auf diagnostics-Standard prüfen/angleichen.
+Media / Sound-System Detailstatus prüfen.
+Alle Modulstatus langfristig mit diagnostics.ok/health/warnings/errors/counts vereinheitlichen.
+```
 
-- [ ] Hug auf diagnostics-Standard prüfen/angleichen.
-- [ ] Message-Rotator auf diagnostics-Standard prüfen/angleichen.
-- [ ] VIP-System Statusroute ergänzen: `GET /api/vip/status`.
+Regeln bleiben verbindlich:
+
+```text
+Keine Funktionalität entfernen.
+Bestehende produktive Routen nicht umbauen, wenn nur Diagnose angepasst wird.
+Status-/Diagnose-Endpunkte bevorzugt read-only halten.
+Dashboard-Diagnose bleibt zentrale Sammelstelle für Modulgesundheit.
+```

@@ -1,32 +1,39 @@
 # CHANGELOG
 
-## CAN-42.11
+## CAN-42.12 - Hug Status Diagnostics Standard
 
-- `backend/modules/commands.js` von `0.1.6` auf `0.1.7` erhöht.
-- `MODULE_BUILD` von `channel-guard` auf `channel-guard-diagnostics` geändert.
-- `GET /api/commands/status` um standardisierten read-only `diagnostics`-Block ergänzt.
-- Neue interne read-only Helper:
-  - `countTableRows()`
-  - `safeDatabaseInfo()`
-  - `buildStandardDiagnostics()`
-- Keine Command-Ausführung geändert.
-- Keine Trigger/Aliase/Permissions/Cooldowns geändert.
-- Keine DB-Migration.
-- Keine produktive Aktion.
-- Keine Funktionalität entfernt.
+Geändert:
 
-## CAN-42.10
+```text
+backend/modules/hug.js
+```
 
-- Direkte Tagebuch-Diagnose-Extension aus `htdocs/dashboard/index.html` entfernt:
-  - `tagebuch_readonly_diagnostics.css`
-  - `tagebuch_readonly_diagnostics.js`
-- Dateien selbst bleiben erhalten.
-- Tagebuch-Diagnose läuft zentral über `Admin > Diagnose > Tagebuch`.
-- Keine Backend-Änderung.
-- Keine API-POSTs.
-- Keine produktive Aktion.
-- Keine Funktionalität entfernt.
+Details:
 
-## CAN-42.9
+- `MODULE_VERSION` von `0.1.0` auf `0.1.1` erhöht.
+- `MODULE_BUILD` mit `diagnostics-standard` ergänzt.
+- `MODULE_META.build` ergänzt.
+- `/api/hug/status` liefert zusätzlich `moduleVersion`, `moduleBuild`, `version`, `build` und einen standardisierten `diagnostics`-Block.
+- `diagnostics` enthält `ok`, `health`, `module`, `version`, `build`, `schemaVersion`, `expectedSchemaVersion`, `schemaReady`, `configSource`, `textSource`, `database`, `counts`, `warnings`, `errors`, `lastError`.
 
-- Admin-Diagnose liest Tagebuch diagnostics-Block bevorzugt.
+Nicht geändert:
+
+```text
+Keine Hug-/Rehug-Ausführung geändert
+Keine Chat-Ausgabe geändert
+Keine Texteditor-Routen geändert
+Keine Reload-/Admin-Routen entfernt
+Keine DB-Migration ergänzt
+Keine Funktionalität entfernt
+```
+
+Lokaler Syntax-Check im Chat:
+
+```powershell
+node --check backend/modules/hug.js
+```
+
+## CAN-42.11 - Commands Status Diagnostics Standard
+
+- `backend/modules/commands.js` um standardisierten `diagnostics`-Block erweitert.
+- Keine Command-Ausführung, Trigger, Aliase, Permissions, Cooldowns oder DB-Migration geändert.

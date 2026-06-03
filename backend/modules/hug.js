@@ -20,10 +20,12 @@ const chatOutput = require("./helpers/helper_chat_output");
 
 const MODULE_NAME = "hug";
 const SCHEMA_VERSION = 3;
-const MODULE_VERSION = "0.1.0";
+const MODULE_VERSION = "0.1.1";
+const MODULE_BUILD = "diagnostics-standard";
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
+  build: MODULE_BUILD,
   type: "runtime",
   category: "community",
   legacy: false,
@@ -947,7 +949,112 @@ async function handleCommand(req, res) {
 }
 function setOutputMode(mode) { const cleanMode = normalizeLogin(mode); if (cleanMode !== "central" && cleanMode !== "streamerbot") return { ok: false, error: "invalid_output_mode", allowed: ["streamerbot", "central"] }; const settings = deepMerge(DEFAULT_SETTINGS, getSettingFromDb()); settings.output = deepMerge(DEFAULT_SETTINGS.output, settings.output || {}); settings.output.mode = cleanMode; saveSettings(settings); loadCache(); return { ok: true, mode: cleanMode, output: settings.output }; }
 function getTextKindCounts() { return db.all(`SELECT kind, COUNT(*) AS count FROM hug_texts GROUP BY kind ORDER BY kind ASC`).map(row => ({ kind: row.kind, count: Number(row.count || 0) })); }
-function getDashboardStatus() { const cfg = getCache(); const totals = db.get(`SELECT COALESCE(SUM(given_total),0) AS given, COALESCE(SUM(received_total),0) AS received, COALESCE(SUM(rehug_given_total),0) AS rehug_given, COALESCE(SUM(rehug_received_total),0) AS rehug_received, COALESCE(SUM(CASE WHEN enabled=1 THEN 1 ELSE 0 END),0) AS enabled_users, COALESCE(SUM(CASE WHEN enabled=0 THEN 1 ELSE 0 END),0) AS disabled_users FROM hug_users`) || {}; return { ok: true, module: MODULE_NAME, schemaVersion: SCHEMA_VERSION, source: cfg.source, cacheLoadedAt, database: { adapter: db.getAdapter(), dialect: db.getDialect(), path: db.getDbPath(), mariaDbReady: "core_database_layer_prepared" }, configPath: systemConfigPath, messagesPath, enabled: cfg.enabled, output: cfg.output, topLimit: cfg.topLimit, rehugWindowSeconds: cfg.rehugWindowSeconds, counts: { users: count("hug_users"), enabledUsers: Number(totals.enabled_users || 0), disabledUsers: Number(totals.disabled_users || 0), pairStats: count("hug_pair_stats"), pendingRehugs: count("hug_pending_rehugs"), hugTypes: count("hug_types"), hugTextPairs: count("hug_text_pairs"), activeHugTextPairs: getTextPairs(null, { activeOnly: true }).length, hugAllTexts: cfg.hugAllTexts.length, dbTexts: count("hug_texts"), totalHugsGiven: Number(totals.given || 0), totalHugsReceived: Number(totals.received || 0), totalRehugsGiven: Number(totals.rehug_given || 0), totalRehugsReceived: Number(totals.rehug_received || 0) }, textKinds: getTextKindCounts(), top: { given: topRows("given"), received: topRows("received"), rehug: topRows("rehug") }, recentPairs: recentPairs(), lastImport, lastError }; }
+function safeDatabaseInfo() {
+  const info = { adapter: "unknown", dialect: "unknown", path: null, schemaVersion: null, expectedSchemaVersion: SCHEMA_VERSION, error: "" };
+  try { if (typeof db.getAdapter === "function") info.adapter = db.getAdapter(); } catch (err) { info.error = err.message || String(err); }
+  try { if (typeof db.getDialect === "function") info.dialect = db.getDialect(); } catch (err) { if (!info.error) info.error = err.message || String(err); }
+  try { if (typeof db.getDbPath === "function") info.path = db.getDbPath(); } catch (err) { if (!info.error) info.error = err.message || String(err); }
+  try { if (typeof db.getSchemaVersion === "function") info.schemaVersion = db.getSchemaVersion(MODULE_NAME); } catch (err) { if (!info.error) info.error = err.message || String(err); }
+  info.ok = !info.error;
+  return info;
+}
+
+function buildStandardDiagnostics(cfg, counts) {
+  const warnings = [];
+  const errors = [];
+  const database = safeDatabaseInfo();
+
+  if (!database.ok && database.error) warnings.push(`database_info:${database.error}`);
+  if (!cacheLoadedAt) warnings.push("cache_not_loaded");
+  if (cfg.enabled === false) warnings.push("hug_disabled");
+  if (!Array.isArray(cfg.hugTypes) || cfg.hugTypes.length < 1) errors.push("hug_types_empty");
+  if (!Array.isArray(cfg.hugAllTexts) || cfg.hugAllTexts.length < 1) errors.push("hug_all_texts_empty");
+  if (Number(counts.activeHugTextPairs || 0) < 1) errors.push("active_hug_text_pairs_empty");
+  if (lastError) warnings.push(`last_error:${lastError}`);
+
+  const ok = errors.length === 0;
+  const health = ok ? (warnings.length ? "warn" : "ok") : "error";
+
+  return {
+    ok,
+    health,
+    module: MODULE_NAME,
+    version: MODULE_VERSION,
+    build: MODULE_BUILD,
+    schemaVersion: database.schemaVersion ?? SCHEMA_VERSION,
+    expectedSchemaVersion: SCHEMA_VERSION,
+    schemaReady: !errors.includes("hug_types_empty") && !errors.includes("hug_all_texts_empty") && !errors.includes("active_hug_text_pairs_empty"),
+    configSource: cfg.source || "unknown",
+    textSource: cfg.source || "unknown",
+    database,
+    counts: {
+      users: counts.users,
+      enabledUsers: counts.enabledUsers,
+      disabledUsers: counts.disabledUsers,
+      pairStats: counts.pairStats,
+      pendingRehugs: counts.pendingRehugs,
+      hugTypes: counts.hugTypes,
+      hugTextPairs: counts.hugTextPairs,
+      activeHugTextPairs: counts.activeHugTextPairs,
+      hugAllTexts: counts.hugAllTexts,
+      dbTexts: counts.dbTexts,
+      totalHugsGiven: counts.totalHugsGiven,
+      totalHugsReceived: counts.totalHugsReceived,
+      totalRehugsGiven: counts.totalRehugsGiven,
+      totalRehugsReceived: counts.totalRehugsReceived
+    },
+    warnings,
+    errors,
+    lastError: errors[0] || lastError || null
+  };
+}
+
+function getDashboardStatus() {
+  const cfg = getCache();
+  const totals = db.get(`SELECT COALESCE(SUM(given_total),0) AS given, COALESCE(SUM(received_total),0) AS received, COALESCE(SUM(rehug_given_total),0) AS rehug_given, COALESCE(SUM(rehug_received_total),0) AS rehug_received, COALESCE(SUM(CASE WHEN enabled=1 THEN 1 ELSE 0 END),0) AS enabled_users, COALESCE(SUM(CASE WHEN enabled=0 THEN 1 ELSE 0 END),0) AS disabled_users FROM hug_users`) || {};
+  const database = { adapter: db.getAdapter(), dialect: db.getDialect(), path: db.getDbPath(), mariaDbReady: "core_database_layer_prepared" };
+  const counts = {
+    users: count("hug_users"),
+    enabledUsers: Number(totals.enabled_users || 0),
+    disabledUsers: Number(totals.disabled_users || 0),
+    pairStats: count("hug_pair_stats"),
+    pendingRehugs: count("hug_pending_rehugs"),
+    hugTypes: count("hug_types"),
+    hugTextPairs: count("hug_text_pairs"),
+    activeHugTextPairs: getTextPairs(null, { activeOnly: true }).length,
+    hugAllTexts: cfg.hugAllTexts.length,
+    dbTexts: count("hug_texts"),
+    totalHugsGiven: Number(totals.given || 0),
+    totalHugsReceived: Number(totals.received || 0),
+    totalRehugsGiven: Number(totals.rehug_given || 0),
+    totalRehugsReceived: Number(totals.rehug_received || 0)
+  };
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    version: MODULE_VERSION,
+    build: MODULE_BUILD,
+    schemaVersion: SCHEMA_VERSION,
+    source: cfg.source,
+    cacheLoadedAt,
+    database,
+    configPath: systemConfigPath,
+    messagesPath,
+    enabled: cfg.enabled,
+    output: cfg.output,
+    topLimit: cfg.topLimit,
+    rehugWindowSeconds: cfg.rehugWindowSeconds,
+    counts,
+    diagnostics: buildStandardDiagnostics(cfg, counts),
+    textKinds: getTextKindCounts(),
+    top: { given: topRows("given"), received: topRows("received"), rehug: topRows("rehug") },
+    recentPairs: recentPairs(),
+    lastImport,
+    lastError
+  };
+}
 function topRows(mode) { let col = "given_total"; if (mode === "received") col = "received_total"; if (mode === "rehug") col = "rehug_given_total"; return db.all(`SELECT login, display_name, given_total, received_total, rehug_given_total, rehug_received_total, enabled FROM hug_users ORDER BY ${col} DESC, display_name ASC LIMIT :limit`, { limit: Math.max(1, Number(getCache().topLimit || 5)) }).map(r => ({ login: r.login, displayName: r.display_name, givenTotal: Number(r.given_total || 0), receivedTotal: Number(r.received_total || 0), rehugGivenTotal: Number(r.rehug_given_total || 0), rehugReceivedTotal: Number(r.rehug_received_total || 0), enabled: Number(r.enabled) === 1 })); }
 function recentPairs() { return db.all(`SELECT p.given_count, p.rehug_count, p.last_hug_at, p.last_rehug_at, fu.display_name AS from_display, tu.display_name AS to_display FROM hug_pair_stats p LEFT JOIN hug_users fu ON fu.user_id=p.from_user_id LEFT JOIN hug_users tu ON tu.user_id=p.to_user_id ORDER BY COALESCE(p.last_rehug_at, p.last_hug_at) DESC LIMIT 10`).map(r => ({ fromDisplayName: r.from_display || "", toDisplayName: r.to_display || "", givenCount: Number(r.given_count || 0), rehugCount: Number(r.rehug_count || 0), lastHugAt: r.last_hug_at || null, lastRehugAt: r.last_rehug_at || null })); }
 function getTypes() { return db.all(`SELECT id, name, weight, enabled, sort_order FROM hug_types ORDER BY sort_order ASC, id ASC`).map(r => { const typeId = Number(r.id); return { id: typeId, name: r.name, weight: Number(r.weight || 1), enabled: Number(r.enabled) === 1, sortOrder: Number(r.sort_order || 0), hugTexts: getTexts("hug", typeId).length, rehugTexts: getTexts("rehug", typeId).length, textPairs: getTextPairs(typeId, { activeOnly: false }).length, activeTextPairs: getTextPairs(typeId, { activeOnly: true }).length }; }); }
@@ -1191,4 +1298,4 @@ function init(ctx) {
   return { name: MODULE_NAME, step: "181.1" };
 }
 
-module.exports = { MODULE_META, MODULE_VERSION, version: MODULE_VERSION, init, loadCache, getDashboardStatus, setOutputMode, getTextPairEditorPayload, getHugAllTextEditorPayload, getResponseTextEditorPayload, getTopTitleTextEditorPayload };
+module.exports = { MODULE_META, MODULE_VERSION, MODULE_BUILD, version: MODULE_VERSION, init, loadCache, getDashboardStatus, setOutputMode, getTextPairEditorPayload, getHugAllTextEditorPayload, getResponseTextEditorPayload, getTopTitleTextEditorPayload };

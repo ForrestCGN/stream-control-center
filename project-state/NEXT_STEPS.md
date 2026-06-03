@@ -2,44 +2,46 @@
 
 ## Direkt nächster Schritt
 
-```text
-CAN-42.11 anwenden und Commands-Status prüfen.
-```
-
-## Prüfung
+CAN-42.12 anwenden und testen:
 
 ```powershell
-node -c backend\modules\commands.js
+.\stepdone.cmd "CAN-42.12 Hug status diagnostics-standard"
+node -c backend\modules\hug.js
 
-$s = Invoke-RestMethod "http://127.0.0.1:8080/api/commands/status"
-$s | Select-Object ok,module,moduleVersion,moduleBuild,version,enabled,schemaOk,schemaError
-$s.diagnostics | Select-Object ok,health,module,version,build,schemaVersion,schemaReady,lastError
-$s.diagnostics.counts
+$h = Invoke-RestMethod "http://127.0.0.1:8080/api/hug/status"
+$h | Select-Object ok,module,moduleVersion,moduleBuild,version,enabled,schemaVersion,lastError
+$h.diagnostics | Select-Object ok,health,module,version,build,schemaVersion,schemaReady,lastError
+$h.diagnostics.counts
 ```
 
-## Erwartung
+Erwartung:
 
 ```text
-moduleVersion = 0.1.7
-moduleBuild = channel-guard-diagnostics
-$s.diagnostics ist vorhanden.
-$s.diagnostics.module = commands
-$s.diagnostics.health = ok oder warn, abhängig vom letzten Runtime-Zustand.
+moduleVersion = 0.1.1
+moduleBuild = diagnostics-standard
+diagnostics.ok = True
+diagnostics.health = ok oder warn
+diagnostics.schemaReady = True
 ```
+
+Hinweis: `health = warn` ist nur dann kritisch zu bewerten, wenn `warnings` einen echten Fehlerhinweis enthält. Ein deaktiviertes Hug-System würde z. B. bewusst als Warnung sichtbar sein.
 
 ## Danach
 
+Nächstes Modul auf diagnostics-Standard prüfen/angleichen. Sinnvolle Kandidaten:
+
 ```text
-.\stepdone.cmd "CAN-42.11 Commands status diagnostics-standard"
+Message-Rotator
+VIP-System / VIP-Sound
+Media / Sound-System Detailstatus
 ```
 
-## Weiterhin nicht machen ohne separaten Go-Schritt
+## Weiterhin nicht ohne separaten Go-Schritt
 
 ```text
-Keine produktiven Aktionen auslösen.
-Keine Command-Testausführung ohne Absprache.
-Keine Backend-Routen entfernen.
-Keine DB-Migration.
-Keine Dashboard-Testbuttons für produktive Aktionen.
-Keine Funktionalität entfernen.
+Keine produktiven Aktionen auslösen
+Keine Backend-Routen entfernen
+Keine DB-Migration erzwingen
+Keine Dashboard-Testbuttons für produktive Aktionen ergänzen
+Keine Funktionalität entfernen
 ```
