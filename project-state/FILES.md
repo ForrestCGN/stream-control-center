@@ -1,42 +1,45 @@
 # FILES
 
-## Aktueller Arbeitsstand CAN-41.4
+## Aktueller Arbeitsstand CAN-42.1
 
 Geänderte Dateien:
 
 ```text
 htdocs/dashboard/index.html
-htdocs/dashboard/modules/birthday_readonly_diagnostics.js
-htdocs/dashboard/modules/birthday_readonly_diagnostics.css
+htdocs/dashboard/modules/diagnostics.js
+htdocs/dashboard/modules/diagnostics.css
+docs/modules/diagnostics.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/CHANGELOG.md
 project-state/FILES.md
-docs/current/CURRENT_CHAT_HANDOFF_CAN41_4.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN42_1.md
 ```
 
 Nicht geändert:
 
 ```text
-backend/modules/birthday.js
+backend/*
 htdocs/dashboard/modules/birthday.js
-htdocs/dashboard/modules/birthday.css
+htdocs/dashboard/modules/todo.js
+htdocs/dashboard/modules/tagebuch.js
+htdocs/dashboard/modules/hug.js
+htdocs/dashboard/modules/commands.js
+htdocs/dashboard/modules/message_rotator.js
 ```
 
-## CAN-41 ZIPs aus dem Chat
+## CAN-42 ZIPs aus dem Chat
 
 ```text
-CAN-41.2_birthday_docs_readonly_write_rules.zip
-CAN-41.3_birthday_dashboard_readonly_safety_hint.zip
-CAN-41.3b_birthday_remove_safety_hint_badges.zip
-CAN-41.4_birthday_readonly_diagnostics_card.zip
+CAN-42.1_admin_diagnostics_base_page.zip
 ```
 
 ## Sicherheitsnotiz
 
 ```text
-CAN-41.4 ändert keinen Backend-Code.
+CAN-42.1 ändert keinen Backend-Code.
+Keine API-POSTs.
 Keine Geburtstags-Show.
 Kein Intro/Video/Song.
 Keine Sound-Bundle-Aktion.

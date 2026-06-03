@@ -1,98 +1,65 @@
 # CURRENT_STATUS
 
-## Stand: CAN-41.4 vorbereitet
+## Stand: CAN-42.1 vorbereitet
 
-CAN-41.4 ergänzt eine echte Birthday Read-only Diagnosekarte.
+CAN-42.1 baut eine zentrale Admin-Diagnose-Grundseite.
 
-## Aktueller Arbeitsbereich
+## Entscheidung
 
 ```text
-CAN-41: Birthday-/Geburtstags-Modul read-only analysieren und diagnosefähig machen
+Diagnose gehört zentral nach Admin > Diagnose.
+Modul-Seiten bleiben Bedienseiten.
+Keine neuen Diagnosekarten mehr direkt in einzelne Module einbauen.
+Bestehende Modul-Diagnosen werden später schrittweise zentral nachgebildet oder entfernt.
 ```
 
-## Änderung CAN-41.4
+## Änderung CAN-42.1
 
 Geändert:
 
 ```text
 htdocs/dashboard/index.html
-htdocs/dashboard/modules/birthday_readonly_diagnostics.js
-htdocs/dashboard/modules/birthday_readonly_diagnostics.css
+htdocs/dashboard/modules/diagnostics.js
+htdocs/dashboard/modules/diagnostics.css
+docs/modules/diagnostics.md
 project-state/*
-docs/current/CURRENT_CHAT_HANDOFF_CAN41_4.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN42_1.md
 ```
 
 Nicht geändert:
 
 ```text
-backend/modules/birthday.js
-htdocs/dashboard/modules/birthday.js
-htdocs/dashboard/modules/birthday.css
+backend/*
+bestehende Modul-JS-Dateien
+bestehende Modul-CSS-Dateien
 ```
 
 ## Verhalten
 
-Die Diagnosekarte liest nur:
-
 ```text
-GET /api/birthday/status
-GET /api/birthday/today
-GET /api/birthday/show/state
+Admin > Diagnose wird als Dashboard-Modul aktiviert.
+Die Seite zeigt Gesamtübersicht und Moduldetails.
+Die Seite nutzt nur GET-Statusendpunkte.
+Keine API-POSTs.
+Keine produktiven Aktionen.
+Kein MutationObserver.
 ```
 
-Nicht abgefragt:
+## Besonderheit Birthday
 
 ```text
-GET /api/birthday/show/queue
+GET /api/birthday/show/queue wird bewusst nicht genutzt.
 ```
 
 Grund:
 
 ```text
-/show/queue kann intern stale Queue-Cleanup ausführen und ist deshalb nicht streng read-only.
-```
-
-## Angezeigte Werte
-
-```text
-Modul-Version
-Schema-Version
-Modul aktiv
-Auto-Gratulation aktiv
-Tagebuch-Autoeintrag aktiv
-Nur wenn live
-Chat-Hook installiert
-heutige Geburtstage
-registrierte Einträge, falls im Status vorhanden
-Show aktiv/inaktiv
-Show-Phase/Ziel
-Routenanzahl
-Local Date
-letzte Auto-/Greeting-/Command-Zeit
-letzter Fehler
-```
-
-## Nicht ausgelöst
-
-```text
-Keine Geburtstags-Show.
-Kein Intro/Video/Song.
-Keine Sound-Bundle-Aktion.
-Keine Chat-/Discord-Nachricht.
-Kein Tagebuch-Eintrag.
-Keine User gespeichert/gelöscht.
-Keine Settings/Textvarianten gespeichert.
-Kein Media-Import/Upload/Recheck.
-Kein Reload.
-Keine DB-Migration.
-Keine Admin-POSTs.
-Keine Dashboard-Testbuttons ausgelöst.
-Keine Funktionalität entfernt.
+Die Route kann intern stale Queue-Cleanup ausführen und ist nicht streng read-only.
 ```
 
 ## Nächster Schritt
 
 ```text
-CAN-41.4 anwenden und Sichttest machen.
-Danach CAN-41.5 Testergebnis dokumentieren.
+CAN-42.1 anwenden und Sichttest machen.
+Danach CAN-42.2 Testergebnis dokumentieren oder Standardformat erweitern.
 ```

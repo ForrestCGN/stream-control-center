@@ -1,22 +1,22 @@
 # CHANGELOG
 
-## CAN-41.4
+## CAN-42.1
 
-- Birthday Read-only Diagnosekarte ergänzt:
-  - `htdocs/dashboard/modules/birthday_readonly_diagnostics.js`
-  - `htdocs/dashboard/modules/birthday_readonly_diagnostics.css`
-- `htdocs/dashboard/index.html` lädt die neue Diagnose-CSS-/JS-Datei.
-- Die Diagnose liest nur:
-  - `GET /api/birthday/status`
-  - `GET /api/birthday/today`
-  - `GET /api/birthday/show/state`
-- Nicht genutzt:
-  - `GET /api/birthday/show/queue`, weil die Route intern stale Queue-Cleanup machen kann.
+- Zentrale Admin-Diagnose-Grundseite vorbereitet:
+  - `htdocs/dashboard/modules/diagnostics.js`
+  - `htdocs/dashboard/modules/diagnostics.css`
+- `htdocs/dashboard/index.html` erweitert:
+  - CSS eingebunden
+  - `diagnosticsModule` Section ergänzt
+  - JS eingebunden
+- `docs/modules/diagnostics.md` neu erstellt.
+- Diagnose wird zentral unter Admin > Diagnose registriert.
+- Nur GET-Statusabfragen.
 - Keine Backend-Änderung.
-- Keine Änderung an `birthday.js`.
 - Keine API-POSTs.
 - Keine produktive Aktion.
+- Keine Funktionalität entfernt.
 
-## CAN-41.3b
+## CAN-42.0
 
-- Birthday-Safety-Hinweis/Badge-Extension aus Dashboard-Index entfernt.
+- Entscheidung: Diagnose wird zentral im Admin-Bereich gebündelt.

@@ -3,39 +3,32 @@
 ## Direkt nächster Schritt
 
 ```text
-CAN-41.4 anwenden und Sichttest machen.
+CAN-42.1 anwenden und Sichttest machen.
 ```
 
 ## Prüfung
 
 ```text
-Dashboard > Community > Birthday-System
+Dashboard > Admin > Diagnose
 ```
 
 Erwartung:
 
 ```text
-Birthday Read-only Diagnosekarte sichtbar
-Modul-Version sichtbar
-Schema-Version sichtbar
-Modul aktiv/inaktiv sichtbar
-Auto-Gratulation sichtbar
-Chat-Hook sichtbar
-Heute-Anzahl sichtbar
-Show aktiv/inaktiv sichtbar
-letzter Fehler sichtbar
-keine Warnschild-Flut
-keine Show
-kein Sound
-kein Chat
-kein Tagebuch
-keine Admin-POSTs
+Diagnose ist im Admin-Bereich sichtbar.
+Gesamtübersicht erscheint.
+Dropdown/Modulauswahl vorhanden.
+Status aktualisieren lädt GET-only Diagnosewerte.
+Moduldetails können ausgewählt werden.
+Keine Modul-Seiten werden mit neuen Diagnosekarten erweitert.
+Keine API-POSTs.
+Keine Show/Sound/Chat/Tagebuch/Reload/Admin-Aktion.
 ```
 
 ## Danach
 
 ```text
-CAN-41.5 Testergebnis dokumentieren.
+CAN-42.2 - Testergebnis dokumentieren oder Standardformat verfeinern.
 ```
 
 ## Weiterhin nicht machen ohne separaten Go-Schritt
@@ -46,7 +39,6 @@ Keine produktive Sound-Bus-Migration.
 Kein produktiver Sound-Bus-Play.
 Kein Queue-Clear.
 Keine Twitch-/Redemption-Write-Aktion durch Shadow.
-Kein automatischer Shadow-Mitulauf fuer alle Rewards.
 Kein EventSub-/Twitch-Redemption-Test ohne separate Freigabe.
 Keine OBS-Reparatur.
 Kein Source-Refresh.
