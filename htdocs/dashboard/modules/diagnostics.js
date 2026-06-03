@@ -6,7 +6,7 @@ window.DiagnosticsModule = (function(){
   const READONLY_ENDPOINTS = [
     { key:'birthday', label:'Birthday', group:'community', status:'/api/birthday/status', today:'/api/birthday/today', showState:'/api/birthday/show/state' },
     { key:'todo', label:'Todo', group:'community', status:'/api/todo/status', integration:'/api/todo/integration-check' },
-    { key:'tagebuch', label:'Tagebuch', group:'community', status:'/api/tagebuch/status' },
+    { key:'tagebuch', label:'Tagebuch', group:'community', status:'/api/tagebuch/status', integration:'/api/tagebuch/integration-check' },
     { key:'hug', label:'Hug-System', group:'community', status:'/api/hug/status' },
     { key:'commands', label:'Commands', group:'community', status:'/api/commands/status' },
     { key:'message_rotator', label:'Message-Rotator', group:'system', status:'/api/message-rotator/status' },
@@ -414,8 +414,61 @@ window.DiagnosticsModule = (function(){
   }
 
 
+  function renderTagebuchSpecific(result) {
+    const status = unwrapDiagnosticsPayload(result.status || result || {});
+    const diagnostics = standardDiagnosticsBlock(status);
+    const integration = unwrapDiagnosticsPayload(result.integration || {});
+    const checks = integration.checks || {};
+    const tables = checks.tables || {};
+    const settings = checks.settings || {};
+    const texts = checks.texts || {};
+    const counts = diagnostics?.counts || {};
+    const state = diagnostics?.state || status.state || checks.state || {};
+    const database = diagnostics?.database || checks.database || {};
+    const webhook = diagnostics?.webhook || checks.webhook || {};
+
+    const statusOk = status.ok !== false && diagnostics?.ok !== false;
+    const schemaOk = diagnostics?.schemaReady === true || Number(diagnostics?.schemaVersion || status.schemaVersion || 0) >= 5;
+    const integrationOk = diagnostics ? diagnostics.ok !== false && diagnostics.health !== 'error' : (integration.ok !== false && integration.healthy !== false);
+
+    const stateCount = firstDefined(counts.state, checkCount(tables.state, checks.state));
+    const runtimeEvents = firstDefined(counts.runtimeEvents, checkCount(tables.runtimeEvents));
+    const userStats = firstDefined(counts.userStats, checkCount(tables.userStats, checks.userStats));
+    const dailyUserStats = firstDefined(counts.dailyUserStats, checkCount(tables.dailyUserStats, checks.dailyUserStats));
+    const settingsCount = firstDefined(counts.settings, checkCount(settings, tables.settings, checks.settings));
+    const textVariants = firstDefined(counts.textVariants, checkCount(texts.count, texts, tables.textVariants, checks.textVariants));
+    const legacyTexts = firstDefined(counts.legacyTexts, checkCount(texts.legacyCount, tables.legacyTexts, checks.legacyTexts));
+    const dbValue = database.ok === false ? 'prüfen' : firstDefined(database.adapter, database.path, status.databasePath, 'ok');
+    const activeStream = Boolean(state.activeStream ?? state.active_stream);
+    const currentPage = firstDefined(state.currentPageNumber, state.current_page_number, status.state?.currentPageNumber, '-');
+    const currentDate = firstDefined(state.currentPageDate, state.current_page_date, status.state?.currentPageDate, '-');
+    const webhookStatus = webhook.useDiscordWebhook === false ? 'deaktiviert' : (webhook.hasWebhookUrl ? 'ok' : 'fehlt');
+
+    return `<section class="diagnostics-card diagnostics-module-extra">
+      <h4>Tagebuch-spezifische Diagnose</h4>
+      <div class="diagnostics-grid">
+        ${metric('Status OK', statusOk ? 'ja' : 'nein')}
+        ${metric('Schema OK', schemaOk ? 'ja' : 'nein')}
+        ${metric('Integration OK', integrationOk ? 'ja' : 'nein')}
+        ${metric('State', stateCount)}
+        ${metric('Runtime-Events', runtimeEvents)}
+        ${metric('User-Stats', userStats)}
+        ${metric('Daily-Stats', dailyUserStats)}
+        ${metric('Settings', settingsCount)}
+        ${metric('Textvarianten', textVariants)}
+        ${metric('Legacy-Texte', legacyTexts)}
+        ${metric('DB', dbValue)}
+        ${metric('Webhook', webhookStatus)}
+        ${metric('Aktiver Stream', activeStream ? 'ja' : 'nein')}
+        ${metric('Aktuelle Seite', currentPage)}
+        ${metric('Seitendatum', currentDate)}
+      </div>
+      <p class="diagnostics-note">Tagebuch-Diagnose liest den standardisierten diagnostics-Block aus /api/tagebuch/status.</p>
+    </section>`;
+  }
+
   function combinedRawPayload(entry, result, raw) {
-    if (entry.key === 'todo') {
+    if (entry.key === 'todo' || entry.key === 'tagebuch') {
       return {
         status: unwrapDiagnosticsPayload(result.status || {}),
         integrationCheck: unwrapDiagnosticsPayload(result.integration || {})
@@ -460,6 +513,7 @@ window.DiagnosticsModule = (function(){
           ${metric('Queue-Abfrage', 'nicht genutzt')}
         </div>` : ''}
         ${entry.key === 'todo' ? renderTodoSpecific(result) : ''}
+      ${entry.key === 'tagebuch' ? renderTagebuchSpecific(result) : ''}
         <details class="diagnostics-raw">
           <summary>Rohdaten anzeigen</summary>
           <pre>${esc(JSON.stringify(combinedRawPayload(entry, result, raw), null, 2))}</pre>

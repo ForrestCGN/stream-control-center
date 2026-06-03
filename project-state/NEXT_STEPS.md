@@ -3,35 +3,35 @@
 ## Direkt nächster Schritt
 
 ```text
-CAN-42.8 anwenden und prüfen.
+CAN-42.9 anwenden und Sichttest machen.
 ```
 
 ## Prüfung
 
 ```text
-GET http://127.0.0.1:8080/api/tagebuch/status
+Dashboard > Admin > Diagnose > Tagebuch
 ```
 
 Erwartung:
 
 ```text
-diagnostics.ok
-diagnostics.health
-diagnostics.counts.state
-diagnostics.counts.runtimeEvents
-diagnostics.counts.userStats
-diagnostics.counts.dailyUserStats
-diagnostics.counts.settings
-diagnostics.counts.textVariants
-diagnostics.counts.legacyTexts
-diagnostics.state
-diagnostics.webhook
+Tagebuch bleibt OK
+State = 1
+Runtime-Events gefüllt
+User-Stats gefüllt
+Daily-Stats gefüllt
+Settings gefüllt
+Textvarianten gefüllt
+Legacy-Texte gefüllt
+DB = sqlite oder ok
+Webhook = ok
+Rohdaten enthalten status.diagnostics
 ```
 
 ## Danach
 
 ```text
-CAN-42.9 - Admin-Diagnose liest Tagebuch diagnostics-Block bevorzugt
+CAN-42.10 - Tagebuch-Diagnose-Extension aus Modul-Seite entfernen/deaktivieren
 ```
 
 ## Weiterhin nicht machen ohne separaten Go-Schritt

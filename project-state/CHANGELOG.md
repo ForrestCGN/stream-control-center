@@ -1,18 +1,15 @@
 # CHANGELOG
 
-## CAN-42.8
+## CAN-42.9
 
-- `backend/modules/tagebuch.js` erweitert:
-  - `countTableRowsWhere()` ergänzt.
-  - `buildStandardDiagnostics()` ergänzt.
-  - `GET /api/tagebuch/status` liefert zusätzlich `diagnostics`.
-- Bestehende Statusfelder bleiben erhalten.
-- Keine neue Route.
-- Keine Route entfernt.
-- Keine DB-Migration.
+- `Admin > Diagnose > Tagebuch` liest bevorzugt den standardisierten `diagnostics`-Block aus `GET /api/tagebuch/status`.
+- Tagebuch-Health, Version, Schema, Config/Textquelle, Counts, State und Webhook nutzen den Standardblock.
+- Fallback auf `integration-check` bleibt vorerst erhalten.
+- Keine Backend-Änderung.
+- Keine API-POSTs.
 - Keine produktive Aktion.
 - Keine Funktionalität entfernt.
 
-## CAN-42.7
+## CAN-42.8
 
-- Admin-Diagnose liest Todo diagnostics-Block bevorzugt.
+- Tagebuch `/api/tagebuch/status` liefert zusätzlich `diagnostics`.
