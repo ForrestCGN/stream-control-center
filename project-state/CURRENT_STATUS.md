@@ -1,49 +1,60 @@
 # CURRENT_STATUS
 
-## Aktueller Stand: CAN-42.12 vorbereitet
+## Aktueller Stand: CAN-42.12b vorbereitet
 
-CAN-42.12 erweitert das Hug-Modul um einen standardisierten `diagnostics`-Block im bestehenden Status-Payload.
+CAN-42.12b ergänzt einen kleinen Dashboard-Fix für die zentrale Admin-Diagnose.
+
+Auslöser:
+
+- `/api/hug/status` liefert nach CAN-42.12 korrekt `moduleVersion = 0.1.1` und `diagnostics.version = 0.1.1`.
+- In der Diagnose-Oberfläche wurde beim Hug-System trotzdem `Version 0.1` angezeigt.
+- Außerdem wurde bei Hug `Routen -` angezeigt, obwohl mindestens die Statusroute `/api/hug/status` existiert.
 
 Geändert:
 
 ```text
-backend/modules/hug.js
+htdocs/dashboard/index.html
+htdocs/dashboard/modules/diagnostics_hug_display_fix.js
 ```
 
 Ergebnis:
 
-- `/api/hug/status` liefert weiterhin den bestehenden Hug-Dashboard-Status.
-- Zusätzlich enthält der Status jetzt `diagnostics` mit `ok`, `health`, `module`, `version`, `build`, `schemaVersion`, `schemaReady`, `database`, `counts`, `warnings`, `errors` und `lastError`.
-- `MODULE_VERSION` wurde auf `0.1.1` gesetzt.
-- `MODULE_BUILD` wurde als `diagnostics-standard` ergänzt.
-- Bestehende Hug-/Rehug-Commands, Texteditoren, Reloads, Stats, Toplisten, Datenbanktabellen und produktive POST-/GET-Flows wurden nicht verändert.
+- Das Dashboard lädt nach `diagnostics.js` zusätzlich `diagnostics_hug_display_fix.js`.
+- Der Fix ist read-only und betrifft nur die Anzeige im zentralen Diagnosepanel.
+- Wenn die Hug-Diagnosekarte sichtbar ist, wird `/api/hug/status` GET-only erneut gelesen und die sichtbaren Metriken `Version`, `Schema`, `Routen`, `Config-Quelle`, `Textsystem` und `Letzter Fehler` nachgezogen.
+- Die Version wird explizit als String aus `diagnostics.version`, `moduleVersion` oder `version` angezeigt.
+- `Routen` zeigt mindestens `1`, wenn keine Routenliste geliefert wird, aber die Statusroute erreichbar ist.
 
 Nicht geändert:
 
 ```text
-Keine Command-Ausführung
-Keine Hug-/Rehug-Logik
-Keine Textbearbeitungslogik
-Keine Output-/Chat-Ausgabe
+Kein Backend geändert
+Keine Hug-/Rehug-Logik geändert
+Keine Statusroute geändert
 Keine DB-Migration
-Keine Route entfernt
+Keine produktive Aktion
+Keine Admin-Aktion
 Keine Funktionalität entfernt
 ```
 
-Letzter lokaler Syntax-Check im Chat:
+Lokaler Syntax-Check im Chat:
 
 ```powershell
-node --check backend/modules/hug.js
+node --check htdocs/dashboard/modules/diagnostics_hug_display_fix.js
 ```
 
 Nächster Schritt nach dem Entpacken:
 
 ```powershell
-.\stepdone.cmd "CAN-42.12 Hug status diagnostics-standard"
-node -c backend\modules\hug.js
+.\stepdone.cmd "CAN-42.12b Dashboard Hug diagnostics display fix"
+node -c htdocs\dashboard\modules\diagnostics_hug_display_fix.js
+```
 
-$h = Invoke-RestMethod "http://127.0.0.1:8080/api/hug/status"
-$h | Select-Object ok,module,moduleVersion,moduleBuild,version,enabled,schemaVersion,lastError
-$h.diagnostics | Select-Object ok,health,module,version,build,schemaVersion,schemaReady,lastError
-$h.diagnostics.counts
+Danach im Dashboard prüfen:
+
+```text
+Admin > Diagnose > Hug-System
+Version = 0.1.1
+Routen = 1 oder echte Routenzahl
+GET Status erreichbar = OK
 ```

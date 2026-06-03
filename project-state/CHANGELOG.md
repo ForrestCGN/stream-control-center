@@ -1,28 +1,28 @@
 # CHANGELOG
 
-## CAN-42.12 - Hug Status Diagnostics Standard
+## CAN-42.12b - Dashboard Hug Diagnostics Display Fix
 
 Geändert:
 
 ```text
-backend/modules/hug.js
+htdocs/dashboard/index.html
+htdocs/dashboard/modules/diagnostics_hug_display_fix.js
 ```
 
 Details:
 
-- `MODULE_VERSION` von `0.1.0` auf `0.1.1` erhöht.
-- `MODULE_BUILD` mit `diagnostics-standard` ergänzt.
-- `MODULE_META.build` ergänzt.
-- `/api/hug/status` liefert zusätzlich `moduleVersion`, `moduleBuild`, `version`, `build` und einen standardisierten `diagnostics`-Block.
-- `diagnostics` enthält `ok`, `health`, `module`, `version`, `build`, `schemaVersion`, `expectedSchemaVersion`, `schemaReady`, `configSource`, `textSource`, `database`, `counts`, `warnings`, `errors`, `lastError`.
+- Neues read-only Dashboard-Ergänzungsscript `diagnostics_hug_display_fix.js` eingebunden.
+- Das Script korrigiert ausschließlich die sichtbare Hug-Karte in `Admin > Diagnose`.
+- Version wird aus `/api/hug/status` explizit als String aus `diagnostics.version`, `moduleVersion` oder `version` übernommen.
+- `Routen` zeigt mindestens `1`, wenn keine Routenliste geliefert wird, aber die Statusroute `/api/hug/status` erreichbar ist.
+- Keine produktive Hug-Funktion und kein Backend geändert.
 
 Nicht geändert:
 
 ```text
 Keine Hug-/Rehug-Ausführung geändert
 Keine Chat-Ausgabe geändert
-Keine Texteditor-Routen geändert
-Keine Reload-/Admin-Routen entfernt
+Keine Statusroute geändert
 Keine DB-Migration ergänzt
 Keine Funktionalität entfernt
 ```
@@ -30,8 +30,13 @@ Keine Funktionalität entfernt
 Lokaler Syntax-Check im Chat:
 
 ```powershell
-node --check backend/modules/hug.js
+node --check htdocs/dashboard/modules/diagnostics_hug_display_fix.js
 ```
+
+## CAN-42.12 - Hug Status Diagnostics Standard
+
+- `backend/modules/hug.js` um standardisierten `diagnostics`-Block erweitert.
+- Keine Hug-/Rehug-Ausführung, Chat-Ausgabe, Texteditor-Routen oder DB-Migration geändert.
 
 ## CAN-42.11 - Commands Status Diagnostics Standard
 

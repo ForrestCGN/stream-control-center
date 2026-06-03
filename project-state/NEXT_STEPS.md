@@ -2,29 +2,31 @@
 
 ## Direkt nächster Schritt
 
-CAN-42.12 anwenden und testen:
+CAN-42.12b anwenden und testen:
 
 ```powershell
-.\stepdone.cmd "CAN-42.12 Hug status diagnostics-standard"
-node -c backend\modules\hug.js
+.\stepdone.cmd "CAN-42.12b Dashboard Hug diagnostics display fix"
+node -c htdocs\dashboard\modules\diagnostics_hug_display_fix.js
+```
 
-$h = Invoke-RestMethod "http://127.0.0.1:8080/api/hug/status"
-$h | Select-Object ok,module,moduleVersion,moduleBuild,version,enabled,schemaVersion,lastError
-$h.diagnostics | Select-Object ok,health,module,version,build,schemaVersion,schemaReady,lastError
-$h.diagnostics.counts
+Danach im Browser/Dashboard:
+
+```text
+1. Dashboard hart neu laden, notfalls STRG+F5.
+2. Admin > Diagnose öffnen.
+3. Hug-System auswählen.
+4. Status aktualisieren klicken.
 ```
 
 Erwartung:
 
 ```text
-moduleVersion = 0.1.1
-moduleBuild = diagnostics-standard
-diagnostics.ok = True
-diagnostics.health = ok oder warn
-diagnostics.schemaReady = True
+Version = 0.1.1
+Routen = 1 oder echte Routenzahl
+Config-Quelle = database
+Textsystem = database
+Letzter Fehler = -
 ```
-
-Hinweis: `health = warn` ist nur dann kritisch zu bewerten, wenn `warnings` einen echten Fehlerhinweis enthält. Ein deaktiviertes Hug-System würde z. B. bewusst als Warnung sichtbar sein.
 
 ## Danach
 
