@@ -2,7 +2,7 @@
 window.DiagnosticsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = '0.1.0-can42-1';
+  const MODULE_VERSION = '0.1.1-can42-21d';
   const READONLY_ENDPOINTS = [
     { key:'birthday', label:'Birthday', group:'community', status:'/api/birthday/status', today:'/api/birthday/today', showState:'/api/birthday/show/state' },
     { key:'todo', label:'Todo', group:'community', status:'/api/todo/status', integration:'/api/todo/integration-check' },
@@ -11,10 +11,12 @@ window.DiagnosticsModule = (function(){
     { key:'commands', label:'Commands', group:'community', status:'/api/commands/status' },
     { key:'message_rotator', label:'Message-Rotator', group:'system', status:'/api/message-rotator/status' },
     { key:'bus_diagnostics', label:'Bus-Diagnose', group:'admin', status:'/api/bus-diagnostics/status' },
+    { key:'communication_bus', label:'Communication-Bus', group:'admin', status:'/api/communication/status' },
     { key:'overlay_monitor', label:'Overlay-Monitor', group:'control', status:'/api/overlay-monitor/status' },
+    { key:'obs', label:'OBS', group:'control', status:'/api/obs/status' },
     { key:'sound_system', label:'Sound-System', group:'system', status:'/api/sound/status' },
     { key:'media', label:'Medienverwaltung', group:'system', status:'/api/media/status' },
-    { key:'vip', label:'VIP-System', group:'community', status:'/api/vip/status' },
+    { key:'vip', label:'VIP-System', group:'community', status:'/api/vip-sound/status' },
     { key:'alerts', label:'Alerts', group:'control', status:'/api/alerts/status' }
   ];
 
@@ -89,7 +91,13 @@ window.DiagnosticsModule = (function(){
     const cfg = data.config || {};
     const stats = data.stats || {};
     const routes = Array.isArray(data.routes) ? data.routes : [];
+    const diagnostics = data.diagnostics && typeof data.diagnostics === 'object' ? data.diagnostics : {};
     const moduleMetaData = data.moduleMeta || data.meta || {};
+    const resolvedRouteCount = Number.isFinite(Number(data.routeCount))
+      ? Number(data.routeCount)
+      : Number.isFinite(Number(diagnostics?.counts?.routes))
+        ? Number(diagnostics.counts.routes)
+        : routes.length;
 
     return {
       key: entry.key,
@@ -99,15 +107,15 @@ window.DiagnosticsModule = (function(){
       title: meta.module.title || meta.catalog.label || entry.label,
       enabled: meta.catalog.enabled !== false,
       panelId: meta.module.panelId || '',
-      version: data.diagnostics?.version || data.version || data.moduleVersion || moduleMetaData.version || cfg.version || '',
-      moduleName: data.diagnostics?.module || data.module || data.name || moduleMetaData.name || entry.key,
+      version: diagnostics?.version || data.version || data.moduleVersion || moduleMetaData.version || cfg.version || '',
+      moduleName: diagnostics?.module || data.module || data.name || moduleMetaData.name || entry.key,
       category: moduleMetaData.category || entry.group || meta.module.group || '',
-      schemaVersion: data.diagnostics?.schemaVersion || data.schemaVersion || data.schema?.version || data.schema?.current || '',
-      configSource: data.diagnostics?.configSource || cfg.settingsSource || data.configSource || data.settingsSource || '',
-      textSource: data.diagnostics?.textSource || data.textsSource || data.textSource || data.texts?._textsSource || '',
+      schemaVersion: diagnostics?.schemaVersion ?? data.schemaVersion ?? data.schema?.version ?? data.schema?.current ?? '',
+      configSource: diagnostics?.configSource || cfg.settingsSource || data.configSource || data.settingsSource || '',
+      textSource: diagnostics?.textSource || data.textsSource || data.textSource || data.texts?._textsSource || '',
       statusEndpoint: entry.status || '',
-      routeCount: routes.length,
-      lastError: data.diagnostics?.lastError || stats.lastError || data.lastError || data.error || '',
+      routeCount: resolvedRouteCount,
+      lastError: diagnostics?.lastError || stats.lastError || data.lastError || data.error || '',
       raw: data
     };
   }
