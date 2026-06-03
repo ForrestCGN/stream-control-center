@@ -155,7 +155,20 @@ window.AutoShoutoutModule = (function(){
       storeSkippedEvents: form.querySelector('[name="storeSkippedEvents"]')?.checked === true,
       globalCooldownMs: Number(form.querySelector('[name="globalCooldownMs"]')?.value || 0),
       perStreamerCooldownMs: Number(form.querySelector('[name="perStreamerCooldownMs"]')?.value || 0),
-      queuedMessage: String(form.querySelector('[name="queuedMessage"]')?.value || '')
+      queuedMessage: String(form.querySelector('[name="queuedMessage"]')?.value || ''),
+      messages: {
+        queued: String(form.querySelector('[name="msgQueued"]')?.value || ''),
+        alreadyQueued: String(form.querySelector('[name="msgAlreadyQueued"]')?.value || ''),
+        alreadyReceived: String(form.querySelector('[name="msgAlreadyReceived"]')?.value || ''),
+        cooldown: String(form.querySelector('[name="msgCooldown"]')?.value || ''),
+        waitingStartScene: String(form.querySelector('[name="msgWaitingStartScene"]')?.value || '')
+      },
+      sceneGate: {
+        enabled: form.querySelector('[name="sceneGateEnabled"]')?.checked === true,
+        blockDuringStartScene: form.querySelector('[name="blockDuringStartScene"]')?.checked === true,
+        startSceneNames: String(form.querySelector('[name="startSceneNames"]')?.value || '').split(',').map(x => x.trim()).filter(Boolean),
+        retryMs: Number(form.querySelector('[name="sceneGateRetryMs"]')?.value || 15000)
+      }
     };
     await doAction(API.settings, body, 'Einstellungen gespeichert.');
   }
@@ -163,15 +176,17 @@ window.AutoShoutoutModule = (function(){
   async function saveStreamer(){
     const form = root?.querySelector('[data-auto-so-streamer-form]');
     if (!form) return;
-    const login = String(form.querySelector('[name="login"]')?.value || '').trim().replace(/^@+/, '').toLowerCase();
+    const nameRaw = String(form.querySelector('[name="name"]')?.value || '').trim().replace(/^@+/, '');
+    const login = nameRaw.toLowerCase();
     if (!login) {
-      state.error = 'Bitte einen Twitch-Login eintragen.';
+      state.error = 'Bitte einen Twitch-Namen eintragen.';
       render();
       return;
     }
     const body = {
+      name: nameRaw,
       login,
-      displayName: String(form.querySelector('[name="displayName"]')?.value || login).trim() || login,
+      displayName: nameRaw,
       enabled: form.querySelector('[name="enabled"]')?.checked === true,
       officialShoutout: form.querySelector('[name="officialShoutout"]')?.checked === true,
       videoShoutout: form.querySelector('[name="videoShoutout"]')?.checked === true,
@@ -220,8 +235,7 @@ window.AutoShoutoutModule = (function(){
     const row = state.streamers.find(item => String(item.login || '').toLowerCase() === String(login || '').toLowerCase());
     const form = root?.querySelector('[data-auto-so-streamer-form]');
     if (!row || !form) return;
-    form.querySelector('[name="login"]').value = row.login || '';
-    form.querySelector('[name="displayName"]').value = row.displayName || row.login || '';
+    form.querySelector('[name="name"]').value = row.displayName || row.login || '';
     form.querySelector('[name="enabled"]').checked = row.enabled !== false;
     form.querySelector('[name="officialShoutout"]').checked = row.officialShoutout !== false;
     form.querySelector('[name="videoShoutout"]').checked = row.videoShoutout !== false;
@@ -253,6 +267,7 @@ window.AutoShoutoutModule = (function(){
         <div class="auto-so-hero-grid">
           <div class="auto-so-metric"><small>Auto-SO</small><strong>${s.enabled ? 'AKTIV' : 'AUS'}</strong><span>${boolBadge(s.enabled)}</span></div>
           <div class="auto-so-metric"><small>Live-Gate</small><strong>${s.onlyWhenLive ? 'aktiv' : 'aus'}</strong><span>${s.onlyWhenLive ? 'blockiert offline' : 'nur Anzeige'}</span></div>
+          <div class="auto-so-metric"><small>Start-Szene</small><strong>${s.sceneGate?.active ? 'SPERRE' : 'frei'}</strong><span>${esc(s.sceneGate?.currentScene || '-')}</span></div>
           <div class="auto-so-metric"><small>Stream</small><strong>${ss.live ? 'LIVE' : (ss.statusKnown === false ? 'UNBEKANNT' : 'OFFLINE')}</strong><span>${esc(ss.upstreamSource || ss.source || '-')} · ${ss.stale ? 'stale' : 'frisch'}</span></div>
           <div class="auto-so-metric"><small>Streamer</small><strong>${esc(s.configuredStreamerCount || state.streamers.length || 0)}</strong><span>${statusBadge(s.configSource || '-')}</span></div>
           <div class="auto-so-metric"><small>Display offen</small><strong>${esc(display.pending ?? 0)}</strong><span>${display.cooldownRunning ? fmtMs(display.cooldownRemainingMs) : 'bereit'}</span></div>
@@ -264,9 +279,11 @@ window.AutoShoutoutModule = (function(){
 
   function renderSettings(){
     const s = settings();
+    const m = s.messages || {};
+    const sg = s.sceneGate || {};
     return `
       <div class="auto-so-card">
-        <div class="auto-so-card-head"><div><h3>Globale Auto-SO-Einstellungen</h3><p>Diese Werte werden über die DB gespeichert. Live-Status bleibt aktuell nur informativ, solange onlyWhenLive aus ist.</p></div></div>
+        <div class="auto-so-card-head"><div><h3>Globale Auto-SO-Einstellungen</h3><p>DB-Settings, Chatmeldungen und Start-Szene-Sperre. Live-Gate bleibt getrennt davon.</p></div></div>
         <form data-auto-so-settings-form class="auto-so-settings-grid">
           <label class="auto-so-check"><input type="checkbox" name="enabled" ${s.enabled ? 'checked' : ''}> Auto-Shoutout aktiv</label>
           <label class="auto-so-check"><input type="checkbox" name="onlyWhenLive" ${s.onlyWhenLive ? 'checked' : ''}> Nur wenn Live</label>
@@ -276,7 +293,16 @@ window.AutoShoutoutModule = (function(){
           <label class="auto-so-check"><input type="checkbox" name="storeSkippedEvents" ${s.storeSkippedEvents ? 'checked' : ''}> Skips speichern</label>
           <label><span>Global-Cooldown ms</span><input type="number" name="globalCooldownMs" min="0" step="1000" value="${esc(s.globalCooldownMs ?? 120000)}"></label>
           <label><span>Streamer-Cooldown ms</span><input type="number" name="perStreamerCooldownMs" min="0" step="1000" value="${esc(s.perStreamerCooldownMs ?? 43200000)}"></label>
-          <label class="auto-so-wide"><span>Queued-Chatmeldung</span><input type="text" name="queuedMessage" value="${esc(s.queuedMessage || '')}"></label>
+          <label class="auto-so-check"><input type="checkbox" name="sceneGateEnabled" ${sg.enabled !== false ? 'checked' : ''}> Start-Szene-Sperre aktiv</label>
+          <label class="auto-so-check"><input type="checkbox" name="blockDuringStartScene" ${sg.blockDuringStartScene !== false ? 'checked' : ''}> während Start-Szene blockieren</label>
+          <label><span>Start-Szene Retry ms</span><input type="number" name="sceneGateRetryMs" min="1000" step="1000" value="${esc(sg.retryMs ?? 15000)}"></label>
+          <label class="auto-so-wide"><span>Start-Szenen, kommagetrennt</span><input type="text" name="startSceneNames" value="${esc(Array.isArray(sg.startSceneNames) ? sg.startSceneNames.join(', ') : '')}"></label>
+          <label class="auto-so-wide"><span>Warteliste hinzugefügt</span><input type="text" name="msgQueued" value="${esc(m.queued || s.queuedMessage || '')}"></label>
+          <label class="auto-so-wide"><span>Schon in Warteliste</span><input type="text" name="msgAlreadyQueued" value="${esc(m.alreadyQueued || '')}"></label>
+          <label class="auto-so-wide"><span>Bereits Shouti erhalten</span><input type="text" name="msgAlreadyReceived" value="${esc(m.alreadyReceived || '')}"></label>
+          <label class="auto-so-wide"><span>Cooldown-Meldung</span><input type="text" name="msgCooldown" value="${esc(m.cooldown || '')}"></label>
+          <label class="auto-so-wide"><span>Wartet wegen Start-Szene</span><input type="text" name="msgWaitingStartScene" value="${esc(m.waitingStartScene || '')}"></label>
+          <input type="hidden" name="queuedMessage" value="${esc(m.queued || s.queuedMessage || '')}">
           <div class="auto-so-form-actions"><button type="button" data-auto-so-save-settings>Speichern</button></div>
         </form>
       </div>
@@ -286,10 +312,9 @@ window.AutoShoutoutModule = (function(){
   function renderStreamerForm(){
     return `
       <div class="auto-so-card">
-        <div class="auto-so-card-head"><div><h3>Streamer hinzufügen / bearbeiten</h3><p>Login ist der eindeutige Schlüssel. Speichern aktualisiert vorhandene Einträge.</p></div></div>
+        <div class="auto-so-card-head"><div><h3>Streamer hinzufügen / bearbeiten</h3><p>Ein Twitch-Name reicht. Das Backend normalisiert den Login automatisch.</p></div></div>
         <form data-auto-so-streamer-form class="auto-so-streamer-form">
-          <label><span>Login</span><input name="login" type="text" placeholder="fadjoe81" autocomplete="off"></label>
-          <label><span>DisplayName</span><input name="displayName" type="text" placeholder="Fadjoe81" autocomplete="off"></label>
+          <label class="auto-so-wide"><span>Twitch-Name</span><input name="name" type="text" placeholder="fadjoe81" autocomplete="off"></label>
           <label><span>Notiz</span><input name="note" type="text" placeholder="z. B. Partnerstreamer"></label>
           <label class="auto-so-check"><input name="enabled" type="checkbox" checked> Aktiv</label>
           <label class="auto-so-check"><input name="videoShoutout" type="checkbox" checked> Video-SO</label>
@@ -367,10 +392,14 @@ window.AutoShoutoutModule = (function(){
 
   function renderStreamStatus(){
     const ss = streamStatus();
+    const sg = settings().sceneGate || {};
     return `
       <div class="auto-so-card">
-        <div class="auto-so-card-head"><div><h3>Live-Status Anzeige</h3><p>Nur Kontrolle im Dashboard. Auto-SO blockiert nur, wenn „Nur wenn Live“ aktiviert wird.</p></div></div>
+        <div class="auto-so-card-head"><div><h3>Status / Start-Szene-Sperre</h3><p>Start-Szene blockiert Shoutouts unabhängig vom Live-Gate.</p></div></div>
         <div class="auto-so-facts">
+          <div><small>Shoutout-Sperre</small><strong>${sg.active ? statusBadge('AKTIV') : statusBadge('frei')}</strong><span>${esc(sg.reason || '')}</span></div>
+          <div><small>Aktuelle Szene</small><strong>${esc(sg.currentScene || '-')}</strong><span>${sg.enabled === false ? 'Gate aus' : 'Gate an'}</span></div>
+          <div><small>Start-Szenen</small><strong>${esc(Array.isArray(sg.startSceneNames) ? sg.startSceneNames.length : 0)}</strong><span>${esc(Array.isArray(sg.startSceneNames) ? sg.startSceneNames.join(', ') : '')}</span></div>
           <div><small>Status</small><strong>${ss.live ? statusBadge('LIVE') : statusBadge(ss.statusKnown === false ? 'UNBEKANNT' : 'OFFLINE')}</strong></div>
           <div><small>Quelle</small><strong>${esc(ss.source || '-')}</strong><span>${esc(ss.upstreamSource || '')}</span></div>
           <div><small>Stale</small><strong>${boolBadge(ss.stale, 'stale', 'frisch')}</strong></div>

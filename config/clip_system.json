@@ -73,9 +73,30 @@
       "globalCooldownMs": 120000,
       "perStreamerCooldownMs": 43200000,
       "sendChatMessage": true,
-      "queuedMessage": "📺 @{displayName} ist im Chat — Video-Shoutout wird vorbereitet!",
+      "queuedMessage": "📺 @{displayName} wurde der Shoutout-Warteliste hinzugefügt. Wartezeit: ca. {waitTime}.",
       "streamers": [],
-      "storeSkippedEvents": false
+      "storeSkippedEvents": false,
+      "messages": {
+        "queued": "📺 @{displayName} wurde der Shoutout-Warteliste hinzugefügt. Wartezeit: ca. {waitTime}.",
+        "alreadyQueued": "⏳ @{displayName} steht bereits auf der Shoutout-Warteliste. Wartezeit: ca. {waitTime}.",
+        "alreadyReceived": "✅ @{displayName} hat bereits einen Shouti erhalten.",
+        "cooldown": "⏳ @{displayName} ist im Auto-SO-Cooldown. Nächster Versuch in ca. {waitTime}.",
+        "waitingStartScene": "⏳ @{displayName} ist eingetragen. Shoutout wartet bis nach der Start-Szene. Wartezeit: ca. {waitTime}.",
+        "disabled": "ℹ️ Auto-Shoutouts sind aktuell deaktiviert."
+      },
+      "sceneGate": {
+        "enabled": true,
+        "blockDuringStartScene": true,
+        "startSceneNames": [
+          "Stream startet",
+          "Stream Start",
+          "Start",
+          "START",
+          "Starting",
+          "Stream starting"
+        ],
+        "retryMs": 15000
+      }
     }
   }
 }

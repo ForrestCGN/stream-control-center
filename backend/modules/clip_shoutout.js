@@ -14,9 +14,11 @@ let communicationBus = null;
 try { communicationBus = require("./communication_bus"); } catch (_) { communicationBus = null; }
 let streamStatus = null;
 try { streamStatus = require("./stream_status"); } catch (_) { streamStatus = null; }
+let getSharedObs = null;
+try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.15";
+const MODULE_VERSION = "0.2.16";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -139,7 +141,21 @@ const DEFAULT_CONFIG = {
       perStreamerCooldownMs: 43200000,
       sendChatMessage: true,
       storeSkippedEvents: false,
-      queuedMessage: "📺 @{displayName} ist im Chat — Video-Shoutout wird vorbereitet!",
+      queuedMessage: "📺 @{displayName} wurde der Shoutout-Warteliste hinzugefügt. Wartezeit: ca. {waitTime}.",
+      messages: {
+        queued: "📺 @{displayName} wurde der Shoutout-Warteliste hinzugefügt. Wartezeit: ca. {waitTime}.",
+        alreadyQueued: "⏳ @{displayName} steht bereits auf der Shoutout-Warteliste. Wartezeit: ca. {waitTime}.",
+        alreadyReceived: "✅ @{displayName} hat bereits einen Shouti erhalten.",
+        cooldown: "⏳ @{displayName} ist im Auto-SO-Cooldown. Nächster Versuch in ca. {waitTime}.",
+        waitingStartScene: "⏳ @{displayName} ist eingetragen. Shoutout wartet bis nach der Start-Szene. Wartezeit: ca. {waitTime}.",
+        disabled: "ℹ️ Auto-Shoutouts sind aktuell deaktiviert."
+      },
+      sceneGate: {
+        enabled: true,
+        blockDuringStartScene: true,
+        startSceneNames: ["Stream startet", "Stream Start", "Start", "START", "Starting", "Stream starting"],
+        retryMs: 15000
+      },
       streamers: []
     }
   }
@@ -210,6 +226,13 @@ const state = {
     lastSkippedLogin: "",
     lastSkipReason: "",
     lastError: ""
+  },
+  sceneGate: {
+    lastCheckedAt: "",
+    active: false,
+    reason: "",
+    currentScene: "",
+    lastError: ""
   }
 };
 
@@ -234,6 +257,153 @@ function mergePlain(base, extra) {
     else out[key] = value;
   }
   return out;
+}
+
+
+function asBool(value, fallback = false) {
+  if (value === undefined || value === null || value === "") return fallback;
+  return database.boolFromDb(database.normalizeBool(value));
+}
+
+function normalizeStringArray(value, fallback = []) {
+  const source = Array.isArray(value) ? value : fallback;
+  return source.map(v => String(v || "").trim()).filter(Boolean);
+}
+
+function normalizeAutoMessages(input = {}, fallback = {}) {
+  const base = isPlainObject(fallback) ? fallback : {};
+  const raw = isPlainObject(input) ? input : {};
+  return {
+    queued: String((raw.queued ?? base.queued ?? raw.queuedMessage ?? base.queuedMessage ?? DEFAULT_CONFIG.clipShoutout.autoShoutout.queuedMessage) || ""),
+    alreadyQueued: String(raw.alreadyQueued ?? base.alreadyQueued ?? "⏳ @{displayName} steht bereits auf der Shoutout-Warteliste. Wartezeit: ca. {waitTime}."),
+    alreadyReceived: String(raw.alreadyReceived ?? base.alreadyReceived ?? "✅ @{displayName} hat bereits einen Shouti erhalten."),
+    cooldown: String(raw.cooldown ?? base.cooldown ?? "⏳ @{displayName} ist im Auto-SO-Cooldown. Nächster Versuch in ca. {waitTime}."),
+    waitingStartScene: String(raw.waitingStartScene ?? base.waitingStartScene ?? "⏳ @{displayName} ist eingetragen. Shoutout wartet bis nach der Start-Szene. Wartezeit: ca. {waitTime}."),
+    disabled: String(raw.disabled ?? base.disabled ?? "ℹ️ Auto-Shoutouts sind aktuell deaktiviert.")
+  };
+}
+
+function normalizeSceneGate(input = {}, fallback = {}) {
+  const base = isPlainObject(fallback) ? fallback : {};
+  const raw = isPlainObject(input) ? input : {};
+  const defaultGate = DEFAULT_CONFIG.clipShoutout.autoShoutout.sceneGate || {};
+  return {
+    enabled: asBool(raw.enabled, base.enabled !== undefined ? base.enabled === true : defaultGate.enabled !== false),
+    blockDuringStartScene: asBool(raw.blockDuringStartScene, base.blockDuringStartScene !== undefined ? base.blockDuringStartScene !== false : defaultGate.blockDuringStartScene !== false),
+    startSceneNames: normalizeStringArray(raw.startSceneNames, normalizeStringArray(base.startSceneNames, defaultGate.startSceneNames || [])),
+    retryMs: Math.max(1000, Number(raw.retryMs === undefined ? (base.retryMs === undefined ? defaultGate.retryMs : base.retryMs) : raw.retryMs) || 15000)
+  };
+}
+
+function sceneNameKey(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function readShoutoutSceneGateState(cfg, env = process.env) {
+  const acfg = autoShoutoutConfig(cfg || shoutoutConfig());
+  const gate = normalizeSceneGate(acfg.sceneGate || {}, DEFAULT_CONFIG.clipShoutout.autoShoutout.sceneGate || {});
+  const checkedAt = nowIso();
+  const out = {
+    enabled: gate.enabled === true,
+    blockDuringStartScene: gate.blockDuringStartScene !== false,
+    active: false,
+    reason: "",
+    currentScene: "",
+    startSceneNames: gate.startSceneNames || [],
+    retryMs: Math.max(1000, Number(gate.retryMs || 15000)),
+    obsConnected: false,
+    obsDetected: false,
+    source: "obs_shared",
+    lastCheckedAt: checkedAt,
+    lastError: ""
+  };
+  if (!out.enabled || !out.blockDuringStartScene) {
+    state.sceneGate = { lastCheckedAt: checkedAt, active: false, reason: "disabled", currentScene: "", lastError: "" };
+    return out;
+  }
+  try {
+    if (typeof getSharedObs !== "function") throw new Error("obs_shared_unavailable");
+    const shared = getSharedObs(env || process.env, console);
+    const status = shared && typeof shared.getPublicStatus === "function" ? shared.getPublicStatus() : {};
+    out.obsConnected = status && status.obsConnected === true;
+    out.obsDetected = status && status.obsDetected === true;
+    out.currentScene = String(status && status.currentProgramSceneName || "").trim();
+    const names = new Set((out.startSceneNames || []).map(sceneNameKey).filter(Boolean));
+    out.active = !!out.currentScene && names.has(sceneNameKey(out.currentScene));
+    out.reason = out.active ? "start_scene_active" : "";
+  } catch (err) {
+    out.lastError = err && err.message ? err.message : String(err);
+  }
+  state.sceneGate = {
+    lastCheckedAt: checkedAt,
+    active: out.active === true,
+    reason: out.reason || "",
+    currentScene: out.currentScene || "",
+    lastError: out.lastError || ""
+  };
+  return out;
+}
+
+function blockQueueBySceneGate(tableName, row, gate, eventName, cfg) {
+  const retryMs = Math.max(1000, Number(gate && gate.retryMs || 15000));
+  const next = isoFromMs(Date.now() + retryMs);
+  const error = "waiting_start_scene";
+  database.run(`UPDATE ${database.quoteIdentifier(tableName)} SET status='waiting', available_at=:next, updated_at=:now, last_error=:error WHERE id=:id`, { id: row.id, next, now: nowIso(), error });
+  emitShoutoutBus(eventName, { queueId: row.id, targetLogin: row.target_login, retryAt: next, sceneGate: gate }, cfg);
+  return { ok: true, waiting: true, reason: error, queueId: row.id, retryAt: next, sceneGate: gate };
+}
+
+function formatApproxDuration(ms) {
+  const n = Math.max(0, Number(ms || 0));
+  if (!n) return "kurz";
+  const totalSeconds = Math.ceil(n / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) return `${hours} Std. ${minutes} Min.`;
+  if (minutes > 0) return `${minutes} Min. ${seconds ? seconds + " Sek." : ""}`.trim();
+  return `${seconds} Sek.`;
+}
+
+function estimateDisplayWaitMsForQueueId(queueId, cfg) {
+  const id = Number(queueId || 0);
+  const dcfg = displayConfig(cfg || shoutoutConfig());
+  const cooldown = Math.max(0, Number(dcfg.displayCooldownMs || 120000));
+  if (!id) return cooldown;
+  const rows = listDisplayQueue(200).filter(row => ['queued','waiting','active'].includes(String(row.status || '')));
+  const index = rows.findIndex(row => Number(row.id || 0) === id);
+  if (index < 0) return cooldown;
+  return Math.max(0, index * cooldown);
+}
+
+function findPendingDisplayShoutout(login) {
+  const clean = cleanLogin(login);
+  if (!clean) return null;
+  ensureDisplayQueueSchema();
+  return database.get(`
+    SELECT * FROM ${database.quoteIdentifier('clip_shoutout_display_queue')}
+    WHERE target_login=:login AND status IN ('queued','waiting','active')
+    ORDER BY id ASC LIMIT 1
+  `, { login: clean });
+}
+
+function renderAutoMessage(template, vars = {}) {
+  const displayName = cleanDisplay(vars.displayName || vars.login || '', vars.login || '');
+  return renderTemplate(String(template || ''), { ...vars, displayName })
+    .replace(/@\{displayName\}/g, `@${displayName || vars.login || ''}`)
+    .replace(/\{waitTime\}/g, String(vars.waitTime || 'kurz'))
+    .replace(/\{reason\}/g, String(vars.reason || ''))
+    .trim();
+}
+
+async function sendAutoChatNotice(acfg, key, vars = {}, cfg = null) {
+  if (!acfg || acfg.sendChatMessage === false) return false;
+  const messages = normalizeAutoMessages(acfg.messages || {}, acfg || {});
+  const template = messages[key] || acfg[`${key}Message`] || '';
+  const msg = renderAutoMessage(template, vars);
+  if (!msg) return false;
+  await sendChatMessage(msg, { targetLogin: vars.login, autoShoutout: true, reason: vars.reason || key });
+  return true;
 }
 
 function boolParam(value, fallback = false) {
@@ -1080,6 +1250,11 @@ async function processOfficialShoutoutQueue(env, cfg, options = {}) {
   if (Number(row.attempts || 0) >= Number(ocfg.maxAttempts || 5)) {
     markOfficialQueueFailed(row, "max_attempts_reached", cfg);
     return { ok: false, failed: true, error: "max_attempts_reached" };
+  }
+
+  const sceneGate = readShoutoutSceneGateState(cfg, env);
+  if (!options.force && sceneGate.active === true) {
+    return blockQueueBySceneGate('clip_shoutout_official_queue', row, sceneGate, 'shoutout.official.waiting_start_scene', cfg);
   }
 
   const liveGate = buildOfficialLiveGateState(cfg);
@@ -3052,6 +3227,11 @@ async function processDisplayQueue(env, cfg, options = {}) {
     return { ok: true, waiting: true, queueId: row.id, availableAt };
   }
 
+  const sceneGate = readShoutoutSceneGateState(cfg, env);
+  if (!options.force && sceneGate.active === true) {
+    return blockQueueBySceneGate('clip_shoutout_display_queue', row, sceneGate, 'shoutout.display.waiting_start_scene', cfg);
+  }
+
   const startedAt = nowIso();
   database.run(`UPDATE clip_shoutout_display_queue SET status='active', started_at=:startedAt, updated_at=:startedAt, last_error='' WHERE id=:id`, { id: row.id, startedAt });
   const activeRow = database.get(`SELECT * FROM clip_shoutout_display_queue WHERE id=:id`, { id: row.id }) || { ...row, started_at: startedAt, status: 'active' };
@@ -3232,6 +3412,10 @@ function normalizeAutoStreamer(row = {}) {
 
 function normalizeAutoSettings(input = {}, fallback = {}) {
   const base = mergePlain(DEFAULT_CONFIG.clipShoutout.autoShoutout, fallback || {});
+  const messages = normalizeAutoMessages(input.messages || {}, base.messages || base || {});
+  const sceneGate = normalizeSceneGate(input.sceneGate || {}, base.sceneGate || DEFAULT_CONFIG.clipShoutout.autoShoutout.sceneGate || {});
+  const queuedMessage = String(input.queuedMessage === undefined ? (base.queuedMessage || messages.queued || '') : (input.queuedMessage || ''));
+  if (!messages.queued && queuedMessage) messages.queued = queuedMessage;
   return {
     enabled: input.enabled === undefined ? base.enabled === true : database.boolFromDb(database.normalizeBool(input.enabled)),
     onlyWhenLive: input.onlyWhenLive === undefined ? base.onlyWhenLive === true : database.boolFromDb(database.normalizeBool(input.onlyWhenLive)),
@@ -3241,7 +3425,9 @@ function normalizeAutoSettings(input = {}, fallback = {}) {
     perStreamerCooldownMs: Math.max(0, Number(input.perStreamerCooldownMs === undefined ? base.perStreamerCooldownMs : input.perStreamerCooldownMs) || 0),
     sendChatMessage: input.sendChatMessage === undefined ? base.sendChatMessage !== false : database.boolFromDb(database.normalizeBool(input.sendChatMessage)),
     storeSkippedEvents: input.storeSkippedEvents === undefined ? base.storeSkippedEvents === true : database.boolFromDb(database.normalizeBool(input.storeSkippedEvents)),
-    queuedMessage: String(input.queuedMessage === undefined ? (base.queuedMessage || '') : (input.queuedMessage || '')),
+    queuedMessage,
+    messages,
+    sceneGate,
     streamers: []
   };
 }
@@ -3527,12 +3713,21 @@ async function handleAutoShoutoutChatActivity(parsed, source = {}, env = process
   if (streamer.videoShoutout === false && streamer.officialShoutout === false) return autoSkip(login, displayName, 'streamer_actions_disabled', {}, cfg);
 
   const streamState = readCurrentStreamState(cfg);
+  const sceneGate = readShoutoutSceneGateState(cfg, env);
   if (acfg.onlyWhenLive === true && !(streamState && streamState.live === true && streamState.stale !== true && streamState.statusKnown !== false)) {
     return autoSkip(login, displayName, 'stream_not_live', { streamState }, cfg);
   }
 
   const streamDay = resolveCurrentStreamDay(env, cfg);
   const streamDayId = streamDay && streamDay.streamDayId ? String(streamDay.streamDayId) : '';
+  const varsBase = { login, displayName: streamer.displayName || displayName || login, waitTime: 'kurz', streamDayId };
+
+  const pendingDisplay = findPendingDisplayShoutout(login);
+  if (pendingDisplay) {
+    const waitTime = formatApproxDuration(estimateDisplayWaitMsForQueueId(pendingDisplay.id, cfg));
+    await sendAutoChatNotice(acfg, 'alreadyQueued', { ...varsBase, waitTime, reason: 'already_queued', displayQueueId: pendingDisplay.id }, cfg).catch(err => { state.autoShoutout.lastError = err && err.message ? err.message : String(err); });
+    return autoSkip(login, displayName, 'already_queued', { streamDayId, existingDisplayQueueId: pendingDisplay.id, waitTime }, cfg);
+  }
 
   if (acfg.triggerOnFirstMessageOnly !== false) {
     const existingAuto = database.get(`
@@ -3540,16 +3735,27 @@ async function handleAutoShoutoutChatActivity(parsed, source = {}, env = process
       WHERE target_login=:login AND stream_day_id=:streamDayId AND status='triggered'
       ORDER BY id DESC LIMIT 1
     `, { login, streamDayId });
-    if (existingAuto) return autoSkip(login, displayName, 'already_auto_triggered_this_stream_day', { streamDayId, existingAutoId: existingAuto.id }, cfg);
+    if (existingAuto) {
+      await sendAutoChatNotice(acfg, 'alreadyReceived', { ...varsBase, reason: 'already_auto_triggered_this_stream_day', existingAutoId: existingAuto.id }, cfg).catch(err => { state.autoShoutout.lastError = err && err.message ? err.message : String(err); });
+      return autoSkip(login, displayName, 'already_auto_triggered_this_stream_day', { streamDayId, existingAutoId: existingAuto.id }, cfg);
+    }
   }
 
   if (acfg.respectStreamDayLimit !== false) {
     const existingManualOrAuto = findExistingStreamDayShoutout(login, streamDayId);
-    if (existingManualOrAuto) return autoSkip(login, displayName, 'already_had_shoutout_this_stream_day', { streamDayId, existingDisplayQueueId: existingManualOrAuto.id }, cfg);
+    if (existingManualOrAuto) {
+      await sendAutoChatNotice(acfg, 'alreadyReceived', { ...varsBase, reason: 'already_had_shoutout_this_stream_day', existingDisplayQueueId: existingManualOrAuto.id }, cfg).catch(err => { state.autoShoutout.lastError = err && err.message ? err.message : String(err); });
+      return autoSkip(login, displayName, 'already_had_shoutout_this_stream_day', { streamDayId, existingDisplayQueueId: existingManualOrAuto.id }, cfg);
+    }
   }
 
   const cooldown = autoCooldownStatus(login, cfg);
-  if (!cooldown.ok) return autoSkip(login, displayName, cooldown.blockedBy || 'cooldown', { streamDayId, cooldown }, cfg);
+  if (!cooldown.ok) {
+    const waitMs = Math.max(0, msFromIso(cooldown.nextAllowedAt) - Date.now());
+    const waitTime = formatApproxDuration(waitMs);
+    await sendAutoChatNotice(acfg, 'cooldown', { ...varsBase, waitTime, reason: cooldown.blockedBy || 'cooldown', cooldown }, cfg).catch(err => { state.autoShoutout.lastError = err && err.message ? err.message : String(err); });
+    return autoSkip(login, displayName, cooldown.blockedBy || 'cooldown', { streamDayId, cooldown, waitTime }, cfg);
+  }
 
   const input = {
     target: login,
@@ -3581,7 +3787,8 @@ async function handleAutoShoutoutChatActivity(parsed, source = {}, env = process
     const displayQueueId = Number(data.displayQueue && data.displayQueue.id || data.rowId || 0);
     const ok = Boolean(data.ok && data.queued !== false && !data.blocked);
     const status = ok ? 'triggered' : 'skipped';
-    const reason = ok ? 'queued' : (data.reason || data.error || 'handle_run_not_queued');
+    const reason = ok ? (sceneGate.active ? 'queued_waiting_start_scene' : 'queued') : (data.reason || data.error || 'handle_run_not_queued');
+    const waitTime = formatApproxDuration(estimateDisplayWaitMsForQueueId(displayQueueId, cfg));
 
     insertAutoShoutoutEvent({
       targetLogin: login,
@@ -3592,7 +3799,7 @@ async function handleAutoShoutoutChatActivity(parsed, source = {}, env = process
       status,
       reason,
       displayQueueId,
-      meta: { source, streamState, streamDay, result: data }
+      meta: { source, streamState, sceneGate, streamDay, result: data, waitTime }
     });
 
     if (ok) {
@@ -3601,11 +3808,11 @@ async function handleAutoShoutoutChatActivity(parsed, source = {}, env = process
       state.autoShoutout.lastTriggeredLogin = login;
       state.autoShoutout.lastError = '';
       if (acfg.sendChatMessage !== false) {
-        const msg = renderTemplate(String(acfg.queuedMessage || ''), { login, displayName: streamer.displayName || displayName || login }).replace(/@\{displayName\}/g, `@${streamer.displayName || displayName || login}`).trim();
-        if (msg) sendChatMessage(msg, { targetLogin: login, autoShoutout: true, displayQueueId }).catch(err => { state.autoShoutout.lastError = err && err.message ? err.message : String(err); });
+        const key = sceneGate.active ? 'waitingStartScene' : 'queued';
+        sendAutoChatNotice(acfg, key, { login, displayName: streamer.displayName || displayName || login, waitTime, reason, displayQueueId }, cfg).catch(err => { state.autoShoutout.lastError = err && err.message ? err.message : String(err); });
       }
-      emitShoutoutBus('shoutout.auto.triggered', { targetLogin: login, displayName: streamer.displayName || displayName || login, displayQueueId, streamDayId }, cfg);
-      return { ok: true, triggered: true, targetLogin: login, displayQueueId, result: data };
+      emitShoutoutBus('shoutout.auto.triggered', { targetLogin: login, displayName: streamer.displayName || displayName || login, displayQueueId, streamDayId, sceneGate, waitTime }, cfg);
+      return { ok: true, triggered: true, targetLogin: login, displayQueueId, reason, waitTime, sceneGate, result: data };
     }
 
     state.stats.autoSkipped += 1;
@@ -3616,7 +3823,7 @@ async function handleAutoShoutoutChatActivity(parsed, source = {}, env = process
     return { ok: true, skipped: true, reason, result: data };
   } catch (err) {
     state.autoShoutout.lastError = err && err.message ? err.message : String(err);
-    insertAutoShoutoutEvent({ targetLogin: login, targetDisplay: displayName || login, triggerLogin: login, triggerDisplay: displayName || login, streamDayId, status: 'error', reason: state.autoShoutout.lastError, meta: { source } });
+    insertAutoShoutoutEvent({ targetLogin: login, targetDisplay: displayName || login, triggerLogin: login, triggerDisplay: displayName || login, streamDayId, status: 'error', reason: state.autoShoutout.lastError, meta: { source, sceneGate } });
     emitShoutoutBus('shoutout.auto.failed', { targetLogin: login, error: state.autoShoutout.lastError, streamDayId }, cfg);
     return { ok: false, error: state.autoShoutout.lastError };
   }
@@ -3634,6 +3841,8 @@ function autoShoutoutStatus(cfg) {
     sendChatMessage: acfg.sendChatMessage !== false,
     storeSkippedEvents: acfg.storeSkippedEvents === true,
     queuedMessage: String(acfg.queuedMessage || ''),
+    messages: normalizeAutoMessages(acfg.messages || {}, acfg || {}),
+    sceneGate: readShoutoutSceneGateState(cfg),
     configSource: acfg.configSource || 'database',
     jsonFallbackUsed: acfg.jsonFallbackUsed === true,
     database: acfg.database || {},
@@ -4080,6 +4289,15 @@ module.exports.init = function init(ctx) {
     try {
       const currentCfg = shoutoutConfig();
       res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, autoShoutout: autoShoutoutStatus(currentCfg), streamStatus: readCurrentStreamState(currentCfg) });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
+    }
+  });
+
+  app.get(`${API_PREFIX}/scene-gate`, (req, res) => {
+    try {
+      const currentCfg = shoutoutConfig();
+      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, sceneGate: readShoutoutSceneGateState(currentCfg, env) });
     } catch (err) {
       res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
     }
