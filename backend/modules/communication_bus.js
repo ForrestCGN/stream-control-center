@@ -17,8 +17,8 @@ const database = require('../core/database');
 
 const MODULE_META = {
   name: 'communication_bus',
-  version: '0.8.3',
-  build: 'STEP278',
+  version: '0.8.4',
+  build: 'diagnostics-standard',
   type: 'runtime',
   category: 'communication',
   coreName: 'communication_core',
@@ -634,11 +634,135 @@ function resetSettingsDefaults() {
   return buildSettingsResponse();
 }
 
+
+function publicCommunicationRoutes() {
+  return [
+    { method: 'GET', path: '/api/communication/status', description: 'Communication-Bus Status.' },
+    { method: 'GET', path: '/api/communication/settings', description: 'Communication-Bus Einstellungen.' },
+    { method: 'GET', path: '/api/event-bus/settings', description: 'Legacy-Alias fuer Einstellungen.' },
+    { method: 'POST', path: '/api/communication/settings', description: 'Communication-Bus Einstellungen speichern.' },
+    { method: 'POST', path: '/api/event-bus/settings', description: 'Legacy-Alias fuer Einstellungen speichern.' },
+    { method: 'POST', path: '/api/communication/settings/reset-defaults', description: 'Communication-Bus Einstellungen zuruecksetzen.' },
+    { method: 'POST', path: '/api/event-bus/settings/reset-defaults', description: 'Legacy-Alias fuer Einstellungen zuruecksetzen.' },
+    { method: 'GET', path: '/api/communication/test', description: 'Diagnose-Testevent ueber den Bus.' },
+    { method: 'GET', path: '/api/communication/test-alert', description: 'Diagnose-Testalert ueber den Bus.' },
+    { method: 'GET', path: '/api/communication/mirror-alert', description: 'Alert-Mirror Diagnose/Transport.' },
+    { method: 'GET', path: '/api/communication/ack', description: 'ACK-Diagnoseroute.' },
+    { method: 'GET', path: '/api/communication/replay', description: 'Replay-Diagnoseroute fuer Clients.' },
+    { method: 'GET', path: '/api/communication/watchdog', description: 'Watchdog-Diagnose.' },
+    { method: 'GET', path: '/api/communication/issue', description: 'Issue-Diagnoseroute.' },
+    { method: 'GET', path: '/api/communication/client/forget', description: 'Manuelles Entfernen eines Bus-Clients mit Confirm.' },
+    { method: 'GET', path: '/api/communication/test-vip-overlay-preview', description: 'VIP-Overlay Preview-Diagnose ueber den Bus.' },
+    { method: 'GET', path: '/api/communication/test-vip-overlay', description: 'VIP-Overlay Shadow-Test ueber den Bus.' },
+    { method: 'GET', path: '/api/communication/reset', description: 'Communication-Bus Reset mit Confirm.' }
+  ];
+}
+
+function safeCountTableRows(tableName) {
+  try {
+    if (!database || typeof database.get !== 'function') return { ok: false, count: 0, error: 'database_unavailable' };
+    const table = typeof database.quoteIdentifier === 'function' ? database.quoteIdentifier(tableName) : tableName;
+    const row = database.get(`SELECT COUNT(*) AS count FROM ${table}`) || {};
+    return { ok: true, count: Number(row.count || 0), error: '' };
+  } catch (err) {
+    return { ok: false, count: 0, error: err && err.message ? err.message : String(err) };
+  }
+}
+
+function buildStandardDiagnostics(busStatus = null, routeList = null) {
+  const status = busStatus && typeof busStatus === 'object' ? busStatus : (getBus() && typeof getBus().getStatus === 'function' ? getBus().getStatus() : null);
+  const routes = Array.isArray(routeList) ? routeList : publicCommunicationRoutes();
+  const settingsRows = safeCountTableRows(SETTINGS_TABLE);
+  const stats = status && status.stats && typeof status.stats === 'object' ? status.stats : {};
+  const clients = status && Array.isArray(status.clients) ? status.clients : [];
+  const events = status && Array.isArray(status.events) ? status.events : [];
+  const issues = status && Array.isArray(status.issues) ? status.issues : [];
+  const subscriptions = status && Array.isArray(status.subscriptions) ? status.subscriptions : [];
+  const warnings = [];
+  const errors = [];
+
+  if (!status || status.ok === false) errors.push('communication_bus_status_unavailable');
+  if (status && status.enabled === false) warnings.push('communication_bus_disabled');
+  if (!settingsRows.ok) warnings.push(settingsRows.error || 'communication_settings_table_unavailable');
+  if (Number(stats.dropped || 0) > 0) warnings.push('communication_bus_has_dropped_events');
+  if (Number(stats.subscriberErrors || 0) > 0) warnings.push('communication_bus_has_subscriber_errors');
+  if (Number(stats.auditErrors || 0) > 0) warnings.push('communication_bus_has_audit_errors');
+  if (issues.some(issue => String(issue.level || '').toLowerCase() === 'error')) errors.push('communication_bus_has_error_issues');
+
+  const ok = errors.length === 0;
+  const health = ok ? (warnings.length ? 'warn' : 'ok') : 'error';
+
+  return {
+    ok,
+    health,
+    module: MODULE_META.name,
+    version: MODULE_META.version,
+    build: MODULE_META.build,
+    schemaVersion: SETTINGS_SCHEMA_VERSION,
+    schemaReady: settingsRows.ok,
+    coreName: MODULE_META.coreName,
+    coreVersion: MODULE_META.coreVersion,
+    database: {
+      ok: settingsRows.ok,
+      adapter: typeof database.getAdapter === 'function' ? database.getAdapter() : 'sqlite',
+      path: typeof database.getDbPath === 'function' ? (database.getDbPath() || '') : '',
+      schemaVersion: typeof database.getSchemaVersion === 'function' ? (settingsRows.ok ? database.getSchemaVersion('communication_bus_settings') : 0) : SETTINGS_SCHEMA_VERSION,
+      expectedSchemaVersion: SETTINGS_SCHEMA_VERSION,
+      table: SETTINGS_TABLE,
+      error: settingsRows.error || ''
+    },
+    counts: {
+      clients: clients.length,
+      connectedClients: clients.filter(client => client && client.connected === true).length,
+      disconnectedClients: clients.filter(client => !client || client.connected !== true).length,
+      overlayClients: clients.filter(client => String(client.type || '').toLowerCase() === 'overlay' || String(client.id || '').toLowerCase().startsWith('overlay:')).length,
+      clientsWithHeartbeat: clients.filter(client => client && client.hasHeartbeat === true).length,
+      events: events.length,
+      replayableEvents: events.filter(event => event && event.replayable === true).length,
+      ackRequiredEvents: events.filter(event => event && event.requireAck === true).length,
+      issues: issues.length,
+      errorIssues: issues.filter(issue => String(issue.level || '').toLowerCase() === 'error').length,
+      subscriptions: subscriptions.length,
+      settingsRows: settingsRows.count,
+      settingDefinitions: SETTING_DEFINITIONS.length,
+      routes: routes.length,
+      emitted: Number(stats.emitted || 0),
+      delivered: Number(stats.delivered || 0),
+      acks: Number(stats.acks || 0),
+      replays: Number(stats.replays || 0),
+      dropped: Number(stats.dropped || 0),
+      subscriberDeliveries: Number(stats.subscriberDeliveries || 0),
+      subscriberErrors: Number(stats.subscriberErrors || 0),
+      auditWrites: Number(stats.auditWrites || 0),
+      auditSkipped: Number(stats.auditSkipped || 0),
+      auditErrors: Number(stats.auditErrors || 0)
+    },
+    state: {
+      enabled: status ? status.enabled !== false : false,
+      bus: status ? cleanString(status.bus) : '',
+      busVersion: status ? status.version : '',
+      phase: status && status.enabled !== false ? 'running' : 'disabled',
+      createdAt: status ? cleanString(status.createdAt) : '',
+      now: status ? cleanString(status.now) : '',
+      securityAvailable: !!(status && status.hooks && status.hooks.securityAvailable === true),
+      securityEnabled: !!(status && status.hooks && status.hooks.securityEnabled === true),
+      auditAvailable: !!(status && status.hooks && status.hooks.auditAvailable === true),
+      auditEnabled: !!(status && status.hooks && status.hooks.auditEnabled === true),
+      wsClientRegistrationEnabled: loadedConfig ? loadedConfig.wsClientRegistrationEnabled !== false : true,
+      wsAcksEnabled: loadedConfig ? loadedConfig.wsAcksEnabled !== false : true
+    },
+    warnings,
+    errors,
+    lastError: errors[0] || warnings[0] || ''
+  };
+}
+
 function buildModuleResponse(extra = {}) {
   return {
     ok: true,
     module: MODULE_META.name,
     moduleVersion: MODULE_META.version,
+    moduleBuild: MODULE_META.build,
     ...extra
   };
 }
@@ -652,10 +776,29 @@ function init({ app }) {
 
   app.get('/api/communication/status', (req, res) => {
     const currentBus = getBus();
+    const status = currentBus.getStatus();
+    const routeList = publicCommunicationRoutes();
     res.json(buildModuleResponse({
+      version: MODULE_META.version,
+      diagnosticVersion: MODULE_META.version,
       coreName: MODULE_META.coreName,
       coreVersion: MODULE_META.coreVersion,
-      status: currentBus.getStatus()
+      enabled: status.enabled !== false,
+      bus: status.bus,
+      busVersion: status.version,
+      routes: routeList,
+      routeCount: routeList.length,
+      dataEndpoints: {
+        status: '/api/communication/status',
+        settings: '/api/communication/settings',
+        test: '/api/communication/test',
+        watchdog: '/api/communication/watchdog',
+        replay: '/api/communication/replay',
+        issues: '/api/communication/issue',
+        reset: '/api/communication/reset'
+      },
+      diagnostics: buildStandardDiagnostics(status, routeList),
+      status
     }));
   });
 

@@ -1,31 +1,18 @@
 # CURRENT_STATUS
 
-## Aktueller Arbeitsstand
+Stand: CAN-42.20 vorbereitet
 
-CAN-42.19 vorbereitet.
+CAN-42.20 erweitert den Communication-Bus um einen standardisierten Diagnostics-Block in `/api/communication/status`.
 
-## Ergebnis
+Geändert:
+- `backend/modules/communication_bus.js`
 
-Overlay-Monitor `/api/overlay-monitor/status` wurde auf den zentralen Diagnostics-Standard vorbereitet. Die bestehende Statusroute liefert jetzt zusätzlich `moduleVersion`, `moduleBuild`, `diagnosticVersion`, `routes`, `routeCount`, `dataEndpoints` und einen standardisierten `diagnostics`-Block.
-
-Der Schritt bleibt read-only. Es wurden keine Overlay-Reparaturen, OBS-Aktionen, Browser-Refreshes oder automatische Heilungsfunktionen geändert.
-
-## Geändert
-
-```text
-backend/modules/overlay_monitor.js
-```
-
-## Nicht geändert
-
-```text
-Keine Overlay-Refresh-/Repair-Logik
-Keine OBS-Aktionslogik
-Keine WebSocket-/Communication-Bus-Produktivlogik
-Keine Monitoring-Issue-Verarbeitung
-Keine Inventar-Refresh-Logik
-Keine Dashboard-Dateien
-Keine DB-Migration
-Keine neue Moduldatei
-Keine Funktionalität entfernt
-```
+Nicht geändert:
+- keine Bus-Emit-Logik
+- keine WebSocket-Hello-/Heartbeat-/ACK-Verarbeitung
+- keine Replay-/Watchdog-/Issue-/Reset-Produktivlogik
+- keine Settings-Speicherlogik
+- keine DB-Migration
+- keine Dashboard-Dateien
+- keine neue Moduldatei
+- keine Funktionalität entfernt

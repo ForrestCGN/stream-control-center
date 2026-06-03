@@ -1,25 +1,10 @@
 # FILES
 
-## Aktueller Arbeitsstand CAN-42.19
+## Geändert
 
-Geänderte Dateien:
+- `backend/modules/communication_bus.js`
 
-```text
-backend/modules/overlay_monitor.js
-project-state/CURRENT_STATUS.md
-project-state/NEXT_STEPS.md
-project-state/TODO.md
-project-state/CHANGELOG.md
-project-state/FILES.md
-docs/current/OVERLAY_MONITOR_STATUS_DIAGNOSTICS_CAN42_19.md
-docs/current/CURRENT_CHAT_HANDOFF_CAN42_19.md
-```
+## Doku
 
-Nicht geändert:
-
-```text
-htdocs/dashboard/*
-config/*
-backend/modules/communication_bus.js
-backend/modules/obs_shared.js
-```
+- `docs/current/COMMUNICATION_BUS_STATUS_DIAGNOSTICS_CAN42_20.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_CAN42_20.md`
