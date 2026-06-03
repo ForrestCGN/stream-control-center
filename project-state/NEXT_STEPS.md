@@ -2,26 +2,25 @@
 
 ## Direkt nächster Schritt
 
-CAN-42.18b entpacken und testen:
+CAN-42.19 entpacken und testen:
 
 ```powershell
-.\stepdone.cmd "CAN-42.18b Birthday schemaReady diagnostics fix"
-node -c backend\modules\birthday.js
+.\stepdone.cmd "CAN-42.19 Overlay-Monitor status diagnostics-standard"
 
-$b = Invoke-RestMethod "http://127.0.0.1:8080/api/birthday/status"
-$b.diagnostics | Select-Object ok,health,module,version,build,schemaVersion,schemaReady,lastError
+node -c backend\modules\overlay_monitor.js
+
+$o = Invoke-RestMethod "http://127.0.0.1:8080/api/overlay-monitor/status"
+$o | Select-Object ok,module,moduleVersion,moduleBuild,version,diagnosticVersion,readOnly,routeCount
+$o.diagnostics | Select-Object ok,health,module,version,build,schemaVersion,schemaReady,lastError
+$o.diagnostics.counts
 ```
 
-Erwartung:
+Danach Dashboard mit `STRG+F5` hart neu laden und prüfen:
 
 ```text
-health      : ok
-schemaReady : True
-lastError   : leer
+Admin > Diagnose > Overlay-Monitor
 ```
 
 ## Danach
 
-Dashboard hart neu laden und `Admin > Diagnose > Birthday` prüfen.
-
-Nächster Kandidat danach: weiteres Modul aus der zentralen Diagnose-Liste auf Diagnostics-Standard prüfen.
+Bei grünem Test ist CAN-42.19 abgeschlossen. Nächster Kandidat danach: weiteres Modul aus der zentralen Diagnose-Liste prüfen oder CAN-42 Diagnose-Runde zusammenfassen/dokumentieren.

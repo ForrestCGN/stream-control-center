@@ -21,14 +21,15 @@ try { database = require('../core/database'); } catch (_) { database = null; }
 try { obsSharedModule = require('./obs_shared'); } catch (_) { obsSharedModule = null; }
 
 const MODULE = 'overlay_monitor';
-const VERSION = '0.1.8';
+const VERSION = '0.1.9';
 const MODULE_VERSION = VERSION;
-const STATUS_API_VERSION = '1.0.8';
+const MODULE_BUILD = 'diagnostics-standard';
+const STATUS_API_VERSION = '1.0.9';
 
 const MODULE_META = {
   name: MODULE,
   version: VERSION,
-  build: 'CAN-26.2',
+  build: MODULE_BUILD,
   type: 'runtime',
   category: 'diagnostics',
   description: 'Read-only Overlay-Monitor mit robuster Scene-Awareness-Diagnose, OBS-Inventar und manuellen Reparaturaktionen.',
@@ -1396,6 +1397,152 @@ function buildIssues(overlays) {
   return issues;
 }
 
+function overlayMonitorRoutes() {
+  return [
+    { method: 'GET', path: '/api/overlay-monitor/status', description: 'Read-only Overlay-Monitor Status aus dem Communication Bus.' },
+    { method: 'GET', path: '/api/overlay-monitor/client-control/status', description: 'Read-only Overlay-Client-Control Status.' },
+    { method: 'GET', path: '/api/overlay-monitor/client-control/classification', description: 'Read-only Overlay-Client-Klassifizierung.' },
+    { method: 'GET', path: '/api/overlay-monitor/client-control/identity-contract', description: 'Read-only Overlay-Client Identity-Contract.' },
+    { method: 'GET', path: '/api/overlay-monitor/issues', description: 'Persistierte Monitoring-Issues mit active/resolved Status.' },
+    { method: 'GET', path: '/api/overlay-monitor/obs-inventory', description: 'Persistiertes/aktuelles OBS-Overlay-Inventar als rekursive Struktur.' },
+    { method: 'POST', path: '/api/overlay-monitor/obs-source/action', description: 'Manuelle OBS-Reparaturaktion fuer Browserquellen: refresh/cache/show/hide/toggle/cycle.' },
+    { method: 'GET', path: '/api/overlay-monitor/events', description: 'Read-only Statuswechsel/Auffaelligkeiten des Overlay-Monitors.' },
+    { method: 'GET', path: '/api/overlay-monitor/routes', description: 'Routenuebersicht.' }
+  ];
+}
+
+function countTableRows(tableName) {
+  if (!database || typeof database.get !== 'function') return 0;
+  try {
+    const row = database.get(`SELECT COUNT(*) AS count FROM ${tableName}`) || {};
+    return Number(row.count || 0);
+  } catch (_) {
+    return 0;
+  }
+}
+
+function getSchemaVersionSafe(moduleName, fallback = 0) {
+  if (!database || typeof database.getSchemaVersion !== 'function') return fallback;
+  try {
+    const version = Number(database.getSchemaVersion(moduleName) || 0);
+    return Number.isFinite(version) ? version : fallback;
+  } catch (_) {
+    return fallback;
+  }
+}
+
+function buildStandardDiagnostics(status = {}) {
+  const warnings = [];
+  const errors = [];
+  const summary = isPlainObject(status.summary) ? status.summary : {};
+  const communication = isPlainObject(status.communication) ? status.communication : {};
+  const sceneAwareness = isPlainObject(status.sceneAwareness) ? status.sceneAwareness : {};
+  const stats = isPlainObject(status.stats) ? status.stats : state.stats;
+  const routesList = overlayMonitorRoutes();
+  const issueSchemaVersion = getSchemaVersionSafe(MODULE + '_issues', 0);
+  const inventorySchemaVersion = getSchemaVersionSafe(MODULE + '_obs_inventory', 0);
+  const issueErrors = Number(stats.issueDbErrors || 0);
+  const inventoryErrors = Number(stats.inventoryDbErrors || 0);
+  const busErrors = Number(stats.busErrors || 0);
+  const lastError = cleanString(stats.lastError || '');
+  const activeIssues = Number(Array.isArray(status.issues) ? status.issues.length : 0);
+
+  if (communication.available !== true) warnings.push('communication_bus_unavailable');
+  if (communication.ok === false) warnings.push('communication_bus_not_ok');
+  if (activeIssues > 0) warnings.push('active_overlay_issues');
+  if (summary.status === 'warning') warnings.push('overlay_summary_warning');
+  if (summary.status === 'error') errors.push('overlay_summary_error');
+  if (issueErrors > 0) warnings.push('issue_db_errors');
+  if (inventoryErrors > 0) warnings.push('inventory_db_errors');
+  if (busErrors > 0) warnings.push('bus_errors');
+  if (lastError) warnings.push('last_error_present');
+
+  const ok = errors.length === 0;
+  const health = ok ? (warnings.length ? 'warn' : 'ok') : 'error';
+
+  return {
+    ok,
+    health,
+    module: MODULE,
+    version: MODULE_VERSION,
+    build: MODULE_BUILD,
+    schemaVersion: Math.max(issueSchemaVersion, inventorySchemaVersion, ISSUE_SCHEMA_VERSION, INVENTORY_SCHEMA_VERSION),
+    schemaReady: issueSchemaVersion >= ISSUE_SCHEMA_VERSION && inventorySchemaVersion >= INVENTORY_SCHEMA_VERSION && issueErrors === 0 && inventoryErrors === 0,
+    configSource: 'overlay_monitor.json_or_defaults',
+    textSource: 'not_used',
+    database: {
+      ok: issueErrors === 0 && inventoryErrors === 0,
+      adapter: 'sqlite',
+      path: '',
+      schemaVersion: Math.max(issueSchemaVersion, inventorySchemaVersion),
+      expectedSchemaVersion: Math.max(ISSUE_SCHEMA_VERSION, INVENTORY_SCHEMA_VERSION),
+      issueSchemaVersion,
+      inventorySchemaVersion,
+      issuesTable: ISSUE_TABLE,
+      inventoryTable: INVENTORY_TABLE,
+      error: issueErrors || inventoryErrors ? lastError : ''
+    },
+    counts: {
+      overlays: Number(summary.total || 0),
+      online: Number(summary.online || 0),
+      registered: Number(summary.registered || 0),
+      stale: Number(summary.stale || 0),
+      offline: Number(summary.offline || 0),
+      dead: Number(summary.dead || 0),
+      expectedInactive: Number(summary.expectedInactive || 0),
+      expectedIdle: Number(summary.expectedIdle || 0),
+      expectedNotActive: Number(summary.expectedNotActive || 0),
+      withHeartbeat: Number(summary.withHeartbeat || 0),
+      withoutHeartbeat: Number(summary.withoutHeartbeat || 0),
+      connected: Number(summary.connected || 0),
+      disconnected: Number(summary.disconnected || 0),
+      activeIssues,
+      recentEvents: Array.isArray(status.recentEvents) ? status.recentEvents.length : 0,
+      busClients: Number(communication.clientCount || 0),
+      inventoryScenes: Number(sceneAwareness.sceneCount || 0),
+      inventorySources: Number(sceneAwareness.sourceCount || 0),
+      storedIssues: countTableRows(ISSUE_TABLE),
+      inventoryCacheRows: countTableRows(INVENTORY_TABLE),
+      routes: routesList.length,
+      scans: Number(stats.scans || 0),
+      statusChanges: Number(stats.statusChanges || 0),
+      obsRepairActions: Number(stats.obsRepairActions || 0),
+      issuesActivated: Number(stats.issuesActivated || 0),
+      issuesResolved: Number(stats.issuesResolved || 0),
+      issuesTouched: Number(stats.issuesTouched || 0),
+      busErrors,
+      issueDbErrors: issueErrors,
+      inventoryDbErrors: inventoryErrors,
+      inventoryRefreshes: Number(stats.inventoryRefreshes || 0),
+      inventoryCacheHits: Number(stats.inventoryCacheHits || 0),
+      consoleLogsSuppressed: Number(stats.consoleLogsSuppressed || 0)
+    },
+    state: {
+      enabled: config.enabled !== false,
+      readOnly: true,
+      loadedAt: state.loadedAt,
+      lastScanAt: state.lastScanAt,
+      monitorIntervalMs: config.monitorIntervalMs,
+      publishStatusToBus: config.publishStatusToBus === true,
+      emitStatusChangesToBus: config.emitStatusChangesToBus === true,
+      communicationAvailable: communication.available === true,
+      communicationOk: communication.ok !== false,
+      currentProgramSceneName: cleanString(sceneAwareness.currentProgramSceneName || ''),
+      currentPreviewSceneName: cleanString(sceneAwareness.currentPreviewSceneName || ''),
+      currentProgramSceneKnown: sceneAwareness.currentProgramSceneKnown === true,
+      sceneAwarenessMode: cleanString(sceneAwareness.sceneAwarenessMode || ''),
+      inventoryAvailable: sceneAwareness.inventoryAvailable === true,
+      inventoryOk: sceneAwareness.inventoryOk === true,
+      inventoryFromCache: sceneAwareness.inventoryFromCache === true,
+      inventoryFromMemory: sceneAwareness.inventoryFromMemory === true,
+      inventoryUpdatedAt: cleanString(sceneAwareness.inventoryUpdatedAt || '')
+    },
+    warnings,
+    errors,
+    lastError: errors[0] || lastError || null
+  };
+}
+
 function getOverlayStatus(options = {}) {
   const bus = getBus();
   const currentMs = nowMs();
@@ -1418,10 +1565,14 @@ function getOverlayStatus(options = {}) {
   const summary = buildSummary(overlays);
   const issues = buildIssues(overlays);
 
-  return {
+  const routeList = overlayMonitorRoutes();
+  const payload = {
     ok: !issues.some(issue => issue.level === 'error'),
     module: MODULE,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
     version: VERSION,
+    diagnosticVersion: MODULE_VERSION,
     statusApiVersion: STATUS_API_VERSION,
     feature: 'overlay_monitor_read_only',
     readOnly: true,
@@ -1450,8 +1601,20 @@ function getOverlayStatus(options = {}) {
     overlays,
     issues,
     recentEvents: state.events.slice(0, options.limitEvents || 20),
-    stats: { ...state.stats }
+    stats: { ...state.stats },
+    routes: routeList,
+    routeCount: routeList.length,
+    dataEndpoints: {
+      events: '/api/overlay-monitor/events?limit=50',
+      issues: '/api/overlay-monitor/issues?status=all&limit=100',
+      obsInventory: '/api/overlay-monitor/obs-inventory?cache=1',
+      clientControl: '/api/overlay-monitor/client-control/status',
+      classification: '/api/overlay-monitor/client-control/classification',
+      identityContract: '/api/overlay-monitor/client-control/identity-contract'
+    }
   };
+  payload.diagnostics = buildStandardDiagnostics(payload);
+  return payload;
 }
 
 function emitBusEvent(channel, action, payload, options = {}) {
@@ -2249,14 +2412,7 @@ function init({ app, env } = {}) {
       version: VERSION,
       readOnly: false,
       manualActions: true,
-      routes: [
-        { method: 'GET', path: '/api/overlay-monitor/status', description: 'Read-only Overlay-Monitor Status aus dem Communication Bus.' },
-        { method: 'GET', path: '/api/overlay-monitor/events', description: 'Read-only Statuswechsel/Auffaelligkeiten des Overlay-Monitors.' },
-        { method: 'GET', path: '/api/overlay-monitor/issues', description: 'Persistierte Monitoring-Issues mit active/resolved Status.' },
-        { method: 'GET', path: '/api/overlay-monitor/obs-inventory', description: 'Persistiertes/aktuelles OBS-Overlay-Inventar als rekursive Struktur.' },
-        { method: 'POST', path: '/api/overlay-monitor/obs-source/action', description: 'Manuelle OBS-Reparaturaktion fuer Browserquellen: refresh/cache/show/hide/toggle/cycle.' },
-        { method: 'GET', path: '/api/overlay-monitor/routes', description: 'Routenuebersicht.' }
-      ]
+      routes: overlayMonitorRoutes()
     });
   });
 
@@ -2265,7 +2421,7 @@ function init({ app, env } = {}) {
     state.stats.lastError = err && err.message ? err.message : String(err);
   });
   startTimer();
-  console.log(`[${MODULE}] v${VERSION} overlay monitor registered`);
+  console.log(`[${MODULE}] v${VERSION} overlay monitor registered (${MODULE_BUILD})`);
 }
 
 module.exports = {
@@ -2273,6 +2429,7 @@ module.exports = {
   MODULE_VERSION: VERSION,
   version: VERSION,
   init,
+  getStatus: getOverlayStatus,
   getOverlayStatus,
   scan,
   listStoredIssues,

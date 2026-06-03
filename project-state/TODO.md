@@ -10,10 +10,12 @@
 - [x] Medienverwaltung Diagnostics-Standard
 - [x] Alerts Diagnostics-Standard
 - [x] Birthday Diagnostics-Standard
-- [ ] CAN-42.18b testen: Birthday schemaReady Diagnostics Fix
+- [x] CAN-42.18b Birthday schemaReady Diagnostics Fix getestet
+- [ ] CAN-42.19 testen: Overlay-Monitor Diagnostics-Standard
 
 ## Grundregeln
 
 - Keine Funktionalität entfernen.
 - Keine neuen Module/Parallelstrukturen, wenn nicht nötig.
 - Bestehende Statusrouten bevorzugt minimal erweitern.
+- Status-/Diagnosearbeiten bleiben read-only, sofern nicht ausdrücklich anders freigegeben.
