@@ -1,38 +1,37 @@
 # Next Steps
 
-## Direkt nach CAN-43.10
+## Direkt nach CAN-43.11
 
-1. CAN-43.10 ZIP nach `D:\Git\stream-control-center` entpacken.
+1. CAN-43.11 ZIP nach `D:\Git\stream-control-center` entpacken.
 2. Optional prüfen:
 
 ```powershell
-node -c backend\modules\sound_system.js
+node -c backend\modules\media.js
 ```
 
 3. Step abschließen:
 
 ```powershell
-.\stepdone.cmd "CAN-43.10 Sound-System diagnostics review"
+.\stepdone.cmd "CAN-43.11 Media diagnostics review"
 ```
 
 4. Doku committen/pushen.
 
 ## Nächster fachlicher Schritt
 
-CAN-43.11: Weiteres Registry-Modul nach neuem Diagnose-/Registry-Standard prüfen.
+CAN-43.12: Weiteres Registry-Modul nach neuem Diagnose-/Registry-Standard prüfen.
 
 Empfohlener Kandidat:
 
-1. `media`
+1. `obs`
 
 Grund:
 
-- Sound-System und Alert-System hängen direkt an Media-/Asset-Daten.
-- Media ist ein guter nächster Prüfpunkt nach Sound-System.
+- OBS-Steuerung und Overlay-/Szenenstatus sind Kernbestandteile des Control-Centers.
+- Nach Sound-System/Media ist OBS ein sinnvoller nächster Prüfpunkt.
 
 Alternative Kandidaten:
 
-- `obs`
 - `overlay_monitor`
 - `communication_bus`
 - `bus_diagnostics`

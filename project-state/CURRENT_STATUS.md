@@ -8,37 +8,34 @@ CAN-43.0 wurde als Startpunkt für die nächste Fachrunde vorbereitet.
 
 CAN-43.1 aktualisierte die Projektübergabe für den neuen Chat.
 
-CAN-43.2 bis CAN-43.9 haben mehrere Registry-Module nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
+CAN-43.2 bis CAN-43.10 haben mehrere Registry-Module nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
 
-CAN-43.10 hat das Modul `sound_system` nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
+CAN-43.11 hat das Modul `media` nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
 
-## CAN-43.10 Ergebnis
+## CAN-43.11 Ergebnis
 
-`sound_system` ist sauber.
+`media` ist sauber.
 
 - Repo/Branch: `dev`
-- HEAD: `2fa5874b CAN-43.9 Alerts diagnostics review`
+- HEAD: `33f11858 CAN-43.10 Sound-System diagnostics review`
 - Lokaler Git-Status: sauber
-- Backend-Datei: `backend/modules/sound_system.js`
-- Live-Modul: `sound_system`
-- Registry-Key: `sound_system`
-- Modulversion: `0.1.21`
+- Backend-Datei: `backend/modules/media.js`
+- Live-Modul: `media`
+- Registry-Key: `media`
+- Modulversion: `0.1.1`
 - Build: `diagnostics-standard`
-- Runtime-Version: `0.1.12`
-- Statusroute: `GET /api/sound/status`
-- Current: `GET /api/sound/current`
-- Queue: `GET /api/sound/queue`
-- Routenübersicht: `GET /api/sound/routes`
-- Integration-Check: `GET /api/sound/integration-check`
-- EventBus-Status: `GET /api/sound/eventbus/status`
-- Sound-Command-Status: `GET /api/sound/eventbus/command/status`
-- Schema-Version: `1`
+- Step: `STEP524`
+- Statusroute: `GET /api/media/status`
+- Kategorien: `GET /api/media/categories`
+- Medienliste: `GET /api/media/list`
+- Picker: `GET /api/media/picker-options`
+- Repair-Check read-only: `GET /api/media/repair-names?apply=false&renameFiles=false`
+- Schema-Version: `2`
 - Diagnostics: `ok=True`, `health=ok`, `schemaReady=True`
-- Integration-Check: `ok=True`, `healthy=True`, eine Legacy-Warnung
-- Current Sound: keiner
-- Queue: leer
-- Parallel: 0
-- Overlay Client: verbunden / ready
+- Diagnostics-Warnings: keine
+- Diagnostics-Errors: keine
+- Active Assets: `334`
+- Kategorien: `32`
 - Coverage: sauber
 - Codeänderung: keine
 - Modulversion erhöht: nein
