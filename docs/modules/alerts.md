@@ -1,83 +1,167 @@
-# Alerts
+# Alerts Modul
 
-Stand: 2026-05-26 / STEP475_DOCS_MODULES_AND_PROJECT_STATE_CLEANUP
+## Kurzbeschreibung
 
-Diese Datei ist eine erste Modul-Doku auf Basis des hochgeladenen aktuellen Backend-Standes. Sie ersetzt keine Codeprüfung vor Änderungen.
+Das Modul `alert_system` stellt das zentrale Alert-System bereit.
 
-## Zweck
+Die echte Backend-Datei heißt:
 
-Alert-System für Twitch/Ko-fi/Tipeee/weitere Ereignisse, inklusive Regeln, Assets, Texten, Sound-/Overlay-Kopplung und Dashboard-Verwaltung.
+```text
+backend/modules/alert_system.js
+```
 
-## Betroffene Backend-Dateien
+Das Modul verwaltet:
 
-- `backend\modules\alert_system.js`
+- Alert-Regeln
+- Alert-Assets
+- Alert-Queue
+- Alert-Events
+- Textvarianten
+- Test-Presets
+- Display-Profile
+- Chat-Blöcke
+- WebSocket-Overlay
+- Overlay-Client-ACKs
+- EventBus-/CanBus-Status
+- Overlay-Watchdog
+- Alert-/Sound-System-Korrelation
 
-## Erkannte technische Merkmale
+## Modulstand
 
-### `alert_system.js`
+- Backend-Datei: `backend/modules/alert_system.js`
+- Modulname: `alert_system`
+- Registry-Key: `alerts`
+- Modulversion: `3.1.10`
+- Build: `diagnostics-standard`
+- Step: `365`
+- Schema-Version: `6`
+- Hauptprefix: `/api/alerts`
 
-- Version: 3.1.4, 1.0.0
-- Größe: 265648 Bytes
-- Merkmale: DB-Zugriff/DB-Bezug erkannt, Config-Bezug erkannt, Message/Text-Bezug erkannt, Event/WebSocket/Broadcast-Bezug erkannt, Status-Route erkannt
+## Diagnose-Status CAN-43.9
 
-- erkannte lokale/systemnahe Abhängigkeiten:
-  - `../core/database`
-  - `./communication_bus`
-  - `./helpers/helper_config`
-  - `./helpers/helper_core`
-  - `./helpers/helper_media`
-  - `./helpers/helper_routes`
-  - `./helpers/helper_security`
-  - `fs`
-  - `path`
+CAN-43.9 hat das Modul nach dem neuen Diagnose-/Registry-Standard geprüft.
 
-- erkannte Routen/Hinweise:
-  - `? /api/alerts/status`
-  - `? /api/alerts/health`
-  - `? /api/alerts/eventbus/status`
-  - `? /api/alerts/eventbus/test`
-  - `? /api/alerts/eventbus/reset`
-  - `? /api/alerts/eventbus/correlation/status`
-  - `? /api/alerts/eventbus/correlation/check`
-  - `? /api/alerts/bus-mirror/status`
-  - `? /api/alerts/bus-mirror/enable`
-  - `? /api/alerts/bus-mirror/disable`
-  - `? /api/alerts/overlay-watchdog/status`
-  - `? /api/alerts/overlay-watchdog/check`
-  - `? /api/alerts/overlay-watchdog/reset`
-  - `? /api/alerts/overlay-watchdog/reset?confirm=1`
-  - `? /api/alerts/overlay-watchdog/recover`
-  - `? /api/alerts/overlay-watchdog/recover?confirm=1`
-  - `? /api/alerts/queue`
-  - `? /api/alerts/clear`
-  - `? /api/alerts/reload`
-  - `? /api/alerts/enqueue`
-  - `? /api/alerts/test`
-  - `? /api/alerts/text-variants`
-  - `? /api/alerts/text-variants/:id`
-  - `? /api/alerts/chat-blocks`
-  - `? /api/alerts/chat-blocks/:id`
-  - `? /api/alerts/chat-outbox`
-  - `? /api/alerts/chat-outbox/:id/sent`
-  - `? /api/alerts/chat-outbox/:id/consumed`
-  - `? /api/alerts/chat-outbox/:id/error`
-  - `? /api/alerts/test-presets`
-  - ... plus 28 weitere erkannte Routenzeilen
+Ergebnis:
 
-## Aktueller Doku-Status
+- Statusroute vorhanden.
+- `diagnostics`-Block vorhanden.
+- Health-Route vorhanden.
+- Routenübersicht vorhanden.
+- Integration-Check vorhanden.
+- Registry-Coverage sauber.
+- Live-Status sauber.
+- Queue leer.
+- Kein aktueller Alert.
+- Overlay-Client verbunden.
+- Keine Codeänderung nötig.
 
-- Erste strukturierte Moduldoku vorhanden.
-- Vor Funktionsänderungen muss die echte Datei erneut vollständig aus GitHub/dev oder aus dem aktuellen Live-/ZIP-Stand geprüft werden.
-- Keine Funktionalität wurde in diesem STEP geändert.
+## Wichtige Read-only Routen
 
-## Offene Punkte / spätere Prüfung
+- `GET /api/alerts/status`
+- `GET /api/alerts/health`
+- `GET /api/alerts/routes`
+- `GET /api/alerts/integration-check`
+- `GET /api/alerts/config`
+- `GET /api/alerts/settings`
+- `GET /api/alerts/eventbus/status`
+- `GET /api/alerts/eventbus/ack-status`
+- `GET /api/alerts/bus-mirror/status`
+- `GET /api/alerts/overlay-watchdog/status?check=0`
+- `GET /api/alerts/events`
+- `GET /api/alerts/stats`
 
-- Routen und Dashboard-Anbindung bei nächster echter Moduländerung erneut prüfen.
-- Config-/DB-/Message-Nutzung genauer dokumentieren, sobald das Modul fachlich angefasst wird.
-- Falls Versionskennung fehlt, später bewusst und ohne Funktionsänderung ergänzen.
+## Produktive / schreibende / testauslösende Routen
 
-## Tests bei späteren Änderungen
+Diese Routen sind produktiv oder können State verändern und wurden im CAN-43.9 Review nicht ausgelöst:
 
-- `node --check` für jede geänderte JS-Datei.
-- relevante `/api/.../status`- oder Modulrouten gezielt prüfen.
-- Dashboard-/Overlay-Flows nur testen, wenn das Modul wirklich betroffen ist.
+- Alert-Auslösung / Queue / Replay
+- Upload-Routen
+- Regel-/Asset-/Text-/DisplayProfile-/ChatBlock-POST-Routen
+- EventBus-Test
+- EventBus-Dry-Run
+- Watchdog-Reset
+- Bus-Mirror Enable/Disable
+- Reload / Admin-Aktionen
+
+## Bestätigte Live-Werte CAN-43.9
+
+```text
+ok=True
+module=alert_system
+moduleVersion=3.1.10
+moduleBuild=diagnostics-standard
+version=3
+step=365
+schemaVersion=6
+enabled=True
+queueLength=0
+current=
+overlayClients=1
+```
+
+```text
+diagnostics:
+ok=True
+health=ok
+module=alert_system
+version=3.1.10
+build=diagnostics-standard
+schemaVersion=6
+expectedSchemaVersion=6
+schemaReady=True
+lastError=
+```
+
+```text
+counts:
+types=16
+rules=30
+enabledRules=29
+assets=48
+soundAssets=32
+imageAssets=16
+soundAssetsWithDuration=32
+soundAssetsWithoutDuration=0
+events=1039
+eventsLast24h=13
+textVariants=16
+testPresets=6
+displayProfiles=23
+chatBlocks=9
+queueLength=0
+history=0
+overlayClients=1
+routes=66
+```
+
+```text
+database:
+ok=True
+adapter=sqlite
+path=D:\Streaming\stramAssets\data\sqlite\app.sqlite
+schemaVersion=6
+expectedSchemaVersion=6
+error=
+```
+
+```text
+integration-check:
+ok=True
+healthy=True
+warnings={}
+rules=30
+displayProfiles=23
+textVariants=16
+testPresets=6
+chatBlocks=9
+rulesWithDesignProfile=27
+rulesUsingDefaultProfile=3
+defaultDisplayProfile=testfollow
+```
+
+## Hinweise
+
+- Die produktive SQLite-Datenbank bleibt `D:\Streaming\stramAssets\data\sqlite\app.sqlite`.
+- Keine Funktionalität entfernen.
+- Produktive Alert-/Upload-/Reset-/EventBus-Test-/Dry-Run-Routen nur bewusst und gezielt testen.
+- Doku/project-state bei Änderungen aktualisieren.

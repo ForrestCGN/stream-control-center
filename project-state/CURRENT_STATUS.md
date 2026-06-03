@@ -8,42 +8,33 @@ CAN-43.0 wurde als Startpunkt für die nächste Fachrunde vorbereitet.
 
 CAN-43.1 aktualisierte die Projektübergabe für den neuen Chat.
 
-CAN-43.2 hat das Modul `commands` als erstes CAN-43-Fachmodul nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
+CAN-43.2 bis CAN-43.8 haben die erste kleine Modul-Abnahmeliste nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
 
-CAN-43.3 hat das Modul `hug` als zweites CAN-43-Fachmodul nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
+CAN-43.9 hat das Modul `alert_system` / Registry-Key `alerts` nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
 
-CAN-43.4 hat das Modul `birthday` als drittes CAN-43-Fachmodul nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
+## CAN-43.9 Ergebnis
 
-CAN-43.5 hat das Modul `message_rotator` als viertes CAN-43-Fachmodul nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
-
-CAN-43.6 hat das Modul `tagebuch` als fünftes CAN-43-Fachmodul nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
-
-CAN-43.7 hat das Modul `todo` als sechstes CAN-43-Fachmodul nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
-
-CAN-43.8 hat das Modul `vip_sound_overlay` als siebtes CAN-43-Fachmodul nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
-
-## CAN-43.8 Ergebnis
-
-`vip_sound_overlay` ist sauber.
+`alerts` ist sauber.
 
 - Repo/Branch: `dev`
-- HEAD: `1774edb0 CAN-43.7 Todo diagnostics review`
+- HEAD: `6ec1efea CAN-43.8 VIP-Sound diagnostics review`
 - Lokaler Git-Status: sauber
-- Backend-Datei: `backend/modules/vip-sound.js`
-- Live-Modul: `vip_sound_overlay`
-- Modulversion: `0.1.1`
-- Runtime-Version: `1.8.15`
+- Backend-Datei: `backend/modules/alert_system.js`
+- Live-Modul: `alert_system`
+- Registry-Key: `alerts`
+- Modulversion: `3.1.10`
 - Build: `diagnostics-standard`
-- Statusroute: `GET /api/vip-sound/status`
-- Routenübersicht: `GET /api/vip-sound/routes`
-- Integration-Check: `GET /api/vip-sound/integration-check`
-- Schema-Version: `5`
+- Step: `365`
+- Statusroute: `GET /api/alerts/status`
+- Health: `GET /api/alerts/health`
+- Routenübersicht: `GET /api/alerts/routes`
+- Integration-Check: `GET /api/alerts/integration-check`
+- Schema-Version: `6`
 - Diagnostics: `ok=True`, `health=ok`, `schemaReady=True`
-- Integration-Check: `ok=True`, `14/15 ok`, `1 warning`, `0 errors`
-- Einzige Warnung: `config_fallback file_not_found`, JSON-Fallback fehlt, DB-Settings sind primär
+- Integration-Check: `ok=True`, `healthy=True`, keine Warnings
 - Queue: leer
-- Overlay: nicht sichtbar
-- Active Sound: nein
+- Current Alert: keiner
+- Overlay Clients: `1`
 - Coverage: sauber
 - Codeänderung: keine
 - Modulversion erhöht: nein
@@ -67,10 +58,6 @@ Letzter bestätigter Coverage-Stand:
 - `coveredLoadedModules: 14`
 - `missingLoadedModules: 0`
 - `registryOnlyEntries: 0`
-
-## Cleanup-Stand
-
-Alte nicht mehr geladene Dashboard-Diagnose-Dateien sind aus Repo und Live entfernt.
 
 ## Dokumentierte Extensions
 

@@ -1,20 +1,19 @@
 # TODO
 
-## CAN-43.8
+## CAN-43.9
 
-- [ ] CAN-43.8 ZIP entpacken.
-- [ ] Optional `node -c backend\modules\vip-sound.js` ausführen.
-- [ ] `stepdone.cmd "CAN-43.8 VIP-Sound diagnostics review"` ausführen.
+- [ ] CAN-43.9 ZIP entpacken.
+- [ ] Optional `node -c backend\modules\alert_system.js` ausführen.
+- [ ] `stepdone.cmd "CAN-43.9 Alerts diagnostics review"` ausführen.
 - [ ] Doku committen/pushen.
 
-## Nächste Fachrunde
+## CAN-43.10 nächste Fachrunde
 
-- [ ] Bewusst entscheiden:
-  - [ ] weitere Registry-Module prüfen
-  - [ ] oder Feature-/Umbau-Thema aufnehmen
+- [ ] Konkretes Modul/Thema auswählen.
+- [ ] Empfehlung prüfen: `sound_system`.
 - [ ] Vor Umsetzung echten Dateistand prüfen.
 - [ ] Repo/GitHub/dev und Live-System bewusst abgleichen.
-- [ ] Diagnose-Standard anwenden, falls Modul betroffen:
+- [ ] Diagnose-Standard anwenden:
   - [ ] Statusroute
   - [ ] `diagnostics`-Block
   - [ ] Registry-Eintrag

@@ -1,41 +1,43 @@
 # Next Steps
 
-## Direkt nach CAN-43.8
+## Direkt nach CAN-43.9
 
-1. CAN-43.8 ZIP nach `D:\Git\stream-control-center` entpacken.
+1. CAN-43.9 ZIP nach `D:\Git\stream-control-center` entpacken.
 2. Optional prüfen:
 
 ```powershell
-node -c backend\modules\vip-sound.js
+node -c backend\modules\alert_system.js
 ```
 
 3. Step abschließen:
 
 ```powershell
-.\stepdone.cmd "CAN-43.8 VIP-Sound diagnostics review"
+.\stepdone.cmd "CAN-43.9 Alerts diagnostics review"
 ```
 
 4. Doku committen/pushen.
 
 ## Nächster fachlicher Schritt
 
-Die kleine CAN-43-Handoff-Liste ist im Wesentlichen abgearbeitet.
+CAN-43.10: Weiteres Registry-Modul nach neuem Diagnose-/Registry-Standard prüfen.
 
-Sinnvolle nächste Wege:
+Empfohlener Kandidat:
 
-1. Weitere Registry-Module prüfen:
-   - `alerts`
-   - `sound_system`
-   - `media`
-   - `obs`
-   - `overlay_monitor`
-   - `communication_bus`
-   - `bus_diagnostics`
-2. Oder bewusst zurück zu einem fachlichen Feature / Umbau.
+1. `sound_system`
 
-Empfehlung:
+Grund:
 
-Vor dem nächsten Step bewusst entscheiden, ob CAN-43 als Registry-Abnahmerunde weiterläuft oder ob ein Feature-Thema aufgenommen wird.
+- zentrale Grundlage für Alerts, VIP-Sound und weitere Audio-Flows
+- steht in der Registry
+- sollte nach Alerts als nächstes abgesichert werden
+
+Alternative Kandidaten:
+
+- `media`
+- `obs`
+- `overlay_monitor`
+- `communication_bus`
+- `bus_diagnostics`
 
 ## Pflicht bei jedem Modul
 
