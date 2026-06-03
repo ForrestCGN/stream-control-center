@@ -1,7 +1,7 @@
 window.DiagnosticsGenericDetails = (function(){
   'use strict';
 
-  const MODULE_VERSION = '0.1.4-can42-21b';
+  const MODULE_VERSION = '0.1.5-can42-21c';
   const ENDPOINTS = {
     birthday: '/api/birthday/status',
     todo: '/api/todo/status',
@@ -591,27 +591,44 @@ window.DiagnosticsGenericDetails = (function(){
     }, 100);
   }
 
+  function handleDynamicSelection(value, ev = null) {
+    const key = cleanText(value || '');
+    if (!DYNAMIC_ENTRIES[key]) return false;
+    dynamicSelectedKey = key;
+    if (ev) {
+      ev.preventDefault?.();
+      ev.stopPropagation?.();
+      ev.stopImmediatePropagation?.();
+    }
+    renderDynamicModule(key);
+    return true;
+  }
+
   function init() {
     const root = document.getElementById('diagnosticsModule');
     if (root) {
       const observer = new MutationObserver(schedulePatch);
       observer.observe(root, { childList: true, subtree: true });
     }
+
     document.addEventListener('change', ev => {
-      if (ev.target && ev.target.matches('[data-diagnostics-select]')) {
-        const value = cleanText(ev.target.value || '');
-        dynamicSelectedKey = DYNAMIC_ENTRIES[value] ? value : '';
-        schedulePatch();
-      }
-    });
+      if (!ev.target || !ev.target.matches('[data-diagnostics-select]')) return;
+      const value = cleanText(ev.target.value || '');
+      if (handleDynamicSelection(value, ev)) return;
+      dynamicSelectedKey = '';
+      schedulePatch();
+    }, true);
+
     document.addEventListener('click', ev => {
       const pick = ev.target && ev.target.closest('[data-diagnostics-pick]');
       if (pick) {
         const value = cleanText(pick.dataset.diagnosticsPick || '');
-        dynamicSelectedKey = DYNAMIC_ENTRIES[value] ? value : '';
+        if (handleDynamicSelection(value, ev)) return;
+        dynamicSelectedKey = '';
       }
-      if (ev.target && ev.target.closest('[data-diagnostics-pick], [data-diagnostics-refresh]')) schedulePatch();
-    });
+      if (ev.target && ev.target.closest('[data-diagnostics-refresh]')) schedulePatch();
+    }, true);
+
     schedulePatch();
   }
 
