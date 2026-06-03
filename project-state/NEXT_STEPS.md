@@ -3,7 +3,7 @@
 ## Direkt nächster Schritt
 
 ```text
-CAN-36.3 anwenden und Dashboard-Sichtprüfung machen.
+CAN-36.3b anwenden und Dashboard-Sichtprüfung machen.
 ```
 
 ## Prüfung
@@ -15,14 +15,14 @@ Dashboard > Message-Rotator
 Erwartung:
 
 ```text
-Zusätzlicher Tab: Read-only
-Message-Rotator Read-only Diagnose nur im Read-only-Tab sichtbar
-mehrere Abschnitte/Karten
-keine Start-/Stop-/Tick-/Next-/Manual-/Reload-/Admin-POST-Buttons in der Read-only Diagnosekarte
-kein Firefox-Hänger / keine Tab-Blockade
+Tabs: Übersicht | Settings | Items | Nachrichten | Diagnose
+Kein zusätzlicher Tab Read-only.
+Der bestehende Diagnose-Tab bleibt sichtbar.
+Keine Start-/Stop-/Tick-/Next-/Manual-/Reload-/Admin-POST-Aktion wurde durch den Cleanup ausgelöst.
+Kein Firefox-Hänger / keine Tab-Blockade.
 ```
 
-## Danach
+## Danach sinnvoll
 
 ```text
 CAN-36.4 Testergebnis dokumentieren.

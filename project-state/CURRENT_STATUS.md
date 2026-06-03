@@ -1,64 +1,77 @@
 # CURRENT_STATUS
 
-## Stand: CAN-36.3 vorbereitet
+## Stand: CAN-36.3b vorbereitet
 
-CAN-36.3 ergänzt eine nachgeladene Read-only-Diagnosekarte im Message-Rotator-Dashboard.
+CAN-36.3b korrigiert CAN-36.3: Der zusätzliche sichtbare `Read-only`-Tab im Message-Rotator wird entfernt, weil das Modul bereits einen sichtbaren Tab `Diagnose` besitzt.
 
-## Änderung
+## Aktueller Arbeitsbereich
 
-Betroffene Dateien:
+```text
+CAN-36: Message-Rotator-Modul Status/Doku/Diagnose prüfen und glätten
+```
+
+## Änderung CAN-36.3b
+
+Geändert:
 
 ```text
 htdocs/dashboard/index.html
 htdocs/dashboard/modules/message_rotator_readonly_diagnostics.js
 htdocs/dashboard/modules/message_rotator_readonly_diagnostics.css
 project-state/*
-docs/current/CURRENT_CHAT_HANDOFF_CAN36_3.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN36_3b.md
 ```
 
-Nicht geändert:
+Wichtig:
 
 ```text
-htdocs/dashboard/modules/message_rotator.js
-backend/modules/message_rotator.js
+backend/modules/message_rotator.js bleibt unverändert.
+htdocs/dashboard/modules/message_rotator.js bleibt unverändert.
 ```
 
-## Neue Karte
+## Ergebnis
+
+Der sichtbare Tab-Aufbau soll wieder sein:
 
 ```text
-Dashboard > Message-Rotator > Read-only
+Übersicht | Settings | Items | Nachrichten | Diagnose
 ```
 
-Abschnitte:
+Es soll keinen zusätzlichen Tab `Read-only` mehr geben.
+
+## Umsetzung
 
 ```text
-Status & Runtime
-Konfiguration & Items
-Textsystem & Samples
-Live-Status-Konfiguration
-Routen-Sicherheit
+index.html lädt message_rotator_readonly_diagnostics.css nicht mehr.
+index.html lädt message_rotator_readonly_diagnostics.js nicht mehr.
+message_rotator_readonly_diagnostics.js wird zusätzlich inert überschrieben, falls ein alter Browser-Cache/alte index.html sie noch lädt.
+message_rotator_readonly_diagnostics.css wird zusätzlich leer überschrieben.
 ```
 
-## Sicherheit
-
-Genutzt werden nur:
+## Nicht geändert
 
 ```text
-GET /api/message-rotator/status
-GET /api/message-rotator/routes
-GET /api/message-rotator/integration-check
+Keine Backend-Dateien.
+Keine Message-Rotator-Hauptdatei.
+Keine API-Routen.
+Keine Message.
+Kein Rotator-Start/Stop.
+Kein Tick.
+Kein Next/Manual.
+Keine Preview.
+Kein Reload.
+Keine Live-Status-Force-Abfrage.
+Keine Settings gespeichert.
+Keine Texte/Varianten gespeichert oder gelöscht.
+Keine DB-Migration.
+Keine Dashboard-Write-Buttons getestet.
+Keine Twitch-/Chat-Nachricht gepostet.
+Keine OBS-/Sound-/Queue-Aktion.
+Keine Funktionalität entfernt.
 ```
 
-Nicht genutzt:
+## Nächster Schritt
 
 ```text
-start, stop, tick, next, manual, preview, reload, live-status, admin/settings POST, admin/texts POST
-```
-
-## Stabilität
-
-```text
-Kein MutationObserver.
-Kein Dauer-Rendering.
-Nur kontrolliertes Click-/Show-Handling.
+CAN-36.3b anwenden und Dashboard-Sichtprüfung machen.
 ```
