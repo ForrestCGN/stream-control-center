@@ -31,7 +31,8 @@ try {
 const MODULE = 'alert_system';
 const SCHEMA_VERSION = 6;
 const MODULE_STEP = 365;
-const MODULE_VERSION = '3.1.9';
+const MODULE_VERSION = '3.1.10';
+const MODULE_BUILD = 'diagnostics-standard';
 const ALERT_EVENTBUS_CAPABILITY = 'alert.event_output';
 const ALERT_EVENTBUS_STATUS_API_VERSION = '1.0.0';
 const ALERT_CANBUS_HEARTBEAT_INTERVAL_MS = 5000;
@@ -41,6 +42,7 @@ let alertCanBusLastStatusMs = 0;
 const MODULE_META = {
   name: MODULE,
   version: MODULE_VERSION,
+  build: MODULE_BUILD,
   step: MODULE_STEP,
   type: 'runtime',
   legacy: false,
@@ -271,6 +273,7 @@ const state = {
 module.exports.MODULE_META = MODULE_META;
 module.exports.MODULE_VERSION = MODULE_VERSION;
 module.exports.version = MODULE_VERSION;
+module.exports.getStatus = buildStatus;
 
 module.exports.init = function init(ctx) {
   const { app, wss, broadcastWS } = ctx;
@@ -2706,13 +2709,112 @@ function emitAlertBusMirror(event, overlayAlert) {
   }
 }
 
+function buildStandardDiagnostics(counts = {}, ffprobe = {}) {
+  const warnings = [];
+  const errors = [];
+  const schemaVersion = Number(database.getSchemaVersion(MODULE) || 0);
+  const schemaReady = schemaVersion >= SCHEMA_VERSION;
+
+  if (!schemaReady) errors.push('schema_not_ready');
+  if (!multer) warnings.push('multer_not_ready');
+  if (ffprobe && ffprobe.available === false) warnings.push('ffprobe_not_available');
+  if (Number(counts.soundAssetsWithoutDuration || 0) > 0) warnings.push('sound_assets_without_duration');
+  if (state.canBus && state.canBus.lastError) warnings.push('can_bus_last_error');
+  if (state.alertEventBus && state.alertEventBus.lastError) warnings.push('alert_event_bus_last_error');
+  if (state.alertOutput && state.alertOutput.lastError) warnings.push('alert_output_last_error');
+  if (state.alertSoundCorrelation && state.alertSoundCorrelation.lastError) warnings.push('alert_sound_correlation_last_error');
+
+  const ok = errors.length === 0;
+  const health = ok ? (warnings.length ? 'warn' : 'ok') : 'error';
+
+  return {
+    ok,
+    health,
+    module: MODULE,
+    version: MODULE_VERSION,
+    build: MODULE_BUILD,
+    schemaVersion,
+    expectedSchemaVersion: SCHEMA_VERSION,
+    schemaReady,
+    configSource: 'database_with_json_fallback',
+    textSource: 'database_with_json_fallback',
+    database: {
+      ok: schemaReady,
+      adapter: typeof database.getAdapterName === 'function' ? database.getAdapterName() : 'sqlite',
+      path: typeof database.getDbPath === 'function' ? database.getDbPath() : '',
+      schemaVersion,
+      expectedSchemaVersion: SCHEMA_VERSION,
+      error: schemaReady ? '' : 'schema_not_ready'
+    },
+    counts: {
+      types: Number(counts.types || 0),
+      rules: Number(counts.rules || 0),
+      enabledRules: Number(counts.enabledRules || 0),
+      assets: Number(counts.assets || 0),
+      soundAssets: Number(counts.soundAssets || 0),
+      imageAssets: Number(counts.imageAssets || 0),
+      soundAssetsWithDuration: Number(counts.soundAssetsWithDuration || 0),
+      soundAssetsWithoutDuration: Number(counts.soundAssetsWithoutDuration || 0),
+      events: Number(counts.events || 0),
+      eventsLast24h: Number(counts.eventsLast24h || 0),
+      textVariants: Number(counts.textVariants || 0),
+      testPresets: Number(counts.testPresets || 0),
+      displayProfiles: Number(counts.displayProfiles || 0),
+      chatBlocks: Number(counts.chatBlocks || 0),
+      queueLength: state.queue.length,
+      history: state.history.length,
+      overlayClients: state.overlayClients.size,
+      routes: buildAlertRoutes().count || 0,
+      alertOutputBusEmitted: Number(state.alertOutput?.emittedBus || 0),
+      alertOutputLegacyEmitted: Number(state.alertOutput?.emittedLegacy || 0),
+      alertOutputSkipped: Number(state.alertOutput?.skipped || 0),
+      alertOutputErrors: Number(state.alertOutput?.errors || 0),
+      alertBusMirrorEmitted: Number(state.alertBusMirror?.emitted || 0),
+      alertBusMirrorSkipped: Number(state.alertBusMirror?.skipped || 0),
+      alertBusMirrorErrors: Number(state.alertBusMirror?.errors || 0),
+      alertEventBusEmitted: Number(state.alertEventBus?.emitted || 0),
+      alertEventBusSkipped: Number(state.alertEventBus?.skipped || 0),
+      alertEventBusErrors: Number(state.alertEventBus?.errors || 0),
+      canBusHeartbeats: Number(state.canBus?.heartbeatCount || 0),
+      canBusStatusPublished: Number(state.canBus?.statusPublished || 0),
+      soundBundlesPrepared: Number(state.alertSoundCorrelation?.bundlesPrepared || 0),
+      soundBundlesPosted: Number(state.alertSoundCorrelation?.bundlesPosted || 0),
+      soundBundlesOk: Number(state.alertSoundCorrelation?.bundlesOk || 0),
+      soundBundlesFailed: Number(state.alertSoundCorrelation?.bundlesFailed || 0)
+    },
+    state: {
+      enabled: state.config.enabled !== false,
+      overlayEnabled: state.config.overlayEnabled !== false,
+      queueEnabled: state.config.queueEnabled !== false,
+      uploadEnabled: state.config.uploadEnabled !== false,
+      processing: state.processing === true,
+      hasCurrent: !!state.current,
+      currentEventId: state.current ? state.current.eventUid : '',
+      queueLength: state.queue.length,
+      overlayClients: state.overlayClients.size,
+      multerReady: !!multer,
+      ffprobeAvailable: !!(ffprobe && ffprobe.available),
+      canBusRegistered: state.canBus?.registered === true,
+      alertBusMirrorEnabled: state.alertBusMirror?.runtimeEnabled === true,
+      alertEventBusLastAction: state.alertEventBus?.lastAction || '',
+      alertOutputLastMode: state.alertOutput?.lastMode || ''
+    },
+    warnings,
+    errors,
+    lastError: errors[0] || state.alertOutput?.lastError || state.alertEventBus?.lastError || state.canBus?.lastError || state.alertSoundCorrelation?.lastError || ''
+  };
+}
+
 function buildStatus(req = null) {
   const counts = getAlertCounts();
   const ffprobe = buildFfprobeStatus();
   return {
     ok: true,
     module: MODULE,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
     version: 3,
+    diagnosticVersion: MODULE_VERSION,
     step: MODULE_STEP,
     enabled: state.config.enabled !== false,
     overlayEnabled: state.config.overlayEnabled !== false,
@@ -2744,8 +2846,18 @@ function buildStatus(req = null) {
     multerLoadError,
     ffprobe,
     counts,
+    routes: buildAlertRoutes().routes,
+    routeCount: buildAlertRoutes().count,
+    dataEndpoints: {
+      routes: '/api/alerts/routes',
+      health: '/api/alerts/health',
+      eventBusStatus: '/api/alerts/eventbus/status',
+      ackStatus: '/api/alerts/eventbus/ack-status',
+      overlayWatchdog: '/api/alerts/overlay-watchdog/status'
+    },
     databasePath: database.getDbPath(),
     schemaVersion: database.getSchemaVersion(MODULE),
+    diagnostics: buildStandardDiagnostics(counts, ffprobe),
     security: req ? security.securitySummary(req) : security.securitySummary(),
     config: publicConfig()
   };

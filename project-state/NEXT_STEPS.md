@@ -2,35 +2,38 @@
 
 ## Direkt nächster Schritt
 
-CAN-42.16 anwenden und testen:
+CAN-42.17 anwenden und testen:
 
 ```powershell
-.\stepdone.cmd "CAN-42.16 Media status diagnostics-standard"
+.\stepdone.cmd "CAN-42.17 Alerts status diagnostics-standard"
 
-node -c backend\modules\media.js
+node -c backend\modules\alert_system.js
 
-$m = Invoke-RestMethod "http://127.0.0.1:8080/api/media/status"
-$m | Select-Object ok,module,moduleVersion,moduleBuild,version,diagnosticVersion,routeCount
-$m.diagnostics | Select-Object ok,health,module,version,build,schemaVersion,schemaReady,lastError
-$m.diagnostics.counts
+$a = Invoke-RestMethod "http://127.0.0.1:8080/api/alerts/status"
+$a | Select-Object ok,module,moduleVersion,moduleBuild,version,diagnosticVersion,enabled,overlayEnabled,queueEnabled,routeCount
+$a.diagnostics | Select-Object ok,health,module,version,build,schemaVersion,schemaReady,lastError
+$a.diagnostics.counts
 ```
 
 Danach Dashboard hart neu laden (`STRG+F5`) und prüfen:
 
 ```text
-Admin > Diagnose > Medienverwaltung
+Admin > Diagnose > Alerts
 ```
 
-Erwartung: Medienverwaltung zeigt Status `OK` und im generischen Standard-Diagnoseblock Zähler, Datenbank- und Statuswerte.
+Erwartung: Alerts zeigt Status `OK` oder ggf. `Warnung`, wenn optionale Diagnosepunkte wie `ffprobe`, `multer` oder Sound-Dauer-Metadaten auffällig sind. Die produktive Alert-Logik bleibt unverändert.
 
 ## Danach
 
-Nächstes Modul auf Diagnostics-Standard prüfen/angleichen, z. B. Alerts oder Birthday.
+Nächstes Modul auf Diagnostics-Standard prüfen/angleichen, z. B. Birthday oder Overlay-Monitor.
 
 ## Nicht ohne separaten Go-Schritt
 
-- keine Upload-/Scan-/Delete-/Resolve-Logik ändern
-- keine Asset-Pfade ändern
+- keine Alert-Ausführung ändern
+- keine Queue-/Clear-/Reload-/Enqueue-/Test-Logik ändern
+- keine Twitch-/Provider-Routen ändern
+- keine Rules-/Assets-/Upload-/Duration-Scan-Logik ändern
+- keine EventBus-/Overlay-Watchdog-/Bus-Mirror-Produktivlogik ändern
 - keine DB-Migration
 - keine neuen Dashboard-Module ohne Rückfrage
 - keine Funktionalität entfernen
