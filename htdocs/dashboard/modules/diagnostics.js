@@ -5,7 +5,7 @@ window.DiagnosticsModule = (function(){
   const MODULE_VERSION = '0.1.0-can42-1';
   const READONLY_ENDPOINTS = [
     { key:'birthday', label:'Birthday', group:'community', status:'/api/birthday/status', today:'/api/birthday/today', showState:'/api/birthday/show/state' },
-    { key:'todo', label:'Todo', group:'community', status:'/api/todo/status' },
+    { key:'todo', label:'Todo', group:'community', status:'/api/todo/status', integration:'/api/todo/integration-check' },
     { key:'tagebuch', label:'Tagebuch', group:'community', status:'/api/tagebuch/status' },
     { key:'hug', label:'Hug-System', group:'community', status:'/api/hug/status' },
     { key:'commands', label:'Commands', group:'community', status:'/api/commands/status' },
@@ -192,6 +192,53 @@ window.DiagnosticsModule = (function(){
     `;
   }
 
+
+  function countObject(value) {
+    return value && typeof value === 'object' && !Array.isArray(value) ? Object.keys(value).length : 0;
+  }
+
+  function safeCheckCount(check) {
+    if (!check || typeof check !== 'object') return '-';
+    if (typeof check.count === 'number') return check.count;
+    return '-';
+  }
+
+  function renderTodoSpecific(result) {
+    const status = result.status || result || {};
+    const integration = result.integration || {};
+    const checks = integration.checks || {};
+    const channels = checks.channels || {};
+    const tables = checks.tables || {};
+    const settings = checks.settings || {};
+    const texts = checks.texts || {};
+    const missingChannels = Array.isArray(channels.missing) ? channels.missing : [];
+    const targetCount = checks.targets?.count ?? countObject(status.targets);
+    const configuredChannels = Object.values(status.channels || {}).filter(item => item && item.configured).length;
+    const totalChannels = countObject(status.channels);
+    const statusOk = status.ok !== false;
+    const schemaOk = status.schemaReady === true || status.schemaOk === true || status.schema?.ready === true;
+    const integrationOk = integration.ok === true || integration.healthy === true;
+
+    return `<section class="diagnostics-card diagnostics-module-extra">
+      <h4>Todo-spezifische Diagnose</h4>
+      <div class="diagnostics-grid">
+        ${metric('Status OK', statusOk ? 'ja' : 'nein')}
+        ${metric('Schema OK', schemaOk ? 'ja' : 'nein')}
+        ${metric('Integration OK', integrationOk ? 'ja' : 'nein')}
+        ${metric('Targets', targetCount || '-')}
+        ${metric('Channels', totalChannels ? `${configuredChannels}/${totalChannels}` : '-')}
+        ${metric('Fehlende Channels', missingChannels.length)}
+        ${metric('User-Stats', safeCheckCount(tables.userStats))}
+        ${metric('Daily-Stats', safeCheckCount(tables.dailyStats))}
+        ${metric('Settings', settings.count ?? safeCheckCount(tables.settings))}
+        ${metric('Textvarianten', texts.count ?? safeCheckCount(tables.textVariants))}
+        ${metric('Legacy-Texte', texts.legacyCount ?? safeCheckCount(tables.legacyTexts))}
+        ${metric('DB', checks.database?.ok === false ? 'prüfen' : (checks.database?.adapter || 'ok'))}
+      </div>
+      ${missingChannels.length ? `<p class="diagnostics-note warn">Fehlende Channels: ${esc(missingChannels.map(item => item.key || item).join(', '))}</p>` : '<p class="diagnostics-note">Todo-Integration meldet keine fehlenden Channels.</p>'}
+    </section>`;
+  }
+
   function renderModuleDetails(entry) {
     const item = normalize(entry, state.results[entry.key]);
     const result = state.results[entry.key] || {};
@@ -223,6 +270,7 @@ window.DiagnosticsModule = (function(){
           ${metric('Show-Ziel', show.targetDisplayName || show.targetLogin || '-')}
           ${metric('Queue-Abfrage', 'nicht genutzt')}
         </div>` : ''}
+        ${entry.key === 'todo' ? renderTodoSpecific(result) : ''}
         <p class="diagnostics-note">Routen werden hier nicht als Liste angezeigt. Die Anzahl bleibt oben sichtbar; Details stehen bei Bedarf in den Rohdaten.</p>
         <details class="diagnostics-raw">
           <summary>Rohdaten anzeigen</summary>

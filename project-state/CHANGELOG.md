@@ -1,17 +1,29 @@
 # CHANGELOG
 
-## CAN-42.3
+## CAN-42.4
 
-- Modul-Diagnose-/Hinweis-Inventar erstellt:
-  - `docs/current/MODULE_DIAGNOSTICS_HINT_INVENTORY_CAN42_3.md`
-- Direkt in Modul-Seiten eingebundene Diagnose-/Hinweis-Erweiterungen dokumentiert.
-- Birthday Safety/Diagnose als bereits nicht mehr eingebunden markiert.
-- Nächste Bereinigungsreihenfolge vorgeschlagen.
-- Keine Backend-Änderung.
-- Keine Dashboard-Codeänderung.
+- Zentrale Admin-Diagnose erweitert:
+  - `Admin > Diagnose > Todo` zeigt Todo-spezifische Diagnosewerte.
+  - Zusätzlich zu `GET /api/todo/status` wird `GET /api/todo/integration-check` gelesen.
+- Abgebildete Werte:
+  - Status OK
+  - Schema OK
+  - Integration OK
+  - Targets
+  - Channels
+  - Fehlende Channels
+  - User-Stats
+  - Daily-Stats
+  - Settings
+  - Textvarianten
+  - Legacy-Texte
+  - DB
+- Todo-Modul selbst nicht geändert.
+- Alter Todo-Diagnose-Tab bleibt vorerst erhalten.
 - Keine API-POSTs.
 - Keine produktive Aktion.
+- Keine Funktionalität entfernt.
 
-## CAN-42.2
+## CAN-42.3
 
-- Diagnose-Standard definiert.
+- Modul-Diagnose-/Hinweis-Inventar erstellt.

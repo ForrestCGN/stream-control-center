@@ -1,48 +1,61 @@
 # CURRENT_STATUS
 
-## Stand: CAN-42.3 vorbereitet
+## Stand: CAN-42.4 vorbereitet
 
-CAN-42.3 erstellt ein Inventar der direkt in Modul-Seiten eingebundenen Diagnose-/Hinweis-Erweiterungen.
+CAN-42.4 bildet die Todo-spezifischen Diagnosewerte zentral in `Admin > Diagnose > Todo` ab.
 
-## Ergebnis
+## Änderung
 
-Zentrale Diagnose ist aktiv:
-
-```text
-Admin > Diagnose
-```
-
-Direkte Modul-Diagnosen/Hinweise sind noch eingebunden bei:
+Geändert:
 
 ```text
-overlay_monitor_safety_ext
-bus_diagnostics_readonly_summary
-bus_diagnostics_subpage_safety_ext
-message_rotator_diagnostics_ext
-hug_diagnostics_ext
-tagebuch_readonly_diagnostics
-todo_readonly_diagnostics
-commands_readonly_diagnostics
+htdocs/dashboard/modules/diagnostics.js
+docs/current/TODO_DIAGNOSTICS_CENTRALIZATION_CAN42_4.md
+project-state/*
+docs/current/CURRENT_CHAT_HANDOFF_CAN42_4.md
 ```
 
-Birthday-Diagnose/Safety ist nicht mehr eingebunden:
+Nicht geändert:
 
 ```text
-birthday_readonly_safety_ext
-birthday_readonly_diagnostics
+backend/modules/todo.js
+htdocs/dashboard/modules/todo.js
+htdocs/dashboard/modules/todo_readonly_diagnostics.js
+htdocs/dashboard/modules/todo_readonly_diagnostics.css
+htdocs/dashboard/index.html
 ```
 
-## Neue Arbeitslinie
+## Neue zentrale Todo-Werte
 
 ```text
-Diagnose gehört zentral nach Admin > Diagnose.
-Modul-Seiten bleiben Bedienseiten.
-Bestehende Modul-Diagnosen werden schrittweise zentralisiert oder entfernt.
-Keine Funktionalität entfernen.
+Status OK
+Schema OK
+Integration OK
+Targets
+Channels
+Fehlende Channels
+User-Stats
+Daily-Stats
+Settings
+Textvarianten
+Legacy-Texte
+DB
 ```
+
+## Genutzte Routen
+
+```text
+GET /api/todo/status
+GET /api/todo/integration-check
+```
+
+## Wichtig
+
+Der alte Todo-Diagnose-Tab bleibt vorerst eingebunden. Entfernt wird er erst nach positivem Sichttest.
 
 ## Nächster Schritt
 
 ```text
-CAN-42.4 Todo-Modul-Diagnose aus Modul-Seite entfernen und zentral prüfen.
+CAN-42.4 anwenden und Admin > Diagnose > Todo prüfen.
+Danach CAN-42.5 Todo-Diagnose-Tab aus Todo-Modul entfernen/deaktivieren.
 ```
