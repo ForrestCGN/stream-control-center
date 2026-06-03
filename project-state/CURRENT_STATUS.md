@@ -2,30 +2,32 @@
 
 ## Aktueller Arbeitsstand
 
-CAN-42.12d vorbereitet: Dashboard-Diagnose-Textcleanup.
+CAN-42.13 vorbereitet: Message-Rotator `/api/message-rotator/status` auf Diagnostics-Standard erweitert.
 
 ## Ergebnis
 
-Die generischen Diagnose-Details bleiben aktiv und zeigen zusätzliche Werte aus `diagnostics.counts`, `diagnostics.database`, `diagnostics.state`, `diagnostics.queue`, `diagnostics.runtime`, `diagnostics.warnings` und `diagnostics.errors`, wenn vorhanden. Die erklärenden Fußnoten unter Tagebuch-/Standard-Diagnostics werden entfernt.
+Der Message-Rotator liefert nun einen standardisierten `diagnostics`-Block mit Counts, Runtime-, Config-, Settings-/Datenbank-, Warnungs- und Fehlerdaten. Die bestehende Statusroute bleibt read-only und bestehende Felder bleiben erhalten.
 
 ## Geändert
 
 ```text
-htdocs/dashboard/modules/diagnostics_generic_details.js
-docs/current/DIAGNOSTICS_TEXT_CLEANUP_CAN42_12D.md
-docs/current/CURRENT_CHAT_HANDOFF_CAN42_12D.md
+backend/modules/message_rotator.js
+docs/current/MESSAGE_ROTATOR_STATUS_DIAGNOSTICS_CAN42_13.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN42_13.md
 project-state/*
 ```
 
 ## Nicht geändert
 
 ```text
-backend/*
-Statusrouten
-Produktive Aktionen
+Dashboard-Dateien
+Start-/Stop-/Tick-/Next-/Manual-Logik
+Chat-Ausgabe
+Timer/Cooldowns
 DB/Migrationen
+Produktive Aktionen
 ```
 
 ## Nächster Schritt
 
-CAN-42.12d anwenden und Sichttest in Admin > Diagnose durchführen. Danach CAN-42.13 Message-Rotator prüfen/angleichen.
+CAN-42.13 anwenden und testen. Danach nächstes Modul aus der Diagnose-Liste prüfen/angleichen.

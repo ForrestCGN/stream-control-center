@@ -1,20 +1,25 @@
 # CHANGELOG
 
-## CAN-42.12d
+## CAN-42.13
 
-Dashboard-Diagnose-Textcleanup vorbereitet.
+Message-Rotator Status-Diagnostics vorbereitet.
 
 Geändert:
 
 ```text
-htdocs/dashboard/modules/diagnostics_generic_details.js
+backend/modules/message_rotator.js
 ```
 
-Entfernt werden nur erklärende Fußnoten aus der Anzeige:
+Änderungen:
 
 ```text
-Tagebuch-Diagnose liest den standardisierten diagnostics-Block aus /api/tagebuch/status.
-Dieser Block wird generisch aus diagnostics der jeweiligen Statusroute erzeugt.
+MODULE_VERSION 0.1.0 -> 0.1.1
+MODULE_BUILD diagnostics-standard ergänzt
+MODULE_META.build ergänzt
+/api/message-rotator/status liefert zusätzlich module/moduleVersion/moduleBuild/version/routes/routeCount/dataEndpoints/diagnostics
+module.exports.getStatus ergänzt
 ```
 
-Keine Backend-Änderung, keine Statusrouten-Änderung, keine produktive Aktion, keine Funktionalität entfernt.
+Der neue `diagnostics`-Block ist read-only und enthält Counts, Runtime-, Config-, Settings-/Datenbank-, Warnungs- und Fehlerdaten.
+
+Keine Rotator-Ausführung, keine Chat-Ausgabe, keine Start-/Stop-/Tick-/Next-/Manual-Logik, keine DB-Migration und keine Funktionalität entfernt.

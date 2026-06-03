@@ -13,10 +13,12 @@ const fs = require('fs');
 const path = require('path');
 
 const MODULE_NAME = 'message_rotator';
-const MODULE_VERSION = '0.1.0';
+const MODULE_VERSION = '0.1.1';
+const MODULE_BUILD = 'diagnostics-standard';
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
+  build: MODULE_BUILD,
   type: 'runtime',
   category: 'messages',
   description: 'Message-Rotator API fuer automatische und manuelle Chat-Hinweise.',
@@ -745,7 +747,13 @@ function ageSeconds(ms) {
 
 function publicState() {
   const c = getConfig();
+  const routeInfo = buildMessageRotatorRoutes();
+  const routesList = Array.isArray(routeInfo.routes) ? routeInfo.routes : [];
   return {
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    version: MODULE_VERSION,
     active: state.active,
     startedAt: state.startedAt,
     stoppedAt: state.stoppedAt,
@@ -770,7 +778,100 @@ function publicState() {
       liveStatus: c.liveStatus,
       items: c.items
     },
-    configInfo: cfgInfo
+    configInfo: cfgInfo,
+    routes: routesList,
+    routeCount: routesList.length,
+    dataEndpoints: routeInfo.standardEndpoints || {},
+    diagnostics: buildStandardDiagnostics(c, routeInfo)
+  };
+}
+
+function buildStandardDiagnostics(currentConfig = null, routeInfo = null) {
+  const c = currentConfig || getConfig();
+  const warnings = [];
+  const errors = [];
+  const routesList = Array.isArray(routeInfo?.routes) ? routeInfo.routes : buildMessageRotatorRoutes().routes || [];
+  const items = Array.isArray(c.items) ? c.items : [];
+  const enabledItems = items.filter(item => item && item.enabled).length;
+  const disabledItems = Math.max(0, items.length - enabledItems);
+  const manualCommands = items.reduce((sum, item) => sum + (Array.isArray(item.commands) ? item.commands.length : 0), 0);
+  const textKeys = Array.from(new Set(items.map(item => item && item.messageKey).filter(Boolean)));
+  const apiRoutes = routesList.filter(route => String(route.path || '').startsWith('/api/')).length;
+  const legacyRoutes = routesList.length - apiRoutes;
+
+  const textStatus = safeCall('textHelper.status', () => textHelper.getStatus ? textHelper.getStatus() : null, null);
+  const textStatusOk = textStatus.ok && (!textStatus.value || textStatus.value.ok !== false);
+
+  if (!c.enabled) warnings.push('rotator_disabled');
+  if (!enabledItems) warnings.push('no_enabled_items');
+  if (c.settingsError) warnings.push(`settings:${c.settingsError}`);
+  if (c.liveStatus?.enabled && !c.liveStatus?.url) warnings.push('live_status_url_missing');
+  if (!textStatusOk) warnings.push(`texts:${textStatus.error || textStatus.value?.error || 'not_ok'}`);
+
+  const ok = errors.length === 0;
+  const health = ok ? (warnings.length ? 'warn' : 'ok') : 'error';
+
+  return {
+    ok,
+    health,
+    module: MODULE_NAME,
+    version: MODULE_VERSION,
+    build: MODULE_BUILD,
+    schemaVersion: null,
+    schemaReady: true,
+    configSource: c.settingsSource || cfgInfo?.settingsSource || 'unknown',
+    textSource: textStatus.value?.source || 'database_variants_with_json_fallback',
+    database: {
+      ok: !c.settingsError,
+      adapter: 'settings-helper',
+      path: '',
+      schemaVersion: null,
+      expectedSchemaVersion: null,
+      table: c.settingsTable || SETTINGS_TABLE,
+      error: c.settingsError || ''
+    },
+    counts: {
+      items: items.length,
+      enabledItems,
+      disabledItems,
+      manualCommands,
+      textKeys: textKeys.length,
+      routes: routesList.length,
+      apiRoutes,
+      legacyRoutes,
+      totalTicks: state.totalTicks,
+      ignoredTicks: state.ignoredTicks,
+      sendCount: state.sendCount,
+      chatMessagesSinceLastSend: state.chatMessagesSinceLastSend,
+      itemState: Object.keys(state.itemState || {}).length,
+      manualState: Object.keys(state.manualState || {}).length
+    },
+    runtime: {
+      active: state.active,
+      startedAt: state.startedAt,
+      stoppedAt: state.stoppedAt,
+      lastTickAt: state.lastTickAt,
+      lastTickUser: state.lastTickUser,
+      lastSentAt: state.lastSentAt,
+      lastSentAgeSeconds: ageSeconds(state.lastSentAtMs),
+      lastItemId: state.lastItemId,
+      lastMessageKey: state.lastMessageKey,
+      liveStatus: clone(state.liveStatus || {})
+    },
+    config: {
+      enabled: c.enabled,
+      onlyWhenLive: !!c.runtime?.onlyWhenLive,
+      startActiveOnServerStart: !!c.runtime?.startActiveOnServerStart,
+      globalCooldownMinutes: c.runtime?.globalCooldownMinutes ?? null,
+      minChatMessagesBetweenRotations: c.runtime?.minChatMessagesBetweenRotations ?? null,
+      outputMode: c.messageOptions?.outputMode || '',
+      deliveryMode: c.messageOptions?.deliveryMode || '',
+      liveStatusEnabled: !!c.liveStatus?.enabled,
+      liveStatusMode: c.liveStatus?.mode || ''
+    },
+    warnings,
+    errors,
+    lastError: errors[0] || warnings[0] || ''
   };
 }
 
@@ -1755,4 +1856,4 @@ function init(ctx) {
   console.log('[message_rotator] /message-rotator/* und /api/message-rotator/* aktiv');
 }
 
-module.exports = { MODULE_META, MODULE_VERSION, version: MODULE_VERSION, init };
+module.exports = { MODULE_META, MODULE_VERSION, version: MODULE_VERSION, getStatus: publicState, init };

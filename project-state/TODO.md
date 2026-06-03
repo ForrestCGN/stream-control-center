@@ -11,11 +11,12 @@ Erledigt/vorbereitet:
 [x] CAN-42.12b Dashboard Hug Diagnostics Anzeige-Fix
 [x] CAN-42.12c Generische Standard-Diagnostics für Module
 [x] CAN-42.12d Dashboard Diagnostics Textcleanup
+[x] CAN-42.13 Message-Rotator /status diagnostics-standard
 ```
 
 Offen:
 
 ```text
-[ ] CAN-42.13 Message-Rotator auf diagnostics-Standard prüfen/angleichen
 [ ] weitere Module nach und nach prüfen
+[ ] Kandidaten: VIP-System, Alerts, Sound-System, Media, Overlay-Monitor
 ```

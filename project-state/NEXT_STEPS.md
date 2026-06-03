@@ -2,33 +2,34 @@
 
 ## Direkt nächster Schritt
 
-CAN-42.12d anwenden und prüfen:
+CAN-42.13 anwenden und testen:
 
 ```powershell
-.\stepdone.cmd "CAN-42.12d Dashboard diagnostics text cleanup"
-node -c htdocs\dashboard\modules\diagnostics_generic_details.js
-node -c htdocs\dashboard\modules\diagnostics_hug_display_fix.js
+.\stepdone.cmd "CAN-42.13 Message-Rotator status diagnostics-standard"
+
+node -c backend\modules\message_rotator.js
+
+$m = Invoke-RestMethod "http://127.0.0.1:8080/api/message-rotator/status"
+$m | Select-Object ok,module,moduleVersion,moduleBuild,version,active,routeCount
+$m.diagnostics | Select-Object ok,health,module,version,build,schemaReady,lastError
+$m.diagnostics.counts
 ```
 
-Dann Dashboard hart neu laden und prüfen:
+Danach Dashboard hart neu laden und prüfen:
 
 ```text
-Admin > Diagnose > Tagebuch
-Admin > Diagnose > Hug-System
-Admin > Diagnose > Commands
+Admin > Diagnose > Message-Rotator
 ```
-
-Erwartung: Die Diagnosewerte bleiben sichtbar, die erklärenden Fußnoten sind verschwunden.
 
 ## Danach
 
-CAN-42.13: Message-Rotator auf diagnostics-Standard prüfen/angleichen.
+Nächstes Modul auf Diagnostics-Standard prüfen/angleichen, z. B. VIP-System, Alerts, Sound-System oder Media.
 
 ## Nicht ohne separaten Go-Schritt
 
 ```text
-Keine Backend-Routen entfernen
-Keine produktiven Aktionen ändern
+Keine produktiven Routen ändern
+Keine Start-/Stop-/Tick-/Next-/Manual-Logik ändern
 Keine DB-Migration
 Keine Funktionalität entfernen
 ```
