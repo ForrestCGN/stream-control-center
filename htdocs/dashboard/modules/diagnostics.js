@@ -471,7 +471,183 @@ window.DiagnosticsModule = (function(){
         ${metric('Aktuelle Seite', currentPage)}
         ${metric('Seitendatum', currentDate)}
       </div>
-      <p class="diagnostics-note">Tagebuch-Diagnose liest den standardisierten diagnostics-Block aus /api/tagebuch/status.</p>
+    </section>`;
+  }
+
+
+  const GENERIC_LABELS = {
+    queued: 'Warteschlange',
+    active: 'Aktiv',
+    overlayVisible: 'Overlay sichtbar',
+    messageTemplates: 'Nachrichten-Vorlagen',
+    dailyUsageRows: 'Tagesnutzung',
+    settingsRows: 'Einstellungen',
+    eventsRows: 'Events',
+    roleOverridesRows: 'Rollen-Overrides',
+    twitchUsersRows: 'Twitch-User',
+    routes: 'Routen',
+    apiRoutes: 'API-Routen',
+    legacyRoutes: 'Legacy-Routen',
+    eventBusEmitted: 'EventBus gesendet',
+    eventBusSkipped: 'EventBus übersprungen',
+    eventBusErrors: 'EventBus Fehler',
+    soundBusEmitted: 'SoundBus gesendet',
+    soundBusErrors: 'SoundBus Fehler',
+    users: 'User',
+    enabledUsers: 'Aktive User',
+    disabledUsers: 'Deaktivierte User',
+    commands: 'Commands',
+    logs: 'Logs',
+    handled: 'Verarbeitet',
+    ignored: 'Ignoriert',
+    executed: 'Ausgeführt',
+    failed: 'Fehlgeschlagen',
+    cooldowns: 'Cooldowns',
+    items: 'Einträge',
+    enabledItems: 'Aktive Einträge',
+    disabledItems: 'Deaktivierte Einträge',
+    textKeys: 'Text-Keys',
+    settings: 'Einstellungen',
+    textVariants: 'Textvarianten',
+    clientConnected: 'Client verbunden',
+    clientLastSeenAt: 'Client zuletzt gesehen',
+    clientAgeMs: 'Client-Alter',
+    phase: 'Statusphase',
+    visible: 'Sichtbar',
+    current: 'Aktuell',
+    parallel: 'Parallel',
+    configuredSounds: 'Konfigurierte Sounds',
+    outputTargets: 'Ausgabeziele',
+    legacyTargets: 'Legacy-Ziele',
+    allowedExtensions: 'Erlaubte Endungen',
+    scenes: 'Szenen',
+    sourceAliases: 'Source-Aliase',
+    sceneAliases: 'Scene-Aliase',
+    audioActive: 'Audio aktiv',
+    obsConnected: 'OBS verbunden',
+    obsDetected: 'OBS erkannt',
+    obsConnecting: 'OBS verbindet',
+    streamActive: 'Stream aktiv',
+    recordActive: 'Aufnahme aktiv',
+    recordPaused: 'Aufnahme pausiert',
+    replayBufferActive: 'Replay Buffer aktiv',
+    clients: 'Clients',
+    connectedClients: 'Verbundene Clients',
+    overlayClients: 'Overlay-Clients',
+    clientsWithHeartbeat: 'Clients mit Heartbeat',
+    events: 'Events',
+    issues: 'Issues',
+    subscriptions: 'Subscriptions',
+    emitted: 'Gesendet',
+    delivered: 'Zugestellt',
+    acks: 'ACKs',
+    auditErrors: 'Audit-Fehler'
+  };
+
+  function labelFromGenericKey(key) {
+    const clean = String(key || '').trim();
+    if (GENERIC_LABELS[clean]) return GENERIC_LABELS[clean];
+    return clean
+      .replace(/[_\-.]+/g, ' ')
+      .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/^./, c => c.toUpperCase());
+  }
+
+  function hasGenericValue(value) {
+    return value !== undefined && value !== null && value !== '';
+  }
+
+  function looksLikeTimestampMs(key, value) {
+    const text = String(key || '').toLowerCase();
+    return typeof value === 'number' && value > 1000000000000 && (text.endsWith('at') || text.includes('timestamp') || text.includes('lastseen'));
+  }
+
+  function formatGenericTimestamp(value) {
+    const date = new Date(Number(value));
+    if (Number.isNaN(date.getTime())) return String(value);
+    return date.toLocaleString('de-DE');
+  }
+
+  function formatGenericDurationMs(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return String(value);
+    if (n < 1000) return `${Math.round(n)} ms`;
+    if (n < 60000) return `${(n / 1000).toFixed(n < 10000 ? 1 : 0).replace('.', ',')} s`;
+    const minutes = Math.floor(n / 60000);
+    const seconds = Math.round((n % 60000) / 1000);
+    return seconds ? `${minutes} min ${seconds} s` : `${minutes} min`;
+  }
+
+  function genericScalar(value, key = '') {
+    if (!hasGenericValue(value)) return '';
+    if (typeof value === 'boolean') return value ? 'ja' : 'nein';
+    if (typeof value === 'number') {
+      if (!Number.isFinite(value)) return '';
+      if (looksLikeTimestampMs(key, value)) return formatGenericTimestamp(value);
+      if (/ms$/i.test(String(key || ''))) return formatGenericDurationMs(value);
+      return String(value);
+    }
+    if (typeof value === 'string') return value;
+    if (Array.isArray(value)) return String(value.length);
+    if (value && typeof value === 'object') {
+      if (typeof value.count === 'number') return genericScalar(value.count, key);
+      if (hasGenericValue(value.value)) return genericScalar(value.value, key);
+      if (Array.isArray(value.rows)) return String(value.rows.length);
+    }
+    return '';
+  }
+
+  function genericMetric(label, value, key = '') {
+    const text = genericScalar(value, key) || '-';
+    return `<article class="diag-metric"><span>${esc(label)}</span><strong>${esc(text)}</strong></article>`;
+  }
+
+  function genericEntries(obj, max = 48) {
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return [];
+    return Object.entries(obj)
+      .filter(([key, value]) => genericScalar(value, key) !== '')
+      .slice(0, max)
+      .map(([key, value]) => genericMetric(labelFromGenericKey(key), value, key));
+  }
+
+  function genericDatabaseEntries(database) {
+    if (!database || typeof database !== 'object') return [];
+    const out = [];
+    if (hasGenericValue(database.ok)) out.push(genericMetric('Datenbank OK', database.ok));
+    if (hasGenericValue(database.adapter)) out.push(genericMetric('Datenbank-Typ', database.adapter));
+    if (hasGenericValue(database.path)) out.push(genericMetric('Datenbank-Pfad', database.path));
+    if (hasGenericValue(database.schemaVersion)) out.push(genericMetric('Datenbank-Schema', database.schemaVersion));
+    if (hasGenericValue(database.expectedSchemaVersion)) out.push(genericMetric('Erwartetes Schema', database.expectedSchemaVersion));
+    if (hasGenericValue(database.error)) out.push(genericMetric('Datenbank-Fehler', database.error));
+    return out;
+  }
+
+  function genericListBlock(title, items, cls) {
+    if (!Array.isArray(items) || !items.length) return '';
+    return `<div class="diagnostics-note ${cls || ''}"><strong>${esc(title)}:</strong> ${esc(items.map(item => String(item || '').trim()).filter(Boolean).join(', '))}</div>`;
+  }
+
+  function renderStandardDiagnostics(entry, raw) {
+    const diagnostics = standardDiagnosticsBlock(raw);
+    if (!diagnostics || typeof diagnostics !== 'object') return '';
+    const countCards = genericEntries(diagnostics.counts || {}, 64);
+    const databaseCards = genericDatabaseEntries(diagnostics.database || {});
+    const stateCards = genericEntries(diagnostics.state || {}, 32);
+    const queueCards = genericEntries(diagnostics.queue || {}, 20);
+    const runtimeCards = genericEntries(diagnostics.runtime || {}, 20);
+    const hasDetails = countCards.length || databaseCards.length || stateCards.length || queueCards.length || runtimeCards.length || diagnostics.warnings?.length || diagnostics.errors?.length;
+    if (!hasDetails) return '';
+    return `<section class="diagnostics-card diagnostics-module-extra diagnostics-generic-details" data-generic-diagnostics-details="${esc(entry.key)}">
+      <h4>Standard-Diagnose</h4>
+      ${countCards.length ? `<h5>Zähler</h5><div class="diagnostics-grid">${countCards.join('')}</div>` : ''}
+      ${databaseCards.length ? `<h5>Datenbank</h5><div class="diagnostics-grid">${databaseCards.join('')}</div>` : ''}
+      ${stateCards.length ? `<h5>Status</h5><div class="diagnostics-grid">${stateCards.join('')}</div>` : ''}
+      ${queueCards.length ? `<h5>Warteschlange</h5><div class="diagnostics-grid">${queueCards.join('')}</div>` : ''}
+      ${runtimeCards.length ? `<h5>Laufzeit</h5><div class="diagnostics-grid">${runtimeCards.join('')}</div>` : ''}
+      ${genericListBlock('Warnungen', diagnostics.warnings, 'warn')}
+      ${genericListBlock('Fehler', diagnostics.errors, 'warn')}
     </section>`;
   }
 
@@ -521,7 +697,8 @@ window.DiagnosticsModule = (function(){
           ${metric('Queue-Abfrage', 'nicht genutzt')}
         </div>` : ''}
         ${entry.key === 'todo' ? renderTodoSpecific(result) : ''}
-      ${entry.key === 'tagebuch' ? renderTagebuchSpecific(result) : ''}
+        ${entry.key === 'tagebuch' ? renderTagebuchSpecific(result) : ''}
+        ${renderStandardDiagnostics(entry, raw)}
         <details class="diagnostics-raw">
           <summary>Rohdaten anzeigen</summary>
           <pre>${esc(JSON.stringify(combinedRawPayload(entry, result, raw), null, 2))}</pre>
