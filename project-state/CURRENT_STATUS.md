@@ -8,33 +8,37 @@ CAN-43.0 wurde als Startpunkt für die nächste Fachrunde vorbereitet.
 
 CAN-43.1 aktualisierte die Projektübergabe für den neuen Chat.
 
-CAN-43.2 bis CAN-43.8 haben die erste kleine Modul-Abnahmeliste nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
+CAN-43.2 bis CAN-43.9 haben mehrere Registry-Module nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
 
-CAN-43.9 hat das Modul `alert_system` / Registry-Key `alerts` nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
+CAN-43.10 hat das Modul `sound_system` nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
 
-## CAN-43.9 Ergebnis
+## CAN-43.10 Ergebnis
 
-`alerts` ist sauber.
+`sound_system` ist sauber.
 
 - Repo/Branch: `dev`
-- HEAD: `6ec1efea CAN-43.8 VIP-Sound diagnostics review`
+- HEAD: `2fa5874b CAN-43.9 Alerts diagnostics review`
 - Lokaler Git-Status: sauber
-- Backend-Datei: `backend/modules/alert_system.js`
-- Live-Modul: `alert_system`
-- Registry-Key: `alerts`
-- Modulversion: `3.1.10`
+- Backend-Datei: `backend/modules/sound_system.js`
+- Live-Modul: `sound_system`
+- Registry-Key: `sound_system`
+- Modulversion: `0.1.21`
 - Build: `diagnostics-standard`
-- Step: `365`
-- Statusroute: `GET /api/alerts/status`
-- Health: `GET /api/alerts/health`
-- Routenübersicht: `GET /api/alerts/routes`
-- Integration-Check: `GET /api/alerts/integration-check`
-- Schema-Version: `6`
+- Runtime-Version: `0.1.12`
+- Statusroute: `GET /api/sound/status`
+- Current: `GET /api/sound/current`
+- Queue: `GET /api/sound/queue`
+- Routenübersicht: `GET /api/sound/routes`
+- Integration-Check: `GET /api/sound/integration-check`
+- EventBus-Status: `GET /api/sound/eventbus/status`
+- Sound-Command-Status: `GET /api/sound/eventbus/command/status`
+- Schema-Version: `1`
 - Diagnostics: `ok=True`, `health=ok`, `schemaReady=True`
-- Integration-Check: `ok=True`, `healthy=True`, keine Warnings
+- Integration-Check: `ok=True`, `healthy=True`, eine Legacy-Warnung
+- Current Sound: keiner
 - Queue: leer
-- Current Alert: keiner
-- Overlay Clients: `1`
+- Parallel: 0
+- Overlay Client: verbunden / ready
 - Coverage: sauber
 - Codeänderung: keine
 - Modulversion erhöht: nein
@@ -58,18 +62,6 @@ Letzter bestätigter Coverage-Stand:
 - `coveredLoadedModules: 14`
 - `missingLoadedModules: 0`
 - `registryOnlyEntries: 0`
-
-## Dokumentierte Extensions
-
-Bewusst behaltene Extensions sind dokumentiert in:
-
-- `docs/modules/DASHBOARD_EXTENSIONS.md`
-
-Für bisher geprüfte CAN-43-Module relevant:
-
-- `commands_readonly_diagnostics.css/js` bleiben bewusst erhalten.
-- `hug_diagnostics_ext.css/js` bleiben bewusst erhalten.
-- `message_rotator_diagnostics_ext.css/js` bleiben bewusst erhalten.
 
 ## Neue Modul-Regel
 

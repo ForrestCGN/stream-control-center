@@ -1,16 +1,16 @@
 # TODO
 
-## CAN-43.9
+## CAN-43.10
 
-- [ ] CAN-43.9 ZIP entpacken.
-- [ ] Optional `node -c backend\modules\alert_system.js` ausführen.
-- [ ] `stepdone.cmd "CAN-43.9 Alerts diagnostics review"` ausführen.
+- [ ] CAN-43.10 ZIP entpacken.
+- [ ] Optional `node -c backend\modules\sound_system.js` ausführen.
+- [ ] `stepdone.cmd "CAN-43.10 Sound-System diagnostics review"` ausführen.
 - [ ] Doku committen/pushen.
 
-## CAN-43.10 nächste Fachrunde
+## CAN-43.11 nächste Fachrunde
 
 - [ ] Konkretes Modul/Thema auswählen.
-- [ ] Empfehlung prüfen: `sound_system`.
+- [ ] Empfehlung prüfen: `media`.
 - [ ] Vor Umsetzung echten Dateistand prüfen.
 - [ ] Repo/GitHub/dev und Live-System bewusst abgleichen.
 - [ ] Diagnose-Standard anwenden:
