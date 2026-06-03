@@ -1,25 +1,21 @@
 # CURRENT_STATUS
 
-## Stand: CAN-41.3 vorbereitet
+## Stand: CAN-41.3b vorbereitet
 
-CAN-41.3 ergänzt im Birthday-Dashboard einen Read-only-/Safety-Hinweis und markiert produktive Aktionen optisch.
+CAN-41.3b entfernt/deaktiviert den Birthday-Safety-Hinweis und die Button-Badges aus CAN-41.3 wieder.
 
-## Aktueller Arbeitsbereich
+## Grund
 
-```text
-CAN-41: Birthday-/Geburtstags-Modul read-only analysieren und sicher markieren
-```
+Aktuell nutzen nur Forrest/Owner das Dashboard. Große Warn-/Safety-Schilder und Badge-Flut sind daher nicht sinnvoll. Wenn später Mods Zugriff bekommen, wird das sauber über Rollen/Rechte/Freigaben, Confirm-Dialoge und Audit-Logging gelöst.
 
-## Änderung CAN-41.3
+## Änderung CAN-41.3b
 
 Geändert:
 
 ```text
 htdocs/dashboard/index.html
-htdocs/dashboard/modules/birthday_readonly_safety_ext.js
-htdocs/dashboard/modules/birthday_readonly_safety_ext.css
 project-state/*
-docs/current/CURRENT_CHAT_HANDOFF_CAN41_3.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN41_3b.md
 ```
 
 Nicht geändert:
@@ -30,16 +26,30 @@ htdocs/dashboard/modules/birthday.js
 htdocs/dashboard/modules/birthday.css
 ```
 
-## Verhalten der UI-Erweiterung
+Effekt:
 
 ```text
-- kleiner Safety-Hinweis im Birthday-Dashboard nach dem Hero
-- markiert produktive Buttons als manuell/admin/media/reload/show
-- zeigt auf Show/Medien, Geburtstage, Settings, Texte, Partys gezielte kurze Hinweise
-- keine API-Calls
-- keine API-POSTs
-- kein MutationObserver
-- nur DOM-Markierung
+birthday_readonly_safety_ext.css wird nicht mehr geladen.
+birthday_readonly_safety_ext.js wird nicht mehr geladen.
+Der große Birthday-Safety-Hinweis ist weg.
+Die Badge-Markierungen an Buttons sind weg.
+```
+
+Hinweis:
+
+```text
+Die alten Extension-Dateien können physisch noch im Ordner liegen, werden aber nicht mehr eingebunden und sind damit inaktiv.
+```
+
+## Neue Dashboard-Regel
+
+```text
+Keine großen Warn-/Safety-Schilder mehr als Standard.
+Keine Badge-Flut an normalen Buttons.
+Spätere Mod-Freigaben über Rollen/Rechte/Freigaben.
+Kritische Aktionen später gezielt mit Confirm + Audit-Logging.
+Hinweise nur dort, wo sie wirklich fachlich helfen.
+Diagnosekarten sollen echte Statuswerte zeigen, nicht nur Warntexte.
 ```
 
 ## Nicht ausgelöst
@@ -63,6 +73,6 @@ Keine Funktionalität entfernt.
 ## Nächster Schritt
 
 ```text
-CAN-41.3 anwenden und im Dashboard prüfen.
-Danach CAN-41.4 Testergebnis dokumentieren.
+CAN-41.3b anwenden und Sichtprüfung machen.
+Danach CAN-41.4 Birthday Read-only Diagnosekarte planen/umsetzen.
 ```
