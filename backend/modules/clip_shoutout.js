@@ -16,7 +16,7 @@ let streamStatus = null;
 try { streamStatus = require("./stream_status"); } catch (_) { streamStatus = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.14";
+const MODULE_VERSION = "0.2.15";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -335,9 +335,6 @@ function streamDayLimitConfig(cfg) {
   return mergePlain(DEFAULT_CONFIG.clipShoutout.streamDayLimit, (cfg && cfg.streamDayLimit) || {});
 }
 
-function autoShoutoutConfig(cfg) {
-  return mergePlain(DEFAULT_CONFIG.clipShoutout.autoShoutout, (cfg && cfg.autoShoutout) || {});
-}
 
 function safeJsonParse(value, fallback = {}) {
   if (value === undefined || value === null || value === "") return fallback;
@@ -3215,86 +3212,254 @@ async function handleRun(req, res, env) {
 }
 
 
+
+function autoShoutoutJsonConfig(cfg) {
+  return mergePlain(DEFAULT_CONFIG.clipShoutout.autoShoutout, (cfg && cfg.autoShoutout) || {});
+}
+
 function normalizeAutoStreamer(row = {}) {
-  const login = cleanLogin(row.login || row.user || row.channel || row.name || '');
+  const login = cleanLogin(row.login || row.user || row.channel || row.name || row.targetLogin || row.target_login || '');
   if (!login) return null;
   return {
     login,
-    displayName: cleanDisplay(row.displayName || row.display || row.name || login, login),
-    enabled: row.enabled !== false,
-    officialShoutout: row.officialShoutout !== false,
-    videoShoutout: row.videoShoutout !== false,
+    displayName: cleanDisplay(row.displayName || row.display_name || row.display || row.name || login, login),
+    enabled: row.enabled !== false && database.boolFromDb(row.enabled) !== false,
+    officialShoutout: row.officialShoutout !== false && row.official_shoutout !== false && database.boolFromDb(row.official_shoutout === undefined ? 1 : row.official_shoutout) !== false,
+    videoShoutout: row.videoShoutout !== false && row.video_shoutout !== false && database.boolFromDb(row.video_shoutout === undefined ? 1 : row.video_shoutout) !== false,
     note: String(row.note || '')
   };
 }
 
-function listAutoStreamers(cfg) {
-  const acfg = autoShoutoutConfig(cfg);
-  const rows = Array.isArray(acfg.streamers) ? acfg.streamers : [];
-  return rows.map(normalizeAutoStreamer).filter(Boolean);
-}
-
-function findAutoStreamer(login, cfg) {
-  const clean = cleanLogin(login);
-  if (!clean) return null;
-  return listAutoStreamers(cfg).find(row => row.enabled !== false && row.login === clean) || null;
+function normalizeAutoSettings(input = {}, fallback = {}) {
+  const base = mergePlain(DEFAULT_CONFIG.clipShoutout.autoShoutout, fallback || {});
+  return {
+    enabled: input.enabled === undefined ? base.enabled === true : database.boolFromDb(database.normalizeBool(input.enabled)),
+    onlyWhenLive: input.onlyWhenLive === undefined ? base.onlyWhenLive === true : database.boolFromDb(database.normalizeBool(input.onlyWhenLive)),
+    triggerOnFirstMessageOnly: input.triggerOnFirstMessageOnly === undefined ? base.triggerOnFirstMessageOnly !== false : database.boolFromDb(database.normalizeBool(input.triggerOnFirstMessageOnly)),
+    respectStreamDayLimit: input.respectStreamDayLimit === undefined ? base.respectStreamDayLimit !== false : database.boolFromDb(database.normalizeBool(input.respectStreamDayLimit)),
+    globalCooldownMs: Math.max(0, Number(input.globalCooldownMs === undefined ? base.globalCooldownMs : input.globalCooldownMs) || 0),
+    perStreamerCooldownMs: Math.max(0, Number(input.perStreamerCooldownMs === undefined ? base.perStreamerCooldownMs : input.perStreamerCooldownMs) || 0),
+    sendChatMessage: input.sendChatMessage === undefined ? base.sendChatMessage !== false : database.boolFromDb(database.normalizeBool(input.sendChatMessage)),
+    storeSkippedEvents: input.storeSkippedEvents === undefined ? base.storeSkippedEvents === true : database.boolFromDb(database.normalizeBool(input.storeSkippedEvents)),
+    queuedMessage: String(input.queuedMessage === undefined ? (base.queuedMessage || '') : (input.queuedMessage || '')),
+    streamers: []
+  };
 }
 
 function ensureAutoShoutoutSchema() {
   database.ensureReady();
+  const pk = database.primaryKeyAutoIncrementSql();
+  const text = database.textTypeSql();
+  const shortText = database.isMysqlFamilyDialect() ? "VARCHAR(191)" : database.textTypeSql();
+  const longText = database.textTypeSql({ long: true });
+  const integer = database.integerTypeSql();
+  const bool = database.boolTypeSql();
+  const dt = database.dateTimeTypeSql();
+  const json = database.jsonTypeSql();
+
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS clip_shoutout_auto_settings (
+      key ${shortText} PRIMARY KEY,
+      value_json ${json} NOT NULL,
+      updated_at ${dt} NOT NULL
+    )
+  `);
+
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS clip_shoutout_auto_streamers (
+      id ${pk},
+      login ${shortText} NOT NULL UNIQUE,
+      display_name ${text} NOT NULL DEFAULT '',
+      enabled ${bool} NOT NULL DEFAULT 1,
+      official_shoutout ${bool} NOT NULL DEFAULT 1,
+      video_shoutout ${bool} NOT NULL DEFAULT 1,
+      note ${text} NOT NULL DEFAULT '',
+      meta_json ${json} NOT NULL,
+      created_at ${dt} NOT NULL,
+      updated_at ${dt} NOT NULL
+    )
+  `);
+
   database.exec(`
     CREATE TABLE IF NOT EXISTS clip_shoutout_auto_events (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      target_login TEXT NOT NULL,
-      target_display TEXT NOT NULL DEFAULT '',
-      trigger_login TEXT NOT NULL DEFAULT '',
-      trigger_display TEXT NOT NULL DEFAULT '',
-      stream_day_id TEXT NOT NULL DEFAULT '',
-      status TEXT NOT NULL DEFAULT '',
-      reason TEXT NOT NULL DEFAULT '',
-      display_queue_id INTEGER NOT NULL DEFAULT 0,
-      created_at TEXT NOT NULL,
-      meta_json TEXT NOT NULL DEFAULT '{}'
-    );
-    CREATE INDEX IF NOT EXISTS idx_clip_so_auto_target_created ON clip_shoutout_auto_events(target_login, created_at);
-    CREATE INDEX IF NOT EXISTS idx_clip_so_auto_stream_target ON clip_shoutout_auto_events(stream_day_id, target_login, status);
+      id ${pk},
+      target_login ${text} NOT NULL,
+      target_display ${text} NOT NULL DEFAULT '',
+      trigger_login ${text} NOT NULL DEFAULT '',
+      trigger_display ${text} NOT NULL DEFAULT '',
+      stream_day_id ${text} NOT NULL DEFAULT '',
+      status ${text} NOT NULL DEFAULT '',
+      reason ${text} NOT NULL DEFAULT '',
+      display_queue_id ${integer} NOT NULL DEFAULT 0,
+      created_at ${dt} NOT NULL,
+      meta_json ${longText} NOT NULL
+    )
   `);
+
+  const jsonColumnDefinition = database.isMysqlFamilyDialect() ? `${json} NOT NULL` : `${json} NOT NULL DEFAULT '{}'`;
+  const longJsonColumnDefinition = database.isMysqlFamilyDialect() ? `${longText} NOT NULL` : `${longText} NOT NULL DEFAULT '{}'`;
+  database.ensureColumn('clip_shoutout_auto_streamers', 'meta_json', jsonColumnDefinition);
+  database.ensureColumn('clip_shoutout_auto_events', 'meta_json', longJsonColumnDefinition);
+}
+
+function getAutoSettingRow(key) {
+  ensureAutoShoutoutSchema();
+  return database.get(`SELECT * FROM ${database.quoteIdentifier('clip_shoutout_auto_settings')} WHERE ${database.quoteIdentifier('key')}=:key`, { key: String(key || '') });
+}
+
+function setAutoSettingValue(key, value) {
+  ensureAutoShoutoutSchema();
+  const now = nowIso();
+  const data = {
+    key: String(key || ''),
+    value_json: database.jsonEncode(value || {}),
+    updated_at: now
+  };
+  database.upsert('clip_shoutout_auto_settings', data, ['key'], ['value_json', 'updated_at']);
+  return data;
+}
+
+function hasAutoSettingMarker(key) {
+  return !!getAutoSettingRow(key);
+}
+
+function seedAutoStreamersFromJson(cfg) {
+  ensureAutoShoutoutSchema();
+  if (hasAutoSettingMarker('json_streamers_seeded')) return { seeded: false, reason: 'already_seeded' };
+  const jsonCfg = autoShoutoutJsonConfig(cfg);
+  const rows = Array.isArray(jsonCfg.streamers) ? jsonCfg.streamers.map(normalizeAutoStreamer).filter(Boolean) : [];
+  if (!rows.length) {
+    setAutoSettingValue('json_streamers_seeded', { seeded: false, reason: 'json_streamers_empty', at: nowIso() });
+    return { seeded: false, reason: 'json_streamers_empty' };
+  }
+  let count = 0;
+  for (const row of rows) {
+    saveAutoStreamer(row, { seed: 'json' });
+    count += 1;
+  }
+  setAutoSettingValue('json_streamers_seeded', { seeded: true, count, at: nowIso() });
+  return { seeded: true, count };
+}
+
+function autoShoutoutConfig(cfg) {
+  ensureAutoShoutoutSchema();
+  const jsonCfg = autoShoutoutJsonConfig(cfg);
+  const row = getAutoSettingRow('settings');
+  const dbSettings = row ? database.jsonDecode(row.value_json, {}) : null;
+  const settings = normalizeAutoSettings(dbSettings || {}, jsonCfg);
+  settings.streamers = listAutoStreamers(cfg);
+  settings.configSource = row ? 'database' : 'json_fallback';
+  settings.jsonFallbackUsed = !row;
+  settings.database = { settingsStored: !!row, streamersStored: settings.streamers.length };
+  return settings;
+}
+
+function saveAutoShoutoutSettings(partial = {}, cfg = null) {
+  const current = autoShoutoutConfig(cfg || shoutoutConfig());
+  const settings = normalizeAutoSettings(partial || {}, current);
+  delete settings.streamers;
+  delete settings.configSource;
+  delete settings.jsonFallbackUsed;
+  delete settings.database;
+  setAutoSettingValue('settings', settings);
+  return autoShoutoutConfig(cfg || shoutoutConfig());
+}
+
+function normalizeAutoStreamerDbRow(row = {}) {
+  const login = cleanLogin(row.login || '');
+  if (!login) return null;
+  return {
+    id: Number(row.id || 0),
+    login,
+    displayName: cleanDisplay(row.display_name || row.displayName || login, login),
+    enabled: database.boolFromDb(row.enabled),
+    officialShoutout: database.boolFromDb(row.official_shoutout),
+    videoShoutout: database.boolFromDb(row.video_shoutout),
+    note: String(row.note || ''),
+    createdAt: String(row.created_at || ''),
+    updatedAt: String(row.updated_at || ''),
+    meta: database.jsonDecode(row.meta_json, {}) || {}
+  };
+}
+
+function listAutoStreamers(cfg = null) {
+  ensureAutoShoutoutSchema();
+  seedAutoStreamersFromJson(cfg || shoutoutConfig());
+  const rows = database.all(`
+    SELECT * FROM ${database.quoteIdentifier('clip_shoutout_auto_streamers')}
+    ORDER BY enabled DESC, login ASC
+  `) || [];
+  return rows.map(normalizeAutoStreamerDbRow).filter(Boolean);
+}
+
+function findAutoStreamer(login, cfg = null) {
+  const clean = cleanLogin(login);
+  if (!clean) return null;
+  ensureAutoShoutoutSchema();
+  seedAutoStreamersFromJson(cfg || shoutoutConfig());
+  const row = database.get(`SELECT * FROM ${database.quoteIdentifier('clip_shoutout_auto_streamers')} WHERE login=:login LIMIT 1`, { login: clean });
+  const normalized = normalizeAutoStreamerDbRow(row || {});
+  return normalized && normalized.enabled !== false ? normalized : null;
+}
+
+function saveAutoStreamer(input = {}, meta = {}) {
+  ensureAutoShoutoutSchema();
+  const normalized = normalizeAutoStreamer(input);
+  if (!normalized) return { ok: false, error: 'login_required' };
+  const now = nowIso();
+  const existing = database.get(`SELECT * FROM ${database.quoteIdentifier('clip_shoutout_auto_streamers')} WHERE login=:login LIMIT 1`, { login: normalized.login });
+  const data = {
+    login: normalized.login,
+    display_name: normalized.displayName || normalized.login,
+    enabled: database.normalizeBool(normalized.enabled !== false),
+    official_shoutout: database.normalizeBool(normalized.officialShoutout !== false),
+    video_shoutout: database.normalizeBool(normalized.videoShoutout !== false),
+    note: String(normalized.note || ''),
+    meta_json: database.jsonEncode(meta || {}),
+    created_at: existing ? String(existing.created_at || now) : now,
+    updated_at: now
+  };
+  database.upsert('clip_shoutout_auto_streamers', data, ['login'], ['display_name', 'enabled', 'official_shoutout', 'video_shoutout', 'note', 'meta_json', 'updated_at']);
+  return { ok: true, streamer: findAutoStreamer(normalized.login, null) || normalizeAutoStreamerDbRow(database.get(`SELECT * FROM ${database.quoteIdentifier('clip_shoutout_auto_streamers')} WHERE login=:login`, { login: normalized.login })) };
+}
+
+function removeAutoStreamer(login) {
+  ensureAutoShoutoutSchema();
+  const clean = cleanLogin(login);
+  if (!clean) return { ok: false, error: 'login_required' };
+  const now = nowIso();
+  database.updateByKey('clip_shoutout_auto_streamers', 'login', clean, { enabled: 0, updated_at: now });
+  return { ok: true, login: clean, disabled: true };
 }
 
 function insertAutoShoutoutEvent(event = {}) {
   ensureAutoShoutoutSchema();
   const now = nowIso();
-  const params = {
-    targetLogin: cleanLogin(event.targetLogin || ''),
-    targetDisplay: cleanDisplay(event.targetDisplay || event.targetLogin || ''),
-    triggerLogin: cleanLogin(event.triggerLogin || event.targetLogin || ''),
-    triggerDisplay: cleanDisplay(event.triggerDisplay || event.triggerLogin || event.targetDisplay || ''),
-    streamDayId: String(event.streamDayId || ''),
+  const data = {
+    target_login: cleanLogin(event.targetLogin || ''),
+    target_display: cleanDisplay(event.targetDisplay || event.targetLogin || ''),
+    trigger_login: cleanLogin(event.triggerLogin || event.targetLogin || ''),
+    trigger_display: cleanDisplay(event.triggerDisplay || event.triggerLogin || event.targetDisplay || ''),
+    stream_day_id: String(event.streamDayId || ''),
     status: String(event.status || ''),
     reason: String(event.reason || ''),
-    displayQueueId: Number(event.displayQueueId || 0),
-    createdAt: String(event.createdAt || now),
-    metaJson: JSON.stringify(event.meta || {})
+    display_queue_id: Number(event.displayQueueId || 0),
+    created_at: String(event.createdAt || now),
+    meta_json: database.jsonEncode(event.meta || {})
   };
-  const result = database.run(`
-    INSERT INTO clip_shoutout_auto_events (
-      target_login,target_display,trigger_login,trigger_display,stream_day_id,status,reason,display_queue_id,created_at,meta_json
-    ) VALUES (
-      :targetLogin,:targetDisplay,:triggerLogin,:triggerDisplay,:streamDayId,:status,:reason,:displayQueueId,:createdAt,:metaJson
-    )
-  `, params);
+  const result = database.insert('clip_shoutout_auto_events', data);
   return result && (result.lastInsertRowid || result.lastInsertRowId) ? (result.lastInsertRowid || result.lastInsertRowId) : 0;
 }
 
 function lastAutoEvent(whereSql = '', params = {}) {
   ensureAutoShoutoutSchema();
-  return database.get(`SELECT * FROM clip_shoutout_auto_events ${whereSql} ORDER BY created_at DESC, id DESC LIMIT 1`, params);
+  return database.get(`SELECT * FROM ${database.quoteIdentifier('clip_shoutout_auto_events')} ${whereSql} ORDER BY created_at DESC, id DESC LIMIT 1`, params);
 }
 
 function listAutoShoutoutEvents(limit = 25) {
   ensureAutoShoutoutSchema();
   const safeLimit = Math.max(1, Math.min(200, Number.parseInt(limit, 10) || 25));
-  return database.all(`SELECT * FROM clip_shoutout_auto_events ORDER BY created_at DESC, id DESC LIMIT ${safeLimit}`);
+  return database.all(`SELECT * FROM ${database.quoteIdentifier('clip_shoutout_auto_events')} ORDER BY created_at DESC, id DESC LIMIT ${safeLimit}`) || [];
 }
 
 function autoCooldownStatus(login, cfg) {
@@ -3371,7 +3536,7 @@ async function handleAutoShoutoutChatActivity(parsed, source = {}, env = process
 
   if (acfg.triggerOnFirstMessageOnly !== false) {
     const existingAuto = database.get(`
-      SELECT * FROM clip_shoutout_auto_events
+      SELECT * FROM ${database.quoteIdentifier('clip_shoutout_auto_events')}
       WHERE target_login=:login AND stream_day_id=:streamDayId AND status='triggered'
       ORDER BY id DESC LIMIT 1
     `, { login, streamDayId });
@@ -3468,6 +3633,10 @@ function autoShoutoutStatus(cfg) {
     perStreamerCooldownMs: Math.max(0, Number(acfg.perStreamerCooldownMs || 0)),
     sendChatMessage: acfg.sendChatMessage !== false,
     storeSkippedEvents: acfg.storeSkippedEvents === true,
+    queuedMessage: String(acfg.queuedMessage || ''),
+    configSource: acfg.configSource || 'database',
+    jsonFallbackUsed: acfg.jsonFallbackUsed === true,
+    database: acfg.database || {},
     configuredStreamers: listAutoStreamers(cfg),
     configuredStreamerCount: listAutoStreamers(cfg).length,
     recentEvents: listAutoShoutoutEvents(20),
@@ -3712,6 +3881,9 @@ module.exports.init = function init(ctx) {
         { method: "GET", path: `${API_PREFIX}/inbound` },
         { method: "GET", path: `${API_PREFIX}/inbound/stats` },
         { method: "GET", path: `${API_PREFIX}/auto` },
+        { method: "GET/POST", path: `${API_PREFIX}/auto/settings` },
+        { method: "GET/POST", path: `${API_PREFIX}/auto/streamers` },
+        { method: "POST", path: `${API_PREFIX}/auto/streamers/remove` },
         { method: "POST", path: `${API_PREFIX}/auto/test-chat` },
         { method: "POST", path: `${API_PREFIX}/inbound/debug` },
         { method: "GET", path: `${API_PREFIX}/production-check` },
@@ -3784,11 +3956,20 @@ module.exports.init = function init(ctx) {
       if (body.streamDayLimit && typeof body.streamDayLimit === "object") allowed.streamDayLimit = body.streamDayLimit;
       if (body.streamStatus && typeof body.streamStatus === "object") allowed.streamStatus = body.streamStatus;
       if (body.inboundShoutout && typeof body.inboundShoutout === "object") allowed.inboundShoutout = body.inboundShoutout;
-      if (body.autoShoutout && typeof body.autoShoutout === "object") allowed.autoShoutout = body.autoShoutout;
-      const settings = saveShoutoutConfig(allowed);
+
+      let autoSettings = null;
+      let autoStreamerUpdates = [];
+      if (body.autoShoutout && typeof body.autoShoutout === "object") {
+        autoSettings = saveAutoShoutoutSettings(body.autoShoutout, shoutoutConfig());
+        if (Array.isArray(body.autoShoutout.streamers)) {
+          autoStreamerUpdates = body.autoShoutout.streamers.map(row => saveAutoStreamer(row, { source: "settings_route" }));
+        }
+      }
+
+      const settings = Object.keys(allowed).length ? saveShoutoutConfig(allowed) : shoutoutConfig();
       const commandRegistration = registerCommand(settings);
-      emitShoutoutBus("shoutout.settings.updated", { changedKeys: Object.keys(allowed), commandRegistration }, settings);
-      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, settings, commandRegistration });
+      emitShoutoutBus("shoutout.settings.updated", { changedKeys: Object.keys(allowed), autoShoutoutChanged: !!autoSettings, commandRegistration }, settings);
+      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, settings: shoutoutConfig(), autoSettings, autoStreamerUpdates, commandRegistration });
     } catch (err) {
       res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
     }
@@ -3899,6 +4080,63 @@ module.exports.init = function init(ctx) {
     try {
       const currentCfg = shoutoutConfig();
       res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, autoShoutout: autoShoutoutStatus(currentCfg), streamStatus: readCurrentStreamState(currentCfg) });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
+    }
+  });
+
+  app.get(`${API_PREFIX}/auto/settings`, (req, res) => {
+    try {
+      const currentCfg = shoutoutConfig();
+      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, settings: autoShoutoutConfig(currentCfg), status: autoShoutoutStatus(currentCfg) });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
+    }
+  });
+
+  app.post(`${API_PREFIX}/auto/settings`, (req, res) => {
+    try {
+      const body = req.body || {};
+      const input = body.autoShoutout && typeof body.autoShoutout === 'object' ? body.autoShoutout : body;
+      const settings = saveAutoShoutoutSettings(input, shoutoutConfig());
+      emitShoutoutBus('shoutout.auto.settings.updated', { changedKeys: Object.keys(input || {}) }, shoutoutConfig());
+      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, settings, status: autoShoutoutStatus(shoutoutConfig()) });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
+    }
+  });
+
+  app.get(`${API_PREFIX}/auto/streamers`, (req, res) => {
+    try {
+      const currentCfg = shoutoutConfig();
+      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, streamers: listAutoStreamers(currentCfg), status: autoShoutoutStatus(currentCfg) });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
+    }
+  });
+
+  app.post(`${API_PREFIX}/auto/streamers`, (req, res) => {
+    try {
+      const body = req.body || {};
+      const rows = Array.isArray(body.streamers) ? body.streamers : [body.streamer && typeof body.streamer === 'object' ? body.streamer : body];
+      const results = rows.map(row => saveAutoStreamer(row, { source: 'auto_streamers_route' }));
+      const failed = results.find(row => row && row.ok === false);
+      if (failed) return res.status(400).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, results, error: failed.error || 'auto_streamer_save_failed' });
+      emitShoutoutBus('shoutout.auto.streamers.updated', { count: results.length }, shoutoutConfig());
+      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, results, streamers: listAutoStreamers(shoutoutConfig()), status: autoShoutoutStatus(shoutoutConfig()) });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
+    }
+  });
+
+  app.post(`${API_PREFIX}/auto/streamers/remove`, (req, res) => {
+    try {
+      const body = req.body || {};
+      const login = cleanLogin(body.login || body.user || body.target || req.query?.login || '');
+      const result = removeAutoStreamer(login);
+      if (result.ok === false) return res.status(400).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: result.error || 'auto_streamer_remove_failed' });
+      emitShoutoutBus('shoutout.auto.streamer.disabled', { login: result.login }, shoutoutConfig());
+      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, result, streamers: listAutoStreamers(shoutoutConfig()), status: autoShoutoutStatus(shoutoutConfig()) });
     } catch (err) {
       res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
     }
