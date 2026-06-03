@@ -1,8 +1,8 @@
 # CURRENT_STATUS
 
-## Stand: CAN-38.2 vorbereitet
+## Stand: CAN-38.3 vorbereitet
 
-CAN-38.2 ergänzt eine dedizierte Bus-Diagnose/EventBus-Read-only-Doku mit Read-only-/Write-Regeln.
+CAN-38.3 stabilisiert die bestehende Bus-Diagnose Read-only Summary Card ohne MutationObserver.
 
 ## Aktueller Arbeitsbereich
 
@@ -10,118 +10,51 @@ CAN-38.2 ergänzt eine dedizierte Bus-Diagnose/EventBus-Read-only-Doku mit Read-
 CAN-38: EventBus / Bus-Diagnose Read-only Diagnose prüfen und glätten
 ```
 
-## Ergebnis CAN-38.1 Analyse
+## Änderung CAN-38.3
 
-Nicht gefunden:
+Geändert:
 
 ```text
-backend/core/event_bus.js
+htdocs/dashboard/modules/bus_diagnostics_readonly_summary.js
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN38_3.md
 ```
 
-Aktives Bus-Diagnose-Modul:
+Nicht geändert:
 
 ```text
 backend/modules/bus_diagnostics.js
+htdocs/dashboard/modules/bus_diagnostics.js
+htdocs/dashboard/modules/bus_diagnostics.css
+htdocs/dashboard/modules/bus_diagnostics_readonly_summary.css
 ```
 
-Modulstand:
+## Ziel
 
 ```text
-MODULE = bus_diagnostics
-VERSION = 1.2.9
-STATUS_API_VERSION = 1.0.0
-build = STEP_CAN9_4
-routesPrefix = /api/bus-diagnostics
+Bestehende Read-only-Karte behalten.
+Keinen Extra-Tab.
+MutationObserver entfernen.
+Einfügeposition auf Übersicht stabil halten.
+Keine produktiven Routen.
+Kein Dauer-Rendering.
 ```
 
-Vorhanden:
-
-```text
-MODULE_META
-/api/bus-diagnostics/status
-/api/bus-diagnostics/check
-/api/bus-diagnostics/recovery-preflight
-/api/bus-diagnostics/recovery-simulation/status
-/api/bus-diagnostics/recovery-simulation/test
-/api/bus-diagnostics/routes
-Dashboard bus_diagnostics.js
-Dashboard bus_diagnostics_readonly_summary.js
-```
-
-Nicht vorhanden war bisher:
-
-```text
-docs/modules/bus_diagnostics.md
-```
-
-## Änderung CAN-38.2
-
-Neu:
-
-```text
-docs/modules/bus_diagnostics.md
-```
-
-Darin festgehalten:
-
-```text
-- Modulzweck
-- MODULE_META / Version / Routenprefix
-- interne Status-Endpunkte
-- read-only Status-Felder
-- Recovery-Preflight-Sicherheit
-- Recovery-Readiness
-- Read-only Routen
-- produktive/verbotene Aktionen
-- Dashboard-Tabs und Dashboard-Routen
-- Read-only Summary Card
-- bekannter MutationObserver-Stabilitätspunkt
-- Regeln für spätere Bus-Diagnose-Erweiterungen
-```
-
-## Wichtigste Sicherheitsentscheidung
-
-Bus-Diagnose ist als Anzeige-/Diagnose-System zu behandeln.
-
-Erlaubt:
+## Genutzte Routen
 
 ```text
 GET /api/bus-diagnostics/status
-GET /api/bus-diagnostics/check
 GET /api/bus-diagnostics/recovery-preflight
-GET /api/bus-diagnostics/recovery-simulation/status
-GET /api/bus-diagnostics/recovery-simulation/test
-GET /api/bus-diagnostics/routes
-GET-Status-Endpunkte der angeschlossenen Systeme
 ```
 
-Nicht automatisch auslösen:
+## Nicht genutzt
 
 ```text
-Recovery ausführen
-Recovery vorbereiten
-OBS-Reparatur
-OBS-Source-Refresh
-Overlay-Refresh
-Queue-Clear
-Queue-Retry
-Sound-Bus-Play
-Sound-Bus-Migration
-Alert-Replay
-Sound-Replay
-Twitch-/Redemption-Write
-Chat-/Discord-Nachricht
-DB-Migration
-Settings speichern
-Config schreiben
-Admin-POST
-```
-
-## Nicht geändert
-
-```text
-Keine Codeänderung.
-Keine Recovery ausgelöst.
+Keine Recovery.
 Keine OBS-Reparatur.
 Kein Source-Refresh.
 Keine automatische Recovery.
@@ -133,9 +66,24 @@ Keine Twitch-/Chat-/Discord-Nachricht.
 Keine Funktionalität entfernt.
 ```
 
+## Technische Änderung
+
+```text
+MutationObserver entfernt.
+Stattdessen kontrollierte Event-Hooks:
+- DOMContentLoaded
+- Klicks auf Bus-Diagnose-Tabs
+- Klicks auf Bus-Diagnose-Aktionen
+- optionale cgn:module-show Events
+- hashchange
+- visibilitychange
+```
+
+Die Karte ruft weiterhin nur Read-only-Diagnoserouten ab.
+
 ## Nächster Schritt
 
 ```text
-CAN-38.2 anwenden.
-Danach optional CAN-38.3 Bus-Diagnose Read-only Summary ohne MutationObserver stabilisieren.
+CAN-38.3 anwenden und Dashboard-Sichtprüfung machen.
+Danach CAN-38.4 Testergebnis dokumentieren.
 ```

@@ -1,7 +1,7 @@
 "use strict";
 
 (function(){
-  const MODULE_VERSION = "0.1.0-can32-1";
+  const MODULE_VERSION = "0.1.1-can38-3-no-mutationobserver";
   const PANEL_ID = "busDiagnosticsModule";
   const CARD_ID = "busdiagReadonlySummaryCard";
   const REFRESH_MS = 12000;
@@ -11,8 +11,8 @@
     lastLoadedAt: 0,
     lastPayload: null,
     lastError: "",
-    observerReady: false,
-    renderTimer: null
+    renderTimer: null,
+    booted: false
   };
 
   function esc(v){
@@ -106,7 +106,7 @@
       : "Anzeige nutzt nur read-only Diagnose-Routen";
 
     return `
-      <article id="${CARD_ID}" class="busdiag-card busdiag-wide busdiag-readonly-summary-card" data-can32-readonly-summary="1" data-version="${esc(MODULE_VERSION)}">
+      <article id="${CARD_ID}" class="busdiag-card busdiag-wide busdiag-readonly-summary-card" data-can38-readonly-summary="1" data-version="${esc(MODULE_VERSION)}">
         <h3>Sicherheits- / Read-only-Zusammenfassung</h3>
         <div class="busdiag-status-line">${badge}<span>${esc(routeNote)}</span></div>
         <div class="busdiag-readonly-grid">
@@ -119,7 +119,7 @@
           ${metric("Recovery prepare", bool(canPrepare), "nur Anzeige, keine Ausführung", !canPrepare)}
           ${metric("Recovery execute", bool(canExecute), "muss gesperrt bleiben", !canExecute)}
         </div>
-        <p class="busdiag-muted">CAN-32.1: Diese Karte ist reine Dashboard-Anzeige. Sie ruft nur read-only Diagnose-Endpunkte ab und löst keine Recovery-, OBS-, Sound-, Queue-, Twitch- oder DB-Aktion aus.</p>
+        <p class="busdiag-muted">CAN-38.3: Diese Karte ist reine Dashboard-Anzeige. Sie ruft nur read-only Diagnose-Endpunkte ab, nutzt keinen MutationObserver und löst keine Recovery-, OBS-, Sound-, Queue-, Twitch- oder DB-Aktion aus.</p>
       </article>
     `;
   }
@@ -144,30 +144,65 @@
     }
   }
 
-  function scheduleRender(force = false){
+  function scheduleRender(force = false, delay = 180){
     if (state.renderTimer) clearTimeout(state.renderTimer);
     state.renderTimer = setTimeout(() => {
       state.renderTimer = null;
       render(force);
-    }, 180);
+    }, delay);
   }
 
-  function installObserver(){
-    if (state.observerReady) return;
-    const root = panel();
-    if (!root) return;
+  function scheduleBurst(force = false){
+    scheduleRender(force, 180);
+    setTimeout(() => scheduleRender(false, 650), 650);
+    setTimeout(() => scheduleRender(false, 1600), 1600);
+  }
 
-    const observer = new MutationObserver(() => scheduleRender(false));
-    observer.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden", "class"] });
-    state.observerReady = true;
+  function removeIfNotOverview(){
+    if (!isVisible() || !isOverview()) {
+      const existing = document.getElementById(CARD_ID);
+      if (existing) existing.remove();
+    }
+  }
+
+  function installEventHooks(){
+    document.addEventListener("click", ev => {
+      const target = ev.target;
+      if (!target || typeof target.closest !== "function") return;
+
+      const busTab = target.closest(`#${PANEL_ID} [data-busdiag-tab]`);
+      if (busTab) {
+        if (busTab.dataset.busdiagTab === "overview") scheduleBurst(false);
+        else setTimeout(removeIfNotOverview, 220);
+        return;
+      }
+
+      const busAction = target.closest(`#${PANEL_ID} [data-busdiag-action]`);
+      if (busAction) {
+        scheduleBurst(false);
+        return;
+      }
+
+      const navTarget = target.closest("[data-module], [data-module-panel], [data-panel], [data-section]");
+      if (navTarget) scheduleBurst(false);
+    }, true);
+
+    window.addEventListener("cgn:module-show", ev => {
+      if (!ev.detail || ev.detail.module === "bus_diagnostics" || ev.detail.module === "busDiagnosticsModule") scheduleBurst(false);
+    });
+
+    window.addEventListener("hashchange", () => scheduleBurst(false));
+
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) scheduleBurst(false);
+    });
   }
 
   function boot(){
-    installObserver();
-    scheduleRender(true);
-    document.addEventListener("visibilitychange", () => {
-      if (!document.hidden) scheduleRender(false);
-    });
+    if (state.booted) return;
+    state.booted = true;
+    installEventHooks();
+    scheduleBurst(true);
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);

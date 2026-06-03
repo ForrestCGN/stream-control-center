@@ -3,52 +3,30 @@
 ## Direkt nächster Schritt
 
 ```text
-CAN-38.2 anwenden.
+CAN-38.3 anwenden und Dashboard-Sichtprüfung machen.
 ```
 
-## Danach sinnvoll
+## Prüfung
 
 ```text
-CAN-38.3 - Bus-Diagnose Read-only Summary ohne MutationObserver stabilisieren
+Dashboard > Bus-Diagnose > Übersicht
 ```
 
-Möglicher Inhalt:
+Erwartung:
 
 ```text
-- bestehende Read-only-Karte behalten
-- keinen Extra-Tab
-- MutationObserver entfernen oder deutlich entschärfen
-- Einfügeposition stabil halten
-- nur GET /api/bus-diagnostics/status und GET /api/bus-diagnostics/recovery-preflight
-- keine produktiven Routen
+Sicherheits- / Read-only-Zusammenfassung wird angezeigt.
+Kein zusätzlicher Tab.
+Dashboard bleibt bedienbar.
+Kein Firefox-Hänger.
+Keine Recovery-/OBS-/Sound-/Queue-/DB-/Chat-Aktion.
+Read-only Karte nutzt nur Status + Recovery-Preflight.
 ```
 
-## Wichtiger Sicherheits- und Stabilitätshinweis
+## Danach
 
 ```text
-Keine Recovery auslösen.
-Keine OBS-Reparatur.
-Kein Source-Refresh.
-Keine automatische Recovery.
-Keine Queue-Aktion.
-Keine produktive Sound-Bus-Aktion.
-Keine DB-Migration.
-Keine Dashboard-Testbuttons für produktive Aktionen.
-Keine Twitch-/Chat-/Discord-Nachricht.
-Kein MutationObserver, wenn vermeidbar.
-Kein Dauer-Rendering.
-Keine Funktionalität entfernen.
-```
-
-## Zuletzt abgeschlossen
-
-```text
-CAN-33: Commands-Modul dokumentiert und Dashboard Read-only Diagnosekarte sichtbar geprüft.
-CAN-34: Todo-Modul dokumentiert und Dashboard Read-only Diagnosekarte nach Stabilitätsfix sichtbar geprüft.
-CAN-35: Tagebuch-Modul dokumentiert und Dashboard Read-only Diagnosekarte sichtbar geprüft.
-CAN-36: Message-Rotator-Modul dokumentiert und vorhandener Diagnose-Tab erweitert; Positionstest erfolgreich.
-CAN-37: Hug-System dokumentiert und vorhandener Diagnose-Tab erweitert; Sichttest erfolgreich.
-CAN-38.1: EventBus / Bus-Diagnose read-only analysiert.
+CAN-38.4 Testergebnis dokumentieren.
 ```
 
 ## Weiterhin nicht machen ohne separaten Go-Schritt
@@ -60,17 +38,11 @@ Kein Queue-Clear.
 Keine Twitch-/Redemption-Write-Aktion durch Shadow.
 Kein automatischer Shadow-Mitulauf fuer alle Rewards.
 Kein EventSub-/Twitch-Redemption-Test ohne separate Freigabe.
-Keine Enable/Test/Migration-Buttons in der Sound-Shadow Card.
 Keine OBS-Reparatur.
 Kein Source-Refresh.
 Keine automatische Recovery.
 Keine DB-Migration.
 Kein DB-Treiberwechsel.
 Keine Dashboard-Testbuttons fuer produktive Aktionen.
-Keine Commands-Execute-/Upsert-/Delete-Tests ohne eigenen Go-Schritt.
-Keine Todo-Add-/Reload-/Admin-POST-Tests ohne eigenen Go-Schritt.
-Keine Tagebuch-Entry-/Stream-/Reset-/Reload-/Admin-POST-Tests ohne eigenen Go-Schritt.
-Keine Message-Rotator-Start-/Stop-/Tick-/Next-/Manual-/Reload-/Live-Status-/Admin-POST-Tests ohne eigenen Go-Schritt.
-Keine Hug-/Rehug-/HugAll-/on-off-/Stats-/Top-/Reload-/Text-Store-Reload-/Admin-POST-Tests ohne eigenen Go-Schritt.
 Keine Bus-Diagnose-Recovery-/OBS-/Refresh-/Queue-/Sound-/DB-/Chat-Aktion ohne eigenen Go-Schritt.
 ```
