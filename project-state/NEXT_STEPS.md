@@ -1,48 +1,35 @@
 # Next Steps
 
-## Direkt nach CAN-43.15
+## Direkt nach CAN-43.16
 
-1. CAN-43.15 ZIP nach `D:\Git\stream-control-center` entpacken.
-2. Optional prüfen:
-
-```powershell
-node -c backend\modules\communication_bus.js
-```
-
-3. Step abschließen:
+1. CAN-43.16 ZIP nach `D:\Git\stream-control-center` entpacken.
+2. Step abschließen:
 
 ```powershell
-.\stepdone.cmd "CAN-43.15 Communication-Bus diagnostics review"
+.\stepdone.cmd "CAN-43.16 Diagnostics registry consolidation"
 ```
 
-4. Doku committen/pushen.
+3. Doku committen/pushen.
 
-## Nächster fachlicher Schritt
+## Danach
 
-Empfehlung: CAN-43.16 Abschluss-/Konsolidierungsstep.
+CAN-43 ist abgeschlossen.
 
-Ziel:
-
-- alle CAN-43 Modulreviews zusammenfassen
-- finalen Coverage-Stand dokumentieren
-- offene Beobachtungen sammeln
-- nächste Arbeitsrichtung festlegen
-
-Mögliche nächste Arbeitsrichtungen:
+Empfohlene nächste Arbeitsrichtung:
 
 1. Zurück zu Feature-/Umbauplanung im Control-Center.
-2. Dashboard-/Admin-Config weiter ausbauen.
-3. Weitere nicht priorisierte Module prüfen.
-4. CAN-43 als Diagnose-Standard abschließen.
+2. Nächstes konkretes Dashboard-/Admin-/Modul-Thema wählen.
+3. Bei neuen/geänderten Modulen den Diagnose-/Registry-/Doku-Standard direkt anwenden.
 
-## Pflicht bei jedem Modul
+## Künftiger Arbeitsmodus
 
-- echten Dateistand prüfen
-- Statusroute prüfen
-- `diagnostics`-Block prüfen
-- Registry-Eintrag prüfen
-- Coverage-Test prüfen
-- keine neue Dashboard-Diagnose-Extra-Datei ohne explizite Begründung
-- Modul-Doku aktualisieren
-- project-state aktualisieren
-- vor Umsetzung auf `go` warten
+Für mehrere Prüfungen immer Batch-Export bevorzugen:
+
+- mehrere Read-only-Endpunkte in ZIP sammeln
+- ZIP hochladen
+- gemeinsam auswerten
+- kombiniertes Doku-/Handoff-ZIP erstellen
+
+## Verbindliche Regel
+
+Keine Funktionalität entfernen.

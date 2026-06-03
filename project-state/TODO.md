@@ -1,25 +1,21 @@
 # TODO
 
-## CAN-43.15
-
-- [ ] CAN-43.15 ZIP entpacken.
-- [ ] Optional `node -c backend\modules\communication_bus.js` ausführen.
-- [ ] `stepdone.cmd "CAN-43.15 Communication-Bus diagnostics review"` ausführen.
-- [ ] Doku committen/pushen.
-
 ## CAN-43.16
 
-- [ ] Abschluss-/Konsolidierungsstep planen.
-- [ ] alle geprüften CAN-43 Module auflisten.
-- [ ] finalen Coverage-Stand dokumentieren.
-- [ ] offene Beobachtungen sammeln.
-- [ ] nächste Arbeitsrichtung festlegen.
+- [ ] CAN-43.16 ZIP entpacken.
+- [ ] `stepdone.cmd "CAN-43.16 Diagnostics registry consolidation"` ausführen.
+- [ ] Doku committen/pushen.
 
-## Standardtest
+## Nach CAN-43
 
-```powershell
-$r = Invoke-RestMethod "http://127.0.0.1:8080/api/diagnostics/registry"
-$r.coverage | Select-Object ok,registryEntries,loadedModules,coveredLoadedModules,missingLoadedModules,registryOnlyEntries
-$r.coverage.missingLoadedModuleRows
-$r.coverage.registryOnlyRows
-```
+- [ ] Nächste Feature-/Umbau-Richtung festlegen.
+- [ ] Bei neuen Modulen Diagnose-/Registry-Standard direkt anwenden.
+- [ ] Batch-Exports für größere Prüfungen nutzen.
+- [ ] Keine Funktionalität entfernen.
+
+## Optional
+
+- [ ] Nicht-Registry-Module nur bei Bedarf prüfen.
+- [ ] Dashboard/Admin-Config weiter planen.
+- [ ] Benutzer-/Rollen-/Rechte-Konzept weiterführen.
+- [ ] Alert-/Sound-/Media-Verwaltung im Dashboard weiter konsolidieren.
