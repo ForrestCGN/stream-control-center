@@ -2,7 +2,7 @@
 window.DiagnosticsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = '0.2.0-can42-27';
+  const MODULE_VERSION = '0.2.1-can42-28';
   const FALLBACK_ENDPOINTS = [
     { key:'birthday', label:'Birthday', group:'community', status:'/api/birthday/status', today:'/api/birthday/today', showState:'/api/birthday/show/state' },
     { key:'todo', label:'Todo', group:'community', status:'/api/todo/status', integration:'/api/todo/integration-check' },
@@ -24,6 +24,7 @@ window.DiagnosticsModule = (function(){
     selected: 'overview',
     registrySource: 'fallback',
     registryError: '',
+    registryMeta: null,
     endpoints: FALLBACK_ENDPOINTS.slice(),
     loading: false,
     loadedAt: '',
@@ -107,13 +108,32 @@ window.DiagnosticsModule = (function(){
       state.endpoints = rows;
       state.registrySource = registry.source || 'backend';
       state.registryError = '';
+      state.registryMeta = {
+        registryVersion: registry.registryVersion || '',
+        counts: registry.counts || {},
+        coverage: registry.coverage || null
+      };
       return rows;
     } catch (err) {
       state.endpoints = FALLBACK_ENDPOINTS.slice();
       state.registrySource = 'fallback';
       state.registryError = err?.message || String(err || 'registry_unavailable');
+      state.registryMeta = null;
       return state.endpoints;
     }
+  }
+
+  function registryLine() {
+    const parts = [`Registry: ${state.registrySource}`];
+    const counts = state.registryMeta?.counts || {};
+    const coverage = state.registryMeta?.coverage || null;
+    if (Number.isFinite(Number(counts.entries))) parts.push(`${Number(counts.entries)} Einträge`);
+    if (coverage && Number.isFinite(Number(coverage.coveredLoadedModules)) && Number.isFinite(Number(coverage.loadedModules))) {
+      parts.push(`Abdeckung: ${Number(coverage.coveredLoadedModules)}/${Number(coverage.loadedModules)}`);
+      if (Number(coverage.missingLoadedModules || 0) > 0) parts.push(`fehlend: ${Number(coverage.missingLoadedModules)}`);
+    }
+    if (state.registryError) parts.push(`Fallback-Grund: ${state.registryError}`);
+    return parts.join(' · ');
   }
 
   function readonlyEndpoints() {
@@ -778,7 +798,7 @@ window.DiagnosticsModule = (function(){
         </section>
 
         ${state.error ? `<div class="diagnostics-error">${esc(state.error)}</div>` : ''}
-        ${state.loadedAt ? `<p class="diagnostics-loaded">Letztes Laden: ${esc(state.loadedAt)} · Registry: ${esc(state.registrySource)}${state.registryError ? ` (${esc(state.registryError)})` : ''}</p>` : ''}
+        ${state.loadedAt ? `<p class="diagnostics-loaded">Letztes Laden: ${esc(state.loadedAt)} · ${esc(registryLine())}</p>` : ''}
         ${state.loading && !Object.keys(state.results).length ? '<section class="diagnostics-card">Lade Diagnosewerte...</section>' : ''}
         ${state.selected === 'overview' ? renderOverview(entries) : selectedEntry ? renderModuleDetails(selectedEntry) : renderOverview(entries)}
       </div>`;

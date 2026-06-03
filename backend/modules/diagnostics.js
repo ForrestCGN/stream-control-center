@@ -2,9 +2,97 @@
 const core = require('./helpers/helper_core');
 const routes = require('./helpers/helper_routes');
 
-const MODULE_VERSION = '0.2.0';
+const MODULE_VERSION = '0.2.1';
 
 const DIAGNOSTICS_REGISTRY_VERSION = 1;
+
+
+const REGISTRY_KEY_ALIASES = {
+  alert_system: 'alerts',
+  alerts: 'alerts',
+  vip_sound_overlay: 'vip',
+  'vip-sound': 'vip',
+  vip: 'vip',
+  sound: 'sound_system',
+  sound_system: 'sound_system',
+  message_rotator: 'message_rotator',
+  communication_bus: 'communication_bus',
+  overlay_monitor: 'overlay_monitor',
+  bus_diagnostics: 'bus_diagnostics',
+  obs: 'obs',
+  media: 'media',
+  birthday: 'birthday',
+  hug: 'hug',
+  commands: 'commands',
+  todo: 'todo',
+  tagebuch: 'tagebuch'
+};
+
+const REGISTRY_COVERAGE_EXCLUDE = new Set([
+  'diagnostics',
+  'sectionhome',
+  'controlhome',
+  'streamdesk',
+  'clips',
+  'shoutout',
+  'twitch_events',
+  'overlays',
+  'adminconfigs',
+  'sound_level',
+  'soundalerts',
+  'tts',
+  'deathcounter',
+  'loyalty',
+  'channelpoints'
+]);
+
+function cleanKey(value) {
+  return String(value || '').trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '_').replace(/^_+|_+$/g, '');
+}
+
+function normalizeLoadedModuleName(item) {
+  if (!item) return '';
+  if (typeof item === 'string') return cleanKey(item);
+  return cleanKey(item.name || item.module || item.key || item.id || item.moduleName || '');
+}
+
+function toRegistryKey(name) {
+  const clean = cleanKey(name);
+  return REGISTRY_KEY_ALIASES[clean] || clean;
+}
+
+function buildRegistryCoverage(loadedModules, entries) {
+  const registryKeys = new Set(entries.map(entry => cleanKey(entry.key)).filter(Boolean));
+  const loadedNames = [];
+  const coveredLoadedModules = [];
+  const missingLoadedModules = [];
+
+  for (const item of loadedModules || []) {
+    const rawName = normalizeLoadedModuleName(item);
+    if (!rawName) continue;
+    const registryKey = toRegistryKey(rawName);
+    const row = { name: rawName, registryKey };
+    loadedNames.push(row);
+    if (registryKeys.has(registryKey)) coveredLoadedModules.push(row);
+    else if (!REGISTRY_COVERAGE_EXCLUDE.has(registryKey)) missingLoadedModules.push(row);
+  }
+
+  const loadedRegistryKeys = new Set(loadedNames.map(item => item.registryKey).filter(Boolean));
+  const registryOnlyEntries = entries
+    .filter(entry => !loadedRegistryKeys.has(cleanKey(entry.key)))
+    .map(entry => ({ key: cleanKey(entry.key), label: entry.label || entry.key, status: entry.status || '' }));
+
+  return {
+    ok: missingLoadedModules.length === 0,
+    registryEntries: entries.length,
+    loadedModules: loadedNames.length,
+    coveredLoadedModules: coveredLoadedModules.length,
+    missingLoadedModules: missingLoadedModules.length,
+    registryOnlyEntries: registryOnlyEntries.length,
+    missingLoadedModuleRows: missingLoadedModules,
+    registryOnlyRows: registryOnlyEntries
+  };
+}
 
 const DIAGNOSTICS_REGISTRY = [
   { key: 'birthday', label: 'Birthday', group: 'community', status: '/api/birthday/status', today: '/api/birthday/today', showState: '/api/birthday/show/state' },
@@ -40,19 +128,26 @@ function buildRegistryResponse(getLoadedModules) {
     loadedModules = [];
   }
 
+  const entries = registryRows();
+  const coverage = buildRegistryCoverage(loadedModules, entries);
+
   return {
     ok: true,
     module: MODULE_META.name,
     moduleVersion: MODULE_VERSION,
     version: MODULE_VERSION,
     registryVersion: DIAGNOSTICS_REGISTRY_VERSION,
-    source: 'backend_static_registry',
+    source: 'backend_static_registry_with_coverage',
     generatedAt: core.nowIso(),
-    entries: registryRows(),
+    entries,
     counts: {
-      entries: DIAGNOSTICS_REGISTRY.length,
-      loadedModules: loadedModules.length
+      entries: entries.length,
+      loadedModules: loadedModules.length,
+      coveredLoadedModules: coverage.coveredLoadedModules,
+      missingLoadedModules: coverage.missingLoadedModules,
+      registryOnlyEntries: coverage.registryOnlyEntries
     },
+    coverage,
     loadedModules
   };
 }
