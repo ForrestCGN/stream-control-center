@@ -161,10 +161,36 @@ window.DiagnosticsModule = (function(){
   }
 
 
+  function isMissingStatusEndpoint(error) {
+    const text = String(error || '').toLowerCase();
+    return text.includes('cannot get') || text.includes('http 404') || text.includes('<!doctype html') || text.includes('not found');
+  }
+
+  function cleanDiagnosticError(error) {
+    if (!error) return '';
+    if (isMissingStatusEndpoint(error)) return 'Statusroute fehlt / noch nicht angebunden';
+    const text = String(error).replace(/\s+/g, ' ').trim();
+    return text.length > 160 ? `${text.slice(0, 157)}...` : text;
+  }
+
+  function todoIntegrationLooksOk(status, integration) {
+    const checks = integration?.checks || {};
+    const channels = checks.channels || {};
+    const missingChannels = Array.isArray(channels.missing) ? channels.missing : [];
+    if (integration?.ok === false || integration?.healthy === false) return false;
+    if (checks.database?.ok === false) return false;
+    if (missingChannels.length) return false;
+    if (integration?.ok === true || integration?.healthy === true) return true;
+    return Object.keys(checks).length > 0;
+  }
+
   function computeModuleHealth(item) {
     const raw = item.raw || {};
     const lastError = item.lastError || state.errors[item.key] || '';
-    if (!item.ok) return { level: 'error', label: 'Fehler', reason: lastError || 'Status nicht erreichbar' };
+    if (!item.ok) {
+      if (isMissingStatusEndpoint(lastError)) return { level: 'unknown', label: 'Unbekannt', reason: 'Statusroute fehlt' };
+      return { level: 'error', label: 'Fehler', reason: cleanDiagnosticError(lastError) || 'Status nicht erreichbar' };
+    }
 
     const warnings = [];
     if (lastError) warnings.push(lastError);
@@ -176,7 +202,7 @@ window.DiagnosticsModule = (function(){
       const checks = integration.checks || {};
       const channels = checks.channels || {};
       const schemaOk = status.schemaReady === true || status.schemaOk === true || status.schema?.ready === true;
-      const integrationOk = integration.ok === true || integration.healthy === true;
+      const integrationOk = todoIntegrationLooksOk(status, integration);
       const missingChannels = Array.isArray(channels.missing) ? channels.missing : [];
       if (!schemaOk) warnings.push('Schema nicht bereit');
       if (!integrationOk) warnings.push('Integration auffällig');
@@ -256,7 +282,7 @@ window.DiagnosticsModule = (function(){
               <td>${pill(item.ok ? 'erreichbar' : 'Fehler', item.ok)}</td>
               <td>${esc(item.version || '-')}</td>
               <td>${esc(item.schemaVersion || '-')}</td>
-              <td>${esc(item.lastError || state.errors[item.key] || '-')}</td>
+              <td>${esc(cleanDiagnosticError(item.lastError || state.errors[item.key]) || '-')}</td>
             </tr>`).join('')}</tbody>
           </table>
         </div>
@@ -290,7 +316,7 @@ window.DiagnosticsModule = (function(){
     const totalChannels = countObject(status.channels);
     const statusOk = status.ok !== false;
     const schemaOk = status.schemaReady === true || status.schemaOk === true || status.schema?.ready === true;
-    const integrationOk = integration.ok === true || integration.healthy === true;
+    const integrationOk = todoIntegrationLooksOk(status, integration);
 
     return `<section class="diagnostics-card diagnostics-module-extra">
       <h4>Todo-spezifische Diagnose</h4>
@@ -327,7 +353,7 @@ window.DiagnosticsModule = (function(){
             <p>${esc(item.key)} · ${esc(item.statusEndpoint)}</p>
           </div>
           <div class="diagnostics-detail-pills">
-            <span class="diag-pill ${health.level === 'error' ? 'warn' : 'ok'}">${esc(health.label)}</span>
+            <span class="diag-pill ${health.level === 'ok' ? 'ok' : 'warn'}">${esc(health.label)}</span>
             ${pill(item.ok ? 'GET Status erreichbar' : 'Statusfehler', item.ok)}
           </div>
         </div>
@@ -339,7 +365,7 @@ window.DiagnosticsModule = (function(){
           ${metric('Config-Quelle', item.configSource || '-')}
           ${metric('Textsystem', item.textSource || '-')}
           ${metric('Panel', item.panelId || '-')}
-          ${metric('Letzter Fehler', item.lastError || state.errors[item.key] || '-')}
+          ${metric('Letzter Fehler', cleanDiagnosticError(item.lastError || state.errors[item.key]) || '-')}
         </div>
         ${entry.key === 'birthday' ? `<div class="diagnostics-grid">
           ${metric('Heute Geburtstage', today.count ?? (Array.isArray(today.rows) ? today.rows.length : '-'))}

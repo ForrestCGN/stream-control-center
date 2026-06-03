@@ -3,7 +3,7 @@
 ## Direkt nächster Schritt
 
 ```text
-CAN-42.4b anwenden und Sichttest machen.
+CAN-42.4c anwenden und Sichttest machen.
 ```
 
 ## Prüfung
@@ -15,13 +15,10 @@ Dashboard > Admin > Diagnose
 Erwartung:
 
 ```text
-OK/Warnung/Fehler/Unbekannt-Zähler sichtbar
-kompakte Modulliste mit Ampelstatus sichtbar
-Dropdown zur Modulwahl bleibt
-Todo-Details sichtbar
-markierter Routen-Hinweissatz weg
-keine API-POSTs
-keine produktive Aktion
+VIP-System erscheint als Unbekannt / Statusroute fehlt, nicht als Fehler
+Todo erscheint OK, wenn Status/Schema/Channels/DB ok sind
+keine langen HTML-Fehlertexte in der Ampel
+Dropdown und Moduldetails funktionieren weiter
 ```
 
 ## Danach
