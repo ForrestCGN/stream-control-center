@@ -6,8 +6,8 @@ const core = require("./helpers/helper_core");
 const configHelper = require("./helpers/helper_config");
 
 const MODULE_NAME = "obs";
-const MODULE_VERSION = "0.1.0";
-const MODULE_BUILD = "step278-meta";
+const MODULE_VERSION = "0.1.1";
+const MODULE_BUILD = "diagnostics-standard";
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
@@ -91,13 +91,14 @@ module.exports.init = function init(ctx) {
     res.header("Access-Control-Allow-Headers", "Content-Type");
   }
 
-  function ok(res, route, data, statusCode = 200) {
+  function ok(res, route, data, statusCode = 200, extra = {}) {
     setCommonHeaders(res);
     res.status(statusCode).json({
       ok: true,
       module: "obs",
       route,
       timestamp: core.nowIso(),
+      ...(extra && typeof extra === "object" ? extra : {}),
       data
     });
   }
@@ -135,6 +136,115 @@ module.exports.init = function init(ctx) {
     } catch (_) {
       return fallback;
     }
+  }
+
+
+  function buildObsDataEndpoints() {
+    return {
+      status: "/api/obs/status",
+      config: "/api/obs/config",
+      settings: "/api/obs/settings",
+      routes: "/api/obs/routes",
+      integrationCheck: "/api/obs/integration-check",
+      stats: "/api/obs/stats",
+      scenes: "/api/obs/scenes",
+      sources: "/api/obs/sources",
+      browserSources: "/api/obs/browser-sources",
+      sceneItems: "/api/obs/scene-items"
+    };
+  }
+
+  function countArray(value) {
+    return Array.isArray(value) ? value.length : 0;
+  }
+
+  function buildObsDiagnostics(publicStatus = {}) {
+    const routeCount = buildObsRouteList().length;
+    const sceneCount = countArray(publicStatus.obsSceneNames);
+    const sourceAliasCount = Object.keys(sourceAliases || {}).length;
+    const sceneAliasCount = Object.keys(sceneAliases || {}).length;
+    const audioActiveCount = countArray(shared.state && shared.state.audioActive);
+    const warnings = [];
+    const errors = [];
+    const lastError = String(publicStatus.lastError || "").trim();
+
+    if (publicStatus.obsDetected !== true) {
+      warnings.push({ key: "obs_not_detected", message: "OBS wurde aktuell nicht erkannt." });
+    }
+    if (publicStatus.obsConnected !== true) {
+      warnings.push({ key: "obs_not_connected", message: lastError || "OBS-WebSocket ist aktuell nicht verbunden." });
+    }
+    if (lastError && publicStatus.obsConnected === true) {
+      warnings.push({ key: "obs_last_error", message: lastError });
+    }
+
+    return {
+      ok: errors.length === 0,
+      health: errors.length > 0 ? "error" : (warnings.length > 0 ? "warn" : "ok"),
+      module: MODULE_NAME,
+      version: MODULE_VERSION,
+      build: MODULE_BUILD,
+      schemaVersion: 0,
+      schemaReady: true,
+      counts: {
+        routes: routeCount,
+        scenes: sceneCount,
+        sourceAliases: sourceAliasCount,
+        sceneAliases: sceneAliasCount,
+        audioActive: audioActiveCount,
+        obsConnected: publicStatus.obsConnected === true ? 1 : 0,
+        obsDetected: publicStatus.obsDetected === true ? 1 : 0,
+        obsConnecting: publicStatus.obsConnecting === true ? 1 : 0,
+        streamActive: publicStatus.streamActive === true ? 1 : 0,
+        recordActive: publicStatus.recordActive === true ? 1 : 0,
+        recordPaused: publicStatus.recordPaused === true ? 1 : 0,
+        replayBufferActive: publicStatus.replayBufferActive === true ? 1 : 0
+      },
+      database: {
+        enabled: false,
+        adapter: "none",
+        schemaVersion: 0,
+        expectedSchemaVersion: 0,
+        schemaReady: true,
+        lastError: ""
+      },
+      state: {
+        obsUrl: String(publicStatus.obsUrl || ""),
+        obsConnected: publicStatus.obsConnected === true,
+        obsConnecting: publicStatus.obsConnecting === true,
+        obsDetected: publicStatus.obsDetected === true,
+        currentProgramSceneName: String(publicStatus.currentProgramSceneName || ""),
+        currentPreviewSceneName: String(publicStatus.currentPreviewSceneName || ""),
+        studioModeEnabled: publicStatus.studioModeEnabled === true,
+        streamActive: publicStatus.streamActive === true,
+        recordActive: publicStatus.recordActive === true,
+        recordPaused: publicStatus.recordPaused === true,
+        replayBufferActive: publicStatus.replayBufferActive === true,
+        lastCheck: String(publicStatus.lastCheck || ""),
+        audioBusy: shared.state && shared.state.audioBusy === true,
+        audioActive: Array.isArray(shared.state && shared.state.audioActive) ? shared.state.audioActive.slice(0, 20) : []
+      },
+      warnings,
+      errors,
+      lastError
+    };
+  }
+
+  function buildObsStatusEnvelope(publicStatus = {}) {
+    const routes = buildObsRouteList();
+    return {
+      moduleVersion: MODULE_VERSION,
+      moduleBuild: MODULE_BUILD,
+      version: MODULE_VERSION,
+      diagnosticVersion: MODULE_VERSION,
+      enabled: true,
+      obsConnected: publicStatus.obsConnected === true,
+      obsDetected: publicStatus.obsDetected === true,
+      routeCount: routes.length,
+      routes,
+      dataEndpoints: buildObsDataEndpoints(),
+      diagnostics: buildObsDiagnostics(publicStatus)
+    };
   }
 
   async function resolveSceneName(sceneOrAlias) {
@@ -216,7 +326,8 @@ module.exports.init = function init(ctx) {
     const route = "/obs/status";
     try {
       await shared.refreshSnapshot();
-      ok(res, route, shared.getPublicStatus());
+      const publicStatus = shared.getPublicStatus();
+      ok(res, route, publicStatus, 200, buildObsStatusEnvelope(publicStatus));
     } catch (err) {
       fail(res, route, "OBS_STATUS_FAILED", err.message || "OBS-Status konnte nicht gelesen werden.", null, 500);
     }

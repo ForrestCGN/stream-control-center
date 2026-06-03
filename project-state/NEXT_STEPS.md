@@ -1,9 +1,8 @@
-# NEXT_STEPS
+# Next Steps
 
-1. ZIP entpacken.
-2. `.\stepdone.cmd "CAN-42.20 Communication-Bus status diagnostics-standard"` ausführen.
-3. `node -c backend\modules\communication_bus.js` ausführen.
-4. `/api/communication/status` per PowerShell testen.
-5. Dashboard hart neu laden und `Admin > Diagnose > Communication-Bus` prüfen.
-
-Nächster sinnvoller Kandidat nach erfolgreichem Test: CAN-42.21 Fireworks/Feuerwerk Diagnostics prüfen.
+1. CAN-42.21 lokal entpacken.
+2. `./stepdone.cmd "CAN-42.21 OBS status diagnostics-standard"` ausführen.
+3. `node -c backend/modules/obs.js` prüfen.
+4. `/api/obs/status` per PowerShell testen.
+5. Dashboard mit STRG+F5 neu laden und `Admin > Diagnose > OBS` prüfen.
+6. Danach nächstes Modul aus der Diagnose-Liste prüfen.

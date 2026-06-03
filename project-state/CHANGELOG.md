@@ -1,9 +1,7 @@
-# CHANGELOG
+# Changelog
 
-## CAN-42.20
+## CAN-42.21
 
-- `backend/modules/communication_bus.js` auf Diagnostics-Standard erweitert.
-- `MODULE_META.version` von `0.8.3` auf `0.8.4` erhöht.
-- `MODULE_META.build` auf `diagnostics-standard` gesetzt.
-- `/api/communication/status` liefert zusätzlich `moduleBuild`, `diagnosticVersion`, `routes`, `routeCount`, `dataEndpoints` und `diagnostics`.
-- Produktive Bus-, WebSocket-, Replay-, Watchdog- und Settings-Logik unverändert gelassen.
+- OBS Statusroute `/api/obs/status` / `/obs/status` um standardisierte Diagnostics-Felder erweitert.
+- `backend/modules/obs.js` auf `MODULE_VERSION=0.1.1` und `MODULE_BUILD=diagnostics-standard` gesetzt.
+- Keine produktive OBS-Aktionslogik geändert.

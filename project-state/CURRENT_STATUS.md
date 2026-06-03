@@ -1,18 +1,19 @@
-# CURRENT_STATUS
+# Current Status
 
-Stand: CAN-42.20 vorbereitet
+Aktueller Arbeitsstand: CAN-42.21 vorbereitet.
 
-CAN-42.20 erweitert den Communication-Bus um einen standardisierten Diagnostics-Block in `/api/communication/status`.
+Diagnostics-Standard umgesetzt für:
 
-Geändert:
-- `backend/modules/communication_bus.js`
+- Commands
+- Hug
+- Message-Rotator
+- VIP-Sound
+- Sound-System
+- Medienverwaltung
+- Alerts
+- Birthday
+- Overlay-Monitor
+- Communication-Bus
+- OBS
 
-Nicht geändert:
-- keine Bus-Emit-Logik
-- keine WebSocket-Hello-/Heartbeat-/ACK-Verarbeitung
-- keine Replay-/Watchdog-/Issue-/Reset-Produktivlogik
-- keine Settings-Speicherlogik
-- keine DB-Migration
-- keine Dashboard-Dateien
-- keine neue Moduldatei
-- keine Funktionalität entfernt
+CAN-42.21 erweitert `backend/modules/obs.js` um standardisierte Status-Diagnostics in `/api/obs/status`, ohne produktive OBS-Aktionslogik zu verändern.
