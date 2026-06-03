@@ -18,7 +18,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.20";
+const MODULE_VERSION = "0.2.21";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -280,7 +280,7 @@ function normalizeAutoMessages(input = {}, fallback = {}) {
   const defaults = DEFAULT_CONFIG.clipShoutout.autoShoutout.messages || {};
   const fixWaitTimeTemplate = (value, fallbackValue) => {
     const text = String(value ?? fallbackValue ?? "");
-    if (!text.trim()) return String(fallbackValue || "");
+    if (!text.trim()) return "";
     if (text.includes("{waitTime}")) return text;
     return String(fallbackValue || text);
   };
@@ -455,7 +455,12 @@ function autoNoticeMemoryKey(key, vars = {}) {
 
 function shouldSuppressAutoChatNotice(key, vars = {}) {
   const noticeKey = String(key || '').trim();
-  if (!['alreadyReceived', 'alreadyQueued', 'cooldown', 'disabled'].includes(noticeKey)) return false;
+
+  // AutoShoutout must not spam the chat for skip states.
+  // These are internal decisions, not useful public announcements.
+  if (['alreadyReceived', 'cooldown', 'disabled'].includes(noticeKey)) return true;
+
+  if (!['alreadyQueued'].includes(noticeKey)) return false;
   const memKey = autoNoticeMemoryKey(noticeKey, vars);
   if (!memKey) return false;
   const mem = state.autoShoutout.noticeMemory || (state.autoShoutout.noticeMemory = {});
@@ -3964,7 +3969,7 @@ function resetAutoShoutoutDay(body = {}) {
     FROM clip_shoutout_display_queue
     WHERE created_at >= :since
       ${targetSql}
-      AND status IN ('queued','waiting','active','failed','done')
+      AND status IN ('queued','waiting','active','failed')
   `, { ...params, ...targetParams }) || [];
   const displayIds = affectedDisplayRows.map(row => Number(row.id || 0)).filter(Boolean);
   const displayIdParams = {};
@@ -3988,14 +3993,18 @@ function resetAutoShoutoutDay(body = {}) {
     SET status='removed', updated_at=:now, last_error='auto_shoutout_reset'
     WHERE created_at >= :since
       ${targetSql}
-      AND status IN ('queued','waiting','active','failed','done')
+      AND status IN ('queued','waiting','active','failed')
   `, { ...updateParams, ...targetParams });
 
   const deletedEvents = database.run(`
     DELETE FROM clip_shoutout_auto_events
     WHERE created_at >= :since
       ${targetSql}
-  `, { ...params, ...targetParams });
+      AND (
+        status <> 'triggered'
+        ${displayIdSql}
+      )
+  `, { ...params, ...targetParams, ...displayIdParams });
 
   resetAutoShoutoutRuntimeState('auto_reset_day');
   emitShoutoutBus('shoutout.auto.day_reset', {
