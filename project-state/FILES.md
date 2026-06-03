@@ -1,17 +1,19 @@
 # FILES
 
-## Aktueller Arbeitsstand CAN-41.2
+## Aktueller Arbeitsstand CAN-41.3
 
 Geänderte Dateien:
 
 ```text
-docs/modules/birthday.md
+htdocs/dashboard/index.html
+htdocs/dashboard/modules/birthday_readonly_safety_ext.js
+htdocs/dashboard/modules/birthday_readonly_safety_ext.css
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/CHANGELOG.md
 project-state/FILES.md
-docs/current/CURRENT_CHAT_HANDOFF_CAN41_2.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN41_3.md
 ```
 
 Nicht geändert:
@@ -26,21 +28,13 @@ htdocs/dashboard/modules/birthday.css
 
 ```text
 CAN-41.2_birthday_docs_readonly_write_rules.zip
-```
-
-## CAN-41 Analyse-relevante Dateien
-
-```text
-backend/modules/birthday.js
-htdocs/dashboard/modules/birthday.js
-htdocs/dashboard/modules/birthday.css
-docs/modules/birthday.md
+CAN-41.3_birthday_dashboard_readonly_safety_hint.zip
 ```
 
 ## Sicherheitsnotiz
 
 ```text
-CAN-41.2 ändert keinen Runtime-Code.
+CAN-41.3 ändert keinen Backend-Code.
 Keine Geburtstags-Show.
 Kein Intro/Video/Song.
 Keine Sound-Bundle-Aktion.
@@ -54,14 +48,4 @@ Keine DB-Migration.
 Keine Admin-POSTs.
 Keine Dashboard-Testbuttons ausgelöst.
 Keine Funktionalität entfernt.
-```
-
-## Lokale Pfade
-
-```text
-Repo: D:\Git\stream-control-center
-Live: D:\Streaming\stramAssets
-Birthday Backend: D:\Streaming\stramAssets\backend\modules\birthday.js
-Birthday Dashboard: D:\Streaming\stramAssets\htdocs\dashboard\modules\birthday.js
-Birthday Doku: D:\Streaming\stramAssets\docs\modules\birthday.md
 ```
