@@ -1,202 +1,138 @@
 # Commands-Modul
 
+Stand: 2026-06-03 12:00
+
 ## Zweck
 
-Das Modul `backend/modules/commands.js` ist das zentrale Chat-Command-System im `stream-control-center`.
+Das Modul `commands` ist das zentrale Chat-Command-System im `stream-control-center`.
 
-Es verwaltet Command-Definitionen, Aliase, Rechte, Cooldowns, Zielrouten, Katalogwerte, Test-/DryRun-Funktionen und Ausführungslogs.
+Es verwaltet konfigurierbare Chat-Commands, Aliase, Zielmodule, Berechtigungen, Cooldowns, Tests, Ausführung und Ausführungslogs.
 
-## Modul-Metadaten
+## Modulstand
 
-Aktueller Analyse-Stand CAN-33.1:
+- Backend-Datei: `backend/modules/commands.js`
+- Modulname: `commands`
+- Modulversion: `0.1.7`
+- Build: `channel-guard-diagnostics`
+- Kategorie: `commands`
+- Statusroute: `GET /api/commands/status`
+- Registry-Key: `commands`
 
-```text
-MODULE_NAME = commands
-MODULE_VERSION = 0.1.6
-MODULE_BUILD = channel-guard
-API_PREFIX = /api/commands
-```
+## Wichtige Tabellen
 
-Das Modul exportiert `MODULE_META` mit:
+Das Modul nutzt die produktive SQLite-Datenbank und legt seine Tabellen sanft an.
 
-```text
-name: commands
-version: 0.1.6
-build: channel-guard
-type: runtime
-category: commands
-routesPrefix: /api/commands
-legacy: false
-```
+Tabellen:
 
-Der Bus-Block ist aktuell bewusst nicht aktiv registriert:
+- `command_definitions`
+- `command_execution_log`
 
-```text
-bus.registered = false
-bus.heartbeat = false
-bus.emits = []
-bus.listens = []
-```
+Wichtig:
 
-## Wichtige Runtime-Regel
+- Produktive DB nicht ersetzen.
+- Keine Daten löschen.
+- Schemaänderungen nur sanft per Migration.
 
-Das Commands-Modul ist produktiv relevant.
+## Wichtige API-Routen
 
-Deshalb gilt:
+| Methode | Route | Zweck |
+| --- | --- | --- |
+| GET | `/api/commands/status` | Schneller Status ohne schwere Listen/Kataloge/Logs |
+| GET | `/api/commands/list` | Alle konfigurierten Commands auflisten |
+| GET | `/api/commands/catalog` | Modul-Command-Katalog für Dashboard-Dropdowns |
+| POST | `/api/commands/upsert` | Command anlegen oder aktualisieren |
+| POST | `/api/commands/delete` | Command löschen |
+| GET/POST | `/api/commands/test` | Chatnachricht trocken parsen und Zielpayload anzeigen |
+| GET/POST | `/api/commands/execute` | Chatnachricht als Command ausführen |
+| GET | `/api/commands/media-command-preview` | Preview für Media-Command-Routing und Payload |
+| GET | `/api/commands/logs` | Letzte Command-Ausführungen anzeigen |
+| GET | `/api/commands/history` | Alias für `/api/commands/logs` |
 
-```text
-Keine Command-Funktion ändern ohne eigenen Plan.
-Keine Chat-Ausgaben ändern ohne eigenen Plan.
-Keine produktive Command-Ausführung ohne ausdrücklichen Go-Schritt.
-Keine Upsert/Delete/Execute-Tests ohne ausdrücklichen Go-Schritt.
-Keine DB-Migration ohne eigenen Plan.
-Keine Funktionalität entfernen.
-```
+## Diagnose-Standard
 
-## Read-only Routen
+CAN-43.2 bestätigt:
 
-Diese Routen dürfen für Diagnose/Dashboard-Prüfungen genutzt werden, solange sie nicht als produktiver Test missbraucht werden:
+- Statusroute vorhanden.
+- Standardfelder vorhanden.
+- `diagnostics`-Block vorhanden.
+- Registry-Eintrag vorhanden.
+- Coverage sauber.
+- Keine neue Dashboard-Diagnose-Extra-Datei nötig.
 
-```text
-GET /api/commands/status
-GET /api/commands/list
-GET /api/commands/catalog
-GET /api/commands/logs
-GET /api/commands/history
-GET /api/commands/media-command-preview
-```
-
-Hinweis:
+Bestätigte Live-Werte:
 
 ```text
-/media-command-preview ist Diagnose/Preview und darf nicht als Sound-/Video-Ausführung verstanden werden.
+ok=True
+module=commands
+moduleVersion=0.1.7
+moduleBuild=channel-guard-diagnostics
+enabled=True
+initialized=True
+schemaOk=True
+health=ok
+schemaVersion=2
+schemaReady=True
 ```
 
-## Produktive oder potenziell produktive Routen
-
-Diese Routen dürfen nicht in automatischen Diagnose- oder Dashboard-Checks ausgelöst werden:
+Registry-Coverage:
 
 ```text
-POST /api/commands/upsert
-POST /api/commands/delete
-GET/POST /api/commands/execute
+ok=True
+missingLoadedModules=0
+registryOnlyEntries=0
 ```
 
-Diese Routen ändern Daten oder können echte Command-Ausführung auslösen.
+## Dashboard / Erweiterungen
 
-## Test-/DryRun-Regel
+Für `commands` existieren bewusst behaltene Read-only-Diagnose-Dateien:
 
-`/api/commands/test` ist nur dann sicher, wenn es als DryRun/Testpfad verwendet wird und keine echte Ausführung triggert.
+- `htdocs/dashboard/modules/commands_readonly_diagnostics.js`
+- `htdocs/dashboard/modules/commands_readonly_diagnostics.css`
 
-Regel:
+Diese Dateien wurden in CAN-42.35 bewusst behalten und dürfen nicht blind entfernt werden.
+
+## Aktuelle Live-Counts aus CAN-43.2
 
 ```text
-Diagnose darf parse/dryRun prüfen.
-Diagnose darf Zielpayload anzeigen.
-Diagnose darf keine echte Execute-Route verwenden.
-Diagnose darf keine Cooldowns setzen.
-Diagnose darf keine Zielmodule produktiv auslösen.
+commands       : 18
+catalogGroups  : 7
+catalogActions : 24
+logs           : 1177
+handled        : 0
+ignored        : 0
+executed       : 0
+failed         : 0
+cooldowns      : 0
 ```
 
-## Status-Endpunkt
+## Standardtests
 
-`GET /api/commands/status` ist die bevorzugte leichte Diagnose-Route.
-
-Analyse CAN-33.1:
-
-```text
-lightStatus: true
-schemaTouchOnStatus: false
-removedHeavyFields:
-- commands
-- moduleCatalog
-- recent
+```powershell
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/commands/status"
+$s | Select-Object ok,module,moduleVersion,moduleBuild,version,enabled,initialized,schemaOk,schemaError
+$s.diagnostics | Select-Object ok,health,module,version,build,schemaVersion,schemaReady,lastError
+$s.diagnostics.counts
+$s.routes | Select-Object method,path,purpose | Format-Table -AutoSize
 ```
 
-Der Status ist damit geeignet für schnelle Dashboard-/Health-Anzeigen.
+Registry-Test:
 
-## Dashboard
-
-Dashboard-Datei:
-
-```text
-htdocs/dashboard/modules/commands.js
+```powershell
+$r = Invoke-RestMethod "http://127.0.0.1:8080/api/diagnostics/registry"
+$r.coverage | Select-Object ok,registryEntries,loadedModules,coveredLoadedModules,missingLoadedModules,registryOnlyEntries
+$r.coverage.missingLoadedModuleRows
+$r.coverage.registryOnlyRows
 ```
 
-Wichtige API-Nutzung:
+## Änderungsregeln
 
-```text
-/api/commands/status
-/api/commands/list
-/api/commands/upsert
-/api/commands/delete
-/api/commands/test
-/api/commands/execute
-/api/commands/logs
-/api/commands/catalog
-/api/twitch/presence/status
-/api/twitch/presence/start
-/api/twitch/presence/stop
-```
+Bei künftigen Änderungen an `commands`:
 
-Dashboard-Tabs:
-
-```text
-Commands
-Übersicht
-Logs
-Diagnose
-```
-
-## Sicherheitsregel für Dashboard-Diagnose
-
-Für zukünftige Diagnosekarten gilt:
-
-```text
-Read-only Diagnose:
-- darf /status, /list, /catalog, /logs, /history, /media-command-preview verwenden
-- darf /test nur als DryRun/Parse-Test verwenden
-- darf keine /execute Route aufrufen
-- darf keine /upsert Route aufrufen
-- darf keine /delete Route aufrufen
-- darf keine Twitch-/Streamer.bot-/OBS-/Sound-/Queue-Aktion auslösen
-```
-
-## Beziehung zu commands_media.js
-
-`backend/modules/commands_media.js` ist die Media-Brücke für Command-Dashboard, Medienverwaltung und Sound-System-Hub.
-
-Sie stellt unter anderem Media-Optionen und Praxis-/Preview-Checks bereit.
-
-Auch hier gilt:
-
-```text
-Keine Medien automatisch abspielen.
-Keine Medien automatisch verschieben/löschen.
-Keine produktive Sound-/Video-Ausführung durch Diagnose.
-```
-
-## Bekannte Folgeidee
-
-Möglicher späterer kleiner Schritt:
-
-```text
-CAN-33.3 - Commands Dashboard Read-only Diagnosekarte
-```
-
-Ziel einer solchen Karte wäre nur:
-
-```text
-- Modulversion anzeigen
-- Status ok/schema ok anzeigen
-- Anzahl Commands anzeigen
-- Anzahl Logs anzeigen
-- Produktive Routen klar als gesperrt markieren
-- Keine Execute-/Upsert-/Delete-Buttons
-```
-
-## Stand
-
-```text
-CAN-33.2: Doku-/Regelstand erstellt.
-```
+- Vollständige echte Datei aus GitHub/dev prüfen.
+- Keine Funktionalität entfernen.
+- Keine bestehenden Command-Flows ungeprüft ändern.
+- Produktive DB nicht überschreiben.
+- Modulversion nur bei echter Codeänderung erhöhen.
+- Statusroute und `diagnostics`-Block nach Änderung erneut testen.
+- Registry-Coverage erneut testen.
+- Diese Doku und project-state aktualisieren.

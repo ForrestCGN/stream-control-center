@@ -1,16 +1,17 @@
 # TODO
 
-## CAN-43.1
+## CAN-43.2
 
-- [ ] CAN-43.1 entpacken.
-- [ ] `stepdone.cmd "CAN-43.1 Documentation handoff for new chat"` ausführen.
+- [ ] CAN-43.2 ZIP entpacken.
+- [ ] Optional `node -c backend\modules\commands.js` ausführen.
+- [ ] `stepdone.cmd "CAN-43.2 Commands diagnostics review"` ausführen.
 - [ ] Doku committen/pushen.
-- [ ] Neuen Chat mit `docs/current/CURRENT_CHAT_HANDOFF_CAN43_1.md` starten.
 
-## CAN-43 nächste Fachrunde
+## CAN-43.3 nächste Fachrunde
 
 - [ ] Konkretes Modul/Thema auswählen.
 - [ ] Vor Umsetzung echten Dateistand prüfen.
+- [ ] Repo/GitHub/dev und Live-System bewusst abgleichen.
 - [ ] Diagnose-Standard anwenden:
   - [ ] Statusroute
   - [ ] `diagnostics`-Block
@@ -18,6 +19,7 @@
   - [ ] Coverage-Test
   - [ ] Doku/project-state
 - [ ] Keine neue Dashboard-Diagnose-Extra-Datei ohne explizite Begründung anlegen.
+- [ ] Vor Umsetzung auf `go` warten.
 
 ## Standardtest
 

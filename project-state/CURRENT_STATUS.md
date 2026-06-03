@@ -6,7 +6,26 @@ CAN-42 Diagnose-Aufräumrunde ist abgeschlossen.
 
 CAN-43.0 wurde als Startpunkt für die nächste Fachrunde vorbereitet.
 
-CAN-43.1 aktualisiert die Projektübergabe für den nächsten Chat.
+CAN-43.1 aktualisierte die Projektübergabe für den neuen Chat.
+
+CAN-43.2 hat das Modul `commands` als erstes CAN-43-Fachmodul nach neuem Diagnose-/Registry-Standard geprüft und dokumentiert.
+
+## CAN-43.2 Ergebnis
+
+`commands` ist sauber.
+
+- Repo/Branch: `dev`
+- HEAD: `7da69fac CAN-43.1 Documentation handoff for new chat`
+- Lokaler Git-Status: sauber
+- Live-Modul: `commands`
+- Modulversion: `0.1.7`
+- Build: `channel-guard-diagnostics`
+- Statusroute: `GET /api/commands/status`
+- `diagnostics`-Block: vorhanden
+- Registry-Eintrag: vorhanden
+- Coverage: sauber
+- Codeänderung: keine
+- Modulversion erhöht: nein
 
 ## Diagnose-Standard
 
@@ -44,6 +63,10 @@ Live-/Repo-Check war sauber:
 Bewusst behaltene Extensions sind dokumentiert in:
 
 - `docs/modules/DASHBOARD_EXTENSIONS.md`
+
+Für `commands` relevant:
+
+- `commands_readonly_diagnostics.css/js` bleiben bewusst erhalten.
 
 ## Neue Modul-Regel
 
