@@ -1,30 +1,23 @@
 # FILES
 
-## Aktueller Arbeitsstand CAN-42.5c
+## Aktueller Arbeitsstand CAN-42.6
 
 Geänderte Dateien:
 
 ```text
-htdocs/dashboard/modules/diagnostics.js
-htdocs/dashboard/modules/diagnostics.css
-docs/current/TODO_INTEGRATION_RAW_COUNTS_CAN42_5C.md
+backend/modules/todo.js
+docs/modules/todo.md
+docs/current/TODO_STATUS_DIAGNOSTICS_STANDARD_CAN42_6.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/CHANGELOG.md
 project-state/FILES.md
-docs/current/CURRENT_CHAT_HANDOFF_CAN42_5C.md
-```
-
-Nicht geändert:
-
-```text
-backend/*
-bestehende Modul-Dateien
+docs/current/CURRENT_CHAT_HANDOFF_CAN42_6.md
 ```
 
 ## CAN-42 ZIPs aus dem Chat
 
 ```text
-CAN-42.5c_todo_integration_raw_and_counts_fix.zip
+CAN-42.6_todo_status_diagnostics_standard_block.zip
 ```

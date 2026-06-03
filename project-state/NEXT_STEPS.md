@@ -3,30 +3,39 @@
 ## Direkt nächster Schritt
 
 ```text
-CAN-42.5c anwenden und Sichttest machen.
+CAN-42.6 anwenden und prüfen.
 ```
 
 ## Prüfung
 
 ```text
-Dashboard > Admin > Diagnose > Todo
+GET http://127.0.0.1:8080/api/todo/status
 ```
 
 Erwartung:
 
 ```text
-User-Stats gefüllt
-Daily-Stats gefüllt
-Settings gefüllt
-Textvarianten gefüllt
-Legacy-Texte gefüllt
-DB gefüllt
-Rohdaten zeigen status und integrationCheck
-Todo bleibt OK
+diagnostics.ok
+diagnostics.health
+diagnostics.counts.userStats
+diagnostics.counts.dailyStats
+diagnostics.counts.settings
+diagnostics.counts.textVariants
+diagnostics.counts.legacyTexts
 ```
 
 ## Danach
 
 ```text
-CAN-42.6 - Tagebuch-Diagnosewerte zentral abbilden
+CAN-42.7 - Admin-Diagnose liest Todo diagnostics-Block bevorzugt
+```
+
+## Weiterhin nicht machen ohne separaten Go-Schritt
+
+```text
+Keine produktiven Aktionen auslösen.
+Keine Backend-Routen entfernen.
+Keine DB-Migration.
+Keine Dashboard-Testbuttons für produktive Aktionen.
+Keine Funktionalität entfernen.
 ```

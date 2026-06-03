@@ -1,18 +1,17 @@
 # CHANGELOG
 
-## CAN-42.5c
+## CAN-42.6
 
-- Todo-Count-Mapping in `Admin > Diagnose > Todo` korrigiert:
-  - leere Alias-Werte werden übersprungen.
-  - Counts werden korrekt aus `integration-check` gelesen.
-- Todo-Rohdaten zeigen jetzt kombiniert:
-  - `status`
-  - `integrationCheck`
-- Keine Backend-Änderung.
-- Keine API-POSTs.
+- `backend/modules/todo.js` erweitert:
+  - `buildStandardDiagnostics()` ergänzt.
+  - `GET /api/todo/status` liefert zusätzlich `diagnostics`.
+- Bestehende Statusfelder bleiben erhalten.
+- Keine neue Route.
+- Keine Route entfernt.
+- Keine DB-Migration.
 - Keine produktive Aktion.
 - Keine Funktionalität entfernt.
 
-## CAN-42.5b
+## CAN-42.5c
 
-- Todo-Detailwerte robuster gemappt.
+- Todo integration-check Rohdaten und Counts in Admin-Diagnose korrigiert.

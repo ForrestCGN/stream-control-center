@@ -774,6 +774,82 @@ async function postTodoEntry(ctx, input) {
   }
 }
 
+
+function buildStandardDiagnostics() {
+  const warnings = [];
+  const errors = [];
+
+  const schemaReady = ensureTodoSchema();
+  if (!schemaReady) errors.push(runtime.schemaError || "schema_not_ready");
+  if (runtime.lastLoadError) warnings.push(runtime.lastLoadError);
+  if (runtime.lastUserinfoError) warnings.push(`userinfo: ${runtime.lastUserinfoError}`);
+
+  const channelStatus = getChannelStatus();
+  const channelEntries = Object.values(channelStatus || {});
+  const channelsTotal = channelEntries.length;
+  const channelsConfigured = channelEntries.filter(item => item && item.configured).length;
+  const missingChannels = Object.entries(channelStatus || {})
+    .filter(([, item]) => !item.configured)
+    .map(([key, item]) => ({ key, label: item.label, channelKey: item.channelKey }));
+
+  if (missingChannels.length) warnings.push(`missing_todo_channels:${missingChannels.map(item => item.key).join(",")}`);
+
+  const settingsCount = countTableRows(SETTINGS_TABLE);
+  const userStatsCount = countTableRows("todo_user_stats");
+  const dailyStatsCount = countTableRows("todo_daily_stats");
+  const textVariantCount = countTableRows(texts.DEFAULT_MODULE_TEXT_VARIANTS_TABLE, "module_name = :module", { module: TEXTS_MODULE });
+  const legacyTextCount = countTableRows(texts.DEFAULT_MODULE_TEXTS_TABLE, "module_name = :module", { module: TEXTS_MODULE });
+
+  for (const check of [settingsCount, userStatsCount, dailyStatsCount, textVariantCount, legacyTextCount]) {
+    if (!check.ok) errors.push(`${check.table}:${check.error}`);
+  }
+
+  let dbAdapter = "unknown";
+  let dbPath = "";
+  try {
+    dbAdapter = database.getAdapter();
+    dbPath = database.getDbPath();
+  } catch (err) {
+    errors.push(`database:${err?.message || "unavailable"}`);
+  }
+
+  const ok = errors.length === 0;
+  const health = ok ? (warnings.length ? "warn" : "ok") : "error";
+
+  return {
+    ok,
+    health,
+    module: MODULE_NAME,
+    version: MODULE_VERSION,
+    schemaVersion: database.getSchemaVersion(MODULE_NAME),
+    schemaReady,
+    configSource: runtime.settings?.settingsSource || "unknown",
+    textSource: runtime.messages?._textsSource || "unknown",
+    database: {
+      ok: errors.filter(item => String(item).startsWith("database:")).length === 0,
+      adapter: dbAdapter,
+      path: dbPath,
+      schemaVersion: database.getSchemaVersion(MODULE_NAME),
+      expectedSchemaVersion: SCHEMA_VERSION,
+      error: runtime.schemaError || ""
+    },
+    counts: {
+      targets: Object.keys(getTargets() || {}).length,
+      channelsConfigured,
+      channelsTotal,
+      missingChannels: missingChannels.length,
+      userStats: userStatsCount.count,
+      dailyStats: dailyStatsCount.count,
+      settings: settingsCount.count,
+      textVariants: textVariantCount.count,
+      legacyTexts: legacyTextCount.count
+    },
+    warnings,
+    errors,
+    lastError: errors[0] || runtime.lastLoadError || runtime.schemaError || null
+  };
+}
+
 function buildStatus() {
   ensureTodoSchema();
   return {
@@ -797,7 +873,8 @@ function buildStatus() {
     textsSource: runtime.messages?._textsSource || "unknown",
     targets: getTargets(),
     aliases: Object.fromEntries(Object.values(getTargets()).map(target => [target.key, target.aliases])),
-    channels: getChannelStatus()
+    channels: getChannelStatus(),
+    diagnostics: buildStandardDiagnostics()
   };
 }
 

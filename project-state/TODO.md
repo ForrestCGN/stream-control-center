@@ -14,8 +14,9 @@
 - [x] CAN-42.4e Modultabelle an Ampelstatus angleichen.
 - [x] CAN-42.5 Todo-Diagnose-Tab aus Todo-Modul entfernen/deaktivieren.
 - [x] CAN-42.5b Todo Detailwerte in Admin-Diagnose korrekt mappen.
-- [ ] CAN-42.5c Todo integration-check Rohdaten und Counts korrekt anzeigen.
-- [ ] CAN-42.6 Tagebuch-Diagnosewerte zentral abbilden.
+- [x] CAN-42.5c Todo integration-check Rohdaten und Counts korrekt anzeigen.
+- [ ] CAN-42.6 Todo /status um diagnostics-Block erweitern.
+- [ ] CAN-42.7 Admin-Diagnose liest Todo diagnostics-Block bevorzugt.
 
 ## Später
 
