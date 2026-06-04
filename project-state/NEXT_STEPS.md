@@ -1,41 +1,43 @@
 # Next Steps
 
-## Sofort
+## Sofort beim nächsten Chat
 
-1. Prüfen, ob CAN-43.16 lokal entpackt ist.
-2. Falls noch offen:
+1. `docs/current/CURRENT_CHAT_HANDOFF_CAN44_21_SHOUTOUT_PLAYBACK.md` lesen.
+2. Master-Prompt beachten: keine Apply-/Patch-Scripte, nur vollständige Ersatzdateien mit echten Zielpfaden.
+3. Für CAN-44.21.16 zuerst echte Dateien prüfen.
 
-```powershell
-.\stepdone.cmd "CAN-43.16 Diagnostics registry consolidation"
-```
+## CAN-44.21.16 Planung
 
-3. Committen/pushen.
+Ziel: Clip Player Overlay Fallback innerhalb der bestehenden Queue/Sound-Queue.
 
-## Danach
+Vor Code prüfen:
 
-Zurück zum Feature-/Modulbau.
+- Wie konsumiert das Sound-/Overlay-System `mediaUrl` und `videoUrl`?
+- Kann es HTML-/Browser-Embed-URLs anzeigen?
+- Falls nein: Wo muss ein sauberer `browser_embed`/`clip_player_overlay` Item-Modus ergänzt werden?
 
-Der Nutzer möchte erstmal an anderen Modulen weiterbauen.
+Voraussichtlich relevante Dateien:
 
-## Arbeitsmodus für neue Module
+- `backend/modules/clip_shoutout.js`
+- Sound-/Bundle-Modul, das `/api/sound/bundle` verarbeitet
+- Overlay-Datei(en), die Sound-/Bundle-Items anzeigen
+- `htdocs/overlays/_overlay-clip_player.html`
 
-Bei neuem Modul oder größerer Änderung:
-
-- echten Dateistand prüfen
-- Ziel klären
-- bestehende Helper nutzen
-- keine Funktionalität entfernen
-- Modul sauber dokumentieren
-- Diagnose-/Registry-Standard direkt einbauen
-- project-state aktualisieren
-- bei Prüfungen Batch-Export nutzen
-
-## Batch-Regel
-
-Keine langen Einzel-Copy/Paste-Blöcke mehr für mehrere Module.
-
-Stattdessen:
+## Geplanter technischer Flow
 
 ```text
-Read-only Endpunkte -> Export-Ordner -> ZIP -> hochladen -> gesammelt auswerten
+Display-Queue bleibt aktiv
+→ direct playback probieren
+→ wenn alle direct playback Kandidaten scheitern
+→ lokalen Clip-Player-Overlay-Fallback verwenden
+→ weiterhin über buildBundlePayload / Sound-Bundle / Sound-Queue laufen
+→ danach Official Twitch Shoutout
 ```
+
+## Nicht tun
+
+- Kein Streamer.bot-Wait zurückbringen.
+- Kein direktes OBS-Show/Hide als Ersatz für Queue.
+- Keine Sound-Queue umgehen.
+- Keine DB-Migration ohne separate Planung.
+- Keine Funktionalität entfernen.

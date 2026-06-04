@@ -1,29 +1,24 @@
 # TODO
 
-## Offen aus CAN-43
+## CAN-44.21.16 – offen
 
-- [ ] CAN-43.16 ZIP lokal entpackt?
-- [ ] `stepdone.cmd "CAN-43.16 Diagnostics registry consolidation"` ausgeführt?
-- [ ] `git status` geprüft?
-- [ ] CAN-43.16 committen/pushen?
+- [ ] Echte Dateien für Sound-/Bundle-/Overlay-Verbraucher prüfen.
+- [ ] Klären, ob HTML-/Browser-Embed-URLs in der Sound-/Overlay-Queue funktionieren.
+- [ ] Falls nötig `browser_embed` / `clip_player_overlay` Modus planen.
+- [ ] Ziel/Dateien/Änderung/Nicht geändert/Tests nennen.
+- [ ] Auf `go` warten.
+- [ ] Vollständige Ersatzdatei-ZIP mit echten Zielpfaden liefern, keine Apply-Scripte.
+- [ ] `node -c` Test nennen.
+- [ ] `stepdone.cmd "CAN-44.21.16 Clip Player Overlay Fallback"` nutzen.
 
-## Danach: Feature-/Modulbau
+## Diagnose / Alt-Einträge
 
-- [ ] Nächstes Modul/Thema auswählen.
-- [ ] Vor Umbau echten GitHub/dev- und Live-Stand prüfen.
-- [ ] Bestehende Helper/Strukturen verwenden.
-- [ ] Keine Funktionalität entfernen.
-- [ ] Doku/project-state direkt mitführen.
-- [ ] Bei neuen/geänderten Modulen Diagnose-/Registry-Standard anwenden.
-
-## Mögliche nächste Themen
-
-- [ ] Dashboard/Admin-Config weiter ausbauen.
-- [ ] Benutzer-/Rollen-/Rechte-Konzept weiterführen.
-- [ ] Alert-/Sound-/Media-Verwaltung im Dashboard konsolidieren.
-- [ ] Geburtstags-Plugin weiter planen/integrieren.
-- [ ] Anderes konkretes Control-Center-Modul weiterbauen.
+- [ ] Alte failed Display-Queue-Testeinträge 74–77 später bereinigen, falls gewünscht.
+- [ ] Nach Fix frische Tests mit `!so @pretos1 --force` und `!so @together_not_alone --force` durchführen.
+- [ ] Bei Fehler `lastRun`, `lastClipSearch`, `playbackAttempts` prüfen.
 
 ## Dauerhafte Regel
 
-- [ ] Für mehrere Diagnoseprüfungen Batch-Export nutzen, nicht Einzel-Copy/Paste.
+- [ ] Keine Funktionalität entfernen.
+- [ ] Keine produktive DB überschreiben/löschen/neu bauen.
+- [ ] GitHub/dev und Live bewusst synchron halten.
