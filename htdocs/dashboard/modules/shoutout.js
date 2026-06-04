@@ -239,6 +239,10 @@ window.ShoutoutModule = (function(){
     return !!(active.matches && active.matches('input, textarea, select'));
   }
 
+  function activeTabOwnsItsRefresh(){
+    return state.activeTab === 'auto' || state.activeTab === 'texts';
+  }
+
   async function loadAll(force){
     root = document.getElementById('shoutoutModule');
     if (!root) return;
@@ -247,9 +251,10 @@ window.ShoutoutModule = (function(){
       return;
     }
     if (state.loading && !force) return;
+    const skipRenderForOwnedPanel = !force && activeTabOwnsItsRefresh();
     state.loading = true;
     state.error = '';
-    if (!isEditingField()) render();
+    if (!skipRenderForOwnedPanel && !isEditingField()) render();
     try {
       const [status, queue, timeline, stats, inbound, inboundStats, productionCheck, liveTest, streamStatus] = await Promise.all([
         api(API.status),
@@ -275,7 +280,7 @@ window.ShoutoutModule = (function(){
       state.error = err && err.message ? err.message : String(err);
     } finally {
       state.loading = false;
-      if (!isEditingField() || force) render();
+      if (!skipRenderForOwnedPanel && (!isEditingField() || force)) render();
       scheduleRefresh();
     }
   }

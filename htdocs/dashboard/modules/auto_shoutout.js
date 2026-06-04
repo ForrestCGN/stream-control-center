@@ -151,6 +151,17 @@ window.AutoShoutoutModule = (function(){
     panel.dataset.autoSoDirty = value ? '1' : '0';
   }
 
+  function preserveViewport(callback){
+    const x = window.scrollX || window.pageXOffset || 0;
+    const y = window.scrollY || window.pageYOffset || 0;
+    callback();
+    requestAnimationFrame(() => window.scrollTo(x, y));
+  }
+
+  function renderStable(){
+    preserveViewport(() => render());
+  }
+
   async function loadAll(force){
     if (!state.activeInShoutout || !isShoutoutVisible()) return;
     if (!force && isFormEditing()) {
@@ -160,7 +171,10 @@ window.AutoShoutoutModule = (function(){
     if (state.loading && !force) return;
     state.loading = true;
     state.error = '';
-    if (!isFormEditing()) render();
+    if (!isFormEditing()) {
+      if (force) render();
+      else renderStable();
+    }
     try {
       const [auto, streamers, queue] = await Promise.all([
         api(API.auto),
@@ -174,7 +188,10 @@ window.AutoShoutoutModule = (function(){
       state.error = err && err.message ? err.message : String(err);
     } finally {
       state.loading = false;
-      if (!isFormEditing() || force) render();
+      if (!isFormEditing() || force) {
+        if (force) render();
+        else renderStable();
+      }
       scheduleRefresh();
     }
   }
@@ -575,7 +592,8 @@ window.AutoShoutoutModule = (function(){
       maybeResumeMainShoutoutRefresh();
       return;
     }
-    if (state.activeInShoutout && getPanel(false) && !isFormEditing()) render();
+    // Das Hauptmodul besitzt die Navigation. Kein periodisches Re-Rendern mehr,
+    // sonst springt die Seite beim Scrollen im AutoShoutout-Tab nach oben.
   }
 
   function init(){
