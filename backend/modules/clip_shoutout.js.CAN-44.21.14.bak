@@ -19,7 +19,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.26";
+const MODULE_VERSION = "0.2.25";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -36,12 +36,12 @@ const MODULE_META = {
 
 const AUTO_SHOUTOUT_TEXT_DEFAULTS = {
   'auto.greeting': [
-    "📼 Die Heimleitung hat die VHS von @{displayName} gefunden. Der alte Beamer wird angeworfen.",
-    "🎬 Im CGN-Altersheimkino läuft der Beamer von anno dazumal warm. Gleich auf der Leinwand: @{displayName}.",
-    "🧓 Die Rentnercrew sitzt schon im Kinosaal. Die Heimaufsicht stellt noch das Bild von @{displayName} scharf.",
-    "💿 Die DVD von @{displayName} wurde vorsichtig aus der Hülle genommen. Vorstellung beginnt gleich.",
-    "📺 Programmänderung im CGN-Altersheim: @{displayName} kommt auf den großen Bildschirm."
-]
+    '👋 @{displayName} ist im Altersheim eingetroffen. Die Pfleger schieben direkt mal den Shouti-Wagen los.',
+    '🧓 Achtung, @{displayName} hat sich an der Rezeption gemeldet. Zeit für einen ordentlichen Shouti aus dem CGN-Altersheim.',
+    '📺 @{displayName} ist da und hat genug Lebenszeichen gesendet. Der AutoShouti wird aus dem Rentner-Regal geholt.',
+    '💜 Willkommen @{displayName}! Die CGN-Rentnercrew startet schon mal den Shouti-Rollator.',
+    '☕ @{displayName} hat sich blicken lassen. Kaffee steht bereit, Shouti wird angeschoben.'
+  ]
 };
 
 const AUTO_SHOUTOUT_TEXT_OPTIONS = {
@@ -58,103 +58,51 @@ const AUTO_SHOUTOUT_TEXT_OPTIONS = {
 
 const SHOUTOUT_TEXT_DEFAULTS = {
   'shoutout.chat.accepted': [
-    "📼 Die Heimleitung hat @{displayName} in den Sendeplan aufgenommen.",
-    "🎬 @{displayName} wurde fürs CGN-Altersheimkino vorgemerkt.",
-    "📺 Programmänderung bestätigt: @{displayName} kommt ins Heimkino.",
-    "💿 Die DVD von @{displayName} liegt bereit. Die Vorstellung wird vorbereitet.",
-    "🎞️ @{displayName} steht jetzt auf dem Kinoplan der Heimleitung."
-],
+    '✅ Shoutout für @{displayName} aufgenommen.'
+  ],
   'shoutout.chat.waiting': [
-    "⏳ @{displayName} steht im Sendeplan und wartet auf freie Leinwand.",
-    "📼 Die VHS von @{displayName} liegt bereit, muss aber noch warten.",
-    "🎬 @{displayName} wartet im Vorführraum des CGN-Altersheimkinos.",
-    "📺 Der TV-Raum ist noch belegt. @{displayName} kommt gleich dran.",
-    "💿 @{displayName} wurde eingelegt, aber der alte Beamer braucht noch einen Moment."
-],
+    '⏳ Shoutout für @{displayName} aufgenommen und in die Warteschlange gesetzt.'
+  ],
   'shoutout.chat.failed': [
-    "⚠️ Die Heimleitung meldet: Die Vorführung von @{displayName} konnte nicht gestartet werden.",
-    "📼 Bandsalat! Der Shoutout für @{displayName} ist gerade hängen geblieben.",
-    "🎬 Der alte Beamer streikt. @{displayName} konnte nicht gezeigt werden.",
-    "📺 Die Heimaufsicht findet den richtigen Eingang nicht. @{displayName} startet gerade nicht.",
-    "💿 Die DVD von @{displayName} wird nicht gelesen. Vorführung fehlgeschlagen."
-],
+    '⚠️ Shoutout für @{displayName} konnte nicht gestartet werden.'
+  ],
   'shoutout.chat.duplicate': [
-    "📼 @{displayName} lief heute schon im Altersheimkino. Wiederholung nur mit --force.",
-    "🚨 Heimaufsicht sagt: @{displayName} war heute bereits im Programm. Extra-Vorführung nur mit --force.",
-    "🎞️ Die Leinwand kennt @{displayName} heute schon. Wiederholung nur mit Sondergenehmigung: --force.",
-    "📋 Im Sendeplan steht: @{displayName} hatte heute schon Ausstrahlung. Noch mal nur mit --force.",
-    "📺 @{displayName} war heute schon auf dem großen Bildschirm. Für die Wiederholung bitte --force nutzen."
-],
+    '⚠️ @{displayName} hatte in diesem Stream bereits einen Shoutout. Nutze !so @{login} --force, wenn du ihn trotzdem einreihen möchtest.'
+  ],
   'shoutout.auto.greeting': [
-    "📼 Die Heimleitung hat die VHS von @{displayName} gefunden. Der alte Beamer wird angeworfen.",
-    "🎬 Im CGN-Altersheimkino läuft der Beamer von anno dazumal warm. Gleich auf der Leinwand: @{displayName}.",
-    "🧓 Die Rentnercrew sitzt schon im Kinosaal. Die Heimaufsicht stellt noch das Bild von @{displayName} scharf.",
-    "💿 Die DVD von @{displayName} wurde vorsichtig aus der Hülle genommen. Vorstellung beginnt gleich.",
-    "📺 Programmänderung im CGN-Altersheim: @{displayName} kommt auf den großen Bildschirm."
-],
+    '👋 @{displayName} ist im Altersheim eingetroffen. Die Pfleger schieben direkt mal den Shouti-Wagen los.',
+    '🧓 Achtung, @{displayName} hat sich an der Rezeption gemeldet. Zeit für einen ordentlichen Shouti aus dem CGN-Altersheim.',
+    '📺 @{displayName} ist da und hat genug Lebenszeichen gesendet. Der AutoShouti wird aus dem Rentner-Regal geholt.',
+    '💜 Willkommen @{displayName}! Die CGN-Rentnercrew startet schon mal den Shouti-Rollator.',
+    '☕ @{displayName} hat sich blicken lassen. Kaffee steht bereit, Shouti wird angeschoben.'
+  ],
   'shoutout.auto.queued': [
-    "📋 @{displayName} wurde in den Kinoplan eingetragen. Wartezeit: ca. {waitTime}.",
-    "📼 Die VHS von @{displayName} liegt auf dem Wagen. Vorstellung in ca. {waitTime}.",
-    "🎬 @{displayName} steht im Vorführplan. Der Beamer braucht noch ca. {waitTime}.",
-    "📺 Der Fernsehraum wird vorbereitet. @{displayName} läuft in ca. {waitTime}.",
-    "💿 Die DVD von @{displayName} ist vorgemerkt. Sendestart in ca. {waitTime}."
-],
+    '📺 @{displayName} wurde der Shoutout-Warteliste hinzugefügt. Wartezeit: ca. {waitTime}.'
+  ],
   'shoutout.auto.alreadyQueued': [
-    "⏳ @{displayName} steht bereits im Kinoplan. Wartezeit: ca. {waitTime}.",
-    "📋 Die Heimleitung hat @{displayName} schon auf der Liste. Noch ca. {waitTime}.",
-    "📼 Die VHS von @{displayName} liegt bereits bereit. Vorstellung in ca. {waitTime}.",
-    "🎬 @{displayName} wartet schon im Vorführraum. Der Beamer ist noch nicht frei.",
-    "📺 @{displayName} ist schon fürs Heimkino vorgemerkt. Bitte im TV-Raum Platz nehmen."
-],
+    '⏳ @{displayName} steht bereits auf der Shoutout-Warteliste. Wartezeit: ca. {waitTime}.'
+  ],
   'shoutout.auto.alreadyReceived': [
-    "✅ @{displayName} hatte heute schon eine Vorstellung im CGN-Altersheimkino.",
-    "📼 Die VHS von @{displayName} wurde heute bereits abgespielt.",
-    "🎬 @{displayName} lief heute schon auf der großen Leinwand.",
-    "📺 @{displayName} war heute bereits im Altersheim-TV zu sehen.",
-    "📋 Die Heimaufsicht bestätigt: @{displayName} steht heute schon als gezeigt im Sendeplan."
-],
+    '✅ @{displayName} hat bereits einen Shouti erhalten.'
+  ],
   'shoutout.auto.cooldown': [
-    "⏳ Die Heimleitung sagt: @{displayName} muss noch ca. {waitTime} auf die nächste Ausstrahlung warten.",
-    "📼 Die VHS von @{displayName} steckt noch im Rückspulmodus. Nächster Versuch in ca. {waitTime}.",
-    "🎬 Der alte Beamer braucht Pause. @{displayName} kann in ca. {waitTime} wieder gezeigt werden.",
-    "📺 Der TV-Raum ist im Ruhemodus. @{displayName} darf in ca. {waitTime} wieder ins Programm.",
-    "💿 Die DVD von @{displayName} liegt auf Wiedervorlage. Noch ca. {waitTime}."
-],
+    '⏳ @{displayName} ist im Auto-SO-Cooldown. Nächster Versuch in ca. {waitTime}.'
+  ],
   'shoutout.auto.waitingStartScene': [
-    "🎬 @{displayName} steht bereit, aber der Vorhang bleibt bis nach der Start-Szene zu.",
-    "📺 Der Fernseher läuft noch im Startprogramm. @{displayName} kommt danach dran.",
-    "📼 Die VHS von @{displayName} ist eingelegt. Abgespielt wird nach der Start-Szene.",
-    "🧓 Die Rentnercrew sitzt schon, aber die Heimaufsicht startet den Film erst nach dem Streamstart.",
-    "🎞️ Der Beamer ist warm, die Leinwand hängt. @{displayName} wartet nur noch auf das Ende der Start-Szene."
-],
+    '⏳ @{displayName} ist eingetragen. Shoutout wartet bis nach der Start-Szene. Wartezeit: ca. {waitTime}.'
+  ],
   'shoutout.auto.disabled': [
-    "ℹ️ Die Heimleitung hat das Altersheimkino aktuell geschlossen.",
-    "📺 Das CGN-TV-Programm ist gerade pausiert. Auto-Shoutouts sind aus.",
-    "📼 Der VHS-Wagen bleibt heute stehen. Auto-Shoutouts sind deaktiviert.",
-    "🎬 Der Beamer von anno dazumal ist aus. Auto-Shoutouts laufen gerade nicht.",
-    "🚪 Der Kinosaal ist abgeschlossen. Die Heimaufsicht hat Auto-Shoutouts deaktiviert."
-],
+    'ℹ️ Auto-Shoutouts sind aktuell deaktiviert.'
+  ],
   'shoutout.official.queued': [
-    "⏳ Der offizielle Twitch-Shoutout für @{displayName} wurde in den Sendeplan der Heimleitung eingetragen.",
-    "📋 Heimleitung meldet: Offizieller Shoutout für @{displayName} ist vorgemerkt.",
-    "📺 @{displayName} steht für den offiziellen Twitch-Sendeplatz bereit.",
-    "🎬 Der offizielle Shoutout für @{displayName} wartet auf seinen Platz im Programm.",
-    "📼 Die Heimaufsicht hat @{displayName} für den offiziellen Shoutout notiert."
-],
+    '⏳ Offizieller Shoutout für @{displayName} ist vorgemerkt und wird nach dem Cooldown gesendet.'
+  ],
   'shoutout.official.failed': [
-    "⚠️ Der offizielle Twitch-Shoutout für @{displayName} konnte nicht gesendet werden.",
-    "📺 Die Heimleitung meldet Störung im offiziellen Twitch-Programm für @{displayName}.",
-    "🎬 Der offizielle Sendeplatz für @{displayName} ist gerade ausgefallen.",
-    "📼 Die Heimaufsicht hat es versucht, aber Twitch wollte @{displayName} gerade nicht senden.",
-    "💿 Der offizielle Shoutout für @{displayName} konnte nicht abgespielt werden."
-],
+    '⚠️ Offizieller Shoutout für @{displayName} konnte nicht gesendet werden.'
+  ],
   'shoutout.system.textsSaved': [
-    "💾 Die Heimleitung hat den neuen Sendeplan gespeichert.",
-    "📋 Die Textmappe der Heimaufsicht wurde aktualisiert.",
-    "📼 Die neuen VHS-Beschriftungen wurden sauber einsortiert.",
-    "✅ Die Shoutout-Texte wurden im CGN-Altersheim archiviert.",
-    "🎬 Programmheft gespeichert. Die nächste Vorstellung kann kommen."
-]
+    'Shoutout-Texte gespeichert.'
+  ]
 };
 
 const SHOUTOUT_TEXT_OPTIONS = {
@@ -601,35 +549,6 @@ function renderAutoModuleText(key, vars = {}, options = {}) {
   return renderAutoMessage(rendered, { ...vars, displayName });
 }
 
-function renderShoutoutModuleText(key, vars = {}, options = {}) {
-  const displayName = cleanDisplay(vars.displayName || vars.targetDisplay || vars.login || '', vars.login || '');
-  const context = {
-    ...vars,
-    displayName,
-    user: displayName,
-    username: vars.login || vars.targetLogin || '',
-    targetLogin: vars.targetLogin || vars.login || '',
-    login: vars.login || vars.targetLogin || ''
-  };
-  const rendered = textHelper.renderModuleText(MODULE_NAME, key, SHOUTOUT_TEXT_DEFAULTS, context, {
-    ...SHOUTOUT_TEXT_OPTIONS,
-    ...(options || {})
-  });
-  return renderAutoMessage(rendered, { ...vars, displayName, login: context.login });
-}
-
-function autoNoticeTextKey(key) {
-  const map = {
-    queued: 'shoutout.auto.queued',
-    alreadyQueued: 'shoutout.auto.alreadyQueued',
-    alreadyReceived: 'shoutout.auto.alreadyReceived',
-    cooldown: 'shoutout.auto.cooldown',
-    waitingStartScene: 'shoutout.auto.waitingStartScene',
-    disabled: 'shoutout.auto.disabled'
-  };
-  return map[key] || `shoutout.auto.${key}`;
-}
-
 async function sendAutoGreetingNotice(acfg, vars = {}, cfg = null) {
   if (!acfg || acfg.sendChatMessage === false || acfg.greetingEnabled === false) return false;
   const key = String(acfg.greetingTextKey || 'auto.greeting').trim() || 'auto.greeting';
@@ -688,15 +607,11 @@ function shouldSuppressAutoChatNotice(key, vars = {}) {
 async function sendAutoChatNotice(acfg, key, vars = {}, cfg = null) {
   if (!acfg || acfg.sendChatMessage === false) return false;
   if (shouldSuppressAutoChatNotice(key, vars)) return false;
-  const textKey = autoNoticeTextKey(key);
-  let msg = renderShoutoutModuleText(textKey, vars);
-  if (!msg) {
-    const messages = normalizeAutoMessages(acfg.messages || {}, acfg || {});
-    const template = messages[key] || acfg[`${key}Message`] || '';
-    msg = renderAutoMessage(template, vars);
-  }
+  const messages = normalizeAutoMessages(acfg.messages || {}, acfg || {});
+  const template = messages[key] || acfg[`${key}Message`] || '';
+  const msg = renderAutoMessage(template, vars);
   if (!msg) return false;
-  await sendChatMessage(msg, { targetLogin: vars.login, autoShoutout: true, reason: vars.reason || key, textKey });
+  await sendChatMessage(msg, { targetLogin: vars.login, autoShoutout: true, reason: vars.reason || key });
   return true;
 }
 
@@ -3467,8 +3382,7 @@ async function runDisplayJob(row, env, cfg) {
         }, cfg);
         const ocfg = officialConfig(cfg);
         if (shouldSendOfficialChatMessages(cfg) && queueResult && queueResult.ok && queueResult.duplicate !== true) {
-          const message = renderShoutoutModuleText('shoutout.official.queued', vars) || renderTemplate(ocfg.queuedMessage, vars).trim();
-          await sendChatMessage(message, { targetLogin: targetUser.login, clipId: clip.id, officialShoutout: true, queueId: queueResult.row && queueResult.row.id, textKey: 'shoutout.official.queued' });
+          await sendChatMessage(renderTemplate(ocfg.queuedMessage, vars).trim(), { targetLogin: targetUser.login, clipId: clip.id, officialShoutout: true, queueId: queueResult.row && queueResult.row.id });
         } else if (shouldSendOfficialChatMessages(cfg) && queueResult && queueResult.duplicate === true) {
           await sendChatMessage(renderTemplate(ocfg.duplicateQueuedMessage, vars).trim(), { targetLogin: targetUser.login, clipId: clip.id, officialShoutout: true });
         }
@@ -3602,8 +3516,8 @@ async function handleRun(req, res, env) {
       : null;
 
     if (existingStreamDayShoutout) {
-      const message = renderShoutoutModuleText('shoutout.chat.duplicate', vars) || renderTemplate(firstString(scfg.duplicateMessage), vars).trim();
-      if (message) await sendChatMessage(message, { targetLogin, streamDayId: streamDay.streamDayId, duplicate: true, textKey: 'shoutout.chat.duplicate' });
+      const message = renderTemplate(firstString(scfg.duplicateMessage), vars).trim();
+      if (message) await sendChatMessage(message, { targetLogin, streamDayId: streamDay.streamDayId, duplicate: true });
       emitShoutoutBus('shoutout.streamday.duplicate_blocked', {
         targetLogin,
         streamDayId: streamDay.streamDayId,
@@ -3652,10 +3566,8 @@ async function handleRun(req, res, env) {
     if (dcfg.sendChatMessages !== false) {
       const queue = listDisplayQueue(200);
       const pendingBeforeThis = queue.filter(row => Number(row.id || 0) < Number(queueResult.row?.id || 0) && ['queued','waiting','active'].includes(row.status)).length;
-      const textKey = pendingBeforeThis > 0 ? 'shoutout.chat.waiting' : 'shoutout.chat.accepted';
       const template = pendingBeforeThis > 0 ? firstString(dcfg.waitingMessage, dcfg.acceptedMessage) : firstString(dcfg.acceptedMessage, DEFAULT_CONFIG.clipShoutout.chatMessage);
-      const message = renderShoutoutModuleText(textKey, vars) || renderTemplate(template, vars).trim();
-      await sendChatMessage(message, { targetLogin, displayQueueId: queueResult.row && queueResult.row.id, textKey });
+      await sendChatMessage(renderTemplate(template, vars).trim(), { targetLogin, displayQueueId: queueResult.row && queueResult.row.id });
     }
 
     processDisplayQueue(env, shoutoutConfig()).catch(err => { state.displayQueue.lastError = err && err.message ? err.message : String(err); });
