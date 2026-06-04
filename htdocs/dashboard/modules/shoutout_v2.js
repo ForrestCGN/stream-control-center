@@ -1,8 +1,8 @@
 window.ShoutoutV2Module = (function(){
   'use strict';
 
-  const MODULE_VERSION = '2.1.0-ops';
-  const BUILD = 'CAN-44.21.5';
+  const MODULE_VERSION = '2.1.0-auto';
+  const BUILD = 'CAN-44.21.6';
 
   const API = {
     status: '/api/clip-shoutout/status',
@@ -15,11 +15,11 @@ window.ShoutoutV2Module = (function(){
     liveTest: '/api/clip-shoutout/live-test',
     run: '/api/clip-shoutout/run',
     streamStatus: '/api/stream-status/status',
-    autoStatus: '/api/clip-shoutout/auto/status',
+    auto: '/api/clip-shoutout/auto',
     autoStreamers: '/api/clip-shoutout/auto/streamers',
-    autoTest: '/api/clip-shoutout/auto/test',
-    queueRetry: '/api/clip-shoutout/queue/retry',
-    queueRemove: '/api/clip-shoutout/queue/remove'
+    autoTestChat: '/api/clip-shoutout/auto/test-chat',
+    autoStreamerRemove: '/api/clip-shoutout/auto/streamers/remove',
+    sceneGate: '/api/clip-shoutout/scene-gate'
   };
 
   const TABS = [
@@ -51,12 +51,14 @@ window.ShoutoutV2Module = (function(){
     manualTarget: '',
     manualForce: false,
     manualResult: null,
-    autoStatus: null,
+    auto: null,
     autoStreamers: null,
+    sceneGate: null,
     autoTarget: '',
-    autoNote: '',
+    autoDisplayName: '',
     autoVideo: true,
-    autoOfficial: true
+    autoOfficial: true,
+    autoResult: null
   };
 
   let root = null;
@@ -157,57 +159,35 @@ window.ShoutoutV2Module = (function(){
     return map[reason] || reason || '';
   }
 
-  function humanStatus(value){
-    const raw = String(value || '').toLowerCase();
-    const map = {
-      queued: 'wartet',
-      waiting: 'wartet',
-      active: 'aktiv',
-      running: 'läuft',
-      done: 'fertig',
-      sent: 'gesendet',
-      failed: 'Fehler',
-      error: 'Fehler',
-      removed: 'entfernt',
-      skipped: 'übersprungen',
-      enabled: 'aktiv',
-      disabled: 'inaktiv'
-    };
-    return map[raw] || value || '-';
+  function autoData(){
+    return (state.auto && state.auto.autoShoutout) || (state.status && state.status.autoShoutout) || {};
   }
 
-  function firstArray(obj, paths){
-    for (const path of paths) {
-      const value = get(obj, path, undefined);
-      if (Array.isArray(value)) return value;
-    }
-    return [];
+  function autoStreamers(){
+    const fromRoute = asArray(pick(state.autoStreamers || {}, ['streamers','data.streamers'], []));
+    if (fromRoute.length) return fromRoute;
+    return asArray(pick(autoData(), ['configuredStreamers','streamers'], []));
   }
 
-  function queueStatusTone(value){
-    const raw = String(value || '').toLowerCase();
-    if (/fail|error|fehler/.test(raw)) return 'warn';
-    if (/done|sent|fertig|gesendet/.test(raw)) return 'ok';
-    return 'neutral';
+  function isEnabled(value){
+    return value === true || value === 1 || String(value || '').toLowerCase() === 'true';
   }
 
-  function normalizeQueueItem(item, type){
-    const row = item && typeof item === 'object' ? item : {};
-    return {
-      id: row.id || row.queueId || row.uuid || '',
-      type,
-      target: row.displayName || row.targetDisplay || row.targetDisplayName || row.target_login || row.targetLogin || row.login || row.target || row.user || 'Eintrag',
-      requestedBy: row.requestedByDisplay || row.requested_by_display || row.requestedBy || row.requested_by_login || row.userLogin || '',
-      status: row.status || row.state || 'wartet',
-      availableAt: row.availableAt || row.available_at || row.nextAttemptAt || row.next_attempt_at || '',
-      error: row.lastError || row.last_error || row.error || ''
-    };
+  function autoEventRows(){
+    const auto = autoData();
+    const events = asArray(pick(auto, ['recentEvents','events'], []));
+    const activity = asArray(pick(auto, ['recentActivity','activityRows'], []));
+    return [...events, ...activity].slice(0, 8);
   }
 
-  function autoStreamersList(){
-    const data = state.autoStreamers || state.autoStatus || {};
-    return firstArray(data, ['streamers','items','rows','data.streamers','data.items','configuredStreamers']);
+  function autoStreamerLogin(row){
+    return cleanChannelInput(row?.login || row?.targetLogin || row?.target_login || row?.name || row?.user || row?.channel || '');
   }
+
+  function autoStreamerDisplay(row){
+    return row?.displayName || row?.display_name || row?.targetDisplay || row?.target_display || autoStreamerLogin(row) || 'Streamer';
+  }
+
 
   function badge(value, tone = 'neutral'){
     return `<span class="so2-badge so2-badge-${esc(tone)}">${esc(value || '-')}</span>`;
@@ -300,12 +280,14 @@ window.ShoutoutV2Module = (function(){
       }
 
       if (['auto'].includes(state.activeTab)) {
-        const [autoStatus, autoStreamers] = await Promise.all([
-          api(API.autoStatus).catch(err => ({ ok:false, error: err.message })),
-          api(API.autoStreamers).catch(err => ({ ok:false, error: err.message }))
+        const [auto, autoStreamers, sceneGate] = await Promise.all([
+          api(API.auto).catch(err => ({ ok:false, error: err.message })),
+          api(API.autoStreamers).catch(err => ({ ok:false, error: err.message })),
+          api(API.sceneGate).catch(err => ({ ok:false, error: err.message }))
         ]);
-        state.autoStatus = autoStatus;
+        state.auto = auto;
         state.autoStreamers = autoStreamers;
+        state.sceneGate = sceneGate;
       }
     } catch (err) {
       state.error = err.message || String(err);
@@ -340,10 +322,19 @@ window.ShoutoutV2Module = (function(){
         </nav>
 
         <div class="so2-content">
-          ${renderActiveTab()}
+          ${renderActiveTabSafe()}
         </div>
       </div>
     `;
+  }
+
+  function renderActiveTabSafe(){
+    try {
+      return renderActiveTab();
+    } catch (err) {
+      console.error('[ShoutoutV2] renderActiveTab failed', err);
+      return `<div class="so2-alert so2-alert-error">Dieser Bereich konnte nicht gerendert werden: ${esc(err && err.message ? err.message : err)}</div>`;
+    }
   }
 
   function renderActiveTab(){
@@ -375,6 +366,7 @@ window.ShoutoutV2Module = (function(){
     const lastError = pick(status, ['lastError','error','errors.0.message','display.lastError','official.lastError'], '');
     const streamLive = pick(stream, ['live','isLive','data.live'], pick(status, ['stream.live','live'], false));
     const streamFresh = pick(stream, ['fresh','isFresh','stale'], undefined);
+    const source = pick(stream, ['source','upstream','data.source'], pick(status, ['stream.source','source'], 'twitch_api'));
 
     const total = pickNumber(stats, ['total','totalCount','summary.total','shoutoutsTotal','createdTotal'], pickNumber(status, ['total','created','stats.total'], 0));
     const targets = pickNumber(stats, ['targets','targetCount','summary.targets','uniqueTargets'], 0);
@@ -435,6 +427,7 @@ window.ShoutoutV2Module = (function(){
     const status = state.status || {};
     const live = pick(stream, ['live','isLive','data.live'], pick(status, ['stream.live','live'], false));
     const stale = pick(stream, ['stale','data.stale'], false);
+    const source = pick(stream, ['source','upstream','data.source'], pick(status, ['stream.source','source'], 'twitch_api'));
     const displayOpen = pickNumber(status, ['displayOpen','display.open','queues.display.open','displayQueueOpen'], 0);
     const officialOpen = pickNumber(status, ['officialOpen','official.open','queues.official.open','officialQueueOpen'], 0);
     const result = state.manualResult || null;
@@ -468,11 +461,11 @@ window.ShoutoutV2Module = (function(){
         </section>
 
         <aside class="so2-panel so2-manual-side so2-manual-status">
-          <div class="so2-section-title"><div><h3>Status</h3></div></div>
+          <h3>Status</h3>
           <div class="so2-status-list">
             <div><span>Stream</span><strong>${live ? 'live' : 'offline'}</strong></div>
-            <div><span>Overlay-Warteschlange</span><strong>${displayOpen} offen</strong></div>
-            <div><span>Twitch-Shoutouts</span><strong>${officialOpen} offen</strong></div>
+            <div><span>Overlay</span><strong>${displayOpen} offen</strong></div>
+            <div><span>Twitch</span><strong>${officialOpen} offen</strong></div>
           </div>
           ${!live ? `<div class="so2-quiet-hint">Stream offline. Offizielle Twitch-Shoutouts warten ggf. bis zum Livestatus.</div>` : ''}
           ${stale ? `<div class="so2-quiet-hint so2-quiet-hint-warn">Streamstatus eventuell veraltet. Details stehen in Diagnose.</div>` : ''}
@@ -482,80 +475,73 @@ window.ShoutoutV2Module = (function(){
   }
 
   function renderAuto(){
-    const auto = state.autoStatus || {};
-    const status = state.status || {};
+    const auto = autoData();
     const stream = state.streamStatus || {};
-    const streamers = autoStreamersList();
-    const enabled = pick(auto, ['enabled','autoShoutout.enabled','config.enabled','data.enabled'], pick(status, ['autoShoutout.enabled','auto.enabled'], undefined));
-    const onlyLive = pick(auto, ['onlyWhenLive','autoShoutout.onlyWhenLive','config.onlyWhenLive','data.onlyWhenLive'], undefined);
-    const sceneBlocked = pick(auto, ['sceneGate.active','startScene.active','gate.active','data.sceneGate.active'], false);
-    const displayOpen = pickNumber(status, ['displayOpen','display.open','queues.display.open','displayQueueOpen'], 0);
-    const officialOpen = pickNumber(status, ['officialOpen','official.open','queues.official.open','officialQueueOpen'], 0);
-    const live = pick(stream, ['live','isLive','data.live'], pick(status, ['stream.live','live'], false));
+    const scene = pick(state.sceneGate || {}, ['sceneGate','data.sceneGate'], pick(auto, ['sceneGate'], {}));
+    const streamers = autoStreamers();
+    const enabled = isEnabled(pick(auto, ['enabled'], false));
+    const onlyLive = isEnabled(pick(auto, ['onlyWhenLive'], false));
+    const live = pick(stream, ['live','isLive','data.live'], pick(state.status || {}, ['streamStatus.live','stream.live','live'], false));
+    const sceneActive = isEnabled(pick(scene, ['active','blocked','isActive'], false));
+    const result = state.autoResult || null;
+    const lastError = pick(auto, ['state.lastError','lastError'], '');
+    const events = autoEventRows();
 
     return `
       <section class="so2-ops-head">
         <div class="so2-grid so2-grid-4">
-          ${statusCard('AutoShoutout', enabled === false ? 'inaktiv' : 'aktiv', badge(enabled === false ? 'aus' : 'an', enabled === false ? 'warn' : 'ok'), 'Betrieb und Streamer-Verwaltung.')}
-          ${statusCard('Live-Regel', onlyLive === true ? 'nur live' : 'nicht begrenzt', badge(live ? 'Stream live' : 'Stream offline', live ? 'ok' : 'warn'), 'Globale Config wird später in Einstellungen gepflegt.')}
-          ${statusCard('Start-Szene', sceneBlocked ? 'blockiert' : 'frei', badge(sceneBlocked ? 'wartet' : 'frei', sceneBlocked ? 'warn' : 'ok'), 'Nur Kurzstatus, keine Konfiguration.')}
-          ${statusCard('Warteschlangen', `${displayOpen} Overlay · ${officialOpen} Twitch`, badge(displayOpen || officialOpen ? 'offen' : 'frei', displayOpen || officialOpen ? 'warn' : 'ok'), 'Details stehen im Queues-Tab.')}
+          ${statusCard('Betrieb', enabled ? 'aktiv' : 'inaktiv', badge(enabled ? 'an' : 'aus', enabled ? 'ok' : 'warn'), 'AutoShoutout-Status aus /auto.')}
+          ${statusCard('Live-Regel', onlyLive ? 'nur live' : 'nicht begrenzt', badge(live ? 'Stream live' : 'Stream offline', live ? 'ok' : 'warn'), 'Nur Anzeige, Bearbeitung später in Einstellungen.')}
+          ${statusCard('Start-Szene', sceneActive ? 'blockiert' : 'frei', badge(sceneActive ? 'wartet' : 'frei', sceneActive ? 'warn' : 'ok'), 'Scene-Gate aus bestätigter Route.')}
+          ${statusCard('Streamer', String(streamers.length), badge('verwaltet', 'neutral'), 'Liste aus /auto/streamers.')}
         </div>
+        ${lastError ? `<div class="so2-alert so2-alert-error">${esc(lastError)}</div>` : ''}
       </section>
 
       <div class="so2-two so2-auto-layout">
         <section class="so2-panel">
-          <div class="so2-section-title"><div><h3>Streamer verwalten</h3></div>${badge(`${streamers.length} Einträge`, 'neutral')}</div>
+          <div class="so2-section-title">
+            <div><h3>Streamer-Verwaltung</h3></div>
+            ${badge(`${streamers.length} Einträge`, 'neutral')}
+          </div>
+
           <div class="so2-auto-form">
             <label class="so2-field">
               <span>Twitch-Name</span>
-              <input type="text" data-so2-auto-target placeholder="z. B. partnerstreamer" autocomplete="off" value="${esc(state.autoTarget || '')}">
+              <input type="text" data-so2-auto-target placeholder="z. B. urlug" autocomplete="off" value="${esc(state.autoTarget || '')}">
             </label>
             <label class="so2-field">
-              <span>Notiz</span>
-              <input type="text" data-so2-auto-note placeholder="optional" autocomplete="off" value="${esc(state.autoNote || '')}">
+              <span>Anzeigename</span>
+              <input type="text" data-so2-auto-display placeholder="optional" autocomplete="off" value="${esc(state.autoDisplayName || '')}">
             </label>
             <label class="so2-check"><input type="checkbox" data-so2-auto-video ${state.autoVideo ? 'checked' : ''}> Video-SO</label>
             <label class="so2-check"><input type="checkbox" data-so2-auto-official ${state.autoOfficial ? 'checked' : ''}> Twitch-SO</label>
             <button type="button" class="so2-primary-action" data-so2-auto-save>Speichern</button>
           </div>
+
+          ${renderAutoResult(result)}
           ${renderAutoStreamerTable(streamers)}
         </section>
 
         <section class="so2-panel">
-          <div class="so2-section-title"><div><h3>Letzte AutoShoutout-Aktivität</h3></div></div>
-          ${renderAutoActivity(auto)}
+          <div class="so2-section-title">
+            <div><h3>Letzte AutoShoutout-Aktivität</h3></div>
+          </div>
+          ${renderAutoActivity(events)}
         </section>
       </div>
     `;
   }
 
+
   function renderQueues(){
     const queue = state.queue || {};
-    const status = state.status || {};
-    const displayItems = firstArray(queue, ['displayQueue','display.items','displayQueueItems','display','data.displayQueue']).map(item => normalizeQueueItem(item, 'display'));
-    const officialItems = firstArray(queue, ['officialQueue','official.items','officialQueueItems','official','data.officialQueue']).map(item => normalizeQueueItem(item, 'official'));
-    const displayOpen = displayItems.length || pickNumber(status, ['displayOpen','display.open','queues.display.open','displayQueueOpen'], 0);
-    const officialOpen = officialItems.length || pickNumber(status, ['officialOpen','official.open','queues.official.open','officialQueueOpen'], 0);
-
+    const displayItems = asArray(pick(queue, ['displayQueue','display.items','displayQueueItems','display'], []));
+    const officialItems = asArray(pick(queue, ['officialQueue','official.items','queue','official'], []));
     return `
-      <section class="so2-ops-head">
-        <div class="so2-grid so2-grid-3">
-          ${statusCard('Overlay-Warteschlange', String(displayOpen), badge(displayOpen ? 'offen' : 'frei', displayOpen ? 'warn' : 'ok'), 'Video-/Overlay-Shoutouts.')}
-          ${statusCard('Twitch-Warteschlange', String(officialOpen), badge(officialOpen ? 'offen' : 'frei', officialOpen ? 'warn' : 'ok'), 'Offizielle Twitch-Shoutouts.')}
-          ${statusCard('Aktionen', 'Retry / Entfernen', badge('mod-tauglich geplant', 'neutral'), 'Nur Warteschlangen-Aktionen, keine Statistik.')}
-        </div>
-      </section>
-
       <div class="so2-two">
-        <section class="so2-panel">
-          <div class="so2-section-title"><div><h3>Overlay-Shoutouts</h3></div>${badge(`${displayOpen} offen`, displayOpen ? 'warn' : 'ok')}</div>
-          ${renderQueueTable(displayItems, 'Keine offenen Overlay-Shoutouts.')}
-        </section>
-        <section class="so2-panel">
-          <div class="so2-section-title"><div><h3>Offizielle Twitch-Shoutouts</h3></div>${badge(`${officialOpen} offen`, officialOpen ? 'warn' : 'ok')}</div>
-          ${renderQueueTable(officialItems, 'Keine offenen offiziellen Twitch-Shoutouts.')}
-        </section>
+        <section class="so2-panel"><h3>Overlay-Shoutouts</h3>${renderQueuePreview(displayItems, 'Keine offenen Overlay-Shoutouts.')}</section>
+        <section class="so2-panel"><h3>Offizielle Twitch-Shoutouts</h3>${renderQueuePreview(officialItems, 'Keine offenen offiziellen Twitch-Shoutouts.')}</section>
       </div>
     `;
   }
@@ -623,54 +609,6 @@ window.ShoutoutV2Module = (function(){
     `;
   }
 
-  function renderAutoStreamerTable(streamers){
-    const rows = asArray(streamers).slice(0, 30);
-    if (!rows.length) return `<div class="so2-empty">Noch keine Streamer geladen oder AutoShoutout-API liefert keine Liste.</div>`;
-    return `<div class="so2-table-wrap"><table class="so2-table">
-      <thead><tr><th>Streamer</th><th>Status</th><th>Video</th><th>Twitch</th><th>Notiz</th><th>Aktion</th></tr></thead>
-      <tbody>${rows.map(row => {
-        const login = row.login || row.targetLogin || row.target_login || row.name || '';
-        const display = row.displayName || row.display_name || row.targetDisplay || login || 'Streamer';
-        const active = row.active !== false && row.enabled !== false;
-        const video = row.videoShoutout !== false && row.video !== false;
-        const official = row.officialShoutout !== false && row.official !== false;
-        const note = row.note || row.notes || '';
-        return `<tr>
-          <td><strong>@${esc(display)}</strong><small>${esc(login && login !== display ? login : '')}</small></td>
-          <td>${badge(active ? 'aktiv' : 'inaktiv', active ? 'ok' : 'warn')}</td>
-          <td>${badge(video ? 'ja' : 'nein', video ? 'ok' : 'neutral')}</td>
-          <td>${badge(official ? 'ja' : 'nein', official ? 'ok' : 'neutral')}</td>
-          <td>${esc(note || '-')}</td>
-          <td><div class="so2-row-actions"><button type="button" data-so2-auto-test="${esc(login || display)}">Test</button><button type="button" data-so2-auto-edit="${esc(login || display)}">Bearbeiten</button></div></td>
-        </tr>`;
-      }).join('')}</tbody>
-    </table></div>`;
-  }
-
-  function renderAutoActivity(auto){
-    const rows = firstArray(auto, ['activity','events','recent','data.activity','data.events']).slice(0, 8);
-    if (!rows.length) return `<div class="so2-empty">Noch keine AutoShoutout-Aktivität geladen.</div>`;
-    return `<div class="so2-activity-list">${rows.map(row => {
-      const item = normalizeActivity(row);
-      return `<div class="so2-activity-row"><span class="so2-dot so2-dot-${esc(item.tone)}"></span><strong>${esc(item.title)}</strong><span>${esc(item.meta || 'AutoShoutout')}</span></div>`;
-    }).join('')}</div>`;
-  }
-
-  function renderQueueTable(items, emptyText){
-    const rows = asArray(items).slice(0, 30);
-    if (!rows.length) return `<div class="so2-empty">${esc(emptyText)}</div>`;
-    return `<div class="so2-table-wrap"><table class="so2-table">
-      <thead><tr><th>Ziel</th><th>Status</th><th>Verfügbar</th><th>Fehler</th><th>Aktion</th></tr></thead>
-      <tbody>${rows.map(row => `<tr>
-        <td><strong>${esc(row.target)}</strong>${row.requestedBy ? `<small>von ${esc(row.requestedBy)}</small>` : ''}</td>
-        <td>${badge(humanStatus(row.status), queueStatusTone(row.status))}</td>
-        <td>${esc(formatTime(row.availableAt))}</td>
-        <td>${esc(row.error || '-')}</td>
-        <td><div class="so2-row-actions"><button type="button" data-so2-queue-retry="${esc(row.type)}:${esc(row.id)}">Erneut</button><button type="button" data-so2-queue-remove="${esc(row.type)}:${esc(row.id)}">Entfernen</button></div></td>
-      </tr>`).join('')}</tbody>
-    </table></div>`;
-  }
-
   function metricCard(label, value, help){
     return `<article class="so2-metric"><small>${esc(label)}</small><strong>${esc(value ?? 0)}</strong><span>${esc(help || '')}</span></article>`;
   }
@@ -693,6 +631,53 @@ window.ShoutoutV2Module = (function(){
     const stream = state.streamStatus || {};
     const live = pick(stream, ['live','isLive','data.live'], false);
     return `<div class="so2-gate-mini">${badge(live ? 'Stream live' : 'Stream offline', live ? 'ok' : 'warn')}<span>${live ? 'Offizielle Shoutouts können geprüft werden.' : 'Offizielle Shoutouts werden je nach Einstellung geparkt.'}</span></div>`;
+  }
+
+  function renderAutoResult(result){
+    if (!result) return '';
+    const ok = result.ok !== false;
+    const text = result.message || result.error || pick(result, ['result.reason','result.error','results.0.error'], ok ? 'Aktion ausgeführt.' : 'Aktion fehlgeschlagen.');
+    return `<div class="so2-alert ${ok ? 'so2-alert-ok' : 'so2-alert-error'}">${esc(text)}</div>`;
+  }
+
+  function renderAutoStreamerTable(streamers){
+    const rows = asArray(streamers);
+    if (!rows.length) {
+      return `<div class="so2-empty">Noch keine AutoShoutout-Streamer gefunden.</div>`;
+    }
+    return `<div class="so2-table-wrap"><table class="so2-table">
+      <thead><tr><th>Streamer</th><th>Status</th><th>Video</th><th>Twitch</th><th>Aktionen</th></tr></thead>
+      <tbody>${rows.map(row => {
+        const login = autoStreamerLogin(row);
+        const display = autoStreamerDisplay(row);
+        const active = row.active !== false && row.enabled !== false && row.disabled !== true;
+        const video = row.videoShoutout !== false && row.video !== false && row.displayShoutout !== false;
+        const official = row.officialShoutout !== false && row.twitchShoutout !== false && row.official !== false;
+        return `<tr>
+          <td><strong>@${esc(display)}</strong>${login && login !== String(display).toLowerCase() ? `<small>${esc(login)}</small>` : ''}</td>
+          <td>${badge(active ? 'aktiv' : 'inaktiv', active ? 'ok' : 'warn')}</td>
+          <td>${badge(video ? 'ja' : 'nein', video ? 'ok' : 'neutral')}</td>
+          <td>${badge(official ? 'ja' : 'nein', official ? 'ok' : 'neutral')}</td>
+          <td><div class="so2-row-actions">
+            <button type="button" data-so2-auto-edit="${esc(login || display)}" data-so2-auto-display-value="${esc(display)}">Bearbeiten</button>
+            <button type="button" data-so2-auto-test="${esc(login || display)}">Test</button>
+            <button type="button" data-so2-auto-remove="${esc(login || display)}">Entfernen</button>
+          </div></td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div>`;
+  }
+
+  function renderAutoActivity(rows){
+    const visible = asArray(rows).slice(0, 8).map(normalizeActivity);
+    if (!visible.length) return `<div class="so2-empty">Noch keine AutoShoutout-Aktivität geladen.</div>`;
+    return `<div class="so2-activity-list">${visible.map(item => `
+      <div class="so2-activity-row">
+        <span class="so2-dot so2-dot-${esc(item.tone)}"></span>
+        <strong>${esc(item.title)}</strong>
+        <span>${esc(item.meta || 'AutoShoutout')}</span>
+      </div>
+    `).join('')}</div>`;
   }
 
   function statusCard(label, value, badgeHtml, help){
@@ -739,77 +724,96 @@ window.ShoutoutV2Module = (function(){
     }
   }
 
-  async function testAutoStreamer(login){
-    const target = cleanChannelInput(login || state.autoTarget);
-    if (!target) {
-      state.error = 'Bitte zuerst einen AutoShoutout-Streamer eintragen.';
-      render();
-      return;
-    }
-    state.loading = true;
-    state.error = '';
-    state.notice = '';
-    render();
-    try {
-      const result = await api(API.autoTest, { method: 'POST', body: JSON.stringify({ login: target, target }) });
-      state.notice = result?.message || `AutoShoutout-Test für ${target} wurde angefragt.`;
-      await loadAll(true);
-    } catch (err) {
-      state.error = err.message || String(err);
-      state.loading = false;
-      render();
-    }
-  }
-
-  async function saveAutoStreamer(){
-    const target = cleanChannelInput(root?.querySelector('[data-so2-auto-target]')?.value || state.autoTarget);
-    const note = String(root?.querySelector('[data-so2-auto-note]')?.value || state.autoNote || '').slice(0, 160);
+  async function saveAutoStreamerAction(){
+    const login = cleanChannelInput(root?.querySelector('[data-so2-auto-target]')?.value || state.autoTarget);
+    const displayName = String(root?.querySelector('[data-so2-auto-display]')?.value || state.autoDisplayName || '').trim();
     const videoShoutout = root?.querySelector('[data-so2-auto-video]')?.checked !== false;
     const officialShoutout = root?.querySelector('[data-so2-auto-official]')?.checked !== false;
-    state.autoTarget = target;
-    state.autoNote = note;
+
+    state.autoTarget = login;
+    state.autoDisplayName = displayName;
     state.autoVideo = videoShoutout;
     state.autoOfficial = officialShoutout;
-    if (!target) {
+
+    if (!login) {
       state.error = 'Bitte einen Twitch-Namen eintragen.';
       render();
       return;
     }
+
     state.loading = true;
     state.error = '';
     state.notice = '';
+    state.autoResult = null;
     render();
+
     try {
-      const result = await api(API.autoStreamers, { method: 'POST', body: JSON.stringify({ login: target, target, note, active: true, videoShoutout, officialShoutout }) });
-      state.notice = result?.message || `AutoShoutout-Streamer ${target} wurde gespeichert.`;
+      const result = await api(API.autoStreamers, {
+        method: 'POST',
+        body: JSON.stringify({ login, displayName, active: true, enabled: true, videoShoutout, officialShoutout })
+      });
+      state.autoResult = { ok: result && result.ok !== false, message: `AutoShoutout-Streamer ${login} wurde gespeichert.` };
       state.autoTarget = '';
-      state.autoNote = '';
+      state.autoDisplayName = '';
       await loadAll(true);
     } catch (err) {
-      state.error = err.message || String(err);
+      state.autoResult = { ok: false, error: err.message || String(err) };
       state.loading = false;
       render();
     }
   }
 
-  async function queueAction(action, raw){
-    const [type, id] = String(raw || '').split(':');
-    if (!id) {
-      state.error = 'Dieser Warteschlangen-Eintrag hat keine ID.';
+  async function testAutoStreamerAction(login){
+    const target = cleanChannelInput(login || state.autoTarget);
+    if (!target) {
+      state.error = 'Bitte zuerst einen AutoShoutout-Streamer wählen oder eintragen.';
       render();
       return;
     }
+
     state.loading = true;
     state.error = '';
     state.notice = '';
+    state.autoResult = null;
     render();
+
     try {
-      const endpoint = action === 'remove' ? API.queueRemove : API.queueRetry;
-      const result = await api(endpoint, { method: 'POST', body: JSON.stringify({ type, id }) });
-      state.notice = result?.message || (action === 'remove' ? 'Eintrag entfernt.' : 'Eintrag wird erneut versucht.');
+      const result = await api(API.autoTestChat, {
+        method: 'POST',
+        body: JSON.stringify({ login: target, target, dryRun: true })
+      });
+      state.autoResult = { ok: result && result.ok !== false, message: `AutoShoutout-Test für ${target} wurde ausgeführt.`, result };
       await loadAll(true);
     } catch (err) {
-      state.error = err.message || String(err);
+      state.autoResult = { ok: false, error: err.message || String(err) };
+      state.loading = false;
+      render();
+    }
+  }
+
+  async function removeAutoStreamerAction(login){
+    const target = cleanChannelInput(login || '');
+    if (!target) {
+      state.error = 'Dieser Streamer hat keinen gültigen Login.';
+      render();
+      return;
+    }
+
+    state.loading = true;
+    state.error = '';
+    state.notice = '';
+    state.autoResult = null;
+    render();
+
+    try {
+      const result = await api(API.autoStreamerRemove, {
+        method: 'POST',
+        body: JSON.stringify({ login: target })
+      });
+      state.autoResult = { ok: result && result.ok !== false, message: `AutoShoutout-Streamer ${target} wurde entfernt/deaktiviert.` };
+      await loadAll(true);
+    } catch (err) {
+      state.autoResult = { ok: false, error: err.message || String(err) };
       state.loading = false;
       render();
     }
@@ -835,33 +839,28 @@ window.ShoutoutV2Module = (function(){
         return;
       }
 
+      if (ev.target.closest('[data-so2-auto-save]') && root?.contains(ev.target)) {
+        saveAutoStreamerAction();
+        return;
+      }
+
       const autoTest = ev.target.closest('[data-so2-auto-test]');
       if (autoTest && root?.contains(autoTest)) {
-        testAutoStreamer(autoTest.dataset.so2AutoTest);
+        testAutoStreamerAction(autoTest.dataset.so2AutoTest);
         return;
       }
 
       const autoEdit = ev.target.closest('[data-so2-auto-edit]');
       if (autoEdit && root?.contains(autoEdit)) {
-        state.autoTarget = cleanChannelInput(autoEdit.dataset.so2AutoEdit);
+        state.autoTarget = cleanChannelInput(autoEdit.dataset.so2AutoEdit || '');
+        state.autoDisplayName = autoEdit.dataset.so2AutoDisplayValue || '';
         render();
         return;
       }
 
-      if (ev.target.closest('[data-so2-auto-save]') && root?.contains(ev.target)) {
-        saveAutoStreamer();
-        return;
-      }
-
-      const retry = ev.target.closest('[data-so2-queue-retry]');
-      if (retry && root?.contains(retry)) {
-        queueAction('retry', retry.dataset.so2QueueRetry);
-        return;
-      }
-
-      const remove = ev.target.closest('[data-so2-queue-remove]');
-      if (remove && root?.contains(remove)) {
-        queueAction('remove', remove.dataset.so2QueueRemove);
+      const autoRemove = ev.target.closest('[data-so2-auto-remove]');
+      if (autoRemove && root?.contains(autoRemove)) {
+        removeAutoStreamerAction(autoRemove.dataset.so2AutoRemove);
       }
     });
 
@@ -869,7 +868,7 @@ window.ShoutoutV2Module = (function(){
       if (!root?.contains(ev.target)) return;
       if (ev.target?.matches?.('[data-so2-target]')) state.manualTarget = cleanChannelInput(ev.target.value);
       if (ev.target?.matches?.('[data-so2-auto-target]')) state.autoTarget = cleanChannelInput(ev.target.value);
-      if (ev.target?.matches?.('[data-so2-auto-note]')) state.autoNote = String(ev.target.value || '').slice(0, 160);
+      if (ev.target?.matches?.('[data-so2-auto-display]')) state.autoDisplayName = String(ev.target.value || '').slice(0, 80);
     });
 
     document.addEventListener('change', ev => {
@@ -886,6 +885,7 @@ window.ShoutoutV2Module = (function(){
 
     document.addEventListener('keydown', ev => {
       if (ev.key === 'Enter' && ev.target?.matches?.('[data-so2-target]') && root?.contains(ev.target)) runManual();
+      if (ev.key === 'Enter' && ev.target?.matches?.('[data-so2-auto-target]') && root?.contains(ev.target)) saveAutoStreamerAction();
     });
   }
 

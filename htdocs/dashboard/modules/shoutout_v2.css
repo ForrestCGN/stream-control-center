@@ -396,10 +396,10 @@
   .shoutout-v2-admin .so2-force-check{min-height:0}
 }
 
-/* CAN-44.21.5 – Bedienbereiche: Shoutout / AutoShoutout / Queues */
-.shoutout-v2-admin .so2-manual-status,
-.shoutout-v2-admin .so2-ops-head{
+/* CAN-44.21.5 – safe manual sidepanel cleanup only */
+.shoutout-v2-admin .so2-manual-status{
   display:grid;
+  align-content:start;
   gap:12px;
 }
 .shoutout-v2-admin .so2-status-list{
@@ -438,12 +438,18 @@
   background:rgba(251,113,133,.09);
   color:#fecdd3;
 }
+
+/* CAN-44.21.6 – AutoShoutout V2 mit bestätigten Routen */
+.shoutout-v2-admin .so2-ops-head{
+  display:grid;
+  gap:12px;
+}
 .shoutout-v2-admin .so2-auto-layout{
   align-items:start;
 }
 .shoutout-v2-admin .so2-auto-form{
   display:grid;
-  grid-template-columns:minmax(180px,1fr) minmax(160px,.8fr) auto auto auto;
+  grid-template-columns:minmax(170px,1fr) minmax(170px,1fr) auto auto auto;
   gap:10px;
   align-items:end;
   margin:10px 0 14px;
@@ -456,8 +462,8 @@
 }
 .shoutout-v2-admin .so2-table{
   width:100%;
+  min-width:680px;
   border-collapse:collapse;
-  min-width:760px;
 }
 .shoutout-v2-admin .so2-table th,
 .shoutout-v2-admin .so2-table td{
@@ -466,15 +472,15 @@
   border-bottom:1px solid rgba(255,255,255,.08);
   vertical-align:middle;
 }
+.shoutout-v2-admin .so2-table tr:last-child td{
+  border-bottom:0;
+}
 .shoutout-v2-admin .so2-table th{
   color:rgba(255,255,255,.62);
   font-size:11px;
   text-transform:uppercase;
   letter-spacing:.12em;
   font-weight:900;
-}
-.shoutout-v2-admin .so2-table tr:last-child td{
-  border-bottom:0;
 }
 .shoutout-v2-admin .so2-table td small{
   display:block;
