@@ -484,20 +484,28 @@ window.ShoutoutModule = (function(){
     const pairStats = statsRows('pairStats');
     const selectedTarget = stats.selectedTarget || null;
     const selectedRequester = stats.selectedRequester || null;
+    const targetLimit = 10;
+    const requesterLimit = 10;
+    const pairLimit = 20;
+    const shownTargetStats = targetStats.slice(0, targetLimit);
+    const shownRequesterStats = requesterStats.slice(0, requesterLimit);
+    const shownPairStats = pairStats.slice(0, pairLimit);
+    const officialFailed = num(totals.officialFailed);
+    const overrideCount = num(totals.overrideCount);
 
     return `
       <div class="shoutout-card shoutout-wide">
         <div class="shoutout-card-head">
-          <div><h3>Statistik</h3><p>Wer hat wie oft wen geshoutoutet? Einzelne Ziele oder Auslöser können per Dropdown geöffnet werden.</p></div>
+          <div><h3>Statistik</h3><p>Detailauswertung für Ziele, Auslöser und häufige Kombinationen.</p></div>
           <div>${statusBadge(stats.ok === false ? 'error' : 'ok')}</div>
         </div>
 
-        <div class="shoutout-stat-grid">
-          <div class="shoutout-stat"><small>Shoutouts gesamt</small><strong>${esc(num(totals.totalRequests))}</strong><span>Display-Anfragen</span></div>
-          <div class="shoutout-stat"><small>Zielkanäle</small><strong>${esc(num(totals.uniqueTargets))}</strong><span>einmalig</span></div>
-          <div class="shoutout-stat"><small>Auslöser</small><strong>${esc(num(totals.uniqueRequesters))}</strong><span>einmalig</span></div>
-          <div class="shoutout-stat"><small>Official sent</small><strong>${esc(num(totals.officialSent))}</strong><span>${esc(num(totals.officialFailed))} failed</span></div>
-          <div class="shoutout-stat"><small>Overrides</small><strong>${esc(num(totals.overrideCount))}</strong><span>--force</span></div>
+        <div class="shoutout-stat-grid shoutout-stat-grid-clean">
+          <div class="shoutout-stat"><small>Shoutouts gesamt</small><strong>${esc(num(totals.totalRequests))}</strong></div>
+          <div class="shoutout-stat"><small>Zielkanäle</small><strong>${esc(num(totals.uniqueTargets))}</strong></div>
+          <div class="shoutout-stat"><small>Auslöser</small><strong>${esc(num(totals.uniqueRequesters))}</strong></div>
+          <div class="shoutout-stat"><small>Official gesendet</small><strong>${esc(num(totals.officialSent))}</strong>${officialFailed ? `<span>${esc(officialFailed)} fehlgeschlagen</span>` : ''}</div>
+          <div class="shoutout-stat"><small>--force</small><strong>${esc(overrideCount)}</strong></div>
         </div>
 
         <div class="shoutout-filter-row">
@@ -522,12 +530,12 @@ window.ShoutoutModule = (function(){
 
         <div class="shoutout-stats-columns">
           <div>
-            <h4>Zielkanäle</h4>
+            <div class="shoutout-section-head"><h4>Zielkanäle</h4>${targetStats.length > targetLimit ? `<span>Top ${esc(targetLimit)} von ${esc(targetStats.length)}</span>` : ''}</div>
             <div class="shoutout-table-wrap">
               <table class="shoutout-table shoutout-table-compact">
                 <thead><tr><th>Ziel</th><th>Anzahl</th><th>Done</th><th>Auslöser</th><th>Zuletzt</th></tr></thead>
                 <tbody>
-                  ${targetStats.length ? targetStats.slice(0, 12).map(row => `
+                  ${shownTargetStats.length ? shownTargetStats.map(row => `
                     <tr>
                       <td><strong>@${esc(row.targetDisplay || row.targetLogin || '-')}</strong></td>
                       <td>${esc(row.total || 0)}</td>
@@ -541,12 +549,12 @@ window.ShoutoutModule = (function(){
             </div>
           </div>
           <div>
-            <h4>Auslöser</h4>
+            <div class="shoutout-section-head"><h4>Auslöser</h4>${requesterStats.length > requesterLimit ? `<span>Top ${esc(requesterLimit)} von ${esc(requesterStats.length)}</span>` : ''}</div>
             <div class="shoutout-table-wrap">
               <table class="shoutout-table shoutout-table-compact">
-                <thead><tr><th>Auslöser</th><th>Anzahl</th><th>Ziele</th><th>Force</th><th>Zuletzt</th></tr></thead>
+                <thead><tr><th>Auslöser</th><th>Anzahl</th><th>Ziele</th><th>--force</th><th>Zuletzt</th></tr></thead>
                 <tbody>
-                  ${requesterStats.length ? requesterStats.slice(0, 12).map(row => `
+                  ${shownRequesterStats.length ? shownRequesterStats.map(row => `
                     <tr>
                       <td><strong>${esc(row.requesterDisplay || row.requesterLogin || '-')}</strong></td>
                       <td>${esc(row.total || 0)}</td>
@@ -561,12 +569,12 @@ window.ShoutoutModule = (function(){
           </div>
         </div>
 
-        <h4>Wer → Wen</h4>
-        <div class="shoutout-table-wrap">
+        <div class="shoutout-section-head shoutout-section-head-wide"><h4>Wer → Wen</h4>${pairStats.length > pairLimit ? `<span>Top ${esc(pairLimit)} von ${esc(pairStats.length)}</span>` : ''}</div>
+        <div class="shoutout-table-wrap shoutout-stats-pairs">
           <table class="shoutout-table shoutout-table-compact">
-            <thead><tr><th>Auslöser</th><th>Ziel</th><th>Anzahl</th><th>Done</th><th>Force</th><th>Zuletzt</th></tr></thead>
+            <thead><tr><th>Auslöser</th><th>Ziel</th><th>Anzahl</th><th>Done</th><th>--force</th><th>Zuletzt</th></tr></thead>
             <tbody>
-              ${pairStats.length ? pairStats.slice(0, 30).map(row => `
+              ${shownPairStats.length ? shownPairStats.map(row => `
                 <tr>
                   <td><strong>${esc(row.requesterDisplay || row.requesterLogin || '-')}</strong></td>
                   <td><strong>@${esc(row.targetDisplay || row.targetLogin || '-')}</strong></td>

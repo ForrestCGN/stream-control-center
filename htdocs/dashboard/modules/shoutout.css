@@ -69,3 +69,6 @@ html[data-theme=light] .shoutout-admin{--so-bg:rgba(255,255,255,.78);--so-bg-2:r
 .shoutout-compact-note{margin-top:10px;color:var(--muted,#94a3b8);font-size:12px;line-height:1.35}
 .shoutout-compact-note.bad{color:#fecdd3;border:1px solid rgba(251,113,133,.28);background:rgba(244,63,94,.10);border-radius:12px;padding:8px 10px}
 .shoutout-table-inbound-events{min-width:880px}
+
+.shoutout-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 0 8px}.shoutout-section-head h4{margin:0}.shoutout-section-head span{color:var(--muted,#94a3b8);font-size:12px;border:1px solid rgba(255,255,255,.10);border-radius:999px;padding:4px 8px;background:rgba(255,255,255,.045)}.shoutout-section-head-wide{margin-top:16px}.shoutout-stats-pairs{max-height:720px}.shoutout-stats-pairs table{min-width:760px}
+@media(max-width:640px){.shoutout-section-head{align-items:flex-start;flex-direction:column}.shoutout-section-head span{align-self:flex-start}}
