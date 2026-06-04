@@ -19,7 +19,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.23";
+const MODULE_VERSION = "0.2.24";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -4333,9 +4333,10 @@ function clearAutoShoutoutTarget(body = {}) {
   const streamDayId = String(body.streamDayId || body.stream_day_id || '').trim();
   const reason = String(body.reason || 'auto_shoutout_clear_target').trim();
   const now = nowIso();
-  const params = { login, since, now, reason };
+  const params = { login, since };
   const streamDaySql = streamDayId ? ' AND stream_day_id=:streamDayId' : '';
   if (streamDayId) params.streamDayId = streamDayId;
+  const updateParams = { ...params, now, reason };
 
   const affectedDisplayRows = database.all(`
     SELECT id,target_login,status,stream_day_id,created_at,meta_json,input_json
@@ -4359,7 +4360,7 @@ function clearAutoShoutoutTarget(body = {}) {
         (target_login=:login AND created_at >= :since)
         ${displayIdSql}
       )
-  `, { ...params, ...displayIdParams });
+  `, { ...updateParams, ...displayIdParams });
 
   const deletedOfficialHistory = database.run(`
     DELETE FROM clip_shoutout_official_history
@@ -4375,7 +4376,7 @@ function clearAutoShoutoutTarget(body = {}) {
       AND created_at >= :since
       ${streamDaySql}
       AND status IN ('queued','waiting','active','done','failed')
-  `, params);
+  `, updateParams);
 
   const deletedEvents = database.run(`
     DELETE FROM clip_shoutout_auto_events
@@ -4384,11 +4385,12 @@ function clearAutoShoutoutTarget(body = {}) {
       ${streamDaySql}
   `, params);
 
+  const activityParams = streamDayId ? { login, streamDayId } : { login };
   const deletedActivity = database.run(`
     DELETE FROM clip_shoutout_auto_message_activity
     WHERE target_login=:login
       ${streamDayId ? 'AND stream_day_id=:streamDayId' : ''}
-  `, params);
+  `, activityParams);
 
   resetAutoShoutoutRuntimeState('auto_clear_target');
   emitShoutoutBus('shoutout.auto.target_cleared', {
