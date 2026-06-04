@@ -507,3 +507,12 @@
     grid-template-columns:1fr;
   }
 }
+
+/* CAN-44.21.7 – Queues V2 mit bestätigten Routen */
+.shoutout-v2-admin .so2-queue-table{
+  min-width:780px;
+}
+.shoutout-v2-admin .so2-row-actions button:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+}

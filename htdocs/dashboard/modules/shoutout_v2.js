@@ -1,8 +1,8 @@
 window.ShoutoutV2Module = (function(){
   'use strict';
 
-  const MODULE_VERSION = '2.1.0-auto';
-  const BUILD = 'CAN-44.21.6';
+  const MODULE_VERSION = '2.2.0-queues';
+  const BUILD = 'CAN-44.21.7';
 
   const API = {
     status: '/api/clip-shoutout/status',
@@ -19,7 +19,11 @@ window.ShoutoutV2Module = (function(){
     autoStreamers: '/api/clip-shoutout/auto/streamers',
     autoTestChat: '/api/clip-shoutout/auto/test-chat',
     autoStreamerRemove: '/api/clip-shoutout/auto/streamers/remove',
-    sceneGate: '/api/clip-shoutout/scene-gate'
+    sceneGate: '/api/clip-shoutout/scene-gate',
+    displayQueueRemove: '/api/clip-shoutout/display-queue/remove',
+    displayQueueRetry: '/api/clip-shoutout/display-queue/retry',
+    officialQueueRemove: '/api/clip-shoutout/queue/remove',
+    officialQueueRetry: '/api/clip-shoutout/queue/retry'
   };
 
   const TABS = [
@@ -58,7 +62,8 @@ window.ShoutoutV2Module = (function(){
     autoDisplayName: '',
     autoVideo: true,
     autoOfficial: true,
-    autoResult: null
+    autoResult: null,
+    queueResult: null
   };
 
   let root = null;
@@ -536,15 +541,44 @@ window.ShoutoutV2Module = (function(){
 
   function renderQueues(){
     const queue = state.queue || {};
-    const displayItems = asArray(pick(queue, ['displayQueue','display.items','displayQueueItems','display'], []));
-    const officialItems = asArray(pick(queue, ['officialQueue','official.items','queue','official'], []));
+    const display = pick(queue, ['displayQueue'], {});
+    const official = pick(queue, ['officialQueue'], {});
+    const displayItems = queueItems(display);
+    const officialItems = queueItems(official);
+    const displayPending = pickNumber(display, ['pending'], displayItems.length);
+    const officialPending = pickNumber(official, ['pending'], officialItems.length);
+    const result = state.queueResult || null;
+
     return `
+      <section class="so2-ops-head">
+        <div class="so2-grid so2-grid-4">
+          ${statusCard('Overlay-Queue', String(displayPending), badge(displayPending ? 'offen' : 'frei', displayPending ? 'warn' : 'ok'), 'Display-/Overlay-Shoutouts.')}
+          ${statusCard('Overlay-Worker', boolText(pick(display, ['workerStarted'], false)), badge(pick(display, ['workerStarted'], false) ? 'läuft' : 'aus', pick(display, ['workerStarted'], false) ? 'ok' : 'warn'), 'Nur Status.')}
+          ${statusCard('Twitch-Queue', String(officialPending), badge(officialPending ? 'offen' : 'frei', officialPending ? 'warn' : 'ok'), 'Offizielle Twitch-Shoutouts.')}
+          ${statusCard('Twitch-Worker', boolText(pick(official, ['workerStarted'], false)), badge(pick(official, ['workerStarted'], false) ? 'läuft' : 'aus', pick(official, ['workerStarted'], false) ? 'ok' : 'warn'), 'Nur Status.')}
+        </div>
+        ${renderQueueResult(result)}
+      </section>
+
       <div class="so2-two">
-        <section class="so2-panel"><h3>Overlay-Shoutouts</h3>${renderQueuePreview(displayItems, 'Keine offenen Overlay-Shoutouts.')}</section>
-        <section class="so2-panel"><h3>Offizielle Twitch-Shoutouts</h3>${renderQueuePreview(officialItems, 'Keine offenen offiziellen Twitch-Shoutouts.')}</section>
+        <section class="so2-panel">
+          <div class="so2-section-title">
+            <div><h3>Overlay-Shoutouts</h3></div>
+            ${badge(`${displayPending} offen`, displayPending ? 'warn' : 'ok')}
+          </div>
+          ${renderQueueTable('display', displayItems, 'Keine offenen Overlay-Shoutouts.')}
+        </section>
+        <section class="so2-panel">
+          <div class="so2-section-title">
+            <div><h3>Offizielle Twitch-Shoutouts</h3></div>
+            ${badge(`${officialPending} offen`, officialPending ? 'warn' : 'ok')}
+          </div>
+          ${renderQueueTable('official', officialItems, 'Keine offenen offiziellen Twitch-Shoutouts.')}
+        </section>
       </div>
     `;
   }
+
 
   function renderTexts(){
     return `
@@ -684,6 +718,71 @@ window.ShoutoutV2Module = (function(){
     return `<article class="so2-card"><small>${esc(label)}</small><strong>${esc(value)}</strong><div>${badgeHtml}</div><p>${esc(help || '')}</p></article>`;
   }
 
+  function queueItems(block){
+    if (Array.isArray(block)) return block;
+    return asArray(pick(block || {}, ['queue','items','rows'], []));
+  }
+
+  function queueItemLogin(item){
+    return item?.targetLogin || item?.target_login || item?.login || item?.target || '';
+  }
+
+  function queueItemDisplay(item){
+    return item?.targetDisplay || item?.target_display || item?.targetDisplayName || item?.displayName || queueItemLogin(item) || 'Eintrag';
+  }
+
+  function queueItemRequestedBy(item){
+    return item?.requestedByDisplay || item?.requested_by_display || item?.requestedBy || item?.requested_by_login || '';
+  }
+
+  function queueItemAvailableAt(item){
+    return item?.displayAvailableAt || item?.officialAvailableAt || item?.availableAt || item?.available_at || item?.nextAttemptAt || '';
+  }
+
+  function queueItemError(item){
+    return item?.displayLastError || item?.officialError || item?.lastError || item?.last_error || item?.error || '';
+  }
+
+  function queueTone(status){
+    const text = String(status || '').toLowerCase();
+    if (text === 'active' || text === 'done' || text === 'sent') return 'ok';
+    if (text === 'failed' || text === 'waiting') return 'warn';
+    return 'neutral';
+  }
+
+  function renderQueueResult(result){
+    if (!result) return '';
+    const ok = result.ok !== false;
+    const text = result.message || result.error || (ok ? 'Aktion ausgeführt.' : 'Aktion fehlgeschlagen.');
+    return `<div class="so2-alert ${ok ? 'so2-alert-ok' : 'so2-alert-error'}">${esc(text)}</div>`;
+  }
+
+  function renderQueueTable(type, items, emptyText){
+    const rows = asArray(items);
+    if (!rows.length) return `<div class="so2-empty">${esc(emptyText)}</div>`;
+    return `<div class="so2-table-wrap"><table class="so2-table so2-queue-table">
+      <thead><tr><th>Ziel</th><th>Status</th><th>Verfügbar</th><th>Fehler</th><th>Aktionen</th></tr></thead>
+      <tbody>${rows.map(item => {
+        const id = Number(item.id || item.queueId || 0);
+        const display = queueItemDisplay(item);
+        const login = queueItemLogin(item);
+        const requestedBy = queueItemRequestedBy(item);
+        const status = item.status || item.state || 'wartet';
+        const error = queueItemError(item);
+        return `<tr>
+          <td><strong>@${esc(display)}</strong>${login && login !== String(display).toLowerCase() ? `<small>${esc(login)}</small>` : ''}${requestedBy ? `<small>von ${esc(requestedBy)}</small>` : ''}</td>
+          <td>${badge(status, queueTone(status))}</td>
+          <td>${esc(formatTime(queueItemAvailableAt(item)))}</td>
+          <td>${esc(error || '-')}</td>
+          <td><div class="so2-row-actions">
+            <button type="button" data-so2-queue-retry="${esc(type)}:${esc(id)}" ${id ? '' : 'disabled'}>Erneut</button>
+            <button type="button" data-so2-queue-remove="${esc(type)}:${esc(id)}" ${id ? '' : 'disabled'}>Entfernen</button>
+          </div></td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div>`;
+  }
+
   function renderQueuePreview(items, emptyText){
     if (!items.length) return `<div class="so2-empty">${esc(emptyText)}</div>`;
     return `<div class="so2-list">${items.slice(0, 5).map(item => `<div class="so2-row"><strong>${esc(item.displayName || item.targetDisplayName || item.login || item.target || item.user || 'Eintrag')}</strong><span>${esc(item.status || item.state || 'wartet')}</span></div>`).join('')}</div>`;
@@ -819,6 +918,42 @@ window.ShoutoutV2Module = (function(){
     }
   }
 
+  async function runQueueAction(kind, raw){
+    const [type, idRaw] = String(raw || '').split(':');
+    const id = Number(idRaw || 0);
+    if (!id) {
+      state.queueResult = { ok: false, error: 'Dieser Queue-Eintrag hat keine gültige ID.' };
+      render();
+      return;
+    }
+
+    const display = type === 'display';
+    const endpoint = display
+      ? (kind === 'remove' ? API.displayQueueRemove : API.displayQueueRetry)
+      : (kind === 'remove' ? API.officialQueueRemove : API.officialQueueRetry);
+
+    state.loading = true;
+    state.error = '';
+    state.notice = '';
+    state.queueResult = null;
+    render();
+
+    try {
+      const result = await api(endpoint, {
+        method: 'POST',
+        body: JSON.stringify({ id })
+      });
+      const label = display ? 'Overlay-Queue' : 'Twitch-Queue';
+      const actionText = kind === 'remove' ? 'entfernt' : 'erneut angestoßen';
+      state.queueResult = { ok: result && result.ok !== false, message: `${label}: Eintrag #${id} wurde ${actionText}.` };
+      await loadAll(true);
+    } catch (err) {
+      state.queueResult = { ok: false, error: err.message || String(err) };
+      state.loading = false;
+      render();
+    }
+  }
+
   function bind(){
     document.addEventListener('click', ev => {
       const tab = ev.target.closest('[data-so2-tab]');
@@ -861,6 +996,18 @@ window.ShoutoutV2Module = (function(){
       const autoRemove = ev.target.closest('[data-so2-auto-remove]');
       if (autoRemove && root?.contains(autoRemove)) {
         removeAutoStreamerAction(autoRemove.dataset.so2AutoRemove);
+        return;
+      }
+
+      const queueRetry = ev.target.closest('[data-so2-queue-retry]');
+      if (queueRetry && root?.contains(queueRetry)) {
+        runQueueAction('retry', queueRetry.dataset.so2QueueRetry);
+        return;
+      }
+
+      const queueRemove = ev.target.closest('[data-so2-queue-remove]');
+      if (queueRemove && root?.contains(queueRemove)) {
+        runQueueAction('remove', queueRemove.dataset.so2QueueRemove);
       }
     });
 
