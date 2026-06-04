@@ -1,8 +1,8 @@
 window.ShoutoutV2Module = (function(){
   'use strict';
 
-  const MODULE_VERSION = '2.2.0-queues';
-  const BUILD = 'CAN-44.21.7';
+  const MODULE_VERSION = '2.3.0-texts';
+  const BUILD = 'CAN-44.21.8';
 
   const API = {
     status: '/api/clip-shoutout/status',
@@ -23,7 +23,10 @@ window.ShoutoutV2Module = (function(){
     displayQueueRemove: '/api/clip-shoutout/display-queue/remove',
     displayQueueRetry: '/api/clip-shoutout/display-queue/retry',
     officialQueueRemove: '/api/clip-shoutout/queue/remove',
-    officialQueueRetry: '/api/clip-shoutout/queue/retry'
+    officialQueueRetry: '/api/clip-shoutout/queue/retry',
+    texts: '/api/clip-shoutout/texts',
+    textsMigration: '/api/clip-shoutout/texts/migration',
+    autoTexts: '/api/clip-shoutout/auto/texts'
   };
 
   const TABS = [
@@ -63,7 +66,13 @@ window.ShoutoutV2Module = (function(){
     autoVideo: true,
     autoOfficial: true,
     autoResult: null,
-    queueResult: null
+    queueResult: null,
+    texts: null,
+    textsMigration: null,
+    autoTexts: null,
+    textCategory: '',
+    textKey: '',
+    textResult: null
   };
 
   let root = null;
@@ -293,6 +302,18 @@ window.ShoutoutV2Module = (function(){
         state.auto = auto;
         state.autoStreamers = autoStreamers;
         state.sceneGate = sceneGate;
+      }
+
+      if (['texts'].includes(state.activeTab)) {
+        const [texts, migration, autoTexts] = await Promise.all([
+          api(API.texts).catch(err => ({ ok:false, error: err.message })),
+          api(API.textsMigration).catch(err => ({ ok:false, error: err.message })),
+          api(API.autoTexts).catch(err => ({ ok:false, error: err.message }))
+        ]);
+        state.texts = texts;
+        state.textsMigration = texts && texts.migration ? texts.migration : migration;
+        state.autoTexts = autoTexts;
+        ensureTextSelection();
       }
     } catch (err) {
       state.error = err.message || String(err);
@@ -580,15 +601,185 @@ window.ShoutoutV2Module = (function(){
   }
 
 
-  function renderTexts(){
+  function textPayload(){
+    return state.texts || {};
+  }
+
+  function textRoot(){
+    return pick(textPayload(), ['texts'], {});
+  }
+
+  function textCategories(){
+    return asArray(pick(textRoot(), ['categories'], []));
+  }
+
+  function textKeys(){
+    return asArray(pick(textRoot(), ['keys'], []));
+  }
+
+  function textCategoryLabel(id){
+    const key = String(id || '');
+    if (!key) return 'Alle Texte';
+    if (key === 'auto_shoutout') return 'Legacy AutoShoutout';
+    const found = textCategories().find(row => String(row.id || row.key || '') === key);
+    return found ? String(found.label || found.id || key) : key;
+  }
+
+  function textRowsForCategory(category = state.textCategory){
+    const rows = textKeys();
+    if (!category) return rows;
+    return rows.filter(row => String(row.category || '') === String(category || ''));
+  }
+
+  function selectedTextRow(){
+    const rows = textKeys();
+    if (!rows.length) return null;
+    let row = rows.find(item => String(item.key || '') === String(state.textKey || '')) || null;
+    if (!row) row = textRowsForCategory()[0] || rows[0] || null;
+    if (row) {
+      state.textKey = String(row.key || '');
+      if (!state.textCategory && row.category) state.textCategory = String(row.category || '');
+    }
+    return row;
+  }
+
+  function ensureTextSelection(){
+    const cats = textCategories();
+    if (!state.textCategory && cats.some(c => c.id === 'shoutout.chat')) state.textCategory = 'shoutout.chat';
+    if (state.textCategory && !cats.some(c => String(c.id || c.key || '') === state.textCategory) && !textRowsForCategory(state.textCategory).length) {
+      state.textCategory = '';
+    }
+    selectedTextRow();
+  }
+
+  function activeVariantValues(row){
+    const variants = asArray(row && row.variants);
+    return variants
+      .filter(v => v && v.enabled !== false)
+      .map(v => String(v.value || v.text || '').trim())
+      .filter(Boolean);
+  }
+
+  function renderTextResult(result){
+    if (!result) return '';
+    const ok = result.ok !== false;
+    const text = result.message || result.error || (ok ? 'Text gespeichert.' : 'Text konnte nicht gespeichert werden.');
+    return `<div class="so2-alert ${ok ? 'so2-alert-ok' : 'so2-alert-error'}">${esc(text)}</div>`;
+  }
+
+  function renderTextCategoryOptions(){
+    const cats = textCategories();
+    const allCount = textKeys().length;
+    return `<option value="" ${state.textCategory ? '' : 'selected'}>Alle Texte (${esc(allCount)})</option>` + cats.map(cat => {
+      const id = String(cat.id || cat.key || '');
+      const count = cat.variantCount ?? cat.count ?? textRowsForCategory(id).length;
+      return `<option value="${esc(id)}" ${state.textCategory === id ? 'selected' : ''}>${esc(textCategoryLabel(id))} (${esc(count)})</option>`;
+    }).join('');
+  }
+
+  function renderTextKeyOptions(){
+    const rows = textRowsForCategory();
+    if (!rows.length) return `<option value="">Keine Textkeys</option>`;
+    return rows.map(row => {
+      const key = String(row.key || '');
+      const active = row.activeCount ?? activeVariantValues(row).length;
+      const total = row.totalCount ?? asArray(row.variants).length;
+      return `<option value="${esc(key)}" ${state.textKey === key ? 'selected' : ''}>${esc(key)} · ${esc(active)}/${esc(total)} aktiv</option>`;
+    }).join('');
+  }
+
+  function renderVariantInputs(row){
+    const values = activeVariantValues(row);
+    const rows = values.length ? values : [''];
+    return rows.map((value, index) => `
+      <div class="so2-text-variant-row" data-so2-text-variant-row>
+        <label class="so2-field">
+          <span>Variante ${index + 1}</span>
+          <textarea data-so2-text-variant rows="${String(value).length > 130 ? 3 : 2}" spellcheck="false">${esc(value)}</textarea>
+        </label>
+        ${rows.length > 1 ? '<button type="button" class="so2-icon-action" data-so2-text-remove-variant title="Variante entfernen">×</button>' : ''}
+      </div>
+    `).join('');
+  }
+
+  function renderTextMigrationInfo(){
+    const m = state.textsMigration || {};
+    const route = pick(textPayload(), ['compatibility.legacyAutoTextsRoute'], pick(m, ['compatibility.oldAutoTextsRouteRemains'], '/api/clip-shoutout/auto/texts'));
+    const planned = asArray(pick(m, ['plannedKeys'], []));
     return `
-      <section class="so2-panel">
-        <h3>Texte</h3>
-        <p>Hier werden in V2 alle Chat- und Systemtexte zusammengeführt. AutoShoutout-Begrüßungen werden nicht mehr im AutoShoutout-Tab bearbeitet.</p>
-        <div class="so2-empty">Nächster eigener Build-Step: Textbereiche sauber an vorhandene Text-APIs anbinden.</div>
-      </section>
+      <details class="so2-panel so2-text-migration">
+        <summary><strong>Migration / Kompatibilität</strong><span>Legacy bleibt sichtbar, Runtime bleibt unverändert.</span></summary>
+        <div class="so2-grid so2-grid-4">
+          ${metricCard('Modul', pick(textPayload(), ['moduleVersion'], pick(m, ['moduleVersion'], '-')), 'Backend')}
+          ${metricCard('Textkeys', textKeys().length, 'geladene Keys')}
+          ${metricCard('Migration', planned.length || '-', 'geplante Keys')}
+          ${metricCard('Legacy-Route', route, 'AutoShoutout')}
+        </div>
+      </details>
     `;
   }
+
+  function renderTexts(){
+    const rows = textKeys();
+    const row = selectedTextRow();
+    const categories = textCategories();
+    const result = state.textResult || null;
+
+    if (state.texts && state.texts.ok === false) {
+      return `<section class="so2-panel"><h3>Texte</h3><div class="so2-alert so2-alert-error">${esc(state.texts.error || 'Texte konnten nicht geladen werden.')}</div></section>`;
+    }
+
+    return `
+      <section class="so2-ops-head">
+        <div class="so2-grid so2-grid-4">
+          ${statusCard('Textbereiche', String(categories.length), badge('Kategorien', 'neutral'), 'Aus bestätigter Text-API.')}
+          ${statusCard('Textkeys', String(rows.length), badge('shoutout.*', 'ok'), 'Neue Zielkeys und Legacy sichtbar.')}
+          ${statusCard('Legacy Auto', state.autoTexts && state.autoTexts.ok !== false ? 'geladen' : 'Fallback', badge('auto.*', 'neutral'), 'Nicht im AutoShoutout-Tab bearbeiten.')}
+          ${statusCard('Speichern', 'pro Key', badge('Varianten', 'neutral'), 'Mehrere aktive Varianten pro Textkey.')}
+        </div>
+        ${renderTextResult(result)}
+      </section>
+
+      <section class="so2-panel so2-text-editor">
+        <div class="so2-section-title">
+          <div><h3>Textvarianten bearbeiten</h3></div>
+          ${badge(state.textCategory ? textCategoryLabel(state.textCategory) : 'Alle Texte', 'neutral')}
+        </div>
+
+        <div class="so2-text-toolbar">
+          <label class="so2-field">
+            <span>Kategorie</span>
+            <select data-so2-text-category>${renderTextCategoryOptions()}</select>
+          </label>
+          <label class="so2-field">
+            <span>Textkey</span>
+            <select data-so2-text-key>${renderTextKeyOptions()}</select>
+          </label>
+          <button type="button" data-so2-text-reload>Neu laden</button>
+          <button type="button" data-so2-text-add-variant>+ Variante</button>
+          <button type="button" class="so2-primary-action" data-so2-text-save>Speichern</button>
+        </div>
+
+        ${row ? `
+          <div class="so2-text-key-head">
+            <strong>${esc(row.key)}</strong>
+            <span>${esc(textCategoryLabel(row.category))}</span>
+            ${String(row.category || '') === 'auto_shoutout' ? badge('Legacy', 'warn') : ''}
+          </div>
+          <div class="so2-text-variants" data-so2-text-variants>
+            ${renderVariantInputs(row)}
+          </div>
+          <div class="so2-note">
+            <strong>Platzhalter:</strong>
+            <span><code>@{displayName}</code>, <code>@{login}</code>, <code>{login}</code>, <code>{waitTime}</code>, <code>{reason}</code></span>
+          </div>
+        ` : `<div class="so2-empty">Keine Textkeys geladen.</div>`}
+      </section>
+
+      ${renderTextMigrationInfo()}
+    `;
+  }
+
 
   function renderAnalytics(){
     const timeline = asArray(pick(state.timeline || {}, ['items','timeline','rows','events'], []));
@@ -954,6 +1145,51 @@ window.ShoutoutV2Module = (function(){
     }
   }
 
+  function collectTextVariants(){
+    return Array.from(root?.querySelectorAll('[data-so2-text-variant]') || [])
+      .map(input => String(input.value || '').trim())
+      .filter(Boolean);
+  }
+
+  async function saveTextKeyAction(){
+    const row = selectedTextRow();
+    if (!row) {
+      state.textResult = { ok: false, error: 'Kein Textkey ausgewählt.' };
+      render();
+      return;
+    }
+    const variants = collectTextVariants();
+    if (!variants.length) {
+      state.textResult = { ok: false, error: 'Mindestens eine Textvariante ist erforderlich.' };
+      render();
+      return;
+    }
+
+    state.loading = true;
+    state.error = '';
+    state.notice = '';
+    state.textResult = null;
+    render();
+
+    try {
+      const result = await api(API.texts, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'replaceKeyVariants',
+          key: row.key,
+          category: row.category || state.textCategory || 'shoutout.system',
+          variants
+        })
+      });
+      state.textResult = { ok: result && result.ok !== false, message: `Textvarianten für ${row.key} gespeichert.` };
+      await loadAll(true);
+    } catch (err) {
+      state.textResult = { ok: false, error: err.message || String(err) };
+      state.loading = false;
+      render();
+    }
+  }
+
   function bind(){
     document.addEventListener('click', ev => {
       const tab = ev.target.closest('[data-so2-tab]');
@@ -1008,6 +1244,39 @@ window.ShoutoutV2Module = (function(){
       const queueRemove = ev.target.closest('[data-so2-queue-remove]');
       if (queueRemove && root?.contains(queueRemove)) {
         runQueueAction('remove', queueRemove.dataset.so2QueueRemove);
+        return;
+      }
+
+      if (ev.target.closest('[data-so2-text-reload]') && root?.contains(ev.target)) {
+        state.textResult = null;
+        loadAll(true);
+        return;
+      }
+
+      if (ev.target.closest('[data-so2-text-save]') && root?.contains(ev.target)) {
+        saveTextKeyAction();
+        return;
+      }
+
+      if (ev.target.closest('[data-so2-text-add-variant]') && root?.contains(ev.target)) {
+        const list = root.querySelector('[data-so2-text-variants]');
+        if (list) {
+          const wrap = document.createElement('div');
+          wrap.className = 'so2-text-variant-row';
+          wrap.setAttribute('data-so2-text-variant-row', '');
+          const index = list.querySelectorAll('[data-so2-text-variant]').length + 1;
+          wrap.innerHTML = `<label class="so2-field"><span>Variante ${index}</span><textarea data-so2-text-variant rows="2" spellcheck="false"></textarea></label><button type="button" class="so2-icon-action" data-so2-text-remove-variant title="Variante entfernen">×</button>`;
+          list.appendChild(wrap);
+          const textarea = wrap.querySelector('textarea');
+          if (textarea) textarea.focus();
+        }
+        return;
+      }
+
+      const removeVariant = ev.target.closest('[data-so2-text-remove-variant]');
+      if (removeVariant && root?.contains(removeVariant)) {
+        const rows = Array.from(root.querySelectorAll('[data-so2-text-variant-row]'));
+        if (rows.length > 1) removeVariant.closest('[data-so2-text-variant-row]')?.remove();
       }
     });
 
@@ -1028,6 +1297,18 @@ window.ShoutoutV2Module = (function(){
       if (ev.target?.matches?.('[data-so2-force]')) state.manualForce = ev.target.checked === true;
       if (ev.target?.matches?.('[data-so2-auto-video]')) state.autoVideo = ev.target.checked === true;
       if (ev.target?.matches?.('[data-so2-auto-official]')) state.autoOfficial = ev.target.checked === true;
+      if (ev.target?.matches?.('[data-so2-text-category]')) {
+        state.textCategory = String(ev.target.value || '');
+        state.textKey = '';
+        ensureTextSelection();
+        state.textResult = null;
+        render();
+      }
+      if (ev.target?.matches?.('[data-so2-text-key]')) {
+        state.textKey = String(ev.target.value || '');
+        state.textResult = null;
+        render();
+      }
     });
 
     document.addEventListener('keydown', ev => {

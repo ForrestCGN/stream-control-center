@@ -516,3 +516,74 @@
   opacity:.45;
   cursor:not-allowed;
 }
+
+/* CAN-44.21.8 – Texte V2 mit bestätigten Routen */
+.shoutout-v2-admin .so2-text-toolbar{
+  display:grid;
+  grid-template-columns:minmax(180px,.8fr) minmax(260px,1.4fr) auto auto auto;
+  gap:10px;
+  align-items:end;
+  margin:10px 0 14px;
+}
+.shoutout-v2-admin .so2-text-key-head{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(0,0,0,.12);
+  border-radius:14px;
+  padding:11px 12px;
+  margin-bottom:12px;
+}
+.shoutout-v2-admin .so2-text-key-head strong{
+  color:#fff;
+}
+.shoutout-v2-admin .so2-text-key-head span{
+  color:var(--so2-muted);
+  font-size:13px;
+}
+.shoutout-v2-admin .so2-text-variants{
+  display:grid;
+  gap:10px;
+}
+.shoutout-v2-admin .so2-text-variant-row{
+  display:grid;
+  grid-template-columns:1fr auto;
+  align-items:end;
+  gap:8px;
+}
+.shoutout-v2-admin .so2-text-variant-row textarea{
+  width:100%;
+  min-height:58px;
+  resize:vertical;
+}
+.shoutout-v2-admin .so2-icon-action{
+  width:38px;
+  height:38px;
+  border-radius:12px;
+  padding:0;
+  font-size:18px;
+}
+.shoutout-v2-admin .so2-text-migration summary{
+  cursor:pointer;
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:center;
+}
+.shoutout-v2-admin .so2-text-migration summary span{
+  color:var(--so2-muted);
+  font-size:13px;
+}
+@media(max-width:1150px){
+  .shoutout-v2-admin .so2-text-toolbar{
+    grid-template-columns:1fr 1fr;
+  }
+}
+@media(max-width:760px){
+  .shoutout-v2-admin .so2-text-toolbar,
+  .shoutout-v2-admin .so2-text-variant-row{
+    grid-template-columns:1fr;
+  }
+}
