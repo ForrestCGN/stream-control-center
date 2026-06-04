@@ -1,8 +1,8 @@
 window.ShoutoutV2Module = (function(){
   'use strict';
 
-  const MODULE_VERSION = '2.6.0-settings-readonly';
-  const BUILD = 'CAN-44.21.11';
+  const MODULE_VERSION = '2.6.1-ux-polish';
+  const BUILD = 'CAN-44.21.12.1';
 
   const API = {
     status: '/api/clip-shoutout/status',
@@ -178,7 +178,16 @@ window.ShoutoutV2Module = (function(){
       live_gate_waiting: 'Offizieller Twitch-Shoutout wartet, bis der Stream live ist.',
       cooldown: 'Es läuft noch eine Wartezeit.',
       target_cooldown: 'Für diesen Kanal läuft noch eine Wartezeit.',
-      global_cooldown: 'Twitch erlaubt den nächsten offiziellen Shoutout erst später.'
+      global_cooldown: 'Twitch erlaubt den nächsten offiziellen Shoutout erst später.',
+      start_scene_active: 'Start-Szene ist aktiv',
+      waiting_start_scene: 'Wartet auf Ende der Start-Szene',
+      waiting_stream_live: 'Wartet auf Livestatus',
+      waiting_stream_live_offline: 'Stream ist offline',
+      waiting_stream_status_stale: 'Streamstatus ist veraltet',
+      waiting_stream_status_unknown: 'Streamstatus unbekannt',
+      obs_shared_unavailable: 'OBS-Verbindung nicht verfügbar',
+      disabled: 'deaktiviert',
+      frei: 'frei'
     };
     return map[reason] || reason || '';
   }
@@ -1034,7 +1043,7 @@ window.ShoutoutV2Module = (function(){
     const data = value || {};
     const rows = [];
     if (data.moduleVersion) rows.push(['Modul', data.moduleVersion]);
-    if (data.reason) rows.push(['Grund', data.reason]);
+    if (data.reason) rows.push(['Grund', explainReason(data.reason)]);
     if (data.recommendation) rows.push(['Empfehlung', data.recommendation]);
     if (data.status) rows.push(['Status', data.status]);
     if (data.live !== undefined) rows.push(['Live', boolText(data.live)]);
@@ -1057,7 +1066,7 @@ window.ShoutoutV2Module = (function(){
       ['Start-Szene blockiert gerade', data.active === true ? 'ja' : 'nein'],
       ['Blockieren während Start-Szene', boolText(data.blockDuringStartScene !== false)],
       ['Aktuelle Szene', data.currentScene || '-'],
-      ['Grund', data.reason || (data.active === true ? 'start_scene_active' : 'frei')],
+      ['Grund', explainReason(data.reason || (data.active === true ? 'start_scene_active' : 'frei'))],
       ['OBS verbunden', boolText(data.obsConnected === true)],
       ['OBS erkannt', boolText(data.obsDetected === true)]
     ];
@@ -1138,8 +1147,16 @@ window.ShoutoutV2Module = (function(){
 
   function settingValue(value){
     if (value === true || value === false) return boolText(value);
-    if (Array.isArray(value)) return value.length ? value.join(', ') : '-';
-    if (value && typeof value === 'object') return JSON.stringify(value);
+    if (Array.isArray(value)) {
+      if (!value.length) return '-';
+      const clean = value.map(v => String(v || '').trim()).filter(Boolean);
+      return clean.length > 6 ? `${clean.slice(0, 6).join(', ')} … (+${clean.length - 6})` : clean.join(', ');
+    }
+    if (value && typeof value === 'object') {
+      const keys = Object.keys(value);
+      if (!keys.length) return '-';
+      return keys.slice(0, 6).map(k => `${k}: ${settingValue(value[k])}`).join(' · ') + (keys.length > 6 ? ` … (+${keys.length - 6})` : '');
+    }
     if (value === undefined || value === null || value === '') return '-';
     return String(value);
   }
@@ -1377,6 +1394,20 @@ window.ShoutoutV2Module = (function(){
     return 'neutral';
   }
 
+  function queueStatusLabel(status){
+    const text = String(status || '').toLowerCase();
+    const map = {
+      queued: 'wartet',
+      waiting: 'wartet',
+      active: 'läuft',
+      done: 'fertig',
+      sent: 'gesendet',
+      failed: 'Fehler',
+      removed: 'entfernt'
+    };
+    return map[text] || String(status || '-');
+  }
+
   function renderQueueResult(result){
     if (!result) return '';
     const ok = result.ok !== false;
@@ -1398,7 +1429,7 @@ window.ShoutoutV2Module = (function(){
         const error = queueItemError(item);
         return `<tr>
           <td><strong>@${esc(display)}</strong>${login && login !== String(display).toLowerCase() ? `<small>${esc(login)}</small>` : ''}${requestedBy ? `<small>von ${esc(requestedBy)}</small>` : ''}</td>
-          <td>${badge(status, queueTone(status))}</td>
+          <td>${badge(queueStatusLabel(status), queueTone(status))}</td>
           <td>${esc(formatTime(queueItemAvailableAt(item)))}</td>
           <td>${esc(error || '-')}</td>
           <td><div class="so2-row-actions">
