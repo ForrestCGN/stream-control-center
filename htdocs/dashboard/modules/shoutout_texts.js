@@ -95,9 +95,25 @@ window.ShoutoutTextsModule = (function(){
     return Array.isArray(list) ? list : [];
   }
 
+  function isLegacyCategory(id){
+    return String(id || '') === 'auto_shoutout';
+  }
+
   function categoryLabel(id){
     const c = categories().find(row => row.id === id || row.key === id);
+    if (isLegacyCategory(id)) return 'Legacy AutoShoutout';
     return c ? String(c.label || c.id || id) : String(id || 'Alle');
+  }
+
+  function categoryHint(id){
+    if (!id) return 'Alle Textkeys';
+    if (isLegacyCategory(id)) return 'Fallback / Altbestand';
+    return categoryLabel(id);
+  }
+
+  function textareaRowsFor(row){
+    const count = Math.max(1, String(variantLines(row) || '').split(/\r?\n/).filter(Boolean).length);
+    return Math.max(5, Math.min(14, count + 2));
   }
 
   function keyRows(){
@@ -188,8 +204,10 @@ window.ShoutoutTextsModule = (function(){
       <div class="shoutout-texts-rail">
         <button type="button" class="shoutout-texts-cat ${!state.selectedCategory ? 'active' : ''}" data-shoutout-text-category="">Alle Texte <small>${keys().length}</small></button>
         ${cats.map(cat => `
-          <button type="button" class="shoutout-texts-cat ${state.selectedCategory === cat.id ? 'active' : ''}" data-shoutout-text-category="${esc(cat.id)}">
-            ${esc(cat.label || cat.id)} <small>${esc(cat.variantCount ?? cat.count ?? 0)}</small>
+          <button type="button" class="shoutout-texts-cat ${state.selectedCategory === cat.id ? 'active' : ''} ${isLegacyCategory(cat.id) ? 'legacy' : ''}" data-shoutout-text-category="${esc(cat.id)}">
+            <span>${esc(categoryLabel(cat.id))}</span>
+            <small>${esc(cat.variantCount ?? cat.count ?? 0)}</small>
+            ${isLegacyCategory(cat.id) ? '<em>Legacy</em>' : ''}
           </button>
         `).join('')}
       </div>
@@ -201,9 +219,9 @@ window.ShoutoutTextsModule = (function(){
     return `
       <div class="shoutout-texts-keylist">
         ${rows.length ? rows.map(row => `
-          <button type="button" class="shoutout-texts-key ${state.selectedKey === row.key ? 'active' : ''}" data-shoutout-text-key="${esc(row.key)}">
+          <button type="button" class="shoutout-texts-key ${state.selectedKey === row.key ? 'active' : ''} ${isLegacyCategory(row.category) ? 'legacy' : ''}" data-shoutout-text-key="${esc(row.key)}">
             <strong>${esc(row.key)}</strong>
-            <span>${esc(categoryLabel(row.category))} · ${esc(row.activeCount ?? 0)}/${esc(row.totalCount ?? 0)} aktiv</span>
+            <span>${esc(categoryHint(row.category))} · ${esc(row.activeCount ?? 0)}/${esc(row.totalCount ?? 0)} aktiv</span>
           </button>
         `).join('') : '<div class="shoutout-texts-empty">Keine Textkeys in dieser Kategorie.</div>'}
       </div>
@@ -227,7 +245,8 @@ window.ShoutoutTextsModule = (function(){
             <button type="button" data-shoutout-text-save>Speichern</button>
           </div>
         </div>
-        <textarea data-shoutout-text-variants spellcheck="false" rows="12">${esc(variantLines(row))}</textarea>
+        ${isLegacyCategory(row.category) ? '<div class="shoutout-texts-legacy-note">Legacy/Fallback: Dieser Key bleibt zur Kompatibilität erhalten. Neue Runtime-Zielkeys liegen unter <code>shoutout.*</code>.</div>' : ''}
+        <textarea data-shoutout-text-variants spellcheck="false" rows="${textareaRowsFor(row)}">${esc(variantLines(row))}</textarea>
         <div class="shoutout-texts-help">
           <span>Platzhalter je nach Text: <code>@{displayName}</code>, <code>@{login}</code>, <code>{login}</code>, <code>{waitTime}</code>, <code>{reason}</code></span>
           <span>Varianten: ${esc(row.activeCount ?? 0)} aktiv / ${esc(row.totalCount ?? 0)} gesamt</span>
@@ -240,18 +259,18 @@ window.ShoutoutTextsModule = (function(){
     const m = state.migration || state.data?.migration || {};
     const planned = Array.isArray(m.plannedKeys) ? m.plannedKeys : [];
     return `
-      <div class="shoutout-card shoutout-wide shoutout-texts-migration">
-        <div class="shoutout-card-head">
-          <div><h3>Migration / Kompatibilität</h3><p>Nur Anzeige. Alte Config-Texte und Legacy-Keys bleiben Fallback, bis die Runtime später bewusst umgestellt wird.</p></div>
-          <div><span class="shoutout-badge ${m.noRuntimeChange !== false ? 'ok' : 'warn'}">${m.noRuntimeChange !== false ? 'No Runtime Change' : 'Prüfen'}</span></div>
-        </div>
+      <details class="shoutout-card shoutout-wide shoutout-texts-migration">
+        <summary>
+          <span><strong>Migration / Kompatibilität</strong><small>Alte Config-Texte und Legacy-Keys bleiben Fallback.</small></span>
+          <span class="shoutout-badge ${m.noRuntimeChange !== false ? 'ok' : 'warn'}">${m.noRuntimeChange !== false ? 'No Runtime Change' : 'Prüfen'}</span>
+        </summary>
         <div class="shoutout-texts-meta-grid">
           <div><small>Modul</small><strong>${esc(state.data?.moduleVersion || m.moduleVersion || '-')}</strong></div>
           <div><small>Tabelle</small><strong>${esc(state.data?.texts?.variantsTable || m.targetTable || '-')}</strong></div>
           <div><small>Keys</small><strong>${esc(planned.length || keys().length)}</strong></div>
           <div><small>Legacy Auto-Route</small><strong>${esc(m.compatibility?.oldAutoTextsRouteRemains || state.data?.compatibility?.legacyAutoTextsRoute || '-')}</strong></div>
         </div>
-      </div>
+      </details>
     `;
   }
 

@@ -1,80 +1,33 @@
 # Shoutout Text Dashboard Tab
 
-Stand: CAN-44.19
+Der Shoutout-Texte-Tab ist der gemeinsame Editor für Textvarianten des Shoutout-Systems.
 
-## Zweck
+## Dateien
 
-Der gemeinsame Texte-Tab macht die neuen Shoutout-Textkeys aus CAN-44.18 im Dashboard bearbeitbar.
+- `htdocs/dashboard/modules/shoutout_texts.js`
+- `htdocs/dashboard/modules/shoutout_texts.css`
 
-## Abhängigkeiten
+## Routen
 
-Backend-Routen:
+- `GET /api/clip-shoutout/texts`
+- `POST /api/clip-shoutout/texts`
+- `GET /api/clip-shoutout/texts/migration`
 
-```text
-GET  /api/clip-shoutout/texts
-POST /api/clip-shoutout/texts
-GET  /api/clip-shoutout/texts/migration
-```
+## Kategorien
 
-Backend-Tabellen:
+- `shoutout.chat` – Chat-Shoutout
+- `shoutout.auto` – AutoShoutout
+- `shoutout.official` – Offizieller Twitch-Shoutout
+- `shoutout.system` – Systemmeldungen
+- `auto_shoutout` – Legacy/Fallback für ältere AutoShoutout-Texte
 
-```text
-module_text_variants
-module_texts
-```
+## CAN-44.19.1 UI-Cleanup
 
-Helper:
+- Die Textarea ist kompakter und wächst nicht mehr unnötig groß bei wenigen Varianten.
+- Legacy-Kategorien und Legacy-Keys werden sichtbar markiert.
+- Der Migration-/Kompatibilitätsblock ist einklappbar.
+- Backend, Datenbank und Runtime-Verhalten bleiben unverändert.
 
-```text
-helper_texts
-core/database
-helper_config
-helper_core
-```
+## Wichtig
 
-## Dashboard-Dateien
-
-```text
-htdocs/dashboard/modules/shoutout_texts.js
-htdocs/dashboard/modules/shoutout_texts.css
-```
-
-`index.html` lädt beide Dateien.
-
-## Bedienkonzept
-
-Der Texte-Tab wird in das bestehende Shoutout-System injiziert, ohne das Haupt-Dashboard vollständig umzubauen.
-
-Kategorien:
-
-```text
-shoutout.chat
-shoutout.auto
-shoutout.official
-shoutout.dashboard
-shoutout.system
-```
-
-## Grenzen dieses Steps
-
-- Kein vollständiger Dashboard-Umbau.
-- Keine Runtime-Umstellung.
-- Keine automatische Migration alter Config-Texte.
-- Legacy-Key `auto.greeting` bleibt sichtbar, solange er in der DB existiert.
-
-## Weiterer Umbau
-
-Später soll das Shoutout-Dashboard neu strukturiert werden:
-
-```text
-Übersicht
-Chat-Shoutout
-AutoShoutout
-Queues
-Texte
-Verlauf
-Statistik
-Eingehend
-Diagnose
-Einstellungen
-```
+Die Runtime verwendet weiterhin bestehende Config-/Legacy-Fallbacks, bis eine spätere bewusste Umstellung auf die neuen `shoutout.*` Keys erfolgt.
