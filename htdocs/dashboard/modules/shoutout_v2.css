@@ -587,3 +587,12 @@
     grid-template-columns:1fr;
   }
 }
+
+/* CAN-44.21.9 – Auswertung V2 mit bestätigten Routen */
+.shoutout-v2-admin .so2-analytics-table{
+  min-width:760px;
+}
+.shoutout-v2-admin .so2-analytics-table td:nth-child(n+2):not(:last-child),
+.shoutout-v2-admin .so2-analytics-table th:nth-child(n+2):not(:last-child){
+  text-align:center;
+}

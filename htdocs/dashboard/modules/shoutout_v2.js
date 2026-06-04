@@ -1,8 +1,8 @@
 window.ShoutoutV2Module = (function(){
   'use strict';
 
-  const MODULE_VERSION = '2.3.0-texts';
-  const BUILD = 'CAN-44.21.8';
+  const MODULE_VERSION = '2.4.0-analytics';
+  const BUILD = 'CAN-44.21.9';
 
   const API = {
     status: '/api/clip-shoutout/status',
@@ -781,16 +781,132 @@ window.ShoutoutV2Module = (function(){
   }
 
 
+  function statRows(path){
+    return asArray(pick(state.stats || {}, [path], []));
+  }
+
+  function statTotal(path, fallback = 0){
+    return pickNumber(state.stats || {}, [`totals.${path}`, path], fallback);
+  }
+
+  function displayNameForStat(row, kind){
+    if (kind === 'requester') return row.requesterDisplay || row.requesterLogin || '-';
+    if (kind === 'pair') return `${row.requesterDisplay || row.requesterLogin || '-'} → ${row.targetDisplay || row.targetLogin || '-'}`;
+    if (kind === 'streamday') return row.streamDayId || '-';
+    return row.targetDisplay || row.targetLogin || row.display || row.login || '-';
+  }
+
+  function renderStatsTable(rows, kind, emptyText){
+    const list = asArray(rows).slice(0, 12);
+    if (!list.length) return `<div class="so2-empty">${esc(emptyText)}</div>`;
+    return `<div class="so2-table-wrap"><table class="so2-table so2-analytics-table">
+      <thead><tr><th>${kind === 'pair' ? 'Paarung' : kind === 'requester' ? 'Auslöser' : kind === 'streamday' ? 'Streamtag' : 'Zielkanal'}</th><th>Gesamt</th><th>Fertig</th><th>Offen</th><th>Override</th><th>Letzte Aktivität</th></tr></thead>
+      <tbody>${list.map(row => `
+        <tr>
+          <td><strong>${esc(displayNameForStat(row, kind))}</strong>${kind === 'target' && row.targetLogin ? `<small>${esc(row.targetLogin)}</small>` : ''}${kind === 'requester' && row.requesterLogin ? `<small>${esc(row.requesterLogin)}</small>` : ''}</td>
+          <td>${esc(row.total ?? row.totalRequests ?? 0)}</td>
+          <td>${esc(row.displayDone ?? '-')}</td>
+          <td>${esc(row.displayPending ?? '-')}</td>
+          <td>${esc(row.overrideCount ?? 0)}</td>
+          <td>${esc(formatTime(row.lastRequestedAt || row.lastOfficialAt || row.lastAt || ''))}</td>
+        </tr>
+      `).join('')}</tbody>
+    </table></div>`;
+  }
+
+  function renderTimelineTable(rows, emptyText){
+    const list = asArray(rows).slice(0, 16);
+    if (!list.length) return `<div class="so2-empty">${esc(emptyText)}</div>`;
+    return `<div class="so2-table-wrap"><table class="so2-table so2-analytics-table">
+      <thead><tr><th>Ziel</th><th>Von</th><th>Status</th><th>Twitch</th><th>Zeit</th></tr></thead>
+      <tbody>${list.map(row => `
+        <tr>
+          <td><strong>@${esc(row.targetDisplay || row.targetLogin || row.displayName || row.target || 'Ziel')}</strong>${row.targetLogin ? `<small>${esc(row.targetLogin)}</small>` : ''}</td>
+          <td>${esc(row.requestedByDisplay || row.requestedByLogin || '-')}</td>
+          <td>${badge(row.status || row.displayStatus || '-', queueTone(row.status || row.displayStatus || ''))}</td>
+          <td>${esc(row.officialStatus || row.officialResult || '-')}</td>
+          <td>${esc(formatTime(row.requestedAt || row.displayQueuedAt || row.createdAt || row.time || ''))}</td>
+        </tr>
+      `).join('')}</tbody>
+    </table></div>`;
+  }
+
+  function renderInboundTable(rows, emptyText){
+    const list = asArray(rows).slice(0, 12);
+    if (!list.length) return `<div class="so2-empty">${esc(emptyText)}</div>`;
+    return `<div class="so2-table-wrap"><table class="so2-table so2-analytics-table">
+      <thead><tr><th>Richtung</th><th>Von</th><th>An</th><th>Viewer</th><th>Zeit</th></tr></thead>
+      <tbody>${list.map(row => `
+        <tr>
+          <td>${badge(row.direction || '-', String(row.direction || '').toLowerCase() === 'incoming' ? 'ok' : 'neutral')}</td>
+          <td>${esc(row.fromBroadcasterDisplay || row.from_broadcaster_display || row.fromBroadcasterLogin || row.from || '-')}</td>
+          <td>${esc(row.toBroadcasterDisplay || row.to_broadcaster_display || row.toBroadcasterLogin || row.to || '-')}</td>
+          <td>${esc(row.viewerCount ?? row.viewer_count ?? '-')}</td>
+          <td>${esc(formatTime(row.receivedAt || row.received_at || row.startedAt || row.started_at || ''))}</td>
+        </tr>
+      `).join('')}</tbody>
+    </table></div>`;
+  }
+
   function renderAnalytics(){
+    const stats = state.stats || {};
     const timeline = asArray(pick(state.timeline || {}, ['items','timeline','rows','events'], []));
     const inbound = asArray(pick(state.inbound || {}, ['items','events','rows'], []));
+    const inboundStats = state.inboundStats || {};
+    const targetStats = statRows('targetStats');
+    const requesterStats = statRows('requesterStats');
+    const pairStats = statRows('pairStats');
+    const streamDayStats = statRows('streamDayStats');
+
+    if (stats && stats.ok === false) {
+      return `<section class="so2-panel"><h3>Auswertung</h3><div class="so2-alert so2-alert-error">${esc(stats.error || 'Statistik konnte nicht geladen werden.')}</div></section>`;
+    }
+
     return `
+      <section class="so2-ops-head">
+        <div class="so2-grid so2-grid-4">
+          ${statusCard('Shoutouts gesamt', statTotal('totalRequests'), badge('Display', 'neutral'), 'Alle nicht entfernten Anfragen.')}
+          ${statusCard('Zielkanäle', statTotal('uniqueTargets'), badge('Ziele', 'neutral'), 'Eindeutige Kanäle.')}
+          ${statusCard('Offizielle Twitch-SO', statTotal('officialSent'), badge('gesendet', 'ok'), 'History aus Twitch-Queue.')}
+          ${statusCard('Inbound/Outbound', pickNumber(inboundStats, ['total','totals.total','count'], inbound.length), badge('Events', 'neutral'), 'Twitch-Shoutout-Events.')}
+        </div>
+      </section>
+
       <div class="so2-two">
-        <section class="so2-panel"><h3>Statistik & Verlauf</h3><p>Hier kommen Zielkanäle, Auslöser und Timeline hin – ohne Queue-Aktionen.</p>${renderMiniList(timeline, 'Noch keine Verlaufsdaten geladen oder API-Struktur unbekannt.')}</section>
-        <section class="so2-panel"><h3>Eingehende / erstellte Shoutouts</h3><p>Details zu Twitch-Shoutout-Events, nicht in der Übersicht doppeln.</p>${renderMiniList(inbound, 'Noch keine Eingangsereignisse geladen oder API-Struktur unbekannt.')}</section>
+        <section class="so2-panel">
+          <div class="so2-section-title"><div><h3>Top Zielkanäle</h3></div>${badge(`${targetStats.length} geladen`, 'neutral')}</div>
+          ${renderStatsTable(targetStats, 'target', 'Noch keine Zielkanal-Statistik geladen.')}
+        </section>
+        <section class="so2-panel">
+          <div class="so2-section-title"><div><h3>Top Auslöser</h3></div>${badge(`${requesterStats.length} geladen`, 'neutral')}</div>
+          ${renderStatsTable(requesterStats, 'requester', 'Noch keine Auslöser-Statistik geladen.')}
+        </section>
+      </div>
+
+      <div class="so2-two">
+        <section class="so2-panel">
+          <div class="so2-section-title"><div><h3>Häufige Paarungen</h3></div>${badge(`${pairStats.length} geladen`, 'neutral')}</div>
+          ${renderStatsTable(pairStats, 'pair', 'Noch keine Paarungsdaten geladen.')}
+        </section>
+        <section class="so2-panel">
+          <div class="so2-section-title"><div><h3>Streamtage</h3></div>${badge(`${streamDayStats.length} geladen`, 'neutral')}</div>
+          ${renderStatsTable(streamDayStats, 'streamday', 'Noch keine Streamtage geladen.')}
+        </section>
+      </div>
+
+      <div class="so2-two">
+        <section class="so2-panel">
+          <div class="so2-section-title"><div><h3>Verlauf</h3></div>${badge(`${timeline.length} Einträge`, 'neutral')}</div>
+          ${renderTimelineTable(timeline, 'Noch keine Verlaufsdaten geladen.')}
+        </section>
+        <section class="so2-panel">
+          <div class="so2-section-title"><div><h3>Eingehende / erstellte Twitch-Shoutouts</h3></div>${badge(`${inbound.length} Events`, 'neutral')}</div>
+          ${renderInboundTable(inbound, 'Noch keine Twitch-Shoutout-Events geladen.')}
+        </section>
       </div>
     `;
   }
+
 
   function renderDiagnostics(){
     return `
