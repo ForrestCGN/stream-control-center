@@ -1,8 +1,8 @@
 window.ShoutoutV2Module = (function(){
   'use strict';
 
-  const MODULE_VERSION = '2.4.1-analytics-readable';
-  const BUILD = 'CAN-44.21.9.1';
+  const MODULE_VERSION = '2.5.0-diagnostics';
+  const BUILD = 'CAN-44.21.10';
 
   const API = {
     status: '/api/clip-shoutout/status',
@@ -26,7 +26,10 @@ window.ShoutoutV2Module = (function(){
     officialQueueRetry: '/api/clip-shoutout/queue/retry',
     texts: '/api/clip-shoutout/texts',
     textsMigration: '/api/clip-shoutout/texts/migration',
-    autoTexts: '/api/clip-shoutout/auto/texts'
+    autoTexts: '/api/clip-shoutout/auto/texts',
+    decisionPrep: '/api/clip-shoutout/decision-prep',
+    officialAuthStatus: '/api/clip-shoutout/official/auth-status',
+    inboundDebug: '/api/clip-shoutout/inbound/debug'
   };
 
   const TABS = [
@@ -72,7 +75,10 @@ window.ShoutoutV2Module = (function(){
     autoTexts: null,
     textCategory: '',
     textKey: '',
-    textResult: null
+    textResult: null,
+    decisionPrep: null,
+    officialAuthStatus: null,
+    diagnosticsResult: null
   };
 
   let root = null;
@@ -285,12 +291,18 @@ window.ShoutoutV2Module = (function(){
       }
 
       if (['diagnostics'].includes(state.activeTab)) {
-        const [productionCheck, liveTest] = await Promise.all([
+        const [productionCheck, liveTest, decisionPrep, officialAuthStatus, sceneGate] = await Promise.all([
           api(API.productionCheck).catch(err => ({ ok:false, error: err.message })),
-          api(API.liveTest).catch(err => ({ ok:false, error: err.message }))
+          api(API.liveTest).catch(err => ({ ok:false, error: err.message })),
+          api(API.decisionPrep).catch(err => ({ ok:false, error: err.message })),
+          api(API.officialAuthStatus).catch(err => ({ ok:false, error: err.message })),
+          api(API.sceneGate).catch(err => ({ ok:false, error: err.message }))
         ]);
         state.productionCheck = productionCheck;
         state.liveTest = liveTest;
+        state.decisionPrep = decisionPrep;
+        state.officialAuthStatus = officialAuthStatus;
+        state.sceneGate = sceneGate;
       }
 
       if (['auto'].includes(state.activeTab)) {
@@ -970,19 +982,115 @@ window.ShoutoutV2Module = (function(){
   }
 
 
+  function diagOk(value){
+    if (!value) return false;
+    if (value.ok === false) return false;
+    if (value.error) return false;
+    return value.ok === true || Object.keys(value || {}).length > 0;
+  }
+
+  function diagTone(value){
+    return diagOk(value) ? 'ok' : 'warn';
+  }
+
+  function diagStatus(value){
+    if (!value) return 'nicht geladen';
+    if (value.ok === false) return 'Fehler';
+    if (value.error) return 'Fehler';
+    if (value.ok === true) return 'ok';
+    return 'geladen';
+  }
+
+  function diagError(value){
+    return value && (value.error || value.message || pick(value, ['result.error','details.error'], ''));
+  }
+
+  function renderDiagCard(title, value, help){
+    const err = diagError(value);
+    return `<article class="so2-card so2-diag-card">
+      <small>${esc(title)}</small>
+      <strong>${esc(diagStatus(value))}</strong>
+      <div>${badge(diagStatus(value), diagTone(value))}</div>
+      <p>${esc(err || help || '')}</p>
+    </article>`;
+  }
+
+  function renderDiagDetails(title, value){
+    const data = value || {};
+    const rows = [];
+    if (data.moduleVersion) rows.push(['Modul', data.moduleVersion]);
+    if (data.reason) rows.push(['Grund', data.reason]);
+    if (data.recommendation) rows.push(['Empfehlung', data.recommendation]);
+    if (data.status) rows.push(['Status', data.status]);
+    if (data.live !== undefined) rows.push(['Live', boolText(data.live)]);
+    if (data.enabled !== undefined) rows.push(['Aktiv', boolText(data.enabled)]);
+    if (data.stale !== undefined) rows.push(['Veraltet', boolText(data.stale)]);
+    if (data.sceneGate) rows.push(['Scene-Gate', data.sceneGate.active ? 'blockiert' : 'frei']);
+    if (data.scopes) rows.push(['Scopes', Array.isArray(data.scopes) ? data.scopes.join(', ') : String(data.scopes)]);
+    if (data.requiredScopes) rows.push(['Benötigt', Array.isArray(data.requiredScopes) ? data.requiredScopes.join(', ') : String(data.requiredScopes)]);
+    if (!rows.length) return '';
+    return `<section class="so2-panel so2-diag-detail">
+      <div class="so2-section-title"><div><h3>${esc(title)}</h3></div></div>
+      <div class="so2-kv-list">${rows.map(([k,v]) => `<div><span>${esc(k)}</span><strong>${esc(v || '-')}</strong></div>`).join('')}</div>
+    </section>`;
+  }
+
+  function renderDiagnosticsResult(result){
+    if (!result) return '';
+    const ok = result.ok !== false;
+    const text = result.message || result.error || (ok ? 'Diagnose-Aktion ausgeführt.' : 'Diagnose-Aktion fehlgeschlagen.');
+    return `<div class="so2-alert ${ok ? 'so2-alert-ok' : 'so2-alert-error'}">${esc(text)}</div>`;
+  }
+
   function renderDiagnostics(){
+    const production = state.productionCheck || {};
+    const live = state.liveTest || {};
+    const decision = state.decisionPrep || {};
+    const auth = state.officialAuthStatus || {};
+    const scene = state.sceneGate || {};
+    const result = state.diagnosticsResult || null;
+
     return `
+      <section class="so2-ops-head">
+        <div class="so2-grid so2-grid-4">
+          ${renderDiagCard('Produktionscheck', production, 'OAuth, Scopes, EventSub und Grundzustand.')}
+          ${renderDiagCard('Live-Test', live, 'Entscheidung für Live-/Wartezustand.')}
+          ${renderDiagCard('Twitch Auth', auth, 'User-Token und Shoutout-Scopes.')}
+          ${renderDiagCard('Start-Szene', scene, 'Scene-Gate für Shoutout-Worker.')}
+        </div>
+        ${renderDiagnosticsResult(result)}
+      </section>
+
+      <div class="so2-two">
+        ${renderDiagDetails('Produktionscheck Details', production) || '<section class="so2-panel"><h3>Produktionscheck Details</h3><div class="so2-empty">Keine Detaildaten geladen.</div></section>'}
+        ${renderDiagDetails('Live-Test / Decision Prep', decision.ok === false ? live : decision) || '<section class="so2-panel"><h3>Live-Test / Decision Prep</h3><div class="so2-empty">Keine Detaildaten geladen.</div></section>'}
+      </div>
+
+      <div class="so2-two">
+        ${renderDiagDetails('Twitch Auth / Scopes', auth) || '<section class="so2-panel"><h3>Twitch Auth / Scopes</h3><div class="so2-empty">Keine Detaildaten geladen.</div></section>'}
+        ${renderDiagDetails('Start-Szene / Scene-Gate', pick(scene, ['sceneGate'], scene)) || '<section class="so2-panel"><h3>Start-Szene / Scene-Gate</h3><div class="so2-empty">Keine Detaildaten geladen.</div></section>'}
+      </div>
+
       <section class="so2-panel">
-        <h3>Shoutout-Diagnose</h3>
-        <p>Nur Shoutout-spezifische Diagnose. Systemweite Diagnose bleibt in Admin &gt; Diagnose.</p>
-        <div class="so2-grid so2-grid-3">
-          ${statusCard('Produktionscheck', state.productionCheck ? 'geladen' : 'noch nicht geladen', badge('Shoutout', 'neutral'), 'OAuth, Scopes und EventSub nur für Shoutouts.')}
-          ${statusCard('Live-Test', state.liveTest ? 'geladen' : 'noch nicht geladen', badge('Test', 'neutral'), 'Beobachtete Shoutout-Events und Empfehlungen.')}
-          ${statusCard('Admin-Diagnose', 'nicht doppeln', badge('Abgrenzung', 'warn'), 'Globale Modul- und Registry-Diagnose bleibt im Admin-Bereich.')}
+        <div class="so2-section-title">
+          <div>
+            <h3>Shoutout-Testdaten</h3>
+          </div>
+          ${badge('Diagnose', 'warn')}
+        </div>
+        <div class="so2-diag-actions">
+          <button type="button" data-so2-inbound-debug="incoming">Inbound-Testevent</button>
+          <button type="button" data-so2-inbound-debug="outgoing">Outbound-Testevent</button>
+          <button type="button" data-so2-refresh>Neu prüfen</button>
+        </div>
+        <div class="so2-note">
+          <strong>Hinweis:</strong>
+          <span>Diese Buttons schreiben Debug-Shoutout-Events über die bestätigte Diagnose-Route. Für normale Bedienung nicht nötig.</span>
         </div>
       </section>
     `;
   }
+
 
   function renderSettings(){
     return `
@@ -1368,6 +1476,33 @@ window.ShoutoutV2Module = (function(){
     }
   }
 
+  async function runInboundDebug(direction){
+    const dir = String(direction || 'incoming') === 'outgoing' ? 'outgoing' : 'incoming';
+    state.loading = true;
+    state.error = '';
+    state.notice = '';
+    state.diagnosticsResult = null;
+    render();
+
+    try {
+      const result = await api(API.inboundDebug, {
+        method: 'POST',
+        body: JSON.stringify({
+          direction: dir,
+          from: dir === 'incoming' ? 'testsender' : 'forrestcgn',
+          to: dir === 'incoming' ? 'forrestcgn' : 'testziel',
+          viewerCount: 1
+        })
+      });
+      state.diagnosticsResult = { ok: result && result.ok !== false, message: `${dir === 'incoming' ? 'Inbound' : 'Outbound'}-Testevent wurde erzeugt.` };
+      await loadAll(true);
+    } catch (err) {
+      state.diagnosticsResult = { ok: false, error: err.message || String(err) };
+      state.loading = false;
+      render();
+    }
+  }
+
   function bind(){
     document.addEventListener('click', ev => {
       const tab = ev.target.closest('[data-so2-tab]');
@@ -1455,6 +1590,12 @@ window.ShoutoutV2Module = (function(){
       if (removeVariant && root?.contains(removeVariant)) {
         const rows = Array.from(root.querySelectorAll('[data-so2-text-variant-row]'));
         if (rows.length > 1) removeVariant.closest('[data-so2-text-variant-row]')?.remove();
+        return;
+      }
+
+      const inboundDebug = ev.target.closest('[data-so2-inbound-debug]');
+      if (inboundDebug && root?.contains(inboundDebug)) {
+        runInboundDebug(inboundDebug.dataset.so2InboundDebug);
       }
     });
 

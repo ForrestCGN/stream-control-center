@@ -613,3 +613,40 @@
 .shoutout-v2-admin .so2-streamday-table{
   min-width:680px;
 }
+
+/* CAN-44.21.10 – Diagnose V2 mit bestätigten Routen */
+.shoutout-v2-admin .so2-diag-card p{
+  min-height:34px;
+}
+.shoutout-v2-admin .so2-kv-list{
+  display:grid;
+  gap:8px;
+}
+.shoutout-v2-admin .so2-kv-list div{
+  display:grid;
+  grid-template-columns:160px 1fr;
+  gap:12px;
+  border:1px solid rgba(255,255,255,.09);
+  background:rgba(0,0,0,.10);
+  border-radius:12px;
+  padding:9px 11px;
+}
+.shoutout-v2-admin .so2-kv-list span{
+  color:var(--so2-muted);
+  font-size:12px;
+}
+.shoutout-v2-admin .so2-kv-list strong{
+  color:#fff;
+  overflow-wrap:anywhere;
+}
+.shoutout-v2-admin .so2-diag-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin:10px 0 12px;
+}
+@media(max-width:760px){
+  .shoutout-v2-admin .so2-kv-list div{
+    grid-template-columns:1fr;
+  }
+}
