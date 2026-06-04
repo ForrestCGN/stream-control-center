@@ -1,8 +1,8 @@
 window.ShoutoutV2Module = (function(){
   'use strict';
 
-  const MODULE_VERSION = '2.0.4-manual';
-  const BUILD = 'CAN-44.21.4';
+  const MODULE_VERSION = '2.0.5-manual-clean';
+  const BUILD = 'CAN-44.21.4.1';
 
   const API = {
     status: '/api/clip-shoutout/status',
@@ -303,7 +303,6 @@ window.ShoutoutV2Module = (function(){
     const lastError = pick(status, ['lastError','error','errors.0.message','display.lastError','official.lastError'], '');
     const streamLive = pick(stream, ['live','isLive','data.live'], pick(status, ['stream.live','live'], false));
     const streamFresh = pick(stream, ['fresh','isFresh','stale'], undefined);
-    const source = pick(stream, ['source','upstream','data.source'], pick(status, ['stream.source','source'], 'twitch_api'));
 
     const total = pickNumber(stats, ['total','totalCount','summary.total','shoutoutsTotal','createdTotal'], pickNumber(status, ['total','created','stats.total'], 0));
     const targets = pickNumber(stats, ['targets','targetCount','summary.targets','uniqueTargets'], 0);
@@ -364,7 +363,6 @@ window.ShoutoutV2Module = (function(){
     const status = state.status || {};
     const live = pick(stream, ['live','isLive','data.live'], pick(status, ['stream.live','live'], false));
     const stale = pick(stream, ['stale','data.stale'], false);
-    const source = pick(stream, ['source','upstream','data.source'], pick(status, ['stream.source','source'], 'twitch_api'));
     const displayOpen = pickNumber(status, ['displayOpen','display.open','queues.display.open','displayQueueOpen'], 0);
     const officialOpen = pickNumber(status, ['officialOpen','official.open','queues.official.open','officialQueueOpen'], 0);
     const result = state.manualResult || null;
@@ -397,14 +395,17 @@ window.ShoutoutV2Module = (function(){
           ${renderManualResult(result)}
         </section>
 
-        <aside class="so2-panel so2-manual-side">
-          <h3>Was passiert?</h3>
-          <div class="so2-decision-list">
-            <div><strong>Overlay</strong><span>Der Shoutout wird in die Overlay-Warteschlange aufgenommen.</span></div>
-            <div><strong>Twitch</strong><span>${live ? 'Offizielle Twitch-Shoutouts können direkt geprüft werden.' : 'Wenn Live-Pflicht aktiv ist, wartet der offizielle Twitch-Shoutout bis zum Livestatus.'}</span></div>
-            <div><strong>Warteschlangen</strong><span>${displayOpen} Overlay · ${officialOpen} Twitch offen</span></div>
-            <div><strong>Statusquelle</strong><span>${esc(source)}${stale ? ' · eventuell alt' : ''}</span></div>
+        <aside class="so2-panel so2-manual-side so2-manual-status">
+          <div class="so2-section-title">
+            <div><h3>Status</h3></div>
           </div>
+          <div class="so2-status-list">
+            <div><span>Stream</span><strong>${live ? 'live' : 'offline'}</strong></div>
+            <div><span>Overlay-Warteschlange</span><strong>${displayOpen} offen</strong></div>
+            <div><span>Twitch-Shoutouts</span><strong>${officialOpen} offen</strong></div>
+          </div>
+          ${!live ? `<div class="so2-quiet-hint">Der Stream ist offline. Offizielle Twitch-Shoutouts warten ggf. bis zum Livestatus.</div>` : ''}
+          ${stale ? `<div class="so2-quiet-hint so2-quiet-hint-warn">Der Streamstatus wirkt eventuell veraltet. Details stehen in Diagnose.</div>` : ''}
         </aside>
       </div>
     `;
