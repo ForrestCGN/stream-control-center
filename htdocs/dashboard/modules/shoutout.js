@@ -122,6 +122,18 @@ window.ShoutoutModule = (function(){
     return `<span class="shoutout-badge ${cls}">${esc(value || '-')}</span>`;
   }
 
+  function queueStatusBadge(active){
+    return active ? '<span class="shoutout-badge ok">aktiv</span>' : '<span class="shoutout-badge neutral">gestoppt</span>';
+  }
+
+  function renderQueueEmpty(text){
+    return `
+      <div class="shoutout-empty-state">
+        <strong>${esc(text)}</strong>
+      </div>
+    `;
+  }
+
 
   function directionBadge(value){
     const raw = String(value || '').toLowerCase();
@@ -649,27 +661,29 @@ window.ShoutoutModule = (function(){
     return `
       <div class="shoutout-card">
         <div class="shoutout-card-head">
-          <div><h3>Display-Queue</h3><p>Video-/Overlay-Anzeigen mit 2-Minuten-Abstand nach Anzeige-Ende.</p></div>
-          <div>${display.workerStarted ? statusBadge('active') : statusBadge('stopped')}</div>
+          <div><h3>Display-Queue</h3><p>Video-/Overlay-Anzeigen.</p></div>
+          <div>${queueStatusBadge(display.workerStarted)}</div>
         </div>
-        <div class="shoutout-table-wrap">
-          <table class="shoutout-table">
-            <thead><tr><th>ID</th><th>Ziel</th><th>Status</th><th>Verfügbar</th><th>Start</th><th>Fehler</th><th>Aktion</th></tr></thead>
-            <tbody>
-              ${rows.length ? rows.map(row => `
-                <tr>
-                  <td>${esc(row.id)}</td>
-                  <td><strong>@${esc(row.target_display || row.target_login || '-')}</strong><small>${esc(row.requested_by_display || row.requested_by_login || '')}</small></td>
-                  <td>${statusBadge(row.status)}</td>
-                  <td>${fmtDate(row.available_at)}</td>
-                  <td>${fmtDate(row.started_at)}</td>
-                  <td>${esc(row.last_error || '')}</td>
-                  <td class="shoutout-actions"><button data-display-retry="${esc(row.id)}">Retry</button><button data-display-remove="${esc(row.id)}">Remove</button></td>
-                </tr>
-              `).join('') : '<tr><td colspan="7" class="shoutout-empty">Keine Display-Einträge offen.</td></tr>'}
-            </tbody>
-          </table>
-        </div>
+        ${rows.length ? `
+          <div class="shoutout-table-wrap">
+            <table class="shoutout-table">
+              <thead><tr><th>ID</th><th>Ziel</th><th>Status</th><th>Verfügbar</th><th>Start</th><th>Fehler</th><th>Aktion</th></tr></thead>
+              <tbody>
+                ${rows.map(row => `
+                  <tr>
+                    <td>${esc(row.id)}</td>
+                    <td><strong>@${esc(row.target_display || row.target_login || '-')}</strong><small>${esc(row.requested_by_display || row.requested_by_login || '')}</small></td>
+                    <td>${statusBadge(row.status)}</td>
+                    <td>${fmtDate(row.available_at)}</td>
+                    <td>${fmtDate(row.started_at)}</td>
+                    <td>${esc(row.last_error || '')}</td>
+                    <td class="shoutout-actions"><button data-display-retry="${esc(row.id)}">Retry</button><button data-display-remove="${esc(row.id)}">Remove</button></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        ` : renderQueueEmpty('Keine Display-Einträge offen.')}
       </div>
     `;
   }
@@ -680,27 +694,29 @@ window.ShoutoutModule = (function(){
     return `
       <div class="shoutout-card">
         <div class="shoutout-card-head">
-          <div><h3>Official-Queue</h3><p>Offizielle Twitch-Shoutouts mit Twitch-Cooldown und Live-Gate.</p></div>
-          <div>${official.workerStarted ? statusBadge('active') : statusBadge('stopped')}</div>
+          <div><h3>Official-Queue</h3><p>Offizielle Twitch-Shoutouts.</p></div>
+          <div>${queueStatusBadge(official.workerStarted)}</div>
         </div>
-        <div class="shoutout-table-wrap">
-          <table class="shoutout-table">
-            <thead><tr><th>ID</th><th>Ziel</th><th>Status</th><th>Verfügbar</th><th>Gesendet</th><th>Fehler</th><th>Aktion</th></tr></thead>
-            <tbody>
-              ${rows.length ? rows.map(row => `
-                <tr>
-                  <td>${esc(row.id)}</td>
-                  <td><strong>@${esc(row.target_display || row.target_login || '-')}</strong><small>User-ID ${esc(row.target_user_id || '-')}</small></td>
-                  <td>${statusBadge(row.status)}</td>
-                  <td>${fmtDate(row.available_at)}</td>
-                  <td>${fmtDate(row.sent_at)}</td>
-                  <td>${esc(row.last_error || '')}</td>
-                  <td class="shoutout-actions"><button data-official-retry="${esc(row.id)}">Retry</button><button data-official-remove="${esc(row.id)}">Remove</button></td>
-                </tr>
-              `).join('') : '<tr><td colspan="7" class="shoutout-empty">Keine offiziellen Shoutouts offen.</td></tr>'}
-            </tbody>
-          </table>
-        </div>
+        ${rows.length ? `
+          <div class="shoutout-table-wrap">
+            <table class="shoutout-table">
+              <thead><tr><th>ID</th><th>Ziel</th><th>Status</th><th>Verfügbar</th><th>Gesendet</th><th>Fehler</th><th>Aktion</th></tr></thead>
+              <tbody>
+                ${rows.map(row => `
+                  <tr>
+                    <td>${esc(row.id)}</td>
+                    <td><strong>@${esc(row.target_display || row.target_login || '-')}</strong>${row.target_user_id ? `<small>User-ID ${esc(row.target_user_id)}</small>` : ''}</td>
+                    <td>${statusBadge(row.status)}</td>
+                    <td>${fmtDate(row.available_at)}</td>
+                    <td>${fmtDate(row.sent_at)}</td>
+                    <td>${esc(row.last_error || '')}</td>
+                    <td class="shoutout-actions"><button data-official-retry="${esc(row.id)}">Retry</button><button data-official-remove="${esc(row.id)}">Remove</button></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        ` : renderQueueEmpty('Keine offiziellen Shoutouts offen.')}
       </div>
     `;
   }
