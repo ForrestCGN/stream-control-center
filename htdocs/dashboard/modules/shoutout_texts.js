@@ -102,24 +102,19 @@ window.ShoutoutTextsModule = (function(){
   function categoryLabel(id){
     const c = categories().find(row => row.id === id || row.key === id);
     if (isLegacyCategory(id)) return 'Legacy AutoShoutout';
-    return c ? String(c.label || c.id || id) : String(id || 'Alle');
+    return c ? String(c.label || c.id || id) : String(id || 'Alle Texte');
   }
 
-  function categoryHint(id){
-    if (!id) return 'Alle Textkeys';
-    if (isLegacyCategory(id)) return 'Fallback / Altbestand';
-    return categoryLabel(id);
+  function categoryCount(id){
+    if (!id) return keys().length;
+    const c = categories().find(row => row.id === id || row.key === id);
+    return c ? Number(c.variantCount ?? c.count ?? 0) : keyRows(id).length;
   }
 
-  function textareaRowsFor(row){
-    const count = Math.max(1, String(variantLines(row) || '').split(/\r?\n/).filter(Boolean).length);
-    return Math.max(5, Math.min(14, count + 2));
-  }
-
-  function keyRows(){
+  function keyRows(category = state.selectedCategory){
     const list = keys();
-    if (!state.selectedCategory) return list;
-    return list.filter(row => String(row.category || '') === state.selectedCategory);
+    if (!category) return list;
+    return list.filter(row => String(row.category || '') === category);
   }
 
   function selectedKeyRow(){
@@ -130,15 +125,22 @@ window.ShoutoutTextsModule = (function(){
     return found;
   }
 
-  function variantLines(row){
+  function variantValues(row){
     const vars = Array.isArray(row?.variants) ? row.variants : [];
-    return vars.filter(v => v && v.enabled !== false).map(v => String(v.value || v.text || '').trim()).filter(Boolean).join('\n');
+    return vars.filter(v => v && v.enabled !== false).map(v => String(v.value || v.text || '').trim()).filter(Boolean);
   }
 
   function markDirty(value = true){
     state.dirty = !!value;
     const p = panel(false);
     if (p) p.dataset.dirty = state.dirty ? '1' : '0';
+  }
+
+  function ensureSelection(){
+    const cats = categories();
+    if (!state.selectedCategory && cats.some(c => c.id === 'shoutout.chat')) state.selectedCategory = 'shoutout.chat';
+    if (state.selectedCategory && !cats.some(c => c.id === state.selectedCategory) && !keyRows(state.selectedCategory).length) state.selectedCategory = '';
+    if (!selectedKeyRow()) state.selectedKey = '';
   }
 
   async function load(force = false){
@@ -152,9 +154,7 @@ window.ShoutoutTextsModule = (function(){
       const data = await api(API.texts);
       state.data = data;
       state.migration = data.migration || await api(API.migration).catch(err => ({ ok:false, error: err.message }));
-      const cats = categories();
-      if (!state.selectedCategory && cats.some(c => c.id === 'shoutout.chat')) state.selectedCategory = 'shoutout.chat';
-      if (!selectedKeyRow()) state.selectedKey = '';
+      ensureSelection();
     } catch (err) {
       state.error = err && err.message ? err.message : String(err);
     } finally {
@@ -163,12 +163,18 @@ window.ShoutoutTextsModule = (function(){
     }
   }
 
+  function collectVariantValues(){
+    const p = panel(false);
+    if (!p) return [];
+    return Array.from(p.querySelectorAll('[data-shoutout-text-variant-input]'))
+      .map(input => String(input.value || '').trim())
+      .filter(Boolean);
+  }
+
   async function saveSelectedKey(){
     const row = selectedKeyRow();
-    const p = panel(false);
-    if (!row || !p) return;
-    const text = String(p.querySelector('[data-shoutout-text-variants]')?.value || '');
-    const variants = text.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+    if (!row) return;
+    const variants = collectVariantValues();
     if (!variants.length) {
       state.error = 'Mindestens eine Textvariante ist erforderlich.';
       render();
@@ -198,55 +204,61 @@ window.ShoutoutTextsModule = (function(){
     }
   }
 
-  function renderCategoryRail(){
+  function renderCategoryOptions(){
     const cats = categories();
     return `
-      <div class="shoutout-texts-rail">
-        <button type="button" class="shoutout-texts-cat ${!state.selectedCategory ? 'active' : ''}" data-shoutout-text-category="">Alle Texte <small>${keys().length}</small></button>
-        ${cats.map(cat => `
-          <button type="button" class="shoutout-texts-cat ${state.selectedCategory === cat.id ? 'active' : ''} ${isLegacyCategory(cat.id) ? 'legacy' : ''}" data-shoutout-text-category="${esc(cat.id)}">
-            <span>${esc(categoryLabel(cat.id))}</span>
-            <small>${esc(cat.variantCount ?? cat.count ?? 0)}</small>
-            ${isLegacyCategory(cat.id) ? '<em>Legacy</em>' : ''}
-          </button>
-        `).join('')}
-      </div>
+      <option value="">Alle Texte (${esc(keys().length)})</option>
+      ${cats.map(cat => `
+        <option value="${esc(cat.id)}" ${state.selectedCategory === cat.id ? 'selected' : ''}>
+          ${esc(categoryLabel(cat.id))}${isLegacyCategory(cat.id) ? ' · Legacy' : ''} (${esc(cat.variantCount ?? cat.count ?? 0)})
+        </option>
+      `).join('')}
     `;
   }
 
-  function renderKeyList(){
+  function renderKeyOptions(){
     const rows = keyRows();
-    return `
-      <div class="shoutout-texts-keylist">
-        ${rows.length ? rows.map(row => `
-          <button type="button" class="shoutout-texts-key ${state.selectedKey === row.key ? 'active' : ''} ${isLegacyCategory(row.category) ? 'legacy' : ''}" data-shoutout-text-key="${esc(row.key)}">
-            <strong>${esc(row.key)}</strong>
-            <span>${esc(categoryHint(row.category))} · ${esc(row.activeCount ?? 0)}/${esc(row.totalCount ?? 0)} aktiv</span>
-          </button>
-        `).join('') : '<div class="shoutout-texts-empty">Keine Textkeys in dieser Kategorie.</div>'}
+    return rows.length
+      ? rows.map(row => `<option value="${esc(row.key)}" ${state.selectedKey === row.key ? 'selected' : ''}>${esc(row.key)} · ${esc(row.activeCount ?? 0)}/${esc(row.totalCount ?? 0)} aktiv</option>`).join('')
+      : '<option value="">Keine Textkeys</option>';
+  }
+
+  function renderVariantRows(row){
+    const values = variantValues(row);
+    const rows = values.length ? values : [''];
+    return rows.map((value, index) => `
+      <div class="shoutout-texts-variant-row" data-shoutout-text-variant-row>
+        <label>
+          <span>Variante ${index + 1}</span>
+          <textarea data-shoutout-text-variant-input rows="${String(value).length > 110 ? 3 : 2}" spellcheck="false">${esc(value)}</textarea>
+        </label>
+        <button type="button" class="shoutout-texts-icon-btn" data-shoutout-text-remove-variant title="Variante entfernen">×</button>
       </div>
-    `;
+    `).join('');
   }
 
   function renderEditor(){
     const row = selectedKeyRow();
     if (!row) {
-      return '<div class="shoutout-card shoutout-wide"><h3>Kein Textkey ausgewählt</h3><p class="shoutout-muted">Wähle links einen Textkey aus.</p></div>';
+      return '<div class="shoutout-card shoutout-texts-editor"><h3>Kein Textkey ausgewählt</h3><p class="shoutout-muted">Wähle oben eine Kategorie und einen Text aus.</p></div>';
     }
     return `
-      <div class="shoutout-card shoutout-wide shoutout-texts-editor">
-        <div class="shoutout-card-head">
+      <div class="shoutout-card shoutout-texts-editor">
+        <div class="shoutout-card-head shoutout-texts-editor-head">
           <div>
             <h3>${esc(row.key)}</h3>
-            <p>Kategorie: <code>${esc(row.category || 'general')}</code>. Eine Variante pro Zeile. Aktuell wird nur die Variantenliste bearbeitet; Runtime-Fallbacks bleiben bestehen.</p>
+            <p>Kategorie: <code>${esc(categoryLabel(row.category))}</code>. Runtime-Fallbacks bleiben bis zur späteren Umstellung bestehen.</p>
           </div>
           <div class="shoutout-texts-editor-actions">
+            <button type="button" data-shoutout-text-add-variant>+ Variante</button>
             <button type="button" data-shoutout-text-reload>Neu laden</button>
             <button type="button" data-shoutout-text-save>Speichern</button>
           </div>
         </div>
         ${isLegacyCategory(row.category) ? '<div class="shoutout-texts-legacy-note">Legacy/Fallback: Dieser Key bleibt zur Kompatibilität erhalten. Neue Runtime-Zielkeys liegen unter <code>shoutout.*</code>.</div>' : ''}
-        <textarea data-shoutout-text-variants spellcheck="false" rows="${textareaRowsFor(row)}">${esc(variantLines(row))}</textarea>
+        <div class="shoutout-texts-variants" data-shoutout-text-variants-list>
+          ${renderVariantRows(row)}
+        </div>
         <div class="shoutout-texts-help">
           <span>Platzhalter je nach Text: <code>@{displayName}</code>, <code>@{login}</code>, <code>{login}</code>, <code>{waitTime}</code>, <code>{reason}</code></span>
           <span>Varianten: ${esc(row.activeCount ?? 0)} aktiv / ${esc(row.totalCount ?? 0)} gesamt</span>
@@ -259,7 +271,7 @@ window.ShoutoutTextsModule = (function(){
     const m = state.migration || state.data?.migration || {};
     const planned = Array.isArray(m.plannedKeys) ? m.plannedKeys : [];
     return `
-      <details class="shoutout-card shoutout-wide shoutout-texts-migration">
+      <details class="shoutout-card shoutout-texts-migration">
         <summary>
           <span><strong>Migration / Kompatibilität</strong><small>Alte Config-Texte und Legacy-Keys bleiben Fallback.</small></span>
           <span class="shoutout-badge ${m.noRuntimeChange !== false ? 'ok' : 'warn'}">${m.noRuntimeChange !== false ? 'No Runtime Change' : 'Prüfen'}</span>
@@ -277,28 +289,68 @@ window.ShoutoutTextsModule = (function(){
   function render(){
     const p = panel(false);
     if (!p) return;
+    const row = selectedKeyRow();
     p.innerHTML = `
-      <div class="shoutout-texts-head">
-        <div>
-          <div class="shoutout-kicker">Shoutout-System</div>
-          <h2>Texte</h2>
-          <p>Gemeinsamer Textbereich für Chat-Shoutout, AutoShoutout, offiziellen Twitch-Shoutout und Systemmeldungen.</p>
+      <div class="shoutout-texts-shell">
+        <div class="shoutout-texts-head shoutout-card">
+          <div>
+            <div class="shoutout-kicker">Shoutout-System</div>
+            <h2>Texte</h2>
+            <p>Gemeinsamer Textbereich für Chat-Shoutout, AutoShoutout, offiziellen Twitch-Shoutout und Systemmeldungen.</p>
+          </div>
+          <div class="shoutout-texts-head-actions">
+            <button type="button" data-shoutout-text-reload>${state.loading ? 'Lade...' : 'Aktualisieren'}</button>
+          </div>
         </div>
-        <div class="shoutout-texts-head-actions">
-          <button type="button" data-shoutout-text-reload>${state.loading ? 'Lade...' : 'Aktualisieren'}</button>
+        ${state.notice ? `<div class="shoutout-notice ok">${esc(state.notice)}</div>` : ''}
+        ${state.error ? `<div class="shoutout-notice bad">${esc(state.error)}</div>` : ''}
+        <div class="shoutout-card shoutout-texts-picker">
+          <label>
+            <span>Kategorie</span>
+            <select data-shoutout-text-category-select>${renderCategoryOptions()}</select>
+          </label>
+          <label>
+            <span>Text</span>
+            <select data-shoutout-text-key-select>${renderKeyOptions()}</select>
+          </label>
+          <div class="shoutout-texts-picked-meta">
+            <small>Aktuell</small>
+            <strong>${row ? esc(row.key) : '-'}</strong>
+            <span>${row ? `${esc(categoryLabel(row.category))} · ${esc(row.activeCount ?? 0)}/${esc(row.totalCount ?? 0)} aktiv` : 'Kein Text ausgewählt'}</span>
+            ${row && isLegacyCategory(row.category) ? '<em>Legacy</em>' : ''}
+          </div>
         </div>
-      </div>
-      ${state.notice ? `<div class="shoutout-notice ok">${esc(state.notice)}</div>` : ''}
-      ${state.error ? `<div class="shoutout-notice bad">${esc(state.error)}</div>` : ''}
-      <div class="shoutout-texts-layout">
-        ${renderCategoryRail()}
-        <div class="shoutout-texts-main">
-          ${renderKeyList()}
-          ${renderEditor()}
-          ${renderMigration()}
-        </div>
+        ${renderEditor()}
+        ${renderMigration()}
       </div>
     `;
+  }
+
+  function addVariantField(){
+    const list = panel(false)?.querySelector('[data-shoutout-text-variants-list]');
+    if (!list) return;
+    const index = list.querySelectorAll('[data-shoutout-text-variant-row]').length + 1;
+    const wrap = document.createElement('div');
+    wrap.className = 'shoutout-texts-variant-row';
+    wrap.setAttribute('data-shoutout-text-variant-row', '');
+    wrap.innerHTML = `
+      <label>
+        <span>Variante ${index}</span>
+        <textarea data-shoutout-text-variant-input rows="2" spellcheck="false"></textarea>
+      </label>
+      <button type="button" class="shoutout-texts-icon-btn" data-shoutout-text-remove-variant title="Variante entfernen">×</button>
+    `;
+    list.appendChild(wrap);
+    const input = wrap.querySelector('textarea');
+    if (input) input.focus();
+    markDirty(true);
+  }
+
+  function renumberVariants(){
+    panel(false)?.querySelectorAll('[data-shoutout-text-variant-row]').forEach((row, index) => {
+      const span = row.querySelector('label > span');
+      if (span) span.textContent = `Variante ${index + 1}`;
+    });
   }
 
   function activate(){
@@ -336,24 +388,7 @@ window.ShoutoutTextsModule = (function(){
       const nativeTab = event.target && event.target.closest ? event.target.closest('.shoutout-tab') : null;
       if (nativeTab && !nativeTab.hasAttribute('data-shoutout-texts-tab')) deactivate();
 
-      const category = event.target && event.target.closest ? event.target.closest('[data-shoutout-text-category]') : null;
-      if (category && state.active) {
-        event.preventDefault();
-        state.selectedCategory = category.getAttribute('data-shoutout-text-category') || '';
-        state.selectedKey = '';
-        markDirty(false);
-        render();
-        return;
-      }
-
-      const key = event.target && event.target.closest ? event.target.closest('[data-shoutout-text-key]') : null;
-      if (key && state.active) {
-        event.preventDefault();
-        state.selectedKey = key.getAttribute('data-shoutout-text-key') || '';
-        markDirty(false);
-        render();
-        return;
-      }
+      if (!state.active) return;
 
       if (event.target && event.target.matches && event.target.matches('[data-shoutout-text-save]')) {
         event.preventDefault();
@@ -365,11 +400,48 @@ window.ShoutoutTextsModule = (function(){
         event.preventDefault();
         markDirty(false);
         load(true);
+        return;
+      }
+
+      if (event.target && event.target.matches && event.target.matches('[data-shoutout-text-add-variant]')) {
+        event.preventDefault();
+        addVariantField();
+        return;
+      }
+
+      const remove = event.target && event.target.closest ? event.target.closest('[data-shoutout-text-remove-variant]') : null;
+      if (remove) {
+        event.preventDefault();
+        const rows = panel(false)?.querySelectorAll('[data-shoutout-text-variant-row]') || [];
+        if (rows.length <= 1) {
+          const input = rows[0]?.querySelector('[data-shoutout-text-variant-input]');
+          if (input) input.value = '';
+        } else {
+          remove.closest('[data-shoutout-text-variant-row]')?.remove();
+          renumberVariants();
+        }
+        markDirty(true);
       }
     }, true);
 
+    document.addEventListener('change', event => {
+      if (!state.active || !event.target || !event.target.matches) return;
+      if (event.target.matches('[data-shoutout-text-category-select]')) {
+        state.selectedCategory = event.target.value || '';
+        state.selectedKey = '';
+        markDirty(false);
+        ensureSelection();
+        render();
+      }
+      if (event.target.matches('[data-shoutout-text-key-select]')) {
+        state.selectedKey = event.target.value || '';
+        markDirty(false);
+        render();
+      }
+    });
+
     document.addEventListener('input', event => {
-      if (state.active && event.target && event.target.matches && event.target.matches('[data-shoutout-text-variants]')) markDirty(true);
+      if (state.active && event.target && event.target.matches && event.target.matches('[data-shoutout-text-variant-input]')) markDirty(true);
     });
 
     const observer = new MutationObserver(() => {

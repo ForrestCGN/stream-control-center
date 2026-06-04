@@ -1,11 +1,18 @@
-# Shoutout Text Dashboard Tab
+# Shoutout-System – Texte-Tab
 
-Der Shoutout-Texte-Tab ist der gemeinsame Editor für Textvarianten des Shoutout-Systems.
+Stand: CAN-44.19.2
 
-## Dateien
+## Zweck
 
-- `htdocs/dashboard/modules/shoutout_texts.js`
-- `htdocs/dashboard/modules/shoutout_texts.css`
+Der Texte-Tab ist der gemeinsame Editor für Shoutout-Texte im Shoutout-System.
+
+Er ist für folgende Bereiche vorbereitet:
+
+- Chat-Shoutout
+- AutoShoutout
+- offizieller Twitch-Shoutout
+- Systemmeldungen
+- Legacy/Fallback-Texte
 
 ## Routen
 
@@ -13,21 +20,31 @@ Der Shoutout-Texte-Tab ist der gemeinsame Editor für Textvarianten des Shoutout
 - `POST /api/clip-shoutout/texts`
 - `GET /api/clip-shoutout/texts/migration`
 
-## Kategorien
+## Zielstandard
 
-- `shoutout.chat` – Chat-Shoutout
-- `shoutout.auto` – AutoShoutout
-- `shoutout.official` – Offizieller Twitch-Shoutout
-- `shoutout.system` – Systemmeldungen
-- `auto_shoutout` – Legacy/Fallback für ältere AutoShoutout-Texte
+Die Texte werden über den bestehenden Helper-Standard verwaltet:
 
-## CAN-44.19.1 UI-Cleanup
+- `helper_texts`
+- `module_text_variants`
+- Kategorien wie `shoutout.chat`, `shoutout.auto`, `shoutout.official`, `shoutout.system`
 
-- Die Textarea ist kompakter und wächst nicht mehr unnötig groß bei wenigen Varianten.
-- Legacy-Kategorien und Legacy-Keys werden sichtbar markiert.
-- Der Migration-/Kompatibilitätsblock ist einklappbar.
-- Backend, Datenbank und Runtime-Verhalten bleiben unverändert.
+## Aktuelles Dashboard-Layout
 
-## Wichtig
+Seit CAN-44.19.2 nutzt der Texte-Tab ein kompaktes Dropdown-Layout:
 
-Die Runtime verwendet weiterhin bestehende Config-/Legacy-Fallbacks, bis eine spätere bewusste Umstellung auf die neuen `shoutout.*` Keys erfolgt.
+1. Kategorie-Auswahl
+2. Text-Key-Auswahl
+3. Editor mit einzelnen Variantenfeldern
+4. Migration / Kompatibilität als eingeklappter Diagnoseblock
+
+Das Layout ist bewusst responsiver als das vorherige Listen-/Spaltenlayout und soll bei unterschiedlichen Auflösungen kontrollierter umbrechen.
+
+## Kompatibilität
+
+- Legacy-Key `auto.greeting` bleibt sichtbar und erhalten.
+- Neue Zielkeys liegen unter `shoutout.*`.
+- Runtime-Fallbacks bleiben bestehen, bis die Runtime später bewusst auf die neuen Keys umgestellt wird.
+
+## Abgrenzung
+
+CAN-44.19.2 ändert nur die Oberfläche des Text-Tabs. Es gibt keine Backend-, DB- oder Runtime-Änderung.
