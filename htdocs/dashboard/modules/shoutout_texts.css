@@ -1,0 +1,223 @@
+.shoutout-texts-panel {
+  display: block;
+}
+
+.shoutout-texts-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.shoutout-texts-head h2 {
+  margin: 2px 0 4px;
+}
+
+.shoutout-texts-head p {
+  margin: 0;
+  color: var(--muted, #9fb0c8);
+}
+
+.shoutout-texts-head-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.shoutout-texts-layout {
+  display: grid;
+  grid-template-columns: minmax(190px, 250px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.shoutout-texts-rail,
+.shoutout-texts-keylist,
+.shoutout-texts-editor,
+.shoutout-texts-migration {
+  border-radius: 18px;
+}
+
+.shoutout-texts-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(10, 14, 28, 0.44);
+  border: 1px solid rgba(169, 92, 255, 0.22);
+}
+
+.shoutout-texts-cat,
+.shoutout-texts-key {
+  width: 100%;
+  text-align: left;
+  border: 1px solid rgba(144, 202, 255, 0.16);
+  background: rgba(255, 255, 255, 0.045);
+  color: inherit;
+  border-radius: 14px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.shoutout-texts-cat:hover,
+.shoutout-texts-key:hover {
+  transform: translateY(-1px);
+  border-color: rgba(116, 235, 255, 0.45);
+  background: rgba(116, 235, 255, 0.07);
+}
+
+.shoutout-texts-cat.active,
+.shoutout-texts-key.active {
+  border-color: rgba(190, 105, 255, 0.75);
+  background: rgba(158, 80, 255, 0.16);
+  box-shadow: 0 0 16px rgba(158, 80, 255, 0.18);
+}
+
+.shoutout-texts-cat small {
+  float: right;
+  opacity: 0.75;
+}
+
+.shoutout-texts-main {
+  display: grid;
+  grid-template-columns: minmax(230px, 320px) minmax(0, 1fr);
+  gap: 14px;
+}
+
+.shoutout-texts-keylist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(10, 14, 28, 0.34);
+  border: 1px solid rgba(169, 92, 255, 0.18);
+  max-height: 660px;
+  overflow: auto;
+}
+
+.shoutout-texts-key strong,
+.shoutout-texts-key span {
+  display: block;
+}
+
+.shoutout-texts-key strong {
+  font-size: 13px;
+  word-break: break-word;
+}
+
+.shoutout-texts-key span {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--muted, #9fb0c8);
+}
+
+.shoutout-texts-editor {
+  min-width: 0;
+}
+
+.shoutout-texts-editor-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.shoutout-texts-editor textarea {
+  width: 100%;
+  min-height: 300px;
+  box-sizing: border-box;
+  border-radius: 14px;
+  border: 1px solid rgba(116, 235, 255, 0.28);
+  background: rgba(4, 8, 20, 0.58);
+  color: inherit;
+  padding: 12px;
+  font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  resize: vertical;
+  outline: none;
+}
+
+.shoutout-texts-editor textarea:focus {
+  border-color: rgba(190, 105, 255, 0.78);
+  box-shadow: 0 0 18px rgba(190, 105, 255, 0.18);
+}
+
+.shoutout-texts-help {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  color: var(--muted, #9fb0c8);
+  font-size: 12px;
+}
+
+.shoutout-texts-help code,
+.shoutout-texts-migration code {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 5px;
+  border-radius: 6px;
+}
+
+.shoutout-texts-migration {
+  grid-column: 2;
+}
+
+.shoutout-texts-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.shoutout-texts-meta-grid > div {
+  border: 1px solid rgba(144, 202, 255, 0.14);
+  background: rgba(255, 255, 255, 0.045);
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+
+.shoutout-texts-meta-grid small,
+.shoutout-texts-meta-grid strong {
+  display: block;
+}
+
+.shoutout-texts-meta-grid small {
+  color: var(--muted, #9fb0c8);
+  margin-bottom: 4px;
+}
+
+.shoutout-texts-meta-grid strong {
+  word-break: break-word;
+}
+
+.shoutout-texts-empty {
+  padding: 16px;
+  color: var(--muted, #9fb0c8);
+  text-align: center;
+}
+
+@media (max-width: 1180px) {
+  .shoutout-texts-layout,
+  .shoutout-texts-main {
+    grid-template-columns: 1fr;
+  }
+
+  .shoutout-texts-migration {
+    grid-column: auto;
+  }
+
+  .shoutout-texts-meta-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .shoutout-texts-head {
+    flex-direction: column;
+  }
+
+  .shoutout-texts-meta-grid {
+    grid-template-columns: 1fr;
+  }
+}
