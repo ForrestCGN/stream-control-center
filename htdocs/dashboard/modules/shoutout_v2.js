@@ -1,8 +1,8 @@
 window.ShoutoutV2Module = (function(){
   'use strict';
 
-  const MODULE_VERSION = '2.0.3-minimal';
-  const BUILD = 'CAN-44.21.3.2';
+  const MODULE_VERSION = '2.0.4-manual';
+  const BUILD = 'CAN-44.21.4';
 
   const API = {
     status: '/api/clip-shoutout/status',
@@ -42,7 +42,10 @@ window.ShoutoutV2Module = (function(){
     inbound: null,
     inboundStats: null,
     productionCheck: null,
-    liveTest: null
+    liveTest: null,
+    manualTarget: '',
+    manualForce: false,
+    manualResult: null
   };
 
   let root = null;
@@ -115,6 +118,32 @@ window.ShoutoutV2Module = (function(){
     const failed = /fail|error|fehler/i.test(`${type} ${status}`);
     const done = /done|sent|success|fertig|gesendet/i.test(`${type} ${status}`);
     return { title, meta: metaParts.join(' · '), tone: failed ? 'warn' : (done ? 'ok' : 'neutral') };
+  }
+
+  function cleanChannelInput(value){
+    return String(value || '')
+      .trim()
+      .replace(/^https?:\/\/([^\/]+\.)?twitch\.tv\//i, '')
+      .replace(/^@+/, '')
+      .replace(/\s+/g, '')
+      .replace(/[^a-zA-Z0-9_]/g, '')
+      .slice(0, 40);
+  }
+
+  function explainReason(value){
+    const reason = String(value || '').trim();
+    const map = {
+      accepted: 'Shoutout wurde aufgenommen.',
+      queued: 'Shoutout wartet in der Liste.',
+      waiting: 'Shoutout wartet in der Liste.',
+      duplicate: 'Dieser Kanal hatte im aktuellen Stream bereits einen Shoutout.',
+      stream_not_live: 'Der Stream ist aktuell nicht live.',
+      live_gate_waiting: 'Offizieller Twitch-Shoutout wartet, bis der Stream live ist.',
+      cooldown: 'Es läuft noch eine Wartezeit.',
+      target_cooldown: 'Für diesen Kanal läuft noch eine Wartezeit.',
+      global_cooldown: 'Twitch erlaubt den nächsten offiziellen Shoutout erst später.'
+    };
+    return map[reason] || reason || '';
   }
 
   function badge(value, tone = 'neutral'){
@@ -331,24 +360,52 @@ window.ShoutoutV2Module = (function(){
   }
 
   function renderManual(){
+    const stream = state.streamStatus || {};
+    const status = state.status || {};
+    const live = pick(stream, ['live','isLive','data.live'], pick(status, ['stream.live','live'], false));
+    const stale = pick(stream, ['stale','data.stale'], false);
+    const source = pick(stream, ['source','upstream','data.source'], pick(status, ['stream.source','source'], 'twitch_api'));
+    const displayOpen = pickNumber(status, ['displayOpen','display.open','queues.display.open','displayQueueOpen'], 0);
+    const officialOpen = pickNumber(status, ['officialOpen','official.open','queues.official.open','officialQueueOpen'], 0);
+    const result = state.manualResult || null;
+
     return `
-      <div class="so2-two">
-        <section class="so2-panel">
-          <h3>Shoutout manuell auslösen</h3>
-          <p>Hier kann ein Mod oder Streamer einen Shoutout aufnehmen. Erweiterte Optionen bleiben klar beschriftet.</p>
-          <label class="so2-label">Twitch-Kanal</label>
-          <div class="so2-inline">
-            <input type="text" data-so2-target placeholder="z. B. urlug" autocomplete="off">
-            <label class="so2-check"><input type="checkbox" data-so2-force> Erzwingen</label>
-            <button type="button" data-so2-run>Shoutout aufnehmen</button>
+      <div class="so2-manual-layout">
+        <section class="so2-panel so2-manual-main">
+          <div class="so2-section-title">
+            <div><h3>Shoutout auslösen</h3></div>
+            ${badge(live ? 'Stream live' : 'Stream offline', live ? 'ok' : 'warn')}
           </div>
-          <small class="so2-help">„Erzwingen“ nur nutzen, wenn du Sperren bewusst übergehen möchtest.</small>
+
+          <div class="so2-manual-form">
+            <label class="so2-field">
+              <span>Twitch-Kanal</span>
+              <input type="text" data-so2-target placeholder="z. B. urlug" autocomplete="off" value="${esc(state.manualTarget || '')}">
+            </label>
+            <label class="so2-check so2-force-check">
+              <input type="checkbox" data-so2-force ${state.manualForce ? 'checked' : ''}>
+              <span>Erzwingen</span>
+            </label>
+            <button type="button" class="so2-primary-action" data-so2-run>Aufnehmen</button>
+          </div>
+
+          <div class="so2-note">
+            <strong>Hinweis:</strong>
+            <span>„Erzwingen“ nur nutzen, wenn der Kanal trotz Streamtag-Sperre erneut aufgenommen werden soll.</span>
+          </div>
+
+          ${renderManualResult(result)}
         </section>
-        <section class="so2-panel">
-          <h3>Live-Hinweis</h3>
-          <p>V2 zeigt hier später nur kurz, ob offizielle Twitch-Shoutouts direkt gesendet oder geparkt werden. Technische Details bleiben in Diagnose.</p>
-          ${renderGateMini()}
-        </section>
+
+        <aside class="so2-panel so2-manual-side">
+          <h3>Was passiert?</h3>
+          <div class="so2-decision-list">
+            <div><strong>Overlay</strong><span>Der Shoutout wird in die Overlay-Warteschlange aufgenommen.</span></div>
+            <div><strong>Twitch</strong><span>${live ? 'Offizielle Twitch-Shoutouts können direkt geprüft werden.' : 'Wenn Live-Pflicht aktiv ist, wartet der offizielle Twitch-Shoutout bis zum Livestatus.'}</span></div>
+            <div><strong>Warteschlangen</strong><span>${displayOpen} Overlay · ${officialOpen} Twitch offen</span></div>
+            <div><strong>Statusquelle</strong><span>${esc(source)}${stale ? ' · eventuell alt' : ''}</span></div>
+          </div>
+        </aside>
       </div>
     `;
   }
@@ -428,6 +485,20 @@ window.ShoutoutV2Module = (function(){
     `;
   }
 
+  function renderManualResult(result){
+    if (!result) return '';
+    const ok = result.ok !== false && !result.error;
+    const target = result.target || result.targetLogin || result.login || state.manualTarget || '';
+    const reason = explainReason(result.reason || result.status || result.state || '');
+    return `
+      <div class="so2-manual-result ${ok ? 'is-ok' : 'is-warn'}">
+        <strong>${ok ? 'Aufgenommen' : 'Hinweis'}</strong>
+        <span>${esc(target ? `Shoutout für ${target}.` : (ok ? 'Shoutout wurde verarbeitet.' : 'Aktion konnte nicht abgeschlossen werden.'))}</span>
+        ${reason ? `<small>${esc(reason)}</small>` : ''}
+      </div>
+    `;
+  }
+
   function metricCard(label, value, help){
     return `<article class="so2-metric"><small>${esc(label)}</small><strong>${esc(value ?? 0)}</strong><span>${esc(help || '')}</span></article>`;
   }
@@ -467,24 +538,30 @@ window.ShoutoutV2Module = (function(){
   }
 
   async function runManual(){
-    const target = root?.querySelector('[data-so2-target]')?.value?.trim();
+    const target = cleanChannelInput(root?.querySelector('[data-so2-target]')?.value);
     const force = root?.querySelector('[data-so2-force]')?.checked === true;
+    state.manualTarget = target;
+    state.manualForce = force;
     if (!target) {
       state.notice = '';
       state.error = 'Bitte einen Twitch-Kanal eintragen.';
+      state.manualResult = null;
       render();
       return;
     }
     state.loading = true;
     state.error = '';
     state.notice = '';
+    state.manualResult = null;
     render();
     try {
-      await api(API.run, { method: 'POST', body: JSON.stringify({ target, login: target, force }) });
-      state.notice = `Shoutout für ${target} wurde aufgenommen.`;
+      const result = await api(API.run, { method: 'POST', body: JSON.stringify({ target, login: target, targetLogin: target, force, args: force ? ['--force'] : [] }) });
+      state.manualResult = { ...(result && typeof result === 'object' ? result : {}), target, ok: result?.ok !== false };
+      state.notice = '';
       await loadAll(true);
     } catch (err) {
       state.error = err.message || String(err);
+      state.manualResult = { ok: false, target, error: state.error };
       state.loading = false;
       render();
     }
@@ -510,11 +587,19 @@ window.ShoutoutV2Module = (function(){
       }
     });
 
+    document.addEventListener('input', ev => {
+      if (!root?.contains(ev.target)) return;
+      if (ev.target?.matches?.('[data-so2-target]')) state.manualTarget = cleanChannelInput(ev.target.value);
+    });
+
     document.addEventListener('change', ev => {
-      if (ev.target?.matches?.('[data-so2-autorefresh]') && root?.contains(ev.target)) {
+      if (!root?.contains(ev.target)) return;
+      if (ev.target?.matches?.('[data-so2-autorefresh]')) {
         state.autoRefresh = ev.target.checked === true;
         scheduleRefresh();
+        return;
       }
+      if (ev.target?.matches?.('[data-so2-force]')) state.manualForce = ev.target.checked === true;
     });
 
     document.addEventListener('keydown', ev => {

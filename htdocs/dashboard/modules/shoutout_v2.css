@@ -293,3 +293,105 @@
     height:0;
   }
 }
+
+/* CAN-44.21.4 – manueller Shoutout-Tab */
+.shoutout-v2-admin .so2-manual-layout{
+  display:grid;
+  grid-template-columns:minmax(0,1.35fr) minmax(320px,.65fr);
+  gap:16px;
+}
+.shoutout-v2-admin .so2-manual-main{
+  display:grid;
+  gap:14px;
+}
+.shoutout-v2-admin .so2-manual-form{
+  display:grid;
+  grid-template-columns:minmax(260px,1fr) auto auto;
+  align-items:end;
+  gap:12px;
+}
+.shoutout-v2-admin .so2-field{
+  display:grid;
+  gap:7px;
+}
+.shoutout-v2-admin .so2-field span{
+  font-size:12px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:#cbd5e1;
+  font-weight:900;
+}
+.shoutout-v2-admin .so2-force-check{
+  min-height:42px;
+  padding:0 4px;
+}
+.shoutout-v2-admin .so2-primary-action{
+  min-height:42px;
+  background:linear-gradient(135deg,rgba(168,85,247,.42),rgba(34,211,238,.18));
+  border-color:rgba(103,232,249,.42);
+}
+.shoutout-v2-admin .so2-note{
+  display:flex;
+  gap:8px;
+  align-items:flex-start;
+  border:1px solid rgba(34,211,238,.16);
+  background:rgba(34,211,238,.06);
+  border-radius:14px;
+  padding:10px 12px;
+  color:var(--so2-muted);
+  font-size:13px;
+  line-height:1.35;
+}
+.shoutout-v2-admin .so2-note strong{
+  color:#dbeafe;
+}
+.shoutout-v2-admin .so2-manual-result{
+  display:grid;
+  gap:4px;
+  border-radius:15px;
+  padding:12px 14px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.055);
+}
+.shoutout-v2-admin .so2-manual-result.is-ok{
+  border-color:rgba(52,211,153,.28);
+  background:rgba(52,211,153,.10);
+}
+.shoutout-v2-admin .so2-manual-result.is-warn{
+  border-color:rgba(250,204,21,.28);
+  background:rgba(250,204,21,.10);
+}
+.shoutout-v2-admin .so2-manual-result small{
+  color:var(--so2-muted);
+}
+.shoutout-v2-admin .so2-manual-side{
+  align-content:start;
+}
+.shoutout-v2-admin .so2-decision-list{
+  display:grid;
+  gap:10px;
+  margin-top:10px;
+}
+.shoutout-v2-admin .so2-decision-list div{
+  display:grid;
+  gap:3px;
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(0,0,0,.13);
+  border-radius:14px;
+  padding:11px 12px;
+}
+.shoutout-v2-admin .so2-decision-list strong{
+  color:#fff;
+}
+.shoutout-v2-admin .so2-decision-list span{
+  color:var(--so2-muted);
+  font-size:13px;
+  line-height:1.35;
+}
+@media(max-width:1100px){
+  .shoutout-v2-admin .so2-manual-layout{grid-template-columns:1fr}
+}
+@media(max-width:760px){
+  .shoutout-v2-admin .so2-manual-form{grid-template-columns:1fr}
+  .shoutout-v2-admin .so2-force-check{min-height:0}
+}
