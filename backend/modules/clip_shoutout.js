@@ -19,7 +19,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.22";
+const MODULE_VERSION = "0.2.23";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -3896,6 +3896,135 @@ function recordAutoMessageActivity(login, displayName, streamDayId, acfg, source
   return activity;
 }
 
+
+function previewAutoMessageActivity(login, displayName, streamDayId, acfg, source = {}) {
+  ensureAutoShoutoutSchema();
+  const clean = cleanLogin(login);
+  if (!clean) return null;
+  const now = nowIso();
+  const nowMs = Date.now();
+  const dayId = String(streamDayId || 'no_stream_day');
+  const requiredMessages = Math.max(1, Number.parseInt(acfg.minMessagesBeforeTrigger || 3, 10) || 3);
+  const windowMs = Math.max(60000, Number(acfg.messageWindowMs || 1800000) || 1800000);
+  const existing = database.get(`
+    SELECT * FROM ${database.quoteIdentifier('clip_shoutout_auto_message_activity')}
+    WHERE target_login=:login AND stream_day_id=:streamDayId
+    LIMIT 1
+  `, { login: clean, streamDayId: dayId });
+
+  let messageCount = 1;
+  let windowStartedAt = now;
+  let greetedAt = '';
+  let triggeredAt = '';
+  const existingWindowStartedMs = msFromIso(existing && existing.window_started_at);
+  const existingLastMessageMs = msFromIso(existing && existing.last_message_at);
+  const windowExpired = existing && (
+    (existingWindowStartedMs && existingWindowStartedMs + Number(existing.window_ms || windowMs) < nowMs) ||
+    (existingLastMessageMs && existingLastMessageMs + Number(existing.window_ms || windowMs) < nowMs)
+  );
+
+  if (existing && !windowExpired) {
+    messageCount = Math.max(0, Number(existing.message_count || 0)) + 1;
+    windowStartedAt = String(existing.window_started_at || now);
+    greetedAt = String(existing.greeted_at || '');
+    triggeredAt = String(existing.triggered_at || '');
+  }
+
+  const startedMs = msFromIso(windowStartedAt);
+  return {
+    id: existing && !windowExpired ? Number(existing.id || 0) : 0,
+    login: clean,
+    displayName: cleanDisplay(displayName || clean, clean),
+    streamDayId: dayId,
+    windowStartedAt,
+    lastMessageAt: now,
+    messageCount,
+    requiredMessages,
+    windowMs,
+    windowEndsAt: startedMs ? isoFromMs(startedMs + windowMs) : '',
+    remainingMessages: Math.max(0, requiredMessages - messageCount),
+    windowRemainingMs: startedMs ? Math.max(0, startedMs + windowMs - nowMs) : 0,
+    greetedAt,
+    triggeredAt,
+    updatedAt: now,
+    meta: { source: source || {}, previousCount: existing && !windowExpired ? Number(existing.message_count || 0) : 0, resetBecauseWindowExpired: Boolean(existing && windowExpired), dryRun: true }
+  };
+}
+
+async function simulateAutoShoutoutChatActivity(parsed, source = {}, env = process.env) {
+  const cfg = shoutoutConfig();
+  const acfg = autoShoutoutConfig(cfg);
+  const login = cleanLogin(parsed && (parsed.login || parsed.tags?.login || ''));
+  const displayName = cleanDisplay(parsed && (parsed.displayName || parsed.tags?.['display-name'] || login), login);
+  state.autoShoutout.lastCheckedAt = nowIso();
+
+  if (acfg.enabled !== true) return { ok: true, dryRun: true, skipped: true, reason: 'auto_shoutout_disabled', wouldTrigger: false };
+  if (!parsed || String(parsed.command || '').toUpperCase() !== 'PRIVMSG') return { ok: true, dryRun: true, skipped: true, reason: 'not_privmsg', wouldTrigger: false };
+  if (!login) return { ok: true, dryRun: true, skipped: true, reason: 'login_missing', wouldTrigger: false };
+
+  const streamer = findAutoStreamer(login, cfg);
+  if (!streamer) return { ok: true, dryRun: true, skipped: true, reason: 'not_configured_streamer', wouldTrigger: false, targetLogin: login };
+  if (streamer.videoShoutout === false && streamer.officialShoutout === false) return { ok: true, dryRun: true, skipped: true, reason: 'streamer_actions_disabled', wouldTrigger: false, targetLogin: login };
+
+  const streamState = readCurrentStreamState(cfg);
+  const sceneGate = readShoutoutSceneGateState(cfg, env);
+  if (acfg.onlyWhenLive === true && !(streamState && streamState.live === true && streamState.stale !== true && streamState.statusKnown !== false)) {
+    return { ok: true, dryRun: true, skipped: true, reason: 'stream_not_live', wouldTrigger: false, targetLogin: login, streamState };
+  }
+
+  const streamDay = resolveCurrentStreamDay(env, cfg);
+  const streamDayId = streamDay && streamDay.streamDayId ? String(streamDay.streamDayId) : '';
+  const varsBase = { login, displayName: streamer.displayName || displayName || login, waitTime: 'wenige Sekunden', streamDayId };
+
+  const pendingDisplay = findPendingDisplayShoutout(login);
+  if (pendingDisplay) {
+    const waitTime = formatApproxDuration(estimateDisplayWaitMsForQueueId(pendingDisplay.id, cfg));
+    return { ok: true, dryRun: true, skipped: true, reason: 'already_queued', wouldTrigger: false, targetLogin: login, existingDisplayQueueId: pendingDisplay.id, waitTime, streamDayId };
+  }
+
+  if (acfg.triggerOnFirstMessageOnly !== false) {
+    const existingAuto = database.get(`
+      SELECT * FROM ${database.quoteIdentifier('clip_shoutout_auto_events')}
+      WHERE target_login=:login AND stream_day_id=:streamDayId AND status='triggered'
+      ORDER BY id DESC LIMIT 1
+    `, { login, streamDayId });
+    if (existingAuto) return { ok: true, dryRun: true, skipped: true, reason: 'already_auto_triggered_this_stream_day', wouldTrigger: false, targetLogin: login, existingAutoId: existingAuto.id, streamDayId };
+  }
+
+  if (acfg.respectStreamDayLimit !== false) {
+    const existingManualOrAuto = findExistingStreamDayShoutout(login, streamDayId);
+    if (existingManualOrAuto) return { ok: true, dryRun: true, skipped: true, reason: 'already_had_shoutout_this_stream_day', wouldTrigger: false, targetLogin: login, existingDisplayQueueId: existingManualOrAuto.id, streamDayId };
+  }
+
+  const cooldown = autoCooldownStatus(login, cfg);
+  if (!cooldown.ok) {
+    const waitMs = Math.max(0, msFromIso(cooldown.nextAllowedAt) - Date.now());
+    return { ok: true, dryRun: true, skipped: true, reason: cooldown.blockedBy || 'cooldown', wouldTrigger: false, targetLogin: login, cooldown, waitTime: formatApproxDuration(waitMs), streamDayId };
+  }
+
+  const activity = previewAutoMessageActivity(login, streamer.displayName || displayName || login, streamDayId, acfg, source);
+  const requiredMessages = Math.max(1, Number(acfg.minMessagesBeforeTrigger || 3));
+  const wouldTrigger = Boolean(activity && activity.messageCount >= requiredMessages);
+  const waitMs = wouldTrigger ? 0 : Math.max(0, activity ? activity.windowRemainingMs : 0);
+  return {
+    ok: true,
+    dryRun: true,
+    targetLogin: login,
+    wouldTrigger,
+    wouldSendGreeting: wouldTrigger && acfg.greetingEnabled !== false && (!activity || !activity.greetedAt),
+    wouldQueueDisplay: wouldTrigger,
+    wouldSendQueuedMessage: false,
+    reason: wouldTrigger ? (sceneGate.active ? 'would_queue_waiting_start_scene' : 'would_queue') : 'message_threshold_waiting',
+    waitTime: wouldTrigger ? 'wenige Sekunden' : formatApproxDuration(waitMs),
+    waitMs,
+    activity,
+    sceneGate,
+    streamDay,
+    streamState,
+    note: 'Dry-Run: Es wurde nichts in die Shoutout-Queue gelegt und keine Chatmeldung gesendet.'
+  };
+}
+
 function markAutoMessageActivityGreeting(login, streamDayId) {
   const clean = cleanLogin(login);
   const dayId = String(streamDayId || 'no_stream_day');
@@ -4186,6 +4315,110 @@ function autoResetTargetLogins(body = {}, cfg = null) {
   if (explicit) return [explicit];
   const streamers = listAutoStreamers(currentCfg).map(row => cleanLogin(row.login)).filter(Boolean);
   return Array.from(new Set(streamers));
+}
+
+
+function clearAutoShoutoutTarget(body = {}) {
+  ensureAutoShoutoutSchema();
+  ensureDisplayQueueSchema();
+  ensureOfficialShoutoutSchema();
+
+  const cfg = shoutoutConfig();
+  const login = cleanLogin(body.login || body.target || body.user || body.name || body.channel || '');
+  if (!login) return { ok: false, error: 'login_required' };
+
+  const mode = String(body.mode || body.scope || 'today').trim().toLowerCase();
+  const resetInfo = autoResetStartIso(mode);
+  const since = String(body.since || body.start || resetInfo.since || '').trim();
+  const streamDayId = String(body.streamDayId || body.stream_day_id || '').trim();
+  const reason = String(body.reason || 'auto_shoutout_clear_target').trim();
+  const now = nowIso();
+  const params = { login, since, now, reason };
+  const streamDaySql = streamDayId ? ' AND stream_day_id=:streamDayId' : '';
+  if (streamDayId) params.streamDayId = streamDayId;
+
+  const affectedDisplayRows = database.all(`
+    SELECT id,target_login,status,stream_day_id,created_at,meta_json,input_json
+    FROM clip_shoutout_display_queue
+    WHERE target_login=:login
+      AND created_at >= :since
+      ${streamDaySql}
+      AND status IN ('queued','waiting','active','done','failed')
+  `, params) || [];
+  const displayIds = affectedDisplayRows.map(row => Number(row.id || 0)).filter(Boolean);
+  const displayIdParams = {};
+  const displayIdSql = displayIds.length
+    ? ` OR display_queue_id IN (${displayIds.map((id, idx) => { const key = `displayId${idx}`; displayIdParams[key] = id; return `:${key}`; }).join(',')})`
+    : '';
+
+  const removedOfficialQueue = database.run(`
+    UPDATE clip_shoutout_official_queue
+    SET status='removed', updated_at=:now, last_error=:reason
+    WHERE status IN ('queued','waiting','failed')
+      AND (
+        (target_login=:login AND created_at >= :since)
+        ${displayIdSql}
+      )
+  `, { ...params, ...displayIdParams });
+
+  const deletedOfficialHistory = database.run(`
+    DELETE FROM clip_shoutout_official_history
+    WHERE target_login=:login
+      AND sent_at >= :since
+      ${displayIds.length ? `AND display_queue_id IN (${displayIds.map((id, idx) => { const key = `histDisplayId${idx}`; displayIdParams[key] = id; return `:${key}`; }).join(',')})` : ''}
+  `, { ...params, ...displayIdParams });
+
+  const removedDisplay = database.run(`
+    UPDATE clip_shoutout_display_queue
+    SET status='removed', updated_at=:now, last_error=:reason
+    WHERE target_login=:login
+      AND created_at >= :since
+      ${streamDaySql}
+      AND status IN ('queued','waiting','active','done','failed')
+  `, params);
+
+  const deletedEvents = database.run(`
+    DELETE FROM clip_shoutout_auto_events
+    WHERE target_login=:login
+      AND created_at >= :since
+      ${streamDaySql}
+  `, params);
+
+  const deletedActivity = database.run(`
+    DELETE FROM clip_shoutout_auto_message_activity
+    WHERE target_login=:login
+      ${streamDayId ? 'AND stream_day_id=:streamDayId' : ''}
+  `, params);
+
+  resetAutoShoutoutRuntimeState('auto_clear_target');
+  emitShoutoutBus('shoutout.auto.target_cleared', {
+    login,
+    mode: resetInfo.mode || mode || 'today',
+    since,
+    streamDayId,
+    reason,
+    affectedDisplayQueueIds: displayIds,
+    removedDisplay: Number(removedDisplay && (removedDisplay.changes ?? removedDisplay.affectedRows) || 0),
+    removedOfficialQueue: Number(removedOfficialQueue && (removedOfficialQueue.changes ?? removedOfficialQueue.affectedRows) || 0),
+    deletedOfficialHistory: Number(deletedOfficialHistory && (deletedOfficialHistory.changes ?? deletedOfficialHistory.affectedRows) || 0),
+    deletedEvents: Number(deletedEvents && (deletedEvents.changes ?? deletedEvents.affectedRows) || 0),
+    deletedActivity: Number(deletedActivity && (deletedActivity.changes ?? deletedActivity.affectedRows) || 0)
+  }, cfg);
+
+  return {
+    ok: true,
+    login,
+    mode: resetInfo.mode || mode || 'today',
+    since,
+    streamDayId,
+    affectedDisplayQueueIds: displayIds,
+    removedDisplay: Number(removedDisplay && (removedDisplay.changes ?? removedDisplay.affectedRows) || 0),
+    removedOfficialQueue: Number(removedOfficialQueue && (removedOfficialQueue.changes ?? removedOfficialQueue.affectedRows) || 0),
+    deletedOfficialHistory: Number(deletedOfficialHistory && (deletedOfficialHistory.changes ?? deletedOfficialHistory.affectedRows) || 0),
+    deletedEvents: Number(deletedEvents && (deletedEvents.changes ?? deletedEvents.affectedRows) || 0),
+    deletedActivity: Number(deletedActivity && (deletedActivity.changes ?? deletedActivity.affectedRows) || 0),
+    runtimeReset: true
+  };
 }
 
 function resetAutoShoutoutDay(body = {}) {
@@ -4868,13 +5101,31 @@ module.exports.init = function init(ctx) {
         badges: {},
         tags: { login, 'display-name': cleanDisplay(body.displayName || body.display || login, login) }
       };
-      const result = await handleAutoShoutoutChatActivity(parsed, { source: 'api_auto_test', channel: String(req.query?.channel || body.channel || '') }, env);
-      res.json({ ok: result && result.ok !== false, result, autoShoutout: autoShoutoutStatus(shoutoutConfig()) });
+      const dryRunRaw = body.dryRun ?? body.dry_run ?? req.query?.dryRun ?? req.query?.dry_run;
+      const executeRaw = body.execute ?? body.run ?? req.query?.execute ?? req.query?.run;
+      const execute = executeRaw === true || String(executeRaw || '').toLowerCase() === 'true' || String(executeRaw || '') === '1';
+      const dryRun = execute ? false : !(dryRunRaw === false || String(dryRunRaw || '').toLowerCase() === 'false' || String(dryRunRaw || '') === '0');
+      const source = { source: dryRun ? 'api_auto_test_dry_run' : 'api_auto_test', channel: String(req.query?.channel || body.channel || ''), dryRun };
+      const result = dryRun
+        ? await simulateAutoShoutoutChatActivity(parsed, source, env)
+        : await handleAutoShoutoutChatActivity(parsed, source, env);
+      res.json({ ok: result && result.ok !== false, dryRun, result, autoShoutout: autoShoutoutStatus(shoutoutConfig()) });
     } catch (err) {
       res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
     }
   });
 
+
+  app.post(`${API_PREFIX}/auto/clear-target`, (req, res) => {
+    try {
+      const body = req.body || {};
+      const result = clearAutoShoutoutTarget({ ...body, ...(req.query || {}) });
+      if (result.ok === false) return res.status(400).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: result.error || 'auto_clear_target_failed' });
+      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, result, autoShoutout: autoShoutoutStatus(shoutoutConfig()), queue: { displayQueue: displayQueueStatus(shoutoutConfig()), officialQueue: officialQueueStatus(shoutoutConfig()) } });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
+    }
+  });
 
   app.post(`${API_PREFIX}/auto/reset-day`, (req, res) => {
     try {
