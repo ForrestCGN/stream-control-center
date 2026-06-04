@@ -47,62 +47,27 @@ window.AutoShoutoutModule = (function(){
     if (!root) return null;
     const tabs = root.querySelector('.shoutout-tabs');
     if (!tabs) return null;
-    let btn = tabs.querySelector('[data-auto-so-tab]');
-    if (!btn) {
-      btn = document.createElement('button');
-      btn.type = 'button';
-      btn.setAttribute('role', 'tab');
-      btn.className = 'shoutout-tab';
-      btn.dataset.autoSoTab = '1';
-      btn.textContent = 'AutoShoutout';
-      const chatTab = tabs.querySelector('[data-shoutout-tab="chat"]');
-      if (chatTab && chatTab.nextSibling) tabs.insertBefore(btn, chatTab.nextSibling);
-      else tabs.appendChild(btn);
-    }
-    return btn;
+    return tabs.querySelector('[data-shoutout-tab="auto"]');
   }
 
   function getPanel(create = true){
     const root = getRoot();
     if (!root) return null;
-    let panel = root.querySelector('#autoShoutoutTabPanel');
-    if (!panel && create) {
-      const tabs = root.querySelector('.shoutout-tabs');
-      panel = document.createElement('div');
-      panel.id = 'autoShoutoutTabPanel';
-      panel.className = 'shoutout-tab-panel auto-so-tab-panel';
-      if (tabs && tabs.parentNode) tabs.parentNode.insertBefore(panel, tabs.nextSibling);
-      else root.appendChild(panel);
-    }
-    return panel;
+    return root.querySelector('#autoShoutoutTabPanel');
   }
 
   function hideNativePanel(hide){
-    const root = getRoot();
-    if (!root) return;
-    root.querySelectorAll('.shoutout-tab-panel').forEach(panel => {
-      if (panel.id !== 'autoShoutoutTabPanel') panel.style.display = hide ? 'none' : '';
-    });
+    // Tabs werden seit CAN-44.20.11 vom Shoutout-Hauptmodul gesteuert.
+    // Diese Funktion bleibt als Kompatibilitäts-Noop erhalten.
   }
 
   function pauseMainShoutoutRefresh(){
-    const root = getRoot();
-    const cb = root?.querySelector?.('[data-shoutout-auto]');
-    if (cb && cb.checked) {
-      cb.checked = false;
-      mainRefreshWasPausedByAutoTab = true;
-      cb.dispatchEvent(new Event('change', { bubbles: true }));
-    }
+    // Der Haupt-Refresh schützt seit CAN-44.20.10 aktive Eingabefelder selbst.
+    // AutoShoutout darf ihn deshalb nicht mehr abschalten.
+    mainRefreshWasPausedByAutoTab = false;
   }
 
   function maybeResumeMainShoutoutRefresh(){
-    if (isShoutoutVisible()) return;
-    const root = getRoot();
-    const cb = root?.querySelector?.('[data-shoutout-auto]');
-    if (cb && mainRefreshWasPausedByAutoTab && !cb.checked) {
-      cb.checked = true;
-      cb.dispatchEvent(new Event('change', { bubbles: true }));
-    }
     mainRefreshWasPausedByAutoTab = false;
   }
 
@@ -126,9 +91,6 @@ window.AutoShoutoutModule = (function(){
     state.activeInShoutout = false;
     if (refreshTimer) clearTimeout(refreshTimer);
     refreshTimer = null;
-    const panel = getPanel(false);
-    if (panel) panel.remove();
-    hideNativePanel(false);
     maybeResumeMainShoutoutRefresh();
   }
 
@@ -613,22 +575,7 @@ window.AutoShoutoutModule = (function(){
       maybeResumeMainShoutoutRefresh();
       return;
     }
-    // Stream-sicher: solange das Shoutout-System geöffnet ist, darf der
-    // Haupt-Auto-Refresh nicht die Tab-Leiste neu rendern und den Auto-Tab
-    // kurzzeitig entfernen. Manuell bleibt „Aktualisieren“ weiterhin möglich.
-    pauseMainShoutoutRefresh();
-    ensureTab();
-    if (state.activeInShoutout) {
-      hideNativePanel(true);
-      const btn = ensureTab();
-      if (btn) {
-        getRoot().querySelectorAll('.shoutout-tab').forEach(tab => {
-          tab.classList.toggle('active', tab === btn);
-          tab.setAttribute('aria-selected', tab === btn ? 'true' : 'false');
-        });
-      }
-      if (!getPanel(false)) render();
-    }
+    if (state.activeInShoutout && getPanel(false) && !isFormEditing()) render();
   }
 
   function init(){
@@ -644,7 +591,7 @@ window.AutoShoutoutModule = (function(){
         deactivateAutoTab();
       }
     });
-    setInterval(maintain, 250);
+    setInterval(maintain, 2000);
     if (document.readyState !== 'loading') setTimeout(maintain, 0);
     else document.addEventListener('DOMContentLoaded', () => setTimeout(maintain, 0));
   }

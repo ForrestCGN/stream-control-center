@@ -21,7 +21,9 @@ window.ShoutoutModule = (function(){
   const TABS = [
     { id: 'overview', label: 'Übersicht' },
     { id: 'chat', label: 'Shoutout' },
+    { id: 'auto', label: 'AutoShoutout' },
     { id: 'queues', label: 'Queues' },
+    { id: 'texts', label: 'Texte' },
     { id: 'analytics', label: 'Auswertung' },
     { id: 'diagnostics', label: 'Diagnose' },
     { id: 'settings', label: 'Einstellungen' }
@@ -1056,11 +1058,25 @@ window.ShoutoutModule = (function(){
 
   function renderActiveTab(){
     if (state.activeTab === 'chat') return renderChat();
+    if (state.activeTab === 'auto') return '<div id="autoShoutoutTabPanel" class="shoutout-tab-panel auto-so-tab-panel"></div>';
     if (state.activeTab === 'queues') return renderQueues();
+    if (state.activeTab === 'texts') return '<div id="shoutoutTextsTabPanel" class="shoutout-tab-panel shoutout-texts-panel"></div>';
     if (state.activeTab === 'analytics') return renderAnalytics();
     if (state.activeTab === 'diagnostics') return renderDiagnostics();
     if (state.activeTab === 'settings') return renderSettingsTest();
     return renderOverview();
+  }
+
+  function afterRenderActiveTab(){
+    const active = state.activeTab;
+    setTimeout(() => {
+      if (!document.getElementById('shoutoutModule')) return;
+      if (active === 'auto') window.AutoShoutoutModule?.activateAutoTab?.();
+      else window.AutoShoutoutModule?.deactivateAutoTab?.();
+
+      if (active === 'texts') window.ShoutoutTextsModule?.activate?.();
+      else window.ShoutoutTextsModule?.deactivate?.();
+    }, 0);
   }
 
   function render(){
@@ -1075,6 +1091,7 @@ window.ShoutoutModule = (function(){
         ${renderActiveTab()}
       </div>
     `;
+    afterRenderActiveTab();
   }
 
   function bind(){

@@ -40,48 +40,18 @@ window.ShoutoutTextsModule = (function(){
     if (!r) return null;
     const tabs = r.querySelector('.shoutout-tabs');
     if (!tabs) return null;
-    let btn = tabs.querySelector('[data-shoutout-texts-tab]');
-    if (!btn) {
-      btn = document.createElement('button');
-      btn.type = 'button';
-      btn.setAttribute('role', 'tab');
-      btn.className = 'shoutout-tab';
-      btn.dataset.shoutoutTextsTab = '1';
-      btn.textContent = 'Texte';
-      const queueTab = tabs.querySelector('[data-shoutout-tab="queues"]');
-      const anchor = queueTab;
-      if (anchor && anchor.nextSibling) tabs.insertBefore(btn, anchor.nextSibling);
-      else tabs.appendChild(btn);
-      btn.addEventListener('click', event => {
-        event.preventDefault();
-        event.stopPropagation();
-        activate();
-      });
-    }
-    return btn;
+    return tabs.querySelector('[data-shoutout-tab="texts"]');
   }
 
   function panel(create = true){
     const r = root();
     if (!r) return null;
-    let p = r.querySelector('#shoutoutTextsTabPanel');
-    if (!p && create) {
-      const tabs = r.querySelector('.shoutout-tabs');
-      p = document.createElement('div');
-      p.id = 'shoutoutTextsTabPanel';
-      p.className = 'shoutout-tab-panel shoutout-texts-panel';
-      if (tabs && tabs.parentNode) tabs.parentNode.insertBefore(p, tabs.nextSibling);
-      else r.appendChild(p);
-    }
-    return p;
+    return r.querySelector('#shoutoutTextsTabPanel');
   }
 
   function hideOtherPanels(hide){
-    const r = root();
-    if (!r) return;
-    r.querySelectorAll('.shoutout-tab-panel').forEach(p => {
-      if (p.id !== 'shoutoutTextsTabPanel') p.style.display = hide ? 'none' : '';
-    });
+    // Tabs werden seit CAN-44.20.11 vom Shoutout-Hauptmodul gesteuert.
+    // Diese Funktion bleibt als Kompatibilitäts-Noop erhalten.
   }
 
   function categories(){
@@ -371,8 +341,6 @@ window.ShoutoutTextsModule = (function(){
   function deactivate(){
     if (!state.active) return;
     state.active = false;
-    const p = panel(false);
-    if (p) p.remove();
     hideOtherPanels(false);
   }
 
@@ -386,7 +354,7 @@ window.ShoutoutTextsModule = (function(){
         return;
       }
       const nativeTab = event.target && event.target.closest ? event.target.closest('.shoutout-tab') : null;
-      if (nativeTab && !nativeTab.hasAttribute('data-shoutout-texts-tab')) deactivate();
+      if (nativeTab && nativeTab.getAttribute('data-shoutout-tab') !== 'texts') deactivate();
 
       if (!state.active) return;
 
@@ -441,19 +409,13 @@ window.ShoutoutTextsModule = (function(){
     });
 
     const observer = new MutationObserver(() => {
-      if (visible()) ensureTab();
-      else deactivate();
+      if (!visible()) deactivate();
     });
     observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
-
-    setInterval(() => {
-      if (visible()) ensureTab();
-    }, 1500);
   }
 
   function init(){
     bind();
-    ensureTab();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
