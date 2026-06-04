@@ -102,3 +102,7 @@ html[data-theme=light] .shoutout-admin{--so-bg:rgba(255,255,255,.78);--so-bg-2:r
   .shoutout-section-count{align-self:flex-start}
   .shoutout-error-short{max-width:260px}
 }
+
+.shoutout-section-stack{display:grid;gap:16px}
+.shoutout-section-stack>.shoutout-tab-panel{display:grid;gap:16px}
+.shoutout-section-note{border:1px solid rgba(34,211,238,.18);border-radius:16px;background:rgba(34,211,238,.055);padding:10px 12px;color:var(--muted,#94a3b8);font-size:12px}

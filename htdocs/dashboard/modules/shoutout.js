@@ -20,13 +20,11 @@ window.ShoutoutModule = (function(){
 
   const TABS = [
     { id: 'overview', label: 'Übersicht' },
-    { id: 'inbound', label: 'Eingehend' },
+    { id: 'chat', label: 'Shoutout' },
     { id: 'queues', label: 'Queues' },
-    { id: 'stats', label: 'Statistik' },
-    { id: 'timeline', label: 'Timeline' },
-    { id: 'production', label: 'Produktion' },
-    { id: 'liveTest', label: 'Live-Test' },
-    { id: 'settings', label: 'Settings/Test' }
+    { id: 'analytics', label: 'Auswertung' },
+    { id: 'diagnostics', label: 'Diagnose' },
+    { id: 'settings', label: 'Einstellungen' }
   ];
 
   let root = null;
@@ -1008,13 +1006,41 @@ window.ShoutoutModule = (function(){
     `;
   }
 
+  function renderChat(){
+    return `
+      <div class="shoutout-tab-panel shoutout-grid">
+        ${renderTestBox()}
+        ${renderLiveGate()}
+      </div>
+    `;
+  }
+
+  function renderAnalytics(){
+    return `
+      <div class="shoutout-tab-panel shoutout-section-stack">
+        <div class="shoutout-section-note">Statistik, Verlauf und Twitch-Shoutout-Eingänge sind hier gebündelt. Rohdaten bleiben auf die jeweiligen Tabellen begrenzt.</div>
+        ${renderStats()}
+        ${renderTimeline()}
+        ${renderInbound()}
+      </div>
+    `;
+  }
+
+  function renderDiagnostics(){
+    return `
+      <div class="shoutout-tab-panel shoutout-section-stack">
+        <div class="shoutout-section-note">Produktions-Check, OAuth/EventSub und Live-Test an einem Ort.</div>
+        ${renderProductionCheck()}
+        ${renderLiveTest()}
+      </div>
+    `;
+  }
+
   function renderActiveTab(){
-    if (state.activeTab === 'inbound') return renderInbound();
+    if (state.activeTab === 'chat') return renderChat();
     if (state.activeTab === 'queues') return renderQueues();
-    if (state.activeTab === 'stats') return `<div class="shoutout-tab-panel">${renderStats()}</div>`;
-    if (state.activeTab === 'timeline') return `<div class="shoutout-tab-panel">${renderTimeline()}</div>`;
-    if (state.activeTab === 'production') return renderProductionCheck();
-    if (state.activeTab === 'liveTest') return renderLiveTest();
+    if (state.activeTab === 'analytics') return renderAnalytics();
+    if (state.activeTab === 'diagnostics') return renderDiagnostics();
     if (state.activeTab === 'settings') return renderSettingsTest();
     return renderOverview();
   }
