@@ -20,13 +20,13 @@ window.ShoutoutModule = (function(){
 
   const TABS = [
     { id: 'overview', label: 'Übersicht' },
-    { id: 'chat', label: 'Chat-Shoutout' },
-    { id: 'queues', label: 'Queues' },
-    { id: 'timeline', label: 'Verlauf' },
-    { id: 'stats', label: 'Statistik' },
     { id: 'inbound', label: 'Eingehend' },
-    { id: 'diagnostics', label: 'Diagnose' },
-    { id: 'settings', label: 'Einstellungen' }
+    { id: 'queues', label: 'Queues' },
+    { id: 'stats', label: 'Statistik' },
+    { id: 'timeline', label: 'Timeline' },
+    { id: 'production', label: 'Produktion' },
+    { id: 'liveTest', label: 'Live-Test' },
+    { id: 'settings', label: 'Settings/Test' }
   ];
 
   let root = null;
@@ -303,35 +303,52 @@ window.ShoutoutModule = (function(){
     const stats = state.stats || {};
     const totals = stats.totals || {};
     const latest = timelineRows().slice(0, 5);
+    const ss = state.streamStatus || {};
+    const displayTarget = display.activeTarget || display.active_target || '';
+    const displayState = displayTarget ? 'aktiv' : (display.cooldownRunning ? 'Cooldown' : ((num(display.pending) > 0) ? 'wartet' : 'bereit'));
+    const displayDetail = display.cooldownRunning ? `noch ${fmtMs(display.cooldownRemainingMs)}` : (displayTarget ? `@${displayTarget}` : '');
+    const officialState = official.lastError ? 'Fehler' : ((num(official.pending) > 0) ? 'wartet' : 'bereit');
+    const officialDetail = official.lastError || (liveGate.reason && !['live','offline'].includes(String(liveGate.reason).toLowerCase()) ? liveGate.reason : '');
+    const streamState = liveGate.live || ss.live ? 'LIVE' : ((liveGate.statusKnown === false || ss.statusKnown === false) ? 'UNBEKANNT' : 'OFFLINE');
+    const streamDetail = (liveGate.stale || ss.stale) ? 'stale' : '';
+    const gateState = liveGate.reason || (liveGate.live ? 'live' : 'offline');
+    const gateDetail = liveGate.statusKnown === false ? 'Status unklar' : (liveGate.retryMs ? `Retry ${fmtMs(liveGate.retryMs)}` : '');
+    const lastError = display.lastError || official.lastError || status.lastError || '';
 
     return `
       <div class="shoutout-tab-panel shoutout-grid">
         <div class="shoutout-card">
-          <div class="shoutout-card-head"><div><h3>Kurzstatus</h3><p>Alles Wichtige ohne die großen Tabellen.</p></div></div>
+          <div class="shoutout-card-head"><div><h3>System-Ampel</h3></div></div>
           <div class="shoutout-facts">
-            <div><small>Display offen</small><strong>${esc(display.pending ?? 0)}</strong></div>
-            <div><small>Display aktiv</small><strong>${esc(display.activeTarget ? '@' + display.activeTarget : '-')}</strong></div>
-            <div><small>Display Cooldown</small><strong>${display.cooldownRunning ? fmtMs(display.cooldownRemainingMs) : 'bereit'}</strong></div>
-            <div><small>Official offen</small><strong>${esc(official.pending ?? 0)}</strong></div>
-            <div><small>Eingehend</small><strong>${esc(num(state.inboundStats?.totals?.incomingTotal))}</strong></div>
-            <div><small>Live-Gate</small><strong>${statusBadge(liveGate.reason || (liveGate.live ? 'live' : 'offline'))}</strong></div>
-            <div><small>Letzter Fehler</small><strong>${esc(display.lastError || official.lastError || status.lastError || '-')}</strong></div>
+            <div><small>Modul</small><strong>${statusBadge(status.enabled === false ? 'inaktiv' : 'aktiv')}</strong></div>
+            <div><small>Stream</small><strong>${statusBadge(streamState)}</strong>${streamDetail ? `<span>${esc(streamDetail)}</span>` : ''}</div>
+            <div><small>Live-Gate</small><strong>${statusBadge(gateState)}</strong>${gateDetail ? `<span>${esc(gateDetail)}</span>` : ''}</div>
+            <div><small>Display Queue</small><strong>${statusBadge(displayState)}</strong>${displayDetail ? `<span>${esc(displayDetail)}</span>` : ''}</div>
+            <div><small>Official Queue</small><strong>${statusBadge(officialState)}</strong>${officialDetail ? `<span>${esc(officialDetail)}</span>` : ''}</div>
+            ${lastError ? `<div class="shoutout-fact-warning"><small>Letzter Fehler</small><strong>${esc(lastError)}</strong></div>` : ''}
           </div>
         </div>
         <div class="shoutout-card">
-          <div class="shoutout-card-head"><div><h3>Statistik kompakt</h3><p>Ausgehend, basierend auf den aktuellen Display-/Official-Daten.</p></div></div>
+          <div class="shoutout-card-head"><div><h3>Statistik kompakt</h3></div></div>
           <div class="shoutout-stat-grid shoutout-stat-grid-small">
-            <div class="shoutout-stat"><small>Gesamt</small><strong>${esc(num(totals.totalRequests))}</strong><span>Requests</span></div>
-            <div class="shoutout-stat"><small>Ziele</small><strong>${esc(num(totals.uniqueTargets))}</strong><span>einmalig</span></div>
-            <div class="shoutout-stat"><small>Auslöser</small><strong>${esc(num(totals.uniqueRequesters))}</strong><span>einmalig</span></div>
-            <div class="shoutout-stat"><small>Official</small><strong>${esc(num(totals.officialSent))}</strong><span>gesendet</span></div>
-            <div class="shoutout-stat"><small>Eingehend</small><strong>${esc(num(state.inboundStats?.totals?.incomingTotal))}</strong><span>erhalten</span></div>
+            <div class="shoutout-stat"><small>Gesamt</small><strong>${esc(num(totals.totalRequests))}</strong></div>
+            <div class="shoutout-stat"><small>Ziele</small><strong>${esc(num(totals.uniqueTargets))}</strong></div>
+            <div class="shoutout-stat"><small>Auslöser</small><strong>${esc(num(totals.uniqueRequesters))}</strong></div>
+            <div class="shoutout-stat"><small>Official</small><strong>${esc(num(totals.officialSent))}</strong>${num(totals.officialFailed) ? `<span>${esc(num(totals.officialFailed))} failed</span>` : ''}</div>
+            <div class="shoutout-stat"><small>Eingehend</small><strong>${esc(num(state.inboundStats?.totals?.incomingTotal))}</strong></div>
           </div>
         </div>
         <div class="shoutout-card shoutout-wide">
-          <div class="shoutout-card-head"><div><h3>Letzte Timeline</h3><p>Die letzten fünf Einträge. Vollständige Liste im Tab Timeline.</p></div></div>
-          <div class="shoutout-mini-timeline">
-            ${latest.length ? latest.map(row => `<span>#${esc(row.id)} · @${esc(row.targetDisplay || row.targetLogin || '-')} · ${statusBadge(row.status)} · ${fmtDate(row.requestedAt)}</span>`).join('') : '<span class="shoutout-empty-inline">Noch keine Timeline-Einträge.</span>'}
+          <div class="shoutout-card-head"><div><h3>Letzte Aktivität</h3></div></div>
+          <div class="shoutout-activity-list">
+            ${latest.length ? latest.map(row => `
+              <div class="shoutout-activity-row">
+                <span>#${esc(row.id)}</span>
+                <strong>@${esc(row.targetDisplay || row.targetLogin || '-')}</strong>
+                ${statusBadge(row.status)}
+                <time>${fmtDate(row.requestedAt)}</time>
+              </div>
+            `).join('') : '<span class="shoutout-empty-inline">Noch keine Timeline-Einträge.</span>'}
           </div>
         </div>
       </div>
@@ -866,24 +883,6 @@ window.ShoutoutModule = (function(){
     `;
   }
 
-  function renderChatShoutout(){
-    return `
-      <div class="shoutout-tab-panel shoutout-grid">
-        ${renderTestBox()}
-        ${renderLiveGate()}
-      </div>
-    `;
-  }
-
-  function renderDiagnostics(){
-    return `
-      <div class="shoutout-tab-panel shoutout-stack">
-        ${renderProductionCheck()}
-        ${renderLiveTest()}
-      </div>
-    `;
-  }
-
   function renderSettingsTest(){
     const status = state.status || {};
     const cfg = status.config || {};
@@ -893,8 +892,10 @@ window.ShoutoutModule = (function(){
 
     return `
       <div class="shoutout-tab-panel shoutout-grid">
+        ${renderTestBox()}
+        ${renderLiveGate()}
         <div class="shoutout-card shoutout-wide">
-          <div class="shoutout-card-head"><div><h3>Einstellungen kompakt</h3><p>Nur Anzeige der wichtigsten Werte. Speichern bleibt unverändert über vorhandene Backend-Routen/Config-Flow.</p></div></div>
+          <div class="shoutout-card-head"><div><h3>Settings kompakt</h3><p>Nur Anzeige der wichtigsten Werte. Speichern bleibt unverändert über vorhandene Backend-Routen/Config-Flow.</p></div></div>
           <div class="shoutout-facts shoutout-facts-wide">
             <div><small>Clip-Lookback</small><strong>${esc(cfg.clipLookbackDays || '-')} Tage</strong></div>
             <div><small>Suchbereiche</small><strong>${esc(Array.isArray(cfg.clipSearchRangesDays) ? cfg.clipSearchRangesDays.join(', ') : '-')}</strong></div>
@@ -911,12 +912,12 @@ window.ShoutoutModule = (function(){
   }
 
   function renderActiveTab(){
-    if (state.activeTab === 'chat') return renderChatShoutout();
-    if (state.activeTab === 'queues') return renderQueues();
-    if (state.activeTab === 'timeline') return `<div class="shoutout-tab-panel">${renderTimeline()}</div>`;
-    if (state.activeTab === 'stats') return `<div class="shoutout-tab-panel">${renderStats()}</div>`;
     if (state.activeTab === 'inbound') return renderInbound();
-    if (state.activeTab === 'diagnostics') return renderDiagnostics();
+    if (state.activeTab === 'queues') return renderQueues();
+    if (state.activeTab === 'stats') return `<div class="shoutout-tab-panel">${renderStats()}</div>`;
+    if (state.activeTab === 'timeline') return `<div class="shoutout-tab-panel">${renderTimeline()}</div>`;
+    if (state.activeTab === 'production') return renderProductionCheck();
+    if (state.activeTab === 'liveTest') return renderLiveTest();
     if (state.activeTab === 'settings') return renderSettingsTest();
     return renderOverview();
   }
