@@ -1,15 +1,22 @@
 .shoutout-texts-panel {
   display: block;
+  width: 100%;
+  min-width: 0;
 }
 
 .shoutout-texts-shell {
   display: grid;
   gap: 14px;
-  max-width: 1180px;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .shoutout-texts-head {
   display: flex;
+  width: 100%;
+  box-sizing: border-box;
   justify-content: space-between;
   gap: 16px;
   align-items: flex-start;
@@ -36,6 +43,8 @@
 
 .shoutout-texts-picker {
   display: grid;
+  width: 100%;
+  box-sizing: border-box;
   grid-template-columns: minmax(180px, 260px) minmax(260px, 1fr) minmax(220px, 320px);
   gap: 12px;
   align-items: end;
@@ -114,6 +123,8 @@
 .shoutout-texts-editor {
   padding: 16px;
   min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .shoutout-texts-editor-head {
@@ -214,6 +225,8 @@
 
 .shoutout-texts-migration {
   padding: 12px 14px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .shoutout-texts-migration summary {
