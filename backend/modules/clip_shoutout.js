@@ -4362,12 +4362,17 @@ function clearAutoShoutoutTarget(body = {}) {
       )
   `, { ...updateParams, ...displayIdParams });
 
+  const historyDisplayIdParams = {};
+  const historyDisplayIdSql = displayIds.length
+    ? `AND display_queue_id IN (${displayIds.map((id, idx) => { const key = `histDisplayId${idx}`; historyDisplayIdParams[key] = id; return `:${key}`; }).join(',')})`
+    : '';
+
   const deletedOfficialHistory = database.run(`
     DELETE FROM clip_shoutout_official_history
     WHERE target_login=:login
       AND sent_at >= :since
-      ${displayIds.length ? `AND display_queue_id IN (${displayIds.map((id, idx) => { const key = `histDisplayId${idx}`; displayIdParams[key] = id; return `:${key}`; }).join(',')})` : ''}
-  `, { ...params, ...displayIdParams });
+      ${historyDisplayIdSql}
+  `, { ...params, ...historyDisplayIdParams });
 
   const removedDisplay = database.run(`
     UPDATE clip_shoutout_display_queue
