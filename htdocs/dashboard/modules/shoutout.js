@@ -122,6 +122,22 @@ window.ShoutoutModule = (function(){
     return `<span class="shoutout-badge ${cls}">${esc(value || '-')}</span>`;
   }
 
+
+  function directionBadge(value){
+    const raw = String(value || '').toLowerCase();
+    if (raw === 'incoming') return '<span class="shoutout-badge ok">Erhalten</span>';
+    if (raw === 'outgoing') return '<span class="shoutout-badge neutral">Gesendet</span>';
+    return statusBadge(value || '-');
+  }
+
+  function userCell(display, login){
+    const cleanDisplay = String(display || '').trim();
+    const cleanLogin = String(login || '').trim();
+    const primary = cleanDisplay || cleanLogin || '-';
+    const showLogin = cleanLogin && cleanLogin.toLowerCase() !== primary.replace(/^@+/, '').toLowerCase();
+    return `<strong>@${esc(primary.replace(/^@+/, ''))}</strong>${showLogin ? `<small>${esc(cleanLogin.replace(/^@+/, ''))}</small>` : ''}`;
+  }
+
   function displayRows(){
     const q = state.queue?.displayQueue || state.status?.displayQueue || {};
     return Array.isArray(q.queue) ? q.queue : [];
@@ -362,32 +378,35 @@ window.ShoutoutModule = (function(){
     const incomingByFrom = Array.isArray(inboundStats.incomingByFrom) ? inboundStats.incomingByFrom : [];
     const outgoingByTarget = Array.isArray(inboundStats.outgoingByTarget) ? inboundStats.outgoingByTarget : [];
     const rows = Array.isArray(inbound.items) ? inbound.items : Array.isArray(inboundStats.recent) ? inboundStats.recent : [];
+    const recentRows = rows.slice(0, 10);
+    const hasError = inboundStats.ok === false || inbound.ok === false;
 
     return `
       <div class="shoutout-tab-panel shoutout-grid">
         <div class="shoutout-card shoutout-wide">
           <div class="shoutout-card-head">
-            <div><h3>Eingehende / erstellte Twitch-Shoutouts</h3><p>EventSub-Daten aus <code>channel.shoutout.receive</code> und <code>channel.shoutout.create</code>, gespeichert im Shoutout-System.</p></div>
-            <div>${statusBadge(inboundStats.ok === false || inbound.ok === false ? 'error' : 'ok')}</div>
+            <div><h3>Eingehende / erstellte Twitch-Shoutouts</h3><p>EventSub-Shoutouts, kompakt zusammengefasst.</p></div>
+            <div>${statusBadge(hasError ? 'error' : 'ok')}</div>
           </div>
-          <div class="shoutout-stat-grid">
-            <div class="shoutout-stat"><small>Events gesamt</small><strong>${esc(num(totals.totalEvents))}</strong><span>EventSub</span></div>
-            <div class="shoutout-stat"><small>Eingehend</small><strong>${esc(num(totals.incomingTotal))}</strong><span>wir wurden erwähnt</span></div>
-            <div class="shoutout-stat"><small>Ausgehend erstellt</small><strong>${esc(num(totals.outgoingTotal))}</strong><span>Twitch SO</span></div>
-            <div class="shoutout-stat"><small>Von Channels</small><strong>${esc(num(totals.uniqueFromChannels))}</strong><span>einmalig</span></div>
-            <div class="shoutout-stat"><small>Viewer Summe</small><strong>${esc(num(totals.viewerCountTotal))}</strong><span>gemeldet</span></div>
+          <div class="shoutout-stat-grid shoutout-stat-grid-clean">
+            <div class="shoutout-stat"><small>Events gesamt</small><strong>${esc(num(totals.totalEvents))}</strong></div>
+            <div class="shoutout-stat"><small>Eingehend</small><strong>${esc(num(totals.incomingTotal))}</strong></div>
+            <div class="shoutout-stat"><small>Ausgehend</small><strong>${esc(num(totals.outgoingTotal))}</strong></div>
+            <div class="shoutout-stat"><small>Von Channels</small><strong>${esc(num(totals.uniqueFromChannels))}</strong></div>
+            <div class="shoutout-stat"><small>Viewer Summe</small><strong>${esc(num(totals.viewerCountTotal))}</strong></div>
           </div>
+          ${hasError ? `<div class="shoutout-compact-note bad">${esc(inbound.error || inboundStats.error || 'Fehler beim Laden der Shoutout-Events.')}</div>` : ''}
         </div>
 
         <div class="shoutout-card">
-          <div class="shoutout-card-head"><div><h3>Wer hat uns geshoutoutet?</h3><p>Top-Liste eingehender Shoutouts.</p></div></div>
+          <div class="shoutout-card-head"><div><h3>Wer hat uns geshoutoutet?</h3></div></div>
           <div class="shoutout-table-wrap">
             <table class="shoutout-table shoutout-table-compact">
               <thead><tr><th>Kanal</th><th>Anzahl</th><th>Viewer</th><th>Zuletzt</th></tr></thead>
               <tbody>
-                ${incomingByFrom.length ? incomingByFrom.slice(0, 12).map(row => `
+                ${incomingByFrom.length ? incomingByFrom.slice(0, 10).map(row => `
                   <tr>
-                    <td><strong>@${esc(row.display || row.login || '-')}</strong></td>
+                    <td>${userCell(row.display, row.login)}</td>
                     <td>${esc(row.total || 0)}</td>
                     <td>${esc(row.viewerCountTotal || 0)}</td>
                     <td>${fmtDate(row.lastReceivedAt)}</td>
@@ -399,14 +418,14 @@ window.ShoutoutModule = (function(){
         </div>
 
         <div class="shoutout-card">
-          <div class="shoutout-card-head"><div><h3>Wen haben wir offiziell geshoutoutet?</h3><p>EventSub-Bestätigung für erstellte Twitch-Shoutouts.</p></div></div>
+          <div class="shoutout-card-head"><div><h3>Wen haben wir offiziell geshoutoutet?</h3></div></div>
           <div class="shoutout-table-wrap">
             <table class="shoutout-table shoutout-table-compact">
               <thead><tr><th>Kanal</th><th>Anzahl</th><th>Viewer</th><th>Zuletzt</th></tr></thead>
               <tbody>
-                ${outgoingByTarget.length ? outgoingByTarget.slice(0, 12).map(row => `
+                ${outgoingByTarget.length ? outgoingByTarget.slice(0, 10).map(row => `
                   <tr>
-                    <td><strong>@${esc(row.display || row.login || '-')}</strong></td>
+                    <td>${userCell(row.display, row.login)}</td>
                     <td>${esc(row.total || 0)}</td>
                     <td>${esc(row.viewerCountTotal || 0)}</td>
                     <td>${fmtDate(row.lastReceivedAt)}</td>
@@ -418,17 +437,17 @@ window.ShoutoutModule = (function(){
         </div>
 
         <div class="shoutout-card shoutout-wide">
-          <div class="shoutout-card-head"><div><h3>Letzte Shoutout-Events</h3><p>Roh-Timeline der gespeicherten Twitch-Shoutout-Events.</p></div></div>
+          <div class="shoutout-card-head"><div><h3>Letzte Shoutout-Events</h3><p>Die letzten 10 gespeicherten EventSub-Shoutouts.</p></div></div>
           <div class="shoutout-table-wrap">
-            <table class="shoutout-table">
+            <table class="shoutout-table shoutout-table-inbound-events">
               <thead><tr><th>ID</th><th>Richtung</th><th>Von</th><th>An</th><th>Viewer</th><th>Gestartet</th><th>Empfangen</th></tr></thead>
               <tbody>
-                ${rows.length ? rows.map(row => `
+                ${recentRows.length ? recentRows.map(row => `
                   <tr>
                     <td>${esc(row.id)}</td>
-                    <td>${statusBadge(row.direction || '-')}</td>
-                    <td><strong>@${esc(row.fromBroadcasterDisplay || row.fromBroadcasterLogin || '-')}</strong><small>${esc(row.fromBroadcasterLogin || '')}</small></td>
-                    <td><strong>@${esc(row.toBroadcasterDisplay || row.toBroadcasterLogin || '-')}</strong><small>${esc(row.toBroadcasterLogin || '')}</small></td>
+                    <td>${directionBadge(row.direction || '-')}</td>
+                    <td>${userCell(row.fromBroadcasterDisplay, row.fromBroadcasterLogin)}</td>
+                    <td>${userCell(row.toBroadcasterDisplay, row.toBroadcasterLogin)}</td>
                     <td>${esc(row.viewerCount || 0)}</td>
                     <td>${fmtDate(row.startedAt)}</td>
                     <td>${fmtDate(row.receivedAt)}</td>
@@ -437,6 +456,7 @@ window.ShoutoutModule = (function(){
               </tbody>
             </table>
           </div>
+          ${rows.length > recentRows.length ? `<div class="shoutout-compact-note">${esc(recentRows.length)} von ${esc(rows.length)} geladenen Events angezeigt. Details bleiben in Verlauf/Statistik.</div>` : ''}
         </div>
       </div>
     `;

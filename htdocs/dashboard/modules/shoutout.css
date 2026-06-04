@@ -64,3 +64,8 @@ html[data-theme=light] .shoutout-admin{--so-bg:rgba(255,255,255,.78);--so-bg-2:r
     grid-column: 1 / -1;
   }
 }
+
+.shoutout-stat-grid-clean .shoutout-stat span{display:none}
+.shoutout-compact-note{margin-top:10px;color:var(--muted,#94a3b8);font-size:12px;line-height:1.35}
+.shoutout-compact-note.bad{color:#fecdd3;border:1px solid rgba(251,113,133,.28);background:rgba(244,63,94,.10);border-radius:12px;padding:8px 10px}
+.shoutout-table-inbound-events{min-width:880px}
