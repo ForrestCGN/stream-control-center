@@ -5,7 +5,7 @@ const https = require("https");
 const database = require("../core/database");
 
 const MODULE_NAME = "live_status_monitor";
-const MODULE_VERSION = "0.1.0";
+const MODULE_VERSION = "0.1.1";
 const MODULE_BUILD = "CAN-44.12";
 const API_PREFIX = "/api/live-status-monitor";
 
@@ -438,7 +438,7 @@ function init(ctx) {
   ensureSchema();
   cleanupOldLogs(cfg.retentionDays);
 
-  app.options(`${API_PREFIX}/*`, (req, res) => { setHeaders(res); res.status(204).end(); });
+  app.options(new RegExp(`^${API_PREFIX.replace(/[\/]/g, "\\/")}(?:\\/.*)?$`), (req, res) => { setHeaders(res); res.status(204).end(); });
 
   app.get(`${API_PREFIX}/routes`, (req, res) => ok(res, { ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, routes: routeList() }));
 
