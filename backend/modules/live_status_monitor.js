@@ -5,8 +5,8 @@ const https = require("https");
 const database = require("../core/database");
 
 const MODULE_NAME = "live_status_monitor";
-const MODULE_VERSION = "0.1.3";
-const MODULE_BUILD = "CAN-44.20.0";
+const MODULE_VERSION = "0.1.4";
+const MODULE_BUILD = "CAN-44.20.1";
 const API_PREFIX = "/api/live-status-monitor";
 
 const MODULE_META = {
@@ -35,7 +35,9 @@ const state = {
   sampleRunning: false,
   sampleCount: 0,
   loggedCount: 0,
-  skippedUnchangedCount: 0
+  skippedUnchangedCount: 0,
+  lastCleanupAt: "",
+  cleanupRemovedCount: 0
 };
 
 function nowIso() { return new Date().toISOString(); }
@@ -72,7 +74,12 @@ function getConfig(env = process.env) {
     requestTimeoutMs: intEnv(env.LIVE_STATUS_MONITOR_TIMEOUT_MS, 7000, 1000, 30000),
     autoLogEnabled: boolEnv(env.LIVE_STATUS_MONITOR_AUTO_LOG_ENABLED, true),
     autoLogIntervalMs: intEnv(env.LIVE_STATUS_MONITOR_AUTO_LOG_INTERVAL_MS, 60000, 10000, 900000),
-    retentionDays: intEnv(env.LIVE_STATUS_MONITOR_LOG_RETENTION_DAYS, 7, 1, 90),
+    retentionHours: intEnv(
+      env.LIVE_STATUS_MONITOR_HISTORY_RETENTION_HOURS ?? env.LIVE_STATUS_MONITOR_LOG_RETENTION_HOURS,
+      intEnv(env.LIVE_STATUS_MONITOR_LOG_RETENTION_DAYS, 1, 1, 90) * 24,
+      1,
+      2160
+    ),
     maxLogEntries: intEnv(env.LIVE_STATUS_MONITOR_LOG_MAX_ENTRIES, 100, 10, 5000),
     historyMode: String(env.LIVE_STATUS_MONITOR_HISTORY_MODE || "changes_only").trim().toLowerCase(),
     startDelayMs: intEnv(env.LIVE_STATUS_MONITOR_START_DELAY_MS, 8000, 1000, 120000)
@@ -134,13 +141,21 @@ function ensureSchema() {
   `);
 }
 
-function cleanupOldLogs(retentionDays) {
+function cleanupOldLogs(retentionHours) {
   try {
     ensureSchema();
-    const cutoff = new Date(Date.now() - Math.max(1, retentionDays) * 86400000).toISOString();
+    const safeHours = Math.max(1, Math.min(2160, Number(retentionHours) || 24));
+    const cutoff = new Date(Date.now() - safeHours * 3600000).toISOString();
+    const before = database.get(`SELECT COUNT(*) AS count FROM live_status_monitor_log`);
     database.run(`DELETE FROM live_status_monitor_log WHERE created_at < :cutoff`, { cutoff });
+    const after = database.get(`SELECT COUNT(*) AS count FROM live_status_monitor_log`);
+    const removed = Math.max(0, Number(before && before.count || 0) - Number(after && after.count || 0));
+    state.lastCleanupAt = nowIso();
+    state.cleanupRemovedCount += removed;
+    return removed;
   } catch (err) {
     state.lastError = err.message || String(err);
+    return 0;
   }
 }
 
@@ -389,7 +404,7 @@ async function collectStatus(cfg, options = {}) {
     logger: {
       autoLogEnabled: cfg.autoLogEnabled,
       autoLogIntervalMs: cfg.autoLogIntervalMs,
-      retentionDays: cfg.retentionDays,
+      retentionHours: cfg.retentionHours,
       maxLogEntries: cfg.maxLogEntries,
       historyMode: cfg.historyMode,
       sampleCount: state.sampleCount,
@@ -398,6 +413,8 @@ async function collectStatus(cfg, options = {}) {
       lastChangeAt: state.lastChangeAt,
       lastLogSkippedAt: state.lastLogSkippedAt,
       lastLoggedAt: state.lastLoggedAt,
+      lastCleanupAt: state.lastCleanupAt,
+      cleanupRemovedCount: state.cleanupRemovedCount,
       lastError: state.lastError
     }
   };
@@ -501,7 +518,11 @@ function getPublicState() {
     loggedCount: Number(state.loggedCount || 0) || 0,
     skippedUnchangedCount: Number(state.skippedUnchangedCount || 0) || 0,
     lastChangeAt: state.lastChangeAt || "",
-    lastLogSkippedAt: state.lastLogSkippedAt || ""
+    lastLogSkippedAt: state.lastLogSkippedAt || "",
+    historyRetentionHours: getConfig().retentionHours,
+    maxHistoryEntries: getConfig().maxLogEntries,
+    lastCleanupAt: state.lastCleanupAt || "",
+    cleanupRemovedCount: Number(state.cleanupRemovedCount || 0) || 0
   };
 }
 
@@ -536,7 +557,7 @@ function scheduleAutoLog(cfg) {
     try {
       const snap = await collectStatus(cfg, { includeRaw: false });
       logSnapshot(snap, "auto", { cfg });
-      cleanupOldLogs(cfg.retentionDays);
+      cleanupOldLogs(cfg.retentionHours);
       cleanupExcessLogs(cfg.maxLogEntries);
       state.sampleCount += 1;
       state.lastError = "";
@@ -553,7 +574,7 @@ function init(ctx) {
   const { app, env } = ctx;
   const cfg = getConfig(env);
   ensureSchema();
-  cleanupOldLogs(cfg.retentionDays);
+  cleanupOldLogs(cfg.retentionHours);
   cleanupExcessLogs(cfg.maxLogEntries);
 
   app.options(new RegExp(`^${API_PREFIX.replace(/[\/]/g, "\\/")}(?:\\/.*)?$`), (req, res) => { setHeaders(res); res.status(204).end(); });
@@ -566,7 +587,7 @@ function init(ctx) {
       if (/^(1|true|yes|on)$/i.test(String(req.query.log || ""))) {
         const forceLog = /^(1|true|yes|on)$/i.test(String(req.query.forceLog || ""));
         const logResult = logSnapshot(snap, "manual-status", { cfg, force: forceLog });
-        cleanupOldLogs(cfg.retentionDays);
+        cleanupOldLogs(cfg.retentionHours);
         cleanupExcessLogs(cfg.maxLogEntries);
         snap.logged = logResult.logged;
         snap.logReason = logResult.reason;
@@ -580,7 +601,7 @@ function init(ctx) {
       const forceLog = /^(1|true|yes|on)$/i.test(String((req.query && req.query.forceLog) || (req.body && req.body.forceLog) || ""));
       const snap = await collectStatus(cfg, { includeRaw: true });
       const logResult = logSnapshot(snap, "manual-test", { cfg, force: forceLog });
-      cleanupOldLogs(cfg.retentionDays);
+      cleanupOldLogs(cfg.retentionHours);
       cleanupExcessLogs(cfg.maxLogEntries);
       ok(res, { ...snap, logged: logResult.logged, logReason: logResult.reason });
     } catch (err) { fail(res, err); }
