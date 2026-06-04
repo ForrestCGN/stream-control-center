@@ -1,40 +1,73 @@
 # NEXT_STEPS
 
-Stand: 2026-06-01
+Stand: 2026-06-04
 
-## Direkt als naechstes empfohlen
-
-```text
-STEP279 – Heartbeat-Standard planen
-```
-
-Ziel: Module nicht blind umbauen, sondern zuerst einen einheitlichen Diagnosevertrag definieren.
-
-## STEP279 Vorschlag
-
-1. Heartbeat-Eventformat festlegen.
-2. Communication Bus als Registry fuer letzte Heartbeats erweitern.
-3. `/api/communication/status` oder separaten Diagnose-Endpunkt um Heartbeat-Status erweitern.
-4. Pilotmodule anbinden:
-   - `sound_system.js`
-   - `alert_system.js`
-   - `obs.js`
-5. Danach Dashboard-Anzeige planen.
-
-## Spaeter sinnvolle Schritte
+## Direkt als Nächstes empfohlen
 
 ```text
-Dashboard-Modulstatus anzeigen
-Route-Diagnose im Dashboard sichtbar machen
-Heartbeat-/Health-Status pro Modul anzeigen
-Warn-/Error-Zustand visuell hervorheben
-Audit-Log fuer Dashboard-Aktionen weiter ausbauen
+CAN-44.20 – Shoutout Dashboard Reorganisation
 ```
 
-## Nicht sofort machen
+Ziel: Das Shoutout-Dashboard übersichtlicher und nutzerfreundlicher neu strukturieren, ohne bestehende Funktionalität zu entfernen.
+
+## Geplante Dashboard-Zielstruktur
 
 ```text
-Nicht alle Module auf einmal mit Heartbeat versehen.
-Keine lauten Heartbeats von reinen API-/Helper-Modulen.
-Keine produktiven Flows ersetzen, solange Diagnose nicht stabil ist.
+1. Übersicht
+2. Chat-Shoutout
+3. AutoShoutout
+4. Queues
+5. Texte
+6. Verlauf
+7. Statistik
+8. Eingehend
+9. Diagnose
+10. Einstellungen
 ```
+
+## CAN-44.20 Vorschlag
+
+1. Aktuelle Dashboard-Dateien prüfen:
+   - `htdocs/dashboard/modules/shoutout.js`
+   - `htdocs/dashboard/modules/shoutout.css`
+   - `htdocs/dashboard/modules/auto_shoutout.js`
+   - `htdocs/dashboard/modules/auto_shoutout.css`
+   - `htdocs/dashboard/modules/shoutout_texts.js`
+   - `htdocs/dashboard/modules/shoutout_texts.css`
+
+2. Bestehende Tabs/Routen den neuen Bereichen zuordnen.
+
+3. Erst einen Struktur-/Umbauplan erstellen, bevor Code geändert wird.
+
+4. Dann in kleinen Schritten umbauen:
+   - Übersicht aufräumen
+   - Chat-Shoutout als eigenen Bereich
+   - AutoShoutout besser integrieren
+   - Texte-Tab erhalten
+   - Produktion/Live-Test unter Diagnose zusammenfassen
+   - Settings/Test in echte Einstellungen überführen
+
+## Danach sinnvoll
+
+```text
+CAN-44.21 – Runtime Text-Key Migration
+```
+
+Ziel: Runtime schrittweise von alten Config-Texten auf `shoutout.*` Textkeys umstellen.
+
+Dabei gilt:
+
+```text
+alte Config-Texte bleiben Fallback
+auto.greeting bleibt Legacy/Fallback
+keine harten Löschungen
+keine bestehende Funktionalität entfernen
+```
+
+## Später prüfen
+
+- Rechte Navigation eventuell in obere, immer sichtbare Leiste überführen.
+- Dashboard insgesamt mehr Platz für Content geben.
+- Textvarianten später inhaltlich überarbeiten.
+- Shoutout-Statistik und Verlauf besser verbinden.
+- EventBus-/Monitoring-Status sichtbarer machen.
