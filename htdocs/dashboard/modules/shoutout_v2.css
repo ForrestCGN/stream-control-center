@@ -160,3 +160,94 @@
   .shoutout-v2-admin .so2-activity-row{grid-template-columns:auto 1fr}
   .shoutout-v2-admin .so2-activity-row span:last-child{grid-column:2;white-space:normal}
 }
+
+/* CAN-44.21.3.1 – CGN header/navigation cleanup */
+.shoutout-v2-admin .so2-shell{
+  gap:14px;
+}
+.shoutout-v2-admin .so2-hero.so2-hero-compact{
+  align-items:center;
+  padding:12px 16px;
+  border-radius:18px;
+  background:
+    linear-gradient(90deg,rgba(168,85,247,.20),rgba(34,211,238,.08) 45%,rgba(5,8,18,.82)),
+    rgba(5,8,18,.78);
+  border-color:rgba(103,232,249,.18);
+  box-shadow:0 10px 28px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.04);
+  position:relative;
+  overflow:hidden;
+}
+.shoutout-v2-admin .so2-hero.so2-hero-compact:before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:12px;
+  bottom:12px;
+  width:3px;
+  border-radius:999px;
+  background:linear-gradient(180deg,var(--so2-purple),var(--so2-cyan));
+  box-shadow:0 0 16px rgba(34,211,238,.24);
+}
+.shoutout-v2-admin .so2-hero-main{
+  display:grid;
+  gap:3px;
+  padding-left:4px;
+}
+.shoutout-v2-admin .so2-hero.so2-hero-compact .so2-kicker{
+  margin:0;
+  font-size:12px;
+  letter-spacing:.16em;
+}
+.shoutout-v2-admin .so2-hero.so2-hero-compact p{
+  margin:0;
+  max-width:none;
+  font-size:13px;
+  color:rgba(255,255,255,.72);
+}
+.shoutout-v2-admin .so2-build{
+  color:rgba(255,255,255,.58);
+  font-size:12px;
+  font-weight:800;
+  white-space:nowrap;
+}
+.shoutout-v2-admin .so2-tabs{
+  border-radius:16px;
+  background:rgba(5,8,18,.92);
+  border-color:rgba(103,232,249,.10);
+}
+.shoutout-v2-admin .so2-tab{
+  padding:8px 13px;
+  border-radius:11px;
+  background:rgba(255,255,255,.065);
+}
+.shoutout-v2-admin .so2-tab.is-active{
+  background:linear-gradient(135deg,rgba(168,85,247,.46),rgba(34,211,238,.18));
+  border-color:rgba(103,232,249,.48);
+}
+.shoutout-v2-admin .so2-section-title{
+  border-left:3px solid rgba(34,211,238,.55);
+  padding-left:12px;
+}
+.shoutout-v2-admin .so2-section-title h3{
+  letter-spacing:.01em;
+}
+.shoutout-v2-admin .so2-card,
+.shoutout-v2-admin .so2-metric,
+.shoutout-v2-admin .so2-panel{
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.065),rgba(255,255,255,.038)),
+    rgba(8,10,18,.50);
+  border-color:rgba(255,255,255,.105);
+}
+.shoutout-v2-admin .so2-card:hover,
+.shoutout-v2-admin .so2-metric:hover{
+  border-color:rgba(34,211,238,.18);
+}
+@media(max-width:760px){
+  .shoutout-v2-admin .so2-hero.so2-hero-compact{
+    align-items:start;
+  }
+  .shoutout-v2-admin .so2-build{
+    width:100%;
+  }
+}

@@ -1,8 +1,8 @@
 window.ShoutoutV2Module = (function(){
   'use strict';
 
-  const MODULE_VERSION = '2.0.1-overview';
-  const BUILD = 'CAN-44.21.3';
+  const MODULE_VERSION = '2.0.2-cgn-cleanup';
+  const BUILD = 'CAN-44.21.3.1';
 
   const API = {
     status: '/api/clip-shoutout/status',
@@ -224,17 +224,16 @@ window.ShoutoutV2Module = (function(){
   function render(){
     root = root || document.getElementById('shoutoutV2Module');
     if (!root) return;
-    const active = TABS.find(t => t.id === state.activeTab) || TABS[0];
     root.innerHTML = `
       <div class="so2-shell">
-        <section class="so2-hero">
-          <div>
-            <div class="so2-kicker">Community / Shoutout-System V2</div>
-            <h2>Shoutout-System V2</h2>
-            <p>Neu aufgebautes Dashboard. Alte UI-Blöcke werden nicht übernommen; die bestehenden APIs bleiben Datenquelle.</p>
+        <section class="so2-hero so2-hero-compact">
+          <div class="so2-hero-main">
+            <div class="so2-kicker">CGN Shoutout V2</div>
+            <p>Neu aufgebaut · keine alten UI-Blöcke · bestehende APIs als Datenquelle</p>
           </div>
           <div class="so2-hero-actions">
             ${state.loading ? badge('lädt', 'warn') : badge('bereit', 'ok')}
+            <span class="so2-build">Build ${esc(BUILD)} · V${esc(MODULE_VERSION)}</span>
             <label class="so2-auto"><input type="checkbox" data-so2-autorefresh ${state.autoRefresh ? 'checked' : ''}> Auto-Refresh</label>
             <button type="button" data-so2-refresh>Aktualisieren</button>
           </div>
@@ -246,11 +245,6 @@ window.ShoutoutV2Module = (function(){
         <nav class="so2-tabs" aria-label="Shoutout V2 Navigation">
           ${TABS.map(tab => `<button type="button" class="so2-tab ${tab.id === state.activeTab ? 'is-active' : ''}" data-so2-tab="${esc(tab.id)}"><strong>${esc(tab.label)}</strong><small>${esc(tab.hint)}</small></button>`).join('')}
         </nav>
-
-        <section class="so2-tab-head">
-          <div><strong>${esc(active.label)}</strong><span>${esc(active.hint)}</span></div>
-          <span>Build ${esc(BUILD)} · V${esc(MODULE_VERSION)}</span>
-        </section>
 
         <div class="so2-content">
           ${renderActiveTab()}
