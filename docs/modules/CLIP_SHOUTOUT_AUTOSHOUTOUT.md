@@ -1,8 +1,10 @@
 # Clip-Shoutout / AutoShoutout Modul
 
-Stand: CAN-44.13.3 / Modul `clip_shoutout` Version `0.2.24`
+Stand: CAN-44.13.5 / Modul `clip_shoutout` Version `0.2.24`
 
 ## Zweck
+
+Diese Datei ist die Fachdatei zum AutoShoutout-Unterbereich. Die Haupt-Modul-Doku steht in `docs/modules/clip-shoutout-vso.md`. Der Modulindex steht in `docs/modules/README.md`.
 
 Das AutoShoutout-System ist Teil des Moduls `backend/modules/clip_shoutout.js`. Es erkennt konfigurierte Streamer im Twitch-Chat und löst nach einstellbaren Regeln automatisch einen Video-Shoutout sowie optional einen offiziellen Twitch-Shoutout aus.
 
@@ -23,6 +25,74 @@ Der AutoShoutout ist bewusst an das bestehende Shoutout-System gekoppelt:
 - SQLite/MariaDB über `backend/core/database.js`
 - Text-Helper: `backend/modules/helpers/helper_texts.js`
 - Message-Helper: `backend/modules/helpers/helper_messages.js`
+
+
+## API-Routen AutoShoutout
+
+AutoShoutout hängt unter dem Shoutout-Modul und nutzt denselben Backend-Kontext.
+
+```text
+GET  /api/clip-shoutout/auto
+GET  /api/clip-shoutout/auto/settings
+POST /api/clip-shoutout/auto/settings
+GET  /api/clip-shoutout/auto/streamers
+POST /api/clip-shoutout/auto/streamers
+POST /api/clip-shoutout/auto/streamers/remove
+POST /api/clip-shoutout/auto/test-chat
+GET  /api/clip-shoutout/auto/texts
+POST /api/clip-shoutout/auto/texts
+POST /api/clip-shoutout/auto/reset-day
+POST /api/clip-shoutout/auto/clear-target
+GET  /api/clip-shoutout/queue
+GET  /api/clip-shoutout/status
+```
+
+### Routen-Zweck
+
+| Route | Zweck |
+|---|---|
+| `GET /auto` | Gesamtstatus: Settings, Streamer, Events, Activity, TextEditor, Queue-Auszug |
+| `GET /auto/settings` | AutoShoutout-Settings lesen |
+| `POST /auto/settings` | AutoShoutout-Settings speichern |
+| `GET /auto/streamers` | konfigurierte AutoSO-Streamer lesen |
+| `POST /auto/streamers` | Streamer hinzufügen/aktualisieren |
+| `POST /auto/streamers/remove` | Streamer entfernen/deaktivieren |
+| `POST /auto/test-chat` | Chat-Aktivität simulieren; seit CAN-44.13.1 standardmäßig Dry-Run |
+| `GET /auto/texts` | Textvarianten für AutoShoutout lesen |
+| `POST /auto/texts` | Textvarianten speichern/ersetzen |
+| `POST /auto/reset-day` | breiter Tagesreset; vorsichtig nutzen |
+| `POST /auto/clear-target` | gezielter Reset für einen Login |
+| `GET /queue` | DisplayQueue und OfficialQueue prüfen |
+| `GET /status` | Modulstatus und Route-/Queue-Status prüfen |
+
+### Test-Sicherheit
+
+`POST /api/clip-shoutout/auto/test-chat` darf ohne `execute=true` oder `dryRun=false` keinen echten Shoutout auslösen.
+
+
+## Datenbanktabellen
+
+```text
+clip_shoutout_auto_settings
+clip_shoutout_auto_streamers
+clip_shoutout_auto_events
+clip_shoutout_auto_message_activity
+module_text_variants
+module_texts (Legacy/Fallback je nach Helper-Stand)
+```
+
+### Tabellen-Zweck
+
+| Tabelle | Zweck |
+|---|---|
+| `clip_shoutout_auto_settings` | persistente AutoSO-Settings als DB-Wahrheit |
+| `clip_shoutout_auto_streamers` | Liste konfigurierter AutoSO-Streamer inkl. Flags |
+| `clip_shoutout_auto_events` | AutoSO-Ereignisse, Trigger, Skip-/Queued-Status |
+| `clip_shoutout_auto_message_activity` | Message-Threshold-Zählung pro Login/Streamtag |
+| `module_text_variants` | aktive Textvarianten für `auto.greeting` |
+| `module_texts` | Legacy-/Fallback-Tabelle des Textsystems |
+
+Queue-/History-Tabellen des Haupt-Shoutout-Moduls werden über DisplayQueue/OfficialQueue genutzt und vor Änderungen anhand der echten Datei geprüft.
 
 ## Konfigurationsquelle
 

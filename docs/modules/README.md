@@ -1,6 +1,6 @@
 # Module-Dokumentation
 
-Stand: 2026-05-30
+Stand: 2026-06-04 / CAN-44.13.5
 
 ## Zweck
 
@@ -35,7 +35,25 @@ docs/modules/channelpoints.md
 docs/modules/channelpoints_steps_517_to_527_summary.md
 docs/modules/sound_system_channelpoints_routing.md
 docs/modules/media_asset_utf8_filename_cleanup.md
+docs/modules/clip-shoutout-vso.md
+docs/modules/CLIP_SHOUTOUT_AUTOSHOUTOUT.md
 ```
+
+## Shoutout-/AutoShoutout-Dokus
+
+```text
+docs/modules/clip-shoutout-vso.md
+```
+
+Hauptdoku für das manuelle Clip-/Video-Shoutout-System (`backend/modules/clip_shoutout.js`) inklusive DisplayQueue, OfficialQueue und Basisrouten.
+
+```text
+docs/modules/CLIP_SHOUTOUT_AUTOSHOUTOUT.md
+```
+
+Fachdoku für AutoShoutout als Unterbereich des Shoutout-Moduls. Enthält AutoSO-Flow, Routen, DB-Tabellen, Dashboard, Textvarianten, Threshold-Logik, Dry-Run und `clear-target`.
+
+Hinweis: AutoShoutout ist kein separates Backend-Modul, sondern Funktionalität innerhalb von `backend/modules/clip_shoutout.js`.
 
 ## Aktuelle Konsolidierungsdokus mit Modulbezug
 
@@ -65,6 +83,13 @@ Media-Dateinamen:
 
 ```text
 STEP524_MEDIA_ASSET_UTF8_FILENAME_CLEANUP_REAL_v0.1.0
+```
+
+AutoShoutout:
+
+```text
+CAN-44.13.3 / clip_shoutout v0.2.24
+CAN-44.13.5 / Doku-Index in docs/modules aktualisiert
 ```
 
 Zurückgezogen/nicht verwenden:
@@ -107,3 +132,11 @@ STEP591 – Routes and Module Docs Verification Scan
 
 Ziel:
 Echte Backend-Routen aus Modulen erfassen und gegen `docs/modules/*.md` prüfen. Routen nicht aus Erinnerung dokumentieren.
+
+Für AutoShoutout zusätzlich prüfen:
+
+```text
+- Live-System und GitHub/dev nach Stream wieder abgleichen
+- onlyWhenLive nach Testphase wieder bewerten
+- Dry-Run-/clear-target-Verhalten nach CAN-44.13.3 weiter beobachten
+```
