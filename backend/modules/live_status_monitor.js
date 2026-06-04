@@ -5,8 +5,8 @@ const https = require("https");
 const database = require("../core/database");
 
 const MODULE_NAME = "live_status_monitor";
-const MODULE_VERSION = "0.1.1";
-const MODULE_BUILD = "CAN-44.12";
+const MODULE_VERSION = "0.1.2";
+const MODULE_BUILD = "CAN-44.12.2";
 const API_PREFIX = "/api/live-status-monitor";
 
 const MODULE_META = {
@@ -389,6 +389,20 @@ function readLogs(limit = 200) {
   }));
 }
 
+function getPublicState() {
+  return {
+    initialized: state.initialized === true,
+    startedAt: state.startedAt || "",
+    lastCheckedAt: state.lastCheckedAt || "",
+    lastLoggedAt: state.lastLoggedAt || "",
+    lastError: state.lastError || "",
+    hasLastSnapshot: !!state.lastSnapshot,
+    autoLogActive: !!state.sampleTimer,
+    sampleRunning: state.sampleRunning === true,
+    sampleCount: Number(state.sampleCount || 0) || 0
+  };
+}
+
 function routeList() {
   return [
     { method: "GET", path: `${API_PREFIX}/status`, purpose: "collect current live source status; use ?log=1 to persist" },
@@ -463,7 +477,7 @@ function init(ctx) {
   });
 
   app.get(`${API_PREFIX}/logs`, (req, res) => {
-    try { ok(res, { ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, logs: readLogs(req.query.limit || 200), state }); }
+    try { ok(res, { ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, logs: readLogs(req.query.limit || 200), state: getPublicState() }); }
     catch (err) { fail(res, err); }
   });
 
