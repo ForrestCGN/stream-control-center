@@ -2,13 +2,13 @@
   const MODULE_ID = 'live_status_monitor';
   const PANEL_ID = 'liveStatusMonitorModule';
   const API = {
-    status: '/api/live-status-monitor/status?log=1',
+    status: '/api/live-status-monitor/status?raw=1',
     test: '/api/live-status-monitor/test',
-    logs: '/api/live-status-monitor/logs?limit=150',
+    logs: '/api/live-status-monitor/logs?limit=25',
     streamStatus: '/api/stream-status/status?forceApi=1',
     twitchDebug: '/api/twitch/stream?login=forrestcgn&debug=1'
   };
-  const state = { status: null, logs: [], loading: false, error: '' };
+  const state = { status: null, logs: [], monitorState: null, loading: false, error: '' };
 
   function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? '').replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
   function bool(v){ return v === true || v === 1 || v === 'true'; }
@@ -84,7 +84,7 @@
   }
   async function loadStatus(log){
     state.loading = true; state.error = ''; render();
-    try { state.status = await api(log ? API.status : API.status.replace('?log=1','?raw=1')); }
+    try { state.status = await api(API.status); }
     catch(err){ state.error = err.message || String(err); }
     finally { state.loading = false; render(); }
   }
@@ -95,13 +95,29 @@
     finally { state.loading = false; render(); }
   }
   async function loadLogs(renderAfter = true){
-    try { const data = await api(API.logs); state.logs = data.logs || []; }
+    try { const data = await api(API.logs); state.logs = data.logs || []; state.monitorState = data.state || null; }
     catch(err){ state.error = err.message || String(err); }
     if (renderAfter) render();
   }
   async function loadAll(force){
     await Promise.all([loadStatus(false), loadLogs(false)]);
     render();
+  }
+  function renderLogMeta(){
+    const m = state.monitorState || {};
+    const logger = (state.status && state.status.logger) || {};
+    const checked = m.lastCheckedAt || state.status?.checkedAt || '';
+    const logged = m.lastLoggedAt || logger.lastLoggedAt || '';
+    const skipped = m.skippedUnchangedCount ?? logger.skippedUnchangedCount ?? 0;
+    const samples = m.sampleCount ?? logger.sampleCount ?? 0;
+    const mode = logger.historyMode || 'changes_only';
+    return `<div class="lsm-log-meta glass">
+      <span><strong>Letzte Prüfung:</strong> ${esc(fmtDateTime(checked) || '-')}</span>
+      <span><strong>Letzte Änderung:</strong> ${esc(fmtDateTime(logged) || '-')}</span>
+      <span><strong>Modus:</strong> ${esc(mode === 'all' ? 'alles loggen' : 'nur Änderungen')}</span>
+      <span><strong>Checks:</strong> ${esc(samples)}</span>
+      <span><strong>Unverändert übersprungen:</strong> ${esc(skipped)}</span>
+    </div>`;
   }
   function renderDecision(){
     const s = state.status || {};
@@ -165,22 +181,22 @@
       <div class="lsm-head">
         <div>
           <h2>Live-Status Monitor</h2>
-          <p>Vergleicht OBS, Twitch /streams, Twitch Search, Stream-Status und EventSub. Automatisches Logging läuft serverseitig.</p>
+          <p>Vergleicht OBS, Twitch /streams, Twitch Search, Stream-Status und EventSub. Die Historie speichert standardmäßig nur Änderungen.</p>
         </div>
         <div class="lsm-actions">
           <button id="lsmRefreshBtn">Alle Quellen testen</button>
-          <button id="lsmManualLogBtn">Test + Log</button>
-          <button id="lsmLogsBtn">Logs laden</button>
+          <button id="lsmManualLogBtn">Test + Änderung prüfen</button>
+          <button id="lsmLogsBtn">Historie laden</button>
         </div>
       </div>
       ${state.error ? `<div class="lsm-error">${esc(state.error)}</div>` : ''}
       ${state.loading ? '<div class="lsm-loading">Lade Live-Quellen...</div>' : ''}
       ${state.status ? renderDecision() : '<div class="glass lsm-empty">Noch keine Daten geladen.</div>'}
-      <div class="lsm-section"><h3>Log der letzten Messungen</h3>${renderLogs()}</div>
+      <div class="lsm-section"><h3>Änderungshistorie</h3>${renderLogMeta()}${renderLogs()}</div>
       <div class="lsm-section"><h3>Rohdaten</h3>${renderRaw()}</div>
       <div class="lsm-links glass">
-        <a href="/api/live-status-monitor/status?log=1" target="_blank">Monitor Status</a>
-        <a href="/api/live-status-monitor/logs?limit=200" target="_blank">Monitor Logs</a>
+        <a href="/api/live-status-monitor/status?raw=1" target="_blank">Monitor Status</a>
+        <a href="/api/live-status-monitor/logs?limit=25" target="_blank">Monitor Historie</a>
         <a href="/api/twitch/stream?login=forrestcgn&debug=1" target="_blank">Twitch Stream Debug</a>
         <a href="/api/stream-status/status?forceApi=1" target="_blank">Stream Status</a>
       </div>

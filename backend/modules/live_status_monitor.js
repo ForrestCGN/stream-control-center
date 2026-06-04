@@ -5,8 +5,8 @@ const https = require("https");
 const database = require("../core/database");
 
 const MODULE_NAME = "live_status_monitor";
-const MODULE_VERSION = "0.1.2";
-const MODULE_BUILD = "CAN-44.12.2";
+const MODULE_VERSION = "0.1.3";
+const MODULE_BUILD = "CAN-44.20.0";
 const API_PREFIX = "/api/live-status-monitor";
 
 const MODULE_META = {
@@ -28,9 +28,14 @@ const state = {
   lastLoggedAt: "",
   lastError: "",
   lastSnapshot: null,
+  lastChangeAt: "",
+  lastLogSkippedAt: "",
+  lastLogDecisionSignature: "",
   sampleTimer: null,
   sampleRunning: false,
-  sampleCount: 0
+  sampleCount: 0,
+  loggedCount: 0,
+  skippedUnchangedCount: 0
 };
 
 function nowIso() { return new Date().toISOString(); }
@@ -68,6 +73,8 @@ function getConfig(env = process.env) {
     autoLogEnabled: boolEnv(env.LIVE_STATUS_MONITOR_AUTO_LOG_ENABLED, true),
     autoLogIntervalMs: intEnv(env.LIVE_STATUS_MONITOR_AUTO_LOG_INTERVAL_MS, 60000, 10000, 900000),
     retentionDays: intEnv(env.LIVE_STATUS_MONITOR_LOG_RETENTION_DAYS, 7, 1, 90),
+    maxLogEntries: intEnv(env.LIVE_STATUS_MONITOR_LOG_MAX_ENTRIES, 100, 10, 5000),
+    historyMode: String(env.LIVE_STATUS_MONITOR_HISTORY_MODE || "changes_only").trim().toLowerCase(),
     startDelayMs: intEnv(env.LIVE_STATUS_MONITOR_START_DELAY_MS, 8000, 1000, 120000)
   };
 }
@@ -135,6 +142,56 @@ function cleanupOldLogs(retentionDays) {
   } catch (err) {
     state.lastError = err.message || String(err);
   }
+}
+
+function cleanupExcessLogs(maxEntries) {
+  try {
+    ensureSchema();
+    const safeLimit = Math.max(10, Math.min(5000, Number(maxEntries) || 100));
+    database.run(`
+      DELETE FROM live_status_monitor_log
+      WHERE id NOT IN (
+        SELECT id FROM live_status_monitor_log ORDER BY id DESC LIMIT ${safeLimit}
+      )
+    `);
+  } catch (err) {
+    state.lastError = err.message || String(err);
+  }
+}
+
+function normalizeWarningsForSignature(warnings) {
+  return (Array.isArray(warnings) ? warnings : [])
+    .map(w => String((w && w.key) || w || ""))
+    .filter(Boolean)
+    .sort();
+}
+
+function buildDecisionSignature(decision) {
+  const d = decision || {};
+  return JSON.stringify({
+    effectiveLive: d.effectiveLive === true,
+    obsStreaming: d.obsStreaming === true,
+    eventSubLive: String(d.eventSubLive || "unknown"),
+    twitchStreamsLive: d.twitchStreamsLive === true,
+    twitchSearchLive: d.twitchSearchLive === true,
+    streamStatusLive: d.streamStatusLive === true,
+    confidence: String(d.confidence || ""),
+    sourceSummary: String(d.sourceSummary || ""),
+    warnings: normalizeWarningsForSignature(d.warnings),
+    title: String(d.title || ""),
+    gameName: String(d.gameName || ""),
+    streamId: String(d.streamId || ""),
+    sceneName: String(d.sceneName || "")
+  });
+}
+
+function parseSnapshotJson(value) {
+  try { return value ? JSON.parse(String(value)) : {}; } catch (_) { return {}; }
+}
+
+function readLatestLog() {
+  ensureSchema();
+  return database.get(`SELECT * FROM live_status_monitor_log ORDER BY id DESC LIMIT 1`) || null;
 }
 
 function parseObs(source) {
@@ -333,7 +390,13 @@ async function collectStatus(cfg, options = {}) {
       autoLogEnabled: cfg.autoLogEnabled,
       autoLogIntervalMs: cfg.autoLogIntervalMs,
       retentionDays: cfg.retentionDays,
+      maxLogEntries: cfg.maxLogEntries,
+      historyMode: cfg.historyMode,
       sampleCount: state.sampleCount,
+      loggedCount: state.loggedCount,
+      skippedUnchangedCount: state.skippedUnchangedCount,
+      lastChangeAt: state.lastChangeAt,
+      lastLogSkippedAt: state.lastLogSkippedAt,
       lastLoggedAt: state.lastLoggedAt,
       lastError: state.lastError
     }
@@ -343,9 +406,40 @@ async function collectStatus(cfg, options = {}) {
   return snapshot;
 }
 
-function logSnapshot(snapshot, reason = "manual") {
+function logSnapshot(snapshot, reason = "manual", options = {}) {
   ensureSchema();
   const d = snapshot && snapshot.decision ? snapshot.decision : {};
+  const cfg = options.cfg || getConfig();
+  const historyMode = String(options.historyMode || cfg.historyMode || "changes_only").toLowerCase();
+  const force = options.force === true || historyMode === "all";
+  const signature = buildDecisionSignature(d);
+  const latest = readLatestLog();
+  const latestSnapshotJson = latest ? parseSnapshotJson(latest.snapshot_json) : {};
+  const latestSignature = latestSnapshotJson.decisionSignature || (latest ? buildDecisionSignature({
+    effectiveLive: latest.effective_live === 1 || latest.effective_live === true,
+    obsStreaming: latest.obs_streaming === 1 || latest.obs_streaming === true,
+    eventSubLive: latest.eventsub_live,
+    twitchStreamsLive: latest.twitch_streams_live === 1 || latest.twitch_streams_live === true,
+    twitchSearchLive: latest.twitch_search_live === 1 || latest.twitch_search_live === true,
+    streamStatusLive: latest.stream_status_live === 1 || latest.stream_status_live === true,
+    confidence: latest.confidence,
+    sourceSummary: latest.source_summary,
+    warnings: parseSnapshotJson(latest.warnings_json),
+    title: latest.title,
+    gameName: latest.game_name,
+    streamId: latest.stream_id,
+    sceneName: latest.scene_name
+  }) : "");
+
+  if (!force && latest && latestSignature === signature) {
+    const skippedAt = nowIso();
+    state.lastLogSkippedAt = skippedAt;
+    state.lastLogDecisionSignature = signature;
+    state.skippedUnchangedCount += 1;
+    return { logged: false, reason: "unchanged", checkedAt: skippedAt, lastLoggedAt: state.lastLoggedAt || String(latest.created_at || "") };
+  }
+
+  const createdAt = nowIso();
   database.run(`
     INSERT INTO live_status_monitor_log (
       created_at, effective_live, obs_streaming, eventsub_live, twitch_streams_live, twitch_search_live,
@@ -355,7 +449,7 @@ function logSnapshot(snapshot, reason = "manual") {
       :streamStatusLive, :confidence, :sourceSummary, :warningsJson, :title, :gameName, :streamId, :sceneName, :snapshotJson
     )
   `, {
-    createdAt: nowIso(),
+    createdAt,
     effectiveLive: d.effectiveLive ? 1 : 0,
     obsStreaming: d.obsStreaming ? 1 : 0,
     eventSubLive: String(d.eventSubLive || "unknown"),
@@ -369,9 +463,13 @@ function logSnapshot(snapshot, reason = "manual") {
     gameName: String(d.gameName || ""),
     streamId: String(d.streamId || ""),
     sceneName: String(d.sceneName || ""),
-    snapshotJson: JSON.stringify({ reason, snapshot })
+    snapshotJson: JSON.stringify({ reason, decisionSignature: signature, snapshot })
   });
-  state.lastLoggedAt = nowIso();
+  state.lastLoggedAt = createdAt;
+  state.lastChangeAt = createdAt;
+  state.lastLogDecisionSignature = signature;
+  state.loggedCount += 1;
+  return { logged: true, reason, checkedAt: createdAt, lastLoggedAt: createdAt };
 }
 
 function readLogs(limit = 200) {
@@ -399,15 +497,19 @@ function getPublicState() {
     hasLastSnapshot: !!state.lastSnapshot,
     autoLogActive: !!state.sampleTimer,
     sampleRunning: state.sampleRunning === true,
-    sampleCount: Number(state.sampleCount || 0) || 0
+    sampleCount: Number(state.sampleCount || 0) || 0,
+    loggedCount: Number(state.loggedCount || 0) || 0,
+    skippedUnchangedCount: Number(state.skippedUnchangedCount || 0) || 0,
+    lastChangeAt: state.lastChangeAt || "",
+    lastLogSkippedAt: state.lastLogSkippedAt || ""
   };
 }
 
 function routeList() {
   return [
-    { method: "GET", path: `${API_PREFIX}/status`, purpose: "collect current live source status; use ?log=1 to persist" },
-    { method: "POST", path: `${API_PREFIX}/test`, purpose: "collect and persist a manual test snapshot" },
-    { method: "GET", path: `${API_PREFIX}/logs`, purpose: "read recent live source monitor log entries" },
+    { method: "GET", path: `${API_PREFIX}/status`, purpose: "collect current live source status; use ?log=1 to persist only if changed" },
+    { method: "POST", path: `${API_PREFIX}/test`, purpose: "collect and persist a manual test snapshot only if changed; use ?forceLog=1 to force" },
+    { method: "GET", path: `${API_PREFIX}/logs`, purpose: "read recent live source monitor change-log entries" },
     { method: "GET", path: `${API_PREFIX}/routes`, purpose: "list module routes" }
   ];
 }
@@ -433,8 +535,9 @@ function scheduleAutoLog(cfg) {
     state.sampleRunning = true;
     try {
       const snap = await collectStatus(cfg, { includeRaw: false });
-      logSnapshot(snap, "auto");
+      logSnapshot(snap, "auto", { cfg });
       cleanupOldLogs(cfg.retentionDays);
+      cleanupExcessLogs(cfg.maxLogEntries);
       state.sampleCount += 1;
       state.lastError = "";
     } catch (err) {
@@ -451,6 +554,7 @@ function init(ctx) {
   const cfg = getConfig(env);
   ensureSchema();
   cleanupOldLogs(cfg.retentionDays);
+  cleanupExcessLogs(cfg.maxLogEntries);
 
   app.options(new RegExp(`^${API_PREFIX.replace(/[\/]/g, "\\/")}(?:\\/.*)?$`), (req, res) => { setHeaders(res); res.status(204).end(); });
 
@@ -460,8 +564,12 @@ function init(ctx) {
     try {
       const snap = await collectStatus(cfg, { includeRaw: String(req.query.raw || "1") !== "0" });
       if (/^(1|true|yes|on)$/i.test(String(req.query.log || ""))) {
-        logSnapshot(snap, "manual-status");
+        const forceLog = /^(1|true|yes|on)$/i.test(String(req.query.forceLog || ""));
+        const logResult = logSnapshot(snap, "manual-status", { cfg, force: forceLog });
         cleanupOldLogs(cfg.retentionDays);
+        cleanupExcessLogs(cfg.maxLogEntries);
+        snap.logged = logResult.logged;
+        snap.logReason = logResult.reason;
       }
       ok(res, snap);
     } catch (err) { fail(res, err); }
@@ -469,15 +577,17 @@ function init(ctx) {
 
   app.post(`${API_PREFIX}/test`, async (req, res) => {
     try {
+      const forceLog = /^(1|true|yes|on)$/i.test(String((req.query && req.query.forceLog) || (req.body && req.body.forceLog) || ""));
       const snap = await collectStatus(cfg, { includeRaw: true });
-      logSnapshot(snap, "manual-test");
+      const logResult = logSnapshot(snap, "manual-test", { cfg, force: forceLog });
       cleanupOldLogs(cfg.retentionDays);
-      ok(res, { ...snap, logged: true });
+      cleanupExcessLogs(cfg.maxLogEntries);
+      ok(res, { ...snap, logged: logResult.logged, logReason: logResult.reason });
     } catch (err) { fail(res, err); }
   });
 
   app.get(`${API_PREFIX}/logs`, (req, res) => {
-    try { ok(res, { ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, logs: readLogs(req.query.limit || 200), state: getPublicState() }); }
+    try { ok(res, { ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, logs: readLogs(req.query.limit || 25), state: getPublicState() }); }
     catch (err) { fail(res, err); }
   });
 
