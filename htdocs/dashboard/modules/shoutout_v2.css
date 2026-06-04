@@ -596,3 +596,20 @@
 .shoutout-v2-admin .so2-analytics-table th:nth-child(n+2):not(:last-child){
   text-align:center;
 }
+
+/* CAN-44.21.9.1 – Auswertung Lesbarkeit */
+.shoutout-v2-admin .so2-streamday-table td:first-child strong{
+  font-size:14px;
+}
+.shoutout-v2-admin .so2-streamday-table td:first-child small{
+  max-width:310px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.shoutout-v2-admin .so2-pair-table{
+  min-width:620px;
+}
+.shoutout-v2-admin .so2-streamday-table{
+  min-width:680px;
+}

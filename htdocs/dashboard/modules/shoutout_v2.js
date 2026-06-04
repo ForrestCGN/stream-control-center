@@ -1,8 +1,8 @@
 window.ShoutoutV2Module = (function(){
   'use strict';
 
-  const MODULE_VERSION = '2.4.0-analytics';
-  const BUILD = 'CAN-44.21.9';
+  const MODULE_VERSION = '2.4.1-analytics-readable';
+  const BUILD = 'CAN-44.21.9.1';
 
   const API = {
     status: '/api/clip-shoutout/status',
@@ -796,6 +796,68 @@ window.ShoutoutV2Module = (function(){
     return row.targetDisplay || row.targetLogin || row.display || row.login || '-';
   }
 
+  function streamDayLabel(row){
+    const first = row.firstRequestedAt || '';
+    const last = row.lastRequestedAt || '';
+    const basis = last || first;
+    if (basis) {
+      const date = new Date(basis);
+      if (Number.isFinite(date.getTime())) {
+        return date.toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' });
+      }
+    }
+    const raw = String(row.streamDayId || '');
+    const match = raw.match(/_(\d{8})t/i);
+    if (match) {
+      const y = match[1].slice(0,4);
+      const m = match[1].slice(4,6);
+      const d = match[1].slice(6,8);
+      return `${d}.${m}.${y}`;
+    }
+    return raw || '-';
+  }
+
+  function shortStreamDayId(value){
+    const raw = String(value || '');
+    if (!raw) return '';
+    return raw.replace(/^forrestcgn_/i, '').replace(/_fallback$/i, '');
+  }
+
+  function renderPairStatsTable(rows, emptyText){
+    const list = asArray(rows).slice(0, 12);
+    if (!list.length) return `<div class="so2-empty">${esc(emptyText)}</div>`;
+    return `<div class="so2-table-wrap"><table class="so2-table so2-analytics-table so2-pair-table">
+      <thead><tr><th>Paarung</th><th>Gesamt</th><th>Fertig</th><th>Override</th><th>Letzte Aktivität</th></tr></thead>
+      <tbody>${list.map(row => `
+        <tr>
+          <td><strong>${esc(displayNameForStat(row, 'pair'))}</strong></td>
+          <td>${esc(row.total ?? 0)}</td>
+          <td>${esc(row.displayDone ?? '-')}</td>
+          <td>${esc(row.overrideCount ?? 0)}</td>
+          <td>${esc(formatTime(row.lastRequestedAt || ''))}</td>
+        </tr>
+      `).join('')}</tbody>
+    </table></div>`;
+  }
+
+  function renderStreamDayStatsTable(rows, emptyText){
+    const list = asArray(rows).slice(0, 12);
+    if (!list.length) return `<div class="so2-empty">${esc(emptyText)}</div>`;
+    return `<div class="so2-table-wrap"><table class="so2-table so2-analytics-table so2-streamday-table">
+      <thead><tr><th>Streamtag</th><th>Gesamt</th><th>Ziele</th><th>Auslöser</th><th>Override</th><th>Letzte Aktivität</th></tr></thead>
+      <tbody>${list.map(row => `
+        <tr>
+          <td><strong>${esc(streamDayLabel(row))}</strong>${row.streamDayId ? `<small>${esc(shortStreamDayId(row.streamDayId))}</small>` : ''}</td>
+          <td>${esc(row.total ?? 0)}</td>
+          <td>${esc(row.uniqueTargets ?? '-')}</td>
+          <td>${esc(row.uniqueRequesters ?? '-')}</td>
+          <td>${esc(row.overrideCount ?? 0)}</td>
+          <td>${esc(formatTime(row.lastRequestedAt || ''))}</td>
+        </tr>
+      `).join('')}</tbody>
+    </table></div>`;
+  }
+
   function renderStatsTable(rows, kind, emptyText){
     const list = asArray(rows).slice(0, 12);
     if (!list.length) return `<div class="so2-empty">${esc(emptyText)}</div>`;
@@ -886,11 +948,11 @@ window.ShoutoutV2Module = (function(){
       <div class="so2-two">
         <section class="so2-panel">
           <div class="so2-section-title"><div><h3>Häufige Paarungen</h3></div>${badge(`${pairStats.length} geladen`, 'neutral')}</div>
-          ${renderStatsTable(pairStats, 'pair', 'Noch keine Paarungsdaten geladen.')}
+          ${renderPairStatsTable(pairStats, 'Noch keine Paarungsdaten geladen.')}
         </section>
         <section class="so2-panel">
           <div class="so2-section-title"><div><h3>Streamtage</h3></div>${badge(`${streamDayStats.length} geladen`, 'neutral')}</div>
-          ${renderStatsTable(streamDayStats, 'streamday', 'Noch keine Streamtage geladen.')}
+          ${renderStreamDayStatsTable(streamDayStats, 'Noch keine Streamtage geladen.')}
         </section>
       </div>
 
