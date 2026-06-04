@@ -6,6 +6,7 @@ const axios = require("axios");
 const crypto = require("crypto");
 const core = require("./helpers/helper_core");
 const configHelper = require("./helpers/helper_config");
+const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 const twitch = require("./twitch");
 const twitchPresence = require("./twitch_presence");
@@ -18,7 +19,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.21";
+const MODULE_VERSION = "0.2.22";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -31,6 +32,27 @@ const MODULE_META = {
   capabilities: ["shoutout.display_queue", "shoutout.official_queue", "shoutout.event_output"],
   bus: { emits: true, registered: false, heartbeat: false, channel: SHOUTOUT_BUS_CHANNEL },
   note: "STEP278 Block 23: Loader-readable metadata only; runtime flow unchanged."
+};
+
+const AUTO_SHOUTOUT_TEXT_DEFAULTS = {
+  'auto.greeting': [
+    '👋 @{displayName} ist im Altersheim eingetroffen. Die Pfleger schieben direkt mal den Shouti-Wagen los.',
+    '🧓 Achtung, @{displayName} hat sich an der Rezeption gemeldet. Zeit für einen ordentlichen Shouti aus dem CGN-Altersheim.',
+    '📺 @{displayName} ist da und hat genug Lebenszeichen gesendet. Der AutoShouti wird aus dem Rentner-Regal geholt.',
+    '💜 Willkommen @{displayName}! Die CGN-Rentnercrew startet schon mal den Shouti-Rollator.',
+    '☕ @{displayName} hat sich blicken lassen. Kaffee steht bereit, Shouti wird angeschoben.'
+  ]
+};
+
+const AUTO_SHOUTOUT_TEXT_OPTIONS = {
+  defaultCategory: 'auto_shoutout',
+  categories: {
+    'auto.greeting': 'auto_shoutout'
+  },
+  categoryLabels: {
+    auto_shoutout: 'AutoShoutout'
+  },
+  source: 'seed'
 };
 
 const DEFAULT_CONFIG = {
@@ -136,6 +158,11 @@ const DEFAULT_CONFIG = {
       enabled: false,
       onlyWhenLive: false,
       triggerOnFirstMessageOnly: true,
+      minMessagesBeforeTrigger: 3,
+      messageWindowMs: 1800000,
+      greetingEnabled: true,
+      greetingOnlyWhenTriggering: true,
+      greetingTextKey: 'auto.greeting',
       respectStreamDayLimit: true,
       globalCooldownMs: 120000,
       perStreamerCooldownMs: 43200000,
@@ -229,7 +256,17 @@ const state = {
     lastSkipReason: "",
     lastError: "",
     noticeMemory: {},
-    noticeMemoryMax: 500
+    noticeMemoryMax: 500,
+    activity: {
+      lastLogin: '',
+      lastDisplayName: '',
+      lastStreamDayId: '',
+      lastMessageCount: 0,
+      lastRequiredMessages: 0,
+      lastWindowStartedAt: '',
+      lastWindowEndsAt: '',
+      lastTriggeredByThreshold: false
+    }
   },
   sceneGate: {
     lastCheckedAt: "",
@@ -422,6 +459,25 @@ function renderAutoMessage(template, vars = {}) {
     .replace(/\{waitTime\}/g, String(vars.waitTime || 'kurz'))
     .replace(/\{reason\}/g, String(vars.reason || ''))
     .trim();
+}
+
+function renderAutoModuleText(key, vars = {}, options = {}) {
+  const displayName = cleanDisplay(vars.displayName || vars.login || '', vars.login || '');
+  const context = { ...vars, displayName, user: displayName, username: vars.login || '' };
+  const rendered = textHelper.renderModuleText(MODULE_NAME, key, AUTO_SHOUTOUT_TEXT_DEFAULTS, context, {
+    ...AUTO_SHOUTOUT_TEXT_OPTIONS,
+    ...(options || {})
+  });
+  return renderAutoMessage(rendered, { ...vars, displayName });
+}
+
+async function sendAutoGreetingNotice(acfg, vars = {}, cfg = null) {
+  if (!acfg || acfg.sendChatMessage === false || acfg.greetingEnabled === false) return false;
+  const key = String(acfg.greetingTextKey || 'auto.greeting').trim() || 'auto.greeting';
+  const msg = renderAutoModuleText(key, vars);
+  if (!msg) return false;
+  await sendChatMessage(msg, { targetLogin: vars.login, autoShoutout: true, reason: 'auto_greeting', textKey: key });
+  return true;
 }
 
 function pruneAutoNoticeMemory() {
@@ -3495,6 +3551,11 @@ function normalizeAutoSettings(input = {}, fallback = {}) {
     enabled: input.enabled === undefined ? base.enabled === true : database.boolFromDb(database.normalizeBool(input.enabled)),
     onlyWhenLive: input.onlyWhenLive === undefined ? base.onlyWhenLive === true : database.boolFromDb(database.normalizeBool(input.onlyWhenLive)),
     triggerOnFirstMessageOnly: input.triggerOnFirstMessageOnly === undefined ? base.triggerOnFirstMessageOnly !== false : database.boolFromDb(database.normalizeBool(input.triggerOnFirstMessageOnly)),
+    minMessagesBeforeTrigger: Math.max(1, Number.parseInt(input.minMessagesBeforeTrigger === undefined ? base.minMessagesBeforeTrigger : input.minMessagesBeforeTrigger, 10) || 3),
+    messageWindowMs: Math.max(60000, Number(input.messageWindowMs === undefined ? base.messageWindowMs : input.messageWindowMs) || 1800000),
+    greetingEnabled: input.greetingEnabled === undefined ? base.greetingEnabled !== false : database.boolFromDb(database.normalizeBool(input.greetingEnabled)),
+    greetingOnlyWhenTriggering: input.greetingOnlyWhenTriggering === undefined ? base.greetingOnlyWhenTriggering !== false : database.boolFromDb(database.normalizeBool(input.greetingOnlyWhenTriggering)),
+    greetingTextKey: String(input.greetingTextKey === undefined ? (base.greetingTextKey || 'auto.greeting') : input.greetingTextKey || 'auto.greeting'),
     respectStreamDayLimit: input.respectStreamDayLimit === undefined ? base.respectStreamDayLimit !== false : database.boolFromDb(database.normalizeBool(input.respectStreamDayLimit)),
     globalCooldownMs: Math.max(0, Number(input.globalCooldownMs === undefined ? base.globalCooldownMs : input.globalCooldownMs) || 0),
     perStreamerCooldownMs: Math.max(0, Number(input.perStreamerCooldownMs === undefined ? base.perStreamerCooldownMs : input.perStreamerCooldownMs) || 0),
@@ -3556,6 +3617,25 @@ function ensureAutoShoutoutSchema() {
       display_queue_id ${integer} NOT NULL DEFAULT 0,
       created_at ${dt} NOT NULL,
       meta_json ${longText} NOT NULL
+    )
+  `);
+
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS clip_shoutout_auto_message_activity (
+      id ${pk},
+      target_login ${shortText} NOT NULL,
+      target_display ${text} NOT NULL DEFAULT '',
+      stream_day_id ${shortText} NOT NULL DEFAULT '',
+      window_started_at ${dt} NOT NULL,
+      last_message_at ${dt} NOT NULL,
+      message_count ${integer} NOT NULL DEFAULT 0,
+      required_messages ${integer} NOT NULL DEFAULT 3,
+      window_ms ${integer} NOT NULL DEFAULT 1800000,
+      greeted_at ${dt} NOT NULL DEFAULT '',
+      triggered_at ${dt} NOT NULL DEFAULT '',
+      updated_at ${dt} NOT NULL,
+      meta_json ${longText} NOT NULL,
+      UNIQUE(target_login, stream_day_id)
     )
   `);
 
@@ -3725,6 +3805,142 @@ function listAutoShoutoutEvents(limit = 25) {
   return database.all(`SELECT * FROM ${database.quoteIdentifier('clip_shoutout_auto_events')} ORDER BY created_at DESC, id DESC LIMIT ${safeLimit}`) || [];
 }
 
+function normalizeAutoActivityRow(row = {}) {
+  if (!row) return null;
+  const nowMs = Date.now();
+  const windowMs = Math.max(60000, Number(row.window_ms || 1800000));
+  const startedMs = msFromIso(row.window_started_at);
+  return {
+    id: Number(row.id || 0),
+    login: cleanLogin(row.target_login || ''),
+    displayName: cleanDisplay(row.target_display || row.target_login || '', row.target_login || ''),
+    streamDayId: String(row.stream_day_id || ''),
+    windowStartedAt: String(row.window_started_at || ''),
+    lastMessageAt: String(row.last_message_at || ''),
+    messageCount: Number(row.message_count || 0),
+    requiredMessages: Number(row.required_messages || 3),
+    windowMs,
+    windowEndsAt: startedMs ? isoFromMs(startedMs + windowMs) : '',
+    remainingMessages: Math.max(0, Number(row.required_messages || 3) - Number(row.message_count || 0)),
+    windowRemainingMs: startedMs ? Math.max(0, startedMs + windowMs - nowMs) : 0,
+    greetedAt: String(row.greeted_at || ''),
+    triggeredAt: String(row.triggered_at || ''),
+    updatedAt: String(row.updated_at || ''),
+    meta: database.jsonDecode(row.meta_json, {}) || {}
+  };
+}
+
+function recordAutoMessageActivity(login, displayName, streamDayId, acfg, source = {}) {
+  ensureAutoShoutoutSchema();
+  const clean = cleanLogin(login);
+  if (!clean) return null;
+  const now = nowIso();
+  const nowMs = Date.now();
+  const dayId = String(streamDayId || 'no_stream_day');
+  const requiredMessages = Math.max(1, Number.parseInt(acfg.minMessagesBeforeTrigger || 3, 10) || 3);
+  const windowMs = Math.max(60000, Number(acfg.messageWindowMs || 1800000) || 1800000);
+  const existing = database.get(`
+    SELECT * FROM ${database.quoteIdentifier('clip_shoutout_auto_message_activity')}
+    WHERE target_login=:login AND stream_day_id=:streamDayId
+    LIMIT 1
+  `, { login: clean, streamDayId: dayId });
+
+  let messageCount = 1;
+  let windowStartedAt = now;
+  let greetedAt = '';
+  let triggeredAt = '';
+  const existingWindowStartedMs = msFromIso(existing && existing.window_started_at);
+  const existingLastMessageMs = msFromIso(existing && existing.last_message_at);
+  const windowExpired = existing && (
+    (existingWindowStartedMs && existingWindowStartedMs + Number(existing.window_ms || windowMs) < nowMs) ||
+    (existingLastMessageMs && existingLastMessageMs + Number(existing.window_ms || windowMs) < nowMs)
+  );
+
+  if (existing && !windowExpired) {
+    messageCount = Math.max(0, Number(existing.message_count || 0)) + 1;
+    windowStartedAt = String(existing.window_started_at || now);
+    greetedAt = String(existing.greeted_at || '');
+    triggeredAt = String(existing.triggered_at || '');
+  }
+
+  const meta = { source: source || {}, previousCount: existing && !windowExpired ? Number(existing.message_count || 0) : 0, resetBecauseWindowExpired: Boolean(existing && windowExpired) };
+  const data = {
+    target_login: clean,
+    target_display: cleanDisplay(displayName || clean, clean),
+    stream_day_id: dayId,
+    window_started_at: windowStartedAt,
+    last_message_at: now,
+    message_count: messageCount,
+    required_messages: requiredMessages,
+    window_ms: windowMs,
+    greeted_at: greetedAt,
+    triggered_at: triggeredAt,
+    updated_at: now,
+    meta_json: database.jsonEncode(meta)
+  };
+  database.upsert('clip_shoutout_auto_message_activity', data, ['target_login', 'stream_day_id'], [
+    'target_display', 'window_started_at', 'last_message_at', 'message_count', 'required_messages', 'window_ms', 'updated_at', 'meta_json'
+  ]);
+  const row = database.get(`SELECT * FROM ${database.quoteIdentifier('clip_shoutout_auto_message_activity')} WHERE target_login=:login AND stream_day_id=:streamDayId`, { login: clean, streamDayId: dayId });
+  const activity = normalizeAutoActivityRow(row);
+  state.autoShoutout.activity = {
+    lastLogin: clean,
+    lastDisplayName: cleanDisplay(displayName || clean, clean),
+    lastStreamDayId: dayId,
+    lastMessageCount: activity ? activity.messageCount : messageCount,
+    lastRequiredMessages: requiredMessages,
+    lastWindowStartedAt: activity ? activity.windowStartedAt : windowStartedAt,
+    lastWindowEndsAt: activity ? activity.windowEndsAt : isoFromMs(msFromIso(windowStartedAt) + windowMs),
+    lastTriggeredByThreshold: activity ? activity.messageCount >= requiredMessages : messageCount >= requiredMessages
+  };
+  return activity;
+}
+
+function markAutoMessageActivityGreeting(login, streamDayId) {
+  const clean = cleanLogin(login);
+  const dayId = String(streamDayId || 'no_stream_day');
+  const now = nowIso();
+  database.run(`UPDATE ${database.quoteIdentifier('clip_shoutout_auto_message_activity')} SET greeted_at=CASE WHEN greeted_at='' THEN :now ELSE greeted_at END, updated_at=:now WHERE target_login=:login AND stream_day_id=:streamDayId`, { login: clean, streamDayId: dayId, now });
+}
+
+function markAutoMessageActivityTriggered(login, streamDayId) {
+  const clean = cleanLogin(login);
+  const dayId = String(streamDayId || 'no_stream_day');
+  const now = nowIso();
+  database.run(`UPDATE ${database.quoteIdentifier('clip_shoutout_auto_message_activity')} SET triggered_at=CASE WHEN triggered_at='' THEN :now ELSE triggered_at END, updated_at=:now WHERE target_login=:login AND stream_day_id=:streamDayId`, { login: clean, streamDayId: dayId, now });
+}
+
+function listAutoMessageActivity(limit = 25) {
+  ensureAutoShoutoutSchema();
+  const safeLimit = Math.max(1, Math.min(200, Number.parseInt(limit, 10) || 25));
+  return database.all(`
+    SELECT * FROM ${database.quoteIdentifier('clip_shoutout_auto_message_activity')}
+    ORDER BY updated_at DESC, id DESC LIMIT ${safeLimit}
+  `).map(normalizeAutoActivityRow).filter(Boolean);
+}
+
+function replaceAutoTextVariants(key, values = [], options = {}) {
+  const textKey = String(key || 'auto.greeting').trim() || 'auto.greeting';
+  const lines = (Array.isArray(values) ? values : String(values || '').split(/\r?\n/))
+    .map(value => String(value || '').trim())
+    .filter(Boolean);
+  if (!lines.length) throw new Error('text_variants_required');
+  const table = textHelper.ensureModuleTextVariantsTable(textHelper.DEFAULT_MODULE_TEXT_VARIANTS_TABLE);
+  const qTable = database.quoteIdentifier(table);
+  database.run(`DELETE FROM ${qTable} WHERE module_name=:moduleName AND text_key=:textKey`, { moduleName: MODULE_NAME, textKey });
+  lines.forEach((value, index) => {
+    textHelper.setModuleTextVariant(MODULE_NAME, {
+      key: textKey,
+      category: options.category || 'auto_shoutout',
+      value,
+      enabled: true,
+      weight: 1,
+      sortOrder: index
+    }, AUTO_SHOUTOUT_TEXT_OPTIONS);
+  });
+  return textHelper.listModuleTextEditor(MODULE_NAME, AUTO_SHOUTOUT_TEXT_DEFAULTS, AUTO_SHOUTOUT_TEXT_OPTIONS);
+}
+
 function autoCooldownStatus(login, cfg) {
   const acfg = autoShoutoutConfig(cfg);
   const nowMs = Date.now();
@@ -3834,6 +4050,22 @@ async function handleAutoShoutoutChatActivity(parsed, source = {}, env = process
     return autoSkip(login, displayName, cooldown.blockedBy || 'cooldown', { streamDayId, cooldown, waitTime }, cfg);
   }
 
+  const activity = recordAutoMessageActivity(login, streamer.displayName || displayName || login, streamDayId, acfg, source);
+  const requiredMessages = Math.max(1, Number(acfg.minMessagesBeforeTrigger || 3));
+  if (activity && activity.messageCount < requiredMessages) {
+    emitShoutoutBus('shoutout.auto.waiting_message_threshold', {
+      targetLogin: login,
+      displayName: streamer.displayName || displayName || login,
+      streamDayId,
+      messageCount: activity.messageCount,
+      requiredMessages,
+      remainingMessages: activity.remainingMessages,
+      windowEndsAt: activity.windowEndsAt,
+      windowRemainingMs: activity.windowRemainingMs
+    }, cfg);
+    return { ok: true, skipped: true, reason: 'message_threshold_waiting', targetLogin: login, activity };
+  }
+
   const input = {
     target: login,
     targetLogin: login,
@@ -3859,6 +4091,15 @@ async function handleAutoShoutoutChatActivity(parsed, source = {}, env = process
   };
 
   try {
+    if (acfg.greetingEnabled !== false && (!activity || !activity.greetedAt)) {
+      await sendAutoGreetingNotice(acfg, {
+        ...varsBase,
+        messageCount: activity ? activity.messageCount : requiredMessages,
+        requiredMessages,
+        windowEndsAt: activity ? activity.windowEndsAt : '',
+        windowRemainingMs: activity ? activity.windowRemainingMs : 0
+      }, cfg).then(sent => { if (sent) markAutoMessageActivityGreeting(login, streamDayId); }).catch(err => { state.autoShoutout.lastError = err && err.message ? err.message : String(err); });
+    }
     const result = await invokeHandleRunDirect(input, env);
     const data = result && result.data ? result.data : {};
     const displayQueueId = Number(data.displayQueue && data.displayQueue.id || data.rowId || 0);
@@ -3881,6 +4122,7 @@ async function handleAutoShoutoutChatActivity(parsed, source = {}, env = process
     });
 
     if (ok) {
+      markAutoMessageActivityTriggered(login, streamDayId);
       state.stats.autoTriggered += 1;
       state.autoShoutout.lastTriggeredAt = nowIso();
       state.autoShoutout.lastTriggeredLogin = login;
@@ -4037,6 +4279,11 @@ function autoShoutoutStatus(cfg) {
     enabled: acfg.enabled === true,
     onlyWhenLive: acfg.onlyWhenLive === true,
     triggerOnFirstMessageOnly: acfg.triggerOnFirstMessageOnly !== false,
+    minMessagesBeforeTrigger: Math.max(1, Number(acfg.minMessagesBeforeTrigger || 3)),
+    messageWindowMs: Math.max(60000, Number(acfg.messageWindowMs || 1800000)),
+    greetingEnabled: acfg.greetingEnabled !== false,
+    greetingOnlyWhenTriggering: acfg.greetingOnlyWhenTriggering !== false,
+    greetingTextKey: String(acfg.greetingTextKey || 'auto.greeting'),
     respectStreamDayLimit: acfg.respectStreamDayLimit !== false,
     globalCooldownMs: Math.max(0, Number(acfg.globalCooldownMs || 0)),
     perStreamerCooldownMs: Math.max(0, Number(acfg.perStreamerCooldownMs || 0)),
@@ -4051,6 +4298,8 @@ function autoShoutoutStatus(cfg) {
     configuredStreamers: listAutoStreamers(cfg),
     configuredStreamerCount: listAutoStreamers(cfg).length,
     recentEvents: listAutoShoutoutEvents(20),
+    recentActivity: listAutoMessageActivity(20),
+    textEditor: textHelper.listModuleTextEditor(MODULE_NAME, AUTO_SHOUTOUT_TEXT_DEFAULTS, AUTO_SHOUTOUT_TEXT_OPTIONS),
     state: {
       lastCheckedAt: state.autoShoutout.lastCheckedAt,
       lastTriggeredAt: state.autoShoutout.lastTriggeredAt,
@@ -4059,7 +4308,8 @@ function autoShoutoutStatus(cfg) {
       lastSkippedLogin: state.autoShoutout.lastSkippedLogin,
       lastSkipReason: state.autoShoutout.lastSkipReason,
       lastError: state.autoShoutout.lastError,
-      noticeMemoryCount: Object.keys(state.autoShoutout.noticeMemory || {}).length
+      noticeMemoryCount: Object.keys(state.autoShoutout.noticeMemory || {}).length,
+      activity: state.autoShoutout.activity || {}
     }
   };
 }
@@ -4268,6 +4518,7 @@ module.exports.init = function init(ctx) {
   ensureOfficialShoutoutSchema();
   ensureInboundShoutoutSchema();
   ensureAutoShoutoutSchema();
+  textHelper.seedModuleTextVariants(MODULE_NAME, AUTO_SHOUTOUT_TEXT_DEFAULTS, AUTO_SHOUTOUT_TEXT_OPTIONS);
   resetStaleDisplayQueueActiveRows();
   registerCommand(cfg);
   installDirectChatCommandBypass(env);
@@ -4302,6 +4553,7 @@ module.exports.init = function init(ctx) {
         { method: "GET", path: `${API_PREFIX}/inbound/stats` },
         { method: "GET", path: `${API_PREFIX}/auto` },
         { method: "GET/POST", path: `${API_PREFIX}/auto/settings` },
+        { method: "GET/POST", path: `${API_PREFIX}/auto/texts` },
         { method: "GET/POST", path: `${API_PREFIX}/auto/streamers` },
         { method: "POST", path: `${API_PREFIX}/auto/streamers/remove` },
         { method: "POST", path: `${API_PREFIX}/auto/test-chat` },
@@ -4531,6 +4783,37 @@ module.exports.init = function init(ctx) {
       const settings = saveAutoShoutoutSettings(input, shoutoutConfig());
       emitShoutoutBus('shoutout.auto.settings.updated', { changedKeys: Object.keys(input || {}) }, shoutoutConfig());
       res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, settings, status: autoShoutoutStatus(shoutoutConfig()) });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
+    }
+  });
+
+  app.get(`${API_PREFIX}/auto/texts`, (req, res) => {
+    try {
+      res.json({
+        ok: true,
+        module: MODULE_NAME,
+        moduleVersion: MODULE_VERSION,
+        texts: textHelper.listModuleTextEditor(MODULE_NAME, AUTO_SHOUTOUT_TEXT_DEFAULTS, AUTO_SHOUTOUT_TEXT_OPTIONS)
+      });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
+    }
+  });
+
+  app.post(`${API_PREFIX}/auto/texts`, (req, res) => {
+    try {
+      const body = req.body || {};
+      const action = String(body.action || '').trim();
+      const texts = action === 'replaceKeyVariants'
+        ? replaceAutoTextVariants(body.key || 'auto.greeting', body.variants || body.values || body.text || '', { category: body.category || 'auto_shoutout' })
+        : textHelper.handleModuleTextEditorPayload(MODULE_NAME, body, AUTO_SHOUTOUT_TEXT_OPTIONS);
+      res.json({
+        ok: true,
+        module: MODULE_NAME,
+        moduleVersion: MODULE_VERSION,
+        texts
+      });
     } catch (err) {
       res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
     }

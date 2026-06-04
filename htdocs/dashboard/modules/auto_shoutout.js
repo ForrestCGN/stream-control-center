@@ -7,6 +7,7 @@ window.AutoShoutoutModule = (function(){
     streamers: '/api/clip-shoutout/auto/streamers',
     remove: '/api/clip-shoutout/auto/streamers/remove',
     testChat: '/api/clip-shoutout/auto/test-chat',
+    texts: '/api/clip-shoutout/auto/texts',
     queue: '/api/clip-shoutout/queue'
   };
 
@@ -166,6 +167,14 @@ window.AutoShoutoutModule = (function(){
   function settings(){ return state.data?.autoShoutout || {}; }
   function streamStatus(){ return state.data?.streamStatus || {}; }
 
+  function autoGreetingVariants(){
+    const editor = settings().textEditor || {};
+    const keys = Array.isArray(editor.keys) ? editor.keys : [];
+    const item = keys.find(row => row && row.key === 'auto.greeting');
+    if (!item || !Array.isArray(item.variants)) return [];
+    return item.variants.filter(v => v && v.enabled !== false).map(v => String(v.value || v.text || '').trim()).filter(Boolean);
+  }
+
   function isFormEditing(){
     const panel = getPanel(false);
     if (!panel) return false;
@@ -234,10 +243,19 @@ window.AutoShoutoutModule = (function(){
   async function saveSettings(){
     const form = getPanel(false)?.querySelector('[data-auto-so-settings-form]');
     if (!form) return;
+    const greetingVariants = String(form.querySelector('[name="autoGreetingVariants"]')?.value || '')
+      .split(/\r?\n/)
+      .map(x => x.trim())
+      .filter(Boolean);
     const body = {
       enabled: form.querySelector('[name="enabled"]')?.checked === true,
       onlyWhenLive: form.querySelector('[name="onlyWhenLive"]')?.checked === true,
-      triggerOnFirstMessageOnly: form.querySelector('[name="triggerOnFirstMessageOnly"]')?.checked === true,
+      triggerOnFirstMessageOnly: false,
+      minMessagesBeforeTrigger: Number(form.querySelector('[name="minMessagesBeforeTrigger"]')?.value || 3),
+      messageWindowMs: Number(form.querySelector('[name="messageWindowMinutes"]')?.value || 30) * 60000,
+      greetingEnabled: form.querySelector('[name="greetingEnabled"]')?.checked === true,
+      greetingOnlyWhenTriggering: true,
+      greetingTextKey: 'auto.greeting',
       respectStreamDayLimit: form.querySelector('[name="respectStreamDayLimit"]')?.checked === true,
       sendChatMessage: form.querySelector('[name="sendChatMessage"]')?.checked === true,
       storeSkippedEvents: form.querySelector('[name="storeSkippedEvents"]')?.checked === true,
@@ -258,7 +276,20 @@ window.AutoShoutoutModule = (function(){
         retryMs: Number(form.querySelector('[name="sceneGateRetryMs"]')?.value || 15000)
       }
     };
-    await doAction(API.settings, body, 'Einstellungen gespeichert.');
+    state.notice = '';
+    state.error = '';
+    try {
+      await api(API.settings, { method: 'POST', body: JSON.stringify(body) });
+      if (greetingVariants.length) {
+        await api(API.texts, { method: 'POST', body: JSON.stringify({ action: 'replaceKeyVariants', key: 'auto.greeting', category: 'auto_shoutout', variants: greetingVariants }) });
+      }
+      state.notice = 'Einstellungen und AutoShouti-Texte gespeichert.';
+      markDirty(false);
+      await loadAll(true);
+    } catch (err) {
+      state.error = err && err.message ? err.message : String(err);
+      render();
+    }
   }
 
   async function saveStreamer(){
@@ -357,13 +388,18 @@ window.AutoShoutoutModule = (function(){
     const s = settings();
     const m = s.messages || {};
     const sg = s.sceneGate || {};
+    const greetingVariants = autoGreetingVariants();
+    const greetingText = greetingVariants.length ? greetingVariants.join('\n') : '';
+    const messageWindowMinutes = Math.max(1, Math.round(Number(s.messageWindowMs ?? 1800000) / 60000));
     return `
       <div class="auto-so-card">
         <div class="auto-so-card-head"><div><h3>Globale Auto-SO-Einstellungen</h3><p>DB-Settings, Chatmeldungen und Start-Szene-Sperre.</p></div></div>
         <form data-auto-so-settings-form class="auto-so-settings-grid">
           <label class="auto-so-check"><input type="checkbox" name="enabled" ${s.enabled ? 'checked' : ''}> Auto-Shoutout aktiv</label>
           <label class="auto-so-check"><input type="checkbox" name="onlyWhenLive" ${s.onlyWhenLive ? 'checked' : ''}> Nur wenn Live</label>
-          <label class="auto-so-check"><input type="checkbox" name="triggerOnFirstMessageOnly" ${s.triggerOnFirstMessageOnly !== false ? 'checked' : ''}> Nur erste Nachricht</label>
+          <label><span>Mindestnachrichten</span><input type="number" name="minMessagesBeforeTrigger" min="1" max="25" step="1" value="${esc(s.minMessagesBeforeTrigger ?? 3)}"></label>
+          <label><span>Zeitfenster Minuten</span><input type="number" name="messageWindowMinutes" min="1" max="240" step="1" value="${esc(messageWindowMinutes)}"></label>
+          <label class="auto-so-check"><input type="checkbox" name="greetingEnabled" ${s.greetingEnabled !== false ? 'checked' : ''}> Begrüßung senden</label>
           <label class="auto-so-check"><input type="checkbox" name="respectStreamDayLimit" ${s.respectStreamDayLimit !== false ? 'checked' : ''}> Streamtag-Limit beachten</label>
           <label class="auto-so-check"><input type="checkbox" name="sendChatMessage" ${s.sendChatMessage !== false ? 'checked' : ''}> Chatmeldung senden</label>
           <label class="auto-so-check"><input type="checkbox" name="storeSkippedEvents" ${s.storeSkippedEvents ? 'checked' : ''}> Skips speichern</label>
@@ -378,6 +414,7 @@ window.AutoShoutoutModule = (function(){
           <label class="auto-so-wide"><span>Bereits Shouti erhalten</span><input type="text" name="msgAlreadyReceived" value="${esc(m.alreadyReceived || '')}"></label>
           <label class="auto-so-wide"><span>Cooldown-Meldung</span><input type="text" name="msgCooldown" value="${esc(m.cooldown || '')}"></label>
           <label class="auto-so-wide"><span>Wartet wegen Start-Szene</span><input type="text" name="msgWaitingStartScene" value="${esc(m.waitingStartScene || '')}"></label>
+          <label class="auto-so-wide"><span>AutoShouti-Begrüßungen, eine Variante pro Zeile</span><textarea name="autoGreetingVariants" rows="6" spellcheck="false">${esc(greetingText)}</textarea><small>Wird zufällig über den Textvarianten-Helper gewählt. Platzhalter: @{displayName}, {login}, {messageCount}, {requiredMessages}</small></label>
           <div class="auto-so-form-actions"><button type="button" data-auto-so-save-settings>Speichern</button></div>
         </form>
       </div>
@@ -434,6 +471,7 @@ window.AutoShoutoutModule = (function(){
 
   function renderRecent(){
     const events = Array.isArray(settings().recentEvents) ? settings().recentEvents : [];
+    const activity = Array.isArray(settings().recentActivity) ? settings().recentActivity : [];
     const st = settings().state || {};
     return `
       <div class="auto-so-card auto-so-wide">
@@ -442,6 +480,7 @@ window.AutoShoutoutModule = (function(){
           <div><small>Letzter Trigger</small><strong>${esc(st.lastTriggeredLogin || '-')}</strong><span>${fmtDate(st.lastTriggeredAt)}</span></div>
           <div><small>Letzter Skip</small><strong>${esc(st.lastSkippedLogin || '-')}</strong><span>${esc(st.lastSkipReason || '-')}</span></div>
           <div><small>Letzter Check</small><strong>${fmtDate(st.lastCheckedAt)}</strong><span>${esc(st.lastError || '')}</span></div>
+          <div><small>Letzte Zählung</small><strong>${esc(activity[0]?.displayName || activity[0]?.login || '-')}</strong><span>${activity[0] ? `${esc(activity[0].messageCount)}/${esc(activity[0].requiredMessages)} · bis ${fmtDate(activity[0].windowEndsAt)}` : '-'}</span></div>
         </div>
         <div class="auto-so-table-wrap">
           <table class="auto-so-table auto-so-table-compact">
