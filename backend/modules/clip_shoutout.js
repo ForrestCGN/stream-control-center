@@ -19,7 +19,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.26";
+const MODULE_VERSION = "0.2.27";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -197,7 +197,8 @@ const DEFAULT_CONFIG = {
     allowLongerClipFallback: true,
     fallbackMaxClipDurationSeconds: 60,
     clipLookbackDays: 90,
-    clipSearchRangesDays: [90, 365, 0],
+    clipSearchRangesDays: [90, 365, 730, 1095, 0],
+    clipPlaybackCandidateLimit: 8,
     clipFetchFirst: 50,
     clipFetchPages: 3,
     randomPick: true,
@@ -2645,7 +2646,7 @@ async function helixGet(env, pathname, params = {}) {
 function normalizeClipSearchRanges(cfg) {
   const source = Array.isArray(cfg.clipSearchRangesDays) && cfg.clipSearchRangesDays.length
     ? cfg.clipSearchRangesDays
-    : [30, 90, Number(cfg.clipLookbackDays || 365), 0];
+    : [90, 365, 730, 1095, Number(cfg.clipLookbackDays || 365), 0];
   const result = [];
   const seen = new Set();
   for (const value of source) {
@@ -2702,8 +2703,11 @@ async function listClipsForBroadcaster(env, broadcasterId, cfg) {
     fallbackMaxClipDurationSeconds,
     ranges: [],
     selectedRange: null,
-    selectedMode: ""
+    selectedMode: "",
+    fallbackDeferred: false
   };
+
+  let bestFallback = null;
 
   for (const days of ranges) {
     const rangeInfo = {
@@ -2755,21 +2759,25 @@ async function listClipsForBroadcaster(env, broadcasterId, cfg) {
         return { clips: durationOk, rawClips: rawRows, debug };
       }
 
-      if (fallbackOk.length) {
-        debug.selectedRange = rangeInfo;
-        debug.selectedMode = "fallback_duration";
-        return { clips: fallbackOk, rawClips: rawRows, debug };
+      if (!bestFallback && fallbackOk.length) {
+        bestFallback = { clips: fallbackOk, rawClips: rawRows, rangeInfo, mode: "fallback_duration" };
+        debug.fallbackDeferred = true;
       }
 
-      if (viewRows.length && allowLongerClipFallback && fallbackMaxClipDurationSeconds <= 0) {
-        debug.selectedRange = rangeInfo;
-        debug.selectedMode = "unlimited_duration";
-        return { clips: viewRows, rawClips: rawRows, debug };
+      if (!bestFallback && viewRows.length && allowLongerClipFallback && fallbackMaxClipDurationSeconds <= 0) {
+        bestFallback = { clips: viewRows, rawClips: rawRows, rangeInfo, mode: "unlimited_duration" };
+        debug.fallbackDeferred = true;
       }
     } catch (err) {
       rangeInfo.error = err && err.message ? err.message : String(err);
       debug.ranges.push(rangeInfo);
     }
+  }
+
+  if (bestFallback && Array.isArray(bestFallback.clips) && bestFallback.clips.length) {
+    debug.selectedRange = bestFallback.rangeInfo;
+    debug.selectedMode = bestFallback.mode;
+    return { clips: bestFallback.clips, rawClips: bestFallback.rawClips, debug };
   }
 
   return { clips: [], rawClips: [], debug };
@@ -2851,6 +2859,59 @@ function pickClip(clips, cfg, targetLogin = "") {
   };
 
   return { clip, selection };
+}
+
+
+function pickClipCandidates(clips, cfg, targetLogin = "", limit = 8) {
+  const candidates = Array.isArray(clips) ? clips.filter(clip => clipIdOf(clip)) : [];
+  if (!candidates.length) return { clips: [], selection: null };
+
+  const avoidRecent = cfg.avoidRecentClips !== false && clipMemoryLimit(cfg) > 0;
+  const recentIds = avoidRecent ? getRecentClipIds(targetLogin, cfg) : [];
+  const recentSet = new Set(recentIds);
+  const nonRecent = avoidRecent ? candidates.filter(clip => !recentSet.has(clipIdOf(clip))) : candidates.slice();
+
+  let pool = nonRecent.length ? nonRecent : candidates;
+  const usedFallbackBecauseAllBlocked = avoidRecent && !nonRecent.length && candidates.length > 0;
+  if (usedFallbackBecauseAllBlocked && cfg.recentClipFallbackWhenAllBlocked === false) pool = candidates;
+
+  let ordered = pool.slice();
+  if (cfg.randomPick !== false) {
+    for (let i = ordered.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = ordered[i];
+      ordered[i] = ordered[j];
+      ordered[j] = tmp;
+    }
+  }
+
+  const orderedIds = new Set(ordered.map(clipIdOf));
+  for (const candidate of candidates) {
+    const id = clipIdOf(candidate);
+    if (id && !orderedIds.has(id)) {
+      ordered.push(candidate);
+      orderedIds.add(id);
+    }
+  }
+
+  const safeLimit = Math.max(1, Math.min(50, Number.parseInt(limit, 10) || 8));
+  ordered = ordered.slice(0, safeLimit);
+
+  const selection = {
+    mode: cfg.randomPick === false ? (avoidRecent ? "first_avoid_recent_candidates" : "first_candidates") : (avoidRecent ? "random_avoid_recent_candidates" : "random_candidates"),
+    candidateCount: candidates.length,
+    recentMemory: recentIds,
+    recentBlockedCount: avoidRecent ? candidates.filter(clipItem => recentSet.has(clipIdOf(clipItem))).length : 0,
+    poolCount: pool.length,
+    usedFallbackBecauseAllBlocked,
+    selectedClipId: "",
+    attemptedClipIds: ordered.map(clipIdOf).filter(Boolean),
+    playbackCandidateLimit: safeLimit,
+    avoidRecentClips: avoidRecent,
+    memoryPerChannel: clipMemoryLimit(cfg)
+  };
+
+  return { clips: ordered, selection };
 }
 
 
@@ -3411,18 +3472,44 @@ async function runDisplayJob(row, env, cfg) {
     throw new Error('no_clips_found');
   }
 
-  const pickedClip = pickClip(clips, cfg, targetUser.login);
-  const clip = pickedClip.clip;
+  const candidateLimit = intParam(cfg.clipPlaybackCandidateLimit, 8, 1, 50);
+  const pickedClip = pickClipCandidates(clips, cfg, targetUser.login, candidateLimit);
   const clipSelection = pickedClip.selection || null;
-  if (!clip) {
-    state.stats.noClips += 1;
-    state.lastError = 'no_valid_clip_after_selection';
-    state.lastRun = { target: targetUser, targetLogin, error: 'no_valid_clip_after_selection', input: summarizeInput(input), clipSearch: clipSearch.debug || null, failedAt: state.lastRunAt };
-    throw new Error('no_valid_clip_after_selection');
+  const playbackAttempts = [];
+  let clip = null;
+  let playback = null;
+
+  for (const candidate of pickedClip.clips || []) {
+    const candidateInfo = publicClipInfo(candidate) || { id: clipIdOf(candidate) };
+    const attempt = {
+      clipId: String(candidateInfo.id || ''),
+      title: String(candidateInfo.title || ''),
+      duration: Number(candidateInfo.duration || 0),
+      ok: false,
+      error: ''
+    };
+    playbackAttempts.push(attempt);
+    try {
+      const playbackUrl = await resolveClipPlaybackUrl(candidate.id, cfg);
+      playback = await prepareClipPlayback(playbackUrl, candidate, targetUser, cfg);
+      clip = candidate;
+      attempt.ok = true;
+      attempt.mode = playback && playback.mode ? playback.mode : clipPlaybackMode(cfg);
+      break;
+    } catch (err) {
+      attempt.error = err && err.message ? err.message : String(err);
+    }
   }
 
-  const playbackUrl = await resolveClipPlaybackUrl(clip.id, cfg);
-  const playback = await prepareClipPlayback(playbackUrl, clip, targetUser, cfg);
+  if (!clip || !playback) {
+    state.stats.noClips += 1;
+    const error = playbackAttempts.length ? 'clip_playback_failed_all_candidates' : 'no_valid_clip_after_selection';
+    state.lastError = error;
+    state.lastRun = { target: targetUser, targetLogin, error, input: summarizeInput(input), clipSearch: clipSearch.debug || null, clipSelection, playbackAttempts, failedAt: state.lastRunAt };
+    throw new Error(error);
+  }
+
+  if (clipSelection) clipSelection.selectedClipId = clipIdOf(clip);
 
   const vars = {
     login: targetUser.login,
@@ -3491,6 +3578,7 @@ async function runDisplayJob(row, env, cfg) {
     target: targetUser,
     clip: { id: clip.id, title: clip.title || '', url: clip.url || '', duration: clip.duration || 0 },
     clipSelection,
+    playbackAttempts,
     clipSearch: clipSearch.debug || null,
     bundleId: bundlePayload.bundleId,
     ttsEnabled: Boolean(ttsItem),
@@ -3500,7 +3588,7 @@ async function runDisplayJob(row, env, cfg) {
     displayQueueId: row.id
   };
   state.lastError = '';
-  return { ok: true, rowId: row.id, target: targetUser, clip, clipSelection, clipSearch, playback, ttsItem, bundlePayload, soundResult, officialEnabled, displayDurationMs };
+  return { ok: true, rowId: row.id, target: targetUser, clip, clipSelection, clipSearch, playbackAttempts, playback, ttsItem, bundlePayload, soundResult, officialEnabled, displayDurationMs };
 }
 
 async function processDisplayQueue(env, cfg, options = {}) {
@@ -5061,6 +5149,7 @@ module.exports.init = function init(ctx) {
         fallbackMaxClipDurationSeconds: currentCfg.fallbackMaxClipDurationSeconds,
         clipLookbackDays: currentCfg.clipLookbackDays,
         clipSearchRangesDays: currentCfg.clipSearchRangesDays,
+        clipPlaybackCandidateLimit: currentCfg.clipPlaybackCandidateLimit,
         clipFetchFirst: currentCfg.clipFetchFirst,
         clipFetchPages: currentCfg.clipFetchPages,
         randomPick: currentCfg.randomPick !== false,
@@ -5158,7 +5247,7 @@ module.exports.init = function init(ctx) {
       const allowed = {};
       const directKeys = [
         "enabled", "command", "aliases", "permissionLevel", "clipLookbackDays", "clipSearchRangesDays",
-        "clipFetchFirst", "clipFetchPages", "randomPick", "sendChatMessage", "chatMessage", "eventBusEnabled"
+        "clipPlaybackCandidateLimit", "clipFetchFirst", "clipFetchPages", "randomPick", "sendChatMessage", "chatMessage", "eventBusEnabled"
       ];
       for (const key of directKeys) if (Object.prototype.hasOwnProperty.call(body, key)) allowed[key] = body[key];
       if (body.displayQueue && typeof body.displayQueue === "object") allowed.displayQueue = body.displayQueue;
