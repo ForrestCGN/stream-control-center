@@ -72,3 +72,33 @@ html[data-theme=light] .shoutout-admin{--so-bg:rgba(255,255,255,.78);--so-bg-2:r
 
 .shoutout-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 0 8px}.shoutout-section-head h4{margin:0}.shoutout-section-head span{color:var(--muted,#94a3b8);font-size:12px;border:1px solid rgba(255,255,255,.10);border-radius:999px;padding:4px 8px;background:rgba(255,255,255,.045)}.shoutout-section-head-wide{margin-top:16px}.shoutout-stats-pairs{max-height:720px}.shoutout-stats-pairs table{min-width:760px}
 @media(max-width:640px){.shoutout-section-head{align-items:flex-start;flex-direction:column}.shoutout-section-head span{align-self:flex-start}}
+
+
+/* CAN-44.20.8 – Timeline Cleanup: Rohdaten kürzen, Debug-IDs ausblenden, Fehler lesbar halten */
+.shoutout-section-count{
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:999px;
+  padding:5px 9px;
+  background:rgba(255,255,255,.045);
+  color:var(--muted,#94a3b8);
+  font-size:12px;
+  white-space:nowrap;
+}
+.shoutout-table-timeline{min-width:920px}
+.shoutout-timeline-target{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.shoutout-timeline-target strong{display:inline-block;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.shoutout-error-short{
+  display:block;
+  max-width:420px;
+  margin-top:5px;
+  color:#fecdd3!important;
+  line-height:1.35;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.shoutout-timeline-wrap .shoutout-table td{vertical-align:middle}
+@media(max-width:760px){
+  .shoutout-section-count{align-self:flex-start}
+  .shoutout-error-short{max-width:260px}
+}

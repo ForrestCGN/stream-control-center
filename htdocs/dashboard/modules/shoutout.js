@@ -122,6 +122,47 @@ window.ShoutoutModule = (function(){
     return `<span class="shoutout-badge ${cls}">${esc(value || '-')}</span>`;
   }
 
+  function translatedStatusBadge(value){
+    const raw = String(value || '').toLowerCase();
+    const labels = {
+      active: 'aktiv',
+      sent: 'gesendet',
+      done: 'fertig',
+      ok: 'ok',
+      live: 'live',
+      queued: 'wartet',
+      waiting: 'wartet',
+      grace: 'grace',
+      failed: 'fehler',
+      bad: 'fehler',
+      error: 'fehler',
+      removed: 'entfernt',
+      '-': '-'
+    };
+    let cls = 'neutral';
+    if (['active','sent','done','ok','live'].includes(raw)) cls = 'ok';
+    else if (['queued','waiting','grace'].includes(raw)) cls = 'warn';
+    else if (['failed','bad','error','removed'].includes(raw)) cls = 'bad';
+    return `<span class="shoutout-badge ${cls}">${esc(labels[raw] || value || '-')}</span>`;
+  }
+
+  function compactErrorText(value, maxLength = 120){
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    let text = raw;
+    if ((raw.startsWith('{') && raw.endsWith('}')) || (raw.startsWith('[') && raw.endsWith(']'))) {
+      try {
+        const parsed = JSON.parse(raw);
+        text = parsed.message || parsed.error || parsed.reason || parsed.status || raw;
+      } catch (_) {
+        text = raw;
+      }
+    }
+    text = String(text || '').replace(/\s+/g, ' ').trim();
+    if (text.length <= maxLength) return text;
+    return `${text.slice(0, Math.max(20, maxLength - 1)).trim()}…`;
+  }
+
   function queueStatusBadge(active){
     return active ? '<span class="shoutout-badge ok">aktiv</span>' : '<span class="shoutout-badge neutral">gestoppt</span>';
   }
@@ -739,29 +780,41 @@ window.ShoutoutModule = (function(){
   }
 
   function renderTimeline(){
-    const rows = timelineRows();
+    const allRows = timelineRows();
+    const visibleRows = allRows.slice(0, 30);
+    const hiddenCount = Math.max(0, allRows.length - visibleRows.length);
     return `
       <div class="shoutout-card shoutout-wide">
-        <div class="shoutout-card-head"><div><h3>Timeline</h3><p>Letzte Shoutout-Anfragen inklusive Display und Official-Verknüpfung.</p></div></div>
-        <div class="shoutout-table-wrap">
-          <table class="shoutout-table">
-            <thead><tr><th>ID</th><th>Ziel</th><th>Display</th><th>Anfrage</th><th>Gestartet</th><th>Fertig</th><th>Official</th><th>Override</th></tr></thead>
+        <div class="shoutout-card-head">
+          <div><h3>Timeline</h3><p>Ausgehende Shoutout-Anfragen mit Display- und Official-Status.</p></div>
+          ${hiddenCount ? `<div class="shoutout-section-count">Top ${esc(visibleRows.length)} von ${esc(allRows.length)}</div>` : ''}
+        </div>
+        <div class="shoutout-table-wrap shoutout-timeline-wrap">
+          <table class="shoutout-table shoutout-table-timeline">
+            <thead><tr><th>ID</th><th>Ziel</th><th>Display</th><th>Angefragt</th><th>Gestartet</th><th>Beendet</th><th>Official</th></tr></thead>
             <tbody>
-              ${rows.length ? rows.map(row => `
-                <tr>
-                  <td>${esc(row.id)}</td>
-                  <td><strong>@${esc(row.targetDisplay || row.targetLogin || '-')}</strong><small>${esc(row.streamDayId || '')}</small></td>
-                  <td>${statusBadge(row.status)}</td>
-                  <td>${fmtDate(row.requestedAt)}</td>
-                  <td>${fmtDate(row.displayStartedAt)}</td>
-                  <td>${fmtDate(row.displayFinishedAt)}</td>
-                  <td>${statusBadge(row.officialResult || row.officialStatus || '-')}${row.officialError ? `<small>${esc(row.officialError)}</small>` : ''}</td>
-                  <td>${row.overrideUsed ? boolBadge(true, 'force', 'nein') : '<span class="shoutout-muted">-</span>'}</td>
-                </tr>
-              `).join('') : '<tr><td colspan="8" class="shoutout-empty">Noch keine Timeline-Einträge.</td></tr>'}
+              ${visibleRows.length ? visibleRows.map(row => {
+                const officialStatus = row.officialResult || row.officialStatus || '-';
+                const officialError = compactErrorText(row.officialError || '');
+                return `
+                  <tr>
+                    <td>${esc(row.id)}</td>
+                    <td class="shoutout-timeline-target">
+                      <strong>@${esc(row.targetDisplay || row.targetLogin || '-')}</strong>
+                      ${row.overrideUsed ? '<span class="shoutout-badge warn">--force</span>' : ''}
+                    </td>
+                    <td>${translatedStatusBadge(row.status)}</td>
+                    <td>${fmtDate(row.requestedAt)}</td>
+                    <td>${fmtDate(row.displayStartedAt)}</td>
+                    <td>${fmtDate(row.displayFinishedAt)}</td>
+                    <td>${translatedStatusBadge(officialStatus)}${officialError ? `<small class="shoutout-error-short" title="${esc(row.officialError || officialError)}">${esc(officialError)}</small>` : ''}</td>
+                  </tr>
+                `;
+              }).join('') : '<tr><td colspan="7" class="shoutout-empty">Noch keine Timeline-Einträge.</td></tr>'}
             </tbody>
           </table>
         </div>
+        ${hiddenCount ? `<div class="shoutout-compact-note">Zeige die letzten ${esc(visibleRows.length)} von ${esc(allRows.length)} geladenen Einträgen. Rohdaten bleiben im Backend unverändert.</div>` : ''}
       </div>
     `;
   }
