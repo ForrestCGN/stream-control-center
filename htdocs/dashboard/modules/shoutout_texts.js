@@ -226,13 +226,14 @@ window.ShoutoutTextsModule = (function(){
   function renderVariantRows(row){
     const values = variantValues(row);
     const rows = values.length ? values : [''];
+    const canRemove = rows.length > 1;
     return rows.map((value, index) => `
-      <div class="shoutout-texts-variant-row" data-shoutout-text-variant-row>
+      <div class="shoutout-texts-variant-row ${canRemove ? '' : 'single'}" data-shoutout-text-variant-row>
         <label>
           <span>Variante ${index + 1}</span>
           <textarea data-shoutout-text-variant-input rows="${String(value).length > 110 ? 3 : 2}" spellcheck="false">${esc(value)}</textarea>
         </label>
-        <button type="button" class="shoutout-texts-icon-btn" data-shoutout-text-remove-variant title="Variante entfernen">×</button>
+        ${canRemove ? '<button type="button" class="shoutout-texts-icon-btn" data-shoutout-text-remove-variant title="Variante entfernen">×</button>' : ''}
       </div>
     `).join('');
   }
@@ -247,7 +248,7 @@ window.ShoutoutTextsModule = (function(){
         <div class="shoutout-card-head shoutout-texts-editor-head">
           <div>
             <h3>${esc(row.key)}</h3>
-            <p>Kategorie: <code>${esc(categoryLabel(row.category))}</code>. Runtime-Fallbacks bleiben bis zur späteren Umstellung bestehen.</p>
+            <p>Kategorie: <span class="shoutout-texts-category-pill">${esc(categoryLabel(row.category))}</span>. Runtime-Fallbacks bleiben bis zur späteren Umstellung bestehen.</p>
           </div>
           <div class="shoutout-texts-editor-actions">
             <button type="button" data-shoutout-text-add-variant>+ Variante</button>
@@ -413,13 +414,9 @@ window.ShoutoutTextsModule = (function(){
       if (remove) {
         event.preventDefault();
         const rows = panel(false)?.querySelectorAll('[data-shoutout-text-variant-row]') || [];
-        if (rows.length <= 1) {
-          const input = rows[0]?.querySelector('[data-shoutout-text-variant-input]');
-          if (input) input.value = '';
-        } else {
-          remove.closest('[data-shoutout-text-variant-row]')?.remove();
-          renumberVariants();
-        }
+        if (rows.length <= 1) return;
+        remove.closest('[data-shoutout-text-variant-row]')?.remove();
+        renumberVariants();
         markDirty(true);
       }
     }, true);

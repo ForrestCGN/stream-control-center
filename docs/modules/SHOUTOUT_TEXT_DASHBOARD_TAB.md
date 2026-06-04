@@ -48,3 +48,8 @@ Das Layout ist bewusst responsiver als das vorherige Listen-/Spaltenlayout und s
 ## Abgrenzung
 
 CAN-44.19.2 ändert nur die Oberfläche des Text-Tabs. Es gibt keine Backend-, DB- oder Runtime-Änderung.
+
+
+## CAN-44.19.3 Dropdown Polish
+
+Der Dropdown-Editor wurde optisch leicht nachgebessert: korrekte Schreibweise im Beschreibungstext, stabile Kategorie-Pill im Editor und kein Entfernen-Button mehr bei nur einer vorhandenen Variante.

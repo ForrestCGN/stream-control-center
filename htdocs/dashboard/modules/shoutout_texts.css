@@ -130,6 +130,24 @@
   color: var(--muted, #9fb0c8);
 }
 
+
+.shoutout-texts-category-pill {
+  display: inline-block;
+  white-space: nowrap;
+  max-width: 100%;
+  vertical-align: baseline;
+  border: 1px solid rgba(144, 202, 255, 0.16);
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 999px;
+  padding: 1px 8px;
+  color: var(--text, #f8fbff);
+  font-size: 12px;
+}
+
+.shoutout-texts-variant-row.single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .shoutout-texts-editor code,
 .shoutout-texts-help code,
 .shoutout-texts-migration code {
