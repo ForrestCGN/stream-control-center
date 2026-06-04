@@ -229,13 +229,25 @@ window.ShoutoutModule = (function(){
     return data;
   }
 
+  function isEditingField(){
+    root = document.getElementById('shoutoutModule');
+    if (!root) return false;
+    const active = document.activeElement;
+    if (!active || !root.contains(active)) return false;
+    return !!(active.matches && active.matches('input, textarea, select'));
+  }
+
   async function loadAll(force){
     root = document.getElementById('shoutoutModule');
     if (!root) return;
+    if (!force && isEditingField()) {
+      scheduleRefresh();
+      return;
+    }
     if (state.loading && !force) return;
     state.loading = true;
     state.error = '';
-    render();
+    if (!isEditingField()) render();
     try {
       const [status, queue, timeline, stats, inbound, inboundStats, productionCheck, liveTest, streamStatus] = await Promise.all([
         api(API.status),
@@ -261,7 +273,7 @@ window.ShoutoutModule = (function(){
       state.error = err && err.message ? err.message : String(err);
     } finally {
       state.loading = false;
-      render();
+      if (!isEditingField() || force) render();
       scheduleRefresh();
     }
   }
@@ -320,10 +332,16 @@ window.ShoutoutModule = (function(){
 
     return `
       <div class="shoutout-hero glass">
-        <div>
-          <div class="shoutout-kicker">Clip-Shoutout / VSO</div>
-          <h2>Shoutout-System</h2>
-          <p>Display-Queue, offizieller Twitch-Shoutout, Streamtag-Limit und zentraler Live-Status.</p>
+        <div class="shoutout-hero-head">
+          <div>
+            <div class="shoutout-kicker">Clip-Shoutout / VSO</div>
+            <h2>Shoutout-System</h2>
+            <p>Display-Queue, offizieller Twitch-Shoutout, Streamtag-Limit und zentraler Live-Status.</p>
+          </div>
+          <div class="shoutout-hero-actions">
+            <span class="shoutout-refresh-state">Auto-Refresh aktiv</span>
+            <button type="button" data-shoutout-refresh>Aktualisieren</button>
+          </div>
         </div>
         <div class="shoutout-hero-grid">
           <div class="shoutout-metric"><small>Modul</small><strong>${esc(status.moduleVersion || '-')}</strong><span>${statusBadge(status.enabled === false ? 'inactive' : 'active')}</span></div>
@@ -1050,16 +1068,6 @@ window.ShoutoutModule = (function(){
     if (!root) return;
     root.innerHTML = `
       <div class="shoutout-shell">
-        <div class="shoutout-toolbar">
-          <div>
-            <strong>Shoutout-Dashboard</strong>
-            <span>${state.loading ? 'lädt...' : 'bereit'}</span>
-          </div>
-          <div class="shoutout-toolbar-actions">
-            <label class="shoutout-check"><input type="checkbox" data-shoutout-auto ${state.autoRefresh ? 'checked' : ''} /> Auto-Refresh</label>
-            <button type="button" data-shoutout-refresh>Aktualisieren</button>
-          </div>
-        </div>
         ${state.error ? `<div class="shoutout-alert bad">${esc(state.error)}</div>` : ''}
         ${state.notice ? `<div class="shoutout-alert ok">${esc(state.notice)}</div>` : ''}
         ${renderHero()}
