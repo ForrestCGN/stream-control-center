@@ -49,8 +49,7 @@ window.ShoutoutTextsModule = (function(){
       btn.dataset.shoutoutTextsTab = '1';
       btn.textContent = 'Texte';
       const queueTab = tabs.querySelector('[data-shoutout-tab="queues"]');
-      const afterAuto = tabs.querySelector('[data-auto-so-tab]');
-      const anchor = afterAuto || queueTab;
+      const anchor = queueTab;
       if (anchor && anchor.nextSibling) tabs.insertBefore(btn, anchor.nextSibling);
       else tabs.appendChild(btn);
       btn.addEventListener('click', event => {

@@ -20,13 +20,13 @@ window.ShoutoutModule = (function(){
 
   const TABS = [
     { id: 'overview', label: 'Übersicht' },
-    { id: 'inbound', label: 'Eingehend' },
+    { id: 'chat', label: 'Chat-Shoutout' },
     { id: 'queues', label: 'Queues' },
+    { id: 'timeline', label: 'Verlauf' },
     { id: 'stats', label: 'Statistik' },
-    { id: 'timeline', label: 'Timeline' },
-    { id: 'production', label: 'Produktion' },
-    { id: 'liveTest', label: 'Live-Test' },
-    { id: 'settings', label: 'Settings/Test' }
+    { id: 'inbound', label: 'Eingehend' },
+    { id: 'diagnostics', label: 'Diagnose' },
+    { id: 'settings', label: 'Einstellungen' }
   ];
 
   let root = null;
@@ -866,6 +866,24 @@ window.ShoutoutModule = (function(){
     `;
   }
 
+  function renderChatShoutout(){
+    return `
+      <div class="shoutout-tab-panel shoutout-grid">
+        ${renderTestBox()}
+        ${renderLiveGate()}
+      </div>
+    `;
+  }
+
+  function renderDiagnostics(){
+    return `
+      <div class="shoutout-tab-panel shoutout-stack">
+        ${renderProductionCheck()}
+        ${renderLiveTest()}
+      </div>
+    `;
+  }
+
   function renderSettingsTest(){
     const status = state.status || {};
     const cfg = status.config || {};
@@ -875,10 +893,8 @@ window.ShoutoutModule = (function(){
 
     return `
       <div class="shoutout-tab-panel shoutout-grid">
-        ${renderTestBox()}
-        ${renderLiveGate()}
         <div class="shoutout-card shoutout-wide">
-          <div class="shoutout-card-head"><div><h3>Settings kompakt</h3><p>Nur Anzeige der wichtigsten Werte. Speichern bleibt unverändert über vorhandene Backend-Routen/Config-Flow.</p></div></div>
+          <div class="shoutout-card-head"><div><h3>Einstellungen kompakt</h3><p>Nur Anzeige der wichtigsten Werte. Speichern bleibt unverändert über vorhandene Backend-Routen/Config-Flow.</p></div></div>
           <div class="shoutout-facts shoutout-facts-wide">
             <div><small>Clip-Lookback</small><strong>${esc(cfg.clipLookbackDays || '-')} Tage</strong></div>
             <div><small>Suchbereiche</small><strong>${esc(Array.isArray(cfg.clipSearchRangesDays) ? cfg.clipSearchRangesDays.join(', ') : '-')}</strong></div>
@@ -895,12 +911,12 @@ window.ShoutoutModule = (function(){
   }
 
   function renderActiveTab(){
-    if (state.activeTab === 'inbound') return renderInbound();
+    if (state.activeTab === 'chat') return renderChatShoutout();
     if (state.activeTab === 'queues') return renderQueues();
-    if (state.activeTab === 'stats') return `<div class="shoutout-tab-panel">${renderStats()}</div>`;
     if (state.activeTab === 'timeline') return `<div class="shoutout-tab-panel">${renderTimeline()}</div>`;
-    if (state.activeTab === 'production') return renderProductionCheck();
-    if (state.activeTab === 'liveTest') return renderLiveTest();
+    if (state.activeTab === 'stats') return `<div class="shoutout-tab-panel">${renderStats()}</div>`;
+    if (state.activeTab === 'inbound') return renderInbound();
+    if (state.activeTab === 'diagnostics') return renderDiagnostics();
     if (state.activeTab === 'settings') return renderSettingsTest();
     return renderOverview();
   }

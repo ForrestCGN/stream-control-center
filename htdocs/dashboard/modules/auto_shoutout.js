@@ -54,9 +54,9 @@ window.AutoShoutoutModule = (function(){
       btn.setAttribute('role', 'tab');
       btn.className = 'shoutout-tab';
       btn.dataset.autoSoTab = '1';
-      btn.textContent = 'Auto-Shoutouts';
-      const queueTab = tabs.querySelector('[data-shoutout-tab="queues"]');
-      if (queueTab && queueTab.nextSibling) tabs.insertBefore(btn, queueTab.nextSibling);
+      btn.textContent = 'AutoShoutout';
+      const chatTab = tabs.querySelector('[data-shoutout-tab="chat"]');
+      if (chatTab && chatTab.nextSibling) tabs.insertBefore(btn, chatTab.nextSibling);
       else tabs.appendChild(btn);
     }
     return btn;
