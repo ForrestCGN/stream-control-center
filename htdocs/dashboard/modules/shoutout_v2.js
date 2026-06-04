@@ -1,8 +1,8 @@
 window.ShoutoutV2Module = (function(){
   'use strict';
 
-  const MODULE_VERSION = '2.0.0-skeleton';
-  const BUILD = 'CAN-44.21.2';
+  const MODULE_VERSION = '2.0.1-overview';
+  const BUILD = 'CAN-44.21.3';
 
   const API = {
     status: '/api/clip-shoutout/status',
@@ -81,6 +81,42 @@ window.ShoutoutV2Module = (function(){
     return value || '-';
   }
 
+  function asNumber(value, fallback = 0){
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  function pickNumber(obj, paths, fallback = 0){
+    const value = pick(obj, paths, undefined);
+    if (Array.isArray(value)) return value.length;
+    return asNumber(value, fallback);
+  }
+
+  function formatTime(value){
+    if (!value) return '-';
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return String(value);
+    return date.toLocaleString('de-DE', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  function normalizeActivity(item){
+    if (!item || typeof item !== 'object') return { title: 'Aktivität', meta: '', tone: 'neutral' };
+    const target = item.displayName || item.targetDisplayName || item.target || item.login || item.user || item.channel || item.broadcasterName || '';
+    const type = item.type || item.kind || item.event || item.action || item.status || 'Shoutout';
+    const status = item.status || item.state || item.result || '';
+    const time = item.createdAt || item.time || item.timestamp || item.at || '';
+    const title = target ? `${target}` : `${type}`;
+    const metaParts = [type, status, formatTime(time)].filter(Boolean).filter(v => v !== '-');
+    const failed = /fail|error|fehler/i.test(`${type} ${status}`);
+    const done = /done|sent|success|fertig|gesendet/i.test(`${type} ${status}`);
+    return { title, meta: metaParts.join(' · '), tone: failed ? 'warn' : (done ? 'ok' : 'neutral') };
+  }
+
   function badge(value, tone = 'neutral'){
     return `<span class="so2-badge so2-badge-${esc(tone)}">${esc(value || '-')}</span>`;
   }
@@ -149,7 +185,7 @@ window.ShoutoutV2Module = (function(){
       state.queue = queue;
       state.streamStatus = streamStatus;
 
-      if (['analytics'].includes(state.activeTab)) {
+      if (['overview','analytics'].includes(state.activeTab)) {
         const [stats, timeline, inbound, inboundStats] = await Promise.all([
           api(API.stats).catch(err => ({ ok:false, error: err.message })),
           api(API.timeline).catch(err => ({ ok:false, error: err.message })),
@@ -241,26 +277,72 @@ window.ShoutoutV2Module = (function(){
     const status = state.status || {};
     const stream = state.streamStatus || {};
     const queue = state.queue || {};
-    const displayOpen = pick(status, ['displayOpen','display.open','queues.display.open','displayQueueOpen'], pick(queue, ['displayOpen','display.open','displayQueue.length'], 0));
-    const officialOpen = pick(status, ['officialOpen','official.open','queues.official.open','officialQueueOpen'], pick(queue, ['officialOpen','official.open','officialQueue.length'], 0));
+    const stats = state.stats || {};
+    const inboundStats = state.inboundStats || {};
+    const timeline = asArray(pick(state.timeline || {}, ['items','timeline','rows','events'], []));
+
+    const displayOpen = pickNumber(status, ['displayOpen','display.open','queues.display.open','displayQueueOpen'], pickNumber(queue, ['displayOpen','display.open','displayQueue.length','displayQueue'], 0));
+    const officialOpen = pickNumber(status, ['officialOpen','official.open','queues.official.open','officialQueueOpen'], pickNumber(queue, ['officialOpen','official.open','officialQueue.length','officialQueue'], 0));
     const moduleVersion = pick(status, ['version','moduleVersion','module.version'], '-');
+    const active = pick(status, ['active','enabled','module.active'], true);
+    const lastError = pick(status, ['lastError','error','errors.0.message','display.lastError','official.lastError'], '');
     const streamLive = pick(stream, ['live','isLive','data.live'], pick(status, ['stream.live','live'], false));
+    const streamFresh = pick(stream, ['fresh','isFresh','stale'], undefined);
+    const source = pick(stream, ['source','upstream','data.source'], pick(status, ['stream.source','source'], 'twitch_api'));
+
+    const total = pickNumber(stats, ['total','totalCount','summary.total','shoutoutsTotal','createdTotal'], pickNumber(status, ['total','created','stats.total'], 0));
+    const targets = pickNumber(stats, ['targets','targetCount','summary.targets','uniqueTargets'], 0);
+    const triggers = pickNumber(stats, ['triggers','triggerCount','summary.triggers','uniqueTriggers'], 0);
+    const officialSent = pickNumber(stats, ['officialSent','official.sent','summary.officialSent','officialShoutoutsSent'], pickNumber(status, ['officialSent','official.sent'], 0));
+    const inboundReceived = pickNumber(inboundStats, ['incoming','received','summary.incoming','totalIncoming','inbound'], pickNumber(status, ['inbound','incoming','received'], 0));
+
+    const blockerCount = [lastError, displayOpen > 0 || officialOpen > 0 ? '' : ''].filter(Boolean).length;
+    const systemTone = lastError ? 'warn' : 'ok';
+    const streamTone = streamLive ? 'ok' : 'warn';
+
     return `
-      <div class="so2-grid so2-grid-4">
-        ${statusCard('System', 'Shoutout V2 aktiv', badge('bereit', 'ok'), 'Das neue Dashboard nutzt die bestehenden Shoutout-APIs.')}
-        ${statusCard('Modul', moduleVersion, badge('API', 'neutral'), 'Backend bleibt unverändert.')}
-        ${statusCard('Stream', streamLive ? 'LIVE' : 'OFFLINE', badge(streamLive ? 'live' : 'offline', streamLive ? 'ok' : 'warn'), 'Nur kurzer Status. Details stehen in Diagnose.')}
-        ${statusCard('Warteschlangen', `${displayOpen} Overlay · ${officialOpen} Twitch`, badge('kurz', 'neutral'), 'Queue-Details stehen nur im Queues-Tab.')}
-      </div>
-      <section class="so2-panel">
-        <h3>V2-Aufbau</h3>
-        <p>Diese Ansicht ist bewusst schlank: keine Config, keine Textbearbeitung, keine langen Tabellen. Details liegen in den passenden Tabs.</p>
-        <div class="so2-checklist">
-          <span>✓ Keine doppelten Inhalte</span>
-          <span>✓ CGN-Design dezent</span>
-          <span>✓ Navigation oben sticky</span>
-          <span>✓ Mod- und Einsteiger-tauglich geplant</span>
+      <section class="so2-overview-block">
+        <div class="so2-section-title">
+          <div>
+            <h3>System-Ampel</h3>
+            <p>Nur der schnelle Überblick. Details liegen in Queues, Auswertung oder Diagnose.</p>
+          </div>
+          ${lastError ? badge('Problem prüfen', 'warn') : badge('bereit', 'ok')}
         </div>
+        <div class="so2-grid so2-grid-4">
+          ${statusCard('System', active ? 'aktiv' : 'inaktiv', badge(lastError ? 'Hinweis' : 'OK', systemTone), lastError || 'Das Shoutout-System antwortet.')}
+          ${statusCard('Stream', streamLive ? 'LIVE' : 'OFFLINE', badge(streamLive ? 'live' : 'offline', streamTone), `Quelle: ${source}${streamFresh === false ? ' · Status eventuell alt' : ''}`)}
+          ${statusCard('Overlay-Shoutouts', String(displayOpen), badge(displayOpen ? 'wartet' : 'frei', displayOpen ? 'warn' : 'ok'), displayOpen ? 'Einträge warten in der Overlay-Warteschlange.' : 'Keine offenen Overlay-Shoutouts.')}
+          ${statusCard('Twitch-Shoutouts', String(officialOpen), badge(officialOpen ? 'wartet' : 'frei', officialOpen ? 'warn' : 'ok'), officialOpen ? 'Offizielle Twitch-Shoutouts warten.' : 'Keine offenen offiziellen Twitch-Shoutouts.')}
+        </div>
+      </section>
+
+      <section class="so2-overview-block">
+        <div class="so2-section-title">
+          <div>
+            <h3>Kurzstatistik</h3>
+            <p>Kompakte Zahlen. Die komplette Auswertung steht im Tab „Auswertung“.</p>
+          </div>
+          ${badge(`Modul ${moduleVersion}`, 'neutral')}
+        </div>
+        <div class="so2-grid so2-grid-5">
+          ${metricCard('Gesamt', total, 'erstellte Shoutouts')}
+          ${metricCard('Ziele', targets, 'unterschiedliche Kanäle')}
+          ${metricCard('Auslöser', triggers, 'User / Quellen')}
+          ${metricCard('Twitch gesendet', officialSent, 'offizielle Shoutouts')}
+          ${metricCard('Eingehend', inboundReceived, 'erhaltene Shoutouts')}
+        </div>
+      </section>
+
+      <section class="so2-overview-block">
+        <div class="so2-section-title">
+          <div>
+            <h3>Letzte Aktivität</h3>
+            <p>Maximal fünf Einträge zur Orientierung. Vollständiger Verlauf steht in „Auswertung“.</p>
+          </div>
+          ${timeline.length ? badge(`${Math.min(timeline.length, 5)} angezeigt`, 'neutral') : badge('leer', 'neutral')}
+        </div>
+        ${renderActivityPreview(timeline)}
       </section>
     `;
   }
@@ -361,6 +443,24 @@ window.ShoutoutV2Module = (function(){
         </div>
       </section>
     `;
+  }
+
+  function metricCard(label, value, help){
+    return `<article class="so2-metric"><small>${esc(label)}</small><strong>${esc(value ?? 0)}</strong><span>${esc(help || '')}</span></article>`;
+  }
+
+  function renderActivityPreview(items){
+    const visible = asArray(items).slice(0, 5).map(normalizeActivity);
+    if (!visible.length) {
+      return `<div class="so2-empty">Noch keine Aktivität geladen. Sobald Shoutouts aufgenommen oder Events verarbeitet werden, erscheinen hier die letzten Einträge.</div>`;
+    }
+    return `<div class="so2-activity-list">${visible.map(item => `
+      <div class="so2-activity-row">
+        <span class="so2-dot so2-dot-${esc(item.tone)}"></span>
+        <strong>${esc(item.title)}</strong>
+        <span>${esc(item.meta || 'Aktivität')}</span>
+      </div>
+    `).join('')}</div>`;
   }
 
   function renderGateMini(){
