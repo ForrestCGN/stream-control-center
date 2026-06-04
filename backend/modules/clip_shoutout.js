@@ -19,7 +19,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.24";
+const MODULE_VERSION = "0.2.25";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -51,6 +51,84 @@ const AUTO_SHOUTOUT_TEXT_OPTIONS = {
   },
   categoryLabels: {
     auto_shoutout: 'AutoShoutout'
+  },
+  source: 'seed'
+};
+
+
+const SHOUTOUT_TEXT_DEFAULTS = {
+  'shoutout.chat.accepted': [
+    '✅ Shoutout für @{displayName} aufgenommen.'
+  ],
+  'shoutout.chat.waiting': [
+    '⏳ Shoutout für @{displayName} aufgenommen und in die Warteschlange gesetzt.'
+  ],
+  'shoutout.chat.failed': [
+    '⚠️ Shoutout für @{displayName} konnte nicht gestartet werden.'
+  ],
+  'shoutout.chat.duplicate': [
+    '⚠️ @{displayName} hatte in diesem Stream bereits einen Shoutout. Nutze !so @{login} --force, wenn du ihn trotzdem einreihen möchtest.'
+  ],
+  'shoutout.auto.greeting': [
+    '👋 @{displayName} ist im Altersheim eingetroffen. Die Pfleger schieben direkt mal den Shouti-Wagen los.',
+    '🧓 Achtung, @{displayName} hat sich an der Rezeption gemeldet. Zeit für einen ordentlichen Shouti aus dem CGN-Altersheim.',
+    '📺 @{displayName} ist da und hat genug Lebenszeichen gesendet. Der AutoShouti wird aus dem Rentner-Regal geholt.',
+    '💜 Willkommen @{displayName}! Die CGN-Rentnercrew startet schon mal den Shouti-Rollator.',
+    '☕ @{displayName} hat sich blicken lassen. Kaffee steht bereit, Shouti wird angeschoben.'
+  ],
+  'shoutout.auto.queued': [
+    '📺 @{displayName} wurde der Shoutout-Warteliste hinzugefügt. Wartezeit: ca. {waitTime}.'
+  ],
+  'shoutout.auto.alreadyQueued': [
+    '⏳ @{displayName} steht bereits auf der Shoutout-Warteliste. Wartezeit: ca. {waitTime}.'
+  ],
+  'shoutout.auto.alreadyReceived': [
+    '✅ @{displayName} hat bereits einen Shouti erhalten.'
+  ],
+  'shoutout.auto.cooldown': [
+    '⏳ @{displayName} ist im Auto-SO-Cooldown. Nächster Versuch in ca. {waitTime}.'
+  ],
+  'shoutout.auto.waitingStartScene': [
+    '⏳ @{displayName} ist eingetragen. Shoutout wartet bis nach der Start-Szene. Wartezeit: ca. {waitTime}.'
+  ],
+  'shoutout.auto.disabled': [
+    'ℹ️ Auto-Shoutouts sind aktuell deaktiviert.'
+  ],
+  'shoutout.official.queued': [
+    '⏳ Offizieller Shoutout für @{displayName} ist vorgemerkt und wird nach dem Cooldown gesendet.'
+  ],
+  'shoutout.official.failed': [
+    '⚠️ Offizieller Shoutout für @{displayName} konnte nicht gesendet werden.'
+  ],
+  'shoutout.system.textsSaved': [
+    'Shoutout-Texte gespeichert.'
+  ]
+};
+
+const SHOUTOUT_TEXT_OPTIONS = {
+  defaultCategory: 'shoutout.system',
+  categories: {
+    'shoutout.chat.accepted': 'shoutout.chat',
+    'shoutout.chat.waiting': 'shoutout.chat',
+    'shoutout.chat.failed': 'shoutout.chat',
+    'shoutout.chat.duplicate': 'shoutout.chat',
+    'shoutout.auto.greeting': 'shoutout.auto',
+    'shoutout.auto.queued': 'shoutout.auto',
+    'shoutout.auto.alreadyQueued': 'shoutout.auto',
+    'shoutout.auto.alreadyReceived': 'shoutout.auto',
+    'shoutout.auto.cooldown': 'shoutout.auto',
+    'shoutout.auto.waitingStartScene': 'shoutout.auto',
+    'shoutout.auto.disabled': 'shoutout.auto',
+    'shoutout.official.queued': 'shoutout.official',
+    'shoutout.official.failed': 'shoutout.official',
+    'shoutout.system.textsSaved': 'shoutout.system'
+  },
+  categoryLabels: {
+    'shoutout.chat': 'Chat-Shoutout',
+    'shoutout.auto': 'AutoShoutout',
+    'shoutout.official': 'Offizieller Twitch-Shoutout',
+    'shoutout.dashboard': 'Dashboard',
+    'shoutout.system': 'System'
   },
   source: 'seed'
 };
@@ -4048,6 +4126,86 @@ function listAutoMessageActivity(limit = 25) {
   `).map(normalizeAutoActivityRow).filter(Boolean);
 }
 
+
+function normalizeShoutoutTextValues(values = []) {
+  return (Array.isArray(values) ? values : String(values || '').split(/\r?\n/))
+    .map(value => String(value || '').trim())
+    .filter(Boolean);
+}
+
+function shoutoutTextEditor(options = {}) {
+  return textHelper.listModuleTextEditor(MODULE_NAME, SHOUTOUT_TEXT_DEFAULTS, {
+    ...SHOUTOUT_TEXT_OPTIONS,
+    ...(options || {})
+  });
+}
+
+function replaceShoutoutTextVariants(key, values = [], options = {}) {
+  const textKey = String(key || '').trim();
+  if (!textKey) throw new Error('text_key_required');
+  const lines = normalizeShoutoutTextValues(values);
+  if (!lines.length) throw new Error('text_variants_required');
+  const table = textHelper.ensureModuleTextVariantsTable(textHelper.DEFAULT_MODULE_TEXT_VARIANTS_TABLE);
+  const qTable = database.quoteIdentifier(table);
+  database.run(`DELETE FROM ${qTable} WHERE module_name=:moduleName AND text_key=:textKey`, { moduleName: MODULE_NAME, textKey });
+  lines.forEach((value, index) => {
+    textHelper.setModuleTextVariant(MODULE_NAME, {
+      key: textKey,
+      category: options.category || (SHOUTOUT_TEXT_OPTIONS.categories && SHOUTOUT_TEXT_OPTIONS.categories[textKey]) || SHOUTOUT_TEXT_OPTIONS.defaultCategory,
+      value,
+      enabled: true,
+      weight: 1,
+      sortOrder: index
+    }, SHOUTOUT_TEXT_OPTIONS);
+  });
+  return shoutoutTextEditor();
+}
+
+function buildShoutoutTextMigrationPlan(cfg = null) {
+  const currentCfg = cfg || shoutoutConfig();
+  const acfg = autoShoutoutConfig(currentCfg);
+  const dcfg = displayConfig(currentCfg);
+  const ocfg = officialConfig(currentCfg);
+  const streamLimit = streamDayLimitConfig(currentCfg);
+  const autoMessages = normalizeAutoMessages(acfg.messages || {}, acfg || {});
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    generatedAt: nowIso(),
+    dryRun: true,
+    noRuntimeChange: true,
+    targetModule: MODULE_NAME,
+    targetTable: textHelper.DEFAULT_MODULE_TEXT_VARIANTS_TABLE || 'module_text_variants',
+    targetCategories: SHOUTOUT_TEXT_OPTIONS.categoryLabels,
+    plannedKeys: Object.keys(SHOUTOUT_TEXT_DEFAULTS).sort(),
+    legacyMappings: [
+      { from: 'clipShoutout.chatMessage', to: 'shoutout.chat.accepted', category: 'shoutout.chat', currentValue: String(currentCfg.chatMessage || '') },
+      { from: 'clipShoutout.displayQueue.acceptedMessage', to: 'shoutout.chat.accepted', category: 'shoutout.chat', currentValue: String(dcfg.acceptedMessage || '') },
+      { from: 'clipShoutout.displayQueue.waitingMessage', to: 'shoutout.chat.waiting', category: 'shoutout.chat', currentValue: String(dcfg.waitingMessage || '') },
+      { from: 'clipShoutout.displayQueue.failedMessage', to: 'shoutout.chat.failed', category: 'shoutout.chat', currentValue: String(dcfg.failedMessage || '') },
+      { from: 'clipShoutout.streamDayLimit.duplicateMessage', to: 'shoutout.chat.duplicate', category: 'shoutout.chat', currentValue: String(streamLimit.duplicateMessage || '') },
+      { from: 'clipShoutout.autoShoutout.greetingTextKey/auto.greeting', to: 'shoutout.auto.greeting', category: 'shoutout.auto', currentValue: 'legacy key auto.greeting remains fallback' },
+      { from: 'clipShoutout.autoShoutout.messages.queued', to: 'shoutout.auto.queued', category: 'shoutout.auto', currentValue: String(autoMessages.queued || '') },
+      { from: 'clipShoutout.autoShoutout.messages.alreadyQueued', to: 'shoutout.auto.alreadyQueued', category: 'shoutout.auto', currentValue: String(autoMessages.alreadyQueued || '') },
+      { from: 'clipShoutout.autoShoutout.messages.alreadyReceived', to: 'shoutout.auto.alreadyReceived', category: 'shoutout.auto', currentValue: String(autoMessages.alreadyReceived || '') },
+      { from: 'clipShoutout.autoShoutout.messages.cooldown', to: 'shoutout.auto.cooldown', category: 'shoutout.auto', currentValue: String(autoMessages.cooldown || '') },
+      { from: 'clipShoutout.autoShoutout.messages.waitingStartScene', to: 'shoutout.auto.waitingStartScene', category: 'shoutout.auto', currentValue: String(autoMessages.waitingStartScene || '') },
+      { from: 'clipShoutout.autoShoutout.messages.disabled', to: 'shoutout.auto.disabled', category: 'shoutout.auto', currentValue: String(autoMessages.disabled || '') },
+      { from: 'clipShoutout.officialShoutout.queuedMessage', to: 'shoutout.official.queued', category: 'shoutout.official', currentValue: String(ocfg.queuedMessage || '') },
+      { from: 'clipShoutout.officialShoutout.failedMessage', to: 'shoutout.official.failed', category: 'shoutout.official', currentValue: String(ocfg.failedMessage || '') }
+    ],
+    compatibility: {
+      oldConfigTextsRemainFallback: true,
+      oldAutoTextsRouteRemains: `${API_PREFIX}/auto/texts`,
+      newTextsRoute: `${API_PREFIX}/texts`,
+      migrationDoesNotDeleteLegacyKeys: true,
+      oldAutoGreetingKeyRemainsFallback: true
+    },
+    nextImplementationStep: 'Dashboard-Texttab auf GET/POST /api/clip-shoutout/texts aufbauen und Runtime-Nutzung danach schrittweise auf shoutout.* Keys umstellen.'
+  };
+}
+
 function replaceAutoTextVariants(key, values = [], options = {}) {
   const textKey = String(key || 'auto.greeting').trim() || 'auto.greeting';
   const lines = (Array.isArray(values) ? values : String(values || '').split(/\r?\n/))
@@ -4759,6 +4917,7 @@ module.exports.init = function init(ctx) {
   ensureInboundShoutoutSchema();
   ensureAutoShoutoutSchema();
   textHelper.seedModuleTextVariants(MODULE_NAME, AUTO_SHOUTOUT_TEXT_DEFAULTS, AUTO_SHOUTOUT_TEXT_OPTIONS);
+  textHelper.seedModuleTextVariants(MODULE_NAME, SHOUTOUT_TEXT_DEFAULTS, SHOUTOUT_TEXT_OPTIONS);
   resetStaleDisplayQueueActiveRows();
   registerCommand(cfg);
   installDirectChatCommandBypass(env);
@@ -4785,6 +4944,8 @@ module.exports.init = function init(ctx) {
         { method: "GET", path: `${API_PREFIX}/clips` },
         { method: "GET/POST", path: "/api/clip/shoutout" },
         { method: "GET/POST", path: `${API_PREFIX}/settings` },
+        { method: "GET/POST", path: `${API_PREFIX}/texts` },
+        { method: "GET", path: `${API_PREFIX}/texts/migration` },
         { method: "GET", path: `${API_PREFIX}/queue` },
         { method: "GET", path: `${API_PREFIX}/timeline` },
         { method: "GET", path: `${API_PREFIX}/stats` },
@@ -4853,6 +5014,54 @@ module.exports.init = function init(ctx) {
   app.get(`${API_PREFIX}/settings`, (req, res) => {
     const currentCfg = shoutoutConfig();
     res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, settings: currentCfg });
+  });
+
+
+  app.get(`${API_PREFIX}/texts`, (req, res) => {
+    try {
+      res.json({
+        ok: true,
+        module: MODULE_NAME,
+        moduleVersion: MODULE_VERSION,
+        texts: shoutoutTextEditor(),
+        migration: buildShoutoutTextMigrationPlan(shoutoutConfig()),
+        compatibility: {
+          legacyAutoTextsRoute: `${API_PREFIX}/auto/texts`,
+          runtimeUsesLegacyFallbacks: true,
+          dashboardReady: true
+        }
+      });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
+    }
+  });
+
+  app.post(`${API_PREFIX}/texts`, (req, res) => {
+    try {
+      const body = req.body || {};
+      const action = String(body.action || '').trim();
+      const texts = action === 'replaceKeyVariants'
+        ? replaceShoutoutTextVariants(body.key || body.textKey || '', body.variants || body.values || body.text || '', { category: body.category || '' })
+        : textHelper.handleModuleTextEditorPayload(MODULE_NAME, body, SHOUTOUT_TEXT_OPTIONS);
+      emitShoutoutBus('shoutout.texts.updated', { action: action || 'helper_payload', key: body.key || body.textKey || '' }, shoutoutConfig());
+      res.json({
+        ok: true,
+        module: MODULE_NAME,
+        moduleVersion: MODULE_VERSION,
+        texts,
+        migration: buildShoutoutTextMigrationPlan(shoutoutConfig())
+      });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
+    }
+  });
+
+  app.get(`${API_PREFIX}/texts/migration`, (req, res) => {
+    try {
+      res.json(buildShoutoutTextMigrationPlan(shoutoutConfig()));
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
+    }
   });
 
   app.post(`${API_PREFIX}/settings`, (req, res) => {
