@@ -655,3 +655,16 @@
 .shoutout-v2-admin .so2-diag-detail .so2-badge.warn{
   box-shadow:none;
 }
+
+/* CAN-44.21.11 – Einstellungen V2 Read-only */
+.shoutout-v2-admin .so2-settings-panel .so2-kv-list strong{
+  max-width:100%;
+}
+.shoutout-v2-admin .so2-settings-panel .so2-kv-list div{
+  grid-template-columns:190px minmax(0,1fr);
+}
+@media(max-width:760px){
+  .shoutout-v2-admin .so2-settings-panel .so2-kv-list div{
+    grid-template-columns:1fr;
+  }
+}

@@ -1,8 +1,8 @@
 window.ShoutoutV2Module = (function(){
   'use strict';
 
-  const MODULE_VERSION = '2.5.1-diagnostics-scene-gate';
-  const BUILD = 'CAN-44.21.10.1';
+  const MODULE_VERSION = '2.6.0-settings-readonly';
+  const BUILD = 'CAN-44.21.11';
 
   const API = {
     status: '/api/clip-shoutout/status',
@@ -29,7 +29,9 @@ window.ShoutoutV2Module = (function(){
     autoTexts: '/api/clip-shoutout/auto/texts',
     decisionPrep: '/api/clip-shoutout/decision-prep',
     officialAuthStatus: '/api/clip-shoutout/official/auth-status',
-    inboundDebug: '/api/clip-shoutout/inbound/debug'
+    inboundDebug: '/api/clip-shoutout/inbound/debug',
+    settings: '/api/clip-shoutout/settings',
+    autoSettings: '/api/clip-shoutout/auto/settings'
   };
 
   const TABS = [
@@ -78,7 +80,9 @@ window.ShoutoutV2Module = (function(){
     textResult: null,
     decisionPrep: null,
     officialAuthStatus: null,
-    diagnosticsResult: null
+    diagnosticsResult: null,
+    settings: null,
+    autoSettings: null
   };
 
   let root = null;
@@ -326,6 +330,17 @@ window.ShoutoutV2Module = (function(){
         state.textsMigration = texts && texts.migration ? texts.migration : migration;
         state.autoTexts = autoTexts;
         ensureTextSelection();
+      }
+
+      if (['settings'].includes(state.activeTab)) {
+        const [settings, autoSettings, sceneGate] = await Promise.all([
+          api(API.settings).catch(err => ({ ok:false, error: err.message })),
+          api(API.autoSettings).catch(err => ({ ok:false, error: err.message })),
+          api(API.sceneGate).catch(err => ({ ok:false, error: err.message }))
+        ]);
+        state.settings = settings;
+        state.autoSettings = autoSettings;
+        state.sceneGate = sceneGate;
       }
     } catch (err) {
       state.error = err.message || String(err);
@@ -1113,19 +1128,133 @@ window.ShoutoutV2Module = (function(){
   }
 
 
+  function settingsData(){
+    return pick(state.settings || {}, ['settings'], state.settings || {});
+  }
+
+  function autoSettingsData(){
+    return pick(state.autoSettings || {}, ['settings'], pick(settingsData(), ['autoShoutout'], {}));
+  }
+
+  function settingValue(value){
+    if (value === true || value === false) return boolText(value);
+    if (Array.isArray(value)) return value.length ? value.join(', ') : '-';
+    if (value && typeof value === 'object') return JSON.stringify(value);
+    if (value === undefined || value === null || value === '') return '-';
+    return String(value);
+  }
+
+  function renderSettingsList(title, rows){
+    return `<section class="so2-panel so2-settings-panel">
+      <div class="so2-section-title"><div><h3>${esc(title)}</h3></div>${badge('read-only', 'neutral')}</div>
+      <div class="so2-kv-list">${rows.map(([label, value]) => `<div><span>${esc(label)}</span><strong>${esc(settingValue(value))}</strong></div>`).join('')}</div>
+    </section>`;
+  }
+
+  function renderSettingsError(source){
+    if (!source || source.ok !== false) return '';
+    return `<div class="so2-alert so2-alert-error">${esc(source.error || 'Einstellungen konnten nicht geladen werden.')}</div>`;
+  }
+
   function renderSettings(){
+    const cfg = settingsData();
+    const auto = autoSettingsData();
+    const display = pick(cfg, ['displayQueue'], {});
+    const official = pick(cfg, ['officialShoutout'], {});
+    const streamDay = pick(cfg, ['streamDayLimit'], {});
+    const streamStatusCfg = pick(cfg, ['streamStatus'], {});
+    const scene = pick(state.sceneGate || {}, ['sceneGate'], pick(auto, ['sceneGate'], {}));
+
     return `
+      <section class="so2-ops-head">
+        <div class="so2-grid so2-grid-4">
+          ${statusCard('Allgemein', cfg.enabled !== false ? 'aktiv' : 'inaktiv', badge('read-only', 'neutral'), 'Command, Berechtigungen, Clip-Suche.')}
+          ${statusCard('Overlay-Queue', display.enabled !== false ? 'aktiv' : 'inaktiv', badge(`${Math.round(Number(display.displayCooldownMs || 0)/1000)}s`, 'neutral'), 'Anzeige-/Video-Shoutouts.')}
+          ${statusCard('Twitch-Queue', official.enabled !== false ? 'aktiv' : 'inaktiv', badge(`${Math.round(Number(official.globalCooldownMs || 0)/1000)}s`, 'neutral'), 'Offizielle Twitch-Shoutouts.')}
+          ${statusCard('AutoShoutout', auto.enabled === true ? 'aktiv' : 'inaktiv', badge('read-only', 'neutral'), 'Details ohne Bearbeitung.')}
+        </div>
+        ${renderSettingsError(state.settings)}
+        ${renderSettingsError(state.autoSettings)}
+      </section>
+
+      <div class="so2-two">
+        ${renderSettingsList('Allgemein', [
+          ['Aktiv', cfg.enabled !== false],
+          ['Command', `!${cfg.command || 'so'}`],
+          ['Aliases', cfg.aliases || []],
+          ['Berechtigung', cfg.permissionLevel || 'mod'],
+          ['Clip-Lookback', `${cfg.clipLookbackDays ?? '-'} Tage`],
+          ['Clip-Suchbereiche', cfg.clipSearchRangesDays || []],
+          ['Zufälliger Clip', cfg.randomPick !== false],
+          ['Recent-Clip-Schutz', cfg.avoidRecentClips !== false]
+        ])}
+
+        ${renderSettingsList('Overlay / Display-Queue', [
+          ['Aktiv', display.enabled !== false],
+          ['Cooldown nach Anzeige', `${Math.round(Number(display.displayCooldownMs || 0)/1000)} Sek.`],
+          ['Worker-Intervall', `${Math.round(Number(display.workerIntervalMs || 0)/1000)} Sek.`],
+          ['Chatmeldungen', display.sendChatMessages !== false],
+          ['Accepted-Text', display.acceptedMessage || '-'],
+          ['Waiting-Text', display.waitingMessage || '-']
+        ])}
+      </div>
+
+      <div class="so2-two">
+        ${renderSettingsList('Offizieller Twitch-Shoutout', [
+          ['Aktiv', official.enabled !== false],
+          ['Nach Overlay einreihen', official.enqueueAfterDisplay !== false],
+          ['Globaler Cooldown', `${Math.round(Number(official.globalCooldownMs || 0)/1000)} Sek.`],
+          ['Kanal-Cooldown', `${Math.round(Number(official.targetCooldownMs || 0)/60000)} Min.`],
+          ['Live-Gate', official.liveGateEnabled !== false],
+          ['Live-Retry', `${Math.round(Number(official.liveGateRetryMs || official.streamWaitRetryMs || 0)/1000)} Sek.`],
+          ['Max. Versuche', official.maxAttempts ?? '-']
+        ])}
+
+        ${renderSettingsList('AutoShoutout', [
+          ['Aktiv', auto.enabled === true],
+          ['Nur wenn Stream live', auto.onlyWhenLive === true],
+          ['Nur erste Nachricht', auto.triggerOnFirstMessageOnly !== false],
+          ['Mindestnachrichten', auto.minMessagesBeforeTrigger ?? '-'],
+          ['Nachrichtenfenster', `${Math.round(Number(auto.messageWindowMs || 0)/60000)} Min.`],
+          ['Globaler Cooldown', `${Math.round(Number(auto.globalCooldownMs || 0)/1000)} Sek.`],
+          ['Streamer-Cooldown', `${Math.round(Number(auto.perStreamerCooldownMs || 0)/3600000)} Std.`],
+          ['Chatmeldung', auto.sendChatMessage !== false]
+        ])}
+      </div>
+
+      <div class="so2-two">
+        ${renderSettingsList('Streamtag-Sperre', [
+          ['Aktiv', streamDay.enabled !== false],
+          ['Override erlaubt', streamDay.allowOverride !== false],
+          ['Override-Flag', streamDay.overrideFlag || '--force'],
+          ['Restart-Grace', `${Math.round(Number(streamDay.restartGraceMs || 0)/60000)} Min.`],
+          ['Fallback bei unbekanntem Stream', streamDay.fallbackWhenStreamUnknown !== false],
+          ['Fallback-Session', `${streamDay.fallbackSessionHours ?? '-'} Std.`],
+          ['Live-State-Dateien', streamDay.liveStateFiles || []]
+        ])}
+
+        ${renderSettingsList('Start-Szene / Streamstatus', [
+          ['Zentraler Streamstatus', streamStatusCfg.enabled !== false],
+          ['Zentral bevorzugen', streamStatusCfg.preferCentralStatus !== false],
+          ['Scene-Gate aktiv', scene.enabled === true],
+          ['Blockieren während Start-Szene', scene.blockDuringStartScene !== false],
+          ['Start-Szene blockiert gerade', scene.active === true],
+          ['Aktuelle Szene', scene.currentScene || '-'],
+          ['Retry', `${Math.round(Number(scene.retryMs || 0)/1000)} Sek.`],
+          ['Start-Szenen', scene.startSceneNames || []]
+        ])}
+      </div>
+
       <section class="so2-panel">
-        <h3>Einstellungen</h3>
-        <p>V2 zeigt Config zunächst read-only. Editierbar wird es erst mit Backend-Speicherroute, Validierung und Audit-Logging.</p>
-        <div class="so2-grid so2-grid-3">
-          ${statusCard('Allgemein', 'read-only geplant', badge('Config', 'neutral'), 'Command, Aliases, Suchbereiche.')}
-          ${statusCard('AutoShoutout', 'read-only geplant', badge('Config', 'neutral'), 'Mindestnachrichten, Zeitfenster, Cooldowns.')}
-          ${statusCard('Start-Szene', 'read-only geplant', badge('Config', 'neutral'), 'Start-Szenen-Sperre und Retry.')}
+        <div class="so2-section-title"><div><h3>Bearbeiten später</h3></div>${badge('gesperrt', 'warn')}</div>
+        <div class="so2-note">
+          <strong>Dieser Tab ist bewusst read-only.</strong>
+          <span>Speichern folgt erst mit Rechteprüfung, Validierung, Audit-Logging und sauberem Save-/Reload-Konzept.</span>
         </div>
       </section>
     `;
   }
+
 
   function renderManualResult(result){
     if (!result) return '';
