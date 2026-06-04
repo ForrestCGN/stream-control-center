@@ -107,3 +107,61 @@ html[data-theme=light] .shoutout-admin{--so-bg:rgba(255,255,255,.78);--so-bg-2:r
 .shoutout-section-stack>.shoutout-tab-panel{display:grid;gap:16px}
 .shoutout-section-note{border:1px solid rgba(34,211,238,.18);border-radius:16px;background:rgba(34,211,238,.055);padding:10px 12px;color:var(--muted,#94a3b8);font-size:12px}
 .shoutout-hero-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;min-width:0}.shoutout-hero-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;min-width:max-content}.shoutout-refresh-state{display:inline-flex;align-items:center;min-height:28px;padding:4px 9px;border:1px solid rgba(34,211,238,.22);border-radius:999px;background:rgba(34,211,238,.08);color:#bae6fd;font-size:11px;font-weight:800;white-space:nowrap}@media(max-width:1100px){.shoutout-hero-head{flex-direction:column}.shoutout-hero-actions{justify-content:flex-start;min-width:0}}@media(max-width:640px){.shoutout-hero-actions,.shoutout-hero-actions button{width:100%}.shoutout-refresh-state{justify-content:center;width:100%;box-sizing:border-box}}
+
+
+/* CAN-44.21.1 – Rebuild Shell: zentrale, feste Shoutout-Hauptnavigation im dezenten CGN-Stil */
+.shoutout-nav-sticky{
+  position: sticky;
+  top: var(--shoutout-sticky-top, 8px);
+  z-index: 35;
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid rgba(168,85,247,.24);
+  border-radius: 20px;
+  background:
+    linear-gradient(135deg, rgba(15,23,42,.94), rgba(2,6,23,.90)),
+    radial-gradient(circle at top left, rgba(168,85,247,.18), transparent 44%);
+  box-shadow: 0 12px 32px rgba(0,0,0,.30), 0 0 18px rgba(168,85,247,.08);
+  backdrop-filter: blur(12px);
+}
+.shoutout-nav-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  padding: 2px 4px 0;
+}
+.shoutout-nav-head strong{
+  color:#f8fafc;
+  font-size:14px;
+  letter-spacing:.01em;
+  white-space:nowrap;
+}
+.shoutout-nav-head span{
+  color:var(--muted,#94a3b8);
+  font-size:12px;
+  line-height:1.35;
+  text-align:right;
+}
+.shoutout-nav-sticky .shoutout-tabs{
+  margin:0;
+  padding:0;
+  border:0;
+  background:transparent;
+  box-shadow:none;
+}
+.shoutout-nav-sticky .shoutout-tab{
+  min-height:34px;
+}
+.shoutout-nav-sticky .shoutout-tab.active{
+  box-shadow: 0 0 0 1px rgba(34,211,238,.25), 0 0 16px rgba(168,85,247,.18);
+}
+.shoutout-content-frame{
+  min-width:0;
+}
+@media(max-width:780px){
+  .shoutout-nav-head{flex-direction:column;gap:4px}
+  .shoutout-nav-head span{text-align:left}
+  .shoutout-nav-head strong{white-space:normal}
+}

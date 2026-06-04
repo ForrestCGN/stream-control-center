@@ -341,9 +341,9 @@ window.ShoutoutModule = (function(){
       <div class="shoutout-hero glass">
         <div class="shoutout-hero-head">
           <div>
-            <div class="shoutout-kicker">Clip-Shoutout / VSO</div>
-            <h2>Shoutout-System</h2>
-            <p>Display-Queue, offizieller Twitch-Shoutout, Streamtag-Limit und zentraler Live-Status.</p>
+            <div class="shoutout-kicker">CGN Shoutout-System</div>
+            <h2>Shoutouts verwalten</h2>
+            <p>Manuelle Shoutouts, AutoShoutouts, Warteschlangen, Texte, Auswertung und Shoutout-spezifische Prüfung an einem Ort.</p>
           </div>
           <div class="shoutout-hero-actions">
             <span class="shoutout-refresh-state">Auto-Refresh aktiv</span>
@@ -351,23 +351,44 @@ window.ShoutoutModule = (function(){
           </div>
         </div>
         <div class="shoutout-hero-grid">
-          <div class="shoutout-metric"><small>Modul</small><strong>${esc(status.moduleVersion || '-')}</strong><span>${statusBadge(status.enabled === false ? 'inactive' : 'active')}</span></div>
-          <div class="shoutout-metric"><small>Command</small><strong>!${esc(status.command || 'vso')}</strong><span>${esc((status.aliases || []).map(x => `!${x}`).join(', ') || '-')}</span></div>
-          <div class="shoutout-metric"><small>Display offen</small><strong>${esc(display.pending ?? 0)}</strong><span>${display.cooldownRunning ? `Cooldown ${fmtMs(display.cooldownRemainingMs)}` : 'bereit'}</span></div>
-          <div class="shoutout-metric"><small>Official offen</small><strong>${esc(official.pending ?? 0)}</strong><span>${statusBadge(liveGate.reason || (liveGate.live ? 'live' : 'offline'))}</span></div>
+          <div class="shoutout-metric"><small>System</small><strong>${esc(status.moduleVersion || '-')}</strong><span>${statusBadge(status.enabled === false ? 'inactive' : 'active')}</span></div>
+          <div class="shoutout-metric"><small>Chatbefehl</small><strong>!${esc(status.command || 'vso')}</strong><span>${esc((status.aliases || []).map(x => `!${x}`).join(', ') || '-')}</span></div>
+          <div class="shoutout-metric"><small>Overlay offen</small><strong>${esc(display.pending ?? 0)}</strong><span>${display.cooldownRunning ? `Wartezeit ${fmtMs(display.cooldownRemainingMs)}` : 'bereit'}</span></div>
+          <div class="shoutout-metric"><small>Twitch offen</small><strong>${esc(official.pending ?? 0)}</strong><span>${statusBadge(liveGate.reason || (liveGate.live ? 'live' : 'offline'))}</span></div>
           <div class="shoutout-metric"><small>Eingehend</small><strong>${esc(num(state.inboundStats?.totals?.incomingTotal))}</strong><span>${esc(num(state.inboundStats?.totals?.outgoingTotal))} erstellt</span></div>
-          <div class="shoutout-metric"><small>Stream Status</small><strong>${liveGate.live ? 'LIVE' : 'OFFLINE'}</strong><span>${esc(liveGate.upstreamSource || ss.source || '-')} · ${liveGate.stale ? 'stale' : 'frisch'}</span></div>
+          <div class="shoutout-metric"><small>Stream</small><strong>${liveGate.live ? 'LIVE' : 'OFFLINE'}</strong><span>${esc(liveGate.upstreamSource || ss.source || '-')} · ${liveGate.stale ? 'veraltet' : 'frisch'}</span></div>
         </div>
       </div>
     `;
   }
 
+  function activeTabInfo(){
+    const map = {
+      overview: ['Übersicht', 'Kurzstatus ohne Bearbeitung: läuft das System, wartet etwas oder gibt es ein Problem?'],
+      chat: ['Shoutout', 'Hier können berechtigte Nutzer einen Shoutout manuell aufnehmen.'],
+      auto: ['AutoShoutout', 'Betrieb und Streamer-Verwaltung für automatische Shoutouts. Texte und globale Config gehören nicht hierhin.'],
+      queues: ['Queues', 'Warteschlangen für Overlay- und offizielle Twitch-Shoutouts.'],
+      texts: ['Texte', 'Alle Chat- und Systemtexte mit Varianten an einem Ort.'],
+      analytics: ['Auswertung', 'Statistik, Verlauf und eingehende/erstellte Twitch-Shoutouts.'],
+      diagnostics: ['Diagnose', 'Nur Shoutout-spezifische Prüfung. Die allgemeine Systemdiagnose bleibt im Admin-Bereich.'],
+      settings: ['Einstellungen', 'Config-Übersicht. Später editierbar mit Rechten, Validierung und Audit-Logging.']
+    };
+    return map[state.activeTab] || map.overview;
+  }
+
   function renderTabs(){
+    const [title, help] = activeTabInfo();
     return `
-      <div class="shoutout-tabs" role="tablist" aria-label="Shoutout Bereiche">
-        ${TABS.map(tab => `
-          <button type="button" role="tab" aria-selected="${state.activeTab === tab.id ? 'true' : 'false'}" class="shoutout-tab ${state.activeTab === tab.id ? 'active' : ''}" data-shoutout-tab="${esc(tab.id)}">${esc(tab.label)}</button>
-        `).join('')}
+      <div class="shoutout-nav-sticky">
+        <div class="shoutout-nav-head">
+          <strong>${esc(title)}</strong>
+          <span>${esc(help)}</span>
+        </div>
+        <div class="shoutout-tabs" role="tablist" aria-label="Shoutout Bereiche">
+          ${TABS.map(tab => `
+            <button type="button" role="tab" aria-selected="${state.activeTab === tab.id ? 'true' : 'false'}" class="shoutout-tab ${state.activeTab === tab.id ? 'active' : ''}" data-shoutout-tab="${esc(tab.id)}">${esc(tab.label)}</button>
+          `).join('')}
+        </div>
       </div>
     `;
   }
@@ -376,11 +397,11 @@ window.ShoutoutModule = (function(){
     return `
       <div class="shoutout-card">
         <div class="shoutout-card-head">
-          <div><h3>Test auslösen</h3><p>Aktuell für den Testbetrieb mit <code>!vso</code>. Optional mit Streamtag-Override.</p></div>
+          <div><h3>Shoutout manuell starten</h3><p>Trage einen Twitch-Kanal ein. Das System nimmt den Shoutout in die passende Warteschlange auf.</p></div>
         </div>
         <div class="shoutout-run-row">
           <input data-shoutout-target type="text" placeholder="Twitch-Kanal, z. B. urlug" autocomplete="off" />
-          <label class="shoutout-check"><input data-shoutout-force type="checkbox" /> --force</label>
+          <label class="shoutout-check" title="Ignoriert bestimmte Sperren. Nur nutzen, wenn du sicher bist."><input data-shoutout-force type="checkbox" /> Erzwingen</label>
           <button type="button" data-shoutout-run>Shoutout aufnehmen</button>
         </div>
       </div>
@@ -1043,7 +1064,7 @@ window.ShoutoutModule = (function(){
   function renderAnalytics(){
     return `
       <div class="shoutout-tab-panel shoutout-section-stack">
-        <div class="shoutout-section-note">Statistik, Verlauf und Twitch-Shoutout-Eingänge sind hier gebündelt. Rohdaten bleiben auf die jeweiligen Tabellen begrenzt.</div>
+        <div class="shoutout-section-note">Statistik, Verlauf und Twitch-Shoutout-Eingänge sind hier gebündelt. Details werden nur hier gezeigt, damit nichts doppelt in anderen Tabs auftaucht.</div>
         ${renderStats()}
         ${renderTimeline()}
         ${renderInbound()}
@@ -1054,7 +1075,7 @@ window.ShoutoutModule = (function(){
   function renderDiagnostics(){
     return `
       <div class="shoutout-tab-panel shoutout-section-stack">
-        <div class="shoutout-section-note">Produktions-Check, OAuth/EventSub und Live-Test an einem Ort.</div>
+        <div class="shoutout-section-note">Nur Shoutout-spezifische Prüfung: Twitch-Berechtigungen, Shoutout-Ereignisse, Live-Gate und Live-Test. Allgemeine Systemdiagnose bleibt unter Admin > Diagnose.</div>
         ${renderProductionCheck()}
         ${renderLiveTest()}
       </div>
@@ -1093,7 +1114,7 @@ window.ShoutoutModule = (function(){
         ${state.notice ? `<div class="shoutout-alert ok">${esc(state.notice)}</div>` : ''}
         ${renderHero()}
         ${renderTabs()}
-        ${renderActiveTab()}
+        <div class="shoutout-content-frame" data-shoutout-active-section="${esc(state.activeTab)}">${renderActiveTab()}</div>
       </div>
     `;
     afterRenderActiveTab();
