@@ -650,3 +650,8 @@
     grid-template-columns:1fr;
   }
 }
+
+/* CAN-44.21.10.1 – Scene-Gate Diagnose Wording */
+.shoutout-v2-admin .so2-diag-detail .so2-badge.warn{
+  box-shadow:none;
+}

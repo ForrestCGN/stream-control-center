@@ -1,8 +1,8 @@
 window.ShoutoutV2Module = (function(){
   'use strict';
 
-  const MODULE_VERSION = '2.5.0-diagnostics';
-  const BUILD = 'CAN-44.21.10';
+  const MODULE_VERSION = '2.5.1-diagnostics-scene-gate';
+  const BUILD = 'CAN-44.21.10.1';
 
   const API = {
     status: '/api/clip-shoutout/status',
@@ -1035,6 +1035,27 @@ window.ShoutoutV2Module = (function(){
     </section>`;
   }
 
+  function renderSceneGateDetails(value){
+    const data = value || {};
+    const rows = [
+      ['Überwachung aktiv', boolText(data.enabled === true)],
+      ['Start-Szene blockiert gerade', data.active === true ? 'ja' : 'nein'],
+      ['Blockieren während Start-Szene', boolText(data.blockDuringStartScene !== false)],
+      ['Aktuelle Szene', data.currentScene || '-'],
+      ['Grund', data.reason || (data.active === true ? 'start_scene_active' : 'frei')],
+      ['OBS verbunden', boolText(data.obsConnected === true)],
+      ['OBS erkannt', boolText(data.obsDetected === true)]
+    ];
+    if (data.retryMs !== undefined) rows.push(['Retry', `${Math.round(Number(data.retryMs || 0) / 1000)} Sek.`]);
+    if (Array.isArray(data.startSceneNames) && data.startSceneNames.length) rows.push(['Start-Szenen', data.startSceneNames.join(', ')]);
+    if (data.lastError) rows.push(['Fehler', data.lastError]);
+
+    return `<section class="so2-panel so2-diag-detail">
+      <div class="so2-section-title"><div><h3>Start-Szene / Scene-Gate</h3></div>${badge(data.active === true ? 'blockiert' : 'frei', data.active === true ? 'warn' : 'ok')}</div>
+      <div class="so2-kv-list">${rows.map(([k,v]) => `<div><span>${esc(k)}</span><strong>${esc(v || '-')}</strong></div>`).join('')}</div>
+    </section>`;
+  }
+
   function renderDiagnosticsResult(result){
     if (!result) return '';
     const ok = result.ok !== false;
@@ -1068,7 +1089,7 @@ window.ShoutoutV2Module = (function(){
 
       <div class="so2-two">
         ${renderDiagDetails('Twitch Auth / Scopes', auth) || '<section class="so2-panel"><h3>Twitch Auth / Scopes</h3><div class="so2-empty">Keine Detaildaten geladen.</div></section>'}
-        ${renderDiagDetails('Start-Szene / Scene-Gate', pick(scene, ['sceneGate'], scene)) || '<section class="so2-panel"><h3>Start-Szene / Scene-Gate</h3><div class="so2-empty">Keine Detaildaten geladen.</div></section>'}
+        ${renderSceneGateDetails(pick(scene, ['sceneGate'], scene))}
       </div>
 
       <section class="so2-panel">
