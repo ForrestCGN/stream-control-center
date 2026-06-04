@@ -1,8 +1,8 @@
 window.ShoutoutV2Module = (function(){
   'use strict';
 
-  const MODULE_VERSION = '2.0.2-cgn-cleanup';
-  const BUILD = 'CAN-44.21.3.1';
+  const MODULE_VERSION = '2.0.3-minimal';
+  const BUILD = 'CAN-44.21.3.2';
 
   const API = {
     status: '/api/clip-shoutout/status',
@@ -226,24 +226,16 @@ window.ShoutoutV2Module = (function(){
     if (!root) return;
     root.innerHTML = `
       <div class="so2-shell">
-        <section class="so2-hero so2-hero-compact">
-          <div class="so2-hero-main">
-            <div class="so2-kicker">CGN Shoutout V2</div>
-            <p>Neu aufgebaut · keine alten UI-Blöcke · bestehende APIs als Datenquelle</p>
-          </div>
-          <div class="so2-hero-actions">
-            ${state.loading ? badge('lädt', 'warn') : badge('bereit', 'ok')}
-            <span class="so2-build">Build ${esc(BUILD)} · V${esc(MODULE_VERSION)}</span>
-            <label class="so2-auto"><input type="checkbox" data-so2-autorefresh ${state.autoRefresh ? 'checked' : ''}> Auto-Refresh</label>
-            <button type="button" data-so2-refresh>Aktualisieren</button>
-          </div>
-        </section>
 
         ${state.error ? `<div class="so2-alert so2-alert-error">${esc(state.error)}</div>` : ''}
         ${state.notice ? `<div class="so2-alert so2-alert-ok">${esc(state.notice)}</div>` : ''}
 
         <nav class="so2-tabs" aria-label="Shoutout V2 Navigation">
           ${TABS.map(tab => `<button type="button" class="so2-tab ${tab.id === state.activeTab ? 'is-active' : ''}" data-so2-tab="${esc(tab.id)}"><strong>${esc(tab.label)}</strong><small>${esc(tab.hint)}</small></button>`).join('')}
+          <span class="so2-tabs-spacer"></span>
+          <span class="so2-mini-state">${state.loading ? 'lädt' : 'bereit'}</span>
+          <label class="so2-auto so2-auto-mini"><input type="checkbox" data-so2-autorefresh ${state.autoRefresh ? 'checked' : ''}> Auto</label>
+          <button type="button" class="so2-refresh-mini" data-so2-refresh>Aktualisieren</button>
         </nav>
 
         <div class="so2-content">
@@ -298,8 +290,7 @@ window.ShoutoutV2Module = (function(){
       <section class="so2-overview-block">
         <div class="so2-section-title">
           <div>
-            <h3>System-Ampel</h3>
-            <p>Nur der schnelle Überblick. Details liegen in Queues, Auswertung oder Diagnose.</p>
+            <h3>Status</h3>
           </div>
           ${lastError ? badge('Problem prüfen', 'warn') : badge('bereit', 'ok')}
         </div>
@@ -315,7 +306,6 @@ window.ShoutoutV2Module = (function(){
         <div class="so2-section-title">
           <div>
             <h3>Kurzstatistik</h3>
-            <p>Kompakte Zahlen. Die komplette Auswertung steht im Tab „Auswertung“.</p>
           </div>
           ${badge(`Modul ${moduleVersion}`, 'neutral')}
         </div>
@@ -332,7 +322,6 @@ window.ShoutoutV2Module = (function(){
         <div class="so2-section-title">
           <div>
             <h3>Letzte Aktivität</h3>
-            <p>Maximal fünf Einträge zur Orientierung. Vollständiger Verlauf steht in „Auswertung“.</p>
           </div>
           ${timeline.length ? badge(`${Math.min(timeline.length, 5)} angezeigt`, 'neutral') : badge('leer', 'neutral')}
         </div>

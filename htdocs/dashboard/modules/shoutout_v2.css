@@ -251,3 +251,45 @@
     width:100%;
   }
 }
+
+/* CAN-44.21.3.2 – minimalere V2-Übersicht */
+.shoutout-v2-admin .so2-tabs{
+  align-items:center;
+}
+.shoutout-v2-admin .so2-tabs-spacer{
+  flex:1 1 auto;
+  min-width:12px;
+}
+.shoutout-v2-admin .so2-mini-state{
+  display:inline-flex;
+  align-items:center;
+  border:1px solid rgba(52,211,153,.28);
+  background:rgba(52,211,153,.12);
+  color:#bbf7d0;
+  border-radius:999px;
+  padding:6px 10px;
+  font-size:12px;
+  font-weight:900;
+}
+.shoutout-v2-admin .so2-auto-mini{
+  font-size:12px;
+  padding:0;
+}
+.shoutout-v2-admin .so2-refresh-mini{
+  padding:8px 12px;
+  border-radius:11px;
+  font-size:13px;
+}
+.shoutout-v2-admin .so2-section-title{
+  margin-top:2px;
+  align-items:center;
+}
+.shoutout-v2-admin .so2-section-title p{
+  display:none;
+}
+@media(max-width:900px){
+  .shoutout-v2-admin .so2-tabs-spacer{
+    flex-basis:100%;
+    height:0;
+  }
+}
