@@ -1,6 +1,6 @@
 # Module-Dokumentation
 
-Stand: 2026-06-04 / CAN-44.13.5
+Stand: 2026-06-04
 
 ## Zweck
 
@@ -37,23 +37,33 @@ docs/modules/sound_system_channelpoints_routing.md
 docs/modules/media_asset_utf8_filename_cleanup.md
 docs/modules/clip-shoutout-vso.md
 docs/modules/CLIP_SHOUTOUT_AUTOSHOUTOUT.md
+docs/modules/SHOUTOUT_SYSTEM_STRUCTURE_PLAN.md
+docs/modules/SHOUTOUT_SYSTEM_STANDARDS_ALIGNMENT.md
 ```
 
-## Shoutout-/AutoShoutout-Dokus
+## Shoutout-System
+
+Das Shoutout-System wird als gemeinsames System betrachtet:
 
 ```text
+Chat-Shoutout
+AutoShoutout
+Display-/Video-Queue
+offizieller Twitch-Shoutout
+eingehende/ausgehende EventSub-Shoutout-Events
+gemeinsame Texte und Settings
+```
+
+Vor weiteren Umbauten am Shoutout-System zusätzlich prüfen:
+
+```text
+docs/modules/SHOUTOUT_SYSTEM_STRUCTURE_PLAN.md
+docs/modules/SHOUTOUT_SYSTEM_STANDARDS_ALIGNMENT.md
 docs/modules/clip-shoutout-vso.md
-```
-
-Hauptdoku für das manuelle Clip-/Video-Shoutout-System (`backend/modules/clip_shoutout.js`) inklusive DisplayQueue, OfficialQueue und Basisrouten.
-
-```text
 docs/modules/CLIP_SHOUTOUT_AUTOSHOUTOUT.md
+docs/current/CAN44_14_SHOUTOUT_DASHBOARD_STRUCTURE_PLAN.md
+docs/current/CAN44_15_SHOUTOUT_SYSTEM_STANDARDS_ALIGNMENT.md
 ```
-
-Fachdoku für AutoShoutout als Unterbereich des Shoutout-Moduls. Enthält AutoSO-Flow, Routen, DB-Tabellen, Dashboard, Textvarianten, Threshold-Logik, Dry-Run und `clear-target`.
-
-Hinweis: AutoShoutout ist kein separates Backend-Modul, sondern Funktionalität innerhalb von `backend/modules/clip_shoutout.js`.
 
 ## Aktuelle Konsolidierungsdokus mit Modulbezug
 
@@ -85,11 +95,10 @@ Media-Dateinamen:
 STEP524_MEDIA_ASSET_UTF8_FILENAME_CLEANUP_REAL_v0.1.0
 ```
 
-AutoShoutout:
+Shoutout-System:
 
 ```text
-CAN-44.13.3 / clip_shoutout v0.2.24
-CAN-44.13.5 / Doku-Index in docs/modules aktualisiert
+CAN-44.15 – Standards Alignment für gemeinsamen Shoutout-/AutoShoutout-Umbau
 ```
 
 Zurückgezogen/nicht verwenden:
@@ -132,11 +141,3 @@ STEP591 – Routes and Module Docs Verification Scan
 
 Ziel:
 Echte Backend-Routen aus Modulen erfassen und gegen `docs/modules/*.md` prüfen. Routen nicht aus Erinnerung dokumentieren.
-
-Für AutoShoutout zusätzlich prüfen:
-
-```text
-- Live-System und GitHub/dev nach Stream wieder abgleichen
-- onlyWhenLive nach Testphase wieder bewerten
-- Dry-Run-/clear-target-Verhalten nach CAN-44.13.3 weiter beobachten
-```
