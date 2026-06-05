@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=1920,height=1080">
+<title>V12 H15 H14-Ref 10pct smaller 16x9</title>
+<style>
+:root{--cyan:#22d3ee;--violet:#a855f7;--hot:#e879f9;--muted:#b8c7e6}
+
+html, body {
+  margin: 0;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  font-family: "Segoe UI", system-ui, Arial, sans-serif;
+  color: #f8fbff;
+  background:
+    radial-gradient(circle at 15% 18%, rgba(124,58,237,.18), transparent 28%),
+    radial-gradient(circle at 84% 80%, rgba(34,211,238,.10), transparent 30%),
+    linear-gradient(135deg, #02040d 0%, #07111f 48%, #130828 100%);
+}
+* { box-sizing: border-box; }
+
+.stage {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.card {
+  width: 758px;
+  height: 430px;
+  position: relative;
+  border-radius: 25px;
+  background: linear-gradient(140deg, rgba(8,10,27,.985), rgba(26,10,52,.975));
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.08),
+    0 0 40px rgba(168,85,247,.44),
+    0 26px 72px rgba(0,0,0,.74);
+  overflow: hidden;
+}
+
+.card:before {
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  padding:3px;
+  background: linear-gradient(120deg, rgba(34,211,238,.92), rgba(168,85,247,.9), rgba(232,121,249,.72), rgba(34,211,238,.92));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* All outer tile spacing = 32px, middle gap = 16px */
+.main {
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%, -50%);
+  z-index:2;
+  display:grid;
+  grid-template-columns: 182px 496px;
+  gap:16px;
+  width:694px;
+  height:366px;
+}
+
+.side {
+  width:182px;
+  height:366px;
+  border-radius:21px;
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+  border:1px solid rgba(255,255,255,.11);
+  padding:16px 12px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+
+.avatar-wrap {
+  width: 122px;
+  height:122px;
+  padding:5px;
+  border-radius:50%;
+  background: conic-gradient(from 210deg,#22d3ee,#a855f7,#e879f9,#3b82f6,#22d3ee);
+  box-shadow:
+    0 0 24px rgba(168,85,247,.82),
+    0 0 34px rgba(34,211,238,.26);
+  flex:0 0 auto;
+}
+
+.avatar {
+  width:100%;
+  height:100%;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  background: radial-gradient(circle at 35% 25%, #eef7ff, #8b5cf6 34%, #27114b 70%);
+  border:4px solid rgba(9,7,22,.96);
+  font-size:47px;
+  font-weight:900;
+}
+
+.label {
+  margin-top:19px;
+  color:var(--muted);
+  font-size:10px;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+
+.name-box {
+  margin-top:8px;
+  width:156px;
+  height:26px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  overflow:hidden;
+}
+
+.name {
+  white-space:nowrap;
+  font-size:18px;
+  font-weight:900;
+  transform-origin:center center;
+  text-shadow:0 0 8px rgba(168,85,247,.72);
+}
+
+.content {
+  width:496px;
+  height:366px;
+  min-width:0;
+  display:grid;
+  grid-template-rows: 279px 16px 71px;
+}
+
+.video-shell {
+  width: 496px;
+  height: 279px; /* exact 16:9 */
+  border-radius:21px;
+  padding:4px;
+  background:linear-gradient(135deg, rgba(34,211,238,.9), rgba(168,85,247,.84), rgba(59,130,246,.76));
+  box-shadow:
+    0 0 20px rgba(34,211,238,.22),
+    0 0 30px rgba(168,85,247,.18);
+  overflow:hidden;
+}
+
+.video {
+  position:relative;
+  width:100%;
+  height:100%;
+  border-radius:18px;
+  overflow:hidden;
+  background: linear-gradient(135deg, rgba(4,8,18,.95), rgba(15,7,33,.98));
+  display:grid;
+  place-items:center;
+}
+
+.video:before {
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(34,211,238,.18), transparent 24%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, transparent 1px 7px);
+}
+
+.play {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.075);
+  border: 2px solid rgba(255,255,255,.23);
+  box-shadow: 0 0 24px rgba(168,85,247,.34);
+}
+
+.play:before {
+  content: "";
+  position: absolute;
+  left: 30px;
+  top: 19px;
+  border-top: 18px solid transparent;
+  border-bottom: 18px solid transparent;
+  border-left: 27px solid rgba(255,255,255,.92);
+}
+
+.caption {
+  position:absolute;
+  left:14px;
+  right:14px;
+  bottom:10px;
+  display:flex;
+  justify-content:space-between;
+  font-size:12px;
+  color:#eaf6ff;
+  text-shadow:0 0 10px #000;
+}
+
+.text {
+  width:496px;
+  height:71px;
+  border-radius:18px;
+  background: linear-gradient(90deg, rgba(255,255,255,.065), rgba(34,211,238,.06));
+  border:1px solid rgba(255,255,255,.12);
+  padding:10px 16px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  position:relative;
+  overflow:hidden;
+}
+
+.brand {
+  position:absolute;
+  right:10px;
+  bottom:8px;
+  font-size:9px;
+  color:rgba(243,232,255,.76);
+  border:1px solid rgba(168,85,247,.22);
+  background:rgba(168,85,247,.10);
+  border-radius:999px;
+  padding:4px 8px;
+  line-height:1;
+  white-space:nowrap;
+}
+
+.text h1 {
+  margin:0;
+  font-size:24px;
+  line-height:1.02;
+  letter-spacing:-.035em;
+  text-shadow:0 0 14px rgba(168,85,247,.58);
+  white-space:nowrap;
+}
+
+.text p {
+  margin:6px 0 0;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.15;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  padding-right:110px;
+}
+
+.variant {
+  position: fixed;
+  left: 22px;
+  bottom: 18px;
+  color: rgba(255,255,255,.72);
+  font-size: 14px;
+}
+</style></head>
+<body>
+<main class="stage">
+  <section class="card">
+    <div class="main">
+      <aside class="side">
+        <div class="avatar-wrap"><div class="avatar">C</div></div>
+        <div class="label">Heute auf Sendung</div>
+        <div class="name-box"><div class="name" data-fit=".name-box">CrazyMeerSchweinchen</div></div>
+      </aside>
+
+      <section class="content">
+        <div class="video-shell">
+          <div class="video">
+            <div class="play"></div>
+            <div class="caption"><span><b>Clip:</b> Rentnerkino Deluxe</span><span>00:18</span></div>
+          </div>
+        </div>
+
+        <div></div>
+
+        <div class="text">
+          <h1>Schaut gerne mal vorbei!</h1>
+          <p>Heute im Altersheim-TV: <b>CrazyMeerSchweinchen</b></p>
+          <div class="brand">CGN Altersheim-TV</div>
+        </div>
+      </section>
+    </div>
+  </section>
+</main>
+
+<div class="variant">V12 H15 H14-Ref 10% smaller 16:9</div>
+
+<script>
+function fitTextToBox(el, boxSelector, minScale) {
+  const box = el.closest(boxSelector);
+  if (!box) return;
+  el.style.transform = 'scale(1)';
+  requestAnimationFrame(() => {
+    const boxWidth = box.clientWidth || 1;
+    const rawWidth = el.scrollWidth || el.getBoundingClientRect().width || 1;
+    const scale = Math.max(minScale || .6, Math.min(1, boxWidth / rawWidth));
+    el.style.transform = 'scale(' + scale.toFixed(3) + ')';
+  });
+}
+window.addEventListener('load', () => {
+  document.querySelectorAll('[data-fit]').forEach(el => fitTextToBox(el, el.dataset.fit, Number(el.datasetMin || .6)));
+});
+</script>
+</body></html>
