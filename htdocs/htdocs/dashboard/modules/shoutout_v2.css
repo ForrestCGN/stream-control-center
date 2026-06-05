@@ -924,121 +924,122 @@
 }
 
 
-/* CAN-44.28 – Shoutout Overlay Sets im Shoutout-Dashboard */
-.shoutout-v2-admin textarea{
-  width:100%;
-  border:1px solid rgba(255,255,255,.14);
-  background:rgba(0,0,0,.20);
-  border-radius:12px;
-  color:#fff;
-  padding:12px 13px;
-  font:inherit;
-  font-weight:800;
-  resize:vertical;
+/* CAN44.29 Shoutout Overlay Set-Editor im Texte-Dropdown */
+.so2-overlay-sets-box {
+  display: grid;
+  gap: 14px;
 }
-.shoutout-v2-admin input[type=number]{
-  width:100%;
-  border:1px solid rgba(255,255,255,.14);
-  background:rgba(0,0,0,.20);
-  border-radius:12px;
-  color:#fff;
-  padding:12px 13px;
-  font-weight:800;
+
+.so2-overlay-sets-head,
+.so2-overlay-set-headline,
+.so2-overlay-set-card-actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
-.shoutout-v2-admin .so2-overlaysets-head{display:grid;gap:14px;}
-.shoutout-v2-admin .so2-overlayset-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;}
-.shoutout-v2-admin .so2-overlayset-placeholders{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  flex-wrap:wrap;
-  margin:14px 0 16px;
-  padding:12px 14px;
-  border:1px solid rgba(34,211,238,.16);
-  border-radius:16px;
-  background:rgba(34,211,238,.055);
+
+.so2-overlay-sets-head h4 {
+  margin: 0 0 4px;
+  font-size: 18px;
 }
-.shoutout-v2-admin .so2-overlayset-placeholders strong{font-weight:950;color:#e0faff;}
-.shoutout-v2-admin .so2-overlayset-placeholders span{display:flex;gap:8px;flex-wrap:wrap;}
-.shoutout-v2-admin .so2-overlayset-placeholders code{
-  display:inline-flex;
-  align-items:center;
-  border:1px solid rgba(34,211,238,.22);
-  border-radius:999px;
-  padding:4px 8px;
-  color:#dffbff;
-  background:rgba(34,211,238,.08);
-  font-weight:900;
+
+.so2-overlay-sets-head p {
+  margin: 0;
+  color: var(--muted, #9fb0c8);
 }
-.shoutout-v2-admin .so2-overlayset-list{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:14px;
+
+.so2-overlay-sets-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
-.shoutout-v2-admin .so2-overlayset-card{
-  position:relative;
-  overflow:hidden;
-  display:grid;
-  gap:13px;
-  padding:16px;
-  border:1px solid rgba(255,255,255,.12);
-  border-radius:20px;
-  background:linear-gradient(140deg,rgba(10,13,29,.78),rgba(24,10,50,.68));
-  box-shadow:0 14px 34px rgba(0,0,0,.26);
+
+.so2-overlay-set-list {
+  display: grid;
+  gap: 14px;
 }
-.shoutout-v2-admin .so2-overlayset-card::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  border-radius:inherit;
-  padding:1px;
-  background:linear-gradient(120deg,rgba(34,211,238,.40),rgba(168,85,247,.46),rgba(232,121,249,.24));
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
-  -webkit-mask-composite:xor;
-  mask-composite:exclude;
-  pointer-events:none;
+
+.so2-overlay-set-card {
+  padding: 16px;
+  border: 1px solid rgba(124, 92, 255, .28);
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(20, 22, 38, .88), rgba(30, 16, 52, .76));
+  box-shadow: 0 14px 32px rgba(0, 0, 0, .22);
 }
-.shoutout-v2-admin .so2-overlayset-card-head,
-.shoutout-v2-admin .so2-overlayset-row{
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-  gap:12px;
+
+.so2-overlay-set-headline strong {
+  display: block;
+  font-size: 17px;
 }
-.shoutout-v2-admin .so2-overlayset-card-head > div{flex:1 1 auto;min-width:0;}
-.shoutout-v2-admin .so2-overlayset-card-head strong{display:block;font-size:17px;font-weight:950;margin-bottom:8px;}
-.shoutout-v2-admin .so2-overlayset-card .so2-field{display:grid;gap:6px;}
-.shoutout-v2-admin .so2-overlayset-card .so2-field span{
-  color:rgba(255,255,255,.64);
-  font-size:12px;
-  letter-spacing:.08em;
-  text-transform:uppercase;
-  font-weight:950;
+
+.so2-overlay-set-headline span {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted, #9fb0c8);
+  font-size: 12px;
 }
-.shoutout-v2-admin .so2-overlayset-row .so2-field{flex:0 0 150px;}
-.shoutout-v2-admin .so2-danger-action{
-  border-color:rgba(251,113,133,.42);
-  color:#ffe4e8;
-  background:rgba(251,113,133,.10);
+
+.so2-overlay-set-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 140px;
+  gap: 12px;
+  margin-top: 12px;
 }
-.shoutout-v2-admin .so2-overlayset-preview{
-  padding:12px;
-  border:1px solid rgba(168,85,247,.20);
-  border-radius:16px;
-  background:rgba(168,85,247,.08);
+
+.so2-overlay-set-preview {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid rgba(36, 214, 255, .18);
+  border-radius: 14px;
+  background: rgba(36, 214, 255, .06);
 }
-.shoutout-v2-admin .so2-overlayset-preview strong,
-.shoutout-v2-admin .so2-overlayset-preview span{
-  display:block;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
+
+.so2-overlay-set-preview strong,
+.so2-overlay-set-preview span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.shoutout-v2-admin .so2-overlayset-preview strong{font-size:16px;font-weight:950;}
-.shoutout-v2-admin .so2-overlayset-preview span{margin-top:4px;color:rgba(255,255,255,.66);font-weight:800;}
-@media(max-width:920px){
-  .shoutout-v2-admin .so2-overlayset-list{grid-template-columns:1fr;}
-  .shoutout-v2-admin .so2-overlayset-card-head,
-  .shoutout-v2-admin .so2-overlayset-row{flex-direction:column;}
-  .shoutout-v2-admin .so2-overlayset-row .so2-field{flex:1 1 auto;width:100%;}
+
+.so2-overlay-set-preview strong {
+  color: #f8fbff;
+  font-size: 16px;
+}
+
+.so2-overlay-set-preview span {
+  margin-top: 4px;
+  color: var(--muted, #9fb0c8);
+}
+
+.so2-overlay-set-card-actions {
+  margin-top: 12px;
+}
+
+.so2-checkline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #f8fbff;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.so2-checkline input {
+  width: 18px;
+  height: 18px;
+}
+
+@media (max-width: 760px) {
+  .so2-overlay-sets-head,
+  .so2-overlay-set-headline,
+  .so2-overlay-set-card-actions {
+    flex-direction: column;
+  }
+
+  .so2-overlay-set-grid {
+    grid-template-columns: 1fr;
+  }
 }
