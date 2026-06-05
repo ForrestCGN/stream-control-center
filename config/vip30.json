@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "moduleVersion": "0.8.1",
+  "moduleVersion": "0.8.2",
   "reward": {
     "rewardKey": "vip30",
     "title": "30 Tage VIP",
@@ -135,5 +135,6 @@
     "allowRedemptionFulfillCancel": false,
     "allowAlert": false,
     "notes": "STEP8.1: Live-Schalter sind konfigurierbar, /live/arm-preview zeigt die fehlenden Gates. Keine echten Live-Aktionen."
-  }
+  },
+  "moduleBuild": "step8.2-live-gates-api-stage-a"
 }

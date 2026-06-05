@@ -1,13 +1,8 @@
-# CURRENT STATUS
+# CURRENT STATUS – VIP30 STEP8.2
 
-VIP30 steht auf **STEP8.1 / v0.8.1**.
+Version: 0.8.2  
+Build: `step8.2-live-gates-api-stage-a`
 
-Status:
-- Twitch-Redemption wurde im Live-Dry-Run erfolgreich beobachtet.
-- Lokaler `vip30`-Reward ist mit Twitch-Reward-ID verknuepft und auf 1 Punkt gesetzt.
-- Ensure-Route funktioniert wieder.
-- Live-Actions sind weiterhin gesperrt.
-- `/api/vip30/live/check` liefert kompakte Statusdaten ueber `compact`.
-- `/api/vip30/live/arm-preview` zeigt fehlende Gates und empfohlene Reihenfolge.
+STEP8.2 ergänzt eine API zum gezielten Vorschauen und Setzen von Live-Gates. Der Default bleibt gesperrt. Profile `stage_a` und `lock` sind vorhanden.
 
-Keine echten Twitch-Schreibaktionen in STEP8.1.
+Stage A aktiviert nur Master-/Grant-/Slot-Gates. Fulfill/Cancel und Alert bleiben bewusst aus.

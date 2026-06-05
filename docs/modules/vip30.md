@@ -1,57 +1,55 @@
 # VIP30 / 30 Tage VIP
 
-Stand: **STEP8.1**  
-Version: **0.8.1**  
-Build: `step8.1-arm-preview-compact-live-check`
+Stand: STEP8.2  
+Version: 0.8.2  
+Build: `step8.2-live-gates-api-stage-a`
 
 ## Ziel
 
-VIP30 ist weiterhin im sicheren Vorbereitungsmodus. STEP8.1 macht die Live-Schalter sichtbar/pruefbar und ergaenzt eine Armierungs-Vorschau.
+Das VIP30-System läuft über Node und verarbeitet den bestehenden Twitch-Kanalpunkte-Reward `30 Tage VIP` über EventSub und den internen Channelpoints/EventBus-Weg.
 
-## Neue/angepasste Routen
+## Aktueller Stand
 
-- `GET /api/vip30/live/check`
-  - liefert weiterhin den Safety-Status
-  - enthaelt zusaetzlich `compact` mit `status`, `armed`, `blockerCount`, `blockers`
-- `GET /api/vip30/live/arm-preview`
-  - zeigt fehlende Schalter mit Setting-Key, Zielwert und Beschreibung
-  - gibt eine empfohlene Aktivierungsreihenfolge aus
-  - schreibt nichts
-- `POST /api/vip30/redeem/live-plan`
-  - bleibt Plan-only
+- Twitch-Reward ist lokal als `vip30` verknüpft.
+- Kosten-Testwert: `1` Kanalpunkt.
+- EventSub-Live-DryRun wurde erfolgreich getestet.
+- `ensure` funktioniert wieder.
+- Live-Aktionen bleiben weiterhin über Safety-Gates kontrolliert.
+
+## Neue STEP8.2-Routen
+
+```txt
+GET  /api/vip30/live/arm-settings-preview
+POST /api/vip30/live/set-gates?confirm=YES&profile=stage_a
+```
+
+## Stage A
+
+Stage A setzt nur die vorbereitenden Gates:
+
+```txt
+live.enabled = true
+live.mode = live
+twitch.liveActionsEnabled = true
+bridge.decisionOnly = false
+live.allowVipGrant = true
+live.allowSlotWrite = true
+live.allowRedemptionFulfillCancel = false
+live.allowAlert = false
+```
+
+Damit bleiben Fulfill/Cancel und Alert bewusst gesperrt. Die Route selbst führt keine Twitch-Schreibaktion aus.
 
 ## Safety
 
-STEP8.1 fuehrt keine echten Live-Aktionen aus:
+STEP8.2 selbst macht weiterhin:
 
-- kein Twitch-Write
-- kein VIP-Grant
-- kein Slot-Write
-- kein Fulfill/Cancel
-- kein Alert
-
-## Live-Gates
-
-Die Live-Aktivierung bleibt durch mehrere Gates gesperrt:
-
-- `live.enabled`
-- `live.mode = live`
-- `twitch.liveActionsEnabled`
-- `bridge.decisionOnly = false`
-- `live.allowVipGrant`
-- `live.allowSlotWrite`
-- `live.allowRedemptionFulfillCancel`
-- `live.allowAlert`
-- Twitch-Capability muss geprueft und bereit sein
-- lokaler Reward muss `linked_in_sync` sein
-
-## Minimaltest
-
-```powershell
-$r = Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/live/check"
-$r.compact
-
-$a = Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/live/arm-preview"
-$a.blockerCount
-$a.missing | Select-Object key,setting,requiredValue,label
+```txt
+kein Twitch-Write
+kein VIP-Grant
+kein Slot-Write
+kein Fulfill/Cancel
+kein Alert
 ```
+
+Die Gates bereiten nur den nächsten Implementierungsschritt vor.

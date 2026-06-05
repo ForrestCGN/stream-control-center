@@ -1,6 +1,6 @@
-# TODO
+# TODO – VIP30
 
-- [ ] Twitch Capability vor Live-Aktionen erneut pruefen.
-- [ ] Live-Gates bewusst setzen, nicht automatisch.
-- [ ] STEP9: echte Live-Ausfuehrung hinter harten Gates implementieren.
-- [ ] Cleanup/Revoke fuer abgelaufene VIPs spaeter implementieren.
+- STEP8.2 live prüfen.
+- Nach Stage A: Blocker sollen nur noch `allowRedemptionFulfillCancel` und ggf. `allowAlert` enthalten.
+- STEP9: Twitch Add VIP + Slot-Write hinter Gates implementieren.
+- STEP10: Fulfill/Cancel separat aktivieren.

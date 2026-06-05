@@ -1,9 +1,9 @@
-# CHANGELOG
+# CHANGELOG – VIP30
 
-## VIP30 STEP8.1 / v0.8.1
+## 0.8.2 – STEP8.2
 
-- `GET /api/vip30/live/check` um `compact` erweitert.
-- `GET /api/vip30/live/arm-preview` hinzugefuegt.
-- Missing-Gates werden mit Setting-Key, Zielwert und Label ausgegeben.
-- Empfohlene Aktivierungsreihenfolge dokumentiert.
-- Keine Twitch-Writes, kein VIP-Grant, kein Slot-Write, kein Fulfill/Cancel.
+- Neue Route `/api/vip30/live/arm-settings-preview`.
+- Neue Route `/api/vip30/live/set-gates` mit `confirm=YES`.
+- Profile `stage_a` und `lock` ergänzt.
+- Stage A bereitet VIP-Grant + Slot-Write vor, Fulfill/Cancel bleibt aus.
+- Keine Twitch-/Slot-/Alert-Schreibaktion in dieser Route.

@@ -6,8 +6,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.1";
-const MODULE_BUILD = "step8.1-arm-preview-compact-live-check";
+const MODULE_VERSION = "0.8.2";
+const MODULE_BUILD = "step8.2-live-gates-api-stage-a";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -21,7 +21,7 @@ const MODULE_META = {
   category: "community",
   routePrefix: ROUTE_PREFIX,
   routesPrefix: [ROUTE_PREFIX],
-  description: "30 Tage VIP Node-Modul: SQLite-Grundlage, Dashboard-Logs/Stats, Communication-Bus, DB-/Dashboard-Config, Twitch-Capability-Check, Channelpoints-Reward-Link, Dry-Run-Redemption-Decision, interne Channelpoints-Bridge, Live-EventSub-Beobachtung und STEP8-Live-Action-Plan mit Safety-Gates.",
+  description: "30 Tage VIP Node-Modul: SQLite-Grundlage, Dashboard-Logs/Stats, Communication-Bus, DB-/Dashboard-Config, Twitch-Capability-Check, Channelpoints-Reward-Link, Dry-Run-Redemption-Decision, interne Channelpoints-Bridge, Live-EventSub-Beobachtung und STEP8-Live-Action-Plan mit Safety-Gates und STEP8.2 Live-Gates-API fuer Stage-A.",
   bus: {
     registered: true,
     heartbeat: true,
@@ -1903,7 +1903,9 @@ function buildLiveArmPreview() {
       { step: 2, name: "enable_live_plan_flags", settings: { "live.enabled": true, "live.mode": "live" }, write: "settings/save only" },
       { step: 3, name: "enable_twitch_write_master", settings: { "twitch.liveActionsEnabled": true }, write: "settings/save only" },
       { step: 4, name: "disable_decision_only", settings: { "bridge.decisionOnly": false }, write: "settings/save only" },
-      { step: 5, name: "grant_slot_fulfill_alert_gates", settings: { "live.allowVipGrant": true, "live.allowSlotWrite": true, "live.allowRedemptionFulfillCancel": true, "live.allowAlert": true }, write: "settings/save only" }
+      { step: 5, name: "stage_a_grant_slot_only", settings: { "live.allowVipGrant": true, "live.allowSlotWrite": true, "live.allowRedemptionFulfillCancel": false, "live.allowAlert": false }, write: "settings/save only" },
+      { step: 6, name: "stage_b_fulfill_cancel_later", settings: { "live.allowRedemptionFulfillCancel": true }, write: "settings/save only, spaeter" },
+      { step: 7, name: "stage_c_alert_later", settings: { "live.allowAlert": true }, write: "settings/save only, spaeter" }
     ],
     nextPhaseSuggestion: safety.armed ? "ready_for_step9_live_execute" : "settings_staging_only",
     safety: {
@@ -1913,6 +1915,142 @@ function buildLiveArmPreview() {
       noSlotWrite: true,
       noRedemptionFulfillCancel: true,
       noAlert: true
+    }
+  };
+}
+
+
+function getLiveGateProfile(profile = "stage_a") {
+  const key = cleanString(profile || "stage_a").toLowerCase();
+  const profiles = {
+    stage_a: {
+      key: "stage_a",
+      label: "VIP-Grant + Slot-Write vorbereiten, Fulfill/Cancel und Alert bleiben aus",
+      settings: {
+        "live.enabled": true,
+        "live.mode": "live",
+        "twitch.liveActionsEnabled": true,
+        "bridge.decisionOnly": false,
+        "live.allowVipGrant": true,
+        "live.allowSlotWrite": true,
+        "live.allowRedemptionFulfillCancel": false,
+        "live.allowAlert": false
+      },
+      expectedRemainingBlockers: ["allowRedemptionFulfillCancel", "allowAlert"],
+      safety: {
+        settingsOnly: true,
+        noTwitchWriteInThisRoute: true,
+        noVipGrantInThisRoute: true,
+        noSlotWriteInThisRoute: true,
+        noRedemptionFulfillCancelInThisRoute: true,
+        noAlertInThisRoute: true
+      }
+    },
+    lock: {
+      key: "lock",
+      label: "Alle Live-Gates wieder sperren",
+      settings: {
+        "live.enabled": false,
+        "live.mode": "plan_only",
+        "twitch.liveActionsEnabled": false,
+        "bridge.decisionOnly": true,
+        "live.allowVipGrant": false,
+        "live.allowSlotWrite": false,
+        "live.allowRedemptionFulfillCancel": false,
+        "live.allowAlert": false
+      },
+      expectedRemainingBlockers: ["liveEnabled", "liveModeIsLive", "twitchLiveActionsEnabled", "bridgeDecisionOnlyDisabled", "allowVipGrant", "allowSlotWrite", "allowRedemptionFulfillCancel", "allowAlert"],
+      safety: {
+        settingsOnly: true,
+        noTwitchWriteInThisRoute: true,
+        noVipGrantInThisRoute: true,
+        noSlotWriteInThisRoute: true,
+        noRedemptionFulfillCancelInThisRoute: true,
+        noAlertInThisRoute: true
+      }
+    }
+  };
+  return profiles[key] || profiles.stage_a;
+}
+
+function buildLiveArmSettingsPreview(profile = "stage_a") {
+  const before = buildLiveArmPreview();
+  const plan = getLiveGateProfile(profile);
+  const current = getConfig();
+  const wouldChange = [];
+  for (const [key, value] of Object.entries(plan.settings)) {
+    const def = SETTING_DEFINITIONS.find(item => item.key === key || item.path === key);
+    const currentValue = def ? getValueByPath(current, def.path) : undefined;
+    wouldChange.push({ key, path: def ? def.path : key, from: currentValue, to: value, changed: currentValue !== value });
+  }
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    action: "vip30_live_arm_settings_preview",
+    profile: plan.key,
+    label: plan.label,
+    before: {
+      armed: before.armed,
+      blockerCount: before.blockerCount,
+      blockers: before.blockers
+    },
+    settings: plan.settings,
+    wouldChange,
+    expectedRemainingBlockers: plan.expectedRemainingBlockers,
+    note: plan.key === "stage_a"
+      ? "Stage A laesst Fulfill/Cancel und Alert bewusst aus. Nach Set-Gates bleiben deshalb diese Blocker bestehen."
+      : "Lock setzt alle Live-Gates wieder auf sicher.",
+    safety: plan.safety
+  };
+}
+
+function setLiveGatesFromPayload(payload = {}, query = {}) {
+  const confirm = cleanString((query && query.confirm) || (payload && payload.confirm) || "").toUpperCase();
+  if (confirm !== "YES") {
+    return {
+      ok: false,
+      module: MODULE_NAME,
+      moduleVersion: MODULE_VERSION,
+      moduleBuild: MODULE_BUILD,
+      reason: "confirm_required",
+      confirmRequired: "YES",
+      safety: { settingsOnly: true, noTwitchWrite: true, noVipGrant: true, noSlotWrite: true, noRedemptionFulfillCancel: true, noAlert: true }
+    };
+  }
+  const requestedProfile = cleanString((query && query.profile) || (payload && payload.profile) || "stage_a").toLowerCase();
+  const plan = getLiveGateProfile(requestedProfile);
+  const before = buildLiveArmPreview();
+  const saved = saveSettingsFromPayload({ settings: plan.settings });
+  const after = buildLiveArmPreview();
+  writeLog("live_gates_updated", {
+    success: true,
+    reason: plan.key,
+    message: `VIP30 Live-Gates per API gesetzt: ${plan.key}`,
+    payload: { profile: plan.key, settings: plan.settings, beforeBlockers: before.blockers, afterBlockers: after.blockers }
+  });
+  publishStatus("live_gates_updated");
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    action: "vip30_live_set_gates",
+    profile: plan.key,
+    label: plan.label,
+    changed: saved.changed || [],
+    rejected: saved.rejected || [],
+    before: { armed: before.armed, blockerCount: before.blockerCount, blockers: before.blockers },
+    after: { armed: after.armed, blockerCount: after.blockerCount, blockers: after.blockers, missing: after.missing },
+    liveCheck: buildLiveActionSafetyStatus().compact,
+    safety: {
+      settingsOnly: true,
+      noTwitchWriteInThisRoute: true,
+      noVipGrantInThisRoute: true,
+      noSlotWriteInThisRoute: true,
+      noRedemptionFulfillCancelInThisRoute: true,
+      noAlertInThisRoute: true
     }
   };
 }
@@ -2187,7 +2325,7 @@ function buildHealth() {
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
     enabled: getConfig().enabled !== false,
-    status: lastError ? "error" : "ready_step7_2_ensure_created_at_param_fix",
+    status: lastError ? "error" : "ready_step8_2_live_gates_api_stage_a",
     lastError,
     checks: {
       databaseReady: dbMigrationState.ok === true,
@@ -2219,10 +2357,10 @@ function buildStatus() {
     moduleBuild: MODULE_BUILD,
     version: MODULE_VERSION,
     enabled: config.enabled !== false,
-    status: lastError ? "error" : "ready_step7_2_ensure_created_at_param_fix",
+    status: lastError ? "error" : "ready_step8_2_live_gates_api_stage_a",
     startedAt,
     routePrefix: ROUTE_PREFIX,
-    routeCount: 18,
+    routeCount: 23,
     routes: [
       `${ROUTE_PREFIX}/status`,
       `${ROUTE_PREFIX}/health`,
@@ -2241,7 +2379,12 @@ function buildStatus() {
       `${ROUTE_PREFIX}/channelpoints/bridge/test`,
       `${ROUTE_PREFIX}/channelpoints/reward/link-twitch-id`,
       `${ROUTE_PREFIX}/channelpoints/bridge/live-check`,
-      `${ROUTE_PREFIX}/channelpoints/bridge/reset-stats`
+      `${ROUTE_PREFIX}/channelpoints/bridge/reset-stats`,
+      `${ROUTE_PREFIX}/live/check`,
+      `${ROUTE_PREFIX}/live/arm-preview`,
+      `${ROUTE_PREFIX}/live/arm-settings-preview`,
+      `${ROUTE_PREFIX}/live/set-gates`,
+      `${ROUTE_PREFIX}/redeem/live-plan`
     ],
     reward: buildRewardSummary(),
     config: {
@@ -2633,6 +2776,19 @@ function init({ app } = {}) {
     app.get(`${ROUTE_PREFIX}/live/arm-preview`, (_req, res) => {
       runtimeStats.lastAction = "live_arm_preview";
       try { res.json(buildLiveArmPreview()); }
+      catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err), safety: { noTwitchWrite: true, noVipGrant: true, noSlotWrite: true, noRedemptionFulfillCancel: true } }); }
+    });
+    app.get(`${ROUTE_PREFIX}/live/arm-settings-preview`, (req, res) => {
+      runtimeStats.lastAction = "live_arm_settings_preview";
+      try { res.json(buildLiveArmSettingsPreview(req && req.query && req.query.profile || "stage_a")); }
+      catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err), safety: { noTwitchWrite: true, noVipGrant: true, noSlotWrite: true, noRedemptionFulfillCancel: true } }); }
+    });
+    app.post(`${ROUTE_PREFIX}/live/set-gates`, (req, res) => {
+      runtimeStats.lastAction = "live_set_gates";
+      try {
+        const result = setLiveGatesFromPayload((req && req.body) || {}, (req && req.query) || {});
+        res.status(result && result.ok ? 200 : 409).json(result);
+      }
       catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err), safety: { noTwitchWrite: true, noVipGrant: true, noSlotWrite: true, noRedemptionFulfillCancel: true } }); }
     });
     app.post(`${ROUTE_PREFIX}/redeem/live-plan`, (req, res) => {
