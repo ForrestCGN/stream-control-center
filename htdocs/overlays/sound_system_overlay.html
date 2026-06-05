@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ForrestCGN Sound-System Overlay - CAN44_24D_EXACT_H15_REFERENCE</title>
+  <title>ForrestCGN Sound-System Overlay - CAN44_24F_EXACT_H15_AVATAR_POSITION_FIX</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
@@ -27,7 +27,7 @@
     }
 
 
-    /* CAN44.24d_EXACT_H15_REFERENCE
+    /* CAN44.24f_EXACT_H15_REFERENCE
        Das folgende Layout basiert 1:1 auf der akzeptierten H15-Testdatei.
        Nur Selector-Namen wurden auf das Sound-System-Overlay gemappt.
     */
@@ -149,6 +149,8 @@
   border:4px solid rgba(9,7,22,.96);
   font-size:47px;
   font-weight:900;
+  overflow:hidden;
+  position:relative;
 }
 
 .h15-label {
@@ -300,6 +302,24 @@
 
 
 
+
+    #clipAvatarImg {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center center;
+      display: none;
+      position: relative;
+      z-index: 2;
+      border-radius: inherit;
+      background: transparent;
+    }
+
+    #clipAvatarPh {
+      position: relative;
+      z-index: 1;
+    }
+
     #clipCard * {
       box-sizing: border-box;
     }
@@ -384,6 +404,42 @@
 
     body[data-debug="1"] #status, body[data-debug="1"] #unlock { opacity: 1; transform: translateY(0); }
     body[data-audio-unlocked="1"] #unlock { display: none; }
+  
+    /* CAN44.24f_AVATAR_POSITION_FIX
+       Avatar-Bild und Platzhalter liegen jetzt absolut im runden Kreis.
+       Dadurch kann das Bild nicht mehr neben/unter dem Kreis einsortiert werden.
+    */
+    .h15-avatar {
+      position: relative !important;
+      overflow: hidden !important;
+      display: block !important;
+      border-radius: 50% !important;
+    }
+
+    #clipAvatarImg {
+      position: absolute !important;
+      inset: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: contain !important;
+      object-position: center center !important;
+      display: none;
+      z-index: 2 !important;
+      border-radius: inherit !important;
+      background: transparent !important;
+    }
+
+    #clipAvatarPh {
+      position: absolute !important;
+      inset: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1 !important;
+    }
+
   </style>
 </head>
 <body>
@@ -436,7 +492,7 @@
       'use strict';
 
       const API = '/api/sound';
-      const BUILD = 'CAN44.24d';
+      const BUILD = 'CAN44.24f';
       const TWITCH_CLIENT_ID = 'kimne78kx3ncx6brgo4mv6wki5h1ko';
       const TWITCH_CLIP_PERSISTED_HASH = '36b89d2507fce29e5ca551df756d27c1cfe079e2609642b4390aa4c35796eb11';
       const player = document.getElementById('player');
@@ -1432,7 +1488,7 @@
           module: 'sound_system',
           mode: 'bus_consumer_with_legacy_fallback',
           capabilities: BUS_CAPABILITIES,
-          version: 'CAN44.24d',
+          version: 'CAN44.24f',
           state: document.hidden ? 'hidden' : 'visible',
           meta: {
             overlay: 'sound_system_overlay.html',
@@ -1527,7 +1583,7 @@
             module: 'sound_system',
             mode: 'bus_consumer_with_legacy_fallback',
             capabilities: BUS_CAPABILITIES,
-            version: 'CAN44.24d'
+            version: 'CAN44.24f'
           });
           startBusHeartbeat();
           post('/client/ready', { overlay: 'sound_system_overlay', busConsumer: true });
