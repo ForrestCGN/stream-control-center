@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ForrestCGN Sound-System Overlay - CAN44_23_SHOUTOUT_LAYOUT_COMPACT_CENTER</title>
+  <title>ForrestCGN Sound-System Overlay - CAN44_23A_SHOUTOUT_LAYOUT_COMPACT_CENTER_FIX</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
@@ -272,6 +272,17 @@
       font-size: 58px;
     }
 
+
+    .clip-name-label {
+      color: #b8c7e6;
+      font-size: 14px;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      margin-top: 18px;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
     .clip-name-box {
       width: 225px;
       height: 34px;
@@ -352,6 +363,8 @@
             <div id="clipAvatarPh">?</div>
           </div>
         </div>
+        <div class="clip-name-label">Heute auf Sendung</div>
+        <div class="clip-name-box"><div id="clipName">User</div></div>
       </div>
       <div class="clip-divider"></div>
       <div class="clip-right">
@@ -374,7 +387,7 @@
       'use strict';
 
       const API = '/api/sound';
-      const BUILD = 'CAN44.23';
+      const BUILD = 'CAN44.23a';
       const TWITCH_CLIENT_ID = 'kimne78kx3ncx6brgo4mv6wki5h1ko';
       const TWITCH_CLIP_PERSISTED_HASH = '36b89d2507fce29e5ca551df756d27c1cfe079e2609642b4390aa4c35796eb11';
       const player = document.getElementById('player');
@@ -1371,7 +1384,7 @@
           module: 'sound_system',
           mode: 'bus_consumer_with_legacy_fallback',
           capabilities: BUS_CAPABILITIES,
-          version: 'CAN44.23',
+          version: 'CAN44.23a',
           state: document.hidden ? 'hidden' : 'visible',
           meta: {
             overlay: 'sound_system_overlay.html',
@@ -1466,7 +1479,7 @@
             module: 'sound_system',
             mode: 'bus_consumer_with_legacy_fallback',
             capabilities: BUS_CAPABILITIES,
-            version: 'CAN44.23'
+            version: 'CAN44.23a'
           });
           startBusHeartbeat();
           post('/client/ready', { overlay: 'sound_system_overlay', busConsumer: true });
