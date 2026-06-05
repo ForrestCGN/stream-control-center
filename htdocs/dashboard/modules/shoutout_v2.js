@@ -1,8 +1,8 @@
 window.ShoutoutV2Module = (function(){
   'use strict';
 
-  const MODULE_VERSION = '2.7.3-settings-save-fix';
-  const BUILD = 'CAN-44.21.40';
+  const MODULE_VERSION = '2.7.5-overlay-sets-dropdown-fix';
+  const BUILD = 'CAN-44.30';
 
   const API = {
     status: '/api/clip-shoutout/status',
@@ -25,6 +25,7 @@ window.ShoutoutV2Module = (function(){
     officialQueueRemove: '/api/clip-shoutout/queue/remove',
     officialQueueRetry: '/api/clip-shoutout/queue/retry',
     texts: '/api/clip-shoutout/texts',
+    overlaySets: '/api/clip-shoutout/overlay-sets',
     textsMigration: '/api/clip-shoutout/texts/migration',
     autoTexts: '/api/clip-shoutout/auto/texts',
     decisionPrep: '/api/clip-shoutout/decision-prep',
@@ -78,6 +79,8 @@ window.ShoutoutV2Module = (function(){
     textCategory: '',
     textKey: '',
     textResult: null,
+    overlaySets: null,
+    overlaySetsResult: null,
     decisionPrep: null,
     officialAuthStatus: null,
     diagnosticsResult: null,
@@ -332,14 +335,16 @@ window.ShoutoutV2Module = (function(){
       }
 
       if (['texts'].includes(state.activeTab)) {
-        const [texts, migration, autoTexts] = await Promise.all([
+        const [texts, migration, autoTexts, overlaySets] = await Promise.all([
           api(API.texts).catch(err => ({ ok:false, error: err.message })),
           api(API.textsMigration).catch(err => ({ ok:false, error: err.message })),
-          api(API.autoTexts).catch(err => ({ ok:false, error: err.message }))
+          api(API.autoTexts).catch(err => ({ ok:false, error: err.message })),
+          api(API.overlaySets).catch(err => ({ ok:false, error: err.message }))
         ]);
         state.texts = texts;
         state.textsMigration = texts && texts.migration ? texts.migration : migration;
         state.autoTexts = autoTexts;
+        state.overlaySets = overlaySets;
         ensureTextSelection();
       }
 
@@ -652,8 +657,70 @@ window.ShoutoutV2Module = (function(){
   }
 
   function textKeys(){
-    return asArray(pick(textRoot(), ['keys'], []));
+    const rows = asArray(pick(textRoot(), ['keys'], []));
+    const hasOverlaySets = rows.some(row => String(row.key || '') === 'shoutout.overlay.sets');
+    return hasOverlaySets ? rows : [overlaySetsTextRow(), ...rows];
   }
+
+
+  function overlaySetsTextRow(){
+    const payload = overlaySetsPayload();
+    const rows = overlaySetRows();
+    return {
+      key: 'shoutout.overlay.sets',
+      category: 'shoutout.overlay',
+      label: 'shoutout.overlay.sets',
+      variants: [],
+      activeCount: rows.filter(row => row.enabled !== false).length,
+      totalCount: rows.length,
+      isOverlaySets: true,
+      description: 'Headline/Subline-Paare für das Shoutout-Overlay'
+    };
+  }
+
+  function overlaySetsPayload(){
+    return (state.overlaySets && state.overlaySets.overlaySets) || {};
+  }
+
+  function overlaySetRows(){
+    const payload = overlaySetsPayload();
+    return asArray(payload.sets).map((set, index) => normalizeOverlaySet(set, index));
+  }
+
+  function normalizeOverlaySet(set, index = 0){
+    const fallbackId = `overlay-set-${index + 1}`;
+    const raw = set && typeof set === 'object' ? set : {};
+    return {
+      id: cleanOverlaySetId(raw.id || raw.key || fallbackId, fallbackId),
+      enabled: raw.enabled !== false,
+      weight: Math.max(0, asNumber(raw.weight, 1)),
+      headline: String(raw.headline || '').trim() || 'Schaut gerne mal vorbei!',
+      subline: String(raw.subline || '').trim() || 'Heute auf der Leinwand: {displayName}'
+    };
+  }
+
+  function cleanOverlaySetId(value, fallback = 'overlay-set'){
+    const cleaned = String(value || fallback || 'overlay-set')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    return cleaned || fallback || 'overlay-set';
+  }
+
+  function overlayPreviewText(value){
+    return String(value || '')
+      .replace(/\{displayName\}/g, 'CrazyMeerSchweinchen')
+      .replace(/\{login\}/g, 'crazymeerschweinchen')
+      .replace(/\{clipTitle\}/g, 'Rentnerkino Deluxe')
+      .replace(/\{clipUrl\}/g, 'https://clips.twitch.tv/...')
+      .replace(/\{gameName\}/g, 'Minecraft');
+  }
+
+  function isOverlaySetsRow(row = selectedTextRow()){
+    return String(row && row.key || '') === 'shoutout.overlay.sets';
+  }
+
 
   function textCategoryLabel(id){
     const key = String(id || '');
@@ -664,9 +731,16 @@ window.ShoutoutV2Module = (function(){
   }
 
   function textRowsForCategory(category = state.textCategory){
-    const rows = textKeys();
-    if (!category) return rows;
-    return rows.filter(row => String(row.category || '') === String(category || ''));
+    const cat = String(category || '');
+    let rows = textKeys();
+    if (!cat) return rows;
+    rows = rows.filter(row => String(row.category || '') === cat);
+
+    if (cat === 'shoutout.overlay' && !rows.some(row => String(row.key || '') === 'shoutout.overlay.sets')) {
+      rows = [overlaySetsTextRow(), ...rows];
+    }
+
+    return rows;
   }
 
   function selectedTextRow(){
@@ -716,13 +790,18 @@ window.ShoutoutV2Module = (function(){
   }
 
   function renderTextKeyOptions(){
-    const rows = textRowsForCategory();
+    let rows = textRowsForCategory();
+    // CAN44.30 hard dropdown guard: Overlay-Sets muss im Shoutout-Overlay-Dropdown sichtbar sein.
+    if (String(state.textCategory || '') === 'shoutout.overlay' && !rows.some(row => String(row.key || '') === 'shoutout.overlay.sets')) {
+      rows = [overlaySetsTextRow(), ...rows];
+    }
     if (!rows.length) return `<option value="">Keine Textkeys</option>`;
     return rows.map(row => {
       const key = String(row.key || '');
       const active = row.activeCount ?? activeVariantValues(row).length;
       const total = row.totalCount ?? asArray(row.variants).length;
-      return `<option value="${esc(key)}" ${state.textKey === key ? 'selected' : ''}>${esc(key)} · ${esc(active)}/${esc(total)} aktiv</option>`;
+      const suffix = key === 'shoutout.overlay.sets' ? ` · ${esc(active)}/${esc(total)} Sets aktiv` : ` · ${esc(active)}/${esc(total)} aktiv`;
+      return `<option value="${esc(key)}" ${state.textKey === key ? 'selected' : ''}>${esc(key)}${suffix}</option>`;
     }).join('');
   }
 
@@ -739,6 +818,167 @@ window.ShoutoutV2Module = (function(){
       </div>
     `).join('');
   }
+
+
+  function renderOverlaySetsEditor(){
+    const rows = overlaySetRows();
+    const result = state.overlaySetsResult || state.textResult || null;
+    const payload = overlaySetsPayload();
+    const placeholders = asArray(payload.placeholders).length ? asArray(payload.placeholders) : ['{displayName}', '{login}', '{clipTitle}', '{clipUrl}', '{gameName}'];
+
+    return `
+      ${renderOverlaySetsResult(result)}
+      <div class="so2-overlay-sets-box">
+        <div class="so2-overlay-sets-head">
+          <div>
+            <h4>Headline/Subline-Sets</h4>
+            <p>Diese Einträge werden paarweise gewählt. Genau das ersetzt hier die normalen Varianten-Zeilen.</p>
+          </div>
+          <div class="so2-overlay-sets-actions">
+            <button type="button" data-so2-overlay-sets-reload>Sets neu laden</button>
+            <button type="button" data-so2-overlay-set-add>+ Set</button>
+            <button type="button" class="so2-primary-action" data-so2-overlay-sets-save>Sets speichern</button>
+          </div>
+        </div>
+
+        <div class="so2-overlay-set-list" data-so2-overlay-set-list>
+          ${rows.length ? rows.map((set, index) => renderOverlaySetCard(set, index)).join('') : `<div class="so2-empty">Keine Overlay-Sets geladen.</div>`}
+        </div>
+
+        <div class="so2-note">
+          <strong>Platzhalter:</strong>
+          <span>${placeholders.map(token => `<code>${esc(token)}</code>`).join(', ')}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderOverlaySetCard(set, index){
+    const n = index + 1;
+    return `
+      <article class="so2-overlay-set-card" data-so2-overlay-set-card>
+        <div class="so2-overlay-set-headline">
+          <div>
+            <strong>Set ${n}</strong>
+            <span>${esc(set.id || `overlay-set-${n}`)}</span>
+          </div>
+          <label class="so2-checkline">
+            <input type="checkbox" data-so2-overlay-set-enabled ${set.enabled !== false ? 'checked' : ''}>
+            aktiv
+          </label>
+        </div>
+
+        <div class="so2-overlay-set-grid">
+          <label class="so2-field">
+            <span>ID</span>
+            <input data-so2-overlay-set-id value="${esc(set.id || `overlay-set-${n}`)}" spellcheck="false">
+          </label>
+          <label class="so2-field">
+            <span>Gewichtung</span>
+            <input data-so2-overlay-set-weight type="number" min="0" step="1" value="${esc(set.weight || 1)}">
+          </label>
+        </div>
+
+        <label class="so2-field">
+          <span>Headline</span>
+          <input data-so2-overlay-set-headline value="${esc(set.headline || '')}" spellcheck="false">
+        </label>
+
+        <label class="so2-field">
+          <span>Subline</span>
+          <textarea data-so2-overlay-set-subline rows="2" spellcheck="false">${esc(set.subline || '')}</textarea>
+        </label>
+
+        <div class="so2-overlay-set-preview">
+          <strong>${esc(overlayPreviewText(set.headline || ''))}</strong>
+          <span>${esc(overlayPreviewText(set.subline || ''))}</span>
+        </div>
+
+        <div class="so2-overlay-set-card-actions">
+          <button type="button" class="so2-icon-action" data-so2-overlay-set-remove>× Set löschen</button>
+        </div>
+      </article>
+    `;
+  }
+
+  function renderOverlaySetsResult(result){
+    if (!result) return '';
+    if (result.ok === false) return `<div class="so2-alert so2-alert-error">${esc(result.error || 'Overlay-Sets konnten nicht gespeichert werden.')}</div>`;
+    return `<div class="so2-alert so2-alert-ok">${esc(result.message || 'Overlay-Sets gespeichert.')}</div>`;
+  }
+
+  function collectOverlaySets(){
+    return Array.from(root.querySelectorAll('[data-so2-overlay-set-card]')).map((card, index) => {
+      const id = cleanOverlaySetId(card.querySelector('[data-so2-overlay-set-id]')?.value, `overlay-set-${index + 1}`);
+      const headline = String(card.querySelector('[data-so2-overlay-set-headline]')?.value || '').trim();
+      const subline = String(card.querySelector('[data-so2-overlay-set-subline]')?.value || '').trim();
+      return {
+        id,
+        enabled: card.querySelector('[data-so2-overlay-set-enabled]')?.checked !== false,
+        weight: Math.max(0, asNumber(card.querySelector('[data-so2-overlay-set-weight]')?.value, 1)),
+        headline: headline || 'Schaut gerne mal vorbei!',
+        subline: subline || 'Heute auf der Leinwand: {displayName}'
+      };
+    }).filter(set => set.headline || set.subline);
+  }
+
+  async function saveOverlaySetsAction(){
+    const sets = collectOverlaySets();
+    if (!sets.length) {
+      state.overlaySetsResult = { ok: false, error: 'Mindestens ein Overlay-Set ist erforderlich.' };
+      state.textResult = state.overlaySetsResult;
+      render();
+      return;
+    }
+
+    state.loading = true;
+    state.error = '';
+    state.notice = '';
+    state.overlaySetsResult = null;
+    state.textResult = null;
+    render();
+
+    try {
+      const result = await api(API.overlaySets, {
+        method: 'POST',
+        body: JSON.stringify({ sets })
+      });
+      state.overlaySetsResult = { ok: result && result.ok !== false, message: `${sets.length} Overlay-Sets gespeichert.` };
+      state.textResult = state.overlaySetsResult;
+      state.overlaySets = result;
+      await loadAll(true);
+    } catch (err) {
+      state.overlaySetsResult = { ok: false, error: err.message || String(err) };
+      state.textResult = state.overlaySetsResult;
+      state.loading = false;
+      render();
+    }
+  }
+
+  function addOverlaySetCard(){
+    const rows = collectOverlaySets();
+    const next = rows.length + 1;
+    rows.push({
+      id: `overlay-set-${next}`,
+      enabled: true,
+      weight: 1,
+      headline: 'Neues Rentner-Kino!',
+      subline: 'Heute auf der Leinwand: {displayName}'
+    });
+    state.overlaySets = {
+      ok: true,
+      overlaySets: {
+        ...(overlaySetsPayload() || {}),
+        sets: rows
+      }
+    };
+    state.overlaySetsResult = { ok: true, message: 'Neues Set hinzugefügt. Speichern nicht vergessen.' };
+    state.textResult = state.overlaySetsResult;
+    state.textKey = 'shoutout.overlay.sets';
+    state.textCategory = 'shoutout.overlay';
+    render();
+  }
+
 
   function renderTextMigrationInfo(){
     const m = state.textsMigration || {};
@@ -803,14 +1043,17 @@ window.ShoutoutV2Module = (function(){
             <strong>${esc(row.key)}</strong>
             <span>${esc(textCategoryLabel(row.category))}</span>
             ${String(row.category || '') === 'auto_shoutout' ? badge('Legacy', 'warn') : ''}
+            ${isOverlaySetsRow(row) ? badge('Set-Editor', 'ok') : ''}
           </div>
-          <div class="so2-text-variants" data-so2-text-variants>
-            ${renderVariantInputs(row)}
-          </div>
-          <div class="so2-note">
-            <strong>Platzhalter:</strong>
-            <span><code>@{displayName}</code>, <code>@{login}</code>, <code>{login}</code>, <code>{waitTime}</code>, <code>{reason}</code></span>
-          </div>
+          ${isOverlaySetsRow(row) ? renderOverlaySetsEditor() : `
+            <div class="so2-text-variants" data-so2-text-variants>
+              ${renderVariantInputs(row)}
+            </div>
+            <div class="so2-note">
+              <strong>Platzhalter:</strong>
+              <span><code>@{displayName}</code>, <code>@{login}</code>, <code>{login}</code>, <code>{waitTime}</code>, <code>{reason}</code></span>
+            </div>
+          `}
         ` : `<div class="so2-empty">Keine Textkeys geladen.</div>`}
       </section>
 
@@ -2036,11 +2279,43 @@ window.ShoutoutV2Module = (function(){
       }
 
       if (ev.target.closest('[data-so2-text-save]') && root?.contains(ev.target)) {
-        saveTextKeyAction();
+        if (isOverlaySetsRow()) saveOverlaySetsAction();
+        else saveTextKeyAction();
+        return;
+      }
+
+      if (ev.target.closest('[data-so2-overlay-sets-save]') && root?.contains(ev.target)) {
+        saveOverlaySetsAction();
+        return;
+      }
+
+      if (ev.target.closest('[data-so2-overlay-sets-reload]') && root?.contains(ev.target)) {
+        state.overlaySetsResult = null;
+        state.textResult = null;
+        loadAll(true);
+        return;
+      }
+
+      if (ev.target.closest('[data-so2-overlay-set-add]') && root?.contains(ev.target)) {
+        addOverlaySetCard();
+        return;
+      }
+
+      const overlaySetRemove = ev.target.closest('[data-so2-overlay-set-remove]');
+      if (overlaySetRemove && root?.contains(overlaySetRemove)) {
+        const card = overlaySetRemove.closest('[data-so2-overlay-set-card]');
+        if (card) card.remove();
+        state.overlaySetsResult = { ok: true, message: 'Set entfernt. Speichern nicht vergessen.' };
+        state.textResult = state.overlaySetsResult;
+        render();
         return;
       }
 
       if (ev.target.closest('[data-so2-text-add-variant]') && root?.contains(ev.target)) {
+        if (isOverlaySetsRow()) {
+          addOverlaySetCard();
+          return;
+        }
         const list = root.querySelector('[data-so2-text-variants]');
         if (list) {
           const wrap = document.createElement('div');
@@ -2090,11 +2365,13 @@ window.ShoutoutV2Module = (function(){
         state.textKey = '';
         ensureTextSelection();
         state.textResult = null;
+        state.overlaySetsResult = null;
         render();
       }
       if (ev.target?.matches?.('[data-so2-text-key]')) {
         state.textKey = String(ev.target.value || '');
         state.textResult = null;
+        state.overlaySetsResult = null;
         render();
       }
     });

@@ -922,3 +922,124 @@
   border-color:rgba(34,211,238,.16);
   background:linear-gradient(180deg,rgba(34,211,238,.07),rgba(0,0,0,.12));
 }
+
+
+/* CAN44.29 Shoutout Overlay Set-Editor im Texte-Dropdown */
+.so2-overlay-sets-box {
+  display: grid;
+  gap: 14px;
+}
+
+.so2-overlay-sets-head,
+.so2-overlay-set-headline,
+.so2-overlay-set-card-actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.so2-overlay-sets-head h4 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+.so2-overlay-sets-head p {
+  margin: 0;
+  color: var(--muted, #9fb0c8);
+}
+
+.so2-overlay-sets-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.so2-overlay-set-list {
+  display: grid;
+  gap: 14px;
+}
+
+.so2-overlay-set-card {
+  padding: 16px;
+  border: 1px solid rgba(124, 92, 255, .28);
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(20, 22, 38, .88), rgba(30, 16, 52, .76));
+  box-shadow: 0 14px 32px rgba(0, 0, 0, .22);
+}
+
+.so2-overlay-set-headline strong {
+  display: block;
+  font-size: 17px;
+}
+
+.so2-overlay-set-headline span {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted, #9fb0c8);
+  font-size: 12px;
+}
+
+.so2-overlay-set-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 140px;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.so2-overlay-set-preview {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid rgba(36, 214, 255, .18);
+  border-radius: 14px;
+  background: rgba(36, 214, 255, .06);
+}
+
+.so2-overlay-set-preview strong,
+.so2-overlay-set-preview span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.so2-overlay-set-preview strong {
+  color: #f8fbff;
+  font-size: 16px;
+}
+
+.so2-overlay-set-preview span {
+  margin-top: 4px;
+  color: var(--muted, #9fb0c8);
+}
+
+.so2-overlay-set-card-actions {
+  margin-top: 12px;
+}
+
+.so2-checkline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #f8fbff;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.so2-checkline input {
+  width: 18px;
+  height: 18px;
+}
+
+@media (max-width: 760px) {
+  .so2-overlay-sets-head,
+  .so2-overlay-set-headline,
+  .so2-overlay-set-card-actions {
+    flex-direction: column;
+  }
+
+  .so2-overlay-set-grid {
+    grid-template-columns: 1fr;
+  }
+}
