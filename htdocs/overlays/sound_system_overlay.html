@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ForrestCGN Sound-System Overlay - CAN44_21_22_TWITCH_CLIP_NO_PREFLASH</title>
+  <title>ForrestCGN Sound-System Overlay - CAN44_21_23_TWITCH_CLIP_SILENT_RESET</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
@@ -320,8 +320,13 @@
         videoFallbackTimer = null;
       }
 
-      function hideClipCard(){
+      function hideClipCard(silent){
         try {
+          if (silent === true) {
+            clipCard.classList.remove('show', 'hide');
+            clipCard.style.display = 'none';
+            return;
+          }
           clipCard.classList.remove('show');
           clipCard.classList.add('hide');
           setTimeout(() => {
@@ -333,7 +338,8 @@
         } catch (_) {}
       }
 
-      function hideVideo(){
+      function hideVideo(options){
+        const opts = options || {};
         clearVideoFallbackTimer();
         videoResetSuppressUntil = Date.now() + 300;
         for (const video of [videoPlayer, clipVideoPlayer]) {
@@ -345,16 +351,17 @@
             video.style.display = video === videoPlayer ? 'none' : '';
           } catch (_) {}
         }
-        hideClipCard();
+        hideClipCard(opts.silentClipCard === true);
         activeVideoElement = null;
         activeVideoItem = null;
         videoRetryInProgress = false;
         videoPlaybackStartedAt = 0;
       }
 
-      function stopAudio(){
+      function stopAudio(options){
+        const opts = options || {};
         stopBeep();
-        hideVideo();
+        hideVideo({ silentClipCard: opts.silentClipCard === true });
         try { player.pause(); player.removeAttribute('src'); player.load(); } catch (_) {}
         currentRequestId = '';
       }
@@ -786,8 +793,8 @@
           return;
         }
 
-        stopAudio();
-        await new Promise(resolve => setTimeout(resolve, 160));
+        stopAudio({ silentClipCard: true });
+        await new Promise(resolve => setTimeout(resolve, 80));
         currentRequestId = item.requestId;
         lastSeenRequestId = item.requestId;
         activeVideoElement = clipVideoPlayer;
