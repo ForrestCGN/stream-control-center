@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ForrestCGN Sound-System Overlay - CAN44_21_19_TWITCH_CLIP_STANDALONE_IFRAME</title>
+  <title>ForrestCGN Sound-System Overlay - CAN44_21_21_TWITCH_CLIP_DIRECT</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
@@ -152,16 +152,6 @@
       background: black;
     }
 
-    #twitchClipFrame {
-      position: fixed;
-      inset: 0;
-      width: 100vw;
-      height: 100vh;
-      border: 0;
-      display: none;
-      background: transparent;
-      z-index: 60;
-    }
 
     #clipName {
       margin-top: 10px;
@@ -201,7 +191,6 @@
 <body>
   <audio id="player" preload="auto"></audio>
   <video id="videoPlayer" preload="auto" playsinline></video>
-  <iframe id="twitchClipFrame" title="Twitch Clip Player" allow="autoplay; fullscreen" scrolling="no"></iframe>
 
   <div id="clipCard">
     <div class="clip-panel">
@@ -232,10 +221,12 @@
       'use strict';
 
       const API = '/api/sound';
+      const BUILD = 'CAN44.21.21';
+      const TWITCH_CLIENT_ID = 'kimne78kx3ncx6brgo4mv6wki5h1ko';
+      const TWITCH_CLIP_PERSISTED_HASH = '36b89d2507fce29e5ca551df756d27c1cfe079e2609642b4390aa4c35796eb11';
       const player = document.getElementById('player');
       const videoPlayer = document.getElementById('videoPlayer');
       const clipVideoPlayer = document.getElementById('clipVideoPlayer');
-      const twitchClipFrame = document.getElementById('twitchClipFrame');
       const clipCard = document.getElementById('clipCard');
       const clipAvatarImg = document.getElementById('clipAvatarImg');
       const clipAvatarPh = document.getElementById('clipAvatarPh');
@@ -354,10 +345,6 @@
             video.style.display = video === videoPlayer ? 'none' : '';
           } catch (_) {}
         }
-        try {
-          twitchClipFrame.removeAttribute('src');
-          twitchClipFrame.style.display = 'none';
-        } catch (_) {}
         hideClipCard();
         activeVideoElement = null;
         activeVideoItem = null;
@@ -583,12 +570,16 @@
 
       function setupClipCard(item) {
         const visual = visualOf(item);
-        const login = String(visual.login || visual.user || visual.displayName || 'User').replace(/^@+/, '').trim();
-        const displayName = String(visual.displayName || visual.user || login || 'User').replace(/^@+/, '').trim();
-        const avatarUrl = sanitizeHttpUrl(visual.avatarUrl);
+        const meta = item && item.meta && typeof item.meta === 'object' ? item.meta : {};
+        const rawLogin = visual.login || visual.targetLogin || meta.targetLogin || item.targetLogin || item.login || visual.user || visual.displayName || meta.targetDisplayName || 'User';
+        const rawDisplay = visual.displayName || visual.user || meta.targetDisplayName || item.targetDisplayName || rawLogin || 'User';
+        const login = String(rawLogin || 'User').replace(/^@+/, '').trim();
+        const displayName = String(rawDisplay || login || 'User').replace(/^@+/, '').trim();
+        const avatarUrl = sanitizeHttpUrl(visual.avatarUrl || meta.avatarUrl || item.avatarUrl || '');
+        const subline = visual.subline || meta.subline || '🧓 Altersheim-TV';
 
         clipName.textContent = '@' + (displayName || login || 'User');
-        clipSubline.textContent = String(visual.subline || '🧓 Altersheim-TV');
+        clipSubline.textContent = String(subline);
         resetAvatar(displayName, login);
 
         if (!applyAvatarUrl(avatarUrl) && login) {
@@ -606,56 +597,178 @@
       function getTwitchClipId(item) {
         const meta = item && item.meta && typeof item.meta === 'object' ? item.meta : {};
         const visual = visualOf(item);
-        return String((item && item.clipId) || meta.clipId || visual.clipId || '').trim();
+        const direct = String((item && item.clipId) || meta.clipId || visual.clipId || '').trim();
+        if (direct) return direct;
+        const soundId = String(item && item.soundId || '').trim();
+        const match = soundId.match(/^twitch_clip_(.+)$/i);
+        return match ? match[1] : '';
+      }
+
+      async function twitchGql(body, label) {
+        const res = await fetch('https://gql.twitch.tv/gql', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain;charset=UTF-8',
+            'Client-ID': TWITCH_CLIENT_ID
+          },
+          body: JSON.stringify(body)
+        });
+
+        const text = await res.text();
+        let json = null;
+        try { json = text ? JSON.parse(text) : null; }
+        catch (_) { throw new Error(label + ' invalid_json http=' + res.status + ' body=' + text.slice(0, 300)); }
+
+        if (!res.ok) throw new Error(label + ' http=' + res.status + ' body=' + text.slice(0, 500));
+        if (json && Array.isArray(json.errors) && json.errors.length) {
+          throw new Error(label + ' gql_errors=' + JSON.stringify(json.errors).slice(0, 700));
+        }
+        return json;
+      }
+
+      function extractTwitchClipPlayback(json, label) {
+        const clip = json && json.data && json.data.clip ? json.data.clip : null;
+        if (!clip) throw new Error(label + ' clip missing');
+
+        const qualities = Array.isArray(clip.videoQualities) ? clip.videoQualities.slice() : [];
+        if (!qualities.length) throw new Error(label + ' no qualities');
+
+        const token = clip.playbackAccessToken || clip.accessToken || null;
+        if (!token || !token.signature || !token.value) throw new Error(label + ' token missing');
+
+        qualities.sort((a, b) => Number(b.quality || 0) - Number(a.quality || 0));
+        const best = qualities.find(q => q && q.sourceURL) || qualities[0];
+        if (!best || !best.sourceURL) throw new Error(label + ' sourceURL missing');
+
+        return {
+          url: best.sourceURL + '?sig=' + encodeURIComponent(token.signature) + '&token=' + encodeURIComponent(token.value),
+          label,
+          quality: best.quality || 'source',
+          clip
+        };
+      }
+
+      async function loadTwitchClipWithExplicitQuery(clipId) {
+        const label = 'explicit_query';
+        const json = await twitchGql({
+          operationName: 'ClipPlayerAccessTokenQuery',
+          query: `query ClipPlayerAccessTokenQuery($slug: ID!) {
+            clip(slug: $slug) {
+              id
+              slug
+              title
+              videoQualities {
+                quality
+                frameRate
+                sourceURL
+              }
+              playbackAccessToken(params: { platform: "web", playerBackend: "mediaplayer", playerType: "site" }) {
+                signature
+                value
+              }
+            }
+          }`,
+          variables: { slug: clipId }
+        }, label);
+        return extractTwitchClipPlayback(json, label);
+      }
+
+      async function loadTwitchClipWithPersistedQuery(clipId, version) {
+        const label = 'persisted_v' + version;
+        const json = await twitchGql({
+          operationName: 'VideoAccessToken_Clip',
+          variables: { slug: clipId },
+          extensions: {
+            persistedQuery: {
+              version,
+              sha256Hash: TWITCH_CLIP_PERSISTED_HASH
+            }
+          }
+        }, label);
+        return extractTwitchClipPlayback(json, label);
       }
 
       async function resolveTwitchClipVideoUrl(clipId) {
         const cleanClipId = String(clipId || '').trim();
         if (!cleanClipId) throw new Error('twitch_clip_id_missing');
 
-        const res = await fetch('https://gql.twitch.tv/gql', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'text/plain;charset=UTF-8',
-            'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko'
-          },
-          body: JSON.stringify({
-            operationName: 'VideoAccessToken_Clip',
-            variables: { slug: cleanClipId },
-            extensions: {
-              persistedQuery: {
-                version: 1,
-                sha256Hash: '36b89d2507fce29e5ca551df756d27c1cfe079e2609642b4390aa4c35796eb11'
-              }
-            }
-          })
-        });
+        const attempts = [];
+        const methods = [
+          () => loadTwitchClipWithExplicitQuery(cleanClipId),
+          () => loadTwitchClipWithPersistedQuery(cleanClipId, 1),
+          () => loadTwitchClipWithPersistedQuery(cleanClipId, 2)
+        ];
 
-        if (!res.ok) throw new Error('twitch_gql_http_' + res.status);
-        const data = await res.json();
-        const clip = data && data.data && data.data.clip ? data.data.clip : null;
-        if (!clip) throw new Error('twitch_clip_missing');
+        for (const method of methods) {
+          try {
+            return await method();
+          } catch (err) {
+            const message = err && err.message ? err.message : String(err);
+            attempts.push(message);
+            console.warn('[sound-overlay][twitch_clip] playback attempt failed:', message);
+          }
+        }
 
-        const qualities = Array.isArray(clip.videoQualities) ? clip.videoQualities.slice() : [];
-        if (!qualities.length) throw new Error('twitch_clip_no_qualities');
-        qualities.sort((a, b) => Number(b.quality || 0) - Number(a.quality || 0));
-        const best = qualities[0];
-        const token = clip.playbackAccessToken || {};
-        if (!best || !best.sourceURL || !token.signature || !token.value) throw new Error('twitch_clip_playback_incomplete');
-        return best.sourceURL + '?sig=' + encodeURIComponent(token.signature) + '&token=' + encodeURIComponent(token.value);
+        const error = new Error(attempts.join(' | '));
+        error.attempts = attempts;
+        throw error;
       }
 
-      function buildTwitchStandalonePlayerUrl(clipId, item) {
-        const visual = visualOf(item);
-        const meta = item && item.meta && typeof item.meta === 'object' ? item.meta : {};
-        const login = String(item && (item.targetLogin || item.target || item.login) || visual.login || meta.targetLogin || meta.login || '').replace(/^@+/, '');
-        const url = new URL('/overlays/_overlay-clip_player.html', window.location.origin);
-        url.searchParams.set('clipId', String(clipId || '').trim());
-        if (login) url.searchParams.set('user', login);
-        url.searchParams.set('source', 'sound_system');
-        url.searchParams.set('requestId', String(item && item.requestId || ''));
-        url.searchParams.set('_', String(Date.now()));
-        return url.toString();
+      async function waitForVideoCanPlay(video, timeoutMs) {
+        if (video.readyState >= 3) return;
+        await new Promise((resolve, reject) => {
+          const timer = setTimeout(() => cleanup(() => reject(new Error('video canplay timeout'))), timeoutMs || 9000);
+          function cleanup(done) {
+            clearTimeout(timer);
+            video.removeEventListener('canplay', onCanPlay);
+            video.removeEventListener('loadeddata', onCanPlay);
+            video.removeEventListener('error', onError);
+            done();
+          }
+          function onCanPlay() { cleanup(resolve); }
+          function onError() {
+            const err = video.error;
+            cleanup(() => reject(new Error('video error code=' + (err ? err.code : 'unknown'))));
+          }
+          video.addEventListener('canplay', onCanPlay, { once: true });
+          video.addEventListener('loadeddata', onCanPlay, { once: true });
+          video.addEventListener('error', onError, { once: true });
+        });
+      }
+
+      async function playResolvedTwitchClipVideo(video, item, playback) {
+        try {
+          video.pause();
+          video.removeAttribute('src');
+          video.load();
+        } catch (_) {}
+
+        videoRetryInProgress = true;
+        videoErrorGraceUntil = Date.now() + 1800;
+        video.muted = false;
+        video.defaultMuted = false;
+        video.volume = normalizeVolume(item.volume);
+        video.src = playback.url;
+        try { video.load(); } catch (_) {}
+
+        setStatus('Twitch-Clip vorbereitet: ' + (item.label || item.soundId || playback.label));
+        await waitForVideoCanPlay(video, 9000);
+
+        let mutedFallback = false;
+        try {
+          await video.play();
+        } catch (err) {
+          console.warn('[sound-overlay][twitch_clip] autoplay with audio failed, trying muted:', err);
+          video.muted = true;
+          video.defaultMuted = true;
+          video.volume = 0;
+          mutedFallback = true;
+          await video.play();
+        }
+
+        videoRetryInProgress = false;
+        videoErrorGraceUntil = Date.now() + 500;
+        return { mutedFallback, src: playback.url };
       }
 
       async function playTwitchClipItem(item) {
@@ -667,66 +780,94 @@
         }
 
         stopAudio();
-        await new Promise(resolve => setTimeout(resolve, 120));
+        await new Promise(resolve => setTimeout(resolve, 160));
         currentRequestId = item.requestId;
         lastSeenRequestId = item.requestId;
-        activeVideoElement = null;
+        activeVideoElement = clipVideoPlayer;
         activeVideoItem = item;
-        videoPlaybackStartedAt = Date.now();
+        videoPlaybackStartedAt = 0;
 
-        const playerUrl = buildTwitchStandalonePlayerUrl(clipId, item);
-        setStatus('Twitch-Clip Standalone-Player: ' + (item.label || clipId));
+        setupClipCard(item);
+        videoPlayer.style.display = 'none';
+        clipVideoPlayer.style.opacity = '0';
+        setStatus('Twitch-Clip wird geladen: ' + (item.label || clipId));
 
+        let playback;
         try {
-          clipCard.classList.remove('show', 'hide');
-          clipCard.style.display = 'none';
-          videoPlayer.style.display = 'none';
-          clipVideoPlayer.style.opacity = '0';
-          twitchClipFrame.style.display = 'block';
-          twitchClipFrame.src = playerUrl;
+          playback = await resolveTwitchClipVideoUrl(clipId);
         } catch (err) {
           const message = err && err.message ? err.message : String(err);
+          setStatus('Twitch-Clip konnte nicht geladen werden: ' + message);
           await post('/client/error', {
             requestId: currentRequestId,
             mediaType: 'twitch_clip',
             clipId,
-            error: message
+            error: 'twitch_clip_resolve_failed',
+            message,
+            attempts: err && err.attempts ? err.attempts : []
           });
           stopAudio();
           return;
         }
 
+        let result;
+        try {
+          result = await playResolvedTwitchClipVideo(clipVideoPlayer, item, playback);
+        } catch (err) {
+          const message = err && err.message ? err.message : String(err);
+          setStatus('Twitch-Clip konnte nicht starten: ' + message);
+          await post('/client/error', {
+            requestId: currentRequestId,
+            mediaType: 'twitch_clip',
+            clipId,
+            error: 'twitch_clip_play_failed',
+            message,
+            code: videoErrorCode(clipVideoPlayer),
+            src: clipVideoPlayer.currentSrc || clipVideoPlayer.src || ''
+          });
+          stopAudio();
+          return;
+        }
+
+        clipVideoPlayer.style.opacity = '1';
         audioUnlocked = true;
         document.body.dataset.audioUnlocked = '1';
+        videoPlaybackStartedAt = Date.now();
+        const meta = item.meta && typeof item.meta === 'object' ? item.meta : {};
+        const visual = visualOf(item);
+        const baseSubline = visual.subline || meta.subline || '🧓 Altersheim-TV';
+        clipSubline.textContent = String(baseSubline);
+
         await post('/client/audio-started', {
           requestId: currentRequestId,
           mediaType: 'twitch_clip',
           clipId,
-          standalonePlayer: true,
-          src: playerUrl
+          mutedFallback: result.mutedFallback === true,
+          src: result.src,
+          resolver: playback.label,
+          quality: playback.quality
         });
 
+        if (result.mutedFallback === true) {
+          setStatus('Twitch-Clip läuft stumm (Autoplay-Fallback): ' + (item.label || clipId));
+        } else {
+          setStatus('Twitch-Clip läuft: ' + (item.label || clipId));
+        }
+
         const durationMs = Number(item.durationMs || 0);
-        const fallbackMs = durationMs > 0 ? Math.max(1200, durationMs + 900) : 30000;
+        const fallbackMs = durationMs > 0 ? Math.max(1200, durationMs + 350) : 30000;
         clearVideoFallbackTimer();
         videoFallbackTimer = setTimeout(async () => {
-          const requestId = currentRequestId;
-          currentRequestId = '';
-          try {
-            twitchClipFrame.removeAttribute('src');
-            twitchClipFrame.style.display = 'none';
-          } catch (_) {}
-          setStatus('Twitch-Clip beendet');
-          await post('/client/audio-ended', {
-            requestId,
+          await finishVideoPlayback('Twitch-Clip beendet', {
+            fallback: true,
             mediaType: 'twitch_clip',
             clipId,
-            standalonePlayer: true,
-            fallback: true
+            mutedFallback: result.mutedFallback === true,
+            resolver: playback.label,
+            quality: playback.quality
           });
         }, fallbackMs);
       }
-
 
       async function finishVideoPlayback(reason, extra) {
         const requestId = currentRequestId;
@@ -1021,7 +1162,7 @@
           module: 'sound_system',
           mode: 'bus_consumer_with_legacy_fallback',
           capabilities: BUS_CAPABILITIES,
-          version: 'CAN44.21.16',
+          version: 'CAN44.21.21',
           state: document.hidden ? 'hidden' : 'visible',
           meta: {
             overlay: 'sound_system_overlay.html',
@@ -1116,7 +1257,7 @@
             module: 'sound_system',
             mode: 'bus_consumer_with_legacy_fallback',
             capabilities: BUS_CAPABILITIES,
-            version: 'CAN44.21.16'
+            version: 'CAN44.21.21'
           });
           startBusHeartbeat();
           post('/client/ready', { overlay: 'sound_system_overlay', busConsumer: true });
