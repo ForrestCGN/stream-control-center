@@ -1,12 +1,23 @@
-# FILES – CAN-44.21 Shoutout-System
+# FILES – CAN-44 Shoutout-System
 
 ## Zuletzt betroffene Dateien
 
 ### Backend
 
 - `backend/modules/clip_shoutout.js`
-  - Modulversion zuletzt: `0.2.40`
-  - enthält Shoutout-Backend, Direct-Intake, DisplayQueue, OfficialQueue, AutoShoutout, Settings-API und Textintegration.
+  - Modulversion zuletzt im aktuellen Shoutout-Overlay-Set-Stand: `0.2.42`.
+  - enthält Shoutout-Backend, Direct-Intake, DisplayQueue, OfficialQueue, AutoShoutout, Settings-API, Textintegration und `overlaySets`.
+  - neue/aktuelle API für Overlay-Textpaare:
+    - `GET /api/clip-shoutout/overlay-sets`
+    - `POST /api/clip-shoutout/overlay-sets`
+
+### Overlay
+
+- `htdocs/overlays/sound_system_overlay.html`
+  - bestehendes Sound-System-Overlay.
+  - enthält die H15/CAN44.24f Shoutout-Darstellung.
+  - wichtig: nicht durch `_overlay-clip_player.html` ersetzen.
+  - Sound-/Bundle-/Audio-Finish-Logik nicht ohne konkreten Auftrag ändern.
 
 ### Dashboard
 
@@ -19,9 +30,12 @@
   - Settings editierbar.
   - Tooltips/Hilfen.
   - AutoShoutout-Instant-Trigger-Settings.
+  - CAN-44.30/31: Spezialeditor für `shoutout.overlay.sets` im bestehenden Texte-Tab.
+  - `shoutout.overlay.sets` wird für Kategorie `shoutout.overlay` sichtbar gemacht und zeigt Set-Zeilen statt normalem Varianteneditor.
 
 - `htdocs/dashboard/modules/shoutout_v2.css`
   - Styles für Shoutout-Dashboard, Settings-Layout und Help-Tooltips.
+  - CAN-44.31: kompakter Overlay-Set-Editor ohne Vorschau-Zeile, `Set löschen` oben rechts.
 
 ## Bewusst nicht mehr aktiv im Dashboard
 
@@ -43,9 +57,12 @@ Diese Dateien können noch im Projekt existieren, werden aber durch den aktuelle
 - `POST /api/clip-shoutout/queue/remove`
 - `GET /api/clip-shoutout/official/auth-status`
 - `GET/POST /api/clip-shoutout/auto/settings`
+- `GET /api/clip-shoutout/overlay-sets`
+- `POST /api/clip-shoutout/overlay-sets`
 
 ## Datenquellen
 
 - Chatcommands über `command_definitions`.
 - Shoutout-Modulconfig über bestehende Config-/Settings-API.
+- Overlay-Set-Texte über Shoutout-Modulconfig/API, nicht direkt über produktive SQLite-Datei.
 - Produktive SQLite-Datenbank nicht als Datei austauschen.
