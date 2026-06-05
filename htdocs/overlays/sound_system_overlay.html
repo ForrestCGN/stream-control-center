@@ -369,54 +369,131 @@
     body[data-debug="1"] #status, body[data-debug="1"] #unlock { opacity: 1; transform: translateY(0); }
     body[data-audio-unlocked="1"] #unlock { display: none; }
   
-    /* CAN44.23b_SHOUTOUT_V9_COMPACT_CENTER_FIX
-       Basis: funktionierendes CAN44.22 / V9-Overlay.
-       Nur Layout-Feintuning:
-       - ca. 10% kleiner über scale(.90)
-       - exakt mittig auf dem Bildschirm
-       - mehr Luft rechts im Playerbereich
-       - keine Änderungen an Queue/Bus/Audio-Finish/Playback-Logik
+    /* CAN44.23c_SHOUTOUT_V9_PROPORTIONAL_SMALLER
+       Basis: funktionierendes CAN44.22 / V9.
+       Ziel:
+       - komplettes Overlay proportional ca. 10% kleiner
+       - Ratio / Charakter von V9 beibehalten
+       - Overlay mittiger platzieren
+       - rechts am Player etwas mehr Luft
+       - keine Änderungen an Playback/Queue/Bus/Audio-Finish
     */
     #clipCard {
-      left: 50%;
       top: 50%;
-      width: 1180px;
-      transform: translate(-50%, -50%) scale(.90);
-      transform-origin: center center;
-    }
-
-    #clipCard.show {
-      display: block;
-      animation: clipIntroCompact .9s ease-out forwards;
-    }
-
-    #clipCard.hide {
-      display: block;
-      animation: clipOutroCompact .7s ease-in forwards;
-    }
-
-    @keyframes clipIntroCompact {
-      from { opacity: 0; transform: translate(-130%, -50%) scale(.72); }
-      to   { opacity: 1; transform: translate(-50%, -50%) scale(.90); }
-    }
-
-    @keyframes clipOutroCompact {
-      from { opacity: 1; transform: translate(-50%, -50%) scale(.90); }
-      to   { opacity: 0; transform: translate(-50%, -60%) scale(.54); }
+      width: 1062px;
     }
 
     .clip-panel {
-      padding-right: 34px;
+      min-height: 504px;
+      border-radius: 34px;
+      padding: 22px;
+      background:
+        radial-gradient(circle at 16% 22%, rgba(168,85,247,.18), transparent 36%),
+        linear-gradient(140deg, rgba(12,15,34,.965), rgba(28,11,55,.955));
+    }
+
+    .clip-panel::before {
+      padding: 3px;
+    }
+
+    .clip-corner-dot {
+      width: 13px;
+      height: 13px;
+    }
+
+    .clip-corner-dot.a {
+      left: 27px;
+      top: 27px;
+    }
+
+    .clip-corner-dot.b {
+      right: 27px;
+      bottom: 27px;
+    }
+
+    .clip-header {
+      gap: 22px;
+      padding: 5px 9px 20px;
+    }
+
+    .clip-kicker {
+      gap: 9px;
+      padding: 7px 14px;
+      font-size: 16px;
+    }
+
+    .clip-live-pill {
+      padding: 7px 13px;
+      font-size: 15px;
+    }
+
+    .clip-main {
+      grid-template-columns: 288px 1fr;
+      gap: 23px;
+    }
+
+    .clip-left {
+      gap: 20px;
+      padding: 20px 16px;
+      border-radius: 27px;
+    }
+
+    .clip-avatar-wrap {
+      width: 169px;
+      height: 169px;
+      padding: 7px;
+    }
+
+    #clipAvatarPh {
+      font-size: 67px;
+    }
+
+    .clip-label-small {
+      font-size: 14px;
+      margin-bottom: 9px;
+    }
+
+    .clip-user-name-box {
+      width: 225px;
+      height: 34px;
+    }
+
+    #clipName {
+      font-size: 25px;
+      line-height: 31px;
     }
 
     .clip-right {
-      padding-right: 22px;
+      gap: 16px;
       min-width: 0;
     }
 
-    .clip-video-frame,
-    .clip-bottom-panel {
+    .clip-video-frame {
+      height: 351px;
+      border-radius: 27px;
+      padding: 4px;
       margin-right: 12px;
+    }
+
+    .clip-video-frame > #clipVideoPlayer {
+      border-radius: 23px;
+    }
+
+    .clip-bottom-panel {
+      min-height: 135px;
+      padding: 20px 25px;
+      border-radius: 23px;
+      margin-right: 12px;
+    }
+
+    #clipHeadline {
+      font-size: 36px;
+    }
+
+    #clipSubline {
+      margin-top: 9px;
+      font-size: 20px;
+      max-width: 810px;
     }
 
   </style>
@@ -474,7 +551,7 @@
       'use strict';
 
       const API = '/api/sound';
-      const BUILD = 'CAN44.22.0';
+      const BUILD = 'CAN44.23c';
       const TWITCH_CLIENT_ID = 'kimne78kx3ncx6brgo4mv6wki5h1ko';
       const TWITCH_CLIP_PERSISTED_HASH = '36b89d2507fce29e5ca551df756d27c1cfe079e2609642b4390aa4c35796eb11';
       const player = document.getElementById('player');
