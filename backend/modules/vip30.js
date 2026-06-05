@@ -6,8 +6,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.7.0";
-const MODULE_BUILD = "step7-eventsub-live-dryrun-observe";
+const MODULE_VERSION = "0.7.1";
+const MODULE_BUILD = "step7.1-ensure-twitch-reward-id-fix";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -1044,7 +1044,7 @@ function buildVip30RewardPayload() {
       action: reward.actionKey,
       durationDays: getConfig().slots.durationDays,
       maxSlots: getConfig().slots.maxSlots,
-      step: "VIP30-STEP6",
+      step: "VIP30-STEP7.1",
       dryRunOnly: true,
       noTwitchWriteInThisStep: true,
       localChannelpointsRewardWriteOnly: true,
@@ -1066,9 +1066,10 @@ function buildVip30RewardPayload() {
 function buildDesiredChannelpointsReward() {
   const reward = buildRewardSummary();
   const cp = getConfig().channelpoints || DEFAULT_CONFIG.channelpoints;
+  const existing = channelpointsTablesReady() ? getChannelpointsRewardByKey(reward.rewardKey) : null;
   return {
     reward_key: reward.rewardKey,
-    twitch_reward_id: "",
+    twitch_reward_id: existing && existing.twitchRewardId ? existing.twitchRewardId : "",
     title: reward.title,
     prompt: "30 Tage VIP im CGN-Altersheim: Platz nehmen, Kissen richten, VIP-Schildchen abholen.",
     cost: reward.cost,
@@ -1095,7 +1096,7 @@ function buildDesiredChannelpointsReward() {
 }
 
 function buildChannelpointsRewardDiff(existing, desired) {
-  const fields = ["title", "cost", "categoryKey", "systemEnabled", "twitchIsEnabled", "isPaused", "actionType", "actionKey", "queueMode", "priority", "autoFulfill"];
+  const fields = ["twitchRewardId", "title", "cost", "categoryKey", "systemEnabled", "twitchIsEnabled", "isPaused", "actionType", "actionKey", "queueMode", "priority", "autoFulfill"];
   const desiredView = mapChannelpointsRewardRow({
     reward_key: desired.reward_key,
     twitch_reward_id: desired.twitch_reward_id,
@@ -1216,6 +1217,7 @@ function ensureChannelpointsReward(options = {}) {
   if (existing && existing.id) {
     database.run(`
       UPDATE channelpoints_rewards SET
+        twitch_reward_id = COALESCE(NULLIF(:twitch_reward_id, ''), twitch_reward_id),
         title = :title,
         prompt = :prompt,
         cost = :cost,
@@ -1280,6 +1282,70 @@ function ensureChannelpointsReward(options = {}) {
   emitChannelpointsRewardEvent("reward.ensured", result, options.reason || "manual_ensure");
   publishStatus("channelpoints_reward_ensured");
   return result;
+}
+
+
+function getLatestVip30TwitchRewardIdFromLogs() {
+  ensureDbReady();
+  if (!tableExists("vip30_log")) return "";
+  const row = database.get(`
+    SELECT twitch_reward_id
+    FROM vip30_log
+    WHERE twitch_reward_id IS NOT NULL AND twitch_reward_id != ''
+      AND event_type = 'dryrun_redemption_decision'
+    ORDER BY created_at DESC, id DESC
+    LIMIT 1
+  `, {});
+  return row && row.twitch_reward_id ? cleanString(row.twitch_reward_id) : "";
+}
+
+function linkChannelpointsRewardTwitchRewardId(twitchRewardId, options = {}) {
+  const cleanId = cleanString(twitchRewardId || options.twitchRewardId || "");
+  if (!cleanId) return { ok: false, skipped: true, reason: "twitch_reward_id_missing", safety: { noTwitchWrite: true } };
+  ensureDbReady();
+  if (!channelpointsTablesReady()) return { ok: false, skipped: true, reason: "channelpoints_tables_missing", safety: { noTwitchWrite: true } };
+  const reward = buildRewardSummary();
+  const existing = getChannelpointsRewardByKey(reward.rewardKey);
+  if (!existing || !existing.id) return { ok: false, skipped: true, reason: "local_reward_missing", twitchRewardId: cleanId, safety: { noTwitchWrite: true } };
+  if (existing.twitchRewardId && existing.twitchRewardId === cleanId) {
+    return { ok: true, changed: false, reason: "already_linked", reward: existing, twitchRewardId: cleanId, safety: { noTwitchWrite: true } };
+  }
+  if (existing.twitchRewardId && existing.twitchRewardId !== cleanId && options.force !== true) {
+    return { ok: false, changed: false, reason: "different_twitch_reward_id_already_linked", existingTwitchRewardId: existing.twitchRewardId, incomingTwitchRewardId: cleanId, safety: { noTwitchWrite: true } };
+  }
+  const now = nowIso();
+  database.run(`
+    UPDATE channelpoints_rewards
+    SET twitch_reward_id = :twitchRewardId,
+        updated_at = :updatedAt
+    WHERE reward_key = :rewardKey
+  `, { twitchRewardId: cleanId, updatedAt: now, rewardKey: reward.rewardKey });
+  const linked = getChannelpointsRewardByKey(reward.rewardKey);
+  const result = {
+    ok: true,
+    changed: true,
+    reason: "linked_from_eventsub_dryrun",
+    reward: linked,
+    twitchRewardId: cleanId,
+    source: cleanString(options.source || "manual_or_eventsub"),
+    safety: { localDbOnly: true, noTwitchWrite: true, noVipGrant: true, noRedemptionFulfillCancel: true }
+  };
+  writeLog("channelpoints_reward_twitch_id_linked", {
+    success: true,
+    reason: result.reason,
+    message: "VIP30 Twitch Reward ID local linked",
+    twitchRewardId: cleanId,
+    payload: result
+  });
+  emitChannelpointsRewardEvent("reward.twitch_id_linked", result, result.source);
+  publishStatus("channelpoints_reward_twitch_id_linked");
+  return result;
+}
+
+function linkChannelpointsRewardTwitchRewardIdFromLatestLog(options = {}) {
+  const explicit = cleanString(options.twitchRewardId || options.twitch_reward_id || "");
+  const fromLatest = explicit || getLatestVip30TwitchRewardIdFromLogs();
+  return linkChannelpointsRewardTwitchRewardId(fromLatest, { source: explicit ? "api_explicit" : "latest_vip30_log", force: options.force === true });
 }
 
 function emitChannelpointsRewardEvent(action, result, reason = "channelpoints_reward") {
@@ -1571,6 +1637,11 @@ function handleChannelpointsRedemptionBridgeEvent(envelope = {}) {
     return { ok: true, ignored: true, reason: "duplicate_redemption", twitchRedemptionId: normalized.twitchRedemptionId };
   }
   bridgeStats.matched += 1;
+  const isTestEvent = normalized.source === "vip30_bridge_test_api" || (envelope && envelope.meta && envelope.meta.testEvent === true);
+  let linkResult = null;
+  if (!isTestEvent && normalized.twitchRewardId) {
+    linkResult = linkChannelpointsRewardTwitchRewardId(normalized.twitchRewardId, { source: "eventsub_dryrun_observe" });
+  }
   try {
     const result = buildChannelpointsBridgeDecision({
       payload: { ...normalized, source: "channelpoints_bridge", bridgeMatchedBy: match.checks },
@@ -1581,6 +1652,7 @@ function handleChannelpointsRedemptionBridgeEvent(envelope = {}) {
     emitBridgeEvent(result && result.decision && result.decision.wouldGrantVip ? "decision.eligible" : "decision.blocked", {
       normalized: { ...normalized, event: undefined },
       match: match.checks,
+      twitchRewardIdLink: linkResult,
       decision: result && result.decision ? {
         status: result.decision.status,
         reason: result.decision.reason,
@@ -1649,7 +1721,7 @@ function buildInternalBridgeStatus() {
     lastError: bridgeLastError,
     stats: { ...bridgeStats },
     reward: buildChannelpointsRewardStatus().reward,
-    routes: [`${ROUTE_PREFIX}/channelpoints/bridge/status`, `${ROUTE_PREFIX}/channelpoints/bridge/test`, `${ROUTE_PREFIX}/channelpoints/bridge/live-check`, `${ROUTE_PREFIX}/channelpoints/bridge/reset-stats`],
+    routes: [`${ROUTE_PREFIX}/channelpoints/bridge/status`, `${ROUTE_PREFIX}/channelpoints/bridge/test`, `${ROUTE_PREFIX}/channelpoints/reward/link-twitch-id`, `${ROUTE_PREFIX}/channelpoints/bridge/live-check`, `${ROUTE_PREFIX}/channelpoints/bridge/reset-stats`],
     safety: { noTwitchWrite: true, noVipGrant: true, noSlotWrite: true, noRedemptionFulfillCancel: true }
   };
 }
@@ -1754,7 +1826,7 @@ function buildChannelpointsBridgeLiveCheck() {
     } : null,
     nextManualTest: {
       beforeRealRedeem: `POST ${ROUTE_PREFIX}/channelpoints/bridge/reset-stats`,
-      thenRedeemOnTwitch: "30 Tage VIP / 40000 Kanalpunkte ausloesen",
+      thenRedeemOnTwitch: "30 Tage VIP / aktuelle Testkosten ausloesen",
       observe: `GET ${ROUTE_PREFIX}/channelpoints/bridge/status`,
       logs: `GET ${ROUTE_PREFIX}/logs`
     },
@@ -1883,7 +1955,7 @@ function buildHealth() {
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
     enabled: getConfig().enabled !== false,
-    status: lastError ? "error" : "ready_step7_eventsub_live_dryrun_observe",
+    status: lastError ? "error" : "ready_step7_1_ensure_twitch_reward_id_fix",
     lastError,
     checks: {
       databaseReady: dbMigrationState.ok === true,
@@ -1915,10 +1987,10 @@ function buildStatus() {
     moduleBuild: MODULE_BUILD,
     version: MODULE_VERSION,
     enabled: config.enabled !== false,
-    status: lastError ? "error" : "ready_step7_eventsub_live_dryrun_observe",
+    status: lastError ? "error" : "ready_step7_1_ensure_twitch_reward_id_fix",
     startedAt,
     routePrefix: ROUTE_PREFIX,
-    routeCount: 17,
+    routeCount: 18,
     routes: [
       `${ROUTE_PREFIX}/status`,
       `${ROUTE_PREFIX}/health`,
@@ -1935,6 +2007,7 @@ function buildStatus() {
       `${ROUTE_PREFIX}/redeem/decision`,
       `${ROUTE_PREFIX}/channelpoints/bridge/status`,
       `${ROUTE_PREFIX}/channelpoints/bridge/test`,
+      `${ROUTE_PREFIX}/channelpoints/reward/link-twitch-id`,
       `${ROUTE_PREFIX}/channelpoints/bridge/live-check`,
       `${ROUTE_PREFIX}/channelpoints/bridge/reset-stats`
     ],
@@ -2030,7 +2103,7 @@ function buildStatus() {
       recentEvents: recentLogs
     },
     safety: {
-      step: "VIP30-STEP6",
+      step: "VIP30-STEP7.1",
       noStreamerBot: true,
       noLegacyImport: true,
       noTwitchWriteInThisStep: true,
@@ -2268,6 +2341,25 @@ function init({ app } = {}) {
         res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: lastError, safety: { noTwitchWrite: true } });
       }
     });
+    app.post(`${ROUTE_PREFIX}/channelpoints/reward/link-twitch-id`, (req, res) => {
+      runtimeStats.lastAction = "channelpoints_reward_link_twitch_id";
+      try {
+        const confirm = cleanString(req && req.query && req.query.confirm || req && req.body && req.body.confirm || "").toUpperCase();
+        if (confirm !== "YES") {
+          res.status(409).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, reason: "confirm_required", confirmRequired: "YES", safety: { noTwitchWrite: true } });
+          return;
+        }
+        const result = linkChannelpointsRewardTwitchRewardIdFromLatestLog({
+          twitchRewardId: req && req.body && (req.body.twitchRewardId || req.body.twitch_reward_id) || req && req.query && (req.query.twitchRewardId || req.query.twitch_reward_id) || "",
+          force: boolValue(req && req.body && req.body.force || req && req.query && req.query.force, false)
+        });
+        res.status(result && result.ok ? 200 : 409).json(result);
+      } catch (err) {
+        lastError = err && err.message ? err.message : String(err);
+        res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: lastError, safety: { noTwitchWrite: true } });
+      }
+    });
+
     app.get(`${ROUTE_PREFIX}/channelpoints/bridge/status`, (_req, res) => {
       runtimeStats.lastAction = "channelpoints_bridge_status";
       try { res.json(buildInternalBridgeStatus()); }
@@ -2342,6 +2434,7 @@ module.exports = {
   buildTwitchCapabilityStatus,
   buildChannelpointsRewardStatus,
   ensureChannelpointsReward,
+  linkChannelpointsRewardTwitchRewardId,
   buildDryRunRedemptionDecision,
   buildChannelpointsBridgeDecision,
   buildInternalBridgeStatus,

@@ -8,3 +8,9 @@
 - [ ] Echte Twitch/EventSub-Redemption im Decision-only Modus beobachten.
 - [ ] Prüfen, dass weiterhin kein VIP-Grant, kein Slot-Write, kein Fulfill/Cancel passiert.
 - [ ] Danach STEP8 planen: kontrollierter Live-Grant mit Safety-Schalter.
+
+## VIP30 TODO nach STEP7.1
+
+- Ensure-Fix testen.
+- Lokale Twitch-Reward-ID-Verknuepfung pruefen.
+- Vor STEP8 Safety-Konzept fuer Fulfill/Cancel und Add VIP final bestaetigen.

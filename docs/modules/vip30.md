@@ -64,3 +64,15 @@ Neue Diagnose-Endpunkte:
 - Kein Fulfill.
 - Kein Cancel.
 - Echte EventSub-Events werden nur beobachtet und geloggt.
+
+## STEP7.1 - Ensure-/Twitch-Reward-ID-Fix
+
+Stand: 0.7.1 (`step7.1-ensure-twitch-reward-id-fix`)
+
+- Repariert `/api/vip30/channelpoints/reward/ensure`, damit der lokale Reward auch im Update-Fall sauber synchronisiert wird.
+- Der SQL-Parameter `twitch_reward_id` wird nun im UPDATE genutzt und vorhandene Twitch-Reward-IDs bleiben erhalten.
+- Neuer lokaler Link-Endpunkt: `POST /api/vip30/channelpoints/reward/link-twitch-id?confirm=YES`.
+- Der Link-Endpunkt kann die Twitch-Reward-ID aus dem neuesten VIP30-DryRun-Log übernehmen oder explizit per Body/Query erhalten.
+- Echte EventSub-DryRun-Events können die Twitch-Reward-ID lokal automatisch hinterlegen, ohne Twitch-Write.
+
+Safety bleibt unverändert: kein VIP-Grant, kein Slot-Write, kein Fulfill/Cancel, kein Twitch-Write.

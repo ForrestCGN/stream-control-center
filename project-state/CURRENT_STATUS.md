@@ -12,3 +12,9 @@ VIP30 steht auf STEP7: EventSub Live-Dry-Run Observe.
 - Neue Runtime-Reset-Route: `/api/vip30/channelpoints/bridge/reset-stats`
 - Keine Twitch-Schreibaktion in diesem STEP
 - Kein VIP-Grant, kein Slot-Write, kein Fulfill/Cancel
+
+## VIP30 aktueller Stand - STEP7.1
+
+VIP30 0.7.1 behebt den lokalen Reward-Sync und kann die echte Twitch-Reward-ID lokal beim `vip30`-Reward hinterlegen. STEP7 Live-DryRun war erfolgreich: EventSub -> Channelpoints-Bus -> VIP30-Bridge -> Decision -> DB-Log.
+
+Offen danach: echte Fulfill/Cancel/VIP-Grant-Schritte erst nach separater Freigabe.

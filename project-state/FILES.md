@@ -10,3 +10,10 @@
 - `project-state/FILES.md` — Dateiliste.
 
 Es gibt kein separates VIP30-Bridge-Zusatzmodul. Die Bridge sitzt intern in `backend/modules/vip30.js`.
+
+## VIP30 STEP7.1 Dateien
+
+- `backend/modules/vip30.js` - VIP30 Modul 0.7.1 mit Ensure-/Reward-ID-Fix
+- `config/vip30.json` - Seed/Fallback auf 0.7.1
+- `docs/modules/vip30.md` - STEP7.1 Doku
+- `project-state/*` - aktualisierte Projektuebergabe

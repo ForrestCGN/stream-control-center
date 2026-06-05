@@ -18,3 +18,11 @@
 - Status von `ready_step5_dryrun_redemption_decision` auf `ready_step6_channelpoints_decision_bridge` korrigiert.
 - `routeCount` auf 15 passend zur Route-Liste korrigiert.
 - Keine Funktionsänderung, keine Twitch-Schreibaktion, kein VIP-Grant, kein Slot-Write, kein Fulfill/Cancel.
+
+## VIP30 STEP7.1 - Ensure-/Twitch-Reward-ID-Fix
+
+- `vip30.js` auf 0.7.1 gehoben.
+- Ensure-Update repariert: `twitch_reward_id` wird im UPDATE genutzt, kein ungenutzter Named Parameter mehr.
+- Vorhandene Twitch-Reward-ID wird beim Ensure bewahrt.
+- Neuer Link-Endpunkt für lokale Zuordnung der echten Twitch-Reward-ID.
+- Keine Twitch-Schreibaktion, kein VIP-Grant, kein Slot-Write, kein Fulfill/Cancel.
