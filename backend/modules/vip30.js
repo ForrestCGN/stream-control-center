@@ -6,8 +6,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.6.0";
-const MODULE_BUILD = "step6-channelpoints-decision-bridge-internal";
+const MODULE_VERSION = "0.6.1";
+const MODULE_BUILD = "step6.1-status-routecount-cleanup";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -1772,7 +1772,7 @@ function buildHealth() {
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
     enabled: getConfig().enabled !== false,
-    status: lastError ? "error" : "ready_step5_dryrun_redemption_decision",
+    status: lastError ? "error" : "ready_step6_channelpoints_decision_bridge",
     lastError,
     checks: {
       databaseReady: dbMigrationState.ok === true,
@@ -1804,10 +1804,10 @@ function buildStatus() {
     moduleBuild: MODULE_BUILD,
     version: MODULE_VERSION,
     enabled: config.enabled !== false,
-    status: lastError ? "error" : "ready_step5_dryrun_redemption_decision",
+    status: lastError ? "error" : "ready_step6_channelpoints_decision_bridge",
     startedAt,
     routePrefix: ROUTE_PREFIX,
-    routeCount: 13,
+    routeCount: 15,
     routes: [
       `${ROUTE_PREFIX}/status`,
       `${ROUTE_PREFIX}/health`,

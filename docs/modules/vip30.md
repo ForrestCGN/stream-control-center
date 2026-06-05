@@ -2,8 +2,8 @@
 
 ## Aktueller Stand: STEP6 Channelpoints Decision Bridge
 
-Version: `0.6.0`  
-Build: `step6-channelpoints-decision-bridge-internal`
+Version: `0.6.1`  
+Build: `step6.1-status-routecount-cleanup`
 
 ## Grundregeln
 
@@ -60,3 +60,8 @@ Wenn die Redemption als VIP30 erkannt wird, ruft die Bridge nur die VIP30-Decisi
 - Kein Cancel.
 - Kein Streamer.bot.
 - Nur Entscheidung, Logging und Bus-Events.
+
+
+## VIP30-STEP6.1 Cleanup
+
+Status und RouteCount wurden bereinigt. Keine neue Zusatzdatei, keine Funktionsänderung, keine Live-Aktionen.
