@@ -1,8 +1,8 @@
 window.ShoutoutV2Module = (function(){
   'use strict';
 
-  const MODULE_VERSION = '2.7.4-overlay-sets-dropdown';
-  const BUILD = 'CAN-44.29';
+  const MODULE_VERSION = '2.7.5-overlay-sets-dropdown-fix';
+  const BUILD = 'CAN-44.30';
 
   const API = {
     status: '/api/clip-shoutout/status',
@@ -731,9 +731,16 @@ window.ShoutoutV2Module = (function(){
   }
 
   function textRowsForCategory(category = state.textCategory){
-    const rows = textKeys();
-    if (!category) return rows;
-    return rows.filter(row => String(row.category || '') === String(category || ''));
+    const cat = String(category || '');
+    let rows = textKeys();
+    if (!cat) return rows;
+    rows = rows.filter(row => String(row.category || '') === cat);
+
+    if (cat === 'shoutout.overlay' && !rows.some(row => String(row.key || '') === 'shoutout.overlay.sets')) {
+      rows = [overlaySetsTextRow(), ...rows];
+    }
+
+    return rows;
   }
 
   function selectedTextRow(){
@@ -783,7 +790,11 @@ window.ShoutoutV2Module = (function(){
   }
 
   function renderTextKeyOptions(){
-    const rows = textRowsForCategory();
+    let rows = textRowsForCategory();
+    // CAN44.30 hard dropdown guard: Overlay-Sets muss im Shoutout-Overlay-Dropdown sichtbar sein.
+    if (String(state.textCategory || '') === 'shoutout.overlay' && !rows.some(row => String(row.key || '') === 'shoutout.overlay.sets')) {
+      rows = [overlaySetsTextRow(), ...rows];
+    }
     if (!rows.length) return `<option value="">Keine Textkeys</option>`;
     return rows.map(row => {
       const key = String(row.key || '');
