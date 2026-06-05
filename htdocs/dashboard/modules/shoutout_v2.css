@@ -809,3 +809,102 @@
 @media(max-width:1250px){.shoutout-v2-admin .so2-settings-layout{grid-template-columns:1fr}.shoutout-v2-admin .so2-settings-toolbar{top:56px}}
 @media(max-width:900px){.shoutout-v2-admin .so2-settings-toolbar{position:static;display:grid}.shoutout-v2-admin .so2-settings-toolbar-main{display:grid;justify-content:stretch}.shoutout-v2-admin .so2-settings-toolbar-main small{white-space:normal}.shoutout-v2-admin .so2-settings-toolbar-actions{justify-content:flex-start}.shoutout-v2-admin .so2-settings-info-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:700px){.shoutout-v2-admin .so2-settings-clean .so2-settings-grid,.shoutout-v2-admin .so2-settings-info-grid{grid-template-columns:1fr}}
+
+/* CAN-44.21.39 – Settings Help / Hover Tooltips */
+.shoutout-v2-admin .so2-help-dot{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:16px;
+  height:16px;
+  margin-left:7px;
+  border-radius:999px;
+  border:1px solid rgba(103,232,249,.42);
+  background:rgba(34,211,238,.12);
+  color:#a5f3fc;
+  font-size:11px;
+  line-height:1;
+  font-weight:900;
+  vertical-align:middle;
+  cursor:help;
+  position:relative;
+  flex:0 0 auto;
+}
+.shoutout-v2-admin .so2-help-dot:hover,
+.shoutout-v2-admin .so2-help-dot:focus{
+  border-color:rgba(168,85,247,.62);
+  background:rgba(168,85,247,.20);
+  color:#f5d0fe;
+  outline:none;
+}
+.shoutout-v2-admin .so2-help-dot::after{
+  content:attr(data-so2-tooltip);
+  position:absolute;
+  left:50%;
+  bottom:calc(100% + 10px);
+  transform:translateX(-50%) translateY(4px);
+  width:min(360px,70vw);
+  pointer-events:none;
+  opacity:0;
+  z-index:80;
+  border:1px solid rgba(103,232,249,.24);
+  background:rgba(6,10,22,.98);
+  color:#e5f6ff;
+  border-radius:13px;
+  padding:10px 12px;
+  font-size:12px;
+  line-height:1.38;
+  font-weight:800;
+  letter-spacing:0;
+  text-transform:none;
+  white-space:normal;
+  box-shadow:0 16px 34px rgba(0,0,0,.42),0 0 18px rgba(34,211,238,.10);
+}
+.shoutout-v2-admin .so2-help-dot::before{
+  content:"";
+  position:absolute;
+  left:50%;
+  bottom:calc(100% + 4px);
+  transform:translateX(-50%) translateY(4px) rotate(45deg);
+  width:10px;
+  height:10px;
+  pointer-events:none;
+  opacity:0;
+  z-index:81;
+  background:rgba(6,10,22,.98);
+  border-right:1px solid rgba(103,232,249,.20);
+  border-bottom:1px solid rgba(103,232,249,.20);
+}
+.shoutout-v2-admin .so2-help-dot:hover::after,
+.shoutout-v2-admin .so2-help-dot:focus::after,
+.shoutout-v2-admin .so2-help-dot:hover::before,
+.shoutout-v2-admin .so2-help-dot:focus::before{
+  opacity:1;
+  transform:translateX(-50%) translateY(0);
+}
+.shoutout-v2-admin .so2-help-dot:hover::before,
+.shoutout-v2-admin .so2-help-dot:focus::before{
+  transform:translateX(-50%) translateY(0) rotate(45deg);
+}
+.shoutout-v2-admin .so2-settings-clean .so2-setting-check strong,
+.shoutout-v2-admin .so2-settings-clean .so2-setting-field span{
+  display:flex;
+  align-items:center;
+  gap:0;
+}
+.shoutout-v2-admin .so2-settings-clean .so2-setting-check small,
+.shoutout-v2-admin .so2-settings-clean .so2-setting-field small{
+  color:rgba(255,255,255,.56);
+}
+.shoutout-v2-admin .so2-settings-clean .so2-setting-check:hover,
+.shoutout-v2-admin .so2-settings-clean .so2-setting-field:hover,
+.shoutout-v2-admin .so2-setting-readonly:hover{
+  border-color:rgba(34,211,238,.22);
+  background:rgba(34,211,238,.055);
+}
+@media(max-width:760px){
+  .shoutout-v2-admin .so2-help-dot::after{left:auto;right:-8px;transform:translateY(4px);}
+  .shoutout-v2-admin .so2-help-dot::before{left:50%;}
+  .shoutout-v2-admin .so2-help-dot:hover::after,
+  .shoutout-v2-admin .so2-help-dot:focus::after{transform:translateY(0);}
+}

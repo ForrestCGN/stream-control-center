@@ -1,8 +1,8 @@
 window.ShoutoutV2Module = (function(){
   'use strict';
 
-  const MODULE_VERSION = '2.7.1-settings-layout-cleanup';
-  const BUILD = 'CAN-44.21.38';
+  const MODULE_VERSION = '2.7.2-settings-help-tooltips';
+  const BUILD = 'CAN-44.21.39';
 
   const API = {
     status: '/api/clip-shoutout/status',
@@ -1189,12 +1189,86 @@ window.ShoutoutV2Module = (function(){
   function fieldNumber(name, fallback = 0){ const n = Number(fieldValue(name, fallback)); return Number.isFinite(n) ? n : fallback; }
   function fieldCsv(name){ return String(fieldValue(name, '')).split(/[,\n;]/).map(v => v.trim()).filter(Boolean); }
 
+
+  const SETTINGS_HELP = {
+    enabled: 'Schaltet das gesamte Shoutout-Modul ein oder aus. Wenn aus, verarbeitet das Modul keine neuen Shoutouts.',
+    'directIntake.enabled': 'Not-Aus für die direkte Chat-Erkennung. Wenn aus, werden !so/!vso nicht mehr direkt aus Twitch-Presence verarbeitet. Die Commands selbst bleiben im Commands-Dashboard erhalten.',
+    randomPick: 'Wählt aus passenden Twitch-Clips zufällig einen Clip, statt immer den ersten/besten Treffer zu nehmen.',
+    avoidRecentClips: 'Verhindert, dass sehr kürzlich genutzte Clips direkt wieder ausgewählt werden.',
+    recentClipFallbackWhenAllBlocked: 'Wenn alle gefundenen Clips durch den Recent-Schutz blockiert sind, darf trotzdem ein Fallback-Clip gewählt werden.',
+    allowLongerClipFallback: 'Erlaubt als Notlösung auch längere Clips, wenn kein passender Clip innerhalb der normalen Maximaldauer gefunden wird.',
+    maxClipDurationSeconds: 'Normale maximale Clip-Länge für Shoutout-Clips in Sekunden.',
+    fallbackMaxClipDurationSeconds: 'Maximale Clip-Länge für Fallback-Clips, wenn kein normal passender Clip gefunden wird.',
+    clipLookbackDays: 'Wie viele Tage zurück Twitch-Clips bevorzugt gesucht werden. 365 bedeutet ungefähr ein Jahr.',
+    clipSearchRangesDays: 'Suchstufen für Twitch-Clips. Das System probiert diese Bereiche nacheinander; 0 bedeutet ohne Zeitlimit.',
+    clipPlaybackCandidateLimit: 'Wie viele passende Clip-Kandidaten intern gesammelt werden, bevor einer ausgewählt wird.',
+    clipFetchFirst: 'Wie viele Clips pro Twitch-API-Anfrage geladen werden.',
+    clipFetchPages: 'Wie viele Twitch-API-Seiten maximal abgefragt werden.',
+
+    'displayQueue.enabled': 'Schaltet die Overlay-/Video-Shoutout-Warteschlange ein oder aus.',
+    'displayQueue.sendChatMessages': 'Sendet Chatmeldungen, wenn ein Shoutout angenommen wird oder warten muss.',
+    'displayQueue.displayCooldownMs': 'Pause nach einem angezeigten Overlay-Shoutout, bevor der nächste starten darf.',
+    'displayQueue.workerIntervalMs': 'Wie oft der Worker prüft, ob ein Overlay-Shoutout gestartet werden kann.',
+
+    'officialShoutout.enabled': 'Schaltet die Warteschlange für offizielle Twitch-Shoutouts ein oder aus.',
+    'officialShoutout.enqueueAfterDisplay': 'Reiht den offiziellen Twitch-Shoutout erst nach dem Overlay-/Clip-Shoutout ein.',
+    'officialShoutout.liveGateEnabled': 'Prüft vor offiziellen Twitch-Shoutouts, ob der Stream live ist. Wenn nicht live, bleibt der Eintrag in der Warteschlange.',
+    'officialShoutout.globalCooldownMs': 'Globale Wartezeit zwischen zwei offiziellen Twitch-Shoutouts.',
+    'officialShoutout.targetCooldownMs': 'Wartezeit pro Zielkanal, bevor derselbe Kanal erneut offiziell geshoutoutet werden darf.',
+    'officialShoutout.workerIntervalMs': 'Wie oft der OfficialQueue-Worker prüft, ob ein offizieller Twitch-Shoutout ausgeführt werden kann.',
+    'officialShoutout.liveGateRetryMs': 'Wartezeit bis zum nächsten Versuch, wenn der offizielle Shoutout wegen Live-Gate noch nicht ausgeführt werden darf.',
+    'officialShoutout.maxAttempts': 'Maximale Anzahl technischer Sendeversuche für einen offiziellen Twitch-Shoutout.',
+    'officialShoutout.displayFinishPaddingMs': 'Zusätzliche Pause nach dem Overlay-Ende, bevor der offizielle Twitch-Shoutout versucht wird.',
+
+    'streamDayLimit.enabled': 'Verhindert mehrere normale Shoutouts für denselben Zielkanal am selben Streamtag.',
+    'streamDayLimit.allowOverride': 'Erlaubt Ausnahmen per Override-Flag, z. B. --force.',
+    'streamDayLimit.fallbackWhenStreamUnknown': 'Wenn der aktuelle Streamtag nicht sicher erkannt wird, nutzt das System eine Fallback-Session.',
+    'streamDayLimit.overrideFlag': 'Chat-Flag, mit dem Mods/Owner die Streamtag-Sperre bewusst übergehen können.',
+    'streamDayLimit.restartGraceMs': 'Zeitfenster nach Neustart, in dem der letzte Streamtag weiterverwendet werden kann.',
+    'streamDayLimit.fallbackSessionHours': 'Laufzeit der Fallback-Session, wenn kein echter Streamtag erkannt wird.',
+    'streamDayLimit.liveStateFiles': 'Dateien, aus denen das System Live-/Streamstatus-Daten lesen darf.',
+
+    'streamStatus.enabled': 'Aktiviert die Nutzung des zentralen Streamstatus-Systems.',
+    'streamStatus.preferCentralStatus': 'Wenn aktiv, wird der zentrale Streamstatus gegenüber lokalen Fallbacks bevorzugt.',
+    'autoShoutout.sceneGate.enabled': 'Aktiviert die Start-Szenen-Prüfung für AutoShoutout und Queue-Verarbeitung.',
+    'autoShoutout.sceneGate.blockDuringStartScene': 'Blockiert Shoutouts während definierter Start-Szenen und versucht sie später erneut.',
+    'autoShoutout.sceneGate.retryMs': 'Wartezeit bis zur erneuten Prüfung, wenn eine Start-Szene gerade blockiert.',
+    'autoShoutout.sceneGate.startSceneNames': 'OBS-Szenennamen, die als Start-Szenen gelten und Shoutouts blockieren sollen.',
+
+    'autoShoutout.enabled': 'Schaltet automatische Shoutouts für konfigurierte Streamer ein oder aus.',
+    'autoShoutout.onlyWhenLive': 'AutoShoutouts werden nur ausgelöst, wenn dein Stream live ist.',
+    'autoShoutout.triggerOnFirstMessageOnly': 'AutoShoutout wird nur bei der ersten erkannten Chatnachricht eines Streamers geprüft.',
+    'autoShoutout.greetingEnabled': 'Aktiviert Begrüßungstexte für AutoShoutout-Streamer.',
+    'autoShoutout.greetingOnlyWhenTriggering': 'Begrüßung wird nur gesendet, wenn dadurch auch ein AutoShoutout ausgelöst wird.',
+    'autoShoutout.respectStreamDayLimit': 'AutoShoutouts beachten die Streamtag-Sperre wie manuelle Shoutouts.',
+    'autoShoutout.sendChatMessage': 'Sendet Chatmeldung bei AutoShoutout-Queue-Einträgen.',
+    'autoShoutout.storeSkippedEvents': 'Speichert übersprungene AutoShoutout-Events für spätere Auswertung/Diagnose.',
+    'autoShoutout.suppressImmediateQueuedMessage': 'Unterdrückt Queue-Meldungen, wenn der Shoutout fast sofort starten würde.',
+    'autoShoutout.minMessagesBeforeTrigger': 'Anzahl erkannter Nachrichten, bevor AutoShoutout auslösen darf.',
+    'autoShoutout.messageWindowMs': 'Zeitfenster, in dem Nachrichten für AutoShoutout gezählt werden.',
+    'autoShoutout.globalCooldownMs': 'Globale Wartezeit zwischen AutoShoutouts.',
+    'autoShoutout.perStreamerCooldownMs': 'Wartezeit pro Streamer, bevor AutoShoutout erneut auslösen darf.',
+    'autoShoutout.immediateQueuedMessageThresholdMs': 'Wenn die erwartete Wartezeit kleiner ist, wird die sofortige Queue-Meldung unterdrückt.'
+  };
+
+  function settingHelp(name, fallback = ''){
+    return SETTINGS_HELP[name] || fallback || '';
+  }
+
+  function helpDot(text){
+    const value = String(text || '').trim();
+    if (!value) return '';
+    return `<span class="so2-help-dot" tabindex="0" aria-label="${esc(value)}" data-so2-tooltip="${esc(value)}">?</span>`;
+  }
+
   function settingsCheck(name, label, checked, helpText = ''){
-    return `<label class="so2-setting-check"><input type="checkbox" data-so2-setting="${esc(name)}" ${boolAttr(checked)}><span><strong>${esc(label)}</strong>${helpText ? `<small>${esc(helpText)}</small>` : ''}</span></label>`;
+    const help = settingHelp(name, helpText);
+    return `<label class="so2-setting-check" title="${esc(help)}"><input type="checkbox" data-so2-setting="${esc(name)}" ${boolAttr(checked)}><span><strong>${esc(label)}${helpDot(help)}</strong>${help ? `<small>${esc(help)}</small>` : ''}</span></label>`;
   }
 
   function settingsInput(name, label, value, type = 'text', helpText = '', attrs = ''){
-    return `<label class="so2-field so2-setting-field"><span>${esc(label)}</span><input type="${esc(type)}" data-so2-setting="${esc(name)}" value="${esc(value ?? '')}" ${attrs}>${helpText ? `<small>${esc(helpText)}</small>` : ''}</label>`;
+    const help = settingHelp(name, helpText);
+    return `<label class="so2-field so2-setting-field" title="${esc(help)}"><span>${esc(label)}${helpDot(help)}</span><input type="${esc(type)}" data-so2-setting="${esc(name)}" value="${esc(value ?? '')}" ${attrs}>${help ? `<small>${esc(help)}</small>` : ''}</label>`;
   }
 
   function renderSettingsPanel(title, body, badgeText = 'editierbar'){
