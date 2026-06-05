@@ -1,15 +1,13 @@
-# NEXT_STEPS - VIP30
+# NEXT_STEPS
 
-1. STEP8.3 einspielen und `node -c backend\modules\vip30.js` prüfen.
-2. Node neu starten.
-3. `/api/vip30/live/stage-a/check` prüfen; erwartet `stage_a_ready`.
-4. Test-Redemption auslösen.
-5. `/api/vip30/slots` und letzte Logs prüfen.
-6. Danach STEP8.4 planen: Fulfill/Cancel separat aktivieren.
+1. ZIP nach `D:\Git\stream-control-center` entpacken.
+2. `node -c backend\modules\vip30.js` ausführen.
+3. `stepdone.cmd` ausführen.
+4. Node neu starten.
+5. Capability prüfen.
+6. Stage-B Gates setzen: `POST /api/vip30/live/set-gates?confirm=YES&profile=stage_b`.
+7. `GET /api/vip30/live/stage-b/check` prüfen.
+8. VIP30-Redemption testen.
+9. Slots und Logs minimal prüfen.
 
-
-## VIP30 STEP8.3.2
-- Version 0.8.3.2 / build step8.3.2-stage-a-local-reward-operational-fix.
-- Stage-A Live-Ausfuehrung aktualisiert vor dem VIP-Grant Capability und Config frisch.
-- Block-Logs enthalten nun konkrete Stage-A-Blocker.
-- Fulfill/Cancel und Alert bleiben weiterhin deaktiviert.
+Danach: STEP8.5/STEP9 für Alert oder Cleanup-/Revoke-Liveflow planen.

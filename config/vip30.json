@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "moduleVersion": "0.8.3",
+  "moduleVersion": "0.8.4",
   "reward": {
     "rewardKey": "vip30",
     "title": "30 Tage VIP",
@@ -83,11 +83,11 @@
     "cooldownSeconds": 0,
     "maxPerStream": 0,
     "maxPerUserPerStream": 0,
-    "notes": "VIP30-Reward wird vom VIP30-Modul verwaltet. STEP8.3 erlaubt Stage-A: Twitch Add VIP + Slot-Write; Fulfill/Cancel und Alert bleiben gesperrt.",
+    "notes": "VIP30-Reward wird vom VIP30-Modul verwaltet. STEP8.4 erlaubt Stage B: Add VIP + Slot-Write + Redemption Fulfill/Cancel; Alert bleibt gesperrt.",
     "twitchPolicies": {
       "shouldRedemptionsSkipRequestQueue": false,
-      "fulfillAfterSuccess": false,
-      "cancelOnFailure": false
+      "fulfillAfterSuccess": true,
+      "cancelOnFailure": true
     }
   },
   "settings": {
@@ -104,13 +104,14 @@
     "busEvents": true,
     "noTwitchWrite": false,
     "noVipGrant": false,
-    "noRedemptionFulfillCancel": true,
+    "noRedemptionFulfillCancel": false,
     "bridgeDecisionFlow": true,
     "eventsubLiveDryRunObserve": true,
     "liveActionPlanOnly": false,
     "liveSafetyGates": true,
     "armPreviewOnly": true,
-    "stageALiveVipGrantSlotWrite": true
+    "stageALiveVipGrantSlotWrite": true,
+    "stageBRedemptionFulfillCancel": true
   },
   "bridge": {
     "enabled": true,
@@ -123,7 +124,7 @@
     "noTwitchWrite": false,
     "noVipGrant": false,
     "noSlotWrite": false,
-    "noRedemptionFulfillCancel": true,
+    "noRedemptionFulfillCancel": false,
     "liveEventDryRunObserveEnabled": true
   },
   "live": {
@@ -135,7 +136,7 @@
     "allowSlotWrite": false,
     "allowRedemptionFulfillCancel": false,
     "allowAlert": false,
-    "notes": "STEP8.3: Stage-A kann bei echter VIP30-Redemption Twitch VIP vergeben und Slot speichern. Fulfill/Cancel und Alert bleiben deaktiviert."
+    "notes": "STEP8.4: Stage B kann bei echter VIP30-Redemption Twitch VIP vergeben, Slot speichern und Redemption fulfillen/canceln. Alert bleibt deaktiviert."
   },
-  "moduleBuild": "step8.3-stage-a-live-vip-grant-slot"
+  "moduleBuild": "step8.4-stage-b-redemption-fulfill-cancel"
 }

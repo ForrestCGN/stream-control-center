@@ -1,16 +1,11 @@
-# CURRENT STATUS - VIP30 STEP8.3.2
+# CURRENT_STATUS
 
-Stage A ist vorbereitet fuer Twitch Add VIP + Slot-Write. STEP8.3.2 behebt den zu strengen `localRewardLinked`-Safety-Check im echten Event-Ablauf. Fulfill/Cancel und Alert bleiben deaktiviert.
+VIP30 STEP8.4 ist vorbereitet.
 
-# CURRENT_STATUS - VIP30
+Status:
+- Stage A wurde erfolgreich live getestet: Twitch VIP vergeben + VIP30-Slot gespeichert.
+- STEP8.4 ergänzt Stage B: Erfolg wird fulfilled, fachliche Ablehnung wird canceled/refunded.
+- Alert bleibt weiterhin gesperrt.
 
-Stand: VIP30-STEP8.3 / Version 0.8.3
-
-Stage A ist vorbereitet: Bei echter VIP30-Redemption kann das Modul Twitch Add VIP ausführen und einen VIP30-Slot speichern. Fulfill/Cancel und Alert bleiben deaktiviert.
-
-
-## VIP30 STEP8.3.2
-- Version 0.8.3.2 / build step8.3.2-stage-a-local-reward-operational-fix.
-- Stage-A Live-Ausfuehrung aktualisiert vor dem VIP-Grant Capability und Config frisch.
-- Block-Logs enthalten nun konkrete Stage-A-Blocker.
-- Fulfill/Cancel und Alert bleiben weiterhin deaktiviert.
+Version: 0.8.4
+Build: step8.4-stage-b-redemption-fulfill-cancel

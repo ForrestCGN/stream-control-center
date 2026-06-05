@@ -1,25 +1,25 @@
 # VIP30 Modul
 
-Stand: VIP30-STEP8.3 / Version 0.8.3
+Stand: VIP30-STEP8.4 / Version 0.8.4
 
 ## Zweck
 
 Das VIP30-Modul verarbeitet die Twitch-Kanalpunkte-Belohnung `30 Tage VIP` vollständig im Node-System.
 
-## Aktueller STEP8.3-Stand
+## Aktueller STEP8.4-Stand
 
-STEP8.3 aktiviert die erste echte Live-Stufe **Stage A**:
+STEP8.4 aktiviert die zweite echte Live-Stufe **Stage B**:
 
 - echte Twitch-Redemption wird über EventSub erkannt
 - VIP30-Bridge matched den lokalen `vip30`-Reward
-- bei `eligible` und gesetzten Stage-A-Gates wird Twitch `Add VIP` ausgeführt
+- bei `eligible` und gesetzten Stage-B-Gates wird Twitch `Add VIP` ausgeführt
 - danach wird ein aktiver VIP30-Slot in `vip30_slots` gespeichert
+- die Redemption wird bei Erfolg auf `FULFILLED` gesetzt
+- bei fachlicher Ablehnung wird die Redemption auf `CANCELED` gesetzt
 - Log-Eintrag wird in `vip30_log` geschrieben
 
 Weiterhin gesperrt:
 
-- kein Redemption Fulfill
-- kein Redemption Cancel
 - kein Alert
 
 ## Wichtige Routen
@@ -27,8 +27,10 @@ Weiterhin gesperrt:
 - `GET /api/vip30/status`
 - `GET /api/vip30/live/check`
 - `GET /api/vip30/live/stage-a/check`
+- `GET /api/vip30/live/stage-b/check`
 - `GET /api/vip30/live/arm-preview`
-- `POST /api/vip30/live/set-gates?confirm=YES&profile=stage_a`
+- `GET /api/vip30/live/arm-settings-preview?profile=stage_b`
+- `POST /api/vip30/live/set-gates?confirm=YES&profile=stage_b`
 - `POST /api/vip30/redeem/live-stage-a`
 - `POST /api/vip30/redeem/live-plan`
 - `GET /api/vip30/slots`
@@ -36,7 +38,7 @@ Weiterhin gesperrt:
 
 ## Safety
 
-Stage A benötigt diese Gates:
+Stage B benötigt diese Gates:
 
 - `live.enabled = true`
 - `live.mode = live`
@@ -44,14 +46,15 @@ Stage A benötigt diese Gates:
 - `bridge.decisionOnly = false`
 - `live.allowVipGrant = true`
 - `live.allowSlotWrite = true`
+- `live.allowRedemptionFulfillCancel = true`
 - Twitch Capability muss ready sein
 - lokaler Reward muss mit Twitch Reward ID verknüpft sein
 
-`live.allowRedemptionFulfillCancel` und `live.allowAlert` bleiben in STEP8.3 bewusst `false`.
+`live.allowAlert` bleibt in STEP8.4 bewusst `false`.
 
+## VIP30 STEP8.4
 
-## VIP30 STEP8.3.2
-- Version 0.8.3.2 / build step8.3.2-stage-a-local-reward-operational-fix.
-- Stage-A Live-Ausfuehrung aktualisiert vor dem VIP-Grant Capability und Config frisch.
-- Block-Logs enthalten nun konkrete Stage-A-Blocker.
-- Fulfill/Cancel und Alert bleiben weiterhin deaktiviert.
+- Version 0.8.4 / build `step8.4-stage-b-redemption-fulfill-cancel`.
+- Stage-B Live-Ausführung erfüllt erfolgreiche Redemptions nach VIP-Grant + Slot-Write.
+- Fachlich blockierte Redemptions werden canceled/refunded.
+- Alert bleibt weiterhin deaktiviert.
