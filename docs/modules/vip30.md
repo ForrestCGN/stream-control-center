@@ -1,55 +1,50 @@
-# VIP30 / 30 Tage VIP
+# VIP30 Modul
 
-Stand: STEP8.2  
-Version: 0.8.2  
-Build: `step8.2-live-gates-api-stage-a`
+Stand: VIP30-STEP8.3 / Version 0.8.3
 
-## Ziel
+## Zweck
 
-Das VIP30-System läuft über Node und verarbeitet den bestehenden Twitch-Kanalpunkte-Reward `30 Tage VIP` über EventSub und den internen Channelpoints/EventBus-Weg.
+Das VIP30-Modul verarbeitet die Twitch-Kanalpunkte-Belohnung `30 Tage VIP` vollständig im Node-System.
 
-## Aktueller Stand
+## Aktueller STEP8.3-Stand
 
-- Twitch-Reward ist lokal als `vip30` verknüpft.
-- Kosten-Testwert: `1` Kanalpunkt.
-- EventSub-Live-DryRun wurde erfolgreich getestet.
-- `ensure` funktioniert wieder.
-- Live-Aktionen bleiben weiterhin über Safety-Gates kontrolliert.
+STEP8.3 aktiviert die erste echte Live-Stufe **Stage A**:
 
-## Neue STEP8.2-Routen
+- echte Twitch-Redemption wird über EventSub erkannt
+- VIP30-Bridge matched den lokalen `vip30`-Reward
+- bei `eligible` und gesetzten Stage-A-Gates wird Twitch `Add VIP` ausgeführt
+- danach wird ein aktiver VIP30-Slot in `vip30_slots` gespeichert
+- Log-Eintrag wird in `vip30_log` geschrieben
 
-```txt
-GET  /api/vip30/live/arm-settings-preview
-POST /api/vip30/live/set-gates?confirm=YES&profile=stage_a
-```
+Weiterhin gesperrt:
 
-## Stage A
+- kein Redemption Fulfill
+- kein Redemption Cancel
+- kein Alert
 
-Stage A setzt nur die vorbereitenden Gates:
+## Wichtige Routen
 
-```txt
-live.enabled = true
-live.mode = live
-twitch.liveActionsEnabled = true
-bridge.decisionOnly = false
-live.allowVipGrant = true
-live.allowSlotWrite = true
-live.allowRedemptionFulfillCancel = false
-live.allowAlert = false
-```
-
-Damit bleiben Fulfill/Cancel und Alert bewusst gesperrt. Die Route selbst führt keine Twitch-Schreibaktion aus.
+- `GET /api/vip30/status`
+- `GET /api/vip30/live/check`
+- `GET /api/vip30/live/stage-a/check`
+- `GET /api/vip30/live/arm-preview`
+- `POST /api/vip30/live/set-gates?confirm=YES&profile=stage_a`
+- `POST /api/vip30/redeem/live-stage-a`
+- `POST /api/vip30/redeem/live-plan`
+- `GET /api/vip30/slots`
+- `GET /api/vip30/logs`
 
 ## Safety
 
-STEP8.2 selbst macht weiterhin:
+Stage A benötigt diese Gates:
 
-```txt
-kein Twitch-Write
-kein VIP-Grant
-kein Slot-Write
-kein Fulfill/Cancel
-kein Alert
-```
+- `live.enabled = true`
+- `live.mode = live`
+- `twitch.liveActionsEnabled = true`
+- `bridge.decisionOnly = false`
+- `live.allowVipGrant = true`
+- `live.allowSlotWrite = true`
+- Twitch Capability muss ready sein
+- lokaler Reward muss mit Twitch Reward ID verknüpft sein
 
-Die Gates bereiten nur den nächsten Implementierungsschritt vor.
+`live.allowRedemptionFulfillCancel` und `live.allowAlert` bleiben in STEP8.3 bewusst `false`.

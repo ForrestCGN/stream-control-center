@@ -1,8 +1,5 @@
-# CURRENT STATUS – VIP30 STEP8.2
+# CURRENT_STATUS - VIP30
 
-Version: 0.8.2  
-Build: `step8.2-live-gates-api-stage-a`
+Stand: VIP30-STEP8.3 / Version 0.8.3
 
-STEP8.2 ergänzt eine API zum gezielten Vorschauen und Setzen von Live-Gates. Der Default bleibt gesperrt. Profile `stage_a` und `lock` sind vorhanden.
-
-Stage A aktiviert nur Master-/Grant-/Slot-Gates. Fulfill/Cancel und Alert bleiben bewusst aus.
+Stage A ist vorbereitet: Bei echter VIP30-Redemption kann das Modul Twitch Add VIP ausführen und einen VIP30-Slot speichern. Fulfill/Cancel und Alert bleiben deaktiviert.

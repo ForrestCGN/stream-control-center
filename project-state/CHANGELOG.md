@@ -1,9 +1,10 @@
-# CHANGELOG – VIP30
+# CHANGELOG - VIP30
 
-## 0.8.2 – STEP8.2
+## 0.8.3 - STEP8.3
 
-- Neue Route `/api/vip30/live/arm-settings-preview`.
-- Neue Route `/api/vip30/live/set-gates` mit `confirm=YES`.
-- Profile `stage_a` und `lock` ergänzt.
-- Stage A bereitet VIP-Grant + Slot-Write vor, Fulfill/Cancel bleibt aus.
-- Keine Twitch-/Slot-/Alert-Schreibaktion in dieser Route.
+- Stage-A-Live-Ausführung eingebaut.
+- EventSub-Redemption kann bei gesetzten Gates Twitch Add VIP ausführen.
+- Erfolgreicher Grant schreibt einen aktiven VIP30-Slot.
+- Fulfill/Cancel und Alert bleiben gesperrt.
+- Neue Check-Route `/api/vip30/live/stage-a/check`.
+- Neue manuelle Route `/api/vip30/redeem/live-stage-a`.

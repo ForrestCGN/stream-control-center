@@ -1,6 +1,6 @@
-# TODO – VIP30
+# TODO - VIP30
 
-- STEP8.2 live prüfen.
-- Nach Stage A: Blocker sollen nur noch `allowRedemptionFulfillCancel` und ggf. `allowAlert` enthalten.
-- STEP9: Twitch Add VIP + Slot-Write hinter Gates implementieren.
-- STEP10: Fulfill/Cancel separat aktivieren.
+- STEP8.3 Live-Test: VIP-Grant + Slot-Write prüfen.
+- Danach Fulfill/Cancel als separaten STEP planen.
+- Alert-Anbindung separat nach erfolgreichem Live-Test aktivieren.
+- Cleanup/Entzug nach Ablauf als eigenen STEP bauen/testen.

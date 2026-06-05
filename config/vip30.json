@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "moduleVersion": "0.8.2",
+  "moduleVersion": "0.8.3",
   "reward": {
     "rewardKey": "vip30",
     "title": "30 Tage VIP",
@@ -83,7 +83,7 @@
     "cooldownSeconds": 0,
     "maxPerStream": 0,
     "maxPerUserPerStream": 0,
-    "notes": "VIP30-Reward wird vom VIP30-Modul verwaltet. STEP8.1 ergaenzt Arm-Preview und kompakte Live-Check-Ausgaben; echte Live-Aktionen bleiben gesperrt.",
+    "notes": "VIP30-Reward wird vom VIP30-Modul verwaltet. STEP8.3 erlaubt Stage-A: Twitch Add VIP + Slot-Write; Fulfill/Cancel und Alert bleiben gesperrt.",
     "twitchPolicies": {
       "shouldRedemptionsSkipRequestQueue": false,
       "fulfillAfterSuccess": false,
@@ -102,14 +102,15 @@
     "enabled": true,
     "logDecisions": true,
     "busEvents": true,
-    "noTwitchWrite": true,
-    "noVipGrant": true,
+    "noTwitchWrite": false,
+    "noVipGrant": false,
     "noRedemptionFulfillCancel": true,
     "bridgeDecisionFlow": true,
     "eventsubLiveDryRunObserve": true,
-    "liveActionPlanOnly": true,
+    "liveActionPlanOnly": false,
     "liveSafetyGates": true,
-    "armPreviewOnly": true
+    "armPreviewOnly": true,
+    "stageALiveVipGrantSlotWrite": true
   },
   "bridge": {
     "enabled": true,
@@ -119,9 +120,9 @@
     "acceptTwitchRewardIdMatch": true,
     "requireLocalRewardLinked": true,
     "duplicateWindowSize": 500,
-    "noTwitchWrite": true,
-    "noVipGrant": true,
-    "noSlotWrite": true,
+    "noTwitchWrite": false,
+    "noVipGrant": false,
+    "noSlotWrite": false,
     "noRedemptionFulfillCancel": true,
     "liveEventDryRunObserveEnabled": true
   },
@@ -134,7 +135,7 @@
     "allowSlotWrite": false,
     "allowRedemptionFulfillCancel": false,
     "allowAlert": false,
-    "notes": "STEP8.1: Live-Schalter sind konfigurierbar, /live/arm-preview zeigt die fehlenden Gates. Keine echten Live-Aktionen."
+    "notes": "STEP8.3: Stage-A kann bei echter VIP30-Redemption Twitch VIP vergeben und Slot speichern. Fulfill/Cancel und Alert bleiben deaktiviert."
   },
-  "moduleBuild": "step8.2-live-gates-api-stage-a"
+  "moduleBuild": "step8.3-stage-a-live-vip-grant-slot"
 }
