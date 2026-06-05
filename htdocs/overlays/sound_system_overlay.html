@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ForrestCGN Sound-System Overlay - CAN44_24_SHOUTOUT_H15_LAYOUT</title>
+  <title>ForrestCGN Sound-System Overlay - CAN44_24B_SHOUTOUT_H15_ISOLATED</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
@@ -26,14 +26,10 @@
     }
 
 
-    /* CAN44.24_SHOUTOUT_H15_LAYOUT
-       Integriert auf Basis des gewählten V12 H15 Designs.
-       Wichtige Regeln:
-       - Sound-System-Overlay/Queue/Bus/Playback bleiben erhalten.
-       - Clip-Player bleibt 16:9: 496 x 279.
-       - Außenabstände der Kacheln bleiben gleichmäßig.
+    /* CAN44.24b_SHOUTOUT_H15_ISOLATED
+       H15 Layout isoliert im echten Sound-System-Overlay.
+       Fix: keine alten Clip/V9/CAN44.23 CSS-Reste, keine Video/Text-Überlappung.
     */
-
     #clipCard {
       position: fixed;
       left: 50%;
@@ -46,10 +42,18 @@
       display: none;
       color: #f8fbff;
       font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+      overflow: visible;
     }
 
-    #clipCard.show { display: block; animation: clipIntro .9s cubic-bezier(.16,1,.3,1) forwards; }
-    #clipCard.hide { display: block; animation: clipOutro .7s ease-in forwards; }
+    #clipCard.show {
+      display: block;
+      animation: clipIntro .9s cubic-bezier(.16,1,.3,1) forwards;
+    }
+
+    #clipCard.hide {
+      display: block;
+      animation: clipOutro .7s ease-in forwards;
+    }
 
     @keyframes clipIntro {
       from { opacity: 0; transform: translate(-50%, calc(-50% + 26px)) scale(.92); filter: blur(8px); }
@@ -85,19 +89,21 @@
       -webkit-mask-composite: xor;
       mask-composite: exclude;
       pointer-events: none;
+      z-index: 5;
     }
 
     .clip-main {
       position: absolute;
       left: 50%;
       top: 50%;
+      width: 694px;
+      height: 366px;
       transform: translate(-50%, -50%);
       z-index: 2;
       display: grid;
       grid-template-columns: 182px 496px;
-      gap: 16px;
-      width: 694px;
-      height: 366px;
+      grid-template-rows: 366px;
+      column-gap: 16px;
     }
 
     .clip-left {
@@ -112,6 +118,7 @@
       align-items: center;
       justify-content: center;
       overflow: hidden;
+      min-width: 0;
     }
 
     .clip-avatar-wrap {
@@ -134,6 +141,12 @@
       background: radial-gradient(circle at 35% 25%, #eef7ff, #8b5cf6 34%, #27114b 70%);
       border: 4px solid rgba(9,7,22,.96);
       position: relative;
+      display: grid;
+      place-items: center;
+    }
+
+    .clip-avatar-inner::before {
+      content: none !important;
     }
 
     #clipAvatarImg {
@@ -141,6 +154,8 @@
       height: 100%;
       object-fit: cover;
       display: none;
+      position: relative;
+      z-index: 1;
     }
 
     #clipAvatarPh {
@@ -153,6 +168,8 @@
       font-weight: 900;
       color: white;
       text-shadow: 0 0 8px rgba(168,85,247,.72);
+      position: relative;
+      z-index: 0;
     }
 
     .clip-left-label {
@@ -179,23 +196,27 @@
     #clipName {
       white-space: nowrap;
       font-size: 18px;
+      line-height: 22px;
       font-weight: 900;
       color: #fff;
       transform-origin: center center;
       text-shadow: 0 0 8px rgba(168,85,247,.72);
+      text-align: center;
     }
 
     .clip-right {
       width: 496px;
       height: 366px;
-      min-width: 0;
       display: grid;
+      grid-template-columns: 496px;
       grid-template-rows: 279px 16px 71px;
+      min-width: 0;
+      overflow: hidden;
     }
 
     .clip-video-frame {
       width: 496px;
-      height: 279px; /* 16:9 */
+      height: 279px;
       border-radius: 21px;
       padding: 4px;
       background: linear-gradient(135deg, rgba(34,211,238,.9), rgba(168,85,247,.84), rgba(59,130,246,.76));
@@ -203,6 +224,8 @@
         0 0 20px rgba(34,211,238,.22),
         0 0 30px rgba(168,85,247,.18);
       overflow: hidden;
+      position: relative;
+      grid-row: 1;
     }
 
     .clip-video-inner {
@@ -211,22 +234,13 @@
       height: 100%;
       border-radius: 18px;
       overflow: hidden;
-      background: linear-gradient(135deg, rgba(4,8,18,.95), rgba(15,7,33,.98));
-    }
-
-    .clip-video-inner::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background:
-        radial-gradient(circle at 50% 40%, rgba(34,211,238,.18), transparent 24%),
-        repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, transparent 1px 7px);
-      pointer-events: none;
-      z-index: 0;
+      background: #050816;
+      isolation: isolate;
     }
 
     #clipVideoPlayer {
-      position: relative;
+      position: absolute;
+      inset: 0;
       z-index: 1;
       width: 100%;
       height: 100%;
@@ -244,16 +258,19 @@
       bottom: 10px;
       display: flex;
       justify-content: space-between;
+      gap: 10px;
       font-size: 12px;
       color: #eaf6ff;
       text-shadow: 0 0 10px #000;
       pointer-events: none;
       z-index: 2;
+      white-space: nowrap;
     }
 
     .clip-text-card {
       width: 496px;
       height: 71px;
+      grid-row: 3;
       border-radius: 18px;
       background: linear-gradient(90deg, rgba(255,255,255,.065), rgba(34,211,238,.06));
       border: 1px solid rgba(255,255,255,.12);
@@ -263,6 +280,7 @@
       justify-content: center;
       position: relative;
       overflow: hidden;
+      min-width: 0;
     }
 
     #clipHeadline {
@@ -275,6 +293,8 @@
       text-shadow: 0 0 14px rgba(168,85,247,.58);
       white-space: nowrap;
       padding-right: 110px;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     #clipSubline {
@@ -300,6 +320,7 @@
       padding: 4px 8px;
       line-height: 1;
       white-space: nowrap;
+      z-index: 2;
     }
 
     #status {
@@ -474,7 +495,7 @@
               <video id="clipVideoPlayer" preload="auto" playsinline></video>
               <div class="clip-caption">
                 <span><b>Clip:</b> <span id="clipCaptionTitle">Rentnerkino Deluxe</span></span>
-                <span id="clipDuration">00:18</span>
+                <span id="clipDuration">00:00</span>
               </div>
             </div>
           </div>
@@ -499,7 +520,7 @@
       'use strict';
 
       const API = '/api/sound';
-      const BUILD = 'CAN44.24.00';
+      const BUILD = 'CAN44.24b';
       const TWITCH_CLIENT_ID = 'kimne78kx3ncx6brgo4mv6wki5h1ko';
       const TWITCH_CLIP_PERSISTED_HASH = '36b89d2507fce29e5ca551df756d27c1cfe079e2609642b4390aa4c35796eb11';
       const player = document.getElementById('player');
@@ -1495,7 +1516,7 @@
           module: 'sound_system',
           mode: 'bus_consumer_with_legacy_fallback',
           capabilities: BUS_CAPABILITIES,
-          version: 'CAN44.24.00',
+          version: 'CAN44.24b',
           state: document.hidden ? 'hidden' : 'visible',
           meta: {
             overlay: 'sound_system_overlay.html',
@@ -1590,7 +1611,7 @@
             module: 'sound_system',
             mode: 'bus_consumer_with_legacy_fallback',
             capabilities: BUS_CAPABILITIES,
-            version: 'CAN44.24.00'
+            version: 'CAN44.24b'
           });
           startBusHeartbeat();
           post('/client/ready', { overlay: 'sound_system_overlay', busConsumer: true });
