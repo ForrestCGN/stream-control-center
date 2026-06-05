@@ -1,12 +1,14 @@
-# NEXT_STEPS – CAN-44.21 Shoutout
+# NEXT_STEPS – CAN-44 Shoutout
 
 ## Nächster sinnvoller Schritt
 
 Aktuellen Stand beobachten, nicht sofort weiter umbauen.
 
+Der Shoutout-Overlay-Set-Editor ist nach CAN-44.31 optisch bereinigt und vom Nutzer grundsätzlich bestätigt. Als nächstes nur testen/beobachten und bei echtem Fehler gezielt nachziehen.
+
 ## Tests, sobald möglich
 
-### 1. Statuscheck nach CAN-44.21.41
+### 1. Statuscheck Backend
 
 ```powershell
 $s = Invoke-RestMethod "http://127.0.0.1:8080/api/clip-shoutout/status"
@@ -17,7 +19,6 @@ $s.effectiveCommandTriggers
 Erwartung:
 
 ```text
-moduleVersion : 0.2.40
 command       : so
 effectiveCommandTriggers:
 so
@@ -25,13 +26,49 @@ vso
 lastError     : leer
 ```
 
-### 2. Dashboard Save-Test
+### 2. Overlay-Sets prüfen
 
-Eine harmlose Shoutout-Setting-Option ändern, speichern, Dashboard hart neu laden und prüfen, ob der Wert erhalten bleibt.
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/clip-shoutout/overlay-sets" | ConvertTo-Json -Depth 10
+```
 
-Wichtig: Nicht Command/Alias im Shoutout-Dashboard erwarten. Commands werden im Commands-Dashboard gepflegt.
+Erwartung:
 
-### 3. AutoShoutout-Minimum testen
+- `ok: true`
+- `mode: paired_sets`
+- 10 aktive Sets, wenn die neue Liste eingespielt wurde
+- Headline/Subline enthalten `{displayName}` als Platzhalter
+
+### 3. Dashboard Overlay-Set-Editor prüfen
+
+Pfad:
+
+```text
+Community -> Shoutout -> Texte
+Kategorie: Shoutout Overlay
+Textkey: shoutout.overlay.sets
+```
+
+Erwartung:
+
+- Spezialeditor statt normalem Varianteneditor
+- Set-Zeilen mit ID, aktiv, Gewichtung, Headline, Subline
+- keine zusätzliche Vorschau-Zeile mehr
+- `Set löschen` oben rechts in der Kopfzeile
+
+### 4. Live-/Kontrolltest mit Shoutout
+
+Einen frischen Shoutout mit bekanntem Ziel auslösen, idealerweise mit `--force` im kontrollierten Test.
+
+Beobachten:
+
+- Queue bleibt stabil
+- Sound-System-Overlay zeigt H15-Layout
+- Headline/Subline kommen paarweise aus einem Set
+- `{displayName}` wird korrekt ersetzt
+- Official Twitch Shoutout bleibt unverändert
+
+### 5. AutoShoutout-Minimum testen
 
 Sobald ein kontrollierter Chat-Test möglich ist:
 
@@ -39,13 +76,13 @@ Sobald ein kontrollierter Chat-Test möglich ist:
 - Streamer schreibt normale Nachricht: zählt als 1, löst noch nicht aus.
 - Zwei weitere Nachrichten: AutoShoutout darf auslösen.
 
-### 4. AutoShoutout-Sofort-Auslöser testen
+### 6. AutoShoutout-Sofort-Auslöser testen
 
 - Mindestnachrichten auf 2 oder 3 lassen.
 - Streamer schreibt `!lurk`.
 - Erwartung: AutoShoutout darf sofort prüfen/auslösen, wenn `instantTriggerMessagesEnabled` und `instantTriggerBypassMinMessages` aktiv sind.
 
-### 5. OfficialQueue beobachten
+### 7. OfficialQueue beobachten
 
 Bei Twitch-/so-Block:
 
@@ -55,7 +92,7 @@ Bei Twitch-/so-Block:
 
 ## Mögliche spätere Verbesserungen
 
-- Settings-UI weiter visuell glätten, falls noch zu breit/leer.
-- Hilfetexte/Tooltips weiter verfeinern, wenn Begriffe unklar bleiben.
-- Optional: AutoShoutout-Trigger-Liste dashboardfähig mit Validierung und Beispielen erweitern.
+- Overlay-Set-Editor optisch weiter glätten, falls nach längerem Gebrauch etwas stört.
+- Textpaar-Liste weiter ausbauen oder saisonale Sets ergänzen.
+- Optional: Import/Export-Button für Overlay-Sets im Dashboard.
 - Optional: Settings-Änderungen mit Audit-Log verbinden, sobald das zentrale Rollen-/Audit-System dafür final vorgesehen ist.
