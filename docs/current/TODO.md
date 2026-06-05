@@ -1,13 +1,15 @@
-# TODO – Shoutout-System CAN-44.21
+# TODO – Shoutout-System CAN-44
 
 ## Offen / Beobachten
 
-- [ ] CAN-44.21.41 im echten oder kontrollierten Chatbetrieb beobachten.
+- [ ] CAN-44.31 im echten oder kontrollierten Shoutout-Betrieb beobachten.
+- [ ] Neue 10er Overlay-Set-Liste per API einspielen, falls noch nicht passiert.
+- [ ] Prüfen, ob Overlay-Sets im Dashboard nach Hard-Reload dauerhaft sichtbar/editierbar bleiben.
+- [ ] Prüfen, ob Headline/Subline im echten Shoutout immer als Paar aus demselben Set kommen.
+- [ ] Prüfen, ob `{displayName}` im Overlay sauber ersetzt wird.
 - [ ] AutoShoutout normale Mindestnachrichten testen.
 - [ ] AutoShoutout `!lurk` Sofort-Auslöser testen.
-- [ ] Dashboard-Settings-Speichern nach CAN-44.21.40/41 erneut prüfen.
 - [ ] OfficialQueue-Retry-/Dedup-Verhalten weiter beobachten.
-- [ ] Prüfen, ob Tooltips für AutoShoutout verständlich genug sind.
 
 ## Erledigt
 
@@ -23,11 +25,16 @@
 - [x] Help-Tooltips ergänzt.
 - [x] Settings-Speicherbug behoben.
 - [x] AutoShoutout-Sofort-Auslöser für Lurk-Kommandos ergänzt.
+- [x] H15-Layout im bestehenden Sound-System-Overlay als Shoutout-Darstellung integriert.
+- [x] Overlay-Headline/Subline als Paar-System (`overlaySets`) umgesetzt.
+- [x] API für Overlay-Sets ergänzt: `GET/POST /api/clip-shoutout/overlay-sets`.
+- [x] Dashboard-Spezialeditor über Dropdown `shoutout.overlay.sets` sichtbar gemacht.
+- [x] Overlay-Set-Editor kompakt aufgeräumt: keine Vorschau-Zeile, `Set löschen` oben rechts.
 
 ## Nicht anfassen ohne neuen Auftrag
 
 - Clip-Player/Playback.
-- Sound-System-Overlay.
 - OBS-Steuerung als Fallback.
 - Produktive SQLite-Datenbank-Datei.
 - Bestehende Queue-/OfficialQueue-Logik ohne konkreten Fehlernachweis.
+- Bestehende Sound-System-Queue/Audio-Finish-Logik.
