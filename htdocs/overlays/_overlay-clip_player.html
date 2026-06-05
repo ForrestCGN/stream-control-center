@@ -2,18 +2,19 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <title>CGN Clip Shoutout (VIP30 Style)</title>
+  <title>CGN Clip Shoutout Player - CAN44.21.20 GQL Diagnose</title>
   <meta name="viewport" content="width=1920, height=1080">
 
-  <!-- VIP30 Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
 
   <style>
     html, body {
-      margin: 0; padding: 0;
-      width: 1920px; height: 1080px;
+      margin: 0;
+      padding: 0;
+      width: 1920px;
+      height: 1080px;
       background: transparent;
       overflow: hidden;
       font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -61,17 +62,17 @@
       margin: auto 0;
     }
 
-    /* LEFT: Avatar vertically centered to match video height */
     .left {
       display: flex;
-      align-items: center;      /* vertical center */
-      justify-content: center;  /* horizontal center */
+      align-items: center;
+      justify-content: center;
       padding-right: 18px;
-      height: 360px;            /* match video-frame height */
+      height: 360px;
     }
 
     .avatar-wrap {
-      width: 150px; height: 150px;
+      width: 150px;
+      height: 150px;
       padding: 7px;
       border-radius: 999px;
       background: radial-gradient(circle at 30% 20%, #a580fc, #28123f);
@@ -79,7 +80,8 @@
     }
 
     .avatar-inner {
-      width: 100%; height: 100%;
+      width: 100%;
+      height: 100%;
       border-radius: inherit;
       overflow: hidden;
       background: #140627;
@@ -98,13 +100,15 @@
     }
 
     .avatar-img {
-      width: 100%; height: 100%;
+      width: 100%;
+      height: 100%;
       object-fit: cover;
       display: none;
     }
 
     .avatar-ph {
-      width: 100%; height: 100%;
+      width: 100%;
+      height: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -114,7 +118,6 @@
       text-shadow: 0 0 12px rgba(30,144,255,0.9);
     }
 
-    /* RIGHT: video + name underneath */
     .right {
       display: flex;
       flex-direction: column;
@@ -128,15 +131,40 @@
       height: 360px;
       border-radius: 26px;
       overflow: hidden;
-      background: black;
+      background: #05020a;
       box-shadow: inset 0 0 10px rgba(0,0,0,0.7);
+      position: relative;
     }
 
     video {
-      width: 100%; height: 100%;
+      width: 100%;
+      height: 100%;
       object-fit: cover;
       opacity: 0;
       transition: opacity 250ms ease-in-out;
+      background: #000;
+    }
+
+    .status {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 22px;
+      text-align: center;
+      color: #f7f0ff;
+      font-size: 22px;
+      line-height: 1.35;
+      text-shadow: 0 0 10px rgba(85,196,255,0.8);
+      background: radial-gradient(circle at center, rgba(34, 18, 64, 0.96), rgba(5, 2, 10, 0.98));
+      z-index: 3;
+      white-space: pre-wrap;
+    }
+
+    .status.error {
+      color: #ffe2e2;
+      text-shadow: 0 0 10px rgba(255,80,120,0.85);
     }
 
     .right-name {
@@ -155,7 +183,6 @@
     }
   </style>
 </head>
-
 <body>
   <div class="wrapper" id="wrap">
     <div class="panel">
@@ -173,25 +200,65 @@
       <div class="right">
         <div class="video-frame">
           <video id="clipplayer" playsinline webkit-playsinline></video>
+          <div id="statusBox" class="status">Clip wird geladen...</div>
         </div>
 
         <div class="right-name" id="whoName">@User</div>
-        <div class="right-sub">🧓 Altersheim-TV</div>
+        <div class="right-sub" id="subline">🧓 Altersheim-TV</div>
       </div>
     </div>
   </div>
 
   <script>
-    function qs(n){ return new URLSearchParams(location.search).get(n); }
+    const BUILD = "CAN44.21.20";
+    const TWITCH_CLIENT_ID = "kimne78kx3ncx6brgo4mv6wki5h1ko";
+    const PERSISTED_HASH = "36b89d2507fce29e5ca551df756d27c1cfe079e2609642b4390aa4c35796eb11";
+
+    function qs(name) {
+      return new URLSearchParams(location.search).get(name);
+    }
+
+    function cleanLogin(value) {
+      return String(value || "").replace(/^@+/, "").trim();
+    }
+
+    function cleanClipId(value) {
+      return String(value || "").trim();
+    }
+
+    function showWrap() {
+      const wrap = document.getElementById("wrap");
+      wrap.classList.remove("show", "hide");
+      void wrap.offsetWidth;
+      wrap.classList.add("show");
+    }
+
+    function hideWrap() {
+      const wrap = document.getElementById("wrap");
+      wrap.classList.remove("show");
+      wrap.classList.add("hide");
+    }
+
+    function setStatus(message, isError) {
+      const box = document.getElementById("statusBox");
+      box.textContent = message || "";
+      box.classList.toggle("error", !!isError);
+      box.style.display = message ? "flex" : "none";
+      if (isError) console.error("[clip-player]", message);
+      else console.info("[clip-player]", message);
+    }
+
+    function makeDiag(error, detail) {
+      const suffix = detail ? "\n" + String(detail).slice(0, 900) : "";
+      return "Clip konnte nicht geladen werden.\n" + error + suffix;
+    }
 
     async function setAvatarAndName(user) {
       const img = document.getElementById("avatarImg");
       const ph  = document.getElementById("avatarPh");
       const who = document.getElementById("whoName");
 
-      const login = (user || "").replace(/^@+/, "").trim();
-
-      // Fallback sofort
+      const login = cleanLogin(user);
       who.textContent = login ? ("@" + login) : "Clip";
       ph.textContent  = login ? login[0].toUpperCase() : "?";
       img.style.display = "none";
@@ -200,7 +267,7 @@
       if (!login) return;
 
       try {
-        const res = await fetch("http://localhost:8080/userinfo?login=" + encodeURIComponent(login), { cache: "no-store" });
+        const res = await fetch("/userinfo?login=" + encodeURIComponent(login), { cache: "no-store" });
         if (!res.ok) throw new Error("userinfo http " + res.status);
 
         const json = await res.json();
@@ -218,100 +285,208 @@
           ph.style.display = "none";
         }
       } catch (e) {
-        // Fallback bleibt
-        console.warn("userinfo failed:", e);
+        console.warn("[clip-player] userinfo failed:", e);
       }
     }
 
-    async function loadClip(clipId) {
+    async function gql(body, label) {
       const res = await fetch("https://gql.twitch.tv/gql", {
         method: "POST",
         headers: {
           "Content-Type": "text/plain;charset=UTF-8",
-          "Client-ID": "kimne78kx3ncx6brgo4mv6wki5h1ko"
+          "Client-ID": TWITCH_CLIENT_ID
         },
-        body: JSON.stringify({
-          operationName: "VideoAccessToken_Clip",
-          variables: { slug: clipId },
-          extensions: {
-            persistedQuery: {
-              version: 1,
-              sha256Hash: "36b89d2507fce29e5ca551df756d27c1cfe079e2609642b4390aa4c35796eb11"
-            }
-          }
-        })
+        body: JSON.stringify(body)
       });
 
-      if (!res.ok) throw new Error("twitch gql http " + res.status);
+      const text = await res.text();
+      let json = null;
+      try { json = text ? JSON.parse(text) : null; }
+      catch (e) { throw new Error(label + " invalid_json http=" + res.status + " body=" + text.slice(0, 300)); }
 
-      const j = await res.json();
-      const clip = j && j.data && j.data.clip ? j.data.clip : null;
-      if (!clip) throw new Error("clip missing");
+      if (!res.ok) {
+        throw new Error(label + " http=" + res.status + " body=" + text.slice(0, 500));
+      }
 
-      const qualities = clip.videoQualities || [];
-      if (!qualities.length) throw new Error("no qualities");
+      if (json && Array.isArray(json.errors) && json.errors.length) {
+        throw new Error(label + " gql_errors=" + JSON.stringify(json.errors).slice(0, 700));
+      }
 
-      qualities.sort((a,b)=> (b.quality||0) - (a.quality||0));
-      const best = qualities[0];
-
-      return best.sourceURL
-        + "?sig=" + encodeURIComponent(clip.playbackAccessToken.signature)
-        + "&token=" + encodeURIComponent(clip.playbackAccessToken.value);
+      return json;
     }
 
-    async function play(mp4) {
-      const wrap = document.getElementById("wrap");
+    function extractPlayback(json, label) {
+      const clip = json && json.data && json.data.clip ? json.data.clip : null;
+      if (!clip) throw new Error(label + " clip missing");
+
+      const qualities = Array.isArray(clip.videoQualities) ? clip.videoQualities.slice() : [];
+      if (!qualities.length) throw new Error(label + " no qualities");
+
+      const token = clip.playbackAccessToken || clip.accessToken || null;
+      if (!token || !token.signature || !token.value) throw new Error(label + " token missing");
+
+      qualities.sort((a, b) => Number(b.quality || 0) - Number(a.quality || 0));
+      const best = qualities.find(q => q && q.sourceURL) || qualities[0];
+      if (!best || !best.sourceURL) throw new Error(label + " sourceURL missing");
+
+      const url = best.sourceURL
+        + "?sig=" + encodeURIComponent(token.signature)
+        + "&token=" + encodeURIComponent(token.value);
+
+      return { url, clip, quality: best.quality || "source", label };
+    }
+
+    async function loadClipWithPersistedQuery(clipId, version) {
+      const label = "persisted_v" + version;
+      const json = await gql({
+        operationName: "VideoAccessToken_Clip",
+        variables: { slug: clipId },
+        extensions: {
+          persistedQuery: {
+            version,
+            sha256Hash: PERSISTED_HASH
+          }
+        }
+      }, label);
+      return extractPlayback(json, label);
+    }
+
+    async function loadClipWithExplicitQuery(clipId) {
+      const label = "explicit_query";
+      const json = await gql({
+        operationName: "ClipPlayerAccessTokenQuery",
+        query: `query ClipPlayerAccessTokenQuery($slug: ID!) {
+          clip(slug: $slug) {
+            id
+            slug
+            title
+            videoQualities {
+              quality
+              frameRate
+              sourceURL
+            }
+            playbackAccessToken(params: { platform: "web", playerBackend: "mediaplayer", playerType: "site" }) {
+              signature
+              value
+            }
+          }
+        }`,
+        variables: { slug: clipId }
+      }, label);
+      return extractPlayback(json, label);
+    }
+
+    async function loadClip(clipId) {
+      const attempts = [];
+      const methods = [
+        () => loadClipWithExplicitQuery(clipId),
+        () => loadClipWithPersistedQuery(clipId, 1),
+        () => loadClipWithPersistedQuery(clipId, 2)
+      ];
+
+      for (const method of methods) {
+        try {
+          const result = await method();
+          console.info("[clip-player] playback resolved", result.label, result.quality);
+          return result;
+        } catch (e) {
+          attempts.push(e && e.message ? e.message : String(e));
+          console.warn("[clip-player] playback attempt failed:", e);
+        }
+      }
+
+      throw new Error(attempts.join(" | "));
+    }
+
+    async function waitForCanPlay(video, timeoutMs) {
+      if (video.readyState >= 3) return;
+      await new Promise((resolve, reject) => {
+        const timer = setTimeout(() => cleanup(() => reject(new Error("video canplay timeout"))), timeoutMs || 8000);
+        function cleanup(done) {
+          clearTimeout(timer);
+          video.removeEventListener("canplay", onCanPlay);
+          video.removeEventListener("loadeddata", onCanPlay);
+          video.removeEventListener("error", onError);
+          done();
+        }
+        function onCanPlay() { cleanup(resolve); }
+        function onError() {
+          const err = video.error;
+          cleanup(() => reject(new Error("video error code=" + (err ? err.code : "unknown"))));
+        }
+        video.addEventListener("canplay", onCanPlay, { once: true });
+        video.addEventListener("loadeddata", onCanPlay, { once: true });
+        video.addEventListener("error", onError, { once: true });
+      });
+    }
+
+    async function play(playback) {
       const v = document.getElementById("clipplayer");
-
-      wrap.classList.remove("show","hide");
-      void wrap.offsetWidth;
-      wrap.classList.add("show");
-
-      v.src = mp4;
+      v.pause();
+      v.removeAttribute("src");
+      v.load();
+      v.style.opacity = 0;
+      v.controls = false;
+      v.muted = false;
+      v.volume = 1;
+      v.src = playback.url;
       v.load();
 
-      // Autoplay: try with sound, fallback muted
-      v.muted = false;
+      setStatus("Clip wird vorbereitet...", false);
+      await waitForCanPlay(v, 9000);
 
-      try { await v.play(); }
-      catch { v.muted = true; await v.play(); }
+      try {
+        await v.play();
+      } catch (e) {
+        console.warn("[clip-player] autoplay with audio failed, trying muted:", e);
+        v.muted = true;
+        await v.play();
+      }
 
+      setStatus("", false);
       v.style.opacity = 1;
+      document.getElementById("subline").textContent = "🧓 Altersheim-TV · " + playback.label + " · " + playback.quality;
 
       v.onended = () => {
         v.style.opacity = 0;
-        wrap.classList.remove("show");
-        wrap.classList.add("hide");
+        hideWrap();
       };
     }
 
     document.addEventListener("DOMContentLoaded", async () => {
-      const clipId = qs("clipId");
+      const clipId = cleanClipId(qs("clipId"));
       const user = qs("user") || "";
 
-      if (!clipId) return;
+      showWrap();
+      await setAvatarAndName(user);
 
-      setAvatarAndName(user);
+      if (!clipId) {
+        setStatus(makeDiag("clipId fehlt", "URL-Parameter clipId ist leer."), true);
+        return;
+      }
+
+      setStatus("Clip wird geladen...\n" + clipId, false);
 
       try {
-        const mp4 = await loadClip(clipId);
-        await play(mp4);
+        const playback = await loadClip(clipId);
+        await play(playback);
       } catch (e) {
-        console.error(e);
+        const message = e && e.message ? e.message : String(e);
+        console.error("[clip-player] failed", e);
+        setStatus(makeDiag("Playback fehlgeschlagen", message), true);
       }
     });
   </script>
-<!-- CGN EventBus Heartbeat (STEP626B) -->
-<script
-  src="/overlays/shared/overlay_bus_client.js"
-  data-overlay-id="clip_player_overlay"
-  data-client-type="overlay"
-  data-mode="obs_overlay"
-  data-module="clips"
-  data-name="Clip Player Overlay"
-  data-version="0.1.0"
-  data-heartbeat-ms="5000"
-></script>
 
+  <script
+    src="/overlays/shared/overlay_bus_client.js"
+    data-overlay-id="clip_player_overlay"
+    data-client-type="overlay"
+    data-mode="obs_overlay"
+    data-module="clips"
+    data-name="Clip Player Overlay"
+    data-version="0.2.0-can44-21-20"
+    data-heartbeat-ms="5000"
+  ></script>
 </body>
 </html>
