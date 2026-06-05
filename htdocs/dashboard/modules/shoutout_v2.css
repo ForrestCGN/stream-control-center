@@ -911,3 +911,14 @@
 
 
 /* CAN-44.21.40 – Save-Fix: keine CSS-Änderung, Tooltips/Layout bleiben unverändert. */
+
+
+/* CAN-44.21.41 – AutoShoutout Sofort-Auslöser */
+.shoutout-v2-admin .so2-setting-field:has([data-so2-setting="autoShoutout.instantTriggerMessages"]){
+  grid-column:1 / -1;
+}
+.shoutout-v2-admin .so2-setting-check:has([data-so2-setting="autoShoutout.instantTriggerMessagesEnabled"]),
+.shoutout-v2-admin .so2-setting-check:has([data-so2-setting="autoShoutout.instantTriggerBypassMinMessages"]){
+  border-color:rgba(34,211,238,.16);
+  background:linear-gradient(180deg,rgba(34,211,238,.07),rgba(0,0,0,.12));
+}

@@ -1237,14 +1237,17 @@ window.ShoutoutV2Module = (function(){
 
     'autoShoutout.enabled': 'Schaltet automatische Shoutouts für konfigurierte Streamer ein oder aus.',
     'autoShoutout.onlyWhenLive': 'AutoShoutouts werden nur ausgelöst, wenn dein Stream live ist.',
-    'autoShoutout.triggerOnFirstMessageOnly': 'AutoShoutout wird nur bei der ersten erkannten Chatnachricht eines Streamers geprüft.',
+    'autoShoutout.triggerOnFirstMessageOnly': 'Begrenzt AutoShoutout auf den ersten Kontakt/Streamtag. Die erste Nachricht zählt trotzdem als Nachricht 1; weitere Nachrichten können die Mindestanzahl erfüllen.',
     'autoShoutout.greetingEnabled': 'Aktiviert Begrüßungstexte für AutoShoutout-Streamer.',
     'autoShoutout.greetingOnlyWhenTriggering': 'Begrüßung wird nur gesendet, wenn dadurch auch ein AutoShoutout ausgelöst wird.',
     'autoShoutout.respectStreamDayLimit': 'AutoShoutouts beachten die Streamtag-Sperre wie manuelle Shoutouts.',
     'autoShoutout.sendChatMessage': 'Sendet Chatmeldung bei AutoShoutout-Queue-Einträgen.',
     'autoShoutout.storeSkippedEvents': 'Speichert übersprungene AutoShoutout-Events für spätere Auswertung/Diagnose.',
     'autoShoutout.suppressImmediateQueuedMessage': 'Unterdrückt Queue-Meldungen, wenn der Shoutout fast sofort starten würde.',
-    'autoShoutout.minMessagesBeforeTrigger': 'Anzahl erkannter Nachrichten, bevor AutoShoutout auslösen darf.',
+    'autoShoutout.minMessagesBeforeTrigger': 'Anzahl erkannter Nachrichten bis zum AutoShoutout. Die erste Nachricht zählt mit; bei 3 sind also noch zwei weitere nötig.',
+    'autoShoutout.instantTriggerMessagesEnabled': 'Aktiviert Sofort-Auslöser wie !lurk. Diese Nachrichten können AutoShoutout direkt prüfen, auch wenn sonst mehrere Nachrichten nötig sind.',
+    'autoShoutout.instantTriggerBypassMinMessages': 'Wenn aktiv, umgehen Sofort-Auslöser die Mindestnachrichten. Die Nachricht wird trotzdem als Aktivität gezählt.',
+    'autoShoutout.instantTriggerMessages': 'Liste von Nachrichten oder ersten Worten, die sofort auslösen dürfen, z. B. !lurk, !lurke oder lurk.',
     'autoShoutout.messageWindowMs': 'Zeitfenster, in dem Nachrichten für AutoShoutout gezählt werden.',
     'autoShoutout.globalCooldownMs': 'Globale Wartezeit zwischen AutoShoutouts.',
     'autoShoutout.perStreamerCooldownMs': 'Wartezeit pro Streamer, bevor AutoShoutout erneut auslösen darf.',
@@ -1407,7 +1410,9 @@ window.ShoutoutV2Module = (function(){
           ${renderSettingsPanel('AutoShoutout', `
             ${settingsCheck('autoShoutout.enabled', 'AutoShoutout aktiv', auto.enabled === true)}
             ${settingsCheck('autoShoutout.onlyWhenLive', 'Nur wenn Stream live', auto.onlyWhenLive === true)}
-            ${settingsCheck('autoShoutout.triggerOnFirstMessageOnly', 'Nur erste Nachricht', auto.triggerOnFirstMessageOnly !== false)}
+            ${settingsCheck('autoShoutout.triggerOnFirstMessageOnly', 'Ersten Kontakt beachten', auto.triggerOnFirstMessageOnly !== false)}
+            ${settingsCheck('autoShoutout.instantTriggerMessagesEnabled', 'Sofort-Auslöser aktiv', auto.instantTriggerMessagesEnabled !== false)}
+            ${settingsCheck('autoShoutout.instantTriggerBypassMinMessages', 'Sofort-Auslöser umgehen Mindestnachrichten', auto.instantTriggerBypassMinMessages !== false)}
             ${settingsCheck('autoShoutout.greetingEnabled', 'Begrüßung aktiv', auto.greetingEnabled !== false)}
             ${settingsCheck('autoShoutout.greetingOnlyWhenTriggering', 'Begrüßung nur bei Trigger', auto.greetingOnlyWhenTriggering !== false)}
             ${settingsCheck('autoShoutout.respectStreamDayLimit', 'Streamtag-Sperre beachten', auto.respectStreamDayLimit !== false)}
@@ -1415,6 +1420,7 @@ window.ShoutoutV2Module = (function(){
             ${settingsCheck('autoShoutout.storeSkippedEvents', 'Übersprungene Events speichern', auto.storeSkippedEvents === true)}
             ${settingsCheck('autoShoutout.suppressImmediateQueuedMessage', 'Sofort-Queue-Meldung unterdrücken', auto.suppressImmediateQueuedMessage !== false)}
             ${settingsInput('autoShoutout.minMessagesBeforeTrigger', 'Mindestnachrichten', numValue(auto.minMessagesBeforeTrigger, 3), 'number', 'Anzahl', 'min="1" step="1"')}
+            ${settingsInput('autoShoutout.instantTriggerMessages', 'Sofort-Auslöser', csvValue(auto.instantTriggerMessages || ['!lurk', '!lurke', 'lurk']), 'text', 'Kommagetrennt, z. B. !lurk, !lurke, lurk')}
             ${settingsInput('autoShoutout.messageWindowMs', 'Nachrichtenfenster', numValue(auto.messageWindowMs, 1800000), 'number', 'Millisekunden', 'min="1000" step="1000"')}
             ${settingsInput('autoShoutout.globalCooldownMs', 'Globaler Cooldown', numValue(auto.globalCooldownMs, 120000), 'number', 'Millisekunden', 'min="0" step="1000"')}
             ${settingsInput('autoShoutout.perStreamerCooldownMs', 'Streamer-Cooldown', numValue(auto.perStreamerCooldownMs, 43200000), 'number', 'Millisekunden', 'min="0" step="60000"')}
@@ -1901,6 +1907,9 @@ window.ShoutoutV2Module = (function(){
         onlyWhenLive: fieldChecked('autoShoutout.onlyWhenLive', false),
         triggerOnFirstMessageOnly: fieldChecked('autoShoutout.triggerOnFirstMessageOnly', true),
         minMessagesBeforeTrigger: fieldNumber('autoShoutout.minMessagesBeforeTrigger', 3),
+        instantTriggerMessagesEnabled: fieldChecked('autoShoutout.instantTriggerMessagesEnabled', true),
+        instantTriggerBypassMinMessages: fieldChecked('autoShoutout.instantTriggerBypassMinMessages', true),
+        instantTriggerMessages: fieldCsv('autoShoutout.instantTriggerMessages'),
         messageWindowMs: fieldNumber('autoShoutout.messageWindowMs', 1800000),
         greetingEnabled: fieldChecked('autoShoutout.greetingEnabled', true),
         greetingOnlyWhenTriggering: fieldChecked('autoShoutout.greetingOnlyWhenTriggering', true),

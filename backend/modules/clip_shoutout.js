@@ -19,7 +19,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.39";
+const MODULE_VERSION = "0.2.40";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -31,7 +31,7 @@ const MODULE_META = {
   routesPrefix: [API_PREFIX, "/api/clip/shoutout"],
   capabilities: ["shoutout.display_queue", "shoutout.official_queue", "shoutout.event_output"],
   bus: { emits: true, registered: false, heartbeat: false, channel: SHOUTOUT_BUS_CHANNEL },
-  note: "CAN-44.21.32: Direct intake uses command_definitions only; legacy routes marked; clip playback unchanged."
+  note: "CAN-44.21.41: AutoShoutout instant trigger messages can bypass the message threshold; clip playback unchanged."
 };
 
 const AUTO_SHOUTOUT_TEXT_DEFAULTS = {
@@ -313,6 +313,9 @@ const DEFAULT_CONFIG = {
       onlyWhenLive: false,
       triggerOnFirstMessageOnly: true,
       minMessagesBeforeTrigger: 3,
+      instantTriggerMessagesEnabled: true,
+      instantTriggerBypassMinMessages: true,
+      instantTriggerMessages: ["!lurk", "!lurke", "lurk"],
       messageWindowMs: 1800000,
       greetingEnabled: true,
       greetingOnlyWhenTriggering: true,
@@ -4488,6 +4491,9 @@ function normalizeAutoSettings(input = {}, fallback = {}) {
     onlyWhenLive: input.onlyWhenLive === undefined ? base.onlyWhenLive === true : database.boolFromDb(database.normalizeBool(input.onlyWhenLive)),
     triggerOnFirstMessageOnly: input.triggerOnFirstMessageOnly === undefined ? base.triggerOnFirstMessageOnly !== false : database.boolFromDb(database.normalizeBool(input.triggerOnFirstMessageOnly)),
     minMessagesBeforeTrigger: Math.max(1, Number.parseInt(input.minMessagesBeforeTrigger === undefined ? base.minMessagesBeforeTrigger : input.minMessagesBeforeTrigger, 10) || 3),
+    instantTriggerMessagesEnabled: input.instantTriggerMessagesEnabled === undefined ? base.instantTriggerMessagesEnabled !== false : database.boolFromDb(database.normalizeBool(input.instantTriggerMessagesEnabled)),
+    instantTriggerBypassMinMessages: input.instantTriggerBypassMinMessages === undefined ? base.instantTriggerBypassMinMessages !== false : database.boolFromDb(database.normalizeBool(input.instantTriggerBypassMinMessages)),
+    instantTriggerMessages: normalizeStringArray(input.instantTriggerMessages, normalizeStringArray(base.instantTriggerMessages, DEFAULT_CONFIG.clipShoutout.autoShoutout.instantTriggerMessages || [])),
     messageWindowMs: Math.max(60000, Number(input.messageWindowMs === undefined ? base.messageWindowMs : input.messageWindowMs) || 1800000),
     greetingEnabled: input.greetingEnabled === undefined ? base.greetingEnabled !== false : database.boolFromDb(database.normalizeBool(input.greetingEnabled)),
     greetingOnlyWhenTriggering: input.greetingOnlyWhenTriggering === undefined ? base.greetingOnlyWhenTriggering !== false : database.boolFromDb(database.normalizeBool(input.greetingOnlyWhenTriggering)),
@@ -4911,6 +4917,8 @@ async function simulateAutoShoutoutChatActivity(parsed, source = {}, env = proce
   const streamDay = resolveCurrentStreamDay(env, cfg);
   const streamDayId = streamDay && streamDay.streamDayId ? String(streamDay.streamDayId) : '';
   const varsBase = { login, displayName: streamer.displayName || displayName || login, waitTime: 'wenige Sekunden', streamDayId };
+  const autoRawMessage = autoMessageTextFromParsed(parsed);
+  const instantTrigger = isAutoInstantTriggerMessage(autoRawMessage, acfg);
 
   const pendingDisplay = findPendingDisplayShoutout(login);
   if (pendingDisplay) {
@@ -4938,9 +4946,10 @@ async function simulateAutoShoutoutChatActivity(parsed, source = {}, env = proce
     return { ok: true, dryRun: true, skipped: true, reason: cooldown.blockedBy || 'cooldown', wouldTrigger: false, targetLogin: login, cooldown, waitTime: formatApproxDuration(waitMs), streamDayId };
   }
 
-  const activity = previewAutoMessageActivity(login, streamer.displayName || displayName || login, streamDayId, acfg, source);
+  const activity = previewAutoMessageActivity(login, streamer.displayName || displayName || login, streamDayId, acfg, { ...source, autoRawMessage, instantTrigger });
   const requiredMessages = Math.max(1, Number(acfg.minMessagesBeforeTrigger || 3));
-  const wouldTrigger = Boolean(activity && activity.messageCount >= requiredMessages);
+  const bypassMessageThreshold = instantTrigger.matched === true && acfg.instantTriggerBypassMinMessages !== false;
+  const wouldTrigger = Boolean((activity && activity.messageCount >= requiredMessages) || bypassMessageThreshold);
   const waitMs = wouldTrigger ? 0 : Math.max(0, activity ? activity.windowRemainingMs : 0);
   return {
     ok: true,
@@ -4954,6 +4963,8 @@ async function simulateAutoShoutoutChatActivity(parsed, source = {}, env = proce
     waitTime: wouldTrigger ? 'wenige Sekunden' : formatApproxDuration(waitMs),
     waitMs,
     activity,
+    instantTrigger: bypassMessageThreshold,
+    matchedToken: instantTrigger.token || '',
     sceneGate,
     streamDay,
     streamState,
@@ -5134,6 +5145,28 @@ function autoSkip(login, displayName, reason, extra = {}, cfg = null) {
   return { ok: true, skipped: true, reason: String(reason || 'skipped') };
 }
 
+
+function autoMessageTextFromParsed(parsed = {}) {
+  const params = Array.isArray(parsed.params) ? parsed.params : [];
+  return String(parsed.message || parsed.rawMessage || parsed.text || params[1] || params[params.length - 1] || '').trim();
+}
+
+function normalizeAutoInstantTriggerToken(value) {
+  return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function isAutoInstantTriggerMessage(message, acfg = {}) {
+  if (acfg.instantTriggerMessagesEnabled === false) return { matched: false, token: '', message: String(message || '') };
+  const raw = normalizeAutoInstantTriggerToken(message);
+  if (!raw) return { matched: false, token: '', message: raw };
+  const firstWord = raw.split(/\s+/)[0] || raw;
+  const list = normalizeStringArray(acfg.instantTriggerMessages, DEFAULT_CONFIG.clipShoutout.autoShoutout.instantTriggerMessages || [])
+    .map(normalizeAutoInstantTriggerToken)
+    .filter(Boolean);
+  const matched = list.find(token => token === raw || token === firstWord || (token.startsWith('!') && token.slice(1) === firstWord) || (!token.startsWith('!') && `!${token}` === firstWord));
+  return { matched: Boolean(matched), token: matched || '', message: raw, firstWord };
+}
+
 async function handleAutoShoutoutChatActivity(parsed, source = {}, env = process.env) {
   const cfg = shoutoutConfig();
   const acfg = autoShoutoutConfig(cfg);
@@ -5195,9 +5228,10 @@ async function handleAutoShoutoutChatActivity(parsed, source = {}, env = process
     return autoSkip(login, displayName, cooldown.blockedBy || 'cooldown', { streamDayId, cooldown, waitTime }, cfg);
   }
 
-  const activity = recordAutoMessageActivity(login, streamer.displayName || displayName || login, streamDayId, acfg, source);
+  const activity = recordAutoMessageActivity(login, streamer.displayName || displayName || login, streamDayId, acfg, { ...source, autoRawMessage, instantTrigger });
   const requiredMessages = Math.max(1, Number(acfg.minMessagesBeforeTrigger || 3));
-  if (activity && activity.messageCount < requiredMessages) {
+  const bypassMessageThreshold = instantTrigger.matched === true && acfg.instantTriggerBypassMinMessages !== false;
+  if (activity && activity.messageCount < requiredMessages && !bypassMessageThreshold) {
     emitShoutoutBus('shoutout.auto.waiting_message_threshold', {
       targetLogin: login,
       displayName: streamer.displayName || displayName || login,
@@ -5209,6 +5243,17 @@ async function handleAutoShoutoutChatActivity(parsed, source = {}, env = process
       windowRemainingMs: activity.windowRemainingMs
     }, cfg);
     return { ok: true, skipped: true, reason: 'message_threshold_waiting', targetLogin: login, activity };
+  }
+  if (bypassMessageThreshold) {
+    emitShoutoutBus('shoutout.auto.instant_trigger_message', {
+      targetLogin: login,
+      displayName: streamer.displayName || displayName || login,
+      streamDayId,
+      messageCount: activity ? activity.messageCount : 1,
+      requiredMessages,
+      matchedToken: instantTrigger.token,
+      rawMessage: autoRawMessage
+    }, cfg);
   }
 
   const input = {
@@ -5232,7 +5277,11 @@ async function handleAutoShoutoutChatActivity(parsed, source = {}, env = process
     twitchShoutout: streamer.officialShoutout !== false,
     autoShoutout: true,
     source: source.source || 'twitch_presence',
-    channel: source.channel || ''
+    channel: source.channel || '',
+    autoInstantTrigger: bypassMessageThreshold,
+    autoInstantTriggerToken: instantTrigger.token || '',
+    autoMessageCount: activity ? activity.messageCount : 0,
+    autoRequiredMessages: requiredMessages
   };
 
   try {
@@ -5263,7 +5312,7 @@ async function handleAutoShoutoutChatActivity(parsed, source = {}, env = process
       status,
       reason,
       displayQueueId,
-      meta: { source, streamState, sceneGate, streamDay, result: data, waitTime, waitMs }
+      meta: { source, streamState, sceneGate, streamDay, result: data, waitTime, waitMs, autoRawMessage, instantTrigger, bypassMessageThreshold, activity }
     });
 
     if (ok) {
@@ -5280,8 +5329,8 @@ async function handleAutoShoutoutChatActivity(parsed, source = {}, env = process
           sendAutoChatNotice(acfg, key, { login, displayName: streamer.displayName || displayName || login, waitTime, reason, displayQueueId, waitMs }, cfg).catch(err => { state.autoShoutout.lastError = err && err.message ? err.message : String(err); });
         }
       }
-      emitShoutoutBus('shoutout.auto.triggered', { targetLogin: login, displayName: streamer.displayName || displayName || login, displayQueueId, streamDayId, sceneGate, waitTime, waitMs }, cfg);
-      return { ok: true, triggered: true, targetLogin: login, displayQueueId, reason, waitTime, waitMs, sceneGate, result: data };
+      emitShoutoutBus('shoutout.auto.triggered', { targetLogin: login, displayName: streamer.displayName || displayName || login, displayQueueId, streamDayId, sceneGate, waitTime, waitMs, instantTrigger: bypassMessageThreshold, matchedToken: instantTrigger.token || '' }, cfg);
+      return { ok: true, triggered: true, targetLogin: login, displayQueueId, reason, waitTime, waitMs, sceneGate, instantTrigger: bypassMessageThreshold, matchedToken: instantTrigger.token || '', result: data };
     }
 
     state.stats.autoSkipped += 1;
@@ -5712,11 +5761,6 @@ function installDirectChatCommandBypass(env) {
         const cfg = shoutoutConfig();
         const rawMessage = String(parsed.params?.[1] || parsed.params?.[parsed.params.length - 1] || "").trim();
         const commandPrefix = String(process.env.COMMAND_PREFIX || "!").trim() || "!";
-        if (!rawMessage.startsWith(commandPrefix)) {
-          handleAutoShoutoutChatActivity(parsed, source, env).catch(err => {
-            state.autoShoutout.lastError = err && err.message ? err.message : String(err);
-          });
-        }
         const traceId = rawMessage.startsWith(commandPrefix)
           ? createCommandIntakeTrace({
               source: 'direct_chat_command_bypass',
@@ -5805,6 +5849,11 @@ function installDirectChatCommandBypass(env) {
             statusCode: result.statusCode || 0,
             result: result.data
           };
+        }
+        if (!parsedCommand) {
+          handleAutoShoutoutChatActivity(parsed, source, env).catch(err => {
+            state.autoShoutout.lastError = err && err.message ? err.message : String(err);
+          });
         }
         if (traceId) finishCommandIntakeTrace(traceId, 'not_clip_shoutout_command', { rawMessage });
       }
@@ -5989,7 +6038,9 @@ module.exports.init = function init(ctx) {
       const allowed = {};
       const directKeys = [
         "enabled", "command", "aliases", "permissionLevel", "clipLookbackDays", "clipSearchRangesDays",
-        "clipPlaybackCandidateLimit", "clipFetchFirst", "clipFetchPages", "randomPick", "sendChatMessage", "chatMessage", "eventBusEnabled"
+        "clipPlaybackCandidateLimit", "clipFetchFirst", "clipFetchPages", "maxClipDurationSeconds",
+        "allowLongerClipFallback", "fallbackMaxClipDurationSeconds", "randomPick", "avoidRecentClips",
+        "recentClipFallbackWhenAllBlocked", "sendChatMessage", "chatMessage", "eventBusEnabled"
       ];
       for (const key of directKeys) if (Object.prototype.hasOwnProperty.call(body, key)) allowed[key] = body[key];
       if (body.displayQueue && typeof body.displayQueue === "object") allowed.displayQueue = body.displayQueue;
