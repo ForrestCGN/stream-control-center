@@ -15,6 +15,11 @@ VIP30 steht auf STEP7: EventSub Live-Dry-Run Observe.
 
 ## VIP30 aktueller Stand - STEP7.1
 
-VIP30 0.7.1 behebt den lokalen Reward-Sync und kann die echte Twitch-Reward-ID lokal beim `vip30`-Reward hinterlegen. STEP7 Live-DryRun war erfolgreich: EventSub -> Channelpoints-Bus -> VIP30-Bridge -> Decision -> DB-Log.
+VIP30 0.7.2 behebt den lokalen Reward-Sync und kann die echte Twitch-Reward-ID lokal beim `vip30`-Reward hinterlegen. STEP7 Live-DryRun war erfolgreich: EventSub -> Channelpoints-Bus -> VIP30-Bridge -> Decision -> DB-Log.
 
 Offen danach: echte Fulfill/Cancel/VIP-Grant-Schritte erst nach separater Freigabe.
+
+
+## VIP30 STEP7.2
+- Ensure-Route repariert: `created_at` wird beim UPDATE nicht mehr als ungenutzter SQL-Parameter übergeben.
+- Aktueller Live-Dry-Run bleibt aktiv: Redemption wird beobachtet und entschieden, aber noch kein VIP zugeteilt.

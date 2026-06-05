@@ -14,3 +14,8 @@
 - Ensure-Fix testen.
 - Lokale Twitch-Reward-ID-Verknuepfung pruefen.
 - Vor STEP8 Safety-Konzept fuer Fulfill/Cancel und Add VIP final bestaetigen.
+
+
+## VIP30 offen nach STEP7.2
+- STEP8: echten VIP-Grant/Fulfill/Cancel nur hinter explizitem Live-Schalter planen.
+- Dashboard-Hinweise für DryRun vs. Live klarer machen.

@@ -1,5 +1,11 @@
 # Changelog
 
+## VIP30 STEP7.2 - Ensure created_at Parameter-Fix
+- `backend/modules/vip30.js` auf Version 0.7.2 aktualisiert.
+- `/api/vip30/channelpoints/reward/ensure` nutzt beim UPDATE keine ungenutzten `created_at`-Parameter mehr.
+- Lokale Reward-Synchronisierung bleibt DB-only; kein Twitch-Write, kein VIP-Grant, kein Fulfill/Cancel.
+
+
 ## VIP30 STEP7 EventSub Live-Dry-Run Observe
 
 - `backend/modules/vip30.js` auf Version 0.7.0 gehoben.

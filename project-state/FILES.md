@@ -17,3 +17,8 @@ Es gibt kein separates VIP30-Bridge-Zusatzmodul. Die Bridge sitzt intern in `bac
 - `config/vip30.json` - Seed/Fallback auf 0.7.1
 - `docs/modules/vip30.md` - STEP7.1 Doku
 - `project-state/*` - aktualisierte Projektuebergabe
+
+
+## VIP30 STEP7.2 Dateien
+- `backend/modules/vip30.js` - Version 0.7.2, Ensure UPDATE-Parameter-Fix.
+- `config/vip30.json` - Build-Metadaten aktualisiert.

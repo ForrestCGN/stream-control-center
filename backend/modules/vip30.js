@@ -6,8 +6,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.7.1";
-const MODULE_BUILD = "step7.1-ensure-twitch-reward-id-fix";
+const MODULE_VERSION = "0.7.2";
+const MODULE_BUILD = "step7.2-ensure-created-at-param-fix";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -1044,7 +1044,7 @@ function buildVip30RewardPayload() {
       action: reward.actionKey,
       durationDays: getConfig().slots.durationDays,
       maxSlots: getConfig().slots.maxSlots,
-      step: "VIP30-STEP7.1",
+      step: "VIP30-STEP7.2",
       dryRunOnly: true,
       noTwitchWriteInThisStep: true,
       localChannelpointsRewardWriteOnly: true,
@@ -1212,7 +1212,8 @@ function ensureChannelpointsReward(options = {}) {
   const categoryResult = ensureChannelpointsCategory();
   const desired = buildDesiredChannelpointsReward();
   const existing = getChannelpointsRewardByKey(desired.reward_key);
-  const params = { ...desired, updated_at: now, created_at: existing && existing.createdAt ? existing.createdAt : now };
+  const insertParams = { ...desired, updated_at: now, created_at: existing && existing.createdAt ? existing.createdAt : now };
+  const updateParams = { ...desired, updated_at: now };
   let action = "unchanged";
   if (existing && existing.id) {
     database.run(`
@@ -1242,7 +1243,7 @@ function ensureChannelpointsReward(options = {}) {
         notes = :notes,
         updated_at = :updated_at
       WHERE reward_key = :reward_key
-    `, params);
+    `, updateParams);
     action = "updated";
   } else {
     database.run(`
@@ -1259,7 +1260,7 @@ function ensureChannelpointsReward(options = {}) {
         :queue_mode, :priority, :cooldown_seconds, :max_per_stream, :max_per_user_per_stream,
         :auto_fulfill, :notes, :created_at, :updated_at
       )
-    `, params);
+    `, insertParams);
     action = "created";
   }
   const status = buildChannelpointsRewardStatus();
@@ -1955,7 +1956,7 @@ function buildHealth() {
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
     enabled: getConfig().enabled !== false,
-    status: lastError ? "error" : "ready_step7_1_ensure_twitch_reward_id_fix",
+    status: lastError ? "error" : "ready_step7_2_ensure_created_at_param_fix",
     lastError,
     checks: {
       databaseReady: dbMigrationState.ok === true,
@@ -1987,7 +1988,7 @@ function buildStatus() {
     moduleBuild: MODULE_BUILD,
     version: MODULE_VERSION,
     enabled: config.enabled !== false,
-    status: lastError ? "error" : "ready_step7_1_ensure_twitch_reward_id_fix",
+    status: lastError ? "error" : "ready_step7_2_ensure_created_at_param_fix",
     startedAt,
     routePrefix: ROUTE_PREFIX,
     routeCount: 18,
@@ -2103,7 +2104,7 @@ function buildStatus() {
       recentEvents: recentLogs
     },
     safety: {
-      step: "VIP30-STEP7.1",
+      step: "VIP30-STEP7.2",
       noStreamerBot: true,
       noLegacyImport: true,
       noTwitchWriteInThisStep: true,

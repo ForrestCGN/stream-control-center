@@ -15,3 +15,10 @@
 2. `/api/vip30/channelpoints/reward/ensure?confirm=YES` erneut testen.
 3. Falls noetig: `/api/vip30/channelpoints/reward/link-twitch-id?confirm=YES` ausfuehren, um die letzte echte Twitch-Reward-ID lokal zu hinterlegen.
 4. Danach Vorbereitung STEP8: echte Redemption nach erfolgreicher Entscheidung fulfillen/canceln, weiterhin mit Safety-Schaltern.
+
+
+## Nach STEP7.2
+1. `node -c backend\modules\vip30.js` ausführen.
+2. Node neu starten.
+3. `/api/vip30/channelpoints/reward/ensure?confirm=YES` testen.
+4. Danach erst STEP8 planen: echte Live-Actions für VIP-Grant + Fulfill/Cancel vorbereitet hinter Safety-Schalter.
