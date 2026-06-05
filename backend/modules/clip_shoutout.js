@@ -19,7 +19,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.36";
+const MODULE_VERSION = "0.2.37";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -3666,6 +3666,13 @@ function ensureCommandSchema() {
   `);
 }
 
+function cleanupStaleClipShoutoutCommands(activeTrigger) {
+  database.run(`
+    DELETE FROM command_definitions
+    WHERE module_key=:moduleKey AND action_key='run' AND trigger<>:activeTrigger
+  `, { moduleKey: MODULE_NAME, activeTrigger });
+}
+
 function registerCommand(cfg) {
   try {
     ensureCommandSchema();
@@ -3709,6 +3716,7 @@ function registerCommand(cfg) {
             updated_at=:updatedAt
         WHERE id=:id
       `, { ...params, id: existing.id });
+      cleanupStaleClipShoutoutCommands(trigger);
       state.registeredCommand = true;
       return { ok: true, updated: true, trigger, cooldownGlobalMs: commandCooldownGlobalMs, cooldownUserMs: commandCooldownUserMs };
     }
@@ -3725,6 +3733,7 @@ function registerCommand(cfg) {
       )
     `, params);
 
+    cleanupStaleClipShoutoutCommands(trigger);
     state.registeredCommand = true;
     return { ok: true, created: true, trigger, cooldownGlobalMs: commandCooldownGlobalMs, cooldownUserMs: commandCooldownUserMs };
   } catch (err) {
@@ -5595,11 +5604,9 @@ function commandDefinitionRowsForDirectIntake() {
   try {
     ensureCommandSchema();
     return database.all(`
-      SELECT trigger, aliases_json, module_key, action_key, target_url, enabled
+      SELECT trigger, aliases_json
       FROM command_definitions
-      WHERE module_key = :moduleKey
-        AND action_key = 'run'
-        AND enabled <> 0
+      WHERE module_key=:moduleKey AND action_key='run' AND enabled<>0
       ORDER BY trigger ASC
     `, { moduleKey: MODULE_NAME });
   } catch (err) {
@@ -5608,41 +5615,31 @@ function commandDefinitionRowsForDirectIntake() {
   }
 }
 
-function directCommandTriggers(cfg = {}) {
+function directCommandInfo(cfg = {}) {
   const intake = directIntakeConfig(cfg);
-  if (intake.enabled === false) return [];
-
+  if (intake.enabled === false) return { enabled: false, triggers: [], source: 'disabled', commandDefinitionCount: 0, fallbackUsed: false };
   const rows = commandDefinitionRowsForDirectIntake();
-  const names = [];
-  for (const row of rows) {
-    names.push(row.trigger);
-    names.push(...parseCommandAliasesJson(row.aliases_json));
-  }
+  const names = rows.flatMap(row => [row.trigger, ...parseCommandAliasesJson(row.aliases_json)]);
+  return {
+    enabled: true,
+    triggers: Array.from(new Set(names.map(cleanLogin).filter(Boolean))),
+    source: 'command_definitions',
+    commandDefinitionCount: rows.length,
+    fallbackUsed: false
+  };
+}
 
-  if (names.length === 0) {
-    names.push(cfg.command, ...(Array.isArray(cfg.aliases) ? cfg.aliases : []));
-  }
-
-  return Array.from(new Set(names.map(cleanLogin).filter(Boolean)));
+function directCommandTriggers(cfg = {}) {
+  return directCommandInfo(cfg).triggers;
 }
 
 function directIntakeStatus(cfg = {}) {
-  const intake = directIntakeConfig(cfg);
-  const rows = intake.enabled === false ? [] : commandDefinitionRowsForDirectIntake();
-  const fallbackUsed = intake.enabled !== false && rows.length === 0;
+  const info = directCommandInfo(cfg);
   return {
-    enabled: intake.enabled !== false,
-    source: fallbackUsed ? 'config_fallback' : 'command_definitions',
-    commandDefinitionCount: rows.length,
-    fallbackUsed,
-    rows: rows.map(row => ({
-      trigger: cleanLogin(row.trigger),
-      aliases: parseCommandAliasesJson(row.aliases_json).map(cleanLogin).filter(Boolean),
-      moduleKey: row.module_key || '',
-      actionKey: row.action_key || '',
-      targetUrl: row.target_url || '',
-      enabled: Number(row.enabled) !== 0
-    }))
+    enabled: info.enabled,
+    source: info.source,
+    commandDefinitionCount: info.commandDefinitionCount,
+    fallbackUsed: info.fallbackUsed
   };
 }
 
@@ -5844,41 +5841,42 @@ function installDirectChatCommandBypass(env) {
 
 
 function buildClipShoutoutRouteStatus() {
+  const r = (method, path, group, legacy = false, note = '') => ({ method, path, group, legacy, ...(note ? { note } : {}) });
   return [
-    { method: "GET", path: `${API_PREFIX}/status`, group: "status", legacy: false },
-    { method: "GET/POST", path: `${API_PREFIX}/run`, group: "runtime", legacy: false },
-    { method: "GET/POST", path: "/api/clip/shoutout", group: "runtime", legacy: true, note: "Legacy alias for /api/clip-shoutout/run." },
-    { method: "GET", path: `${API_PREFIX}/clips`, group: "clips", legacy: false },
-    { method: "GET/POST", path: `${API_PREFIX}/settings`, group: "settings", legacy: false },
-    { method: "GET/POST", path: `${API_PREFIX}/texts`, group: "texts", legacy: false },
-    { method: "GET", path: `${API_PREFIX}/texts/migration`, group: "texts", legacy: false },
-    { method: "GET", path: `${API_PREFIX}/queue`, group: "queue_status", legacy: false },
-    { method: "POST", path: `${API_PREFIX}/display-queue/remove`, group: "display_queue", legacy: false },
-    { method: "POST", path: `${API_PREFIX}/display-queue/retry`, group: "display_queue", legacy: false },
-    { method: "POST", path: `${API_PREFIX}/queue/remove`, group: "official_queue", legacy: true, note: "Legacy official queue route name; not display queue." },
-    { method: "POST", path: `${API_PREFIX}/queue/retry`, group: "official_queue", legacy: true, note: "Legacy official queue route name; not display queue." },
-    { method: "GET", path: `${API_PREFIX}/official/auth-status`, group: "official_queue", legacy: false },
-    { method: "GET/POST", path: `${API_PREFIX}/debug/test-queue`, group: "debug", legacy: false },
-    { method: "GET/POST", path: `${API_PREFIX}/debug/intake-trace`, group: "debug", legacy: false },
-    { method: "GET", path: `${API_PREFIX}/timeline`, group: "stats", legacy: false },
-    { method: "GET", path: `${API_PREFIX}/stats`, group: "stats", legacy: false },
-    { method: "GET", path: `${API_PREFIX}/stats/user`, group: "stats", legacy: false },
-    { method: "GET", path: `${API_PREFIX}/inbound`, group: "inbound", legacy: false },
-    { method: "GET", path: `${API_PREFIX}/inbound/stats`, group: "inbound", legacy: false },
-    { method: "POST", path: `${API_PREFIX}/inbound/debug`, group: "inbound", legacy: false },
-    { method: "GET", path: `${API_PREFIX}/auto`, group: "auto_shoutout", legacy: false },
-    { method: "GET/POST", path: `${API_PREFIX}/auto/settings`, group: "auto_shoutout", legacy: false },
-    { method: "GET/POST", path: `${API_PREFIX}/auto/texts`, group: "auto_shoutout", legacy: false },
-    { method: "GET/POST", path: `${API_PREFIX}/auto/streamers`, group: "auto_shoutout", legacy: false },
-    { method: "POST", path: `${API_PREFIX}/auto/streamers/remove`, group: "auto_shoutout", legacy: false },
-    { method: "POST", path: `${API_PREFIX}/auto/test-chat`, group: "auto_shoutout", legacy: false },
-    { method: "POST", path: `${API_PREFIX}/auto/clear-target`, group: "auto_shoutout", legacy: false },
-    { method: "POST", path: `${API_PREFIX}/auto/reset-day`, group: "auto_shoutout", legacy: false },
-    { method: "GET", path: `${API_PREFIX}/scene-gate`, group: "scene_gate", legacy: false },
-    { method: "GET", path: `${API_PREFIX}/production-check`, group: "diagnostics", legacy: false },
-    { method: "GET", path: `${API_PREFIX}/live-test`, group: "diagnostics", legacy: false },
-    { method: "GET", path: `${API_PREFIX}/decision-prep`, group: "diagnostics", legacy: false },
-    { method: "GET", path: "/api/stream-status/status", group: "external_status", legacy: false }
+    r('GET', `${API_PREFIX}/status`, 'status'),
+    r('GET/POST', `${API_PREFIX}/run`, 'runtime'),
+    r('GET/POST', '/api/clip/shoutout', 'runtime', true, 'Legacy alias for /run.'),
+    r('GET', `${API_PREFIX}/clips`, 'clips'),
+    r('GET/POST', `${API_PREFIX}/settings`, 'settings'),
+    r('GET/POST', `${API_PREFIX}/texts`, 'texts'),
+    r('GET', `${API_PREFIX}/texts/migration`, 'texts'),
+    r('GET', `${API_PREFIX}/queue`, 'queue_status'),
+    r('POST', `${API_PREFIX}/display-queue/remove`, 'display_queue'),
+    r('POST', `${API_PREFIX}/display-queue/retry`, 'display_queue'),
+    r('POST', `${API_PREFIX}/queue/remove`, 'official_queue', true, 'Legacy name.'),
+    r('POST', `${API_PREFIX}/queue/retry`, 'official_queue', true, 'Legacy name.'),
+    r('GET', `${API_PREFIX}/official/auth-status`, 'official_queue'),
+    r('GET/POST', `${API_PREFIX}/debug/test-queue`, 'debug'),
+    r('GET/POST', `${API_PREFIX}/debug/intake-trace`, 'debug'),
+    r('GET', `${API_PREFIX}/timeline`, 'stats'),
+    r('GET', `${API_PREFIX}/stats`, 'stats'),
+    r('GET', `${API_PREFIX}/stats/user`, 'stats'),
+    r('GET', `${API_PREFIX}/inbound`, 'inbound'),
+    r('GET', `${API_PREFIX}/inbound/stats`, 'inbound'),
+    r('POST', `${API_PREFIX}/inbound/debug`, 'inbound'),
+    r('GET', `${API_PREFIX}/auto`, 'auto_shoutout'),
+    r('GET/POST', `${API_PREFIX}/auto/settings`, 'auto_shoutout'),
+    r('GET/POST', `${API_PREFIX}/auto/texts`, 'auto_shoutout'),
+    r('GET/POST', `${API_PREFIX}/auto/streamers`, 'auto_shoutout'),
+    r('POST', `${API_PREFIX}/auto/streamers/remove`, 'auto_shoutout'),
+    r('POST', `${API_PREFIX}/auto/test-chat`, 'auto_shoutout'),
+    r('POST', `${API_PREFIX}/auto/clear-target`, 'auto_shoutout'),
+    r('POST', `${API_PREFIX}/auto/reset-day`, 'auto_shoutout'),
+    r('GET', `${API_PREFIX}/scene-gate`, 'scene_gate'),
+    r('GET', `${API_PREFIX}/production-check`, 'diagnostics'),
+    r('GET', `${API_PREFIX}/live-test`, 'diagnostics'),
+    r('GET', `${API_PREFIX}/decision-prep`, 'diagnostics'),
+    r('GET', '/api/stream-status/status', 'external_status')
   ];
 }
 
@@ -5909,6 +5907,7 @@ module.exports.init = function init(ctx) {
     const currentCfg = shoutoutConfig();
     state.recentClipGuard = publicRecentClipGuard(currentCfg);
     const command = cleanLogin(currentCfg.command || "so") || "so";
+    const commandInfo = directCommandInfo(currentCfg);
     res.json({
       ok: true,
       module: MODULE_NAME,
@@ -5921,7 +5920,7 @@ module.exports.init = function init(ctx) {
       command,
       aliases: currentCfg.aliases || [],
       directIntake: directIntakeStatus(currentCfg),
-      effectiveCommandTriggers: directCommandTriggers(currentCfg),
+      effectiveCommandTriggers: commandInfo.triggers,
       routes: buildClipShoutoutRouteStatus(),
       config: {
         maxClipDurationSeconds: currentCfg.maxClipDurationSeconds,
@@ -5952,7 +5951,7 @@ module.exports.init = function init(ctx) {
         officialShoutout: officialConfig(currentCfg),
         streamDayLimit: streamDayLimitConfig(currentCfg),
         directIntake: directIntakeStatus(currentCfg),
-        effectiveCommandTriggers: directCommandTriggers(currentCfg),
+        effectiveCommandTriggers: commandInfo.triggers,
         streamStatus: currentCfg.streamStatus || {}
       },
       displayQueue: displayQueueStatus(currentCfg),
