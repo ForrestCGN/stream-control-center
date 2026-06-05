@@ -1,11 +1,10 @@
 # Changelog
 
-## VIP30-STEP4
+## VIP30-STEP5
 
-- `vip30_settings` als DB-basierte Settings-Tabelle ergänzt
-- JSON-Config zur Seed-/Fallback-Rolle zurückgestuft
-- `/api/vip30/settings` ergänzt
-- `/api/vip30/settings/save` ergänzt
-- Statusausgabe um Settings-/Dashboard-Config ergänzt
-- Kosten bleiben bei 40.000 Kanalpunkten
-- keine Twitch-Live-Aktionen ergänzt
+- VIP30 auf 0.5.0 gehoben.
+- Dry-Run-Decision-Flow ergänzt.
+- Routen `/api/vip30/redeem/dry-run` und `/api/vip30/redeem/decision` ergänzt.
+- Entscheidungen werden in `vip30_log` geschrieben.
+- Bus-Events `vip30.redeem / dryrun.eligible|dryrun.blocked` ergänzt.
+- Keine Live-Schreibaktion, kein VIP-Grant, kein Fulfill/Cancel.

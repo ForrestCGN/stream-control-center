@@ -6,8 +6,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.4.0";
-const MODULE_BUILD = "step4-db-dashboard-config";
+const MODULE_VERSION = "0.5.0";
+const MODULE_BUILD = "step5-dryrun-redemption-decision";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -21,11 +21,11 @@ const MODULE_META = {
   category: "community",
   routePrefix: ROUTE_PREFIX,
   routesPrefix: [ROUTE_PREFIX],
-  description: "30 Tage VIP Node-Modul: SQLite-Grundlage, Dashboard-Logs/Stats, Communication-Bus und Twitch-Capability-Check und sichere Channelpoints-Reward-Verknuepfung ohne Live-Schreibaktion.",
+  description: "30 Tage VIP Node-Modul: SQLite-Grundlage, Dashboard-Logs/Stats, Communication-Bus, DB-/Dashboard-Config, Twitch-Capability-Check, Channelpoints-Reward-Link und Dry-Run-Redemption-Decision ohne Live-Schreibaktion.",
   bus: {
     registered: true,
     heartbeat: true,
-    emits: ["module.status", "module.health", "vip30.status", "vip30.twitch", "vip30.channelpoints"],
+    emits: ["module.status", "module.health", "vip30.status", "vip30.twitch", "vip30.channelpoints", "vip30.redeem"],
     listens: []
   },
   legacy: false
@@ -62,7 +62,7 @@ const DEFAULT_CONFIG = {
     cooldownSeconds: 0,
     maxPerStream: 0,
     maxPerUserPerStream: 0,
-    notes: "VIP30-Reward wird vom VIP30-Modul verwaltet. Twitch bleibt in STEP3 inaktiv.",
+    notes: "VIP30-Reward wird vom VIP30-Modul verwaltet. Twitch bleibt bis zum Live-Step inaktiv.",
     twitchPolicies: {
       shouldRedemptionsSkipRequestQueue: false,
       fulfillAfterSuccess: false,
@@ -234,6 +234,9 @@ let runtimeStats = {
   capabilityRequests: 0,
   settingsRequests: 0,
   settingsWrites: 0,
+  dryRunRequests: 0,
+  lastDryRunAt: "",
+  lastDryRunDecision: null,
   lastSettingsWriteAt: "",
   busHeartbeats: 0,
   busStatuses: 0,
@@ -998,11 +1001,12 @@ function buildVip30RewardPayload() {
       action: reward.actionKey,
       durationDays: getConfig().slots.durationDays,
       maxSlots: getConfig().slots.maxSlots,
-      step: "VIP30-STEP4",
+      step: "VIP30-STEP5",
       dryRunOnly: true,
       noTwitchWriteInThisStep: true,
       localChannelpointsRewardWriteOnly: true,
       dbDashboardConfig: true,
+      dryRunDecisionFlow: true,
       noVipGrantInThisStep: true,
       noRedemptionFulfillCancelInThisStep: true
     },
@@ -1260,6 +1264,196 @@ function emitChannelpointsRewardEvent(action, result, reason = "channelpoints_re
   }
 }
 
+
+
+function normalizeRedemptionDecisionInput(input = {}) {
+  const source = input && typeof input === "object" ? input : {};
+  const userLogin = cleanString(source.userLogin || source.user_login || source.login || source.user || source.targetUserName || source.target_user_name || "").toLowerCase();
+  const userDisplayName = cleanString(source.userDisplayName || source.user_display_name || source.displayName || source.display_name || source.targetUser || source.target_user || userLogin);
+  const userId = cleanString(source.userId || source.user_id || source.targetUserId || source.target_user_id || "");
+  const avatarUrl = cleanString(source.avatarUrl || source.avatar_url || source.targetProfileImageUrl || source.target_profile_image_url || "");
+  return {
+    ok: true,
+    source: cleanString(source.source || "dry_run_api"),
+    twitchRewardId: cleanString(source.twitchRewardId || source.twitch_reward_id || source.rewardId || source.reward_id || ""),
+    twitchRedemptionId: cleanString(source.twitchRedemptionId || source.twitch_redemption_id || source.redemptionId || source.redemption_id || `dryrun_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`),
+    userId,
+    userLogin,
+    userDisplayName,
+    avatarUrl,
+    userInput: cleanString(source.userInput || source.user_input || source.input || ""),
+    targetIsModerator: boolValue(source.targetIsModerator ?? source.target_is_moderator ?? source.isModerator ?? source.is_mod ?? source.mod, false),
+    targetIsVip: boolValue(source.targetIsVip ?? source.target_is_vip ?? source.isVip ?? source.is_vip ?? source.vip, false),
+    redeemedAt: cleanString(source.redeemedAt || source.redeemed_at || nowIso()),
+    raw: source
+  };
+}
+
+function findActiveSlotForDecision(normalized) {
+  ensureDbReady();
+  const now = nowIso();
+  const userId = cleanString(normalized && normalized.userId || "");
+  const userLogin = cleanString(normalized && normalized.userLogin || "").toLowerCase();
+  if (!userId && !userLogin) return null;
+  const row = database.get(`
+    SELECT * FROM vip30_slots
+    WHERE status = 'active'
+      AND (end_utc = '' OR end_utc IS NULL OR end_utc > :now)
+      AND ((:userId <> '' AND user_id = :userId) OR (:userLogin <> '' AND user_login = :userLogin))
+    ORDER BY end_utc DESC, id DESC
+    LIMIT 1
+  `, { now, userId, userLogin });
+  return mapSlotRow(row);
+}
+
+function buildDryRunRedemptionDecision(input = {}, options = {}) {
+  ensureDbReady();
+  const config = getConfig();
+  const normalized = normalizeRedemptionDecisionInput(input);
+  const stats = buildStats();
+  const reward = buildRewardSummary();
+  const activeSlot = findActiveSlotForDecision(normalized);
+  const decision = {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    action: "vip30_dryrun_redemption_decision",
+    checkedAt: nowIso(),
+    status: "not_checked",
+    wouldGrantVip: false,
+    wouldCreateSlot: false,
+    wouldFulfillRedemption: false,
+    wouldCancelRedemption: false,
+    wouldTriggerAlert: false,
+    blocked: false,
+    reason: "not_checked",
+    message: "",
+    reward,
+    user: {
+      userId: normalized.userId,
+      userLogin: normalized.userLogin,
+      userDisplayName: normalized.userDisplayName,
+      avatarUrl: normalized.avatarUrl,
+      targetIsModerator: normalized.targetIsModerator,
+      targetIsVip: normalized.targetIsVip
+    },
+    redemption: {
+      twitchRewardId: normalized.twitchRewardId,
+      twitchRedemptionId: normalized.twitchRedemptionId,
+      userInput: normalized.userInput,
+      redeemedAt: normalized.redeemedAt,
+      source: normalized.source
+    },
+    slots: {
+      maxSlots: config.slots.maxSlots,
+      active: stats.slots.active,
+      free: stats.slots.free,
+      existingSlot: activeSlot
+    },
+    safety: {
+      dryRunOnly: true,
+      noTwitchWrite: true,
+      noVipGrant: true,
+      noSlotWrite: true,
+      noRedemptionFulfillCancel: true,
+      dashboardLoggingOnly: true
+    }
+  };
+
+  if (config.enabled === false) {
+    Object.assign(decision, { status: "blocked", blocked: true, reason: "module_disabled", wouldCancelRedemption: true, message: "VIP30 ist in der DB-Konfiguration deaktiviert." });
+  } else if (!normalized.userId && !normalized.userLogin) {
+    Object.assign(decision, { status: "blocked", blocked: true, reason: "missing_user", wouldCancelRedemption: true, message: "Keine Userdaten fuer VIP30-Entscheidung vorhanden." });
+  } else if (activeSlot && config.slots.blockExistingSlot !== false) {
+    Object.assign(decision, { status: "blocked", blocked: true, reason: "already_has_vip30_slot", wouldCancelRedemption: true, message: "User hat bereits einen aktiven VIP30-Slot." });
+  } else if (normalized.targetIsModerator && config.slots.blockModerators !== false) {
+    Object.assign(decision, { status: "blocked", blocked: true, reason: "target_is_moderator", wouldCancelRedemption: true, message: "Mods werden nicht per VIP30 belohnt, damit keine Rollen durcheinander geraten." });
+  } else if (normalized.targetIsVip && config.slots.blockExistingVip !== false) {
+    Object.assign(decision, { status: "blocked", blocked: true, reason: "target_is_already_vip", wouldCancelRedemption: true, message: "User ist bereits VIP." });
+  } else if (stats.slots.free <= 0) {
+    Object.assign(decision, { status: "blocked", blocked: true, reason: "slots_full", wouldCancelRedemption: true, message: "Alle VIP30-Slots sind belegt." });
+  } else {
+    Object.assign(decision, {
+      status: "would_grant",
+      blocked: false,
+      reason: "eligible",
+      wouldGrantVip: true,
+      wouldCreateSlot: true,
+      wouldFulfillRedemption: true,
+      wouldTriggerAlert: config.alerts.enabled !== false,
+      message: "Dry-Run erfolgreich: User waere fuer 30 Tage VIP berechtigt."
+    });
+  }
+
+  runtimeStats.dryRunRequests += 1;
+  runtimeStats.lastDryRunAt = decision.checkedAt;
+  runtimeStats.lastDryRunDecision = {
+    status: decision.status,
+    reason: decision.reason,
+    userLogin: normalized.userLogin,
+    wouldGrantVip: decision.wouldGrantVip,
+    wouldCancelRedemption: decision.wouldCancelRedemption,
+    checkedAt: decision.checkedAt
+  };
+
+  if (options.log !== false) {
+    const logResult = writeLog("dryrun_redemption_decision", {
+      userId: normalized.userId,
+      userLogin: normalized.userLogin,
+      userDisplayName: normalized.userDisplayName,
+      twitchRewardId: normalized.twitchRewardId,
+      twitchRedemptionId: normalized.twitchRedemptionId,
+      success: decision.wouldGrantVip === true,
+      reason: decision.reason,
+      message: decision.message,
+      payload: { decision, normalized: { ...normalized, raw: undefined } }
+    });
+    decision.log = logResult;
+  }
+
+  emitDryRunDecisionEvent(decision, options.reason || "dry_run_api");
+  publishStatus("dryrun_decision");
+  return decision;
+}
+
+function emitDryRunDecisionEvent(decision, reason = "dry_run_decision") {
+  const config = getConfig();
+  if (config.bus.enabled === false) return { ok: false, reason: "bus_disabled" };
+  const currentBus = getBus();
+  if (!currentBus || typeof currentBus.emit !== "function") return { ok: false, reason: "bus_unavailable" };
+  try {
+    return currentBus.emit({
+      type: "event",
+      channel: "vip30.redeem",
+      action: decision && decision.wouldGrantVip ? "dryrun.eligible" : "dryrun.blocked",
+      source: { type: "module", id: `module:${MODULE_NAME}`, module: MODULE_NAME },
+      target: { type: "all", id: "*" },
+      payload: {
+        module: MODULE_NAME,
+        moduleVersion: MODULE_VERSION,
+        moduleBuild: MODULE_BUILD,
+        reason,
+        status: decision && decision.status || "unknown",
+        decision: decision ? {
+          status: decision.status,
+          blocked: decision.blocked,
+          reason: decision.reason,
+          wouldGrantVip: decision.wouldGrantVip,
+          wouldFulfillRedemption: decision.wouldFulfillRedemption,
+          wouldCancelRedemption: decision.wouldCancelRedemption,
+          user: decision.user,
+          slots: { maxSlots: decision.slots.maxSlots, active: decision.slots.active, free: decision.slots.free }
+        } : null,
+        emittedAt: nowIso()
+      },
+      meta: { requireAck: false, replayable: true, ttlMs: config.bus.ttlMs, productionTarget: true, twitchWrite: false }
+    });
+  } catch (_) {
+    return { ok: false, reason: "bus_emit_failed" };
+  }
+}
+
 function buildHealth() {
   const stats = buildStats();
   const capability = lastCapabilityCheck ? {
@@ -1274,7 +1468,7 @@ function buildHealth() {
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
     enabled: getConfig().enabled !== false,
-    status: lastError ? "error" : "ready_step4_db_dashboard_config",
+    status: lastError ? "error" : "ready_step5_dryrun_redemption_decision",
     lastError,
     checks: {
       databaseReady: dbMigrationState.ok === true,
@@ -1306,10 +1500,10 @@ function buildStatus() {
     moduleBuild: MODULE_BUILD,
     version: MODULE_VERSION,
     enabled: config.enabled !== false,
-    status: lastError ? "error" : "ready_step4_db_dashboard_config",
+    status: lastError ? "error" : "ready_step5_dryrun_redemption_decision",
     startedAt,
     routePrefix: ROUTE_PREFIX,
-    routeCount: 11,
+    routeCount: 13,
     routes: [
       `${ROUTE_PREFIX}/status`,
       `${ROUTE_PREFIX}/health`,
@@ -1321,7 +1515,9 @@ function buildStatus() {
       `${ROUTE_PREFIX}/channelpoints/reward/status`,
       `${ROUTE_PREFIX}/channelpoints/reward/ensure`,
       `${ROUTE_PREFIX}/settings`,
-      `${ROUTE_PREFIX}/settings/save`
+      `${ROUTE_PREFIX}/settings/save`,
+      `${ROUTE_PREFIX}/redeem/dry-run`,
+      `${ROUTE_PREFIX}/redeem/decision`
     ],
     reward: buildRewardSummary(),
     config: {
@@ -1337,6 +1533,7 @@ function buildStatus() {
       twitchRequiredScopes: [...config.twitch.requiredScopes],
       channelpointsRewardSyncEnabled: config.channelpoints.enabled !== false && config.channelpoints.rewardSyncEnabled !== false,
       channelpointsRewardCost: buildRewardSummary().cost,
+      dryRunDecisionFlowEnabled: true,
       settingsSource: tableExists("vip30_settings") ? "db" : "json_fallback",
       settingsDashboardWritable: true
     },
@@ -1373,6 +1570,12 @@ function buildStatus() {
     channelpointsReward: (() => {
       try { return buildChannelpointsRewardStatus(); } catch (err) { return { ok: false, status: "error", error: err && err.message ? err.message : String(err) }; }
     })(),
+    dryRun: {
+      enabled: true,
+      requests: runtimeStats.dryRunRequests,
+      lastDryRunAt: runtimeStats.lastDryRunAt,
+      lastDecision: runtimeStats.lastDryRunDecision
+    },
     slots: stats.slots,
     stats: stats.logs,
     logging: {
@@ -1386,12 +1589,13 @@ function buildStatus() {
       recentEvents: recentLogs
     },
     safety: {
-      step: "VIP30-STEP4",
+      step: "VIP30-STEP5",
       noStreamerBot: true,
       noLegacyImport: true,
       noTwitchWriteInThisStep: true,
       localChannelpointsRewardWriteOnly: true,
       dbDashboardConfig: true,
+      dryRunDecisionFlow: true,
       noVipGrantInThisStep: true,
       noRedemptionFulfillCancelInThisStep: true,
       dashboardLoggingInsteadOfServerLog: true,
@@ -1432,7 +1636,7 @@ function heartbeat(reason = "heartbeat") {
       module: MODULE_NAME,
       version: MODULE_VERSION,
       build: MODULE_BUILD,
-      phase: config.enabled === false ? "disabled" : "ready_step3",
+      phase: config.enabled === false ? "disabled" : "ready_step5",
       reason,
       enabled: config.enabled !== false,
       healthy: !lastError,
@@ -1479,6 +1683,8 @@ function registerAtBus() {
       "vip30.twitch.capability",
       "vip30.channelpoints.reward.status",
       "vip30.channelpoints.reward.ensure",
+      "vip30.redeem.dryrun",
+      "vip30.redeem.decision",
       "vip30.cleanup.planned",
       "vip30.redeem.planned"
     ],
@@ -1489,7 +1695,7 @@ function registerAtBus() {
       dashboardLogging: true,
       noStreamerBot: true,
       noLegacyImport: true,
-      noTwitchWriteInStep3: true,
+      noTwitchWriteInStep5: true,
       capabilityCheckOnly: false,
       channelpointsRewardLink: true
     }
@@ -1616,6 +1822,36 @@ function init({ app } = {}) {
         res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: lastError, safety: { noTwitchWrite: true } });
       }
     });
+    app.get(`${ROUTE_PREFIX}/redeem/dry-run`, (req, res) => {
+      runtimeStats.lastAction = "redeem_dry_run_get";
+      try {
+        const result = buildDryRunRedemptionDecision(req.query || {}, { reason: "api_get", log: boolValue(req.query && req.query.log, true) });
+        res.json(result);
+      } catch (err) {
+        lastError = err && err.message ? err.message : String(err);
+        res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: lastError, safety: { noTwitchWrite: true, noVipGrant: true } });
+      }
+    });
+    app.post(`${ROUTE_PREFIX}/redeem/dry-run`, (req, res) => {
+      runtimeStats.lastAction = "redeem_dry_run_post";
+      try {
+        const result = buildDryRunRedemptionDecision((req && req.body) || {}, { reason: "api_post", log: true });
+        res.json(result);
+      } catch (err) {
+        lastError = err && err.message ? err.message : String(err);
+        res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: lastError, safety: { noTwitchWrite: true, noVipGrant: true } });
+      }
+    });
+    app.post(`${ROUTE_PREFIX}/redeem/decision`, (req, res) => {
+      runtimeStats.lastAction = "redeem_decision_post";
+      try {
+        const result = buildDryRunRedemptionDecision((req && req.body) || {}, { reason: "api_decision", log: true });
+        res.json(result);
+      } catch (err) {
+        lastError = err && err.message ? err.message : String(err);
+        res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: lastError, safety: { noTwitchWrite: true, noVipGrant: true } });
+      }
+    });
   }
 
   console.log(`[${MODULE_NAME}] v${MODULE_VERSION} active (${MODULE_BUILD})`);
@@ -1634,6 +1870,7 @@ module.exports = {
   buildTwitchCapabilityStatus,
   buildChannelpointsRewardStatus,
   ensureChannelpointsReward,
+  buildDryRunRedemptionDecision,
   listSlots,
   listLogs,
   writeLog
