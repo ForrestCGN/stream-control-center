@@ -8,8 +8,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.3";
-const MODULE_BUILD = "step8.3-stage-a-live-vip-grant-slot";
+const MODULE_VERSION = "0.8.3.1";
+const MODULE_BUILD = "step8.3.1-stage-a-preflight-refresh-diagnostics";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -2334,8 +2334,23 @@ function emitLiveExecutionEvent(action, payload = {}) {
 }
 async function executeVip30LiveStageA(input = {}, options = {}) {
   const decision = buildDryRunRedemptionDecision(input, { reason: options.reason || "live_stage_a", log: false });
-  const stageSafety = buildStageALiveSafetyStatus();
   const started = nowIso();
+
+  // STEP8.3.1: Live-Events fuehren vor dem Twitch-Write eine frische Preflight-Pruefung aus.
+  // Dadurch blockiert Stage A nicht mehr wegen eines veralteten In-Memory Capability-/Config-Status,
+  // obwohl /live/stage-a/check kurz vorher bereits gruen war.
+  loadedConfig = null;
+  loadConfig();
+  const preflightCapability = await buildTwitchCapabilityStatus({ reason: options.capabilityReason || "live_stage_a_preflight" });
+  loadedConfig = null;
+  loadConfig();
+  const stageSafety = buildStageALiveSafetyStatus();
+  stageSafety.preflightCapability = preflightCapability ? {
+    status: preflightCapability.status || "",
+    checkedAt: preflightCapability.checkedAt || "",
+    readyForVip30LiveFlow: !!(preflightCapability.readiness && preflightCapability.readiness.readyForVip30LiveFlow),
+    blocker: preflightCapability.readiness && preflightCapability.readiness.blocker || ""
+  } : null;
   const result = {
     ok: false,
     module: MODULE_NAME,
@@ -2371,7 +2386,7 @@ async function executeVip30LiveStageA(input = {}, options = {}) {
       twitchRedemptionId: decision.redemption.twitchRedemptionId,
       success: false,
       reason: result.reason,
-      message: "Stage A ist nicht scharf. VIP wurde nicht vergeben.",
+      message: `Stage A ist nicht scharf. VIP wurde nicht vergeben. Blocker: ${(stageSafety.blockers || []).join(", ") || "unknown"}`,
       payload: result
     });
     emitLiveExecutionEvent("stage_a.blocked", { result });

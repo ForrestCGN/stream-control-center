@@ -8,3 +8,10 @@
 - project-state/TODO.md
 - project-state/CHANGELOG.md
 - project-state/FILES.md
+
+
+## VIP30 STEP8.3.1
+- Version 0.8.3.1 / build step8.3.1-stage-a-preflight-refresh-diagnostics.
+- Stage-A Live-Ausfuehrung aktualisiert vor dem VIP-Grant Capability und Config frisch.
+- Block-Logs enthalten nun konkrete Stage-A-Blocker.
+- Fulfill/Cancel und Alert bleiben weiterhin deaktiviert.
