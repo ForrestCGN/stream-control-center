@@ -19,7 +19,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.34";
+const MODULE_VERSION = "0.2.35";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -31,7 +31,7 @@ const MODULE_META = {
   routesPrefix: [API_PREFIX, "/api/clip/shoutout"],
   capabilities: ["shoutout.display_queue", "shoutout.official_queue", "shoutout.event_output"],
   bus: { emits: true, registered: false, heartbeat: false, channel: SHOUTOUT_BUS_CHANNEL },
-  note: "CAN-44.21.30: Direct intake trigger fix for !so and !vso; clip playback unchanged."
+  note: "CAN-44.21.31: Configurable direct intake triggers with default fallback; clip playback unchanged."
 };
 
 const AUTO_SHOUTOUT_TEXT_DEFAULTS = {
@@ -210,6 +210,11 @@ const DEFAULT_CONFIG = {
     enabled: true,
     command: "so",
     aliases: ["vso", "clipso", "videoso"],
+    directIntake: {
+      enabled: true,
+      includeDefaultTriggers: true,
+      extraTriggers: []
+    },
     permissionLevel: "mod",
     cooldownGlobalMs: 0,
     cooldownUserMs: 0,
@@ -5553,16 +5558,35 @@ function autoShoutoutStatus(cfg) {
 let directChatCommandBypassInstalled = false;
 let originalCommandsHandleChatMessage = null;
 
+function directIntakeConfig(cfg = {}) {
+  const raw = isPlainObject(cfg.directIntake) ? cfg.directIntake : {};
+  const fallback = DEFAULT_CONFIG.clipShoutout.directIntake || {};
+  return {
+    enabled: asBool(raw.enabled, fallback.enabled !== false),
+    includeDefaultTriggers: asBool(raw.includeDefaultTriggers, fallback.includeDefaultTriggers !== false),
+    extraTriggers: normalizeStringArray(raw.extraTriggers, normalizeStringArray(fallback.extraTriggers || [], []))
+  };
+}
+
 function directCommandTriggers(cfg = {}) {
-  const aliases = Array.isArray(cfg.aliases) ? cfg.aliases : [];
+  const intake = directIntakeConfig(cfg);
+  if (intake.enabled === false) return [];
+
+  const configuredAliases = Array.isArray(cfg.aliases) ? cfg.aliases : [];
+  const configuredNames = [cfg.command, ...configuredAliases];
+
+  const defaultNames = intake.includeDefaultTriggers !== false
+    ? [DEFAULT_CONFIG.clipShoutout.command, ...(Array.isArray(DEFAULT_CONFIG.clipShoutout.aliases) ? DEFAULT_CONFIG.clipShoutout.aliases : [])]
+    : [];
+
   const names = [
-    "so",
-    "vso",
-    cfg.command || "so",
-    ...aliases
+    ...configuredNames,
+    ...defaultNames,
+    ...intake.extraTriggers
   ]
     .map(cleanLogin)
     .filter(Boolean);
+
   return Array.from(new Set(names));
 }
 
@@ -5800,6 +5824,8 @@ module.exports.init = function init(ctx) {
       officialChatMessagesMuted: true,
       command,
       aliases: currentCfg.aliases || [],
+      directIntake: directIntakeConfig(currentCfg),
+      effectiveCommandTriggers: directCommandTriggers(currentCfg),
       routes: [
         { method: "GET", path: `${API_PREFIX}/status` },
         { method: "GET/POST", path: `${API_PREFIX}/run` },
@@ -5859,6 +5885,8 @@ module.exports.init = function init(ctx) {
         displayQueue: displayConfig(currentCfg),
         officialShoutout: officialConfig(currentCfg),
         streamDayLimit: streamDayLimitConfig(currentCfg),
+        directIntake: directIntakeConfig(currentCfg),
+        effectiveCommandTriggers: directCommandTriggers(currentCfg),
         streamStatus: currentCfg.streamStatus || {}
       },
       displayQueue: displayQueueStatus(currentCfg),
@@ -5941,6 +5969,7 @@ module.exports.init = function init(ctx) {
       if (body.displayQueue && typeof body.displayQueue === "object") allowed.displayQueue = body.displayQueue;
       if (body.officialShoutout && typeof body.officialShoutout === "object") allowed.officialShoutout = body.officialShoutout;
       if (body.streamDayLimit && typeof body.streamDayLimit === "object") allowed.streamDayLimit = body.streamDayLimit;
+      if (body.directIntake && typeof body.directIntake === "object") allowed.directIntake = body.directIntake;
       if (body.streamStatus && typeof body.streamStatus === "object") allowed.streamStatus = body.streamStatus;
       if (body.inboundShoutout && typeof body.inboundShoutout === "object") allowed.inboundShoutout = body.inboundShoutout;
 
