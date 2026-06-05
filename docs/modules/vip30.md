@@ -1,121 +1,64 @@
-# Modul: VIP30 / 30 Tage VIP
+# VIP30 / 30 Tage VIP
 
-Stand: VIP30-STEP2 / 2026-06-05
-Version: `0.2.0` / `step2-twitch-capability-check`
+Stand: VIP30-STEP3 / 2026-06-05  
+Version: `0.3.0` / `step3-channelpoints-reward-link`
 
-## Zweck
+## Ziel
 
-VIP30 verwaltet das geplante 30-Tage-VIP-System vollständig im Node-Backend des `stream-control-center`.
+VIP30 ist ein Node-only Modul im `stream-control-center` fuer die 30-Tage-VIP-Kanalpunkte-Belohnung.
 
-Der Reward soll direkt im bestehenden Kanalpunkte-System eingetragen werden:
+STEP3 verbindet VIP30 sicher mit dem vorhandenen Channelpoints-System, ohne Twitch-Live-Aktionen auszufuehren.
 
-```text
+## Reward-Festlegung
+
+```txt
 reward_key: vip30
 title: 30 Tage VIP
-cost: 50000
+cost: 40000
 category_key: vip
 action_type: vip30
 action_key: vip30.redeem
 auto_fulfill: false
+twitch_is_enabled: false in STEP3
 ```
 
-## Aktueller STEP2-Umfang
+## STEP3-Umfang
 
-STEP2 ergänzt nur den Twitch-Capability-Check. Es werden keine Twitch-Live-Aktionen ausgeführt.
+Enthalten:
 
-Vorhanden:
+- VIP30 Version `0.3.0`.
+- Kosten von 50.000 auf **40.000 Kanalpunkte** angepasst.
+- Lokaler Channelpoints-Reward-Status.
+- Lokaler Channelpoints-Reward-Ensure.
+- Automatische Kategorie `vip`, falls noch nicht vorhanden.
+- Reward wird in `channelpoints_rewards` angelegt oder aktualisiert.
+- Reward bleibt auf Twitch-Seite inaktiv (`twitch_is_enabled = 0`).
+- Action-Payload setzt Schutzflags fuer STEP3.
+- Bus-Event `vip30.channelpoints / reward.ensured`.
+- Logging in `vip30_log` ueber `channelpoints_reward_ensured`.
 
-```text
-/api/vip30/status
-/api/vip30/health
-/api/vip30/slots
-/api/vip30/logs
-/api/vip30/stats
-/api/vip30/twitch/capability
-/api/vip30/twitch/scopes
-```
+Nicht enthalten:
 
-## Twitch Capability Check
+- Kein Add VIP.
+- Kein Remove VIP.
+- Kein Fulfill/Cancel.
+- Kein Twitch-Reward-Push.
+- Keine Live-Redemption-Ausfuehrung.
+- Keine Streamer.bot-Abhaengigkeit.
+- Kein Legacy-Import.
 
-`GET /api/vip30/twitch/capability` fragt intern die vorhandene Twitch-Auth-Validate-Route ab:
+## Routen
 
-```text
-/api/twitch/auth/validate
-```
-
-Geprüft werden:
-
-```text
-channel:manage:redemptions
-channel:manage:vips
-Broadcaster/User-Match, sofern verfügbar
-Token gültig
-```
-
-Wichtig:
-
-```text
-checkOnly: true
-noTwitchWrite: true
-noVipGrant: true
-noVipRevoke: true
-noRedemptionFulfillCancel: true
-```
-
-## Benötigte Scopes
-
-```text
-channel:manage:redemptions
-```
-
-wird später benötigt, um eine Channelpoints-Redemption nach erfolgreicher VIP-Vergabe auf `FULFILLED` oder bei Ablehnung/Fehler auf `CANCELED` zu setzen.
-
-```text
-channel:manage:vips
-```
-
-wird später benötigt, um VIPs zu setzen und nach Ablauf wieder zu entfernen.
-
-Optional:
-
-```text
-channel:read:vips
-```
-
-kann für reine Lese-/Diagnoseprüfungen hilfreich sein. Für Add/Remove bleibt `channel:manage:vips` relevant.
-
-## Bus
-
-VIP30 meldet sich am Communication Bus als Modul `module:vip30` an und sendet Heartbeats.
-
-Capabilities in STEP2:
-
-```text
-vip30.status
-vip30.slots
-vip30.logs
-vip30.stats
-vip30.twitch.capability
-vip30.cleanup.planned
-vip30.redeem.planned
-```
-
-Zusätzlich wird beim Capability-Check ein Event auf `vip30.twitch` gesendet:
-
-```text
-capability.ready
-capability.missing
-```
-
-## Logging
-
-Normale VIP30-Abläufe werden nicht ins Server-Log geschrieben. Dashboard/DB bleiben die primäre Stelle.
-
-Tabellen:
-
-```text
-vip30_slots
-vip30_log
+```txt
+GET  /api/vip30/status
+GET  /api/vip30/health
+GET  /api/vip30/slots
+GET  /api/vip30/logs
+GET  /api/vip30/stats
+GET  /api/vip30/twitch/capability
+GET  /api/vip30/twitch/scopes
+GET  /api/vip30/channelpoints/reward/status
+POST /api/vip30/channelpoints/reward/ensure?confirm=YES
 ```
 
 ## Tests
@@ -123,16 +66,18 @@ vip30_log
 Nach Entpacken:
 
 ```powershell
-node -c backend\modules\vip30.js
-.\stepdone.cmd "VIP30-STEP2 Twitch Capability Check"
+cd /d D:\Git\stream-control-center
+node -c backend\modulesip30.js
+.\stepdone.cmd "VIP30-STEP3 Channelpoints Reward Link 40000"
 ```
 
-Nach erfolgreichem Stepdone und Serverstart:
+Nach Serverstart:
 
 ```powershell
 Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/status" | ConvertTo-Json -Depth 8
-Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/twitch/scopes" | ConvertTo-Json -Depth 8
-Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/twitch/capability" | ConvertTo-Json -Depth 8
+Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/channelpoints/reward/status" | ConvertTo-Json -Depth 8
+Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/vip30/channelpoints/reward/ensure?confirm=YES" | ConvertTo-Json -Depth 8
+Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/channelpoints/reward/status" | ConvertTo-Json -Depth 8
 ```
 
 Bus-Check:
@@ -144,14 +89,28 @@ $c.status.clients |
   Select-Object id,module,status,lastHeartbeatAt,heartbeatCount
 ```
 
-## Nicht enthalten
+## Sicherheitsregeln
 
-```text
-Keine VIP-Vergabe
-Kein VIP-Entzug
-Kein Fulfill/Cancel einer Redemption
-Kein Channelpoints-Executor-Umbau
-Kein Dashboard-UI-Umbau
-Kein Streamer.bot
-Kein Import alter JSON-Daten
+STEP3 schreibt nur lokal in die bestehende SQLite-DB-Tabellen des Channelpoints-Systems.
+
+Der Reward wird absichtlich mit `twitch_is_enabled = 0` gespeichert. Dadurch wird nichts auf Twitch live geschaltet.
+
+Die Payload enthaelt:
+
+```json
+{
+  "vip30": {
+    "dryRunOnly": true,
+    "noTwitchWriteInThisStep": true,
+    "noVipGrantInThisStep": true,
+    "noRedemptionFulfillCancelInThisStep": true
+  },
+  "twitch": {
+    "should_redemptions_skip_request_queue": false,
+    "fulfill_after_success": false,
+    "cancel_on_failure": false
+  }
+}
 ```
+
+Damit wird verhindert, dass eine versehentlich aktive Redemption im aktuellen STEP automatisch fulfilled/canceled wird, solange der echte VIP30-Ausfuehrungspfad noch nicht umgesetzt ist.

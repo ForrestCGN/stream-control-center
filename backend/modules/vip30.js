@@ -6,8 +6,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.2.0";
-const MODULE_BUILD = "step2-twitch-capability-check";
+const MODULE_VERSION = "0.3.0";
+const MODULE_BUILD = "step3-channelpoints-reward-link";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 1;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -21,11 +21,11 @@ const MODULE_META = {
   category: "community",
   routePrefix: ROUTE_PREFIX,
   routesPrefix: [ROUTE_PREFIX],
-  description: "30 Tage VIP Node-Modul: SQLite-Grundlage, Dashboard-Logs/Stats, Communication-Bus und Twitch-Capability-Check ohne Live-Schreibaktion.",
+  description: "30 Tage VIP Node-Modul: SQLite-Grundlage, Dashboard-Logs/Stats, Communication-Bus und Twitch-Capability-Check und sichere Channelpoints-Reward-Verknuepfung ohne Live-Schreibaktion.",
   bus: {
     registered: true,
     heartbeat: true,
-    emits: ["module.status", "module.health", "vip30.status", "vip30.twitch"],
+    emits: ["module.status", "module.health", "vip30.status", "vip30.twitch", "vip30.channelpoints"],
     listens: []
   },
   legacy: false
@@ -37,11 +37,37 @@ const DEFAULT_CONFIG = {
   reward: {
     rewardKey: "vip30",
     title: "30 Tage VIP",
-    cost: 50000,
+    cost: 40000,
     categoryKey: "vip",
     actionType: "vip30",
     actionKey: "vip30.redeem",
     autoFulfill: false
+  },
+  channelpoints: {
+    enabled: true,
+    rewardSyncEnabled: true,
+    requireConfirmForEnsure: true,
+    createCategoryIfMissing: true,
+    categoryLabel: "VIP",
+    categoryDescription: "VIP- und Community-Belohnungen",
+    categorySortOrder: 70,
+    rewardSortOrder: 300,
+    systemEnabled: true,
+    twitchIsEnabled: false,
+    isPaused: false,
+    requireUserInput: false,
+    inputLabel: "",
+    queueMode: "vip30",
+    priority: 80,
+    cooldownSeconds: 0,
+    maxPerStream: 0,
+    maxPerUserPerStream: 0,
+    notes: "VIP30-Reward wird vom VIP30-Modul verwaltet. Twitch bleibt in STEP3 inaktiv.",
+    twitchPolicies: {
+      shouldRedemptionsSkipRequestQueue: false,
+      fulfillAfterSuccess: false,
+      cancelOnFailure: false
+    }
   },
   slots: {
     maxSlots: 10,
@@ -238,6 +264,11 @@ function loadConfig() {
   loadedConfig.slots.maxSlots = Math.max(1, intValue(loadedConfig.slots && loadedConfig.slots.maxSlots, DEFAULT_CONFIG.slots.maxSlots));
   loadedConfig.slots.durationDays = Math.max(1, intValue(loadedConfig.slots && loadedConfig.slots.durationDays, DEFAULT_CONFIG.slots.durationDays));
   loadedConfig.reward.cost = Math.max(1, intValue(loadedConfig.reward && loadedConfig.reward.cost, DEFAULT_CONFIG.reward.cost));
+  loadedConfig.channelpoints = mergePlain(DEFAULT_CONFIG.channelpoints, loadedConfig.channelpoints || {});
+  loadedConfig.channelpoints.categoryKey = cleanString(loadedConfig.reward.categoryKey || loadedConfig.reward.category_key || DEFAULT_CONFIG.reward.categoryKey);
+  loadedConfig.channelpoints.categoryLabel = cleanString(loadedConfig.channelpoints.categoryLabel, DEFAULT_CONFIG.channelpoints.categoryLabel);
+  loadedConfig.channelpoints.rewardSortOrder = Math.max(0, intValue(loadedConfig.channelpoints.rewardSortOrder, DEFAULT_CONFIG.channelpoints.rewardSortOrder));
+  loadedConfig.channelpoints.priority = Math.max(0, intValue(loadedConfig.channelpoints.priority, DEFAULT_CONFIG.channelpoints.priority));
   loadedConfig.bus.heartbeatIntervalMs = Math.max(1000, Math.min(60000, intValue(loadedConfig.bus && loadedConfig.bus.heartbeatIntervalMs, DEFAULT_CONFIG.bus.heartbeatIntervalMs)));
   loadedConfig.bus.statusPublishIntervalMs = Math.max(5000, Math.min(300000, intValue(loadedConfig.bus && loadedConfig.bus.statusPublishIntervalMs, DEFAULT_CONFIG.bus.statusPublishIntervalMs)));
   loadedConfig.logging.recentLimit = Math.max(1, Math.min(200, intValue(loadedConfig.logging && loadedConfig.logging.recentLimit, DEFAULT_CONFIG.logging.recentLimit)));
@@ -407,7 +438,7 @@ function buildRewardSummary() {
   return {
     rewardKey: cleanString(reward.rewardKey || reward.reward_key || "vip30"),
     title: cleanString(reward.title || "30 Tage VIP"),
-    cost: Math.max(1, intValue(reward.cost, 50000)),
+    cost: Math.max(1, intValue(reward.cost, 40000)),
     categoryKey: cleanString(reward.categoryKey || reward.category_key || "vip"),
     actionType: cleanString(reward.actionType || reward.action_type || "vip30"),
     actionKey: cleanString(reward.actionKey || reward.action_key || "vip30.redeem"),
@@ -655,6 +686,345 @@ function emitTwitchCapabilityEvent(result, reason = "capability_check") {
   }
 }
 
+
+function tableColumnsSafe(tableName) {
+  try { return database.tableColumns(tableName) || []; } catch (_) { return []; }
+}
+
+function channelpointsTablesReady() {
+  return tableExists("channelpoints_categories") && tableExists("channelpoints_rewards");
+}
+
+function mapChannelpointsRewardRow(row) {
+  if (!row) return null;
+  return {
+    id: row.id || null,
+    rewardKey: row.reward_key || "",
+    twitchRewardId: row.twitch_reward_id || "",
+    title: row.title || "",
+    prompt: row.prompt || "",
+    cost: Number(row.cost || 0),
+    categoryKey: row.category_key || "",
+    sortOrder: Number(row.sort_order || 0),
+    systemEnabled: Number(row.system_enabled || 0) === 1,
+    twitchIsEnabled: Number(row.twitch_is_enabled || 0) === 1,
+    isPaused: Number(row.is_paused || 0) === 1,
+    requireUserInput: Number(row.require_user_input || 0) === 1,
+    inputLabel: row.input_label || "",
+    actionType: row.action_type || "",
+    actionKey: row.action_key || "",
+    actionPayload: safeJsonParse(row.action_payload_json, {}),
+    mediaAssetId: row.media_asset_id || "",
+    mediaRole: row.media_role || "",
+    queueMode: row.queue_mode || "",
+    priority: Number(row.priority || 0),
+    cooldownSeconds: Number(row.cooldown_seconds || 0),
+    maxPerStream: Number(row.max_per_stream || 0),
+    maxPerUserPerStream: Number(row.max_per_user_per_stream || 0),
+    autoFulfill: Number(row.auto_fulfill || 0) === 1,
+    notes: row.notes || "",
+    createdAt: row.created_at || "",
+    updatedAt: row.updated_at || ""
+  };
+}
+
+function getChannelpointsRewardByKey(rewardKey = buildRewardSummary().rewardKey) {
+  ensureDbReady();
+  if (!channelpointsTablesReady()) return null;
+  const row = database.get("SELECT * FROM channelpoints_rewards WHERE reward_key = :rewardKey", { rewardKey: cleanString(rewardKey) });
+  return mapChannelpointsRewardRow(row);
+}
+
+function getChannelpointsCategory(categoryKey = buildRewardSummary().categoryKey) {
+  ensureDbReady();
+  if (!tableExists("channelpoints_categories")) return null;
+  const row = database.get("SELECT * FROM channelpoints_categories WHERE category_key = :categoryKey", { categoryKey: cleanString(categoryKey) });
+  if (!row) return null;
+  return {
+    id: row.id || null,
+    categoryKey: row.category_key || "",
+    label: row.label || "",
+    description: row.description || "",
+    sortOrder: Number(row.sort_order || 0),
+    enabled: Number(row.enabled || 0) === 1,
+    createdAt: row.created_at || "",
+    updatedAt: row.updated_at || ""
+  };
+}
+
+function buildVip30RewardPayload() {
+  const reward = buildRewardSummary();
+  const cp = getConfig().channelpoints || DEFAULT_CONFIG.channelpoints;
+  return {
+    vip30: {
+      managedBy: MODULE_NAME,
+      moduleVersion: MODULE_VERSION,
+      moduleBuild: MODULE_BUILD,
+      rewardKey: reward.rewardKey,
+      action: reward.actionKey,
+      durationDays: getConfig().slots.durationDays,
+      maxSlots: getConfig().slots.maxSlots,
+      step: "VIP30-STEP3",
+      dryRunOnly: true,
+      noTwitchWriteInThisStep: true,
+      localChannelpointsRewardWriteOnly: true,
+      noVipGrantInThisStep: true,
+      noRedemptionFulfillCancelInThisStep: true
+    },
+    twitch: {
+      should_redemptions_skip_request_queue: boolValue(cp.twitchPolicies && cp.twitchPolicies.shouldRedemptionsSkipRequestQueue, false),
+      fulfill_after_success: boolValue(cp.twitchPolicies && cp.twitchPolicies.fulfillAfterSuccess, false),
+      cancel_on_failure: boolValue(cp.twitchPolicies && cp.twitchPolicies.cancelOnFailure, false)
+    }
+  };
+}
+
+function buildDesiredChannelpointsReward() {
+  const reward = buildRewardSummary();
+  const cp = getConfig().channelpoints || DEFAULT_CONFIG.channelpoints;
+  return {
+    reward_key: reward.rewardKey,
+    twitch_reward_id: "",
+    title: reward.title,
+    prompt: "30 Tage VIP im CGN-Altersheim: Platz nehmen, Kissen richten, VIP-Schildchen abholen.",
+    cost: reward.cost,
+    category_key: reward.categoryKey,
+    sort_order: intValue(cp.rewardSortOrder, 300),
+    system_enabled: boolDb(boolValue(cp.systemEnabled, true)),
+    twitch_is_enabled: 0,
+    is_paused: boolDb(boolValue(cp.isPaused, false)),
+    require_user_input: boolDb(boolValue(cp.requireUserInput, false)),
+    input_label: cleanString(cp.inputLabel || ""),
+    action_type: reward.actionType,
+    action_key: reward.actionKey,
+    action_payload_json: safeJsonString(buildVip30RewardPayload(), {}),
+    media_asset_id: "",
+    media_role: "none",
+    queue_mode: cleanString(cp.queueMode || "vip30"),
+    priority: intValue(cp.priority, 80),
+    cooldown_seconds: intValue(cp.cooldownSeconds, 0),
+    max_per_stream: intValue(cp.maxPerStream, 0),
+    max_per_user_per_stream: intValue(cp.maxPerUserPerStream, 0),
+    auto_fulfill: 0,
+    notes: cleanString(cp.notes || "VIP30-Reward wird vom VIP30-Modul verwaltet. Twitch bleibt in STEP3 inaktiv.")
+  };
+}
+
+function buildChannelpointsRewardDiff(existing, desired) {
+  const fields = ["title", "cost", "categoryKey", "systemEnabled", "twitchIsEnabled", "isPaused", "actionType", "actionKey", "queueMode", "priority", "autoFulfill"];
+  const desiredView = mapChannelpointsRewardRow({
+    reward_key: desired.reward_key,
+    twitch_reward_id: desired.twitch_reward_id,
+    title: desired.title,
+    prompt: desired.prompt,
+    cost: desired.cost,
+    category_key: desired.category_key,
+    sort_order: desired.sort_order,
+    system_enabled: desired.system_enabled,
+    twitch_is_enabled: desired.twitch_is_enabled,
+    is_paused: desired.is_paused,
+    require_user_input: desired.require_user_input,
+    input_label: desired.input_label,
+    action_type: desired.action_type,
+    action_key: desired.action_key,
+    action_payload_json: desired.action_payload_json,
+    media_asset_id: desired.media_asset_id,
+    media_role: desired.media_role,
+    queue_mode: desired.queue_mode,
+    priority: desired.priority,
+    cooldown_seconds: desired.cooldown_seconds,
+    max_per_stream: desired.max_per_stream,
+    max_per_user_per_stream: desired.max_per_user_per_stream,
+    auto_fulfill: desired.auto_fulfill,
+    notes: desired.notes
+  });
+  const differences = [];
+  for (const field of fields) {
+    if (JSON.stringify(existing ? existing[field] : undefined) !== JSON.stringify(desiredView ? desiredView[field] : undefined)) {
+      differences.push({ field, current: existing ? existing[field] : null, desired: desiredView ? desiredView[field] : null });
+    }
+  }
+  return { inSync: existing ? differences.length === 0 : false, differences, desired: desiredView };
+}
+
+function buildChannelpointsRewardStatus() {
+  ensureDbReady();
+  const reward = buildRewardSummary();
+  const desired = buildDesiredChannelpointsReward();
+  const existing = getChannelpointsRewardByKey(reward.rewardKey);
+  const category = getChannelpointsCategory(reward.categoryKey);
+  const diff = buildChannelpointsRewardDiff(existing, desired);
+  return {
+    ok: channelpointsTablesReady(),
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    status: channelpointsTablesReady() ? (existing ? (diff.inSync ? "linked_in_sync" : "linked_needs_update") : "missing_local_reward") : "channelpoints_tables_missing",
+    tables: {
+      categories: tableExists("channelpoints_categories"),
+      rewards: tableExists("channelpoints_rewards"),
+      categoryColumns: tableColumnsSafe("channelpoints_categories"),
+      rewardColumns: tableColumnsSafe("channelpoints_rewards")
+    },
+    reward: {
+      configured: reward,
+      existing,
+      desired: diff.desired,
+      inSync: diff.inSync,
+      differences: diff.differences
+    },
+    category,
+    safety: {
+      localDbOnly: true,
+      noTwitchWrite: true,
+      twitchIsEnabledForcedFalseInStep3: true,
+      noVipGrant: true,
+      noRedemptionFulfillCancel: true,
+      cost: reward.cost
+    }
+  };
+}
+
+function ensureChannelpointsCategory() {
+  const config = getConfig();
+  const reward = buildRewardSummary();
+  const cp = config.channelpoints || DEFAULT_CONFIG.channelpoints;
+  if (!tableExists("channelpoints_categories")) throw new Error("channelpoints_categories_table_missing");
+  const now = nowIso();
+  const existing = getChannelpointsCategory(reward.categoryKey);
+  if (existing) return { changed: false, category: existing };
+  if (boolValue(cp.createCategoryIfMissing, true) !== true) return { changed: false, skipped: true, reason: "create_category_disabled" };
+  const data = {
+    category_key: reward.categoryKey,
+    label: cleanString(cp.categoryLabel || "VIP"),
+    description: cleanString(cp.categoryDescription || "VIP- und Community-Belohnungen"),
+    sort_order: intValue(cp.categorySortOrder, 70),
+    enabled: 1,
+    created_at: now,
+    updated_at: now
+  };
+  database.run(`
+    INSERT INTO channelpoints_categories
+      (category_key, label, description, sort_order, enabled, created_at, updated_at)
+    VALUES
+      (:category_key, :label, :description, :sort_order, :enabled, :created_at, :updated_at)
+  `, data);
+  return { changed: true, category: getChannelpointsCategory(reward.categoryKey) };
+}
+
+function ensureChannelpointsReward(options = {}) {
+  const config = getConfig();
+  if (!config.channelpoints || config.channelpoints.enabled === false || config.channelpoints.rewardSyncEnabled === false) {
+    return { ok: false, skipped: true, reason: "channelpoints_reward_sync_disabled" };
+  }
+  const confirm = cleanString(options.confirm || options.confirmation || "").toUpperCase();
+  if (boolValue(config.channelpoints.requireConfirmForEnsure, true) === true && confirm !== "YES") {
+    return { ok: false, skipped: true, reason: "confirm_required", confirmRequired: "YES", noWrite: true, status: buildChannelpointsRewardStatus() };
+  }
+  ensureDbReady();
+  if (!channelpointsTablesReady()) throw new Error("channelpoints_tables_missing");
+  const now = nowIso();
+  const categoryResult = ensureChannelpointsCategory();
+  const desired = buildDesiredChannelpointsReward();
+  const existing = getChannelpointsRewardByKey(desired.reward_key);
+  const params = { ...desired, updated_at: now, created_at: existing && existing.createdAt ? existing.createdAt : now };
+  let action = "unchanged";
+  if (existing && existing.id) {
+    database.run(`
+      UPDATE channelpoints_rewards SET
+        title = :title,
+        prompt = :prompt,
+        cost = :cost,
+        category_key = :category_key,
+        sort_order = :sort_order,
+        system_enabled = :system_enabled,
+        twitch_is_enabled = :twitch_is_enabled,
+        is_paused = :is_paused,
+        require_user_input = :require_user_input,
+        input_label = :input_label,
+        action_type = :action_type,
+        action_key = :action_key,
+        action_payload_json = :action_payload_json,
+        media_asset_id = :media_asset_id,
+        media_role = :media_role,
+        queue_mode = :queue_mode,
+        priority = :priority,
+        cooldown_seconds = :cooldown_seconds,
+        max_per_stream = :max_per_stream,
+        max_per_user_per_stream = :max_per_user_per_stream,
+        auto_fulfill = :auto_fulfill,
+        notes = :notes,
+        updated_at = :updated_at
+      WHERE reward_key = :reward_key
+    `, params);
+    action = "updated";
+  } else {
+    database.run(`
+      INSERT INTO channelpoints_rewards (
+        reward_key, twitch_reward_id, title, prompt, cost, category_key, sort_order,
+        system_enabled, twitch_is_enabled, is_paused, require_user_input, input_label,
+        action_type, action_key, action_payload_json, media_asset_id, media_role,
+        queue_mode, priority, cooldown_seconds, max_per_stream, max_per_user_per_stream,
+        auto_fulfill, notes, created_at, updated_at
+      ) VALUES (
+        :reward_key, :twitch_reward_id, :title, :prompt, :cost, :category_key, :sort_order,
+        :system_enabled, :twitch_is_enabled, :is_paused, :require_user_input, :input_label,
+        :action_type, :action_key, :action_payload_json, :media_asset_id, :media_role,
+        :queue_mode, :priority, :cooldown_seconds, :max_per_stream, :max_per_user_per_stream,
+        :auto_fulfill, :notes, :created_at, :updated_at
+      )
+    `, params);
+    action = "created";
+  }
+  const status = buildChannelpointsRewardStatus();
+  const result = {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    action,
+    category: categoryResult,
+    status,
+    safety: { localDbOnly: true, noTwitchWrite: true, noVipGrant: true, noRedemptionFulfillCancel: true }
+  };
+  writeLog("channelpoints_reward_ensured", {
+    success: true,
+    reason: action,
+    message: `VIP30 Channelpoints Reward ${action}`,
+    payload: { reward: status.reward.existing, desired: status.reward.desired, category: status.category }
+  });
+  emitChannelpointsRewardEvent("reward.ensured", result, options.reason || "manual_ensure");
+  publishStatus("channelpoints_reward_ensured");
+  return result;
+}
+
+function emitChannelpointsRewardEvent(action, result, reason = "channelpoints_reward") {
+  const config = getConfig();
+  if (config.bus.enabled === false) return { ok: false, reason: "bus_disabled" };
+  const currentBus = getBus();
+  if (!currentBus || typeof currentBus.emit !== "function") return { ok: false, reason: "bus_unavailable" };
+  try {
+    return currentBus.emit({
+      type: "event",
+      channel: "vip30.channelpoints",
+      action,
+      source: { type: "module", id: `module:${MODULE_NAME}`, module: MODULE_NAME },
+      target: { type: "all", id: "*" },
+      payload: {
+        module: MODULE_NAME,
+        moduleVersion: MODULE_VERSION,
+        moduleBuild: MODULE_BUILD,
+        reason,
+        emittedAt: nowIso(),
+        result: result || null
+      },
+      meta: { requireAck: false, replayable: true, ttlMs: config.bus.ttlMs, productionTarget: true }
+    });
+  } catch (_) {
+    return { ok: false, reason: "bus_emit_failed" };
+  }
+}
+
 function buildHealth() {
   const stats = buildStats();
   const capability = lastCapabilityCheck ? {
@@ -669,7 +1039,7 @@ function buildHealth() {
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
     enabled: getConfig().enabled !== false,
-    status: lastError ? "error" : "ready_step2_capability_check",
+    status: lastError ? "error" : "ready_step3_channelpoints_reward_link",
     lastError,
     checks: {
       databaseReady: dbMigrationState.ok === true,
@@ -678,7 +1048,9 @@ function buildHealth() {
       dashboardLoggingReady: tableExists("vip30_log"),
       slotsTableReady: tableExists("vip30_slots"),
       twitchCapabilityCheckAvailable: getConfig().twitch.capabilityCheckEnabled !== false,
-      twitchLiveActionsEnabled: getConfig().twitch.liveActionsEnabled === true
+      twitchLiveActionsEnabled: getConfig().twitch.liveActionsEnabled === true,
+      channelpointsTablesReady: channelpointsTablesReady(),
+      channelpointsRewardLinked: !!getChannelpointsRewardByKey(buildRewardSummary().rewardKey)
     },
     twitchCapability: capability,
     stats: stats.slots
@@ -699,10 +1071,10 @@ function buildStatus() {
     moduleBuild: MODULE_BUILD,
     version: MODULE_VERSION,
     enabled: config.enabled !== false,
-    status: lastError ? "error" : "ready_step2_twitch_capability_check",
+    status: lastError ? "error" : "ready_step3_channelpoints_reward_link",
     startedAt,
     routePrefix: ROUTE_PREFIX,
-    routeCount: 7,
+    routeCount: 9,
     routes: [
       `${ROUTE_PREFIX}/status`,
       `${ROUTE_PREFIX}/health`,
@@ -710,7 +1082,9 @@ function buildStatus() {
       `${ROUTE_PREFIX}/logs`,
       `${ROUTE_PREFIX}/stats`,
       `${ROUTE_PREFIX}/twitch/capability`,
-      `${ROUTE_PREFIX}/twitch/scopes`
+      `${ROUTE_PREFIX}/twitch/scopes`,
+      `${ROUTE_PREFIX}/channelpoints/reward/status`,
+      `${ROUTE_PREFIX}/channelpoints/reward/ensure`
     ],
     reward: buildRewardSummary(),
     config: {
@@ -723,7 +1097,9 @@ function buildStatus() {
       twitchLiveActionsEnabled: config.twitch.liveActionsEnabled === true,
       twitchCapabilityCheckEnabled: config.twitch.capabilityCheckEnabled !== false,
       twitchAuthValidateUrl: config.twitch.authValidateUrl,
-      twitchRequiredScopes: [...config.twitch.requiredScopes]
+      twitchRequiredScopes: [...config.twitch.requiredScopes],
+      channelpointsRewardSyncEnabled: config.channelpoints.enabled !== false && config.channelpoints.rewardSyncEnabled !== false,
+      channelpointsRewardCost: buildRewardSummary().cost
     },
     database: {
       adapter: database.getAdapter ? database.getAdapter() : "sqlite",
@@ -752,6 +1128,9 @@ function buildStatus() {
       missingScopes: lastCapabilityCheck.readiness && lastCapabilityCheck.readiness.missingScopes || [],
       blocker: lastCapabilityCheck.readiness && lastCapabilityCheck.readiness.blocker || ""
     } : { checkedAt: "", status: "not_checked", readyForVip30LiveFlow: false, missingScopes: config.twitch.requiredScopes, blocker: "not_checked" },
+    channelpointsReward: (() => {
+      try { return buildChannelpointsRewardStatus(); } catch (err) { return { ok: false, status: "error", error: err && err.message ? err.message : String(err) }; }
+    })(),
     slots: stats.slots,
     stats: stats.logs,
     logging: {
@@ -765,10 +1144,11 @@ function buildStatus() {
       recentEvents: recentLogs
     },
     safety: {
-      step: "VIP30-STEP2",
+      step: "VIP30-STEP3",
       noStreamerBot: true,
       noLegacyImport: true,
       noTwitchWriteInThisStep: true,
+      localChannelpointsRewardWriteOnly: true,
       noVipGrantInThisStep: true,
       noRedemptionFulfillCancelInThisStep: true,
       dashboardLoggingInsteadOfServerLog: true,
@@ -809,7 +1189,7 @@ function heartbeat(reason = "heartbeat") {
       module: MODULE_NAME,
       version: MODULE_VERSION,
       build: MODULE_BUILD,
-      phase: config.enabled === false ? "disabled" : "ready_step2",
+      phase: config.enabled === false ? "disabled" : "ready_step3",
       reason,
       enabled: config.enabled !== false,
       healthy: !lastError,
@@ -821,7 +1201,13 @@ function heartbeat(reason = "heartbeat") {
         status: lastCapabilityCheck.status || "",
         readyForVip30LiveFlow: !!(lastCapabilityCheck.readiness && lastCapabilityCheck.readiness.readyForVip30LiveFlow),
         checkedAt: lastCapabilityCheck.checkedAt || ""
-      } : { status: "not_checked", readyForVip30LiveFlow: false, checkedAt: "" }
+      } : { status: "not_checked", readyForVip30LiveFlow: false, checkedAt: "" },
+      channelpointsReward: (() => {
+        try {
+          const status = buildChannelpointsRewardStatus();
+          return { status: status.status, inSync: !!(status.reward && status.reward.inSync), cost: buildRewardSummary().cost };
+        } catch (err) { return { status: "error", error: err && err.message ? err.message : String(err) }; }
+      })()
     };
     const result = currentBus.heartbeatModule(MODULE_NAME, payload);
     runtimeStats.busHeartbeats += 1;
@@ -848,6 +1234,8 @@ function registerAtBus() {
       "vip30.logs",
       "vip30.stats",
       "vip30.twitch.capability",
+      "vip30.channelpoints.reward.status",
+      "vip30.channelpoints.reward.ensure",
       "vip30.cleanup.planned",
       "vip30.redeem.planned"
     ],
@@ -858,8 +1246,9 @@ function registerAtBus() {
       dashboardLogging: true,
       noStreamerBot: true,
       noLegacyImport: true,
-      noTwitchWriteInStep2: true,
-      capabilityCheckOnly: true
+      noTwitchWriteInStep3: true,
+      capabilityCheckOnly: false,
+      channelpointsRewardLink: true
     }
   });
   registeredAtBus = result && result.ok === true;
@@ -946,6 +1335,25 @@ function init({ app } = {}) {
         safety: { checkOnly: true, noTwitchWrite: true }
       });
     });
+    app.get(`${ROUTE_PREFIX}/channelpoints/reward/status`, (_req, res) => {
+      runtimeStats.lastAction = "channelpoints_reward_status";
+      try { res.json(buildChannelpointsRewardStatus()); }
+      catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err) }); }
+    });
+    app.post(`${ROUTE_PREFIX}/channelpoints/reward/ensure`, (req, res) => {
+      runtimeStats.lastAction = "channelpoints_reward_ensure";
+      try {
+        const result = ensureChannelpointsReward({
+          confirm: req.query && req.query.confirm || req.body && req.body.confirm || "",
+          reason: cleanString(req.query && req.query.reason || req.body && req.body.reason || "api")
+        });
+        const statusCode = result && result.ok ? 200 : 409;
+        res.status(statusCode).json(result);
+      } catch (err) {
+        lastError = err && err.message ? err.message : String(err);
+        res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: lastError, safety: { noTwitchWrite: true } });
+      }
+    });
   }
 
   console.log(`[${MODULE_NAME}] v${MODULE_VERSION} active (${MODULE_BUILD})`);
@@ -960,6 +1368,8 @@ module.exports = {
   buildHealth,
   buildStats,
   buildTwitchCapabilityStatus,
+  buildChannelpointsRewardStatus,
+  ensureChannelpointsReward,
   listSlots,
   listLogs,
   writeLog

@@ -1,48 +1,36 @@
 # Current Status
 
-## Stand
+## VIP30-STEP3
 
-Aktueller Fokus: VIP30 / 30 Tage VIP im `stream-control-center`.
+Vorbereitet ist `VIP30-STEP3 Channelpoints Reward Link 40000`.
 
-VIP30-STEP1 wurde lokal getestet:
+Status:
 
-```text
-/api/vip30/status -> ok=True
-status -> ready_step1_db_bus_dashboard_logging
+- VIP30-Grundmodul aus STEP1 laeuft.
+- Twitch Capability Check aus STEP2 ist gruen.
+- `channel:manage:redemptions` ist vorhanden.
+- `channel:manage:vips` ist vorhanden.
+- VIP30-Reward-Kosten wurden auf **40.000 Kanalpunkte** gesetzt.
+- STEP3 verbindet VIP30 lokal mit dem vorhandenen Channelpoints-System.
+
+## Geaenderte/ergaenzte Routen
+
+```txt
+GET  /api/vip30/channelpoints/reward/status
+POST /api/vip30/channelpoints/reward/ensure?confirm=YES
 ```
 
-Communication-Bus-Status zeigte `module:vip30` korrekt unter `status.clients` mit Online-Status und Heartbeats.
+## Sicherheit
 
-## VIP30-STEP2
+STEP3 fuehrt keine Twitch-Schreibaktion aus:
 
-Vorbereitet ist `VIP30-STEP2 Twitch Capability Check`.
+- kein Add VIP
+- kein Remove VIP
+- kein Fulfill/Cancel
+- kein Twitch-Reward-Push
 
-Ziel:
+Der lokale Reward wird mit `twitch_is_enabled = 0` gespeichert.
 
-```text
-Prüfen, ob die bestehende Twitch-Auth für den späteren VIP30-Live-Flow geeignet ist.
-```
+## Naechster Fokus
 
-Neue/erweiterte Routen:
-
-```text
-/api/vip30/twitch/capability
-/api/vip30/twitch/scopes
-```
-
-Geprüft werden:
-
-```text
-channel:manage:redemptions
-channel:manage:vips
-Broadcaster/User-Match
-Token-Gültigkeit über /api/twitch/auth/validate
-```
-
-Sicherheitsregel:
-
-```text
-Keine Twitch-Schreibaktion in STEP2.
-Keine VIP-Vergabe.
-Kein Fulfill/Cancel.
-```
+VIP30-STEP4: Dry-/Decision-Flow fuer VIP30-Redemptions vorbereiten. Weiterhin kein Live-VIP, kein Fulfill/Cancel, solange die Entscheidungskette nicht vollstaendig sichtbar getestet ist.

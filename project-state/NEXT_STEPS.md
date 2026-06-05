@@ -1,35 +1,28 @@
 # Next Steps
 
-## Aktuell
-
-1. ZIP nach `D:\Git\stream-control-center` entpacken.
-2. Syntax prüfen.
-3. `stepdone.cmd` ausführen.
-4. Erst danach API-Tests.
+## Nach Entpacken von VIP30-STEP3
 
 ```powershell
-node -c backend\modules\vip30.js
-.\stepdone.cmd "VIP30-STEP2 Twitch Capability Check"
+cd /d D:\Git\stream-control-center
+node -c backend\modulesip30.js
+.\stepdone.cmd "VIP30-STEP3 Channelpoints Reward Link 40000"
 ```
 
-Danach:
+## Nach Serverstart testen
 
 ```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/twitch/capability" | ConvertTo-Json -Depth 8
+Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/status" | ConvertTo-Json -Depth 8
+Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/channelpoints/reward/status" | ConvertTo-Json -Depth 8
+Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/vip30/channelpoints/reward/ensure?confirm=YES" | ConvertTo-Json -Depth 8
+Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/channelpoints/reward/status" | ConvertTo-Json -Depth 8
 ```
 
-## Danach geplant
+## Danach
 
-VIP30-STEP3:
+VIP30-STEP4 planen:
 
-```text
-Channelpoints-Reward vip30 sauber im bestehenden Channelpoints-System eintragen/prüfen.
-Noch keine VIP-Livevergabe.
-```
-
-VIP30-STEP4:
-
-```text
-Dry-Run-Redemption: EventSub-Redemption wird erkannt und VIP30 entscheidet would_grant/would_cancel.
-Noch kein Add VIP, kein Fulfill/Cancel.
-```
+- VIP30-Decision-Flow fuer Redemption vorbereiten.
+- Pruefen: Slots voll, bestehender VIP30-Slot, bestehender Twitch-VIP, Moderator, Token/API-Fehler.
+- Nur Dry-/Decision-Ausgabe und Logging.
+- Noch kein Add VIP.
+- Noch kein Fulfill/Cancel.

@@ -2,11 +2,13 @@
 
 ## VIP30
 
-- [x] STEP1: Grundmodul, DB, Logs/Stats, Bus-Anmeldung, Heartbeat.
-- [x] STEP2 vorbereitet: Twitch Capability Check.
-- [ ] STEP2 lokal entpacken.
-- [ ] `node -c backend\modules\vip30.js` ausführen.
-- [ ] `stepdone.cmd` ausführen.
-- [ ] `/api/vip30/twitch/capability` prüfen.
-- [ ] Fehlende Twitch-Scopes dokumentieren, falls vorhanden.
-- [ ] STEP3 planen: Channelpoints-Reward `vip30` im bestehenden Kanalpunkte-Modul.
+- [x] STEP1: Modul, DB, Bus, Logging, Statusrouten.
+- [x] STEP2: Twitch Capability Check.
+- [x] STEP2: Scopes gruen (`channel:manage:redemptions`, `channel:manage:vips`).
+- [x] STEP3 vorbereitet: Channelpoints Reward Link mit 40.000 Punkten.
+- [ ] STEP3 lokal entpacken.
+- [ ] `node -c backend\modules\vip30.js` ausfuehren.
+- [ ] `stepdone.cmd` ausfuehren.
+- [ ] `/api/vip30/channelpoints/reward/status` testen.
+- [ ] `/api/vip30/channelpoints/reward/ensure?confirm=YES` testen.
+- [ ] STEP4 Dry-/Decision-Flow planen.

@@ -1,10 +1,10 @@
 {
   "enabled": true,
-  "moduleVersion": "0.2.0",
+  "moduleVersion": "0.3.0",
   "reward": {
     "rewardKey": "vip30",
     "title": "30 Tage VIP",
-    "cost": 50000,
+    "cost": 40000,
     "categoryKey": "vip",
     "actionType": "vip30",
     "actionKey": "vip30.redeem",
@@ -63,5 +63,31 @@
       "channel:read:vips"
     ],
     "requireTokenUserMatchesBroadcaster": true
+  },
+  "channelpoints": {
+    "enabled": true,
+    "rewardSyncEnabled": true,
+    "requireConfirmForEnsure": true,
+    "createCategoryIfMissing": true,
+    "categoryLabel": "VIP",
+    "categoryDescription": "VIP- und Community-Belohnungen",
+    "categorySortOrder": 70,
+    "rewardSortOrder": 300,
+    "systemEnabled": true,
+    "twitchIsEnabled": false,
+    "isPaused": false,
+    "requireUserInput": false,
+    "inputLabel": "",
+    "queueMode": "vip30",
+    "priority": 80,
+    "cooldownSeconds": 0,
+    "maxPerStream": 0,
+    "maxPerUserPerStream": 0,
+    "notes": "VIP30-Reward wird vom VIP30-Modul verwaltet. Twitch bleibt in STEP3 inaktiv.",
+    "twitchPolicies": {
+      "shouldRedemptionsSkipRequestQueue": false,
+      "fulfillAfterSuccess": false,
+      "cancelOnFailure": false
+    }
   }
 }
