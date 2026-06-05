@@ -1,28 +1,27 @@
 # Next Steps
 
-## Nach Entpacken von VIP30-STEP3
+## Nach VIP30-STEP4 testen
 
 ```powershell
 cd /d D:\Git\stream-control-center
-node -c backend\modulesip30.js
-.\stepdone.cmd "VIP30-STEP3 Channelpoints Reward Link 40000"
+node -c backend\modules\vip30.js
+.\stepdone.cmd "VIP30-STEP4 DB Dashboard Config"
 ```
 
-## Nach Serverstart testen
+Danach:
 
 ```powershell
 Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/status" | ConvertTo-Json -Depth 8
-Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/channelpoints/reward/status" | ConvertTo-Json -Depth 8
-Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/vip30/channelpoints/reward/ensure?confirm=YES" | ConvertTo-Json -Depth 8
-Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/channelpoints/reward/status" | ConvertTo-Json -Depth 8
+Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/settings" | ConvertTo-Json -Depth 8
+```
+
+Optionaler Save-Test:
+
+```powershell
+$body = @{ settings = @{ "reward.cost" = 40000 } } | ConvertTo-Json -Depth 8
+Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/vip30/settings/save" -ContentType "application/json" -Body $body | ConvertTo-Json -Depth 8
 ```
 
 ## Danach
 
-VIP30-STEP4 planen:
-
-- VIP30-Decision-Flow fuer Redemption vorbereiten.
-- Pruefen: Slots voll, bestehender VIP30-Slot, bestehender Twitch-VIP, Moderator, Token/API-Fehler.
-- Nur Dry-/Decision-Ausgabe und Logging.
-- Noch kein Add VIP.
-- Noch kein Fulfill/Cancel.
+VIP30-STEP5: Dry-Run Redemption/Decision Flow zwischen Channelpoints und VIP30.

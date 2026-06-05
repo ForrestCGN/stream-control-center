@@ -1,36 +1,25 @@
 # Current Status
 
-## VIP30-STEP3
+## VIP30-STEP4 DB-/Dashboard-Config
 
-Vorbereitet ist `VIP30-STEP3 Channelpoints Reward Link 40000`.
+VIP30 ist auf Stand `0.4.0` vorbereitet.
 
-Status:
+Bestätigte Basis aus STEP3:
 
-- VIP30-Grundmodul aus STEP1 laeuft.
-- Twitch Capability Check aus STEP2 ist gruen.
-- `channel:manage:redemptions` ist vorhanden.
-- `channel:manage:vips` ist vorhanden.
-- VIP30-Reward-Kosten wurden auf **40.000 Kanalpunkte** gesetzt.
-- STEP3 verbindet VIP30 lokal mit dem vorhandenen Channelpoints-System.
+- Reward-Key `vip30`
+- Titel `30 Tage VIP`
+- Kosten `40000`
+- Kategorie `vip`
+- Action `vip30.redeem`
+- lokaler Channelpoints-Reward verknüpft
+- Twitch-Live-Aktionen deaktiviert
 
-## Geaenderte/ergaenzte Routen
+Neu in STEP4:
 
-```txt
-GET  /api/vip30/channelpoints/reward/status
-POST /api/vip30/channelpoints/reward/ensure?confirm=YES
-```
+- Tabelle `vip30_settings`
+- `config/vip30.json` nur noch Seed/Fallback
+- API `GET /api/vip30/settings`
+- API `POST /api/vip30/settings/save`
+- Status enthält Settings-Block für Dashboard
 
-## Sicherheit
-
-STEP3 fuehrt keine Twitch-Schreibaktion aus:
-
-- kein Add VIP
-- kein Remove VIP
-- kein Fulfill/Cancel
-- kein Twitch-Reward-Push
-
-Der lokale Reward wird mit `twitch_is_enabled = 0` gespeichert.
-
-## Naechster Fokus
-
-VIP30-STEP4: Dry-/Decision-Flow fuer VIP30-Redemptions vorbereiten. Weiterhin kein Live-VIP, kein Fulfill/Cancel, solange die Entscheidungskette nicht vollstaendig sichtbar getestet ist.
+Keine Twitch-Schreibaktion, kein VIP-Grant, kein Fulfill/Cancel.

@@ -6,10 +6,10 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.3.0";
-const MODULE_BUILD = "step3-channelpoints-reward-link";
+const MODULE_VERSION = "0.4.0";
+const MODULE_BUILD = "step4-db-dashboard-config";
 const ROUTE_PREFIX = "/api/vip30";
-const SCHEMA_TARGET_VERSION = 1;
+const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
 const DEFAULT_TARGET_PORT = 8080;
 
@@ -88,6 +88,12 @@ const DEFAULT_CONFIG = {
   },
   dashboard: {
     enabled: true
+  },
+  settings: {
+    dbEnabled: true,
+    seedFromJsonOnMissing: true,
+    jsonFallbackEnabled: true,
+    dashboardWritable: true
   },
   bus: {
     enabled: true,
@@ -174,6 +180,24 @@ const TABLES = [
       "CREATE INDEX IF NOT EXISTS idx_vip30_log_redemption ON vip30_log(twitch_redemption_id);",
       "CREATE INDEX IF NOT EXISTS idx_vip30_log_success ON vip30_log(success);"
     ]
+  },
+  {
+    name: "vip30_settings",
+    createTableSql: `CREATE TABLE IF NOT EXISTS vip30_settings (
+  setting_key TEXT PRIMARY KEY,
+  setting_value TEXT,
+  value_type TEXT,
+  category TEXT,
+  label TEXT,
+  description TEXT,
+  editable INTEGER,
+  created_at TEXT,
+  updated_at TEXT
+);`,
+    createIndexSql: [
+      "CREATE INDEX IF NOT EXISTS idx_vip30_settings_category ON vip30_settings(category);",
+      "CREATE INDEX IF NOT EXISTS idx_vip30_settings_editable ON vip30_settings(editable);"
+    ]
   }
 ];
 
@@ -208,6 +232,9 @@ let runtimeStats = {
   statsRequests: 0,
   healthRequests: 0,
   capabilityRequests: 0,
+  settingsRequests: 0,
+  settingsWrites: 0,
+  lastSettingsWriteAt: "",
   busHeartbeats: 0,
   busStatuses: 0,
   logWrites: 0,
@@ -260,7 +287,10 @@ function arrayOfStrings(value) {
 
 function loadConfig() {
   const loaded = helperConfig.loadConfig("vip30.json", {}, { createIfMissing: false });
-  loadedConfig = mergePlain(DEFAULT_CONFIG, loaded && loaded.data && typeof loaded.data === "object" ? loaded.data : {});
+  let baseConfig = mergePlain(DEFAULT_CONFIG, loaded && loaded.data && typeof loaded.data === "object" ? loaded.data : {});
+  const dbConfig = readSettingsConfigFromDbSafe();
+  if (dbConfig && Object.keys(dbConfig).length) baseConfig = mergePlain(baseConfig, dbConfig);
+  loadedConfig = baseConfig;
   loadedConfig.slots.maxSlots = Math.max(1, intValue(loadedConfig.slots && loadedConfig.slots.maxSlots, DEFAULT_CONFIG.slots.maxSlots));
   loadedConfig.slots.durationDays = Math.max(1, intValue(loadedConfig.slots && loadedConfig.slots.durationDays, DEFAULT_CONFIG.slots.durationDays));
   loadedConfig.reward.cost = Math.max(1, intValue(loadedConfig.reward && loadedConfig.reward.cost, DEFAULT_CONFIG.reward.cost));
@@ -306,13 +336,13 @@ function migrateDatabase(reason = "init") {
     createdIndexes: TABLES.flatMap(table => table.createIndexSql || [])
   };
   try {
-    database.ensureSchema(MODULE_NAME, SCHEMA_TARGET_VERSION, (_fromVersion, toVersion) => {
-      if (toVersion !== 1) return;
+    database.ensureSchema(MODULE_NAME, SCHEMA_TARGET_VERSION, () => {
       for (const table of TABLES) {
         database.exec(table.createTableSql);
         for (const sql of table.createIndexSql || []) database.exec(sql);
       }
     });
+    seedSettingsFromConfigIfMissing("migration");
     state.executed = before < SCHEMA_TARGET_VERSION;
     state.ok = true;
     state.schemaVersionAfter = database.getSchemaVersion(MODULE_NAME);
@@ -324,6 +354,210 @@ function migrateDatabase(reason = "init") {
     lastError = state.lastError;
     throw err;
   }
+}
+
+
+const SETTING_DEFINITIONS = [
+  { key: "enabled", path: "enabled", type: "boolean", category: "general", label: "VIP30 aktiv", description: "Schaltet das VIP30-Modul fachlich aktiv/inaktiv.", editable: true },
+  { key: "reward.title", path: "reward.title", type: "string", category: "reward", label: "Reward-Titel", description: "Titel der Kanalpunkte-Belohnung." , editable: true},
+  { key: "reward.cost", path: "reward.cost", type: "integer", category: "reward", label: "Kosten", description: "Kosten der VIP30-Belohnung in Kanalpunkten.", editable: true },
+  { key: "reward.prompt", path: "channelpoints.prompt", type: "string", category: "reward", label: "Reward-Beschreibung", description: "Prompt/Beschreibung im Kanalpunkte-System.", editable: true },
+  { key: "slots.maxSlots", path: "slots.maxSlots", type: "integer", category: "slots", label: "Maximale Slots", description: "Maximale gleichzeitige VIP30-Slots.", editable: true },
+  { key: "slots.durationDays", path: "slots.durationDays", type: "integer", category: "slots", label: "Laufzeit in Tagen", description: "Wie lange ein VIP30-Slot aktiv bleibt.", editable: true },
+  { key: "channelpoints.rewardSyncEnabled", path: "channelpoints.rewardSyncEnabled", type: "boolean", category: "channelpoints", label: "Reward-Sync aktiv", description: "Lokalen VIP30-Reward in Channelpoints-Tabellen verwalten.", editable: true },
+  { key: "channelpoints.twitchIsEnabled", path: "channelpoints.twitchIsEnabled", type: "boolean", category: "channelpoints", label: "Twitch sichtbar", description: "Ob der Reward später auf Twitch sichtbar/aktiv sein soll.", editable: true },
+  { key: "alerts.enabled", path: "alerts.enabled", type: "boolean", category: "alerts", label: "Alert aktiv", description: "Alert/Sound nach erfolgreicher Einlösung auslösen.", editable: true },
+  { key: "alerts.soundKey", path: "alerts.soundKey", type: "string", category: "alerts", label: "Sound-Key", description: "Sound-System-Key für den VIP30-Alert.", editable: true },
+  { key: "cleanup.enabled", path: "cleanup.enabled", type: "boolean", category: "cleanup", label: "Cleanup aktiv", description: "Ablauf-/Revoke-Logik für abgelaufene VIP30-Slots aktivieren.", editable: true },
+  { key: "logging.enabled", path: "logging.enabled", type: "boolean", category: "logging", label: "Dashboard-Logging aktiv", description: "VIP30-Ereignisse in der DB speichern.", editable: true },
+  { key: "twitch.liveActionsEnabled", path: "twitch.liveActionsEnabled", type: "boolean", category: "twitch", label: "Twitch-Live-Aktionen", description: "Späterer Sicherheitsschalter für echte Twitch-Schreibaktionen.", editable: true }
+];
+
+function getValueByPath(source, pathValue) {
+  const parts = String(pathValue || "").split(".").filter(Boolean);
+  let cur = source;
+  for (const part of parts) {
+    if (!cur || typeof cur !== "object" || !(part in cur)) return undefined;
+    cur = cur[part];
+  }
+  return cur;
+}
+function setValueByPath(target, pathValue, value) {
+  const parts = String(pathValue || "").split(".").filter(Boolean);
+  if (!parts.length) return target;
+  let cur = target;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const part = parts[i];
+    if (!cur[part] || typeof cur[part] !== "object" || Array.isArray(cur[part])) cur[part] = {};
+    cur = cur[part];
+  }
+  cur[parts[parts.length - 1]] = value;
+  return target;
+}
+function encodeSettingValue(value, type) {
+  if (type === "boolean") return value === true || value === 1 || value === "1" || String(value).toLowerCase() === "true" ? "true" : "false";
+  if (type === "integer") return String(Math.max(0, intValue(value, 0)));
+  if (type === "json") return safeJsonString(value, {});
+  return cleanString(value, "");
+}
+function decodeSettingValue(value, type) {
+  if (type === "boolean") return boolValue(value, false);
+  if (type === "integer") return intValue(value, 0);
+  if (type === "json") return safeJsonParse(value, {});
+  return cleanString(value, "");
+}
+function readSettingsRows() {
+  ensureDbReady();
+  if (!tableExists("vip30_settings")) return [];
+  return database.all("SELECT * FROM vip30_settings ORDER BY category ASC, setting_key ASC") || [];
+}
+function mapSettingRow(row) {
+  if (!row) return null;
+  return {
+    key: row.setting_key || "",
+    value: decodeSettingValue(row.setting_value, row.value_type || "string"),
+    rawValue: row.setting_value || "",
+    type: row.value_type || "string",
+    category: row.category || "",
+    label: row.label || "",
+    description: row.description || "",
+    editable: Number(row.editable || 0) === 1,
+    createdAt: row.created_at || "",
+    updatedAt: row.updated_at || ""
+  };
+}
+function readSettingsConfigFromDbSafe() {
+  try {
+    if (!database || typeof database.tableExists !== "function") return {};
+    database.ensureReady();
+    if (!database.tableExists("vip30_settings")) return {};
+    const rows = readSettingsRows();
+    const out = {};
+    for (const row of rows) {
+      const def = SETTING_DEFINITIONS.find(item => item.key === row.setting_key);
+      if (!def) continue;
+      setValueByPath(out, def.path, decodeSettingValue(row.setting_value, row.value_type || def.type));
+    }
+    return out;
+  } catch (_) {
+    return {};
+  }
+}
+function seedSettingsFromConfigIfMissing(reason = "seed") {
+  ensureDbReady();
+  if (!tableExists("vip30_settings")) return { ok: false, reason: "settings_table_missing" };
+  const now = nowIso();
+  let inserted = 0;
+  const source = loadedConfig || mergePlain(DEFAULT_CONFIG, helperConfig.loadConfig("vip30.json", {}, { createIfMissing: false })?.data || {});
+  for (const def of SETTING_DEFINITIONS) {
+    const existing = database.get("SELECT setting_key FROM vip30_settings WHERE setting_key = :key", { key: def.key });
+    if (existing) continue;
+    const value = getValueByPath(source, def.path);
+    database.run(`
+      INSERT INTO vip30_settings
+        (setting_key, setting_value, value_type, category, label, description, editable, created_at, updated_at)
+      VALUES
+        (:setting_key, :setting_value, :value_type, :category, :label, :description, :editable, :created_at, :updated_at)
+    `, {
+      setting_key: def.key,
+      setting_value: encodeSettingValue(value === undefined ? getValueByPath(DEFAULT_CONFIG, def.path) : value, def.type),
+      value_type: def.type,
+      category: def.category,
+      label: def.label,
+      description: def.description,
+      editable: def.editable === false ? 0 : 1,
+      created_at: now,
+      updated_at: now
+    });
+    inserted += 1;
+  }
+  return { ok: true, reason, inserted, totalDefinitions: SETTING_DEFINITIONS.length, seededAt: now };
+}
+function buildSettingsStatus() {
+  ensureDbReady();
+  const rows = readSettingsRows().map(mapSettingRow).filter(Boolean);
+  const categories = [...new Set(rows.map(row => row.category).filter(Boolean))];
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    status: "db_settings_ready",
+    storage: "sqlite",
+    table: "vip30_settings",
+    jsonFallback: true,
+    dashboardWritable: true,
+    definitions: SETTING_DEFINITIONS.length,
+    rows: rows.length,
+    categories,
+    settings: rows,
+    effective: {
+      reward: buildRewardSummary(),
+      slots: { maxSlots: getConfig().slots.maxSlots, durationDays: getConfig().slots.durationDays },
+      channelpoints: {
+        rewardSyncEnabled: getConfig().channelpoints.rewardSyncEnabled !== false,
+        twitchIsEnabled: getConfig().channelpoints.twitchIsEnabled === true
+      },
+      alerts: { enabled: getConfig().alerts.enabled !== false, soundKey: getConfig().alerts.soundKey },
+      cleanup: { enabled: getConfig().cleanup.enabled !== false },
+      logging: { enabled: getConfig().logging.enabled !== false },
+      twitch: { liveActionsEnabled: getConfig().twitch.liveActionsEnabled === true }
+    },
+    safety: {
+      dbIsPrimary: true,
+      jsonIsFallbackOnly: true,
+      noTwitchWrite: true,
+      noVipGrant: true,
+      noRedemptionFulfillCancel: true
+    }
+  };
+}
+function saveSettingsFromPayload(payload = {}) {
+  ensureDbReady();
+  if (!tableExists("vip30_settings")) throw new Error("settings_table_missing");
+  const updates = payload && typeof payload === "object" && payload.settings && typeof payload.settings === "object" ? payload.settings : payload;
+  const now = nowIso();
+  const changed = [];
+  const rejected = [];
+  for (const [key, value] of Object.entries(updates || {})) {
+    const def = SETTING_DEFINITIONS.find(item => item.key === key || item.path === key);
+    if (!def) { rejected.push({ key, reason: "unknown_setting" }); continue; }
+    if (def.editable === false) { rejected.push({ key, reason: "not_editable" }); continue; }
+    const settingValue = encodeSettingValue(value, def.type);
+    database.run(`
+      INSERT INTO vip30_settings
+        (setting_key, setting_value, value_type, category, label, description, editable, created_at, updated_at)
+      VALUES
+        (:setting_key, :setting_value, :value_type, :category, :label, :description, :editable, :created_at, :updated_at)
+      ON CONFLICT(setting_key) DO UPDATE SET
+        setting_value = excluded.setting_value,
+        value_type = excluded.value_type,
+        category = excluded.category,
+        label = excluded.label,
+        description = excluded.description,
+        editable = excluded.editable,
+        updated_at = excluded.updated_at
+    `, {
+      setting_key: def.key,
+      setting_value: settingValue,
+      value_type: def.type,
+      category: def.category,
+      label: def.label,
+      description: def.description,
+      editable: def.editable === false ? 0 : 1,
+      created_at: now,
+      updated_at: now
+    });
+    changed.push({ key: def.key, path: def.path, value: decodeSettingValue(settingValue, def.type), type: def.type });
+  }
+  loadedConfig = null;
+  loadConfig();
+  runtimeStats.settingsWrites += 1;
+  runtimeStats.lastSettingsWriteAt = now;
+  runtimeStats.lastAction = "settings_save";
+  writeLog("settings_updated", { success: true, reason: "dashboard_config", message: "VIP30 settings updated", payload: { changed, rejected } });
+  publishStatus("settings_updated");
+  return { ok: rejected.length === 0, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, action: "settings_saved", changed, rejected, settings: buildSettingsStatus() };
 }
 
 function mapSlotRow(row) {
@@ -764,10 +998,11 @@ function buildVip30RewardPayload() {
       action: reward.actionKey,
       durationDays: getConfig().slots.durationDays,
       maxSlots: getConfig().slots.maxSlots,
-      step: "VIP30-STEP3",
+      step: "VIP30-STEP4",
       dryRunOnly: true,
       noTwitchWriteInThisStep: true,
       localChannelpointsRewardWriteOnly: true,
+      dbDashboardConfig: true,
       noVipGrantInThisStep: true,
       noRedemptionFulfillCancelInThisStep: true
     },
@@ -1039,7 +1274,7 @@ function buildHealth() {
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
     enabled: getConfig().enabled !== false,
-    status: lastError ? "error" : "ready_step3_channelpoints_reward_link",
+    status: lastError ? "error" : "ready_step4_db_dashboard_config",
     lastError,
     checks: {
       databaseReady: dbMigrationState.ok === true,
@@ -1071,10 +1306,10 @@ function buildStatus() {
     moduleBuild: MODULE_BUILD,
     version: MODULE_VERSION,
     enabled: config.enabled !== false,
-    status: lastError ? "error" : "ready_step3_channelpoints_reward_link",
+    status: lastError ? "error" : "ready_step4_db_dashboard_config",
     startedAt,
     routePrefix: ROUTE_PREFIX,
-    routeCount: 9,
+    routeCount: 11,
     routes: [
       `${ROUTE_PREFIX}/status`,
       `${ROUTE_PREFIX}/health`,
@@ -1084,7 +1319,9 @@ function buildStatus() {
       `${ROUTE_PREFIX}/twitch/capability`,
       `${ROUTE_PREFIX}/twitch/scopes`,
       `${ROUTE_PREFIX}/channelpoints/reward/status`,
-      `${ROUTE_PREFIX}/channelpoints/reward/ensure`
+      `${ROUTE_PREFIX}/channelpoints/reward/ensure`,
+      `${ROUTE_PREFIX}/settings`,
+      `${ROUTE_PREFIX}/settings/save`
     ],
     reward: buildRewardSummary(),
     config: {
@@ -1099,7 +1336,9 @@ function buildStatus() {
       twitchAuthValidateUrl: config.twitch.authValidateUrl,
       twitchRequiredScopes: [...config.twitch.requiredScopes],
       channelpointsRewardSyncEnabled: config.channelpoints.enabled !== false && config.channelpoints.rewardSyncEnabled !== false,
-      channelpointsRewardCost: buildRewardSummary().cost
+      channelpointsRewardCost: buildRewardSummary().cost,
+      settingsSource: tableExists("vip30_settings") ? "db" : "json_fallback",
+      settingsDashboardWritable: true
     },
     database: {
       adapter: database.getAdapter ? database.getAdapter() : "sqlite",
@@ -1128,6 +1367,9 @@ function buildStatus() {
       missingScopes: lastCapabilityCheck.readiness && lastCapabilityCheck.readiness.missingScopes || [],
       blocker: lastCapabilityCheck.readiness && lastCapabilityCheck.readiness.blocker || ""
     } : { checkedAt: "", status: "not_checked", readyForVip30LiveFlow: false, missingScopes: config.twitch.requiredScopes, blocker: "not_checked" },
+    settings: (() => {
+      try { return buildSettingsStatus(); } catch (err) { return { ok: false, status: "error", error: err && err.message ? err.message : String(err) }; }
+    })(),
     channelpointsReward: (() => {
       try { return buildChannelpointsRewardStatus(); } catch (err) { return { ok: false, status: "error", error: err && err.message ? err.message : String(err) }; }
     })(),
@@ -1144,11 +1386,12 @@ function buildStatus() {
       recentEvents: recentLogs
     },
     safety: {
-      step: "VIP30-STEP3",
+      step: "VIP30-STEP4",
       noStreamerBot: true,
       noLegacyImport: true,
       noTwitchWriteInThisStep: true,
       localChannelpointsRewardWriteOnly: true,
+      dbDashboardConfig: true,
       noVipGrantInThisStep: true,
       noRedemptionFulfillCancelInThisStep: true,
       dashboardLoggingInsteadOfServerLog: true,
@@ -1275,6 +1518,8 @@ function init({ app } = {}) {
   startedAt = nowIso();
   try {
     migrateDatabase("init");
+    loadedConfig = null;
+    loadConfig();
     registerAtBus();
     startBusTimers();
     publishStatus("init_ready");
@@ -1335,6 +1580,23 @@ function init({ app } = {}) {
         safety: { checkOnly: true, noTwitchWrite: true }
       });
     });
+    app.get(`${ROUTE_PREFIX}/settings`, (_req, res) => {
+      runtimeStats.settingsRequests += 1;
+      runtimeStats.lastAction = "settings";
+      try { res.json(buildSettingsStatus()); }
+      catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err) }); }
+    });
+    app.post(`${ROUTE_PREFIX}/settings/save`, (req, res) => {
+      runtimeStats.settingsRequests += 1;
+      runtimeStats.lastAction = "settings_save";
+      try {
+        const result = saveSettingsFromPayload((req && req.body) || {});
+        res.status(result.ok ? 200 : 207).json(result);
+      } catch (err) {
+        lastError = err && err.message ? err.message : String(err);
+        res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: lastError, safety: { noTwitchWrite: true } });
+      }
+    });
     app.get(`${ROUTE_PREFIX}/channelpoints/reward/status`, (_req, res) => {
       runtimeStats.lastAction = "channelpoints_reward_status";
       try { res.json(buildChannelpointsRewardStatus()); }
@@ -1367,6 +1629,8 @@ module.exports = {
   buildStatus,
   buildHealth,
   buildStats,
+  buildSettingsStatus,
+  saveSettingsFromPayload,
   buildTwitchCapabilityStatus,
   buildChannelpointsRewardStatus,
   ensureChannelpointsReward,
