@@ -19,7 +19,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.41";
+const MODULE_VERSION = "0.2.42";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -31,7 +31,7 @@ const MODULE_META = {
   routesPrefix: [API_PREFIX, "/api/clip/shoutout"],
   capabilities: ["shoutout.display_queue", "shoutout.official_queue", "shoutout.event_output"],
   bus: { emits: true, registered: false, heartbeat: false, channel: SHOUTOUT_BUS_CHANNEL },
-  note: "CAN-44.25: Shoutout overlay text variants and dashboard-ready text editor keys; clip playback unchanged."
+  note: "CAN-44.26: Shoutout overlay paired text sets; legacy overlay text variants stay as fallback; clip playback unchanged."
 };
 
 const AUTO_SHOUTOUT_TEXT_DEFAULTS = {
@@ -186,6 +186,45 @@ const SHOUTOUT_TEXT_DEFAULTS = {
 ]
 };
 
+
+const SHOUTOUT_OVERLAY_SET_DEFAULTS = [
+  {
+    id: "rentner-kino",
+    enabled: true,
+    weight: 1,
+    headline: "Rentner-Kino läuft!",
+    subline: "Heute auf der Leinwand: {displayName}"
+  },
+  {
+    id: "vhs-archiv",
+    enabled: true,
+    weight: 1,
+    headline: "Aus dem VHS-Archiv!",
+    subline: "Archivband bereit für {displayName}"
+  },
+  {
+    id: "altersheim-tv",
+    enabled: true,
+    weight: 1,
+    headline: "Altersheim-TV präsentiert!",
+    subline: "Heute im Programm: {displayName}"
+  },
+  {
+    id: "heimleitung-empfiehlt",
+    enabled: true,
+    weight: 1,
+    headline: "Die Heimleitung empfiehlt!",
+    subline: "Einschalten lohnt sich bei {displayName}"
+  },
+  {
+    id: "clip-archiv",
+    enabled: true,
+    weight: 1,
+    headline: "Heute aus dem Clip-Archiv!",
+    subline: "Die Rentnercrew schaut bei {displayName} rein"
+  }
+];
+
 const SHOUTOUT_TEXT_OPTIONS = {
   defaultCategory: 'shoutout.system',
   categories: {
@@ -268,6 +307,7 @@ const DEFAULT_CONFIG = {
     ttsSource: "clip_shoutout_tts",
     overlaySubline: "🧓 Altersheim-TV",
     overlayBranding: "CGN Altersheim-TV",
+    overlaySets: SHOUTOUT_OVERLAY_SET_DEFAULTS,
     avatarLookupEnabled: true,
     avatarLookupUrl: "http://127.0.0.1:8080/userinfo",
     gqlClientId: "kimne78kx3ncx6brgo4mv6wki5h1ko",
@@ -750,6 +790,89 @@ function renderShoutoutModuleText(key, vars = {}, options = {}) {
     ...(options || {})
   });
   return renderAutoMessage(rendered, { ...vars, displayName, login: context.login });
+}
+
+
+function sanitizeShoutoutOverlaySet(raw, index = 0) {
+  if (!raw || typeof raw !== "object") return null;
+  const headline = String(raw.headline || "").trim();
+  const subline = String(raw.subline || "").trim();
+  if (!headline && !subline) return null;
+  const rawId = String(raw.id || raw.key || "").trim();
+  const id = rawId || `overlay-set-${index + 1}`;
+  return {
+    id,
+    enabled: raw.enabled !== false,
+    weight: Math.max(0, Number(raw.weight || 1) || 1),
+    headline: headline || "Schaut gerne mal vorbei!",
+    subline: subline || "Heute im Altersheim-TV: {displayName}"
+  };
+}
+
+function normalizeShoutoutOverlaySets(value) {
+  const source = Array.isArray(value) ? value : SHOUTOUT_OVERLAY_SET_DEFAULTS;
+  const result = [];
+  source.forEach((entry, index) => {
+    const set = sanitizeShoutoutOverlaySet(entry, index);
+    if (set) result.push(set);
+  });
+  return result.length ? result : SHOUTOUT_OVERLAY_SET_DEFAULTS.map((entry, index) => sanitizeShoutoutOverlaySet(entry, index)).filter(Boolean);
+}
+
+function pickWeightedShoutoutOverlaySet(sets = []) {
+  const normalized = normalizeShoutoutOverlaySets(sets);
+  const enabled = normalized.filter(set => set.enabled !== false && Number(set.weight || 0) > 0);
+  const candidates = enabled.length ? enabled : normalized;
+  const total = candidates.reduce((sum, set) => sum + Math.max(0, Number(set.weight || 1) || 1), 0);
+  if (!candidates.length) return null;
+  if (total <= 0) return candidates[Math.floor(Math.random() * candidates.length)] || candidates[0];
+  let roll = Math.random() * total;
+  for (const set of candidates) {
+    roll -= Math.max(0, Number(set.weight || 1) || 1);
+    if (roll <= 0) return set;
+  }
+  return candidates[candidates.length - 1] || candidates[0];
+}
+
+function renderOverlayTemplate(template, vars = {}) {
+  return renderTemplate(String(template || ""), {
+    ...vars,
+    displayName: vars.displayName || vars.targetDisplay || vars.user || "",
+    login: vars.login || vars.targetLogin || vars.username || "",
+    user: vars.displayName || vars.targetDisplay || vars.user || "",
+    username: vars.login || vars.targetLogin || vars.username || ""
+  }).trim();
+}
+
+function buildShoutoutOverlayVisualText(cfg = {}, vars = {}) {
+  const sets = normalizeShoutoutOverlaySets(cfg.overlaySets);
+  const picked = pickWeightedShoutoutOverlaySet(sets);
+  if (picked) {
+    return {
+      mode: "overlaySet",
+      setId: picked.id,
+      headline: renderOverlayTemplate(picked.headline, vars) || "Schaut gerne mal vorbei!",
+      subline: renderOverlayTemplate(picked.subline, vars) || `Heute im Altersheim-TV: ${vars.displayName || vars.login || "User"}`
+    };
+  }
+
+  return {
+    mode: "legacyTextVariants",
+    setId: "",
+    headline: renderShoutoutOverlayText("shoutout.overlay.headline", vars, "Schaut gerne mal vorbei!"),
+    subline: renderShoutoutOverlayText("shoutout.overlay.subline", vars, `Heute im Altersheim-TV: ${vars.displayName || vars.login || "User"}`)
+  };
+}
+
+function publicShoutoutOverlaySets(cfg = {}) {
+  return {
+    enabled: true,
+    mode: "paired_sets",
+    sets: normalizeShoutoutOverlaySets(cfg.overlaySets),
+    defaults: normalizeShoutoutOverlaySets(SHOUTOUT_OVERLAY_SET_DEFAULTS),
+    placeholders: ["{displayName}", "{login}", "{clipTitle}", "{clipUrl}", "{gameName}"],
+    fallbackTextKeys: ["shoutout.overlay.headline", "shoutout.overlay.subline"]
+  };
 }
 
 function renderShoutoutOverlayText(key, vars = {}, fallback = "") {
@@ -3601,8 +3724,9 @@ function buildBundlePayload(cfg, vars, playback, clip, targetUser, ttsItem) {
     clipUrl: clip.url || "",
     gameName: clip.game_id || ""
   };
-  const overlayHeadline = renderShoutoutOverlayText("shoutout.overlay.headline", overlayTextVars, "Schaut gerne mal vorbei!");
-  const overlaySubline = renderShoutoutOverlayText("shoutout.overlay.subline", overlayTextVars, `Heute im Altersheim-TV: ${targetUser.displayName || targetUser.login || "User"}`);
+  const overlayVisualText = buildShoutoutOverlayVisualText(cfg, overlayTextVars);
+  const overlayHeadline = overlayVisualText.headline;
+  const overlaySubline = overlayVisualText.subline;
   const overlayBranding = String(cfg.overlayBranding || "CGN Altersheim-TV").trim() || "CGN Altersheim-TV";
 
   const items = [{
@@ -3653,6 +3777,8 @@ function buildBundlePayload(cfg, vars, playback, clip, targetUser, ttsItem) {
       headline: overlayHeadline,
       subline: overlaySubline || cfg.overlaySubline || "🧓 Altersheim-TV",
       brand: overlayBranding,
+      overlayTextMode: overlayVisualText.mode,
+      overlaySetId: overlayVisualText.setId,
       durationMs: clipDurationMs,
       clipId: clip.id || playback.clipId || "",
       theme: "forrest_neon"
@@ -5924,7 +6050,7 @@ function installDirectChatCommandBypass(env) {
 
 
 function buildClipShoutoutRouteStatus() {
-  return `GET status status|GET/POST run runtime|GET/POST /api/clip/shoutout runtime legacy|GET clips clips|GET/POST settings settings|GET/POST texts texts|GET texts/migration texts|GET queue queue_status|POST display-queue/remove display_queue|POST display-queue/retry display_queue|POST queue/remove official_queue legacy|POST queue/retry official_queue legacy|GET official/auth-status official_queue|GET/POST debug/test-queue debug|GET/POST debug/intake-trace debug|GET timeline stats|GET stats stats|GET stats/user stats|GET inbound inbound|GET inbound/stats inbound|POST inbound/debug inbound|GET auto auto_shoutout|GET/POST auto/settings auto_shoutout|GET/POST auto/texts auto_shoutout|GET/POST auto/streamers auto_shoutout|POST auto/streamers/remove auto_shoutout|POST auto/test-chat auto_shoutout|POST auto/clear-target auto_shoutout|POST auto/reset-day auto_shoutout|GET scene-gate scene_gate|GET production-check diagnostics|GET live-test diagnostics|GET decision-prep diagnostics|GET /api/stream-status/status external_status`
+  return `GET status status|GET/POST run runtime|GET/POST /api/clip/shoutout runtime legacy|GET clips clips|GET/POST settings settings|GET/POST texts texts|GET/POST overlay-sets overlay_sets|GET texts/migration texts|GET queue queue_status|POST display-queue/remove display_queue|POST display-queue/retry display_queue|POST queue/remove official_queue legacy|POST queue/retry official_queue legacy|GET official/auth-status official_queue|GET/POST debug/test-queue debug|GET/POST debug/intake-trace debug|GET timeline stats|GET stats stats|GET stats/user stats|GET inbound inbound|GET inbound/stats inbound|POST inbound/debug inbound|GET auto auto_shoutout|GET/POST auto/settings auto_shoutout|GET/POST auto/texts auto_shoutout|GET/POST auto/streamers auto_shoutout|POST auto/streamers/remove auto_shoutout|POST auto/test-chat auto_shoutout|POST auto/clear-target auto_shoutout|POST auto/reset-day auto_shoutout|GET scene-gate scene_gate|GET production-check diagnostics|GET live-test diagnostics|GET decision-prep diagnostics|GET /api/stream-status/status external_status`
     .split('|')
     .map(row => {
       const [method, rawPath, group, legacy] = row.split(' ');
@@ -6005,7 +6131,8 @@ module.exports.init = function init(ctx) {
         streamDayLimit: streamDayLimitConfig(currentCfg),
         directIntake: directIntakeStatus(currentCfg),
         effectiveCommandTriggers: commandInfo.triggers,
-        streamStatus: currentCfg.streamStatus || {}
+        streamStatus: currentCfg.streamStatus || {},
+        overlaySets: publicShoutoutOverlaySets(currentCfg)
       },
       displayQueue: displayQueueStatus(currentCfg),
       officialQueue: officialQueueStatus(currentCfg),
@@ -6028,6 +6155,39 @@ module.exports.init = function init(ctx) {
   });
 
 
+  app.get(`${API_PREFIX}/overlay-sets`, (req, res) => {
+    try {
+      const currentCfg = shoutoutConfig();
+      res.json({
+        ok: true,
+        module: MODULE_NAME,
+        moduleVersion: MODULE_VERSION,
+        overlaySets: publicShoutoutOverlaySets(currentCfg),
+        settingsRoute: `${API_PREFIX}/settings`,
+        textsRoute: `${API_PREFIX}/texts`
+      });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
+    }
+  });
+
+  app.post(`${API_PREFIX}/overlay-sets`, (req, res) => {
+    try {
+      const body = req.body || {};
+      const sets = normalizeShoutoutOverlaySets(body.sets || body.overlaySets || body);
+      const settings = saveShoutoutConfig({ overlaySets: sets });
+      emitShoutoutBus('shoutout.overlaySets.updated', { count: sets.length }, settings);
+      res.json({
+        ok: true,
+        module: MODULE_NAME,
+        moduleVersion: MODULE_VERSION,
+        overlaySets: publicShoutoutOverlaySets(settings)
+      });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
+    }
+  });
+
   app.get(`${API_PREFIX}/texts`, (req, res) => {
     try {
       res.json({
@@ -6044,9 +6204,11 @@ module.exports.init = function init(ctx) {
         dashboard: {
           category: 'shoutout.overlay',
           categoryLabel: 'Shoutout Overlay',
-          keys: ['shoutout.overlay.headline', 'shoutout.overlay.subline'],
+          keys: ['shoutout.overlay.sets', 'shoutout.overlay.headline', 'shoutout.overlay.subline'],
           placeholders: ['{displayName}', '{login}', '{clipTitle}', '{clipUrl}', '{gameName}'],
-          settingsRoute: `${API_PREFIX}/settings`
+          settingsRoute: `${API_PREFIX}/settings`,
+          setsRoute: `${API_PREFIX}/overlay-sets`,
+          preferredMode: 'paired_sets'
         }
       });
     } catch (err) {
@@ -6091,7 +6253,7 @@ module.exports.init = function init(ctx) {
         "clipPlaybackCandidateLimit", "clipFetchFirst", "clipFetchPages", "maxClipDurationSeconds",
         "allowLongerClipFallback", "fallbackMaxClipDurationSeconds", "randomPick", "avoidRecentClips",
         "recentClipFallbackWhenAllBlocked", "sendChatMessage", "chatMessage", "overlaySubline", "overlayBranding", "eventBusEnabled"
-      ];
+      , "overlaySets"];
       for (const key of directKeys) if (Object.prototype.hasOwnProperty.call(body, key)) allowed[key] = body[key];
       if (body.displayQueue && typeof body.displayQueue === "object") allowed.displayQueue = body.displayQueue;
       if (body.officialShoutout && typeof body.officialShoutout === "object") allowed.officialShoutout = body.officialShoutout;
