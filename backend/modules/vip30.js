@@ -8,8 +8,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.3.1";
-const MODULE_BUILD = "step8.3.1-stage-a-preflight-refresh-diagnostics";
+const MODULE_VERSION = "0.8.3.2";
+const MODULE_BUILD = "step8.3.2-stage-a-local-reward-operational-fix";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -1921,11 +1921,40 @@ function resetBridgeRuntimeStats(reason = "api") {
 }
 
 
+function buildLocalRewardOperationalState(rewardStatus) {
+  const reward = rewardStatus && rewardStatus.reward ? rewardStatus.reward : null;
+  const configured = reward && reward.configured ? reward.configured : buildRewardSummary();
+  const existing = reward && reward.existing ? reward.existing : null;
+  const differences = Array.isArray(reward && reward.differences) ? reward.differences : [];
+  const blockingDiffFields = new Set(["rewardKey", "cost", "actionType", "actionKey", "systemEnabled", "isPaused", "autoFulfill"]);
+  const blockingDifferences = differences.filter((d) => blockingDiffFields.has(String(d && d.field || "")));
+  const operational = Boolean(
+    existing
+    && cleanString(existing.rewardKey) === cleanString(configured.rewardKey || "vip30")
+    && Number(existing.cost || 0) === Number(configured.cost || 0)
+    && cleanString(existing.actionType) === cleanString(configured.actionType || "vip30")
+    && cleanString(existing.actionKey) === cleanString(configured.actionKey || "vip30.redeem")
+    && existing.systemEnabled === true
+    && existing.isPaused !== true
+    && existing.autoFulfill !== true
+    && cleanString(existing.twitchRewardId || "")
+    && blockingDifferences.length === 0
+  );
+  return {
+    strictInSync: rewardStatus && rewardStatus.status === "linked_in_sync",
+    operational,
+    status: rewardStatus && rewardStatus.status || "unknown",
+    blockingDifferences,
+    differences
+  };
+}
+
 function buildLiveActionSafetyStatus() {
   const config = getConfig();
   const rewardStatus = buildChannelpointsRewardStatus();
   const reward = rewardStatus && rewardStatus.reward ? rewardStatus.reward : null;
   const existing = reward && reward.existing ? reward.existing : null;
+  const localRewardState = buildLocalRewardOperationalState(rewardStatus);
   const capability = lastCapabilityCheck || null;
   const live = config.live || DEFAULT_CONFIG.live;
   const checks = {
@@ -1934,7 +1963,7 @@ function buildLiveActionSafetyStatus() {
     liveModeIsLive: cleanString(live.mode) === "live",
     twitchLiveActionsEnabled: config.twitch && config.twitch.liveActionsEnabled === true,
     bridgeDecisionOnlyDisabled: config.bridge && config.bridge.decisionOnly === false,
-    localRewardLinked: rewardStatus && rewardStatus.status === "linked_in_sync",
+    localRewardLinked: localRewardState.operational === true,
     twitchRewardIdLinked: !!(existing && existing.twitchRewardId),
     capabilityChecked: !!capability,
     twitchCapabilityReady: !!(capability && capability.readiness && capability.readiness.readyForVip30LiveFlow === true),
@@ -1969,7 +1998,11 @@ function buildLiveActionSafetyStatus() {
       twitchRewardId: existing.twitchRewardId,
       title: existing.title,
       cost: existing.cost,
-      inSync: !!(reward && reward.inSync)
+      inSync: !!(reward && reward.inSync),
+      operational: localRewardState.operational === true,
+      strictInSync: localRewardState.strictInSync === true,
+      status: localRewardState.status,
+      blockingDifferences: localRewardState.blockingDifferences
     } : null,
     live: {
       enabled: live.enabled === true,
@@ -2336,7 +2369,7 @@ async function executeVip30LiveStageA(input = {}, options = {}) {
   const decision = buildDryRunRedemptionDecision(input, { reason: options.reason || "live_stage_a", log: false });
   const started = nowIso();
 
-  // STEP8.3.1: Live-Events fuehren vor dem Twitch-Write eine frische Preflight-Pruefung aus.
+  // STEP8.3.2: Live-Events fuehren vor dem Twitch-Write eine frische Preflight-Pruefung aus.
   // Dadurch blockiert Stage A nicht mehr wegen eines veralteten In-Memory Capability-/Config-Status,
   // obwohl /live/stage-a/check kurz vorher bereits gruen war.
   loadedConfig = null;

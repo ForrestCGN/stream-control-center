@@ -8,8 +8,8 @@
 6. Danach STEP8.4 planen: Fulfill/Cancel separat aktivieren.
 
 
-## VIP30 STEP8.3.1
-- Version 0.8.3.1 / build step8.3.1-stage-a-preflight-refresh-diagnostics.
+## VIP30 STEP8.3.2
+- Version 0.8.3.2 / build step8.3.2-stage-a-local-reward-operational-fix.
 - Stage-A Live-Ausfuehrung aktualisiert vor dem VIP-Grant Capability und Config frisch.
 - Block-Logs enthalten nun konkrete Stage-A-Blocker.
 - Fulfill/Cancel und Alert bleiben weiterhin deaktiviert.
