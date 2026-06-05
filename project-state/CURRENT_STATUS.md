@@ -1,25 +1,21 @@
-# Current Status
+# CURRENT_STATUS - VIP30 STEP8
 
-VIP30 steht auf STEP7: EventSub Live-Dry-Run Observe.
+VIP30 steht auf Version `0.8.0` / Build `step8-live-action-plan-safety-gates`.
 
-- Version `0.7.0`
-- Build `step7-eventsub-live-dryrun-observe`
-- Reward-Kosten: 40000 Kanalpunkte
-- DB-Settings sind primäre Config
-- Bridge hört auf `channelpoints.redemption / received`
-- Bridge gibt echte/simulierte Channelpoints-Redemptions an VIP30-Decision weiter
-- Neue Live-Dry-Run-Diagnose: `/api/vip30/channelpoints/bridge/live-check`
-- Neue Runtime-Reset-Route: `/api/vip30/channelpoints/bridge/reset-stats`
-- Keine Twitch-Schreibaktion in diesem STEP
-- Kein VIP-Grant, kein Slot-Write, kein Fulfill/Cancel
+Bestätigter Stand aus STEP7/STEP7.2:
 
-## VIP30 aktueller Stand - STEP7.1
+- echter Twitch-Reward ist mit lokalem `vip30` Reward verknüpft
+- Testkosten: 1 Kanalpunkt
+- EventSub-Live-Test kam bei VIP30 an
+- Decision: `eligible`
+- DB-Log wurde geschrieben
+- `ensure` funktioniert wieder
 
-VIP30 0.7.2 behebt den lokalen Reward-Sync und kann die echte Twitch-Reward-ID lokal beim `vip30`-Reward hinterlegen. STEP7 Live-DryRun war erfolgreich: EventSub -> Channelpoints-Bus -> VIP30-Bridge -> Decision -> DB-Log.
+STEP8 ergänzt:
 
-Offen danach: echte Fulfill/Cancel/VIP-Grant-Schritte erst nach separater Freigabe.
+- Route `GET /api/vip30/live/check`
+- Route `POST /api/vip30/redeem/live-plan`
+- DB-/Dashboard-Settings für Live-Safety-Gates
+- EventBus-Event `vip30.live / plan`
 
-
-## VIP30 STEP7.2
-- Ensure-Route repariert: `created_at` wird beim UPDATE nicht mehr als ungenutzter SQL-Parameter übergeben.
-- Aktueller Live-Dry-Run bleibt aktiv: Redemption wird beobachtet und entschieden, aber noch kein VIP zugeteilt.
+Safety: Es werden weiterhin keine echten Twitch-/Slot-Aktionen ausgeführt.

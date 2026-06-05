@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "moduleVersion": "0.7.1",
+  "moduleVersion": "0.8.0",
   "reward": {
     "rewardKey": "vip30",
     "title": "30 Tage VIP",
@@ -83,7 +83,7 @@
     "cooldownSeconds": 0,
     "maxPerStream": 0,
     "maxPerUserPerStream": 0,
-    "notes": "VIP30-Reward wird vom VIP30-Modul verwaltet. Twitch bleibt bis zum Live-Step inaktiv.",
+    "notes": "VIP30-Reward wird vom VIP30-Modul verwaltet. STEP8 bereitet Live-Aktionsplan vor; echte Live-Aktionen bleiben gesperrt.",
     "twitchPolicies": {
       "shouldRedemptionsSkipRequestQueue": false,
       "fulfillAfterSuccess": false,
@@ -106,7 +106,9 @@
     "noVipGrant": true,
     "noRedemptionFulfillCancel": true,
     "bridgeDecisionFlow": true,
-    "eventsubLiveDryRunObserve": true
+    "eventsubLiveDryRunObserve": true,
+    "liveActionPlanOnly": true,
+    "liveSafetyGates": true
   },
   "bridge": {
     "enabled": true,
@@ -121,5 +123,16 @@
     "noSlotWrite": true,
     "noRedemptionFulfillCancel": true,
     "liveEventDryRunObserveEnabled": true
+  },
+  "live": {
+    "enabled": false,
+    "mode": "plan_only",
+    "requireConfirmCode": true,
+    "confirmCode": "VIP30-LIVE",
+    "allowVipGrant": false,
+    "allowSlotWrite": false,
+    "allowRedemptionFulfillCancel": false,
+    "allowAlert": false,
+    "notes": "STEP8 bereitet Live-Aktionsplan und Safety-Gates vor. Keine echten Live-Aktionen, solange alle Gates aus sind."
   }
 }

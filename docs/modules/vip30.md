@@ -1,82 +1,82 @@
 # VIP30 / 30 Tage VIP
 
-## Aktueller Stand: STEP7 EventSub Live-Dry-Run Observe
+## Stand: STEP8 Live-Action-Plan mit Safety-Gates
 
-Version: `0.7.0`  
-Build: `step7-eventsub-live-dryrun-observe`
+Version: `0.8.0`  
+Build: `step8-live-action-plan-safety-gates`
 
-## Grundregeln
+STEP8 bereitet den echten Live-Ablauf vor, schaltet ihn aber noch nicht scharf. Der bestätigte STEP7/STEP7.2-Stand bleibt erhalten:
 
-- Node-only, kein Streamer.bot.
-- Aktive Datenbank bleibt `D:\Streaming\stramAssets\data\sqlite\app.sqlite`.
-- JSON `config/vip30.json` ist nur Seed/Fallback; primäre Konfiguration liegt in `vip30_settings`.
-- Reward-Kosten: `40000` Kanalpunkte.
-- Max Slots: `10`.
-- Laufzeit: `30` Tage.
-- Kein Import aus alten JSON-Dateien.
+- Twitch-Reward `30 Tage VIP` ist lokal als `vip30` verknüpft.
+- Testkosten stehen auf `1` Kanalpunkt.
+- EventSub-Redemptions kommen im VIP30-Modul an.
+- VIP30-Decision und DB-Log funktionieren.
+- `ensure` läuft wieder fehlerfrei.
 
-## Tabellen
+## Neue STEP8-Routen
 
-- `vip30_slots`
-- `vip30_log`
-- `vip30_settings`
+### Live-Safety prüfen
 
-## API
+```powershell
+$r = Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/live/check"
+$r.status
+$r.armed
+$r.blockers
+```
 
-- `GET /api/vip30/status`
-- `GET /api/vip30/health`
-- `GET /api/vip30/slots`
-- `GET /api/vip30/logs`
-- `GET /api/vip30/stats`
-- `GET /api/vip30/settings`
-- `POST /api/vip30/settings/save`
-- `GET /api/vip30/twitch/capability`
-- `GET /api/vip30/twitch/scopes`
-- `GET /api/vip30/channelpoints/reward/status`
-- `POST /api/vip30/channelpoints/reward/ensure?confirm=YES`
-- `GET /api/vip30/redeem/dry-run`
-- `POST /api/vip30/redeem/dry-run`
-- `POST /api/vip30/redeem/decision`
-- `GET /api/vip30/channelpoints/bridge/status`
-- `POST /api/vip30/channelpoints/bridge/test`
-- `GET /api/vip30/channelpoints/bridge/live-check`
-- `POST /api/vip30/channelpoints/bridge/reset-stats`
+Erwartung direkt nach STEP8: `live_actions_locked`, `False`.
 
-## STEP7
+### Live-Aktionsplan erzeugen
 
-STEP7 bereitet den Test mit einer echten Twitch/EventSub-Channelpoints-Redemption vor, bleibt aber weiterhin im reinen Decision-/Dry-Run-Modus.
+```powershell
+$body = @{
+  userId = "123"
+  userLogin = "testuser"
+  userDisplayName = "TestUser"
+  twitchRewardId = "5932e698-9a57-4d13-9acc-c397682c10a6"
+  twitchRedemptionId = "test-redemption-id"
+  source = "manual_live_plan_test"
+} | ConvertTo-Json -Depth 8
 
-Die interne VIP30-Bridge hört weiterhin auf den Communication-Bus:
+Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/vip30/redeem/live-plan" -ContentType "application/json" -Body $body
+```
 
-- Channel: `channelpoints.redemption`
-- Action: `received`
+Der Plan zeigt, welche Aktionen später laufen würden:
 
-Neue Diagnose-Endpunkte:
+- `twitch_add_vip`
+- `create_vip30_slot`
+- `twitch_redemption_fulfill`
+- optional `trigger_vip30_alert`
 
-- `GET /api/vip30/channelpoints/bridge/live-check` prüft, ob die Bridge bereit ist, echte EventSub-Redemptions im Dry-Run zu beobachten.
-- `POST /api/vip30/channelpoints/bridge/reset-stats` setzt nur Runtime-Zähler der Bridge zurück, löscht aber keine DB-Logs.
+Bei blockierten Einlösungen wird stattdessen `twitch_redemption_cancel` geplant.
 
-## Safety in STEP7
+## Safety
 
-- Kein Add VIP.
-- Kein Remove VIP.
-- Kein Slot-Write.
-- Kein Fulfill.
-- Kein Cancel.
-- Echte EventSub-Events werden nur beobachtet und geloggt.
+STEP8 führt weiterhin nichts aus:
 
-## STEP7.2 - Ensure-/Twitch-Reward-ID-Fix
+- kein Twitch-Write
+- kein VIP-Grant
+- kein Slot-Write
+- kein Fulfill
+- kein Cancel
 
-Stand: 0.7.2 (`step7.1-ensure-twitch-reward-id-fix`)
+Die neuen Live-Gates stehen standardmäßig auf `false`:
 
-- Repariert `/api/vip30/channelpoints/reward/ensure`, damit der lokale Reward auch im Update-Fall sauber synchronisiert wird.
-- Der SQL-Parameter `twitch_reward_id` wird nun im UPDATE genutzt und vorhandene Twitch-Reward-IDs bleiben erhalten.
-- Neuer lokaler Link-Endpunkt: `POST /api/vip30/channelpoints/reward/link-twitch-id?confirm=YES`.
-- Der Link-Endpunkt kann die Twitch-Reward-ID aus dem neuesten VIP30-DryRun-Log übernehmen oder explizit per Body/Query erhalten.
-- Echte EventSub-DryRun-Events können die Twitch-Reward-ID lokal automatisch hinterlegen, ohne Twitch-Write.
+- `live.enabled`
+- `live.allowVipGrant`
+- `live.allowSlotWrite`
+- `live.allowRedemptionFulfillCancel`
+- `live.allowAlert`
+- `twitch.liveActionsEnabled`
 
-Safety bleibt unverändert: kein VIP-Grant, kein Slot-Write, kein Fulfill/Cancel, kein Twitch-Write.
+Außerdem bleibt `bridge.decisionOnly` standardmäßig `true`.
 
+## Nächster Schritt
 
-### STEP7.2
-Ensure-Route endgültig für bestehende Rewards repariert: `created_at` wird nur beim INSERT verwendet, nicht mehr beim UPDATE. Safety bleibt DB-only.
+STEP9 kann die echten Aktionen implementieren, aber erst nach separatem Go und nur hinter den Safety-Gates:
+
+- Twitch Add VIP
+- Slot speichern
+- Redemption Fulfill bei Erfolg
+- Redemption Cancel bei Blocker
+- Alert/Sound nach Erfolg

@@ -1,34 +1,19 @@
-# Changelog
+# CHANGELOG - VIP30
 
-## VIP30 STEP7.2 - Ensure created_at Parameter-Fix
-- `backend/modules/vip30.js` auf Version 0.7.2 aktualisiert.
-- `/api/vip30/channelpoints/reward/ensure` nutzt beim UPDATE keine ungenutzten `created_at`-Parameter mehr.
-- Lokale Reward-Synchronisierung bleibt DB-only; kein Twitch-Write, kein VIP-Grant, kein Fulfill/Cancel.
+## 0.8.0 - STEP8 Live-Action-Plan Safety-Gates
 
+- Neue Live-Safety-Konfiguration ergänzt.
+- Neue Route `GET /api/vip30/live/check`.
+- Neue Route `POST /api/vip30/redeem/live-plan`.
+- Live-Plan zeigt geplante Aktionen für Eligible/Blocked-Fälle.
+- DB-Log-Event `live_action_plan` ergänzt.
+- EventBus-Event `vip30.live / plan` ergänzt.
+- Keine echte Live-Aktion wird ausgeführt.
 
-## VIP30 STEP7 EventSub Live-Dry-Run Observe
+## 0.7.2
 
-- `backend/modules/vip30.js` auf Version 0.7.0 gehoben.
-- Build auf `step7-eventsub-live-dryrun-observe` gesetzt.
-- Status auf `ready_step7_eventsub_live_dryrun_observe` gesetzt.
-- RouteCount auf 17 erweitert.
-- Neue Route: `GET /api/vip30/channelpoints/bridge/live-check`.
-- Neue Route: `POST /api/vip30/channelpoints/bridge/reset-stats`.
-- Bridge-Setting `bridge.liveEventDryRunObserveEnabled` ergänzt.
-- EventSub-/Channelpoints-Live-Test bleibt Decision-only.
-- Keine Twitch-Schreibaktion, kein VIP-Grant, kein Slot-Write, kein Fulfill/Cancel.
+- `ensure`-Route: `created_at` Parameterfehler repariert.
 
-## VIP30-STEP6.1 Status-/RouteCount-Cleanup
+## 0.7.1
 
-- `backend/modules/vip30.js` Version 0.6.1.
-- Status von `ready_step5_dryrun_redemption_decision` auf `ready_step6_channelpoints_decision_bridge` korrigiert.
-- `routeCount` auf 15 passend zur Route-Liste korrigiert.
-- Keine Funktionsänderung, keine Twitch-Schreibaktion, kein VIP-Grant, kein Slot-Write, kein Fulfill/Cancel.
-
-## VIP30 STEP7.1 - Ensure-/Twitch-Reward-ID-Fix
-
-- `vip30.js` auf 0.7.1 gehoben.
-- Ensure-Update repariert: `twitch_reward_id` wird im UPDATE genutzt, kein ungenutzter Named Parameter mehr.
-- Vorhandene Twitch-Reward-ID wird beim Ensure bewahrt.
-- Neuer Link-Endpunkt für lokale Zuordnung der echten Twitch-Reward-ID.
-- Keine Twitch-Schreibaktion, kein VIP-Grant, kein Slot-Write, kein Fulfill/Cancel.
+- Twitch Reward ID lokal verknüpfbar gemacht.

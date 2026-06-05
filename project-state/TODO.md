@@ -1,21 +1,10 @@
-# TODO
+# TODO - VIP30
 
-- [x] VIP30-STEP6.1: Status `ready_step6_channelpoints_decision_bridge` und `routeCount` 15 korrigieren.
-- [ ] VIP30-STEP7 entpacken und Syntax prüfen.
-- [ ] VIP30-STEP7 `stepdone.cmd` ausführen.
-- [ ] `/api/vip30/channelpoints/bridge/live-check` prüfen.
-- [ ] Bridge-Runtime-Stats vor Live-Test resetten.
-- [ ] Echte Twitch/EventSub-Redemption im Decision-only Modus beobachten.
-- [ ] Prüfen, dass weiterhin kein VIP-Grant, kein Slot-Write, kein Fulfill/Cancel passiert.
-- [ ] Danach STEP8 planen: kontrollierter Live-Grant mit Safety-Schalter.
-
-## VIP30 TODO nach STEP7.1
-
-- Ensure-Fix testen.
-- Lokale Twitch-Reward-ID-Verknuepfung pruefen.
-- Vor STEP8 Safety-Konzept fuer Fulfill/Cancel und Add VIP final bestaetigen.
-
-
-## VIP30 offen nach STEP7.2
-- STEP8: echten VIP-Grant/Fulfill/Cancel nur hinter explizitem Live-Schalter planen.
-- Dashboard-Hinweise für DryRun vs. Live klarer machen.
+- [x] EventSub-Live-DryRun beobachtet
+- [x] Reward-ID lokal verknüpft
+- [x] ensure-Route repariert
+- [x] STEP8 Live-Action-Plan und Safety-Gates ergänzen
+- [ ] STEP9 echte Aktionen hinter Safety-Gates implementieren
+- [ ] Cleanup/Revoke für abgelaufene VIPs implementieren
+- [ ] Alert/Overlay final anbinden
+- [ ] Dashboard-Bedienung für Live-Safety sauber ausbauen
