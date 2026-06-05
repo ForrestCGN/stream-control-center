@@ -19,7 +19,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.32";
+const MODULE_VERSION = "0.2.33";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -31,7 +31,7 @@ const MODULE_META = {
   routesPrefix: [API_PREFIX, "/api/clip/shoutout"],
   capabilities: ["shoutout.display_queue", "shoutout.official_queue", "shoutout.event_output"],
   bus: { emits: true, registered: false, heartbeat: false, channel: SHOUTOUT_BUS_CHANNEL },
-  note: "STEP278 Block 23: Loader-readable metadata only; runtime flow unchanged."
+  note: "CAN-44.21.29: Manual SO intake + official retry chat dedup; clip playback unchanged."
 };
 
 const AUTO_SHOUTOUT_TEXT_DEFAULTS = {
@@ -70,6 +70,15 @@ const SHOUTOUT_TEXT_DEFAULTS = {
     "🎬 @{displayName} wartet im Vorführraum des CGN-Altersheimkinos.",
     "📺 Der TV-Raum ist noch belegt. @{displayName} kommt gleich dran.",
     "💿 @{displayName} wurde eingelegt, aber der alte Beamer braucht noch einen Moment."
+],
+  'shoutout.chat.alreadyActive': [
+    "📺 @{displayName} läuft gerade bereits im Shoutout."
+],
+  'shoutout.chat.alreadyWaiting': [
+    "⏳ @{displayName} steht bereits in der SO-Liste. Position: {position}."
+],
+  'shoutout.chat.alreadyWaitingForce': [
+    "⏳ @{displayName} steht bereits in der SO-Liste. Position: {position}."
 ],
   'shoutout.chat.failed': [
     "⚠️ Die Heimleitung meldet: Die Vorführung von @{displayName} konnte nicht gestartet werden.",
@@ -141,6 +150,12 @@ const SHOUTOUT_TEXT_DEFAULTS = {
     "🎬 Der offizielle Shoutout für @{displayName} wartet auf seinen Platz im Programm.",
     "📼 Die Heimaufsicht hat @{displayName} für den offiziellen Shoutout notiert."
 ],
+  'shoutout.official.waiting': [
+    "⚠️ Twitch-SO für @{displayName} wartet."
+],
+  'shoutout.official.sent': [
+    "✅ Twitch-SO für @{displayName} gesendet."
+],
   'shoutout.official.failed': [
     "⚠️ Der offizielle Twitch-Shoutout für @{displayName} konnte nicht gesendet werden.",
     "📺 Die Heimleitung meldet Störung im offiziellen Twitch-Programm für @{displayName}.",
@@ -162,6 +177,9 @@ const SHOUTOUT_TEXT_OPTIONS = {
   categories: {
     'shoutout.chat.accepted': 'shoutout.chat',
     'shoutout.chat.waiting': 'shoutout.chat',
+    'shoutout.chat.alreadyActive': 'shoutout.chat',
+    'shoutout.chat.alreadyWaiting': 'shoutout.chat',
+    'shoutout.chat.alreadyWaitingForce': 'shoutout.chat',
     'shoutout.chat.failed': 'shoutout.chat',
     'shoutout.chat.duplicate': 'shoutout.chat',
     'shoutout.auto.greeting': 'shoutout.auto',
@@ -172,6 +190,8 @@ const SHOUTOUT_TEXT_OPTIONS = {
     'shoutout.auto.waitingStartScene': 'shoutout.auto',
     'shoutout.auto.disabled': 'shoutout.auto',
     'shoutout.official.queued': 'shoutout.official',
+    'shoutout.official.waiting': 'shoutout.official',
+    'shoutout.official.sent': 'shoutout.official',
     'shoutout.official.failed': 'shoutout.official',
     'shoutout.system.textsSaved': 'shoutout.system'
   },
@@ -617,12 +637,34 @@ function formatDisplayMention(displayName, login) {
 
 function buildManualDisplayChatMessage(kind, vars = {}, noticeInfo = null) {
   const mention = formatDisplayMention(vars.displayName || vars.targetDisplay, vars.login || vars.targetLogin);
-  const position = Math.max(1, Number(noticeInfo && noticeInfo.position || vars.position || 1));
+  const position = Math.max(1, Number(noticeInfo && noticeInfo.position || vars.position || vars.queuePosition || 1));
+  const textKeyByKind = {
+    accepted: 'shoutout.chat.accepted',
+    waiting: 'shoutout.chat.waiting',
+    already_active: 'shoutout.chat.alreadyActive',
+    already_waiting: 'shoutout.chat.alreadyWaiting',
+    already_waiting_force: 'shoutout.chat.alreadyWaitingForce',
+    failed: 'shoutout.chat.failed',
+    duplicate: 'shoutout.chat.duplicate'
+  };
+  const textKey = textKeyByKind[kind] || '';
+  const textVars = {
+    ...vars,
+    displayName: vars.displayName || vars.targetDisplay || vars.targetLogin || vars.login || '',
+    login: vars.login || vars.targetLogin || '',
+    targetLogin: vars.targetLogin || vars.login || '',
+    position,
+    queuePosition: position,
+    reason: vars.reason || 'Status unbekannt'
+  };
+  const rendered = textKey ? renderShoutoutModuleText(textKey, textVars) : '';
+  if (rendered) return stripChatTimePromise(rendered);
   if (kind === 'accepted') return `✅ Shoutout für ${mention} aufgenommen und startet gleich.`;
   if (kind === 'waiting') return `⏳ Shoutout für ${mention} wurde eingereiht. Position in der SO-Liste: ${position}.`;
   if (kind === 'already_active') return `📺 ${mention} läuft gerade bereits im Shoutout.`;
-  if (kind === 'already_waiting_force') return `⏩ ${mention} steht bereits in der SO-Liste. Der vorhandene Eintrag bleibt bestehen. Kein zusätzlicher offizieller Twitch-Shoutout wurde vorgemerkt.`;
-  if (kind === 'already_waiting') return `⏳ ${mention} steht bereits in der SO-Liste. Position: ${position}. Kein zusätzlicher Eintrag wurde erstellt.`;
+  if (kind === 'already_waiting_force') return `⏳ ${mention} steht bereits in der SO-Liste. Position: ${position}.`;
+  if (kind === 'already_waiting') return `⏳ ${mention} steht bereits in der SO-Liste. Position: ${position}.`;
+  if (kind === 'failed') return `⚠️ Shoutout für ${mention} konnte nicht gestartet werden.`;
   return `ℹ️ Shoutout für ${mention}: ${String(vars.reason || 'Status unbekannt')}.`;
 }
 
@@ -1346,6 +1388,87 @@ function shouldSendOfficialChatMessages(cfg) {
   return officialConfig(cfg).sendChatMessages !== false;
 }
 
+
+function officialRowVars(row = {}, extra = {}) {
+  const login = cleanLogin(row.target_login || extra.login || extra.targetLogin || '');
+  const displayName = cleanDisplay(row.target_display || extra.displayName || extra.targetDisplay || login, login);
+  return {
+    ...extra,
+    login,
+    targetLogin: login,
+    displayName,
+    targetDisplay: displayName,
+    user: displayName,
+    reason: extra.reason || row.last_error || '',
+    queueId: Number(row.id || extra.queueId || 0)
+  };
+}
+
+function rawOfficialErrorText(err) {
+  if (err && err.response && err.response.data) {
+    try { return JSON.stringify(err.response.data); } catch (_) { return String(err.response.data); }
+  }
+  return err && err.message ? String(err.message) : String(err || 'official_shoutout_error');
+}
+
+function friendlyOfficialQueueError(rawError) {
+  const text = String(rawError || '').toLowerCase();
+  if (isTwitchLiveWaitError(rawError)) return 'waiting_stream_live';
+  if (text.includes('cooldown') || text.includes('too often') || text.includes('too frequently')) return 'waiting_twitch_cooldown';
+  if (text.includes('not allowed') || text.includes('cannot') || text.includes('bad request') || text.includes('400')) return 'twitch_shoutout_currently_not_allowed';
+  if (text.includes('twitch_user_token_missing')) return 'twitch_user_token_missing';
+  if (text.includes('twitch_client_id_missing')) return 'twitch_client_id_missing';
+  if (text.includes('broadcaster_id_missing')) return 'broadcaster_id_missing';
+  if (text.includes('moderator_id_missing')) return 'moderator_id_missing';
+  if (text.includes('target_user_id_missing')) return 'target_user_id_missing';
+  return 'twitch_shoutout_retrying';
+}
+
+function buildOfficialWaitingChatMessage(row, cfg, reason = '') {
+  const ocfg = officialConfig(cfg);
+  const vars = officialRowVars(row, { reason });
+  const fromTextSystem = renderShoutoutModuleText('shoutout.official.waiting', vars)
+    || renderShoutoutModuleText('shoutout.official.queued', vars);
+  const fallback = renderTemplate(firstString(ocfg.targetCooldownMessage, ocfg.queuedMessage, DEFAULT_CONFIG.clipShoutout.officialShoutout.targetCooldownMessage), vars).trim();
+  return stripChatTimePromise(fromTextSystem || fallback);
+}
+
+function buildOfficialFailedChatMessage(row, cfg, reason = '') {
+  const ocfg = officialConfig(cfg);
+  const vars = officialRowVars(row, { reason });
+  const fromTextSystem = renderShoutoutModuleText('shoutout.official.failed', vars);
+  const fallback = renderTemplate(firstString(ocfg.failedMessage, DEFAULT_CONFIG.clipShoutout.officialShoutout.failedMessage), vars).trim();
+  return stripChatTimePromise(fromTextSystem || fallback);
+}
+
+async function sendOfficialWaitingNotice(row, cfg, reason, meta = {}) {
+  if (!shouldSendOfficialChatMessages(cfg)) return { ok: false, skipped: true, reason: 'official_chat_disabled' };
+  const message = buildOfficialWaitingChatMessage(row, cfg, reason);
+  if (!message) return { ok: false, skipped: true, reason: 'empty_message' };
+  return sendChatMessage(message, {
+    targetLogin: row.target_login,
+    queueId: row.id,
+    officialShoutout: true,
+    textKey: 'shoutout.official.waiting',
+    officialWaitingReason: reason,
+    ...(meta || {})
+  });
+}
+
+async function sendOfficialFailedNotice(row, cfg, reason, meta = {}) {
+  if (!shouldSendOfficialChatMessages(cfg)) return { ok: false, skipped: true, reason: 'official_chat_disabled' };
+  const message = buildOfficialFailedChatMessage(row, cfg, reason);
+  if (!message) return { ok: false, skipped: true, reason: 'empty_message' };
+  return sendChatMessage(message, {
+    targetLogin: row.target_login,
+    queueId: row.id,
+    officialShoutout: true,
+    textKey: 'shoutout.official.failed',
+    officialWaitingReason: reason,
+    ...(meta || {})
+  });
+}
+
 function ensureOfficialShoutoutSchema() {
   database.ensureReady();
   database.exec(`
@@ -1429,8 +1552,34 @@ function enqueueOfficialShoutout(job, cfg) {
   if (!login) return { ok: false, error: "target_login_missing" };
   const existing = database.get(`SELECT * FROM clip_shoutout_official_queue WHERE target_login=:login AND status IN ('queued','waiting') ORDER BY id ASC LIMIT 1`, { login });
   if (existing) {
-    emitShoutoutBus("shoutout.official.duplicate", { targetLogin: login, queueId: existing.id }, cfg);
-    return { ok: true, duplicate: true, row: existing };
+    const now = nowIso();
+    database.run(`
+      UPDATE clip_shoutout_official_queue
+      SET target_display = CASE WHEN :targetDisplay <> '' THEN :targetDisplay ELSE target_display END,
+          target_user_id = CASE WHEN :targetUserId <> '' THEN :targetUserId ELSE target_user_id END,
+          requested_by_login = CASE WHEN :requestedByLogin <> '' THEN :requestedByLogin ELSE requested_by_login END,
+          requested_by_display = CASE WHEN :requestedByDisplay <> '' THEN :requestedByDisplay ELSE requested_by_display END,
+          clip_id = CASE WHEN :clipId <> '' THEN :clipId ELSE clip_id END,
+          clip_url = CASE WHEN :clipUrl <> '' THEN :clipUrl ELSE clip_url END,
+          bundle_id = CASE WHEN :bundleId <> '' THEN :bundleId ELSE bundle_id END,
+          display_queue_id = CASE WHEN :displayQueueId > 0 THEN :displayQueueId ELSE display_queue_id END,
+          updated_at = :updatedAt
+      WHERE id = :id
+    `, {
+      id: existing.id,
+      targetDisplay: cleanDisplay(job.targetDisplay, login),
+      targetUserId: String(job.targetUserId || ''),
+      requestedByLogin: cleanLogin(job.requestedByLogin || ''),
+      requestedByDisplay: cleanDisplay(job.requestedByDisplay || ''),
+      clipId: String(job.clipId || ''),
+      clipUrl: String(job.clipUrl || ''),
+      bundleId: String(job.bundleId || ''),
+      displayQueueId: Number(job.displayQueueId || 0),
+      updatedAt: now
+    });
+    const refreshed = database.get(`SELECT * FROM clip_shoutout_official_queue WHERE id=:id`, { id: existing.id }) || existing;
+    emitShoutoutBus("shoutout.official.duplicate", { targetLogin: login, queueId: existing.id, reused: true }, cfg);
+    return { ok: true, duplicate: true, row: refreshed };
   }
   const now = nowIso();
   const availableAt = isoFromMs(calculateOfficialAvailableAt(login, cfg, Date.parse(job.availableAt || '') || Date.now()));
@@ -1592,39 +1741,56 @@ async function sendOfficialTwitchShoutout(env, row, cfg) {
   return { ok: true, status: response.status, data: response.data || {} };
 }
 
-async function processOfficialShoutoutQueue(env, cfg, options = {}) {
+async function processOfficialShoutoutQueueRow(env, rowInput, cfg, options = {}) {
   const ocfg = officialConfig(cfg);
   if (ocfg.enabled === false) return { ok: true, skipped: true, reason: "official_shoutout_disabled" };
   ensureOfficialShoutoutSchema();
+
+  const rowId = Number(rowInput && rowInput.id || 0);
+  const row = rowId
+    ? database.get(`SELECT * FROM clip_shoutout_official_queue WHERE id=:id AND status IN ('queued','waiting') LIMIT 1`, { id: rowId })
+    : null;
+  if (!row) return { ok: true, empty: true, reason: 'official_queue_row_not_open', queueId: rowId };
+
   state.officialShoutout.lastWorkerAt = nowIso();
-  const row = database.get(`SELECT * FROM clip_shoutout_official_queue WHERE status IN ('queued','waiting') ORDER BY available_at ASC, id ASC LIMIT 1`);
-  if (!row) return { ok: true, empty: true };
+  const notifyChat = options.notifyChat === true;
   const nowMs = Date.now();
-  const availableMs = calculateOfficialAvailableAt(row.target_login, cfg, msFromIso(row.available_at));
+  const availabilityBaseMs = options.manualAttempt === true ? Date.now() : msFromIso(row.available_at);
+  const availableMs = calculateOfficialAvailableAt(row.target_login, cfg, availabilityBaseMs);
+
   if (!options.force && availableMs > nowMs) {
     const availableAt = isoFromMs(availableMs);
-    database.run(`UPDATE clip_shoutout_official_queue SET status='waiting', available_at=:availableAt, updated_at=:now WHERE id=:id`, { id: row.id, availableAt, now: nowIso() });
+    const reason = 'waiting_official_cooldown';
+    database.run(`UPDATE clip_shoutout_official_queue SET status='waiting', available_at=:availableAt, updated_at=:now, last_error=:reason WHERE id=:id`, {
+      id: row.id,
+      availableAt,
+      now: nowIso(),
+      reason
+    });
+    state.officialShoutout.lastError = reason;
     emitShoutoutBus("shoutout.official.waiting_cooldown", { queueId: row.id, targetLogin: row.target_login, availableAt }, cfg);
-    return { ok: true, waiting: true, queueId: row.id, availableAt };
+    if (notifyChat) await sendOfficialWaitingNotice(row, cfg, reason, { manualOfficialAttempt: true, availableAt });
+    return { ok: true, waiting: true, queueId: row.id, reason, availableAt };
   }
+
   if (Number(row.attempts || 0) >= Number(ocfg.maxAttempts || 5)) {
-    markOfficialQueueFailed(row, "max_attempts_reached", cfg);
-    return { ok: false, failed: true, error: "max_attempts_reached" };
+    const reason = 'max_attempts_reached';
+    markOfficialQueueFailed(row, reason, cfg);
+    if (notifyChat) await sendOfficialFailedNotice(row, cfg, reason, { manualOfficialAttempt: true });
+    return { ok: false, failed: true, error: reason, queueId: row.id };
   }
 
   const sceneGate = readShoutoutSceneGateState(cfg, env);
   if (!options.force && sceneGate.active === true) {
-    return blockQueueBySceneGate('clip_shoutout_official_queue', row, sceneGate, 'shoutout.official.waiting_start_scene', cfg);
+    const result = blockQueueBySceneGate('clip_shoutout_official_queue', row, sceneGate, 'shoutout.official.waiting_start_scene', cfg);
+    if (notifyChat) await sendOfficialWaitingNotice(row, cfg, result.reason || 'waiting_start_scene', { manualOfficialAttempt: true, sceneGate: true });
+    return result;
   }
 
   const liveGate = buildOfficialLiveGateState(cfg);
   if (liveGate.enabled && !liveGate.live) {
     const result = markOfficialQueueWaitingLiveGate(row, cfg, liveGate.reason || 'waiting_stream_live_offline');
-    if (shouldSendOfficialChatMessages(cfg)) {
-      const ocfgMsg = firstString(ocfg.targetCooldownMessage, ocfg.queuedMessage, DEFAULT_CONFIG.clipShoutout.officialShoutout.targetCooldownMessage);
-      const msg = stripChatTimePromise(renderTemplate(ocfgMsg, { login: row.target_login, displayName: row.target_display || row.target_login }).trim());
-      if (msg) await sendChatMessage(msg, { targetLogin: row.target_login, queueId: row.id, officialShoutout: true, textKey: 'shoutout.official.waiting_livegate' });
-    }
+    if (notifyChat) await sendOfficialWaitingNotice(row, cfg, result.reason || 'waiting_stream_live_offline', { manualOfficialAttempt: true, liveGate: true });
     return result;
   }
 
@@ -1632,36 +1798,52 @@ async function processOfficialShoutoutQueue(env, cfg, options = {}) {
     emitShoutoutBus("shoutout.official.sending", { queueId: row.id, targetLogin: row.target_login, liveGate }, cfg);
     const result = await sendOfficialTwitchShoutout(env, row, cfg);
     markOfficialQueueSent(row, result, cfg);
-    if (shouldSendOfficialChatMessages(cfg)) {
-      await sendChatMessage(renderTemplate(ocfg.sentMessage, { login: row.target_login, displayName: row.target_display || row.target_login }).trim(), { targetLogin: row.target_login, queueId: row.id, officialShoutout: true });
-    }
     return { ok: true, sent: true, queueId: row.id, result };
   } catch (err) {
-    const error = err && err.response && err.response.data ? JSON.stringify(err.response.data).slice(0, 500) : (err && err.message ? err.message : String(err));
-    if (isTwitchLiveWaitError(error)) {
+    const rawError = rawOfficialErrorText(err);
+    const friendlyError = friendlyOfficialQueueError(rawError);
+
+    if (isTwitchLiveWaitError(rawError)) {
       const next = isoFromMs(Date.now() + Math.max(30000, Number(ocfg.streamWaitRetryMs || ocfg.liveGateRetryMs || ocfg.globalCooldownMs || 120000)));
-      database.run(`UPDATE clip_shoutout_official_queue SET status='waiting', available_at=:next, updated_at=:now, last_error=:error WHERE id=:id`, { id: row.id, next, now: nowIso(), error });
-      state.officialShoutout.lastError = error;
-      emitShoutoutBus("shoutout.official.waiting_stream_live", { queueId: row.id, targetLogin: row.target_login, error, retryAt: next }, cfg);
-      if (shouldSendOfficialChatMessages(cfg)) {
-        const msgTpl = firstString(ocfg.targetCooldownMessage, ocfg.queuedMessage, DEFAULT_CONFIG.clipShoutout.officialShoutout.targetCooldownMessage);
-        const msg = stripChatTimePromise(renderTemplate(msgTpl, { login: row.target_login, displayName: row.target_display || row.target_login }).trim());
-        if (msg) await sendChatMessage(msg, { targetLogin: row.target_login, queueId: row.id, officialShoutout: true, textKey: 'shoutout.official.waiting_stream_live' });
-      }
-      return { ok: true, waiting: true, reason: "waiting_stream_live", queueId: row.id, error, retryAt: next };
+      database.run(`UPDATE clip_shoutout_official_queue SET status='waiting', available_at=:next, updated_at=:now, last_error=:error WHERE id=:id`, {
+        id: row.id,
+        next,
+        now: nowIso(),
+        error: friendlyError
+      });
+      state.officialShoutout.lastError = friendlyError;
+      emitShoutoutBus("shoutout.official.waiting_stream_live", { queueId: row.id, targetLogin: row.target_login, error: friendlyError, retryAt: next }, cfg);
+      if (notifyChat) await sendOfficialWaitingNotice(row, cfg, friendlyError, { manualOfficialAttempt: true, retryAt: next });
+      return { ok: true, waiting: true, reason: friendlyError, queueId: row.id, error: friendlyError, retryAt: next };
     }
+
     const next = isoFromMs(Date.now() + Math.max(30000, Number(ocfg.globalCooldownMs || 120000)));
-    database.run(`UPDATE clip_shoutout_official_queue SET status='waiting', attempts=attempts+1, available_at=:next, updated_at=:now, last_error=:error WHERE id=:id`, { id: row.id, next, now: nowIso(), error });
-    state.officialShoutout.lastError = error;
+    database.run(`UPDATE clip_shoutout_official_queue SET status='waiting', attempts=attempts+1, available_at=:next, updated_at=:now, last_error=:error WHERE id=:id`, {
+      id: row.id,
+      next,
+      now: nowIso(),
+      error: friendlyError
+    });
+    state.officialShoutout.lastError = friendlyError;
     state.stats.officialFailed += 1;
-    emitShoutoutBus("shoutout.official.failed", { queueId: row.id, targetLogin: row.target_login, error, retryAt: next }, cfg);
-    if (shouldSendOfficialChatMessages(cfg)) {
-      const msgTpl = firstString(ocfg.failedMessage, ocfg.queuedMessage, DEFAULT_CONFIG.clipShoutout.officialShoutout.failedMessage);
-      const msg = stripChatTimePromise(renderTemplate(msgTpl, { login: row.target_login, displayName: row.target_display || row.target_login, reason: error }).trim());
-      if (msg) await sendChatMessage(msg, { targetLogin: row.target_login, queueId: row.id, officialShoutout: true, textKey: 'shoutout.official.retry' });
-    }
-    return { ok: false, retry: true, queueId: row.id, error, retryAt: next };
+    emitShoutoutBus("shoutout.official.failed", { queueId: row.id, targetLogin: row.target_login, error: friendlyError, retryAt: next }, cfg);
+    if (notifyChat) await sendOfficialWaitingNotice(row, cfg, friendlyError, { manualOfficialAttempt: true, retryAt: next });
+    return { ok: false, retry: true, queueId: row.id, error: friendlyError, retryAt: next };
   }
+}
+
+async function processOfficialShoutoutQueue(env, cfg, options = {}) {
+  const ocfg = officialConfig(cfg);
+  if (ocfg.enabled === false) return { ok: true, skipped: true, reason: "official_shoutout_disabled" };
+  ensureOfficialShoutoutSchema();
+  state.officialShoutout.lastWorkerAt = nowIso();
+  const row = database.get(`SELECT * FROM clip_shoutout_official_queue WHERE status IN ('queued','waiting') ORDER BY available_at ASC, id ASC LIMIT 1`);
+  if (!row) return { ok: true, empty: true };
+  return processOfficialShoutoutQueueRow(env, row, cfg, {
+    ...options,
+    notifyChat: options.notifyChat === true,
+    manualAttempt: options.manualAttempt === true
+  });
 }
 
 function startOfficialShoutoutWorker(env, cfg) {
@@ -3755,14 +3937,15 @@ async function runDisplayJob(row, env, cfg) {
           availableAt: nowIso(),
           meta: { source: MODULE_NAME, displayQueueId: row.id, clipTitle: clip.title || '' }
         }, cfg);
-        const ocfg = officialConfig(cfg);
-        if (shouldSendOfficialChatMessages(cfg) && queueResult && queueResult.ok && queueResult.duplicate !== true) {
-          const message = renderShoutoutModuleText('shoutout.official.queued', vars) || renderTemplate(ocfg.queuedMessage, vars).trim();
-          await sendChatMessage(message, { targetLogin: targetUser.login, clipId: clip.id, officialShoutout: true, queueId: queueResult.row && queueResult.row.id, textKey: 'shoutout.official.queued' });
-        } else if (shouldSendOfficialChatMessages(cfg) && queueResult && queueResult.duplicate === true) {
-          await sendChatMessage(renderTemplate(ocfg.duplicateQueuedMessage, vars).trim(), { targetLogin: targetUser.login, clipId: clip.id, officialShoutout: true });
+        const manualOfficialChat = input.autoShoutout !== true
+          && input.__debugSuppressChat !== true
+          && input.debugSuppressChat !== true;
+        if (queueResult && queueResult.ok && queueResult.row) {
+          await processOfficialShoutoutQueueRow(env, queueResult.row, shoutoutConfig(), {
+            manualAttempt: true,
+            notifyChat: manualOfficialChat
+          });
         }
-        await processOfficialShoutoutQueue(env, shoutoutConfig());
       } catch (err) {
         state.officialShoutout.lastError = err && err.message ? err.message : String(err);
         emitShoutoutBus('shoutout.official.failed', { targetLogin: targetUser.login, error: state.officialShoutout.lastError }, cfg);
@@ -4084,12 +4267,15 @@ async function handleRun(req, res, env) {
       const existingInfo = existingDisplayQueueResponse(existingPendingDisplay, cfg);
       const isActive = String(existingPendingDisplay.status || '') === 'active';
       const messageKind = isActive ? 'already_active' : (overrideUsed ? 'already_waiting_force' : 'already_waiting');
+      const messageTextKey = isActive
+        ? 'shoutout.chat.alreadyActive'
+        : (overrideUsed ? 'shoutout.chat.alreadyWaitingForce' : 'shoutout.chat.alreadyWaiting');
       const message = buildManualDisplayChatMessage(messageKind, vars, existingInfo && existingInfo.notice);
       if (dcfg.sendChatMessages !== false && input.__debugSuppressChat !== true && input.debugSuppressChat !== true && message) {
         await sendChatMessage(message, {
           targetLogin,
           displayQueueId: existingPendingDisplay.id,
-          textKey: `shoutout.chat.${messageKind}`,
+          textKey: messageTextKey,
           queuePosition: existingInfo && existingInfo.position || 0,
           overrideUsed,
           duplicatePending: true
