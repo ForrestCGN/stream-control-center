@@ -1,82 +1,57 @@
 # VIP30 / 30 Tage VIP
 
-## Stand: STEP8 Live-Action-Plan mit Safety-Gates
+Stand: **STEP8.1**  
+Version: **0.8.1**  
+Build: `step8.1-arm-preview-compact-live-check`
 
-Version: `0.8.0`  
-Build: `step8-live-action-plan-safety-gates`
+## Ziel
 
-STEP8 bereitet den echten Live-Ablauf vor, schaltet ihn aber noch nicht scharf. Der bestätigte STEP7/STEP7.2-Stand bleibt erhalten:
+VIP30 ist weiterhin im sicheren Vorbereitungsmodus. STEP8.1 macht die Live-Schalter sichtbar/pruefbar und ergaenzt eine Armierungs-Vorschau.
 
-- Twitch-Reward `30 Tage VIP` ist lokal als `vip30` verknüpft.
-- Testkosten stehen auf `1` Kanalpunkt.
-- EventSub-Redemptions kommen im VIP30-Modul an.
-- VIP30-Decision und DB-Log funktionieren.
-- `ensure` läuft wieder fehlerfrei.
+## Neue/angepasste Routen
 
-## Neue STEP8-Routen
-
-### Live-Safety prüfen
-
-```powershell
-$r = Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/live/check"
-$r.status
-$r.armed
-$r.blockers
-```
-
-Erwartung direkt nach STEP8: `live_actions_locked`, `False`.
-
-### Live-Aktionsplan erzeugen
-
-```powershell
-$body = @{
-  userId = "123"
-  userLogin = "testuser"
-  userDisplayName = "TestUser"
-  twitchRewardId = "5932e698-9a57-4d13-9acc-c397682c10a6"
-  twitchRedemptionId = "test-redemption-id"
-  source = "manual_live_plan_test"
-} | ConvertTo-Json -Depth 8
-
-Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/vip30/redeem/live-plan" -ContentType "application/json" -Body $body
-```
-
-Der Plan zeigt, welche Aktionen später laufen würden:
-
-- `twitch_add_vip`
-- `create_vip30_slot`
-- `twitch_redemption_fulfill`
-- optional `trigger_vip30_alert`
-
-Bei blockierten Einlösungen wird stattdessen `twitch_redemption_cancel` geplant.
+- `GET /api/vip30/live/check`
+  - liefert weiterhin den Safety-Status
+  - enthaelt zusaetzlich `compact` mit `status`, `armed`, `blockerCount`, `blockers`
+- `GET /api/vip30/live/arm-preview`
+  - zeigt fehlende Schalter mit Setting-Key, Zielwert und Beschreibung
+  - gibt eine empfohlene Aktivierungsreihenfolge aus
+  - schreibt nichts
+- `POST /api/vip30/redeem/live-plan`
+  - bleibt Plan-only
 
 ## Safety
 
-STEP8 führt weiterhin nichts aus:
+STEP8.1 fuehrt keine echten Live-Aktionen aus:
 
 - kein Twitch-Write
 - kein VIP-Grant
 - kein Slot-Write
-- kein Fulfill
-- kein Cancel
+- kein Fulfill/Cancel
+- kein Alert
 
-Die neuen Live-Gates stehen standardmäßig auf `false`:
+## Live-Gates
+
+Die Live-Aktivierung bleibt durch mehrere Gates gesperrt:
 
 - `live.enabled`
+- `live.mode = live`
+- `twitch.liveActionsEnabled`
+- `bridge.decisionOnly = false`
 - `live.allowVipGrant`
 - `live.allowSlotWrite`
 - `live.allowRedemptionFulfillCancel`
 - `live.allowAlert`
-- `twitch.liveActionsEnabled`
+- Twitch-Capability muss geprueft und bereit sein
+- lokaler Reward muss `linked_in_sync` sein
 
-Außerdem bleibt `bridge.decisionOnly` standardmäßig `true`.
+## Minimaltest
 
-## Nächster Schritt
+```powershell
+$r = Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/live/check"
+$r.compact
 
-STEP9 kann die echten Aktionen implementieren, aber erst nach separatem Go und nur hinter den Safety-Gates:
-
-- Twitch Add VIP
-- Slot speichern
-- Redemption Fulfill bei Erfolg
-- Redemption Cancel bei Blocker
-- Alert/Sound nach Erfolg
+$a = Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/live/arm-preview"
+$a.blockerCount
+$a.missing | Select-Object key,setting,requiredValue,label
+```

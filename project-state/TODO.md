@@ -1,10 +1,6 @@
-# TODO - VIP30
+# TODO
 
-- [x] EventSub-Live-DryRun beobachtet
-- [x] Reward-ID lokal verknüpft
-- [x] ensure-Route repariert
-- [x] STEP8 Live-Action-Plan und Safety-Gates ergänzen
-- [ ] STEP9 echte Aktionen hinter Safety-Gates implementieren
-- [ ] Cleanup/Revoke für abgelaufene VIPs implementieren
-- [ ] Alert/Overlay final anbinden
-- [ ] Dashboard-Bedienung für Live-Safety sauber ausbauen
+- [ ] Twitch Capability vor Live-Aktionen erneut pruefen.
+- [ ] Live-Gates bewusst setzen, nicht automatisch.
+- [ ] STEP9: echte Live-Ausfuehrung hinter harten Gates implementieren.
+- [ ] Cleanup/Revoke fuer abgelaufene VIPs spaeter implementieren.

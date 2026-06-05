@@ -6,8 +6,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.0";
-const MODULE_BUILD = "step8-live-action-plan-safety-gates";
+const MODULE_VERSION = "0.8.1";
+const MODULE_BUILD = "step8.1-arm-preview-compact-live-check";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -1820,6 +1820,12 @@ function buildLiveActionSafetyStatus() {
     armed,
     checks,
     blockers,
+    compact: {
+      status: armed ? "live_actions_armed" : "live_actions_locked",
+      armed,
+      blockerCount: blockers.length,
+      blockers
+    },
     reward: existing ? {
       rewardKey: existing.rewardKey,
       twitchRewardId: existing.twitchRewardId,
@@ -1853,6 +1859,60 @@ function buildLiveActionSafetyStatus() {
       noVipGrant: true,
       noSlotWrite: true,
       noRedemptionFulfillCancel: true
+    }
+  };
+}
+
+
+function buildLiveArmPreview() {
+  const safety = buildLiveActionSafetyStatus();
+  const blockerInfo = {
+    liveEnabled: { setting: "live.enabled", requiredValue: true, label: "Live-Master aktivieren" },
+    liveModeIsLive: { setting: "live.mode", requiredValue: "live", label: "Live-Modus auf live setzen" },
+    twitchLiveActionsEnabled: { setting: "twitch.liveActionsEnabled", requiredValue: true, label: "Twitch-Schreibaktionen global erlauben" },
+    bridgeDecisionOnlyDisabled: { setting: "bridge.decisionOnly", requiredValue: false, label: "Bridge Decision-only deaktivieren" },
+    localRewardLinked: { setting: "channelpoints/reward", requiredValue: "linked_in_sync", label: "Lokalen VIP30-Reward synchron halten" },
+    twitchRewardIdLinked: { setting: "channelpoints/reward.twitchRewardId", requiredValue: "present", label: "Twitch Reward ID verknuepft" },
+    capabilityChecked: { setting: "twitch/capability", requiredValue: "checked", label: "Twitch Capability pruefen" },
+    twitchCapabilityReady: { setting: "twitch/capability", requiredValue: "ready", label: "Scopes/Broadcaster-Token muessen passen" },
+    allowVipGrant: { setting: "live.allowVipGrant", requiredValue: true, label: "VIP-Grant erlauben" },
+    allowSlotWrite: { setting: "live.allowSlotWrite", requiredValue: true, label: "Slot-Schreibaktion erlauben" },
+    allowRedemptionFulfillCancel: { setting: "live.allowRedemptionFulfillCancel", requiredValue: true, label: "Redemption Fulfill/Cancel erlauben" },
+    allowAlert: { setting: "live.allowAlert", requiredValue: true, label: "Alert erlauben oder Alerts deaktivieren" }
+  };
+  const missing = (safety.blockers || []).map((key) => ({ key, ...(blockerInfo[key] || { setting: key, requiredValue: true, label: key }) }));
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    action: "vip30_live_arm_preview",
+    status: safety.armed ? "already_armed" : "arm_preview_locked",
+    checkedAt: nowIso(),
+    armed: safety.armed,
+    blockerCount: missing.length,
+    blockers: (safety.blockers || []).slice(),
+    missing,
+    current: {
+      live: safety.live,
+      reward: safety.reward,
+      twitchCapability: safety.twitchCapability
+    },
+    recommendedOrder: [
+      { step: 1, name: "capability_check", route: `${ROUTE_PREFIX}/twitch/capability`, write: false },
+      { step: 2, name: "enable_live_plan_flags", settings: { "live.enabled": true, "live.mode": "live" }, write: "settings/save only" },
+      { step: 3, name: "enable_twitch_write_master", settings: { "twitch.liveActionsEnabled": true }, write: "settings/save only" },
+      { step: 4, name: "disable_decision_only", settings: { "bridge.decisionOnly": false }, write: "settings/save only" },
+      { step: 5, name: "grant_slot_fulfill_alert_gates", settings: { "live.allowVipGrant": true, "live.allowSlotWrite": true, "live.allowRedemptionFulfillCancel": true, "live.allowAlert": true }, write: "settings/save only" }
+    ],
+    nextPhaseSuggestion: safety.armed ? "ready_for_step9_live_execute" : "settings_staging_only",
+    safety: {
+      previewOnly: true,
+      noTwitchWrite: true,
+      noVipGrant: true,
+      noSlotWrite: true,
+      noRedemptionFulfillCancel: true,
+      noAlert: true
     }
   };
 }
@@ -2329,7 +2389,7 @@ function heartbeat(reason = "heartbeat") {
       module: MODULE_NAME,
       version: MODULE_VERSION,
       build: MODULE_BUILD,
-      phase: config.enabled === false ? "disabled" : "ready_step8",
+      phase: config.enabled === false ? "disabled" : "ready_step8_1",
       reason,
       enabled: config.enabled !== false,
       healthy: !lastError,
@@ -2569,6 +2629,11 @@ function init({ app } = {}) {
       runtimeStats.lastAction = "live_check";
       try { res.json(buildLiveActionSafetyStatus()); }
       catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err), safety: { noTwitchWrite: true, noVipGrant: true } }); }
+    });
+    app.get(`${ROUTE_PREFIX}/live/arm-preview`, (_req, res) => {
+      runtimeStats.lastAction = "live_arm_preview";
+      try { res.json(buildLiveArmPreview()); }
+      catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err), safety: { noTwitchWrite: true, noVipGrant: true, noSlotWrite: true, noRedemptionFulfillCancel: true } }); }
     });
     app.post(`${ROUTE_PREFIX}/redeem/live-plan`, (req, res) => {
       runtimeStats.lastAction = "redeem_live_plan";

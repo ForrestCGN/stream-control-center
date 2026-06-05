@@ -1,29 +1,14 @@
-# NEXT_STEPS - VIP30
+# NEXT STEPS
 
-## Direkt nach STEP8
+Naechster Schritt: STEP8.2 oder STEP9 planen.
 
-1. ZIP nach `D:\Git\stream-control-center` entpacken.
-2. `node -c backend\modules\vip30.js` ausführen.
-3. `stepdone.cmd` ausführen.
-4. Node neu starten.
-5. Minimal prüfen:
+Empfohlene Reihenfolge:
+1. Capability erneut pruefen.
+2. Live-Gates stufenweise als Settings setzen.
+3. Erst danach echte Live-Ausfuehrung implementieren:
+   - Add VIP
+   - Slot speichern
+   - Redemption fulfill/cancel
+   - Alert ausloesen
 
-```powershell
-$r = Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/live/check"
-$r.status
-$r.armed
-$r.blockers
-```
-
-Erwartung: `live_actions_locked`, `False`.
-
-## STEP9 geplant
-
-Erst nach separatem Go:
-
-- echte Twitch Add-VIP-Aktion
-- Slot-Write in `vip30_slots`
-- Redemption-Fulfill bei Erfolg
-- Redemption-Cancel bei Blocker
-- Alert/Sound nach Erfolg
-- Cleanup/Revoke für abgelaufene VIPs als eigener Folge-Step
+Bis dahin bleibt alles Plan/Preview-only.

@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "moduleVersion": "0.8.0",
+  "moduleVersion": "0.8.1",
   "reward": {
     "rewardKey": "vip30",
     "title": "30 Tage VIP",
@@ -83,7 +83,7 @@
     "cooldownSeconds": 0,
     "maxPerStream": 0,
     "maxPerUserPerStream": 0,
-    "notes": "VIP30-Reward wird vom VIP30-Modul verwaltet. STEP8 bereitet Live-Aktionsplan vor; echte Live-Aktionen bleiben gesperrt.",
+    "notes": "VIP30-Reward wird vom VIP30-Modul verwaltet. STEP8.1 ergaenzt Arm-Preview und kompakte Live-Check-Ausgaben; echte Live-Aktionen bleiben gesperrt.",
     "twitchPolicies": {
       "shouldRedemptionsSkipRequestQueue": false,
       "fulfillAfterSuccess": false,
@@ -108,7 +108,8 @@
     "bridgeDecisionFlow": true,
     "eventsubLiveDryRunObserve": true,
     "liveActionPlanOnly": true,
-    "liveSafetyGates": true
+    "liveSafetyGates": true,
+    "armPreviewOnly": true
   },
   "bridge": {
     "enabled": true,
@@ -133,6 +134,6 @@
     "allowSlotWrite": false,
     "allowRedemptionFulfillCancel": false,
     "allowAlert": false,
-    "notes": "STEP8 bereitet Live-Aktionsplan und Safety-Gates vor. Keine echten Live-Aktionen, solange alle Gates aus sind."
+    "notes": "STEP8.1: Live-Schalter sind konfigurierbar, /live/arm-preview zeigt die fehlenden Gates. Keine echten Live-Aktionen."
   }
 }

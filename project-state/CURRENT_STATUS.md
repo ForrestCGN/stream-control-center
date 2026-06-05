@@ -1,21 +1,13 @@
-# CURRENT_STATUS - VIP30 STEP8
+# CURRENT STATUS
 
-VIP30 steht auf Version `0.8.0` / Build `step8-live-action-plan-safety-gates`.
+VIP30 steht auf **STEP8.1 / v0.8.1**.
 
-Bestätigter Stand aus STEP7/STEP7.2:
+Status:
+- Twitch-Redemption wurde im Live-Dry-Run erfolgreich beobachtet.
+- Lokaler `vip30`-Reward ist mit Twitch-Reward-ID verknuepft und auf 1 Punkt gesetzt.
+- Ensure-Route funktioniert wieder.
+- Live-Actions sind weiterhin gesperrt.
+- `/api/vip30/live/check` liefert kompakte Statusdaten ueber `compact`.
+- `/api/vip30/live/arm-preview` zeigt fehlende Gates und empfohlene Reihenfolge.
 
-- echter Twitch-Reward ist mit lokalem `vip30` Reward verknüpft
-- Testkosten: 1 Kanalpunkt
-- EventSub-Live-Test kam bei VIP30 an
-- Decision: `eligible`
-- DB-Log wurde geschrieben
-- `ensure` funktioniert wieder
-
-STEP8 ergänzt:
-
-- Route `GET /api/vip30/live/check`
-- Route `POST /api/vip30/redeem/live-plan`
-- DB-/Dashboard-Settings für Live-Safety-Gates
-- EventBus-Event `vip30.live / plan`
-
-Safety: Es werden weiterhin keine echten Twitch-/Slot-Aktionen ausgeführt.
+Keine echten Twitch-Schreibaktionen in STEP8.1.
