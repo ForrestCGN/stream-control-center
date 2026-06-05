@@ -1,8 +1,8 @@
 window.ShoutoutV2Module = (function(){
   'use strict';
 
-  const MODULE_VERSION = '2.7.2-settings-help-tooltips';
-  const BUILD = 'CAN-44.21.39';
+  const MODULE_VERSION = '2.7.3-settings-save-fix';
+  const BUILD = 'CAN-44.21.40';
 
   const API = {
     status: '/api/clip-shoutout/status',
@@ -1922,13 +1922,24 @@ window.ShoutoutV2Module = (function(){
   }
 
   async function saveSettingsAction(){
+    let payload = null;
+    try {
+      // Wichtig: Werte zuerst aus dem aktuellen DOM lesen.
+      // Ein render() vor buildSettingsPayload() würde ungespeicherte Eingaben verwerfen.
+      payload = buildSettingsPayload();
+    } catch (err) {
+      state.settingsResult = { ok: false, error: err.message || String(err) };
+      state.loading = false;
+      render();
+      return;
+    }
+
     state.loading = true;
     state.error = '';
     state.notice = '';
     state.settingsResult = null;
     render();
     try {
-      const payload = buildSettingsPayload();
       const result = await api(API.settings, { method: 'POST', body: JSON.stringify(payload) });
       state.settingsResult = { ok: result && result.ok !== false, message: 'Shoutout-Config wurde gespeichert.' };
       await loadAll(true);

@@ -908,3 +908,6 @@
   .shoutout-v2-admin .so2-help-dot:hover::after,
   .shoutout-v2-admin .so2-help-dot:focus::after{transform:translateY(0);}
 }
+
+
+/* CAN-44.21.40 – Save-Fix: keine CSS-Änderung, Tooltips/Layout bleiben unverändert. */
