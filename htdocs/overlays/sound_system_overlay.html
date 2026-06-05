@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ForrestCGN Sound-System Overlay - CAN44_21_16_TWITCH_CLIP_QUEUE</title>
+  <title>ForrestCGN Sound-System Overlay - CAN44_21_19_TWITCH_CLIP_STANDALONE_IFRAME</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
@@ -152,6 +152,17 @@
       background: black;
     }
 
+    #twitchClipFrame {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      border: 0;
+      display: none;
+      background: transparent;
+      z-index: 60;
+    }
+
     #clipName {
       margin-top: 10px;
       font-family: "Pacifico", cursive;
@@ -190,6 +201,7 @@
 <body>
   <audio id="player" preload="auto"></audio>
   <video id="videoPlayer" preload="auto" playsinline></video>
+  <iframe id="twitchClipFrame" title="Twitch Clip Player" allow="autoplay; fullscreen" scrolling="no"></iframe>
 
   <div id="clipCard">
     <div class="clip-panel">
@@ -223,6 +235,7 @@
       const player = document.getElementById('player');
       const videoPlayer = document.getElementById('videoPlayer');
       const clipVideoPlayer = document.getElementById('clipVideoPlayer');
+      const twitchClipFrame = document.getElementById('twitchClipFrame');
       const clipCard = document.getElementById('clipCard');
       const clipAvatarImg = document.getElementById('clipAvatarImg');
       const clipAvatarPh = document.getElementById('clipAvatarPh');
@@ -341,6 +354,10 @@
             video.style.display = video === videoPlayer ? 'none' : '';
           } catch (_) {}
         }
+        try {
+          twitchClipFrame.removeAttribute('src');
+          twitchClipFrame.style.display = 'none';
+        } catch (_) {}
         hideClipCard();
         activeVideoElement = null;
         activeVideoItem = null;
@@ -628,6 +645,19 @@
         return best.sourceURL + '?sig=' + encodeURIComponent(token.signature) + '&token=' + encodeURIComponent(token.value);
       }
 
+      function buildTwitchStandalonePlayerUrl(clipId, item) {
+        const visual = visualOf(item);
+        const meta = item && item.meta && typeof item.meta === 'object' ? item.meta : {};
+        const login = String(item && (item.targetLogin || item.target || item.login) || visual.login || meta.targetLogin || meta.login || '').replace(/^@+/, '');
+        const url = new URL('/overlays/_overlay-clip_player.html', window.location.origin);
+        url.searchParams.set('clipId', String(clipId || '').trim());
+        if (login) url.searchParams.set('user', login);
+        url.searchParams.set('source', 'sound_system');
+        url.searchParams.set('requestId', String(item && item.requestId || ''));
+        url.searchParams.set('_', String(Date.now()));
+        return url.toString();
+      }
+
       async function playTwitchClipItem(item) {
         if (!item || !item.requestId) return;
         const clipId = getTwitchClipId(item);
@@ -637,23 +667,25 @@
         }
 
         stopAudio();
-        await new Promise(resolve => setTimeout(resolve, 180));
+        await new Promise(resolve => setTimeout(resolve, 120));
         currentRequestId = item.requestId;
         lastSeenRequestId = item.requestId;
-        activeVideoElement = clipVideoPlayer;
+        activeVideoElement = null;
         activeVideoItem = item;
-        videoPlaybackStartedAt = 0;
-        setupClipCard(item);
-        videoPlayer.style.display = 'none';
-        clipVideoPlayer.style.opacity = '0';
-        setStatus('Twitch-Clip wird geladen: ' + (item.label || clipId));
+        videoPlaybackStartedAt = Date.now();
 
-        let videoUrl = '';
+        const playerUrl = buildTwitchStandalonePlayerUrl(clipId, item);
+        setStatus('Twitch-Clip Standalone-Player: ' + (item.label || clipId));
+
         try {
-          videoUrl = await resolveTwitchClipVideoUrl(clipId);
+          clipCard.classList.remove('show', 'hide');
+          clipCard.style.display = 'none';
+          videoPlayer.style.display = 'none';
+          clipVideoPlayer.style.opacity = '0';
+          twitchClipFrame.style.display = 'block';
+          twitchClipFrame.src = playerUrl;
         } catch (err) {
           const message = err && err.message ? err.message : String(err);
-          setStatus('Twitch-Clip konnte nicht geladen werden: ' + message);
           await post('/client/error', {
             requestId: currentRequestId,
             mediaType: 'twitch_clip',
@@ -664,84 +696,34 @@
           return;
         }
 
-        const playbackItem = {
-          ...item,
-          mediaType: 'video',
-          type: 'video',
-          mediaUrl: videoUrl,
-          videoUrl,
-          meta: { ...(item.meta || {}), twitchClipResolvedInOverlay: true, clipId }
-        };
-
-        const attempts = [
-          // Wichtig: Twitch-Clip-URLs sind signiert. Deshalb NICHT per CacheBust veraendern.
-          { label: 'Twitch-Clip-Start', cacheBust: false, muted: false, beforeMs: 160, afterLoadMs: 260 },
-          { label: 'Twitch-Clip-Retry', cacheBust: false, muted: false, beforeMs: 260, afterLoadMs: 340 },
-          { label: 'Twitch-Clip-Retry stumm', cacheBust: false, muted: true, beforeMs: 320, afterLoadMs: 420 }
-        ];
-
-        const errors = [];
-        let result = null;
-        for (const attempt of attempts) {
-          try {
-            result = await attemptVideoPlay(clipVideoPlayer, playbackItem, videoUrl, attempt);
-            break;
-          } catch (err) {
-            errors.push({
-              label: attempt.label,
-              muted: attempt.muted === true,
-              cacheBust: attempt.cacheBust !== false,
-              message: err && err.message ? err.message : String(err),
-              code: videoErrorCode(clipVideoPlayer),
-              src: clipVideoPlayer.currentSrc || clipVideoPlayer.src || ''
-            });
-            await new Promise(resolve => setTimeout(resolve, 260));
-          }
-        }
-
-        videoRetryInProgress = false;
-
-        if (!result) {
-          const last = errors[errors.length - 1] || {};
-          setStatus('Twitch-Clip konnte nicht starten: ' + (last.message || last.code || 'unknown'));
-          clipCard.style.display = 'block';
-          clipCard.classList.add('show');
-          clipVideoPlayer.style.opacity = '0';
-          await post('/client/error', {
-            requestId: currentRequestId,
-            mediaType: 'twitch_clip',
-            clipId,
-            error: 'twitch_clip_play_failed_after_retries',
-            attempts: errors,
-            src: clipVideoPlayer.currentSrc || clipVideoPlayer.src || ''
-          });
-          stopAudio();
-          return;
-        }
-
-        clipVideoPlayer.style.opacity = '1';
         audioUnlocked = true;
         document.body.dataset.audioUnlocked = '1';
-        videoPlaybackStartedAt = Date.now();
         await post('/client/audio-started', {
           requestId: currentRequestId,
           mediaType: 'twitch_clip',
           clipId,
-          mutedFallback: result.muted === true,
-          src: result.src
+          standalonePlayer: true,
+          src: playerUrl
         });
 
-        if (result.muted === true) {
-          setStatus('Clip läuft stumm (Autoplay-Fallback): ' + (item.label || item.soundId || clipId));
-        } else {
-          setStatus('Twitch-Clip läuft: ' + (item.label || item.soundId || clipId));
-        }
-
         const durationMs = Number(item.durationMs || 0);
-        const fallbackMs = durationMs > 0 ? Math.max(1200, durationMs + 350) : 300000;
+        const fallbackMs = durationMs > 0 ? Math.max(1200, durationMs + 900) : 30000;
         clearVideoFallbackTimer();
         videoFallbackTimer = setTimeout(async () => {
-          await finishVideoPlayback('Twitch-Clip beendet', { fallback: true, mediaType: 'twitch_clip', clipId, mutedFallback: result.muted === true });
+          const requestId = currentRequestId;
+          currentRequestId = '';
+          try {
+            twitchClipFrame.removeAttribute('src');
+            twitchClipFrame.style.display = 'none';
+          } catch (_) {}
+          setStatus('Twitch-Clip beendet');
+          await post('/client/audio-ended', {
+            requestId,
+            mediaType: 'twitch_clip',
+            clipId,
+            standalonePlayer: true,
+            fallback: true
+          });
         }, fallbackMs);
       }
 
