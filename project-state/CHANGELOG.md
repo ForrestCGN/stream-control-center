@@ -1,10 +1,8 @@
-# CHANGELOG – VIP30 STEP8.5
+# CHANGELOG - VIP30
 
-## 0.8.5
+## 0.8.6
 
-- Neue Route `GET /api/vip30/cleanup/check`.
-- Neue Route `POST /api/vip30/cleanup/run`.
-- Twitch Remove VIP für abgelaufene aktive VIP30-Slots vorbereitet.
-- Slots werden auf `expired` gesetzt, nicht gelöscht.
-- Fehlerfälle werden als `failed` markiert und geloggt.
-- Safety: kein Alert, kein Redemption-Fulfill/Cancel im Cleanup.
+- Externe VIP-Entzüge vorbereitet.
+- Neue Status-/Test-/Process-Routen für `external-vip-remove`.
+- Aktiver VIP30-Slot wird bei externem Entzug auf `external_removed` gesetzt.
+- Keine Twitch-Writes, kein Fulfill/Cancel, kein Alert.

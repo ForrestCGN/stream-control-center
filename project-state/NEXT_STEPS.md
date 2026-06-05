@@ -1,10 +1,7 @@
-# NEXT_STEPS – VIP30
+# NEXT_STEPS - VIP30
 
-1. STEP8.5 einspielen und `node -c backend/modules/vip30.js` ausführen.
-2. Node neu starten.
-3. Capability prüfen.
-4. `/api/vip30/cleanup/check` testen.
-5. `/api/vip30/cleanup/run` erst ohne Confirm als Dry-Run testen.
-6. Bei Bedarf `/api/vip30/cleanup/run?confirm=YES` nutzen.
-7. Danach STEP8.6 planen: EventSub `channel.vip.remove` für externen VIP-Entzug.
-8. Danach Alert-System anbinden.
+1. STEP8.6 einspielen und Syntax prüfen.
+2. `/api/vip30/external-vip-remove/status` prüfen.
+3. Externen VIP-Entzug per Test oder Process-Route prüfen.
+4. Danach echte Twitch-EventSub-Anbindung `channel.vip.remove` im Twitch-Modul verifizieren/ergänzen.
+5. Später Alert-Integration bauen.

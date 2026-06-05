@@ -1,4 +1,4 @@
-# FILES – VIP30 STEP8.5
+# FILES - VIP30 STEP8.6
 
 - `backend/modules/vip30.js`
 - `config/vip30.json`

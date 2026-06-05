@@ -1,34 +1,38 @@
-# VIP30 / 30 Tage VIP – STEP8.5
+# VIP30 / 30 Tage VIP - STEP8.6
 
-Stand: `0.8.5` / `step8.5-cleanup-expire-revoke-manual`
+Stand: Version 0.8.6 / Build `step8.6-external-vip-remove-slot-release`.
 
-## Aktueller Funktionsstand
+## Aktueller Stand
 
-- Twitch-Kanalpunkte-Reward ist mit `vip30` verknüpft.
-- Stage B ist vorbereitet: berechtigte User bekommen VIP, der Slot wird gespeichert und die Redemption wird fulfilled.
-- Blockierte Redemptions werden canceled/refunded.
-- Alert ist weiterhin gesperrt.
-- Neu in STEP8.5: Cleanup/Entzug für abgelaufene aktive VIP30-Slots.
+- Stage B ist live-fähig: VIP-Grant, Slot-Write und Redemption Fulfill/Cancel.
+- Alert bleibt weiterhin deaktiviert.
+- STEP8.5: manueller Cleanup für abgelaufene aktive Slots.
+- STEP8.6: externe/manuelle VIP-Entzüge können aktive VIP30-Slots freigeben.
 
-## Neue Cleanup-Routen
+## Neue Routen
 
-```txt
-GET  /api/vip30/cleanup/check
-POST /api/vip30/cleanup/run?confirm=YES
-```
+- `GET /api/vip30/external-vip-remove/status`
+- `POST /api/vip30/external-vip-remove/test`
+- `POST /api/vip30/external-vip-remove/process?confirm=YES`
 
-`cleanup/check` prüft nur, welche aktiven Slots abgelaufen sind.
+## Verhalten externer VIP-Entzug
 
-`cleanup/run` läuft ohne `confirm=YES` als Dry-Run. Mit `confirm=YES` wird für abgelaufene aktive Slots der Twitch-VIP entfernt und der Slot auf `expired` gesetzt.
+Wenn ein `channel.vip.remove`-ähnliches Event verarbeitet wird und für den User ein aktiver VIP30-Slot existiert:
+
+1. kein Twitch-Write, weil der VIP bereits extern entfernt wurde,
+2. Slot-Status wird auf `external_removed` gesetzt,
+3. dadurch zählt der Slot nicht mehr als aktiv und der Platz ist frei,
+4. Log-Eintrag `external_vip_remove_slot_released` wird geschrieben.
+
+Wenn kein aktiver Slot existiert, wird nur `external_vip_remove_no_active_slot` geloggt.
 
 ## Safety
 
-- Es werden nur `status = active` Slots mit `end_utc <= now` verarbeitet.
-- Slots werden nicht gelöscht, sondern auf `expired` oder bei Fehler auf `failed` gesetzt.
-- Kein Alert.
-- Kein Redemption-Fulfill/Cancel im Cleanup.
-- Twitch-Remove-VIP läuft nur, wenn Cleanup, Twitch-Live-Actions und Capability grün sind.
+- keine VIP-Vergabe
+- kein Redemption Fulfill/Cancel
+- kein Alert
+- keine Slot-Löschung, nur Statuswechsel
 
-## Externer VIP-Entzug
+## Hinweis
 
-Für manuellen/external VIP-Entzug ist als nächster Step die EventSub-Verarbeitung `channel.vip.remove` geplant. Dann kann ein aktiver VIP30-Slot automatisch auf `revoked/external_removed` gesetzt werden, wenn Twitch meldet, dass ein VIP außerhalb des VIP30-Ablaufs entfernt wurde.
+Die VIP30-Seite abonniert Bus-Events `twitch.eventsub/channel.vip.remove` und `twitch.vip/remove`. Falls das Twitch-Modul dieses Event noch nicht real auf den Bus legt, kann STEP8.6 bereits per Test-/Process-Route geprüft werden; die echte Twitch-EventSub-Anbindung folgt dann separat.

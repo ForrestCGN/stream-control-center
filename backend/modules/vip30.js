@@ -8,8 +8,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.5";
-const MODULE_BUILD = "step8.5-cleanup-expire-revoke-manual";
+const MODULE_VERSION = "0.8.6";
+const MODULE_BUILD = "step8.6-external-vip-remove-slot-release";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -23,12 +23,12 @@ const MODULE_META = {
   category: "community",
   routePrefix: ROUTE_PREFIX,
   routesPrefix: [ROUTE_PREFIX],
-  description: "30 Tage VIP Node-Modul: SQLite-Grundlage, Dashboard-Logs/Stats, Communication-Bus, DB-/Dashboard-Config, Twitch-Capability-Check, Channelpoints-Reward-Link, Dry-Run-Redemption-Decision, interne Channelpoints-Bridge, Live-EventSub-Beobachtung und STEP8-Live-Action-Plan mit Safety-Gates, Live-Gates-API, Stage-A-Live-Ausfuehrung fuer VIP-Grant + Slot-Write und STEP8.4 Stage-B Fulfill/Cancel ohne Alert sowie STEP8.5 Cleanup/Entzug fuer abgelaufene VIP30-Slots.",
+  description: "30 Tage VIP Node-Modul: SQLite-Grundlage, Dashboard-Logs/Stats, Communication-Bus, DB-/Dashboard-Config, Twitch-Capability-Check, Channelpoints-Reward-Link, Dry-Run-Redemption-Decision, interne Channelpoints-Bridge, Live-EventSub-Beobachtung und STEP8-Live-Action-Plan mit Safety-Gates, Live-Gates-API, Stage-A-Live-Ausfuehrung fuer VIP-Grant + Slot-Write und STEP8.4 Stage-B Fulfill/Cancel ohne Alert sowie STEP8.5 Cleanup/Entzug fuer abgelaufene VIP30-Slots sowie STEP8.6 externe VIP-Entzuege zur Slot-Freigabe.",
   bus: {
     registered: true,
     heartbeat: true,
     emits: ["module.status", "module.health", "vip30.status", "vip30.twitch", "vip30.channelpoints", "vip30.redeem", "vip30.bridge", "vip30.live"],
-    listens: ["channelpoints.redemption"]
+    listens: ["channelpoints.redemption", "twitch.eventsub", "twitch.vip"]
   },
   legacy: false
 };
@@ -92,7 +92,8 @@ const DEFAULT_CONFIG = {
     enabled: true,
     runOnStart: false,
     intervalMs: 300000,
-    removeVipOnExpire: true
+    removeVipOnExpire: true,
+    releaseSlotOnExternalVipRemove: true
   },
   logging: {
     enabled: true,
@@ -274,6 +275,12 @@ let runtimeStats = {
 
 let bridgeSubscriptionId = "";
 let bridgeSubscribed = false;
+let externalVipRemoveSubscribed = false;
+let externalVipRemoveSubscriptionIds = [];
+let externalVipRemoveLastEventAt = "";
+let externalVipRemoveLastResult = null;
+let externalVipRemoveLastError = "";
+let externalVipRemoveStats = { received: 0, matched: 0, ignored: 0, updated: 0, errors: 0, emittedTests: 0 };
 let bridgeLastEventAt = "";
 let bridgeLastIgnoredAt = "";
 let bridgeLastError = "";
@@ -428,6 +435,7 @@ const SETTING_DEFINITIONS = [
   { key: "alerts.soundKey", path: "alerts.soundKey", type: "string", category: "alerts", label: "Sound-Key", description: "Sound-System-Key für den VIP30-Alert.", editable: true },
   { key: "cleanup.enabled", path: "cleanup.enabled", type: "boolean", category: "cleanup", label: "Cleanup aktiv", description: "Ablauf-/Revoke-Logik für abgelaufene VIP30-Slots aktivieren.", editable: true },
   { key: "cleanup.removeVipOnExpire", path: "cleanup.removeVipOnExpire", type: "boolean", category: "cleanup", label: "VIP bei Ablauf entziehen", description: "Bei abgelaufenen VIP30-Slots den Twitch-VIP automatisch per Cleanup entfernen.", editable: true },
+  { key: "cleanup.releaseSlotOnExternalVipRemove", path: "cleanup.releaseSlotOnExternalVipRemove", type: "boolean", category: "cleanup", label: "Externen VIP-Entzug verarbeiten", description: "Wenn ein VIP manuell/extern entfernt wird, einen aktiven VIP30-Slot freigeben.", editable: true },
   { key: "logging.enabled", path: "logging.enabled", type: "boolean", category: "logging", label: "Dashboard-Logging aktiv", description: "VIP30-Ereignisse in der DB speichern.", editable: true },
   { key: "live.enabled", path: "live.enabled", type: "boolean", category: "live", label: "Live-Modus aktiv", description: "Master-Schalter fuer echte VIP30-Live-Aktionen. Standard: aus.", editable: true },
   { key: "live.mode", path: "live.mode", type: "string", category: "live", label: "Live-Modus", description: "plan_only oder live. Standard: plan_only.", editable: true },
@@ -2812,6 +2820,173 @@ async function runVip30Cleanup(input = {}, options = {}) {
   return result;
 }
 
+
+function normalizeExternalVipRemoveInput(input = {}) {
+  const payload = input && typeof input === "object" && input.payload && typeof input.payload === "object" ? input.payload : (input || {});
+  const event = payload.event && typeof payload.event === "object" ? payload.event : (input && input.event && typeof input.event === "object" ? input.event : {});
+  const userId = cleanString(
+    payload.userId || payload.user_id || payload.vipUserId || payload.vip_user_id || payload.targetUserId || payload.target_user_id ||
+    event.user_id || event.vip_user_id || event.target_user_id || ""
+  );
+  const userLogin = cleanString(
+    payload.userLogin || payload.user_login || payload.user || payload.vipUserLogin || payload.vip_user_login || payload.targetUserLogin || payload.target_user_login ||
+    event.user_login || event.vip_user_login || event.target_user_login || event.user || ""
+  ).toLowerCase();
+  const userDisplayName = cleanString(
+    payload.userDisplayName || payload.user_display_name || payload.userName || payload.user_name || payload.vipUserName || payload.vip_user_name || payload.targetUserName || payload.target_user_name ||
+    event.user_name || event.vip_user_name || event.target_user_name || userLogin || ""
+  );
+  return {
+    source: cleanString(payload.source || input.source || "external_vip_remove"),
+    eventId: cleanString(payload.eventId || payload.event_id || input.id || input.eventId || event.id || `external_vip_remove_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`),
+    subscriptionType: cleanString(payload.subscriptionType || payload.subscription_type || input.subscriptionType || input.action || event.subscriptionType || "channel.vip.remove"),
+    userId,
+    userLogin,
+    userDisplayName,
+    removedAt: cleanString(payload.removedAt || payload.removed_at || event.removed_at || event.created_at || nowIso()),
+    raw: input
+  };
+}
+
+function buildExternalVipRemoveStatus() {
+  const config = getConfig();
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    enabled: config.cleanup && config.cleanup.releaseSlotOnExternalVipRemove !== false,
+    subscribed: externalVipRemoveSubscribed,
+    subscriptionIds: [...externalVipRemoveSubscriptionIds],
+    lastEventAt: externalVipRemoveLastEventAt,
+    lastError: externalVipRemoveLastError,
+    stats: { ...externalVipRemoveStats },
+    lastResult: externalVipRemoveLastResult,
+    safety: {
+      noTwitchWrite: true,
+      noVipGrant: true,
+      noRedemptionFulfillCancel: true,
+      noAlert: true,
+      slotStatusOnly: true
+    }
+  };
+}
+
+function releaseSlotForExternalVipRemove(input = {}, options = {}) {
+  ensureDbReady();
+  const config = getConfig();
+  const normalized = normalizeExternalVipRemoveInput(input);
+  const result = {
+    ok: false,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    action: "vip30_external_vip_remove",
+    checkedAt: nowIso(),
+    normalized,
+    slot: null,
+    updatedSlot: null,
+    status: "not_started",
+    safety: { noTwitchWrite: true, noVipGrant: true, noRedemptionFulfillCancel: true, noAlert: true, freesSlotByStatusChange: true }
+  };
+
+  if (!config.cleanup || config.cleanup.releaseSlotOnExternalVipRemove === false) {
+    result.status = "disabled";
+    result.reason = "external_vip_remove_disabled";
+    writeLog("external_vip_remove_ignored", { userId: normalized.userId, userLogin: normalized.userLogin, userDisplayName: normalized.userDisplayName, success: true, reason: result.reason, message: "Externer VIP-Entzug ignoriert, weil releaseSlotOnExternalVipRemove deaktiviert ist.", payload: result });
+    return result;
+  }
+  if (!normalized.userId && !normalized.userLogin) {
+    result.status = "ignored";
+    result.reason = "missing_user";
+    writeLog("external_vip_remove_ignored", { success: false, reason: result.reason, message: "Externer VIP-Entzug konnte keinem User zugeordnet werden.", payload: result });
+    return result;
+  }
+
+  const slot = findActiveSlotForDecision({ userId: normalized.userId, userLogin: normalized.userLogin });
+  result.slot = slot;
+  if (!slot) {
+    result.ok = true;
+    result.status = "no_active_vip30_slot";
+    result.reason = "no_active_slot";
+    writeLog("external_vip_remove_no_active_slot", { userId: normalized.userId, userLogin: normalized.userLogin, userDisplayName: normalized.userDisplayName, success: true, reason: result.reason, message: "Externer VIP-Entzug erkannt, aber kein aktiver VIP30-Slot vorhanden.", payload: result });
+    return result;
+  }
+
+  const status = cleanString(options.status || "external_removed", "external_removed");
+  result.updatedSlot = updateSlotAfterCleanup(slot.id, status, { lastError: "external_vip_remove" });
+  result.ok = true;
+  result.status = "slot_released";
+  result.reason = status;
+  writeLog("external_vip_remove_slot_released", { userId: slot.userId || normalized.userId, userLogin: slot.userLogin || normalized.userLogin, userDisplayName: slot.userDisplayName || normalized.userDisplayName, twitchRewardId: slot.twitchRewardId, twitchRedemptionId: slot.twitchRedemptionId, slotId: slot.id, success: true, reason: status, message: "Externer VIP-Entzug erkannt: aktiver VIP30-Slot wurde freigegeben.", payload: result });
+  publishStatus("external_vip_remove_slot_released");
+  emitLiveExecutionEvent("external_vip_remove.slot_released", { result });
+  return result;
+}
+
+function handleExternalVipRemoveEvent(envelope) {
+  externalVipRemoveStats.received += 1;
+  externalVipRemoveLastEventAt = nowIso();
+  try {
+    const action = cleanString(envelope && envelope.action || "");
+    const payload = envelope && envelope.payload && typeof envelope.payload === "object" ? envelope.payload : {};
+    const subscriptionType = cleanString(payload.subscriptionType || payload.subscription_type || payload.eventSubType || payload.type || action || "");
+    const isVipRemove = action === "channel.vip.remove" || action === "vip.remove" || action === "remove" || subscriptionType === "channel.vip.remove" || subscriptionType === "vip.remove";
+    if (!isVipRemove) {
+      externalVipRemoveStats.ignored += 1;
+      return { ok: true, ignored: true, reason: "not_vip_remove" };
+    }
+    externalVipRemoveStats.matched += 1;
+    const result = releaseSlotForExternalVipRemove(envelope, { status: "external_removed" });
+    externalVipRemoveLastResult = result;
+    if (result && result.ok && result.status === "slot_released") externalVipRemoveStats.updated += 1;
+    return result;
+  } catch (err) {
+    externalVipRemoveStats.errors += 1;
+    externalVipRemoveLastError = err && err.message ? err.message : String(err);
+    writeLog("external_vip_remove_failed", { success: false, reason: "external_vip_remove_failed", message: externalVipRemoveLastError, errorCode: "external_vip_remove_failed", errorMessage: externalVipRemoveLastError, payload: { envelope } });
+    return { ok: false, error: externalVipRemoveLastError };
+  }
+}
+
+function registerExternalVipRemoveSubscriptions() {
+  const config = getConfig();
+  if (!config.cleanup || config.cleanup.releaseSlotOnExternalVipRemove === false) return { ok: false, reason: "external_vip_remove_disabled" };
+  const currentBus = getBus();
+  if (!currentBus || typeof currentBus.subscribe !== "function") return { ok: false, reason: "bus_subscribe_unavailable" };
+  if (externalVipRemoveSubscribed) return { ok: true, subscribed: true, subscriptionIds: [...externalVipRemoveSubscriptionIds] };
+  const targets = [
+    { id: `module:${MODULE_NAME}:twitch.eventsub:channel.vip.remove`, channel: "twitch.eventsub", action: "channel.vip.remove" },
+    { id: `module:${MODULE_NAME}:twitch.vip:remove`, channel: "twitch.vip", action: "remove" }
+  ];
+  const results = [];
+  externalVipRemoveSubscriptionIds = [];
+  for (const target of targets) {
+    const result = currentBus.subscribe({ id: target.id, module: MODULE_NAME, channel: target.channel, action: target.action }, envelope => handleExternalVipRemoveEvent(envelope));
+    results.push({ target, result });
+    if (result && result.ok === true) externalVipRemoveSubscriptionIds.push(target.id);
+  }
+  externalVipRemoveSubscribed = externalVipRemoveSubscriptionIds.length > 0;
+  if (!externalVipRemoveSubscribed) externalVipRemoveLastError = "external_vip_remove_subscribe_failed";
+  return { ok: externalVipRemoveSubscribed, subscribed: externalVipRemoveSubscribed, subscriptionIds: [...externalVipRemoveSubscriptionIds], results };
+}
+
+function emitExternalVipRemoveTest(input = {}) {
+  const currentBus = getBus();
+  if (!currentBus || typeof currentBus.emit !== "function") return { ok: false, reason: "bus_unavailable" };
+  externalVipRemoveStats.emittedTests += 1;
+  const payload = {
+    subscriptionType: "channel.vip.remove",
+    source: "vip30_external_vip_remove_test",
+    userId: cleanString(input.userId || input.user_id || ""),
+    userLogin: cleanString(input.userLogin || input.user_login || input.user || "").toLowerCase(),
+    userDisplayName: cleanString(input.userDisplayName || input.user_display_name || input.displayName || input.display_name || input.user || ""),
+    eventId: cleanString(input.eventId || input.event_id || `vipremove_test_${Date.now()}`),
+    removedAt: nowIso()
+  };
+  return currentBus.emit({ type: "event", channel: "twitch.eventsub", action: "channel.vip.remove", source: { type: "module", id: `module:${MODULE_NAME}`, module: MODULE_NAME }, target: { type: "all", id: "*" }, payload, meta: { requireAck: false, replayable: true, ttlMs: getConfig().bus.ttlMs, productionTarget: true, twitchWrite: false } });
+}
+
 function emitLiveActionPlanEvent(result, reason = "live_action_plan") {
   const config = getConfig();
   if (config.bus.enabled === false) return { ok: false, reason: "bus_disabled" };
@@ -3034,7 +3209,7 @@ function buildHealth() {
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
     enabled: getConfig().enabled !== false,
-    status: lastError ? "error" : "ready_step8_3_stage_a_live_vip_grant_slot",
+    status: lastError ? "error" : "ready_step8_6_external_vip_remove_slot_release",
     lastError,
     checks: {
       databaseReady: dbMigrationState.ok === true,
@@ -3066,7 +3241,7 @@ function buildStatus() {
     moduleBuild: MODULE_BUILD,
     version: MODULE_VERSION,
     enabled: config.enabled !== false,
-    status: lastError ? "error" : "ready_step8_3_stage_a_live_vip_grant_slot",
+    status: lastError ? "error" : "ready_step8_6_external_vip_remove_slot_release",
     startedAt,
     routePrefix: ROUTE_PREFIX,
     routeCount: 25,
@@ -3245,7 +3420,7 @@ function heartbeat(reason = "heartbeat") {
       module: MODULE_NAME,
       version: MODULE_VERSION,
       build: MODULE_BUILD,
-      phase: config.enabled === false ? "disabled" : "ready_step8_3",
+      phase: config.enabled === false ? "disabled" : "ready_step8_6",
       reason,
       enabled: config.enabled !== false,
       healthy: !lastError,
@@ -3343,6 +3518,7 @@ function init(context = {}) {
     loadConfig();
     registerAtBus();
     registerInternalBridgeSubscription();
+    registerExternalVipRemoveSubscriptions();
     startBusTimers();
     publishStatus("init_ready");
   } catch (err) {
@@ -3484,6 +3660,29 @@ function init(context = {}) {
     });
 
 
+    app.get(`${ROUTE_PREFIX}/external-vip-remove/status`, (_req, res) => {
+      runtimeStats.lastAction = "external_vip_remove_status";
+      try { res.json(buildExternalVipRemoveStatus()); }
+      catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err), safety: { noTwitchWrite: true, noAlert: true } }); }
+    });
+    app.post(`${ROUTE_PREFIX}/external-vip-remove/process`, (req, res) => {
+      runtimeStats.lastAction = "external_vip_remove_process";
+      try {
+        const confirm = cleanString(req && req.query && req.query.confirm || req && req.body && req.body.confirm || "").toUpperCase();
+        if (confirm !== "YES") return res.status(409).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, reason: "confirm_required", confirmRequired: "YES", safety: { noTwitchWrite: true, slotStatusOnly: true } });
+        const result = releaseSlotForExternalVipRemove((req && req.body) || {}, { status: cleanString(req && req.body && req.body.status || req && req.query && req.query.status || "external_removed") });
+        res.status(result && result.ok ? 200 : 409).json(result);
+      } catch (err) {
+        lastError = err && err.message ? err.message : String(err);
+        res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: lastError, safety: { noTwitchWrite: true, noAlert: true } });
+      }
+    });
+    app.post(`${ROUTE_PREFIX}/external-vip-remove/test`, (req, res) => {
+      runtimeStats.lastAction = "external_vip_remove_test";
+      try { res.json(emitExternalVipRemoveTest((req && req.body) || {})); }
+      catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err), safety: { noTwitchWrite: true, noAlert: true } }); }
+    });
+
     app.get(`${ROUTE_PREFIX}/cleanup/check`, (req, res) => {
       runtimeStats.lastAction = "cleanup_check";
       try { res.json(buildCleanupCheck((req && req.query) || {})); }
@@ -3606,6 +3805,9 @@ module.exports = {
   buildRedemptionLiveActionPlan,
   buildStageALiveSafetyStatus,
   executeVip30LiveStageA,
+  buildExternalVipRemoveStatus,
+  releaseSlotForExternalVipRemove,
+  emitExternalVipRemoveTest,
   emitChannelpointsBridgeTest,
   handleChannelpointsRedemptionBridgeEvent,
   listSlots,
