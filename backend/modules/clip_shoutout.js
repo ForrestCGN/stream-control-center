@@ -19,7 +19,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.33";
+const MODULE_VERSION = "0.2.34";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -31,7 +31,7 @@ const MODULE_META = {
   routesPrefix: [API_PREFIX, "/api/clip/shoutout"],
   capabilities: ["shoutout.display_queue", "shoutout.official_queue", "shoutout.event_output"],
   bus: { emits: true, registered: false, heartbeat: false, channel: SHOUTOUT_BUS_CHANNEL },
-  note: "CAN-44.21.29: Manual SO intake + official retry chat dedup; clip playback unchanged."
+  note: "CAN-44.21.30: Direct intake trigger fix for !so and !vso; clip playback unchanged."
 };
 
 const AUTO_SHOUTOUT_TEXT_DEFAULTS = {
@@ -5553,8 +5553,14 @@ function autoShoutoutStatus(cfg) {
 let directChatCommandBypassInstalled = false;
 let originalCommandsHandleChatMessage = null;
 
-function directCommandTriggers(cfg) {
-  const names = [cfg.command || "so", ...(Array.isArray(cfg.aliases) ? cfg.aliases : [])]
+function directCommandTriggers(cfg = {}) {
+  const aliases = Array.isArray(cfg.aliases) ? cfg.aliases : [];
+  const names = [
+    "so",
+    "vso",
+    cfg.command || "so",
+    ...aliases
+  ]
     .map(cleanLogin)
     .filter(Boolean);
   return Array.from(new Set(names));
