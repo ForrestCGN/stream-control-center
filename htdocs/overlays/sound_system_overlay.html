@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ForrestCGN Sound-System Overlay - CAN44_24C_SHOUTOUT_H15_CLEAN_CSS</title>
+  <title>ForrestCGN Sound-System Overlay - CAN44_24D_EXACT_H15_REFERENCE</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
@@ -27,9 +27,11 @@
     }
 
 
-    /* CAN44.24c_SHOUTOUT_H15_CLEAN_CSS
-       H15 Layout isoliert. Alle alten Clip-/V9-/CAN44.23-Overrides wurden aus dem Style-Block entfernt.
+    /* CAN44.24d_EXACT_H15_REFERENCE
+       Das folgende Layout basiert 1:1 auf der akzeptierten H15-Testdatei.
+       Nur Selector-Namen wurden auf das Sound-System-Overlay gemappt.
     */
+
     #clipCard {
       position: fixed;
       left: 50%;
@@ -41,7 +43,7 @@
       pointer-events: none;
       display: none;
       color: #f8fbff;
-      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+      font-family: "Segoe UI", system-ui, Arial, sans-serif;
       overflow: visible;
     }
 
@@ -65,177 +67,250 @@
       to   { opacity: 0; transform: translate(-50%, calc(-50% - 24px)) scale(.94); filter: blur(5px); }
     }
 
-    .clip-panel {
-      position: relative;
-      width: 758px;
-      height: 430px;
-      border-radius: 25px;
-      background: linear-gradient(140deg, rgba(8,10,27,.985), rgba(26,10,52,.975));
-      box-shadow:
-        0 0 0 1px rgba(255,255,255,.08),
-        0 0 40px rgba(168,85,247,.44),
-        0 26px 72px rgba(0,0,0,.74);
-      overflow: hidden;
+
+:root{--cyan:#22d3ee;--violet:#a855f7;--hot:#e879f9;--muted:#b8c7e6}
+
+
+
+
+.h15-card {
+  width: 758px;
+  height: 430px;
+  position: relative;
+  border-radius: 25px;
+  background: linear-gradient(140deg, rgba(8,10,27,.985), rgba(26,10,52,.975));
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.08),
+    0 0 40px rgba(168,85,247,.44),
+    0 26px 72px rgba(0,0,0,.74);
+  overflow: hidden;
+}
+
+.h15-card:before {
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  padding:3px;
+  background: linear-gradient(120deg, rgba(34,211,238,.92), rgba(168,85,247,.9), rgba(232,121,249,.72), rgba(34,211,238,.92));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* All outer tile spacing = 32px, middle gap = 16px */
+.h15-main {
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%, -50%);
+  z-index:2;
+  display:grid;
+  grid-template-columns: 182px 496px;
+  gap:16px;
+  width:694px;
+  height:366px;
+}
+
+.h15-side {
+  width:182px;
+  height:366px;
+  border-radius:21px;
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+  border:1px solid rgba(255,255,255,.11);
+  padding:16px 12px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+
+.h15-avatar-wrap {
+  width: 122px;
+  height:122px;
+  padding:5px;
+  border-radius:50%;
+  background: conic-gradient(from 210deg,#22d3ee,#a855f7,#e879f9,#3b82f6,#22d3ee);
+  box-shadow:
+    0 0 24px rgba(168,85,247,.82),
+    0 0 34px rgba(34,211,238,.26);
+  flex:0 0 auto;
+}
+
+.h15-avatar {
+  width:100%;
+  height:100%;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  background: radial-gradient(circle at 35% 25%, #eef7ff, #8b5cf6 34%, #27114b 70%);
+  border:4px solid rgba(9,7,22,.96);
+  font-size:47px;
+  font-weight:900;
+}
+
+.h15-label {
+  margin-top:19px;
+  color:var(--muted);
+  font-size:10px;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+
+.h15-name-box {
+  margin-top:8px;
+  width:156px;
+  height:26px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  overflow:hidden;
+}
+
+#clipName {
+  white-space:nowrap;
+  font-size:18px;
+  font-weight:900;
+  transform-origin:center center;
+  text-shadow:0 0 8px rgba(168,85,247,.72);
+}
+
+.h15-content {
+  width:496px;
+  height:366px;
+  min-width:0;
+  display:grid;
+  grid-template-rows: 279px 16px 71px;
+}
+
+.h15-video-shell {
+  width: 496px;
+  height: 279px; /* exact 16:9 */
+  border-radius:21px;
+  padding:4px;
+  background:linear-gradient(135deg, rgba(34,211,238,.9), rgba(168,85,247,.84), rgba(59,130,246,.76));
+  box-shadow:
+    0 0 20px rgba(34,211,238,.22),
+    0 0 30px rgba(168,85,247,.18);
+  overflow:hidden;
+}
+
+.h15-video {
+  position:relative;
+  width:100%;
+  height:100%;
+  border-radius:18px;
+  overflow:hidden;
+  background: linear-gradient(135deg, rgba(4,8,18,.95), rgba(15,7,33,.98));
+  display:grid;
+  place-items:center;
+}
+
+.h15-video:before {
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(34,211,238,.18), transparent 24%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, transparent 1px 7px);
+}
+
+.h15-play {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.075);
+  border: 2px solid rgba(255,255,255,.23);
+  box-shadow: 0 0 24px rgba(168,85,247,.34);
+}
+
+.h15-play:before {
+  content: "";
+  position: absolute;
+  left: 30px;
+  top: 19px;
+  border-top: 18px solid transparent;
+  border-bottom: 18px solid transparent;
+  border-left: 27px solid rgba(255,255,255,.92);
+}
+
+.h15-caption {
+  position:absolute;
+  left:14px;
+  right:14px;
+  bottom:10px;
+  display:flex;
+  justify-content:space-between;
+  font-size:12px;
+  color:#eaf6ff;
+  text-shadow:0 0 10px #000;
+}
+
+.h15-text {
+  width:496px;
+  height:71px;
+  border-radius:18px;
+  background: linear-gradient(90deg, rgba(255,255,255,.065), rgba(34,211,238,.06));
+  border:1px solid rgba(255,255,255,.12);
+  padding:10px 16px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  position:relative;
+  overflow:hidden;
+}
+
+.h15-brand {
+  position:absolute;
+  right:10px;
+  bottom:8px;
+  font-size:9px;
+  color:rgba(243,232,255,.76);
+  border:1px solid rgba(168,85,247,.22);
+  background:rgba(168,85,247,.10);
+  border-radius:999px;
+  padding:4px 8px;
+  line-height:1;
+  white-space:nowrap;
+}
+
+.h15-text h1 {
+  margin:0;
+  font-size:24px;
+  line-height:1.02;
+  letter-spacing:-.035em;
+  text-shadow:0 0 14px rgba(168,85,247,.58);
+  white-space:nowrap;
+}
+
+.h15-text p {
+  margin:6px 0 0;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.15;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  padding-right:110px;
+}
+
+
+
+
+    #clipCard * {
+      box-sizing: border-box;
     }
 
-    .clip-panel::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      border-radius: inherit;
-      padding: 3px;
-      background: linear-gradient(120deg, rgba(34,211,238,.92), rgba(168,85,247,.9), rgba(232,121,249,.72), rgba(34,211,238,.92));
-      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-      -webkit-mask-composite: xor;
-      mask-composite: exclude;
-      pointer-events: none;
-      z-index: 5;
-    }
-
-    .clip-main {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      width: 694px;
-      height: 366px;
-      transform: translate(-50%, -50%);
-      z-index: 2;
-      display: grid;
-      grid-template-columns: 182px 496px;
-      grid-template-rows: 366px;
-      column-gap: 16px;
-    }
-
-    .clip-left {
-      width: 182px;
-      height: 366px;
-      border-radius: 21px;
-      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
-      border: 1px solid rgba(255,255,255,.11);
-      padding: 16px 12px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      min-width: 0;
-    }
-
-    .clip-avatar-wrap {
-      width: 122px;
-      height: 122px;
-      padding: 5px;
-      border-radius: 999px;
-      background: conic-gradient(from 210deg,#22d3ee,#a855f7,#e879f9,#3b82f6,#22d3ee);
-      box-shadow:
-        0 0 24px rgba(168,85,247,.82),
-        0 0 34px rgba(34,211,238,.26);
-      flex: 0 0 auto;
-    }
-
-    .clip-avatar-inner {
-      width: 100%;
-      height: 100%;
-      border-radius: inherit;
-      overflow: hidden;
-      background: radial-gradient(circle at 35% 25%, #eef7ff, #8b5cf6 34%, #27114b 70%);
-      border: 4px solid rgba(9,7,22,.96);
-      position: relative;
-      display: grid;
-      place-items: center;
-    }
-
-    .clip-avatar-inner::before {
-      content: none !important;
-    }
-
-    #clipAvatarImg {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: none;
-      position: relative;
-      z-index: 1;
-    }
-
-    #clipAvatarPh {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 47px;
-      font-weight: 900;
-      color: white;
-      text-shadow: 0 0 8px rgba(168,85,247,.72);
-      position: relative;
-      z-index: 0;
-    }
-
-    .clip-left-label {
-      margin-top: 19px;
-      color: #b8c7e6;
-      font-size: 10px;
-      letter-spacing: .06em;
-      text-transform: uppercase;
-      text-align: center;
-      flex: 0 0 auto;
-    }
-
-    .clip-name-box {
-      margin-top: 8px;
-      width: 156px;
-      height: 26px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      overflow: hidden;
-      flex: 0 0 auto;
-    }
-
-    #clipName {
-      white-space: nowrap;
-      font-size: 18px;
-      line-height: 22px;
-      font-weight: 900;
-      color: #fff;
-      transform-origin: center center;
-      text-shadow: 0 0 8px rgba(168,85,247,.72);
-      text-align: center;
-    }
-
-    .clip-right {
-      width: 496px;
-      height: 366px;
-      display: grid;
-      grid-template-columns: 496px;
-      grid-template-rows: 279px 16px 71px;
-      min-width: 0;
-      overflow: hidden;
-    }
-
-    .clip-video-frame {
-      width: 496px;
-      height: 279px;
-      border-radius: 21px;
-      padding: 4px;
-      background: linear-gradient(135deg, rgba(34,211,238,.9), rgba(168,85,247,.84), rgba(59,130,246,.76));
-      box-shadow:
-        0 0 20px rgba(34,211,238,.22),
-        0 0 30px rgba(168,85,247,.18);
-      overflow: hidden;
-      position: relative;
-      grid-row: 1;
-    }
-
-    .clip-video-inner {
+    .h15-video {
       position: relative;
       width: 100%;
       height: 100%;
       border-radius: 18px;
       overflow: hidden;
-      background: #050816;
-      isolation: isolate;
+      background: linear-gradient(135deg, rgba(4,8,18,.95), rgba(15,7,33,.98));
     }
 
     #clipVideoPlayer {
@@ -249,38 +324,20 @@
       transition: opacity 250ms ease-in-out;
       background: black;
       display: block;
-    }
-
-    .clip-caption {
-      position: absolute;
-      left: 14px;
-      right: 14px;
-      bottom: 10px;
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      font-size: 12px;
-      color: #eaf6ff;
-      text-shadow: 0 0 10px #000;
-      pointer-events: none;
-      z-index: 2;
-      white-space: nowrap;
-    }
-
-    .clip-text-card {
-      width: 496px;
-      height: 71px;
-      grid-row: 3;
       border-radius: 18px;
-      background: linear-gradient(90deg, rgba(255,255,255,.065), rgba(34,211,238,.06));
-      border: 1px solid rgba(255,255,255,.12);
-      padding: 10px 16px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      position: relative;
-      overflow: hidden;
-      min-width: 0;
+    }
+
+    .h15-play {
+      z-index: 0;
+    }
+
+    .h15-caption {
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    #clipName {
+      display: inline-block;
     }
 
     #clipHeadline {
@@ -288,39 +345,24 @@
       font-size: 24px;
       line-height: 1.02;
       letter-spacing: -.035em;
-      font-weight: 800;
-      color: #fff;
       text-shadow: 0 0 14px rgba(168,85,247,.58);
       white-space: nowrap;
+      font-weight: 800;
+      color: #f8fbff;
       padding-right: 110px;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
     #clipSubline {
-      margin-top: 6px;
-      color: #b8c7e6;
+      margin: 6px 0 0;
+      color: var(--muted);
       font-size: 12px;
       line-height: 1.15;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       padding-right: 110px;
-    }
-
-    .clip-brand {
-      position: absolute;
-      right: 10px;
-      bottom: 8px;
-      font-size: 9px;
-      color: rgba(243,232,255,.76);
-      border: 1px solid rgba(168,85,247,.22);
-      background: rgba(168,85,247,.10);
-      border-radius: 999px;
-      padding: 4px 8px;
-      line-height: 1;
-      white-space: nowrap;
-      z-index: 2;
     }
 
 
@@ -349,24 +391,25 @@
   <video id="videoPlayer" preload="auto" playsinline></video>
 
   <div id="clipCard">
-    <div class="clip-panel">
-      <div class="clip-main">
-        <div class="clip-left">
-          <div class="clip-avatar-wrap">
-            <div class="clip-avatar-inner">
+    <section class="h15-card">
+      <div class="h15-main">
+        <aside class="h15-side">
+          <div class="h15-avatar-wrap">
+            <div class="h15-avatar">
               <img id="clipAvatarImg" alt="avatar">
               <div id="clipAvatarPh">?</div>
             </div>
           </div>
-          <div class="clip-left-label">Heute auf Sendung</div>
-          <div class="clip-name-box"><div id="clipName">User</div></div>
-        </div>
+          <div class="h15-label">Heute auf Sendung</div>
+          <div class="h15-name-box"><div id="clipName">User</div></div>
+        </aside>
 
-        <div class="clip-right">
-          <div class="clip-video-frame">
-            <div class="clip-video-inner">
+        <section class="h15-content">
+          <div class="h15-video-shell">
+            <div class="h15-video">
               <video id="clipVideoPlayer" preload="auto" playsinline></video>
-              <div class="clip-caption">
+              <div class="h15-play"></div>
+              <div class="h15-caption">
                 <span><b>Clip:</b> <span id="clipCaptionTitle">Rentnerkino Deluxe</span></span>
                 <span id="clipDuration">00:00</span>
               </div>
@@ -375,14 +418,14 @@
 
           <div></div>
 
-          <div class="clip-text-card">
-            <div id="clipHeadline">Schaut gerne mal vorbei!</div>
-            <div id="clipSubline">Heute im Altersheim-TV: User</div>
-            <div class="clip-brand">CGN Altersheim-TV</div>
+          <div class="h15-text">
+            <h1 id="clipHeadline">Schaut gerne mal vorbei!</h1>
+            <p id="clipSubline">Heute im Altersheim-TV: User</p>
+            <div class="h15-brand">CGN Altersheim-TV</div>
           </div>
-        </div>
+        </section>
       </div>
-    </div>
+    </section>
   </div>
 
   <div id="status">Sound-System Overlay</div>
@@ -393,7 +436,7 @@
       'use strict';
 
       const API = '/api/sound';
-      const BUILD = 'CAN44.24c';
+      const BUILD = 'CAN44.24d';
       const TWITCH_CLIENT_ID = 'kimne78kx3ncx6brgo4mv6wki5h1ko';
       const TWITCH_CLIP_PERSISTED_HASH = '36b89d2507fce29e5ca551df756d27c1cfe079e2609642b4390aa4c35796eb11';
       const player = document.getElementById('player');
@@ -766,7 +809,7 @@
       }
 
       function fitClipTexts() {
-        fitTextToBox(clipName, '.clip-name-box', 0.55);
+        fitTextToBox(clipName, '.h15-name-box', 0.55);
       }
 
       function formatClipDuration(ms) {
@@ -1389,7 +1432,7 @@
           module: 'sound_system',
           mode: 'bus_consumer_with_legacy_fallback',
           capabilities: BUS_CAPABILITIES,
-          version: 'CAN44.24c',
+          version: 'CAN44.24d',
           state: document.hidden ? 'hidden' : 'visible',
           meta: {
             overlay: 'sound_system_overlay.html',
@@ -1484,7 +1527,7 @@
             module: 'sound_system',
             mode: 'bus_consumer_with_legacy_fallback',
             capabilities: BUS_CAPABILITIES,
-            version: 'CAN44.24c'
+            version: 'CAN44.24d'
           });
           startBusHeartbeat();
           post('/client/ready', { overlay: 'sound_system_overlay', busConsumer: true });
