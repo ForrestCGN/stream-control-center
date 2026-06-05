@@ -19,7 +19,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.35";
+const MODULE_VERSION = "0.2.36";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -31,7 +31,7 @@ const MODULE_META = {
   routesPrefix: [API_PREFIX, "/api/clip/shoutout"],
   capabilities: ["shoutout.display_queue", "shoutout.official_queue", "shoutout.event_output"],
   bus: { emits: true, registered: false, heartbeat: false, channel: SHOUTOUT_BUS_CHANNEL },
-  note: "CAN-44.21.31: Configurable direct intake triggers with default fallback; clip playback unchanged."
+  note: "CAN-44.21.32: Direct intake uses command_definitions only; legacy routes marked; clip playback unchanged."
 };
 
 const AUTO_SHOUTOUT_TEXT_DEFAULTS = {
@@ -209,11 +209,9 @@ const DEFAULT_CONFIG = {
   clipShoutout: {
     enabled: true,
     command: "so",
-    aliases: ["vso", "clipso", "videoso"],
+    aliases: ["vso"],
     directIntake: {
-      enabled: true,
-      includeDefaultTriggers: true,
-      extraTriggers: []
+      enabled: true
     },
     permissionLevel: "mod",
     cooldownGlobalMs: 0,
@@ -854,7 +852,13 @@ function shoutoutConfig() {
 function saveShoutoutConfig(partial = {}) {
   const loaded = configHelper.loadConfig(CONFIG_FILE, DEFAULT_CONFIG, { createIfMissing: true, mergeDefaults: true, spaces: 2 });
   const current = mergePlain(DEFAULT_CONFIG, loaded.config || {});
-  current.clipShoutout = mergePlain(current.clipShoutout || {}, partial || {});
+  const cleanPartial = { ...(partial || {}) };
+  if (isPlainObject(cleanPartial.directIntake)) {
+    current.clipShoutout = current.clipShoutout || {};
+    current.clipShoutout.directIntake = sanitizeDirectIntakeSettings(cleanPartial.directIntake);
+    delete cleanPartial.directIntake;
+  }
+  current.clipShoutout = mergePlain(current.clipShoutout || {}, cleanPartial);
   configHelper.writeJsonFile(configHelper.resolveConfigFile(CONFIG_FILE), current, { spaces: 2 });
   return current.clipShoutout;
 }
@@ -2828,13 +2832,12 @@ function sanitizeAvatarUrl(value) {
   return sanitizeHttpUrl(value);
 }
 
-function parseTarget(input = {}) {
+function parseTarget(input = {}, cfg = null) {
   const args = Array.isArray(input.args) ? input.args : [];
 
-  // STEP277A_FIX2:
   // Command-System payload contains actor fields like login/userLogin for the caller.
   // Those must never be used before the real command target, otherwise
-  // !vso @urlug is parsed as ForrestCGN when Forrest triggers the command.
+  // !so @urlug is parsed as ForrestCGN when Forrest triggers the command.
   const rawInput = firstString(
     input.target,
     input.targetLogin,
@@ -2851,7 +2854,9 @@ function parseTarget(input = {}) {
 
   const parts = String(rawInput || "").trim().split(/\s+/).filter(Boolean);
   let candidate = parts[0] || "";
-  if (candidate && ["so", "!so", "vso", "!vso", "clipso", "!clipso", "videoso", "!videoso"].includes(candidate.toLowerCase())) {
+  const commandWords = cfg ? directCommandTriggers(cfg) : [];
+  const candidateCommand = cleanLogin(candidate);
+  if (candidateCommand && commandWords.includes(candidateCommand)) {
     candidate = parts[1] || "";
   }
   return cleanLogin(candidate);
@@ -3777,7 +3782,7 @@ async function handleListClips(req, res, env) {
     return res.status(503).json({ ok: false, error: "clip_shoutout_disabled" });
   }
 
-  const targetLogin = parseTarget(input);
+  const targetLogin = parseTarget(input, cfg);
   if (!targetLogin) {
     return res.json({ ok: false, error: "target_required", usage: `${API_PREFIX}/clips?target=kanal` });
   }
@@ -3819,7 +3824,7 @@ async function runDisplayJob(row, env, cfg) {
   input.target = input.target || row.target_login;
   input.targetLogin = input.targetLogin || row.target_login;
 
-  const targetLogin = cleanLogin(row.target_login || parseTarget(input));
+  const targetLogin = cleanLogin(row.target_login || parseTarget(input, cfg));
   state.lastRunAt = nowIso();
 
   const targetUser = await resolveTargetUser(env, targetLogin, cfg);
@@ -4230,7 +4235,7 @@ async function handleRun(req, res, env) {
     return res.status(503).json({ ok: false, error: 'clip_shoutout_disabled' });
   }
 
-  const targetLogin = parseTarget(input);
+  const targetLogin = parseTarget(input, cfg);
   state.lastRunAt = nowIso();
   if (intakeTraceId) addCommandIntakeTraceStep(intakeTraceId, 'handleRun.target_parsed', { targetLogin });
 
@@ -5562,32 +5567,83 @@ function directIntakeConfig(cfg = {}) {
   const raw = isPlainObject(cfg.directIntake) ? cfg.directIntake : {};
   const fallback = DEFAULT_CONFIG.clipShoutout.directIntake || {};
   return {
-    enabled: asBool(raw.enabled, fallback.enabled !== false),
-    includeDefaultTriggers: asBool(raw.includeDefaultTriggers, fallback.includeDefaultTriggers !== false),
-    extraTriggers: normalizeStringArray(raw.extraTriggers, normalizeStringArray(fallback.extraTriggers || [], []))
+    enabled: asBool(raw.enabled, fallback.enabled !== false)
   };
+}
+
+function sanitizeDirectIntakeSettings(input = {}) {
+  const raw = isPlainObject(input) ? input : {};
+  const fallback = DEFAULT_CONFIG.clipShoutout.directIntake || {};
+  return {
+    enabled: asBool(raw.enabled, fallback.enabled !== false)
+  };
+}
+
+function parseCommandAliasesJson(value) {
+  if (Array.isArray(value)) return value;
+  const text = String(value || '').trim();
+  if (!text) return [];
+  try {
+    const parsed = JSON.parse(text);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_) {
+    return text.split(',').map(item => item.trim()).filter(Boolean);
+  }
+}
+
+function commandDefinitionRowsForDirectIntake() {
+  try {
+    ensureCommandSchema();
+    return database.all(`
+      SELECT trigger, aliases_json, module_key, action_key, target_url, enabled
+      FROM command_definitions
+      WHERE module_key = :moduleKey
+        AND action_key = 'run'
+        AND enabled <> 0
+      ORDER BY trigger ASC
+    `, { moduleKey: MODULE_NAME });
+  } catch (err) {
+    state.lastError = err && err.message ? err.message : String(err);
+    return [];
+  }
 }
 
 function directCommandTriggers(cfg = {}) {
   const intake = directIntakeConfig(cfg);
   if (intake.enabled === false) return [];
 
-  const configuredAliases = Array.isArray(cfg.aliases) ? cfg.aliases : [];
-  const configuredNames = [cfg.command, ...configuredAliases];
+  const rows = commandDefinitionRowsForDirectIntake();
+  const names = [];
+  for (const row of rows) {
+    names.push(row.trigger);
+    names.push(...parseCommandAliasesJson(row.aliases_json));
+  }
 
-  const defaultNames = intake.includeDefaultTriggers !== false
-    ? [DEFAULT_CONFIG.clipShoutout.command, ...(Array.isArray(DEFAULT_CONFIG.clipShoutout.aliases) ? DEFAULT_CONFIG.clipShoutout.aliases : [])]
-    : [];
+  if (names.length === 0) {
+    names.push(cfg.command, ...(Array.isArray(cfg.aliases) ? cfg.aliases : []));
+  }
 
-  const names = [
-    ...configuredNames,
-    ...defaultNames,
-    ...intake.extraTriggers
-  ]
-    .map(cleanLogin)
-    .filter(Boolean);
+  return Array.from(new Set(names.map(cleanLogin).filter(Boolean)));
+}
 
-  return Array.from(new Set(names));
+function directIntakeStatus(cfg = {}) {
+  const intake = directIntakeConfig(cfg);
+  const rows = intake.enabled === false ? [] : commandDefinitionRowsForDirectIntake();
+  const fallbackUsed = intake.enabled !== false && rows.length === 0;
+  return {
+    enabled: intake.enabled !== false,
+    source: fallbackUsed ? 'config_fallback' : 'command_definitions',
+    commandDefinitionCount: rows.length,
+    fallbackUsed,
+    rows: rows.map(row => ({
+      trigger: cleanLogin(row.trigger),
+      aliases: parseCommandAliasesJson(row.aliases_json).map(cleanLogin).filter(Boolean),
+      moduleKey: row.module_key || '',
+      actionKey: row.action_key || '',
+      targetUrl: row.target_url || '',
+      enabled: Number(row.enabled) !== 0
+    }))
+  };
 }
 
 function hasDirectCommandPermission(cfg, parsed = {}) {
@@ -5787,6 +5843,45 @@ function installDirectChatCommandBypass(env) {
 
 
 
+function buildClipShoutoutRouteStatus() {
+  return [
+    { method: "GET", path: `${API_PREFIX}/status`, group: "status", legacy: false },
+    { method: "GET/POST", path: `${API_PREFIX}/run`, group: "runtime", legacy: false },
+    { method: "GET/POST", path: "/api/clip/shoutout", group: "runtime", legacy: true, note: "Legacy alias for /api/clip-shoutout/run." },
+    { method: "GET", path: `${API_PREFIX}/clips`, group: "clips", legacy: false },
+    { method: "GET/POST", path: `${API_PREFIX}/settings`, group: "settings", legacy: false },
+    { method: "GET/POST", path: `${API_PREFIX}/texts`, group: "texts", legacy: false },
+    { method: "GET", path: `${API_PREFIX}/texts/migration`, group: "texts", legacy: false },
+    { method: "GET", path: `${API_PREFIX}/queue`, group: "queue_status", legacy: false },
+    { method: "POST", path: `${API_PREFIX}/display-queue/remove`, group: "display_queue", legacy: false },
+    { method: "POST", path: `${API_PREFIX}/display-queue/retry`, group: "display_queue", legacy: false },
+    { method: "POST", path: `${API_PREFIX}/queue/remove`, group: "official_queue", legacy: true, note: "Legacy official queue route name; not display queue." },
+    { method: "POST", path: `${API_PREFIX}/queue/retry`, group: "official_queue", legacy: true, note: "Legacy official queue route name; not display queue." },
+    { method: "GET", path: `${API_PREFIX}/official/auth-status`, group: "official_queue", legacy: false },
+    { method: "GET/POST", path: `${API_PREFIX}/debug/test-queue`, group: "debug", legacy: false },
+    { method: "GET/POST", path: `${API_PREFIX}/debug/intake-trace`, group: "debug", legacy: false },
+    { method: "GET", path: `${API_PREFIX}/timeline`, group: "stats", legacy: false },
+    { method: "GET", path: `${API_PREFIX}/stats`, group: "stats", legacy: false },
+    { method: "GET", path: `${API_PREFIX}/stats/user`, group: "stats", legacy: false },
+    { method: "GET", path: `${API_PREFIX}/inbound`, group: "inbound", legacy: false },
+    { method: "GET", path: `${API_PREFIX}/inbound/stats`, group: "inbound", legacy: false },
+    { method: "POST", path: `${API_PREFIX}/inbound/debug`, group: "inbound", legacy: false },
+    { method: "GET", path: `${API_PREFIX}/auto`, group: "auto_shoutout", legacy: false },
+    { method: "GET/POST", path: `${API_PREFIX}/auto/settings`, group: "auto_shoutout", legacy: false },
+    { method: "GET/POST", path: `${API_PREFIX}/auto/texts`, group: "auto_shoutout", legacy: false },
+    { method: "GET/POST", path: `${API_PREFIX}/auto/streamers`, group: "auto_shoutout", legacy: false },
+    { method: "POST", path: `${API_PREFIX}/auto/streamers/remove`, group: "auto_shoutout", legacy: false },
+    { method: "POST", path: `${API_PREFIX}/auto/test-chat`, group: "auto_shoutout", legacy: false },
+    { method: "POST", path: `${API_PREFIX}/auto/clear-target`, group: "auto_shoutout", legacy: false },
+    { method: "POST", path: `${API_PREFIX}/auto/reset-day`, group: "auto_shoutout", legacy: false },
+    { method: "GET", path: `${API_PREFIX}/scene-gate`, group: "scene_gate", legacy: false },
+    { method: "GET", path: `${API_PREFIX}/production-check`, group: "diagnostics", legacy: false },
+    { method: "GET", path: `${API_PREFIX}/live-test`, group: "diagnostics", legacy: false },
+    { method: "GET", path: `${API_PREFIX}/decision-prep`, group: "diagnostics", legacy: false },
+    { method: "GET", path: "/api/stream-status/status", group: "external_status", legacy: false }
+  ];
+}
+
 module.exports.MODULE_META = MODULE_META;
 module.exports.MODULE_VERSION = MODULE_VERSION;
 module.exports.version = MODULE_VERSION;
@@ -5821,42 +5916,13 @@ module.exports.init = function init(ctx) {
       enabled: currentCfg.enabled !== false,
       registeredCommand: state.registeredCommand,
       directChatCommandBypassInstalled,
-      officialChatMessagesMuted: true,
+      officialRetryChatMessagesSuppressed: true,
+      officialManualChatMessagesEnabled: shouldSendOfficialChatMessages(currentCfg),
       command,
       aliases: currentCfg.aliases || [],
-      directIntake: directIntakeConfig(currentCfg),
+      directIntake: directIntakeStatus(currentCfg),
       effectiveCommandTriggers: directCommandTriggers(currentCfg),
-      routes: [
-        { method: "GET", path: `${API_PREFIX}/status` },
-        { method: "GET/POST", path: `${API_PREFIX}/run` },
-        { method: "GET", path: `${API_PREFIX}/clips` },
-        { method: "GET/POST", path: "/api/clip/shoutout" },
-        { method: "GET/POST", path: `${API_PREFIX}/settings` },
-        { method: "GET/POST", path: `${API_PREFIX}/texts` },
-        { method: "GET", path: `${API_PREFIX}/texts/migration` },
-        { method: "GET", path: `${API_PREFIX}/queue` },
-        { method: "GET/POST", path: `${API_PREFIX}/debug/test-queue` },
-        { method: "GET/POST", path: `${API_PREFIX}/debug/intake-trace` },
-        { method: "GET", path: `${API_PREFIX}/timeline` },
-        { method: "GET", path: `${API_PREFIX}/stats` },
-        { method: "GET", path: `${API_PREFIX}/stats/user` },
-        { method: "GET", path: `${API_PREFIX}/inbound` },
-        { method: "GET", path: `${API_PREFIX}/inbound/stats` },
-        { method: "GET", path: `${API_PREFIX}/auto` },
-        { method: "GET/POST", path: `${API_PREFIX}/auto/settings` },
-        { method: "GET/POST", path: `${API_PREFIX}/auto/texts` },
-        { method: "GET/POST", path: `${API_PREFIX}/auto/streamers` },
-        { method: "POST", path: `${API_PREFIX}/auto/streamers/remove` },
-        { method: "POST", path: `${API_PREFIX}/auto/test-chat` },
-        { method: "POST", path: `${API_PREFIX}/auto/reset-day` },
-        { method: "POST", path: `${API_PREFIX}/inbound/debug` },
-        { method: "GET", path: `${API_PREFIX}/production-check` },
-        { method: "GET", path: `${API_PREFIX}/live-test` },
-        { method: "GET", path: `${API_PREFIX}/decision-prep` },
-        { method: "GET", path: "/api/stream-status/status" },
-        { method: "POST", path: `${API_PREFIX}/queue/remove` },
-        { method: "POST", path: `${API_PREFIX}/queue/retry` }
-      ],
+      routes: buildClipShoutoutRouteStatus(),
       config: {
         maxClipDurationSeconds: currentCfg.maxClipDurationSeconds,
         allowLongerClipFallback: currentCfg.allowLongerClipFallback,
@@ -5885,7 +5951,7 @@ module.exports.init = function init(ctx) {
         displayQueue: displayConfig(currentCfg),
         officialShoutout: officialConfig(currentCfg),
         streamDayLimit: streamDayLimitConfig(currentCfg),
-        directIntake: directIntakeConfig(currentCfg),
+        directIntake: directIntakeStatus(currentCfg),
         effectiveCommandTriggers: directCommandTriggers(currentCfg),
         streamStatus: currentCfg.streamStatus || {}
       },
@@ -5969,7 +6035,7 @@ module.exports.init = function init(ctx) {
       if (body.displayQueue && typeof body.displayQueue === "object") allowed.displayQueue = body.displayQueue;
       if (body.officialShoutout && typeof body.officialShoutout === "object") allowed.officialShoutout = body.officialShoutout;
       if (body.streamDayLimit && typeof body.streamDayLimit === "object") allowed.streamDayLimit = body.streamDayLimit;
-      if (body.directIntake && typeof body.directIntake === "object") allowed.directIntake = body.directIntake;
+      if (body.directIntake && typeof body.directIntake === "object") allowed.directIntake = sanitizeDirectIntakeSettings(body.directIntake);
       if (body.streamStatus && typeof body.streamStatus === "object") allowed.streamStatus = body.streamStatus;
       if (body.inboundShoutout && typeof body.inboundShoutout === "object") allowed.inboundShoutout = body.inboundShoutout;
 
