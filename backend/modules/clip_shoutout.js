@@ -19,7 +19,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.30";
+const MODULE_VERSION = "0.2.31";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -405,7 +405,8 @@ const state = {
     reason: "",
     currentScene: "",
     lastError: ""
-  }
+  },
+  commandIntakeTrace: []
 };
 
 let appToken = null;
@@ -2633,6 +2634,74 @@ function summarizeInput(input = {}) {
   };
 }
 
+const COMMAND_INTAKE_TRACE_MAX = 80;
+
+function traceSafe(value, depth = 0) {
+  if (depth > 4) return '[depth-limit]';
+  if (value === null || value === undefined) return value;
+  if (typeof value === 'string') return value.length > 1200 ? value.slice(0, 1200) + '…' : value;
+  if (typeof value === 'number' || typeof value === 'boolean') return value;
+  if (Array.isArray(value)) return value.slice(0, 25).map(v => traceSafe(v, depth + 1));
+  if (typeof value === 'object') {
+    const out = {};
+    for (const [key, raw] of Object.entries(value).slice(0, 60)) {
+      if (/token|secret|authorization|oauth|password/i.test(key)) {
+        out[key] = '[redacted]';
+      } else {
+        out[key] = traceSafe(raw, depth + 1);
+      }
+    }
+    return out;
+  }
+  return String(value);
+}
+
+function createCommandIntakeTrace(initial = {}) {
+  const id = `intake_${Date.now().toString(36)}_${crypto.randomBytes(3).toString('hex')}`;
+  const row = {
+    id,
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+    final: false,
+    outcome: 'started',
+    ...traceSafe(initial),
+    stages: []
+  };
+  state.commandIntakeTrace.unshift(row);
+  if (state.commandIntakeTrace.length > COMMAND_INTAKE_TRACE_MAX) state.commandIntakeTrace.length = COMMAND_INTAKE_TRACE_MAX;
+  return id;
+}
+
+function findCommandIntakeTrace(id) {
+  const text = String(id || '').trim();
+  if (!text) return null;
+  return state.commandIntakeTrace.find(row => row && row.id === text) || null;
+}
+
+function addCommandIntakeTraceStep(id, step, data = {}) {
+  const row = findCommandIntakeTrace(id);
+  if (!row) return null;
+  row.updatedAt = nowIso();
+  row.stages.push({ at: row.updatedAt, step: String(step || 'step'), data: traceSafe(data) });
+  if (row.stages.length > 80) row.stages = row.stages.slice(-80);
+  return row;
+}
+
+function finishCommandIntakeTrace(id, outcome, data = {}) {
+  const row = addCommandIntakeTraceStep(id, 'finish', { outcome, ...data });
+  if (!row) return null;
+  row.final = true;
+  row.outcome = String(outcome || 'finished');
+  row.result = traceSafe(data);
+  row.updatedAt = nowIso();
+  return row;
+}
+
+function publicCommandIntakeTrace(limit = 30) {
+  const max = Math.max(1, Math.min(80, Number.parseInt(limit, 10) || 30));
+  return state.commandIntakeTrace.slice(0, max).map(row => traceSafe(row));
+}
+
 async function getAppAccessToken(env) {
   const now = Math.floor(Date.now() / 1000);
   if (appToken && appTokenExpiresAt && now < appTokenExpiresAt - 60) return appToken;
@@ -3914,18 +3983,23 @@ async function handleDebugQueueTest(req, res, env) {
 async function handleRun(req, res, env) {
   const cfg = shoutoutConfig();
   const input = readRequestData(req);
+  const intakeTraceId = String(input.__intakeTraceId || input.intakeTraceId || '').trim();
   state.stats.requested += 1;
+  if (intakeTraceId) addCommandIntakeTraceStep(intakeTraceId, 'handleRun.enter', { input: summarizeInput(input), enabled: cfg.enabled !== false });
 
   if (cfg.enabled === false) {
+    if (intakeTraceId) finishCommandIntakeTrace(intakeTraceId, 'blocked_disabled', { error: 'clip_shoutout_disabled' });
     return res.status(503).json({ ok: false, error: 'clip_shoutout_disabled' });
   }
 
   const targetLogin = parseTarget(input);
   state.lastRunAt = nowIso();
+  if (intakeTraceId) addCommandIntakeTraceStep(intakeTraceId, 'handleRun.target_parsed', { targetLogin });
 
   if (!targetLogin) {
     state.lastError = 'target_required';
     state.lastRun = { error: 'target_required', input: summarizeInput(input), failedAt: state.lastRunAt };
+    if (intakeTraceId) finishCommandIntakeTrace(intakeTraceId, 'blocked_target_required', { error: 'target_required' });
     return res.json({ ok: false, error: 'target_required', usage: `!${cfg.command || 'so'} @kanal` });
   }
 
@@ -3944,6 +4018,17 @@ async function handleRun(req, res, env) {
       ? findExistingStreamDayShoutout(targetLogin, streamDay.streamDayId)
       : null;
 
+    if (intakeTraceId) {
+      addCommandIntakeTraceStep(intakeTraceId, 'handleRun.gates_checked', {
+        targetLogin,
+        overrideUsed,
+        streamDayId: streamDay.streamDayId || '',
+        streamLive: Boolean(streamDay.streamState && streamDay.streamState.live),
+        duplicateFound: Boolean(existingStreamDayShoutout),
+        existingDisplayQueueId: existingStreamDayShoutout && existingStreamDayShoutout.id || 0
+      });
+    }
+
     if (existingStreamDayShoutout) {
       const message = renderShoutoutModuleText('shoutout.chat.duplicate', vars) || renderTemplate(firstString(scfg.duplicateMessage), vars).trim();
       if (message) await sendChatMessage(message, { targetLogin, streamDayId: streamDay.streamDayId, duplicate: true, textKey: 'shoutout.chat.duplicate' });
@@ -3953,6 +4038,7 @@ async function handleRun(req, res, env) {
         existingDisplayQueueId: existingStreamDayShoutout.id,
         requestedByLogin: vars.requestedByLogin
       }, cfg);
+      if (intakeTraceId) finishCommandIntakeTrace(intakeTraceId, 'blocked_duplicate_stream_day', { targetLogin, existingDisplayQueueId: existingStreamDayShoutout.id, overrideAvailable: scfg.allowOverride !== false });
       return res.json({
         ok: true,
         module: MODULE_NAME,
@@ -3990,7 +4076,20 @@ async function handleRun(req, res, env) {
       meta: { source: MODULE_NAME, command: cfg.command || 'so', streamDay, overrideUsed }
     }, cfg);
 
-    if (!queueResult.ok) return res.status(500).json({ ok: false, error: queueResult.error || 'display_queue_enqueue_failed' });
+    if (!queueResult.ok) {
+      if (intakeTraceId) finishCommandIntakeTrace(intakeTraceId, 'enqueue_failed', { targetLogin, error: queueResult.error || 'display_queue_enqueue_failed' });
+      return res.status(500).json({ ok: false, error: queueResult.error || 'display_queue_enqueue_failed' });
+    }
+
+    if (intakeTraceId) {
+      addCommandIntakeTraceStep(intakeTraceId, 'handleRun.display_enqueued', {
+        targetLogin,
+        displayQueueId: queueResult.row && queueResult.row.id || 0,
+        status: queueResult.row && queueResult.row.status || '',
+        availableAt: queueResult.availableAt || '',
+        overrideUsed
+      });
+    }
 
     if (dcfg.sendChatMessages !== false && input.__debugSuppressChat !== true && input.debugSuppressChat !== true) {
       const noticeInfo = displayQueueNoticeInfo(queueResult.row, cfg);
@@ -4016,6 +4115,7 @@ async function handleRun(req, res, env) {
           ? renderTemplate(DEFAULT_CONFIG.clipShoutout.displayQueue.waitingMessage, messageVars).trim()
           : renderTemplate(DEFAULT_CONFIG.clipShoutout.displayQueue.acceptedMessage, messageVars).trim();
       }
+      if (intakeTraceId) addCommandIntakeTraceStep(intakeTraceId, 'handleRun.chat_feedback_prepared', { textKey, shouldWait, message });
       if (message) {
         await sendChatMessage(message, {
           targetLogin,
@@ -4025,12 +4125,23 @@ async function handleRun(req, res, env) {
           waitMs: noticeInfo.waitMs,
           overrideUsed
         });
+        if (intakeTraceId) addCommandIntakeTraceStep(intakeTraceId, 'handleRun.chat_feedback_sent', { textKey, targetLogin });
       }
+    } else if (intakeTraceId) {
+      addCommandIntakeTraceStep(intakeTraceId, 'handleRun.chat_feedback_suppressed', {
+        sendChatMessages: dcfg.sendChatMessages !== false,
+        debugSuppressChat: input.__debugSuppressChat === true || input.debugSuppressChat === true
+      });
     }
 
     if (input.__debugNoProcess !== true && input.debugNoProcess !== true && input.noProcess !== true) {
       processDisplayQueue(env, shoutoutConfig()).catch(err => { state.displayQueue.lastError = err && err.message ? err.message : String(err); });
+      if (intakeTraceId) addCommandIntakeTraceStep(intakeTraceId, 'handleRun.process_scheduled', { targetLogin });
+    } else if (intakeTraceId) {
+      addCommandIntakeTraceStep(intakeTraceId, 'handleRun.process_suppressed', { debugNoProcess: true });
     }
+
+    if (intakeTraceId) finishCommandIntakeTrace(intakeTraceId, 'queued', { targetLogin, displayQueueId: queueResult.row && queueResult.row.id || 0, status: queueResult.row && queueResult.row.status || '' });
 
     return res.json({
       ok: true,
@@ -4057,6 +4168,7 @@ async function handleRun(req, res, env) {
     state.lastError = error;
     state.lastRunAt = nowIso();
     state.lastRun = { targetLogin, error, failedAt: state.lastRunAt };
+    if (intakeTraceId) finishCommandIntakeTrace(intakeTraceId, 'error', { targetLogin, error });
     return res.status(500).json({ ok: false, module: MODULE_NAME, error, targetLogin });
   }
 }
@@ -5267,10 +5379,23 @@ function installDirectChatCommandBypass(env) {
             state.autoShoutout.lastError = err && err.message ? err.message : String(err);
           });
         }
+        const traceId = rawMessage.startsWith(commandPrefix)
+          ? createCommandIntakeTrace({
+              source: 'direct_chat_command_bypass',
+              rawMessage,
+              userLogin: cleanLogin(parsed.login || ''),
+              userDisplayName: cleanDisplay(parsed.displayName || parsed.login || '', parsed.login || ''),
+              channel: source.channel || '',
+              sourceName: source.source || 'twitch_presence'
+            })
+          : '';
+        if (traceId) addCommandIntakeTraceStep(traceId, 'wrapper.raw_message', { rawMessage });
         const parsedCommand = parseDirectChatCommand(rawMessage, cfg);
+        if (traceId) addCommandIntakeTraceStep(traceId, 'wrapper.parse_result', { matched: Boolean(parsedCommand), parsedCommand: parsedCommand || null, triggers: directCommandTriggers(cfg) });
 
         if (parsedCommand) {
           if (!hasDirectCommandPermission(cfg, parsed)) {
+            if (traceId) finishCommandIntakeTrace(traceId, 'permission_denied', { trigger: parsedCommand.trigger, targetRaw: parsedCommand.target, userLogin: cleanLogin(parsed.login || '') });
             emitShoutoutBus("shoutout.command.permission_denied", {
               trigger: parsedCommand.trigger,
               userLogin: cleanLogin(parsed.login || ""),
@@ -5310,11 +5435,14 @@ function installDirectChatCommandBypass(env) {
             isSubscriber: Boolean(parsed.badges?.subscriber || parsed.badges?.founder || parsed.tags?.subscriber === "1"),
             source: source.source || "twitch_presence",
             channel: source.channel || "",
+            __intakeTraceId: traceId,
             directClipShoutoutBypass: true,
             commandSystemBypassed: true
           };
 
+          if (traceId) addCommandIntakeTraceStep(traceId, 'wrapper.invoke_handleRun', { target: parsedCommand.target, trigger: parsedCommand.trigger });
           const result = await invokeHandleRunDirect(input, env);
+          if (traceId) addCommandIntakeTraceStep(traceId, 'wrapper.handleRun_result', { statusCode: result.statusCode || 0, ok: Boolean(result.data && result.data.ok), queued: Boolean(result.data && result.data.queued), blocked: Boolean(result.data && result.data.blocked), reason: result.data && result.data.reason || '', displayQueueId: result.data && result.data.displayQueue && result.data.displayQueue.id || 0 });
           state.lastRun = {
             ...(state.lastRun || {}),
             directChatCommandBypass: true,
@@ -5323,6 +5451,8 @@ function installDirectChatCommandBypass(env) {
             commandStatusCode: result.statusCode || 0,
             commandResultOk: Boolean(result.data && result.data.ok)
           };
+          const traceRowAfterRun = findCommandIntakeTrace(traceId);
+          if (traceId && traceRowAfterRun && !traceRowAfterRun.final) finishCommandIntakeTrace(traceId, 'wrapper_finished', { ok: Boolean(result.data && result.data.ok), statusCode: result.statusCode || 0 });
           emitShoutoutBus("shoutout.command.direct_bypass", {
             trigger: parsedCommand.trigger,
             targetLogin: cleanLogin(parsedCommand.target),
@@ -5338,6 +5468,7 @@ function installDirectChatCommandBypass(env) {
             result: result.data
           };
         }
+        if (traceId) finishCommandIntakeTrace(traceId, 'not_clip_shoutout_command', { rawMessage });
       }
     } catch (err) {
       state.lastError = err && err.message ? err.message : String(err);
@@ -5409,6 +5540,7 @@ module.exports.init = function init(ctx) {
         { method: "GET", path: `${API_PREFIX}/texts/migration` },
         { method: "GET", path: `${API_PREFIX}/queue` },
         { method: "GET/POST", path: `${API_PREFIX}/debug/test-queue` },
+        { method: "GET/POST", path: `${API_PREFIX}/debug/intake-trace` },
         { method: "GET", path: `${API_PREFIX}/timeline` },
         { method: "GET", path: `${API_PREFIX}/stats` },
         { method: "GET", path: `${API_PREFIX}/stats/user` },
@@ -5579,6 +5711,33 @@ module.exports.init = function init(ctx) {
     handleDebugQueueTest(req, res, env).catch(err => {
       res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err) });
     });
+  });
+
+  app.get(`${API_PREFIX}/debug/intake-trace`, (req, res) => {
+    try {
+      const clear = database.boolFromDb(database.normalizeBool((req.query || {}).clear || false));
+      const limit = Number.parseInt((req.query || {}).limit, 10) || 30;
+      const before = state.commandIntakeTrace.length;
+      const traces = publicCommandIntakeTrace(limit);
+      if (clear) state.commandIntakeTrace = [];
+      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, count: before, cleared: clear, traces });
+    } catch (err) {
+      res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err) });
+    }
+  });
+
+  app.post(`${API_PREFIX}/debug/intake-trace`, (req, res) => {
+    try {
+      const body = req.body || {};
+      const clear = database.boolFromDb(database.normalizeBool(body.clear || false));
+      const limit = Number.parseInt(body.limit, 10) || 30;
+      const before = state.commandIntakeTrace.length;
+      const traces = publicCommandIntakeTrace(limit);
+      if (clear) state.commandIntakeTrace = [];
+      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, count: before, cleared: clear, traces });
+    } catch (err) {
+      res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err) });
+    }
   });
 
   app.get(`${API_PREFIX}/timeline`, (req, res) => {
