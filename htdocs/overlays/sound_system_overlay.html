@@ -652,12 +652,13 @@
         try {
           videoUrl = await resolveTwitchClipVideoUrl(clipId);
         } catch (err) {
-          setStatus('Twitch-Clip konnte nicht geladen werden: ' + (err && err.message ? err.message : String(err)));
+          const message = err && err.message ? err.message : String(err);
+          setStatus('Twitch-Clip konnte nicht geladen werden: ' + message);
           await post('/client/error', {
             requestId: currentRequestId,
             mediaType: 'twitch_clip',
             clipId,
-            error: err && err.message ? err.message : String(err)
+            error: message
           });
           stopAudio();
           return;
@@ -671,7 +672,77 @@
           videoUrl,
           meta: { ...(item.meta || {}), twitchClipResolvedInOverlay: true, clipId }
         };
-        await playVideoFile(playbackItem);
+
+        const attempts = [
+          // Wichtig: Twitch-Clip-URLs sind signiert. Deshalb NICHT per CacheBust veraendern.
+          { label: 'Twitch-Clip-Start', cacheBust: false, muted: false, beforeMs: 160, afterLoadMs: 260 },
+          { label: 'Twitch-Clip-Retry', cacheBust: false, muted: false, beforeMs: 260, afterLoadMs: 340 },
+          { label: 'Twitch-Clip-Retry stumm', cacheBust: false, muted: true, beforeMs: 320, afterLoadMs: 420 }
+        ];
+
+        const errors = [];
+        let result = null;
+        for (const attempt of attempts) {
+          try {
+            result = await attemptVideoPlay(clipVideoPlayer, playbackItem, videoUrl, attempt);
+            break;
+          } catch (err) {
+            errors.push({
+              label: attempt.label,
+              muted: attempt.muted === true,
+              cacheBust: attempt.cacheBust !== false,
+              message: err && err.message ? err.message : String(err),
+              code: videoErrorCode(clipVideoPlayer),
+              src: clipVideoPlayer.currentSrc || clipVideoPlayer.src || ''
+            });
+            await new Promise(resolve => setTimeout(resolve, 260));
+          }
+        }
+
+        videoRetryInProgress = false;
+
+        if (!result) {
+          const last = errors[errors.length - 1] || {};
+          setStatus('Twitch-Clip konnte nicht starten: ' + (last.message || last.code || 'unknown'));
+          clipCard.style.display = 'block';
+          clipCard.classList.add('show');
+          clipVideoPlayer.style.opacity = '0';
+          await post('/client/error', {
+            requestId: currentRequestId,
+            mediaType: 'twitch_clip',
+            clipId,
+            error: 'twitch_clip_play_failed_after_retries',
+            attempts: errors,
+            src: clipVideoPlayer.currentSrc || clipVideoPlayer.src || ''
+          });
+          stopAudio();
+          return;
+        }
+
+        clipVideoPlayer.style.opacity = '1';
+        audioUnlocked = true;
+        document.body.dataset.audioUnlocked = '1';
+        videoPlaybackStartedAt = Date.now();
+        await post('/client/audio-started', {
+          requestId: currentRequestId,
+          mediaType: 'twitch_clip',
+          clipId,
+          mutedFallback: result.muted === true,
+          src: result.src
+        });
+
+        if (result.muted === true) {
+          setStatus('Clip läuft stumm (Autoplay-Fallback): ' + (item.label || item.soundId || clipId));
+        } else {
+          setStatus('Twitch-Clip läuft: ' + (item.label || item.soundId || clipId));
+        }
+
+        const durationMs = Number(item.durationMs || 0);
+        const fallbackMs = durationMs > 0 ? Math.max(1200, durationMs + 350) : 300000;
+        clearVideoFallbackTimer();
+        videoFallbackTimer = setTimeout(async () => {
+          await finishVideoPlayback('Twitch-Clip beendet', { fallback: true, mediaType: 'twitch_clip', clipId, mutedFallback: result.muted === true });
+        }, fallbackMs);
       }
 
 
@@ -680,7 +751,7 @@
         currentRequestId = '';
         hideVideo();
         setStatus(reason || 'Video beendet');
-        await post('/client/audio-ended', { requestId, mediaType: 'video', ...(extra || {}) });
+        await post('/client/audio-ended', { requestId, mediaType: (extra && extra.mediaType) || 'video', ...(extra || {}) });
       }
 
       function buildVideoAttemptUrl(url, requestId, useCacheBust) {
