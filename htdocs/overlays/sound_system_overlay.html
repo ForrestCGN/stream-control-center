@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ForrestCGN Sound-System Overlay - CAN44_21_21_TWITCH_CLIP_DIRECT</title>
+  <title>ForrestCGN Sound-System Overlay - CAN44_21_22_TWITCH_CLIP_NO_PREFLASH</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
@@ -568,7 +568,8 @@
         return true;
       }
 
-      function setupClipCard(item) {
+      function setupClipCard(item, options) {
+        const opts = options || {};
         const visual = visualOf(item);
         const meta = item && item.meta && typeof item.meta === 'object' ? item.meta : {};
         const rawLogin = visual.login || visual.targetLogin || meta.targetLogin || item.targetLogin || item.login || visual.user || visual.displayName || meta.targetDisplayName || 'User';
@@ -589,6 +590,12 @@
           });
         }
 
+        if (opts.show !== false) {
+          showClipCard();
+        }
+      }
+
+      function showClipCard() {
         clipCard.style.display = 'block';
         clipCard.classList.remove('hide', 'show');
         void clipCard.offsetWidth;
@@ -787,7 +794,9 @@
         activeVideoItem = item;
         videoPlaybackStartedAt = 0;
 
-        setupClipCard(item);
+        setupClipCard(item, { show: false });
+        clipCard.classList.remove('show', 'hide');
+        clipCard.style.display = 'none';
         videoPlayer.style.display = 'none';
         clipVideoPlayer.style.opacity = '0';
         setStatus('Twitch-Clip wird geladen: ' + (item.label || clipId));
@@ -829,6 +838,7 @@
           return;
         }
 
+        showClipCard();
         clipVideoPlayer.style.opacity = '1';
         audioUnlocked = true;
         document.body.dataset.audioUnlocked = '1';
