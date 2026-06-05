@@ -19,7 +19,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.38";
+const MODULE_VERSION = "0.2.39";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -295,7 +295,7 @@ const DEFAULT_CONFIG = {
       enabled: true,
       allowOverride: true,
       overrideFlag: "--force",
-      duplicateMessage: "⚠️ @{displayName} hatte in diesem Stream bereits einen Shoutout. Nutze !vso @{login} --force, wenn du ihn trotzdem einreihen möchtest.",
+      duplicateMessage: "⚠️ @{displayName} hatte in diesem Stream bereits einen Shoutout. Nutze !so @{login} --force, wenn du ihn trotzdem einreihen möchtest.",
       restartGraceMs: 1800000,
       fallbackWhenStreamUnknown: true,
       fallbackSessionHours: 12,
