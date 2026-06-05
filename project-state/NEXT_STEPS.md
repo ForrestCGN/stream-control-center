@@ -1,7 +1,8 @@
-# NEXT_STEPS - VIP30
+# Next Steps – VIP30
 
-1. STEP8.6 einspielen und Syntax prüfen.
-2. `/api/vip30/external-vip-remove/status` prüfen.
-3. Externen VIP-Entzug per Test oder Process-Route prüfen.
-4. Danach echte Twitch-EventSub-Anbindung `channel.vip.remove` im Twitch-Modul verifizieren/ergänzen.
-5. Später Alert-Integration bauen.
+1. STEP8.7 Patch ausführen.
+2. Node Syntax prüfen.
+3. Node neu starten.
+4. `/api/twitch/eventsub/status?refresh=1` prüfen.
+5. In Twitch einem VIP30-Testuser VIP manuell entziehen.
+6. Prüfen, ob VIP30 den Slot auf `external_removed` setzt.

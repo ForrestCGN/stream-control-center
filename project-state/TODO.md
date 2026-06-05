@@ -1,6 +1,4 @@
-# TODO - VIP30
+# TODO – VIP30
 
-- [ ] STEP8.6 live testen.
-- [ ] Prüfen, ob Twitch-Modul `channel.vip.remove` bereits als Bus-Event ausgibt.
-- [ ] Falls nicht: Twitch-Modul um EventSub-Typ und Bus-Forwarding erweitern.
-- [ ] Alert-Flow separat planen.
+- STEP8.7 realen Twitch-EventSub `channel.vip.remove` testen.
+- Danach Alert-Schritt planen.

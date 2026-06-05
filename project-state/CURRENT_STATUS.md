@@ -1,3 +1,3 @@
-# CURRENT_STATUS - VIP30 STEP8.6
+# Current Status – VIP30 STEP8.7
 
-VIP30 Version 0.8.6: Stage B funktioniert. Cleanup für Ablauf ist vorhanden. Externe VIP-Entzüge können aktive VIP30-Slots auf `external_removed` setzen und damit Plätze freigeben. Alert bleibt aus.
+STEP8.7 vorbereitet: Twitch EventSub VIP Add/Remove wird per Patch in `backend/modules/twitch.js` ergänzt und echte VIP-Events werden auf den Communication Bus weitergeleitet.

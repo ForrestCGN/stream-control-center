@@ -8,7 +8,6 @@ const core = require('./helpers/helper_core');
 const routes = require('./helpers/helper_routes');
 const configHelper = require('./helpers/helper_config');
 const database = require('../core/database');
-const communicationBus = require('./communication_bus');
 
 const MODULE_NAME = 'twitch';
 const MODULE_VERSION = '0.1.1';
@@ -22,7 +21,7 @@ const MODULE_META = {
   bus: {
     registered: false,
     heartbeat: false,
-    emits: ['twitch.eventsub', 'twitch.vip'],
+    emits: [],
     listens: []
   },
   legacy: false
@@ -133,14 +132,6 @@ const twitchAlertBridgeState = {
 
 module.exports.init = function init(ctx) {
   const { app, env } = ctx;
-  let twitchEventSubBus = null;
-
-  function getTwitchEventSubBus() {
-    if (twitchEventSubBus) return twitchEventSubBus;
-    if (!communicationBus || typeof communicationBus.getBus !== 'function') return null;
-    twitchEventSubBus = communicationBus.getBus();
-    return twitchEventSubBus;
-  }
 
   // --------------------- Twitch OAuth + Helix ---------------------
   const TW_CLIENT_ID = env.TWITCH_CLIENT_ID || '';
@@ -2021,11 +2012,6 @@ module.exports.init = function init(ctx) {
     lastSubscribeAt: null,
     lastSubscribeType: null,
     lastSubscribeError: '',
-    twitchVipBusForwarded: 0,
-    twitchVipBusFailed: 0,
-    lastTwitchVipBusAt: null,
-    lastTwitchVipBusType: '',
-    lastTwitchVipBusError: '',
     deathcounterGameSyncCount: 0,
     lastDeathcounterGameSyncAt: null,
     lastDeathcounterGameSyncGame: '',
@@ -2085,72 +2071,6 @@ module.exports.init = function init(ctx) {
     };
   }
 
-  function isVipEventSubType(subscriptionType) {
-    const type = String(subscriptionType || '').trim();
-    return type === 'channel.vip.add' || type === 'channel.vip.remove';
-  }
-
-  function normalizeTwitchVipEventSubBusPayload(subscriptionType, event = {}, meta = {}, subscription = {}) {
-    const type = String(subscriptionType || '').trim();
-    const userId = String(event.user_id || event.vip_user_id || event.target_user_id || '').trim();
-    const userLogin = String(event.user_login || event.vip_user_login || event.target_user_login || '').trim().toLowerCase();
-    const userDisplayName = String(event.user_name || event.vip_user_name || event.target_user_name || userLogin || '').trim();
-    const broadcasterId = String(event.broadcaster_user_id || event.broadcaster_id || '').trim();
-    const broadcasterLogin = String(event.broadcaster_user_login || '').trim().toLowerCase();
-    const broadcasterName = String(event.broadcaster_user_name || broadcasterLogin || '').trim();
-    return {
-      provider: 'twitch_eventsub',
-      subscriptionType: type,
-      eventType: type,
-      action: type === 'channel.vip.remove' ? 'remove' : 'add',
-      userId,
-      userLogin,
-      userDisplayName,
-      broadcasterId,
-      broadcasterLogin,
-      broadcasterName,
-      eventId: String(meta.message_id || meta.messageId || subscription.id || '').trim(),
-      messageId: String(meta.message_id || meta.messageId || '').trim(),
-      messageTimestamp: String(meta.message_timestamp || '').trim(),
-      subscriptionId: String(subscription.id || '').trim(),
-      receivedAt: core.nowIso(),
-      raw: event
-    };
-  }
-
-  async function emitTwitchVipEventSubToBus(subscriptionType, event = {}, meta = {}, subscription = {}) {
-    if (!isVipEventSubType(subscriptionType)) return { ok: true, skipped: true, reason: 'not_vip_eventsub' };
-    const currentBus = getTwitchEventSubBus();
-    if (!currentBus || typeof currentBus.emit !== 'function') {
-      eventSubState.twitchVipBusFailed = Number(eventSubState.twitchVipBusFailed || 0) + 1;
-      eventSubState.lastTwitchVipBusError = 'communication_bus_unavailable';
-      eventSubState.lastTwitchVipBusType = String(subscriptionType || '');
-      rememberEventSubState({ action: 'vip_event_bus_failed', type: subscriptionType, reason: eventSubState.lastTwitchVipBusError });
-      return { ok: false, error: eventSubState.lastTwitchVipBusError };
-    }
-    const payload = normalizeTwitchVipEventSubBusPayload(subscriptionType, event, meta, subscription);
-    const result = currentBus.emit({
-      type: 'event',
-      channel: 'twitch.eventsub',
-      action: String(subscriptionType || ''),
-      source: { type: 'module', id: 'twitch_eventsub', module: MODULE_NAME },
-      target: { type: 'all' },
-      payload,
-      meta: { replayable: true, ttlMs: 60000 }
-    });
-    eventSubState.twitchVipBusForwarded = Number(eventSubState.twitchVipBusForwarded || 0) + 1;
-    eventSubState.lastTwitchVipBusAt = core.nowIso();
-    eventSubState.lastTwitchVipBusType = String(subscriptionType || '');
-    eventSubState.lastTwitchVipBusError = '';
-    rememberEventSubState({
-      action: 'vip_event_bus_forwarded',
-      type: subscriptionType,
-      userLogin: payload.userLogin,
-      eventId: result && result.event ? result.event.id : (result && result.eventId ? result.eventId : '')
-    });
-    return result || { ok: true };
-  }
-
   function getEventSubStatusSnapshot() {
     return {
       ok: true,
@@ -2172,16 +2092,6 @@ module.exports.init = function init(ctx) {
       state: { ...eventSubState, recent: eventSubState.recent.slice(0, 30) },
       shoutoutReadiness: buildShoutoutEventSubReadinessSnapshot(),
       deathcounterSync: getDeathcounterSyncStatus(),
-      vipEventBus: {
-        configured: eventSubConfigs.some(cfg => cfg.type === 'channel.vip.remove') && eventSubConfigs.some(cfg => cfg.type === 'channel.vip.add'),
-        knownRemove: Array.from(eventsubKnownSubscriptions).some(key => key.startsWith('channel.vip.remove|')),
-        knownAdd: Array.from(eventsubKnownSubscriptions).some(key => key.startsWith('channel.vip.add|')),
-        forwarded: Number(eventSubState.twitchVipBusForwarded || 0),
-        failed: Number(eventSubState.twitchVipBusFailed || 0),
-        lastForwardedAt: eventSubState.lastTwitchVipBusAt || null,
-        lastType: eventSubState.lastTwitchVipBusType || '',
-        lastError: eventSubState.lastTwitchVipBusError || ''
-      },
       alertBridge: {
         enabled: twitchAlertBridgeState.config?.enabled !== false,
         settingsSource: twitchAlertBridgeState.settingsSource,
@@ -2242,18 +2152,6 @@ module.exports.init = function init(ctx) {
       type: 'channel.channel_points_custom_reward_redemption.add',
       version: '1',
       cacheKey: 'channel.channel_points_custom_reward_redemption.add',
-      buildCondition: (broadcasterId) => ({ broadcaster_user_id: broadcasterId })
-    },
-    {
-      type: 'channel.vip.add',
-      version: '1',
-      cacheKey: 'channel.vip.add',
-      buildCondition: (broadcasterId) => ({ broadcaster_user_id: broadcasterId })
-    },
-    {
-      type: 'channel.vip.remove',
-      version: '1',
-      cacheKey: 'channel.vip.remove',
       buildCondition: (broadcasterId) => ({ broadcaster_user_id: broadcasterId })
     },
     {
@@ -3137,13 +3035,6 @@ function buildFakeTwitchAlertEvent(kind, query) {
         rememberEventSubState({ action: 'notification', type: sub.type || '', subscriptionId: sub.id || null });
 
         cacheGenericEvent(sub, event);
-
-        try {
-          await emitTwitchVipEventSubToBus(sub.type, event, meta, sub);
-        } catch (e) {
-          rememberEventSubState({ action: 'vip_event_bus_handler_failed', type: sub.type || '', error: e?.message || String(e) });
-          console.warn('[eventsub-vip-bus] forward failed:', e?.message || e);
-        }
 
         try {
           await forwardTwitchShoutoutEventToClipShoutout(sub.type, event, meta, sub);

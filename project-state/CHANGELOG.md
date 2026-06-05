@@ -1,8 +1,5 @@
-# CHANGELOG - VIP30
+# Changelog – VIP30 STEP8.7
 
-## 0.8.6
-
-- Externe VIP-Entzüge vorbereitet.
-- Neue Status-/Test-/Process-Routen für `external-vip-remove`.
-- Aktiver VIP30-Slot wird bei externem Entzug auf `external_removed` gesetzt.
-- Keine Twitch-Writes, kein Fulfill/Cancel, kein Alert.
+- Patch-Script für `backend/modules/twitch.js` ergänzt.
+- EventSub-Konfiguration für `channel.vip.add` und `channel.vip.remove` vorgesehen.
+- Bus-Forwarding für echte Twitch-VIP-Events vorgesehen.
