@@ -19,7 +19,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.27";
+const MODULE_VERSION = "0.2.28";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -207,7 +207,7 @@ const DEFAULT_CONFIG = {
     recentClipMemoryPerChannel: 5,
     recentClipFallbackWhenAllBlocked: true,
     allowBroadcasterSelfTarget: true,
-    clipPlaybackMode: "direct",
+    clipPlaybackMode: "twitch_clip",
     cacheDownloadedClips: false,
     downloadDir: "htdocs/assets/sounds/clip_shoutout",
     publicSoundFilePrefix: "clip_shoutout",
@@ -3086,13 +3086,33 @@ async function downloadClipToSoundAssets(playbackUrl, clip, targetUser, cfg) {
 }
 
 function clipPlaybackMode(cfg) {
-  const mode = String(cfg.clipPlaybackMode || "direct").trim().toLowerCase();
+  const mode = String(cfg.clipPlaybackMode || "twitch_clip").trim().toLowerCase();
   if (["download", "cache", "cached", "local"].includes(mode)) return "download";
-  return "direct";
+  if (["direct", "mp4", "playback_url"].includes(mode)) return "direct";
+  if (["twitch_clip", "clip_player", "clip_player_overlay", "legacy", "legacy_overlay"].includes(mode)) return "twitch_clip";
+  return "twitch_clip";
+}
+
+function prepareTwitchClipPlayback(clip) {
+  return {
+    mode: "twitch_clip",
+    direct: false,
+    cached: false,
+    file: "",
+    soundSystemFile: "",
+    mediaUrl: "",
+    videoUrl: "",
+    clipId: clipIdOf(clip),
+    twitchClip: true
+  };
 }
 
 async function prepareClipPlayback(playbackUrl, clip, targetUser, cfg) {
   const mode = clipPlaybackMode(cfg);
+  if (mode === "twitch_clip") {
+    return prepareTwitchClipPlayback(clip);
+  }
+
   if (mode === "download") {
     const downloaded = await downloadClipToSoundAssets(playbackUrl, clip, targetUser, cfg);
     return {
@@ -3102,7 +3122,9 @@ async function prepareClipPlayback(playbackUrl, clip, targetUser, cfg) {
       file: downloaded.file,
       soundSystemFile: downloaded.soundSystemFile,
       mediaUrl: "",
-      videoUrl: ""
+      videoUrl: "",
+      clipId: clipIdOf(clip),
+      twitchClip: false
     };
   }
 
@@ -3113,7 +3135,9 @@ async function prepareClipPlayback(playbackUrl, clip, targetUser, cfg) {
     file: "",
     soundSystemFile: "",
     mediaUrl: playbackUrl,
-    videoUrl: playbackUrl
+    videoUrl: playbackUrl,
+    clipId: clipIdOf(clip),
+    twitchClip: false
   };
 }
 
@@ -3193,16 +3217,20 @@ function buildBundlePayload(cfg, vars, playback, clip, targetUser, ttsItem) {
   const clipDurationMs = Math.max(5000, Math.min(maxDurationMs, Math.round(Number(clip.duration || 0) * 1000) || maxDurationMs));
   const bundleId = `clipso_${Date.now()}_${safeFilePart(targetUser.login)}_${safeFilePart(clip.id)}`;
 
+  const playbackMode = playback.mode || "direct";
+  const useTwitchClipPlayer = playbackMode === "twitch_clip";
+
   const items = [{
     role: "clip",
-    file: playback.soundSystemFile || "",
-    mediaUrl: playback.mediaUrl || "",
-    videoUrl: playback.videoUrl || "",
+    file: useTwitchClipPlayer ? "" : (playback.soundSystemFile || ""),
+    mediaUrl: useTwitchClipPlayer ? "" : (playback.mediaUrl || ""),
+    videoUrl: useTwitchClipPlayer ? "" : (playback.videoUrl || ""),
+    clipId: clip.id || playback.clipId || "",
     label: `Video-Shoutout @${targetUser.displayName}`,
     category: cfg.soundCategory || "vip",
     source: cfg.soundSource || "clip_shoutout",
-    mediaType: "video",
-    type: "video",
+    mediaType: useTwitchClipPlayer ? "twitch_clip" : "video",
+    type: useTwitchClipPlayer ? "twitch_clip" : "video",
     hasAudio: true,
     hasVideo: true,
     outputTarget: "overlay",
@@ -3224,7 +3252,8 @@ function buildBundlePayload(cfg, vars, playback, clip, targetUser, ttsItem) {
       twitchClipDurationMs: Math.round(Number(clip.duration || 0) * 1000) || 0,
       cached: !!playback.cached,
       directPlayback: playback.direct === true,
-      playbackMode: playback.mode || "direct"
+      twitchClipPlayer: useTwitchClipPlayer,
+      playbackMode: playbackMode
     },
     visual: {
       module: "clip_shoutout",
@@ -3237,7 +3266,9 @@ function buildBundlePayload(cfg, vars, playback, clip, targetUser, ttsItem) {
       clipUrl: clip.url || "",
       gameName: clip.game_id || "",
       subline: cfg.overlaySubline || "🧓 Altersheim-TV",
-      durationMs: clipDurationMs
+      durationMs: clipDurationMs,
+      clipId: clip.id || playback.clipId || "",
+      theme: "forrest_neon"
     }
   }];
 
@@ -3479,6 +3510,7 @@ async function runDisplayJob(row, env, cfg) {
   let clip = null;
   let playback = null;
 
+  const desiredPlaybackMode = clipPlaybackMode(cfg);
   for (const candidate of pickedClip.clips || []) {
     const candidateInfo = publicClipInfo(candidate) || { id: clipIdOf(candidate) };
     const attempt = {
@@ -3486,18 +3518,40 @@ async function runDisplayJob(row, env, cfg) {
       title: String(candidateInfo.title || ''),
       duration: Number(candidateInfo.duration || 0),
       ok: false,
-      error: ''
+      error: '',
+      mode: desiredPlaybackMode
     };
     playbackAttempts.push(attempt);
     try {
-      const playbackUrl = await resolveClipPlaybackUrl(candidate.id, cfg);
-      playback = await prepareClipPlayback(playbackUrl, candidate, targetUser, cfg);
+      if (desiredPlaybackMode === "twitch_clip") {
+        playback = prepareTwitchClipPlayback(candidate);
+      } else {
+        const playbackUrl = await resolveClipPlaybackUrl(candidate.id, cfg);
+        playback = await prepareClipPlayback(playbackUrl, candidate, targetUser, cfg);
+      }
       clip = candidate;
       attempt.ok = true;
-      attempt.mode = playback && playback.mode ? playback.mode : clipPlaybackMode(cfg);
+      attempt.mode = playback && playback.mode ? playback.mode : desiredPlaybackMode;
       break;
     } catch (err) {
       attempt.error = err && err.message ? err.message : String(err);
+    }
+  }
+
+  if (!clip || !playback) {
+    const fallbackClip = (pickedClip.clips || [])[0] || null;
+    if (fallbackClip) {
+      clip = fallbackClip;
+      playback = prepareTwitchClipPlayback(fallbackClip);
+      playbackAttempts.push({
+        clipId: String(clipIdOf(fallbackClip) || ''),
+        title: String(fallbackClip.title || ''),
+        duration: Number(fallbackClip.duration || 0),
+        ok: true,
+        error: '',
+        mode: "twitch_clip",
+        fallback: true
+      });
     }
   }
 
@@ -5157,7 +5211,7 @@ module.exports.init = function init(ctx) {
         recentClipMemoryPerChannel: currentCfg.recentClipMemoryPerChannel,
         recentClipFallbackWhenAllBlocked: currentCfg.recentClipFallbackWhenAllBlocked !== false,
         ttsAfterClipEnabled: currentCfg.ttsAfterClipEnabled,
-        clipPlaybackMode: currentCfg.clipPlaybackMode || "direct",
+        clipPlaybackMode: currentCfg.clipPlaybackMode || "twitch_clip",
         cacheDownloadedClips: currentCfg.cacheDownloadedClips,
         directPlaybackSoundIdFix: true,
         soundBundleUrl: currentCfg.soundBundleUrl,

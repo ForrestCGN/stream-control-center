@@ -16,7 +16,7 @@ try {
 }
 
 const MODULE_NAME = "sound_system";
-const MODULE_VERSION = "0.1.21";
+const MODULE_VERSION = "0.1.22";
 const MODULE_BUILD = "diagnostics-standard";
 const SOUND_BUS_CAPABILITY = "sound.event_output";
 const SOUND_BUS_COMMAND_CAPABILITY = "sound.command_input";
@@ -2497,6 +2497,7 @@ function publicSoundBusQueueStatus() {
       mediaType: item.mediaType || "audio",
       mediaUrl: item.mediaUrl || item.audioUrl || item.videoUrl || "",
       videoUrl: item.videoUrl || "",
+      clipId: item.clipId || (item.meta && item.meta.clipId) || (item.visual && item.visual.clipId) || "",
       videoWidth: Number(item.videoWidth || 0),
       videoHeight: Number(item.videoHeight || 0),
       hasAudio: item.hasAudio !== false,
@@ -2947,7 +2948,11 @@ function publicSoundBusQueueStatus() {
   function shouldUseOverlay(item) { return item.outputTarget === "overlay" || item.outputTarget === "both"; }
   function shouldUseDevice(item) { return item.outputTarget === "device" || item.outputTarget === "both"; }
   function shouldUseDiscord(item) { return item.target === "discord" || item.target === "both"; }
-  function isVideoItem(item) { return String(item && item.mediaType || item && item.type || "").toLowerCase() === "video" || !!(item && item.videoUrl); }
+  function isTwitchClipItem(item) {
+    const mediaType = String(item && (item.mediaType || item.type) || "").toLowerCase();
+    return mediaType === "twitch_clip" || mediaType === "clip_twitch" || !!(item && item.clipId && item.meta && item.meta.clipShoutout);
+  }
+  function isVideoItem(item) { return isTwitchClipItem(item) || String(item && item.mediaType || item && item.type || "").toLowerCase() === "video" || !!(item && item.videoUrl); }
   function shouldWaitForOverlayEnd(item) { return isVideoItem(item) && shouldUseOverlay(item); }
   function videoFallbackFinishMs(item) {
     const overlayCfg = config.overlay || {};
@@ -2955,6 +2960,7 @@ function publicSoundBusQueueStatus() {
     const outro = Number(item && item.outroMs || 0);
     const buffer = Math.max(1000, Number(overlayCfg.videoFallbackBufferMs || 5000));
     const hardFallback = Math.max(30000, Number(overlayCfg.videoFallbackFinishMs || 300000));
+    if (isTwitchClipItem(item) && duration > 0) return Math.max(5000, duration + outro + Math.min(buffer, 2000));
     if (item && item.durationOk && duration > 0) return Math.max(5000, duration + outro + buffer);
     return hardFallback;
   }
@@ -3119,6 +3125,10 @@ function publicSoundBusQueueStatus() {
     const base = applyCategoryDefaults(config.defaults || {}, preset || {}, body);
     const rawType = String(base.type || "file").trim().toLowerCase();
     const generatedBeep = rawType === "generated_beep";
+    const baseMeta = objectValue(base.meta);
+    const baseVisual = objectValue(base.visual);
+    const requestedClipId = String(base.clipId || body.clipId || baseMeta.clipId || baseVisual.clipId || "").trim();
+    const isTwitchClipRequest = rawType === "twitch_clip" || String(base.mediaType || base.kind || "").trim().toLowerCase() === "twitch_clip";
     const initialTarget = normalizeTarget(base.target);
     const target = resolveDiscordRoutedTarget(base, body, initialTarget);
     const outputTarget = normalizeOutputTarget(base.outputTarget || base.output || base.targetOutput, target);
@@ -3147,7 +3157,22 @@ function publicSoundBusQueueStatus() {
     let videoHeight = 0;
     const registryMedia = resolveMediaRegistryPayload(body);
 
-    if (generatedBeep) {
+    if (isTwitchClipRequest) {
+      if (!requestedClipId) throw new Error("twitch_clip_id_missing");
+      type = "twitch_clip";
+      mediaType = "twitch_clip";
+      file = "";
+      fullPath = "";
+      audioUrl = "";
+      mediaUrl = "";
+      videoUrl = "";
+      hasAudio = true;
+      hasVideo = true;
+      videoWidth = Number(base.videoWidth || body.videoWidth || 0);
+      videoHeight = Number(base.videoHeight || body.videoHeight || 0);
+      base.meta = { ...baseMeta, twitchClip: true, externalMedia: { direct: false, mediaType: "twitch_clip" }, clipId: requestedClipId };
+      base.visual = { ...baseVisual, clipId: requestedClipId };
+    } else if (generatedBeep) {
       type = "file";
       mediaType = "audio";
       file = "generated/beep.wav";
@@ -3214,11 +3239,11 @@ function publicSoundBusQueueStatus() {
     }
 
     const resolvedDuration = resolveDurationMs(base, mediaInfo, fallbackDurationMs, generatedBeep);
-    const effectiveOutputTarget = mediaType === "video" ? "overlay" : outputTarget;
+    const effectiveOutputTarget = mediaType === "video" || mediaType === "twitch_clip" ? "overlay" : outputTarget;
 
     const normalizedItem = {
       requestId: makeRequestId(),
-      soundId: soundId || normalizeId(file ? path.basename(file, path.extname(file)) : (directSoundIdFromUrl(mediaUrl) || "generated_beep")),
+      soundId: soundId || normalizeId(requestedClipId ? `twitch_clip_${requestedClipId}` : (file ? path.basename(file, path.extname(file)) : (directSoundIdFromUrl(mediaUrl) || "generated_beep"))),
       label: String(base.label || soundId || file || (mediaUrl ? "External Media" : "Generated Beep")).trim(),
       type,
       category: String(base.category || "fun").trim().toLowerCase(),
@@ -3232,6 +3257,7 @@ function publicSoundBusQueueStatus() {
       mediaType,
       mediaUrl,
       videoUrl,
+      clipId: requestedClipId,
       videoWidth,
       videoHeight,
       hasAudio,

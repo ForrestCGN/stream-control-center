@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ForrestCGN Sound-System Overlay - STEP455_BUS_CONSUMER_REPLACEMENT</title>
+  <title>ForrestCGN Sound-System Overlay - CAN44_21_16_TWITCH_CLIP_QUEUE</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
@@ -373,9 +373,15 @@
         return target === 'overlay' || target === 'both';
       }
 
+      function isTwitchClipItem(item){
+        const mediaType = String(item && (item.mediaType || item.type) || '').toLowerCase();
+        const meta = item && item.meta && typeof item.meta === 'object' ? item.meta : {};
+        return mediaType === 'twitch_clip' || mediaType === 'clip_twitch' || !!(item && (item.clipId || meta.clipId) && meta.clipShoutout);
+      }
+
       function isVideoItem(item){
         const mediaType = String(item && (item.mediaType || item.type) || '').toLowerCase();
-        return mediaType === 'video' || !!(item && (item.videoUrl || (item.mediaUrl && mediaType === 'video')));
+        return isTwitchClipItem(item) || mediaType === 'video' || !!(item && (item.videoUrl || (item.mediaUrl && mediaType === 'video')));
       }
 
       function cacheBust(url, requestId){
@@ -580,6 +586,94 @@
         void clipCard.offsetWidth;
         clipCard.classList.add('show');
       }
+      function getTwitchClipId(item) {
+        const meta = item && item.meta && typeof item.meta === 'object' ? item.meta : {};
+        const visual = visualOf(item);
+        return String((item && item.clipId) || meta.clipId || visual.clipId || '').trim();
+      }
+
+      async function resolveTwitchClipVideoUrl(clipId) {
+        const cleanClipId = String(clipId || '').trim();
+        if (!cleanClipId) throw new Error('twitch_clip_id_missing');
+
+        const res = await fetch('https://gql.twitch.tv/gql', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain;charset=UTF-8',
+            'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko'
+          },
+          body: JSON.stringify({
+            operationName: 'VideoAccessToken_Clip',
+            variables: { slug: cleanClipId },
+            extensions: {
+              persistedQuery: {
+                version: 1,
+                sha256Hash: '36b89d2507fce29e5ca551df756d27c1cfe079e2609642b4390aa4c35796eb11'
+              }
+            }
+          })
+        });
+
+        if (!res.ok) throw new Error('twitch_gql_http_' + res.status);
+        const data = await res.json();
+        const clip = data && data.data && data.data.clip ? data.data.clip : null;
+        if (!clip) throw new Error('twitch_clip_missing');
+
+        const qualities = Array.isArray(clip.videoQualities) ? clip.videoQualities.slice() : [];
+        if (!qualities.length) throw new Error('twitch_clip_no_qualities');
+        qualities.sort((a, b) => Number(b.quality || 0) - Number(a.quality || 0));
+        const best = qualities[0];
+        const token = clip.playbackAccessToken || {};
+        if (!best || !best.sourceURL || !token.signature || !token.value) throw new Error('twitch_clip_playback_incomplete');
+        return best.sourceURL + '?sig=' + encodeURIComponent(token.signature) + '&token=' + encodeURIComponent(token.value);
+      }
+
+      async function playTwitchClipItem(item) {
+        if (!item || !item.requestId) return;
+        const clipId = getTwitchClipId(item);
+        if (!clipId) {
+          await post('/client/error', { requestId: item.requestId, mediaType: 'twitch_clip', error: 'twitch_clip_id_missing' });
+          return;
+        }
+
+        stopAudio();
+        await new Promise(resolve => setTimeout(resolve, 180));
+        currentRequestId = item.requestId;
+        lastSeenRequestId = item.requestId;
+        activeVideoElement = clipVideoPlayer;
+        activeVideoItem = item;
+        videoPlaybackStartedAt = 0;
+        setupClipCard(item);
+        videoPlayer.style.display = 'none';
+        clipVideoPlayer.style.opacity = '0';
+        setStatus('Twitch-Clip wird geladen: ' + (item.label || clipId));
+
+        let videoUrl = '';
+        try {
+          videoUrl = await resolveTwitchClipVideoUrl(clipId);
+        } catch (err) {
+          setStatus('Twitch-Clip konnte nicht geladen werden: ' + (err && err.message ? err.message : String(err)));
+          await post('/client/error', {
+            requestId: currentRequestId,
+            mediaType: 'twitch_clip',
+            clipId,
+            error: err && err.message ? err.message : String(err)
+          });
+          stopAudio();
+          return;
+        }
+
+        const playbackItem = {
+          ...item,
+          mediaType: 'video',
+          type: 'video',
+          mediaUrl: videoUrl,
+          videoUrl,
+          meta: { ...(item.meta || {}), twitchClipResolvedInOverlay: true, clipId }
+        };
+        await playVideoFile(playbackItem);
+      }
+
 
       async function finishVideoPlayback(reason, extra) {
         const requestId = currentRequestId;
@@ -736,6 +830,7 @@
         if (!item || !item.requestId) return;
         if (!shouldPlayInOverlay(item)) return;
         if (item.requestId === lastSeenRequestId && currentRequestId === item.requestId) return;
+        if (isTwitchClipItem(item)) return playTwitchClipItem(item);
         if (isVideoItem(item)) return playVideoFile(item);
         if (String(item.type || '').toLowerCase() === 'generated_beep') return playGeneratedBeep(item);
         return playFileSound(item);
@@ -873,7 +968,7 @@
           module: 'sound_system',
           mode: 'bus_consumer_with_legacy_fallback',
           capabilities: BUS_CAPABILITIES,
-          version: 'STEP455',
+          version: 'CAN44.21.16',
           state: document.hidden ? 'hidden' : 'visible',
           meta: {
             overlay: 'sound_system_overlay.html',
@@ -968,7 +1063,7 @@
             module: 'sound_system',
             mode: 'bus_consumer_with_legacy_fallback',
             capabilities: BUS_CAPABILITIES,
-            version: 'STEP455'
+            version: 'CAN44.21.16'
           });
           startBusHeartbeat();
           post('/client/ready', { overlay: 'sound_system_overlay', busConsumer: true });
