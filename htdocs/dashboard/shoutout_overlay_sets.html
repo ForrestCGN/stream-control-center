@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CGN Control Center · Shoutout Overlay Sets</title>
+  <link rel="stylesheet" href="/dashboard/modules/shoutout_overlay_sets.css">
+</head>
+<body>
+  <main class="cgn-page" data-cgn-shoutout-sets>
+    <header class="cgn-hero">
+      <div>
+        <div class="cgn-kicker">CGN Control Center</div>
+        <h1>Shoutout Overlay Sets</h1>
+        <p>Headline und Subline werden immer als passendes Paar gespeichert und zufällig aus aktiven Sets gewählt.</p>
+      </div>
+      <div class="cgn-actions">
+        <button type="button" data-action="reload">Neu laden</button>
+        <button type="button" data-action="add">Set hinzufügen</button>
+        <button type="button" class="primary" data-action="save">Speichern</button>
+      </div>
+    </header>
+
+    <section class="cgn-status" data-status>
+      Lade Overlay-Sets …
+    </section>
+
+    <section class="cgn-info-grid">
+      <article>
+        <h2>Platzhalter</h2>
+        <div class="placeholder-list" data-placeholders></div>
+      </article>
+      <article>
+        <h2>API</h2>
+        <p><code>GET /api/clip-shoutout/overlay-sets</code></p>
+        <p><code>POST /api/clip-shoutout/overlay-sets</code></p>
+      </article>
+    </section>
+
+    <section class="cgn-card-list" data-set-list></section>
+
+    <template id="set-template">
+      <article class="set-card" data-set-card>
+        <div class="set-card-head">
+          <div>
+            <div class="set-title">Set <span data-set-number></span></div>
+            <input class="set-id" data-field="id" placeholder="set-id">
+          </div>
+          <label class="toggle">
+            <input type="checkbox" data-field="enabled">
+            <span>aktiv</span>
+          </label>
+        </div>
+
+        <label>
+          <span>Headline</span>
+          <input data-field="headline" placeholder="Rentner-Kino läuft!">
+        </label>
+
+        <label>
+          <span>Subline</span>
+          <textarea data-field="subline" rows="2" placeholder="Heute auf der Leinwand: {displayName}"></textarea>
+        </label>
+
+        <div class="set-row">
+          <label>
+            <span>Gewichtung</span>
+            <input data-field="weight" type="number" min="0" step="1" value="1">
+          </label>
+          <button type="button" class="danger" data-action="delete">Löschen</button>
+        </div>
+
+        <div class="preview">
+          <strong data-preview-headline></strong>
+          <span data-preview-subline></span>
+        </div>
+      </article>
+    </template>
+  </main>
+
+  <script src="/dashboard/modules/shoutout_overlay_sets.js"></script>
+</body>
+</html>
