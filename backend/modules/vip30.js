@@ -1,14 +1,17 @@
 "use strict";
 
+const http = require("http");
 const helperConfig = require("./helpers/helper_config");
 const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.1.0";
-const MODULE_BUILD = "step1-db-bus-diagnostics";
+const MODULE_VERSION = "0.2.0";
+const MODULE_BUILD = "step2-twitch-capability-check";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 1;
+const DEFAULT_TARGET_HOST = "127.0.0.1";
+const DEFAULT_TARGET_PORT = 8080;
 
 const MODULE_META = {
   name: MODULE_NAME,
@@ -18,11 +21,11 @@ const MODULE_META = {
   category: "community",
   routePrefix: ROUTE_PREFIX,
   routesPrefix: [ROUTE_PREFIX],
-  description: "30 Tage VIP Node-Modul: SQLite-Grundlage, Dashboard-Logs/Stats, Communication-Bus-Anmeldung und Diagnose.",
+  description: "30 Tage VIP Node-Modul: SQLite-Grundlage, Dashboard-Logs/Stats, Communication-Bus und Twitch-Capability-Check ohne Live-Schreibaktion.",
   bus: {
     registered: true,
     heartbeat: true,
-    emits: ["module.status", "module.health", "vip30.status"],
+    emits: ["module.status", "module.health", "vip30.status", "vip30.twitch"],
     listens: []
   },
   legacy: false
@@ -83,7 +86,11 @@ const DEFAULT_CONFIG = {
   },
   twitch: {
     liveActionsEnabled: false,
-    requiredScopes: ["channel:manage:redemptions", "channel:manage:vips"]
+    capabilityCheckEnabled: true,
+    authValidateUrl: "/api/twitch/auth/validate",
+    requiredScopes: ["channel:manage:redemptions", "channel:manage:vips"],
+    optionalScopes: ["channel:read:vips"],
+    requireTokenUserMatchesBroadcaster: true
   }
 };
 
@@ -154,6 +161,7 @@ let lastBusRegisterAt = "";
 let lastBusHeartbeatAt = "";
 let lastBusStatusAt = "";
 let lastError = "";
+let lastCapabilityCheck = null;
 let dbMigrationState = {
   attempted: false,
   executed: false,
@@ -173,6 +181,7 @@ let runtimeStats = {
   logsRequests: 0,
   statsRequests: 0,
   healthRequests: 0,
+  capabilityRequests: 0,
   busHeartbeats: 0,
   busStatuses: 0,
   logWrites: 0,
@@ -186,6 +195,14 @@ function intValue(value, fallback = 0) {
   const n = Number.parseInt(String(value ?? ""), 10);
   return Number.isFinite(n) ? n : fallback;
 }
+function boolValue(value, fallback = false) {
+  if (value === undefined || value === null || value === "") return fallback;
+  if (typeof value === "boolean") return value;
+  const raw = String(value).trim().toLowerCase();
+  if (["1", "true", "yes", "ja", "on", "y"].includes(raw)) return true;
+  if (["0", "false", "no", "nein", "off", "n"].includes(raw)) return false;
+  return fallback;
+}
 function boolDb(value) { return value === true || value === 1 || value === "1" ? 1 : 0; }
 function safeJsonString(value, fallback = {}) {
   try { return JSON.stringify(value === undefined ? fallback : value); } catch (_) { return JSON.stringify(fallback); }
@@ -195,19 +212,6 @@ function safeJsonParse(value, fallback = null) {
   if (typeof value === "object") return value;
   try { return JSON.parse(String(value)); } catch (_) { return fallback; }
 }
-
-function loadConfig() {
-  const loaded = helperConfig.loadConfig("vip30.json", {}, { createIfMissing: false });
-  loadedConfig = mergePlain(DEFAULT_CONFIG, loaded && loaded.data && typeof loaded.data === "object" ? loaded.data : {});
-  loadedConfig.slots.maxSlots = Math.max(1, intValue(loadedConfig.slots && loadedConfig.slots.maxSlots, DEFAULT_CONFIG.slots.maxSlots));
-  loadedConfig.slots.durationDays = Math.max(1, intValue(loadedConfig.slots && loadedConfig.slots.durationDays, DEFAULT_CONFIG.slots.durationDays));
-  loadedConfig.reward.cost = Math.max(1, intValue(loadedConfig.reward && loadedConfig.reward.cost, DEFAULT_CONFIG.reward.cost));
-  loadedConfig.bus.heartbeatIntervalMs = Math.max(1000, Math.min(60000, intValue(loadedConfig.bus && loadedConfig.bus.heartbeatIntervalMs, DEFAULT_CONFIG.bus.heartbeatIntervalMs)));
-  loadedConfig.bus.statusPublishIntervalMs = Math.max(5000, Math.min(300000, intValue(loadedConfig.bus && loadedConfig.bus.statusPublishIntervalMs, DEFAULT_CONFIG.bus.statusPublishIntervalMs)));
-  loadedConfig.logging.recentLimit = Math.max(1, Math.min(200, intValue(loadedConfig.logging && loadedConfig.logging.recentLimit, DEFAULT_CONFIG.logging.recentLimit)));
-  return loadedConfig;
-}
-function getConfig() { return loadedConfig || loadConfig(); }
 
 function mergePlain(base, extra) {
   const out = { ...(base || {}) };
@@ -221,6 +225,28 @@ function mergePlain(base, extra) {
   }
   return out;
 }
+
+function arrayOfStrings(value) {
+  if (Array.isArray(value)) return value.map(item => cleanString(item)).filter(Boolean);
+  if (value === undefined || value === null || value === "") return [];
+  return String(value).split(/[\s,;]+/).map(item => cleanString(item)).filter(Boolean);
+}
+
+function loadConfig() {
+  const loaded = helperConfig.loadConfig("vip30.json", {}, { createIfMissing: false });
+  loadedConfig = mergePlain(DEFAULT_CONFIG, loaded && loaded.data && typeof loaded.data === "object" ? loaded.data : {});
+  loadedConfig.slots.maxSlots = Math.max(1, intValue(loadedConfig.slots && loadedConfig.slots.maxSlots, DEFAULT_CONFIG.slots.maxSlots));
+  loadedConfig.slots.durationDays = Math.max(1, intValue(loadedConfig.slots && loadedConfig.slots.durationDays, DEFAULT_CONFIG.slots.durationDays));
+  loadedConfig.reward.cost = Math.max(1, intValue(loadedConfig.reward && loadedConfig.reward.cost, DEFAULT_CONFIG.reward.cost));
+  loadedConfig.bus.heartbeatIntervalMs = Math.max(1000, Math.min(60000, intValue(loadedConfig.bus && loadedConfig.bus.heartbeatIntervalMs, DEFAULT_CONFIG.bus.heartbeatIntervalMs)));
+  loadedConfig.bus.statusPublishIntervalMs = Math.max(5000, Math.min(300000, intValue(loadedConfig.bus && loadedConfig.bus.statusPublishIntervalMs, DEFAULT_CONFIG.bus.statusPublishIntervalMs)));
+  loadedConfig.logging.recentLimit = Math.max(1, Math.min(200, intValue(loadedConfig.logging && loadedConfig.logging.recentLimit, DEFAULT_CONFIG.logging.recentLimit)));
+  loadedConfig.twitch.requiredScopes = arrayOfStrings(loadedConfig.twitch && loadedConfig.twitch.requiredScopes).length ? arrayOfStrings(loadedConfig.twitch.requiredScopes) : [...DEFAULT_CONFIG.twitch.requiredScopes];
+  loadedConfig.twitch.optionalScopes = arrayOfStrings(loadedConfig.twitch && loadedConfig.twitch.optionalScopes);
+  loadedConfig.twitch.authValidateUrl = cleanString(loadedConfig.twitch && loadedConfig.twitch.authValidateUrl, DEFAULT_CONFIG.twitch.authValidateUrl);
+  return loadedConfig;
+}
+function getConfig() { return loadedConfig || loadConfig(); }
 
 function getBus() {
   if (bus) return bus;
@@ -376,6 +402,19 @@ function listLogs(query = {}) {
   return rows.map(mapLogRow);
 }
 
+function buildRewardSummary() {
+  const reward = getConfig().reward || DEFAULT_CONFIG.reward;
+  return {
+    rewardKey: cleanString(reward.rewardKey || reward.reward_key || "vip30"),
+    title: cleanString(reward.title || "30 Tage VIP"),
+    cost: Math.max(1, intValue(reward.cost, 50000)),
+    categoryKey: cleanString(reward.categoryKey || reward.category_key || "vip"),
+    actionType: cleanString(reward.actionType || reward.action_type || "vip30"),
+    actionKey: cleanString(reward.actionKey || reward.action_key || "vip30.redeem"),
+    autoFulfill: reward.autoFulfill === true || reward.auto_fulfill === true
+  };
+}
+
 function buildStats() {
   ensureDbReady();
   const now = nowIso();
@@ -430,28 +469,207 @@ function buildStats() {
   };
 }
 
-function buildRewardSummary() {
-  const reward = getConfig().reward || DEFAULT_CONFIG.reward;
-  return {
-    rewardKey: cleanString(reward.rewardKey || reward.reward_key || "vip30"),
-    title: cleanString(reward.title || "30 Tage VIP"),
-    cost: Math.max(1, intValue(reward.cost, 50000)),
-    categoryKey: cleanString(reward.categoryKey || reward.category_key || "vip"),
-    actionType: cleanString(reward.actionType || reward.action_type || "vip30"),
-    actionKey: cleanString(reward.actionKey || reward.action_key || "vip30.redeem"),
-    autoFulfill: reward.autoFulfill === true || reward.auto_fulfill === true
+function httpGetJson(targetUrl) {
+  const cleanUrl = cleanString(targetUrl);
+  if (!cleanUrl) return Promise.reject(new Error("target_url_missing"));
+  const options = {
+    hostname: process.env.VIP30_TARGET_HOST || process.env.CHANNELPOINTS_TARGET_HOST || DEFAULT_TARGET_HOST,
+    port: Number(process.env.VIP30_TARGET_PORT || process.env.CHANNELPOINTS_TARGET_PORT || DEFAULT_TARGET_PORT) || DEFAULT_TARGET_PORT,
+    path: cleanUrl.startsWith("/") ? cleanUrl : `/${cleanUrl}`,
+    method: "GET",
+    headers: { Accept: "application/json" }
   };
+  return new Promise((resolve, reject) => {
+    const request = http.request(options, response => {
+      let data = "";
+      response.setEncoding("utf8");
+      response.on("data", chunk => { data += chunk; });
+      response.on("end", () => {
+        let parsed = data;
+        try { parsed = data ? JSON.parse(data) : {}; } catch (_) {}
+        resolve({ ok: response.statusCode >= 200 && response.statusCode < 300, statusCode: response.statusCode, data: parsed });
+      });
+    });
+    request.on("error", reject);
+    request.end();
+  });
+}
+
+function normalizeScopes(input) {
+  return arrayOfStrings(input).map(scope => scope.toLowerCase());
+}
+function hasScope(scopes, requiredScope) {
+  return normalizeScopes(scopes).includes(cleanString(requiredScope).toLowerCase());
+}
+function buildScopeRows(scopes, requiredScopes, optionalScopes = []) {
+  const normalized = normalizeScopes(scopes);
+  return {
+    required: requiredScopes.map(scope => ({ scope, present: normalized.includes(scope.toLowerCase()) })),
+    optional: optionalScopes.map(scope => ({ scope, present: normalized.includes(scope.toLowerCase()) }))
+  };
+}
+function summarizeAuthPayload(authPayload = {}) {
+  const scopes = arrayOfStrings(authPayload.scopes || authPayload.scope || []);
+  const broadcasterId = cleanString(authPayload.broadcasterId || process.env.TWITCH_BROADCASTER_ID || "");
+  const userId = cleanString(authPayload.userId || authPayload.user_id || "");
+  const broadcasterMatchRelevant = Boolean(broadcasterId && userId);
+  const tokenUserMatchesBroadcaster = broadcasterMatchRelevant ? broadcasterId === userId : authPayload.tokenUserMatchesBroadcaster === true;
+  return {
+    ok: authPayload.ok === true,
+    present: authPayload.present === true || authPayload.ok === true,
+    login: cleanString(authPayload.login || ""),
+    userId,
+    broadcasterId,
+    broadcasterMatchRelevant,
+    tokenUserMatchesBroadcaster,
+    scopes,
+    expiresIn: Number(authPayload.expiresIn || 0),
+    store: cleanString(authPayload.store || authPayload.tokenStorePath || ""),
+    error: authPayload.ok === true ? "" : cleanString(authPayload.error || authPayload.message || "auth_validate_not_ok")
+  };
+}
+
+async function buildTwitchCapabilityStatus(options = {}) {
+  const config = getConfig();
+  const now = nowIso();
+  const requiredScopes = arrayOfStrings(config.twitch.requiredScopes || DEFAULT_CONFIG.twitch.requiredScopes);
+  const optionalScopes = arrayOfStrings(config.twitch.optionalScopes || DEFAULT_CONFIG.twitch.optionalScopes);
+  const base = {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    status: "twitch_capability_check",
+    checkedAt: now,
+    enabled: config.twitch.capabilityCheckEnabled !== false,
+    authValidateUrl: cleanString(config.twitch.authValidateUrl || DEFAULT_CONFIG.twitch.authValidateUrl),
+    liveActionsEnabled: config.twitch.liveActionsEnabled === true,
+    requiredScopes,
+    optionalScopes,
+    safety: {
+      checkOnly: true,
+      noTwitchWrite: true,
+      noVipGrant: true,
+      noVipRevoke: true,
+      noRedemptionFulfillCancel: true
+    }
+  };
+
+  if (config.twitch.capabilityCheckEnabled === false) {
+    const disabled = {
+      ...base,
+      ok: true,
+      status: "disabled_by_config",
+      auth: { ok: false, skipped: true, reason: "capability_check_disabled" },
+      scopes: buildScopeRows([], requiredScopes, optionalScopes),
+      readiness: { readyForVip30LiveFlow: false, reason: "capability_check_disabled" }
+    };
+    lastCapabilityCheck = disabled;
+    return disabled;
+  }
+
+  try {
+    const response = await httpGetJson(base.authValidateUrl);
+    const authPayload = response && response.data && typeof response.data === "object" ? response.data : { ok: false, raw: response ? response.data : null };
+    const auth = summarizeAuthPayload(authPayload);
+    const scopeRows = buildScopeRows(auth.scopes, requiredScopes, optionalScopes);
+    const missingScopes = scopeRows.required.filter(row => !row.present).map(row => row.scope);
+    const tokenOk = response.ok === true && auth.ok === true;
+    const requireBroadcasterMatch = boolValue(config.twitch.requireTokenUserMatchesBroadcaster, true);
+    const broadcasterOk = !requireBroadcasterMatch || !auth.broadcasterMatchRelevant || auth.tokenUserMatchesBroadcaster === true;
+    const readyForVip30LiveFlow = tokenOk && missingScopes.length === 0 && broadcasterOk;
+    const result = {
+      ...base,
+      ok: true,
+      status: readyForVip30LiveFlow ? "ready_for_vip30_live_flow" : "missing_capability",
+      auth: {
+        ...auth,
+        httpStatus: response.statusCode || 0,
+        tokenOk,
+        requireTokenUserMatchesBroadcaster: requireBroadcasterMatch,
+        broadcasterOk
+      },
+      scopes: scopeRows,
+      readiness: {
+        readyForVip30LiveFlow,
+        readyForAddVip: tokenOk && hasScope(auth.scopes, "channel:manage:vips") && broadcasterOk,
+        readyForRemoveVip: tokenOk && hasScope(auth.scopes, "channel:manage:vips") && broadcasterOk,
+        readyForRedemptionFulfillCancel: tokenOk && hasScope(auth.scopes, "channel:manage:redemptions") && broadcasterOk,
+        missingScopes,
+        blocker: readyForVip30LiveFlow ? "" : (!tokenOk ? "token_not_valid" : (missingScopes.length ? "missing_required_scopes" : "token_user_broadcaster_mismatch"))
+      }
+    };
+    lastCapabilityCheck = result;
+    emitTwitchCapabilityEvent(result, options.reason || "manual_check");
+    return result;
+  } catch (err) {
+    const message = err && err.message ? err.message : String(err);
+    const result = {
+      ...base,
+      ok: false,
+      status: "capability_check_failed",
+      auth: { ok: false, present: false, error: message },
+      scopes: buildScopeRows([], requiredScopes, optionalScopes),
+      readiness: { readyForVip30LiveFlow: false, blocker: "auth_validate_request_failed", missingScopes: requiredScopes },
+      error: message
+    };
+    lastCapabilityCheck = result;
+    lastError = message;
+    emitTwitchCapabilityEvent(result, options.reason || "manual_check_failed");
+    return result;
+  }
+}
+
+function emitTwitchCapabilityEvent(result, reason = "capability_check") {
+  const config = getConfig();
+  if (config.bus.enabled === false) return { ok: false, reason: "bus_disabled" };
+  const currentBus = getBus();
+  if (!currentBus || typeof currentBus.emit !== "function") return { ok: false, reason: "bus_unavailable" };
+  try {
+    return currentBus.emit({
+      type: "event",
+      channel: "vip30.twitch",
+      action: result && result.readiness && result.readiness.readyForVip30LiveFlow ? "capability.ready" : "capability.missing",
+      source: { type: "module", id: `module:${MODULE_NAME}`, module: MODULE_NAME },
+      target: { type: "all", id: "*" },
+      payload: {
+        module: MODULE_NAME,
+        moduleVersion: MODULE_VERSION,
+        moduleBuild: MODULE_BUILD,
+        reason,
+        checkedAt: result && result.checkedAt || nowIso(),
+        status: result && result.status || "unknown",
+        readiness: result && result.readiness || null,
+        auth: result && result.auth ? {
+          ok: result.auth.ok === true,
+          login: result.auth.login || "",
+          userId: result.auth.userId || "",
+          broadcasterId: result.auth.broadcasterId || "",
+          tokenUserMatchesBroadcaster: result.auth.tokenUserMatchesBroadcaster === true
+        } : null
+      },
+      meta: { requireAck: false, replayable: true, ttlMs: config.bus.ttlMs, productionTarget: true }
+    });
+  } catch (_) {
+    return { ok: false, reason: "bus_emit_failed" };
+  }
 }
 
 function buildHealth() {
   const stats = buildStats();
+  const capability = lastCapabilityCheck ? {
+    checkedAt: lastCapabilityCheck.checkedAt || "",
+    status: lastCapabilityCheck.status || "",
+    readyForVip30LiveFlow: !!(lastCapabilityCheck.readiness && lastCapabilityCheck.readiness.readyForVip30LiveFlow),
+    blocker: lastCapabilityCheck.readiness && lastCapabilityCheck.readiness.blocker || ""
+  } : { checkedAt: "", status: "not_checked", readyForVip30LiveFlow: false, blocker: "not_checked" };
   return {
     ok: !lastError,
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
     enabled: getConfig().enabled !== false,
-    status: lastError ? "error" : "ready_step1",
+    status: lastError ? "error" : "ready_step2_capability_check",
     lastError,
     checks: {
       databaseReady: dbMigrationState.ok === true,
@@ -459,8 +677,10 @@ function buildHealth() {
       busRegistered: registeredAtBus,
       dashboardLoggingReady: tableExists("vip30_log"),
       slotsTableReady: tableExists("vip30_slots"),
+      twitchCapabilityCheckAvailable: getConfig().twitch.capabilityCheckEnabled !== false,
       twitchLiveActionsEnabled: getConfig().twitch.liveActionsEnabled === true
     },
+    twitchCapability: capability,
     stats: stats.slots
   };
 }
@@ -479,16 +699,18 @@ function buildStatus() {
     moduleBuild: MODULE_BUILD,
     version: MODULE_VERSION,
     enabled: config.enabled !== false,
-    status: lastError ? "error" : "ready_step1_db_bus_dashboard_logging",
+    status: lastError ? "error" : "ready_step2_twitch_capability_check",
     startedAt,
     routePrefix: ROUTE_PREFIX,
-    routeCount: 5,
+    routeCount: 7,
     routes: [
       `${ROUTE_PREFIX}/status`,
       `${ROUTE_PREFIX}/health`,
       `${ROUTE_PREFIX}/slots`,
       `${ROUTE_PREFIX}/logs`,
-      `${ROUTE_PREFIX}/stats`
+      `${ROUTE_PREFIX}/stats`,
+      `${ROUTE_PREFIX}/twitch/capability`,
+      `${ROUTE_PREFIX}/twitch/scopes`
     ],
     reward: buildRewardSummary(),
     config: {
@@ -498,7 +720,10 @@ function buildStatus() {
       dashboardEnabled: config.dashboard.enabled !== false,
       alertsMode: config.alerts.mode,
       textStyle: config.textStyle.style,
-      twitchLiveActionsEnabled: config.twitch.liveActionsEnabled === true
+      twitchLiveActionsEnabled: config.twitch.liveActionsEnabled === true,
+      twitchCapabilityCheckEnabled: config.twitch.capabilityCheckEnabled !== false,
+      twitchAuthValidateUrl: config.twitch.authValidateUrl,
+      twitchRequiredScopes: [...config.twitch.requiredScopes]
     },
     database: {
       adapter: database.getAdapter ? database.getAdapter() : "sqlite",
@@ -520,6 +745,13 @@ function buildStatus() {
       statusCount: runtimeStats.busStatuses,
       core: busStatus ? { ok: busStatus.ok === true, bus: busStatus.bus, version: busStatus.version, stats: busStatus.stats || null } : null
     },
+    twitchCapability: lastCapabilityCheck ? {
+      checkedAt: lastCapabilityCheck.checkedAt || "",
+      status: lastCapabilityCheck.status || "",
+      readyForVip30LiveFlow: !!(lastCapabilityCheck.readiness && lastCapabilityCheck.readiness.readyForVip30LiveFlow),
+      missingScopes: lastCapabilityCheck.readiness && lastCapabilityCheck.readiness.missingScopes || [],
+      blocker: lastCapabilityCheck.readiness && lastCapabilityCheck.readiness.blocker || ""
+    } : { checkedAt: "", status: "not_checked", readyForVip30LiveFlow: false, missingScopes: config.twitch.requiredScopes, blocker: "not_checked" },
     slots: stats.slots,
     stats: stats.logs,
     logging: {
@@ -533,11 +765,12 @@ function buildStatus() {
       recentEvents: recentLogs
     },
     safety: {
-      step: "VIP30-STEP1",
+      step: "VIP30-STEP2",
       noStreamerBot: true,
       noLegacyImport: true,
       noTwitchWriteInThisStep: true,
-      noRedemptionExecutionInThisStep: true,
+      noVipGrantInThisStep: true,
+      noRedemptionFulfillCancelInThisStep: true,
       dashboardLoggingInsteadOfServerLog: true,
       additiveOnly: true
     }
@@ -571,18 +804,24 @@ function heartbeat(reason = "heartbeat") {
   const currentBus = getBus();
   if (!currentBus || typeof currentBus.heartbeatModule !== "function") return { ok: false, reason: "bus_unavailable" };
   try {
+    const stats = buildStats();
     const payload = {
       module: MODULE_NAME,
       version: MODULE_VERSION,
       build: MODULE_BUILD,
-      phase: config.enabled === false ? "disabled" : "ready_step1",
+      phase: config.enabled === false ? "disabled" : "ready_step2",
       reason,
       enabled: config.enabled !== false,
       healthy: !lastError,
       lastError,
       dbReady: dbMigrationState.ok === true,
-      activeSlots: buildStats().slots.active,
-      freeSlots: buildStats().slots.free
+      activeSlots: stats.slots.active,
+      freeSlots: stats.slots.free,
+      twitchCapability: lastCapabilityCheck ? {
+        status: lastCapabilityCheck.status || "",
+        readyForVip30LiveFlow: !!(lastCapabilityCheck.readiness && lastCapabilityCheck.readiness.readyForVip30LiveFlow),
+        checkedAt: lastCapabilityCheck.checkedAt || ""
+      } : { status: "not_checked", readyForVip30LiveFlow: false, checkedAt: "" }
     };
     const result = currentBus.heartbeatModule(MODULE_NAME, payload);
     runtimeStats.busHeartbeats += 1;
@@ -603,7 +842,15 @@ function registerAtBus() {
     module: MODULE_NAME,
     name: "30 Tage VIP",
     version: MODULE_VERSION,
-    capabilities: ["vip30.status", "vip30.slots", "vip30.logs", "vip30.stats", "vip30.cleanup.planned", "vip30.redeem.planned"],
+    capabilities: [
+      "vip30.status",
+      "vip30.slots",
+      "vip30.logs",
+      "vip30.stats",
+      "vip30.twitch.capability",
+      "vip30.cleanup.planned",
+      "vip30.redeem.planned"
+    ],
     meta: {
       build: MODULE_BUILD,
       routePrefix: ROUTE_PREFIX,
@@ -611,7 +858,8 @@ function registerAtBus() {
       dashboardLogging: true,
       noStreamerBot: true,
       noLegacyImport: true,
-      noTwitchWriteInStep1: true
+      noTwitchWriteInStep2: true,
+      capabilityCheckOnly: true
     }
   });
   registeredAtBus = result && result.ok === true;
@@ -672,6 +920,32 @@ function init({ app } = {}) {
       runtimeStats.lastAction = "stats";
       res.json(buildStats());
     });
+    app.get(`${ROUTE_PREFIX}/twitch/capability`, async (req, res) => {
+      runtimeStats.capabilityRequests += 1;
+      runtimeStats.lastAction = "twitch_capability";
+      const result = await buildTwitchCapabilityStatus({ reason: cleanString(req.query && req.query.reason || "api") });
+      publishStatus("twitch_capability_checked");
+      res.json(result);
+    });
+    app.get(`${ROUTE_PREFIX}/twitch/scopes`, (_req, res) => {
+      runtimeStats.capabilityRequests += 1;
+      runtimeStats.lastAction = "twitch_scopes";
+      const config = getConfig();
+      res.json({
+        ok: true,
+        module: MODULE_NAME,
+        moduleVersion: MODULE_VERSION,
+        moduleBuild: MODULE_BUILD,
+        requiredScopes: arrayOfStrings(config.twitch.requiredScopes),
+        optionalScopes: arrayOfStrings(config.twitch.optionalScopes),
+        usage: {
+          "channel:manage:redemptions": "Redemption nach erfolgreicher VIP-Vergabe fulfillen oder bei Ablehnung canceln.",
+          "channel:manage:vips": "VIP setzen und nach Ablauf wieder entfernen.",
+          "channel:read:vips": "Optional: bestehende VIPs lesen/pruefen; manage:vips deckt die Live-Aktionen ab."
+        },
+        safety: { checkOnly: true, noTwitchWrite: true }
+      });
+    });
   }
 
   console.log(`[${MODULE_NAME}] v${MODULE_VERSION} active (${MODULE_BUILD})`);
@@ -685,6 +959,7 @@ module.exports = {
   buildStatus,
   buildHealth,
   buildStats,
+  buildTwitchCapabilityStatus,
   listSlots,
   listLogs,
   writeLog

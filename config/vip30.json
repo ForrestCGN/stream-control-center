@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "moduleVersion": "0.1.0",
+  "moduleVersion": "0.2.0",
   "reward": {
     "rewardKey": "vip30",
     "title": "30 Tage VIP",
@@ -53,9 +53,15 @@
   },
   "twitch": {
     "liveActionsEnabled": false,
+    "capabilityCheckEnabled": true,
+    "authValidateUrl": "/api/twitch/auth/validate",
     "requiredScopes": [
       "channel:manage:redemptions",
       "channel:manage:vips"
-    ]
+    ],
+    "optionalScopes": [
+      "channel:read:vips"
+    ],
+    "requireTokenUserMatchesBroadcaster": true
   }
 }

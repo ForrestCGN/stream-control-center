@@ -1,12 +1,14 @@
-# CHANGELOG
+# Changelog
 
-## VIP30-STEP1
+## VIP30-STEP2 - Twitch Capability Check
 
-- Neues Modul `backend/modules/vip30.js` vorbereitet.
-- Neue Config `config/vip30.json` vorbereitet.
-- Neue Doku `docs/modules/vip30.md` erstellt.
-- SQLite-Tabellen `vip30_slots` und `vip30_log` geplant/angelegt durch Modulstart.
-- API-Routen `/api/vip30/status`, `/health`, `/slots`, `/logs`, `/stats` vorbereitet.
-- Communication-Bus-Anmeldung, Heartbeat und Status-Publish vorbereitet.
-- Keine Twitch-Schreibaktionen in diesem Step.
-- Keine Streamer.bot-Integration und kein Import alter JSON-Daten.
+- `backend/modules/vip30.js` auf Version `0.2.0` gehoben.
+- Neue Route `/api/vip30/twitch/capability` ergänzt.
+- Neue Route `/api/vip30/twitch/scopes` ergänzt.
+- Twitch-Capability-Check gegen `/api/twitch/auth/validate` ergänzt.
+- Prüfung auf `channel:manage:redemptions` und `channel:manage:vips` ergänzt.
+- Broadcaster/User-Match-Prüfung vorbereitet.
+- Bus-Event `vip30.twitch` für Capability ready/missing ergänzt.
+- Keine Twitch-Schreibaktion eingeführt.
+- Keine VIP-Vergabe eingeführt.
+- Kein Redemption-Fulfill/Cancel eingeführt.

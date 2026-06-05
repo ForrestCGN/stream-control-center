@@ -1,58 +1,13 @@
 # Modul: VIP30 / 30 Tage VIP
 
-Stand: VIP30-STEP1 / 2026-06-05  
-Version: `0.1.0` / `step1-db-bus-diagnostics`
+Stand: VIP30-STEP2 / 2026-06-05
+Version: `0.2.0` / `step2-twitch-capability-check`
 
 ## Zweck
 
-Das Modul `vip30` bildet die neue Node-Grundlage fuer das 30-Tage-VIP-System im `stream-control-center`.
+VIP30 verwaltet das geplante 30-Tage-VIP-System vollständig im Node-Backend des `stream-control-center`.
 
-Wichtig:
-
-```text
-- kein Streamer.bot mehr
-- kein Import aus altem vip_slots.json
-- Kanalpunkte-Reward wird im bestehenden Channelpoints-Modul angelegt
-- VIP30 wird spaeter als Fachaktion aus dem Channelpoints-Execution-Flow aufgerufen
-- Logs und Statistiken laufen ueber SQLite/API/Dashboard, nicht ueber normale Server-Logs
-```
-
-## STEP1 Umfang
-
-Dieser Stand baut nur die sichere Grundlage:
-
-```text
-backend/modules/vip30.js
-config/vip30.json
-docs/modules/vip30.md
-```
-
-Funktionen in STEP1:
-
-```text
-- Modul laedt ueber den bestehenden Modul-Loader
-- SQLite-Schema wird additiv angelegt
-- Communication-Bus registerModule
-- Communication-Bus heartbeatModule
-- Communication-Bus publishModuleStatus
-- Status-/Health-/Slots-/Logs-/Stats-Routen
-- Diagnose-Registry-Eintrag vorbereitet
-```
-
-Noch nicht enthalten:
-
-```text
-- kein Twitch Add VIP
-- kein Twitch Remove VIP
-- kein Redemption Fulfill/Cancel
-- keine Channelpoints-Execution-Anbindung
-- kein Sound-System-Alert
-- kein Dashboard-UI
-```
-
-## Reward-Festlegung
-
-Der Reward soll im bestehenden Kanalpunkte-Modul eingetragen werden:
+Der Reward soll direkt im bestehenden Kanalpunkte-System eingetragen werden:
 
 ```text
 reward_key: vip30
@@ -64,189 +19,139 @@ action_key: vip30.redeem
 auto_fulfill: false
 ```
 
-`auto_fulfill` bleibt bewusst `false`, weil erst nach erfolgreichem Twitch-VIP-Grant fulfilled werden darf.
+## Aktueller STEP2-Umfang
 
-## Config
+STEP2 ergänzt nur den Twitch-Capability-Check. Es werden keine Twitch-Live-Aktionen ausgeführt.
 
-Datei:
-
-```text
-config/vip30.json
-```
-
-Wichtige Werte:
+Vorhanden:
 
 ```text
-slots.maxSlots = 10
-slots.durationDays = 30
-reward.cost = 50000
-alerts.mode = sound_system
-textStyle.style = CGN/Altersheim/Rentner
-twitch.liveActionsEnabled = false
+/api/vip30/status
+/api/vip30/health
+/api/vip30/slots
+/api/vip30/logs
+/api/vip30/stats
+/api/vip30/twitch/capability
+/api/vip30/twitch/scopes
 ```
 
-## Datenbank
+## Twitch Capability Check
 
-Neue Tabellen in der bestehenden produktiven SQLite-Datenbank:
+`GET /api/vip30/twitch/capability` fragt intern die vorhandene Twitch-Auth-Validate-Route ab:
+
+```text
+/api/twitch/auth/validate
+```
+
+Geprüft werden:
+
+```text
+channel:manage:redemptions
+channel:manage:vips
+Broadcaster/User-Match, sofern verfügbar
+Token gültig
+```
+
+Wichtig:
+
+```text
+checkOnly: true
+noTwitchWrite: true
+noVipGrant: true
+noVipRevoke: true
+noRedemptionFulfillCancel: true
+```
+
+## Benötigte Scopes
+
+```text
+channel:manage:redemptions
+```
+
+wird später benötigt, um eine Channelpoints-Redemption nach erfolgreicher VIP-Vergabe auf `FULFILLED` oder bei Ablehnung/Fehler auf `CANCELED` zu setzen.
+
+```text
+channel:manage:vips
+```
+
+wird später benötigt, um VIPs zu setzen und nach Ablauf wieder zu entfernen.
+
+Optional:
+
+```text
+channel:read:vips
+```
+
+kann für reine Lese-/Diagnoseprüfungen hilfreich sein. Für Add/Remove bleibt `channel:manage:vips` relevant.
+
+## Bus
+
+VIP30 meldet sich am Communication Bus als Modul `module:vip30` an und sendet Heartbeats.
+
+Capabilities in STEP2:
+
+```text
+vip30.status
+vip30.slots
+vip30.logs
+vip30.stats
+vip30.twitch.capability
+vip30.cleanup.planned
+vip30.redeem.planned
+```
+
+Zusätzlich wird beim Capability-Check ein Event auf `vip30.twitch` gesendet:
+
+```text
+capability.ready
+capability.missing
+```
+
+## Logging
+
+Normale VIP30-Abläufe werden nicht ins Server-Log geschrieben. Dashboard/DB bleiben die primäre Stelle.
+
+Tabellen:
 
 ```text
 vip30_slots
 vip30_log
 ```
 
-Es wird keine bestehende Tabelle ersetzt oder geloescht.
+## Tests
 
-### vip30_slots
+Nach Entpacken:
 
-Speichert kuenftig aktive/abgelaufene VIP30-Slots:
-
-```text
-id
-user_id
-user_login
-user_display_name
-avatar_url
-start_utc
-end_utc
-status
-twitch_reward_id
-twitch_redemption_id
-source
-created_at
-updated_at
-revoked_at
-last_error
+```powershell
+node -c backend\modules\vip30.js
+.\stepdone.cmd "VIP30-STEP2 Twitch Capability Check"
 ```
 
-Status-Zielwerte spaeter:
+Nach erfolgreichem Stepdone und Serverstart:
 
-```text
-active
-revoke_pending
-revoked
-failed
-cancelled
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/status" | ConvertTo-Json -Depth 8
+Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/twitch/scopes" | ConvertTo-Json -Depth 8
+Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/twitch/capability" | ConvertTo-Json -Depth 8
 ```
 
-### vip30_log
+Bus-Check:
 
-Dashboard-/API-Logging fuer Einloesungen, Fehler, Refunds, Grants, Revokes und Alerts:
-
-```text
-event_type
-user_id
-user_login
-user_display_name
-twitch_reward_id
-twitch_redemption_id
-slot_id
-success
-reason
-message
-error_code
-error_message
-payload_json
-created_at
+```powershell
+$c = Invoke-RestMethod "http://127.0.0.1:8080/api/communication/status"
+$c.status.clients |
+  Where-Object module -eq "vip30" |
+  Select-Object id,module,status,lastHeartbeatAt,heartbeatCount
 ```
 
-## API-Routen
+## Nicht enthalten
 
 ```text
-GET /api/vip30/status
-GET /api/vip30/health
-GET /api/vip30/slots
-GET /api/vip30/logs
-GET /api/vip30/stats
+Keine VIP-Vergabe
+Kein VIP-Entzug
+Kein Fulfill/Cancel einer Redemption
+Kein Channelpoints-Executor-Umbau
+Kein Dashboard-UI-Umbau
+Kein Streamer.bot
+Kein Import alter JSON-Daten
 ```
-
-## Communication Bus
-
-VIP30 meldet sich als Modul an:
-
-```text
-id: module:vip30
-module: vip30
-capabilities:
-- vip30.status
-- vip30.slots
-- vip30.logs
-- vip30.stats
-- vip30.cleanup.planned
-- vip30.redeem.planned
-```
-
-Heartbeat und Status werden periodisch gesendet.
-
-## Logging-Regel
-
-Normale VIP30-Vorgaenge sollen nicht den Server-Log fluten.
-
-Erlaubt im Server-Log:
-
-```text
-[vip30] v0.1.0 active (...)
-[vip30] critical init error: ...
-```
-
-Normale Auswertung passiert ueber:
-
-```text
-/api/vip30/logs
-/api/vip30/stats
-Dashboard spaeter
-```
-
-## Naechste Steps
-
-### VIP30-STEP2
-
-Twitch Capability Check:
-
-```text
-channel:manage:redemptions
-channel:manage:vips
-broadcaster_id
-Client-ID / Token-Quelle
-```
-
-### VIP30-STEP3
-
-Channelpoints-Action-Anbindung:
-
-```text
-channelpoints.js erkennt action_type=vip30 / action_key=vip30.redeem
-channelpoints delegiert an vip30-Modul
-vip30 gibt Entscheidung an channelpoints zurueck
-```
-
-### VIP30-STEP4
-
-Dry-Run-Redemption ohne Twitch-Schreibaktion.
-
-### VIP30-STEP5
-
-Live-Grant:
-
-```text
-Twitch Add VIP
-DB Slot active
-Redemption FULFILLED
-Sound-System Alert
-Chat-/Overlay-Zufallstexte
-```
-
-### VIP30-STEP6
-
-Cancel-/Refund-Faelle:
-
-```text
-Slots voll
-bereits Slot aktiv
-bereits VIP
-Moderator
-Twitch-/DB-/Sound-Fehler
-```
-
-### VIP30-STEP7
-
-Cleanup/Revoke nach Ablauf.
