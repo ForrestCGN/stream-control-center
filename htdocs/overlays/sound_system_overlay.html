@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ForrestCGN Sound-System Overlay - CAN44_21_23_TWITCH_CLIP_SILENT_RESET</title>
+  <title>ForrestCGN Sound-System Overlay - CAN44_22_SHOUTOUT_OVERLAY_TEXTS</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
@@ -30,60 +30,174 @@
       left: 50%;
       top: 55%;
       transform: translate(-50%, -50%);
-      width: 980px;
+      width: 1180px;
       opacity: 0;
       pointer-events: none;
       display: none;
+      color: #f8fbff;
+      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
     }
 
-    #clipCard.show { display: block; animation: clipIntro .9s ease-out forwards; }
+    #clipCard.show { display: block; animation: clipIntro .9s cubic-bezier(.16,1,.3,1) forwards; }
     #clipCard.hide { display: block; animation: clipOutro .7s ease-in forwards; }
 
     @keyframes clipIntro {
-      from { opacity: 0; transform: translate(-130%, -50%) scale(.8); }
-      to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      from { opacity: 0; transform: translate(-130%, -50%) scale(.86); filter: blur(8px); }
+      to   { opacity: 1; transform: translate(-50%, -50%) scale(1); filter: blur(0); }
     }
 
     @keyframes clipOutro {
-      from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-      to   { opacity: 0; transform: translate(-50%, -60%) scale(.6); }
+      from { opacity: 1; transform: translate(-50%, -50%) scale(1); filter: blur(0); }
+      to   { opacity: 0; transform: translate(-50%, -60%) scale(.72); filter: blur(5px); }
     }
 
     .clip-panel {
-      display: grid;
-      grid-template-columns: 190px 3px 1fr;
-      gap: 0;
-      padding: 22px 30px;
-      border-radius: 40px;
-      background: radial-gradient(circle at 15% 50%, #a580fc, #5a3fc0 55%, #28123f);
-      border: 3px solid rgba(18, 8, 38, .9);
-      box-shadow: 0 12px 22px rgba(0,0,0,.9);
+      position: relative;
+      min-height: 560px;
+      border-radius: 38px;
+      padding: 24px;
+      background:
+        radial-gradient(circle at 16% 22%, rgba(168,85,247,.18), transparent 36%),
+        linear-gradient(140deg, rgba(12,15,34,.94), rgba(28,11,55,.92));
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.08),
+        0 0 34px rgba(168,85,247,.46),
+        0 0 72px rgba(34,211,238,.14),
+        0 30px 70px rgba(0,0,0,.62);
+      overflow: hidden;
     }
 
-    .clip-divider {
-      width: 3px;
-      height: 360px;
-      background: linear-gradient(180deg, transparent, #55c4ff, #a580fc, transparent);
-      box-shadow: 0 0 14px rgba(165,128,252,.9);
-      border-radius: 99px;
-      margin: auto 0;
+    .clip-panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: 3px;
+      background:
+        linear-gradient(120deg,
+          rgba(34,211,238,.88),
+          rgba(168,85,247,.88),
+          rgba(232,121,249,.70),
+          rgba(59,130,246,.72),
+          rgba(34,211,238,.88));
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+      z-index: 4;
+    }
+
+    .clip-panel::after {
+      content: "CGN";
+      position: absolute;
+      right: 34px;
+      top: 84px;
+      font-size: 70px;
+      font-weight: 1000;
+      color: rgba(255,255,255,.032);
+      letter-spacing: -.08em;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .clip-corner-dot {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      z-index: 5;
+    }
+
+    .clip-corner-dot.a {
+      left: 30px;
+      top: 30px;
+      background: #22d3ee;
+      box-shadow: 0 0 16px #22d3ee, 0 0 34px #22d3ee;
+    }
+
+    .clip-corner-dot.b {
+      right: 30px;
+      bottom: 30px;
+      background: #e879f9;
+      box-shadow: 0 0 16px #e879f9, 0 0 34px #e879f9;
+    }
+
+    .clip-header {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 6px 10px 22px;
+    }
+
+    .clip-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: rgba(34,211,238,.10);
+      border: 1px solid rgba(34,211,238,.36);
+      color: #dffbff;
+      font-size: 18px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      box-shadow: 0 0 18px rgba(34,211,238,.16);
+    }
+
+    .clip-live-pill {
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(168,85,247,.16);
+      border: 1px solid rgba(168,85,247,.42);
+      color: #f3e8ff;
+      font-size: 16px;
+      box-shadow: 0 0 18px rgba(168,85,247,.20);
+    }
+
+    .clip-main {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 26px;
+      align-items: stretch;
     }
 
     .clip-left {
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding-right: 18px;
-      height: 360px;
+      gap: 22px;
+      padding: 22px 18px;
+      border-radius: 30px;
+      background: linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.022));
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: inset 0 0 30px rgba(168,85,247,.08);
+      min-width: 0;
+      overflow: hidden;
     }
 
     .clip-avatar-wrap {
-      width: 150px;
-      height: 150px;
-      padding: 7px;
+      width: 188px;
+      height: 188px;
+      padding: 8px;
       border-radius: 999px;
-      background: radial-gradient(circle at 30% 20%, #a580fc, #28123f);
-      box-shadow: 0 0 24px rgba(165,128,252,.95);
+      background:
+        conic-gradient(from 210deg, #22d3ee, #a855f7, #e879f9, #3b82f6, #22d3ee);
+      box-shadow:
+        0 0 30px rgba(168,85,247,.82),
+        0 0 45px rgba(34,211,238,.30);
+      animation: clipAvatarPulse 2.8s ease-in-out infinite;
+      flex: 0 0 auto;
+    }
+
+    @keyframes clipAvatarPulse {
+      0%,100% { transform: scale(1); filter: brightness(1); }
+      50% { transform: scale(1.025); filter: brightness(1.12); }
     }
 
     .clip-avatar-inner {
@@ -91,9 +205,12 @@
       height: 100%;
       border-radius: inherit;
       overflow: hidden;
-      background: #140627;
-      border: 3px solid #120822;
+      background:
+        radial-gradient(circle at 35% 25%, #eef7ff, #8b5cf6 34%, #27114b 70%);
+      border: 5px solid rgba(9,7,22,.96);
       position: relative;
+      display: grid;
+      place-items: center;
     }
 
     .clip-avatar-inner::before {
@@ -101,8 +218,8 @@
       position: absolute;
       inset: 3px;
       border-radius: inherit;
-      border: 3px solid #1e90ff;
-      box-shadow: 0 0 14px rgba(30,144,255,.9);
+      border: 2px solid rgba(34,211,238,.92);
+      box-shadow: 0 0 14px rgba(34,211,238,.72);
       pointer-events: none;
       z-index: 2;
     }
@@ -120,52 +237,117 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 52px;
-      font-weight: 800;
+      font-size: 74px;
+      font-weight: 900;
       color: white;
-      text-shadow: 0 0 12px rgba(30,144,255,.9);
+      text-shadow: 0 0 18px rgba(34,211,238,.85);
+    }
+
+    .clip-name-block {
+      width: 100%;
+      text-align: center;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .clip-label-small {
+      color: #b8c7e6;
+      font-size: 15px;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .clip-user-name-box {
+      width: 250px;
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    #clipName {
+      display: inline-block;
+      font-size: 28px;
+      line-height: 34px;
+      font-weight: 900;
+      color: #fff;
+      text-shadow:
+        0 0 8px rgba(168,85,247,.74),
+        0 0 18px rgba(34,211,238,.20);
+      white-space: nowrap;
+      text-align: center;
+      transform-origin: center center;
     }
 
     .clip-right {
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      gap: 10px;
-      padding-left: 22px;
+      gap: 18px;
+      min-width: 0;
     }
 
     .clip-video-frame {
+      position: relative;
       width: 100%;
-      height: 360px;
-      border-radius: 26px;
+      height: 390px;
+      border-radius: 30px;
+      padding: 4px;
+      background:
+        linear-gradient(135deg, rgba(34,211,238,.88), rgba(168,85,247,.84), rgba(59,130,246,.74));
+      box-shadow:
+        0 0 22px rgba(34,211,238,.24),
+        0 0 34px rgba(168,85,247,.18);
       overflow: hidden;
-      background: black;
-      box-shadow: inset 0 0 10px rgba(0,0,0,.7);
     }
 
     #clipVideoPlayer {
       width: 100%;
       height: 100%;
+      border-radius: 26px;
       object-fit: cover;
       opacity: 0;
       transition: opacity 250ms ease-in-out;
-      background: black;
+      background:
+        linear-gradient(135deg, rgba(4,8,18,.92), rgba(15,7,33,.96));
+      display: block;
     }
 
+    .clip-bottom-panel {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 150px;
+      padding: 22px 28px;
+      border-radius: 26px;
+      background: linear-gradient(90deg, rgba(255,255,255,.052), rgba(34,211,238,.055));
+      border: 1px solid rgba(255,255,255,.10);
+    }
 
-    #clipName {
-      margin-top: 10px;
-      font-family: "Pacifico", cursive;
-      font-size: 34px;
-      color: white;
-      text-shadow: 0 0 10px rgba(165,128,252,.9);
-      text-align: center;
+    #clipHeadline {
+      font-size: 40px;
+      line-height: 1.05;
+      font-weight: 950;
+      letter-spacing: -.035em;
+      text-shadow:
+        0 0 16px rgba(168,85,247,.60),
+        0 0 30px rgba(34,211,238,.18);
+      white-space: nowrap;
     }
 
     #clipSubline {
-      font-size: 16px;
-      color: #d0c9ff;
-      text-align: center;
+      margin-top: 10px;
+      font-size: 22px;
+      color: #b8c7e6;
+      line-height: 1.26;
+      max-width: 900px;
+      text-align: left;
+      text-shadow:
+        0 0 8px rgba(168,85,247,.24),
+        0 0 14px rgba(34,211,238,.12);
     }
 
     #status {
@@ -194,21 +376,41 @@
 
   <div id="clipCard">
     <div class="clip-panel">
-      <div class="clip-left">
-        <div class="clip-avatar-wrap">
-          <div class="clip-avatar-inner">
-            <img id="clipAvatarImg" alt="avatar">
-            <div id="clipAvatarPh">?</div>
+      <div class="clip-corner-dot a"></div>
+      <div class="clip-corner-dot b"></div>
+
+      <div class="clip-header">
+        <div class="clip-kicker">📺 Shoutout läuft</div>
+        <div class="clip-live-pill">CGN Altersheim-TV</div>
+      </div>
+
+      <div class="clip-main">
+        <div class="clip-left">
+          <div class="clip-avatar-wrap">
+            <div class="clip-avatar-inner">
+              <img id="clipAvatarImg" alt="avatar">
+              <div id="clipAvatarPh">?</div>
+            </div>
+          </div>
+
+          <div class="clip-name-block">
+            <div class="clip-label-small">Heute auf Sendung</div>
+            <div class="clip-user-name-box">
+              <div id="clipName">User</div>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="clip-divider"></div>
-      <div class="clip-right">
-        <div class="clip-video-frame">
-          <video id="clipVideoPlayer" preload="auto" playsinline></video>
+
+        <div class="clip-right">
+          <div class="clip-video-frame">
+            <video id="clipVideoPlayer" preload="auto" playsinline></video>
+          </div>
+
+          <div class="clip-bottom-panel">
+            <div id="clipHeadline">Schaut gerne mal vorbei!</div>
+            <div id="clipSubline">Heute im Altersheim-TV: User</div>
+          </div>
         </div>
-        <div id="clipName">@User</div>
-        <div id="clipSubline">🧓 Altersheim-TV</div>
       </div>
     </div>
   </div>
@@ -221,7 +423,7 @@
       'use strict';
 
       const API = '/api/sound';
-      const BUILD = 'CAN44.21.21';
+      const BUILD = 'CAN44.22.0';
       const TWITCH_CLIENT_ID = 'kimne78kx3ncx6brgo4mv6wki5h1ko';
       const TWITCH_CLIP_PERSISTED_HASH = '36b89d2507fce29e5ca551df756d27c1cfe079e2609642b4390aa4c35796eb11';
       const player = document.getElementById('player');
@@ -232,6 +434,7 @@
       const clipAvatarPh = document.getElementById('clipAvatarPh');
       const clipName = document.getElementById('clipName');
       const clipSubline = document.getElementById('clipSubline');
+      const clipHeadline = document.getElementById('clipHeadline');
       const status = document.getElementById('status');
       const unlockBtn = document.getElementById('unlock');
       const qs = new URLSearchParams(location.search);
@@ -575,6 +778,25 @@
         return true;
       }
 
+      function fitTextToBox(el, selector, minScale) {
+        if (!el) return;
+        const box = selector ? el.closest(selector) : el.parentElement;
+        if (!box) return;
+        el.style.transform = 'scale(1)';
+        requestAnimationFrame(() => {
+          try {
+            const boxWidth = box.clientWidth || 1;
+            const rawWidth = el.scrollWidth || el.getBoundingClientRect().width || 1;
+            const scale = Math.max(minScale || 0.66, Math.min(1, boxWidth / rawWidth));
+            el.style.transform = 'scale(' + scale.toFixed(3) + ')';
+          } catch (_) {}
+        });
+      }
+
+      function fitClipTexts() {
+        fitTextToBox(clipName, '.clip-user-name-box', 0.55);
+      }
+
       function setupClipCard(item, options) {
         const opts = options || {};
         const visual = visualOf(item);
@@ -584,11 +806,14 @@
         const login = String(rawLogin || 'User').replace(/^@+/, '').trim();
         const displayName = String(rawDisplay || login || 'User').replace(/^@+/, '').trim();
         const avatarUrl = sanitizeHttpUrl(visual.avatarUrl || meta.avatarUrl || item.avatarUrl || '');
-        const subline = visual.subline || meta.subline || '🧓 Altersheim-TV';
+        const headline = String(visual.headline || meta.headline || 'Schaut gerne mal vorbei!').trim() || 'Schaut gerne mal vorbei!';
+        const subline = String(visual.subline || meta.subline || ('Heute im Altersheim-TV: ' + (displayName || login || 'User'))).trim() || ('Heute im Altersheim-TV: ' + (displayName || login || 'User'));
 
-        clipName.textContent = '@' + (displayName || login || 'User');
-        clipSubline.textContent = String(subline);
+        clipName.textContent = displayName || login || 'User';
+        if (clipHeadline) clipHeadline.textContent = headline;
+        clipSubline.textContent = subline;
         resetAvatar(displayName, login);
+        fitClipTexts();
 
         if (!applyAvatarUrl(avatarUrl) && login) {
           lookupAvatarUrl(login).then((foundAvatar) => {
@@ -852,8 +1077,11 @@
         videoPlaybackStartedAt = Date.now();
         const meta = item.meta && typeof item.meta === 'object' ? item.meta : {};
         const visual = visualOf(item);
-        const baseSubline = visual.subline || meta.subline || '🧓 Altersheim-TV';
+        const baseHeadline = visual.headline || meta.headline || 'Schaut gerne mal vorbei!';
+        const baseSubline = visual.subline || meta.subline || 'Heute im Altersheim-TV: ' + (visual.displayName || meta.targetDisplayName || item.targetDisplayName || visual.login || item.login || 'User');
+        if (clipHeadline) clipHeadline.textContent = String(baseHeadline);
         clipSubline.textContent = String(baseSubline);
+        fitClipTexts();
 
         await post('/client/audio-started', {
           requestId: currentRequestId,
@@ -1179,7 +1407,7 @@
           module: 'sound_system',
           mode: 'bus_consumer_with_legacy_fallback',
           capabilities: BUS_CAPABILITIES,
-          version: 'CAN44.21.21',
+          version: 'CAN44.22.0',
           state: document.hidden ? 'hidden' : 'visible',
           meta: {
             overlay: 'sound_system_overlay.html',
@@ -1274,7 +1502,7 @@
             module: 'sound_system',
             mode: 'bus_consumer_with_legacy_fallback',
             capabilities: BUS_CAPABILITIES,
-            version: 'CAN44.21.21'
+            version: 'CAN44.22.0'
           });
           startBusHeartbeat();
           post('/client/ready', { overlay: 'sound_system_overlay', busConsumer: true });
