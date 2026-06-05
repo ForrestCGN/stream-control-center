@@ -1,26 +1,19 @@
-# Files
+# FILES
 
-## Dokumentationsupdate CAN-44.21 Shoutout Playback
+## VIP30-STEP1 Dateien
 
-- `docs/current/CURRENT_CHAT_HANDOFF_CAN44_21_SHOUTOUT_PLAYBACK.md`
-- `docs/current/SHOUTOUT_CAN44_21_STATUS.md`
-- `project-state/CURRENT_STATUS.md`
-- `project-state/NEXT_STEPS.md`
-- `project-state/TODO.md`
-- `project-state/CHANGELOG.md`
-- `project-state/FILES.md`
-- `README_CAN44_21_DOC_UPDATE.txt`
+```text
+backend/modules/vip30.js
+config/vip30.json
+docs/modules/vip30.md
+backend/modules/diagnostics.js
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+```
 
-## Relevante technische Dateien für nächsten Schritt
+## Zielpfade
 
-Vor CAN-44.21.16 prüfen:
-
-- `backend/modules/clip_shoutout.js`
-- Sound-/Bundle-Modul für `/api/sound/bundle`
-- Overlay-Datei(en), die Sound-/Bundle-Items anzeigen
-- `htdocs/overlays/_overlay-clip_player.html`
-
-## Relevante Live-Pfade
-
-- `D:\Git\stream-control-center\htdocs\overlays\_overlay-clip_player.html`
-- `D:\Streaming\stramAssets\htdocs\overlays\_overlay-clip_player.html`
+Das ZIP ist auf Repo-Wurzel ausgelegt und soll nach `D:\Git\stream-control-center` entpackt werden.

@@ -2,10 +2,9 @@
 const core = require('./helpers/helper_core');
 const routes = require('./helpers/helper_routes');
 
-const MODULE_VERSION = '0.2.2';
+const MODULE_VERSION = '0.2.3';
 
-const DIAGNOSTICS_REGISTRY_VERSION = 1;
-
+const DIAGNOSTICS_REGISTRY_VERSION = 2;
 
 const REGISTRY_KEY_ALIASES = {
   alert_system: 'alerts',
@@ -13,6 +12,8 @@ const REGISTRY_KEY_ALIASES = {
   vip_sound_overlay: 'vip',
   'vip-sound': 'vip',
   vip: 'vip',
+  vip30: 'vip30',
+  'vip30-system': 'vip30',
   sound: 'sound_system',
   sound_system: 'sound_system',
   message_rotator: 'message_rotator',
@@ -114,6 +115,7 @@ const DIAGNOSTICS_REGISTRY = [
   { key: 'sound_system', label: 'Sound-System', group: 'system', status: '/api/sound/status' },
   { key: 'media', label: 'Medienverwaltung', group: 'system', status: '/api/media/status' },
   { key: 'vip', label: 'VIP-System', group: 'community', status: '/api/vip-sound/status' },
+  { key: 'vip30', label: '30 Tage VIP', group: 'community', status: '/api/vip30/status', health: '/api/vip30/health', slots: '/api/vip30/slots', logs: '/api/vip30/logs', stats: '/api/vip30/stats' },
   { key: 'alerts', label: 'Alerts', group: 'control', status: '/api/alerts/status' }
 ];
 

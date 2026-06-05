@@ -1,24 +1,14 @@
 # TODO
 
-## CAN-44.21.16 – offen
+## VIP30
 
-- [ ] Echte Dateien für Sound-/Bundle-/Overlay-Verbraucher prüfen.
-- [ ] Klären, ob HTML-/Browser-Embed-URLs in der Sound-/Overlay-Queue funktionieren.
-- [ ] Falls nötig `browser_embed` / `clip_player_overlay` Modus planen.
-- [ ] Ziel/Dateien/Änderung/Nicht geändert/Tests nennen.
-- [ ] Auf `go` warten.
-- [ ] Vollständige Ersatzdatei-ZIP mit echten Zielpfaden liefern, keine Apply-Scripte.
-- [ ] `node -c` Test nennen.
-- [ ] `stepdone.cmd "CAN-44.21.16 Clip Player Overlay Fallback"` nutzen.
-
-## Diagnose / Alt-Einträge
-
-- [ ] Alte failed Display-Queue-Testeinträge 74–77 später bereinigen, falls gewünscht.
-- [ ] Nach Fix frische Tests mit `!so @pretos1 --force` und `!so @together_not_alone --force` durchführen.
-- [ ] Bei Fehler `lastRun`, `lastClipSearch`, `playbackAttempts` prüfen.
-
-## Dauerhafte Regel
-
-- [ ] Keine Funktionalität entfernen.
-- [ ] Keine produktive DB überschreiben/löschen/neu bauen.
-- [ ] GitHub/dev und Live bewusst synchron halten.
+- [ ] Diagnose-Registry nach Einbau prüfen: `/api/diagnostics/registry`
+- [ ] `/api/vip30/status` nach Serverstart prüfen
+- [ ] Channelpoints-Reward `vip30` im bestehenden Kanalpunkte-Modul anlegen
+- [ ] Twitch Capability Check für Redemptions + VIPs ergänzen
+- [ ] VIP30-Action gezielt in Channelpoints-Execution anbinden
+- [ ] Dry-Run für Einlösung testen
+- [ ] Live-Grant erst nach Dry-Run freischalten
+- [ ] Sound-System-Alert nach erfolgreichem Grant anbinden
+- [ ] Dashboard-Ansicht für Slots/Logs/Stats bauen
+- [ ] Textvarianten für CGN/Altersheim/Rentner-Stil dashboardfähig seed/enablen

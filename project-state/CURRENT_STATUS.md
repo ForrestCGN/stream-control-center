@@ -2,50 +2,53 @@
 
 ## Stand
 
-Aktueller Fokus: Shoutout-System / Clip-Shoutout / AutoShoutout im `stream-control-center`.
+Aktueller Fokus: VIP30 / 30 Tage VIP im `stream-control-center`.
 
-CAN-44.21.15 ist im Live-Test angekommen. Das Shoutout-Modul meldet:
-
-```text
-moduleVersion = 0.2.27
-```
-
-CAN-44.21.15 hat die Clip-Suche und Playback-Kandidatenprüfung verbessert, aber der Live-Test hat gezeigt: Die direkte Twitch-GQL-Playback-Auflösung ist bei bestimmten Clips/Kanälen nicht zuverlässig.
-
-## Bestätigt
-
-- Neue DB-Textvarianten sind aktiv und wurden im Chat genutzt.
-- Duplicate-Meldungen kommen aus den neuen Textvarianten.
-- Clip-Suche findet Clips bei `pretos1` und `together_not_alone`.
-- `_overlay-clip_player.html` existiert im Repo und im Live-System.
-- Display-Queue/Worker laufen grundsätzlich.
-- Official Twitch Shoutouts wurden erfolgreich gesendet.
-
-## Aktuelles Problem
-
-Mehrere Display-Queue-Testeinträge sind fehlgeschlagen mit:
+VIP30-STEP1 wurde vorbereitet als neuer Node-basierter Grundstand:
 
 ```text
-clip_playback_failed_all_candidates
+backend/modules/vip30.js
+config/vip30.json
+docs/modules/vip30.md
 ```
 
-Das bedeutet: Clips wurden gefunden, aber alle direkten Playback-URL-Versuche scheiterten.
+## Festlegungen
 
-## Wichtige Festlegung
+```text
+- kein Streamer.bot fuer VIP30
+- kein Import aus altem vip_slots.json
+- Reward im bestehenden Channelpoints-Modul
+- Kosten: 50000 Kanalpunkte
+- Laufzeit: 30 Tage
+- Max Slots: 10
+- Logs/Statistiken ueber SQLite/API/Dashboard, keine normalen Server-Logs
+- Communication-Bus: registerModule, heartbeatModule, publishModuleStatus
+- Alert spaeter bevorzugt ueber Sound-System-Overlay
+- Texte spaeter als Dashboard-Varianten im CGN/Altersheim/Rentner-Stil
+```
 
-Für den nächsten Fix darf die Queue nicht umgangen werden.
+## STEP1 Umfang
 
-Erhalten bleiben müssen:
+```text
+- SQLite Tabellen vip30_slots und vip30_log
+- /api/vip30/status
+- /api/vip30/health
+- /api/vip30/slots
+- /api/vip30/logs
+- /api/vip30/stats
+- Diagnose-Registry-Erweiterung fuer VIP30 vorgesehen
+```
 
-- Display-Queue
-- Worker
-- Cooldown
-- Start-Szene-Gate
-- Official Twitch Queue
-- AutoShoutout
-- Dashboard-Queue
-- Sound-/Bundle-System, sofern technisch möglich
+## Noch nicht aktiv
 
-## Nächster Fokus
+```text
+- kein Twitch Add VIP
+- kein Twitch Remove VIP
+- kein Fulfill/Cancel
+- keine Channelpoints-Execution-Anbindung
+- kein Dashboard-UI
+```
 
-CAN-44.21.16: Clip Player Overlay Fallback innerhalb der bestehenden Queue/Sound-Queue planen und dann nach `go` umsetzen.
+## Naechster Fokus
+
+VIP30-STEP2: Twitch Capability Check fuer `channel:manage:redemptions` und `channel:manage:vips`, danach gezielte Channelpoints-Action-Anbindung.

@@ -1,0 +1,61 @@
+{
+  "enabled": true,
+  "moduleVersion": "0.1.0",
+  "reward": {
+    "rewardKey": "vip30",
+    "title": "30 Tage VIP",
+    "cost": 50000,
+    "categoryKey": "vip",
+    "actionType": "vip30",
+    "actionKey": "vip30.redeem",
+    "autoFulfill": false
+  },
+  "slots": {
+    "maxSlots": 10,
+    "durationDays": 30,
+    "blockModerators": true,
+    "blockExistingVip": true,
+    "blockExistingSlot": true
+  },
+  "cleanup": {
+    "enabled": true,
+    "runOnStart": false,
+    "intervalMs": 300000
+  },
+  "logging": {
+    "enabled": true,
+    "recentLimit": 25,
+    "serverLogNormalEvents": false
+  },
+  "dashboard": {
+    "enabled": true
+  },
+  "bus": {
+    "enabled": true,
+    "heartbeatIntervalMs": 5000,
+    "statusPublishIntervalMs": 30000,
+    "ttlMs": 60000,
+    "replayable": true,
+    "requireAck": false
+  },
+  "alerts": {
+    "enabled": true,
+    "mode": "sound_system",
+    "soundKey": "vip30",
+    "category": "vip",
+    "durationMs": 9000,
+    "designPending": true
+  },
+  "textStyle": {
+    "category": "vip30",
+    "style": "CGN/Altersheim/Rentner",
+    "dashboardVariants": true
+  },
+  "twitch": {
+    "liveActionsEnabled": false,
+    "requiredScopes": [
+      "channel:manage:redemptions",
+      "channel:manage:vips"
+    ]
+  }
+}
