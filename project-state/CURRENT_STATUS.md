@@ -1,16 +1,14 @@
 # Current Status
 
-VIP30 steht auf STEP6: Channelpoints Decision Bridge.
+VIP30 steht auf STEP7: EventSub Live-Dry-Run Observe.
 
-- Version `0.6.1`
-- Build `step6.1-status-routecount-cleanup`
+- Version `0.7.0`
+- Build `step7-eventsub-live-dryrun-observe`
 - Reward-Kosten: 40000 Kanalpunkte
 - DB-Settings sind primäre Config
 - Bridge hört auf `channelpoints.redemption / received`
 - Bridge gibt echte/simulierte Channelpoints-Redemptions an VIP30-Decision weiter
+- Neue Live-Dry-Run-Diagnose: `/api/vip30/channelpoints/bridge/live-check`
+- Neue Runtime-Reset-Route: `/api/vip30/channelpoints/bridge/reset-stats`
 - Keine Twitch-Schreibaktion in diesem STEP
-
-
-### VIP30-STEP6.1 Cleanup
-
-Status-/Diagnose-Cleanup abgeschlossen: Modulstatus zeigt jetzt STEP6 korrekt und `routeCount` passt zur Liste der 15 registrierten VIP30-Routen. Funktionalität unverändert, Safety unverändert.
+- Kein VIP-Grant, kein Slot-Write, kein Fulfill/Cancel

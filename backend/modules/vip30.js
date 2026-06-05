@@ -6,8 +6,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.6.1";
-const MODULE_BUILD = "step6.1-status-routecount-cleanup";
+const MODULE_VERSION = "0.7.0";
+const MODULE_BUILD = "step7-eventsub-live-dryrun-observe";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -21,7 +21,7 @@ const MODULE_META = {
   category: "community",
   routePrefix: ROUTE_PREFIX,
   routesPrefix: [ROUTE_PREFIX],
-  description: "30 Tage VIP Node-Modul: SQLite-Grundlage, Dashboard-Logs/Stats, Communication-Bus, DB-/Dashboard-Config, Twitch-Capability-Check, Channelpoints-Reward-Link, Dry-Run-Redemption-Decision und Channelpoints-Decision-Bridge intern im VIP30-Modul ohne Live-Schreibaktion.",
+  description: "30 Tage VIP Node-Modul: SQLite-Grundlage, Dashboard-Logs/Stats, Communication-Bus, DB-/Dashboard-Config, Twitch-Capability-Check, Channelpoints-Reward-Link, Dry-Run-Redemption-Decision und Channelpoints-Decision-Bridge intern im VIP30-Modul und Live-EventSub-Dry-Run-Beobachtung ohne Live-Schreibaktion.",
   bus: {
     registered: true,
     heartbeat: true,
@@ -76,7 +76,8 @@ const DEFAULT_CONFIG = {
     acceptRewardKeyMatch: true,
     acceptTwitchRewardIdMatch: true,
     requireLocalRewardLinked: true,
-    duplicateWindowSize: 500
+    duplicateWindowSize: 500,
+    liveEventDryRunObserveEnabled: true
   },
   slots: {
     maxSlots: 10,
@@ -405,6 +406,7 @@ const SETTING_DEFINITIONS = [
   { key: "bridge.enabled", path: "bridge.enabled", type: "boolean", category: "bridge", label: "Channelpoints-Bridge aktiv", description: "Echte Channelpoints-Redemptions im Decision-only Modus an VIP30 übergeben.", editable: true },
   { key: "bridge.decisionOnly", path: "bridge.decisionOnly", type: "boolean", category: "bridge", label: "Nur Entscheidung", description: "Bridge schreibt keine Slots und führt keine Twitch-Aktionen aus.", editable: true },
   { key: "bridge.acceptTitleMatch", path: "bridge.acceptTitleMatch", type: "boolean", category: "bridge", label: "Titel-Match erlauben", description: "VIP30-Reward auch anhand von Titel/Kosten erkennen, solange Twitch-ID noch fehlt.", editable: true },
+  { key: "bridge.liveEventDryRunObserveEnabled", path: "bridge.liveEventDryRunObserveEnabled", type: "boolean", category: "bridge", label: "Live-EventSub Dry-Run", description: "Echte Channelpoints-Events aus EventSub nur beobachten und durch die VIP30-Decision schicken, ohne Twitch-/Slot-Schreibaktion.", editable: true },
   { key: "alerts.enabled", path: "alerts.enabled", type: "boolean", category: "alerts", label: "Alert aktiv", description: "Alert/Sound nach erfolgreicher Einlösung auslösen.", editable: true },
   { key: "alerts.soundKey", path: "alerts.soundKey", type: "string", category: "alerts", label: "Sound-Key", description: "Sound-System-Key für den VIP30-Alert.", editable: true },
   { key: "cleanup.enabled", path: "cleanup.enabled", type: "boolean", category: "cleanup", label: "Cleanup aktiv", description: "Ablauf-/Revoke-Logik für abgelaufene VIP30-Slots aktivieren.", editable: true },
@@ -1049,6 +1051,7 @@ function buildVip30RewardPayload() {
       dbDashboardConfig: true,
       dryRunDecisionFlow: true,
       channelpointsDecisionBridge: true,
+      eventsubLiveDryRunObserve: true,
       noVipGrantInThisStep: true,
       noRedemptionFulfillCancelInThisStep: true
     },
@@ -1646,8 +1649,116 @@ function buildInternalBridgeStatus() {
     lastError: bridgeLastError,
     stats: { ...bridgeStats },
     reward: buildChannelpointsRewardStatus().reward,
-    routes: [`${ROUTE_PREFIX}/channelpoints/bridge/status`, `${ROUTE_PREFIX}/channelpoints/bridge/test`],
+    routes: [`${ROUTE_PREFIX}/channelpoints/bridge/status`, `${ROUTE_PREFIX}/channelpoints/bridge/test`, `${ROUTE_PREFIX}/channelpoints/bridge/live-check`, `${ROUTE_PREFIX}/channelpoints/bridge/reset-stats`],
     safety: { noTwitchWrite: true, noVipGrant: true, noSlotWrite: true, noRedemptionFulfillCancel: true }
+  };
+}
+
+function resetBridgeRuntimeStats(reason = "api") {
+  bridgeSeenIds = [];
+  bridgeSeenSet.clear();
+  bridgeLastEventAt = "";
+  bridgeLastIgnoredAt = "";
+  bridgeLastError = "";
+  bridgeStats = {
+    received: 0,
+    ignored: 0,
+    matched: 0,
+    duplicates: 0,
+    decisions: 0,
+    errors: 0,
+    emittedTests: 0,
+    lastReason: cleanString(reason, "reset"),
+    lastRewardTitle: "",
+    lastRewardId: "",
+    lastUserLogin: ""
+  };
+  runtimeStats.bridgeDecisionRequests = 0;
+  runtimeStats.lastBridgeDecisionAt = "";
+  runtimeStats.lastBridgeDecision = null;
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    action: "bridge_runtime_stats_reset",
+    reason: cleanString(reason, "api"),
+    bridge: buildInternalBridgeStatus(),
+    safety: { noTwitchWrite: true, noVipGrant: true, noSlotWrite: true, noRedemptionFulfillCancel: true }
+  };
+}
+
+function buildChannelpointsBridgeLiveCheck() {
+  const config = getConfig();
+  const bridgeStatus = buildInternalBridgeStatus();
+  const rewardStatus = buildChannelpointsRewardStatus();
+  let busStatus = null;
+  try {
+    const currentBus = getBus();
+    busStatus = currentBus && typeof currentBus.getStatus === "function" ? currentBus.getStatus() : null;
+  } catch (_) { busStatus = null; }
+  const subscriptions = busStatus && Array.isArray(busStatus.subscriptions) ? busStatus.subscriptions : [];
+  const subscription = subscriptions.find(item => item && item.id === bridgeSubscriptionId) || null;
+  const existingReward = rewardStatus && rewardStatus.reward ? rewardStatus.reward.existing : null;
+  const hasTwitchRewardId = !!(existingReward && existingReward.twitchRewardId);
+  const titleMatchFallback = !(config.bridge && config.bridge.acceptTitleMatch === false);
+  const checks = {
+    moduleEnabled: config.enabled !== false,
+    bridgeEnabled: config.bridge && config.bridge.enabled !== false,
+    bridgeSubscribed: bridgeSubscribed === true,
+    subscriptionVisibleInBus: !!subscription,
+    decisionOnly: !(config.bridge && config.bridge.decisionOnly === false),
+    liveEventDryRunObserveEnabled: !(config.bridge && config.bridge.liveEventDryRunObserveEnabled === false),
+    localRewardLinked: rewardStatus && rewardStatus.status === "linked_in_sync",
+    twitchRewardIdLinked: hasTwitchRewardId,
+    titleMatchFallbackEnabled: titleMatchFallback,
+    canMatchRealEvent: hasTwitchRewardId || titleMatchFallback,
+    noTwitchWrite: true,
+    noVipGrant: true,
+    noSlotWrite: true,
+    noRedemptionFulfillCancel: true
+  };
+  const ready = checks.moduleEnabled && checks.bridgeEnabled && checks.bridgeSubscribed && checks.subscriptionVisibleInBus && checks.decisionOnly && checks.liveEventDryRunObserveEnabled && checks.localRewardLinked && checks.canMatchRealEvent;
+  return {
+    ok: ready,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    status: ready ? "ready_for_real_eventsub_dryrun_observation" : "not_ready_for_real_eventsub_dryrun_observation",
+    checkedAt: nowIso(),
+    checks,
+    bridge: bridgeStatus,
+    reward: rewardStatus && rewardStatus.reward ? {
+      configured: rewardStatus.reward.configured,
+      existing: existingReward ? {
+        id: existingReward.id,
+        rewardKey: existingReward.rewardKey,
+        twitchRewardId: existingReward.twitchRewardId,
+        title: existingReward.title,
+        cost: existingReward.cost,
+        actionType: existingReward.actionType,
+        actionKey: existingReward.actionKey,
+        twitchIsEnabled: existingReward.twitchIsEnabled,
+        autoFulfill: existingReward.autoFulfill
+      } : null,
+      inSync: rewardStatus.reward.inSync,
+      differences: rewardStatus.reward.differences || []
+    } : null,
+    eventBus: busStatus ? {
+      ok: busStatus.ok === true,
+      bus: busStatus.bus,
+      subscriptions: busStatus.stats && busStatus.stats.subscriptions,
+      subscriberDeliveries: busStatus.stats && busStatus.stats.subscriberDeliveries,
+      subscriberErrors: busStatus.stats && busStatus.stats.subscriberErrors,
+      subscription: subscription ? { id: subscription.id, module: subscription.module, channel: subscription.channel, action: subscription.action, delivered: subscription.delivered, errors: subscription.errors } : null
+    } : null,
+    nextManualTest: {
+      beforeRealRedeem: `POST ${ROUTE_PREFIX}/channelpoints/bridge/reset-stats`,
+      thenRedeemOnTwitch: "30 Tage VIP / 40000 Kanalpunkte ausloesen",
+      observe: `GET ${ROUTE_PREFIX}/channelpoints/bridge/status`,
+      logs: `GET ${ROUTE_PREFIX}/logs`
+    },
+    safety: { noTwitchWrite: true, noVipGrant: true, noSlotWrite: true, noRedemptionFulfillCancel: true, decisionOnly: true }
   };
 }
 
@@ -1772,7 +1883,7 @@ function buildHealth() {
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
     enabled: getConfig().enabled !== false,
-    status: lastError ? "error" : "ready_step6_channelpoints_decision_bridge",
+    status: lastError ? "error" : "ready_step7_eventsub_live_dryrun_observe",
     lastError,
     checks: {
       databaseReady: dbMigrationState.ok === true,
@@ -1804,10 +1915,10 @@ function buildStatus() {
     moduleBuild: MODULE_BUILD,
     version: MODULE_VERSION,
     enabled: config.enabled !== false,
-    status: lastError ? "error" : "ready_step6_channelpoints_decision_bridge",
+    status: lastError ? "error" : "ready_step7_eventsub_live_dryrun_observe",
     startedAt,
     routePrefix: ROUTE_PREFIX,
-    routeCount: 15,
+    routeCount: 17,
     routes: [
       `${ROUTE_PREFIX}/status`,
       `${ROUTE_PREFIX}/health`,
@@ -1823,7 +1934,9 @@ function buildStatus() {
       `${ROUTE_PREFIX}/redeem/dry-run`,
       `${ROUTE_PREFIX}/redeem/decision`,
       `${ROUTE_PREFIX}/channelpoints/bridge/status`,
-      `${ROUTE_PREFIX}/channelpoints/bridge/test`
+      `${ROUTE_PREFIX}/channelpoints/bridge/test`,
+      `${ROUTE_PREFIX}/channelpoints/bridge/live-check`,
+      `${ROUTE_PREFIX}/channelpoints/bridge/reset-stats`
     ],
     reward: buildRewardSummary(),
     config: {
@@ -1842,6 +1955,7 @@ function buildStatus() {
       dryRunDecisionFlowEnabled: true,
       channelpointsBridgeEnabled: config.bridge && config.bridge.enabled !== false,
       channelpointsBridgeDecisionOnly: !(config.bridge && config.bridge.decisionOnly === false),
+      channelpointsBridgeLiveEventDryRunObserveEnabled: !(config.bridge && config.bridge.liveEventDryRunObserveEnabled === false),
       settingsSource: tableExists("vip30_settings") ? "db" : "json_fallback",
       settingsDashboardWritable: true
     },
@@ -1924,6 +2038,7 @@ function buildStatus() {
       dbDashboardConfig: true,
       dryRunDecisionFlow: true,
       channelpointsDecisionBridge: true,
+      eventsubLiveDryRunObserve: true,
       noVipGrantInThisStep: true,
       noRedemptionFulfillCancelInThisStep: true,
       dashboardLoggingInsteadOfServerLog: true,
@@ -1964,7 +2079,7 @@ function heartbeat(reason = "heartbeat") {
       module: MODULE_NAME,
       version: MODULE_VERSION,
       build: MODULE_BUILD,
-      phase: config.enabled === false ? "disabled" : "ready_step6",
+      phase: config.enabled === false ? "disabled" : "ready_step7",
       reason,
       enabled: config.enabled !== false,
       healthy: !lastError,
@@ -2167,6 +2282,16 @@ function init({ app } = {}) {
         lastError = err && err.message ? err.message : String(err);
         res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: lastError, safety: { noTwitchWrite: true, noVipGrant: true } });
       }
+    });
+    app.get(`${ROUTE_PREFIX}/channelpoints/bridge/live-check`, (_req, res) => {
+      runtimeStats.lastAction = "channelpoints_bridge_live_check";
+      try { res.json(buildChannelpointsBridgeLiveCheck()); }
+      catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err), safety: { noTwitchWrite: true, noVipGrant: true } }); }
+    });
+    app.post(`${ROUTE_PREFIX}/channelpoints/bridge/reset-stats`, (req, res) => {
+      runtimeStats.lastAction = "channelpoints_bridge_reset_stats";
+      try { res.json(resetBridgeRuntimeStats(cleanString(req && req.body && req.body.reason || req && req.query && req.query.reason || "api"))); }
+      catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err), safety: { noTwitchWrite: true, noVipGrant: true } }); }
     });
 
     app.get(`${ROUTE_PREFIX}/redeem/dry-run`, (req, res) => {

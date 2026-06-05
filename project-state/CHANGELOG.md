@@ -1,15 +1,16 @@
 # Changelog
 
-## VIP30 STEP6
+## VIP30 STEP7 EventSub Live-Dry-Run Observe
 
-- `backend/modules/vip30.js` auf Version 0.6.1 gehoben.
-- Bridge-Config in DB-Settings vorbereitet.
-- Bridge-Status in `/api/vip30/status` ergänzt.
-- Neue additive Datei intern in `backend/modules/vip30.js` erstellt.
-- Bridge subscribt auf `channelpoints.redemption / received`.
-- Bridge ruft VIP30-Decision im decision-only Modus auf.
+- `backend/modules/vip30.js` auf Version 0.7.0 gehoben.
+- Build auf `step7-eventsub-live-dryrun-observe` gesetzt.
+- Status auf `ready_step7_eventsub_live_dryrun_observe` gesetzt.
+- RouteCount auf 17 erweitert.
+- Neue Route: `GET /api/vip30/channelpoints/bridge/live-check`.
+- Neue Route: `POST /api/vip30/channelpoints/bridge/reset-stats`.
+- Bridge-Setting `bridge.liveEventDryRunObserveEnabled` ergänzt.
+- EventSub-/Channelpoints-Live-Test bleibt Decision-only.
 - Keine Twitch-Schreibaktion, kein VIP-Grant, kein Slot-Write, kein Fulfill/Cancel.
-
 
 ## VIP30-STEP6.1 Status-/RouteCount-Cleanup
 

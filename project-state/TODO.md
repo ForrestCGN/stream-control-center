@@ -1,9 +1,10 @@
 # TODO
 
-- STEP6 Bridge-Status testen.
-- STEP6 Bridge-Testevent prüfen.
-- Prüfen, ob Channelpoints-Reward weiterhin in Sync ist.
-- Danach Live-Flow-Planung: Add VIP, Slot schreiben, Fulfill/Cancel, Alert.
-
-
 - [x] VIP30-STEP6.1: Status `ready_step6_channelpoints_decision_bridge` und `routeCount` 15 korrigieren.
+- [ ] VIP30-STEP7 entpacken und Syntax prüfen.
+- [ ] VIP30-STEP7 `stepdone.cmd` ausführen.
+- [ ] `/api/vip30/channelpoints/bridge/live-check` prüfen.
+- [ ] Bridge-Runtime-Stats vor Live-Test resetten.
+- [ ] Echte Twitch/EventSub-Redemption im Decision-only Modus beobachten.
+- [ ] Prüfen, dass weiterhin kein VIP-Grant, kein Slot-Write, kein Fulfill/Cancel passiert.
+- [ ] Danach STEP8 planen: kontrollierter Live-Grant mit Safety-Schalter.

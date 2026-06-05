@@ -1,9 +1,9 @@
 # VIP30 / 30 Tage VIP
 
-## Aktueller Stand: STEP6 Channelpoints Decision Bridge
+## Aktueller Stand: STEP7 EventSub Live-Dry-Run Observe
 
-Version: `0.6.1`  
-Build: `step6.1-status-routecount-cleanup`
+Version: `0.7.0`  
+Build: `step7-eventsub-live-dryrun-observe`
 
 ## Grundregeln
 
@@ -39,29 +39,28 @@ Build: `step6.1-status-routecount-cleanup`
 - `POST /api/vip30/redeem/decision`
 - `GET /api/vip30/channelpoints/bridge/status`
 - `POST /api/vip30/channelpoints/bridge/test`
+- `GET /api/vip30/channelpoints/bridge/live-check`
+- `POST /api/vip30/channelpoints/bridge/reset-stats`
 
-## STEP6
+## STEP7
 
-STEP6 ergänzt eine additive interne Bridge intern in `backend/modules/vip30.js`.
+STEP7 bereitet den Test mit einer echten Twitch/EventSub-Channelpoints-Redemption vor, bleibt aber weiterhin im reinen Decision-/Dry-Run-Modus.
 
-Die Bridge hört auf den Communication-Bus:
+Die interne VIP30-Bridge hört weiterhin auf den Communication-Bus:
 
 - Channel: `channelpoints.redemption`
 - Action: `received`
 
-Wenn die Redemption als VIP30 erkannt wird, ruft die Bridge nur die VIP30-Decision auf.
+Neue Diagnose-Endpunkte:
 
-## Safety in STEP6
+- `GET /api/vip30/channelpoints/bridge/live-check` prüft, ob die Bridge bereit ist, echte EventSub-Redemptions im Dry-Run zu beobachten.
+- `POST /api/vip30/channelpoints/bridge/reset-stats` setzt nur Runtime-Zähler der Bridge zurück, löscht aber keine DB-Logs.
+
+## Safety in STEP7
 
 - Kein Add VIP.
 - Kein Remove VIP.
 - Kein Slot-Write.
 - Kein Fulfill.
 - Kein Cancel.
-- Kein Streamer.bot.
-- Nur Entscheidung, Logging und Bus-Events.
-
-
-## VIP30-STEP6.1 Cleanup
-
-Status und RouteCount wurden bereinigt. Keine neue Zusatzdatei, keine Funktionsänderung, keine Live-Aktionen.
+- Echte EventSub-Events werden nur beobachtet und geloggt.

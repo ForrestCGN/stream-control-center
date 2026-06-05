@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "moduleVersion": "0.6.1",
+  "moduleVersion": "0.7.0",
   "reward": {
     "rewardKey": "vip30",
     "title": "30 Tage VIP",
@@ -105,7 +105,8 @@
     "noTwitchWrite": true,
     "noVipGrant": true,
     "noRedemptionFulfillCancel": true,
-    "bridgeDecisionFlow": true
+    "bridgeDecisionFlow": true,
+    "eventsubLiveDryRunObserve": true
   },
   "bridge": {
     "enabled": true,
@@ -118,6 +119,7 @@
     "noTwitchWrite": true,
     "noVipGrant": true,
     "noSlotWrite": true,
-    "noRedemptionFulfillCancel": true
+    "noRedemptionFulfillCancel": true,
+    "liveEventDryRunObserveEnabled": true
   }
 }
