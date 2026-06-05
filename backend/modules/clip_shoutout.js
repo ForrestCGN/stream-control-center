@@ -19,7 +19,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.37";
+const MODULE_VERSION = "0.2.38";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -3666,76 +3666,78 @@ function ensureCommandSchema() {
   `);
 }
 
-function cleanupStaleClipShoutoutCommands(activeTrigger) {
-  database.run(`
-    DELETE FROM command_definitions
-    WHERE module_key=:moduleKey AND action_key='run' AND trigger<>:activeTrigger
-  `, { moduleKey: MODULE_NAME, activeTrigger });
-}
-
-function registerCommand(cfg) {
+function commandDefinitionRows() {
   try {
     ensureCommandSchema();
-    const trigger = cleanLogin(cfg.command || "so") || "so";
-    const now = nowIso();
-    const aliasesJson = JSON.stringify(Array.isArray(cfg.aliases) ? cfg.aliases.map(cleanLogin).filter(Boolean) : []);
-    const queueMode = displayConfig(cfg).enabled !== false;
-    const commandCooldownGlobalMs = queueMode ? 0 : Number(cfg.cooldownGlobalMs || 0);
-    const commandCooldownUserMs = queueMode ? 0 : Number(cfg.cooldownUserMs || 0);
-    const params = {
-      trigger,
-      aliasesJson,
-      moduleKey: MODULE_NAME,
-      actionKey: "run",
-      targetMethod: "POST",
-      targetUrl: `${API_PREFIX}/run`,
-      permissionLevel: String(cfg.permissionLevel || "mod").toLowerCase(),
-      cooldownGlobalMs: commandCooldownGlobalMs,
-      cooldownUserMs: commandCooldownUserMs,
-      configJson: JSON.stringify({ seededBy: "clip_shoutout_0.2.5", rawInputMode: true, displayQueueOwnsCooldown: queueMode }),
-      createdAt: now,
-      updatedAt: now
-    };
+    return database.all(`SELECT trigger, aliases_json, enabled FROM command_definitions WHERE module_key=:moduleKey AND action_key='run' ORDER BY trigger ASC`, { moduleKey: MODULE_NAME });
+  } catch (err) {
+    state.lastError = err && err.message ? err.message : String(err);
+    return [];
+  }
+}
 
-    const existing = database.get("SELECT id FROM command_definitions WHERE trigger = :trigger", { trigger });
-    if (existing && existing.id) {
-      database.run(`
-        UPDATE command_definitions
-        SET aliases_json=:aliasesJson,
-            module_key=:moduleKey,
-            action_key=:actionKey,
-            target_method=:targetMethod,
-            target_url=:targetUrl,
-            enabled=1,
-            permission_level=:permissionLevel,
-            cooldown_global_ms=:cooldownGlobalMs,
-            cooldown_user_ms=:cooldownUserMs,
-            live_only=0,
-            response_mode='module',
-            config_json=:configJson,
-            updated_at=:updatedAt
-        WHERE id=:id
-      `, { ...params, id: existing.id });
-      cleanupStaleClipShoutoutCommands(trigger);
-      state.registeredCommand = true;
-      return { ok: true, updated: true, trigger, cooldownGlobalMs: commandCooldownGlobalMs, cooldownUserMs: commandCooldownUserMs };
+function cleanupStaleClipShoutoutCommands(activeTrigger) {
+  database.run(`DELETE FROM command_definitions WHERE module_key=:moduleKey AND action_key='run' AND trigger<>:activeTrigger`, { moduleKey: MODULE_NAME, activeTrigger });
+}
+
+function commandParamsFromConfig(cfg = {}, forceDefault = false) {
+  const src = forceDefault ? { ...cfg, command: "so", aliases: ["vso"] } : cfg;
+  const queueMode = displayConfig(cfg).enabled !== false;
+  const now = nowIso();
+  return {
+    trigger: cleanLogin(src.command || DEFAULT_CONFIG.clipShoutout.command) || DEFAULT_CONFIG.clipShoutout.command,
+    aliasesJson: JSON.stringify(normalizeStringArray(src.aliases, DEFAULT_CONFIG.clipShoutout.aliases || []).map(cleanLogin).filter(Boolean)),
+    moduleKey: MODULE_NAME,
+    actionKey: "run",
+    targetMethod: "POST",
+    targetUrl: `${API_PREFIX}/run`,
+    permissionLevel: String(cfg.permissionLevel || "mod").toLowerCase(),
+    cooldownGlobalMs: queueMode ? 0 : Number(cfg.cooldownGlobalMs || 0),
+    cooldownUserMs: queueMode ? 0 : Number(cfg.cooldownUserMs || 0),
+    configJson: JSON.stringify({ seededBy: "clip_so", rawInputMode: true, displayQueueOwnsCooldown: queueMode }),
+    createdAt: now,
+    updatedAt: now
+  };
+}
+
+function upsertCommandDefinition(p) {
+  const row = database.get("SELECT id FROM command_definitions WHERE trigger=:trigger", { trigger: p.trigger });
+  if (row && row.id) {
+    database.run(`UPDATE command_definitions SET aliases_json=:aliasesJson,module_key=:moduleKey,action_key=:actionKey,target_method=:targetMethod,target_url=:targetUrl,enabled=1,permission_level=:permissionLevel,cooldown_global_ms=:cooldownGlobalMs,cooldown_user_ms=:cooldownUserMs,live_only=0,response_mode='module',config_json=:configJson,updated_at=:updatedAt WHERE id=:id`, { ...p, id: row.id });
+    return { updated: true };
+  }
+  database.run(`INSERT INTO command_definitions (trigger, aliases_json, module_key, action_key, target_method, target_url, enabled, permission_level, cooldown_global_ms, cooldown_user_ms, live_only, response_mode, config_json, created_at, updated_at) VALUES (:trigger, :aliasesJson, :moduleKey, :actionKey, :targetMethod, :targetUrl, 1, :permissionLevel, :cooldownGlobalMs, :cooldownUserMs, 0, 'module', :configJson, :createdAt, :updatedAt)`, p);
+  return { created: true };
+}
+
+function isLegacyVsoCommand(row) {
+  const aliases = parseCommandAliasesJson(row && row.aliases_json).map(cleanLogin);
+  return cleanLogin(row && row.trigger) === "vso" && (aliases.includes("clipso") || aliases.includes("videoso"));
+}
+
+function registerCommand(cfg = {}, options = {}) {
+  try {
+    ensureCommandSchema();
+    const syncFromConfig = options && options.syncFromConfig === true;
+    const rows = commandDefinitionRows();
+    if (!syncFromConfig && rows.length > 0) {
+      const enabledRows = rows.filter(row => Number(row.enabled) !== 0);
+      const soRow = rows.find(row => cleanLogin(row.trigger) === "so");
+      if (soRow) {
+        cleanupStaleClipShoutoutCommands("so");
+        state.registeredCommand = true;
+        return { ok: true, existing: true, source: "command_definitions", count: 1, pruned: rows.length > 1 };
+      }
+      if (rows.length !== 1 || !isLegacyVsoCommand(rows[0])) {
+        state.registeredCommand = enabledRows.length > 0;
+        return { ok: true, existing: true, source: "command_definitions", count: rows.length, enabledCount: enabledRows.length };
+      }
     }
-
-    database.run(`
-      INSERT INTO command_definitions (
-        trigger, aliases_json, module_key, action_key, target_method, target_url,
-        enabled, permission_level, cooldown_global_ms, cooldown_user_ms, live_only,
-        response_mode, config_json, created_at, updated_at
-      ) VALUES (
-        :trigger, :aliasesJson, :moduleKey, :actionKey, :targetMethod, :targetUrl,
-        1, :permissionLevel, :cooldownGlobalMs, :cooldownUserMs, 0,
-        'module', :configJson, :createdAt, :updatedAt
-      )
-    `, params);
-
-    cleanupStaleClipShoutoutCommands(trigger);
+    const params = commandParamsFromConfig(cfg, !syncFromConfig);
+    const result = upsertCommandDefinition(params);
+    cleanupStaleClipShoutoutCommands(params.trigger);
     state.registeredCommand = true;
-    return { ok: true, created: true, trigger, cooldownGlobalMs: commandCooldownGlobalMs, cooldownUserMs: commandCooldownUserMs };
+    return { ok: true, ...result, trigger: params.trigger, cooldownGlobalMs: params.cooldownGlobalMs, cooldownUserMs: params.cooldownUserMs };
   } catch (err) {
     state.registeredCommand = false;
     state.lastError = err.message || String(err);
@@ -5600,30 +5602,19 @@ function parseCommandAliasesJson(value) {
   }
 }
 
-function commandDefinitionRowsForDirectIntake() {
-  try {
-    ensureCommandSchema();
-    return database.all(`
-      SELECT trigger, aliases_json
-      FROM command_definitions
-      WHERE module_key=:moduleKey AND action_key='run' AND enabled<>0
-      ORDER BY trigger ASC
-    `, { moduleKey: MODULE_NAME });
-  } catch (err) {
-    state.lastError = err && err.message ? err.message : String(err);
-    return [];
-  }
-}
-
 function directCommandInfo(cfg = {}) {
   const intake = directIntakeConfig(cfg);
-  if (intake.enabled === false) return { enabled: false, triggers: [], source: 'disabled', commandDefinitionCount: 0, fallbackUsed: false };
-  const rows = commandDefinitionRowsForDirectIntake();
+  if (intake.enabled === false) {
+    return { enabled: false, triggers: [], primaryTrigger: "", source: "disabled", commandDefinitionCount: 0, fallbackUsed: false };
+  }
+  const rows = commandDefinitionRows().filter(row => Number(row.enabled) !== 0);
   const names = rows.flatMap(row => [row.trigger, ...parseCommandAliasesJson(row.aliases_json)]);
+  const triggers = Array.from(new Set(names.map(cleanLogin).filter(Boolean)));
   return {
     enabled: true,
-    triggers: Array.from(new Set(names.map(cleanLogin).filter(Boolean))),
-    source: 'command_definitions',
+    triggers,
+    primaryTrigger: cleanLogin(rows[0] && rows[0].trigger) || "",
+    source: "command_definitions",
     commandDefinitionCount: rows.length,
     fallbackUsed: false
   };
@@ -5841,43 +5832,13 @@ function installDirectChatCommandBypass(env) {
 
 
 function buildClipShoutoutRouteStatus() {
-  const r = (method, path, group, legacy = false, note = '') => ({ method, path, group, legacy, ...(note ? { note } : {}) });
-  return [
-    r('GET', `${API_PREFIX}/status`, 'status'),
-    r('GET/POST', `${API_PREFIX}/run`, 'runtime'),
-    r('GET/POST', '/api/clip/shoutout', 'runtime', true, 'Legacy alias for /run.'),
-    r('GET', `${API_PREFIX}/clips`, 'clips'),
-    r('GET/POST', `${API_PREFIX}/settings`, 'settings'),
-    r('GET/POST', `${API_PREFIX}/texts`, 'texts'),
-    r('GET', `${API_PREFIX}/texts/migration`, 'texts'),
-    r('GET', `${API_PREFIX}/queue`, 'queue_status'),
-    r('POST', `${API_PREFIX}/display-queue/remove`, 'display_queue'),
-    r('POST', `${API_PREFIX}/display-queue/retry`, 'display_queue'),
-    r('POST', `${API_PREFIX}/queue/remove`, 'official_queue', true, 'Legacy name.'),
-    r('POST', `${API_PREFIX}/queue/retry`, 'official_queue', true, 'Legacy name.'),
-    r('GET', `${API_PREFIX}/official/auth-status`, 'official_queue'),
-    r('GET/POST', `${API_PREFIX}/debug/test-queue`, 'debug'),
-    r('GET/POST', `${API_PREFIX}/debug/intake-trace`, 'debug'),
-    r('GET', `${API_PREFIX}/timeline`, 'stats'),
-    r('GET', `${API_PREFIX}/stats`, 'stats'),
-    r('GET', `${API_PREFIX}/stats/user`, 'stats'),
-    r('GET', `${API_PREFIX}/inbound`, 'inbound'),
-    r('GET', `${API_PREFIX}/inbound/stats`, 'inbound'),
-    r('POST', `${API_PREFIX}/inbound/debug`, 'inbound'),
-    r('GET', `${API_PREFIX}/auto`, 'auto_shoutout'),
-    r('GET/POST', `${API_PREFIX}/auto/settings`, 'auto_shoutout'),
-    r('GET/POST', `${API_PREFIX}/auto/texts`, 'auto_shoutout'),
-    r('GET/POST', `${API_PREFIX}/auto/streamers`, 'auto_shoutout'),
-    r('POST', `${API_PREFIX}/auto/streamers/remove`, 'auto_shoutout'),
-    r('POST', `${API_PREFIX}/auto/test-chat`, 'auto_shoutout'),
-    r('POST', `${API_PREFIX}/auto/clear-target`, 'auto_shoutout'),
-    r('POST', `${API_PREFIX}/auto/reset-day`, 'auto_shoutout'),
-    r('GET', `${API_PREFIX}/scene-gate`, 'scene_gate'),
-    r('GET', `${API_PREFIX}/production-check`, 'diagnostics'),
-    r('GET', `${API_PREFIX}/live-test`, 'diagnostics'),
-    r('GET', `${API_PREFIX}/decision-prep`, 'diagnostics'),
-    r('GET', '/api/stream-status/status', 'external_status')
-  ];
+  return `GET status status|GET/POST run runtime|GET/POST /api/clip/shoutout runtime legacy|GET clips clips|GET/POST settings settings|GET/POST texts texts|GET texts/migration texts|GET queue queue_status|POST display-queue/remove display_queue|POST display-queue/retry display_queue|POST queue/remove official_queue legacy|POST queue/retry official_queue legacy|GET official/auth-status official_queue|GET/POST debug/test-queue debug|GET/POST debug/intake-trace debug|GET timeline stats|GET stats stats|GET stats/user stats|GET inbound inbound|GET inbound/stats inbound|POST inbound/debug inbound|GET auto auto_shoutout|GET/POST auto/settings auto_shoutout|GET/POST auto/texts auto_shoutout|GET/POST auto/streamers auto_shoutout|POST auto/streamers/remove auto_shoutout|POST auto/test-chat auto_shoutout|POST auto/clear-target auto_shoutout|POST auto/reset-day auto_shoutout|GET scene-gate scene_gate|GET production-check diagnostics|GET live-test diagnostics|GET decision-prep diagnostics|GET /api/stream-status/status external_status`
+    .split('|')
+    .map(row => {
+      const [method, rawPath, group, legacy] = row.split(' ');
+      const path = rawPath.startsWith('/') ? rawPath : `${API_PREFIX}/${rawPath}`;
+      return { method, path, group, legacy: legacy === 'legacy' };
+    });
 }
 
 module.exports.MODULE_META = MODULE_META;
@@ -5906,8 +5867,8 @@ module.exports.init = function init(ctx) {
   app.get(`${API_PREFIX}/status`, (req, res) => {
     const currentCfg = shoutoutConfig();
     state.recentClipGuard = publicRecentClipGuard(currentCfg);
-    const command = cleanLogin(currentCfg.command || "so") || "so";
     const commandInfo = directCommandInfo(currentCfg);
+    const command = commandInfo.primaryTrigger || cleanLogin(currentCfg.command || "so") || "so";
     res.json({
       ok: true,
       module: MODULE_NAME,
@@ -6048,7 +6009,7 @@ module.exports.init = function init(ctx) {
       }
 
       const settings = Object.keys(allowed).length ? saveShoutoutConfig(allowed) : shoutoutConfig();
-      const commandRegistration = registerCommand(settings);
+      const commandRegistration = registerCommand(settings, { syncFromConfig: Object.prototype.hasOwnProperty.call(body, "command") || Object.prototype.hasOwnProperty.call(body, "aliases") });
       emitShoutoutBus("shoutout.settings.updated", { changedKeys: Object.keys(allowed), autoShoutoutChanged: !!autoSettings, commandRegistration }, settings);
       res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, settings: shoutoutConfig(), autoSettings, autoStreamerUpdates, commandRegistration });
     } catch (err) {
