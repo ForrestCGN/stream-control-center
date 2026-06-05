@@ -31,7 +31,7 @@ const MODULE_META = {
   routesPrefix: [API_PREFIX, "/api/clip/shoutout"],
   capabilities: ["shoutout.display_queue", "shoutout.official_queue", "shoutout.event_output"],
   bus: { emits: true, registered: false, heartbeat: false, channel: SHOUTOUT_BUS_CHANNEL },
-  note: "CAN-44.22.0: Shoutout overlay V9 design data added; queue, sound playback and official shoutout flow unchanged."
+  note: "CAN-44.25: Shoutout overlay text variants and dashboard-ready text editor keys; clip playback unchanged."
 };
 
 const AUTO_SHOUTOUT_TEXT_DEFAULTS = {
@@ -167,14 +167,16 @@ const SHOUTOUT_TEXT_DEFAULTS = {
     "Schaut gerne mal vorbei!",
     "Heute im Altersheim-TV!",
     "Die Heimleitung empfiehlt!",
-    "Der Beamer läuft!"
-  ],
+    "Der Beamer läuft!",
+    "Frisch aus dem VHS-Regal!"
+],
   'shoutout.overlay.subline': [
     "Heute im Altersheim-TV: {displayName}",
-    "Der Beamer läuft für {displayName}.",
-    "Die VHS ist eingelegt: {displayName}",
-    "Die Heimleitung empfiehlt heute {displayName}."
-  ],
+    "Die Heimleitung zeigt heute: {displayName}",
+    "Der Beamer läuft für {displayName}",
+    "Frisch eingelegt: {displayName}",
+    "Die Rentnercrew schaut heute bei {displayName} rein"
+],
   'shoutout.system.textsSaved': [
     "💾 Die Heimleitung hat den neuen Sendeplan gespeichert.",
     "📋 Die Textmappe der Heimaufsicht wurde aktualisiert.",
@@ -213,7 +215,7 @@ const SHOUTOUT_TEXT_OPTIONS = {
     'shoutout.chat': 'Chat-Shoutout',
     'shoutout.auto': 'AutoShoutout',
     'shoutout.official': 'Offizieller Twitch-Shoutout',
-    'shoutout.overlay': 'Shoutout-Overlay',
+    'shoutout.overlay': 'Shoutout Overlay',
     'shoutout.dashboard': 'Dashboard',
     'shoutout.system': 'System'
   },
@@ -265,6 +267,7 @@ const DEFAULT_CONFIG = {
     ttsCategory: "tts",
     ttsSource: "clip_shoutout_tts",
     overlaySubline: "🧓 Altersheim-TV",
+    overlayBranding: "CGN Altersheim-TV",
     avatarLookupEnabled: true,
     avatarLookupUrl: "http://127.0.0.1:8080/userinfo",
     gqlClientId: "kimne78kx3ncx6brgo4mv6wki5h1ko",
@@ -747,6 +750,16 @@ function renderShoutoutModuleText(key, vars = {}, options = {}) {
     ...(options || {})
   });
   return renderAutoMessage(rendered, { ...vars, displayName, login: context.login });
+}
+
+function renderShoutoutOverlayText(key, vars = {}, fallback = "") {
+  try {
+    const rendered = renderShoutoutModuleText(key, vars);
+    const clean = String(rendered || "").trim();
+    return clean || String(fallback || "").trim();
+  } catch (err) {
+    return String(fallback || "").trim();
+  }
 }
 
 function autoNoticeTextKey(key) {
@@ -3579,21 +3592,18 @@ function buildBundlePayload(cfg, vars, playback, clip, targetUser, ttsItem) {
   const playbackMode = playback.mode || "direct";
   const useTwitchClipPlayer = playbackMode === "twitch_clip";
 
-  const overlayVars = {
-    ...vars,
+  const overlayTextVars = {
     displayName: targetUser.displayName,
-    user: targetUser.displayName,
-    username: targetUser.login,
     login: targetUser.login,
-    targetLogin: targetUser.login,
     targetDisplay: targetUser.displayName,
-    targetDisplayName: targetUser.displayName,
+    targetLogin: targetUser.login,
     clipTitle: clip.title || "",
-    clipId: clip.id || playback.clipId || "",
+    clipUrl: clip.url || "",
     gameName: clip.game_id || ""
   };
-  const overlayHeadline = renderShoutoutModuleText("shoutout.overlay.headline", overlayVars) || "Schaut gerne mal vorbei!";
-  const overlaySubline = renderShoutoutModuleText("shoutout.overlay.subline", overlayVars) || `Heute im Altersheim-TV: ${targetUser.displayName}`;
+  const overlayHeadline = renderShoutoutOverlayText("shoutout.overlay.headline", overlayTextVars, "Schaut gerne mal vorbei!");
+  const overlaySubline = renderShoutoutOverlayText("shoutout.overlay.subline", overlayTextVars, `Heute im Altersheim-TV: ${targetUser.displayName || targetUser.login || "User"}`);
+  const overlayBranding = String(cfg.overlayBranding || "CGN Altersheim-TV").trim() || "CGN Altersheim-TV";
 
   const items = [{
     role: "clip",
@@ -3641,9 +3651,8 @@ function buildBundlePayload(cfg, vars, playback, clip, targetUser, ttsItem) {
       clipUrl: clip.url || "",
       gameName: clip.game_id || "",
       headline: overlayHeadline,
-      subline: overlaySubline,
-      overlayHeadline,
-      overlaySubline,
+      subline: overlaySubline || cfg.overlaySubline || "🧓 Altersheim-TV",
+      brand: overlayBranding,
       durationMs: clipDurationMs,
       clipId: clip.id || playback.clipId || "",
       theme: "forrest_neon"
@@ -6031,6 +6040,13 @@ module.exports.init = function init(ctx) {
           legacyAutoTextsRoute: `${API_PREFIX}/auto/texts`,
           runtimeUsesLegacyFallbacks: true,
           dashboardReady: true
+        },
+        dashboard: {
+          category: 'shoutout.overlay',
+          categoryLabel: 'Shoutout Overlay',
+          keys: ['shoutout.overlay.headline', 'shoutout.overlay.subline'],
+          placeholders: ['{displayName}', '{login}', '{clipTitle}', '{clipUrl}', '{gameName}'],
+          settingsRoute: `${API_PREFIX}/settings`
         }
       });
     } catch (err) {
@@ -6074,7 +6090,7 @@ module.exports.init = function init(ctx) {
         "enabled", "command", "aliases", "permissionLevel", "clipLookbackDays", "clipSearchRangesDays",
         "clipPlaybackCandidateLimit", "clipFetchFirst", "clipFetchPages", "maxClipDurationSeconds",
         "allowLongerClipFallback", "fallbackMaxClipDurationSeconds", "randomPick", "avoidRecentClips",
-        "recentClipFallbackWhenAllBlocked", "sendChatMessage", "chatMessage", "eventBusEnabled"
+        "recentClipFallbackWhenAllBlocked", "sendChatMessage", "chatMessage", "overlaySubline", "overlayBranding", "eventBusEnabled"
       ];
       for (const key of directKeys) if (Object.prototype.hasOwnProperty.call(body, key)) allowed[key] = body[key];
       if (body.displayQueue && typeof body.displayQueue === "object") allowed.displayQueue = body.displayQueue;
