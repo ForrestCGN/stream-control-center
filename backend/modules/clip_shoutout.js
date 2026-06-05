@@ -19,7 +19,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.31";
+const MODULE_VERSION = "0.2.32";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -242,8 +242,8 @@ const DEFAULT_CONFIG = {
       cooldownStartsAfterFinish: true,
       workerIntervalMs: 2000,
       sendChatMessages: true,
-      acceptedMessage: "✅ Shoutout für @{displayName} aufgenommen.",
-      waitingMessage: "⏳ Shoutout für @{displayName} aufgenommen und in die Warteschlange gesetzt. Start in ca. {waitTime}.",
+      acceptedMessage: "✅ Shoutout für @{displayName} aufgenommen und startet gleich.",
+      waitingMessage: "⏳ Shoutout für @{displayName} wurde eingereiht. Position in der SO-Liste: {position}.",
       startedMessage: "",
       failedMessage: "⚠️ Shoutout für @{displayName} konnte nicht gestartet werden."
     },
@@ -252,11 +252,11 @@ const DEFAULT_CONFIG = {
       enqueueAfterDisplay: true,
       sendChatMessages: true,
       acceptedMessage: "✅ Shoutout für @{displayName} aufgenommen.",
-      queuedMessage: "⏳ Offizieller Shoutout für @{displayName} ist vorgemerkt und wird nach dem Cooldown gesendet.",
+      queuedMessage: "⏳ Offizieller Twitch-Shoutout für @{displayName} liegt in der Warteschlange und wird gesendet, sobald Twitch ihn erlaubt.",
       sentMessage: "",
-      duplicateQueuedMessage: "",
-      targetCooldownMessage: "",
-      failedMessage: "",
+      duplicateQueuedMessage: "⏳ Offizieller Twitch-Shoutout für @{displayName} liegt bereits in der Warteschlange.",
+      targetCooldownMessage: "⏳ Offizieller Twitch-Shoutout für @{displayName} ist aktuell nicht möglich und bleibt in der Warteschlange.",
+      failedMessage: "⚠️ Offizieller Twitch-Shoutout für @{displayName} konnte nicht gesendet werden und bleibt in der Warteschlange.",
       globalCooldownMs: 120000,
       targetCooldownMs: 3600000,
       workerIntervalMs: 5000,
@@ -595,12 +595,35 @@ function displayQueueNoticeInfo(queueRow, cfg) {
 
 function appendDisplayWaitInfo(message, noticeInfo) {
   const base = String(message || '').trim();
-  const waitTime = String(noticeInfo && noticeInfo.waitTime || '').trim();
-  if (!base || !waitTime) return base;
-  const lower = base.toLowerCase();
-  const alreadyHasWait = lower.includes(waitTime.toLowerCase()) || /(start|wartezeit|in ca\.|ca\.|sek\.|sekunden|min\.|minuten|position)/i.test(base);
-  if (alreadyHasWait) return base;
-  return `${base} Start in ca. ${waitTime}.`;
+  if (!base) return base;
+  const position = Number(noticeInfo && noticeInfo.position || 0);
+  if (!position || /position/i.test(base)) return stripChatTimePromise(base);
+  return stripChatTimePromise(`${base} Position in der SO-Liste: ${position}.`);
+}
+
+function stripChatTimePromise(message) {
+  return String(message || '')
+    .replace(/\s*Start\s+in\s+ca\.\s+[^.。!?:;]+[.。]?/gi, '')
+    .replace(/\s*Wartezeit\s*:\s*ca\.\s*[^.。!?:;]+[.。]?/gi, '')
+    .replace(/\s*Nächster\s+Versuch\s+in\s+ca\.\s*[^.。!?:;]+[.。]?/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+function formatDisplayMention(displayName, login) {
+  const text = cleanDisplay(displayName || login || '', login || '');
+  return '@' + (text || cleanLogin(login) || 'user');
+}
+
+function buildManualDisplayChatMessage(kind, vars = {}, noticeInfo = null) {
+  const mention = formatDisplayMention(vars.displayName || vars.targetDisplay, vars.login || vars.targetLogin);
+  const position = Math.max(1, Number(noticeInfo && noticeInfo.position || vars.position || 1));
+  if (kind === 'accepted') return `✅ Shoutout für ${mention} aufgenommen und startet gleich.`;
+  if (kind === 'waiting') return `⏳ Shoutout für ${mention} wurde eingereiht. Position in der SO-Liste: ${position}.`;
+  if (kind === 'already_active') return `📺 ${mention} läuft gerade bereits im Shoutout.`;
+  if (kind === 'already_waiting_force') return `⏩ ${mention} steht bereits in der SO-Liste. Der vorhandene Eintrag bleibt bestehen. Kein zusätzlicher offizieller Twitch-Shoutout wurde vorgemerkt.`;
+  if (kind === 'already_waiting') return `⏳ ${mention} steht bereits in der SO-Liste. Position: ${position}. Kein zusätzlicher Eintrag wurde erstellt.`;
+  return `ℹ️ Shoutout für ${mention}: ${String(vars.reason || 'Status unbekannt')}.`;
 }
 
 function findPendingDisplayShoutout(login) {
@@ -612,6 +635,19 @@ function findPendingDisplayShoutout(login) {
     WHERE target_login=:login AND status IN ('queued','waiting','active')
     ORDER BY id ASC LIMIT 1
   `, { login: clean });
+}
+
+function existingDisplayQueueResponse(existingRow, cfg) {
+  if (!existingRow) return null;
+  const status = String(existingRow.status || '');
+  const notice = displayQueueNoticeInfo(existingRow, cfg || shoutoutConfig());
+  return {
+    id: Number(existingRow.id || 0),
+    status,
+    availableAt: existingRow.available_at || '',
+    position: notice.position,
+    notice
+  };
 }
 
 function renderAutoMessage(template, vars = {}) {
@@ -1306,10 +1342,8 @@ function officialConfig(cfg) {
   return mergePlain(DEFAULT_CONFIG.clipShoutout.officialShoutout, (cfg && cfg.officialShoutout) || {});
 }
 
-function shouldSendOfficialChatMessages(_cfg) {
-  // STEP463: Fuer den Testbetrieb keine Chatmeldungen vom offiziellen Twitch-Shoutout-Folgeprozess.
-  // Chatmeldungen beim !vso selbst bleiben aktiv; Queue-/Cooldown-Hinweise fuer /shoutout bleiben stumm.
-  return false;
+function shouldSendOfficialChatMessages(cfg) {
+  return officialConfig(cfg).sendChatMessages !== false;
 }
 
 function ensureOfficialShoutoutSchema() {
@@ -1585,7 +1619,13 @@ async function processOfficialShoutoutQueue(env, cfg, options = {}) {
 
   const liveGate = buildOfficialLiveGateState(cfg);
   if (liveGate.enabled && !liveGate.live) {
-    return markOfficialQueueWaitingLiveGate(row, cfg, liveGate.reason || 'waiting_stream_live_offline');
+    const result = markOfficialQueueWaitingLiveGate(row, cfg, liveGate.reason || 'waiting_stream_live_offline');
+    if (shouldSendOfficialChatMessages(cfg)) {
+      const ocfgMsg = firstString(ocfg.targetCooldownMessage, ocfg.queuedMessage, DEFAULT_CONFIG.clipShoutout.officialShoutout.targetCooldownMessage);
+      const msg = stripChatTimePromise(renderTemplate(ocfgMsg, { login: row.target_login, displayName: row.target_display || row.target_login }).trim());
+      if (msg) await sendChatMessage(msg, { targetLogin: row.target_login, queueId: row.id, officialShoutout: true, textKey: 'shoutout.official.waiting_livegate' });
+    }
+    return result;
   }
 
   try {
@@ -1603,6 +1643,11 @@ async function processOfficialShoutoutQueue(env, cfg, options = {}) {
       database.run(`UPDATE clip_shoutout_official_queue SET status='waiting', available_at=:next, updated_at=:now, last_error=:error WHERE id=:id`, { id: row.id, next, now: nowIso(), error });
       state.officialShoutout.lastError = error;
       emitShoutoutBus("shoutout.official.waiting_stream_live", { queueId: row.id, targetLogin: row.target_login, error, retryAt: next }, cfg);
+      if (shouldSendOfficialChatMessages(cfg)) {
+        const msgTpl = firstString(ocfg.targetCooldownMessage, ocfg.queuedMessage, DEFAULT_CONFIG.clipShoutout.officialShoutout.targetCooldownMessage);
+        const msg = stripChatTimePromise(renderTemplate(msgTpl, { login: row.target_login, displayName: row.target_display || row.target_login }).trim());
+        if (msg) await sendChatMessage(msg, { targetLogin: row.target_login, queueId: row.id, officialShoutout: true, textKey: 'shoutout.official.waiting_stream_live' });
+      }
       return { ok: true, waiting: true, reason: "waiting_stream_live", queueId: row.id, error, retryAt: next };
     }
     const next = isoFromMs(Date.now() + Math.max(30000, Number(ocfg.globalCooldownMs || 120000)));
@@ -1610,6 +1655,11 @@ async function processOfficialShoutoutQueue(env, cfg, options = {}) {
     state.officialShoutout.lastError = error;
     state.stats.officialFailed += 1;
     emitShoutoutBus("shoutout.official.failed", { queueId: row.id, targetLogin: row.target_login, error, retryAt: next }, cfg);
+    if (shouldSendOfficialChatMessages(cfg)) {
+      const msgTpl = firstString(ocfg.failedMessage, ocfg.queuedMessage, DEFAULT_CONFIG.clipShoutout.officialShoutout.failedMessage);
+      const msg = stripChatTimePromise(renderTemplate(msgTpl, { login: row.target_login, displayName: row.target_display || row.target_login, reason: error }).trim());
+      if (msg) await sendChatMessage(msg, { targetLogin: row.target_login, queueId: row.id, officialShoutout: true, textKey: 'shoutout.official.retry' });
+    }
     return { ok: false, retry: true, queueId: row.id, error, retryAt: next };
   }
 }
@@ -4029,6 +4079,45 @@ async function handleRun(req, res, env) {
       });
     }
 
+    const existingPendingDisplay = findPendingDisplayShoutout(targetLogin);
+    if (existingPendingDisplay) {
+      const existingInfo = existingDisplayQueueResponse(existingPendingDisplay, cfg);
+      const isActive = String(existingPendingDisplay.status || '') === 'active';
+      const messageKind = isActive ? 'already_active' : (overrideUsed ? 'already_waiting_force' : 'already_waiting');
+      const message = buildManualDisplayChatMessage(messageKind, vars, existingInfo && existingInfo.notice);
+      if (dcfg.sendChatMessages !== false && input.__debugSuppressChat !== true && input.debugSuppressChat !== true && message) {
+        await sendChatMessage(message, {
+          targetLogin,
+          displayQueueId: existingPendingDisplay.id,
+          textKey: `shoutout.chat.${messageKind}`,
+          queuePosition: existingInfo && existingInfo.position || 0,
+          overrideUsed,
+          duplicatePending: true
+        });
+      }
+      emitShoutoutBus('shoutout.display.duplicate_pending', {
+        targetLogin,
+        displayQueueId: existingPendingDisplay.id,
+        status: existingPendingDisplay.status,
+        overrideUsed,
+        requestedByLogin: vars.requestedByLogin
+      }, cfg);
+      if (intakeTraceId) finishCommandIntakeTrace(intakeTraceId, messageKind, { targetLogin, existingDisplayQueue: existingInfo, overrideUsed });
+      return res.json({
+        ok: true,
+        module: MODULE_NAME,
+        moduleVersion: MODULE_VERSION,
+        queued: false,
+        duplicatePending: true,
+        reason: isActive ? 'already_active_same_target' : 'already_waiting_same_target',
+        targetLogin,
+        displayQueue: existingInfo,
+        officialShoutout: { duplicateSuppressed: true, reason: 'existing_display_queue_same_target' },
+        streamDay,
+        overrideUsed
+      });
+    }
+
     if (existingStreamDayShoutout) {
       const message = renderShoutoutModuleText('shoutout.chat.duplicate', vars) || renderTemplate(firstString(scfg.duplicateMessage), vars).trim();
       if (message) await sendChatMessage(message, { targetLogin, streamDayId: streamDay.streamDayId, duplicate: true, textKey: 'shoutout.chat.duplicate' });
@@ -4096,25 +4185,15 @@ async function handleRun(req, res, env) {
       const rowStatus = String(queueResult.row && queueResult.row.status || 'queued');
       const shouldWait = noticeInfo.pendingBefore > 0 || noticeInfo.availableWaitMs > 10000 || rowStatus === 'waiting';
       const textKey = shouldWait ? 'shoutout.chat.waiting' : 'shoutout.chat.accepted';
-      const template = shouldWait
-        ? firstString(dcfg.waitingMessage, dcfg.acceptedMessage, DEFAULT_CONFIG.clipShoutout.displayQueue.waitingMessage)
-        : firstString(dcfg.acceptedMessage, DEFAULT_CONFIG.clipShoutout.chatMessage);
       const messageVars = {
         ...vars,
-        waitTime: noticeInfo.waitTime,
-        waitMs: noticeInfo.waitMs,
         position: noticeInfo.position,
         queuePosition: noticeInfo.position,
         displayQueueId: queueResult.row && queueResult.row.id,
         overrideUsed
       };
-      let message = renderShoutoutModuleText(textKey, messageVars) || renderTemplate(template, messageVars).trim();
-      if (shouldWait) message = appendDisplayWaitInfo(message, noticeInfo);
-      if (!message) {
-        message = shouldWait
-          ? renderTemplate(DEFAULT_CONFIG.clipShoutout.displayQueue.waitingMessage, messageVars).trim()
-          : renderTemplate(DEFAULT_CONFIG.clipShoutout.displayQueue.acceptedMessage, messageVars).trim();
-      }
+      let message = buildManualDisplayChatMessage(shouldWait ? 'waiting' : 'accepted', messageVars, noticeInfo);
+      message = stripChatTimePromise(message);
       if (intakeTraceId) addCommandIntakeTraceStep(intakeTraceId, 'handleRun.chat_feedback_prepared', { textKey, shouldWait, message });
       if (message) {
         await sendChatMessage(message, {
@@ -4122,7 +4201,6 @@ async function handleRun(req, res, env) {
           displayQueueId: queueResult.row && queueResult.row.id,
           textKey,
           queuePosition: noticeInfo.position,
-          waitMs: noticeInfo.waitMs,
           overrideUsed
         });
         if (intakeTraceId) addCommandIntakeTraceStep(intakeTraceId, 'handleRun.chat_feedback_sent', { textKey, targetLogin });
