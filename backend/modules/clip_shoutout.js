@@ -19,7 +19,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.29";
+const MODULE_VERSION = "0.2.30";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -3740,6 +3740,177 @@ function startDisplayQueueWorker(env, cfg) {
   if (timer && typeof timer.unref === 'function') timer.unref();
 }
 
+
+function boolFromDebugValue(value, fallback = false) {
+  if (value === undefined || value === null || value === '') return fallback;
+  if (typeof value === 'boolean') return value;
+  const text = String(value).trim().toLowerCase();
+  if (['1', 'true', 'yes', 'ja', 'on'].includes(text)) return true;
+  if (['0', 'false', 'no', 'nein', 'off'].includes(text)) return false;
+  return fallback;
+}
+
+function parseDebugQueueTargets(input) {
+  const raw = firstString(input.targets, input.target, input.logins, input.login, input.users, input.user);
+  return String(raw || '')
+    .split(/[\s,;|]+/)
+    .map(v => cleanLogin(v))
+    .filter(Boolean)
+    .filter((v, idx, arr) => arr.indexOf(v) === idx)
+    .slice(0, 8);
+}
+
+async function invokeHandleRunForQueueDebug(env, input) {
+  let statusCode = 200;
+  let payload = null;
+  const req = {
+    method: 'POST',
+    query: {},
+    body: input || {},
+    headers: {},
+    params: {},
+    originalUrl: `${API_PREFIX}/run?debug=queue-test`
+  };
+  const res = {
+    status(code) { statusCode = Number(code || 200); return this; },
+    json(obj) { payload = obj; return this; }
+  };
+  await handleRun(req, res, env);
+  return { statusCode, payload };
+}
+
+function debugQueueRowSummary(row) {
+  if (!row) return null;
+  return {
+    id: Number(row.id || 0),
+    targetLogin: cleanLogin(row.target_login || ''),
+    targetDisplay: cleanDisplay(row.target_display || row.target_login || ''),
+    status: String(row.status || ''),
+    availableAt: String(row.available_at || ''),
+    createdAt: String(row.created_at || ''),
+    updatedAt: String(row.updated_at || ''),
+    startedAt: String(row.started_at || ''),
+    finishedAt: String(row.finished_at || ''),
+    lastError: String(row.last_error || ''),
+    overrideUsed: Number(row.override_used || 0) ? true : false,
+    overrideReason: String(row.override_reason || '')
+  };
+}
+
+function cleanupDebugDisplayQueueRows(rowIds) {
+  const ids = Array.isArray(rowIds) ? rowIds.map(v => Number(v || 0)).filter(Boolean) : [];
+  if (!ids.length) return { removed: 0, ids: [] };
+  const now = nowIso();
+  let removed = 0;
+  for (const id of ids) {
+    database.run(`UPDATE clip_shoutout_display_queue SET status='debug_removed', updated_at=:now, last_error='' WHERE id=:id AND status IN ('queued','waiting')`, { id, now });
+    removed += 1;
+  }
+  return { removed, ids };
+}
+
+async function handleDebugQueueTest(req, res, env) {
+  const input = readRequestData(req);
+  const cfg = shoutoutConfig();
+  const targets = parseDebugQueueTargets(input);
+  if (!targets.length) {
+    return res.status(400).json({
+      ok: false,
+      module: MODULE_NAME,
+      moduleVersion: MODULE_VERSION,
+      error: 'targets_required',
+      usage: `${API_PREFIX}/debug/test-queue?targets=pretos1,together_not_alone&force=1`
+    });
+  }
+
+  const force = boolFromDebugValue(input.force, true);
+  const sendChat = boolFromDebugValue(input.chat, false);
+  const noProcess = boolFromDebugValue(input.process, false) === false;
+  const cleanup = boolFromDebugValue(input.cleanup, false);
+  const holdMs = Math.max(0, Math.min(60 * 60 * 1000, Number(input.holdMs || input.hold || 10 * 60 * 1000) || 0));
+  const debugAvailableAt = holdMs > 0 ? isoFromMs(Date.now() + holdMs) : nowIso();
+  const before = displayQueueStatus(cfg);
+  const results = [];
+  const createdIds = [];
+
+  for (const target of targets) {
+    const rawInput = `so @${target}${force ? ' --force' : ''}`;
+    const debugInput = {
+      command: 'so',
+      cmd: 'so',
+      rawInput,
+      input: rawInput,
+      rawMessage: `!${rawInput}`,
+      message: `!${rawInput}`,
+      args: force ? [`@${target}`, '--force'] : [`@${target}`],
+      target: target,
+      targetLogin: target,
+      input0: `@${target}`,
+      input1: force ? '--force' : '',
+      user: 'QueueTest',
+      userName: 'QueueTest',
+      userLogin: 'queue_test',
+      login: 'queue_test',
+      displayName: 'QueueTest',
+      userDisplayName: 'QueueTest',
+      chatOutput: sendChat,
+      sendChat,
+      source: 'clip_shoutout_debug_test_queue',
+      __debugSuppressChat: !sendChat,
+      __debugNoProcess: noProcess,
+      __debugAvailableAt: debugAvailableAt
+    };
+
+    const result = await invokeHandleRunForQueueDebug(env, debugInput);
+    const payload = result.payload || {};
+    const displayQueueId = Number(payload.displayQueue && payload.displayQueue.id || 0);
+    if (displayQueueId) createdIds.push(displayQueueId);
+    const row = displayQueueId
+      ? database.get(`SELECT * FROM clip_shoutout_display_queue WHERE id=:id`, { id: displayQueueId })
+      : findPendingDisplayShoutout(target);
+    const notice = row ? displayQueueNoticeInfo(row, cfg) : null;
+    results.push({
+      target,
+      force,
+      statusCode: result.statusCode,
+      ok: payload.ok === true,
+      queued: payload.queued === true,
+      blocked: payload.blocked === true,
+      reason: String(payload.reason || payload.error || ''),
+      displayQueueId,
+      row: debugQueueRowSummary(row),
+      notice,
+      silentDropDetected: payload.ok === true && payload.queued !== true && payload.blocked !== true && !displayQueueId,
+      rawResponse: payload
+    });
+  }
+
+  const cleanupResult = cleanup ? cleanupDebugDisplayQueueRows(createdIds) : { removed: 0, ids: [] };
+  const after = displayQueueStatus(shoutoutConfig());
+  const silentDrops = results.filter(row => row.silentDropDetected);
+  const notQueued = results.filter(row => row.queued !== true);
+
+  return res.json({
+    ok: silentDrops.length === 0,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    diagnostic: 'clip_shoutout_queue_intake',
+    options: { targets, force, sendChat, noProcess, cleanup, holdMs, debugAvailableAt },
+    summary: {
+      requested: targets.length,
+      queued: results.filter(row => row.queued === true).length,
+      blocked: results.filter(row => row.blocked === true).length,
+      notQueued: notQueued.length,
+      silentDrops: silentDrops.length,
+      createdIds,
+      cleanup: cleanupResult
+    },
+    results,
+    before: { pending: before.pending, cooldownRunning: before.cooldownRunning, cooldownRemainingMs: before.cooldownRemainingMs, queue: before.queue.map(debugQueueRowSummary) },
+    after: { pending: after.pending, cooldownRunning: after.cooldownRunning, cooldownRemainingMs: after.cooldownRemainingMs, queue: after.queue.map(debugQueueRowSummary) }
+  });
+}
+
 async function handleRun(req, res, env) {
   const cfg = shoutoutConfig();
   const input = readRequestData(req);
@@ -3811,7 +3982,7 @@ async function handleRun(req, res, env) {
       requestedByLogin: vars.requestedByLogin,
       requestedByDisplay: vars.requestedByDisplay,
       input,
-      availableAt: nowIso(),
+      availableAt: input.__debugAvailableAt || nowIso(),
       streamDayId: streamDay.streamDayId || '',
       overrideUsed,
       overrideByLogin: overrideUsed ? vars.requestedByLogin : '',
@@ -3821,7 +3992,7 @@ async function handleRun(req, res, env) {
 
     if (!queueResult.ok) return res.status(500).json({ ok: false, error: queueResult.error || 'display_queue_enqueue_failed' });
 
-    if (dcfg.sendChatMessages !== false) {
+    if (dcfg.sendChatMessages !== false && input.__debugSuppressChat !== true && input.debugSuppressChat !== true) {
       const noticeInfo = displayQueueNoticeInfo(queueResult.row, cfg);
       const rowStatus = String(queueResult.row && queueResult.row.status || 'queued');
       const shouldWait = noticeInfo.pendingBefore > 0 || noticeInfo.availableWaitMs > 10000 || rowStatus === 'waiting';
@@ -3857,7 +4028,9 @@ async function handleRun(req, res, env) {
       }
     }
 
-    processDisplayQueue(env, shoutoutConfig()).catch(err => { state.displayQueue.lastError = err && err.message ? err.message : String(err); });
+    if (input.__debugNoProcess !== true && input.debugNoProcess !== true && input.noProcess !== true) {
+      processDisplayQueue(env, shoutoutConfig()).catch(err => { state.displayQueue.lastError = err && err.message ? err.message : String(err); });
+    }
 
     return res.json({
       ok: true,
@@ -5235,6 +5408,7 @@ module.exports.init = function init(ctx) {
         { method: "GET/POST", path: `${API_PREFIX}/texts` },
         { method: "GET", path: `${API_PREFIX}/texts/migration` },
         { method: "GET", path: `${API_PREFIX}/queue` },
+        { method: "GET/POST", path: `${API_PREFIX}/debug/test-queue` },
         { method: "GET", path: `${API_PREFIX}/timeline` },
         { method: "GET", path: `${API_PREFIX}/stats` },
         { method: "GET", path: `${API_PREFIX}/stats/user` },
@@ -5393,6 +5567,18 @@ module.exports.init = function init(ctx) {
     } catch (err) {
       res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
     }
+  });
+
+  app.get(`${API_PREFIX}/debug/test-queue`, (req, res) => {
+    handleDebugQueueTest(req, res, env).catch(err => {
+      res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err) });
+    });
+  });
+
+  app.post(`${API_PREFIX}/debug/test-queue`, (req, res) => {
+    handleDebugQueueTest(req, res, env).catch(err => {
+      res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err) });
+    });
   });
 
   app.get(`${API_PREFIX}/timeline`, (req, res) => {
