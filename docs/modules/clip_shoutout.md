@@ -1,120 +1,108 @@
 # Modul-Doku: clip_shoutout
 
-Stand: 2026-06-05  
-Aktuelle Version: `0.2.38`  
-Aktueller stabiler CAN-Stand: `CAN-44.21.34`
-
 ## Zweck
 
-`clip_shoutout` steuert das Clip-/Video-Shoutout-System für ForrestCGN. Das Modul verarbeitet manuelle Chat-Commands, DisplayQueue, OfficialQueue, Clip-Auswahl, Overlay-/Sound-Bundle-Ausgabe und Text-/Status-Routen.
+`clip_shoutout` verwaltet das ForrestCGN-Shoutout-System:
 
-## Aktueller Command-Stand
+- manuelle Shoutouts über `!so` / `!vso`
+- Clip-/Overlay-Shoutout über DisplayQueue
+- offiziellen Twitch-Shoutout über OfficialQueue
+- AutoShoutout auf Basis von Chataktivität
+- eingehende/ausgehende Twitch-Shoutout-Events
+- Statistik/Timeline/Diagnose
+- Dashboard-Settings
 
-Der Command-Bereich ist seit CAN-44.21.34 stabil.
+## Aktueller Stand
 
-```text
-!so  = Hauptbefehl
-!vso = Alias
-```
+- Modulversion: **0.2.40**
+- aktueller CAN-Stand: **CAN-44.21.41**
+- Dokumentationsstand: **CAN-44.21.42**
 
-Nicht mehr aktiv:
+## Commands
 
-```text
-!clipso
-!videoso
-```
+Die Command-Konfiguration liegt in `command_definitions`.
 
-## Source of Truth
+Aktiv erwartet:
 
-Für Chat-Commands ist `command_definitions` führend.
+- Hauptcommand: `so`
+- Alias: `vso`
+- effektive Trigger: `so`, `vso`
+- `clipso` / `videoso` nicht mehr aktiv
 
-Wichtig:
+Command/Alias/Rechte/Cooldowns werden im Commands-Dashboard gepflegt, nicht im Shoutout-Dashboard.
 
-```text
-Direct-Intake liest Trigger aus command_definitions.
-Alte Modul-Config darf Command-Definitionen nicht blind überschreiben.
-Es darf nur einen aktiven clip_shoutout-Command-Eintrag geben.
-```
+## Dashboard
 
-Zielzustand:
+Produktives Dashboard-Modul:
 
-```text
-trigger      : so
-aliases_json : ["vso"]
-module_key   : clip_shoutout
-action_key   : run
-target_url   : /api/clip-shoutout/run
-```
+- `htdocs/dashboard/modules/shoutout_v2.js`
+- `htdocs/dashboard/modules/shoutout_v2.css`
 
-## Direct-Intake
+Anzeige im Dashboard: **Shoutout**
 
-Direct-Intake ist aktiv und nutzt keine versteckten DefaultTrigger mehr.
+Altes Dashboard-Modul:
 
-Status-Zielwert:
+- `shoutout.js`
+- `shoutout.css`
 
-```text
-directIntake.enabled                : True
-directIntake.source                 : command_definitions
-directIntake.commandDefinitionCount : 1
-directIntake.fallbackUsed           : False
-```
+ist in der aktuellen `index.html` nicht mehr aktiv geladen.
 
-## Wichtige Routen
+## Settings
 
-Runtime:
+Shoutout-Settings sind editierbar über das Shoutout-Dashboard.
 
-```text
-GET/POST /api/clip-shoutout/run
-GET/POST /api/clip/shoutout      (Legacy-Alias, behalten/markieren)
-```
+Command-relevante Werte werden nur angezeigt und bleiben im Commands-Dashboard.
 
-Status/Settings:
+Editierbare Bereiche:
 
-```text
-GET      /api/clip-shoutout/status
-GET/POST /api/clip-shoutout/settings
-GET/POST /api/clip-shoutout/texts
-GET      /api/clip-shoutout/texts/migration
-```
+- Modul aktiv/inaktiv
+- Direct-Intake enabled
+- Clip-Suche
+- DisplayQueue
+- OfficialQueue
+- Streamtag-Sperre
+- Streamstatus/Start-Szene
+- AutoShoutout-Grundeinstellungen
+- AutoShoutout-Sofort-Auslöser
 
-Queue:
+## AutoShoutout
 
-```text
-GET  /api/clip-shoutout/queue
-POST /api/clip-shoutout/display-queue/remove
-POST /api/clip-shoutout/display-queue/retry
-POST /api/clip-shoutout/queue/remove   (Legacy-Name für OfficialQueue)
-POST /api/clip-shoutout/queue/retry    (Legacy-Name für OfficialQueue)
-GET  /api/clip-shoutout/official/auth-status
-```
+Normale Nachrichtenzählung:
 
-Auto-/Inbound-/Debug-Routen bleiben vorhanden und wurden nicht entfernt.
+- erste Nachricht zählt als 1.
+- bei `minMessagesBeforeTrigger = 3` müssen nach der ersten Nachricht noch zwei weitere folgen.
 
-## Stabiler Test
+Sofort-Auslöser:
 
-Nicht-live Live-Test bestanden:
+- `instantTriggerMessagesEnabled`
+- `instantTriggerBypassMinMessages`
+- `instantTriggerMessages`
 
-```text
-!so @pretos1 --force
-!so @together_not_alone --force
-!so @pretos1 --force
-```
+Standardliste:
 
-Erwartetes und bestätigtes Verhalten:
+- `!lurk`
+- `!lurke`
+- `lurk`
 
-```text
-1. erster Streamer wird angenommen/queued
-2. zweiter Streamer wird queued
-3. gleicher aktiver Streamer wird als already_active erkannt
-```
+Diese Trigger sind für Streamer gedacht, die nur kurz lurken und keine weiteren Nachrichten schreiben.
 
-## Nicht ändern ohne separate Analyse
+## OfficialQueue
 
-```text
-- Clip-Player
-- sound_system_overlay.html
-- DisplayQueue-Ablauf
-- OfficialQueue-Ablauf
-- Chattexte
-- produktive SQLite-Daten
-```
+Wichtige Regel:
+
+- Wenn Twitch den offiziellen Shoutout blockt, bleibt der Eintrag in der Queue.
+- Manuelle Wiederholung darf erneut versuchen.
+- Automatische Worker-Retrys sollen keinen Chatspam erzeugen.
+
+## Bekannte offene Beobachtungspunkte
+
+- AutoShoutout-Sofort-Auslöser im Streambetrieb testen.
+- Save-Verhalten im Dashboard nach CAN-44.21.40/41 nochmals prüfen.
+- OfficialQueue-Retry-Verhalten über längere Laufzeit beobachten.
+
+## Nicht anfassen ohne neuen Auftrag
+
+- Clip-Player/Playback.
+- Sound-System-Overlay.
+- produktive SQLite-Datenbank-Datei.
+- bestehende Queue-Logik ohne konkreten Fehlernachweis.

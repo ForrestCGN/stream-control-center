@@ -1,48 +1,52 @@
-# CHANGELOG
+# CHANGELOG – CAN-44.21 Shoutout-System
 
-Stand: 2026-06-04
+## CAN-44.21.41 – AutoShoutout Instant Trigger Messages
 
-## CAN-44.19.4 – Dokumentation / Handoff
+- AutoShoutout-Sofort-Auslöser ergänzt.
+- Standard-Sofort-Auslöser: `!lurk`, `!lurke`, `lurk`.
+- Sofort-Auslöser können Mindestnachrichten umgehen.
+- Normale Nachrichtenzählung bleibt erhalten: erste Nachricht zählt als 1.
+- `!so` und `!vso` bleiben normale Shoutout-Commands.
 
-- Current Status aktualisiert.
-- Next Steps aktualisiert.
-- TODO aktualisiert.
-- Dateien-Übersicht für Shoutout-System ergänzt.
-- Übergabe-Datei für neuen Chat erstellt.
-- Keine Code-Änderungen.
-- Keine DB-Änderungen.
-- Keine Runtime-Änderungen.
+## CAN-44.21.40 – Shoutout Settings Save Fix
 
-## CAN-44.19.3 – Shoutout Text Dropdown Polish
+- Speichern liest Formularwerte jetzt vor dem Rendern.
+- Bug behoben, bei dem Änderungen scheinbar verworfen/neu geladen wurden.
 
-- Schreibweise `offiziellen Twitch-Shoutout` normalisiert.
-- Kategorieanzeige im Editor als stabiler Badge/Pill.
-- Entfernen-X bei nur einer Variante ausgeblendet.
-- Entfernen letzter Variante zusätzlich im JS verhindert.
-- kleine Alignment-/CSS-Feinschliffe.
+## CAN-44.21.39 – Shoutout Settings Help Tooltips
 
-## CAN-44.19.2 – Shoutout Text Dropdown Layout
+- Hilfe-Tooltips für relevante Settings ergänzt.
+- Hover/Fokus-Hilfe über kleines `?`.
+- Hover-Zustand für Settings-Zeilen ergänzt.
 
-- Kategorie-Auswahl als Dropdown.
-- Text-Key-Auswahl als Dropdown.
-- linkes Listenlayout entfernt.
-- Editor darunter.
-- Varianten als einzelne Textfelder.
-- responsive-freundlicher Zwischenstand.
+## CAN-44.21.38 – Shoutout Settings Layout Cleanup
 
-## CAN-44.19 – Shoutout Text Dashboard Tab
+- Settings-Layout kompakter gemacht.
+- Command-Zuordnung reduziert/einklappbar.
+- Gruppen klarer sortiert.
+- Save/Reload besser erreichbar.
 
-- gemeinsamer Texte-Tab im bestehenden Shoutout-System.
-- `shoutout_texts.js` und `shoutout_texts.css`.
-- `index.html` lädt neuen Dashboard-Baustein.
-- nutzt zentrale Routen aus CAN-44.18.
+## CAN-44.21.37 – Shoutout Dashboard Settings Editable
 
-## CAN-44.18 – Shoutout Text Backend Foundation
+- Settings-Tab editierbar gemacht.
+- altes Shoutout-Dashboard aus `index.html` deaktiviert.
+- Shoutout V2 wird produktiv als `Shoutout` angezeigt.
+- Command-Konfiguration bleibt im Commands-Dashboard.
 
-- `clip_shoutout.js` auf Version 0.2.25.
-- zentrale Text-Routen:
-  - `GET /api/clip-shoutout/texts`
-  - `POST /api/clip-shoutout/texts`
-  - `GET /api/clip-shoutout/texts/migration`
-- neue `shoutout.*` Textkeys vorbereitet.
-- alte Fallbacks bleiben erhalten.
+## CAN-44.21.34 – Command Definitions Source of Truth Fix
+
+- `command_definitions` ist Source of Truth.
+- alte Config `command: vso` überschreibt den Command nicht mehr.
+- `!so` Hauptcommand, `!vso` Alias.
+- keine DefaultTrigger-Logik mehr aktiv.
+
+## CAN-44.21.30 – Direct Intake Trigger Fix
+
+- Direct-Intake erkennt `!so` wieder korrekt.
+- Silent-Drop bei `!so` behoben.
+
+## CAN-44.21.29 – Manual SO Intake Official Retry Dedup
+
+- OfficialQueue-Dedup-/Retry-Verhalten für manuelle Shoutouts verbessert.
+- Manuelle Wiederholung darf konkreten Streamer erneut versuchen.
+- Worker-Retrys sollen nicht chatten.

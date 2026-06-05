@@ -1,73 +1,61 @@
-# NEXT_STEPS
+# NEXT_STEPS – CAN-44.21 Shoutout
 
-Stand: 2026-06-04
+## Nächster sinnvoller Schritt
 
-## Direkt als Nächstes empfohlen
+Aktuellen Stand beobachten, nicht sofort weiter umbauen.
 
-```text
-CAN-44.20 – Shoutout Dashboard Reorganisation
+## Tests, sobald möglich
+
+### 1. Statuscheck nach CAN-44.21.41
+
+```powershell
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/clip-shoutout/status"
+$s | Select-Object module,moduleVersion,enabled,lastError,command
+$s.effectiveCommandTriggers
 ```
 
-Ziel: Das Shoutout-Dashboard übersichtlicher und nutzerfreundlicher neu strukturieren, ohne bestehende Funktionalität zu entfernen.
-
-## Geplante Dashboard-Zielstruktur
+Erwartung:
 
 ```text
-1. Übersicht
-2. Chat-Shoutout
-3. AutoShoutout
-4. Queues
-5. Texte
-6. Verlauf
-7. Statistik
-8. Eingehend
-9. Diagnose
-10. Einstellungen
+moduleVersion : 0.2.40
+command       : so
+effectiveCommandTriggers:
+so
+vso
+lastError     : leer
 ```
 
-## CAN-44.20 Vorschlag
+### 2. Dashboard Save-Test
 
-1. Aktuelle Dashboard-Dateien prüfen:
-   - `htdocs/dashboard/modules/shoutout.js`
-   - `htdocs/dashboard/modules/shoutout.css`
-   - `htdocs/dashboard/modules/auto_shoutout.js`
-   - `htdocs/dashboard/modules/auto_shoutout.css`
-   - `htdocs/dashboard/modules/shoutout_texts.js`
-   - `htdocs/dashboard/modules/shoutout_texts.css`
+Eine harmlose Shoutout-Setting-Option ändern, speichern, Dashboard hart neu laden und prüfen, ob der Wert erhalten bleibt.
 
-2. Bestehende Tabs/Routen den neuen Bereichen zuordnen.
+Wichtig: Nicht Command/Alias im Shoutout-Dashboard erwarten. Commands werden im Commands-Dashboard gepflegt.
 
-3. Erst einen Struktur-/Umbauplan erstellen, bevor Code geändert wird.
+### 3. AutoShoutout-Minimum testen
 
-4. Dann in kleinen Schritten umbauen:
-   - Übersicht aufräumen
-   - Chat-Shoutout als eigenen Bereich
-   - AutoShoutout besser integrieren
-   - Texte-Tab erhalten
-   - Produktion/Live-Test unter Diagnose zusammenfassen
-   - Settings/Test in echte Einstellungen überführen
+Sobald ein kontrollierter Chat-Test möglich ist:
 
-## Danach sinnvoll
+- Mindestnachrichten auf 3 stellen.
+- Streamer schreibt normale Nachricht: zählt als 1, löst noch nicht aus.
+- Zwei weitere Nachrichten: AutoShoutout darf auslösen.
 
-```text
-CAN-44.21 – Runtime Text-Key Migration
-```
+### 4. AutoShoutout-Sofort-Auslöser testen
 
-Ziel: Runtime schrittweise von alten Config-Texten auf `shoutout.*` Textkeys umstellen.
+- Mindestnachrichten auf 2 oder 3 lassen.
+- Streamer schreibt `!lurk`.
+- Erwartung: AutoShoutout darf sofort prüfen/auslösen, wenn `instantTriggerMessagesEnabled` und `instantTriggerBypassMinMessages` aktiv sind.
 
-Dabei gilt:
+### 5. OfficialQueue beobachten
 
-```text
-alte Config-Texte bleiben Fallback
-auto.greeting bleibt Legacy/Fallback
-keine harten Löschungen
-keine bestehende Funktionalität entfernen
-```
+Bei Twitch-/so-Block:
 
-## Später prüfen
+- Eintrag bleibt in OfficialQueue.
+- manuelle Wiederholung darf erneut versuchen.
+- Worker-Retrys dürfen nicht in den Chat spammen.
 
-- Rechte Navigation eventuell in obere, immer sichtbare Leiste überführen.
-- Dashboard insgesamt mehr Platz für Content geben.
-- Textvarianten später inhaltlich überarbeiten.
-- Shoutout-Statistik und Verlauf besser verbinden.
-- EventBus-/Monitoring-Status sichtbarer machen.
+## Mögliche spätere Verbesserungen
+
+- Settings-UI weiter visuell glätten, falls noch zu breit/leer.
+- Hilfetexte/Tooltips weiter verfeinern, wenn Begriffe unklar bleiben.
+- Optional: AutoShoutout-Trigger-Liste dashboardfähig mit Validierung und Beispielen erweitern.
+- Optional: Settings-Änderungen mit Audit-Log verbinden, sobald das zentrale Rollen-/Audit-System dafür final vorgesehen ist.

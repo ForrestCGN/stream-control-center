@@ -1,89 +1,51 @@
-# FILES
+# FILES – CAN-44.21 Shoutout-System
 
-Stand: 2026-06-04
+## Zuletzt betroffene Dateien
 
-## Shoutout-System Kern
+### Backend
 
-```text
-backend/modules/clip_shoutout.js
-config/clip_system.json
-```
+- `backend/modules/clip_shoutout.js`
+  - Modulversion zuletzt: `0.2.40`
+  - enthält Shoutout-Backend, Direct-Intake, DisplayQueue, OfficialQueue, AutoShoutout, Settings-API und Textintegration.
 
-## Dashboard
+### Dashboard
 
-```text
-htdocs/dashboard/index.html
-htdocs/dashboard/modules/shoutout.js
-htdocs/dashboard/modules/shoutout.css
-htdocs/dashboard/modules/auto_shoutout.js
-htdocs/dashboard/modules/auto_shoutout.css
-htdocs/dashboard/modules/shoutout_texts.js
-htdocs/dashboard/modules/shoutout_texts.css
-```
+- `htdocs/dashboard/index.html`
+  - altes Shoutout-Dashboard wurde aus der aktiven Einbindung entfernt.
+  - `shoutout_v2.js/css` ist produktiv als Shoutout-Dashboard aktiv.
 
-## Shoutout-Dokumentation
+- `htdocs/dashboard/modules/shoutout_v2.js`
+  - produktives Shoutout-Dashboard.
+  - Settings editierbar.
+  - Tooltips/Hilfen.
+  - AutoShoutout-Instant-Trigger-Settings.
 
-```text
-docs/modules/clip-shoutout-vso.md
-docs/modules/CLIP_SHOUTOUT_AUTOSHOUTOUT.md
-docs/modules/SHOUTOUT_SYSTEM_STRUCTURE_PLAN.md
-docs/modules/SHOUTOUT_SYSTEM_STANDARDS_ALIGNMENT.md
-docs/modules/SHOUTOUT_TEXT_INVENTORY_AND_MIGRATION.md
-docs/modules/SHOUTOUT_TEXT_BACKEND_ROUTES.md
-docs/modules/SHOUTOUT_TEXT_BACKEND_FOUNDATION.md
-docs/modules/SHOUTOUT_TEXT_DASHBOARD_TAB.md
-```
+- `htdocs/dashboard/modules/shoutout_v2.css`
+  - Styles für Shoutout-Dashboard, Settings-Layout und Help-Tooltips.
 
-## Aktuelle CAN-Dokumente
+## Bewusst nicht mehr aktiv im Dashboard
 
-```text
-docs/current/CAN44_14_SHOUTOUT_DASHBOARD_STRUCTURE_PLAN.md
-docs/current/CAN44_15_SHOUTOUT_SYSTEM_STANDARDS_ALIGNMENT.md
-docs/current/CAN44_16_SHOUTOUT_TEXT_INVENTORY_MIGRATION_PLAN.md
-docs/current/CAN44_17_SHOUTOUT_TEXT_BACKEND_ROUTES_PLAN.md
-docs/current/CAN44_18_SHOUTOUT_TEXT_BACKEND_FOUNDATION.md
-docs/current/CAN44_19_SHOUTOUT_TEXT_DASHBOARD_TAB.md
-docs/current/CAN44_19_1_SHOUTOUT_TEXT_UI_CLEANUP.md
-docs/current/CAN44_19_2_SHOUTOUT_TEXT_DROPDOWN_LAYOUT.md
-docs/current/CAN44_19_3_SHOUTOUT_TEXT_DROPDOWN_POLISH.md
-docs/current/CAN44_19_4_SHOUTOUT_TEXT_DASHBOARD_FINAL_DOCS.md
-```
+- `htdocs/dashboard/modules/shoutout.js`
+- `htdocs/dashboard/modules/shoutout.css`
 
-## Aktuelle wichtige API-Routen
+Diese Dateien können noch im Projekt existieren, werden aber durch den aktuellen `index.html`-Stand nicht mehr geladen.
 
-```text
-GET  /api/clip-shoutout/status
-GET  /api/clip-shoutout/queue
-GET  /api/clip-shoutout/timeline
-GET  /api/clip-shoutout/stats
-GET  /api/clip-shoutout/inbound
-GET  /api/clip-shoutout/inbound/stats
-GET  /api/clip-shoutout/production-check
-GET  /api/clip-shoutout/live-test
-POST /api/clip-shoutout/run
-GET  /api/clip-shoutout/auto
-GET  /api/clip-shoutout/auto/settings
-POST /api/clip-shoutout/auto/settings
-GET  /api/clip-shoutout/auto/streamers
-POST /api/clip-shoutout/auto/streamers
-POST /api/clip-shoutout/auto/test-chat
-GET  /api/clip-shoutout/texts
-POST /api/clip-shoutout/texts
-GET  /api/clip-shoutout/texts/migration
-```
+## Wichtige APIs
 
-## DB-Tabellen relevant für Shoutout-System
+- `GET /api/clip-shoutout/status`
+- `GET /api/clip-shoutout/settings`
+- `POST /api/clip-shoutout/settings`
+- `POST /api/clip-shoutout/run`
+- `GET /api/clip-shoutout/queue`
+- `POST /api/clip-shoutout/display-queue/retry`
+- `POST /api/clip-shoutout/display-queue/remove`
+- `POST /api/clip-shoutout/queue/retry`
+- `POST /api/clip-shoutout/queue/remove`
+- `GET /api/clip-shoutout/official/auth-status`
+- `GET/POST /api/clip-shoutout/auto/settings`
 
-```text
-clip_shoutout_display_queue
-clip_shoutout_official_queue
-clip_shoutout_official_history
-clip_shoutout_inbound_events
-clip_shoutout_auto_settings
-clip_shoutout_auto_streamers
-clip_shoutout_auto_events
-clip_shoutout_auto_message_activity
-module_text_variants
-module_texts
-command_definitions
-```
+## Datenquellen
+
+- Chatcommands über `command_definitions`.
+- Shoutout-Modulconfig über bestehende Config-/Settings-API.
+- Produktive SQLite-Datenbank nicht als Datei austauschen.

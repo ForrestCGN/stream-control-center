@@ -1,101 +1,89 @@
-# CURRENT_STATUS
+# CURRENT_STATUS – stream-control-center
 
-Stand: 2026-06-04
-Projekt: `stream-control-center`
+## Aktueller Bereich
 
-## Aktueller stabiler Arbeitsstand
+Aktiver Arbeitsbereich: **CAN-44.21 Shoutout-System**
 
-Die aktuelle Arbeitsphase am Shoutout-/AutoShoutout-System ist abgeschlossen.
+Aktueller stabiler Code-/Dashboard-Stand nach letzter Änderung:
 
-Aktueller Fokus war das gemeinsame Shoutout-Textsystem:
+- `clip_shoutout` Modulversion: **0.2.40**
+- Hauptcommand: **`!so`**
+- Alias: **`!vso`**
+- Command-Quelle: **`command_definitions`**
+- Direct-Intake: liest Commands aus `command_definitions`
+- alte Trigger `clipso` / `videoso`: entfernt bzw. nicht mehr aktiv
+- altes Dashboard-Modul `shoutout`: im Dashboard deaktiviert
+- neues Dashboard-Modul `shoutout_v2`: produktiv als **Shoutout** eingebunden
 
-```text
-Modul: backend/modules/clip_shoutout.js
-MODULE_VERSION: 0.2.25
-API_PREFIX: /api/clip-shoutout
-Text-Tabelle: module_text_variants
-Dashboard-Texttab: htdocs/dashboard/modules/shoutout_texts.js
-```
+## Stabil bestätigte Punkte
 
-## Abgeschlossene CAN-44 Schritte
+### CAN-44.21.34 – Direct-Intake stabil
 
-```text
-CAN-44.14  Shoutout Dashboard Structure Plan
-CAN-44.15  Shoutout System Standards Alignment
-CAN-44.16  Shoutout Text Inventory Migration Plan
-CAN-44.17  Shoutout Text Backend Routes Plan
-CAN-44.18  Shoutout Text Backend Foundation
-CAN-44.19  Shoutout Text Dashboard Tab
-CAN-44.19.1 Shoutout Text UI Cleanup
-CAN-44.19.2 Shoutout Text Dropdown Layout
-CAN-44.19.3 Shoutout Text Dropdown Polish
-CAN-44.19.4 Dokumentation / Übergabe
-```
+Der nicht-live Ablaufstest mit `!so` wurde erfolgreich durchgeführt:
 
-## Aktuell bestätigter Zustand
+- `!so @pretos1 --force` wurde erkannt und eingereiht.
+- `!so @together_not_alone --force` wurde erkannt und eingereiht.
+- erneutes `!so @pretos1 --force` wurde korrekt als `already_active_same_target` behandelt.
+- Status zeigte:
+  - `moduleVersion: 0.2.38`
+  - `command: so`
+  - `effectiveCommandTriggers: so, vso`
+  - `directIntake.source: command_definitions`
+  - `commandDefinitionCount: 1`
+  - `fallbackUsed: false`
 
-Der gemeinsame Texte-Tab im Shoutout-System ist vorhanden und als Zwischenstand optisch akzeptiert.
+### CAN-44.21.37 – Dashboard-Config editierbar
 
-Der Texttab nutzt Dropdowns statt Listenlayout:
+- Shoutout V2 ist im Dashboard jetzt das produktive **Shoutout**.
+- Altes Shoutout-Dashboard wurde aus `index.html` entfernt/deaktiviert.
+- Settings-Tab ist editierbar.
+- Commands/Aliase/Rechte/Cooldowns bleiben bewusst im Commands-Dashboard.
+- Shoutout-Dashboard speichert nur Modul-Config.
 
-```text
-Kategorie-Dropdown
-Text-Key-Dropdown
-Editor darunter
-Varianten als einzelne Felder
-Migration/Kompatibilität kompakt eingeklappt
-```
+### CAN-44.21.38 – Settings Layout Cleanup
 
-## Getestet
+- Settings-Seite wurde kompakter gruppiert.
+- Command-Zuordnung wurde reduziert/einklappbar gemacht.
+- Basis, Clip/Display, OfficialQueue, Stream-Regeln, Streamstatus/Start-Szene und AutoShoutout wurden klarer getrennt.
 
-Backend-Routen wurden erfolgreich getestet:
+### CAN-44.21.39 – Help Tooltips
 
-```text
-GET /api/clip-shoutout/texts
-GET /api/clip-shoutout/texts/migration
-```
+- Relevante Settings haben Hilfe-Tooltips erhalten.
+- Kurzhilfen bleiben weiterhin unter den Feldern sichtbar.
+- Settings-Zeilen haben Hover-Zustände.
 
-Erwartetes Ergebnis wurde erreicht:
+### CAN-44.21.40 – Settings Save Fix
 
-```text
-ok: true
-moduleVersion: 0.2.25
-table: module_text_variants
-count: 15
-variantCount: 23
-migration: dryRun true
-noRuntimeChange true
-dashboardReady true
-```
+- Bug behoben: Beim Speichern wurden Formularwerte vorher durch ein Rendern überschrieben.
+- Aktuelle Formularwerte werden nun vor dem Speichern gelesen.
 
-## Projektstandards weiterhin verbindlich
+### CAN-44.21.41 – AutoShoutout Instant Trigger Messages
 
-```text
-Keine Funktionalität entfernen.
-DB niemals neu bauen/ersetzen.
-Aktive app.sqlite nicht überschreiben.
-Schemaänderungen nur sanft und migrationsfähig.
-Neue DB-Logik möglichst MariaDB-kompatibel planen.
-Vorhandene Helper verwenden, keine Parallelstrukturen.
-Texte über helper_texts/module_text_variants.
-Config über bestehende Config-Helper/DB-Settings.
-ZIPs immer mit echten Zielpfaden liefern.
-GitHub/dev und Live bewusst synchron halten.
-```
+- AutoShoutout zählt normale Nachrichten weiterhin:
+  - erste Nachricht zählt als 1
+  - bei Mindestnachrichten 3 sind noch zwei weitere Nachrichten nötig
+- Neue Sofort-Auslöser:
+  - `!lurk`
+  - `!lurke`
+  - `lurk`
+- Sofort-Auslöser können Mindestnachrichten umgehen, damit Streamer mit nur kurzem `!lurk` trotzdem verarbeitet werden können.
+- `!so` und `!vso` bleiben normale Shoutout-Commands und werden nicht als AutoShoutout-Sofort-Auslöser behandelt.
 
-## Wichtiger UX-Hinweis
+## Nicht online getestet
 
-Dashboard-Layouts dürfen nicht nur auf Forrests aktueller Auflösung gut aussehen. Neue Layouts müssen responsive funktionieren und bei kleineren Breiten sinnvoll umbrechen.
+CAN-44.21.41 konnte noch nicht vollständig live-nah getestet werden, weil der Stream aktuell nicht online ist.
 
-## Nächster Hauptfokus
+Noch zu beobachten:
 
-Im neuen Chat soll der größere Dashboard-Umbau des Shoutout-Systems geplant und umgesetzt werden:
+- normale AutoShoutout-Zählung mit Mindestnachrichten
+- Sofort-Auslöser `!lurk`
+- Save-Verhalten im Dashboard nach CAN-44.21.40/41
+- OfficialQueue-Retry-Verhalten über längere Laufzeit
 
-```text
-Shoutout-System Dashboard neu organisieren
-AutoShoutout sauber integrieren
-Chat-Shoutout als eigenen Bereich führen
-Texte-Tab beibehalten
-Diagnose/Produktion/Live-Test zusammenführen
-Einstellungen klar trennen
-```
+## Wichtige Projektregeln
+
+- Keine Funktionalität entfernen.
+- Bestehende produktive SQLite-Datenbank niemals ersetzen/überschreiben.
+- Command-Definitionen sind Source of Truth für Chatcommands.
+- Shoutout-Dashboard darf Commands anzeigen, aber Command-Konfiguration erfolgt im Commands-Dashboard.
+- Clip-Player/Playback nicht anfassen, solange nicht explizit beauftragt.
