@@ -19,7 +19,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.28";
+const MODULE_VERSION = "0.2.29";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -243,7 +243,7 @@ const DEFAULT_CONFIG = {
       workerIntervalMs: 2000,
       sendChatMessages: true,
       acceptedMessage: "✅ Shoutout für @{displayName} aufgenommen.",
-      waitingMessage: "⏳ Shoutout für @{displayName} aufgenommen und in die Warteschlange gesetzt.",
+      waitingMessage: "⏳ Shoutout für @{displayName} aufgenommen und in die Warteschlange gesetzt. Start in ca. {waitTime}.",
       startedMessage: "",
       failedMessage: "⚠️ Shoutout für @{displayName} konnte nicht gestartet werden."
     },
@@ -570,6 +570,36 @@ function estimateDisplayWaitMsForQueueId(queueId, cfg) {
   const index = rows.findIndex(row => Number(row.id || 0) === id);
   if (index < 0) return cooldown;
   return Math.max(0, index * cooldown);
+}
+
+function displayQueueNoticeInfo(queueRow, cfg) {
+  const rowId = Number(queueRow && queueRow.id || 0);
+  const dcfg = displayConfig(cfg || shoutoutConfig());
+  const cooldown = Math.max(0, Number(dcfg.displayCooldownMs || 120000));
+  const rows = listDisplayQueue(200).filter(row => ['queued','waiting','active'].includes(String(row.status || '')));
+  const index = rows.findIndex(row => Number(row.id || 0) === rowId);
+  const pendingBefore = index >= 0 ? index : rows.filter(row => Number(row.id || 0) < rowId).length;
+  const availableMs = queueRow && queueRow.available_at ? Date.parse(queueRow.available_at) : 0;
+  const availableWaitMs = Number.isFinite(availableMs) && availableMs > 0 ? Math.max(0, availableMs - Date.now()) : 0;
+  const estimatedWaitMs = Math.max(0, availableWaitMs + Math.max(0, pendingBefore) * cooldown);
+  return {
+    pendingBefore,
+    position: Math.max(1, pendingBefore + 1),
+    waitMs: estimatedWaitMs,
+    waitTime: formatApproxDuration(estimatedWaitMs),
+    cooldownMs: cooldown,
+    availableWaitMs
+  };
+}
+
+function appendDisplayWaitInfo(message, noticeInfo) {
+  const base = String(message || '').trim();
+  const waitTime = String(noticeInfo && noticeInfo.waitTime || '').trim();
+  if (!base || !waitTime) return base;
+  const lower = base.toLowerCase();
+  const alreadyHasWait = lower.includes(waitTime.toLowerCase()) || /(start|wartezeit|in ca\.|ca\.|sek\.|sekunden|min\.|minuten|position)/i.test(base);
+  if (alreadyHasWait) return base;
+  return `${base} Start in ca. ${waitTime}.`;
 }
 
 function findPendingDisplayShoutout(login) {
@@ -3792,12 +3822,39 @@ async function handleRun(req, res, env) {
     if (!queueResult.ok) return res.status(500).json({ ok: false, error: queueResult.error || 'display_queue_enqueue_failed' });
 
     if (dcfg.sendChatMessages !== false) {
-      const queue = listDisplayQueue(200);
-      const pendingBeforeThis = queue.filter(row => Number(row.id || 0) < Number(queueResult.row?.id || 0) && ['queued','waiting','active'].includes(row.status)).length;
-      const textKey = pendingBeforeThis > 0 ? 'shoutout.chat.waiting' : 'shoutout.chat.accepted';
-      const template = pendingBeforeThis > 0 ? firstString(dcfg.waitingMessage, dcfg.acceptedMessage) : firstString(dcfg.acceptedMessage, DEFAULT_CONFIG.clipShoutout.chatMessage);
-      const message = renderShoutoutModuleText(textKey, vars) || renderTemplate(template, vars).trim();
-      await sendChatMessage(message, { targetLogin, displayQueueId: queueResult.row && queueResult.row.id, textKey });
+      const noticeInfo = displayQueueNoticeInfo(queueResult.row, cfg);
+      const rowStatus = String(queueResult.row && queueResult.row.status || 'queued');
+      const shouldWait = noticeInfo.pendingBefore > 0 || noticeInfo.availableWaitMs > 10000 || rowStatus === 'waiting';
+      const textKey = shouldWait ? 'shoutout.chat.waiting' : 'shoutout.chat.accepted';
+      const template = shouldWait
+        ? firstString(dcfg.waitingMessage, dcfg.acceptedMessage, DEFAULT_CONFIG.clipShoutout.displayQueue.waitingMessage)
+        : firstString(dcfg.acceptedMessage, DEFAULT_CONFIG.clipShoutout.chatMessage);
+      const messageVars = {
+        ...vars,
+        waitTime: noticeInfo.waitTime,
+        waitMs: noticeInfo.waitMs,
+        position: noticeInfo.position,
+        queuePosition: noticeInfo.position,
+        displayQueueId: queueResult.row && queueResult.row.id,
+        overrideUsed
+      };
+      let message = renderShoutoutModuleText(textKey, messageVars) || renderTemplate(template, messageVars).trim();
+      if (shouldWait) message = appendDisplayWaitInfo(message, noticeInfo);
+      if (!message) {
+        message = shouldWait
+          ? renderTemplate(DEFAULT_CONFIG.clipShoutout.displayQueue.waitingMessage, messageVars).trim()
+          : renderTemplate(DEFAULT_CONFIG.clipShoutout.displayQueue.acceptedMessage, messageVars).trim();
+      }
+      if (message) {
+        await sendChatMessage(message, {
+          targetLogin,
+          displayQueueId: queueResult.row && queueResult.row.id,
+          textKey,
+          queuePosition: noticeInfo.position,
+          waitMs: noticeInfo.waitMs,
+          overrideUsed
+        });
+      }
     }
 
     processDisplayQueue(env, shoutoutConfig()).catch(err => { state.displayQueue.lastError = err && err.message ? err.message : String(err); });
@@ -3812,6 +3869,7 @@ async function handleRun(req, res, env) {
         id: queueResult.row ? queueResult.row.id : 0,
         status: queueResult.row ? queueResult.row.status : 'queued',
         availableAt: queueResult.availableAt,
+        notice: displayQueueNoticeInfo(queueResult.row, cfg),
         displayCooldownMs: Math.max(0, Number(displayConfig(cfg).displayCooldownMs || 120000)),
         cooldownStartsAfterFinish: true,
         streamDayId: streamDay.streamDayId || '',
