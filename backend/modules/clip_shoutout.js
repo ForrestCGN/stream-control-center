@@ -19,7 +19,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.41";
+const MODULE_VERSION = "0.2.40";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -31,7 +31,7 @@ const MODULE_META = {
   routesPrefix: [API_PREFIX, "/api/clip/shoutout"],
   capabilities: ["shoutout.display_queue", "shoutout.official_queue", "shoutout.event_output"],
   bus: { emits: true, registered: false, heartbeat: false, channel: SHOUTOUT_BUS_CHANNEL },
-  note: "CAN-44.22.0: Shoutout overlay V9 design data added; queue, sound playback and official shoutout flow unchanged."
+  note: "CAN-44.21.41: AutoShoutout instant trigger messages can bypass the message threshold; clip playback unchanged."
 };
 
 const AUTO_SHOUTOUT_TEXT_DEFAULTS = {
@@ -163,18 +163,6 @@ const SHOUTOUT_TEXT_DEFAULTS = {
     "📼 Die Heimaufsicht hat es versucht, aber Twitch wollte @{displayName} gerade nicht senden.",
     "💿 Der offizielle Shoutout für @{displayName} konnte nicht abgespielt werden."
 ],
-  'shoutout.overlay.headline': [
-    "Schaut gerne mal vorbei!",
-    "Heute im Altersheim-TV!",
-    "Die Heimleitung empfiehlt!",
-    "Der Beamer läuft!"
-  ],
-  'shoutout.overlay.subline': [
-    "Heute im Altersheim-TV: {displayName}",
-    "Der Beamer läuft für {displayName}.",
-    "Die VHS ist eingelegt: {displayName}",
-    "Die Heimleitung empfiehlt heute {displayName}."
-  ],
   'shoutout.system.textsSaved': [
     "💾 Die Heimleitung hat den neuen Sendeplan gespeichert.",
     "📋 Die Textmappe der Heimaufsicht wurde aktualisiert.",
@@ -205,15 +193,12 @@ const SHOUTOUT_TEXT_OPTIONS = {
     'shoutout.official.waiting': 'shoutout.official',
     'shoutout.official.sent': 'shoutout.official',
     'shoutout.official.failed': 'shoutout.official',
-    'shoutout.overlay.headline': 'shoutout.overlay',
-    'shoutout.overlay.subline': 'shoutout.overlay',
     'shoutout.system.textsSaved': 'shoutout.system'
   },
   categoryLabels: {
     'shoutout.chat': 'Chat-Shoutout',
     'shoutout.auto': 'AutoShoutout',
     'shoutout.official': 'Offizieller Twitch-Shoutout',
-    'shoutout.overlay': 'Shoutout-Overlay',
     'shoutout.dashboard': 'Dashboard',
     'shoutout.system': 'System'
   },
@@ -3579,22 +3564,6 @@ function buildBundlePayload(cfg, vars, playback, clip, targetUser, ttsItem) {
   const playbackMode = playback.mode || "direct";
   const useTwitchClipPlayer = playbackMode === "twitch_clip";
 
-  const overlayVars = {
-    ...vars,
-    displayName: targetUser.displayName,
-    user: targetUser.displayName,
-    username: targetUser.login,
-    login: targetUser.login,
-    targetLogin: targetUser.login,
-    targetDisplay: targetUser.displayName,
-    targetDisplayName: targetUser.displayName,
-    clipTitle: clip.title || "",
-    clipId: clip.id || playback.clipId || "",
-    gameName: clip.game_id || ""
-  };
-  const overlayHeadline = renderShoutoutModuleText("shoutout.overlay.headline", overlayVars) || "Schaut gerne mal vorbei!";
-  const overlaySubline = renderShoutoutModuleText("shoutout.overlay.subline", overlayVars) || `Heute im Altersheim-TV: ${targetUser.displayName}`;
-
   const items = [{
     role: "clip",
     file: useTwitchClipPlayer ? "" : (playback.soundSystemFile || ""),
@@ -3640,10 +3609,7 @@ function buildBundlePayload(cfg, vars, playback, clip, targetUser, ttsItem) {
       clipTitle: clip.title || "",
       clipUrl: clip.url || "",
       gameName: clip.game_id || "",
-      headline: overlayHeadline,
-      subline: overlaySubline,
-      overlayHeadline,
-      overlaySubline,
+      subline: cfg.overlaySubline || "🧓 Altersheim-TV",
       durationMs: clipDurationMs,
       clipId: clip.id || playback.clipId || "",
       theme: "forrest_neon"
