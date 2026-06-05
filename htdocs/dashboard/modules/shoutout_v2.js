@@ -1,8 +1,8 @@
 window.ShoutoutV2Module = (function(){
   'use strict';
 
-  const MODULE_VERSION = '2.7.0-settings-editable';
-  const BUILD = 'CAN-44.21.37';
+  const MODULE_VERSION = '2.7.1-settings-layout-cleanup';
+  const BUILD = 'CAN-44.21.38';
 
   const API = {
     status: '/api/clip-shoutout/status',
@@ -1235,124 +1235,130 @@ window.ShoutoutV2Module = (function(){
     const direct = pick(cfg, ['directIntake'], pick(status, ['directIntake'], {}));
     const sceneCfg = pick(auto, ['sceneGate'], {});
     const sceneState = pick(state.sceneGate || {}, ['sceneGate'], {});
+    const triggerText = commandInfo.triggers.length ? commandInfo.triggers.map(t => `!${t}`).join(', ') : '-';
 
     return `
-      <section class="so2-ops-head">
-        <div class="so2-grid so2-grid-4">
-          ${statusCard('Modul', cfg.enabled !== false ? 'aktiv' : 'inaktiv', badge('editierbar', 'ok'), 'Modul-Config wird über diese Seite gespeichert.')}
-          ${statusCard('Command', `!${commandInfo.command}`, badge('Commands', 'neutral'), 'Trigger, Aliase, Rechte und Command-Cooldowns werden im Commands-Dashboard gepflegt.')}
-          ${statusCard('Trigger', commandInfo.triggers.length ? commandInfo.triggers.map(t => `!${t}`).join(', ') : '-', badge(pick(commandInfo.directIntake, ['source'], 'command_definitions'), 'neutral'), 'Direct-Intake liest command_definitions.')}
-          ${statusCard('Direct-Intake', direct.enabled !== false ? 'aktiv' : 'inaktiv', badge(direct.enabled !== false ? 'an' : 'aus', direct.enabled !== false ? 'ok' : 'warn'), 'Not-Aus für direkte Chat-Erkennung.')}
-        </div>
-        ${renderSettingsError(state.settings)}
-        ${renderSettingsError(state.autoSettings)}
-        ${renderSettingsResult()}
-        <div class="so2-settings-actions so2-settings-actions-top">
-          <button type="button" class="so2-primary-action" data-so2-settings-save>Config speichern</button>
-          <button type="button" data-so2-settings-reset>Neu laden / verwerfen</button>
-        </div>
-      </section>
-
-      <div class="so2-two">
-        ${renderSettingsInfoPanel('Command-Zuordnung', [
-          ['Hauptcommand', `!${commandInfo.command}`],
-          ['Aliase', commandInfo.aliases.map(t => `!${t}`)],
-          ['Alle Trigger', commandInfo.triggers.map(t => `!${t}`)],
-          ['Quelle', pick(commandInfo.directIntake, ['source'], '-')],
-          ['Command-Zeilen', pick(commandInfo.directIntake, ['commandDefinitionCount'], '-')],
-          ['Fallback genutzt', pick(commandInfo.directIntake, ['fallbackUsed'], false)]
-        ])}
-
-        ${renderSettingsPanel('Allgemein / Clip-Suche', `
-          ${settingsCheck('enabled', 'Shoutout-System aktiv', cfg.enabled !== false)}
-          ${settingsCheck('directIntake.enabled', 'Direct-Intake aktiv', direct.enabled !== false, 'Erkennt !so/!vso direkt aus dem Chat. Trigger kommen aus Commands.')}
-          ${settingsCheck('randomPick', 'Zufälligen Clip wählen', cfg.randomPick !== false)}
-          ${settingsCheck('avoidRecentClips', 'Recent-Clip-Schutz', cfg.avoidRecentClips !== false)}
-          ${settingsCheck('recentClipFallbackWhenAllBlocked', 'Fallback wenn alle Clips blockiert', cfg.recentClipFallbackWhenAllBlocked !== false)}
-          ${settingsCheck('allowLongerClipFallback', 'Längeren Fallback-Clip erlauben', cfg.allowLongerClipFallback !== false)}
-          ${settingsInput('maxClipDurationSeconds', 'Max. Clipdauer', numValue(cfg.maxClipDurationSeconds, 30), 'number', 'Sekunden', 'min="5" step="1"')}
-          ${settingsInput('fallbackMaxClipDurationSeconds', 'Fallback max. Clipdauer', numValue(cfg.fallbackMaxClipDurationSeconds, 60), 'number', 'Sekunden', 'min="5" step="1"')}
-          ${settingsInput('clipLookbackDays', 'Clip-Lookback', numValue(cfg.clipLookbackDays, 90), 'number', 'Tage', 'min="0" step="1"')}
-          ${settingsInput('clipSearchRangesDays', 'Clip-Suchbereiche', csvValue(cfg.clipSearchRangesDays || []), 'text', 'Kommagetrennt, z. B. 90, 365, 730, 1095, 0')}
-          ${settingsInput('clipPlaybackCandidateLimit', 'Clip-Kandidaten', numValue(cfg.clipPlaybackCandidateLimit, 8), 'number', 'Anzahl', 'min="1" step="1"')}
-          ${settingsInput('clipFetchFirst', 'Twitch Fetch First', numValue(cfg.clipFetchFirst, 20), 'number', 'Anzahl pro Anfrage', 'min="1" step="1"')}
-          ${settingsInput('clipFetchPages', 'Twitch Fetch Pages', numValue(cfg.clipFetchPages, 3), 'number', 'Seiten', 'min="1" step="1"')}
-        `)}
-      </div>
-
-      <div class="so2-two">
-        ${renderSettingsPanel('Overlay / Display-Queue', `
-          ${settingsCheck('displayQueue.enabled', 'Display-Queue aktiv', display.enabled !== false)}
-          ${settingsCheck('displayQueue.sendChatMessages', 'Chatmeldungen senden', display.sendChatMessages !== false)}
-          ${settingsInput('displayQueue.displayCooldownMs', 'Cooldown nach Anzeige', numValue(display.displayCooldownMs, 120000), 'number', 'Millisekunden', 'min="0" step="1000"')}
-          ${settingsInput('displayQueue.workerIntervalMs', 'Worker-Intervall', numValue(display.workerIntervalMs, 3000), 'number', 'Millisekunden', 'min="1000" step="1000"')}
-        `)}
-
-        ${renderSettingsPanel('Offizieller Twitch-Shoutout', `
-          ${settingsCheck('officialShoutout.enabled', 'OfficialQueue aktiv', official.enabled !== false)}
-          ${settingsCheck('officialShoutout.enqueueAfterDisplay', 'Nach Overlay einreihen', official.enqueueAfterDisplay !== false)}
-          ${settingsCheck('officialShoutout.liveGateEnabled', 'Live-Gate aktiv', official.liveGateEnabled !== false)}
-          ${settingsInput('officialShoutout.globalCooldownMs', 'Globaler Cooldown', numValue(official.globalCooldownMs, 120000), 'number', 'Millisekunden', 'min="0" step="1000"')}
-          ${settingsInput('officialShoutout.targetCooldownMs', 'Kanal-Cooldown', numValue(official.targetCooldownMs, 3600000), 'number', 'Millisekunden', 'min="0" step="60000"')}
-          ${settingsInput('officialShoutout.workerIntervalMs', 'Worker-Intervall', numValue(official.workerIntervalMs, 5000), 'number', 'Millisekunden', 'min="1000" step="1000"')}
-          ${settingsInput('officialShoutout.liveGateRetryMs', 'Live-Gate Retry', numValue(official.liveGateRetryMs || official.streamWaitRetryMs, 120000), 'number', 'Millisekunden', 'min="1000" step="1000"')}
-          ${settingsInput('officialShoutout.maxAttempts', 'Max. Versuche', numValue(official.maxAttempts, 5), 'number', 'Anzahl', 'min="1" step="1"')}
-          ${settingsInput('officialShoutout.displayFinishPaddingMs', 'Padding nach Overlay-Ende', numValue(official.displayFinishPaddingMs, 1500), 'number', 'Millisekunden', 'min="0" step="500"')}
-        `)}
-      </div>
-
-      <div class="so2-two">
-        ${renderSettingsPanel('Streamtag-Sperre', `
-          ${settingsCheck('streamDayLimit.enabled', 'Streamtag-Sperre aktiv', streamDay.enabled !== false)}
-          ${settingsCheck('streamDayLimit.allowOverride', 'Override erlauben', streamDay.allowOverride !== false)}
-          ${settingsCheck('streamDayLimit.fallbackWhenStreamUnknown', 'Fallback bei unbekanntem Stream', streamDay.fallbackWhenStreamUnknown !== false)}
-          ${settingsInput('streamDayLimit.overrideFlag', 'Override-Flag', streamDay.overrideFlag || '--force', 'text')}
-          ${settingsInput('streamDayLimit.restartGraceMs', 'Restart-Grace', numValue(streamDay.restartGraceMs, 1800000), 'number', 'Millisekunden', 'min="0" step="60000"')}
-          ${settingsInput('streamDayLimit.fallbackSessionHours', 'Fallback-Session', numValue(streamDay.fallbackSessionHours, 12), 'number', 'Stunden', 'min="1" step="1"')}
-          ${settingsInput('streamDayLimit.liveStateFiles', 'Live-State-Dateien', csvValue(streamDay.liveStateFiles || []), 'text', 'Kommagetrennt')}
-        `)}
-
-        ${renderSettingsPanel('Streamstatus / Start-Szene', `
-          ${settingsCheck('streamStatus.enabled', 'Zentraler Streamstatus aktiv', streamStatusCfg.enabled !== false)}
-          ${settingsCheck('streamStatus.preferCentralStatus', 'Zentralen Status bevorzugen', streamStatusCfg.preferCentralStatus !== false)}
-          ${settingsCheck('autoShoutout.sceneGate.enabled', 'Scene-Gate aktiv', sceneCfg.enabled !== false)}
-          ${settingsCheck('autoShoutout.sceneGate.blockDuringStartScene', 'Während Start-Szene blockieren', sceneCfg.blockDuringStartScene !== false)}
-          ${settingsInput('autoShoutout.sceneGate.retryMs', 'Scene-Gate Retry', numValue(sceneCfg.retryMs, 15000), 'number', 'Millisekunden', 'min="1000" step="1000"')}
-          ${settingsInput('autoShoutout.sceneGate.startSceneNames', 'Start-Szenen', csvValue(sceneCfg.startSceneNames || sceneState.startSceneNames || []), 'text', 'Kommagetrennt')}
-          <div class="so2-setting-readonly"><span>Aktuelle Szene</span><strong>${esc(sceneState.currentScene || '-')}</strong></div>
-          <div class="so2-setting-readonly"><span>Start-Szene aktiv</span><strong>${esc(boolText(sceneState.active === true))}</strong></div>
-        `)}
-      </div>
-
-      <div class="so2-two">
-        ${renderSettingsPanel('AutoShoutout', `
-          ${settingsCheck('autoShoutout.enabled', 'AutoShoutout aktiv', auto.enabled === true)}
-          ${settingsCheck('autoShoutout.onlyWhenLive', 'Nur wenn Stream live', auto.onlyWhenLive === true)}
-          ${settingsCheck('autoShoutout.triggerOnFirstMessageOnly', 'Nur erste Nachricht', auto.triggerOnFirstMessageOnly !== false)}
-          ${settingsCheck('autoShoutout.greetingEnabled', 'Begrüßung aktiv', auto.greetingEnabled !== false)}
-          ${settingsCheck('autoShoutout.greetingOnlyWhenTriggering', 'Begrüßung nur bei Trigger', auto.greetingOnlyWhenTriggering !== false)}
-          ${settingsCheck('autoShoutout.respectStreamDayLimit', 'Streamtag-Sperre beachten', auto.respectStreamDayLimit !== false)}
-          ${settingsCheck('autoShoutout.sendChatMessage', 'Chatmeldung senden', auto.sendChatMessage !== false)}
-          ${settingsCheck('autoShoutout.storeSkippedEvents', 'Übersprungene Events speichern', auto.storeSkippedEvents === true)}
-          ${settingsCheck('autoShoutout.suppressImmediateQueuedMessage', 'Sofort-Queue-Meldung unterdrücken', auto.suppressImmediateQueuedMessage !== false)}
-          ${settingsInput('autoShoutout.minMessagesBeforeTrigger', 'Mindestnachrichten', numValue(auto.minMessagesBeforeTrigger, 3), 'number', 'Anzahl', 'min="1" step="1"')}
-          ${settingsInput('autoShoutout.messageWindowMs', 'Nachrichtenfenster', numValue(auto.messageWindowMs, 1800000), 'number', 'Millisekunden', 'min="1000" step="1000"')}
-          ${settingsInput('autoShoutout.globalCooldownMs', 'Globaler Cooldown', numValue(auto.globalCooldownMs, 120000), 'number', 'Millisekunden', 'min="0" step="1000"')}
-          ${settingsInput('autoShoutout.perStreamerCooldownMs', 'Streamer-Cooldown', numValue(auto.perStreamerCooldownMs, 43200000), 'number', 'Millisekunden', 'min="0" step="60000"')}
-          ${settingsInput('autoShoutout.immediateQueuedMessageThresholdMs', 'Queue-Meldungsschwelle', numValue(auto.immediateQueuedMessageThresholdMs, 10000), 'number', 'Millisekunden', 'min="0" step="1000"')}
-        `)}
-
-        <section class="so2-panel so2-settings-panel">
-          <div class="so2-section-title"><div><h3>Speichern</h3></div>${badge('Config', 'ok')}</div>
-          <div class="so2-note">
-            <strong>Wichtig:</strong>
-            <span>Command, Aliase, Rechte und Command-Cooldowns werden im Commands-Dashboard geändert. Diese Seite speichert nur die Shoutout-Modul-Config.</span>
+      <div class="so2-settings-clean">
+        <section class="so2-settings-toolbar">
+          <div class="so2-settings-toolbar-main">
+            <div>
+              <span class="so2-settings-eyebrow">Shoutout-Config</span>
+              <strong>${esc(cfg.enabled !== false ? 'aktiv' : 'inaktiv')}</strong>
+              <small>Command ${esc(`!${commandInfo.command}`)} · Trigger ${esc(triggerText)} · Quelle ${esc(pick(commandInfo.directIntake, ['source'], 'command_definitions'))}</small>
+            </div>
+            <div class="so2-settings-toolbar-badges">
+              ${badge(direct.enabled !== false ? 'Direct-Intake an' : 'Direct-Intake aus', direct.enabled !== false ? 'ok' : 'warn')}
+              ${badge(`Modul ${esc(pick(status, ['moduleVersion','version'], '-'))}`, 'neutral')}
+            </div>
           </div>
-          <div class="so2-settings-actions">
+          <div class="so2-settings-toolbar-actions">
             <button type="button" class="so2-primary-action" data-so2-settings-save>Config speichern</button>
             <button type="button" data-so2-settings-reset>Neu laden / verwerfen</button>
           </div>
         </section>
+
+        ${renderSettingsError(state.settings)}
+        ${renderSettingsError(state.autoSettings)}
+        ${renderSettingsResult()}
+
+        <details class="so2-panel so2-settings-details">
+          <summary><strong>Command-Zuordnung</strong><span>Commands werden im Commands-Dashboard gepflegt</span></summary>
+          <div class="so2-settings-info-grid">
+            <div><span>Hauptcommand</span><strong>${esc(`!${commandInfo.command}`)}</strong></div>
+            <div><span>Aliase</span><strong>${esc(settingValue(commandInfo.aliases.map(t => `!${t}`)))}</strong></div>
+            <div><span>Alle Trigger</span><strong>${esc(settingValue(commandInfo.triggers.map(t => `!${t}`)))}</strong></div>
+            <div><span>Quelle</span><strong>${esc(pick(commandInfo.directIntake, ['source'], '-'))}</strong></div>
+            <div><span>Command-Zeilen</span><strong>${esc(pick(commandInfo.directIntake, ['commandDefinitionCount'], '-'))}</strong></div>
+            <div><span>Fallback genutzt</span><strong>${esc(boolText(pick(commandInfo.directIntake, ['fallbackUsed'], false)))}</strong></div>
+          </div>
+        </details>
+
+        <div class="so2-settings-layout">
+          ${renderSettingsPanel('Basis & Clip-Suche', `
+            ${settingsCheck('enabled', 'Shoutout-System aktiv', cfg.enabled !== false)}
+            ${settingsCheck('directIntake.enabled', 'Direct-Intake aktiv', direct.enabled !== false, 'Erkennt !so/!vso direkt aus dem Chat. Trigger kommen aus Commands.')}
+            ${settingsCheck('randomPick', 'Zufälligen Clip wählen', cfg.randomPick !== false)}
+            ${settingsCheck('avoidRecentClips', 'Recent-Clip-Schutz', cfg.avoidRecentClips !== false)}
+            ${settingsCheck('recentClipFallbackWhenAllBlocked', 'Fallback wenn alle Clips blockiert', cfg.recentClipFallbackWhenAllBlocked !== false)}
+            ${settingsCheck('allowLongerClipFallback', 'Längeren Fallback-Clip erlauben', cfg.allowLongerClipFallback !== false)}
+            ${settingsInput('maxClipDurationSeconds', 'Max. Clipdauer', numValue(cfg.maxClipDurationSeconds, 30), 'number', 'Sekunden', 'min="5" step="1"')}
+            ${settingsInput('fallbackMaxClipDurationSeconds', 'Fallback max. Clipdauer', numValue(cfg.fallbackMaxClipDurationSeconds, 60), 'number', 'Sekunden', 'min="5" step="1"')}
+            ${settingsInput('clipLookbackDays', 'Clip-Lookback', numValue(cfg.clipLookbackDays, 90), 'number', 'Tage', 'min="0" step="1"')}
+            ${settingsInput('clipSearchRangesDays', 'Clip-Suchbereiche', csvValue(cfg.clipSearchRangesDays || []), 'text', 'Kommagetrennt, z. B. 90, 365, 730, 1095, 0')}
+            ${settingsInput('clipPlaybackCandidateLimit', 'Clip-Kandidaten', numValue(cfg.clipPlaybackCandidateLimit, 8), 'number', 'Anzahl', 'min="1" step="1"')}
+            ${settingsInput('clipFetchFirst', 'Twitch Fetch First', numValue(cfg.clipFetchFirst, 20), 'number', 'Anzahl pro Anfrage', 'min="1" step="1"')}
+            ${settingsInput('clipFetchPages', 'Twitch Fetch Pages', numValue(cfg.clipFetchPages, 3), 'number', 'Seiten', 'min="1" step="1"')}
+          `)}
+
+          ${renderSettingsPanel('Overlay / Display-Queue', `
+            ${settingsCheck('displayQueue.enabled', 'Display-Queue aktiv', display.enabled !== false)}
+            ${settingsCheck('displayQueue.sendChatMessages', 'Chatmeldungen senden', display.sendChatMessages !== false)}
+            ${settingsInput('displayQueue.displayCooldownMs', 'Cooldown nach Anzeige', numValue(display.displayCooldownMs, 120000), 'number', 'Millisekunden', 'min="0" step="1000"')}
+            ${settingsInput('displayQueue.workerIntervalMs', 'Worker-Intervall', numValue(display.workerIntervalMs, 3000), 'number', 'Millisekunden', 'min="1000" step="1000"')}
+          `)}
+
+          ${renderSettingsPanel('Offizieller Twitch-Shoutout', `
+            ${settingsCheck('officialShoutout.enabled', 'OfficialQueue aktiv', official.enabled !== false)}
+            ${settingsCheck('officialShoutout.enqueueAfterDisplay', 'Nach Overlay einreihen', official.enqueueAfterDisplay !== false)}
+            ${settingsCheck('officialShoutout.liveGateEnabled', 'Live-Gate aktiv', official.liveGateEnabled !== false)}
+            ${settingsInput('officialShoutout.globalCooldownMs', 'Globaler Cooldown', numValue(official.globalCooldownMs, 120000), 'number', 'Millisekunden', 'min="0" step="1000"')}
+            ${settingsInput('officialShoutout.targetCooldownMs', 'Kanal-Cooldown', numValue(official.targetCooldownMs, 3600000), 'number', 'Millisekunden', 'min="0" step="60000"')}
+            ${settingsInput('officialShoutout.workerIntervalMs', 'Worker-Intervall', numValue(official.workerIntervalMs, 5000), 'number', 'Millisekunden', 'min="1000" step="1000"')}
+            ${settingsInput('officialShoutout.liveGateRetryMs', 'Live-Gate Retry', numValue(official.liveGateRetryMs || official.streamWaitRetryMs, 120000), 'number', 'Millisekunden', 'min="1000" step="1000"')}
+            ${settingsInput('officialShoutout.maxAttempts', 'Max. Versuche', numValue(official.maxAttempts, 5), 'number', 'Anzahl', 'min="1" step="1"')}
+            ${settingsInput('officialShoutout.displayFinishPaddingMs', 'Padding nach Overlay-Ende', numValue(official.displayFinishPaddingMs, 1500), 'number', 'Millisekunden', 'min="0" step="500"')}
+          `)}
+
+          ${renderSettingsPanel('Stream-Regeln', `
+            ${settingsCheck('streamDayLimit.enabled', 'Streamtag-Sperre aktiv', streamDay.enabled !== false)}
+            ${settingsCheck('streamDayLimit.allowOverride', 'Override erlauben', streamDay.allowOverride !== false)}
+            ${settingsCheck('streamDayLimit.fallbackWhenStreamUnknown', 'Fallback bei unbekanntem Stream', streamDay.fallbackWhenStreamUnknown !== false)}
+            ${settingsInput('streamDayLimit.overrideFlag', 'Override-Flag', streamDay.overrideFlag || '--force', 'text')}
+            ${settingsInput('streamDayLimit.restartGraceMs', 'Restart-Grace', numValue(streamDay.restartGraceMs, 1800000), 'number', 'Millisekunden', 'min="0" step="60000"')}
+            ${settingsInput('streamDayLimit.fallbackSessionHours', 'Fallback-Session', numValue(streamDay.fallbackSessionHours, 12), 'number', 'Stunden', 'min="1" step="1"')}
+            ${settingsInput('streamDayLimit.liveStateFiles', 'Live-State-Dateien', csvValue(streamDay.liveStateFiles || []), 'text', 'Kommagetrennt')}
+          `)}
+
+          ${renderSettingsPanel('Streamstatus / Start-Szene', `
+            ${settingsCheck('streamStatus.enabled', 'Zentraler Streamstatus aktiv', streamStatusCfg.enabled !== false)}
+            ${settingsCheck('streamStatus.preferCentralStatus', 'Zentralen Status bevorzugen', streamStatusCfg.preferCentralStatus !== false)}
+            ${settingsCheck('autoShoutout.sceneGate.enabled', 'Scene-Gate aktiv', sceneCfg.enabled !== false)}
+            ${settingsCheck('autoShoutout.sceneGate.blockDuringStartScene', 'Während Start-Szene blockieren', sceneCfg.blockDuringStartScene !== false)}
+            ${settingsInput('autoShoutout.sceneGate.retryMs', 'Scene-Gate Retry', numValue(sceneCfg.retryMs, 15000), 'number', 'Millisekunden', 'min="1000" step="1000"')}
+            ${settingsInput('autoShoutout.sceneGate.startSceneNames', 'Start-Szenen', csvValue(sceneCfg.startSceneNames || sceneState.startSceneNames || []), 'text', 'Kommagetrennt')}
+            <div class="so2-setting-readonly"><span>Aktuelle Szene</span><strong>${esc(sceneState.currentScene || '-')}</strong></div>
+            <div class="so2-setting-readonly"><span>Start-Szene aktiv</span><strong>${esc(boolText(sceneState.active === true))}</strong></div>
+          `)}
+
+          ${renderSettingsPanel('AutoShoutout', `
+            ${settingsCheck('autoShoutout.enabled', 'AutoShoutout aktiv', auto.enabled === true)}
+            ${settingsCheck('autoShoutout.onlyWhenLive', 'Nur wenn Stream live', auto.onlyWhenLive === true)}
+            ${settingsCheck('autoShoutout.triggerOnFirstMessageOnly', 'Nur erste Nachricht', auto.triggerOnFirstMessageOnly !== false)}
+            ${settingsCheck('autoShoutout.greetingEnabled', 'Begrüßung aktiv', auto.greetingEnabled !== false)}
+            ${settingsCheck('autoShoutout.greetingOnlyWhenTriggering', 'Begrüßung nur bei Trigger', auto.greetingOnlyWhenTriggering !== false)}
+            ${settingsCheck('autoShoutout.respectStreamDayLimit', 'Streamtag-Sperre beachten', auto.respectStreamDayLimit !== false)}
+            ${settingsCheck('autoShoutout.sendChatMessage', 'Chatmeldung senden', auto.sendChatMessage !== false)}
+            ${settingsCheck('autoShoutout.storeSkippedEvents', 'Übersprungene Events speichern', auto.storeSkippedEvents === true)}
+            ${settingsCheck('autoShoutout.suppressImmediateQueuedMessage', 'Sofort-Queue-Meldung unterdrücken', auto.suppressImmediateQueuedMessage !== false)}
+            ${settingsInput('autoShoutout.minMessagesBeforeTrigger', 'Mindestnachrichten', numValue(auto.minMessagesBeforeTrigger, 3), 'number', 'Anzahl', 'min="1" step="1"')}
+            ${settingsInput('autoShoutout.messageWindowMs', 'Nachrichtenfenster', numValue(auto.messageWindowMs, 1800000), 'number', 'Millisekunden', 'min="1000" step="1000"')}
+            ${settingsInput('autoShoutout.globalCooldownMs', 'Globaler Cooldown', numValue(auto.globalCooldownMs, 120000), 'number', 'Millisekunden', 'min="0" step="1000"')}
+            ${settingsInput('autoShoutout.perStreamerCooldownMs', 'Streamer-Cooldown', numValue(auto.perStreamerCooldownMs, 43200000), 'number', 'Millisekunden', 'min="0" step="60000"')}
+            ${settingsInput('autoShoutout.immediateQueuedMessageThresholdMs', 'Queue-Meldungsschwelle', numValue(auto.immediateQueuedMessageThresholdMs, 10000), 'number', 'Millisekunden', 'min="0" step="1000"')}
+          `)}
+
+          <section class="so2-panel so2-settings-panel so2-settings-save-panel">
+            <div class="so2-section-title"><div><h3>Speichern</h3></div>${badge('Config', 'ok')}</div>
+            <div class="so2-note">
+              <strong>Wichtig:</strong>
+              <span>Command, Aliase, Rechte und Command-Cooldowns werden im Commands-Dashboard geändert. Diese Seite speichert nur die Shoutout-Modul-Config.</span>
+            </div>
+            <div class="so2-settings-actions">
+              <button type="button" class="so2-primary-action" data-so2-settings-save>Config speichern</button>
+              <button type="button" data-so2-settings-reset>Neu laden / verwerfen</button>
+            </div>
+          </section>
+        </div>
       </div>
     `;
   }

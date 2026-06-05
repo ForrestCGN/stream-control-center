@@ -771,3 +771,41 @@
 @media(max-width:1050px){
   .shoutout-v2-admin .so2-settings-grid{grid-template-columns:1fr}
 }
+
+
+/* CAN-44.21.38 – Settings Layout Cleanup */
+.shoutout-v2-admin .so2-settings-clean{display:grid;gap:14px;}
+.shoutout-v2-admin .so2-settings-toolbar{position:sticky;top:70px;z-index:24;display:flex;justify-content:space-between;align-items:center;gap:14px;border:1px solid rgba(103,232,249,.18);border-radius:18px;padding:12px 14px;background:rgba(5,8,18,.94);backdrop-filter:blur(12px);box-shadow:0 12px 28px rgba(0,0,0,.24);}
+.shoutout-v2-admin .so2-settings-toolbar-main{display:flex;align-items:center;justify-content:space-between;gap:14px;min-width:0;flex:1 1 auto;}
+.shoutout-v2-admin .so2-settings-toolbar-main>div:first-child{display:grid;gap:3px;min-width:0;}
+.shoutout-v2-admin .so2-settings-eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#67e8f9;font-weight:900;}
+.shoutout-v2-admin .so2-settings-toolbar-main strong{font-size:20px;color:#fff;}
+.shoutout-v2-admin .so2-settings-toolbar-main small{color:var(--so2-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.shoutout-v2-admin .so2-settings-toolbar-badges,.shoutout-v2-admin .so2-settings-toolbar-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center;}
+.shoutout-v2-admin .so2-settings-toolbar-actions button{padding:9px 12px;}
+.shoutout-v2-admin .so2-settings-details{padding:0;overflow:hidden;}
+.shoutout-v2-admin .so2-settings-details summary{cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 16px;list-style:none;}
+.shoutout-v2-admin .so2-settings-details summary::-webkit-details-marker{display:none}
+.shoutout-v2-admin .so2-settings-details summary span{color:var(--so2-muted);font-size:13px;}
+.shoutout-v2-admin .so2-settings-info-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0 16px 16px;}
+.shoutout-v2-admin .so2-settings-info-grid div{display:grid;gap:4px;border:1px solid rgba(255,255,255,.09);background:rgba(0,0,0,.12);border-radius:12px;padding:9px 10px;}
+.shoutout-v2-admin .so2-settings-info-grid span{color:var(--so2-muted);font-size:11px;text-transform:uppercase;letter-spacing:.10em;font-weight:900;}
+.shoutout-v2-admin .so2-settings-info-grid strong{color:#fff;overflow-wrap:anywhere;}
+.shoutout-v2-admin .so2-settings-layout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start;}
+.shoutout-v2-admin .so2-settings-clean .so2-settings-panel{padding:16px;}
+.shoutout-v2-admin .so2-settings-clean .so2-settings-panel .so2-section-title{align-items:center;margin-bottom:10px;}
+.shoutout-v2-admin .so2-settings-clean .so2-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;align-items:stretch;}
+.shoutout-v2-admin .so2-settings-clean .so2-setting-check{display:grid;grid-template-columns:22px minmax(0,1fr);align-items:start;gap:8px;min-height:0;padding:8px 10px;border-radius:12px;}
+.shoutout-v2-admin .so2-settings-clean .so2-setting-check input{margin:2px 0 0;width:15px;height:15px;}
+.shoutout-v2-admin .so2-settings-clean .so2-setting-check span{display:grid;gap:2px;line-height:1.2;}
+.shoutout-v2-admin .so2-settings-clean .so2-setting-check strong{font-size:13px;line-height:1.22;}
+.shoutout-v2-admin .so2-settings-clean .so2-setting-check small,.shoutout-v2-admin .so2-settings-clean .so2-setting-field small{font-size:11px;line-height:1.25;}
+.shoutout-v2-admin .so2-settings-clean .so2-setting-field{gap:5px;}
+.shoutout-v2-admin .so2-settings-clean .so2-setting-field span,.shoutout-v2-admin .so2-settings-clean .so2-setting-readonly span{font-size:11px;letter-spacing:.12em;}
+.shoutout-v2-admin .so2-settings-clean .so2-setting-field input[type=number],.shoutout-v2-admin .so2-settings-clean .so2-setting-field input[type=text]{min-height:38px;padding:9px 11px;}
+.shoutout-v2-admin .so2-settings-clean .so2-setting-readonly{gap:4px;padding:9px 10px;}
+.shoutout-v2-admin .so2-settings-save-panel{align-self:stretch;}
+.shoutout-v2-admin .so2-settings-clean .so2-settings-actions{margin-top:10px;}
+@media(max-width:1250px){.shoutout-v2-admin .so2-settings-layout{grid-template-columns:1fr}.shoutout-v2-admin .so2-settings-toolbar{top:56px}}
+@media(max-width:900px){.shoutout-v2-admin .so2-settings-toolbar{position:static;display:grid}.shoutout-v2-admin .so2-settings-toolbar-main{display:grid;justify-content:stretch}.shoutout-v2-admin .so2-settings-toolbar-main small{white-space:normal}.shoutout-v2-admin .so2-settings-toolbar-actions{justify-content:flex-start}.shoutout-v2-admin .so2-settings-info-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.shoutout-v2-admin .so2-settings-clean .so2-settings-grid,.shoutout-v2-admin .so2-settings-info-grid{grid-template-columns:1fr}}
