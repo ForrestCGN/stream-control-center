@@ -1,13 +1,10 @@
-# NEXT_STEPS
+# NEXT_STEPS – VIP30
 
-1. ZIP nach `D:\Git\stream-control-center` entpacken.
-2. `node -c backend\modules\vip30.js` ausführen.
-3. `stepdone.cmd` ausführen.
-4. Node neu starten.
-5. Capability prüfen.
-6. Stage-B Gates setzen: `POST /api/vip30/live/set-gates?confirm=YES&profile=stage_b`.
-7. `GET /api/vip30/live/stage-b/check` prüfen.
-8. VIP30-Redemption testen.
-9. Slots und Logs minimal prüfen.
-
-Danach: STEP8.5/STEP9 für Alert oder Cleanup-/Revoke-Liveflow planen.
+1. STEP8.5 einspielen und `node -c backend/modules/vip30.js` ausführen.
+2. Node neu starten.
+3. Capability prüfen.
+4. `/api/vip30/cleanup/check` testen.
+5. `/api/vip30/cleanup/run` erst ohne Confirm als Dry-Run testen.
+6. Bei Bedarf `/api/vip30/cleanup/run?confirm=YES` nutzen.
+7. Danach STEP8.6 planen: EventSub `channel.vip.remove` für externen VIP-Entzug.
+8. Danach Alert-System anbinden.

@@ -8,8 +8,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.4";
-const MODULE_BUILD = "step8.4-stage-b-redemption-fulfill-cancel";
+const MODULE_VERSION = "0.8.5";
+const MODULE_BUILD = "step8.5-cleanup-expire-revoke-manual";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -23,7 +23,7 @@ const MODULE_META = {
   category: "community",
   routePrefix: ROUTE_PREFIX,
   routesPrefix: [ROUTE_PREFIX],
-  description: "30 Tage VIP Node-Modul: SQLite-Grundlage, Dashboard-Logs/Stats, Communication-Bus, DB-/Dashboard-Config, Twitch-Capability-Check, Channelpoints-Reward-Link, Dry-Run-Redemption-Decision, interne Channelpoints-Bridge, Live-EventSub-Beobachtung und STEP8-Live-Action-Plan mit Safety-Gates, Live-Gates-API, Stage-A-Live-Ausfuehrung fuer VIP-Grant + Slot-Write und STEP8.4 Stage-B Fulfill/Cancel ohne Alert.",
+  description: "30 Tage VIP Node-Modul: SQLite-Grundlage, Dashboard-Logs/Stats, Communication-Bus, DB-/Dashboard-Config, Twitch-Capability-Check, Channelpoints-Reward-Link, Dry-Run-Redemption-Decision, interne Channelpoints-Bridge, Live-EventSub-Beobachtung und STEP8-Live-Action-Plan mit Safety-Gates, Live-Gates-API, Stage-A-Live-Ausfuehrung fuer VIP-Grant + Slot-Write und STEP8.4 Stage-B Fulfill/Cancel ohne Alert sowie STEP8.5 Cleanup/Entzug fuer abgelaufene VIP30-Slots.",
   bus: {
     registered: true,
     heartbeat: true,
@@ -91,7 +91,8 @@ const DEFAULT_CONFIG = {
   cleanup: {
     enabled: true,
     runOnStart: false,
-    intervalMs: 300000
+    intervalMs: 300000,
+    removeVipOnExpire: true
   },
   logging: {
     enabled: true,
@@ -426,6 +427,7 @@ const SETTING_DEFINITIONS = [
   { key: "alerts.enabled", path: "alerts.enabled", type: "boolean", category: "alerts", label: "Alert aktiv", description: "Alert/Sound nach erfolgreicher Einlösung auslösen.", editable: true },
   { key: "alerts.soundKey", path: "alerts.soundKey", type: "string", category: "alerts", label: "Sound-Key", description: "Sound-System-Key für den VIP30-Alert.", editable: true },
   { key: "cleanup.enabled", path: "cleanup.enabled", type: "boolean", category: "cleanup", label: "Cleanup aktiv", description: "Ablauf-/Revoke-Logik für abgelaufene VIP30-Slots aktivieren.", editable: true },
+  { key: "cleanup.removeVipOnExpire", path: "cleanup.removeVipOnExpire", type: "boolean", category: "cleanup", label: "VIP bei Ablauf entziehen", description: "Bei abgelaufenen VIP30-Slots den Twitch-VIP automatisch per Cleanup entfernen.", editable: true },
   { key: "logging.enabled", path: "logging.enabled", type: "boolean", category: "logging", label: "Dashboard-Logging aktiv", description: "VIP30-Ereignisse in der DB speichern.", editable: true },
   { key: "live.enabled", path: "live.enabled", type: "boolean", category: "live", label: "Live-Modus aktiv", description: "Master-Schalter fuer echte VIP30-Live-Aktionen. Standard: aus.", editable: true },
   { key: "live.mode", path: "live.mode", type: "string", category: "live", label: "Live-Modus", description: "plan_only oder live. Standard: plan_only.", editable: true },
@@ -932,6 +934,13 @@ async function twitchAddVip(userId) {
   if (!cleanUserId) throw new Error("user_id_missing_for_vip_grant");
   const broadcasterId = getTwitchBroadcasterIdRequired();
   const response = await twitchHelixRequest("POST", "/channels/vips", { broadcaster_id: broadcasterId, user_id: cleanUserId }, null);
+  return { ok: true, broadcasterId, userId: cleanUserId, statusCode: response.statusCode, raw: response.data };
+}
+async function twitchRemoveVip(userId) {
+  const cleanUserId = cleanString(userId);
+  if (!cleanUserId) throw new Error("user_id_missing_for_vip_revoke");
+  const broadcasterId = getTwitchBroadcasterIdRequired();
+  const response = await twitchHelixRequest("DELETE", "/channels/vips", { broadcaster_id: broadcasterId, user_id: cleanUserId }, null);
   return { ok: true, broadcasterId, userId: cleanUserId, statusCode: response.statusCode, raw: response.data };
 }
 async function twitchUpdateRedemptionStatus(rewardId, redemptionId, status) {
@@ -2598,6 +2607,211 @@ async function executeVip30LiveStageA(input = {}, options = {}) {
   }
 }
 
+
+function listExpiredActiveSlots(limitInput = 50) {
+  ensureDbReady();
+  const now = nowIso();
+  const limit = Math.max(1, Math.min(500, intValue(limitInput, 50)));
+  const rows = database.all(`
+    SELECT * FROM vip30_slots
+    WHERE status = 'active'
+      AND end_utc IS NOT NULL
+      AND end_utc <> ''
+      AND end_utc <= :now
+    ORDER BY end_utc ASC, id ASC
+    LIMIT :limit
+  `, { now, limit }) || [];
+  return rows.map(mapSlotRow);
+}
+function updateSlotAfterCleanup(slotId, status, details = {}) {
+  ensureDbReady();
+  const id = intValue(slotId, 0);
+  if (!id) throw new Error("slot_id_missing_for_cleanup_update");
+  const now = nowIso();
+  const cleanStatus = cleanString(status || "expired");
+  const lastError = cleanString(details.lastError || details.error || "");
+  database.run(`
+    UPDATE vip30_slots
+    SET status = :status,
+        updated_at = :updated_at,
+        revoked_at = :revoked_at,
+        last_error = :last_error
+    WHERE id = :id
+  `, {
+    id,
+    status: cleanStatus,
+    updated_at: now,
+    revoked_at: now,
+    last_error: lastError
+  });
+  const row = database.get("SELECT * FROM vip30_slots WHERE id = :id", { id });
+  return mapSlotRow(row);
+}
+function buildCleanupSafetyStatus(options = {}) {
+  const config = getConfig();
+  const blockers = [];
+  const capabilityReady = !!(lastCapabilityCheck && lastCapabilityCheck.readiness && lastCapabilityCheck.readiness.readyForVip30LiveFlow);
+  const checks = {
+    cleanupEnabled: config.cleanup && config.cleanup.enabled !== false,
+    removeVipOnExpire: config.cleanup && config.cleanup.removeVipOnExpire !== false,
+    twitchLiveActionsEnabled: config.twitch && config.twitch.liveActionsEnabled === true,
+    capabilityChecked: !!lastCapabilityCheck,
+    twitchCapabilityReady: capabilityReady
+  };
+  if (!checks.cleanupEnabled) blockers.push("cleanupEnabled");
+  if (!checks.removeVipOnExpire) blockers.push("removeVipOnExpire");
+  if (!checks.twitchLiveActionsEnabled) blockers.push("twitchLiveActionsEnabled");
+  if (!checks.capabilityChecked) blockers.push("capabilityChecked");
+  if (!checks.twitchCapabilityReady) blockers.push("twitchCapabilityReady");
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    status: blockers.length ? "cleanup_locked" : "cleanup_ready",
+    checkedAt: nowIso(),
+    armed: blockers.length === 0,
+    blockerCount: blockers.length,
+    blockers,
+    checks,
+    note: "Cleanup entzieht Twitch-VIP nur fuer abgelaufene aktive VIP30-Slots und markiert diese als expired. Kein Alert."
+  };
+}
+function buildCleanupCheck(query = {}) {
+  const limit = intValue(query.limit, 50);
+  const expiredSlots = listExpiredActiveSlots(limit);
+  const safety = buildCleanupSafetyStatus();
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    action: "vip30_cleanup_check",
+    checkedAt: nowIso(),
+    expiredCount: expiredSlots.length,
+    expiredSlots,
+    safety,
+    summary: {
+      hasExpiredSlots: expiredSlots.length > 0,
+      cleanupArmed: safety.armed,
+      wouldRemoveVip: safety.armed && expiredSlots.length > 0
+    }
+  };
+}
+async function runVip30Cleanup(input = {}, options = {}) {
+  loadedConfig = null;
+  loadConfig();
+  const preflightCapability = await buildTwitchCapabilityStatus({ reason: options.capabilityReason || "cleanup_preflight" });
+  loadedConfig = null;
+  loadConfig();
+  const safety = buildCleanupSafetyStatus();
+  const confirm = cleanString(input.confirm || input.confirmation || options.confirm || "").toUpperCase();
+  const dryRun = boolValue(input.dryRun ?? input.dry_run ?? options.dryRun, confirm !== "YES");
+  const limit = intValue(input.limit || options.limit, 50);
+  const expiredSlots = listExpiredActiveSlots(limit);
+  const result = {
+    ok: false,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    action: "vip30_cleanup_run",
+    startedAt: nowIso(),
+    finishedAt: "",
+    dryRun,
+    confirmRequired: dryRun ? "YES" : "",
+    safety,
+    preflightCapability: preflightCapability ? {
+      status: preflightCapability.status || "",
+      readyForVip30LiveFlow: !!(preflightCapability.readiness && preflightCapability.readiness.readyForVip30LiveFlow),
+      blocker: preflightCapability.readiness && preflightCapability.readiness.blocker || ""
+    } : null,
+    expiredCount: expiredSlots.length,
+    processed: [],
+    successCount: 0,
+    failedCount: 0,
+    skippedCount: 0,
+    safetyFlags: {
+      noRedemptionFulfillCancel: true,
+      noAlert: true,
+      touchesOnlyExpiredActiveSlots: true
+    }
+  };
+  if (!safety.armed) {
+    result.status = "cleanup_locked";
+    result.reason = "cleanup_not_armed";
+    result.finishedAt = nowIso();
+    writeLog("cleanup_blocked", {
+      success: false,
+      reason: result.reason,
+      message: `Cleanup ist nicht scharf. Blocker: ${(safety.blockers || []).join(", ") || "unknown"}`,
+      payload: result
+    });
+    return result;
+  }
+  if (dryRun) {
+    result.ok = true;
+    result.status = expiredSlots.length ? "dry_run_expired_slots_found" : "dry_run_no_expired_slots";
+    result.processed = expiredSlots.map(slot => ({ ok: true, dryRun: true, wouldRemoveVip: true, wouldMarkExpired: true, slot }));
+    result.skippedCount = expiredSlots.length;
+    result.finishedAt = nowIso();
+    writeLog("cleanup_dry_run", {
+      success: true,
+      reason: result.status,
+      message: `Cleanup Dry-Run: ${expiredSlots.length} abgelaufene aktive VIP30-Slots gefunden.`,
+      payload: result
+    });
+    return result;
+  }
+  for (const slot of expiredSlots) {
+    const item = { ok: false, slot, removeVip: null, updatedSlot: null, error: null };
+    try {
+      if (!slot.userId) throw new Error("slot_user_id_missing");
+      item.removeVip = await twitchRemoveVip(slot.userId);
+      item.updatedSlot = updateSlotAfterCleanup(slot.id, "expired", { lastError: "" });
+      item.ok = true;
+      result.successCount += 1;
+      writeLog("cleanup_slot_expired_vip_removed", {
+        userId: slot.userId,
+        userLogin: slot.userLogin,
+        userDisplayName: slot.userDisplayName,
+        twitchRewardId: slot.twitchRewardId,
+        twitchRedemptionId: slot.twitchRedemptionId,
+        slotId: slot.id,
+        success: true,
+        reason: "expired_vip_removed",
+        message: "VIP30 abgelaufen: Twitch VIP wurde entzogen und Slot als expired markiert.",
+        payload: item
+      });
+    } catch (err) {
+      const message = err && err.message ? err.message : String(err);
+      item.error = { message, statusCode: err && err.statusCode || 0, data: err && err.data || null };
+      item.updatedSlot = updateSlotAfterCleanup(slot.id, "failed", { lastError: message });
+      result.failedCount += 1;
+      writeLog("cleanup_slot_expire_failed", {
+        userId: slot.userId,
+        userLogin: slot.userLogin,
+        userDisplayName: slot.userDisplayName,
+        twitchRewardId: slot.twitchRewardId,
+        twitchRedemptionId: slot.twitchRedemptionId,
+        slotId: slot.id,
+        success: false,
+        reason: "expire_failed",
+        message,
+        errorCode: "expire_failed",
+        errorMessage: message,
+        payload: item
+      });
+    }
+    result.processed.push(item);
+  }
+  result.ok = result.failedCount === 0;
+  result.status = expiredSlots.length ? (result.ok ? "cleanup_completed" : "cleanup_completed_with_errors") : "no_expired_slots";
+  result.finishedAt = nowIso();
+  publishStatus("cleanup_run");
+  emitLiveExecutionEvent("cleanup.run", { result: { ...result, processed: result.processed.map(item => ({ ...item, removeVip: item.removeVip ? { ...item.removeVip, raw: undefined } : null })) } });
+  return result;
+}
+
 function emitLiveActionPlanEvent(result, reason = "live_action_plan") {
   const config = getConfig();
   if (config.bus.enabled === false) return { ok: false, reason: "bus_disabled" };
@@ -3267,6 +3481,21 @@ function init(context = {}) {
       runtimeStats.lastAction = "channelpoints_bridge_reset_stats";
       try { res.json(resetBridgeRuntimeStats(cleanString(req && req.body && req.body.reason || req && req.query && req.query.reason || "api"))); }
       catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err), safety: { noTwitchWrite: true, noVipGrant: true } }); }
+    });
+
+
+    app.get(`${ROUTE_PREFIX}/cleanup/check`, (req, res) => {
+      runtimeStats.lastAction = "cleanup_check";
+      try { res.json(buildCleanupCheck((req && req.query) || {})); }
+      catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err), safety: { noRedemptionFulfillCancel: true, noAlert: true } }); }
+    });
+    app.post(`${ROUTE_PREFIX}/cleanup/run`, async (req, res) => {
+      runtimeStats.lastAction = "cleanup_run";
+      try {
+        const result = await runVip30Cleanup({ ...((req && req.body) || {}), ...((req && req.query) || {}) }, { reason: "api_cleanup_run" });
+        res.status(result && result.ok ? 200 : (result && result.status === "cleanup_locked" ? 409 : 207)).json(result);
+      }
+      catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err), safety: { noRedemptionFulfillCancel: true, noAlert: true } }); }
     });
 
     app.get(`${ROUTE_PREFIX}/live/check`, (_req, res) => {

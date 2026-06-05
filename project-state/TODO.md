@@ -1,7 +1,8 @@
-# TODO
+# TODO – VIP30
 
-- STEP8.4 einspielen und Stage-B-Test durchführen.
-- Prüfen, ob Redemption nach Erfolg `FULFILLED` ist.
-- Prüfen, ob blockierte Tests sauber `CANCELED` werden.
-- Alert weiterhin separat planen und erst später aktivieren.
-- Cleanup/Revoke für abgelaufene VIP30-Slots als eigenen Step vorbereiten.
+- [x] Stage B: VIP-Grant + Slot-Write + Redemption Fulfill/Cancel.
+- [x] Cleanup-Check für abgelaufene Slots.
+- [x] Manueller Cleanup-Run mit Twitch Remove VIP.
+- [ ] Automatischer periodischer Cleanup nach erfolgreichem manuellen Test.
+- [ ] EventSub `channel.vip.remove` abonnieren/verarbeiten.
+- [ ] Alert nach erfolgreichem VIP30-Grant anbinden.

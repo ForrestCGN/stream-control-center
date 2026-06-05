@@ -1,11 +1,5 @@
-# CURRENT_STATUS
+# CURRENT_STATUS – VIP30 STEP8.5
 
-VIP30 STEP8.4 ist vorbereitet.
+VIP30 steht auf Version `0.8.5` (`step8.5-cleanup-expire-revoke-manual`). Stage B ist live getestet: VIP-Grant, Slot-Write und Redemption Fulfill/Cancel funktionieren. STEP8.5 ergänzt manuelle Cleanup-Prüfung und Cleanup-Ausführung für abgelaufene aktive VIP30-Slots.
 
-Status:
-- Stage A wurde erfolgreich live getestet: Twitch VIP vergeben + VIP30-Slot gespeichert.
-- STEP8.4 ergänzt Stage B: Erfolg wird fulfilled, fachliche Ablehnung wird canceled/refunded.
-- Alert bleibt weiterhin gesperrt.
-
-Version: 0.8.4
-Build: step8.4-stage-b-redemption-fulfill-cancel
+Alert bleibt deaktiviert. Externer VIP-Entzug per `channel.vip.remove` ist noch offen.

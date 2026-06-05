@@ -1,60 +1,34 @@
-# VIP30 Modul
+# VIP30 / 30 Tage VIP – STEP8.5
 
-Stand: VIP30-STEP8.4 / Version 0.8.4
+Stand: `0.8.5` / `step8.5-cleanup-expire-revoke-manual`
 
-## Zweck
+## Aktueller Funktionsstand
 
-Das VIP30-Modul verarbeitet die Twitch-Kanalpunkte-Belohnung `30 Tage VIP` vollständig im Node-System.
+- Twitch-Kanalpunkte-Reward ist mit `vip30` verknüpft.
+- Stage B ist vorbereitet: berechtigte User bekommen VIP, der Slot wird gespeichert und die Redemption wird fulfilled.
+- Blockierte Redemptions werden canceled/refunded.
+- Alert ist weiterhin gesperrt.
+- Neu in STEP8.5: Cleanup/Entzug für abgelaufene aktive VIP30-Slots.
 
-## Aktueller STEP8.4-Stand
+## Neue Cleanup-Routen
 
-STEP8.4 aktiviert die zweite echte Live-Stufe **Stage B**:
+```txt
+GET  /api/vip30/cleanup/check
+POST /api/vip30/cleanup/run?confirm=YES
+```
 
-- echte Twitch-Redemption wird über EventSub erkannt
-- VIP30-Bridge matched den lokalen `vip30`-Reward
-- bei `eligible` und gesetzten Stage-B-Gates wird Twitch `Add VIP` ausgeführt
-- danach wird ein aktiver VIP30-Slot in `vip30_slots` gespeichert
-- die Redemption wird bei Erfolg auf `FULFILLED` gesetzt
-- bei fachlicher Ablehnung wird die Redemption auf `CANCELED` gesetzt
-- Log-Eintrag wird in `vip30_log` geschrieben
+`cleanup/check` prüft nur, welche aktiven Slots abgelaufen sind.
 
-Weiterhin gesperrt:
-
-- kein Alert
-
-## Wichtige Routen
-
-- `GET /api/vip30/status`
-- `GET /api/vip30/live/check`
-- `GET /api/vip30/live/stage-a/check`
-- `GET /api/vip30/live/stage-b/check`
-- `GET /api/vip30/live/arm-preview`
-- `GET /api/vip30/live/arm-settings-preview?profile=stage_b`
-- `POST /api/vip30/live/set-gates?confirm=YES&profile=stage_b`
-- `POST /api/vip30/redeem/live-stage-a`
-- `POST /api/vip30/redeem/live-plan`
-- `GET /api/vip30/slots`
-- `GET /api/vip30/logs`
+`cleanup/run` läuft ohne `confirm=YES` als Dry-Run. Mit `confirm=YES` wird für abgelaufene aktive Slots der Twitch-VIP entfernt und der Slot auf `expired` gesetzt.
 
 ## Safety
 
-Stage B benötigt diese Gates:
+- Es werden nur `status = active` Slots mit `end_utc <= now` verarbeitet.
+- Slots werden nicht gelöscht, sondern auf `expired` oder bei Fehler auf `failed` gesetzt.
+- Kein Alert.
+- Kein Redemption-Fulfill/Cancel im Cleanup.
+- Twitch-Remove-VIP läuft nur, wenn Cleanup, Twitch-Live-Actions und Capability grün sind.
 
-- `live.enabled = true`
-- `live.mode = live`
-- `twitch.liveActionsEnabled = true`
-- `bridge.decisionOnly = false`
-- `live.allowVipGrant = true`
-- `live.allowSlotWrite = true`
-- `live.allowRedemptionFulfillCancel = true`
-- Twitch Capability muss ready sein
-- lokaler Reward muss mit Twitch Reward ID verknüpft sein
+## Externer VIP-Entzug
 
-`live.allowAlert` bleibt in STEP8.4 bewusst `false`.
-
-## VIP30 STEP8.4
-
-- Version 0.8.4 / build `step8.4-stage-b-redemption-fulfill-cancel`.
-- Stage-B Live-Ausführung erfüllt erfolgreiche Redemptions nach VIP-Grant + Slot-Write.
-- Fachlich blockierte Redemptions werden canceled/refunded.
-- Alert bleibt weiterhin deaktiviert.
+Für manuellen/external VIP-Entzug ist als nächster Step die EventSub-Verarbeitung `channel.vip.remove` geplant. Dann kann ein aktiver VIP30-Slot automatisch auf `revoked/external_removed` gesetzt werden, wenn Twitch meldet, dass ein VIP außerhalb des VIP30-Ablaufs entfernt wurde.

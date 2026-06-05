@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "moduleVersion": "0.8.4",
+  "moduleVersion": "0.8.5",
   "reward": {
     "rewardKey": "vip30",
     "title": "30 Tage VIP",
@@ -20,7 +20,8 @@
   "cleanup": {
     "enabled": true,
     "runOnStart": false,
-    "intervalMs": 300000
+    "intervalMs": 300000,
+    "removeVipOnExpire": true
   },
   "logging": {
     "enabled": true,
@@ -83,7 +84,7 @@
     "cooldownSeconds": 0,
     "maxPerStream": 0,
     "maxPerUserPerStream": 0,
-    "notes": "VIP30-Reward wird vom VIP30-Modul verwaltet. STEP8.4 erlaubt Stage B: Add VIP + Slot-Write + Redemption Fulfill/Cancel; Alert bleibt gesperrt.",
+    "notes": "VIP30-Reward wird vom VIP30-Modul verwaltet. STEP8.5 enthaelt Cleanup/Entzug fuer abgelaufene VIP30-Slots; Alert bleibt gesperrt.",
     "twitchPolicies": {
       "shouldRedemptionsSkipRequestQueue": false,
       "fulfillAfterSuccess": true,
@@ -111,7 +112,8 @@
     "liveSafetyGates": true,
     "armPreviewOnly": true,
     "stageALiveVipGrantSlotWrite": true,
-    "stageBRedemptionFulfillCancel": true
+    "stageBRedemptionFulfillCancel": true,
+    "cleanupExpireRevokeManual": true
   },
   "bridge": {
     "enabled": true,
@@ -136,7 +138,7 @@
     "allowSlotWrite": false,
     "allowRedemptionFulfillCancel": false,
     "allowAlert": false,
-    "notes": "STEP8.4: Stage B kann bei echter VIP30-Redemption Twitch VIP vergeben, Slot speichern und Redemption fulfillen/canceln. Alert bleibt deaktiviert."
+    "notes": "STEP8.5: Stage B kann VIP vergeben/Slot speichern/Fulfill-Cancel; Cleanup kann abgelaufene VIP30-Slots manuell pruefen und per Confirm entziehen. Alert bleibt deaktiviert."
   },
-  "moduleBuild": "step8.4-stage-b-redemption-fulfill-cancel"
+  "moduleBuild": "step8.5-cleanup-expire-revoke-manual"
 }
