@@ -1,8 +1,8 @@
 window.ShoutoutV2Module = (function(){
   'use strict';
 
-  const MODULE_VERSION = '2.7.5-overlay-sets-dropdown-fix';
-  const BUILD = 'CAN-44.30';
+  const MODULE_VERSION = '2.7.6-overlay-sets-compact-ui';
+  const BUILD = 'CAN-44.31';
 
   const API = {
     status: '/api/clip-shoutout/status',
@@ -858,14 +858,17 @@ window.ShoutoutV2Module = (function(){
     return `
       <article class="so2-overlay-set-card" data-so2-overlay-set-card>
         <div class="so2-overlay-set-headline">
-          <div>
+          <div class="so2-overlay-set-title">
             <strong>Set ${n}</strong>
             <span>${esc(set.id || `overlay-set-${n}`)}</span>
           </div>
-          <label class="so2-checkline">
-            <input type="checkbox" data-so2-overlay-set-enabled ${set.enabled !== false ? 'checked' : ''}>
-            aktiv
-          </label>
+          <div class="so2-overlay-set-top-actions">
+            <label class="so2-checkline">
+              <input type="checkbox" data-so2-overlay-set-enabled ${set.enabled !== false ? 'checked' : ''}>
+              aktiv
+            </label>
+            <button type="button" class="so2-danger-action" data-so2-overlay-set-remove title="Set löschen">Set löschen</button>
+          </div>
         </div>
 
         <div class="so2-overlay-set-grid">
@@ -888,15 +891,6 @@ window.ShoutoutV2Module = (function(){
           <span>Subline</span>
           <textarea data-so2-overlay-set-subline rows="2" spellcheck="false">${esc(set.subline || '')}</textarea>
         </label>
-
-        <div class="so2-overlay-set-preview">
-          <strong>${esc(overlayPreviewText(set.headline || ''))}</strong>
-          <span>${esc(overlayPreviewText(set.subline || ''))}</span>
-        </div>
-
-        <div class="so2-overlay-set-card-actions">
-          <button type="button" class="so2-icon-action" data-so2-overlay-set-remove>× Set löschen</button>
-        </div>
       </article>
     `;
   }

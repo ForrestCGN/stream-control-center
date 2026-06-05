@@ -1043,3 +1043,57 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* CAN44.31: kompakter Overlay-Set-Editor ohne Vorschau-Zeile */
+.so2-overlay-set-card {
+  padding: 14px 16px 16px;
+}
+
+.so2-overlay-set-headline {
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.so2-overlay-set-title strong {
+  font-size: 17px;
+}
+
+.so2-overlay-set-title span {
+  color: var(--muted, #9fb0c8);
+  font-size: 12px;
+}
+
+.so2-overlay-set-top-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.so2-danger-action {
+  border: 1px solid rgba(251, 113, 133, .45);
+  border-radius: 12px;
+  background: rgba(251, 113, 133, .10);
+  color: #ffe4e8;
+  padding: 8px 11px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.so2-danger-action:hover {
+  background: rgba(251, 113, 133, .18);
+  border-color: rgba(251, 113, 133, .72);
+}
+
+.so2-overlay-set-preview,
+.so2-overlay-set-card-actions {
+  display: none !important;
+}
+
+@media (max-width: 760px) {
+  .so2-overlay-set-top-actions {
+    justify-content: flex-start;
+  }
+}
