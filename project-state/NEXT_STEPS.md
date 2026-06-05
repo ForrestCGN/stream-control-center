@@ -1,13 +1,7 @@
 # Next Steps
 
-1. STEP5 testen:
-   - `node -c backend\modules\vip30.js`
-   - `stepdone.cmd "VIP30-STEP5 Dryrun Redemption Decision"`
-   - erst danach API-Tests
-2. Dry-Run testen:
-   - berechtigter User
-   - fehlende Userdaten
-   - Moderator-Block
-   - bestehender VIP-Block
-   - Slot-voll später simulieren
-3. Danach STEP6 planen: Channelpoints EventSub -> VIP30 Decision Hook ohne Add VIP.
+1. STEP6 entpacken.
+2. `node -c backend\modules\vip30.js`
+4. `stepdone.cmd` ausführen.
+5. Erst danach API-/Bridge-Test.
+6. Danach STEP7 planen: echte Live-Ausführung vorbereitet, aber weiterhin mit klaren Safety-Schaltern.

@@ -1,13 +1,11 @@
 # Current Status
 
-VIP30-STEP5 vorbereitet: Dry-Run Redemption / Decision Flow.
+VIP30 steht auf STEP6: Channelpoints Decision Bridge.
 
-- Version: 0.5.0
-- Build: step5-dryrun-redemption-decision
-- Kosten: 40.000 Kanalpunkte
-- DB-/Dashboard-Settings aktiv
-- Channelpoints-Reward lokal verknüpft
-- Dry-Run-Routen ergänzt
-- Keine Twitch-Schreibaktion
-- Keine VIP-Vergabe
-- Kein Fulfill/Cancel
+- Version `0.6.0`
+- Build `step6-channelpoints-decision-bridge-internal`
+- Reward-Kosten: 40000 Kanalpunkte
+- DB-Settings sind primäre Config
+- Bridge hört auf `channelpoints.redemption / received`
+- Bridge gibt echte/simulierte Channelpoints-Redemptions an VIP30-Decision weiter
+- Keine Twitch-Schreibaktion in diesem STEP

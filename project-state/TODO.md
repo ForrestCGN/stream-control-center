@@ -1,6 +1,6 @@
 # TODO
 
-- STEP5 testen und bestätigen.
-- Später Dashboard-UI für VIP30-Settings bauen.
-- Danach Channelpoints-EventSub-Hook gezielt an VIP30 anschließen.
-- Live-Grant erst nach Dry-Run- und Decision-Tests.
+- STEP6 Bridge-Status testen.
+- STEP6 Bridge-Testevent prüfen.
+- Prüfen, ob Channelpoints-Reward weiterhin in Sync ist.
+- Danach Live-Flow-Planung: Add VIP, Slot schreiben, Fulfill/Cancel, Alert.
