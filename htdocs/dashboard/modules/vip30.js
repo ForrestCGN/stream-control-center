@@ -9,10 +9,7 @@ window.Vip30Module = (function(){
     cleanupCheck: '/api/vip30/cleanup/check',
     eventsubStatus: '/api/twitch/eventsub/status?refresh=1',
     settings: '/api/vip30/settings',
-    settingsSave: '/api/vip30/settings/save',
-    rewardEnsure: '/api/vip30/channelpoints/reward/ensure',
-    cleanupRun: '/api/vip30/cleanup/run',
-    externalRemoveProcess: '/api/vip30/external-vip-remove/process'
+    settingsSave: '/api/vip30/settings/save'
   };
 
   const SAFE_EDIT_KEYS = new Set([
@@ -51,11 +48,7 @@ window.Vip30Module = (function(){
     saveError: '',
     actionRunning: '',
     actionMessage: '',
-    actionError: '',
-    dangerRunning: '',
-    dangerMessage: '',
-    dangerError: '',
-    dangerResult: null
+    actionError: ''
   };
 
   function esc(value){ return window.CGN?.esc ? window.CGN.esc(value) : String(value ?? '').replace(/[&<>\"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c])); }
@@ -129,84 +122,6 @@ window.Vip30Module = (function(){
       state.error = apiErr(err);
     }
     render();
-  }
-
-  async function postJson(path, payload){
-    return window.CGN.api(path, {
-      method: 'POST',
-      body: JSON.stringify(payload || {})
-    });
-  }
-
-  function requireConfirm(message){
-    return window.confirm(message);
-  }
-
-  async function runDangerAction(kind){
-    root = document.getElementById('vip30Module');
-    if (!root || !window.CGN) return;
-
-    let path = '';
-    let payload = {};
-    let label = '';
-
-    if (kind === 'rewardEnsure') {
-      label = 'Reward Sync/Ensure';
-      if (!requireConfirm('Lokalen VIP30-Reward jetzt synchronisieren/ensure?\\n\\nDas ist lokal/DB-bezogen und schreibt nicht direkt zu Twitch.')) return;
-      path = api.rewardEnsure;
-      payload = { confirm: 'YES', reason: 'dashboard_step8_10_2' };
-    } else if (kind === 'cleanupDryRun') {
-      label = 'Cleanup Dry-Run';
-      path = api.cleanupRun;
-      payload = { dryRun: true, reason: 'dashboard_step8_10_2_dryrun' };
-    } else if (kind === 'cleanupRun') {
-      label = 'Cleanup Run';
-      if (!requireConfirm('Cleanup Run wirklich ausführen?\\n\\nDas kann abgelaufenen VIP30-Usern den Twitch-VIP entziehen, wenn alle Safety-Gates scharf sind.')) return;
-      path = api.cleanupRun;
-      payload = { dryRun: false, reason: 'dashboard_step8_10_2_manual_cleanup' };
-    } else if (kind === 'externalRemove') {
-      label = 'Slot als external_removed markieren';
-      const input = root.querySelector('[data-vip30-external-remove-user]');
-      const userLogin = String(input?.value || '').trim().replace(/^@/, '').toLowerCase();
-      if (!userLogin) {
-        state.dangerError = 'Bitte zuerst einen Twitch-Login für external_removed eintragen.';
-        state.dangerMessage = '';
-        render();
-        return;
-      }
-      if (!requireConfirm(`Aktiven VIP30-Slot von ${userLogin} als external_removed freigeben?\\n\\nDas entzieht keinen Twitch-VIP, sondern markiert nur den VIP30-Slot.`)) return;
-      path = api.externalRemoveProcess;
-      payload = { confirm: 'YES', userLogin, user_login: userLogin, status: 'external_removed', source: 'dashboard_step8_10_2' };
-    } else {
-      state.dangerError = `Unbekannte Admin-Aktion: ${kind}`;
-      state.dangerMessage = '';
-      render();
-      return;
-    }
-
-    state.dangerRunning = kind;
-    state.dangerMessage = '';
-    state.dangerError = '';
-    state.dangerResult = null;
-    render();
-
-    try {
-      const result = await postJson(path, payload);
-      state.dangerRunning = '';
-      state.dangerResult = result;
-      state.dangerMessage = `${label} wurde ausgeführt.`;
-      await loadAll(true);
-      state.dangerMessage = `${label} wurde ausgeführt.`;
-      state.dangerResult = result;
-      if (kind === 'externalRemove') {
-        const input = root.querySelector('[data-vip30-external-remove-user]');
-        if (input) input.value = '';
-      }
-    } catch (err) {
-      state.dangerRunning = '';
-      state.dangerError = `${label}: ${apiErr(err)}`;
-      render();
-    }
   }
 
   async function refreshPart(key, label){
@@ -584,7 +499,7 @@ window.Vip30Module = (function(){
       <div class="vip30-card-head">
         <div>
           <h3>Admin-Aktionen</h3>
-          <p>Sichere Refresh-Aktionen plus einfache manuelle Admin-Aktionen mit normaler Browser-Bestätigung.</p>
+          <p>Einfache Refresh-Aktionen für den Live-Betrieb. Keine Admin-/Cleanup-/Twitch-Schreibaktionen.</p>
         </div>
         <div class="vip30-actions">
           <button type="button" data-vip30-refresh>Alles neu laden</button>
@@ -592,7 +507,7 @@ window.Vip30Module = (function(){
       </div>
       <div class="vip30-settings-hint">
         <span>${badge('SICHER', 'ok')} ruft nur bestehende GET-/Statusrouten auf.</span>
-        <span>${badge('LEICHTE BESTÄTIGUNG', 'warn')} für Aktionen mit DB-/Cleanup-Wirkung.</span>
+        <span>${badge('KEINE LIVE-AKTION', 'warn')} schreibt nicht in Twitch und führt keinen Cleanup aus.</span>
       </div>
       ${state.actionMessage ? `<div class="vip30-okmsg">${esc(state.actionMessage)}</div>` : ''}
       ${state.actionError ? `<div class="vip30-error">${esc(state.actionError)}</div>` : ''}
@@ -607,52 +522,9 @@ window.Vip30Module = (function(){
           </button>
         </article>`).join('')}
       </div>
-
-      <div class="vip30-manual-zone">
-        <div class="vip30-config-title">
-          <h4>Manuelle Admin-Aktionen</h4>
-          <span>mit einfacher Bestätigung</span>
-        </div>
-        <p class="vip30-zone-note">Diese Aktionen bleiben handhabbar. Das spätere Rechte-/Rollen-System entscheidet dann, wer sie sehen oder ausführen darf.</p>
-        ${state.dangerMessage ? `<div class="vip30-okmsg">${esc(state.dangerMessage)}</div>` : ''}
-        ${state.dangerError ? `<div class="vip30-error">${esc(state.dangerError)}</div>` : ''}
-        <div class="vip30-action-grid vip30-manual-grid">
-          <article class="vip30-action-card manual">
-            <div>
-              <strong>Reward Sync/Ensure</strong>
-              <p>Synchronisiert den lokalen VIP30-Reward in den Channelpoints-Tabellen. Laut Backend-Safety: lokale DB, kein Twitch-Write.</p>
-            </div>
-            <button type="button" data-vip30-danger-action="rewardEnsure" ${state.dangerRunning ? 'disabled' : ''}>${state.dangerRunning === 'rewardEnsure' ? 'Läuft...' : 'Ausführen'}</button>
-          </article>
-          <article class="vip30-action-card manual">
-            <div>
-              <strong>Cleanup Dry-Run</strong>
-              <p>Prüft abgelaufene aktive VIP30-Slots und schreibt nur einen Dry-Run-Logeintrag.</p>
-            </div>
-            <button type="button" data-vip30-danger-action="cleanupDryRun" ${state.dangerRunning ? 'disabled' : ''}>${state.dangerRunning === 'cleanupDryRun' ? 'Läuft...' : 'Ausführen'}</button>
-          </article>
-          <article class="vip30-action-card manual warning">
-            <div>
-              <strong>Cleanup Run</strong>
-              <p>Führt den echten Cleanup aus. Wenn Safety-Gates scharf sind, kann Twitch-VIP bei abgelaufenen Slots entzogen werden.</p>
-            </div>
-            <button type="button" data-vip30-danger-action="cleanupRun" ${state.dangerRunning ? 'disabled' : ''}>${state.dangerRunning === 'cleanupRun' ? 'Läuft...' : 'Ausführen'}</button>
-          </article>
-          <article class="vip30-action-card manual">
-            <div>
-              <strong>Slot external_removed</strong>
-              <p>Gibt einen aktiven VIP30-Slot frei, wenn der VIP extern/manuell entfernt wurde. Kein Twitch-Write.</p>
-              <input class="vip30-setting-control" type="text" placeholder="twitch-login ohne @" data-vip30-external-remove-user>
-            </div>
-            <button type="button" data-vip30-danger-action="externalRemove" ${state.dangerRunning ? 'disabled' : ''}>${state.dangerRunning === 'externalRemove' ? 'Läuft...' : 'Ausführen'}</button>
-          </article>
-        </div>
-        ${state.dangerResult ? `<details class="vip30-result-details" open><summary>Letztes Ergebnis</summary><pre class="vip30-json">${esc(JSON.stringify(state.dangerResult, null, 2))}</pre></details>` : ''}
-      </div>
-
       <div class="vip30-danger-zone">
-        <h4>Weiterhin nicht im Dashboard umgesetzt</h4>
-        <p>VIP manuell vergeben/entziehen, Redemption fulfill/cancel, Bus-Testevents und direkte Live-Gate-Umschaltung bleiben für spätere Rechte-/Rollen- und Audit-Ausbaustufen zurückgestellt.</p>
+        <h4>Bewusst noch gesperrt</h4>
+        <p>Cleanup Run, Reward Sync/Ensure, manuelle Slot-Korrektur, VIP vergeben/entziehen, Redemption fulfill/cancel und Bus-Testevents gehören später in einen separaten Admin-/Systembereich.</p>
       </div>
     </section>`;
   }
@@ -689,7 +561,6 @@ window.Vip30Module = (function(){
     root?.querySelectorAll('[data-vip30-tab]').forEach(btn => btn.addEventListener('click', () => { state.tab = btn.dataset.vip30Tab || 'overview'; render(); }));
     root?.querySelectorAll('[data-vip30-save-settings]').forEach(btn => btn.addEventListener('click', () => saveSettings()));
     root?.querySelectorAll('[data-vip30-refresh-part]').forEach(btn => btn.addEventListener('click', () => refreshPart(btn.dataset.vip30RefreshPart || '', btn.dataset.vip30RefreshLabel || '')));
-    root?.querySelectorAll('[data-vip30-danger-action]').forEach(btn => btn.addEventListener('click', () => runDangerAction(btn.dataset.vip30DangerAction || '')));
   }
 
   window.addEventListener('cgn:module-show', ev => { if (ev.detail?.module === 'vip30') loadAll(false); });

@@ -954,61 +954,17 @@ html[data-theme=dark] .vip30-table td {
 }
 
 
-/* STEP8.10.2 – leichte manuelle Admin-Aktionen */
-.vip30-manual-zone {
-  margin-top: 26px;
-  border: 1px solid rgba(168,85,247,.24);
-  border-radius: 22px;
-  padding: 16px;
+/* STEP8.10.3 – Streamer/Mod Cleanup */
+.vip30-danger-zone h4::before {
+  content: "🛠 ";
+}
+
+.vip30-admin-actions .vip30-settings-hint {
   background:
-    radial-gradient(circle at 98% 0%, rgba(168,85,247,.10), transparent 34%),
-    radial-gradient(circle at 0% 100%, rgba(34,211,238,.06), transparent 38%),
-    rgba(4,8,19,.52);
+    linear-gradient(135deg, rgba(34,211,238,.07), rgba(168,85,247,.045)),
+    rgba(255,255,255,.02);
 }
 
-.vip30-zone-note {
-  margin: 12px 0 0;
-  color: #cbd5e1;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.vip30-manual-grid {
-  margin-top: 16px;
-}
-
-.vip30-action-card.manual {
-  border-color: rgba(168,85,247,.26);
-  background:
-    radial-gradient(circle at 94% 8%, rgba(168,85,247,.11), transparent 32%),
-    radial-gradient(circle at 0% 100%, rgba(34,211,238,.06), transparent 38%),
-    rgba(8,9,24,.68);
-}
-
-.vip30-action-card.manual.warning {
-  border-color: rgba(245,158,11,.28);
-  background:
-    radial-gradient(circle at 94% 8%, rgba(245,158,11,.10), transparent 32%),
-    radial-gradient(circle at 0% 100%, rgba(168,85,247,.08), transparent 38%),
-    rgba(20,13,5,.55);
-}
-
-.vip30-action-card.manual input {
-  margin-top: 12px;
-}
-
-.vip30-result-details {
-  margin-top: 18px;
-  border: 1px solid rgba(34,211,238,.18);
-  border-radius: 18px;
-  background: rgba(2,6,23,.38);
-  overflow: hidden;
-}
-
-.vip30-result-details summary {
-  cursor: pointer;
-  padding: 12px 14px;
-  color: #fff;
-  font-weight: 900;
-  user-select: none;
+.vip30-admin-actions .vip30-danger-zone {
+  opacity: .86;
 }

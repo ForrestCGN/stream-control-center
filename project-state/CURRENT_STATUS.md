@@ -15,35 +15,28 @@ Stand: 2026-06-06
 - STEP8.9.1 Config UX Polish
 - STEP8.10.1 Admin Refresh Actions
 
-## Aktueller Schritt
+## Richtung korrigiert
 
-STEP8.10.2 Light Admin Actions wurde vorbereitet.
+STEP8.10.2 wurde als Entwicklungsrichtung als zu admin-lastig für die normale Streamer-/Mod-Seite bewertet.
 
-## Inhalt
-
-Dashboard-Tab `Aktionen` enthält nun zusätzlich:
+STEP8.10.3 stellt die normale VIP30-Dashboard-Seite wieder schlanker auf:
 
 ```txt
-Reward Sync/Ensure
-Cleanup Dry-Run
-Cleanup Run
-Slot external_removed
+nur sichere Refresh-/Status-Aktionen im normalen VIP30-Bereich
 ```
 
-## Safety
-
-Keine Backend-Änderung. Das Dashboard nutzt bestehende VIP30-Routen und einfache Browser-Bestätigung. Spätere Rechte/Rollen sollen die Sichtbarkeit/Ausführung steuern.
+Admin-/Systemaktionen kommen später in einen separaten Admin-/Systembereich.
 
 ## Nächster Schritt
 
-Nach Test von STEP8.10.2:
+Normale VIP30-Seite weiter nutzbar machen:
 
 ```txt
 STEP8.11 VIP30 Alert planen
 ```
 
-oder vorher:
+oder zuerst:
 
 ```txt
-Dashboard-Rechte/Rollen-Konzept für Admin-Aktionen
+VIP30 Live-/Mod-Ansicht weiter vereinfachen
 ```
