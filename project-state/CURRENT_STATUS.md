@@ -4,19 +4,12 @@ Stand: 2026-06-06
 
 ## Aktueller Stand
 
-VIP30 STEP8.18.2 ergänzt Avatar-Auflösung und Testuser-Eingabe.
+STEP8.18.3 behebt den Testuser-Eingabefehler im Dashboard.
 
 ## Neu
 
 ```txt
-✅ Anzeigename/Login im Dashboard-Test eintragbar
-✅ Twitch User-Lookup für Avatar
-✅ echter Alertpfad ergänzt fehlende avatarUrl
-✅ Testmeldung zeigt Avatar-Status
-```
-
-## Weiter offen
-
-```txt
-lange Namen im Overlay sauber fitten
+✅ Kein fester AkiGhosty-Default mehr
+✅ Testuser-Eingabe bleibt bei Auto-Reload erhalten
+✅ leerer Fallback bleibt TestRentner
 ```

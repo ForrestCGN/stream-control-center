@@ -57,7 +57,8 @@ window.Vip30Module = (function(){
     autoRefreshMs: 10000,
     autoRefreshLastAt: '',
     autoRefreshPausedReason: '',
-    pendingServerRefresh: false
+    pendingServerRefresh: false,
+    alertTestUser: ''
   };
 
   const editBuffer = {};
@@ -1000,7 +1001,8 @@ window.Vip30Module = (function(){
     render();
     try {
       const input = root.querySelector('[data-vip30-alert-test-user]');
-      const rawName = String(input && input.value || 'TestRentner').replace(/^@+/, '').trim() || 'TestRentner';
+      const rawName = String(input && input.value || state.alertTestUser || 'TestRentner').replace(/^@+/, '').trim() || 'TestRentner';
+      state.alertTestUser = rawName;
       const result = await window.CGN.api(api.alertTest, {
         method: 'POST',
         body: JSON.stringify({
@@ -1085,7 +1087,7 @@ window.Vip30Module = (function(){
             <strong>VIP30 Alert testen</strong>
             <p>Löst ohne Twitch-Schreibzugriff einen echten VIP30 Sound-Bundle-Test aus: zufälliger Sound aus Sounds und zufälliger Text aus Texte.</p>
             <label class="vip30-test-user-label">Anzeigename/Login zum Auflösen
-              <input type="text" data-vip30-alert-test-user value="AkiGhosty" placeholder="z. B. AkiGhosty">
+              <input type="text" data-vip30-alert-test-user value="${esc(state.alertTestUser || '')}" placeholder="z. B. AkiGhosty, ForrestCGN, EngelCGN">
             </label>
           </div>
           <button type="button" data-vip30-alert-test ${state.actionRunning ? 'disabled' : ''}>
@@ -1144,6 +1146,9 @@ window.Vip30Module = (function(){
     root?.querySelectorAll('[data-vip30-save-settings]').forEach(btn => btn.addEventListener('click', () => saveSettings()));
     root?.querySelectorAll('[data-vip30-refresh-part]').forEach(btn => btn.addEventListener('click', () => refreshPart(btn.dataset.vip30RefreshPart || '', btn.dataset.vip30RefreshLabel || '')));
     root?.querySelector('[data-vip30-alert-test]')?.addEventListener('click', () => runAlertTest());
+    root?.querySelector('[data-vip30-alert-test-user]')?.addEventListener('input', ev => {
+      state.alertTestUser = String(ev && ev.target ? ev.target.value : '').replace(/^@+/, '').trim();
+    });
 
     root?.querySelectorAll('[data-vip30-setting-input]').forEach(input => {
       input.addEventListener('input', () => {
