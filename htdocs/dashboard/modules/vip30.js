@@ -7,8 +7,28 @@ window.Vip30Module = (function(){
     logs: '/api/vip30/logs?limit=12',
     externalRemove: '/api/vip30/external-vip-remove/status',
     cleanupCheck: '/api/vip30/cleanup/check',
-    eventsubStatus: '/api/twitch/eventsub/status?refresh=1'
+    eventsubStatus: '/api/twitch/eventsub/status?refresh=1',
+    settings: '/api/vip30/settings',
+    settingsSave: '/api/vip30/settings/save'
   };
+
+  const SAFE_EDIT_KEYS = new Set([
+    'alerts.enabled',
+    'alerts.soundKey',
+    'logging.enabled',
+    'reward.title',
+    'reward.prompt',
+    'slots.maxSlots',
+    'slots.durationDays',
+    'cleanup.releaseSlotOnExternalVipRemove'
+  ]);
+
+  const CRITICAL_PREFIXES = ['live.', 'twitch.', 'bridge.', 'channelpoints.'];
+  const CRITICAL_KEYS = new Set([
+    'cleanup.enabled',
+    'cleanup.removeVipOnExpire',
+    'enabled'
+  ]);
 
   let root = null;
   let state = {
@@ -21,7 +41,11 @@ window.Vip30Module = (function(){
     logs: null,
     externalRemove: null,
     cleanupCheck: null,
-    eventsubStatus: null
+    eventsubStatus: null,
+    settings: null,
+    saving: false,
+    saveMessage: '',
+    saveError: ''
   };
 
   function esc(value){ return window.CGN?.esc ? window.CGN.esc(value) : String(value ?? '').replace(/[&<>\"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c])); }
@@ -46,29 +70,97 @@ window.Vip30Module = (function(){
   }
   function badge(text, tone){ return `<span class="vip30-badge ${tone || ''}">${esc(text)}</span>`; }
   function apiErr(err){ return err && err.message ? err.message : String(err || 'Unbekannter Fehler'); }
+  function settingRows(){ return arr(state.settings?.settings); }
+  function isCriticalSetting(key){
+    const clean = String(key || '');
+    return CRITICAL_KEYS.has(clean) || CRITICAL_PREFIXES.some(prefix => clean.startsWith(prefix));
+  }
+  function isSafeEditable(row){
+    return row && row.editable === true && SAFE_EDIT_KEYS.has(String(row.key || ''));
+  }
+  function settingTone(row){
+    if (isSafeEditable(row)) return 'ok';
+    if (isCriticalSetting(row?.key)) return 'bad';
+    if (row?.editable === true) return 'warn';
+    return '';
+  }
+  function typeValue(row, raw){
+    if (!row) return raw;
+    if (row.type === 'boolean') return raw === true || raw === 'true' || raw === '1' || raw === 'on';
+    if (row.type === 'integer') {
+      const n = Number.parseInt(String(raw ?? ''), 10);
+      return Number.isFinite(n) ? n : 0;
+    }
+    return String(raw ?? '');
+  }
 
   async function loadAll(force){
     root = document.getElementById('vip30Module');
     if (!root || !window.CGN) return;
-    if (!force && state.status && state.slots && state.logs) { render(); return; }
+    if (!force && state.status && state.slots && state.logs && state.settings) { render(); return; }
     state.loading = true;
     state.error = '';
+    state.saveError = '';
+    state.saveMessage = '';
     render();
     try {
-      const [status, slots, logs, externalRemove, cleanupCheck, eventsubStatus] = await Promise.all([
+      const [status, slots, logs, externalRemove, cleanupCheck, eventsubStatus, settings] = await Promise.all([
         window.CGN.api(api.status).catch(err => ({ ok:false, error:apiErr(err) })),
         window.CGN.api(api.slots).catch(err => ({ ok:false, error:apiErr(err), slots:[] })),
         window.CGN.api(api.logs).catch(err => ({ ok:false, error:apiErr(err), logs:[] })),
         window.CGN.api(api.externalRemove).catch(err => ({ ok:false, error:apiErr(err) })),
         window.CGN.api(api.cleanupCheck).catch(err => ({ ok:false, error:apiErr(err) })),
-        window.CGN.api(api.eventsubStatus).catch(err => ({ ok:false, error:apiErr(err) }))
+        window.CGN.api(api.eventsubStatus).catch(err => ({ ok:false, error:apiErr(err) })),
+        window.CGN.api(api.settings).catch(err => ({ ok:false, error:apiErr(err), settings:[] }))
       ]);
-      state = { ...state, loading:false, error:'', loadedAt:new Date().toISOString(), status, slots, logs, externalRemove, cleanupCheck, eventsubStatus };
+      state = { ...state, loading:false, error:'', loadedAt:new Date().toISOString(), status, slots, logs, externalRemove, cleanupCheck, eventsubStatus, settings };
     } catch (err) {
       state.loading = false;
       state.error = apiErr(err);
     }
     render();
+  }
+
+  async function saveSettings(){
+    root = document.getElementById('vip30Module');
+    if (!root || !window.CGN) return;
+    const updates = {};
+    const rowsByKey = new Map(settingRows().map(row => [String(row.key || ''), row]));
+    root.querySelectorAll('[data-vip30-setting-input]').forEach(input => {
+      const key = String(input.dataset.vip30SettingInput || '');
+      const row = rowsByKey.get(key);
+      if (!row || !isSafeEditable(row)) return;
+      if (row.type === 'boolean') updates[key] = input.checked === true;
+      else updates[key] = typeValue(row, input.value);
+    });
+    if (!Object.keys(updates).length) {
+      state.saveError = 'Keine sicheren editierbaren Einstellungen gefunden.';
+      state.saveMessage = '';
+      render();
+      return;
+    }
+
+    state.saving = true;
+    state.saveError = '';
+    state.saveMessage = '';
+    render();
+
+    try {
+      const result = await window.CGN.api(api.settingsSave, {
+        method: 'POST',
+        body: JSON.stringify({ settings: updates, source: 'dashboard_vip30_step8_9' })
+      });
+      state.saving = false;
+      state.settings = result.settings || state.settings;
+      state.saveMessage = `Gespeichert: ${(result.changed || []).map(item => item.key).join(', ') || 'keine Änderung'}`;
+      state.saveError = arr(result.rejected).length ? `Teilweise abgelehnt: ${arr(result.rejected).map(item => `${item.key}:${item.reason}`).join(', ')}` : '';
+      await loadAll(true);
+      state.saveMessage = `Gespeichert: ${(result.changed || []).map(item => item.key).join(', ') || 'keine Änderung'}`;
+    } catch (err) {
+      state.saving = false;
+      state.saveError = apiErr(err);
+      render();
+    }
   }
 
   function getSlots(){ return pickArray(state.slots, ['slots', 'rows', 'items']); }
@@ -92,7 +184,8 @@ window.Vip30Module = (function(){
   }
   function maxSlotCount(){
     const status = state.status || {};
-    const candidates = [status.maxSlots, status.slots?.maxSlots, status.config?.slots?.maxSlots, status.settings?.slots?.maxSlots];
+    const settings = state.settings || {};
+    const candidates = [status.maxSlots, status.slots?.maxSlots, settings.effective?.slots?.maxSlots, status.config?.slots?.maxSlots, status.settings?.slots?.maxSlots];
     for (const value of candidates) {
       const n = Number(value);
       if (Number.isFinite(n) && n > 0) return n;
@@ -100,8 +193,8 @@ window.Vip30Module = (function(){
     return 10;
   }
   function freeSlotCount(){ return Math.max(0, maxSlotCount() - activeSlotCount()); }
-  function moduleVersion(){ return state.status?.moduleVersion || state.status?.version || state.status?.module?.version || '-'; }
-  function moduleBuild(){ return state.status?.moduleBuild || state.status?.build || '-'; }
+  function moduleVersion(){ return state.status?.moduleVersion || state.status?.version || state.status?.module?.version || state.settings?.moduleVersion || '-'; }
+  function moduleBuild(){ return state.status?.moduleBuild || state.status?.build || state.settings?.moduleBuild || '-'; }
 
   function renderHero(){
     const active = activeSlotCount();
@@ -113,8 +206,8 @@ window.Vip30Module = (function(){
     const healthy = state.status?.ok !== false && eventsub.configured === true && eventsub.knownRemove === true && external.subscribed === true;
     return `<section class="vip30-card vip30-hero glass">
       <div>
-        <h2>👑 30 Tage VIP</h2>
-        <p>Read-only Übersicht für VIP30-Slots, Logs, Cleanup, externen VIP-Entzug und Twitch EventSub.</p>
+        <h2>30 Tage VIP</h2>
+        <p>Übersicht und sichere Konfiguration für VIP30-Slots, Logs, Cleanup, externen VIP-Entzug und Twitch EventSub.</p>
       </div>
       <div class="vip30-actions">
         <button type="button" data-vip30-refresh>Aktualisieren</button>
@@ -128,15 +221,15 @@ window.Vip30Module = (function(){
       <div class="vip30-meta-row">
         <span>Version ${fmt(moduleVersion())}</span>
         <span>Build ${fmt(moduleBuild())}</span>
+        <span>Settings ${fmt(state.settings?.rows ?? '-')} / ${fmt(state.settings?.definitions ?? '-')}</span>
         <span>Geladen ${fmt(dateFmt(state.loadedAt))}</span>
-        <span>Alert bewusst OFF</span>
       </div>
       ${state.error ? `<div class="vip30-error">${esc(state.error)}</div>` : ''}
     </section>`;
   }
 
   function renderTabs(){
-    const tabs = [['overview','Übersicht'], ['slots','Slots'], ['logs','Logs'], ['diagnostics','Diagnose']];
+    const tabs = [['overview','Übersicht'], ['slots','Slots'], ['logs','Logs'], ['settings','Config'], ['diagnostics','Diagnose']];
     return `<div class="vip30-tabs glass">${tabs.map(([id,label]) => `<button type="button" class="${state.tab === id ? 'active' : ''}" data-vip30-tab="${esc(id)}">${esc(label)}</button>`).join('')}</div>`;
   }
 
@@ -203,6 +296,75 @@ window.Vip30Module = (function(){
     </div>`;
   }
 
+  function settingInput(row){
+    const key = esc(row.key);
+    const disabled = !isSafeEditable(row);
+    const attr = `data-vip30-setting-input="${key}" ${disabled ? 'disabled' : ''}`;
+    if (row.type === 'boolean') {
+      return `<label class="vip30-switch"><input type="checkbox" ${attr} ${row.value === true ? 'checked' : ''}><span></span></label>`;
+    }
+    if (row.type === 'integer') {
+      return `<input class="vip30-setting-control" type="number" min="0" step="1" value="${esc(row.value)}" ${attr}>`;
+    }
+    return `<input class="vip30-setting-control" type="text" value="${esc(row.value)}" ${attr}>`;
+  }
+
+  function renderSettings(){
+    const rows = settingRows();
+    const grouped = rows.reduce((acc, row) => {
+      const cat = row.category || 'sonstige';
+      (acc[cat] ||= []).push(row);
+      return acc;
+    }, {});
+    const categories = Object.keys(grouped).sort();
+    if (!rows.length) {
+      return `<section class="vip30-card glass"><h3>Config</h3><div class="vip30-empty">Keine Settings geladen.</div></section>`;
+    }
+    return `<section class="vip30-card glass">
+      <div class="vip30-card-head">
+        <div>
+          <h3>VIP30 Config</h3>
+          <p>Sichere Einstellungen können direkt gespeichert werden. Kritische Live-/Twitch-/Bridge-Schalter sind sichtbar, aber bewusst gesperrt.</p>
+        </div>
+        <div class="vip30-actions">
+          <button type="button" data-vip30-save-settings ${state.saving ? 'disabled' : ''}>${state.saving ? 'Speichere...' : 'Sichere Settings speichern'}</button>
+          <button type="button" data-vip30-refresh>Neu laden</button>
+        </div>
+      </div>
+      ${state.saveMessage ? `<div class="vip30-okmsg">${esc(state.saveMessage)}</div>` : ''}
+      ${state.saveError ? `<div class="vip30-error">${esc(state.saveError)}</div>` : ''}
+      <div class="vip30-settings-hint">
+        <span>${badge('SICHER EDITIERBAR', 'ok')} wird gespeichert über <code>/api/vip30/settings/save</code>.</span>
+        <span>${badge('KRITISCH GESPERRT', 'bad')} bleibt ohne separaten Confirm-/Audit-Step gesperrt.</span>
+      </div>
+      ${categories.map(category => renderSettingsCategory(category, grouped[category])).join('')}
+    </section>`;
+  }
+
+  function renderSettingsCategory(category, rows){
+    return `<div class="vip30-settings-category">
+      <h4>${esc(category)}</h4>
+      <div class="vip30-table-wrap">
+        <table class="vip30-table vip30-settings-table">
+          <thead><tr><th>Key</th><th>Wert</th><th>Status</th><th>Beschreibung</th><th>Aktualisiert</th></tr></thead>
+          <tbody>${rows.map(row => {
+            const safe = isSafeEditable(row);
+            const critical = isCriticalSetting(row.key);
+            const tone = settingTone(row);
+            const status = safe ? 'editierbar' : critical ? 'kritisch gesperrt' : row.editable ? 'gesperrt' : 'nicht editierbar';
+            return `<tr class="${safe ? 'is-safe' : critical ? 'is-critical' : ''}">
+              <td><strong>${esc(row.label || row.key)}</strong><small>${esc(row.key)} · ${esc(row.type || '')}</small></td>
+              <td>${settingInput(row)}</td>
+              <td>${badge(status, tone)}</td>
+              <td>${fmt(row.description || '')}</td>
+              <td>${fmt(dateFmt(row.updatedAt || row.updated_at))}</td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }
+
   function slotsTable(slots){
     if (!slots.length) return '<div class="vip30-empty">Keine Slots gefunden.</div>';
     return `<div class="vip30-table-wrap"><table class="vip30-table"><thead><tr><th>User</th><th>Status</th><th>Start</th><th>Ende</th><th>Quelle</th><th>Fehler</th></tr></thead><tbody>${slots.map(slot => {
@@ -235,6 +397,7 @@ window.Vip30Module = (function(){
   function renderDiagnostics(){
     return `<div class="vip30-grid">
       ${jsonBlock('VIP30 Status', state.status)}
+      ${jsonBlock('VIP30 Settings', state.settings)}
       ${jsonBlock('External VIP Remove', state.externalRemove)}
       ${jsonBlock('Cleanup Check', state.cleanupCheck)}
       ${jsonBlock('Twitch EventSub Status', state.eventsubStatus)}
@@ -245,6 +408,7 @@ window.Vip30Module = (function(){
     if (state.loading) return '<section class="vip30-card glass"><h3>Lade VIP30-Daten...</h3><p class="vip30-muted">Bitte kurz warten.</p></section>';
     if (state.tab === 'slots') return renderSlots();
     if (state.tab === 'logs') return renderLogs();
+    if (state.tab === 'settings') return renderSettings();
     if (state.tab === 'diagnostics') return renderDiagnostics();
     return renderOverview();
   }
@@ -259,11 +423,12 @@ window.Vip30Module = (function(){
   function bind(){
     root?.querySelectorAll('[data-vip30-refresh]').forEach(btn => btn.addEventListener('click', () => loadAll(true)));
     root?.querySelectorAll('[data-vip30-tab]').forEach(btn => btn.addEventListener('click', () => { state.tab = btn.dataset.vip30Tab || 'overview'; render(); }));
+    root?.querySelectorAll('[data-vip30-save-settings]').forEach(btn => btn.addEventListener('click', () => saveSettings()));
   }
 
   window.addEventListener('cgn:module-show', ev => { if (ev.detail?.module === 'vip30') loadAll(false); });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { root = document.getElementById('vip30Module'); });
   else root = document.getElementById('vip30Module');
 
-  return { loadAll, render };
+  return { loadAll, render, saveSettings };
 })();

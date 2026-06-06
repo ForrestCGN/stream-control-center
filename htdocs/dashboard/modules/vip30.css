@@ -521,3 +521,152 @@ html[data-theme=dark] .vip30-table td {
   .vip30-card-head { display: grid; }
   .vip30-rows strong { text-align: left; }
 }
+
+
+/* STEP8.9 – VIP30 Settings */
+.vip30-settings-hint {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 16px;
+  padding: 12px;
+  border: 1px solid rgba(34,211,238,.16);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(34,211,238,.06), rgba(168,85,247,.06)),
+    rgba(255,255,255,.025);
+  color: var(--vip30-muted);
+  font-size: 13px;
+}
+
+.vip30-settings-hint code {
+  color: #dbeafe;
+  border: 1px solid rgba(168,85,247,.24);
+  border-radius: 8px;
+  padding: 2px 6px;
+  background: rgba(2,6,23,.42);
+}
+
+.vip30-settings-category {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.vip30-settings-category h4 {
+  margin: 0;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 950;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  text-shadow: 0 0 14px rgba(168,85,247,.24);
+}
+
+.vip30-settings-table td:nth-child(2) {
+  min-width: 180px;
+}
+
+.vip30-settings-table tr.is-safe {
+  background: rgba(52,211,153,.025);
+}
+
+.vip30-settings-table tr.is-critical {
+  background: rgba(248,113,113,.025);
+}
+
+.vip30-setting-control {
+  width: min(320px, 100%);
+  border: 1px solid rgba(168,85,247,.32);
+  border-radius: 12px;
+  padding: 9px 10px;
+  color: #ffffff;
+  background:
+    linear-gradient(135deg, rgba(168,85,247,.08), rgba(34,211,238,.045)),
+    rgba(2,6,23,.52);
+  outline: none;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.025);
+}
+
+.vip30-setting-control:focus {
+  border-color: rgba(34,211,238,.72);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.04),
+    0 0 18px rgba(34,211,238,.12);
+}
+
+.vip30-setting-control:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+  border-color: rgba(148,163,184,.16);
+  background: rgba(15,23,42,.35);
+}
+
+.vip30-switch {
+  display: inline-flex;
+  align-items: center;
+}
+
+.vip30-switch input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.vip30-switch span {
+  position: relative;
+  width: 48px;
+  height: 26px;
+  display: inline-block;
+  border-radius: 999px;
+  border: 1px solid rgba(148,163,184,.24);
+  background: rgba(15,23,42,.76);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.025);
+  transition: border-color .16s ease, background .16s ease, box-shadow .16s ease;
+}
+
+.vip30-switch span::before {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: 3px;
+  top: 3px;
+  border-radius: 999px;
+  background: #94a3b8;
+  box-shadow: 0 0 12px rgba(148,163,184,.18);
+  transition: transform .16s ease, background .16s ease, box-shadow .16s ease;
+}
+
+.vip30-switch input:checked + span {
+  border-color: rgba(52,211,153,.44);
+  background: rgba(52,211,153,.14);
+  box-shadow: 0 0 18px rgba(52,211,153,.08);
+}
+
+.vip30-switch input:checked + span::before {
+  transform: translateX(22px);
+  background: #34d399;
+  box-shadow: 0 0 16px rgba(52,211,153,.38);
+}
+
+.vip30-switch input:disabled + span {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.vip30-okmsg {
+  border: 1px solid rgba(52,211,153,.42);
+  background:
+    linear-gradient(135deg, rgba(52,211,153,.12), rgba(34,211,238,.06)),
+    rgba(10, 20, 20, .62);
+  border-radius: 18px;
+  padding: 12px;
+  color: #b8ffe7;
+  box-shadow: 0 0 24px rgba(52,211,153,.08);
+}
+
+.vip30-admin button:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+  transform: none;
+}

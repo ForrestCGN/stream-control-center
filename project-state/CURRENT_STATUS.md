@@ -1,6 +1,6 @@
 # CURRENT STATUS – VIP30
 
-Stand: 2026-06-06 09:20 UTC
+Stand: 2026-06-06
 
 ## Grün getestet
 
@@ -9,45 +9,60 @@ Stand: 2026-06-06 09:20 UTC
 - STEP8.6 externe Slot-Freigabe per Bus-Simulation
 - STEP8.7 echter Twitch EventSub `channel.vip.remove` bis Live-Bus
 - STEP8.7.1 Routing-Fix für `/api/twitch/eventsub/status`
-- STEP8.8 VIP30 Dashboard Read-only funktional im Dashboard geprüft
+- STEP8.8 Dashboard Read-only
+- STEP8.8.1 Dashboard CGN-Design-Polish
 
-## Aktueller Dashboard-Stand
+## Aktueller Schritt
 
-STEP8.8:
+STEP8.9 Dashboard Settings wurde vorbereitet.
 
-```txt
-VIP30 Dashboard Read-only funktioniert.
-```
-
-Forrest-Rückmeldung:
+Backend-Status:
 
 ```txt
-Sieht alles gut im Dashboard aus.. Leider kein CGN-Design, aber sonst ok :)
+GET /api/vip30/settings vorhanden
+POST /api/vip30/settings/save vorhanden
+POST /api/vip30/settings nicht vorhanden
 ```
 
-STEP8.8.1:
+STEP8.9 nutzt deshalb `/api/vip30/settings/save`.
+
+## STEP8.9 Sicherheitsstand
+
+Direkt editierbar:
 
 ```txt
-CGN-/Neon-Design-Polish für htdocs/dashboard/modules/vip30.css vorbereitet.
+alerts.enabled
+alerts.soundKey
+logging.enabled
+reward.title
+reward.prompt
+slots.maxSlots
+slots.durationDays
+cleanup.releaseSlotOnExternalVipRemove
 ```
 
-## Aktuelle Safety
-
-Weiterhin nicht aktiv:
+Gesperrt/critical im Dashboard:
 
 ```txt
-- VIP30-Alert
-- Auto-Alert
-- VIP manuell vergeben über Dashboard
-- VIP manuell entziehen über Dashboard
-- Cleanup Run über Dashboard
-- Redemption fulfill/cancel über Dashboard
+live.*
+twitch.*
+bridge.*
+channelpoints.*
+cleanup.enabled
+cleanup.removeVipOnExpire
+enabled
 ```
+
+## DB-Kompatibilität
+
+Keine Backend-/DB-Änderung in STEP8.9.
+
+Die vorhandene Route nutzt bestehende `vip30_settings`-Tabelle und vorhandene DB-Helfer im Backend. Keine neue SQLite-Sonderlogik.
 
 ## Nächster sinnvoller Schritt
 
-Wenn STEP8.8.1 Design passt:
+Nach Test von STEP8.9:
 
 ```txt
-STEP8.9 – Dashboard Config Read/Write planen
+STEP8.10 Dashboard manuelle Admin-Aktionen planen
 ```

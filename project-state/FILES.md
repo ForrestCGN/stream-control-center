@@ -1,12 +1,13 @@
 # FILES – VIP30 / 30TageVIP
 
-Stand: 2026-06-06 09:20 UTC
+Stand: 2026-06-06
 
-## STEP8.8.1 ZIP-Inhalt
+## STEP8.9 Dateien
 
 ```txt
+htdocs/dashboard/modules/vip30.js
 htdocs/dashboard/modules/vip30.css
-docs/current/CURRENT_CHAT_HANDOFF_VIP30_STEP8_8_1_DESIGN.md
+docs/current/CURRENT_CHAT_HANDOFF_VIP30_STEP8_9_SETTINGS.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -20,22 +21,19 @@ project-state/FILES.md
 backend/modules/vip30.js
 backend/modules/twitch.js
 backend/modules/communication_bus.js
-htdocs/dashboard/modules/vip30.js
-htdocs/dashboard/index.html
 htdocs/dashboard/app.js
+htdocs/dashboard/index.html
 ```
 
-## Relevante VIP30 Dashboard-Dateien
+## Relevante Routen
 
 ```txt
-htdocs/dashboard/modules/vip30.js
-htdocs/dashboard/modules/vip30.css
-htdocs/dashboard/index.html
-htdocs/dashboard/app.js
+GET  /api/vip30/settings
+POST /api/vip30/settings/save
 ```
 
-## Nächster geplanter Bereich
+Nicht vorhanden:
 
 ```txt
-STEP8.9 – Dashboard Config Read/Write
+POST /api/vip30/settings
 ```

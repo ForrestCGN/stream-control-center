@@ -1,28 +1,19 @@
 # TODO – VIP30 / 30TageVIP
 
-Stand: 2026-06-06 09:20 UTC
+Stand: 2026-06-06
 
-## STEP8.8.1
+## STEP8.9
 
-- [x] VIP30 Dashboard funktional geprüft
-- [x] CGN-Design-Polish geplant
-- [x] CSS-only ZIP vorbereitet
-- [ ] ZIP übernehmen
-- [ ] `stepdone.cmd` ausführen
-- [ ] Dashboard optisch prüfen
+- [x] Settings-Route geprüft
+- [x] Schreibroute gefunden: `/api/vip30/settings/save`
+- [x] Dashboard Config-Tab ergänzt
+- [x] Sichere Settings direkt editierbar gemacht
+- [x] Kritische Live-/Twitch-/Bridge-Schalter sichtbar, aber gesperrt
+- [x] Keine Backend-/DB-Änderung
+- [ ] STEP8.9 im Live-Dashboard testen
 
-## STEP8.9 Dashboard Config
+## Nach STEP8.9
 
-- [ ] Settings in harmlose/gefährliche Kategorien trennen
-- [ ] Read/Write-API im bestehenden VIP30-Backend prüfen
-- [ ] UI-Formular planen
-- [ ] Save-Flow mit Bestätigung für kritische Settings planen
-- [ ] Audit-/Logging-Pflicht prüfen
-- [ ] Keine gefährlichen Actions ohne separate Freigabe bauen
-
-## Grundregeln
-
-- Keine Patch-Skripte
-- Bei Dateiänderungen vollständige Ersatzdateien
-- Keine Funktionalität entfernen
-- Vor Live-Test immer `stepdone.cmd`
+- [ ] STEP8.10 manuelle Dashboard-Aktionen planen
+- [ ] Confirm-/Audit-Konzept für gefährliche Aktionen festlegen
+- [ ] Danach erst Alert-Integration planen

@@ -1,36 +1,40 @@
 # Changelog – VIP30 / 30TageVIP
 
-## 2026-06-06 – STEP8.8.1 Dashboard CGN Design Polish
+## 2026-06-06 – STEP8.9 Dashboard Settings
 
 ### Geändert
 
+- `htdocs/dashboard/modules/vip30.js`
+  - Settings-Endpoint `/api/vip30/settings` wird geladen.
+  - Neuer Tab `Config`.
+  - Sichere Settings können über `/api/vip30/settings/save` gespeichert werden.
+  - Kritische Settings werden angezeigt, aber nicht editierbar gemacht.
+
 - `htdocs/dashboard/modules/vip30.css`
-  - CGN-/Neon-Galaxy-Optik ergänzt.
-  - Dunkle Glass-Panels, Neon-Lila/Cyan-Rahmen, Glow-Karten und bessere Tabellen/Badges umgesetzt.
+  - Styling für Settings-Tab, Inputs, Switches, Save-Meldungen und Critical-Badges ergänzt.
 
 ### Nicht geändert
 
-- Kein Backend.
-- Keine Datenbank.
-- Keine API-Routen.
-- Keine Twitch-Aktionen.
-- Keine VIP30-Logik.
-- Keine manuellen Dashboard-Aktionen.
-- Keine Alert-Anbindung.
+- Kein Backend geändert.
+- Keine DB geändert.
+- Keine Twitch-Aktion.
+- Kein Alert.
+- Kein Cleanup-Run.
+- Keine Änderung an `vip30.js`, `twitch.js`, `communication_bus.js`.
 
-### Test
+### Safety
 
-- Nur CSS geändert.
-- Nach Übernahme `stepdone.cmd` ausführen.
-- Danach Dashboard im Browser per Hard Refresh prüfen.
+Direkt editierbar nur harmlose Dashboard-Settings:
 
-## 2026-06-06 – STEP8.8 Dashboard Read-only
+```txt
+alerts.enabled
+alerts.soundKey
+logging.enabled
+reward.title
+reward.prompt
+slots.maxSlots
+slots.durationDays
+cleanup.releaseSlotOnExternalVipRemove
+```
 
-- VIP30 Dashboard-Modul ergänzt.
-- Read-only Anzeige für Status, Slots, Logs, Cleanup, External VIP Remove und EventSub-Status.
-- Funktional von Forrest geprüft: Dashboard sieht gut aus und lädt.
-
-## 2026-06-06 – STEP8.7.1
-
-- Twitch EventSub Statusroute korrigiert.
-- Echter VIP-Remove-Flow live bestätigt.
+Kritische Settings bleiben gesperrt.

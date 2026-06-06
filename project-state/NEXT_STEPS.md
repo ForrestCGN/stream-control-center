@@ -1,60 +1,64 @@
 # NEXT STEPS – VIP30 / 30TageVIP
 
-Stand: 2026-06-06 09:20 UTC
+Stand: 2026-06-06
 
-## Direkt nach STEP8.8.1
+## Direkt nach STEP8.9 ZIP
 
-- [ ] ZIP entpacken
-- [ ] `stepdone.cmd "VIP30-STEP8.8.1 Dashboard CGN Design Polish"` ausführen
-- [ ] Browser Hard Refresh
-- [ ] Dashboard `Community -> 30 Tage VIP` optisch prüfen
+```powershell
+cd /d D:\Git\stream-control-center
+node --check htdocs\dashboard\modules\vip30.js
+.\stepdone.cmd "VIP30-STEP8.9 Dashboard Settings"
+```
 
-## Danach: STEP8.9 planen
+Danach testen:
+
+```txt
+/dashboard
+Community -> 30 Tage VIP -> Config
+```
+
+Sicherer Test:
+
+```txt
+reward.prompt ändern
+speichern
+Dashboard neu laden
+prüfen, ob Wert bleibt
+```
+
+## Danach: STEP8.10 planen
 
 Thema:
 
 ```txt
-VIP30 Dashboard Config Read/Write
+VIP30 Dashboard manuelle Admin-Aktionen
 ```
 
-Vor Code klären:
+Mögliche read-only/ungefährliche Aktionen:
 
 ```txt
-- Welche Einstellungen dürfen direkt bearbeitet werden?
-- Welche gefährlichen Einstellungen bleiben gesperrt?
-- Welche Aktionen brauchen Confirm?
-- Welche Aktionen brauchen Audit?
-- Welche Aktionen brauchen Owner/Admin?
+Status refresh
+Settings refresh
+Slots refresh
+Logs refresh
+Cleanup Check refresh
+External Remove Status refresh
 ```
 
-## Kandidaten für harmlose Config
+Mögliche spätere Aktionen mit Confirm/Audit:
 
 ```txt
-reward.title
-reward.cost
-slots.maxSlots
-slots.durationDays
-slots.blockModerators
-slots.blockExistingVip
-slots.blockExistingSlot
-cleanup.enabled
-cleanup.releaseSlotOnExternalVipRemove
-logging.recentLimit
-alerts.enabled
-alerts.soundKey
-alerts.durationMs
-```
-
-## Weiter gesperrt bis separat geplant
-
-```txt
-live.allowVipGrant
-live.allowSlotWrite
-live.allowRedemptionFulfillCancel
-twitch.liveActionsEnabled
 Cleanup Run
-External VIP Remove Process
+Manuelle External-Remove-Korrektur
+Reward Sync/Ensure
+```
+
+Weiterhin hart blockieren, bis separat geplant:
+
+```txt
 VIP manuell vergeben
 VIP manuell entziehen
 Redemption fulfill/cancel
+Bus-Testevent auslösen
+Live-Gates direkt umschalten
 ```

@@ -1,61 +1,20 @@
 # VIP30 / 30TageVIP
 
-Stand: 2026-06-06 09:05 UTC  
-Aktueller Backend-Modulstand: `vip30` Version `0.8.6`, Build `step8.6-external-vip-remove-slot-release`  
-Aktueller Integrationsstand: STEP8.8 Dashboard Read-only
+Stand: 2026-06-06  
+Modul: `vip30`  
+Backend-Version: `0.8.6` / `step8.6-external-vip-remove-slot-release`  
+Dashboard-Stand: STEP8.9
 
 ## Zweck
 
-Das Modul `vip30` verwaltet den Kanalpunkte-Reward „30 Tage VIP“ im Node-/stream-control-center-System.
+VIP30 verwaltet den Kanalpunkte-Reward „30 Tage VIP“ im Node-/stream-control-center-System.
 
-Kernaufgaben:
+## Backend
 
-- VIP30-Reward-Entscheidung
-- VIP-Vergabe über Twitch bei erfolgreicher Einlösung
-- Slot-Speicherung für 30 Tage
-- Redemption-Fulfill/Cancel
-- Cleanup für abgelaufene Slots
-- externe VIP-Entzüge erkennen und Slot freigeben
-- Status-/Log-/Diagnose-Routen bereitstellen
-- Dashboard-Read-only-Anzeige
-
-## Wichtige Dateien
-
-Backend:
+Wichtige Datei:
 
 ```txt
 backend/modules/vip30.js
-backend/modules/twitch.js
-backend/modules/communication_bus.js
-```
-
-Dashboard:
-
-```txt
-htdocs/dashboard/modules/vip30.js
-htdocs/dashboard/modules/vip30.css
-htdocs/dashboard/index.html
-htdocs/dashboard/app.js
-```
-
-Doku/Status:
-
-```txt
-docs/current/CURRENT_CHAT_HANDOFF_VIP30_STEP8_8_DASHBOARD.md
-docs/modules/vip30.md
-project-state/CURRENT_STATUS.md
-project-state/NEXT_STEPS.md
-project-state/TODO.md
-project-state/CHANGELOG.md
-project-state/FILES.md
-```
-
-## Datenbank
-
-Produktive Datenbank:
-
-```txt
-D:\Streaming\stramAssets\data\sqlite\app.sqlite
 ```
 
 Wichtige Tabellen:
@@ -66,82 +25,74 @@ vip30_log
 vip30_settings
 ```
 
-Datenbank-Regel:
+Produktive DB:
 
 ```txt
-Nicht neu bauen.
-Nicht überschreiben.
-Nicht löschen.
-Schemaänderungen nur sanft und geprüft.
+D:\Streaming\stramAssets\data\sqlite\app.sqlite
 ```
 
-## EventBus
+## Dashboard
 
-VIP30 nutzt den Communication Bus.
-
-Wichtige eingehende Events:
+Wichtige Dateien:
 
 ```txt
-channelpoints.redemption / received
-twitch.eventsub / channel.vip.remove
-twitch.vip / remove
+htdocs/dashboard/modules/vip30.js
+htdocs/dashboard/modules/vip30.css
 ```
 
-Wichtige ausgehende Events:
+Dashboard-Funktionen:
 
 ```txt
-vip30.status
-vip30.twitch
-vip30.channelpoints
-vip30.redeem
-vip30.bridge
-vip30.live
+Übersicht
+Slots
+Logs
+Config
+Diagnose
 ```
 
-## STEP8.7 / STEP8.7.1
+## Settings
 
-STEP8.7 ergänzt in `backend/modules/twitch.js` echte Twitch EventSub VIP-Events:
+Vorhandene Routen:
 
 ```txt
-channel.vip.add
-channel.vip.remove
+GET  /api/vip30/settings
+POST /api/vip30/settings/save
 ```
 
-Diese werden über den Bus weitergereicht:
+`POST /api/vip30/settings` existiert nicht.
+
+STEP8.9 nutzt `/api/vip30/settings/save`.
+
+## Safe Edit Allowlist im Dashboard
 
 ```txt
-channel: twitch.eventsub
-action: channel.vip.remove
+alerts.enabled
+alerts.soundKey
+logging.enabled
+reward.title
+reward.prompt
+slots.maxSlots
+slots.durationDays
+cleanup.releaseSlotOnExternalVipRemove
 ```
 
-VIP30 hört darauf und verarbeitet externe VIP-Entzüge über die vorhandene STEP8.6-Logik.
-
-STEP8.7.1 korrigierte den Routing-Konflikt bei:
+## Kritisch / gesperrt im Dashboard
 
 ```txt
-/api/twitch/eventsub/status
+live.*
+twitch.*
+bridge.*
+channelpoints.*
+cleanup.enabled
+cleanup.removeVipOnExpire
+enabled
 ```
 
-## Bestätigte Tests STEP8.7.1
+Diese Felder beeinflussen produktive Live-/Twitch-/Bridge-/Cleanup-Flows und brauchen später einen separaten Confirm-/Audit-Step.
 
-EventSub-Status:
+## EventSub VIP Remove
 
-```txt
-vipEventBus.configured = True
-knownRemove = True
-knownAdd = True
-channel.vip.add
-channel.vip.remove
-```
-
-Echter Twitch VIP Remove Test:
-
-```txt
-akighosty -> external_removed
-external_vip_remove_slot_released
-```
-
-Damit ist bestätigt:
+Bestätigt:
 
 ```txt
 Twitch channel.vip.remove
@@ -149,118 +100,15 @@ Twitch channel.vip.remove
 -> Communication Bus
 -> vip30.js
 -> Slot external_removed
--> Log geschrieben
-```
-
-## STEP8.8 Dashboard Read-only
-
-Neues Dashboard-Modul:
-
-```txt
-vip30
-```
-
-Navigation:
-
-```txt
-Community -> 30 Tage VIP
-```
-
-Neue Dateien:
-
-```txt
-htdocs/dashboard/modules/vip30.js
-htdocs/dashboard/modules/vip30.css
-```
-
-Geänderte Dashboard-Dateien:
-
-```txt
-htdocs/dashboard/index.html
-htdocs/dashboard/app.js
-```
-
-Wichtig:
-Das bestehende Dashboard-Modul `vip.js` bleibt unverändert und gehört weiterhin zum VIP-/Mod-Sound-System.
-
-## Dashboard API-Routen
-
-```txt
-GET /api/vip30/status
-GET /api/vip30/slots?limit=20
-GET /api/vip30/logs?limit=12
-GET /api/vip30/external-vip-remove/status
-GET /api/vip30/cleanup/check
-GET /api/twitch/eventsub/status?refresh=1
-```
-
-## Dashboard Safety
-
-Das VIP30-Dashboard ist in STEP8.8 rein read-only.
-
-Nicht enthalten:
-
-- kein VIP vergeben
-- kein VIP entziehen
-- kein Cleanup ausführen
-- kein Redemption fulfill/cancel
-- kein External-Remove process
-- kein Test-Event auslösen
-- kein Alert
-- keine Backend-Änderung
-- keine DB-Änderung
-
-## Dashboard Tabs
-
-```txt
-Übersicht
-Slots
-Logs
-Diagnose
-```
-
-## Aktueller Slot-Stand nach STEP8.7.1-Test
-
-```txt
-akighosty / AkiGhosty
-status: external_removed
-
-younecraft / YouneCraft
-status: external_removed
-```
-
-Damit sind aktuell keine aktiven VIP30-Testslots offen.
-
-## Tests für STEP8.8
-
-Nach ZIP-Übernahme:
-
-```powershell
-cd /d D:\Git\stream-control-center
-node --check htdocs\dashboard\app.js
-node --check htdocs\dashboard\modules\vip30.js
-.\stepdone.cmd "VIP30-STEP8.8 Dashboard Readonly"
-```
-
-Danach Live-System aktualisieren/Node neu starten und im Browser prüfen:
-
-```txt
-/dashboard
-Community -> 30 Tage VIP
+-> Log external_vip_remove_slot_released
 ```
 
 ## Nächster Schritt
 
-STEP8.9 planen:
+STEP8.10:
 
 ```txt
-VIP30-Alert bei erfolgreicher VIP30-Vergabe
+Dashboard manuelle Admin-Aktionen planen
 ```
 
-Vor Umsetzung klären:
-
-- bestehendes Alert-System oder eigenes VIP30-Overlay
-- Trigger nur bei erfolgreicher VIP30-Vergabe
-- keine Alerts bei external_removed, Cleanup, Blockern oder Refund
-- Textvarianten im CGN-/Altersheim-/Rentner-Stil
-- Dashboardfähigkeit der Alert-Config
+Mit Confirm/Audit, keine produktiven Aktionen ohne Schutz.
