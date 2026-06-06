@@ -1,53 +1,60 @@
 # VIP30 / 30TageVIP
 
 Stand: 2026-06-06  
-Backend-Version: `0.8.8` / `step8.12-sound-bundle-overlay`
+Backend-Version: `0.8.8` / `step8.12-sound-bundle-overlay`  
+Dashboard-Stand: `STEP8.13 Dashboard Media Field`
 
 ## Zweck
 
 VIP30 verwaltet den Kanalpunkte-Reward „30 Tage VIP“.
 
-## STEP8.12 Sound Bundle Overlay
+## Sound-/Media-Flow
 
-Der VIP30-Reward-Sound läuft über das zentrale Sound-System:
-
-```txt
-POST /api/sound/bundle
-```
-
-Das Sound-System entscheidet:
+Der VIP30-Reward-Sound läuft über das zentrale Media- und Sound-System:
 
 ```txt
-Queue
-Priorität
-Timing
-OutputTarget
-Lautstärke
+Media-System: Upload / Registry / Dauer / Asset-ID
+Sound-System: Queue / Priorität / Playback / Output / Overlay
+Sound-System-Overlay: VIP30-Card
+VIP30: erzeugt nur das Sound-Bundle
 ```
 
-Das Sound-System-Overlay zeigt bei VIP30-Items eine eigene VIP30-Card.
+## Dashboard Media-Auswahl
 
-## Kein Alert-System
-
-VIP30 nutzt in diesem Step nicht:
+Im VIP30-Dashboard gibt es unter Config eine Karte:
 
 ```txt
-alert_system.js
-vip-sound.js
+VIP30 Alert-Sound
 ```
 
-## Media-System
+Diese nutzt die vorhandenen Dashboard-Komponenten:
 
-Der VIP30-Sound soll über das zentrale Media-System hochgeladen werden. Danach wird die Media-ID in den VIP30-Settings hinterlegt:
+```txt
+MediaField
+MediaPicker
+```
+
+Vorgaben:
+
+```txt
+moduleKey = vip30
+categoryKey = alerts
+allowedTypes = audio
+```
+
+Gespeichert wird:
 
 ```txt
 alerts.mediaId
 ```
 
-Optional:
+## Kein Alert-System
+
+VIP30 nutzt hier nicht:
 
 ```txt
-alerts.mediaPath
+alert_system.js
+vip-sound.js
 ```
 
 ## Alert-Gates

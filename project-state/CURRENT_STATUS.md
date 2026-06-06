@@ -4,16 +4,18 @@ Stand: 2026-06-06
 
 ## Aktueller Stand
 
-STEP8.12 Sound Bundle Overlay wurde vorbereitet.
+STEP8.13 Dashboard Media Field ist vorbereitet.
 
-## Wichtig
-
-Die frühere STEP8.12-Variante mit direktem `/api/sound/play` und hardcoded `soundId=vip30` ist zu ignorieren.
-
-Der korrekte Stand ist:
+## Aktueller Flow
 
 ```txt
-VIP30 -> /api/sound/bundle -> Sound-System -> sound_system_overlay.html VIP30-Card
+VIP30 Dashboard
+-> Sound per Media-System hochladen/auswählen
+-> alerts.mediaId speichern
+-> VIP30 Erfolg
+-> /api/sound/bundle
+-> Sound-System
+-> sound_system_overlay.html VIP30-Card
 ```
 
 ## Geändert
@@ -21,6 +23,8 @@ VIP30 -> /api/sound/bundle -> Sound-System -> sound_system_overlay.html VIP30-Ca
 ```txt
 backend/modules/vip30.js
 htdocs/overlays/sound_system_overlay.html
+htdocs/dashboard/modules/vip30.js
+htdocs/dashboard/modules/vip30.css
 ```
 
 ## Nicht geändert
@@ -30,13 +34,10 @@ backend/modules/sound_system.js
 backend/modules/media.js
 backend/modules/alert_system.js
 backend/modules/vip-sound.js
+htdocs/dashboard/components/media_field.js
+htdocs/dashboard/components/media_picker.js
 ```
 
-## Nächster Schritt
+## Wichtig
 
-- ZIP entpacken.
-- `node -c backend\modules\vip30.js`.
-- `stepdone.cmd`.
-- Media-Sound hochladen.
-- `alerts.mediaId` setzen.
-- Erst danach `live.allowAlert` aktivieren.
+`live.allowAlert` erst aktivieren, wenn ein VIP30-Sound über das Media-System ausgewählt und gespeichert wurde.

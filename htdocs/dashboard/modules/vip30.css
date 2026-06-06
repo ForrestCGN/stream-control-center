@@ -968,3 +968,122 @@ html[data-theme=dark] .vip30-table td {
 .vip30-admin-actions .vip30-danger-zone {
   opacity: .86;
 }
+
+
+/* STEP8.13 VIP30 MediaField */
+.vip30-media-section {
+  margin-top: 18px;
+}
+
+.vip30-media-card {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(280px, 1.15fr);
+  gap: 18px;
+  align-items: stretch;
+  padding: 18px;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(34, 211, 238, .12), transparent 36%),
+    linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.035));
+  border: 1px solid rgba(255,255,255,.12);
+  box-shadow: 0 0 28px rgba(168,85,247,.13);
+}
+
+.vip30-media-info {
+  min-width: 0;
+}
+
+.vip30-media-info strong {
+  display: block;
+  color: #fff;
+  font-size: 15px;
+  margin-bottom: 8px;
+}
+
+.vip30-media-info p {
+  margin: 0 0 10px;
+  color: rgba(215, 228, 255, .82);
+  line-height: 1.45;
+}
+
+.vip30-media-info code {
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(34,211,238,.20);
+  background: rgba(34,211,238,.08);
+  color: #bff5ff;
+  font-size: 11px;
+}
+
+.vip30-media-info small {
+  display: inline-flex;
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: rgba(243,232,255,.86);
+  background: rgba(168,85,247,.12);
+  border: 1px solid rgba(168,85,247,.22);
+}
+
+.vip30-media-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.vip30-media-field > button {
+  width: 100%;
+  justify-content: center;
+}
+
+.vip30-media-field [data-media-field-open] {
+  border-color: rgba(34, 211, 238, .42);
+  box-shadow: 0 0 18px rgba(34,211,238,.13);
+}
+
+.vip30-media-field [data-media-field-clear] {
+  opacity: .82;
+}
+
+.vip30-media-field .media-field-preview {
+  min-height: 72px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(4, 8, 20, .34);
+}
+
+.vip30-media-field .mf-preview-player audio {
+  width: 100%;
+}
+
+.vip30-media-field .mf-preview-meta {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.vip30-media-field .mf-preview-meta strong {
+  color: #fff;
+}
+
+.vip30-media-field .mf-preview-meta small,
+.vip30-media-field .mf-muted {
+  color: rgba(215, 228, 255, .72);
+}
+
+.vip30-media-field .mf-preview-meta code {
+  justify-self: start;
+  padding: 3px 8px;
+  border-radius: 999px;
+  color: #bff5ff;
+  background: rgba(34,211,238,.08);
+  border: 1px solid rgba(34,211,238,.18);
+}
+
+@media (max-width: 900px) {
+  .vip30-media-card {
+    grid-template-columns: 1fr;
+  }
+}
+

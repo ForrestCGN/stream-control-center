@@ -2,15 +2,24 @@
 
 Stand: 2026-06-06
 
-## Nach STEP8.12 ZIP
+## Nach Entpacken
 
 ```powershell
 cd /d D:\Git\stream-control-center
 node -c backend\modules\vip30.js
-.\stepdone.cmd "VIP30-STEP8.12 Sound Bundle Overlay"
+node --check htdocs\dashboard\modules\vip30.js
+.\stepdone.cmd "VIP30-STEP8.13 Dashboard Media Field"
 ```
 
-Status prüfen:
+## Dashboard-Test
+
+1. Dashboard öffnen.
+2. VIP30 öffnen.
+3. Config öffnen.
+4. Karte „VIP30 Alert-Sound“ nutzen.
+5. Sound hochladen oder vorhandenen Audio-Sound auswählen.
+6. „Sichere Settings speichern“ klicken.
+7. Status prüfen:
 
 ```powershell
 Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/alert/status" | ConvertTo-Json -Depth 6
@@ -18,14 +27,6 @@ Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/alert/status" | ConvertTo-Jso
 
 ## Danach
 
-1. VIP30-Sound über Media-System hochladen.
-2. Media-ID aus Media-System übernehmen.
-3. `alerts.mediaId` in VIP30-Config setzen.
-4. Sound-System-Overlay in OBS prüfen.
-5. `live.allowAlert` bewusst aktivieren.
-6. Live-Test mit VIP30-Redemption.
-
-## Später
-
-- Dashboard Media-Picker für VIP30-Alert-Sound.
-- Admin-Bereich für technische VIP30-Aktionen.
+- Sound-System-Overlay in OBS prüfen.
+- `live.allowAlert` bewusst aktivieren.
+- VIP30-Live-Test durchführen.

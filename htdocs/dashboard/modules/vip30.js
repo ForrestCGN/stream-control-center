@@ -15,6 +15,7 @@ window.Vip30Module = (function(){
   const SAFE_EDIT_KEYS = new Set([
     'alerts.enabled',
     'alerts.soundKey',
+    'alerts.mediaId',
     'logging.enabled',
     'reward.title',
     'reward.prompt',
@@ -74,6 +75,14 @@ window.Vip30Module = (function(){
   function badge(text, tone){ return `<span class="vip30-badge ${tone || ''}">${esc(text)}</span>`; }
   function apiErr(err){ return err && err.message ? err.message : String(err || 'Unbekannter Fehler'); }
   function settingRows(){ return arr(state.settings?.settings); }
+  function getSettingRow(key){
+    const clean = String(key || '');
+    return settingRows().find(row => String(row.key || '') === clean) || null;
+  }
+  function getSettingValue(key, fallback = ''){
+    const row = getSettingRow(key);
+    return row ? row.value : fallback;
+  }
   function isCriticalSetting(key){
     const clean = String(key || '');
     return CRITICAL_KEYS.has(clean) || CRITICAL_PREFIXES.some(prefix => clean.startsWith(prefix));
@@ -180,7 +189,7 @@ window.Vip30Module = (function(){
     try {
       const result = await window.CGN.api(api.settingsSave, {
         method: 'POST',
-        body: JSON.stringify({ settings: updates, source: 'dashboard_vip30_step8_9' })
+        body: JSON.stringify({ settings: updates, source: 'dashboard_vip30_step8_13_media_field' })
       });
       state.saving = false;
       state.settings = result.settings || state.settings;
@@ -347,7 +356,8 @@ window.Vip30Module = (function(){
       return `<section class="vip30-card glass"><h3>Config</h3><div class="vip30-empty">Keine Settings geladen.</div></section>`;
     }
 
-    const safeRows = rows.filter(row => isSafeEditable(row));
+    const mediaRow = getSettingRow('alerts.mediaId');
+    const safeRows = rows.filter(row => isSafeEditable(row) && String(row.key || '') !== 'alerts.mediaId');
     const lockedRows = rows.filter(row => !isSafeEditable(row));
     const lockedByCategory = lockedRows.reduce((acc, row) => {
       const cat = row.category || 'sonstige';
@@ -375,6 +385,8 @@ window.Vip30Module = (function(){
         <span>${badge('GESPERT', 'warn')} ist bewusst nicht im schnellen Dashboard-Edit enthalten.</span>
       </div>
 
+      ${renderVip30MediaSoundSection(mediaRow)}
+
       <div class="vip30-config-section">
         <div class="vip30-config-title">
           <h4>Sicher editierbare Einstellungen</h4>
@@ -393,6 +405,40 @@ window.Vip30Module = (function(){
         ${lockedCategories.map(category => renderLockedCategory(category, lockedByCategory[category])).join('')}
       </div>
     </section>`;
+  }
+
+  function renderVip30MediaSoundSection(row){
+    const currentId = row ? String(row.value ?? '').trim() : String(getSettingValue('alerts.mediaId', '') ?? '').trim();
+    const currentText = currentId ? `Aktuelle Media-ID: ${esc(currentId)}` : 'Noch kein VIP30-Sound ausgewählt.';
+    return `<div class="vip30-config-section vip30-media-section">
+      <div class="vip30-config-title">
+        <h4>VIP30 Alert-Sound</h4>
+        <span>${badge(row ? 'MEDIA-SYSTEM' : 'BACKEND-SETTING FEHLT', row ? 'ok' : 'warn')}</span>
+      </div>
+      <article class="vip30-media-card">
+        <div class="vip30-media-info">
+          <strong>Sound über Medien hochladen oder auswählen</strong>
+          <p>Der Sound wird im zentralen Media-System als <code>moduleKey=vip30</code>, <code>categoryKey=alerts</code>, <code>type=audio</code> gespeichert. Die Sound-Länge bleibt dadurch im Media-System verfügbar und das Sound-System-Overlay kann passend reagieren.</p>
+          <small>${currentText}</small>
+        </div>
+        <input id="vip30AlertMediaId" class="vip30-setting-control vip30-media-id-input" type="hidden" value="${esc(currentId)}" data-vip30-setting-input="alerts.mediaId">
+        <div
+          class="vip30-media-field"
+          data-media-field
+          data-module-key="vip30"
+          data-category-key="alerts"
+          data-allowed-types="audio"
+          data-title="VIP30 Alert-Sound auswählen"
+          data-value-input="#vip30AlertMediaId"
+          data-media-id="${esc(currentId)}">
+          <button type="button" data-media-field-open>VIP30-Sound auswählen / hochladen</button>
+          <button type="button" data-media-field-clear>Sound entfernen</button>
+          <div class="media-field-preview" data-media-field-preview>
+            <span class="mf-muted">${currentId ? `Media-ID ${esc(currentId)} ausgewählt. Öffnen für Vorschau/Wechsel.` : 'Kein VIP30-Sound ausgewählt.'}</span>
+          </div>
+        </div>
+      </article>
+    </div>`;
   }
 
   function renderSettingCard(row){
@@ -561,6 +607,13 @@ window.Vip30Module = (function(){
     root?.querySelectorAll('[data-vip30-tab]').forEach(btn => btn.addEventListener('click', () => { state.tab = btn.dataset.vip30Tab || 'overview'; render(); }));
     root?.querySelectorAll('[data-vip30-save-settings]').forEach(btn => btn.addEventListener('click', () => saveSettings()));
     root?.querySelectorAll('[data-vip30-refresh-part]').forEach(btn => btn.addEventListener('click', () => refreshPart(btn.dataset.vip30RefreshPart || '', btn.dataset.vip30RefreshLabel || '')));
+    window.MediaField?.initAll?.(root);
+    root?.querySelectorAll('[data-media-field]').forEach(field => {
+      field.addEventListener('media-field:change', () => {
+        state.saveError = '';
+        state.saveMessage = 'Medium ausgewählt. Bitte sichere Settings speichern.';
+      });
+    });
   }
 
   window.addEventListener('cgn:module-show', ev => { if (ev.detail?.module === 'vip30') loadAll(false); });
