@@ -1,47 +1,31 @@
 # TODO – VIP30 / 30TageVIP
 
-Stand: 2026-06-06 08:55 UTC
+Stand: 2026-06-06 09:05 UTC
 
-## Erledigt in STEP8.7 / STEP8.7.1
+## STEP8.8 Dashboard
 
-- [x] Keine Patch-Skripte verwenden
-- [x] `/api/_status` geprüft
-- [x] Live-System `D:\Streaming\stramAssets` bestätigt
-- [x] Repo `D:\Git\stream-control-center` bestätigt
-- [x] Live vs Repo für `backend/modules/twitch.js` geprüft
-- [x] Live vs Repo für `backend/modules/vip30.js` geprüft
-- [x] Routing-Konflikt bei `/api/twitch/eventsub/status` gefunden
-- [x] Routing-Konflikt per vollständiger Ersatzdatei behoben
-- [x] `node -c backend\modules\twitch.js` geprüft
-- [x] `stepdone.cmd` vor Live-Test ausgeführt
-- [x] Node neu gestartet
-- [x] EventSub-Status geprüft:
-  - [x] `vipEventBus.configured = True`
-  - [x] `knownRemove = True`
-  - [x] `knownAdd = True`
-  - [x] `channel.vip.add`
-  - [x] `channel.vip.remove`
-- [x] Echter Twitch-Test mit manuellem VIP-Entzug
-- [x] `akighosty` wurde automatisch auf `external_removed` gesetzt
-- [x] Log `external_vip_remove_slot_released` bestätigt
+- [x] Echtes Dashboard-ZIP geprüft
+- [x] Bestehendes `vip.js` als VIP-/Mod-Sound-System erkannt
+- [x] Eigenes Modul `vip30` geplant
+- [x] Neue Datei `htdocs/dashboard/modules/vip30.js` erstellt
+- [x] Neue Datei `htdocs/dashboard/modules/vip30.css` erstellt
+- [x] `htdocs/dashboard/index.html` um CSS, Section und Script ergänzt
+- [x] `htdocs/dashboard/app.js` um Modul, Community-Item, Catalog und Favorite ergänzt
+- [x] Frontend-JS per `node --check` geprüft
 
-## Offen: STEP8.8
+## Noch beim Nutzer zu testen
+
+- [ ] ZIP übernehmen
+- [ ] `node --check htdocs\dashboard\app.js`
+- [ ] `node --check htdocs\dashboard\modules\vip30.js`
+- [ ] `stepdone.cmd "VIP30-STEP8.8 Dashboard Readonly"`
+- [ ] Live-System aktualisieren / Node neu starten
+- [ ] Dashboard öffnen und Community -> 30 Tage VIP prüfen
+
+## STEP8.9 offen
 
 - [ ] VIP30-Alert-Konzept planen
-- [ ] Entscheiden: bestehendes Alert-System vs. eigenes VIP30-Overlay
-- [ ] Trigger-Bedingungen festlegen
-- [ ] Config-Felder festlegen
-- [ ] Textvarianten/Seed planen
-- [ ] Dashboardfähigkeit berücksichtigen
-- [ ] Diagnose-/Registry-Pflicht prüfen
-- [ ] Betroffene Dateien erst nach Planung bestimmen
-- [ ] Vor Umsetzung auf `go` warten
-
-## Nicht vergessen
-
-- Keine Apply-Skripte
-- Keine Patch-Skripte
-- Keine Regex-/Set-Content-Patches
-- Dateien bei Bedarf exakt anfordern
-- Keine Funktionalität entfernen
-- Vor Live-Test immer `stepdone.cmd`
+- [ ] Trigger-Bedingungen definieren
+- [ ] Alert-System-/Sound-System-Anbindung klären
+- [ ] Textvarianten planen
+- [ ] Dashboard-Config für Alert vorbereiten

@@ -1,74 +1,58 @@
 # Changelog – VIP30 / 30TageVIP
 
-## 2026-06-06 – STEP8.7.1 abgeschlossen
+## 2026-06-06 – STEP8.8 Dashboard Read-only
+
+### Neu
+
+- Neues Dashboard-Modul `vip30` ergänzt.
+- Neue Datei `htdocs/dashboard/modules/vip30.js`.
+- Neue Datei `htdocs/dashboard/modules/vip30.css`.
 
 ### Geändert
 
-- `backend/modules/twitch.js`
-  - Routing-Konflikt bei `/api/twitch/eventsub/status` korrigiert.
-  - Der Alias `/api/twitch/eventsub/status` wurde aus dem Subscription-Listing-Handler entfernt.
-  - Die echte Statusroute für `/api/twitch/eventsub/status` bleibt erhalten und liefert wieder den EventSub-Status-Snapshot.
+- `htdocs/dashboard/index.html`
+  - CSS für VIP30 eingebunden.
+  - Section `vip30Module` ergänzt.
+  - Script `vip30.js` eingebunden.
+- `htdocs/dashboard/app.js`
+  - Modul `vip30` registriert.
+  - Community-Navigation um `vip30` ergänzt.
+  - Modul-Catalog um „30 Tage VIP“ ergänzt.
+  - Favoriten um `vip30` ergänzt.
+
+### Dashboard-Inhalt
+
+Read-only Anzeige für:
+
+- VIP30 Status
+- Slots
+- Logs
+- External VIP Remove Status
+- Cleanup Check
+- Twitch EventSub VIP Status
+- Diagnose JSON
 
 ### Nicht geändert
 
-- Keine VIP30-Entscheidungslogik geändert.
-- Keine Datenbankänderung.
-- Keine Alert-Aktivierung.
-- Keine EventSub-Subscription-Config geändert.
-- Keine Twitch-Write-Logik geändert.
-- Keine Funktionalität entfernt.
+- Keine Backend-Änderung.
+- Keine DB-Änderung.
+- Kein VIP-Grant.
+- Kein VIP-Remove.
+- Kein Cleanup-Run.
+- Kein Fulfill/Cancel.
+- Kein Alert.
+- Bestehendes `vip.js` / VIP-Sound-System bleibt unverändert.
 
-### Tests
-
-Nach Dateiübernahme:
-
-```powershell
-node -c backend\modules\twitch.js
-.\stepdone.cmd "VIP30-STEP8.7.1 Twitch EventSub Statusroute korrigiert"
-```
-
-Danach Node-Neustart und Statusprüfung:
-
-```powershell
-$s = Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/eventsub/status?refresh=1"
-$s.vipEventBus
-$s.configuredSubscriptions | Where-Object { $_.type -like "channel.vip*" }
-```
-
-Bestätigt:
+### Tests lokal in der Build-Umgebung
 
 ```txt
-vipEventBus.configured = True
-knownRemove = True
-knownAdd = True
-
-channel.vip.add
-channel.vip.remove
+node --check htdocs/dashboard/app.js
+node --check htdocs/dashboard/modules/vip30.js
 ```
 
-### Live-Test
+Beide Checks waren erfolgreich.
 
-Echter Twitch-Test mit manuellem VIP-Entzug:
+## 2026-06-06 – STEP8.7.1
 
-```txt
-akighosty -> external_removed
-```
-
-Bestätigter Log:
-
-```txt
-external_vip_remove_slot_released
-success: True
-reason: external_removed
-```
-
-## 2026-06-05 – STEP8.6
-
-- Externe VIP-Entzüge können über den Bus verarbeitet werden.
-- Aktive VIP30-Slots können auf `external_removed` gesetzt werden.
-- Safety: kein Twitch-Write, kein Alert, keine Slot-Löschung.
-
-## 2026-06-05 – STEP8.5
-
-- Cleanup Dry-Run und abgelaufene Slots geprüft.
-- Kein abgelaufener aktiver Slot gefunden.
+- Routing-Konflikt bei `/api/twitch/eventsub/status` korrigiert.
+- Echter Twitch `channel.vip.remove` bis VIP30 `external_removed` live bestätigt.

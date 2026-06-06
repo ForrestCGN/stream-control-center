@@ -121,6 +121,13 @@ window.CGN = {
       overlayLabel: 'VIP-Overlay öffnen',
       reload() { return window.VipModule?.loadAll?.(true); }
     },
+    vip30: {
+      title: '30 Tage VIP',
+      panelId: 'vip30Module',
+      group: 'community',
+      overlayLink: '',
+      reload() { return window.Vip30Module?.loadAll?.(true); }
+    },
     adminconfigs: {
       title: 'Admin Configs',
       panelId: 'adminconfigsModule',
@@ -152,7 +159,7 @@ window.CGN = {
     community: {
       label: 'Community', icon: '👥', role: 'mod/supermod/streamer',
       description: 'Chat-, Viewer- und Interaktionssysteme.',
-      items: ['vip', 'hug', 'chat_overlay', 'deathcounter', 'challenges', 'tagebuch', 'todo', 'commands', 'community_stats']
+      items: ['vip30', 'vip', 'hug', 'chat_overlay', 'deathcounter', 'challenges', 'tagebuch', 'todo', 'commands', 'community_stats']
     },
     system: {
       label: 'System', icon: '🧩', role: 'streamer/local_admin/owner',
@@ -179,6 +186,7 @@ window.CGN = {
     overlays: { label: 'Overlays', icon: '🖼', enabled: true, description: 'Overlay-Status, Heartbeats und Monitor-Readiness anzeigen.' },
     stream_control: { label: 'Stream-Steuerung', icon: '📺', enabled: false, description: 'Stream-Aktionen und Schaltungen vorbereitet.' },
     vip: { label: 'VIP-System', icon: '💎', enabled: true, description: 'VIP-/Mod-Sounds, DB-Texte, Rollen, Daily-Usage und Events.' },
+    vip30: { label: '30 Tage VIP', icon: '👑', enabled: true, description: 'VIP30-Slots, Logs, Cleanup und EventSub-Status read-only anzeigen.' },
     hug: { label: 'Hug-System', icon: '🤗', enabled: true, description: 'Hug/Rehug-Statistiken, Texte, Typen und Diagnose.' },
     chat_overlay: { label: 'Chat-Overlay', icon: '💬', enabled: false, description: 'Chat-Overlay Steuerung vorbereitet.' },
     deathcounter: { label: 'Deathcounter', icon: '💀', enabled: false, description: 'Deathcounter V2 Verwaltung vorbereitet.' },
@@ -206,7 +214,7 @@ window.CGN = {
     diagnostics: { label: 'Diagnose', icon: '🩺', enabled: false, description: 'Diagnosewerkzeuge vorbereitet.' }
   },
 
-  favorites: ['clips', 'alerts', 'vip', 'hug', 'tagebuch', 'todo', 'commands', 'obs', 'overlays', 'sound_system', 'bus_diagnostics', 'media', 'message_rotator'],
+  favorites: ['clips', 'alerts', 'vip30', 'vip', 'hug', 'tagebuch', 'todo', 'commands', 'obs', 'overlays', 'sound_system', 'bus_diagnostics', 'media', 'message_rotator'],
 
   async api(path, options = {}) {
     const res = await fetch(path, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options });

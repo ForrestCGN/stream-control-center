@@ -1,12 +1,12 @@
 # VIP30 / 30TageVIP
 
-Stand: 2026-06-06 08:55 UTC  
-Aktueller Modulstand: `vip30` Version `0.8.6`, Build `step8.6-external-vip-remove-slot-release`  
-Aktueller getesteter Integrationsstand: STEP8.7.1
+Stand: 2026-06-06 09:05 UTC  
+Aktueller Backend-Modulstand: `vip30` Version `0.8.6`, Build `step8.6-external-vip-remove-slot-release`  
+Aktueller Integrationsstand: STEP8.8 Dashboard Read-only
 
 ## Zweck
 
-Das Modul `vip30` verwaltet den Kanalpunkte-Reward „30 Tage VIP“ vollständig im Node-/stream-control-center-System.
+Das Modul `vip30` verwaltet den Kanalpunkte-Reward „30 Tage VIP“ im Node-/stream-control-center-System.
 
 Kernaufgaben:
 
@@ -17,14 +17,32 @@ Kernaufgaben:
 - Cleanup für abgelaufene Slots
 - externe VIP-Entzüge erkennen und Slot freigeben
 - Status-/Log-/Diagnose-Routen bereitstellen
+- Dashboard-Read-only-Anzeige
 
 ## Wichtige Dateien
+
+Backend:
 
 ```txt
 backend/modules/vip30.js
 backend/modules/twitch.js
 backend/modules/communication_bus.js
-config/vip30.json
+```
+
+Dashboard:
+
+```txt
+htdocs/dashboard/modules/vip30.js
+htdocs/dashboard/modules/vip30.css
+htdocs/dashboard/index.html
+htdocs/dashboard/app.js
+```
+
+Doku/Status:
+
+```txt
+docs/current/CURRENT_CHAT_HANDOFF_VIP30_STEP8_8_DASHBOARD.md
+docs/modules/vip30.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -98,71 +116,29 @@ action: channel.vip.remove
 
 VIP30 hört darauf und verarbeitet externe VIP-Entzüge über die vorhandene STEP8.6-Logik.
 
-## STEP8.7.1 Routing-Fix
-
-Problem:
+STEP8.7.1 korrigierte den Routing-Konflikt bei:
 
 ```txt
-/api/twitch/eventsub/status?refresh=1
-```
-
-lieferte zuerst eine Helix-Subscription-Ausgabe statt den EventSub-Status-Snapshot.
-
-Ursache:
-`/api/twitch/eventsub/status` war zusätzlich beim Subscription-Listing registriert.
-
-Korrektur:
-Der Alias wurde aus dem Subscription-Listing entfernt. Die echte Statusroute bleibt:
-
-```txt
-/eventsub/status
-/twitch/eventsub/status
 /api/twitch/eventsub/status
 ```
 
-## Bestätigte Tests
+## Bestätigte Tests STEP8.7.1
 
-### EventSub-Status
-
-```powershell
-$s = Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/eventsub/status?refresh=1"
-$s.vipEventBus
-$s.configuredSubscriptions | Where-Object { $_.type -like "channel.vip*" }
-```
-
-Ergebnis:
+EventSub-Status:
 
 ```txt
 vipEventBus.configured = True
 knownRemove = True
 knownAdd = True
-
 channel.vip.add
 channel.vip.remove
 ```
 
-### Echter Twitch VIP Remove Test
-
-Test:
-
-```txt
-akighosty in Twitch manuell VIP gegeben
-akighosty in Twitch manuell VIP entzogen
-```
-
-Ergebnis im VIP30-System:
+Echter Twitch VIP Remove Test:
 
 ```txt
 akighosty -> external_removed
-```
-
-Log:
-
-```txt
 external_vip_remove_slot_released
-success: True
-reason: external_removed
-message: Externer VIP-Entzug erkannt: aktiver VIP30-Slot wurde freigegeben.
 ```
 
 Damit ist bestätigt:
@@ -176,16 +152,72 @@ Twitch channel.vip.remove
 -> Log geschrieben
 ```
 
-## Safety
+## STEP8.8 Dashboard Read-only
 
-Bei externem VIP-Remove:
+Neues Dashboard-Modul:
 
-- kein Twitch-Write
-- kein VIP-Grant
-- kein Redemption-Fulfill/Cancel
+```txt
+vip30
+```
+
+Navigation:
+
+```txt
+Community -> 30 Tage VIP
+```
+
+Neue Dateien:
+
+```txt
+htdocs/dashboard/modules/vip30.js
+htdocs/dashboard/modules/vip30.css
+```
+
+Geänderte Dashboard-Dateien:
+
+```txt
+htdocs/dashboard/index.html
+htdocs/dashboard/app.js
+```
+
+Wichtig:
+Das bestehende Dashboard-Modul `vip.js` bleibt unverändert und gehört weiterhin zum VIP-/Mod-Sound-System.
+
+## Dashboard API-Routen
+
+```txt
+GET /api/vip30/status
+GET /api/vip30/slots?limit=20
+GET /api/vip30/logs?limit=12
+GET /api/vip30/external-vip-remove/status
+GET /api/vip30/cleanup/check
+GET /api/twitch/eventsub/status?refresh=1
+```
+
+## Dashboard Safety
+
+Das VIP30-Dashboard ist in STEP8.8 rein read-only.
+
+Nicht enthalten:
+
+- kein VIP vergeben
+- kein VIP entziehen
+- kein Cleanup ausführen
+- kein Redemption fulfill/cancel
+- kein External-Remove process
+- kein Test-Event auslösen
 - kein Alert
-- keine Slot-Löschung
-- Slot wird nur auf `external_removed` gesetzt
+- keine Backend-Änderung
+- keine DB-Änderung
+
+## Dashboard Tabs
+
+```txt
+Übersicht
+Slots
+Logs
+Diagnose
+```
 
 ## Aktueller Slot-Stand nach STEP8.7.1-Test
 
@@ -199,30 +231,27 @@ status: external_removed
 
 Damit sind aktuell keine aktiven VIP30-Testslots offen.
 
-## Wichtige Routen
+## Tests für STEP8.8
 
-```txt
-GET  /api/vip30/status
-GET  /api/vip30/slots
-GET  /api/vip30/logs
-GET  /api/vip30/cleanup/check
-POST /api/vip30/cleanup/run
-GET  /api/vip30/external-vip-remove/status
-POST /api/vip30/external-vip-remove/test
-POST /api/vip30/external-vip-remove/process?confirm=YES
+Nach ZIP-Übernahme:
+
+```powershell
+cd /d D:\Git\stream-control-center
+node --check htdocs\dashboard\app.js
+node --check htdocs\dashboard\modules\vip30.js
+.\stepdone.cmd "VIP30-STEP8.8 Dashboard Readonly"
 ```
 
-Twitch/EventSub:
+Danach Live-System aktualisieren/Node neu starten und im Browser prüfen:
 
 ```txt
-GET /api/twitch/eventsub/status
-GET /api/twitch/eventsub/reconcile
-GET /api/twitch/eventsub/subscriptions
+/dashboard
+Community -> 30 Tage VIP
 ```
 
 ## Nächster Schritt
 
-STEP8.8 planen:
+STEP8.9 planen:
 
 ```txt
 VIP30-Alert bei erfolgreicher VIP30-Vergabe
@@ -231,8 +260,7 @@ VIP30-Alert bei erfolgreicher VIP30-Vergabe
 Vor Umsetzung klären:
 
 - bestehendes Alert-System oder eigenes VIP30-Overlay
-- Trigger nur bei erfolgreichem VIP-Grant / Stage-B-Success
-- keine Alerts bei externem VIP-Remove, Cleanup, Blockern oder Refund
+- Trigger nur bei erfolgreicher VIP30-Vergabe
+- keine Alerts bei external_removed, Cleanup, Blockern oder Refund
 - Textvarianten im CGN-/Altersheim-/Rentner-Stil
-- Dashboardfähigkeit vorbereiten
-- Diagnose-/Statusfelder prüfen
+- Dashboardfähigkeit der Alert-Config

@@ -47,6 +47,12 @@ docs/modules/SHOUTOUT_SYSTEM_STANDARDS_ALIGNMENT.md
 Aktueller Stand:
 
 ```text
+STEP8.8 – Dashboard Read-only vorbereitet
+```
+
+Vorher bestätigt:
+
+```text
 STEP8.7.1 – Twitch EventSub channel.vip.remove bis VIP30-Slot external_removed live getestet
 ```
 
@@ -67,10 +73,18 @@ Twitch channel.vip.remove
 -> Log external_vip_remove_slot_released
 ```
 
-Nächster Schritt:
+Dashboard:
 
 ```text
-STEP8.8 – VIP30-Alert planen
+Community -> 30 Tage VIP
+htdocs/dashboard/modules/vip30.js
+htdocs/dashboard/modules/vip30.css
+```
+
+Nächster Schritt nach Dashboard-Test:
+
+```text
+STEP8.9 – VIP30-Alert planen
 ```
 
 ## Shoutout-System
@@ -112,7 +126,7 @@ docs/system-inspection/DASHBOARD_COMMANDS_CONSOLIDATION.md
 VIP30:
 
 ```text
-STEP8.7.1 – EventSub VIP Remove live bestätigt
+STEP8.8 – Dashboard Read-only vorbereitet
 ```
 
 Channelpoints:
