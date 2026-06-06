@@ -6,17 +6,20 @@ Stand: 2026-06-06
 
 - [x] VIP30 Live-Test
 - [x] VIP Remove-Test
-- [x] Sound/Overlay
-- [x] OverlaySet-Editor
-- [x] Auto-Reload ohne Eingabeverlust
-- [x] Dashboard-Punkte entfernt
-- [x] eigener Tab „Texte“
+- [x] Sound-System-Bundle
+- [x] CGN Split Lounge Overlay
+- [x] OverlaySets/Zufallstexte
+- [x] Tab Texte
+- [x] Tab Sounds
+- [x] SoundPool Backend-Zufallsauswahl
+- [x] Config von großer Sound-Auswahl bereinigt
 
 ## Offen
 
-- [ ] STEP8.16 einspielen
-- [ ] Browser Hard-Refresh
-- [ ] Tab „Texte“ prüfen
-- [ ] Textänderung speichern
-- [ ] VIP30 Alert mit geändertem Text testen
-- [ ] VIP30 V1.0 final dokumentieren
+- [ ] STEP8.17 einspielen
+- [ ] Node neu starten
+- [ ] Dashboard Hard-Refresh
+- [ ] mehrere Sounds im Tab Sounds anlegen
+- [ ] speichern
+- [ ] mehrfachen VIP30 Alert testen
+- [ ] final als V1.0 stable dokumentieren

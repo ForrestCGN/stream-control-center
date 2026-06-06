@@ -1,14 +1,14 @@
 # VIP30 / 30TageVIP
 
 Stand: 2026-06-06  
-Backend-Version: `0.8.9` / `step8.14-overlay-sets-design05`  
-Dashboard-Stand: `STEP8.16 Texte Tab`
+Backend-Version: `0.8.10`  
+Build: `step8.17-sound-pool`
 
 ## Status
 
-VIP30 ist fachlich und technisch grün getestet.
+VIP30 ist live getestet und wurde um einen Sound-Pool erweitert.
 
-## Erfolgreich getestete Flows
+## Erfolgreich getestete Kern-Flows
 
 ```txt
 ✅ Twitch Reward Einlösung
@@ -30,30 +30,26 @@ VIP30 ist fachlich und technisch grün getestet.
 Slots
 Logs
 Config
+Sounds
 Texte
 Aktionen
 Diagnose
 ```
 
-### Config
+## Config
 
-Technische Einstellungen:
+Technische Einstellungen.
 
-```txt
-VIP30 Alert-Sound
-Slots/Laufzeit
-Reward-Titel/Beschreibung
-Logging
-Cleanup
-gesperrte kritische Live-/Twitch-/Bridge-Settings
-```
+Der frühere einzelne Sound-Auswahlbereich wurde aus Config herausgenommen.
 
-### Texte
+## Sounds
 
-Redaktionelle Zufallstexte:
+Mehrere VIP30-Sounds werden über den Tab `Sounds` verwaltet.
+
+Setting:
 
 ```txt
-alerts.overlaySets
+alerts.soundPool
 ```
 
 Felder:
@@ -62,26 +58,44 @@ Felder:
 id
 enabled
 weight
-kicker
-headline
-subline
-message
-perks
-brand
+mediaId
+mediaPath
+label
 ```
 
-## Auto-Reload
-
-Der Dashboard Auto-Reload schützt aktive Eingaben in:
+Auswahl:
 
 ```txt
-Config
-Texte
+Ein aktiver Sound wird nach Gewichtung zufällig gewählt.
 ```
 
-## Designreferenzen
+Fallback:
 
 ```txt
-docs/design/CGN_SPLIT_LOUNGE_DESIGN.md
-docs/design/VIP30_SPLIT_LOUNGE_DESIGN.md
+Wenn alerts.soundPool leer ist, nutzt das Backend weiterhin alerts.mediaId / alerts.mediaPath.
 ```
+
+## Texte
+
+Zufallstexte bleiben im Tab `Texte`.
+
+Setting:
+
+```txt
+alerts.overlaySets
+```
+
+## Sound-/Overlay-Flow
+
+```txt
+VIP30 Erfolg
+-> SoundPool zufällig auswählen
+-> OverlaySet zufällig auswählen
+-> /api/sound/bundle
+-> sound_system_overlay.html zeigt VIP30-Card
+-> Sound-System spielt ausgewählten Sound
+```
+
+## Keine Funktionalität entfernt
+
+Bestehende `alerts.mediaId` bleibt als Fallback erhalten.

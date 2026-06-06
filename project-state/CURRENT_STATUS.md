@@ -4,24 +4,26 @@ Stand: 2026-06-06
 
 ## Aktueller Stand
 
-VIP30 ist vollständig getestet. Dashboard wurde in STEP8.16 aufgeräumt.
+VIP30 wurde mit STEP8.17 um einen Sound-Pool erweitert.
 
-## Neu in STEP8.16
+## Neu
+
+```txt
+✅ eigener Tab „Sounds“
+✅ mehrere VIP30-Sounds
+✅ Sound hinzufügen/duplizieren/entfernen
+✅ Media-System pro Sound
+✅ Gewichtung pro Sound
+✅ Backend-Zufallsauswahl
+✅ Fallback auf alerts.mediaId bleibt erhalten
+```
+
+## Weiterhin vorhanden
 
 ```txt
 ✅ eigener Tab „Texte“
-✅ OverlaySet-Editor aus Config ausgelagert
-✅ Config ist wieder technischer
-✅ Auto-Reload-Schutz gilt für Config und Texte
-```
-
-## Weiterhin grün
-
-```txt
-✅ VIP30 Backend 0.8.9
-✅ Sound-Bundle
+✅ OverlaySets/Zufallstexte
 ✅ CGN Split Lounge Overlay
-✅ OverlaySets
-✅ Live-Test
-✅ VIP-Remove-Test
+✅ Sound-System-Bundle
+✅ Auto-Reload ohne Eingabeverlust
 ```

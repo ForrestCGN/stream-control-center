@@ -16,6 +16,7 @@ window.Vip30Module = (function(){
     'alerts.enabled',
     'alerts.soundKey',
     'alerts.mediaId',
+    'alerts.soundPool',
     'alerts.overlaySets',
     'logging.enabled',
     'reward.title',
@@ -220,6 +221,89 @@ window.Vip30Module = (function(){
     };
   }
 
+  function parseSoundPoolValue(value){
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'string' && value.trim()) {
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (_) {
+        return [];
+      }
+    }
+    return [];
+  }
+
+  function normalizeSoundPoolItemForUi(raw, index){
+    const item = raw && typeof raw === 'object' ? raw : {};
+    return {
+      id: String(item.id || `vip30-sound-${index + 1}`).trim(),
+      enabled: item.enabled !== false,
+      weight: Number.isFinite(Number(item.weight)) ? Math.max(0, Number.parseInt(String(item.weight), 10)) : 1,
+      mediaId: Number.isFinite(Number(item.mediaId || item.media_id)) ? Number.parseInt(String(item.mediaId || item.media_id), 10) : 0,
+      mediaPath: String(item.mediaPath || item.media_path || '').trim(),
+      label: String(item.label || item.name || item.title || `VIP30 Sound ${index + 1}`).trim()
+    };
+  }
+
+  function getSoundPoolForUi(){
+    const row = getSettingRow('alerts.soundPool');
+    const pool = parseSoundPoolValue(currentSettingValue(row)).map(normalizeSoundPoolItemForUi);
+    const mediaRow = getSettingRow('alerts.mediaId');
+    const fallbackMediaId = Number.parseInt(String(currentSettingValue(mediaRow) || 0), 10);
+    if (!pool.length && Number.isFinite(fallbackMediaId) && fallbackMediaId > 0) {
+      return [{
+        id: 'default-media',
+        enabled: true,
+        weight: 1,
+        mediaId: fallbackMediaId,
+        mediaPath: '',
+        label: 'VIP30 Sound'
+      }];
+    }
+    return pool;
+  }
+
+  function defaultSoundPoolItem(index){
+    return {
+      id: `vip30-sound-${Date.now()}-${index + 1}`,
+      enabled: true,
+      weight: 1,
+      mediaId: 0,
+      mediaPath: '',
+      label: `VIP30 Sound ${index + 1}`
+    };
+  }
+
+  function readSoundPoolFromDom(){
+    const cards = Array.from(root?.querySelectorAll('[data-vip30-sound-item]') || []);
+    return cards.map((card, index) => {
+      const value = name => {
+        const el = card.querySelector(`[data-vip30-sound-field="${name}"]`);
+        if (!el) return '';
+        if (el.type === 'checkbox') return el.checked === true;
+        return String(el.value || '');
+      };
+      return normalizeSoundPoolItemForUi({
+        id: value('id') || `vip30-sound-${index + 1}`,
+        enabled: value('enabled'),
+        weight: value('weight'),
+        mediaId: value('mediaId'),
+        mediaPath: value('mediaPath'),
+        label: value('label')
+      }, index);
+    });
+  }
+
+  function syncSoundPoolFromDom(){
+    const pool = readSoundPoolFromDom();
+    setDirtyValue('alerts.soundPool', pool);
+    const hidden = root?.querySelector('[data-vip30-setting-input="alerts.soundPool"]');
+    if (hidden) hidden.value = JSON.stringify(pool, null, 2);
+    state.saveMessage = 'Sound-Pool geändert. Bitte Sounds speichern.';
+    state.saveError = '';
+  }
+
   function readOverlaySetsFromDom(){
     const cards = Array.from(root?.querySelectorAll('[data-vip30-overlay-set]') || []);
     return cards.map((card, index) => {
@@ -257,7 +341,7 @@ window.Vip30Module = (function(){
     if (!root || !window.CGN || !state.autoRefreshEnabled) return;
     if (!state.status && !state.slots && !state.logs) return;
 
-    const editing = ['settings', 'texts'].includes(state.tab) && (hasDirtyEdits() || isEditingForm());
+    const editing = ['settings', 'sounds', 'texts'].includes(state.tab) && (hasDirtyEdits() || isEditingForm());
     try {
       const [status, slots, logs, externalRemove, cleanupCheck, eventsubStatus] = await Promise.all([
         window.CGN.api(api.status).catch(err => ({ ok:false, error:apiErr(err) })),
@@ -469,7 +553,7 @@ window.Vip30Module = (function(){
   }
 
   function renderTabs(){
-    const tabs = [['overview','Übersicht'], ['slots','Slots'], ['logs','Logs'], ['settings','Config'], ['texts','Texte'], ['actions','Aktionen'], ['diagnostics','Diagnose']];
+    const tabs = [['overview','Übersicht'], ['slots','Slots'], ['logs','Logs'], ['settings','Config'], ['sounds','Sounds'], ['texts','Texte'], ['actions','Aktionen'], ['diagnostics','Diagnose']];
     return `<div class="vip30-tabs glass">${tabs.map(([id,label]) => `<button type="button" class="${state.tab === id ? 'active' : ''}" data-vip30-tab="${esc(id)}">${esc(label)}</button>`).join('')}</div>`;
   }
 
@@ -559,8 +643,7 @@ window.Vip30Module = (function(){
       return `<section class="vip30-card glass"><h3>Config</h3><div class="vip30-empty">Keine Settings geladen.</div></section>`;
     }
 
-    const mediaRow = getSettingRow('alerts.mediaId');
-    const safeRows = rows.filter(row => isSafeEditable(row) && !['alerts.mediaId', 'alerts.overlaySets'].includes(String(row.key || '')));
+    const safeRows = rows.filter(row => isSafeEditable(row) && !['alerts.mediaId', 'alerts.soundPool', 'alerts.overlaySets'].includes(String(row.key || '')));
     const lockedRows = rows.filter(row => !isSafeEditable(row));
     const lockedByCategory = lockedRows.reduce((acc, row) => {
       const cat = row.category || 'sonstige';
@@ -589,8 +672,6 @@ window.Vip30Module = (function(){
         <span>${badge('KRITISCH GESPERRT', 'bad')} braucht später einen separaten Confirm-/Audit-Step.</span>
         <span>${badge('GESPERT', 'warn')} ist bewusst nicht im schnellen Dashboard-Edit enthalten.</span>
       </div>
-
-      ${renderVip30MediaSoundSection(mediaRow)}
 
       <div class="vip30-config-section">
         <div class="vip30-config-title">
@@ -780,6 +861,104 @@ window.Vip30Module = (function(){
     return `<section class="vip30-card glass"><h3>${esc(title)}</h3><pre class="vip30-json">${esc(JSON.stringify(data || {}, null, 2))}</pre></section>`;
   }
 
+  function renderSounds(){
+    const poolRow = getSettingRow('alerts.soundPool');
+    const mediaRow = getSettingRow('alerts.mediaId');
+    return `<section class="vip30-card glass vip30-config vip30-sounds-tab">
+      <div class="vip30-card-head">
+        <div>
+          <h3>VIP30 Sounds</h3>
+          <p>Mehrere VIP30-Sounds für die Zufallsauswahl. Beim Alert wird ein aktiver Sound nach Gewichtung gewählt.</p>
+        </div>
+        <div class="vip30-actions">
+          <button type="button" data-vip30-save-settings ${state.saving ? 'disabled' : ''}>${state.saving ? 'Speichere...' : 'Sounds speichern'}</button>
+          <button type="button" data-vip30-refresh>Neu laden</button>
+        </div>
+      </div>
+      ${renderAutoRefreshNotice()}
+      ${hasDirtyEdits() ? `<div class="vip30-warnmsg">Ungespeichert: ${esc(dirtyLabel())}. Auto-Reload schützt deine Sound-Auswahl.</div>` : ''}
+      ${state.saveMessage ? `<div class="vip30-okmsg">${esc(state.saveMessage)}</div>` : ''}
+      ${state.saveError ? `<div class="vip30-error">${esc(state.saveError)}</div>` : ''}
+      <div class="vip30-settings-hint">
+        <span>${badge('SOUND-POOL', 'ok')} ein aktiver Sound wird nach Gewichtung gewählt.</span>
+        <span>${badge('FALLBACK', 'warn')} falls leer, bleibt alerts.mediaId als alter Fallback erhalten.</span>
+        <span>${badge('MEDIA-SYSTEM', 'ok')} Upload/Auswahl läuft über das zentrale Media-System.</span>
+      </div>
+      ${renderSoundPoolEditor(poolRow, mediaRow)}
+    </section>`;
+  }
+
+  function renderSoundPoolEditor(poolRow, mediaRow){
+    if (!poolRow) {
+      return `<div class="vip30-config-section vip30-soundpool-section">
+        <div class="vip30-config-title"><h4>VIP30 Sound-Pool</h4><span>${badge('SETTING FEHLT', 'warn')}</span></div>
+        <div class="vip30-empty">Das Setting <code>alerts.soundPool</code> wurde im Backend noch nicht gefunden. Backend STEP8.17 muss eingespielt und Node neu gestartet werden.</div>
+      </div>`;
+    }
+    const pool = getSoundPoolForUi();
+    const jsonText = (() => { try { return JSON.stringify(pool, null, 2); } catch (_) { return '[]'; } })();
+    const fallbackValue = mediaRow ? String(currentSettingValue(mediaRow) || '').trim() : '';
+    return `<div class="vip30-config-section vip30-soundpool-section">
+      <div class="vip30-config-title">
+        <div>
+          <h4>VIP30 Sound-Pool</h4>
+          <p>Jeder aktive Eintrag mit Media-ID kann zufällig ausgewählt werden. Höhere Gewichtung bedeutet: kommt häufiger dran.</p>
+        </div>
+        <span>${badge(`${pool.length} Sounds`, pool.length ? 'ok' : 'warn')}</span>
+      </div>
+      <div class="vip30-soundpool-toolbar">
+        <button type="button" data-vip30-sound-add>Neuen Sound hinzufügen</button>
+        <small>Alter Fallback <code>alerts.mediaId</code>: ${fallbackValue ? esc(fallbackValue) : 'leer'}</small>
+      </div>
+      <textarea class="vip30-setting-control vip30-json-control vip30-soundpool-hidden-json" rows="8" spellcheck="false" data-vip30-setting-input="alerts.soundPool">${esc(jsonText)}</textarea>
+      <input id="vip30LegacyMediaId" class="vip30-setting-control vip30-media-id-input" type="hidden" value="${esc(fallbackValue)}" data-vip30-setting-input="alerts.mediaId">
+      <div class="vip30-soundpool-list">
+        ${pool.map((item, index) => renderSoundPoolCard(item, index)).join('')}
+      </div>
+      ${!pool.length ? `<div class="vip30-empty">Noch keine Sounds im Pool. Bitte Sound hinzufügen.</div>` : ''}
+    </div>`;
+  }
+
+  function renderSoundPoolCard(item, index){
+    const mediaInputId = `vip30SoundMediaId_${index}`;
+    const mediaId = item.mediaId > 0 ? String(item.mediaId) : '';
+    return `<article class="vip30-soundpool-card" data-vip30-sound-item data-index="${esc(index)}">
+      <div class="vip30-soundpool-head">
+        <div>
+          <strong>Sound ${esc(index + 1)} · ${esc(item.label || item.id || 'ohne Label')}</strong>
+          <small>Media-ID ${mediaId ? esc(mediaId) : 'nicht gewählt'} · Gewichtung ${esc(item.weight)} · ${item.enabled ? 'aktiv' : 'deaktiviert'}</small>
+        </div>
+        <div class="vip30-soundpool-actions">
+          <label class="vip30-mini-check"><input type="checkbox" data-vip30-sound-field="enabled" ${item.enabled ? 'checked' : ''}> aktiv</label>
+          <button type="button" data-vip30-sound-duplicate="${esc(index)}">Duplizieren</button>
+          <button type="button" data-vip30-sound-remove="${esc(index)}">Entfernen</button>
+        </div>
+      </div>
+      <div class="vip30-soundpool-grid">
+        <label>ID<input type="text" data-vip30-sound-field="id" value="${esc(item.id)}"></label>
+        <label>Label<input type="text" data-vip30-sound-field="label" value="${esc(item.label)}"></label>
+        <label>Gewichtung<input type="number" min="0" step="1" data-vip30-sound-field="weight" value="${esc(item.weight)}"></label>
+        <label>Media-ID<input id="${esc(mediaInputId)}" type="number" min="0" step="1" data-vip30-sound-field="mediaId" value="${esc(mediaId)}"></label>
+        <label class="wide">Media-Pfad Fallback<input type="text" data-vip30-sound-field="mediaPath" value="${esc(item.mediaPath || '')}" placeholder="optional"></label>
+      </div>
+      <div
+        class="vip30-media-field vip30-sound-media-field"
+        data-media-field
+        data-module-key="vip30"
+        data-category-key="alerts"
+        data-allowed-types="audio"
+        data-title="VIP30 Sound auswählen"
+        data-value-input="#${esc(mediaInputId)}"
+        data-media-id="${esc(mediaId)}">
+        <button type="button" data-media-field-open>Sound auswählen / hochladen</button>
+        <button type="button" data-media-field-clear>Sound entfernen</button>
+        <div class="media-field-preview" data-media-field-preview>
+          <span class="mf-muted">${mediaId ? `Media-ID ${esc(mediaId)} ausgewählt. Öffnen für Vorschau/Wechsel.` : 'Kein Sound ausgewählt.'}</span>
+        </div>
+      </div>
+    </article>`;
+  }
+
   function renderTexts(){
     const row = getSettingRow('alerts.overlaySets');
     return `<section class="vip30-card glass vip30-config vip30-texts-tab">
@@ -894,6 +1073,7 @@ window.Vip30Module = (function(){
     if (state.tab === 'slots') return renderSlots();
     if (state.tab === 'logs') return renderLogs();
     if (state.tab === 'settings') return renderSettings();
+    if (state.tab === 'sounds') return renderSounds();
     if (state.tab === 'texts') return renderTexts();
     if (state.tab === 'actions') return renderActions();
     if (state.tab === 'diagnostics') return renderDiagnostics();
@@ -936,6 +1116,37 @@ window.Vip30Module = (function(){
       input.addEventListener('input', () => syncOverlaySetsFromDom());
       input.addEventListener('change', () => syncOverlaySetsFromDom());
     });
+
+    root?.querySelectorAll('[data-vip30-sound-field]').forEach(input => {
+      input.addEventListener('input', () => syncSoundPoolFromDom());
+      input.addEventListener('change', () => syncSoundPoolFromDom());
+    });
+
+    root?.querySelector('[data-vip30-sound-add]')?.addEventListener('click', () => {
+      const pool = getSoundPoolForUi();
+      pool.push(defaultSoundPoolItem(pool.length));
+      setDirtyValue('alerts.soundPool', pool);
+      render();
+    });
+
+    root?.querySelectorAll('[data-vip30-sound-duplicate]').forEach(btn => btn.addEventListener('click', () => {
+      const index = Number.parseInt(String(btn.dataset.vip30SoundDuplicate || '0'), 10);
+      const pool = getSoundPoolForUi();
+      const copy = { ...(pool[index] || defaultSoundPoolItem(pool.length)) };
+      copy.id = `${copy.id || 'sound'}-kopie`;
+      copy.label = `${copy.label || 'VIP30 Sound'} Kopie`;
+      pool.splice(index + 1, 0, copy);
+      setDirtyValue('alerts.soundPool', pool);
+      render();
+    }));
+
+    root?.querySelectorAll('[data-vip30-sound-remove]').forEach(btn => btn.addEventListener('click', () => {
+      const index = Number.parseInt(String(btn.dataset.vip30SoundRemove || '0'), 10);
+      const pool = getSoundPoolForUi();
+      pool.splice(index, 1);
+      setDirtyValue('alerts.soundPool', pool);
+      render();
+    }));
 
     root?.querySelector('[data-vip30-overlay-add]')?.addEventListener('click', () => {
       const sets = getOverlaySetsForUi();
@@ -981,7 +1192,14 @@ window.Vip30Module = (function(){
     window.MediaField?.initAll?.(root);
     root?.querySelectorAll('[data-media-field]').forEach(field => {
       field.addEventListener('media-field:change', () => {
-        const input = root.querySelector('#vip30AlertMediaId');
+        const soundItem = field.closest('[data-vip30-sound-item]');
+        if (soundItem) {
+          syncSoundPoolFromDom();
+          state.saveMessage = 'Sound ausgewählt. Bitte Sounds speichern.';
+          state.saveError = '';
+          return;
+        }
+        const input = root.querySelector('#vip30AlertMediaId') || root.querySelector('#vip30LegacyMediaId');
         if (input) setDirtyValue('alerts.mediaId', typeValue(getSettingRow('alerts.mediaId'), input.value));
         state.saveError = '';
         state.saveMessage = 'Medium ausgewählt. Bitte sichere Settings speichern.';

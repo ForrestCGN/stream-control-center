@@ -1,21 +1,33 @@
 # Changelog – VIP30 / 30TageVIP
 
-## 2026-06-06 – STEP8.16 Texte Tab
+## 2026-06-06 – STEP8.17 Sound Pool
 
-### Geändert
+### Backend
+
+- `backend/modules/vip30.js`
+  - Version auf `0.8.10`
+  - Build auf `step8.17-sound-pool`
+  - neues Setting `alerts.soundPool`
+  - neue SoundPool-Normalisierung
+  - gewichtete Zufallsauswahl für Sounds
+  - Fallback auf `alerts.mediaId` / `alerts.mediaPath`
+  - Alert-Status zeigt `soundPoolCount`
+
+### Dashboard
 
 - `htdocs/dashboard/modules/vip30.js`
-  - neuer Dashboard-Tab `Texte`
-  - OverlaySet-Editor aus Config entfernt
-  - Render-Funktion `renderTexts()`
-  - Auto-Reload-Schutz gilt jetzt für Config und Texte
+  - neuer Tab `Sounds`
+  - SoundPool-Editor
+  - MediaField pro Sound
+  - Add / Duplicate / Remove
+  - Dirty-/Focus-Schutz erweitert auf Sounds
+  - Config um großen Soundbereich bereinigt
 
 - `htdocs/dashboard/modules/vip30.css`
-  - kleine Tab-spezifische Styles für Texte
+  - Styling für SoundPool-Karten
 
 ### Nicht geändert
 
-- Backend
 - Sound-System
 - Media-System
 - Sound-System-Overlay

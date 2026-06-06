@@ -8,8 +8,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.9";
-const MODULE_BUILD = "step8.14-overlay-sets-design05";
+const MODULE_VERSION = "0.8.10";
+const MODULE_BUILD = "step8.17-sound-pool";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -23,7 +23,7 @@ const MODULE_META = {
   category: "community",
   routePrefix: ROUTE_PREFIX,
   routesPrefix: [ROUTE_PREFIX],
-  description: "30 Tage VIP Node-Modul: SQLite-Grundlage, Dashboard-Logs/Stats, Communication-Bus, DB-/Dashboard-Config, Twitch-Capability-Check, Channelpoints-Reward-Link, Dry-Run-Redemption-Decision, interne Channelpoints-Bridge, Live-EventSub-Beobachtung und STEP8-Live-Action-Plan mit Safety-Gates, Live-Gates-API, Stage-A-Live-Ausfuehrung fuer VIP-Grant + Slot-Write und STEP8.4 Stage-B Fulfill/Cancel ohne Alert sowie STEP8.5 Cleanup/Entzug fuer abgelaufene VIP30-Slots sowie STEP8.6 externe VIP-Entzuege zur Slot-Freigabe sowie STEP8.11 VIP30-Alert-Bus-Event nach erfolgreichem Live-Flow sowie STEP8.12 Sound-System-Bundle mit eigener Overlay-Card sowie STEP8.14 Design-05-Overlay und gewichtet zufaellige Overlay-Textsets.",
+  description: "30 Tage VIP Node-Modul: SQLite-Grundlage, Dashboard-Logs/Stats, Communication-Bus, DB-/Dashboard-Config, Twitch-Capability-Check, Channelpoints-Reward-Link, Dry-Run-Redemption-Decision, interne Channelpoints-Bridge, Live-EventSub-Beobachtung und STEP8-Live-Action-Plan mit Safety-Gates, Live-Gates-API, Stage-A-Live-Ausfuehrung fuer VIP-Grant + Slot-Write und STEP8.4 Stage-B Fulfill/Cancel ohne Alert sowie STEP8.5 Cleanup/Entzug fuer abgelaufene VIP30-Slots sowie STEP8.6 externe VIP-Entzuege zur Slot-Freigabe sowie STEP8.11 VIP30-Alert-Bus-Event nach erfolgreichem Live-Flow sowie STEP8.12 Sound-System-Bundle mit eigener Overlay-Card sowie STEP8.14 Design-05-Overlay und gewichtet zufaellige Overlay-Textsets sowie STEP8.17 gewichtet zufaellige VIP30-Sounds.",
   bus: {
     registered: true,
     heartbeat: true,
@@ -123,6 +123,7 @@ const DEFAULT_CONFIG = {
     soundKey: "vip30",
     mediaId: 0,
     mediaPath: "",
+    soundPool: [],
     category: "vip",
     durationMs: 9000,
     soundBundleUrl: "/api/sound/bundle",
@@ -495,6 +496,7 @@ const SETTING_DEFINITIONS = [
   { key: "alerts.soundKey", path: "alerts.soundKey", type: "string", category: "alerts", label: "Sound-Key", description: "Interner Sound-/Label-Key für den VIP30-Alert.", editable: true },
   { key: "alerts.mediaId", path: "alerts.mediaId", type: "integer", category: "alerts", label: "Media-ID", description: "Media-System Asset-ID des VIP30-Alert-Sounds. Upload/Auswahl erfolgt über das zentrale Media-System.", editable: true },
   { key: "alerts.mediaPath", path: "alerts.mediaPath", type: "string", category: "alerts", label: "Media-Pfad", description: "Optionaler relativer Media-System-Pfad, falls keine Media-ID genutzt wird.", editable: true },
+  { key: "alerts.soundPool", path: "alerts.soundPool", type: "json", category: "alerts", label: "VIP30 Sound-Pool", description: "Mehrere mögliche VIP30-Sounds mit Zufallsauswahl. Felder: id, enabled, weight, mediaId, mediaPath, label.", editable: true },
   { key: "alerts.overlaySets", path: "alerts.overlaySets", type: "json", category: "alerts", label: "VIP30 Overlay-Textsets", description: "Zusammengehörige Textsets für die VIP30-Overlay-Card. Felder: id, enabled, weight, kicker, headline, subline, message, perks, brand. Platzhalter: {displayName}, {login}.", editable: true },
   { key: "cleanup.enabled", path: "cleanup.enabled", type: "boolean", category: "cleanup", label: "Cleanup aktiv", description: "Ablauf-/Revoke-Logik für abgelaufene VIP30-Slots aktivieren.", editable: true },
   { key: "cleanup.removeVipOnExpire", path: "cleanup.removeVipOnExpire", type: "boolean", category: "cleanup", label: "VIP bei Ablauf entziehen", description: "Bei abgelaufenen VIP30-Slots den Twitch-VIP automatisch per Cleanup entfernen.", editable: true },
@@ -644,6 +646,7 @@ function buildSettingsStatus() {
         soundKey: getConfig().alerts.soundKey,
         mediaId: getConfig().alerts.mediaId || 0,
         mediaPath: getConfig().alerts.mediaPath || "",
+        soundPoolCount: normalizeVip30SoundPool(getConfig().alerts.soundPool, getConfig().alerts).length,
         overlaySetCount: normalizeVip30OverlaySets(getConfig().alerts.overlaySets).length
       },
       cleanup: { enabled: getConfig().cleanup.enabled !== false },
@@ -2690,11 +2693,64 @@ function buildVip30OverlayVisualText(alertPayload = {}, alerts = {}) {
   };
 }
 
+
+function normalizeVip30SoundPool(soundPool, alerts = {}) {
+  const source = Array.isArray(soundPool) ? soundPool : [];
+  const normalized = source.map((item, index) => {
+    if (!item || typeof item !== "object") return null;
+    const mediaId = intValue(item.mediaId || item.media_id || item.soundMediaId || item.mediaAssetId || 0, 0);
+    const mediaPath = cleanString(item.mediaPath || item.media_path || item.path || item.registryPath || "");
+    if (mediaId <= 0 && !mediaPath) return null;
+    return {
+      id: cleanString(item.id || `vip30-sound-${index + 1}`),
+      enabled: item.enabled !== false,
+      weight: Math.max(0, intValue(item.weight, 1)),
+      mediaId,
+      mediaPath,
+      label: cleanString(item.label || item.name || item.title || `VIP30 Sound ${index + 1}`)
+    };
+  }).filter(Boolean);
+
+  if (normalized.length) return normalized;
+
+  const fallbackMediaId = intValue(alerts.mediaId || alerts.soundMediaId || alerts.mediaAssetId || 0, 0);
+  const fallbackMediaPath = cleanString(alerts.mediaPath || alerts.mediaRelativePath || alerts.registryPath || "");
+  if (fallbackMediaId > 0 || fallbackMediaPath) {
+    return [{
+      id: "default-media",
+      enabled: true,
+      weight: 1,
+      mediaId: fallbackMediaId,
+      mediaPath: fallbackMediaPath,
+      label: cleanString(alerts.soundKey || "VIP30 Sound")
+    }];
+  }
+
+  return [];
+}
+
+function pickWeightedVip30Sound(soundPool, alerts = {}) {
+  const pool = normalizeVip30SoundPool(soundPool, alerts).filter(item => item.enabled && item.weight > 0);
+  if (!pool.length) return null;
+  const total = pool.reduce((sum, item) => sum + Math.max(1, intValue(item.weight, 1)), 0);
+  let roll = Math.random() * Math.max(1, total);
+  for (const item of pool) {
+    roll -= Math.max(1, intValue(item.weight, 1));
+    if (roll <= 0) return item;
+  }
+  return pool[0] || null;
+}
+
+function hasVip30ConfiguredSound(alerts = {}) {
+  return normalizeVip30SoundPool(alerts.soundPool, alerts).some(item => item.enabled && item.weight > 0);
+}
+
 function buildVip30SoundBundlePayload(alertPayload = {}, options = {}) {
   const config = getConfig();
   const alerts = config.alerts || DEFAULT_CONFIG.alerts;
-  const mediaId = intValue(alerts.mediaId || alerts.soundMediaId || alerts.mediaAssetId || 0, 0);
-  const mediaPath = cleanString(alerts.mediaPath || alerts.mediaRelativePath || alerts.registryPath || "");
+  const selectedSound = pickWeightedVip30Sound(alerts.soundPool, alerts);
+  const mediaId = selectedSound ? intValue(selectedSound.mediaId || 0, 0) : 0;
+  const mediaPath = selectedSound ? cleanString(selectedSound.mediaPath || "") : "";
   const userLogin = cleanString(alertPayload.user && alertPayload.user.userLogin || "").toLowerCase();
   const displayName = cleanString(alertPayload.user && alertPayload.user.userDisplayName || userLogin || "VIP");
   const durationMs = intValue(alerts.durationMs || alertPayload.alert && alertPayload.alert.durationMs, 9000);
@@ -2746,7 +2802,7 @@ function buildVip30SoundBundlePayload(alertPayload = {}, options = {}) {
     items: [{
       role: "main",
       ...mediaFields,
-      label: visual.title,
+      label: cleanString(selectedSound && selectedSound.label || visual.title),
       category: cleanString(alerts.category || "vip"),
       source: MODULE_NAME,
       mediaType: "audio",
@@ -2768,7 +2824,9 @@ function buildVip30SoundBundlePayload(alertPayload = {}, options = {}) {
         userDisplayName: displayName,
         slot: alertPayload.slot || {},
         sourceResult: alertPayload.sourceResult || {},
-        overlaySetId: visual.overlaySetId || ""
+        overlaySetId: visual.overlaySetId || "",
+        soundPoolId: selectedSound ? selectedSound.id : "",
+        soundLabel: selectedSound ? selectedSound.label : ""
       },
       visual
     }]
@@ -2793,9 +2851,7 @@ async function triggerVip30AlertSoundBundle(result = {}, options = {}) {
   if (alerts.enabled === false) return skipped("alerts_disabled");
   if (!live || live.allowAlert !== true) return skipped("allow_alert_gate_disabled");
 
-  const mediaId = intValue(alerts.mediaId || alerts.soundMediaId || alerts.mediaAssetId || 0, 0);
-  const mediaPath = cleanString(alerts.mediaPath || alerts.mediaRelativePath || alerts.registryPath || "");
-  if (mediaId <= 0 && !mediaPath) return skipped("media_not_configured");
+  if (!hasVip30ConfiguredSound(alerts)) return skipped("media_not_configured");
 
   const payload = buildVip30AlertPayload(result);
   const bundlePayload = buildVip30SoundBundlePayload(payload, options);
@@ -4159,7 +4215,8 @@ function init(context = {}) {
           soundKey: config.alerts && config.alerts.soundKey || "vip30",
           mediaId: config.alerts && (config.alerts.mediaId || config.alerts.soundMediaId || config.alerts.mediaAssetId) || 0,
           mediaPath: config.alerts && (config.alerts.mediaPath || config.alerts.mediaRelativePath || config.alerts.registryPath) || "",
-          mediaConfigured: !!(config.alerts && ((config.alerts.mediaId || config.alerts.soundMediaId || config.alerts.mediaAssetId) || config.alerts.mediaPath || config.alerts.mediaRelativePath || config.alerts.registryPath)),
+          soundPoolCount: normalizeVip30SoundPool(config.alerts && config.alerts.soundPool, config.alerts || {}).length,
+          mediaConfigured: !!(config.alerts && hasVip30ConfiguredSound(config.alerts)),
           durationMs: config.alerts && config.alerts.durationMs || 9000,
           delivery: "sound_bundle",
           soundBundleUrl: config.alerts && config.alerts.soundBundleUrl || DEFAULT_CONFIG.alerts.soundBundleUrl,

@@ -2,31 +2,33 @@
 
 Stand: 2026-06-06
 
-## STEP8.16 testen
+## STEP8.17 einspielen
 
 ```powershell
 cd /d D:\Git\stream-control-center
+node --check backend\modules\vip30.js
 node --check htdocs\dashboard\modules\vip30.js
-.\stepdone.cmd "VIP30-STEP8.16 Texte Tab"
+.\stepdone.cmd "VIP30-STEP8.17 Sound Pool"
 ```
 
 Danach:
 
 ```txt
+Node neu starten
 Dashboard mit Strg+F5 neu laden
-VIP30 öffnen
-Tab „Texte“ prüfen
-Config-Tab prüfen
 ```
 
 ## Testplan
 
-1. Im Tab „Texte“ ein Textset ändern.
-2. 10+ Sekunden warten.
-3. Prüfen, dass Eingabe nicht überschrieben wird.
-4. Speichern.
-5. VIP30-Alert testen.
-6. Prüfen, ob neuer Text im Overlay erscheint.
+1. VIP30 Dashboard öffnen.
+2. Tab `Sounds` öffnen.
+3. Mindestens zwei Sounds hinzufügen/auswählen.
+4. Gewichte setzen.
+5. Speichern.
+6. VIP30 Alert mehrfach testen.
+7. Prüfen, ob zufällig verschiedene Sounds gewählt werden.
+8. Tab `Config` prüfen: Sound-Auswahl ist dort nicht mehr groß sichtbar.
+9. Tab `Texte` prüfen: Textsets bleiben erhalten.
 
 ## Danach
 
