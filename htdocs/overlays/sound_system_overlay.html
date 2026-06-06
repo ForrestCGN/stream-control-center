@@ -387,15 +387,16 @@
 
 
 
-    /* STEP8.12_VIP30_CARD_ADDITIVE
-       Additive VIP30-Reward-Card. Bestehende Clip-/Video-/Audio-Logik bleibt unverändert.
+    /* STEP8.14_VIP30_DESIGN05_SPLIT_LOUNGE
+       Additive VIP30-Reward-Card im gewaehlten Split-Lounge-Design.
+       Bestehende Clip-/Video-/Audio-Logik bleibt unveraendert.
     */
     #vip30Card {
       position: fixed;
       left: 50%;
       top: 50%;
-      width: 650px;
-      min-height: 230px;
+      width: 840px;
+      height: 310px;
       transform: translate(-50%, -50%);
       opacity: 0;
       pointer-events: none;
@@ -426,77 +427,68 @@
       to   { opacity: 0; transform: translate(-50%, calc(-50% - 22px)) scale(.95); filter: blur(5px); }
     }
 
-    .vip30-card {
+    .vip30-wrap {
       position: relative;
-      display: grid;
-      grid-template-columns: 150px 1fr;
-      gap: 20px;
-      width: 100%;
-      min-height: 230px;
-      border-radius: 28px;
-      padding: 24px;
-      background:
-        radial-gradient(circle at 12% 18%, rgba(34,211,238,.22), transparent 34%),
-        radial-gradient(circle at 96% 8%, rgba(232,121,249,.20), transparent 36%),
-        linear-gradient(140deg, rgba(7,10,28,.985), rgba(30,10,58,.975));
+      width: 840px;
+      height: 310px;
+      border-radius: 34px;
+      background: linear-gradient(145deg, rgba(7,9,26,.99), rgba(28,8,58,.98));
       box-shadow:
         0 0 0 1px rgba(255,255,255,.08),
-        0 0 42px rgba(168,85,247,.46),
-        0 24px 76px rgba(0,0,0,.76);
+        0 0 54px rgba(168,85,247,.48),
+        0 30px 82px rgba(0,0,0,.78);
       overflow: hidden;
     }
 
-    .vip30-card:before {
+    .vip30-wrap:before {
       content: "";
       position: absolute;
       inset: 0;
       border-radius: inherit;
       padding: 3px;
-      background: linear-gradient(120deg, rgba(34,211,238,.96), rgba(168,85,247,.92), rgba(232,121,249,.76), rgba(34,211,238,.96));
+      background: linear-gradient(120deg, #22d3ee, #a855f7, #e879f9, #22d3ee);
       -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
       -webkit-mask-composite: xor;
       mask-composite: exclude;
       pointer-events: none;
     }
 
-    .vip30-card:after {
-      content: "";
+    .vip30-left {
       position: absolute;
-      inset: -30%;
+      inset: 0 auto 0 0;
+      width: 245px;
       background:
-        radial-gradient(circle at 50% 50%, rgba(168,85,247,.08), transparent 38%),
-        repeating-linear-gradient(120deg, rgba(255,255,255,.025) 0 1px, transparent 1px 9px);
-      opacity: .65;
-      pointer-events: none;
-    }
-
-    .vip30-avatar-wrap {
-      position: relative;
-      z-index: 2;
-      align-self: center;
-      justify-self: center;
-      width: 126px;
-      height: 126px;
-      padding: 5px;
-      border-radius: 50%;
-      background: conic-gradient(from 210deg,#22d3ee,#a855f7,#e879f9,#3b82f6,#22d3ee);
-      box-shadow:
-        0 0 24px rgba(168,85,247,.82),
-        0 0 34px rgba(34,211,238,.26);
+        radial-gradient(circle at 50% 35%, rgba(34,211,238,.26), transparent 40%),
+        linear-gradient(180deg, rgba(34,211,238,.09), rgba(168,85,247,.10));
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-right: 1px solid rgba(255,255,255,.12);
     }
 
     .vip30-avatar {
+      width: 132px;
+      height: 132px;
+      border-radius: 50%;
+      padding: 5px;
+      background: conic-gradient(from 180deg, #22d3ee, #a855f7, #e879f9, #22d3ee);
+      box-shadow:
+        0 0 30px rgba(34,211,238,.22),
+        0 0 34px rgba(168,85,247,.65);
+    }
+
+    .vip30-avatar-inner {
       position: relative;
       width: 100%;
       height: 100%;
       border-radius: 50%;
-      overflow: hidden;
-      background: radial-gradient(circle at 35% 25%, #eef7ff, #8b5cf6 34%, #27114b 70%);
-      border: 4px solid rgba(9,7,22,.96);
+      background: #090817;
       display: grid;
       place-items: center;
-      font-size: 44px;
+      font-size: 46px;
       font-weight: 950;
+      overflow: hidden;
       color: #fff;
     }
 
@@ -509,7 +501,7 @@
       object-position: center center;
       display: none;
       z-index: 2;
-      border-radius: inherit;
+      border-radius: 50%;
       background: transparent;
     }
 
@@ -519,50 +511,64 @@
       text-shadow: 0 0 12px rgba(168,85,247,.72);
     }
 
+    .vip30-left-label {
+      margin-top: 18px;
+      color: #bff5ff;
+      font-size: 11px;
+      font-weight: 950;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
     .vip30-content {
-      position: relative;
-      z-index: 2;
-      min-width: 0;
+      position: absolute;
+      left: 245px;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      padding: 34px 38px;
       display: flex;
       flex-direction: column;
       justify-content: center;
+      min-width: 0;
     }
 
-    .vip30-kicker {
-      color: #b8c7e6;
+    #vip30Kicker {
       font-size: 12px;
-      font-weight: 900;
-      letter-spacing: .12em;
-      text-transform: uppercase;
-      margin-bottom: 8px;
-    }
-
-    #vip30Headline {
-      margin: 0;
-      font-size: 36px;
-      line-height: 1.02;
       font-weight: 950;
-      letter-spacing: -.04em;
-      color: #fff;
-      text-shadow:
-        0 0 16px rgba(168,85,247,.72),
-        0 0 26px rgba(34,211,238,.18);
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: #cbd5e1;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
+    #vip30Headline {
+      margin: 8px 0 0;
+      font-size: 37px;
+      line-height: 1.03;
+      letter-spacing: -.04em;
+      font-weight: 950;
+      color: #fff;
+      text-shadow: 0 0 16px rgba(168,85,247,.72);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #vip30Headline .name,
     #vip30Name {
       color: #f0abfc;
-      text-shadow: 0 0 16px rgba(232,121,249,.62);
+      text-shadow: 0 0 16px rgba(232,121,249,.66);
     }
 
     #vip30Subline {
       margin: 12px 0 0;
-      color: #d7e4ff;
+      color: #dce8ff;
       font-size: 17px;
+      font-weight: 750;
       line-height: 1.25;
-      font-weight: 700;
     }
 
     #vip30Message {
@@ -570,20 +576,42 @@
       color: #aebee0;
       font-size: 13px;
       line-height: 1.35;
-      max-width: 420px;
+      max-width: 510px;
+    }
+
+    .vip30-line {
+      margin-top: 18px;
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(34,211,238,.7), rgba(168,85,247,.38), transparent);
+    }
+
+    #vip30Perks {
+      margin-top: 16px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    #vip30Perks span {
+      font-size: 12px;
+      font-weight: 850;
+      color: #eef8ff;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.13);
+      background: rgba(255,255,255,.055);
+      padding: 8px 10px;
+      white-space: nowrap;
     }
 
     .vip30-brand {
-      align-self: flex-start;
-      margin-top: 16px;
-      color: rgba(243,232,255,.86);
-      border: 1px solid rgba(168,85,247,.28);
-      background: rgba(168,85,247,.12);
-      border-radius: 999px;
-      padding: 6px 10px;
+      position: absolute;
+      right: 18px;
+      bottom: 15px;
       font-size: 10px;
-      font-weight: 850;
-      letter-spacing: .05em;
+      font-weight: 900;
+      color: rgba(243,232,255,.78);
+      letter-spacing: .08em;
       text-transform: uppercase;
       white-space: nowrap;
     }
@@ -688,20 +716,25 @@
   </div>
 
   <div id="vip30Card">
-    <section class="vip30-card">
-      <div class="vip30-avatar-wrap">
+    <section class="vip30-wrap">
+      <aside class="vip30-left">
         <div class="vip30-avatar">
-          <img id="vip30AvatarImg" alt="VIP30 Avatar">
-          <div id="vip30AvatarPh">?</div>
+          <div class="vip30-avatar-inner">
+            <img id="vip30AvatarImg" alt="VIP30 Avatar">
+            <span id="vip30AvatarPh">V</span>
+          </div>
         </div>
-      </div>
-      <div class="vip30-content">
-        <div class="vip30-kicker">30 Tage VIP</div>
-        <h1 id="vip30Headline"><span id="vip30Name">User</span> ist jetzt VIP</h1>
-        <p id="vip30Subline">Vielen Dank für deine Treue!</p>
-        <p id="vip30Message">Die Altersheim-Verwaltung hat den VIP-Sessel frisch bezogen.</p>
+        <div class="vip30-left-label">30 Tage VIP</div>
+      </aside>
+      <main class="vip30-content">
+        <div id="vip30Kicker">Upgrade im CGN-Altersheim</div>
+        <h1 id="vip30Headline"><span class="name" id="vip30Name">User</span> wird Ehrenbewohner.</h1>
+        <div id="vip30Subline">Die Rentner begrüßen freundlich, die Heimleitung nickt anerkennend.</div>
+        <div id="vip30Message">Ein kleines VIP-Upgrade wurde genehmigt.</div>
+        <div class="vip30-line"></div>
+        <div id="vip30Perks"><span>Keks extra</span><span>Klecks Soße mehr</span><span>gemütlicherer Sessel</span></div>
         <div class="vip30-brand">CGN VIP-Lounge</div>
-      </div>
+      </main>
     </section>
   </div>
 
@@ -733,8 +766,10 @@
       const vip30AvatarPh = document.getElementById('vip30AvatarPh');
       const vip30Headline = document.getElementById('vip30Headline');
       const vip30Name = document.getElementById('vip30Name');
+      const vip30Kicker = document.getElementById('vip30Kicker');
       const vip30Subline = document.getElementById('vip30Subline');
       const vip30Message = document.getElementById('vip30Message');
+      const vip30Perks = document.getElementById('vip30Perks');
       const vip30Brand = document.querySelector('.vip30-brand');
       const status = document.getElementById('status');
       const unlockBtn = document.getElementById('unlock');
@@ -1641,6 +1676,18 @@
         vip30Card.classList.add('show');
       }
 
+      function renderVip30Headline(template, displayName, login) {
+        const text = String(template || `${displayName} wird Ehrenbewohner.`);
+        const safeName = String(displayName || login || 'VIP');
+        const escaped = (value) => String(value ?? '').replace(/[&<>\"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+        if (text.includes(safeName)) {
+          const parts = text.split(safeName);
+          vip30Headline.innerHTML = parts.map(escaped).join('<span class="name" id="vip30Name">' + escaped(safeName) + '</span>');
+        } else {
+          vip30Headline.textContent = text;
+        }
+      }
+
       function setupVip30Card(item) {
         const visual = visualOf(item);
         const meta = item && item.meta && typeof item.meta === 'object' ? item.meta : {};
@@ -1650,20 +1697,25 @@
         const login = String(rawLogin || 'vip').replace(/^@+/, '').trim();
         const displayName = String(rawDisplay || login || 'VIP').replace(/^@+/, '').trim();
 
-        const title = String(visual.title || `${displayName} hat sich 30 Tage VIP gegönnt!`).trim();
-        const subline = String(visual.subline || 'Vielen Dank für deine Treue!').trim();
-        const message = String(visual.message || 'Die Altersheim-Verwaltung hat den VIP-Sessel frisch bezogen.').trim();
+        const kicker = String(visual.kicker || 'Upgrade im CGN-Altersheim').trim();
+        const headline = String(visual.headline || visual.title || `${displayName} wird Ehrenbewohner.`).trim();
+        const subline = String(visual.subline || 'Die Rentner begrüßen freundlich, die Heimleitung nickt anerkennend.').trim();
+        const message = String(visual.message || '').trim();
         const brand = String(visual.brand || 'CGN VIP-Lounge').trim();
+        const perks = Array.isArray(visual.perks) && visual.perks.length
+          ? visual.perks.map(item => String(item || '').trim()).filter(Boolean)
+          : ['Keks extra', 'Klecks Soße mehr', 'gemütlicherer Sessel'];
 
-        if (vip30Name) vip30Name.textContent = displayName || login || 'VIP';
-        if (vip30Headline) {
-          vip30Headline.innerHTML = '<span id="vip30Name"></span> hat sich 30 Tage VIP gegönnt!';
-          const nameEl = document.getElementById('vip30Name');
-          if (nameEl) nameEl.textContent = displayName || login || 'VIP';
-          if (title && title !== `${displayName} hat sich 30 Tage VIP gegönnt!`) vip30Headline.textContent = title;
-        }
+        if (vip30Kicker) vip30Kicker.textContent = kicker;
+        if (vip30Headline) renderVip30Headline(headline, displayName, login);
         if (vip30Subline) vip30Subline.textContent = subline;
-        if (vip30Message) vip30Message.textContent = message;
+        if (vip30Message) {
+          vip30Message.textContent = message;
+          vip30Message.style.display = message ? 'block' : 'none';
+        }
+        if (vip30Perks) {
+          vip30Perks.innerHTML = perks.slice(0, 5).map(perk => `<span>${String(perk).replace(/[&<>\"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]))}</span>`).join('');
+        }
         if (vip30Brand) vip30Brand.textContent = brand;
 
         resetVip30Avatar(displayName, login);

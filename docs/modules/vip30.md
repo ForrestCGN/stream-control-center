@@ -1,82 +1,53 @@
 # VIP30 / 30TageVIP
 
 Stand: 2026-06-06  
-Backend-Version: `0.8.8` / `step8.12-sound-bundle-overlay`  
-Dashboard-Stand: `STEP8.13 Dashboard Media Field`
+Backend-Version: `0.8.9` / `step8.14-overlay-sets-design05`
 
-## Zweck
-
-VIP30 verwaltet den Kanalpunkte-Reward „30 Tage VIP“.
-
-## Sound-/Media-Flow
-
-Der VIP30-Reward-Sound läuft über das zentrale Media- und Sound-System:
+## Sound-/Media-/Overlay-Flow
 
 ```txt
 Media-System: Upload / Registry / Dauer / Asset-ID
 Sound-System: Queue / Priorität / Playback / Output / Overlay
-Sound-System-Overlay: VIP30-Card
-VIP30: erzeugt nur das Sound-Bundle
+Sound-System-Overlay: VIP30 Split-Lounge-Card
+VIP30: erzeugt Sound-Bundle und wählt OverlaySet
 ```
 
-## Dashboard Media-Auswahl
+## Overlay-Design
 
-Im VIP30-Dashboard gibt es unter Config eine Karte:
+Das produktive VIP30-Overlay nutzt jetzt das gewählte `Design 05 – Split Lounge`:
 
 ```txt
-VIP30 Alert-Sound
+links: Avatar + 30 Tage VIP
+rechts: Kicker, Headline, Subline, Message, Perks, Brand
 ```
 
-Diese nutzt die vorhandenen Dashboard-Komponenten:
+## OverlaySets
+
+VIP30 nutzt gewichtete, zusammengehörige Textsets:
 
 ```txt
-MediaField
-MediaPicker
+kicker
+headline
+subline
+message
+perks
+brand
+weight
+enabled
 ```
 
-Vorgaben:
+Damit bleiben Headline/Subline/Perks passend zusammen.
 
-```txt
-moduleKey = vip30
-categoryKey = alerts
-allowedTypes = audio
-```
+## Dashboard
 
-Gespeichert wird:
-
-```txt
-alerts.mediaId
-```
+Im Config-Tab kann `alerts.overlaySets` als JSON bearbeitet werden.  
+Der Media-Sound wird weiterhin über das MediaField ausgewählt und in `alerts.mediaId` gespeichert.
 
 ## Kein Alert-System
 
-VIP30 nutzt hier nicht:
+VIP30 nutzt nicht:
 
 ```txt
 alert_system.js
 vip-sound.js
-```
-
-## Alert-Gates
-
-Ein VIP30-Sound-Bundle wird nur erzeugt, wenn:
-
-```txt
-VIP30-Live-Flow erfolgreich
-alerts.enabled = true
-live.allowAlert = true
-alerts.mediaId > 0 oder alerts.mediaPath gesetzt
-```
-
-## Kein Sound bei
-
-```txt
-Refund / Cancel
-Slot voll
-User bereits VIP
-User hat aktiven VIP30-Slot
-Cleanup
-external_removed
-Admin-Aktionen
-Fehlern
 ```

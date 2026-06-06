@@ -2,20 +2,18 @@
 
 Stand: 2026-06-06
 
-## STEP8.13
+## STEP8.14
 
-- [x] Dashboard MediaField für VIP30 Alert-Sound ergänzt
-- [x] Upload/Auswahl über vorhandenes Media-System vorbereitet
-- [x] `moduleKey=vip30`, `categoryKey=alerts`, `allowedTypes=audio`
-- [x] Speicherung in `alerts.mediaId`
-- [x] Sound-System-Overlay bleibt zuständig
-- [x] Alert-System nicht verwendet
-- [ ] Dashboard-Test
-- [ ] Sound hochladen
-- [ ] Media-ID speichern
-- [ ] Live-Test
+- [x] Design 05 ins Sound-System-Overlay übernehmen
+- [x] bestehende Sound-/Clip-/SO-Logik nicht ersetzen
+- [x] VIP30 OverlaySets im Backend ergänzen
+- [x] gewichtete zufällige Auswahl
+- [x] Dashboard JSON-Editor für `alerts.overlaySets`
+- [ ] Live-Test mit Sound und neuem Design
 
-## Später
+## STEP8.15 später
 
-- [ ] Komfortanzeige der aktuell gespeicherten Media-Datei nach Reload mit voller Vorschau
-- [ ] Admin-/Systembereich für technische VIP30-Aktionen
+- [ ] Komfortabler OverlaySet-Editor statt JSON-Textarea
+- [ ] Varianten hinzufügen/bearbeiten/deaktivieren/löschen
+- [ ] Gewichtung über UI
+- [ ] Perks einzeln bearbeiten

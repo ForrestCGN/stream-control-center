@@ -16,6 +16,7 @@ window.Vip30Module = (function(){
     'alerts.enabled',
     'alerts.soundKey',
     'alerts.mediaId',
+    'alerts.overlaySets',
     'logging.enabled',
     'reward.title',
     'reward.prompt',
@@ -103,6 +104,12 @@ window.Vip30Module = (function(){
       const n = Number.parseInt(String(raw ?? ''), 10);
       return Number.isFinite(n) ? n : 0;
     }
+    if (row.type === 'json') {
+      const text = String(raw ?? '').trim();
+      if (!text) return [];
+      try { return JSON.parse(text); }
+      catch (err) { throw new Error(`JSON ungültig bei ${row.key}: ${err.message || err}`); }
+    }
     return String(raw ?? '');
   }
 
@@ -167,13 +174,20 @@ window.Vip30Module = (function(){
     if (!root || !window.CGN) return;
     const updates = {};
     const rowsByKey = new Map(settingRows().map(row => [String(row.key || ''), row]));
-    root.querySelectorAll('[data-vip30-setting-input]').forEach(input => {
-      const key = String(input.dataset.vip30SettingInput || '');
-      const row = rowsByKey.get(key);
-      if (!row || !isSafeEditable(row)) return;
-      if (row.type === 'boolean') updates[key] = input.checked === true;
-      else updates[key] = typeValue(row, input.value);
-    });
+    try {
+      root.querySelectorAll('[data-vip30-setting-input]').forEach(input => {
+        const key = String(input.dataset.vip30SettingInput || '');
+        const row = rowsByKey.get(key);
+        if (!row || !isSafeEditable(row)) return;
+        if (row.type === 'boolean') updates[key] = input.checked === true;
+        else updates[key] = typeValue(row, input.value);
+      });
+    } catch (err) {
+      state.saveError = apiErr(err);
+      state.saveMessage = '';
+      render();
+      return;
+    }
     if (!Object.keys(updates).length) {
       state.saveError = 'Keine sicheren editierbaren Einstellungen gefunden.';
       state.saveMessage = '';
@@ -346,6 +360,10 @@ window.Vip30Module = (function(){
     }
     if (row.type === 'integer') {
       return `<input class="vip30-setting-control" type="number" min="0" step="1" value="${esc(row.value)}" ${attr}>`;
+    }
+    if (row.type === 'json') {
+      const jsonText = (() => { try { return JSON.stringify(row.value ?? [], null, 2); } catch (_) { return String(row.rawValue || '[]'); } })();
+      return `<textarea class="vip30-setting-control vip30-json-control" rows="12" spellcheck="false" ${attr}>${esc(jsonText)}</textarea>`;
     }
     return `<input class="vip30-setting-control" type="text" value="${esc(row.value)}" ${attr}>`;
   }

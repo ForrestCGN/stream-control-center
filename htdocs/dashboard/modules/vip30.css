@@ -1087,3 +1087,19 @@ html[data-theme=dark] .vip30-table td {
   }
 }
 
+/* STEP8.14 VIP30 OverlaySets JSON editor */
+.vip30-json-control {
+  width: 100%;
+  min-height: 240px;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.38;
+  white-space: pre;
+}
+
+.vip30-setting-card.is-safe .vip30-json-control {
+  border-color: rgba(34, 211, 238, .22);
+  background: rgba(4, 8, 20, .45);
+}
+

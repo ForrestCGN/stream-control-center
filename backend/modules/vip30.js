@@ -8,8 +8,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.8";
-const MODULE_BUILD = "step8.12-sound-bundle-overlay";
+const MODULE_VERSION = "0.8.9";
+const MODULE_BUILD = "step8.14-overlay-sets-design05";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -23,7 +23,7 @@ const MODULE_META = {
   category: "community",
   routePrefix: ROUTE_PREFIX,
   routesPrefix: [ROUTE_PREFIX],
-  description: "30 Tage VIP Node-Modul: SQLite-Grundlage, Dashboard-Logs/Stats, Communication-Bus, DB-/Dashboard-Config, Twitch-Capability-Check, Channelpoints-Reward-Link, Dry-Run-Redemption-Decision, interne Channelpoints-Bridge, Live-EventSub-Beobachtung und STEP8-Live-Action-Plan mit Safety-Gates, Live-Gates-API, Stage-A-Live-Ausfuehrung fuer VIP-Grant + Slot-Write und STEP8.4 Stage-B Fulfill/Cancel ohne Alert sowie STEP8.5 Cleanup/Entzug fuer abgelaufene VIP30-Slots sowie STEP8.6 externe VIP-Entzuege zur Slot-Freigabe sowie STEP8.11 VIP30-Alert-Bus-Event nach erfolgreichem Live-Flow sowie STEP8.12 Sound-System-Bundle mit eigener Overlay-Card.",
+  description: "30 Tage VIP Node-Modul: SQLite-Grundlage, Dashboard-Logs/Stats, Communication-Bus, DB-/Dashboard-Config, Twitch-Capability-Check, Channelpoints-Reward-Link, Dry-Run-Redemption-Decision, interne Channelpoints-Bridge, Live-EventSub-Beobachtung und STEP8-Live-Action-Plan mit Safety-Gates, Live-Gates-API, Stage-A-Live-Ausfuehrung fuer VIP-Grant + Slot-Write und STEP8.4 Stage-B Fulfill/Cancel ohne Alert sowie STEP8.5 Cleanup/Entzug fuer abgelaufene VIP30-Slots sowie STEP8.6 externe VIP-Entzuege zur Slot-Freigabe sowie STEP8.11 VIP30-Alert-Bus-Event nach erfolgreichem Live-Flow sowie STEP8.12 Sound-System-Bundle mit eigener Overlay-Card sowie STEP8.14 Design-05-Overlay und gewichtet zufaellige Overlay-Textsets.",
   bus: {
     registered: true,
     heartbeat: true,
@@ -130,7 +130,53 @@ const DEFAULT_CONFIG = {
     outputTarget: "overlay",
     priority: 90,
     volume: 85,
-    designPending: false
+    designPending: false,
+    overlaySets: [
+      {
+        id: "heimleitung-upgrade",
+        enabled: true,
+        weight: 3,
+        kicker: "Upgrade im CGN-Altersheim",
+        headline: "{displayName} wird Ehrenbewohner.",
+        subline: "Die Rentner begrüßen freundlich, die Heimleitung nickt anerkennend.",
+        message: "Ein kleines VIP-Upgrade wurde genehmigt.",
+        perks: ["Keks extra", "Klecks Soße mehr", "gemütlicherer Sessel"],
+        brand: "CGN VIP-Lounge"
+      },
+      {
+        id: "kleine-upgrades",
+        enabled: true,
+        weight: 2,
+        kicker: "30 Tage VIP",
+        headline: "{displayName} hat sich VIP gegönnt.",
+        subline: "Keine Extrawurst, nur ein paar liebevolle Kleinigkeiten.",
+        message: "Die Heimleitung öffnet kurz die VIP-Lane an der Essensausgabe.",
+        perks: ["Tee mit Untertasse", "Klecks Soße mehr", "etwas weniger Zugluft"],
+        brand: "CGN Altersheim"
+      },
+      {
+        id: "empfangskomitee",
+        enabled: true,
+        weight: 2,
+        kicker: "Rentner-Empfangskomitee",
+        headline: "Willkommen, {displayName}!",
+        subline: "Die Bewohner rücken ein Stück zur Seite und machen Platz im Aufenthaltsraum.",
+        message: "Das Upgrade läuft ab jetzt dreißig Tage.",
+        perks: ["Rentner-Applaus", "Keks extra", "Sessel mit Aussicht"],
+        brand: "CGN VIP-Lounge"
+      },
+      {
+        id: "heimleitung-bescheid",
+        enabled: true,
+        weight: 1,
+        kicker: "Offizielle Heimdurchsage",
+        headline: "VIP-Upgrade für {displayName}.",
+        subline: "Die Heimleitung hat geprüft, genickt und freundlich abgestempelt.",
+        message: "Der neue Ehrenbewohner bekommt kleine Sonderleistungen mit Würde.",
+        perks: ["Mini-Upgrade", "Soßenbonus", "Kaffeeplatz nah am Fenster"],
+        brand: "CGN Heimleitung"
+      }
+    ]
   },
   textStyle: {
     category: "vip30",
@@ -449,6 +495,7 @@ const SETTING_DEFINITIONS = [
   { key: "alerts.soundKey", path: "alerts.soundKey", type: "string", category: "alerts", label: "Sound-Key", description: "Interner Sound-/Label-Key für den VIP30-Alert.", editable: true },
   { key: "alerts.mediaId", path: "alerts.mediaId", type: "integer", category: "alerts", label: "Media-ID", description: "Media-System Asset-ID des VIP30-Alert-Sounds. Upload/Auswahl erfolgt über das zentrale Media-System.", editable: true },
   { key: "alerts.mediaPath", path: "alerts.mediaPath", type: "string", category: "alerts", label: "Media-Pfad", description: "Optionaler relativer Media-System-Pfad, falls keine Media-ID genutzt wird.", editable: true },
+  { key: "alerts.overlaySets", path: "alerts.overlaySets", type: "json", category: "alerts", label: "VIP30 Overlay-Textsets", description: "Zusammengehörige Textsets für die VIP30-Overlay-Card. Felder: id, enabled, weight, kicker, headline, subline, message, perks, brand. Platzhalter: {displayName}, {login}.", editable: true },
   { key: "cleanup.enabled", path: "cleanup.enabled", type: "boolean", category: "cleanup", label: "Cleanup aktiv", description: "Ablauf-/Revoke-Logik für abgelaufene VIP30-Slots aktivieren.", editable: true },
   { key: "cleanup.removeVipOnExpire", path: "cleanup.removeVipOnExpire", type: "boolean", category: "cleanup", label: "VIP bei Ablauf entziehen", description: "Bei abgelaufenen VIP30-Slots den Twitch-VIP automatisch per Cleanup entfernen.", editable: true },
   { key: "cleanup.releaseSlotOnExternalVipRemove", path: "cleanup.releaseSlotOnExternalVipRemove", type: "boolean", category: "cleanup", label: "Externen VIP-Entzug verarbeiten", description: "Wenn ein VIP manuell/extern entfernt wird, einen aktiven VIP30-Slot freigeben.", editable: true },
@@ -592,7 +639,13 @@ function buildSettingsStatus() {
         decisionOnly: !(getConfig().bridge && getConfig().bridge.decisionOnly === false),
         acceptTitleMatch: !(getConfig().bridge && getConfig().bridge.acceptTitleMatch === false)
       },
-      alerts: { enabled: getConfig().alerts.enabled !== false, soundKey: getConfig().alerts.soundKey },
+      alerts: {
+        enabled: getConfig().alerts.enabled !== false,
+        soundKey: getConfig().alerts.soundKey,
+        mediaId: getConfig().alerts.mediaId || 0,
+        mediaPath: getConfig().alerts.mediaPath || "",
+        overlaySetCount: normalizeVip30OverlaySets(getConfig().alerts.overlaySets).length
+      },
       cleanup: { enabled: getConfig().cleanup.enabled !== false },
       logging: { enabled: getConfig().logging.enabled !== false },
       twitch: { liveActionsEnabled: getConfig().twitch.liveActionsEnabled === true }
@@ -2570,6 +2623,73 @@ function buildVip30AlertPayload(result = {}) {
   };
 }
 
+function applyVip30Template(value, data = {}) {
+  const text = cleanString(value || "");
+  if (!text) return "";
+  const replacements = {
+    displayName: cleanString(data.displayName || data.userDisplayName || data.user || ""),
+    userDisplayName: cleanString(data.displayName || data.userDisplayName || data.user || ""),
+    login: cleanString(data.login || data.userLogin || ""),
+    userLogin: cleanString(data.login || data.userLogin || "")
+  };
+  return text.replace(/\{([a-zA-Z0-9_.-]+)\}/g, (_, key) => Object.prototype.hasOwnProperty.call(replacements, key) ? replacements[key] : "");
+}
+
+function normalizeVip30OverlaySets(rawSets) {
+  const source = Array.isArray(rawSets) ? rawSets : DEFAULT_CONFIG.alerts.overlaySets;
+  const out = [];
+  for (const raw of Array.isArray(source) ? source : []) {
+    if (!raw || typeof raw !== "object") continue;
+    const id = cleanString(raw.id || `set_${out.length + 1}`);
+    const enabled = raw.enabled !== false;
+    const weight = Math.max(0, intValue(raw.weight, 1));
+    const perks = Array.isArray(raw.perks)
+      ? raw.perks.map(item => cleanString(item)).filter(Boolean).slice(0, 5)
+      : cleanString(raw.perks || "").split(/[|;,\n]/).map(item => cleanString(item)).filter(Boolean).slice(0, 5);
+    out.push({
+      id,
+      enabled,
+      weight,
+      kicker: cleanString(raw.kicker || "Upgrade im CGN-Altersheim"),
+      headline: cleanString(raw.headline || "{displayName} wird Ehrenbewohner."),
+      subline: cleanString(raw.subline || "Die Rentner begrüßen freundlich, die Heimleitung nickt anerkennend."),
+      message: cleanString(raw.message || ""),
+      perks: perks.length ? perks : ["Keks extra", "Klecks Soße mehr", "gemütlicherer Sessel"],
+      brand: cleanString(raw.brand || "CGN VIP-Lounge")
+    });
+  }
+  return out.length ? out : normalizeVip30OverlaySets(DEFAULT_CONFIG.alerts.overlaySets);
+}
+
+function pickWeightedVip30OverlaySet(rawSets) {
+  const sets = normalizeVip30OverlaySets(rawSets).filter(set => set.enabled && set.weight > 0);
+  const pool = sets.length ? sets : normalizeVip30OverlaySets(DEFAULT_CONFIG.alerts.overlaySets).filter(set => set.enabled);
+  const total = pool.reduce((sum, set) => sum + Math.max(1, intValue(set.weight, 1)), 0);
+  let roll = Math.random() * Math.max(1, total);
+  for (const set of pool) {
+    roll -= Math.max(1, intValue(set.weight, 1));
+    if (roll <= 0) return set;
+  }
+  return pool[0] || normalizeVip30OverlaySets(DEFAULT_CONFIG.alerts.overlaySets)[0];
+}
+
+function buildVip30OverlayVisualText(alertPayload = {}, alerts = {}) {
+  const userLogin = cleanString(alertPayload.user && alertPayload.user.userLogin || "").toLowerCase();
+  const displayName = cleanString(alertPayload.user && alertPayload.user.userDisplayName || userLogin || "VIP");
+  const selectedSet = pickWeightedVip30OverlaySet(alerts.overlaySets);
+  const templateData = { displayName, userDisplayName: displayName, login: userLogin, userLogin };
+  return {
+    overlaySetId: selectedSet.id,
+    kicker: applyVip30Template(selectedSet.kicker, templateData) || "Upgrade im CGN-Altersheim",
+    headline: applyVip30Template(selectedSet.headline, templateData) || `${displayName} wird Ehrenbewohner.`,
+    title: applyVip30Template(selectedSet.headline, templateData) || `${displayName} hat sich 30 Tage VIP gegönnt!`,
+    subline: applyVip30Template(selectedSet.subline, templateData) || "Die Rentner begrüßen freundlich, die Heimleitung nickt anerkennend.",
+    message: applyVip30Template(selectedSet.message, templateData),
+    perks: (selectedSet.perks || []).map(item => applyVip30Template(item, templateData)).filter(Boolean).slice(0, 5),
+    brand: applyVip30Template(selectedSet.brand, templateData) || "CGN VIP-Lounge"
+  };
+}
+
 function buildVip30SoundBundlePayload(alertPayload = {}, options = {}) {
   const config = getConfig();
   const alerts = config.alerts || DEFAULT_CONFIG.alerts;
@@ -2585,6 +2705,7 @@ function buildVip30SoundBundlePayload(alertPayload = {}, options = {}) {
     ? { mediaId }
     : (mediaPath ? { mediaPath } : {});
 
+  const visualText = buildVip30OverlayVisualText(alertPayload, alerts);
   const visual = {
     module: "vip30",
     layout: "vip30_reward",
@@ -2593,11 +2714,14 @@ function buildVip30SoundBundlePayload(alertPayload = {}, options = {}) {
     login: userLogin,
     user: displayName,
     avatarUrl: cleanString(alertPayload.user && alertPayload.user.avatarUrl || ""),
-    headline: cleanString(alertPayload.alert && alertPayload.alert.headline || "30 Tage VIP"),
-    title: cleanString(alertPayload.alert && alertPayload.alert.title || `${displayName} hat sich 30 Tage VIP gegönnt!`),
-    subline: cleanString(alertPayload.alert && alertPayload.alert.subline || "Vielen Dank für deine Treue!"),
-    message: cleanString(alertPayload.alert && alertPayload.alert.message || "Die Altersheim-Verwaltung hat den VIP-Sessel frisch bezogen."),
-    brand: "CGN VIP-Lounge",
+    kicker: visualText.kicker,
+    headline: visualText.headline,
+    title: visualText.title,
+    subline: visualText.subline,
+    message: visualText.message,
+    perks: visualText.perks,
+    brand: visualText.brand,
+    overlaySetId: visualText.overlaySetId,
     durationMs,
     theme: "forrest_neon",
     slot: alertPayload.slot || {}
@@ -2643,7 +2767,8 @@ function buildVip30SoundBundlePayload(alertPayload = {}, options = {}) {
         userLogin,
         userDisplayName: displayName,
         slot: alertPayload.slot || {},
-        sourceResult: alertPayload.sourceResult || {}
+        sourceResult: alertPayload.sourceResult || {},
+        overlaySetId: visual.overlaySetId || ""
       },
       visual
     }]
@@ -4042,6 +4167,7 @@ function init(context = {}) {
           target: config.alerts && config.alerts.target || DEFAULT_CONFIG.alerts.target,
           priority: config.alerts && config.alerts.priority || DEFAULT_CONFIG.alerts.priority,
           volume: config.alerts && config.alerts.volume || DEFAULT_CONFIG.alerts.volume,
+          overlaySetCount: normalizeVip30OverlaySets(config.alerts && config.alerts.overlaySets).length,
           busChannel: "vip30.alert",
           stats: {
             triggers: runtimeStats.alertTriggers,
