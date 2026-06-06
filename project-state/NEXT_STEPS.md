@@ -1,8 +1,24 @@
-# Next Steps – VIP30
+# TODO – VIP30 / 30TageVIP
 
-1. STEP8.7 Patch ausführen.
-2. Node Syntax prüfen.
-3. Node neu starten.
-4. `/api/twitch/eventsub/status?refresh=1` prüfen.
-5. In Twitch einem VIP30-Testuser VIP manuell entziehen.
-6. Prüfen, ob VIP30 den Slot auf `external_removed` setzt.
+## Sofort im nächsten Chat
+
+- [ ] Keine Patch-Skripte verwenden
+- [ ] `/api/_status` prüfen: läuft Node aus `D:\Streaming\stramAssets`?
+- [ ] `backend/modules/twitch.js` Live vs Repo vergleichen
+- [ ] STEP8.7 sauber über vollständige Datei / Deploy abschließen
+- [ ] EventSub-Status prüfen:
+  - `channel.vip.add`
+  - `channel.vip.remove`
+  - `vipEventBus`
+
+## Nach erfolgreichem STEP8.7
+
+- [ ] Echten Twitch-Test: VIP manuell entziehen
+- [ ] Prüfen, ob VIP30-Slot automatisch `external_removed` wird
+- [ ] Logs prüfen
+
+## Danach
+
+- [ ] Alert-Step planen
+- [ ] Optional Cleanup-Automatik planen
+- [ ] Dashboard/Docs aktualisieren
