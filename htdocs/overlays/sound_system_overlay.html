@@ -544,64 +544,98 @@
       text-overflow: ellipsis;
     }
 
-    #vip30Headline {
-      margin: 8px 0 0;
-      font-size: 37px;
-      line-height: 1.03;
-      letter-spacing: -.04em;
-      font-weight: 950;
-      color: #fff;
-      text-shadow: 0 0 16px rgba(168,85,247,.72);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    .vip30-mainblock {
+      margin-top: 8px;
+      display: grid;
+      gap: 0;
+      max-width: 510px;
     }
 
-    #vip30Headline .name,
-    #vip30Name {
-      color: #f0abfc;
-      text-shadow: 0 0 16px rgba(232,121,249,.66);
+    .vip30-main-name,
+    .vip30-main-headline {
+      margin: 0;
+      font-weight: 950;
+      letter-spacing: -.04em;
+      overflow-wrap: anywhere;
+      overflow: hidden;
+    }
+
+    .vip30-main-name {
+      font-size: 38px;
+      line-height: 1.02;
+      max-height: 78px;
+      color: #fff;
+      background: linear-gradient(90deg, #ffffff 0%, #eefcff 18%, #9fefff 44%, #67e8f9 63%, #d8b4fe 84%, #ffffff 100%);
+      background-size: 160% 100%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter:
+        drop-shadow(0 0 9px rgba(34,211,238,.42))
+        drop-shadow(0 0 14px rgba(168,85,247,.30));
+      animation: vip30NameGlow 5.8s ease-in-out infinite, vip30NameShift 8s ease-in-out infinite;
+    }
+
+    .vip30-main-headline {
+      font-size: 34px;
+      line-height: 1.10;
+      max-height: 76px;
+      color: #fff;
+      font-weight: 950;
+      text-shadow: 0 0 16px rgba(168,85,247,.56);
+      margin-top: 0;
+      padding-bottom: 3px;
+      transition: font-size .18s ease;
+    }
+
+    @keyframes vip30NameGlow {
+      0%, 100% {
+        filter:
+          drop-shadow(0 0 7px rgba(34,211,238,.34))
+          drop-shadow(0 0 11px rgba(168,85,247,.20));
+      }
+      50% {
+        filter:
+          drop-shadow(0 0 10px rgba(34,211,238,.52))
+          drop-shadow(0 0 16px rgba(168,85,247,.34));
+      }
+    }
+
+    @keyframes vip30NameShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
     }
 
     #vip30Subline {
       margin: 12px 0 0;
-      color: #dce8ff;
-      font-size: 17px;
-      font-weight: 750;
-      line-height: 1.25;
+      max-width: 510px;
+      color: #eef5ff;
+      font-size: 20px;
+      font-weight: 800;
+      line-height: 1.18;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
 
     #vip30Message {
-      margin: 8px 0 0;
-      color: #aebee0;
-      font-size: 13px;
-      line-height: 1.35;
+      margin: 12px 0 0;
       max-width: 510px;
+      color: #d2dcf0;
+      font-size: 16px;
+      line-height: 1.24;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
 
-    .vip30-line {
-      margin-top: 18px;
-      width: 100%;
-      height: 1px;
-      background: linear-gradient(90deg, rgba(34,211,238,.7), rgba(168,85,247,.38), transparent);
-    }
+    #vip30Message:empty { display: none; }
 
+    .vip30-line,
     #vip30Perks {
-      margin-top: 16px;
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    #vip30Perks span {
-      font-size: 12px;
-      font-weight: 850;
-      color: #eef8ff;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.13);
-      background: rgba(255,255,255,.055);
-      padding: 8px 10px;
-      white-space: nowrap;
+      display: none;
     }
 
     .vip30-brand {
@@ -726,13 +760,16 @@
         </div>
         <div class="vip30-left-label">30 Tage VIP</div>
       </aside>
-      <main class="vip30-content">
+      <main class="vip30-content simple-vip30" id="vip30Content">
         <div id="vip30Kicker">Upgrade im CGN-Altersheim</div>
-        <h1 id="vip30Headline"><span class="name" id="vip30Name">User</span> wird Ehrenbewohner.</h1>
+        <div class="vip30-mainblock" id="vip30TitleBlock">
+          <h1 class="vip30-main-name" id="vip30Name">User</h1>
+          <h2 class="vip30-main-headline" id="vip30Headline">wird Ehrenbewohner</h2>
+        </div>
         <div id="vip30Subline">Die Rentner begrüßen freundlich, die Heimleitung nickt anerkennend.</div>
         <div id="vip30Message">Ein kleines VIP-Upgrade wurde genehmigt.</div>
         <div class="vip30-line"></div>
-        <div id="vip30Perks"><span>Keks extra</span><span>Klecks Soße mehr</span><span>gemütlicherer Sessel</span></div>
+        <div id="vip30Perks"></div>
         <div class="vip30-brand">CGN VIP-Lounge</div>
       </main>
     </section>
@@ -766,6 +803,8 @@
       const vip30AvatarPh = document.getElementById('vip30AvatarPh');
       const vip30Headline = document.getElementById('vip30Headline');
       const vip30Name = document.getElementById('vip30Name');
+      const vip30TitleBlock = document.getElementById('vip30TitleBlock');
+      const vip30Content = document.getElementById('vip30Content');
       const vip30Kicker = document.getElementById('vip30Kicker');
       const vip30Subline = document.getElementById('vip30Subline');
       const vip30Message = document.getElementById('vip30Message');
@@ -1676,19 +1715,121 @@
         vip30Card.classList.add('show');
       }
 
-      function renderVip30Headline(template, displayName, login) {
-        const text = String(template || `${displayName} wird Ehrenbewohner.`);
-        const safeName = String(displayName || login || 'VIP');
-        const escaped = (value) => String(value ?? '').replace(/[&<>\"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
-        if (text.includes(safeName)) {
-          const parts = text.split(safeName);
-          vip30Headline.innerHTML = parts.map(escaped).join('<span class="name" id="vip30Name">' + escaped(safeName) + '</span>');
-        } else {
-          vip30Headline.textContent = text;
-        }
+      function stripVip30NameFromHeadline(template, displayName, login) {
+        const name = String(displayName || login || 'VIP').replace(/^@+/, '').trim();
+        const loginClean = String(login || '').replace(/^@+/, '').trim();
+        let textValue = String(template || 'wird Ehrenbewohner').trim();
+        textValue = textValue
+          .replace(/\{\s*displayName\s*\}/gi, '')
+          .replace(/\{\s*login\s*\}/gi, '')
+          .replace(new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '')
+          .replace(loginClean ? new RegExp(loginClean.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi') : /$a/, '')
+          .replace(/\s{2,}/g, ' ')
+          .replace(/\s+([,.!?])/g, '$1')
+          .replace(/^\s*[,.:;!?\-–—]\s*/, '')
+          .replace(/\s*[,.:;!?\-–—]\s*$/, '')
+          .trim();
+        return textValue || 'hat sich 30 Tage VIP gegönnt';
       }
 
-      function setupVip30Card(item) {
+      function resolveVip30NamePosition(visual, headline) {
+        const explicit = String(visual.namePosition || visual.namePlacement || visual.usernamePosition || '').toLowerCase().trim();
+        if (explicit === 'bottom' || explicit === 'below' || explicit === 'unter') return 'bottom';
+        if (explicit === 'top' || explicit === 'above' || explicit === 'oben') return 'top';
+        const raw = String(headline || '').toLowerCase();
+        if (/willkommen|vip-upgrade\s+für|upgrade\s+für|durchsage\s+für/.test(raw)) return 'bottom';
+        return 'top';
+      }
+
+      function fitVip30HeadlineToTwoLines(headlineEl) {
+        if (!headlineEl) return;
+        const startSize = 34;
+        const minSize = 28;
+        const original = headlineEl.dataset.originalText || headlineEl.textContent || '';
+        headlineEl.dataset.originalText = original;
+        headlineEl.textContent = original;
+
+        const width = Math.max(
+          Math.round(headlineEl.getBoundingClientRect().width || 0),
+          Math.round((headlineEl.parentElement && headlineEl.parentElement.getBoundingClientRect().width) || 0),
+          510
+        );
+
+        const cs = getComputedStyle(headlineEl);
+        const measurer = document.createElement('div');
+        measurer.style.position = 'absolute';
+        measurer.style.left = '-99999px';
+        measurer.style.top = '0';
+        measurer.style.visibility = 'hidden';
+        measurer.style.pointerEvents = 'none';
+        measurer.style.width = width + 'px';
+        measurer.style.margin = '0';
+        measurer.style.padding = '0 0 3px 0';
+        measurer.style.border = '0';
+        measurer.style.fontFamily = cs.fontFamily;
+        measurer.style.fontWeight = cs.fontWeight;
+        measurer.style.letterSpacing = cs.letterSpacing;
+        measurer.style.lineHeight = cs.lineHeight;
+        measurer.style.overflowWrap = cs.overflowWrap || 'anywhere';
+        measurer.style.wordBreak = cs.wordBreak || 'normal';
+        measurer.style.whiteSpace = 'normal';
+        measurer.style.textTransform = cs.textTransform;
+        document.body.appendChild(measurer);
+
+        function fitsAt(textValue, size) {
+          measurer.style.fontSize = size + 'px';
+          measurer.textContent = textValue;
+          const mh = measurer.getBoundingClientRect().height;
+          const lh = parseFloat(getComputedStyle(measurer).lineHeight || String(size * 1.10));
+          return mh <= (lh * 2 + 4);
+        }
+
+        for (let size = startSize; size >= minSize; size -= 1) {
+          if (fitsAt(original, size)) {
+            headlineEl.style.fontSize = size + 'px';
+            headlineEl.textContent = original;
+            measurer.remove();
+            return;
+          }
+        }
+
+        headlineEl.style.fontSize = minSize + 'px';
+        let candidate = original;
+        while (candidate.length > 4) {
+          candidate = candidate.slice(0, -1).trimEnd().replace(/[,.!?;:]+$/, '');
+          if (fitsAt(candidate + '...', minSize)) {
+            headlineEl.textContent = candidate + '...';
+            measurer.remove();
+            return;
+          }
+        }
+
+        headlineEl.textContent = original.slice(0, 4) + '...';
+        measurer.remove();
+      }
+
+      function renderVip30TitleBlock(displayName, login, headline, namePosition) {
+        if (!vip30TitleBlock || !vip30Name || !vip30Headline) return;
+        const safeName = String(displayName || login || 'VIP').replace(/^@+/, '').trim() || 'VIP';
+        const cleanHeadline = stripVip30NameFromHeadline(headline, safeName, login);
+
+        vip30Name.textContent = safeName;
+        vip30Headline.textContent = cleanHeadline;
+        vip30Headline.dataset.originalText = cleanHeadline;
+
+        vip30TitleBlock.innerHTML = '';
+        if (namePosition === 'bottom') {
+          vip30TitleBlock.appendChild(vip30Headline);
+          vip30TitleBlock.appendChild(vip30Name);
+        } else {
+          vip30TitleBlock.appendChild(vip30Name);
+          vip30TitleBlock.appendChild(vip30Headline);
+        }
+
+        requestAnimationFrame(() => fitVip30HeadlineToTwoLines(vip30Headline));
+      }
+
+            function setupVip30Card(item) {
         const visual = visualOf(item);
         const meta = item && item.meta && typeof item.meta === 'object' ? item.meta : {};
         const metaUser = meta.user && typeof meta.user === 'object' ? meta.user : {};
@@ -1698,24 +1839,20 @@
         const displayName = String(rawDisplay || login || 'VIP').replace(/^@+/, '').trim();
 
         const kicker = String(visual.kicker || 'Upgrade im CGN-Altersheim').trim();
-        const headline = String(visual.headline || visual.title || `${displayName} wird Ehrenbewohner.`).trim();
+        const headline = String(visual.headline || visual.title || 'wird Ehrenbewohner').trim();
         const subline = String(visual.subline || 'Die Rentner begrüßen freundlich, die Heimleitung nickt anerkennend.').trim();
         const message = String(visual.message || '').trim();
         const brand = String(visual.brand || 'CGN VIP-Lounge').trim();
-        const perks = Array.isArray(visual.perks) && visual.perks.length
-          ? visual.perks.map(item => String(item || '').trim()).filter(Boolean)
-          : ['Keks extra', 'Klecks Soße mehr', 'gemütlicherer Sessel'];
+        const namePosition = resolveVip30NamePosition(visual, headline);
 
         if (vip30Kicker) vip30Kicker.textContent = kicker;
-        if (vip30Headline) renderVip30Headline(headline, displayName, login);
+        renderVip30TitleBlock(displayName, login, headline, namePosition);
         if (vip30Subline) vip30Subline.textContent = subline;
         if (vip30Message) {
           vip30Message.textContent = message;
           vip30Message.style.display = message ? 'block' : 'none';
         }
-        if (vip30Perks) {
-          vip30Perks.innerHTML = perks.slice(0, 5).map(perk => `<span>${String(perk).replace(/[&<>\"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]))}</span>`).join('');
-        }
+        if (vip30Perks) vip30Perks.innerHTML = '';
         if (vip30Brand) vip30Brand.textContent = brand;
 
         resetVip30Avatar(displayName, login);
