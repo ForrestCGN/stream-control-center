@@ -1,24 +1,47 @@
 # TODO – VIP30 / 30TageVIP
 
-## Sofort im nächsten Chat
+Stand: 2026-06-06 08:55 UTC
 
-- [ ] Keine Patch-Skripte verwenden
-- [ ] `/api/_status` prüfen: läuft Node aus `D:\Streaming\stramAssets`?
-- [ ] `backend/modules/twitch.js` Live vs Repo vergleichen
-- [ ] STEP8.7 sauber über vollständige Datei / Deploy abschließen
-- [ ] EventSub-Status prüfen:
-  - `channel.vip.add`
-  - `channel.vip.remove`
-  - `vipEventBus`
+## Erledigt in STEP8.7 / STEP8.7.1
 
-## Nach erfolgreichem STEP8.7
+- [x] Keine Patch-Skripte verwenden
+- [x] `/api/_status` geprüft
+- [x] Live-System `D:\Streaming\stramAssets` bestätigt
+- [x] Repo `D:\Git\stream-control-center` bestätigt
+- [x] Live vs Repo für `backend/modules/twitch.js` geprüft
+- [x] Live vs Repo für `backend/modules/vip30.js` geprüft
+- [x] Routing-Konflikt bei `/api/twitch/eventsub/status` gefunden
+- [x] Routing-Konflikt per vollständiger Ersatzdatei behoben
+- [x] `node -c backend\modules\twitch.js` geprüft
+- [x] `stepdone.cmd` vor Live-Test ausgeführt
+- [x] Node neu gestartet
+- [x] EventSub-Status geprüft:
+  - [x] `vipEventBus.configured = True`
+  - [x] `knownRemove = True`
+  - [x] `knownAdd = True`
+  - [x] `channel.vip.add`
+  - [x] `channel.vip.remove`
+- [x] Echter Twitch-Test mit manuellem VIP-Entzug
+- [x] `akighosty` wurde automatisch auf `external_removed` gesetzt
+- [x] Log `external_vip_remove_slot_released` bestätigt
 
-- [ ] Echten Twitch-Test: VIP manuell entziehen
-- [ ] Prüfen, ob VIP30-Slot automatisch `external_removed` wird
-- [ ] Logs prüfen
+## Offen: STEP8.8
 
-## Danach
+- [ ] VIP30-Alert-Konzept planen
+- [ ] Entscheiden: bestehendes Alert-System vs. eigenes VIP30-Overlay
+- [ ] Trigger-Bedingungen festlegen
+- [ ] Config-Felder festlegen
+- [ ] Textvarianten/Seed planen
+- [ ] Dashboardfähigkeit berücksichtigen
+- [ ] Diagnose-/Registry-Pflicht prüfen
+- [ ] Betroffene Dateien erst nach Planung bestimmen
+- [ ] Vor Umsetzung auf `go` warten
 
-- [ ] Alert-Step planen
-- [ ] Optional Cleanup-Automatik planen
-- [ ] Dashboard/Docs aktualisieren
+## Nicht vergessen
+
+- Keine Apply-Skripte
+- Keine Patch-Skripte
+- Keine Regex-/Set-Content-Patches
+- Dateien bei Bedarf exakt anfordern
+- Keine Funktionalität entfernen
+- Vor Live-Test immer `stepdone.cmd`

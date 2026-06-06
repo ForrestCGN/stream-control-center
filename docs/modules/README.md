@@ -1,6 +1,6 @@
 # Module-Dokumentation
 
-Stand: 2026-06-04
+Stand: 2026-06-06
 
 ## Zweck
 
@@ -31,6 +31,7 @@ docs/system-inspection/DASHBOARD_COMMANDS_CONSOLIDATION.md
 ## Aktuelle wichtige Modul-Dokus
 
 ```text
+docs/modules/vip30.md
 docs/modules/channelpoints.md
 docs/modules/channelpoints_steps_517_to_527_summary.md
 docs/modules/sound_system_channelpoints_routing.md
@@ -39,6 +40,37 @@ docs/modules/clip-shoutout-vso.md
 docs/modules/CLIP_SHOUTOUT_AUTOSHOUTOUT.md
 docs/modules/SHOUTOUT_SYSTEM_STRUCTURE_PLAN.md
 docs/modules/SHOUTOUT_SYSTEM_STANDARDS_ALIGNMENT.md
+```
+
+## VIP30 / 30TageVIP
+
+Aktueller Stand:
+
+```text
+STEP8.7.1 – Twitch EventSub channel.vip.remove bis VIP30-Slot external_removed live getestet
+```
+
+Wichtige Datei:
+
+```text
+docs/modules/vip30.md
+```
+
+Bestätigter Flow:
+
+```text
+Twitch channel.vip.remove
+-> twitch.js
+-> Communication Bus
+-> vip30.js
+-> VIP30-Slot external_removed
+-> Log external_vip_remove_slot_released
+```
+
+Nächster Schritt:
+
+```text
+STEP8.8 – VIP30-Alert planen
 ```
 
 ## Shoutout-System
@@ -77,6 +109,12 @@ docs/system-inspection/DASHBOARD_COMMANDS_CONSOLIDATION.md
 
 ## Aktueller Feature-Stand
 
+VIP30:
+
+```text
+STEP8.7.1 – EventSub VIP Remove live bestätigt
+```
+
 Channelpoints:
 
 ```text
@@ -106,7 +144,6 @@ Zurückgezogen/nicht verwenden:
 ```text
 STEP524_MEDIA_ASSET_FILENAME_ENCODING_CLEANUP_v0.1.0
 STEP525_CHANNELPOINTS_SAVE_ACTIVE_SYNCS_TWITCH_v0.9.11
-STEP525_CHANNELPOINTS_SIMPLIFIED_TWITCH_ACTIVATION_FLOW_v0.9.11
 ```
 
 ## Pflichtinhalte je Modul-Doku
