@@ -3,49 +3,58 @@
 Stand: 2026-06-06  
 Backend-Version: `0.8.9` / `step8.14-overlay-sets-design05`
 
-## Sound-/Media-/Overlay-Flow
+## Aktueller Flow
 
 ```txt
-Media-System: Upload / Registry / Dauer / Asset-ID
-Sound-System: Queue / Priorität / Playback / Output / Overlay
-Sound-System-Overlay: VIP30 Split-Lounge-Card
-VIP30: erzeugt Sound-Bundle und wählt OverlaySet
+VIP30 Erfolg
+-> Backend wählt OverlaySet
+-> /api/sound/bundle
+-> Sound-System
+-> sound_system_overlay.html
+-> CGN Split Lounge / VIP30 Design 05
 ```
 
-## Overlay-Design
+## Designreferenzen
 
-Das produktive VIP30-Overlay nutzt jetzt das gewählte `Design 05 – Split Lounge`:
+Allgemeine Designbasis:
 
 ```txt
-links: Avatar + 30 Tage VIP
-rechts: Kicker, Headline, Subline, Message, Perks, Brand
+docs/design/CGN_SPLIT_LOUNGE_DESIGN.md
 ```
+
+Konkrete VIP30-Ausprägung:
+
+```txt
+docs/design/VIP30_SPLIT_LOUNGE_DESIGN.md
+```
+
+Wichtig: Das Design soll bei späteren Modulen situationsbezogen angepasst werden, nicht blind 1:1 kopiert werden.
 
 ## OverlaySets
 
 VIP30 nutzt gewichtete, zusammengehörige Textsets:
 
 ```txt
+id
+enabled
+weight
 kicker
 headline
 subline
 message
 perks
 brand
-weight
-enabled
 ```
 
-Damit bleiben Headline/Subline/Perks passend zusammen.
+## Media-/Sound-System
 
-## Dashboard
+Der VIP30-Sound wird über das Media-System hochgeladen und als `alerts.mediaId` gespeichert.
 
-Im Config-Tab kann `alerts.overlaySets` als JSON bearbeitet werden.  
-Der Media-Sound wird weiterhin über das MediaField ausgewählt und in `alerts.mediaId` gespeichert.
+Das Sound-System übernimmt Queue, Priorität, Playback, Output und Overlay-Ausgabe.
 
 ## Kein Alert-System
 
-VIP30 nutzt nicht:
+VIP30 nutzt für diesen Flow nicht:
 
 ```txt
 alert_system.js

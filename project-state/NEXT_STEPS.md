@@ -2,7 +2,9 @@
 
 Stand: 2026-06-06
 
-## Nach Entpacken
+## Direkt nächster Schritt
+
+STEP8.14 einspielen und testen:
 
 ```powershell
 cd /d D:\Git\stream-control-center
@@ -11,17 +13,32 @@ node --check htdocs\dashboard\modules\vip30.js
 .\stepdone.cmd "VIP30-STEP8.14 Design05 OverlaySets"
 ```
 
-## Danach testen
+Danach Node neu starten.
 
-1. Node neu starten.
-2. Sound-System-Overlay in OBS aktiv lassen.
-3. VIP30-Testbundle auslösen oder echte Redemption testen.
-4. Prüfen:
+## Test
+
+1. Sound-System-Overlay in OBS aktiv lassen.
+2. Testbundle über `/api/sound/bundle` auslösen.
+3. Prüfen:
    - Sound läuft
    - Design 05 erscheint
-   - Textset wird zufällig gewählt
-   - Perks werden angezeigt
+   - Avatar/Initiale links
+   - Kicker/Headline/Subline rechts
+   - Perks unten
+   - zufälliges OverlaySet
 
 ## Später
 
-STEP8.15: Komfortabler Dashboard-Editor für VIP30 OverlaySets.
+```txt
+STEP8.15 – komfortabler Dashboard-Editor für VIP30 OverlaySets
+```
+
+## Design bei späteren Modulen
+
+Bei passenden neuen Overlay-/Alert-Modulen zuerst prüfen:
+
+```txt
+docs/design/CGN_SPLIT_LOUNGE_DESIGN.md
+```
+
+Dann situationsbezogen anpassen.

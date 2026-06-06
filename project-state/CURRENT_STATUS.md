@@ -4,23 +4,37 @@ Stand: 2026-06-06
 
 ## Aktueller Stand
 
-STEP8.14 Design05 + OverlaySets ist vorbereitet.
-
-## Grün vor STEP8.14
+VIP30 ist technisch bis STEP8.14 vorbereitet:
 
 ```txt
-mediaId = 1413
-mediaConfigured = true
-live.allowAlert = true
-sound bundle funktioniert
+Media-ID gesetzt
+Sound-System-Bundle funktioniert
 Ton läuft
-VIP30-Erkennung im Overlay funktioniert
+Overlay erkennt VIP30
+Design 05 wurde ausgewählt
+OverlaySets wurden vorbereitet
 ```
 
-## Neu in STEP8.14
+## Designsystem
+
+Das gewählte Design ist jetzt allgemein dokumentiert als:
 
 ```txt
-Design 05 – Split Lounge im produktiven Overlay
-gewichtete VIP30 OverlaySets im Backend
-JSON-Textarea für alerts.overlaySets im VIP30 Dashboard
+CGN Split Lounge
 ```
+
+Referenz:
+
+```txt
+docs/design/CGN_SPLIT_LOUNGE_DESIGN.md
+```
+
+Konkrete VIP30-Ausprägung:
+
+```txt
+docs/design/VIP30_SPLIT_LOUNGE_DESIGN.md
+```
+
+## Wichtig für spätere Module
+
+Das Design ist eine flexible Basis und soll pro Situation angepasst werden.

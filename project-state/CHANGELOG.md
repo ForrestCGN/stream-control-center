@@ -1,31 +1,23 @@
 # Changelog – VIP30 / 30TageVIP
 
-## 2026-06-06 – STEP8.14 Design05 + OverlaySets
+## 2026-06-06 – STEP8.14.2 CGN Split Lounge Designsystem
 
-### Geändert
+### Neu
 
-- `backend/modules/vip30.js`
-  - Version `0.8.9`
-  - Build `step8.14-overlay-sets-design05`
-  - `alerts.overlaySets` ergänzt
-  - gewichtete zufällige OverlaySet-Auswahl
-  - Platzhalter `{displayName}`, `{login}` etc.
+- `docs/design/CGN_SPLIT_LOUNGE_DESIGN.md`
+  - Allgemeine Designsystem-Referenz für die CGN Split Lounge.
+  - Beschreibt Grundstruktur, Farben, Layout, Typografie, Anpassungsregeln und Wiederverwendung.
 
-- `htdocs/overlays/sound_system_overlay.html`
-  - VIP30-Card auf Design 05 Split Lounge umgestellt
-  - Perks-Anzeige ergänzt
-  - Kicker/Headline/Subline/Message/Brand aus `visual`
+### Aktualisiert
 
-- `htdocs/dashboard/modules/vip30.js`
-  - `alerts.overlaySets` als sichere editierbare JSON-Einstellung
-  - JSON-Parsing vor Save mit Fehlermeldung
+- `docs/design/VIP30_SPLIT_LOUNGE_DESIGN.md`
+  - VIP30 als konkrete Ausprägung der allgemeinen CGN Split Lounge eingeordnet.
+- `docs/modules/vip30.md`
+- `project-state/CURRENT_STATUS.md`
+- `project-state/NEXT_STEPS.md`
+- `project-state/TODO.md`
+- `project-state/FILES.md`
 
-- `htdocs/dashboard/modules/vip30.css`
-  - JSON-Textarea Styling
+### Code
 
-### Nicht geändert
-
-- `backend/modules/sound_system.js`
-- `backend/modules/media.js`
-- `backend/modules/alert_system.js`
-- `backend/modules/vip-sound.js`
+Keine Codeänderung in diesem Step.
