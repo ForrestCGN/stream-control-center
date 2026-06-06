@@ -2,45 +2,41 @@
 
 Stand: 2026-06-06
 
-## Grün getestet
+## Aktueller Stand
 
-- STEP8.4 Stage B
-- STEP8.5 Cleanup Dry-Run
-- STEP8.6 externe Slot-Freigabe per Bus-Simulation
-- STEP8.7 echter Twitch EventSub `channel.vip.remove`
-- STEP8.7.1 Routing-Fix
-- STEP8.8 Dashboard Read-only
-- STEP8.8.1 Dashboard CGN-Design-Polish
-- STEP8.9 Dashboard Settings
-- STEP8.9.1 Config UX Polish
-- STEP8.10.1 Admin Refresh Actions
-- STEP8.10.3 Streamer/Mod Cleanup
+STEP8.12 Sound Bundle Overlay wurde vorbereitet.
 
-## Aktueller Schritt
+## Wichtig
 
-STEP8.11 Alert Bus Event wurde vorbereitet.
+Die frühere STEP8.12-Variante mit direktem `/api/sound/play` und hardcoded `soundId=vip30` ist zu ignorieren.
 
-## Inhalt
-
-Backend-Version:
+Der korrekte Stand ist:
 
 ```txt
-0.8.7 / step8.11-alert-bus-event
+VIP30 -> /api/sound/bundle -> Sound-System -> sound_system_overlay.html VIP30-Card
 ```
 
-Neu:
+## Geändert
 
 ```txt
-Bus-Event vip30.alert / trigger nach erfolgreichem Live-Flow
-GET /api/vip30/alert/status
+backend/modules/vip30.js
+htdocs/overlays/sound_system_overlay.html
 ```
 
-## Safety
+## Nicht geändert
 
-Alert-Bus-Event wird nur nach erfolgreichem VIP30-Live-Flow erzeugt und nur wenn `live.allowAlert` offen ist. Es schreibt nicht in Twitch und verändert keine Slots.
+```txt
+backend/modules/sound_system.js
+backend/modules/media.js
+backend/modules/alert_system.js
+backend/modules/vip-sound.js
+```
 
 ## Nächster Schritt
 
-```txt
-STEP8.12 VIP30 Alert an bestehendes Alert-/Sound-System anbinden
-```
+- ZIP entpacken.
+- `node -c backend\modules\vip30.js`.
+- `stepdone.cmd`.
+- Media-Sound hochladen.
+- `alerts.mediaId` setzen.
+- Erst danach `live.allowAlert` aktivieren.

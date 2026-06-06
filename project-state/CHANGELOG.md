@@ -1,25 +1,30 @@
 # Changelog – VIP30 / 30TageVIP
 
-## 2026-06-06 – STEP8.11 Alert Bus Event
+## 2026-06-06 – STEP8.12 Sound Bundle Overlay
 
 ### Geändert
 
 - `backend/modules/vip30.js`
-  - Version auf `0.8.7` gesetzt.
-  - Build auf `step8.11-alert-bus-event` gesetzt.
-  - Emits-Liste um `vip30.alert` ergänzt.
-  - Alert-Bus-Payload nach erfolgreichem VIP30-Live-Flow ergänzt.
-  - Runtime-Alert-Stats ergänzt.
-  - Read-only Route `/api/vip30/alert/status` ergänzt.
+  - Version auf `0.8.8`.
+  - Build auf `step8.12-sound-bundle-overlay`.
+  - VIP30 erzeugt bei Erfolg ein Sound-System-Bundle.
+  - Soundreferenz läuft über `alerts.mediaId` oder `alerts.mediaPath`.
+  - Kein hardcoded Sound.
+  - Kein direkter Sound-Playback-Code.
+
+- `htdocs/overlays/sound_system_overlay.html`
+  - Additive VIP30-Card ergänzt.
+  - `visual.module = "vip30"` wird erkannt.
+  - VIP30-Audio läuft weiter über das Sound-System.
 
 ### Nicht geändert
 
-- Kein Dashboard.
-- Kein Overlay.
-- Kein Sound-Modul.
-- Kein Twitch-Modul.
-- Keine DB-Migration.
+- `backend/modules/sound_system.js`
+- `backend/modules/media.js`
+- `backend/modules/alert_system.js`
+- `backend/modules/vip-sound.js`
+- Dashboard-Dateien
 
 ### Safety
 
-Alert-Bus-Event wird nur nach Erfolg erzeugt und nur wenn `live.allowAlert === true`.
+Bestehende Overlay-Funktionen wurden nicht ersetzt.

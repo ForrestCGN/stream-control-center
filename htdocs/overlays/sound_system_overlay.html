@@ -386,6 +386,209 @@
     }
 
 
+
+    /* STEP8.12_VIP30_CARD_ADDITIVE
+       Additive VIP30-Reward-Card. Bestehende Clip-/Video-/Audio-Logik bleibt unverändert.
+    */
+    #vip30Card {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      width: 650px;
+      min-height: 230px;
+      transform: translate(-50%, -50%);
+      opacity: 0;
+      pointer-events: none;
+      display: none;
+      color: #f8fbff;
+      font-family: "Segoe UI", system-ui, Arial, sans-serif;
+      overflow: visible;
+      z-index: 7;
+    }
+
+    #vip30Card.show {
+      display: block;
+      animation: vip30Intro .85s cubic-bezier(.16,1,.3,1) forwards;
+    }
+
+    #vip30Card.hide {
+      display: block;
+      animation: vip30Outro .62s ease-in forwards;
+    }
+
+    @keyframes vip30Intro {
+      from { opacity: 0; transform: translate(-50%, calc(-50% + 26px)) scale(.92); filter: blur(8px); }
+      to   { opacity: 1; transform: translate(-50%, -50%) scale(1); filter: blur(0); }
+    }
+
+    @keyframes vip30Outro {
+      from { opacity: 1; transform: translate(-50%, -50%) scale(1); filter: blur(0); }
+      to   { opacity: 0; transform: translate(-50%, calc(-50% - 22px)) scale(.95); filter: blur(5px); }
+    }
+
+    .vip30-card {
+      position: relative;
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      gap: 20px;
+      width: 100%;
+      min-height: 230px;
+      border-radius: 28px;
+      padding: 24px;
+      background:
+        radial-gradient(circle at 12% 18%, rgba(34,211,238,.22), transparent 34%),
+        radial-gradient(circle at 96% 8%, rgba(232,121,249,.20), transparent 36%),
+        linear-gradient(140deg, rgba(7,10,28,.985), rgba(30,10,58,.975));
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.08),
+        0 0 42px rgba(168,85,247,.46),
+        0 24px 76px rgba(0,0,0,.76);
+      overflow: hidden;
+    }
+
+    .vip30-card:before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: 3px;
+      background: linear-gradient(120deg, rgba(34,211,238,.96), rgba(168,85,247,.92), rgba(232,121,249,.76), rgba(34,211,238,.96));
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+
+    .vip30-card:after {
+      content: "";
+      position: absolute;
+      inset: -30%;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(168,85,247,.08), transparent 38%),
+        repeating-linear-gradient(120deg, rgba(255,255,255,.025) 0 1px, transparent 1px 9px);
+      opacity: .65;
+      pointer-events: none;
+    }
+
+    .vip30-avatar-wrap {
+      position: relative;
+      z-index: 2;
+      align-self: center;
+      justify-self: center;
+      width: 126px;
+      height: 126px;
+      padding: 5px;
+      border-radius: 50%;
+      background: conic-gradient(from 210deg,#22d3ee,#a855f7,#e879f9,#3b82f6,#22d3ee);
+      box-shadow:
+        0 0 24px rgba(168,85,247,.82),
+        0 0 34px rgba(34,211,238,.26);
+    }
+
+    .vip30-avatar {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      overflow: hidden;
+      background: radial-gradient(circle at 35% 25%, #eef7ff, #8b5cf6 34%, #27114b 70%);
+      border: 4px solid rgba(9,7,22,.96);
+      display: grid;
+      place-items: center;
+      font-size: 44px;
+      font-weight: 950;
+      color: #fff;
+    }
+
+    #vip30AvatarImg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center center;
+      display: none;
+      z-index: 2;
+      border-radius: inherit;
+      background: transparent;
+    }
+
+    #vip30AvatarPh {
+      position: relative;
+      z-index: 1;
+      text-shadow: 0 0 12px rgba(168,85,247,.72);
+    }
+
+    .vip30-content {
+      position: relative;
+      z-index: 2;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .vip30-kicker {
+      color: #b8c7e6;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    #vip30Headline {
+      margin: 0;
+      font-size: 36px;
+      line-height: 1.02;
+      font-weight: 950;
+      letter-spacing: -.04em;
+      color: #fff;
+      text-shadow:
+        0 0 16px rgba(168,85,247,.72),
+        0 0 26px rgba(34,211,238,.18);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #vip30Name {
+      color: #f0abfc;
+      text-shadow: 0 0 16px rgba(232,121,249,.62);
+    }
+
+    #vip30Subline {
+      margin: 12px 0 0;
+      color: #d7e4ff;
+      font-size: 17px;
+      line-height: 1.25;
+      font-weight: 700;
+    }
+
+    #vip30Message {
+      margin: 8px 0 0;
+      color: #aebee0;
+      font-size: 13px;
+      line-height: 1.35;
+      max-width: 420px;
+    }
+
+    .vip30-brand {
+      align-self: flex-start;
+      margin-top: 16px;
+      color: rgba(243,232,255,.86);
+      border: 1px solid rgba(168,85,247,.28);
+      background: rgba(168,85,247,.12);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 10px;
+      font-weight: 850;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+
 #status {
       position: fixed; left: 16px; bottom: 16px; padding: 8px 12px;
       border: 1px solid rgba(180, 90, 255, .45); border-radius: 999px;
@@ -484,6 +687,24 @@
     </section>
   </div>
 
+  <div id="vip30Card">
+    <section class="vip30-card">
+      <div class="vip30-avatar-wrap">
+        <div class="vip30-avatar">
+          <img id="vip30AvatarImg" alt="VIP30 Avatar">
+          <div id="vip30AvatarPh">?</div>
+        </div>
+      </div>
+      <div class="vip30-content">
+        <div class="vip30-kicker">30 Tage VIP</div>
+        <h1 id="vip30Headline"><span id="vip30Name">User</span> ist jetzt VIP</h1>
+        <p id="vip30Subline">Vielen Dank für deine Treue!</p>
+        <p id="vip30Message">Die Altersheim-Verwaltung hat den VIP-Sessel frisch bezogen.</p>
+        <div class="vip30-brand">CGN VIP-Lounge</div>
+      </div>
+    </section>
+  </div>
+
   <div id="status">Sound-System Overlay</div>
   <button id="unlock" type="button">Audio aktivieren</button>
 
@@ -507,6 +728,14 @@
       const clipCaptionTitle = document.getElementById('clipCaptionTitle');
       const clipDuration = document.getElementById('clipDuration');
       const clipBrand = document.querySelector('.h15-brand');
+      const vip30Card = document.getElementById('vip30Card');
+      const vip30AvatarImg = document.getElementById('vip30AvatarImg');
+      const vip30AvatarPh = document.getElementById('vip30AvatarPh');
+      const vip30Headline = document.getElementById('vip30Headline');
+      const vip30Name = document.getElementById('vip30Name');
+      const vip30Subline = document.getElementById('vip30Subline');
+      const vip30Message = document.getElementById('vip30Message');
+      const vip30Brand = document.querySelector('.vip30-brand');
       const status = document.getElementById('status');
       const unlockBtn = document.getElementById('unlock');
       const qs = new URLSearchParams(location.search);
@@ -613,6 +842,25 @@
         } catch (_) {}
       }
 
+      function hideVip30Card(silent){
+        try {
+          if (!vip30Card) return;
+          if (silent === true) {
+            vip30Card.classList.remove('show', 'hide');
+            vip30Card.style.display = 'none';
+            return;
+          }
+          vip30Card.classList.remove('show');
+          vip30Card.classList.add('hide');
+          setTimeout(() => {
+            if (vip30Card.classList.contains('hide')) {
+              vip30Card.classList.remove('hide');
+              vip30Card.style.display = 'none';
+            }
+          }, 700);
+        } catch (_) {}
+      }
+
       function hideVideo(options){
         const opts = options || {};
         clearVideoFallbackTimer();
@@ -637,6 +885,7 @@
         const opts = options || {};
         stopBeep();
         hideVideo({ silentClipCard: opts.silentClipCard === true });
+        hideVip30Card(opts.silentVip30Card === true);
         try { player.pause(); player.removeAttribute('src'); player.load(); } catch (_) {}
         currentRequestId = '';
       }
@@ -1348,10 +1597,120 @@
         }, fallbackMs);
       }
 
+      function isVip30Item(item) {
+        const visual = visualOf(item);
+        const meta = item && item.meta && typeof item.meta === 'object' ? item.meta : {};
+        return String(visual.module || '').toLowerCase() === 'vip30' ||
+          String(visual.type || '').toLowerCase() === 'vip30_success' ||
+          meta.vip30 === true ||
+          String(meta.event || '').toLowerCase() === 'vip30.success';
+      }
+
+      function resetVip30Avatar(displayName, login) {
+        if (!vip30AvatarImg || !vip30AvatarPh) return;
+        const first = (displayName || login || '?').slice(0, 1).toUpperCase();
+        vip30AvatarPh.textContent = first || '?';
+        vip30AvatarImg.removeAttribute('src');
+        vip30AvatarImg.onload = null;
+        vip30AvatarImg.onerror = null;
+        vip30AvatarImg.style.display = 'none';
+        vip30AvatarPh.style.display = 'block';
+      }
+
+      function applyVip30AvatarUrl(url) {
+        if (!vip30AvatarImg || !vip30AvatarPh) return false;
+        const clean = sanitizeHttpUrl(url);
+        if (!clean) return false;
+        vip30AvatarImg.onload = () => {
+          vip30AvatarImg.style.display = 'block';
+          vip30AvatarPh.style.display = 'none';
+        };
+        vip30AvatarImg.onerror = () => {
+          vip30AvatarImg.style.display = 'none';
+          vip30AvatarPh.style.display = 'block';
+        };
+        vip30AvatarImg.src = clean;
+        return true;
+      }
+
+      function showVip30Card() {
+        if (!vip30Card) return;
+        vip30Card.style.display = 'block';
+        vip30Card.classList.remove('hide', 'show');
+        void vip30Card.offsetWidth;
+        vip30Card.classList.add('show');
+      }
+
+      function setupVip30Card(item) {
+        const visual = visualOf(item);
+        const meta = item && item.meta && typeof item.meta === 'object' ? item.meta : {};
+        const metaUser = meta.user && typeof meta.user === 'object' ? meta.user : {};
+        const rawLogin = visual.login || visual.userLogin || meta.userLogin || metaUser.userLogin || item.login || 'vip';
+        const rawDisplay = visual.displayName || visual.user || visual.userDisplayName || meta.userDisplayName || metaUser.userDisplayName || rawLogin || 'VIP';
+        const login = String(rawLogin || 'vip').replace(/^@+/, '').trim();
+        const displayName = String(rawDisplay || login || 'VIP').replace(/^@+/, '').trim();
+
+        const title = String(visual.title || `${displayName} hat sich 30 Tage VIP gegönnt!`).trim();
+        const subline = String(visual.subline || 'Vielen Dank für deine Treue!').trim();
+        const message = String(visual.message || 'Die Altersheim-Verwaltung hat den VIP-Sessel frisch bezogen.').trim();
+        const brand = String(visual.brand || 'CGN VIP-Lounge').trim();
+
+        if (vip30Name) vip30Name.textContent = displayName || login || 'VIP';
+        if (vip30Headline) {
+          vip30Headline.innerHTML = '<span id="vip30Name"></span> hat sich 30 Tage VIP gegönnt!';
+          const nameEl = document.getElementById('vip30Name');
+          if (nameEl) nameEl.textContent = displayName || login || 'VIP';
+          if (title && title !== `${displayName} hat sich 30 Tage VIP gegönnt!`) vip30Headline.textContent = title;
+        }
+        if (vip30Subline) vip30Subline.textContent = subline;
+        if (vip30Message) vip30Message.textContent = message;
+        if (vip30Brand) vip30Brand.textContent = brand;
+
+        resetVip30Avatar(displayName, login);
+        const avatarUrl = sanitizeHttpUrl(visual.avatarUrl || meta.avatarUrl || metaUser.avatarUrl || item.avatarUrl || '');
+        if (!applyVip30AvatarUrl(avatarUrl) && login) {
+          lookupAvatarUrl(login).then((foundAvatar) => {
+            if (currentRequestId !== (item && item.requestId)) return;
+            applyVip30AvatarUrl(foundAvatar);
+          });
+        }
+      }
+
+      async function playVip30Item(item){
+        if (!item || !item.requestId) return;
+        if (!item.audioUrl && !item.mediaUrl) {
+          setStatus('VIP30-Item ohne Audio-URL');
+          await post('/client/error', { requestId: item.requestId, mediaType: 'vip30', error: 'vip30_audio_url_missing' });
+          return;
+        }
+
+        stopAudio({ silentVip30Card: true });
+        currentRequestId = item.requestId;
+        lastSeenRequestId = item.requestId;
+        setupVip30Card(item);
+        showVip30Card();
+
+        player.volume = normalizeVolume(item.volume);
+        player.src = cacheBust(item.audioUrl || item.mediaUrl, item.requestId);
+        setStatus('VIP30-Alert: ' + (item.label || item.soundId || '30 Tage VIP'));
+
+        try {
+          await player.play();
+          audioUnlocked = true;
+          document.body.dataset.audioUnlocked = '1';
+          await post('/client/audio-started', { requestId: currentRequestId, mediaType: 'vip30' });
+        } catch (err) {
+          setStatus('VIP30 Audio blockiert · Button klicken');
+          await post('/client/error', { requestId: currentRequestId, mediaType: 'vip30', error: err && err.message ? err.message : String(err) });
+          stopAudio();
+        }
+      }
+
       async function playSound(item){
         if (!item || !item.requestId) return;
         if (!shouldPlayInOverlay(item)) return;
         if (item.requestId === lastSeenRequestId && currentRequestId === item.requestId) return;
+        if (isVip30Item(item)) return playVip30Item(item);
         if (isTwitchClipItem(item)) return playTwitchClipItem(item);
         if (isVideoItem(item)) return playVideoFile(item);
         if (String(item.type || '').toLowerCase() === 'generated_beep') return playGeneratedBeep(item);
@@ -1361,6 +1720,7 @@
       player.addEventListener('ended', async () => {
         const requestId = currentRequestId;
         currentRequestId = '';
+        hideVip30Card();
         setStatus('Sound beendet');
         await post('/client/audio-ended', { requestId });
       });

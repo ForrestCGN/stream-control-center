@@ -2,22 +2,26 @@
 
 Stand: 2026-06-06
 
-## STEP8.11
-
-- [x] Alert-Bus-Event nach erfolgreichem VIP30-Live-Flow vorbereitet
-- [x] Alert-Gate `live.allowAlert` berücksichtigt
-- [x] Statusroute `/api/vip30/alert/status` ergänzt
-- [x] keine Dashboard-Überladung
-- [ ] Live testen
-
 ## STEP8.12
 
-- [ ] bestehendes Alert-/Sound-System prüfen
-- [ ] `vip30.alert / trigger` dort anbinden
-- [ ] Overlay-/Sound-Ausgabe für VIP30 testen
+- [x] VIP30 an Sound-System-Bundle angebunden
+- [x] eigene VIP30-Card additiv ins Sound-System-Overlay eingebaut
+- [x] Media-ID / Media-Pfad vorbereitet
+- [x] kein Alert-System verwendet
+- [x] vip-sound.js nicht verwendet
+- [x] sound_system.js nicht geändert
+- [x] media.js nicht geändert
+- [ ] Live testen
 
-## Später Admin
+## Vor Alert-Freigabe
 
-- [ ] eigener Admin-/Systembereich für technische VIP30-Aktionen
-- [ ] Rechte/Rollen für Admin-Aktionen
-- [ ] Audit-/Action-Log prüfen/anbinden
+- [ ] VIP30-Sound über Media-System hochladen
+- [ ] `alerts.mediaId` setzen
+- [ ] Sound-System-Overlay in OBS prüfen
+- [ ] `live.allowAlert` aktivieren
+- [ ] VIP30-Live-Test mit Sound/Overlay durchführen
+
+## Später
+
+- [ ] Dashboard Media-Picker für VIP30-Sound
+- [ ] Admin-/Systembereich für technische VIP30-Aktionen

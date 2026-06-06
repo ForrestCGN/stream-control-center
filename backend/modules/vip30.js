@@ -8,8 +8,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.7";
-const MODULE_BUILD = "step8.11-alert-bus-event";
+const MODULE_VERSION = "0.8.8";
+const MODULE_BUILD = "step8.12-sound-bundle-overlay";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -23,7 +23,7 @@ const MODULE_META = {
   category: "community",
   routePrefix: ROUTE_PREFIX,
   routesPrefix: [ROUTE_PREFIX],
-  description: "30 Tage VIP Node-Modul: SQLite-Grundlage, Dashboard-Logs/Stats, Communication-Bus, DB-/Dashboard-Config, Twitch-Capability-Check, Channelpoints-Reward-Link, Dry-Run-Redemption-Decision, interne Channelpoints-Bridge, Live-EventSub-Beobachtung und STEP8-Live-Action-Plan mit Safety-Gates, Live-Gates-API, Stage-A-Live-Ausfuehrung fuer VIP-Grant + Slot-Write und STEP8.4 Stage-B Fulfill/Cancel ohne Alert sowie STEP8.5 Cleanup/Entzug fuer abgelaufene VIP30-Slots sowie STEP8.6 externe VIP-Entzuege zur Slot-Freigabe sowie STEP8.11 VIP30-Alert-Bus-Event nach erfolgreichem Live-Flow.",
+  description: "30 Tage VIP Node-Modul: SQLite-Grundlage, Dashboard-Logs/Stats, Communication-Bus, DB-/Dashboard-Config, Twitch-Capability-Check, Channelpoints-Reward-Link, Dry-Run-Redemption-Decision, interne Channelpoints-Bridge, Live-EventSub-Beobachtung und STEP8-Live-Action-Plan mit Safety-Gates, Live-Gates-API, Stage-A-Live-Ausfuehrung fuer VIP-Grant + Slot-Write und STEP8.4 Stage-B Fulfill/Cancel ohne Alert sowie STEP8.5 Cleanup/Entzug fuer abgelaufene VIP30-Slots sowie STEP8.6 externe VIP-Entzuege zur Slot-Freigabe sowie STEP8.11 VIP30-Alert-Bus-Event nach erfolgreichem Live-Flow sowie STEP8.12 Sound-System-Bundle mit eigener Overlay-Card.",
   bus: {
     registered: true,
     heartbeat: true,
@@ -119,11 +119,18 @@ const DEFAULT_CONFIG = {
   },
   alerts: {
     enabled: true,
-    mode: "sound_system",
+    mode: "sound_system_bundle",
     soundKey: "vip30",
+    mediaId: 0,
+    mediaPath: "",
     category: "vip",
     durationMs: 9000,
-    designPending: true
+    soundBundleUrl: "/api/sound/bundle",
+    target: "stream",
+    outputTarget: "overlay",
+    priority: 90,
+    volume: 85,
+    designPending: false
   },
   textStyle: {
     category: "vip30",
@@ -439,7 +446,9 @@ const SETTING_DEFINITIONS = [
   { key: "bridge.acceptTitleMatch", path: "bridge.acceptTitleMatch", type: "boolean", category: "bridge", label: "Titel-Match erlauben", description: "VIP30-Reward auch anhand von Titel/Kosten erkennen, solange Twitch-ID noch fehlt.", editable: true },
   { key: "bridge.liveEventDryRunObserveEnabled", path: "bridge.liveEventDryRunObserveEnabled", type: "boolean", category: "bridge", label: "Live-EventSub Dry-Run", description: "Echte Channelpoints-Events aus EventSub nur beobachten und durch die VIP30-Decision schicken, ohne Twitch-/Slot-Schreibaktion.", editable: true },
   { key: "alerts.enabled", path: "alerts.enabled", type: "boolean", category: "alerts", label: "Alert aktiv", description: "Alert/Sound nach erfolgreicher Einlösung auslösen.", editable: true },
-  { key: "alerts.soundKey", path: "alerts.soundKey", type: "string", category: "alerts", label: "Sound-Key", description: "Sound-System-Key für den VIP30-Alert.", editable: true },
+  { key: "alerts.soundKey", path: "alerts.soundKey", type: "string", category: "alerts", label: "Sound-Key", description: "Interner Sound-/Label-Key für den VIP30-Alert.", editable: true },
+  { key: "alerts.mediaId", path: "alerts.mediaId", type: "integer", category: "alerts", label: "Media-ID", description: "Media-System Asset-ID des VIP30-Alert-Sounds. Upload/Auswahl erfolgt über das zentrale Media-System.", editable: true },
+  { key: "alerts.mediaPath", path: "alerts.mediaPath", type: "string", category: "alerts", label: "Media-Pfad", description: "Optionaler relativer Media-System-Pfad, falls keine Media-ID genutzt wird.", editable: true },
   { key: "cleanup.enabled", path: "cleanup.enabled", type: "boolean", category: "cleanup", label: "Cleanup aktiv", description: "Ablauf-/Revoke-Logik für abgelaufene VIP30-Slots aktivieren.", editable: true },
   { key: "cleanup.removeVipOnExpire", path: "cleanup.removeVipOnExpire", type: "boolean", category: "cleanup", label: "VIP bei Ablauf entziehen", description: "Bei abgelaufenen VIP30-Slots den Twitch-VIP automatisch per Cleanup entfernen.", editable: true },
   { key: "cleanup.releaseSlotOnExternalVipRemove", path: "cleanup.releaseSlotOnExternalVipRemove", type: "boolean", category: "cleanup", label: "Externen VIP-Entzug verarbeiten", description: "Wenn ein VIP manuell/extern entfernt wird, einen aktiven VIP30-Slot freigeben.", editable: true },
@@ -841,6 +850,38 @@ function httpGetJson(targetUrl) {
       });
     });
     request.on("error", reject);
+    request.end();
+  });
+}
+
+function httpPostJson(targetUrl, body = {}) {
+  const cleanUrl = cleanString(targetUrl);
+  if (!cleanUrl) return Promise.reject(new Error("target_url_missing"));
+  const payload = JSON.stringify(body || {});
+  const options = {
+    hostname: process.env.VIP30_TARGET_HOST || process.env.CHANNELPOINTS_TARGET_HOST || DEFAULT_TARGET_HOST,
+    port: Number(process.env.VIP30_TARGET_PORT || process.env.CHANNELPOINTS_TARGET_PORT || DEFAULT_TARGET_PORT) || DEFAULT_TARGET_PORT,
+    path: cleanUrl.startsWith("/") ? cleanUrl : `/${cleanUrl}`,
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "Content-Length": Buffer.byteLength(payload)
+    }
+  };
+  return new Promise((resolve, reject) => {
+    const request = http.request(options, response => {
+      let data = "";
+      response.setEncoding("utf8");
+      response.on("data", chunk => { data += chunk; });
+      response.on("end", () => {
+        let parsed = data;
+        try { parsed = data ? JSON.parse(data) : {}; } catch (_) {}
+        resolve({ ok: response.statusCode >= 200 && response.statusCode < 300, statusCode: response.statusCode, data: parsed });
+      });
+    });
+    request.on("error", reject);
+    request.write(payload);
     request.end();
   });
 }
@@ -2529,9 +2570,90 @@ function buildVip30AlertPayload(result = {}) {
   };
 }
 
-function triggerVip30AlertBusEvent(result = {}, options = {}) {
+function buildVip30SoundBundlePayload(alertPayload = {}, options = {}) {
+  const config = getConfig();
+  const alerts = config.alerts || DEFAULT_CONFIG.alerts;
+  const mediaId = intValue(alerts.mediaId || alerts.soundMediaId || alerts.mediaAssetId || 0, 0);
+  const mediaPath = cleanString(alerts.mediaPath || alerts.mediaRelativePath || alerts.registryPath || "");
+  const userLogin = cleanString(alertPayload.user && alertPayload.user.userLogin || "").toLowerCase();
+  const displayName = cleanString(alertPayload.user && alertPayload.user.userDisplayName || userLogin || "VIP");
+  const durationMs = intValue(alerts.durationMs || alertPayload.alert && alertPayload.alert.durationMs, 9000);
+  const priority = intValue(alerts.priority, DEFAULT_CONFIG.alerts.priority || 90);
+  const volume = intValue(alerts.volume, DEFAULT_CONFIG.alerts.volume || 85);
+  const bundleId = `vip30_${Date.now()}_${userLogin || "user"}`;
+  const mediaFields = mediaId > 0
+    ? { mediaId }
+    : (mediaPath ? { mediaPath } : {});
+
+  const visual = {
+    module: "vip30",
+    layout: "vip30_reward",
+    type: "vip30_success",
+    displayName,
+    login: userLogin,
+    user: displayName,
+    avatarUrl: cleanString(alertPayload.user && alertPayload.user.avatarUrl || ""),
+    headline: cleanString(alertPayload.alert && alertPayload.alert.headline || "30 Tage VIP"),
+    title: cleanString(alertPayload.alert && alertPayload.alert.title || `${displayName} hat sich 30 Tage VIP gegönnt!`),
+    subline: cleanString(alertPayload.alert && alertPayload.alert.subline || "Vielen Dank für deine Treue!"),
+    message: cleanString(alertPayload.alert && alertPayload.alert.message || "Die Altersheim-Verwaltung hat den VIP-Sessel frisch bezogen."),
+    brand: "CGN VIP-Lounge",
+    durationMs,
+    theme: "forrest_neon",
+    slot: alertPayload.slot || {}
+  };
+
+  return {
+    bundleId,
+    bundleType: "vip30",
+    priority,
+    locked: true,
+    source: MODULE_NAME,
+    requestedBy: userLogin || displayName,
+    meta: {
+      vip30: true,
+      event: "vip30.success",
+      user: alertPayload.user || {},
+      slot: alertPayload.slot || {},
+      sourceResult: alertPayload.sourceResult || {},
+      reason: cleanString(options.reason || "live_success")
+    },
+    visual,
+    items: [{
+      role: "main",
+      ...mediaFields,
+      label: visual.title,
+      category: cleanString(alerts.category || "vip"),
+      source: MODULE_NAME,
+      mediaType: "audio",
+      type: "file",
+      outputTarget: cleanString(alerts.outputTarget || DEFAULT_CONFIG.alerts.outputTarget || "overlay"),
+      target: cleanString(alerts.target || DEFAULT_CONFIG.alerts.target || "stream"),
+      volume,
+      priority,
+      durationMs,
+      queueIfBusy: true,
+      dropIfBusy: false,
+      canInterrupt: false,
+      canBeInterrupted: true,
+      parallelAllowed: false,
+      meta: {
+        vip30: true,
+        event: "vip30.success",
+        userLogin,
+        userDisplayName: displayName,
+        slot: alertPayload.slot || {},
+        sourceResult: alertPayload.sourceResult || {}
+      },
+      visual
+    }]
+  };
+}
+
+async function triggerVip30AlertSoundBundle(result = {}, options = {}) {
   const config = getConfig();
   const live = config.live || DEFAULT_CONFIG.live;
+  const alerts = config.alerts || DEFAULT_CONFIG.alerts;
   const userLogin = result && result.decision && result.decision.user ? cleanString(result.decision.user.userLogin || "").toLowerCase() : "";
   const skipped = (reason) => {
     runtimeStats.alertSkipped += 1;
@@ -2539,41 +2661,67 @@ function triggerVip30AlertBusEvent(result = {}, options = {}) {
     runtimeStats.lastAlertStatus = "skipped";
     runtimeStats.lastAlertReason = reason;
     runtimeStats.lastAlertUserLogin = userLogin;
-    return { ok: true, skipped: true, reason, safety: { noTwitchWrite: true, alertOnly: true } };
+    return { ok: true, skipped: true, reason, delivery: "sound_bundle", safety: { noTwitchWrite: true, alertOnly: true } };
   };
 
   if (!result || result.ok !== true) return skipped("result_not_successful");
-  if (config.alerts && config.alerts.enabled === false) return skipped("alerts_disabled");
+  if (alerts.enabled === false) return skipped("alerts_disabled");
   if (!live || live.allowAlert !== true) return skipped("allow_alert_gate_disabled");
-  if (config.bus && config.bus.enabled === false) return skipped("bus_disabled");
 
-  const currentBus = getBus();
-  if (!currentBus || typeof currentBus.emit !== "function") {
-    runtimeStats.alertFailed += 1;
-    runtimeStats.lastAlertAt = nowIso();
-    runtimeStats.lastAlertStatus = "failed";
-    runtimeStats.lastAlertReason = "bus_unavailable";
-    runtimeStats.lastAlertUserLogin = userLogin;
-    return { ok: false, reason: "bus_unavailable", safety: { noTwitchWrite: true, alertOnly: true } };
-  }
+  const mediaId = intValue(alerts.mediaId || alerts.soundMediaId || alerts.mediaAssetId || 0, 0);
+  const mediaPath = cleanString(alerts.mediaPath || alerts.mediaRelativePath || alerts.registryPath || "");
+  if (mediaId <= 0 && !mediaPath) return skipped("media_not_configured");
 
   const payload = buildVip30AlertPayload(result);
+  const bundlePayload = buildVip30SoundBundlePayload(payload, options);
+  const bundleUrl = cleanString(alerts.soundBundleUrl || DEFAULT_CONFIG.alerts.soundBundleUrl || "/api/sound/bundle");
+
   try {
-    const emitted = currentBus.emit({
-      type: "event",
-      channel: "vip30.alert",
-      action: "trigger",
-      source: { type: "module", id: `module:${MODULE_NAME}`, module: MODULE_NAME },
-      target: { type: "all", id: "*" },
-      payload: { ...payload, emittedAt: nowIso(), reason: cleanString(options.reason || "live_success") },
-      meta: { requireAck: false, replayable: true, ttlMs: config.bus && config.bus.ttlMs || 60000, productionTarget: true, twitchWrite: false }
-    });
+    const response = await httpPostJson(bundleUrl, bundlePayload);
+    const ok = response && response.ok === true && response.data && response.data.ok !== false;
+    if (!ok) {
+      const reason = response && response.data && (response.data.error || response.data.message) ? cleanString(response.data.error || response.data.message) : `sound_bundle_http_${response ? response.statusCode : "unknown"}`;
+      runtimeStats.alertFailed += 1;
+      runtimeStats.lastAlertAt = nowIso();
+      runtimeStats.lastAlertStatus = "failed";
+      runtimeStats.lastAlertReason = reason;
+      runtimeStats.lastAlertUserLogin = userLogin;
+      writeLog("vip30_alert_sound_bundle_failed", {
+        userId: payload.user.userId,
+        userLogin: payload.user.userLogin,
+        userDisplayName: payload.user.userDisplayName,
+        success: false,
+        reason: "sound_bundle_failed",
+        message: reason,
+        errorMessage: reason,
+        payload: { alert: payload, bundleRequest: bundlePayload, bundleResponse: response }
+      });
+      return { ok: false, skipped: false, status: "sound_bundle_failed", reason, response, payload: bundlePayload, safety: { noTwitchWrite: true, alertOnly: true } };
+    }
+
     runtimeStats.alertTriggers += 1;
     runtimeStats.lastAlertAt = nowIso();
-    runtimeStats.lastAlertStatus = "triggered";
-    runtimeStats.lastAlertReason = "triggered";
+    runtimeStats.lastAlertStatus = "sound_bundle_queued";
+    runtimeStats.lastAlertReason = "sound_bundle_queued";
     runtimeStats.lastAlertUserLogin = userLogin;
-    writeLog("vip30_alert_bus_triggered", {
+
+    const currentBus = getBus();
+    let emitted = null;
+    if (currentBus && typeof currentBus.emit === "function" && !(config.bus && config.bus.enabled === false)) {
+      try {
+        emitted = currentBus.emit({
+          type: "event",
+          channel: "vip30.alert",
+          action: "sound_bundle.queued",
+          source: { type: "module", id: `module:${MODULE_NAME}`, module: MODULE_NAME },
+          target: { type: "module", id: "sound_system", module: "sound_system" },
+          payload: { ...payload, soundBundle: bundlePayload, soundResponse: response.data, emittedAt: nowIso(), reason: cleanString(options.reason || "live_success") },
+          meta: { requireAck: false, replayable: true, ttlMs: config.bus && config.bus.ttlMs || 60000, productionTarget: true, twitchWrite: false, soundSystemOwnsPlayback: true }
+        });
+      } catch (_) {}
+    }
+
+    writeLog("vip30_alert_sound_bundle_queued", {
       userId: payload.user.userId,
       userLogin: payload.user.userLogin,
       userDisplayName: payload.user.userDisplayName,
@@ -2581,11 +2729,11 @@ function triggerVip30AlertBusEvent(result = {}, options = {}) {
       twitchRedemptionId: payload.sourceResult.twitchRedemptionId,
       slotId: payload.slot.slotId,
       success: true,
-      reason: "alert_bus_triggered",
-      message: "VIP30-Alert-Bus-Event wurde nach erfolgreicher VIP30-Einlösung erzeugt.",
-      payload: { alert: payload, bus: emitted }
+      reason: "sound_bundle_queued",
+      message: "VIP30-Alert wurde als Sound-System-Bundle in die Warteschlange gelegt.",
+      payload: { alert: payload, bundleRequest: bundlePayload, bundleResponse: response.data, bus: emitted }
     });
-    return { ok: true, skipped: false, status: "alert_bus_triggered", bus: emitted, payload };
+    return { ok: true, skipped: false, status: "sound_bundle_queued", delivery: "sound_bundle", soundBundle: bundlePayload, soundResponse: response.data, bus: emitted };
   } catch (err) {
     const message = err && err.message ? err.message : String(err);
     runtimeStats.alertFailed += 1;
@@ -2593,17 +2741,17 @@ function triggerVip30AlertBusEvent(result = {}, options = {}) {
     runtimeStats.lastAlertStatus = "failed";
     runtimeStats.lastAlertReason = message;
     runtimeStats.lastAlertUserLogin = userLogin;
-    writeLog("vip30_alert_bus_failed", {
+    writeLog("vip30_alert_sound_bundle_failed", {
       userId: payload.user.userId,
       userLogin: payload.user.userLogin,
       userDisplayName: payload.user.userDisplayName,
       success: false,
-      reason: "alert_bus_failed",
+      reason: "sound_bundle_request_failed",
       message,
       errorMessage: message,
-      payload: { alert: payload }
+      payload: { alert: payload, bundleRequest: bundlePayload }
     });
-    return { ok: false, reason: "alert_bus_failed", error: message, safety: { noTwitchWrite: true, alertOnly: true } };
+    return { ok: false, reason: "sound_bundle_request_failed", error: message, delivery: "sound_bundle", safety: { noTwitchWrite: true, alertOnly: true } };
   }
 }
 
@@ -2728,8 +2876,8 @@ async function executeVip30LiveStageA(input = {}, options = {}) {
         : "Stage A erfolgreich: Twitch VIP vergeben und VIP30-Slot gespeichert. Redemption wurde nicht fulfilled/canceled.",
       payload: result
     });
-    result.alert = triggerVip30AlertBusEvent(result, { reason: stageMode === "B" ? "live_stage_b_success" : "live_stage_a_success" });
-    emitLiveExecutionEvent(stageMode === "B" ? "stage_b.success" : "stage_a.success", { result: { ...result, grant: { ...result.grant, raw: undefined }, redemptionUpdate: result.redemptionUpdate ? { ...result.redemptionUpdate, raw: undefined } : null, alert: result.alert ? { ok: result.alert.ok, skipped: result.alert.skipped, status: result.alert.status || "", reason: result.alert.reason || "" } : null } });
+    result.alert = await triggerVip30AlertSoundBundle(result, { reason: stageMode === "B" ? "live_stage_b_success" : "live_stage_a_success" });
+    emitLiveExecutionEvent(stageMode === "B" ? "stage_b.success" : "stage_a.success", { result: { ...result, grant: { ...result.grant, raw: undefined }, redemptionUpdate: result.redemptionUpdate ? { ...result.redemptionUpdate, raw: undefined } : null, alert: result.alert ? { ok: result.alert.ok, skipped: result.alert.skipped, status: result.alert.status || "", reason: result.alert.reason || "", delivery: result.alert.delivery || "" } : null } });
     publishStatus(stageMode === "B" ? "live_stage_b_success" : "live_stage_a_success");
     return result;
   } catch (err) {
@@ -3479,10 +3627,18 @@ function buildStatus() {
     },
     alerts: {
       enabled: config.alerts && config.alerts.enabled !== false,
-      mode: config.alerts && config.alerts.mode || "sound_system",
+      mode: config.alerts && config.alerts.mode || "sound_system_bundle",
       soundKey: config.alerts && config.alerts.soundKey || "vip30",
+      mediaId: config.alerts && (config.alerts.mediaId || config.alerts.soundMediaId || config.alerts.mediaAssetId) || 0,
+      mediaPath: config.alerts && (config.alerts.mediaPath || config.alerts.mediaRelativePath || config.alerts.registryPath) || "",
       durationMs: config.alerts && config.alerts.durationMs || 9000,
       liveAllowed: config.live && config.live.allowAlert === true,
+      delivery: "sound_bundle",
+      soundBundleUrl: config.alerts && config.alerts.soundBundleUrl || DEFAULT_CONFIG.alerts.soundBundleUrl,
+      outputTarget: config.alerts && config.alerts.outputTarget || DEFAULT_CONFIG.alerts.outputTarget,
+      target: config.alerts && config.alerts.target || DEFAULT_CONFIG.alerts.target,
+      priority: config.alerts && config.alerts.priority || DEFAULT_CONFIG.alerts.priority,
+      volume: config.alerts && config.alerts.volume || DEFAULT_CONFIG.alerts.volume,
       busChannel: "vip30.alert",
       triggers: runtimeStats.alertTriggers,
       skipped: runtimeStats.alertSkipped,
@@ -3874,9 +4030,18 @@ function init(context = {}) {
           status: config.alerts && config.alerts.enabled === false ? "alerts_disabled" : (config.live && config.live.allowAlert === true ? "alert_gate_open" : "alert_gate_locked"),
           enabled: config.alerts && config.alerts.enabled !== false,
           liveAllowed: config.live && config.live.allowAlert === true,
-          mode: config.alerts && config.alerts.mode || "sound_system",
+          mode: config.alerts && config.alerts.mode || "sound_system_bundle",
           soundKey: config.alerts && config.alerts.soundKey || "vip30",
+          mediaId: config.alerts && (config.alerts.mediaId || config.alerts.soundMediaId || config.alerts.mediaAssetId) || 0,
+          mediaPath: config.alerts && (config.alerts.mediaPath || config.alerts.mediaRelativePath || config.alerts.registryPath) || "",
+          mediaConfigured: !!(config.alerts && ((config.alerts.mediaId || config.alerts.soundMediaId || config.alerts.mediaAssetId) || config.alerts.mediaPath || config.alerts.mediaRelativePath || config.alerts.registryPath)),
           durationMs: config.alerts && config.alerts.durationMs || 9000,
+          delivery: "sound_bundle",
+          soundBundleUrl: config.alerts && config.alerts.soundBundleUrl || DEFAULT_CONFIG.alerts.soundBundleUrl,
+          outputTarget: config.alerts && config.alerts.outputTarget || DEFAULT_CONFIG.alerts.outputTarget,
+          target: config.alerts && config.alerts.target || DEFAULT_CONFIG.alerts.target,
+          priority: config.alerts && config.alerts.priority || DEFAULT_CONFIG.alerts.priority,
+          volume: config.alerts && config.alerts.volume || DEFAULT_CONFIG.alerts.volume,
           busChannel: "vip30.alert",
           stats: {
             triggers: runtimeStats.alertTriggers,
