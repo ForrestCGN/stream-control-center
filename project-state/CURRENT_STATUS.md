@@ -1,6 +1,6 @@
 # CURRENT STATUS – VIP30
 
-Stand: 2026-06-06 09:05 UTC
+Stand: 2026-06-06 09:20 UTC
 
 ## Grün getestet
 
@@ -9,82 +9,45 @@ Stand: 2026-06-06 09:05 UTC
 - STEP8.6 externe Slot-Freigabe per Bus-Simulation
 - STEP8.7 echter Twitch EventSub `channel.vip.remove` bis Live-Bus
 - STEP8.7.1 Routing-Fix für `/api/twitch/eventsub/status`
+- STEP8.8 VIP30 Dashboard Read-only funktional im Dashboard geprüft
 
-## Neu vorbereitet
+## Aktueller Dashboard-Stand
 
-- STEP8.8 VIP30 Dashboard Read-only ZIP erstellt
-
-## STEP8.8 Dashboard
-
-Neues eigenes Dashboard-Modul für 30TageVIP:
+STEP8.8:
 
 ```txt
-htdocs/dashboard/modules/vip30.js
-htdocs/dashboard/modules/vip30.css
+VIP30 Dashboard Read-only funktioniert.
 ```
 
-Eingebunden in:
+Forrest-Rückmeldung:
 
 ```txt
-htdocs/dashboard/index.html
-htdocs/dashboard/app.js
+Sieht alles gut im Dashboard aus.. Leider kein CGN-Design, aber sonst ok :)
 ```
 
-Dashboard-Navigation:
+STEP8.8.1:
 
 ```txt
-Community -> 30 Tage VIP
+CGN-/Neon-Design-Polish für htdocs/dashboard/modules/vip30.css vorbereitet.
 ```
 
-Das vorhandene `vip.js` bleibt unverändert und gehört weiterhin zum VIP-/Mod-Sound-System.
+## Aktuelle Safety
 
-## Dashboard-Funktionen
-
-Read-only:
-
-- Modulstatus / Version / Build
-- aktive/freie Slots
-- Slotliste
-- Logs
-- External VIP Remove Status
-- Cleanup Check
-- Twitch EventSub VIP Status
-- Diagnose-JSON
-
-## Safety
-
-Keine produktiven Aktionen im Dashboard:
-
-- kein VIP vergeben
-- kein VIP entziehen
-- kein Cleanup ausführen
-- kein Fulfill/Cancel
-- kein Test-Event
-- kein Alert
-
-## Aktueller bestätigter EventSub-Stand
+Weiterhin nicht aktiv:
 
 ```txt
-vipEventBus.configured = True
-knownRemove = True
-knownAdd = True
-channel.vip.add
-channel.vip.remove
-```
-
-Echter Live-Test bestätigt:
-
-```txt
-akighosty -> external_removed
-external_vip_remove_slot_released
+- VIP30-Alert
+- Auto-Alert
+- VIP manuell vergeben über Dashboard
+- VIP manuell entziehen über Dashboard
+- Cleanup Run über Dashboard
+- Redemption fulfill/cancel über Dashboard
 ```
 
 ## Nächster sinnvoller Schritt
 
-STEP8.8 übernehmen und testen.
-
-Danach:
+Wenn STEP8.8.1 Design passt:
 
 ```txt
-STEP8.9 – VIP30 Alert planen
+STEP8.9 – Dashboard Config Read/Write planen
 ```

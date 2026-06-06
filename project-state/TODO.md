@@ -1,31 +1,28 @@
 # TODO – VIP30 / 30TageVIP
 
-Stand: 2026-06-06 09:05 UTC
+Stand: 2026-06-06 09:20 UTC
 
-## STEP8.8 Dashboard
+## STEP8.8.1
 
-- [x] Echtes Dashboard-ZIP geprüft
-- [x] Bestehendes `vip.js` als VIP-/Mod-Sound-System erkannt
-- [x] Eigenes Modul `vip30` geplant
-- [x] Neue Datei `htdocs/dashboard/modules/vip30.js` erstellt
-- [x] Neue Datei `htdocs/dashboard/modules/vip30.css` erstellt
-- [x] `htdocs/dashboard/index.html` um CSS, Section und Script ergänzt
-- [x] `htdocs/dashboard/app.js` um Modul, Community-Item, Catalog und Favorite ergänzt
-- [x] Frontend-JS per `node --check` geprüft
-
-## Noch beim Nutzer zu testen
-
+- [x] VIP30 Dashboard funktional geprüft
+- [x] CGN-Design-Polish geplant
+- [x] CSS-only ZIP vorbereitet
 - [ ] ZIP übernehmen
-- [ ] `node --check htdocs\dashboard\app.js`
-- [ ] `node --check htdocs\dashboard\modules\vip30.js`
-- [ ] `stepdone.cmd "VIP30-STEP8.8 Dashboard Readonly"`
-- [ ] Live-System aktualisieren / Node neu starten
-- [ ] Dashboard öffnen und Community -> 30 Tage VIP prüfen
+- [ ] `stepdone.cmd` ausführen
+- [ ] Dashboard optisch prüfen
 
-## STEP8.9 offen
+## STEP8.9 Dashboard Config
 
-- [ ] VIP30-Alert-Konzept planen
-- [ ] Trigger-Bedingungen definieren
-- [ ] Alert-System-/Sound-System-Anbindung klären
-- [ ] Textvarianten planen
-- [ ] Dashboard-Config für Alert vorbereiten
+- [ ] Settings in harmlose/gefährliche Kategorien trennen
+- [ ] Read/Write-API im bestehenden VIP30-Backend prüfen
+- [ ] UI-Formular planen
+- [ ] Save-Flow mit Bestätigung für kritische Settings planen
+- [ ] Audit-/Logging-Pflicht prüfen
+- [ ] Keine gefährlichen Actions ohne separate Freigabe bauen
+
+## Grundregeln
+
+- Keine Patch-Skripte
+- Bei Dateiänderungen vollständige Ersatzdateien
+- Keine Funktionalität entfernen
+- Vor Live-Test immer `stepdone.cmd`

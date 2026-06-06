@@ -1,48 +1,60 @@
 # NEXT STEPS – VIP30 / 30TageVIP
 
-Stand: 2026-06-06 09:05 UTC
+Stand: 2026-06-06 09:20 UTC
 
-## Direkt als Nächstes
+## Direkt nach STEP8.8.1
 
-STEP8.8 Dashboard-ZIP übernehmen und testen:
+- [ ] ZIP entpacken
+- [ ] `stepdone.cmd "VIP30-STEP8.8.1 Dashboard CGN Design Polish"` ausführen
+- [ ] Browser Hard Refresh
+- [ ] Dashboard `Community -> 30 Tage VIP` optisch prüfen
 
-```powershell
-cd /d D:\Git\stream-control-center
-node --check htdocs\dashboard\app.js
-node --check htdocs\dashboard\modules\vip30.js
-.\stepdone.cmd "VIP30-STEP8.8 Dashboard Readonly"
-```
+## Danach: STEP8.9 planen
 
-Danach Live-System aktualisieren/Node neu starten und im Browser prüfen:
+Thema:
 
 ```txt
-/dashboard
-Community -> 30 Tage VIP
+VIP30 Dashboard Config Read/Write
 ```
 
-## Prüfpunkte
-
-- [ ] „30 Tage VIP“ erscheint im Community-Bereich.
-- [ ] Bestehendes „VIP-System“ bleibt unverändert.
-- [ ] Übersicht lädt ohne Fehler.
-- [ ] Slots werden angezeigt.
-- [ ] Logs werden angezeigt.
-- [ ] Diagnose-Tab zeigt Statusdaten.
-- [ ] Keine produktiven Aktionsbuttons vorhanden.
-
-## Danach
-
-STEP8.9 planen:
+Vor Code klären:
 
 ```txt
-VIP30 Alert bei erfolgreicher VIP30-Vergabe
+- Welche Einstellungen dürfen direkt bearbeitet werden?
+- Welche gefährlichen Einstellungen bleiben gesperrt?
+- Welche Aktionen brauchen Confirm?
+- Welche Aktionen brauchen Audit?
+- Welche Aktionen brauchen Owner/Admin?
 ```
 
-Vor Umsetzung klären:
+## Kandidaten für harmlose Config
 
-- bestehendes Alert-System oder eigenes VIP30-Overlay
-- Trigger nur bei erfolgreichem Stage-B-Success
-- keine Alerts bei `external_removed`, Cleanup, Blockern oder Refund
-- Textvarianten im CGN-/Altersheim-/Rentner-Stil
-- Dashboardfähigkeit der Alert-Konfiguration
-- Diagnose-/Registry-Pflicht prüfen
+```txt
+reward.title
+reward.cost
+slots.maxSlots
+slots.durationDays
+slots.blockModerators
+slots.blockExistingVip
+slots.blockExistingSlot
+cleanup.enabled
+cleanup.releaseSlotOnExternalVipRemove
+logging.recentLimit
+alerts.enabled
+alerts.soundKey
+alerts.durationMs
+```
+
+## Weiter gesperrt bis separat geplant
+
+```txt
+live.allowVipGrant
+live.allowSlotWrite
+live.allowRedemptionFulfillCancel
+twitch.liveActionsEnabled
+Cleanup Run
+External VIP Remove Process
+VIP manuell vergeben
+VIP manuell entziehen
+Redemption fulfill/cancel
+```
