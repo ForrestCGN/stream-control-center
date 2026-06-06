@@ -13,33 +13,37 @@ Stand: 2026-06-06
 - STEP8.8.1 Dashboard CGN-Design-Polish
 - STEP8.9 Dashboard Settings
 - STEP8.9.1 Config UX Polish
+- STEP8.10.1 Admin Refresh Actions
 
 ## Aktueller Schritt
 
-STEP8.10.1 Admin Refresh Actions wurde vorbereitet.
+STEP8.10.2 Light Admin Actions wurde vorbereitet.
 
-## Inhalt STEP8.10.1
+## Inhalt
 
-Neuer Dashboard-Tab:
-
-```txt
-Aktionen
-```
-
-Nur sichere GET-/Refresh-Aktionen:
+Dashboard-Tab `Aktionen` enthält nun zusätzlich:
 
 ```txt
-Status, Slots, Logs, Settings, Cleanup Check, External Remove Status, EventSub Status
+Reward Sync/Ensure
+Cleanup Dry-Run
+Cleanup Run
+Slot external_removed
 ```
 
 ## Safety
 
-Keine Backend-Änderung, keine Twitch-Schreibaktion, kein Cleanup-Run, keine Redemption-Aktion.
+Keine Backend-Änderung. Das Dashboard nutzt bestehende VIP30-Routen und einfache Browser-Bestätigung. Spätere Rechte/Rollen sollen die Sichtbarkeit/Ausführung steuern.
 
 ## Nächster Schritt
 
-Nach Test von STEP8.10.1:
+Nach Test von STEP8.10.2:
 
 ```txt
-STEP8.10.2 Confirm-/Audit-Konzept für gefährliche Admin-Aktionen planen
+STEP8.11 VIP30 Alert planen
+```
+
+oder vorher:
+
+```txt
+Dashboard-Rechte/Rollen-Konzept für Admin-Aktionen
 ```

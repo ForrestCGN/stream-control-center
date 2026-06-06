@@ -2,12 +2,12 @@
 
 Stand: 2026-06-06
 
-## Nach STEP8.10.1 ZIP
+## Nach STEP8.10.2 ZIP
 
 ```powershell
 cd /d D:\Git\stream-control-center
 node --check htdocs\dashboard\modules\vip30.js
-.\stepdone.cmd "VIP30-STEP8.10.1 Admin Refresh Actions"
+.\stepdone.cmd "VIP30-STEP8.10.2 Light Admin Actions"
 ```
 
 Dashboard testen:
@@ -17,31 +17,26 @@ Dashboard testen:
 Community -> 30 Tage VIP -> Aktionen
 ```
 
-Prüfen:
+Empfohlen:
 
 ```txt
-- Tab Aktionen sichtbar
-- einzelne Refresh-Buttons funktionieren
-- Alles neu laden funktioniert
-- keine JS-Fehler
+Cleanup Dry-Run testen
+Reward Sync/Ensure testen
+Slot external_removed mit Test-/nicht aktivem User testen
 ```
+
+Cleanup Run nur bewusst verwenden.
 
 ## Danach
 
-STEP8.10.2 planen:
+Option A:
 
 ```txt
-Confirm-/Audit-Konzept für gefährliche Aktionen
+STEP8.11 VIP30 Alert
 ```
 
-Gefährliche Aktionen bleiben bis dahin gesperrt:
+Option B:
 
 ```txt
-Cleanup Run
-Reward Sync/Ensure
-manuelle Slot-Korrektur
-VIP vergeben/entziehen
-Redemption fulfill/cancel
-Bus-Testevent
-Live-Gates ändern
+Dashboard Rechte/Rollen für Admin-Aktionen planen
 ```

@@ -1,21 +1,24 @@
 # Changelog – VIP30 / 30TageVIP
 
-## 2026-06-06 – STEP8.10.1 Admin Refresh Actions
+## 2026-06-06 – STEP8.10.2 Light Admin Actions
 
 ### Geändert
 
 - `htdocs/dashboard/modules/vip30.js`
-  - Neuer Tab `Aktionen`.
-  - Sichere Einzel-Refresh-Aktionen für VIP30-Statusbereiche.
-  - Erfolg-/Fehleranzeige für Einzelaktionen.
+  - Manuelle Admin-Aktionen im Tab `Aktionen` ergänzt:
+    - Reward Sync/Ensure
+    - Cleanup Dry-Run
+    - Cleanup Run
+    - Slot external_removed
+  - Einfache Browser-Bestätigung für Aktionen mit Wirkung.
+  - Ergebnisanzeige als JSON-Details.
 
 - `htdocs/dashboard/modules/vip30.css`
-  - Styling für Aktionskarten und Danger-Zone ergänzt.
+  - Styling für manuelle Admin-Zone und Ergebnisdetails ergänzt.
 
 ### Nicht geändert
 
 - Kein Backend.
-- Keine DB.
-- Keine Twitch-Aktion.
-- Kein Cleanup-Run.
-- Keine API-Änderung.
+- Keine DB-Migration.
+- Keine neue API.
+- Keine Änderung an Twitch-Modul oder Bus.
