@@ -1,54 +1,170 @@
 # VIP30 / 30TageVIP
 
 Stand: 2026-06-06  
-Backend-Version: `0.8.14`  
-Build: `step8.18.2-avatar-resolve-test-user`
+Aktueller stabiler Arbeitsstand: STEP8.18.3 + finale Doku STEP8.18.4
+
+## Kurzbeschreibung
+
+VIP30 ist ein Node-basiertes 30-Tage-VIP-System im `stream-control-center`.
+
+Es verarbeitet Twitch-Kanalpunkte-Redemptions über EventSub/Bridge, vergibt VIP, schreibt Slots, fulfilled/cancelt Redemptions korrekt und löst einen Sound-System-Alert mit Overlay aus.
 
 ## Status
 
-VIP30 hat SoundPool, OverlaySets, manuellen Alert-Test und Avatar-Auflösung.
-
-## Avatar-Auflösung
-
-Wenn ein VIP30-Alert gebaut wird:
-
 ```txt
-avatarUrl vorhanden
--> direkt an Overlay übergeben
-
-avatarUrl leer + userLogin/displayName vorhanden
--> Twitch /helix/users Lookup
--> profile_image_url übernehmen
-
-Lookup fehlschlägt
--> Overlay-Fallback mit Initial/Icon
+✅ System funktionsfähig
+✅ Live-Redemption getestet
+✅ VIP-Grant getestet
+✅ Slot-Write getestet
+✅ Redemption-Fulfill getestet
+✅ Sound-Bundle getestet
+✅ Overlay getestet
+✅ SoundPool getestet
+✅ OverlaySets/Zufallstexte getestet
+✅ Avatar im manuellen Test angezeigt
+✅ externer VIP-Remove getestet
 ```
 
-## Manueller Test
+## Backend
+
+Aktuelle Backend-Version:
+
+```txt
+moduleVersion: 0.8.14
+moduleBuild: step8.18.2-avatar-resolve-test-user
+```
+
+Wichtige Funktionen:
+
+```txt
+triggerVip30AlertSoundBundle()
+buildVip30SoundBundlePayload()
+pickWeightedVip30Sound()
+pickWeightedVip30OverlaySet()
+twitchResolveUserProfile()
+enrichVip30ResultUserProfile()
+triggerVip30ManualAlertTest()
+```
+
+## Dashboard
+
+Tabs:
+
+```txt
+Übersicht
+Slots
+Logs
+Config
+Sounds
+Texte
+Aktionen
+Diagnose
+```
+
+### Sounds
+
+Setting:
+
+```txt
+alerts.soundPool
+```
+
+Beispiel:
+
+```json
+[
+  {
+    "id": "vip30-sound-1",
+    "enabled": true,
+    "weight": 1,
+    "mediaId": 1413,
+    "mediaPath": "",
+    "durationMs": 0,
+    "label": "VIP30 Sound 1"
+  }
+]
+```
+
+Regel:
+
+```txt
+durationMs = 0 -> Auto aus Media-System/ffprobe
+durationMs > 0 -> manuelle Dauer in ms
+```
+
+### Texte
+
+Setting:
+
+```txt
+alerts.overlaySets
+```
+
+Beispiel:
+
+```json
+[
+  {
+    "id": "heimleitung-upgrade",
+    "enabled": true,
+    "weight": 3,
+    "kicker": "Upgrade im CGN-Altersheim",
+    "headline": "{displayName} wird Ehrenbewohner.",
+    "subline": "Die Rentner begrüßen freundlich.",
+    "message": "Ein kleines VIP-Upgrade wurde genehmigt.",
+    "perks": ["Keks extra", "Sessel vorgewärmt"],
+    "brand": "CGN VIP-Lounge"
+  }
+]
+```
+
+## Manueller Alert-Test
+
+Endpunkt:
+
+```txt
+POST /api/vip30/alert/test
+```
 
 Dashboard:
 
 ```txt
-Aktionen -> VIP30 Alert testen
+Aktionen -> Anzeigename/Login zum Auflösen -> VIP30 Alert testen
 ```
 
-Neu:
+Sicherheit:
 
 ```txt
-Anzeigename/Login zum Auflösen
+kein Twitch VIP Grant
+kein Slot Write
+kein Redemption Fulfill/Cancel
+nur Twitch User-Lookup + Alert-Bundle
 ```
 
-Der eingegebene Name wird als Twitch-Login-Kandidat verwendet und aufgelöst.
+## Avatar-Auflösung
 
-## Sicherheit
+Ablauf:
 
 ```txt
-✅ kein Twitch VIP Grant
-✅ kein Slot Write
-✅ kein Redemption Fulfill/Cancel
-✅ nur User-Lookup + Alert-Bundle
+avatarUrl vorhanden -> direkt verwenden
+avatarUrl fehlt -> Twitch /helix/users Lookup per userId oder login
+Lookup erfolgreich -> profile_image_url an Overlay übergeben
+Lookup fehlgeschlagen -> Overlay-Fallback mit Initial/Icon
 ```
 
-## Noch offen
+Beim echten Alertpfad wird vor dem Bundle-Bau ebenfalls versucht, fehlende Avatare zu ergänzen.
 
-Lange Namen im Overlay responsiv schöner darstellen. Das ist der nächste UI-Step.
+## Offenes Overlay-Thema
+
+Im neuen Chat soll das Overlay verbessert werden:
+
+```txt
+lange Namen
+Headline-Fit
+Textgrößen/Lesbarkeit
+Chips/Perks
+Card-Proportionen
+Avatarbereich
+```
+
+Funktionalität dabei nicht entfernen.

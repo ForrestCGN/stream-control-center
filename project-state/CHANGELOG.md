@@ -1,17 +1,20 @@
 # Changelog – VIP30 / 30TageVIP
 
-## 2026-06-06 – STEP8.18.3 Testuser Input Fix
+## 2026-06-06 – STEP8.18.4 Finaler Dokumentationsstand
 
-### Geändert
+### Dokumentiert
 
-- `htdocs/dashboard/modules/vip30.js`
-  - fester Default `AkiGhosty` entfernt
-  - `state.alertTestUser` ergänzt
-  - Eingabe bleibt bei Auto-Reload/Re-Render erhalten
+- VIP30 Funktionalität finaler Arbeitsstand
+- Avatar im manuellen Test bestätigt
+- SoundPool / OverlaySets / Alert-Test / Auto-Dauer
+- nächster Chat: Overlay-Polish
 
-### Nicht geändert
+### Letzter Code-Stand
 
-- Backend
-- Overlay
-- Sound-System
-- Media-System
+```txt
+VIP30_STEP8_18_3_testuser_input_fix.zip
+```
+
+### Kein Code geändert
+
+Dieser STEP ist ein Dokumentations-/Übergabe-STEP.

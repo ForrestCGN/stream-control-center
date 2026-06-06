@@ -1,25 +1,42 @@
 # VIP30 Dashboard – Alert-Test
 
-Stand: 2026-06-06  
-STEP: 8.18.2
+Stand: 2026-06-06
 
-## Button
-
-Im Dashboard-Tab `Aktionen`:
+## Ort
 
 ```txt
-VIP30 Alert testen
+VIP30 Dashboard -> Aktionen
 ```
 
-## Testuser
-
-Neu gibt es ein Eingabefeld:
+## Funktion
 
 ```txt
 Anzeigename/Login zum Auflösen
+VIP30 Alert testen
 ```
 
-Beispiele:
+## Ablauf
+
+```txt
+Name/Login wird an Backend gesendet
+Backend versucht Twitch /helix/users Lookup
+Backend ergänzt avatarUrl
+Backend wählt zufälligen Sound aus alerts.soundPool
+Backend wählt zufälliges Textset aus alerts.overlaySets
+Backend sendet /api/sound/bundle
+Sound-System-Overlay zeigt VIP30-Card
+```
+
+## Sicherheit
+
+```txt
+kein VIP Grant
+kein Slot Write
+kein Redemption Fulfill/Cancel
+kein Twitch-Schreibzugriff
+```
+
+## Testwerte
 
 ```txt
 AkiGhosty
@@ -27,16 +44,11 @@ ForrestCGN
 EngelCGN
 ```
 
-Der Name wird an den Backend-Testendpunkt übergeben. Das Backend versucht, daraus über Twitch `/helix/users` den echten Avatar zu laden.
-
-## Rückmeldung
-
-Nach dem Test zeigt das Dashboard:
+## Erwartung
 
 ```txt
-User
-Avatar: geladen / Fallback / Fehlergrund
-Sound
-Textset
-Dauer
+Avatar: geladen
+Sound: zufälliger Sound
+Textset: zufälliges Textset
+Dauer: Media-System Auto
 ```

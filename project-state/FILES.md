@@ -2,13 +2,22 @@
 
 Stand: 2026-06-06
 
-## STEP8.18.3 Dateien
+## Letzter Code-Stand
 
 ```txt
-htdocs/dashboard/modules/vip30.js
-htdocs/dashboard/modules/vip30.css
-backend/modules/vip30.js
-docs/current/CURRENT_CHAT_HANDOFF_VIP30_STEP8_18_3_TESTUSER_INPUT_FIX.md
+VIP30_STEP8_18_3_testuser_input_fix.zip
+```
+
+## Diese Dokumentations-ZIP
+
+```txt
+docs/current/CURRENT_CHAT_HANDOFF_VIP30_STEP8_18_4_FINAL_STATUS.md
+docs/modules/vip30.md
+docs/tests/VIP30_STEP8_18_FINAL_TEST_STATUS.md
+docs/dashboard/VIP30_ALERT_TEST.md
+docs/dashboard/VIP30_SOUNDS_TAB.md
+docs/dashboard/VIP30_TEXTE_TAB.md
+docs/design/VIP30_OVERLAY_NEXT_CHAT_TODO.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md

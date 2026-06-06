@@ -2,18 +2,45 @@
 
 Stand: 2026-06-06
 
-## STEP8.18.3 einspielen
+## Nächster Chat
 
-```powershell
-cd /d D:\Git\stream-control-center
-node --check htdocs\dashboard\modules\vip30.js
-.\stepdone.cmd "VIP30-STEP8.18.3 Testuser Input Fix"
-```
-
-Danach Dashboard mit Strg+F5 neu laden.
-
-## Test
+Thema:
 
 ```txt
-Aktionen -> Anzeigename/Login ändern -> 10 Sekunden warten -> Wert bleibt stehen -> Alert testen
+VIP30 Overlay optisch verbessern
+```
+
+Fokus:
+
+```txt
+- lange Namen
+- Headline-Fit
+- Lesbarkeit
+- Card-Proportionen
+- Perks/Chips
+- Avatarbereich
+```
+
+## Vorheriger stabiler Stand
+
+```txt
+VIP30_STEP8_18_3_testuser_input_fix.zip
+```
+
+## Wichtige Regel
+
+```txt
+Keine Funktionalität entfernen.
+```
+
+Insbesondere nicht entfernen:
+
+```txt
+- random Sounds
+- random Texte
+- Avatar-Lookup
+- manueller Alert-Test
+- Sound-System-Bundle
+- Media-System
+- EventSub/Bridge Live-Flow
 ```
