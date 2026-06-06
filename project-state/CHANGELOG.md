@@ -1,30 +1,25 @@
 # Changelog – VIP30 / 30TageVIP
 
-## 2026-06-06 – STEP8.10.3 Streamer/Mod Cleanup
+## 2026-06-06 – STEP8.11 Alert Bus Event
 
 ### Geändert
 
-- `htdocs/dashboard/modules/vip30.js`
-  - Aktionen-Tab auf Streamer-/Mod-taugliche Refresh-Aktionen zurückgeführt.
-  - Admin-/Techniktexte klar in Richtung späterer Admin-Bereich formuliert.
-
-- `htdocs/dashboard/modules/vip30.css`
-  - dezente Markierung für späteren Admin-Bereich ergänzt.
-
-### Entfernt aus normaler VIP30-Seite
-
-```txt
-Reward Sync/Ensure
-Cleanup Dry-Run
-Cleanup Run
-Slot external_removed
-```
-
-Diese Aktionen werden später in einem separaten Admin-/Systembereich geplant.
+- `backend/modules/vip30.js`
+  - Version auf `0.8.7` gesetzt.
+  - Build auf `step8.11-alert-bus-event` gesetzt.
+  - Emits-Liste um `vip30.alert` ergänzt.
+  - Alert-Bus-Payload nach erfolgreichem VIP30-Live-Flow ergänzt.
+  - Runtime-Alert-Stats ergänzt.
+  - Read-only Route `/api/vip30/alert/status` ergänzt.
 
 ### Nicht geändert
 
-- Kein Backend.
-- Keine DB.
-- Keine API.
-- Keine Twitch-Aktion.
+- Kein Dashboard.
+- Kein Overlay.
+- Kein Sound-Modul.
+- Kein Twitch-Modul.
+- Keine DB-Migration.
+
+### Safety
+
+Alert-Bus-Event wird nur nach Erfolg erzeugt und nur wenn `live.allowAlert === true`.

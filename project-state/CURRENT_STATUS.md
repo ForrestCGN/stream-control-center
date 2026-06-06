@@ -14,29 +14,33 @@ Stand: 2026-06-06
 - STEP8.9 Dashboard Settings
 - STEP8.9.1 Config UX Polish
 - STEP8.10.1 Admin Refresh Actions
+- STEP8.10.3 Streamer/Mod Cleanup
 
-## Richtung korrigiert
+## Aktueller Schritt
 
-STEP8.10.2 wurde als Entwicklungsrichtung als zu admin-lastig für die normale Streamer-/Mod-Seite bewertet.
+STEP8.11 Alert Bus Event wurde vorbereitet.
 
-STEP8.10.3 stellt die normale VIP30-Dashboard-Seite wieder schlanker auf:
+## Inhalt
+
+Backend-Version:
 
 ```txt
-nur sichere Refresh-/Status-Aktionen im normalen VIP30-Bereich
+0.8.7 / step8.11-alert-bus-event
 ```
 
-Admin-/Systemaktionen kommen später in einen separaten Admin-/Systembereich.
+Neu:
+
+```txt
+Bus-Event vip30.alert / trigger nach erfolgreichem Live-Flow
+GET /api/vip30/alert/status
+```
+
+## Safety
+
+Alert-Bus-Event wird nur nach erfolgreichem VIP30-Live-Flow erzeugt und nur wenn `live.allowAlert` offen ist. Es schreibt nicht in Twitch und verändert keine Slots.
 
 ## Nächster Schritt
 
-Normale VIP30-Seite weiter nutzbar machen:
-
 ```txt
-STEP8.11 VIP30 Alert planen
-```
-
-oder zuerst:
-
-```txt
-VIP30 Live-/Mod-Ansicht weiter vereinfachen
+STEP8.12 VIP30 Alert an bestehendes Alert-/Sound-System anbinden
 ```

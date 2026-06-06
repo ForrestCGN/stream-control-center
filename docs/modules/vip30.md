@@ -1,114 +1,65 @@
 # VIP30 / 30TageVIP
 
 Stand: 2026-06-06  
-Modul: `vip30`  
-Backend-Version: `0.8.6` / `step8.6-external-vip-remove-slot-release`  
-Dashboard-Stand: STEP8.9
+Backend-Version: `0.8.7` / `step8.11-alert-bus-event`
 
 ## Zweck
 
 VIP30 verwaltet den Kanalpunkte-Reward „30 Tage VIP“ im Node-/stream-control-center-System.
 
-## Backend
+## STEP8.11 Alert Bus Event
 
-Wichtige Datei:
+Bei erfolgreichem VIP30-Live-Flow wird jetzt ein Bus-Event erzeugt:
 
 ```txt
-backend/modules/vip30.js
+channel: vip30.alert
+action: trigger
 ```
 
-Wichtige Tabellen:
+Voraussetzungen:
 
 ```txt
-vip30_slots
-vip30_log
-vip30_settings
+alerts.enabled !== false
+live.allowAlert === true
+result.ok === true
 ```
 
-Produktive DB:
+Keine Auslösung bei:
 
 ```txt
-D:\Streaming\stramAssets\data\sqlite\app.sqlite
+Refund / Cancel
+Blocker / Slot voll
+already_has_vip30_slot
+target_is_already_vip
+Cleanup
+external_removed
+manuelle Admin-Aktionen
+```
+
+## Statusroute
+
+```txt
+GET /api/vip30/alert/status
 ```
 
 ## Dashboard
 
-Wichtige Dateien:
-
-```txt
-htdocs/dashboard/modules/vip30.js
-htdocs/dashboard/modules/vip30.css
-```
-
-Dashboard-Funktionen:
+Normale VIP30-Seite bleibt Streamer-/Mod-tauglich:
 
 ```txt
 Übersicht
 Slots
 Logs
 Config
-Diagnose
+Aktionen mit Refresh
 ```
 
-## Settings
-
-Vorhandene Routen:
-
-```txt
-GET  /api/vip30/settings
-POST /api/vip30/settings/save
-```
-
-`POST /api/vip30/settings` existiert nicht.
-
-STEP8.9 nutzt `/api/vip30/settings/save`.
-
-## Safe Edit Allowlist im Dashboard
-
-```txt
-alerts.enabled
-alerts.soundKey
-logging.enabled
-reward.title
-reward.prompt
-slots.maxSlots
-slots.durationDays
-cleanup.releaseSlotOnExternalVipRemove
-```
-
-## Kritisch / gesperrt im Dashboard
-
-```txt
-live.*
-twitch.*
-bridge.*
-channelpoints.*
-cleanup.enabled
-cleanup.removeVipOnExpire
-enabled
-```
-
-Diese Felder beeinflussen produktive Live-/Twitch-/Bridge-/Cleanup-Flows und brauchen später einen separaten Confirm-/Audit-Step.
-
-## EventSub VIP Remove
-
-Bestätigt:
-
-```txt
-Twitch channel.vip.remove
--> twitch.js
--> Communication Bus
--> vip30.js
--> Slot external_removed
--> Log external_vip_remove_slot_released
-```
+Admin-/Systemaktionen bleiben im TODO für später.
 
 ## Nächster Schritt
 
-STEP8.10:
+STEP8.12:
 
 ```txt
-Dashboard manuelle Admin-Aktionen planen
+vip30.alert an bestehendes Alert-/Sound-System anbinden
 ```
-
-Mit Confirm/Audit, keine produktiven Aktionen ohne Schutz.

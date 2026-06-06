@@ -8,8 +8,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.6";
-const MODULE_BUILD = "step8.6-external-vip-remove-slot-release";
+const MODULE_VERSION = "0.8.7";
+const MODULE_BUILD = "step8.11-alert-bus-event";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -23,11 +23,11 @@ const MODULE_META = {
   category: "community",
   routePrefix: ROUTE_PREFIX,
   routesPrefix: [ROUTE_PREFIX],
-  description: "30 Tage VIP Node-Modul: SQLite-Grundlage, Dashboard-Logs/Stats, Communication-Bus, DB-/Dashboard-Config, Twitch-Capability-Check, Channelpoints-Reward-Link, Dry-Run-Redemption-Decision, interne Channelpoints-Bridge, Live-EventSub-Beobachtung und STEP8-Live-Action-Plan mit Safety-Gates, Live-Gates-API, Stage-A-Live-Ausfuehrung fuer VIP-Grant + Slot-Write und STEP8.4 Stage-B Fulfill/Cancel ohne Alert sowie STEP8.5 Cleanup/Entzug fuer abgelaufene VIP30-Slots sowie STEP8.6 externe VIP-Entzuege zur Slot-Freigabe.",
+  description: "30 Tage VIP Node-Modul: SQLite-Grundlage, Dashboard-Logs/Stats, Communication-Bus, DB-/Dashboard-Config, Twitch-Capability-Check, Channelpoints-Reward-Link, Dry-Run-Redemption-Decision, interne Channelpoints-Bridge, Live-EventSub-Beobachtung und STEP8-Live-Action-Plan mit Safety-Gates, Live-Gates-API, Stage-A-Live-Ausfuehrung fuer VIP-Grant + Slot-Write und STEP8.4 Stage-B Fulfill/Cancel ohne Alert sowie STEP8.5 Cleanup/Entzug fuer abgelaufene VIP30-Slots sowie STEP8.6 externe VIP-Entzuege zur Slot-Freigabe sowie STEP8.11 VIP30-Alert-Bus-Event nach erfolgreichem Live-Flow.",
   bus: {
     registered: true,
     heartbeat: true,
-    emits: ["module.status", "module.health", "vip30.status", "vip30.twitch", "vip30.channelpoints", "vip30.redeem", "vip30.bridge", "vip30.live"],
+    emits: ["module.status", "module.health", "vip30.status", "vip30.twitch", "vip30.channelpoints", "vip30.redeem", "vip30.bridge", "vip30.live", "vip30.alert"],
     listens: ["channelpoints.redemption", "twitch.eventsub", "twitch.vip"]
   },
   legacy: false
@@ -268,6 +268,13 @@ let runtimeStats = {
   lastSettingsWriteAt: "",
   busHeartbeats: 0,
   busStatuses: 0,
+  alertTriggers: 0,
+  alertSkipped: 0,
+  alertFailed: 0,
+  lastAlertAt: "",
+  lastAlertStatus: "",
+  lastAlertReason: "",
+  lastAlertUserLogin: "",
   logWrites: 0,
   lastLogAt: "",
   lastAction: ""
@@ -2467,6 +2474,139 @@ function emitLiveExecutionEvent(action, payload = {}) {
     return { ok: false, reason: "bus_emit_failed" };
   }
 }
+
+function buildVip30AlertPayload(result = {}) {
+  const config = getConfig();
+  const decision = result && result.decision ? result.decision : {};
+  const user = decision && decision.user ? decision.user : {};
+  const slotWrite = result && result.slotWrite ? result.slotWrite : {};
+  const slot = slotWrite && slotWrite.slot ? slotWrite.slot : {};
+  const displayName = cleanString(user.userDisplayName || user.userLogin || slot.userDisplayName || slot.userLogin || "VIP");
+  const userLogin = cleanString(user.userLogin || slot.userLogin || "").toLowerCase();
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    type: "vip30",
+    event: "vip30.success",
+    user: {
+      userId: cleanString(user.userId || slot.userId || ""),
+      userLogin,
+      userDisplayName: displayName,
+      avatarUrl: cleanString(user.avatarUrl || slot.avatarUrl || "")
+    },
+    slot: {
+      slotId: slotWrite.slotId || slot.id || null,
+      startUtc: cleanString(slotWrite.startUtc || slot.startUtc || ""),
+      endUtc: cleanString(slotWrite.endUtc || slot.endUtc || ""),
+      durationDays: intValue(config.slots && config.slots.durationDays, 30)
+    },
+    alert: {
+      mode: cleanString(config.alerts && config.alerts.mode || "sound_system"),
+      soundKey: cleanString(config.alerts && config.alerts.soundKey || "vip30"),
+      durationMs: intValue(config.alerts && config.alerts.durationMs, 9000),
+      category: cleanString(config.alerts && config.alerts.category || "vip"),
+      headline: "30 Tage VIP",
+      title: `${displayName} hat sich 30 Tage VIP gegönnt!`,
+      message: "Die Altersheim-Verwaltung hat den VIP-Sessel frisch bezogen.",
+      subline: "Vielen Dank für deine Treue!"
+    },
+    sourceResult: {
+      status: cleanString(result.status || ""),
+      action: cleanString(result.action || ""),
+      stage: result && result.safety ? cleanString(result.safety.stage || "") : "",
+      twitchRewardId: decision && decision.redemption ? cleanString(decision.redemption.twitchRewardId || "") : "",
+      twitchRedemptionId: decision && decision.redemption ? cleanString(decision.redemption.twitchRedemptionId || "") : ""
+    },
+    safety: {
+      noTwitchWrite: true,
+      noVipGrant: true,
+      noSlotWrite: true,
+      noRedemptionFulfillCancel: true,
+      alertOnly: true
+    }
+  };
+}
+
+function triggerVip30AlertBusEvent(result = {}, options = {}) {
+  const config = getConfig();
+  const live = config.live || DEFAULT_CONFIG.live;
+  const userLogin = result && result.decision && result.decision.user ? cleanString(result.decision.user.userLogin || "").toLowerCase() : "";
+  const skipped = (reason) => {
+    runtimeStats.alertSkipped += 1;
+    runtimeStats.lastAlertAt = nowIso();
+    runtimeStats.lastAlertStatus = "skipped";
+    runtimeStats.lastAlertReason = reason;
+    runtimeStats.lastAlertUserLogin = userLogin;
+    return { ok: true, skipped: true, reason, safety: { noTwitchWrite: true, alertOnly: true } };
+  };
+
+  if (!result || result.ok !== true) return skipped("result_not_successful");
+  if (config.alerts && config.alerts.enabled === false) return skipped("alerts_disabled");
+  if (!live || live.allowAlert !== true) return skipped("allow_alert_gate_disabled");
+  if (config.bus && config.bus.enabled === false) return skipped("bus_disabled");
+
+  const currentBus = getBus();
+  if (!currentBus || typeof currentBus.emit !== "function") {
+    runtimeStats.alertFailed += 1;
+    runtimeStats.lastAlertAt = nowIso();
+    runtimeStats.lastAlertStatus = "failed";
+    runtimeStats.lastAlertReason = "bus_unavailable";
+    runtimeStats.lastAlertUserLogin = userLogin;
+    return { ok: false, reason: "bus_unavailable", safety: { noTwitchWrite: true, alertOnly: true } };
+  }
+
+  const payload = buildVip30AlertPayload(result);
+  try {
+    const emitted = currentBus.emit({
+      type: "event",
+      channel: "vip30.alert",
+      action: "trigger",
+      source: { type: "module", id: `module:${MODULE_NAME}`, module: MODULE_NAME },
+      target: { type: "all", id: "*" },
+      payload: { ...payload, emittedAt: nowIso(), reason: cleanString(options.reason || "live_success") },
+      meta: { requireAck: false, replayable: true, ttlMs: config.bus && config.bus.ttlMs || 60000, productionTarget: true, twitchWrite: false }
+    });
+    runtimeStats.alertTriggers += 1;
+    runtimeStats.lastAlertAt = nowIso();
+    runtimeStats.lastAlertStatus = "triggered";
+    runtimeStats.lastAlertReason = "triggered";
+    runtimeStats.lastAlertUserLogin = userLogin;
+    writeLog("vip30_alert_bus_triggered", {
+      userId: payload.user.userId,
+      userLogin: payload.user.userLogin,
+      userDisplayName: payload.user.userDisplayName,
+      twitchRewardId: payload.sourceResult.twitchRewardId,
+      twitchRedemptionId: payload.sourceResult.twitchRedemptionId,
+      slotId: payload.slot.slotId,
+      success: true,
+      reason: "alert_bus_triggered",
+      message: "VIP30-Alert-Bus-Event wurde nach erfolgreicher VIP30-Einlösung erzeugt.",
+      payload: { alert: payload, bus: emitted }
+    });
+    return { ok: true, skipped: false, status: "alert_bus_triggered", bus: emitted, payload };
+  } catch (err) {
+    const message = err && err.message ? err.message : String(err);
+    runtimeStats.alertFailed += 1;
+    runtimeStats.lastAlertAt = nowIso();
+    runtimeStats.lastAlertStatus = "failed";
+    runtimeStats.lastAlertReason = message;
+    runtimeStats.lastAlertUserLogin = userLogin;
+    writeLog("vip30_alert_bus_failed", {
+      userId: payload.user.userId,
+      userLogin: payload.user.userLogin,
+      userDisplayName: payload.user.userDisplayName,
+      success: false,
+      reason: "alert_bus_failed",
+      message,
+      errorMessage: message,
+      payload: { alert: payload }
+    });
+    return { ok: false, reason: "alert_bus_failed", error: message, safety: { noTwitchWrite: true, alertOnly: true } };
+  }
+}
+
 async function executeVip30LiveStageA(input = {}, options = {}) {
   const decision = buildDryRunRedemptionDecision(input, { reason: options.reason || "live_stage_a", log: false });
   const started = nowIso();
@@ -2501,13 +2641,15 @@ async function executeVip30LiveStageA(input = {}, options = {}) {
     grant: null,
     slotWrite: null,
     redemptionUpdate: null,
+    alert: null,
     safety: {
       liveTwitchWrite: true,
       vipGrantAllowed: stageSafety.checks && stageSafety.checks.allowVipGrant === true,
       slotWriteAllowed: stageSafety.checks && stageSafety.checks.allowSlotWrite === true,
       redemptionFulfillCancelAllowed: stageSafety.checks && stageSafety.checks.allowRedemptionFulfillCancel === true,
+      alertAllowed: refreshedConfig && refreshedConfig.live && refreshedConfig.live.allowAlert === true && !(refreshedConfig.alerts && refreshedConfig.alerts.enabled === false),
       noRedemptionFulfillCancel: stageMode !== "B",
-      noAlert: true,
+      noAlert: !(refreshedConfig && refreshedConfig.live && refreshedConfig.live.allowAlert === true && !(refreshedConfig.alerts && refreshedConfig.alerts.enabled === false)),
       stage: stageMode
     }
   };
@@ -2586,7 +2728,8 @@ async function executeVip30LiveStageA(input = {}, options = {}) {
         : "Stage A erfolgreich: Twitch VIP vergeben und VIP30-Slot gespeichert. Redemption wurde nicht fulfilled/canceled.",
       payload: result
     });
-    emitLiveExecutionEvent(stageMode === "B" ? "stage_b.success" : "stage_a.success", { result: { ...result, grant: { ...result.grant, raw: undefined }, redemptionUpdate: result.redemptionUpdate ? { ...result.redemptionUpdate, raw: undefined } : null } });
+    result.alert = triggerVip30AlertBusEvent(result, { reason: stageMode === "B" ? "live_stage_b_success" : "live_stage_a_success" });
+    emitLiveExecutionEvent(stageMode === "B" ? "stage_b.success" : "stage_a.success", { result: { ...result, grant: { ...result.grant, raw: undefined }, redemptionUpdate: result.redemptionUpdate ? { ...result.redemptionUpdate, raw: undefined } : null, alert: result.alert ? { ok: result.alert.ok, skipped: result.alert.skipped, status: result.alert.status || "", reason: result.alert.reason || "" } : null } });
     publishStatus(stageMode === "B" ? "live_stage_b_success" : "live_stage_a_success");
     return result;
   } catch (err) {
@@ -3244,7 +3387,7 @@ function buildStatus() {
     status: lastError ? "error" : "ready_step8_6_external_vip_remove_slot_release",
     startedAt,
     routePrefix: ROUTE_PREFIX,
-    routeCount: 25,
+    routeCount: 27,
     routes: [
       `${ROUTE_PREFIX}/status`,
       `${ROUTE_PREFIX}/health`,
@@ -3265,11 +3408,13 @@ function buildStatus() {
       `${ROUTE_PREFIX}/channelpoints/bridge/live-check`,
       `${ROUTE_PREFIX}/channelpoints/bridge/reset-stats`,
       `${ROUTE_PREFIX}/live/check`,
+      `${ROUTE_PREFIX}/alert/status`,
       `${ROUTE_PREFIX}/live/arm-preview`,
       `${ROUTE_PREFIX}/live/arm-settings-preview`,
       `${ROUTE_PREFIX}/live/set-gates`,
       `${ROUTE_PREFIX}/redeem/live-plan`,
       `${ROUTE_PREFIX}/live/stage-a/check`,
+      `${ROUTE_PREFIX}/live/stage-b/check`,
       `${ROUTE_PREFIX}/redeem/live-stage-a`
     ],
     reward: buildRewardSummary(),
@@ -3331,6 +3476,21 @@ function buildStatus() {
       requests: runtimeStats.dryRunRequests,
       lastDryRunAt: runtimeStats.lastDryRunAt,
       lastDecision: runtimeStats.lastDryRunDecision
+    },
+    alerts: {
+      enabled: config.alerts && config.alerts.enabled !== false,
+      mode: config.alerts && config.alerts.mode || "sound_system",
+      soundKey: config.alerts && config.alerts.soundKey || "vip30",
+      durationMs: config.alerts && config.alerts.durationMs || 9000,
+      liveAllowed: config.live && config.live.allowAlert === true,
+      busChannel: "vip30.alert",
+      triggers: runtimeStats.alertTriggers,
+      skipped: runtimeStats.alertSkipped,
+      failed: runtimeStats.alertFailed,
+      lastAlertAt: runtimeStats.lastAlertAt,
+      lastStatus: runtimeStats.lastAlertStatus,
+      lastReason: runtimeStats.lastAlertReason,
+      lastUserLogin: runtimeStats.lastAlertUserLogin
     },
     bridge: {
       enabled: config.bridge && config.bridge.enabled !== false,
@@ -3700,6 +3860,36 @@ function init(context = {}) {
     app.get(`${ROUTE_PREFIX}/live/check`, (_req, res) => {
       runtimeStats.lastAction = "live_check";
       try { res.json(buildLiveActionSafetyStatus()); }
+      catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err), safety: { noTwitchWrite: true, noVipGrant: true } }); }
+    });
+    app.get(`${ROUTE_PREFIX}/alert/status`, (_req, res) => {
+      runtimeStats.lastAction = "alert_status";
+      try {
+        const config = getConfig();
+        res.json({
+          ok: true,
+          module: MODULE_NAME,
+          moduleVersion: MODULE_VERSION,
+          moduleBuild: MODULE_BUILD,
+          status: config.alerts && config.alerts.enabled === false ? "alerts_disabled" : (config.live && config.live.allowAlert === true ? "alert_gate_open" : "alert_gate_locked"),
+          enabled: config.alerts && config.alerts.enabled !== false,
+          liveAllowed: config.live && config.live.allowAlert === true,
+          mode: config.alerts && config.alerts.mode || "sound_system",
+          soundKey: config.alerts && config.alerts.soundKey || "vip30",
+          durationMs: config.alerts && config.alerts.durationMs || 9000,
+          busChannel: "vip30.alert",
+          stats: {
+            triggers: runtimeStats.alertTriggers,
+            skipped: runtimeStats.alertSkipped,
+            failed: runtimeStats.alertFailed,
+            lastAlertAt: runtimeStats.lastAlertAt,
+            lastStatus: runtimeStats.lastAlertStatus,
+            lastReason: runtimeStats.lastAlertReason,
+            lastUserLogin: runtimeStats.lastAlertUserLogin
+          },
+          safety: { noTwitchWrite: true, noVipGrant: true, noSlotWrite: true, noRedemptionFulfillCancel: true, statusOnly: true }
+        });
+      }
       catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err), safety: { noTwitchWrite: true, noVipGrant: true } }); }
     });
     app.get(`${ROUTE_PREFIX}/live/arm-preview`, (_req, res) => {

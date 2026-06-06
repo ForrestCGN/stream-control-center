@@ -2,63 +2,39 @@
 
 Stand: 2026-06-06
 
-## Nach STEP8.10.3 ZIP
+## Nach STEP8.11 ZIP
 
 ```powershell
 cd /d D:\Git\stream-control-center
-node --check htdocs\dashboard\modules\vip30.js
-.\stepdone.cmd "VIP30-STEP8.10.3 Streamer Mod Cleanup"
+node -c backend\modules\vip30.js
+.\stepdone.cmd "VIP30-STEP8.11 Alert Bus Event"
 ```
 
-Dashboard prüfen:
+Status testen:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/alert/status" | ConvertTo-Json -Depth 6
+```
+
+## Danach
+
+STEP8.12 planen/umsetzen:
 
 ```txt
-/dashboard
-Community -> 30 Tage VIP -> Aktionen
+VIP30 Alert an bestehendes Alert-/Sound-System anbinden
 ```
 
-Erwartung:
+Dafür müssen die aktuellen Alert-/Sound-Moduldateien als echte Basis geprüft werden.
 
-```txt
-- nur Refresh-/Status-Aktionen
-- keine technischen Admin-Buttons
-- keine JSON-Flut
-```
+## Später
 
-## Danach: normale Nutzerseite weiterbauen
-
-Mögliche nächste Schritte:
-
-```txt
-STEP8.11 VIP30 Alert
-STEP8.12 VIP30 kompakte Mod-/Streamer-Ansicht
-```
-
-## Späterer Admin-/Systembereich
-
-Nicht in der normalen VIP30-Seite:
+Admin-/Systembereich separat:
 
 ```txt
 Reward Sync/Ensure
 Cleanup Dry-Run
 Cleanup Run
 Slot external_removed
-manuelle Slot-Korrektur
-VIP vergeben/entziehen
-Redemption fulfill/cancel
-Bus-Testevents
 Live-Gates
-Rohdiagnose/JSON
-```
-
-Diese Themen kommen später in:
-
-```txt
-Admin -> Module -> VIP30
-```
-
-oder:
-
-```txt
-System -> Diagnose -> VIP30
+Rohdiagnose
 ```

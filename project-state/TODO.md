@@ -2,33 +2,22 @@
 
 Stand: 2026-06-06
 
-## Normale VIP30-Seite
+## STEP8.11
 
-- [x] Dashboard Read-only
-- [x] CGN Design Polish
-- [x] Settings anzeigen/bearbeiten
-- [x] Config UX Polish
-- [x] sichere Refresh-Aktionen
-- [x] Admin-lastige Aktionen wieder aus der normalen Streamer-/Mod-Seite herausnehmen
-- [ ] STEP8.10.3 live testen
+- [x] Alert-Bus-Event nach erfolgreichem VIP30-Live-Flow vorbereitet
+- [x] Alert-Gate `live.allowAlert` berücksichtigt
+- [x] Statusroute `/api/vip30/alert/status` ergänzt
+- [x] keine Dashboard-Überladung
+- [ ] Live testen
 
-## Späterer Admin-/Systembereich
+## STEP8.12
 
-Diese Punkte gehören **nicht** in die normale Streamer-/Mod-Seite:
+- [ ] bestehendes Alert-/Sound-System prüfen
+- [ ] `vip30.alert / trigger` dort anbinden
+- [ ] Overlay-/Sound-Ausgabe für VIP30 testen
 
-- [ ] separater Admin-Bereich für VIP30 planen
-- [ ] Reward Sync/Ensure dort unterbringen
-- [ ] Cleanup Dry-Run dort unterbringen
-- [ ] Cleanup Run dort unterbringen
-- [ ] Slot external_removed / manuelle Slot-Korrektur dort unterbringen
-- [ ] Rohdiagnose/JSON-Details dort unterbringen
-- [ ] Live-Gates dort verwalten
-- [ ] Rechte-/Rollenprüfung für Admin-Aktionen anbinden
-- [ ] Audit-/Action-Log für Admin-Aktionen prüfen/anbinden
+## Später Admin
 
-## Weiterhin zurückgestellt
-
-- [ ] VIP manuell vergeben
-- [ ] VIP manuell entziehen
-- [ ] Redemption fulfill/cancel
-- [ ] Bus-Testevents
+- [ ] eigener Admin-/Systembereich für technische VIP30-Aktionen
+- [ ] Rechte/Rollen für Admin-Aktionen
+- [ ] Audit-/Action-Log prüfen/anbinden
