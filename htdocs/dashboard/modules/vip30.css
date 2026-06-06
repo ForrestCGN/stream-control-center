@@ -1477,3 +1477,116 @@ html[data-theme=dark] .vip30-table td {
   box-shadow: 0 0 0 3px rgba(34, 211, 238, .10);
 }
 
+
+
+/* STEP8.19.16 – VIP30 Texte: Name-Position + Mini-Preview */
+.vip30-overlayset-grid select {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 12px;
+  background: rgba(2, 6, 23, .42);
+  color: #fff;
+  padding: 9px 10px;
+  outline: none;
+  font: inherit;
+}
+
+.vip30-overlayset-grid select:focus {
+  border-color: rgba(34, 211, 238, .55);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, .10);
+}
+
+.vip30-perks-legacy {
+  opacity: .72;
+}
+
+.vip30-overlay-mini-preview {
+  margin-top: 14px;
+  border-top: 1px solid rgba(148, 163, 184, .12);
+  padding-top: 14px;
+}
+
+.vip30-preview-card {
+  position: relative;
+  max-width: 620px;
+  min-height: 150px;
+  overflow: hidden;
+  border: 1px solid rgba(168, 85, 247, .34);
+  border-radius: 22px;
+  padding: 16px 18px;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(168,85,247,.22), transparent 36%),
+    radial-gradient(circle at 95% 5%, rgba(34,211,238,.13), transparent 32%),
+    linear-gradient(145deg, rgba(16, 12, 36, .94), rgba(7, 10, 22, .90));
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.035),
+    0 0 26px rgba(168,85,247,.13);
+}
+
+.vip30-preview-kicker {
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vip30-preview-main {
+  display: grid;
+  gap: 0;
+  margin-top: 7px;
+  max-width: 510px;
+}
+
+.vip30-preview-name {
+  color: #bff5ff;
+  font-size: 27px;
+  line-height: 1.04;
+  font-weight: 950;
+  letter-spacing: -.04em;
+  text-shadow:
+    0 0 9px rgba(34,211,238,.42),
+    0 0 14px rgba(168,85,247,.30);
+  overflow-wrap: anywhere;
+}
+
+.vip30-preview-headline {
+  color: #fff;
+  font-size: 25px;
+  line-height: 1.10;
+  font-weight: 950;
+  letter-spacing: -.04em;
+  text-shadow: 0 0 16px rgba(168,85,247,.50);
+  overflow-wrap: anywhere;
+}
+
+.vip30-preview-subline {
+  margin-top: 12px;
+  max-width: 510px;
+  color: #eef5ff;
+  font-size: 15px;
+  line-height: 1.18;
+  font-weight: 800;
+}
+
+.vip30-preview-message {
+  margin-top: 10px;
+  max-width: 510px;
+  color: #d2dcf0;
+  font-size: 13px;
+  line-height: 1.24;
+}
+
+.vip30-preview-brand {
+  position: absolute;
+  right: 16px;
+  bottom: 12px;
+  color: rgba(203,213,225,.64);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
