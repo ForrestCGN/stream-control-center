@@ -1626,8 +1626,7 @@ module.exports.init = function init(ctx) {
 
   routes.registerGet(app, [
     '/twitch/eventsub/subscriptions',
-    '/api/twitch/eventsub/subscriptions',
-    '/api/twitch/eventsub/status'
+    '/api/twitch/eventsub/subscriptions'
   ], handleEventSubSubscriptions);
 
   // --------------------- Hype Train: Cache Endpoint (für Streamer.bot !zug) ---------------------
