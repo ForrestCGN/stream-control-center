@@ -311,20 +311,24 @@ window.Vip30Module = (function(){
 
   function renderSettings(){
     const rows = settingRows();
-    const grouped = rows.reduce((acc, row) => {
+    if (!rows.length) {
+      return `<section class="vip30-card glass"><h3>Config</h3><div class="vip30-empty">Keine Settings geladen.</div></section>`;
+    }
+
+    const safeRows = rows.filter(row => isSafeEditable(row));
+    const lockedRows = rows.filter(row => !isSafeEditable(row));
+    const lockedByCategory = lockedRows.reduce((acc, row) => {
       const cat = row.category || 'sonstige';
       (acc[cat] ||= []).push(row);
       return acc;
     }, {});
-    const categories = Object.keys(grouped).sort();
-    if (!rows.length) {
-      return `<section class="vip30-card glass"><h3>Config</h3><div class="vip30-empty">Keine Settings geladen.</div></section>`;
-    }
-    return `<section class="vip30-card glass">
+    const lockedCategories = Object.keys(lockedByCategory).sort();
+
+    return `<section class="vip30-card glass vip30-config">
       <div class="vip30-card-head">
         <div>
           <h3>VIP30 Config</h3>
-          <p>Sichere Einstellungen können direkt gespeichert werden. Kritische Live-/Twitch-/Bridge-Schalter sind sichtbar, aber bewusst gesperrt.</p>
+          <p>Sichere Einstellungen sind oben gebündelt. Kritische Live-/Twitch-/Bridge-Schalter bleiben sichtbar, aber gesperrt.</p>
         </div>
         <div class="vip30-actions">
           <button type="button" data-vip30-save-settings ${state.saving ? 'disabled' : ''}>${state.saving ? 'Speichere...' : 'Sichere Settings speichern'}</button>
@@ -334,35 +338,61 @@ window.Vip30Module = (function(){
       ${state.saveMessage ? `<div class="vip30-okmsg">${esc(state.saveMessage)}</div>` : ''}
       ${state.saveError ? `<div class="vip30-error">${esc(state.saveError)}</div>` : ''}
       <div class="vip30-settings-hint">
-        <span>${badge('SICHER EDITIERBAR', 'ok')} wird gespeichert über <code>/api/vip30/settings/save</code>.</span>
-        <span>${badge('KRITISCH GESPERRT', 'bad')} bleibt ohne separaten Confirm-/Audit-Step gesperrt.</span>
+        <span>${badge('SICHER EDITIERBAR', 'ok')} kann direkt gespeichert werden.</span>
+        <span>${badge('KRITISCH GESPERRT', 'bad')} braucht später einen separaten Confirm-/Audit-Step.</span>
+        <span>${badge('GESPERT', 'warn')} ist bewusst nicht im schnellen Dashboard-Edit enthalten.</span>
       </div>
-      ${categories.map(category => renderSettingsCategory(category, grouped[category])).join('')}
+
+      <div class="vip30-config-section">
+        <div class="vip30-config-title">
+          <h4>Sicher editierbare Einstellungen</h4>
+          <span>${esc(safeRows.length)} Felder</span>
+        </div>
+        <div class="vip30-setting-cards safe">
+          ${safeRows.map(renderSettingCard).join('')}
+        </div>
+      </div>
+
+      <div class="vip30-config-section locked">
+        <div class="vip30-config-title">
+          <h4>Kritische / gesperrte Einstellungen</h4>
+          <span>${esc(lockedRows.length)} Felder</span>
+        </div>
+        ${lockedCategories.map(category => renderLockedCategory(category, lockedByCategory[category])).join('')}
+      </div>
     </section>`;
   }
 
-  function renderSettingsCategory(category, rows){
-    return `<div class="vip30-settings-category">
-      <h4>${esc(category)}</h4>
-      <div class="vip30-table-wrap">
-        <table class="vip30-table vip30-settings-table">
-          <thead><tr><th>Key</th><th>Wert</th><th>Status</th><th>Beschreibung</th><th>Aktualisiert</th></tr></thead>
-          <tbody>${rows.map(row => {
-            const safe = isSafeEditable(row);
-            const critical = isCriticalSetting(row.key);
-            const tone = settingTone(row);
-            const status = safe ? 'editierbar' : critical ? 'kritisch gesperrt' : row.editable ? 'gesperrt' : 'nicht editierbar';
-            return `<tr class="${safe ? 'is-safe' : critical ? 'is-critical' : ''}">
-              <td><strong>${esc(row.label || row.key)}</strong><small>${esc(row.key)} · ${esc(row.type || '')}</small></td>
-              <td>${settingInput(row)}</td>
-              <td>${badge(status, tone)}</td>
-              <td>${fmt(row.description || '')}</td>
-              <td>${fmt(dateFmt(row.updatedAt || row.updated_at))}</td>
-            </tr>`;
-          }).join('')}</tbody>
-        </table>
+  function renderSettingCard(row){
+    const tone = settingTone(row);
+    const status = isSafeEditable(row) ? 'editierbar' : isCriticalSetting(row?.key) ? 'kritisch gesperrt' : row?.editable ? 'gesperrt' : 'nicht editierbar';
+    return `<article class="vip30-setting-card ${isSafeEditable(row) ? 'is-safe' : isCriticalSetting(row?.key) ? 'is-critical' : 'is-locked'}">
+      <div class="vip30-setting-top">
+        <div>
+          <strong>${esc(row.label || row.key)}</strong>
+          <small>${esc(row.key)} · ${esc(row.type || '')}</small>
+        </div>
+        ${badge(status, tone)}
       </div>
-    </div>`;
+      <div class="vip30-setting-value">${settingInput(row)}</div>
+      <p>${fmt(row.description || '')}</p>
+      <footer>
+        <span>${esc(row.category || 'sonstige')}</span>
+        <span>aktualisiert ${fmt(dateFmt(row.updatedAt || row.updated_at))}</span>
+      </footer>
+    </article>`;
+  }
+
+  function renderLockedCategory(category, rows){
+    return `<details class="vip30-locked-category" ${category === 'live' || category === 'twitch' ? 'open' : ''}>
+      <summary>
+        <span>${esc(category)}</span>
+        <small>${esc(rows.length)} gesperrte Settings</small>
+      </summary>
+      <div class="vip30-setting-cards locked">
+        ${rows.map(renderSettingCard).join('')}
+      </div>
+    </details>`;
   }
 
   function slotsTable(slots){

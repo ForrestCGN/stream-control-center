@@ -670,3 +670,198 @@ html[data-theme=dark] .vip30-table td {
   cursor: not-allowed;
   transform: none;
 }
+
+
+/* STEP8.9.1 – Config UX Polish */
+.vip30-config {
+  overflow: hidden;
+}
+
+.vip30-config-section {
+  display: grid;
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.vip30-config-section.locked {
+  margin-top: 30px;
+}
+
+.vip30-config-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid rgba(168,85,247,.22);
+  padding-bottom: 10px;
+}
+
+.vip30-config-title h4 {
+  margin: 0;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 950;
+  letter-spacing: .035em;
+  text-transform: uppercase;
+  text-shadow: 0 0 16px rgba(168,85,247,.28);
+}
+
+.vip30-config-title span {
+  color: var(--vip30-muted);
+  border: 1px solid rgba(34,211,238,.18);
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: rgba(2,6,23,.36);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.vip30-setting-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+  gap: 14px;
+}
+
+.vip30-setting-card {
+  position: relative;
+  display: grid;
+  gap: 12px;
+  min-height: 176px;
+  border: 1px solid rgba(168,85,247,.22);
+  border-radius: 20px;
+  padding: 15px;
+  background:
+    radial-gradient(circle at 96% 8%, rgba(168,85,247,.12), transparent 34%),
+    radial-gradient(circle at 6% 100%, rgba(34,211,238,.08), transparent 36%),
+    rgba(6,10,22,.62);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.025),
+    0 16px 44px rgba(0,0,0,.16);
+}
+
+.vip30-setting-card.is-safe {
+  border-color: rgba(52,211,153,.27);
+  background:
+    radial-gradient(circle at 96% 8%, rgba(52,211,153,.12), transparent 34%),
+    radial-gradient(circle at 6% 100%, rgba(34,211,238,.08), transparent 36%),
+    rgba(4,14,20,.68);
+}
+
+.vip30-setting-card.is-critical {
+  border-color: rgba(248,113,113,.25);
+  background:
+    radial-gradient(circle at 96% 8%, rgba(248,113,113,.11), transparent 34%),
+    radial-gradient(circle at 6% 100%, rgba(168,85,247,.07), transparent 36%),
+    rgba(14,8,22,.68);
+}
+
+.vip30-setting-card.is-locked {
+  opacity: .92;
+}
+
+.vip30-setting-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.vip30-setting-top strong {
+  display: block;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 950;
+  line-height: 1.25;
+}
+
+.vip30-setting-top small {
+  display: block;
+  margin-top: 5px;
+  color: #a9b6cf;
+  font-size: 12px;
+  word-break: break-word;
+}
+
+.vip30-setting-value {
+  display: flex;
+  align-items: center;
+  min-height: 42px;
+}
+
+.vip30-setting-card p {
+  margin: 0;
+  color: #d5dded;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.vip30-setting-card footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  color: #8794ad;
+  font-size: 11px;
+  border-top: 1px solid rgba(148,163,184,.12);
+  padding-top: 10px;
+}
+
+.vip30-setting-card .vip30-setting-control {
+  width: 100%;
+  max-width: none;
+}
+
+.vip30-setting-card .vip30-switch {
+  min-height: 38px;
+}
+
+.vip30-locked-category {
+  border: 1px solid rgba(168,85,247,.18);
+  border-radius: 20px;
+  background:
+    linear-gradient(135deg, rgba(168,85,247,.045), rgba(34,211,238,.025)),
+    rgba(2,6,23,.28);
+  overflow: hidden;
+}
+
+.vip30-locked-category + .vip30-locked-category {
+  margin-top: 10px;
+}
+
+.vip30-locked-category summary {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  color: #fff;
+  font-weight: 950;
+  letter-spacing: .025em;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.vip30-locked-category summary small {
+  color: var(--vip30-muted);
+  font-size: 12px;
+  font-weight: 850;
+  text-transform: none;
+}
+
+.vip30-locked-category .vip30-setting-cards {
+  padding: 0 14px 14px;
+}
+
+@media (max-width: 900px) {
+  .vip30-setting-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .vip30-config-title,
+  .vip30-card-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
