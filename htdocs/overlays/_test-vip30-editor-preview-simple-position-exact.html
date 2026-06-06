@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VIP30 Editor Preview - Simple Name Position Exact Sound Design</title>
+  <style>
+    :root {
+      --bg: #050713;
+      --panel: rgba(9, 13, 29, .92);
+      --panel2: rgba(17, 24, 48, .82);
+      --purple: #a855f7;
+      --purple2: #7c3aed;
+      --cyan: #22d3ee;
+      --blue: #2563eb;
+      --text: #f8fbff;
+      --muted: #9fb0c8;
+      --warn: #facc15;
+      --bad: #fb7185;
+      --ok: #34d399;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 14% 4%, rgba(168, 85, 247, .22), transparent 32%),
+        radial-gradient(circle at 85% 12%, rgba(34, 211, 238, .16), transparent 29%),
+        radial-gradient(circle at 54% 112%, rgba(37, 99, 235, .16), transparent 40%),
+        #050713;
+      overflow-x: hidden;
+    }
+    .page {
+      width: min(1480px, calc(100vw - 44px));
+      margin: 24px auto 44px;
+      display: grid;
+      gap: 18px;
+    }
+    .topbar, .card {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(168, 85, 247, .34);
+      border-radius: 24px;
+      background:
+        linear-gradient(145deg, rgba(14, 18, 37, .94), rgba(8, 12, 24, .88)),
+        radial-gradient(circle at 10% 0%, rgba(168,85,247,.20), transparent 35%),
+        radial-gradient(circle at 95% 5%, rgba(34,211,238,.13), transparent 32%);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.045) inset,
+        0 18px 70px rgba(0,0,0,.32),
+        0 0 34px rgba(124,58,237,.14),
+        0 0 28px rgba(34,211,238,.06);
+    }
+    .topbar { padding: 20px 22px; }
+    .topbar h1 { margin: 0 0 8px; font-size: 28px; line-height: 1.08; }
+    .topbar p { margin: 0; color: var(--muted); line-height: 1.45; }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(380px, 520px) minmax(720px, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+    .card { padding: 18px; }
+    .card h2 { margin: 0 0 12px; font-size: 18px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    label { display: grid; gap: 7px; color: #dbeafe; font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: .05em; }
+    label.wide { grid-column: 1 / -1; }
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid rgba(148, 163, 184, .22);
+      border-radius: 14px;
+      padding: 10px 12px;
+      color: #f8fbff;
+      background: rgba(2, 6, 23, .54);
+      outline: none;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 750;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.025);
+    }
+    textarea { resize: vertical; min-height: 72px; line-height: 1.35; }
+    input:focus, textarea:focus, select:focus { border-color: rgba(34,211,238,.72); box-shadow: 0 0 0 3px rgba(34,211,238,.10), inset 0 0 0 1px rgba(255,255,255,.04); }
+    .checkline { display: flex; gap: 10px; align-items: center; color: var(--muted); font-size: 13px; font-weight: 800; text-transform: none; letter-spacing: 0; }
+    .checkline input { width: auto; }
+    .buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    button {
+      appearance: none;
+      border: 1px solid rgba(168,85,247,.52);
+      border-radius: 999px;
+      padding: 10px 14px;
+      color: #fff;
+      font-weight: 950;
+      cursor: pointer;
+      background: linear-gradient(135deg, rgba(168,85,247,.26), rgba(34,211,238,.13)), rgba(255,255,255,.04);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.045) inset, 0 0 18px rgba(168,85,247,.14);
+    }
+    button:hover { border-color: rgba(34,211,238,.72); }
+    .hint { margin-top: 14px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .hint code { color: #e9d5ff; }
+    .preview-panel { min-height: 610px; display: grid; gap: 14px; align-content: start; }
+    .preview-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .preview-stage {
+      position: relative;
+      height: 360px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(34,211,238,.16);
+      border-radius: 22px;
+      background:
+        linear-gradient(180deg, rgba(2,6,23,.34), rgba(2,6,23,.62)),
+        radial-gradient(circle at 50% 50%, rgba(168,85,247,.16), transparent 52%);
+      overflow: hidden;
+    }
+
+    /* VIP30 card design basis: exakt am VIP30-Block aus sound_system_overlay.html ausgerichtet.
+       Nur die Textstruktur ist fuer die Simple-Preview angepasst. */
+    .vip30-demo-card {
+      width: 840px;
+      height: 310px;
+      position: relative;
+      border-radius: 34px;
+      background: linear-gradient(145deg, rgba(7,9,26,.99), rgba(28,8,58,.98));
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.08),
+        0 0 54px rgba(168,85,247,.48),
+        0 30px 82px rgba(0,0,0,.78);
+      overflow: hidden;
+      transform: scale(.82);
+      transform-origin: center center;
+      color: #f8fbff;
+      font-family: "Segoe UI", system-ui, Arial, sans-serif;
+    }
+    .vip30-demo-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: 3px;
+      background: linear-gradient(120deg, #22d3ee, #a855f7, #e879f9, #22d3ee);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+      z-index: 5;
+    }
+    .vip30-left {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 245px;
+      background:
+        radial-gradient(circle at 50% 35%, rgba(34,211,238,.26), transparent 40%),
+        linear-gradient(180deg, rgba(34,211,238,.09), rgba(168,85,247,.10));
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-right: 1px solid rgba(255,255,255,.12);
+    }
+    .vip30-avatar-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .vip30-avatar {
+      width: 132px;
+      height: 132px;
+      border-radius: 50%;
+      padding: 5px;
+      background: conic-gradient(from 180deg, #22d3ee, #a855f7, #e879f9, #22d3ee);
+      box-shadow:
+        0 0 30px rgba(34,211,238,.22),
+        0 0 34px rgba(168,85,247,.65);
+    }
+    .vip30-avatar-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: #090817;
+      display: grid;
+      place-items: center;
+      font-size: 46px;
+      font-weight: 950;
+      overflow: hidden;
+      color: #fff;
+      border: 0;
+    }
+    .vip30-avatar-inner img { display: none; }
+    .vip30-avatar-ph {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      place-items: center;
+      font-size: 46px;
+      font-weight: 950;
+      background: #090817;
+      color: #fff;
+      text-shadow: 0 0 12px rgba(168,85,247,.72);
+    }
+    .vip30-left-label {
+      margin-top: 18px;
+      color: #bff5ff;
+      font-size: 11px;
+      font-weight: 950;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      text-shadow: none;
+    }
+    .vip30-content {
+      position: absolute;
+      left: 245px;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      padding: 34px 38px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-width: 0;
+    }
+    .vip30-kicker {
+      font-size: 12px;
+      font-weight: 950;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: #cbd5e1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.05;
+      margin: 0;
+      text-shadow: none;
+    }
+    .vip30-name {
+      margin: 8px 0 0;
+      font-size: 37px;
+      line-height: 1.03;
+      letter-spacing: -.04em;
+      font-weight: 950;
+      color: #f0abfc;
+      text-shadow: 0 0 16px rgba(232,121,249,.66);
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: normal;
+      max-height: 76px;
+      overflow: hidden;
+    }
+    .vip30-headline1 {
+      margin: 9px 0 0;
+      color: #fff;
+      font-size: 28px;
+      line-height: 1.05;
+      font-weight: 950;
+      letter-spacing: -.035em;
+      text-shadow: 0 0 16px rgba(168,85,247,.50);
+      overflow-wrap: anywhere;
+      max-height: 59px;
+      overflow: hidden;
+    }
+    .vip30-subline {
+      margin: 16px 0 0;
+      color: #dce8ff;
+      font-size: 17px;
+      font-weight: 750;
+      line-height: 1.25;
+      max-width: 510px;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+    .vip30-message {
+      margin: 8px 0 0;
+      color: #aebee0;
+      font-size: 13px;
+      line-height: 1.35;
+      max-width: 510px;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+    .vip30-brand {
+      position: absolute;
+      right: 28px;
+      bottom: 18px;
+      color: #dbeafe;
+      opacity: .82;
+      font-size: 11px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+    }
+    .vip30-content.is-bottom .vip30-headline1 { margin-top: 8px; }
+    .vip30-content.is-bottom .vip30-name { margin-top: 8px; }
+    .vip30-content.is-bottom .vip30-subline { margin-top: 16px; }
+    .vip30-content.is-top .vip30-name { margin-top: 8px; }
+    .vip30-content.is-top .vip30-headline1 { margin-top: 9px; }
+
+    .warnbox {
+      display: none;
+      border: 1px solid rgba(250,204,21,.42);
+      border-radius: 16px;
+      padding: 12px 14px;
+      color: #fef3c7;
+      background: rgba(113, 63, 18, .24);
+      font-weight: 800;
+      line-height: 1.4;
+    }
+    .warnbox.show { display: block; }
+    .jsonbox {
+      width: 100%;
+      min-height: 180px;
+      white-space: pre-wrap;
+      color: #bfdbfe;
+      background: rgba(2,6,23,.64);
+      border: 1px solid rgba(148,163,184,.18);
+      border-radius: 16px;
+      padding: 14px;
+      font: 12px/1.42 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      overflow: auto;
+    }
+    @media (max-width: 1240px) {
+      .layout { grid-template-columns: 1fr; }
+      .preview-stage { height: 330px; }
+      .vip30-demo-card { transform: scale(.72); }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="topbar">
+      <h1>VIP30 Editor Preview · Simple Name Position · Sound-Design korrigiert</h1>
+      <p>Korrigierte Vorschau mit exakt angelehntem VIP30-Split-Lounge-Design aus dem Sound-System-Overlay. Username separat, Headline 1 maximal 2-zeilig, Subline mit mehr Abstand darunter.</p>
+    </section>
+
+    <section class="layout">
+      <article class="card">
+        <h2>Textset bearbeiten</h2>
+        <div class="row">
+          <label class="wide">Textset auswählen
+            <select id="setSelect"></select>
+          </label>
+          <label>ID
+            <input id="idInput" type="text">
+          </label>
+          <label>Gewichtung
+            <input id="weightInput" type="number" min="0" step="1">
+          </label>
+          <label>Name-Position
+            <select id="namePositionInput">
+              <option value="top">Username über Headline</option>
+              <option value="bottom">Username unter Headline</option>
+            </select>
+          </label>
+          <label class="checkline"><input id="enabledInput" type="checkbox"> aktiv</label>
+          <label class="wide">Kicker
+            <input id="kickerInput" type="text">
+          </label>
+          <label class="wide">Headline 1
+            <input id="headlineInput" type="text" placeholder="z. B. hat sich 30 Tage VIP gegönnt">
+          </label>
+          <label class="wide">Subline
+            <input id="sublineInput" type="text">
+          </label>
+          <label class="wide">Message optional
+            <textarea id="messageInput"></textarea>
+          </label>
+          <label class="wide">Brand
+            <input id="brandInput" type="text">
+          </label>
+        </div>
+        <div class="buttons">
+          <button id="newBtn" type="button">Neues Textset</button>
+          <button id="dupBtn" type="button">Duplizieren</button>
+          <button id="saveBtn" type="button">Im Prototyp übernehmen</button>
+          <button id="removeBtn" type="button">Entfernen</button>
+        </div>
+        <p class="hint">Neue Regel: <code>{displayName}</code> ist in der Headline normalerweise nicht mehr nötig. Der Username wird automatisch separat angezeigt. Alte Platzhalter werden in der Vorschau trotzdem entfernt, damit alte Texte nicht komplett kaputt aussehen.</p>
+      </article>
+
+      <article class="card preview-panel">
+        <h2>Live-Vorschau</h2>
+        <div class="preview-controls">
+          <label>Testname
+            <select id="testNameSelect">
+              <option>Aki</option>
+              <option>ForrestCGN</option>
+              <option>CrazyMeerschweinchen</option>
+              <option>MaximalLangerTwitchName25</option>
+              <option>WWWWWWWWWWWWWWWWWWWWWWWWW</option>
+              <option>iiiiiiiiiiiiiiiiiiiiiiiii</option>
+              <option value="custom">Eigener Testname</option>
+            </select>
+          </label>
+          <label>Eigener Testname
+            <input id="customNameInput" type="text" placeholder="z. B. EngelCGN">
+          </label>
+        </div>
+        <div class="preview-stage">
+          <div class="vip30-demo-card" aria-label="VIP30 Overlay Vorschau">
+            <div class="vip30-left">
+              <div class="vip30-avatar-wrap">
+                <div class="vip30-avatar"><div class="vip30-avatar-inner"><div class="vip30-avatar-ph" id="avatarPh">C</div></div></div>
+                <div class="vip30-left-label">30 Tage VIP</div>
+              </div>
+            </div>
+            <div class="vip30-content is-top" id="previewContent">
+              <div class="vip30-kicker" id="previewKicker"></div>
+              <h3 class="vip30-name" id="previewName"></h3>
+              <h4 class="vip30-headline1" id="previewHeadline"></h4>
+              <div class="vip30-subline" id="previewSubline"></div>
+              <div class="vip30-message" id="previewMessage"></div>
+              <div class="vip30-brand" id="previewBrand"></div>
+            </div>
+          </div>
+        </div>
+        <div class="warnbox" id="warnBox"></div>
+        <h2>Export / Zielstruktur</h2>
+        <pre class="jsonbox" id="jsonOut"></pre>
+      </article>
+    </section>
+  </main>
+
+<script>
+(function(){
+  'use strict';
+  const initialSets = [
+    {
+      id: 'heimleitung-upgrade-simple', enabled: true, weight: 1, namePosition: 'top',
+      kicker: 'Upgrade im CGN-Altersheim',
+      headline: 'wird Ehrenbewohner',
+      subline: 'Die Rentner begrüßen freundlich, die Heimleitung nickt anerkennend.',
+      message: 'Ein kleines VIP-Upgrade wurde genehmigt.',
+      brand: 'CGN VIP-Lounge'
+    },
+    {
+      id: 'kleine-upgrades-simple', enabled: true, weight: 1, namePosition: 'top',
+      kicker: '30 Tage VIP',
+      headline: 'hat sich 30 Tage VIP gegönnt',
+      subline: 'Keine Extrawurst, nur ein paar liebevolle Kleinigkeiten.',
+      message: 'Die VIP-Lane an der Essensausgabe ist kurz geöffnet.',
+      brand: 'CGN Altersheim'
+    },
+    {
+      id: 'empfangskomitee-simple', enabled: true, weight: 1, namePosition: 'bottom',
+      kicker: 'Rentner-Empfangskomitee',
+      headline: 'Herzlich willkommen',
+      subline: 'Die Bewohner rücken ein Stück zur Seite und machen Platz im Aufenthaltsraum.',
+      message: 'Das Upgrade läuft ab jetzt dreißig Tage.',
+      brand: 'CGN VIP-Lounge'
+    },
+    {
+      id: 'heimleitung-bescheid-simple', enabled: true, weight: 1, namePosition: 'bottom',
+      kicker: 'Offizielle Heimdurchsage',
+      headline: 'VIP-Upgrade für',
+      subline: 'Die Heimleitung hat geprüft, genickt und freundlich abgestempelt.',
+      message: 'Der neue Ehrenbewohner bekommt kleine Sonderleistungen mit Würde.',
+      brand: 'CGN Heimleitung'
+    }
+  ];
+  let sets = JSON.parse(localStorage.getItem('vip30SimplePreviewSets') || 'null') || initialSets;
+  let selectedIndex = 0;
+  const $ = id => document.getElementById(id);
+  const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const stripLegacyName = text => String(text || '')
+    .replace(/\{\s*displayName\s*\}/gi, '')
+    .replace(/\{\s*login\s*\}/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s+([,.!?])/g, '$1')
+    .trim();
+  function currentName(){
+    const sel = $('testNameSelect').value;
+    const custom = $('customNameInput').value.trim();
+    return sel === 'custom' ? (custom || 'TestRentner') : sel;
+  }
+  function currentSetFromForm(){
+    return {
+      id: $('idInput').value.trim() || `custom-${Date.now()}`,
+      enabled: $('enabledInput').checked,
+      weight: Math.max(0, parseInt($('weightInput').value || '1', 10) || 0),
+      namePosition: $('namePositionInput').value === 'bottom' ? 'bottom' : 'top',
+      kicker: $('kickerInput').value.trim(),
+      headline: $('headlineInput').value.trim(),
+      subline: $('sublineInput').value.trim(),
+      message: $('messageInput').value.trim(),
+      brand: $('brandInput').value.trim()
+    };
+  }
+  function fillSelect(){
+    $('setSelect').innerHTML = sets.map((set, index) => `<option value="${index}">${esc(index + 1)} · ${esc(set.id || 'ohne-id')} · ${esc(set.namePosition || 'top')}</option>`).join('');
+    $('setSelect').value = String(Math.min(selectedIndex, sets.length - 1));
+  }
+  function loadForm(){
+    const set = sets[selectedIndex] || sets[0];
+    if (!set) return;
+    $('idInput').value = set.id || '';
+    $('weightInput').value = String(set.weight ?? 1);
+    $('enabledInput').checked = set.enabled !== false;
+    $('namePositionInput').value = set.namePosition === 'bottom' ? 'bottom' : 'top';
+    $('kickerInput').value = set.kicker || '';
+    $('headlineInput').value = set.headline || '';
+    $('sublineInput').value = set.subline || '';
+    $('messageInput').value = set.message || '';
+    $('brandInput').value = set.brand || '';
+    renderPreview();
+  }
+  function saveLocal(){
+    localStorage.setItem('vip30SimplePreviewSets', JSON.stringify(sets));
+  }
+  function renderPreview(){
+    const set = currentSetFromForm();
+    const name = currentName();
+    const content = $('previewContent');
+    const nameEl = $('previewName');
+    const headlineEl = $('previewHeadline');
+    content.classList.toggle('is-bottom', set.namePosition === 'bottom');
+    content.classList.toggle('is-top', set.namePosition !== 'bottom');
+    $('previewKicker').textContent = set.kicker || '30 Tage VIP';
+    $('previewSubline').textContent = set.subline || 'Die Heimleitung nickt anerkennend.';
+    $('previewMessage').textContent = set.message || '';
+    $('previewBrand').textContent = set.brand || 'CGN VIP-Lounge';
+    $('avatarPh').textContent = (name.trim()[0] || 'V').toUpperCase();
+    const cleanHeadline = stripLegacyName(set.headline || 'hat sich 30 Tage VIP gegönnt');
+    nameEl.textContent = name;
+    headlineEl.textContent = cleanHeadline || 'hat sich 30 Tage VIP gegönnt';
+    if (set.namePosition === 'bottom') {
+      headlineEl.insertAdjacentElement('afterend', nameEl);
+    } else {
+      $('previewKicker').insertAdjacentElement('afterend', nameEl);
+      nameEl.insertAdjacentElement('afterend', headlineEl);
+    }
+    const warnings = [];
+    if (/\{\s*(displayName|login)\s*\}/i.test(set.headline || '')) warnings.push('Hinweis: In der neuen Struktur wird der Username automatisch separat angezeigt. Platzhalter in Headline 1 sind normalerweise nicht mehr nötig.');
+    requestAnimationFrame(() => {
+      const nameLines = Math.round(nameEl.scrollHeight / parseFloat(getComputedStyle(nameEl).lineHeight || '42'));
+      const headlineLines = Math.round(headlineEl.scrollHeight / parseFloat(getComputedStyle(headlineEl).lineHeight || '31'));
+      const more = warnings.slice();
+      if (headlineLines > 2 || headlineEl.scrollHeight > headlineEl.clientHeight + 2) more.push('Headline 1 ist zu lang. Ziel: maximal 2 Zeilen.');
+      if (nameLines > 2 || nameEl.scrollHeight > nameEl.clientHeight + 2) more.push('Username ist extrem lang. Er bleibt sichtbar, kann aber optisch sehr eng werden.');
+      $('warnBox').classList.toggle('show', more.length > 0);
+      $('warnBox').innerHTML = more.map(esc).join('<br>');
+    });
+    $('jsonOut').textContent = JSON.stringify(sets.map((item, index) => index === selectedIndex ? set : item), null, 2);
+  }
+  function bind(){
+    $('setSelect').addEventListener('change', () => { selectedIndex = parseInt($('setSelect').value || '0', 10) || 0; loadForm(); });
+    ['idInput','weightInput','enabledInput','namePositionInput','kickerInput','headlineInput','sublineInput','messageInput','brandInput','testNameSelect','customNameInput'].forEach(id => $(id).addEventListener('input', renderPreview));
+    ['enabledInput','namePositionInput','testNameSelect'].forEach(id => $(id).addEventListener('change', renderPreview));
+    $('saveBtn').addEventListener('click', () => { sets[selectedIndex] = currentSetFromForm(); saveLocal(); fillSelect(); renderPreview(); });
+    $('newBtn').addEventListener('click', () => {
+      sets.push({ id: `custom-${Date.now()}`, enabled: true, weight: 1, namePosition: 'top', kicker: '30 Tage VIP', headline: 'hat sich 30 Tage VIP gegönnt', subline: 'Die Heimleitung nickt anerkennend.', message: '', brand: 'CGN VIP-Lounge' });
+      selectedIndex = sets.length - 1; saveLocal(); fillSelect(); loadForm();
+    });
+    $('dupBtn').addEventListener('click', () => {
+      const copy = { ...currentSetFromForm(), id: `${currentSetFromForm().id || 'textset'}-kopie` };
+      sets.splice(selectedIndex + 1, 0, copy); selectedIndex += 1; saveLocal(); fillSelect(); loadForm();
+    });
+    $('removeBtn').addEventListener('click', () => {
+      if (sets.length <= 1) return alert('Mindestens ein Textset muss erhalten bleiben.');
+      sets.splice(selectedIndex, 1); selectedIndex = Math.max(0, selectedIndex - 1); saveLocal(); fillSelect(); loadForm();
+    });
+  }
+  fillSelect(); loadForm(); bind();
+})();
+</script>
+</body>
+</html>
