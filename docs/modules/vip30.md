@@ -1,64 +1,28 @@
 # VIP30 / 30TageVIP
 
 Stand: 2026-06-06  
-Backend-Version: `0.8.13`  
-Build: `step8.18.1-auto-sound-duration`
+Backend-Version: `0.8.14`  
+Build: `step8.18.2-avatar-resolve-test-user`
 
 ## Status
 
-VIP30 hat SoundPool, OverlaySets und manuellen Alert-Test.
+VIP30 hat SoundPool, OverlaySets, manuellen Alert-Test und Avatar-Auflösung.
 
-## SoundPool
+## Avatar-Auflösung
 
-Setting:
-
-```txt
-alerts.soundPool
-```
-
-Felder:
+Wenn ein VIP30-Alert gebaut wird:
 
 ```txt
-id
-enabled
-weight
-mediaId
-mediaPath
-durationMs
-label
+avatarUrl vorhanden
+-> direkt an Overlay übergeben
+
+avatarUrl leer + userLogin/displayName vorhanden
+-> Twitch /helix/users Lookup
+-> profile_image_url übernehmen
+
+Lookup fehlschlägt
+-> Overlay-Fallback mit Initial/Icon
 ```
-
-## Sounddauer
-
-```txt
-durationMs = 0
-```
-
-bedeutet:
-
-```txt
-automatisch aus Media-System/ffprobe übernehmen
-```
-
-```txt
-durationMs > 0
-```
-
-bedeutet:
-
-```txt
-manuelle Dauer in Millisekunden erzwingen
-```
-
-## Empfehlung
-
-Für normale hochgeladene Sounds:
-
-```txt
-Dauer ms = 0
-```
-
-Nur bei falschen Medien-Metadaten manuell setzen.
 
 ## Manueller Test
 
@@ -68,12 +32,23 @@ Dashboard:
 Aktionen -> VIP30 Alert testen
 ```
 
-Der Test nutzt:
+Neu:
 
 ```txt
-zufälliger Sound aus Sounds
-zufälliger Text aus Texte
-echtes Sound-Bundle
-echtes VIP30 Overlay
-kein Twitch/kein Slot/kein VIP Grant
+Anzeigename/Login zum Auflösen
 ```
+
+Der eingegebene Name wird als Twitch-Login-Kandidat verwendet und aufgelöst.
+
+## Sicherheit
+
+```txt
+✅ kein Twitch VIP Grant
+✅ kein Slot Write
+✅ kein Redemption Fulfill/Cancel
+✅ nur User-Lookup + Alert-Bundle
+```
+
+## Noch offen
+
+Lange Namen im Overlay responsiv schöner darstellen. Das ist der nächste UI-Step.

@@ -1,25 +1,26 @@
 # Changelog – VIP30 / 30TageVIP
 
-## 2026-06-06 – STEP8.18.1 Auto Sound Duration
+## 2026-06-06 – STEP8.18.2 Avatar Resolve + Test-User
 
 ### Backend
 
 - `backend/modules/vip30.js`
-  - Version `0.8.13`
-  - Build `step8.18.1-auto-sound-duration`
-  - SoundPool-Einträge unterstützen `durationMs`
-  - bei `durationMs = 0` wird keine explizite Dauer ans Sound-System gegeben
-  - dadurch kann das Sound-System die echte Media-System-/ffprobe-Dauer verwenden
+  - Version `0.8.14`
+  - Build `step8.18.2-avatar-resolve-test-user`
+  - Twitch User-Lookup über `/helix/users`
+  - fehlende `avatarUrl` wird vor dem Alert-Bundle ergänzt
+  - manueller Alert-Test löst Anzeigename/Login auf
+  - Rückgabe enthält Avatar-Status
 
 ### Dashboard
 
 - `htdocs/dashboard/modules/vip30.js`
-  - Tab `Sounds` hat pro Sound ein Feld `Dauer ms`
-  - `0 = Auto`
-  - Alert-Test-Meldung zeigt Dauer-Modus
+  - Eingabefeld `Anzeigename/Login zum Auflösen`
+  - Test-Button sendet den eingegebenen Namen
+  - Erfolgsmeldung zeigt Avatar-Status
 
 - `htdocs/dashboard/modules/vip30.css`
-  - kleine Layout-Ergänzung für Dauer-Feld
+  - Styling für Testuser-Eingabefeld
 
 ### Nicht geändert
 

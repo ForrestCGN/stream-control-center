@@ -1450,3 +1450,30 @@ html[data-theme=dark] .vip30-table td {
   }
 }
 
+/* STEP8.18.2 – VIP30 Alert-Test User/Avatar Lookup */
+.vip30-test-user-label {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+  color: rgba(203, 213, 225, .88);
+  font-size: 12px;
+  font-weight: 850;
+  max-width: 320px;
+}
+
+.vip30-test-user-label input {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 12px;
+  background: rgba(2, 6, 23, .42);
+  color: #fff;
+  padding: 9px 10px;
+  outline: none;
+  font: inherit;
+}
+
+.vip30-test-user-label input:focus {
+  border-color: rgba(34, 211, 238, .55);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, .10);
+}
+

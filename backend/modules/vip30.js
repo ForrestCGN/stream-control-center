@@ -8,8 +8,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.13";
-const MODULE_BUILD = "step8.18.1-auto-sound-duration";
+const MODULE_VERSION = "0.8.14";
+const MODULE_BUILD = "step8.18.2-avatar-resolve-test-user";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -1041,6 +1041,99 @@ async function twitchHelixRequest(method, pathname, query = {}, body = null) {
   }
   return { ok: true, statusCode: response.status, data };
 }
+
+function normalizeTwitchLoginCandidate(value) {
+  const clean = cleanString(value || "").replace(/^@+/, "").trim();
+  if (!clean) return "";
+  return clean.toLowerCase().replace(/[^a-z0-9_]/g, "");
+}
+
+async function twitchResolveUserProfile(input = {}) {
+  const raw = input && typeof input === "object" ? input : {};
+  const directAvatar = cleanString(raw.avatarUrl || raw.avatar_url || raw.profileImageUrl || raw.profile_image_url || "");
+  const userId = cleanString(raw.userId || raw.user_id || raw.id || "");
+  const login = normalizeTwitchLoginCandidate(raw.userLogin || raw.user_login || raw.login || raw.userName || raw.user_name || raw.name || raw.displayName || raw.display_name || raw.userDisplayName || raw.user_display_name || raw.display_name);
+  const displayNameFallback = cleanString(raw.userDisplayName || raw.user_display_name || raw.displayName || raw.display_name || raw.name || raw.userLogin || raw.login || "");
+  if (!userId && !login) {
+    return {
+      ok: false,
+      skipped: true,
+      reason: "missing_user_lookup_key",
+      userId: cleanString(raw.userId || raw.user_id || ""),
+      userLogin: normalizeTwitchLoginCandidate(raw.userLogin || raw.login || ""),
+      userDisplayName: displayNameFallback,
+      avatarUrl: directAvatar
+    };
+  }
+
+  try {
+    const query = {};
+    if (userId) query.id = userId;
+    else query.login = login;
+    const response = await twitchHelixRequest("GET", "/users", query, null);
+    const user = response && response.data && Array.isArray(response.data.data) ? response.data.data[0] : null;
+    if (!user) {
+      return {
+        ok: false,
+        skipped: false,
+        reason: "twitch_user_not_found",
+        userId,
+        userLogin: login,
+        userDisplayName: displayNameFallback || login,
+        avatarUrl: directAvatar
+      };
+    }
+    return {
+      ok: true,
+      reason: "twitch_user_resolved",
+      userId: cleanString(user.id || userId),
+      userLogin: normalizeTwitchLoginCandidate(user.login || login),
+      userDisplayName: cleanString(user.display_name || displayNameFallback || user.login || login),
+      avatarUrl: cleanString(user.profile_image_url || directAvatar),
+      raw: user
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      skipped: false,
+      reason: "twitch_user_lookup_failed",
+      error: err && err.message ? err.message : String(err),
+      userId,
+      userLogin: login,
+      userDisplayName: displayNameFallback || login,
+      avatarUrl: directAvatar
+    };
+  }
+}
+
+async function enrichVip30ResultUserProfile(result = {}, options = {}) {
+  const decision = result && result.decision ? result.decision : null;
+  const user = decision && decision.user ? decision.user : null;
+  if (!user) return { result, resolved: null };
+  if (cleanString(user.avatarUrl || user.avatar_url || "")) return { result, resolved: { ok: true, reason: "avatar_already_present", avatarUrl: cleanString(user.avatarUrl || user.avatar_url || "") } };
+
+  const resolved = await twitchResolveUserProfile({
+    userId: user.userId,
+    userLogin: user.userLogin,
+    userDisplayName: user.userDisplayName,
+    displayName: user.userDisplayName,
+    avatarUrl: user.avatarUrl
+  });
+
+  if (resolved && (resolved.userId || resolved.userLogin || resolved.userDisplayName || resolved.avatarUrl)) {
+    decision.user = {
+      ...user,
+      userId: cleanString(user.userId || resolved.userId || ""),
+      userLogin: cleanString(user.userLogin || resolved.userLogin || "").toLowerCase(),
+      userDisplayName: cleanString(user.userDisplayName || resolved.userDisplayName || user.userLogin || ""),
+      avatarUrl: cleanString(user.avatarUrl || resolved.avatarUrl || "")
+    };
+  }
+
+  result.avatarResolve = resolved;
+  return { result, resolved };
+}
+
 function getTwitchBroadcasterIdRequired() {
   const broadcasterId = getTwitchClientSettings().broadcasterId;
   if (!broadcasterId) throw new Error("twitch_broadcaster_id_missing");
@@ -2619,7 +2712,9 @@ function buildVip30AlertPayload(result = {}) {
       action: cleanString(result.action || ""),
       stage: result && result.safety ? cleanString(result.safety.stage || "") : "",
       twitchRewardId: decision && decision.redemption ? cleanString(decision.redemption.twitchRewardId || "") : "",
-      twitchRedemptionId: decision && decision.redemption ? cleanString(decision.redemption.twitchRedemptionId || "") : ""
+      twitchRedemptionId: decision && decision.redemption ? cleanString(decision.redemption.twitchRedemptionId || "") : "",
+      avatarResolveReason: result && result.avatarResolve ? cleanString(result.avatarResolve.reason || "") : "",
+      avatarResolved: result && result.avatarResolve ? result.avatarResolve.ok === true : false
     },
     safety: {
       noTwitchWrite: true,
@@ -2864,6 +2959,9 @@ async function triggerVip30AlertSoundBundle(result = {}, options = {}) {
 
   if (!hasVip30ConfiguredSound(alerts)) return skipped("media_not_configured");
 
+  const enriched = await enrichVip30ResultUserProfile(result, options);
+  result = enriched && enriched.result ? enriched.result : result;
+
   const payload = buildVip30AlertPayload(result);
   const bundlePayload = buildVip30SoundBundlePayload(payload, options);
   const bundleUrl = cleanString(alerts.soundBundleUrl || DEFAULT_CONFIG.alerts.soundBundleUrl || "/api/sound/bundle");
@@ -3012,7 +3110,23 @@ function buildVip30AlertTestResult(input = {}) {
 }
 
 async function triggerVip30ManualAlertTest(input = {}) {
-  const testResult = buildVip30AlertTestResult(input);
+  const requested = input && typeof input === "object" ? input : {};
+  const resolvedUser = await twitchResolveUserProfile({
+    userId: requested.userId || requested.user_id || "",
+    userLogin: requested.userLogin || requested.user_login || requested.login || requested.user || requested.displayName || requested.display_name || requested.userDisplayName || requested.user_display_name || "",
+    userDisplayName: requested.userDisplayName || requested.user_display_name || requested.displayName || requested.display_name || requested.user || requested.login || "",
+    displayName: requested.displayName || requested.display_name || requested.userDisplayName || requested.user_display_name || requested.user || requested.login || "",
+    avatarUrl: requested.avatarUrl || requested.avatar_url || ""
+  });
+  const testInput = {
+    ...requested,
+    userId: cleanString(requested.userId || requested.user_id || resolvedUser.userId || "vip30-test-user"),
+    userLogin: cleanString(requested.userLogin || requested.user_login || requested.login || resolvedUser.userLogin || requested.displayName || requested.user || "testrentner").toLowerCase(),
+    userDisplayName: cleanString(requested.userDisplayName || requested.user_display_name || requested.displayName || requested.display_name || resolvedUser.userDisplayName || requested.user || "TestRentner"),
+    avatarUrl: cleanString(requested.avatarUrl || requested.avatar_url || resolvedUser.avatarUrl || "")
+  };
+  const testResult = buildVip30AlertTestResult(testInput);
+  testResult.avatarResolve = resolvedUser;
   const result = await triggerVip30AlertSoundBundle(testResult, { reason: "manual_alert_test" });
   writeLog("vip30_alert_manual_test", {
     userId: testResult.decision.user.userId,
@@ -3039,7 +3153,10 @@ async function triggerVip30ManualAlertTest(input = {}) {
       mediaId: result && result.soundBundle && result.soundBundle.items && result.soundBundle.items[0] ? result.soundBundle.items[0].mediaId || 0 : 0,
       mediaPath: result && result.soundBundle && result.soundBundle.items && result.soundBundle.items[0] ? result.soundBundle.items[0].mediaPath || "" : "",
       durationMode: result && result.soundBundle && result.soundBundle.items && result.soundBundle.items[0] && result.soundBundle.items[0].meta ? result.soundBundle.items[0].meta.durationMode || "" : "",
-      requestedDurationMs: result && result.soundBundle && result.soundBundle.items && result.soundBundle.items[0] && result.soundBundle.items[0].meta ? result.soundBundle.items[0].meta.requestedDurationMs || 0 : 0
+      requestedDurationMs: result && result.soundBundle && result.soundBundle.items && result.soundBundle.items[0] && result.soundBundle.items[0].meta ? result.soundBundle.items[0].meta.requestedDurationMs || 0 : 0,
+      avatarResolved: testResult.avatarResolve ? testResult.avatarResolve.ok === true : false,
+      avatarResolveReason: testResult.avatarResolve ? testResult.avatarResolve.reason || "" : "",
+      avatarUrl: testResult.decision && testResult.decision.user ? testResult.decision.user.avatarUrl || "" : ""
     },
     safety: {
       manualTest: true,

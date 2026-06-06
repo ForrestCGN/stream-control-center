@@ -999,17 +999,20 @@ window.Vip30Module = (function(){
     state.actionMessage = '';
     render();
     try {
+      const input = root.querySelector('[data-vip30-alert-test-user]');
+      const rawName = String(input && input.value || 'TestRentner').replace(/^@+/, '').trim() || 'TestRentner';
       const result = await window.CGN.api(api.alertTest, {
         method: 'POST',
         body: JSON.stringify({
-          userLogin: 'testrentner',
-          userDisplayName: 'TestRentner',
-          userId: 'vip30-dashboard-test'
+          userLogin: rawName.toLowerCase(),
+          userDisplayName: rawName,
+          displayName: rawName,
+          userId: ''
         })
       });
       const selected = result && result.selected ? result.selected : {};
       state.actionRunning = '';
-      state.actionMessage = `VIP30 Alert-Test ausgelöst · Sound: ${selected.soundLabel || selected.soundPoolId || selected.mediaId || '-'} · Textset: ${selected.overlaySetId || '-'} · Dauer: ${selected.durationMode === 'manual' ? (selected.requestedDurationMs + ' ms manuell') : 'Media-System Auto'}`;
+      state.actionMessage = `VIP30 Alert-Test ausgelöst · User: ${rawName} · Avatar: ${selected.avatarResolved ? 'geladen' : (selected.avatarResolveReason || 'Fallback')} · Sound: ${selected.soundLabel || selected.soundPoolId || selected.mediaId || '-'} · Textset: ${selected.overlaySetId || '-'} · Dauer: ${selected.durationMode === 'manual' ? (selected.requestedDurationMs + ' ms manuell') : 'Media-System Auto'}`;
       state.actionError = result && result.ok === false ? (result.reason || result.status || 'Test fehlgeschlagen') : '';
       await autoRefresh();
       render();
@@ -1081,6 +1084,9 @@ window.Vip30Module = (function(){
           <div>
             <strong>VIP30 Alert testen</strong>
             <p>Löst ohne Twitch-Schreibzugriff einen echten VIP30 Sound-Bundle-Test aus: zufälliger Sound aus Sounds und zufälliger Text aus Texte.</p>
+            <label class="vip30-test-user-label">Anzeigename/Login zum Auflösen
+              <input type="text" data-vip30-alert-test-user value="AkiGhosty" placeholder="z. B. AkiGhosty">
+            </label>
           </div>
           <button type="button" data-vip30-alert-test ${state.actionRunning ? 'disabled' : ''}>
             ${state.actionRunning === 'alertTest' ? 'Teste...' : 'Alert testen'}

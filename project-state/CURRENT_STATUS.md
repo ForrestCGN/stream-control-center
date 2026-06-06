@@ -4,14 +4,19 @@ Stand: 2026-06-06
 
 ## Aktueller Stand
 
-VIP30 STEP8.18.1 behebt abgehackte Sounds durch automatische Sounddauer.
+VIP30 STEP8.18.2 ergänzt Avatar-Auflösung und Testuser-Eingabe.
 
 ## Neu
 
 ```txt
-✅ SoundPool durationMs pro Sound
-✅ 0 = automatisch aus Media-System
-✅ keine pauschalen 9000ms mehr bei SoundPool-Sounds
-✅ Dashboard zeigt Dauer ms
-✅ Alert-Test meldet Dauer-Modus
+✅ Anzeigename/Login im Dashboard-Test eintragbar
+✅ Twitch User-Lookup für Avatar
+✅ echter Alertpfad ergänzt fehlende avatarUrl
+✅ Testmeldung zeigt Avatar-Status
+```
+
+## Weiter offen
+
+```txt
+lange Namen im Overlay sauber fitten
 ```

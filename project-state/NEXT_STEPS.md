@@ -2,13 +2,13 @@
 
 Stand: 2026-06-06
 
-## STEP8.18.1 einspielen
+## STEP8.18.2 einspielen
 
 ```powershell
 cd /d D:\Git\stream-control-center
 node --check backend\modules\vip30.js
 node --check htdocs\dashboard\modules\vip30.js
-.\stepdone.cmd "VIP30-STEP8.18.1 Auto Sound Duration"
+.\stepdone.cmd "VIP30-STEP8.18.2 Avatar Resolve"
 ```
 
 Danach:
@@ -20,13 +20,11 @@ Dashboard mit Strg+F5 neu laden
 
 ## Testplan
 
-1. Tab `Sounds` öffnen.
-2. Bei allen Sounds `Dauer ms` auf `0` lassen/setzen.
-3. Speichern.
-4. Tab `Aktionen` öffnen.
-5. Mehrfach `VIP30 Alert testen` klicken.
-6. Prüfen:
-   - Sound läuft vollständig
-   - Overlay kommt mit
-   - Sound/Text wechseln
-   - Meldung zeigt `Dauer: Media-System Auto`
+1. Tab `Aktionen` öffnen.
+2. Anzeigename/Login `AkiGhosty` eintragen.
+3. `VIP30 Alert testen` klicken.
+4. Prüfen:
+   - Avatar geladen?
+   - Dashboard-Meldung `Avatar: geladen`?
+   - Overlay zeigt echten Avatar?
+5. Danach ggf. weitere Namen testen.
