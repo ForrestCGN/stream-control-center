@@ -257,7 +257,7 @@ window.Vip30Module = (function(){
     if (!root || !window.CGN || !state.autoRefreshEnabled) return;
     if (!state.status && !state.slots && !state.logs) return;
 
-    const editing = state.tab === 'settings' && (hasDirtyEdits() || isEditingForm());
+    const editing = ['settings', 'texts'].includes(state.tab) && (hasDirtyEdits() || isEditingForm());
     try {
       const [status, slots, logs, externalRemove, cleanupCheck, eventsubStatus] = await Promise.all([
         window.CGN.api(api.status).catch(err => ({ ok:false, error:apiErr(err) })),
@@ -469,7 +469,7 @@ window.Vip30Module = (function(){
   }
 
   function renderTabs(){
-    const tabs = [['overview','Übersicht'], ['slots','Slots'], ['logs','Logs'], ['settings','Config'], ['actions','Aktionen'], ['diagnostics','Diagnose']];
+    const tabs = [['overview','Übersicht'], ['slots','Slots'], ['logs','Logs'], ['settings','Config'], ['texts','Texte'], ['actions','Aktionen'], ['diagnostics','Diagnose']];
     return `<div class="vip30-tabs glass">${tabs.map(([id,label]) => `<button type="button" class="${state.tab === id ? 'active' : ''}" data-vip30-tab="${esc(id)}">${esc(label)}</button>`).join('')}</div>`;
   }
 
@@ -560,7 +560,6 @@ window.Vip30Module = (function(){
     }
 
     const mediaRow = getSettingRow('alerts.mediaId');
-    const overlayRow = getSettingRow('alerts.overlaySets');
     const safeRows = rows.filter(row => isSafeEditable(row) && !['alerts.mediaId', 'alerts.overlaySets'].includes(String(row.key || '')));
     const lockedRows = rows.filter(row => !isSafeEditable(row));
     const lockedByCategory = lockedRows.reduce((acc, row) => {
@@ -592,7 +591,6 @@ window.Vip30Module = (function(){
       </div>
 
       ${renderVip30MediaSoundSection(mediaRow)}
-      ${renderOverlaySetEditor(overlayRow)}
 
       <div class="vip30-config-section">
         <div class="vip30-config-title">
@@ -782,6 +780,32 @@ window.Vip30Module = (function(){
     return `<section class="vip30-card glass"><h3>${esc(title)}</h3><pre class="vip30-json">${esc(JSON.stringify(data || {}, null, 2))}</pre></section>`;
   }
 
+  function renderTexts(){
+    const row = getSettingRow('alerts.overlaySets');
+    return `<section class="vip30-card glass vip30-config vip30-texts-tab">
+      <div class="vip30-card-head">
+        <div>
+          <h3>VIP30 Texte</h3>
+          <p>Zufällige Overlay-Texte für das CGN Split Lounge Design. Die Sets bleiben zusammen, damit Headline, Subline und Perks immer zueinander passen.</p>
+        </div>
+        <div class="vip30-actions">
+          <button type="button" data-vip30-save-settings ${state.saving ? 'disabled' : ''}>${state.saving ? 'Speichere...' : 'Texte speichern'}</button>
+          <button type="button" data-vip30-refresh>Neu laden</button>
+        </div>
+      </div>
+      ${renderAutoRefreshNotice()}
+      ${hasDirtyEdits() ? `<div class="vip30-warnmsg">Ungespeichert: ${esc(dirtyLabel())}. Auto-Reload schützt deine Texteingaben.</div>` : ''}
+      ${state.saveMessage ? `<div class="vip30-okmsg">${esc(state.saveMessage)}</div>` : ''}
+      ${state.saveError ? `<div class="vip30-error">${esc(state.saveError)}</div>` : ''}
+      <div class="vip30-settings-hint">
+        <span>${badge('ZUFALLSTEXTE', 'ok')} ein aktives Set wird nach Gewichtung gewählt.</span>
+        <span>${badge('PLATZHALTER', 'warn')} nutze <code>{displayName}</code> und <code>{login}</code>.</span>
+        <span>${badge('AUTO-RELOAD', 'ok')} aktive Eingaben werden nicht überschrieben.</span>
+      </div>
+      ${renderOverlaySetEditor(row)}
+    </section>`;
+  }
+
   function renderActions(){
     const actions = [
       {
@@ -870,6 +894,7 @@ window.Vip30Module = (function(){
     if (state.tab === 'slots') return renderSlots();
     if (state.tab === 'logs') return renderLogs();
     if (state.tab === 'settings') return renderSettings();
+    if (state.tab === 'texts') return renderTexts();
     if (state.tab === 'actions') return renderActions();
     if (state.tab === 'diagnostics') return renderDiagnostics();
     return renderOverview();

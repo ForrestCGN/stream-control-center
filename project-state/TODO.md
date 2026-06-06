@@ -4,13 +4,19 @@ Stand: 2026-06-06
 
 ## Erledigt
 
-- [x] STEP8.15 OverlaySet Editor
+- [x] VIP30 Live-Test
+- [x] VIP Remove-Test
+- [x] Sound/Overlay
+- [x] OverlaySet-Editor
 - [x] Auto-Reload ohne Eingabeverlust
-- [x] Dashboard-Neon-Punkte entfernt
+- [x] Dashboard-Punkte entfernt
+- [x] eigener Tab „Texte“
 
 ## Offen
 
-- [ ] STEP8.15.1 einspielen
+- [ ] STEP8.16 einspielen
 - [ ] Browser Hard-Refresh
-- [ ] Dashboard optisch prüfen
-- [ ] OverlaySet-Editor testen
+- [ ] Tab „Texte“ prüfen
+- [ ] Textänderung speichern
+- [ ] VIP30 Alert mit geändertem Text testen
+- [ ] VIP30 V1.0 final dokumentieren

@@ -1277,3 +1277,17 @@ html[data-theme=dark] .vip30-table td {
   display: none !important;
   content: none !important;
 }
+
+/* STEP8.16 – VIP30 Texte Tab */
+.vip30-texts-tab .vip30-overlaysets-section {
+  margin-top: 18px;
+}
+
+.vip30-texts-tab .vip30-settings-hint code {
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(34,211,238,.20);
+  background: rgba(34,211,238,.08);
+  color: #bff5ff;
+}
+

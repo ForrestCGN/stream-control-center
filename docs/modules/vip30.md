@@ -2,11 +2,11 @@
 
 Stand: 2026-06-06  
 Backend-Version: `0.8.9` / `step8.14-overlay-sets-design05`  
-Dashboard-Stand: `STEP8.15 OverlaySet Editor`
+Dashboard-Stand: `STEP8.16 Texte Tab`
 
 ## Status
 
-VIP30 STEP8.14 ist vollständig live getestet. STEP8.15 verbessert die Dashboard-Bearbeitung der OverlaySets.
+VIP30 ist fachlich und technisch grün getestet.
 
 ## Erfolgreich getestete Flows
 
@@ -23,9 +23,40 @@ VIP30 STEP8.14 ist vollständig live getestet. STEP8.15 verbessert die Dashboard
 ✅ Slot-Freigabe external_removed
 ```
 
-## OverlaySets
+## Dashboard-Aufbau
 
-VIP30 nutzt gewichtete, zusammengehörige Textsets:
+```txt
+Übersicht
+Slots
+Logs
+Config
+Texte
+Aktionen
+Diagnose
+```
+
+### Config
+
+Technische Einstellungen:
+
+```txt
+VIP30 Alert-Sound
+Slots/Laufzeit
+Reward-Titel/Beschreibung
+Logging
+Cleanup
+gesperrte kritische Live-/Twitch-/Bridge-Settings
+```
+
+### Texte
+
+Redaktionelle Zufallstexte:
+
+```txt
+alerts.overlaySets
+```
+
+Felder:
 
 ```txt
 id
@@ -39,39 +70,13 @@ perks
 brand
 ```
 
-## Dashboard STEP8.15
-
-`alerts.overlaySets` wird jetzt im Dashboard als Karten-Editor dargestellt.
-
-Funktionen:
-
-```txt
-- Textset hinzufügen
-- Textset duplizieren
-- Textset entfernen
-- aktiv/deaktivieren
-- Gewichtung einstellen
-- Kicker/Headline/Subline/Message/Brand bearbeiten
-- Perks als Zeilen bearbeiten
-```
-
-Der Editor schreibt weiterhin in das bestehende Setting:
-
-```txt
-alerts.overlaySets
-```
-
 ## Auto-Reload
 
-Dashboard-Aktualisierung darf aktive Eingaben nicht überschreiben.
-
-STEP8.15 nutzt deshalb:
+Der Dashboard Auto-Reload schützt aktive Eingaben in:
 
 ```txt
-dirty-state pro Setting
-focus-schutz im Config-Tab
-Auto-Refresh für read-only Statusdaten
-Verwerfen-&-Neu-laden Button
+Config
+Texte
 ```
 
 ## Designreferenzen

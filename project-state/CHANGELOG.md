@@ -1,15 +1,17 @@
 # Changelog – VIP30 / 30TageVIP
 
-## 2026-06-06 – STEP8.15.1 No Dashboard Dots
+## 2026-06-06 – STEP8.16 Texte Tab
 
 ### Geändert
 
+- `htdocs/dashboard/modules/vip30.js`
+  - neuer Dashboard-Tab `Texte`
+  - OverlaySet-Editor aus Config entfernt
+  - Render-Funktion `renderTexts()`
+  - Auto-Reload-Schutz gilt jetzt für Config und Texte
+
 - `htdocs/dashboard/modules/vip30.css`
-  - dekorative `.vip30-card::after` Neon-Punkte deaktiviert.
-
-### Grund
-
-Die Punkte wirkten neben Dashboard-Buttons wie Status-/Notification-Indikatoren und werden im VIP30-Dashboard nicht gebraucht.
+  - kleine Tab-spezifische Styles für Texte
 
 ### Nicht geändert
 

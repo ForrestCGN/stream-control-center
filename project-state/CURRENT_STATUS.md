@@ -4,12 +4,24 @@ Stand: 2026-06-06
 
 ## Aktueller Stand
 
-VIP30 ist vollständig getestet und STEP8.15 Dashboard-Editor ist vorbereitet.
+VIP30 ist vollständig getestet. Dashboard wurde in STEP8.16 aufgeräumt.
 
-## STEP8.15.1
+## Neu in STEP8.16
 
-Die dekorativen zwei Neon-Punkte auf Dashboard-Cards wurden entfernt.
+```txt
+✅ eigener Tab „Texte“
+✅ OverlaySet-Editor aus Config ausgelagert
+✅ Config ist wieder technischer
+✅ Auto-Reload-Schutz gilt für Config und Texte
+```
 
-## Wichtig
+## Weiterhin grün
 
-Das betrifft nur das VIP30-Dashboard. Das CGN Split Lounge Overlay-Design bleibt unverändert.
+```txt
+✅ VIP30 Backend 0.8.9
+✅ Sound-Bundle
+✅ CGN Split Lounge Overlay
+✅ OverlaySets
+✅ Live-Test
+✅ VIP-Remove-Test
+```
