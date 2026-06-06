@@ -4,37 +4,32 @@ Stand: 2026-06-06
 
 ## Aktueller Stand
 
-VIP30 ist technisch bis STEP8.14 vorbereitet:
+VIP30 ist nach STEP8.14 vollständig live getestet und mit STEP8.15 im Dashboard verbessert.
+
+## Grün getestet
 
 ```txt
-Media-ID gesetzt
-Sound-System-Bundle funktioniert
-Ton läuft
-Overlay erkennt VIP30
-Design 05 wurde ausgewählt
-OverlaySets wurden vorbereitet
+✅ Redemption
+✅ VIP Grant
+✅ Slot Write
+✅ Fulfill
+✅ Sound Bundle
+✅ CGN Split Lounge Overlay
+✅ OverlaySets
+✅ externer VIP Remove
+✅ Slot-Freigabe
 ```
 
-## Designsystem
-
-Das gewählte Design ist jetzt allgemein dokumentiert als:
+## Neu in STEP8.15
 
 ```txt
-CGN Split Lounge
+✅ OverlaySet Karten-Editor
+✅ Add / Duplicate / Remove
+✅ Gewichtung und Texte editierbar
+✅ Perks als Zeilen editierbar
+✅ Auto-Reload ohne Eingabeverlust
 ```
 
-Referenz:
+## Nächster Test
 
-```txt
-docs/design/CGN_SPLIT_LOUNGE_DESIGN.md
-```
-
-Konkrete VIP30-Ausprägung:
-
-```txt
-docs/design/VIP30_SPLIT_LOUNGE_DESIGN.md
-```
-
-## Wichtig für spätere Module
-
-Das Design ist eine flexible Basis und soll pro Situation angepasst werden.
+Dashboard öffnen, OverlaySet ändern, warten, speichern und echten/Bundle-Test auslösen.

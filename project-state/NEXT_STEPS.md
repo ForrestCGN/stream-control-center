@@ -2,43 +2,36 @@
 
 Stand: 2026-06-06
 
-## Direkt nächster Schritt
-
-STEP8.14 einspielen und testen:
+## STEP8.15 testen
 
 ```powershell
 cd /d D:\Git\stream-control-center
-node -c backend\modules\vip30.js
 node --check htdocs\dashboard\modules\vip30.js
-.\stepdone.cmd "VIP30-STEP8.14 Design05 OverlaySets"
+.\stepdone.cmd "VIP30-STEP8.15 OverlaySet Editor"
 ```
 
-Danach Node neu starten.
-
-## Test
-
-1. Sound-System-Overlay in OBS aktiv lassen.
-2. Testbundle über `/api/sound/bundle` auslösen.
-3. Prüfen:
-   - Sound läuft
-   - Design 05 erscheint
-   - Avatar/Initiale links
-   - Kicker/Headline/Subline rechts
-   - Perks unten
-   - zufälliges OverlaySet
-
-## Später
+Danach:
 
 ```txt
-STEP8.15 – komfortabler Dashboard-Editor für VIP30 OverlaySets
+Node muss für Dashboard-JS nicht zwingend wegen JS neu gestartet werden, aber Hard-Refresh im Browser ist wichtig.
+Bei statischem Cache: Node/Webserver neu starten.
 ```
 
-## Design bei späteren Modulen
+## Testplan
 
-Bei passenden neuen Overlay-/Alert-Modulen zuerst prüfen:
+1. VIP30 Dashboard öffnen.
+2. Config Tab öffnen.
+3. OverlaySets als Karten prüfen.
+4. Headline/Subline ändern.
+5. 10+ Sekunden warten.
+6. Prüfen, dass Eingabe nicht gelöscht wurde.
+7. Speichern.
+8. VIP30-Testbundle oder echten Reward testen.
+
+## Danach
 
 ```txt
-docs/design/CGN_SPLIT_LOUNGE_DESIGN.md
+- finale Texte feinjustieren
+- Reward-Kosten final setzen
+- Reward für echten Betrieb bewusst aktivieren
 ```
-
-Dann situationsbezogen anpassen.

@@ -1103,3 +1103,172 @@ html[data-theme=dark] .vip30-table td {
   background: rgba(4, 8, 20, .45);
 }
 
+/* STEP8.15 OverlaySet editor + input-safe auto-refresh */
+.vip30-auto-refresh-note,
+.vip30-warnmsg {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(34, 211, 238, .20);
+  background: rgba(34, 211, 238, .065);
+  color: rgba(235, 248, 255, .92);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.vip30-warnmsg {
+  border-color: rgba(251, 191, 36, .30);
+  background: rgba(251, 191, 36, .08);
+  color: rgba(255, 246, 214, .95);
+}
+
+.vip30-auto-refresh-note button,
+.vip30-overlayset-toolbar button,
+.vip30-overlayset-actions button {
+  border: 1px solid rgba(34, 211, 238, .25);
+  border-radius: 999px;
+  background: rgba(8, 15, 35, .72);
+  color: #eaf8ff;
+  padding: 7px 10px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.vip30-overlaysets-section {
+  border: 1px solid rgba(168, 85, 247, .18);
+  border-radius: 20px;
+  padding: 14px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(168, 85, 247, .10), transparent 32%),
+    rgba(255, 255, 255, .025);
+}
+
+.vip30-overlayset-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin: 12px 0 14px;
+}
+
+.vip30-overlayset-toolbar small {
+  color: rgba(203, 213, 225, .88);
+}
+
+.vip30-overlay-hidden-json {
+  display: none;
+}
+
+.vip30-overlayset-list {
+  display: grid;
+  gap: 14px;
+}
+
+.vip30-overlayset-card {
+  border: 1px solid rgba(255, 255, 255, .10);
+  border-radius: 20px;
+  padding: 14px;
+  background:
+    linear-gradient(145deg, rgba(8, 12, 30, .72), rgba(28, 12, 55, .55));
+  box-shadow: 0 14px 40px rgba(0, 0, 0, .18);
+}
+
+.vip30-overlayset-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.vip30-overlayset-head strong {
+  display: block;
+  color: #fff;
+  font-size: 14px;
+}
+
+.vip30-overlayset-head small {
+  display: block;
+  margin-top: 3px;
+  color: rgba(203, 213, 225, .78);
+}
+
+.vip30-overlayset-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  align-items: center;
+}
+
+.vip30-mini-check {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  color: rgba(235, 248, 255, .92);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.vip30-overlayset-grid {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(100px, .55fr);
+  gap: 10px;
+}
+
+.vip30-overlayset-grid label {
+  display: grid;
+  gap: 5px;
+  color: rgba(203, 213, 225, .88);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.vip30-overlayset-grid label.wide {
+  grid-column: 1 / -1;
+}
+
+.vip30-overlayset-grid label small {
+  color: rgba(148, 163, 184, .88);
+  font-weight: 700;
+}
+
+.vip30-overlayset-grid input,
+.vip30-overlayset-grid textarea {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 12px;
+  background: rgba(2, 6, 23, .42);
+  color: #fff;
+  padding: 9px 10px;
+  outline: none;
+  font: inherit;
+}
+
+.vip30-overlayset-grid textarea {
+  resize: vertical;
+  min-height: 88px;
+}
+
+.vip30-overlayset-grid input:focus,
+.vip30-overlayset-grid textarea:focus {
+  border-color: rgba(34, 211, 238, .55);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, .10);
+}
+
+@media (max-width: 880px) {
+  .vip30-overlayset-head {
+    display: grid;
+  }
+  .vip30-overlayset-actions {
+    justify-content: flex-start;
+  }
+  .vip30-overlayset-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

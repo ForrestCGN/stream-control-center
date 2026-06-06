@@ -2,22 +2,17 @@
 
 Stand: 2026-06-06
 
-## STEP8.14.2 Designsystem-Doku
+## STEP8.15 Dateien
 
 ```txt
-docs/design/CGN_SPLIT_LOUNGE_DESIGN.md
-docs/design/VIP30_SPLIT_LOUNGE_DESIGN.md
-docs/current/CURRENT_CHAT_HANDOFF_VIP30_STEP8_14_2_CGN_SPLIT_LOUNGE_DESIGNSYSTEM.md
+htdocs/dashboard/modules/vip30.js
+htdocs/dashboard/modules/vip30.css
+docs/current/CURRENT_CHAT_HANDOFF_VIP30_STEP8_15_OVERLAYSET_EDITOR.md
 docs/modules/vip30.md
+docs/dashboard/DASHBOARD_AUTO_RELOAD_WITH_DIRTY_STATE.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/CHANGELOG.md
 project-state/FILES.md
-```
-
-## Letzter Code-Stand
-
-```txt
-VIP30_STEP8_14_design05_overlaysets.zip
 ```

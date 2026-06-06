@@ -50,8 +50,17 @@ window.Vip30Module = (function(){
     saveError: '',
     actionRunning: '',
     actionMessage: '',
-    actionError: ''
+    actionError: '',
+    autoRefreshEnabled: true,
+    autoRefreshMs: 10000,
+    autoRefreshLastAt: '',
+    autoRefreshPausedReason: '',
+    pendingServerRefresh: false
   };
+
+  const editBuffer = {};
+  const dirtyKeys = new Set();
+  let autoRefreshTimer = null;
 
   function esc(value){ return window.CGN?.esc ? window.CGN.esc(value) : String(value ?? '').replace(/[&<>\"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c])); }
   function arr(value){ return Array.isArray(value) ? value : []; }
@@ -112,6 +121,176 @@ window.Vip30Module = (function(){
     }
     return String(raw ?? '');
   }
+
+  function setDirtyValue(key, value){
+    const clean = String(key || '');
+    if (!clean) return;
+    dirtyKeys.add(clean);
+    editBuffer[clean] = value;
+    state.pendingServerRefresh = true;
+  }
+
+  function clearDirtyValues(keys){
+    if (!Array.isArray(keys)) {
+      dirtyKeys.clear();
+      Object.keys(editBuffer).forEach(key => delete editBuffer[key]);
+      state.pendingServerRefresh = false;
+      return;
+    }
+    keys.forEach(key => {
+      dirtyKeys.delete(key);
+      delete editBuffer[key];
+    });
+    state.pendingServerRefresh = dirtyKeys.size > 0;
+  }
+
+  function hasDirtyEdits(){
+    return dirtyKeys.size > 0;
+  }
+
+  function dirtyLabel(){
+    const count = dirtyKeys.size;
+    return count ? `${count} ungespeicherte Änderung${count === 1 ? '' : 'en'}` : '';
+  }
+
+  function isEditingForm(){
+    const active = document.activeElement;
+    if (!active || !root || !root.contains(active)) return false;
+    return !!active.closest('[data-vip30-setting-input], [data-vip30-overlay-field], [data-media-field], input, textarea, select');
+  }
+
+  function currentSettingValue(row){
+    const key = String(row?.key || '');
+    return dirtyKeys.has(key) ? editBuffer[key] : row?.value;
+  }
+
+  function jsonTextForSetting(row){
+    const value = currentSettingValue(row);
+    try { return JSON.stringify(value ?? [], null, 2); }
+    catch (_) { return String(row?.rawValue || '[]'); }
+  }
+
+  function parseOverlaySetsValue(value){
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'string' && value.trim()) {
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (_) {
+        return [];
+      }
+    }
+    return [];
+  }
+
+  function normalizeOverlaySetForUi(raw, index){
+    const set = raw && typeof raw === 'object' ? raw : {};
+    const perks = Array.isArray(set.perks)
+      ? set.perks.map(item => String(item || '').trim()).filter(Boolean)
+      : String(set.perks || '').split(/[|;,\n]/).map(item => item.trim()).filter(Boolean);
+    return {
+      id: String(set.id || `vip30-set-${index + 1}`).trim(),
+      enabled: set.enabled !== false,
+      weight: Number.isFinite(Number(set.weight)) ? Math.max(0, Number.parseInt(String(set.weight), 10)) : 1,
+      kicker: String(set.kicker || '').trim(),
+      headline: String(set.headline || '').trim(),
+      subline: String(set.subline || '').trim(),
+      message: String(set.message || '').trim(),
+      perks,
+      brand: String(set.brand || '').trim()
+    };
+  }
+
+  function getOverlaySetsForUi(){
+    const row = getSettingRow('alerts.overlaySets');
+    return parseOverlaySetsValue(currentSettingValue(row)).map(normalizeOverlaySetForUi);
+  }
+
+  function defaultOverlaySet(index){
+    return {
+      id: `custom-${Date.now()}-${index + 1}`,
+      enabled: true,
+      weight: 1,
+      kicker: 'Upgrade im CGN-Altersheim',
+      headline: '{displayName} wird Ehrenbewohner.',
+      subline: 'Die Rentner begrüßen freundlich, die Heimleitung nickt anerkennend.',
+      message: 'Ein kleines VIP-Upgrade wurde genehmigt.',
+      perks: ['Keks extra', 'Klecks Soße mehr', 'gemütlicherer Sessel'],
+      brand: 'CGN VIP-Lounge'
+    };
+  }
+
+  function readOverlaySetsFromDom(){
+    const cards = Array.from(root?.querySelectorAll('[data-vip30-overlay-set]') || []);
+    return cards.map((card, index) => {
+      const value = name => {
+        const el = card.querySelector(`[data-vip30-overlay-field="${name}"]`);
+        if (!el) return '';
+        if (el.type === 'checkbox') return el.checked === true;
+        return String(el.value || '');
+      };
+      return normalizeOverlaySetForUi({
+        id: value('id') || `vip30-set-${index + 1}`,
+        enabled: value('enabled'),
+        weight: value('weight'),
+        kicker: value('kicker'),
+        headline: value('headline'),
+        subline: value('subline'),
+        message: value('message'),
+        perks: String(value('perks') || '').split(/\r?\n/).map(item => item.trim()).filter(Boolean),
+        brand: value('brand')
+      }, index);
+    });
+  }
+
+  function syncOverlaySetsFromDom(){
+    const sets = readOverlaySetsFromDom();
+    setDirtyValue('alerts.overlaySets', sets);
+    const hidden = root?.querySelector('[data-vip30-setting-input="alerts.overlaySets"]');
+    if (hidden) hidden.value = JSON.stringify(sets, null, 2);
+    state.saveMessage = 'Overlay-Textsets geändert. Bitte sichere Settings speichern.';
+    state.saveError = '';
+  }
+
+  async function autoRefresh(){
+    root = document.getElementById('vip30Module');
+    if (!root || !window.CGN || !state.autoRefreshEnabled) return;
+    if (!state.status && !state.slots && !state.logs) return;
+
+    const editing = state.tab === 'settings' && (hasDirtyEdits() || isEditingForm());
+    try {
+      const [status, slots, logs, externalRemove, cleanupCheck, eventsubStatus] = await Promise.all([
+        window.CGN.api(api.status).catch(err => ({ ok:false, error:apiErr(err) })),
+        window.CGN.api(api.slots).catch(err => ({ ok:false, error:apiErr(err), slots:[] })),
+        window.CGN.api(api.logs).catch(err => ({ ok:false, error:apiErr(err), logs:[] })),
+        window.CGN.api(api.externalRemove).catch(err => ({ ok:false, error:apiErr(err) })),
+        window.CGN.api(api.cleanupCheck).catch(err => ({ ok:false, error:apiErr(err) })),
+        window.CGN.api(api.eventsubStatus).catch(err => ({ ok:false, error:apiErr(err) }))
+      ]);
+      state = {
+        ...state,
+        status,
+        slots,
+        logs,
+        externalRemove,
+        cleanupCheck,
+        eventsubStatus,
+        autoRefreshLastAt: new Date().toISOString(),
+        autoRefreshPausedReason: editing ? 'Eingabe geschützt' : '',
+        pendingServerRefresh: editing || state.pendingServerRefresh
+      };
+      if (!editing) render();
+    } catch (err) {
+      state.autoRefreshPausedReason = apiErr(err);
+      if (!editing) render();
+    }
+  }
+
+  function startAutoRefresh(){
+    if (autoRefreshTimer) window.clearInterval(autoRefreshTimer);
+    autoRefreshTimer = window.setInterval(() => autoRefresh(), state.autoRefreshMs || 10000);
+  }
+
 
   async function loadAll(force){
     root = document.getElementById('vip30Module');
@@ -201,16 +380,22 @@ window.Vip30Module = (function(){
     render();
 
     try {
+      Object.keys(editBuffer).forEach(key => {
+        const row = rowsByKey.get(key);
+        if (row && isSafeEditable(row)) updates[key] = editBuffer[key];
+      });
       const result = await window.CGN.api(api.settingsSave, {
         method: 'POST',
-        body: JSON.stringify({ settings: updates, source: 'dashboard_vip30_step8_13_media_field' })
+        body: JSON.stringify({ settings: updates, source: 'dashboard_vip30_step8_15_overlayset_editor' })
       });
       state.saving = false;
       state.settings = result.settings || state.settings;
-      state.saveMessage = `Gespeichert: ${(result.changed || []).map(item => item.key).join(', ') || 'keine Änderung'}`;
+      const changedKeys = (result.changed || []).map(item => item.key);
+      clearDirtyValues(changedKeys);
+      state.saveMessage = `Gespeichert: ${changedKeys.join(', ') || 'keine Änderung'}`;
       state.saveError = arr(result.rejected).length ? `Teilweise abgelehnt: ${arr(result.rejected).map(item => `${item.key}:${item.reason}`).join(', ')}` : '';
       await loadAll(true);
-      state.saveMessage = `Gespeichert: ${(result.changed || []).map(item => item.key).join(', ') || 'keine Änderung'}`;
+      state.saveMessage = `Gespeichert: ${changedKeys.join(', ') || 'keine Änderung'}`;
     } catch (err) {
       state.saving = false;
       state.saveError = apiErr(err);
@@ -355,17 +540,17 @@ window.Vip30Module = (function(){
     const key = esc(row.key);
     const disabled = !isSafeEditable(row);
     const attr = `data-vip30-setting-input="${key}" ${disabled ? 'disabled' : ''}`;
+    const value = currentSettingValue(row);
     if (row.type === 'boolean') {
-      return `<label class="vip30-switch"><input type="checkbox" ${attr} ${row.value === true ? 'checked' : ''}><span></span></label>`;
+      return `<label class="vip30-switch"><input type="checkbox" ${attr} ${value === true ? 'checked' : ''}><span></span></label>`;
     }
     if (row.type === 'integer') {
-      return `<input class="vip30-setting-control" type="number" min="0" step="1" value="${esc(row.value)}" ${attr}>`;
+      return `<input class="vip30-setting-control" type="number" min="0" step="1" value="${esc(value)}" ${attr}>`;
     }
     if (row.type === 'json') {
-      const jsonText = (() => { try { return JSON.stringify(row.value ?? [], null, 2); } catch (_) { return String(row.rawValue || '[]'); } })();
-      return `<textarea class="vip30-setting-control vip30-json-control" rows="12" spellcheck="false" ${attr}>${esc(jsonText)}</textarea>`;
+      return `<textarea class="vip30-setting-control vip30-json-control" rows="12" spellcheck="false" ${attr}>${esc(jsonTextForSetting(row))}</textarea>`;
     }
-    return `<input class="vip30-setting-control" type="text" value="${esc(row.value)}" ${attr}>`;
+    return `<input class="vip30-setting-control" type="text" value="${esc(value)}" ${attr}>`;
   }
 
   function renderSettings(){
@@ -375,7 +560,8 @@ window.Vip30Module = (function(){
     }
 
     const mediaRow = getSettingRow('alerts.mediaId');
-    const safeRows = rows.filter(row => isSafeEditable(row) && String(row.key || '') !== 'alerts.mediaId');
+    const overlayRow = getSettingRow('alerts.overlaySets');
+    const safeRows = rows.filter(row => isSafeEditable(row) && !['alerts.mediaId', 'alerts.overlaySets'].includes(String(row.key || '')));
     const lockedRows = rows.filter(row => !isSafeEditable(row));
     const lockedByCategory = lockedRows.reduce((acc, row) => {
       const cat = row.category || 'sonstige';
@@ -395,6 +581,8 @@ window.Vip30Module = (function(){
           <button type="button" data-vip30-refresh>Neu laden</button>
         </div>
       </div>
+      ${renderAutoRefreshNotice()}
+      ${hasDirtyEdits() ? `<div class="vip30-warnmsg">Ungespeichert: ${esc(dirtyLabel())}. Auto-Reload schützt deine Eingaben.</div>` : ''}
       ${state.saveMessage ? `<div class="vip30-okmsg">${esc(state.saveMessage)}</div>` : ''}
       ${state.saveError ? `<div class="vip30-error">${esc(state.saveError)}</div>` : ''}
       <div class="vip30-settings-hint">
@@ -404,6 +592,7 @@ window.Vip30Module = (function(){
       </div>
 
       ${renderVip30MediaSoundSection(mediaRow)}
+      ${renderOverlaySetEditor(overlayRow)}
 
       <div class="vip30-config-section">
         <div class="vip30-config-title">
@@ -426,7 +615,8 @@ window.Vip30Module = (function(){
   }
 
   function renderVip30MediaSoundSection(row){
-    const currentId = row ? String(row.value ?? '').trim() : String(getSettingValue('alerts.mediaId', '') ?? '').trim();
+    const currentValue = row ? currentSettingValue(row) : getSettingValue('alerts.mediaId', '');
+    const currentId = String(currentValue ?? '').trim();
     const currentText = currentId ? `Aktuelle Media-ID: ${esc(currentId)}` : 'Noch kein VIP30-Sound ausgewählt.';
     return `<div class="vip30-config-section vip30-media-section">
       <div class="vip30-config-title">
@@ -457,6 +647,78 @@ window.Vip30Module = (function(){
         </div>
       </article>
     </div>`;
+  }
+
+
+  function renderAutoRefreshNotice(){
+    const last = state.autoRefreshLastAt ? `Auto-Reload ${dateFmt(state.autoRefreshLastAt)}` : 'Auto-Reload aktiv';
+    const parts = [last];
+    if (state.autoRefreshPausedReason) parts.push(state.autoRefreshPausedReason);
+    if (state.pendingServerRefresh && hasDirtyEdits()) parts.push('Serverdaten liegen bereit, Eingaben bleiben geschützt');
+    return `<div class="vip30-auto-refresh-note">
+      <span>${esc(parts.join(' · '))}</span>
+      ${hasDirtyEdits() ? '<button type="button" data-vip30-discard-edits>Änderungen verwerfen & neu laden</button>' : ''}
+    </div>`;
+  }
+
+  function renderOverlaySetEditor(row){
+    if (!row) {
+      return `<div class="vip30-config-section vip30-overlaysets-section">
+        <div class="vip30-config-title"><h4>VIP30 Overlay-Textsets</h4><span>${badge('SETTING FEHLT', 'warn')}</span></div>
+        <div class="vip30-empty">Das Setting <code>alerts.overlaySets</code> wurde im Backend noch nicht gefunden.</div>
+      </div>`;
+    }
+
+    const sets = getOverlaySetsForUi();
+    const jsonText = jsonTextForSetting(row);
+    return `<div class="vip30-config-section vip30-overlaysets-section">
+      <div class="vip30-config-title">
+        <div>
+          <h4>VIP30 Overlay-Textsets</h4>
+          <p>Zusammengehörige Varianten wie beim SO-System: Kicker, Headline, Subline, Message, Perks und Brand bleiben als Set zusammen.</p>
+        </div>
+        <span>${badge(`${sets.length} Sets`, 'ok')}</span>
+      </div>
+
+      <div class="vip30-overlayset-toolbar">
+        <button type="button" data-vip30-overlay-add>Neues Textset</button>
+        <button type="button" data-vip30-overlay-format>JSON formatieren</button>
+        <small>Platzhalter: <code>{displayName}</code>, <code>{login}</code></small>
+      </div>
+
+      <textarea class="vip30-setting-control vip30-json-control vip30-overlay-hidden-json" rows="10" spellcheck="false" data-vip30-setting-input="alerts.overlaySets">${esc(jsonText)}</textarea>
+
+      <div class="vip30-overlayset-list">
+        ${sets.map((set, index) => renderOverlaySetCard(set, index)).join('')}
+      </div>
+    </div>`;
+  }
+
+  function renderOverlaySetCard(set, index){
+    const perksText = (set.perks || []).join('\n');
+    return `<article class="vip30-overlayset-card" data-vip30-overlay-set data-index="${esc(index)}">
+      <div class="vip30-overlayset-head">
+        <div>
+          <strong>Textset ${esc(index + 1)} · ${esc(set.id || 'ohne-id')}</strong>
+          <small>Gewichtung ${esc(set.weight)} · ${set.enabled ? 'aktiv' : 'deaktiviert'}</small>
+        </div>
+        <div class="vip30-overlayset-actions">
+          <label class="vip30-mini-check"><input type="checkbox" data-vip30-overlay-field="enabled" ${set.enabled ? 'checked' : ''}> aktiv</label>
+          <button type="button" data-vip30-overlay-duplicate="${esc(index)}">Duplizieren</button>
+          <button type="button" data-vip30-overlay-remove="${esc(index)}">Entfernen</button>
+        </div>
+      </div>
+      <div class="vip30-overlayset-grid">
+        <label>ID<input type="text" data-vip30-overlay-field="id" value="${esc(set.id)}"></label>
+        <label>Gewichtung<input type="number" min="0" step="1" data-vip30-overlay-field="weight" value="${esc(set.weight)}"></label>
+        <label>Kicker<input type="text" data-vip30-overlay-field="kicker" value="${esc(set.kicker)}"></label>
+        <label>Brand<input type="text" data-vip30-overlay-field="brand" value="${esc(set.brand)}"></label>
+        <label class="wide">Headline<input type="text" data-vip30-overlay-field="headline" value="${esc(set.headline)}"></label>
+        <label class="wide">Subline<input type="text" data-vip30-overlay-field="subline" value="${esc(set.subline)}"></label>
+        <label class="wide">Message<input type="text" data-vip30-overlay-field="message" value="${esc(set.message)}"></label>
+        <label class="wide">Perks / Chips <small>eine Zeile pro Chip</small><textarea rows="4" data-vip30-overlay-field="perks" spellcheck="false">${esc(perksText)}</textarea></label>
+      </div>
+    </article>`;
   }
 
   function renderSettingCard(row){
@@ -625,18 +887,97 @@ window.Vip30Module = (function(){
     root?.querySelectorAll('[data-vip30-tab]').forEach(btn => btn.addEventListener('click', () => { state.tab = btn.dataset.vip30Tab || 'overview'; render(); }));
     root?.querySelectorAll('[data-vip30-save-settings]').forEach(btn => btn.addEventListener('click', () => saveSettings()));
     root?.querySelectorAll('[data-vip30-refresh-part]').forEach(btn => btn.addEventListener('click', () => refreshPart(btn.dataset.vip30RefreshPart || '', btn.dataset.vip30RefreshLabel || '')));
+
+    root?.querySelectorAll('[data-vip30-setting-input]').forEach(input => {
+      input.addEventListener('input', () => {
+        const key = String(input.dataset.vip30SettingInput || '');
+        const row = getSettingRow(key);
+        if (!row || !isSafeEditable(row)) return;
+        if (row.type === 'boolean') setDirtyValue(key, input.checked === true);
+        else {
+          try { setDirtyValue(key, typeValue(row, input.value)); }
+          catch (_) { setDirtyValue(key, input.value); }
+        }
+      });
+      input.addEventListener('change', () => {
+        const key = String(input.dataset.vip30SettingInput || '');
+        const row = getSettingRow(key);
+        if (!row || !isSafeEditable(row)) return;
+        if (row.type === 'boolean') setDirtyValue(key, input.checked === true);
+      });
+    });
+
+    root?.querySelectorAll('[data-vip30-overlay-field]').forEach(input => {
+      input.addEventListener('input', () => syncOverlaySetsFromDom());
+      input.addEventListener('change', () => syncOverlaySetsFromDom());
+    });
+
+    root?.querySelector('[data-vip30-overlay-add]')?.addEventListener('click', () => {
+      const sets = getOverlaySetsForUi();
+      sets.push(defaultOverlaySet(sets.length));
+      setDirtyValue('alerts.overlaySets', sets);
+      render();
+    });
+
+    root?.querySelectorAll('[data-vip30-overlay-duplicate]').forEach(btn => btn.addEventListener('click', () => {
+      const index = Number.parseInt(String(btn.dataset.vip30OverlayDuplicate || '0'), 10);
+      const sets = getOverlaySetsForUi();
+      const copy = { ...(sets[index] || defaultOverlaySet(sets.length)) };
+      copy.id = `${copy.id || 'copy'}-kopie`;
+      sets.splice(index + 1, 0, copy);
+      setDirtyValue('alerts.overlaySets', sets);
+      render();
+    }));
+
+    root?.querySelectorAll('[data-vip30-overlay-remove]').forEach(btn => btn.addEventListener('click', () => {
+      const index = Number.parseInt(String(btn.dataset.vip30OverlayRemove || '0'), 10);
+      const sets = getOverlaySetsForUi();
+      if (sets.length <= 1) {
+        state.saveError = 'Mindestens ein Overlay-Textset muss erhalten bleiben.';
+        render();
+        return;
+      }
+      sets.splice(index, 1);
+      setDirtyValue('alerts.overlaySets', sets);
+      render();
+    }));
+
+    root?.querySelector('[data-vip30-overlay-format]')?.addEventListener('click', () => {
+      const sets = getOverlaySetsForUi();
+      setDirtyValue('alerts.overlaySets', sets);
+      render();
+    });
+
+    root?.querySelector('[data-vip30-discard-edits]')?.addEventListener('click', () => {
+      clearDirtyValues();
+      loadAll(true);
+    });
+
     window.MediaField?.initAll?.(root);
     root?.querySelectorAll('[data-media-field]').forEach(field => {
       field.addEventListener('media-field:change', () => {
+        const input = root.querySelector('#vip30AlertMediaId');
+        if (input) setDirtyValue('alerts.mediaId', typeValue(getSettingRow('alerts.mediaId'), input.value));
         state.saveError = '';
         state.saveMessage = 'Medium ausgewählt. Bitte sichere Settings speichern.';
       });
     });
   }
 
-  window.addEventListener('cgn:module-show', ev => { if (ev.detail?.module === 'vip30') loadAll(false); });
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { root = document.getElementById('vip30Module'); });
-  else root = document.getElementById('vip30Module');
+  window.addEventListener('cgn:module-show', ev => {
+    if (ev.detail?.module === 'vip30') {
+      loadAll(false);
+      startAutoRefresh();
+    }
+  });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => {
+    root = document.getElementById('vip30Module');
+    startAutoRefresh();
+  });
+  else {
+    root = document.getElementById('vip30Module');
+    startAutoRefresh();
+  }
 
-  return { loadAll, render, saveSettings };
+  return { loadAll, render, saveSettings, autoRefresh };
 })();

@@ -4,23 +4,17 @@ Stand: 2026-06-06
 
 ## Erledigt
 
-- [x] VIP30 Media-Sound über Dashboard/MediaField
-- [x] Sound-System-Bundle statt direkter Wiedergabe
-- [x] Sound-System-Overlay erkennt VIP30
-- [x] Design 05 ausgewählt
-- [x] VIP30-Design dokumentiert
-- [x] allgemeines CGN Split Lounge Designsystem dokumentiert
-- [x] OverlaySets vorbereitet
+- [x] STEP8.14 Live-Test erfolgreich
+- [x] VIP Remove Test erfolgreich
+- [x] CGN Split Lounge Design dokumentiert
+- [x] STEP8.15 OverlaySet Editor gebaut
+- [x] Auto-Reload ohne Eingabeverlust vorbereitet
 
 ## Offen
 
-- [ ] STEP8.14 live einspielen
-- [ ] Node neu starten
-- [ ] Testbundle auslösen
-- [ ] echtes VIP30-Redemption-Verhalten testen
-- [ ] Design bei Bedarf feinjustieren
-
-## Später
-
-- [ ] STEP8.15 komfortabler OverlaySet-Editor im Dashboard
-- [ ] CGN Split Lounge Design für passende weitere Module situationsbezogen wiederverwenden
+- [ ] STEP8.15 in Live-System einspielen
+- [ ] Dashboard Hard-Refresh
+- [ ] OverlaySet-Editor testen
+- [ ] Auto-Reload mit aktiver Eingabe testen
+- [ ] geänderte OverlaySets speichern
+- [ ] VIP30 Alert mit geändertem Set testen

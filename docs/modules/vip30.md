@@ -1,34 +1,27 @@
 # VIP30 / 30TageVIP
 
 Stand: 2026-06-06  
-Backend-Version: `0.8.9` / `step8.14-overlay-sets-design05`
+Backend-Version: `0.8.9` / `step8.14-overlay-sets-design05`  
+Dashboard-Stand: `STEP8.15 OverlaySet Editor`
 
-## Aktueller Flow
+## Status
 
-```txt
-VIP30 Erfolg
--> Backend wählt OverlaySet
--> /api/sound/bundle
--> Sound-System
--> sound_system_overlay.html
--> CGN Split Lounge / VIP30 Design 05
-```
+VIP30 STEP8.14 ist vollständig live getestet. STEP8.15 verbessert die Dashboard-Bearbeitung der OverlaySets.
 
-## Designreferenzen
-
-Allgemeine Designbasis:
+## Erfolgreich getestete Flows
 
 ```txt
-docs/design/CGN_SPLIT_LOUNGE_DESIGN.md
+✅ Twitch Reward Einlösung
+✅ EventSub Redemption
+✅ VIP30 Bridge
+✅ Twitch VIP Grant
+✅ Slot Write
+✅ Redemption Fulfill
+✅ Sound-System Bundle
+✅ CGN Split Lounge Overlay
+✅ manueller VIP-Remove
+✅ Slot-Freigabe external_removed
 ```
-
-Konkrete VIP30-Ausprägung:
-
-```txt
-docs/design/VIP30_SPLIT_LOUNGE_DESIGN.md
-```
-
-Wichtig: Das Design soll bei späteren Modulen situationsbezogen angepasst werden, nicht blind 1:1 kopiert werden.
 
 ## OverlaySets
 
@@ -46,17 +39,44 @@ perks
 brand
 ```
 
-## Media-/Sound-System
+## Dashboard STEP8.15
 
-Der VIP30-Sound wird über das Media-System hochgeladen und als `alerts.mediaId` gespeichert.
+`alerts.overlaySets` wird jetzt im Dashboard als Karten-Editor dargestellt.
 
-Das Sound-System übernimmt Queue, Priorität, Playback, Output und Overlay-Ausgabe.
-
-## Kein Alert-System
-
-VIP30 nutzt für diesen Flow nicht:
+Funktionen:
 
 ```txt
-alert_system.js
-vip-sound.js
+- Textset hinzufügen
+- Textset duplizieren
+- Textset entfernen
+- aktiv/deaktivieren
+- Gewichtung einstellen
+- Kicker/Headline/Subline/Message/Brand bearbeiten
+- Perks als Zeilen bearbeiten
+```
+
+Der Editor schreibt weiterhin in das bestehende Setting:
+
+```txt
+alerts.overlaySets
+```
+
+## Auto-Reload
+
+Dashboard-Aktualisierung darf aktive Eingaben nicht überschreiben.
+
+STEP8.15 nutzt deshalb:
+
+```txt
+dirty-state pro Setting
+focus-schutz im Config-Tab
+Auto-Refresh für read-only Statusdaten
+Verwerfen-&-Neu-laden Button
+```
+
+## Designreferenzen
+
+```txt
+docs/design/CGN_SPLIT_LOUNGE_DESIGN.md
+docs/design/VIP30_SPLIT_LOUNGE_DESIGN.md
 ```

@@ -1,23 +1,25 @@
 # Changelog – VIP30 / 30TageVIP
 
-## 2026-06-06 – STEP8.14.2 CGN Split Lounge Designsystem
+## 2026-06-06 – STEP8.15 OverlaySet Editor + Auto-Reload
 
-### Neu
+### Geändert
 
-- `docs/design/CGN_SPLIT_LOUNGE_DESIGN.md`
-  - Allgemeine Designsystem-Referenz für die CGN Split Lounge.
-  - Beschreibt Grundstruktur, Farben, Layout, Typografie, Anpassungsregeln und Wiederverwendung.
+- `htdocs/dashboard/modules/vip30.js`
+  - OverlaySet Karten-Editor für `alerts.overlaySets`
+  - Add / Duplicate / Remove
+  - Dirty-State für Settings
+  - Auto-Refresh alle ca. 10 Sekunden
+  - Fokus-/Eingabeschutz im Config-Tab
+  - Verwerfen-&-Neu-laden Aktion
 
-### Aktualisiert
+- `htdocs/dashboard/modules/vip30.css`
+  - Styling für OverlaySet-Karten
+  - Auto-Refresh-Hinweis
+  - Dirty-State-Hinweis
 
-- `docs/design/VIP30_SPLIT_LOUNGE_DESIGN.md`
-  - VIP30 als konkrete Ausprägung der allgemeinen CGN Split Lounge eingeordnet.
-- `docs/modules/vip30.md`
-- `project-state/CURRENT_STATUS.md`
-- `project-state/NEXT_STEPS.md`
-- `project-state/TODO.md`
-- `project-state/FILES.md`
+### Nicht geändert
 
-### Code
-
-Keine Codeänderung in diesem Step.
+- Backend
+- Sound-System
+- Media-System
+- Sound-System-Overlay
