@@ -4,32 +4,12 @@ Stand: 2026-06-06
 
 ## Aktueller Stand
 
-VIP30 ist nach STEP8.14 vollständig live getestet und mit STEP8.15 im Dashboard verbessert.
+VIP30 ist vollständig getestet und STEP8.15 Dashboard-Editor ist vorbereitet.
 
-## Grün getestet
+## STEP8.15.1
 
-```txt
-✅ Redemption
-✅ VIP Grant
-✅ Slot Write
-✅ Fulfill
-✅ Sound Bundle
-✅ CGN Split Lounge Overlay
-✅ OverlaySets
-✅ externer VIP Remove
-✅ Slot-Freigabe
-```
+Die dekorativen zwei Neon-Punkte auf Dashboard-Cards wurden entfernt.
 
-## Neu in STEP8.15
+## Wichtig
 
-```txt
-✅ OverlaySet Karten-Editor
-✅ Add / Duplicate / Remove
-✅ Gewichtung und Texte editierbar
-✅ Perks als Zeilen editierbar
-✅ Auto-Reload ohne Eingabeverlust
-```
-
-## Nächster Test
-
-Dashboard öffnen, OverlaySet ändern, warten, speichern und echten/Bundle-Test auslösen.
+Das betrifft nur das VIP30-Dashboard. Das CGN Split Lounge Overlay-Design bleibt unverändert.
