@@ -11,23 +11,35 @@ Stand: 2026-06-06
 - STEP8.7.1 Routing-Fix
 - STEP8.8 Dashboard Read-only
 - STEP8.8.1 Dashboard CGN-Design-Polish
-- STEP8.9 Dashboard Settings funktional getestet
+- STEP8.9 Dashboard Settings
+- STEP8.9.1 Config UX Polish
 
 ## Aktueller Schritt
 
-STEP8.9.1 Config UX Polish wurde vorbereitet.
+STEP8.10.1 Admin Refresh Actions wurde vorbereitet.
 
-## Inhalt STEP8.9.1
+## Inhalt STEP8.10.1
 
-- Sichere editierbare Settings werden oben als Cards angezeigt.
-- Kritische/gesperrte Settings werden in getrennten, aufklappbaren Kategorien angezeigt.
-- Weniger horizontales Scrollen.
-- Keine Backend-/DB-/Twitch-Änderung.
+Neuer Dashboard-Tab:
+
+```txt
+Aktionen
+```
+
+Nur sichere GET-/Refresh-Aktionen:
+
+```txt
+Status, Slots, Logs, Settings, Cleanup Check, External Remove Status, EventSub Status
+```
+
+## Safety
+
+Keine Backend-Änderung, keine Twitch-Schreibaktion, kein Cleanup-Run, keine Redemption-Aktion.
 
 ## Nächster Schritt
 
-Nach Test von STEP8.9.1:
+Nach Test von STEP8.10.1:
 
 ```txt
-STEP8.10 Dashboard manuelle Admin-Aktionen planen
+STEP8.10.2 Confirm-/Audit-Konzept für gefährliche Admin-Aktionen planen
 ```

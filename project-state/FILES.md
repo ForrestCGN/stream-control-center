@@ -2,12 +2,12 @@
 
 Stand: 2026-06-06
 
-## STEP8.9.1 Dateien
+## STEP8.10.1 Dateien
 
 ```txt
 htdocs/dashboard/modules/vip30.js
 htdocs/dashboard/modules/vip30.css
-docs/current/CURRENT_CHAT_HANDOFF_VIP30_STEP8_9_1_CONFIG_UX.md
+docs/current/CURRENT_CHAT_HANDOFF_VIP30_STEP8_10_1_ADMIN_REFRESH.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md

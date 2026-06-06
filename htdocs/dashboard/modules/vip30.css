@@ -865,3 +865,90 @@ html[data-theme=dark] .vip30-table td {
     flex-direction: column;
   }
 }
+
+
+/* STEP8.10.1 – sichere Admin-/Refresh-Aktionen */
+.vip30-admin-actions {
+  overflow: hidden;
+}
+
+.vip30-action-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.vip30-action-card {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 132px;
+  border: 1px solid rgba(34,211,238,.20);
+  border-radius: 20px;
+  padding: 15px;
+  background:
+    radial-gradient(circle at 94% 8%, rgba(34,211,238,.10), transparent 32%),
+    radial-gradient(circle at 0% 100%, rgba(168,85,247,.08), transparent 38%),
+    rgba(5,12,24,.64);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.025),
+    0 16px 42px rgba(0,0,0,.14);
+}
+
+.vip30-action-card strong {
+  display: block;
+  color: #fff;
+  font-weight: 950;
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.vip30-action-card p {
+  margin: 10px 0 0;
+  color: #cbd5e1;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.vip30-action-card button {
+  align-self: flex-start;
+  white-space: nowrap;
+}
+
+.vip30-danger-zone {
+  margin-top: 20px;
+  border: 1px solid rgba(248,113,113,.22);
+  border-radius: 20px;
+  padding: 15px;
+  background:
+    radial-gradient(circle at 96% 0%, rgba(248,113,113,.10), transparent 32%),
+    rgba(24,8,18,.50);
+}
+
+.vip30-danger-zone h4 {
+  margin: 0 0 8px;
+  color: #fecaca;
+  font-size: 14px;
+  font-weight: 950;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+
+.vip30-danger-zone p {
+  margin: 0;
+  color: #f5c6cf;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@media (max-width: 760px) {
+  .vip30-action-card {
+    flex-direction: column;
+  }
+
+  .vip30-action-card button {
+    width: 100%;
+  }
+}

@@ -2,44 +2,46 @@
 
 Stand: 2026-06-06
 
-## Nach STEP8.9.1 ZIP
+## Nach STEP8.10.1 ZIP
 
 ```powershell
 cd /d D:\Git\stream-control-center
 node --check htdocs\dashboard\modules\vip30.js
-.\stepdone.cmd "VIP30-STEP8.9.1 Config UX Polish"
+.\stepdone.cmd "VIP30-STEP8.10.1 Admin Refresh Actions"
 ```
 
-Dann Dashboard testen:
+Dashboard testen:
 
 ```txt
 /dashboard
-Community -> 30 Tage VIP -> Config
+Community -> 30 Tage VIP -> Aktionen
 ```
 
 Prüfen:
 
 ```txt
-- sichere Settings oben als Cards
-- kritische Settings getrennt/aufklappbar
-- Save funktioniert weiter
-- kein JS-Fehler
+- Tab Aktionen sichtbar
+- einzelne Refresh-Buttons funktionieren
+- Alles neu laden funktioniert
+- keine JS-Fehler
 ```
 
 ## Danach
 
-STEP8.10 planen:
+STEP8.10.2 planen:
 
 ```txt
-Dashboard manuelle Admin-Aktionen
+Confirm-/Audit-Konzept für gefährliche Aktionen
 ```
 
-Noch nicht ohne Confirm/Audit bauen:
+Gefährliche Aktionen bleiben bis dahin gesperrt:
 
 ```txt
 Cleanup Run
 Reward Sync/Ensure
 manuelle Slot-Korrektur
 VIP vergeben/entziehen
-Live-Gates umschalten
+Redemption fulfill/cancel
+Bus-Testevent
+Live-Gates ändern
 ```

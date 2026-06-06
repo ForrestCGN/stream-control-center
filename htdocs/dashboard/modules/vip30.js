@@ -45,7 +45,10 @@ window.Vip30Module = (function(){
     settings: null,
     saving: false,
     saveMessage: '',
-    saveError: ''
+    saveError: '',
+    actionRunning: '',
+    actionMessage: '',
+    actionError: ''
   };
 
   function esc(value){ return window.CGN?.esc ? window.CGN.esc(value) : String(value ?? '').replace(/[&<>\"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c])); }
@@ -119,6 +122,35 @@ window.Vip30Module = (function(){
       state.error = apiErr(err);
     }
     render();
+  }
+
+  async function refreshPart(key, label){
+    root = document.getElementById('vip30Module');
+    if (!root || !window.CGN) return;
+    if (!api[key]) {
+      state.actionError = `Unbekannte Diagnose-Aktion: ${key}`;
+      state.actionMessage = '';
+      render();
+      return;
+    }
+
+    state.actionRunning = key;
+    state.actionError = '';
+    state.actionMessage = '';
+    render();
+
+    try {
+      const result = await window.CGN.api(api[key]);
+      state[key] = result;
+      state.loadedAt = new Date().toISOString();
+      state.actionRunning = '';
+      state.actionMessage = `${label || key} wurde neu geladen.`;
+      render();
+    } catch (err) {
+      state.actionRunning = '';
+      state.actionError = `${label || key}: ${apiErr(err)}`;
+      render();
+    }
   }
 
   async function saveSettings(){
@@ -229,7 +261,7 @@ window.Vip30Module = (function(){
   }
 
   function renderTabs(){
-    const tabs = [['overview','Übersicht'], ['slots','Slots'], ['logs','Logs'], ['settings','Config'], ['diagnostics','Diagnose']];
+    const tabs = [['overview','Übersicht'], ['slots','Slots'], ['logs','Logs'], ['settings','Config'], ['actions','Aktionen'], ['diagnostics','Diagnose']];
     return `<div class="vip30-tabs glass">${tabs.map(([id,label]) => `<button type="button" class="${state.tab === id ? 'active' : ''}" data-vip30-tab="${esc(id)}">${esc(label)}</button>`).join('')}</div>`;
   }
 
@@ -424,6 +456,79 @@ window.Vip30Module = (function(){
     return `<section class="vip30-card glass"><h3>${esc(title)}</h3><pre class="vip30-json">${esc(JSON.stringify(data || {}, null, 2))}</pre></section>`;
   }
 
+  function renderActions(){
+    const actions = [
+      {
+        key: 'status',
+        title: 'Status neu laden',
+        text: 'Lädt den VIP30-Modulstatus neu. Keine DB-/Twitch-Schreibaktion.'
+      },
+      {
+        key: 'slots',
+        title: 'Slots neu laden',
+        text: 'Lädt die aktuelle VIP30-Slotliste neu.'
+      },
+      {
+        key: 'logs',
+        title: 'Logs neu laden',
+        text: 'Lädt die letzten VIP30-Logeinträge neu.'
+      },
+      {
+        key: 'settings',
+        title: 'Settings neu laden',
+        text: 'Lädt die VIP30-Settings aus der DB neu.'
+      },
+      {
+        key: 'cleanupCheck',
+        title: 'Cleanup Check neu laden',
+        text: 'Führt nur den vorhandenen Cleanup-Check/Statusabruf aus. Kein Cleanup-Run.'
+      },
+      {
+        key: 'externalRemove',
+        title: 'External VIP Remove Status neu laden',
+        text: 'Lädt den Status der externen VIP-Remove-Bus-Verarbeitung neu.'
+      },
+      {
+        key: 'eventsubStatus',
+        title: 'EventSub VIP Status neu laden',
+        text: 'Lädt den Twitch EventSub Status inklusive channel.vip.add/remove neu.'
+      }
+    ];
+
+    return `<section class="vip30-card glass vip30-admin-actions">
+      <div class="vip30-card-head">
+        <div>
+          <h3>Admin-Aktionen</h3>
+          <p>Nur sichere Diagnose-/Refresh-Aktionen. Kein VIP-Grant, kein VIP-Remove, kein Cleanup-Run, keine Redemption-Abrechnung.</p>
+        </div>
+        <div class="vip30-actions">
+          <button type="button" data-vip30-refresh>Alles neu laden</button>
+        </div>
+      </div>
+      <div class="vip30-settings-hint">
+        <span>${badge('SICHER', 'ok')} ruft nur bestehende GET-/Statusrouten auf.</span>
+        <span>${badge('KEINE LIVE-AKTION', 'warn')} schreibt nicht in Twitch und führt keinen Cleanup aus.</span>
+      </div>
+      ${state.actionMessage ? `<div class="vip30-okmsg">${esc(state.actionMessage)}</div>` : ''}
+      ${state.actionError ? `<div class="vip30-error">${esc(state.actionError)}</div>` : ''}
+      <div class="vip30-action-grid">
+        ${actions.map(action => `<article class="vip30-action-card">
+          <div>
+            <strong>${esc(action.title)}</strong>
+            <p>${esc(action.text)}</p>
+          </div>
+          <button type="button" data-vip30-refresh-part="${esc(action.key)}" data-vip30-refresh-label="${esc(action.title)}" ${state.actionRunning ? 'disabled' : ''}>
+            ${state.actionRunning === action.key ? 'Lädt...' : 'Ausführen'}
+          </button>
+        </article>`).join('')}
+      </div>
+      <div class="vip30-danger-zone">
+        <h4>Bewusst noch gesperrt</h4>
+        <p>Cleanup Run, Reward Sync/Ensure, manuelle Slot-Korrektur, VIP vergeben/entziehen, Redemption fulfill/cancel und Bus-Testevents brauchen später Confirm + Audit-Log.</p>
+      </div>
+    </section>`;
+  }
+
   function renderDiagnostics(){
     return `<div class="vip30-grid">
       ${jsonBlock('VIP30 Status', state.status)}
@@ -439,6 +544,7 @@ window.Vip30Module = (function(){
     if (state.tab === 'slots') return renderSlots();
     if (state.tab === 'logs') return renderLogs();
     if (state.tab === 'settings') return renderSettings();
+    if (state.tab === 'actions') return renderActions();
     if (state.tab === 'diagnostics') return renderDiagnostics();
     return renderOverview();
   }
@@ -454,6 +560,7 @@ window.Vip30Module = (function(){
     root?.querySelectorAll('[data-vip30-refresh]').forEach(btn => btn.addEventListener('click', () => loadAll(true)));
     root?.querySelectorAll('[data-vip30-tab]').forEach(btn => btn.addEventListener('click', () => { state.tab = btn.dataset.vip30Tab || 'overview'; render(); }));
     root?.querySelectorAll('[data-vip30-save-settings]').forEach(btn => btn.addEventListener('click', () => saveSettings()));
+    root?.querySelectorAll('[data-vip30-refresh-part]').forEach(btn => btn.addEventListener('click', () => refreshPart(btn.dataset.vip30RefreshPart || '', btn.dataset.vip30RefreshLabel || '')));
   }
 
   window.addEventListener('cgn:module-show', ev => { if (ev.detail?.module === 'vip30') loadAll(false); });
