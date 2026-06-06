@@ -1,33 +1,25 @@
 # Changelog – VIP30 / 30TageVIP
 
-## 2026-06-06 – STEP8.17 Sound Pool
+## 2026-06-06 – STEP8.17.1 Settings Seed Fix
 
-### Backend
+### Problem
+
+`alerts.soundPool` wurde im Dashboard als fehlend angezeigt, obwohl STEP8.17 aktiv war.
+
+### Ursache
+
+Bestehende Installationen hatten die `vip30_settings`-Tabelle bereits. Neue Setting-Definitionen wurden ohne neue Migration nicht automatisch nachgesät.
+
+### Fix
 
 - `backend/modules/vip30.js`
-  - Version auf `0.8.10`
-  - Build auf `step8.17-sound-pool`
-  - neues Setting `alerts.soundPool`
-  - neue SoundPool-Normalisierung
-  - gewichtete Zufallsauswahl für Sounds
-  - Fallback auf `alerts.mediaId` / `alerts.mediaPath`
-  - Alert-Status zeigt `soundPoolCount`
+  - Version `0.8.11`
+  - Build `step8.17.1-settings-seed-fix`
+  - `buildSettingsStatus()` sät fehlende Settings automatisch nach.
 
-### Dashboard
+### Erwartung
 
-- `htdocs/dashboard/modules/vip30.js`
-  - neuer Tab `Sounds`
-  - SoundPool-Editor
-  - MediaField pro Sound
-  - Add / Duplicate / Remove
-  - Dirty-/Focus-Schutz erweitert auf Sounds
-  - Config um großen Soundbereich bereinigt
-
-- `htdocs/dashboard/modules/vip30.css`
-  - Styling für SoundPool-Karten
-
-### Nicht geändert
-
-- Sound-System
-- Media-System
-- Sound-System-Overlay
+```txt
+Settings 29 / 29
+Tab Sounds zeigt Editor
+```

@@ -4,26 +4,14 @@ Stand: 2026-06-06
 
 ## Aktueller Stand
 
-VIP30 wurde mit STEP8.17 um einen Sound-Pool erweitert.
+STEP8.17.1 behebt das fehlende Setting `alerts.soundPool`.
 
-## Neu
+Nach Node-Neustart soll der Tab `Sounds` den Sound-Pool-Editor anzeigen.
 
-```txt
-✅ eigener Tab „Sounds“
-✅ mehrere VIP30-Sounds
-✅ Sound hinzufügen/duplizieren/entfernen
-✅ Media-System pro Sound
-✅ Gewichtung pro Sound
-✅ Backend-Zufallsauswahl
-✅ Fallback auf alerts.mediaId bleibt erhalten
-```
-
-## Weiterhin vorhanden
+## Erwartung
 
 ```txt
-✅ eigener Tab „Texte“
-✅ OverlaySets/Zufallstexte
-✅ CGN Split Lounge Overlay
-✅ Sound-System-Bundle
-✅ Auto-Reload ohne Eingabeverlust
+moduleVersion: 0.8.11
+moduleBuild: step8.17.1-settings-seed-fix
+Settings 29 / 29
 ```

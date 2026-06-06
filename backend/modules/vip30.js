@@ -8,8 +8,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.10";
-const MODULE_BUILD = "step8.17-sound-pool";
+const MODULE_VERSION = "0.8.11";
+const MODULE_BUILD = "step8.17.1-settings-seed-fix";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -613,7 +613,12 @@ function seedSettingsFromConfigIfMissing(reason = "seed") {
 }
 function buildSettingsStatus() {
   ensureDbReady();
-  const rows = readSettingsRows().map(mapSettingRow).filter(Boolean);
+  let rawRows = readSettingsRows();
+  if (rawRows.length < SETTING_DEFINITIONS.length) {
+    seedSettingsFromConfigIfMissing("settings_status_missing_definitions");
+    rawRows = readSettingsRows();
+  }
+  const rows = rawRows.map(mapSettingRow).filter(Boolean);
   const categories = [...new Set(rows.map(row => row.category).filter(Boolean))];
   return {
     ok: true,
