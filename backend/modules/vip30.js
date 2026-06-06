@@ -8,8 +8,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.11";
-const MODULE_BUILD = "step8.17.1-settings-seed-fix";
+const MODULE_VERSION = "0.8.12";
+const MODULE_BUILD = "step8.18-alert-test-route";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -2941,6 +2941,110 @@ async function triggerVip30AlertSoundBundle(result = {}, options = {}) {
   }
 }
 
+function buildVip30AlertTestResult(input = {}) {
+  const now = nowIso();
+  const body = input && typeof input === "object" ? input : {};
+  const userLogin = cleanString(body.userLogin || body.login || body.user || "testrentner").toLowerCase();
+  const userDisplayName = cleanString(body.userDisplayName || body.displayName || body.display_name || "TestRentner");
+  const userId = cleanString(body.userId || body.user_id || "vip30-test-user");
+  const avatarUrl = cleanString(body.avatarUrl || body.avatar_url || "");
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    action: "vip30_alert_manual_test",
+    status: "test_success",
+    decision: {
+      ok: true,
+      status: "test_success",
+      reason: "manual_alert_test",
+      wouldGrantVip: false,
+      wouldCreateSlot: false,
+      wouldFulfillRedemption: false,
+      wouldCancelRedemption: false,
+      wouldTriggerAlert: true,
+      user: {
+        userId,
+        userLogin,
+        userDisplayName,
+        avatarUrl,
+        targetIsModerator: false,
+        targetIsVip: false
+      },
+      redemption: {
+        twitchRewardId: cleanString(body.twitchRewardId || "vip30-test-reward"),
+        twitchRedemptionId: cleanString(body.twitchRedemptionId || `vip30-test-${Date.now()}`),
+        userInput: cleanString(body.userInput || "manual alert test"),
+        redeemedAt: now,
+        source: "manual_alert_test"
+      }
+    },
+    slotWrite: {
+      slotId: "test",
+      startUtc: now,
+      endUtc: new Date(Date.now() + Math.max(1, intValue(getConfig().slots && getConfig().slots.durationDays, 30)) * 86400000).toISOString(),
+      slot: {
+        id: "test",
+        userId,
+        userLogin,
+        userDisplayName,
+        avatarUrl,
+        status: "test",
+        startUtc: now
+      }
+    },
+    safety: {
+      manualTest: true,
+      noTwitchWrite: true,
+      noVipGrant: true,
+      noSlotWrite: true,
+      noRedemptionFulfillCancel: true,
+      alertOnly: true
+    }
+  };
+}
+
+async function triggerVip30ManualAlertTest(input = {}) {
+  const testResult = buildVip30AlertTestResult(input);
+  const result = await triggerVip30AlertSoundBundle(testResult, { reason: "manual_alert_test" });
+  writeLog("vip30_alert_manual_test", {
+    userId: testResult.decision.user.userId,
+    userLogin: testResult.decision.user.userLogin,
+    userDisplayName: testResult.decision.user.userDisplayName,
+    success: result && result.ok === true,
+    reason: result && (result.reason || result.status) || "manual_alert_test",
+    message: result && result.ok === true ? "Manueller VIP30-Alert-Test wurde ausgelöst." : "Manueller VIP30-Alert-Test fehlgeschlagen.",
+    payload: { testResult, result }
+  });
+  return {
+    ok: result && result.ok === true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    action: "vip30_alert_manual_test",
+    status: result && (result.status || result.reason) || "unknown",
+    result,
+    selected: {
+      overlaySetId: result && result.soundBundle && result.soundBundle.visual ? result.soundBundle.visual.overlaySetId : "",
+      headline: result && result.soundBundle && result.soundBundle.visual ? result.soundBundle.visual.headline : "",
+      soundPoolId: result && result.soundBundle && result.soundBundle.items && result.soundBundle.items[0] && result.soundBundle.items[0].meta ? result.soundBundle.items[0].meta.soundPoolId : "",
+      soundLabel: result && result.soundBundle && result.soundBundle.items && result.soundBundle.items[0] && result.soundBundle.items[0].meta ? result.soundBundle.items[0].meta.soundLabel : "",
+      mediaId: result && result.soundBundle && result.soundBundle.items && result.soundBundle.items[0] ? result.soundBundle.items[0].mediaId || 0 : 0,
+      mediaPath: result && result.soundBundle && result.soundBundle.items && result.soundBundle.items[0] ? result.soundBundle.items[0].mediaPath || "" : ""
+    },
+    safety: {
+      manualTest: true,
+      noTwitchWrite: true,
+      noVipGrant: true,
+      noSlotWrite: true,
+      noRedemptionFulfillCancel: true,
+      alertOnly: true
+    }
+  };
+}
+
+
 async function executeVip30LiveStageA(input = {}, options = {}) {
   const decision = buildDryRunRedemptionDecision(input, { reason: options.reason || "live_stage_a", log: false });
   const started = nowIso();
@@ -3721,7 +3825,7 @@ function buildStatus() {
     status: lastError ? "error" : "ready_step8_6_external_vip_remove_slot_release",
     startedAt,
     routePrefix: ROUTE_PREFIX,
-    routeCount: 27,
+    routeCount: 28,
     routes: [
       `${ROUTE_PREFIX}/status`,
       `${ROUTE_PREFIX}/health`,
@@ -3743,6 +3847,7 @@ function buildStatus() {
       `${ROUTE_PREFIX}/channelpoints/bridge/reset-stats`,
       `${ROUTE_PREFIX}/live/check`,
       `${ROUTE_PREFIX}/alert/status`,
+      `${ROUTE_PREFIX}/alert/test`,
       `${ROUTE_PREFIX}/live/arm-preview`,
       `${ROUTE_PREFIX}/live/arm-settings-preview`,
       `${ROUTE_PREFIX}/live/set-gates`,
@@ -4245,6 +4350,17 @@ function init(context = {}) {
       }
       catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err), safety: { noTwitchWrite: true, noVipGrant: true } }); }
     });
+    app.post(`${ROUTE_PREFIX}/alert/test`, async (req, res) => {
+      runtimeStats.lastAction = "alert_manual_test";
+      try {
+        const result = await triggerVip30ManualAlertTest((req && req.body) || {});
+        res.json(result);
+      } catch (err) {
+        lastError = err && err.message ? err.message : String(err);
+        res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: lastError, safety: { noTwitchWrite: true, noVipGrant: true, noSlotWrite: true, noRedemptionFulfillCancel: true, alertOnly: true } });
+      }
+    });
+
     app.get(`${ROUTE_PREFIX}/live/arm-preview`, (_req, res) => {
       runtimeStats.lastAction = "live_arm_preview";
       try { res.json(buildLiveArmPreview()); }
@@ -4352,6 +4468,7 @@ module.exports = {
   releaseSlotForExternalVipRemove,
   emitExternalVipRemoveTest,
   emitChannelpointsBridgeTest,
+  triggerVip30ManualAlertTest,
   handleChannelpointsRedemptionBridgeEvent,
   listSlots,
   listLogs,

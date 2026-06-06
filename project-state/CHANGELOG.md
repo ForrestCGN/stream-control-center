@@ -1,25 +1,27 @@
 # Changelog – VIP30 / 30TageVIP
 
-## 2026-06-06 – STEP8.17.1 Settings Seed Fix
+## 2026-06-06 – STEP8.18 Alert-Test
 
-### Problem
-
-`alerts.soundPool` wurde im Dashboard als fehlend angezeigt, obwohl STEP8.17 aktiv war.
-
-### Ursache
-
-Bestehende Installationen hatten die `vip30_settings`-Tabelle bereits. Neue Setting-Definitionen wurden ohne neue Migration nicht automatisch nachgesät.
-
-### Fix
+### Backend
 
 - `backend/modules/vip30.js`
-  - Version `0.8.11`
-  - Build `step8.17.1-settings-seed-fix`
-  - `buildSettingsStatus()` sät fehlende Settings automatisch nach.
+  - Version `0.8.12`
+  - Build `step8.18-alert-test-route`
+  - neuer Endpunkt `POST /api/vip30/alert/test`
+  - manueller Test baut Fake-VIP30-Erfolg ohne Twitch-/Slot-Schreibaktion
+  - nutzt den echten `triggerVip30AlertSoundBundle()` Pfad
 
-### Erwartung
+### Dashboard
 
-```txt
-Settings 29 / 29
-Tab Sounds zeigt Editor
-```
+- `htdocs/dashboard/modules/vip30.js`
+  - Button `VIP30 Alert testen` im Tab `Aktionen`
+  - zeigt gewählten Sound und gewähltes Textset an
+
+- `htdocs/dashboard/modules/vip30.css`
+  - kleine Hervorhebung für Test-Aktion
+
+### Nicht geändert
+
+- Sound-System
+- Media-System
+- Sound-System-Overlay

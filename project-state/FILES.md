@@ -2,13 +2,15 @@
 
 Stand: 2026-06-06
 
-## STEP8.17.1 Dateien
+## STEP8.18 Dateien
 
 ```txt
 backend/modules/vip30.js
 htdocs/dashboard/modules/vip30.js
 htdocs/dashboard/modules/vip30.css
-docs/current/CURRENT_CHAT_HANDOFF_VIP30_STEP8_17_1_SETTINGS_SEED_FIX.md
+docs/current/CURRENT_CHAT_HANDOFF_VIP30_STEP8_18_ALERT_TEST.md
+docs/modules/vip30.md
+docs/dashboard/VIP30_ALERT_TEST.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md

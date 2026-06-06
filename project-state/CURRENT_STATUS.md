@@ -4,14 +4,15 @@ Stand: 2026-06-06
 
 ## Aktueller Stand
 
-STEP8.17.1 behebt das fehlende Setting `alerts.soundPool`.
+VIP30 hat jetzt einen manuellen Alert-Test.
 
-Nach Node-Neustart soll der Tab `Sounds` den Sound-Pool-Editor anzeigen.
-
-## Erwartung
+## Neu in STEP8.18
 
 ```txt
-moduleVersion: 0.8.11
-moduleBuild: step8.17.1-settings-seed-fix
-Settings 29 / 29
+✅ POST /api/vip30/alert/test
+✅ Dashboard Button „VIP30 Alert testen“
+✅ Test nutzt echten Sound-Bundle-Pfad
+✅ zufällige SoundPool-Auswahl
+✅ zufällige OverlaySet-Auswahl
+✅ keine Twitch-/VIP-/Slot-/Redemption-Schreibaktion
 ```

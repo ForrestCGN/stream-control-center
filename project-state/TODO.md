@@ -4,10 +4,11 @@ Stand: 2026-06-06
 
 ## Offen
 
-- [ ] STEP8.17.1 einspielen
+- [ ] STEP8.18 einspielen
 - [ ] Node neu starten
 - [ ] Dashboard Hard-Refresh
-- [ ] prüfen: Settings 29 / 29
-- [ ] im Tab Sounds Sound hinzufügen
-- [ ] Sounds speichern
-- [ ] VIP30 Alert mehrfach testen
+- [ ] Tab Aktionen öffnen
+- [ ] VIP30 Alert testen mehrfach klicken
+- [ ] Soundwechsel prüfen
+- [ ] Textwechsel prüfen
+- [ ] Overlay prüfen

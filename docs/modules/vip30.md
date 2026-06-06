@@ -1,29 +1,14 @@
 # VIP30 / 30TageVIP
 
 Stand: 2026-06-06  
-Backend-Version: `0.8.10`  
-Build: `step8.17-sound-pool`
+Backend-Version: `0.8.12`  
+Build: `step8.18-alert-test-route`
 
 ## Status
 
-VIP30 ist live getestet und wurde um einen Sound-Pool erweitert.
+VIP30 ist live getestet und hat jetzt einen manuellen Alert-Test.
 
-## Erfolgreich getestete Kern-Flows
-
-```txt
-✅ Twitch Reward Einlösung
-✅ EventSub Redemption
-✅ VIP30 Bridge
-✅ Twitch VIP Grant
-✅ Slot Write
-✅ Redemption Fulfill
-✅ Sound-System Bundle
-✅ CGN Split Lounge Overlay
-✅ manueller VIP-Remove
-✅ Slot-Freigabe external_removed
-```
-
-## Dashboard-Aufbau
+## Dashboard
 
 ```txt
 Übersicht
@@ -36,66 +21,47 @@ Aktionen
 Diagnose
 ```
 
-## Config
-
-Technische Einstellungen.
-
-Der frühere einzelne Sound-Auswahlbereich wurde aus Config herausgenommen.
-
 ## Sounds
 
-Mehrere VIP30-Sounds werden über den Tab `Sounds` verwaltet.
-
-Setting:
-
-```txt
-alerts.soundPool
-```
-
-Felder:
-
-```txt
-id
-enabled
-weight
-mediaId
-mediaPath
-label
-```
-
-Auswahl:
-
-```txt
-Ein aktiver Sound wird nach Gewichtung zufällig gewählt.
-```
-
-Fallback:
-
-```txt
-Wenn alerts.soundPool leer ist, nutzt das Backend weiterhin alerts.mediaId / alerts.mediaPath.
-```
+Mehrere Sounds werden über `alerts.soundPool` verwaltet und zufällig nach Gewichtung gewählt.
 
 ## Texte
 
-Zufallstexte bleiben im Tab `Texte`.
+Mehrere Textsets werden über `alerts.overlaySets` verwaltet und zufällig nach Gewichtung gewählt.
 
-Setting:
+## Manueller Alert-Test
+
+Endpunkt:
 
 ```txt
-alerts.overlaySets
+POST /api/vip30/alert/test
 ```
 
-## Sound-/Overlay-Flow
+Dashboard:
 
 ```txt
-VIP30 Erfolg
--> SoundPool zufällig auswählen
--> OverlaySet zufällig auswählen
+Aktionen -> VIP30 Alert testen
+```
+
+Der Test löst den echten VIP30-Sound-Bundle-Flow aus:
+
+```txt
+VIP30 Testuser
+-> zufälliger Sound
+-> zufälliges Textset
 -> /api/sound/bundle
--> sound_system_overlay.html zeigt VIP30-Card
--> Sound-System spielt ausgewählten Sound
+-> sound_system_overlay.html
 ```
 
-## Keine Funktionalität entfernt
+Sicherheit:
 
-Bestehende `alerts.mediaId` bleibt als Fallback erhalten.
+```txt
+✅ kein Twitch
+✅ kein VIP Grant
+✅ kein Slot
+✅ kein Redemption Fulfill/Cancel
+```
+
+## Wichtig
+
+Wenn nur Ton ohne Einblendung kommt, wurde vermutlich ein reiner Media-Preview oder Sound-Test benutzt. Der neue Alert-Test nutzt den VIP30-Visual-Pfad.

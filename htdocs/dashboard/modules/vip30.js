@@ -9,7 +9,8 @@ window.Vip30Module = (function(){
     cleanupCheck: '/api/vip30/cleanup/check',
     eventsubStatus: '/api/twitch/eventsub/status?refresh=1',
     settings: '/api/vip30/settings',
-    settingsSave: '/api/vip30/settings/save'
+    settingsSave: '/api/vip30/settings/save',
+    alertTest: '/api/vip30/alert/test'
   };
 
   const SAFE_EDIT_KEYS = new Set([
@@ -985,6 +986,36 @@ window.Vip30Module = (function(){
     </section>`;
   }
 
+  async function runAlertTest(){
+    root = document.getElementById('vip30Module');
+    if (!root || !window.CGN) return;
+    state.actionRunning = 'alertTest';
+    state.actionError = '';
+    state.actionMessage = '';
+    render();
+    try {
+      const result = await window.CGN.api(api.alertTest, {
+        method: 'POST',
+        body: JSON.stringify({
+          userLogin: 'testrentner',
+          userDisplayName: 'TestRentner',
+          userId: 'vip30-dashboard-test'
+        })
+      });
+      const selected = result && result.selected ? result.selected : {};
+      state.actionRunning = '';
+      state.actionMessage = `VIP30 Alert-Test ausgelöst · Sound: ${selected.soundLabel || selected.soundPoolId || selected.mediaId || '-'} · Textset: ${selected.overlaySetId || '-'}`;
+      state.actionError = result && result.ok === false ? (result.reason || result.status || 'Test fehlgeschlagen') : '';
+      await autoRefresh();
+      render();
+    } catch (err) {
+      state.actionRunning = '';
+      state.actionError = apiErr(err);
+      state.actionMessage = '';
+      render();
+    }
+  }
+
   function renderActions(){
     const actions = [
       {
@@ -1041,6 +1072,15 @@ window.Vip30Module = (function(){
       ${state.actionMessage ? `<div class="vip30-okmsg">${esc(state.actionMessage)}</div>` : ''}
       ${state.actionError ? `<div class="vip30-error">${esc(state.actionError)}</div>` : ''}
       <div class="vip30-action-grid">
+        <article class="vip30-action-card vip30-action-card-primary">
+          <div>
+            <strong>VIP30 Alert testen</strong>
+            <p>Löst ohne Twitch-Schreibzugriff einen echten VIP30 Sound-Bundle-Test aus: zufälliger Sound aus Sounds und zufälliger Text aus Texte.</p>
+          </div>
+          <button type="button" data-vip30-alert-test ${state.actionRunning ? 'disabled' : ''}>
+            ${state.actionRunning === 'alertTest' ? 'Teste...' : 'Alert testen'}
+          </button>
+        </article>
         ${actions.map(action => `<article class="vip30-action-card">
           <div>
             <strong>${esc(action.title)}</strong>
@@ -1092,6 +1132,7 @@ window.Vip30Module = (function(){
     root?.querySelectorAll('[data-vip30-tab]').forEach(btn => btn.addEventListener('click', () => { state.tab = btn.dataset.vip30Tab || 'overview'; render(); }));
     root?.querySelectorAll('[data-vip30-save-settings]').forEach(btn => btn.addEventListener('click', () => saveSettings()));
     root?.querySelectorAll('[data-vip30-refresh-part]').forEach(btn => btn.addEventListener('click', () => refreshPart(btn.dataset.vip30RefreshPart || '', btn.dataset.vip30RefreshLabel || '')));
+    root?.querySelector('[data-vip30-alert-test]')?.addEventListener('click', () => runAlertTest());
 
     root?.querySelectorAll('[data-vip30-setting-input]').forEach(input => {
       input.addEventListener('input', () => {
