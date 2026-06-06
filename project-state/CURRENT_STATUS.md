@@ -4,15 +4,14 @@ Stand: 2026-06-06
 
 ## Aktueller Stand
 
-VIP30 hat jetzt einen manuellen Alert-Test.
+VIP30 STEP8.18.1 behebt abgehackte Sounds durch automatische Sounddauer.
 
-## Neu in STEP8.18
+## Neu
 
 ```txt
-✅ POST /api/vip30/alert/test
-✅ Dashboard Button „VIP30 Alert testen“
-✅ Test nutzt echten Sound-Bundle-Pfad
-✅ zufällige SoundPool-Auswahl
-✅ zufällige OverlaySet-Auswahl
-✅ keine Twitch-/VIP-/Slot-/Redemption-Schreibaktion
+✅ SoundPool durationMs pro Sound
+✅ 0 = automatisch aus Media-System
+✅ keine pauschalen 9000ms mehr bei SoundPool-Sounds
+✅ Dashboard zeigt Dauer ms
+✅ Alert-Test meldet Dauer-Modus
 ```

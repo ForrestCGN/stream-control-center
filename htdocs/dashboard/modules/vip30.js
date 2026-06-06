@@ -243,6 +243,7 @@ window.Vip30Module = (function(){
       weight: Number.isFinite(Number(item.weight)) ? Math.max(0, Number.parseInt(String(item.weight), 10)) : 1,
       mediaId: Number.isFinite(Number(item.mediaId || item.media_id)) ? Number.parseInt(String(item.mediaId || item.media_id), 10) : 0,
       mediaPath: String(item.mediaPath || item.media_path || '').trim(),
+      durationMs: Number.isFinite(Number(item.durationMs || item.duration_ms || item.lengthMs || item.length_ms)) ? Math.max(0, Number.parseInt(String(item.durationMs || item.duration_ms || item.lengthMs || item.length_ms), 10)) : 0,
       label: String(item.label || item.name || item.title || `VIP30 Sound ${index + 1}`).trim()
     };
   }
@@ -259,6 +260,7 @@ window.Vip30Module = (function(){
         weight: 1,
         mediaId: fallbackMediaId,
         mediaPath: '',
+        durationMs: 0,
         label: 'VIP30 Sound'
       }];
     }
@@ -272,6 +274,7 @@ window.Vip30Module = (function(){
       weight: 1,
       mediaId: 0,
       mediaPath: '',
+      durationMs: 0,
       label: `VIP30 Sound ${index + 1}`
     };
   }
@@ -291,6 +294,7 @@ window.Vip30Module = (function(){
         weight: value('weight'),
         mediaId: value('mediaId'),
         mediaPath: value('mediaPath'),
+        durationMs: value('durationMs'),
         label: value('label')
       }, index);
     });
@@ -903,7 +907,7 @@ window.Vip30Module = (function(){
       <div class="vip30-config-title">
         <div>
           <h4>VIP30 Sound-Pool</h4>
-          <p>Jeder aktive Eintrag mit Media-ID kann zufällig ausgewählt werden. Höhere Gewichtung bedeutet: kommt häufiger dran.</p>
+          <p>Jeder aktive Eintrag mit Media-ID kann zufällig ausgewählt werden. Höhere Gewichtung bedeutet: kommt häufiger dran. Dauer 0 = automatisch aus Media-System.</p>
         </div>
         <span>${badge(`${pool.length} Sounds`, pool.length ? 'ok' : 'warn')}</span>
       </div>
@@ -927,7 +931,7 @@ window.Vip30Module = (function(){
       <div class="vip30-soundpool-head">
         <div>
           <strong>Sound ${esc(index + 1)} · ${esc(item.label || item.id || 'ohne Label')}</strong>
-          <small>Media-ID ${mediaId ? esc(mediaId) : 'nicht gewählt'} · Gewichtung ${esc(item.weight)} · ${item.enabled ? 'aktiv' : 'deaktiviert'}</small>
+          <small>Media-ID ${mediaId ? esc(mediaId) : 'nicht gewählt'} · Gewichtung ${esc(item.weight)} · Dauer ${item.durationMs > 0 ? esc(item.durationMs + ' ms') : 'Auto'} · ${item.enabled ? 'aktiv' : 'deaktiviert'}</small>
         </div>
         <div class="vip30-soundpool-actions">
           <label class="vip30-mini-check"><input type="checkbox" data-vip30-sound-field="enabled" ${item.enabled ? 'checked' : ''}> aktiv</label>
@@ -940,6 +944,7 @@ window.Vip30Module = (function(){
         <label>Label<input type="text" data-vip30-sound-field="label" value="${esc(item.label)}"></label>
         <label>Gewichtung<input type="number" min="0" step="1" data-vip30-sound-field="weight" value="${esc(item.weight)}"></label>
         <label>Media-ID<input id="${esc(mediaInputId)}" type="number" min="0" step="1" data-vip30-sound-field="mediaId" value="${esc(mediaId)}"></label>
+        <label>Dauer ms <small>0 = Auto</small><input type="number" min="0" step="100" data-vip30-sound-field="durationMs" value="${esc(item.durationMs || 0)}"></label>
         <label class="wide">Media-Pfad Fallback<input type="text" data-vip30-sound-field="mediaPath" value="${esc(item.mediaPath || '')}" placeholder="optional"></label>
       </div>
       <div
@@ -1004,7 +1009,7 @@ window.Vip30Module = (function(){
       });
       const selected = result && result.selected ? result.selected : {};
       state.actionRunning = '';
-      state.actionMessage = `VIP30 Alert-Test ausgelöst · Sound: ${selected.soundLabel || selected.soundPoolId || selected.mediaId || '-'} · Textset: ${selected.overlaySetId || '-'}`;
+      state.actionMessage = `VIP30 Alert-Test ausgelöst · Sound: ${selected.soundLabel || selected.soundPoolId || selected.mediaId || '-'} · Textset: ${selected.overlaySetId || '-'} · Dauer: ${selected.durationMode === 'manual' ? (selected.requestedDurationMs + ' ms manuell') : 'Media-System Auto'}`;
       state.actionError = result && result.ok === false ? (result.reason || result.status || 'Test fehlgeschlagen') : '';
       await autoRefresh();
       render();

@@ -1,11 +1,11 @@
 # VIP30 Dashboard – Sounds Tab
 
 Stand: 2026-06-06  
-STEP: 8.17
+STEP: 8.18.1
 
-## Zweck
+## Sounds verwalten
 
-Der Tab `Sounds` verwaltet mehrere mögliche VIP30-Alert-Sounds.
+Im Tab `Sounds` können mehrere VIP30-Sounds verwaltet werden.
 
 ## Felder pro Sound
 
@@ -14,47 +14,42 @@ ID
 Label
 Gewichtung
 Media-ID
+Dauer ms
 Media-Pfad Fallback
 aktiv/deaktiviert
 ```
 
-## Media-System
-
-Jeder Sound-Eintrag hat eine eigene Media-Auswahl:
+## Dauer ms
 
 ```txt
-Sound auswählen / hochladen
-Sound entfernen
+0 = automatisch
 ```
 
-Verwendet wird:
+Automatisch bedeutet:
 
 ```txt
-moduleKey=vip30
-categoryKey=alerts
-allowedTypes=audio
+Das Sound-System liest die echte Sounddauer aus dem Media-System/ffprobe.
 ```
 
-## Zufallsauswahl
-
-Beim VIP30-Alert wählt das Backend einen aktiven Sound nach Gewichtung.
-
-Beispiel:
+Manuell:
 
 ```txt
-Sound A weight 3
-Sound B weight 1
+12000 = 12 Sekunden
+18000 = 18 Sekunden
 ```
 
-Sound A wird ungefähr dreimal so häufig gewählt wie Sound B.
+## Empfehlung
 
-## Fallback
-
-Wenn kein SoundPool gepflegt ist, bleibt der alte einzelne Sound aktiv:
+Normalerweise immer:
 
 ```txt
-alerts.mediaId
-alerts.mediaPath
+Dauer ms = 0
 ```
 
-Damit bleibt bestehende Funktionalität erhalten.
+setzen.
+
+## Test
+
+```txt
+Aktionen -> VIP30 Alert testen
+```

@@ -1,41 +1,66 @@
 # VIP30 / 30TageVIP
 
 Stand: 2026-06-06  
-Backend-Version: `0.8.12`  
-Build: `step8.18-alert-test-route`
+Backend-Version: `0.8.13`  
+Build: `step8.18.1-auto-sound-duration`
 
 ## Status
 
-VIP30 ist live getestet und hat jetzt einen manuellen Alert-Test.
+VIP30 hat SoundPool, OverlaySets und manuellen Alert-Test.
 
-## Dashboard
+## SoundPool
 
-```txt
-Übersicht
-Slots
-Logs
-Config
-Sounds
-Texte
-Aktionen
-Diagnose
-```
-
-## Sounds
-
-Mehrere Sounds werden über `alerts.soundPool` verwaltet und zufällig nach Gewichtung gewählt.
-
-## Texte
-
-Mehrere Textsets werden über `alerts.overlaySets` verwaltet und zufällig nach Gewichtung gewählt.
-
-## Manueller Alert-Test
-
-Endpunkt:
+Setting:
 
 ```txt
-POST /api/vip30/alert/test
+alerts.soundPool
 ```
+
+Felder:
+
+```txt
+id
+enabled
+weight
+mediaId
+mediaPath
+durationMs
+label
+```
+
+## Sounddauer
+
+```txt
+durationMs = 0
+```
+
+bedeutet:
+
+```txt
+automatisch aus Media-System/ffprobe übernehmen
+```
+
+```txt
+durationMs > 0
+```
+
+bedeutet:
+
+```txt
+manuelle Dauer in Millisekunden erzwingen
+```
+
+## Empfehlung
+
+Für normale hochgeladene Sounds:
+
+```txt
+Dauer ms = 0
+```
+
+Nur bei falschen Medien-Metadaten manuell setzen.
+
+## Manueller Test
 
 Dashboard:
 
@@ -43,25 +68,12 @@ Dashboard:
 Aktionen -> VIP30 Alert testen
 ```
 
-Der Test löst den echten VIP30-Sound-Bundle-Flow aus:
+Der Test nutzt:
 
 ```txt
-VIP30 Testuser
--> zufälliger Sound
--> zufälliges Textset
--> /api/sound/bundle
--> sound_system_overlay.html
+zufälliger Sound aus Sounds
+zufälliger Text aus Texte
+echtes Sound-Bundle
+echtes VIP30 Overlay
+kein Twitch/kein Slot/kein VIP Grant
 ```
-
-Sicherheit:
-
-```txt
-✅ kein Twitch
-✅ kein VIP Grant
-✅ kein Slot
-✅ kein Redemption Fulfill/Cancel
-```
-
-## Wichtig
-
-Wenn nur Ton ohne Einblendung kommt, wurde vermutlich ein reiner Media-Preview oder Sound-Test benutzt. Der neue Alert-Test nutzt den VIP30-Visual-Pfad.

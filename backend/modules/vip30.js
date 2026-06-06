@@ -8,8 +8,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.12";
-const MODULE_BUILD = "step8.18-alert-test-route";
+const MODULE_VERSION = "0.8.13";
+const MODULE_BUILD = "step8.18.1-auto-sound-duration";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -496,7 +496,7 @@ const SETTING_DEFINITIONS = [
   { key: "alerts.soundKey", path: "alerts.soundKey", type: "string", category: "alerts", label: "Sound-Key", description: "Interner Sound-/Label-Key für den VIP30-Alert.", editable: true },
   { key: "alerts.mediaId", path: "alerts.mediaId", type: "integer", category: "alerts", label: "Media-ID", description: "Media-System Asset-ID des VIP30-Alert-Sounds. Upload/Auswahl erfolgt über das zentrale Media-System.", editable: true },
   { key: "alerts.mediaPath", path: "alerts.mediaPath", type: "string", category: "alerts", label: "Media-Pfad", description: "Optionaler relativer Media-System-Pfad, falls keine Media-ID genutzt wird.", editable: true },
-  { key: "alerts.soundPool", path: "alerts.soundPool", type: "json", category: "alerts", label: "VIP30 Sound-Pool", description: "Mehrere mögliche VIP30-Sounds mit Zufallsauswahl. Felder: id, enabled, weight, mediaId, mediaPath, label.", editable: true },
+  { key: "alerts.soundPool", path: "alerts.soundPool", type: "json", category: "alerts", label: "VIP30 Sound-Pool", description: "Mehrere mögliche VIP30-Sounds mit Zufallsauswahl. Felder: id, enabled, weight, mediaId, mediaPath, label, durationMs. durationMs=0 bedeutet automatisch aus dem Media-System.", editable: true },
   { key: "alerts.overlaySets", path: "alerts.overlaySets", type: "json", category: "alerts", label: "VIP30 Overlay-Textsets", description: "Zusammengehörige Textsets für die VIP30-Overlay-Card. Felder: id, enabled, weight, kicker, headline, subline, message, perks, brand. Platzhalter: {displayName}, {login}.", editable: true },
   { key: "cleanup.enabled", path: "cleanup.enabled", type: "boolean", category: "cleanup", label: "Cleanup aktiv", description: "Ablauf-/Revoke-Logik für abgelaufene VIP30-Slots aktivieren.", editable: true },
   { key: "cleanup.removeVipOnExpire", path: "cleanup.removeVipOnExpire", type: "boolean", category: "cleanup", label: "VIP bei Ablauf entziehen", description: "Bei abgelaufenen VIP30-Slots den Twitch-VIP automatisch per Cleanup entfernen.", editable: true },
@@ -2712,6 +2712,7 @@ function normalizeVip30SoundPool(soundPool, alerts = {}) {
       weight: Math.max(0, intValue(item.weight, 1)),
       mediaId,
       mediaPath,
+      durationMs: Math.max(0, intValue(item.durationMs || item.duration_ms || item.lengthMs || item.length_ms || 0, 0)),
       label: cleanString(item.label || item.name || item.title || `VIP30 Sound ${index + 1}`)
     };
   }).filter(Boolean);
@@ -2727,6 +2728,7 @@ function normalizeVip30SoundPool(soundPool, alerts = {}) {
       weight: 1,
       mediaId: fallbackMediaId,
       mediaPath: fallbackMediaPath,
+      durationMs: Math.max(0, intValue(alerts.durationMs || 0, 0)),
       label: cleanString(alerts.soundKey || "VIP30 Sound")
     }];
   }
@@ -2758,7 +2760,9 @@ function buildVip30SoundBundlePayload(alertPayload = {}, options = {}) {
   const mediaPath = selectedSound ? cleanString(selectedSound.mediaPath || "") : "";
   const userLogin = cleanString(alertPayload.user && alertPayload.user.userLogin || "").toLowerCase();
   const displayName = cleanString(alertPayload.user && alertPayload.user.userDisplayName || userLogin || "VIP");
-  const durationMs = intValue(alerts.durationMs || alertPayload.alert && alertPayload.alert.durationMs, 9000);
+  const selectedDurationMs = selectedSound ? Math.max(0, intValue(selectedSound.durationMs || 0, 0)) : 0;
+  const fallbackDurationMs = intValue(alerts.durationMs || alertPayload.alert && alertPayload.alert.durationMs, 9000);
+  const visualDurationMs = selectedDurationMs > 0 ? selectedDurationMs : fallbackDurationMs;
   const priority = intValue(alerts.priority, DEFAULT_CONFIG.alerts.priority || 90);
   const volume = intValue(alerts.volume, DEFAULT_CONFIG.alerts.volume || 85);
   const bundleId = `vip30_${Date.now()}_${userLogin || "user"}`;
@@ -2783,7 +2787,7 @@ function buildVip30SoundBundlePayload(alertPayload = {}, options = {}) {
     perks: visualText.perks,
     brand: visualText.brand,
     overlaySetId: visualText.overlaySetId,
-    durationMs,
+    durationMs: visualDurationMs,
     theme: "forrest_neon",
     slot: alertPayload.slot || {}
   };
@@ -2816,7 +2820,7 @@ function buildVip30SoundBundlePayload(alertPayload = {}, options = {}) {
       target: cleanString(alerts.target || DEFAULT_CONFIG.alerts.target || "stream"),
       volume,
       priority,
-      durationMs,
+      ...(selectedDurationMs > 0 ? { durationMs: selectedDurationMs } : {}),
       queueIfBusy: true,
       dropIfBusy: false,
       canInterrupt: false,
@@ -2831,7 +2835,9 @@ function buildVip30SoundBundlePayload(alertPayload = {}, options = {}) {
         sourceResult: alertPayload.sourceResult || {},
         overlaySetId: visual.overlaySetId || "",
         soundPoolId: selectedSound ? selectedSound.id : "",
-        soundLabel: selectedSound ? selectedSound.label : ""
+        soundLabel: selectedSound ? selectedSound.label : "",
+        durationMode: selectedDurationMs > 0 ? "manual" : "media_auto",
+        requestedDurationMs: selectedDurationMs
       },
       visual
     }]
@@ -3031,7 +3037,9 @@ async function triggerVip30ManualAlertTest(input = {}) {
       soundPoolId: result && result.soundBundle && result.soundBundle.items && result.soundBundle.items[0] && result.soundBundle.items[0].meta ? result.soundBundle.items[0].meta.soundPoolId : "",
       soundLabel: result && result.soundBundle && result.soundBundle.items && result.soundBundle.items[0] && result.soundBundle.items[0].meta ? result.soundBundle.items[0].meta.soundLabel : "",
       mediaId: result && result.soundBundle && result.soundBundle.items && result.soundBundle.items[0] ? result.soundBundle.items[0].mediaId || 0 : 0,
-      mediaPath: result && result.soundBundle && result.soundBundle.items && result.soundBundle.items[0] ? result.soundBundle.items[0].mediaPath || "" : ""
+      mediaPath: result && result.soundBundle && result.soundBundle.items && result.soundBundle.items[0] ? result.soundBundle.items[0].mediaPath || "" : "",
+      durationMode: result && result.soundBundle && result.soundBundle.items && result.soundBundle.items[0] && result.soundBundle.items[0].meta ? result.soundBundle.items[0].meta.durationMode || "" : "",
+      requestedDurationMs: result && result.soundBundle && result.soundBundle.items && result.soundBundle.items[0] && result.soundBundle.items[0].meta ? result.soundBundle.items[0].meta.requestedDurationMs || 0 : 0
     },
     safety: {
       manualTest: true,

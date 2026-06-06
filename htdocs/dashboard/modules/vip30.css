@@ -1438,3 +1438,15 @@ html[data-theme=dark] .vip30-table td {
     0 14px 40px rgba(0,0,0,.18);
 }
 
+/* STEP8.18.1 – VIP30 Sounddauer: 0 = automatisch aus Media-System */
+.vip30-soundpool-grid label small {
+  color: rgba(148, 163, 184, .88);
+  font-weight: 700;
+}
+
+@media (min-width: 981px) {
+  .vip30-soundpool-grid {
+    grid-template-columns: minmax(140px, 1fr) minmax(150px, 1fr) minmax(95px, .45fr) minmax(105px, .5fr) minmax(105px, .5fr);
+  }
+}
+
