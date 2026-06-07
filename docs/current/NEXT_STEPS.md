@@ -1,98 +1,162 @@
-# NEXT_STEPS – CAN-44 Shoutout
+# NEXT_STEPS – VIP30 / 30-Tage-VIP-System
 
 ## Nächster sinnvoller Schritt
 
-Aktuellen Stand beobachten, nicht sofort weiter umbauen.
+Aktuellen VIP30-Stand live im Chat testen und danach erst weitere Komfort-Features bauen.
 
-Der Shoutout-Overlay-Set-Editor ist nach CAN-44.31 optisch bereinigt und vom Nutzer grundsätzlich bestätigt. Als nächstes nur testen/beobachten und bei echtem Fehler gezielt nachziehen.
+Der technische VIP30-Liveflow ist nach STEP8.19.43 stabil:
 
-## Tests, sobald möglich
+- VIP-Grant funktioniert.
+- Slot-Erstellung funktioniert.
+- Redemption-Fulfill funktioniert.
+- Alert/Sound funktioniert wieder.
+- Doppelte Einlösung wird blockiert/refunded.
+- Externer VIP-Remove gibt Slots frei.
+- Dashboard trennt aktive Slots vom Verlauf.
+- Status-Command ist eingebunden.
+
+## Direkte Tests
 
 ### 1. Statuscheck Backend
 
 ```powershell
-$s = Invoke-RestMethod "http://127.0.0.1:8080/api/clip-shoutout/status"
-$s | Select-Object module,moduleVersion,enabled,lastError,command
-$s.effectiveCommandTriggers
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/status"
+$s | Select-Object ok,moduleVersion,moduleBuild,lastError
+
+$c = Invoke-RestMethod "http://127.0.0.1:8080/api/commands/status"
+$c | Select-Object ok,moduleVersion,moduleBuild,lastError
 ```
 
 Erwartung:
 
 ```text
-command       : so
-effectiveCommandTriggers:
-so
-vso
-lastError     : leer
+VIP30:
+ok: True
+moduleVersion: 0.8.30
+moduleBuild: step8.19.43-status-command
+lastError: leer/null
+
+Commands:
+ok: True
+moduleVersion: 0.1.8
+moduleBuild: vip30-command-catalog
+lastError: leer/null
 ```
 
-### 2. Overlay-Sets prüfen
+### 2. Chatcommands testen
+
+Im Twitch-Chat testen:
+
+```text
+!vip30
+!vip30 slots
+!vip30 me
+!vip30 help
+```
+
+Falls mit Mod/Broadcaster testen:
+
+```text
+!vip30 @user
+```
+
+Erwartung:
+
+- `!vip30` zeigt allgemeinen VIP30-Status.
+- `!vip30 slots` zeigt freie/belegte Sessel und nächsten Ablauf.
+- `!vip30 me` zeigt eigene Restlaufzeit oder Inaktiv-Hinweis.
+- `!vip30 @user` ist nur für Mods/Broadcaster erlaubt.
+- Kein Command darf VIP vergeben, Slots schreiben oder Redemptions verändern.
+
+### 3. VIP30-Einlösung testen
+
+Mit normalem User ohne aktiven VIP30-Slot:
+
+Erwartung:
+
+- Twitch-VIP wird vergeben.
+- VIP30-Slot wird active.
+- Redemption wird `FULFILLED`.
+- Alert/Sound wird queued und abgespielt.
+- Chat-Erfolgsmeldung kommt.
+
+Danach gleiche Person nochmal einlösen lassen:
+
+Erwartung:
+
+- Kein zweiter Grant.
+- Kein neuer Slot.
+- Redemption wird canceled/refunded.
+- Chatmeldung nennt bestehenden VIP30-Sessel und Ablaufdatum.
+- Kein Alert.
+
+### 4. VIP30-Logs gezielt auswerten
 
 ```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/clip-shoutout/overlay-sets" | ConvertTo-Json -Depth 10
+$r = Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/logs?user=younecraft&limit=10"
+$r.logs | Select-Object createdAt,eventType,success,reason,message | Format-Table -AutoSize
 ```
 
-Erwartung:
+Wichtige Eventtypen:
 
-- `ok: true`
-- `mode: paired_sets`
-- 10 aktive Sets, wenn die neue Liste eingespielt wurde
-- Headline/Subline enthalten `{displayName}` als Platzhalter
+- `live_flow_vip_granted_slot_created_redemption_fulfilled`
+- `vip30_alert_sound_bundle_queued`
+- `live_flow_decision_blocked` mit `already_has_vip30_slot`
+- `external_vip_remove_slot_released`
 
-### 3. Dashboard Overlay-Set-Editor prüfen
+## Offene Verbesserungen
 
-Pfad:
+### 1. VIP30 Texte ins Dashboard-/Textvarianten-System überführen
 
-```text
-Community -> Shoutout -> Texte
-Kategorie: Shoutout Overlay
-Textkey: shoutout.overlay.sets
+Aktuell sind die schöneren Chattexte aus STEP8.19.42 im Modul vorbereitet. Langfristig sollen sie in das bestehende Text-/Varianten-System und ins Dashboard.
+
+Ziel:
+
+- Kategorie für VIP30-Texte.
+- Mehrere Varianten pro Key.
+- Dashboardfähig.
+- CGN-/Altersheim-/Rentner-Stil.
+
+Mögliche Keys:
+
+- `vip30.success.granted`
+- `vip30.block.already_active_slot`
+- `vip30.block.already_twitch_vip`
+- `vip30.block.moderator`
+- `vip30.block.broadcaster`
+- `vip30.block.full`
+- `vip30.status.overview`
+- `vip30.status.slots`
+- `vip30.status.me.active`
+- `vip30.status.me.inactive`
+
+### 2. Dashboard-Soundauswahl validieren
+
+Der Sound-Fix aus STEP8.19.41 behebt den Runtime-Fehler. Später sollte das Dashboard ungültige Media-Auswahlen direkt sichtbar machen oder verhindern.
+
+Ziel:
+
+- Media-ID existiert?
+- Media ist abspielbar?
+- SoundPool-Eintrag verweist korrekt auf Media?
+- Kein Speichern kaputter Media-/Sound-Referenzen.
+
+### 3. Abschluss-/Stable-Doku nach Livebestätigung
+
+Nach erfolgreichem Chat-/Live-Test:
+
+- `CURRENT_STATUS.md` finalisieren.
+- `FILES.md` finalisieren.
+- `CHANGELOG.md` ergänzen.
+- `CURRENT_CHAT_HANDOFF_VIP30_...md` erstellen.
+- ggf. Stable-ZIP mit README bereitstellen.
+
+## Wichtig
+
+Bei VIP30-Fehlern zuerst den VIP30-eigenen Logs-Endpunkt nutzen:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/logs?user=<login>&limit=10"
 ```
 
-Erwartung:
-
-- Spezialeditor statt normalem Varianteneditor
-- Set-Zeilen mit ID, aktiv, Gewichtung, Headline, Subline
-- keine zusätzliche Vorschau-Zeile mehr
-- `Set löschen` oben rechts in der Kopfzeile
-
-### 4. Live-/Kontrolltest mit Shoutout
-
-Einen frischen Shoutout mit bekanntem Ziel auslösen, idealerweise mit `--force` im kontrollierten Test.
-
-Beobachten:
-
-- Queue bleibt stabil
-- Sound-System-Overlay zeigt H15-Layout
-- Headline/Subline kommen paarweise aus einem Set
-- `{displayName}` wird korrekt ersetzt
-- Official Twitch Shoutout bleibt unverändert
-
-### 5. AutoShoutout-Minimum testen
-
-Sobald ein kontrollierter Chat-Test möglich ist:
-
-- Mindestnachrichten auf 3 stellen.
-- Streamer schreibt normale Nachricht: zählt als 1, löst noch nicht aus.
-- Zwei weitere Nachrichten: AutoShoutout darf auslösen.
-
-### 6. AutoShoutout-Sofort-Auslöser testen
-
-- Mindestnachrichten auf 2 oder 3 lassen.
-- Streamer schreibt `!lurk`.
-- Erwartung: AutoShoutout darf sofort prüfen/auslösen, wenn `instantTriggerMessagesEnabled` und `instantTriggerBypassMinMessages` aktiv sind.
-
-### 7. OfficialQueue beobachten
-
-Bei Twitch-/so-Block:
-
-- Eintrag bleibt in OfficialQueue.
-- manuelle Wiederholung darf erneut versuchen.
-- Worker-Retrys dürfen nicht in den Chat spammen.
-
-## Mögliche spätere Verbesserungen
-
-- Overlay-Set-Editor optisch weiter glätten, falls nach längerem Gebrauch etwas stört.
-- Textpaar-Liste weiter ausbauen oder saisonale Sets ergänzen.
-- Optional: Import/Export-Button für Overlay-Sets im Dashboard.
-- Optional: Settings-Änderungen mit Audit-Log verbinden, sobald das zentrale Rollen-/Audit-System dafür final vorgesehen ist.
+Nicht blind allgemeine Node-Logs oder DB-Tabellen suchen, wenn der VIP30-Log-Endpunkt die benötigten Events schon liefert.
