@@ -17,7 +17,8 @@ window.BirthdayModule = (function(){
     showParties: '/api/birthday/admin/show/parties',
     showProfile: '/api/birthday/admin/show/profile',
     resolveUser: '/api/birthday/admin/resolve-user',
-    importMedia: '/api/birthday/admin/show/import-media'
+    importMedia: '/api/birthday/admin/show/import-media',
+    command: '/api/birthday/command'
   };
 
   const TEXT_KEY_LABELS = {
@@ -464,14 +465,48 @@ window.BirthdayModule = (function(){
     await loadAll(true);
   }
 
-  async function assignPartyFromForm() {
+  function dashboardLogin(value) {
+    return String(value || '').trim().replace(/^@+/, '').toLowerCase();
+  }
+
+  async function assignPartyFromForm(options = {}) {
     const login = root?.querySelector('[data-birthday-profile-login]')?.value || '';
     const partyKey = root?.querySelector('[data-birthday-profile-party]')?.value || '';
-    if (!login) throw new Error('Bitte @User oder Twitch-Login eintragen.');
+    const normalizedLogin = dashboardLogin(login);
+    if (!normalizedLogin) throw new Error('Bitte @User oder Twitch-Login eintragen.');
     const result = await window.CGN.api(api.showProfile, { method:'POST', body: JSON.stringify({ login, partyKey, active:true }) });
     const profile = result.profile || {};
     state.notice = `User-Party-Zuordnung gespeichert${profile.displayNameOverride ? ` für ${profile.displayNameOverride}` : ''}.`;
+    if (options.reload !== false) await loadAll(true);
+    return { result, login: normalizedLogin, partyKey };
+  }
+
+  async function playBirthdayUserParty(login, options = {}) {
+    const normalizedLogin = dashboardLogin(login);
+    if (!normalizedLogin) throw new Error('Bitte zuerst einen User auswählen.');
+    const profile = currentProfiles().find(item => item.login === normalizedLogin) || {};
+    const displayName = profile.displayNameOverride || profile.displayName || normalizedLogin;
+    if (options.confirm !== false && !window.confirm(`Birthday-Show für ${displayName} starten?`)) return;
+    const result = await window.CGN.api(api.command, {
+      method: 'POST',
+      body: JSON.stringify({
+        args: ['party', `@${normalizedLogin}`],
+        userLogin: 'dashboard',
+        userDisplayName: 'Dashboard',
+        isBroadcaster: true,
+        isOwner: true,
+        source: 'birthday_dashboard_userparty_play'
+      })
+    });
+    state.notice = result?.queued
+      ? `Birthday-Show für ${displayName} wurde eingereiht.`
+      : `Birthday-Show für ${displayName} wurde gestartet.`;
     await loadAll(true);
+  }
+
+  async function assignAndPlayPartyFromForm() {
+    const assigned = await assignPartyFromForm({ reload: false });
+    await playBirthdayUserParty(assigned.login, { confirm: true });
   }
 
   function fillPartyForm(partyKey) {
@@ -759,7 +794,10 @@ window.BirthdayModule = (function(){
               <label>User / Mention<input type="text" data-birthday-profile-login placeholder="@Araglor" list="birthday-profile-logins"></label>
               <datalist id="birthday-profile-logins">${profileLogins.map(login => `<option value="${esc(login)}"></option>`).join('')}</datalist>
               <label>Party<select data-birthday-profile-party><option value="">Standard-Party nutzen</option>${partyOptions}</select></label>
-              <button type="button" data-birthday-assign-party>User zuordnen</button>
+              <div class="birthday-inline-actions">
+                <button type="button" data-birthday-assign-party>User zuordnen</button>
+                <button type="button" data-birthday-assign-play>Speichern & abspielen</button>
+              </div>
             </div>
             <p class="birthday-note">Du kannst @Anzeigename, Anzeigename oder Login eingeben. Gespeichert wird der Login; angezeigt werden Anzeigename und Avatar, wenn auflösbar.</p>
           </section>
@@ -775,8 +813,8 @@ window.BirthdayModule = (function(){
         <h3>User-Zuordnungen & Songs</h3>
         ${userSongs.length || profiles.length ? `<div class="birthday-table-wrap"><table><thead><tr><th>User</th><th>Zugeordnete Party</th><th>Song</th><th>Dauer</th><th>Status</th><th></th></tr></thead><tbody>${userSongs.map(item => {
           const asset = item.asset || {}; const profile = profiles.find(p => p.login === item.login) || {}; const party = profile.party || null;
-          return `<tr><td><div class="birthday-userline">${avatarHtml(item.avatarUrl || item.asset?.avatarUrl || profile.avatarUrl || '', item.displayName || item.login)}<span><strong>${esc(item.displayName || item.login)}</strong><small>${esc(item.login)}</small></span></div></td><td>${party ? `<strong>${esc(party.title || party.partyKey)}</strong><small>${esc(party.partyKey || '')}</small>` : '<span class="birthday-muted">Standard-Party</span>'}</td><td>${fmt(asset.relativePath || '')}</td><td>${fmt(asset.durationLabel || '')} <small>${esc(asset.durationSource || '')}</small></td><td>${asset.exists && asset.durationOk ? '<span class="birthday-pill ok">bereit</span>' : '<span class="birthday-pill warn">prüfen</span>'}</td><td><button type="button" data-edit-birthday-profile="${esc(item.login)}">Zuordnung bearbeiten</button></td></tr>`;
-        }).join('')}${profiles.filter(p => !userSongs.some(u => u.login === p.login)).map(profile => `<tr><td><div class="birthday-userline">${avatarHtml(profile.avatarUrl || '', profile.displayNameOverride || profile.login)}<span><strong>${esc(profile.displayNameOverride || profile.login)}</strong><small>${esc(profile.login)}</small></span></div></td><td>${profile.party ? `<strong>${esc(profile.party.title || profile.party.partyKey)}</strong><small>${esc(profile.party.partyKey || '')}</small>` : '<span class="birthday-muted">Standard-Party</span>'}</td><td colspan="3"><span class="birthday-muted">kein eigener User-Song; Party/Standard-Song wird genutzt</span></td><td><button type="button" data-edit-birthday-profile="${esc(profile.login)}">Zuordnung bearbeiten</button></td></tr>`).join('')}</tbody></table></div>` : '<div class="birthday-empty">Noch keine User-Songs oder Party-Zuordnungen hinterlegt.</div>'}
+          return `<tr><td><div class="birthday-userline">${avatarHtml(item.avatarUrl || item.asset?.avatarUrl || profile.avatarUrl || '', item.displayName || item.login)}<span><strong>${esc(item.displayName || item.login)}</strong><small>${esc(item.login)}</small></span></div></td><td>${party ? `<strong>${esc(party.title || party.partyKey)}</strong><small>${esc(party.partyKey || '')}</small>` : '<span class="birthday-muted">Standard-Party</span>'}</td><td>${fmt(asset.relativePath || '')}</td><td>${fmt(asset.durationLabel || '')} <small>${esc(asset.durationSource || '')}</small></td><td>${asset.exists && asset.durationOk ? '<span class="birthday-pill ok">bereit</span>' : '<span class="birthday-pill warn">prüfen</span>'}</td><td><div class="birthday-inline-actions"><button type="button" data-edit-birthday-profile="${esc(item.login)}">Zuordnung bearbeiten</button><button type="button" data-play-birthday-profile="${esc(item.login)}">Abspielen</button></div></td></tr>`;
+        }).join('')}${profiles.filter(p => !userSongs.some(u => u.login === p.login)).map(profile => `<tr><td><div class="birthday-userline">${avatarHtml(profile.avatarUrl || '', profile.displayNameOverride || profile.login)}<span><strong>${esc(profile.displayNameOverride || profile.login)}</strong><small>${esc(profile.login)}</small></span></div></td><td>${profile.party ? `<strong>${esc(profile.party.title || profile.party.partyKey)}</strong><small>${esc(profile.party.partyKey || '')}</small>` : '<span class="birthday-muted">Standard-Party</span>'}</td><td colspan="3"><span class="birthday-muted">kein eigener User-Song; Party/Standard-Song wird genutzt</span></td><td><div class="birthday-inline-actions"><button type="button" data-edit-birthday-profile="${esc(profile.login)}">Zuordnung bearbeiten</button><button type="button" data-play-birthday-profile="${esc(profile.login)}">Abspielen</button></div></td></tr>`).join('')}</tbody></table></div>` : '<div class="birthday-empty">Noch keine User-Songs oder Party-Zuordnungen hinterlegt.</div>'}
       </section>`;
   }
 
@@ -857,11 +895,13 @@ window.BirthdayModule = (function(){
     root?.querySelector('[data-birthday-recheck-assets]')?.addEventListener('click', () => recheckShowAssets().catch(err => { state.error = err.message; render(); }));
     root?.querySelector('[data-birthday-save-party]')?.addEventListener('click', () => savePartyFromForm().catch(err => { state.error = err.message; render(); }));
     root?.querySelector('[data-birthday-assign-party]')?.addEventListener('click', () => assignPartyFromForm().catch(err => { state.error = err.message; render(); }));
+    root?.querySelector('[data-birthday-assign-play]')?.addEventListener('click', () => assignAndPlayPartyFromForm().catch(err => { state.error = err.message; render(); }));
     root?.querySelector('[data-birthday-party-picker]')?.addEventListener('change', ev => { if (ev.target.value) fillPartyForm(ev.target.value); else clearPartyForm(); });
     root?.querySelector('[data-birthday-new-party]')?.addEventListener('click', () => clearPartyForm());
     root?.querySelector('[data-birthday-profile-login]')?.addEventListener('change', ev => fillProfileForm(ev.target.value));
     root?.querySelectorAll('[data-edit-birthday-party]').forEach(btn => btn.addEventListener('click', () => { state.tab = 'parties'; render(); setTimeout(() => fillPartyForm(btn.dataset.editBirthdayParty), 0); }));
     root?.querySelectorAll('[data-edit-birthday-profile]').forEach(btn => btn.addEventListener('click', () => { state.tab = 'parties'; render(); setTimeout(() => fillProfileForm(btn.dataset.editBirthdayProfile), 0); }));
+    root?.querySelectorAll('[data-play-birthday-profile]').forEach(btn => btn.addEventListener('click', () => playBirthdayUserParty(btn.dataset.playBirthdayProfile).catch(err => { state.error = err.message; render(); }))); 
   }
 
   function init() {
