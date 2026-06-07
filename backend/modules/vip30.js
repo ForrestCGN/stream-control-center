@@ -9,8 +9,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.16";
-const MODULE_BUILD = "step8.19.26-desired-reward-tile-truth";
+const MODULE_VERSION = "0.8.17";
+const MODULE_BUILD = "step8.19.27-desired-reward-db-override-cleanup";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -56,7 +56,6 @@ const DEFAULT_CONFIG = {
     categorySortOrder: 70,
     rewardSortOrder: 300,
     systemEnabled: true,
-    twitchIsEnabled: true,
     isPaused: false,
     requireUserInput: false,
     inputLabel: "",
@@ -484,7 +483,6 @@ const SETTING_DEFINITIONS = [
   { key: "slots.maxSlots", path: "slots.maxSlots", type: "integer", category: "slots", label: "Maximale Slots", description: "Maximale gleichzeitige VIP30-Slots.", editable: true },
   { key: "slots.durationDays", path: "slots.durationDays", type: "integer", category: "slots", label: "Laufzeit in Tagen", description: "Wie lange ein VIP30-Slot aktiv bleibt.", editable: true },
   { key: "channelpoints.rewardSyncEnabled", path: "channelpoints.rewardSyncEnabled", type: "boolean", category: "channelpoints", label: "Reward-Sync aktiv", description: "Lokalen VIP30-Reward in Channelpoints-Tabellen verwalten.", editable: true },
-  { key: "channelpoints.twitchIsEnabled", path: "channelpoints.twitchIsEnabled", type: "boolean", category: "channelpoints", label: "Twitch sichtbar", description: "Ob der Reward später auf Twitch sichtbar/aktiv sein soll.", editable: true },
   { key: "bridge.enabled", path: "bridge.enabled", type: "boolean", category: "bridge", label: "Channelpoints-Bridge aktiv", description: "Echte Channelpoints-Redemptions anhand der VIP30-Kachel an VIP30 übergeben.", editable: true },
   { key: "bridge.acceptTitleMatch", path: "bridge.acceptTitleMatch", type: "boolean", category: "bridge", label: "Titel-Match erlauben", description: "VIP30-Reward auch anhand von Titel/Kosten erkennen, solange Twitch-ID noch fehlt.", editable: true },
   { key: "bridge.liveEventDryRunObserveEnabled", path: "bridge.liveEventDryRunObserveEnabled", type: "boolean", category: "bridge", label: "Live-EventSub Dry-Run", description: "Echte Channelpoints-Events aus EventSub nur beobachten und durch die VIP30-Decision schicken, ohne Twitch-/Slot-Schreibaktion.", editable: true },
@@ -607,7 +605,8 @@ function buildSettingsStatus() {
     seedSettingsFromConfigIfMissing("settings_status_missing_definitions");
     rawRows = readSettingsRows();
   }
-  const rows = rawRows.map(mapSettingRow).filter(Boolean);
+  const activeKeys = new Set(SETTING_DEFINITIONS.map(def => def.key));
+  const rows = rawRows.map(mapSettingRow).filter(row => row && activeKeys.has(row.key));
   const categories = [...new Set(rows.map(row => row.category).filter(Boolean))];
   return {
     ok: true,
@@ -628,7 +627,7 @@ function buildSettingsStatus() {
       slots: { maxSlots: getConfig().slots.maxSlots, durationDays: getConfig().slots.durationDays },
       channelpoints: {
         rewardSyncEnabled: getConfig().channelpoints.rewardSyncEnabled !== false,
-        twitchIsEnabled: getConfig().channelpoints.twitchIsEnabled === true
+        twitchTileTruth: true
       },
       bridge: {
         enabled: getConfig().bridge && getConfig().bridge.enabled !== false,
@@ -1460,7 +1459,7 @@ function buildDesiredChannelpointsReward() {
     category_key: reward.categoryKey,
     sort_order: intValue(cp.rewardSortOrder, 300),
     system_enabled: boolDb(boolValue(cp.systemEnabled, true)),
-    twitch_is_enabled: boolDb(boolValue(cp.twitchIsEnabled, true)),
+    twitch_is_enabled: 1,
     is_paused: boolDb(boolValue(cp.isPaused, false)),
     require_user_input: boolDb(boolValue(cp.requireUserInput, false)),
     input_label: cleanString(cp.inputLabel || ""),
