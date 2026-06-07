@@ -15,8 +15,8 @@ try {
 }
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.25";
-const MODULE_BUILD = "step8.19.37-chat-wording-cleanup";
+const MODULE_VERSION = "0.8.26";
+const MODULE_BUILD = "step8.19.38-already-vip-vip30-message-cleanup";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -994,7 +994,7 @@ function vip30RoleBlockMessage(reason, roleState = {}) {
   const cleanReason = cleanString(reason || roleState.reason || "");
   if (cleanReason === "target_is_broadcaster") return "Der Streamer kann VIP30 nicht fuer den eigenen Kanal einloesen.";
   if (cleanReason === "target_is_moderator") return "Mods koennen nicht gleichzeitig VIP30 erhalten, damit Rollen sauber bleiben.";
-  if (cleanReason === "target_is_already_vip") return "User ist bereits VIP.";
+  if (cleanReason === "target_is_already_vip") return "User ist bereits Twitch-VIP, aber nicht ueber VIP30.";
   if (cleanReason === "role_precheck_unavailable") return "VIP30 konnte die Twitch-Rollen nicht sicher pruefen.";
   return roleState.message || "VIP30 konnte die Twitch-Rollen nicht sicher pruefen.";
 }
@@ -1978,7 +1978,7 @@ function buildDryRunRedemptionDecision(input = {}, options = {}) {
   } else if (normalized.targetIsModerator && config.slots.blockModerators !== false) {
     Object.assign(decision, { status: "blocked", blocked: true, reason: "target_is_moderator", wouldCancelRedemption: true, message: "Mods werden nicht per VIP30 belohnt, damit keine Rollen durcheinander geraten." });
   } else if (normalized.targetIsVip && config.slots.blockExistingVip !== false) {
-    Object.assign(decision, { status: "blocked", blocked: true, reason: "target_is_already_vip", wouldCancelRedemption: true, message: "User ist bereits VIP." });
+    Object.assign(decision, { status: "blocked", blocked: true, reason: "target_is_already_vip", wouldCancelRedemption: true, message: "User ist bereits Twitch-VIP, aber nicht ueber VIP30." });
   } else if (stats.slots.free <= 0) {
     Object.assign(decision, { status: "blocked", blocked: true, reason: "slots_full", wouldCancelRedemption: true, message: "Alle VIP30-Slots sind belegt." });
   } else {
@@ -2930,8 +2930,8 @@ function vip30DecisionDisplayName(decision = {}) {
 function vip30SafeReasonText(reason = "") {
   const key = cleanString(reason || "");
   const map = {
-    already_has_vip30_slot: "hat bereits einen aktiven 30-Tage-VIP-Slot",
-    target_is_already_vip: "ist bereits VIP",
+    already_has_vip30_slot: "hat bereits einen aktiven VIP30-Slot",
+    target_is_already_vip: "ist bereits Twitch-VIP, aber nicht ueber VIP30",
     target_is_moderator: "ist Moderator und bekommt kein VIP-Upgrade",
     target_is_broadcaster: "ist der Streamer und kann kein VIP fuer den eigenen Kanal erhalten",
     failed_after_vip_grant: "VIP wurde vergeben, aber die Nachverarbeitung muss geprueft werden",
@@ -2962,15 +2962,52 @@ function vip30RefundSuffix(result = {}) {
   return "Bitte die Kanalpunkte manuell prüfen, da die Rückerstattung nicht bestätigt wurde.";
 }
 
+function vip30ActiveSlotFromDecisionOrResult(decision = {}, result = {}) {
+  const fromDecision = decision && decision.slots && decision.slots.existingSlot ? decision.slots.existingSlot : null;
+  if (fromDecision) return fromDecision;
+  const fromResult = result && result.activeSlot ? result.activeSlot : null;
+  if (fromResult) return fromResult;
+  const fromError = result && result.error && result.error.activeSlot ? result.error.activeSlot : null;
+  if (fromError) return fromError;
+  const fromSlotWrite = result && result.slotWrite && result.slotWrite.slot ? result.slotWrite.slot : null;
+  return fromSlotWrite || null;
+}
+
+function vip30FormatDateTimeDE(value = "") {
+  const raw = cleanString(value || "");
+  if (!raw) return "";
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return "";
+  try {
+    return new Intl.DateTimeFormat("de-DE", {
+      timeZone: "Europe/Berlin",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    }).format(date).replace(",", " um") + " Uhr";
+  } catch (_) {
+    return date.toISOString();
+  }
+}
+
+function vip30ActiveSlotEndText(slot = null) {
+  const endText = vip30FormatDateTimeDE(slot && (slot.endUtc || slot.end_utc || slot.end || ""));
+  return endText ? ` Reserviert bis ${endText}.` : "";
+}
+
 function buildVip30DecisionBlockedChatText(decision = {}, result = {}) {
   const name = vip30DecisionDisplayName(decision);
   const reason = cleanString(result.reason || decision.reason || "");
   const suffix = vip30RefundSuffix(result);
   if (reason === "already_has_vip30_slot") {
-    return `ℹ️ ${name} hat bereits einen aktiven 30-Tage-VIP-Slot. ${suffix}`;
+    const slot = vip30ActiveSlotFromDecisionOrResult(decision, result);
+    const endText = vip30ActiveSlotEndText(slot);
+    return `ℹ️ Die alten VIP-Akten wurden geprüft: ${name} sitzt bereits im VIP30-Sessel.${endText} ${suffix}`;
   }
   if (reason === "target_is_already_vip") {
-    return `ℹ️ ${name} ist bereits VIP. 30 Tage VIP wurde nicht erneut vergeben. ${suffix}`;
+    return `ℹ️ Aktenlage eindeutig: ${name} ist bereits VIP im Kanal, aber nicht über das 30-Tage-VIP-System. VIP wurde nicht erneut vergeben. ${suffix}`;
   }
   if (reason === "target_is_moderator") {
     return `ℹ️ ${name} ist Moderator. VIP wurde nicht vergeben. ${suffix}`;
