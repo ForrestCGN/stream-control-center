@@ -15,8 +15,8 @@ try {
 }
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.28";
-const MODULE_BUILD = "step8.19.41-alert-sound-mediaid-direct-fix";
+const MODULE_VERSION = "0.8.29";
+const MODULE_BUILD = "step8.19.42-chat-wording-polish";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -3004,6 +3004,17 @@ function vip30ActiveSlotEndText(slot = null) {
   return endText ? ` Reserviert bis ${endText}.` : "";
 }
 
+function pickVip30ChatVariant(variants = []) {
+  const list = Array.isArray(variants) ? variants.filter(fn => typeof fn === "function") : [];
+  if (!list.length) return "";
+  const index = Math.floor(Math.random() * list.length);
+  try {
+    return cleanString(list[index]());
+  } catch (_) {
+    return cleanString(list[0]());
+  }
+}
+
 function buildVip30DecisionBlockedChatText(decision = {}, result = {}) {
   const name = vip30DecisionDisplayName(decision);
   const reason = cleanString(result.reason || decision.reason || "");
@@ -3011,29 +3022,53 @@ function buildVip30DecisionBlockedChatText(decision = {}, result = {}) {
   if (reason === "already_has_vip30_slot") {
     const slot = vip30ActiveSlotFromDecisionOrResult(decision, result);
     const endText = vip30ActiveSlotEndText(slot);
-    return `ℹ️ Die alten VIP-Akten wurden geprüft: ${name} sitzt bereits im VIP30-Sessel.${endText} ${suffix}`;
+    return pickVip30ChatVariant([
+      () => `ℹ️ Die Heimleitung hat nachgeschaut: ${name} sitzt bereits im VIP30-Sessel.${endText} ${suffix}`,
+      () => `ℹ️ Im Rentner-Register steht ${name} schon auf VIP30.${endText} Doppelbuchung abgelehnt. ${suffix}`,
+      () => `ℹ️ Die alten VIP-Akten sagen: ${name} hat den VIP30-Platz schon sicher.${endText} ${suffix}`
+    ]);
   }
   if (reason === "target_is_already_vip") {
-    return `ℹ️ Aktenlage eindeutig: ${name} ist bereits VIP im Kanal, aber nicht über das 30-Tage-VIP-System. VIP wurde nicht erneut vergeben. ${suffix}`;
+    return pickVip30ChatVariant([
+      () => `ℹ️ Die Heimverwaltung hat nachgeschaut: ${name} hat bereits einen festen VIP-Sessel im Kanal. Das ist aber kein 30-Tage-VIP-Platz aus unserem System. ${suffix}`,
+      () => `ℹ️ Im Rentner-Register steht ${name} schon als Twitch-VIP mit eigenem Sitzkissen. VIP30 wurde deshalb nicht neu gebucht. ${suffix}`,
+      () => `ℹ️ Aktenlage eindeutig: ${name} ist bereits VIP im Kanal, aber nicht über VIP30. Kein neuer Eintrag im VIP30-Heft. ${suffix}`
+    ]);
   }
   if (reason === "target_is_moderator") {
-    return `ℹ️ ${name} ist Moderator. VIP wurde nicht vergeben. ${suffix}`;
+    return pickVip30ChatVariant([
+      () => `ℹ️ ${name} steht schon im Dienstplan der Moderation. VIP30 wird dafür nicht zusätzlich vergeben. ${suffix}`,
+      () => `ℹ️ Die Heimleitung winkt ab: ${name} hat Mod-Schlüssel und braucht keinen VIP30-Sessel. ${suffix}`,
+      () => `ℹ️ ${name} ist Moderator. Damit die Rollen sauber bleiben, wurde VIP30 nicht gebucht. ${suffix}`
+    ]);
   }
   if (reason === "target_is_broadcaster") {
-    return `ℹ️ ${name} ist der Streamer. VIP kann nicht fuer den eigenen Kanal eingelöst werden. ${suffix}`;
+    return pickVip30ChatVariant([
+      () => `ℹ️ Die Heimleitung kann sich nicht selbst auf die VIP30-Liste setzen. ${name} bleibt am Empfang. ${suffix}`,
+      () => `ℹ️ ${name} ist der Streamer. Eigenbuchung im VIP30-Heft ist nicht erlaubt. ${suffix}`,
+      () => `ℹ️ Der Chef wollte sich selbst einen VIP-Sessel geben. Die Akte wurde geschlossen. ${suffix}`
+    ]);
   }
   if (reason === "slots_full") {
-    return `⚠️ Alle VIP30-Plätze sind aktuell belegt. ${suffix}`;
+    return pickVip30ChatVariant([
+      () => `⚠️ Alle VIP30-Sessel sind gerade belegt. Die Heimleitung hat keinen freien Platz gefunden. ${suffix}`,
+      () => `⚠️ Das VIP30-Wartezimmer ist voll. Aktuell ist kein Sitzkissen frei. ${suffix}`,
+      () => `⚠️ VIP30 ist ausgebucht. Erst wenn ein Platz frei wird, kann neu reserviert werden. ${suffix}`
+    ]);
   }
   if (reason === "role_precheck_unavailable") {
-    return `⚠️ VIP für ${name} wurde sicherheitshalber nicht ausgeführt, weil die Twitch-Rollen nicht geprüft werden konnten. ${suffix}`;
+    return `⚠️ VIP für ${name} wurde nicht ausgeführt, weil die Twitch-Rollen gerade nicht geprüft werden konnten. ${suffix}`;
   }
   return `ℹ️ VIP für ${name} wurde nicht ausgeführt: ${vip30SafeReasonText(reason)}. ${suffix}`;
 }
 
 function buildVip30SuccessChatText(decision = {}) {
   const name = vip30DecisionDisplayName(decision);
-  return `🎖️ ${name} hat 30 Tage VIP erhalten. Willkommen in der CGN VIP-Lounge!`;
+  return pickVip30ChatVariant([
+    () => `🎖️ ${name} hat sich 30 Tage VIP gegönnt. Die Heimleitung hat den VIP-Sessel frisch bezogen!`,
+    () => `🎖️ Willkommen im VIP30-Bereich, ${name}! Sitzkissen liegt bereit, Akte ist abgestempelt.`,
+    () => `🎖️ ${name} ist jetzt 30 Tage VIP. Die CGN-Heimleitung öffnet die VIP-Lounge!`
+  ]);
 }
 
 function buildVip30FailedChatText(decision = {}, result = {}) {
@@ -3041,15 +3076,15 @@ function buildVip30FailedChatText(decision = {}, result = {}) {
   const reason = cleanString(result.reason || (result.error && result.error.message) || "");
   const refunded = vip30RedemptionCancelConfirmed(result);
   if (refunded) {
-    return `⚠️ VIP für ${name} konnte nicht vergeben werden: ${vip30SafeReasonText(reason)}. Die Kanalpunkte wurden zurückgegeben.`;
+    return `⚠️ Die VIP30-Akte für ${name} konnte nicht sauber angelegt werden: ${vip30SafeReasonText(reason)}. Die Kanalpunkte wurden zurückgegeben.`;
   }
-  return `⚠️ VIP für ${name} konnte nicht vergeben werden: ${vip30SafeReasonText(reason)}. Bitte kurz manuell prüfen.`;
+  return `⚠️ Die VIP30-Akte für ${name} hakt: ${vip30SafeReasonText(reason)}. Bitte kurz manuell prüfen.`;
 }
 
 function buildVip30SafetyBlockedChatText(decision = {}, result = {}) {
   const name = vip30DecisionDisplayName(decision);
   const blockers = result && result.liveSafety && Array.isArray(result.liveSafety.blockers) ? result.liveSafety.blockers.join(", ") : "";
-  return `⚠️ VIP für ${name} ist gerade nicht live-bereit. Blocker: ${blockers || "unbekannt"}.`;
+  return `⚠️ VIP30 ist für ${name} gerade nicht live-bereit. Blocker: ${blockers || "unbekannt"}.`;
 }
 
 async function sendVip30LiveChatMessage(text, reason = "vip30_live") {
