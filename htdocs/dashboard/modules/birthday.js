@@ -316,6 +316,13 @@ window.BirthdayModule = (function(){
   }
 
 
+  function birthdayMediaFieldStorageValue(asset) {
+    if (!asset) return '';
+    const id = Number(asset.id || asset.mediaId || 0);
+    if (id > 0) return `mediaid:${id}`;
+    return asset.relativePath || asset.webPath || '';
+  }
+
   function bindBirthdayMediaFields() {
     const fields = Array.from(root?.querySelectorAll('[data-birthday-media-target][data-media-field]') || []);
     if (!fields.length) return;
@@ -330,7 +337,9 @@ window.BirthdayModule = (function(){
           const asset = ev.detail?.asset || null;
           const target = targetSelector ? root?.querySelector(targetSelector) : null;
           if (!target) return;
-          target.value = asset ? (asset.relativePath || asset.webPath || '') : '';
+          target.value = birthdayMediaFieldStorageValue(asset);
+          target.dataset.mediaId = asset?.id ? String(asset.id) : '';
+          target.dataset.mediaRelativePath = asset?.relativePath || '';
           target.dispatchEvent(new Event('input', { bubbles: true }));
           target.dispatchEvent(new Event('change', { bubbles: true }));
         });
@@ -614,7 +623,7 @@ window.BirthdayModule = (function(){
             <label>Anzeigename<input type="text" data-birthday-user-display placeholder="ForrestCGN"></label>
             <label>Geburtstag<input type="text" data-birthday-user-date placeholder="22.05 oder 22.05.1980"></label>
             <label>Status<select data-birthday-user-active><option value="true">aktiv</option><option value="false">inaktiv</option></select></label>
-            <label>User-Song-Datei <input type="text" data-birthday-user-song placeholder="media/birthday/user-songs/birthday_song_user.mp3 oder leer für Standard"></label>
+            <label>User-Song-Datei <input type="text" data-birthday-user-song placeholder="mediaid:1234 oder leer für Standard"></label>
             <div class="birthday-mediafield-block" data-media-field data-module-key="birthday" data-category-key="user-songs" data-allowed-types="audio" data-title="User-Song auswählen oder hochladen" data-birthday-media-target="[data-birthday-user-song]"></div>
             <label>Song-Dauer ms <input type="number" data-birthday-user-song-ms placeholder="auto / optional"></label>
             <label>Song-Lautstärke <input type="number" min="0" max="100" data-birthday-user-volume placeholder="85"></label>
@@ -779,7 +788,7 @@ window.BirthdayModule = (function(){
               </div>
               <div class="birthday-form-two">
                 <label>Style<select data-birthday-party-style>${styles.map(style => `<option value="${esc(style.key)}">${esc(style.label || style.key)}</option>`).join('')}</select></label>
-                <label>Song-Datei optional<input type="text" data-birthday-party-song placeholder="media/birthday/party-songs/party_song_araglor.mp3 oder leer = User/Standard-Song"></label>
+                <label>Song-Datei optional<input type="text" data-birthday-party-song placeholder="mediaid:1234 oder leer = User/Standard-Song"></label>
                 <div class="birthday-mediafield-block" data-media-field data-module-key="birthday" data-category-key="party-songs" data-allowed-types="audio" data-title="Party-Song auswählen oder hochladen" data-birthday-media-target="[data-birthday-party-song]"></div>
               </div>
               <label>Headline Template<input type="text" data-birthday-party-headline value="{headline}"></label>
