@@ -527,6 +527,9 @@ window.Vip30Module = (function(){
 
   function getSlots(){ return pickArray(state.slots, ['slots', 'rows', 'items']); }
   function getLogs(){ return pickArray(state.logs, ['logs', 'rows', 'items']); }
+  function slotStatusValue(slot){ return String(slot?.status || 'unknown').toLowerCase(); }
+  function activeSlots(){ return getSlots().filter(slot => slotStatusValue(slot) === 'active'); }
+  function historySlots(){ return getSlots().filter(slot => slotStatusValue(slot) !== 'active'); }
   function slotStatusCounts(){
     const counts = {};
     for (const slot of getSlots()) {
@@ -542,7 +545,7 @@ window.Vip30Module = (function(){
       const n = Number(value);
       if (Number.isFinite(n)) return n;
     }
-    return getSlots().filter(slot => String(slot.status || '').toLowerCase() === 'active').length;
+    return activeSlots().length;
   }
   function maxSlotCount(){
     const status = state.status || {};
@@ -982,11 +985,11 @@ window.Vip30Module = (function(){
     </details>`;
   }
 
-  function slotsTable(slots){
-    if (!slots.length) return '<div class="vip30-empty">Keine Slots gefunden.</div>';
+  function slotsTable(slots, emptyText){
+    if (!slots.length) return `<div class="vip30-empty">${esc(emptyText || 'Keine Slots gefunden.')}</div>`;
     return `<div class="vip30-table-wrap"><table class="vip30-table"><thead><tr><th>User</th><th>Status</th><th>Start</th><th>Ende</th><th>Quelle</th><th>Fehler</th></tr></thead><tbody>${slots.map(slot => {
-      const status = String(slot.status || 'unknown');
-      const tone = status === 'active' ? 'ok' : status === 'external_removed' || status === 'expired' ? 'warn' : status === 'failed' ? 'bad' : '';
+      const status = slotStatusValue(slot);
+      const tone = status === 'active' ? 'ok' : status === 'external_removed' || status === 'expired' || status === 'revoked' ? 'warn' : status === 'failed' ? 'bad' : '';
       return `<tr><td><strong>${esc(slot.userDisplayName || slot.user_display_name || slot.userLogin || slot.user_login || '-')}</strong><small>${esc(slot.userLogin || slot.user_login || slot.userId || slot.user_id || '')}</small></td><td>${badge(status, tone)}</td><td>${fmt(dateFmt(slot.startUtc || slot.start_utc))}</td><td>${fmt(dateFmt(slot.endUtc || slot.end_utc))}</td><td>${fmt(slot.source || '')}</td><td>${fmt(slot.lastError || slot.last_error || '')}</td></tr>`;
     }).join('')}</tbody></table></div>`;
   }
@@ -1000,7 +1003,28 @@ window.Vip30Module = (function(){
   }
 
   function renderSlots(){
-    return `<section class="vip30-card glass"><div class="vip30-card-head"><div><h3>VIP30 Slots</h3><p>Read-only Slotliste. Status ` + '`active`' + ` zählt gegen die Slotgrenze, ` + '`external_removed`' + ` nicht.</p></div><button type="button" data-vip30-refresh>Aktualisieren</button></div>${slotsTable(getSlots())}</section>`;
+    const active = activeSlots();
+    const history = historySlots();
+    return `<section class="vip30-card glass">
+      <div class="vip30-card-head">
+        <div>
+          <h3>Aktive VIP30-Slots</h3>
+          <p>Diese Hauptliste zeigt nur belegte Slots mit Status <code>active</code>. Nur diese Slots zählen gegen die Slotgrenze.</p>
+        </div>
+        <button type="button" data-vip30-refresh>Aktualisieren</button>
+      </div>
+      ${slotsTable(active, 'Keine aktiven VIP30-Slots belegt.')}
+    </section>
+    <section class="vip30-card glass">
+      <div class="vip30-card-head">
+        <div>
+          <h3>VIP30 Verlauf / Freigegeben / Fehler</h3>
+          <p>Historische, entzogene oder fehlgeschlagene Einträge werden getrennt angezeigt und zählen nicht gegen die Slotgrenze.</p>
+        </div>
+        ${badge(`${history.length} Einträge`, history.length ? 'warn' : 'ok')}
+      </div>
+      ${slotsTable(history, 'Kein Verlauf gefunden.')}
+    </section>`;
   }
 
   function renderLogs(){
