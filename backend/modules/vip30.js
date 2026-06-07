@@ -9,8 +9,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.19";
-const MODULE_BUILD = "step8.19.29-legacy-live-routes-cleanup";
+const MODULE_VERSION = "0.8.20";
+const MODULE_BUILD = "step8.19.32-missing-normalize-helper-fix";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -2170,6 +2170,241 @@ function buildLiveFlowSafetyStatus() {
       blockers: full.blockers || []
     },
     note: "Normaler VIP30-Live-Flow: VIP vergeben, Slot schreiben, Redemption abrechnen und Alert ausloesen."
+  };
+}
+
+
+function vip30JsonArray(value) {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== "string" || !value.trim()) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function vip30PositiveInt(value, fallback = 0) {
+  const n = Number.parseInt(String(value ?? ""), 10);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
+function vip30NonNegativeInt(value, fallback = 0) {
+  const n = Number.parseInt(String(value ?? ""), 10);
+  return Number.isFinite(n) && n >= 0 ? n : fallback;
+}
+
+function normalizeVip30SoundPool(value, alerts = {}) {
+  const rawItems = vip30JsonArray(value);
+  const normalized = rawItems.map((raw, index) => {
+    const item = raw && typeof raw === "object" ? raw : {};
+    const mediaId = vip30PositiveInt(item.mediaId || item.media_id || item.mediaAssetId || item.media_asset_id || item.assetId || item.asset_id, 0);
+    const mediaPath = cleanString(item.mediaPath || item.media_path || item.mediaRelativePath || item.media_relative_path || item.registryPath || item.registry_path || "");
+    const durationMs = vip30NonNegativeInt(item.durationMs || item.duration_ms || item.lengthMs || item.length_ms, 0);
+    const id = cleanString(item.id || item.key || `vip30-sound-${index + 1}`) || `vip30-sound-${index + 1}`;
+    const label = cleanString(item.label || item.name || item.title || id) || id;
+    return {
+      id,
+      enabled: item.enabled !== false,
+      weight: Math.max(0, vip30NonNegativeInt(item.weight, 1)),
+      mediaId,
+      mediaPath,
+      durationMs,
+      label
+    };
+  }).filter(item => item.enabled === true && item.weight > 0 && (item.mediaId > 0 || !!item.mediaPath));
+
+  const fallbackMediaId = vip30PositiveInt(alerts.mediaId || alerts.soundMediaId || alerts.mediaAssetId || alerts.assetId, 0);
+  const fallbackMediaPath = cleanString(alerts.mediaPath || alerts.mediaRelativePath || alerts.registryPath || "");
+  if (!normalized.length && (fallbackMediaId > 0 || fallbackMediaPath)) {
+    normalized.push({
+      id: "default-media",
+      enabled: true,
+      weight: 1,
+      mediaId: fallbackMediaId,
+      mediaPath: fallbackMediaPath,
+      durationMs: vip30NonNegativeInt(alerts.durationMs, 0),
+      label: cleanString(alerts.soundKey || "VIP30 Sound") || "VIP30 Sound"
+    });
+  }
+  return normalized;
+}
+
+function normalizeVip30OverlaySets(value) {
+  const rawItems = vip30JsonArray(value);
+  const source = rawItems.length ? rawItems : vip30JsonArray(DEFAULT_CONFIG.alerts && DEFAULT_CONFIG.alerts.overlaySets);
+  return source.map((raw, index) => {
+    const item = raw && typeof raw === "object" ? raw : {};
+    const id = cleanString(item.id || item.key || `vip30-overlay-${index + 1}`) || `vip30-overlay-${index + 1}`;
+    const perks = Array.isArray(item.perks)
+      ? item.perks.map(entry => cleanString(entry)).filter(Boolean)
+      : cleanString(item.perks || "").split(/[|;,\n]/).map(entry => cleanString(entry)).filter(Boolean);
+    return {
+      id,
+      enabled: item.enabled !== false,
+      weight: Math.max(0, vip30NonNegativeInt(item.weight, 1)),
+      kicker: cleanString(item.kicker || "30 Tage VIP"),
+      headline: cleanString(item.headline || "{displayName} wird VIP."),
+      subline: cleanString(item.subline || "Willkommen in der CGN VIP-Lounge."),
+      message: cleanString(item.message || "Das VIP-Upgrade ist aktiv."),
+      perks,
+      brand: cleanString(item.brand || "CGN VIP-Lounge")
+    };
+  }).filter(item => item.enabled === true && item.weight > 0);
+}
+
+function pickVip30Weighted(items) {
+  const list = Array.isArray(items) ? items.filter(item => item && item.enabled !== false && Number(item.weight || 0) > 0) : [];
+  if (!list.length) return null;
+  const total = list.reduce((sum, item) => sum + Math.max(0, Number(item.weight || 0)), 0);
+  if (!(total > 0)) return list[0];
+  let cursor = Math.random() * total;
+  for (const item of list) {
+    cursor -= Math.max(0, Number(item.weight || 0));
+    if (cursor <= 0) return item;
+  }
+  return list[list.length - 1];
+}
+
+function vip30ReplaceTemplate(value, user = {}) {
+  const displayName = cleanString(user.userDisplayName || user.displayName || user.userLogin || user.login || "User");
+  const login = cleanString(user.userLogin || user.login || displayName).toLowerCase();
+  return cleanString(value || "")
+    .replace(/\{displayName\}/g, displayName)
+    .replace(/\{display_name\}/g, displayName)
+    .replace(/\{login\}/g, login)
+    .replace(/\{user\}/g, displayName);
+}
+
+function hasVip30ConfiguredSound(alerts = {}) {
+  return normalizeVip30SoundPool(alerts.soundPool, alerts).length > 0;
+}
+
+function buildVip30AlertPayload(result = {}) {
+  const decision = result && result.decision ? result.decision : {};
+  const user = decision.user || {};
+  const redemption = decision.redemption || {};
+  const slotWrite = result.slotWrite || {};
+  const slot = slotWrite.slot || {};
+  const alerts = getConfig().alerts || DEFAULT_CONFIG.alerts;
+  const overlaySet = pickVip30Weighted(normalizeVip30OverlaySets(alerts.overlaySets)) || normalizeVip30OverlaySets(DEFAULT_CONFIG.alerts.overlaySets)[0] || {};
+  const displayName = cleanString(user.userDisplayName || user.displayName || user.userLogin || user.login || "User");
+  const userLogin = cleanString(user.userLogin || user.login || displayName).toLowerCase();
+  const requestId = cleanString(redemption.twitchRedemptionId || result.requestId || `vip30_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
+  const now = nowIso();
+  return {
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    type: "vip30",
+    requestId,
+    createdAt: now,
+    reason: cleanString(result.reason || decision.reason || "vip30_success"),
+    user: {
+      userId: cleanString(user.userId || user.id || slot.userId || ""),
+      userLogin,
+      userDisplayName: displayName,
+      avatarUrl: cleanString(user.avatarUrl || user.profileImageUrl || slot.avatarUrl || "")
+    },
+    slot: {
+      slotId: cleanString(slotWrite.slotId || slot.id || ""),
+      startUtc: cleanString(slotWrite.startUtc || slot.startUtc || ""),
+      endUtc: cleanString(slotWrite.endUtc || slot.endUtc || ""),
+      status: cleanString(slot.status || "active")
+    },
+    sourceResult: {
+      twitchRewardId: cleanString(redemption.twitchRewardId || decision.twitchRewardId || ""),
+      twitchRedemptionId: cleanString(redemption.twitchRedemptionId || decision.twitchRedemptionId || requestId),
+      redeemedAt: cleanString(redemption.redeemedAt || now),
+      userInput: cleanString(redemption.userInput || "")
+    },
+    visual: {
+      module: MODULE_NAME,
+      type: "vip30",
+      overlaySetId: cleanString(overlaySet.id || ""),
+      kicker: vip30ReplaceTemplate(overlaySet.kicker || "30 Tage VIP", { userDisplayName: displayName, userLogin }),
+      headline: vip30ReplaceTemplate(overlaySet.headline || "{displayName} wird VIP.", { userDisplayName: displayName, userLogin }),
+      subline: vip30ReplaceTemplate(overlaySet.subline || "Willkommen in der CGN VIP-Lounge.", { userDisplayName: displayName, userLogin }),
+      message: vip30ReplaceTemplate(overlaySet.message || "Das VIP-Upgrade ist aktiv.", { userDisplayName: displayName, userLogin }),
+      perks: Array.isArray(overlaySet.perks) ? overlaySet.perks.map(entry => vip30ReplaceTemplate(entry, { userDisplayName: displayName, userLogin })).filter(Boolean) : [],
+      brand: vip30ReplaceTemplate(overlaySet.brand || "CGN VIP-Lounge", { userDisplayName: displayName, userLogin }),
+      avatarUrl: cleanString(user.avatarUrl || user.profileImageUrl || slot.avatarUrl || ""),
+      requestId
+    }
+  };
+}
+
+function buildVip30SoundBundlePayload(payload = {}, options = {}) {
+  const alerts = getConfig().alerts || DEFAULT_CONFIG.alerts;
+  const sound = pickVip30Weighted(normalizeVip30SoundPool(alerts.soundPool, alerts));
+  const bundleId = cleanString(options.bundleId || `vip30_${payload.requestId || Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
+  const user = payload.user || {};
+  const requestedBy = cleanString(user.userLogin || user.userDisplayName || "vip30");
+  const durationMs = sound ? vip30NonNegativeInt(sound.durationMs, 0) : vip30NonNegativeInt(alerts.durationMs, 0);
+  const soundItem = {
+    soundId: sound && sound.id ? `vip30_${sound.id}` : cleanString(alerts.soundKey || "vip30"),
+    label: sound && sound.label ? sound.label : cleanString(alerts.soundKey || "VIP30 Sound"),
+    category: cleanString(alerts.category || "vip"),
+    target: cleanString(alerts.target || "stream"),
+    outputTarget: cleanString(alerts.outputTarget || "overlay"),
+    priority: Number(alerts.priority || 90),
+    volume: Number(alerts.volume || 85),
+    requestedBy,
+    source: MODULE_NAME,
+    mediaType: "audio",
+    mediaId: sound ? sound.mediaId : 0,
+    mediaAssetId: sound ? sound.mediaId : 0,
+    mediaPath: sound ? sound.mediaPath : "",
+    mediaRelativePath: sound ? sound.mediaPath : "",
+    durationMs,
+    meta: {
+      module: MODULE_NAME,
+      moduleVersion: MODULE_VERSION,
+      bundleId,
+      bundleType: "vip30",
+      bundleRole: "main",
+      soundPoolId: sound ? sound.id : "",
+      soundLabel: sound ? sound.label : "",
+      durationMode: durationMs > 0 ? "manual" : "auto",
+      requestedDurationMs: durationMs,
+      requestId: payload.requestId || "",
+      user: requestedBy,
+      reason: cleanString(options.reason || payload.reason || "vip30_success")
+    },
+    visual: payload.visual || {}
+  };
+  if (!soundItem.mediaId) {
+    delete soundItem.mediaId;
+    delete soundItem.mediaAssetId;
+  }
+  if (!soundItem.mediaPath) {
+    delete soundItem.mediaPath;
+    delete soundItem.mediaRelativePath;
+  }
+  if (!soundItem.durationMs) delete soundItem.durationMs;
+  return {
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    bundleId,
+    bundleType: "vip30",
+    bundlePriority: Number(alerts.priority || 90),
+    bundleLocked: true,
+    bundleQueuedAt: Date.now(),
+    reason: cleanString(options.reason || payload.reason || "vip30_success"),
+    requestedBy,
+    source: MODULE_NAME,
+    visual: payload.visual || {},
+    meta: {
+      module: MODULE_NAME,
+      moduleVersion: MODULE_VERSION,
+      requestId: payload.requestId || "",
+      user: requestedBy,
+      alertSource: MODULE_NAME,
+      alertType: "vip30"
+    },
+    items: [soundItem]
   };
 }
 
