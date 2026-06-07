@@ -7,10 +7,16 @@ const helperConfig = require("./helpers/helper_config");
 const chatOutput = require("./helpers/helper_chat_output");
 const communicationBus = require("./communication_bus");
 const database = require("../core/database");
+let twitchRoles = null;
+try {
+  twitchRoles = require("./helpers/helper_twitch_roles");
+} catch (_) {
+  twitchRoles = null;
+}
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.22";
-const MODULE_BUILD = "step8.19.34-live-grant-atomic-safety";
+const MODULE_VERSION = "0.8.23";
+const MODULE_BUILD = "step8.19.35-twitch-role-helper-precheck";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -966,6 +972,162 @@ function isVip30BroadcasterTarget(normalized = {}) {
   if (broadcasterId && userId && broadcasterId === userId) return true;
   if (broadcasterLogin && userLogin && broadcasterLogin === userLogin) return true;
   return false;
+}
+
+
+function applyVip30DecisionBlock(decision, reason, message) {
+  Object.assign(decision, {
+    status: "blocked",
+    blocked: true,
+    reason: cleanString(reason || "blocked"),
+    wouldGrantVip: false,
+    wouldCreateSlot: false,
+    wouldFulfillRedemption: false,
+    wouldCancelRedemption: true,
+    wouldTriggerAlert: false,
+    message: cleanString(message || "VIP30-Entscheidung wurde blockiert.")
+  });
+  return decision;
+}
+
+function vip30RoleBlockMessage(reason, roleState = {}) {
+  const cleanReason = cleanString(reason || roleState.reason || "");
+  if (cleanReason === "target_is_broadcaster") return "Der Streamer kann VIP30 nicht fuer den eigenen Kanal einloesen.";
+  if (cleanReason === "target_is_moderator") return "Mods koennen nicht gleichzeitig VIP30 erhalten, damit Rollen sauber bleiben.";
+  if (cleanReason === "target_is_already_vip") return "User ist bereits VIP.";
+  if (cleanReason === "role_precheck_unavailable") return "VIP30 konnte die Twitch-Rollen nicht sicher pruefen.";
+  return roleState.message || "VIP30 konnte die Twitch-Rollen nicht sicher pruefen.";
+}
+
+function vip30SafeRoleStatePayload(roleState = {}) {
+  if (!roleState || typeof roleState !== "object") return null;
+  return {
+    ok: roleState.ok === true,
+    source: cleanString(roleState.source || "helper_twitch_roles"),
+    reason: cleanString(roleState.reason || ""),
+    blocker: cleanString(roleState.blocker || ""),
+    broadcasterId: cleanString(roleState.broadcasterId || ""),
+    broadcasterLogin: cleanString(roleState.broadcasterLogin || ""),
+    userId: cleanString(roleState.userId || ""),
+    userLogin: cleanString(roleState.userLogin || ""),
+    userDisplayName: cleanString(roleState.userDisplayName || ""),
+    isBroadcaster: roleState.isBroadcaster === true,
+    isModerator: roleState.isModerator === true,
+    isVip: roleState.isVip === true,
+    canReceiveVip: roleState.canReceiveVip === true,
+    checkedAt: cleanString(roleState.checkedAt || nowIso()),
+    error: cleanString(roleState.error || "")
+  };
+}
+
+async function getVip30TwitchRoleStateForDecision(normalized = {}) {
+  const userId = cleanString(normalized.userId || "");
+  const userLogin = cleanString(normalized.userLogin || "").replace(/^@+/, "").toLowerCase();
+  const userDisplayName = cleanString(normalized.userDisplayName || userLogin || userId || "");
+  const settings = getTwitchClientSettings();
+  const broadcasterId = cleanString(settings.broadcasterId || "");
+  const broadcasterLogin = getTwitchBroadcasterLoginCandidate();
+
+  if (!twitchRoles || typeof twitchRoles.getChannelUserRoleState !== "function") {
+    return {
+      ok: false,
+      source: "helper_twitch_roles",
+      reason: "role_precheck_unavailable",
+      blocker: "helper_missing",
+      broadcasterId,
+      broadcasterLogin,
+      userId,
+      userLogin,
+      userDisplayName,
+      isBroadcaster: isVip30BroadcasterTarget(normalized),
+      isModerator: false,
+      isVip: false,
+      canReceiveVip: false,
+      checkedAt: nowIso(),
+      error: "helper_twitch_roles.getChannelUserRoleState_missing"
+    };
+  }
+
+  try {
+    const accessToken = await refreshTwitchUserTokenIfNeeded();
+    const roleState = await twitchRoles.getChannelUserRoleState({
+      userId,
+      userLogin,
+      login: userLogin,
+      userDisplayName,
+      displayName: userDisplayName
+    }, {
+      clientId: settings.clientId,
+      broadcasterId,
+      broadcasterLogin,
+      accessToken,
+      tokenPath: settings.tokenStore
+    });
+    const safe = vip30SafeRoleStatePayload(roleState);
+    if (safe && safe.ok) return safe;
+    return {
+      ...(safe || {}),
+      ok: false,
+      source: "helper_twitch_roles",
+      reason: cleanString(safe && safe.reason || "role_precheck_unavailable"),
+      blocker: cleanString(safe && safe.blocker || "role_state_not_ok"),
+      broadcasterId,
+      broadcasterLogin,
+      userId,
+      userLogin,
+      userDisplayName,
+      isBroadcaster: safe && safe.isBroadcaster === true,
+      isModerator: safe && safe.isModerator === true,
+      isVip: safe && safe.isVip === true,
+      canReceiveVip: false,
+      checkedAt: nowIso(),
+      error: cleanString(safe && safe.error || "role_state_not_ok")
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      source: "helper_twitch_roles",
+      reason: "role_precheck_unavailable",
+      blocker: "role_precheck_error",
+      broadcasterId,
+      broadcasterLogin,
+      userId,
+      userLogin,
+      userDisplayName,
+      isBroadcaster: isVip30BroadcasterTarget(normalized),
+      isModerator: false,
+      isVip: false,
+      canReceiveVip: false,
+      checkedAt: nowIso(),
+      error: err && err.message ? err.message : String(err)
+    };
+  }
+}
+
+async function buildLiveRedemptionDecisionWithRolePrecheck(input = {}, options = {}) {
+  const baseDecision = buildDryRunRedemptionDecision(input, { reason: options.reason || "live_flow", log: options.log === true });
+  if (!baseDecision || baseDecision.wouldGrantVip !== true) return baseDecision;
+
+  const normalized = normalizeRedemptionDecisionInput(input);
+  const roleState = await getVip30TwitchRoleStateForDecision(normalized);
+  baseDecision.twitchRoleState = roleState;
+
+  if (!roleState || roleState.ok !== true) {
+    return applyVip30DecisionBlock(baseDecision, "role_precheck_unavailable", vip30RoleBlockMessage("role_precheck_unavailable", roleState));
+  }
+
+  baseDecision.user.targetIsBroadcaster = roleState.isBroadcaster === true;
+  baseDecision.user.targetIsModerator = roleState.isModerator === true;
+  baseDecision.user.targetIsVip = roleState.isVip === true;
+  if (roleState.userId && !baseDecision.user.userId) baseDecision.user.userId = roleState.userId;
+  if (roleState.userLogin && !baseDecision.user.userLogin) baseDecision.user.userLogin = roleState.userLogin;
+  if (roleState.userDisplayName && !baseDecision.user.userDisplayName) baseDecision.user.userDisplayName = roleState.userDisplayName;
+
+  if (roleState.canReceiveVip !== true) {
+    return applyVip30DecisionBlock(baseDecision, roleState.reason || roleState.blocker || "role_precheck_blocked", vip30RoleBlockMessage(roleState.reason || roleState.blocker, roleState));
+  }
+
+  return baseDecision;
 }
 
 async function refreshTwitchUserTokenIfNeeded() {
@@ -2745,25 +2907,47 @@ function vip30SafeReasonText(reason = "") {
   return map[key] || key || "unbekannter Grund";
 }
 
+
+function vip30RedemptionUpdateHasStatus(update = {}, status = "") {
+  const wanted = cleanString(status || "").toUpperCase();
+  if (!update || update.ok !== true || !wanted) return false;
+  if (cleanString(update.status || "").toUpperCase() === wanted) return true;
+  const rows = Array.isArray(update.raw && update.raw.data) ? update.raw.data : [];
+  return rows.some(row => cleanString(row && row.status || "").toUpperCase() === wanted);
+}
+
+function vip30RedemptionCancelConfirmed(result = {}) {
+  return vip30RedemptionUpdateHasStatus(result && result.redemptionUpdate, "CANCELED");
+}
+
+function vip30RefundSuffix(result = {}) {
+  if (vip30RedemptionCancelConfirmed(result)) return "Die Kanalpunkte wurden zurückgegeben.";
+  return "Bitte die Kanalpunkte manuell prüfen, da die Rückerstattung nicht bestätigt wurde.";
+}
+
 function buildVip30DecisionBlockedChatText(decision = {}, result = {}) {
   const name = vip30DecisionDisplayName(decision);
   const reason = cleanString(result.reason || decision.reason || "");
+  const suffix = vip30RefundSuffix(result);
   if (reason === "already_has_vip30_slot") {
-    return `ℹ️ ${name} hat bereits einen aktiven 30-Tage-VIP-Slot. Die Kanalpunkte wurden zurückgegeben.`;
+    return `ℹ️ ${name} hat bereits einen aktiven 30-Tage-VIP-Slot. ${suffix}`;
   }
   if (reason === "target_is_already_vip") {
-    return `ℹ️ ${name} ist bereits VIP. 30 Tage VIP wurden nicht erneut vergeben, die Kanalpunkte wurden zurückgegeben.`;
+    return `ℹ️ ${name} ist bereits VIP. 30 Tage VIP wurde nicht erneut vergeben. ${suffix}`;
   }
   if (reason === "target_is_moderator") {
-    return `ℹ️ ${name} ist Moderator. VIP30 wurde nicht vergeben, die Kanalpunkte wurden zurückgegeben.`;
+    return `ℹ️ ${name} ist Moderator. VIP30 wurde nicht vergeben. ${suffix}`;
   }
   if (reason === "target_is_broadcaster") {
-    return `ℹ️ ${name} ist der Streamer. VIP30 kann nicht fuer den eigenen Kanal eingelöst werden, die Kanalpunkte wurden zurückgegeben.`;
+    return `ℹ️ ${name} ist der Streamer. VIP30 kann nicht fuer den eigenen Kanal eingelöst werden. ${suffix}`;
   }
   if (reason === "slots_full") {
-    return `⚠️ Alle VIP30-Plätze sind aktuell belegt. Die Kanalpunkte von ${name} wurden zurückgegeben.`;
+    return `⚠️ Alle VIP30-Plätze sind aktuell belegt. ${suffix}`;
   }
-  return `ℹ️ VIP30 für ${name} wurde nicht ausgeführt: ${vip30SafeReasonText(reason)}. Die Kanalpunkte wurden zurückgegeben.`;
+  if (reason === "role_precheck_unavailable") {
+    return `⚠️ VIP30 für ${name} wurde sicherheitshalber nicht ausgeführt, weil die Twitch-Rollen nicht geprüft werden konnten. ${suffix}`;
+  }
+  return `ℹ️ VIP30 für ${name} wurde nicht ausgeführt: ${vip30SafeReasonText(reason)}. ${suffix}`;
 }
 
 function buildVip30SuccessChatText(decision = {}) {
@@ -2774,7 +2958,7 @@ function buildVip30SuccessChatText(decision = {}) {
 function buildVip30FailedChatText(decision = {}, result = {}) {
   const name = vip30DecisionDisplayName(decision);
   const reason = cleanString(result.reason || (result.error && result.error.message) || "");
-  const refunded = result && result.redemptionUpdate && result.redemptionUpdate.ok === true;
+  const refunded = vip30RedemptionCancelConfirmed(result);
   if (refunded) {
     return `⚠️ VIP30 für ${name} konnte nicht vergeben werden: ${vip30SafeReasonText(reason)}. Die Kanalpunkte wurden zurückgegeben.`;
   }
@@ -2813,7 +2997,7 @@ async function sendVip30LiveChatMessage(text, reason = "vip30_live") {
 
 
 async function executeVip30LiveFlow(input = {}, options = {}) {
-  const decision = buildDryRunRedemptionDecision(input, { reason: options.reason || "live_flow", log: false });
+  const decision = await buildLiveRedemptionDecisionWithRolePrecheck(input, { reason: options.reason || "live_flow", log: false });
   const started = nowIso();
 
   loadedConfig = null;
@@ -2886,9 +3070,9 @@ async function executeVip30LiveFlow(input = {}, options = {}) {
       twitchRedemptionId: decision.redemption.twitchRedemptionId,
       success: false,
       reason: decision.reason,
-      message: result.redemptionUpdate && result.redemptionUpdate.ok
-        ? "VIP30-Entscheidung blockiert. Redemption wurde canceled/refunded."
-        : (decision.message || "VIP30-Entscheidung blockiert. Keine Twitch-Aktion ausgefuehrt."),
+      message: vip30RedemptionCancelConfirmed(result)
+        ? "VIP30-Entscheidung blockiert. Redemption wurde von Twitch als CANCELED bestaetigt."
+        : (decision.message || "VIP30-Entscheidung blockiert. Keine Twitch-Aktion ausgefuehrt; Rueckerstattung muss ggf. manuell geprueft werden."),
       payload: result
     });
     result.chat = await sendVip30LiveChatMessage(buildVip30DecisionBlockedChatText(decision, result), "vip30_live_decision_blocked");

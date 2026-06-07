@@ -129,21 +129,50 @@ function cacheSet(key, value) {
   });
 }
 
-async function resolveUserId(login, headers) {
-  const normalized = normalizeLogin(login);
-  if (!normalized) return "";
+function normalizeTargetInput(target = {}) {
+  if (typeof target === "string") {
+    const clean = cleanString(target);
+    if (/^\d+$/.test(clean)) return { userId: clean, login: "", displayName: "" };
+    return { userId: "", login: normalizeLogin(clean), displayName: "" };
+  }
+  const raw = target && typeof target === "object" ? target : {};
+  return {
+    userId: cleanString(raw.userId || raw.user_id || raw.twitchUserId || raw.twitch_user_id || raw.id || ""),
+    login: normalizeLogin(raw.userLogin || raw.user_login || raw.login || raw.userName || raw.user_name || raw.name || ""),
+    displayName: cleanString(raw.userDisplayName || raw.user_display_name || raw.displayName || raw.display_name || raw.name || "")
+  };
+}
 
-  const key = `user:${normalized}`;
+async function resolveUserIdentity(target, headers) {
+  const normalized = normalizeTargetInput(target);
+  if (normalized.userId) return normalized;
+
+  const login = normalized.login;
+  if (!login) return normalized;
+
+  const key = `user:${login}`;
   const cached = cacheGet(key);
-  if (cached !== undefined) return cached;
+  if (cached !== undefined) {
+    return { ...normalized, userId: cached || "" };
+  }
 
-  const url = `https://api.twitch.tv/helix/users?login=${encodeURIComponent(normalized)}`;
+  const url = `https://api.twitch.tv/helix/users?login=${encodeURIComponent(login)}`;
   const json = await httpGetJson(url, headers);
   const user = Array.isArray(json.data) ? json.data[0] : null;
   const userId = cleanString(user && user.id);
+  const displayName = cleanString(user && (user.display_name || user.login)) || normalized.displayName;
 
   cacheSet(key, userId || "");
-  return userId || "";
+  return {
+    userId: userId || "",
+    login: normalizeLogin(user && user.login || login),
+    displayName
+  };
+}
+
+async function resolveUserId(login, headers) {
+  const identity = await resolveUserIdentity({ login }, headers);
+  return identity.userId || "";
 }
 
 async function helixPaged(pathname, params = {}, options = {}) {
@@ -227,40 +256,181 @@ async function listChannelModerators(options = {}) {
   };
 }
 
-async function isTargetModerator(login, options = {}) {
-  const targetLogin = normalizeLogin(login);
-  if (!targetLogin) return null;
-
+async function checkTargetRole(target, role, options = {}) {
   const clientId = cleanString(options.clientId || getClientId());
   const broadcasterId = cleanString(options.broadcasterId || getBroadcasterId());
   const accessToken = cleanString(options.accessToken || readUserAccessToken());
 
   if (!clientId || !broadcasterId || !accessToken) return null;
 
-  const cacheKey = `moderator:${broadcasterId}:${targetLogin}`;
-  const cached = cacheGet(cacheKey);
-  if (cached !== undefined) return cached;
+  try {
+    const headers = buildHeaders(clientId, accessToken);
+    const identity = await resolveUserIdentity(target, headers);
+    if (!identity.userId && !identity.login) return false;
+    if (!identity.userId) return false;
+
+    const roleKey = role === "vip" ? "vip" : "moderator";
+    const cacheKey = `${roleKey}:${broadcasterId}:${identity.userId || identity.login}`;
+    const cached = cacheGet(cacheKey);
+    if (cached !== undefined) return cached;
+
+    const pathname = roleKey === "vip" ? "/channels/vips" : "/moderation/moderators";
+    const params = new URLSearchParams({
+      broadcaster_id: broadcasterId,
+      user_id: identity.userId
+    });
+    const url = `https://api.twitch.tv/helix${pathname}?${params.toString()}`;
+    const json = await httpGetJson(url, headers);
+    const hasRole = Array.isArray(json.data) && json.data.length > 0;
+
+    cacheSet(cacheKey, hasRole);
+    return hasRole;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function isTargetModerator(target, options = {}) {
+  return checkTargetRole(target, "moderator", options);
+}
+
+async function isTargetVip(target, options = {}) {
+  return checkTargetRole(target, "vip", options);
+}
+
+async function getChannelUserRoleState(target, options = {}) {
+  const clientId = cleanString(options.clientId || getClientId());
+  const broadcasterId = cleanString(options.broadcasterId || getBroadcasterId());
+  const broadcasterLogin = normalizeLogin(options.broadcasterLogin || process.env.TWITCH_BROADCASTER_LOGIN || process.env.TWITCH_CHANNEL_LOGIN || process.env.TWITCH_CHANNEL || "");
+  const accessToken = cleanString(options.accessToken || readUserAccessToken());
+  const checkedAt = new Date().toISOString();
+
+  const fallbackIdentity = normalizeTargetInput(target);
+
+  if (!clientId || !broadcasterId || !accessToken) {
+    return {
+      ok: false,
+      source: "helper_twitch_roles",
+      reason: "role_precheck_unavailable",
+      blocker: !clientId ? "missing_twitch_client_id" : (!broadcasterId ? "missing_twitch_broadcaster_id" : "missing_twitch_user_token"),
+      broadcasterId,
+      broadcasterLogin,
+      userId: fallbackIdentity.userId,
+      userLogin: fallbackIdentity.login,
+      userDisplayName: fallbackIdentity.displayName,
+      isBroadcaster: Boolean(broadcasterId && fallbackIdentity.userId && broadcasterId === fallbackIdentity.userId) || Boolean(broadcasterLogin && fallbackIdentity.login && broadcasterLogin === fallbackIdentity.login),
+      isModerator: false,
+      isVip: false,
+      canReceiveVip: false,
+      checkedAt
+    };
+  }
 
   try {
     const headers = buildHeaders(clientId, accessToken);
-    const targetUserId = await resolveUserId(targetLogin, headers);
-    if (!targetUserId) {
-      cacheSet(cacheKey, false);
-      return false;
+    const identity = await resolveUserIdentity(target, headers);
+    const userId = cleanString(identity.userId || fallbackIdentity.userId || "");
+    const userLogin = normalizeLogin(identity.login || fallbackIdentity.login || "");
+    const userDisplayName = cleanString(identity.displayName || fallbackIdentity.displayName || userLogin || userId);
+    const isBroadcaster = Boolean(broadcasterId && userId && broadcasterId === userId) || Boolean(broadcasterLogin && userLogin && broadcasterLogin === userLogin);
+
+    if (!userId && !userLogin) {
+      return {
+        ok: false,
+        source: "helper_twitch_roles",
+        reason: "missing_user",
+        blocker: "missing_user",
+        broadcasterId,
+        broadcasterLogin,
+        userId,
+        userLogin,
+        userDisplayName,
+        isBroadcaster: false,
+        isModerator: false,
+        isVip: false,
+        canReceiveVip: false,
+        checkedAt
+      };
     }
 
-    const params = new URLSearchParams({
-      broadcaster_id: broadcasterId,
-      user_id: targetUserId
-    });
-    const url = `https://api.twitch.tv/helix/moderation/moderators?${params.toString()}`;
-    const json = await httpGetJson(url, headers);
-    const isModerator = Array.isArray(json.data) && json.data.length > 0;
+    if (isBroadcaster) {
+      return {
+        ok: true,
+        source: "helper_twitch_roles",
+        reason: "target_is_broadcaster",
+        blocker: "target_is_broadcaster",
+        broadcasterId,
+        broadcasterLogin,
+        userId,
+        userLogin,
+        userDisplayName,
+        isBroadcaster: true,
+        isModerator: false,
+        isVip: false,
+        canReceiveVip: false,
+        checkedAt
+      };
+    }
 
-    cacheSet(cacheKey, isModerator);
-    return isModerator;
-  } catch (_) {
-    return null;
+    const [isModerator, isVip] = await Promise.all([
+      checkTargetRole({ userId, userLogin }, "moderator", { ...options, clientId, broadcasterId, accessToken }),
+      checkTargetRole({ userId, userLogin }, "vip", { ...options, clientId, broadcasterId, accessToken })
+    ]);
+
+    if (isModerator === null || isVip === null) {
+      return {
+        ok: false,
+        source: "helper_twitch_roles",
+        reason: "role_precheck_unavailable",
+        blocker: isModerator === null ? "moderator_check_unavailable" : "vip_check_unavailable",
+        broadcasterId,
+        broadcasterLogin,
+        userId,
+        userLogin,
+        userDisplayName,
+        isBroadcaster: false,
+        isModerator: isModerator === true,
+        isVip: isVip === true,
+        canReceiveVip: false,
+        checkedAt
+      };
+    }
+
+    const reason = isModerator ? "target_is_moderator" : (isVip ? "target_is_already_vip" : "eligible");
+    return {
+      ok: true,
+      source: "helper_twitch_roles",
+      reason,
+      blocker: reason === "eligible" ? "" : reason,
+      broadcasterId,
+      broadcasterLogin,
+      userId,
+      userLogin,
+      userDisplayName,
+      isBroadcaster: false,
+      isModerator: isModerator === true,
+      isVip: isVip === true,
+      canReceiveVip: !isModerator && !isVip,
+      checkedAt
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      source: "helper_twitch_roles",
+      reason: "role_precheck_unavailable",
+      blocker: "role_precheck_error",
+      broadcasterId,
+      broadcasterLogin,
+      userId: fallbackIdentity.userId,
+      userLogin: fallbackIdentity.login,
+      userDisplayName: fallbackIdentity.displayName,
+      isBroadcaster: Boolean(broadcasterId && fallbackIdentity.userId && broadcasterId === fallbackIdentity.userId) || Boolean(broadcasterLogin && fallbackIdentity.login && broadcasterLogin === fallbackIdentity.login),
+      isModerator: false,
+      isVip: false,
+      canReceiveVip: false,
+      checkedAt,
+      error: err && err.message ? err.message : String(err)
+    };
   }
 }
 
@@ -270,6 +440,8 @@ function clearCache() {
 
 module.exports = {
   isTargetModerator,
+  isTargetVip,
+  getChannelUserRoleState,
   listChannelVips,
   listChannelModerators,
   tokenStatus,
