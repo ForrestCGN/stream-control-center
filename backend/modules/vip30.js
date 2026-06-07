@@ -9,8 +9,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.20";
-const MODULE_BUILD = "step8.19.32-missing-normalize-helper-fix";
+const MODULE_VERSION = "0.8.21";
+const MODULE_BUILD = "step8.19.33-settings-surface-cleanup";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -466,24 +466,16 @@ function migrateDatabase(reason = "init") {
 
 
 const SETTING_DEFINITIONS = [
-  { key: "enabled", path: "enabled", type: "boolean", category: "general", label: "VIP30 aktiv", description: "Schaltet das VIP30-Modul fachlich aktiv/inaktiv.", editable: true },
-  { key: "reward.title", path: "reward.title", type: "string", category: "reward", label: "Reward-Titel", description: "Titel der Kanalpunkte-Belohnung." , editable: true},
+  { key: "reward.title", path: "reward.title", type: "string", category: "reward", label: "Reward-Titel", description: "Titel der Kanalpunkte-Belohnung.", editable: true },
   { key: "reward.cost", path: "reward.cost", type: "integer", category: "reward", label: "Kosten", description: "Kosten der VIP30-Belohnung in Kanalpunkten.", editable: true },
   { key: "reward.prompt", path: "channelpoints.prompt", type: "string", category: "reward", label: "Reward-Beschreibung", description: "Prompt/Beschreibung im Kanalpunkte-System.", editable: true },
   { key: "slots.maxSlots", path: "slots.maxSlots", type: "integer", category: "slots", label: "Maximale Slots", description: "Maximale gleichzeitige VIP30-Slots.", editable: true },
   { key: "slots.durationDays", path: "slots.durationDays", type: "integer", category: "slots", label: "Laufzeit in Tagen", description: "Wie lange ein VIP30-Slot aktiv bleibt.", editable: true },
-  { key: "channelpoints.rewardSyncEnabled", path: "channelpoints.rewardSyncEnabled", type: "boolean", category: "channelpoints", label: "Reward-Sync aktiv", description: "Lokalen VIP30-Reward in Channelpoints-Tabellen verwalten.", editable: true },
-  { key: "bridge.enabled", path: "bridge.enabled", type: "boolean", category: "bridge", label: "Channelpoints-Bridge aktiv", description: "Echte Channelpoints-Redemptions anhand der VIP30-Kachel an VIP30 übergeben.", editable: true },
-  { key: "bridge.acceptTitleMatch", path: "bridge.acceptTitleMatch", type: "boolean", category: "bridge", label: "Titel-Match erlauben", description: "VIP30-Reward auch anhand von Titel/Kosten erkennen, solange Twitch-ID noch fehlt.", editable: true },
-  { key: "bridge.liveEventDryRunObserveEnabled", path: "bridge.liveEventDryRunObserveEnabled", type: "boolean", category: "bridge", label: "Live-EventSub Dry-Run", description: "Echte Channelpoints-Events aus EventSub nur beobachten und durch die VIP30-Decision schicken, ohne Twitch-/Slot-Schreibaktion.", editable: true },
   { key: "alerts.enabled", path: "alerts.enabled", type: "boolean", category: "alerts", label: "Alert aktiv", description: "Alert/Sound nach erfolgreicher Einlösung auslösen.", editable: true },
   { key: "alerts.soundKey", path: "alerts.soundKey", type: "string", category: "alerts", label: "Sound-Key", description: "Interner Sound-/Label-Key für den VIP30-Alert.", editable: true },
   { key: "alerts.mediaId", path: "alerts.mediaId", type: "integer", category: "alerts", label: "Media-ID", description: "Media-System Asset-ID des VIP30-Alert-Sounds. Upload/Auswahl erfolgt über das zentrale Media-System.", editable: true },
-  { key: "alerts.mediaPath", path: "alerts.mediaPath", type: "string", category: "alerts", label: "Media-Pfad", description: "Optionaler relativer Media-System-Pfad, falls keine Media-ID genutzt wird.", editable: true },
   { key: "alerts.soundPool", path: "alerts.soundPool", type: "json", category: "alerts", label: "VIP30 Sound-Pool", description: "Mehrere mögliche VIP30-Sounds mit Zufallsauswahl. Felder: id, enabled, weight, mediaId, mediaPath, label, durationMs. durationMs=0 bedeutet automatisch aus dem Media-System.", editable: true },
   { key: "alerts.overlaySets", path: "alerts.overlaySets", type: "json", category: "alerts", label: "VIP30 Overlay-Textsets", description: "Zusammengehörige Textsets für die VIP30-Overlay-Card. Felder: id, enabled, weight, kicker, headline, subline, message, perks, brand. Platzhalter: {displayName}, {login}.", editable: true },
-  { key: "cleanup.enabled", path: "cleanup.enabled", type: "boolean", category: "cleanup", label: "Cleanup aktiv", description: "Ablauf-/Revoke-Logik für abgelaufene VIP30-Slots aktivieren.", editable: true },
-  { key: "cleanup.removeVipOnExpire", path: "cleanup.removeVipOnExpire", type: "boolean", category: "cleanup", label: "VIP bei Ablauf entziehen", description: "Bei abgelaufenen VIP30-Slots den Twitch-VIP automatisch per Cleanup entfernen.", editable: true },
   { key: "cleanup.releaseSlotOnExternalVipRemove", path: "cleanup.releaseSlotOnExternalVipRemove", type: "boolean", category: "cleanup", label: "Externen VIP-Entzug verarbeiten", description: "Wenn ein VIP manuell/extern entfernt wird, einen aktiven VIP30-Slot freigeben.", editable: true },
   { key: "logging.enabled", path: "logging.enabled", type: "boolean", category: "logging", label: "Dashboard-Logging aktiv", description: "VIP30-Ereignisse in der DB speichern.", editable: true }
 ];
@@ -615,23 +607,14 @@ function buildSettingsStatus() {
     effective: {
       reward: buildRewardSummary(),
       slots: { maxSlots: getConfig().slots.maxSlots, durationDays: getConfig().slots.durationDays },
-      channelpoints: {
-        rewardSyncEnabled: getConfig().channelpoints.rewardSyncEnabled !== false,
-        twitchTileTruth: true
-      },
-      bridge: {
-        enabled: getConfig().bridge && getConfig().bridge.enabled !== false,
-        acceptTitleMatch: !(getConfig().bridge && getConfig().bridge.acceptTitleMatch === false)
-      },
       alerts: {
         enabled: getConfig().alerts.enabled !== false,
         soundKey: getConfig().alerts.soundKey,
         mediaId: getConfig().alerts.mediaId || 0,
-        mediaPath: getConfig().alerts.mediaPath || "",
         soundPoolCount: normalizeVip30SoundPool(getConfig().alerts.soundPool, getConfig().alerts).length,
         overlaySetCount: normalizeVip30OverlaySets(getConfig().alerts.overlaySets).length
       },
-      cleanup: { enabled: getConfig().cleanup.enabled !== false },
+      cleanup: { releaseSlotOnExternalVipRemove: getConfig().cleanup.releaseSlotOnExternalVipRemove !== false },
       logging: { enabled: getConfig().logging.enabled !== false }
     },
     safety: {
