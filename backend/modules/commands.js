@@ -1,12 +1,12 @@
-﻿'use strict';
+'use strict';
 
 const http = require('http');
 const database = require('../core/database');
 const core = require('./helpers/helper_core');
 
 const MODULE_NAME = 'commands';
-const MODULE_VERSION = '0.1.7';
-const MODULE_BUILD = 'channel-guard-diagnostics';
+const MODULE_VERSION = '0.1.8';
+const MODULE_BUILD = 'vip30-command-catalog';
 const SCHEMA_MODULE = 'command_system';
 const SCHEMA_VERSION = 2;
 const API_PREFIX = '/api/commands';
@@ -49,6 +49,9 @@ const COMMAND_CATALOG = [
   },
   { id: 'vip_sound', label: 'VIP-Sound', icon: '💎', description: 'VIP-Sound-Command über das Node-Command-System.', actions: [
     { id: 'vip_sound.vip', icon: '💎', label: 'VIP-Sound abspielen', description: 'Spielt den VIP-Sound des genannten Users.', moduleKey: 'vip_sound_overlay', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/vip-sound/command', defaultTrigger: 'vip', defaultAliases: ['vipsound'], permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 3000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'vip', rawInputMode: true, seededBy: 'STEP452' }, examples: ['!vip @adoredpenny'] }
+  ] },
+  { id: 'vip30', label: '30 Tage VIP', icon: '🎖️', description: 'VIP30 Status-/Restlaufzeit-Command ueber das Node-Command-System.', actions: [
+    { id: 'vip30.status', icon: '🎖️', label: 'VIP30 Status anzeigen', description: 'Zeigt freie VIP30-Slots, naechsten Ablauf oder die eigene Restlaufzeit.', moduleKey: 'vip30', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/vip30/command', defaultTrigger: 'vip30', defaultAliases: ['vipstatus', 'vipplatz'], permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 5000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'vip30', rawInputMode: true, seededBy: 'STEP8.19.43' }, examples: ['!vip30', '!vip30 me', '!vip30 slots'] }
   ] },
   { id: 'clips', label: 'Clips / Content', icon: '✂️', description: 'Clip- und Content-nahe Commands.', actions: [
     { id: 'clips.clip.prepared', icon: '✂️', label: 'Clip erstellen vorbereiten', description: 'Vorbereitet fuer Clip-Command.', moduleKey: 'clips', actionKey: 'command', targetMethod: 'POST', targetUrl: '', defaultTrigger: 'clip', defaultAliases: [], permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 10000, responseMode: 'module', config: { actionType: 'module_command', catalogStatus: 'prepared' }, examples: ['!clip'] }
@@ -210,7 +213,8 @@ function seedDefaultCommands() {
       { trigger: 'rip', aliases: ['death', 'tod'], moduleKey: 'deathcounter_v2', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/deathcounter/v2/command', permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 3000, liveOnly: false, responseMode: 'module', config: { seededBy: 'STEP273A', rawInputMode: true } },
       { trigger: 'tode', aliases: ['deaths'], moduleKey: 'deathcounter_v2', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/deathcounter/v2/command', permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 3000, liveOnly: false, responseMode: 'module', config: { seededBy: 'STEP273A', rawInputMode: true } },
       { trigger: 'dcount', aliases: ['deathcount', 'deathcounter'], moduleKey: 'deathcounter_v2', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/deathcounter/v2/command', permissionLevel: 'mod', cooldownGlobalMs: 1000, cooldownUserMs: 2500, liveOnly: false, responseMode: 'module', config: { seededBy: 'STEP273A', rawInputMode: true } },
-      { trigger: 'vip', aliases: ['vipsound'], moduleKey: 'vip_sound_overlay', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/vip-sound/command', permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 3000, liveOnly: false, responseMode: 'module', config: { seededBy: 'STEP452', actionType: 'module_command', moduleCommand: 'vip', rawInputMode: true } }
+      { trigger: 'vip', aliases: ['vipsound'], moduleKey: 'vip_sound_overlay', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/vip-sound/command', permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 3000, liveOnly: false, responseMode: 'module', config: { seededBy: 'STEP452', actionType: 'module_command', moduleCommand: 'vip', rawInputMode: true } },
+      { trigger: 'vip30', aliases: ['vipstatus', 'vipplatz'], moduleKey: 'vip30', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/vip30/command', permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 5000, liveOnly: false, responseMode: 'module', config: { seededBy: 'STEP8.19.43', actionType: 'module_command', moduleCommand: 'vip30', rawInputMode: true } }
     ];
     for (const item of defaults) {
       const existing = database.get('SELECT id FROM command_definitions WHERE trigger = :trigger', { trigger: item.trigger });

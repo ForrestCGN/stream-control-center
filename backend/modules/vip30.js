@@ -15,8 +15,8 @@ try {
 }
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.29";
-const MODULE_BUILD = "step8.19.42-chat-wording-polish";
+const MODULE_VERSION = "0.8.30";
+const MODULE_BUILD = "step8.19.43-status-command";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -3112,6 +3112,166 @@ async function sendVip30LiveChatMessage(text, reason = "vip30_live") {
 }
 
 
+function normalizeVip30CommandLogin(value = "") {
+  return cleanString(value || "")
+    .replace(/^@+/, "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, "");
+}
+
+function getActiveVip30SlotForUser(login = "", userId = "") {
+  ensureDbReady();
+  const userLogin = normalizeVip30CommandLogin(login);
+  const id = cleanString(userId || "");
+  if (!userLogin && !id) return null;
+  const row = database.get(`
+    SELECT * FROM vip30_slots
+    WHERE status = 'active'
+      AND ((:userLogin <> '' AND user_login = :userLogin) OR (:userId <> '' AND user_id = :userId))
+    ORDER BY end_utc DESC, id DESC
+    LIMIT 1
+  `, { userLogin, userId: id }) || null;
+  return mapSlotRow(row);
+}
+
+function vip30RemainingText(endUtc = "") {
+  const raw = cleanString(endUtc || "");
+  if (!raw) return "Restlaufzeit unbekannt";
+  const end = new Date(raw).getTime();
+  if (!Number.isFinite(end)) return "Restlaufzeit unbekannt";
+  const diff = end - Date.now();
+  if (diff <= 0) return "läuft jeden Moment ab";
+  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor((diff % 86400000) / 3600000);
+  const minutes = Math.floor((diff % 3600000) / 60000);
+  if (days > 0) return `${days} Tag${days === 1 ? "" : "e"} und ${hours} Std.`;
+  if (hours > 0) return `${hours} Std. und ${minutes} Min.`;
+  return `${Math.max(1, minutes)} Min.`;
+}
+
+function vip30NextExpiryText(stats = null) {
+  const next = stats && stats.slots && stats.slots.nextExpiry ? cleanString(stats.slots.nextExpiry) : "";
+  if (!next) return "Aktuell ist kein Ablauf vorgemerkt.";
+  return `Nächster Sessel wird frei am ${vip30FormatDateTimeDE(next)}.`;
+}
+
+function buildVip30SlotsCommandText(stats = null) {
+  const safeStats = stats || buildStats();
+  const slots = safeStats.slots || {};
+  const active = Number(slots.active || 0);
+  const max = Number(slots.max || slots.maxSlots || getConfig().slots.maxSlots || 10);
+  const free = Number(slots.free || Math.max(0, max - active));
+  return `🎖️ VIP30-Aktenstand: ${active}/${max} Sessel belegt, ${free} frei. ${vip30NextExpiryText(safeStats)}`;
+}
+
+function buildVip30UserSlotCommandText(slot = null, displayName = "", stats = null) {
+  const name = cleanString(displayName || slot && slot.userDisplayName || slot && slot.userLogin || "du");
+  const safeStats = stats || buildStats();
+  const slots = safeStats.slots || {};
+  const max = Number(slots.max || slots.maxSlots || getConfig().slots.maxSlots || 10);
+  const free = Number(slots.free || 0);
+  if (slot) {
+    const endText = vip30FormatDateTimeDE(slot.endUtc || "");
+    const remaining = vip30RemainingText(slot.endUtc || "");
+    return `ℹ️ ${name}, dein VIP30-Sessel ist reserviert bis ${endText}. Restlaufzeit: ${remaining}.`;
+  }
+  if (free > 0) return `ℹ️ ${name}, du hast aktuell keinen aktiven VIP30-Slot. Es sind ${free}/${max} VIP30-Sessel frei.`;
+  return `ℹ️ ${name}, du hast aktuell keinen aktiven VIP30-Slot. VIP30 ist gerade voll. ${vip30NextExpiryText(safeStats)}`;
+}
+
+function readVip30CommandPayload(req = {}) {
+  return { ...((req && req.query) || {}), ...((req && req.body) || {}) };
+}
+
+function getVip30CommandArgs(payload = {}) {
+  if (Array.isArray(payload.args)) return payload.args.map(item => cleanString(item)).filter(Boolean);
+  const raw = cleanString(payload.argText || payload.argsText || payload.rawInput || payload.input || payload.command || payload.cmd || "");
+  if (!raw) return [];
+  const parts = raw.split(/\s+/).filter(Boolean);
+  if (parts.length && /^vip30$/i.test(parts[0])) parts.shift();
+  return parts;
+}
+
+function getVip30CommandRequester(payload = {}) {
+  const userLogin = normalizeVip30CommandLogin(payload.userLogin || payload.login || payload.user || "");
+  const displayName = cleanString(payload.userDisplayName || payload.displayName || payload.userName || payload.user || userLogin || "Chat");
+  return {
+    userId: cleanString(payload.userId || ""),
+    userLogin,
+    displayName,
+    isMod: payload.isMod === true || payload.isModerator === true || String(payload.isMod || payload.isModerator || "").toLowerCase() === "true",
+    isBroadcaster: payload.isBroadcaster === true || payload.isOwner === true || String(payload.isBroadcaster || payload.isOwner || "").toLowerCase() === "true"
+  };
+}
+
+async function handleVip30CommandPayload(payload = {}) {
+  ensureDbReady();
+  const stats = buildStats();
+  const args = getVip30CommandArgs(payload);
+  const requester = getVip30CommandRequester(payload);
+  const sub = cleanString(args[0] || "").toLowerCase();
+  let responseText = "";
+  let commandType = "status";
+  let targetLogin = "";
+  let targetDisplay = "";
+
+  if (!sub || ["me", "ich", "mine", "meins", "status"].includes(sub)) {
+    const slot = getActiveVip30SlotForUser(requester.userLogin, requester.userId);
+    responseText = slot ? buildVip30UserSlotCommandText(slot, requester.displayName, stats) : buildVip30SlotsCommandText(stats);
+    commandType = slot ? "self_active" : "slots_status";
+  } else if (["slots", "slot", "frei", "free", "status", "stand"].includes(sub)) {
+    responseText = buildVip30SlotsCommandText(stats);
+    commandType = "slots_status";
+  } else if (["help", "hilfe", "?"].includes(sub)) {
+    responseText = "ℹ️ VIP30-Befehle: !vip30 zeigt freie Sessel, !vip30 me zeigt deine Restlaufzeit, Mods können !vip30 @user nutzen.";
+    commandType = "help";
+  } else {
+    targetLogin = normalizeVip30CommandLogin(sub);
+    targetDisplay = cleanString(args[0] || targetLogin || "User").replace(/^@+/, "");
+    if (!targetLogin) {
+      responseText = buildVip30SlotsCommandText(stats);
+      commandType = "slots_status";
+    } else if (targetLogin !== requester.userLogin && !requester.isMod && !requester.isBroadcaster) {
+      const slot = getActiveVip30SlotForUser(requester.userLogin, requester.userId);
+      responseText = slot ? buildVip30UserSlotCommandText(slot, requester.displayName, stats) : "ℹ️ VIP30-Akten anderer Bewohner darf nur die Heimleitung prüfen. Nutze !vip30 me für deine eigene Akte.";
+      commandType = "target_denied";
+    } else {
+      const slot = getActiveVip30SlotForUser(targetLogin, "");
+      responseText = slot ? buildVip30UserSlotCommandText(slot, slot.userDisplayName || targetDisplay, stats) : `ℹ️ Für ${targetDisplay} ist aktuell kein aktiver VIP30-Slot eingetragen. ${buildVip30SlotsCommandText(stats)}`;
+      commandType = slot ? "target_active" : "target_inactive";
+    }
+  }
+
+  const chat = await sendVip30LiveChatMessage(responseText, `vip30_command_${commandType}`);
+  const result = {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    command: "vip30",
+    commandType,
+    args,
+    userLogin: requester.userLogin,
+    targetLogin,
+    message: responseText,
+    chat,
+    slots: stats.slots,
+    safety: { noTwitchWrite: true, noVipGrant: true, noSlotWrite: true, noRedemptionFulfillCancel: true, commandOnly: true }
+  };
+  writeLog("chat_command_vip30", {
+    userId: requester.userId,
+    userLogin: requester.userLogin,
+    userDisplayName: requester.displayName,
+    success: true,
+    reason: commandType,
+    message: responseText,
+    payload: result
+  });
+  return result;
+}
+
+
 async function executeVip30LiveFlow(input = {}, options = {}) {
   const decision = await buildLiveRedemptionDecisionWithRolePrecheck(input, { reason: options.reason || "live_flow", log: false });
   const started = nowIso();
@@ -3893,13 +4053,14 @@ function buildStatus() {
     status: lastError ? "error" : "ready_step8_6_external_vip_remove_slot_release",
     startedAt,
     routePrefix: ROUTE_PREFIX,
-    routeCount: 19,
+    routeCount: 20,
     routes: [
       `${ROUTE_PREFIX}/status`,
       `${ROUTE_PREFIX}/health`,
       `${ROUTE_PREFIX}/slots`,
       `${ROUTE_PREFIX}/logs`,
       `${ROUTE_PREFIX}/stats`,
+      `${ROUTE_PREFIX}/command`,
       `${ROUTE_PREFIX}/channelpoints/reward/status`,
       `${ROUTE_PREFIX}/channelpoints/reward/ensure`,
       `${ROUTE_PREFIX}/settings`,
@@ -4200,6 +4361,26 @@ function init(context = {}) {
       runtimeStats.lastAction = "stats";
       res.json(buildStats());
     });
+    app.get(`${ROUTE_PREFIX}/command`, async (req, res) => {
+      runtimeStats.lastAction = "command_get";
+      try {
+        const result = await handleVip30CommandPayload(readVip30CommandPayload(req));
+        res.status(result && result.ok ? 200 : 409).json(result);
+      } catch (err) {
+        lastError = err && err.message ? err.message : String(err);
+        res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: lastError, safety: { noTwitchWrite: true, noVipGrant: true, commandOnly: true } });
+      }
+    });
+    app.post(`${ROUTE_PREFIX}/command`, async (req, res) => {
+      runtimeStats.lastAction = "command_post";
+      try {
+        const result = await handleVip30CommandPayload(readVip30CommandPayload(req));
+        res.status(result && result.ok ? 200 : 409).json(result);
+      } catch (err) {
+        lastError = err && err.message ? err.message : String(err);
+        res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: lastError, safety: { noTwitchWrite: true, noVipGrant: true, commandOnly: true } });
+      }
+    });
     app.get(`${ROUTE_PREFIX}/settings`, (_req, res) => {
       runtimeStats.settingsRequests += 1;
       runtimeStats.lastAction = "settings";
@@ -4434,6 +4615,7 @@ module.exports = {
   emitExternalVipRemoveTest,
   emitChannelpointsBridgeTest,
   triggerVip30ManualAlertTest,
+  handleVip30CommandPayload,
   handleChannelpointsRedemptionBridgeEvent,
   listSlots,
   listLogs,
