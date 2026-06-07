@@ -15,8 +15,8 @@ try {
 }
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.23";
-const MODULE_BUILD = "step8.19.35-twitch-role-helper-precheck";
+const MODULE_VERSION = "0.8.24";
+const MODULE_BUILD = "step8.19.36-external-vip-remove-event-emit-fix";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -1755,6 +1755,43 @@ function emitChannelpointsRewardEvent(action, result, reason = "channelpoints_re
     return { ok: false, reason: "bus_emit_failed" };
   }
 }
+
+function emitLiveExecutionEvent(action, payload = {}, reason = "vip30_live") {
+  const config = getConfig();
+  if (config.bus.enabled === false) return { ok: false, reason: "bus_disabled" };
+  const currentBus = getBus();
+  if (!currentBus || typeof currentBus.emit !== "function") return { ok: false, reason: "bus_unavailable" };
+  try {
+    return currentBus.emit({
+      type: "event",
+      channel: "vip30.live",
+      action: cleanString(action || "updated") || "updated",
+      source: { type: "module", id: `module:${MODULE_NAME}`, module: MODULE_NAME },
+      target: { type: "all", id: "*" },
+      payload: {
+        module: MODULE_NAME,
+        moduleVersion: MODULE_VERSION,
+        moduleBuild: MODULE_BUILD,
+        reason,
+        emittedAt: nowIso(),
+        ...(payload && typeof payload === "object" ? payload : { payload })
+      },
+      meta: {
+        requireAck: false,
+        replayable: true,
+        ttlMs: config.bus.ttlMs,
+        productionTarget: true
+      }
+    });
+  } catch (err) {
+    return {
+      ok: false,
+      reason: "bus_emit_failed",
+      error: err && err.message ? err.message : String(err)
+    };
+  }
+}
+
 
 
 
