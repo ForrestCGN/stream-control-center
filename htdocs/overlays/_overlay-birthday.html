@@ -546,6 +546,80 @@
     .stage[data-style="heimaufsicht_fun"] .badge::before { content: "🏥"; margin-right: 4px; }
     .stage[data-style="cute_soft"] .badge::before { content: "💜"; margin-right: 4px; }
     .stage[data-style="epic_party"] .headline { font-size: 92px; }
+    .party-image-bg {
+      position: absolute;
+      inset: 28px;
+      z-index: 2;
+      width: calc(100% - 56px);
+      height: calc(100% - 56px);
+      object-fit: contain;
+      border-radius: 22px;
+      opacity: 0;
+      transform: scale(.985);
+      filter: drop-shadow(0 0 34px rgba(196,92,255,.34)) drop-shadow(0 0 26px rgba(57,230,255,.14));
+      transition: opacity .55s ease, transform .75s cubic-bezier(.16,1,.3,1);
+      pointer-events: none;
+    }
+    .stage.has-party-image.phase-party .party-image-bg {
+      opacity: .98;
+      transform: scale(1);
+    }
+    .stage.has-party-image[data-image-mode="cover"] .party-image-bg { object-fit: cover; }
+    .stage.has-party-image .shell {
+      left: 40px;
+      right: 40px;
+      top: 38px;
+      min-height: 1004px;
+      display: block;
+      padding: 0;
+      background:
+        linear-gradient(135deg, rgba(5,7,22,.70), rgba(12,9,30,.54)) padding-box,
+        linear-gradient(180deg, var(--cyan) 0%, var(--purple) 42%, var(--purple) 100%) border-box;
+    }
+    .stage.has-party-image .shell::before { inset: 18px; }
+    .stage.has-party-image .avatar-wrap {
+      position: absolute;
+      left: 72px;
+      top: 72px;
+      z-index: 6;
+      transform: scale(.62);
+      transform-origin: left top;
+    }
+    .stage.has-party-image .content {
+      position: absolute;
+      right: 76px;
+      top: 76px;
+      z-index: 6;
+      max-width: 640px;
+      padding: 22px 28px 24px;
+      border-radius: 24px;
+      border: 1px solid rgba(143,244,255,.28);
+      background: linear-gradient(135deg, rgba(5,7,22,.68), rgba(12,9,30,.58));
+      box-shadow: 0 0 28px rgba(196,92,255,.34), inset 0 0 24px rgba(57,230,255,.06);
+      backdrop-filter: blur(6px);
+    }
+    .stage.has-party-image .badge {
+      min-height: 34px;
+      padding: 0 16px;
+      font-size: 12px;
+      letter-spacing: 5px;
+    }
+    .stage.has-party-image .headline {
+      margin-top: 16px;
+      font-size: 42px;
+      line-height: 1;
+    }
+    .stage.has-party-image .name-line {
+      font-size: 58px !important;
+      white-space: normal;
+      overflow: visible;
+    }
+    .stage.has-party-image .message {
+      max-width: 560px;
+      font-size: 21px;
+    }
+    .stage.has-party-image .intro-note { display: none; }
+
     .stage[data-style="classic_party"] .name-line { color: #ffe66d; }
 
     @media (max-width: 1200px) {
@@ -556,6 +630,7 @@
 <body>
   <div id="stage" class="stage" data-style="cgn_neon">
     <div class="bg-glow"></div>
+    <img id="partyImage" class="party-image-bg" alt="Party-Bild" hidden />
     <div id="fx" class="fx-layer party-only"></div>
     <div id="fgFx" class="foreground-fx party-only"></div>
 
@@ -587,6 +662,7 @@
     const stage = document.getElementById('stage');
     const fx = document.getElementById('fx');
     const fgFx = document.getElementById('fgFx');
+    const partyImage = document.getElementById('partyImage');
     const avatar = document.getElementById('avatar');
     const avatarFallback = document.getElementById('avatarFallback');
     const headline = document.getElementById('headline');
@@ -631,6 +707,20 @@
 
     function escapeRegex(value) {
       return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function setPartyImage(state) {
+      const url = String(state.partyImageUrl || state.partyImageFile || state.imageUrl || '').trim();
+      const mode = String(state.partyImageMode || state.imageMode || 'contain').toLowerCase() === 'cover' ? 'cover' : 'contain';
+      stage.dataset.imageMode = mode;
+      stage.classList.toggle('has-party-image', !!url);
+      if (url) {
+        partyImage.hidden = false;
+        if (partyImage.src !== url) partyImage.src = url;
+      } else {
+        partyImage.removeAttribute('src');
+        partyImage.hidden = true;
+      }
     }
 
     function setAvatar(state, displayName) {
@@ -826,6 +916,7 @@
       const requestId = String(state.requestId || (DEBUG ? 'debug' : ''));
 
       stage.dataset.style = styleKey;
+      setPartyImage(state);
       stage.classList.toggle('is-visible', active);
       stage.classList.toggle('phase-party', phase === 'party' || (DEBUG && !state.active));
       stage.classList.toggle('phase-video', phase === 'video');

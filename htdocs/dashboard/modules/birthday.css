@@ -74,3 +74,7 @@
 /* STEP_BIRTHDAY_DASHBOARD_USERPARTY_PLAY */
 .birthday-inline-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .birthday-inline-actions button{white-space:nowrap}
+
+/* STEP_BIRTHDAY_PARTY_IMAGE_MEDIA_FIELD */
+.birthday-party-image-row{align-items:start}
+.birthday-party-image-row .birthday-mediafield-block{grid-column:1 / -1}

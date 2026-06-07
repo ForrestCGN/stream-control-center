@@ -15,11 +15,11 @@ const mediaHelper = require('./helpers/helper_media');
 const commands = require('./commands');
 
 const MODULE_NAME = 'birthday';
-const SCHEMA_VERSION = 7;
+const SCHEMA_VERSION = 8;
 const SETTINGS_TABLE = 'birthday_settings';
 const TEXTS_MODULE = 'birthday';
 const API_PREFIX = '/api/birthday';
-const MODULE_VERSION = '0.6.1';
+const MODULE_VERSION = '0.6.2';
 const MODULE_BUILD = 'diagnostics-standard';
 const MODULE_META = {
   name: MODULE_NAME,
@@ -313,6 +313,9 @@ let showState = {
   targetLogin: '',
   targetDisplayName: '',
   targetAvatarUrl: '',
+  partyImageFile: '',
+  partyImageUrl: '',
+  partyImageMode: 'contain',
   headline: '',
   message: '',
   videoUrl: '',
@@ -659,6 +662,32 @@ function mediaInfoForSoundFile(file, fallbackMs = 0) {
   }
 }
 
+
+function mediaInfoForPartyImage(file) {
+  const ref = safeRelativeMediaFile(file);
+  if (!ref) return { ok: false, file: '', webPath: '', error: 'file_missing' };
+  const mediaId = parseBirthdayMediaIdRef(ref);
+  if (mediaId) {
+    const info = birthdayMediaInfoForRegistryId(mediaId, 0);
+    return {
+      ...info,
+      ok: !!info.ok,
+      file: birthdayMediaIdRef(mediaId),
+      webPath: info.webPath || '',
+      mediaId
+    };
+  }
+  const relative = ref.replace(/^assets\//i, '').replace(/^htdocs\/assets\//i, '');
+  const webPath = /^https?:\/\//i.test(ref) ? ref : (relative ? `/assets/${relative}` : '');
+  let exists = false;
+  try {
+    const assetsDir = birthdayAssetsBaseDir();
+    const absolutePath = path.resolve(path.join(assetsDir, relative));
+    exists = birthdayPathInside(assetsDir, absolutePath) && fs.existsSync(absolutePath);
+  } catch (_) {}
+  return { ok: exists || /^https?:\/\//i.test(ref), file: ref, relativePath: relative, webPath, durationMs: 0, durationOk: false, hasAudio: false, hasVideo: false, error: exists || /^https?:\/\//i.test(ref) ? '' : 'file_missing' };
+}
+
 function renderTemplate(template, context = {}) {
   let out = clean(template || '');
   if (!out) return '';
@@ -677,6 +706,8 @@ function pickShowAsset(targetUser = {}, targetLogin = '') {
   const profileSongFile = profile && profile.active ? profile.songFile : '';
   const partySongFile = party && party.enabled ? party.songFile : '';
   const songFile = safeRelativeMediaFile(profileSongFile || partySongFile || targetUser.showSongFile || cfg.show?.defaultSongFile || '');
+  const partyImageFile = safeRelativeMediaFile(party?.imageFile || party?.partyImageFile || '');
+  const partyImageInfo = partyImageFile ? mediaInfoForPartyImage(partyImageFile) : null;
   const songVolume = Math.max(0, Math.min(100, Number(profile?.songVolume || party?.songVolume || targetUser.showSongVolume || cfg.show?.defaultSongVolume || 85) || 85));
   const videoInfo = videoFile ? mediaInfoForSoundFile(videoFile, cfg.show?.defaultVideoDurationMs || 0) : null;
   const songFallbackMs = profile?.songDurationMs || party?.songDurationMs || targetUser.showSongDurationMs || cfg.show?.partyDurationMs || 22000;
@@ -694,6 +725,10 @@ function pickShowAsset(targetUser = {}, targetLogin = '') {
     partyDurationMs: songDurationMs,
     videoInfo,
     songInfo,
+    partyImageFile,
+    partyImageUrl: partyImageInfo?.webPath || '',
+    partyImageMode: party?.imageMode || 'contain',
+    partyImageInfo,
     party: party || getDefaultBirthdayParty(),
     partyKey: party?.partyKey || 'default_party',
     partyTitle: party?.title || 'Standard Geburtstagsparty',
@@ -728,6 +763,8 @@ function mapShowQueueRow(row) {
     targetLogin: row.target_login || '',
     targetDisplayName: row.target_display_name || row.target_login || '',
     targetAvatarUrl: row.target_avatar_url || '',
+    partyImageFile: row.party_image_file || '',
+    partyImageUrl: row.party_image_file ? (mediaInfoForPartyImage(row.party_image_file).webPath || '') : '',
     partyKey: row.party_key || '',
     partyTitle: row.party_title || '',
     styleKey: row.style_key || '',
@@ -795,6 +832,7 @@ function upsertShowQueueEntry(entry = {}) {
     targetLogin: cleanLogin(entry.targetLogin || entry.target_login || ''),
     targetDisplayName: clean(entry.targetDisplayName || entry.target_display_name || entry.targetLogin || ''),
     targetAvatarUrl: clean(entry.targetAvatarUrl || entry.target_avatar_url || ''),
+    partyImageFile: safeRelativeMediaFile(entry.partyImageFile || entry.party_image_file || ''),
     partyKey: clean(entry.partyKey || entry.party_key || ''),
     partyTitle: clean(entry.partyTitle || entry.party_title || ''),
     styleKey: clean(entry.styleKey || entry.style_key || ''),
@@ -811,11 +849,11 @@ function upsertShowQueueEntry(entry = {}) {
   };
   database.run(`
     INSERT INTO birthday_show_queue (
-      request_id, target_login, target_display_name, target_avatar_url, party_key, party_title, style_key,
+      request_id, target_login, target_display_name, target_avatar_url, party_image_file, party_key, party_title, style_key,
       song_file, video_file, status, position, started_by_login, created_at, updated_at,
       started_at, finished_at, error
     ) VALUES (
-      :requestId, :targetLogin, :targetDisplayName, :targetAvatarUrl, :partyKey, :partyTitle, :styleKey,
+      :requestId, :targetLogin, :targetDisplayName, :targetAvatarUrl, :partyImageFile, :partyKey, :partyTitle, :styleKey,
       :songFile, :videoFile, :status, :position, :startedBy, :createdAt, :updatedAt,
       :startedAt, :finishedAt, :error
     )
@@ -823,6 +861,7 @@ function upsertShowQueueEntry(entry = {}) {
       target_login = excluded.target_login,
       target_display_name = excluded.target_display_name,
       target_avatar_url = CASE WHEN excluded.target_avatar_url = '' THEN birthday_show_queue.target_avatar_url ELSE excluded.target_avatar_url END,
+      party_image_file = excluded.party_image_file,
       party_key = excluded.party_key,
       party_title = excluded.party_title,
       style_key = excluded.style_key,
@@ -990,6 +1029,9 @@ function soundBundleItemBase(asset, targetContext = {}, extra = {}) {
       targetLogin: targetContext.targetLogin || '',
       targetDisplayName: targetContext.targetDisplayName || '',
       targetAvatarUrl: targetContext.targetAvatarUrl || '',
+      partyImageFile: asset.partyImageFile || '',
+      partyImageUrl: asset.partyImageUrl || '',
+      partyImageMode: asset.partyImageMode || 'contain',
       partyKey: asset.partyKey || 'default_party',
       partyTitle: asset.partyTitle || '',
       styleKey: asset.styleKey || 'cgn_neon',
@@ -1043,6 +1085,9 @@ function buildBirthdaySoundBundle(asset, targetContext = {}) {
       targetLogin: targetContext.targetLogin || '',
       targetDisplayName: targetContext.targetDisplayName || '',
       targetAvatarUrl: targetContext.targetAvatarUrl || '',
+      partyImageFile: asset.partyImageFile || '',
+      partyImageUrl: asset.partyImageUrl || '',
+      partyImageMode: asset.partyImageMode || 'contain',
       partyKey: asset.partyKey || 'default_party',
       styleKey: asset.styleKey || 'cgn_neon'
     },
@@ -1125,6 +1170,7 @@ async function startBirthdayShow({ targetUser, targetLogin, targetDisplayName, t
     targetLogin: context.targetLogin,
     targetDisplayName: context.targetDisplayName,
     targetAvatarUrl: context.targetAvatarUrl,
+    partyImageFile: asset.partyImageFile || '',
     partyKey: asset.partyKey || 'default_party',
     partyTitle: asset.partyTitle || 'Standard Geburtstagsparty',
     styleKey: asset.styleKey || 'cgn_neon',
@@ -1149,6 +1195,9 @@ async function startBirthdayShow({ targetUser, targetLogin, targetDisplayName, t
       targetLogin: context.targetLogin,
       targetDisplayName: context.targetDisplayName,
       targetAvatarUrl: context.targetAvatarUrl,
+      partyImageFile: asset.partyImageFile || '',
+      partyImageUrl: asset.partyImageUrl || '',
+      partyImageMode: asset.partyImageMode || 'contain',
       headline,
       message,
       rawMessage: baseMessage,
@@ -1217,6 +1266,8 @@ function applyCurrentBirthdayItemToShowState(current = {}) {
   const queueRow = mapShowQueueRow(database.get('SELECT * FROM birthday_show_queue WHERE request_id = :id', { id: requestId })) || {};
   const party = getBirthdayParty(meta.partyKey || queueRow.partyKey) || getDefaultBirthdayParty();
   const styleKey = meta.styleKey || queueRow.styleKey || party?.styleKey || 'cgn_neon';
+  const partyImageFile = clean(meta.partyImageFile || queueRow.partyImageFile || party?.imageFile || showState.partyImageFile || '');
+  const partyImageInfo = partyImageFile ? mediaInfoForPartyImage(partyImageFile) : null;
 
   showState = {
     ...showState,
@@ -1225,6 +1276,9 @@ function applyCurrentBirthdayItemToShowState(current = {}) {
     targetLogin,
     targetDisplayName: clean(meta.targetDisplayName || queueRow.targetDisplayName || targetLogin),
     targetAvatarUrl: clean(meta.targetAvatarUrl || queueRow.targetAvatarUrl || showState.targetAvatarUrl || ''),
+    partyImageFile,
+    partyImageUrl: clean(meta.partyImageUrl || partyImageInfo?.webPath || showState.partyImageUrl || ''),
+    partyImageMode: clean(meta.partyImageMode || party?.imageMode || showState.partyImageMode || 'contain') || 'contain',
     headline: clean(meta.headline || showState.headline || 'Happy Birthday!'),
     message: clean(meta.message || showState.message || `Alles Gute zum Geburtstag, @${targetLogin}!`),
     partyKey: meta.partyKey || queueRow.partyKey || party?.partyKey || 'default_party',
@@ -1431,6 +1485,14 @@ function ensureSchema() {
         if (!queueColumns.has('target_avatar_url')) db.exec(`ALTER TABLE birthday_show_queue ADD COLUMN target_avatar_url TEXT NOT NULL DEFAULT '';`);
       }
 
+      if (toVersion === 8) {
+        const partyColumns = new Set(database.tableColumns('birthday_parties'));
+        if (!partyColumns.has('image_file')) db.exec(`ALTER TABLE birthday_parties ADD COLUMN image_file TEXT NOT NULL DEFAULT '';`);
+        if (!partyColumns.has('image_mode')) db.exec(`ALTER TABLE birthday_parties ADD COLUMN image_mode TEXT NOT NULL DEFAULT 'contain';`);
+        const queueColumns = new Set(database.tableColumns('birthday_show_queue'));
+        if (!queueColumns.has('party_image_file')) db.exec(`ALTER TABLE birthday_show_queue ADD COLUMN party_image_file TEXT NOT NULL DEFAULT '';`);
+      }
+
     });
     state.schemaOk = true;
     state.schemaReady = true;
@@ -1625,6 +1687,9 @@ function mapBirthdayParty(row) {
     songFile: row.song_file || '',
     songDurationMs: Number(row.song_duration_ms || 0),
     songVolume: Number(row.song_volume || 0),
+    imageFile: row.image_file || '',
+    imageMode: row.image_mode || 'contain',
+    imageUrl: row.image_file ? (mediaInfoForPartyImage(row.image_file).webPath || '') : '',
     styleKey,
     style: PARTY_STYLE_PRESETS[styleKey] || PARTY_STYLE_PRESETS.cgn_neon,
     headlineTemplate: row.headline_template || '',
@@ -1715,10 +1780,10 @@ function saveBirthdayParty(payload = {}) {
   const existing = getBirthdayParty(partyKey);
   database.run(`
     INSERT INTO birthday_parties (
-      party_key, title, enabled, is_default, song_file, song_duration_ms, song_volume,
+      party_key, title, enabled, is_default, song_file, song_duration_ms, song_volume, image_file, image_mode,
       style_key, headline_template, subline_template, effects_json, scenes_json, notes, created_at, updated_at
     ) VALUES (
-      :partyKey, :title, :enabled, :isDefault, :songFile, :songDurationMs, :songVolume,
+      :partyKey, :title, :enabled, :isDefault, :songFile, :songDurationMs, :songVolume, :imageFile, :imageMode,
       :styleKey, :headlineTemplate, :sublineTemplate, :effectsJson, :scenesJson, :notes, :createdAt, :updatedAt
     )
     ON CONFLICT(party_key) DO UPDATE SET
@@ -1728,6 +1793,8 @@ function saveBirthdayParty(payload = {}) {
       song_file = excluded.song_file,
       song_duration_ms = excluded.song_duration_ms,
       song_volume = excluded.song_volume,
+      image_file = excluded.image_file,
+      image_mode = excluded.image_mode,
       style_key = excluded.style_key,
       headline_template = excluded.headline_template,
       subline_template = excluded.subline_template,
@@ -1743,6 +1810,8 @@ function saveBirthdayParty(payload = {}) {
     songFile: safeRelativeMediaFile(payload.songFile || payload.song_file || existing?.songFile || ''),
     songDurationMs: Math.max(0, Number(payload.songDurationMs || payload.song_duration_ms || existing?.songDurationMs || 0) || 0),
     songVolume: Math.max(0, Math.min(100, Number(payload.songVolume || payload.song_volume || existing?.songVolume || 0) || 0)),
+    imageFile: safeRelativeMediaFile(payload.imageFile || payload.image_file || payload.partyImageFile || existing?.imageFile || ''),
+    imageMode: clean(payload.imageMode || payload.image_mode || existing?.imageMode || 'contain') || 'contain',
     styleKey: style.key || 'cgn_neon',
     headlineTemplate: clean(payload.headlineTemplate || payload.headline_template || existing?.headlineTemplate || '{headline}'),
     sublineTemplate: clean(payload.sublineTemplate || payload.subline_template || existing?.sublineTemplate || '{message}'),

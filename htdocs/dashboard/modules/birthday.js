@@ -465,11 +465,13 @@ window.BirthdayModule = (function(){
     const title = root?.querySelector('[data-birthday-party-title]')?.value || '';
     const styleKey = root?.querySelector('[data-birthday-party-style]')?.value || 'cgn_neon';
     const songFile = root?.querySelector('[data-birthday-party-song]')?.value || '';
+    const imageFile = root?.querySelector('[data-birthday-party-image]')?.value || '';
+    const imageMode = root?.querySelector('[data-birthday-party-image-mode]')?.value || 'contain';
     const headlineTemplate = root?.querySelector('[data-birthday-party-headline]')?.value || '{headline}';
     const sublineTemplate = root?.querySelector('[data-birthday-party-subline]')?.value || '{message}';
     const isDefault = root?.querySelector('[data-birthday-party-default]')?.checked || false;
     if (!partyKey && !title) throw new Error('Bitte Party-Key oder Titel eintragen.');
-    await window.CGN.api(api.showParties, { method:'POST', body: JSON.stringify({ partyKey, title, styleKey, songFile, headlineTemplate, sublineTemplate, isDefault, enabled:true }) });
+    await window.CGN.api(api.showParties, { method:'POST', body: JSON.stringify({ partyKey, title, styleKey, songFile, imageFile, imageMode, headlineTemplate, sublineTemplate, isDefault, enabled:true }) });
     state.notice = 'Party gespeichert.';
     await loadAll(true);
   }
@@ -527,6 +529,8 @@ window.BirthdayModule = (function(){
     set('[data-birthday-party-title]', party.title);
     set('[data-birthday-party-style]', party.styleKey || 'cgn_neon');
     set('[data-birthday-party-song]', party.songFile || '');
+    set('[data-birthday-party-image]', party.imageFile || '');
+    set('[data-birthday-party-image-mode]', party.imageMode || 'contain');
     set('[data-birthday-party-headline]', party.headlineTemplate || '{headline}');
     set('[data-birthday-party-subline]', party.sublineTemplate || '{message}');
     const def = root?.querySelector('[data-birthday-party-default]'); if (def) def.checked = !!party.isDefault;
@@ -539,6 +543,8 @@ window.BirthdayModule = (function(){
     set('[data-birthday-party-title]', '');
     set('[data-birthday-party-style]', 'cgn_neon');
     set('[data-birthday-party-song]', '');
+    set('[data-birthday-party-image]', '');
+    set('[data-birthday-party-image-mode]', 'contain');
     set('[data-birthday-party-headline]', '{headline}');
     set('[data-birthday-party-subline]', '{message}');
     const def = root?.querySelector('[data-birthday-party-default]'); if (def) def.checked = false;
@@ -791,6 +797,11 @@ window.BirthdayModule = (function(){
                 <label>Song-Datei optional<input type="text" data-birthday-party-song placeholder="mediaid:1234 oder leer = User/Standard-Song"></label>
                 <div class="birthday-mediafield-block" data-media-field data-module-key="birthday" data-category-key="party-songs" data-allowed-types="audio" data-title="Party-Song auswählen oder hochladen" data-birthday-media-target="[data-birthday-party-song]"></div>
               </div>
+              <div class="birthday-form-two birthday-party-image-row">
+                <label>Party-Bild / Celebration-Bild<input type="text" data-birthday-party-image placeholder="mediaid:1234 oder leer = kein Party-Bild"></label>
+                <label>Bildmodus<select data-birthday-party-image-mode><option value="contain">Ganzes Bild anzeigen</option><option value="cover">Füllen / zuschneiden</option></select></label>
+                <div class="birthday-mediafield-block" data-media-field data-module-key="birthday" data-category-key="party-images" data-allowed-types="image" data-title="Party-Bild auswählen oder hochladen" data-birthday-media-target="[data-birthday-party-image]"></div>
+              </div>
               <label>Headline Template<input type="text" data-birthday-party-headline value="{headline}"></label>
               <label>Subline Template<input type="text" data-birthday-party-subline value="{message}"></label>
               <label class="birthday-check"><input type="checkbox" data-birthday-party-default> als Standard-Party setzen</label>
@@ -815,7 +826,7 @@ window.BirthdayModule = (function(){
 
       <section class="birthday-card birthday-card-main">
         <h3>Party-Presets</h3>
-        ${parties.length ? `<div class="birthday-table-wrap"><table><thead><tr><th>Party</th><th>Style</th><th>Song</th><th>Status</th><th></th></tr></thead><tbody>${parties.map(party => `<tr><td><strong>${esc(party.title || party.partyKey)}</strong><small>${esc(party.partyKey)}${party.isDefault ? ' · Standard' : ''}</small></td><td>${esc(party.style?.label || party.styleKey || '')}</td><td>${fmt(party.songFile || 'Fallback/User/Standard')}</td><td>${party.enabled ? '<span class="birthday-pill ok">aktiv</span>' : '<span class="birthday-pill warn">inaktiv</span>'}</td><td><button type="button" data-edit-birthday-party="${esc(party.partyKey)}">Bearbeiten</button></td></tr>`).join('')}</tbody></table></div>` : '<div class="birthday-empty">Noch keine Party-Presets.</div>'}
+        ${parties.length ? `<div class="birthday-table-wrap"><table><thead><tr><th>Party</th><th>Style</th><th>Bild</th><th>Song</th><th>Status</th><th></th></tr></thead><tbody>${parties.map(party => `<tr><td><strong>${esc(party.title || party.partyKey)}</strong><small>${esc(party.partyKey)}${party.isDefault ? ' · Standard' : ''}</small></td><td>${esc(party.style?.label || party.styleKey || '')}</td><td>${party.imageFile ? fmt(party.imageFile) : '<span class="birthday-muted">kein Bild</span>'}</td><td>${fmt(party.songFile || 'Fallback/User/Standard')}</td><td>${party.enabled ? '<span class="birthday-pill ok">aktiv</span>' : '<span class="birthday-pill warn">inaktiv</span>'}</td><td><button type="button" data-edit-birthday-party="${esc(party.partyKey)}">Bearbeiten</button></td></tr>`).join('')}</tbody></table></div>` : '<div class="birthday-empty">Noch keine Party-Presets.</div>'}
       </section>
 
       <section class="birthday-card birthday-card-main">
