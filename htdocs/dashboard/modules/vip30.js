@@ -86,6 +86,22 @@ window.Vip30Module = (function(){
     return d.toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
   }
   function badge(text, tone){ return `<span class="vip30-badge ${tone || ''}">${esc(text)}</span>`; }
+  function statusDot(label, ok, detail){
+    return `<div class="vip30-live-check ${ok ? 'is-ok' : 'is-bad'}">
+      <span class="vip30-live-led"></span>
+      <div><strong>${esc(label)}</strong>${detail ? `<small>${esc(detail)}</small>` : ''}</div>
+    </div>`;
+  }
+  function valuePath(source, path, fallback = undefined){
+    const parts = String(path || '').split('.').filter(Boolean);
+    let cur = source;
+    for (const part of parts) {
+      if (!cur || typeof cur !== 'object' || !(part in cur)) return fallback;
+      cur = cur[part];
+    }
+    return cur;
+  }
+
   function apiErr(err){ return err && err.message ? err.message : String(err || 'Unbekannter Fehler'); }
   function settingRows(){ return arr(state.settings?.settings); }
   function getSettingRow(key){
@@ -186,24 +202,6 @@ window.Vip30Module = (function(){
     return [];
   }
 
-  function stripLegacyNameFromHeadline(value, set){
-    const text = String(value || '').trim();
-    const displayName = String(set?.displayName || set?.userDisplayName || '').replace(/^@+/, '').trim();
-    const login = String(set?.login || set?.userLogin || '').replace(/^@+/, '').trim();
-    let out = text
-      .replace(/\{\s*displayName\s*\}/gi, '')
-      .replace(/\{\s*login\s*\}/gi, '');
-    [displayName, login].filter(Boolean).forEach(name => {
-      out = out.replace(new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '');
-    });
-    return out
-      .replace(/\s{2,}/g, ' ')
-      .replace(/\s+([,.!?])/g, '$1')
-      .replace(/^\s*[,.:;!?\-–—]\s*/, '')
-      .replace(/\s*[,.:;!?\-–—]\s*$/, '')
-      .trim();
-  }
-
   function normalizeOverlaySetForUi(raw, index){
     const set = raw && typeof raw === 'object' ? raw : {};
     const perks = Array.isArray(set.perks)
@@ -213,9 +211,8 @@ window.Vip30Module = (function(){
       id: String(set.id || `vip30-set-${index + 1}`).trim(),
       enabled: set.enabled !== false,
       weight: Number.isFinite(Number(set.weight)) ? Math.max(0, Number.parseInt(String(set.weight), 10)) : 1,
-      namePosition: String(set.namePosition || set.namePlacement || set.usernamePosition || '').toLowerCase().trim() === 'bottom' ? 'bottom' : 'top',
       kicker: String(set.kicker || '').trim(),
-      headline: stripLegacyNameFromHeadline(String(set.headline || '').trim(), set),
+      headline: String(set.headline || '').trim(),
       subline: String(set.subline || '').trim(),
       message: String(set.message || '').trim(),
       perks,
@@ -233,12 +230,11 @@ window.Vip30Module = (function(){
       id: `custom-${Date.now()}-${index + 1}`,
       enabled: true,
       weight: 1,
-      namePosition: 'top',
       kicker: 'Upgrade im CGN-Altersheim',
-      headline: 'wird Ehrenbewohner',
+      headline: '{displayName} wird Ehrenbewohner.',
       subline: 'Die Rentner begrüßen freundlich, die Heimleitung nickt anerkennend.',
       message: 'Ein kleines VIP-Upgrade wurde genehmigt.',
-      perks: [],
+      perks: ['Keks extra', 'Klecks Soße mehr', 'gemütlicherer Sessel'],
       brand: 'CGN VIP-Lounge'
     };
   }
@@ -343,7 +339,6 @@ window.Vip30Module = (function(){
         id: value('id') || `vip30-set-${index + 1}`,
         enabled: value('enabled'),
         weight: value('weight'),
-        namePosition: value('namePosition') === 'bottom' ? 'bottom' : 'top',
         kicker: value('kicker'),
         headline: value('headline'),
         subline: value('subline'),
@@ -584,12 +579,69 @@ window.Vip30Module = (function(){
     return `<div class="vip30-tabs glass">${tabs.map(([id,label]) => `<button type="button" class="${state.tab === id ? 'active' : ''}" data-vip30-tab="${esc(id)}">${esc(label)}</button>`).join('')}</div>`;
   }
 
+  function renderLiveReadiness(){
+    const live = state.status?.liveReadiness || state.status?.live || {};
+    const checks = live.checks || {};
+    const blockers = Array.isArray(live.blockers) ? live.blockers : [];
+    const reward = live.reward || state.status?.channelpointsReward?.reward?.existing || {};
+    const capability = live.twitchCapability || state.status?.twitchCapability || {};
+    const knownChecks = [
+      ['moduleEnabled', 'Modul aktiv'],
+      ['liveEnabled', 'Live-Modus aktiv'],
+      ['liveModeIsLive', 'Modus = live'],
+      ['twitchLiveActionsEnabled', 'Twitch Live-Actions'],
+      ['bridgeDecisionOnlyDisabled', 'Bridge schreibt live'],
+      ['localRewardLinked', 'Reward lokal verknüpft'],
+      ['channelpointsRewardActive', 'Channelpoints Reward aktiv'],
+      ['twitchRewardIdLinked', 'Twitch Reward-ID gesetzt'],
+      ['capabilityChecked', 'Twitch Capability geprüft'],
+      ['twitchCapabilityReady', 'Twitch Rechte bereit'],
+      ['allowVipGrant', 'VIP vergeben erlaubt'],
+      ['allowSlotWrite', 'Slot schreiben erlaubt'],
+      ['allowRedemptionFulfillCancel', 'Fulfill/Cancel erlaubt'],
+      ['allowAlert', 'Alert erlaubt']
+    ];
+    const hasLive = live && (live.status || Object.keys(checks).length);
+    const armed = live.armed === true;
+    if (!hasLive) {
+      return `<section class="vip30-card glass vip30-live-readiness is-unknown">
+        <div class="vip30-card-head">
+          <div>
+            <h3>VIP30 Live-Bereitschaft</h3>
+            <p>Noch keine Live-Readiness-Daten vom Backend erhalten.</p>
+          </div>
+          ${badge('UNBEKANNT', 'warn')}
+        </div>
+      </section>`;
+    }
+    return `<section class="vip30-card glass vip30-live-readiness ${armed ? 'is-armed' : 'is-blocked'}">
+      <div class="vip30-card-head">
+        <div>
+          <h3>VIP30 Live-Bereitschaft</h3>
+          <p>${armed ? 'Alle wichtigen Gates sind grün. VIP30 kann live ausführen.' : `Blockiert: ${blockers.length ? blockers.join(', ') : 'unbekannt'}`}</p>
+        </div>
+        ${badge(armed ? 'LIVE BEREIT' : 'BLOCKIERT', armed ? 'ok' : 'bad')}
+      </div>
+      <div class="vip30-live-summary">
+        <div><span>Status</span><strong>${esc(live.status || '-')}</strong></div>
+        <div><span>Reward</span><strong>${esc(reward.title || reward.rewardKey || '-')}</strong></div>
+        <div><span>Twitch Reward-ID</span><strong>${esc(reward.twitchRewardId || '-')}</strong></div>
+        <div><span>Capability</span><strong>${esc(capability.status || (capability.readyForVip30LiveFlow ? 'ready' : '-'))}</strong></div>
+      </div>
+      <div class="vip30-live-checks">
+        ${knownChecks.map(([key, label]) => statusDot(label, checks[key] === true, checks[key] === true ? 'OK' : (blockers.includes(key) ? 'Blocker' : 'Fehlt/Nein'))).join('')}
+      </div>
+      ${blockers.length ? `<div class="vip30-live-blockers"><strong>Blocker:</strong> ${esc(blockers.join(', '))}</div>` : ''}
+    </section>`;
+  }
+
   function renderOverview(){
     const eventsub = state.eventsubStatus?.vipEventBus || {};
     const external = state.externalRemove || {};
     const cleanup = state.cleanupCheck || {};
     const counts = slotStatusCounts();
     return `<div class="vip30-grid">
+      <div class="span-2">${renderLiveReadiness()}</div>
       <section class="vip30-card glass">
         <h3>Modul</h3>
         <div class="vip30-rows">
@@ -781,7 +833,7 @@ window.Vip30Module = (function(){
       <div class="vip30-config-title">
         <div>
           <h4>VIP30 Overlay-Textsets</h4>
-          <p>Username wird automatisch separat angezeigt. Pro Textset wählst du, ob der Name über oder unter der Headline steht.</p>
+          <p>Zusammengehörige Varianten wie beim SO-System: Kicker, Headline, Subline, Message, Perks und Brand bleiben als Set zusammen.</p>
         </div>
         <span>${badge(`${sets.length} Sets`, 'ok')}</span>
       </div>
@@ -789,31 +841,13 @@ window.Vip30Module = (function(){
       <div class="vip30-overlayset-toolbar">
         <button type="button" data-vip30-overlay-add>Neues Textset</button>
         <button type="button" data-vip30-overlay-format>JSON formatieren</button>
-        <small>Neues Prinzip: Username separat · Headline ohne <code>{displayName}</code></small>
+        <small>Platzhalter: <code>{displayName}</code>, <code>{login}</code></small>
       </div>
 
       <textarea class="vip30-setting-control vip30-json-control vip30-overlay-hidden-json" rows="10" spellcheck="false" data-vip30-setting-input="alerts.overlaySets">${esc(jsonText)}</textarea>
 
       <div class="vip30-overlayset-list">
         ${sets.map((set, index) => renderOverlaySetCard(set, index)).join('')}
-      </div>
-    </div>`;
-  }
-
-  function renderOverlaySetMiniPreview(set){
-    const demoName = 'CrazyMeerschweinchen';
-    const headline = stripLegacyNameFromHeadline(set.headline || 'hat sich 30 Tage VIP gegönnt', set) || 'hat sich 30 Tage VIP gegönnt';
-    const nameBlock = `<div class="vip30-preview-name">${esc(demoName)}</div>`;
-    const headlineBlock = `<div class="vip30-preview-headline">${esc(headline)}</div>`;
-    return `<div class="vip30-overlay-mini-preview">
-      <div class="vip30-preview-card">
-        <div class="vip30-preview-kicker">${esc(set.kicker || '30 Tage VIP')}</div>
-        <div class="vip30-preview-main">
-          ${set.namePosition === 'bottom' ? headlineBlock + nameBlock : nameBlock + headlineBlock}
-        </div>
-        <div class="vip30-preview-subline">${esc(set.subline || 'Die Heimleitung nickt anerkennend.')}</div>
-        ${set.message ? `<div class="vip30-preview-message">${esc(set.message)}</div>` : ''}
-        <div class="vip30-preview-brand">${esc(set.brand || 'CGN VIP-Lounge')}</div>
       </div>
     </div>`;
   }
@@ -835,18 +869,13 @@ window.Vip30Module = (function(){
       <div class="vip30-overlayset-grid">
         <label>ID<input type="text" data-vip30-overlay-field="id" value="${esc(set.id)}"></label>
         <label>Gewichtung<input type="number" min="0" step="1" data-vip30-overlay-field="weight" value="${esc(set.weight)}"></label>
-        <label>Name-Position<select data-vip30-overlay-field="namePosition">
-          <option value="top" ${set.namePosition === 'bottom' ? '' : 'selected'}>Username über Headline</option>
-          <option value="bottom" ${set.namePosition === 'bottom' ? 'selected' : ''}>Username unter Headline</option>
-        </select></label>
         <label>Kicker<input type="text" data-vip30-overlay-field="kicker" value="${esc(set.kicker)}"></label>
         <label>Brand<input type="text" data-vip30-overlay-field="brand" value="${esc(set.brand)}"></label>
         <label class="wide">Headline<input type="text" data-vip30-overlay-field="headline" value="${esc(set.headline)}"></label>
         <label class="wide">Subline<input type="text" data-vip30-overlay-field="subline" value="${esc(set.subline)}"></label>
         <label class="wide">Message<input type="text" data-vip30-overlay-field="message" value="${esc(set.message)}"></label>
-        <label class="wide vip30-perks-legacy">Perks / Chips <small>Legacy/Fallback, im neuen VIP30-Overlay nicht sichtbar</small><textarea rows="3" data-vip30-overlay-field="perks" spellcheck="false">${esc(perksText)}</textarea></label>
+        <label class="wide">Perks / Chips <small>eine Zeile pro Chip</small><textarea rows="4" data-vip30-overlay-field="perks" spellcheck="false">${esc(perksText)}</textarea></label>
       </div>
-      ${renderOverlaySetMiniPreview(set)}
     </article>`;
   }
 
@@ -1016,7 +1045,7 @@ window.Vip30Module = (function(){
       <div class="vip30-card-head">
         <div>
           <h3>VIP30 Texte</h3>
-          <p>Zufällige VIP30-Texte für das neue Simple-Name-Design. Username wird automatisch separat angezeigt.</p>
+          <p>Zufällige Overlay-Texte für das CGN Split Lounge Design. Die Sets bleiben zusammen, damit Headline, Subline und Perks immer zueinander passen.</p>
         </div>
         <div class="vip30-actions">
           <button type="button" data-vip30-save-settings ${state.saving ? 'disabled' : ''}>${state.saving ? 'Speichere...' : 'Texte speichern'}</button>
@@ -1029,7 +1058,7 @@ window.Vip30Module = (function(){
       ${state.saveError ? `<div class="vip30-error">${esc(state.saveError)}</div>` : ''}
       <div class="vip30-settings-hint">
         <span>${badge('ZUFALLSTEXTE', 'ok')} ein aktives Set wird nach Gewichtung gewählt.</span>
-        <span>${badge('NAME SEPARAT', 'ok')} <code>{displayName}</code> ist in Headline nicht mehr nötig.</span>
+        <span>${badge('PLATZHALTER', 'warn')} nutze <code>{displayName}</code> und <code>{login}</code>.</span>
         <span>${badge('AUTO-RELOAD', 'ok')} aktive Eingaben werden nicht überschrieben.</span>
       </div>
       ${renderOverlaySetEditor(row)}

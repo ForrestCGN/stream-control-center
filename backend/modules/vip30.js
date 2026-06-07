@@ -2167,12 +2167,11 @@ function buildLocalRewardOperationalState(rewardStatus) {
   const configured = reward && reward.configured ? reward.configured : buildRewardSummary();
   const existing = reward && reward.existing ? reward.existing : null;
   const differences = Array.isArray(reward && reward.differences) ? reward.differences : [];
-  const blockingDiffFields = new Set(["rewardKey", "cost", "actionType", "actionKey", "systemEnabled", "isPaused", "autoFulfill"]);
+  const blockingDiffFields = new Set(["rewardKey", "actionType", "actionKey", "systemEnabled", "isPaused", "autoFulfill", "twitchRewardId"]);
   const blockingDifferences = differences.filter((d) => blockingDiffFields.has(String(d && d.field || "")));
   const operational = Boolean(
     existing
     && cleanString(existing.rewardKey) === cleanString(configured.rewardKey || "vip30")
-    && Number(existing.cost || 0) === Number(configured.cost || 0)
     && cleanString(existing.actionType) === cleanString(configured.actionType || "vip30")
     && cleanString(existing.actionKey) === cleanString(configured.actionKey || "vip30.redeem")
     && existing.systemEnabled === true
@@ -2205,6 +2204,7 @@ function buildLiveActionSafetyStatus() {
     twitchLiveActionsEnabled: config.twitch && config.twitch.liveActionsEnabled === true,
     bridgeDecisionOnlyDisabled: config.bridge && config.bridge.decisionOnly === false,
     localRewardLinked: localRewardState.operational === true,
+    channelpointsRewardActive: localRewardState.operational === true,
     twitchRewardIdLinked: !!(existing && existing.twitchRewardId),
     capabilityChecked: !!capability,
     twitchCapabilityReady: !!(capability && capability.readiness && capability.readiness.readyForVip30LiveFlow === true),
@@ -2241,6 +2241,7 @@ function buildLiveActionSafetyStatus() {
       cost: existing.cost,
       inSync: !!(reward && reward.inSync),
       operational: localRewardState.operational === true,
+      channelpointsRewardActive: localRewardState.operational === true,
       strictInSync: localRewardState.strictInSync === true,
       status: localRewardState.status,
       blockingDifferences: localRewardState.blockingDifferences
@@ -4034,6 +4035,9 @@ function buildStatus() {
     })(),
     channelpointsReward: (() => {
       try { return buildChannelpointsRewardStatus(); } catch (err) { return { ok: false, status: "error", error: err && err.message ? err.message : String(err) }; }
+    })(),
+    liveReadiness: (() => {
+      try { return buildLiveActionSafetyStatus(); } catch (err) { return { ok: false, status: "error", armed: false, checks: {}, blockers: ["liveReadinessError"], error: err && err.message ? err.message : String(err) }; }
     })(),
     dryRun: {
       enabled: true,
