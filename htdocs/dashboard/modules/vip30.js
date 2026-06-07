@@ -584,25 +584,57 @@ window.Vip30Module = (function(){
     const checks = live.checks || {};
     const blockers = Array.isArray(live.blockers) ? live.blockers : [];
     const reward = live.reward || state.status?.channelpointsReward?.reward?.existing || {};
-    const capability = live.twitchCapability || state.status?.twitchCapability || {};
-    const knownChecks = [
-      ['moduleEnabled', 'Modul aktiv'],
-      ['liveEnabled', 'Live-Modus aktiv'],
-      ['liveModeIsLive', 'Modus = live'],
-      ['twitchLiveActionsEnabled', 'Twitch Live-Actions'],
-      ['bridgeDecisionOnlyDisabled', 'Bridge schreibt live'],
-      ['localRewardLinked', 'Reward lokal verknüpft'],
-      ['channelpointsRewardActive', 'Channelpoints Reward aktiv'],
-      ['twitchRewardIdLinked', 'Twitch Reward-ID gesetzt'],
-      ['capabilityChecked', 'Twitch Capability geprüft'],
-      ['twitchCapabilityReady', 'Twitch Rechte bereit'],
-      ['allowVipGrant', 'VIP vergeben erlaubt'],
-      ['allowSlotWrite', 'Slot schreiben erlaubt'],
-      ['allowRedemptionFulfillCancel', 'Fulfill/Cancel erlaubt'],
-      ['allowAlert', 'Alert erlaubt']
-    ];
-    const hasLive = live && (live.status || Object.keys(checks).length);
+    const statusText = String(live.status || '').trim();
+    const hasLive = live && (statusText || live.armed !== undefined || Object.keys(checks).length || blockers.length);
     const armed = live.armed === true;
+
+    const blockerLabels = {
+      moduleEnabled: 'VIP30-Modul ist nicht aktiv.',
+      vip30TileFound: 'VIP30-Kachel wurde nicht gefunden.',
+      vip30TileActive: 'VIP30-Kachel ist nicht aktiv.',
+      actionTypeVip30: 'Action-Type der Kachel ist nicht vip30.',
+      actionKeyVip30: 'Action-Key der Kachel ist nicht vip30.redeem.',
+      queueVip30: 'Queue der Kachel ist nicht vip30.',
+      rewardSystemEnabled: 'Reward-System ist deaktiviert.',
+      rewardTwitchEnabled: 'Twitch-Reward ist deaktiviert.',
+      rewardNotPaused: 'Reward ist pausiert.',
+      rewardLinked: 'VIP30-Reward ist nicht korrekt verknüpft.',
+      twitchRewardId: 'Twitch Reward-ID fehlt.',
+      twitchRewardIdLinked: 'Twitch Reward-ID ist nicht korrekt verknüpft.'
+    };
+
+    const hardGates = [
+      { keys: ['moduleEnabled'], label: 'Modul aktiv' },
+      { keys: ['vip30TileFound'], label: 'VIP30-Kachel gefunden' },
+      { keys: ['vip30TileActive'], label: 'VIP30-Kachel aktiv' },
+      { keys: ['actionTypeVip30'], label: 'Action-Type = vip30' },
+      { keys: ['actionKeyVip30'], label: 'Action-Key = vip30.redeem' },
+      { keys: ['queueVip30'], label: 'Queue = vip30' },
+      { keys: ['rewardSystemEnabled'], label: 'Reward-System aktiv' },
+      { keys: ['rewardTwitchEnabled'], label: 'Twitch-Reward aktiv' },
+      { keys: ['rewardNotPaused'], label: 'Reward nicht pausiert' }
+    ];
+
+    const firstDefinedCheck = keys => {
+      for (const key of keys) {
+        if (Object.prototype.hasOwnProperty.call(checks, key)) return { key, value: checks[key] };
+      }
+      return null;
+    };
+
+    const gateRows = hardGates
+      .map(gate => {
+        const found = firstDefinedCheck(gate.keys);
+        return found ? { ...gate, key: found.key, value: found.value } : null;
+      })
+      .filter(Boolean);
+
+    const failedGateRows = gateRows.filter(row => row.value === false || blockers.includes(row.key));
+    const visibleGateRows = armed ? gateRows.filter(row => row.value === true) : failedGateRows;
+    const unknownBlockerRows = blockers
+      .filter(key => !failedGateRows.some(row => row.key === key))
+      .map(key => ({ key, label: blockerLabels[key] || key }));
+
     if (!hasLive) {
       return `<section class="vip30-card glass vip30-live-readiness is-unknown">
         <div class="vip30-card-head">
@@ -614,24 +646,32 @@ window.Vip30Module = (function(){
         </div>
       </section>`;
     }
+
+    const rewardTitle = reward.title || reward.rewardKey || live.rewardTitle || '-';
+    const rewardId = reward.twitchRewardId || live.twitchRewardId || '-';
+    const actionType = reward.actionType || live.actionType || valuePath(reward, 'action.type', '');
+    const actionKey = reward.actionKey || live.actionKey || valuePath(reward, 'action.key', '');
+    const queueMode = reward.queueMode || live.queueMode || reward.queue || live.queue || '';
+
     return `<section class="vip30-card glass vip30-live-readiness ${armed ? 'is-armed' : 'is-blocked'}">
       <div class="vip30-card-head">
         <div>
           <h3>VIP30 Live-Bereitschaft</h3>
-          <p>${armed ? 'Alle wichtigen Gates sind grün. VIP30 kann live ausführen.' : `Blockiert: ${blockers.length ? blockers.join(', ') : 'unbekannt'}`}</p>
+          <p>${armed ? 'VIP30 kann Channelpoint-Einlösungen live verarbeiten.' : 'VIP30 kann aktuell keine Channelpoint-Einlösungen verarbeiten.'}</p>
         </div>
         ${badge(armed ? 'LIVE BEREIT' : 'BLOCKIERT', armed ? 'ok' : 'bad')}
       </div>
       <div class="vip30-live-summary">
-        <div><span>Status</span><strong>${esc(live.status || '-')}</strong></div>
-        <div><span>Reward</span><strong>${esc(reward.title || reward.rewardKey || '-')}</strong></div>
-        <div><span>Twitch Reward-ID</span><strong>${esc(reward.twitchRewardId || '-')}</strong></div>
-        <div><span>Capability</span><strong>${esc(capability.status || (capability.readyForVip30LiveFlow ? 'ready' : '-'))}</strong></div>
+        <div><span>Status</span><strong>${esc(statusText || (armed ? 'ready' : 'blocked'))}</strong></div>
+        <div><span>Reward</span><strong>${esc(rewardTitle)}</strong></div>
+        <div><span>Twitch Reward-ID</span><strong>${esc(rewardId)}</strong></div>
+        ${(actionType || actionKey || queueMode) ? `<div><span>Kachel</span><strong>${esc([actionType, actionKey, queueMode].filter(Boolean).join(' · '))}</strong></div>` : ''}
       </div>
-      <div class="vip30-live-checks">
-        ${knownChecks.map(([key, label]) => statusDot(label, checks[key] === true, checks[key] === true ? 'OK' : (blockers.includes(key) ? 'Blocker' : 'Fehlt/Nein'))).join('')}
-      </div>
-      ${blockers.length ? `<div class="vip30-live-blockers"><strong>Blocker:</strong> ${esc(blockers.join(', '))}</div>` : ''}
+      ${visibleGateRows.length ? `<div class="vip30-live-checks">
+        ${visibleGateRows.map(row => statusDot(row.label, row.value === true && !blockers.includes(row.key), row.value === true && !blockers.includes(row.key) ? 'OK' : (blockerLabels[row.key] || 'Blocker'))).join('')}
+      </div>` : ''}
+      ${unknownBlockerRows.length ? `<div class="vip30-live-blockers"><strong>Blocker:</strong><ul>${unknownBlockerRows.map(row => `<li>${esc(row.label)}</li>`).join('')}</ul></div>` : ''}
+      ${!armed && !failedGateRows.length && !unknownBlockerRows.length ? `<div class="vip30-live-blockers"><strong>Blocker:</strong> ${esc(blockers.length ? blockers.join(', ') : 'Backend meldet blockiert, aber keinen konkreten Blocker.')}</div>` : ''}
     </section>`;
   }
 
