@@ -243,6 +243,30 @@ async function listChannelVips(options = {}) {
   };
 }
 
+function mappedUserMatchesTarget(row = {}, identity = {}) {
+  const rowUserId = cleanString(row.twitchUserId || row.userId || row.user_id || row.id);
+  const rowLogin = normalizeLogin(row.login || row.userLogin || row.user_login || row.displayName || row.display_name);
+  const targetUserId = cleanString(identity.userId || identity.twitchUserId || identity.user_id || identity.id);
+  const targetLogin = normalizeLogin(identity.login || identity.userLogin || identity.user_login || identity.displayName || identity.display_name);
+
+  if (targetUserId && rowUserId && targetUserId === rowUserId) return true;
+  if (targetLogin && rowLogin && targetLogin === rowLogin) return true;
+  return false;
+}
+
+async function checkTargetVipViaList(identity = {}, options = {}) {
+  try {
+    const result = await listChannelVips({
+      ...options,
+      maxPages: options.vipListMaxPages || options.maxPages || 25
+    });
+    const rows = Array.isArray(result.rows) ? result.rows : [];
+    return rows.some(row => mappedUserMatchesTarget(row, identity));
+  } catch (_) {
+    return null;
+  }
+}
+
 async function listChannelModerators(options = {}) {
   const result = await helixPaged("/moderation/moderators", {}, options);
   return {
@@ -263,28 +287,60 @@ async function checkTargetRole(target, role, options = {}) {
 
   if (!clientId || !broadcasterId || !accessToken) return null;
 
+  const roleKey = role === "vip" ? "vip" : "moderator";
+
   try {
     const headers = buildHeaders(clientId, accessToken);
     const identity = await resolveUserIdentity(target, headers);
     if (!identity.userId && !identity.login) return false;
-    if (!identity.userId) return false;
+    if (!identity.userId && roleKey !== "vip") return false;
 
-    const roleKey = role === "vip" ? "vip" : "moderator";
     const cacheKey = `${roleKey}:${broadcasterId}:${identity.userId || identity.login}`;
     const cached = cacheGet(cacheKey);
-    if (cached !== undefined) return cached;
+    if (cached === true) return true;
+    if (cached === false && roleKey !== "vip") return false;
 
-    const pathname = roleKey === "vip" ? "/channels/vips" : "/moderation/moderators";
-    const params = new URLSearchParams({
-      broadcaster_id: broadcasterId,
-      user_id: identity.userId
-    });
-    const url = `https://api.twitch.tv/helix${pathname}?${params.toString()}`;
-    const json = await httpGetJson(url, headers);
-    const hasRole = Array.isArray(json.data) && json.data.length > 0;
+    let directCheckResult = null;
+    if (identity.userId && cached !== false) {
+      try {
+        const pathname = roleKey === "vip" ? "/channels/vips" : "/moderation/moderators";
+        const params = new URLSearchParams({
+          broadcaster_id: broadcasterId,
+          user_id: identity.userId
+        });
+        const url = `https://api.twitch.tv/helix${pathname}?${params.toString()}`;
+        const json = await httpGetJson(url, headers);
+        directCheckResult = Array.isArray(json.data) && json.data.length > 0;
+      } catch (_) {
+        directCheckResult = null;
+      }
+    }
 
-    cacheSet(cacheKey, hasRole);
-    return hasRole;
+    if (directCheckResult === true) {
+      cacheSet(cacheKey, true);
+      return true;
+    }
+
+    if (roleKey === "vip") {
+      const listCheckResult = await checkTargetVipViaList(identity, {
+        ...options,
+        clientId,
+        broadcasterId,
+        accessToken
+      });
+
+      if (listCheckResult !== null) {
+        cacheSet(cacheKey, listCheckResult);
+        return listCheckResult;
+      }
+    }
+
+    if (directCheckResult === false) {
+      cacheSet(cacheKey, false);
+      return false;
+    }
+
+    return null;
   } catch (_) {
     return null;
   }

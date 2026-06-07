@@ -15,8 +15,8 @@ try {
 }
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.26";
-const MODULE_BUILD = "step8.19.38-already-vip-vip30-message-cleanup";
+const MODULE_VERSION = "0.8.27";
+const MODULE_BUILD = "step8.19.39-vip-precheck-list-fallback";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
