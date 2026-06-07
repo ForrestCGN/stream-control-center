@@ -9,8 +9,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.21";
-const MODULE_BUILD = "step8.19.33-settings-surface-cleanup";
+const MODULE_VERSION = "0.8.22";
+const MODULE_BUILD = "step8.19.34-live-grant-atomic-safety";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -944,6 +944,30 @@ function getTwitchClientSettings() {
     tokenStore: getTwitchTokenStorePath()
   };
 }
+
+function getTwitchBroadcasterLoginCandidate() {
+  const env = getRuntimeEnv();
+  return cleanString(
+    env.TWITCH_BROADCASTER_LOGIN ||
+    env.TWITCH_CHANNEL_LOGIN ||
+    env.TWITCH_CHANNEL ||
+    env.BROADCASTER_LOGIN ||
+    env.CHANNEL_LOGIN ||
+    ""
+  ).replace(/^@+/, "").toLowerCase();
+}
+
+function isVip30BroadcasterTarget(normalized = {}) {
+  const settings = getTwitchClientSettings();
+  const broadcasterId = cleanString(settings.broadcasterId || "");
+  const broadcasterLogin = getTwitchBroadcasterLoginCandidate();
+  const userId = cleanString(normalized.userId || "");
+  const userLogin = cleanString(normalized.userLogin || "").replace(/^@+/, "").toLowerCase();
+  if (broadcasterId && userId && broadcasterId === userId) return true;
+  if (broadcasterLogin && userLogin && broadcasterLogin === userLogin) return true;
+  return false;
+}
+
 async function refreshTwitchUserTokenIfNeeded() {
   const settings = getTwitchClientSettings();
   const tokenData = readJsonFileSafe(settings.tokenStore, null);
@@ -1612,6 +1636,83 @@ function findActiveSlotForDecision(normalized) {
   return mapSlotRow(row);
 }
 
+function createVip30SlotFromDecision(decision = {}, source = "live_eventsub") {
+  ensureDbReady();
+  const config = getConfig();
+  const user = decision && decision.user ? decision.user : {};
+  const redemption = decision && decision.redemption ? decision.redemption : {};
+  const userId = cleanString(user.userId || "");
+  const userLogin = cleanString(user.userLogin || "").toLowerCase();
+  const userDisplayName = cleanString(user.userDisplayName || userLogin || userId || "");
+  if (!userId && !userLogin) throw Object.assign(new Error("missing_user_for_slot_write"), { code: "missing_user_for_slot_write" });
+
+  const activeAgain = findActiveSlotForDecision({ userId, userLogin });
+  if (activeAgain) {
+    return {
+      ok: true,
+      reused: true,
+      slotId: activeAgain.id,
+      slot: activeAgain,
+      startUtc: activeAgain.startUtc,
+      endUtc: activeAgain.endUtc,
+      reason: "already_has_active_slot"
+    };
+  }
+
+  const startedAt = nowIso();
+  const durationDays = Math.max(1, intValue(config.slots && config.slots.durationDays, 30));
+  const endUtc = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString();
+  const params = {
+    userId,
+    userLogin,
+    userDisplayName,
+    avatarUrl: cleanString(user.avatarUrl || ""),
+    startUtc: startedAt,
+    endUtc,
+    status: "active",
+    twitchRewardId: cleanString(redemption.twitchRewardId || ""),
+    twitchRedemptionId: cleanString(redemption.twitchRedemptionId || ""),
+    source: cleanString(source || "live_eventsub"),
+    createdAt: startedAt,
+    updatedAt: startedAt,
+    revokedAt: "",
+    lastError: ""
+  };
+
+  const runResult = database.run(`
+    INSERT INTO vip30_slots (
+      user_id, user_login, user_display_name, avatar_url,
+      start_utc, end_utc, status, twitch_reward_id, twitch_redemption_id,
+      source, created_at, updated_at, revoked_at, last_error
+    ) VALUES (
+      :userId, :userLogin, :userDisplayName, :avatarUrl,
+      :startUtc, :endUtc, :status, :twitchRewardId, :twitchRedemptionId,
+      :source, :createdAt, :updatedAt, :revokedAt, :lastError
+    )
+  `, params);
+
+  const slotId = Number(runResult && (runResult.lastInsertRowid || runResult.lastID || runResult.id) || 0);
+  const row = slotId
+    ? database.get("SELECT * FROM vip30_slots WHERE id = :id", { id: slotId })
+    : database.get(`
+        SELECT * FROM vip30_slots
+        WHERE twitch_redemption_id = :redemptionId
+           OR ((:userId <> '' AND user_id = :userId) OR (:userLogin <> '' AND user_login = :userLogin))
+        ORDER BY id DESC
+        LIMIT 1
+      `, { redemptionId: params.twitchRedemptionId, userId, userLogin });
+  const slot = mapSlotRow(row);
+  return {
+    ok: true,
+    reused: false,
+    slotId: slot ? slot.id : slotId,
+    slot,
+    startUtc: slot ? slot.startUtc : startedAt,
+    endUtc: slot ? slot.endUtc : endUtc
+  };
+}
+
+
 function buildDryRunRedemptionDecision(input = {}, options = {}) {
   ensureDbReady();
   const config = getConfig();
@@ -1671,6 +1772,8 @@ function buildDryRunRedemptionDecision(input = {}, options = {}) {
     Object.assign(decision, { status: "blocked", blocked: true, reason: "module_disabled", wouldCancelRedemption: true, message: "VIP30 ist in der DB-Konfiguration deaktiviert." });
   } else if (!normalized.userId && !normalized.userLogin) {
     Object.assign(decision, { status: "blocked", blocked: true, reason: "missing_user", wouldCancelRedemption: true, message: "Keine Userdaten fuer VIP30-Entscheidung vorhanden." });
+  } else if (isVip30BroadcasterTarget(normalized)) {
+    Object.assign(decision, { status: "blocked", blocked: true, reason: "target_is_broadcaster", wouldCancelRedemption: true, message: "Der Streamer kann VIP30 nicht fuer den eigenen Kanal einloesen." });
   } else if (activeSlot && config.slots.blockExistingSlot !== false) {
     Object.assign(decision, { status: "blocked", blocked: true, reason: "already_has_vip30_slot", wouldCancelRedemption: true, message: "User hat bereits einen aktiven VIP30-Slot." });
   } else if (normalized.targetIsModerator && config.slots.blockModerators !== false) {
@@ -2631,6 +2734,8 @@ function vip30SafeReasonText(reason = "") {
     already_has_vip30_slot: "hat bereits einen aktiven 30-Tage-VIP-Slot",
     target_is_already_vip: "ist bereits VIP",
     target_is_moderator: "ist Moderator und bekommt kein VIP30-Upgrade",
+    target_is_broadcaster: "ist der Streamer und kann kein VIP30 fuer den eigenen Kanal erhalten",
+    failed_after_vip_grant: "VIP wurde vergeben, aber die Nachverarbeitung muss geprueft werden",
     slots_full: "alle VIP30-Slots sind belegt",
     module_disabled: "VIP30 ist aktuell deaktiviert",
     missing_user: "Userdaten fehlen",
@@ -2651,6 +2756,9 @@ function buildVip30DecisionBlockedChatText(decision = {}, result = {}) {
   }
   if (reason === "target_is_moderator") {
     return `ℹ️ ${name} ist Moderator. VIP30 wurde nicht vergeben, die Kanalpunkte wurden zurückgegeben.`;
+  }
+  if (reason === "target_is_broadcaster") {
+    return `ℹ️ ${name} ist der Streamer. VIP30 kann nicht fuer den eigenen Kanal eingelöst werden, die Kanalpunkte wurden zurückgegeben.`;
   }
   if (reason === "slots_full") {
     return `⚠️ Alle VIP30-Plätze sind aktuell belegt. Die Kanalpunkte von ${name} wurden zurückgegeben.`;
@@ -2816,10 +2924,34 @@ async function executeVip30LiveFlow(input = {}, options = {}) {
     return result;
   } catch (err) {
     const message = err && err.message ? err.message : String(err);
-    result.status = "failed";
-    result.reason = err && err.code || "live_flow_failed";
-    result.error = { message, statusCode: err && err.statusCode || 0, data: err && err.data || null, activeSlot: err && err.activeSlot || null };
-    if (decision.redemption && decision.redemption.twitchRewardId && decision.redemption.twitchRedemptionId) {
+    const vipGrantSucceeded = result.grant && result.grant.ok === true;
+    result.status = vipGrantSucceeded ? "failed_after_vip_grant" : "failed";
+    result.reason = vipGrantSucceeded ? "failed_after_vip_grant" : (err && err.code || "live_flow_failed");
+    result.error = { message, statusCode: err && err.statusCode || 0, data: err && err.data || null, activeSlot: err && err.activeSlot || null, vipGrantSucceeded };
+
+    if (vipGrantSucceeded && !result.slotWrite) {
+      try {
+        result.slotWrite = createVip30SlotFromDecision(decision, "live_eventsub_recovery_after_grant");
+        result.recovery = { ...(result.recovery || {}), slotWriteRecovered: true };
+      } catch (slotErr) {
+        result.recovery = { ...(result.recovery || {}), slotWriteRecovered: false, slotWriteError: slotErr && slotErr.message ? slotErr.message : String(slotErr) };
+      }
+    }
+
+    if (vipGrantSucceeded && result.slotWrite && result.slotWrite.ok && !result.redemptionUpdate) {
+      try {
+        result.redemptionUpdate = await twitchFulfillRedemption(decision.redemption.twitchRewardId, decision.redemption.twitchRedemptionId);
+        if (result.redemptionUpdate && result.redemptionUpdate.ok) {
+          result.ok = true;
+          result.status = "vip_granted_slot_created_redemption_fulfilled_after_recovery";
+          result.reason = result.status;
+        }
+      } catch (fulfillErr) {
+        result.recovery = { ...(result.recovery || {}), fulfillRecovered: false, fulfillError: fulfillErr && fulfillErr.message ? fulfillErr.message : String(fulfillErr), fulfillStatusCode: fulfillErr && fulfillErr.statusCode || 0, fulfillData: fulfillErr && fulfillErr.data || null };
+      }
+    }
+
+    if (!vipGrantSucceeded && decision.redemption && decision.redemption.twitchRewardId && decision.redemption.twitchRedemptionId) {
       try {
         result.redemptionUpdate = await twitchCancelRedemption(decision.redemption.twitchRewardId, decision.redemption.twitchRedemptionId);
         if (result.redemptionUpdate && result.redemptionUpdate.ok) {
@@ -2829,24 +2961,28 @@ async function executeVip30LiveFlow(input = {}, options = {}) {
         result.redemptionUpdate = { ok: false, error: cancelErr && cancelErr.message ? cancelErr.message : String(cancelErr), statusCode: cancelErr && cancelErr.statusCode || 0, data: cancelErr && cancelErr.data || null };
       }
     }
+
     result.finishedAt = nowIso();
-    writeLog("live_flow_failed", {
+    writeLog(result.ok ? "live_flow_recovered_after_vip_grant" : "live_flow_failed", {
       userId: decision.user.userId,
       userLogin: decision.user.userLogin,
       userDisplayName: decision.user.userDisplayName,
       twitchRewardId: decision.redemption.twitchRewardId,
       twitchRedemptionId: decision.redemption.twitchRedemptionId,
-      success: false,
+      slotId: result.slotWrite && result.slotWrite.slotId,
+      success: result.ok === true,
       reason: result.reason,
-      message,
+      message: vipGrantSucceeded && !result.ok
+        ? "Twitch VIP wurde vergeben, aber die Nachverarbeitung muss manuell geprueft werden. Redemption wurde nicht refunded."
+        : message,
       errorCode: result.reason,
       errorMessage: message,
       payload: result
     });
-    result.chat = await sendVip30LiveChatMessage(buildVip30FailedChatText(decision, result), "vip30_live_failed");
-    lastError = message;
-    emitLiveExecutionEvent("live.failed", { result });
-    publishStatus("live_flow_failed");
+    result.chat = await sendVip30LiveChatMessage(result.ok ? buildVip30SuccessChatText(decision) : buildVip30FailedChatText(decision, result), result.ok ? "vip30_live_recovered" : "vip30_live_failed");
+    lastError = result.ok ? "" : message;
+    emitLiveExecutionEvent(result.ok ? "live.recovered_after_grant" : "live.failed", { result });
+    publishStatus(result.ok ? "live_flow_recovered_after_grant" : "live_flow_failed");
     return result;
   }
 }
