@@ -1,105 +1,136 @@
-# CHANGELOG – CAN-44 Shoutout-System
+# CHANGELOG – VIP30 / 30-Tage-VIP-System
 
-## CAN-44.31 – Shoutout Overlay Sets Compact UI
+## STEP8.19.43 – VIP30 Status Command
 
-- Dashboard-Spezialeditor für `shoutout.overlay.sets` optisch bereinigt.
-- Vorschau-Zeile pro Set entfernt.
-- `Set löschen` in die Set-Kopfzeile neben `aktiv` verschoben.
-- Set-Karten kompakter gemacht.
-- Keine Backend-, Overlay-, Queue-, Bus-, Playback- oder Audio-Finish-Änderung.
+- `backend/modules/vip30.js` auf Version `0.8.30` / Build `step8.19.43-status-command` angehoben.
+- `backend/modules/commands.js` auf Version `0.1.8` / Build `vip30-command-catalog` angehoben.
+- Neue Chatcommands:
+  - `!vip30`
+  - `!vip30 me`
+  - `!vip30 slots`
+  - `!vip30 help`
+  - `!vip30 @user` nur für Mods/Broadcaster
+- Commands sind rein lesend und dürfen keinen VIP-Grant, Slot-Write oder Redemption-Update auslösen.
+- Syntaxcheck bestätigt:
+  - `node -c backend/modules/vip30.js`
+  - `node -c backend/modules/commands.js`
+- Status bestätigt:
+  - VIP30 `0.8.30 / step8.19.43-status-command`
+  - Commands `0.1.8 / vip30-command-catalog`
 
-## CAN-44.30 – Shoutout Overlay Sets Dropdown Visible Fix
+## STEP8.19.42 – VIP30 Chat Wording Polish
 
-- `shoutout.overlay.sets` wird direkt in `textRowsForCategory('shoutout.overlay')` injiziert.
-- Zusätzlicher Guard in `renderTextKeyOptions()` sorgt dafür, dass der Spezial-Key im Dropdown sichtbar bleibt.
-- Zielpfad: Community -> Shoutout -> Texte -> Kategorie `Shoutout Overlay` -> Textkey `shoutout.overlay.sets`.
+- `backend/modules/vip30.js` auf Version `0.8.29` / Build `step8.19.42-chat-wording-polish` angehoben.
+- Chattexte im CGN-/Altersheim-Stil überarbeitet.
+- Mehrere zufällige Varianten für:
+  - erfolgreiche VIP30-Vergabe
+  - bereits aktiver VIP30-Slot
+  - bereits Twitch-VIP ohne VIP30
+  - Moderator
+  - Broadcaster/Streamer
+  - Slots voll
+- Keine Änderung an Grant, Slot-Write, Redemption, Dashboard oder Alert/Sound.
 
-## CAN-44.29 – Shoutout Overlay Sets Dropdown Editor
+## STEP8.19.41 – Alert Sound MediaId Direct Fix
 
-- Spezialeditor für `shoutout.overlay.sets` im bestehenden Texte-Tab vorbereitet.
-- Ziel: Weiter über bestehendes Kategorie-/Textkey-Dropdown arbeiten, nicht über separate Seite.
-- Set-Zeilen mit ID, aktiv, Gewichtung, Headline und Subline ergänzt.
+- `backend/modules/vip30.js` auf Version `0.8.28` / Build `step8.19.41-alert-sound-mediaid-direct-fix` angehoben.
+- Fehlerbild behoben:
 
-## CAN-44.28 – Shoutout Overlay Sets Integrated Dashboard
+```text
+vip30_alert_sound_bundle_failed
+Sound wurde nicht gefunden
+soundId: vip30_default-media
+mediaId: 1459
+```
 
-- Erster Versuch, Overlay-Set-Verwaltung in `shoutout_v2.js/css` zu integrieren.
-- Ergebnis war noch nicht korrekt sichtbar, weil der Spezial-Key im Dropdown fehlte.
+- Ursache: VIP30 sendete bei Media-Registry-Sounds gleichzeitig eine interne SoundPool-ID als `soundId`, wodurch das Sound-System vor der `mediaId`-Auflösung abbrach.
+- Fix: Wenn `mediaId` oder `mediaPath` vorhanden ist, wird kein Fake-`soundId` mehr gesendet.
+- SoundKey/Preset-Fallback bleibt erhalten, wenn kein Media-Eintrag vorhanden ist.
+- Bestätigt: VIP30-Alert/Sound läuft nach erfolgreicher Einlösung wieder.
 
-## CAN-44.27 – Shoutout Overlay Sets Dashboard UI
+## STEP8.19.40 – Dashboard Active Slot Filter
 
-- Erster eigenständiger UI-Entwurf für Overlay-Sets.
-- Danach verworfen bzw. nicht als Zielstruktur weitergeführt, weil die Verwaltung in den bestehenden Texte-Tab soll.
+- `htdocs/dashboard/modules/vip30.js` und `htdocs/dashboard/modules/vip30.css` aktualisiert.
+- Hauptliste im Dashboard zeigt nur aktive VIP30-Slots (`status = active`).
+- Verlauf/Freigaben/Fehler werden separat dargestellt.
+- Keine DB-Änderung.
+- Keine Backend-Änderung.
+- `external_removed` bleibt Verlauf und zählt nicht als aktiver Slot.
 
-## CAN-44.26 – Shoutout Overlay Paired Sets
+## STEP8.19.39 – Twitch VIP Precheck List Fallback
 
-- Backend-Config um `overlaySets` ergänzt.
-- Headline/Subline werden als zusammengehörige Paare behandelt.
-- Neue API:
-  - `GET /api/clip-shoutout/overlay-sets`
-  - `POST /api/clip-shoutout/overlay-sets`
-- Alte Textkeys bleiben als Fallback erhalten:
-  - `shoutout.overlay.headline`
-  - `shoutout.overlay.subline`
+- `backend/modules/helpers/helper_twitch_roles.js` und `backend/modules/vip30.js` aktualisiert.
+- `isTargetVip(...)` robuster gemacht:
+  - Einzelcheck per Twitch `/channels/vips?user_id=...`
+  - Fallback über komplette VIP-Liste via `listChannelVips()`
+  - Match per `userId` oder normalisiertem Login
+- Problem behoben, bei dem ein normaler Twitch-VIP ohne VIP30 erst bis zum Twitch-Grant lief und Twitch mit 422 ablehnte.
+- Bestätigt: Twitch-VIP ohne VIP30 wird jetzt vor Grant mit `target_is_already_vip` geblockt.
 
-## CAN-44.25 – Shoutout Overlay Texts Dashboard
+## STEP8.19.38 – Already VIP / VIP30 Message Cleanup
 
-- DB-/Dashboardfähige Textkeys für Overlay-Headline und Overlay-Subline vorbereitet.
-- Kategorie `shoutout.overlay` ergänzt.
-- Später durch das Paar-System aus CAN-44.26 bevorzugt ersetzt, bleibt aber Fallback.
+- Unterscheidung ergänzt:
+  - `already_has_vip30_slot`: User hat aktiven VIP30-Slot.
+  - `target_is_already_vip`: User ist Twitch-VIP, aber nicht VIP30.
+- Entsprechende Chatmeldungen und Gründe getrennt.
 
-## CAN-44.24f – Sound-System-Overlay H15 Avatar Position Fix
+## STEP8.19.37 – Chat Wording Cleanup
 
-- H15-Layout im bestehenden `sound_system_overlay.html` als vorläufig akzeptierte Basis integriert.
-- Avatar-Positionierung im runden Avatar-Bereich gefixt.
-- Kein Wechsel auf `_overlay-clip_player.html`.
+- Chat-/User-Texte von „VIP30 wurde nicht vergeben“ auf „VIP wurde nicht vergeben“ angepasst, wo es um Twitch-VIP-Grant geht.
+- Broadcaster-/Moderator-/Role-Precheck-Fehlertexte bereinigt.
 
-## CAN-44.21.41 – AutoShoutout Instant Trigger Messages
+## STEP8.19.36 – External VIP Remove Event Emit Fix
 
-- AutoShoutout-Sofort-Auslöser ergänzt.
-- Standard-Sofort-Auslöser: `!lurk`, `!lurke`, `lurk`.
-- Sofort-Auslöser können Mindestnachrichten umgehen.
-- Normale Nachrichtenzählung bleibt erhalten: erste Nachricht zählt als 1.
-- `!so` und `!vso` bleiben normale Shoutout-Commands.
+- Fehlenden Helper `emitLiveExecutionEvent(...)` ergänzt.
+- Fehler im EventSub-Pfad `channel.vip.remove` behoben.
+- Slot-Freigabe bei externem VIP-Entzug blieb unverändert.
 
-## CAN-44.21.40 – Shoutout Settings Save Fix
+## STEP8.19.35 – Twitch Roles Helper Precheck
 
-- Speichern liest Formularwerte jetzt vor dem Rendern.
-- Bug behoben, bei dem Änderungen scheinbar verworfen/neu geladen wurden.
+- `backend/modules/helpers/helper_twitch_roles.js` erweitert.
+- Neue/erweiterte Funktionen:
+  - `isTargetVip`
+  - `getChannelUserRoleState`
+- VIP30 nutzt Rollenhelper vor Twitch-Grant.
+- Blocker vor Grant:
+  - Broadcaster
+  - Moderator
+  - bestehender Twitch-VIP
+- Chattext „Punkte zurückgegeben“ nur wenn Twitch cancel/refund bestätigt.
 
-## CAN-44.21.39 – Shoutout Settings Help Tooltips
+## Frühere STEP8.19.x VIP30-Stände
 
-- Hilfe-Tooltips für relevante Settings ergänzt.
-- Hover/Fokus-Hilfe über kleines `?`.
-- Hover-Zustand für Settings-Zeilen ergänzt.
+Die wichtigsten stabilisierten Themen vor STEP8.19.35:
 
-## CAN-44.21.38 – Shoutout Settings Layout Cleanup
+- Dashboard-Live-Readiness / Tile Truth.
+- Legacy-Gate-Cleanup.
+- Desired Reward / DB Override Cleanup.
+- Twitch Capability Cleanup.
+- Legacy Live Routes Cleanup.
+- Dashboard Settings Filter / Settings Surface Cleanup.
+- Live Grant Atomic Safety Fix.
 
-- Settings-Layout kompakter gemacht.
-- Command-Zuordnung reduziert/einklappbar.
-- Gruppen klarer sortiert.
-- Save/Reload besser erreichbar.
+## Bestätigter Teststand nach STEP8.19.43
 
-## CAN-44.21.37 – Shoutout Dashboard Settings Editable
+VIP30-Logs für `YouneCraft` zeigten:
 
-- Settings-Tab editierbar gemacht.
-- altes Shoutout-Dashboard aus `index.html` deaktiviert.
-- Shoutout V2 wird produktiv als `Shoutout` angezeigt.
-- Command-Konfiguration bleibt im Commands-Dashboard.
+```text
+live_flow_vip_granted_slot_created_redemption_fulfilled  True
+vip30_alert_sound_bundle_queued                          True
+live_flow_decision_blocked                               False  already_has_vip30_slot
+external_vip_remove_slot_released                        True   external_removed
+```
 
-## CAN-44.21.34 – Command Definitions Source of Truth Fix
+Damit bestätigt:
 
-- `command_definitions` ist Source of Truth.
-- alte Config `command: vso` überschreibt den Command nicht mehr.
-- `!so` Hauptcommand, `!vso` Alias.
-- keine DefaultTrigger-Logik mehr aktiv.
+- Ersteinlösung erfolgreich.
+- Alert/Sound queued.
+- Zweite Einlösung blockiert.
+- Externer VIP-Remove gibt Slot frei.
 
-## CAN-44.21.30 – Direct Intake Trigger Fix
+## Wichtige Regeln
 
-- Direct-Intake erkennt `!so` wieder korrekt.
-- Silent-Drop bei `!so` behoben.
-
-## CAN-44.21.29 – Manual SO Intake Official Retry Dedup
-
-- OfficialQueue-Dedup-/Retry-Verhalten für manuelle Shoutouts verbessert.
-- Manuelle Wiederholung darf konkreten Streamer erneut versuchen.
-- Worker-Retrys sollen nicht chatten.
+- Keine Funktionalität entfernen.
+- Produktive SQLite-Datenbank nicht ersetzen.
+- VIP30-eigenen Logs-Endpunkt nutzen, bevor allgemeine Logs oder DB-Tabellen blind gesucht werden.
+- Doku bei weiteren Steps sofort aktualisieren.
