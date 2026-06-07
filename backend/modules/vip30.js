@@ -9,8 +9,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.15";
-const MODULE_BUILD = "step8.19.25-legacy-gate-cleanup";
+const MODULE_VERSION = "0.8.16";
+const MODULE_BUILD = "step8.19.26-desired-reward-tile-truth";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -56,7 +56,7 @@ const DEFAULT_CONFIG = {
     categorySortOrder: 70,
     rewardSortOrder: 300,
     systemEnabled: true,
-    twitchIsEnabled: false,
+    twitchIsEnabled: true,
     isPaused: false,
     requireUserInput: false,
     inputLabel: "",
@@ -1460,7 +1460,7 @@ function buildDesiredChannelpointsReward() {
     category_key: reward.categoryKey,
     sort_order: intValue(cp.rewardSortOrder, 300),
     system_enabled: boolDb(boolValue(cp.systemEnabled, true)),
-    twitch_is_enabled: 0,
+    twitch_is_enabled: boolDb(boolValue(cp.twitchIsEnabled, true)),
     is_paused: boolDb(boolValue(cp.isPaused, false)),
     require_user_input: boolDb(boolValue(cp.requireUserInput, false)),
     input_label: cleanString(cp.inputLabel || ""),
@@ -1475,7 +1475,7 @@ function buildDesiredChannelpointsReward() {
     max_per_stream: intValue(cp.maxPerStream, 0),
     max_per_user_per_stream: intValue(cp.maxPerUserPerStream, 0),
     auto_fulfill: 0,
-    notes: cleanString(cp.notes || "VIP30-Reward wird vom VIP30-Modul verwaltet. Twitch bleibt in STEP3 inaktiv.")
+    notes: cleanString(cp.notes || "VIP30-Reward wird vom VIP30-Modul verwaltet. Die VIP30-Kachel ist die Live-Wahrheit.")
   };
 }
 
@@ -1546,7 +1546,6 @@ function buildChannelpointsRewardStatus() {
     safety: {
       localDbOnly: true,
       noTwitchWrite: true,
-      twitchIsEnabledForcedFalseInStep3: true,
       noVipGrant: true,
       noRedemptionFulfillCancel: true,
       cost: reward.cost
