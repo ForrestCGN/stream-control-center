@@ -21,13 +21,19 @@ window.Vip30Module = (function(){
     'alerts.overlaySets',
     'logging.enabled',
     'reward.title',
+    'reward.cost',
     'reward.prompt',
     'slots.maxSlots',
     'slots.durationDays',
     'cleanup.releaseSlotOnExternalVipRemove'
   ]);
 
-  const CRITICAL_PREFIXES = ['live.', 'twitch.', 'bridge.', 'channelpoints.'];
+  const CRITICAL_PREFIXES = ['bridge.', 'channelpoints.'];
+  const LEGACY_SETTING_PREFIXES = ['live.', 'twitch.'];
+  const LEGACY_SETTING_KEYS = new Set([
+    'bridge.decisionOnly',
+    'channelpoints.twitchIsEnabled'
+  ]);
   const CRITICAL_KEYS = new Set([
     'cleanup.enabled',
     'cleanup.removeVipOnExpire',
@@ -103,7 +109,16 @@ window.Vip30Module = (function(){
   }
 
   function apiErr(err){ return err && err.message ? err.message : String(err || 'Unbekannter Fehler'); }
-  function settingRows(){ return arr(state.settings?.settings); }
+  function isLegacySettingKey(key){
+    const clean = String(key || '');
+    return LEGACY_SETTING_KEYS.has(clean) || LEGACY_SETTING_PREFIXES.some(prefix => clean.startsWith(prefix));
+  }
+  function rawSettingRows(){ return arr(state.settings?.settings); }
+  function settingRows(){
+    const rows = rawSettingRows();
+    return rows.filter(row => !isLegacySettingKey(row?.key));
+  }
+  function settingsNeedLoad(){ return !state.settings || (state.settings.ok === false) || !rawSettingRows().length; }
   function getSettingRow(key){
     const clean = String(key || '');
     return settingRows().find(row => String(row.key || '') === clean) || null;
@@ -114,6 +129,7 @@ window.Vip30Module = (function(){
   }
   function isCriticalSetting(key){
     const clean = String(key || '');
+    if (isLegacySettingKey(clean)) return false;
     return CRITICAL_KEYS.has(clean) || CRITICAL_PREFIXES.some(prefix => clean.startsWith(prefix));
   }
   function isSafeEditable(row){
@@ -594,6 +610,7 @@ window.Vip30Module = (function(){
       vip30TileActive: 'VIP30-Kachel ist nicht aktiv.',
       actionTypeVip30: 'Action-Type der Kachel ist nicht vip30.',
       actionKeyVip30: 'Action-Key der Kachel ist nicht vip30.redeem.',
+      queueOk: 'Queue der Kachel ist nicht vip30.',
       queueVip30: 'Queue der Kachel ist nicht vip30.',
       rewardSystemEnabled: 'Reward-System ist deaktiviert.',
       rewardTwitchEnabled: 'Twitch-Reward ist deaktiviert.',
@@ -603,13 +620,13 @@ window.Vip30Module = (function(){
       twitchRewardIdLinked: 'Twitch Reward-ID ist nicht korrekt verknüpft.'
     };
 
-    const hardGates = [
+    const requiredChecks = [
       { keys: ['moduleEnabled'], label: 'Modul aktiv' },
       { keys: ['vip30TileFound'], label: 'VIP30-Kachel gefunden' },
       { keys: ['vip30TileActive'], label: 'VIP30-Kachel aktiv' },
       { keys: ['actionTypeVip30'], label: 'Action-Type = vip30' },
       { keys: ['actionKeyVip30'], label: 'Action-Key = vip30.redeem' },
-      { keys: ['queueVip30'], label: 'Queue = vip30' },
+      { keys: ['queueOk', 'queueVip30'], label: 'Queue = vip30' },
       { keys: ['rewardSystemEnabled'], label: 'Reward-System aktiv' },
       { keys: ['rewardTwitchEnabled'], label: 'Twitch-Reward aktiv' },
       { keys: ['rewardNotPaused'], label: 'Reward nicht pausiert' }
@@ -622,17 +639,17 @@ window.Vip30Module = (function(){
       return null;
     };
 
-    const gateRows = hardGates
-      .map(gate => {
-        const found = firstDefinedCheck(gate.keys);
-        return found ? { ...gate, key: found.key, value: found.value } : null;
+    const requiredRows = requiredChecks
+      .map(check => {
+        const found = firstDefinedCheck(check.keys);
+        return found ? { ...check, key: found.key, value: found.value } : null;
       })
       .filter(Boolean);
 
-    const failedGateRows = gateRows.filter(row => row.value === false || blockers.includes(row.key));
-    const visibleGateRows = armed ? gateRows.filter(row => row.value === true) : failedGateRows;
+    const failedRequiredRows = requiredRows.filter(row => row.value === false || blockers.includes(row.key));
+    const visibleRequiredRows = armed ? requiredRows.filter(row => row.value === true) : failedRequiredRows;
     const unknownBlockerRows = blockers
-      .filter(key => !failedGateRows.some(row => row.key === key))
+      .filter(key => !failedRequiredRows.some(row => row.key === key))
       .map(key => ({ key, label: blockerLabels[key] || key }));
 
     if (!hasLive) {
@@ -667,11 +684,11 @@ window.Vip30Module = (function(){
         <div><span>Twitch Reward-ID</span><strong>${esc(rewardId)}</strong></div>
         ${(actionType || actionKey || queueMode) ? `<div><span>Kachel</span><strong>${esc([actionType, actionKey, queueMode].filter(Boolean).join(' · '))}</strong></div>` : ''}
       </div>
-      ${visibleGateRows.length ? `<div class="vip30-live-checks">
-        ${visibleGateRows.map(row => statusDot(row.label, row.value === true && !blockers.includes(row.key), row.value === true && !blockers.includes(row.key) ? 'OK' : (blockerLabels[row.key] || 'Blocker'))).join('')}
+      ${visibleRequiredRows.length ? `<div class="vip30-live-checks">
+        ${visibleRequiredRows.map(row => statusDot(row.label, row.value === true && !blockers.includes(row.key), row.value === true && !blockers.includes(row.key) ? 'OK' : (blockerLabels[row.key] || 'Blocker'))).join('')}
       </div>` : ''}
       ${unknownBlockerRows.length ? `<div class="vip30-live-blockers"><strong>Blocker:</strong><ul>${unknownBlockerRows.map(row => `<li>${esc(row.label)}</li>`).join('')}</ul></div>` : ''}
-      ${!armed && !failedGateRows.length && !unknownBlockerRows.length ? `<div class="vip30-live-blockers"><strong>Blocker:</strong> ${esc(blockers.length ? blockers.join(', ') : 'Backend meldet blockiert, aber keinen konkreten Blocker.')}</div>` : ''}
+      ${!armed && !failedRequiredRows.length && !unknownBlockerRows.length ? `<div class="vip30-live-blockers"><strong>Blocker:</strong> ${esc(blockers.length ? blockers.join(', ') : 'Backend meldet blockiert, aber keinen konkreten Blocker.')}</div>` : ''}
     </section>`;
   }
 
@@ -758,8 +775,22 @@ window.Vip30Module = (function(){
 
   function renderSettings(){
     const rows = settingRows();
+    const rawRows = rawSettingRows();
     if (!rows.length) {
-      return `<section class="vip30-card glass"><h3>Config</h3><div class="vip30-empty">Keine Settings geladen.</div></section>`;
+      const errorText = state.settings && state.settings.ok === false ? (state.settings.error || state.settings.reason || 'Settings konnten nicht geladen werden.') : '';
+      const detail = rawRows.length
+        ? 'Alle geladenen Settings wurden als Legacy ausgeblendet. Das sollte nicht passieren.'
+        : 'Keine aktiven VIP30-Settings vom Backend erhalten.';
+      return `<section class="vip30-card glass">
+        <div class="vip30-card-head">
+          <div>
+            <h3>Config</h3>
+            <p>${esc(detail)}</p>
+          </div>
+          <button type="button" data-vip30-refresh>Neu laden</button>
+        </div>
+        ${errorText ? `<div class="vip30-error">${esc(errorText)}</div>` : '<div class="vip30-empty">Keine aktiven Settings geladen.</div>'}
+      </section>`;
     }
 
     const safeRows = rows.filter(row => isSafeEditable(row) && !['alerts.mediaId', 'alerts.soundPool', 'alerts.overlaySets'].includes(String(row.key || '')));
@@ -1255,7 +1286,15 @@ window.Vip30Module = (function(){
 
   function bind(){
     root?.querySelectorAll('[data-vip30-refresh]').forEach(btn => btn.addEventListener('click', () => loadAll(true)));
-    root?.querySelectorAll('[data-vip30-tab]').forEach(btn => btn.addEventListener('click', () => { state.tab = btn.dataset.vip30Tab || 'overview'; render(); }));
+    root?.querySelectorAll('[data-vip30-tab]').forEach(btn => btn.addEventListener('click', () => {
+      const nextTab = btn.dataset.vip30Tab || 'overview';
+      state.tab = nextTab;
+      if (['settings', 'sounds', 'texts'].includes(nextTab) && settingsNeedLoad()) {
+        loadAll(true);
+        return;
+      }
+      render();
+    }));
     root?.querySelectorAll('[data-vip30-save-settings]').forEach(btn => btn.addEventListener('click', () => saveSettings()));
     root?.querySelectorAll('[data-vip30-refresh-part]').forEach(btn => btn.addEventListener('click', () => refreshPart(btn.dataset.vip30RefreshPart || '', btn.dataset.vip30RefreshLabel || '')));
     root?.querySelector('[data-vip30-alert-test]')?.addEventListener('click', () => runAlertTest());
