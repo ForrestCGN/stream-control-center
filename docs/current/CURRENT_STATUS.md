@@ -2,132 +2,160 @@
 
 ## Aktueller Bereich
 
-Aktiver Arbeitsbereich: **CAN-44 Shoutout-System / Clip-Shoutout Overlay**
+Aktiver Arbeitsbereich: **VIP30 / 30-Tage-VIP-System**
 
 Aktueller stabiler Stand nach letzter Änderung:
 
-- `clip_shoutout` Modulversion: **0.2.42**
-- Hauptcommand: **`!so`**
-- Alias: **`!vso`**
-- Command-Quelle: **`command_definitions`**
-- Direct-Intake: liest Commands aus `command_definitions`
-- altes Dashboard-Modul `shoutout`: im Dashboard deaktiviert
-- neues Dashboard-Modul `shoutout_v2`: produktiv als **Shoutout** eingebunden
-- Sound-System-Overlay nutzt das kompakte H15/CAN44.24f Layout für Clip-Shoutouts
-- Dashboard-Texte für das Shoutout-Overlay nutzen jetzt bevorzugt **Headline/Subline-Paare** über `shoutout.overlay.sets`
+- `vip30` Modulversion: **0.8.30**
+- `vip30` Build: **step8.19.43-status-command**
+- `commands` Modulversion: **0.1.8**
+- `commands` Build: **vip30-command-catalog**
+- Dashboard-Step: **STEP8.19.40 – Dashboard Active Slot Filter**
+- Alert-/Sound-Fix: **STEP8.19.41 – Alert Sound MediaId Direct Fix**
+- Chattexte: **STEP8.19.42 – Chat Wording Polish**
+- Status-Command: **STEP8.19.43 – VIP30 Status Command**
 
-## Stabil bestätigte Punkte
+## Kurzstatus
 
-### CAN-44.21.34 – Direct-Intake stabil
+VIP30 läuft vollständig über Node im `stream-control-center`.
 
-Der nicht-live Ablaufstest mit `!so` wurde erfolgreich durchgeführt:
+Der getestete Liveflow ist stabil:
 
-- `!so @pretos1 --force` wurde erkannt und eingereiht.
-- `!so @together_not_alone --force` wurde erkannt und eingereiht.
-- erneutes `!so @pretos1 --force` wurde korrekt als `already_active_same_target` behandelt.
-- Status zeigte:
-  - `moduleVersion: 0.2.38`
-  - `command: so`
-  - `effectiveCommandTriggers: so, vso`
-  - `directIntake.source: command_definitions`
-  - `commandDefinitionCount: 1`
-  - `fallbackUsed: false`
+- Channelpoints-Redemption wird über Node verarbeitet.
+- Bei erfolgreicher Einlösung wird Twitch-VIP vergeben.
+- Ein VIP30-Slot wird als `active` gespeichert.
+- Die Redemption wird `FULFILLED`.
+- Der VIP30-Alert/Sound wird über das bestehende Sound-/Alert-System ausgelöst.
+- Eine zweite Einlösung durch denselben aktiven VIP30-User wird blockiert und refunded/canceled.
+- Externer VIP-Entzug wird erkannt und der passende VIP30-Slot wird freigegeben.
+- Dashboard zeigt aktive Slots getrennt vom Verlauf.
 
-### CAN-44.21.37 – Dashboard-Config editierbar
+## Bestätigte Testpunkte
 
-- Shoutout V2 ist im Dashboard jetzt das produktive **Shoutout**.
-- Altes Shoutout-Dashboard wurde aus `index.html` entfernt/deaktiviert.
-- Settings-Tab ist editierbar.
-- Commands/Aliase/Rechte/Cooldowns bleiben bewusst im Commands-Dashboard.
-- Shoutout-Dashboard speichert nur Modul-Config.
+### STEP8.19.39 – Twitch VIP Precheck List Fallback
 
-### CAN-44.21.38 – Settings Layout Cleanup
+Bestätigte Blocker vor Grant:
 
-- Settings-Seite wurde kompakter gruppiert.
-- Command-Zuordnung wurde reduziert/einklappbar gemacht.
-- Basis, Clip/Display, OfficialQueue, Stream-Regeln, Streamstatus/Start-Szene und AutoShoutout wurden klarer getrennt.
+- Broadcaster/Streamer wird geblockt: `target_is_broadcaster`.
+- Moderator wird geblockt: `target_is_moderator`.
+- Twitch-VIP ohne VIP30-Slot wird vor Grant geblockt: `target_is_already_vip`.
+- Bei diesen Fällen erfolgt kein Twitch-Grant und kein Slot-Write.
+- Redemption wird bei blockierten Einlösungen canceled/refunded, sofern Twitch-VIP nicht bereits erfolgreich vergeben wurde.
 
-### CAN-44.21.39 – Help Tooltips
+### STEP8.19.40 – Dashboard Active Slot Filter
 
-- Relevante Settings haben Hilfe-Tooltips erhalten.
-- Kurzhilfen bleiben weiterhin unter den Feldern sichtbar.
-- Settings-Zeilen haben Hover-Zustände.
+Bestätigt im Dashboard:
 
-### CAN-44.21.40 – Settings Save Fix
+- Hauptliste zeigt nur aktive VIP30-Slots (`status = active`).
+- Verlauf/Freigaben/Fehler werden separat angezeigt.
+- `external_removed` zählt nicht gegen die Slotgrenze.
+- Keine DB-Änderung, keine Backend-Änderung in diesem Step.
 
-- Bug behoben: Beim Speichern wurden Formularwerte vorher durch ein Rendern überschrieben.
-- Aktuelle Formularwerte werden nun vor dem Speichern gelesen.
+### STEP8.19.41 – Alert Sound MediaId Direct Fix
 
-### CAN-44.21.41 – AutoShoutout Instant Trigger Messages
+Ursache des Soundfehlers:
 
-- AutoShoutout zählt normale Nachrichten weiterhin:
-  - erste Nachricht zählt als 1
-  - bei Mindestnachrichten 3 sind noch zwei weitere Nachrichten nötig
-- Neue Sofort-Auslöser:
-  - `!lurk`
-  - `!lurke`
-  - `lurk`
-- Sofort-Auslöser können Mindestnachrichten umgehen, damit Streamer mit nur kurzem `!lurk` trotzdem verarbeitet werden können.
-- `!so` und `!vso` bleiben normale Shoutout-Commands und werden nicht als AutoShoutout-Sofort-Auslöser behandelt.
+- VIP30 übergab bei Media-Registry-Sounds gleichzeitig eine interne SoundPool-ID als `soundId` und eine `mediaId`.
+- Beispiel aus dem Fehlerbild: `soundId: vip30_default-media`, `mediaId: 1459`.
+- Das Sound-System interpretierte `soundId` als echtes Sound-Preset und brach ab, bevor `mediaId` aufgelöst wurde.
 
-### CAN-44.24f – Sound-System-Overlay H15
+Fix:
 
-- Shoutout-Darstellung im bestehenden `sound_system_overlay.html` auf H15-Layout stabilisiert.
-- Avatar-Positionierung im runden Avatar-Bereich gefixt.
-- H15 bleibt vorläufig akzeptierte visuelle Basis.
+- Wenn `mediaId` oder `mediaPath` vorhanden ist, sendet VIP30 keinen Fake-`soundId` mehr.
+- SoundKey/Preset-Fallback bleibt erhalten, wenn kein Media-Eintrag vorhanden ist.
 
-### CAN-44.26 – Overlay-Textpaare
+Bestätigt:
 
-- `clip_shoutout.js` nutzt `overlaySets` als bevorzugtes Paar-System für Headline/Subline.
-- Neue API:
-  - `GET /api/clip-shoutout/overlay-sets`
-  - `POST /api/clip-shoutout/overlay-sets`
-- Alte Textkeys bleiben als Fallback erhalten:
-  - `shoutout.overlay.headline`
-  - `shoutout.overlay.subline`
+- VIP30-Alert/Sound läuft nach erfolgreicher Einlösung wieder.
+- Kein `vip30_alert_sound_bundle_failed` wegen `Sound wurde nicht gefunden` im bestätigten Test.
 
-### CAN-44.30 – Dropdown sichtbar
+### STEP8.19.42 – Chat Wording Polish
 
-- `shoutout.overlay.sets` erscheint im Shoutout-Dashboard unter:
-  - Community -> Shoutout -> Texte
-  - Kategorie: `Shoutout Overlay`
-- Der Spezialeditor ersetzt bei diesem Key den normalen Varianteneditor.
+Geändert:
 
-### CAN-44.31 – Overlay-Set-Editor kompakt
+- Mehrere zufällige Chatvarianten im CGN-/Altersheim-Stil.
+- Varianten für Erfolg, bereits aktiver VIP30-Slot, bereits Twitch-VIP ohne VIP30, Moderator, Broadcaster und Slots voll.
+- Keine Funktionsänderung an Grant, Slot-Write, Redemption oder Alert/Sound.
 
-- Vorschau-Zeile unter jedem Set entfernt.
-- `Set löschen` sitzt oben rechts in der Set-Kopfzeile neben `aktiv`.
-- Set-Karten sind kompakter.
-- Nutzer bestätigte: **Sieht gut aus**.
+### STEP8.19.43 – VIP30 Status Command
 
-## Aktuelle Overlay-Set-Textliste
+Neu:
 
-Diese 10 Textpaare wurden als aktuell gewünschte Liste festgelegt und können über `POST /api/clip-shoutout/overlay-sets` eingespielt werden:
+- `!vip30`
+- `!vip30 me`
+- `!vip30 slots`
+- `!vip30 help`
+- `!vip30 @user` nur für Mods/Broadcaster
 
-1. `Kurze Werbeunterbrechung!` / `Die Heimleitung empfiehlt heute {displayName}`
-2. `Die Heimleitung schaltet um!` / `Auf der vergilbten Leinwand läuft jetzt {displayName}`
-3. `Ein Rentner hat umgeschaltet!` / `Jetzt hängt er bei {displayName} fest`
-4. `Rentner-Kino läuft!` / `Heute auf der alten Leinwand: {displayName}`
-5. `Aus dem VHS-Archiv!` / `Gezeigt wird ein Clip von {displayName}`
-6. `Der Beamer brummt!` / `Auf der vergilbten Leinwand läuft {displayName}`
-7. `Werbepause im Fernsehraum!` / `Die Rentnercrew schaut bei {displayName} rein`
-8. `CGN-Altersheim-TV!` / `Im Fernsehraum läuft jetzt {displayName}`
-9. `Reklame war geplant!` / `Geworden ist es ein Clip von {displayName}`
-10. `Die Heimleitung empfiehlt!` / `Heute im Programm: {displayName}`
+Bestätigt per Status-Endpunkten:
 
-## Nicht online getestet / Beobachten
+```text
+VIP30:
+ok: True
+moduleVersion: 0.8.30
+moduleBuild: step8.19.43-status-command
 
-Noch zu beobachten:
+Commands:
+ok: True
+moduleVersion: 0.1.8
+moduleBuild: vip30-command-catalog
+```
 
-- normale AutoShoutout-Zählung mit Mindestnachrichten
-- Sofort-Auslöser `!lurk`
-- OfficialQueue-Retry-Verhalten über längere Laufzeit
-- Shoutout-Overlay-Sets in mehreren echten Shoutouts beobachten
+## Letzter erfolgreicher Funktionstest
+
+Auswertung der VIP30-Logs für `YouneCraft`:
+
+```text
+13:28:21  live_flow_vip_granted_slot_created_redemption_fulfilled  True
+13:28:23  vip30_alert_sound_bundle_queued                           True
+13:28:48  live_flow_decision_blocked                                False  already_has_vip30_slot
+13:29:07  external_vip_remove_slot_released                         True   external_removed
+```
+
+Bedeutung:
+
+- Ersteinlösung erfolgreich.
+- VIP-Grant erfolgreich.
+- Slot erstellt.
+- Redemption fulfilled.
+- Alert/Sound queued.
+- Zweite Einlösung blockiert wegen aktivem VIP30-Slot.
+- Externer VIP-Remove hat Slot freigegeben.
+
+## Aktueller Dashboard-/Slotstatus aus Test
+
+Beispielausgabe nach Test:
+
+```json
+{
+  "max": 10,
+  "active": 1,
+  "free": 9,
+  "total": 10,
+  "revokePending": 0,
+  "revoked": 0,
+  "failed": 0,
+  "cancelled": 0,
+  "nextExpiry": "2026-07-07T13:23:25.349Z"
+}
+```
 
 ## Wichtige Projektregeln
 
 - Keine Funktionalität entfernen.
 - Bestehende produktive SQLite-Datenbank niemals ersetzen/überschreiben.
-- Command-Definitionen sind Source of Truth für Chatcommands.
-- Shoutout-Dashboard darf Commands anzeigen, aber Command-Konfiguration erfolgt im Commands-Dashboard.
-- Clip-Player/Playback nicht anfassen, solange nicht explizit beauftragt.
+- GitHub/dev und Live-System müssen bewusst synchron gehalten werden.
+- ZIPs immer mit echten Zielpfaden ab Repo-Root liefern.
+- Bei neuen Steps Doku sofort mitziehen.
+- VIP30-Core-Flow nicht anfassen, solange nur Texte/Dashboard/Doku geändert werden.
+
+## Offene Punkte
+
+1. Chatcommands live im Twitch-Chat testen:
+   - `!vip30`
+   - `!vip30 slots`
+   - `!vip30 me`
+   - optional `!vip30 @user` mit Mod/Broadcaster.
+2. VIP30-Texte langfristig in das bestehende Text-/Varianten-System und Dashboard überführen.
+3. Sound-/Media-Auswahl im Dashboard später validieren, damit keine ungültige Media-Auswahl gespeichert bleibt.
+4. Nach Livebestätigung einen stabilen Abschlussstand dokumentieren.
