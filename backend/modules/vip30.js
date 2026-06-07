@@ -15,8 +15,8 @@ try {
 }
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.27";
-const MODULE_BUILD = "step8.19.39-vip-precheck-list-fallback";
+const MODULE_VERSION = "0.8.28";
+const MODULE_BUILD = "step8.19.41-alert-sound-mediaid-direct-fix";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -2627,8 +2627,14 @@ function buildVip30SoundBundlePayload(payload = {}, options = {}) {
   const user = payload.user || {};
   const requestedBy = cleanString(user.userLogin || user.userDisplayName || "vip30");
   const durationMs = sound ? vip30NonNegativeInt(sound.durationMs, 0) : vip30NonNegativeInt(alerts.durationMs, 0);
+  const directMediaId = sound ? vip30PositiveInt(sound.mediaId, 0) : 0;
+  const directMediaPath = sound ? cleanString(sound.mediaPath || "") : "";
+  const usesDirectMedia = directMediaId > 0 || !!directMediaPath;
   const soundItem = {
-    soundId: sound && sound.id ? `vip30_${sound.id}` : cleanString(alerts.soundKey || "vip30"),
+    // Wichtig: sound_system behandelt soundId als Preset-ID. VIP30 SoundPool-IDs sind aber interne Dashboard-IDs.
+    // Wenn mediaId/mediaPath gesetzt ist, darf hier kein fake soundId wie "vip30_default-media" stehen,
+    // sonst bricht sound_system vor der Media-Registry-Auflösung mit "Sound wurde nicht gefunden" ab.
+    soundId: usesDirectMedia ? "" : cleanString(alerts.soundKey || "vip30"),
     label: sound && sound.label ? sound.label : cleanString(alerts.soundKey || "VIP30 Sound"),
     category: cleanString(alerts.category || "vip"),
     target: cleanString(alerts.target || "stream"),
@@ -2638,10 +2644,10 @@ function buildVip30SoundBundlePayload(payload = {}, options = {}) {
     requestedBy,
     source: MODULE_NAME,
     mediaType: "audio",
-    mediaId: sound ? sound.mediaId : 0,
-    mediaAssetId: sound ? sound.mediaId : 0,
-    mediaPath: sound ? sound.mediaPath : "",
-    mediaRelativePath: sound ? sound.mediaPath : "",
+    mediaId: directMediaId,
+    mediaAssetId: directMediaId,
+    mediaPath: directMediaPath,
+    mediaRelativePath: directMediaPath,
     durationMs,
     meta: {
       module: MODULE_NAME,
@@ -2659,6 +2665,7 @@ function buildVip30SoundBundlePayload(payload = {}, options = {}) {
     },
     visual: payload.visual || {}
   };
+  if (!soundItem.soundId) delete soundItem.soundId;
   if (!soundItem.mediaId) {
     delete soundItem.mediaId;
     delete soundItem.mediaAssetId;
