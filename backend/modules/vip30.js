@@ -1152,6 +1152,444 @@ async function twitchCancelRedemption(rewardId, redemptionId) {
   return twitchUpdateRedemptionStatus(rewardId, redemptionId, "CANCELED");
 }
 
+function tableColumnsSafe(tableName) {
+  try { return database.tableColumns(tableName) || []; } catch (_) { return []; }
+}
+
+function channelpointsTablesReady() {
+  return tableExists("channelpoints_categories") && tableExists("channelpoints_rewards");
+}
+
+function mapChannelpointsRewardRow(row) {
+  if (!row) return null;
+  return {
+    id: row.id || null,
+    rewardKey: row.reward_key || "",
+    twitchRewardId: row.twitch_reward_id || "",
+    title: row.title || "",
+    prompt: row.prompt || "",
+    cost: Number(row.cost || 0),
+    categoryKey: row.category_key || "",
+    sortOrder: Number(row.sort_order || 0),
+    systemEnabled: Number(row.system_enabled || 0) === 1,
+    twitchIsEnabled: Number(row.twitch_is_enabled || 0) === 1,
+    isPaused: Number(row.is_paused || 0) === 1,
+    requireUserInput: Number(row.require_user_input || 0) === 1,
+    inputLabel: row.input_label || "",
+    actionType: row.action_type || "",
+    actionKey: row.action_key || "",
+    actionPayload: safeJsonParse(row.action_payload_json, {}),
+    mediaAssetId: row.media_asset_id || "",
+    mediaRole: row.media_role || "",
+    queueMode: row.queue_mode || "",
+    priority: Number(row.priority || 0),
+    cooldownSeconds: Number(row.cooldown_seconds || 0),
+    maxPerStream: Number(row.max_per_stream || 0),
+    maxPerUserPerStream: Number(row.max_per_user_per_stream || 0),
+    autoFulfill: Number(row.auto_fulfill || 0) === 1,
+    notes: row.notes || "",
+    createdAt: row.created_at || "",
+    updatedAt: row.updated_at || ""
+  };
+}
+
+function getChannelpointsRewardByKey(rewardKey = buildRewardSummary().rewardKey) {
+  ensureDbReady();
+  if (!channelpointsTablesReady()) return null;
+  const row = database.get("SELECT * FROM channelpoints_rewards WHERE reward_key = :rewardKey", { rewardKey: cleanString(rewardKey) });
+  return mapChannelpointsRewardRow(row);
+}
+
+function getVip30ChannelpointsReward() {
+  ensureDbReady();
+  if (!channelpointsTablesReady()) return null;
+  const reward = buildRewardSummary();
+  const row = database.get(`
+    SELECT *
+    FROM channelpoints_rewards
+    WHERE action_type = :actionType
+      AND action_key = :actionKey
+    ORDER BY
+      twitch_is_enabled DESC,
+      system_enabled DESC,
+      is_paused ASC,
+      updated_at DESC,
+      id DESC
+    LIMIT 1
+  `, {
+    actionType: cleanString(reward.actionType || "vip30"),
+    actionKey: cleanString(reward.actionKey || "vip30.redeem")
+  });
+  if (row) return mapChannelpointsRewardRow(row);
+  return getChannelpointsRewardByKey(reward.rewardKey);
+}
+
+function getChannelpointsCategory(categoryKey = buildRewardSummary().categoryKey) {
+  ensureDbReady();
+  if (!tableExists("channelpoints_categories")) return null;
+  const row = database.get("SELECT * FROM channelpoints_categories WHERE category_key = :categoryKey", { categoryKey: cleanString(categoryKey) });
+  if (!row) return null;
+  return {
+    id: row.id || null,
+    categoryKey: row.category_key || "",
+    label: row.label || "",
+    description: row.description || "",
+    sortOrder: Number(row.sort_order || 0),
+    enabled: Number(row.enabled || 0) === 1,
+    createdAt: row.created_at || "",
+    updatedAt: row.updated_at || ""
+  };
+}
+
+function buildVip30RewardPayload() {
+  const reward = buildRewardSummary();
+  const cp = getConfig().channelpoints || DEFAULT_CONFIG.channelpoints;
+  return {
+    vip30: {
+      managedBy: MODULE_NAME,
+      moduleVersion: MODULE_VERSION,
+      moduleBuild: MODULE_BUILD,
+      rewardKey: reward.rewardKey,
+      action: reward.actionKey,
+      durationDays: getConfig().slots.durationDays,
+      maxSlots: getConfig().slots.maxSlots,
+      step: "VIP30-STEP8",
+      dryRunOnly: true,
+      noTwitchWriteInThisStep: false,
+      liveActionPlanTileTruth: true,
+      localChannelpointsRewardWriteOnly: true,
+      dbDashboardConfig: true,
+      dryRunDecisionFlow: true,
+      channelpointsDecisionBridge: true,
+      eventsubLiveDryRunObserve: true,
+      liveActionPlanOnly: false,
+      fullLiveVipGrantSlotWriteFulfillCancelAlert: true,
+      noFulfillCancelInThisStep: false,
+      noVipGrantInThisStep: false,
+      noRedemptionFulfillCancelInThisStep: false
+    },
+    twitch: {
+      should_redemptions_skip_request_queue: boolValue(cp.twitchPolicies && cp.twitchPolicies.shouldRedemptionsSkipRequestQueue, false),
+      fulfill_after_success: boolValue(cp.twitchPolicies && cp.twitchPolicies.fulfillAfterSuccess, false),
+      cancel_on_failure: boolValue(cp.twitchPolicies && cp.twitchPolicies.cancelOnFailure, false)
+    }
+  };
+}
+
+function buildDesiredChannelpointsReward() {
+  const reward = buildRewardSummary();
+  const cp = getConfig().channelpoints || DEFAULT_CONFIG.channelpoints;
+  const existing = channelpointsTablesReady() ? getChannelpointsRewardByKey(reward.rewardKey) : null;
+  return {
+    reward_key: reward.rewardKey,
+    twitch_reward_id: existing && existing.twitchRewardId ? existing.twitchRewardId : "",
+    title: reward.title,
+    prompt: "30 Tage VIP im CGN-Altersheim: Platz nehmen, Kissen richten, VIP-Schildchen abholen.",
+    cost: reward.cost,
+    category_key: reward.categoryKey,
+    sort_order: intValue(cp.rewardSortOrder, 300),
+    system_enabled: boolDb(boolValue(cp.systemEnabled, true)),
+    twitch_is_enabled: 1,
+    is_paused: boolDb(boolValue(cp.isPaused, false)),
+    require_user_input: boolDb(boolValue(cp.requireUserInput, false)),
+    input_label: cleanString(cp.inputLabel || ""),
+    action_type: reward.actionType,
+    action_key: reward.actionKey,
+    action_payload_json: safeJsonString(buildVip30RewardPayload(), {}),
+    media_asset_id: "",
+    media_role: "none",
+    queue_mode: cleanString(cp.queueMode || "vip30"),
+    priority: intValue(cp.priority, 80),
+    cooldown_seconds: intValue(cp.cooldownSeconds, 0),
+    max_per_stream: intValue(cp.maxPerStream, 0),
+    max_per_user_per_stream: intValue(cp.maxPerUserPerStream, 0),
+    auto_fulfill: 0,
+    notes: cleanString(cp.notes || "VIP30-Reward wird vom VIP30-Modul verwaltet. Die VIP30-Kachel ist die Live-Wahrheit.")
+  };
+}
+
+function buildChannelpointsRewardDiff(existing, desired) {
+  const fields = ["twitchRewardId", "title", "cost", "categoryKey", "systemEnabled", "twitchIsEnabled", "isPaused", "actionType", "actionKey", "queueMode", "priority", "autoFulfill"];
+  const desiredView = mapChannelpointsRewardRow({
+    reward_key: desired.reward_key,
+    twitch_reward_id: desired.twitch_reward_id,
+    title: desired.title,
+    prompt: desired.prompt,
+    cost: desired.cost,
+    category_key: desired.category_key,
+    sort_order: desired.sort_order,
+    system_enabled: desired.system_enabled,
+    twitch_is_enabled: desired.twitch_is_enabled,
+    is_paused: desired.is_paused,
+    require_user_input: desired.require_user_input,
+    input_label: desired.input_label,
+    action_type: desired.action_type,
+    action_key: desired.action_key,
+    action_payload_json: desired.action_payload_json,
+    media_asset_id: desired.media_asset_id,
+    media_role: desired.media_role,
+    queue_mode: desired.queue_mode,
+    priority: desired.priority,
+    cooldown_seconds: desired.cooldown_seconds,
+    max_per_stream: desired.max_per_stream,
+    max_per_user_per_stream: desired.max_per_user_per_stream,
+    auto_fulfill: desired.auto_fulfill,
+    notes: desired.notes
+  });
+  const differences = [];
+  for (const field of fields) {
+    if (JSON.stringify(existing ? existing[field] : undefined) !== JSON.stringify(desiredView ? desiredView[field] : undefined)) {
+      differences.push({ field, current: existing ? existing[field] : null, desired: desiredView ? desiredView[field] : null });
+    }
+  }
+  return { inSync: existing ? differences.length === 0 : false, differences, desired: desiredView };
+}
+
+function buildChannelpointsRewardStatus() {
+  ensureDbReady();
+  const reward = buildRewardSummary();
+  const desired = buildDesiredChannelpointsReward();
+  const existing = getVip30ChannelpointsReward();
+  const category = getChannelpointsCategory(reward.categoryKey);
+  const diff = buildChannelpointsRewardDiff(existing, desired);
+  return {
+    ok: channelpointsTablesReady(),
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    status: channelpointsTablesReady() ? (existing ? (diff.inSync ? "linked_in_sync" : "linked_needs_update") : "missing_local_reward") : "channelpoints_tables_missing",
+    tables: {
+      categories: tableExists("channelpoints_categories"),
+      rewards: tableExists("channelpoints_rewards"),
+      categoryColumns: tableColumnsSafe("channelpoints_categories"),
+      rewardColumns: tableColumnsSafe("channelpoints_rewards")
+    },
+    reward: {
+      configured: reward,
+      existing,
+      desired: diff.desired,
+      inSync: diff.inSync,
+      differences: diff.differences
+    },
+    category,
+    safety: {
+      localDbOnly: true,
+      noTwitchWrite: true,
+      noVipGrant: true,
+      noRedemptionFulfillCancel: true,
+      cost: reward.cost
+    }
+  };
+}
+
+function ensureChannelpointsCategory() {
+  const config = getConfig();
+  const reward = buildRewardSummary();
+  const cp = config.channelpoints || DEFAULT_CONFIG.channelpoints;
+  if (!tableExists("channelpoints_categories")) throw new Error("channelpoints_categories_table_missing");
+  const now = nowIso();
+  const existing = getChannelpointsCategory(reward.categoryKey);
+  if (existing) return { changed: false, category: existing };
+  if (boolValue(cp.createCategoryIfMissing, true) !== true) return { changed: false, skipped: true, reason: "create_category_disabled" };
+  const data = {
+    category_key: reward.categoryKey,
+    label: cleanString(cp.categoryLabel || "VIP"),
+    description: cleanString(cp.categoryDescription || "VIP- und Community-Belohnungen"),
+    sort_order: intValue(cp.categorySortOrder, 70),
+    enabled: 1,
+    created_at: now,
+    updated_at: now
+  };
+  database.run(`
+    INSERT INTO channelpoints_categories
+      (category_key, label, description, sort_order, enabled, created_at, updated_at)
+    VALUES
+      (:category_key, :label, :description, :sort_order, :enabled, :created_at, :updated_at)
+  `, data);
+  return { changed: true, category: getChannelpointsCategory(reward.categoryKey) };
+}
+
+function ensureChannelpointsReward(options = {}) {
+  const config = getConfig();
+  if (!config.channelpoints || config.channelpoints.enabled === false || config.channelpoints.rewardSyncEnabled === false) {
+    return { ok: false, skipped: true, reason: "channelpoints_reward_sync_disabled" };
+  }
+  const confirm = cleanString(options.confirm || options.confirmation || "").toUpperCase();
+  if (boolValue(config.channelpoints.requireConfirmForEnsure, true) === true && confirm !== "YES") {
+    return { ok: false, skipped: true, reason: "confirm_required", confirmRequired: "YES", noWrite: true, status: buildChannelpointsRewardStatus() };
+  }
+  ensureDbReady();
+  if (!channelpointsTablesReady()) throw new Error("channelpoints_tables_missing");
+  const now = nowIso();
+  const categoryResult = ensureChannelpointsCategory();
+  const desired = buildDesiredChannelpointsReward();
+  const existing = getChannelpointsRewardByKey(desired.reward_key);
+  const insertParams = { ...desired, updated_at: now, created_at: existing && existing.createdAt ? existing.createdAt : now };
+  const updateParams = { ...desired, updated_at: now };
+  let action = "unchanged";
+  if (existing && existing.id) {
+    database.run(`
+      UPDATE channelpoints_rewards SET
+        twitch_reward_id = COALESCE(NULLIF(:twitch_reward_id, ''), twitch_reward_id),
+        title = :title,
+        prompt = :prompt,
+        cost = :cost,
+        category_key = :category_key,
+        sort_order = :sort_order,
+        system_enabled = :system_enabled,
+        twitch_is_enabled = :twitch_is_enabled,
+        is_paused = :is_paused,
+        require_user_input = :require_user_input,
+        input_label = :input_label,
+        action_type = :action_type,
+        action_key = :action_key,
+        action_payload_json = :action_payload_json,
+        media_asset_id = :media_asset_id,
+        media_role = :media_role,
+        queue_mode = :queue_mode,
+        priority = :priority,
+        cooldown_seconds = :cooldown_seconds,
+        max_per_stream = :max_per_stream,
+        max_per_user_per_stream = :max_per_user_per_stream,
+        auto_fulfill = :auto_fulfill,
+        notes = :notes,
+        updated_at = :updated_at
+      WHERE reward_key = :reward_key
+    `, updateParams);
+    action = "updated";
+  } else {
+    database.run(`
+      INSERT INTO channelpoints_rewards (
+        reward_key, twitch_reward_id, title, prompt, cost, category_key, sort_order,
+        system_enabled, twitch_is_enabled, is_paused, require_user_input, input_label,
+        action_type, action_key, action_payload_json, media_asset_id, media_role,
+        queue_mode, priority, cooldown_seconds, max_per_stream, max_per_user_per_stream,
+        auto_fulfill, notes, created_at, updated_at
+      ) VALUES (
+        :reward_key, :twitch_reward_id, :title, :prompt, :cost, :category_key, :sort_order,
+        :system_enabled, :twitch_is_enabled, :is_paused, :require_user_input, :input_label,
+        :action_type, :action_key, :action_payload_json, :media_asset_id, :media_role,
+        :queue_mode, :priority, :cooldown_seconds, :max_per_stream, :max_per_user_per_stream,
+        :auto_fulfill, :notes, :created_at, :updated_at
+      )
+    `, insertParams);
+    action = "created";
+  }
+  const status = buildChannelpointsRewardStatus();
+  const result = {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    action,
+    category: categoryResult,
+    status,
+    safety: { localDbOnly: true, noTwitchWrite: true, noVipGrant: true, noRedemptionFulfillCancel: true }
+  };
+  writeLog("channelpoints_reward_ensured", {
+    success: true,
+    reason: action,
+    message: `VIP30 Channelpoints Reward ${action}`,
+    payload: { reward: status.reward.existing, desired: status.reward.desired, category: status.category }
+  });
+  emitChannelpointsRewardEvent("reward.ensured", result, options.reason || "manual_ensure");
+  publishStatus("channelpoints_reward_ensured");
+  return result;
+}
+
+
+function getLatestVip30TwitchRewardIdFromLogs() {
+  ensureDbReady();
+  if (!tableExists("vip30_log")) return "";
+  const row = database.get(`
+    SELECT twitch_reward_id
+    FROM vip30_log
+    WHERE twitch_reward_id IS NOT NULL AND twitch_reward_id != ''
+      AND event_type = 'dryrun_redemption_decision'
+    ORDER BY created_at DESC, id DESC
+    LIMIT 1
+  `, {});
+  return row && row.twitch_reward_id ? cleanString(row.twitch_reward_id) : "";
+}
+
+function linkChannelpointsRewardTwitchRewardId(twitchRewardId, options = {}) {
+  const cleanId = cleanString(twitchRewardId || options.twitchRewardId || "");
+  if (!cleanId) return { ok: false, skipped: true, reason: "twitch_reward_id_missing", safety: { noTwitchWrite: true } };
+  ensureDbReady();
+  if (!channelpointsTablesReady()) return { ok: false, skipped: true, reason: "channelpoints_tables_missing", safety: { noTwitchWrite: true } };
+  const reward = buildRewardSummary();
+  const existing = getChannelpointsRewardByKey(reward.rewardKey);
+  if (!existing || !existing.id) return { ok: false, skipped: true, reason: "local_reward_missing", twitchRewardId: cleanId, safety: { noTwitchWrite: true } };
+  if (existing.twitchRewardId && existing.twitchRewardId === cleanId) {
+    return { ok: true, changed: false, reason: "already_linked", reward: existing, twitchRewardId: cleanId, safety: { noTwitchWrite: true } };
+  }
+  if (existing.twitchRewardId && existing.twitchRewardId !== cleanId && options.force !== true) {
+    return { ok: false, changed: false, reason: "different_twitch_reward_id_already_linked", existingTwitchRewardId: existing.twitchRewardId, incomingTwitchRewardId: cleanId, safety: { noTwitchWrite: true } };
+  }
+  const now = nowIso();
+  database.run(`
+    UPDATE channelpoints_rewards
+    SET twitch_reward_id = :twitchRewardId,
+        updated_at = :updatedAt
+    WHERE reward_key = :rewardKey
+  `, { twitchRewardId: cleanId, updatedAt: now, rewardKey: reward.rewardKey });
+  const linked = getChannelpointsRewardByKey(reward.rewardKey);
+  const result = {
+    ok: true,
+    changed: true,
+    reason: "linked_from_eventsub_dryrun",
+    reward: linked,
+    twitchRewardId: cleanId,
+    source: cleanString(options.source || "manual_or_eventsub"),
+    safety: { localDbOnly: true, noTwitchWrite: true, noVipGrant: true, noRedemptionFulfillCancel: true }
+  };
+  writeLog("channelpoints_reward_twitch_id_linked", {
+    success: true,
+    reason: result.reason,
+    message: "VIP30 Twitch Reward ID local linked",
+    twitchRewardId: cleanId,
+    payload: result
+  });
+  emitChannelpointsRewardEvent("reward.twitch_id_linked", result, result.source);
+  publishStatus("channelpoints_reward_twitch_id_linked");
+  return result;
+}
+
+function linkChannelpointsRewardTwitchRewardIdFromLatestLog(options = {}) {
+  const explicit = cleanString(options.twitchRewardId || options.twitch_reward_id || "");
+  const fromLatest = explicit || getLatestVip30TwitchRewardIdFromLogs();
+  return linkChannelpointsRewardTwitchRewardId(fromLatest, { source: explicit ? "api_explicit" : "latest_vip30_log", force: options.force === true });
+}
+
+function emitChannelpointsRewardEvent(action, result, reason = "channelpoints_reward") {
+  const config = getConfig();
+  if (config.bus.enabled === false) return { ok: false, reason: "bus_disabled" };
+  const currentBus = getBus();
+  if (!currentBus || typeof currentBus.emit !== "function") return { ok: false, reason: "bus_unavailable" };
+  try {
+    return currentBus.emit({
+      type: "event",
+      channel: "vip30.channelpoints",
+      action,
+      source: { type: "module", id: `module:${MODULE_NAME}`, module: MODULE_NAME },
+      target: { type: "all", id: "*" },
+      payload: {
+        module: MODULE_NAME,
+        moduleVersion: MODULE_VERSION,
+        moduleBuild: MODULE_BUILD,
+        reason,
+        emittedAt: nowIso(),
+        result: result || null
+      },
+      meta: { requireAck: false, replayable: true, ttlMs: config.bus.ttlMs, productionTarget: true }
+    });
+  } catch (_) {
+    return { ok: false, reason: "bus_emit_failed" };
+  }
+}
+
+
+
 function normalizeRedemptionDecisionInput(input = {}) {
   const source = input && typeof input === "object" ? input : {};
   const userLogin = cleanString(source.userLogin || source.user_login || source.login || source.user || source.targetUserName || source.target_user_name || "").toLowerCase();
@@ -2462,6 +2900,8 @@ function buildCleanupCheck(query = {}) {
 async function runVip30Cleanup(input = {}, options = {}) {
   loadedConfig = null;
   loadConfig();
+  loadedConfig = null;
+  loadConfig();
   const safety = buildCleanupSafetyStatus();
   const confirm = cleanString(input.confirm || input.confirmation || options.confirm || "").toUpperCase();
   const dryRun = boolValue(input.dryRun ?? input.dry_run ?? options.dryRun, confirm !== "YES");
@@ -2947,7 +3387,7 @@ function buildHealth() {
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
     enabled: getConfig().enabled !== false,
-    status: getEffectiveLastError() ? "error" : "ready_step8_19_tile_truth",
+    status: getEffectiveLastError() ? "error" : "ready_step8_6_external_vip_remove_slot_release",
     lastError: getEffectiveLastError(),
     checks: {
       databaseReady: dbMigrationState.ok === true,
@@ -2976,7 +3416,7 @@ function buildStatus() {
     moduleBuild: MODULE_BUILD,
     version: MODULE_VERSION,
     enabled: config.enabled !== false,
-    status: lastError ? "error" : "ready_step8_19_tile_truth",
+    status: lastError ? "error" : "ready_step8_6_external_vip_remove_slot_release",
     startedAt,
     routePrefix: ROUTE_PREFIX,
     routeCount: 26,
@@ -3226,7 +3666,7 @@ function registerAtBus() {
       dashboardLogging: true,
       noStreamerBot: true,
       noLegacyImport: true,
-      noTwitchWriteInStep8: false,
+      noTwitchWriteInStep8: true,
       channelpointsRewardLink: true
     }
   });
