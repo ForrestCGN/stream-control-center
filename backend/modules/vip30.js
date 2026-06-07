@@ -9,8 +9,8 @@ const communicationBus = require("./communication_bus");
 const database = require("../core/database");
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.18";
-const MODULE_BUILD = "step8.19.28-twitch-capability-legacy-cleanup";
+const MODULE_VERSION = "0.8.19";
+const MODULE_BUILD = "step8.19.29-legacy-live-routes-cleanup";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -1254,15 +1254,14 @@ function buildVip30RewardPayload() {
       durationDays: getConfig().slots.durationDays,
       maxSlots: getConfig().slots.maxSlots,
       step: "VIP30-STEP8",
-      dryRunOnly: true,
+      dryRunOnly: false,
       noTwitchWriteInThisStep: false,
-      liveActionPlanTileTruth: true,
+      tileIsTruth: true,
       localChannelpointsRewardWriteOnly: true,
       dbDashboardConfig: true,
       dryRunDecisionFlow: true,
       channelpointsDecisionBridge: true,
-      eventsubLiveDryRunObserve: true,
-      liveActionPlanOnly: false,
+      eventsubLiveObserve: true,
       fullLiveVipGrantSlotWriteFulfillCancelAlert: true,
       noFulfillCancelInThisStep: false,
       noVipGrantInThisStep: false,
@@ -1858,14 +1857,14 @@ async function handleChannelpointsRedemptionBridgeEvent(envelope = {}) {
   try {
     let result;
     if (!isTestEvent && buildLiveActionSafetyStatus().armed === true) {
-      result = await executeVip30LiveStageA({
+      result = await executeVip30LiveFlow({
         ...normalized,
-        source: "channelpoints_bridge_live_stage_a",
+        source: "channelpoints_bridge_live_flow",
         bridgeMatchedBy: match.checks
-      }, { reason: "channelpoints_redemption_bus_live_stage_a" });
+      }, { reason: "channelpoints_redemption_bus_live_flow" });
       bridgeStats.decisions += 1;
-      bridgeStats.lastReason = result && (result.reason || result.status) || "live_stage_a_done";
-      emitBridgeEvent(result && result.ok ? "live.stage_a.success" : "live.stage_a.blocked_or_failed", {
+      bridgeStats.lastReason = result && (result.reason || result.status) || "live_flow_done";
+      emitBridgeEvent(result && result.ok ? "live.success" : "live.blocked_or_failed", {
         normalized: { ...normalized, event: undefined },
         match: match.checks,
         twitchRewardIdLink: linkResult,
@@ -1877,7 +1876,7 @@ async function handleChannelpointsRedemptionBridgeEvent(envelope = {}) {
           slot: result.slotWrite && result.slotWrite.slot,
           grant: result.grant ? { ok: result.grant.ok, statusCode: result.grant.statusCode } : null
         } : null,
-        safety: { twitchWriteMayHaveOccurred: true, vipGrantGate: true, slotWriteGate: true, noRedemptionFulfillCancel: true, noAlert: true }
+        safety: { twitchWriteMayHaveOccurred: true, tileIsTruth: true }
       });
       return result;
     }
@@ -2148,154 +2147,8 @@ function buildLiveActionSafetyStatus() {
   };
 }
 
-function buildLiveArmPreview() {
-  const safety = buildLiveActionSafetyStatus();
-  const blockerInfo = {
-    moduleEnabled: { setting: "enabled", requiredValue: true, label: "VIP30-Modul aktiv" },
-    vip30TileFound: { setting: "channelpoints_rewards", requiredValue: "actionType=vip30/actionKey=vip30.redeem", label: "VIP30-Kachel gefunden" },
-    vip30TileActive: { setting: "channelpoints_rewards.twitch_is_enabled", requiredValue: true, label: "VIP30-Kachel auf Twitch aktiv" },
-    actionTypeVip30: { setting: "channelpoints_rewards.action_type", requiredValue: "vip30", label: "Action-Type vip30" },
-    actionKeyVip30: { setting: "channelpoints_rewards.action_key", requiredValue: "vip30.redeem", label: "Action-Key vip30.redeem" },
-    rewardSystemEnabled: { setting: "channelpoints_rewards.system_enabled", requiredValue: true, label: "Kachel im System aktiv" },
-    rewardTwitchEnabled: { setting: "channelpoints_rewards.twitch_is_enabled", requiredValue: true, label: "Kachel auf Twitch aktiv" },
-    rewardNotPaused: { setting: "channelpoints_rewards.is_paused", requiredValue: false, label: "Kachel nicht pausiert" }
-  };
-  const missing = (safety.blockers || []).map((key) => ({ key, ...(blockerInfo[key] || { setting: key, requiredValue: true, label: key }) }));
-  return {
-    ok: true,
-    module: MODULE_NAME,
-    moduleVersion: MODULE_VERSION,
-    moduleBuild: MODULE_BUILD,
-    action: "vip30_live_arm_preview",
-    status: safety.armed ? "ready" : "tile_blocked",
-    checkedAt: nowIso(),
-    armed: safety.armed,
-    blockerCount: missing.length,
-    blockers: (safety.blockers || []).slice(),
-    missing,
-    current: {
-      tile: safety.tile,
-      info: safety.info,
-      reward: safety.reward
-    },
-    recommendedOrder: [
-      { step: 1, name: "check_tile", route: `${ROUTE_PREFIX}/channelpoints/reward/status`, write: false },
-      { step: 2, name: "activate_or_fix_channelpoints_tile", action: "Dashboard Kanalpunkte-Kachel aktivieren und Action-Type/Action-Key pruefen", write: "channelpoints dashboard" },
-      { step: 3, name: "test_redeem", action: "Test-Redeem ausfuehren", write: "twitch redemption" }
-    ],
-    nextPhaseSuggestion: safety.armed ? "ready_for_live_redeem" : "fix_vip30_tile",
-    safety: {
-      previewOnly: true,
-      noTwitchWrite: true,
-      noVipGrant: true,
-      noSlotWrite: true,
-      noRedemptionFulfillCancel: true
-    }
-  };
-}
 
-function buildLiveArmSettingsPreview(profile = "tile_truth") {
-  const before = buildLiveArmPreview();
-  return {
-    ok: true,
-    module: MODULE_NAME,
-    moduleVersion: MODULE_VERSION,
-    moduleBuild: MODULE_BUILD,
-    action: "vip30_live_arm_settings_preview",
-    profile: cleanString(profile || "tile_truth"),
-    label: "Legacy-Gates entfernt",
-    before: {
-      armed: before.armed,
-      blockerCount: before.blockerCount,
-      blockers: before.blockers
-    },
-    settings: {},
-    wouldChange: [],
-    expectedRemainingBlockers: before.blockers || [],
-    note: "STEP8.19.25: Alte Live-Gates wurden entfernt. VIP30-Live-Bereitschaft basiert nur noch auf der VIP30-Kachel-Wahrheit.",
-    safety: { previewOnly: true, noTwitchWrite: true, noVipGrant: true, noSlotWrite: true, noRedemptionFulfillCancel: true }
-  };
-}
-
-function setLiveGatesFromPayload(payload = {}, query = {}) {
-  const before = buildLiveArmPreview();
-  return {
-    ok: true,
-    module: MODULE_NAME,
-    moduleVersion: MODULE_VERSION,
-    moduleBuild: MODULE_BUILD,
-    action: "vip30_live_set_gates",
-    skipped: true,
-    reason: "legacy_live_gates_removed",
-    profile: cleanString((query && query.profile) || (payload && payload.profile) || "tile_truth"),
-    label: "Legacy-Gates entfernt",
-    changed: [],
-    rejected: [],
-    before: { armed: before.armed, blockerCount: before.blockerCount, blockers: before.blockers },
-    after: { armed: before.armed, blockerCount: before.blockerCount, blockers: before.blockers, missing: before.missing },
-    liveCheck: buildLiveActionSafetyStatus().compact,
-    note: "STEP8.19.25: Diese Route ist aus Kompatibilitaetsgruenden vorhanden, setzt aber keine alten Live-Gates mehr.",
-    safety: {
-      settingsOnly: true,
-      noTwitchWriteInThisRoute: true,
-      noVipGrantInThisRoute: true,
-      noSlotWriteInThisRoute: true,
-      noRedemptionFulfillCancelInThisRoute: true,
-      noAlertInThisRoute: true
-    }
-  };
-}
-
-function buildRedemptionLiveActionPlan(input = {}, options = {}) {
-  const decision = buildDryRunRedemptionDecision(input, { reason: options.reason || "live_plan", log: false });
-  const safety = buildLiveActionSafetyStatus();
-  const plan = [];
-  if (decision.wouldGrantVip) {
-    plan.push({ order: 1, action: "twitch_add_vip", enabledByGate: safety.armed === true, required: true, userId: decision.user.userId, userLogin: decision.user.userLogin });
-    plan.push({ order: 2, action: "create_vip30_slot", enabledByGate: safety.armed === true, required: true, durationDays: getConfig().slots.durationDays });
-    plan.push({ order: 3, action: "twitch_redemption_fulfill", enabledByGate: safety.armed === true, required: true, twitchRewardId: decision.redemption.twitchRewardId, twitchRedemptionId: decision.redemption.twitchRedemptionId });
-    if (decision.wouldTriggerAlert) plan.push({ order: 4, action: "trigger_vip30_alert", enabledByGate: safety.armed === true, required: false });
-  } else if (decision.wouldCancelRedemption) {
-    plan.push({ order: 1, action: "twitch_redemption_cancel", enabledByGate: safety.armed === true, required: true, twitchRewardId: decision.redemption.twitchRewardId, twitchRedemptionId: decision.redemption.twitchRedemptionId, reason: decision.reason });
-  }
-  const result = {
-    ok: true,
-    module: MODULE_NAME,
-    moduleVersion: MODULE_VERSION,
-    moduleBuild: MODULE_BUILD,
-    action: "vip30_live_action_plan",
-    createdAt: nowIso(),
-    execute: false,
-    decision,
-    liveSafety: safety,
-    plan,
-    safety: {
-      planOnly: true,
-      noTwitchWrite: true,
-      noVipGrant: true,
-      noSlotWrite: true,
-      noRedemptionFulfillCancel: true,
-      note: "Plan zeigt die Live-Aktionen anhand der VIP30-Kachel-Wahrheit, fuehrt aber in dieser Route nichts aus."
-    }
-  };
-  writeLog("live_action_plan", {
-    userId: decision.user.userId,
-    userLogin: decision.user.userLogin,
-    userDisplayName: decision.user.userDisplayName,
-    twitchRewardId: decision.redemption.twitchRewardId,
-    twitchRedemptionId: decision.redemption.twitchRedemptionId,
-    success: decision.wouldGrantVip === true,
-    reason: decision.reason,
-    message: safety.armed ? "Live-Action-Plan erstellt: VIP30-Kachel ist livefaehig." : "Live-Action-Plan erstellt: VIP30-Kachel blockiert.",
-    payload: result
-  });
-  emitLiveActionPlanEvent(result, options.reason || "live_plan_api");
-  publishStatus("live_action_plan");
-  return result;
-}
-
-
-function buildStageALiveSafetyStatus() {
+function buildLiveFlowSafetyStatus() {
   const full = buildLiveActionSafetyStatus();
   const checks = { ...(full.checks || {}) };
   const blockers = Array.isArray(full.blockers) ? full.blockers.slice() : [];
@@ -2304,43 +2157,19 @@ function buildStageALiveSafetyStatus() {
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
-    status: blockers.length ? "stage_a_locked" : "stage_a_ready",
+    status: blockers.length ? "live_flow_locked" : "live_flow_ready",
     checkedAt: nowIso(),
     armed: blockers.length === 0,
     blockerCount: blockers.length,
     blockers,
     checks,
-    fullLiveSafety: {
+    liveReadiness: {
       status: full.status,
       armed: full.armed,
       blockerCount: Array.isArray(full.blockers) ? full.blockers.length : 0,
       blockers: full.blockers || []
     },
-    note: "Legacy-Stage-A nutzt seit STEP8.19.25 dieselbe Kachel-Wahrheit wie der Live-Flow. Alte Live-Gates blockieren nicht mehr."
-  };
-}
-function buildStageBLiveSafetyStatus() {
-  const full = buildLiveActionSafetyStatus();
-  const checks = { ...(full.checks || {}) };
-  const blockers = Array.isArray(full.blockers) ? full.blockers.slice() : [];
-  return {
-    ok: true,
-    module: MODULE_NAME,
-    moduleVersion: MODULE_VERSION,
-    moduleBuild: MODULE_BUILD,
-    status: blockers.length ? "stage_b_locked" : "stage_b_ready",
-    checkedAt: nowIso(),
-    armed: blockers.length === 0,
-    blockerCount: blockers.length,
-    blockers,
-    checks,
-    fullLiveSafety: {
-      status: full.status,
-      armed: full.armed,
-      blockerCount: Array.isArray(full.blockers) ? full.blockers.length : 0,
-      blockers: full.blockers || []
-    },
-    note: "Stage B ist der normale VIP30-Live-Flow: VIP vergeben, Slot schreiben, Redemption abrechnen und Alert ausloesen."
+    note: "Normaler VIP30-Live-Flow: VIP vergeben, Slot schreiben, Redemption abrechnen und Alert ausloesen."
   };
 }
 
@@ -2587,8 +2416,7 @@ function vip30SafeReasonText(reason = "") {
     slots_full: "alle VIP30-Slots sind belegt",
     module_disabled: "VIP30 ist aktuell deaktiviert",
     missing_user: "Userdaten fehlen",
-    live_stage_a_failed: "Twitch hat die VIP-Vergabe abgelehnt",
-    live_stage_b_failed: "Twitch hat die VIP-Vergabe abgelehnt",
+    live_flow_failed: "Twitch hat die VIP-Vergabe abgelehnt",
     twitch_helix_post_channels_vips_failed_422: "ist bereits VIP oder Twitch lehnt die VIP-Vergabe ab"
   };
   return map[key] || key || "unbekannter Grund";
@@ -2629,7 +2457,7 @@ function buildVip30FailedChatText(decision = {}, result = {}) {
 
 function buildVip30SafetyBlockedChatText(decision = {}, result = {}) {
   const name = vip30DecisionDisplayName(decision);
-  const blockers = result && result.stageSafety && Array.isArray(result.stageSafety.blockers) ? result.stageSafety.blockers.join(", ") : "";
+  const blockers = result && result.liveSafety && Array.isArray(result.liveSafety.blockers) ? result.liveSafety.blockers.join(", ") : "";
   return `⚠️ VIP30 für ${name} ist gerade nicht live-bereit. Blocker: ${blockers || "unbekannt"}.`;
 }
 
@@ -2658,25 +2486,24 @@ async function sendVip30LiveChatMessage(text, reason = "vip30_live") {
 }
 
 
-async function executeVip30LiveStageA(input = {}, options = {}) {
+async function executeVip30LiveFlow(input = {}, options = {}) {
   const decision = buildDryRunRedemptionDecision(input, { reason: options.reason || "live_flow", log: false });
   const started = nowIso();
 
   loadedConfig = null;
   const refreshedConfig = loadConfig();
-  const stageMode = "B";
-  const stageSafety = buildStageBLiveSafetyStatus();
+  const liveSafety = buildLiveFlowSafetyStatus();
   const result = {
     ok: false,
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
-    action: stageMode === "B" ? "vip30_live_stage_b_execute" : "vip30_live_stage_a_execute",
+    action: "vip30_live_execute",
     startedAt: started,
     finishedAt: "",
     status: "not_started",
     decision,
-    stageSafety,
+    liveSafety,
     grant: null,
     slotWrite: null,
     redemptionUpdate: null,
@@ -2684,22 +2511,19 @@ async function executeVip30LiveStageA(input = {}, options = {}) {
     chat: null,
     safety: {
       liveTwitchWrite: true,
-      vipGrantAllowed: stageSafety.armed === true,
-      slotWriteAllowed: stageSafety.armed === true,
-      redemptionFulfillCancelAllowed: stageSafety.armed === true,
+      vipGrantAllowed: liveSafety.armed === true,
+      slotWriteAllowed: liveSafety.armed === true,
+      redemptionFulfillCancelAllowed: liveSafety.armed === true,
       alertAllowed: !(refreshedConfig.alerts && refreshedConfig.alerts.enabled === false),
-      noRedemptionFulfillCancel: false,
-      noAlert: refreshedConfig.alerts && refreshedConfig.alerts.enabled === false,
-      stage: stageMode,
       tileIsTruth: true
     }
   };
 
-  if (!stageSafety.armed) {
+  if (!liveSafety.armed) {
     result.status = "blocked_by_tile_truth";
     result.reason = "tile_truth_not_armed";
     result.finishedAt = nowIso();
-    writeLog("live_stage_a_blocked", {
+    writeLog("live_flow_blocked", {
       userId: decision.user.userId,
       userLogin: decision.user.userLogin,
       userDisplayName: decision.user.userDisplayName,
@@ -2707,7 +2531,7 @@ async function executeVip30LiveStageA(input = {}, options = {}) {
       twitchRedemptionId: decision.redemption.twitchRedemptionId,
       success: false,
       reason: result.reason,
-      message: `Stage ${stageMode} ist nicht scharf. VIP wurde nicht vergeben. Blocker: ${(stageSafety.blockers || []).join(", ") || "unknown"}`,
+      message: `VIP30-Live-Flow ist nicht scharf. VIP wurde nicht vergeben. Blocker: ${(liveSafety.blockers || []).join(", ") || "unknown"}`,
       payload: result
     });
     result.chat = await sendVip30LiveChatMessage(buildVip30SafetyBlockedChatText(decision, result), "vip30_live_safety_blocked");
@@ -2718,7 +2542,7 @@ async function executeVip30LiveStageA(input = {}, options = {}) {
   if (!decision.wouldGrantVip) {
     result.status = "decision_blocked";
     result.reason = decision.reason;
-    if (stageMode === "B" && decision.wouldCancelRedemption) {
+    if (decision.wouldCancelRedemption) {
       try {
         result.redemptionUpdate = await twitchCancelRedemption(decision.redemption.twitchRewardId, decision.redemption.twitchRedemptionId);
         result.status = "decision_blocked_redemption_canceled";
@@ -2728,7 +2552,7 @@ async function executeVip30LiveStageA(input = {}, options = {}) {
       }
     }
     result.finishedAt = nowIso();
-    writeLog(stageMode === "B" ? "live_stage_b_decision_blocked" : "live_stage_a_decision_blocked", {
+    writeLog("live_flow_decision_blocked", {
       userId: decision.user.userId,
       userLogin: decision.user.userLogin,
       userDisplayName: decision.user.userDisplayName,
@@ -2736,13 +2560,13 @@ async function executeVip30LiveStageA(input = {}, options = {}) {
       twitchRedemptionId: decision.redemption.twitchRedemptionId,
       success: false,
       reason: decision.reason,
-      message: stageMode === "B" && result.redemptionUpdate && result.redemptionUpdate.ok
+      message: result.redemptionUpdate && result.redemptionUpdate.ok
         ? "VIP30-Entscheidung blockiert. Redemption wurde canceled/refunded."
         : (decision.message || "VIP30-Entscheidung blockiert. Keine Twitch-Aktion ausgefuehrt."),
       payload: result
     });
     result.chat = await sendVip30LiveChatMessage(buildVip30DecisionBlockedChatText(decision, result), "vip30_live_decision_blocked");
-    emitLiveExecutionEvent(stageMode === "B" ? "stage_b.decision_blocked" : "stage_a.decision_blocked", { result });
+    emitLiveExecutionEvent("live.decision_blocked", { result });
     return result;
   }
 
@@ -2750,14 +2574,12 @@ async function executeVip30LiveStageA(input = {}, options = {}) {
     const activeAgain = findActiveSlotForDecision({ userId: decision.user.userId, userLogin: decision.user.userLogin });
     if (activeAgain) throw Object.assign(new Error("already_has_vip30_slot_before_live_write"), { code: "already_has_vip30_slot", activeSlot: activeAgain });
     result.grant = await twitchAddVip(decision.user.userId);
-    result.slotWrite = createVip30SlotFromDecision(decision, stageMode === "B" ? "live_stage_b_eventsub" : "live_stage_a_eventsub");
-    if (stageMode === "B") {
-      result.redemptionUpdate = await twitchFulfillRedemption(decision.redemption.twitchRewardId, decision.redemption.twitchRedemptionId);
-    }
+    result.slotWrite = createVip30SlotFromDecision(decision, "live_eventsub");
+    result.redemptionUpdate = await twitchFulfillRedemption(decision.redemption.twitchRewardId, decision.redemption.twitchRedemptionId);
     result.ok = true;
-    result.status = stageMode === "B" ? "vip_granted_slot_created_redemption_fulfilled" : "vip_granted_slot_created";
+    result.status = "vip_granted_slot_created_redemption_fulfilled";
     result.finishedAt = nowIso();
-    writeLog(stageMode === "B" ? "live_stage_b_vip_granted_slot_created_redemption_fulfilled" : "live_stage_a_vip_granted_slot_created", {
+    writeLog("live_flow_vip_granted_slot_created_redemption_fulfilled", {
       userId: decision.user.userId,
       userLogin: decision.user.userLogin,
       userDisplayName: decision.user.userDisplayName,
@@ -2766,22 +2588,20 @@ async function executeVip30LiveStageA(input = {}, options = {}) {
       slotId: result.slotWrite && result.slotWrite.slotId,
       success: true,
       reason: result.status,
-      message: stageMode === "B"
-        ? "VIP30-Live-Flow erfolgreich: Twitch VIP vergeben, VIP30-Slot gespeichert und Redemption fulfilled."
-        : "VIP30-Live-Flow erfolgreich: Twitch VIP vergeben und VIP30-Slot gespeichert.",
+      message: "VIP30-Live-Flow erfolgreich: Twitch VIP vergeben, VIP30-Slot gespeichert und Redemption fulfilled.",
       payload: result
     });
     result.chat = await sendVip30LiveChatMessage(buildVip30SuccessChatText(decision), "vip30_live_success");
-    result.alert = await triggerVip30AlertSoundBundle(result, { reason: stageMode === "B" ? "live_stage_b_success" : "live_stage_a_success" });
-    emitLiveExecutionEvent(stageMode === "B" ? "stage_b.success" : "stage_a.success", { result: { ...result, grant: { ...result.grant, raw: undefined }, redemptionUpdate: result.redemptionUpdate ? { ...result.redemptionUpdate, raw: undefined } : null, alert: result.alert ? { ok: result.alert.ok, skipped: result.alert.skipped, status: result.alert.status || "", reason: result.alert.reason || "", delivery: result.alert.delivery || "" } : null } });
-    publishStatus(stageMode === "B" ? "live_stage_b_success" : "live_stage_a_success");
+    result.alert = await triggerVip30AlertSoundBundle(result, { reason: "live_flow_success" });
+    emitLiveExecutionEvent("live.success", { result: { ...result, grant: { ...result.grant, raw: undefined }, redemptionUpdate: result.redemptionUpdate ? { ...result.redemptionUpdate, raw: undefined } : null, alert: result.alert ? { ok: result.alert.ok, skipped: result.alert.skipped, status: result.alert.status || "", reason: result.alert.reason || "", delivery: result.alert.delivery || "" } : null } });
+    publishStatus("live_flow_success");
     return result;
   } catch (err) {
     const message = err && err.message ? err.message : String(err);
     result.status = "failed";
-    result.reason = err && err.code || "live_stage_a_failed";
+    result.reason = err && err.code || "live_flow_failed";
     result.error = { message, statusCode: err && err.statusCode || 0, data: err && err.data || null, activeSlot: err && err.activeSlot || null };
-    if (stageMode === "B" && decision.redemption && decision.redemption.twitchRewardId && decision.redemption.twitchRedemptionId) {
+    if (decision.redemption && decision.redemption.twitchRewardId && decision.redemption.twitchRedemptionId) {
       try {
         result.redemptionUpdate = await twitchCancelRedemption(decision.redemption.twitchRewardId, decision.redemption.twitchRedemptionId);
         if (result.redemptionUpdate && result.redemptionUpdate.ok) {
@@ -2792,7 +2612,7 @@ async function executeVip30LiveStageA(input = {}, options = {}) {
       }
     }
     result.finishedAt = nowIso();
-    writeLog(stageMode === "B" ? "live_stage_b_failed" : "live_stage_a_failed", {
+    writeLog("live_flow_failed", {
       userId: decision.user.userId,
       userLogin: decision.user.userLogin,
       userDisplayName: decision.user.userDisplayName,
@@ -2807,8 +2627,8 @@ async function executeVip30LiveStageA(input = {}, options = {}) {
     });
     result.chat = await sendVip30LiveChatMessage(buildVip30FailedChatText(decision, result), "vip30_live_failed");
     lastError = message;
-    emitLiveExecutionEvent(stageMode === "B" ? "stage_b.failed" : "stage_a.failed", { result });
-    publishStatus(stageMode === "B" ? "live_stage_b_failed" : "live_stage_a_failed");
+    emitLiveExecutionEvent("live.failed", { result });
+    publishStatus("live_flow_failed");
     return result;
   }
 }
@@ -3419,7 +3239,7 @@ function buildStatus() {
     status: lastError ? "error" : "ready_step8_6_external_vip_remove_slot_release",
     startedAt,
     routePrefix: ROUTE_PREFIX,
-    routeCount: 26,
+    routeCount: 19,
     routes: [
       `${ROUTE_PREFIX}/status`,
       `${ROUTE_PREFIX}/health`,
@@ -3439,14 +3259,7 @@ function buildStatus() {
       `${ROUTE_PREFIX}/channelpoints/bridge/reset-stats`,
       `${ROUTE_PREFIX}/live/check`,
       `${ROUTE_PREFIX}/alert/status`,
-      `${ROUTE_PREFIX}/alert/test`,
-      `${ROUTE_PREFIX}/live/arm-preview`,
-      `${ROUTE_PREFIX}/live/arm-settings-preview`,
-      `${ROUTE_PREFIX}/live/set-gates`,
-      `${ROUTE_PREFIX}/redeem/live-plan`,
-      `${ROUTE_PREFIX}/live/stage-a/check`,
-      `${ROUTE_PREFIX}/live/stage-b/check`,
-      `${ROUTE_PREFIX}/redeem/live-stage-a`
+      `${ROUTE_PREFIX}/alert/test`
     ],
     reward: buildRewardSummary(),
     config: {
@@ -3560,13 +3373,12 @@ function buildStatus() {
       noStreamerBot: true,
       noLegacyImport: true,
       noTwitchWriteInThisStep: false,
-      liveActionPlanTileTruth: true,
+      tileIsTruth: true,
       localChannelpointsRewardWriteOnly: true,
       dbDashboardConfig: true,
       dryRunDecisionFlow: true,
       channelpointsDecisionBridge: true,
-      eventsubLiveDryRunObserve: true,
-      liveActionPlanOnly: false,
+      eventsubLiveObserve: true,
       fullLiveVipGrantSlotWriteFulfillCancelAlert: true,
       noFulfillCancelInThisStep: false,
       noVipGrantInThisStep: false,
@@ -3654,10 +3466,10 @@ function registerAtBus() {
       "vip30.redeem.decision",
       "vip30.channelpoints.bridge.listen",
       "vip30.channelpoints.bridge.test",
-      "vip30.cleanup.planned",
-      "vip30.redeem.planned",
-      "vip30.live.plan",
-      "vip30.live.safety"
+      "vip30.cleanup.check",
+      "vip30.cleanup.run",
+      "vip30.live.safety",
+      "vip30.live.execute"
     ],
     meta: {
       build: MODULE_BUILD,
@@ -3910,53 +3722,6 @@ function init(context = {}) {
       }
     });
 
-    app.get(`${ROUTE_PREFIX}/live/arm-preview`, (_req, res) => {
-      runtimeStats.lastAction = "live_arm_preview";
-      try { res.json(buildLiveArmPreview()); }
-      catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err), safety: { noTwitchWrite: true, noVipGrant: true, noSlotWrite: true, noRedemptionFulfillCancel: true } }); }
-    });
-    app.get(`${ROUTE_PREFIX}/live/arm-settings-preview`, (req, res) => {
-      runtimeStats.lastAction = "live_arm_settings_preview";
-      try { res.json(buildLiveArmSettingsPreview(req && req.query && req.query.profile || "stage_a")); }
-      catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err), safety: { noTwitchWrite: true, noVipGrant: true, noSlotWrite: true, noRedemptionFulfillCancel: true } }); }
-    });
-    app.post(`${ROUTE_PREFIX}/live/set-gates`, (req, res) => {
-      runtimeStats.lastAction = "live_set_gates";
-      try {
-        const result = setLiveGatesFromPayload((req && req.body) || {}, (req && req.query) || {});
-        res.status(result && result.ok ? 200 : 409).json(result);
-      }
-      catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err), safety: { noTwitchWrite: true, noVipGrant: true, noSlotWrite: true, noRedemptionFulfillCancel: true } }); }
-    });
-    app.post(`${ROUTE_PREFIX}/redeem/live-plan`, (req, res) => {
-      runtimeStats.lastAction = "redeem_live_plan";
-      try { res.json(buildRedemptionLiveActionPlan((req && req.body) || {}, { reason: "api_live_plan" })); }
-      catch (err) {
-        lastError = err && err.message ? err.message : String(err);
-        res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: lastError, safety: { noTwitchWrite: true, noVipGrant: true, noSlotWrite: true, noRedemptionFulfillCancel: true } });
-      }
-    });
-    app.get(`${ROUTE_PREFIX}/live/stage-b/check`, (_req, res) => {
-      runtimeStats.lastAction = "live_stage_b_check";
-      try { res.json(buildStageBLiveSafetyStatus()); }
-      catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err), safety: { noTwitchWrite: true, noVipGrant: true, noSlotWrite: true, noAlert: true } }); }
-    });
-    app.get(`${ROUTE_PREFIX}/live/stage-a/check`, (_req, res) => {
-      runtimeStats.lastAction = "live_stage_a_check";
-      try { res.json(buildStageALiveSafetyStatus()); }
-      catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err), safety: { noTwitchWrite: true, noVipGrant: true, noSlotWrite: true, noRedemptionFulfillCancel: true } }); }
-    });
-    app.post(`${ROUTE_PREFIX}/redeem/live-stage-a`, async (req, res) => {
-      runtimeStats.lastAction = "redeem_live_stage_a";
-      try {
-        const result = await executeVip30LiveStageA((req && req.body) || {}, { reason: "api_live_stage_a" });
-        res.status(result && result.ok ? 200 : 409).json(result);
-      } catch (err) {
-        lastError = err && err.message ? err.message : String(err);
-        res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: lastError, safety: { noRedemptionFulfillCancel: true, noAlert: true } });
-      }
-    });
-
     app.get(`${ROUTE_PREFIX}/redeem/dry-run`, (req, res) => {
       runtimeStats.lastAction = "redeem_dry_run_get";
       try {
@@ -4009,9 +3774,7 @@ module.exports = {
   buildChannelpointsBridgeDecision,
   buildInternalBridgeStatus,
   buildLiveActionSafetyStatus,
-  buildRedemptionLiveActionPlan,
-  buildStageALiveSafetyStatus,
-  executeVip30LiveStageA,
+  executeVip30LiveFlow,
   buildExternalVipRemoveStatus,
   releaseSlotForExternalVipRemove,
   emitExternalVipRemoveTest,
