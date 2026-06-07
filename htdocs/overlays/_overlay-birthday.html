@@ -548,24 +548,25 @@
     .stage[data-style="epic_party"] .headline { font-size: 92px; }
     .party-image-bg {
       position: absolute;
-      left: 50%;
-      top: 50%;
+      left: 14px;
+      top: 14px;
       z-index: 2;
-      width: 1280px;
-      height: 720px;
-      max-width: 66.666%;
-      max-height: 66.666%;
+      width: calc(100% - 28px);
+      height: calc(100% - 28px);
+      max-width: none;
+      max-height: none;
       object-fit: contain;
-      border-radius: 20px;
+      border-radius: 18px;
       opacity: 0;
-      transform: translate(-50%, -50%) scale(.985);
+      transform: scale(.985);
+      transform-origin: center;
       filter: drop-shadow(0 0 34px rgba(196,92,255,.34)) drop-shadow(0 0 26px rgba(57,230,255,.14));
       transition: opacity .55s ease, transform .75s cubic-bezier(.16,1,.3,1);
       pointer-events: none;
     }
     .stage.has-party-image.phase-party .party-image-bg {
       opacity: .98;
-      transform: translate(-50%, -50%) scale(1);
+      transform: scale(1);
     }
     .stage.has-party-image[data-image-mode="cover"] .party-image-bg { object-fit: cover; }
     .stage.has-party-image .shell {
@@ -645,11 +646,11 @@
 <body>
   <div id="stage" class="stage" data-style="cgn_neon">
     <div class="bg-glow"></div>
-    <img id="partyImage" class="party-image-bg" alt="Party-Bild" hidden />
     <div id="fx" class="fx-layer party-only"></div>
     <div id="fgFx" class="foreground-fx party-only"></div>
 
     <section class="shell">
+      <img id="partyImage" class="party-image-bg" alt="Party-Bild" hidden />
       <div class="avatar-wrap">
         <div class="avatar-card">
           <div class="crown party-only">👑</div>
