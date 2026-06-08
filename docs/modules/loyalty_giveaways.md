@@ -1,24 +1,47 @@
 # Loyalty Giveaways Modul
 
 Stand: 2026-06-08  
-STEP: LWG-4H.1
+STEP: LWG-4I
 
-## Fix
+## Neu
 
-`loyalty_giveaway_entries` wird jetzt auch bei bestehenden Installationen per Safety-Net angelegt.
+Giveaways ohne Rad koennen jetzt Gewinner ziehen.
 
-Grund:
-
-```text
-Bestehende DB hatte bereits schemaVersion=1.
-Die eigentliche Migration wurde deshalb nicht erneut ausgefuehrt.
-```
-
-Safety-Net:
+## Tabelle
 
 ```text
-CREATE TABLE IF NOT EXISTS loyalty_giveaway_entries
-CREATE INDEX IF NOT EXISTS ...
+loyalty_giveaway_winners
 ```
 
-Keine bestehenden Daten werden veraendert.
+## API
+
+```text
+GET  /api/loyalty/giveaways/:giveawayUid/winners
+POST /api/loyalty/giveaways/:giveawayUid/draw
+```
+
+## Fairness
+
+```text
+Algorithmus: crypto.randomInt
+Gewichtung: ticket_weight
+```
+
+Gespeichert werden:
+
+```text
+eligible_entries_count
+total_ticket_weight
+ticket_position
+entry_uid
+prize_uid
+draw_algorithm
+```
+
+## Nicht enthalten
+
+```text
+Wheel-Giveaways
+Punktebuchung
+Reward-Ausfuehrung
+```

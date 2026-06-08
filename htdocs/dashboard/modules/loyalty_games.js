@@ -982,6 +982,7 @@ window.LoyaltyGamesModule = (function(){
             <button class="lg-btn lg-btn-secondary" data-lg-giveaway-action="copy" data-giveaway-uid="${esc(selected.giveawayUid)}">Kopieren</button>
             ${selected.status === 'draft' ? `<button class="lg-btn" data-lg-giveaway-action="open" data-giveaway-uid="${esc(selected.giveawayUid)}">Öffnen</button>` : ''}
             ${selected.status === 'open' ? `<button class="lg-btn lg-btn-secondary" data-lg-giveaway-action="close" data-giveaway-uid="${esc(selected.giveawayUid)}">Teilnahme schließen</button>` : ''}
+            ${['open','closed_for_entries'].includes(selected.status) && !selected.wheelEnabled ? `<button class="lg-btn" data-lg-draw-winner="${esc(selected.giveawayUid)}">Gewinner ziehen</button>` : ''}
             ${!['finished','cancelled','deleted'].includes(selected.status) ? `<button class="lg-btn lg-btn-danger" data-lg-giveaway-action="finish" data-giveaway-uid="${esc(selected.giveawayUid)}">Beenden</button>` : ''}
             ${!['finished','cancelled','deleted'].includes(selected.status) ? `<button class="lg-btn lg-btn-danger" data-lg-giveaway-action="cancel" data-giveaway-uid="${esc(selected.giveawayUid)}">Abbrechen</button>` : ''}
             ${selected.status !== 'deleted' ? `<button class="lg-btn lg-btn-danger" data-lg-giveaway-action="delete" data-giveaway-uid="${esc(selected.giveawayUid)}">Löschen</button>` : ''}
@@ -1122,10 +1123,28 @@ window.LoyaltyGamesModule = (function(){
     }
   }
 
+
+  async function drawGiveawayWinner(){
+    const giveawayUid = state.selectedGiveawayUid;
+    if (!giveawayUid) return;
+    if (!window.confirm('Jetzt fair backendseitig einen Gewinner ziehen?')) return;
+    state.saving = true; render();
+    try {
+      const result = await apiPost(`/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}/draw`, { actor: 'dashboard' });
+      await refreshGiveaways(giveawayUid);
+      setMessage(`Gewinner gezogen: ${result.winner?.userDisplayName || result.winner?.userLogin || 'unbekannt'}`);
+    } catch (err) {
+      state.error = err.message || String(err);
+    } finally {
+      state.saving = false; render();
+    }
+  }
+
   function renderGiveawayDetails(giveaway){
     const rounds = rows(giveaway.rounds || []);
     const prizes = rows(giveaway.prizes || []);
     const entries = rows(giveaway.entries || []);
+    const winners = rows(giveaway.winners || []);
     const events = rows(giveaway.events || []);
     const editableEntries = giveaway.status === 'open';
 
@@ -1157,6 +1176,11 @@ window.LoyaltyGamesModule = (function(){
           <h3>Teilnahmen</h3>
           <strong class="lg-big-number">${fmtNumber(entries.filter(entry => entry.status !== 'cancelled').length)}</strong>
           <p class="lg-muted">Tickets werden gespeichert, Punkte aber noch nicht gebucht.</p>
+        </div>
+        <div class="lg-panel">
+          <h3>Gewinner</h3>
+          <strong class="lg-big-number">${fmtNumber(winners.length)}</strong>
+          <p class="lg-muted">Ziehung per crypto.randomInt.</p>
         </div>
       </div>
 
@@ -1196,6 +1220,31 @@ window.LoyaltyGamesModule = (function(){
                   <td>${entry.status !== 'cancelled' ? `<button class="lg-btn lg-btn-danger" data-lg-cancel-entry="${esc(entry.entryUid)}">Storno</button>` : ''}</td>
                 </tr>
               `).join('') || `<tr><td colspan="8" class="lg-muted">Noch keine Teilnahmen.</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="lg-panel">
+        <h3>Gewinner</h3>
+        <div class="lg-table-wrap">
+          <table class="lg-table">
+            <thead>
+              <tr>
+                <th>Zeit</th><th>User</th><th>Preis</th><th>Algorithmus</th><th>Tickets</th><th>Position</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${winners.map(winner => `
+                <tr>
+                  <td>${fmtDate(winner.createdAt)}</td>
+                  <td><strong>${esc(winner.userDisplayName || winner.userLogin || '-')}</strong></td>
+                  <td>${esc(winner.prizeLabel || '-')}</td>
+                  <td>${esc(winner.drawAlgorithm || '-')}</td>
+                  <td>${fmtNumber(winner.totalTicketWeight || 0)}</td>
+                  <td>${fmtNumber(winner.ticketPosition || 0)}</td>
+                </tr>
+              `).join('') || `<tr><td colspan="6" class="lg-muted">Noch kein Gewinner gezogen.</td></tr>`}
             </tbody>
           </table>
         </div>
@@ -1400,6 +1449,10 @@ window.LoyaltyGamesModule = (function(){
 
     root.querySelectorAll('[data-lg-cancel-entry]').forEach(btn => {
       btn.addEventListener('click', () => cancelEntry(btn.dataset.lgCancelEntry));
+    });
+
+    root.querySelectorAll('[data-lg-draw-winner]').forEach(btn => {
+      btn.addEventListener('click', () => drawGiveawayWinner());
     });
   }
 

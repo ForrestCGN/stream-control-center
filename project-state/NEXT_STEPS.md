@@ -2,14 +2,17 @@
 
 Stand: 2026-06-08
 
-## Naechster Schritt
+## Naechster sinnvoller Schritt
 
 ```text
-LWG-4H.1 live testen
+LWG-4J – Giveaway mit Rad / Wheel Claim
 ```
 
-Danach:
+## Fokus
 
 ```text
-LWG-4I – Gewinnerziehung ohne Rad
+Gewinner ziehen
+Wheel-Berechtigung erzeugen
+nur Gewinner darf drehen
+Rad-Ergebnis beim Giveaway speichern
 ```

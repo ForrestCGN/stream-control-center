@@ -56,7 +56,8 @@ const MODULE_META = {
       "loyalty.giveaway.entries_closed",
       "loyalty.giveaway.finished",
       "loyalty.giveaway.cancelled",
-      "loyalty.giveaway.deleted"
+      "loyalty.giveaway.deleted",
+      "loyalty.giveaway.winner_drawn"
     ],
     consumes: []
   },
@@ -461,6 +462,36 @@ function ensureSchema() {
     db.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_entries_user ON loyalty_giveaway_entries(user_login);`);
     db.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_entries_status ON loyalty_giveaway_entries(status);`);
 
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS loyalty_giveaway_winners (
+        id ${database.primaryKeyAutoIncrementSql()},
+        winner_uid TEXT NOT NULL UNIQUE,
+        giveaway_uid TEXT NOT NULL,
+        round_uid TEXT NOT NULL DEFAULT '',
+        entry_uid TEXT NOT NULL DEFAULT '',
+        user_login TEXT NOT NULL DEFAULT '',
+        user_display_name TEXT NOT NULL DEFAULT '',
+        draw_algorithm TEXT NOT NULL DEFAULT 'crypto.randomInt',
+        eligible_entries_count INTEGER NOT NULL DEFAULT 0,
+        total_ticket_weight INTEGER NOT NULL DEFAULT 0,
+        ticket_position INTEGER NOT NULL DEFAULT 0,
+        prize_uid TEXT NOT NULL DEFAULT '',
+        prize_label TEXT NOT NULL DEFAULT '',
+        wheel_required INTEGER NOT NULL DEFAULT 0,
+        wheel_permission_uid TEXT NOT NULL DEFAULT '',
+        wheel_spin_uid TEXT NOT NULL DEFAULT '',
+        status TEXT NOT NULL DEFAULT 'drawn',
+        created_at TEXT NOT NULL,
+        metadata_json TEXT NOT NULL DEFAULT '{}'
+      );
+    `);
+
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_winners_giveaway ON loyalty_giveaway_winners(giveaway_uid);`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_winners_round ON loyalty_giveaway_winners(round_uid);`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_winners_user ON loyalty_giveaway_winners(user_login);`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_winners_status ON loyalty_giveaway_winners(status);`);
+
+
 
     db.exec(`
       CREATE TABLE IF NOT EXISTS loyalty_giveaway_events (
@@ -559,6 +590,7 @@ function rowToGiveaway(row, includeDetails = false) {
     giveaway.rounds = listRounds(row.giveaway_uid).rows;
     giveaway.prizes = listPrizes(row.giveaway_uid).rows;
     giveaway.entries = listEntries(row.giveaway_uid, { limit: 250, includeCancelled: true }).rows;
+    giveaway.winners = listWinners(row.giveaway_uid, { limit: 100 }).rows;
     giveaway.events = listEvents(row.giveaway_uid, { limit: 100 }).rows;
   }
 
@@ -627,6 +659,32 @@ function rowToEntry(row) {
     createdAt: row.created_at || "",
     updatedAt: row.updated_at || "",
     cancelledAt: row.cancelled_at || "",
+    metadata: parseJson(row.metadata_json, {})
+  };
+}
+
+
+function rowToWinner(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    winnerUid: row.winner_uid,
+    giveawayUid: row.giveaway_uid,
+    roundUid: row.round_uid || "",
+    entryUid: row.entry_uid || "",
+    userLogin: row.user_login || "",
+    userDisplayName: row.user_display_name || row.user_login || "",
+    drawAlgorithm: row.draw_algorithm || "crypto.randomInt",
+    eligibleEntriesCount: Number(row.eligible_entries_count || 0),
+    totalTicketWeight: Number(row.total_ticket_weight || 0),
+    ticketPosition: Number(row.ticket_position || 0),
+    prizeUid: row.prize_uid || "",
+    prizeLabel: row.prize_label || "",
+    wheelRequired: Number(row.wheel_required || 0) === 1,
+    wheelPermissionUid: row.wheel_permission_uid || "",
+    wheelSpinUid: row.wheel_spin_uid || "",
+    status: row.status || "drawn",
+    createdAt: row.created_at || "",
     metadata: parseJson(row.metadata_json, {})
   };
 }
@@ -1026,6 +1084,235 @@ function cancelEntry(giveawayUid, entryUid, input = {}) {
   return { ok: true, entry: rowToEntry(database.get("SELECT * FROM loyalty_giveaway_entries WHERE entry_uid = :entryUid", { entryUid })) };
 }
 
+function listWinners(giveawayUid, options = {}) {
+  ensureSchema();
+  const limit = Math.max(1, Math.min(500, Number(options.limit || 100) || 100));
+  const rows = database.all(`
+    SELECT *
+    FROM loyalty_giveaway_winners
+    WHERE giveaway_uid = :giveawayUid
+    ORDER BY id DESC
+    LIMIT :limit
+  `, { giveawayUid, limit }).map(rowToWinner);
+  return { ok: true, count: rows.length, rows };
+}
+
+function getAvailablePrize(giveawayUid) {
+  ensureSchema();
+  const row = database.get(`
+    SELECT *
+    FROM loyalty_giveaway_prizes
+    WHERE giveaway_uid = :giveawayUid
+      AND status != 'cancelled'
+      AND quantity_remaining > 0
+    ORDER BY id ASC
+    LIMIT 1
+  `, { giveawayUid });
+  return rowToPrize(row);
+}
+
+function activeWinnerCount(giveawayUid) {
+  ensureSchema();
+  const row = database.get(`
+    SELECT COUNT(*) AS count
+    FROM loyalty_giveaway_winners
+    WHERE giveaway_uid = :giveawayUid
+      AND status != 'cancelled'
+  `, { giveawayUid });
+  return Number(row && row.count || 0);
+}
+
+function eligibleEntriesForDraw(giveawayUid) {
+  ensureSchema();
+  return database.all(`
+    SELECT *
+    FROM loyalty_giveaway_entries
+    WHERE giveaway_uid = :giveawayUid
+      AND status = 'active'
+      AND ticket_weight > 0
+    ORDER BY id ASC
+  `, { giveawayUid });
+}
+
+function pickWeightedEntry(entries) {
+  const totalWeight = entries.reduce((sum, entry) => sum + Math.max(0, Number(entry.ticket_weight || 0)), 0);
+  if (!entries.length || totalWeight <= 0) return { ok: false, error: "no_weighted_entries", totalWeight };
+
+  const zeroBasedPosition = crypto.randomInt(totalWeight);
+  const ticketPosition = zeroBasedPosition + 1;
+  let cursor = 0;
+
+  for (const entry of entries) {
+    cursor += Math.max(0, Number(entry.ticket_weight || 0));
+    if (zeroBasedPosition < cursor) {
+      return { ok: true, entry, totalWeight, ticketPosition };
+    }
+  }
+
+  return { ok: false, error: "weighted_pick_failed", totalWeight, ticketPosition };
+}
+
+function drawWinner(giveawayUid, input = {}) {
+  ensureSchema();
+  const giveaway = getGiveaway(giveawayUid, false);
+  if (!giveaway) return { ok: false, error: "giveaway_not_found", statusCode: 404 };
+  if (giveaway.deletedAt) return { ok: false, error: "giveaway_deleted", statusCode: 409 };
+  if (giveaway.status !== STATUS.OPEN && giveaway.status !== STATUS.CLOSED_FOR_ENTRIES) {
+    return { ok: false, error: "giveaway_not_drawable", statusCode: 409, status: giveaway.status };
+  }
+  if (giveaway.wheelEnabled) {
+    return { ok: false, error: "wheel_giveaway_draw_not_in_this_step", statusCode: 409 };
+  }
+
+  const winnerCount = activeWinnerCount(giveawayUid);
+  if (winnerCount >= giveaway.winnerCount) {
+    return { ok: false, error: "giveaway_winner_count_reached", statusCode: 409, winnerCount, maxWinners: giveaway.winnerCount };
+  }
+
+  const prize = getAvailablePrize(giveawayUid);
+  if (!prize) return { ok: false, error: "giveaway_no_prizes_available", statusCode: 409 };
+
+  const entries = eligibleEntriesForDraw(giveawayUid);
+  const pick = pickWeightedEntry(entries);
+  if (!pick.ok) {
+    return { ok: false, error: pick.error || "giveaway_no_eligible_entries", statusCode: 409, eligibleEntriesCount: entries.length, totalTicketWeight: pick.totalWeight || 0 };
+  }
+
+  const now = nowIso();
+  const winnerUid = uid("winner");
+  const entry = pick.entry;
+  const round = getCurrentRound(giveawayUid);
+
+  database.run(`
+    INSERT INTO loyalty_giveaway_winners (
+      winner_uid, giveaway_uid, round_uid, entry_uid, user_login, user_display_name,
+      draw_algorithm, eligible_entries_count, total_ticket_weight, ticket_position,
+      prize_uid, prize_label, wheel_required, wheel_permission_uid, wheel_spin_uid,
+      status, created_at, metadata_json
+    ) VALUES (
+      :winnerUid, :giveawayUid, :roundUid, :entryUid, :userLogin, :userDisplayName,
+      :drawAlgorithm, :eligibleEntriesCount, :totalTicketWeight, :ticketPosition,
+      :prizeUid, :prizeLabel, :wheelRequired, :wheelPermissionUid, :wheelSpinUid,
+      :status, :createdAt, :metadataJson
+    )
+  `, {
+    winnerUid,
+    giveawayUid,
+    roundUid: round ? round.roundUid : "",
+    entryUid: entry.entry_uid,
+    userLogin: entry.user_login,
+    userDisplayName: entry.user_display_name || entry.user_login,
+    drawAlgorithm: "crypto.randomInt",
+    eligibleEntriesCount: entries.length,
+    totalTicketWeight: pick.totalWeight,
+    ticketPosition: pick.ticketPosition,
+    prizeUid: prize.prizeUid,
+    prizeLabel: prize.label,
+    wheelRequired: 0,
+    wheelPermissionUid: "",
+    wheelSpinUid: "",
+    status: "drawn",
+    createdAt: now,
+    metadataJson: json({
+      actor: input.actor || "dashboard",
+      selectedEntryUid: entry.entry_uid,
+      entryTicketCount: Number(entry.ticket_count || 0),
+      entryTicketWeight: Number(entry.ticket_weight || 0),
+      fairness: {
+        algorithm: "crypto.randomInt",
+        eligibleEntriesCount: entries.length,
+        totalTicketWeight: pick.totalWeight,
+        ticketPosition: pick.ticketPosition
+      }
+    })
+  });
+
+  const nextRemaining = Math.max(0, Number(prize.quantityRemaining || 0) - 1);
+  database.run(`
+    UPDATE loyalty_giveaway_prizes
+    SET quantity_remaining = :quantityRemaining,
+        status = :status,
+        updated_at = :updatedAt
+    WHERE prize_uid = :prizeUid
+  `, {
+    prizeUid: prize.prizeUid,
+    quantityRemaining: nextRemaining,
+    status: nextRemaining <= 0 ? "awarded" : "available",
+    updatedAt: now
+  });
+
+  database.run(`
+    UPDATE loyalty_giveaway_rounds
+    SET winner_uid = :winnerUid,
+        drawn_at = :drawnAt,
+        status = :status,
+        eligible_entries_count = :eligibleEntriesCount,
+        total_ticket_weight = :totalTicketWeight
+    WHERE round_uid = :roundUid
+  `, {
+    roundUid: round ? round.roundUid : "",
+    winnerUid,
+    drawnAt: now,
+    status: "drawn",
+    eligibleEntriesCount: entries.length,
+    totalTicketWeight: pick.totalWeight
+  });
+
+  const updatedWinnerCount = activeWinnerCount(giveawayUid);
+  const giveawayFinished = updatedWinnerCount >= giveaway.winnerCount || nextRemaining <= 0;
+  database.run(`
+    UPDATE loyalty_giveaways
+    SET status = :status,
+        entries_closed_at = CASE WHEN entries_closed_at = '' THEN :entriesClosedAt ELSE entries_closed_at END,
+        finished_at = CASE WHEN :finishedAt != '' THEN :finishedAt ELSE finished_at END,
+        updated_at = :updatedAt
+    WHERE giveaway_uid = :giveawayUid
+  `, {
+    giveawayUid,
+    status: giveawayFinished ? STATUS.FINISHED : STATUS.CLOSED_FOR_ENTRIES,
+    entriesClosedAt: now,
+    finishedAt: giveawayFinished ? now : "",
+    updatedAt: now
+  });
+
+  const winner = rowToWinner(database.get("SELECT * FROM loyalty_giveaway_winners WHERE winner_uid = :winnerUid", { winnerUid }));
+
+  createEvent({
+    giveawayUid,
+    roundUid: round ? round.roundUid : "",
+    eventType: "loyalty.giveaway.winner_drawn",
+    actorType: "dashboard",
+    actorLogin: input.actor || "",
+    oldStatus: giveaway.status,
+    newStatus: giveawayFinished ? STATUS.FINISHED : STATUS.CLOSED_FOR_ENTRIES,
+    message: `${winner.userDisplayName} won ${winner.prizeLabel}`,
+    metadata: {
+      winnerUid,
+      entryUid: entry.entry_uid,
+      algorithm: "crypto.randomInt",
+      eligibleEntriesCount: entries.length,
+      totalTicketWeight: pick.totalWeight,
+      ticketPosition: pick.ticketPosition,
+      prizeUid: prize.prizeUid
+    }
+  });
+
+  emitEvent("loyalty.giveaway.winner_drawn", {
+    giveawayUid,
+    winnerUid,
+    userLogin: winner.userLogin,
+    userDisplayName: winner.userDisplayName,
+    prizeUid: winner.prizeUid,
+    prizeLabel: winner.prizeLabel,
+    algorithm: "crypto.randomInt",
+    eligibleEntriesCount: entries.length,
+    totalTicketWeight: pick.totalWeight,
+    ticketPosition: pick.ticketPosition
+  });
+
+  return { ok: true, winner, giveaway: getGiveaway(giveawayUid, true) };
+}
+
 function buildSettingsSnapshot(input = {}, roundPolicy = {}) {
   return {
     title: String(input.title || "").trim(),
@@ -1336,8 +1623,9 @@ function counts() {
   const deleted = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaways WHERE deleted_at != ''")?.count || 0);
   const prizes = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_prizes")?.count || 0);
   const entries = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_entries WHERE status = 'active'")?.count || 0);
+  const winners = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_winners WHERE status != 'cancelled'")?.count || 0);
   const events = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_events")?.count || 0);
-  return { total, draft, open, finished, deleted, prizes, entries, events };
+  return { total, draft, open, finished, deleted, prizes, entries, winners, events };
 }
 
 function buildStatus() {
@@ -1395,7 +1683,9 @@ function registerRoutes(app) {
     "GET /api/loyalty/giveaways/:giveawayUid/events",
     "GET /api/loyalty/giveaways/:giveawayUid/entries",
     "POST /api/loyalty/giveaways/:giveawayUid/entries",
-    "POST /api/loyalty/giveaways/:giveawayUid/entries/:entryUid/cancel"
+    "POST /api/loyalty/giveaways/:giveawayUid/entries/:entryUid/cancel",
+    "GET /api/loyalty/giveaways/:giveawayUid/winners",
+    "POST /api/loyalty/giveaways/:giveawayUid/draw"
   ];
 
   registered.push(...routes.registerGet(app, "/api/loyalty/giveaways/status", core.asyncRoute(async (req, res) => {
@@ -1498,6 +1788,19 @@ function registerRoutes(app) {
   })));
 
 
+  
+  registered.push(...routes.registerGet(app, "/api/loyalty/giveaways/:giveawayUid/winners", core.asyncRoute(async (req, res) => {
+    if (!getGiveaway(req.params.giveawayUid, false)) return core.sendFail(res, "giveaway_not_found", 404);
+    return core.sendOk(res, listWinners(req.params.giveawayUid, req.query || {}));
+  })));
+
+  registered.push(...routes.registerPost(app, "/api/loyalty/giveaways/:giveawayUid/draw", core.asyncRoute(async (req, res) => {
+    const result = drawWinner(req.params.giveawayUid, req.body || {});
+    if (!result.ok) return core.sendFail(res, result.error || "draw_failed", result.statusCode || 409, result);
+    return core.sendOk(res, result);
+  })));
+
+
     state.routeCount = registered.length;
   return registered;
 }
@@ -1543,6 +1846,8 @@ module.exports = {
     getGiveaway,
     listEntries,
     createEntry,
-    cancelEntry
+    cancelEntry,
+    listWinners,
+    drawWinner
   }
 };
