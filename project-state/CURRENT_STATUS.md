@@ -5,16 +5,13 @@ Stand: 2026-06-08
 ## Neuer Stand
 
 ```text
-STEP LWG-4I – Giveaway Draw Without Wheel
+STEP LWG-4I.1 – Winners Table Safety Fix
 ```
 
 ## Umgesetzt
 
 ```text
-- Gewinnerziehung ohne Rad.
-- Backendseitig crypto.randomInt.
-- Winners-Tabelle.
-- Draw-API.
-- Dashboard-Button Gewinner ziehen.
-- Audit/Eventdaten.
+- Fix fuer no such table: loyalty_giveaway_winners.
+- Safety-Net CREATE TABLE IF NOT EXISTS.
+- Bestehende Daten bleiben unangetastet.
 ```

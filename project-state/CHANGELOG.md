@@ -1,16 +1,8 @@
 # Changelog – stream-control-center
 
-## 2026-06-08 – STEP LWG-4I Giveaway Draw Without Wheel
+## 2026-06-08 – STEP LWG-4I.1 Winners Table Safety Fix
 
-### Neu
+### Fix
 
-- Tabelle `loyalty_giveaway_winners`.
-- API `POST /api/loyalty/giveaways/:giveawayUid/draw`.
-- API `GET /api/loyalty/giveaways/:giveawayUid/winners`.
-- Dashboard-Button Gewinner ziehen.
-- Gewinneranzeige mit Fairnessdaten.
-
-### Fairness
-
-- Ziehung per `crypto.randomInt`.
-- Keine API zum Setzen eines Gewinners.
+- `loyalty_giveaway_winners` wird bei Modulstart per Safety-Net angelegt.
+- Behebt `no such table: loyalty_giveaway_winners` bei bestehender DB-Schema-Version.
