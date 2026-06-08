@@ -1,14 +1,15 @@
 # Changelog – stream-control-center
 
-## 2026-06-08 – STEP LWG-4F.2 Wheel Overlay Heartbeat
+## 2026-06-08 – STEP LWG-4G Loyalty Dashboard Home / Ampel
 
-### Geaendert
+### Neu
 
-- `htdocs/overlays/loyalty/wheel_overlay.html` sendet nun alle 5 Sekunden WebSocket-Heartbeat.
+- Loyalty-Home-Uebersicht mit Kacheln.
+- Ampelstatus aus Communication-Bus/API.
+- Kacheln springen in passende Tabs.
 
 ### Nicht geaendert
 
 - Kein Backend.
-- Keine Datenbank.
-- Keine API.
-- Kein neuer Bus.
+- Keine DB.
+- Keine Tickets/Gewinnerziehung.

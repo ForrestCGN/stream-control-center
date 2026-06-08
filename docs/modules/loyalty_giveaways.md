@@ -1,20 +1,8 @@
 # Loyalty Giveaways Modul
 
 Stand: 2026-06-08  
-STEP: LWG-4F.1
+STEP: LWG-4G
 
-## Bus-Standard
+## Dashboard
 
-`loyalty_giveaways` nutzt direkt den vorhandenen Communication-/CanBus:
-
-```text
-require("./communication_bus").getBus()
-```
-
-Das Modul registriert sich als:
-
-```text
-module:loyalty_giveaways
-```
-
-und sendet Heartbeats/Status ueber die vorhandenen Bus-Funktionen.
+Giveaways werden jetzt auch in der Loyalty-Home-Uebersicht als Kachel mit Ampelstatus angezeigt.

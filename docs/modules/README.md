@@ -5,16 +5,9 @@ Stand: 2026-06-08
 ## Aktueller Loyalty-Stand
 
 ```text
-STEP LWG-4F.1 – Loyalty Modules Use Existing Communication Bus
+STEP LWG-4G – Loyalty Dashboard Home / Ampel
 ```
 
-## Regel
+## Dashboard
 
-Kein neuer Bus, keine Parallelstruktur.
-
-Module nutzen direkt den vorhandenen Communication-/CanBus:
-
-```text
-backend/modules/communication_bus.js
-backend/modules/helpers/helper_communication.js
-```
+`Loyalty -> Loyalty Games -> Übersicht` zeigt jetzt Modul-Kacheln mit Ampelstatus aus dem bestehenden Communication-/CanBus.

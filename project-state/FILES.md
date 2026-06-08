@@ -5,16 +5,19 @@ Stand: 2026-06-08
 ## Aktueller Code-Stand
 
 ```text
-STEP_LWG_4F_2_wheel_overlay_heartbeat_v0_1_0.zip
+STEP_LWG_4G_loyalty_dashboard_home_ampel_v0_1_0.zip
 ```
 
 ## Geaenderte Dateien
 
 ```text
-htdocs/overlays/loyalty/wheel_overlay.html
-docs/current/CURRENT_CHAT_HANDOFF_LOYALTY_WHEEL_OVERLAY_LWG_4F_2.md
-docs/modules/loyalty_wheel.md
+htdocs/dashboard/modules/loyalty_games.js
+htdocs/dashboard/modules/loyalty_games.css
+docs/current/CURRENT_CHAT_HANDOFF_LOYALTY_DASHBOARD_LWG_4G.md
+docs/modules/README.md
+docs/modules/loyalty_games.md
+docs/modules/loyalty_giveaways.md
 project-state/*
-README_STEP_LWG_4F_2_WHEEL_OVERLAY_HEARTBEAT.md
+README_STEP_LWG_4G_LOYALTY_DASHBOARD_HOME_AMPEL.md
 ARTIFACT_CHECK.json
 ```

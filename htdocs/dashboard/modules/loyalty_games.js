@@ -12,6 +12,7 @@ window.LoyaltyGamesModule = (function(){
     spins: '/api/loyalty/games/wheel/spins?limit=50',
     giveawaysStatus: '/api/loyalty/giveaways/status',
     giveaways: '/api/loyalty/giveaways?limit=100',
+    communicationStatus: '/api/communication/status',
     overlay: '/overlays/loyalty/wheel_overlay.html'
   };
 
@@ -31,6 +32,7 @@ window.LoyaltyGamesModule = (function(){
     spins: null,
     giveawaysStatus: null,
     giveaways: null,
+    communicationStatus: null,
     selectedPresetUid: '',
     selectedPreset: null,
     selectedGiveawayUid: '',
@@ -162,14 +164,14 @@ window.LoyaltyGamesModule = (function(){
   async function loadAll(force){
     root = document.getElementById('loyaltyGamesModule');
     if (!root || !window.CGN) return;
-    if (!force && state.status && state.wheelStatus && state.presets && state.giveaways) { render(); return; }
+    if (!force && state.status && state.wheelStatus && state.presets && state.giveaways && state.communicationStatus) { render(); return; }
 
     state.loading = true;
     state.error = '';
     render();
 
     try {
-      const [status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways] = await Promise.all([
+      const [status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, communicationStatus] = await Promise.all([
         window.CGN.api(api.status).catch(err => ({ ok:false, error:err.message })),
         window.CGN.api(api.config).catch(err => ({ ok:false, error:err.message })),
         window.CGN.api(api.routes).catch(err => ({ ok:false, error:err.message, routes:[] })),
@@ -179,7 +181,8 @@ window.LoyaltyGamesModule = (function(){
         window.CGN.api(api.presets).catch(err => ({ ok:false, error:err.message, rows:[] })),
         window.CGN.api(api.spins).catch(err => ({ ok:false, error:err.message, rows:[] })),
         window.CGN.api(api.giveawaysStatus).catch(err => ({ ok:false, error:err.message })),
-        window.CGN.api(api.giveaways).catch(err => ({ ok:false, error:err.message, rows:[] }))
+        window.CGN.api(api.giveaways).catch(err => ({ ok:false, error:err.message, rows:[] })),
+        window.CGN.api(api.communicationStatus).catch(err => ({ ok:false, error:err.message, status:{ clients:[] } }))
       ]);
 
       const presetRows = rows(presets);
@@ -194,7 +197,7 @@ window.LoyaltyGamesModule = (function(){
         selectedGiveawayUid = giveawayRows[0]?.giveawayUid || '';
       }
 
-      state = { ...state, loading:false, error:'', status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, selectedPresetUid, selectedGiveawayUid };
+      state = { ...state, loading:false, error:'', status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, communicationStatus, selectedPresetUid, selectedGiveawayUid };
       if (selectedPresetUid) await loadPreset(selectedPresetUid, false);
       if (selectedGiveawayUid) await loadGiveaway(selectedGiveawayUid, false);
     } catch (err) {
@@ -535,6 +538,70 @@ window.LoyaltyGamesModule = (function(){
     }
   }
 
+
+  function communicationClients(){
+    return rows(state.communicationStatus?.status?.clients || state.communicationStatus?.clients || []);
+  }
+
+  function findCommunicationClient(moduleName){
+    const clients = communicationClients();
+    return clients.find(client =>
+      client.module === moduleName ||
+      client.id === `module:${moduleName}` ||
+      client.id === moduleName ||
+      String(client.id || '').includes(moduleName)
+    ) || null;
+  }
+
+  function getHealthInfo(moduleName, fallbackOk, options = {}){
+    const client = findCommunicationClient(moduleName);
+    if (!client) {
+      if (options.planned) return { color: 'gray', label: 'geplant', detail: 'noch nicht installiert', client: null };
+      return {
+        color: fallbackOk ? 'yellow' : 'red',
+        label: fallbackOk ? 'Status OK' : 'offline',
+        detail: fallbackOk ? 'API ok, kein Bus-Client gefunden' : 'nicht angemeldet',
+        client: null
+      };
+    }
+
+    const status = String(client.status || '').toLowerCase();
+    const hasHeartbeat = client.hasHeartbeat === true || Number(client.heartbeatCount || 0) > 0;
+    if (status === 'online' && hasHeartbeat) {
+      return {
+        color: 'green',
+        label: 'online',
+        detail: `Heartbeat ${fmtNumber(client.heartbeatCount || 0)}`,
+        client
+      };
+    }
+
+    if (status === 'online') {
+      return { color: 'yellow', label: 'online', detail: 'kein Heartbeat', client };
+    }
+
+    return { color: 'red', label: client.status || 'offline', detail: client.lastError || 'nicht bereit', client };
+  }
+
+  function renderAmpel(info){
+    return `<span class="lg-ampel lg-ampel-${esc(info.color)}" title="${esc(info.detail)}"></span>`;
+  }
+
+  function renderModuleCard(item){
+    const info = item.health;
+    return `
+      <button class="lg-module-card" data-lg-jump-tab="${esc(item.tab || 'overview')}">
+        <span class="lg-module-card-top">
+          <span class="lg-module-icon">${esc(item.icon || '•')}</span>
+          ${renderAmpel(info)}
+        </span>
+        <strong>${esc(item.title)}</strong>
+        <small>${esc(item.description || '')}</small>
+        <span class="lg-module-state">${esc(info.label)} · ${esc(info.detail)}</span>
+      </button>
+    `;
+  }
+
   function renderOverview(){
     const status = state.status || {};
     const diag = status.diagnostics || {};
@@ -542,14 +609,94 @@ window.LoyaltyGamesModule = (function(){
     const presetDiag = diag.presets || {};
     const giveawaysDiag = state.giveawaysStatus?.diagnostics?.counts || {};
     const db = diag.database || {};
+    const clients = communicationClients();
+
+    const gamesHealth = getHealthInfo('loyalty_games', status.ok !== false && !status.lastError);
+    const giveawaysHealth = getHealthInfo('loyalty_giveaways', state.giveawaysStatus?.ok !== false);
+    const overlayHealth = getHealthInfo('loyalty_wheel_overlay', false);
+    const coreHealth = getHealthInfo('loyalty', true);
+    const rewardsHealth = getHealthInfo('loyalty_rewards', false, { planned: true });
+    const channelpointsHealth = getHealthInfo('channelpoints', false);
+
+    const moduleCards = [
+      {
+        title: 'Loyalty Core',
+        icon: '🎟️',
+        tab: 'overview',
+        description: 'Punkte, Konten und Transaktionen',
+        health: coreHealth
+      },
+      {
+        title: 'Glücksrad',
+        icon: '🎡',
+        tab: 'wheel',
+        description: `${wheel.enabled === false ? 'deaktiviert' : 'aktiv'} · ${fmtNumber(wheel.fields || 0)} Felder`,
+        health: gamesHealth
+      },
+      {
+        title: 'Presets',
+        icon: '🧩',
+        tab: 'presets',
+        description: `${fmtNumber(presetDiag.presets || rows(state.presets).length)} Presets · ${fmtNumber(presetDiag.active || 0)} aktiv`,
+        health: gamesHealth
+      },
+      {
+        title: 'Giveaways',
+        icon: '🎁',
+        tab: 'giveaways',
+        description: `${fmtNumber(giveawaysDiag.total || rows(state.giveaways).length)} Giveaways · Tickets folgen`,
+        health: giveawaysHealth
+      },
+      {
+        title: 'Wheel Overlay',
+        icon: '📺',
+        tab: 'wheel',
+        description: 'Overlay-Heartbeat / OBS-Quelle',
+        health: overlayHealth
+      },
+      {
+        title: 'Kanalpunkte',
+        icon: '💎',
+        tab: 'notes',
+        description: 'spätere Preset- und Giveaway-Auslöser',
+        health: channelpointsHealth
+      },
+      {
+        title: 'Rewards',
+        icon: '🏆',
+        tab: 'notes',
+        description: 'noch geplant',
+        health: rewardsHealth
+      }
+    ];
 
     return `
+      <div class="lg-loyalty-home">
+        <div class="lg-home-hero">
+          <div>
+            <p class="lg-eyebrow">Loyalty Control Center</p>
+            <h3>Module & Status</h3>
+            <p class="lg-muted">Ampelstatus aus API, vorhandenem Communication-/CanBus und Heartbeats.</p>
+          </div>
+          <div class="lg-home-legend">
+            <span>${renderAmpel({color:'green', detail:'ok'})} aktiv</span>
+            <span>${renderAmpel({color:'yellow', detail:'warnung'})} warnung/teilweise</span>
+            <span>${renderAmpel({color:'red', detail:'fehler'})} fehler/offline</span>
+            <span>${renderAmpel({color:'gray', detail:'geplant'})} geplant</span>
+          </div>
+        </div>
+
+        <div class="lg-module-grid">
+          ${moduleCards.map(renderModuleCard).join('')}
+        </div>
+      </div>
+
       <div class="lg-grid lg-grid-4">
         <article class="lg-card">
-          <span class="lg-card-label">Modul</span>
-          <strong>${esc(status.module || 'loyalty_games')}</strong>
-          <small>Version ${esc(status.moduleVersion || status.version || '-')}</small>
-          ${badge(status.ok !== false && !status.lastError, 'OK', 'Fehler')}
+          <span class="lg-card-label">CanBus Clients</span>
+          <strong>${fmtNumber(clients.length)}</strong>
+          <small>registrierte Clients im Communication-Bus</small>
+          ${badge(state.communicationStatus?.ok !== false, 'OK', 'Fehler')}
         </article>
         <article class="lg-card">
           <span class="lg-card-label">Glücksrad</span>
@@ -570,8 +717,9 @@ window.LoyaltyGamesModule = (function(){
           ${badge(state.giveawaysStatus?.ok !== false, 'OK', 'Fehler')}
         </article>
       </div>
+
       <div class="lg-panel">
-        <h3>Status</h3>
+        <h3>Systemstatus</h3>
         <div class="lg-kv">
           <span>Games Schema</span><strong>${esc(String(diag.schemaReady ?? '-'))}</strong>
           <span>Giveaways Schema</span><strong>${esc(String(state.giveawaysStatus?.diagnostics?.schemaReady ?? '-'))}</strong>
@@ -1092,6 +1240,13 @@ window.LoyaltyGamesModule = (function(){
     });
 
     root.querySelector('[data-lg-reload]')?.addEventListener('click', () => loadAll(true));
+
+    root.querySelectorAll('[data-lg-jump-tab]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.activeTab = btn.dataset.lgJumpTab || 'overview';
+        render();
+      });
+    });
 
     root.querySelectorAll('[data-lg-select-preset]').forEach(btn => {
       btn.addEventListener('click', () => loadPreset(btn.dataset.lgSelectPreset));

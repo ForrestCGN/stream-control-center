@@ -1,20 +1,20 @@
 # Loyalty Games Modul
 
 Stand: 2026-06-08  
-STEP: LWG-4F.1
+STEP: LWG-4G
 
-## Bus-Standard
+## Dashboard Home
 
-`loyalty_games` nutzt direkt den vorhandenen Communication-/CanBus:
-
-```text
-require("./communication_bus").getBus()
-```
-
-Das Modul registriert sich als:
+Die Uebersicht zeigt jetzt Loyalty-Modulkacheln:
 
 ```text
-module:loyalty_games
+Loyalty Core
+Gluecksrad
+Presets
+Giveaways
+Wheel Overlay
+Kanalpunkte
+Rewards
 ```
 
-und sendet Heartbeats/Status ueber die vorhandenen Bus-Funktionen.
+Ampeln basieren auf `/api/communication/status` und Modulstatusrouten.

@@ -4,9 +4,9 @@ Stand: 2026-06-08
 
 ## Erledigt
 
-- [x] LWG-4F.2 Wheel Overlay Heartbeat
+- [x] LWG-4G Loyalty Dashboard Home / Ampel
 
 ## Offen
 
-- [ ] LWG-4F.2 Live-Test
-- [ ] Loyalty Dashboard Home mit Ampel-Kacheln
+- [ ] LWG-4G Live-Test
+- [ ] LWG-4H Entries/Tickets Backend
