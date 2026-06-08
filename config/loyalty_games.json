@@ -1,0 +1,185 @@
+{
+  "enabled": true,
+  "version": 1,
+  "_comment": "Loyalty Games Seed/Fallback-Konfig. STEP LWG-1: Wheel ist aktiv, Kosten/Rewards werden noch nicht produktiv ausgefuehrt.",
+  "games": {
+    "wheel": {
+      "enabled": true,
+      "mode": "shadow",
+      "cost": {
+        "enabled": false,
+        "amount": 0
+      },
+      "spin": {
+        "defaultDurationMs": 7000,
+        "minDurationMs": 2500,
+        "maxDurationMs": 20000,
+        "minExtraTurns": 5,
+        "maxExtraTurns": 8,
+        "oneActiveSpinOnly": true
+      },
+      "overlay": {
+        "eventType": "loyalty.wheel.spin",
+        "resetEventType": "loyalty.wheel.reset"
+      },
+      "fields": [
+        {
+          "id": "vip_1_day",
+          "label": "VIP",
+          "sub": "1 Tag",
+          "weight": 1,
+          "enabled": true,
+          "reward": {
+            "type": "none",
+            "amount": 0
+          },
+          "colorA": "#d03cff",
+          "colorB": "#18d6ff"
+        },
+        {
+          "id": "points_1000",
+          "label": "1000",
+          "sub": "Punkte",
+          "weight": 1,
+          "enabled": true,
+          "reward": {
+            "type": "points",
+            "amount": 1000
+          },
+          "colorA": "#18d6ff",
+          "colorB": "#d03cff"
+        },
+        {
+          "id": "bonus_spin_1",
+          "label": "Bonus",
+          "sub": "Dreh",
+          "weight": 1,
+          "enabled": true,
+          "reward": {
+            "type": "bonus_spin",
+            "amount": 1
+          },
+          "colorA": "#d03cff",
+          "colorB": "#18d6ff"
+        },
+        {
+          "id": "coupon_20",
+          "label": "20€",
+          "sub": "Gutschein",
+          "weight": 1,
+          "enabled": true,
+          "reward": {
+            "type": "manual",
+            "amount": 0
+          },
+          "colorA": "#18d6ff",
+          "colorB": "#d03cff"
+        },
+        {
+          "id": "sound_free",
+          "label": "Sound",
+          "sub": "frei",
+          "weight": 1,
+          "enabled": true,
+          "reward": {
+            "type": "manual",
+            "amount": 0
+          },
+          "colorA": "#d03cff",
+          "colorB": "#18d6ff"
+        },
+        {
+          "id": "miss_1",
+          "label": "Niete",
+          "sub": "",
+          "weight": 2,
+          "enabled": true,
+          "reward": {
+            "type": "none",
+            "amount": 0
+          },
+          "colorA": "#7d27b8",
+          "colorB": "#124b72"
+        },
+        {
+          "id": "game_key",
+          "label": "Key",
+          "sub": "Game",
+          "weight": 1,
+          "enabled": true,
+          "reward": {
+            "type": "manual",
+            "amount": 0
+          },
+          "colorA": "#18d6ff",
+          "colorB": "#d03cff"
+        },
+        {
+          "id": "points_500",
+          "label": "500",
+          "sub": "Punkte",
+          "weight": 1,
+          "enabled": true,
+          "reward": {
+            "type": "points",
+            "amount": 500
+          },
+          "colorA": "#d03cff",
+          "colorB": "#18d6ff"
+        },
+        {
+          "id": "bonus_spin_2",
+          "label": "Bonus",
+          "sub": "Dreh",
+          "weight": 1,
+          "enabled": true,
+          "reward": {
+            "type": "bonus_spin",
+            "amount": 1
+          },
+          "colorA": "#18d6ff",
+          "colorB": "#d03cff"
+        },
+        {
+          "id": "free_spin",
+          "label": "Free",
+          "sub": "Spin",
+          "weight": 1,
+          "enabled": true,
+          "reward": {
+            "type": "bonus_spin",
+            "amount": 1
+          },
+          "colorA": "#d03cff",
+          "colorB": "#18d6ff"
+        },
+        {
+          "id": "vip_3_days",
+          "label": "VIP",
+          "sub": "3 Tage",
+          "weight": 1,
+          "enabled": true,
+          "reward": {
+            "type": "none",
+            "amount": 0
+          },
+          "colorA": "#18d6ff",
+          "colorB": "#d03cff"
+        },
+        {
+          "id": "miss_2",
+          "label": "Niete",
+          "sub": "",
+          "weight": 2,
+          "enabled": true,
+          "reward": {
+            "type": "none",
+            "amount": 0
+          },
+          "colorA": "#7d27b8",
+          "colorB": "#124b72"
+        }
+      ]
+    }
+  }
+}

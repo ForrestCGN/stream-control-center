@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CGN Glücksrad Assets Only</title>
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #020512;
+    }
+
+    .stage {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: url("../../assets/images/loyalty/wheel/background.png") center / cover no-repeat;
+      transform-origin: top left;
+    }
+
+    .asset {
+      position: absolute;
+      pointer-events: none;
+      user-select: none;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-size: contain;
+    }
+
+    .wheel-ring {
+      left: 430px;
+      top: 100px;
+      width: 820px;
+      height: 820px;
+      background-image: url("../../assets/images/loyalty/wheel/wheel_ring.png");
+    }
+
+    .wheel-center {
+      left: 675px;
+      top: 345px;
+      width: 330px;
+      height: 330px;
+      background-image: url("../../assets/images/loyalty/wheel/wheel_center.png");
+    }
+
+    .pointer {
+      left: 767px;
+      top: 28px;
+      width: 150px;
+      height: 150px;
+      background-image: url("../../assets/images/loyalty/wheel/pointer.png");
+    }
+
+    .winner-banner {
+      left: 360px;
+      top: 855px;
+      width: 960px;
+      height: 150px;
+      background-image: url("../../assets/images/loyalty/wheel/winner_banner.png");
+    }
+
+    @media (max-aspect-ratio: 16/9) {
+      .stage {
+        transform: scale(calc(100vw / 1920));
+      }
+    }
+
+    @media (min-aspect-ratio: 16/9) {
+      .stage {
+        transform: scale(calc(100vh / 1080));
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <div class="asset wheel-ring"></div>
+    <div class="asset wheel-center"></div>
+    <div class="asset pointer"></div>
+    <div class="asset winner-banner"></div>
+  </div>
+</body>
+</html>

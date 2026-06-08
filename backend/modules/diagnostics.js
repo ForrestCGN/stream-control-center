@@ -2,9 +2,9 @@
 const core = require('./helpers/helper_core');
 const routes = require('./helpers/helper_routes');
 
-const MODULE_VERSION = '0.2.3';
+const MODULE_VERSION = '0.2.4';
 
-const DIAGNOSTICS_REGISTRY_VERSION = 2;
+const DIAGNOSTICS_REGISTRY_VERSION = 3;
 
 const REGISTRY_KEY_ALIASES = {
   alert_system: 'alerts',
@@ -26,7 +26,8 @@ const REGISTRY_KEY_ALIASES = {
   hug: 'hug',
   commands: 'commands',
   todo: 'todo',
-  tagebuch: 'tagebuch'
+  tagebuch: 'tagebuch',
+  loyalty_games: 'loyalty_games'
 };
 
 const REGISTRY_COVERAGE_EXCLUDE = new Set([
@@ -116,6 +117,7 @@ const DIAGNOSTICS_REGISTRY = [
   { key: 'media', label: 'Medienverwaltung', group: 'system', status: '/api/media/status' },
   { key: 'vip', label: 'VIP-System', group: 'community', status: '/api/vip-sound/status' },
   { key: 'vip30', label: '30 Tage VIP', group: 'community', status: '/api/vip30/status', health: '/api/vip30/health', slots: '/api/vip30/slots', logs: '/api/vip30/logs', stats: '/api/vip30/stats' },
+  { key: 'loyalty_games', label: 'Loyalty Games', group: 'community', status: '/api/loyalty/games/status' },
   { key: 'alerts', label: 'Alerts', group: 'control', status: '/api/alerts/status' }
 ];
 

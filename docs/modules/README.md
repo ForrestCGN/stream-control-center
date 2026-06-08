@@ -1,12 +1,12 @@
 # Module-Dokumentation
 
-Stand: 2026-06-06
+Stand: 2026-06-08
 
 ## Zweck
 
-Diese Datei ist der Einstiegspunkt für Modul-Dokumentation im Projekt `stream-control-center`.
+Diese Datei ist der Einstiegspunkt fuer Modul-Dokumentation im Projekt `stream-control-center`.
 
-Vor Arbeiten an Modulen immer prüfen:
+Vor Arbeiten an Modulen immer pruefen:
 
 ```text
 docs/modules/README.md
@@ -31,6 +31,8 @@ docs/system-inspection/DASHBOARD_COMMANDS_CONSOLIDATION.md
 ## Aktuelle wichtige Modul-Dokus
 
 ```text
+docs/modules/loyalty_games.md
+docs/modules/loyalty_wheel.md
 docs/modules/vip30.md
 docs/modules/channelpoints.md
 docs/modules/channelpoints_steps_517_to_527_summary.md
@@ -40,6 +42,42 @@ docs/modules/clip-shoutout-vso.md
 docs/modules/CLIP_SHOUTOUT_AUTOSHOUTOUT.md
 docs/modules/SHOUTOUT_SYSTEM_STRUCTURE_PLAN.md
 docs/modules/SHOUTOUT_SYSTEM_STANDARDS_ALIGNMENT.md
+```
+
+## Loyalty Games / Glücksrad
+
+Aktueller Stand:
+
+```text
+STEP LWG-1 – Loyalty Games Backend-Grundsystem v0.1.0
+```
+
+Dateien:
+
+```text
+backend/modules/loyalty_games.js
+backend/modules/loyalty_games/shared.js
+backend/modules/loyalty_games/wheel.js
+config/loyalty_games.json
+docs/modules/loyalty_games.md
+docs/modules/loyalty_wheel.md
+```
+
+Status:
+
+```text
+- Top-Level-Modul loyalty_games wird durch den vorhandenen Server-Loader geladen.
+- Wheel ist erstes Game-Submodul.
+- Gewinner wird backendseitig gewichtet zufaellig bestimmt.
+- Spin-Session wird in loyalty_game_sessions gespeichert.
+- Overlay-Event wird per WebSocket broadcastWS gesendet.
+- Keine Punktkosten, keine Reward-Ausfuehrung, kein Dashboard in LWG-1.
+```
+
+Naechster Schritt:
+
+```text
+STEP LWG-2 – Wheel Overlay an Backend-Event anbinden
 ```
 
 ## VIP30 / 30TageVIP
@@ -123,6 +161,12 @@ docs/system-inspection/DASHBOARD_COMMANDS_CONSOLIDATION.md
 
 ## Aktueller Feature-Stand
 
+Loyalty Games:
+
+```text
+STEP LWG-1 – Backend-Grundsystem v0.1.0
+```
+
 VIP30:
 
 ```text
@@ -150,10 +194,10 @@ STEP524_MEDIA_ASSET_UTF8_FILENAME_CLEANUP_REAL_v0.1.0
 Shoutout-System:
 
 ```text
-CAN-44.15 – Standards Alignment für gemeinsamen Shoutout-/AutoShoutout-Umbau
+CAN-44.15 – Standards Alignment fuer gemeinsamen Shoutout-/AutoShoutout-Umbau
 ```
 
-Zurückgezogen/nicht verwenden:
+Zurueckgezogen/nicht verwenden:
 
 ```text
 STEP524_MEDIA_ASSET_FILENAME_ENCODING_CLEANUP_v0.1.0
@@ -187,8 +231,5 @@ offene Punkte
 ## Nächster Doku-Schritt
 
 ```text
-STEP591 – Routes and Module Docs Verification Scan
+STEP LWG-2 – Overlay-Anbindung dokumentieren und testen
 ```
-
-Ziel:
-Echte Backend-Routen aus Modulen erfassen und gegen `docs/modules/*.md` prüfen. Routen nicht aus Erinnerung dokumentieren.

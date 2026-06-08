@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>CGN Loyalty Glücksrad - Asset Overlay V2</title>
+  <style>
+    :root {
+      --purple: #c23bff;
+      --blue: #00d8ff;
+      --dark: #030716;
+      --white: #f2f7ff;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #020512;
+      color: var(--white);
+      font-family: "Segoe UI", "Arial Narrow", Arial, sans-serif;
+    }
+    .stage {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background-image:
+        linear-gradient(90deg, rgba(4,0,18,.16), rgba(0,9,25,.12)),
+        url("../../assets/images/loyalty/wheel/background.png");
+      background-size: cover;
+      background-position: center;
+    }
+    .stage::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 42% 41%, rgba(0, 216, 255, .11), transparent 25%),
+        radial-gradient(circle at 32% 52%, rgba(194, 59, 255, .10), transparent 28%),
+        linear-gradient(180deg, rgba(0,0,0,.12), rgba(0,0,0,.22));
+    }
+
+    .headline {
+      position: absolute;
+      left: 70px;
+      top: 70px;
+      z-index: 2;
+      text-transform: uppercase;
+      letter-spacing: 13px;
+      font-weight: 800;
+      font-size: 36px;
+      color: #f5fbff;
+      text-shadow: 0 0 12px rgba(194,59,255,.85), 0 0 18px rgba(0,216,255,.55);
+    }
+    .headline-sub {
+      position: absolute;
+      left: 75px;
+      top: 128px;
+      z-index: 2;
+      text-transform: uppercase;
+      letter-spacing: 10px;
+      font-size: 14px;
+      opacity: .78;
+      color: #dce8ff;
+    }
+    .headline-line {
+      position: absolute;
+      left: 72px;
+      top: 162px;
+      width: 400px;
+      height: 2px;
+      z-index: 2;
+      background: linear-gradient(90deg, var(--purple), var(--blue), transparent);
+      box-shadow: 0 0 12px rgba(0,216,255,.9);
+    }
+
+    .wheel-area {
+      position: absolute;
+      left: 340px;
+      top: 42px;
+      width: 930px;
+      height: 930px;
+      z-index: 4;
+      filter:
+        drop-shadow(0 0 18px rgba(194,59,255,.42))
+        drop-shadow(0 0 30px rgba(0,216,255,.28));
+    }
+    .wheel-rotator {
+      position: absolute;
+      inset: 0;
+      transform-origin: 50% 50%;
+      transition: transform 7.4s cubic-bezier(.08,.82,.12,1);
+      will-change: transform;
+    }
+    #wheelCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+    .wheel-ring {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: url("../../assets/images/loyalty/wheel/wheel_ring.png") center / contain no-repeat;
+      z-index: 3;
+    }
+    .wheel-center {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 350px;
+      height: 350px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 5;
+      background: url("../../assets/images/loyalty/wheel/wheel_center.png") center / contain no-repeat;
+      filter: drop-shadow(0 0 18px rgba(0,216,255,.35));
+    }
+    .pointer {
+      position: absolute;
+      left: 50%;
+      top: -18px;
+      width: 150px;
+      height: 150px;
+      transform: translateX(-50%);
+      z-index: 8;
+      pointer-events: none;
+      background: url("../../assets/images/loyalty/wheel/pointer.png") center / contain no-repeat;
+      filter: drop-shadow(0 0 18px rgba(194,59,255,.9));
+    }
+
+    .winner {
+      position: absolute;
+      left: 292px;
+      bottom: 64px;
+      width: 1080px;
+      height: 150px;
+      z-index: 6;
+      background: url("../../assets/images/loyalty/wheel/winner_banner.png") center / contain no-repeat;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      text-transform: uppercase;
+      text-shadow: 0 0 10px rgba(194,59,255,.8), 0 0 20px rgba(0,216,255,.45);
+    }
+    .winner .label {
+      font-size: 22px;
+      letter-spacing: 10px;
+      opacity: .86;
+    }
+    .winner .value {
+      font-size: 42px;
+      letter-spacing: 8px;
+      color: #d867ff;
+      font-weight: 900;
+    }
+
+    .panel {
+      position: absolute;
+      right: 74px;
+      top: 242px;
+      width: 360px;
+      z-index: 5;
+      padding: 22px 24px 20px;
+      border-radius: 18px;
+      border: 1px solid rgba(0,216,255,.35);
+      background: linear-gradient(180deg, rgba(4,8,24,.72), rgba(4,8,24,.38));
+      box-shadow: 0 0 28px rgba(0,216,255,.12), inset 0 0 26px rgba(194,59,255,.06);
+      backdrop-filter: blur(4px);
+    }
+    .panel-title {
+      text-transform: uppercase;
+      letter-spacing: 6px;
+      color: #a8f5ff;
+      font-size: 17px;
+      font-weight: 800;
+      margin-bottom: 14px;
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      font-size: 16px;
+      color: rgba(242,247,255,.82);
+    }
+    .row strong {
+      color: white;
+      text-shadow: 0 0 9px rgba(0,216,255,.7);
+    }
+    .spin {
+      position: absolute;
+      right: 74px;
+      top: 500px;
+      width: 360px;
+      height: 78px;
+      z-index: 5;
+      border: 1px solid rgba(216, 88, 255, .86);
+      border-radius: 12px;
+      background: linear-gradient(90deg, rgba(112, 20, 185, .76), rgba(20, 118, 215, .66));
+      color: white;
+      font-size: 29px;
+      font-weight: 900;
+      letter-spacing: 8px;
+      text-transform: uppercase;
+      box-shadow: 0 0 23px rgba(194,59,255,.62), inset 0 0 24px rgba(255,255,255,.06);
+      cursor: pointer;
+    }
+    .spin:disabled { opacity: .5; cursor: not-allowed; }
+    .hint {
+      position: absolute;
+      right: 74px;
+      top: 590px;
+      width: 360px;
+      z-index: 5;
+      text-align: center;
+      font-size: 12px;
+      letter-spacing: 3px;
+      opacity: .65;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+<div class="stage">
+  <div class="headline">Glücksrad</div>
+  <div class="headline-sub">CGN Loyalty System</div>
+  <div class="headline-line"></div>
+
+  <div class="wheel-area">
+    <div id="wheelRotator" class="wheel-rotator">
+      <canvas id="wheelCanvas" width="1400" height="1400"></canvas>
+      <div class="wheel-ring"></div>
+    </div>
+    <div class="wheel-center"></div>
+    <div class="pointer"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">Mockup Status</div>
+    <div class="row"><span>Punkte</span><strong>12.450</strong></div>
+    <div class="row"><span>Kosten</span><strong>100</strong></div>
+    <div class="row"><span>Felder</span><strong id="fieldCount">8</strong></div>
+    <div class="row"><span>Technik</span><strong>Canvas + Assets</strong></div>
+  </div>
+
+  <button id="spinBtn" class="spin">Drehen</button>
+  <div class="hint">Nur Test · später per Backend/WebSocket</div>
+
+  <div class="winner">
+    <span class="label">Letzter Gewinn:</span>
+    <span id="winnerText" class="value">VIP</span>
+  </div>
+</div>
+
+<script>
+const fields = [
+  { label: "VIP", sub: "1 Tag", icon: "♛", weight: 1, colors: ["#40105f", "#071834"] },
+  { label: "1000", sub: "Punkte", icon: "☆", weight: 1, colors: ["#052d52", "#06152a"] },
+  { label: "Sound", sub: "frei", icon: "≋", weight: 1, colors: ["#073044", "#061426"] },
+  { label: "Bonusdreh", sub: "", icon: "↻", weight: 1, colors: ["#062238", "#090d22"] },
+  { label: "Challenge", sub: "", icon: "♜", weight: 1, colors: ["#171329", "#07192f"] },
+  { label: "Game Key", sub: "", icon: "⚿", weight: 1, colors: ["#26103c", "#07152a"] },
+  { label: "Niete", sub: "", icon: "×", weight: 3, colors: ["#16091f", "#06070e"] },
+  { label: "20€", sub: "Gutschein", icon: "◇", weight: 1, colors: ["#35104d", "#061d42"] }
+];
+
+const canvas = document.getElementById("wheelCanvas");
+const ctx = canvas.getContext("2d");
+const W = canvas.width;
+const H = canvas.height;
+const cx = W / 2;
+const cy = H / 2;
+const outerR = 548;
+const innerR = 222;
+let rotation = 0;
+
+document.getElementById("fieldCount").textContent = fields.length;
+
+function sectorPath(start, end, r0, r1) {
+  ctx.beginPath();
+  ctx.arc(cx, cy, r1, start, end, false);
+  ctx.arc(cx, cy, r0, end, start, true);
+  ctx.closePath();
+}
+
+function drawWheel() {
+  ctx.clearRect(0, 0, W, H);
+  const n = fields.length;
+  const step = Math.PI * 2 / n;
+  const startOffset = -Math.PI / 2 - step / 2;
+
+  for (let i = 0; i < n; i++) {
+    const f = fields[i];
+    const start = startOffset + i * step;
+    const end = start + step;
+    const mid = (start + end) / 2;
+
+    sectorPath(start, end, innerR, outerR);
+    const grad = ctx.createRadialGradient(cx, cy, innerR, cx, cy, outerR);
+    grad.addColorStop(0, f.colors[0]);
+    grad.addColorStop(.74, f.colors[1]);
+    grad.addColorStop(1, "rgba(2,5,16,.98)");
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Glass/texture arcs
+    ctx.save();
+    ctx.clip();
+    ctx.globalAlpha = 0.11;
+    for (let r = innerR + 34; r < outerR; r += 36) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, start + .018, end - .018);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = i % 2 ? "#c23bff" : "#00d8ff";
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // Segment separator
+    ctx.save();
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = i % 2 ? "#c23bff" : "#00d8ff";
+    ctx.strokeStyle = i % 2 ? "rgba(194,59,255,.84)" : "rgba(0,216,255,.84)";
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(start) * innerR, cy + Math.sin(start) * innerR);
+    ctx.lineTo(cx + Math.cos(start) * outerR, cy + Math.sin(start) * outerR);
+    ctx.stroke();
+    ctx.restore();
+
+    // Segment content
+    const tx = cx + Math.cos(mid) * 390;
+    const ty = cy + Math.sin(mid) * 390;
+    ctx.save();
+    ctx.translate(tx, ty);
+    ctx.rotate(mid + Math.PI / 2);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.shadowBlur = 16;
+    ctx.shadowColor = i % 2 ? "#c23bff" : "#00d8ff";
+    ctx.fillStyle = i % 2 ? "#f2ddff" : "#d9fbff";
+    ctx.font = "700 68px Segoe UI Symbol, Arial";
+    ctx.fillText(f.icon, 0, -72);
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = "#f2f7ff";
+    ctx.font = "900 47px 'Arial Narrow', 'Segoe UI', Arial";
+    ctx.fillText(f.label.toUpperCase(), 0, 0);
+    if (f.sub) {
+      ctx.font = "700 31px 'Arial Narrow', 'Segoe UI', Arial";
+      ctx.fillStyle = "rgba(242,247,255,.9)";
+      ctx.fillText(f.sub.toUpperCase(), 0, 44);
+    }
+    ctx.restore();
+  }
+
+  // Final separator
+  const last = startOffset + n * step;
+  ctx.save();
+  ctx.shadowBlur = 15;
+  ctx.shadowColor = "#00d8ff";
+  ctx.strokeStyle = "rgba(0,216,255,.8)";
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(cx + Math.cos(last) * innerR, cy + Math.sin(last) * innerR);
+  ctx.lineTo(cx + Math.cos(last) * outerR, cy + Math.sin(last) * outerR);
+  ctx.stroke();
+  ctx.restore();
+
+  // Center mask behind center asset
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, innerR - 18, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(3,7,22,.94)";
+  ctx.shadowBlur = 24;
+  ctx.shadowColor = "#00d8ff";
+  ctx.fill();
+  ctx.restore();
+}
+
+function pickWeighted() {
+  const total = fields.reduce((a, f) => a + (f.weight || 1), 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < fields.length; i++) {
+    r -= fields[i].weight || 1;
+    if (r <= 0) return i;
+  }
+  return fields.length - 1;
+}
+
+function spin(index) {
+  const btn = document.getElementById("spinBtn");
+  btn.disabled = true;
+  const stepDeg = 360 / fields.length;
+  const centerDeg = index * stepDeg;
+  const target = 360 - centerDeg;
+  const jitter = (Math.random() - .5) * Math.min(7, stepDeg * .22);
+  const spins = 5 + Math.floor(Math.random() * 3);
+  rotation += spins * 360 + target + jitter;
+  document.getElementById("wheelRotator").style.transform = `rotate(${rotation}deg)`;
+  setTimeout(() => {
+    document.getElementById("winnerText").textContent = fields[index].label;
+    btn.disabled = false;
+  }, 7600);
+}
+
+document.getElementById("spinBtn").addEventListener("click", () => spin(pickWeighted()));
+drawWheel();
+</script>
+</body>
+</html>

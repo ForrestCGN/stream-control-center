@@ -1,27 +1,22 @@
-# TODO – VIP30 / 30TageVIP
+# TODO – stream-control-center
 
-Stand: 2026-06-06
+Stand: 2026-06-08
 
 ## Erledigt
 
-- [x] Node-basierter VIP30 Flow
-- [x] EventSub/Bridge
-- [x] VIP Grant
-- [x] Slot Write
-- [x] Redemption Fulfill/Cancel
-- [x] Sound-System-Bundle
-- [x] SoundPool
-- [x] OverlaySets/Zufallstexte
-- [x] Dashboard Tabs Config/Sounds/Texte/Aktionen
-- [x] manueller Alert-Test
-- [x] Sounddauer Auto
-- [x] Avatar-Auflösung
-- [x] Testuser-Feld ohne festen Default
-- [x] externer VIP-Remove
+- [x] Loyalty Games Host-Modul geplant
+- [x] Loyalty Games Backend-Grundsystem v0.1.0 gebaut
+- [x] Wheel-Submodul gebaut
+- [x] DB-Tabelle `loyalty_game_sessions` vorbereitet
+- [x] Backendseitige gewichtete Zufallsauswahl eingebaut
+- [x] WebSocket-Spin-Event vorbereitet
+- [x] Diagnose-/Registry-Eintrag vorbereitet
+- [x] Modul-Dokus geschrieben
 
-## Offen im nächsten Chat
+## Offen
 
-- [ ] Overlay optisch verbessern
-- [ ] lange Namen sauber fitten
-- [ ] Headline/Message/Perks lesbarer machen
-- [ ] finale V1.0-Stable-Doku nach Overlay-Polish
+- [ ] LWG-2: Wheel Overlay an Backend-Event anbinden
+- [ ] LWG-3: Dashboard/Config-Verwaltung planen
+- [ ] LWG-4: Kosten/Reservierung/Refund planen
+- [ ] LWG-5: Reward-Ausfuehrung planen
+- [ ] VIP30 Overlay optisch verbessern

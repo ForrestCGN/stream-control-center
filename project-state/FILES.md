@@ -1,26 +1,35 @@
-# FILES – VIP30 / 30TageVIP
+# FILES – stream-control-center
 
-Stand: 2026-06-06
+Stand: 2026-06-08
 
-## Letzter Code-Stand
+## Aktueller Code-Stand
 
-```txt
-VIP30_STEP8_18_3_testuser_input_fix.zip
+```text
+STEP_LWG_1_loyalty_games_backend_v0_1_0.zip
 ```
 
-## Diese Dokumentations-ZIP
+## Neue/geaenderte Dateien in STEP LWG-1
 
-```txt
-docs/current/CURRENT_CHAT_HANDOFF_VIP30_STEP8_18_4_FINAL_STATUS.md
-docs/modules/vip30.md
-docs/tests/VIP30_STEP8_18_FINAL_TEST_STATUS.md
-docs/dashboard/VIP30_ALERT_TEST.md
-docs/dashboard/VIP30_SOUNDS_TAB.md
-docs/dashboard/VIP30_TEXTE_TAB.md
-docs/design/VIP30_OVERLAY_NEXT_CHAT_TODO.md
+```text
+backend/modules/loyalty_games.js
+backend/modules/loyalty_games/shared.js
+backend/modules/loyalty_games/wheel.js
+backend/modules/diagnostics.js
+config/loyalty_games.json
+docs/modules/loyalty_games.md
+docs/modules/loyalty_wheel.md
+docs/modules/README.md
+docs/current/CURRENT_CHAT_HANDOFF_LOYALTY_GAMES_LWG_1.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/CHANGELOG.md
 project-state/FILES.md
+```
+
+## Weiterhin relevante VIP30-Dateien
+
+```text
+docs/modules/vip30.md
+docs/design/VIP30_OVERLAY_NEXT_CHAT_TODO.md
 ```

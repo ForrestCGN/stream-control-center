@@ -1,46 +1,36 @@
-# NEXT STEPS – VIP30 / 30TageVIP
+# NEXT STEPS – stream-control-center
 
-Stand: 2026-06-06
+Stand: 2026-06-08
 
-## Nächster Chat
+## Naechster sinnvoller Schritt
 
-Thema:
-
-```txt
-VIP30 Overlay optisch verbessern
+```text
+STEP LWG-2 – Wheel Overlay an Backend-Event anbinden
 ```
 
-Fokus:
+## Fokus LWG-2
 
-```txt
-- lange Namen
-- Headline-Fit
-- Lesbarkeit
-- Card-Proportionen
-- Perks/Chips
-- Avatarbereich
+```text
+- htdocs/overlays/loyalty/wheel_overlay.html erstellen/ersetzen
+- vorhandene Wheel-Assets nutzen
+- Overlay per WebSocket auf loyalty.wheel.spin hoeren lassen
+- Felder aus Event rendern
+- nur Felder drehen lassen
+- Center, Aussenring und Pointer statisch halten
+- Winner-Banner aus Backend-Ergebnis fuellen
 ```
 
-## Vorheriger stabiler Stand
+## Danach
 
-```txt
-VIP30_STEP8_18_3_testuser_input_fix.zip
+```text
+STEP LWG-3 – Dashboard/Config-Planung
+STEP LWG-4 – Kosten/Reservierung/Refund planen
+STEP LWG-5 – Reward-Ausfuehrung planen
 ```
 
 ## Wichtige Regel
 
-```txt
-Keine Funktionalität entfernen.
-```
-
-Insbesondere nicht entfernen:
-
-```txt
-- random Sounds
-- random Texte
-- Avatar-Lookup
-- manueller Alert-Test
-- Sound-System-Bundle
-- Media-System
-- EventSub/Bridge Live-Flow
+```text
+Keine Funktionalitaet entfernen.
+Keine produktiven Loyalty-Flows umbauen, solange nicht separat geplant und freigegeben.
 ```
