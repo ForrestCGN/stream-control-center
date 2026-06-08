@@ -5,27 +5,33 @@ Stand: 2026-06-08
 ## Aktueller Schwerpunkt
 
 ```text
-Loyalty / CGN Gluecksrad / Giveaways Planung
+Loyalty / Wheel Presets / Giveaways Vorbereitung
 ```
 
 ## Neuer Stand
 
 ```text
-STEP LWG-3.1 – Dashboard Loyalty Main Section Bridge
+STEP LWG-4B – Wheel Presets Backend v0.2.0
 ```
 
 ## Umgesetzt
 
 ```text
-- Loyalty ist als eigener Dashboard-Hauptbereich vorbereitet.
-- Loyalty Games liegt unter Loyalty.
-- LWG-3 Read-only-Dashboard bleibt erhalten.
-- Keine Backend-/DB-/API-Aenderung.
+- Wheel-Presets Backend.
+- Preset-Felder Backend.
+- Dreh-Verlauf fuer Preset-Spins.
+- Default-Preset wird aus Config erzeugt.
+- Bestehender Wheel-Spin bleibt kompatibel.
+- EventBus/Broadcast-Events vorbereitet.
 ```
 
-## Architekturentscheidung
+## Nicht umgesetzt
 
 ```text
-Loyalty wird Hauptbereich fuer Punkte, Giveaways, Spiele, Gluecksrad, Presets, Rewards und Diagnose.
-Kommunikation zwischen Loyalty-Untermodulen soll ueber EventBus/definierte Events laufen.
+- kein Giveaway
+- kein Ticket-System
+- kein Dashboard-Preset-Editor
+- keine Kanalpunkte/Commands
+- keine Punktebuchung
+- keine Reward-Ausfuehrung
 ```

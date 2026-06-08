@@ -3,11 +3,12 @@
 /**
  * Loyalty Games host module.
  *
- * STEP LWG-1:
- * - Adds a dedicated games host below the existing Loyalty system.
- * - Loads game implementations from backend/modules/loyalty_games/.
- * - First game: wheel.
- * - Does not modify loyalty.js and does not book points or rewards yet.
+ * STEP LWG-4B:
+ * - Keeps the existing wheel spin API working.
+ * - Adds wheel presets and preset fields in the central database.
+ * - Keeps spin logic inside wheel.js.
+ * - Adds preset management in presets.js.
+ * - Does not add Giveaway logic yet.
  */
 
 const core = require("./helpers/helper_core");
@@ -15,13 +16,14 @@ const cfg = require("./helpers/helper_config");
 const routes = require("./helpers/helper_routes");
 const database = require("../core/database");
 const wheelFactory = require("./loyalty_games/wheel");
+const presetFactory = require("./loyalty_games/presets");
 
 const MODULE_NAME = "loyalty_games";
-const MODULE_VERSION = "0.1.0";
-const MODULE_BUILD = "STEP_LWG_1";
+const MODULE_VERSION = "0.2.0";
+const MODULE_BUILD = "STEP_LWG_4B";
 const CONFIG_FILE = "loyalty_games.json";
 const SCHEMA_MODULE = "loyalty_games";
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 const MODULE_META = {
   name: MODULE_NAME,
@@ -31,11 +33,21 @@ const MODULE_META = {
   category: "loyalty",
   routesPrefix: ["/api/loyalty/games"],
   bus: {
-    publishes: ["loyalty.event"],
+    publishes: [
+      "loyalty.event",
+      "loyalty.wheel.preset.created",
+      "loyalty.wheel.preset.copied",
+      "loyalty.wheel.preset.activated",
+      "loyalty.wheel.preset.paused",
+      "loyalty.wheel.preset.finished",
+      "loyalty.wheel.preset.deleted",
+      "loyalty.wheel.spin.started",
+      "loyalty.wheel.spin.finished"
+    ],
     consumes: []
   },
   legacy: false,
-  description: "Loyalty Games host module with configurable wheel game"
+  description: "Loyalty games host module with wheel presets and configurable wheel game"
 };
 
 const DEFAULT_CONFIG = {
@@ -61,6 +73,7 @@ const DEFAULT_CONFIG = {
         eventType: "loyalty.wheel.spin",
         resetEventType: "loyalty.wheel.reset"
       },
+      minVisibleSlots: 12,
       fields: [
         { id: "vip_1_day", label: "VIP", sub: "1 Tag", weight: 1, enabled: true, reward: { type: "none", amount: 0 }, colorA: "#d03cff", colorB: "#18d6ff" },
         { id: "points_1000", label: "1000", sub: "Punkte", weight: 1, enabled: true, reward: { type: "points", amount: 1000 }, colorA: "#18d6ff", colorB: "#d03cff" },
@@ -86,12 +99,15 @@ let state = {
   configError: "",
   schemaReady: false,
   lastError: "",
-  routeCount: 0
+  routeCount: 0,
+  eventBusReady: false
 };
 
 let config = DEFAULT_CONFIG;
 let wheel = null;
+let presetStore = null;
 let broadcastWS = null;
+let eventBus = null;
 
 function databaseStatus() {
   try {
@@ -128,37 +144,66 @@ function loadConfig() {
   return config;
 }
 
+function emitEvent(type, payload = {}) {
+  const event = {
+    type,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    event: "loyalty.event",
+    createdAt: core.nowIso(),
+    payload
+  };
+
+  let delivered = false;
+  try {
+    if (eventBus && typeof eventBus.emit === "function") {
+      eventBus.emit(type, event);
+      delivered = true;
+    } else if (eventBus && typeof eventBus.publish === "function") {
+      eventBus.publish(type, event);
+      delivered = true;
+    }
+  } catch (err) {
+    state.lastError = err && err.message ? err.message : String(err);
+  }
+
+  if (typeof broadcastWS === "function") {
+    broadcastWS(event);
+    delivered = true;
+  }
+
+  return delivered;
+}
+
 function ensureSchema() {
   database.ensureReady();
   database.ensureSchema(SCHEMA_MODULE, SCHEMA_VERSION, (fromVersion, toVersion, db) => {
-    if (toVersion === 1) {
-      db.exec(`
-        CREATE TABLE IF NOT EXISTS loyalty_game_sessions (
-          id ${database.primaryKeyAutoIncrementSql()},
-          session_uid TEXT NOT NULL UNIQUE,
-          game_key TEXT NOT NULL DEFAULT '',
-          user_login TEXT NOT NULL DEFAULT '',
-          user_display_name TEXT NOT NULL DEFAULT '',
-          status TEXT NOT NULL DEFAULT '',
-          source TEXT NOT NULL DEFAULT '',
-          duration_ms INTEGER NOT NULL DEFAULT 0,
-          selected_field_id TEXT NOT NULL DEFAULT '',
-          selected_field_index INTEGER NOT NULL DEFAULT 0,
-          selected_field_label TEXT NOT NULL DEFAULT '',
-          cost_amount INTEGER NOT NULL DEFAULT 0,
-          mode TEXT NOT NULL DEFAULT 'shadow',
-          started_at TEXT NOT NULL DEFAULT '',
-          finished_at TEXT NOT NULL DEFAULT '',
-          created_at TEXT NOT NULL,
-          updated_at TEXT NOT NULL,
-          metadata_json TEXT NOT NULL DEFAULT '{}'
-        );
-      `);
-      db.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_game_sessions_game ON loyalty_game_sessions(game_key);`);
-      db.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_game_sessions_status ON loyalty_game_sessions(status);`);
-      db.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_game_sessions_created ON loyalty_game_sessions(created_at);`);
-      db.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_game_sessions_user ON loyalty_game_sessions(user_login);`);
-    }
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS loyalty_game_sessions (
+        id ${database.primaryKeyAutoIncrementSql()},
+        session_uid TEXT NOT NULL UNIQUE,
+        game_key TEXT NOT NULL DEFAULT '',
+        user_login TEXT NOT NULL DEFAULT '',
+        user_display_name TEXT NOT NULL DEFAULT '',
+        status TEXT NOT NULL DEFAULT '',
+        source TEXT NOT NULL DEFAULT '',
+        duration_ms INTEGER NOT NULL DEFAULT 0,
+        selected_field_id TEXT NOT NULL DEFAULT '',
+        selected_field_index INTEGER NOT NULL DEFAULT 0,
+        selected_field_label TEXT NOT NULL DEFAULT '',
+        cost_amount INTEGER NOT NULL DEFAULT 0,
+        mode TEXT NOT NULL DEFAULT 'shadow',
+        started_at TEXT NOT NULL DEFAULT '',
+        finished_at TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        metadata_json TEXT NOT NULL DEFAULT '{}'
+      );
+    `);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_game_sessions_game ON loyalty_game_sessions(game_key);`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_game_sessions_status ON loyalty_game_sessions(status);`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_game_sessions_created ON loyalty_game_sessions(created_at);`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_game_sessions_user ON loyalty_game_sessions(user_login);`);
   });
 
   database.exec(`
@@ -187,6 +232,10 @@ function ensureSchema() {
   database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_game_sessions_status ON loyalty_game_sessions(status);`);
   database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_game_sessions_created ON loyalty_game_sessions(created_at);`);
   database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_game_sessions_user ON loyalty_game_sessions(user_login);`);
+
+  if (presetStore && typeof presetStore.ensureSchema === "function") {
+    presetStore.ensureSchema();
+  }
 
   state.schemaReady = true;
   return true;
@@ -338,6 +387,7 @@ function publicConfig() {
 function buildStatus() {
   const wheelStatus = wheel ? wheel.getStatus() : { ok: false, enabled: false, lastError: "wheel_not_loaded" };
   const counts = state.schemaReady ? sessionCounts() : { total: 0, running: 0, finished: 0, failed: 0 };
+  const presetStatus = presetStore && state.schemaReady ? presetStore.status() : { ok: false, presets: 0, fields: 0, spins: 0 };
 
   return {
     ok: !state.lastError,
@@ -364,7 +414,12 @@ function buildStatus() {
       schemaReady: !!state.schemaReady,
       lastError: state.lastError,
       counts,
+      presets: presetStatus,
       database: databaseStatus(),
+      eventBus: {
+        ready: !!state.eventBusReady,
+        mode: state.eventBusReady ? "ctx_event_bus" : "broadcast_only"
+      },
       state: {
         gamesLoaded: wheel ? 1 : 0,
         enabled: !!config.enabled
@@ -401,21 +456,36 @@ function registerRoutes(app) {
     });
   })));
 
+  const routeNames = [
+    "GET /api/loyalty/games/status",
+    "GET /api/loyalty/games/config",
+    "GET /api/loyalty/games/routes",
+    "GET /api/loyalty/games/sessions",
+    "GET /api/loyalty/games/wheel/status",
+    "GET /api/loyalty/games/wheel/config",
+    "GET /api/loyalty/games/wheel/spin",
+    "POST /api/loyalty/games/wheel/spin",
+    "POST /api/loyalty/games/wheel/reset",
+    "GET /api/loyalty/games/wheel/presets",
+    "GET /api/loyalty/games/wheel/presets/:presetUid",
+    "POST /api/loyalty/games/wheel/presets",
+    "POST /api/loyalty/games/wheel/presets/:presetUid/copy",
+    "POST /api/loyalty/games/wheel/presets/:presetUid/activate",
+    "POST /api/loyalty/games/wheel/presets/:presetUid/pause",
+    "POST /api/loyalty/games/wheel/presets/:presetUid/finish",
+    "POST /api/loyalty/games/wheel/presets/:presetUid/delete",
+    "GET /api/loyalty/games/wheel/presets/:presetUid/fields",
+    "POST /api/loyalty/games/wheel/presets/:presetUid/fields",
+    "PUT /api/loyalty/games/wheel/presets/:presetUid/fields/:fieldUid",
+    "POST /api/loyalty/games/wheel/presets/:presetUid/fields/:fieldUid/delete",
+    "GET /api/loyalty/games/wheel/spins"
+  ];
+
   registered.push(...routes.registerGet(app, "/api/loyalty/games/routes", core.asyncRoute(async (req, res) => {
     core.sendOk(res, {
       module: MODULE_NAME,
       moduleVersion: MODULE_VERSION,
-      routes: [
-        "GET /api/loyalty/games/status",
-        "GET /api/loyalty/games/config",
-        "GET /api/loyalty/games/routes",
-        "GET /api/loyalty/games/sessions",
-        "GET /api/loyalty/games/wheel/status",
-        "GET /api/loyalty/games/wheel/config",
-        "GET /api/loyalty/games/wheel/spin",
-        "POST /api/loyalty/games/wheel/spin",
-        "POST /api/loyalty/games/wheel/reset"
-      ]
+      routes: routeNames
     });
   })));
 
@@ -458,6 +528,87 @@ function registerRoutes(app) {
     }));
   })));
 
+  registered.push(...routes.registerGet(app, "/api/loyalty/games/wheel/presets", core.asyncRoute(async (req, res) => {
+    core.sendOk(res, presetStore.listPresets(req.query || {}));
+  })));
+
+  registered.push(...routes.registerGet(app, "/api/loyalty/games/wheel/presets/:presetUid", core.asyncRoute(async (req, res) => {
+    const preset = presetStore.getPreset(req.params.presetUid, true);
+    if (!preset) return core.sendFail(res, "preset_not_found", 404);
+    return core.sendOk(res, { ok: true, preset });
+  })));
+
+  registered.push(...routes.registerPost(app, "/api/loyalty/games/wheel/presets", core.asyncRoute(async (req, res) => {
+    const body = req.body || {};
+    const result = presetStore.createPreset({
+      name: body.name,
+      description: body.description,
+      minVisibleSlots: body.minVisibleSlots,
+      status: body.status || "draft",
+      presetType: "standalone",
+      createdBy: body.createdBy || body.actor || "dashboard",
+      fields: Array.isArray(body.fields) ? body.fields : []
+    });
+    if (!result.ok) return core.sendFail(res, result.error || "preset_create_failed", result.statusCode || 400, result);
+    return core.sendOk(res, result);
+  })));
+
+  registered.push(...routes.registerPost(app, "/api/loyalty/games/wheel/presets/:presetUid/copy", core.asyncRoute(async (req, res) => {
+    const result = presetStore.copyPreset(req.params.presetUid, req.body || {});
+    if (!result.ok) return core.sendFail(res, result.error || "preset_copy_failed", result.statusCode || 400, result);
+    return core.sendOk(res, result);
+  })));
+
+  registered.push(...routes.registerPost(app, "/api/loyalty/games/wheel/presets/:presetUid/activate", core.asyncRoute(async (req, res) => {
+    const result = presetStore.setPresetStatus(req.params.presetUid, "active", req.body || {});
+    if (!result.ok) return core.sendFail(res, result.error || "preset_activate_failed", result.statusCode || 409, result);
+    return core.sendOk(res, result);
+  })));
+
+  registered.push(...routes.registerPost(app, "/api/loyalty/games/wheel/presets/:presetUid/pause", core.asyncRoute(async (req, res) => {
+    const result = presetStore.setPresetStatus(req.params.presetUid, "paused", req.body || {});
+    if (!result.ok) return core.sendFail(res, result.error || "preset_pause_failed", result.statusCode || 409, result);
+    return core.sendOk(res, result);
+  })));
+
+  registered.push(...routes.registerPost(app, "/api/loyalty/games/wheel/presets/:presetUid/finish", core.asyncRoute(async (req, res) => {
+    const result = presetStore.setPresetStatus(req.params.presetUid, "finished", req.body || {});
+    if (!result.ok) return core.sendFail(res, result.error || "preset_finish_failed", result.statusCode || 409, result);
+    return core.sendOk(res, result);
+  })));
+
+  registered.push(...routes.registerPost(app, "/api/loyalty/games/wheel/presets/:presetUid/delete", core.asyncRoute(async (req, res) => {
+    const result = presetStore.setPresetStatus(req.params.presetUid, "deleted", req.body || {});
+    if (!result.ok) return core.sendFail(res, result.error || "preset_delete_failed", result.statusCode || 409, result);
+    return core.sendOk(res, result);
+  })));
+
+  registered.push(...routes.registerGet(app, "/api/loyalty/games/wheel/presets/:presetUid/fields", core.asyncRoute(async (req, res) => {
+    core.sendOk(res, presetStore.listFields(req.params.presetUid, req.query || {}));
+  })));
+
+  registered.push(...routes.registerPost(app, "/api/loyalty/games/wheel/presets/:presetUid/fields", core.asyncRoute(async (req, res) => {
+    const result = presetStore.createField(req.params.presetUid, req.body || {});
+    if (!result.ok) return core.sendFail(res, result.error || "field_create_failed", result.statusCode || 409, result);
+    return core.sendOk(res, result);
+  })));
+
+  registered.push(...routes.registerPut(app, "/api/loyalty/games/wheel/presets/:presetUid/fields/:fieldUid", core.asyncRoute(async (req, res) => {
+    const result = presetStore.updateField(req.params.presetUid, req.params.fieldUid, req.body || {});
+    if (!result.ok) return core.sendFail(res, result.error || "field_update_failed", result.statusCode || 409, result);
+    return core.sendOk(res, result);
+  })));
+
+  registered.push(...routes.registerPost(app, "/api/loyalty/games/wheel/presets/:presetUid/fields/:fieldUid/delete", core.asyncRoute(async (req, res) => {
+    const result = presetStore.deleteField(req.params.presetUid, req.params.fieldUid);
+    if (!result.ok) return core.sendFail(res, result.error || "field_delete_failed", result.statusCode || 409, result);
+    return core.sendOk(res, result);
+  })));
+
+  registered.push(...routes.registerGet(app, "/api/loyalty/games/wheel/spins", core.asyncRoute(async (req, res) => {
+    core.sendOk(res, presetStore.listSpins(req.query || {}));
+  })));
+
   state.routeCount = registered.length;
   return registered;
 }
@@ -465,15 +616,28 @@ function registerRoutes(app) {
 function init(ctx = {}) {
   try {
     broadcastWS = ctx.broadcastWS;
+    eventBus = ctx.eventBus || ctx.bus || ctx.communicationBus || null;
+    state.eventBusReady = !!eventBus;
     database.ensureReady(ctx);
     loadConfig();
+
+    presetStore = presetFactory.createPresetStore({
+      database,
+      core,
+      nowIso: core.nowIso,
+      defaultFields: config.games && config.games.wheel && Array.isArray(config.games.wheel.fields) ? config.games.wheel.fields : DEFAULT_CONFIG.games.wheel.fields,
+      emitEvent
+    });
+
     ensureSchema();
+    presetStore.seedDefaultPresetIfEmpty();
 
     wheel = wheelFactory.createWheelGame({
       hostModule: MODULE_NAME,
       moduleVersion: MODULE_VERSION,
       config: config.games && config.games.wheel ? config.games.wheel : DEFAULT_CONFIG.games.wheel,
       hostEnabled: !!config.enabled,
+      presetStore,
       db: {
         insertSession,
         updateSession,
@@ -481,12 +645,13 @@ function init(ctx = {}) {
         listSessions
       },
       broadcast,
+      emitEvent,
       nowIso: core.nowIso
     });
 
     if (ctx && ctx.app) registerRoutes(ctx.app);
 
-    console.log(`[${MODULE_NAME}] loaded v${MODULE_VERSION} games=wheel enabled=${!!config.enabled}`);
+    console.log(`[${MODULE_NAME}] loaded v${MODULE_VERSION} games=wheel presets=true enabled=${!!config.enabled}`);
   } catch (err) {
     state.lastError = err && err.message ? err.message : String(err);
     state.schemaReady = false;
@@ -503,6 +668,7 @@ module.exports = {
     DEFAULT_CONFIG,
     buildStatus,
     loadConfig,
-    ensureSchema
+    ensureSchema,
+    emitEvent
   }
 };

@@ -5,23 +5,23 @@ Stand: 2026-06-08
 ## Naechster sinnvoller Schritt
 
 ```text
-LWG-4B – Wheel Presets Backend planen/bauen
+LWG-4C – Preset Editor Dashboard
 ```
 
-## Vorher bestaetigen
+## Fokus
 
 ```text
-Loyalty -> Loyalty Games im Dashboard sichtbar.
-Bestehender Wheel-Spin funktioniert weiter.
+- Presets anzeigen
+- Felder anzeigen
+- Preset erstellen
+- Feld erstellen/bearbeiten/loeschen
+- Preset kopieren
+- Preset abschliessen
+- Read-only bei used/finished/exhausted
 ```
 
 ## Danach
 
 ```text
-Wheel Presets Backend
-Preset-Editor
-Giveaway Backend
-Giveaway Editor
-Commands / Kanalpunkte
-EventBus-Anbindung
+LWG-4D – Giveaway Backend Grundsystem
 ```

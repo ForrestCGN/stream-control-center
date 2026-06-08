@@ -1,80 +1,60 @@
-# Loyalty Wheel / CGN Gluecksrad
+# Loyalty Wheel / CGN Glücksrad
 
 Stand: 2026-06-08  
-Version: 0.1.0  
-STEP: LWG-3
+Version: 0.2.0  
+STEP: LWG-4B
 
 ## Zweck
 
-Das Loyalty Wheel ist das erste Spiel im neuen `loyalty_games`-System. Es bestimmt Gewinne backendseitig zufaellig/gewichtet und sendet ein Visual-Event an das Overlay.
+Das Wheel kann jetzt entweder wie bisher aus der Config drehen oder optional ein Datenbank-Preset verwenden.
 
-## Dateien
+## Presets
 
-```text
-backend/modules/loyalty_games/wheel.js
-backend/modules/loyalty_games/shared.js
-config/loyalty_games.json
-htdocs/overlays/loyalty/wheel_overlay.html
-htdocs/dashboard/modules/loyalty_games.js
-htdocs/dashboard/modules/loyalty_games.css
-htdocs/assets/images/loyalty/wheel/*.png
-```
-
-## Grundregel
-
-Der Gewinn wird immer im Backend bestimmt.
-
-Nicht erlaubt:
+Presets speichern Felder/Gewinne:
 
 ```text
-Overlay dreht und entscheidet danach selbst den Gewinn.
+loyalty_wheel_presets
+loyalty_wheel_fields
 ```
 
-Erlaubt:
+Beim ersten Start wird automatisch ein Standard-Preset aus `config/loyalty_games.json` erzeugt, falls noch kein Preset existiert.
+
+## Drehungen
+
+Ein einzelner Rad-Dreh wird intern als Spin gespeichert, wenn ein Preset benutzt wird:
 
 ```text
-Backend waehlt Gewinner -> Overlay visualisiert exakt dieses Ergebnis.
+loyalty_wheel_spins
 ```
 
-## Dashboard
+Im Dashboard sollte das spaeter als `Dreh-Verlauf` bezeichnet werden.
 
-LWG-3 bringt eine read-only Dashboard-Ansicht:
+## Regeln
 
 ```text
-Loyalty -> Loyalty Games
+- Spin ohne presetUid bleibt kompatibel.
+- Spin mit presetUid nutzt DB-Felder.
+- Gewinnmengen werden bei begrenzten Feldern reduziert.
+- Wenn keine Gewinne/Felder mehr verfuegbar sind, wird ein Preset exhausted.
+- Finished/exhausted/deleted Presets sind read-only.
 ```
-
-Anzeige:
-
-```text
-- Wheel Status
-- aktive Session
-- letztes Ergebnis
-- Felder/Gewichte
-- Reward-Vorbereitung
-- letzte Sessions
-```
-
-Keine Save-Buttons, keine produktiven Testbuttons, keine Kosten-/Reward-Ausfuehrung.
 
 ## Tests
 
-```text
-http://127.0.0.1:8080/dashboard
-Loyalty -> Loyalty Games
-```
-
-Spin API:
-
 ```powershell
-$r = Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/games/wheel/spin?login=forrestcgn&displayName=ForrestCGN&duration=5000"
-$r | Select-Object ok,sessionUid,selectedFieldId,selectedFieldLabel,durationMs
+$p = Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/games/wheel/presets"
+$p.rows | Select-Object presetUid,name,status,presetType,minVisibleSlots
+
+$presetUid = $p.rows[0].presetUid
+$r = Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/games/wheel/spin?presetUid=$presetUid&login=forrestcgn&displayName=ForrestCGN&duration=5000"
+$r | Select-Object ok,presetUid,spinUid,sessionUid,selectedFieldLabel,durationMs
 ```
 
-## Offene Punkte
+## Noch nicht umgesetzt
 
 ```text
-- LWG-4: Kosten/Reservierung/Refund.
-- LWG-5: Reward-Ausfuehrung.
-- Dashboard-Gesamtumbau spaeter.
+- Preset Editor im Dashboard
+- Giveaway-Editor
+- Kanalpunkte-/Command-Ausloesung
+- Reward-Ausfuehrung
 ```

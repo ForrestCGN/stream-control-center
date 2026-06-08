@@ -8,13 +8,14 @@ Stand: 2026-06-08
 - [x] LWG-2 Overlay
 - [x] LWG-2.1 Repeat-Spin-Fix
 - [x] LWG-3 Dashboard Read-only
-- [x] LWG-3.1 Loyalty als eigener Dashboard-Hauptbereich vorbereitet
+- [x] LWG-3.1 Loyalty Hauptbereich Bridge
+- [x] LWG-4B Wheel Presets Backend
 
 ## Offen
 
-- [ ] LWG-3.1 Live-Test im Dashboard
-- [ ] LWG-4B Wheel Presets Backend
-- [ ] Preset-Editor
-- [ ] Giveaway Backend
-- [ ] Giveaway Editor
-- [ ] EventBus-Kommunikation fuer Loyalty-Unterbereiche konkretisieren
+- [ ] LWG-4B Live-Test
+- [ ] LWG-4C Preset Editor Dashboard
+- [ ] LWG-4D Giveaway Backend
+- [ ] LWG-4E Giveaway Dashboard
+- [ ] Commands/Kanalpunkte
+- [ ] EventBus-Kommunikation weiter konkretisieren

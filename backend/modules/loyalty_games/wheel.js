@@ -4,9 +4,11 @@ const shared = require("./shared");
 
 function createWheelGame(options = {}) {
   const hostModule = options.hostModule || "loyalty_games";
-  const moduleVersion = options.moduleVersion || "0.1.0";
+  const moduleVersion = options.moduleVersion || "0.2.0";
   const db = options.db || {};
+  const presetStore = options.presetStore || null;
   const broadcast = typeof options.broadcast === "function" ? options.broadcast : () => false;
+  const emitEvent = typeof options.emitEvent === "function" ? options.emitEvent : () => false;
   const nowIso = typeof options.nowIso === "function" ? options.nowIso : () => new Date().toISOString();
 
   let config = normalizeConfig(options.config || {});
@@ -38,22 +40,43 @@ function createWheelGame(options = {}) {
         eventType: String(overlay.eventType || "loyalty.wheel.spin").trim() || "loyalty.wheel.spin",
         resetEventType: String(overlay.resetEventType || "loyalty.wheel.reset").trim() || "loyalty.wheel.reset"
       },
+      minVisibleSlots: shared.clampInt(source.minVisibleSlots || source.min_visible_slots, 12, 1, 96),
       fields: Array.isArray(source.fields) ? source.fields : []
     };
   }
 
-  function getFields() {
-    return shared.normalizeFields(config.fields);
+  function getFields(input = {}) {
+    const presetUid = String(input.presetUid || input.preset || "").trim();
+    if (presetUid && presetStore && typeof presetStore.getPresetFieldsForSpin === "function") {
+      const loaded = presetStore.getPresetFieldsForSpin(presetUid);
+      if (!loaded.ok) return loaded;
+      return {
+        ok: true,
+        preset: loaded.preset,
+        minVisibleSlots: loaded.preset.minVisibleSlots || config.minVisibleSlots || 12,
+        fields: shared.normalizeFields(loaded.fields)
+      };
+    }
+
+    return {
+      ok: true,
+      preset: null,
+      minVisibleSlots: config.minVisibleSlots || 12,
+      fields: shared.normalizeFields(config.fields)
+    };
   }
 
   function getPublicConfig() {
+    const baseFields = getFields();
     return {
       enabled: !!config.enabled,
       mode: config.mode,
       cost: { ...config.cost },
       spin: { ...config.spin },
       overlay: { ...config.overlay },
-      fields: getFields().map(shared.publicField)
+      minVisibleSlots: config.minVisibleSlots || 12,
+      fields: baseFields.ok ? baseFields.fields.map(shared.publicField) : [],
+      presetsEnabled: !!presetStore
     };
   }
 
@@ -75,13 +98,15 @@ function createWheelGame(options = {}) {
         durationMs: active.durationMs,
         selectedFieldId: active.selectedFieldId,
         selectedFieldIndex: active.selectedFieldIndex,
-        selectedFieldLabel: active.selectedFieldLabel
+        selectedFieldLabel: active.selectedFieldLabel,
+        presetUid: active.presetUid || ""
       } : null,
       lastResult,
-      fields: fields.length,
+      fields: fields.ok ? fields.fields.length : 0,
       mode: config.mode,
       costEnabled: !!config.cost.enabled,
       costAmount: Number(config.cost.amount || 0),
+      presetsEnabled: !!presetStore,
       lastError
     };
   }
@@ -91,6 +116,9 @@ function createWheelGame(options = {}) {
     const finishedAt = nowIso();
     const result = {
       sessionUid: active.sessionUid,
+      spinUid: active.spinUid || "",
+      presetUid: active.presetUid || "",
+      selectedFieldUid: active.selectedFieldUid || "",
       selectedFieldId: active.selectedFieldId,
       selectedFieldIndex: active.selectedFieldIndex,
       selectedFieldLabel: active.selectedFieldLabel,
@@ -108,12 +136,27 @@ function createWheelGame(options = {}) {
       });
     }
 
+    if (active.spinUid && presetStore && typeof presetStore.recordSpinFinished === "function") {
+      presetStore.recordSpinFinished(active.spinUid, {
+        status: "finished",
+        finishedAt,
+        metadata: { result }
+      });
+    }
+
+    if (active.presetUid && active.selectedFieldUid && presetStore && typeof presetStore.decrementFieldAfterWin === "function") {
+      presetStore.decrementFieldAfterWin(active.selectedFieldUid);
+    }
+
     lastResult = result;
     active = null;
+
+    emitEvent("loyalty.wheel.spin.finished", result);
     broadcast({
       type: "loyalty.wheel.finished",
       module: hostModule,
       moduleVersion,
+      event: "loyalty.event",
       game: "wheel",
       action: "finished",
       ...result
@@ -133,9 +176,15 @@ function createWheelGame(options = {}) {
         return { ok: false, error: "wheel_spin_already_running", statusCode: 409, activeSession: getStatus().activeSession };
       }
 
-      const fields = getFields();
+      const presetUid = String(input.presetUid || input.preset || "").trim();
+      const fieldsResult = getFields({ presetUid });
+      if (!fieldsResult.ok) {
+        return { ok: false, error: fieldsResult.error || "wheel_preset_load_failed", statusCode: fieldsResult.statusCode || 409, preset: fieldsResult.preset };
+      }
+
+      const fields = fieldsResult.fields;
       if (!fields.length) {
-        return { ok: false, error: "wheel_no_enabled_fields", statusCode: 400 };
+        return { ok: false, error: presetUid ? "preset_no_available_fields" : "wheel_no_enabled_fields", statusCode: 400 };
       }
 
       const selectedNormalizedIndex = shared.pickWeightedIndex(fields);
@@ -144,25 +193,33 @@ function createWheelGame(options = {}) {
       }
 
       const selected = fields[selectedNormalizedIndex];
+      const visualFields = shared.expandFieldsForVisual(fields, fieldsResult.minVisibleSlots || config.minVisibleSlots || 12);
+      const selectedVisualIndex = Math.max(0, visualFields.findIndex(field => (field.fieldUid || field.id) === (selected.fieldUid || selected.id)));
       const durationMs = shared.parseDuration(input, config.spin);
       const extraTurns = shared.parseExtraTurns(config.spin);
       const login = shared.normalizeLogin(input.login || input.user || input.userLogin || "");
       const displayName = shared.cleanDisplayName(login, input.displayName || input.display || input.userDisplayName || "");
-      const source = String(input.source || "api").trim() || "api";
+      const source = String(input.source || (presetUid ? "preset_api" : "api")).trim() || "api";
       const sessionUid = shared.uid("wheel");
+      const spinUid = presetUid ? shared.uid("spin") : "";
       const startedAt = nowIso();
       const endsAt = new Date(Date.parse(startedAt) + durationMs).toISOString();
       const costAmount = config.cost.enabled ? Number(config.cost.amount || 0) : 0;
+      const totalWeight = fields.reduce((sum, field) => sum + shared.normalizeWeight(field.weight), 0);
 
       const metadata = {
         inputSource: source,
         backendRandom: true,
         randomMethod: "crypto.randomInt",
         selectedNormalizedIndex,
+        selectedVisualIndex,
         selectedOriginalIndex: selected.index,
         fieldsCount: fields.length,
+        visualFieldsCount: visualFields.length,
+        totalWeight,
         extraTurns,
-        note: "V1 records the spin and selected field only. It does not book points or execute rewards yet."
+        presetUid,
+        note: "STEP LWG-4B records preset spins and does not book points or execute rewards yet."
       };
 
       const session = typeof db.insertSession === "function" ? db.insertSession({
@@ -174,7 +231,7 @@ function createWheelGame(options = {}) {
         source,
         durationMs,
         selectedFieldId: selected.id,
-        selectedFieldIndex: selectedNormalizedIndex,
+        selectedFieldIndex: selectedVisualIndex,
         selectedFieldLabel: selected.label,
         costAmount,
         mode: config.mode,
@@ -182,15 +239,38 @@ function createWheelGame(options = {}) {
         metadata
       }) : null;
 
+      if (presetUid && presetStore && typeof presetStore.recordSpinStarted === "function") {
+        presetStore.recordSpinStarted({
+          spinUid,
+          sessionUid,
+          presetUid,
+          sourceType: source,
+          sourceRefUid: String(input.sourceRefUid || "").trim(),
+          login,
+          displayName,
+          status: "running",
+          activeFieldCount: fields.length,
+          totalWeight,
+          resultFieldUid: selected.fieldUid || selected.id,
+          resultFieldId: selected.id,
+          resultLabel: selected.label,
+          startedAt,
+          metadata
+        });
+      }
+
       active = {
         sessionUid,
+        spinUid,
+        presetUid,
         status: "running",
         timer: setTimeout(() => finishActive(sessionUid), durationMs),
         startedAt,
         endsAt,
         durationMs,
+        selectedFieldUid: selected.fieldUid || selected.id,
         selectedFieldId: selected.id,
-        selectedFieldIndex: selectedNormalizedIndex,
+        selectedFieldIndex: selectedVisualIndex,
         selectedFieldLabel: selected.label
       };
 
@@ -202,13 +282,16 @@ function createWheelGame(options = {}) {
         game: "wheel",
         action: "started",
         sessionUid,
+        spinUid,
+        presetUid,
         durationMs,
         extraTurns,
         startedAt,
         endsAt,
-        fields: fields.map(shared.publicField),
-        selectedFieldIndex: selectedNormalizedIndex,
+        fields: visualFields.map(shared.publicField),
+        selectedFieldIndex: selectedVisualIndex,
         selectedFieldId: selected.id,
+        selectedFieldUid: selected.fieldUid || selected.id,
         selectedFieldLabel: selected.label,
         selectedField: shared.publicField(selected),
         user: {
@@ -222,6 +305,7 @@ function createWheelGame(options = {}) {
         mode: config.mode
       };
 
+      emitEvent("loyalty.wheel.spin.started", event);
       broadcast(event);
 
       lastError = "";
@@ -229,12 +313,15 @@ function createWheelGame(options = {}) {
         ok: true,
         game: "wheel",
         sessionUid,
+        spinUid,
+        presetUid,
         durationMs,
         extraTurns,
         startedAt,
         endsAt,
-        selectedFieldIndex: selectedNormalizedIndex,
+        selectedFieldIndex: selectedVisualIndex,
         selectedFieldId: selected.id,
+        selectedFieldUid: selected.fieldUid || selected.id,
         selectedFieldLabel: selected.label,
         selectedField: shared.publicField(selected),
         user: { login, displayName },
@@ -261,6 +348,14 @@ function createWheelGame(options = {}) {
         metadata: {
           resetBy: source
         }
+      });
+    }
+
+    if (active && active.spinUid && presetStore && typeof presetStore.recordSpinFinished === "function") {
+      presetStore.recordSpinFinished(active.spinUid, {
+        status: "reset",
+        finishedAt: nowIso(),
+        metadata: { resetBy: source }
       });
     }
 
