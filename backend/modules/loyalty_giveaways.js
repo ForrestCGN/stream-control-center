@@ -2166,7 +2166,20 @@ function registerRoutes(app) {
   })));
 
 
-    state.routeCount = registered.length;
+  
+  registered.push(...routes.registerGet(app, "/api/loyalty/giveaways/:giveawayUid/wheel/permissions", core.asyncRoute(async (req, res) => {
+    if (!getGiveaway(req.params.giveawayUid, false)) return core.sendFail(res, "giveaway_not_found", 404);
+    return core.sendOk(res, listWheelPermissions(req.params.giveawayUid, req.query || {}));
+  })));
+
+  registered.push(...routes.registerPost(app, "/api/loyalty/giveaways/:giveawayUid/wheel/claim", core.asyncRoute(async (req, res) => {
+    const result = claimWheelSpin(req.params.giveawayUid, req.body || {});
+    if (!result.ok) return core.sendFail(res, result.error || "wheel_claim_failed", result.statusCode || 409, result);
+    return core.sendOk(res, result);
+  })));
+
+
+  state.routeCount = registered.length;
   return registered;
 }
 

@@ -4,5 +4,6 @@ Stand: 2026-06-08
 
 ## Offen
 
-- [ ] LWG-4J.1 Live-Test
+- [ ] LWG-4J.2 Live-Test
+- [ ] Wheel Claim final bestaetigen
 - [ ] Commands/Kanalpunkte
