@@ -1,17 +1,37 @@
 # Loyalty Giveaways Modul
 
 Stand: 2026-06-08  
-STEP: LWG-4I.1
+STEP: LWG-4J
 
-## Fix
+## Neu
 
-`loyalty_giveaway_winners` wird jetzt auch bei bestehenden Installationen per Safety-Net angelegt.
+Giveaways mit Rad koennen jetzt Wheel-Claims erzeugen.
 
-Safety-Net:
+## Tabelle
 
 ```text
-CREATE TABLE IF NOT EXISTS loyalty_giveaway_winners
-CREATE INDEX IF NOT EXISTS ...
+loyalty_giveaway_wheel_permissions
 ```
 
-Keine bestehenden Daten werden veraendert.
+## API
+
+```text
+GET  /api/loyalty/giveaways/:giveawayUid/wheel/permissions
+POST /api/loyalty/giveaways/:giveawayUid/wheel/claim
+```
+
+## Ablauf
+
+```text
+draw -> winner waiting_for_wheel
+permission pending
+claim -> loyalty_games.startWheelSpin
+winner wheel_completed
+permission used
+giveaway finished
+```
+
+## Fairness
+
+Das Giveaway setzt kein Rad-Ergebnis.
+Das Ergebnis kommt aus dem Wheel-System.

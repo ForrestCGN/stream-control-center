@@ -617,6 +617,14 @@ function buildStatus() {
   };
 }
 
+
+function startWheelSpin(input = {}) {
+  if (!wheel || typeof wheel.spin !== "function") {
+    return { ok: false, error: "wheel_not_ready", statusCode: 503 };
+  }
+  return wheel.spin(input);
+}
+
 function registerRoutes(app) {
   const registered = [];
 
@@ -857,6 +865,7 @@ module.exports = {
     buildStatus,
     loadConfig,
     ensureSchema,
-    emitEvent
+    emitEvent,
+    startWheelSpin
   }
 };

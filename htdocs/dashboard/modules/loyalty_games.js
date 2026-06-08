@@ -1140,11 +1140,32 @@ window.LoyaltyGamesModule = (function(){
     }
   }
 
+  async function claimGiveawayWheel(userLogin, userDisplayName){
+    const giveawayUid = state.selectedGiveawayUid;
+    if (!giveawayUid || !userLogin) return;
+    state.saving = true; render();
+    try {
+      const result = await apiPost(`/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}/wheel/claim`, {
+        userLogin,
+        userDisplayName: userDisplayName || userLogin,
+        source: 'dashboard',
+        duration: 7000
+      });
+      await refreshGiveaways(giveawayUid);
+      setMessage(`Rad gestartet: ${result.spin?.selectedFieldLabel || 'Ergebnis folgt'}`);
+    } catch (err) {
+      state.error = err.message || String(err);
+    } finally {
+      state.saving = false; render();
+    }
+  }
+
   function renderGiveawayDetails(giveaway){
     const rounds = rows(giveaway.rounds || []);
     const prizes = rows(giveaway.prizes || []);
     const entries = rows(giveaway.entries || []);
     const winners = rows(giveaway.winners || []);
+    const wheelPermissions = rows(giveaway.wheelPermissions || []);
     const events = rows(giveaway.events || []);
     const editableEntries = giveaway.status === 'open';
 
@@ -1245,6 +1266,30 @@ window.LoyaltyGamesModule = (function(){
                   <td>${fmtNumber(winner.ticketPosition || 0)}</td>
                 </tr>
               `).join('') || `<tr><td colspan="6" class="lg-muted">Noch kein Gewinner gezogen.</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="lg-panel">
+        <h3>Wheel-Berechtigungen</h3>
+        <div class="lg-table-wrap">
+          <table class="lg-table">
+            <thead>
+              <tr>
+                <th>User</th><th>Status</th><th>Spin</th><th>Erstellt</th><th></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${wheelPermissions.map(permission => `
+                <tr>
+                  <td>${esc(permission.userDisplayName || permission.userLogin || '-')}</td>
+                  <td>${esc(permission.status || '-')}</td>
+                  <td>${esc(permission.spinUid || '-')}</td>
+                  <td>${fmtDate(permission.createdAt)}</td>
+                  <td>${permission.status === 'pending' ? `<button class="lg-btn" data-lg-claim-wheel="${esc(permission.userLogin)}" data-display-name="${esc(permission.userDisplayName || permission.userLogin)}">Rad drehen</button>` : ''}</td>
+                </tr>
+              `).join('') || `<tr><td colspan="5" class="lg-muted">Keine Wheel-Berechtigung vorhanden.</td></tr>`}
             </tbody>
           </table>
         </div>
@@ -1453,6 +1498,10 @@ window.LoyaltyGamesModule = (function(){
 
     root.querySelectorAll('[data-lg-draw-winner]').forEach(btn => {
       btn.addEventListener('click', () => drawGiveawayWinner());
+    });
+
+    root.querySelectorAll('[data-lg-claim-wheel]').forEach(btn => {
+      btn.addEventListener('click', () => claimGiveawayWheel(btn.dataset.lgClaimWheel, btn.dataset.displayName));
     });
   }
 

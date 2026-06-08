@@ -57,7 +57,9 @@ const MODULE_META = {
       "loyalty.giveaway.finished",
       "loyalty.giveaway.cancelled",
       "loyalty.giveaway.deleted",
-      "loyalty.giveaway.winner_drawn"
+      "loyalty.giveaway.winner_drawn",
+      "loyalty.giveaway.wheel_permission_created",
+      "loyalty.giveaway.wheel_claimed"
     ],
     consumes: []
   },
@@ -491,6 +493,31 @@ function ensureSchema() {
     db.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_winners_user ON loyalty_giveaway_winners(user_login);`);
     db.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_winners_status ON loyalty_giveaway_winners(status);`);
 
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS loyalty_giveaway_wheel_permissions (
+        id ${database.primaryKeyAutoIncrementSql()},
+        permission_uid TEXT NOT NULL UNIQUE,
+        giveaway_uid TEXT NOT NULL,
+        round_uid TEXT NOT NULL DEFAULT '',
+        winner_uid TEXT NOT NULL DEFAULT '',
+        user_login TEXT NOT NULL DEFAULT '',
+        user_display_name TEXT NOT NULL DEFAULT '',
+        status TEXT NOT NULL DEFAULT 'pending',
+        expires_at TEXT NOT NULL DEFAULT '',
+        used_at TEXT NOT NULL DEFAULT '',
+        spin_uid TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        metadata_json TEXT NOT NULL DEFAULT '{}'
+      );
+    `);
+
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_wheel_permissions_giveaway ON loyalty_giveaway_wheel_permissions(giveaway_uid);`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_wheel_permissions_winner ON loyalty_giveaway_wheel_permissions(winner_uid);`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_wheel_permissions_user ON loyalty_giveaway_wheel_permissions(user_login);`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_wheel_permissions_status ON loyalty_giveaway_wheel_permissions(status);`);
+
+
 
 
     db.exec(`
@@ -624,6 +651,7 @@ function rowToGiveaway(row, includeDetails = false) {
     giveaway.prizes = listPrizes(row.giveaway_uid).rows;
     giveaway.entries = listEntries(row.giveaway_uid, { limit: 250, includeCancelled: true }).rows;
     giveaway.winners = listWinners(row.giveaway_uid, { limit: 100 }).rows;
+    giveaway.wheelPermissions = listWheelPermissions(row.giveaway_uid, { limit: 100 }).rows;
     giveaway.events = listEvents(row.giveaway_uid, { limit: 100 }).rows;
   }
 
@@ -718,6 +746,27 @@ function rowToWinner(row) {
     wheelSpinUid: row.wheel_spin_uid || "",
     status: row.status || "drawn",
     createdAt: row.created_at || "",
+    metadata: parseJson(row.metadata_json, {})
+  };
+}
+
+
+function rowToWheelPermission(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    permissionUid: row.permission_uid,
+    giveawayUid: row.giveaway_uid,
+    roundUid: row.round_uid || "",
+    winnerUid: row.winner_uid || "",
+    userLogin: row.user_login || "",
+    userDisplayName: row.user_display_name || row.user_login || "",
+    status: row.status || "pending",
+    expiresAt: row.expires_at || "",
+    usedAt: row.used_at || "",
+    spinUid: row.spin_uid || "",
+    createdAt: row.created_at || "",
+    updatedAt: row.updated_at || "",
     metadata: parseJson(row.metadata_json, {})
   };
 }
@@ -1130,6 +1179,66 @@ function listWinners(giveawayUid, options = {}) {
   return { ok: true, count: rows.length, rows };
 }
 
+function listWheelPermissions(giveawayUid, options = {}) {
+  ensureSchema();
+  const limit = Math.max(1, Math.min(500, Number(options.limit || 100) || 100));
+  const rows = database.all(`
+    SELECT *
+    FROM loyalty_giveaway_wheel_permissions
+    WHERE giveaway_uid = :giveawayUid
+    ORDER BY id DESC
+    LIMIT :limit
+  `, { giveawayUid, limit }).map(rowToWheelPermission);
+  return { ok: true, count: rows.length, rows };
+}
+
+function createWheelPermission(input = {}) {
+  ensureSchema();
+  const permissionUid = input.permissionUid || uid("wheelperm");
+  const now = nowIso();
+
+  database.run(`
+    INSERT INTO loyalty_giveaway_wheel_permissions (
+      permission_uid, giveaway_uid, round_uid, winner_uid, user_login, user_display_name,
+      status, expires_at, used_at, spin_uid, created_at, updated_at, metadata_json
+    ) VALUES (
+      :permissionUid, :giveawayUid, :roundUid, :winnerUid, :userLogin, :userDisplayName,
+      :status, :expiresAt, :usedAt, :spinUid, :createdAt, :updatedAt, :metadataJson
+    )
+  `, {
+    permissionUid,
+    giveawayUid: input.giveawayUid || "",
+    roundUid: input.roundUid || "",
+    winnerUid: input.winnerUid || "",
+    userLogin: input.userLogin || "",
+    userDisplayName: input.userDisplayName || input.userLogin || "",
+    status: "pending",
+    expiresAt: input.expiresAt || "",
+    usedAt: "",
+    spinUid: "",
+    createdAt: now,
+    updatedAt: now,
+    metadataJson: json(input.metadata || {})
+  });
+
+  return rowToWheelPermission(database.get("SELECT * FROM loyalty_giveaway_wheel_permissions WHERE permission_uid = :permissionUid", { permissionUid }));
+}
+
+function getPendingWheelPermission(giveawayUid, userLogin) {
+  ensureSchema();
+  const login = String(userLogin || "").trim().replace(/^@/, "").toLowerCase();
+  const row = database.get(`
+    SELECT *
+    FROM loyalty_giveaway_wheel_permissions
+    WHERE giveaway_uid = :giveawayUid
+      AND user_login = :userLogin
+      AND status = 'pending'
+    ORDER BY id ASC
+    LIMIT 1
+  `, { giveawayUid, userLogin: login });
+  return rowToWheelPermission(row);
+}
+
 function getAvailablePrize(giveawayUid) {
   ensureSchema();
   const row = database.get(`
@@ -1193,8 +1302,9 @@ function drawWinner(giveawayUid, input = {}) {
   if (giveaway.status !== STATUS.OPEN && giveaway.status !== STATUS.CLOSED_FOR_ENTRIES) {
     return { ok: false, error: "giveaway_not_drawable", statusCode: 409, status: giveaway.status };
   }
-  if (giveaway.wheelEnabled) {
-    return { ok: false, error: "wheel_giveaway_draw_not_in_this_step", statusCode: 409 };
+  const isWheelGiveaway = giveaway.wheelEnabled === true;
+  if (isWheelGiveaway && !giveaway.wheelPresetUid) {
+    return { ok: false, error: "wheel_giveaway_missing_preset", statusCode: 409 };
   }
 
   const winnerCount = activeWinnerCount(giveawayUid);
@@ -1202,8 +1312,8 @@ function drawWinner(giveawayUid, input = {}) {
     return { ok: false, error: "giveaway_winner_count_reached", statusCode: 409, winnerCount, maxWinners: giveaway.winnerCount };
   }
 
-  const prize = getAvailablePrize(giveawayUid);
-  if (!prize) return { ok: false, error: "giveaway_no_prizes_available", statusCode: 409 };
+  const prize = isWheelGiveaway ? null : getAvailablePrize(giveawayUid);
+  if (!isWheelGiveaway && !prize) return { ok: false, error: "giveaway_no_prizes_available", statusCode: 409 };
 
   const entries = eligibleEntriesForDraw(giveawayUid);
   const pick = pickWeightedEntry(entries);
@@ -1239,9 +1349,9 @@ function drawWinner(giveawayUid, input = {}) {
     eligibleEntriesCount: entries.length,
     totalTicketWeight: pick.totalWeight,
     ticketPosition: pick.ticketPosition,
-    prizeUid: prize.prizeUid,
-    prizeLabel: prize.label,
-    wheelRequired: 0,
+    prizeUid: prize ? prize.prizeUid : "",
+    prizeLabel: isWheelGiveaway ? "Rad-Drehung offen" : prize.label,
+    wheelRequired: isWheelGiveaway ? 1 : 0,
     wheelPermissionUid: "",
     wheelSpinUid: "",
     status: "drawn",
@@ -1260,19 +1370,21 @@ function drawWinner(giveawayUid, input = {}) {
     })
   });
 
-  const nextRemaining = Math.max(0, Number(prize.quantityRemaining || 0) - 1);
-  database.run(`
-    UPDATE loyalty_giveaway_prizes
-    SET quantity_remaining = :quantityRemaining,
-        status = :status,
-        updated_at = :updatedAt
-    WHERE prize_uid = :prizeUid
-  `, {
-    prizeUid: prize.prizeUid,
-    quantityRemaining: nextRemaining,
-    status: nextRemaining <= 0 ? "awarded" : "available",
-    updatedAt: now
-  });
+  const nextRemaining = prize ? Math.max(0, Number(prize.quantityRemaining || 0) - 1) : 1;
+  if (prize) {
+    database.run(`
+      UPDATE loyalty_giveaway_prizes
+      SET quantity_remaining = :quantityRemaining,
+          status = :status,
+          updated_at = :updatedAt
+      WHERE prize_uid = :prizeUid
+    `, {
+      prizeUid: prize ? prize.prizeUid : "",
+      quantityRemaining: nextRemaining,
+      status: nextRemaining <= 0 ? "awarded" : "available",
+      updatedAt: now
+    });
+  }
 
   database.run(`
     UPDATE loyalty_giveaway_rounds
@@ -1292,7 +1404,7 @@ function drawWinner(giveawayUid, input = {}) {
   });
 
   const updatedWinnerCount = activeWinnerCount(giveawayUid);
-  const giveawayFinished = updatedWinnerCount >= giveaway.winnerCount || nextRemaining <= 0;
+  const giveawayFinished = !isWheelGiveaway && (updatedWinnerCount >= giveaway.winnerCount || nextRemaining <= 0);
   database.run(`
     UPDATE loyalty_giveaways
     SET status = :status,
@@ -1302,13 +1414,63 @@ function drawWinner(giveawayUid, input = {}) {
     WHERE giveaway_uid = :giveawayUid
   `, {
     giveawayUid,
-    status: giveawayFinished ? STATUS.FINISHED : STATUS.CLOSED_FOR_ENTRIES,
+    status: isWheelGiveaway ? STATUS.WAITING_FOR_WHEEL : (giveawayFinished ? STATUS.FINISHED : STATUS.CLOSED_FOR_ENTRIES),
     entriesClosedAt: now,
     finishedAt: giveawayFinished ? now : "",
     updatedAt: now
   });
 
   const winner = rowToWinner(database.get("SELECT * FROM loyalty_giveaway_winners WHERE winner_uid = :winnerUid", { winnerUid }));
+
+
+  let wheelPermission = null;
+  if (isWheelGiveaway) {
+    wheelPermission = createWheelPermission({
+      giveawayUid,
+      roundUid: round ? round.roundUid : "",
+      winnerUid,
+      userLogin: winner.userLogin,
+      userDisplayName: winner.userDisplayName,
+      metadata: {
+        wheelPresetUid: giveaway.wheelPresetUid,
+        reason: "winner_drawn"
+      }
+    });
+
+    database.run(`
+      UPDATE loyalty_giveaway_winners
+      SET wheel_permission_uid = :permissionUid,
+          status = 'waiting_for_wheel'
+      WHERE winner_uid = :winnerUid
+    `, {
+      winnerUid,
+      permissionUid: wheelPermission.permissionUid
+    });
+
+    winner.wheelPermissionUid = wheelPermission.permissionUid;
+    winner.status = "waiting_for_wheel";
+
+    createEvent({
+      giveawayUid,
+      roundUid: round ? round.roundUid : "",
+      eventType: "loyalty.giveaway.wheel_permission_created",
+      actorType: "system",
+      actorLogin: winner.userLogin,
+      oldStatus: "",
+      newStatus: "pending",
+      message: `${winner.userDisplayName} may spin the wheel`,
+      metadata: { winnerUid, permissionUid: wheelPermission.permissionUid, wheelPresetUid: giveaway.wheelPresetUid }
+    });
+
+    emitEvent("loyalty.giveaway.wheel_permission_created", {
+      giveawayUid,
+      winnerUid,
+      permissionUid: wheelPermission.permissionUid,
+      userLogin: winner.userLogin,
+      userDisplayName: winner.userDisplayName,
+      wheelPresetUid: giveaway.wheelPresetUid
+    });
+  }
 
   createEvent({
     giveawayUid,
@@ -1317,8 +1479,8 @@ function drawWinner(giveawayUid, input = {}) {
     actorType: "dashboard",
     actorLogin: input.actor || "",
     oldStatus: giveaway.status,
-    newStatus: giveawayFinished ? STATUS.FINISHED : STATUS.CLOSED_FOR_ENTRIES,
-    message: `${winner.userDisplayName} won ${winner.prizeLabel}`,
+    newStatus: isWheelGiveaway ? STATUS.WAITING_FOR_WHEEL : (giveawayFinished ? STATUS.FINISHED : STATUS.CLOSED_FOR_ENTRIES),
+    message: isWheelGiveaway ? `${winner.userDisplayName} may spin the wheel` : `${winner.userDisplayName} won ${winner.prizeLabel}`,
     metadata: {
       winnerUid,
       entryUid: entry.entry_uid,
@@ -1326,24 +1488,163 @@ function drawWinner(giveawayUid, input = {}) {
       eligibleEntriesCount: entries.length,
       totalTicketWeight: pick.totalWeight,
       ticketPosition: pick.ticketPosition,
-      prizeUid: prize.prizeUid
+      prizeUid: prize ? prize.prizeUid : ""
     }
   });
 
-  emitEvent("loyalty.giveaway.winner_drawn", {
+  emitEvent("loyalty.giveaway.winner_drawn",
+      "loyalty.giveaway.wheel_permission_created",
+      "loyalty.giveaway.wheel_claimed", {
     giveawayUid,
     winnerUid,
     userLogin: winner.userLogin,
     userDisplayName: winner.userDisplayName,
     prizeUid: winner.prizeUid,
     prizeLabel: winner.prizeLabel,
+    wheelRequired: isWheelGiveaway,
     algorithm: "crypto.randomInt",
     eligibleEntriesCount: entries.length,
     totalTicketWeight: pick.totalWeight,
     ticketPosition: pick.ticketPosition
   });
 
-  return { ok: true, winner, giveaway: getGiveaway(giveawayUid, true) };
+  return { ok: true, winner, wheelPermission, giveaway: getGiveaway(giveawayUid, true) };
+}
+
+function claimWheelSpin(giveawayUid, input = {}) {
+  ensureSchema();
+  const giveaway = getGiveaway(giveawayUid, false);
+  if (!giveaway) return { ok: false, error: "giveaway_not_found", statusCode: 404 };
+  if (!giveaway.wheelEnabled) return { ok: false, error: "giveaway_not_wheel_enabled", statusCode: 409 };
+  if (!giveaway.wheelPresetUid) return { ok: false, error: "wheel_giveaway_missing_preset", statusCode: 409 };
+
+  const userLogin = String(input.userLogin || input.login || input.user || "").trim().replace(/^@/, "").toLowerCase();
+  if (!userLogin) return { ok: false, error: "missing_user_login", statusCode: 400 };
+
+  const permission = getPendingWheelPermission(giveawayUid, userLogin);
+  if (!permission) return { ok: false, error: "no_pending_wheel_permission", statusCode: 404 };
+
+  const userDisplayName = String(input.userDisplayName || input.displayName || permission.userDisplayName || userLogin).trim() || userLogin;
+
+  let loyaltyGames = null;
+  try {
+    loyaltyGames = require("./loyalty_games");
+  } catch (err) {
+    return { ok: false, error: "loyalty_games_unavailable", statusCode: 503, detail: err && err.message ? err.message : String(err) };
+  }
+
+  const startSpin = loyaltyGames && loyaltyGames._private && loyaltyGames._private.startWheelSpin;
+  if (typeof startSpin !== "function") {
+    return { ok: false, error: "wheel_start_function_unavailable", statusCode: 503 };
+  }
+
+  const spin = startSpin({
+    presetUid: giveaway.wheelPresetUid,
+    login: userLogin,
+    displayName: userDisplayName,
+    source: "giveaway",
+    duration: input.duration || input.durationMs || 7000,
+    metadata: {
+      giveawayUid,
+      permissionUid: permission.permissionUid,
+      winnerUid: permission.winnerUid
+    }
+  });
+
+  if (!spin || spin.ok === false) {
+    return { ok: false, error: spin && spin.error ? spin.error : "wheel_spin_failed", statusCode: spin && spin.statusCode ? spin.statusCode : 409, spin };
+  }
+
+  const now = nowIso();
+  database.run(`
+    UPDATE loyalty_giveaway_wheel_permissions
+    SET status = 'used',
+        used_at = :usedAt,
+        updated_at = :updatedAt,
+        spin_uid = :spinUid,
+        metadata_json = :metadataJson
+    WHERE permission_uid = :permissionUid
+  `, {
+    permissionUid: permission.permissionUid,
+    usedAt: now,
+    updatedAt: now,
+    spinUid: spin.spinUid || "",
+    metadataJson: json({ ...permission.metadata, resultFieldId: spin.selectedFieldId || "", resultLabel: spin.selectedFieldLabel || "" })
+  });
+
+  database.run(`
+    UPDATE loyalty_giveaway_winners
+    SET wheel_spin_uid = :spinUid,
+        prize_label = :prizeLabel,
+        status = 'wheel_completed',
+        metadata_json = :metadataJson
+    WHERE winner_uid = :winnerUid
+  `, {
+    winnerUid: permission.winnerUid,
+    spinUid: spin.spinUid || "",
+    prizeLabel: spin.selectedFieldLabel || "Rad-Ergebnis",
+    metadataJson: json({
+      wheelResult: {
+        spinUid: spin.spinUid || "",
+        sessionUid: spin.sessionUid || "",
+        selectedFieldId: spin.selectedFieldId || "",
+        selectedFieldLabel: spin.selectedFieldLabel || "",
+        selectedFieldIndex: spin.selectedFieldIndex
+      }
+    })
+  });
+
+  database.run(`
+    UPDATE loyalty_giveaways
+    SET status = :status,
+        finished_at = :finishedAt,
+        updated_at = :updatedAt
+    WHERE giveaway_uid = :giveawayUid
+  `, {
+    giveawayUid,
+    status: STATUS.FINISHED,
+    finishedAt: now,
+    updatedAt: now
+  });
+
+  createEvent({
+    giveawayUid,
+    roundUid: permission.roundUid || "",
+    eventType: "loyalty.giveaway.wheel_claimed",
+    actorType: "user",
+    actorLogin: userLogin,
+    oldStatus: "pending",
+    newStatus: "used",
+    message: `${userDisplayName} spun the wheel and got ${spin.selectedFieldLabel || "a result"}`,
+    metadata: {
+      permissionUid: permission.permissionUid,
+      winnerUid: permission.winnerUid,
+      spinUid: spin.spinUid || "",
+      sessionUid: spin.sessionUid || "",
+      selectedFieldId: spin.selectedFieldId || "",
+      selectedFieldLabel: spin.selectedFieldLabel || ""
+    }
+  });
+
+  emitEvent("loyalty.giveaway.wheel_claimed", {
+    giveawayUid,
+    permissionUid: permission.permissionUid,
+    winnerUid: permission.winnerUid,
+    userLogin,
+    userDisplayName,
+    spinUid: spin.spinUid || "",
+    sessionUid: spin.sessionUid || "",
+    selectedFieldId: spin.selectedFieldId || "",
+    selectedFieldLabel: spin.selectedFieldLabel || ""
+  });
+
+  return {
+    ok: true,
+    permission: rowToWheelPermission(database.get("SELECT * FROM loyalty_giveaway_wheel_permissions WHERE permission_uid = :permissionUid", { permissionUid: permission.permissionUid })),
+    winner: database.get("SELECT * FROM loyalty_giveaway_winners WHERE winner_uid = :winnerUid", { winnerUid: permission.winnerUid }) ? rowToWinner(database.get("SELECT * FROM loyalty_giveaway_winners WHERE winner_uid = :winnerUid", { winnerUid: permission.winnerUid })) : null,
+    spin,
+    giveaway: getGiveaway(giveawayUid, true)
+  };
 }
 
 function buildSettingsSnapshot(input = {}, roundPolicy = {}) {
@@ -1657,8 +1958,9 @@ function counts() {
   const prizes = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_prizes")?.count || 0);
   const entries = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_entries WHERE status = 'active'")?.count || 0);
   const winners = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_winners WHERE status != 'cancelled'")?.count || 0);
+  const wheelPermissions = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_wheel_permissions WHERE status = 'pending'")?.count || 0);
   const events = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_events")?.count || 0);
-  return { total, draft, open, finished, deleted, prizes, entries, winners, events };
+  return { total, draft, open, finished, deleted, prizes, entries, winners, wheelPermissions, events };
 }
 
 function buildStatus() {
@@ -1718,7 +2020,9 @@ function registerRoutes(app) {
     "POST /api/loyalty/giveaways/:giveawayUid/entries",
     "POST /api/loyalty/giveaways/:giveawayUid/entries/:entryUid/cancel",
     "GET /api/loyalty/giveaways/:giveawayUid/winners",
-    "POST /api/loyalty/giveaways/:giveawayUid/draw"
+    "POST /api/loyalty/giveaways/:giveawayUid/draw",
+    "GET /api/loyalty/giveaways/:giveawayUid/wheel/permissions",
+    "POST /api/loyalty/giveaways/:giveawayUid/wheel/claim"
   ];
 
   registered.push(...routes.registerGet(app, "/api/loyalty/giveaways/status", core.asyncRoute(async (req, res) => {
@@ -1881,6 +2185,8 @@ module.exports = {
     createEntry,
     cancelEntry,
     listWinners,
-    drawWinner
+    drawWinner,
+    listWheelPermissions,
+    claimWheelSpin
   }
 };

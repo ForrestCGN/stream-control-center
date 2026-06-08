@@ -5,13 +5,14 @@ Stand: 2026-06-08
 ## Neuer Stand
 
 ```text
-STEP LWG-4I.1 – Winners Table Safety Fix
+STEP LWG-4J – Giveaway Wheel Claim
 ```
 
 ## Umgesetzt
 
 ```text
-- Fix fuer no such table: loyalty_giveaway_winners.
-- Safety-Net CREATE TABLE IF NOT EXISTS.
-- Bestehende Daten bleiben unangetastet.
+- Wheel-Giveaway Draw erzeugt Winner + Wheel-Permission.
+- Claim startet echtes Wheel.
+- Ergebnis wird beim Winner gespeichert.
+- Permission wird verbraucht.
 ```

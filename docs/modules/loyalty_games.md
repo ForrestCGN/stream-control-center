@@ -1,20 +1,14 @@
 # Loyalty Games Modul
 
 Stand: 2026-06-08  
-STEP: LWG-4G
+STEP: LWG-4J
 
-## Dashboard Home
+## Neu fuer Giveaways
 
-Die Uebersicht zeigt jetzt Loyalty-Modulkacheln:
+`loyalty_games` exportiert intern:
 
 ```text
-Loyalty Core
-Gluecksrad
-Presets
-Giveaways
-Wheel Overlay
-Kanalpunkte
-Rewards
+_private.startWheelSpin(input)
 ```
 
-Ampeln basieren auf `/api/communication/status` und Modulstatusrouten.
+Damit kann `loyalty_giveaways` einen normalen Wheel-Spin starten, ohne eine neue Rad-Logik zu bauen.

@@ -2,14 +2,10 @@
 
 Stand: 2026-06-08
 
-## Naechster Schritt
+## Naechster sinnvoller Schritt
 
 ```text
-LWG-4I.1 live testen
+LWG-4K – Chat-/Command- und Kanalpunkte-Anbindung planen
 ```
 
-Danach:
-
-```text
-LWG-4J – Giveaway mit Rad / Wheel Claim
-```
+Vorher LWG-4J live testen.
