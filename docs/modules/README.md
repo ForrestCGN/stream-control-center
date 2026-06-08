@@ -39,7 +39,7 @@ docs/modules/SHOUTOUT_SYSTEM_STANDARDS_ALIGNMENT.md
 Aktueller Stand:
 
 ```text
-STEP LWG-2 – Wheel Overlay an Backend-Event angebunden
+STEP LWG-3 – Loyalty Games Dashboard Read-only
 ```
 
 Dateien:
@@ -50,7 +50,9 @@ backend/modules/loyalty_games/shared.js
 backend/modules/loyalty_games/wheel.js
 config/loyalty_games.json
 htdocs/overlays/loyalty/wheel_overlay.html
-htdocs/assets/images/loyalty/wheel/*.png
+htdocs/dashboard/modules/loyalty_games.js
+htdocs/dashboard/modules/loyalty_games.css
+htdocs/dashboard/index.html
 docs/modules/loyalty_games.md
 docs/modules/loyalty_wheel.md
 ```
@@ -59,18 +61,15 @@ Status:
 
 ```text
 - Backend LWG-1 im Live-System getestet.
-- Overlay LWG-2 hoert auf loyalty.wheel.spin.
-- Felder kommen aus dem Backend-Event.
-- Gewinner kommt aus dem Backend.
-- Nur der Felder-Layer rotiert.
-- Center, Aussenring und Pointer bleiben statisch.
-- Keine Punktkosten, keine Reward-Ausfuehrung, kein Dashboard.
+- Overlay LWG-2/LWG-2.1 getestet.
+- Dashboard LWG-3 zeigt read-only Status, Wheel, Felder, Sessions und Hinweise.
+- Keine Config-Speicherung, keine Punktkosten, keine Reward-Ausfuehrung.
 ```
 
 Naechster Schritt:
 
 ```text
-STEP LWG-3 – Dashboard/Config-Verwaltung planen
+STEP LWG-4 – Kosten/Reservierung/Refund planen
 ```
 
 ## Pflichtinhalte je Modul-Doku

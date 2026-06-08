@@ -2,7 +2,7 @@
 
 Stand: 2026-06-08  
 Version: 0.1.0  
-STEP: LWG-2
+STEP: LWG-3
 
 ## Zweck
 
@@ -18,10 +18,9 @@ backend/modules/loyalty_games/shared.js
 backend/modules/loyalty_games/wheel.js
 config/loyalty_games.json
 htdocs/overlays/loyalty/wheel_overlay.html
-htdocs/assets/images/loyalty/wheel/wheel_ring.png
-htdocs/assets/images/loyalty/wheel/wheel_center.png
-htdocs/assets/images/loyalty/wheel/pointer.png
-htdocs/assets/images/loyalty/wheel/winner_banner.png
+htdocs/dashboard/modules/loyalty_games.js
+htdocs/dashboard/modules/loyalty_games.css
+htdocs/dashboard/index.html
 docs/modules/loyalty_games.md
 docs/modules/loyalty_wheel.md
 ```
@@ -34,7 +33,7 @@ moduleVersion: 0.1.0
 moduleBuild: STEP_LWG_1
 ```
 
-LWG-2 aendert nur Overlay/Doku/Assets. Die Backend-Modulversion bleibt unveraendert.
+LWG-3 aendert nur Dashboard/Doku. Die Backend-Modulversion bleibt unveraendert.
 
 ## API-Routen
 
@@ -51,6 +50,47 @@ POST /api/loyalty/games/wheel/spin
 POST /api/loyalty/games/wheel/reset
 ```
 
+## Dashboard-Anbindung
+
+Dateien:
+
+```text
+htdocs/dashboard/modules/loyalty_games.js
+htdocs/dashboard/modules/loyalty_games.css
+htdocs/dashboard/index.html
+```
+
+Einordnung:
+
+```text
+Community -> Loyalty Games
+```
+
+Der Stand ist bewusst read-only, weil das Dashboard spaeter ohnehin groesser umgebaut wird.
+
+Anzeigen:
+
+```text
+- Modulstatus
+- Wheel-Status
+- DB-/Schema-Diagnose
+- aktive Session
+- letztes Ergebnis
+- Feldliste mit Gewichtung und Reward-Vorbereitung
+- letzte Sessions
+- Routen/Hinweise
+```
+
+## Config
+
+Datei:
+
+```text
+config/loyalty_games.json
+```
+
+Dashboard schreibt in LWG-3 keine Config.
+
 ## Datenbanktabellen
 
 ### loyalty_game_sessions
@@ -59,9 +99,7 @@ Speichert einzelne Spiel-/Wheel-Sessions und das backendseitig festgelegte Ergeb
 
 ## WebSocket / EventBus / Events
 
-LWG-2 nutzt das vorhandene WebSocket-Broadcast aus `server.js`.
-
-Overlay hoert auf:
+Gesendete Events:
 
 ```text
 loyalty.wheel.spin
@@ -69,7 +107,7 @@ loyalty.wheel.finished
 loyalty.wheel.reset
 ```
 
-Der Communication Bus wird nicht als produktive Pflichtschicht genutzt und keine bestehenden Bus-Flows werden ersetzt.
+Der Communication Bus wird in LWG-3 nicht als produktive Pflichtschicht genutzt und keine bestehenden Bus-Flows werden ersetzt.
 
 ## Overlay-Anbindung
 
@@ -79,36 +117,49 @@ Overlay:
 htdocs/overlays/loyalty/wheel_overlay.html
 ```
 
-Funktionen:
+Dashboard-Link:
 
 ```text
-- dunkler CGN-Hintergrund
-- vorhandene Wheel-Assets
-- WebSocket-Verbindung
-- Felder aus Backend-Event
-- Spin auf selectedFieldIndex
-- Center, Aussenring und Pointer bleiben statisch
-- Winner-Banner zeigt Ergebnis
+Glücksrad-Overlay öffnen
 ```
 
-## Dashboard-Anbindung
+## Bekannte Risiken / Altlasten
 
-In LWG-2 noch nicht enthalten.
+```text
+- Dashboard-Navigation ist vorlaeufig.
+- Config-Edit ist noch nicht aktiv.
+- Punktkosten sind deaktiviert.
+- Reward-Ausfuehrung ist noch nicht produktiv aktiv.
+- Queue ist noch nicht implementiert.
+```
 
 ## Tests
 
 ```powershell
-# nach StepDone / Live-Deploy:
-http://127.0.0.1:8080/overlays/loyalty/wheel_overlay.html
+.\stepdone.cmd "STEP LWG-3 Loyalty Games Dashboard Readonly"
+```
 
-$r = Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/games/wheel/spin?login=forrestcgn&displayName=ForrestCGN&duration=9000"
-$r | Select-Object ok,sessionUid,selectedFieldId,selectedFieldLabel,durationMs
+Dashboard:
+
+```text
+http://127.0.0.1:8080/dashboard
+Community -> Loyalty Games
+```
+
+API:
+
+```powershell
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/games/status"
+$s | Select-Object ok,module,moduleVersion,enabled,routeCount,lastError
+
+$r = Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/games/sessions?gameKey=wheel&limit=10"
+$r.rows | Select-Object sessionUid,gameKey,status,selectedFieldLabel,durationMs,createdAt | Format-Table -AutoSize
 ```
 
 ## Offene Punkte
 
 ```text
-- LWG-3: Dashboard/Config-Verwaltung planen.
-- LWG-4: Kosten/Reservierung/Refund sauber planen.
-- LWG-5: Reward-Ausfuehrung je Feld planen.
+- LWG-4: Kosten/Reservierung/Refund.
+- LWG-5: Reward-Ausfuehrung.
+- Dashboard-Gesamtumbau spaeter.
 ```

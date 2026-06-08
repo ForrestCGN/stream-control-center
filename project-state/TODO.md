@@ -15,11 +15,12 @@ Stand: 2026-06-08
 - [x] Modul-Dokus geschrieben
 - [x] Wheel Overlay an Backend-Event angebunden
 - [x] Repeat-Spin-Rotationsfix im Overlay
+- [x] Loyalty Games Dashboard read-only gebaut
 
 ## Offen
 
-- [ ] LWG-2.1 Live-Test: mehrere Spins nacheinander
-- [ ] LWG-3: Dashboard/Config-Verwaltung planen
+- [ ] LWG-3 Live-Test im Dashboard
 - [ ] LWG-4: Kosten/Reservierung/Refund planen
 - [ ] LWG-5: Reward-Ausfuehrung planen
+- [ ] Dashboard-Gesamtumbau spaeter
 - [ ] VIP30 Overlay optisch verbessern

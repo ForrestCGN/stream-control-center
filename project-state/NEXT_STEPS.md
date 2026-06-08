@@ -5,30 +5,25 @@ Stand: 2026-06-08
 ## Naechster sinnvoller Schritt
 
 ```text
-STEP LWG-3 – Dashboard/Config-Verwaltung fuer Loyalty Games planen
+STEP LWG-4 – Kosten/Reservierung/Refund fuer Wheel planen
 ```
 
-## Vorher testen
+## Fokus LWG-4
 
 ```text
-LWG-2.1 Overlay offen lassen und mehrere Spins nacheinander ausloesen.
+- Kosten pro Spin definieren
+- Abbuchen vs. Reservieren klaeren
+- Refund bei Fehler/Abbruch klaeren
+- Shadow/Live-Modus beachten
+- Nutzung von loyalty_transactions / loyalty_reservations planen
+- Rechte/Audit vorbereiten
 ```
 
-## Fokus LWG-3
+## Spaeter
 
 ```text
-- Dashboard-Seite/Tab fuer Loyalty Games planen
-- Wheel-Felder sichtbar machen
-- Config read-only oder editierbar klaeren
-- Rechte/Admin-Pruefung planen
-- Audit-Logging fuer spaetere produktive Aktionen planen
-```
-
-## Danach
-
-```text
-STEP LWG-4 – Kosten/Reservierung/Refund planen
 STEP LWG-5 – Reward-Ausfuehrung planen
+Dashboard-Gesamtumbau spaeter
 ```
 
 ## Wichtige Regel
