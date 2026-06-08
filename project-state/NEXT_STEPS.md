@@ -5,12 +5,13 @@ Stand: 2026-06-08
 ## Naechster Schritt
 
 ```text
-LWG-4J.2 live testen
+LWG-4K.1 live testen
 ```
 
-Danach:
+Danach planen:
 
 ```text
-Wheel-Claim Ergebnis pruefen
-LWG-4K Commands/Kanalpunkte planen
+LWG-4K.2 – echte Node/Twitch Command-Anbindung
 ```
+
+Voraussetzung: echte Command-/Twitch-Command-Dateien prüfen.

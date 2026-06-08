@@ -12,6 +12,8 @@ window.LoyaltyGamesModule = (function(){
     spins: '/api/loyalty/games/wheel/spins?limit=50',
     giveawaysStatus: '/api/loyalty/giveaways/status',
     giveaways: '/api/loyalty/giveaways?limit=100',
+    giveawayCommands: '/api/loyalty/giveaways/commands',
+    giveawayTexts: '/api/loyalty/giveaways/texts',
     communicationStatus: '/api/communication/status',
     overlay: '/overlays/loyalty/wheel_overlay.html'
   };
@@ -32,6 +34,8 @@ window.LoyaltyGamesModule = (function(){
     spins: null,
     giveawaysStatus: null,
     giveaways: null,
+    giveawayCommands: null,
+    giveawayTexts: null,
     communicationStatus: null,
     selectedPresetUid: '',
     selectedPreset: null,
@@ -164,14 +168,14 @@ window.LoyaltyGamesModule = (function(){
   async function loadAll(force){
     root = document.getElementById('loyaltyGamesModule');
     if (!root || !window.CGN) return;
-    if (!force && state.status && state.wheelStatus && state.presets && state.giveaways && state.communicationStatus) { render(); return; }
+    if (!force && state.status && state.wheelStatus && state.presets && state.giveaways && state.giveawayCommands && state.giveawayTexts && state.communicationStatus) { render(); return; }
 
     state.loading = true;
     state.error = '';
     render();
 
     try {
-      const [status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, communicationStatus] = await Promise.all([
+      const [status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, giveawayCommands, giveawayTexts, communicationStatus] = await Promise.all([
         window.CGN.api(api.status).catch(err => ({ ok:false, error:err.message })),
         window.CGN.api(api.config).catch(err => ({ ok:false, error:err.message })),
         window.CGN.api(api.routes).catch(err => ({ ok:false, error:err.message, routes:[] })),
@@ -182,6 +186,8 @@ window.LoyaltyGamesModule = (function(){
         window.CGN.api(api.spins).catch(err => ({ ok:false, error:err.message, rows:[] })),
         window.CGN.api(api.giveawaysStatus).catch(err => ({ ok:false, error:err.message })),
         window.CGN.api(api.giveaways).catch(err => ({ ok:false, error:err.message, rows:[] })),
+        window.CGN.api(api.giveawayCommands).catch(err => ({ ok:false, error:err.message, rows:[] })),
+        window.CGN.api(api.giveawayTexts).catch(err => ({ ok:false, error:err.message, keys:[], categories:[] })),
         window.CGN.api(api.communicationStatus).catch(err => ({ ok:false, error:err.message, status:{ clients:[] } }))
       ]);
 
@@ -197,7 +203,7 @@ window.LoyaltyGamesModule = (function(){
         selectedGiveawayUid = giveawayRows[0]?.giveawayUid || '';
       }
 
-      state = { ...state, loading:false, error:'', status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, communicationStatus, selectedPresetUid, selectedGiveawayUid };
+      state = { ...state, loading:false, error:'', status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, giveawayCommands, giveawayTexts, communicationStatus, selectedPresetUid, selectedGiveawayUid };
       if (selectedPresetUid) await loadPreset(selectedPresetUid, false);
       if (selectedGiveawayUid) await loadGiveaway(selectedGiveawayUid, false);
     } catch (err) {
@@ -1367,6 +1373,113 @@ window.LoyaltyGamesModule = (function(){
     `;
   }
 
+
+  async function refreshChatSetup(rerender = true){
+    try {
+      const [giveawayCommands, giveawayTexts] = await Promise.all([
+        window.CGN.api(api.giveawayCommands).catch(err => ({ ok:false, error:err.message, rows:[] })),
+        window.CGN.api(api.giveawayTexts).catch(err => ({ ok:false, error:err.message, keys:[], categories:[] }))
+      ]);
+      state.giveawayCommands = giveawayCommands;
+      state.giveawayTexts = giveawayTexts;
+      if (rerender) render();
+    } catch (err) {
+      state.error = err.message || String(err);
+      if (rerender) render();
+    }
+  }
+
+  async function saveChatTextVariant(form){
+    const data = new FormData(form);
+    const key = String(data.get('key') || '').trim();
+    const category = String(data.get('category') || 'general').trim();
+    const value = String(data.get('value') || '').trim();
+    if (!key || !value) return;
+    state.saving = true; render();
+    try {
+      await apiPost(api.giveawayTexts, {
+        action: 'saveVariant',
+        variant: { key, category, value, enabled: true, weight: 1 }
+      });
+      await refreshChatSetup(false);
+      setMessage('Textvariante gespeichert.');
+    } catch (err) {
+      state.error = err.message || String(err);
+    } finally {
+      state.saving = false; render();
+    }
+  }
+
+  function renderChatSetup(){
+    const commands = rows(state.giveawayCommands);
+    const textPayload = state.giveawayTexts || {};
+    const categories = Array.isArray(textPayload.categories) ? textPayload.categories : [];
+    const keys = Array.isArray(textPayload.keys) ? textPayload.keys : [];
+    return `
+      <div class="lg-grid lg-grid-2">
+        <div class="lg-panel">
+          <h3>Chat-Commands</h3>
+          <p class="lg-muted">Eingetragen, aber bewusst nicht aktiv. Keine Twitch-Command-Ausführung in diesem Step.</p>
+          <div class="lg-table-wrap">
+            <table class="lg-table">
+              <thead>
+                <tr><th>Command</th><th>Alias</th><th>Aktion</th><th>Status</th><th>Usage</th></tr>
+              </thead>
+              <tbody>
+                ${commands.map(cmd => `
+                  <tr>
+                    <td><code>!${esc(cmd.command)}</code></td>
+                    <td>${(cmd.aliases || []).map(alias => `<code>!${esc(alias)}</code>`).join(' ') || '<span class="lg-muted">-</span>'}</td>
+                    <td>${esc(cmd.action || '-')}</td>
+                    <td>${cmd.active ? badge(true, 'aktiv') : `<span class="lg-badge lg-badge-off">inaktiv</span>`}</td>
+                    <td><code>${esc(cmd.usage || '-')}</code></td>
+                  </tr>
+                `).join('') || `<tr><td colspan="5" class="lg-muted">Keine Commands eingetragen.</td></tr>`}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="lg-panel">
+          <h3>Text-Kategorien</h3>
+          <p class="lg-muted">CGN-/Altersheim-/Rentner-Texte laufen über den bestehenden Helper für Textvarianten.</p>
+          <div class="lg-kv">
+            ${categories.map(cat => `<span>${esc(cat.label || cat.id)}</span><strong>${fmtNumber(cat.variantCount || cat.count || 0)} Varianten</strong>`).join('') || '<span>Texte</span><strong>-</strong>'}
+          </div>
+        </div>
+      </div>
+
+      <div class="lg-panel">
+        <h3>Chat-Multi-Texte</h3>
+        <div class="lg-table-wrap">
+          <table class="lg-table">
+            <thead>
+              <tr><th>Key</th><th>Kategorie</th><th>Aktive Varianten</th><th>Varianten</th></tr>
+            </thead>
+            <tbody>
+              ${keys.map(item => `
+                <tr>
+                  <td><code>${esc(item.key)}</code></td>
+                  <td>${esc(item.category || 'general')}</td>
+                  <td>${fmtNumber(item.activeCount || 0)} / ${fmtNumber(item.totalCount || 0)}</td>
+                  <td>
+                    ${(item.variants || []).map(v => `<div class="lg-muted">• ${esc(v.value || v.text || '')}</div>`).join('')}
+                    <form class="lg-inline-form" data-lg-save-chat-text>
+                      <input type="hidden" name="key" value="${esc(item.key)}">
+                      <input type="hidden" name="category" value="${esc(item.category || 'general')}">
+                      <input name="value" placeholder="Neue Variante im CGN-Stil..." autocomplete="off">
+                      <button class="lg-btn lg-btn-secondary" type="submit">Variante speichern</button>
+                    </form>
+                  </td>
+                </tr>
+              `).join('') || `<tr><td colspan="4" class="lg-muted">Keine Textkeys geladen.</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
   function renderNotes(){
     const routes = Array.isArray(state.routes?.routes) ? state.routes.routes : [];
     return `
@@ -1395,6 +1508,7 @@ window.LoyaltyGamesModule = (function(){
       ['wheel', 'Glücksrad'],
       ['presets', 'Presets'],
       ['giveaways', 'Giveaways'],
+      ['chat', 'Chat/Commands'],
       ['history', 'Verlauf'],
       ['notes', 'Hinweise']
     ];
@@ -1409,6 +1523,7 @@ window.LoyaltyGamesModule = (function(){
     if (state.activeTab === 'wheel') return renderWheel();
     if (state.activeTab === 'presets') return renderPresets();
     if (state.activeTab === 'giveaways') return renderGiveaways();
+    if (state.activeTab === 'chat') return renderChatSetup();
     if (state.activeTab === 'history') return renderSessions();
     if (state.activeTab === 'notes') return renderNotes();
     return renderOverview();
@@ -1503,6 +1618,13 @@ window.LoyaltyGamesModule = (function(){
     root.querySelectorAll('[data-lg-claim-wheel]').forEach(btn => {
       btn.addEventListener('click', () => claimGiveawayWheel(btn.dataset.lgClaimWheel, btn.dataset.displayName));
     });
+
+    root.querySelectorAll('[data-lg-save-chat-text]').forEach(form => {
+      form.addEventListener('submit', ev => {
+        ev.preventDefault();
+        saveChatTextVariant(ev.currentTarget);
+      });
+    });
   }
 
   function render(){
@@ -1525,7 +1647,7 @@ window.LoyaltyGamesModule = (function(){
         <div>
           <p class="lg-eyebrow">Loyalty / Spiele</p>
           <h2>Loyalty Games</h2>
-          <p class="lg-subline">Glücksrad, Presets, Giveaways und Verlauf. Tickets/Gewinnerziehung kommen später.</p>
+          <p class="lg-subline">Glücksrad, Presets, Giveaways, Chat-Command-Vorbereitung und Verlauf.</p>
         </div>
         <div class="lg-actions">
           <a class="lg-btn lg-btn-secondary" href="${api.overlay}" target="_blank">Overlay öffnen</a>

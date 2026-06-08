@@ -13,6 +13,7 @@
 const crypto = require("crypto");
 const core = require("./helpers/helper_core");
 const routes = require("./helpers/helper_routes");
+const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "loyalty_giveaways";
@@ -20,6 +21,87 @@ const MODULE_VERSION = "0.1.0";
 const MODULE_BUILD = "STEP_LWG_4D";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
+
+const CHAT_COMMANDS_ACTIVE = false;
+const TEXT_MODULE = "loyalty_giveaways";
+
+const CHAT_COMMAND_DEFINITIONS = [
+  {
+    command: "ticket",
+    aliases: [],
+    action: "giveaway_ticket",
+    enabled: false,
+    active: false,
+    description: "!ticket oder !ticket <anzahl> – Teilnahme am aktuell offenen Giveaway. Noch nicht aktiv.",
+    usage: "!ticket [anzahl]"
+  },
+  {
+    command: "wheel",
+    aliases: ["rad"],
+    action: "giveaway_wheel_claim",
+    enabled: false,
+    active: false,
+    description: "!wheel / !rad – Rad-Claim nur fuer Gewinner mit offener Permission. Noch nicht aktiv.",
+    usage: "!wheel"
+  }
+];
+
+const CHAT_TEXT_DEFAULTS = {
+  "ticket.disabled": [
+    "{user}, die Ticket-Ausgabe liegt schon auf dem Tresen, aber die Heimleitung hat den Schalter noch nicht aufgeschlossen.",
+    "{user}, bitte noch nicht drängeln. Der Ticket-Schalter ist vorbereitet, aber noch nicht freigegeben."
+  ],
+  "ticket.success": [
+    "{user}, dein Ticket wurde von der Heimleitung abgestempelt. Du bist mit {tickets} Ticket(s) im Lostopf.",
+    "{user}, die Rentnergang hat {tickets} Ticket(s) für dich in die Lostrommel geworfen."
+  ],
+  "ticket.no_active": [
+    "{user}, aktuell läuft kein offenes Giveaway. Die Lostrommel macht gerade Mittagsschlaf.",
+    "{user}, die Heimleitung findet gerade kein offenes Giveaway für deine Eintrittskarte."
+  ],
+  "ticket.invalid_amount": [
+    "{user}, bitte eine gültige Ticket-Anzahl angeben. Die Heimleitung zählt zwar langsam, aber nicht rückwärts.",
+    "{user}, mit dieser Ticket-Anzahl kommt die Rentnerkasse durcheinander."
+  ],
+  "ticket.max_reached": [
+    "{user}, mehr Tickets passen für dich gerade nicht in den Lostopf. Die Heimleitung hat den Deckel drauf.",
+    "{user}, du hast dein Ticket-Limit erreicht. Mehr Papierkram erlaubt die Heimleitung gerade nicht."
+  ],
+  "ticket.cost_not_supported_yet": [
+    "{user}, kostenpflichtige Tickets sind noch nicht freigeschaltet. Die Rentnerkasse ist noch in Prüfung.",
+    "{user}, Tickets mit Punktebuchung kommen später. Aktuell nimmt die Heimleitung nur kostenlose Zettel an."
+  ],
+  "wheel.disabled": [
+    "{user}, das Glücksrad steht bereit, aber der Hausmeister hat den Strom noch nicht eingeschaltet.",
+    "{user}, der Rad-Freigabeschein ist vorbereitet, aber die Ausgabe ist noch nicht aktiv."
+  ],
+  "wheel.no_permission": [
+    "{user}, für dich liegt gerade kein Rad-Freigabeschein an der Rezeption.",
+    "{user}, die Heimleitung hat nachgeschaut: Du darfst aktuell nicht am Rad drehen."
+  ],
+  "wheel.success": [
+    "{user}, das Glücksrad wurde angeworfen. Die Rentnergang hält den Atem an.",
+    "{user}, dein Rad-Freigabeschein wurde eingelöst. Jetzt dreht das gute Stück."
+  ]
+};
+
+const CHAT_TEXT_CATEGORIES = {
+  "ticket.disabled": "chat_ticket",
+  "ticket.success": "chat_ticket",
+  "ticket.no_active": "chat_ticket",
+  "ticket.invalid_amount": "chat_ticket",
+  "ticket.max_reached": "chat_ticket",
+  "ticket.cost_not_supported_yet": "chat_ticket",
+  "wheel.disabled": "chat_wheel",
+  "wheel.no_permission": "chat_wheel",
+  "wheel.success": "chat_wheel"
+};
+
+const CHAT_TEXT_CATEGORY_LABELS = {
+  chat_ticket: "Chat · Tickets",
+  chat_wheel: "Chat · Wheel/Rad"
+};
+
 
 const STATUS = {
   DRAFT: "draft",
@@ -634,6 +716,27 @@ function ensureSchema() {
   database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_wheel_permissions_winner ON loyalty_giveaway_wheel_permissions(winner_uid);`);
   database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_wheel_permissions_user ON loyalty_giveaway_wheel_permissions(user_login);`);
   database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_wheel_permissions_status ON loyalty_giveaway_wheel_permissions(status);`);
+
+
+
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS loyalty_giveaway_command_definitions (
+      id ${database.primaryKeyAutoIncrementSql()},
+      command_name TEXT NOT NULL UNIQUE,
+      aliases_json TEXT NOT NULL DEFAULT '[]',
+      action TEXT NOT NULL DEFAULT '',
+      enabled INTEGER NOT NULL DEFAULT 0,
+      active INTEGER NOT NULL DEFAULT 0,
+      description TEXT NOT NULL DEFAULT '',
+      usage TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      metadata_json TEXT NOT NULL DEFAULT '{}'
+    );
+  `);
+
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_command_definitions_action ON loyalty_giveaway_command_definitions(action);`);
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_command_definitions_enabled ON loyalty_giveaway_command_definitions(enabled, active);`);
 
 
   state.schemaReady = true;
@@ -1976,6 +2079,100 @@ function setGiveawayStatus(giveawayUid, status, input = {}) {
   return { ok: true, giveaway: getGiveaway(giveawayUid, true) };
 }
 
+
+function seedChatCommandDefinitions() {
+  ensureSchema();
+  const now = nowIso();
+  let inserted = 0;
+
+  for (const definition of CHAT_COMMAND_DEFINITIONS) {
+    const result = database.insertIgnore("loyalty_giveaway_command_definitions", {
+      command_name: definition.command,
+      aliases_json: json(definition.aliases || []),
+      action: definition.action || "",
+      enabled: definition.enabled ? 1 : 0,
+      active: definition.active ? 1 : 0,
+      description: definition.description || "",
+      usage: definition.usage || "",
+      created_at: now,
+      updated_at: now,
+      metadata_json: json({ source: "seed", note: "registered_inactive" })
+    });
+    inserted += Number(result?.changes || 0);
+  }
+
+  return { ok: true, inserted };
+}
+
+function seedChatTextVariants() {
+  try {
+    textHelper.seedModuleTextVariants(TEXT_MODULE, CHAT_TEXT_DEFAULTS, {
+      categories: CHAT_TEXT_CATEGORIES,
+      categoryLabels: CHAT_TEXT_CATEGORY_LABELS,
+      source: "seed"
+    });
+    textHelper.seedModuleTexts(TEXT_MODULE, CHAT_TEXT_DEFAULTS, {
+      source: "seed"
+    });
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err && err.message ? err.message : String(err) };
+  }
+}
+
+function rowToCommandDefinition(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    command: row.command_name || "",
+    aliases: parseJson(row.aliases_json, []),
+    action: row.action || "",
+    enabled: Number(row.enabled || 0) === 1,
+    active: Number(row.active || 0) === 1,
+    description: row.description || "",
+    usage: row.usage || "",
+    createdAt: row.created_at || "",
+    updatedAt: row.updated_at || "",
+    metadata: parseJson(row.metadata_json, {})
+  };
+}
+
+function listChatCommandDefinitions() {
+  ensureSchema();
+  seedChatCommandDefinitions();
+  const rows = database.all(`
+    SELECT *
+    FROM loyalty_giveaway_command_definitions
+    ORDER BY command_name ASC
+  `).map(rowToCommandDefinition);
+
+  return {
+    ok: true,
+    active: CHAT_COMMANDS_ACTIVE,
+    count: rows.length,
+    rows,
+    note: "Commands sind eingetragen, aber bewusst nicht aktiv. Keine Twitch-Command-Ausfuehrung in diesem Step."
+  };
+}
+
+function getChatTextEditorPayload() {
+  ensureSchema();
+  seedChatTextVariants();
+  return textHelper.listModuleTextEditor(TEXT_MODULE, CHAT_TEXT_DEFAULTS, {
+    categories: CHAT_TEXT_CATEGORIES,
+    categoryLabels: CHAT_TEXT_CATEGORY_LABELS
+  });
+}
+
+function handleChatTextEditorPayload(payload = {}) {
+  ensureSchema();
+  seedChatTextVariants();
+  return textHelper.handleModuleTextEditorPayload(TEXT_MODULE, payload || {}, {
+    categories: CHAT_TEXT_CATEGORIES,
+    categoryLabels: CHAT_TEXT_CATEGORY_LABELS
+  });
+}
+
 function counts() {
   ensureSchema();
   const total = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaways WHERE deleted_at = ''")?.count || 0);
@@ -1988,7 +2185,9 @@ function counts() {
   const winners = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_winners WHERE status != 'cancelled'")?.count || 0);
   const wheelPermissions = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_wheel_permissions WHERE status = 'pending'")?.count || 0);
   const events = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_events")?.count || 0);
-  return { total, draft, open, finished, deleted, prizes, entries, winners, wheelPermissions, events };
+  const commandDefinitions = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_command_definitions")?.count || 0);
+  const chatTextVariants = Number(database.get("SELECT COUNT(*) AS count FROM module_text_variants WHERE module_name = :moduleName", { moduleName: TEXT_MODULE })?.count || 0);
+  return { total, draft, open, finished, deleted, prizes, entries, winners, wheelPermissions, events, commandDefinitions, chatTextVariants };
 }
 
 function buildStatus() {
@@ -2019,7 +2218,8 @@ function buildStatus() {
         moduleBus: moduleBusHandle && typeof moduleBusHandle.getState === "function" ? moduleBusHandle.getState() : null
       },
       warnings: [
-        "STEP LWG-4D is backend foundation only: no entries, tickets, draws or wheel claims yet."
+        "Chat-Commands !ticket, !wheel und !rad sind eingetragen, aber bewusst nicht aktiv.",
+        "Keine Twitch-Command-Ausfuehrung in LWG-4K.1."
       ],
       errors: state.lastError ? [state.lastError] : []
     }
@@ -2050,7 +2250,10 @@ function registerRoutes(app) {
     "GET /api/loyalty/giveaways/:giveawayUid/winners",
     "POST /api/loyalty/giveaways/:giveawayUid/draw",
     "GET /api/loyalty/giveaways/:giveawayUid/wheel/permissions",
-    "POST /api/loyalty/giveaways/:giveawayUid/wheel/claim"
+    "POST /api/loyalty/giveaways/:giveawayUid/wheel/claim",
+    "GET /api/loyalty/giveaways/commands",
+    "GET /api/loyalty/giveaways/texts",
+    "POST /api/loyalty/giveaways/texts"
   ];
 
   registered.push(...routes.registerGet(app, "/api/loyalty/giveaways/status", core.asyncRoute(async (req, res) => {
@@ -2179,6 +2382,21 @@ function registerRoutes(app) {
   })));
 
 
+
+  registered.push(...routes.registerGet(app, "/api/loyalty/giveaways/commands", core.asyncRoute(async (req, res) => {
+    return core.sendOk(res, listChatCommandDefinitions());
+  })));
+
+  registered.push(...routes.registerGet(app, "/api/loyalty/giveaways/texts", core.asyncRoute(async (req, res) => {
+    return core.sendOk(res, getChatTextEditorPayload());
+  })));
+
+  registered.push(...routes.registerPost(app, "/api/loyalty/giveaways/texts", core.asyncRoute(async (req, res) => {
+    const result = handleChatTextEditorPayload(req.body || {});
+    return core.sendOk(res, result);
+  })));
+
+
   state.routeCount = registered.length;
   return registered;
 }
@@ -2228,6 +2446,8 @@ module.exports = {
     listWinners,
     drawWinner,
     listWheelPermissions,
-    claimWheelSpin
+    claimWheelSpin,
+    listChatCommandDefinitions,
+    getChatTextEditorPayload
   }
 };

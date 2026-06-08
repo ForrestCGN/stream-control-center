@@ -5,13 +5,16 @@ Stand: 2026-06-08
 ## Neuer Stand
 
 ```text
-STEP LWG-4J.2 – Wheel Routes Registration Fix
+STEP LWG-4K.1 – Inaktive Chat-Commands + Textvarianten
 ```
 
 ## Umgesetzt
 
 ```text
-- Fix fuer fehlende Wheel-Permissions-Route.
-- Fix fuer fehlende Wheel-Claim-Route.
-- Keine Daten-/Schema-Aenderung.
+- !ticket, !wheel und !rad als inaktive Command-Definitionen eingetragen.
+- !join bleibt frei/nicht verwendet.
+- Chat-Multi-Texte im CGN-/Altersheim-/Rentner-Stil gesät.
+- Dashboard-Tab Chat/Commands ergänzt.
+- Keine aktive Twitch-Command-Ausführung.
+- Keine Streamer.bot-Anbindung.
 ```
