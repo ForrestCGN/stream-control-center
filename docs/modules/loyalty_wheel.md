@@ -24,3 +24,8 @@ Wenn aktiv, wird das gezogene Gewinnfeld nach der Auslosung aus diesem Preset en
 ## Bezug zu Giveaways
 
 Seit LWG-4D existiert `backend/modules/loyalty_giveaways.js` als eigener Loyalty-Unterbereich. Wheel/Presets bleiben eigenständig und werden spaeter von Giveaways genutzt.
+
+
+## LWG-4E Hinweis
+
+Das Dashboard enthaelt jetzt zusaetzlich den Tab `Giveaways`. Tickets und Gewinnerziehung sind noch nicht umgesetzt.

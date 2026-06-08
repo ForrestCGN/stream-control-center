@@ -10,6 +10,8 @@ window.LoyaltyGamesModule = (function(){
     wheelConfig: '/api/loyalty/games/wheel/config',
     presets: '/api/loyalty/games/wheel/presets',
     spins: '/api/loyalty/games/wheel/spins?limit=50',
+    giveawaysStatus: '/api/loyalty/giveaways/status',
+    giveaways: '/api/loyalty/giveaways?limit=100',
     overlay: '/overlays/loyalty/wheel_overlay.html'
   };
 
@@ -27,8 +29,12 @@ window.LoyaltyGamesModule = (function(){
     wheelConfig: null,
     presets: null,
     spins: null,
+    giveawaysStatus: null,
+    giveaways: null,
     selectedPresetUid: '',
     selectedPreset: null,
+    selectedGiveawayUid: '',
+    selectedGiveaway: null,
     activeTab: 'overview'
   };
 
@@ -64,8 +70,8 @@ window.LoyaltyGamesModule = (function(){
 
   function statusBadge(status){
     const clean = String(status || '').toLowerCase();
-    if (['active', 'running', 'ok'].includes(clean)) return `<span class="lg-badge lg-badge-ok">${esc(status)}</span>`;
-    if (['draft', 'paused'].includes(clean)) return `<span class="lg-badge lg-badge-warn">${esc(status)}</span>`;
+    if (['active', 'running', 'ok', 'open'].includes(clean)) return `<span class="lg-badge lg-badge-ok">${esc(status)}</span>`;
+    if (['draft', 'paused', 'closed_for_entries'].includes(clean)) return `<span class="lg-badge lg-badge-warn">${esc(status)}</span>`;
     return `<span class="lg-badge lg-badge-off">${esc(status || '-')}</span>`;
   }
 
@@ -115,7 +121,7 @@ window.LoyaltyGamesModule = (function(){
       label: 'Loyalty Games',
       icon: '🎡',
       enabled: true,
-      description: 'Spiele im Loyalty-System, aktuell Glücksrad und Presets.'
+      description: 'Spiele, Glücksrad, Presets und Giveaways im Loyalty-System.'
     };
 
     const loyaltySection = window.CGN.sections?.loyalty;
@@ -156,14 +162,14 @@ window.LoyaltyGamesModule = (function(){
   async function loadAll(force){
     root = document.getElementById('loyaltyGamesModule');
     if (!root || !window.CGN) return;
-    if (!force && state.status && state.wheelStatus && state.presets) { render(); return; }
+    if (!force && state.status && state.wheelStatus && state.presets && state.giveaways) { render(); return; }
 
     state.loading = true;
     state.error = '';
     render();
 
     try {
-      const [status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins] = await Promise.all([
+      const [status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways] = await Promise.all([
         window.CGN.api(api.status).catch(err => ({ ok:false, error:err.message })),
         window.CGN.api(api.config).catch(err => ({ ok:false, error:err.message })),
         window.CGN.api(api.routes).catch(err => ({ ok:false, error:err.message, routes:[] })),
@@ -171,7 +177,9 @@ window.LoyaltyGamesModule = (function(){
         window.CGN.api(api.wheelStatus).catch(err => ({ ok:false, error:err.message })),
         window.CGN.api(api.wheelConfig).catch(err => ({ ok:false, error:err.message })),
         window.CGN.api(api.presets).catch(err => ({ ok:false, error:err.message, rows:[] })),
-        window.CGN.api(api.spins).catch(err => ({ ok:false, error:err.message, rows:[] }))
+        window.CGN.api(api.spins).catch(err => ({ ok:false, error:err.message, rows:[] })),
+        window.CGN.api(api.giveawaysStatus).catch(err => ({ ok:false, error:err.message })),
+        window.CGN.api(api.giveaways).catch(err => ({ ok:false, error:err.message, rows:[] }))
       ]);
 
       const presetRows = rows(presets);
@@ -180,8 +188,15 @@ window.LoyaltyGamesModule = (function(){
         selectedPresetUid = presetRows[0]?.presetUid || '';
       }
 
-      state = { ...state, loading:false, error:'', status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, selectedPresetUid };
+      const giveawayRows = rows(giveaways);
+      let selectedGiveawayUid = state.selectedGiveawayUid;
+      if (!selectedGiveawayUid || !giveawayRows.some(g => g.giveawayUid === selectedGiveawayUid)) {
+        selectedGiveawayUid = giveawayRows[0]?.giveawayUid || '';
+      }
+
+      state = { ...state, loading:false, error:'', status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, selectedPresetUid, selectedGiveawayUid };
       if (selectedPresetUid) await loadPreset(selectedPresetUid, false);
+      if (selectedGiveawayUid) await loadGiveaway(selectedGiveawayUid, false);
     } catch (err) {
       state.loading = false;
       state.error = err.message || String(err);
@@ -210,6 +225,26 @@ window.LoyaltyGamesModule = (function(){
     if (rerender) render();
   }
 
+  async function loadGiveaway(giveawayUid, rerender = true){
+    if (!giveawayUid) {
+      state.selectedGiveawayUid = '';
+      state.selectedGiveaway = null;
+      if (rerender) render();
+      return;
+    }
+
+    try {
+      const data = await window.CGN.api(`/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}`);
+      state.selectedGiveawayUid = giveawayUid;
+      state.selectedGiveaway = data.giveaway || null;
+      state.error = '';
+    } catch (err) {
+      state.error = err.message || String(err);
+    }
+
+    if (rerender) render();
+  }
+
   async function refreshPresets(selectUid){
     const [presets, spins] = await Promise.all([
       window.CGN.api(api.presets).catch(err => ({ ok:false, error:err.message, rows:[] })),
@@ -219,6 +254,17 @@ window.LoyaltyGamesModule = (function(){
     state.spins = spins;
     if (selectUid) await loadPreset(selectUid, false);
     else if (state.selectedPresetUid) await loadPreset(state.selectedPresetUid, false);
+  }
+
+  async function refreshGiveaways(selectUid){
+    const [giveawaysStatus, giveaways] = await Promise.all([
+      window.CGN.api(api.giveawaysStatus).catch(err => ({ ok:false, error:err.message })),
+      window.CGN.api(api.giveaways).catch(err => ({ ok:false, error:err.message, rows:[] }))
+    ]);
+    state.giveawaysStatus = giveawaysStatus;
+    state.giveaways = giveaways;
+    if (selectUid) await loadGiveaway(selectUid, false);
+    else if (state.selectedGiveawayUid) await loadGiveaway(state.selectedGiveawayUid, false);
   }
 
   function setMessage(message){
@@ -253,7 +299,6 @@ window.LoyaltyGamesModule = (function(){
       state.saving = false; render();
     }
   }
-
 
   async function handleUpdatePreset(form){
     const presetUid = state.selectedPresetUid;
@@ -398,14 +443,105 @@ window.LoyaltyGamesModule = (function(){
     }
   }
 
+  function buildPrizeFromForm(data){
+    const label = String(data.get('prizeLabel') || '').trim() || String(data.get('title') || 'Gewinn').trim() || 'Gewinn';
+    return {
+      label,
+      description: String(data.get('prizeDescription') || '').trim(),
+      quantityTotal: Number(data.get('prizeQuantity') || 1)
+    };
+  }
+
+  function buildGiveawayPayload(form){
+    const data = new FormData(form);
+    const mode = String(data.get('mode') || 'classic_single');
+    return {
+      title: data.get('title'),
+      description: data.get('description'),
+      mode,
+      wheelEnabled: mode.startsWith('wheel_'),
+      wheelPresetUid: data.get('wheelPresetUid') || '',
+      costAmount: Number(data.get('costAmount') || 0),
+      maxTicketsPerUser: Number(data.get('maxTicketsPerUser') || 1),
+      firstTicketFree: data.get('firstTicketFree') === 'on',
+      subOnly: data.get('subOnly') === 'on',
+      subscriberLuckMultiplier: Number(data.get('subscriberLuckMultiplier') || 1),
+      winnerCount: Number(data.get('winnerCount') || 1),
+      roundPolicy: {
+        roundMode: data.get('roundMode') || 'single',
+        allowNewEntriesBetweenRounds: data.get('allowNewEntriesBetweenRounds') === 'on',
+        removeWinnerAfterRound: data.get('removeWinnerAfterRound') !== 'on' ? false : true,
+        ticketCarryoverMode: data.get('ticketCarryoverMode') || 'none'
+      },
+      prizes: [buildPrizeFromForm(data)],
+      actor: 'dashboard'
+    };
+  }
+
+  async function handleCreateGiveaway(form){
+    state.saving = true; render();
+    try {
+      const result = await apiPost('/api/loyalty/giveaways', buildGiveawayPayload(form));
+      const uid = result.giveaway?.giveawayUid;
+      await refreshGiveaways(uid);
+      state.activeTab = 'giveaways';
+      setMessage('Giveaway wurde erstellt.');
+    } catch (err) {
+      state.error = err.message || String(err);
+    } finally {
+      state.saving = false; render();
+    }
+  }
+
+  async function handleUpdateGiveaway(form){
+    const giveawayUid = state.selectedGiveawayUid;
+    if (!giveawayUid) return;
+    state.saving = true; render();
+    try {
+      await apiPut(`/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}`, buildGiveawayPayload(form));
+      await refreshGiveaways(giveawayUid);
+      setMessage('Giveaway wurde gespeichert.');
+    } catch (err) {
+      state.error = err.message || String(err);
+    } finally {
+      state.saving = false; render();
+    }
+  }
+
+  async function giveawayAction(action, giveawayUid){
+    if (!giveawayUid) return;
+    let path = '';
+    let confirmText = '';
+    if (action === 'copy') path = `/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}/copy`;
+    else if (action === 'open') path = `/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}/open`;
+    else if (action === 'close') path = `/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}/close-entries`;
+    else if (action === 'finish') { path = `/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}/finish`; confirmText = 'Giveaway wirklich beenden? Danach ist es read-only.'; }
+    else if (action === 'cancel') { path = `/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}/cancel`; confirmText = 'Giveaway wirklich abbrechen?'; }
+    else if (action === 'delete') { path = `/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}/delete`; confirmText = 'Giveaway wirklich löschen? Es wird als gelöscht markiert.'; }
+    if (!path) return;
+    if (confirmText && !window.confirm(confirmText)) return;
+
+    state.saving = true; render();
+    try {
+      const body = action === 'copy' ? { title: `Kopie von ${state.selectedGiveaway?.title || 'Giveaway'}`, actor: 'dashboard' } : { actor: 'dashboard' };
+      const result = await apiPost(path, body);
+      const uid = result.giveaway?.giveawayUid || giveawayUid;
+      await refreshGiveaways(uid);
+      setMessage(action === 'copy' ? 'Giveaway wurde kopiert.' : 'Giveaway wurde aktualisiert.');
+    } catch (err) {
+      state.error = err.message || String(err);
+    } finally {
+      state.saving = false; render();
+    }
+  }
+
   function renderOverview(){
     const status = state.status || {};
     const diag = status.diagnostics || {};
     const wheel = state.wheelStatus || status.games?.wheel || {};
-    const db = diag.database || {};
-    const counts = diag.counts || {};
     const presetDiag = diag.presets || {};
-    const spinRows = rows(state.spins);
+    const giveawaysDiag = state.giveawaysStatus?.diagnostics?.counts || {};
+    const db = diag.database || {};
 
     return `
       <div class="lg-grid lg-grid-4">
@@ -428,19 +564,19 @@ window.LoyaltyGamesModule = (function(){
           ${badge(true, 'DB')}
         </article>
         <article class="lg-card">
-          <span class="lg-card-label">Dreh-Verlauf</span>
-          <strong>${fmtNumber(presetDiag.spins || spinRows.length)}</strong>
-          <small>Preset-Drehungen gespeichert</small>
-          ${badge(true, 'History')}
+          <span class="lg-card-label">Giveaways</span>
+          <strong>${fmtNumber(giveawaysDiag.total || rows(state.giveaways).length)}</strong>
+          <small>draft ${fmtNumber(giveawaysDiag.draft || 0)} · open ${fmtNumber(giveawaysDiag.open || 0)}</small>
+          ${badge(state.giveawaysStatus?.ok !== false, 'OK', 'Fehler')}
         </article>
       </div>
       <div class="lg-panel">
         <h3>Status</h3>
         <div class="lg-kv">
-          <span>Enabled</span><strong>${esc(String(status.enabled ?? '-'))}</strong>
-          <span>RouteCount</span><strong>${fmtNumber(status.routeCount || 0)}</strong>
-          <span>SchemaReady</span><strong>${esc(String(diag.schemaReady ?? '-'))}</strong>
-          <span>EventBus</span><strong>${diag.eventBus?.ready ? 'bereit' : 'broadcast_only'}</strong>
+          <span>Games Schema</span><strong>${esc(String(diag.schemaReady ?? '-'))}</strong>
+          <span>Giveaways Schema</span><strong>${esc(String(state.giveawaysStatus?.diagnostics?.schemaReady ?? '-'))}</strong>
+          <span>EventBus Games</span><strong>${diag.eventBus?.ready ? 'bereit' : 'broadcast_only'}</strong>
+          <span>EventBus Giveaways</span><strong>${state.giveawaysStatus?.diagnostics?.eventBus?.ready ? 'bereit' : 'broadcast_only'}</strong>
           <span>DB</span><strong>${esc(db.adapter || db.dialect || '-')}</strong>
           <span>LastError</span><strong>${status.lastError ? esc(status.lastError) : '<span class="lg-muted">leer</span>'}</strong>
         </div>
@@ -653,6 +789,195 @@ window.LoyaltyGamesModule = (function(){
     `;
   }
 
+  function renderGiveaways(){
+    const giveaways = rows(state.giveaways);
+    const selected = state.selectedGiveaway;
+    const editable = !!selected?.editable;
+    const presets = rows(state.presets).filter(p => p.status === 'active' && p.presetType === 'standalone');
+
+    return `
+      <div class="lg-grid lg-editor-grid">
+        <div class="lg-panel">
+          <div class="lg-panel-head">
+            <h3>Giveaways</h3>
+            <button class="lg-btn" data-lg-giveaway-refresh>Aktualisieren</button>
+          </div>
+          <div class="lg-preset-list">
+            ${giveaways.map(giveaway => `
+              <button class="lg-preset-item ${giveaway.giveawayUid === state.selectedGiveawayUid ? 'is-active' : ''}" data-lg-select-giveaway="${esc(giveaway.giveawayUid)}">
+                <span>
+                  <strong>${esc(giveaway.title)}</strong>
+                  <small>${esc(giveaway.mode)} · ${fmtDate(giveaway.createdAt)}</small>
+                </span>
+                ${statusBadge(giveaway.status)}
+              </button>
+            `).join('') || `<p class="lg-muted">Noch keine Giveaways gefunden.</p>`}
+          </div>
+        </div>
+
+        <div class="lg-panel">
+          <h3>Neues Giveaway</h3>
+          <form class="lg-form" data-lg-create-giveaway>
+            ${renderGiveawayFormFields(null, true, presets)}
+            <button class="lg-btn" type="submit" ${state.saving ? 'disabled' : ''}>Giveaway erstellen</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="lg-panel">
+        <div class="lg-panel-head">
+          <div>
+            <h3>${selected ? esc(selected.title) : 'Kein Giveaway ausgewählt'}</h3>
+            ${selected ? `<p class="lg-muted">${esc(selected.description || '')}</p>` : ''}
+          </div>
+          ${selected ? `<div class="lg-actions">
+            <button class="lg-btn lg-btn-secondary" data-lg-giveaway-action="copy" data-giveaway-uid="${esc(selected.giveawayUid)}">Kopieren</button>
+            ${selected.status === 'draft' ? `<button class="lg-btn" data-lg-giveaway-action="open" data-giveaway-uid="${esc(selected.giveawayUid)}">Öffnen</button>` : ''}
+            ${selected.status === 'open' ? `<button class="lg-btn lg-btn-secondary" data-lg-giveaway-action="close" data-giveaway-uid="${esc(selected.giveawayUid)}">Teilnahme schließen</button>` : ''}
+            ${!['finished','cancelled','deleted'].includes(selected.status) ? `<button class="lg-btn lg-btn-danger" data-lg-giveaway-action="finish" data-giveaway-uid="${esc(selected.giveawayUid)}">Beenden</button>` : ''}
+            ${!['finished','cancelled','deleted'].includes(selected.status) ? `<button class="lg-btn lg-btn-danger" data-lg-giveaway-action="cancel" data-giveaway-uid="${esc(selected.giveawayUid)}">Abbrechen</button>` : ''}
+            ${selected.status !== 'deleted' ? `<button class="lg-btn lg-btn-danger" data-lg-giveaway-action="delete" data-giveaway-uid="${esc(selected.giveawayUid)}">Löschen</button>` : ''}
+          </div>` : ''}
+        </div>
+
+        ${selected ? `
+          <div class="lg-kv lg-kv-compact">
+            <span>Status</span><strong>${statusBadge(selected.status)}</strong>
+            <span>Modus</span><strong>${esc(selected.mode)}</strong>
+            <span>Bearbeitbar</span><strong>${editable ? 'Ja' : 'Nein, nur kopieren/anzeigen'}</strong>
+            <span>Kosten</span><strong>${fmtNumber(selected.costAmount)}</strong>
+            <span>Gewinner</span><strong>${fmtNumber(selected.winnerCount)}</strong>
+            <span>Rad</span><strong>${selected.wheelEnabled ? 'Ja' : 'Nein'}</strong>
+            <span>UID</span><strong><code>${esc(selected.giveawayUid)}</code></strong>
+            <span>Erstellt</span><strong>${fmtDate(selected.createdAt)}</strong>
+          </div>
+
+          ${editable ? `
+            <form class="lg-form lg-preset-settings-form" data-lg-update-giveaway>
+              ${renderGiveawayFormFields(selected, true, presets)}
+              <button class="lg-btn" type="submit">Giveaway speichern</button>
+            </form>
+          ` : `<p class="lg-warning">Dieses Giveaway ist read-only. Änderungen bitte über „Kopieren“ als neues Giveaway anlegen.</p>`}
+        ` : `<p class="lg-muted">Wähle links ein Giveaway aus.</p>`}
+      </div>
+
+      ${selected ? renderGiveawayDetails(selected) : ''}
+    `;
+  }
+
+  function renderGiveawayFormFields(giveaway, editable, presets){
+    const mode = giveaway?.mode || 'classic_single';
+    const wheelPresetUid = giveaway?.wheelPresetUid || '';
+    const round = giveaway?.roundPolicy || {};
+    const prize = rows(giveaway?.prizes || [])[0] || {};
+    const removeWinner = round.removeWinnerAfterRound !== false;
+
+    return `
+      <label>Titel<input name="title" value="${esc(giveaway?.title || '')}" required ${editable ? '' : 'disabled'}></label>
+      <label>Beschreibung<textarea name="description" rows="2" ${editable ? '' : 'disabled'}>${esc(giveaway?.description || '')}</textarea></label>
+      <div class="lg-form-row">
+        <label>Modus
+          <select name="mode" ${editable ? '' : 'disabled'}>
+            ${[
+              ['classic_single','Classic Single'],
+              ['classic_multi','Classic Multi'],
+              ['wheel_single','Wheel Single'],
+              ['wheel_multi','Wheel Multi']
+            ].map(([value,label]) => `<option value="${value}" ${mode === value ? 'selected' : ''}>${label}</option>`).join('')}
+          </select>
+        </label>
+        <label>Wheel-Preset
+          <select name="wheelPresetUid" ${editable ? '' : 'disabled'}>
+            <option value="">kein Preset / kein Rad</option>
+            ${presets.map(p => `<option value="${esc(p.presetUid)}" ${wheelPresetUid === p.presetUid ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}
+          </select>
+        </label>
+      </div>
+      <div class="lg-form-row">
+        <label>Kosten pro Ticket<input name="costAmount" type="number" min="0" value="${esc(giveaway?.costAmount ?? 0)}" ${editable ? '' : 'disabled'}></label>
+        <label>Max Tickets/User<input name="maxTicketsPerUser" type="number" min="1" value="${esc(giveaway?.maxTicketsPerUser ?? 1)}" ${editable ? '' : 'disabled'}></label>
+      </div>
+      <div class="lg-form-row">
+        <label>Gewinneranzahl<input name="winnerCount" type="number" min="1" value="${esc(giveaway?.winnerCount ?? 1)}" ${editable ? '' : 'disabled'}></label>
+        <label>Sub-Luck Faktor<input name="subscriberLuckMultiplier" type="number" min="1" value="${esc(giveaway?.subscriberLuckMultiplier ?? 1)}" ${editable ? '' : 'disabled'}></label>
+      </div>
+      <div class="lg-form-row">
+        <label>Rundenmodus
+          <select name="roundMode" ${editable ? '' : 'disabled'}>
+            ${[
+              ['single','single'],
+              ['new_round_new_entries','jede Runde neu'],
+              ['reuse_previous_entries','bisherige Teilnehmer']
+            ].map(([value,label]) => `<option value="${value}" ${(round.roundMode || 'single') === value ? 'selected' : ''}>${label}</option>`).join('')}
+          </select>
+        </label>
+        <label>Ticket-Übernahme
+          <select name="ticketCarryoverMode" ${editable ? '' : 'disabled'}>
+            ${[
+              ['none','none'],
+              ['participants_only','Teilnehmer'],
+              ['tickets','Tickets']
+            ].map(([value,label]) => `<option value="${value}" ${(round.ticketCarryoverMode || 'none') === value ? 'selected' : ''}>${label}</option>`).join('')}
+          </select>
+        </label>
+      </div>
+      <div class="lg-form-row">
+        <label>Gewinn-Label<input name="prizeLabel" value="${esc(prize.label || giveaway?.title || '')}" ${editable ? '' : 'disabled'}></label>
+        <label>Gewinn-Menge<input name="prizeQuantity" type="number" min="1" value="${esc(prize.quantityTotal || giveaway?.winnerCount || 1)}" ${editable ? '' : 'disabled'}></label>
+      </div>
+      <label>Gewinn-Beschreibung<textarea name="prizeDescription" rows="2" ${editable ? '' : 'disabled'}>${esc(prize.description || '')}</textarea></label>
+      <div class="lg-check-row">
+        <label class="lg-check"><input name="firstTicketFree" type="checkbox" ${giveaway?.firstTicketFree ? 'checked' : ''} ${editable ? '' : 'disabled'}> erstes Ticket kostenlos</label>
+        <label class="lg-check"><input name="subOnly" type="checkbox" ${giveaway?.subOnly ? 'checked' : ''} ${editable ? '' : 'disabled'}> nur Subs</label>
+        <label class="lg-check"><input name="allowNewEntriesBetweenRounds" type="checkbox" ${round.allowNewEntriesBetweenRounds ? 'checked' : ''} ${editable ? '' : 'disabled'}> neue Lose zwischen Runden</label>
+        <label class="lg-check"><input name="removeWinnerAfterRound" type="checkbox" ${removeWinner ? 'checked' : ''} ${editable ? '' : 'disabled'}> Gewinner nach Runde entfernen</label>
+      </div>
+    `;
+  }
+
+  function renderGiveawayDetails(giveaway){
+    const rounds = rows(giveaway.rounds || []);
+    const prizes = rows(giveaway.prizes || []);
+    const events = rows(giveaway.events || []);
+    return `
+      <div class="lg-grid lg-grid-3">
+        <div class="lg-panel">
+          <h3>Gewinne</h3>
+          <div class="lg-mini-list">
+            ${prizes.map(prize => `
+              <div class="lg-mini-row">
+                <strong>${esc(prize.label)}</strong>
+                <span>${fmtNumber(prize.quantityRemaining)} / ${fmtNumber(prize.quantityTotal)}</span>
+              </div>
+            `).join('') || `<p class="lg-muted">Keine Gewinne.</p>`}
+          </div>
+        </div>
+        <div class="lg-panel">
+          <h3>Runden</h3>
+          <div class="lg-mini-list">
+            ${rounds.map(round => `
+              <div class="lg-mini-row">
+                <strong>Runde ${fmtNumber(round.roundNumber)}</strong>
+                <span>${statusBadge(round.status)}</span>
+              </div>
+            `).join('') || `<p class="lg-muted">Keine Runden.</p>`}
+          </div>
+        </div>
+        <div class="lg-panel">
+          <h3>Events</h3>
+          <div class="lg-mini-list">
+            ${events.slice(0, 8).map(event => `
+              <div class="lg-mini-row">
+                <strong>${esc(event.eventType)}</strong>
+                <span>${fmtDate(event.createdAt)}</span>
+              </div>
+            `).join('') || `<p class="lg-muted">Keine Events.</p>`}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   function renderSessions(){
     const list = rows(state.sessions);
     const spinRows = rows(state.spins);
@@ -717,15 +1042,15 @@ window.LoyaltyGamesModule = (function(){
       <div class="lg-panel">
         <h3>Hinweise</h3>
         <ul class="lg-notes">
-          <li>LWG-4C ist der erste Preset-Editor. Giveaways sind noch nicht enthalten.</li>
-          <li>Presets mit bereits gespeicherten Drehungen sind read-only und sollen kopiert werden.</li>
-          <li>Giveaway-verknüpfte Presets werden später nur über den Giveaway-Editor bearbeitet.</li>
-          <li>Das Ergebnis wird weiterhin backendseitig per crypto.randomInt bestimmt.</li>
-          <li>Das Dashboard darf Presets/Felder verwalten, aber nie ein Ergebnis erzwingen.</li>
+          <li>LWG-4E ist der erste Giveaway-Dashboard-Editor.</li>
+          <li>Noch keine Tickets, keine Gewinnerziehung und kein Rad-Claim.</li>
+          <li>Abgeschlossene Giveaways sind read-only und sollen kopiert werden.</li>
+          <li>Dashboard darf Regeln verwalten, aber später keine Gewinner oder Gewinne erzwingen.</li>
+          <li>EventBus/Broadcast-Grundlagen sind vorbereitet.</li>
         </ul>
       </div>
       <div class="lg-panel">
-        <h3>Routen</h3>
+        <h3>Games-Routen</h3>
         <div class="lg-route-list">
           ${routes.map(route => `<code>${esc(route)}</code>`).join('') || '<span class="lg-muted">Keine Routen geladen.</span>'}
         </div>
@@ -738,6 +1063,7 @@ window.LoyaltyGamesModule = (function(){
       ['overview', 'Übersicht'],
       ['wheel', 'Glücksrad'],
       ['presets', 'Presets'],
+      ['giveaways', 'Giveaways'],
       ['history', 'Verlauf'],
       ['notes', 'Hinweise']
     ];
@@ -751,6 +1077,7 @@ window.LoyaltyGamesModule = (function(){
   function renderActiveTab(){
     if (state.activeTab === 'wheel') return renderWheel();
     if (state.activeTab === 'presets') return renderPresets();
+    if (state.activeTab === 'giveaways') return renderGiveaways();
     if (state.activeTab === 'history') return renderSessions();
     if (state.activeTab === 'notes') return renderNotes();
     return renderOverview();
@@ -767,13 +1094,18 @@ window.LoyaltyGamesModule = (function(){
     root.querySelector('[data-lg-reload]')?.addEventListener('click', () => loadAll(true));
 
     root.querySelectorAll('[data-lg-select-preset]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        loadPreset(btn.dataset.lgSelectPreset);
-      });
+      btn.addEventListener('click', () => loadPreset(btn.dataset.lgSelectPreset));
+    });
+    root.querySelectorAll('[data-lg-select-giveaway]').forEach(btn => {
+      btn.addEventListener('click', () => loadGiveaway(btn.dataset.lgSelectGiveaway));
     });
 
     root.querySelector('[data-lg-preset-refresh]')?.addEventListener('click', async () => {
       await refreshPresets(state.selectedPresetUid);
+      render();
+    });
+    root.querySelector('[data-lg-giveaway-refresh]')?.addEventListener('click', async () => {
+      await refreshGiveaways(state.selectedGiveawayUid);
       render();
     });
 
@@ -781,34 +1113,40 @@ window.LoyaltyGamesModule = (function(){
       ev.preventDefault();
       handleCreatePreset(ev.currentTarget);
     });
-
     root.querySelector('[data-lg-update-preset]')?.addEventListener('submit', ev => {
       ev.preventDefault();
       handleUpdatePreset(ev.currentTarget);
     });
-
     root.querySelector('[data-lg-create-field]')?.addEventListener('submit', ev => {
       ev.preventDefault();
       handleCreateField(ev.currentTarget);
     });
-
     root.querySelectorAll('[data-lg-update-field]').forEach(form => {
       form.addEventListener('submit', ev => {
         ev.preventDefault();
         handleUpdateField(ev.currentTarget);
       });
     });
-
     root.querySelectorAll('[data-lg-delete-field]').forEach(btn => {
       btn.addEventListener('click', () => deleteField(btn.dataset.lgDeleteField));
     });
-
     root.querySelectorAll('[data-lg-preset-action]').forEach(btn => {
       btn.addEventListener('click', () => presetAction(btn.dataset.lgPresetAction, btn.dataset.presetUid));
     });
-
     root.querySelectorAll('[data-lg-start-spin]').forEach(btn => {
       btn.addEventListener('click', () => startPresetSpin(btn.dataset.lgStartSpin));
+    });
+
+    root.querySelector('[data-lg-create-giveaway]')?.addEventListener('submit', ev => {
+      ev.preventDefault();
+      handleCreateGiveaway(ev.currentTarget);
+    });
+    root.querySelector('[data-lg-update-giveaway]')?.addEventListener('submit', ev => {
+      ev.preventDefault();
+      handleUpdateGiveaway(ev.currentTarget);
+    });
+    root.querySelectorAll('[data-lg-giveaway-action]').forEach(btn => {
+      btn.addEventListener('click', () => giveawayAction(btn.dataset.lgGiveawayAction, btn.dataset.giveawayUid));
     });
   }
 
@@ -832,7 +1170,7 @@ window.LoyaltyGamesModule = (function(){
         <div>
           <p class="lg-eyebrow">Loyalty / Spiele</p>
           <h2>Loyalty Games</h2>
-          <p class="lg-subline">Glücksrad, Presets und Dreh-Verlauf. Giveaways kommen in einem späteren Schritt.</p>
+          <p class="lg-subline">Glücksrad, Presets, Giveaways und Verlauf. Tickets/Gewinnerziehung kommen später.</p>
         </div>
         <div class="lg-actions">
           <a class="lg-btn lg-btn-secondary" href="${api.overlay}" target="_blank">Overlay öffnen</a>
