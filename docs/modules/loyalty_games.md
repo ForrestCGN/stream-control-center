@@ -63,7 +63,7 @@ htdocs/dashboard/index.html
 Einordnung:
 
 ```text
-Community -> Loyalty Games
+Loyalty -> Loyalty Games
 ```
 
 Der Stand ist bewusst read-only, weil das Dashboard spaeter ohnehin groesser umgebaut wird.
@@ -136,14 +136,14 @@ Glücksrad-Overlay öffnen
 ## Tests
 
 ```powershell
-.\stepdone.cmd "STEP LWG-3 Loyalty Games Dashboard Readonly"
+.\stepdone.cmd "STEP LWG-3.1 Loyalty Games Dashboard Readonly"
 ```
 
 Dashboard:
 
 ```text
 http://127.0.0.1:8080/dashboard
-Community -> Loyalty Games
+Loyalty -> Loyalty Games
 ```
 
 API:

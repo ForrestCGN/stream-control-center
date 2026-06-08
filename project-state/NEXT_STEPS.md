@@ -5,30 +5,23 @@ Stand: 2026-06-08
 ## Naechster sinnvoller Schritt
 
 ```text
-STEP LWG-4 – Kosten/Reservierung/Refund fuer Wheel planen
+LWG-4B – Wheel Presets Backend planen/bauen
 ```
 
-## Fokus LWG-4
+## Vorher bestaetigen
 
 ```text
-- Kosten pro Spin definieren
-- Abbuchen vs. Reservieren klaeren
-- Refund bei Fehler/Abbruch klaeren
-- Shadow/Live-Modus beachten
-- Nutzung von loyalty_transactions / loyalty_reservations planen
-- Rechte/Audit vorbereiten
+Loyalty -> Loyalty Games im Dashboard sichtbar.
+Bestehender Wheel-Spin funktioniert weiter.
 ```
 
-## Spaeter
+## Danach
 
 ```text
-STEP LWG-5 – Reward-Ausfuehrung planen
-Dashboard-Gesamtumbau spaeter
-```
-
-## Wichtige Regel
-
-```text
-Keine Funktionalitaet entfernen.
-Keine produktiven Loyalty-Flows umbauen, solange nicht separat geplant und freigegeben.
+Wheel Presets Backend
+Preset-Editor
+Giveaway Backend
+Giveaway Editor
+Commands / Kanalpunkte
+EventBus-Anbindung
 ```

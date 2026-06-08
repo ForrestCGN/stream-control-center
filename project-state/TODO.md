@@ -4,23 +4,17 @@ Stand: 2026-06-08
 
 ## Erledigt
 
-- [x] Loyalty Games Host-Modul geplant
-- [x] Loyalty Games Backend-Grundsystem v0.1.0 gebaut
-- [x] Backend LWG-1 im Live-System getestet
-- [x] Wheel-Submodul gebaut
-- [x] DB-Tabelle `loyalty_game_sessions` vorbereitet
-- [x] Backendseitige gewichtete Zufallsauswahl eingebaut
-- [x] WebSocket-Spin-Event vorbereitet
-- [x] Diagnose-/Registry-Eintrag vorbereitet
-- [x] Modul-Dokus geschrieben
-- [x] Wheel Overlay an Backend-Event angebunden
-- [x] Repeat-Spin-Rotationsfix im Overlay
-- [x] Loyalty Games Dashboard read-only gebaut
+- [x] LWG-1 Backend
+- [x] LWG-2 Overlay
+- [x] LWG-2.1 Repeat-Spin-Fix
+- [x] LWG-3 Dashboard Read-only
+- [x] LWG-3.1 Loyalty als eigener Dashboard-Hauptbereich vorbereitet
 
 ## Offen
 
-- [ ] LWG-3 Live-Test im Dashboard
-- [ ] LWG-4: Kosten/Reservierung/Refund planen
-- [ ] LWG-5: Reward-Ausfuehrung planen
-- [ ] Dashboard-Gesamtumbau spaeter
-- [ ] VIP30 Overlay optisch verbessern
+- [ ] LWG-3.1 Live-Test im Dashboard
+- [ ] LWG-4B Wheel Presets Backend
+- [ ] Preset-Editor
+- [ ] Giveaway Backend
+- [ ] Giveaway Editor
+- [ ] EventBus-Kommunikation fuer Loyalty-Unterbereiche konkretisieren

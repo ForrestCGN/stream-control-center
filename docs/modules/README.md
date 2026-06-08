@@ -39,7 +39,7 @@ docs/modules/SHOUTOUT_SYSTEM_STANDARDS_ALIGNMENT.md
 Aktueller Stand:
 
 ```text
-STEP LWG-3 – Loyalty Games Dashboard Read-only
+STEP LWG-3.1 – Loyalty Games Dashboard Read-only
 ```
 
 Dateien:

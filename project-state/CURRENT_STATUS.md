@@ -5,45 +5,27 @@ Stand: 2026-06-08
 ## Aktueller Schwerpunkt
 
 ```text
-Loyalty Games / CGN Gluecksrad
+Loyalty / CGN Gluecksrad / Giveaways Planung
 ```
 
 ## Neuer Stand
 
 ```text
-STEP LWG-3 – Loyalty Games Dashboard Read-only
+STEP LWG-3.1 – Dashboard Loyalty Main Section Bridge
 ```
 
-## Bestaetigt
+## Umgesetzt
 
 ```text
-LWG-1 Backend laeuft.
-LWG-2 Overlay laeuft.
-LWG-2.1 Repeat-Spin-Fix funktioniert.
+- Loyalty ist als eigener Dashboard-Hauptbereich vorbereitet.
+- Loyalty Games liegt unter Loyalty.
+- LWG-3 Read-only-Dashboard bleibt erhalten.
+- Keine Backend-/DB-/API-Aenderung.
 ```
 
-## Umgesetzt in LWG-3
+## Architekturentscheidung
 
 ```text
-- Dashboard-Panel Loyalty Games
-- Einbindung in Community-Bereich
-- Overlay-Link
-- Read-only Statuskarten
-- Wheel-Status
-- Feldliste mit Gewichtung
-- Sessions-Tabelle
-- Routen-/Hinweisbereich
-- Doku aktualisiert
-```
-
-## Bewusst nicht umgesetzt
-
-```text
-- kein Backend
-- keine Config-Save-Route
-- keine Datenbankmigration
-- keine Punktkosten
-- keine Reward-Ausfuehrung
-- keine Aenderung an backend/modules/loyalty.js
-- keine produktiven Testbuttons im Dashboard
+Loyalty wird Hauptbereich fuer Punkte, Giveaways, Spiele, Gluecksrad, Presets, Rewards und Diagnose.
+Kommunikation zwischen Loyalty-Untermodulen soll ueber EventBus/definierte Events laufen.
 ```

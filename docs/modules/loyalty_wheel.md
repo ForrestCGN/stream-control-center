@@ -41,7 +41,7 @@ Backend waehlt Gewinner -> Overlay visualisiert exakt dieses Ergebnis.
 LWG-3 bringt eine read-only Dashboard-Ansicht:
 
 ```text
-Community -> Loyalty Games
+Loyalty -> Loyalty Games
 ```
 
 Anzeige:
@@ -61,7 +61,7 @@ Keine Save-Buttons, keine produktiven Testbuttons, keine Kosten-/Reward-Ausfuehr
 
 ```text
 http://127.0.0.1:8080/dashboard
-Community -> Loyalty Games
+Loyalty -> Loyalty Games
 ```
 
 Spin API:

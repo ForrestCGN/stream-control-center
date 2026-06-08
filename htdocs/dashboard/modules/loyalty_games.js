@@ -53,13 +53,44 @@ window.LoyaltyGamesModule = (function(){
       : `<span class="lg-badge lg-badge-off">${esc(failText)}</span>`;
   }
 
+
+  function ensureLoyaltyMainSection(){
+    if (!window.CGN) return;
+
+    window.CGN.sections.loyalty = {
+      label: 'Loyalty',
+      icon: '🎟️',
+      role: 'mod/supermod/streamer',
+      description: 'Punkte, Giveaways, Spiele, Glücksrad, Presets und spätere Rewards.',
+      items: ['loyalty_games']
+    };
+
+    const nav = document.querySelector('#mainNav .nav-main-block');
+    if (nav && !nav.querySelector('[data-section="loyalty"]')) {
+      const btn = document.createElement('button');
+      btn.className = 'nav-main-item';
+      btn.dataset.section = 'loyalty';
+      btn.innerHTML = '<span class="nav-icon">🎟️</span><span class="nav-label"><strong>Loyalty</strong><small>Punkte, Giveaways, Spiele</small></span>';
+
+      const communityBtn = nav.querySelector('[data-section="community"]');
+      if (communityBtn) nav.insertBefore(btn, communityBtn);
+      else nav.appendChild(btn);
+
+      btn.addEventListener('click', () => {
+        if (btn.disabled) return;
+        window.CGN.setActiveSection('loyalty');
+      });
+    }
+  }
+
   function registerDashboardModule(){
     if (!window.CGN) return;
+    ensureLoyaltyMainSection();
 
     window.CGN.modules.loyalty_games = {
       title: 'Loyalty Games',
       panelId: 'loyaltyGamesModule',
-      group: 'community',
+      group: 'loyalty',
       overlayLink: api.overlay,
       overlayLabel: 'Glücksrad-Overlay öffnen',
       reload(){ return window.LoyaltyGamesModule?.loadAll?.(true); }
@@ -71,14 +102,9 @@ window.LoyaltyGamesModule = (function(){
       enabled: true,
       description: 'Spiele im Loyalty-System, aktuell Glücksrad.'
     };
-
-    const community = window.CGN.sections?.community;
-    if (community && Array.isArray(community.items) && !community.items.includes('loyalty_games')) {
-      const loyaltyIdx = community.items.indexOf('loyalty');
-      const commandsIdx = community.items.indexOf('commands');
-      if (loyaltyIdx >= 0) community.items.splice(loyaltyIdx + 1, 0, 'loyalty_games');
-      else if (commandsIdx >= 0) community.items.splice(commandsIdx, 0, 'loyalty_games');
-      else community.items.push('loyalty_games');
+    const loyaltySection = window.CGN.sections?.loyalty;
+    if (loyaltySection && Array.isArray(loyaltySection.items) && !loyaltySection.items.includes('loyalty_games')) {
+      loyaltySection.items.push('loyalty_games');
     }
 
     if (Array.isArray(window.CGN.favorites) && !window.CGN.favorites.includes('loyalty_games')) {
@@ -316,9 +342,9 @@ window.LoyaltyGamesModule = (function(){
     root.innerHTML = `
       <div class="lg-head">
         <div>
-          <p class="lg-eyebrow">Community / Loyalty</p>
+          <p class="lg-eyebrow">Loyalty / Spiele</p>
           <h2>Loyalty Games</h2>
-          <p class="lg-subline">Read-only Übersicht für Spiele im Loyalty-System. Aktuell: CGN Glücksrad.</p>
+          <p class="lg-subline">Read-only Übersicht für den neuen Loyalty-Hauptbereich. Aktuell: CGN Glücksrad.</p>
         </div>
         <div class="lg-actions">
           <a class="lg-btn lg-btn-secondary" href="${api.overlay}" target="_blank">Overlay öffnen</a>
