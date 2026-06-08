@@ -277,6 +277,16 @@ function createPresetStore(options = {}) {
     return { ok: true, row };
   }
 
+  function normalizePresetSettings(input = {}, previous = {}) {
+    const source = input.settings && typeof input.settings === "object" ? input.settings : input;
+    return {
+      ...(previous && typeof previous === "object" ? previous : {}),
+      removeAfterWin: source.removeAfterWin === undefined && source.remove_after_win === undefined
+        ? (previous.removeAfterWin !== undefined ? previous.removeAfterWin !== false : true)
+        : !(source.removeAfterWin === false || source.remove_after_win === false)
+    };
+  }
+
   function createPreset(input = {}) {
     ensureSchema();
     const now = nowIso();
@@ -287,6 +297,7 @@ function createPresetStore(options = {}) {
     const lifecycleOwner = presetType === PRESET_TYPE.GIVEAWAY_LINKED ? "giveaway" : "preset";
     const status = String(input.status || STATUS.DRAFT).trim() || STATUS.DRAFT;
     const minVisibleSlots = shared.clampInt(input.minVisibleSlots || input.min_visible_slots, 12, 1, 96);
+    const presetSettings = normalizePresetSettings(input);
 
     database.run(`
       INSERT INTO loyalty_wheel_presets (
@@ -312,7 +323,7 @@ function createPresetStore(options = {}) {
       createdBy: String(input.createdBy || input.actor || "").trim(),
       createdAt: now,
       updatedAt: now,
-      settingsJson: json(input.settings || {}),
+      settingsJson: json(presetSettings),
       metadataJson: json(input.metadata || {})
     });
 
@@ -388,8 +399,8 @@ function createPresetStore(options = {}) {
 
     const now = nowIso();
     const fieldUid = shared.uid("field");
-    const total = shared.normalizeQuantity(input.quantityTotal ?? input.quantity_total ?? input.quantity ?? 0, 0);
-    const remaining = shared.normalizeQuantity(input.quantityRemaining ?? input.quantity_remaining ?? total, total);
+    const total = shared.normalizeQuantity(input.quantityTotal ?? input.quantity_total ?? input.quantity ?? 1, 1);
+    const remaining = total;
     const sortOrder = shared.clampInt(input.sortOrder ?? input.sort_order, 1, 0, 9999);
     const rewardType = String(input.rewardType || input.reward_type || input.reward?.type || "none").trim() || "none";
     const rewardValue = String(input.rewardValue || input.reward_value || input.reward?.value || input.reward?.amount || "").trim();
@@ -414,7 +425,7 @@ function createPresetStore(options = {}) {
       weight: shared.normalizeWeight(input.weight === undefined ? 1 : input.weight) || 1,
       quantityTotal: total,
       quantityRemaining: remaining,
-      removeAfterWin: input.removeAfterWin === true || input.remove_after_win === true ? 1 : 0,
+      removeAfterWin: 0,
       rewardType,
       rewardValue,
       colorA: String(input.colorA || input.color_a || "").trim(),
@@ -437,7 +448,8 @@ function createPresetStore(options = {}) {
 
     const now = nowIso();
     const total = patch.quantityTotal ?? patch.quantity_total ?? field.quantity_total;
-    const remaining = patch.quantityRemaining ?? patch.quantity_remaining ?? field.quantity_remaining;
+    const nextTotal = shared.normalizeQuantity(total, field.quantity_total);
+    const remaining = nextTotal;
     database.run(`
       UPDATE loyalty_wheel_fields
       SET sort_order = :sortOrder,
@@ -463,9 +475,9 @@ function createPresetStore(options = {}) {
       subLabel: String(patch.subLabel ?? patch.sub_label ?? patch.sub ?? field.sub_label ?? "").trim(),
       enabled: patch.enabled === undefined ? Number(field.enabled || 0) : (patch.enabled === false ? 0 : 1),
       weight: shared.normalizeWeight(patch.weight === undefined ? field.weight : patch.weight) || 1,
-      quantityTotal: shared.normalizeQuantity(total, field.quantity_total),
-      quantityRemaining: shared.normalizeQuantity(remaining, field.quantity_remaining),
-      removeAfterWin: patch.removeAfterWin === undefined && patch.remove_after_win === undefined ? Number(field.remove_after_win || 0) : (patch.removeAfterWin === true || patch.remove_after_win === true ? 1 : 0),
+      quantityTotal: nextTotal,
+      quantityRemaining: remaining,
+      removeAfterWin: Number(field.remove_after_win || 0),
       rewardType: String(patch.rewardType || patch.reward_type || patch.reward?.type || field.reward_type || "none").trim() || "none",
       rewardValue: String(patch.rewardValue ?? patch.reward_value ?? patch.reward?.value ?? patch.reward?.amount ?? field.reward_value ?? "").trim(),
       colorA: String(patch.colorA ?? patch.color_a ?? field.color_a ?? "").trim(),
@@ -490,6 +502,40 @@ function createPresetStore(options = {}) {
     `, { fieldUid, presetUid, deletedAt: now, updatedAt: now });
 
     return { ok: true, deleted: true, fieldUid };
+  }
+
+
+  function updatePreset(presetUid, patch = {}) {
+    ensureSchema();
+    const editable = assertPresetEditable(presetUid);
+    if (!editable.ok) return editable;
+
+    const row = editable.row;
+    const now = nowIso();
+    const previousSettings = parseJson(row.settings_json, {});
+    const nextSettings = normalizePresetSettings(patch, previousSettings);
+
+    database.run(`
+      UPDATE loyalty_wheel_presets
+      SET name = :name,
+          description = :description,
+          min_visible_slots = :minVisibleSlots,
+          updated_at = :updatedAt,
+          settings_json = :settingsJson,
+          metadata_json = :metadataJson
+      WHERE preset_uid = :presetUid
+    `, {
+      presetUid,
+      name: String(patch.name ?? row.name ?? "").trim() || "Glücksrad-Preset",
+      description: String(patch.description ?? row.description ?? "").trim(),
+      minVisibleSlots: shared.clampInt(patch.minVisibleSlots ?? patch.min_visible_slots ?? row.min_visible_slots, row.min_visible_slots || 12, 1, 96),
+      updatedAt: now,
+      settingsJson: json(nextSettings),
+      metadataJson: json({ ...parseJson(row.metadata_json, {}), lastUpdatedBy: patch.actor || patch.updatedBy || "dashboard", lastUpdatedAt: now })
+    });
+
+    emitEvent("loyalty.wheel.preset.updated", { presetUid });
+    return { ok: true, preset: getPreset(presetUid, true) };
   }
 
   function copyPreset(presetUid, input = {}) {
@@ -521,7 +567,7 @@ function createPresetStore(options = {}) {
       minVisibleSlots: source.minVisibleSlots,
       copiedFromPresetUid: source.presetUid,
       createdBy: input.createdBy || input.actor || "",
-      settings: source.settings || {},
+      settings: normalizePresetSettings(source.settings || {}),
       metadata: { copiedFromPresetUid: source.presetUid, quantityMode: mode },
       fields
     });
@@ -608,11 +654,14 @@ function createPresetStore(options = {}) {
     const row = database.get("SELECT * FROM loyalty_wheel_fields WHERE field_uid = :fieldUid", { fieldUid });
     if (!row) return { ok: false, error: "field_not_found" };
 
+    const preset = getPreset(row.preset_uid, false);
+    const removeAfterWin = preset?.settings?.removeAfterWin !== false;
     const total = Number(row.quantity_total || 0);
     const remaining = Number(row.quantity_remaining || 0);
-    if (total <= 0) return { ok: true, changed: false, unlimited: true };
+    const nextRemaining = total > 0 ? Math.max(0, remaining - 1) : remaining;
 
-    const nextRemaining = Math.max(0, remaining - 1);
+    const shouldDisable = removeAfterWin || (total > 0 && nextRemaining <= 0);
+
     database.run(`
       UPDATE loyalty_wheel_fields
       SET quantity_remaining = :quantityRemaining,
@@ -622,12 +671,18 @@ function createPresetStore(options = {}) {
     `, {
       fieldUid,
       quantityRemaining: nextRemaining,
-      enabled: nextRemaining <= 0 && Number(row.remove_after_win || 0) === 1 ? 0 : Number(row.enabled || 0),
+      enabled: shouldDisable ? 0 : Number(row.enabled || 0),
       updatedAt: nowIso()
     });
 
     markExhaustedIfNeeded(row.preset_uid);
-    return { ok: true, changed: true, quantityRemaining: nextRemaining };
+    return {
+      ok: true,
+      changed: true,
+      removeAfterWin,
+      disabled: shouldDisable,
+      quantityRemaining: nextRemaining
+    };
   }
 
   function recordSpinStarted(input = {}) {
@@ -729,6 +784,7 @@ function createPresetStore(options = {}) {
     getPreset,
     createPreset,
     copyPreset,
+    updatePreset,
     setPresetStatus,
     listFields,
     createField,

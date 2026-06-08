@@ -2,35 +2,17 @@
 
 Stand: 2026-06-08
 
-## Aktueller Schwerpunkt
-
-```text
-Loyalty / Wheel Presets / Preset Editor
-```
-
 ## Neuer Stand
 
 ```text
-STEP LWG-4C – Preset Editor Dashboard v0.1.0
+STEP LWG-4C.1 – Quantity + Global Remove Fix
 ```
 
 ## Umgesetzt
 
 ```text
-- Preset-Editor im Dashboard.
-- Preset-Liste.
-- Felder anzeigen/erstellen/bearbeiten/deaktivieren.
-- Preset kopieren/aktivieren/pausieren/abschliessen/loeschen.
-- Test-Drehung mit Preset.
-- Dreh-Verlauf anzeigen.
-```
-
-## Nicht umgesetzt
-
-```text
-- kein Giveaway
-- kein Ticket-System
-- keine Kanalpunkte/Commands
-- keine Punktebuchung
-- keine Reward-Ausfuehrung
+- Restmenge im Dashboard read-only.
+- Gesamtmenge Standard 1.
+- Globale Preset-Einstellung removeAfterWin.
+- Preset-Settings speichern.
 ```

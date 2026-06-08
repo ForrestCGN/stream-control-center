@@ -240,12 +240,36 @@ window.LoyaltyGamesModule = (function(){
         description: data.get('description'),
         minVisibleSlots: Number(data.get('minVisibleSlots') || 12),
         status: data.get('status') || 'draft',
+        removeAfterWin: data.get('removeAfterWin') === 'on',
         createdBy: 'dashboard'
       });
       const uid = result.preset?.presetUid;
       await refreshPresets(uid);
       state.activeTab = 'presets';
       setMessage('Preset wurde erstellt.');
+    } catch (err) {
+      state.error = err.message || String(err);
+    } finally {
+      state.saving = false; render();
+    }
+  }
+
+
+  async function handleUpdatePreset(form){
+    const presetUid = state.selectedPresetUid;
+    if (!presetUid) return;
+    const data = new FormData(form);
+    state.saving = true; render();
+    try {
+      await apiPut(`/api/loyalty/games/wheel/presets/${encodeURIComponent(presetUid)}`, {
+        name: data.get('name'),
+        description: data.get('description'),
+        minVisibleSlots: Number(data.get('minVisibleSlots') || 12),
+        removeAfterWin: data.get('removeAfterWin') === 'on',
+        actor: 'dashboard'
+      });
+      await refreshPresets(presetUid);
+      setMessage('Preset-Einstellungen wurden gespeichert.');
     } catch (err) {
       state.error = err.message || String(err);
     } finally {
@@ -263,9 +287,7 @@ window.LoyaltyGamesModule = (function(){
         label: data.get('label'),
         subLabel: data.get('subLabel'),
         weight: Number(data.get('weight') || 1),
-        quantityTotal: Number(data.get('quantityTotal') || 0),
-        quantityRemaining: Number(data.get('quantityRemaining') || data.get('quantityTotal') || 0),
-        removeAfterWin: data.get('removeAfterWin') === 'on',
+        quantityTotal: Number(data.get('quantityTotal') || 1),
         rewardType: data.get('rewardType') || 'manual',
         rewardValue: data.get('rewardValue') || '',
         enabled: data.get('enabled') === 'on'
@@ -290,9 +312,7 @@ window.LoyaltyGamesModule = (function(){
         label: data.get('label'),
         subLabel: data.get('subLabel'),
         weight: Number(data.get('weight') || 1),
-        quantityTotal: Number(data.get('quantityTotal') || 0),
-        quantityRemaining: Number(data.get('quantityRemaining') || 0),
-        removeAfterWin: data.get('removeAfterWin') === 'on',
+        quantityTotal: Number(data.get('quantityTotal') || 1),
         rewardType: data.get('rewardType') || 'manual',
         rewardValue: data.get('rewardValue') || '',
         enabled: data.get('enabled') === 'on',
@@ -522,6 +542,7 @@ window.LoyaltyGamesModule = (function(){
                 </select>
               </label>
             </div>
+            <label class="lg-check"><input name="removeAfterWin" type="checkbox" checked> Gewinnfeld nach Auslosung aus diesem Rad entfernen</label>
             <button class="lg-btn" type="submit" ${state.saving ? 'disabled' : ''}>Preset erstellen</button>
           </form>
         </div>
@@ -550,8 +571,20 @@ window.LoyaltyGamesModule = (function(){
             <span>Lifecycle</span><strong>${esc(selected.lifecycleOwner || '-')}</strong>
             <span>Bearbeitbar</span><strong>${editable ? 'Ja' : 'Nein, nur kopieren/anzeigen'}</strong>
             <span>Mindest-Slots</span><strong>${fmtNumber(selected.minVisibleSlots)}</strong>
+            <span>Gewinn entfernen</span><strong>${selected.settings?.removeAfterWin === false ? 'Nein' : 'Ja'}</strong>
             <span>Felder</span><strong>${fmtNumber(fields.length)}</strong>
           </div>
+          ${editable ? `
+            <form class="lg-form lg-preset-settings-form" data-lg-update-preset>
+              <div class="lg-form-row">
+                <label>Name<input name="name" value="${esc(selected.name || '')}" required></label>
+                <label>Mindest-Slots<input name="minVisibleSlots" type="number" min="1" max="96" value="${esc(selected.minVisibleSlots || 12)}"></label>
+              </div>
+              <label>Beschreibung<textarea name="description" rows="2">${esc(selected.description || '')}</textarea></label>
+              <label class="lg-check"><input name="removeAfterWin" type="checkbox" ${selected.settings?.removeAfterWin === false ? '' : 'checked'}> Gewinnfeld nach Auslosung aus diesem Rad entfernen</label>
+              <button class="lg-btn" type="submit">Preset-Einstellungen speichern</button>
+            </form>
+          ` : ''}
           ${isGiveawayLinked ? `<p class="lg-warning">Dieses Preset gehört zu einem Giveaway. Bearbeitung nur über den Giveaway-Editor.</p>` : ''}
           ${!editable ? `<p class="lg-warning">Dieses Preset ist nicht direkt bearbeitbar. Änderungen bitte über „Kopieren“ als neues Preset anlegen.</p>` : ''}
         ` : `<p class="lg-muted">Wähle links ein Preset aus.</p>`}
@@ -574,8 +607,7 @@ window.LoyaltyGamesModule = (function(){
             <input name="label" placeholder="Label" required>
             <input name="subLabel" placeholder="Subtext">
             <input name="weight" type="number" min="1" value="1" title="Gewicht">
-            <input name="quantityTotal" type="number" min="0" value="0" title="Menge gesamt">
-            <input name="quantityRemaining" type="number" min="0" value="0" title="Restmenge">
+            <input name="quantityTotal" type="number" min="1" value="1" title="Gesamtmenge">
             <select name="rewardType">
               <option value="manual">manual</option>
               <option value="points">points</option>
@@ -584,7 +616,6 @@ window.LoyaltyGamesModule = (function(){
             </select>
             <input name="rewardValue" placeholder="Reward-Wert">
             <label class="lg-check"><input name="enabled" type="checkbox" checked> aktiv</label>
-            <label class="lg-check"><input name="removeAfterWin" type="checkbox"> entfernen</label>
             <button class="lg-btn" type="submit" ${state.saving ? 'disabled' : ''}>Feld hinzufügen</button>
           </form>
         ` : ''}
@@ -602,8 +633,8 @@ window.LoyaltyGamesModule = (function(){
                 <label>Label<input name="label" value="${esc(field.label)}" ${editable ? '' : 'disabled'}></label>
                 <label>Subtext<input name="subLabel" value="${esc(field.subLabel || field.sub || '')}" ${editable ? '' : 'disabled'}></label>
                 <label>Gewicht<input name="weight" type="number" min="1" value="${esc(field.weight || 1)}" ${editable ? '' : 'disabled'}></label>
-                <label>Menge gesamt<input name="quantityTotal" type="number" min="0" value="${esc(field.quantityTotal || 0)}" ${editable ? '' : 'disabled'}></label>
-                <label>Restmenge<input name="quantityRemaining" type="number" min="0" value="${esc(field.quantityRemaining || 0)}" ${editable ? '' : 'disabled'}></label>
+                <label>Gesamtmenge<input name="quantityTotal" type="number" min="1" value="${esc(field.quantityTotal || 1)}" ${editable ? '' : 'disabled'}></label>
+                <label>Restmenge<input value="${esc(field.quantityRemaining ?? field.quantityTotal ?? 1)}" disabled></label>
                 <label>Reward-Typ
                   <select name="rewardType" ${editable ? '' : 'disabled'}>
                     ${['manual','points','none','bonus_spin'].map(type => `<option value="${type}" ${field.rewardType === type ? 'selected' : ''}>${type}</option>`).join('')}
@@ -613,7 +644,6 @@ window.LoyaltyGamesModule = (function(){
               </div>
               <div class="lg-field-actions">
                 <label class="lg-check"><input name="enabled" type="checkbox" ${field.enabled ? 'checked' : ''} ${editable ? '' : 'disabled'}> aktiv</label>
-                <label class="lg-check"><input name="removeAfterWin" type="checkbox" ${field.removeAfterWin ? 'checked' : ''} ${editable ? '' : 'disabled'}> nach Gewinn entfernen</label>
                 ${editable ? `<button class="lg-btn" type="submit">Speichern</button><button class="lg-btn lg-btn-danger" type="button" data-lg-delete-field="${esc(field.fieldUid)}">Deaktivieren</button>` : ''}
               </div>
             </form>
@@ -750,6 +780,11 @@ window.LoyaltyGamesModule = (function(){
     root.querySelector('[data-lg-create-preset]')?.addEventListener('submit', ev => {
       ev.preventDefault();
       handleCreatePreset(ev.currentTarget);
+    });
+
+    root.querySelector('[data-lg-update-preset]')?.addEventListener('submit', ev => {
+      ev.preventDefault();
+      handleUpdatePreset(ev.currentTarget);
     });
 
     root.querySelector('[data-lg-create-field]')?.addEventListener('submit', ev => {

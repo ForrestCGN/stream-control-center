@@ -1,20 +1,10 @@
 # Changelog – stream-control-center
 
-## 2026-06-08 – STEP LWG-4C Preset Editor Dashboard v0.1.0
+## 2026-06-08 – STEP LWG-4C.1 Quantity + Global Remove Fix
 
-### Neu
+### Geaendert
 
-- Preset-Editor im Dashboard.
-- Preset-Liste/Details.
-- Felder erstellen/bearbeiten/deaktivieren.
-- Preset kopieren/aktivieren/pausieren/abschliessen/loeschen.
-- Test-Drehung mit Preset.
-- Dreh-Verlauf anzeigen.
-
-### Nicht geaendert
-
-- Kein Backend.
-- Keine Datenbankmigration.
-- Keine API.
-- Kein Giveaway.
-- Keine Kanalpunkte/Commands.
+- Restmenge ist nicht mehr manuell im Dashboard editierbar.
+- Gesamtmenge hat Standard 1.
+- Gewinn nach Auslosung entfernen ist globale Preset-Einstellung.
+- Backend kann Preset-Einstellungen per PUT speichern.

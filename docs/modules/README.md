@@ -5,35 +5,13 @@ Stand: 2026-06-08
 ## Aktueller Loyalty-Stand
 
 ```text
-STEP LWG-4C – Preset Editor Dashboard v0.1.0
+STEP LWG-4C.1 – Quantity + Global Remove Fix
 ```
 
-## Loyalty-Hauptbereich
+## Regel fuer Wheel-Presets
 
 ```text
-Loyalty
-  Punkte / Konten
-  Transaktionen
-  Giveaways
-  Spiele / Glücksrad
-  Presets
-  Rewards
-  Einstellungen
-  Diagnose
-```
-
-## Aktuelle wichtige Modul-Dokus
-
-```text
-docs/modules/loyalty_games.md
-docs/modules/loyalty_wheel.md
-```
-
-## Architekturregel
-
-```text
-Loyalty-Core verwaltet Punkte und Transaktionen.
-Wheel/Presets gehoeren zum Loyalty-Spielebereich.
-Giveaways kommen spaeter als Loyalty-Unterbereich.
-Kommunikation zwischen Loyalty-Unterbereichen wird ueber EventBus/definierte Events geplant.
+Gesamtmenge wird pro Feld eingetragen.
+Restmenge ergibt sich aus Drehungen und ist read-only.
+Gewinn nach Auslosung entfernen ist globale Preset-Einstellung.
 ```

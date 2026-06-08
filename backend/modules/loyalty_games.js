@@ -547,9 +547,16 @@ function registerRoutes(app) {
       status: body.status || "draft",
       presetType: "standalone",
       createdBy: body.createdBy || body.actor || "dashboard",
+      settings: { removeAfterWin: body.removeAfterWin !== false },
       fields: Array.isArray(body.fields) ? body.fields : []
     });
     if (!result.ok) return core.sendFail(res, result.error || "preset_create_failed", result.statusCode || 400, result);
+    return core.sendOk(res, result);
+  })));
+
+  registered.push(...routes.registerPut(app, "/api/loyalty/games/wheel/presets/:presetUid", core.asyncRoute(async (req, res) => {
+    const result = presetStore.updatePreset(req.params.presetUid, req.body || {});
+    if (!result.ok) return core.sendFail(res, result.error || "preset_update_failed", result.statusCode || 409, result);
     return core.sendOk(res, result);
   })));
 

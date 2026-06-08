@@ -8,21 +8,4 @@ Stand: 2026-06-08
 LWG-4D – Giveaway Backend Grundsystem
 ```
 
-## Fokus
-
-```text
-- Giveaway Tabellen
-- Giveaway Status/Lifecycle
-- Create/List/Get/Copy/Delete
-- EventBus-Events vorbereiten
-- noch keine Tickets/Gewinnerziehung
-```
-
-## Vorher testen
-
-```text
-Loyalty -> Loyalty Games -> Presets
-Preset erstellen
-Feld hinzufuegen
-Preset-Drehung starten
-```
+Vorher LWG-4C.1 live testen.

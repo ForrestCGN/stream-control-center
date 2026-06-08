@@ -1,48 +1,21 @@
 # Loyalty Wheel / CGN Glücksrad
 
 Stand: 2026-06-08  
-Version: 0.2.0  
-STEP: LWG-4C
+STEP: LWG-4C.1
 
-## Zweck
-
-Das Wheel kann aus der Config oder ueber Datenbank-Presets drehen.
-
-## Preset-Editor
-
-LWG-4C bringt den ersten Dashboard-Editor:
+## Mengenregel
 
 ```text
-Loyalty -> Loyalty Games -> Presets
+Gesamtmenge: wird im Feld eingetragen, Standard 1.
+Restmenge: wird beim Spielen/Drehen berechnet.
 ```
 
-Funktionen:
+## Entfernen nach Auslosung
 
 ```text
-- Presets listen
-- Felder listen
-- Standalone-Preset erstellen
-- Feld erstellen/bearbeiten/deaktivieren
-- Preset kopieren
-- Preset abschliessen
-- Preset-Testdrehung starten
+removeAfterWin
 ```
 
-## Regeln
+ist eine globale Preset-Einstellung, nicht pro Feld.
 
-```text
-- Preset darf gewaehlt werden.
-- Ergebnis darf nicht gewaehlt werden.
-- Ergebnis wird im Backend bestimmt.
-- Nicht bearbeitbare Presets sind read-only.
-- Giveaway-verknuepfte Presets werden spaeter nur ueber Giveaway editierbar.
-```
-
-## Noch nicht umgesetzt
-
-```text
-- Giveaways
-- Kanalpunkte
-- Chat-Commands
-- Reward-Ausfuehrung
-```
+Wenn aktiv, wird das gezogene Gewinnfeld nach der Auslosung aus diesem Preset entfernt/deaktiviert.
