@@ -8,6 +8,12 @@ Stand: 2026-06-08
 STEP LWG-3 – Dashboard/Config-Verwaltung fuer Loyalty Games planen
 ```
 
+## Vorher testen
+
+```text
+LWG-2.1 Overlay offen lassen und mehrere Spins nacheinander ausloesen.
+```
+
 ## Fokus LWG-3
 
 ```text

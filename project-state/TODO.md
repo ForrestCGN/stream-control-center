@@ -14,10 +14,11 @@ Stand: 2026-06-08
 - [x] Diagnose-/Registry-Eintrag vorbereitet
 - [x] Modul-Dokus geschrieben
 - [x] Wheel Overlay an Backend-Event angebunden
+- [x] Repeat-Spin-Rotationsfix im Overlay
 
 ## Offen
 
-- [ ] LWG-2 Live-Test Overlay + Spin
+- [ ] LWG-2.1 Live-Test: mehrere Spins nacheinander
 - [ ] LWG-3: Dashboard/Config-Verwaltung planen
 - [ ] LWG-4: Kosten/Reservierung/Refund planen
 - [ ] LWG-5: Reward-Ausfuehrung planen

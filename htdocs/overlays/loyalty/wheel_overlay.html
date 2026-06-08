@@ -260,6 +260,7 @@
 
       let ws = null;
       let reconnectTimer = null;
+      // Keep the full accumulated rotation, not only 0-359deg, so repeated spins keep animating.
       let currentRotation = 0;
       let running = false;
       let currentFields = DEFAULT_FIELDS;
@@ -416,7 +417,7 @@
 
         const onDone = () => {
           rotor.removeEventListener("transitionend", onDone);
-          currentRotation = normalizeDeg(finalRotation);
+          currentRotation = finalRotation;
           running = false;
           statusSub.textContent = "Gewinn ermittelt";
           setWinnerText(selected, data.selectedFieldLabel || "Gewinn");

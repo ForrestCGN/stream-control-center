@@ -11,7 +11,7 @@ Loyalty Games / CGN Gluecksrad
 ## Neuer Stand
 
 ```text
-STEP LWG-2 – Wheel Overlay an Backend-Event angebunden
+STEP LWG-2.1 – Wheel Overlay Repeat Spin Fix
 ```
 
 ## Bestaetigter Live-Test LWG-1
@@ -25,24 +25,26 @@ lastError leer
 Spin-Test erfolgreich
 ```
 
-## Umgesetzt in LWG-2
+## Bestaetigter LWG-2 Befund
 
 ```text
-- Overlay htdocs/overlays/loyalty/wheel_overlay.html
-- dunkler CGN-Hintergrund
-- vorhandene Wheel-Assets eingebunden
-- WebSocket-Verbindung
-- Event-Handling fuer loyalty.wheel.spin
-- Event-Handling fuer loyalty.wheel.finished
-- Event-Handling fuer loyalty.wheel.reset
-- Felder werden aus Backend-Event gerendert
-- Spin dreht exakt auf selectedFieldIndex
-- Winner-Banner zeigt Backend-Ergebnis
+Erster Dreh im Overlay funktioniert.
+Wiederholter Dreh im offenen Overlay brauchte einen Rotationsfix.
+```
+
+## Umgesetzt in LWG-2.1
+
+```text
+- htdocs/overlays/loyalty/wheel_overlay.html korrigiert
+- currentRotation behaelt jetzt volle Gesamtrotation
+- wiederholte Spins koennen sichtbar weiter animieren
+- Doku aktualisiert
 ```
 
 ## Bewusst nicht umgesetzt
 
 ```text
+- kein Backend
 - keine Punktkosten
 - keine Reward-Ausfuehrung
 - kein Dashboard

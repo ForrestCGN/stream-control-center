@@ -1,5 +1,22 @@
 # Changelog – stream-control-center
 
+## 2026-06-08 – STEP LWG-2.1 Wheel Overlay Repeat Spin Fix
+
+### Fix
+
+- Wiederholte Spins im bereits offenen Wheel-Overlay korrigiert.
+- `currentRotation` behaelt jetzt die volle Gesamtrotation.
+- Die Normalisierung wird nur noch fuer die Zielberechnung genutzt.
+
+### Nicht geaendert
+
+- Kein Backend.
+- Keine Config.
+- Keine Datenbank.
+- Keine Punktkosten.
+- Keine Reward-Ausfuehrung.
+- Kein Dashboard.
+
 ## 2026-06-08 – STEP LWG-2 Wheel Overlay Backend-Event
 
 ### Neu
@@ -13,14 +30,6 @@
 - Center, Aussenring und Pointer bleiben statisch.
 - Winner-Banner zeigt Backend-Ergebnis.
 - Modul-Dokus aktualisiert.
-
-### Nicht geaendert
-
-- Backend LWG-1 bleibt unveraendert.
-- `backend/modules/loyalty.js` bleibt unveraendert.
-- Keine Punktkosten.
-- Keine Reward-Ausfuehrung.
-- Kein Dashboard.
 
 ## 2026-06-08 – STEP LWG-1 Loyalty Games Backend-Grundsystem v0.1.0
 

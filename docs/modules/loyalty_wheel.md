@@ -2,11 +2,34 @@
 
 Stand: 2026-06-08  
 Version: 0.1.0  
-STEP: LWG-2
+STEP: LWG-2.1
 
 ## Zweck
 
 Das Loyalty Wheel ist das erste Spiel im neuen `loyalty_games`-System. Es bestimmt Gewinne backendseitig zufaellig/gewichtet und sendet ein Visual-Event an das Overlay.
+
+## LWG-2.1 Fix
+
+Problem:
+
+```text
+Der erste Spin funktionierte, ein weiterer Spin im bereits offenen Overlay animierte nicht korrekt.
+```
+
+Ursache:
+
+```text
+Das Overlay hat nach dem Spin currentRotation auf 0-359 Grad normalisiert.
+Der Browser stand optisch aber weiterhin auf einer hohen Gesamtrotation.
+Dadurch passte die interne Folgerotation beim naechsten Spin nicht mehr sauber zum realen Transform-Stand.
+```
+
+Fix:
+
+```text
+currentRotation behaelt jetzt die volle Gesamtrotation.
+Fuer Zielberechnungen wird nur temporaer normalizeDeg(currentRotation) genutzt.
+```
 
 ## Dateien
 
@@ -65,58 +88,21 @@ Overlay-Verhalten:
 - dreht nur den Felder-Layer
 - Center, Aussenring und Pointer bleiben stehen
 - zeigt selectedFieldLabel/sub im Winner-Banner
-```
-
-## WebSocket Event
-
-Spin:
-
-```json
-{
-  "type": "loyalty.wheel.spin",
-  "module": "loyalty_games",
-  "game": "wheel",
-  "action": "started",
-  "sessionUid": "...",
-  "durationMs": 9000,
-  "extraTurns": 6,
-  "fields": [],
-  "selectedFieldIndex": 4,
-  "selectedFieldId": "sound_free",
-  "selectedFieldLabel": "Sound"
-}
-```
-
-Finished:
-
-```json
-{
-  "type": "loyalty.wheel.finished",
-  "module": "loyalty_games",
-  "game": "wheel",
-  "action": "finished"
-}
-```
-
-Reset:
-
-```json
-{
-  "type": "loyalty.wheel.reset",
-  "module": "loyalty_games",
-  "game": "wheel",
-  "action": "reset"
-}
+- wiederholte Spins im offenen Overlay funktionieren durch volle Rotationsfortschreibung
 ```
 
 ## Tests
 
 ```powershell
-# Overlay in Browser/OBS öffnen:
+# Overlay in Browser/OBS offen lassen:
 http://127.0.0.1:8080/overlays/loyalty/wheel_overlay.html
 
-# Spin ausloesen:
-$r = Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/games/wheel/spin?login=forrestcgn&displayName=ForrestCGN&duration=9000"
+# Spin 1:
+$r = Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/games/wheel/spin?login=forrestcgn&displayName=ForrestCGN&duration=5000"
+$r | Select-Object ok,sessionUid,selectedFieldId,selectedFieldLabel,durationMs
+
+# Nach Ende des ersten Spins nochmal ausloesen:
+$r = Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/games/wheel/spin?login=forrestcgn&displayName=ForrestCGN&duration=5000"
 $r | Select-Object ok,sessionUid,selectedFieldId,selectedFieldLabel,durationMs
 ```
 
