@@ -6,16 +6,18 @@ Stand: 2026-06-08
 
 - [x] Loyalty Games Host-Modul geplant
 - [x] Loyalty Games Backend-Grundsystem v0.1.0 gebaut
+- [x] Backend LWG-1 im Live-System getestet
 - [x] Wheel-Submodul gebaut
 - [x] DB-Tabelle `loyalty_game_sessions` vorbereitet
 - [x] Backendseitige gewichtete Zufallsauswahl eingebaut
 - [x] WebSocket-Spin-Event vorbereitet
 - [x] Diagnose-/Registry-Eintrag vorbereitet
 - [x] Modul-Dokus geschrieben
+- [x] Wheel Overlay an Backend-Event angebunden
 
 ## Offen
 
-- [ ] LWG-2: Wheel Overlay an Backend-Event anbinden
+- [ ] LWG-2 Live-Test Overlay + Spin
 - [ ] LWG-3: Dashboard/Config-Verwaltung planen
 - [ ] LWG-4: Kosten/Reservierung/Refund planen
 - [ ] LWG-5: Reward-Ausfuehrung planen

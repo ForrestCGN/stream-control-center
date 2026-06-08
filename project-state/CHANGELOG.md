@@ -1,5 +1,27 @@
 # Changelog – stream-control-center
 
+## 2026-06-08 – STEP LWG-2 Wheel Overlay Backend-Event
+
+### Neu
+
+- `htdocs/overlays/loyalty/wheel_overlay.html` hinzugefuegt.
+- Wheel-Assets unter `htdocs/assets/images/loyalty/wheel/` mitgeliefert.
+- Overlay verbindet sich per WebSocket.
+- Overlay hoert auf `loyalty.wheel.spin`.
+- Overlay rendert Felder aus dem Backend-Event.
+- Overlay dreht nur den Felder-Layer.
+- Center, Aussenring und Pointer bleiben statisch.
+- Winner-Banner zeigt Backend-Ergebnis.
+- Modul-Dokus aktualisiert.
+
+### Nicht geaendert
+
+- Backend LWG-1 bleibt unveraendert.
+- `backend/modules/loyalty.js` bleibt unveraendert.
+- Keine Punktkosten.
+- Keine Reward-Ausfuehrung.
+- Kein Dashboard.
+
 ## 2026-06-08 – STEP LWG-1 Loyalty Games Backend-Grundsystem v0.1.0
 
 ### Neu
@@ -13,17 +35,3 @@
 - WebSocket-Events fuer Wheel-Spin, Finish und Reset.
 - Diagnose-/Registry-Eintrag fuer `loyalty_games`.
 - Modul-Dokus fuer `loyalty_games` und `loyalty_wheel`.
-
-### Nicht geaendert
-
-- `backend/modules/loyalty.js` bleibt unveraendert.
-- Keine Punktkosten.
-- Keine Reward-Ausfuehrung.
-- Kein Dashboard.
-- Keine bestehenden produktiven Loyalty-Flows.
-
-### Naechster Schritt
-
-```text
-STEP LWG-2 – Wheel Overlay an Backend-Event anbinden
-```

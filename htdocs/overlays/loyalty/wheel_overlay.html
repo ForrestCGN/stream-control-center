@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CGN Loyalty Wheel Overlay</title>
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .stage {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      transform-origin: top left;
+      background:
+        radial-gradient(circle at 50% 45%, rgba(0, 216, 255, 0.12), transparent 31%),
+        radial-gradient(circle at 36% 50%, rgba(208, 60, 255, 0.13), transparent 35%),
+        linear-gradient(135deg, #050613 0%, #090d22 44%, #031525 100%);
+    }
+
+    .stage::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, transparent 0%, rgba(208,60,255,.16) 23%, transparent 34%, transparent 66%, rgba(24,216,255,.14) 78%, transparent 100%),
+        repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0px, rgba(255,255,255,.025) 1px, transparent 2px, transparent 36px);
+      opacity: .45;
+      pointer-events: none;
+    }
+
+    .stage.is-idle .wheel-wrapper,
+    .stage.is-idle .pointer,
+    .stage.is-idle .winner-banner,
+    .stage.is-idle .winner-text {
+      opacity: .96;
+    }
+
+    .asset {
+      position: absolute;
+      pointer-events: none;
+      user-select: none;
+      background-repeat: no-repeat;
+      background-size: contain;
+      background-position: center;
+    }
+
+    .wheel-wrapper {
+      position: absolute;
+      left: 560px;
+      top: 55px;
+      width: 800px;
+      height: 800px;
+      filter: drop-shadow(0 0 18px rgba(128, 90, 255, .32));
+    }
+
+    .segments-rotor {
+      position: absolute;
+      inset: 0;
+      transform: rotate(0deg);
+      transform-origin: center center;
+      will-change: transform;
+      z-index: 1;
+    }
+
+    .segments-layer {
+      position: absolute;
+      inset: 0;
+    }
+
+    .segments-svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .wheel-ring {
+      inset: 0;
+      width: 800px;
+      height: 800px;
+      background-image: url("../../assets/images/loyalty/wheel/wheel_ring.png");
+      z-index: 3;
+    }
+
+    .wheel-center {
+      left: 250px;
+      top: 250px;
+      width: 300px;
+      height: 300px;
+      background-image: url("../../assets/images/loyalty/wheel/wheel_center.png");
+      z-index: 4;
+    }
+
+    .pointer {
+      left: 895px;
+      top: 0;
+      width: 130px;
+      height: 130px;
+      background-image: url("../../assets/images/loyalty/wheel/pointer.png");
+      z-index: 6;
+      filter: drop-shadow(0 0 12px rgba(255,255,255,.26));
+    }
+
+    .winner-banner {
+      left: 510px;
+      top: 820px;
+      width: 900px;
+      height: 150px;
+      background-image: url("../../assets/images/loyalty/wheel/winner_banner.png");
+      background-position: center center;
+      z-index: 2;
+    }
+
+    .winner-text {
+      position: absolute;
+      left: 535px;
+      top: 865px;
+      z-index: 7;
+      width: 850px;
+      min-height: 55px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: rgba(255,255,255,.94);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .11em;
+      font-size: 36px;
+      text-shadow: 0 0 10px rgba(208,60,255,.85), 0 0 18px rgba(24,216,255,.65);
+      pointer-events: none;
+    }
+
+    .winner-text .sub {
+      display: block;
+      margin-top: 4px;
+      font-size: 17px;
+      letter-spacing: .18em;
+      color: rgba(255,255,255,.72);
+      font-weight: 800;
+    }
+
+    .status-panel {
+      position: absolute;
+      left: 80px;
+      top: 75px;
+      z-index: 10;
+      color: rgba(255,255,255,.9);
+      opacity: .88;
+      text-shadow: 0 0 18px rgba(145, 225, 255, .38);
+    }
+
+    .status-title {
+      font-weight: 900;
+      font-size: 42px;
+      text-transform: uppercase;
+      letter-spacing: .18em;
+    }
+
+    .status-sub {
+      margin-top: 8px;
+      color: rgba(255,255,255,.62);
+      font-weight: 700;
+      font-size: 18px;
+      text-transform: uppercase;
+      letter-spacing: .24em;
+    }
+
+    .connection {
+      margin-top: 30px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: rgba(10,20,38,.42);
+      border: 1px solid rgba(76,207,255,.24);
+      border-radius: 999px;
+      box-shadow: 0 0 22px rgba(52,187,255,.12);
+      color: rgba(255,255,255,.66);
+      font-size: 14px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: #ff486a;
+      box-shadow: 0 0 10px rgba(255,72,106,.9);
+    }
+
+    .connection.is-open .dot {
+      background: #35e8ff;
+      box-shadow: 0 0 10px rgba(53,232,255,.9);
+    }
+
+    @media (max-aspect-ratio: 16/9) {
+      .stage { transform: scale(calc(100vw / 1920)); }
+    }
+
+    @media (min-aspect-ratio: 16/9) {
+      .stage { transform: scale(calc(100vh / 1080)); }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage is-idle" id="stage">
+    <div class="status-panel">
+      <div class="status-title">Glücksrad</div>
+      <div class="status-sub" id="statusSub">Warte auf Loyalty-Event</div>
+      <div class="connection" id="connection"><span class="dot"></span><span id="connectionText">WS verbindet...</span></div>
+    </div>
+
+    <div class="wheel-wrapper">
+      <div class="segments-rotor" id="segmentsRotor">
+        <div class="segments-layer" id="segmentsLayer"></div>
+      </div>
+      <div class="asset wheel-ring"></div>
+      <div class="asset wheel-center"></div>
+    </div>
+
+    <div class="asset pointer"></div>
+    <div class="asset winner-banner"></div>
+    <div class="winner-text" id="winnerText">Bereit</div>
+  </div>
+
+  <script>
+    (() => {
+      const stage = document.getElementById("stage");
+      const rotor = document.getElementById("segmentsRotor");
+      const segmentsLayer = document.getElementById("segmentsLayer");
+      const winnerText = document.getElementById("winnerText");
+      const statusSub = document.getElementById("statusSub");
+      const connection = document.getElementById("connection");
+      const connectionText = document.getElementById("connectionText");
+
+      const DEFAULT_FIELDS = [
+        { id: "vip_1_day", label: "VIP", sub: "1 Tag", weight: 1, colorA: "#d03cff", colorB: "#18d6ff" },
+        { id: "points_1000", label: "1000", sub: "Punkte", weight: 1, colorA: "#18d6ff", colorB: "#d03cff" },
+        { id: "bonus_spin_1", label: "Bonus", sub: "Dreh", weight: 1, colorA: "#d03cff", colorB: "#18d6ff" },
+        { id: "coupon_20", label: "20€", sub: "Gutschein", weight: 1, colorA: "#18d6ff", colorB: "#d03cff" },
+        { id: "sound_free", label: "Sound", sub: "frei", weight: 1, colorA: "#d03cff", colorB: "#18d6ff" },
+        { id: "miss_1", label: "Niete", sub: "", weight: 2, colorA: "#7d27b8", colorB: "#124b72" },
+        { id: "game_key", label: "Key", sub: "Game", weight: 1, colorA: "#18d6ff", colorB: "#d03cff" },
+        { id: "points_500", label: "500", sub: "Punkte", weight: 1, colorA: "#d03cff", colorB: "#18d6ff" },
+        { id: "bonus_spin_2", label: "Bonus", sub: "Dreh", weight: 1, colorA: "#18d6ff", colorB: "#d03cff" },
+        { id: "free_spin", label: "Free", sub: "Spin", weight: 1, colorA: "#d03cff", colorB: "#18d6ff" },
+        { id: "vip_3_days", label: "VIP", sub: "3 Tage", weight: 1, colorA: "#18d6ff", colorB: "#d03cff" },
+        { id: "miss_2", label: "Niete", sub: "", weight: 2, colorA: "#7d27b8", colorB: "#124b72" }
+      ];
+
+      let ws = null;
+      let reconnectTimer = null;
+      let currentRotation = 0;
+      let running = false;
+      let currentFields = DEFAULT_FIELDS;
+
+      function esc(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;");
+      }
+
+      function normalizeDeg(deg) {
+        let value = Number(deg || 0) % 360;
+        if (value < 0) value += 360;
+        return value;
+      }
+
+      function polar(cx, cy, r, deg) {
+        const rad = deg * Math.PI / 180;
+        return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)];
+      }
+
+      function arcPathSegment(cx, cy, rOuter, rInner, a0, a1) {
+        const [x0o, y0o] = polar(cx, cy, rOuter, a0);
+        const [x1o, y1o] = polar(cx, cy, rOuter, a1);
+        const [x1i, y1i] = polar(cx, cy, rInner, a1);
+        const [x0i, y0i] = polar(cx, cy, rInner, a0);
+        const large = ((a1 - a0) % 360) > 180 ? 1 : 0;
+        return `M ${x0o.toFixed(2)} ${y0o.toFixed(2)} A ${rOuter} ${rOuter} 0 ${large} 1 ${x1o.toFixed(2)} ${y1o.toFixed(2)} L ${x1i.toFixed(2)} ${y1i.toFixed(2)} A ${rInner} ${rInner} 0 ${large} 0 ${x0i.toFixed(2)} ${y0i.toFixed(2)} Z`;
+      }
+
+      function normalizeFields(fields) {
+        const list = Array.isArray(fields) ? fields : [];
+        const clean = list
+          .filter(Boolean)
+          .map((field, index) => ({
+            index,
+            id: String(field.id || `field_${index + 1}`),
+            label: String(field.label || field.id || `Feld ${index + 1}`),
+            sub: String(field.sub || field.subtitle || ""),
+            colorA: String(field.colorA || (index % 2 ? "#18d6ff" : "#d03cff")),
+            colorB: String(field.colorB || (index % 2 ? "#d03cff" : "#18d6ff")),
+            weight: Number(field.weight || 1)
+          }));
+        return clean.length ? clean : DEFAULT_FIELDS;
+      }
+
+      function buildSegmentsSvg(fields) {
+        const list = normalizeFields(fields);
+        const n = list.length;
+        const cx = 400;
+        const cy = 400;
+        const rOuter = 385;
+        const rInner = 150;
+        const rText = n <= 8 ? 260 : n <= 12 ? 265 : 270;
+        const step = 360 / n;
+        const startBoundary = -90 - step / 2;
+        const fontSize = n <= 8 ? 28 : n <= 12 ? 24 : 18;
+        const subSize = n <= 8 ? 18 : n <= 12 ? 15 : 12;
+
+        let svg = `
+<svg class="segments-svg" viewBox="0 0 800 800" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <defs>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2.4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+`;
+
+        list.forEach((field, i) => {
+          const a0 = startBoundary + i * step;
+          const a1 = a0 + step;
+          const path = arcPathSegment(cx, cy, rOuter, rInner, a0, a1);
+          const gradId = `segFill_${i}`;
+          svg += `
+  <defs>
+    <linearGradient id="${gradId}" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="${esc(field.colorA)}" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="${esc(field.colorB)}" stop-opacity="0.08"/>
+    </linearGradient>
+  </defs>
+  <path d="${path}" fill="url(#${gradId})" stroke="none"/>
+`;
+        });
+
+        svg += `  <circle cx="400" cy="400" r="${rOuter}" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>\n`;
+        svg += `  <circle cx="400" cy="400" r="${rInner}" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>\n`;
+
+        list.forEach((field, i) => {
+          const a = startBoundary + i * step;
+          const [x0, y0] = polar(cx, cy, rInner, a);
+          const [x1, y1] = polar(cx, cy, rOuter, a);
+          const stroke = i % 2 ? "#18d6ff" : "#d03cff";
+          svg += `<line x1="${x0.toFixed(2)}" y1="${y0.toFixed(2)}" x2="${x1.toFixed(2)}" y2="${y1.toFixed(2)}" stroke="${stroke}" stroke-width="3" stroke-linecap="round" filter="url(#glow)" opacity="0.92"/>\n`;
+        });
+
+        list.forEach((field, i) => {
+          const a = startBoundary + i * step + step / 2;
+          const [tx, ty] = polar(cx, cy, rText, a);
+          const rotate = a + 90;
+          const label = esc(field.label);
+          const sub = esc(field.sub);
+          svg += `<g transform="translate(${tx.toFixed(2)} ${ty.toFixed(2)}) rotate(${rotate.toFixed(2)})">`;
+          svg += `<text x="0" y="${sub ? -7 : 0}" text-anchor="middle" dominant-baseline="middle" fill="rgba(255,255,255,0.95)" font-family="Arial, Helvetica, sans-serif" font-size="${fontSize}" font-weight="900" letter-spacing="1">${label}</text>`;
+          if (sub) {
+            svg += `<text x="0" y="20" text-anchor="middle" dominant-baseline="middle" fill="rgba(255,255,255,0.73)" font-family="Arial, Helvetica, sans-serif" font-size="${subSize}" font-weight="700" letter-spacing="1">${sub}</text>`;
+          }
+          svg += `</g>\n`;
+        });
+
+        svg += "</svg>";
+        return svg;
+      }
+
+      function renderFields(fields) {
+        currentFields = normalizeFields(fields);
+        segmentsLayer.innerHTML = buildSegmentsSvg(currentFields);
+      }
+
+      function setWinnerText(field, fallbackLabel = "Bereit") {
+        const label = field && field.label ? field.label : fallbackLabel;
+        const sub = field && field.sub ? `<span class="sub">${esc(field.sub)}</span>` : "";
+        winnerText.innerHTML = `${esc(label)}${sub}`;
+      }
+
+      function handleSpin(data) {
+        const fields = normalizeFields(data.fields);
+        const selectedIndex = Math.max(0, Math.min(fields.length - 1, Number.parseInt(data.selectedFieldIndex || 0, 10) || 0));
+        const selected = fields[selectedIndex] || data.selectedField || {};
+        const durationMs = Math.max(2500, Number.parseInt(data.durationMs || data.duration || 7000, 10) || 7000);
+        const extraTurns = Math.max(1, Number.parseInt(data.extraTurns || 6, 10) || 6);
+        const step = 360 / fields.length;
+
+        renderFields(fields);
+        stage.classList.remove("is-idle");
+        statusSub.textContent = data.user && data.user.displayName
+          ? `Spin für ${data.user.displayName}`
+          : "Spin läuft";
+        winnerText.textContent = "Dreht...";
+
+        const targetNormalized = normalizeDeg(-selectedIndex * step);
+        const currentNormalized = normalizeDeg(currentRotation);
+        let delta = targetNormalized - currentNormalized;
+        if (delta < 0) delta += 360;
+        const finalRotation = currentRotation + extraTurns * 360 + delta;
+
+        running = true;
+        rotor.style.transition = "none";
+        rotor.getBoundingClientRect();
+        rotor.style.transition = `transform ${durationMs}ms cubic-bezier(0.12, 0.82, 0.12, 1)`;
+        rotor.style.transform = `rotate(${finalRotation}deg)`;
+
+        const onDone = () => {
+          rotor.removeEventListener("transitionend", onDone);
+          currentRotation = normalizeDeg(finalRotation);
+          running = false;
+          statusSub.textContent = "Gewinn ermittelt";
+          setWinnerText(selected, data.selectedFieldLabel || "Gewinn");
+        };
+
+        rotor.addEventListener("transitionend", onDone, { once: true });
+      }
+
+      function handleReset() {
+        running = false;
+        statusSub.textContent = "Zurückgesetzt";
+        winnerText.textContent = "Bereit";
+        rotor.style.transition = "transform 800ms ease";
+        rotor.style.transform = `rotate(${currentRotation}deg)`;
+      }
+
+      function handleFinished(data) {
+        if (running) return;
+        statusSub.textContent = "Spin beendet";
+        if (data && data.selectedFieldLabel) {
+          setWinnerText({ label: data.selectedFieldLabel, sub: "" }, data.selectedFieldLabel);
+        }
+      }
+
+      function handleMessage(raw) {
+        let data = null;
+        try { data = JSON.parse(raw.data || raw); } catch (_) { return; }
+        if (!data || typeof data !== "object") return;
+
+        if (data.type === "loyalty.wheel.spin") handleSpin(data);
+        if (data.type === "loyalty.wheel.reset") handleReset(data);
+        if (data.type === "loyalty.wheel.finished") handleFinished(data);
+      }
+
+      function connectWs() {
+        clearTimeout(reconnectTimer);
+        const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+        const url = `${protocol}//${location.host}`;
+        try {
+          ws = new WebSocket(url);
+        } catch (err) {
+          connection.classList.remove("is-open");
+          connectionText.textContent = "WS Fehler";
+          reconnectTimer = setTimeout(connectWs, 2500);
+          return;
+        }
+
+        ws.addEventListener("open", () => {
+          connection.classList.add("is-open");
+          connectionText.textContent = "WS verbunden";
+          try {
+            ws.send(JSON.stringify({
+              type: "hello",
+              clientId: "loyalty_wheel_overlay",
+              clientType: "overlay",
+              module: "loyalty_games",
+              name: "Loyalty Wheel Overlay",
+              version: "0.1.0",
+              capabilities: ["loyalty.wheel.spin"]
+            }));
+          } catch (_) {}
+        });
+
+        ws.addEventListener("message", handleMessage);
+
+        ws.addEventListener("close", () => {
+          connection.classList.remove("is-open");
+          connectionText.textContent = "WS getrennt";
+          reconnectTimer = setTimeout(connectWs, 2500);
+        });
+
+        ws.addEventListener("error", () => {
+          connection.classList.remove("is-open");
+          connectionText.textContent = "WS Fehler";
+        });
+      }
+
+      renderFields(DEFAULT_FIELDS);
+      connectWs();
+    })();
+  </script>
+</body>
+</html>

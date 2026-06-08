@@ -18,16 +18,6 @@ project-state/TODO.md
 project-state/NEXT_STEPS.md
 ```
 
-Zusätzlich bei konsolidierten Bereichen:
-
-```text
-docs/system-inspection/MODULE_AND_META_RULES_CONSOLIDATION.md
-docs/system-inspection/COMMUNICATION_BUS_CONTRACT_CONSOLIDATION.md
-docs/system-inspection/SHOUTOUT_SYSTEM_CONSOLIDATION.md
-docs/system-inspection/CHANNELPOINTS_BUILD_CONSOLIDATION.md
-docs/system-inspection/DASHBOARD_COMMANDS_CONSOLIDATION.md
-```
-
 ## Aktuelle wichtige Modul-Dokus
 
 ```text
@@ -49,7 +39,7 @@ docs/modules/SHOUTOUT_SYSTEM_STANDARDS_ALIGNMENT.md
 Aktueller Stand:
 
 ```text
-STEP LWG-1 – Loyalty Games Backend-Grundsystem v0.1.0
+STEP LWG-2 – Wheel Overlay an Backend-Event angebunden
 ```
 
 Dateien:
@@ -59,6 +49,8 @@ backend/modules/loyalty_games.js
 backend/modules/loyalty_games/shared.js
 backend/modules/loyalty_games/wheel.js
 config/loyalty_games.json
+htdocs/overlays/loyalty/wheel_overlay.html
+htdocs/assets/images/loyalty/wheel/*.png
 docs/modules/loyalty_games.md
 docs/modules/loyalty_wheel.md
 ```
@@ -66,142 +58,19 @@ docs/modules/loyalty_wheel.md
 Status:
 
 ```text
-- Top-Level-Modul loyalty_games wird durch den vorhandenen Server-Loader geladen.
-- Wheel ist erstes Game-Submodul.
-- Gewinner wird backendseitig gewichtet zufaellig bestimmt.
-- Spin-Session wird in loyalty_game_sessions gespeichert.
-- Overlay-Event wird per WebSocket broadcastWS gesendet.
-- Keine Punktkosten, keine Reward-Ausfuehrung, kein Dashboard in LWG-1.
+- Backend LWG-1 im Live-System getestet.
+- Overlay LWG-2 hoert auf loyalty.wheel.spin.
+- Felder kommen aus dem Backend-Event.
+- Gewinner kommt aus dem Backend.
+- Nur der Felder-Layer rotiert.
+- Center, Aussenring und Pointer bleiben statisch.
+- Keine Punktkosten, keine Reward-Ausfuehrung, kein Dashboard.
 ```
 
 Naechster Schritt:
 
 ```text
-STEP LWG-2 – Wheel Overlay an Backend-Event anbinden
-```
-
-## VIP30 / 30TageVIP
-
-Aktueller Stand:
-
-```text
-STEP8.8 – Dashboard Read-only vorbereitet
-```
-
-Vorher bestätigt:
-
-```text
-STEP8.7.1 – Twitch EventSub channel.vip.remove bis VIP30-Slot external_removed live getestet
-```
-
-Wichtige Datei:
-
-```text
-docs/modules/vip30.md
-```
-
-Bestätigter Flow:
-
-```text
-Twitch channel.vip.remove
--> twitch.js
--> Communication Bus
--> vip30.js
--> VIP30-Slot external_removed
--> Log external_vip_remove_slot_released
-```
-
-Dashboard:
-
-```text
-Community -> 30 Tage VIP
-htdocs/dashboard/modules/vip30.js
-htdocs/dashboard/modules/vip30.css
-```
-
-Nächster Schritt nach Dashboard-Test:
-
-```text
-STEP8.9 – VIP30-Alert planen
-```
-
-## Shoutout-System
-
-Das Shoutout-System wird als gemeinsames System betrachtet:
-
-```text
-Chat-Shoutout
-AutoShoutout
-Display-/Video-Queue
-offizieller Twitch-Shoutout
-eingehende/ausgehende EventSub-Shoutout-Events
-gemeinsame Texte und Settings
-```
-
-Vor weiteren Umbauten am Shoutout-System zusätzlich prüfen:
-
-```text
-docs/modules/SHOUTOUT_SYSTEM_STRUCTURE_PLAN.md
-docs/modules/SHOUTOUT_SYSTEM_STANDARDS_ALIGNMENT.md
-docs/modules/clip-shoutout-vso.md
-docs/modules/CLIP_SHOUTOUT_AUTOSHOUTOUT.md
-docs/current/CAN44_14_SHOUTOUT_DASHBOARD_STRUCTURE_PLAN.md
-docs/current/CAN44_15_SHOUTOUT_SYSTEM_STANDARDS_ALIGNMENT.md
-```
-
-## Aktuelle Konsolidierungsdokus mit Modulbezug
-
-```text
-docs/system-inspection/MODULE_AND_META_RULES_CONSOLIDATION.md
-docs/system-inspection/COMMUNICATION_BUS_CONTRACT_CONSOLIDATION.md
-docs/system-inspection/SHOUTOUT_SYSTEM_CONSOLIDATION.md
-docs/system-inspection/CHANNELPOINTS_BUILD_CONSOLIDATION.md
-docs/system-inspection/DASHBOARD_COMMANDS_CONSOLIDATION.md
-```
-
-## Aktueller Feature-Stand
-
-Loyalty Games:
-
-```text
-STEP LWG-1 – Backend-Grundsystem v0.1.0
-```
-
-VIP30:
-
-```text
-STEP8.8 – Dashboard Read-only vorbereitet
-```
-
-Channelpoints:
-
-```text
-STEP527_CHANNELPOINTS_CREATE_SAVE_TWITCH_INACTIVE_DEFAULT_v0.9.13
-```
-
-Sound-System Routing:
-
-```text
-STEP523_SOUND_SYSTEM_AUTO_OUTPUT_DEFAULTS_FIX_v0.1.12
-```
-
-Media-Dateinamen:
-
-```text
-STEP524_MEDIA_ASSET_UTF8_FILENAME_CLEANUP_REAL_v0.1.0
-```
-
-Shoutout-System:
-
-```text
-CAN-44.15 – Standards Alignment fuer gemeinsamen Shoutout-/AutoShoutout-Umbau
-```
-
-Zurueckgezogen/nicht verwenden:
-
-```text
-STEP524_MEDIA_ASSET_FILENAME_ENCODING_CLEANUP_v0.1.0
-STEP525_CHANNELPOINTS_SAVE_ACTIVE_SYNCS_TWITCH_v0.9.11
+STEP LWG-3 – Dashboard/Config-Verwaltung planen
 ```
 
 ## Pflichtinhalte je Modul-Doku
@@ -226,10 +95,4 @@ Status-/State-Felder
 bekannte Risiken / Altlasten
 Tests
 offene Punkte
-```
-
-## Nächster Doku-Schritt
-
-```text
-STEP LWG-2 – Overlay-Anbindung dokumentieren und testen
 ```
