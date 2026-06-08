@@ -1,8 +1,8 @@
 # Loyalty Games Modul
 
 Stand: 2026-06-08  
-Version: 0.2.0  
-STEP: LWG-4B
+Version: Backend 0.2.0 / Dashboard LWG-4C  
+STEP: LWG-4C
 
 ## Zweck
 
@@ -15,15 +15,7 @@ Aktuell enthalten:
 - Wheel-Presets
 - Preset-Felder
 - Dreh-Verlauf fuer Preset-Spins
-```
-
-Nicht enthalten:
-
-```text
-- Giveaways
-- Tickets
-- Punktebuchung
-- Reward-Ausfuehrung
+- Dashboard-Preset-Editor
 ```
 
 ## Dateien
@@ -33,109 +25,62 @@ backend/modules/loyalty_games.js
 backend/modules/loyalty_games/wheel.js
 backend/modules/loyalty_games/presets.js
 backend/modules/loyalty_games/shared.js
-config/loyalty_games.json
+htdocs/dashboard/modules/loyalty_games.js
+htdocs/dashboard/modules/loyalty_games.css
 ```
 
-## Modulstruktur
+## Dashboard
+
+Pfad:
 
 ```text
-loyalty_games.js = Host, Status, Routen, Init, DB-Schema-Anbindung
-wheel.js         = Drehlogik, Ergebnisermittlung, Overlay-Events, Dreh-Verlauf
-presets.js       = Presets, Felder, Preset-Lebenszyklus
-shared.js        = lokaler Rad-/Preset-Helper
+Loyalty -> Loyalty Games
 ```
 
-## Datenbank
-
-Neue Tabellen:
+Tabs:
 
 ```text
-loyalty_wheel_presets
-loyalty_wheel_fields
-loyalty_wheel_spins
+Übersicht
+Glücksrad
+Presets
+Verlauf
+Hinweise
 ```
 
-Bestehend bleibt:
+Preset-Funktionen:
 
 ```text
-loyalty_game_sessions
+- Preset anzeigen
+- Preset erstellen
+- Preset kopieren
+- Preset aktivieren/pausieren/abschliessen/loeschen
+- Felder erstellen/bearbeiten/deaktivieren
+- Test-Drehung mit Preset starten
 ```
 
-Schema wird sanft erstellt:
+## Nicht enthalten
 
 ```text
-CREATE TABLE IF NOT EXISTS
-CREATE INDEX IF NOT EXISTS
-database.ensureSchema()
+- Giveaways
+- Tickets
+- Punktebuchung
+- Reward-Ausfuehrung
+- Chat-Commands
+- Kanalpunkte
 ```
-
-## API-Routen
-
-Bestehend:
-
-```text
-GET  /api/loyalty/games/status
-GET  /api/loyalty/games/config
-GET  /api/loyalty/games/routes
-GET  /api/loyalty/games/sessions
-GET  /api/loyalty/games/wheel/status
-GET  /api/loyalty/games/wheel/config
-GET  /api/loyalty/games/wheel/spin
-POST /api/loyalty/games/wheel/spin
-POST /api/loyalty/games/wheel/reset
-```
-
-Neu:
-
-```text
-GET  /api/loyalty/games/wheel/presets
-GET  /api/loyalty/games/wheel/presets/:presetUid
-POST /api/loyalty/games/wheel/presets
-POST /api/loyalty/games/wheel/presets/:presetUid/copy
-POST /api/loyalty/games/wheel/presets/:presetUid/activate
-POST /api/loyalty/games/wheel/presets/:presetUid/pause
-POST /api/loyalty/games/wheel/presets/:presetUid/finish
-POST /api/loyalty/games/wheel/presets/:presetUid/delete
-GET  /api/loyalty/games/wheel/presets/:presetUid/fields
-POST /api/loyalty/games/wheel/presets/:presetUid/fields
-PUT  /api/loyalty/games/wheel/presets/:presetUid/fields/:fieldUid
-POST /api/loyalty/games/wheel/presets/:presetUid/fields/:fieldUid/delete
-GET  /api/loyalty/games/wheel/spins
-```
-
-## EventBus / WebSocket
-
-Das Modul bereitet Events vor:
-
-```text
-loyalty.wheel.preset.created
-loyalty.wheel.preset.copied
-loyalty.wheel.preset.active
-loyalty.wheel.preset.paused
-loyalty.wheel.preset.finished
-loyalty.wheel.preset.deleted
-loyalty.wheel.spin.started
-loyalty.wheel.spin.finished
-```
-
-Wenn ein `ctx.eventBus` vorhanden ist, wird er genutzt. Zusätzlich werden Events per `broadcastWS` ausgegeben.
 
 ## Fairness
 
 ```text
-- Ergebnis wird backendseitig per crypto.randomInt bestimmt.
-- API akzeptiert presetUid, aber kein selectedFieldId/selectedFieldIndex.
-- Kein Ergebnis kann per API erzwungen werden.
-- Presets mit Spins sind nicht mehr direkt editierbar, sondern muessen kopiert werden.
+Dashboard kann ein Preset starten, aber kein Ergebnis setzen.
+Das Ergebnis wird weiterhin backendseitig per crypto.randomInt bestimmt.
 ```
 
 ## Offene Punkte
 
 ```text
-- Preset-Dashboard-Editor
-- Giveaways
-- Giveaway-verknuepfte Presets
-- Permissions fuer Giveaway-Gewinner
-- Chat-Command
-- Kanalpunkte-Zuordnung
+- Giveaway Backend
+- Giveaway Editor
+- Command- und Kanalpunkte-Ausloesung
+- EventBus-Kommunikation weiter konkretisieren
 ```

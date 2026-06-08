@@ -5,12 +5,10 @@ Stand: 2026-06-08
 ## Aktueller Loyalty-Stand
 
 ```text
-STEP LWG-4B – Wheel Presets Backend v0.2.0
+STEP LWG-4C – Preset Editor Dashboard v0.1.0
 ```
 
 ## Loyalty-Hauptbereich
-
-Fachlich wird Loyalty als eigener Bereich behandelt:
 
 ```text
 Loyalty

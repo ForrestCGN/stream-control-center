@@ -10,12 +10,12 @@ Stand: 2026-06-08
 - [x] LWG-3 Dashboard Read-only
 - [x] LWG-3.1 Loyalty Hauptbereich Bridge
 - [x] LWG-4B Wheel Presets Backend
+- [x] LWG-4C Preset Editor Dashboard
 
 ## Offen
 
-- [ ] LWG-4B Live-Test
-- [ ] LWG-4C Preset Editor Dashboard
+- [ ] LWG-4C Live-Test
 - [ ] LWG-4D Giveaway Backend
 - [ ] LWG-4E Giveaway Dashboard
 - [ ] Commands/Kanalpunkte
-- [ ] EventBus-Kommunikation weiter konkretisieren
+- [ ] EventBus-Kommunikation fuer Loyalty-Unterbereiche konkretisieren

@@ -5,24 +5,24 @@ Stand: 2026-06-08
 ## Aktueller Schwerpunkt
 
 ```text
-Loyalty / Wheel Presets / Giveaways Vorbereitung
+Loyalty / Wheel Presets / Preset Editor
 ```
 
 ## Neuer Stand
 
 ```text
-STEP LWG-4B – Wheel Presets Backend v0.2.0
+STEP LWG-4C – Preset Editor Dashboard v0.1.0
 ```
 
 ## Umgesetzt
 
 ```text
-- Wheel-Presets Backend.
-- Preset-Felder Backend.
-- Dreh-Verlauf fuer Preset-Spins.
-- Default-Preset wird aus Config erzeugt.
-- Bestehender Wheel-Spin bleibt kompatibel.
-- EventBus/Broadcast-Events vorbereitet.
+- Preset-Editor im Dashboard.
+- Preset-Liste.
+- Felder anzeigen/erstellen/bearbeiten/deaktivieren.
+- Preset kopieren/aktivieren/pausieren/abschliessen/loeschen.
+- Test-Drehung mit Preset.
+- Dreh-Verlauf anzeigen.
 ```
 
 ## Nicht umgesetzt
@@ -30,7 +30,6 @@ STEP LWG-4B – Wheel Presets Backend v0.2.0
 ```text
 - kein Giveaway
 - kein Ticket-System
-- kein Dashboard-Preset-Editor
 - keine Kanalpunkte/Commands
 - keine Punktebuchung
 - keine Reward-Ausfuehrung
