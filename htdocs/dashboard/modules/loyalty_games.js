@@ -1083,10 +1083,52 @@ window.LoyaltyGamesModule = (function(){
     `;
   }
 
+
+  async function handleCreateEntry(form){
+    const giveawayUid = state.selectedGiveawayUid;
+    if (!giveawayUid) return;
+    const data = new FormData(form);
+    state.saving = true; render();
+    try {
+      await apiPost(`/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}/entries`, {
+        userLogin: data.get('userLogin'),
+        userDisplayName: data.get('userDisplayName') || data.get('userLogin'),
+        ticketCount: Number(data.get('ticketCount') || 1),
+        isSubscriber: data.get('isSubscriber') === 'on',
+        source: 'dashboard'
+      });
+      await refreshGiveaways(giveawayUid);
+      setMessage('Teilnahme wurde eingetragen.');
+    } catch (err) {
+      state.error = err.message || String(err);
+    } finally {
+      state.saving = false; render();
+    }
+  }
+
+  async function cancelEntry(entryUid){
+    const giveawayUid = state.selectedGiveawayUid;
+    if (!giveawayUid || !entryUid) return;
+    if (!window.confirm('Teilnahme wirklich stornieren?')) return;
+    state.saving = true; render();
+    try {
+      await apiPost(`/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}/entries/${encodeURIComponent(entryUid)}/cancel`, { actor: 'dashboard' });
+      await refreshGiveaways(giveawayUid);
+      setMessage('Teilnahme wurde storniert.');
+    } catch (err) {
+      state.error = err.message || String(err);
+    } finally {
+      state.saving = false; render();
+    }
+  }
+
   function renderGiveawayDetails(giveaway){
     const rounds = rows(giveaway.rounds || []);
     const prizes = rows(giveaway.prizes || []);
+    const entries = rows(giveaway.entries || []);
     const events = rows(giveaway.events || []);
+    const editableEntries = giveaway.status === 'open';
+
     return `
       <div class="lg-grid lg-grid-3">
         <div class="lg-panel">
@@ -1112,15 +1154,62 @@ window.LoyaltyGamesModule = (function(){
           </div>
         </div>
         <div class="lg-panel">
-          <h3>Events</h3>
-          <div class="lg-mini-list">
-            ${events.slice(0, 8).map(event => `
-              <div class="lg-mini-row">
-                <strong>${esc(event.eventType)}</strong>
-                <span>${fmtDate(event.createdAt)}</span>
-              </div>
-            `).join('') || `<p class="lg-muted">Keine Events.</p>`}
-          </div>
+          <h3>Teilnahmen</h3>
+          <strong class="lg-big-number">${fmtNumber(entries.filter(entry => entry.status !== 'cancelled').length)}</strong>
+          <p class="lg-muted">Tickets werden gespeichert, Punkte aber noch nicht gebucht.</p>
+        </div>
+      </div>
+
+      <div class="lg-panel">
+        <div class="lg-panel-head">
+          <h3>Teilnahmen / Tickets</h3>
+          <span class="lg-muted">${editableEntries ? 'Giveaway ist offen' : 'Teilnahmen nur bei Status open möglich'}</span>
+        </div>
+
+        ${editableEntries ? `
+          <form class="lg-form lg-entry-form" data-lg-create-entry>
+            <input name="userLogin" placeholder="Twitch-Name" required>
+            <input name="userDisplayName" placeholder="Anzeigename optional">
+            <input name="ticketCount" type="number" min="1" value="1" title="Tickets">
+            <label class="lg-check"><input name="isSubscriber" type="checkbox"> Sub/VIP-Luck anwenden</label>
+            <button class="lg-btn" type="submit">Teilnahme eintragen</button>
+          </form>
+        ` : ''}
+
+        <div class="lg-table-wrap">
+          <table class="lg-table">
+            <thead>
+              <tr>
+                <th>Zeit</th><th>User</th><th>Status</th><th>Tickets</th><th>Gewicht</th><th>Kosten offen</th><th>Quelle</th><th></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${entries.map(entry => `
+                <tr>
+                  <td>${fmtDate(entry.createdAt)}</td>
+                  <td>${esc(entry.userDisplayName || entry.userLogin || '-')}</td>
+                  <td>${esc(entry.status || '-')}</td>
+                  <td>${fmtNumber(entry.ticketCount || 0)}</td>
+                  <td>${fmtNumber(entry.ticketWeight || 0)}</td>
+                  <td>${fmtNumber(entry.costDue || 0)}</td>
+                  <td>${esc(entry.source || '-')}</td>
+                  <td>${entry.status !== 'cancelled' ? `<button class="lg-btn lg-btn-danger" data-lg-cancel-entry="${esc(entry.entryUid)}">Storno</button>` : ''}</td>
+                </tr>
+              `).join('') || `<tr><td colspan="8" class="lg-muted">Noch keine Teilnahmen.</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="lg-panel">
+        <h3>Events</h3>
+        <div class="lg-mini-list">
+          ${events.slice(0, 12).map(event => `
+            <div class="lg-mini-row">
+              <strong>${esc(event.eventType)}</strong>
+              <span>${fmtDate(event.createdAt)}</span>
+            </div>
+          `).join('') || `<p class="lg-muted">Keine Events.</p>`}
         </div>
       </div>
     `;
@@ -1302,6 +1391,15 @@ window.LoyaltyGamesModule = (function(){
     });
     root.querySelectorAll('[data-lg-giveaway-action]').forEach(btn => {
       btn.addEventListener('click', () => giveawayAction(btn.dataset.lgGiveawayAction, btn.dataset.giveawayUid));
+    });
+
+    root.querySelector('[data-lg-create-entry]')?.addEventListener('submit', ev => {
+      ev.preventDefault();
+      handleCreateEntry(ev.currentTarget);
+    });
+
+    root.querySelectorAll('[data-lg-cancel-entry]').forEach(btn => {
+      btn.addEventListener('click', () => cancelEntry(btn.dataset.lgCancelEntry));
     });
   }
 

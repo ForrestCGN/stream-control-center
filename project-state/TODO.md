@@ -4,9 +4,10 @@ Stand: 2026-06-08
 
 ## Erledigt
 
-- [x] LWG-4G Loyalty Dashboard Home / Ampel
+- [x] LWG-4H Giveaway Entries / Tickets
 
 ## Offen
 
-- [ ] LWG-4G Live-Test
-- [ ] LWG-4H Entries/Tickets Backend
+- [ ] LWG-4H Live-Test
+- [ ] LWG-4I Gewinnerziehung ohne Rad
+- [ ] LWG-4J Gewinnerziehung mit Rad

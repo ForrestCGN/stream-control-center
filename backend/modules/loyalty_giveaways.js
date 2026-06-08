@@ -435,6 +435,34 @@ function ensureSchema() {
     db.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_prizes_status ON loyalty_giveaway_prizes(status);`);
 
     db.exec(`
+      CREATE TABLE IF NOT EXISTS loyalty_giveaway_entries (
+        id ${database.primaryKeyAutoIncrementSql()},
+        entry_uid TEXT NOT NULL UNIQUE,
+        giveaway_uid TEXT NOT NULL,
+        round_uid TEXT NOT NULL DEFAULT '',
+        user_login TEXT NOT NULL DEFAULT '',
+        user_display_name TEXT NOT NULL DEFAULT '',
+        ticket_count INTEGER NOT NULL DEFAULT 1,
+        ticket_weight INTEGER NOT NULL DEFAULT 1,
+        cost_amount INTEGER NOT NULL DEFAULT 0,
+        cost_due INTEGER NOT NULL DEFAULT 0,
+        cost_booked INTEGER NOT NULL DEFAULT 0,
+        source TEXT NOT NULL DEFAULT '',
+        status TEXT NOT NULL DEFAULT 'active',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        cancelled_at TEXT NOT NULL DEFAULT '',
+        metadata_json TEXT NOT NULL DEFAULT '{}'
+      );
+    `);
+
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_entries_giveaway ON loyalty_giveaway_entries(giveaway_uid);`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_entries_round ON loyalty_giveaway_entries(round_uid);`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_entries_user ON loyalty_giveaway_entries(user_login);`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_entries_status ON loyalty_giveaway_entries(status);`);
+
+
+    db.exec(`
       CREATE TABLE IF NOT EXISTS loyalty_giveaway_events (
         id ${database.primaryKeyAutoIncrementSql()},
         event_uid TEXT NOT NULL UNIQUE,
@@ -499,6 +527,7 @@ function rowToGiveaway(row, includeDetails = false) {
   if (includeDetails) {
     giveaway.rounds = listRounds(row.giveaway_uid).rows;
     giveaway.prizes = listPrizes(row.giveaway_uid).rows;
+    giveaway.entries = listEntries(row.giveaway_uid, { limit: 250, includeCancelled: true }).rows;
     giveaway.events = listEvents(row.giveaway_uid, { limit: 100 }).rows;
   }
 
@@ -543,6 +572,30 @@ function rowToPrize(row) {
     sourceFieldUid: row.source_field_uid || "",
     createdAt: row.created_at || "",
     updatedAt: row.updated_at || "",
+    metadata: parseJson(row.metadata_json, {})
+  };
+}
+
+
+function rowToEntry(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    entryUid: row.entry_uid,
+    giveawayUid: row.giveaway_uid,
+    roundUid: row.round_uid || "",
+    userLogin: row.user_login || "",
+    userDisplayName: row.user_display_name || row.user_login || "",
+    ticketCount: Number(row.ticket_count || 1),
+    ticketWeight: Number(row.ticket_weight || 1),
+    costAmount: Number(row.cost_amount || 0),
+    costDue: Number(row.cost_due || 0),
+    costBooked: Number(row.cost_booked || 0),
+    source: row.source || "",
+    status: row.status || "active",
+    createdAt: row.created_at || "",
+    updatedAt: row.updated_at || "",
+    cancelledAt: row.cancelled_at || "",
     metadata: parseJson(row.metadata_json, {})
   };
 }
@@ -745,6 +798,201 @@ function listEvents(giveawayUid, options = {}) {
     LIMIT :limit
   `, { giveawayUid, limit }).map(rowToEvent);
   return { ok: true, count: rows.length, rows };
+}
+
+function getCurrentRound(giveawayUid) {
+  ensureSchema();
+  const row = database.get(`
+    SELECT *
+    FROM loyalty_giveaway_rounds
+    WHERE giveaway_uid = :giveawayUid
+    ORDER BY round_number DESC, id DESC
+    LIMIT 1
+  `, { giveawayUid });
+  return rowToRound(row);
+}
+
+function listEntries(giveawayUid, options = {}) {
+  ensureSchema();
+  const limit = Math.max(1, Math.min(500, Number(options.limit || 100) || 100));
+  const includeCancelled = options.includeCancelled === true || String(options.includeCancelled || "") === "true";
+  const userLogin = String(options.userLogin || options.login || "").trim().replace(/^@/, "").toLowerCase();
+
+  const where = ["giveaway_uid = :giveawayUid"];
+  const params = { giveawayUid, limit };
+  if (!includeCancelled) where.push("status != 'cancelled'");
+  if (userLogin) {
+    where.push("user_login = :userLogin");
+    params.userLogin = userLogin;
+  }
+
+  const rows = database.all(`
+    SELECT *
+    FROM loyalty_giveaway_entries
+    WHERE ${where.join(" AND ")}
+    ORDER BY id DESC
+    LIMIT :limit
+  `, params).map(rowToEntry);
+
+  return { ok: true, count: rows.length, rows };
+}
+
+function activeTicketCountForUser(giveawayUid, userLogin) {
+  ensureSchema();
+  const row = database.get(`
+    SELECT COALESCE(SUM(ticket_count), 0) AS count
+    FROM loyalty_giveaway_entries
+    WHERE giveaway_uid = :giveawayUid
+      AND user_login = :userLogin
+      AND status = 'active'
+  `, { giveawayUid, userLogin });
+  return Number(row && row.count || 0);
+}
+
+function computeTicketCost(giveaway, userLogin, ticketCount) {
+  const already = activeTicketCountForUser(giveaway.giveawayUid, userLogin);
+  const costPerTicket = Number(giveaway.costAmount || 0);
+  let paidTickets = Number(ticketCount || 0);
+
+  if (giveaway.firstTicketFree && already <= 0 && paidTickets > 0) {
+    paidTickets -= 1;
+  }
+
+  return {
+    alreadyTickets: already,
+    paidTickets: Math.max(0, paidTickets),
+    costPerTicket,
+    costDue: Math.max(0, paidTickets) * costPerTicket,
+    note: "LWG-4H berechnet Kosten nur vor, bucht aber noch keine Punkte."
+  };
+}
+
+function createEntry(giveawayUid, input = {}) {
+  ensureSchema();
+  const giveaway = getGiveaway(giveawayUid, false);
+  if (!giveaway) return { ok: false, error: "giveaway_not_found", statusCode: 404 };
+  if (giveaway.deletedAt) return { ok: false, error: "giveaway_deleted", statusCode: 409 };
+  if (giveaway.status !== STATUS.OPEN) return { ok: false, error: "giveaway_not_open", statusCode: 409, giveaway };
+
+  const userLogin = String(input.userLogin || input.login || input.user || "").trim().replace(/^@/, "").toLowerCase();
+  if (!userLogin) return { ok: false, error: "missing_user_login", statusCode: 400 };
+
+  const userDisplayName = String(input.userDisplayName || input.displayName || input.display || userLogin).trim() || userLogin;
+  const ticketCount = clampInt(input.ticketCount ?? input.tickets, 1, 1, 999999);
+  const isSubscriber = input.isSubscriber === true || input.subscriber === true || input.isSub === true;
+  const source = String(input.source || "dashboard").trim() || "dashboard";
+
+  if (giveaway.subOnly && !isSubscriber) {
+    return { ok: false, error: "giveaway_sub_only", statusCode: 403 };
+  }
+
+  const alreadyTickets = activeTicketCountForUser(giveawayUid, userLogin);
+  if (alreadyTickets + ticketCount > giveaway.maxTicketsPerUser) {
+    return {
+      ok: false,
+      error: "giveaway_max_tickets_reached",
+      statusCode: 409,
+      maxTicketsPerUser: giveaway.maxTicketsPerUser,
+      alreadyTickets,
+      requestedTickets: ticketCount
+    };
+  }
+
+  const currentRound = getCurrentRound(giveawayUid);
+  const cost = computeTicketCost(giveaway, userLogin, ticketCount);
+  const multiplier = isSubscriber ? Math.max(1, Number(giveaway.subscriberLuckMultiplier || 1)) : 1;
+  const ticketWeight = ticketCount * multiplier;
+  const entryUid = uid("entry");
+  const now = nowIso();
+
+  database.run(`
+    INSERT INTO loyalty_giveaway_entries (
+      entry_uid, giveaway_uid, round_uid, user_login, user_display_name,
+      ticket_count, ticket_weight, cost_amount, cost_due, cost_booked,
+      source, status, created_at, updated_at, metadata_json
+    ) VALUES (
+      :entryUid, :giveawayUid, :roundUid, :userLogin, :userDisplayName,
+      :ticketCount, :ticketWeight, :costAmount, :costDue, :costBooked,
+      :source, :status, :createdAt, :updatedAt, :metadataJson
+    )
+  `, {
+    entryUid,
+    giveawayUid,
+    roundUid: currentRound ? currentRound.roundUid : "",
+    userLogin,
+    userDisplayName,
+    ticketCount,
+    ticketWeight,
+    costAmount: giveaway.costAmount,
+    costDue: cost.costDue,
+    costBooked: 0,
+    source,
+    status: "active",
+    createdAt: now,
+    updatedAt: now,
+    metadataJson: json({
+      isSubscriber,
+      subscriberLuckMultiplier: multiplier,
+      cost,
+      note: "Kosten werden in LWG-4H noch nicht gebucht."
+    })
+  });
+
+  createEvent({
+    giveawayUid,
+    roundUid: currentRound ? currentRound.roundUid : "",
+    eventType: "loyalty.giveaway.entry_created",
+    actorType: source,
+    actorLogin: userLogin,
+    oldStatus: "",
+    newStatus: "active",
+    message: `${userDisplayName} joined giveaway`,
+    metadata: { entryUid, ticketCount, ticketWeight, costDue: cost.costDue }
+  });
+
+  emitEvent("loyalty.giveaway.entry_created", { giveawayUid, entryUid, userLogin, userDisplayName, ticketCount, ticketWeight, costDue: cost.costDue });
+  return { ok: true, entry: rowToEntry(database.get("SELECT * FROM loyalty_giveaway_entries WHERE entry_uid = :entryUid", { entryUid })) };
+}
+
+function cancelEntry(giveawayUid, entryUid, input = {}) {
+  ensureSchema();
+  const entry = database.get(`
+    SELECT *
+    FROM loyalty_giveaway_entries
+    WHERE giveaway_uid = :giveawayUid AND entry_uid = :entryUid
+  `, { giveawayUid, entryUid });
+  if (!entry) return { ok: false, error: "entry_not_found", statusCode: 404 };
+  if (entry.status === "cancelled") return { ok: true, entry: rowToEntry(entry), alreadyCancelled: true };
+
+  const now = nowIso();
+  database.run(`
+    UPDATE loyalty_giveaway_entries
+    SET status = 'cancelled',
+        cancelled_at = :cancelledAt,
+        updated_at = :updatedAt,
+        metadata_json = :metadataJson
+    WHERE entry_uid = :entryUid
+  `, {
+    entryUid,
+    cancelledAt: now,
+    updatedAt: now,
+    metadataJson: json({ ...parseJson(entry.metadata_json, {}), cancelReason: input.reason || "", cancelledBy: input.actor || "dashboard" })
+  });
+
+  createEvent({
+    giveawayUid,
+    roundUid: entry.round_uid || "",
+    eventType: "loyalty.giveaway.entry_cancelled",
+    actorType: "dashboard",
+    actorLogin: input.actor || "",
+    oldStatus: entry.status,
+    newStatus: "cancelled",
+    message: input.reason || "Entry cancelled",
+    metadata: { entryUid }
+  });
+
+  emitEvent("loyalty.giveaway.entry_cancelled", { giveawayUid, entryUid });
+  return { ok: true, entry: rowToEntry(database.get("SELECT * FROM loyalty_giveaway_entries WHERE entry_uid = :entryUid", { entryUid })) };
 }
 
 function buildSettingsSnapshot(input = {}, roundPolicy = {}) {
@@ -1056,8 +1304,9 @@ function counts() {
   const finished = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaways WHERE status = 'finished' AND deleted_at = ''")?.count || 0);
   const deleted = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaways WHERE deleted_at != ''")?.count || 0);
   const prizes = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_prizes")?.count || 0);
+  const entries = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_entries WHERE status = 'active'")?.count || 0);
   const events = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_events")?.count || 0);
-  return { total, draft, open, finished, deleted, prizes, events };
+  return { total, draft, open, finished, deleted, prizes, entries, events };
 }
 
 function buildStatus() {
@@ -1112,7 +1361,10 @@ function registerRoutes(app) {
     "POST /api/loyalty/giveaways/:giveawayUid/delete",
     "GET /api/loyalty/giveaways/:giveawayUid/rounds",
     "GET /api/loyalty/giveaways/:giveawayUid/prizes",
-    "GET /api/loyalty/giveaways/:giveawayUid/events"
+    "GET /api/loyalty/giveaways/:giveawayUid/events",
+    "GET /api/loyalty/giveaways/:giveawayUid/entries",
+    "POST /api/loyalty/giveaways/:giveawayUid/entries",
+    "POST /api/loyalty/giveaways/:giveawayUid/entries/:entryUid/cancel"
   ];
 
   registered.push(...routes.registerGet(app, "/api/loyalty/giveaways/status", core.asyncRoute(async (req, res) => {
@@ -1196,7 +1448,26 @@ function registerRoutes(app) {
     return core.sendOk(res, listEvents(req.params.giveawayUid, req.query || {}));
   })));
 
-  state.routeCount = registered.length;
+
+  registered.push(...routes.registerGet(app, "/api/loyalty/giveaways/:giveawayUid/entries", core.asyncRoute(async (req, res) => {
+    if (!getGiveaway(req.params.giveawayUid, false)) return core.sendFail(res, "giveaway_not_found", 404);
+    return core.sendOk(res, listEntries(req.params.giveawayUid, req.query || {}));
+  })));
+
+  registered.push(...routes.registerPost(app, "/api/loyalty/giveaways/:giveawayUid/entries", core.asyncRoute(async (req, res) => {
+    const result = createEntry(req.params.giveawayUid, req.body || {});
+    if (!result.ok) return core.sendFail(res, result.error || "entry_create_failed", result.statusCode || 400, result);
+    return core.sendOk(res, result);
+  })));
+
+  registered.push(...routes.registerPost(app, "/api/loyalty/giveaways/:giveawayUid/entries/:entryUid/cancel", core.asyncRoute(async (req, res) => {
+    const result = cancelEntry(req.params.giveawayUid, req.params.entryUid, req.body || {});
+    if (!result.ok) return core.sendFail(res, result.error || "entry_cancel_failed", result.statusCode || 400, result);
+    return core.sendOk(res, result);
+  })));
+
+
+    state.routeCount = registered.length;
   return registered;
 }
 
@@ -1238,6 +1509,9 @@ module.exports = {
     copyGiveaway,
     setGiveawayStatus,
     listGiveaways,
-    getGiveaway
+    getGiveaway,
+    listEntries,
+    createEntry,
+    cancelEntry
   }
 };

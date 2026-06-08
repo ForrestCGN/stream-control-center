@@ -651,3 +651,26 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+.lg-entry-form {
+  grid-template-columns: 1fr 1fr 120px auto auto;
+  align-items: end;
+  margin-bottom: 16px;
+}
+
+.lg-entry-form input {
+  min-width: 0;
+}
+
+.lg-big-number {
+  display: block;
+  font-size: 34px;
+  margin-bottom: 6px;
+}
+
+@media (max-width: 1000px) {
+  .lg-entry-form {
+    grid-template-columns: 1fr;
+  }
+}

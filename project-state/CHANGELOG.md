@@ -1,15 +1,16 @@
 # Changelog – stream-control-center
 
-## 2026-06-08 – STEP LWG-4G Loyalty Dashboard Home / Ampel
+## 2026-06-08 – STEP LWG-4H Giveaway Entries / Tickets
 
 ### Neu
 
-- Loyalty-Home-Uebersicht mit Kacheln.
-- Ampelstatus aus Communication-Bus/API.
-- Kacheln springen in passende Tabs.
+- Tabelle `loyalty_giveaway_entries`.
+- Entry-Routen.
+- Dashboard-Anzeige fuer Teilnahmen.
+- Manuelle Teilnahme und Storno.
 
-### Nicht geaendert
+### Nicht enthalten
 
-- Kein Backend.
-- Keine DB.
-- Keine Tickets/Gewinnerziehung.
+- Keine Punktebuchung.
+- Keine Gewinnerziehung.
+- Kein Rad-Claim.

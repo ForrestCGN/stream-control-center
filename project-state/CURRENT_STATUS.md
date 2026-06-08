@@ -5,13 +5,15 @@ Stand: 2026-06-08
 ## Neuer Stand
 
 ```text
-STEP LWG-4G – Loyalty Dashboard Home / Ampel
+STEP LWG-4H – Giveaway Entries / Tickets
 ```
 
 ## Umgesetzt
 
 ```text
-- Loyalty-Home-Uebersicht mit Modulkacheln.
-- Ampelstatus fuer Core/Games/Presets/Giveaways/Overlay/Kanalpunkte/Rewards.
-- Nutzung von /api/communication/status.
+- Entries/Tickets Backend.
+- Entries im Dashboard anzeigen.
+- Teilnahme manuell eintragen.
+- Teilnahme stornieren.
+- Kosten werden vorbereitet, aber nicht gebucht.
 ```
