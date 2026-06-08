@@ -1,10 +1,8 @@
 # Changelog – stream-control-center
 
-## 2026-06-08 – STEP LWG-4J Giveaway Wheel Claim
+## 2026-06-08 – STEP LWG-4J.1 Wheel Permissions Table Safety Fix
 
-### Neu
+### Fix
 
-- Tabelle `loyalty_giveaway_wheel_permissions`.
-- Draw fuer Wheel-Giveaways erzeugt Permission.
-- Wheel Claim startet echtes Wheel via loyalty_games.
-- Winner speichert Wheel-Ergebnis.
+- `loyalty_giveaway_wheel_permissions` wird bei Modulstart per Safety-Net angelegt.
+- Behebt `no such table: loyalty_giveaway_wheel_permissions` bei bestehender DB-Schema-Version.

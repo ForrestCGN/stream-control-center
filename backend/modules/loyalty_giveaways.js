@@ -608,6 +608,34 @@ function ensureSchema() {
   database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_winners_status ON loyalty_giveaway_winners(status);`);
 
 
+
+  // Safety-net for existing installations where schema version already existed
+  // before STEP LWG-4J introduced wheel permissions. Never drops or overwrites data.
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS loyalty_giveaway_wheel_permissions (
+      id ${database.primaryKeyAutoIncrementSql()},
+      permission_uid TEXT NOT NULL UNIQUE,
+      giveaway_uid TEXT NOT NULL,
+      round_uid TEXT NOT NULL DEFAULT '',
+      winner_uid TEXT NOT NULL DEFAULT '',
+      user_login TEXT NOT NULL DEFAULT '',
+      user_display_name TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'pending',
+      expires_at TEXT NOT NULL DEFAULT '',
+      used_at TEXT NOT NULL DEFAULT '',
+      spin_uid TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      metadata_json TEXT NOT NULL DEFAULT '{}'
+    );
+  `);
+
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_wheel_permissions_giveaway ON loyalty_giveaway_wheel_permissions(giveaway_uid);`);
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_wheel_permissions_winner ON loyalty_giveaway_wheel_permissions(winner_uid);`);
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_wheel_permissions_user ON loyalty_giveaway_wheel_permissions(user_login);`);
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_wheel_permissions_status ON loyalty_giveaway_wheel_permissions(status);`);
+
+
   state.schemaReady = true;
   return true;
 }

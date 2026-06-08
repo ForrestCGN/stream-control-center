@@ -2,10 +2,14 @@
 
 Stand: 2026-06-08
 
-## Naechster sinnvoller Schritt
+## Naechster Schritt
+
+```text
+LWG-4J.1 live testen
+```
+
+Danach:
 
 ```text
 LWG-4K – Chat-/Command- und Kanalpunkte-Anbindung planen
 ```
-
-Vorher LWG-4J live testen.
