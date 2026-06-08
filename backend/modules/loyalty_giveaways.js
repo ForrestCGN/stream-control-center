@@ -2228,6 +2228,22 @@ function buildStatus() {
 
 function registerRoutes(app) {
   const registered = [];
+
+  // Static routes must be registered before /api/loyalty/giveaways/:giveawayUid.
+  registered.push(...routes.registerGet(app, "/api/loyalty/giveaways/commands", core.asyncRoute(async (req, res) => {
+    return core.sendOk(res, listChatCommandDefinitions());
+  })));
+
+  registered.push(...routes.registerGet(app, "/api/loyalty/giveaways/texts", core.asyncRoute(async (req, res) => {
+    return core.sendOk(res, getChatTextEditorPayload());
+  })));
+
+  registered.push(...routes.registerPost(app, "/api/loyalty/giveaways/texts", core.asyncRoute(async (req, res) => {
+    const result = handleChatTextEditorPayload(req.body || {});
+    return core.sendOk(res, result);
+  })));
+
+
   const routeNames = [
     "GET /api/loyalty/giveaways/status",
     "GET /api/loyalty/giveaways/routes",
@@ -2382,19 +2398,6 @@ function registerRoutes(app) {
   })));
 
 
-
-  registered.push(...routes.registerGet(app, "/api/loyalty/giveaways/commands", core.asyncRoute(async (req, res) => {
-    return core.sendOk(res, listChatCommandDefinitions());
-  })));
-
-  registered.push(...routes.registerGet(app, "/api/loyalty/giveaways/texts", core.asyncRoute(async (req, res) => {
-    return core.sendOk(res, getChatTextEditorPayload());
-  })));
-
-  registered.push(...routes.registerPost(app, "/api/loyalty/giveaways/texts", core.asyncRoute(async (req, res) => {
-    const result = handleChatTextEditorPayload(req.body || {});
-    return core.sendOk(res, result);
-  })));
 
 
   state.routeCount = registered.length;

@@ -5,13 +5,11 @@ Stand: 2026-06-08
 ## Naechster Schritt
 
 ```text
-LWG-4K.1 live testen
+LWG-4K.2 live testen
 ```
 
-Danach planen:
+Danach:
 
 ```text
-LWG-4K.2 – echte Node/Twitch Command-Anbindung
+LWG-4K.3 echte Node/Twitch Command-Anbindung planen, aber erst nach Datei-/Doku-Prüfung.
 ```
-
-Voraussetzung: echte Command-/Twitch-Command-Dateien prüfen.
