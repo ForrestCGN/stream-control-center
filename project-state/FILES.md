@@ -5,18 +5,16 @@ Stand: 2026-06-08
 ## Aktueller Code-Stand
 
 ```text
-STEP_LWG_4H_giveaway_entries_tickets_v0_1_0.zip
+STEP_LWG_4H_1_entries_table_safety_fix.zip
 ```
 
 ## Geaenderte Dateien
 
 ```text
 backend/modules/loyalty_giveaways.js
-htdocs/dashboard/modules/loyalty_games.js
-htdocs/dashboard/modules/loyalty_games.css
-docs/current/CURRENT_CHAT_HANDOFF_LOYALTY_GIVEAWAYS_LWG_4H.md
+docs/current/CURRENT_CHAT_HANDOFF_LOYALTY_GIVEAWAYS_LWG_4H_1.md
 docs/modules/loyalty_giveaways.md
 project-state/*
-README_STEP_LWG_4H_GIVEAWAY_ENTRIES_TICKETS.md
+README_STEP_LWG_4H_1_ENTRIES_TABLE_SAFETY_FIX.md
 ARTIFACT_CHECK.json
 ```

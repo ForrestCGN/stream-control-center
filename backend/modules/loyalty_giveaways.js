@@ -486,6 +486,37 @@ function ensureSchema() {
     db.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_events_created ON loyalty_giveaway_events(created_at);`);
   });
 
+
+  // Safety-net for existing installations where schema version 1 already existed
+  // before STEP LWG-4H introduced entries. Never drops or overwrites data.
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS loyalty_giveaway_entries (
+      id ${database.primaryKeyAutoIncrementSql()},
+      entry_uid TEXT NOT NULL UNIQUE,
+      giveaway_uid TEXT NOT NULL,
+      round_uid TEXT NOT NULL DEFAULT '',
+      user_login TEXT NOT NULL DEFAULT '',
+      user_display_name TEXT NOT NULL DEFAULT '',
+      ticket_count INTEGER NOT NULL DEFAULT 1,
+      ticket_weight INTEGER NOT NULL DEFAULT 1,
+      cost_amount INTEGER NOT NULL DEFAULT 0,
+      cost_due INTEGER NOT NULL DEFAULT 0,
+      cost_booked INTEGER NOT NULL DEFAULT 0,
+      source TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'active',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      cancelled_at TEXT NOT NULL DEFAULT '',
+      metadata_json TEXT NOT NULL DEFAULT '{}'
+    );
+  `);
+
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_entries_giveaway ON loyalty_giveaway_entries(giveaway_uid);`);
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_entries_round ON loyalty_giveaway_entries(round_uid);`);
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_entries_user ON loyalty_giveaway_entries(user_login);`);
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_entries_status ON loyalty_giveaway_entries(status);`);
+
+
   state.schemaReady = true;
   return true;
 }

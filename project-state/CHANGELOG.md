@@ -1,16 +1,8 @@
 # Changelog – stream-control-center
 
-## 2026-06-08 – STEP LWG-4H Giveaway Entries / Tickets
+## 2026-06-08 – STEP LWG-4H.1 Entries Table Safety Fix
 
-### Neu
+### Fix
 
-- Tabelle `loyalty_giveaway_entries`.
-- Entry-Routen.
-- Dashboard-Anzeige fuer Teilnahmen.
-- Manuelle Teilnahme und Storno.
-
-### Nicht enthalten
-
-- Keine Punktebuchung.
-- Keine Gewinnerziehung.
-- Kein Rad-Claim.
+- `loyalty_giveaway_entries` wird bei Modulstart per Safety-Net angelegt.
+- Behebt `no such table: loyalty_giveaway_entries` bei bestehender DB-Schema-Version.
