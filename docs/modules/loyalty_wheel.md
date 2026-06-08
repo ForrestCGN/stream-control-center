@@ -1,31 +1,20 @@
 # Loyalty Wheel / CGN Glücksrad
 
 Stand: 2026-06-08  
-STEP: LWG-4C.1
+STEP: LWG-4F.2
 
-## Mengenregel
+## Overlay Heartbeat
 
-```text
-Gesamtmenge: wird im Feld eingetragen, Standard 1.
-Restmenge: wird beim Spielen/Drehen berechnet.
-```
+Das Wheel-Overlay sendet jetzt ueber den vorhandenen WebSocket nach `hello` alle 5 Sekunden einen `heartbeat`.
 
-## Entfernen nach Auslosung
+Datei:
 
 ```text
-removeAfterWin
+htdocs/overlays/loyalty/wheel_overlay.html
 ```
 
-ist eine globale Preset-Einstellung, nicht pro Feld.
+Ziel:
 
-Wenn aktiv, wird das gezogene Gewinnfeld nach der Auslosung aus diesem Preset entfernt/deaktiviert.
-
-
-## Bezug zu Giveaways
-
-Seit LWG-4D existiert `backend/modules/loyalty_giveaways.js` als eigener Loyalty-Unterbereich. Wheel/Presets bleiben eigenständig und werden spaeter von Giveaways genutzt.
-
-
-## LWG-4E Hinweis
-
-Das Dashboard enthaelt jetzt zusaetzlich den Tab `Giveaways`. Tickets und Gewinnerziehung sind noch nicht umgesetzt.
+```text
+overlay_monitor soll das Overlay nicht mehr als angemeldet ohne echten Heartbeat melden.
+```

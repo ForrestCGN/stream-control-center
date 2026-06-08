@@ -260,6 +260,7 @@
 
       let ws = null;
       let reconnectTimer = null;
+      let heartbeatTimer = null;
       // Keep the full accumulated rotation, not only 0-359deg, so repeated spins keep animating.
       let currentRotation = 0;
       let running = false;
@@ -452,6 +453,78 @@
         if (data.type === "loyalty.wheel.finished") handleFinished(data);
       }
 
+
+      function sendWs(payload) {
+        if (!ws || ws.readyState !== WebSocket.OPEN) return false;
+        try {
+          ws.send(JSON.stringify(payload));
+          return true;
+        } catch (_) {
+          return false;
+        }
+      }
+
+      function sendHello() {
+        return sendWs({
+          type: "hello",
+          clientId: "loyalty_wheel_overlay",
+          clientType: "overlay",
+          module: "loyalty_games",
+          name: "Loyalty Wheel Overlay",
+          version: "0.1.1",
+          capabilities: [
+            "loyalty.wheel.spin",
+            "loyalty.wheel.reset",
+            "loyalty.wheel.finished",
+            "overlay.heartbeat"
+          ],
+          meta: {
+            overlay: "loyalty_wheel_overlay",
+            step: "LWG-4F.2",
+            heartbeat: true,
+            url: location.pathname
+          }
+        });
+      }
+
+      function sendHeartbeat() {
+        return sendWs({
+          type: "heartbeat",
+          clientId: "loyalty_wheel_overlay",
+          clientType: "overlay",
+          module: "loyalty_games",
+          name: "Loyalty Wheel Overlay",
+          version: "0.1.1",
+          heartbeatAt: new Date().toISOString(),
+          status: "online",
+          capabilities: [
+            "loyalty.wheel.spin",
+            "loyalty.wheel.reset",
+            "loyalty.wheel.finished",
+            "overlay.heartbeat"
+          ],
+          meta: {
+            overlay: "loyalty_wheel_overlay",
+            running,
+            fieldCount: Array.isArray(currentFields) ? currentFields.length : 0,
+            url: location.pathname
+          }
+        });
+      }
+
+      function startHeartbeat() {
+        stopHeartbeat();
+        sendHeartbeat();
+        heartbeatTimer = setInterval(sendHeartbeat, 5000);
+      }
+
+      function stopHeartbeat() {
+        if (heartbeatTimer) {
+          clearInterval(heartbeatTimer);
+          heartbeatTimer = null;
+        }
+      }
+
       function connectWs() {
         clearTimeout(reconnectTimer);
         const protocol = location.protocol === "https:" ? "wss:" : "ws:";
@@ -468,28 +541,21 @@
         ws.addEventListener("open", () => {
           connection.classList.add("is-open");
           connectionText.textContent = "WS verbunden";
-          try {
-            ws.send(JSON.stringify({
-              type: "hello",
-              clientId: "loyalty_wheel_overlay",
-              clientType: "overlay",
-              module: "loyalty_games",
-              name: "Loyalty Wheel Overlay",
-              version: "0.1.0",
-              capabilities: ["loyalty.wheel.spin"]
-            }));
-          } catch (_) {}
+          sendHello();
+          startHeartbeat();
         });
 
         ws.addEventListener("message", handleMessage);
 
         ws.addEventListener("close", () => {
+          stopHeartbeat();
           connection.classList.remove("is-open");
           connectionText.textContent = "WS getrennt";
           reconnectTimer = setTimeout(connectWs, 2500);
         });
 
         ws.addEventListener("error", () => {
+          stopHeartbeat();
           connection.classList.remove("is-open");
           connectionText.textContent = "WS Fehler";
         });

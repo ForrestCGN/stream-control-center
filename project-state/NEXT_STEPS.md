@@ -11,5 +11,6 @@ Loyalty Dashboard Home / Ampel-Kacheln
 Grundlage:
 
 ```text
-/api/communication/status
+Backend-Module melden Heartbeat.
+Wheel Overlay meldet Heartbeat.
 ```
