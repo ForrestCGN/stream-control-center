@@ -66,6 +66,181 @@ const MODULE_META = {
 
 let broadcastWS = null;
 let eventBus = null;
+let moduleBusHandle = null;
+
+function createCommunicationBusHandle(meta, buildStatusFn) {
+  const moduleName = meta && meta.name ? String(meta.name) : "unknown_module";
+  const intervalMs = 5000;
+  const state = {
+    ok: false,
+    registered: false,
+    heartbeatStarted: false,
+    heartbeatCount: 0,
+    lastHeartbeatAt: "",
+    lastStatusPublishedAt: "",
+    lastError: "",
+    timer: null,
+    bus: null
+  };
+
+  function getBus() {
+    if (state.bus) return state.bus;
+    try {
+      const communicationBus = require("./communication_bus");
+      if (communicationBus && typeof communicationBus.getBus === "function") {
+        state.bus = communicationBus.getBus();
+        state.ok = !!state.bus;
+        return state.bus;
+      }
+      state.lastError = "communication_bus_getBus_unavailable";
+    } catch (err) {
+      state.lastError = err && err.message ? err.message : String(err);
+    }
+    return null;
+  }
+
+  function buildCapabilities() {
+    const capabilities = [];
+    if (Array.isArray(meta.routesPrefix)) {
+      for (const route of meta.routesPrefix) capabilities.push(`route:${route}`);
+    }
+    if (meta.bus && Array.isArray(meta.bus.publishes)) {
+      for (const eventName of meta.bus.publishes) capabilities.push(`publishes:${eventName}`);
+    }
+    if (meta.bus && Array.isArray(meta.bus.consumes)) {
+      for (const eventName of meta.bus.consumes) capabilities.push(`consumes:${eventName}`);
+    }
+    return capabilities;
+  }
+
+  function buildModuleInfo() {
+    return {
+      id: `module:${moduleName}`,
+      module: moduleName,
+      name: moduleName,
+      displayName: meta.label || meta.name || moduleName,
+      version: meta.version || "",
+      capabilities: buildCapabilities(),
+      meta: {
+        category: meta.category || "",
+        build: meta.build || "",
+        type: meta.type || "runtime",
+        routesPrefix: Array.isArray(meta.routesPrefix) ? meta.routesPrefix : [],
+        registeredBy: "direct_existing_communication_bus",
+        registeredAt: core.nowIso()
+      }
+    };
+  }
+
+  function buildStatusPayload(extra = {}) {
+    let base = {};
+    try {
+      base = typeof buildStatusFn === "function" ? (buildStatusFn() || {}) : {};
+    } catch (err) {
+      const error = err && err.message ? err.message : String(err);
+      base = { ok: false, lastError: error, diagnostics: { health: "error", errors: [error] } };
+    }
+
+    const diagnostics = base.diagnostics || {};
+    return {
+      module: moduleName,
+      moduleVersion: meta.version || base.moduleVersion || base.version || "",
+      moduleBuild: meta.build || base.moduleBuild || "",
+      category: meta.category || "",
+      ok: base.ok !== false,
+      health: diagnostics.health || (base.ok === false ? "error" : "ok"),
+      enabled: base.enabled !== false,
+      loadedAt: base.loadedAt || "",
+      heartbeatAt: core.nowIso(),
+      lastError: base.lastError || diagnostics.lastError || "",
+      routeCount: Number(base.routeCount || 0),
+      schemaReady: diagnostics.schemaReady,
+      warnings: Array.isArray(diagnostics.warnings) ? diagnostics.warnings : [],
+      errors: Array.isArray(diagnostics.errors) ? diagnostics.errors : [],
+      ...extra
+    };
+  }
+
+  function register() {
+    const bus = getBus();
+    if (!bus || typeof bus.registerModule !== "function") {
+      return { ok: false, reason: state.lastError || "communication_bus_unavailable" };
+    }
+    const result = bus.registerModule(buildModuleInfo());
+    state.registered = result && result.ok === true;
+    if (!state.registered) state.lastError = result && result.reason ? result.reason : "register_failed";
+    return result;
+  }
+
+  function heartbeat(extra = {}) {
+    const bus = getBus();
+    if (!bus || typeof bus.heartbeatModule !== "function") {
+      return { ok: false, reason: state.lastError || "communication_bus_unavailable" };
+    }
+    const payload = buildStatusPayload(extra);
+    const result = bus.heartbeatModule(`module:${moduleName}`, {
+      module: moduleName,
+      version: meta.version || "",
+      name: moduleName,
+      lastError: payload.lastError || "",
+      capabilities: buildCapabilities(),
+      meta: payload
+    });
+    state.heartbeatCount += 1;
+    state.lastHeartbeatAt = payload.heartbeatAt;
+    if (result && result.ok !== true) state.lastError = result.reason || "heartbeat_failed";
+    return result;
+  }
+
+  function publishStatus(action = "updated", extra = {}) {
+    const bus = getBus();
+    if (!bus || typeof bus.publishModuleStatus !== "function") {
+      return { ok: false, reason: state.lastError || "communication_bus_unavailable" };
+    }
+    const result = bus.publishModuleStatus(moduleName, buildStatusPayload(extra), {
+      action,
+      replayable: true,
+      ttlMs: intervalMs * 4
+    });
+    state.lastStatusPublishedAt = core.nowIso();
+    if (result && result.ok !== true) state.lastError = result.reason || "publish_failed";
+    return result;
+  }
+
+  function start() {
+    const bus = getBus();
+    if (!bus) return { ok: false, reason: state.lastError || "communication_bus_unavailable" };
+    if (!state.registered) register();
+    heartbeat({ lifecycle: "started" });
+    publishStatus("ready", { lifecycle: "ready" });
+    if (!state.timer) {
+      state.timer = setInterval(() => {
+        heartbeat();
+        publishStatus("heartbeat");
+      }, intervalMs);
+      if (typeof state.timer.unref === "function") state.timer.unref();
+    }
+    state.heartbeatStarted = true;
+    return { ok: true, module: moduleName, intervalMs };
+  }
+
+  function getState() {
+    return {
+      ok: state.ok,
+      registered: state.registered,
+      heartbeatStarted: state.heartbeatStarted,
+      heartbeatCount: state.heartbeatCount,
+      lastHeartbeatAt: state.lastHeartbeatAt,
+      lastStatusPublishedAt: state.lastStatusPublishedAt,
+      lastError: state.lastError,
+      intervalMs
+    };
+  }
+
+  return { register, heartbeat, publishStatus, start, getState };
+}
+
+
 let state = {
   loadedAt: core.nowIso(),
   schemaReady: false,
@@ -909,7 +1084,8 @@ function buildStatus() {
       database: databaseStatus(),
       eventBus: {
         ready: !!state.eventBusReady,
-        mode: state.eventBusReady ? "ctx_event_bus" : "broadcast_only"
+        mode: state.eventBusReady ? "existing_communication_bus_direct" : "broadcast_only",
+        moduleBus: moduleBusHandle && typeof moduleBusHandle.getState === "function" ? moduleBusHandle.getState() : null
       },
       warnings: [
         "STEP LWG-4D is backend foundation only: no entries, tickets, draws or wheel claims yet."
@@ -1034,7 +1210,12 @@ function init(ctx = {}) {
 
     if (ctx && ctx.app) registerRoutes(ctx.app);
 
-    console.log(`[${MODULE_NAME}] loaded v${MODULE_VERSION} enabled=true`);
+
+    moduleBusHandle = createCommunicationBusHandle(MODULE_META, buildStatus);
+    const moduleBusStart = moduleBusHandle.start();
+    state.eventBusReady = moduleBusStart && moduleBusStart.ok === true;
+
+    console.log(`[${MODULE_NAME}] loaded v${MODULE_VERSION} enabled=true communicationBus=${state.eventBusReady ? "ready" : "unavailable"}`);
   } catch (err) {
     state.lastError = err && err.message ? err.message : String(err);
     state.schemaReady = false;

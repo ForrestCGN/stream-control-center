@@ -1,46 +1,20 @@
 # Loyalty Giveaways Modul
 
 Stand: 2026-06-08  
-Version: Backend 0.1.0 / Dashboard LWG-4E  
-STEP: LWG-4E
+STEP: LWG-4F.1
 
-## Zweck
+## Bus-Standard
 
-`loyalty_giveaways` ist das Backend-Grundsystem fuer Verlosungen im Loyalty-Hauptbereich.
-
-## Dashboard
-
-Pfad:
+`loyalty_giveaways` nutzt direkt den vorhandenen Communication-/CanBus:
 
 ```text
-Loyalty -> Loyalty Games -> Giveaways
+require("./communication_bus").getBus()
 ```
 
-Funktionen:
+Das Modul registriert sich als:
 
 ```text
-- Giveaways anzeigen
-- Giveaway erstellen
-- Draft bearbeiten
-- Giveaway kopieren
-- Giveaway öffnen
-- Teilnahme schließen
-- Giveaway beenden
-- Giveaway abbrechen
-- Giveaway löschen
-- Gewinne/Runden/Events anzeigen
+module:loyalty_giveaways
 ```
 
-## Noch nicht umgesetzt
-
-```text
-- Tickets
-- Gewinnerziehung
-- Rad-Berechtigung
-- Punktebuchung
-- Reward-Ausfuehrung
-```
-
-## Fairness
-
-LWG-4E zieht noch keine Gewinner. Spaetere Gewinnerziehung darf nur backendseitig per crypto.randomInt erfolgen.
+und sendet Heartbeats/Status ueber die vorhandenen Bus-Funktionen.

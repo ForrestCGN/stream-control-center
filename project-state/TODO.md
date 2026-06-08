@@ -4,11 +4,9 @@ Stand: 2026-06-08
 
 ## Erledigt
 
-- [x] LWG-4E Giveaway Dashboard Editor
+- [x] LWG-4F.1 Loyalty Modules Use Existing Communication Bus
 
 ## Offen
 
-- [ ] LWG-4E Live-Test
-- [ ] LWG-4F Entries/Tickets Backend
-- [ ] LWG-4G Gewinnerziehung ohne Rad
-- [ ] LWG-4H Gewinnerziehung mit Rad
+- [ ] LWG-4F.1 Live-Test
+- [ ] Loyalty Dashboard Home mit Ampel-Kacheln

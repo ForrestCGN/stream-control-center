@@ -1,35 +1,20 @@
 # Loyalty Games Modul
 
 Stand: 2026-06-08  
-STEP: LWG-4C.1
+STEP: LWG-4F.1
 
-## Zweck
+## Bus-Standard
 
-Loyalty Games enthaelt aktuell Gluecksrad, Presets, Felder und Dreh-Verlauf.
-
-## Neue Regel LWG-4C.1
+`loyalty_games` nutzt direkt den vorhandenen Communication-/CanBus:
 
 ```text
-- Feld: Gesamtmenge eintragen, Standard 1.
-- Restmenge wird automatisch berechnet.
-- Gewinn nach Auslosung entfernen ist global pro Preset.
-- Per-Feld-Remove-Option wird nicht mehr im Dashboard angeboten.
+require("./communication_bus").getBus()
 ```
 
-## API-Ergaenzung
+Das Modul registriert sich als:
 
 ```text
-PUT /api/loyalty/games/wheel/presets/:presetUid
+module:loyalty_games
 ```
 
-Speichert editierbare Preset-Einstellungen.
-
-
-## Bezug zu Giveaways
-
-Seit LWG-4D existiert `backend/modules/loyalty_giveaways.js` als eigener Loyalty-Unterbereich. Wheel/Presets bleiben eigenständig und werden spaeter von Giveaways genutzt.
-
-
-## LWG-4E Hinweis
-
-Das Dashboard enthaelt jetzt zusaetzlich den Tab `Giveaways`. Tickets und Gewinnerziehung sind noch nicht umgesetzt.
+und sendet Heartbeats/Status ueber die vorhandenen Bus-Funktionen.

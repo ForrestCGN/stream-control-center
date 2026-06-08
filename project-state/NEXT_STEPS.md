@@ -5,14 +5,11 @@ Stand: 2026-06-08
 ## Naechster sinnvoller Schritt
 
 ```text
-LWG-4F – Entries/Tickets Backend
+Loyalty Dashboard Home / Ampel-Kacheln
 ```
 
-## Fokus
+Grundlage:
 
 ```text
-- Teilnahme/Tickets speichern
-- Ticketkosten vorbereiten
-- Free Ticket / Max Tickets / Sub-only vorbereiten
-- noch keine Gewinnerziehung
+/api/communication/status
 ```
