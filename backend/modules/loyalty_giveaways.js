@@ -3,8 +3,8 @@
 /**
  * Loyalty Giveaways module.
  *
- * STEP LWG-4L.1:
- * - Runtime-Bruecke fuer Chat-Commands vorbereitet.
+ * STEP LWG-4L.2:
+ * - Zentrale command_definitions fuer !ticket / !wheel vorbereitet.
  * - Commands bleiben bewusst deaktiviert.
  * - Keine Punktebuchung, keine automatische Twitch-Command-Aktivierung.
  * - Bestehende Giveaway-/Wheel-Grundlage bleibt unveraendert.
@@ -18,7 +18,7 @@ const database = require("../core/database");
 
 const MODULE_NAME = "loyalty_giveaways";
 const MODULE_VERSION = "0.1.0";
-const MODULE_BUILD = "STEP_LWG_4L_1";
+const MODULE_BUILD = "STEP_LWG_4L_2";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -43,6 +43,51 @@ const CHAT_COMMAND_DEFINITIONS = [
     active: false,
     description: "!wheel / !rad – Rad-Claim nur fuer Gewinner mit offener Permission. Noch nicht aktiv.",
     usage: "!wheel"
+  }
+];
+
+const CENTRAL_COMMAND_DEFINITIONS = [
+  {
+    trigger: "ticket",
+    aliases: [],
+    moduleKey: MODULE_NAME,
+    actionKey: "chat_command_runtime",
+    targetMethod: "POST",
+    targetUrl: "/api/loyalty/giveaways/runtime/chat-command",
+    enabled: false,
+    permissionLevel: "everyone",
+    cooldownGlobalMs: 1000,
+    cooldownUserMs: 3000,
+    liveOnly: false,
+    responseMode: "module",
+    config: {
+      seededBy: "STEP_LWG_4L_2",
+      actionType: "module_command",
+      moduleCommand: "ticket",
+      rawInputMode: true,
+      activationState: "prepared_disabled"
+    }
+  },
+  {
+    trigger: "wheel",
+    aliases: ["rad"],
+    moduleKey: MODULE_NAME,
+    actionKey: "chat_command_runtime",
+    targetMethod: "POST",
+    targetUrl: "/api/loyalty/giveaways/runtime/chat-command",
+    enabled: false,
+    permissionLevel: "everyone",
+    cooldownGlobalMs: 1000,
+    cooldownUserMs: 3000,
+    liveOnly: false,
+    responseMode: "module",
+    config: {
+      seededBy: "STEP_LWG_4L_2",
+      actionType: "module_command",
+      moduleCommand: "wheel",
+      rawInputMode: true,
+      activationState: "prepared_disabled"
+    }
   }
 ];
 
@@ -2104,6 +2149,140 @@ function seedChatCommandDefinitions() {
   return { ok: true, inserted };
 }
 
+
+function safeParseJson(value, fallback = null) {
+  if (value === undefined || value === null || value === '') return fallback;
+  try { return JSON.parse(String(value)); } catch (_) { return fallback; }
+}
+
+function commandSystemTableAvailable() {
+  try {
+    ensureSchema();
+    const row = database.get("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'command_definitions'");
+    return !!row;
+  } catch (_) {
+    return false;
+  }
+}
+
+function rowToCentralCommand(row) {
+  if (!row) return null;
+  return {
+    id: Number(row.id || 0),
+    trigger: row.trigger || "",
+    aliases: safeParseJson(row.aliases_json, []),
+    moduleKey: row.module_key || "",
+    actionKey: row.action_key || "",
+    targetMethod: row.target_method || "POST",
+    targetUrl: row.target_url || "",
+    enabled: Number(row.enabled || 0) === 1,
+    permissionLevel: row.permission_level || "everyone",
+    cooldownGlobalMs: Number(row.cooldown_global_ms || 0),
+    cooldownUserMs: Number(row.cooldown_user_ms || 0),
+    liveOnly: Number(row.live_only || 0) === 1,
+    responseMode: row.response_mode || "module",
+    config: safeParseJson(row.config_json, {}),
+    createdAt: row.created_at || "",
+    updatedAt: row.updated_at || ""
+  };
+}
+
+function seedCentralCommandDefinitions() {
+  ensureSchema();
+  if (!commandSystemTableAvailable()) {
+    return {
+      ok: false,
+      available: false,
+      inserted: 0,
+      existing: 0,
+      count: 0,
+      commands: [],
+      warning: "Zentrales command_definitions-System ist noch nicht verfuegbar. Commands-Modul muss zuerst geladen sein."
+    };
+  }
+
+  const now = nowIso();
+  let inserted = 0;
+  let existing = 0;
+
+  for (const definition of CENTRAL_COMMAND_DEFINITIONS) {
+    const current = database.get("SELECT id FROM command_definitions WHERE trigger = :trigger", { trigger: definition.trigger });
+    if (current && current.id) {
+      existing += 1;
+      continue;
+    }
+
+    const result = database.run(`
+      INSERT INTO command_definitions (
+        trigger, aliases_json, module_key, action_key, target_method, target_url,
+        enabled, permission_level, cooldown_global_ms, cooldown_user_ms, live_only,
+        response_mode, config_json, created_at, updated_at
+      ) VALUES (
+        :trigger, :aliasesJson, :moduleKey, :actionKey, :targetMethod, :targetUrl,
+        :enabled, :permissionLevel, :cooldownGlobalMs, :cooldownUserMs, :liveOnly,
+        :responseMode, :configJson, :createdAt, :updatedAt
+      )
+    `, {
+      trigger: definition.trigger,
+      aliasesJson: json(definition.aliases || []),
+      moduleKey: definition.moduleKey || MODULE_NAME,
+      actionKey: definition.actionKey || "chat_command_runtime",
+      targetMethod: definition.targetMethod || "POST",
+      targetUrl: definition.targetUrl || "/api/loyalty/giveaways/runtime/chat-command",
+      enabled: definition.enabled ? 1 : 0,
+      permissionLevel: definition.permissionLevel || "everyone",
+      cooldownGlobalMs: Math.max(0, Number(definition.cooldownGlobalMs || 0)),
+      cooldownUserMs: Math.max(0, Number(definition.cooldownUserMs || 0)),
+      liveOnly: definition.liveOnly ? 1 : 0,
+      responseMode: definition.responseMode || "module",
+      configJson: json(definition.config || {}),
+      createdAt: now,
+      updatedAt: now
+    });
+    inserted += Number(result && result.changes ? result.changes : 0);
+  }
+
+  return listCentralCommandDefinitions({ inserted, existing });
+}
+
+function listCentralCommandDefinitions(extra = {}) {
+  ensureSchema();
+  if (!commandSystemTableAvailable()) {
+    return {
+      ok: false,
+      available: false,
+      inserted: Number(extra.inserted || 0),
+      existing: Number(extra.existing || 0),
+      count: 0,
+      commands: [],
+      warning: "Zentrales command_definitions-System ist noch nicht verfuegbar."
+    };
+  }
+
+  const triggers = CENTRAL_COMMAND_DEFINITIONS.map(item => item.trigger);
+  const rows = database.all(`
+    SELECT *
+    FROM command_definitions
+    WHERE trigger IN (${triggers.map((_, index) => `:trigger${index}`).join(', ')})
+    ORDER BY trigger ASC
+  `, triggers.reduce((acc, trigger, index) => {
+    acc[`trigger${index}`] = trigger;
+    return acc;
+  }, {})).map(rowToCentralCommand);
+
+  return {
+    ok: true,
+    available: true,
+    active: CHAT_COMMANDS_ACTIVE,
+    commandsActive: CHAT_COMMANDS_ACTIVE,
+    inserted: Number(extra.inserted || 0),
+    existing: Number(extra.existing || Math.max(0, rows.length - Number(extra.inserted || 0))),
+    count: rows.length,
+    commands: rows,
+    note: "Zentrale Commands !ticket, !wheel und Alias !rad sind vorbereitet, aber enabled=false."
+  };
+}
+
 function seedChatTextVariants() {
   try {
     textHelper.seedModuleTextVariants(TEXT_MODULE, CHAT_TEXT_DEFAULTS, {
@@ -2251,7 +2430,7 @@ function buildCommandRuntimeResponse(input = {}, patch = {}) {
     shouldSendChat: Boolean(message),
     error: patch.error || "",
     data: patch.data || {},
-    note: patch.note || "Runtime-Bruecke vorbereitet. Chat-Commands bleiben in LWG-4L.1 bewusst deaktiviert."
+    note: patch.note || "Runtime-Bruecke vorbereitet. Chat-Commands bleiben in LWG-4L.2 bewusst deaktiviert."
   };
 }
 
@@ -2405,8 +2584,11 @@ function counts() {
   const wheelPermissions = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_wheel_permissions WHERE status = 'pending'")?.count || 0);
   const events = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_events")?.count || 0);
   const commandDefinitions = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_command_definitions")?.count || 0);
+  const centralCommandDefinitions = commandSystemTableAvailable()
+    ? Number(database.get("SELECT COUNT(*) AS count FROM command_definitions WHERE module_key = :moduleKey AND trigger IN ('ticket', 'wheel')", { moduleKey: MODULE_NAME })?.count || 0)
+    : 0;
   const chatTextVariants = Number(database.get("SELECT COUNT(*) AS count FROM module_text_variants WHERE module_name = :moduleName", { moduleName: TEXT_MODULE })?.count || 0);
-  return { total, draft, open, finished, deleted, prizes, entries, winners, wheelPermissions, events, commandDefinitions, chatTextVariants };
+  return { total, draft, open, finished, deleted, prizes, entries, winners, wheelPermissions, events, commandDefinitions, centralCommandDefinitions, chatTextVariants };
 }
 
 function buildStatus() {
@@ -2430,6 +2612,7 @@ function buildStatus() {
       schemaReady: !!state.schemaReady,
       lastError: state.lastError,
       counts: state.schemaReady ? counts() : {},
+      centralCommands: state.schemaReady ? listCentralCommandDefinitions() : { ok: false, available: false },
       database: databaseStatus(),
       eventBus: {
         ready: !!state.eventBusReady,
@@ -2437,8 +2620,8 @@ function buildStatus() {
         moduleBus: moduleBusHandle && typeof moduleBusHandle.getState === "function" ? moduleBusHandle.getState() : null
       },
       warnings: [
-        "Chat-Commands !ticket, !wheel und !rad sind eingetragen, aber bewusst nicht aktiv.",
-        "Keine Twitch-Command-Ausfuehrung in LWG-4L.1."
+        "Chat-Commands !ticket, !wheel und !rad sind intern eingetragen und zentral vorbereitet, aber bewusst nicht aktiv.",
+        "Keine Twitch-Command-Aktivierung und keine Punktebuchung in LWG-4L.2."
       ],
       errors: state.lastError ? [state.lastError] : []
     }
@@ -2451,6 +2634,10 @@ function registerRoutes(app) {
   // Static routes must be registered before /api/loyalty/giveaways/:giveawayUid.
   registered.push(...routes.registerGet(app, "/api/loyalty/giveaways/commands", core.asyncRoute(async (req, res) => {
     return core.sendOk(res, listChatCommandDefinitions());
+  })));
+
+  registered.push(...routes.registerGet(app, "/api/loyalty/giveaways/central-commands", core.asyncRoute(async (req, res) => {
+    return core.sendOk(res, seedCentralCommandDefinitions());
   })));
 
   registered.push(...routes.registerGet(app, "/api/loyalty/giveaways/texts", core.asyncRoute(async (req, res) => {
@@ -2477,6 +2664,7 @@ function registerRoutes(app) {
     "GET /api/loyalty/giveaways/routes",
     "POST /api/loyalty/giveaways/runtime/chat-command",
     "POST /api/loyalty/giveaways/runtime/command",
+    "GET /api/loyalty/giveaways/central-commands",
     "GET /api/loyalty/giveaways",
     "GET /api/loyalty/giveaways/:giveawayUid",
     "POST /api/loyalty/giveaways",
@@ -2641,6 +2829,7 @@ function init(ctx = {}) {
     state.eventBusReady = !!eventBus;
     database.ensureReady(ctx);
     ensureSchema();
+    seedCentralCommandDefinitions();
 
     if (ctx && ctx.app) registerRoutes(ctx.app);
 
@@ -2681,6 +2870,8 @@ module.exports = {
     listWheelPermissions,
     claimWheelSpin,
     handleChatCommandRuntime,
+    seedCentralCommandDefinitions,
+    listCentralCommandDefinitions,
     listChatCommandDefinitions,
     getChatTextEditorPayload
   }
