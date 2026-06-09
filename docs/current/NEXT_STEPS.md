@@ -1,40 +1,30 @@
 # NEXT_STEPS – Loyalty Giveaways / Glücksrad
 
-## Nächster technischer Schritt
+## Nächster Schritt
 
-### LWG-4M.5 – Bound Wheel aktivieren und beim Claim verwenden
+### LWG-4M.5 live testen
 
-Ausgangslage:
-- `LWG-4M.4` erzeugt bereits ein bound Wheel pro Wheel-Giveaway.
-- Das Bound Wheel steht aktuell noch auf `draft`.
-- Bestehender Wheel-Claim funktioniert grundsätzlich, muss aber auf die gebundene Konfiguration umgestellt/abgesichert werden.
+Vorher:
 
-Ziele:
-1. Bound-Wheel-Status sauber machen.
-2. Draw/Permission auf `wheelSnapshotUid`/BoundWheel ausrichten.
-3. Claim per `!wheel`/`!rad` nutzt das Bound-Wheel.
-4. Globale Wheel-Spins bleiben getrennt.
+```powershell
+node -c .\backend\modules\loyalty_giveaways.js
+.\stepdone.cmd "STEP LWG-4M.5 Bound Wheel aktivieren und beim Claim/Spin verwenden"
+```
 
-## Vorgeschlagene Reihenfolge
-
-1. Aktuellen Code `backend/modules/loyalty_giveaways.js` aus LWG-4M.4 als Basis nehmen.
-2. Prüfen, wie `drawWinner` aktuell Wheel-Permission erzeugt.
-3. Prüfen, wie `claimWheelSpin` aktuell `wheelPresetUid` an `loyalty_games._private.startWheelSpin()` übergibt.
-4. Guard einbauen:
-   - Wheel-Giveaway ohne Bound-Wheel darf nicht Draw/Claim ausführen.
-   - Permission muss Bound-Wheel referenzieren.
-5. Test-ZIP erstellen.
-6. StepDone vor Test.
-7. Live-Test:
-   - Wheel-Giveaway erstellen.
-   - Bound-Wheel prüfen.
-   - Giveaway öffnen.
-   - Ticket eintragen.
-   - Close.
-   - Draw.
-   - Permission prüfen.
-   - `!wheel`/Claim ausführen.
-   - Prüfen, dass Spin mit Bound-Wheel-Kontext protokolliert wurde.
+Testfolge:
+1. Wheel-Giveaway mit aktivem globalem Preset erstellen.
+2. Bound-Wheel abrufen:
+   - `GET /api/loyalty/giveaways/:giveawayUid/wheel/bound`
+   - erwartet im Draft: `status=draft`.
+3. Giveaway öffnen.
+4. Bound-Wheel erneut abrufen:
+   - erwartet: `status=active`, `locked=true`.
+5. Ticket eintragen.
+6. Close ausführen.
+7. Draw ausführen.
+8. Wheel-Permission prüfen.
+9. Claim ausführen.
+10. Prüfen, dass Spin mit Bound-Wheel-Kontext protokolliert wurde.
 
 ## Danach
 
@@ -42,4 +32,4 @@ Ziele:
 Dashboard UI für Giveaway-Wheel-Dropdown.
 
 ### LWG-4M.7
-Preset-/Wheel-Editor Modal mit Kontext `global` oder `giveaway`.
+Entscheidung/Umsetzung für echten Bound-Wheel-Field-Snapshot, damit globale Preset-Änderungen laufende Giveaway-Wheels nicht mehr beeinflussen.

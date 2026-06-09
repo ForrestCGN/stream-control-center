@@ -1,7 +1,33 @@
 # CHANGELOG – Loyalty Giveaways / Glücksrad
 
+## LWG-4M.5 – Bound Wheel aktivieren und beim Claim/Spin verwenden
+Datum: 2026-06-09 08:31:22 UTC
+
+### Added
+- `BOUND_WHEEL_STATUS` für Bound-Wheel-Lifecycle.
+- Guard `getUsableBoundWheelForGiveaway()`.
+- Aktivierung `activateBoundWheelForGiveawayRow()` beim Öffnen eines Wheel-Giveaways.
+- Draw-Guard auf aktives Bound-Wheel.
+- Permission-Metadata mit Bound-Wheel-Kontext.
+- Claim-Guard gegen Permission-/Bound-Wheel-Mismatch.
+- Spin-Start mit `source=giveaway_bound_wheel` und `sourceRefUid=<boundWheelUid>`.
+
+### Changed
+- `MODULE_BUILD` auf `STEP_LWG_4M_5`.
+- Route-Liste ergänzt Bound-Wheel-Routen.
+- `winner_drawn` Event-Payload korrigiert, damit wieder ein Objekt statt eines falschen String-Payloads published wird.
+
+### Not changed
+- Keine Punktebuchung.
+- Keine Command-Aktivierung.
+- Keine Dashboard-UI.
+- Kein Streamer.bot.
+
+### Notes
+- Live-Test steht noch aus.
+- Der aktuelle Spin nutzt technisch noch die Field-Basis des `sourcePresetUid`, wird aber eindeutig als Giveaway-bound Spin markiert. Ein echter Field-Snapshot ist als Folgeschritt LWG-4M.7 dokumentiert.
+
 ## LWG-4M.4 – Giveaway-bound Wheel Foundation
-Datum: 2026-06-09 08:21:19 UTC
 
 ### Added
 - Backend-Grundlage für giveaway-gebundene Wheels.
@@ -9,37 +35,3 @@ Datum: 2026-06-09 08:21:19 UTC
 - Automatische Erstellung eines Bound-Wheels bei Wheel-Giveaway.
 - `GET /api/loyalty/giveaways/:giveawayUid/wheel/bound`
 - `PUT /api/loyalty/giveaways/:giveawayUid/wheel/bound`
-
-### Confirmed
-- Bound Wheel wird mit `scope=giveaway` erzeugt.
-- Bound Wheel speichert `sourcePresetUid`.
-- Giveaway speichert `wheelSnapshotUid`.
-- Bound-Wheel-Name wird aus Giveaway-Titel gebildet.
-- Bearbeitung im Giveaway-Kontext funktioniert.
-- Nach `open` bleibt Bound Wheel stabil.
-
-### Notes
-- Bound-Wheel-Claim/Spin ist noch nicht final abgeschlossen.
-- Bound-Wheel-Status ist aktuell noch `draft`.
-
-## LWG-4M.3 – Close Chat Dispatch
-
-### Added
-- `/close` versucht, `giveaway.closed` über `twitch_presence.sendChatMessage()` zu senden.
-- Chatfehler blockieren den Statuswechsel nicht.
-
-### Confirmed
-- Nicht verbundene Twitch Presence liefert `twitch_chat_not_connected`.
-- Giveaway wird trotzdem geschlossen.
-
-## LWG-4M.2 – Close + Draw Guard
-
-### Added
-- `/close` Alias für `/close-entries`.
-- Draw aus `open` wird blockiert.
-- Draw erst nach `closed_for_entries`.
-
-### Confirmed
-- Draw aus `open` blockiert.
-- Close funktioniert.
-- Draw nach Close funktioniert.
