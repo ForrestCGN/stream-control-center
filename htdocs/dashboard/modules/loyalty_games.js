@@ -405,7 +405,7 @@ window.LoyaltyGamesModule = (function(){
           quantityTotal: Number(data.get('quantityTotal') || 1),
           rewardType: data.get('rewardType') || 'manual',
           rewardValue: data.get('rewardValue') || '',
-          enabled: data.get('enabled') === 'on',
+          enabled: true,
           sortOrder: Number(data.get('sortOrder') || 1)
         }
       };
@@ -461,7 +461,7 @@ window.LoyaltyGamesModule = (function(){
         quantityTotal: Number(data.get('quantityTotal') || 1),
         rewardType: data.get('rewardType') || 'manual',
         rewardValue: data.get('rewardValue') || '',
-        enabled: data.get('enabled') === 'on'
+        enabled: true
       });
       await refreshPresets(presetUid);
       setMessage('Feld wurde hinzugefügt.');
@@ -486,7 +486,7 @@ window.LoyaltyGamesModule = (function(){
         quantityTotal: Number(data.get('quantityTotal') || 1),
         rewardType: data.get('rewardType') || 'manual',
         rewardValue: data.get('rewardValue') || '',
-        enabled: data.get('enabled') === 'on',
+        enabled: true,
         sortOrder: Number(data.get('sortOrder') || 1)
       });
       await refreshPresets(presetUid);
@@ -1113,7 +1113,7 @@ window.LoyaltyGamesModule = (function(){
               <p class="lg-eyebrow">${isGiveawayContext ? 'Giveaway / Glücksrad-Editor' : 'Glücksrad / Preset-Editor'}</p>
               <h3>${title}</h3>
               <p class="lg-muted">${introText}</p>
-              ${isGiveawayContext ? `<p class="lg-muted">Dieses Glücksrad ist erst bereit, wenn mindestens ein aktives gültiges Feld vorhanden ist.</p>` : ''}
+              ${isGiveawayContext ? `<p class="lg-muted">Dieses Glücksrad ist erst bereit, wenn mindestens ein gültiges Feld vorhanden ist.</p>` : ''}
             </div>
             <button class="lg-btn lg-btn-secondary" type="button" data-lg-close-preset-editor>Schließen</button>
           </div>
@@ -1286,7 +1286,6 @@ window.LoyaltyGamesModule = (function(){
               <option value="bonus_spin">bonus_spin</option>
             </select>
             <input name="rewardValue" placeholder="Reward-Wert">
-            <label class="lg-check"><input name="enabled" type="checkbox" checked> aktiv</label>
             <button class="lg-btn" type="submit" ${state.saving ? 'disabled' : ''}>Feld hinzufügen</button>
           </form>
         ` : ''}
@@ -1297,7 +1296,6 @@ window.LoyaltyGamesModule = (function(){
               <div class="lg-field-top">
                 <strong>${esc(field.label)}</strong>
                 <code>${esc(field.fieldUid)}</code>
-                ${field.enabled ? badge(true, 'Aktiv') : badge(false, 'Aktiv', 'Aus')}
               </div>
               <div class="lg-field-grid">
                 <label>Reihenfolge<input name="sortOrder" type="number" value="${esc(field.sortOrder || 1)}" ${editable ? '' : 'disabled'}></label>
@@ -1314,7 +1312,6 @@ window.LoyaltyGamesModule = (function(){
                 <label>Reward-Wert<input name="rewardValue" value="${esc(field.rewardValue || '')}" ${editable ? '' : 'disabled'}></label>
               </div>
               <div class="lg-field-actions">
-                <label class="lg-check"><input name="enabled" type="checkbox" ${field.enabled ? 'checked' : ''} ${editable ? '' : 'disabled'}> aktiv</label>
                 ${editable ? `<button class="lg-btn lg-btn-danger" type="button" data-lg-delete-field="${esc(field.fieldUid)}">Entfernen</button>` : ''}
               </div>
             </div>
