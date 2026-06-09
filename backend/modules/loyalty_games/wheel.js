@@ -46,6 +46,16 @@ function createWheelGame(options = {}) {
   }
 
   function getFields(input = {}) {
+    const directFields = Array.isArray(input.fields) ? input.fields : (Array.isArray(input.boundWheelFields) ? input.boundWheelFields : null);
+    if (directFields) {
+      return {
+        ok: true,
+        preset: null,
+        minVisibleSlots: shared.clampInt(input.minVisibleSlots || input.min_visible_slots, config.minVisibleSlots || 12, 1, 96),
+        fields: shared.normalizeFields(directFields)
+      };
+    }
+
     const presetUid = String(input.presetUid || input.preset || "").trim();
     if (presetUid && presetStore && typeof presetStore.getPresetFieldsForSpin === "function") {
       const loaded = presetStore.getPresetFieldsForSpin(presetUid);
@@ -144,7 +154,7 @@ function createWheelGame(options = {}) {
       });
     }
 
-    if (active.presetUid && active.selectedFieldUid && presetStore && typeof presetStore.decrementFieldAfterWin === "function") {
+    if (active.presetUid && active.source !== "giveaway_bound_wheel" && active.selectedFieldUid && presetStore && typeof presetStore.decrementFieldAfterWin === "function") {
       presetStore.decrementFieldAfterWin(active.selectedFieldUid);
     }
 
@@ -177,7 +187,14 @@ function createWheelGame(options = {}) {
       }
 
       const presetUid = String(input.presetUid || input.preset || "").trim();
-      const fieldsResult = getFields({ presetUid });
+      const source = String(input.source || (presetUid ? "preset_api" : "api")).trim() || "api";
+      const sourceRefUid = String(input.sourceRefUid || input.source_ref_uid || "").trim();
+      const fieldsResult = getFields({
+        presetUid,
+        fields: Array.isArray(input.fields) ? input.fields : undefined,
+        boundWheelFields: Array.isArray(input.boundWheelFields) ? input.boundWheelFields : undefined,
+        minVisibleSlots: input.minVisibleSlots || input.min_visible_slots
+      });
       if (!fieldsResult.ok) {
         return { ok: false, error: fieldsResult.error || "wheel_preset_load_failed", statusCode: fieldsResult.statusCode || 409, preset: fieldsResult.preset };
       }
@@ -199,16 +216,18 @@ function createWheelGame(options = {}) {
       const extraTurns = shared.parseExtraTurns(config.spin);
       const login = shared.normalizeLogin(input.login || input.user || input.userLogin || "");
       const displayName = shared.cleanDisplayName(login, input.displayName || input.display || input.userDisplayName || "");
-      const source = String(input.source || (presetUid ? "preset_api" : "api")).trim() || "api";
       const sessionUid = shared.uid("wheel");
-      const spinUid = presetUid ? shared.uid("spin") : "";
+      const spinUid = (presetUid || source === "giveaway_bound_wheel" || input.forceSpinUid === true) ? shared.uid("spin") : "";
       const startedAt = nowIso();
       const endsAt = new Date(Date.parse(startedAt) + durationMs).toISOString();
       const costAmount = config.cost.enabled ? Number(config.cost.amount || 0) : 0;
       const totalWeight = fields.reduce((sum, field) => sum + shared.normalizeWeight(field.weight), 0);
 
+      const inputMetadata = input.metadata && typeof input.metadata === "object" ? input.metadata : {};
       const metadata = {
+        ...inputMetadata,
         inputSource: source,
+        sourceRefUid,
         backendRandom: true,
         randomMethod: "crypto.randomInt",
         selectedNormalizedIndex,
@@ -219,7 +238,9 @@ function createWheelGame(options = {}) {
         totalWeight,
         extraTurns,
         presetUid,
-        note: "STEP LWG-4B records preset spins and does not book points or execute rewards yet."
+        note: source === "giveaway_bound_wheel"
+          ? "STEP LWG-4N.7 uses giveaway bound-wheel fields for runtime spin and does not book points or execute rewards yet."
+          : "STEP LWG-4B records preset spins and does not book points or execute rewards yet."
       };
 
       const session = typeof db.insertSession === "function" ? db.insertSession({
@@ -239,13 +260,13 @@ function createWheelGame(options = {}) {
         metadata
       }) : null;
 
-      if (presetUid && presetStore && typeof presetStore.recordSpinStarted === "function") {
+      if (presetUid && source !== "giveaway_bound_wheel" && presetStore && typeof presetStore.recordSpinStarted === "function") {
         presetStore.recordSpinStarted({
           spinUid,
           sessionUid,
           presetUid,
           sourceType: source,
-          sourceRefUid: String(input.sourceRefUid || "").trim(),
+          sourceRefUid,
           login,
           displayName,
           status: "running",
@@ -263,6 +284,8 @@ function createWheelGame(options = {}) {
         sessionUid,
         spinUid,
         presetUid,
+        source,
+        sourceRefUid,
         status: "running",
         timer: setTimeout(() => finishActive(sessionUid), durationMs),
         startedAt,
@@ -284,6 +307,8 @@ function createWheelGame(options = {}) {
         sessionUid,
         spinUid,
         presetUid,
+        source,
+        sourceRefUid,
         durationMs,
         extraTurns,
         startedAt,
@@ -315,6 +340,8 @@ function createWheelGame(options = {}) {
         sessionUid,
         spinUid,
         presetUid,
+        source,
+        sourceRefUid,
         durationMs,
         extraTurns,
         startedAt,

@@ -1,5 +1,5 @@
 # TODO
 
-- Runtime später auf echte Bound-Wheel-Felder umstellen, falls noch nicht vollständig umgesetzt.
-- Detailansicht/Statistiken später weiter vereinfachen.
-- Command-Setup-Prüfung später unter Config ergänzen.
+- Runtime-Test LWG-4N.7 durchführen.
+- Gewinner-/Spin-Ergebnis in Kacheln später nutzerfreundlicher anzeigen.
+- Keine Punktebuchung/Reward-Ausführung in diesem Step.

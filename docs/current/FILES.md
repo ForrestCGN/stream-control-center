@@ -1,3 +1,4 @@
-# Files – LWG-4N.6f
+# Files
 
-- htdocs/dashboard/modules/loyalty_games.js
+- backend/modules/loyalty_giveaways.js
+- backend/modules/loyalty_games/wheel.js

@@ -18,7 +18,7 @@ const database = require("../core/database");
 
 const MODULE_NAME = "loyalty_giveaways";
 const MODULE_VERSION = "0.1.0";
-const MODULE_BUILD = "STEP_LWG_4N_1B";
+const MODULE_BUILD = "STEP_LWG_4N_7";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -1308,6 +1308,106 @@ function deleteBoundWheelField(giveawayUid, fieldUid, input = {}) {
 }
 
 
+function boundWheelFieldToSpinField(field, index = 0) {
+  const source = field && typeof field === "object" ? field : {};
+  const fieldUid = String(source.fieldUid || source.field_uid || source.idForWheel || source.id || `gfield_${index + 1}`).trim() || `gfield_${index + 1}`;
+  return {
+    id: fieldUid,
+    fieldUid,
+    boundWheelUid: String(source.boundWheelUid || source.bound_wheel_uid || "").trim(),
+    giveawayUid: String(source.giveawayUid || source.giveaway_uid || "").trim(),
+    sourcePresetUid: String(source.sourcePresetUid || source.source_preset_uid || "").trim(),
+    sourceFieldUid: String(source.sourceFieldUid || source.source_field_uid || "").trim(),
+    label: String(source.label || "Gewinn").trim() || "Gewinn",
+    sub: String(source.subLabel || source.sub || source.sub_label || "").trim(),
+    enabled: source.enabled !== false,
+    weight: clampInt(source.weight, 1, 1, 999999),
+    quantityTotal: clampInt(source.quantityTotal ?? source.quantity_total ?? 0, 0, 0, 999999),
+    quantityRemaining: clampInt(source.quantityRemaining ?? source.quantity_remaining ?? source.quantityTotal ?? source.quantity_total ?? 0, 0, 0, 999999),
+    removeAfterWin: source.removeAfterWin === true || source.remove_after_win === true || source.remove_after_win === 1,
+    reward: {
+      type: String(source.rewardType || source.reward_type || source.reward?.type || "none").trim() || "none",
+      value: String(source.rewardValue ?? source.reward_value ?? source.reward?.value ?? source.reward?.amount ?? "").trim()
+    },
+    colorA: String(source.colorA || source.color_a || "").trim(),
+    colorB: String(source.colorB || source.color_b || "").trim(),
+    metadata: source.metadata && typeof source.metadata === "object" ? { ...source.metadata } : {}
+  };
+}
+
+function listUsableBoundWheelSpinFields(giveawayUid) {
+  const fieldsResult = listBoundWheelFields(giveawayUid, { limit: 500 });
+  if (!fieldsResult.ok) return fieldsResult;
+  const rows = Array.isArray(fieldsResult.rows) ? fieldsResult.rows : [];
+  const usableRows = rows.filter(field =>
+    field &&
+    field.enabled !== false &&
+    !field.deletedAt &&
+    String(field.label || "").trim() &&
+    Number(field.weight || 0) > 0 &&
+    (Number(field.quantityRemaining || 0) > 0 || Number(field.quantityTotal || 0) === 0)
+  );
+  return {
+    ok: true,
+    count: usableRows.length,
+    rows: usableRows,
+    fields: usableRows.map((field, index) => boundWheelFieldToSpinField(field, index)),
+    boundWheel: fieldsResult.boundWheel || null
+  };
+}
+
+function decrementBoundWheelFieldAfterSpin(giveawayUid, fieldUid, input = {}) {
+  ensureSchema();
+  const cleanGiveawayUid = String(giveawayUid || "").trim();
+  const cleanFieldUid = String(fieldUid || "").trim();
+  if (!cleanGiveawayUid || !cleanFieldUid) return { ok: true, changed: false, reason: "missing_field_uid" };
+
+  const boundWheel = getBoundWheelByGiveaway(cleanGiveawayUid);
+  if (!boundWheel) return { ok: false, error: "bound_wheel_not_found", statusCode: 404 };
+
+  const field = database.get(`
+    SELECT *
+    FROM loyalty_giveaway_bound_wheel_fields
+    WHERE field_uid = :fieldUid
+      AND bound_wheel_uid = :boundWheelUid
+      AND deleted_at = ''
+  `, { fieldUid: cleanFieldUid, boundWheelUid: boundWheel.boundWheelUid });
+  if (!field) return { ok: false, error: "bound_wheel_field_not_found", statusCode: 404 };
+
+  const total = clampInt(field.quantity_total, 0, 0, 999999);
+  const remaining = clampInt(field.quantity_remaining, total, 0, 999999);
+  const removeAfterWin = Number(field.remove_after_win || 0) === 1;
+  if (total <= 0 && !removeAfterWin) return { ok: true, changed: false, reason: "unlimited_field" };
+
+  const nextRemaining = removeAfterWin ? 0 : Math.max(0, remaining - 1);
+  const now = nowIso();
+  const meta = parseJson(field.metadata_json, {});
+  database.run(`
+    UPDATE loyalty_giveaway_bound_wheel_fields
+    SET quantity_remaining = :quantityRemaining,
+        updated_at = :updatedAt,
+        metadata_json = :metadataJson
+    WHERE field_uid = :fieldUid
+      AND bound_wheel_uid = :boundWheelUid
+  `, {
+    fieldUid: cleanFieldUid,
+    boundWheelUid: boundWheel.boundWheelUid,
+    quantityRemaining: nextRemaining,
+    updatedAt: now,
+    metadataJson: json({
+      ...meta,
+      lastWonAt: now,
+      lastSpinUid: input.spinUid || "",
+      lastSessionUid: input.sessionUid || "",
+      lastWinnerUid: input.winnerUid || "",
+      lastPermissionUid: input.permissionUid || ""
+    })
+  });
+
+  return { ok: true, changed: true, fieldUid: cleanFieldUid, previousRemaining: remaining, quantityRemaining: nextRemaining };
+}
+
+
 function getUsableBoundWheelForGiveaway(giveaway, options = {}) {
   ensureSchema();
   if (!giveaway || !giveaway.giveawayUid) {
@@ -1343,9 +1443,6 @@ function getUsableBoundWheelForGiveaway(giveaway, options = {}) {
   }
 
   const sourcePresetUid = String(row.source_preset_uid || giveaway.wheelPresetUid || "").trim();
-  if (!sourcePresetUid) {
-    return { ok: false, error: "bound_wheel_missing_source_preset", statusCode: 409 };
-  }
 
   const status = String(row.status || BOUND_WHEEL_STATUS.DRAFT).trim();
   const requireActive = options.requireActive === true;
@@ -1353,11 +1450,24 @@ function getUsableBoundWheelForGiveaway(giveaway, options = {}) {
     return { ok: false, error: "bound_wheel_not_active", statusCode: 409, status };
   }
 
+  const spinFieldsResult = listUsableBoundWheelSpinFields(giveaway.giveawayUid);
+  if (!spinFieldsResult.ok) return spinFieldsResult;
+  if (!spinFieldsResult.fields.length) {
+    return { ok: false, error: "bound_wheel_no_usable_fields", statusCode: 409, boundWheel: rowToBoundWheel(row) };
+  }
+
+  const boundWheel = rowToBoundWheel(row);
+  const meta = boundWheel && boundWheel.metadata && typeof boundWheel.metadata === "object" ? boundWheel.metadata : {};
+  const minVisibleSlots = clampInt(meta.minVisibleSlots || meta.min_visible_slots || 12, 12, 1, 96);
+
   return {
     ok: true,
-    boundWheel: rowToBoundWheel(row),
+    boundWheel,
     boundWheelUid: row.bound_wheel_uid,
     sourcePresetUid,
+    minVisibleSlots,
+    fields: spinFieldsResult.fields,
+    fieldCount: spinFieldsResult.fields.length,
     status
   };
 }
@@ -1731,7 +1841,7 @@ function evaluateGiveawaySetupRow(row) {
       issues.push(setupIssue("giveaway_bound_wheel_required", "Gebundenes Giveaway-Glücksrad fehlt.", "wheelSnapshotUid"));
     }
     if (boundWheel && !usableFields.length) {
-      issues.push(setupIssue("giveaway_wheel_fields_required", "Das Glücksrad braucht mindestens ein aktives gültiges Feld.", "wheelFields"));
+      issues.push(setupIssue("giveaway_wheel_fields_required", "Bitte füge dem Glücksrad mindestens ein gültiges Feld hinzu.", "wheelFields"));
     }
   }
 
@@ -2081,6 +2191,7 @@ function cancelEntry(giveawayUid, entryUid, input = {}) {
   `, { giveawayUid, entryUid });
   if (!entry) return { ok: false, error: "entry_not_found", statusCode: 404 };
   if (entry.status === "cancelled") return { ok: true, entry: rowToEntry(entry), alreadyCancelled: true };
+
 
   const now = nowIso();
   database.run(`
@@ -2557,7 +2668,9 @@ function claimWheelSpin(giveawayUid, input = {}) {
   }
 
   const spin = startSpin({
-    presetUid: boundWheelContext.sourcePresetUid,
+    presetUid: "",
+    fields: boundWheelContext.fields,
+    minVisibleSlots: boundWheelContext.minVisibleSlots,
     login: userLogin,
     displayName: userDisplayName,
     source: "giveaway_bound_wheel",
@@ -2573,6 +2686,7 @@ function claimWheelSpin(giveawayUid, input = {}) {
       sourcePresetUid: boundWheelContext.sourcePresetUid,
       wheelScope: "giveaway",
       wheelContext: "giveaway_bound_wheel",
+      runtimeFieldSource: "giveaway_bound_wheel_fields",
       requestSource: input.source || ""
     }
   });
@@ -2580,6 +2694,14 @@ function claimWheelSpin(giveawayUid, input = {}) {
   if (!spin || spin.ok === false) {
     return { ok: false, error: spin && spin.error ? spin.error : "wheel_spin_failed", statusCode: spin && spin.statusCode ? spin.statusCode : 409, spin };
   }
+
+  const decrementResult = decrementBoundWheelFieldAfterSpin(giveawayUid, spin.selectedFieldUid || spin.selectedFieldId || "", {
+    spinUid: spin.spinUid || "",
+    sessionUid: spin.sessionUid || "",
+    winnerUid: permission.winnerUid || "",
+    permissionUid: permission.permissionUid || ""
+  });
+  if (decrementResult && decrementResult.ok === false) return decrementResult;
 
   const now = nowIso();
   database.run(`
@@ -2598,6 +2720,7 @@ function claimWheelSpin(giveawayUid, input = {}) {
     metadataJson: json({
       ...permission.metadata,
       resultFieldId: spin.selectedFieldId || "",
+      resultFieldUid: spin.selectedFieldUid || spin.selectedFieldId || "",
       resultLabel: spin.selectedFieldLabel || "",
       boundWheelUid: boundWheelContext.boundWheel.boundWheelUid,
       sourcePresetUid: boundWheelContext.sourcePresetUid,
@@ -2623,6 +2746,7 @@ function claimWheelSpin(giveawayUid, input = {}) {
         spinUid: spin.spinUid || "",
         sessionUid: spin.sessionUid || "",
         selectedFieldId: spin.selectedFieldId || "",
+        selectedFieldUid: spin.selectedFieldUid || spin.selectedFieldId || "",
         selectedFieldLabel: spin.selectedFieldLabel || "",
         selectedFieldIndex: spin.selectedFieldIndex,
         boundWheelUid: boundWheelContext.boundWheel.boundWheelUid,
@@ -2661,6 +2785,7 @@ function claimWheelSpin(giveawayUid, input = {}) {
       spinUid: spin.spinUid || "",
       sessionUid: spin.sessionUid || "",
       selectedFieldId: spin.selectedFieldId || "",
+      selectedFieldUid: spin.selectedFieldUid || spin.selectedFieldId || "",
       selectedFieldLabel: spin.selectedFieldLabel || "",
       boundWheelUid: boundWheelContext.boundWheel.boundWheelUid,
       sourcePresetUid: boundWheelContext.sourcePresetUid,
@@ -3994,6 +4119,7 @@ module.exports = {
     listWheelPermissions,
     getBoundWheelByGiveaway,
     listBoundWheelFields,
+    listUsableBoundWheelSpinFields,
     createBoundWheelField,
     updateBoundWheelField,
     deleteBoundWheelField,

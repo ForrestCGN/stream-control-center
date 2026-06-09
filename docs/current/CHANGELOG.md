@@ -1,6 +1,6 @@
-# Changelog – LWG-4N.6f
+# Changelog
 
-- Added giveaway-bound wheel editor context in dashboard UI.
-- Wheel card actions now open Bound-Wheel editor for the saved giveaway.
-- Field create/update/delete in that context uses Giveaway Bound-Wheel API routes.
-- Global presets are no longer edited from Giveaway wheel card actions.
+## LWG-4N.7
+- Claim/Spin auf Giveaway-Bound-Wheel-Felder umgestellt.
+- Source-Preset für Bound-Wheel-Runtime optional gemacht.
+- Bound-Wheel-Feldmenge wird nach Gewinn reduziert, wenn begrenzte Menge gesetzt ist.
