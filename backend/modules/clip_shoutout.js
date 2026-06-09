@@ -4881,9 +4881,10 @@ function removeAutoStreamer(login) {
   ensureAutoShoutoutSchema();
   const clean = cleanLogin(login);
   if (!clean) return { ok: false, error: 'login_required' };
-  const now = nowIso();
-  database.updateByKey('clip_shoutout_auto_streamers', 'login', clean, { enabled: 0, updated_at: now });
-  return { ok: true, login: clean, disabled: true };
+  const table = database.quoteIdentifier('clip_shoutout_auto_streamers');
+  const result = database.run(`DELETE FROM ${table} WHERE login=:login`, { login: clean }) || {};
+  const changes = Number(result.changes || result.rowsAffected || 0);
+  return { ok: true, login: clean, deleted: changes > 0, changes };
 }
 
 function insertAutoShoutoutEvent(event = {}) {
@@ -6521,7 +6522,7 @@ module.exports.init = function init(ctx) {
       const login = cleanLogin(body.login || body.user || body.target || req.query?.login || '');
       const result = removeAutoStreamer(login);
       if (result.ok === false) return res.status(400).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: result.error || 'auto_streamer_remove_failed' });
-      emitShoutoutBus('shoutout.auto.streamer.disabled', { login: result.login }, shoutoutConfig());
+      emitShoutoutBus('shoutout.auto.streamer.removed', { login: result.login, deleted: result.deleted, changes: result.changes }, shoutoutConfig());
       res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, result, streamers: listAutoStreamers(shoutoutConfig()), status: autoShoutoutStatus(shoutoutConfig()) });
     } catch (err) {
       res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
