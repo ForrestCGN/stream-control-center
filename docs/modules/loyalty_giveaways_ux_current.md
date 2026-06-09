@@ -1,5 +1,10 @@
-# Loyalty Giveaways UX – aktueller Stand LWG-4N.6
+# Loyalty Giveaways UX – aktueller Stand LWG-4N.6b
 
-Giveaways sollen für Streamer/Mods übersichtlich verwaltbar sein. Die Hauptansicht zeigt daher zuerst Karten und Kurzstatus. Erstellen/Bearbeiten erfolgt gezielt über Aktionen.
+Die Giveaway-Verwaltung ist als Übersicht mit Kacheln gedacht. Editor und später Detail-/Debugansichten sollen nicht dauerhaft auf der Hauptseite stehen, sondern gezielt geöffnet werden.
 
-Status bleibt dort sichtbar, wo er Handlungen erklärt: Entwurf, Bereit/Unvollständig, Offen, Beendet.
+Ablauf:
+- Entwurf: Giveaway bearbeiten, ggf. Glücksrad bearbeiten, Öffnen nur wenn bereit.
+- Offen: Teilnahme schließen, Abbrechen.
+- Tickets geschlossen: Auslosen.
+- Rad-Drehung offen: eigener Workflow folgt.
+- Beendet: Details/Kopieren/Löschen.

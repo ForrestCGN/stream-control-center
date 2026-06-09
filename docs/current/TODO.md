@@ -1,6 +1,6 @@
 # TODO
 
-- [ ] Giveaways-Übersicht nach Einspielen prüfen.
-- [ ] Preset-/Glücksrad-Editor Feldaktionen vereinfachen.
-- [ ] Technische Details später einklappbar machen.
-- [ ] Titel-Duplikate bei aktiven/unfertigen Giveaways blockieren.
+- Rad-Drehung offen als eigenen Dialog/Workflow anbinden.
+- Giveaway-Glücksrad-Editor gegen Bound-Wheel-Felder finalisieren.
+- Titel-Duplikat-Guard für aktive/unfertige Giveaways planen/umsetzen.
+- Preset-Feldaktionen später nutzerfreundlicher machen.

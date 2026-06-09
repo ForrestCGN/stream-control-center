@@ -1,5 +1,7 @@
-# NEXT_STEPS
+# Next Steps
 
-1. LWG-4N.6 einspielen und Giveaways-Übersicht optisch prüfen.
-2. Danach Preset-/Glücksrad-Editor Feldaktionen vereinfachen.
-3. Später Titel-Duplikat-Guard und weitere Backend-Validierung ergänzen.
+1. LWG-4N.6b im Dashboard testen.
+2. Prüfen: Hauptseite bleibt reine Kachelübersicht.
+3. Prüfen: Neues/Bearbeiten öffnet Modal.
+4. Prüfen: `Teilnahme geschlossen` zeigt `Auslosen`.
+5. Danach: Wheel-/Bound-Wheel-Editoranbindung finalisieren.
