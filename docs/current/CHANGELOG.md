@@ -1,6 +1,6 @@
-# Changelog
+# CHANGELOG
 
-## LWG-4N.6c
-- Giveaway-Kachelaktionen für Wheel-Giveaways getrennt.
-- Neues Glücksrad wird nach dem Speichern automatisch dem Giveaway zugeordnet.
-- Create-Modal verweist auf Kachel-Aktion nach Entwurfsspeicherung.
+## LWG-4N.6d
+- Feldaktionen im Glücksrad-/Preset-Editor vereinfacht.
+- Feldkarten haben nur noch `Entfernen` als direkte Aktion.
+- Hauptspeichern speichert vorhandene Feldänderungen mit.

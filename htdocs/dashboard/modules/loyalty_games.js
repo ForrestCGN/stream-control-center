@@ -386,10 +386,37 @@ window.LoyaltyGamesModule = (function(){
     }
   }
 
+  function collectFieldUpdates(){
+    return Array.from(document.querySelectorAll('[data-lg-field-card][data-field-uid]')).map(card => {
+      const data = new FormData();
+      card.querySelectorAll('input[name], select[name], textarea[name]').forEach(input => {
+        if (input.type === 'checkbox') {
+          if (input.checked) data.set(input.name, 'on');
+        } else {
+          data.set(input.name, input.value);
+        }
+      });
+      return {
+        fieldUid: card.dataset.fieldUid || '',
+        payload: {
+          label: data.get('label'),
+          subLabel: data.get('subLabel'),
+          weight: Number(data.get('weight') || 1),
+          quantityTotal: Number(data.get('quantityTotal') || 1),
+          rewardType: data.get('rewardType') || 'manual',
+          rewardValue: data.get('rewardValue') || '',
+          enabled: data.get('enabled') === 'on',
+          sortOrder: Number(data.get('sortOrder') || 1)
+        }
+      };
+    }).filter(item => item.fieldUid);
+  }
+
   async function handleUpdatePreset(form){
     const presetUid = state.selectedPresetUid;
     if (!presetUid) return;
     const data = new FormData(form);
+    const fieldUpdates = state.selectedPreset?.editable ? collectFieldUpdates() : [];
     state.saving = true; render();
     try {
       await apiPut(`/api/loyalty/games/wheel/presets/${encodeURIComponent(presetUid)}`, {
@@ -399,6 +426,9 @@ window.LoyaltyGamesModule = (function(){
         removeAfterWin: data.get('removeAfterWin') === 'on',
         actor: 'dashboard'
       });
+      for (const field of fieldUpdates) {
+        await apiPut(`/api/loyalty/games/wheel/presets/${encodeURIComponent(presetUid)}/fields/${encodeURIComponent(field.fieldUid)}`, field.payload);
+      }
       await refreshPresets(presetUid);
       if (state.presetEditorModal?.open && state.presetEditorModal?.context === 'giveaways') {
         const targetGiveawayUid = state.presetEditorModal?.targetGiveawayUid || '';
@@ -409,7 +439,7 @@ window.LoyaltyGamesModule = (function(){
         await refreshGiveaways(targetGiveawayUid || state.selectedGiveawayUid);
         setMessage('Glücksrad wurde gespeichert und im Giveaway ausgewählt.');
       } else {
-        setMessage('Preset-Einstellungen wurden gespeichert.');
+        setMessage(fieldUpdates.length ? 'Preset und Felder wurden gespeichert.' : 'Preset wurde gespeichert.');
       }
     } catch (err) {
       state.error = err.message || String(err);
@@ -505,13 +535,13 @@ window.LoyaltyGamesModule = (function(){
   async function deleteField(fieldUid){
     const presetUid = state.selectedPresetUid;
     if (!presetUid || !fieldUid) return;
-    if (!window.confirm('Feld wirklich deaktivieren/löschen?')) return;
+    if (!window.confirm('Feld wirklich entfernen?')) return;
 
     state.saving = true; render();
     try {
       await apiPost(`/api/loyalty/games/wheel/presets/${encodeURIComponent(presetUid)}/fields/${encodeURIComponent(fieldUid)}/delete`, { actor: 'dashboard' });
       await refreshPresets(presetUid);
-      setMessage('Feld wurde deaktiviert.');
+      setMessage('Feld wurde entfernt.');
     } catch (err) {
       state.error = err.message || String(err);
     } finally {
@@ -1223,7 +1253,7 @@ window.LoyaltyGamesModule = (function(){
               </div>
               <label>Beschreibung<textarea name="description" rows="2">${esc(selected.description || '')}</textarea></label>
               <label class="lg-check"><input name="removeAfterWin" type="checkbox" ${selected.settings?.removeAfterWin === false ? '' : 'checked'}> Gewinnfeld nach Auslosung aus diesem Rad entfernen</label>
-              <button class="lg-btn" type="submit">Preset-Einstellungen speichern</button>
+              <button class="lg-btn" type="submit">Preset speichern</button>
             </form>
           ` : ''}
           ${isGiveawayLinked ? `<p class="lg-warning">Dieses Preset gehört zu einem Giveaway. Bearbeitung nur über den Giveaway-Editor.</p>` : ''}
@@ -1263,7 +1293,7 @@ window.LoyaltyGamesModule = (function(){
 
         <div class="lg-field-list">
           ${fields.map(field => `
-            <form class="lg-field-card" data-lg-update-field data-field-uid="${esc(field.fieldUid)}">
+            <div class="lg-field-card" data-lg-field-card data-field-uid="${esc(field.fieldUid)}">
               <div class="lg-field-top">
                 <strong>${esc(field.label)}</strong>
                 <code>${esc(field.fieldUid)}</code>
@@ -1285,9 +1315,9 @@ window.LoyaltyGamesModule = (function(){
               </div>
               <div class="lg-field-actions">
                 <label class="lg-check"><input name="enabled" type="checkbox" ${field.enabled ? 'checked' : ''} ${editable ? '' : 'disabled'}> aktiv</label>
-                ${editable ? `<button class="lg-btn" type="submit">Speichern</button><button class="lg-btn lg-btn-danger" type="button" data-lg-delete-field="${esc(field.fieldUid)}">Deaktivieren</button>` : ''}
+                ${editable ? `<button class="lg-btn lg-btn-danger" type="button" data-lg-delete-field="${esc(field.fieldUid)}">Entfernen</button>` : ''}
               </div>
-            </form>
+            </div>
           `).join('') || `<p class="lg-muted">Noch keine Felder im Preset.</p>`}
         </div>
       </div>
@@ -2170,12 +2200,6 @@ window.LoyaltyGamesModule = (function(){
     root.querySelector('[data-lg-create-field]')?.addEventListener('submit', ev => {
       ev.preventDefault();
       handleCreateField(ev.currentTarget);
-    });
-    root.querySelectorAll('[data-lg-update-field]').forEach(form => {
-      form.addEventListener('submit', ev => {
-        ev.preventDefault();
-        handleUpdateField(ev.currentTarget);
-      });
     });
     root.querySelectorAll('[data-lg-delete-field]').forEach(btn => {
       btn.addEventListener('click', () => deleteField(btn.dataset.lgDeleteField));

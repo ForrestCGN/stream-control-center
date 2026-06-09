@@ -1,3 +1,3 @@
-# Current Status – LWG-4N.6c
+# CURRENT STATUS – LWG-4N.6d
 
-Giveaway-Kacheln trennen jetzt Giveaway-Bearbeitung und Glücksrad-Erstellung/-Bearbeitung verständlicher. Wheel-Giveaways ohne Glücksrad bleiben als Entwurf speicherbar, aber nicht öffnungsbereit.
+Der Glücksrad-/Preset-Editor wurde im UI vereinfacht: Feldkarten haben keine eigenen Speichern-/Aktivieren-/Deaktivieren-Buttons mehr. Gespeichert wird zentral über den Hauptbutton des Glücksrads/Presets.

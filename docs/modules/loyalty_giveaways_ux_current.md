@@ -1,3 +1,3 @@
-# Loyalty Giveaways UX – Current
+# Loyalty Giveaways UX – LWG-4N.6d
 
-Die Giveaways-Seite dient als Übersicht. Erstellen und Bearbeiten laufen über Modals. Wheel-Giveaways besitzen im Entwurf getrennte Aktionen für Giveaway und Glücksrad. Giveaway-Glücksräder werden im Kontext des jeweiligen Giveaways erstellt/bearbeitet.
+Der Preset-/Glücksrad-Editor folgt nun der Regel: Felder werden im Editor geändert, gespeichert wird gesammelt über den Hauptbutton. Direkte Feldaktionen bleiben auf Entfernen reduziert.

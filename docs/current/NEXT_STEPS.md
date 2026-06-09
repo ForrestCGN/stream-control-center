@@ -1,5 +1,6 @@
-# Next Steps
+# NEXT STEPS
 
-- LWG-4N.6c im Dashboard testen.
-- Danach UX des Glücksrad-Feldeditors weiter vereinfachen: Feldaktionen verständlicher machen, technische Buttons reduzieren.
-- Danach Giveaway-Titel-Duplikat-Guard planen/umsetzen.
+- LWG-4N.6d im Dashboard testen.
+- Prüfen: Feld bearbeiten + Hauptbutton speichern übernimmt Feldänderungen.
+- Prüfen: Feld entfernen löscht/deaktiviert Eintrag.
+- Danach weiter mit Giveaway-/Glücksrad-Flow oder Detail-/Statistik-Struktur.
