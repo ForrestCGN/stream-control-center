@@ -3,11 +3,11 @@
 /**
  * Loyalty Giveaways module.
  *
- * STEP LWG-4L.5:
- * - Ticket-Runtime unterscheidet kein offenes Giveaway vor deaktiviertem Command.
- * - !ticket ohne offenes Giveaway liefert ticket.no_active.
- * - Commands bleiben bewusst deaktiviert.
- * - Keine Punktebuchung, keine automatische Twitch-Command-Aktivierung.
+ * STEP LWG-4M.2:
+ * - Close-Workflow fuer Giveaways geschaerft.
+ * - /close Alias fuer /close-entries ergaenzt.
+ * - Close liefert giveaway.closed Chattext fuer Dashboard/Mod-Command-Ausgabe.
+ * - Draw aus open wird blockiert; Auslosung erst nach closed_for_entries.
  */
 
 const crypto = require("crypto");
@@ -18,7 +18,7 @@ const database = require("../core/database");
 
 const MODULE_NAME = "loyalty_giveaways";
 const MODULE_VERSION = "0.1.0";
-const MODULE_BUILD = "STEP_LWG_4L_12";
+const MODULE_BUILD = "STEP_LWG_4M_2";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -116,6 +116,14 @@ const CHAT_TEXT_DEFAULTS = {
     "{user}, kostenpflichtige Tickets sind noch nicht freigeschaltet. Die Rentnerkasse ist noch in Prüfung.",
     "{user}, Tickets mit Punktebuchung kommen später. Aktuell nimmt die Heimleitung nur kostenlose Zettel an."
   ],
+  "giveaway.closed": [
+    "Die Lostrommel wird jetzt versiegelt. Keine neuen Tickets mehr – die Heimleitung zählt gleich aus.",
+    "Die Ticket-Ausgabe ist geschlossen. Die Rentnergang macht jetzt Kassensturz."
+  ],
+  "giveaway.draw_not_closed": [
+    "Erst wird die Lostrommel geschlossen, dann wird ausgelost. Ordnung muss sein.",
+    "Die Heimleitung lässt erst auslosen, wenn die Ticket-Ausgabe offiziell geschlossen ist."
+  ],
   "wheel.disabled": [
     "{user}, das Glücksrad steht bereit, aber der Hausmeister hat den Strom noch nicht eingeschaltet.",
     "{user}, der Rad-Freigabeschein ist vorbereitet, aber die Ausgabe ist noch nicht aktiv."
@@ -137,6 +145,8 @@ const CHAT_TEXT_CATEGORIES = {
   "ticket.invalid_amount": "chat_ticket",
   "ticket.max_reached": "chat_ticket",
   "ticket.cost_not_supported_yet": "chat_ticket",
+  "giveaway.closed": "chat_giveaway",
+  "giveaway.draw_not_closed": "chat_giveaway",
   "wheel.disabled": "chat_wheel",
   "wheel.no_permission": "chat_wheel",
   "wheel.success": "chat_wheel"
@@ -144,6 +154,7 @@ const CHAT_TEXT_CATEGORIES = {
 
 const CHAT_TEXT_CATEGORY_LABELS = {
   chat_ticket: "Chat · Tickets",
+  chat_giveaway: "Chat · Giveaway",
   chat_wheel: "Chat · Wheel/Rad"
 };
 
@@ -1492,8 +1503,24 @@ function drawWinner(giveawayUid, input = {}) {
   const giveaway = getGiveaway(giveawayUid, false);
   if (!giveaway) return { ok: false, error: "giveaway_not_found", statusCode: 404 };
   if (giveaway.deletedAt) return { ok: false, error: "giveaway_deleted", statusCode: 409 };
-  if (giveaway.status !== STATUS.OPEN && giveaway.status !== STATUS.CLOSED_FOR_ENTRIES) {
-    return { ok: false, error: "giveaway_not_drawable", statusCode: 409, status: giveaway.status };
+  if (giveaway.status === STATUS.OPEN) {
+    const chatMessage = renderChatRuntimeText("giveaway.draw_not_closed", {
+      giveawayTitle: giveaway.title || "Giveaway"
+    });
+    return {
+      ok: false,
+      error: "giveaway_draw_requires_closed_entries",
+      statusCode: 409,
+      status: giveaway.status,
+      requiredStatus: STATUS.CLOSED_FOR_ENTRIES,
+      messageKey: "giveaway.draw_not_closed",
+      message: chatMessage,
+      chatMessage,
+      shouldSendChat: Boolean(chatMessage)
+    };
+  }
+  if (giveaway.status !== STATUS.CLOSED_FOR_ENTRIES) {
+    return { ok: false, error: "giveaway_not_drawable", statusCode: 409, status: giveaway.status, requiredStatus: STATUS.CLOSED_FOR_ENTRIES };
   }
   const isWheelGiveaway = giveaway.wheelEnabled === true;
   if (isWheelGiveaway && !giveaway.wheelPresetUid) {
@@ -2138,7 +2165,18 @@ function setGiveawayStatus(giveawayUid, status, input = {}) {
     message: input.reason || ""
   });
   emitEvent(eventType, { giveawayUid, oldStatus: row.status, newStatus: nextStatus });
-  return { ok: true, giveaway: getGiveaway(giveawayUid, true) };
+
+  const response = { ok: true, giveaway: getGiveaway(giveawayUid, true) };
+  if (nextStatus === STATUS.CLOSED_FOR_ENTRIES) {
+    const chatMessage = renderChatRuntimeText("giveaway.closed", {
+      giveawayTitle: row.title || "Giveaway"
+    });
+    response.messageKey = "giveaway.closed";
+    response.message = chatMessage;
+    response.chatMessage = chatMessage;
+    response.shouldSendChat = Boolean(chatMessage);
+  }
+  return response;
 }
 
 
@@ -2712,7 +2750,7 @@ function buildStatus() {
       },
       warnings: [
         "Chat-Commands !ticket, !wheel und !rad sind intern eingetragen und zentral vorbereitet, aber bewusst nicht aktiv.",
-        "Kostenlose Ticket-Teilnahme ist fachlich vorbereitet; zentrale Commands bleiben bis zur separaten Aktivierung enabled=false."
+        "Draw ist ab STEP_LWG_4M_2 nur nach closed_for_entries erlaubt."
       ],
       errors: state.lastError ? [state.lastError] : []
     }
@@ -2762,6 +2800,7 @@ function registerRoutes(app) {
     "PUT /api/loyalty/giveaways/:giveawayUid",
     "POST /api/loyalty/giveaways/:giveawayUid/copy",
     "POST /api/loyalty/giveaways/:giveawayUid/open",
+    "POST /api/loyalty/giveaways/:giveawayUid/close",
     "POST /api/loyalty/giveaways/:giveawayUid/close-entries",
     "POST /api/loyalty/giveaways/:giveawayUid/finish",
     "POST /api/loyalty/giveaways/:giveawayUid/cancel",
@@ -2823,11 +2862,15 @@ function registerRoutes(app) {
     return core.sendOk(res, result);
   })));
 
-  registered.push(...routes.registerPost(app, "/api/loyalty/giveaways/:giveawayUid/close-entries", core.asyncRoute(async (req, res) => {
+  async function handleCloseEntriesRoute(req, res) {
     const result = setGiveawayStatus(req.params.giveawayUid, STATUS.CLOSED_FOR_ENTRIES, req.body || {});
     if (!result.ok) return core.sendFail(res, result.error || "giveaway_close_entries_failed", result.statusCode || 409, result);
     return core.sendOk(res, result);
-  })));
+  }
+
+  registered.push(...routes.registerPost(app, "/api/loyalty/giveaways/:giveawayUid/close", core.asyncRoute(handleCloseEntriesRoute)));
+
+  registered.push(...routes.registerPost(app, "/api/loyalty/giveaways/:giveawayUid/close-entries", core.asyncRoute(handleCloseEntriesRoute)));
 
   registered.push(...routes.registerPost(app, "/api/loyalty/giveaways/:giveawayUid/finish", core.asyncRoute(async (req, res) => {
     const result = setGiveawayStatus(req.params.giveawayUid, STATUS.FINISHED, req.body || {});
