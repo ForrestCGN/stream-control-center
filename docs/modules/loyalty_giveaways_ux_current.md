@@ -1,10 +1,3 @@
-# Loyalty Giveaways UX – aktueller Stand LWG-4N.6b
+# Loyalty Giveaways UX – Current
 
-Die Giveaway-Verwaltung ist als Übersicht mit Kacheln gedacht. Editor und später Detail-/Debugansichten sollen nicht dauerhaft auf der Hauptseite stehen, sondern gezielt geöffnet werden.
-
-Ablauf:
-- Entwurf: Giveaway bearbeiten, ggf. Glücksrad bearbeiten, Öffnen nur wenn bereit.
-- Offen: Teilnahme schließen, Abbrechen.
-- Tickets geschlossen: Auslosen.
-- Rad-Drehung offen: eigener Workflow folgt.
-- Beendet: Details/Kopieren/Löschen.
+Die Giveaways-Seite dient als Übersicht. Erstellen und Bearbeiten laufen über Modals. Wheel-Giveaways besitzen im Entwurf getrennte Aktionen für Giveaway und Glücksrad. Giveaway-Glücksräder werden im Kontext des jeweiligen Giveaways erstellt/bearbeitet.

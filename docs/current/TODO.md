@@ -1,6 +1,6 @@
 # TODO
 
-- Rad-Drehung offen als eigenen Dialog/Workflow anbinden.
-- Giveaway-Glücksrad-Editor gegen Bound-Wheel-Felder finalisieren.
-- Titel-Duplikat-Guard für aktive/unfertige Giveaways planen/umsetzen.
-- Preset-Feldaktionen später nutzerfreundlicher machen.
+- Prüfen: Wheel-Giveaway ohne Glücksrad speichern -> Kachel zeigt `Glücksrad erstellen`.
+- Prüfen: Klick öffnet Glücksrad-Editor.
+- Prüfen: Speichern ordnet neues Glücksrad zu.
+- Prüfen: Giveaway wird erst bereit, wenn das Glücksrad gültige aktive Felder besitzt.

@@ -1,3 +1,3 @@
-# Current Status – LWG-4N.6b
+# Current Status – LWG-4N.6c
 
-Die Giveaways-Hauptseite wurde als reine Kachelübersicht vorbereitet. Erstellen/Bearbeiten läuft über ein Modal, Auslosen ist als eigener Zustand/Aktion berücksichtigt.
+Giveaway-Kacheln trennen jetzt Giveaway-Bearbeitung und Glücksrad-Erstellung/-Bearbeitung verständlicher. Wheel-Giveaways ohne Glücksrad bleiben als Entwurf speicherbar, aber nicht öffnungsbereit.
