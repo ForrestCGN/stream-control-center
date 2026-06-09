@@ -18,7 +18,7 @@ const database = require("../core/database");
 
 const MODULE_NAME = "loyalty_giveaways";
 const MODULE_VERSION = "0.1.0";
-const MODULE_BUILD = "STEP_LWG_4M_3";
+const MODULE_BUILD = "STEP_LWG_4M_4";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -838,8 +838,128 @@ function ensureSchema() {
   database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_command_definitions_enabled ON loyalty_giveaway_command_definitions(enabled, active);`);
 
 
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS loyalty_giveaway_bound_wheels (
+      id ${database.primaryKeyAutoIncrementSql()},
+      bound_wheel_uid TEXT NOT NULL UNIQUE,
+      giveaway_uid TEXT NOT NULL,
+      name TEXT NOT NULL DEFAULT '',
+      description TEXT NOT NULL DEFAULT '',
+      source_preset_uid TEXT NOT NULL DEFAULT '',
+      scope TEXT NOT NULL DEFAULT 'giveaway',
+      status TEXT NOT NULL DEFAULT 'draft',
+      locked INTEGER NOT NULL DEFAULT 0,
+      created_by TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      metadata_json TEXT NOT NULL DEFAULT '{}'
+    );
+  `);
+
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_bound_wheels_giveaway ON loyalty_giveaway_bound_wheels(giveaway_uid);`);
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_bound_wheels_source ON loyalty_giveaway_bound_wheels(source_preset_uid);`);
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_bound_wheels_status ON loyalty_giveaway_bound_wheels(status);`);
+
+
   state.schemaReady = true;
   return true;
+}
+
+function normalizeBoundWheelName(title) {
+  const clean = String(title || "").trim() || "Giveaway";
+  return `${clean} – Glücksrad`;
+}
+
+function rowToBoundWheel(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    boundWheelUid: row.bound_wheel_uid,
+    giveawayUid: row.giveaway_uid,
+    name: row.name || "",
+    description: row.description || "",
+    sourcePresetUid: row.source_preset_uid || "",
+    scope: row.scope || "giveaway",
+    status: row.status || STATUS.DRAFT,
+    locked: Number(row.locked || 0) === 1,
+    createdBy: row.created_by || "",
+    createdAt: row.created_at || "",
+    updatedAt: row.updated_at || "",
+    metadata: parseJson(row.metadata_json, {})
+  };
+}
+
+function getBoundWheelRowByGiveaway(giveawayUid) {
+  ensureSchema();
+  const uidValue = String(giveawayUid || "").trim();
+  if (!uidValue) return null;
+  return database.get("SELECT * FROM loyalty_giveaway_bound_wheels WHERE giveaway_uid = :giveawayUid ORDER BY id DESC LIMIT 1", { giveawayUid: uidValue });
+}
+
+function getBoundWheelByGiveaway(giveawayUid) {
+  return rowToBoundWheel(getBoundWheelRowByGiveaway(giveawayUid));
+}
+
+function createOrUpdateBoundWheelForGiveaway(giveawayUid, input = {}) {
+  ensureSchema();
+  const uidValue = String(giveawayUid || "").trim();
+  if (!uidValue) return { ok: false, error: "missing_giveaway_uid", statusCode: 400 };
+
+  const now = nowIso();
+  const title = String(input.title || input.giveawayTitle || "").trim() || "Giveaway";
+  const sourcePresetUid = String(input.sourcePresetUid || input.wheelPresetUid || input.wheel_preset_uid || "").trim();
+  const name = String(input.name || input.boundWheelName || "").trim() || normalizeBoundWheelName(title);
+  const description = String(input.description || "").trim();
+  const actor = String(input.actor || input.createdBy || input.updatedBy || "").trim();
+  const existing = getBoundWheelRowByGiveaway(uidValue);
+  const metadataPatch = input.metadata && typeof input.metadata === "object" ? input.metadata : {};
+
+  if (existing) {
+    const existingMeta = parseJson(existing.metadata_json, {});
+    database.run(`
+      UPDATE loyalty_giveaway_bound_wheels
+      SET name = :name,
+          description = :description,
+          source_preset_uid = :sourcePresetUid,
+          status = :status,
+          updated_at = :updatedAt,
+          metadata_json = :metadataJson
+      WHERE bound_wheel_uid = :boundWheelUid
+    `, {
+      boundWheelUid: existing.bound_wheel_uid,
+      name,
+      description: description || existing.description || "",
+      sourcePresetUid: sourcePresetUid || existing.source_preset_uid || "",
+      status: input.status || existing.status || STATUS.DRAFT,
+      updatedAt: now,
+      metadataJson: json({ ...existingMeta, ...metadataPatch, source: "giveaway_bound_wheel", lastUpdatedAt: now, lastUpdatedBy: actor })
+    });
+    return { ok: true, created: false, boundWheel: getBoundWheelByGiveaway(uidValue) };
+  }
+
+  const boundWheelUid = input.boundWheelUid || input.wheelSnapshotUid || input.wheel_snapshot_uid || uid("giveawaywheel");
+  database.run(`
+    INSERT INTO loyalty_giveaway_bound_wheels (
+      bound_wheel_uid, giveaway_uid, name, description, source_preset_uid,
+      scope, status, locked, created_by, created_at, updated_at, metadata_json
+    ) VALUES (
+      :boundWheelUid, :giveawayUid, :name, :description, :sourcePresetUid,
+      'giveaway', :status, :locked, :createdBy, :createdAt, :updatedAt, :metadataJson
+    )
+  `, {
+    boundWheelUid,
+    giveawayUid: uidValue,
+    name,
+    description,
+    sourcePresetUid,
+    status: input.status || STATUS.DRAFT,
+    locked: input.locked === true ? 1 : 0,
+    createdBy: actor,
+    createdAt: now,
+    updatedAt: now,
+    metadataJson: json({ ...metadataPatch, source: "giveaway_bound_wheel", scope: "giveaway", linkedGiveawayUid: uidValue, sourcePresetUid })
+  });
+  return { ok: true, created: true, boundWheel: getBoundWheelByGiveaway(uidValue) };
 }
 
 function rowToGiveaway(row, includeDetails = false) {
@@ -882,6 +1002,7 @@ function rowToGiveaway(row, includeDetails = false) {
     giveaway.entries = listEntries(row.giveaway_uid, { limit: 250, includeCancelled: true }).rows;
     giveaway.winners = listWinners(row.giveaway_uid, { limit: 100 }).rows;
     giveaway.wheelPermissions = listWheelPermissions(row.giveaway_uid, { limit: 100 }).rows;
+    giveaway.boundWheel = getBoundWheelByGiveaway(row.giveaway_uid);
     giveaway.events = listEvents(row.giveaway_uid, { limit: 100 }).rows;
   }
 
@@ -1696,6 +1817,7 @@ function drawWinner(giveawayUid, input = {}) {
       userDisplayName: winner.userDisplayName,
       metadata: {
         wheelPresetUid: giveaway.wheelPresetUid,
+        wheelSnapshotUid: giveaway.wheelSnapshotUid,
         reason: "winner_drawn"
       }
     });
@@ -1722,7 +1844,7 @@ function drawWinner(giveawayUid, input = {}) {
       oldStatus: "",
       newStatus: "pending",
       message: `${winner.userDisplayName} may spin the wheel`,
-      metadata: { winnerUid, permissionUid: wheelPermission.permissionUid, wheelPresetUid: giveaway.wheelPresetUid }
+      metadata: { winnerUid, permissionUid: wheelPermission.permissionUid, wheelPresetUid: giveaway.wheelPresetUid, wheelSnapshotUid: giveaway.wheelSnapshotUid }
     });
 
     emitEvent("loyalty.giveaway.wheel_permission_created", {
@@ -1731,7 +1853,8 @@ function drawWinner(giveawayUid, input = {}) {
       permissionUid: wheelPermission.permissionUid,
       userLogin: winner.userLogin,
       userDisplayName: winner.userDisplayName,
-      wheelPresetUid: giveaway.wheelPresetUid
+      wheelPresetUid: giveaway.wheelPresetUid,
+      wheelSnapshotUid: giveaway.wheelSnapshotUid
     });
   }
 
@@ -1806,11 +1929,14 @@ function claimWheelSpin(giveawayUid, input = {}) {
     login: userLogin,
     displayName: userDisplayName,
     source: "giveaway",
+    sourceRefUid: giveawayUid,
     duration: input.duration || input.durationMs || 7000,
     metadata: {
       giveawayUid,
       permissionUid: permission.permissionUid,
-      winnerUid: permission.winnerUid
+      winnerUid: permission.winnerUid,
+      wheelPresetUid: giveaway.wheelPresetUid,
+      wheelSnapshotUid: giveaway.wheelSnapshotUid
     }
   });
 
@@ -1917,6 +2043,9 @@ function buildSettingsSnapshot(input = {}, roundPolicy = {}) {
     mode: cleanMode(input.mode),
     wheelEnabled: input.wheelEnabled === true || input.wheel_enabled === true,
     wheelPresetUid: String(input.wheelPresetUid || input.wheel_preset_uid || "").trim(),
+    wheelSnapshotUid: String(input.wheelSnapshotUid || input.wheel_snapshot_uid || input.boundWheelUid || "").trim(),
+    wheelScope: input.wheelScope || (input.wheelEnabled === true || input.wheel_enabled === true ? "giveaway" : ""),
+    boundWheelName: String(input.boundWheelName || "").trim(),
     costAmount: clampInt(input.costAmount ?? input.cost_amount, 0, 0, 2147483647),
     currencyKey: String(input.currencyKey || input.currency_key || "loyalty_points").trim() || "loyalty_points",
     maxTicketsPerUser: clampInt(input.maxTicketsPerUser ?? input.max_tickets_per_user, 1, 1, 999999),
@@ -1936,8 +2065,20 @@ function createGiveaway(input = {}) {
   const mode = cleanMode(input.mode, MODES.CLASSIC_SINGLE);
   const wheelEnabled = input.wheelEnabled === true || input.wheel_enabled === true || mode.startsWith("wheel_");
   const roundPolicy = defaultRoundPolicy(input.roundPolicy || input.round_policy || {});
-  const settingsSnapshot = buildSettingsSnapshot({ ...input, wheelEnabled }, roundPolicy);
   const title = String(input.title || "").trim() || "Neues Giveaway";
+  const sourceWheelPresetUid = String(input.wheelPresetUid || input.wheel_preset_uid || "").trim();
+  const initialWheelSnapshotUid = wheelEnabled
+    ? String(input.wheelSnapshotUid || input.wheel_snapshot_uid || input.boundWheelUid || uid("giveawaywheel")).trim()
+    : String(input.wheelSnapshotUid || input.wheel_snapshot_uid || "").trim();
+  const boundWheelName = wheelEnabled ? normalizeBoundWheelName(title) : "";
+  const settingsSnapshot = buildSettingsSnapshot({
+    ...input,
+    wheelEnabled,
+    wheelPresetUid: sourceWheelPresetUid,
+    wheelSnapshotUid: initialWheelSnapshotUid,
+    wheelScope: wheelEnabled ? "giveaway" : "",
+    boundWheelName
+  }, roundPolicy);
 
   database.run(`
     INSERT INTO loyalty_giveaways (
@@ -1960,8 +2101,8 @@ function createGiveaway(input = {}) {
     status: cleanStatus(input.status, STATUS.DRAFT),
     mode,
     wheelEnabled: wheelEnabled ? 1 : 0,
-    wheelPresetUid: String(input.wheelPresetUid || input.wheel_preset_uid || "").trim(),
-    wheelSnapshotUid: String(input.wheelSnapshotUid || input.wheel_snapshot_uid || "").trim(),
+    wheelPresetUid: sourceWheelPresetUid,
+    wheelSnapshotUid: initialWheelSnapshotUid,
     costAmount: clampInt(input.costAmount ?? input.cost_amount, 0, 0, 2147483647),
     currencyKey: String(input.currencyKey || input.currency_key || "loyalty_points").trim() || "loyalty_points",
     maxTicketsPerUser: clampInt(input.maxTicketsPerUser ?? input.max_tickets_per_user, 1, 1, 999999),
@@ -1977,6 +2118,24 @@ function createGiveaway(input = {}) {
     updatedAt: now,
     metadataJson: json(input.metadata || {})
   });
+
+  let boundWheel = null;
+  if (wheelEnabled) {
+    const boundResult = createOrUpdateBoundWheelForGiveaway(giveawayUid, {
+      boundWheelUid: initialWheelSnapshotUid,
+      title,
+      boundWheelName,
+      sourcePresetUid: sourceWheelPresetUid,
+      status: STATUS.DRAFT,
+      actor: input.actor || input.createdBy || "dashboard",
+      metadata: {
+        sourcePresetUid: sourceWheelPresetUid,
+        createdFrom: sourceWheelPresetUid ? "global_preset_template" : "new_giveaway_wheel",
+        createMode: input.wheelCreateMode || input.wheel_create_mode || (sourceWheelPresetUid ? "copy_from_preset" : "new")
+      }
+    });
+    if (boundResult.ok) boundWheel = boundResult.boundWheel;
+  }
 
   createRound(giveawayUid, {
     roundNumber: 1,
@@ -2004,11 +2163,12 @@ function createGiveaway(input = {}) {
     oldStatus: "",
     newStatus: STATUS.DRAFT,
     message: "Giveaway created",
-    metadata: { mode, wheelEnabled }
+    metadata: { mode, wheelEnabled, wheelPresetUid: sourceWheelPresetUid, wheelSnapshotUid: initialWheelSnapshotUid, boundWheelUid: boundWheel ? boundWheel.boundWheelUid : "" }
   });
 
-  emitEvent("loyalty.giveaway.created", { giveawayUid, title, mode, wheelEnabled });
-  return { ok: true, giveaway: getGiveaway(giveawayUid, true) };
+  emitEvent("loyalty.giveaway.created", { giveawayUid, title, mode, wheelEnabled, wheelPresetUid: sourceWheelPresetUid, wheelSnapshotUid: initialWheelSnapshotUid });
+  return { ok: true, giveaway: getGiveaway(giveawayUid, true), boundWheel };
+
 }
 
 function assertDraftEditable(giveawayUid) {
@@ -2047,7 +2207,31 @@ function updateGiveaway(giveawayUid, patch = {}) {
     winnerCount: clampInt(patch.winnerCount ?? patch.winner_count ?? row.winner_count, row.winner_count, 1, 9999),
     roundPolicy
   };
-  const settingsSnapshot = buildSettingsSnapshot({ ...next, prizes: listPrizes(giveawayUid).rows }, roundPolicy);
+  let ensuredBoundWheel = null;
+  if (next.wheelEnabled) {
+    const boundResult = createOrUpdateBoundWheelForGiveaway(giveawayUid, {
+      boundWheelUid: next.wheelSnapshotUid || uid("giveawaywheel"),
+      title: next.title,
+      sourcePresetUid: next.wheelPresetUid,
+      status: row.status || STATUS.DRAFT,
+      actor: patch.actor || patch.updatedBy || "dashboard",
+      metadata: {
+        sourcePresetUid: next.wheelPresetUid,
+        updateMode: patch.wheelCreateMode || patch.wheel_create_mode || "draft_sync"
+      }
+    });
+    if (boundResult.ok) {
+      ensuredBoundWheel = boundResult.boundWheel;
+      next.wheelSnapshotUid = ensuredBoundWheel.boundWheelUid;
+    }
+  }
+  const settingsSnapshot = buildSettingsSnapshot({
+    ...next,
+    wheelSnapshotUid: next.wheelSnapshotUid,
+    wheelScope: next.wheelEnabled ? "giveaway" : "",
+    boundWheelName: ensuredBoundWheel ? ensuredBoundWheel.name : "",
+    prizes: listPrizes(giveawayUid).rows
+  }, roundPolicy);
 
   database.run(`
     UPDATE loyalty_giveaways
@@ -2997,6 +3181,26 @@ function registerRoutes(app) {
 
 
   
+  registered.push(...routes.registerGet(app, "/api/loyalty/giveaways/:giveawayUid/wheel/bound", core.asyncRoute(async (req, res) => {
+    if (!getGiveaway(req.params.giveawayUid, false)) return core.sendFail(res, "giveaway_not_found", 404);
+    return core.sendOk(res, { ok: true, boundWheel: getBoundWheelByGiveaway(req.params.giveawayUid) });
+  })));
+
+  registered.push(...routes.registerPut(app, "/api/loyalty/giveaways/:giveawayUid/wheel/bound", core.asyncRoute(async (req, res) => {
+    const giveaway = getGiveaway(req.params.giveawayUid, false);
+    if (!giveaway) return core.sendFail(res, "giveaway_not_found", 404);
+    const editable = assertDraftEditable(req.params.giveawayUid);
+    if (!editable.ok) return core.sendFail(res, editable.error || "giveaway_not_editable", editable.statusCode || 409, editable);
+    const result = createOrUpdateBoundWheelForGiveaway(req.params.giveawayUid, {
+      ...(req.body || {}),
+      title: giveaway.title,
+      sourcePresetUid: req.body?.sourcePresetUid || req.body?.wheelPresetUid || giveaway.wheelPresetUid,
+      actor: req.body?.actor || req.body?.updatedBy || "dashboard"
+    });
+    if (!result.ok) return core.sendFail(res, result.error || "bound_wheel_update_failed", result.statusCode || 409, result);
+    return core.sendOk(res, result);
+  })));
+
   registered.push(...routes.registerGet(app, "/api/loyalty/giveaways/:giveawayUid/wheel/permissions", core.asyncRoute(async (req, res) => {
     if (!getGiveaway(req.params.giveawayUid, false)) return core.sendFail(res, "giveaway_not_found", 404);
     return core.sendOk(res, listWheelPermissions(req.params.giveawayUid, req.query || {}));
@@ -3061,6 +3265,8 @@ module.exports = {
     listWinners,
     drawWinner,
     listWheelPermissions,
+    getBoundWheelByGiveaway,
+    createOrUpdateBoundWheelForGiveaway,
     getPendingWheelPermissionForUser,
     claimWheelSpin,
     handleChatCommandRuntime,
