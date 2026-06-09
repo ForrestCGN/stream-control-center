@@ -5361,6 +5361,8 @@ async function handleAutoShoutoutChatActivity(parsed, source = {}, env = process
   const streamDay = resolveCurrentStreamDay(env, cfg);
   const streamDayId = streamDay && streamDay.streamDayId ? String(streamDay.streamDayId) : '';
   const varsBase = { login, displayName: streamer.displayName || displayName || login, waitTime: 'wenige Sekunden', streamDayId };
+  const autoRawMessage = autoMessageTextFromParsed(parsed);
+  const instantTrigger = isAutoInstantTriggerMessage(autoRawMessage, acfg);
 
   const pendingDisplay = findPendingDisplayShoutout(login);
   if (pendingDisplay) {
