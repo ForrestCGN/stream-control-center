@@ -1,40 +1,42 @@
-# TODO – Shoutout-System CAN-44
+# TODO – Loyalty Giveaways / Glücksrad
 
-## Offen / Beobachten
+## Aktuell offen
 
-- [ ] CAN-44.31 im echten oder kontrollierten Shoutout-Betrieb beobachten.
-- [ ] Neue 10er Overlay-Set-Liste per API einspielen, falls noch nicht passiert.
-- [ ] Prüfen, ob Overlay-Sets im Dashboard nach Hard-Reload dauerhaft sichtbar/editierbar bleiben.
-- [ ] Prüfen, ob Headline/Subline im echten Shoutout immer als Paar aus demselben Set kommen.
-- [ ] Prüfen, ob `{displayName}` im Overlay sauber ersetzt wird.
-- [ ] AutoShoutout normale Mindestnachrichten testen.
-- [ ] AutoShoutout `!lurk` Sofort-Auslöser testen.
-- [ ] OfficialQueue-Retry-/Dedup-Verhalten weiter beobachten.
+### LWG-4M.5 – Bound Wheel Claim/Spin final anbinden
+- [ ] Festlegen, wann `loyalty_giveaway_bound_wheels.status` von `draft` auf nutzbar/aktiv wechselt.
+- [ ] Draw bei Wheel-Giveaways muss Bound-Wheel referenzieren.
+- [ ] Wheel-Permission muss Bound-Wheel eindeutig enthalten.
+- [ ] Claim per `!wheel` / `!rad` muss das Bound-Wheel nutzen, nicht direkt das globale Preset.
+- [ ] Globaler Wheel-Spin darf Giveaway-bound Wheels nicht direkt starten.
+- [ ] Test: Globales Preset bleibt normal nutzbar.
+- [ ] Test: Bound Wheel ist nur über Giveaway-Permission nutzbar.
 
-## Erledigt
+### LWG-4M.6 – Dashboard Giveaway-Wheel UI
+- [ ] Giveaway-Formular bekommt Dropdown `Glücksrad-Basis`.
+- [ ] Dropdown-Einträge:
+  - `Neues Rad für dieses Giveaway erstellen`
+  - `Vorlage kopieren: <Preset-Name>`
+- [ ] Bound-Wheel-Name wird aus Giveaway-Name gebildet.
+- [ ] Anzeige `Gebundenes Rad`.
+- [ ] Button/Aktion `Rad bearbeiten` im Giveaway-Kontext.
 
-- [x] `!so` als Hauptcommand wieder stabil.
-- [x] `!vso` als Alias stabil.
-- [x] `command_definitions` als Source of Truth.
-- [x] alte `clipso`/`videoso`-Trigger entfernt.
-- [x] Direct-Intake erkennt `!so` und `!vso` korrekt.
-- [x] altes Shoutout-Dashboard deaktiviert.
-- [x] Shoutout V2 als produktives Shoutout-Dashboard eingebunden.
-- [x] Settings-Tab editierbar gemacht.
-- [x] Settings-Layout bereinigt.
-- [x] Help-Tooltips ergänzt.
-- [x] Settings-Speicherbug behoben.
-- [x] AutoShoutout-Sofort-Auslöser für Lurk-Kommandos ergänzt.
-- [x] H15-Layout im bestehenden Sound-System-Overlay als Shoutout-Darstellung integriert.
-- [x] Overlay-Headline/Subline als Paar-System (`overlaySets`) umgesetzt.
-- [x] API für Overlay-Sets ergänzt: `GET/POST /api/clip-shoutout/overlay-sets`.
-- [x] Dashboard-Spezialeditor über Dropdown `shoutout.overlay.sets` sichtbar gemacht.
-- [x] Overlay-Set-Editor kompakt aufgeräumt: keine Vorschau-Zeile, `Set löschen` oben rechts.
+### LWG-4M.7 – Preset-/Wheel-Editor Modal
+- [ ] Ein Editor, zwei Kontexte:
+  - global
+  - giveaway
+- [ ] Global-Modus: normale Presets erstellen/bearbeiten.
+- [ ] Giveaway-Modus: gebundenes Wheel bearbeiten.
+- [ ] Giveaway-bound Wheels nicht in globaler Preset-Nutzung anbieten.
+- [ ] Name im Giveaway-Modus aus Giveaway ableiten oder eingeschränkt editierbar machen.
 
-## Nicht anfassen ohne neuen Auftrag
+### LWG-4M.8 – Chat-/Mod-Commands für Giveaway-Steuerung
+- [ ] Mod-Command für Giveaway schließen planen.
+- [ ] Mod-Command für Draw planen.
+- [ ] Rechteprüfung über zentrales `commands`-System.
+- [ ] Chattexte DB-/helper_texts-basiert und variantenfähig.
 
-- Clip-Player/Playback.
-- OBS-Steuerung als Fallback.
-- Produktive SQLite-Datenbank-Datei.
-- Bestehende Queue-/OfficialQueue-Logik ohne konkreten Fehlernachweis.
-- Bestehende Sound-System-Queue/Audio-Finish-Logik.
+### Später
+- [ ] Kostenpflichtige Tickets erst nach sicherer Punktebuchung aktivieren.
+- [ ] Kanalpunkte-Wheel ohne Giveaway als separaten globalen Wheel-Use-Case anbinden.
+- [ ] Dashboard für aktive Giveaways / Status / Winner / Wheel-Permission.
+- [ ] Audit-/EventBus-Doku für Giveaway-Events erweitern.
