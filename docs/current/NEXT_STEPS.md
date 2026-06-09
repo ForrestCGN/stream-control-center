@@ -1,16 +1,30 @@
-# Next Steps after LWG-4M.9
+# NEXT_STEPS – Loyalty Wheel / Giveaways
 
-## LWG-4M.10 – Dashboard Bound-Wheel Field Editor
-- Im Giveaway-Editor den Bereich `Giveaway-Rad` anzeigen.
-- Bound-Wheel-Felder lesen, hinzufügen, bearbeiten und deaktivieren.
-- Bearbeitung nur bei Draft/Unlocked erlauben.
-- Bei active/locked nur read-only anzeigen.
+## Direkt nächster Step
 
-## LWG-4M.11 – Runtime Spin aus Bound-Wheel-Feldern
-- Claim/Spin so erweitern, dass Giveaway-Räder aus `loyalty_giveaway_bound_wheel_fields` lesen.
-- Preset bleibt nur Quelle/Template, nicht mehr Runtime-Feldbasis.
-- Ergebnisfelder auf Bound-Wheel-Field-UIDs beziehen.
+### LWG-4N.1 – Dashboard Guard
 
-## LWG-4M.12 – Runtime-Test + Doku
-- Kompletten Ablauf mit leerem Giveaway-Rad und kopierter Preset-Vorlage testen.
-- Doku und Handoff aktualisieren.
+Ziel:
+
+- Wenn `Wheel Single` oder `Wheel Multi` gewählt ist, muss ein gültiges Glücksrad gewählt/erstellt sein.
+- Speichern blockieren, wenn kein Preset ausgewählt wurde und kein neues gültiges Rad erstellt wurde.
+- Aktuelle tote Auswahl `Neues Rad für dieses Giveaway` darf nicht ohne Editor als fertige Option durchgehen.
+
+## Danach
+
+### LWG-4N.2 – Preset-Editor Modal im Presets-Tab
+
+- Preset-Editor als großes Dashboard-Modal
+- Felder/Segmente übersichtlich bearbeiten
+- gleiche UX-Basis für spätere Wiederverwendung
+
+### LWG-4N.3 – Preset-Editor im Giveaway-Editor wiederverwenden
+
+- Wenn Wheel-Modus gewählt ist, Editor im Giveaway-Kontext nutzbar machen
+- Neues Glücksrad für dieses Giveaway erstellen
+- Speichern erst erlauben, wenn gültig
+
+### LWG-4N.4 – Runtime nutzt Bound-Wheel-Felder
+
+- Spin/Claim nutzt konkrete Bound-Wheel-Felder
+- Preset bleibt Vorlage/Herkunft, nicht Runtime-Quelle

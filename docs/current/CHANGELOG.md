@@ -1,18 +1,22 @@
-# Changelog – LWG-4M.9
+# CHANGELOG – Loyalty Wheel / Giveaways
 
-## Added
-- Tabelle `loyalty_giveaway_bound_wheel_fields`.
-- Row-Mapping und CRUD-Helfer fuer Bound-Wheel-Felder.
-- Snapshot-Kopie von `loyalty_wheel_fields` nach `loyalty_giveaway_bound_wheel_fields` beim Binden einer Preset-Vorlage.
-- Neue API-Routen fuer Bound-Wheel-Felder.
-- `fieldCount` und `fields` in Bound-Wheel GET.
-- `boundWheelFields` in Giveaway-Details.
-- `boundWheelFields` in Status-Counts.
+## LWG-4N.0 – UX-Konzept Preset-Editor + Giveaway-Wheel-Auswahl
 
-## Changed
-- `MODULE_BUILD` auf `STEP_LWG_4M_9` gesetzt.
+Stand: 2026-06-09T09:33:13Z
 
-## Not changed
-- Dashboard bleibt unveraendert.
-- Wheel Runtime bleibt unveraendert.
-- Keine Punktebuchung, keine Commands, keine Streamer.bot-Anbindung.
+### Added
+
+- UX-Entscheidung dokumentiert:
+  - ein wiederverwendbarer Preset-Editor
+  - Nutzung in `Presets` und `Giveaways`
+  - Editor als Dashboard-Modal
+  - Wheel-Giveaway benötigt zwingend gültiges Rad
+
+### Changed
+
+- Keine Codeänderung.
+
+### Notes
+
+- Tab `Presets` bleibt vorerst so benannt.
+- `Neues Rad für dieses Giveaway` darf später nur angeboten werden, wenn direkt ein Editor vorhanden ist.
