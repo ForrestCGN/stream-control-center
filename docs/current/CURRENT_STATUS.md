@@ -1,28 +1,3 @@
-# CURRENT_STATUS – LWG-4N.4
+# Current Status – LWG-4N.5
 
-## Status
-
-LWG-4N.4 ist ein Planungs- und Strukturstep ohne Codeänderung.
-
-## Entscheidung
-
-Loyalty wird künftig als Zentrale mit folgenden Bereichen aufgebaut:
-
-- Übersicht
-- Punkteverwaltung
-- Glücksrad
-- Giveaways
-- Raffles
-- Texte
-- Statistik
-- Config
-- Verlauf
-
-## UX-Fokus
-
-- Übersicht zuerst.
-- Erstellen/Bearbeiten über Modals oder klare Detailansichten.
-- Technische Details einklappbar oder in Verlauf/Adminbereichen.
-- Keine doppelte Command-Verwaltung.
-- Config zentral.
-- Texte über zentrale Multi-Textverwaltung.
+LWG-4N.5 vorbereitet: Loyalty-Startseite/Kachelübersicht als UI-Grundlage. Presets sind unter Glücksrad einsortiert; globale Config, Texte, Statistik, Raffles und Punkteverwaltung sind als eigene Bereiche vorbereitet.

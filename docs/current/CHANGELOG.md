@@ -1,13 +1,8 @@
-# CHANGELOG – LWG-4N.4
+# Changelog
 
-## LWG-4N.4
+## LWG-4N.5
 
-- Loyalty-Zielnavigation dokumentiert.
-- Punkteverwaltung als eigener Hauptbereich festgelegt.
-- Presets UI-seitig unter Glücksrad einsortiert.
-- Giveaway-Glücksräder als ausschließlich Giveaway-gebunden festgelegt.
-- Raffles als eigener Bereich aufgenommen.
-- Texte als zentrale Multi-Textverwaltung festgelegt.
-- Statistik und Verlauf getrennt.
-- Config als zentraler Bereich festgelegt.
-- Commands: Bearbeitung im zentralen Command-Editor, Loyalty nur Setup-/Prüffunktion.
+- Loyalty-Dashboard auf zentrale Kachelübersicht vorbereitet.
+- Tabs/Unterbereiche an neue UX-Zielstruktur angepasst.
+- Presets unter Glücksrad einsortiert.
+- Platzhalterbereiche für Punkteverwaltung, Raffles, Texte, Statistik und Config ergänzt.

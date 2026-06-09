@@ -132,7 +132,7 @@ window.LoyaltyGamesModule = (function(){
       label: 'Loyalty',
       icon: '🎟️',
       role: 'mod/supermod/streamer',
-      description: 'Punkte, Giveaways, Spiele, Glücksrad, Presets und spätere Rewards.',
+      description: 'Punkteverwaltung, Glücksrad, Giveaways, Raffles, Texte, Statistik, Config und Verlauf.',
       items: ['loyalty_games']
     };
 
@@ -141,7 +141,7 @@ window.LoyaltyGamesModule = (function(){
       const btn = document.createElement('button');
       btn.className = 'nav-main-item';
       btn.dataset.section = 'loyalty';
-      btn.innerHTML = '<span class="nav-icon">🎟️</span><span class="nav-label"><strong>Loyalty</strong><small>Punkte, Giveaways, Spiele</small></span>';
+      btn.innerHTML = '<span class="nav-icon">🎟️</span><span class="nav-label"><strong>Loyalty</strong><small>Punkte, Glücksrad, Giveaways</small></span>';
 
       const communityBtn = nav.querySelector('[data-section="community"]');
       if (communityBtn) nav.insertBefore(btn, communityBtn);
@@ -171,7 +171,7 @@ window.LoyaltyGamesModule = (function(){
       label: 'Loyalty Games',
       icon: '🎡',
       enabled: true,
-      description: 'Spiele, Glücksrad, Presets und Giveaways im Loyalty-System.'
+      description: 'Loyalty-Zentrale mit Punkten, Glücksrad, Giveaways, Raffles, Texten, Statistik und Config.'
     };
 
     const loyaltySection = window.CGN.sections?.loyalty;
@@ -344,7 +344,7 @@ window.LoyaltyGamesModule = (function(){
       });
       const uid = result.preset?.presetUid;
       await refreshPresets(uid);
-      state.activeTab = 'presets';
+      state.activeTab = 'wheel';
       setMessage('Preset wurde erstellt.');
     } catch (err) {
       state.error = err.message || String(err);
@@ -732,10 +732,10 @@ window.LoyaltyGamesModule = (function(){
 
     const moduleCards = [
       {
-        title: 'Loyalty Core',
-        icon: '🎟️',
-        tab: 'overview',
-        description: 'Punkte, Konten und Transaktionen',
+        title: 'Punkteverwaltung',
+        icon: '💰',
+        tab: 'points',
+        description: 'Konten, Punkte und Transaktionen',
         health: coreHealth
       },
       {
@@ -746,9 +746,9 @@ window.LoyaltyGamesModule = (function(){
         health: gamesHealth
       },
       {
-        title: 'Presets',
+        title: 'Glücksrad-Presets',
         icon: '🧩',
-        tab: 'presets',
+        tab: 'wheel',
         description: `${fmtNumber(presetDiag.presets || rows(state.presets).length)} Presets · ${fmtNumber(presetDiag.active || 0)} aktiv`,
         health: gamesHealth
       },
@@ -767,18 +767,39 @@ window.LoyaltyGamesModule = (function(){
         health: overlayHealth
       },
       {
-        title: 'Kanalpunkte',
-        icon: '💎',
-        tab: 'notes',
-        description: 'spätere Preset- und Giveaway-Auslöser',
+        title: 'Config',
+        icon: '⚙️',
+        tab: 'config',
+        description: 'zentrale Einstellungen und Setup-Prüfungen',
         health: channelpointsHealth
       },
       {
-        title: 'Rewards',
-        icon: '🏆',
-        tab: 'notes',
-        description: 'noch geplant',
+        title: 'Raffles',
+        icon: '🎫',
+        tab: 'raffles',
+        description: 'schnelle Chat-Verlosungen · geplant',
         health: rewardsHealth
+      },
+      {
+        title: 'Texte',
+        icon: '💬',
+        tab: 'texts',
+        description: 'Multi-Texte zentral nach Modul',
+        health: giveawaysHealth
+      },
+      {
+        title: 'Statistik',
+        icon: '📊',
+        tab: 'statistics',
+        description: 'Nutzung, Gewinner und Auswertungen',
+        health: coreHealth
+      },
+      {
+        title: 'Verlauf',
+        icon: '📜',
+        tab: 'history',
+        description: 'Spins, Sessions und Ereignisse',
+        health: gamesHealth
       }
     ];
 
@@ -787,8 +808,8 @@ window.LoyaltyGamesModule = (function(){
         <div class="lg-home-hero">
           <div>
             <p class="lg-eyebrow">Loyalty Control Center</p>
-            <h3>Module & Status</h3>
-            <p class="lg-muted">Ampelstatus aus API, vorhandenem Communication-/CanBus und Heartbeats.</p>
+            <h3>Übersicht</h3>
+            <p class="lg-muted">Wähle den Bereich, den du bearbeiten möchtest. Technische Details liegen unter Verlauf oder Config.</p>
           </div>
           <div class="lg-home-legend">
             <span>${renderAmpel({color:'green', detail:'ok'})} aktiv</span>
@@ -819,13 +840,13 @@ window.LoyaltyGamesModule = (function(){
         <article class="lg-card">
           <span class="lg-card-label">Presets</span>
           <strong>${fmtNumber(presetDiag.presets || rows(state.presets).length)}</strong>
-          <small>active ${fmtNumber(presetDiag.active || 0)} · exhausted ${fmtNumber(presetDiag.exhausted || 0)}</small>
+          <small>aktiv ${fmtNumber(presetDiag.active || 0)} · aufgebraucht ${fmtNumber(presetDiag.exhausted || 0)}</small>
           ${badge(true, 'DB')}
         </article>
         <article class="lg-card">
           <span class="lg-card-label">Giveaways</span>
           <strong>${fmtNumber(giveawaysDiag.total || rows(state.giveaways).length)}</strong>
-          <small>draft ${fmtNumber(giveawaysDiag.draft || 0)} · open ${fmtNumber(giveawaysDiag.open || 0)}</small>
+          <small>Entwürfe ${fmtNumber(giveawaysDiag.draft || 0)} · offen ${fmtNumber(giveawaysDiag.open || 0)}</small>
           ${badge(state.giveawaysStatus?.ok !== false, 'OK', 'Fehler')}
         </article>
       </div>
@@ -1770,15 +1791,136 @@ window.LoyaltyGamesModule = (function(){
     `;
   }
 
+
+  function renderPointsManagement(){
+    return `
+      <div class="lg-panel">
+        <div class="lg-panel-head">
+          <div>
+            <h3>Punkteverwaltung</h3>
+            <p class="lg-muted">Dieser Bereich wird die zentrale Verwaltung für User-Konten, Punktestände, Transaktionen und Leaderboards.</p>
+          </div>
+          <span class="lg-badge lg-badge-warn">geplant</span>
+        </div>
+        <div class="lg-grid lg-grid-3">
+          <article class="lg-card"><span class="lg-card-label">User-Konten</span><strong>Geplant</strong><small>User suchen, Punktestand anzeigen, Verlauf prüfen.</small></article>
+          <article class="lg-card"><span class="lg-card-label">Transaktionen</span><strong>Geplant</strong><small>Punkte hinzufügen/abziehen mit Audit-Log.</small></article>
+          <article class="lg-card"><span class="lg-card-label">Leaderboard</span><strong>Geplant</strong><small>Ranglisten und Auswertungen.</small></article>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderWheelArea(){
+    return `
+      <div class="lg-panel">
+        <div class="lg-panel-head">
+          <div>
+            <h3>Glücksrad</h3>
+            <p class="lg-muted">Live-Test, Overlay-Status und globale Presets. Giveaway-Glücksräder werden nur im jeweiligen Giveaway bearbeitet.</p>
+          </div>
+          <a class="lg-btn lg-btn-secondary" href="${api.overlay}" target="_blank">Overlay öffnen</a>
+        </div>
+      </div>
+      ${renderWheel()}
+      <div class="lg-panel">
+        <h3>Globale Presets</h3>
+        <p class="lg-muted">Normale Glücksrad-Presets werden hier verwaltet. Giveaway-gebundene Räder erscheinen im Giveaway selbst.</p>
+      </div>
+      ${renderPresets()}
+    `;
+  }
+
+  function renderRafflesArea(){
+    return `
+      <div class="lg-panel">
+        <div class="lg-panel-head">
+          <div>
+            <h3>Raffles</h3>
+            <p class="lg-muted">Geplanter Bereich für schnelle Chat-Verlosungen mit weniger Setup als Giveaways.</p>
+          </div>
+          <span class="lg-badge lg-badge-warn">geplant</span>
+        </div>
+        <div class="lg-grid lg-grid-3">
+          <article class="lg-card"><span class="lg-card-label">Schnellstart</span><strong>Geplant</strong><small>Raffle starten, Teilnahmebedingung setzen, Gewinner ziehen.</small></article>
+          <article class="lg-card"><span class="lg-card-label">Teilnehmer</span><strong>Geplant</strong><small>Chat-Teilnahmen und Ausschlüsse verwalten.</small></article>
+          <article class="lg-card"><span class="lg-card-label">Gewinner</span><strong>Geplant</strong><small>Wer hat wann was gewonnen.</small></article>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderTextsArea(){
+    return `
+      <div class="lg-panel">
+        <div class="lg-panel-head">
+          <div>
+            <h3>Texte</h3>
+            <p class="lg-muted">Zentrale Multi-Textverwaltung für das Loyalty-System. Module werden später per Dropdown gewählt.</p>
+          </div>
+          <span class="lg-badge lg-badge-ok">Helper-basiert</span>
+        </div>
+      </div>
+      ${renderChatSetup()}
+    `;
+  }
+
+  function renderStatisticsArea(){
+    const giveawaysDiag = state.giveawaysStatus?.diagnostics?.counts || {};
+    const presetDiag = state.status?.diagnostics?.presets || {};
+    return `
+      <div class="lg-panel">
+        <div class="lg-panel-head">
+          <div>
+            <h3>Statistik</h3>
+            <p class="lg-muted">Nutzung und Gewinner-Auswertungen für Punkteverwaltung, Glücksrad, Giveaways und Raffles.</p>
+          </div>
+          <span class="lg-badge lg-badge-warn">Ausbau folgt</span>
+        </div>
+        <div class="lg-grid lg-grid-4">
+          <article class="lg-card"><span class="lg-card-label">Giveaways</span><strong>${fmtNumber(giveawaysDiag.total || rows(state.giveaways).length)}</strong><small>Gewinner-/Teilnehmerstatistik folgt.</small></article>
+          <article class="lg-card"><span class="lg-card-label">Glücksrad-Presets</span><strong>${fmtNumber(presetDiag.presets || rows(state.presets).length)}</strong><small>Gewinnverteilung und Spins folgen.</small></article>
+          <article class="lg-card"><span class="lg-card-label">Raffles</span><strong>Geplant</strong><small>Raffle-Gewinner und Nutzung.</small></article>
+          <article class="lg-card"><span class="lg-card-label">Nutzung</span><strong>Geplant</strong><small>Wer welches Modul wann genutzt hat.</small></article>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderConfigArea(){
+    const commands = rows(state.giveawayCommands);
+    return `
+      <div class="lg-panel">
+        <div class="lg-panel-head">
+          <div>
+            <h3>Config</h3>
+            <p class="lg-muted">Zentrale Einstellungen für Loyalty. Commands werden im zentralen Command-Editor bearbeitet.</p>
+          </div>
+          <span class="lg-badge lg-badge-warn">Foundation</span>
+        </div>
+        <div class="lg-grid lg-grid-3">
+          <article class="lg-card"><span class="lg-card-label">Allgemein</span><strong>Geplant</strong><small>Modul aktiv, Default-Währung, Rollen/Rechte.</small></article>
+          <article class="lg-card"><span class="lg-card-label">Glücksrad</span><strong>Geplant</strong><small>Dauer, Slots, Overlay und Preset-Defaults.</small></article>
+          <article class="lg-card"><span class="lg-card-label">Giveaways</span><strong>Geplant</strong><small>Defaults für Tickets, Gewinner und Chatmeldungen.</small></article>
+          <article class="lg-card"><span class="lg-card-label">Raffles</span><strong>Geplant</strong><small>Defaults für schnelle Verlosungen.</small></article>
+          <article class="lg-card"><span class="lg-card-label">Texte</span><strong>Siehe Texte</strong><small>Multi-Texte über den bestehenden Helper.</small></article>
+          <article class="lg-card"><span class="lg-card-label">Commands</span><strong>${fmtNumber(commands.length)} bekannt</strong><small>Fehlende Standard-Commands später prüfen/anlegen, nie überschreiben.</small></article>
+        </div>
+      </div>
+    `;
+  }
+
   function renderTabs(){
     const tabs = [
       ['overview', 'Übersicht'],
+      ['points', 'Punkteverwaltung'],
       ['wheel', 'Glücksrad'],
-      ['presets', 'Presets'],
       ['giveaways', 'Giveaways'],
-      ['chat', 'Chat/Commands'],
-      ['history', 'Verlauf'],
-      ['notes', 'Hinweise']
+      ['raffles', 'Raffles'],
+      ['texts', 'Texte'],
+      ['statistics', 'Statistik'],
+      ['config', 'Config'],
+      ['history', 'Verlauf']
     ];
     return `
       <div class="lg-tabs">
@@ -1788,12 +1930,14 @@ window.LoyaltyGamesModule = (function(){
   }
 
   function renderActiveTab(){
-    if (state.activeTab === 'wheel') return renderWheel();
-    if (state.activeTab === 'presets') return renderPresets();
+    if (state.activeTab === 'points') return renderPointsManagement();
+    if (state.activeTab === 'wheel') return renderWheelArea();
     if (state.activeTab === 'giveaways') return renderGiveaways();
-    if (state.activeTab === 'chat') return renderChatSetup();
+    if (state.activeTab === 'raffles') return renderRafflesArea();
+    if (state.activeTab === 'texts') return renderTextsArea();
+    if (state.activeTab === 'statistics') return renderStatisticsArea();
+    if (state.activeTab === 'config') return renderConfigArea();
     if (state.activeTab === 'history') return renderSessions();
-    if (state.activeTab === 'notes') return renderNotes();
     return renderOverview();
   }
 
@@ -1934,9 +2078,9 @@ window.LoyaltyGamesModule = (function(){
     root.innerHTML = `
       <div class="lg-head">
         <div>
-          <p class="lg-eyebrow">Loyalty / Spiele</p>
-          <h2>Loyalty Games</h2>
-          <p class="lg-subline">Glücksrad, Presets, Giveaways, Chat-Command-Vorbereitung und Verlauf.</p>
+          <p class="lg-eyebrow">Loyalty</p>
+          <h2>Loyalty-Zentrale</h2>
+          <p class="lg-subline">Punkteverwaltung, Glücksrad, Giveaways, Raffles, Texte, Statistik, Config und Verlauf.</p>
         </div>
         <div class="lg-actions">
           <a class="lg-btn lg-btn-secondary" href="${api.overlay}" target="_blank">Overlay öffnen</a>
