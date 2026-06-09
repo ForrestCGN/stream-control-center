@@ -1,13 +1,7 @@
-# Changelog – LWG-4N.1c
+# CHANGELOG
 
-## Changed
-
-- Dashboard-Status-Badges verwenden deutsche Begriffe statt technische englische Statuswerte.
-- `Unvollständig` wird orange hervorgehoben.
-- Setup-Meldung für fehlende Glücksrad-Felder wurde nutzerfreundlicher formuliert.
-
-## Not changed
-
-- Keine Backend-Logik geändert.
-- Keine Statuswerte in der API geändert.
-- Keine Giveaway-Lifecycle-Regeln geändert.
+## LWG-4N.2
+- Preset-Editor-Modal im Dashboard vorbereitet.
+- Presets-Tab: `Neues Preset im Editor`, `Im Editor öffnen`.
+- Giveaways: Button `Neues Preset erstellen` bei Wheel-Modus.
+- Kein Backend geändert.

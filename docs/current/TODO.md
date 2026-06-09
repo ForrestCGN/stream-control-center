@@ -1,9 +1,7 @@
-# TODO – Loyalty Glücksrad / Giveaways
+# TODO – Loyalty Giveaways / Preset Editor
 
-- [ ] LWG-4N.1c einspielen und Dashboard prüfen.
-- [ ] Deutsche Status-Badges visuell prüfen.
-- [ ] Orangefarbene Unvollständig-Warnung prüfen.
-- [ ] Giveaway-Titel-Duplikat-Guard umsetzen.
-- [ ] Preset-Editor als wiederverwendbares Modal vorbereiten.
-- [ ] Preset-Editor im Giveaway-Ersteller nutzbar machen.
-- [ ] Bound-Wheel-Felder später als echte Spin-Basis verwenden.
+- [ ] Modal UX prüfen.
+- [ ] Preset-Erstellung aus bestehendem Giveaway heraus direkt zuordnen.
+- [ ] Inline-Editor weiter nutzerfreundlich machen.
+- [ ] Giveaway-Titel-Duplikat-Guard ergänzen.
+- [ ] Runtime später auf Bound-Wheel-Felder umstellen.

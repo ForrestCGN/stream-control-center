@@ -41,7 +41,9 @@ window.LoyaltyGamesModule = (function(){
     selectedPreset: null,
     selectedGiveawayUid: '',
     selectedGiveaway: null,
-    activeTab: 'overview'
+    activeTab: 'overview',
+    presetEditorModal: { open: false, mode: 'create', context: 'presets', presetUid: '', targetGiveawayUid: '' },
+    giveawayDraftWheelPresetUid: ''
   };
 
   function esc(v){
@@ -852,6 +854,127 @@ window.LoyaltyGamesModule = (function(){
     `;
   }
 
+
+  async function openPresetEditorModal(options = {}){
+    const mode = options.mode === 'edit' ? 'edit' : 'create';
+    const presetUid = String(options.presetUid || '').trim();
+    state.presetEditorModal = {
+      open: true,
+      mode,
+      context: String(options.context || state.activeTab || 'presets').trim() || 'presets',
+      presetUid,
+      targetGiveawayUid: String(options.targetGiveawayUid || '').trim()
+    };
+    if (mode === 'edit' && presetUid && presetUid !== state.selectedPresetUid) {
+      await loadPreset(presetUid, false);
+    }
+    render();
+  }
+
+  function closePresetEditorModal(){
+    state.presetEditorModal = { open: false, mode: 'create', context: 'presets', presetUid: '', targetGiveawayUid: '' };
+    render();
+  }
+
+  async function handleCreatePresetFromModal(form){
+    const data = new FormData(form);
+    state.saving = true; render();
+    try {
+      const result = await apiPost('/api/loyalty/games/wheel/presets', {
+        name: data.get('name'),
+        description: data.get('description'),
+        minVisibleSlots: Number(data.get('minVisibleSlots') || 12),
+        status: data.get('status') || 'draft',
+        removeAfterWin: data.get('removeAfterWin') === 'on',
+        createdBy: 'dashboard',
+        metadata: {
+          createdFrom: 'preset_editor_modal',
+          editorContext: state.presetEditorModal?.context || 'presets',
+          targetGiveawayUid: state.presetEditorModal?.targetGiveawayUid || ''
+        }
+      });
+      const uid = result.preset?.presetUid || '';
+      await refreshPresets(uid);
+      if (state.presetEditorModal?.context === 'giveaways' && uid) state.giveawayDraftWheelPresetUid = uid;
+      state.presetEditorModal = { open: false, mode: 'create', context: 'presets', presetUid: '', targetGiveawayUid: '' };
+      setMessage('Preset wurde erstellt. Du kannst jetzt Felder hinzufügen oder es im Giveaway auswählen.');
+    } catch (err) {
+      state.error = err.message || String(err);
+    } finally {
+      state.saving = false; render();
+    }
+  }
+
+  function renderPresetEditorModal(){
+    const modal = state.presetEditorModal || {};
+    if (!modal.open) return '';
+    const mode = modal.mode === 'edit' ? 'edit' : 'create';
+    const context = modal.context || 'presets';
+    const selected = mode === 'edit' ? state.selectedPreset : null;
+    const fields = rows(selected?.fields || []);
+    const editable = mode === 'create' ? true : !!selected?.editable;
+    const title = mode === 'edit'
+      ? `Preset bearbeiten: ${selected ? esc(selected.name || 'Preset') : 'Preset wird geladen'}`
+      : (context === 'giveaways' ? 'Neues Preset für dieses Giveaway erstellen' : 'Neues Preset erstellen');
+
+    return `
+      <div class="lg-editor-modal-backdrop" data-lg-close-preset-editor>
+        <div class="lg-editor-modal" role="dialog" aria-modal="true" aria-label="Preset-Editor" onclick="event.stopPropagation()">
+          <div class="lg-editor-modal-head">
+            <div>
+              <p class="lg-eyebrow">Glücksrad / Preset-Editor</p>
+              <h3>${title}</h3>
+              <p class="lg-muted">Ein Editor für Presets und Giveaway-Glücksräder. Speichern bleibt im Dashboard, kein Browser-Popup.</p>
+            </div>
+            <button class="lg-btn lg-btn-secondary" type="button" data-lg-close-preset-editor>Schließen</button>
+          </div>
+
+          ${mode === 'create' ? `
+            <form class="lg-form lg-editor-modal-section" data-lg-modal-create-preset>
+              <div class="lg-form-row">
+                <label>Name<input name="name" required placeholder="z. B. Rentner-Rad"></label>
+                <label>Mindest-Slots<input name="minVisibleSlots" type="number" min="1" max="96" value="12"></label>
+              </div>
+              <label>Beschreibung<textarea name="description" rows="2" placeholder="Kurzbeschreibung"></textarea></label>
+              <div class="lg-form-row">
+                <label>Status
+                  <select name="status">
+                    <option value="draft">Entwurf</option>
+                    <option value="active">Aktiv</option>
+                  </select>
+                </label>
+                <label class="lg-check"><input name="removeAfterWin" type="checkbox" checked> Gewinnfeld nach Auslosung aus diesem Rad entfernen</label>
+              </div>
+              ${context === 'giveaways' ? `<p class="lg-warning">Dieses Preset wird aus dem Giveaway-Editor heraus erstellt. Nach dem Erstellen kannst du es im Giveaway auswählen und Felder ergänzen.</p>` : ''}
+              <button class="lg-btn" type="submit" ${state.saving ? 'disabled' : ''}>Preset erstellen</button>
+            </form>
+          ` : selected ? `
+            <div class="lg-editor-modal-section">
+              <div class="lg-kv lg-kv-compact">
+                <span>Status</span><strong>${statusBadge(selected.status)}</strong>
+                <span>Typ</span><strong>${esc(selected.presetType)}</strong>
+                <span>Bearbeitbar</span><strong>${editable ? 'Ja' : 'Nein, nur kopieren/anzeigen'}</strong>
+                <span>Felder</span><strong>${fmtNumber(fields.length)}</strong>
+              </div>
+              ${editable ? `
+                <form class="lg-form lg-preset-settings-form" data-lg-update-preset>
+                  <div class="lg-form-row">
+                    <label>Name<input name="name" value="${esc(selected.name || '')}" required></label>
+                    <label>Mindest-Slots<input name="minVisibleSlots" type="number" min="1" max="96" value="${esc(selected.minVisibleSlots || 12)}"></label>
+                  </div>
+                  <label>Beschreibung<textarea name="description" rows="2">${esc(selected.description || '')}</textarea></label>
+                  <label class="lg-check"><input name="removeAfterWin" type="checkbox" ${selected.settings?.removeAfterWin === false ? '' : 'checked'}> Gewinnfeld nach Auslosung aus diesem Rad entfernen</label>
+                  <button class="lg-btn" type="submit">Preset-Einstellungen speichern</button>
+                </form>
+              ` : `<p class="lg-warning">Dieses Preset ist nicht direkt bearbeitbar. Änderungen bitte über Kopieren als neues Preset anlegen.</p>`}
+            </div>
+            ${renderFieldsEditor(selected, fields, editable)}
+          ` : `<p class="lg-muted">Preset wird geladen...</p>`}
+        </div>
+      </div>
+    `;
+  }
+
   function renderPresets(){
     const presets = rows(state.presets);
     const selected = state.selectedPreset;
@@ -864,6 +987,7 @@ window.LoyaltyGamesModule = (function(){
         <div class="lg-panel">
           <div class="lg-panel-head">
             <h3>Presets</h3>
+            <button class="lg-btn lg-btn-secondary" data-lg-open-preset-editor data-mode="create" data-context="presets">Neues Preset im Editor</button>
             <button class="lg-btn" data-lg-preset-refresh>Aktualisieren</button>
           </div>
           <div class="lg-preset-list">
@@ -880,7 +1004,7 @@ window.LoyaltyGamesModule = (function(){
         </div>
 
         <div class="lg-panel">
-          <h3>Neues Standalone-Preset</h3>
+          <h3>Schnellanlage Standalone-Preset</h3>
           <form class="lg-form" data-lg-create-preset>
             <label>Name<input name="name" required placeholder="z. B. Rentner-Rad"></label>
             <label>Beschreibung<textarea name="description" rows="2" placeholder="Kurzbeschreibung"></textarea></label>
@@ -906,6 +1030,7 @@ window.LoyaltyGamesModule = (function(){
             ${selected ? `<p class="lg-muted">${esc(selected.description || '')}</p>` : ''}
           </div>
           ${selected ? `<div class="lg-actions">
+            <button class="lg-btn" data-lg-open-preset-editor data-mode="edit" data-context="presets" data-preset-uid="${esc(selected.presetUid)}">Im Editor öffnen</button>
             <button class="lg-btn lg-btn-secondary" data-lg-preset-action="copy" data-preset-uid="${esc(selected.presetUid)}">Kopieren</button>
             ${selected.status === 'active' ? `<button class="lg-btn lg-btn-secondary" data-lg-start-spin="${esc(selected.presetUid)}">Drehen</button>` : ''}
             ${selected.status !== 'active' && selected.status !== 'finished' && selected.status !== 'deleted' ? `<button class="lg-btn" data-lg-preset-action="activate" data-preset-uid="${esc(selected.presetUid)}">Aktivieren</button>` : ''}
@@ -1112,8 +1237,11 @@ window.LoyaltyGamesModule = (function(){
         <label data-lg-wheel-preset-row style="${wheelMode ? '' : 'display:none'}">Wheel-Preset
           <select name="wheelPresetUid" data-lg-wheel-preset-select data-editable="${editable ? '1' : '0'}" ${editable && wheelMode ? '' : 'disabled'}>
             <option value="">Noch kein Glücksrad ausgewählt</option>
-            ${presets.map(p => `<option value="${esc(p.presetUid)}" ${wheelPresetUid === p.presetUid ? 'selected' : ''}>Preset verwenden: ${esc(p.name)}</option>`).join('')}
+            ${presets.map(p => `<option value="${esc(p.presetUid)}" ${(wheelPresetUid || (!giveaway && state.giveawayDraftWheelPresetUid)) === p.presetUid ? 'selected' : ''}>Preset verwenden: ${esc(p.name)}</option>`).join('')}
           </select>
+          <div class="lg-inline-actions">
+            <button class="lg-btn lg-btn-secondary" type="button" data-lg-open-preset-editor data-mode="create" data-context="giveaways" data-target-giveaway-uid="${esc(giveaway?.giveawayUid || '')}">Neues Preset erstellen</button>
+          </div>
           <small class="lg-muted">Ohne Preset kann das Giveaway als Entwurf gespeichert, aber nicht geöffnet werden.</small>
         </label>
       </div>
@@ -1615,6 +1743,22 @@ window.LoyaltyGamesModule = (function(){
       });
     });
 
+    root.querySelectorAll('[data-lg-open-preset-editor]').forEach(btn => {
+      btn.addEventListener('click', () => openPresetEditorModal({
+        mode: btn.dataset.mode || btn.dataset.lgMode || 'create',
+        context: btn.dataset.context || 'presets',
+        presetUid: btn.dataset.presetUid || '',
+        targetGiveawayUid: btn.dataset.targetGiveawayUid || ''
+      }));
+    });
+    root.querySelectorAll('[data-lg-close-preset-editor]').forEach(btn => {
+      btn.addEventListener('click', () => closePresetEditorModal());
+    });
+    root.querySelector('[data-lg-modal-create-preset]')?.addEventListener('submit', ev => {
+      ev.preventDefault();
+      handleCreatePresetFromModal(ev.currentTarget);
+    });
+
     root.querySelectorAll('[data-lg-select-preset]').forEach(btn => {
       btn.addEventListener('click', () => loadPreset(btn.dataset.lgSelectPreset));
     });
@@ -1728,10 +1872,20 @@ window.LoyaltyGamesModule = (function(){
           <button class="lg-btn" data-lg-reload ${state.saving ? 'disabled' : ''}>Reload</button>
         </div>
       </div>
+
+      <style>
+        .lg-editor-modal-backdrop{position:fixed;inset:0;z-index:9999;background:rgba(4,8,18,.72);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:28px;}
+        .lg-editor-modal{width:min(1180px,96vw);max-height:92vh;overflow:auto;border:1px solid rgba(108,226,255,.38);border-radius:22px;background:linear-gradient(180deg,rgba(17,24,39,.98),rgba(10,15,30,.98));box-shadow:0 0 40px rgba(146,92,255,.25),0 0 18px rgba(42,217,255,.18);padding:18px;}
+        .lg-editor-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(108,226,255,.18);}
+        .lg-editor-modal-head h3{margin:.2rem 0 .35rem;}
+        .lg-editor-modal-section{padding:12px;border:1px solid rgba(108,226,255,.14);border-radius:16px;background:rgba(255,255,255,.025);margin-bottom:14px;}
+        .lg-inline-actions{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;}
+      </style>
       ${state.message ? `<div class="lg-toast">${esc(state.message)}</div>` : ''}
       ${state.saving ? `<div class="lg-toast lg-toast-warn">Speichere...</div>` : ''}
       ${renderTabs()}
       ${renderActiveTab()}
+      ${renderPresetEditorModal()}
     `;
 
     bindEvents();
