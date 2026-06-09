@@ -18,7 +18,7 @@ const database = require("../core/database");
 
 const MODULE_NAME = "loyalty_giveaways";
 const MODULE_VERSION = "0.1.0";
-const MODULE_BUILD = "STEP_LWG_4L_11";
+const MODULE_BUILD = "STEP_LWG_4L_12";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -1415,6 +1415,23 @@ function getPendingWheelPermission(giveawayUid, userLogin) {
   return rowToWheelPermission(row);
 }
 
+function getPendingWheelPermissionForUser(userLogin) {
+  ensureSchema();
+  const login = String(userLogin || "").trim().replace(/^@/, "").toLowerCase();
+  if (!login) return null;
+  const row = database.get(`
+    SELECT p.*
+    FROM loyalty_giveaway_wheel_permissions p
+    JOIN loyalty_giveaways g ON g.giveaway_uid = p.giveaway_uid
+    WHERE p.user_login = :userLogin
+      AND p.status = 'pending'
+      AND g.deleted_at = ''
+    ORDER BY p.id ASC
+    LIMIT 1
+  `, { userLogin: login });
+  return rowToWheelPermission(row);
+}
+
 function getAvailablePrize(giveawayUid) {
   ensureSchema();
   const row = database.get(`
@@ -2568,8 +2585,29 @@ function handleWheelCommandRuntime(input = {}) {
     });
   }
 
+  const userLogin = normalizeChatLogin(input.userLogin || input.login || input.username || input.user);
+  if (!userLogin) {
+    return buildCommandRuntimeResponse(input, {
+      ok: false,
+      active: !!(centralCommandDefinition && centralCommandDefinition.enabled),
+      commandsActive: !!(centralCommandDefinition && centralCommandDefinition.enabled),
+      action: "giveaway_wheel_claim",
+      messageKey: "wheel.no_permission",
+      error: "missing_user_login",
+      data: { commandDefinition, centralCommandDefinition }
+    });
+  }
+
   const giveawayUid = String(input.giveawayUid || input.giveaway_uid || "").trim();
-  const giveaway = giveawayUid ? getGiveaway(giveawayUid, false) : getRuntimeOpenGiveaway();
+  let permissionContext = null;
+  let giveaway = null;
+  if (giveawayUid) {
+    giveaway = getGiveaway(giveawayUid, false);
+  } else {
+    permissionContext = getPendingWheelPermissionForUser(userLogin);
+    giveaway = permissionContext ? getGiveaway(permissionContext.giveawayUid, false) : null;
+  }
+
   if (!giveaway) {
     return buildCommandRuntimeResponse(input, {
       ok: false,
@@ -2578,14 +2616,14 @@ function handleWheelCommandRuntime(input = {}) {
       action: "giveaway_wheel_claim",
       messageKey: "wheel.no_permission",
       error: "wheel_no_permission",
-      data: { commandDefinition, centralCommandDefinition, reason: "no_open_wheel_permission_context" }
+      data: { commandDefinition, centralCommandDefinition, reason: "no_pending_wheel_permission_for_user" }
     });
   }
 
   const result = claimWheelSpin(giveaway.giveawayUid, {
     ...input,
-    userLogin: normalizeChatLogin(input.userLogin || input.login || input.username || input.user),
-    userDisplayName: normalizeChatDisplayName(input, input.userLogin || input.login || input.username || input.user),
+    userLogin,
+    userDisplayName: normalizeChatDisplayName(input, userLogin),
     source: "chat_runtime"
   });
 
@@ -2594,7 +2632,7 @@ function handleWheelCommandRuntime(input = {}) {
       ok: false,
       action: "giveaway_wheel_claim",
       messageKey: "wheel.no_permission",
-      error: result.error || "wheel_claim_failed",
+      error: result.error === "no_pending_wheel_permission" ? "wheel_no_permission" : (result.error || "wheel_claim_failed"),
       data: result
     });
   }
@@ -2921,6 +2959,7 @@ module.exports = {
     listWinners,
     drawWinner,
     listWheelPermissions,
+    getPendingWheelPermissionForUser,
     claimWheelSpin,
     handleChatCommandRuntime,
     seedCentralCommandDefinitions,
