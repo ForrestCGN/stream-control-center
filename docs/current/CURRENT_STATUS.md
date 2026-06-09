@@ -1,3 +1,28 @@
-# Current Status – LWG-4N.3c
+# CURRENT_STATUS – LWG-4N.4
 
-LWG-4N.3c stabilisiert die UX im Giveaway-Wheel-Bereich: Die Modus-Zeile bleibt unabhängig von Classic/Wheel stabil, der Glücksrad-Bereich wird als eigener Abschnitt angezeigt und „Glücksrad speichern“ schließt im Giveaway-Kontext das Editor-Modal.
+## Status
+
+LWG-4N.4 ist ein Planungs- und Strukturstep ohne Codeänderung.
+
+## Entscheidung
+
+Loyalty wird künftig als Zentrale mit folgenden Bereichen aufgebaut:
+
+- Übersicht
+- Punkteverwaltung
+- Glücksrad
+- Giveaways
+- Raffles
+- Texte
+- Statistik
+- Config
+- Verlauf
+
+## UX-Fokus
+
+- Übersicht zuerst.
+- Erstellen/Bearbeiten über Modals oder klare Detailansichten.
+- Technische Details einklappbar oder in Verlauf/Adminbereichen.
+- Keine doppelte Command-Verwaltung.
+- Config zentral.
+- Texte über zentrale Multi-Textverwaltung.
