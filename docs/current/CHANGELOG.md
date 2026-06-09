@@ -1,5 +1,8 @@
-# CHANGELOG – LWG-4N.5b
+# CHANGELOG
 
-- UI-Begriff `Loyalty Games` sichtbar entfernt.
-- Loyalty-Navigation öffnet direkt das Modul.
-- Übersichtskacheln auf Zielstruktur Core/Glücksrad/Giveaways/Raffles/Texte/Statistik/Config/Verlauf reduziert.
+## LWG-4N.6
+
+- Giveaways-Ansicht auf Übersicht-first umgestellt.
+- Neues Giveaway wird nicht mehr dauerhaft als Formular angezeigt.
+- Giveaway-Karten mit Aktionen eingeführt.
+- Keine Backend-Änderungen.

@@ -1,3 +1,3 @@
-# FILES – LWG-4N.5b
+# FILES
 
 - htdocs/dashboard/modules/loyalty_games.js

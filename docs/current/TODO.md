@@ -1,7 +1,6 @@
-# TODO – LWG-4N.5b
+# TODO
 
-- [ ] Nach Einspielen prüfen: Linke Navigation `Loyalty` öffnet direkt die Loyalty-Zentrale.
-- [ ] Prüfen: Keine sichtbare Bezeichnung `Loyalty Games` mehr.
-- [ ] Prüfen: Kachel `Core` ist sichtbar.
-- [ ] Prüfen: Kacheln springen in die passenden Unterbereiche.
-- [ ] Danach Giveaways-Ansicht nutzerfreundlicher umbauen.
+- [ ] Giveaways-Übersicht nach Einspielen prüfen.
+- [ ] Preset-/Glücksrad-Editor Feldaktionen vereinfachen.
+- [ ] Technische Details später einklappbar machen.
+- [ ] Titel-Duplikate bei aktiven/unfertigen Giveaways blockieren.

@@ -1,5 +1,5 @@
-# NEXT_STEPS – nach LWG-4N.5b
+# NEXT_STEPS
 
-1. LWG-4N.6 – Giveaways-Übersicht / Editor-Modal UX-Rework planen und umsetzen.
-2. LWG-4N.7 – Glücksrad-Bereich: globale Presets klarer unter Glücksrad einsortieren.
-3. Später: Config-Bereich mit Setup-Prüfung, Command-Check und fehlende Standard-Commands nach Bestätigung anlegen.
+1. LWG-4N.6 einspielen und Giveaways-Übersicht optisch prüfen.
+2. Danach Preset-/Glücksrad-Editor Feldaktionen vereinfachen.
+3. Später Titel-Duplikat-Guard und weitere Backend-Validierung ergänzen.

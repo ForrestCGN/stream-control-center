@@ -94,7 +94,11 @@ window.LoyaltyGamesModule = (function(){
       cancelled: 'Abgebrochen',
       deleted: 'Gelöscht',
       pending: 'Ausstehend',
-      used: 'Genutzt'
+      used: 'Genutzt',
+      classic_single: 'Classic Single',
+      classic_multi: 'Classic Multi',
+      wheel_single: 'Wheel Single',
+      wheel_multi: 'Wheel Multi'
     };
     return labels[clean] || String(status || '-');
   }
@@ -1208,49 +1212,80 @@ window.LoyaltyGamesModule = (function(){
     `;
   }
 
-  function renderGiveaways(){
-    const giveaways = rows(state.giveaways);
-    const selected = state.selectedGiveaway;
-    const editable = !!selected?.editable;
-    const presets = rows(state.presets).filter(p => p.status === 'active' && p.presetType === 'standalone');
-
+  function renderGiveawaySummaryCard(giveaway){
+    const isSelected = giveaway.giveawayUid === state.selectedGiveawayUid;
+    const issues = setupIssuesText(giveaway);
+    const entries = rows(giveaway.entries || []);
+    const winners = rows(giveaway.winners || []);
+    const activeTickets = entries.filter(entry => entry.status !== 'cancelled').length;
+    const canOpen = giveaway.status === 'draft' && giveaway.setupComplete === true;
+    const openBlocked = giveaway.status === 'draft' && giveaway.setupComplete !== true;
     return `
-      <div class="lg-grid lg-editor-grid">
-        <div class="lg-panel">
-          <div class="lg-panel-head">
-            <h3>Giveaways</h3>
-            <button class="lg-btn" data-lg-giveaway-refresh>Aktualisieren</button>
+      <article class="lg-giveaway-card ${isSelected ? 'is-active' : ''}">
+        <div class="lg-giveaway-card-head">
+          <div>
+            <strong>${esc(giveaway.title || 'Ohne Titel')}</strong>
+            <small>${esc(statusLabel(giveaway.mode || ''))} · erstellt ${fmtDate(giveaway.createdAt)}</small>
           </div>
-          <div class="lg-preset-list">
-            ${giveaways.map(giveaway => `
-              <button class="lg-preset-item ${giveaway.giveawayUid === state.selectedGiveawayUid ? 'is-active' : ''}" data-lg-select-giveaway="${esc(giveaway.giveawayUid)}">
-                <span>
-                  <strong>${esc(giveaway.title)}</strong>
-                  <small>${esc(giveaway.mode)} · ${fmtDate(giveaway.createdAt)}</small>
-                  ${giveaway.status === 'draft' ? `<small>${setupBadge(giveaway)} ${giveaway.setupComplete === true ? '' : esc(setupIssuesText(giveaway))}</small>` : ''}
-                </span>
-                ${statusBadge(giveaway.status)}
-              </button>
-            `).join('') || `<p class="lg-muted">Noch keine Giveaways gefunden.</p>`}
+          <div class="lg-giveaway-card-badges">
+            ${statusBadge(giveaway.status)}
+            ${giveaway.status === 'draft' ? setupBadge(giveaway) : ''}
           </div>
         </div>
+        ${giveaway.status === 'draft' && giveaway.setupComplete !== true ? `<p class="lg-giveaway-card-warning">${esc(issues || 'Es fehlen noch Pflichtangaben.')}</p>` : ''}
+        <div class="lg-giveaway-card-meta">
+          <span>Tickets: <strong>${fmtNumber(activeTickets)}</strong></span>
+          <span>Gewinner: <strong>${fmtNumber(winners.length)}</strong></span>
+          <span>Rad: <strong>${giveaway.wheelEnabled ? 'Ja' : 'Nein'}</strong></span>
+        </div>
+        <div class="lg-giveaway-card-actions">
+          <button class="lg-btn lg-btn-secondary" type="button" data-lg-select-giveaway="${esc(giveaway.giveawayUid)}">Bearbeiten</button>
+          ${canOpen ? `<button class="lg-btn" type="button" data-lg-giveaway-action="open" data-giveaway-uid="${esc(giveaway.giveawayUid)}">Öffnen</button>` : ''}
+          ${openBlocked ? `<button class="lg-btn" type="button" disabled title="${esc(issues || 'Pflichtangaben fehlen')}">Öffnen</button>` : ''}
+          <button class="lg-btn lg-btn-secondary" type="button" data-lg-giveaway-action="copy" data-giveaway-uid="${esc(giveaway.giveawayUid)}">Kopieren</button>
+          ${giveaway.status !== 'deleted' ? `<button class="lg-btn lg-btn-danger" type="button" data-lg-giveaway-action="delete" data-giveaway-uid="${esc(giveaway.giveawayUid)}">Löschen</button>` : ''}
+        </div>
+      </article>
+    `;
+  }
 
-        <div class="lg-panel">
-          <h3>Neues Giveaway</h3>
+  function renderGiveawayEditorPanel(selected, presets){
+    if (state.selectedGiveawayUid === '__new__') {
+      return `
+        <div class="lg-panel lg-giveaway-editor-panel">
+          <div class="lg-panel-head">
+            <div>
+              <h3>Neues Giveaway</h3>
+              <p class="lg-muted">Speichern legt einen Entwurf an. Öffnen ist erst möglich, wenn alle Pflichtdaten vollständig sind.</p>
+            </div>
+            <button class="lg-btn lg-btn-secondary" type="button" data-lg-close-giveaway-editor>Schließen</button>
+          </div>
           <form class="lg-form" data-lg-create-giveaway>
             ${renderGiveawayFormFields(null, true, presets)}
-            <button class="lg-btn" type="submit" ${state.saving ? 'disabled' : ''}>Giveaway erstellen</button>
+            <button class="lg-btn" type="submit" ${state.saving ? 'disabled' : ''}>Giveaway als Entwurf speichern</button>
           </form>
         </div>
-      </div>
+      `;
+    }
 
-      <div class="lg-panel">
+    if (!selected) {
+      return `
+        <div class="lg-panel lg-giveaway-empty">
+          <h3>Kein Giveaway ausgewählt</h3>
+          <p class="lg-muted">Wähle in der Übersicht ein Giveaway zum Bearbeiten aus oder erstelle ein neues Giveaway.</p>
+        </div>
+      `;
+    }
+
+    const editable = !!selected.editable;
+    return `
+      <div class="lg-panel lg-giveaway-editor-panel">
         <div class="lg-panel-head">
           <div>
-            <h3>${selected ? esc(selected.title) : 'Kein Giveaway ausgewählt'}</h3>
-            ${selected ? `<p class="lg-muted">${esc(selected.description || '')}</p>` : ''}
+            <h3>${esc(selected.title)}</h3>
+            ${selected.description ? `<p class="lg-muted">${esc(selected.description)}</p>` : `<p class="lg-muted">Giveaway bearbeiten und verwalten.</p>`}
           </div>
-          ${selected ? `<div class="lg-actions">
+          <div class="lg-actions">
             <button class="lg-btn lg-btn-secondary" data-lg-giveaway-action="copy" data-giveaway-uid="${esc(selected.giveawayUid)}">Kopieren</button>
             ${selected.status === 'draft' && selected.setupComplete === true ? `<button class="lg-btn" data-lg-giveaway-action="open" data-giveaway-uid="${esc(selected.giveawayUid)}">Öffnen</button>` : ''}
             ${selected.status === 'draft' && selected.setupComplete !== true ? `<button class="lg-btn" type="button" disabled title="${esc(setupIssuesText(selected) || 'Pflichtangaben fehlen')}">Öffnen</button>` : ''}
@@ -1258,36 +1293,63 @@ window.LoyaltyGamesModule = (function(){
             ${['open','closed_for_entries'].includes(selected.status) && !selected.wheelEnabled ? `<button class="lg-btn" data-lg-draw-winner="${esc(selected.giveawayUid)}">Gewinner ziehen</button>` : ''}
             ${!['finished','cancelled','deleted'].includes(selected.status) ? `<button class="lg-btn lg-btn-danger" data-lg-giveaway-action="finish" data-giveaway-uid="${esc(selected.giveawayUid)}">Beenden</button>` : ''}
             ${!['finished','cancelled','deleted'].includes(selected.status) ? `<button class="lg-btn lg-btn-danger" data-lg-giveaway-action="cancel" data-giveaway-uid="${esc(selected.giveawayUid)}">Abbrechen</button>` : ''}
-            ${selected.status !== 'deleted' ? `<button class="lg-btn lg-btn-danger" data-lg-giveaway-action="delete" data-giveaway-uid="${esc(selected.giveawayUid)}">Löschen</button>` : ''}
-          </div>` : ''}
+          </div>
         </div>
 
-        ${selected ? `
-          <div class="lg-kv lg-kv-compact">
-            <span>Status</span><strong>${statusBadge(selected.status)}</strong>
-            <span>Modus</span><strong>${esc(selected.mode)}</strong>
-            <span>Bearbeitbar</span><strong>${editable ? 'Ja' : 'Nein, nur kopieren/anzeigen'}</strong>
-            <span>Bereit</span><strong>${setupBadge(selected)}</strong>
-            ${selected.setupComplete !== true ? `<span>Fehlt</span><strong>${esc(setupIssuesText(selected) || 'Pflichtangaben')}</strong>` : ''}
-            <span>Kosten</span><strong>${fmtNumber(selected.costAmount)}</strong>
-            <span>Gewinner</span><strong>${fmtNumber(selected.winnerCount)}</strong>
-            <span>Rad</span><strong>${selected.wheelEnabled ? 'Ja' : 'Nein'}</strong>
-            <span>UID</span><strong><code>${esc(selected.giveawayUid)}</code></strong>
-            <span>Erstellt</span><strong>${fmtDate(selected.createdAt)}</strong>
+        <div class="lg-giveaway-summary-strip">
+          <span>Status: <strong>${statusBadge(selected.status)}</strong></span>
+          <span>Bereit: <strong>${setupBadge(selected)}</strong></span>
+          <span>Modus: <strong>${esc(statusLabel(selected.mode))}</strong></span>
+          <span>Kosten: <strong>${fmtNumber(selected.costAmount)}</strong></span>
+          <span>Gewinner: <strong>${fmtNumber(selected.winnerCount)}</strong></span>
+        </div>
+        ${setupWarningBlock(selected)}
+
+        ${editable ? `
+          <form class="lg-form lg-preset-settings-form" data-lg-update-giveaway>
+            ${renderGiveawayFormFields(selected, true, presets)}
+            <button class="lg-btn" type="submit">Giveaway speichern</button>
+          </form>
+        ` : `<p class="lg-warning">Dieses Giveaway ist read-only. Änderungen bitte über „Kopieren“ als neues Giveaway anlegen.</p>`}
+      </div>
+      ${renderGiveawayDetails(selected)}
+    `;
+  }
+
+  function renderGiveaways(){
+    const giveaways = rows(state.giveaways);
+    const selected = state.selectedGiveaway;
+    const presets = rows(state.presets).filter(p => p.status === 'active' && p.presetType === 'standalone');
+    const draftCount = giveaways.filter(g => String(g.status || '').toLowerCase() === 'draft').length;
+    const incompleteCount = giveaways.filter(g => g.setupComplete === false).length;
+    const openCount = giveaways.filter(g => String(g.status || '').toLowerCase() === 'open').length;
+    const finishedCount = giveaways.filter(g => String(g.status || '').toLowerCase() === 'finished').length;
+
+    return `
+      <div class="lg-panel lg-giveaway-overview-panel">
+        <div class="lg-panel-head">
+          <div>
+            <h3>Giveaways</h3>
+            <p class="lg-muted">Übersicht zuerst: Erstellen, Bearbeiten und Aktionen laufen über die Karten und den Editor darunter.</p>
           </div>
-
-          ${setupWarningBlock(selected)}
-
-          ${editable ? `
-            <form class="lg-form lg-preset-settings-form" data-lg-update-giveaway>
-              ${renderGiveawayFormFields(selected, true, presets)}
-              <button class="lg-btn" type="submit">Giveaway speichern</button>
-            </form>
-          ` : `<p class="lg-warning">Dieses Giveaway ist read-only. Änderungen bitte über „Kopieren“ als neues Giveaway anlegen.</p>`}
-        ` : `<p class="lg-muted">Wähle links ein Giveaway aus.</p>`}
+          <div class="lg-actions">
+            <button class="lg-btn" type="button" data-lg-new-giveaway>+ Neues Giveaway</button>
+            <button class="lg-btn lg-btn-secondary" data-lg-giveaway-refresh>Aktualisieren</button>
+          </div>
+        </div>
+        <div class="lg-giveaway-status-row">
+          <span>${fmtNumber(giveaways.length)} gesamt</span>
+          <span>${fmtNumber(draftCount)} Entwürfe</span>
+          <span>${fmtNumber(incompleteCount)} unvollständig</span>
+          <span>${fmtNumber(openCount)} offen</span>
+          <span>${fmtNumber(finishedCount)} beendet</span>
+        </div>
+        <div class="lg-giveaway-card-grid">
+          ${giveaways.map(renderGiveawaySummaryCard).join('') || `<p class="lg-muted">Noch keine Giveaways gefunden.</p>`}
+        </div>
       </div>
 
-      ${selected ? renderGiveawayDetails(selected) : ''}
+      ${renderGiveawayEditorPanel(selected, presets)}
     `;
   }
 
@@ -1967,6 +2029,19 @@ window.LoyaltyGamesModule = (function(){
     root.querySelectorAll('[data-lg-select-preset]').forEach(btn => {
       btn.addEventListener('click', () => loadPreset(btn.dataset.lgSelectPreset));
     });
+    root.querySelector('[data-lg-new-giveaway]')?.addEventListener('click', () => {
+      state.selectedGiveawayUid = '__new__';
+      state.selectedGiveaway = null;
+      clearGiveawayWheelPresetSelection('');
+      render();
+    });
+    root.querySelector('[data-lg-close-giveaway-editor]')?.addEventListener('click', () => {
+      state.selectedGiveawayUid = rows(state.giveaways)[0]?.giveawayUid || '';
+      state.selectedGiveaway = null;
+      if (state.selectedGiveawayUid) loadGiveaway(state.selectedGiveawayUid);
+      else render();
+    });
+
     root.querySelectorAll('[data-lg-select-giveaway]').forEach(btn => {
       btn.addEventListener('click', () => loadGiveaway(btn.dataset.lgSelectGiveaway));
     });
@@ -2084,6 +2159,21 @@ window.LoyaltyGamesModule = (function(){
         .lg-editor-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(108,226,255,.18);}
         .lg-editor-modal-head h3{margin:.2rem 0 .35rem;}
         .lg-editor-modal-section{padding:12px;border:1px solid rgba(108,226,255,.14);border-radius:16px;background:rgba(255,255,255,.025);margin-bottom:14px;}
+        .lg-giveaway-status-row{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 14px;}
+        .lg-giveaway-status-row span{border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.035);border-radius:999px;padding:6px 10px;font-size:12px;color:var(--muted);}
+        .lg-giveaway-card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;}
+        .lg-giveaway-card{border:1px solid rgba(108,226,255,.14);background:rgba(255,255,255,.025);border-radius:16px;padding:12px;display:grid;gap:10px;}
+        .lg-giveaway-card.is-active{border-color:rgba(108,226,255,.45);box-shadow:0 0 18px rgba(42,217,255,.10);}
+        .lg-giveaway-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+        .lg-giveaway-card-head strong{display:block;font-size:15px;}
+        .lg-giveaway-card-head small{display:block;margin-top:3px;color:var(--muted);font-size:12px;}
+        .lg-giveaway-card-badges{display:flex;gap:6px;align-items:center;justify-content:flex-end;flex-wrap:wrap;}
+        .lg-giveaway-card-warning{margin:0;color:#ffb35c;font-size:12px;}
+        .lg-giveaway-card-meta{display:flex;flex-wrap:wrap;gap:8px;color:var(--muted);font-size:12px;}
+        .lg-giveaway-card-actions{display:flex;flex-wrap:wrap;gap:8px;}
+        .lg-giveaway-summary-strip{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 12px;}
+        .lg-giveaway-summary-strip span{border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.03);border-radius:12px;padding:8px 10px;color:var(--muted);font-size:12px;}
+        .lg-giveaway-summary-strip strong{margin-left:4px;color:inherit;}
         .lg-inline-actions{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;}
         .lg-giveaway-mode-row > label{grid-column:1 / -1;}
         .lg-wheel-config-panel{border:1px solid rgba(108,226,255,.14);border-radius:14px;background:rgba(255,255,255,.025);padding:12px;margin-top:4px;margin-bottom:12px;}
