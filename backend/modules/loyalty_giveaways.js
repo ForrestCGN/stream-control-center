@@ -3,11 +3,11 @@
 /**
  * Loyalty Giveaways module.
  *
- * STEP LWG-4L.2:
- * - Zentrale command_definitions fuer !ticket / !wheel vorbereitet.
+ * STEP LWG-4L.4:
+ * - Ticket-Runtime unterscheidet kein offenes Giveaway vor deaktiviertem Command.
+ * - !ticket ohne offenes Giveaway liefert ticket.no_active.
  * - Commands bleiben bewusst deaktiviert.
  * - Keine Punktebuchung, keine automatische Twitch-Command-Aktivierung.
- * - Bestehende Giveaway-/Wheel-Grundlage bleibt unveraendert.
  */
 
 const crypto = require("crypto");
@@ -18,7 +18,7 @@ const database = require("../core/database");
 
 const MODULE_NAME = "loyalty_giveaways";
 const MODULE_VERSION = "0.1.0";
-const MODULE_BUILD = "STEP_LWG_4L_2";
+const MODULE_BUILD = "STEP_LWG_4L_4";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -61,7 +61,7 @@ const CENTRAL_COMMAND_DEFINITIONS = [
     liveOnly: false,
     responseMode: "module",
     config: {
-      seededBy: "STEP_LWG_4L_2",
+      seededBy: "STEP_LWG_4L_4",
       actionType: "module_command",
       moduleCommand: "ticket",
       rawInputMode: true,
@@ -82,7 +82,7 @@ const CENTRAL_COMMAND_DEFINITIONS = [
     liveOnly: false,
     responseMode: "module",
     config: {
-      seededBy: "STEP_LWG_4L_2",
+      seededBy: "STEP_LWG_4L_4",
       actionType: "module_command",
       moduleCommand: "wheel",
       rawInputMode: true,
@@ -2430,29 +2430,30 @@ function buildCommandRuntimeResponse(input = {}, patch = {}) {
     shouldSendChat: Boolean(message),
     error: patch.error || "",
     data: patch.data || {},
-    note: patch.note || "Runtime-Bruecke vorbereitet. Chat-Commands bleiben in LWG-4L.2 bewusst deaktiviert."
+    note: patch.note || "Runtime-Bruecke vorbereitet. Chat-Commands bleiben in LWG-4L.4 bewusst deaktiviert."
   };
 }
 
 function handleTicketCommandRuntime(input = {}) {
   const commandDefinition = findCommandDefinition("ticket");
-  if (!CHAT_COMMANDS_ACTIVE || !commandDefinition || !commandDefinition.enabled || !commandDefinition.active) {
-    return buildCommandRuntimeResponse(input, {
-      ok: false,
-      action: "giveaway_ticket",
-      messageKey: "ticket.disabled",
-      error: "chat_commands_disabled",
-      data: { commandDefinition }
-    });
-  }
-
   const giveaway = getRuntimeOpenGiveaway();
   if (!giveaway) {
     return buildCommandRuntimeResponse(input, {
       ok: false,
       action: "giveaway_ticket",
       messageKey: "ticket.no_active",
-      error: "giveaway_no_active"
+      error: "giveaway_no_active",
+      data: { commandDefinition }
+    });
+  }
+
+  if (!CHAT_COMMANDS_ACTIVE || !commandDefinition || !commandDefinition.enabled || !commandDefinition.active) {
+    return buildCommandRuntimeResponse(input, {
+      ok: false,
+      action: "giveaway_ticket",
+      messageKey: "ticket.disabled",
+      error: "chat_commands_disabled",
+      data: { commandDefinition, giveawayUid: giveaway.giveawayUid }
     });
   }
 
@@ -2621,7 +2622,7 @@ function buildStatus() {
       },
       warnings: [
         "Chat-Commands !ticket, !wheel und !rad sind intern eingetragen und zentral vorbereitet, aber bewusst nicht aktiv.",
-        "Keine Twitch-Command-Aktivierung und keine Punktebuchung in LWG-4L.2."
+        "Keine Twitch-Command-Aktivierung und keine Punktebuchung in LWG-4L.4."
       ],
       errors: state.lastError ? [state.lastError] : []
     }
