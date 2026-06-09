@@ -3,11 +3,11 @@
 /**
  * Loyalty Giveaways module.
  *
- * STEP LWG-4M.3:
- * - Close-Chatmeldung an Twitch Presence Chat-Ausgabe angebunden.
- * - /close sendet giveaway.closed optional direkt in den Chat.
- * - Statuswechsel bleibt erfolgreich, auch wenn Chat-Ausgabe nicht verbunden ist.
- * - Draw-Guard aus LWG-4M.2 bleibt erhalten.
+ * STEP LWG-4M.5:
+ * - Bound Wheel wird beim Öffnen eines Wheel-Giveaways aktiviert und gelockt.
+ * - Draw/Permission referenziert das gebundene Giveaway-Wheel.
+ * - Wheel-Claim startet Spins über den Bound-Wheel-Kontext.
+ * - Globale Wheel-Presets bleiben getrennt nutzbar.
  */
 
 const crypto = require("crypto");
@@ -18,7 +18,7 @@ const database = require("../core/database");
 
 const MODULE_NAME = "loyalty_giveaways";
 const MODULE_VERSION = "0.1.0";
-const MODULE_BUILD = "STEP_LWG_4M_4";
+const MODULE_BUILD = "STEP_LWG_4M_5";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -177,6 +177,13 @@ const MODES = {
   CLASSIC_MULTI: "classic_multi",
   WHEEL_SINGLE: "wheel_single",
   WHEEL_MULTI: "wheel_multi"
+};
+
+const BOUND_WHEEL_STATUS = {
+  DRAFT: "draft",
+  ACTIVE: "active",
+  FINISHED: "finished",
+  CANCELLED: "cancelled"
 };
 
 const MODULE_META = {
@@ -880,7 +887,7 @@ function rowToBoundWheel(row) {
     description: row.description || "",
     sourcePresetUid: row.source_preset_uid || "",
     scope: row.scope || "giveaway",
-    status: row.status || STATUS.DRAFT,
+    status: row.status || BOUND_WHEEL_STATUS.DRAFT,
     locked: Number(row.locked || 0) === 1,
     createdBy: row.created_by || "",
     createdAt: row.created_at || "",
@@ -898,6 +905,104 @@ function getBoundWheelRowByGiveaway(giveawayUid) {
 
 function getBoundWheelByGiveaway(giveawayUid) {
   return rowToBoundWheel(getBoundWheelRowByGiveaway(giveawayUid));
+}
+
+
+function getUsableBoundWheelForGiveaway(giveaway, options = {}) {
+  ensureSchema();
+  if (!giveaway || !giveaway.giveawayUid) {
+    return { ok: false, error: "giveaway_not_found", statusCode: 404 };
+  }
+  if (giveaway.wheelEnabled !== true) {
+    return { ok: false, error: "giveaway_not_wheel_enabled", statusCode: 409 };
+  }
+
+  const expectedBoundWheelUid = String(giveaway.wheelSnapshotUid || "").trim();
+  if (!expectedBoundWheelUid) {
+    return { ok: false, error: "wheel_giveaway_missing_bound_wheel", statusCode: 409 };
+  }
+
+  const row = getBoundWheelRowByGiveaway(giveaway.giveawayUid);
+  if (!row) {
+    return { ok: false, error: "bound_wheel_not_found", statusCode: 409, wheelSnapshotUid: expectedBoundWheelUid };
+  }
+  if (String(row.bound_wheel_uid || "").trim() !== expectedBoundWheelUid) {
+    return {
+      ok: false,
+      error: "bound_wheel_snapshot_mismatch",
+      statusCode: 409,
+      wheelSnapshotUid: expectedBoundWheelUid,
+      boundWheelUid: row.bound_wheel_uid || ""
+    };
+  }
+  if (String(row.giveaway_uid || "").trim() !== String(giveaway.giveawayUid || "").trim()) {
+    return { ok: false, error: "bound_wheel_giveaway_mismatch", statusCode: 409 };
+  }
+  if (String(row.scope || "giveaway").trim() !== "giveaway") {
+    return { ok: false, error: "bound_wheel_invalid_scope", statusCode: 409, scope: row.scope || "" };
+  }
+
+  const sourcePresetUid = String(row.source_preset_uid || giveaway.wheelPresetUid || "").trim();
+  if (!sourcePresetUid) {
+    return { ok: false, error: "bound_wheel_missing_source_preset", statusCode: 409 };
+  }
+
+  const status = String(row.status || BOUND_WHEEL_STATUS.DRAFT).trim();
+  const requireActive = options.requireActive === true;
+  if (requireActive && status !== BOUND_WHEEL_STATUS.ACTIVE) {
+    return { ok: false, error: "bound_wheel_not_active", statusCode: 409, status };
+  }
+
+  return {
+    ok: true,
+    boundWheel: rowToBoundWheel(row),
+    boundWheelUid: row.bound_wheel_uid,
+    sourcePresetUid,
+    status
+  };
+}
+
+function activateBoundWheelForGiveawayRow(row, input = {}) {
+  ensureSchema();
+  if (!row) return { ok: false, error: "giveaway_not_found", statusCode: 404 };
+  if (Number(row.wheel_enabled || 0) !== 1) {
+    return { ok: true, skipped: true, reason: "giveaway_not_wheel_enabled" };
+  }
+
+  const giveaway = rowToGiveaway(row, false);
+  const check = getUsableBoundWheelForGiveaway(giveaway, { requireActive: false });
+  if (!check.ok) return check;
+
+  const current = check.boundWheel;
+  if (current.status === BOUND_WHEEL_STATUS.ACTIVE && current.locked === true) {
+    return { ok: true, changed: false, boundWheel: current };
+  }
+
+  const now = nowIso();
+  const metadata = current.metadata && typeof current.metadata === "object" ? current.metadata : {};
+  database.run(`
+    UPDATE loyalty_giveaway_bound_wheels
+    SET status = :status,
+        locked = 1,
+        updated_at = :updatedAt,
+        metadata_json = :metadataJson
+    WHERE bound_wheel_uid = :boundWheelUid
+  `, {
+    boundWheelUid: current.boundWheelUid,
+    status: BOUND_WHEEL_STATUS.ACTIVE,
+    updatedAt: now,
+    metadataJson: json({
+      ...metadata,
+      source: "giveaway_bound_wheel",
+      scope: "giveaway",
+      activatedAt: now,
+      activatedBy: input.actor || input.updatedBy || input.createdBy || "dashboard",
+      activationReason: input.reason || "giveaway_opened",
+      sourcePresetUid: check.sourcePresetUid
+    })
+  });
+
+  return { ok: true, changed: true, boundWheel: getBoundWheelByGiveaway(row.giveaway_uid) };
 }
 
 function createOrUpdateBoundWheelForGiveaway(giveawayUid, input = {}) {
@@ -930,7 +1035,7 @@ function createOrUpdateBoundWheelForGiveaway(giveawayUid, input = {}) {
       name,
       description: description || existing.description || "",
       sourcePresetUid: sourcePresetUid || existing.source_preset_uid || "",
-      status: input.status || existing.status || STATUS.DRAFT,
+      status: input.status || existing.status || BOUND_WHEEL_STATUS.DRAFT,
       updatedAt: now,
       metadataJson: json({ ...existingMeta, ...metadataPatch, source: "giveaway_bound_wheel", lastUpdatedAt: now, lastUpdatedBy: actor })
     });
@@ -952,7 +1057,7 @@ function createOrUpdateBoundWheelForGiveaway(giveawayUid, input = {}) {
     name,
     description,
     sourcePresetUid,
-    status: input.status || STATUS.DRAFT,
+    status: input.status || BOUND_WHEEL_STATUS.DRAFT,
     locked: input.locked === true ? 1 : 0,
     createdBy: actor,
     createdAt: now,
@@ -1687,8 +1792,10 @@ function drawWinner(giveawayUid, input = {}) {
     return { ok: false, error: "giveaway_not_drawable", statusCode: 409, status: giveaway.status, requiredStatus: STATUS.CLOSED_FOR_ENTRIES };
   }
   const isWheelGiveaway = giveaway.wheelEnabled === true;
-  if (isWheelGiveaway && !giveaway.wheelPresetUid) {
-    return { ok: false, error: "wheel_giveaway_missing_preset", statusCode: 409 };
+  let boundWheelContext = null;
+  if (isWheelGiveaway) {
+    boundWheelContext = getUsableBoundWheelForGiveaway(giveaway, { requireActive: true });
+    if (!boundWheelContext.ok) return boundWheelContext;
   }
 
   const winnerCount = activeWinnerCount(giveawayUid);
@@ -1818,6 +1925,10 @@ function drawWinner(giveawayUid, input = {}) {
       metadata: {
         wheelPresetUid: giveaway.wheelPresetUid,
         wheelSnapshotUid: giveaway.wheelSnapshotUid,
+        boundWheelUid: boundWheelContext.boundWheel.boundWheelUid,
+        sourcePresetUid: boundWheelContext.sourcePresetUid,
+        wheelScope: "giveaway",
+        wheelContext: "giveaway_bound_wheel",
         reason: "winner_drawn"
       }
     });
@@ -1844,7 +1955,15 @@ function drawWinner(giveawayUid, input = {}) {
       oldStatus: "",
       newStatus: "pending",
       message: `${winner.userDisplayName} may spin the wheel`,
-      metadata: { winnerUid, permissionUid: wheelPermission.permissionUid, wheelPresetUid: giveaway.wheelPresetUid, wheelSnapshotUid: giveaway.wheelSnapshotUid }
+      metadata: {
+        winnerUid,
+        permissionUid: wheelPermission.permissionUid,
+        wheelPresetUid: giveaway.wheelPresetUid,
+        wheelSnapshotUid: giveaway.wheelSnapshotUid,
+        boundWheelUid: boundWheelContext.boundWheel.boundWheelUid,
+        sourcePresetUid: boundWheelContext.sourcePresetUid,
+        wheelScope: "giveaway"
+      }
     });
 
     emitEvent("loyalty.giveaway.wheel_permission_created", {
@@ -1854,7 +1973,10 @@ function drawWinner(giveawayUid, input = {}) {
       userLogin: winner.userLogin,
       userDisplayName: winner.userDisplayName,
       wheelPresetUid: giveaway.wheelPresetUid,
-      wheelSnapshotUid: giveaway.wheelSnapshotUid
+      wheelSnapshotUid: giveaway.wheelSnapshotUid,
+      boundWheelUid: boundWheelContext.boundWheel.boundWheelUid,
+      sourcePresetUid: boundWheelContext.sourcePresetUid,
+      wheelScope: "giveaway"
     });
   }
 
@@ -1874,13 +1996,15 @@ function drawWinner(giveawayUid, input = {}) {
       eligibleEntriesCount: entries.length,
       totalTicketWeight: pick.totalWeight,
       ticketPosition: pick.ticketPosition,
-      prizeUid: prize ? prize.prizeUid : ""
+      prizeUid: prize ? prize.prizeUid : "",
+      boundWheelUid: boundWheelContext && boundWheelContext.boundWheel ? boundWheelContext.boundWheel.boundWheelUid : "",
+      sourcePresetUid: boundWheelContext ? boundWheelContext.sourcePresetUid : "",
+      wheelSnapshotUid: isWheelGiveaway ? giveaway.wheelSnapshotUid : "",
+      wheelScope: isWheelGiveaway ? "giveaway" : ""
     }
   });
 
-  emitEvent("loyalty.giveaway.winner_drawn",
-      "loyalty.giveaway.wheel_permission_created",
-      "loyalty.giveaway.wheel_claimed", {
+  emitEvent("loyalty.giveaway.winner_drawn", {
     giveawayUid,
     winnerUid,
     userLogin: winner.userLogin,
@@ -1888,6 +2012,10 @@ function drawWinner(giveawayUid, input = {}) {
     prizeUid: winner.prizeUid,
     prizeLabel: winner.prizeLabel,
     wheelRequired: isWheelGiveaway,
+    boundWheelUid: boundWheelContext && boundWheelContext.boundWheel ? boundWheelContext.boundWheel.boundWheelUid : "",
+    sourcePresetUid: boundWheelContext ? boundWheelContext.sourcePresetUid : "",
+    wheelSnapshotUid: isWheelGiveaway ? giveaway.wheelSnapshotUid : "",
+    wheelScope: isWheelGiveaway ? "giveaway" : "",
     algorithm: "crypto.randomInt",
     eligibleEntriesCount: entries.length,
     totalTicketWeight: pick.totalWeight,
@@ -1902,13 +2030,26 @@ function claimWheelSpin(giveawayUid, input = {}) {
   const giveaway = getGiveaway(giveawayUid, false);
   if (!giveaway) return { ok: false, error: "giveaway_not_found", statusCode: 404 };
   if (!giveaway.wheelEnabled) return { ok: false, error: "giveaway_not_wheel_enabled", statusCode: 409 };
-  if (!giveaway.wheelPresetUid) return { ok: false, error: "wheel_giveaway_missing_preset", statusCode: 409 };
+
+  const boundWheelContext = getUsableBoundWheelForGiveaway(giveaway, { requireActive: true });
+  if (!boundWheelContext.ok) return boundWheelContext;
 
   const userLogin = String(input.userLogin || input.login || input.user || "").trim().replace(/^@/, "").toLowerCase();
   if (!userLogin) return { ok: false, error: "missing_user_login", statusCode: 400 };
 
   const permission = getPendingWheelPermission(giveawayUid, userLogin);
   if (!permission) return { ok: false, error: "no_pending_wheel_permission", statusCode: 404 };
+
+  const permissionBoundWheelUid = String(permission.metadata?.boundWheelUid || permission.metadata?.wheelSnapshotUid || "").trim();
+  if (permissionBoundWheelUid && permissionBoundWheelUid !== boundWheelContext.boundWheel.boundWheelUid) {
+    return {
+      ok: false,
+      error: "permission_bound_wheel_mismatch",
+      statusCode: 409,
+      permissionBoundWheelUid,
+      boundWheelUid: boundWheelContext.boundWheel.boundWheelUid
+    };
+  }
 
   const userDisplayName = String(input.userDisplayName || input.displayName || permission.userDisplayName || userLogin).trim() || userLogin;
 
@@ -1925,18 +2066,23 @@ function claimWheelSpin(giveawayUid, input = {}) {
   }
 
   const spin = startSpin({
-    presetUid: giveaway.wheelPresetUid,
+    presetUid: boundWheelContext.sourcePresetUid,
     login: userLogin,
     displayName: userDisplayName,
-    source: "giveaway",
-    sourceRefUid: giveawayUid,
+    source: "giveaway_bound_wheel",
+    sourceRefUid: boundWheelContext.boundWheel.boundWheelUid,
     duration: input.duration || input.durationMs || 7000,
     metadata: {
       giveawayUid,
       permissionUid: permission.permissionUid,
       winnerUid: permission.winnerUid,
       wheelPresetUid: giveaway.wheelPresetUid,
-      wheelSnapshotUid: giveaway.wheelSnapshotUid
+      wheelSnapshotUid: giveaway.wheelSnapshotUid,
+      boundWheelUid: boundWheelContext.boundWheel.boundWheelUid,
+      sourcePresetUid: boundWheelContext.sourcePresetUid,
+      wheelScope: "giveaway",
+      wheelContext: "giveaway_bound_wheel",
+      requestSource: input.source || ""
     }
   });
 
@@ -1958,7 +2104,16 @@ function claimWheelSpin(giveawayUid, input = {}) {
     usedAt: now,
     updatedAt: now,
     spinUid: spin.spinUid || "",
-    metadataJson: json({ ...permission.metadata, resultFieldId: spin.selectedFieldId || "", resultLabel: spin.selectedFieldLabel || "" })
+    metadataJson: json({
+      ...permission.metadata,
+      resultFieldId: spin.selectedFieldId || "",
+      resultLabel: spin.selectedFieldLabel || "",
+      boundWheelUid: boundWheelContext.boundWheel.boundWheelUid,
+      sourcePresetUid: boundWheelContext.sourcePresetUid,
+      wheelSnapshotUid: giveaway.wheelSnapshotUid,
+      wheelScope: "giveaway",
+      wheelContext: "giveaway_bound_wheel"
+    })
   });
 
   database.run(`
@@ -1978,7 +2133,11 @@ function claimWheelSpin(giveawayUid, input = {}) {
         sessionUid: spin.sessionUid || "",
         selectedFieldId: spin.selectedFieldId || "",
         selectedFieldLabel: spin.selectedFieldLabel || "",
-        selectedFieldIndex: spin.selectedFieldIndex
+        selectedFieldIndex: spin.selectedFieldIndex,
+        boundWheelUid: boundWheelContext.boundWheel.boundWheelUid,
+        sourcePresetUid: boundWheelContext.sourcePresetUid,
+        wheelSnapshotUid: giveaway.wheelSnapshotUid,
+        wheelScope: "giveaway"
       }
     })
   });
@@ -2011,7 +2170,11 @@ function claimWheelSpin(giveawayUid, input = {}) {
       spinUid: spin.spinUid || "",
       sessionUid: spin.sessionUid || "",
       selectedFieldId: spin.selectedFieldId || "",
-      selectedFieldLabel: spin.selectedFieldLabel || ""
+      selectedFieldLabel: spin.selectedFieldLabel || "",
+      boundWheelUid: boundWheelContext.boundWheel.boundWheelUid,
+      sourcePresetUid: boundWheelContext.sourcePresetUid,
+      wheelSnapshotUid: giveaway.wheelSnapshotUid,
+      wheelScope: "giveaway"
     }
   });
 
@@ -2024,14 +2187,27 @@ function claimWheelSpin(giveawayUid, input = {}) {
     spinUid: spin.spinUid || "",
     sessionUid: spin.sessionUid || "",
     selectedFieldId: spin.selectedFieldId || "",
-    selectedFieldLabel: spin.selectedFieldLabel || ""
+    selectedFieldLabel: spin.selectedFieldLabel || "",
+    boundWheelUid: boundWheelContext.boundWheel.boundWheelUid,
+    sourcePresetUid: boundWheelContext.sourcePresetUid,
+    wheelSnapshotUid: giveaway.wheelSnapshotUid,
+    wheelScope: "giveaway"
   });
 
   return {
     ok: true,
     permission: rowToWheelPermission(database.get("SELECT * FROM loyalty_giveaway_wheel_permissions WHERE permission_uid = :permissionUid", { permissionUid: permission.permissionUid })),
     winner: database.get("SELECT * FROM loyalty_giveaway_winners WHERE winner_uid = :winnerUid", { winnerUid: permission.winnerUid }) ? rowToWinner(database.get("SELECT * FROM loyalty_giveaway_winners WHERE winner_uid = :winnerUid", { winnerUid: permission.winnerUid })) : null,
-    spin,
+    spin: {
+      ...spin,
+      source: "giveaway_bound_wheel",
+      sourceRefUid: boundWheelContext.boundWheel.boundWheelUid,
+      boundWheelUid: boundWheelContext.boundWheel.boundWheelUid,
+      sourcePresetUid: boundWheelContext.sourcePresetUid,
+      wheelSnapshotUid: giveaway.wheelSnapshotUid,
+      wheelScope: "giveaway"
+    },
+    boundWheel: boundWheelContext.boundWheel,
     giveaway: getGiveaway(giveawayUid, true)
   };
 }
@@ -2126,7 +2302,7 @@ function createGiveaway(input = {}) {
       title,
       boundWheelName,
       sourcePresetUid: sourceWheelPresetUid,
-      status: STATUS.DRAFT,
+      status: BOUND_WHEEL_STATUS.DRAFT,
       actor: input.actor || input.createdBy || "dashboard",
       metadata: {
         sourcePresetUid: sourceWheelPresetUid,
@@ -2213,7 +2389,7 @@ function updateGiveaway(giveawayUid, patch = {}) {
       boundWheelUid: next.wheelSnapshotUid || uid("giveawaywheel"),
       title: next.title,
       sourcePresetUid: next.wheelPresetUid,
-      status: row.status || STATUS.DRAFT,
+      status: BOUND_WHEEL_STATUS.DRAFT,
       actor: patch.actor || patch.updatedBy || "dashboard",
       metadata: {
         sourcePresetUid: next.wheelPresetUid,
@@ -2345,6 +2521,13 @@ function setGiveawayStatus(giveawayUid, status, input = {}) {
     return { ok: false, error: "giveaway_can_only_close_entries_from_open", statusCode: 409 };
   }
 
+  let activatedBoundWheel = null;
+  if (nextStatus === STATUS.OPEN && Number(row.wheel_enabled || 0) === 1) {
+    const activation = activateBoundWheelForGiveawayRow(row, input);
+    if (!activation.ok) return activation;
+    activatedBoundWheel = activation.boundWheel || null;
+  }
+
   if (nextStatus === STATUS.OPEN) patch.openedAt = now;
   if (nextStatus === STATUS.CLOSED_FOR_ENTRIES) patch.entriesClosedAt = now;
   if (nextStatus === STATUS.FINISHED) patch.finishedAt = now;
@@ -2394,6 +2577,7 @@ function setGiveawayStatus(giveawayUid, status, input = {}) {
   emitEvent(eventType, { giveawayUid, oldStatus: row.status, newStatus: nextStatus });
 
   const response = { ok: true, giveaway: getGiveaway(giveawayUid, true) };
+  if (activatedBoundWheel) response.boundWheel = activatedBoundWheel;
   if (nextStatus === STATUS.CLOSED_FOR_ENTRIES) {
     const chatMessage = renderChatRuntimeText("giveaway.closed", {
       giveawayTitle: row.title || "Giveaway"
@@ -2977,7 +3161,8 @@ function buildStatus() {
       },
       warnings: [
         "Chat-Commands !ticket, !wheel und !rad sind intern eingetragen und zentral vorbereitet, aber bewusst nicht aktiv.",
-        "Draw ist ab STEP_LWG_4M_2 nur nach closed_for_entries erlaubt."
+        "Draw ist ab STEP_LWG_4M_2 nur nach closed_for_entries erlaubt.",
+        "Wheel-Giveaways nutzen ab STEP_LWG_4M_5 ein aktives giveaway-bound Wheel fuer Permission/Claim/Spin."
       ],
       errors: state.lastError ? [state.lastError] : []
     }
@@ -3040,6 +3225,8 @@ function registerRoutes(app) {
     "POST /api/loyalty/giveaways/:giveawayUid/entries/:entryUid/cancel",
     "GET /api/loyalty/giveaways/:giveawayUid/winners",
     "POST /api/loyalty/giveaways/:giveawayUid/draw",
+    "GET /api/loyalty/giveaways/:giveawayUid/wheel/bound",
+    "PUT /api/loyalty/giveaways/:giveawayUid/wheel/bound",
     "GET /api/loyalty/giveaways/:giveawayUid/wheel/permissions",
     "POST /api/loyalty/giveaways/:giveawayUid/wheel/claim",
     "GET /api/loyalty/giveaways/commands",
@@ -3266,6 +3453,8 @@ module.exports = {
     drawWinner,
     listWheelPermissions,
     getBoundWheelByGiveaway,
+    getUsableBoundWheelForGiveaway,
+    activateBoundWheelForGiveawayRow,
     createOrUpdateBoundWheelForGiveaway,
     getPendingWheelPermissionForUser,
     claimWheelSpin,
