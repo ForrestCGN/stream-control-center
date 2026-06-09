@@ -1,9 +1,9 @@
-# Loyalty Navigation – Zielstruktur ab LWG-4N.5
+# Loyalty Navigation – aktueller Zielstand
 
-Die Loyalty-Oberfläche besteht aus:
+Die sichtbare Loyalty-Struktur lautet:
 
 - Übersicht
-- Punkteverwaltung
+- Core
 - Glücksrad
 - Giveaways
 - Raffles
@@ -12,4 +12,4 @@ Die Loyalty-Oberfläche besteht aus:
 - Config
 - Verlauf
 
-Globale Presets werden unter Glücksrad verwaltet. Giveaway-Glücksräder werden ausschließlich im jeweiligen Giveaway bearbeitet. Commands werden nicht in Loyalty editiert, sondern zentral im Command-Editor.
+Globale Glücksrad-Presets gehören unter `Glücksrad`. Giveaway-Glücksräder werden nur im jeweiligen Giveaway bearbeitet. Commands werden im zentralen Command-Editor bearbeitet; Loyalty darf später nur fehlende Standard-Commands prüfen und nach Bestätigung anlegen.

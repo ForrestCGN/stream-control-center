@@ -132,7 +132,7 @@ window.LoyaltyGamesModule = (function(){
       label: 'Loyalty',
       icon: '🎟️',
       role: 'mod/supermod/streamer',
-      description: 'Punkteverwaltung, Glücksrad, Giveaways, Raffles, Texte, Statistik, Config und Verlauf.',
+      description: 'Core, Glücksrad, Giveaways, Raffles, Texte, Statistik, Config und Verlauf.',
       items: ['loyalty_games']
     };
 
@@ -149,7 +149,7 @@ window.LoyaltyGamesModule = (function(){
 
       btn.addEventListener('click', () => {
         if (btn.disabled) return;
-        window.CGN.setActiveSection('loyalty');
+        window.CGN.setActiveModule('loyalty_games', { section: 'loyalty' });
       });
     }
   }
@@ -159,7 +159,7 @@ window.LoyaltyGamesModule = (function(){
     ensureLoyaltyMainSection();
 
     window.CGN.modules.loyalty_games = {
-      title: 'Loyalty Games',
+      title: 'Loyalty',
       panelId: 'loyaltyGamesModule',
       group: 'loyalty',
       overlayLink: api.overlay,
@@ -168,10 +168,10 @@ window.LoyaltyGamesModule = (function(){
     };
 
     window.CGN.moduleCatalog.loyalty_games = {
-      label: 'Loyalty Games',
+      label: 'Loyalty',
       icon: '🎡',
       enabled: true,
-      description: 'Loyalty-Zentrale mit Punkten, Glücksrad, Giveaways, Raffles, Texten, Statistik und Config.'
+      description: 'Loyalty-Zentrale mit Core, Glücksrad, Giveaways, Raffles, Texten, Statistik und Config.'
     };
 
     const loyaltySection = window.CGN.sections?.loyalty;
@@ -730,48 +730,31 @@ window.LoyaltyGamesModule = (function(){
     const rewardsHealth = getHealthInfo('loyalty_rewards', false, { planned: true });
     const channelpointsHealth = getHealthInfo('channelpoints', false);
 
+    const incompleteGiveaways = rows(state.giveaways).filter(g => g && g.setupComplete === false).length;
+    const openGiveaways = giveawaysDiag.open || rows(state.giveaways).filter(g => String(g.status || '').toLowerCase() === 'open').length;
+    const activePresets = presetDiag.active || rows(state.presets).filter(p => String(p.status || '').toLowerCase() === 'active').length;
+
     const moduleCards = [
       {
-        title: 'Punkteverwaltung',
+        title: 'Core',
         icon: '💰',
         tab: 'points',
-        description: 'Konten, Punkte und Transaktionen',
+        description: 'User, Punkte, Währungen und Transaktionen',
         health: coreHealth
       },
       {
         title: 'Glücksrad',
         icon: '🎡',
         tab: 'wheel',
-        description: `${wheel.enabled === false ? 'deaktiviert' : 'aktiv'} · ${fmtNumber(wheel.fields || 0)} Felder`,
-        health: gamesHealth
-      },
-      {
-        title: 'Glücksrad-Presets',
-        icon: '🧩',
-        tab: 'wheel',
-        description: `${fmtNumber(presetDiag.presets || rows(state.presets).length)} Presets · ${fmtNumber(presetDiag.active || 0)} aktiv`,
+        description: `${fmtNumber(activePresets)} aktive Presets · ${fmtNumber(wheel.fields || 0)} Felder im Live-Rad`,
         health: gamesHealth
       },
       {
         title: 'Giveaways',
         icon: '🎁',
         tab: 'giveaways',
-        description: `${fmtNumber(giveawaysDiag.total || rows(state.giveaways).length)} Giveaways · Tickets folgen`,
-        health: giveawaysHealth
-      },
-      {
-        title: 'Wheel Overlay',
-        icon: '📺',
-        tab: 'wheel',
-        description: 'Overlay-Heartbeat / OBS-Quelle',
-        health: overlayHealth
-      },
-      {
-        title: 'Config',
-        icon: '⚙️',
-        tab: 'config',
-        description: 'zentrale Einstellungen und Setup-Prüfungen',
-        health: channelpointsHealth
+        description: `${fmtNumber(openGiveaways)} offen · ${fmtNumber(incompleteGiveaways)} unvollständig`,
+        health: incompleteGiveaways > 0 ? { color: 'yellow', label: 'Warnung', detail: `${fmtNumber(incompleteGiveaways)} unvollständig` } : giveawaysHealth
       },
       {
         title: 'Raffles',
@@ -784,21 +767,28 @@ window.LoyaltyGamesModule = (function(){
         title: 'Texte',
         icon: '💬',
         tab: 'texts',
-        description: 'Multi-Texte zentral nach Modul',
+        description: 'Multi-Textverwaltung für Loyalty-Module',
         health: giveawaysHealth
       },
       {
         title: 'Statistik',
         icon: '📊',
         tab: 'statistics',
-        description: 'Nutzung, Gewinner und Auswertungen',
+        description: 'Nutzung, Gewinner, Gewinne und Teilnehmer',
         health: coreHealth
+      },
+      {
+        title: 'Config',
+        icon: '⚙️',
+        tab: 'config',
+        description: 'zentrale Einstellungen und Setup-Prüfungen',
+        health: channelpointsHealth
       },
       {
         title: 'Verlauf',
         icon: '📜',
         tab: 'history',
-        description: 'Spins, Sessions und Ereignisse',
+        description: 'Events, Spins, Ziehungen und Audit',
         health: gamesHealth
       }
     ];
@@ -809,7 +799,7 @@ window.LoyaltyGamesModule = (function(){
           <div>
             <p class="lg-eyebrow">Loyalty Control Center</p>
             <h3>Übersicht</h3>
-            <p class="lg-muted">Wähle den Bereich, den du bearbeiten möchtest. Technische Details liegen unter Verlauf oder Config.</p>
+            <p class="lg-muted">Wähle direkt den Loyalty-Bereich. Globale Glücksrad-Presets liegen unter Glücksrad, Giveaway-Glücksräder im jeweiligen Giveaway.</p>
           </div>
           <div class="lg-home-legend">
             <span>${renderAmpel({color:'green', detail:'ok'})} aktiv</span>
@@ -838,9 +828,9 @@ window.LoyaltyGamesModule = (function(){
           ${badge(wheel.enabled !== false, 'Aktiv', 'Aus')}
         </article>
         <article class="lg-card">
-          <span class="lg-card-label">Presets</span>
+          <span class="lg-card-label">Glücksrad-Presets</span>
           <strong>${fmtNumber(presetDiag.presets || rows(state.presets).length)}</strong>
-          <small>aktiv ${fmtNumber(presetDiag.active || 0)} · aufgebraucht ${fmtNumber(presetDiag.exhausted || 0)}</small>
+          <small>unter Glücksrad · aktiv ${fmtNumber(presetDiag.active || 0)} · aufgebraucht ${fmtNumber(presetDiag.exhausted || 0)}</small>
           ${badge(true, 'DB')}
         </article>
         <article class="lg-card">
@@ -854,7 +844,7 @@ window.LoyaltyGamesModule = (function(){
       <div class="lg-panel">
         <h3>Systemstatus</h3>
         <div class="lg-kv">
-          <span>Games Schema</span><strong>${esc(String(diag.schemaReady ?? '-'))}</strong>
+          <span>Core/Glücksrad Schema</span><strong>${esc(String(diag.schemaReady ?? '-'))}</strong>
           <span>Giveaways Schema</span><strong>${esc(String(state.giveawaysStatus?.diagnostics?.schemaReady ?? '-'))}</strong>
           <span>EventBus Games</span><strong>${diag.eventBus?.ready ? 'bereit' : 'broadcast_only'}</strong>
           <span>EventBus Giveaways</span><strong>${state.giveawaysStatus?.diagnostics?.eventBus?.ready ? 'bereit' : 'broadcast_only'}</strong>
@@ -872,8 +862,8 @@ window.LoyaltyGamesModule = (function(){
     return `
       <div class="lg-grid lg-grid-3">
         <article class="lg-card">
-          <span class="lg-card-label">Wheel Status</span>
-          <strong>${wheel.running ? 'Running' : 'Idle'}</strong>
+          <span class="lg-card-label">Glücksrad Status</span>
+          <strong>${wheel.running ? 'Dreht gerade' : 'Bereit'}</strong>
           <small>${wheel.enabled === false ? 'deaktiviert' : 'aktiv'}</small>
           ${badge(wheel.enabled !== false, 'Aktiv', 'Aus')}
         </article>
@@ -1797,7 +1787,7 @@ window.LoyaltyGamesModule = (function(){
       <div class="lg-panel">
         <div class="lg-panel-head">
           <div>
-            <h3>Punkteverwaltung</h3>
+            <h3>Core</h3>
             <p class="lg-muted">Dieser Bereich wird die zentrale Verwaltung für User-Konten, Punktestände, Transaktionen und Leaderboards.</p>
           </div>
           <span class="lg-badge lg-badge-warn">geplant</span>
@@ -1913,7 +1903,7 @@ window.LoyaltyGamesModule = (function(){
   function renderTabs(){
     const tabs = [
       ['overview', 'Übersicht'],
-      ['points', 'Punkteverwaltung'],
+      ['points', 'Core'],
       ['wheel', 'Glücksrad'],
       ['giveaways', 'Giveaways'],
       ['raffles', 'Raffles'],
@@ -2065,12 +2055,12 @@ window.LoyaltyGamesModule = (function(){
     if (!root) return;
 
     if (state.loading) {
-      root.innerHTML = `<div class="lg-panel"><h2>Loyalty Games</h2><p class="lg-muted">Lade Daten...</p></div>`;
+      root.innerHTML = `<div class="lg-panel"><h2>Loyalty</h2><p class="lg-muted">Lade Daten...</p></div>`;
       return;
     }
 
     if (state.error) {
-      root.innerHTML = `<div class="lg-panel lg-error"><h2>Loyalty Games</h2><p>${esc(state.error)}</p><button data-lg-reload>Neu laden</button></div>`;
+      root.innerHTML = `<div class="lg-panel lg-error"><h2>Loyalty</h2><p>${esc(state.error)}</p><button data-lg-reload>Neu laden</button></div>`;
       root.querySelector('[data-lg-reload]')?.addEventListener('click', () => loadAll(true));
       return;
     }
@@ -2080,7 +2070,7 @@ window.LoyaltyGamesModule = (function(){
         <div>
           <p class="lg-eyebrow">Loyalty</p>
           <h2>Loyalty-Zentrale</h2>
-          <p class="lg-subline">Punkteverwaltung, Glücksrad, Giveaways, Raffles, Texte, Statistik, Config und Verlauf.</p>
+          <p class="lg-subline">Core, Glücksrad, Giveaways, Raffles, Texte, Statistik, Config und Verlauf.</p>
         </div>
         <div class="lg-actions">
           <a class="lg-btn lg-btn-secondary" href="${api.overlay}" target="_blank">Overlay öffnen</a>

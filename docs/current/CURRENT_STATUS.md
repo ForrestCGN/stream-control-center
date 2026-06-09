@@ -1,3 +1,5 @@
-# Current Status – LWG-4N.5
+# CURRENT_STATUS – LWG-4N.5b
 
-LWG-4N.5 vorbereitet: Loyalty-Startseite/Kachelübersicht als UI-Grundlage. Presets sind unter Glücksrad einsortiert; globale Config, Texte, Statistik, Raffles und Punkteverwaltung sind als eigene Bereiche vorbereitet.
+Bestätigter Zielstand: Loyalty ist UI-seitig eine zentrale Bereichsübersicht, nicht mehr „Loyalty Games“.
+
+Aktueller STEP: LWG-4N.5b – Loyalty UI ohne Games-Zwischenebene und mit Core-Kachel.
