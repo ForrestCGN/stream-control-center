@@ -1,5 +1,9 @@
-# Current Status – LWG-4N.3
+# CURRENT_STATUS – LWG-4N.3b
 
-Stand: LWG-4N.3 vorbereitet.
+Bestätigter UI-/UX-Zwischenstand für das Loyalty-Glücksrad/Giveaway-System.
 
-Der Preset-Editor ist im Giveaway-Kontext angebunden. Ein im Giveaway-Editor neu erstelltes Preset wird automatisch im Giveaway-Formular ausgewählt und das Modal wechselt direkt in den Bearbeitungsmodus, damit Felder ergänzt werden können.
+- LWG-4N.1b Setup-Readiness + Open-Guard aktiv.
+- LWG-4N.1c deutsche Status-Badges + orange Unvollständig aktiv.
+- LWG-4N.2 Preset-Editor Modal Foundation aktiv.
+- LWG-4N.3 Preset-Editor im Giveaway-Kontext angebunden.
+- LWG-4N.3b bereinigt den gemeinsamen Editor kontextabhängig ohne Layout-Umbau.

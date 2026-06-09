@@ -1,7 +1,5 @@
-# Next Steps
+# NEXT_STEPS – LWG-4N.3b
 
-1. LWG-4N.3 im Dashboard testen.
-2. Im Giveaway Wheel-Modus `Neues Preset erstellen` öffnen.
-3. Prüfen, ob das neue Preset automatisch ausgewählt wird.
-4. Felder im Modal ergänzen und danach das Giveaway speichern.
-5. Danach Setup-Readiness prüfen.
+1. Dashboard neu laden und Modal in beiden Kontexten prüfen.
+2. Giveaway-Kontext testen: Neues Glücksrad erstellen → Felder bearbeiten → Giveaway speichern.
+3. Nächster Fachstep: Preset-/Glücksrad-Feldbearbeitung im Modal nutzerfreundlicher machen.

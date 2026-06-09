@@ -955,19 +955,29 @@ window.LoyaltyGamesModule = (function(){
     const selected = mode === 'edit' ? state.selectedPreset : null;
     const fields = rows(selected?.fields || []);
     const editable = mode === 'create' ? true : !!selected?.editable;
+    const isGiveawayContext = context === 'giveaways';
+    const editorNoun = isGiveawayContext ? 'Glücksrad' : 'Preset';
     const title = mode === 'edit'
-      ? `Preset bearbeiten: ${selected ? esc(selected.name || 'Preset') : 'Preset wird geladen'}`
-      : (context === 'giveaways' ? 'Neues Preset für dieses Giveaway erstellen' : 'Neues Preset erstellen');
+      ? `${editorNoun} bearbeiten: ${selected ? esc(selected.name || editorNoun) : `${editorNoun} wird geladen`}`
+      : (isGiveawayContext ? 'Giveaway-Glücksrad erstellen' : 'Neues Preset erstellen');
+    const introText = isGiveawayContext
+      ? 'Erstelle oder bearbeite hier das Glücksrad, das im Giveaway verwendet wird. Technische Felder werden ausgeblendet.'
+      : 'Erstelle und bearbeite hier globale Presets für das Glücksrad.';
+    const createHint = isGiveawayContext
+      ? 'Nach dem Anlegen öffnet sich direkt die Felder-Bearbeitung. Das Glücksrad wird automatisch im Giveaway ausgewählt.'
+      : 'Nach dem Anlegen kannst du direkt Felder hinzufügen und das Preset weiter bearbeiten.';
+    const createButtonLabel = isGiveawayContext ? 'Glücksrad anlegen & Felder bearbeiten' : 'Preset erstellen';
+    const saveButtonLabel = isGiveawayContext ? 'Glücksrad speichern' : 'Preset-Einstellungen speichern';
 
     return `
       <div class="lg-editor-modal-backdrop" data-lg-close-preset-editor>
         <div class="lg-editor-modal" role="dialog" aria-modal="true" aria-label="Preset-Editor" onclick="event.stopPropagation()">
           <div class="lg-editor-modal-head">
             <div>
-              <p class="lg-eyebrow">Glücksrad / Preset-Editor</p>
+              <p class="lg-eyebrow">${isGiveawayContext ? 'Giveaway / Glücksrad-Editor' : 'Glücksrad / Preset-Editor'}</p>
               <h3>${title}</h3>
-              <p class="lg-muted">Ein Editor für Presets und Giveaway-Glücksräder. Speichern bleibt im Dashboard, kein Browser-Popup.</p>
-              ${context === 'giveaways' ? `<p class="lg-muted">Giveaway-Kontext: Ein neu erstelltes Preset wird direkt im Giveaway ausgewählt. Das Giveaway bleibt erst bereit, wenn es gespeichert wurde und das Rad gültige Felder hat.</p>` : ''}
+              <p class="lg-muted">${introText}</p>
+              ${isGiveawayContext ? `<p class="lg-muted">Dieses Glücksrad ist erst bereit, wenn mindestens ein aktives gültiges Feld vorhanden ist.</p>` : ''}
             </div>
             <button class="lg-btn lg-btn-secondary" type="button" data-lg-close-preset-editor>Schließen</button>
           </div>
@@ -980,22 +990,28 @@ window.LoyaltyGamesModule = (function(){
               </div>
               <label>Beschreibung<textarea name="description" rows="2" placeholder="Kurzbeschreibung"></textarea></label>
               <div class="lg-form-row">
-                <label>Status
-                  <select name="status">
-                    <option value="draft">Entwurf</option>
-                    <option value="active">Aktiv</option>
-                  </select>
-                </label>
+                ${isGiveawayContext ? `<input name="status" type="hidden" value="draft">` : `
+                  <label>Status
+                    <select name="status">
+                      <option value="draft">Entwurf</option>
+                      <option value="active">Aktiv</option>
+                    </select>
+                  </label>
+                `}
                 <label class="lg-check"><input name="removeAfterWin" type="checkbox" checked> Gewinnfeld nach Auslosung aus diesem Rad entfernen</label>
               </div>
-              ${context === 'giveaways' ? `<p class="lg-warning">Dieses Preset wird aus dem Giveaway-Editor heraus erstellt. Nach dem Erstellen kannst du es im Giveaway auswählen und Felder ergänzen.</p>` : ''}
-              <button class="lg-btn" type="submit" ${state.saving ? 'disabled' : ''}>Preset erstellen</button>
+              ${isGiveawayContext ? `<p class="lg-warning">${createHint}</p>` : ''}
+              <button class="lg-btn" type="submit" ${state.saving ? 'disabled' : ''}>${createButtonLabel}</button>
             </form>
           ` : selected ? `
             <div class="lg-editor-modal-section">
               <div class="lg-kv lg-kv-compact">
-                <span>Status</span><strong>${statusBadge(selected.status)}</strong>
-                <span>Typ</span><strong>${esc(selected.presetType)}</strong>
+                ${isGiveawayContext ? `
+                  <span>Verwendung</span><strong>Giveaway-Glücksrad</strong>
+                ` : `
+                  <span>Status</span><strong>${statusBadge(selected.status)}</strong>
+                  <span>Typ</span><strong>${esc(selected.presetType)}</strong>
+                `}
                 <span>Bearbeitbar</span><strong>${editable ? 'Ja' : 'Nein, nur kopieren/anzeigen'}</strong>
                 <span>Felder</span><strong>${fmtNumber(fields.length)}</strong>
               </div>
@@ -1007,9 +1023,9 @@ window.LoyaltyGamesModule = (function(){
                   </div>
                   <label>Beschreibung<textarea name="description" rows="2">${esc(selected.description || '')}</textarea></label>
                   <label class="lg-check"><input name="removeAfterWin" type="checkbox" ${selected.settings?.removeAfterWin === false ? '' : 'checked'}> Gewinnfeld nach Auslosung aus diesem Rad entfernen</label>
-                  <button class="lg-btn" type="submit">Preset-Einstellungen speichern</button>
+                  <button class="lg-btn" type="submit">${saveButtonLabel}</button>
                 </form>
-              ` : `<p class="lg-warning">Dieses Preset ist nicht direkt bearbeitbar. Änderungen bitte über Kopieren als neues Preset anlegen.</p>`}
+              ` : `<p class="lg-warning">${isGiveawayContext ? 'Dieses Glücksrad ist nicht direkt bearbeitbar. Bitte lege bei Bedarf ein neues Glücksrad für das Giveaway an.' : 'Dieses Preset ist nicht direkt bearbeitbar. Änderungen bitte über Kopieren als neues Preset anlegen.'}</p>`}
             </div>
             ${renderFieldsEditor(selected, fields, editable)}
           ` : `<p class="lg-muted">Preset wird geladen...</p>`}
@@ -1277,16 +1293,16 @@ window.LoyaltyGamesModule = (function(){
             ].map(([value,label]) => `<option value="${value}" ${mode === value ? 'selected' : ''}>${label}</option>`).join('')}
           </select>
         </label>
-        <label data-lg-wheel-preset-row style="${wheelMode ? '' : 'display:none'}">Wheel-Preset
+        <label data-lg-wheel-preset-row style="${wheelMode ? '' : 'display:none'}">Glücksrad
           <select name="wheelPresetUid" data-lg-wheel-preset-select data-editable="${editable ? '1' : '0'}" ${editable && wheelMode ? '' : 'disabled'}>
             <option value="">Noch kein Glücksrad ausgewählt</option>
-            ${presets.map(p => `<option value="${esc(p.presetUid)}" ${wheelPresetUid === p.presetUid ? 'selected' : ''}>Preset verwenden: ${esc(p.name)}</option>`).join('')}
+            ${presets.map(p => `<option value="${esc(p.presetUid)}" ${wheelPresetUid === p.presetUid ? 'selected' : ''}>Glücksrad verwenden: ${esc(p.name)}</option>`).join('')}
           </select>
           <div class="lg-inline-actions">
-            <button class="lg-btn lg-btn-secondary" type="button" data-lg-open-preset-editor data-mode="create" data-context="giveaways" data-target-giveaway-uid="${esc(giveaway?.giveawayUid || '')}">Neues Preset erstellen</button>
-            ${wheelPresetUid ? `<button class="lg-btn lg-btn-secondary" type="button" data-lg-open-preset-editor data-mode="edit" data-context="giveaways" data-preset-uid="${esc(wheelPresetUid)}" data-target-giveaway-uid="${esc(giveaway?.giveawayUid || '')}">Ausgewähltes Preset bearbeiten</button>` : ''}
+            <button class="lg-btn lg-btn-secondary" type="button" data-lg-open-preset-editor data-mode="create" data-context="giveaways" data-target-giveaway-uid="${esc(giveaway?.giveawayUid || '')}">Neues Glücksrad erstellen</button>
+            ${wheelPresetUid ? `<button class="lg-btn lg-btn-secondary" type="button" data-lg-open-preset-editor data-mode="edit" data-context="giveaways" data-preset-uid="${esc(wheelPresetUid)}" data-target-giveaway-uid="${esc(giveaway?.giveawayUid || '')}">Ausgewähltes Glücksrad bearbeiten</button>` : ''}
           </div>
-          <small class="lg-muted">Ohne Preset kann das Giveaway als Entwurf gespeichert, aber nicht geöffnet werden. Neu erstellte Presets werden hier automatisch ausgewählt.</small>
+          <small class="lg-muted">Ohne Glücksrad kann das Giveaway als Entwurf gespeichert, aber nicht geöffnet werden. Neu erstellte Glücksräder werden hier automatisch ausgewählt.</small>
         </label>
       </div>
       <div class="lg-form-row">
