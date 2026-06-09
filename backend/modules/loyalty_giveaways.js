@@ -3,11 +3,11 @@
 /**
  * Loyalty Giveaways module.
  *
- * STEP LWG-4D:
- * - Backend Grundsystem fuer Giveaways.
- * - Keine Tickets, keine Gewinnerziehung, kein Rad-Claim.
- * - DB-portabel geplant ueber zentrale database-Schicht.
- * - Soft-Delete / Copy / Archiv-Grundlage.
+ * STEP LWG-4L.1:
+ * - Runtime-Bruecke fuer Chat-Commands vorbereitet.
+ * - Commands bleiben bewusst deaktiviert.
+ * - Keine Punktebuchung, keine automatische Twitch-Command-Aktivierung.
+ * - Bestehende Giveaway-/Wheel-Grundlage bleibt unveraendert.
  */
 
 const crypto = require("crypto");
@@ -18,7 +18,7 @@ const database = require("../core/database");
 
 const MODULE_NAME = "loyalty_giveaways";
 const MODULE_VERSION = "0.1.0";
-const MODULE_BUILD = "STEP_LWG_4D";
+const MODULE_BUILD = "STEP_LWG_4L_1";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -2173,6 +2173,225 @@ function handleChatTextEditorPayload(payload = {}) {
   });
 }
 
+
+function normalizeChatLogin(value) {
+  return String(value || "").trim().replace(/^@/, "").toLowerCase();
+}
+
+function normalizeChatDisplayName(input = {}, fallbackLogin = "") {
+  return String(input.userDisplayName || input.displayName || input.user || input.username || fallbackLogin || "").trim() || fallbackLogin;
+}
+
+function sanitizeRuntimeChatMessage(value, maxLength = 450) {
+  const clean = String(value || "").replace(/[\r\n]+/g, " ").replace(/\s+/g, " ").trim();
+  const limit = Math.max(40, Math.min(500, Number.parseInt(maxLength, 10) || 450));
+  return clean.length > limit ? clean.slice(0, limit - 1).trimEnd() + "…" : clean;
+}
+
+function renderChatRuntimeText(key, context = {}, options = {}) {
+  seedChatTextVariants();
+  const message = textHelper.renderModuleText(TEXT_MODULE, key, CHAT_TEXT_DEFAULTS, context, {
+    categories: CHAT_TEXT_CATEGORIES,
+    categoryLabels: CHAT_TEXT_CATEGORY_LABELS,
+    ...options
+  });
+  return sanitizeRuntimeChatMessage(message, options.maxLength || options.max || 450);
+}
+
+function findCommandDefinition(commandName) {
+  const cleanCommand = String(commandName || "").trim().replace(/^!/, "").toLowerCase();
+  if (!cleanCommand) return null;
+  const definitions = listChatCommandDefinitions().rows || [];
+  return definitions.find(definition => {
+    if (String(definition.command || "").toLowerCase() === cleanCommand) return true;
+    return (definition.aliases || []).some(alias => String(alias || "").toLowerCase() === cleanCommand);
+  }) || null;
+}
+
+function getRuntimeOpenGiveaway() {
+  ensureSchema();
+  const row = database.get(`
+    SELECT *
+    FROM loyalty_giveaways
+    WHERE status = 'open'
+      AND deleted_at = ''
+    ORDER BY opened_at DESC, id DESC
+    LIMIT 1
+  `);
+  return rowToGiveaway(row, false);
+}
+
+function buildCommandRuntimeResponse(input = {}, patch = {}) {
+  const command = String(input.command || patch.command || "").trim().replace(/^!/, "").toLowerCase();
+  const userLogin = normalizeChatLogin(input.userLogin || input.login || input.username || input.user);
+  const userDisplayName = normalizeChatDisplayName(input, userLogin);
+  const context = {
+    user: userDisplayName || userLogin,
+    displayName: userDisplayName || userLogin,
+    login: userLogin,
+    username: userLogin,
+    command,
+    ...(patch.context || {})
+  };
+  const messageKey = patch.messageKey || "";
+  const message = patch.message || (messageKey ? renderChatRuntimeText(messageKey, context, patch.options || {}) : "");
+
+  return {
+    ok: patch.ok === true,
+    handled: patch.handled !== false,
+    active: CHAT_COMMANDS_ACTIVE,
+    commandsActive: CHAT_COMMANDS_ACTIVE,
+    command,
+    action: patch.action || "",
+    userLogin,
+    userDisplayName,
+    messageKey,
+    message,
+    chatMessage: message,
+    shouldSendChat: Boolean(message),
+    error: patch.error || "",
+    data: patch.data || {},
+    note: patch.note || "Runtime-Bruecke vorbereitet. Chat-Commands bleiben in LWG-4L.1 bewusst deaktiviert."
+  };
+}
+
+function handleTicketCommandRuntime(input = {}) {
+  const commandDefinition = findCommandDefinition("ticket");
+  if (!CHAT_COMMANDS_ACTIVE || !commandDefinition || !commandDefinition.enabled || !commandDefinition.active) {
+    return buildCommandRuntimeResponse(input, {
+      ok: false,
+      action: "giveaway_ticket",
+      messageKey: "ticket.disabled",
+      error: "chat_commands_disabled",
+      data: { commandDefinition }
+    });
+  }
+
+  const giveaway = getRuntimeOpenGiveaway();
+  if (!giveaway) {
+    return buildCommandRuntimeResponse(input, {
+      ok: false,
+      action: "giveaway_ticket",
+      messageKey: "ticket.no_active",
+      error: "giveaway_no_active"
+    });
+  }
+
+  const requestedTickets = clampInt(input.ticketCount ?? input.tickets ?? input.amount ?? input.args?.[0], 1, 1, 999999);
+  if (!Number.isFinite(requestedTickets) || requestedTickets <= 0) {
+    return buildCommandRuntimeResponse(input, {
+      ok: false,
+      action: "giveaway_ticket",
+      messageKey: "ticket.invalid_amount",
+      error: "invalid_ticket_amount"
+    });
+  }
+
+  if (Number(giveaway.costAmount || 0) > 0) {
+    return buildCommandRuntimeResponse(input, {
+      ok: false,
+      action: "giveaway_ticket",
+      messageKey: "ticket.cost_not_supported_yet",
+      error: "ticket_cost_not_supported_yet",
+      data: { giveawayUid: giveaway.giveawayUid, costAmount: giveaway.costAmount, currencyKey: giveaway.currencyKey }
+    });
+  }
+
+  const userLogin = normalizeChatLogin(input.userLogin || input.login || input.username || input.user);
+  const userDisplayName = normalizeChatDisplayName(input, userLogin);
+  const result = createEntry(giveaway.giveawayUid, {
+    userLogin,
+    userDisplayName,
+    ticketCount: requestedTickets,
+    isSubscriber: input.isSubscriber === true || input.subscriber === true || input.isSub === true,
+    source: "chat_runtime"
+  });
+
+  if (!result.ok) {
+    const key = result.error === "giveaway_max_tickets_reached" ? "ticket.max_reached" : "ticket.invalid_amount";
+    return buildCommandRuntimeResponse(input, {
+      ok: false,
+      action: "giveaway_ticket",
+      messageKey: key,
+      error: result.error || "entry_create_failed",
+      data: result
+    });
+  }
+
+  return buildCommandRuntimeResponse(input, {
+    ok: true,
+    action: "giveaway_ticket",
+    messageKey: "ticket.success",
+    context: { tickets: requestedTickets, giveawayTitle: giveaway.title || "Giveaway" },
+    data: result
+  });
+}
+
+function handleWheelCommandRuntime(input = {}) {
+  const commandDefinition = findCommandDefinition(input.command || "wheel");
+  if (!CHAT_COMMANDS_ACTIVE || !commandDefinition || !commandDefinition.enabled || !commandDefinition.active) {
+    return buildCommandRuntimeResponse(input, {
+      ok: false,
+      action: "giveaway_wheel_claim",
+      messageKey: "wheel.disabled",
+      error: "chat_commands_disabled",
+      data: { commandDefinition }
+    });
+  }
+
+  const giveawayUid = String(input.giveawayUid || input.giveaway_uid || "").trim();
+  const giveaway = giveawayUid ? getGiveaway(giveawayUid, false) : getRuntimeOpenGiveaway();
+  if (!giveaway) {
+    return buildCommandRuntimeResponse(input, {
+      ok: false,
+      action: "giveaway_wheel_claim",
+      messageKey: "wheel.no_permission",
+      error: "giveaway_no_active"
+    });
+  }
+
+  const result = claimWheelSpin(giveaway.giveawayUid, {
+    ...input,
+    userLogin: normalizeChatLogin(input.userLogin || input.login || input.username || input.user),
+    userDisplayName: normalizeChatDisplayName(input, input.userLogin || input.login || input.username || input.user),
+    source: "chat_runtime"
+  });
+
+  if (!result.ok) {
+    return buildCommandRuntimeResponse(input, {
+      ok: false,
+      action: "giveaway_wheel_claim",
+      messageKey: "wheel.no_permission",
+      error: result.error || "wheel_claim_failed",
+      data: result
+    });
+  }
+
+  return buildCommandRuntimeResponse(input, {
+    ok: true,
+    action: "giveaway_wheel_claim",
+    messageKey: "wheel.success",
+    data: result
+  });
+}
+
+function handleChatCommandRuntime(input = {}) {
+  ensureSchema();
+  seedChatCommandDefinitions();
+  seedChatTextVariants();
+
+  const command = String(input.command || input.commandName || input.cmd || "").trim().replace(/^!/, "").toLowerCase();
+  if (command === "ticket") return handleTicketCommandRuntime({ ...input, command });
+  if (command === "wheel" || command === "rad") return handleWheelCommandRuntime({ ...input, command });
+
+  return buildCommandRuntimeResponse({ ...input, command }, {
+    ok: false,
+    handled: false,
+    error: "unsupported_command",
+    note: "Loyalty-Giveaway-Runtime kennt aktuell nur !ticket, !wheel und !rad. Ausfuehrung bleibt deaktiviert."
+  });
+}
+
 function counts() {
   ensureSchema();
   const total = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaways WHERE deleted_at = ''")?.count || 0);
@@ -2219,7 +2438,7 @@ function buildStatus() {
       },
       warnings: [
         "Chat-Commands !ticket, !wheel und !rad sind eingetragen, aber bewusst nicht aktiv.",
-        "Keine Twitch-Command-Ausfuehrung in LWG-4K.1."
+        "Keine Twitch-Command-Ausfuehrung in LWG-4L.1."
       ],
       errors: state.lastError ? [state.lastError] : []
     }
@@ -2244,9 +2463,20 @@ function registerRoutes(app) {
   })));
 
 
+  registered.push(...routes.registerPost(app, "/api/loyalty/giveaways/runtime/chat-command", core.asyncRoute(async (req, res) => {
+    return core.sendOk(res, handleChatCommandRuntime(req.body || {}));
+  })));
+
+  registered.push(...routes.registerPost(app, "/api/loyalty/giveaways/runtime/command", core.asyncRoute(async (req, res) => {
+    return core.sendOk(res, handleChatCommandRuntime(req.body || {}));
+  })));
+
+
   const routeNames = [
     "GET /api/loyalty/giveaways/status",
     "GET /api/loyalty/giveaways/routes",
+    "POST /api/loyalty/giveaways/runtime/chat-command",
+    "POST /api/loyalty/giveaways/runtime/command",
     "GET /api/loyalty/giveaways",
     "GET /api/loyalty/giveaways/:giveawayUid",
     "POST /api/loyalty/giveaways",
@@ -2450,6 +2680,7 @@ module.exports = {
     drawWinner,
     listWheelPermissions,
     claimWheelSpin,
+    handleChatCommandRuntime,
     listChatCommandDefinitions,
     getChatTextEditorPayload
   }
