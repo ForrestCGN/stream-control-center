@@ -461,15 +461,35 @@ window.LoyaltyGamesModule = (function(){
     };
   }
 
+  function isWheelGiveawayMode(mode){
+    return String(mode || '').startsWith('wheel_');
+  }
+
+  function syncGiveawayWheelPresetVisibility(form){
+    if (!form) return;
+    const modeSelect = form.querySelector('[data-lg-giveaway-mode-select]');
+    const presetRow = form.querySelector('[data-lg-wheel-preset-row]');
+    const presetSelect = form.querySelector('[data-lg-wheel-preset-select]');
+    const wheelMode = isWheelGiveawayMode(modeSelect?.value || 'classic_single');
+
+    if (presetRow) presetRow.style.display = wheelMode ? '' : 'none';
+    if (presetSelect) {
+      const editable = presetSelect.dataset.editable === '1';
+      presetSelect.disabled = !editable || !wheelMode;
+      if (!wheelMode) presetSelect.value = '';
+    }
+  }
+
   function buildGiveawayPayload(form){
     const data = new FormData(form);
     const mode = String(data.get('mode') || 'classic_single');
+    const wheelMode = isWheelGiveawayMode(mode);
     return {
       title: data.get('title'),
       description: data.get('description'),
       mode,
-      wheelEnabled: mode.startsWith('wheel_'),
-      wheelPresetUid: data.get('wheelPresetUid') || '',
+      wheelEnabled: wheelMode,
+      wheelPresetUid: wheelMode ? (data.get('wheelPresetUid') || '') : '',
       costAmount: Number(data.get('costAmount') || 0),
       maxTicketsPerUser: Number(data.get('maxTicketsPerUser') || 1),
       firstTicketFree: data.get('firstTicketFree') === 'on',
@@ -1022,7 +1042,8 @@ window.LoyaltyGamesModule = (function(){
 
   function renderGiveawayFormFields(giveaway, editable, presets){
     const mode = giveaway?.mode || 'classic_single';
-    const wheelPresetUid = giveaway?.wheelPresetUid || '';
+    const wheelMode = isWheelGiveawayMode(mode);
+    const wheelPresetUid = wheelMode ? (giveaway?.wheelPresetUid || '') : '';
     const round = giveaway?.roundPolicy || {};
     const prize = rows(giveaway?.prizes || [])[0] || {};
     const removeWinner = round.removeWinnerAfterRound !== false;
@@ -1032,7 +1053,7 @@ window.LoyaltyGamesModule = (function(){
       <label>Beschreibung<textarea name="description" rows="2" ${editable ? '' : 'disabled'}>${esc(giveaway?.description || '')}</textarea></label>
       <div class="lg-form-row">
         <label>Modus
-          <select name="mode" ${editable ? '' : 'disabled'}>
+          <select name="mode" data-lg-giveaway-mode-select ${editable ? '' : 'disabled'}>
             ${[
               ['classic_single','Classic Single'],
               ['classic_multi','Classic Multi'],
@@ -1041,10 +1062,10 @@ window.LoyaltyGamesModule = (function(){
             ].map(([value,label]) => `<option value="${value}" ${mode === value ? 'selected' : ''}>${label}</option>`).join('')}
           </select>
         </label>
-        <label>Wheel-Preset
-          <select name="wheelPresetUid" ${editable ? '' : 'disabled'}>
-            <option value="">kein Preset / kein Rad</option>
-            ${presets.map(p => `<option value="${esc(p.presetUid)}" ${wheelPresetUid === p.presetUid ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}
+        <label data-lg-wheel-preset-row style="${wheelMode ? '' : 'display:none'}">Wheel-Preset
+          <select name="wheelPresetUid" data-lg-wheel-preset-select data-editable="${editable ? '1' : '0'}" ${editable && wheelMode ? '' : 'disabled'}>
+            <option value="">Neues Rad für dieses Giveaway</option>
+            ${presets.map(p => `<option value="${esc(p.presetUid)}" ${wheelPresetUid === p.presetUid ? 'selected' : ''}>Vorlage kopieren: ${esc(p.name)}</option>`).join('')}
           </select>
         </label>
       </div>
@@ -1588,6 +1609,11 @@ window.LoyaltyGamesModule = (function(){
     });
     root.querySelectorAll('[data-lg-start-spin]').forEach(btn => {
       btn.addEventListener('click', () => startPresetSpin(btn.dataset.lgStartSpin));
+    });
+
+    root.querySelectorAll('[data-lg-create-giveaway], [data-lg-update-giveaway]').forEach(form => {
+      syncGiveawayWheelPresetVisibility(form);
+      form.querySelector('[data-lg-giveaway-mode-select]')?.addEventListener('change', () => syncGiveawayWheelPresetVisibility(form));
     });
 
     root.querySelector('[data-lg-create-giveaway]')?.addEventListener('submit', ev => {
