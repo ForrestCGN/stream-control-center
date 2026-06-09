@@ -1,35 +1,33 @@
 # NEXT_STEPS – Loyalty Giveaways / Glücksrad
 
-## Nächster Schritt
+Aktualisiert: 2026-06-09 09:08:00 UTC
 
-### LWG-4M.5 live testen
+## Direkt nächster empfohlener Schritt
 
-Vorher:
+### LWG-4M.9 – New Giveaway Wheel Option deaktivieren bis Field-Editor vorhanden ist
 
-```powershell
-node -c .\backend\modules\loyalty_giveaways.js
-.\stepdone.cmd "STEP LWG-4M.5 Bound Wheel aktivieren und beim Claim/Spin verwenden"
-```
+Grund:
 
-Testfolge:
-1. Wheel-Giveaway mit aktivem globalem Preset erstellen.
-2. Bound-Wheel abrufen:
-   - `GET /api/loyalty/giveaways/:giveawayUid/wheel/bound`
-   - erwartet im Draft: `status=draft`.
-3. Giveaway öffnen.
-4. Bound-Wheel erneut abrufen:
-   - erwartet: `status=active`, `locked=true`.
-5. Ticket eintragen.
-6. Close ausführen.
-7. Draw ausführen.
-8. Wheel-Permission prüfen.
-9. Claim ausführen.
-10. Prüfen, dass Spin mit Bound-Wheel-Kontext protokolliert wurde.
+Die Option `Neues Rad für dieses Giveaway` erzeugt derzeit ein Bound-Wheel ohne eigene Feldbasis. Der erfolgreiche Runtime-Test zeigt, dass Wheel-Giveaways mit kopierter Vorlage funktionieren. Ohne Vorlage fehlt aber aktuell noch der Editor/Snapshot für eigene Giveaway-Rad-Felder.
+
+Ziel:
+
+- Im Dashboard bei Wheel-Giveaways nur `Vorlage kopieren: <Preset-Name>` als nutzbare Auswahl anbieten.
+- `Neues Rad für dieses Giveaway` ausblenden oder disabled anzeigen.
+- Keine Backend-Änderung nötig, außer es wird bewusst ein zusätzlicher Guard gewünscht.
 
 ## Danach
 
-### LWG-4M.6
-Dashboard UI für Giveaway-Wheel-Dropdown.
+### LWG-4N.0 – Bound-Wheel Field Snapshot / Giveaway-Rad-Editor
 
-### LWG-4M.7
-Entscheidung/Umsetzung für echten Bound-Wheel-Field-Snapshot, damit globale Preset-Änderungen laufende Giveaway-Wheels nicht mehr beeinflussen.
+Ziel:
+
+- Eigenes Giveaway-Rad mit eigenen Feldern ermöglichen.
+- Preset-Vorlagen wirklich in Giveaway-Kontext kopieren.
+- Bound-Wheel darf nach Start unabhängig von globalen Preset-Änderungen bleiben.
+
+## Nicht als nächstes empfohlen
+
+- Keine Command-Aktivierung vor sauberem UI-/Bound-Wheel-Stand.
+- Keine Punktebuchung vor separater sicherer Buchungslogik.
+- Kein Streamer.bot-Anteil für dieses System.

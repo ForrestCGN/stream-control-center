@@ -1,7 +1,30 @@
 # CHANGELOG – Loyalty Giveaways / Glücksrad
 
+## LWG-4M.8 – Runtime-Test dokumentiert
+Datum: 2026-06-09 09:08:00 UTC
+
+### Confirmed
+- LWG-4M.5 Backend läuft aktiv mit `MODULE_BUILD = STEP_LWG_4M_5`.
+- LWG-4M.6 Dashboard-Fix wurde im UI bestätigt.
+- LWG-4M.7 Runtime-Test wurde erfolgreich abgeschlossen.
+- Bound-Wheel wird beim Öffnen eines Wheel-Giveaways `active` und `locked=true`.
+- Draw aus `open` wird blockiert.
+- Close setzt `closed_for_entries`; Twitch Presence Chat-Fehler blockieren Close nicht.
+- Draw erstellt Winner + pending Wheel-Permission mit Bound-Wheel-Metadata.
+- Claim/Spin läuft erfolgreich und setzt Permission auf `used`.
+- Giveaway wird nach Claim/Spin `finished`.
+
+### Notes
+- `Neues Rad für dieses Giveaway` ist aktuell noch nicht praktisch nutzbar, weil ein Bound-Wheel-Field-Editor bzw. Field-Snapshot fehlt.
+- Empfohlener nächster Step: Option vorerst deaktivieren/ausblenden oder echten Field-Editor bauen.
+
+## LWG-4M.6 – Dashboard Giveaway Wheel-Preset Visibility Fix
+
+### Confirmed
+- Wheel-Preset-Feld bei `Classic Single` und `Classic Multi` nicht mehr als nutzbare Auswahl sichtbar.
+- Wheel-Preset-Feld bei `Wheel Single` und `Wheel Multi` sichtbar.
+
 ## LWG-4M.5 – Bound Wheel aktivieren und beim Claim/Spin verwenden
-Datum: 2026-06-09 08:31:22 UTC
 
 ### Added
 - `BOUND_WHEEL_STATUS` für Bound-Wheel-Lifecycle.
@@ -14,24 +37,9 @@ Datum: 2026-06-09 08:31:22 UTC
 
 ### Changed
 - `MODULE_BUILD` auf `STEP_LWG_4M_5`.
-- Route-Liste ergänzt Bound-Wheel-Routen.
-- `winner_drawn` Event-Payload korrigiert, damit wieder ein Objekt statt eines falschen String-Payloads published wird.
+- `winner_drawn` Event-Payload korrigiert.
 
 ### Not changed
 - Keine Punktebuchung.
 - Keine Command-Aktivierung.
-- Keine Dashboard-UI.
 - Kein Streamer.bot.
-
-### Notes
-- Live-Test steht noch aus.
-- Der aktuelle Spin nutzt technisch noch die Field-Basis des `sourcePresetUid`, wird aber eindeutig als Giveaway-bound Spin markiert. Ein echter Field-Snapshot ist als Folgeschritt LWG-4M.7 dokumentiert.
-
-## LWG-4M.4 – Giveaway-bound Wheel Foundation
-
-### Added
-- Backend-Grundlage für giveaway-gebundene Wheels.
-- Neue Bound-Wheel-Struktur/Tabelle.
-- Automatische Erstellung eines Bound-Wheels bei Wheel-Giveaway.
-- `GET /api/loyalty/giveaways/:giveawayUid/wheel/bound`
-- `PUT /api/loyalty/giveaways/:giveawayUid/wheel/bound`
