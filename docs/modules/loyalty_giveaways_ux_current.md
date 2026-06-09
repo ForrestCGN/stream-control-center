@@ -1,14 +1,12 @@
-# Loyalty Giveaways / Glücksrad UX – aktueller Stand LWG-4N.6e
+# Loyalty Giveaways UX – LWG-4N.6f
 
-## Giveaways
-- Giveaways-Hauptseite zeigt eine Kachelübersicht.
-- Erstellen/Bearbeiten läuft über Modal.
-- Edit-Buttons sind statusabhängig.
-- Wheel-Giveaways im Entwurf zeigen Giveaway- und Glücksrad-Aktionen getrennt.
+## Regel
+Globale Presets werden im Bereich Glücksrad verwaltet. Giveaway-Glücksräder werden nur im jeweiligen Giveaway bearbeitet.
 
-## Glücksrad-/Preset-Editor
-- Ein gemeinsamer Editor wird für globale Presets und Giveaway-Glücksräder genutzt.
-- Im Giveaway-Kontext werden unnötige technische Felder ausgeblendet.
-- Feldkarten haben keine eigenen Speichern-/Aktivieren-/Deaktivieren-Buttons.
-- Sichtbare Felder gelten als aktiv. Nicht gewünschte Felder werden entfernt.
-- Gespeichert wird über den Hauptbutton `Preset speichern` bzw. `Glücksrad speichern`.
+## UI-Verhalten
+- Entwurf + Wheel-Giveaway: „Giveaway bearbeiten“ und „Glücksrad erstellen/bearbeiten“ sichtbar.
+- Offen/laufend/geschlossen/beendet: Edit-Buttons nicht sichtbar.
+- Bound-Wheel-Felder werden im gemeinsamen Editor bearbeitet.
+
+## Sicherheit
+Das globale Preset wird beim Bearbeiten eines Giveaway-Glücksrads nicht verändert.

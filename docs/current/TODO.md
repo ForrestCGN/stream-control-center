@@ -1,6 +1,5 @@
 # TODO
 
-- Optional später: Feld duplizieren.
-- Optional später: Drag-and-drop Sortierung.
-- Optional später: schönere Feldkarten ohne technische Field-UID im Standardblick.
-- Optional später: erweiterter Expertenmodus für temporär deaktivierte Felder, falls wirklich benötigt.
+- Runtime später auf echte Bound-Wheel-Felder umstellen, falls noch nicht vollständig umgesetzt.
+- Detailansicht/Statistiken später weiter vereinfachen.
+- Command-Setup-Prüfung später unter Config ergänzen.

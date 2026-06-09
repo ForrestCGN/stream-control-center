@@ -1,12 +1,6 @@
-# CHANGELOG
+# Changelog – LWG-4N.6f
 
-## LWG-4N.6e
-- Aktiv-Haken im Glücksrad-/Preset-Editor entfernt.
-- Feldstatus-Badge `AKTIV` aus Feldkarten entfernt.
-- Vorhandene Felder werden beim Speichern intern als aktiv gesetzt.
-- Nicht gewünschte Felder werden über `Entfernen` aus dem Editor genommen.
-
-## LWG-4N.6d
-- Feldaktionen im Glücksrad-/Preset-Editor vereinfacht.
-- Feldkarten haben nur noch `Entfernen` als direkte Aktion.
-- Hauptspeichern speichert vorhandene Feldänderungen mit.
+- Added giveaway-bound wheel editor context in dashboard UI.
+- Wheel card actions now open Bound-Wheel editor for the saved giveaway.
+- Field create/update/delete in that context uses Giveaway Bound-Wheel API routes.
+- Global presets are no longer edited from Giveaway wheel card actions.

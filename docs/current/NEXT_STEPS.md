@@ -1,8 +1,5 @@
-# NEXT STEPS
+# Next Steps
 
-- LWG-4N.6e im Dashboard testen.
-- Prüfen: Feld hinzufügen zeigt keinen Aktiv-Haken mehr.
-- Prüfen: Bestehende Feldkarten zeigen kein AKTIV-Badge und keinen Aktiv-Haken mehr.
-- Prüfen: Feld bearbeiten + Hauptbutton speichern übernimmt Feldänderungen.
-- Prüfen: Feld entfernen nimmt den Eintrag aus dem Glücksrad.
-- Danach weiter mit Giveaway-/Glücksrad-Flow oder Detail-/Statistik-Struktur.
+1. LWG-4N.6f einspielen und UI testen.
+2. Prüfen, dass globale Presets beim Bearbeiten eines Giveaway-Glücksrads unverändert bleiben.
+3. Danach ggf. Detail-/Statistik-/Raffle-Struktur weiter ausbauen.
