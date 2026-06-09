@@ -1,5 +1,5 @@
-# NEXT_STEPS – LWG-4N.3b
+# Next Steps
 
-1. Dashboard neu laden und Modal in beiden Kontexten prüfen.
-2. Giveaway-Kontext testen: Neues Glücksrad erstellen → Felder bearbeiten → Giveaway speichern.
-3. Nächster Fachstep: Preset-/Glücksrad-Feldbearbeitung im Modal nutzerfreundlicher machen.
+1. LWG-4N.3c im Dashboard testen.
+2. Danach Preset-Felder/Editor-Bedienung weiter verfeinern.
+3. Später Runtime auf Bound-Wheel-Felder umstellen.

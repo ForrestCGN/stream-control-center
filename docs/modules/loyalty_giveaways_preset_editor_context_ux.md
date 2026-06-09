@@ -1,23 +1,8 @@
 # Loyalty Giveaways – Preset-/Glücksrad-Editor Kontext-UX
 
-## Leitlinie
+Der gemeinsame Editor wird in Presets und Giveaways genutzt. Das Design bleibt identisch. Unnötige Felder werden je Kontext ausgeblendet.
 
-Es gibt einen gemeinsamen Editor. Der Editor entscheidet anhand des Einstiegskontexts, welche Begriffe und Felder sichtbar sind.
-
-## Presets-Kontext
-
-- sichtbarer Begriff: Preset
-- Status sichtbar
-- globale Preset-Verwaltung
-
-## Giveaway-Kontext
-
-- sichtbarer Begriff: Glücksrad
-- Status beim Erstellen ausgeblendet
-- intern status=draft
-- technische Typ-/Lifecycle-Felder werden nicht in den Vordergrund gestellt
-- neu erstelltes Glücksrad wird im Giveaway automatisch ausgewählt
-
-## Layout-Regel
-
-Keine Veränderung am Modal-Grundlayout ohne separaten UX-Step.
+LWG-4N.3c ergänzt:
+- Im Giveaway-Formular ist die Modus-Auswahl stabil.
+- Wheel-spezifische Glücksrad-Auswahl erscheint als eigener Abschnitt unter dem Modus.
+- Im Giveaway-Kontext schließt das Speichern des Glücksrads das Modal.

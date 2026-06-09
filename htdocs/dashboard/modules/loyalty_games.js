@@ -367,7 +367,16 @@ window.LoyaltyGamesModule = (function(){
         actor: 'dashboard'
       });
       await refreshPresets(presetUid);
-      setMessage('Preset-Einstellungen wurden gespeichert.');
+      if (state.presetEditorModal?.open && state.presetEditorModal?.context === 'giveaways') {
+        const targetGiveawayUid = state.presetEditorModal?.targetGiveawayUid || '';
+        rememberGiveawayWheelPresetSelection(targetGiveawayUid, presetUid);
+        state.activeTab = 'giveaways';
+        state.presetEditorModal = { open: false, mode: 'create', context: 'presets', presetUid: '', targetGiveawayUid: '' };
+        await refreshGiveaways(targetGiveawayUid || state.selectedGiveawayUid);
+        setMessage('Glücksrad wurde gespeichert und im Giveaway ausgewählt.');
+      } else {
+        setMessage('Preset-Einstellungen wurden gespeichert.');
+      }
     } catch (err) {
       state.error = err.message || String(err);
     } finally {
@@ -1282,7 +1291,7 @@ window.LoyaltyGamesModule = (function(){
     return `
       <label>Titel<input name="title" value="${esc(giveaway?.title || '')}" required ${editable ? '' : 'disabled'}></label>
       <label>Beschreibung<textarea name="description" rows="2" ${editable ? '' : 'disabled'}>${esc(giveaway?.description || '')}</textarea></label>
-      <div class="lg-form-row">
+      <div class="lg-form-row lg-giveaway-mode-row">
         <label>Modus
           <select name="mode" data-lg-giveaway-mode-select ${editable ? '' : 'disabled'}>
             ${[
@@ -1293,17 +1302,19 @@ window.LoyaltyGamesModule = (function(){
             ].map(([value,label]) => `<option value="${value}" ${mode === value ? 'selected' : ''}>${label}</option>`).join('')}
           </select>
         </label>
-        <label data-lg-wheel-preset-row style="${wheelMode ? '' : 'display:none'}">Glücksrad
+      </div>
+      <div class="lg-wheel-config-panel" data-lg-wheel-preset-row style="${wheelMode ? '' : 'display:none'}">
+        <label>Glücksrad
           <select name="wheelPresetUid" data-lg-wheel-preset-select data-editable="${editable ? '1' : '0'}" ${editable && wheelMode ? '' : 'disabled'}>
             <option value="">Noch kein Glücksrad ausgewählt</option>
             ${presets.map(p => `<option value="${esc(p.presetUid)}" ${wheelPresetUid === p.presetUid ? 'selected' : ''}>Glücksrad verwenden: ${esc(p.name)}</option>`).join('')}
           </select>
-          <div class="lg-inline-actions">
-            <button class="lg-btn lg-btn-secondary" type="button" data-lg-open-preset-editor data-mode="create" data-context="giveaways" data-target-giveaway-uid="${esc(giveaway?.giveawayUid || '')}">Neues Glücksrad erstellen</button>
-            ${wheelPresetUid ? `<button class="lg-btn lg-btn-secondary" type="button" data-lg-open-preset-editor data-mode="edit" data-context="giveaways" data-preset-uid="${esc(wheelPresetUid)}" data-target-giveaway-uid="${esc(giveaway?.giveawayUid || '')}">Ausgewähltes Glücksrad bearbeiten</button>` : ''}
-          </div>
-          <small class="lg-muted">Ohne Glücksrad kann das Giveaway als Entwurf gespeichert, aber nicht geöffnet werden. Neu erstellte Glücksräder werden hier automatisch ausgewählt.</small>
         </label>
+        <div class="lg-inline-actions">
+          <button class="lg-btn lg-btn-secondary" type="button" data-lg-open-preset-editor data-mode="create" data-context="giveaways" data-target-giveaway-uid="${esc(giveaway?.giveawayUid || '')}">Neues Glücksrad erstellen</button>
+          ${wheelPresetUid ? `<button class="lg-btn lg-btn-secondary" type="button" data-lg-open-preset-editor data-mode="edit" data-context="giveaways" data-preset-uid="${esc(wheelPresetUid)}" data-target-giveaway-uid="${esc(giveaway?.giveawayUid || '')}">Ausgewähltes Glücksrad bearbeiten</button>` : ''}
+        </div>
+        <small class="lg-muted">Ohne Glücksrad kann das Giveaway als Entwurf gespeichert, aber nicht geöffnet werden. Neu erstellte Glücksräder werden hier automatisch ausgewählt.</small>
       </div>
       <div class="lg-form-row">
         <label>Kosten pro Ticket<input name="costAmount" type="number" min="0" value="${esc(giveaway?.costAmount ?? 0)}" ${editable ? '' : 'disabled'}></label>
@@ -1940,6 +1951,10 @@ window.LoyaltyGamesModule = (function(){
         .lg-editor-modal-head h3{margin:.2rem 0 .35rem;}
         .lg-editor-modal-section{padding:12px;border:1px solid rgba(108,226,255,.14);border-radius:16px;background:rgba(255,255,255,.025);margin-bottom:14px;}
         .lg-inline-actions{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;}
+        .lg-giveaway-mode-row > label{grid-column:1 / -1;}
+        .lg-wheel-config-panel{border:1px solid rgba(108,226,255,.14);border-radius:14px;background:rgba(255,255,255,.025);padding:12px;margin-top:4px;margin-bottom:12px;}
+        .lg-wheel-config-panel label{display:block;margin:0;}
+        .lg-wheel-config-panel small{display:block;margin-top:8px;}
       </style>
       ${state.message ? `<div class="lg-toast">${esc(state.message)}</div>` : ''}
       ${state.saving ? `<div class="lg-toast lg-toast-warn">Speichere...</div>` : ''}

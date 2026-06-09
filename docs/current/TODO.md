@@ -1,6 +1,5 @@
-# TODO – LWG-4N.3b
+# TODO – Loyalty Giveaways/Wheel
 
-- [ ] Sichttest Modal Presets-Kontext.
-- [ ] Sichttest Modal Giveaway-Kontext.
-- [ ] Prüfen, ob keine unerwünschte Layoutverschiebung entstanden ist.
-- [ ] Danach Feld-/Segmentbereich nutzerfreundlicher ausbauen.
+- Giveaway-Titel-Duplikat-Guard planen/umsetzen.
+- Preset-/Glücksrad-Editor weiter nutzerfreundlich ausbauen.
+- Runtime später aus Bound-Wheel-Feldern statt nur aus Preset-Feldern lesen.

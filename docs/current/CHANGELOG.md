@@ -1,6 +1,5 @@
-# CHANGELOG – LWG-4N.3b
+# Changelog – LWG-4N.3c
 
-- Gemeinsamer Preset-/Glücksrad-Editor zeigt im Giveaway-Kontext nutzerfreundlichere Begriffe.
-- Statusfeld im Giveaway-Erstellen-Kontext ausgeblendet und intern als draft gesetzt.
-- Button- und Hinweistexte angepasst.
-- Keine Layoutstruktur verändert.
+- Giveaway-Modus-Zeile stabilisiert.
+- Wheel-spezifische Glücksrad-Auswahl in eigenen Abschnitt verschoben.
+- „Glücksrad speichern“ schließt im Giveaway-Kontext das Modal.
