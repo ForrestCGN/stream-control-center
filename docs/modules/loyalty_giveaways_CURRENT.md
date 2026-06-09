@@ -1,77 +1,32 @@
-# Modul-Doku – Loyalty Giveaways / Glücksrad aktueller Stand
-
-Aktualisiert: 2026-06-09 09:08:00 UTC
+# Module: loyalty_giveaways – Current LWG-4M.9
 
 ## Zweck
+Das Modul verwaltet Loyalty-Giveaways inklusive Classic- und Wheel-Giveaways.
 
-Das Modul verwaltet Loyalty-Giveaways, Tickets, Draws und die Kopplung an das Glücksrad.
+## Bound-Wheel Architektur
+- Presets sind globale Vorlagen.
+- Wheel-Giveaways bekommen ein eigenes Bound-Wheel.
+- Bound-Wheel-Name folgt dem Giveaway: `<Giveaway-Titel> – Gluecksrad`.
+- Quelle wird ueber `sourcePresetUid` und Metadaten gespeichert.
 
-## Aktueller bestätigter Stand
+## LWG-4M.9 Erweiterung
+Bound-Wheel-Felder werden nun in einer eigenen Tabelle gespeichert:
 
-```text
-Backend: STEP_LWG_4M_5
-Dashboard-Fix: LWG-4M.6 bestätigt
-Runtime-Test: LWG-4M.7 bestätigt
-Dokumentation: LWG-4M.8
-```
+- `loyalty_giveaway_bound_wheel_fields`
 
-## Kernfunktionen
+Beim Erstellen/Binden eines Wheel-Giveaways mit Preset-Vorlage werden die Felder aus `loyalty_wheel_fields` kopiert.
+Diese Kopie gehoert danach zum Giveaway und ist die Grundlage fuer den kommenden Editor und die spaetere Runtime-Umstellung.
 
-### Giveaways
-- Erstellen
-- Öffnen
-- Schließen
-- Entries/Tickets
-- Draw
-- Cancel/Delete
-- Wheel-Permission für Gewinner
+## Neue Routen
+- `GET /api/loyalty/giveaways/:giveawayUid/wheel/bound/fields`
+- `POST /api/loyalty/giveaways/:giveawayUid/wheel/bound/fields`
+- `PUT /api/loyalty/giveaways/:giveawayUid/wheel/bound/fields/:fieldUid`
+- `POST /api/loyalty/giveaways/:giveawayUid/wheel/bound/fields/:fieldUid/delete`
 
-### Close/Draw
-- Draw aus `open` ist blockiert.
-- Close setzt `closed_for_entries`.
-- Draw ist danach erlaubt.
+## Editierbarkeit
+- Nur Draft-Giveaways koennen Bound-Wheel-Felder bearbeiten.
+- Sobald das Bound-Wheel active/locked ist, sind Felder read-only.
 
-### Chatdispatch
-- Close liefert Chattext.
-- Close versucht Twitch Presence Chatdispatch.
-- Wenn Twitch Presence nicht verbunden ist, bleibt Close erfolgreich.
-
-### Giveaway-bound Wheels
-- Wheel-Giveaways erzeugen ein Bound-Wheel.
-- Bound-Wheel wird per `wheelSnapshotUid` am Giveaway referenziert.
-- Bound-Wheel verweist per `sourcePresetUid` auf die globale Vorlage.
-- Bound-Wheel hat `scope=giveaway`.
-- Beim Öffnen eines Wheel-Giveaways wird Bound-Wheel `active` und `locked=true`.
-- Draw und Claim verlangen ein aktives Bound-Wheel.
-- Permission und Spin speichern Bound-Wheel-Kontext.
-
-## Erfolgreich getesteter Runtime-Flow
-
-```text
-Wheel-Giveaway mit Vorlage
-→ Open
-→ Ticket
-→ Close
-→ Draw
-→ Claim/Spin
-→ Permission used
-→ Giveaway finished
-```
-
-## API-Auszug
-
-```text
-POST /api/loyalty/giveaways/:giveawayUid/open
-POST /api/loyalty/giveaways/:giveawayUid/close
-POST /api/loyalty/giveaways/:giveawayUid/close-entries
-POST /api/loyalty/giveaways/:giveawayUid/draw
-GET  /api/loyalty/giveaways/:giveawayUid/wheel/bound
-PUT  /api/loyalty/giveaways/:giveawayUid/wheel/bound
-POST /api/loyalty/giveaways/:giveawayUid/wheel/claim
-```
-
-## Offener Architekturpunkt
-
-Der echte Field-Snapshot für Bound-Wheels ist noch nicht separat umgesetzt. Aktuell nutzt der Spin weiterhin `sourcePresetUid` als Feldbasis, aber mit eindeutigem Giveaway-/Bound-Wheel-Kontext.
-
-Die Dashboard-Option `Neues Rad für dieses Giveaway` sollte bis zum Field-Editor deaktiviert/ausgeblendet werden oder im nächsten großen Step mit echten Bound-Wheel-Feldern umgesetzt werden.
+## Offene Punkte
+- Dashboard-Editor fehlt noch.
+- Runtime-Spin muss noch auf Bound-Wheel-Felder umgestellt werden.

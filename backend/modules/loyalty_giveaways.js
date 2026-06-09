@@ -18,7 +18,7 @@ const database = require("../core/database");
 
 const MODULE_NAME = "loyalty_giveaways";
 const MODULE_VERSION = "0.1.0";
-const MODULE_BUILD = "STEP_LWG_4M_5";
+const MODULE_BUILD = "STEP_LWG_4M_9";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -867,6 +867,38 @@ function ensureSchema() {
   database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_bound_wheels_source ON loyalty_giveaway_bound_wheels(source_preset_uid);`);
   database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_bound_wheels_status ON loyalty_giveaway_bound_wheels(status);`);
 
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS loyalty_giveaway_bound_wheel_fields (
+      id ${database.primaryKeyAutoIncrementSql()},
+      field_uid TEXT NOT NULL UNIQUE,
+      bound_wheel_uid TEXT NOT NULL,
+      giveaway_uid TEXT NOT NULL,
+      source_preset_uid TEXT NOT NULL DEFAULT '',
+      source_field_uid TEXT NOT NULL DEFAULT '',
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      label TEXT NOT NULL DEFAULT '',
+      sub_label TEXT NOT NULL DEFAULT '',
+      enabled INTEGER NOT NULL DEFAULT 1,
+      weight INTEGER NOT NULL DEFAULT 1,
+      quantity_total INTEGER NOT NULL DEFAULT 0,
+      quantity_remaining INTEGER NOT NULL DEFAULT 0,
+      remove_after_win INTEGER NOT NULL DEFAULT 0,
+      reward_type TEXT NOT NULL DEFAULT 'none',
+      reward_value TEXT NOT NULL DEFAULT '',
+      color_a TEXT NOT NULL DEFAULT '',
+      color_b TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      deleted_at TEXT NOT NULL DEFAULT '',
+      metadata_json TEXT NOT NULL DEFAULT '{}'
+    );
+  `);
+
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_bound_wheel_fields_bound ON loyalty_giveaway_bound_wheel_fields(bound_wheel_uid);`);
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_bound_wheel_fields_giveaway ON loyalty_giveaway_bound_wheel_fields(giveaway_uid);`);
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_bound_wheel_fields_enabled ON loyalty_giveaway_bound_wheel_fields(enabled);`);
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_bound_wheel_fields_source ON loyalty_giveaway_bound_wheel_fields(source_preset_uid, source_field_uid);`);
+
 
   state.schemaReady = true;
   return true;
@@ -905,6 +937,374 @@ function getBoundWheelRowByGiveaway(giveawayUid) {
 
 function getBoundWheelByGiveaway(giveawayUid) {
   return rowToBoundWheel(getBoundWheelRowByGiveaway(giveawayUid));
+}
+
+function databaseTableExists(tableName) {
+  try {
+    ensureSchema();
+    const clean = String(tableName || "").trim();
+    if (!clean) return false;
+    const row = database.get("SELECT name FROM sqlite_master WHERE type = 'table' AND name = :name", { name: clean });
+    return !!row;
+  } catch (_) {
+    return false;
+  }
+}
+
+function rowToBoundWheelField(row) {
+  if (!row) return null;
+  const rewardType = row.reward_type || "none";
+  const rewardValue = row.reward_value || "";
+  return {
+    id: row.id,
+    fieldUid: row.field_uid,
+    idForWheel: row.field_uid,
+    boundWheelUid: row.bound_wheel_uid,
+    giveawayUid: row.giveaway_uid,
+    sourcePresetUid: row.source_preset_uid || "",
+    sourceFieldUid: row.source_field_uid || "",
+    sortOrder: Number(row.sort_order || 0),
+    label: row.label || "",
+    sub: row.sub_label || "",
+    subLabel: row.sub_label || "",
+    enabled: Number(row.enabled || 0) === 1,
+    weight: Number(row.weight || 0),
+    quantityTotal: Number(row.quantity_total || 0),
+    quantityRemaining: Number(row.quantity_remaining || 0),
+    removeAfterWin: Number(row.remove_after_win || 0) === 1,
+    rewardType,
+    rewardValue,
+    reward: { type: rewardType, value: rewardValue },
+    colorA: row.color_a || "",
+    colorB: row.color_b || "",
+    createdAt: row.created_at || "",
+    updatedAt: row.updated_at || "",
+    deletedAt: row.deleted_at || "",
+    metadata: parseJson(row.metadata_json, {})
+  };
+}
+
+function listBoundWheelFields(giveawayUid, options = {}) {
+  ensureSchema();
+  const boundWheel = getBoundWheelByGiveaway(giveawayUid);
+  if (!boundWheel) return { ok: false, error: "bound_wheel_not_found", statusCode: 404, rows: [] };
+
+  const includeDeleted = options.includeDeleted === true || String(options.includeDeleted || "") === "true";
+  const where = ["bound_wheel_uid = :boundWheelUid"];
+  const params = { boundWheelUid: boundWheel.boundWheelUid };
+  if (!includeDeleted) where.push("deleted_at = ''");
+
+  const rows = database.all(`
+    SELECT *
+    FROM loyalty_giveaway_bound_wheel_fields
+    WHERE ${where.join(" AND ")}
+    ORDER BY sort_order ASC, id ASC
+  `, params).map(rowToBoundWheelField);
+
+  return { ok: true, count: rows.length, boundWheel, rows };
+}
+
+function getSourcePresetForBoundWheel(sourcePresetUid) {
+  ensureSchema();
+  const uidValue = String(sourcePresetUid || "").trim();
+  if (!uidValue) return null;
+  if (!databaseTableExists("loyalty_wheel_presets")) return null;
+  const row = database.get("SELECT * FROM loyalty_wheel_presets WHERE preset_uid = :presetUid AND deleted_at = ''", { presetUid: uidValue });
+  if (!row) return null;
+  return {
+    presetUid: row.preset_uid,
+    name: row.name || "",
+    description: row.description || "",
+    presetType: row.preset_type || "standalone",
+    status: row.status || "draft",
+    minVisibleSlots: Number(row.min_visible_slots || 12),
+    settings: parseJson(row.settings_json, {}),
+    metadata: parseJson(row.metadata_json, {})
+  };
+}
+
+function listSourcePresetFieldRows(sourcePresetUid) {
+  ensureSchema();
+  const uidValue = String(sourcePresetUid || "").trim();
+  if (!uidValue) return [];
+  if (!databaseTableExists("loyalty_wheel_fields")) return [];
+  return database.all(`
+    SELECT *
+    FROM loyalty_wheel_fields
+    WHERE preset_uid = :presetUid
+      AND deleted_at = ''
+    ORDER BY sort_order ASC, id ASC
+  `, { presetUid: uidValue });
+}
+
+function copyPresetFieldsToBoundWheel(giveawayUid, input = {}) {
+  ensureSchema();
+  const boundWheel = getBoundWheelByGiveaway(giveawayUid);
+  if (!boundWheel) return { ok: false, error: "bound_wheel_not_found", statusCode: 404 };
+
+  const sourcePresetUid = String(input.sourcePresetUid || boundWheel.sourcePresetUid || "").trim();
+  if (!sourcePresetUid) return { ok: true, copied: 0, skipped: true, reason: "missing_source_preset_uid", boundWheel };
+
+  const existingCount = Number(database.get(`
+    SELECT COUNT(*) AS count
+    FROM loyalty_giveaway_bound_wheel_fields
+    WHERE bound_wheel_uid = :boundWheelUid
+      AND deleted_at = ''
+  `, { boundWheelUid: boundWheel.boundWheelUid })?.count || 0);
+  if (existingCount > 0 && input.force !== true) {
+    return { ok: true, copied: 0, skipped: true, reason: "bound_wheel_fields_already_exist", existingCount, boundWheel };
+  }
+
+  const preset = getSourcePresetForBoundWheel(sourcePresetUid);
+  if (!preset) return { ok: false, error: "source_preset_not_found", statusCode: 409, sourcePresetUid, boundWheel };
+
+  const sourceFields = listSourcePresetFieldRows(sourcePresetUid);
+  if (!sourceFields.length) return { ok: true, copied: 0, skipped: true, reason: "source_preset_has_no_fields", sourcePresetUid, boundWheel, preset };
+
+  const now = nowIso();
+  let copied = 0;
+  sourceFields.forEach((field, index) => {
+    const fieldUid = uid("gfield");
+    const fieldMeta = parseJson(field.metadata_json, {});
+    database.run(`
+      INSERT INTO loyalty_giveaway_bound_wheel_fields (
+        field_uid, bound_wheel_uid, giveaway_uid, source_preset_uid, source_field_uid,
+        sort_order, label, sub_label, enabled, weight, quantity_total, quantity_remaining,
+        remove_after_win, reward_type, reward_value, color_a, color_b,
+        created_at, updated_at, metadata_json
+      ) VALUES (
+        :fieldUid, :boundWheelUid, :giveawayUid, :sourcePresetUid, :sourceFieldUid,
+        :sortOrder, :label, :subLabel, :enabled, :weight, :quantityTotal, :quantityRemaining,
+        :removeAfterWin, :rewardType, :rewardValue, :colorA, :colorB,
+        :createdAt, :updatedAt, :metadataJson
+      )
+    `, {
+      fieldUid,
+      boundWheelUid: boundWheel.boundWheelUid,
+      giveawayUid: boundWheel.giveawayUid,
+      sourcePresetUid,
+      sourceFieldUid: field.field_uid || "",
+      sortOrder: Number(field.sort_order || index + 1),
+      label: field.label || "Gewinn",
+      subLabel: field.sub_label || "",
+      enabled: Number(field.enabled || 0) === 1 ? 1 : 0,
+      weight: clampInt(field.weight, 1, 1, 999999),
+      quantityTotal: clampInt(field.quantity_total, 0, 0, 999999),
+      quantityRemaining: clampInt(field.quantity_remaining, field.quantity_total || 0, 0, 999999),
+      removeAfterWin: Number(field.remove_after_win || 0) === 1 ? 1 : 0,
+      rewardType: field.reward_type || "none",
+      rewardValue: field.reward_value || "",
+      colorA: field.color_a || "",
+      colorB: field.color_b || "",
+      createdAt: now,
+      updatedAt: now,
+      metadataJson: json({
+        ...fieldMeta,
+        source: "giveaway_bound_wheel_field_snapshot",
+        copiedAt: now,
+        copiedBy: input.actor || "dashboard",
+        copiedFromPresetUid: sourcePresetUid,
+        copiedFromPresetName: preset.name || "",
+        copiedFromFieldUid: field.field_uid || ""
+      })
+    });
+    copied += 1;
+  });
+
+  const existingMeta = boundWheel.metadata && typeof boundWheel.metadata === "object" ? boundWheel.metadata : {};
+  database.run(`
+    UPDATE loyalty_giveaway_bound_wheels
+    SET updated_at = :updatedAt,
+        metadata_json = :metadataJson
+    WHERE bound_wheel_uid = :boundWheelUid
+  `, {
+    boundWheelUid: boundWheel.boundWheelUid,
+    updatedAt: now,
+    metadataJson: json({
+      ...existingMeta,
+      sourcePresetUid,
+      sourcePresetName: preset.name || "",
+      sourcePresetStatus: preset.status || "",
+      minVisibleSlots: preset.minVisibleSlots || 12,
+      presetSettings: preset.settings || {},
+      fieldsCopiedAt: now,
+      fieldsCopiedBy: input.actor || "dashboard",
+      fieldsCopiedCount: copied
+    })
+  });
+
+  return {
+    ok: true,
+    copied,
+    boundWheel: getBoundWheelByGiveaway(giveawayUid),
+    preset,
+    fields: listBoundWheelFields(giveawayUid).rows
+  };
+}
+
+function assertBoundWheelEditable(giveawayUid) {
+  const editable = assertDraftEditable(giveawayUid);
+  if (!editable.ok) return editable;
+  const boundWheel = getBoundWheelByGiveaway(giveawayUid);
+  if (!boundWheel) return { ok: false, error: "bound_wheel_not_found", statusCode: 404 };
+  if (boundWheel.locked || boundWheel.status !== BOUND_WHEEL_STATUS.DRAFT) {
+    return { ok: false, error: "bound_wheel_not_editable", statusCode: 409, boundWheel };
+  }
+  return { ok: true, row: editable.row, boundWheel };
+}
+
+function nextBoundWheelFieldSortOrder(boundWheelUid) {
+  const row = database.get(`
+    SELECT COALESCE(MAX(sort_order), 0) + 1 AS nextSort
+    FROM loyalty_giveaway_bound_wheel_fields
+    WHERE bound_wheel_uid = :boundWheelUid
+  `, { boundWheelUid });
+  return Number(row && row.nextSort || 1);
+}
+
+function createBoundWheelField(giveawayUid, input = {}, options = {}) {
+  ensureSchema();
+  const editable = options.allowDuringCreate === true ? { ok: true, boundWheel: getBoundWheelByGiveaway(giveawayUid) } : assertBoundWheelEditable(giveawayUid);
+  if (!editable.ok) return editable;
+  const boundWheel = editable.boundWheel;
+  if (!boundWheel) return { ok: false, error: "bound_wheel_not_found", statusCode: 404 };
+
+  const now = nowIso();
+  const fieldUid = input.fieldUid || uid("gfield");
+  const total = clampInt(input.quantityTotal ?? input.quantity_total ?? input.quantity ?? 1, 1, 0, 999999);
+  const remaining = clampInt(input.quantityRemaining ?? input.quantity_remaining ?? total, total, 0, 999999);
+  const sortOrder = clampInt(input.sortOrder ?? input.sort_order ?? nextBoundWheelFieldSortOrder(boundWheel.boundWheelUid), 1, 0, 9999);
+  const rewardType = String(input.rewardType || input.reward_type || input.reward?.type || "none").trim() || "none";
+  const rewardValue = String(input.rewardValue || input.reward_value || input.reward?.value || input.reward?.amount || "").trim();
+
+  database.run(`
+    INSERT INTO loyalty_giveaway_bound_wheel_fields (
+      field_uid, bound_wheel_uid, giveaway_uid, source_preset_uid, source_field_uid,
+      sort_order, label, sub_label, enabled, weight, quantity_total, quantity_remaining,
+      remove_after_win, reward_type, reward_value, color_a, color_b,
+      created_at, updated_at, metadata_json
+    ) VALUES (
+      :fieldUid, :boundWheelUid, :giveawayUid, :sourcePresetUid, :sourceFieldUid,
+      :sortOrder, :label, :subLabel, :enabled, :weight, :quantityTotal, :quantityRemaining,
+      :removeAfterWin, :rewardType, :rewardValue, :colorA, :colorB,
+      :createdAt, :updatedAt, :metadataJson
+    )
+  `, {
+    fieldUid,
+    boundWheelUid: boundWheel.boundWheelUid,
+    giveawayUid: boundWheel.giveawayUid,
+    sourcePresetUid: String(input.sourcePresetUid || boundWheel.sourcePresetUid || "").trim(),
+    sourceFieldUid: String(input.sourceFieldUid || input.source_field_uid || "").trim(),
+    sortOrder,
+    label: String(input.label || "").trim() || "Gewinn",
+    subLabel: String(input.subLabel || input.sub_label || input.sub || "").trim(),
+    enabled: input.enabled === false ? 0 : 1,
+    weight: clampInt(input.weight === undefined ? 1 : input.weight, 1, 1, 999999),
+    quantityTotal: total,
+    quantityRemaining: remaining,
+    removeAfterWin: input.removeAfterWin === true || input.remove_after_win === true ? 1 : 0,
+    rewardType,
+    rewardValue,
+    colorA: String(input.colorA || input.color_a || "").trim(),
+    colorB: String(input.colorB || input.color_b || "").trim(),
+    createdAt: now,
+    updatedAt: now,
+    metadataJson: json(input.metadata || { source: "dashboard" })
+  });
+
+  return { ok: true, field: rowToBoundWheelField(database.get("SELECT * FROM loyalty_giveaway_bound_wheel_fields WHERE field_uid = :fieldUid", { fieldUid })) };
+}
+
+function updateBoundWheelField(giveawayUid, fieldUid, patch = {}) {
+  ensureSchema();
+  const editable = assertBoundWheelEditable(giveawayUid);
+  if (!editable.ok) return editable;
+  const boundWheel = editable.boundWheel;
+  const field = database.get(`
+    SELECT *
+    FROM loyalty_giveaway_bound_wheel_fields
+    WHERE field_uid = :fieldUid
+      AND bound_wheel_uid = :boundWheelUid
+      AND deleted_at = ''
+  `, { fieldUid, boundWheelUid: boundWheel.boundWheelUid });
+  if (!field) return { ok: false, error: "bound_wheel_field_not_found", statusCode: 404 };
+
+  const now = nowIso();
+  const nextTotal = clampInt(patch.quantityTotal ?? patch.quantity_total ?? field.quantity_total, field.quantity_total, 0, 999999);
+  const nextRemaining = clampInt(patch.quantityRemaining ?? patch.quantity_remaining ?? nextTotal, nextTotal, 0, 999999);
+  const nextMeta = patch.metadata && typeof patch.metadata === "object" ? patch.metadata : parseJson(field.metadata_json, {});
+
+  database.run(`
+    UPDATE loyalty_giveaway_bound_wheel_fields
+    SET sort_order = :sortOrder,
+        label = :label,
+        sub_label = :subLabel,
+        enabled = :enabled,
+        weight = :weight,
+        quantity_total = :quantityTotal,
+        quantity_remaining = :quantityRemaining,
+        remove_after_win = :removeAfterWin,
+        reward_type = :rewardType,
+        reward_value = :rewardValue,
+        color_a = :colorA,
+        color_b = :colorB,
+        updated_at = :updatedAt,
+        metadata_json = :metadataJson
+    WHERE field_uid = :fieldUid AND bound_wheel_uid = :boundWheelUid
+  `, {
+    fieldUid,
+    boundWheelUid: boundWheel.boundWheelUid,
+    sortOrder: clampInt(patch.sortOrder ?? patch.sort_order ?? field.sort_order, field.sort_order, 0, 9999),
+    label: String(patch.label ?? field.label ?? "").trim() || "Gewinn",
+    subLabel: String(patch.subLabel ?? patch.sub_label ?? patch.sub ?? field.sub_label ?? "").trim(),
+    enabled: patch.enabled === undefined ? Number(field.enabled || 0) : (patch.enabled === false ? 0 : 1),
+    weight: clampInt(patch.weight === undefined ? field.weight : patch.weight, field.weight, 1, 999999),
+    quantityTotal: nextTotal,
+    quantityRemaining: nextRemaining,
+    removeAfterWin: patch.removeAfterWin === undefined && patch.remove_after_win === undefined ? Number(field.remove_after_win || 0) : (patch.removeAfterWin === true || patch.remove_after_win === true ? 1 : 0),
+    rewardType: String(patch.rewardType || patch.reward_type || patch.reward?.type || field.reward_type || "none").trim() || "none",
+    rewardValue: String(patch.rewardValue ?? patch.reward_value ?? patch.reward?.value ?? patch.reward?.amount ?? field.reward_value ?? "").trim(),
+    colorA: String(patch.colorA ?? patch.color_a ?? field.color_a ?? "").trim(),
+    colorB: String(patch.colorB ?? patch.color_b ?? field.color_b ?? "").trim(),
+    updatedAt: now,
+    metadataJson: json({ ...nextMeta, lastUpdatedAt: now, lastUpdatedBy: patch.actor || patch.updatedBy || "dashboard" })
+  });
+
+  return { ok: true, field: rowToBoundWheelField(database.get("SELECT * FROM loyalty_giveaway_bound_wheel_fields WHERE field_uid = :fieldUid", { fieldUid })) };
+}
+
+function deleteBoundWheelField(giveawayUid, fieldUid, input = {}) {
+  ensureSchema();
+  const editable = assertBoundWheelEditable(giveawayUid);
+  if (!editable.ok) return editable;
+  const boundWheel = editable.boundWheel;
+  const field = database.get(`
+    SELECT *
+    FROM loyalty_giveaway_bound_wheel_fields
+    WHERE field_uid = :fieldUid
+      AND bound_wheel_uid = :boundWheelUid
+      AND deleted_at = ''
+  `, { fieldUid, boundWheelUid: boundWheel.boundWheelUid });
+  if (!field) return { ok: false, error: "bound_wheel_field_not_found", statusCode: 404 };
+
+  const now = nowIso();
+  const meta = parseJson(field.metadata_json, {});
+  database.run(`
+    UPDATE loyalty_giveaway_bound_wheel_fields
+    SET enabled = 0,
+        deleted_at = :deletedAt,
+        updated_at = :updatedAt,
+        metadata_json = :metadataJson
+    WHERE field_uid = :fieldUid AND bound_wheel_uid = :boundWheelUid
+  `, {
+    fieldUid,
+    boundWheelUid: boundWheel.boundWheelUid,
+    deletedAt: now,
+    updatedAt: now,
+    metadataJson: json({ ...meta, deletedAt: now, deletedBy: input.actor || "dashboard" })
+  });
+
+  return { ok: true, deleted: true, fieldUid, fields: listBoundWheelFields(giveawayUid).rows };
 }
 
 
@@ -1039,7 +1439,8 @@ function createOrUpdateBoundWheelForGiveaway(giveawayUid, input = {}) {
       updatedAt: now,
       metadataJson: json({ ...existingMeta, ...metadataPatch, source: "giveaway_bound_wheel", lastUpdatedAt: now, lastUpdatedBy: actor })
     });
-    return { ok: true, created: false, boundWheel: getBoundWheelByGiveaway(uidValue) };
+    const copyResult = copyPresetFieldsToBoundWheel(uidValue, { sourcePresetUid: sourcePresetUid || existing.source_preset_uid || "", actor });
+    return { ok: true, created: false, boundWheel: getBoundWheelByGiveaway(uidValue), fieldSnapshot: copyResult };
   }
 
   const boundWheelUid = input.boundWheelUid || input.wheelSnapshotUid || input.wheel_snapshot_uid || uid("giveawaywheel");
@@ -1064,7 +1465,8 @@ function createOrUpdateBoundWheelForGiveaway(giveawayUid, input = {}) {
     updatedAt: now,
     metadataJson: json({ ...metadataPatch, source: "giveaway_bound_wheel", scope: "giveaway", linkedGiveawayUid: uidValue, sourcePresetUid })
   });
-  return { ok: true, created: true, boundWheel: getBoundWheelByGiveaway(uidValue) };
+  const copyResult = copyPresetFieldsToBoundWheel(uidValue, { sourcePresetUid, actor });
+  return { ok: true, created: true, boundWheel: getBoundWheelByGiveaway(uidValue), fieldSnapshot: copyResult };
 }
 
 function rowToGiveaway(row, includeDetails = false) {
@@ -1108,6 +1510,7 @@ function rowToGiveaway(row, includeDetails = false) {
     giveaway.winners = listWinners(row.giveaway_uid, { limit: 100 }).rows;
     giveaway.wheelPermissions = listWheelPermissions(row.giveaway_uid, { limit: 100 }).rows;
     giveaway.boundWheel = getBoundWheelByGiveaway(row.giveaway_uid);
+    giveaway.boundWheelFields = giveaway.boundWheel ? listBoundWheelFields(row.giveaway_uid, { limit: 250 }).rows : [];
     giveaway.events = listEvents(row.giveaway_uid, { limit: 100 }).rows;
   }
 
@@ -3122,13 +3525,14 @@ function counts() {
   const entries = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_entries WHERE status = 'active'")?.count || 0);
   const winners = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_winners WHERE status != 'cancelled'")?.count || 0);
   const wheelPermissions = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_wheel_permissions WHERE status = 'pending'")?.count || 0);
+  const boundWheelFields = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_bound_wheel_fields WHERE deleted_at = ''")?.count || 0);
   const events = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_events")?.count || 0);
   const commandDefinitions = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_command_definitions")?.count || 0);
   const centralCommandDefinitions = commandSystemTableAvailable()
     ? Number(database.get("SELECT COUNT(*) AS count FROM command_definitions WHERE module_key = :moduleKey AND trigger IN ('ticket', 'wheel')", { moduleKey: MODULE_NAME })?.count || 0)
     : 0;
   const chatTextVariants = Number(database.get("SELECT COUNT(*) AS count FROM module_text_variants WHERE module_name = :moduleName", { moduleName: TEXT_MODULE })?.count || 0);
-  return { total, draft, open, finished, deleted, prizes, entries, winners, wheelPermissions, events, commandDefinitions, centralCommandDefinitions, chatTextVariants };
+  return { total, draft, open, finished, deleted, prizes, entries, winners, wheelPermissions, boundWheelFields, events, commandDefinitions, centralCommandDefinitions, chatTextVariants };
 }
 
 function buildStatus() {
@@ -3227,6 +3631,10 @@ function registerRoutes(app) {
     "POST /api/loyalty/giveaways/:giveawayUid/draw",
     "GET /api/loyalty/giveaways/:giveawayUid/wheel/bound",
     "PUT /api/loyalty/giveaways/:giveawayUid/wheel/bound",
+    "GET /api/loyalty/giveaways/:giveawayUid/wheel/bound/fields",
+    "POST /api/loyalty/giveaways/:giveawayUid/wheel/bound/fields",
+    "PUT /api/loyalty/giveaways/:giveawayUid/wheel/bound/fields/:fieldUid",
+    "POST /api/loyalty/giveaways/:giveawayUid/wheel/bound/fields/:fieldUid/delete",
     "GET /api/loyalty/giveaways/:giveawayUid/wheel/permissions",
     "POST /api/loyalty/giveaways/:giveawayUid/wheel/claim",
     "GET /api/loyalty/giveaways/commands",
@@ -3370,7 +3778,9 @@ function registerRoutes(app) {
   
   registered.push(...routes.registerGet(app, "/api/loyalty/giveaways/:giveawayUid/wheel/bound", core.asyncRoute(async (req, res) => {
     if (!getGiveaway(req.params.giveawayUid, false)) return core.sendFail(res, "giveaway_not_found", 404);
-    return core.sendOk(res, { ok: true, boundWheel: getBoundWheelByGiveaway(req.params.giveawayUid) });
+    const boundWheel = getBoundWheelByGiveaway(req.params.giveawayUid);
+    const fieldsResult = boundWheel ? listBoundWheelFields(req.params.giveawayUid, req.query || {}) : { ok: true, count: 0, rows: [] };
+    return core.sendOk(res, { ok: true, boundWheel, fieldCount: fieldsResult.count || 0, fields: fieldsResult.rows || [] });
   })));
 
   registered.push(...routes.registerPut(app, "/api/loyalty/giveaways/:giveawayUid/wheel/bound", core.asyncRoute(async (req, res) => {
@@ -3385,6 +3795,31 @@ function registerRoutes(app) {
       actor: req.body?.actor || req.body?.updatedBy || "dashboard"
     });
     if (!result.ok) return core.sendFail(res, result.error || "bound_wheel_update_failed", result.statusCode || 409, result);
+    return core.sendOk(res, result);
+  })));
+
+  registered.push(...routes.registerGet(app, "/api/loyalty/giveaways/:giveawayUid/wheel/bound/fields", core.asyncRoute(async (req, res) => {
+    if (!getGiveaway(req.params.giveawayUid, false)) return core.sendFail(res, "giveaway_not_found", 404);
+    const result = listBoundWheelFields(req.params.giveawayUid, req.query || {});
+    if (!result.ok) return core.sendFail(res, result.error || "bound_wheel_fields_failed", result.statusCode || 409, result);
+    return core.sendOk(res, result);
+  })));
+
+  registered.push(...routes.registerPost(app, "/api/loyalty/giveaways/:giveawayUid/wheel/bound/fields", core.asyncRoute(async (req, res) => {
+    const result = createBoundWheelField(req.params.giveawayUid, req.body || {});
+    if (!result.ok) return core.sendFail(res, result.error || "bound_wheel_field_create_failed", result.statusCode || 409, result);
+    return core.sendOk(res, result);
+  })));
+
+  registered.push(...routes.registerPut(app, "/api/loyalty/giveaways/:giveawayUid/wheel/bound/fields/:fieldUid", core.asyncRoute(async (req, res) => {
+    const result = updateBoundWheelField(req.params.giveawayUid, req.params.fieldUid, req.body || {});
+    if (!result.ok) return core.sendFail(res, result.error || "bound_wheel_field_update_failed", result.statusCode || 409, result);
+    return core.sendOk(res, result);
+  })));
+
+  registered.push(...routes.registerPost(app, "/api/loyalty/giveaways/:giveawayUid/wheel/bound/fields/:fieldUid/delete", core.asyncRoute(async (req, res) => {
+    const result = deleteBoundWheelField(req.params.giveawayUid, req.params.fieldUid, req.body || {});
+    if (!result.ok) return core.sendFail(res, result.error || "bound_wheel_field_delete_failed", result.statusCode || 409, result);
     return core.sendOk(res, result);
   })));
 
@@ -3438,6 +3873,7 @@ module.exports = {
   _private: {
     STATUS,
     MODES,
+    BOUND_WHEEL_STATUS,
     buildStatus,
     ensureSchema,
     createGiveaway,
@@ -3453,6 +3889,11 @@ module.exports = {
     drawWinner,
     listWheelPermissions,
     getBoundWheelByGiveaway,
+    listBoundWheelFields,
+    createBoundWheelField,
+    updateBoundWheelField,
+    deleteBoundWheelField,
+    copyPresetFieldsToBoundWheel,
     getUsableBoundWheelForGiveaway,
     activateBoundWheelForGiveawayRow,
     createOrUpdateBoundWheelForGiveaway,

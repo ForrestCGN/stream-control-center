@@ -1,33 +1,16 @@
-# NEXT_STEPS – Loyalty Giveaways / Glücksrad
+# Next Steps after LWG-4M.9
 
-Aktualisiert: 2026-06-09 09:08:00 UTC
+## LWG-4M.10 – Dashboard Bound-Wheel Field Editor
+- Im Giveaway-Editor den Bereich `Giveaway-Rad` anzeigen.
+- Bound-Wheel-Felder lesen, hinzufügen, bearbeiten und deaktivieren.
+- Bearbeitung nur bei Draft/Unlocked erlauben.
+- Bei active/locked nur read-only anzeigen.
 
-## Direkt nächster empfohlener Schritt
+## LWG-4M.11 – Runtime Spin aus Bound-Wheel-Feldern
+- Claim/Spin so erweitern, dass Giveaway-Räder aus `loyalty_giveaway_bound_wheel_fields` lesen.
+- Preset bleibt nur Quelle/Template, nicht mehr Runtime-Feldbasis.
+- Ergebnisfelder auf Bound-Wheel-Field-UIDs beziehen.
 
-### LWG-4M.9 – New Giveaway Wheel Option deaktivieren bis Field-Editor vorhanden ist
-
-Grund:
-
-Die Option `Neues Rad für dieses Giveaway` erzeugt derzeit ein Bound-Wheel ohne eigene Feldbasis. Der erfolgreiche Runtime-Test zeigt, dass Wheel-Giveaways mit kopierter Vorlage funktionieren. Ohne Vorlage fehlt aber aktuell noch der Editor/Snapshot für eigene Giveaway-Rad-Felder.
-
-Ziel:
-
-- Im Dashboard bei Wheel-Giveaways nur `Vorlage kopieren: <Preset-Name>` als nutzbare Auswahl anbieten.
-- `Neues Rad für dieses Giveaway` ausblenden oder disabled anzeigen.
-- Keine Backend-Änderung nötig, außer es wird bewusst ein zusätzlicher Guard gewünscht.
-
-## Danach
-
-### LWG-4N.0 – Bound-Wheel Field Snapshot / Giveaway-Rad-Editor
-
-Ziel:
-
-- Eigenes Giveaway-Rad mit eigenen Feldern ermöglichen.
-- Preset-Vorlagen wirklich in Giveaway-Kontext kopieren.
-- Bound-Wheel darf nach Start unabhängig von globalen Preset-Änderungen bleiben.
-
-## Nicht als nächstes empfohlen
-
-- Keine Command-Aktivierung vor sauberem UI-/Bound-Wheel-Stand.
-- Keine Punktebuchung vor separater sicherer Buchungslogik.
-- Kein Streamer.bot-Anteil für dieses System.
+## LWG-4M.12 – Runtime-Test + Doku
+- Kompletten Ablauf mit leerem Giveaway-Rad und kopierter Preset-Vorlage testen.
+- Doku und Handoff aktualisieren.
