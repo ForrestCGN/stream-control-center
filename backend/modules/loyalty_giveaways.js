@@ -3,7 +3,7 @@
 /**
  * Loyalty Giveaways module.
  *
- * STEP LWG-4L.4:
+ * STEP LWG-4L.5:
  * - Ticket-Runtime unterscheidet kein offenes Giveaway vor deaktiviertem Command.
  * - !ticket ohne offenes Giveaway liefert ticket.no_active.
  * - Commands bleiben bewusst deaktiviert.
@@ -18,7 +18,7 @@ const database = require("../core/database");
 
 const MODULE_NAME = "loyalty_giveaways";
 const MODULE_VERSION = "0.1.0";
-const MODULE_BUILD = "STEP_LWG_4L_4";
+const MODULE_BUILD = "STEP_LWG_4L_5";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -61,7 +61,7 @@ const CENTRAL_COMMAND_DEFINITIONS = [
     liveOnly: false,
     responseMode: "module",
     config: {
-      seededBy: "STEP_LWG_4L_4",
+      seededBy: "STEP_LWG_4L_5",
       actionType: "module_command",
       moduleCommand: "ticket",
       rawInputMode: true,
@@ -82,7 +82,7 @@ const CENTRAL_COMMAND_DEFINITIONS = [
     liveOnly: false,
     responseMode: "module",
     config: {
-      seededBy: "STEP_LWG_4L_4",
+      seededBy: "STEP_LWG_4L_5",
       actionType: "module_command",
       moduleCommand: "wheel",
       rawInputMode: true,
@@ -1210,7 +1210,7 @@ function computeTicketCost(giveaway, userLogin, ticketCount) {
     paidTickets: Math.max(0, paidTickets),
     costPerTicket,
     costDue: Math.max(0, paidTickets) * costPerTicket,
-    note: "LWG-4H berechnet Kosten nur vor, bucht aber noch keine Punkte."
+    note: "LWG-4L.5 erlaubt kostenlose Chat-Tickets, bucht aber weiterhin keine Punkte."
   };
 }
 
@@ -2273,13 +2273,13 @@ function listCentralCommandDefinitions(extra = {}) {
   return {
     ok: true,
     available: true,
-    active: CHAT_COMMANDS_ACTIVE,
-    commandsActive: CHAT_COMMANDS_ACTIVE,
+    active: rows.some(command => command && command.enabled),
+    commandsActive: rows.some(command => command && command.enabled),
     inserted: Number(extra.inserted || 0),
     existing: Number(extra.existing || Math.max(0, rows.length - Number(extra.inserted || 0))),
     count: rows.length,
     commands: rows,
-    note: "Zentrale Commands !ticket, !wheel und Alias !rad sind vorbereitet, aber enabled=false."
+    note: "Zentrale Commands !ticket, !wheel und Alias !rad sind vorbereitet. Aktivierung erfolgt ausschliesslich ueber das zentrale commands-System."
   };
 }
 
@@ -2387,6 +2387,38 @@ function findCommandDefinition(commandName) {
   }) || null;
 }
 
+function findCentralCommandDefinition(commandName) {
+  if (!commandSystemTableAvailable()) return null;
+  const cleanCommand = String(commandName || "").trim().replace(/^!/, "").toLowerCase();
+  if (!cleanCommand) return null;
+  const rows = database.all(`
+    SELECT *
+    FROM command_definitions
+    WHERE module_key = :moduleKey
+      AND trigger IN ('ticket', 'wheel')
+    ORDER BY trigger ASC
+  `, { moduleKey: MODULE_NAME }).map(rowToCentralCommand).filter(Boolean);
+
+  return rows.find(command => {
+    if (String(command.trigger || "").toLowerCase() === cleanCommand) return true;
+    return (command.aliases || []).some(alias => String(alias || "").toLowerCase() === cleanCommand);
+  }) || null;
+}
+
+function parseRuntimeTicketAmount(input = {}) {
+  const args = Array.isArray(input.args) ? input.args : [];
+  const rawValue = input.ticketCount ?? input.tickets ?? input.amount ?? args[0] ?? 1;
+  const raw = String(rawValue === undefined || rawValue === null || rawValue === "" ? "1" : rawValue).trim();
+  if (!/^\d+$/.test(raw)) {
+    return { ok: false, value: 0, raw, error: "invalid_ticket_amount" };
+  }
+  const value = Number.parseInt(raw, 10);
+  if (!Number.isFinite(value) || value < 1 || value > 999999) {
+    return { ok: false, value: 0, raw, error: "invalid_ticket_amount" };
+  }
+  return { ok: true, value, raw };
+}
+
 function getRuntimeOpenGiveaway() {
   ensureSchema();
   const row = database.get(`
@@ -2418,8 +2450,8 @@ function buildCommandRuntimeResponse(input = {}, patch = {}) {
   return {
     ok: patch.ok === true,
     handled: patch.handled !== false,
-    active: CHAT_COMMANDS_ACTIVE,
-    commandsActive: CHAT_COMMANDS_ACTIVE,
+    active: patch.active === undefined ? true : patch.active === true,
+    commandsActive: patch.commandsActive === undefined ? true : patch.commandsActive === true,
     command,
     action: patch.action || "",
     userLogin,
@@ -2430,50 +2462,60 @@ function buildCommandRuntimeResponse(input = {}, patch = {}) {
     shouldSendChat: Boolean(message),
     error: patch.error || "",
     data: patch.data || {},
-    note: patch.note || "Runtime-Bruecke vorbereitet. Chat-Commands bleiben in LWG-4L.4 bewusst deaktiviert."
+    note: patch.note || "Runtime verarbeitet fachliche Regeln. Ob der Chat-Command aufgerufen wird, entscheidet das zentrale commands-System."
   };
 }
 
 function handleTicketCommandRuntime(input = {}) {
   const commandDefinition = findCommandDefinition("ticket");
+  const centralCommandDefinition = findCentralCommandDefinition("ticket");
   const giveaway = getRuntimeOpenGiveaway();
   if (!giveaway) {
     return buildCommandRuntimeResponse(input, {
       ok: false,
+      active: !!(centralCommandDefinition && centralCommandDefinition.enabled),
+      commandsActive: !!(centralCommandDefinition && centralCommandDefinition.enabled),
       action: "giveaway_ticket",
       messageKey: "ticket.no_active",
       error: "giveaway_no_active",
-      data: { commandDefinition }
+      data: { commandDefinition, centralCommandDefinition }
     });
   }
 
-  if (!CHAT_COMMANDS_ACTIVE || !commandDefinition || !commandDefinition.enabled || !commandDefinition.active) {
+  if (!centralCommandDefinition || !centralCommandDefinition.enabled) {
     return buildCommandRuntimeResponse(input, {
       ok: false,
+      active: false,
+      commandsActive: false,
       action: "giveaway_ticket",
       messageKey: "ticket.disabled",
       error: "chat_commands_disabled",
-      data: { commandDefinition, giveawayUid: giveaway.giveawayUid }
+      data: { commandDefinition, centralCommandDefinition, giveawayUid: giveaway.giveawayUid }
     });
   }
 
-  const requestedTickets = clampInt(input.ticketCount ?? input.tickets ?? input.amount ?? input.args?.[0], 1, 1, 999999);
-  if (!Number.isFinite(requestedTickets) || requestedTickets <= 0) {
+  const amount = parseRuntimeTicketAmount(input);
+  if (!amount.ok) {
     return buildCommandRuntimeResponse(input, {
       ok: false,
+      active: !!(centralCommandDefinition && centralCommandDefinition.enabled),
+      commandsActive: !!(centralCommandDefinition && centralCommandDefinition.enabled),
       action: "giveaway_ticket",
       messageKey: "ticket.invalid_amount",
-      error: "invalid_ticket_amount"
+      error: amount.error,
+      data: { commandDefinition, centralCommandDefinition, giveawayUid: giveaway.giveawayUid, rawAmount: amount.raw }
     });
   }
 
   if (Number(giveaway.costAmount || 0) > 0) {
     return buildCommandRuntimeResponse(input, {
       ok: false,
+      active: !!(centralCommandDefinition && centralCommandDefinition.enabled),
+      commandsActive: !!(centralCommandDefinition && centralCommandDefinition.enabled),
       action: "giveaway_ticket",
       messageKey: "ticket.cost_not_supported_yet",
       error: "ticket_cost_not_supported_yet",
-      data: { giveawayUid: giveaway.giveawayUid, costAmount: giveaway.costAmount, currencyKey: giveaway.currencyKey }
+      data: { commandDefinition, centralCommandDefinition, giveawayUid: giveaway.giveawayUid, costAmount: giveaway.costAmount, currencyKey: giveaway.currencyKey }
     });
   }
 
@@ -2482,7 +2524,7 @@ function handleTicketCommandRuntime(input = {}) {
   const result = createEntry(giveaway.giveawayUid, {
     userLogin,
     userDisplayName,
-    ticketCount: requestedTickets,
+    ticketCount: amount.value,
     isSubscriber: input.isSubscriber === true || input.subscriber === true || input.isSub === true,
     source: "chat_runtime"
   });
@@ -2491,31 +2533,38 @@ function handleTicketCommandRuntime(input = {}) {
     const key = result.error === "giveaway_max_tickets_reached" ? "ticket.max_reached" : "ticket.invalid_amount";
     return buildCommandRuntimeResponse(input, {
       ok: false,
+      active: !!(centralCommandDefinition && centralCommandDefinition.enabled),
+      commandsActive: !!(centralCommandDefinition && centralCommandDefinition.enabled),
       action: "giveaway_ticket",
       messageKey: key,
       error: result.error || "entry_create_failed",
-      data: result
+      data: { ...result, commandDefinition, centralCommandDefinition }
     });
   }
 
   return buildCommandRuntimeResponse(input, {
     ok: true,
+    active: !!(centralCommandDefinition && centralCommandDefinition.enabled),
+    commandsActive: !!(centralCommandDefinition && centralCommandDefinition.enabled),
     action: "giveaway_ticket",
     messageKey: "ticket.success",
-    context: { tickets: requestedTickets, giveawayTitle: giveaway.title || "Giveaway" },
-    data: result
+    context: { tickets: amount.value, giveawayTitle: giveaway.title || "Giveaway" },
+    data: { ...result, commandDefinition, centralCommandDefinition }
   });
 }
 
 function handleWheelCommandRuntime(input = {}) {
   const commandDefinition = findCommandDefinition(input.command || "wheel");
-  if (!CHAT_COMMANDS_ACTIVE || !commandDefinition || !commandDefinition.enabled || !commandDefinition.active) {
+  const centralCommandDefinition = findCentralCommandDefinition(input.command || "wheel");
+  if (!centralCommandDefinition || !centralCommandDefinition.enabled) {
     return buildCommandRuntimeResponse(input, {
       ok: false,
+      active: false,
+      commandsActive: false,
       action: "giveaway_wheel_claim",
       messageKey: "wheel.disabled",
       error: "chat_commands_disabled",
-      data: { commandDefinition }
+      data: { commandDefinition, centralCommandDefinition }
     });
   }
 
@@ -2568,7 +2617,7 @@ function handleChatCommandRuntime(input = {}) {
     ok: false,
     handled: false,
     error: "unsupported_command",
-    note: "Loyalty-Giveaway-Runtime kennt aktuell nur !ticket, !wheel und !rad. Ausfuehrung bleibt deaktiviert."
+    note: "Loyalty-Giveaway-Runtime kennt aktuell nur !ticket, !wheel und !rad."
   });
 }
 
@@ -2622,7 +2671,7 @@ function buildStatus() {
       },
       warnings: [
         "Chat-Commands !ticket, !wheel und !rad sind intern eingetragen und zentral vorbereitet, aber bewusst nicht aktiv.",
-        "Keine Twitch-Command-Aktivierung und keine Punktebuchung in LWG-4L.4."
+        "Kostenlose Ticket-Teilnahme ist fachlich vorbereitet; zentrale Commands bleiben bis zur separaten Aktivierung enabled=false."
       ],
       errors: state.lastError ? [state.lastError] : []
     }
