@@ -1014,3 +1014,6 @@ html[data-theme=dark] .alert-bus-mode-hint {
   .alert-bus-detail-grid { grid-template-columns: 1fr; }
   .alert-bus-mode-panel { grid-template-columns: 1fr; }
 }
+
+/* STEP ALERT-TIERS.1: Twitch-Sub-Tier-Filter im Regel-Editor */
+.tier-filter-badge{display:inline-flex;align-items:center;margin-top:5px;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:900;border:1px solid rgba(148,163,184,.28);background:rgba(148,163,184,.10);color:#cbd5e1}.tier-filter-badge.is-specific{border-color:rgba(168,85,247,.42);background:rgba(168,85,247,.16);color:#f3e8ff}.tier-filter-badge.is-all{color:#9ca3af}.rule-tier-help{margin-top:4px}#ruleTierField[hidden]{display:none!important}html[data-theme=dark] .tier-filter-badge{background:#242424;border-color:#444;color:#c8c8c8}html[data-theme=dark] .tier-filter-badge.is-specific{background:#30223f;border-color:#65408a;color:#f3e8ff}

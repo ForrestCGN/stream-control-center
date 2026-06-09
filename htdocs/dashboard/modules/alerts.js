@@ -44,6 +44,14 @@
     { value:'fixed', label:'Manuell' },
     { value:'sound', label:'Nach Soundlänge' }
   ];
+  const TWITCH_SUB_TIER_TYPES = new Set(['sub','resub','gift_sub','gifted_sub_received','gift_bomb']);
+  const TWITCH_SUB_TIER_OPTIONS = [
+    { value:'', label:'Alle / kein Tier-Filter' },
+    { value:'prime', label:'Prime' },
+    { value:'tier1', label:'Tier 1' },
+    { value:'tier2', label:'Tier 2' },
+    { value:'tier3', label:'Tier 3' }
+  ];
 
   const esc = v => CGN.esc(v);
   const escClass = v => String(v ?? "").toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "") || "default";
@@ -309,6 +317,79 @@
     return fallback;
   }
 
+  function isTwitchSubTierRule(source, typeKey){
+    return String(source || '').toLowerCase() === 'twitch' && TWITCH_SUB_TIER_TYPES.has(String(typeKey || '').toLowerCase());
+  }
+
+  function cloneMeta(meta){
+    if (!meta || typeof meta !== 'object' || Array.isArray(meta)) return {};
+    try { return JSON.parse(JSON.stringify(meta)); } catch (_) { return Object.assign({}, meta); }
+  }
+
+  function normalizeTierLabel(value){
+    const raw = String(value || '').trim().toLowerCase();
+    if (!raw || raw === 'all' || raw === 'normal') return '';
+    if (raw === '1000' || raw === 'tier_1' || raw === 'tier-1') return 'tier1';
+    if (raw === '2000' || raw === 'tier_2' || raw === 'tier-2') return 'tier2';
+    if (raw === '3000' || raw === 'tier_3' || raw === 'tier-3') return 'tier3';
+    if (raw.includes('prime')) return 'prime';
+    if (['tier1','tier2','tier3'].includes(raw)) return raw;
+    return '';
+  }
+
+  function ruleTierFilter(rule){
+    const meta = rule && rule.meta && typeof rule.meta === 'object' ? rule.meta : {};
+    const match = meta.match && typeof meta.match === 'object' && !Array.isArray(meta.match) ? meta.match : {};
+    const raw = match.tierLabel ?? match.tierLabels ?? match.tier ?? match.tiers ?? '';
+    const first = Array.isArray(raw) ? raw[0] : raw;
+    return normalizeTierLabel(first);
+  }
+
+  function ruleTierOptions(rule){
+    const selected = ruleTierFilter(rule);
+    return TWITCH_SUB_TIER_OPTIONS.map(o => opt(o.value, o.label, selected)).join('');
+  }
+
+  function ruleTierLabel(value){
+    const normalized = normalizeTierLabel(value);
+    const option = TWITCH_SUB_TIER_OPTIONS.find(o => o.value === normalized);
+    return option ? option.label : 'Alle / kein Tier-Filter';
+  }
+
+  function ruleTierBadge(rule){
+    if (!isTwitchSubTierRule(rule?.source, rule?.type_key)) return '';
+    const tier = ruleTierFilter(rule);
+    return `<span class="tier-filter-badge ${tier ? 'is-specific' : 'is-all'}">${esc(ruleTierLabel(tier))}</span>`;
+  }
+
+  function applyTierFilterToMeta(metaInput, tierValue){
+    const meta = cloneMeta(metaInput);
+    const tier = normalizeTierLabel(tierValue);
+    const match = meta.match && typeof meta.match === 'object' && !Array.isArray(meta.match) ? { ...meta.match } : {};
+    delete match.tier;
+    delete match.tiers;
+    delete match.tierLabel;
+    delete match.tierLabels;
+    if (tier) match.tierLabel = [tier];
+    if (Object.keys(match).length) meta.match = match;
+    else delete meta.match;
+    return meta;
+  }
+
+  function updateRuleTierUi(){
+    const source = root.querySelector('#ruleSource')?.value || 'twitch';
+    const typeKey = root.querySelector('#ruleTypeKey')?.value || '';
+    const row = root.querySelector('#ruleTierField');
+    const select = root.querySelector('#ruleTierFilter');
+    const help = root.querySelector('#ruleTierHelp');
+    const available = isTwitchSubTierRule(source, typeKey);
+    if (row) row.hidden = !available;
+    if (select) select.disabled = !available;
+    if (help) help.textContent = available
+      ? 'Optionaler Filter für Prime/Tier 1/Tier 2/Tier 3. Alle = bestehendes Verhalten ohne Tier-Einschränkung.'
+      : 'Tier-Filter ist nur für Twitch Sub, Resub, GiftSub und Sub-Bombe relevant.';
+  }
+
   function updateRuleValueHelpUi(){
     const source = root.querySelector('#ruleSource')?.value || 'twitch';
     const typeKey = root.querySelector('#ruleTypeKey')?.value || '';
@@ -323,6 +404,7 @@
     if (minInput) minInput.placeholder = desc.minPlaceholder;
     if (maxInput) maxInput.placeholder = desc.maxPlaceholder;
     if (help) help.textContent = desc.help;
+    updateRuleTierUi();
     updateRuleTtsUi();
   }
 
@@ -638,7 +720,7 @@
       return `<tr><td>${pill(type)}</td><td><strong>${esc(r.label)}</strong></td><td>${statusButton}</td><td>${esc(range)}</td><td>${chatBlockInline(r)}</td><td>${ruleSoundInline(r)}</td><td>${esc(duration)}</td><td><button class="icon-action-btn edit" data-edit-rule="${esc(r.id)}" title="Regel bearbeiten" aria-label="Regel bearbeiten">✎</button></td></tr>`;
     }
     return `<tr class="${Number(r.enabled)?'':'disabled'}">
-      <td><strong>${esc(r.label)}</strong><br><span class="muted">ID ${esc(r.id)} · Prio ${esc(r.priority)}</span></td>
+      <td><strong>${esc(r.label)}</strong><br><span class="muted">ID ${esc(r.id)} · Prio ${esc(r.priority)}</span>${ruleTierBadge(r) ? `<br>${ruleTierBadge(r)}` : ''}</td>
       <td>${statusButton}</td>
       <td>${esc(range)}</td>
       <td>${profileInline(r)}</td>
@@ -1427,11 +1509,12 @@
         <div class="form-section"><h3>Basis</h3><div class="form-grid editor-grid">
           <label>Quelle<select id="ruleSource">${sources(false).map(s=>opt(s,SOURCE_LABELS[s]||s,r.source)).join('')}</select></label>
           <label>Typ<select id="ruleTypeKey">${typeOptionsForSource(r.source || 'twitch', r.type_key || '')}</select></label>
+          <label id="ruleTierField">Twitch-Tier<select id="ruleTierFilter">${ruleTierOptions(r)}</select></label>
           <label class="wide-field">Name<input id="ruleLabel" value="${esc(r.label || '')}"></label>
           <label><span id="ruleMinLabelText">${esc(valueDesc.minLabel)}</span><input id="ruleMin" type="number" value="${esc(empty(r.min_value))}" placeholder="${esc(valueDesc.minPlaceholder)}"></label>
           <label><span id="ruleMaxLabelText">${esc(valueDesc.maxLabel)}</span><input id="ruleMax" type="number" value="${esc(empty(r.max_value))}" placeholder="${esc(valueDesc.maxPlaceholder)}"></label>
           <label>Priorität<input id="rulePriority" type="number" value="${esc(r.priority ?? 100)}"></label>
-        </div><p id="ruleValueHelp" class="small-note rule-value-help">${esc(valueDesc.help)}</p></div>
+        </div><p id="ruleValueHelp" class="small-note rule-value-help">${esc(valueDesc.help)}</p><p id="ruleTierHelp" class="small-note rule-tier-help"></p></div>
         <div class="form-section"><h3>Medien & Design</h3><div class="form-grid editor-grid">
           <label class="wide-field">Sound aus Media-Registry<input type="hidden" id="ruleSoundMediaId" value="${esc(soundMediaId)}"><div class="sound-select-row sound-media-picker-row"><input id="ruleSoundMediaInfo" value="${esc(soundMediaLabel)}" readonly><button type="button" id="pickRuleSoundMedia">Auswählen</button><button type="button" id="clearRuleSoundMedia" ${soundMediaId ? '' : 'disabled'} title="Media-Registry-Sound entfernen" aria-label="Media-Registry-Sound entfernen">×</button></div></label>
           <details class="wide-field legacy-sound-foldout" ${soundMediaId ? '' : 'open'}>
@@ -1653,8 +1736,12 @@
       tts_max_chars: Number(document.getElementById('ruleTtsMaxChars').value || 250),
       tts_min_amount: numOrNull('ruleTtsMinAmount'),
       meta: (() => {
-        const meta = Object.assign({}, state.modalRule?.meta || {});
+        let meta = cloneMeta(state.modalRule?.meta || {});
         delete meta.celebration;
+        const currentSource = document.getElementById('ruleSource')?.value || 'twitch';
+        const currentType = document.getElementById('ruleTypeKey')?.value || '';
+        const tierValue = isTwitchSubTierRule(currentSource, currentType) ? (document.getElementById('ruleTierFilter')?.value || '') : '';
+        meta = applyTierFilterToMeta(meta, tierValue);
         const chatBlockId = valOrNull('ruleChatBlock');
         meta.chatMessage = {
           enabled: !!chatBlockId,
@@ -2029,6 +2116,8 @@
       updateRuleValueHelpUi();
     });
     root.querySelector('#ruleTtsEnabled')?.addEventListener('change', updateRuleTtsUi);
+    root.querySelector('#ruleTierFilter')?.addEventListener('change', updateRuleTierUi);
+    updateRuleTierUi();
     updateRuleTtsUi();
     root.querySelector('#chatBlockSource')?.addEventListener('change', ev => { const t=root.querySelector('#chatBlockTypeKey'); if(t){ const old=t.value; t.innerHTML=typeOptionsForSource(ev.currentTarget.value||'twitch', old, false); if (![...t.options].some(o=>o.value===old)) t.selectedIndex=0; } });
     root.querySelector('#saveVariant')?.addEventListener('click', saveVariant);
@@ -2481,7 +2570,7 @@
       tts_max_chars: Number(r.tts_max_chars ?? 250),
       tts_min_amount: r.tts_min_amount ?? null,
       meta: (() => {
-        const meta = Object.assign({}, r.meta || {});
+        const meta = cloneMeta(r.meta || {});
         delete meta.celebration;
         return meta;
       })()

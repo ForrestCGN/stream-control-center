@@ -1,8 +1,8 @@
 window.ShoutoutV2Module = (function(){
   'use strict';
 
-  const MODULE_VERSION = '2.7.6-overlay-sets-compact-ui';
-  const BUILD = 'CAN-44.31';
+  const MODULE_VERSION = '2.7.7-auto-single-name-input';
+  const BUILD = 'AUTOSHOUT-DASHBOARD.1';
 
   const API = {
     status: '/api/clip-shoutout/status',
@@ -576,12 +576,8 @@ window.ShoutoutV2Module = (function(){
 
           <div class="so2-auto-form">
             <label class="so2-field">
-              <span>Twitch-Name</span>
-              <input type="text" data-so2-auto-target placeholder="z. B. urlug" autocomplete="off" value="${esc(state.autoTarget || '')}">
-            </label>
-            <label class="so2-field">
-              <span>Anzeigename</span>
-              <input type="text" data-so2-auto-display placeholder="optional" autocomplete="off" value="${esc(state.autoDisplayName || '')}">
+              <span>Streamer / Anzeigename</span>
+              <input type="text" data-so2-auto-target placeholder="z. B. PapselZockt_CGN" autocomplete="off" value="${esc(state.autoDisplayName || state.autoTarget || '')}">
             </label>
             <label class="so2-check"><input type="checkbox" data-so2-auto-video ${state.autoVideo ? 'checked' : ''}> Video-SO</label>
             <label class="so2-check"><input type="checkbox" data-so2-auto-official ${state.autoOfficial ? 'checked' : ''}> Twitch-SO</label>
@@ -1889,8 +1885,9 @@ window.ShoutoutV2Module = (function(){
   }
 
   async function saveAutoStreamerAction(){
-    const login = cleanChannelInput(root?.querySelector('[data-so2-auto-target]')?.value || state.autoTarget);
-    const displayName = String(root?.querySelector('[data-so2-auto-display]')?.value || state.autoDisplayName || '').trim();
+    const rawName = String(root?.querySelector('[data-so2-auto-target]')?.value || state.autoDisplayName || state.autoTarget || '').trim();
+    const login = cleanChannelInput(rawName).toLowerCase();
+    const displayName = rawName || login;
     const videoShoutout = root?.querySelector('[data-so2-auto-video]')?.checked !== false;
     const officialShoutout = root?.querySelector('[data-so2-auto-official]')?.checked !== false;
 
@@ -1900,7 +1897,7 @@ window.ShoutoutV2Module = (function(){
     state.autoOfficial = officialShoutout;
 
     if (!login) {
-      state.error = 'Bitte einen Twitch-Namen eintragen.';
+      state.error = 'Bitte einen Streamer / Anzeigenamen eintragen.';
       render();
       return;
     }
@@ -2242,8 +2239,8 @@ window.ShoutoutV2Module = (function(){
 
       const autoEdit = ev.target.closest('[data-so2-auto-edit]');
       if (autoEdit && root?.contains(autoEdit)) {
-        state.autoTarget = cleanChannelInput(autoEdit.dataset.so2AutoEdit || '');
-        state.autoDisplayName = autoEdit.dataset.so2AutoDisplayValue || '';
+        state.autoTarget = cleanChannelInput(autoEdit.dataset.so2AutoEdit || '').toLowerCase();
+        state.autoDisplayName = autoEdit.dataset.so2AutoDisplayValue || autoEdit.dataset.so2AutoEdit || '';
         render();
         return;
       }
@@ -2340,8 +2337,11 @@ window.ShoutoutV2Module = (function(){
     document.addEventListener('input', ev => {
       if (!root?.contains(ev.target)) return;
       if (ev.target?.matches?.('[data-so2-target]')) state.manualTarget = cleanChannelInput(ev.target.value);
-      if (ev.target?.matches?.('[data-so2-auto-target]')) state.autoTarget = cleanChannelInput(ev.target.value);
-      if (ev.target?.matches?.('[data-so2-auto-display]')) state.autoDisplayName = String(ev.target.value || '').slice(0, 80);
+      if (ev.target?.matches?.('[data-so2-auto-target]')) {
+        const rawName = String(ev.target.value || '').slice(0, 80);
+        state.autoDisplayName = rawName;
+        state.autoTarget = cleanChannelInput(rawName).toLowerCase();
+      }
     });
 
     document.addEventListener('change', ev => {
