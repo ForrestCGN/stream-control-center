@@ -3,11 +3,11 @@
 /**
  * Loyalty Giveaways module.
  *
- * STEP LWG-4M.2:
- * - Close-Workflow fuer Giveaways geschaerft.
- * - /close Alias fuer /close-entries ergaenzt.
- * - Close liefert giveaway.closed Chattext fuer Dashboard/Mod-Command-Ausgabe.
- * - Draw aus open wird blockiert; Auslosung erst nach closed_for_entries.
+ * STEP LWG-4M.3:
+ * - Close-Chatmeldung an Twitch Presence Chat-Ausgabe angebunden.
+ * - /close sendet giveaway.closed optional direkt in den Chat.
+ * - Statuswechsel bleibt erfolgreich, auch wenn Chat-Ausgabe nicht verbunden ist.
+ * - Draw-Guard aus LWG-4M.2 bleibt erhalten.
  */
 
 const crypto = require("crypto");
@@ -18,7 +18,7 @@ const database = require("../core/database");
 
 const MODULE_NAME = "loyalty_giveaways";
 const MODULE_VERSION = "0.1.0";
-const MODULE_BUILD = "STEP_LWG_4M_2";
+const MODULE_BUILD = "STEP_LWG_4M_3";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -465,6 +465,49 @@ function emitEvent(type, payload = {}) {
   }
 
   return delivered;
+}
+
+function shouldSendChatForRequest(input = {}) {
+  if (!input || typeof input !== "object") return true;
+  const candidates = [input.sendChat, input.chatOutput, input.shouldSendChat, input.announce, input.silent];
+  if (String(input.silent || "").trim().toLowerCase().match(/^(1|true|yes|on)$/)) return false;
+  for (const value of candidates) {
+    if (value === undefined || value === null || value === "") continue;
+    const clean = String(value).trim().toLowerCase();
+    if (["0", "false", "no", "off", "silent"].includes(clean)) return false;
+    if (["1", "true", "yes", "on", "chat"].includes(clean)) return true;
+  }
+  return true;
+}
+
+async function sendTwitchPresenceChatMessage(message, options = {}) {
+  const text = sanitizeRuntimeChatMessage(message, 450);
+  if (!text) return { ok: false, error: "empty_message", skipped: true };
+
+  try {
+    const twitchPresence = require("./twitch_presence");
+    if (!twitchPresence || typeof twitchPresence.sendChatMessage !== "function") {
+      return { ok: false, error: "twitch_presence_send_unavailable", messagePreview: text.slice(0, 120) };
+    }
+    const result = await twitchPresence.sendChatMessage(text, {
+      trigger: options.trigger || "loyalty_giveaways",
+      module: MODULE_NAME,
+      giveawayUid: options.giveawayUid || "",
+      messageKey: options.messageKey || ""
+    });
+    return {
+      ...result,
+      attempted: true,
+      messagePreview: text.length > 120 ? `${text.slice(0, 117)}...` : text
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      attempted: true,
+      error: err && err.message ? err.message : String(err),
+      messagePreview: text.length > 120 ? `${text.slice(0, 117)}...` : text
+    };
+  }
 }
 
 function databaseStatus() {
@@ -2863,8 +2906,24 @@ function registerRoutes(app) {
   })));
 
   async function handleCloseEntriesRoute(req, res) {
-    const result = setGiveawayStatus(req.params.giveawayUid, STATUS.CLOSED_FOR_ENTRIES, req.body || {});
+    const body = req.body || {};
+    const result = setGiveawayStatus(req.params.giveawayUid, STATUS.CLOSED_FOR_ENTRIES, body);
     if (!result.ok) return core.sendFail(res, result.error || "giveaway_close_entries_failed", result.statusCode || 409, result);
+
+    if (result.shouldSendChat && result.chatMessage && shouldSendChatForRequest(body)) {
+      result.chatDispatch = await sendTwitchPresenceChatMessage(result.chatMessage, {
+        trigger: "giveaway_close",
+        giveawayUid: req.params.giveawayUid,
+        messageKey: result.messageKey || "giveaway.closed"
+      });
+      result.chatDispatchAttempted = true;
+      result.chatSent = Boolean(result.chatDispatch && result.chatDispatch.ok);
+    } else {
+      result.chatDispatchAttempted = false;
+      result.chatSent = false;
+      result.chatDispatch = { ok: true, skipped: true, reason: result.shouldSendChat ? "request_silent" : "no_chat_message" };
+    }
+
     return core.sendOk(res, result);
   }
 
