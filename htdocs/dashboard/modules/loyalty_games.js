@@ -81,6 +81,24 @@ window.LoyaltyGamesModule = (function(){
     return `<span class="lg-badge lg-badge-off">${esc(status || '-')}</span>`;
   }
 
+  function setupBadge(giveaway){
+    if (!giveaway) return '';
+    if (giveaway.setupComplete === true) return `<span class="lg-badge lg-badge-ok">Bereit</span>`;
+    return `<span class="lg-badge lg-badge-warn">Unvollständig</span>`;
+  }
+
+  function setupIssuesText(giveaway){
+    const issues = rows(giveaway?.setupIssues);
+    if (!issues.length) return '';
+    return issues.map(issue => issue.message || issue.code || 'Pflichtangabe fehlt').join(', ');
+  }
+
+  function setupWarningBlock(giveaway){
+    if (!giveaway || giveaway.setupComplete === true) return '';
+    const text = setupIssuesText(giveaway) || 'Es fehlen noch Pflichtangaben.';
+    return `<p class="lg-warning"><strong>Noch nicht bereit:</strong> ${esc(text)}<br><small>Speichern als Entwurf ist erlaubt. Öffnen ist erst möglich, wenn alle Pflichtdaten vollständig sind.</small></p>`;
+  }
+
   function ensureLoyaltyMainSection(){
     if (!window.CGN) return;
 
@@ -982,6 +1000,7 @@ window.LoyaltyGamesModule = (function(){
                 <span>
                   <strong>${esc(giveaway.title)}</strong>
                   <small>${esc(giveaway.mode)} · ${fmtDate(giveaway.createdAt)}</small>
+                  ${giveaway.status === 'draft' ? `<small>${setupBadge(giveaway)} ${giveaway.setupComplete === true ? '' : esc(setupIssuesText(giveaway))}</small>` : ''}
                 </span>
                 ${statusBadge(giveaway.status)}
               </button>
@@ -1006,7 +1025,8 @@ window.LoyaltyGamesModule = (function(){
           </div>
           ${selected ? `<div class="lg-actions">
             <button class="lg-btn lg-btn-secondary" data-lg-giveaway-action="copy" data-giveaway-uid="${esc(selected.giveawayUid)}">Kopieren</button>
-            ${selected.status === 'draft' ? `<button class="lg-btn" data-lg-giveaway-action="open" data-giveaway-uid="${esc(selected.giveawayUid)}">Öffnen</button>` : ''}
+            ${selected.status === 'draft' && selected.setupComplete === true ? `<button class="lg-btn" data-lg-giveaway-action="open" data-giveaway-uid="${esc(selected.giveawayUid)}">Öffnen</button>` : ''}
+            ${selected.status === 'draft' && selected.setupComplete !== true ? `<button class="lg-btn" type="button" disabled title="${esc(setupIssuesText(selected) || 'Pflichtangaben fehlen')}">Öffnen</button>` : ''}
             ${selected.status === 'open' ? `<button class="lg-btn lg-btn-secondary" data-lg-giveaway-action="close" data-giveaway-uid="${esc(selected.giveawayUid)}">Teilnahme schließen</button>` : ''}
             ${['open','closed_for_entries'].includes(selected.status) && !selected.wheelEnabled ? `<button class="lg-btn" data-lg-draw-winner="${esc(selected.giveawayUid)}">Gewinner ziehen</button>` : ''}
             ${!['finished','cancelled','deleted'].includes(selected.status) ? `<button class="lg-btn lg-btn-danger" data-lg-giveaway-action="finish" data-giveaway-uid="${esc(selected.giveawayUid)}">Beenden</button>` : ''}
@@ -1020,12 +1040,16 @@ window.LoyaltyGamesModule = (function(){
             <span>Status</span><strong>${statusBadge(selected.status)}</strong>
             <span>Modus</span><strong>${esc(selected.mode)}</strong>
             <span>Bearbeitbar</span><strong>${editable ? 'Ja' : 'Nein, nur kopieren/anzeigen'}</strong>
+            <span>Bereit</span><strong>${setupBadge(selected)}</strong>
+            ${selected.setupComplete !== true ? `<span>Fehlt</span><strong>${esc(setupIssuesText(selected) || 'Pflichtangaben')}</strong>` : ''}
             <span>Kosten</span><strong>${fmtNumber(selected.costAmount)}</strong>
             <span>Gewinner</span><strong>${fmtNumber(selected.winnerCount)}</strong>
             <span>Rad</span><strong>${selected.wheelEnabled ? 'Ja' : 'Nein'}</strong>
             <span>UID</span><strong><code>${esc(selected.giveawayUid)}</code></strong>
             <span>Erstellt</span><strong>${fmtDate(selected.createdAt)}</strong>
           </div>
+
+          ${setupWarningBlock(selected)}
 
           ${editable ? `
             <form class="lg-form lg-preset-settings-form" data-lg-update-giveaway>
@@ -1064,9 +1088,10 @@ window.LoyaltyGamesModule = (function(){
         </label>
         <label data-lg-wheel-preset-row style="${wheelMode ? '' : 'display:none'}">Wheel-Preset
           <select name="wheelPresetUid" data-lg-wheel-preset-select data-editable="${editable ? '1' : '0'}" ${editable && wheelMode ? '' : 'disabled'}>
-            <option value="">Neues Rad für dieses Giveaway</option>
-            ${presets.map(p => `<option value="${esc(p.presetUid)}" ${wheelPresetUid === p.presetUid ? 'selected' : ''}>Vorlage kopieren: ${esc(p.name)}</option>`).join('')}
+            <option value="">Noch kein Glücksrad ausgewählt</option>
+            ${presets.map(p => `<option value="${esc(p.presetUid)}" ${wheelPresetUid === p.presetUid ? 'selected' : ''}>Preset verwenden: ${esc(p.name)}</option>`).join('')}
           </select>
+          <small class="lg-muted">Ohne Preset kann das Giveaway als Entwurf gespeichert, aber nicht geöffnet werden.</small>
         </label>
       </div>
       <div class="lg-form-row">

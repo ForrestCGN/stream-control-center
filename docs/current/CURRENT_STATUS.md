@@ -1,19 +1,22 @@
-# CURRENT_STATUS – LWG-4N.0
+# Current Status – Loyalty Glücksrad / Giveaways
 
-Stand: 2026-06-09T09:33:13Z
+Aktueller Step: LWG-4N.1b – Giveaway Setup-Readiness und Open-Guard.
 
-## Status
+## Bestätigte Linie
 
-LWG-4N.0 wurde als UX-/Planungsstep festgelegt.
+- Presets-Tab bleibt vorerst Presets.
+- Es soll einen gemeinsamen Preset-Editor geben.
+- Dieser Editor wird im Presets-Tab und im Giveaway-Kontext wiederverwendet.
+- Giveaways können als Entwurf gespeichert werden, auch wenn noch Pflichtdaten fehlen.
+- Öffnen/Aktivieren ist nur erlaubt, wenn das Setup vollständig ist.
 
-## Bestätigte UX-Entscheidung
+## LWG-4N.1b
 
-- Tab `Presets` bleibt vorerst so benannt.
-- Es wird ein einheitlicher Preset-Editor geplant.
-- Dieser Editor wird im Tab `Presets` und im Tab `Giveaways` verwendet.
-- Im Giveaway-Kontext darf ein Wheel-Giveaway nicht ohne gültiges Glücksrad gespeichert werden.
-- Der Editor öffnet als großes Dashboard-Modal, nicht als echtes Browser-Popup.
+Backend und Dashboard berechnen/zeigen jetzt einen dynamischen Setup-Status:
 
-## Nächster Step
+- `setupComplete`
+- `setupState`
+- `canOpen`
+- `setupIssues`
 
-LWG-4N.1 – Dashboard Guard: Wheel-Giveaway ohne gültiges Preset/Editor-Ergebnis nicht speicherbar.
+Wheel-Giveaways ohne Glücksrad bleiben speicherbar, werden aber als unvollständig markiert und können nicht geöffnet werden.

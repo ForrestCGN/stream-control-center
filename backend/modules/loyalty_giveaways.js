@@ -3,11 +3,11 @@
 /**
  * Loyalty Giveaways module.
  *
- * STEP LWG-4M.5:
- * - Bound Wheel wird beim Öffnen eines Wheel-Giveaways aktiviert und gelockt.
- * - Draw/Permission referenziert das gebundene Giveaway-Wheel.
- * - Wheel-Claim startet Spins über den Bound-Wheel-Kontext.
- * - Globale Wheel-Presets bleiben getrennt nutzbar.
+ * STEP LWG-4N.1b:
+ * - Giveaways dürfen als Entwurf unvollständig gespeichert werden.
+ * - setupComplete/setupIssues werden dynamisch berechnet.
+ * - Öffnen/Aktivieren wird backendseitig blockiert, wenn Pflichtdaten fehlen.
+ * - Wheel-Giveaways brauchen vor dem Öffnen ein gültiges Glücksrad mit nutzbaren Feldern.
  */
 
 const crypto = require("crypto");
@@ -18,7 +18,7 @@ const database = require("../core/database");
 
 const MODULE_NAME = "loyalty_giveaways";
 const MODULE_VERSION = "0.1.0";
-const MODULE_BUILD = "STEP_LWG_4M_9";
+const MODULE_BUILD = "STEP_LWG_4N_1B";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -1503,6 +1503,12 @@ function rowToGiveaway(row, includeDetails = false) {
     editable: isGiveawayEditableRow(row)
   };
 
+  const setup = evaluateGiveawaySetupRow(row);
+  giveaway.setupComplete = setup.setupComplete;
+  giveaway.setupState = setup.setupState;
+  giveaway.canOpen = setup.canOpen;
+  giveaway.setupIssues = setup.setupIssues;
+
   if (includeDetails) {
     giveaway.rounds = listRounds(row.giveaway_uid).rows;
     giveaway.prizes = listPrizes(row.giveaway_uid).rows;
@@ -1654,6 +1660,88 @@ function isGiveawayEditableRow(row) {
   if (!row) return false;
   if (row.deleted_at) return false;
   return row.status === STATUS.DRAFT;
+}
+
+function isWheelGiveawayMode(mode) {
+  const clean = cleanMode(mode, MODES.CLASSIC_SINGLE);
+  return clean === MODES.WHEEL_SINGLE || clean === MODES.WHEEL_MULTI;
+}
+
+function setupIssue(code, message, field = "", severity = "error") {
+  return {
+    code: String(code || "setup_issue"),
+    message: String(message || "Pflichtangabe fehlt."),
+    field: String(field || ""),
+    severity: String(severity || "error")
+  };
+}
+
+function evaluateGiveawaySetupRow(row) {
+  if (!row) {
+    return {
+      setupComplete: false,
+      setupState: "incomplete",
+      canOpen: false,
+      setupIssues: [setupIssue("giveaway_not_found", "Giveaway wurde nicht gefunden.")]
+    };
+  }
+
+  const issues = [];
+  const mode = cleanMode(row.mode, MODES.CLASSIC_SINGLE);
+  const wheelMode = isWheelGiveawayMode(mode) || Number(row.wheel_enabled || 0) === 1;
+  const title = String(row.title || "").trim();
+  const winnerCount = clampInt(row.winner_count, 0, 0, 999999);
+  const maxTicketsPerUser = clampInt(row.max_tickets_per_user, 0, 0, 999999);
+  const costAmount = clampInt(row.cost_amount, 0, 0, 2147483647);
+
+  if (!title) issues.push(setupIssue("giveaway_title_required", "Titel fehlt.", "title"));
+  if (!Object.values(MODES).includes(mode)) issues.push(setupIssue("giveaway_mode_invalid", "Modus ist ungültig.", "mode"));
+  if (winnerCount < 1) issues.push(setupIssue("giveaway_winner_count_invalid", "Gewinneranzahl muss mindestens 1 sein.", "winnerCount"));
+  if (maxTicketsPerUser < 1) issues.push(setupIssue("giveaway_max_tickets_invalid", "Max. Tickets pro User muss mindestens 1 sein.", "maxTicketsPerUser"));
+  if (costAmount < 0) issues.push(setupIssue("giveaway_cost_invalid", "Kosten dürfen nicht negativ sein.", "costAmount"));
+
+  const prizes = listPrizes(row.giveaway_uid).rows || [];
+  const availablePrizes = prizes.filter(prize =>
+    String(prize.status || "available") !== "deleted" &&
+    Number(prize.quantityTotal || 0) >= 1 &&
+    String(prize.label || "").trim()
+  );
+  if (!availablePrizes.length) {
+    issues.push(setupIssue("giveaway_prize_required", "Mindestens ein gültiger Gewinn fehlt.", "prizes"));
+  }
+
+  if (wheelMode) {
+    const wheelPresetUid = String(row.wheel_preset_uid || "").trim();
+    const wheelSnapshotUid = String(row.wheel_snapshot_uid || "").trim();
+    const boundWheel = getBoundWheelByGiveaway(row.giveaway_uid);
+    const fields = boundWheel ? listBoundWheelFields(row.giveaway_uid, { limit: 500 }).rows : [];
+    const usableFields = fields.filter(field =>
+      field &&
+      field.enabled === true &&
+      !field.deletedAt &&
+      String(field.label || "").trim() &&
+      Number(field.weight || 0) > 0 &&
+      (Number(field.quantityRemaining || 0) > 0 || Number(field.quantityTotal || 0) === 0)
+    );
+
+    if (!wheelPresetUid && !boundWheel) {
+      issues.push(setupIssue("giveaway_wheel_required", "Glücksrad fehlt.", "wheelPresetUid"));
+    }
+    if (!wheelSnapshotUid || !boundWheel) {
+      issues.push(setupIssue("giveaway_bound_wheel_required", "Gebundenes Giveaway-Glücksrad fehlt.", "wheelSnapshotUid"));
+    }
+    if (boundWheel && !usableFields.length) {
+      issues.push(setupIssue("giveaway_wheel_fields_required", "Das Glücksrad braucht mindestens ein aktives gültiges Feld.", "wheelFields"));
+    }
+  }
+
+  const blockingIssues = issues.filter(issue => issue.severity !== "warning");
+  return {
+    setupComplete: blockingIssues.length === 0,
+    setupState: blockingIssues.length === 0 ? "complete" : "incomplete",
+    canOpen: blockingIssues.length === 0,
+    setupIssues: issues
+  };
 }
 
 function getGiveawayRow(giveawayUid) {
@@ -2919,6 +3007,22 @@ function setGiveawayStatus(giveawayUid, status, input = {}) {
 
   if (nextStatus === STATUS.OPEN && row.status !== STATUS.DRAFT) {
     return { ok: false, error: "giveaway_can_only_open_from_draft", statusCode: 409 };
+  }
+  if (nextStatus === STATUS.OPEN) {
+    const setup = evaluateGiveawaySetupRow(row);
+    if (!setup.setupComplete) {
+      return {
+        ok: false,
+        error: "giveaway_open_requires_complete_setup",
+        statusCode: 409,
+        messageKey: "giveaway.setup_incomplete",
+        message: "Dieses Giveaway ist noch nicht bereit und kann nicht geöffnet werden.",
+        setupComplete: false,
+        setupState: setup.setupState,
+        setupIssues: setup.setupIssues,
+        giveaway: rowToGiveaway(row, true)
+      };
+    }
   }
   if (nextStatus === STATUS.CLOSED_FOR_ENTRIES && row.status !== STATUS.OPEN) {
     return { ok: false, error: "giveaway_can_only_close_entries_from_open", statusCode: 409 };

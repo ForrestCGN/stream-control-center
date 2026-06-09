@@ -1,22 +1,17 @@
-# CHANGELOG – Loyalty Wheel / Giveaways
+# Changelog – LWG-4N.1b
 
-## LWG-4N.0 – UX-Konzept Preset-Editor + Giveaway-Wheel-Auswahl
+## Added
 
-Stand: 2026-06-09T09:33:13Z
+- Dynamische Setup-Readiness für Giveaways.
+- Backend-Open-Guard gegen unvollständige Giveaways.
+- Dashboard-Badges für Bereit/Unvollständig.
+- Anzeige konkreter fehlender Pflichtdaten.
 
-### Added
+## Changed
 
-- UX-Entscheidung dokumentiert:
-  - ein wiederverwendbarer Preset-Editor
-  - Nutzung in `Presets` und `Giveaways`
-  - Editor als Dashboard-Modal
-  - Wheel-Giveaway benötigt zwingend gültiges Rad
+- Wheel-Giveaways ohne Preset sind als Entwurf speicherbar.
+- Öffnen statt Speichern wird blockiert, wenn Pflichtdaten fehlen.
 
-### Changed
+## Supersedes
 
-- Keine Codeänderung.
-
-### Notes
-
-- Tab `Presets` bleibt vorerst so benannt.
-- `Neues Rad für dieses Giveaway` darf später nur angeboten werden, wenn direkt ein Editor vorhanden ist.
+- LWG-4N.1 Dashboard Wheel-Giveaway Guard wurde verworfen und durch LWG-4N.1b ersetzt.
