@@ -1,11 +1,11 @@
 # CURRENT CHAT HANDOFF – Loyalty Giveaways LWG-4K.2
 
-Stand: 2026-06-08
+Stand: 2026-06-09
 
-## Fix
+## Status
 
 ```text
-STEP LWG-4K.2 – Static Chat Routes Order Fix
+STEP LWG-4K.2 – Static Chat Routes Order Fix live bestätigt
 ```
 
 ## Problem
@@ -15,8 +15,25 @@ STEP LWG-4K.2 – Static Chat Routes Order Fix
 /api/loyalty/giveaways/texts
 ```
 
-wurden von `/api/loyalty/giveaways/:giveawayUid` abgefangen.
+wurden vor dem Fix von `/api/loyalty/giveaways/:giveawayUid` abgefangen und als Giveaway-UID interpretiert.
 
 ## Lösung
 
-Statische Chat-Setup-Routen werden jetzt vor der dynamischen Giveaway-UID-Route registriert.
+Statische Routen werden vor der dynamischen `:giveawayUid`-Route registriert.
+
+## Live bestätigt
+
+```text
+commands ok=true, active=false, count=2
+texts ok=true, module=loyalty_giveaways, count=9, variantCount=27
+```
+
+## Festlegung
+
+```text
+!ticket eingetragen, inaktiv
+!wheel eingetragen, inaktiv
+!rad Alias von !wheel, inaktiv
+!join bleibt unberührt
+Streamer.bot außen vor
+```
