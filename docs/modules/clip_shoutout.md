@@ -14,9 +14,9 @@
 
 ## Aktueller Stand
 
-- Modulversion: **0.2.40**
-- aktueller CAN-Stand: **CAN-44.21.41**
-- Dokumentationsstand: **CAN-44.21.42**
+- Modulversion laut Runtime-Test: **0.2.42**
+- Hotfix-Stand: **AUTOSHOUT-HOTFIX.1**
+- Dokumentationsstand: **2026-06-09 AutoShout Hotfix dokumentiert**
 
 ## Commands
 
@@ -70,7 +70,8 @@ Editierbare Bereiche:
 Normale Nachrichtenzählung:
 
 - erste Nachricht zählt als 1.
-- bei `minMessagesBeforeTrigger = 3` müssen nach der ersten Nachricht noch zwei weitere folgen.
+- bei `minMessagesBeforeTrigger = 2` muss insgesamt zweimal geschrieben werden.
+- bei Erreichen des Schwellwerts wird der AutoShout ausgelöst, sofern kein anderer Blocker greift.
 
 Sofort-Auslöser:
 
@@ -86,6 +87,31 @@ Standardliste:
 
 Diese Trigger sind für Streamer gedacht, die nur kurz lurken und keine weiteren Nachrichten schreiben.
 
+## AutoShout Hotfix 2026-06-09
+
+Fehler:
+
+```text
+autoRawMessage is not defined
+```
+
+Ursache:
+
+Im Livepfad `handleAutoShoutoutChatActivity(...)` wurden `autoRawMessage` und `instantTrigger` verwendet, aber nicht vorher gesetzt.
+
+Fix:
+
+```js
+const autoRawMessage = autoMessageTextFromParsed(parsed);
+const instantTrigger = isAutoInstantTriggerMessage(autoRawMessage, acfg);
+```
+
+Bestätigt:
+
+- 2-Nachrichten-Regel funktioniert wieder.
+- `!lurk` als erste Nachricht funktioniert wieder.
+- `lastError` bleibt leer.
+
 ## OfficialQueue
 
 Wichtige Regel:
@@ -96,8 +122,9 @@ Wichtige Regel:
 
 ## Bekannte offene Beobachtungspunkte
 
-- AutoShoutout-Sofort-Auslöser im Streambetrieb testen.
-- Save-Verhalten im Dashboard nach CAN-44.21.40/41 nochmals prüfen.
+- Testuser `forrestcgn` nach Hotfix-Test wieder aus AutoShout-Liste entfernen, sofern noch vorhanden.
+- Login-Mismatch `papselzockt_` / `papselzockt_cgn` prüfen.
+- Optional später AutoShout-Entscheidungsdiagnose erweitern.
 - OfficialQueue-Retry-Verhalten über längere Laufzeit beobachten.
 
 ## Nicht anfassen ohne neuen Auftrag

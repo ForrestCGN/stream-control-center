@@ -1,29 +1,68 @@
-# AutoShout Hotfix – autoRawMessage / instantTrigger
+# HOTFIX – AutoShout autoRawMessage / instantTrigger
 
-## Zweck
-Behebt den Runtime-Fehler `autoRawMessage is not defined` im echten AutoShout-Chatpfad.
+Stand: 2026-06-09  
+STEP: AUTOSHOUT-HOTFIX.1
 
-## Geänderte Datei
-- `backend/modules/clip_shoutout.js`
+## Fehlerbild
 
-## Änderung
-In `handleAutoShoutoutChatActivity(...)` werden vor der ersten Nutzung die beiden Variablen gesetzt:
+AutoShout wurde von Twitch-Presence erreicht, brach aber im Livepfad ab.
+
+Runtime-Status vor Fix:
+
+```text
+lastError : autoRawMessage is not defined
+```
+
+Folge:
+
+- Chatnachrichten kamen bei Twitch-Presence an.
+- `lastCheckedAt` wurde aktualisiert.
+- AutoShout konnte danach aber nicht weiterarbeiten.
+- `recentActivity` wurde nicht aktualisiert.
+- `recentEvents` bekam keine neuen Trigger.
+- `!lurk` konnte nicht als Instant-Trigger wirken.
+
+## Ursache
+
+Im echten AutoShout-Livepfad `handleAutoShoutoutChatActivity(...)` wurden `autoRawMessage` und `instantTrigger` später verwendet, aber vorher nicht gesetzt.
+
+## Fix
+
+In `backend/modules/clip_shoutout.js` direkt nach `varsBase`:
 
 ```js
 const autoRawMessage = autoMessageTextFromParsed(parsed);
 const instantTrigger = isAutoInstantTriggerMessage(autoRawMessage, acfg);
 ```
 
-## Erwartung nach Deploy + Node-Neustart
-- `lastError` ist leer.
-- AutoShout zählt normale Chatnachrichten wieder.
-- Die 2er-Regel funktioniert wieder.
-- `!lurk`, `!lurke` und `lurk` greifen wieder als Instant-Trigger.
+## Bestätigte Tests
 
-## Manuelle Prüfung
-```powershell
-$s = Invoke-RestMethod "http://127.0.0.1:8080/api/clip-shoutout/status"
-$s.state.autoShoutout | Format-List
-$s.autoShoutout.recentActivity | Select-Object id,login,displayName,messageCount,requiredMessages,lastMessageAt,triggeredAt,updatedAt | Format-Table -AutoSize
-$s.autoShoutout.recentEvents | Select-Object id,target_login,status,reason,display_queue_id,created_at | Format-Table -AutoSize
+Nach Einspielen und Node-Neustart:
+
+```text
+lastError :
 ```
+
+2-Nachrichten-Test mit `forrestcgn`:
+
+```text
+lastTriggeredLogin : forrestcgn
+lastMessageCount : 2
+lastRequiredMessages : 2
+lastTriggeredByThreshold : True
+recentEvents: status=triggered, reason=queued, display_queue_id=157
+```
+
+`!lurk` als erste Nachricht wurde anschließend ebenfalls erfolgreich getestet.
+
+## Aufräumen
+
+Der Test-Account `forrestcgn` muss wieder aus der AutoShout-Liste entfernt werden, sofern er nur für den Test eingetragen war.
+
+## Nicht geändert
+
+- keine Queue-Logik
+- keine OfficialQueue-Logik
+- keine Twitch-Presence-Logik
+- keine Streamer.bot-Logik
+- keine produktive SQLite-Datei

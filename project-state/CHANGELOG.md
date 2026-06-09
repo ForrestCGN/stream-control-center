@@ -1,29 +1,34 @@
 # CHANGELOG – stream-control-center
 
-## 2026-06-09 – Documentation Refresh nach LWG-4K.2
+## 2026-06-09 – AUTOSHOUT-HOTFIX.1
 
-### Aktualisiert
+### Geändert
 
 ```text
-docs/modules/README.md
-docs/modules/loyalty_games.md
-docs/modules/loyalty_giveaways.md
-docs/current/CURRENT_CHAT_HANDOFF_LOYALTY_CURRENT.md
-project-state/*
+backend/modules/clip_shoutout.js
 ```
 
-### Dokumentierter Stand
+### Behoben
 
 ```text
-LWG-4K.2 – Static Chat Routes Order Fix bestätigt
+autoRawMessage is not defined
 ```
 
-### Wichtige Festlegungen
+### Ergebnis
 
 ```text
-Streamer.bot außen vor.
-!join nicht verwenden.
-!ticket, !wheel, !rad nur eingetragen, nicht aktiv.
-Chattexte über helper_texts / module_text_variants.
-Aktivierung erst nach Datei-/Doku-Prüfung und gesondertem Go.
+AutoShout verarbeitet Chataktivität wieder.
+2-Nachrichten-Regel funktioniert.
+!lurk funktioniert als erste Nachricht.
+lastError bleibt leer.
+```
+
+### Nicht geändert
+
+```text
+Keine Queue-Logik.
+Keine OfficialQueue-Logik.
+Keine Twitch-Presence-Logik.
+Keine Streamer.bot-Logik.
+Keine DB-Datei ersetzt.
 ```

@@ -2,31 +2,34 @@
 
 Stand: 2026-06-09
 
-## Aktueller Dokumentationsstand
+## AUTOSHOUT-HOTFIX.1
+
+### Code-Datei
 
 ```text
-STEP_LWG_4K_3_documentation_refresh.zip
+backend/modules/clip_shoutout.js
 ```
 
-## Basis
+### Doku-Dateien
 
 ```text
-STEP_LWG_4K_2_static_chat_routes_order_fix.zip
-```
-
-## Aktualisierte Dateien
-
-```text
-docs/modules/README.md
-docs/modules/loyalty_games.md
-docs/modules/loyalty_giveaways.md
-docs/current/CURRENT_CHAT_HANDOFF_LOYALTY_CURRENT.md
-docs/current/CURRENT_CHAT_HANDOFF_LOYALTY_GIVEAWAYS_LWG_4K_2.md
+docs/current/CURRENT_STATUS.md
+docs/current/NEXT_STEPS.md
+docs/current/TODO.md
+docs/current/CHANGELOG.md
+docs/current/FILES.md
+docs/current/HOTFIX_AUTOSHOUT_AUTORAWMESSAGE.md
+docs/current/CURRENT_CHAT_HANDOFF_AUTOSHOUT_HOTFIX_2026_06_09.md
+docs/modules/clip_shoutout.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/CHANGELOG.md
 project-state/FILES.md
-README_STEP_LWG_4K_3_DOCUMENTATION_REFRESH.md
+README_STEP_AUTOSHOUT_HOTFIX_DOCUMENTATION.md
 ARTIFACT_CHECK.json
 ```
+
+## Hinweis
+
+Dieses Doku-ZIP enthält keine neue Code-Datei. Der Code-Hotfix wurde vorher separat eingespielt und getestet.

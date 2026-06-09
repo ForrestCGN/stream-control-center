@@ -2,66 +2,46 @@
 
 Stand: 2026-06-09
 
-## Aktueller Stand
+## Aktueller bestätigter Zusatzstand
 
 ```text
-STEP LWG-4K.2 – Static Chat Routes Order Fix bestätigt
+STEP AUTOSHOUT-HOTFIX.1 – AutoShout autoRawMessage/instantTrigger Fix bestätigt und dokumentiert
 ```
 
-## Loyalty / Glücksrad / Giveaways
+## Shoutout / AutoShout
 
 Bestätigt:
 
 ```text
-- Wheel / Presets / Spin
-- Wheel Overlay + Heartbeat
-- Giveaway Backend
-- Giveaway Dashboard
-- Entries/Tickets
-- Entry-Storno
-- Gewinnerziehung ohne Rad
-- Wheel-Giveaway + Permission
-- Wheel-Claim + echter Wheel-Spin
-- Inaktive Chat-Command-Definitionen
-- Chat-Multi-Texte über helper_texts/module_text_variants
-- Dashboard-Tab Chat/Commands
-- statische Chat-Setup-Routen funktionieren
+- Modul: clip_shoutout
+- Runtime-Version: 0.2.42
+- Fehler autoRawMessage is not defined behoben
+- 2-Nachrichten-Regel getestet und erfolgreich
+- !lurk als erste Nachricht getestet und erfolgreich
+- lastError nach Test leer
 ```
 
-## Eingetragene Commands
+Offen:
 
 ```text
-!ticket
-!ticket <anzahl>
-!wheel
-!rad
+- Testuser forrestcgn aus AutoShout-Liste entfernen, falls noch vorhanden
+- papselzockt_ / papselzockt_cgn Login-Mismatch prüfen
+- optionale Entscheidungsdiagnose später planen
 ```
 
-Status:
+## Loyalty / Glücksrad / Giveaways
+
+Letzter dokumentierter Bereich bleibt separat weiterzuführen:
 
 ```text
-enabled=false
-active=false
-```
-
-Nicht belegt:
-
-```text
-!join
+STEP LWG-4K.2 – Static Chat Routes Order Fix bestätigt
+LWG-4N.7 laut docs/current vorbereitet
 ```
 
 ## Wichtige Abgrenzung
 
 ```text
-Streamer.bot ist außen vor.
-Commands sind noch nicht aktiv.
-Keine Twitch-Command-Ausführung.
-Keine Punktebuchung.
-Keine Channel-Point-Anbindung.
-```
-
-## Nächste Aufgabe
-
-```text
-Prompt aktualisieren/anpassen, sobald der Nutzer ihn sendet.
+Keine produktive SQLite-Datei ersetzen.
+Keine Queue-Logik ohne neuen Auftrag umbauen.
+Keine Twitch-Presence- oder Streamer.bot-Logik in diesem Hotfix geändert.
 ```
