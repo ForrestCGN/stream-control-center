@@ -18,7 +18,7 @@ const database = require("../core/database");
 
 const MODULE_NAME = "loyalty_giveaways";
 const MODULE_VERSION = "0.1.0";
-const MODULE_BUILD = "STEP_LWG_4L_5";
+const MODULE_BUILD = "STEP_LWG_4L_11";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -2573,9 +2573,12 @@ function handleWheelCommandRuntime(input = {}) {
   if (!giveaway) {
     return buildCommandRuntimeResponse(input, {
       ok: false,
+      active: !!(centralCommandDefinition && centralCommandDefinition.enabled),
+      commandsActive: !!(centralCommandDefinition && centralCommandDefinition.enabled),
       action: "giveaway_wheel_claim",
       messageKey: "wheel.no_permission",
-      error: "giveaway_no_active"
+      error: "wheel_no_permission",
+      data: { commandDefinition, centralCommandDefinition, reason: "no_open_wheel_permission_context" }
     });
   }
 
