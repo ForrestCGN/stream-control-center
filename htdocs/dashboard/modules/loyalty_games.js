@@ -74,17 +74,40 @@ window.LoyaltyGamesModule = (function(){
       : `<span class="lg-badge lg-badge-off">${esc(failText)}</span>`;
   }
 
+  const INCOMPLETE_BADGE_STYLE = 'border-color:rgba(255,140,0,.78);background:rgba(255,140,0,.16);color:#ffb35c;box-shadow:0 0 14px rgba(255,140,0,.18)';
+
+  function statusLabel(status){
+    const clean = String(status || '').toLowerCase();
+    const labels = {
+      active: 'Aktiv',
+      running: 'Läuft',
+      ok: 'OK',
+      open: 'Offen',
+      draft: 'Entwurf',
+      paused: 'Pausiert',
+      closed_for_entries: 'Teilnahme geschlossen',
+      finished: 'Beendet',
+      exhausted: 'Aufgebraucht',
+      cancelled: 'Abgebrochen',
+      deleted: 'Gelöscht',
+      pending: 'Ausstehend',
+      used: 'Genutzt'
+    };
+    return labels[clean] || String(status || '-');
+  }
+
   function statusBadge(status){
     const clean = String(status || '').toLowerCase();
-    if (['active', 'running', 'ok', 'open'].includes(clean)) return `<span class="lg-badge lg-badge-ok">${esc(status)}</span>`;
-    if (['draft', 'paused', 'closed_for_entries'].includes(clean)) return `<span class="lg-badge lg-badge-warn">${esc(status)}</span>`;
-    return `<span class="lg-badge lg-badge-off">${esc(status || '-')}</span>`;
+    const label = statusLabel(status);
+    if (['active', 'running', 'ok', 'open'].includes(clean)) return `<span class="lg-badge lg-badge-ok">${esc(label)}</span>`;
+    if (['draft', 'paused', 'closed_for_entries'].includes(clean)) return `<span class="lg-badge lg-badge-warn">${esc(label)}</span>`;
+    return `<span class="lg-badge lg-badge-off">${esc(label)}</span>`;
   }
 
   function setupBadge(giveaway){
     if (!giveaway) return '';
     if (giveaway.setupComplete === true) return `<span class="lg-badge lg-badge-ok">Bereit</span>`;
-    return `<span class="lg-badge lg-badge-warn">Unvollständig</span>`;
+    return `<span class="lg-badge lg-badge-incomplete" style="${INCOMPLETE_BADGE_STYLE}">Unvollständig</span>`;
   }
 
   function setupIssuesText(giveaway){

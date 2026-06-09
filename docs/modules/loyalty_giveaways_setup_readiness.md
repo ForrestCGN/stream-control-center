@@ -1,48 +1,29 @@
-# Loyalty Giveaways – Setup-Readiness
+# Loyalty Giveaways – Setup-Readiness und Statusanzeige
 
-## Ziel
+## Setup-Readiness
 
-Ein Giveaway soll vorbereitet und gespeichert werden können, auch wenn noch nicht alle Pflichtdaten vorliegen. Gleichzeitig darf es nicht live geöffnet werden, solange es nicht vollständig ist.
+Giveaways dürfen als Entwurf gespeichert werden, auch wenn noch Pflichtdaten fehlen. Öffnen/Aktivieren ist nur möglich, wenn `setupComplete = true` ist.
 
-## Ausgabe am Giveaway
+Das Backend liefert dazu:
 
-Das Backend liefert pro Giveaway:
+- `setupComplete`
+- `setupState`
+- `canOpen`
+- `setupIssues`
 
-- `setupComplete` – true/false
-- `setupState` – `complete` oder `incomplete`
-- `canOpen` – true/false
-- `setupIssues` – Liste konkreter fehlender Pflichtdaten
+## Dashboard-Anzeige
 
-## Pflichtdaten
+Ab LWG-4N.1c werden technische Statuswerte in der Oberfläche deutsch angezeigt.
 
-Allgemein:
+Beispiele:
 
-- Titel vorhanden
-- gültiger Modus
-- Gewinneranzahl mindestens 1
-- Max. Tickets/User mindestens 1
-- Kosten nicht negativ
-- mindestens ein gültiger Gewinn
+- `draft` → `Entwurf`
+- `open` → `Offen`
+- `closed_for_entries` → `Teilnahme geschlossen`
+- `finished` → `Beendet`
 
-Wheel-Modus:
+Der Setup-Status `Unvollständig` wird orange dargestellt, damit Mods/Streamer sofort sehen, dass dieses Giveaway noch nicht geöffnet werden kann.
 
-- gebundenes Giveaway-Glücksrad vorhanden
-- mindestens ein aktives, gültiges Rad-Feld vorhanden
-- Feld hat Label und Gewicht > 0
+## Technische Werte
 
-Classic-Modus benötigt kein Glücksrad.
-
-## Open-Guard
-
-`POST /api/loyalty/giveaways/:giveawayUid/open` blockiert mit:
-
-```text
-giveaway_open_requires_complete_setup
-```
-
-wenn `setupComplete=false`.
-
-## UX-Regel
-
-- Speichern als Entwurf: erlaubt.
-- Öffnen/Aktivieren: nur erlaubt, wenn `setupComplete=true`.
+Die technischen API-Werte bleiben unverändert. Nur die sichtbare Darstellung im Dashboard wurde lokalisiert.

@@ -1,22 +1,22 @@
 # Current Status – Loyalty Glücksrad / Giveaways
 
-Aktueller Step: LWG-4N.1b – Giveaway Setup-Readiness und Open-Guard.
+Aktueller Step: LWG-4N.1c – Dashboard deutsche Status-Badges und Unvollständig orange.
 
-## Bestätigte Linie
+## Bestätigt
 
-- Presets-Tab bleibt vorerst Presets.
-- Es soll einen gemeinsamen Preset-Editor geben.
-- Dieser Editor wird im Presets-Tab und im Giveaway-Kontext wiederverwendet.
-- Giveaways können als Entwurf gespeichert werden, auch wenn noch Pflichtdaten fehlen.
-- Öffnen/Aktivieren ist nur erlaubt, wenn das Setup vollständig ist.
+- LWG-4M.9 Bound-Wheel Field Foundation aktiv.
+- LWG-4N.1b Setup-Readiness und Open-Guard aktiv.
+- Wheel-Giveaways ohne vollständiges Glücksrad sind als Entwurf speicherbar, aber nicht öffnungsfähig.
 
-## LWG-4N.1b
+## LWG-4N.1c
 
-Backend und Dashboard berechnen/zeigen jetzt einen dynamischen Setup-Status:
+Das Dashboard zeigt technische Statuswerte nicht mehr roh englisch an.
 
-- `setupComplete`
-- `setupState`
-- `canOpen`
-- `setupIssues`
+Beispiele:
 
-Wheel-Giveaways ohne Glücksrad bleiben speicherbar, werden aber als unvollständig markiert und können nicht geöffnet werden.
+- `draft` → `Entwurf`
+- `active` → `Aktiv`
+- `open` → `Offen`
+- `finished` → `Beendet`
+
+Der Setup-Status `Unvollständig` wird deutlich orange als Warnhinweis angezeigt.

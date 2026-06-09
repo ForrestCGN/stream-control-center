@@ -1,17 +1,13 @@
-# Changelog – LWG-4N.1b
-
-## Added
-
-- Dynamische Setup-Readiness für Giveaways.
-- Backend-Open-Guard gegen unvollständige Giveaways.
-- Dashboard-Badges für Bereit/Unvollständig.
-- Anzeige konkreter fehlender Pflichtdaten.
+# Changelog – LWG-4N.1c
 
 ## Changed
 
-- Wheel-Giveaways ohne Preset sind als Entwurf speicherbar.
-- Öffnen statt Speichern wird blockiert, wenn Pflichtdaten fehlen.
+- Dashboard-Status-Badges verwenden deutsche Begriffe statt technische englische Statuswerte.
+- `Unvollständig` wird orange hervorgehoben.
+- Setup-Meldung für fehlende Glücksrad-Felder wurde nutzerfreundlicher formuliert.
 
-## Supersedes
+## Not changed
 
-- LWG-4N.1 Dashboard Wheel-Giveaway Guard wurde verworfen und durch LWG-4N.1b ersetzt.
+- Keine Backend-Logik geändert.
+- Keine Statuswerte in der API geändert.
+- Keine Giveaway-Lifecycle-Regeln geändert.
