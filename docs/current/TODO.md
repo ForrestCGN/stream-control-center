@@ -1,7 +1,6 @@
-# TODO – Loyalty Giveaways / Preset Editor
+# TODO – Loyalty Giveaways / Glücksrad
 
-- [ ] Modal UX prüfen.
-- [ ] Preset-Erstellung aus bestehendem Giveaway heraus direkt zuordnen.
-- [ ] Inline-Editor weiter nutzerfreundlich machen.
-- [ ] Giveaway-Titel-Duplikat-Guard ergänzen.
+- [ ] LWG-4N.3 testen.
+- [ ] Titel-Duplikat-Guard für aktive/unfertige Giveaways planen/umsetzen.
+- [ ] Preset-Editor-Feld-UX weiter verbessern.
 - [ ] Runtime später auf Bound-Wheel-Felder umstellen.
