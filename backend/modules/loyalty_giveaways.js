@@ -18,7 +18,7 @@ const database = require("../core/database");
 
 const MODULE_NAME = "loyalty_giveaways";
 const MODULE_VERSION = "0.1.0";
-const MODULE_BUILD = "STEP_LWG_4N_7";
+const MODULE_BUILD = "STEP_LWG_4N_8";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -1001,7 +1001,14 @@ function listBoundWheelFields(giveawayUid, options = {}) {
     ORDER BY sort_order ASC, id ASC
   `, params).map(rowToBoundWheelField);
 
-  return { ok: true, count: rows.length, boundWheel, rows };
+  return {
+    ok: true,
+    count: rows.length,
+    fieldCount: rows.length,
+    boundWheel,
+    rows,
+    fields: rows
+  };
 }
 
 function getSourcePresetForBoundWheel(sourcePresetUid) {
