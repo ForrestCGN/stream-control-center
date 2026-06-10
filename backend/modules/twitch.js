@@ -11,10 +11,12 @@ const database = require('../core/database');
 const communicationBus = require('./communication_bus');
 
 const MODULE_NAME = 'twitch';
-const MODULE_VERSION = '0.1.1';
+const MODULE_VERSION = '0.1.2';
+const MODULE_BUILD = 'BUS_TWITCH_5B_OAUTH_FORCE_VERIFY_DIAGNOSTICS';
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
+  build: MODULE_BUILD,
   type: 'runtime',
   category: 'integration',
   description: 'Twitch OAuth, Helix API und EventSub WebSocket Kernmodul.',
@@ -30,6 +32,7 @@ const MODULE_META = {
 
 module.exports.MODULE_META = MODULE_META;
 module.exports.MODULE_VERSION = MODULE_VERSION;
+module.exports.MODULE_BUILD = MODULE_BUILD;
 module.exports.version = MODULE_VERSION;
 
 const sharedApi = {
@@ -1097,12 +1100,37 @@ module.exports.init = function init(ctx) {
   // OAuth
   const pendingStates = new Set();
   const pendingBotStates = new Set();
+
+  function queryFlag(value) {
+    if (value === true) return true;
+    const clean = String(value ?? '').trim().toLowerCase();
+    return ['1', 'true', 'yes', 'ja', 'on', 'force'].includes(clean);
+  }
+
+  function buildUserOAuthUrl(state, options = {}) {
+    const scopes = encodeURIComponent(TW_OAUTH_SCOPES.join(' '));
+    const redirect_uri = encodeURIComponent(TW_REDIRECT_URI);
+    const forceVerify = options.forceVerify === true;
+    return `https://id.twitch.tv/oauth2/authorize?response_type=code` +
+      `&client_id=${TW_CLIENT_ID}` +
+      `&redirect_uri=${redirect_uri}` +
+      `&scope=${scopes}` +
+      `&state=${state}` +
+      (forceVerify ? '&force_verify=true' : '');
+  }
+
   app.get('/auth/login',(req,res)=>{
     if(!TW_CLIENT_ID||!TW_CLIENT_SECRET) return res.status(500).send('Missing TWITCH_CLIENT_ID / TWITCH_CLIENT_SECRET in .env');
     const state=crypto.randomBytes(16).toString('hex'); pendingStates.add(state);
-    const scopes=encodeURIComponent(TW_OAUTH_SCOPES.join(' '));
-    const redirect_uri=encodeURIComponent(TW_REDIRECT_URI);
-    const url=`https://id.twitch.tv/oauth2/authorize?response_type=code&client_id=${TW_CLIENT_ID}&redirect_uri=${redirect_uri}&scope=${scopes}&state=${state}`;
+    const forceVerify = queryFlag(req.query.force) || queryFlag(req.query.force_verify) || queryFlag(req.query.reauth);
+    const url = buildUserOAuthUrl(state, { forceVerify });
+    res.redirect(url);
+  });
+
+  app.get('/auth/login/force',(req,res)=>{
+    if(!TW_CLIENT_ID||!TW_CLIENT_SECRET) return res.status(500).send('Missing TWITCH_CLIENT_ID / TWITCH_CLIENT_SECRET in .env');
+    const state=crypto.randomBytes(16).toString('hex'); pendingStates.add(state);
+    const url = buildUserOAuthUrl(state, { forceVerify: true });
     res.redirect(url);
   });
   app.get('/auth/callback',async (req,res)=>{
@@ -1177,6 +1205,77 @@ module.exports.init = function init(ctx) {
   app.get('/auth/validate', handleAuthValidate);
   app.get('/twitch/auth/validate', handleAuthValidate);
   app.get('/api/twitch/auth/validate', handleAuthValidate);
+
+  function buildScopeDiagnostics(validateResult = null) {
+    const configuredScopes = [...new Set(TW_OAUTH_SCOPES.map(String).filter(Boolean))];
+    const validatedScopes = Array.isArray(validateResult && validateResult.scopes)
+      ? [...new Set(validateResult.scopes.map(String).filter(Boolean))]
+      : [];
+    const missingConfiguredScopes = configuredScopes.filter(scope => !validatedScopes.includes(scope));
+    const extraValidatedScopes = validatedScopes.filter(scope => !configuredScopes.includes(scope));
+    const requiredForEventSubChat = ['user:read:chat'];
+
+    return {
+      ok: Boolean(validateResult && validateResult.ok === true),
+      module: MODULE_NAME,
+      moduleVersion: MODULE_VERSION,
+      moduleBuild: MODULE_BUILD,
+      tokenStorePresent: Boolean(validateResult && validateResult.present),
+      tokenUser: validateResult && validateResult.ok === true ? {
+        login: validateResult.login || '',
+        userId: validateResult.userId || '',
+        broadcasterId: validateResult.broadcasterId || '',
+        tokenUserMatchesBroadcaster: validateResult.tokenUserMatchesBroadcaster === true
+      } : null,
+      configuredUserScopes: configuredScopes,
+      validatedTokenScopes: validatedScopes,
+      requiredForEventSubChat,
+      hasUserReadChatConfigured: configuredScopes.includes('user:read:chat'),
+      hasUserReadChatInToken: validatedScopes.includes('user:read:chat'),
+      missingConfiguredScopes,
+      extraValidatedScopes,
+      forceVerifyLoginPaths: [
+        '/auth/login?force=1',
+        '/auth/login?force_verify=1',
+        '/auth/login/force'
+      ],
+      notes: [
+        'Diese Diagnose gibt keine Access- oder Refresh-Tokens aus.',
+        'Wenn user:read:chat konfiguriert ist, aber im validierten Token fehlt, muss ForrestCGN per Force-Verify neu autorisieren.',
+        'Nach Reauthorize Backend neu starten und Live-Readiness erneut pruefen.'
+      ]
+    };
+  }
+
+  const handleScopeDiagnostics = async (_req, res) => {
+    try {
+      const result = await validateStoredUserToken();
+      return res.json(buildScopeDiagnostics(result));
+    } catch (e) {
+      const statusCode = e.response?.status || 500;
+      return res.status(statusCode).json({
+        ok: false,
+        module: MODULE_NAME,
+        moduleVersion: MODULE_VERSION,
+        moduleBuild: MODULE_BUILD,
+        tokenStorePresent: !!getStoredUserToken(),
+        configuredUserScopes: [...new Set(TW_OAUTH_SCOPES.map(String).filter(Boolean))],
+        requiredForEventSubChat: ['user:read:chat'],
+        hasUserReadChatConfigured: TW_OAUTH_SCOPES.includes('user:read:chat'),
+        hasUserReadChatInToken: false,
+        error: e.response?.data || e.message || String(e),
+        forceVerifyLoginPaths: [
+          '/auth/login?force=1',
+          '/auth/login?force_verify=1',
+          '/auth/login/force'
+        ]
+      });
+    }
+  };
+
+  app.get('/auth/scope-diagnostics', handleScopeDiagnostics);
+  app.get('/twitch/auth/scope-diagnostics', handleScopeDiagnostics);
+  app.get('/api/twitch/auth/scope-diagnostics', handleScopeDiagnostics);
 
   // Diagnose: zeigt den Twitch-User, zu dem der aktuell gespeicherte User-OAuth-Token gehört.
   // Wichtig für Endpoints wie /twitch/moderators, bei denen broadcaster_id zur Token-User-ID passen muss.

@@ -38,3 +38,8 @@ Prüft live, soweit verfügbar:
 ## Sicherheitsregel
 
 `subscriptionCreationEnabled` bleibt false. Kein EventSub-Takeover ohne gesonderten STEP/Go.
+
+
+## BUS-TWITCH.5b Hinweis
+
+`BUS-TWITCH.5b` ändert nicht die EventSub-Ownership in `twitch_events`. Der Step ergänzt in `twitch.js` nur OAuth-Force-Verify und Scope-Diagnose, damit `user:read:chat` für `channel.chat.message` sauber in den User-Token übernommen werden kann.
