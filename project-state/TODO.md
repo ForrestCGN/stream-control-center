@@ -2,21 +2,16 @@
 
 Stand: 2026-06-10
 
-- [x] BUS-TWITCH.1 Foundation
-- [x] BUS-TWITCH.2 IRC Chat Parallel Bridge
-- [x] BUS-TWITCH.3 EventSub Ownership Preparation
-- [x] BUS-TWITCH.4 EventSub Chat Readiness
-- [x] BUS-TWITCH.5 Live Token/ID Readiness
-- [x] BUS-TWITCH.5b OAuth Force Verify Diagnostics
-- [ ] BUS-TWITCH.6 Live-Test EventSub Chat Enable
-- [ ] BUS-TWITCH.7 Commands Subscriber vorbereiten
+## Erledigt / bestätigt
 
+- [x] twitch_events Foundation gebaut.
+- [x] EventSub Chat läuft über `channel.chat.message`.
+- [x] commands kann `twitch.chat.message` abonnieren.
+- [x] twitch_presence Command-Direktweg ist steuerbar.
 
-## STEP BUS-TWITCH.7 – Commands Subscriber vorbereitet
+## Offen
 
-```text
-commands kann twitch.chat.message ueber den Communication Bus abonnieren.
-Der bestehende twitch_presence -> commands.handleChatMessage Direktaufruf bleibt aktiv.
-Subscriber ist per Runtime-Route start/stop steuerbar; Autostart nur per COMMANDS_BUS_CHAT_SUBSCRIBER_AUTOSTART=true.
-Keine bestehende Funktionalitaet entfernt.
-```
+- [ ] Bus-only Command-Live-Test durchführen.
+- [ ] Autostart-Entscheidung für Commands Bus Subscriber treffen.
+- [ ] Presence-Direktweg erst nach bestätigtem Bus-only Betrieb dauerhaft deaktivieren.
+- [ ] Danach alte Direktlogik nur nach gesondertem Go entfernen, falls überhaupt nötig.

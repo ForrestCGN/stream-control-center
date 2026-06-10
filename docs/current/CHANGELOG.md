@@ -1,36 +1,26 @@
 # CHANGELOG – stream-control-center
 
-## 2026-06-10 – BUS-TWITCH.6
+## 2026-06-10 – BUS-TWITCH.8
 
-### Geaendert
+### Geändert
 
 ```text
-backend/modules/twitch_events.js
-backend/modules/twitch.js
+backend/modules/commands.js
+backend/modules/twitch_presence.js
 ```
 
 ### Neu
 
 ```text
-EventSub Chat Start/Stop/Status fuer channel.chat.message.
-Duplikat-Schutz fuer IRC/EventSub parallel.
-User-Access-Token-Helper aus twitch.js exportiert.
+commands 0.2.0 / BUS_TWITCH_8_COMMAND_SOURCE_SWITCH
+twitch_presence 0.1.2 / BUS_TWITCH_8_COMMAND_SOURCE_SWITCH
 ```
 
-### Nicht geaendert
+### Inhalt
 
 ```text
-Keine bestehenden EventSub-Flows entfernt.
-Keine Commands umgestellt.
-Keine SQLite-Datei ersetzt.
-```
-
-
-## STEP BUS-TWITCH.7 – Commands Subscriber vorbereitet
-
-```text
-commands kann twitch.chat.message ueber den Communication Bus abonnieren.
-Der bestehende twitch_presence -> commands.handleChatMessage Direktaufruf bleibt aktiv.
-Subscriber ist per Runtime-Route start/stop steuerbar; Autostart nur per COMMANDS_BUS_CHAT_SUBSCRIBER_AUTOSTART=true.
-Keine bestehende Funktionalitaet entfernt.
+- commands Bus-Subscriber bleibt steuerbar.
+- twitch_presence Command-Direktweg kann per Route aktiviert/deaktiviert werden.
+- Status zeigt Direct-Hook-Zähler und Quelle an.
+- Keine bestehende Funktion entfernt.
 ```

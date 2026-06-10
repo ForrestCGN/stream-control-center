@@ -6,8 +6,8 @@ const core = require('./helpers/helper_core');
 const communicationBus = require('./communication_bus');
 
 const MODULE_NAME = 'commands';
-const MODULE_VERSION = '0.1.9';
-const MODULE_BUILD = 'BUS_TWITCH_7_COMMANDS_BUS_SUBSCRIBER';
+const MODULE_VERSION = '0.2.0';
+const MODULE_BUILD = 'BUS_TWITCH_8_COMMAND_SOURCE_SWITCH';
 const SCHEMA_MODULE = 'command_system';
 const SCHEMA_VERSION = 2;
 const API_PREFIX = '/api/commands';
@@ -815,6 +815,12 @@ function getBusChatStatus() {
     action: state.busChat.action,
     commandDirectHookKept: true,
     autostart: state.busChat.autostart === true,
+    sourceSwitch: {
+      mode: state.busChat.active === true ? 'bus_subscriber_available' : 'direct_hook_or_inactive',
+      directHookOwner: 'twitch_presence',
+      directHookRoute: '/api/twitch/presence/command-direct/status',
+      recommendation: state.busChat.active === true ? 'Disable twitch_presence direct hook before productive bus-only command mode.' : 'Keep direct hook active until bus subscriber is intentionally started.'
+    },
     counters: {
       processed: state.busChat.processed,
       ignored: state.busChat.ignored,
@@ -1047,5 +1053,5 @@ module.exports.init = function init(ctx) {
   });
   app.get(`${API_PREFIX}/logs`, handleLogs);
   app.get(`${API_PREFIX}/history`, handleLogs);
-  console.log(`[commands] routes active: /api/commands/* (${MODULE_VERSION}, bus chat subscriber prepared)`);
+  console.log(`[commands] routes active: /api/commands/* (${MODULE_VERSION}, bus chat subscriber/source switch prepared)`);
 };

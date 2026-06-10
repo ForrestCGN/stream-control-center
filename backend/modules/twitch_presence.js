@@ -9,15 +9,15 @@ const commands = require('./commands');
 const twitchEvents = require('./twitch_events');
 
 const MODULE_NAME = 'twitch_presence';
-const MODULE_VERSION = '0.1.1';
-const MODULE_BUILD = 'BUS_TWITCH_2_CHAT_PARALLEL';
+const MODULE_VERSION = '0.1.2';
+const MODULE_BUILD = 'BUS_TWITCH_8_COMMAND_SOURCE_SWITCH';
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
   build: MODULE_BUILD,
   type: 'runtime',
   category: 'integration',
-  description: 'Twitch IRC Presence, Chat-Ausgabe und Chat-Command-Eingang mit parallelem twitch_events Chat-Emit.',
+  description: 'Twitch IRC Presence, Chat-Ausgabe und steuerbarer Chat-Command-Direktweg mit parallelem twitch_events Chat-Emit.',
   routesPrefix: ['/api/twitch/presence', '/twitch/presence'],
   bus: {
     registered: false,
@@ -129,6 +129,15 @@ module.exports.init = function init(ctx) {
   let lastChatBusResultReason = '';
   let lastChatBusEventId = '';
   let lastChatBusError = '';
+  let commandDirectHookEnabled = /^(1|true|yes|on)$/i.test((env.TWITCH_PRESENCE_COMMAND_DIRECT_HOOK_ENABLED ?? 'true').toString().trim());
+  let commandDirectHookMode = commandDirectHookEnabled ? 'enabled' : 'disabled';
+  let commandDirectHookHandledCount = 0;
+  let commandDirectHookSkippedCount = 0;
+  let commandDirectHookErrorCount = 0;
+  let lastCommandDirectHookAt = '';
+  let lastCommandDirectHookSkippedAt = '';
+  let lastCommandDirectHookResultReason = '';
+  let lastCommandDirectHookError = '';
 
   const activity = {
     schemaOk: false,
@@ -603,6 +612,74 @@ module.exports.init = function init(ctx) {
     }
   }
 
+  function getCommandDirectHookStatus() {
+    return {
+      enabled: commandDirectHookEnabled === true,
+      mode: commandDirectHookMode,
+      source: 'twitch_presence',
+      targetModule: 'commands',
+      directCall: 'commands.handleChatMessage',
+      purpose: 'legacy/direct command processing path; keep available but disable when commands bus subscriber is productive',
+      envDefault: 'TWITCH_PRESENCE_COMMAND_DIRECT_HOOK_ENABLED=true',
+      counters: {
+        handled: commandDirectHookHandledCount,
+        skipped: commandDirectHookSkippedCount,
+        failed: commandDirectHookErrorCount
+      },
+      lastHandledAt: lastCommandDirectHookAt,
+      lastSkippedAt: lastCommandDirectHookSkippedAt,
+      lastResultReason: lastCommandDirectHookResultReason,
+      lastError: lastCommandDirectHookError
+    };
+  }
+
+  function setCommandDirectHookEnabled(enabled, reason = 'manual') {
+    commandDirectHookEnabled = enabled === true;
+    commandDirectHookMode = commandDirectHookEnabled ? 'enabled' : 'disabled';
+    lastCommandDirectHookResultReason = commandDirectHookEnabled ? `enabled:${reason}` : `disabled:${reason}`;
+    lastCommandDirectHookError = '';
+    return { ok: true, reason: lastCommandDirectHookResultReason, commandDirectHook: getCommandDirectHookStatus() };
+  }
+
+  function invokeCommandDirectHook(parsed) {
+    if (!commandDirectHookEnabled) {
+      commandDirectHookSkippedCount += 1;
+      lastCommandDirectHookSkippedAt = core.nowIso();
+      lastCommandDirectHookResultReason = 'direct_hook_disabled';
+      return { ok: true, skipped: true, reason: 'direct_hook_disabled' };
+    }
+
+    try {
+      commandDirectHookHandledCount += 1;
+      lastCommandDirectHookAt = core.nowIso();
+      lastCommandDirectHookResultReason = 'direct_hook_called';
+      lastCommandDirectHookError = '';
+      commands.handleChatMessage(parsed, { source: 'twitch_presence', channel: BOT_CHANNEL })
+        .then((result) => {
+          if (result && result.ignored) {
+            lastCommandDirectHookResultReason = result.reason || 'ignored';
+          } else if (result && result.ok === false) {
+            lastCommandDirectHookResultReason = result.reason || 'command_result_not_ok';
+          } else {
+            lastCommandDirectHookResultReason = 'ok';
+          }
+        })
+        .catch((err) => {
+          commandDirectHookErrorCount += 1;
+          lastError = err?.message || String(err);
+          lastCommandDirectHookError = lastError;
+          lastCommandDirectHookResultReason = 'error';
+          console.warn('[twitch_presence] command hook error:', lastError);
+        });
+      return { ok: true, reason: 'direct_hook_called' };
+    } catch (err) {
+      commandDirectHookErrorCount += 1;
+      lastCommandDirectHookError = err?.message || String(err);
+      lastCommandDirectHookResultReason = 'exception';
+      return { ok: false, reason: 'exception', error: lastCommandDirectHookError };
+    }
+  }
+
   function refreshActivityStatuses() {
     if (!ensureActivitySchema()) return [];
     const rows = database.all('SELECT * FROM twitch_presence_activity ORDER BY last_seen_at DESC LIMIT :limit', { limit: ACTIVITY_MAX_ROWS });
@@ -945,11 +1022,7 @@ module.exports.init = function init(ctx) {
 
           if (parsed && String(parsed.command || '').toUpperCase() === 'PRIVMSG') {
             emitTwitchChatEvent(parsed);
-            commands.handleChatMessage(parsed, { source: 'twitch_presence', channel: BOT_CHANNEL })
-              .catch((err) => {
-                lastError = err?.message || String(err);
-                console.warn('[twitch_presence] command hook error:', lastError);
-              });
+            invokeCommandDirectHook(parsed);
           }
 
           if (line.includes('Login authentication failed')) {
@@ -1124,6 +1197,8 @@ module.exports.init = function init(ctx) {
         queued: false,
         payload: 'minimal',
         commandDirectHookKept: true,
+        commandDirectHookEnabled: commandDirectHookEnabled === true,
+        commandDirectHookRoute: '/api/twitch/presence/command-direct/status',
         emitCount: chatBusEmitCount,
         skippedCount: chatBusEmitSkippedCount,
         errorCount: chatBusEmitErrorCount,
@@ -1132,6 +1207,7 @@ module.exports.init = function init(ctx) {
         lastBusEventId: lastChatBusEventId,
         lastError: lastChatBusError
       },
+      commandDirectHook: getCommandDirectHookStatus(),
       activity: {
         schemaOk: activity.schemaOk,
         schemaError: activity.schemaError,
@@ -1183,6 +1259,9 @@ module.exports.init = function init(ctx) {
       { method: 'POST', path: '/api/twitch/presence/reload', purpose: 'refresh status snapshot without reconnect/send actions' },
       { method: 'GET', path: '/api/twitch/presence/start', purpose: 'start Twitch IRC presence connection' },
       { method: 'GET', path: '/api/twitch/presence/stop', purpose: 'stop Twitch IRC presence connection' },
+      { method: 'GET', path: '/api/twitch/presence/command-direct/status', purpose: 'show command direct-hook status' },
+      { method: 'GET/POST', path: '/api/twitch/presence/command-direct/enable', purpose: 'enable legacy/direct commands hook' },
+      { method: 'GET/POST', path: '/api/twitch/presence/command-direct/disable', purpose: 'disable legacy/direct commands hook' },
       { method: 'GET/POST', path: '/api/twitch/presence/send', purpose: 'send a Twitch chat message through the presence bot' },
       { method: 'GET', path: '/api/twitch/presence/activity', purpose: 'list collected Twitch presence activity users' },
       { method: 'GET', path: '/api/twitch/presence/activity/active', purpose: 'list currently point-eligible active/present users' },
@@ -1252,6 +1331,7 @@ module.exports.init = function init(ctx) {
       lastClose: status.last_close,
       lastError: status.last_error || '',
       chatBus: status.chatBus,
+      commandDirectHook: status.commandDirectHook || getCommandDirectHookStatus(),
       activity: status.activity,
       updatedAt: core.nowIso()
     };
@@ -1310,6 +1390,7 @@ module.exports.init = function init(ctx) {
         mode: 'parallel',
         event: 'twitch.chat.message',
         commandDirectHookKept: true,
+        commandDirectHookEnabled: commandDirectHookEnabled === true,
         requireAck: false,
         replayable: false,
         ttlMs: 0

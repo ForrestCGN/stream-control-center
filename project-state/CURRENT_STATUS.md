@@ -2,30 +2,34 @@
 
 Stand: 2026-06-10
 
-## Aktueller Stand
+## Aktueller bestätigter Zusatzstand
 
 ```text
-STEP BUS-TWITCH.6 – Guarded EventSub Chat Enable gebaut
+STEP BUS-TWITCH.8 – Commands Source Switch vorbereitet
 ```
 
-## Inhalt
+## Twitch Events / Commands
+
+Bestätigt aus vorherigen Tests:
 
 ```text
-- twitch_events 0.1.5 / BUS_TWITCH_6_EVENTSUB_CHAT_ENABLE
-- twitch.js 0.1.3 / BUS_TWITCH_6_EVENTSUB_CHAT_ENABLE
-- EventSub channel.chat.message kann per Route gestartet/gestoppt werden
-- Duplikat-Schutz fuer IRC/EventSub parallel aktiv
-- bestehende twitch.js EventSub-Flows bleiben aktiv
-- twitch_presence/IRC bleibt aktiv
-- commands Direkt-Hook bleibt aktiv
+BUS-TWITCH.6 EventSub channel.chat.message läuft produktiv testweise.
+BUS-TWITCH.7 commands empfängt twitch.chat.message per Bus-Subscriber.
 ```
 
-
-## STEP BUS-TWITCH.7 – Commands Subscriber vorbereitet
+Neu in BUS-TWITCH.8:
 
 ```text
-commands kann twitch.chat.message ueber den Communication Bus abonnieren.
-Der bestehende twitch_presence -> commands.handleChatMessage Direktaufruf bleibt aktiv.
-Subscriber ist per Runtime-Route start/stop steuerbar; Autostart nur per COMMANDS_BUS_CHAT_SUBSCRIBER_AUTOSTART=true.
-Keine bestehende Funktionalitaet entfernt.
+- twitch_presence Command-Direktweg ist per Runtime-Route steuerbar.
+- commands Bus-Subscriber bleibt per Runtime-Route steuerbar.
+- Keine Command-Funktion wurde entfernt.
+- Ziel: genau eine produktive Command-Quelle aktiv nutzen, um Doppelverarbeitung zu vermeiden.
+```
+
+## Wichtige Abgrenzung
+
+```text
+Keine SQLite-Datei ersetzt.
+Keine Commands entfernt.
+Keine EventSub-/Presence-Altwege gelöscht.
 ```

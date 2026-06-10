@@ -2,24 +2,19 @@
 
 Stand: 2026-06-10
 
-## Direkt
+## Direkt nach Installation testen
 
-```text
-BUS-TWITCH.6 live testen: Startroute ausfuehren, Chatnachricht senden, Counter pruefen.
+```powershell
+Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/commands/bus-chat/start"
+Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/twitch/presence/command-direct/disable"
 ```
 
-## Danach
+Danach mit einem harmlosen Chat-Command testen und Status prüfen.
+
+## Nächster fachlicher Step
 
 ```text
-BUS-TWITCH.7 – Commands als Subscriber vorbereiten, Direkt-Hook weiter behalten.
+BUS-TWITCH.9 – Commands Bus-only Live-Test und Autostart-Entscheidung
 ```
 
-
-## STEP BUS-TWITCH.7 – Commands Subscriber vorbereitet
-
-```text
-commands kann twitch.chat.message ueber den Communication Bus abonnieren.
-Der bestehende twitch_presence -> commands.handleChatMessage Direktaufruf bleibt aktiv.
-Subscriber ist per Runtime-Route start/stop steuerbar; Autostart nur per COMMANDS_BUS_CHAT_SUBSCRIBER_AUTOSTART=true.
-Keine bestehende Funktionalitaet entfernt.
-```
+Ziel: Wenn Bus-only stabil läuft, optional `COMMANDS_BUS_CHAT_SUBSCRIBER_AUTOSTART=true` setzen und Presence-Direktweg default deaktivieren.

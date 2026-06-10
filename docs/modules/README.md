@@ -2,33 +2,24 @@
 
 Stand: 2026-06-10
 
-## Twitch Events / Twitch OAuth
+## Twitch Events / Communication Bus
 
 ```text
-BUS-TWITCH.5b – User OAuth Force Verify + Scope Diagnostics
+BUS-TWITCH.1 Foundation
+BUS-TWITCH.2 Presence Chat Parallel Bridge
+BUS-TWITCH.3 EventSub Ownership Preparation
+BUS-TWITCH.4 EventSub Chat Readiness
+BUS-TWITCH.5 Live Token/ID Readiness
+BUS-TWITCH.5b OAuth Force Verify + Scope Diagnostics
+BUS-TWITCH.6 Guarded EventSub Chat Enable
+BUS-TWITCH.7 Commands Chat Bus Subscriber
+BUS-TWITCH.8 Commands Source Switch
 ```
 
-`twitch_events` bleibt die zentrale Twitch-Event-Schicht und weiterhin im vorbereiteten Zustand fuer EventSub Chat. `twitch.js` wurde nur fuer OAuth-Force-Verify und sichere Scope-Diagnose erweitert, damit `user:read:chat` sauber in den ForrestCGN User-Token gelangen kann.
-
-## Wichtige Regel
+## Wichtige Projektregeln
 
 ```text
-Keine EventSub-Subscription wird durch BUS-TWITCH.5b erstellt.
-Kein EventSub-Takeover.
-Keine bestehende Funktionalitaet entfernen.
-```
-
-
-## BUS-TWITCH.6 – Guarded EventSub Chat Enable
-
-`twitch_events` kann EventSub `channel.chat.message` kontrolliert starten. Bestehende Flows bleiben aktiv.
-
-
-## STEP BUS-TWITCH.7 – Commands Subscriber vorbereitet
-
-```text
-commands kann twitch.chat.message ueber den Communication Bus abonnieren.
-Der bestehende twitch_presence -> commands.handleChatMessage Direktaufruf bleibt aktiv.
-Subscriber ist per Runtime-Route start/stop steuerbar; Autostart nur per COMMANDS_BUS_CHAT_SUBSCRIBER_AUTOSTART=true.
-Keine bestehende Funktionalitaet entfernt.
+Keine Funktionalität entfernen.
+Alte Direktwege erst deaktivieren/entfernen, wenn der neue Busweg erfolgreich getestet ist.
+StepDone vor Live-Test ausführen.
 ```

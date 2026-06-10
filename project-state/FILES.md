@@ -2,34 +2,32 @@
 
 Stand: 2026-06-10
 
-## BUS-TWITCH.6
+## BUS-TWITCH.8
+
+### Code-Dateien
 
 ```text
-backend/modules/twitch_events.js
-backend/modules/twitch.js
-docs/modules/twitch_events.md
-docs/modules/README.md
-docs/current/CURRENT_CHAT_HANDOFF_BUS_TWITCH_6.md
+backend/modules/commands.js
+backend/modules/twitch_presence.js
+```
+
+### Doku-Dateien
+
+```text
 docs/current/CURRENT_STATUS.md
 docs/current/NEXT_STEPS.md
 docs/current/TODO.md
 docs/current/CHANGELOG.md
 docs/current/FILES.md
+docs/current/CURRENT_CHAT_HANDOFF_BUS_TWITCH_8.md
+docs/modules/commands.md
+docs/modules/twitch_events.md
+docs/modules/README.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/CHANGELOG.md
 project-state/FILES.md
-README_STEP_BUS_TWITCH_6.md
+README_STEP_BUS_TWITCH_8.md
 ARTIFACT_CHECK.json
-```
-
-
-## STEP BUS-TWITCH.7 – Commands Subscriber vorbereitet
-
-```text
-commands kann twitch.chat.message ueber den Communication Bus abonnieren.
-Der bestehende twitch_presence -> commands.handleChatMessage Direktaufruf bleibt aktiv.
-Subscriber ist per Runtime-Route start/stop steuerbar; Autostart nur per COMMANDS_BUS_CHAT_SUBSCRIBER_AUTOSTART=true.
-Keine bestehende Funktionalitaet entfernt.
 ```

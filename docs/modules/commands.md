@@ -1,32 +1,31 @@
-# commands – BUS-TWITCH.7
+# Modul: commands
 
-Stand: 2026-06-10
+Stand: 2026-06-10 – BUS-TWITCH.8
 
-## Zweck
+## Rolle
 
-Das Command-System kann `twitch.chat.message` ueber den Communication Bus abonnieren.
-Der alte Direktaufruf aus `twitch_presence` bleibt aktiv.
+`commands` verarbeitet Chat-Commands. Seit BUS-TWITCH.7 kann das Modul `twitch.chat.message` vom Communication Bus abonnieren. Seit BUS-TWITCH.8 kann der alte Presence-Direktweg separat deaktiviert werden.
 
-## Runtime-Routen
-
-```text
-GET  /api/commands/bus-chat/status
-GET  /api/commands/bus-chat/start
-POST /api/commands/bus-chat/start
-GET  /api/commands/bus-chat/stop
-POST /api/commands/bus-chat/stop
-```
-
-## Regeln
+## Wichtige Routen
 
 ```text
-- Kein ACK fuer Chat.
-- Kein Replay fuer Chat.
-- Kein Queue-Zwang.
-- Existing direct hook kept.
-- Autostart nur mit COMMANDS_BUS_CHAT_SUBSCRIBER_AUTOSTART=true.
+GET/POST /api/commands/bus-chat/start
+GET/POST /api/commands/bus-chat/stop
+GET      /api/commands/bus-chat/status
 ```
 
-## Migration
+## Source-Switch-Regel
 
-Erst wenn Commands ueber EventSub/Bus stabil getestet sind, darf der alte Presence-Direktaufruf spaeter deaktiviert oder entfernt werden.
+```text
+Produktiv soll nur eine Command-Quelle aktiv sein:
+- Direktweg: twitch_presence -> commands.handleChatMessage
+- Busweg: twitch_events -> communication_bus -> commands subscriber
+```
+
+Der Direktweg wird in `twitch_presence` gesteuert:
+
+```text
+GET/POST /api/twitch/presence/command-direct/disable
+GET/POST /api/twitch/presence/command-direct/enable
+GET      /api/twitch/presence/command-direct/status
+```
