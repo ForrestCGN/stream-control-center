@@ -1,28 +1,29 @@
 # CHANGELOG – stream-control-center
 
-## 2026-06-10 – BUS-TWITCH.12
+Stand: 2026-06-10
 
-### Hinzugefügt
+## STEP BUS-TWITCH.13 – Channelpoints/VIP30 Event-Mapping
+
+### Art
 
 ```text
-docs/current/BUS_TWITCH_MODULE_MIGRATION_PLAN.md
+Doku-/Planungsstep, keine Codeänderung.
 ```
 
-### Dokumentiert
+### Analysiert
 
 ```text
-- Priorisierte Migrationsreihenfolge für Twitch-Events.
-- Channelpoints/VIP30 als nächster Kandidat.
-- Alerts, Loyalty, Shoutout und Deathcounter als folgende Kandidaten.
-- Event-Policy: Twitch-Events bleiben leichtgewichtig.
-- Systemaktionen sollen eigene Lifecycle-/Result-Events nutzen.
+backend/modules/twitch.js
+backend/modules/channelpoints_eventsub_bus_bridge.js
+backend/modules/channelpoints.js
+backend/modules/vip30.js
 ```
 
-### Nicht geändert
+### Ergebnis
 
 ```text
-Keine Code-Dateien.
-Keine EventSub-Subscription.
-Keine SQLite-Datei.
-Keine produktive Logik.
+Channelpoints/VIP30 Ist-Flows wurden erfasst.
+Neues Ziel-Event twitch.channelpoints.redemption.created wurde als nächster Parallelweg festgelegt.
+Bestehender Altweg channelpoints.redemption / received bleibt vorerst aktiv.
+Keine Funktionalität wurde entfernt.
 ```

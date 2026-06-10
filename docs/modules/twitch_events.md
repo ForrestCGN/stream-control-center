@@ -71,3 +71,15 @@ Channelpoints / VIP30
 ```
 
 twitch_events bleibt zentrale Event-Schicht. Fachlogik bleibt in den Fachmodulen.
+
+
+## BUS-TWITCH.13 – Channelpoints/VIP30 Ziel-Event
+
+```text
+twitch.channelpoints.redemption.created
+channel: twitch.channelpoints.redemption
+action: created
+policy: no ACK, no replay, no queue for pure Twitch input event
+```
+
+Der bestehende Bridge-Weg `channelpoints.redemption / received` bleibt bis zur bestätigten Migration aktiv.

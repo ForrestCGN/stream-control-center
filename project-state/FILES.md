@@ -2,13 +2,13 @@
 
 Stand: 2026-06-10
 
-## BUS-TWITCH.12
+## STEP BUS-TWITCH.13
 
 ### Neue/aktualisierte Doku-Dateien
 
 ```text
-docs/current/BUS_TWITCH_MODULE_MIGRATION_PLAN.md
-docs/current/CURRENT_CHAT_HANDOFF_BUS_TWITCH_12.md
+docs/current/BUS_TWITCH_CHANNELPOINTS_VIP30_MAPPING.md
+docs/current/CURRENT_CHAT_HANDOFF_BUS_TWITCH_13.md
 docs/current/CURRENT_STATUS.md
 docs/current/NEXT_STEPS.md
 docs/current/TODO.md
@@ -21,12 +21,15 @@ project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/CHANGELOG.md
 project-state/FILES.md
-README_STEP_BUS_TWITCH_12.md
+README_STEP_BUS_TWITCH_13.md
 ARTIFACT_CHECK.json
 ```
 
-### Code-Dateien
+### Keine Code-Dateien geändert
 
 ```text
-Keine Code-Dateien geändert.
+backend/modules/twitch.js wurde nur analysiert.
+backend/modules/channelpoints.js wurde nur analysiert.
+backend/modules/channelpoints_eventsub_bus_bridge.js wurde nur analysiert.
+backend/modules/vip30.js wurde nur analysiert.
 ```

@@ -2,49 +2,71 @@
 
 Stand: 2026-06-10
 
-## Aktueller bestätigter Hauptstand
+## Aktueller bestätigter BUS-TWITCH-Stand
 
 ```text
-STEP BUS-TWITCH.12 – Modul-Migrationsplan für Twitch-Events
+STEP BUS-TWITCH.13 – Channelpoints/VIP30 Event-Mapping geprüft und dokumentiert
 ```
 
-## Bestätigter produktiver Standardweg für Chat/Commands
+## Produktiver Chat-/Command-Standard
 
 ```text
 Twitch EventSub channel.chat.message
-→ backend/modules/twitch_events.js
+→ twitch_events
 → communication_bus
-→ backend/modules/commands.js
+→ commands
 ```
 
-## Aktive/Bestätigte Modulstände
+Bestätigt aus BUS-TWITCH.10/BUS-TWITCH.9:
 
 ```text
-twitch_events   0.1.6 / BUS_TWITCH_10_EVENTSUB_CHAT_AUTOSTART
-commands        0.2.1 / BUS_TWITCH_9_COMMAND_SOURCE_DEFAULTS
-twitch_presence 0.1.4 / BUS_TWITCH_9_COMMAND_SOURCE_DEFAULTS
-twitch.js       0.1.3 / BUS_TWITCH_6_EVENTSUB_CHAT_ENABLE
+- twitch_events EventSub Chat Autostart aktiv
+- EventSub WebSocket OPEN, Keepalive vorhanden
+- channel.chat.message Subscription enabled
+- commands Bus-Subscriber autostart=true
+- twitch_presence Command-Direktweg default deaktiviert
+- Presence/IRC bleibt als Fallback vorhanden
 ```
 
-## Neu mit BUS-TWITCH.12
+## Channelpoints / VIP30 Prüfstand
+
+BUS-TWITCH.13 ist ein reiner Analyse-/Planungsstand. Es wurden keine produktiven Channelpoints- oder VIP30-Flows geändert.
+
+Erkannte Ist-Struktur:
 
 ```text
-Modul-Migrationsplan für weitere Twitch-Events erstellt.
-Priorität 1: Channelpoints/VIP30.
-Priorität 2: Alerts/Subs/Bits/Raids/Follows.
-Priorität 3: Loyalty/Giveaways.
-Priorität 4: Shoutout/ClipShoutout.
-Priorität 5: Deathcounter/Streamstatus/Game Sync.
+twitch.js
+→ besitzt aktuell weiterhin produktive EventSub-Verbindung und Subscription channel.channel_points_custom_reward_redemption.add
+
+channelpoints_eventsub_bus_bridge.js
+→ pollt aktuell EventSub-Audit/Cache-Dateien
+→ emittiert channelpoints.redemption / received auf den Communication Bus
+
+channelpoints.js
+→ besitzt lokales Reward-/Redemption-Modell
+→ kann channelpoints.redemption / received empfangen
+→ kann Fulfill/Cancel Policies und Twitch-Status-Updates ausführen
+
+vip30.js
+→ subscribed aktuell auf channelpoints.redemption / received
+→ verarbeitet VIP30-Reward fachlich
+→ besitzt Safety-/Live-Execution-Status und externe VIP-Remove-Subscriptions
 ```
 
-## Wichtige Regeln für weitere Migration
+Zielbild für spätere Migration:
+
+```text
+Twitch EventSub channel.channel_points_custom_reward_redemption.add
+→ twitch_events
+→ communication_bus: twitch.channelpoints.redemption.created
+→ vip30 / channelpoints / weitere Module abonnieren gezielt
+```
+
+## Wichtige Abgrenzung
 
 ```text
 Keine Funktionalität entfernen.
-Erst parallel abonnieren und testen.
-Erst danach alte Direktlogik deaktivieren oder entfernen.
-StepDone vor Live-Test.
-Twitch-Events bleiben leichtgewichtig: kein ACK, kein Replay, keine Queue als Standard.
-ACK/Replay sind vorbereitet, aber default aus.
-Koordinierte Systemaktionen sollen später eigene Lifecycle-/Result-Events nutzen.
+Keine produktive SQLite-Datei ersetzen.
+Keine bestehende twitch.js-EventSub-Logik entfernen, bevor neue Subscriber erfolgreich getestet sind.
+Keine Fulfill-/Cancel-/VIP-Grant-Logik umbauen, bevor Mapping und Testmodus bestätigt sind.
 ```

@@ -43,3 +43,10 @@ Erst parallel abonnieren und testen.
 StepDone vor Live-Test.
 Twitch-Events bleiben leichtgewichtig.
 ```
+
+
+## BUS-TWITCH.13 – Channelpoints/VIP30 Mapping
+
+```text
+Channelpoints/VIP30 Event-Mapping wurde dokumentiert. Nächster Ziel-Eventname: twitch.channelpoints.redemption.created. Bestehender Altweg bleibt aktiv.
+```
