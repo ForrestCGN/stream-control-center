@@ -1,6 +1,8 @@
 # CHANGELOG
 
-## BUS-TWITCH.16b
+## BUS-TWITCH.16c
 
-- VIP30 Legacy Bridge Hard Disable Gate ergänzt.
-- TwitchEvents-Verarbeitung von Legacy-Bridge-Stats getrennt.
+- vip30 auf 0.8.35 aktualisiert.
+- Legacy-Bridge Default-Autostart deaktiviert.
+- TwitchEvents Subscriber bleibt Autostart-Standard.
+- Legacy-Fallback bleibt manuell start-/stoppbar.

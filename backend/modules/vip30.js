@@ -15,8 +15,8 @@ try {
 }
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.34";
-const MODULE_BUILD = "BUS_TWITCH_16B_VIP30_LEGACY_BRIDGE_HARD_DISABLE";
+const MODULE_VERSION = "0.8.35";
+const MODULE_BUILD = "BUS_TWITCH_16C_VIP30_LEGACY_BRIDGE_AUTOSTART_OFF";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -80,7 +80,7 @@ const DEFAULT_CONFIG = {
   bridge: {
     enabled: true,
     internalBridgeEnabled: true,
-    internalBridgeAutostart: true,
+    internalBridgeAutostart: false,
     twitchEventsSubscriberEnabled: true,
     twitchEventsSubscriberAutostart: true,
     acceptTitleMatch: true,

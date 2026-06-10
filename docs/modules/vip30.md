@@ -6,3 +6,8 @@ VIP30 unterstützt zwei Channelpoints-Quellen:
 2. Legacy-Fallback: `channelpoints.redemption / received`.
 
 Mit BUS-TWITCH.16b wurde der Legacy-Fallback hart absicherbar gemacht. Wenn die Legacy-Bridge gestoppt ist, führt sie keine Decision aus. TwitchEvents-Verarbeitung wird nicht mehr in die Legacy-Bridge-Stats gezählt.
+
+
+## BUS-TWITCH.16c
+
+VIP30 nutzt standardmäßig den TwitchEvents-/Bus-Subscriber für Channelpoints-Redemptions. Die Legacy-Bridge bleibt als manueller Fallback vorhanden, hat aber Default-Autostart aus. Erwarteter Standard: `twitchEvents.active=true`, `legacyBridge.active=false`, `legacyHardDisableGate=true`.

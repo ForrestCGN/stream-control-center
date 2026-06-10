@@ -1,4 +1,5 @@
 # TODO
 
-- BUS-TWITCH.16b Live-Test durchführen.
-- Nach Bestätigung ggf. BUS-TWITCH.17 planen.
+- BUS-TWITCH.16c Live-Test durchführen.
+- Danach VIP30-Migrationsblock dokumentieren/konsolidieren.
+- Nächstes Modul nach Migrationsplan auswählen.

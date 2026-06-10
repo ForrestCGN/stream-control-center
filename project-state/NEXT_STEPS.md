@@ -1,7 +1,7 @@
 # NEXT_STEPS
 
-1. STEP BUS-TWITCH.16b einspielen und Node neu starten.
-2. Legacy-Bridge stoppen.
-3. 30 Tage VIP testen.
-4. Prüfen, dass TwitchEvents verarbeitet und Legacy-Stats nicht weiter durch TwitchEvents steigen.
-5. Danach entscheiden: Legacy-Bridge Default ggf. auf aus setzen oder nächstes Modul migrieren.
+1. STEP BUS-TWITCH.16c entpacken.
+2. StepDone ausführen.
+3. Backend neu starten.
+4. Prüfen: twitchEvents active/autostart true, legacyBridge active/autostart false.
+5. Danach VIP30-Test über Bus-Weg durchführen oder Doku konsolidieren.
