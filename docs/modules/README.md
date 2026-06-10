@@ -1,34 +1,6 @@
 # Module-Dokumentation
 
-Stand: 2026-06-10
-
-## Aktueller Twitch-Events-Stand
-
-```text
-STEP BUS-TWITCH.1 – Twitch Events Central Foundation
-```
-
-Neue Modul-Doku:
-
-```text
-docs/modules/twitch_events.md
-```
-
-## Twitch Events – Zielbild
-
-```text
-twitch_events = zentrale Twitch-Event-Schicht
-twitch.js = Twitch-Core/API/OAuth/Helix
-twitch_presence.js = Heimleitung/Bot/Chat-Senden/Presence
-communication_bus = zentrale Verteilung an Subscriber
-```
-
-Wichtige Regel:
-
-```text
-Keine bestehende Funktionalitaet entfernen.
-Bestehende Direktlogik bleibt aktiv, bis ein Modul erfolgreich ueber twitch_events abonniert, getestet und dokumentiert wurde.
-```
+Stand: 2026-06-09
 
 ## Aktueller Loyalty-/Glücksrad-Stand
 
@@ -65,4 +37,21 @@ Loyalty -> Loyalty Games -> Presets
 Loyalty -> Loyalty Games -> Giveaways
 Loyalty -> Loyalty Games -> Chat/Commands
 Loyalty -> Loyalty Games -> Verlauf
+```
+
+## Twitch Events / Communication Bus
+
+```text
+BUS-TWITCH.1 Twitch Events Central Foundation bestätigt.
+BUS-TWITCH.2 Chat Parallel Bridge vorbereitet.
+```
+
+### Regeln
+
+```text
+twitch_events ist die zentrale Twitch-Event-Schicht.
+Twitch-Events sind Eingangssignale fuer Subscriber.
+ACK/Replay sind vorbereitet, aber fuer Twitch-Events standardmaessig aus.
+Chat wird ohne Replay, ohne ACK, ohne Queue und mit minimalem Payload gesendet.
+Bestehende Direktlogik bleibt aktiv, bis der neue Subscriber-Weg erfolgreich getestet und dokumentiert wurde.
 ```

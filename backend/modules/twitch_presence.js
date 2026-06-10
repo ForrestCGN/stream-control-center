@@ -1,4 +1,4 @@
-﻿const path = require('path');
+const path = require('path');
 const fs = require('fs');
 const axios = require('axios');
 const WebSocket = require('ws');
@@ -6,20 +6,23 @@ const core = require('./helpers/helper_core');
 const routes = require('./helpers/helper_routes');
 const database = require('../core/database');
 const commands = require('./commands');
+const twitchEvents = require('./twitch_events');
 
 const MODULE_NAME = 'twitch_presence';
-const MODULE_VERSION = '0.1.0';
+const MODULE_VERSION = '0.1.1';
+const MODULE_BUILD = 'BUS_TWITCH_2_CHAT_PARALLEL';
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
+  build: MODULE_BUILD,
   type: 'runtime',
   category: 'integration',
-  description: 'Twitch IRC Presence, Chat-Ausgabe und Chat-Command-Eingang.',
+  description: 'Twitch IRC Presence, Chat-Ausgabe und Chat-Command-Eingang mit parallelem twitch_events Chat-Emit.',
   routesPrefix: ['/api/twitch/presence', '/twitch/presence'],
   bus: {
     registered: false,
     heartbeat: false,
-    emits: [],
+    emits: ['twitch.chat.message via twitch_events'],
     listens: []
   },
   legacy: false
@@ -27,6 +30,7 @@ const MODULE_META = {
 
 module.exports.MODULE_META = MODULE_META;
 module.exports.MODULE_VERSION = MODULE_VERSION;
+module.exports.MODULE_BUILD = MODULE_BUILD;
 module.exports.version = MODULE_VERSION;
 
 let twitchPresenceService = null;
@@ -118,6 +122,13 @@ module.exports.init = function init(ctx) {
   let lastChatMessageAt = null;
   let lastChatMessagePreview = null;
   let chatMessageSendCount = 0;
+  let chatBusEmitCount = 0;
+  let chatBusEmitSkippedCount = 0;
+  let chatBusEmitErrorCount = 0;
+  let lastChatBusEmitAt = null;
+  let lastChatBusResultReason = '';
+  let lastChatBusEventId = '';
+  let lastChatBusError = '';
 
   const activity = {
     schemaOk: false,
@@ -544,6 +555,54 @@ module.exports.init = function init(ctx) {
     }
   }
 
+  function emitTwitchChatEvent(parsed) {
+    try {
+      if (!parsed || String(parsed.command || '').toUpperCase() !== 'PRIVMSG') {
+        chatBusEmitSkippedCount += 1;
+        lastChatBusResultReason = 'not_privmsg';
+        return { ok: false, reason: 'not_privmsg' };
+      }
+
+      if (!twitchEvents || typeof twitchEvents.handleIrcEvent !== 'function') {
+        chatBusEmitSkippedCount += 1;
+        lastChatBusResultReason = 'twitch_events_unavailable';
+        return { ok: false, reason: 'twitch_events_unavailable' };
+      }
+
+      const result = twitchEvents.handleIrcEvent(parsed, {
+        source: 'twitch_presence',
+        channel: BOT_CHANNEL,
+        receivedAt: core.nowIso()
+      }, {
+        requireAck: false,
+        replayable: false,
+        ttlMs: 0,
+        priority: 'P2',
+        maxMessageLength: 450,
+        includeRaw: false,
+        includeTags: false
+      });
+
+      if (result && result.ok === true) {
+        chatBusEmitCount += 1;
+        lastChatBusEmitAt = core.nowIso();
+        lastChatBusResultReason = 'ok';
+        lastChatBusEventId = result.busEventId || (result.bus && (result.bus.eventId || result.bus.event?.id)) || '';
+        lastChatBusError = '';
+      } else {
+        chatBusEmitSkippedCount += 1;
+        lastChatBusResultReason = result && result.reason ? String(result.reason) : 'emit_not_ok';
+      }
+
+      return result || { ok: false, reason: 'no_result' };
+    } catch (e) {
+      chatBusEmitErrorCount += 1;
+      lastChatBusResultReason = 'exception';
+      lastChatBusError = e?.message || String(e);
+      return { ok: false, reason: 'exception', error: lastChatBusError };
+    }
+  }
+
   function refreshActivityStatuses() {
     if (!ensureActivitySchema()) return [];
     const rows = database.all('SELECT * FROM twitch_presence_activity ORDER BY last_seen_at DESC LIMIT :limit', { limit: ACTIVITY_MAX_ROWS });
@@ -885,6 +944,7 @@ module.exports.init = function init(ctx) {
           handleIrcActivity(parsed);
 
           if (parsed && String(parsed.command || '').toUpperCase() === 'PRIVMSG') {
+            emitTwitchChatEvent(parsed);
             commands.handleChatMessage(parsed, { source: 'twitch_presence', channel: BOT_CHANNEL })
               .catch((err) => {
                 lastError = err?.message || String(err);
@@ -1052,6 +1112,26 @@ module.exports.init = function init(ctx) {
       last_pong_at: lastPongAt,
       last_close: lastClose,
       last_error: lastError,
+      chatBus: {
+        enabled: true,
+        mode: 'parallel',
+        source: 'twitch_presence',
+        targetModule: 'twitch_events',
+        event: 'twitch.chat.message',
+        requireAck: false,
+        replayable: false,
+        ttlMs: 0,
+        queued: false,
+        payload: 'minimal',
+        commandDirectHookKept: true,
+        emitCount: chatBusEmitCount,
+        skippedCount: chatBusEmitSkippedCount,
+        errorCount: chatBusEmitErrorCount,
+        lastEmitAt: lastChatBusEmitAt,
+        lastResultReason: lastChatBusResultReason,
+        lastBusEventId: lastChatBusEventId,
+        lastError: lastChatBusError
+      },
       activity: {
         schemaOk: activity.schemaOk,
         schemaError: activity.schemaError,
@@ -1171,6 +1251,7 @@ module.exports.init = function init(ctx) {
       lastPongAt: status.last_pong_at,
       lastClose: status.last_close,
       lastError: status.last_error || '',
+      chatBus: status.chatBus,
       activity: status.activity,
       updatedAt: core.nowIso()
     };
@@ -1225,6 +1306,14 @@ module.exports.init = function init(ctx) {
         reconnecting: status.reconnecting
       }),
       buildCheck('activity_schema', activitySchemaOk, 'error', { table: 'twitch_presence_activity', error: activity.schemaError || '' }),
+      buildCheck('twitch_events_chat_bridge', Boolean(twitchEvents && typeof twitchEvents.handleIrcEvent === 'function'), 'warning', {
+        mode: 'parallel',
+        event: 'twitch.chat.message',
+        commandDirectHookKept: true,
+        requireAck: false,
+        replayable: false,
+        ttlMs: 0
+      }),
       buildCheck('routes', true, 'ok', { prefix: '/api/twitch/presence', count: buildPresenceRoutes().length })
     ];
 

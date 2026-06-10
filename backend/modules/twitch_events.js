@@ -1,18 +1,17 @@
 'use strict';
 
 /**
- * BUS-TWITCH.1 – Twitch Events Central Foundation
+ * BUS-TWITCH.2 – Twitch Chat Parallel Bridge
  *
  * Central Twitch event contract, normalization and Communication-Bus publisher.
  *
  * Current step:
- * - creates the central module
- * - registers on the Communication Bus
- * - publishes heartbeat/status
- * - exposes status/catalog routes
- * - prepares handlers for IRC/EventSub/redemption lifecycle
+ * - keeps the central module active
+ * - keeps ACK/replay prepared but disabled by default
+ * - accepts parallel IRC chat events from twitch_presence
+ * - publishes twitch.chat.message as a lightweight bus event
  *
- * This module does not replace existing productive flows yet.
+ * This module does not replace the existing command direct hook yet.
  */
 
 const core = require('./helpers/helper_core');
@@ -20,8 +19,8 @@ const routes = require('./helpers/helper_routes');
 const communicationBus = require('./communication_bus');
 
 const MODULE_NAME = 'twitch_events';
-const MODULE_VERSION = '0.1.0';
-const MODULE_BUILD = 'BUS_TWITCH_1';
+const MODULE_VERSION = '0.1.1';
+const MODULE_BUILD = 'BUS_TWITCH_2_CHAT_PARALLEL';
 const MODULE_ID = `module:${MODULE_NAME}`;
 const MODULE_STARTED_AT = nowIso();
 
@@ -249,7 +248,7 @@ module.exports.init = function init(ctx = {}) {
         meta: {
           build: MODULE_BUILD,
           role: 'twitch-event-center',
-          migrationMode: 'foundation-only',
+          migrationMode: 'chat-parallel',
           ackDefaultEnabled: false,
           replayDefaultEnabled: false
         }
@@ -486,7 +485,7 @@ function getStatus() {
       counts: safeJson(state.counts, {}),
       database: {
         used: false,
-        note: 'BUS-TWITCH.1 speichert keine Twitch-Events in SQLite.'
+        note: 'BUS-TWITCH.2 speichert keine Twitch-Events in SQLite.'
       },
       runtime: {
         loadedAt: state.loadedAt,
@@ -519,9 +518,9 @@ function getStatus() {
       events: catalog
     },
     migration: {
-      mode: 'parallel-foundation',
-      rule: 'Bestehende Funktionen bleiben aktiv. Alte Direktlogik wird erst entfernt, wenn ein Modul erfolgreich ueber twitch_events abonniert, getestet und dokumentiert ist.',
-      currentStep: 'BUS-TWITCH.1'
+      mode: 'chat-parallel',
+      rule: 'Bestehende Funktionen bleiben aktiv. Der Command-Direktaufruf in twitch_presence bleibt erhalten; twitch.chat.message wird nur zusaetzlich ueber twitch_events angeboten. Alte Direktlogik wird erst entfernt, wenn ein Modul erfolgreich abonniert, getestet und dokumentiert ist.',
+      currentStep: 'BUS-TWITCH.2'
     },
     updatedAt: nowIso()
   };
@@ -612,8 +611,8 @@ function publishTwitchEvent(eventKey, payload = {}, context = {}, options = {}) 
       category: eventDefItem.category,
       at: nowIso(),
       busEventId: result && result.event ? result.event.id : '',
-      delivered: Number(result && result.delivered || 0),
-      subscribers: Array.isArray(result && result.subscribers) ? result.subscribers.length : undefined,
+      delivered: Number(result && result.deliveredCount || 0),
+      subscribers: Number(result && result.subscriberDeliveredCount || 0),
       preview: shortPreview(JSON.stringify(normalizedPayload.twitch || {}), 180)
     };
     state.lastError = '';
