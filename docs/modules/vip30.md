@@ -1,9 +1,8 @@
-# vip30
+# VIP30 – BUS-TWITCH.16b
 
-BUS-TWITCH.16: VIP30 kann Channelpoints über `twitch.channelpoints.redemption.created` aus dem zentralen TwitchEvents-Bus verarbeiten. Der alte `channelpoints.redemption/received`-Bridge-Weg bleibt vorhanden und ist per Runtime-Routen start-/stoppbar.
+VIP30 unterstützt zwei Channelpoints-Quellen:
 
-Routen:
-- `/api/vip30/channelpoints/source/status`
-- `/api/vip30/channelpoints/bridge/start`
-- `/api/vip30/channelpoints/bridge/stop`
-- `/api/vip30/channelpoints/twitch-events/status`
+1. Neuer Primärweg: `twitch.channelpoints.redemption.created` über `twitch_events` und `communication_bus`.
+2. Legacy-Fallback: `channelpoints.redemption / received`.
+
+Mit BUS-TWITCH.16b wurde der Legacy-Fallback hart absicherbar gemacht. Wenn die Legacy-Bridge gestoppt ist, führt sie keine Decision aus. TwitchEvents-Verarbeitung wird nicht mehr in die Legacy-Bridge-Stats gezählt.

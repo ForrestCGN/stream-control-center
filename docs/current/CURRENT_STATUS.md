@@ -1,10 +1,8 @@
 # CURRENT_STATUS
 
-## BUS-TWITCH.16
+BUS-TWITCH.16b: VIP30 Legacy Bridge Hard Disable Gate.
 
-- VIP30 Version 0.8.33 / BUS_TWITCH_16_VIP30_SOURCE_SWITCH_AUTOSTART
-- TwitchEvents Subscriber: autostartfähig und default aktiv
-- Legacy Channelpoints Bridge: bleibt vorhanden, default aktiv, per Runtime-Route stopp-/startbar
-- Source Status: /api/vip30/channelpoints/source/status
-
-Keine Datenbank-, Fulfill-, Cancel- oder Grant-Logik geändert.
+- Neuer VIP30 TwitchEvents Subscriber bleibt aktiv/autostartfähig.
+- Legacy-Bridge bleibt start-/stoppbar.
+- Gestoppte Legacy-Bridge blockiert alte Legacy-Verarbeitung mit `legacy_bridge_disabled`.
+- TwitchEvents-Subscriber nutzt die Decision-Logik, ohne Legacy-Stats zu erhöhen.

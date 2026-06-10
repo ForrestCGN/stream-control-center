@@ -1,7 +1,6 @@
 # CHANGELOG
 
-## BUS-TWITCH.16
+## BUS-TWITCH.16b
 
-- VIP30 TwitchEvents Subscriber Autostart vorbereitet.
-- Legacy Channelpoints Bridge Runtime Start/Stop ergänzt.
-- Source Switch Statusroute ergänzt.
+- VIP30 Legacy Bridge Hard Disable Gate ergänzt.
+- TwitchEvents-Verarbeitung von Legacy-Bridge-Stats getrennt.

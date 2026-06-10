@@ -15,8 +15,8 @@ try {
 }
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.33";
-const MODULE_BUILD = "BUS_TWITCH_16_VIP30_SOURCE_SWITCH_AUTOSTART";
+const MODULE_VERSION = "0.8.34";
+const MODULE_BUILD = "BUS_TWITCH_16B_VIP30_LEGACY_BRIDGE_HARD_DISABLE";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -2146,50 +2146,73 @@ function emitBridgeEvent(action, payload = {}) {
 }
 
 async function handleChannelpointsRedemptionBridgeEvent(envelope = {}) {
-  bridgeStats.received += 1;
-  bridgeLastEventAt = nowIso();
+  const meta = envelope && typeof envelope.meta === "object" ? envelope.meta : {};
+  const isTwitchEventsSubscriber = meta.twitchEventsSubscriber === true || cleanString(meta.source || "") === "twitch_events";
+  const trackLegacyStats = !isTwitchEventsSubscriber;
+  if (trackLegacyStats) {
+    bridgeStats.received += 1;
+    bridgeLastEventAt = nowIso();
+  }
   const config = getConfig();
   if (!config.bridge || config.bridge.enabled === false) {
-    bridgeStats.ignored += 1;
-    bridgeStats.lastReason = "bridge_disabled";
+    if (trackLegacyStats) {
+      bridgeStats.ignored += 1;
+      bridgeStats.lastReason = "bridge_disabled";
+      bridgeLastIgnoredAt = nowIso();
+    }
     return { ok: true, ignored: true, reason: "bridge_disabled" };
   }
+  if (trackLegacyStats && bridgeSubscribed !== true) {
+    bridgeStats.ignored += 1;
+    bridgeStats.lastReason = "legacy_bridge_disabled";
+    bridgeLastIgnoredAt = nowIso();
+    return { ok: true, ignored: true, reason: "legacy_bridge_disabled", safety: { noDecision: true, noTwitchWrite: true, noVipGrant: true, noSlotWrite: true, noRedemptionFulfillCancel: true } };
+  }
   const normalized = normalizeChannelpointsBridgeEnvelope(envelope);
-  bridgeStats.lastRewardTitle = normalized.rewardTitle;
-  bridgeStats.lastRewardId = normalized.twitchRewardId;
-  bridgeStats.lastUserLogin = normalized.userLogin;
+  if (trackLegacyStats) {
+    bridgeStats.lastRewardTitle = normalized.rewardTitle;
+    bridgeStats.lastRewardId = normalized.twitchRewardId;
+    bridgeStats.lastUserLogin = normalized.userLogin;
+  }
   const match = matchesVip30BridgeReward(normalized);
   if (!match.matched) {
-    bridgeStats.ignored += 1;
-    bridgeStats.lastReason = "not_vip30_reward";
-    bridgeLastIgnoredAt = nowIso();
+    if (trackLegacyStats) {
+      bridgeStats.ignored += 1;
+      bridgeStats.lastReason = "not_vip30_reward";
+      bridgeLastIgnoredAt = nowIso();
+    }
     return { ok: true, ignored: true, reason: "not_vip30_reward", match: match.checks };
   }
   if (!rememberBridgeRedemption(normalized.twitchRedemptionId)) {
-    bridgeStats.duplicates += 1;
-    bridgeStats.lastReason = "duplicate_redemption";
+    if (trackLegacyStats) {
+      bridgeStats.duplicates += 1;
+      bridgeStats.lastReason = "duplicate_redemption";
+    }
     return { ok: true, ignored: true, reason: "duplicate_redemption", twitchRedemptionId: normalized.twitchRedemptionId };
   }
-  bridgeStats.matched += 1;
+  if (trackLegacyStats) bridgeStats.matched += 1;
   const isTestEvent = normalized.source === "vip30_bridge_test_api" || (envelope && envelope.meta && envelope.meta.testEvent === true);
   let linkResult = null;
   if (!isTestEvent && normalized.twitchRewardId) {
-    linkResult = linkChannelpointsRewardTwitchRewardId(normalized.twitchRewardId, { source: "eventsub_dryrun_observe" });
+    linkResult = linkChannelpointsRewardTwitchRewardId(normalized.twitchRewardId, { source: isTwitchEventsSubscriber ? "twitch_events_observe" : "eventsub_dryrun_observe" });
   }
   try {
     let result;
     if (!isTestEvent && buildLiveActionSafetyStatus().armed === true) {
       result = await executeVip30LiveFlow({
         ...normalized,
-        source: "channelpoints_bridge_live_flow",
+        source: isTwitchEventsSubscriber ? "twitch_events_channelpoints_live_flow" : "channelpoints_bridge_live_flow",
         bridgeMatchedBy: match.checks
-      }, { reason: "channelpoints_redemption_bus_live_flow" });
-      bridgeStats.decisions += 1;
-      bridgeStats.lastReason = result && (result.reason || result.status) || "live_flow_done";
+      }, { reason: isTwitchEventsSubscriber ? "twitch_events_channelpoints_live_flow" : "channelpoints_redemption_bus_live_flow" });
+      if (trackLegacyStats) {
+        bridgeStats.decisions += 1;
+        bridgeStats.lastReason = result && (result.reason || result.status) || "live_flow_done";
+      }
       emitBridgeEvent(result && result.ok ? "live.success" : "live.blocked_or_failed", {
         normalized: { ...normalized, event: undefined },
         match: match.checks,
         twitchRewardIdLink: linkResult,
+        sourcePath: isTwitchEventsSubscriber ? "twitch_events" : "legacy_bridge",
         result: result ? {
           ok: result.ok,
           status: result.status,
@@ -2204,15 +2227,18 @@ async function handleChannelpointsRedemptionBridgeEvent(envelope = {}) {
     }
 
     result = buildChannelpointsBridgeDecision({
-      payload: { ...normalized, source: "channelpoints_bridge", bridgeMatchedBy: match.checks },
+      payload: { ...normalized, source: isTwitchEventsSubscriber ? "twitch_events_channelpoints" : "channelpoints_bridge", bridgeMatchedBy: match.checks },
       event: envelope.event || null
-    }, { reason: "channelpoints_redemption_bus", log: true });
-    bridgeStats.decisions += 1;
-    bridgeStats.lastReason = result && result.decision && result.decision.reason || "decision_done";
+    }, { reason: isTwitchEventsSubscriber ? "twitch_events_channelpoints" : "channelpoints_redemption_bus", log: true });
+    if (trackLegacyStats) {
+      bridgeStats.decisions += 1;
+      bridgeStats.lastReason = result && result.decision && result.decision.reason || "decision_done";
+    }
     emitBridgeEvent(result && result.decision && result.decision.wouldGrantVip ? "decision.eligible" : "decision.blocked", {
       normalized: { ...normalized, event: undefined },
       match: match.checks,
       twitchRewardIdLink: linkResult,
+      sourcePath: isTwitchEventsSubscriber ? "twitch_events" : "legacy_bridge",
       decision: result && result.decision ? {
         status: result.decision.status,
         reason: result.decision.reason,
@@ -2224,10 +2250,10 @@ async function handleChannelpointsRedemptionBridgeEvent(envelope = {}) {
     });
     return result;
   } catch (err) {
-    bridgeStats.errors += 1;
+    if (trackLegacyStats) bridgeStats.errors += 1;
     bridgeLastError = err && err.message ? err.message : String(err);
-    bridgeStats.lastReason = "decision_failed";
-    emitBridgeEvent("decision.failed", { normalized: { ...normalized, event: undefined }, error: bridgeLastError });
+    if (trackLegacyStats) bridgeStats.lastReason = "decision_failed";
+    emitBridgeEvent("decision.failed", { normalized: { ...normalized, event: undefined }, sourcePath: isTwitchEventsSubscriber ? "twitch_events" : "legacy_bridge", error: bridgeLastError });
     return { ok: false, error: bridgeLastError };
   }
 }
@@ -4159,6 +4185,7 @@ function buildVip30ChannelpointsSourceSwitchStatus() {
     moduleBuild: MODULE_BUILD,
     mode: "source-switch-prepared",
     currentRecommendation: "twitch_events_bus_primary_with_legacy_bridge_fallback_available",
+    legacyHardDisableGate: true,
     twitchEvents: buildTwitchEventsChannelpointsSubscriberStatus(),
     legacyBridge: buildInternalBridgeStatus(),
     env: {
