@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * BUS-TWITCH.2 – Twitch Chat Parallel Bridge
+ * BUS-TWITCH.3 – EventSub Ownership Preparation
  *
  * Central Twitch event contract, normalization and Communication-Bus publisher.
  *
@@ -9,7 +9,9 @@
  * - keeps the central module active
  * - keeps ACK/replay prepared but disabled by default
  * - accepts parallel IRC chat events from twitch_presence
- * - publishes twitch.chat.message as a lightweight bus event
+ * - prepares future EventSub ownership in twitch_events without taking over yet
+ * - documents channel.chat.message as planned EventSub source
+ * - keeps existing twitch.js EventSub flows active
  *
  * This module does not replace the existing command direct hook yet.
  */
@@ -19,8 +21,8 @@ const routes = require('./helpers/helper_routes');
 const communicationBus = require('./communication_bus');
 
 const MODULE_NAME = 'twitch_events';
-const MODULE_VERSION = '0.1.1';
-const MODULE_BUILD = 'BUS_TWITCH_2_CHAT_PARALLEL';
+const MODULE_VERSION = '0.1.2';
+const MODULE_BUILD = 'BUS_TWITCH_3_EVENTSUB_OWNERSHIP_PREP';
 const MODULE_ID = `module:${MODULE_NAME}`;
 const MODULE_STARTED_AT = nowIso();
 
@@ -165,6 +167,7 @@ const EVENT_CATALOG = [
 
 const EVENT_MAP = new Map(EVENT_CATALOG.map(item => [item.event, item]));
 const EVENTSUB_TYPE_MAP = {
+  'channel.chat.message': 'twitch.chat.message',
   'stream.online': 'twitch.stream.online',
   'stream.offline': 'twitch.stream.offline',
   'channel.update': 'twitch.channel.updated',
@@ -189,6 +192,67 @@ const DEFAULT_TARGET = {
   id: 'internal:twitch_events',
   module: '',
   capability: ''
+};
+
+
+const EVENTSUB_OWNERSHIP = {
+  schemaVersion: 1,
+  mode: 'prepared-disabled',
+  currentOwner: 'twitch.js',
+  desiredOwner: 'twitch_events',
+  activeOwner: 'twitch.js',
+  takeoverEnabled: false,
+  websocketEnabled: false,
+  subscriptionCreationEnabled: false,
+  notificationForwardingRequired: false,
+  existingTwitchJsEventSubKept: true,
+  existingFlowsChanged: false,
+  duplicateProtectionPrepared: true,
+  duplicateProtectionEnabled: false,
+  note: 'BUS-TWITCH.3 bereitet EventSub-Ownership nur vor. twitch.js bleibt aktuell produktiver EventSub-Besitzer.',
+  migrationModes: ['disabled', 'prepared-disabled', 'mirror-readonly', 'chat-owner', 'owner'],
+  currentTwitchJsSubscriptions: [
+    'stream.online',
+    'stream.offline',
+    'channel.update',
+    'channel.hype_train.begin',
+    'channel.hype_train.progress',
+    'channel.hype_train.end',
+    'channel.channel_points_custom_reward_redemption.add',
+    'channel.vip.add',
+    'channel.vip.remove',
+    'channel.follow',
+    'channel.subscribe',
+    'channel.subscription.gift',
+    'channel.subscription.message',
+    'channel.cheer',
+    'channel.raid',
+    'channel.shoutout.create',
+    'channel.shoutout.receive'
+  ],
+  plannedSubscriptions: [
+    {
+      type: 'channel.chat.message',
+      version: '1',
+      eventKey: 'twitch.chat.message',
+      source: 'eventsub',
+      enabled: false,
+      status: 'planned',
+      conditionShape: {
+        broadcaster_user_id: '<channel/broadcaster id>',
+        user_id: '<chatting bot/user id>'
+      },
+      requiredScopes: ['user:read:chat'],
+      appTokenAdditionalScopes: ['user:bot', 'channel:bot or moderator status'],
+      transport: 'websocket',
+      replayable: false,
+      requireAck: false,
+      ttlMs: 0,
+      payload: 'minimal',
+      migrationNote: 'Darf erst aktiviert werden, wenn Token/Scopes, Subscription-Erstellung und Duplikat-Schutz separat getestet sind.'
+    }
+  ],
+  cutoverRule: 'Bestehende EventSub-/IRC-/Command-Flows werden erst entfernt, wenn der jeweilige Subscriber ueber twitch_events erfolgreich getestet und dokumentiert ist.'
 };
 
 const state = {
@@ -224,6 +288,7 @@ module.exports.MODULE_VERSION = MODULE_VERSION;
 module.exports.version = MODULE_VERSION;
 module.exports.getStatus = getStatus;
 module.exports.getCatalog = getCatalog;
+module.exports.getEventSubOwnership = () => safeJson(EVENTSUB_OWNERSHIP, {});
 module.exports.publishTwitchEvent = publishTwitchEvent;
 module.exports.handleIrcEvent = handleIrcEvent;
 module.exports.handleEventSubNotification = handleEventSubNotification;
@@ -248,7 +313,7 @@ module.exports.init = function init(ctx = {}) {
         meta: {
           build: MODULE_BUILD,
           role: 'twitch-event-center',
-          migrationMode: 'chat-parallel',
+          migrationMode: 'eventsub-ownership-prep',
           ackDefaultEnabled: false,
           replayDefaultEnabled: false
         }
@@ -275,6 +340,15 @@ module.exports.init = function init(ctx = {}) {
         moduleBuild: MODULE_BUILD,
         count: EVENT_CATALOG.length,
         events: getCatalog()
+      });
+    }));
+    registered.push(...routes.registerGet(app, ['/api/twitch/events/eventsub/ownership', '/twitch/events/eventsub/ownership'], (req, res) => {
+      res.json({
+        ok: true,
+        module: MODULE_NAME,
+        moduleVersion: MODULE_VERSION,
+        moduleBuild: MODULE_BUILD,
+        ownership: safeJson(EVENTSUB_OWNERSHIP, {})
       });
     }));
     state.routeCount = registered.length;
@@ -433,6 +507,7 @@ function getStatusPayload(trigger = 'status') {
     lastError: state.lastError,
     warnings: state.lastWarning ? [state.lastWarning] : [],
     counts: safeJson(state.counts, {}),
+    eventSubOwnership: safeJson(EVENTSUB_OWNERSHIP, {}),
     bus: {
       registered: state.registeredOnBus,
       heartbeat: true,
@@ -485,8 +560,9 @@ function getStatus() {
       counts: safeJson(state.counts, {}),
       database: {
         used: false,
-        note: 'BUS-TWITCH.2 speichert keine Twitch-Events in SQLite.'
+        note: 'BUS-TWITCH.3 speichert keine Twitch-Events in SQLite.'
       },
+      eventSubOwnership: safeJson(EVENTSUB_OWNERSHIP, {}),
       runtime: {
         loadedAt: state.loadedAt,
         updatedAt: state.updatedAt,
@@ -518,9 +594,10 @@ function getStatus() {
       events: catalog
     },
     migration: {
-      mode: 'chat-parallel',
-      rule: 'Bestehende Funktionen bleiben aktiv. Der Command-Direktaufruf in twitch_presence bleibt erhalten; twitch.chat.message wird nur zusaetzlich ueber twitch_events angeboten. Alte Direktlogik wird erst entfernt, wenn ein Modul erfolgreich abonniert, getestet und dokumentiert ist.',
-      currentStep: 'BUS-TWITCH.2'
+      mode: 'eventsub-ownership-prep',
+      rule: 'twitch_events wird als zukuenftiger EventSub-Besitzer vorbereitet. twitch.js bleibt aktuell produktiver EventSub-Besitzer. Alte Direktlogik wird erst entfernt, wenn ein Modul erfolgreich abonniert, getestet und dokumentiert ist.',
+      currentStep: 'BUS-TWITCH.3',
+      nextStep: 'BUS-TWITCH.4 – EventSub Chat Subscription in twitch_events'
     },
     updatedAt: nowIso()
   };
@@ -768,6 +845,51 @@ function normalizeEventSubPayload(eventKey, type, event = {}, subscription = {},
     eventSubMessageId: cleanString(metadata.message_id || metadata.messageId || ''),
     broadcaster
   };
+
+  if (eventKey === 'twitch.chat.message' && type === 'channel.chat.message') {
+    const messageObj = isPlainObject(event.message) ? event.message : {};
+    const text = cleanString(firstValue(messageObj.text, event.message_text, event.messageText, event.text));
+    const rawBadges = Array.isArray(event.badges) ? event.badges : [];
+    const badges = rawBadges.reduce((acc, badge) => {
+      const key = cleanString(firstValue(badge.set_id, badge.setId, badge.id));
+      if (key) acc[key] = cleanString(firstValue(badge.id, badge.info, '1')) || true;
+      return acc;
+    }, {});
+    const user = {
+      login: cleanLogin(firstValue(event.chatter_user_login, event.user_login, event.login)),
+      displayName: cleanString(firstValue(event.chatter_user_name, event.user_name, event.displayName)),
+      userId: cleanString(firstValue(event.chatter_user_id, event.user_id, event.userId)),
+      roles: {
+        broadcaster: Boolean(badges.broadcaster),
+        mod: Boolean(badges.moderator),
+        vip: Boolean(badges.vip),
+        subscriber: Boolean(badges.subscriber || badges.founder)
+      },
+      badges
+    };
+    return {
+      ...base,
+      source: 'eventsub',
+      channel: broadcaster.login,
+      message: shortPreview(text, 450),
+      messageLength: text.length,
+      messageId: cleanString(firstValue(event.message_id, event.messageId)),
+      messageType: cleanString(firstValue(event.message_type, event.messageType, 'text')),
+      user,
+      color: cleanString(event.color || ''),
+      cheer: isPlainObject(event.cheer) ? safeJson(event.cheer, null) : null,
+      reply: isPlainObject(event.reply) ? safeJson(event.reply, null) : null,
+      channelPointsCustomRewardId: cleanString(firstValue(event.channel_points_custom_reward_id, event.channelPointsCustomRewardId)),
+      sharedChat: {
+        sourceBroadcasterUserId: cleanString(firstValue(event.source_broadcaster_user_id, event.sourceBroadcasterUserId)),
+        sourceBroadcasterUserLogin: cleanLogin(firstValue(event.source_broadcaster_user_login, event.sourceBroadcasterUserLogin)),
+        sourceBroadcasterUserName: cleanString(firstValue(event.source_broadcaster_user_name, event.sourceBroadcasterUserName)),
+        sourceMessageId: cleanString(firstValue(event.source_message_id, event.sourceMessageId)),
+        isSourceOnly: event.is_source_only === true
+      },
+      fragments: Array.isArray(messageObj.fragments) ? safeJson(messageObj.fragments, []) : []
+    };
+  }
 
   if (eventKey === 'twitch.channelpoints.redemption.created') {
     return {

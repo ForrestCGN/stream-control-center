@@ -1,65 +1,43 @@
 # CURRENT STATUS – stream-control-center
 
-Stand: 2026-06-09
+Stand: 2026-06-10
 
-## Aktueller bestätigter Zusatzstand
+## Aktueller bestaetigter Zusatzstand
 
 ```text
-STEP AUTOSHOUT-HOTFIX.1 – AutoShout autoRawMessage/instantTrigger Fix bestätigt und dokumentiert
+STEP BUS-TWITCH.3 – EventSub Ownership Preparation
 ```
 
-## Shoutout / AutoShout
+## Twitch Events / Communication Bus
 
-Bestätigt:
+Bestaetigt:
 
 ```text
-- Modul: clip_shoutout
-- Runtime-Version: 0.2.42
-- Fehler autoRawMessage is not defined behoben
-- 2-Nachrichten-Regel getestet und erfolgreich
-- !lurk als erste Nachricht getestet und erfolgreich
-- lastError nach Test leer
+- twitch_events 0.1.2 / BUS_TWITCH_3_EVENTSUB_OWNERSHIP_PREP
+- BUS-TWITCH.1 Foundation bestaetigt
+- BUS-TWITCH.2 Chat Parallel Bridge live bestaetigt
+- twitch.chat.message wurde ueber twitch_presence/IRC -> twitch_events -> Bus erfolgreich gezaehlt
+- BUS-TWITCH.3 bereitet EventSub-Ownership in twitch_events vor
 ```
 
-Offen:
+EventSub Ownership aktuell:
 
 ```text
-- Testuser forrestcgn aus AutoShout-Liste entfernen, falls noch vorhanden
-- papselzockt_ / papselzockt_cgn Login-Mismatch prüfen
-- optionale Entscheidungsdiagnose später planen
-```
-
-## Loyalty / Glücksrad / Giveaways
-
-Letzter dokumentierter Bereich bleibt separat weiterzuführen:
-
-```text
-STEP LWG-4K.2 – Static Chat Routes Order Fix bestätigt
-LWG-4N.7 laut docs/current vorbereitet
+currentOwner: twitch.js
+desiredOwner: twitch_events
+mode: prepared-disabled
+takeoverEnabled: false
+websocketEnabled: false
+subscriptionCreationEnabled: false
+existingTwitchJsEventSubKept: true
+existingFlowsChanged: false
 ```
 
 ## Wichtige Abgrenzung
 
 ```text
-Keine produktive SQLite-Datei ersetzen.
-Keine Queue-Logik ohne neuen Auftrag umbauen.
-Keine Twitch-Presence- oder Streamer.bot-Logik in diesem Hotfix geändert.
-```
-
-## Twitch Events / Communication Bus
-
-```text
-STEP BUS-TWITCH.1 – Twitch Events Central Foundation bestaetigt.
-STEP BUS-TWITCH.2 – Chat Parallel Bridge bereitgestellt.
-```
-
-Bestätigt/vorbereitet:
-
-```text
-- twitch_events laeuft als zentrale Twitch-Event-Schicht.
-- ACK/Replay sind vorbereitet, aber fuer Twitch-Events standardmaessig aus.
-- twitch_presence bleibt Chatquelle.
-- commands.handleChatMessage(...) bleibt aktiv.
-- PRIVMSG wird zusaetzlich als twitch.chat.message ueber twitch_events angeboten.
-- Keine Altlogik entfernt.
+Keine EventSub-Logik aus twitch.js entfernt.
+Keine Alert-/VIP-/Loyalty-/Deathcounter-/Shoutout-Flows umgebaut.
+Keine Command-Direktlogik entfernt.
+Keine SQLite-Datei ersetzt oder geaendert.
 ```

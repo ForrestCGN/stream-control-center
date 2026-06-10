@@ -1,59 +1,32 @@
 # CHANGELOG – stream-control-center
 
-## 2026-06-09 – AUTOSHOUT-HOTFIX.1
+## 2026-06-10 – BUS-TWITCH.3
 
-### Geändert
-
-```text
-backend/modules/clip_shoutout.js
-```
-
-### Behoben
-
-```text
-autoRawMessage is not defined
-```
-
-### Ergebnis
-
-```text
-AutoShout verarbeitet Chataktivität wieder.
-2-Nachrichten-Regel funktioniert.
-!lurk funktioniert als erste Nachricht.
-lastError bleibt leer.
-```
-
-### Nicht geändert
-
-```text
-Keine Queue-Logik.
-Keine OfficialQueue-Logik.
-Keine Twitch-Presence-Logik.
-Keine Streamer.bot-Logik.
-Keine DB-Datei ersetzt.
-```
-
-## 2026-06-10 – BUS-TWITCH.2
-
-### Geändert
+### Geaendert
 
 ```text
 backend/modules/twitch_events.js
-backend/modules/twitch_presence.js
+docs/modules/twitch_events.md
+docs/modules/README.md
+docs/current/*
+project-state/*
 ```
 
-### Neu
+### Ergaenzt
 
 ```text
-PRIVMSG aus twitch_presence wird zusaetzlich ueber twitch_events als twitch.chat.message emittiert.
+EventSub Ownership Preparation in twitch_events.
+Statusroute /api/twitch/events/eventsub/ownership.
+channel.chat.message als geplante EventSub-Quelle dokumentiert.
+channel.chat.message Normalisierung vorbereitet, ohne produktive Ownership zu aktivieren.
 ```
 
-### Nicht geändert
+### Nicht geaendert
 
 ```text
-commands.handleChatMessage(...) bleibt aktiv.
-twitch.js EventSub-Direktlogik bleibt aktiv.
-Keine Alerts/VIP30/Loyalty/Sound-Umstellung.
-Keine SQLite-Aenderung.
-Keine Altlogik entfernt.
+twitch.js
+EventSub-Verbindung in twitch.js
+bestehende Alert-/VIP-/Loyalty-/Deathcounter-/Shoutout-Flows
+Command-Direktaufruf
+SQLite/DB
 ```

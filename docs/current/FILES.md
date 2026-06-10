@@ -1,46 +1,13 @@
 # FILES – stream-control-center
 
-Stand: 2026-06-09
+Stand: 2026-06-10
 
-## AUTOSHOUT-HOTFIX.1
+## BUS-TWITCH.3
 
 ### Code-Datei
 
 ```text
-backend/modules/clip_shoutout.js
-```
-
-### Doku-Dateien
-
-```text
-docs/current/CURRENT_STATUS.md
-docs/current/NEXT_STEPS.md
-docs/current/TODO.md
-docs/current/CHANGELOG.md
-docs/current/FILES.md
-docs/current/HOTFIX_AUTOSHOUT_AUTORAWMESSAGE.md
-docs/current/CURRENT_CHAT_HANDOFF_AUTOSHOUT_HOTFIX_2026_06_09.md
-docs/modules/clip_shoutout.md
-project-state/CURRENT_STATUS.md
-project-state/NEXT_STEPS.md
-project-state/TODO.md
-project-state/CHANGELOG.md
-project-state/FILES.md
-README_STEP_AUTOSHOUT_HOTFIX_DOCUMENTATION.md
-ARTIFACT_CHECK.json
-```
-
-## Hinweis
-
-Dieses Doku-ZIP enthält keine neue Code-Datei. Der Code-Hotfix wurde vorher separat eingespielt und getestet.
-
-## BUS-TWITCH.2
-
-### Code-Dateien
-
-```text
 backend/modules/twitch_events.js
-backend/modules/twitch_presence.js
 ```
 
 ### Doku-Dateien
@@ -48,17 +15,25 @@ backend/modules/twitch_presence.js
 ```text
 docs/modules/twitch_events.md
 docs/modules/README.md
-docs/current/CURRENT_CHAT_HANDOFF_BUS_TWITCH_2.md
 docs/current/CURRENT_STATUS.md
 docs/current/NEXT_STEPS.md
 docs/current/TODO.md
 docs/current/CHANGELOG.md
 docs/current/FILES.md
+docs/current/CURRENT_CHAT_HANDOFF_BUS_TWITCH_3.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/CHANGELOG.md
 project-state/FILES.md
-README_STEP_BUS_TWITCH_2.md
+README_STEP_BUS_TWITCH_3.md
 ARTIFACT_CHECK.json
+```
+
+## Nicht enthalten/geaendert
+
+```text
+backend/modules/twitch.js
+backend/modules/twitch_presence.js
+produktive SQLite-Dateien
 ```

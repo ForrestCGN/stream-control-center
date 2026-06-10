@@ -1,29 +1,27 @@
 # NEXT STEPS – stream-control-center
 
-Stand: 2026-06-09
+Stand: 2026-06-10
 
-## AutoShout / Shoutout
+## Naechster sinnvoller Step
 
 ```text
-1. Falls noch vorhanden: forrestcgn aus AutoShout-Streamer-Liste entfernen.
-2. papselzockt_ / papselzockt_cgn prüfen und korrekten Login speichern.
-3. Optional später AutoShout-Diagnose ergänzen: lastSeenLogin, lastDecision, instantTrigger, matchedStreamer, blockReason.
-4. Keine weitere Codeänderung ohne neuen Auftrag.
+BUS-TWITCH.4 – EventSub Chat Subscription in twitch_events planen/umsetzen
 ```
 
-## Loyalty / Glücksrad
+## Vor BUS-TWITCH.4 pruefen
 
 ```text
-LWG-4N.7 einspielen und Runtime testen, sofern dieser Bereich wieder aufgenommen wird.
+1. Welche Token/Scopes liegen im Live-System vor?
+2. Kann channel.chat.message mit vorhandener Auth sauber erstellt werden?
+3. Welche user_id soll fuer die Subscription verwendet werden: Bot/Heimleitung oder Broadcaster?
+4. Duplikat-Schutz fuer IRC + EventSub parallel vorbereiten.
+5. Erst dann EventSub WebSocket/Subscription-Erstellung in twitch_events aktivieren.
 ```
 
-## Twitch Events / Communication Bus
+## Weiterhin offen
 
 ```text
-1. STEP BUS-TWITCH.2 entpacken.
-2. StepDone vor Live-Test ausfuehren.
-3. Backend neu starten.
-4. Statusrouten testen.
-5. Mit echter Chatnachricht pruefen, ob twitch.chat.message gezaehlt wird.
-6. Danach BUS-TWITCH.3 planen: erster echter Subscriber, ohne alte Direktlogik zu entfernen.
+- Keine alten EventSub-Direktwege entfernen, bevor Subscriber erfolgreich getestet sind.
+- Commands spaeter als Subscriber fuer twitch.chat.message vorbereiten.
+- Presence spaeter auf Presence/Chat-Senden/Kompatibilitaet reduzieren.
 ```
