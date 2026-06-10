@@ -1,14 +1,44 @@
-# Files
+# FILES – stream-control-center
 
-## AUTOSHOUT-HOTFIX.1 – 2026-06-09
+Stand: 2026-06-10
 
-### Code-Hotfix-Datei
+## BUS-TWITCH.1
+
+### Code-Datei
+
+```text
+backend/modules/twitch_events.js
+```
+
+### Doku-Dateien
+
+```text
+docs/modules/twitch_events.md
+docs/modules/README.md
+docs/current/CURRENT_CHAT_HANDOFF_BUS_TWITCH_1.md
+docs/current/CURRENT_STATUS.md
+docs/current/NEXT_STEPS.md
+docs/current/TODO.md
+docs/current/CHANGELOG.md
+docs/current/FILES.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+README_STEP_BUS_TWITCH_1.md
+ARTIFACT_CHECK.json
+```
+
+## AUTOSHOUT-HOTFIX.1
+
+### Code-Datei
 
 ```text
 backend/modules/clip_shoutout.js
 ```
 
-### Dokumentationsdateien in diesem Doku-ZIP
+### Doku-Dateien
 
 ```text
 docs/current/CURRENT_STATUS.md
@@ -26,11 +56,4 @@ project-state/CHANGELOG.md
 project-state/FILES.md
 README_STEP_AUTOSHOUT_HOTFIX_DOCUMENTATION.md
 ARTIFACT_CHECK.json
-```
-
-## LWG-4N.7 Dateien laut bisherigem Current-Stand
-
-```text
-backend/modules/loyalty_giveaways.js
-backend/modules/loyalty_games/wheel.js
 ```

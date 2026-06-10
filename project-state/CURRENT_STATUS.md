@@ -1,11 +1,35 @@
 # CURRENT STATUS – stream-control-center
 
-Stand: 2026-06-09
+Stand: 2026-06-10
 
-## Aktueller bestätigter Zusatzstand
+## Aktueller bestaetigter Arbeitsstand
 
 ```text
-STEP AUTOSHOUT-HOTFIX.1 – AutoShout autoRawMessage/instantTrigger Fix bestätigt und dokumentiert
+STEP BUS-TWITCH.1 – Twitch Events Central Foundation vorbereitet
+```
+
+## Twitch Events / Communication Bus
+
+Neu vorbereitet:
+
+```text
+- Modul: twitch_events
+- Datei: backend/modules/twitch_events.js
+- Runtime-Version: 0.1.0
+- Build: BUS_TWITCH_1
+- Statusroute: /api/twitch/events/status
+- Katalogroute: /api/twitch/events/catalog
+- Bus-Anmeldung: vorbereitet
+- Heartbeat: vorbereitet
+- ACK/Replay: technisch vorbereitet, default deaktiviert
+```
+
+Ziel:
+
+```text
+Twitch-Events zentral normalisieren und ueber den Communication Bus abonnierbar machen.
+Bestehende produktive Flows bleiben aktiv.
+Alte Direktlogik wird erst entfernt, wenn ein Modul erfolgreich abonniert, getestet und dokumentiert wurde.
 ```
 
 ## Shoutout / AutoShout
@@ -43,5 +67,6 @@ LWG-4N.7 laut docs/current vorbereitet
 ```text
 Keine produktive SQLite-Datei ersetzen.
 Keine Queue-Logik ohne neuen Auftrag umbauen.
-Keine Twitch-Presence- oder Streamer.bot-Logik in diesem Hotfix geändert.
+Keine bestehenden Twitch-/Presence-/Alert-/VIP30-Flows in BUS-TWITCH.1 entfernt.
+Streamer.bot ist fuer dieses System aussen vor.
 ```

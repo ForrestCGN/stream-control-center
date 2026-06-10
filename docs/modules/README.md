@@ -1,6 +1,34 @@
 # Module-Dokumentation
 
-Stand: 2026-06-09
+Stand: 2026-06-10
+
+## Aktueller Twitch-Events-Stand
+
+```text
+STEP BUS-TWITCH.1 – Twitch Events Central Foundation
+```
+
+Neue Modul-Doku:
+
+```text
+docs/modules/twitch_events.md
+```
+
+## Twitch Events – Zielbild
+
+```text
+twitch_events = zentrale Twitch-Event-Schicht
+twitch.js = Twitch-Core/API/OAuth/Helix
+twitch_presence.js = Heimleitung/Bot/Chat-Senden/Presence
+communication_bus = zentrale Verteilung an Subscriber
+```
+
+Wichtige Regel:
+
+```text
+Keine bestehende Funktionalitaet entfernen.
+Bestehende Direktlogik bleibt aktiv, bis ein Modul erfolgreich ueber twitch_events abonniert, getestet und dokumentiert wurde.
+```
 
 ## Aktueller Loyalty-/Glücksrad-Stand
 
