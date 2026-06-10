@@ -2,28 +2,41 @@
 
 Stand: 2026-06-10
 
-## Aktueller bestätigter/gelieferter Stand
+## Aktueller bestaetigter Bereich
 
 ```text
-STEP BUS-TWITCH.9 – Command Source Defaults gebaut
+BUS-TWITCH.10 – EventSub Chat Autostart / Restart-Sicherheit vorbereitet
 ```
 
-## Twitch Events / Command Source
+## BUS-TWITCH Stand
 
 ```text
-- twitch_events EventSub channel.chat.message läuft als Zielquelle.
-- commands nutzt den Communication Bus nun als Default-Command-Quelle.
-- COMMANDS_BUS_CHAT_SUBSCRIBER_AUTOSTART default: true.
-- twitch_presence Command-Direktweg bleibt vorhanden, aber default: false.
-- Direktweg kann bei Bedarf per Route wieder aktiviert werden.
-- Keine Command-Funktionalität entfernt.
+BUS-TWITCH.1  Foundation
+BUS-TWITCH.2  Presence/IRC Parallelbridge
+BUS-TWITCH.3  EventSub Ownership vorbereitet
+BUS-TWITCH.4  Chat Readiness
+BUS-TWITCH.5  Live Token/ID Readiness
+BUS-TWITCH.5b OAuth Force Verify
+BUS-TWITCH.6  EventSub Chat aktiv
+BUS-TWITCH.7  Commands Subscriber
+BUS-TWITCH.8/8b Source Switch + Route Fix
+BUS-TWITCH.9  Command Source Defaults
+BUS-TWITCH.10 EventSub Chat Autostart / Restart-Sicherheit
 ```
 
-## Nicht geändert
+## Aktueller Zielweg
 
 ```text
-Keine SQLite-/DB-Datei ersetzt.
-Keine bestehenden Commands entfernt.
-Keine Twitch EventSub Alt-Flows in twitch.js entfernt.
-Keine Presence-/IRC-Funktion gelöscht.
+Twitch EventSub channel.chat.message
+→ twitch_events
+→ communication_bus
+→ commands
+```
+
+## Abgrenzung
+
+```text
+Keine alte Funktionalitaet entfernt.
+twitch.js EventSub-Flows bleiben aktiv.
+twitch_presence bleibt als Fallback vorhanden.
 ```

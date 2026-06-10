@@ -4,12 +4,10 @@ Stand: 2026-06-10
 
 ## BUS-TWITCH
 
-- [x] twitch_events Foundation.
-- [x] Chat parallel über Presence/IRC.
-- [x] EventSub Ownership vorbereitet.
-- [x] EventSub Chat Readiness + Live Scope Check.
-- [x] EventSub channel.chat.message aktiv.
-- [x] Commands als Bus-Subscriber vorbereitet.
-- [x] Presence Command-Direktweg steuerbar.
-- [ ] BUS-TWITCH.9 live testen: Neustart-Defaults prüfen.
-- [ ] Danach weitere Module gezielt auf Twitch-Events abonnieren.
+- [x] EventSub Chat als Chatquelle aktivieren.
+- [x] Commands Bus-Subscriber als Standard setzen.
+- [x] Presence-Direktweg als Fallback deaktivierbar halten.
+- [x] EventSub Chat Autostart / Restart-Sicherheit vorbereiten.
+- [ ] EventSub Chat nach Backend-Neustart live testen.
+- [ ] Restart-Route testen.
+- [ ] Reconnect/Keepalive laenger beobachten.

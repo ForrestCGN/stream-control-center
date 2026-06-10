@@ -2,32 +2,20 @@
 
 Stand: 2026-06-10
 
-## Direkt nach Installation testen
+## Direkt testen
 
 ```powershell
-node -c .\backend\modules\commands.js
-node -c .\backend\modules\twitch_presence.js
-```
-
-```powershell
-$c = Invoke-RestMethod "http://127.0.0.1:8080/api/commands/bus-chat/status"
-$c.busChat | Select-Object enabled,active,autostart,subscriptionId,lastError
-```
-
-```powershell
-$p = Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/presence/command-direct/status"
-$p.commandDirectHook | Select-Object enabled,mode,lastResultReason,lastError
-```
-
-## Erwartung nach Backend-Neustart
-
-```text
-commands busChat enabled=true active=true autostart=true
-twitch_presence commandDirectHook enabled=false mode=disabled
+node -c .\backend\modules\twitch_events.js
+$c = Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/eventsub/chat/status"
+$c.eventSubChat | Select-Object enabled,autostart,autostartEvaluated,active,connecting,lastAutostartResult,lastError
 ```
 
 ## Danach
 
 ```text
-BUS-TWITCH.10 – produktiven Bus-Command-Betrieb beobachten und ggf. weitere Module als Subscriber anbinden.
+BUS-TWITCH.11 – Stabilitaet/Monitoring fuer EventSub Chat pruefen:
+- Restart-Route testen
+- Reconnect/Keepalive beobachten
+- EventSub Chat + Commands nach Backend-Neustart testen
+- Danach erst weitere Module schrittweise abonnieren
 ```

@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * BUS-TWITCH.6 – Guarded EventSub Chat Enable
+ * BUS-TWITCH.10 – EventSub Chat Autostart Restart Safety
  *
  * Central Twitch event contract, normalization and Communication-Bus publisher.
  *
@@ -12,11 +12,12 @@
  * - prepares future EventSub ownership in twitch_events without taking over yet
  * - documents channel.chat.message readiness and required authorization
  * - keeps live readiness checks for token scopes and channel/bot IDs
- * - adds guarded EventSub channel.chat.message activation
- * - enables duplicate-protection for IRC/EventSub parallel mode
+ * - keeps guarded EventSub channel.chat.message activation
+ * - enables EventSub chat autostart by default with env override
+ * - keeps duplicate-protection for IRC/EventSub parallel mode
  * - keeps existing twitch.js EventSub flows active
  *
- * This module does not replace the existing command direct hook yet.
+ * This module keeps old paths available but makes EventSub chat restart-safe for the new bus command default.
  */
 
 const core = require('./helpers/helper_core');
@@ -26,8 +27,8 @@ const axios = require('axios');
 const WebSocket = require('ws');
 
 const MODULE_NAME = 'twitch_events';
-const MODULE_VERSION = '0.1.5';
-const MODULE_BUILD = 'BUS_TWITCH_6_EVENTSUB_CHAT_ENABLE';
+const MODULE_VERSION = '0.1.6';
+const MODULE_BUILD = 'BUS_TWITCH_10_EVENTSUB_CHAT_AUTOSTART';
 const MODULE_ID = `module:${MODULE_NAME}`;
 const MODULE_STARTED_AT = nowIso();
 
@@ -351,6 +352,10 @@ const state = {
   },
   eventSubChat: {
     enabled: false,
+    autostart: true,
+    autostartEvaluated: false,
+    lastAutostartAt: '',
+    lastAutostartResult: '',
     active: false,
     connecting: false,
     duplicateProtectionEnabled: true,
@@ -536,16 +541,39 @@ module.exports.init = function init(ctx = {}) {
       res.status(result.ok ? 200 : 409).json({ ok: result.ok === true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, result, eventSubChat: getEventSubChatStatus() });
     };
 
+    const restartChatRoute = async (req, res) => {
+      try {
+        stopEventSubChat({ reason: firstValue(req.query && req.query.reason, req.body && req.body.reason, 'restart_route_stop') });
+        const result = await startEventSubChat({ reason: firstValue(req.query && req.query.reason, req.body && req.body.reason, 'restart_route_start') });
+        res.status(result.ok ? 200 : 409).json({ ok: result.ok === true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, result, eventSubChat: getEventSubChatStatus() });
+      } catch (err) {
+        res.status(500).json({ ok: false, module: MODULE_NAME, error: err && err.message ? err.message : String(err), eventSubChat: getEventSubChatStatus() });
+      }
+    };
+
     registered.push(...routes.registerPost(app, ['/api/twitch/events/eventsub/chat/start', '/twitch/events/eventsub/chat/start'], startChatRoute));
     registered.push(...routes.registerGet(app, ['/api/twitch/events/eventsub/chat/start', '/twitch/events/eventsub/chat/start'], startChatRoute));
     registered.push(...routes.registerPost(app, ['/api/twitch/events/eventsub/chat/stop', '/twitch/events/eventsub/chat/stop'], stopChatRoute));
     registered.push(...routes.registerGet(app, ['/api/twitch/events/eventsub/chat/stop', '/twitch/events/eventsub/chat/stop'], stopChatRoute));
+    registered.push(...routes.registerPost(app, ['/api/twitch/events/eventsub/chat/restart', '/twitch/events/eventsub/chat/restart'], restartChatRoute));
+    registered.push(...routes.registerGet(app, ['/api/twitch/events/eventsub/chat/restart', '/twitch/events/eventsub/chat/restart'], restartChatRoute));
 
     state.routeCount = registered.length;
   }
 
-  if (boolEnv('TWITCH_EVENTS_EVENTSUB_CHAT_AUTOSTART', false)) {
-    startEventSubChat({ reason: 'env_autostart' }).catch(err => setEventSubChatError(err, 'autostart_failed'));
+  state.eventSubChat.autostart = boolEnv('TWITCH_EVENTS_EVENTSUB_CHAT_AUTOSTART', true);
+  state.eventSubChat.autostartEvaluated = true;
+  if (state.eventSubChat.autostart === true) {
+    state.eventSubChat.lastAutostartAt = nowIso();
+    state.eventSubChat.lastAutostartResult = 'starting';
+    startEventSubChat({ reason: 'env_autostart_default_true' })
+      .then(result => { state.eventSubChat.lastAutostartResult = result && result.reason ? result.reason : 'started'; })
+      .catch(err => {
+        state.eventSubChat.lastAutostartResult = 'failed';
+        setEventSubChatError(err, 'autostart_failed');
+      });
+  } else {
+    state.eventSubChat.lastAutostartResult = 'disabled_by_env';
   }
 
   return getStatus();
@@ -574,9 +602,13 @@ function getEventSubChatStatus() {
     : state.eventSubChat.readyState;
   return {
     schemaVersion: 1,
-    step: 'BUS-TWITCH.6',
-    mode: 'guarded-runtime-simple',
+    step: 'BUS-TWITCH.10',
+    mode: 'guarded-autostart-runtime',
     enabled: state.eventSubChat.enabled === true,
+    autostart: state.eventSubChat.autostart === true,
+    autostartEvaluated: state.eventSubChat.autostartEvaluated === true,
+    lastAutostartAt: state.eventSubChat.lastAutostartAt,
+    lastAutostartResult: state.eventSubChat.lastAutostartResult,
     active: state.eventSubChat.active === true,
     connecting: state.eventSubChat.connecting === true,
     duplicateProtectionEnabled: state.eventSubChat.duplicateProtectionEnabled === true,
@@ -585,6 +617,7 @@ function getEventSubChatStatus() {
     routes: {
       start: '/api/twitch/events/eventsub/chat/start',
       stop: '/api/twitch/events/eventsub/chat/stop',
+      restart: '/api/twitch/events/eventsub/chat/restart',
       status: '/api/twitch/events/eventsub/chat/status'
     },
     websocket: {

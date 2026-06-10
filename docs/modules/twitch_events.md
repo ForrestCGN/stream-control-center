@@ -1,11 +1,24 @@
 # Modul: twitch_events
 
-Stand: BUS-TWITCH.9
+Stand: BUS-TWITCH.10
 
-## Rolle
+`twitch_events` ist die zentrale Twitch-Event-Schicht. Chat kann direkt per Twitch EventSub `channel.chat.message` empfangen und als `twitch.chat.message` auf den Communication Bus gelegt werden.
 
-`twitch_events` ist die zentrale Twitch-Event-Schicht. Chat kann per EventSub `channel.chat.message` empfangen und als `twitch.chat.message` über den Communication Bus veröffentlichen.
+## BUS-TWITCH.10
 
-## Command-Migration
+- EventSub-Chat-Autostart ist standardmaessig aktiv.
+- Deaktivierung per `TWITCH_EVENTS_EVENTSUB_CHAT_AUTOSTART=false` moeglich.
+- Neue Restart-Route fuer kontrollierten Neustart der Chat-EventSub-Verbindung.
+- Duplikat-Schutz bleibt aktiv.
+- `twitch.js`, Presence-Fallback und bestehende Flows bleiben erhalten.
 
-Seit BUS-TWITCH.9 ist EventSub/Bus als Default-Command-Quelle vorgesehen. `twitch_presence` bleibt als Fallback vorhanden.
+## Wichtige Routen
+
+```text
+/api/twitch/events/status
+/api/twitch/events/catalog
+/api/twitch/events/eventsub/chat/status
+/api/twitch/events/eventsub/chat/start
+/api/twitch/events/eventsub/chat/stop
+/api/twitch/events/eventsub/chat/restart
+```

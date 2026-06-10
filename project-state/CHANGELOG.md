@@ -1,26 +1,25 @@
 # CHANGELOG – stream-control-center
 
-## 2026-06-10 – BUS-TWITCH.9
+## 2026-06-10 – BUS-TWITCH.10
 
-### Geändert
+### Geaendert
 
 ```text
-backend/modules/commands.js
-backend/modules/twitch_presence.js
+backend/modules/twitch_events.js
 ```
 
-### Ergebnis
+### Neu
 
 ```text
-commands Bus-Chat-Subscriber startet standardmäßig automatisch.
-twitch_presence Command-Direktweg ist standardmäßig deaktiviert, bleibt aber per Route aktivierbar.
-Damit wird EventSub/Bus zur primären Command-Quelle nach Neustart.
+EventSub Chat Autostart default true
+/api/twitch/events/eventsub/chat/restart
+Statusfelder autostart/autostartEvaluated/lastAutostartResult
 ```
 
-### Nicht geändert
+### Nicht geaendert
 
 ```text
-Keine Command-Funktionalität entfernt.
-Keine EventSub-Alt-Flows aus twitch.js entfernt.
-Keine DB-Datei ersetzt.
+Keine alten Flows entfernt.
+twitch.js bleibt fuer bestehende EventSub-Flows aktiv.
+twitch_presence bleibt Fallback.
 ```
