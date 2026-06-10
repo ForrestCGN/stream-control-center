@@ -19,3 +19,13 @@ STEP BUS-TWITCH.6 – Guarded EventSub Chat Enable gebaut
 - twitch_presence/IRC bleibt aktiv
 - commands Direkt-Hook bleibt aktiv
 ```
+
+
+## STEP BUS-TWITCH.7 – Commands Subscriber vorbereitet
+
+```text
+commands kann twitch.chat.message ueber den Communication Bus abonnieren.
+Der bestehende twitch_presence -> commands.handleChatMessage Direktaufruf bleibt aktiv.
+Subscriber ist per Runtime-Route start/stop steuerbar; Autostart nur per COMMANDS_BUS_CHAT_SUBSCRIBER_AUTOSTART=true.
+Keine bestehende Funktionalitaet entfernt.
+```

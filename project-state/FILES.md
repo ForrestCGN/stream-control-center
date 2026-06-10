@@ -23,3 +23,13 @@ project-state/FILES.md
 README_STEP_BUS_TWITCH_6.md
 ARTIFACT_CHECK.json
 ```
+
+
+## STEP BUS-TWITCH.7 – Commands Subscriber vorbereitet
+
+```text
+commands kann twitch.chat.message ueber den Communication Bus abonnieren.
+Der bestehende twitch_presence -> commands.handleChatMessage Direktaufruf bleibt aktiv.
+Subscriber ist per Runtime-Route start/stop steuerbar; Autostart nur per COMMANDS_BUS_CHAT_SUBSCRIBER_AUTOSTART=true.
+Keine bestehende Funktionalitaet entfernt.
+```

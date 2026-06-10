@@ -22,3 +22,13 @@ Keine bestehende Funktionalitaet entfernen.
 ## BUS-TWITCH.6 – Guarded EventSub Chat Enable
 
 `twitch_events` kann EventSub `channel.chat.message` kontrolliert starten. Bestehende Flows bleiben aktiv.
+
+
+## STEP BUS-TWITCH.7 – Commands Subscriber vorbereitet
+
+```text
+commands kann twitch.chat.message ueber den Communication Bus abonnieren.
+Der bestehende twitch_presence -> commands.handleChatMessage Direktaufruf bleibt aktiv.
+Subscriber ist per Runtime-Route start/stop steuerbar; Autostart nur per COMMANDS_BUS_CHAT_SUBSCRIBER_AUTOSTART=true.
+Keine bestehende Funktionalitaet entfernt.
+```

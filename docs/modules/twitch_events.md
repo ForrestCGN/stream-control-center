@@ -21,3 +21,13 @@ GET  /api/twitch/events/eventsub/chat/stop
 - kein Autostart ausser `TWITCH_EVENTS_EVENTSUB_CHAT_AUTOSTART=true`
 - keine Altlogik entfernt
 - Duplikat-Schutz fuer IRC/EventSub parallel aktiv
+
+
+## STEP BUS-TWITCH.7 – Commands Subscriber vorbereitet
+
+```text
+commands kann twitch.chat.message ueber den Communication Bus abonnieren.
+Der bestehende twitch_presence -> commands.handleChatMessage Direktaufruf bleibt aktiv.
+Subscriber ist per Runtime-Route start/stop steuerbar; Autostart nur per COMMANDS_BUS_CHAT_SUBSCRIBER_AUTOSTART=true.
+Keine bestehende Funktionalitaet entfernt.
+```

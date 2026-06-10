@@ -24,3 +24,13 @@ Keine bestehenden EventSub-Flows entfernt.
 Keine Commands umgestellt.
 Keine SQLite-Datei ersetzt.
 ```
+
+
+## STEP BUS-TWITCH.7 – Commands Subscriber vorbereitet
+
+```text
+commands kann twitch.chat.message ueber den Communication Bus abonnieren.
+Der bestehende twitch_presence -> commands.handleChatMessage Direktaufruf bleibt aktiv.
+Subscriber ist per Runtime-Route start/stop steuerbar; Autostart nur per COMMANDS_BUS_CHAT_SUBSCRIBER_AUTOSTART=true.
+Keine bestehende Funktionalitaet entfernt.
+```

@@ -3,10 +3,11 @@
 const http = require('http');
 const database = require('../core/database');
 const core = require('./helpers/helper_core');
+const communicationBus = require('./communication_bus');
 
 const MODULE_NAME = 'commands';
-const MODULE_VERSION = '0.1.8';
-const MODULE_BUILD = 'vip30-command-catalog';
+const MODULE_VERSION = '0.1.9';
+const MODULE_BUILD = 'BUS_TWITCH_7_COMMANDS_BUS_SUBSCRIBER';
 const SCHEMA_MODULE = 'command_system';
 const SCHEMA_VERSION = 2;
 const API_PREFIX = '/api/commands';
@@ -88,6 +89,28 @@ const state = {
   lastCommand: null,
   lastError: '',
   cooldowns: new Map(),
+  busChat: {
+    enabled: false,
+    active: false,
+    subscriptionId: '',
+    mode: 'manual-runtime',
+    event: 'twitch.chat.message',
+    source: 'communication_bus',
+    channel: 'twitch.chat',
+    action: 'message',
+    commandDirectHookKept: true,
+    autostart: false,
+    processed: 0,
+    ignored: 0,
+    skipped: 0,
+    failed: 0,
+    lastEventAt: '',
+    lastProcessedAt: '',
+    lastIgnoredReason: '',
+    lastBusEventId: '',
+    lastCommandResult: null,
+    lastError: ''
+  },
   ctx: null
 };
 
@@ -714,6 +737,150 @@ async function handleChatMessage(parsed, source = {}) {
   return processMessage({ rawMessage, parsed, user }, { source: source.source || 'twitch_presence', channel: expectedChannel || source.channel || '' });
 }
 
+function normalizeBusChatPayload(envelope = {}) {
+  const payload = envelope && typeof envelope === 'object' ? (envelope.payload || {}) : {};
+  const twitch = payload && typeof payload === 'object' && payload.twitch && typeof payload.twitch === 'object' ? payload.twitch : payload;
+  const userPayload = twitch && twitch.user && typeof twitch.user === 'object' ? twitch.user : {};
+  const roles = userPayload.roles && typeof userPayload.roles === 'object' ? userPayload.roles : {};
+  const badges = userPayload.badges && typeof userPayload.badges === 'object' ? userPayload.badges : {};
+  const rawMessage = cleanText(twitch.message || twitch.text || '');
+  const channel = cleanChannel(twitch.channel || payload.channel || '');
+  const login = cleanLogin(userPayload.login || twitch.userLogin || twitch.login || '');
+  const displayName = cleanText(userPayload.displayName || userPayload.name || twitch.userDisplayName || login);
+  return {
+    rawMessage,
+    channel,
+    messageId: cleanText(twitch.messageId || twitch.eventSubMessageId || payload.messageId || envelope.id || ''),
+    sourceModule: cleanText(payload.sourceModule || twitch.source || envelope.source?.module || 'twitch_events'),
+    user: {
+      login,
+      displayName: displayName || login,
+      userId: cleanText(userPayload.userId || userPayload.id || twitch.userId || ''),
+      badges,
+      isBroadcaster: roles.broadcaster === true || !!badges.broadcaster,
+      isMod: roles.mod === true || roles.moderator === true || !!badges.moderator,
+      isVip: roles.vip === true || !!badges.vip,
+      isSubscriber: roles.subscriber === true || !!badges.subscriber || !!badges.founder
+    },
+    parsed: {
+      command: 'PRIVMSG',
+      params: [channel ? `#${channel}` : '', rawMessage],
+      channel,
+      tags: { id: cleanText(twitch.messageId || '') },
+      badges
+    }
+  };
+}
+
+async function handleBusChatMessage(envelope = {}) {
+  state.busChat.lastEventAt = nowIso();
+  state.busChat.lastBusEventId = cleanText(envelope.id || envelope.event?.id || '');
+
+  const normalized = normalizeBusChatPayload(envelope);
+  if (!normalized.rawMessage) {
+    state.busChat.ignored += 1;
+    state.busChat.lastIgnoredReason = 'message_missing';
+    return { ok: true, ignored: true, reason: 'message_missing' };
+  }
+
+  const result = await processMessage(
+    { rawMessage: normalized.rawMessage, parsed: normalized.parsed, user: normalized.user },
+    { source: 'commands_bus_subscriber', channel: normalized.channel, busEventId: state.busChat.lastBusEventId, messageId: normalized.messageId }
+  );
+
+  if (result && result.ignored) {
+    state.busChat.ignored += 1;
+    state.busChat.lastIgnoredReason = result.reason || 'ignored';
+  } else if (result && result.ok) {
+    state.busChat.processed += 1;
+    state.busChat.lastProcessedAt = nowIso();
+    state.busChat.lastIgnoredReason = '';
+  } else {
+    state.busChat.failed += 1;
+    state.busChat.lastError = result && result.error ? result.error : 'command_processing_failed';
+  }
+
+  state.busChat.lastCommandResult = result || null;
+  return result;
+}
+
+function getBusChatStatus() {
+  return {
+    enabled: state.busChat.enabled === true,
+    active: state.busChat.active === true,
+    subscriptionId: state.busChat.subscriptionId || '',
+    mode: state.busChat.mode,
+    event: state.busChat.event,
+    channel: state.busChat.channel,
+    action: state.busChat.action,
+    commandDirectHookKept: true,
+    autostart: state.busChat.autostart === true,
+    counters: {
+      processed: state.busChat.processed,
+      ignored: state.busChat.ignored,
+      skipped: state.busChat.skipped,
+      failed: state.busChat.failed
+    },
+    lastEventAt: state.busChat.lastEventAt,
+    lastProcessedAt: state.busChat.lastProcessedAt,
+    lastIgnoredReason: state.busChat.lastIgnoredReason,
+    lastBusEventId: state.busChat.lastBusEventId,
+    lastCommandResult: state.busChat.lastCommandResult,
+    lastError: state.busChat.lastError
+  };
+}
+
+function startBusChatSubscriber(options = {}) {
+  if (state.busChat.active && state.busChat.subscriptionId) {
+    return { ok: true, reason: 'already_active', busChat: getBusChatStatus() };
+  }
+
+  const bus = communicationBus && typeof communicationBus.getBus === 'function' ? communicationBus.getBus() : null;
+  if (!bus || typeof bus.subscribe !== 'function') {
+    state.busChat.lastError = 'communication_bus_unavailable';
+    return { ok: false, reason: 'communication_bus_unavailable', busChat: getBusChatStatus() };
+  }
+
+  const subscriptionId = cleanText(options.subscriptionId || 'commands:twitch.chat:message');
+  const result = bus.subscribe({
+    id: subscriptionId,
+    module: MODULE_NAME,
+    channel: 'twitch.chat',
+    action: 'message',
+    meta: { step: 'BUS-TWITCH.7', purpose: 'commands_chat_eventsub_migration', commandDirectHookKept: true }
+  }, (envelope) => {
+    handleBusChatMessage(envelope).catch(err => {
+      state.busChat.failed += 1;
+      state.busChat.lastError = err && err.message ? err.message : String(err);
+    });
+    return { ok: true, accepted: true, async: true, module: MODULE_NAME };
+  });
+
+  if (!result || result.ok !== true) {
+    state.busChat.lastError = result && result.reason ? result.reason : 'subscribe_failed';
+    return { ok: false, reason: state.busChat.lastError, result, busChat: getBusChatStatus() };
+  }
+
+  state.busChat.enabled = true;
+  state.busChat.active = true;
+  state.busChat.subscriptionId = subscriptionId;
+  state.busChat.lastError = '';
+  return { ok: true, reason: 'bus_chat_subscriber_started', result, busChat: getBusChatStatus() };
+}
+
+function stopBusChatSubscriber() {
+  const bus = communicationBus && typeof communicationBus.getBus === 'function' ? communicationBus.getBus() : null;
+  const subscriptionId = state.busChat.subscriptionId || 'commands:twitch.chat:message';
+  let result = { ok: true, reason: 'not_active' };
+  if (bus && typeof bus.unsubscribe === 'function' && state.busChat.active) {
+    result = bus.unsubscribe(subscriptionId);
+  }
+  state.busChat.enabled = false;
+  state.busChat.active = false;
+  state.busChat.subscriptionId = '';
+  return { ok: result && result.ok !== false, reason: 'bus_chat_subscriber_stopped', result, busChat: getBusChatStatus() };
+}
+
 function buildRoutes() {
   return [
     { method: 'GET', path: `${API_PREFIX}/status`, purpose: 'Schneller Command-System Status ohne schwere Listen/Kataloge/Logs' },
@@ -723,6 +890,9 @@ function buildRoutes() {
     { method: 'POST', path: `${API_PREFIX}/delete`, purpose: 'Command löschen' },
     { method: 'GET/POST', path: `${API_PREFIX}/test`, purpose: 'Chatnachricht trocken parsen und Zielpayload anzeigen' },
     { method: 'GET/POST', path: `${API_PREFIX}/execute`, purpose: 'Chatnachricht als Command ausführen' },
+    { method: 'GET', path: `${API_PREFIX}/bus-chat/status`, purpose: 'Status des Twitch-Chat-Bus-Subscribers' },
+    { method: 'GET/POST', path: `${API_PREFIX}/bus-chat/start`, purpose: 'Twitch-Chat-Bus-Subscriber starten' },
+    { method: 'GET/POST', path: `${API_PREFIX}/bus-chat/stop`, purpose: 'Twitch-Chat-Bus-Subscriber stoppen' },
     { method: 'GET', path: `${API_PREFIX}/media-command-preview`, purpose: 'Command-System Preview fuer Media-Command Routing und Payload' },
     { method: 'GET', path: `${API_PREFIX}/logs`, purpose: 'Letzte Command-Ausführungen anzeigen' },
     { method: 'GET', path: `${API_PREFIX}/history`, purpose: 'Alias fuer /api/commands/logs' }
@@ -755,6 +925,7 @@ function statusPayload() {
     removedHeavyFields: ['commands', 'moduleCatalog', 'recent'],
     mediaPlaybackBridge: { enabled: true, target: '/api/sound/play', legacyTargetRewritten: '/api/sound/play-media' },
     commandChannelGuard: { enabled: true, expectedChannel: cleanChannel(process.env.TWITCH_BOT_CHANNEL || ''), mismatchReason: 'channel_mismatch' },
+    busChatSubscriber: getBusChatStatus(),
     diagnostics: buildStandardDiagnostics(),
     updatedAt: nowIso()
   };
@@ -808,7 +979,7 @@ module.exports.MODULE_META = {
     registered: false,
     heartbeat: false,
     emits: [],
-    listens: []
+    listens: ['twitch.chat.message']
   },
   legacy: false
 };
@@ -825,7 +996,9 @@ module.exports.init = function init(ctx) {
   state.initialized = true;
   state.prefix = cleanText(process.env.COMMAND_PREFIX || DEFAULT_PREFIX) || DEFAULT_PREFIX;
   state.enabled = !/^(0|false|no|off)$/i.test(String(process.env.COMMAND_SYSTEM_ENABLED || 'true'));
+  state.busChat.autostart = bool(process.env.COMMANDS_BUS_CHAT_SUBSCRIBER_AUTOSTART, false);
   ensureSchema();
+  if (state.busChat.autostart) startBusChatSubscriber({ reason: 'env_autostart' });
 
   app.get(`${API_PREFIX}/status`, (req, res) => {
     try { return res.json(statusPayload()); }
@@ -863,11 +1036,16 @@ module.exports.init = function init(ctx) {
   app.post(`${API_PREFIX}/test`, handleTest);
   app.get(`${API_PREFIX}/execute`, handleExecute);
   app.post(`${API_PREFIX}/execute`, handleExecute);
+  app.get(`${API_PREFIX}/bus-chat/status`, (req, res) => res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, busChat: getBusChatStatus() }));
+  app.get(`${API_PREFIX}/bus-chat/start`, (req, res) => { const result = startBusChatSubscriber({ reason: 'manual_route' }); res.status(result.ok ? 200 : 409).json({ ok: result.ok === true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, result, busChat: getBusChatStatus() }); });
+  app.post(`${API_PREFIX}/bus-chat/start`, (req, res) => { const result = startBusChatSubscriber({ reason: 'manual_route' }); res.status(result.ok ? 200 : 409).json({ ok: result.ok === true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, result, busChat: getBusChatStatus() }); });
+  app.get(`${API_PREFIX}/bus-chat/stop`, (req, res) => { const result = stopBusChatSubscriber(); res.status(result.ok ? 200 : 409).json({ ok: result.ok === true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, result, busChat: getBusChatStatus() }); });
+  app.post(`${API_PREFIX}/bus-chat/stop`, (req, res) => { const result = stopBusChatSubscriber(); res.status(result.ok ? 200 : 409).json({ ok: result.ok === true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, result, busChat: getBusChatStatus() }); });
   app.get(`${API_PREFIX}/media-command-preview`, (req, res) => {
     try { return res.json(mediaCommandCheckPayload(core.getParam(req, 'trigger', ''), req)); }
     catch (err) { return res.status(400).json(core.fail(err.message || String(err))); }
   });
   app.get(`${API_PREFIX}/logs`, handleLogs);
   app.get(`${API_PREFIX}/history`, handleLogs);
-  console.log(`[commands] routes active: /api/commands/* (${MODULE_VERSION}, channel guard)`);
+  console.log(`[commands] routes active: /api/commands/* (${MODULE_VERSION}, bus chat subscriber prepared)`);
 };
