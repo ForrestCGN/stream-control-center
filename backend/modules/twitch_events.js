@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * BUS-TWITCH.5 – Live Token/ID Readiness Check
+ * BUS-TWITCH.6 – Guarded EventSub Chat Enable
  *
  * Central Twitch event contract, normalization and Communication-Bus publisher.
  *
@@ -11,8 +11,9 @@
  * - accepts parallel IRC chat events from twitch_presence
  * - prepares future EventSub ownership in twitch_events without taking over yet
  * - documents channel.chat.message readiness and required authorization
- * - adds a live readiness check for token scopes and channel/bot IDs
- * - prepares duplicate-protection strategy for future IRC/EventSub parallel mode
+ * - keeps live readiness checks for token scopes and channel/bot IDs
+ * - adds guarded EventSub channel.chat.message activation
+ * - enables duplicate-protection for IRC/EventSub parallel mode
  * - keeps existing twitch.js EventSub flows active
  *
  * This module does not replace the existing command direct hook yet.
@@ -21,10 +22,12 @@
 const core = require('./helpers/helper_core');
 const routes = require('./helpers/helper_routes');
 const communicationBus = require('./communication_bus');
+const axios = require('axios');
+const WebSocket = require('ws');
 
 const MODULE_NAME = 'twitch_events';
-const MODULE_VERSION = '0.1.4';
-const MODULE_BUILD = 'BUS_TWITCH_5_LIVE_TOKEN_ID_READINESS';
+const MODULE_VERSION = '0.1.5';
+const MODULE_BUILD = 'BUS_TWITCH_6_EVENTSUB_CHAT_ENABLE';
 const MODULE_ID = `module:${MODULE_NAME}`;
 const MODULE_STARTED_AT = nowIso();
 
@@ -53,6 +56,8 @@ const MODULE_META = {
       'twitch.eventsub.subscription.created',
       'twitch.eventsub.subscription.failed',
       'twitch.eventsub.subscription.removed',
+      'twitch.eventsub.session.keepalive',
+      'twitch.eventsub.session.reconnect',
       'twitch.stream.online',
       'twitch.stream.offline',
       'twitch.stream.updated',
@@ -199,11 +204,11 @@ const DEFAULT_TARGET = {
 
 const EVENTSUB_CHAT_READINESS = {
   schemaVersion: 1,
-  step: 'BUS-TWITCH.5',
-  status: 'live-readiness-check-added',
+  step: 'BUS-TWITCH.6',
+  status: 'guarded-enable-ready',
   active: false,
   subscriptionCreationEnabled: false,
-  websocketOwnershipEnabled: false,
+  websocketOwnershipEnabled: true,
   currentLiveChatSource: 'twitch_presence/irc parallel bridge',
   targetLiveChatSource: 'twitch_events EventSub channel.chat.message',
   subscription: {
@@ -239,7 +244,7 @@ const EVENTSUB_CHAT_READINESS = {
     { id: 'user_read_chat_scope', label: 'user:read:chat Scope vorhanden', required: true, status: 'must_verify_live' },
     { id: 'eventsub_ws_owner', label: 'twitch_events darf EventSub WebSocket oeffnen', required: true, status: 'planned_disabled' },
     { id: 'subscription_create_guard', label: 'Subscription-Erstellung per Config/Go geschuetzt', required: true, status: 'prepared' },
-    { id: 'duplicate_protection', label: 'Duplikat-Schutz IRC + EventSub', required: true, status: 'prepared_not_active' },
+    { id: 'duplicate_protection', label: 'Duplikat-Schutz IRC + EventSub', required: true, status: 'active_when_eventsub_chat_running' },
     { id: 'commands_direct_hook_kept', label: 'Command-Direktaufruf bleibt aktiv', required: true, status: 'kept' },
     { id: 'old_flows_kept', label: 'twitch.js EventSub-Flows bleiben aktiv', required: true, status: 'kept' }
   ],
@@ -276,7 +281,7 @@ const EVENTSUB_OWNERSHIP = {
   duplicateProtectionPrepared: true,
   duplicateProtectionEnabled: false,
   chatReadiness: EVENTSUB_CHAT_READINESS,
-  note: 'BUS-TWITCH.5 ergaenzt Live-Token-/ID-Readiness. twitch.js bleibt aktuell produktiver EventSub-Besitzer.',
+  note: 'BUS-TWITCH.6 aktiviert EventSub channel.chat.message kontrolliert per Start/Stop-Route. twitch.js bleibt fuer bestehende EventSub-Flows aktiv.',
   migrationModes: ['disabled', 'prepared-disabled', 'mirror-readonly', 'chat-owner', 'owner'],
   currentTwitchJsSubscriptions: [
     'stream.online',
@@ -304,7 +309,7 @@ const EVENTSUB_OWNERSHIP = {
       eventKey: 'twitch.chat.message',
       source: 'eventsub',
       enabled: false,
-      status: 'live-readiness-check-added',
+      status: 'guarded-enable-ready',
       conditionShape: EVENTSUB_CHAT_READINESS.subscription.conditionShape,
       requiredScopes: EVENTSUB_CHAT_READINESS.authorization.userAccessToken.requiredScopes,
       appTokenAdditionalScopes: EVENTSUB_CHAT_READINESS.authorization.appAccessToken.additionalRequiredScopes,
@@ -343,11 +348,51 @@ const state = {
     byEvent: {},
     byCategory: {},
     bySource: {}
+  },
+  eventSubChat: {
+    enabled: false,
+    active: false,
+    connecting: false,
+    duplicateProtectionEnabled: true,
+    websocketUrl: 'wss://eventsub.wss.twitch.tv/ws',
+    readyState: 'idle',
+    sessionId: '',
+    subscriptionId: '',
+    subscriptionStatus: '',
+    broadcasterUserId: '',
+    chatUserId: '',
+    startedAt: '',
+    stoppedAt: '',
+    lastOpenAt: '',
+    lastWelcomeAt: '',
+    lastKeepaliveAt: '',
+    lastReconnectAt: '',
+    lastNotificationAt: '',
+    lastNotificationMessageId: '',
+    lastSubscribeAt: '',
+    lastSubscribeError: '',
+    lastError: '',
+    lastErrorAt: '',
+    counters: {
+      startAttempts: 0,
+      startBlocked: 0,
+      subscriptionsCreated: 0,
+      subscriptionSkippedExisting: 0,
+      subscriptionFailed: 0,
+      notifications: 0,
+      chatMessagesEmitted: 0,
+      duplicateSkipped: 0,
+      websocketErrors: 0,
+      reconnects: 0
+    }
   }
 };
 
 let bus = null;
 let twitchCore = null;
+let eventSubChatWs = null;
+let eventSubChatReconnectTimer = null;
+const chatDedupeCache = new Map();
 
 function getTwitchCore() {
   if (twitchCore) return twitchCore;
@@ -367,6 +412,9 @@ module.exports.getCatalog = getCatalog;
 module.exports.getEventSubOwnership = getEventSubOwnership;
 module.exports.getEventSubChatReadiness = getEventSubChatReadiness;
 module.exports.getEventSubChatLiveReadiness = getEventSubChatLiveReadiness;
+module.exports.getEventSubChatStatus = getEventSubChatStatus;
+module.exports.startEventSubChat = startEventSubChat;
+module.exports.stopEventSubChat = stopEventSubChat;
 module.exports.publishTwitchEvent = publishTwitchEvent;
 module.exports.handleIrcEvent = handleIrcEvent;
 module.exports.handleEventSubNotification = handleEventSubNotification;
@@ -392,7 +440,7 @@ module.exports.init = function init(ctx = {}) {
         meta: {
           build: MODULE_BUILD,
           role: 'twitch-event-center',
-          migrationMode: 'eventsub-live-readiness',
+          migrationMode: 'eventsub-chat-guarded-enable',
           ackDefaultEnabled: false,
           replayDefaultEnabled: false
         }
@@ -463,12 +511,346 @@ module.exports.init = function init(ctx = {}) {
         });
       }
     }));
+
+    registered.push(...routes.registerGet(app, ['/api/twitch/events/eventsub/chat/status', '/twitch/events/eventsub/chat/status'], (req, res) => {
+      res.json({
+        ok: true,
+        module: MODULE_NAME,
+        moduleVersion: MODULE_VERSION,
+        moduleBuild: MODULE_BUILD,
+        eventSubChat: getEventSubChatStatus()
+      });
+    }));
+
+    const startChatRoute = async (req, res) => {
+      try {
+        const result = await startEventSubChat({ reason: firstValue(req.query && req.query.reason, req.body && req.body.reason, 'manual_route') });
+        res.status(result.ok ? 200 : 409).json({ ok: result.ok === true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, result, eventSubChat: getEventSubChatStatus() });
+      } catch (err) {
+        res.status(500).json({ ok: false, module: MODULE_NAME, error: err && err.message ? err.message : String(err), eventSubChat: getEventSubChatStatus() });
+      }
+    };
+
+    const stopChatRoute = (req, res) => {
+      const result = stopEventSubChat({ reason: firstValue(req.query && req.query.reason, req.body && req.body.reason, 'manual_route') });
+      res.status(result.ok ? 200 : 409).json({ ok: result.ok === true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, result, eventSubChat: getEventSubChatStatus() });
+    };
+
+    registered.push(...routes.registerPost(app, ['/api/twitch/events/eventsub/chat/start', '/twitch/events/eventsub/chat/start'], startChatRoute));
+    registered.push(...routes.registerGet(app, ['/api/twitch/events/eventsub/chat/start', '/twitch/events/eventsub/chat/start'], startChatRoute));
+    registered.push(...routes.registerPost(app, ['/api/twitch/events/eventsub/chat/stop', '/twitch/events/eventsub/chat/stop'], stopChatRoute));
+    registered.push(...routes.registerGet(app, ['/api/twitch/events/eventsub/chat/stop', '/twitch/events/eventsub/chat/stop'], stopChatRoute));
+
     state.routeCount = registered.length;
+  }
+
+  if (boolEnv('TWITCH_EVENTS_EVENTSUB_CHAT_AUTOSTART', false)) {
+    startEventSubChat({ reason: 'env_autostart' }).catch(err => setEventSubChatError(err, 'autostart_failed'));
   }
 
   return getStatus();
 };
 
+
+
+function boolEnv(name, fallback = false) {
+  const env = state.env || process.env || {};
+  const value = env[name];
+  if (value === undefined || value === null || value === '') return fallback;
+  if (typeof value === 'boolean') return value;
+  const v = String(value).trim().toLowerCase();
+  if (['1', 'true', 'yes', 'ja', 'on', 'y'].includes(v)) return true;
+  if (['0', 'false', 'no', 'nein', 'off', 'n'].includes(v)) return false;
+  return fallback;
+}
+
+function eventSubChatClientId() {
+  return cleanString((state.env || process.env || {}).TWITCH_CLIENT_ID || '');
+}
+
+function getEventSubChatStatus() {
+  const readyState = eventSubChatWs && typeof eventSubChatWs.readyState === 'number'
+    ? ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'][eventSubChatWs.readyState] || String(eventSubChatWs.readyState)
+    : state.eventSubChat.readyState;
+  return {
+    schemaVersion: 1,
+    step: 'BUS-TWITCH.6',
+    mode: 'guarded-runtime-simple',
+    enabled: state.eventSubChat.enabled === true,
+    active: state.eventSubChat.active === true,
+    connecting: state.eventSubChat.connecting === true,
+    duplicateProtectionEnabled: state.eventSubChat.duplicateProtectionEnabled === true,
+    currentLiveChatSource: state.eventSubChat.active ? 'twitch_events EventSub channel.chat.message + twitch_presence/irc parallel' : 'twitch_presence/irc parallel bridge',
+    targetLiveChatSource: 'twitch_events EventSub channel.chat.message',
+    routes: {
+      start: '/api/twitch/events/eventsub/chat/start',
+      stop: '/api/twitch/events/eventsub/chat/stop',
+      status: '/api/twitch/events/eventsub/chat/status'
+    },
+    websocket: {
+      url: state.eventSubChat.websocketUrl,
+      readyState,
+      sessionId: state.eventSubChat.sessionId,
+      lastOpenAt: state.eventSubChat.lastOpenAt,
+      lastWelcomeAt: state.eventSubChat.lastWelcomeAt,
+      lastKeepaliveAt: state.eventSubChat.lastKeepaliveAt,
+      lastReconnectAt: state.eventSubChat.lastReconnectAt
+    },
+    subscription: {
+      type: 'channel.chat.message',
+      version: '1',
+      id: state.eventSubChat.subscriptionId,
+      status: state.eventSubChat.subscriptionStatus,
+      broadcasterUserId: state.eventSubChat.broadcasterUserId,
+      userId: state.eventSubChat.chatUserId,
+      lastSubscribeAt: state.eventSubChat.lastSubscribeAt,
+      lastSubscribeError: state.eventSubChat.lastSubscribeError
+    },
+    counters: safeJson(state.eventSubChat.counters, {}),
+    lastNotificationAt: state.eventSubChat.lastNotificationAt,
+    lastNotificationMessageId: state.eventSubChat.lastNotificationMessageId,
+    lastError: state.eventSubChat.lastError,
+    lastErrorAt: state.eventSubChat.lastErrorAt,
+    existingTwitchJsEventSubKept: true,
+    existingPresenceBridgeKept: true,
+    commandDirectHookKept: true
+  };
+}
+
+function setEventSubChatError(err, prefix = 'eventsub_chat_error') {
+  const msg = err && err.response ? `${err.response.status || ''} ${JSON.stringify(err.response.data || err.message)}`.trim() : (err && err.message ? err.message : String(err || prefix));
+  state.eventSubChat.lastError = `[${prefix}] ${msg}`.slice(0, 700);
+  state.eventSubChat.lastErrorAt = nowIso();
+  state.updatedAt = nowIso();
+  return state.eventSubChat.lastError;
+}
+
+async function getEventSubUserToken() {
+  const twitch = getTwitchCore();
+  if (!twitch || typeof twitch.getUserAccessTokenWithRefresh !== 'function') {
+    throw new Error('twitch_user_access_token_helper_unavailable');
+  }
+  const token = await twitch.getUserAccessTokenWithRefresh();
+  if (!token) throw new Error('twitch_user_access_token_missing');
+  return token;
+}
+
+function eventSubHeaders(token) {
+  const clientId = eventSubChatClientId();
+  if (!clientId) throw new Error('TWITCH_CLIENT_ID_missing');
+  return { 'Client-Id': clientId, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+}
+
+async function createEventSubChatSubscription(sessionId, broadcasterUserId, chatUserId) {
+  const token = await getEventSubUserToken();
+  const body = {
+    type: 'channel.chat.message',
+    version: '1',
+    condition: {
+      broadcaster_user_id: String(broadcasterUserId || ''),
+      user_id: String(chatUserId || '')
+    },
+    transport: { method: 'websocket', session_id: String(sessionId || '') }
+  };
+  const response = await axios.post('https://api.twitch.tv/helix/eventsub/subscriptions', body, { headers: eventSubHeaders(token) });
+  const row = Array.isArray(response.data && response.data.data) ? response.data.data[0] : null;
+  state.eventSubChat.subscriptionId = cleanString(row && row.id || '');
+  state.eventSubChat.subscriptionStatus = cleanString(row && row.status || 'enabled');
+  state.eventSubChat.lastSubscribeAt = nowIso();
+  state.eventSubChat.lastSubscribeError = '';
+  state.eventSubChat.counters.subscriptionsCreated += 1;
+  handleEventSubLifecycle('subscription_created', {
+    source: 'twitch_events_eventsub_chat',
+    type: 'channel.chat.message',
+    version: '1',
+    subscriptionId: state.eventSubChat.subscriptionId,
+    status: state.eventSubChat.subscriptionStatus
+  }, { source: 'twitch_events' });
+  return { ok: true, subscriptionId: state.eventSubChat.subscriptionId, status: state.eventSubChat.subscriptionStatus };
+}
+
+function closeEventSubChatSocket(reason = 'close') {
+  if (eventSubChatReconnectTimer) {
+    clearTimeout(eventSubChatReconnectTimer);
+    eventSubChatReconnectTimer = null;
+  }
+  if (eventSubChatWs) {
+    try { eventSubChatWs.close(1000, String(reason).slice(0, 120)); } catch (_) {}
+    eventSubChatWs = null;
+  }
+  state.eventSubChat.connecting = false;
+  state.eventSubChat.active = false;
+  state.eventSubChat.readyState = 'stopped';
+  state.eventSubChat.stoppedAt = nowIso();
+}
+
+async function startEventSubChat(options = {}) {
+  state.eventSubChat.counters.startAttempts += 1;
+  if (state.eventSubChat.active || state.eventSubChat.connecting) {
+    return { ok: true, reason: 'already_running_or_connecting', eventSubChat: getEventSubChatStatus() };
+  }
+  const live = await getEventSubChatLiveReadiness({ validateUserToken: true, resolveLogins: true });
+  const blockers = live && live.conclusion && Array.isArray(live.conclusion.blockers) ? live.conclusion.blockers.filter(item => item !== 'eventsub_ws_owner') : [];
+  if (blockers.length > 0 || !live.conclusion || live.conclusion.readyForGuardedSubscription !== true) {
+    state.eventSubChat.counters.startBlocked += 1;
+    return { ok: false, reason: 'live_readiness_blocked', blockers, liveReadiness: live };
+  }
+  const broadcaster = live.checks.find(check => check.id === 'broadcaster_user_id');
+  const chatUser = live.checks.find(check => check.id === 'chat_user_id');
+  state.eventSubChat.broadcasterUserId = cleanString(broadcaster && broadcaster.value || '');
+  state.eventSubChat.chatUserId = cleanString(chatUser && chatUser.value || '');
+  if (!state.eventSubChat.broadcasterUserId || !state.eventSubChat.chatUserId) {
+    state.eventSubChat.counters.startBlocked += 1;
+    return { ok: false, reason: 'missing_broadcaster_or_chat_user_id' };
+  }
+  state.eventSubChat.enabled = true;
+  state.eventSubChat.connecting = true;
+  state.eventSubChat.readyState = 'connecting';
+  state.eventSubChat.startedAt = nowIso();
+  state.eventSubChat.lastError = '';
+  connectEventSubChatWebSocket(state.eventSubChat.websocketUrl);
+  return { ok: true, reason: 'eventsub_chat_connecting', eventSubChat: getEventSubChatStatus() };
+}
+
+function stopEventSubChat(options = {}) {
+  state.eventSubChat.enabled = false;
+  closeEventSubChatSocket(options.reason || 'manual_stop');
+  return { ok: true, reason: 'eventsub_chat_stopped', eventSubChat: getEventSubChatStatus() };
+}
+
+function scheduleEventSubChatReconnect(reason = 'reconnect') {
+  if (eventSubChatReconnectTimer || state.eventSubChat.enabled !== true) return;
+  state.eventSubChat.counters.reconnects += 1;
+  eventSubChatReconnectTimer = setTimeout(() => {
+    eventSubChatReconnectTimer = null;
+    if (state.eventSubChat.enabled === true) connectEventSubChatWebSocket(state.eventSubChat.websocketUrl);
+  }, 5000);
+  if (typeof eventSubChatReconnectTimer.unref === 'function') eventSubChatReconnectTimer.unref();
+  state.eventSubChat.lastReconnectAt = nowIso();
+  state.eventSubChat.readyState = `reconnect_scheduled:${reason}`.slice(0, 120);
+}
+
+function connectEventSubChatWebSocket(url) {
+  if (!url) url = state.eventSubChat.websocketUrl;
+  if (eventSubChatWs && (eventSubChatWs.readyState === WebSocket.OPEN || eventSubChatWs.readyState === WebSocket.CONNECTING)) return;
+  state.eventSubChat.connecting = true;
+  state.eventSubChat.readyState = 'connecting';
+  const socket = new WebSocket(url);
+  eventSubChatWs = socket;
+
+  socket.on('open', () => {
+    state.eventSubChat.lastOpenAt = nowIso();
+    state.eventSubChat.readyState = 'open';
+  });
+
+  socket.on('message', async (raw) => {
+    let msg;
+    try { msg = JSON.parse(raw.toString('utf8')); } catch (_) { return; }
+    const meta = msg.metadata || {};
+    const payload = msg.payload || {};
+    const messageType = cleanString(meta.message_type || '');
+
+    if (messageType === 'session_welcome') {
+      const sessionId = cleanString(payload.session && payload.session.id || '');
+      state.eventSubChat.sessionId = sessionId;
+      state.eventSubChat.lastWelcomeAt = nowIso();
+      state.eventSubChat.connecting = false;
+      state.eventSubChat.active = true;
+      state.eventSubChat.readyState = 'session_welcome';
+      handleEventSubLifecycle('connected', { source: 'twitch_events_eventsub_chat', sessionId }, { source: 'twitch_events' });
+      try {
+        await createEventSubChatSubscription(sessionId, state.eventSubChat.broadcasterUserId, state.eventSubChat.chatUserId);
+      } catch (err) {
+        state.eventSubChat.counters.subscriptionFailed += 1;
+        state.eventSubChat.lastSubscribeAt = nowIso();
+        state.eventSubChat.lastSubscribeError = setEventSubChatError(err, 'subscription_create_failed');
+        handleEventSubLifecycle('subscription_failed', { source: 'twitch_events_eventsub_chat', type: 'channel.chat.message', error: state.eventSubChat.lastSubscribeError }, { source: 'twitch_events' });
+      }
+      return;
+    }
+
+    if (messageType === 'session_keepalive') {
+      state.eventSubChat.lastKeepaliveAt = nowIso();
+      state.eventSubChat.readyState = 'keepalive';
+      return;
+    }
+
+    if (messageType === 'session_reconnect') {
+      const reconnectUrl = cleanString(payload.session && payload.session.reconnect_url || '');
+      state.eventSubChat.lastReconnectAt = nowIso();
+      if (reconnectUrl) {
+        try { socket.close(1000, 'twitch_reconnect'); } catch (_) {}
+        if (eventSubChatWs === socket) eventSubChatWs = null;
+        connectEventSubChatWebSocket(reconnectUrl);
+      } else {
+        scheduleEventSubChatReconnect('missing_reconnect_url');
+      }
+      return;
+    }
+
+    if (messageType === 'notification') {
+      const sub = payload.subscription || {};
+      if (sub.type !== 'channel.chat.message') return;
+      state.eventSubChat.counters.notifications += 1;
+      state.eventSubChat.lastNotificationAt = nowIso();
+      state.eventSubChat.lastNotificationMessageId = cleanString(payload.event && payload.event.message_id || meta.message_id || '');
+      const result = handleEventSubNotification({ metadata: meta, payload }, { source: 'twitch_events_eventsub_chat' }, { target: DEFAULT_TARGET });
+      if (result && result.ok === true) state.eventSubChat.counters.chatMessagesEmitted += 1;
+      return;
+    }
+
+    if (messageType === 'revocation') {
+      handleEventSubLifecycle('subscription_removed', { source: 'twitch_events_eventsub_chat', subscription: payload.subscription || {} }, { source: 'twitch_events' });
+    }
+  });
+
+  socket.on('close', (code, reasonBuffer) => {
+    const reason = reasonBuffer ? reasonBuffer.toString() : '';
+    if (eventSubChatWs === socket) eventSubChatWs = null;
+    state.eventSubChat.active = false;
+    state.eventSubChat.connecting = false;
+    state.eventSubChat.readyState = `closed:${code}`;
+    handleEventSubLifecycle('disconnected', { source: 'twitch_events_eventsub_chat', code, reason }, { source: 'twitch_events' });
+    if (state.eventSubChat.enabled === true && code !== 1000) scheduleEventSubChatReconnect(`close_${code}`);
+  });
+
+  socket.on('error', (err) => {
+    state.eventSubChat.counters.websocketErrors += 1;
+    setEventSubChatError(err, 'websocket_error');
+  });
+}
+
+function pruneChatDedupeCache(now = Date.now()) {
+  for (const [key, expiresAt] of chatDedupeCache.entries()) {
+    if (expiresAt <= now) chatDedupeCache.delete(key);
+  }
+}
+
+function chatDedupeKey(payload = {}) {
+  const twitch = payload.twitch && isPlainObject(payload.twitch) ? payload.twitch : payload;
+  const messageId = cleanString(firstValue(twitch.messageId, twitch.message_id, twitch.tags && twitch.tags.id));
+  if (messageId) return `message_id:${messageId}`;
+  const userLogin = cleanLogin(firstValue(twitch.user && twitch.user.login, twitch.userLogin, twitch.login));
+  const channel = cleanLogin(firstValue(twitch.channel, twitch.broadcaster && twitch.broadcaster.login));
+  const msg = cleanString(firstValue(twitch.message, twitch.text)).slice(0, 200);
+  const bucket = Math.floor(Date.now() / 5000);
+  if (!userLogin || !channel || !msg) return '';
+  return `fallback:${channel}:${userLogin}:${msg}:${bucket}`;
+}
+
+function markOrSkipChatDedupe(payload = {}) {
+  if (state.eventSubChat.duplicateProtectionEnabled !== true) return { duplicate: false };
+  const key = chatDedupeKey(payload);
+  if (!key) return { duplicate: false };
+  const now = Date.now();
+  pruneChatDedupeCache(now);
+  if (chatDedupeCache.has(key)) {
+    state.eventSubChat.counters.duplicateSkipped += 1;
+    return { duplicate: true, key };
+  }
+  chatDedupeCache.set(key, now + 30000);
+  return { duplicate: false, key };
+}
 
 function getEventSubOwnership() {
   return safeJson(EVENTSUB_OWNERSHIP, {});
@@ -489,7 +871,7 @@ async function getEventSubChatLiveReadiness(options = {}) {
 
   const result = {
     schemaVersion: 1,
-    step: 'BUS-TWITCH.5',
+    step: 'BUS-TWITCH.6',
     status: 'live-readiness-check',
     active: false,
     subscriptionCreationEnabled: false,
@@ -603,14 +985,14 @@ async function getEventSubChatLiveReadiness(options = {}) {
   addLiveCheck(result, 'broadcaster_user_id', 'Broadcaster/Channel User-ID verfuegbar', true, !!result.resolvedIds.broadcaster.id, result.resolvedIds.broadcaster.id || '', result.resolvedIds.broadcaster.error || '');
   addLiveCheck(result, 'chat_user_id', 'Chatting Bot/User-ID verfuegbar', true, !!result.resolvedIds.chatUser.id, result.resolvedIds.chatUser.id || '', result.resolvedIds.chatUser.error || '');
   addLiveCheck(result, 'user_read_chat_scope', 'user:read:chat Scope im validierten User-Token vorhanden', true, result.userToken.missingScopes.length === 0 && result.userToken.ok === true, result.userToken.scopes.join(' '), result.userToken.error || '');
-  addLiveCheck(result, 'eventsub_ws_owner', 'twitch_events EventSub WebSocket Ownership noch deaktiviert', true, false, EVENTSUB_OWNERSHIP.mode, 'planned_disabled');
+  addLiveCheck(result, 'eventsub_ws_owner', 'twitch_events EventSub WebSocket Ownership fuer Chat guarded verfuegbar', true, true, 'guarded-enabled', '');
   addLiveCheck(result, 'subscription_create_guard', 'Subscription-Erstellung bleibt per Config/Go gesperrt', true, EVENTSUB_CHAT_READINESS.subscriptionCreationEnabled === false, 'subscriptionCreationEnabled=false', '');
-  addLiveCheck(result, 'duplicate_protection', 'Duplikat-Schutz vorbereitet, aber nicht aktiv', true, EVENTSUB_CHAT_READINESS.duplicateProtection.prepared === true, 'prepared_not_active', '');
+  addLiveCheck(result, 'duplicate_protection', 'Duplikat-Schutz vorbereitet, aber nicht aktiv', true, EVENTSUB_CHAT_READINESS.duplicateProtection.prepared === true, 'active_when_eventsub_chat_running', '');
 
   for (const check of result.checks) {
     if (check.required && check.status !== 'ok') result.conclusion.blockers.push(check.id);
   }
-  result.conclusion.readyForGuardedSubscription = result.conclusion.blockers.length === 1 && result.conclusion.blockers[0] === 'eventsub_ws_owner';
+  result.conclusion.readyForGuardedSubscription = result.conclusion.blockers.length === 0;
   if (!result.conclusion.readyForGuardedSubscription) {
     result.conclusion.warnings.push('guarded_subscription_not_ready');
   }
@@ -780,6 +1162,7 @@ function getStatusPayload(trigger = 'status') {
     counts: safeJson(state.counts, {}),
     eventSubOwnership: safeJson(EVENTSUB_OWNERSHIP, {}),
     eventSubChatReadiness: safeJson(EVENTSUB_CHAT_READINESS, {}),
+    eventSubChat: getEventSubChatStatus(),
     bus: {
       registered: state.registeredOnBus,
       heartbeat: true,
@@ -836,6 +1219,7 @@ function getStatus() {
       },
       eventSubOwnership: safeJson(EVENTSUB_OWNERSHIP, {}),
       eventSubChatReadiness: safeJson(EVENTSUB_CHAT_READINESS, {}),
+      eventSubChat: getEventSubChatStatus(),
       runtime: {
         loadedAt: state.loadedAt,
         updatedAt: state.updatedAt,
@@ -869,8 +1253,8 @@ function getStatus() {
     migration: {
       mode: 'eventsub-ownership-prep',
       rule: 'twitch_events wird als zukuenftiger EventSub-Besitzer vorbereitet. twitch.js bleibt aktuell produktiver EventSub-Besitzer. Alte Direktlogik wird erst entfernt, wenn ein Modul erfolgreich abonniert, getestet und dokumentiert ist.',
-      currentStep: 'BUS-TWITCH.4',
-      nextStep: 'BUS-TWITCH.5 – EventSub Chat Subscription controlled activation in twitch_events'
+      currentStep: 'BUS-TWITCH.6',
+      nextStep: 'BUS-TWITCH.7 – Commands als Subscriber vorbereiten, Direkt-Hook bleibt bis Test aktiv'
     },
     updatedAt: nowIso()
   };
@@ -923,6 +1307,15 @@ function publishTwitchEvent(eventKey, payload = {}, context = {}, options = {}) 
   if (!state.enabled) {
     state.counts.skipped += 1;
     return { ok: false, reason: 'module_disabled', eventKey };
+  }
+
+  if (eventDefItem.event === 'twitch.chat.message') {
+    const dedupe = markOrSkipChatDedupe(payload);
+    if (dedupe.duplicate === true) {
+      state.counts.skipped += 1;
+      state.updatedAt = nowIso();
+      return { ok: false, reason: 'duplicate_chat_event', eventKey, dedupeKey: dedupe.key };
+    }
   }
 
   const currentBus = options.bus || bus || (communicationBus && typeof communicationBus.getBus === 'function' ? communicationBus.getBus() : null);
@@ -1034,6 +1427,7 @@ function handleIrcEvent(parsed = {}, context = {}, options = {}) {
       channel: channelFromParsed(parsed, context),
       message: shortPreview(message, Number(options.maxMessageLength || 450)),
       messageLength: message.length,
+      messageId: cleanString(firstValue(tagsFromParsed(parsed).id, tagsFromParsed(parsed)['message-id'])),
       user,
       tags: options.includeTags === true ? safeJson(tagsFromParsed(parsed), {}) : undefined,
       raw: options.includeRaw === true ? cleanString(parsed.raw || '') : undefined

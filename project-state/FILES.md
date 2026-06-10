@@ -2,14 +2,14 @@
 
 Stand: 2026-06-10
 
-## BUS-TWITCH.5b
+## BUS-TWITCH.6
 
 ```text
-backend/modules/twitch.js
 backend/modules/twitch_events.js
+backend/modules/twitch.js
 docs/modules/twitch_events.md
 docs/modules/README.md
-docs/current/CURRENT_CHAT_HANDOFF_BUS_TWITCH_5B.md
+docs/current/CURRENT_CHAT_HANDOFF_BUS_TWITCH_6.md
 docs/current/CURRENT_STATUS.md
 docs/current/NEXT_STEPS.md
 docs/current/TODO.md
@@ -20,6 +20,6 @@ project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/CHANGELOG.md
 project-state/FILES.md
-README_STEP_BUS_TWITCH_5B.md
+README_STEP_BUS_TWITCH_6.md
 ARTIFACT_CHECK.json
 ```

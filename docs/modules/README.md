@@ -17,3 +17,8 @@ Keine EventSub-Subscription wird durch BUS-TWITCH.5b erstellt.
 Kein EventSub-Takeover.
 Keine bestehende Funktionalitaet entfernen.
 ```
+
+
+## BUS-TWITCH.6 – Guarded EventSub Chat Enable
+
+`twitch_events` kann EventSub `channel.chat.message` kontrolliert starten. Bestehende Flows bleiben aktiv.

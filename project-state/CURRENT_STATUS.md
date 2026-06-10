@@ -2,38 +2,20 @@
 
 Stand: 2026-06-10
 
-## Aktueller bestätigungsbereiter Stand
+## Aktueller Stand
 
 ```text
-STEP BUS-TWITCH.5b – User OAuth Force Verify + Scope Diagnostics
+STEP BUS-TWITCH.6 – Guarded EventSub Chat Enable gebaut
 ```
 
-## Twitch Events / EventSub Chat
+## Inhalt
 
 ```text
-- twitch_events bleibt Version 0.1.4
-- Build bleibt BUS_TWITCH_5_LIVE_TOKEN_ID_READINESS
-- Live-Readiness-Route bleibt aktiv
-- Keine Subscription-Erstellung
-- Kein EventSub-Takeover
-- twitch.js bleibt EventSub-Besitzer
-```
-
-## Twitch OAuth
-
-```text
-- twitch.js Version 0.1.2
-- Build BUS_TWITCH_5B_OAUTH_FORCE_VERIFY_DIAGNOSTICS
-- normaler ForrestCGN OAuth-Login unterstützt optional force_verify
-- neue sichere Scope-Diagnose ohne Token-Ausgabe
-- Ziel: user:read:chat wirklich in den validierten User-Token bekommen
-```
-
-## Nicht geändert
-
-```text
-- Keine bestehende EventSub-Subscription aktiviert
-- Keine bestehende EventSub-Logik entfernt
-- Keine Commands-/Presence-/Alert-/VIP-/Loyalty-Flows umgebaut
-- Keine SQLite-/DB-Datei ersetzt
+- twitch_events 0.1.5 / BUS_TWITCH_6_EVENTSUB_CHAT_ENABLE
+- twitch.js 0.1.3 / BUS_TWITCH_6_EVENTSUB_CHAT_ENABLE
+- EventSub channel.chat.message kann per Route gestartet/gestoppt werden
+- Duplikat-Schutz fuer IRC/EventSub parallel aktiv
+- bestehende twitch.js EventSub-Flows bleiben aktiv
+- twitch_presence/IRC bleibt aktiv
+- commands Direkt-Hook bleibt aktiv
 ```

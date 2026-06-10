@@ -11,8 +11,8 @@ const database = require('../core/database');
 const communicationBus = require('./communication_bus');
 
 const MODULE_NAME = 'twitch';
-const MODULE_VERSION = '0.1.2';
-const MODULE_BUILD = 'BUS_TWITCH_5B_OAUTH_FORCE_VERIFY_DIAGNOSTICS';
+const MODULE_VERSION = '0.1.3';
+const MODULE_BUILD = 'BUS_TWITCH_6_EVENTSUB_CHAT_ENABLE';
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
@@ -37,6 +37,7 @@ module.exports.version = MODULE_VERSION;
 
 const sharedApi = {
   resolveUserByLogin: null,
+  getUserAccessTokenWithRefresh: null,
   getStoredBotToken: null,
   getBotAccessTokenWithRefresh: null,
   validateStoredUserToken: null,
@@ -1090,6 +1091,7 @@ module.exports.init = function init(ctx) {
   }
 
   sharedApi.resolveUserByLogin = resolveUserByLoginInternal;
+  sharedApi.getUserAccessTokenWithRefresh = getUserAccessTokenWithRefresh;
   sharedApi.getStoredBotToken = getStoredBotToken;
   sharedApi.getBotAccessTokenWithRefresh = getBotAccessTokenWithRefresh;
   sharedApi.validateStoredUserToken = validateStoredUserToken;
@@ -3503,6 +3505,14 @@ module.exports.resolveUserByLogin = async function resolveUserByLogin(login) {
     throw new Error('twitch_patched resolveUserByLogin not initialized yet');
   }
   return await sharedApi.resolveUserByLogin(login);
+};
+
+
+module.exports.getUserAccessTokenWithRefresh = async function getUserAccessTokenWithRefreshExport() {
+  if (typeof sharedApi.getUserAccessTokenWithRefresh !== 'function') {
+    throw new Error('twitch user access token helper not initialized yet');
+  }
+  return await sharedApi.getUserAccessTokenWithRefresh();
 };
 
 module.exports.getStoredBotToken = function getStoredBotToken() {

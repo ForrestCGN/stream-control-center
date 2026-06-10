@@ -1,38 +1,26 @@
 # CHANGELOG – stream-control-center
 
-## 2026-06-10 – BUS-TWITCH.5b
+## 2026-06-10 – BUS-TWITCH.6
 
-### Geändert
+### Geaendert
 
 ```text
+backend/modules/twitch_events.js
 backend/modules/twitch.js
 ```
 
-### Ergänzt
+### Neu
 
 ```text
-/auth/login?force=1
-/auth/login?force_verify=1
-/auth/login/force
-/auth/scope-diagnostics
-/twitch/auth/scope-diagnostics
-/api/twitch/auth/scope-diagnostics
+EventSub Chat Start/Stop/Status fuer channel.chat.message.
+Duplikat-Schutz fuer IRC/EventSub parallel.
+User-Access-Token-Helper aus twitch.js exportiert.
 ```
 
-### Zweck
+### Nicht geaendert
 
 ```text
-ForrestCGN User-OAuth kann per force_verify neu autorisiert werden.
-Scope-Diagnose zeigt konfigurierte User-Scopes vs. validierte Token-Scopes ohne Tokens auszugeben.
-```
-
-### Nicht geändert
-
-```text
-twitch_events.js
-EventSub-Produktivflows
-Subscription-Erstellung
-Commands
-Presence
-SQLite/DB
+Keine bestehenden EventSub-Flows entfernt.
+Keine Commands umgestellt.
+Keine SQLite-Datei ersetzt.
 ```
