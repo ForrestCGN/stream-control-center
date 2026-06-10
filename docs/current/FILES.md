@@ -2,28 +2,17 @@
 
 Stand: 2026-06-10
 
-## BUS-TWITCH.14b
-
-### Code
+## BUS-TWITCH.15
 
 ```text
-backend/modules/twitch.js
+backend/modules/vip30.js
+docs/current/CURRENT_CHAT_HANDOFF_BUS_TWITCH_15.md
+docs/modules/vip30.md
+project-state/*
 ```
 
-### Doku
 
-```text
-docs/current/CURRENT_CHAT_HANDOFF_BUS_TWITCH_14B.md
-docs/current/CURRENT_STATUS.md
-docs/current/NEXT_STEPS.md
-docs/current/TODO.md
-docs/current/CHANGELOG.md
-docs/current/FILES.md
-project-state/CURRENT_STATUS.md
-project-state/NEXT_STEPS.md
-project-state/TODO.md
-project-state/CHANGELOG.md
-project-state/FILES.md
-README_STEP_BUS_TWITCH_14B.md
-ARTIFACT_CHECK.json
-```
+## BUS-TWITCH.15b
+
+- `backend/modules/vip30.js` – TwitchEvents Payload Mapping Fix fuer VIP30 Channelpoints Subscriber.
+- `README_STEP_BUS_TWITCH_15B.md` – Test- und Rollout-Hinweise.

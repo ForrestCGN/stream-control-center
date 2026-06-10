@@ -15,8 +15,8 @@ try {
 }
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.31";
-const MODULE_BUILD = "BUS_TWITCH_15_VIP30_TWITCH_EVENTS_SUBSCRIBER";
+const MODULE_VERSION = "0.8.32";
+const MODULE_BUILD = "BUS_TWITCH_15B_VIP30_TWITCH_EVENTS_PAYLOAD_MAPPING";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -30,7 +30,7 @@ const MODULE_META = {
   category: "community",
   routePrefix: ROUTE_PREFIX,
   routesPrefix: [ROUTE_PREFIX],
-  description: "30 Tage VIP Node-Modul: SQLite-Slots/Logs, Dashboard-Config, Channelpoints-Kachel-Wahrheit, EventSub-Bridge, Live-Flow fuer VIP-Grant, Slot-Write, Redemption Fulfill/Cancel und VIP30-Alert/Sound-Bundle.",
+  description: "30 Tage VIP Node-Modul: SQLite-Slots/Logs, Dashboard-Config, Channelpoints-Kachel-Wahrheit, EventSub-Bridge, TwitchEvents-Subscriber, Live-Flow fuer VIP-Grant, Slot-Write, Redemption Fulfill/Cancel und VIP30-Alert/Sound-Bundle.",
   bus: {
     registered: true,
     heartbeat: true,
@@ -357,6 +357,7 @@ let twitchEventsChannelpointsLastIgnoredAt = "";
 let twitchEventsChannelpointsLastResultReason = "";
 let twitchEventsChannelpointsLastBusEventId = "";
 let twitchEventsChannelpointsLastError = "";
+let twitchEventsChannelpointsLastNormalized = null;
 let twitchEventsChannelpointsStats = {
   received: 0,
   processed: 0,
@@ -2247,31 +2248,44 @@ function emitChannelpointsBridgeTest(input = {}) {
 }
 
 
+function pickTwitchEventsPayloadRoot(payload = {}) {
+  if (payload && typeof payload.twitch === "object" && payload.twitch) return payload.twitch;
+  return payload && typeof payload === "object" ? payload : {};
+}
+
 function normalizeTwitchEventsChannelpointsEnvelope(envelope = {}) {
   const payload = envelope && typeof envelope.payload === "object" ? envelope.payload : (envelope || {});
-  const redemption = payload.redemption && typeof payload.redemption === "object" ? payload.redemption : {};
-  const reward = payload.reward && typeof payload.reward === "object" ? payload.reward : {};
-  const user = payload.user && typeof payload.user === "object" ? payload.user : {};
-  const event = payload.event && typeof payload.event === "object" ? payload.event : {};
-  return {
+  const twitch = pickTwitchEventsPayloadRoot(payload);
+  const redemption = twitch.redemption && typeof twitch.redemption === "object" ? twitch.redemption : {};
+  const reward = twitch.reward && typeof twitch.reward === "object" ? twitch.reward : {};
+  const user = twitch.user && typeof twitch.user === "object" ? twitch.user : {};
+  const event = twitch.event && typeof twitch.event === "object" ? twitch.event : (payload.event && typeof payload.event === "object" ? payload.event : {});
+  const broadcaster = twitch.broadcaster && typeof twitch.broadcaster === "object" ? twitch.broadcaster : {};
+  const normalized = {
     source: "twitch_events_channelpoints",
     bridgeSource: "twitch_events",
-    twitchRewardId: cleanString(payload.twitchRewardId || payload.rewardId || reward.id || event.reward_id || event.rewardId || ""),
-    twitchRedemptionId: cleanString(payload.twitchRedemptionId || payload.redemptionId || redemption.id || event.id || event.redemption_id || event.redemptionId || ""),
-    rewardKey: cleanString(payload.rewardKey || reward.key || event.reward_key || ""),
-    actionKey: cleanString(payload.actionKey || reward.actionKey || ""),
-    rewardTitle: cleanString(payload.rewardTitle || reward.title || event.reward_title || event.title || ""),
-    rewardCost: intValue(payload.rewardCost || payload.cost || reward.cost || event.reward_cost || event.cost, 0),
-    userId: cleanString(payload.userId || user.id || event.user_id || event.userId || ""),
-    userLogin: cleanString(payload.userLogin || user.login || event.user_login || event.userLogin || event.user || "").toLowerCase(),
-    userDisplayName: cleanString(payload.userDisplayName || user.displayName || user.name || event.user_name || event.userName || event.user_login || ""),
-    avatarUrl: cleanString(payload.avatarUrl || user.avatarUrl || ""),
-    userInput: cleanString(payload.userInput || payload.input || redemption.userInput || event.user_input || event.userInput || ""),
-    targetIsModerator: boolValue(payload.targetIsModerator ?? payload.target_is_moderator ?? false, false),
-    targetIsVip: boolValue(payload.targetIsVip ?? payload.target_is_vip ?? false, false),
-    redeemedAt: cleanString(payload.redeemedAt || redemption.redeemedAt || event.redeemed_at || event.redeemedAt || nowIso()),
+    twitchRewardId: cleanString(payload.twitchRewardId || payload.rewardId || twitch.twitchRewardId || twitch.rewardId || reward.id || event.reward_id || event.rewardId || ""),
+    twitchRedemptionId: cleanString(payload.twitchRedemptionId || payload.redemptionId || twitch.twitchRedemptionId || twitch.redemptionId || redemption.id || event.id || event.redemption_id || event.redemptionId || ""),
+    rewardKey: cleanString(payload.rewardKey || twitch.rewardKey || reward.key || event.reward_key || ""),
+    actionKey: cleanString(payload.actionKey || twitch.actionKey || reward.actionKey || ""),
+    rewardTitle: cleanString(payload.rewardTitle || twitch.rewardTitle || reward.title || event.reward_title || event.rewardTitle || event.title || ""),
+    rewardCost: intValue(payload.rewardCost || payload.cost || twitch.rewardCost || twitch.cost || reward.cost || event.reward_cost || event.rewardCost || event.cost, 0),
+    userId: cleanString(payload.userId || twitch.userId || user.id || event.user_id || event.userId || ""),
+    userLogin: cleanString(payload.userLogin || twitch.userLogin || user.login || event.user_login || event.userLogin || event.user || "").toLowerCase(),
+    userDisplayName: cleanString(payload.userDisplayName || twitch.userDisplayName || user.displayName || user.name || event.user_name || event.userName || event.user_login || ""),
+    avatarUrl: cleanString(payload.avatarUrl || twitch.avatarUrl || user.avatarUrl || ""),
+    userInput: cleanString(payload.userInput || payload.input || twitch.userInput || twitch.input || redemption.userInput || event.user_input || event.userInput || ""),
+    targetIsModerator: boolValue(payload.targetIsModerator ?? payload.target_is_moderator ?? twitch.targetIsModerator ?? twitch.target_is_moderator ?? false, false),
+    targetIsVip: boolValue(payload.targetIsVip ?? payload.target_is_vip ?? twitch.targetIsVip ?? twitch.target_is_vip ?? false, false),
+    redeemedAt: cleanString(payload.redeemedAt || twitch.redeemedAt || redemption.redeemedAt || event.redeemed_at || event.redeemedAt || nowIso()),
+    broadcasterId: cleanString(broadcaster.id || event.broadcaster_user_id || event.broadcasterUserId || ""),
+    broadcasterLogin: cleanString(broadcaster.login || event.broadcaster_user_login || event.broadcasterUserLogin || "").toLowerCase(),
+    busEventKey: cleanString(payload.eventKey || ""),
+    sourceModule: cleanString(payload.sourceModule || ""),
     event: envelope && typeof envelope.event === "object" ? envelope.event : null
   };
+  if (!normalized.twitchRedemptionId) normalized.twitchRedemptionId = `twitch_events_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  return normalized;
 }
 
 async function handleTwitchEventsChannelpointsRedemptionCreated(envelope = {}) {
@@ -2292,6 +2306,20 @@ async function handleTwitchEventsChannelpointsRedemptionCreated(envelope = {}) {
     return { ok: true, ignored: true, reason: "twitch_events_subscriber_disabled" };
   }
   const normalized = normalizeTwitchEventsChannelpointsEnvelope(envelope);
+  twitchEventsChannelpointsLastNormalized = {
+    twitchRewardId: normalized.twitchRewardId,
+    twitchRedemptionId: normalized.twitchRedemptionId,
+    rewardKey: normalized.rewardKey,
+    actionKey: normalized.actionKey,
+    rewardTitle: normalized.rewardTitle,
+    rewardCost: normalized.rewardCost,
+    userId: normalized.userId,
+    userLogin: normalized.userLogin,
+    userDisplayName: normalized.userDisplayName,
+    broadcasterLogin: normalized.broadcasterLogin,
+    busEventKey: normalized.busEventKey,
+    sourceModule: normalized.sourceModule
+  };
   const bridgeEnvelope = {
     ...envelope,
     payload: normalized,
@@ -2344,6 +2372,7 @@ function buildTwitchEventsChannelpointsSubscriberStatus() {
     lastResultReason: twitchEventsChannelpointsLastResultReason,
     lastBusEventId: twitchEventsChannelpointsLastBusEventId,
     lastError: twitchEventsChannelpointsLastError,
+    lastNormalized: twitchEventsChannelpointsLastNormalized,
     safety: { noLegacyRemoval: true, duplicateGuardActive: true, usesExistingVip30DecisionFlow: true }
   };
 }

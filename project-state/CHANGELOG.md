@@ -1,25 +1,31 @@
 # CHANGELOG – stream-control-center
 
-## 2026-06-10 – BUS-TWITCH.14b
+## 2026-06-10 – BUS-TWITCH.15
 
 ### Geändert
 
 ```text
-backend/modules/twitch.js
+backend/modules/vip30.js
 ```
 
-### Änderung
+### Neu
 
 ```text
-Channelpoints Parallel Tap für twitch_events zuverlässiger gemacht.
-Zusätzliche Fallback-Quellen: cache + audit.
-Redemption-ID-Dedupe ergänzt.
+VIP30 Subscriber auf twitch.channelpoints.redemption.created
+Routen: /api/vip30/channelpoints/twitch-events/status|start|stop
 ```
 
 ### Nicht geändert
 
 ```text
-Keine VIP30-/Channelpoints-Altlogik entfernt.
-Keine DB-Datei geändert.
-Kein Fulfill/Cancel geändert.
+Kein Entfernen des alten Channelpoints-/VIP30-Wegs.
+Keine Änderung an Fulfill/Cancel/VIP-Grant.
+Keine DB-Datei ersetzt.
 ```
+
+
+## BUS-TWITCH.15b
+
+- Fix: VIP30 TwitchEvents Subscriber normalisiert `twitch_events` Bus-Payload aus `payload.twitch`.
+- Diagnose: Status enthaelt `lastNormalized`.
+- Keine Aenderung an Fulfill/Cancel, DB oder altem Bridge-Weg.

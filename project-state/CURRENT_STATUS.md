@@ -2,41 +2,32 @@
 
 Stand: 2026-06-10
 
-## Aktueller Stand
+## Aktueller bestätigter Zusatzstand
 
 ```text
-STEP BUS-TWITCH.14b – Channelpoints Parallel Tap Reliability gebaut
+STEP BUS-TWITCH.15 – VIP30 Twitch-Events Channelpoints Subscriber gebaut
 ```
 
-## Twitch Events / Bus
-
-Bestätigt:
+## Bus-/Twitch-Stand
 
 ```text
-- EventSub Chat läuft über twitch_events als Autostart.
-- Commands laufen standardmäßig über communication_bus.
-- Presence-Direktweg ist default aus, bleibt als Fallback vorhanden.
-- Channelpoints werden parallel als twitch.channelpoints.redemption.created vorbereitet.
+Twitch EventSub Chat → twitch_events → communication_bus → commands ist Standard.
+Channelpoints Redemption Created wird parallel als twitch.channelpoints.redemption.created auf den Bus gegeben.
+VIP30 kann dieses neue Event jetzt manuell abonnieren; Altweg bleibt aktiv.
 ```
 
-## BUS-TWITCH.14b
-
-Geändert:
+## Wichtig
 
 ```text
-backend/modules/twitch.js
+Keine Funktionalität entfernt.
+VIP30-Altweg channelpoints.redemption/received bleibt aktiv.
+Kein Fulfill/Cancel-/VIP-Grant-Umbau in diesem Step.
 ```
 
-Ziel:
 
-```text
-Jede channel.channel_points_custom_reward_redemption.add Redemption zuverlässig an twitch_events forwarden.
-```
+## STEP BUS-TWITCH.15b – VIP30 TwitchEvents Payload Mapping Fix
 
-Nicht geändert:
-
-```text
-Keine VIP30-Verarbeitung entfernt.
-Kein Fulfill/Cancel geändert.
-Keine DB-Datei ersetzt.
-```
+- `backend/modules/vip30.js` auf `0.8.32 / BUS_TWITCH_15B_VIP30_TWITCH_EVENTS_PAYLOAD_MAPPING` aktualisiert.
+- VIP30 TwitchEvents Subscriber liest Channelpoints-Daten jetzt aus `payload.twitch` des `twitch_events` Bus-Events.
+- `lastNormalized` im Status zeigt gelesene Reward-/User-/Redemption-Felder fuer Live-Diagnose.
+- Alter Bridge-Weg und Twitch-Write-/DB-Logik unveraendert.
