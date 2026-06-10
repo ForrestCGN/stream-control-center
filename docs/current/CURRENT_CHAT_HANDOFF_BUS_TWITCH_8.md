@@ -28,3 +28,10 @@ Keine Funktion wurde entfernt.
 ```text
 BUS-TWITCH.9 – Bus-only Command-Live-Test und Autostart-Entscheidung
 ```
+
+
+---
+
+## BUS-TWITCH.8b – Command Direct Route Fix
+
+Ergaenzung: Die in BUS-TWITCH.8 dokumentierten twitch_presence Routen fuer `command-direct/status`, `command-direct/enable` und `command-direct/disable` werden nun tatsaechlich registriert. Keine Funktionalitaet entfernt.

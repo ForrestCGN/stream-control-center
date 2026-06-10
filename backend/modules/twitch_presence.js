@@ -9,15 +9,15 @@ const commands = require('./commands');
 const twitchEvents = require('./twitch_events');
 
 const MODULE_NAME = 'twitch_presence';
-const MODULE_VERSION = '0.1.2';
-const MODULE_BUILD = 'BUS_TWITCH_8_COMMAND_SOURCE_SWITCH';
+const MODULE_VERSION = '0.1.3';
+const MODULE_BUILD = 'BUS_TWITCH_8B_COMMAND_DIRECT_ROUTES_FIX';
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
   build: MODULE_BUILD,
   type: 'runtime',
   category: 'integration',
-  description: 'Twitch IRC Presence, Chat-Ausgabe und steuerbarer Chat-Command-Direktweg mit parallelem twitch_events Chat-Emit.',
+  description: 'Twitch IRC Presence, Chat-Ausgabe und steuerbarer Chat-Command-Direktweg mit registrierten Status-/Enable-/Disable-Routen mit parallelem twitch_events Chat-Emit.',
   routesPrefix: ['/api/twitch/presence', '/twitch/presence'],
   bus: {
     registered: false,
@@ -1224,6 +1224,40 @@ module.exports.init = function init(ctx) {
     res.json(buildPresenceStatus());
   }
 
+  function handleCommandDirectHookStatus(req, res) {
+    res.json({
+      ok: true,
+      module: MODULE_NAME,
+      moduleVersion: MODULE_VERSION,
+      moduleBuild: MODULE_BUILD,
+      commandDirectHook: getCommandDirectHookStatus()
+    });
+  }
+
+  function handleCommandDirectHookEnable(req, res) {
+    const result = setCommandDirectHookEnabled(true, 'route');
+    res.json({
+      ok: result.ok === true,
+      module: MODULE_NAME,
+      moduleVersion: MODULE_VERSION,
+      moduleBuild: MODULE_BUILD,
+      result,
+      commandDirectHook: getCommandDirectHookStatus()
+    });
+  }
+
+  function handleCommandDirectHookDisable(req, res) {
+    const result = setCommandDirectHookEnabled(false, 'route');
+    res.json({
+      ok: result.ok === true,
+      module: MODULE_NAME,
+      moduleVersion: MODULE_VERSION,
+      moduleBuild: MODULE_BUILD,
+      result,
+      commandDirectHook: getCommandDirectHookStatus()
+    });
+  }
+
   function fileCheck(name, filePath, required = false) {
     try {
       const exists = Boolean(filePath && fs.existsSync(filePath));
@@ -1591,6 +1625,11 @@ module.exports.init = function init(ctx) {
   routes.registerGet(app, ['/twitch/presence/start', '/api/twitch/presence/start'], handlePresenceStart);
   routes.registerGet(app, ['/twitch/presence/stop', '/api/twitch/presence/stop'], handlePresenceStop);
   routes.registerGet(app, ['/twitch/presence/status', '/api/twitch/presence/status'], handlePresenceStatus);
+  routes.registerGet(app, ['/twitch/presence/command-direct/status', '/api/twitch/presence/command-direct/status'], handleCommandDirectHookStatus);
+  routes.registerGet(app, ['/twitch/presence/command-direct/enable', '/api/twitch/presence/command-direct/enable'], handleCommandDirectHookEnable);
+  routes.registerPost(app, ['/twitch/presence/command-direct/enable', '/api/twitch/presence/command-direct/enable'], handleCommandDirectHookEnable);
+  routes.registerGet(app, ['/twitch/presence/command-direct/disable', '/api/twitch/presence/command-direct/disable'], handleCommandDirectHookDisable);
+  routes.registerPost(app, ['/twitch/presence/command-direct/disable', '/api/twitch/presence/command-direct/disable'], handleCommandDirectHookDisable);
   routes.registerGet(app, '/api/twitch/presence/config', handlePresenceConfig);
   routes.registerGet(app, '/api/twitch/presence/settings', handlePresenceSettings);
   routes.registerGet(app, '/api/twitch/presence/routes', handlePresenceRoutes);

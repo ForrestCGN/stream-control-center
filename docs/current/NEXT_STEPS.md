@@ -18,3 +18,10 @@ BUS-TWITCH.9 – Commands Bus-only Live-Test und Autostart-Entscheidung
 ```
 
 Ziel: Wenn Bus-only stabil läuft, optional `COMMANDS_BUS_CHAT_SUBSCRIBER_AUTOSTART=true` setzen und Presence-Direktweg default deaktivieren.
+
+
+---
+
+## BUS-TWITCH.8b – Command Direct Route Fix
+
+Ergaenzung: Die in BUS-TWITCH.8 dokumentierten twitch_presence Routen fuer `command-direct/status`, `command-direct/enable` und `command-direct/disable` werden nun tatsaechlich registriert. Keine Funktionalitaet entfernt.
