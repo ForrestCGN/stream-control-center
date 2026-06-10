@@ -5,17 +5,19 @@ Stand: 2026-06-10
 ## Naechster sinnvoller Step
 
 ```text
-BUS-TWITCH.4 – EventSub Chat Subscription in twitch_events planen/umsetzen
+BUS-TWITCH.5 – EventSub Chat Controlled Activation
 ```
 
-## Vor BUS-TWITCH.4 pruefen
+## Vor BUS-TWITCH.5 pruefen
 
 ```text
-1. Welche Token/Scopes liegen im Live-System vor?
-2. Kann channel.chat.message mit vorhandener Auth sauber erstellt werden?
-3. Welche user_id soll fuer die Subscription verwendet werden: Bot/Heimleitung oder Broadcaster?
-4. Duplikat-Schutz fuer IRC + EventSub parallel vorbereiten.
-5. Erst dann EventSub WebSocket/Subscription-Erstellung in twitch_events aktivieren.
+1. Live-.env / Token-Scopes pruefen: user:read:chat muss fuer den chatting user vorhanden sein.
+2. Broadcaster User-ID und Bot/User-ID sicher ermitteln.
+3. Entscheiden, ob Bot/Heimleitung-User oder Broadcaster-User als user_id fuer channel.chat.message genutzt wird.
+4. EventSub-WebSocket in twitch_events nur per hartem Config-/Go-Schalter aktivieren.
+5. Subscription-Erstellung separat absichern: default false, kein automatisches Erstellen ohne ausdrueckliches Go.
+6. Duplikat-Schutz aktivieren, solange IRC und EventSub parallel laufen.
+7. Presence/IRC-Chat erst spaeter reduzieren, wenn EventSub-Chat produktiv getestet ist.
 ```
 
 ## Weiterhin offen

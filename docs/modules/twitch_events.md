@@ -1,128 +1,150 @@
-# twitch_events – Zentrale Twitch-Event-Schicht
+# Modul: twitch_events
 
 Stand: 2026-06-10  
-Version: 0.1.2  
-Build: BUS_TWITCH_3_EVENTSUB_OWNERSHIP_PREP
+Step: BUS-TWITCH.4 – EventSub Chat Readiness
 
-## Rolle
+## Zweck
 
-`twitch_events` ist die zentrale Twitch-Event-Schicht fuer das Stream-Control-Center.
-Das Modul stellt Twitch-Ereignisse normalisiert ueber den `communication_bus` bereit, damit Fachmodule gezielt abonnieren koennen.
+`twitch_events` ist die zentrale Twitch-Event-Schicht des stream-control-center.
 
-## Bisher bestaetigt
+Das Modul soll Twitch-Ereignisse normalisieren und ueber den `communication_bus` abonnierbar machen.
+Fachlogik bleibt in Fachmodulen wie Commands, Alerts, VIP30, Loyalty, Sound-System usw.
 
-```text
-BUS-TWITCH.1 Foundation: Modul laedt, Statusroute, Event-Katalog, Bus-Registrierung, Heartbeat.
-BUS-TWITCH.2 Chat Parallel Bridge: twitch_presence/IRC -> twitch_events -> Bus twitch.chat.message erfolgreich live getestet.
-```
-
-## BUS-TWITCH.3
-
-Dieser Step ist eine Vorbereitung fuer die spaetere EventSub-Ownership in `twitch_events`.
-
-Wichtig:
+## Aktueller Stand
 
 ```text
-- twitch.js bleibt aktuell produktiver EventSub-Besitzer.
-- Es wird keine EventSub-Logik aus twitch.js entfernt.
-- Bestehende Alert-/VIP-/Loyalty-/Deathcounter-/Shoutout-Flows bleiben aktiv.
-- twitch_events bereitet nur Ownership-Status, Subscription-Katalog und channel.chat.message-Normalisierung vor.
+moduleVersion: 0.1.3
+moduleBuild: BUS_TWITCH_4_EVENTSUB_CHAT_READINESS
 ```
 
-## EventSub Ownership
-
-Statusroute:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/eventsub/ownership"
-```
-
-Aktueller Modus:
+Bestaetigt aus den vorherigen Steps:
 
 ```text
-mode: prepared-disabled
-currentOwner: twitch.js
-desiredOwner: twitch_events
-takeoverEnabled: false
-websocketEnabled: false
-subscriptionCreationEnabled: false
-existingTwitchJsEventSubKept: true
-existingFlowsChanged: false
+BUS-TWITCH.1: Foundation, Status, Katalog, Bus-Registrierung, Heartbeat
+BUS-TWITCH.2: twitch_presence/IRC -> twitch_events -> Bus twitch.chat.message live getestet
+BUS-TWITCH.3: EventSub Ownership vorbereitet, aber nicht aktiviert
+BUS-TWITCH.4: EventSub Chat Readiness dokumentiert und Statusroute ergaenzt
 ```
 
-## Geplante Chat-EventSub-Subscription
+## Wichtige Architekturentscheidung
+
+Zielarchitektur:
 
 ```text
-type: channel.chat.message
-version: 1
-eventKey: twitch.chat.message
-source: eventsub
-status: planned
-enabled: false
+Twitch EventSub channel.chat.message
+-> twitch_events
+-> communication_bus
+-> Subscriber-Module
+```
+
+Aktueller produktiver Zwischenstand:
+
+```text
+twitch_presence / IRC
+-> twitch_events.handleIrcEvent(...)
+-> communication_bus
+-> twitch.chat.message
+```
+
+`twitch.js` bleibt aktuell produktiver EventSub-Besitzer. `twitch_events` uebernimmt noch keine EventSub-WebSocket-Ownership und erstellt noch keine Subscriptions.
+
+## Statusrouten
+
+```text
+GET /api/twitch/events/status
+GET /api/twitch/events/catalog
+GET /api/twitch/events/eventsub/ownership
+GET /api/twitch/events/eventsub/chat-readiness
+```
+
+## Chat-Event-Policy
+
+```text
+event: twitch.chat.message
+channel: twitch.chat
+action: message
 requireAck: false
 replayable: false
 ttlMs: 0
+queued: false
+priority: P2
 payload: minimal
 ```
 
-Benoetigte Bedingung laut Twitch-Dokumentation:
+ACK/Replay sind im Event-Katalog technisch vorbereitet, aber fuer Twitch-Events standardmaessig aus.
 
-```text
-broadcaster_user_id
-user_id
+## EventSub Chat Readiness
+
+`channel.chat.message` ist als geplante Quelle fuer `twitch.chat.message` dokumentiert.
+
+Geplante Condition:
+
+```json
+{
+  "broadcaster_user_id": "<broadcaster/channel user id>",
+  "user_id": "<chatting user/bot id>"
+}
 ```
 
-Token/Scopes muessen vor Aktivierung separat geprueft werden:
+Autorisierung laut Twitch-Dokumentation:
 
 ```text
-user:read:chat
-bei App-Access-Token zusaetzlich: user:bot sowie channel:bot oder Moderator-Status
+user access token: user:read:chat vom chatting user
+app access token: zusaetzlich user:bot vom chatting user und channel:bot vom Broadcaster oder Moderatorstatus
 ```
 
-## Bestehende twitch.js EventSub-Subscriptions laut aktuellem Source-Stand
+Die aktuellen Code-Defaults in `twitch.js` reichen dafuer nicht automatisch:
 
 ```text
-stream.online
-stream.offline
-channel.update
-channel.hype_train.begin
-channel.hype_train.progress
-channel.hype_train.end
-channel.channel_points_custom_reward_redemption.add
-channel.vip.add
-channel.vip.remove
-channel.follow
-channel.subscribe
-channel.subscription.gift
-channel.subscription.message
-channel.cheer
-channel.raid
-channel.shoutout.create
-channel.shoutout.receive
+TWITCH_OAUTH_SCOPES default: kein user:read:chat
+TWITCH_BOT_OAUTH_SCOPES default: chat:read chat:edit
+```
+
+Live-.env kann davon abweichen und muss vor Aktivierung geprueft werden.
+
+## Duplikat-Schutz
+
+Fuer spaetere parallele IRC/EventSub-Phase vorbereitet:
+
+```text
+cacheTtlMs: 30000
+primaryKey: eventsub.message_id oder irc.tags.id
+fallbackKey: source + channel + userId/login + message + 2s time bucket
+```
+
+Aktuell ist der Duplikat-Schutz nur dokumentiert/vorbereitet und nicht aktiv, weil EventSub-Chat noch nicht produktiv laeuft.
+
+## Nicht geaendert
+
+```text
+backend/modules/twitch.js
+backend/modules/twitch_presence.js
+commands.js
+bestehende EventSub-Flows
+bestehende Alert-/VIP-/Loyalty-/Deathcounter-/Shoutout-Flows
+SQLite / DB-Dateien
 ```
 
 ## Migrationsregel
 
 ```text
-Erst parallel anbieten.
-Dann Modul abonnieren.
-Dann Live-Test.
-Dann Doku aktualisieren.
-Erst danach alte Direktlogik entfernen oder deaktivierbar machen.
+Keine alte Funktionalitaet entfernen.
+Neue EventSub-Wege erst parallel aktivieren.
+Erst wenn ein Modul erfolgreich ueber twitch_events abonniert, getestet und dokumentiert ist, darf alte Direktlogik entfernt oder deaktivierbar gemacht werden.
 ```
 
-## Tests
+## Naechster Schritt
 
-```powershell
-node -c .\backend\modules\twitch_events.js
+```text
+BUS-TWITCH.5 – EventSub Chat Controlled Activation
 ```
 
-```powershell
-$s = Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/status"
-$s | Select-Object ok,module,moduleVersion,moduleBuild,health,lastError
-```
+Vorher im Live-System pruefen:
 
-```powershell
-$o = Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/eventsub/ownership"
-$o.ownership | Select-Object mode,currentOwner,desiredOwner,takeoverEnabled,subscriptionCreationEnabled,existingTwitchJsEventSubKept
+```text
+1. Sind broadcaster_user_id und Bot/user_id sicher verfuegbar?
+2. Hat der passende Token user:read:chat?
+3. Soll der Bot-User oder Broadcaster-User als user_id verwendet werden?
+4. Wie wird Subscription-Erstellung per Config hart geschuetzt?
+5. Wie wird Duplikat-Schutz aktiv, wenn IRC und EventSub parallel laufen?
 ```

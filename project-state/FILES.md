@@ -2,7 +2,7 @@
 
 Stand: 2026-06-10
 
-## BUS-TWITCH.3
+## BUS-TWITCH.4
 
 ### Code-Datei
 
@@ -20,13 +20,13 @@ docs/current/NEXT_STEPS.md
 docs/current/TODO.md
 docs/current/CHANGELOG.md
 docs/current/FILES.md
-docs/current/CURRENT_CHAT_HANDOFF_BUS_TWITCH_3.md
+docs/current/CURRENT_CHAT_HANDOFF_BUS_TWITCH_4.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/CHANGELOG.md
 project-state/FILES.md
-README_STEP_BUS_TWITCH_3.md
+README_STEP_BUS_TWITCH_4.md
 ARTIFACT_CHECK.json
 ```
 

@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * BUS-TWITCH.3 – EventSub Ownership Preparation
+ * BUS-TWITCH.4 – EventSub Chat Readiness
  *
  * Central Twitch event contract, normalization and Communication-Bus publisher.
  *
@@ -10,7 +10,8 @@
  * - keeps ACK/replay prepared but disabled by default
  * - accepts parallel IRC chat events from twitch_presence
  * - prepares future EventSub ownership in twitch_events without taking over yet
- * - documents channel.chat.message as planned EventSub source
+ * - documents channel.chat.message readiness and required authorization
+ * - prepares duplicate-protection strategy for future IRC/EventSub parallel mode
  * - keeps existing twitch.js EventSub flows active
  *
  * This module does not replace the existing command direct hook yet.
@@ -21,8 +22,8 @@ const routes = require('./helpers/helper_routes');
 const communicationBus = require('./communication_bus');
 
 const MODULE_NAME = 'twitch_events';
-const MODULE_VERSION = '0.1.2';
-const MODULE_BUILD = 'BUS_TWITCH_3_EVENTSUB_OWNERSHIP_PREP';
+const MODULE_VERSION = '0.1.3';
+const MODULE_BUILD = 'BUS_TWITCH_4_EVENTSUB_CHAT_READINESS';
 const MODULE_ID = `module:${MODULE_NAME}`;
 const MODULE_STARTED_AT = nowIso();
 
@@ -195,8 +196,72 @@ const DEFAULT_TARGET = {
 };
 
 
-const EVENTSUB_OWNERSHIP = {
+const EVENTSUB_CHAT_READINESS = {
   schemaVersion: 1,
+  step: 'BUS-TWITCH.4',
+  status: 'readiness-documented',
+  active: false,
+  subscriptionCreationEnabled: false,
+  websocketOwnershipEnabled: false,
+  currentLiveChatSource: 'twitch_presence/irc parallel bridge',
+  targetLiveChatSource: 'twitch_events EventSub channel.chat.message',
+  subscription: {
+    type: 'channel.chat.message',
+    version: '1',
+    eventKey: 'twitch.chat.message',
+    transport: 'websocket',
+    conditionShape: {
+      broadcaster_user_id: '<broadcaster/channel user id>',
+      user_id: '<chatting user/bot id>'
+    }
+  },
+  authorization: {
+    userAccessToken: {
+      requiredScopes: ['user:read:chat'],
+      note: 'Scope muss vom chatting user kommen. Fuer uns ist das sinnvollerweise der Bot/Heimleitung-User.'
+    },
+    appAccessToken: {
+      additionalRequiredScopes: ['user:bot'],
+      broadcasterRequirement: 'channel:bot scope from broadcaster or bot/moderator status in the channel',
+      note: 'App-Token-Variante ist erst spaeter sinnvoll, wenn Bot-/Broadcaster-Scopes sauber vorhanden und dokumentiert sind.'
+    },
+    currentTwitchJsDefaultScopes: {
+      mainUserDefaultScopesIncludeUserReadChat: false,
+      botDefaultScopesIncludeUserReadChat: false,
+      botDefaultScopes: ['chat:read', 'chat:edit'],
+      conclusion: 'Live-.env kann mehr enthalten, aber die Code-Defaults reichen fuer channel.chat.message nicht aus.'
+    }
+  },
+  readinessChecks: [
+    { id: 'broadcaster_user_id', label: 'Broadcaster/Channel User-ID verfuegbar', required: true, status: 'must_verify_live' },
+    { id: 'chat_user_id', label: 'Chatting Bot/User-ID verfuegbar', required: true, status: 'must_verify_live' },
+    { id: 'user_read_chat_scope', label: 'user:read:chat Scope vorhanden', required: true, status: 'must_verify_live' },
+    { id: 'eventsub_ws_owner', label: 'twitch_events darf EventSub WebSocket oeffnen', required: true, status: 'planned_disabled' },
+    { id: 'subscription_create_guard', label: 'Subscription-Erstellung per Config/Go geschuetzt', required: true, status: 'prepared' },
+    { id: 'duplicate_protection', label: 'Duplikat-Schutz IRC + EventSub', required: true, status: 'prepared_not_active' },
+    { id: 'commands_direct_hook_kept', label: 'Command-Direktaufruf bleibt aktiv', required: true, status: 'kept' },
+    { id: 'old_flows_kept', label: 'twitch.js EventSub-Flows bleiben aktiv', required: true, status: 'kept' }
+  ],
+  duplicateProtection: {
+    prepared: true,
+    active: false,
+    cacheTtlMs: 30000,
+    primaryKey: 'eventsub.message_id or irc.tags.id',
+    fallbackKey: 'source + channel + userId/login + message + 2s time bucket',
+    reason: 'IRC und EventSub koennen im Migrationsbetrieb parallel dieselbe Chatnachricht liefern.'
+  },
+  activationRule: 'Nicht automatisch aktivieren. Erst Live-Scopes/IDs pruefen, dann explizites Go fuer BUS-TWITCH.5.',
+  noChangeGuarantee: {
+    twitchJsChanged: false,
+    twitchPresenceChanged: false,
+    commandsChanged: false,
+    existingFlowsChanged: false,
+    databaseChanged: false
+  }
+};
+
+const EVENTSUB_OWNERSHIP = {
+  schemaVersion: 2,
   mode: 'prepared-disabled',
   currentOwner: 'twitch.js',
   desiredOwner: 'twitch_events',
@@ -209,7 +274,8 @@ const EVENTSUB_OWNERSHIP = {
   existingFlowsChanged: false,
   duplicateProtectionPrepared: true,
   duplicateProtectionEnabled: false,
-  note: 'BUS-TWITCH.3 bereitet EventSub-Ownership nur vor. twitch.js bleibt aktuell produktiver EventSub-Besitzer.',
+  chatReadiness: EVENTSUB_CHAT_READINESS,
+  note: 'BUS-TWITCH.4 dokumentiert EventSub-Chat-Readiness. twitch.js bleibt aktuell produktiver EventSub-Besitzer.',
   migrationModes: ['disabled', 'prepared-disabled', 'mirror-readonly', 'chat-owner', 'owner'],
   currentTwitchJsSubscriptions: [
     'stream.online',
@@ -237,13 +303,10 @@ const EVENTSUB_OWNERSHIP = {
       eventKey: 'twitch.chat.message',
       source: 'eventsub',
       enabled: false,
-      status: 'planned',
-      conditionShape: {
-        broadcaster_user_id: '<channel/broadcaster id>',
-        user_id: '<chatting bot/user id>'
-      },
-      requiredScopes: ['user:read:chat'],
-      appTokenAdditionalScopes: ['user:bot', 'channel:bot or moderator status'],
+      status: 'readiness-documented',
+      conditionShape: EVENTSUB_CHAT_READINESS.subscription.conditionShape,
+      requiredScopes: EVENTSUB_CHAT_READINESS.authorization.userAccessToken.requiredScopes,
+      appTokenAdditionalScopes: EVENTSUB_CHAT_READINESS.authorization.appAccessToken.additionalRequiredScopes,
       transport: 'websocket',
       replayable: false,
       requireAck: false,
@@ -288,7 +351,8 @@ module.exports.MODULE_VERSION = MODULE_VERSION;
 module.exports.version = MODULE_VERSION;
 module.exports.getStatus = getStatus;
 module.exports.getCatalog = getCatalog;
-module.exports.getEventSubOwnership = () => safeJson(EVENTSUB_OWNERSHIP, {});
+module.exports.getEventSubOwnership = getEventSubOwnership;
+module.exports.getEventSubChatReadiness = getEventSubChatReadiness;
 module.exports.publishTwitchEvent = publishTwitchEvent;
 module.exports.handleIrcEvent = handleIrcEvent;
 module.exports.handleEventSubNotification = handleEventSubNotification;
@@ -313,7 +377,7 @@ module.exports.init = function init(ctx = {}) {
         meta: {
           build: MODULE_BUILD,
           role: 'twitch-event-center',
-          migrationMode: 'eventsub-ownership-prep',
+          migrationMode: 'eventsub-chat-readiness',
           ackDefaultEnabled: false,
           replayDefaultEnabled: false
         }
@@ -348,7 +412,16 @@ module.exports.init = function init(ctx = {}) {
         module: MODULE_NAME,
         moduleVersion: MODULE_VERSION,
         moduleBuild: MODULE_BUILD,
-        ownership: safeJson(EVENTSUB_OWNERSHIP, {})
+        ownership: getEventSubOwnership()
+      });
+    }));
+    registered.push(...routes.registerGet(app, ['/api/twitch/events/eventsub/chat-readiness', '/twitch/events/eventsub/chat-readiness'], (req, res) => {
+      res.json({
+        ok: true,
+        module: MODULE_NAME,
+        moduleVersion: MODULE_VERSION,
+        moduleBuild: MODULE_BUILD,
+        readiness: getEventSubChatReadiness()
       });
     }));
     state.routeCount = registered.length;
@@ -356,6 +429,15 @@ module.exports.init = function init(ctx = {}) {
 
   return getStatus();
 };
+
+
+function getEventSubOwnership() {
+  return safeJson(EVENTSUB_OWNERSHIP, {});
+}
+
+function getEventSubChatReadiness() {
+  return safeJson(EVENTSUB_CHAT_READINESS, {});
+}
 
 function eventDef(event, channel, action, category, description, policy = DEFAULT_POLICY) {
   return {
@@ -508,6 +590,7 @@ function getStatusPayload(trigger = 'status') {
     warnings: state.lastWarning ? [state.lastWarning] : [],
     counts: safeJson(state.counts, {}),
     eventSubOwnership: safeJson(EVENTSUB_OWNERSHIP, {}),
+    eventSubChatReadiness: safeJson(EVENTSUB_CHAT_READINESS, {}),
     bus: {
       registered: state.registeredOnBus,
       heartbeat: true,
@@ -560,9 +643,10 @@ function getStatus() {
       counts: safeJson(state.counts, {}),
       database: {
         used: false,
-        note: 'BUS-TWITCH.3 speichert keine Twitch-Events in SQLite.'
+        note: 'BUS-TWITCH.4 speichert keine Twitch-Events in SQLite.'
       },
       eventSubOwnership: safeJson(EVENTSUB_OWNERSHIP, {}),
+      eventSubChatReadiness: safeJson(EVENTSUB_CHAT_READINESS, {}),
       runtime: {
         loadedAt: state.loadedAt,
         updatedAt: state.updatedAt,
@@ -596,8 +680,8 @@ function getStatus() {
     migration: {
       mode: 'eventsub-ownership-prep',
       rule: 'twitch_events wird als zukuenftiger EventSub-Besitzer vorbereitet. twitch.js bleibt aktuell produktiver EventSub-Besitzer. Alte Direktlogik wird erst entfernt, wenn ein Modul erfolgreich abonniert, getestet und dokumentiert ist.',
-      currentStep: 'BUS-TWITCH.3',
-      nextStep: 'BUS-TWITCH.4 – EventSub Chat Subscription in twitch_events'
+      currentStep: 'BUS-TWITCH.4',
+      nextStep: 'BUS-TWITCH.5 – EventSub Chat Subscription controlled activation in twitch_events'
     },
     updatedAt: nowIso()
   };
