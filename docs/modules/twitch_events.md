@@ -1,24 +1,56 @@
 # Modul: twitch_events
 
-Stand: BUS-TWITCH.10
+Stand: 2026-06-10
 
-`twitch_events` ist die zentrale Twitch-Event-Schicht. Chat kann direkt per Twitch EventSub `channel.chat.message` empfangen und als `twitch.chat.message` auf den Communication Bus gelegt werden.
+## Aktuelle Version
 
-## BUS-TWITCH.10
+```text
+0.1.6 / BUS_TWITCH_10_EVENTSUB_CHAT_AUTOSTART
+```
 
-- EventSub-Chat-Autostart ist standardmaessig aktiv.
-- Deaktivierung per `TWITCH_EVENTS_EVENTSUB_CHAT_AUTOSTART=false` moeglich.
-- Neue Restart-Route fuer kontrollierten Neustart der Chat-EventSub-Verbindung.
-- Duplikat-Schutz bleibt aktiv.
-- `twitch.js`, Presence-Fallback und bestehende Flows bleiben erhalten.
+## Aufgabe
+
+`twitch_events` ist die zentrale Twitch-Event-Schicht. Es normalisiert Twitch-Ereignisse und veröffentlicht sie über den Communication Bus.
+
+## Aktiver Standard für Chat
+
+```text
+EventSub channel.chat.message
+→ twitch_events
+→ communication_bus channel=twitch.chat action=message
+```
 
 ## Wichtige Routen
 
 ```text
-/api/twitch/events/status
-/api/twitch/events/catalog
-/api/twitch/events/eventsub/chat/status
-/api/twitch/events/eventsub/chat/start
-/api/twitch/events/eventsub/chat/stop
-/api/twitch/events/eventsub/chat/restart
+GET /api/twitch/events/status
+GET /api/twitch/events/catalog
+GET /api/twitch/events/eventsub/chat/status
+POST /api/twitch/events/eventsub/chat/start
+POST /api/twitch/events/eventsub/chat/stop
+POST /api/twitch/events/eventsub/chat/restart
+GET /api/twitch/events/eventsub/ownership
+GET /api/twitch/events/eventsub/chat-readiness
+GET /api/twitch/events/eventsub/live-readiness
+```
+
+## Bestätigter Live-Zustand
+
+```text
+enabled=True
+autostart=True
+active=True
+connecting=False
+websocket.readyState=OPEN
+subscription.type=channel.chat.message
+subscription.status=enabled
+lastError leer
+```
+
+## Regeln
+
+```text
+Twitch-Events bleiben leichtgewichtig.
+Kein ACK/Replay/Queue als Default.
+Altlogik erst entfernen, wenn jeweilige Subscriber produktiv getestet sind.
 ```

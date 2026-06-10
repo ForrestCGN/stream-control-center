@@ -2,41 +2,72 @@
 
 Stand: 2026-06-10
 
-## Aktueller bestaetigter Bereich
+## Aktueller bestätigter Hauptstand
 
 ```text
-BUS-TWITCH.10 – EventSub Chat Autostart / Restart-Sicherheit vorbereitet
+STEP BUS-TWITCH.11 – Dokumentation/Konsolidierung nach BUS-TWITCH.1 bis BUS-TWITCH.10
 ```
 
-## BUS-TWITCH Stand
-
-```text
-BUS-TWITCH.1  Foundation
-BUS-TWITCH.2  Presence/IRC Parallelbridge
-BUS-TWITCH.3  EventSub Ownership vorbereitet
-BUS-TWITCH.4  Chat Readiness
-BUS-TWITCH.5  Live Token/ID Readiness
-BUS-TWITCH.5b OAuth Force Verify
-BUS-TWITCH.6  EventSub Chat aktiv
-BUS-TWITCH.7  Commands Subscriber
-BUS-TWITCH.8/8b Source Switch + Route Fix
-BUS-TWITCH.9  Command Source Defaults
-BUS-TWITCH.10 EventSub Chat Autostart / Restart-Sicherheit
-```
-
-## Aktueller Zielweg
+## Bestätigter produktiver Standardweg für Chat/Commands
 
 ```text
 Twitch EventSub channel.chat.message
-→ twitch_events
+→ backend/modules/twitch_events.js
 → communication_bus
-→ commands
+→ backend/modules/commands.js
 ```
 
-## Abgrenzung
+## Aktive/Bestätigte Modulstände
 
 ```text
-Keine alte Funktionalitaet entfernt.
-twitch.js EventSub-Flows bleiben aktiv.
-twitch_presence bleibt als Fallback vorhanden.
+twitch_events   0.1.6 / BUS_TWITCH_10_EVENTSUB_CHAT_AUTOSTART
+commands        0.2.1 / BUS_TWITCH_9_COMMAND_SOURCE_DEFAULTS
+twitch_presence 0.1.4 / BUS_TWITCH_9_COMMAND_SOURCE_DEFAULTS
+twitch.js       0.1.3 / BUS_TWITCH_6_EVENTSUB_CHAT_ENABLE
+```
+
+## Bestätigte Live-Tests
+
+```text
+/api/twitch/events/status
+→ ok=True, health=ok, twitch_events 0.1.6
+
+/api/twitch/events/eventsub/chat/status
+→ enabled=True
+→ autostart=True
+→ active=True
+→ connecting=False
+→ websocket.readyState=OPEN
+→ subscription.type=channel.chat.message
+→ subscription.status=enabled
+→ lastError leer
+
+/api/commands/bus-chat/status
+→ enabled=True
+→ active=True
+→ autostart=True
+→ subscriptionId=commands:twitch.chat:message
+
+/api/twitch/presence/command-direct/status
+→ enabled=False
+→ mode=disabled
+```
+
+## Fallbacks bleiben vorhanden
+
+```text
+twitch_presence / IRC → commands.handleChatMessage(...)
+```
+
+Der Fallback ist nicht entfernt, aber default aus. Er kann per Route wieder aktiviert werden.
+
+## Wichtige Regeln für weitere Migration
+
+```text
+Keine Funktionalität entfernen.
+Erst parallel abonnieren und testen.
+Erst danach alte Direktlogik deaktivieren oder entfernen.
+Twitch-Events bleiben leichtgewichtig: kein ACK, kein Replay, keine Queue als Standard.
+ACK/Replay sind vorbereitet, aber default aus.
+Koordinierte Systemaktionen sollen später eigene Lifecycle-/Result-Events nutzen.
 ```

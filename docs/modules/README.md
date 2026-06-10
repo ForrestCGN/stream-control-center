@@ -2,18 +2,28 @@
 
 Stand: 2026-06-10
 
-## BUS-TWITCH
+## Aktueller BUS-TWITCH-Stand
 
 ```text
-BUS-TWITCH.10 – EventSub Chat Autostart / Restart-Sicherheit
+BUS-TWITCH.11 – Dokumentation/Konsolidierung nach erfolgreicher Chat-/Commands-Migration
 ```
 
-## Wichtige Regeln
+## Bestätigte Modulbereiche
 
 ```text
-Keine Funktionalitaet entfernen.
-Twitch-Events sollen zentral ueber twitch_events abonnierbar sein.
-Commands nutzen standardmaessig den Bus-Weg.
-Presence-Direktweg bleibt als Fallback vorhanden.
-StepDone vor Live-Test ausfuehren.
+twitch_events   Zentrale Twitch-Event-Schicht, EventSub Chat aktiv
+twitch.js       Twitch-Core/API/OAuth/Helix, bestehende EventSub-Flows bleiben aktiv
+commands        Command-Verarbeitung per Bus-Subscriber aktiv
+twitch_presence IRC/Presence/Fallback, Direct Command Hook default aus
+communication_bus Transport/Monitoring/Subscriptions/Heartbeat
+```
+
+## Wichtige Projektregeln
+
+```text
+Keine Funktionalität entfernen.
+Neue Buswege zuerst parallel testen.
+Alte Direktwege erst nach erfolgreichem Subscriber-Test deaktivieren.
+DB-Dateien nicht ersetzen.
+StepDone vor Live-Test.
 ```

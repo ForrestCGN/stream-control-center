@@ -1,30 +1,46 @@
 # Modul: commands
 
-Stand: BUS-TWITCH.9
+Stand: 2026-06-10
 
-## Version
+## Aktuelle Version
 
 ```text
-commands 0.2.1 / BUS_TWITCH_9_COMMAND_SOURCE_DEFAULTS
+0.2.1 / BUS_TWITCH_9_COMMAND_SOURCE_DEFAULTS
 ```
 
-## Command-Quelle
+## Aufgabe
+
+`commands` verarbeitet Twitch-Chat-Commands. Der Standard-Eingang ist jetzt der Communication Bus.
+
+## Aktiver Standard
 
 ```text
-Primär: twitch_events EventSub channel.chat.message -> communication_bus -> commands
-Fallback: twitch_presence -> commands.handleChatMessage, per Route aktivierbar
+communication_bus subscription:
+channel=twitch.chat
+action=message
+subscriptionId=commands:twitch.chat:message
 ```
 
 ## Routen
 
 ```text
-GET/POST /api/commands/bus-chat/start
-GET/POST /api/commands/bus-chat/stop
-GET      /api/commands/bus-chat/status
+GET  /api/commands/bus-chat/status
+GET  /api/commands/bus-chat/start
+POST /api/commands/bus-chat/start
+GET  /api/commands/bus-chat/stop
+POST /api/commands/bus-chat/stop
 ```
 
-## Default
+## Bestätigter Live-Zustand
 
 ```text
-COMMANDS_BUS_CHAT_SUBSCRIBER_AUTOSTART=true
+enabled=True
+active=True
+autostart=True
+subscriptionId=commands:twitch.chat:message
+lastError leer
 ```
+
+## Fallback-Regel
+
+Der alte `twitch_presence`-Direktweg bleibt vorhanden, ist aber default aus.

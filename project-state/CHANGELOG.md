@@ -1,25 +1,30 @@
 # CHANGELOG – stream-control-center
 
-## 2026-06-10 – BUS-TWITCH.10
+## 2026-06-10 – BUS-TWITCH.11
 
-### Geaendert
+### Dokumentiert
 
 ```text
-backend/modules/twitch_events.js
+BUS-TWITCH.1 bis BUS-TWITCH.10 konsolidiert.
+Aktueller Standardweg für Chat/Commands dokumentiert.
+Fallbacks und Routen dokumentiert.
+Live-Testergebnisse festgehalten.
+Nächste Migrationskandidaten festgehalten.
 ```
 
-### Neu
+### Bestätigter Standardweg
 
 ```text
-EventSub Chat Autostart default true
-/api/twitch/events/eventsub/chat/restart
-Statusfelder autostart/autostartEvaluated/lastAutostartResult
+Twitch EventSub channel.chat.message
+→ twitch_events
+→ communication_bus
+→ commands
 ```
 
-### Nicht geaendert
+### Nicht geändert
 
 ```text
-Keine alten Flows entfernt.
-twitch.js bleibt fuer bestehende EventSub-Flows aktiv.
-twitch_presence bleibt Fallback.
+Keine Code-Dateien geändert.
+Keine DB-Dateien geändert.
+Keine produktive Logik entfernt.
 ```
