@@ -4,25 +4,27 @@ Stand: 2026-06-10
 
 ## Erledigt / bestätigt
 
-- [x] `twitch_events` Foundation erstellt.
-- [x] Event-Katalog verfügbar.
-- [x] Communication-Bus Registrierung/Heartbeat bestätigt.
-- [x] IRC/Presence-Chat parallel auf Bus getestet.
-- [x] EventSub Ownership vorbereitet.
-- [x] `channel.chat.message` Readiness geprüft.
-- [x] `user:read:chat` Scope per Force-Verify in Token gebracht.
-- [x] EventSub Chat gestartet und getestet.
-- [x] EventSub Chat Autostart nach Neustart bestätigt.
-- [x] Commands als Bus-Subscriber vorbereitet und getestet.
-- [x] Presence-Direktweg steuerbar gemacht und default deaktiviert.
-- [x] Bus/Commands ist neuer Standardweg.
+- [x] BUS-TWITCH.1 Foundation/Event-Katalog/Bus-Heartbeat.
+- [x] BUS-TWITCH.2 Presence/IRC Parallelbridge.
+- [x] BUS-TWITCH.3 EventSub Ownership Preparation.
+- [x] BUS-TWITCH.4 EventSub Chat Readiness.
+- [x] BUS-TWITCH.5 Live Token/ID Readiness.
+- [x] BUS-TWITCH.5b OAuth Force Verify + Scope Diagnostics.
+- [x] BUS-TWITCH.6 EventSub Chat aktiv.
+- [x] BUS-TWITCH.7 Commands Bus Subscriber.
+- [x] BUS-TWITCH.8/8b Commands Source Switch + Route Fix.
+- [x] BUS-TWITCH.9 Command Source Defaults.
+- [x] BUS-TWITCH.10 EventSub Chat Autostart/Restart-Sicherheit.
+- [x] BUS-TWITCH.11 Dokumentation/Konsolidierung.
+- [x] BUS-TWITCH.12 Modul-Migrationsplan erstellt.
 
 ## Offen
 
-- [ ] BUS-TWITCH.12: bestehende Twitch-Event-Abnehmer inventarisieren.
-- [ ] VIP30/Channelpoints Subscriber planen.
-- [ ] Alerts Subscriber planen.
+- [ ] BUS-TWITCH.13 Channelpoints/VIP30 Event-Mapping prüfen.
+- [ ] VIP30 Subscriber parallel vorbereiten.
+- [ ] Fulfill/Cancel Request-/Result-Events testen.
+- [ ] Alert-Event-Mapping vorbereiten.
+- [ ] alert_system Subscriber parallel vorbereiten.
 - [ ] Loyalty/Giveaway Claim Subscriber planen.
-- [ ] Shoutout/AutoShout Subscriber planen.
-- [ ] Langfristig: EventSub-Ownership weiterer Eventtypen von `twitch.js` nach `twitch_events` migrieren.
-- [ ] Nach stabiler Modulmigration alte Direktlogiken gezielt deaktivieren/entfernen.
+- [ ] Shoutout/ClipShoutout Chataktivität auf Bus-Events umstellen.
+- [ ] Deathcounter/Streamstatus Channel-Updates prüfen.

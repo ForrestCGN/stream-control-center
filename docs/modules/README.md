@@ -5,25 +5,41 @@ Stand: 2026-06-10
 ## Aktueller BUS-TWITCH-Stand
 
 ```text
-BUS-TWITCH.11 – Dokumentation/Konsolidierung nach erfolgreicher Chat-/Commands-Migration
+BUS-TWITCH.12 – Modul-Migrationsplan für Twitch-Events erstellt
 ```
 
-## Bestätigte Modulbereiche
+## Produktiver Standardweg Chat/Commands
 
 ```text
-twitch_events   Zentrale Twitch-Event-Schicht, EventSub Chat aktiv
-twitch.js       Twitch-Core/API/OAuth/Helix, bestehende EventSub-Flows bleiben aktiv
-commands        Command-Verarbeitung per Bus-Subscriber aktiv
-twitch_presence IRC/Presence/Fallback, Direct Command Hook default aus
-communication_bus Transport/Monitoring/Subscriptions/Heartbeat
+Twitch EventSub channel.chat.message
+→ twitch_events
+→ communication_bus
+→ commands
+```
+
+## Relevante Moduldokus
+
+```text
+docs/modules/twitch_events.md
+docs/modules/commands.md
+docs/modules/twitch_presence.md
+```
+
+## Nächste Migrationskandidaten
+
+```text
+1. Channelpoints / VIP30
+2. Alerts / Subs / Bits / Raids / Follows
+3. Loyalty / Glücksrad / Giveaways
+4. Shoutout / ClipShoutout
+5. Deathcounter / Streamstatus / Game Sync
 ```
 
 ## Wichtige Projektregeln
 
 ```text
 Keine Funktionalität entfernen.
-Neue Buswege zuerst parallel testen.
-Alte Direktwege erst nach erfolgreichem Subscriber-Test deaktivieren.
-DB-Dateien nicht ersetzen.
+Erst parallel abonnieren und testen.
 StepDone vor Live-Test.
+Twitch-Events bleiben leichtgewichtig.
 ```

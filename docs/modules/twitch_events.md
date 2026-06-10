@@ -54,3 +54,20 @@ Twitch-Events bleiben leichtgewichtig.
 Kein ACK/Replay/Queue als Default.
 Altlogik erst entfernen, wenn jeweilige Subscriber produktiv getestet sind.
 ```
+
+
+## BUS-TWITCH.12 – Migrationsplan
+
+Siehe auch:
+
+```text
+docs/current/BUS_TWITCH_MODULE_MIGRATION_PLAN.md
+```
+
+Nächster empfohlener Bereich:
+
+```text
+Channelpoints / VIP30
+```
+
+twitch_events bleibt zentrale Event-Schicht. Fachlogik bleibt in den Fachmodulen.

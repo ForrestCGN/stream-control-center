@@ -1,30 +1,28 @@
 # CHANGELOG – stream-control-center
 
-## 2026-06-10 – BUS-TWITCH.11
+## 2026-06-10 – BUS-TWITCH.12
+
+### Hinzugefügt
+
+```text
+docs/current/BUS_TWITCH_MODULE_MIGRATION_PLAN.md
+```
 
 ### Dokumentiert
 
 ```text
-BUS-TWITCH.1 bis BUS-TWITCH.10 konsolidiert.
-Aktueller Standardweg für Chat/Commands dokumentiert.
-Fallbacks und Routen dokumentiert.
-Live-Testergebnisse festgehalten.
-Nächste Migrationskandidaten festgehalten.
-```
-
-### Bestätigter Standardweg
-
-```text
-Twitch EventSub channel.chat.message
-→ twitch_events
-→ communication_bus
-→ commands
+- Priorisierte Migrationsreihenfolge für Twitch-Events.
+- Channelpoints/VIP30 als nächster Kandidat.
+- Alerts, Loyalty, Shoutout und Deathcounter als folgende Kandidaten.
+- Event-Policy: Twitch-Events bleiben leichtgewichtig.
+- Systemaktionen sollen eigene Lifecycle-/Result-Events nutzen.
 ```
 
 ### Nicht geändert
 
 ```text
-Keine Code-Dateien geändert.
-Keine DB-Dateien geändert.
-Keine produktive Logik entfernt.
+Keine Code-Dateien.
+Keine EventSub-Subscription.
+Keine SQLite-Datei.
+Keine produktive Logik.
 ```

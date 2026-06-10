@@ -2,62 +2,45 @@
 
 Stand: 2026-06-10
 
-## Nächster empfohlener Arbeitsbereich
+## Nächster empfohlener Step
 
 ```text
-BUS-TWITCH.12 – Modul-Migrationsplan für Twitch-Events
+BUS-TWITCH.13 – Channelpoints/VIP30 Event-Mapping prüfen
 ```
 
-Ziel: Nicht sofort weitere Produktivlogik umbauen, sondern zuerst die bestehenden direkten Twitch-Event-Abnehmer sauber erfassen.
-
-## Mögliche nächste Kandidaten
-
-### 1. Loyalty / Giveaways
+## Ziel
 
 ```text
-Eventquelle: twitch.chat.message
-Ziel: Giveaway-Claim und Chat-Teilnahme über Bus-Subscriber vorbereiten.
-Altlogik erst nach Test deaktivieren.
+Bestehenden Channelpoints-/VIP30-Fluss analysieren und sauberes Event-Mapping festlegen,
+ohne bestehende Verarbeitung zu entfernen.
 ```
 
-### 2. VIP30 / Channelpoints
+## Geplante Prüfpunkte
 
 ```text
-Eventquelle: twitch.channelpoints.redemption.created
-Ziel: VIP30 als Subscriber vorbereiten.
-Fulfill/Cancel bleiben fachliche Result-/Request-Flows, nicht Bus-ACK.
+1. Welche EventSub-Redemption-Events verarbeitet twitch.js aktuell?
+2. Welche VIP30-/Channelpoints-Module reagieren aktuell direkt?
+3. Welche Twitch-API-Funktionen für fulfill/cancel bleiben in twitch.js?
+4. Welche Events liefert twitch_events künftig?
+5. Welche Result-Events braucht VIP30?
+6. Wie verhindern wir doppelte Fulfill/Cancel-Aktionen während Parallelbetrieb?
 ```
 
-### 3. Alerts
+## Vorgeschlagene Events
 
 ```text
-Eventquellen: twitch.follow.received, twitch.sub.received, twitch.raid.received, twitch.cheer.received
-Ziel: Alerts erst parallel abonnieren, dann alte Weiterleitung entfernen.
-Wichtig: Alert/Sound/Overlay-Koordination bleibt eigene Aktionsebene.
+twitch.channelpoints.redemption.created
+twitch.channelpoints.redemption.fulfill.requested
+twitch.channelpoints.redemption.cancel.requested
+twitch.channelpoints.redemption.fulfilled
+twitch.channelpoints.redemption.canceled
+twitch.channelpoints.redemption.failed
 ```
 
-### 4. Shoutout / ClipShoutout / AutoShout
+## Danach
 
 ```text
-Eventquellen: twitch.chat.message, twitch.shoutout.created, twitch.shoutout.received
-Ziel: bestehende AutoShout-Logik nicht anfassen, bevor Subscriber stabil getestet ist.
-```
-
-## Technische nächste Prüfung
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/status"
-Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/eventsub/chat/status"
-Invoke-RestMethod "http://127.0.0.1:8080/api/commands/bus-chat/status"
-Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/presence/command-direct/status"
-```
-
-## Vor jeder weiteren Migration
-
-```text
-1. Echte aktuelle Datei aus Repo/Live prüfen.
-2. Bestehenden Direktweg dokumentieren.
-3. Neuen Subscriber parallel ergänzen.
-4. Live-Test.
-5. Erst danach Standard/Fallback ändern.
+BUS-TWITCH.14 – VIP30 Subscriber parallel vorbereiten
+BUS-TWITCH.15 – VIP30 Fulfill/Cancel Result-Events testen
+BUS-TWITCH.16 – Alert Event-Mapping vorbereiten
 ```
