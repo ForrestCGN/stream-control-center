@@ -2,26 +2,17 @@
 
 Stand: 2026-06-10
 
-## BUS-TWITCH
+## Twitch Events / Communication Bus
+
+Aktueller bestätigter Bereich:
 
 ```text
-BUS-TWITCH.14 – Channelpoints Redemption Created Parallel Emit
+BUS-TWITCH.14b – Channelpoints Parallel Tap Reliability
 ```
 
-Bestätigt/aufgebaut:
-
-```text
-Twitch EventSub Chat → twitch_events → Bus → commands
-Channelpoints Redemption Created → twitch_events → Bus vorbereitet/parallel
-```
-
-## Regel
+Wichtige Regel:
 
 ```text
 Keine Funktionalität entfernen.
-Altwege bleiben aktiv, bis Subscriber produktiv getestet sind.
+Alte produktive Twitch-/VIP30-/Channelpoints-Flows bleiben aktiv, bis neue Subscriber erfolgreich getestet sind.
 ```
-
-## BUS-TWITCH.15
-
-VIP30 Subscriber fuer `twitch.channelpoints.redemption.created` vorbereitet. Altweg bleibt aktiv.

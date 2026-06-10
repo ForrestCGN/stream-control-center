@@ -2,19 +2,22 @@
 
 Stand: 2026-06-10
 
-## Direkt nach Installation testen
+## Direkt testen
 
 ```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/channelpoints/twitch-events/status"
-Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/vip30/channelpoints/twitch-events/start"
+$p = Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/eventsub/channelpoints-parallel/status"
+$p.channelpointsTwitchEventsParallel
 ```
 
-Danach echte Channelpoints-Einlösung auslösen und prüfen, ob VIP30 den neuen Eventpfad sieht.
+Danach eine Channelpoints-Einlösung auslösen und prüfen:
 
-## Nächster fachlicher Step
+```powershell
+$p = Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/eventsub/channelpoints-parallel/status"
+$p.channelpointsTwitchEventsParallel | Select-Object forwarded,duplicateSkipped,failed,lastForwardSource,lastRewardTitle,lastResultReason,lastError
+```
+
+## Danach
 
 ```text
-BUS-TWITCH.16 – VIP30 Twitch-Events Subscriber Live-Test und Altweg-Vergleich
+BUS-TWITCH.15 erneut mit echtem VIP30-Reward testen.
 ```
-
-Ziel: Counters und Duplicate-Guard prüfen, bevor ein Source-Switch geplant wird.

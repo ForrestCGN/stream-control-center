@@ -2,8 +2,7 @@
 
 Stand: 2026-06-10
 
-- [x] BUS-TWITCH.15 VIP30 Twitch-Events Channelpoints Subscriber gebaut.
-- [ ] VIP30 Subscriber manuell starten.
-- [ ] Echte Channelpoints-Einlösung testen.
-- [ ] Prüfen: neuer Subscriber processed/ignored/duplicates/failed.
-- [ ] Altweg erst nach bestätigtem Subscriber-Test umschaltbar machen.
+- [ ] BUS-TWITCH.14b einspielen und StepDone ausführen.
+- [ ] Channelpoints-Parallel-Tap mit normalem Reward testen.
+- [ ] VIP30-Reward erneut testen.
+- [ ] Erst danach VIP30 Source Switch planen.
