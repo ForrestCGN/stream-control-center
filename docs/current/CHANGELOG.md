@@ -1,34 +1,25 @@
 # CHANGELOG – stream-control-center
 
-## 2026-06-10 – BUS-TWITCH.4
+## 2026-06-10 – BUS-TWITCH.5
 
-### Geaendert
+### Geändert
 
 ```text
 backend/modules/twitch_events.js
-docs/modules/twitch_events.md
-docs/modules/README.md
-docs/current/*
-project-state/*
 ```
 
-### Ergaenzt
+### Ergänzt
 
 ```text
-EventSub Chat Readiness in twitch_events.
-Statusroute /api/twitch/events/eventsub/chat-readiness.
-Dokumentation fuer channel.chat.message Authorization/Condition.
-Readiness-Checks fuer Token/Scopes/IDs.
-Duplikat-Schutz-Strategie fuer spaeteren IRC/EventSub-Parallelbetrieb.
+/api/twitch/events/eventsub/live-readiness
 ```
 
-### Nicht geaendert
+### Nicht geändert
 
 ```text
 twitch.js
 twitch_presence.js
-EventSub-Verbindung in twitch.js
-bestehende Alert-/VIP-/Loyalty-/Deathcounter-/Shoutout-Flows
-Command-Direktaufruf
+commands.js
+EventSub-Produktivflows
 SQLite/DB
 ```

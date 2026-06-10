@@ -2,28 +2,18 @@
 
 Stand: 2026-06-10
 
-## Naechster sinnvoller Step
+## Direkt nach Installation testen
 
-```text
-BUS-TWITCH.5 – EventSub Chat Controlled Activation
+```powershell
+node -c .\backend\modules\twitch_events.js
+$l = Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/eventsub/live-readiness"
+$l.liveReadiness.checks | Select-Object id,label,required,status,value,error
 ```
 
-## Vor BUS-TWITCH.5 pruefen
+## Danach
 
 ```text
-1. Live-.env / Token-Scopes pruefen: user:read:chat muss fuer den chatting user vorhanden sein.
-2. Broadcaster User-ID und Bot/User-ID sicher ermitteln.
-3. Entscheiden, ob Bot/Heimleitung-User oder Broadcaster-User als user_id fuer channel.chat.message genutzt wird.
-4. EventSub-WebSocket in twitch_events nur per hartem Config-/Go-Schalter aktivieren.
-5. Subscription-Erstellung separat absichern: default false, kein automatisches Erstellen ohne ausdrueckliches Go.
-6. Duplikat-Schutz aktivieren, solange IRC und EventSub parallel laufen.
-7. Presence/IRC-Chat erst spaeter reduzieren, wenn EventSub-Chat produktiv getestet ist.
+BUS-TWITCH.6 – EventSub Chat guarded enable planen, nur wenn Live-Readiness passt.
 ```
 
-## Weiterhin offen
-
-```text
-- Keine alten EventSub-Direktwege entfernen, bevor Subscriber erfolgreich getestet sind.
-- Commands spaeter als Subscriber fuer twitch.chat.message vorbereiten.
-- Presence spaeter auf Presence/Chat-Senden/Kompatibilitaet reduzieren.
-```
+Wichtig: EventSub-Subscription erst mit gesondertem Go aktivieren.
