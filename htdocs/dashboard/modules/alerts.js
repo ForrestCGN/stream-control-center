@@ -752,9 +752,11 @@
     if (!mediaId) return assetInline(rule?.sound_label, rule?.sound_url);
     const mediaLabel = rule.sound_media_label || rule.soundMediaLabel || `MediaId ${mediaId}`;
     const mediaDuration = ruleSoundMediaDurationMs(rule);
+    const mediaUrl = ruleSoundMediaUrl(rule);
     const mediaInfo = `${mediaLabel}${mediaDuration ? ` · ${fmtMs(mediaDuration)}` : ''}`;
     const fallback = rule?.sound_label || rule?.sound_url ? `Fallback: ${rule.sound_label || rule.sound_url}` : 'kein Legacy-Fallback gesetzt';
-    return `<div class="sound-inline"><div><strong>${esc(mediaInfo)}</strong><br><span class="muted path-small">Media-Registry #${esc(mediaId)} · ${esc(fallback)}</span></div></div>`;
+    const play = mediaUrl ? `<button type="button" class="sound-icon-btn" data-play-sound="${esc(mediaUrl)}" title="Media-Sound abspielen" aria-label="Media-Sound abspielen">▶</button>` : '';
+    return `<div class="sound-inline">${play}<div><strong>${esc(mediaInfo)}</strong><br><span class="muted path-small">${mediaUrl ? esc(mediaUrl) + ' · ' : ''}Media-Registry #${esc(mediaId)} · ${esc(fallback)}</span></div></div>`;
   }
 
   function soundAssetById(id){
@@ -1446,6 +1448,11 @@
     if (!id) return 0;
     const duration = Number(rule?.sound_media_duration_ms ?? rule?.soundMediaDurationMs ?? 0);
     return Number.isFinite(duration) && duration > 0 ? duration : 0;
+  }
+
+  function ruleSoundMediaUrl(rule){
+    const url = rule?.sound_media_url ?? rule?.soundMediaUrl ?? rule?.sound_media_path ?? rule?.soundMediaPath ?? '';
+    return String(url || '').trim();
   }
 
   function ruleSoundDurationMs(rule){
@@ -2602,9 +2609,21 @@
     if (!r) return;
     const amount = r.max_value !== null && r.max_value !== undefined ? Number(r.max_value) : Number(r.min_value || 0);
     const payload = { source:r.source, type_key:r.type_key, ruleId:r.id, user:'ForrestCGN', amount, message:`Test für ${r.label}`, displayProfileId:r.display_profile_id || undefined };
+    applyRuleTierToTestPayload(r, payload);
     const res = await CGN.api('/api/alerts/test', { method:'POST', body:JSON.stringify(payload) });
-    state.note = `Regeltest gesendet · matchedRule: ${res.matchedRule ?? '—'}`;
+    const tierNote = payload.tier ? ` · tier: ${payload.tier}` : '';
+    state.note = `Regeltest gesendet · matchedRule: ${res.matchedRule ?? '—'}${tierNote}`;
     await loadAll(true);
+  }
+
+  function applyRuleTierToTestPayload(rule, payload){
+    if (!isTwitchSubTierRule(rule?.source, rule?.type_key)) return payload;
+    const tier = ruleTierFilter(rule);
+    if (tier === 'tier1') payload.tier = '1000';
+    else if (tier === 'tier2') payload.tier = '2000';
+    else if (tier === 'tier3') payload.tier = '3000';
+    else if (tier === 'prime') payload.tier = 'Prime';
+    return payload;
   }
 
   function numOrNull(id){ const v = document.getElementById(id)?.value; return v === '' || v === undefined ? null : Number(v); }
