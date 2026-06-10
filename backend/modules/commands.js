@@ -6,8 +6,8 @@ const core = require('./helpers/helper_core');
 const communicationBus = require('./communication_bus');
 
 const MODULE_NAME = 'commands';
-const MODULE_VERSION = '0.2.0';
-const MODULE_BUILD = 'BUS_TWITCH_8_COMMAND_SOURCE_SWITCH';
+const MODULE_VERSION = '0.2.1';
+const MODULE_BUILD = 'BUS_TWITCH_9_COMMAND_SOURCE_DEFAULTS';
 const SCHEMA_MODULE = 'command_system';
 const SCHEMA_VERSION = 2;
 const API_PREFIX = '/api/commands';
@@ -99,7 +99,8 @@ const state = {
     channel: 'twitch.chat',
     action: 'message',
     commandDirectHookKept: true,
-    autostart: false,
+    autostart: true,
+    defaultMode: 'bus_eventsub_primary',
     processed: 0,
     ignored: 0,
     skipped: 0,
@@ -853,7 +854,7 @@ function startBusChatSubscriber(options = {}) {
     module: MODULE_NAME,
     channel: 'twitch.chat',
     action: 'message',
-    meta: { step: 'BUS-TWITCH.7', purpose: 'commands_chat_eventsub_migration', commandDirectHookKept: true }
+    meta: { step: 'BUS-TWITCH.9', purpose: 'commands_chat_eventsub_primary_default', commandDirectHookKept: true }
   }, (envelope) => {
     handleBusChatMessage(envelope).catch(err => {
       state.busChat.failed += 1;
@@ -1002,7 +1003,7 @@ module.exports.init = function init(ctx) {
   state.initialized = true;
   state.prefix = cleanText(process.env.COMMAND_PREFIX || DEFAULT_PREFIX) || DEFAULT_PREFIX;
   state.enabled = !/^(0|false|no|off)$/i.test(String(process.env.COMMAND_SYSTEM_ENABLED || 'true'));
-  state.busChat.autostart = bool(process.env.COMMANDS_BUS_CHAT_SUBSCRIBER_AUTOSTART, false);
+  state.busChat.autostart = bool(process.env.COMMANDS_BUS_CHAT_SUBSCRIBER_AUTOSTART, true);
   ensureSchema();
   if (state.busChat.autostart) startBusChatSubscriber({ reason: 'env_autostart' });
 

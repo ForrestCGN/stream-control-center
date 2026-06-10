@@ -5,23 +5,29 @@ Stand: 2026-06-10
 ## Direkt nach Installation testen
 
 ```powershell
-Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/commands/bus-chat/start"
-Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/twitch/presence/command-direct/disable"
+node -c .\backend\modules\commands.js
+node -c .\backend\modules\twitch_presence.js
 ```
 
-Danach mit einem harmlosen Chat-Command testen und Status prüfen.
+```powershell
+$c = Invoke-RestMethod "http://127.0.0.1:8080/api/commands/bus-chat/status"
+$c.busChat | Select-Object enabled,active,autostart,subscriptionId,lastError
+```
 
-## Nächster fachlicher Step
+```powershell
+$p = Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/presence/command-direct/status"
+$p.commandDirectHook | Select-Object enabled,mode,lastResultReason,lastError
+```
+
+## Erwartung nach Backend-Neustart
 
 ```text
-BUS-TWITCH.9 – Commands Bus-only Live-Test und Autostart-Entscheidung
+commands busChat enabled=true active=true autostart=true
+twitch_presence commandDirectHook enabled=false mode=disabled
 ```
 
-Ziel: Wenn Bus-only stabil läuft, optional `COMMANDS_BUS_CHAT_SUBSCRIBER_AUTOSTART=true` setzen und Presence-Direktweg default deaktivieren.
+## Danach
 
-
----
-
-## BUS-TWITCH.8b – Command Direct Route Fix
-
-Ergaenzung: Die in BUS-TWITCH.8 dokumentierten twitch_presence Routen fuer `command-direct/status`, `command-direct/enable` und `command-direct/disable` werden nun tatsaechlich registriert. Keine Funktionalitaet entfernt.
+```text
+BUS-TWITCH.10 – produktiven Bus-Command-Betrieb beobachten und ggf. weitere Module als Subscriber anbinden.
+```

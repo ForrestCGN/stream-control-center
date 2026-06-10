@@ -1,12 +1,21 @@
 # Modul: commands
 
-Stand: 2026-06-10 – BUS-TWITCH.8
+Stand: BUS-TWITCH.9
 
-## Rolle
+## Version
 
-`commands` verarbeitet Chat-Commands. Seit BUS-TWITCH.7 kann das Modul `twitch.chat.message` vom Communication Bus abonnieren. Seit BUS-TWITCH.8 kann der alte Presence-Direktweg separat deaktiviert werden.
+```text
+commands 0.2.1 / BUS_TWITCH_9_COMMAND_SOURCE_DEFAULTS
+```
 
-## Wichtige Routen
+## Command-Quelle
+
+```text
+Primär: twitch_events EventSub channel.chat.message -> communication_bus -> commands
+Fallback: twitch_presence -> commands.handleChatMessage, per Route aktivierbar
+```
+
+## Routen
 
 ```text
 GET/POST /api/commands/bus-chat/start
@@ -14,18 +23,8 @@ GET/POST /api/commands/bus-chat/stop
 GET      /api/commands/bus-chat/status
 ```
 
-## Source-Switch-Regel
+## Default
 
 ```text
-Produktiv soll nur eine Command-Quelle aktiv sein:
-- Direktweg: twitch_presence -> commands.handleChatMessage
-- Busweg: twitch_events -> communication_bus -> commands subscriber
-```
-
-Der Direktweg wird in `twitch_presence` gesteuert:
-
-```text
-GET/POST /api/twitch/presence/command-direct/disable
-GET/POST /api/twitch/presence/command-direct/enable
-GET      /api/twitch/presence/command-direct/status
+COMMANDS_BUS_CHAT_SUBSCRIBER_AUTOSTART=true
 ```

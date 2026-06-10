@@ -2,23 +2,14 @@
 
 Stand: 2026-06-10
 
-## Erledigt / bestätigt
+## BUS-TWITCH
 
-- [x] twitch_events Foundation gebaut.
-- [x] EventSub Chat läuft über `channel.chat.message`.
-- [x] commands kann `twitch.chat.message` abonnieren.
-- [x] twitch_presence Command-Direktweg ist steuerbar.
-
-## Offen
-
-- [ ] Bus-only Command-Live-Test durchführen.
-- [ ] Autostart-Entscheidung für Commands Bus Subscriber treffen.
-- [ ] Presence-Direktweg erst nach bestätigtem Bus-only Betrieb dauerhaft deaktivieren.
-- [ ] Danach alte Direktlogik nur nach gesondertem Go entfernen, falls überhaupt nötig.
-
-
----
-
-## BUS-TWITCH.8b – Command Direct Route Fix
-
-Ergaenzung: Die in BUS-TWITCH.8 dokumentierten twitch_presence Routen fuer `command-direct/status`, `command-direct/enable` und `command-direct/disable` werden nun tatsaechlich registriert. Keine Funktionalitaet entfernt.
+- [x] twitch_events Foundation.
+- [x] Chat parallel über Presence/IRC.
+- [x] EventSub Ownership vorbereitet.
+- [x] EventSub Chat Readiness + Live Scope Check.
+- [x] EventSub channel.chat.message aktiv.
+- [x] Commands als Bus-Subscriber vorbereitet.
+- [x] Presence Command-Direktweg steuerbar.
+- [ ] BUS-TWITCH.9 live testen: Neustart-Defaults prüfen.
+- [ ] Danach weitere Module gezielt auf Twitch-Events abonnieren.

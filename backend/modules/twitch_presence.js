@@ -9,15 +9,15 @@ const commands = require('./commands');
 const twitchEvents = require('./twitch_events');
 
 const MODULE_NAME = 'twitch_presence';
-const MODULE_VERSION = '0.1.3';
-const MODULE_BUILD = 'BUS_TWITCH_8B_COMMAND_DIRECT_ROUTES_FIX';
+const MODULE_VERSION = '0.1.4';
+const MODULE_BUILD = 'BUS_TWITCH_9_COMMAND_SOURCE_DEFAULTS';
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
   build: MODULE_BUILD,
   type: 'runtime',
   category: 'integration',
-  description: 'Twitch IRC Presence, Chat-Ausgabe und steuerbarer Chat-Command-Direktweg mit registrierten Status-/Enable-/Disable-Routen mit parallelem twitch_events Chat-Emit.',
+  description: 'Twitch IRC Presence, Chat-Ausgabe und steuerbarer Chat-Command-Direktweg. Default ist EventSub/Bus als Command-Quelle; Direktweg bleibt als Fallback per Route aktivierbar.',
   routesPrefix: ['/api/twitch/presence', '/twitch/presence'],
   bus: {
     registered: false,
@@ -129,7 +129,7 @@ module.exports.init = function init(ctx) {
   let lastChatBusResultReason = '';
   let lastChatBusEventId = '';
   let lastChatBusError = '';
-  let commandDirectHookEnabled = /^(1|true|yes|on)$/i.test((env.TWITCH_PRESENCE_COMMAND_DIRECT_HOOK_ENABLED ?? 'true').toString().trim());
+  let commandDirectHookEnabled = /^(1|true|yes|on)$/i.test((env.TWITCH_PRESENCE_COMMAND_DIRECT_HOOK_ENABLED ?? 'false').toString().trim());
   let commandDirectHookMode = commandDirectHookEnabled ? 'enabled' : 'disabled';
   let commandDirectHookHandledCount = 0;
   let commandDirectHookSkippedCount = 0;
@@ -620,7 +620,7 @@ module.exports.init = function init(ctx) {
       targetModule: 'commands',
       directCall: 'commands.handleChatMessage',
       purpose: 'legacy/direct command processing path; keep available but disable when commands bus subscriber is productive',
-      envDefault: 'TWITCH_PRESENCE_COMMAND_DIRECT_HOOK_ENABLED=true',
+      envDefault: 'TWITCH_PRESENCE_COMMAND_DIRECT_HOOK_ENABLED=false',
       counters: {
         handled: commandDirectHookHandledCount,
         skipped: commandDirectHookSkippedCount,

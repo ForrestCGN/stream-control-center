@@ -1,7 +1,11 @@
 # Modul: twitch_events
 
-Stand: 2026-06-10 – BUS-TWITCH.8 Kontext
+Stand: BUS-TWITCH.9
 
-`twitch_events` ist die zentrale Twitch-Event-Schicht. EventSub Chat `channel.chat.message` wurde in BUS-TWITCH.6 aktiv getestet und liefert `twitch.chat.message` an den Communication Bus.
+## Rolle
 
-BUS-TWITCH.8 ändert `twitch_events` nicht direkt, sondern schaltet die Command-Verbraucherseite steuerbar.
+`twitch_events` ist die zentrale Twitch-Event-Schicht. Chat kann per EventSub `channel.chat.message` empfangen und als `twitch.chat.message` über den Communication Bus veröffentlichen.
+
+## Command-Migration
+
+Seit BUS-TWITCH.9 ist EventSub/Bus als Default-Command-Quelle vorgesehen. `twitch_presence` bleibt als Fallback vorhanden.
