@@ -2,84 +2,36 @@
 
 Stand: 2026-06-10
 
-## Aktuelle Version
+## Version
 
 ```text
-0.1.6 / BUS_TWITCH_10_EVENTSUB_CHAT_AUTOSTART
+0.1.7 / BUS_TWITCH_14_CHANNELPOINTS_PARALLEL_EMIT
 ```
 
-## Aufgabe
+## Neue Aufgabe in BUS-TWITCH.14
 
-`twitch_events` ist die zentrale Twitch-Event-Schicht. Es normalisiert Twitch-Ereignisse und veröffentlicht sie über den Communication Bus.
-
-## Aktiver Standard für Chat
-
-```text
-EventSub channel.chat.message
-→ twitch_events
-→ communication_bus channel=twitch.chat action=message
-```
-
-## Wichtige Routen
-
-```text
-GET /api/twitch/events/status
-GET /api/twitch/events/catalog
-GET /api/twitch/events/eventsub/chat/status
-POST /api/twitch/events/eventsub/chat/start
-POST /api/twitch/events/eventsub/chat/stop
-POST /api/twitch/events/eventsub/chat/restart
-GET /api/twitch/events/eventsub/ownership
-GET /api/twitch/events/eventsub/chat-readiness
-GET /api/twitch/events/eventsub/live-readiness
-```
-
-## Bestätigter Live-Zustand
-
-```text
-enabled=True
-autostart=True
-active=True
-connecting=False
-websocket.readyState=OPEN
-subscription.type=channel.chat.message
-subscription.status=enabled
-lastError leer
-```
-
-## Regeln
-
-```text
-Twitch-Events bleiben leichtgewichtig.
-Kein ACK/Replay/Queue als Default.
-Altlogik erst entfernen, wenn jeweilige Subscriber produktiv getestet sind.
-```
-
-
-## BUS-TWITCH.12 – Migrationsplan
-
-Siehe auch:
-
-```text
-docs/current/BUS_TWITCH_MODULE_MIGRATION_PLAN.md
-```
-
-Nächster empfohlener Bereich:
-
-```text
-Channelpoints / VIP30
-```
-
-twitch_events bleibt zentrale Event-Schicht. Fachlogik bleibt in den Fachmodulen.
-
-
-## BUS-TWITCH.13 – Channelpoints/VIP30 Ziel-Event
+`twitch_events` normalisiert `channel.channel_points_custom_reward_redemption.add` zu:
 
 ```text
 twitch.channelpoints.redemption.created
 channel: twitch.channelpoints.redemption
 action: created
-policy: no ACK, no replay, no queue for pure Twitch input event
 ```
 
-Der bestehende Bridge-Weg `channelpoints.redemption / received` bleibt bis zur bestätigten Migration aktiv.
+## Policy
+
+```text
+requireAck=false
+replayable=false
+ttlMs=0
+queued=false
+priority=P1
+```
+
+## Quelle in diesem Step
+
+```text
+twitch.js ruft twitch_events.handleEventSubNotification(...) parallel auf.
+```
+
+Der Altweg bleibt unverändert aktiv.

@@ -27,8 +27,8 @@ const axios = require('axios');
 const WebSocket = require('ws');
 
 const MODULE_NAME = 'twitch_events';
-const MODULE_VERSION = '0.1.6';
-const MODULE_BUILD = 'BUS_TWITCH_10_EVENTSUB_CHAT_AUTOSTART';
+const MODULE_VERSION = '0.1.7';
+const MODULE_BUILD = 'BUS_TWITCH_14_CHANNELPOINTS_PARALLEL_EMIT';
 const MODULE_ID = `module:${MODULE_NAME}`;
 const MODULE_STARTED_AT = nowIso();
 

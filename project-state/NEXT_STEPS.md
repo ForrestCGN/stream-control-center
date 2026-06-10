@@ -2,35 +2,34 @@
 
 Stand: 2026-06-10
 
-## Nächster sinnvoller Schritt
+## Direkt testen nach BUS-TWITCH.14
 
-```text
-BUS-TWITCH.14 – Channelpoints Redemption Event aus twitch_events parallel emitten
+```powershell
+node -c .\backend\modules\twitch.js
+node -c .\backend\modules\twitch_events.js
 ```
 
-Ziel:
-
-```text
-twitch_events soll channel.channel_points_custom_reward_redemption.add normalisieren und zusätzlich als neues Event publishen:
-
-twitch.channelpoints.redemption.created
+```powershell
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/status"
+$s | Select-Object ok,module,moduleVersion,moduleBuild,health,lastError
 ```
 
-Wichtig:
-
-```text
-- bestehende channelpoints_eventsub_bus_bridge bleibt aktiv
-- bestehende channelpoints.redemption / received Bridge bleibt aktiv
-- vip30 bleibt zunächst auf altem Event subscribed
-- keine Fulfill/Cancel-Änderung
-- kein VIP-Grant-Umbau
-- Dedupe vorbereiten, aber Altweg nicht entfernen
+```powershell
+$p = Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/eventsub/channelpoints-parallel/status"
+$p.channelpointsTwitchEventsParallel
 ```
 
-## Danach
+Nach einer Channelpoints-Einlösung:
+
+```powershell
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/status"
+$s.diagnostics.counts.byEvent.'twitch.channelpoints.redemption.created'
+```
+
+## Nächster fachlicher Step
 
 ```text
-BUS-TWITCH.15 – VIP30 Subscriber für twitch.channelpoints.redemption.created vorbereiten
-BUS-TWITCH.16 – Channelpoints/VIP30 Paralleltest mit Dedupe und Decision-Preview
-BUS-TWITCH.17 – Alten Channelpoints-Bridge-Weg erst nach bestätigtem Produktivtest deaktivierbar machen
+BUS-TWITCH.15 – VIP30 Subscriber auf twitch.channelpoints.redemption.created vorbereiten
 ```
+
+Wichtig: Altweg bleibt bis erfolgreichem Test aktiv.

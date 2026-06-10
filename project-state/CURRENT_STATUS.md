@@ -5,10 +5,12 @@ Stand: 2026-06-10
 ## Aktueller bestätigter BUS-TWITCH-Stand
 
 ```text
-STEP BUS-TWITCH.13 – Channelpoints/VIP30 Event-Mapping geprüft und dokumentiert
+STEP BUS-TWITCH.14 – Channelpoints Redemption Created Parallel Emit vorbereitet
 ```
 
-## Produktiver Chat-/Command-Standard
+## Twitch Events / Bus
+
+Bestätigt vor diesem Step:
 
 ```text
 Twitch EventSub channel.chat.message
@@ -17,56 +19,27 @@ Twitch EventSub channel.chat.message
 → commands
 ```
 
-Bestätigt aus BUS-TWITCH.10/BUS-TWITCH.9:
+Neu in BUS-TWITCH.14:
 
 ```text
-- twitch_events EventSub Chat Autostart aktiv
-- EventSub WebSocket OPEN, Keepalive vorhanden
-- channel.chat.message Subscription enabled
-- commands Bus-Subscriber autostart=true
-- twitch_presence Command-Direktweg default deaktiviert
-- Presence/IRC bleibt als Fallback vorhanden
+twitch.js behält die bestehende Channelpoints-EventSub-Verarbeitung.
+twitch.js gibt channel.channel_points_custom_reward_redemption.add zusätzlich an twitch_events weiter.
+twitch_events normalisiert daraus twitch.channelpoints.redemption.created.
+Bestehende VIP30-/Channelpoints-Flows bleiben unverändert aktiv.
 ```
 
-## Channelpoints / VIP30 Prüfstand
-
-BUS-TWITCH.13 ist ein reiner Analyse-/Planungsstand. Es wurden keine produktiven Channelpoints- oder VIP30-Flows geändert.
-
-Erkannte Ist-Struktur:
+## Versionen
 
 ```text
-twitch.js
-→ besitzt aktuell weiterhin produktive EventSub-Verbindung und Subscription channel.channel_points_custom_reward_redemption.add
-
-channelpoints_eventsub_bus_bridge.js
-→ pollt aktuell EventSub-Audit/Cache-Dateien
-→ emittiert channelpoints.redemption / received auf den Communication Bus
-
-channelpoints.js
-→ besitzt lokales Reward-/Redemption-Modell
-→ kann channelpoints.redemption / received empfangen
-→ kann Fulfill/Cancel Policies und Twitch-Status-Updates ausführen
-
-vip30.js
-→ subscribed aktuell auf channelpoints.redemption / received
-→ verarbeitet VIP30-Reward fachlich
-→ besitzt Safety-/Live-Execution-Status und externe VIP-Remove-Subscriptions
+twitch.js      0.1.4 / BUS_TWITCH_14_CHANNELPOINTS_PARALLEL_EMIT
+twitch_events  0.1.7 / BUS_TWITCH_14_CHANNELPOINTS_PARALLEL_EMIT
 ```
 
-Zielbild für spätere Migration:
+## Nicht geändert
 
 ```text
-Twitch EventSub channel.channel_points_custom_reward_redemption.add
-→ twitch_events
-→ communication_bus: twitch.channelpoints.redemption.created
-→ vip30 / channelpoints / weitere Module abonnieren gezielt
-```
-
-## Wichtige Abgrenzung
-
-```text
-Keine Funktionalität entfernen.
-Keine produktive SQLite-Datei ersetzen.
-Keine bestehende twitch.js-EventSub-Logik entfernen, bevor neue Subscriber erfolgreich getestet sind.
-Keine Fulfill-/Cancel-/VIP-Grant-Logik umbauen, bevor Mapping und Testmodus bestätigt sind.
+Keine VIP30-Logik entfernt.
+Keine Channelpoints-Logik entfernt.
+Kein Fulfill/Cancel umgebaut.
+Keine SQLite-/DB-Datei ersetzt.
 ```

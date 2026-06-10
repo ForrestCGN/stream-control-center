@@ -2,51 +2,22 @@
 
 Stand: 2026-06-10
 
-## Aktueller BUS-TWITCH-Stand
+## BUS-TWITCH
 
 ```text
-BUS-TWITCH.12 – Modul-Migrationsplan für Twitch-Events erstellt
+BUS-TWITCH.14 – Channelpoints Redemption Created Parallel Emit
 ```
 
-## Produktiver Standardweg Chat/Commands
+Bestätigt/aufgebaut:
 
 ```text
-Twitch EventSub channel.chat.message
-→ twitch_events
-→ communication_bus
-→ commands
+Twitch EventSub Chat → twitch_events → Bus → commands
+Channelpoints Redemption Created → twitch_events → Bus vorbereitet/parallel
 ```
 
-## Relevante Moduldokus
-
-```text
-docs/modules/twitch_events.md
-docs/modules/commands.md
-docs/modules/twitch_presence.md
-```
-
-## Nächste Migrationskandidaten
-
-```text
-1. Channelpoints / VIP30
-2. Alerts / Subs / Bits / Raids / Follows
-3. Loyalty / Glücksrad / Giveaways
-4. Shoutout / ClipShoutout
-5. Deathcounter / Streamstatus / Game Sync
-```
-
-## Wichtige Projektregeln
+## Regel
 
 ```text
 Keine Funktionalität entfernen.
-Erst parallel abonnieren und testen.
-StepDone vor Live-Test.
-Twitch-Events bleiben leichtgewichtig.
-```
-
-
-## BUS-TWITCH.13 – Channelpoints/VIP30 Mapping
-
-```text
-Channelpoints/VIP30 Event-Mapping wurde dokumentiert. Nächster Ziel-Eventname: twitch.channelpoints.redemption.created. Bestehender Altweg bleibt aktiv.
+Altwege bleiben aktiv, bis Subscriber produktiv getestet sind.
 ```

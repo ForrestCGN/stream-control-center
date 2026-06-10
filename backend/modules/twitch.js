@@ -11,8 +11,8 @@ const database = require('../core/database');
 const communicationBus = require('./communication_bus');
 
 const MODULE_NAME = 'twitch';
-const MODULE_VERSION = '0.1.3';
-const MODULE_BUILD = 'BUS_TWITCH_6_EVENTSUB_CHAT_ENABLE';
+const MODULE_VERSION = '0.1.4';
+const MODULE_BUILD = 'BUS_TWITCH_14_CHANNELPOINTS_PARALLEL_EMIT';
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
@@ -24,7 +24,7 @@ const MODULE_META = {
   bus: {
     registered: false,
     heartbeat: false,
-    emits: ['twitch.eventsub', 'twitch.vip'],
+    emits: ['twitch.eventsub', 'twitch.vip', 'twitch.channelpoints.redemption.created'],
     listens: []
   },
   legacy: false
@@ -144,6 +144,100 @@ module.exports.init = function init(ctx) {
     if (!communicationBus || typeof communicationBus.getBus !== 'function') return null;
     twitchEventSubBus = communicationBus.getBus();
     return twitchEventSubBus;
+  }
+
+  let twitchEventsModule = null;
+  const channelpointsTwitchEventsParallelState = {
+    enabled: env.TWITCH_EVENTSUB_TWITCH_EVENTS_CHANNELPOINTS_PARALLEL !== 'false',
+    mode: 'parallel-tap',
+    source: 'twitch.js EventSub notification handler',
+    targetModule: 'twitch_events',
+    eventSubType: 'channel.channel_points_custom_reward_redemption.add',
+    busEvent: 'twitch.channelpoints.redemption.created',
+    forwarded: 0,
+    skipped: 0,
+    failed: 0,
+    lastForwardedAt: '',
+    lastSkippedAt: '',
+    lastResultReason: '',
+    lastBusEventId: '',
+    lastError: ''
+  };
+
+  function getTwitchEventsModule() {
+    if (twitchEventsModule) return twitchEventsModule;
+    try {
+      twitchEventsModule = require('./twitch_events');
+      return twitchEventsModule;
+    } catch (err) {
+      channelpointsTwitchEventsParallelState.lastError = err && err.message ? err.message : String(err);
+      return null;
+    }
+  }
+
+  function getChannelpointsTwitchEventsParallelStatus() {
+    return { ...channelpointsTwitchEventsParallelState };
+  }
+
+  function forwardChannelpointsRedemptionToTwitchEvents(subscriptionType, event = {}, meta = {}, subscription = {}) {
+    if (subscriptionType !== 'channel.channel_points_custom_reward_redemption.add') {
+      channelpointsTwitchEventsParallelState.skipped += 1;
+      channelpointsTwitchEventsParallelState.lastSkippedAt = core.nowIso();
+      channelpointsTwitchEventsParallelState.lastResultReason = 'not_channelpoints_redemption_created';
+      return { ok: true, skipped: true, reason: 'not_channelpoints_redemption_created' };
+    }
+
+    if (channelpointsTwitchEventsParallelState.enabled !== true) {
+      channelpointsTwitchEventsParallelState.skipped += 1;
+      channelpointsTwitchEventsParallelState.lastSkippedAt = core.nowIso();
+      channelpointsTwitchEventsParallelState.lastResultReason = 'disabled';
+      return { ok: true, skipped: true, reason: 'disabled' };
+    }
+
+    const target = getTwitchEventsModule();
+    if (!target || typeof target.handleEventSubNotification !== 'function') {
+      channelpointsTwitchEventsParallelState.failed += 1;
+      channelpointsTwitchEventsParallelState.lastError = 'twitch_events_handleEventSubNotification_unavailable';
+      channelpointsTwitchEventsParallelState.lastResultReason = 'target_unavailable';
+      rememberEventSubState({ action: 'channelpoints_twitch_events_parallel_failed', type: subscriptionType, reason: channelpointsTwitchEventsParallelState.lastError });
+      return { ok: false, reason: channelpointsTwitchEventsParallelState.lastError };
+    }
+
+    try {
+      const result = target.handleEventSubNotification({
+        payload: {
+          metadata: meta || {},
+          subscription: subscription || {},
+          event: event || {}
+        }
+      }, {
+        source: 'twitch_eventsub_channelpoints_parallel',
+        originModule: MODULE_NAME,
+        migrationStep: 'BUS-TWITCH.14'
+      });
+
+      if (result && result.ok === true) {
+        channelpointsTwitchEventsParallelState.forwarded += 1;
+        channelpointsTwitchEventsParallelState.lastForwardedAt = core.nowIso();
+        channelpointsTwitchEventsParallelState.lastResultReason = 'ok';
+        channelpointsTwitchEventsParallelState.lastBusEventId = result.busEventId || result.eventId || result.id || '';
+        channelpointsTwitchEventsParallelState.lastError = '';
+        rememberEventSubState({ action: 'channelpoints_twitch_events_parallel_forwarded', type: subscriptionType, eventId: channelpointsTwitchEventsParallelState.lastBusEventId || null });
+      } else {
+        channelpointsTwitchEventsParallelState.skipped += 1;
+        channelpointsTwitchEventsParallelState.lastSkippedAt = core.nowIso();
+        channelpointsTwitchEventsParallelState.lastResultReason = result && result.reason ? result.reason : 'not_forwarded';
+        rememberEventSubState({ action: 'channelpoints_twitch_events_parallel_skipped', type: subscriptionType, reason: channelpointsTwitchEventsParallelState.lastResultReason });
+      }
+
+      return result || { ok: false, reason: 'no_result' };
+    } catch (err) {
+      channelpointsTwitchEventsParallelState.failed += 1;
+      channelpointsTwitchEventsParallelState.lastError = err && err.message ? err.message : String(err);
+      channelpointsTwitchEventsParallelState.lastResultReason = 'failed';
+      rememberEventSubState({ action: 'channelpoints_twitch_events_parallel_failed', type: subscriptionType, error: channelpointsTwitchEventsParallelState.lastError });
+      return { ok: false, reason: 'failed', error: channelpointsTwitchEventsParallelState.lastError };
+    }
   }
 
   // --------------------- Twitch OAuth + Helix ---------------------
@@ -3239,6 +3333,16 @@ function buildFakeTwitchAlertEvent(kind, query) {
         cacheGenericEvent(sub, event);
 
         try {
+          const channelpointsParallelResult = forwardChannelpointsRedemptionToTwitchEvents(sub.type, event, meta, sub);
+          if (channelpointsParallelResult && channelpointsParallelResult.ok === false) {
+            console.warn('[eventsub-channelpoints-twitch-events] forward skipped/failed:', channelpointsParallelResult.reason || channelpointsParallelResult.error || 'unknown');
+          }
+        } catch (e) {
+          rememberEventSubState({ action: 'channelpoints_twitch_events_parallel_handler_failed', type: sub.type || '', error: e?.message || String(e) });
+          console.warn('[eventsub-channelpoints-twitch-events] handler failed:', e?.message || e);
+        }
+
+        try {
           await emitTwitchVipEventSubToBus(sub.type, event, meta, sub);
         } catch (e) {
           rememberEventSubState({ action: 'vip_event_bus_handler_failed', type: sub.type || '', error: e?.message || String(e) });
@@ -3366,6 +3470,22 @@ function buildFakeTwitchAlertEvent(kind, query) {
   };
 
   routes.registerGet(app, ['/eventsub/status', '/twitch/eventsub/status', '/api/twitch/eventsub/status'], handleEventSubStatus);
+
+  const handleChannelpointsTwitchEventsParallelStatus = (req, res) => {
+    res.json({
+      ok: true,
+      module: MODULE_NAME,
+      moduleVersion: MODULE_VERSION,
+      moduleBuild: MODULE_BUILD,
+      channelpointsTwitchEventsParallel: getChannelpointsTwitchEventsParallelStatus()
+    });
+  };
+
+  routes.registerGet(app, [
+    '/eventsub/channelpoints-parallel/status',
+    '/twitch/eventsub/channelpoints-parallel/status',
+    '/api/twitch/eventsub/channelpoints-parallel/status'
+  ], handleChannelpointsTwitchEventsParallelStatus);
 
   const handleEventSubReconcile = async (req, res) => {
     try {
