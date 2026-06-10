@@ -1,33 +1,10 @@
-# CURRENT STATUS – stream-control-center
+# CURRENT_STATUS
 
-Stand: 2026-06-10
+## BUS-TWITCH.16
 
-## Aktueller bestätigter Zusatzstand
+- VIP30 Version 0.8.33 / BUS_TWITCH_16_VIP30_SOURCE_SWITCH_AUTOSTART
+- TwitchEvents Subscriber: autostartfähig und default aktiv
+- Legacy Channelpoints Bridge: bleibt vorhanden, default aktiv, per Runtime-Route stopp-/startbar
+- Source Status: /api/vip30/channelpoints/source/status
 
-```text
-STEP BUS-TWITCH.15 – VIP30 Twitch-Events Channelpoints Subscriber gebaut
-```
-
-## Bus-/Twitch-Stand
-
-```text
-Twitch EventSub Chat → twitch_events → communication_bus → commands ist Standard.
-Channelpoints Redemption Created wird parallel als twitch.channelpoints.redemption.created auf den Bus gegeben.
-VIP30 kann dieses neue Event jetzt manuell abonnieren; Altweg bleibt aktiv.
-```
-
-## Wichtig
-
-```text
-Keine Funktionalität entfernt.
-VIP30-Altweg channelpoints.redemption/received bleibt aktiv.
-Kein Fulfill/Cancel-/VIP-Grant-Umbau in diesem Step.
-```
-
-
-## STEP BUS-TWITCH.15b – VIP30 TwitchEvents Payload Mapping Fix
-
-- `backend/modules/vip30.js` auf `0.8.32 / BUS_TWITCH_15B_VIP30_TWITCH_EVENTS_PAYLOAD_MAPPING` aktualisiert.
-- VIP30 TwitchEvents Subscriber liest Channelpoints-Daten jetzt aus `payload.twitch` des `twitch_events` Bus-Events.
-- `lastNormalized` im Status zeigt gelesene Reward-/User-/Redemption-Felder fuer Live-Diagnose.
-- Alter Bridge-Weg und Twitch-Write-/DB-Logik unveraendert.
+Keine Datenbank-, Fulfill-, Cancel- oder Grant-Logik geändert.

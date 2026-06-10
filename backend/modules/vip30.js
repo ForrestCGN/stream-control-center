@@ -15,8 +15,8 @@ try {
 }
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.32";
-const MODULE_BUILD = "BUS_TWITCH_15B_VIP30_TWITCH_EVENTS_PAYLOAD_MAPPING";
+const MODULE_VERSION = "0.8.33";
+const MODULE_BUILD = "BUS_TWITCH_16_VIP30_SOURCE_SWITCH_AUTOSTART";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -79,8 +79,10 @@ const DEFAULT_CONFIG = {
   },
   bridge: {
     enabled: true,
+    internalBridgeEnabled: true,
+    internalBridgeAutostart: true,
     twitchEventsSubscriberEnabled: true,
-    twitchEventsSubscriberAutostart: false,
+    twitchEventsSubscriberAutostart: true,
     acceptTitleMatch: true,
     acceptRewardKeyMatch: true,
     acceptTwitchRewardIdMatch: true,
@@ -427,6 +429,20 @@ function loadConfig() {
   let baseConfig = mergePlain(DEFAULT_CONFIG, loaded && loaded.data && typeof loaded.data === "object" ? loaded.data : {});
   const dbConfig = readSettingsConfigFromDbSafe();
   if (dbConfig && Object.keys(dbConfig).length) baseConfig = mergePlain(baseConfig, dbConfig);
+  baseConfig.bridge = mergePlain(DEFAULT_CONFIG.bridge, baseConfig.bridge || {});
+  const env = getRuntimeEnv();
+  if (env && Object.prototype.hasOwnProperty.call(env, "VIP30_TWITCH_EVENTS_SUBSCRIBER_AUTOSTART")) {
+    baseConfig.bridge.twitchEventsSubscriberAutostart = boolValue(env.VIP30_TWITCH_EVENTS_SUBSCRIBER_AUTOSTART, baseConfig.bridge.twitchEventsSubscriberAutostart === true);
+  }
+  if (env && Object.prototype.hasOwnProperty.call(env, "VIP30_TWITCH_EVENTS_SUBSCRIBER_ENABLED")) {
+    baseConfig.bridge.twitchEventsSubscriberEnabled = boolValue(env.VIP30_TWITCH_EVENTS_SUBSCRIBER_ENABLED, baseConfig.bridge.twitchEventsSubscriberEnabled !== false);
+  }
+  if (env && Object.prototype.hasOwnProperty.call(env, "VIP30_LEGACY_CHANNELPOINTS_BRIDGE_AUTOSTART")) {
+    baseConfig.bridge.internalBridgeAutostart = boolValue(env.VIP30_LEGACY_CHANNELPOINTS_BRIDGE_AUTOSTART, baseConfig.bridge.internalBridgeAutostart === true);
+  }
+  if (env && Object.prototype.hasOwnProperty.call(env, "VIP30_LEGACY_CHANNELPOINTS_BRIDGE_ENABLED")) {
+    baseConfig.bridge.internalBridgeEnabled = boolValue(env.VIP30_LEGACY_CHANNELPOINTS_BRIDGE_ENABLED, baseConfig.bridge.internalBridgeEnabled !== false);
+  }
   loadedConfig = baseConfig;
   loadedConfig.slots.maxSlots = Math.max(1, intValue(loadedConfig.slots && loadedConfig.slots.maxSlots, DEFAULT_CONFIG.slots.maxSlots));
   loadedConfig.slots.durationDays = Math.max(1, intValue(loadedConfig.slots && loadedConfig.slots.durationDays, DEFAULT_CONFIG.slots.durationDays));
@@ -2357,12 +2373,13 @@ function buildTwitchEventsChannelpointsSubscriberStatus() {
     active: twitchEventsChannelpointsSubscribed === true,
     subscriptionId: twitchEventsChannelpointsSubscriptionId,
     autostart: config.bridge && config.bridge.twitchEventsSubscriberAutostart === true,
-    mode: "manual-runtime-parallel",
+    mode: config.bridge && config.bridge.twitchEventsSubscriberAutostart === true ? "autostart-capable-primary" : "manual-runtime-parallel",
     source: "twitch_events",
     event: "twitch.channelpoints.redemption.created",
     channel: "twitch.channelpoints.redemption",
     action: "created",
     legacyBridgeKept: true,
+    legacyBridgeActive: bridgeSubscribed === true,
     legacyListens: { channel: "channelpoints.redemption", action: "received" },
     duplicateProtection: "shared_vip30_redemption_id_cache",
     stats: { ...twitchEventsChannelpointsStats },
@@ -2412,13 +2429,16 @@ function stopTwitchEventsChannelpointsSubscriber(reason = "api") {
 }
 
 function buildInternalBridgeStatus() {
+  const config = getConfig();
   return {
     ok: !bridgeLastError,
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
     status: bridgeSubscribed ? "listening_channelpoints_redemption" : "not_subscribed",
-    enabled: getConfig().bridge && getConfig().bridge.enabled !== false,
+    enabled: config.bridge && config.bridge.enabled !== false && config.bridge.internalBridgeEnabled !== false,
+    active: bridgeSubscribed === true,
+    autostart: config.bridge && config.bridge.internalBridgeAutostart === true,
     subscribed: bridgeSubscribed,
     subscriptionId: bridgeSubscriptionId,
     listens: { channel: "channelpoints.redemption", action: "received" },
@@ -2429,7 +2449,7 @@ function buildInternalBridgeStatus() {
     lastError: bridgeLastError,
     stats: { ...bridgeStats },
     reward: buildChannelpointsRewardStatus().reward,
-    routes: [`${ROUTE_PREFIX}/channelpoints/bridge/status`, `${ROUTE_PREFIX}/channelpoints/bridge/test`, `${ROUTE_PREFIX}/channelpoints/reward/link-twitch-id`, `${ROUTE_PREFIX}/channelpoints/bridge/live-check`, `${ROUTE_PREFIX}/channelpoints/bridge/reset-stats`, `${ROUTE_PREFIX}/channelpoints/twitch-events/status`, `${ROUTE_PREFIX}/channelpoints/twitch-events/start`, `${ROUTE_PREFIX}/channelpoints/twitch-events/stop`],
+    routes: [`${ROUTE_PREFIX}/channelpoints/source/status`, `${ROUTE_PREFIX}/channelpoints/bridge/status`, `${ROUTE_PREFIX}/channelpoints/bridge/start`, `${ROUTE_PREFIX}/channelpoints/bridge/stop`, `${ROUTE_PREFIX}/channelpoints/bridge/test`, `${ROUTE_PREFIX}/channelpoints/reward/link-twitch-id`, `${ROUTE_PREFIX}/channelpoints/bridge/live-check`, `${ROUTE_PREFIX}/channelpoints/bridge/reset-stats`, `${ROUTE_PREFIX}/channelpoints/twitch-events/status`, `${ROUTE_PREFIX}/channelpoints/twitch-events/start`, `${ROUTE_PREFIX}/channelpoints/twitch-events/stop`],
     twitchEventsChannelpointsSubscriber: buildTwitchEventsChannelpointsSubscriberStatus(),
     safety: { noTwitchWrite: true, noVipGrant: true, noSlotWrite: true, noRedemptionFulfillCancel: true }
   };
@@ -4092,12 +4112,13 @@ function buildChannelpointsBridgeLiveCheck() {
   };
 }
 
-function registerInternalBridgeSubscription() {
+function registerInternalBridgeSubscription(reason = "autostart") {
   const config = getConfig();
   if (!config.bridge || config.bridge.enabled === false) return { ok: false, reason: "bridge_disabled" };
+  if (config.bridge.internalBridgeEnabled === false) return { ok: false, reason: "legacy_bridge_disabled_by_config" };
   const currentBus = getBus();
   if (!currentBus || typeof currentBus.subscribe !== "function") return { ok: false, reason: "bus_subscribe_unavailable" };
-  if (bridgeSubscribed) return { ok: true, subscribed: true, subscriptionId: bridgeSubscriptionId };
+  if (bridgeSubscribed) return { ok: true, subscribed: true, subscriptionId: bridgeSubscriptionId, reason: "already_subscribed" };
   bridgeSubscriptionId = `module:${MODULE_NAME}:channelpoints.redemption:received`;
   const result = currentBus.subscribe({
     id: bridgeSubscriptionId,
@@ -4107,7 +4128,53 @@ function registerInternalBridgeSubscription() {
   }, envelope => handleChannelpointsRedemptionBridgeEvent(envelope));
   bridgeSubscribed = result && result.ok === true;
   if (!bridgeSubscribed) bridgeLastError = result && result.reason ? result.reason : "bridge_subscribe_failed";
-  return { ok: bridgeSubscribed, subscribed: bridgeSubscribed, subscriptionId: bridgeSubscriptionId, result };
+  else bridgeLastError = "";
+  bridgeStats.lastReason = bridgeSubscribed ? `legacy_bridge_started:${reason}` : (bridgeLastError || "bridge_subscribe_failed");
+  return { ok: bridgeSubscribed, subscribed: bridgeSubscribed, subscriptionId: bridgeSubscriptionId, reason: bridgeStats.lastReason, result };
+}
+
+function stopInternalBridgeSubscription(reason = "api") {
+  const currentBus = getBus();
+  if (!bridgeSubscribed) return { ok: true, subscribed: false, reason: "already_stopped", bridge: buildInternalBridgeStatus() };
+  let result = { ok: true, reason: "runtime_flag_only" };
+  if (currentBus && typeof currentBus.unsubscribe === "function" && bridgeSubscriptionId) {
+    result = currentBus.unsubscribe(bridgeSubscriptionId);
+  }
+  bridgeSubscribed = false;
+  bridgeStats.lastReason = `legacy_bridge_stopped:${reason}`;
+  return { ok: result && result.ok !== false, subscribed: false, reason: bridgeStats.lastReason, result, bridge: buildInternalBridgeStatus() };
+}
+
+function startInternalBridgeSubscription(reason = "api") {
+  const result = registerInternalBridgeSubscription(reason);
+  return { ok: result && result.ok === true, reason: result && result.reason || (result && result.ok ? "legacy_bridge_started" : "legacy_bridge_start_failed"), result, bridge: buildInternalBridgeStatus() };
+}
+
+function buildVip30ChannelpointsSourceSwitchStatus() {
+  const config = getConfig();
+  return {
+    ok: !bridgeLastError && !twitchEventsChannelpointsLastError,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    mode: "source-switch-prepared",
+    currentRecommendation: "twitch_events_bus_primary_with_legacy_bridge_fallback_available",
+    twitchEvents: buildTwitchEventsChannelpointsSubscriberStatus(),
+    legacyBridge: buildInternalBridgeStatus(),
+    env: {
+      twitchEventsAutostart: "VIP30_TWITCH_EVENTS_SUBSCRIBER_AUTOSTART",
+      twitchEventsEnabled: "VIP30_TWITCH_EVENTS_SUBSCRIBER_ENABLED",
+      legacyBridgeAutostart: "VIP30_LEGACY_CHANNELPOINTS_BRIDGE_AUTOSTART",
+      legacyBridgeEnabled: "VIP30_LEGACY_CHANNELPOINTS_BRIDGE_ENABLED"
+    },
+    safety: {
+      noLegacyRemoval: true,
+      noDbChange: true,
+      noFulfillCancelChange: true,
+      duplicateGuardActive: true,
+      oldPathCanBeReEnabled: true
+    }
+  };
 }
 
 function buildChannelpointsBridgeDecision(input = {}, options = {}) {
@@ -4258,6 +4325,9 @@ function buildStatus() {
       `${ROUTE_PREFIX}/channelpoints/reward/link-twitch-id`,
       `${ROUTE_PREFIX}/channelpoints/bridge/live-check`,
       `${ROUTE_PREFIX}/channelpoints/bridge/reset-stats`,
+      `${ROUTE_PREFIX}/channelpoints/source/status`,
+      `${ROUTE_PREFIX}/channelpoints/bridge/start`,
+      `${ROUTE_PREFIX}/channelpoints/bridge/stop`,
       `${ROUTE_PREFIX}/channelpoints/twitch-events/status`,
       `${ROUTE_PREFIX}/channelpoints/twitch-events/start`,
       `${ROUTE_PREFIX}/channelpoints/twitch-events/stop`,
@@ -4519,7 +4589,7 @@ function init(context = {}) {
     loadedConfig = null;
     loadConfig();
     registerAtBus();
-    registerInternalBridgeSubscription();
+    if (getConfig().bridge && getConfig().bridge.internalBridgeAutostart !== false) registerInternalBridgeSubscription("autostart");
     if (getConfig().bridge && getConfig().bridge.twitchEventsSubscriberAutostart === true) startTwitchEventsChannelpointsSubscriber("autostart");
     registerExternalVipRemoveSubscriptions();
     startBusTimers();
@@ -4634,6 +4704,31 @@ function init(context = {}) {
       runtimeStats.lastAction = "channelpoints_bridge_status";
       try { res.json(buildInternalBridgeStatus()); }
       catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err) }); }
+    });
+    app.get(`${ROUTE_PREFIX}/channelpoints/source/status`, (_req, res) => {
+      runtimeStats.lastAction = "channelpoints_source_status";
+      try { res.json(buildVip30ChannelpointsSourceSwitchStatus()); }
+      catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: err && err.message ? err.message : String(err) }); }
+    });
+    app.get(`${ROUTE_PREFIX}/channelpoints/bridge/start`, (req, res) => {
+      runtimeStats.lastAction = "channelpoints_bridge_start_get";
+      try { const result = startInternalBridgeSubscription(cleanString(req && req.query && req.query.reason || "api_get")); res.status(result && result.ok ? 200 : 409).json(result); }
+      catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: err && err.message ? err.message : String(err), safety: { noTwitchWrite: true, noVipGrant: true } }); }
+    });
+    app.post(`${ROUTE_PREFIX}/channelpoints/bridge/start`, (req, res) => {
+      runtimeStats.lastAction = "channelpoints_bridge_start_post";
+      try { const result = startInternalBridgeSubscription(cleanString(req && req.body && req.body.reason || req && req.query && req.query.reason || "api_post")); res.status(result && result.ok ? 200 : 409).json(result); }
+      catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: err && err.message ? err.message : String(err), safety: { noTwitchWrite: true, noVipGrant: true } }); }
+    });
+    app.get(`${ROUTE_PREFIX}/channelpoints/bridge/stop`, (req, res) => {
+      runtimeStats.lastAction = "channelpoints_bridge_stop_get";
+      try { res.json(stopInternalBridgeSubscription(cleanString(req && req.query && req.query.reason || "api_get"))); }
+      catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: err && err.message ? err.message : String(err), safety: { noTwitchWrite: true, noVipGrant: true } }); }
+    });
+    app.post(`${ROUTE_PREFIX}/channelpoints/bridge/stop`, (req, res) => {
+      runtimeStats.lastAction = "channelpoints_bridge_stop_post";
+      try { res.json(stopInternalBridgeSubscription(cleanString(req && req.body && req.body.reason || req && req.query && req.query.reason || "api_post"))); }
+      catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: err && err.message ? err.message : String(err), safety: { noTwitchWrite: true, noVipGrant: true } }); }
     });
     app.post(`${ROUTE_PREFIX}/channelpoints/bridge/test`, (req, res) => {
       runtimeStats.lastAction = "channelpoints_bridge_test";
