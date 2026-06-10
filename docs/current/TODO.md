@@ -2,11 +2,8 @@
 
 Stand: 2026-06-10
 
-## BUS-TWITCH
-
-- [x] EventSub Chat über twitch_events aktivieren.
-- [x] Commands über Bus als Standard aktivieren.
-- [x] Channelpoints Redemption Created parallel in twitch_events einspeisen.
-- [ ] Live-Test mit echter Channelpoints-Einlösung durchführen.
-- [ ] VIP30 Subscriber auf `twitch.channelpoints.redemption.created` vorbereiten.
-- [ ] Erst nach erfolgreichem VIP30-Test alte Channelpoints-Direktlogik reduzieren.
+- [x] BUS-TWITCH.15 VIP30 Twitch-Events Channelpoints Subscriber gebaut.
+- [ ] VIP30 Subscriber manuell starten.
+- [ ] Echte Channelpoints-Einlösung testen.
+- [ ] Prüfen: neuer Subscriber processed/ignored/duplicates/failed.
+- [ ] Altweg erst nach bestätigtem Subscriber-Test umschaltbar machen.

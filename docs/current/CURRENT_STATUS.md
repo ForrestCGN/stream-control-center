@@ -2,44 +2,24 @@
 
 Stand: 2026-06-10
 
-## Aktueller bestätigter BUS-TWITCH-Stand
+## Aktueller bestätigter Zusatzstand
 
 ```text
-STEP BUS-TWITCH.14 – Channelpoints Redemption Created Parallel Emit vorbereitet
+STEP BUS-TWITCH.15 – VIP30 Twitch-Events Channelpoints Subscriber gebaut
 ```
 
-## Twitch Events / Bus
-
-Bestätigt vor diesem Step:
+## Bus-/Twitch-Stand
 
 ```text
-Twitch EventSub channel.chat.message
-→ twitch_events
-→ communication_bus
-→ commands
+Twitch EventSub Chat → twitch_events → communication_bus → commands ist Standard.
+Channelpoints Redemption Created wird parallel als twitch.channelpoints.redemption.created auf den Bus gegeben.
+VIP30 kann dieses neue Event jetzt manuell abonnieren; Altweg bleibt aktiv.
 ```
 
-Neu in BUS-TWITCH.14:
+## Wichtig
 
 ```text
-twitch.js behält die bestehende Channelpoints-EventSub-Verarbeitung.
-twitch.js gibt channel.channel_points_custom_reward_redemption.add zusätzlich an twitch_events weiter.
-twitch_events normalisiert daraus twitch.channelpoints.redemption.created.
-Bestehende VIP30-/Channelpoints-Flows bleiben unverändert aktiv.
-```
-
-## Versionen
-
-```text
-twitch.js      0.1.4 / BUS_TWITCH_14_CHANNELPOINTS_PARALLEL_EMIT
-twitch_events  0.1.7 / BUS_TWITCH_14_CHANNELPOINTS_PARALLEL_EMIT
-```
-
-## Nicht geändert
-
-```text
-Keine VIP30-Logik entfernt.
-Keine Channelpoints-Logik entfernt.
-Kein Fulfill/Cancel umgebaut.
-Keine SQLite-/DB-Datei ersetzt.
+Keine Funktionalität entfernt.
+VIP30-Altweg channelpoints.redemption/received bleibt aktiv.
+Kein Fulfill/Cancel-/VIP-Grant-Umbau in diesem Step.
 ```

@@ -21,3 +21,7 @@ Channelpoints Redemption Created → twitch_events → Bus vorbereitet/parallel
 Keine Funktionalität entfernen.
 Altwege bleiben aktiv, bis Subscriber produktiv getestet sind.
 ```
+
+## BUS-TWITCH.15
+
+VIP30 Subscriber fuer `twitch.channelpoints.redemption.created` vorbereitet. Altweg bleibt aktiv.

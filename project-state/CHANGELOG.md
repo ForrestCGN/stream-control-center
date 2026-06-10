@@ -1,27 +1,24 @@
 # CHANGELOG – stream-control-center
 
-## 2026-06-10 – BUS-TWITCH.14
+## 2026-06-10 – BUS-TWITCH.15
 
 ### Geändert
 
 ```text
-backend/modules/twitch.js
-backend/modules/twitch_events.js
+backend/modules/vip30.js
 ```
 
 ### Neu
 
 ```text
-channel.channel_points_custom_reward_redemption.add wird parallel an twitch_events weitergegeben.
-twitch_events emittiert daraus twitch.channelpoints.redemption.created.
-Statusroute: /api/twitch/eventsub/channelpoints-parallel/status
+VIP30 Subscriber auf twitch.channelpoints.redemption.created
+Routen: /api/vip30/channelpoints/twitch-events/status|start|stop
 ```
 
 ### Nicht geändert
 
 ```text
-VIP30 bleibt auf altem produktivem Weg.
-Channelpoints bleibt auf altem produktivem Weg.
-Fulfill/Cancel bleibt unverändert.
-Keine DB-Änderungen.
+Kein Entfernen des alten Channelpoints-/VIP30-Wegs.
+Keine Änderung an Fulfill/Cancel/VIP-Grant.
+Keine DB-Datei ersetzt.
 ```

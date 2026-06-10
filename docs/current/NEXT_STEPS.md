@@ -2,34 +2,19 @@
 
 Stand: 2026-06-10
 
-## Direkt testen nach BUS-TWITCH.14
+## Direkt nach Installation testen
 
 ```powershell
-node -c .\backend\modules\twitch.js
-node -c .\backend\modules\twitch_events.js
+Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/channelpoints/twitch-events/status"
+Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/vip30/channelpoints/twitch-events/start"
 ```
 
-```powershell
-$s = Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/status"
-$s | Select-Object ok,module,moduleVersion,moduleBuild,health,lastError
-```
-
-```powershell
-$p = Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/eventsub/channelpoints-parallel/status"
-$p.channelpointsTwitchEventsParallel
-```
-
-Nach einer Channelpoints-Einlösung:
-
-```powershell
-$s = Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/status"
-$s.diagnostics.counts.byEvent.'twitch.channelpoints.redemption.created'
-```
+Danach echte Channelpoints-Einlösung auslösen und prüfen, ob VIP30 den neuen Eventpfad sieht.
 
 ## Nächster fachlicher Step
 
 ```text
-BUS-TWITCH.15 – VIP30 Subscriber auf twitch.channelpoints.redemption.created vorbereiten
+BUS-TWITCH.16 – VIP30 Twitch-Events Subscriber Live-Test und Altweg-Vergleich
 ```
 
-Wichtig: Altweg bleibt bis erfolgreichem Test aktiv.
+Ziel: Counters und Duplicate-Guard prüfen, bevor ein Source-Switch geplant wird.

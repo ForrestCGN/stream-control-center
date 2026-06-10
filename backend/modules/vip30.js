@@ -15,8 +15,8 @@ try {
 }
 
 const MODULE_NAME = "vip30";
-const MODULE_VERSION = "0.8.30";
-const MODULE_BUILD = "step8.19.43-status-command";
+const MODULE_VERSION = "0.8.31";
+const MODULE_BUILD = "BUS_TWITCH_15_VIP30_TWITCH_EVENTS_SUBSCRIBER";
 const ROUTE_PREFIX = "/api/vip30";
 const SCHEMA_TARGET_VERSION = 2;
 const DEFAULT_TARGET_HOST = "127.0.0.1";
@@ -35,7 +35,7 @@ const MODULE_META = {
     registered: true,
     heartbeat: true,
     emits: ["module.status", "module.health", "vip30.status", "vip30.twitch", "vip30.channelpoints", "vip30.redeem", "vip30.bridge", "vip30.live", "vip30.alert"],
-    listens: ["channelpoints.redemption", "twitch.eventsub", "twitch.vip"]
+    listens: ["channelpoints.redemption", "twitch.channelpoints.redemption.created", "twitch.eventsub", "twitch.vip"]
   },
   legacy: false
 };
@@ -79,6 +79,8 @@ const DEFAULT_CONFIG = {
   },
   bridge: {
     enabled: true,
+    twitchEventsSubscriberEnabled: true,
+    twitchEventsSubscriberAutostart: false,
     acceptTitleMatch: true,
     acceptRewardKeyMatch: true,
     acceptTwitchRewardIdMatch: true,
@@ -345,6 +347,24 @@ let bridgeStats = {
   lastRewardTitle: "",
   lastRewardId: "",
   lastUserLogin: ""
+};
+
+let twitchEventsChannelpointsSubscribed = false;
+let twitchEventsChannelpointsSubscriptionId = "";
+let twitchEventsChannelpointsLastEventAt = "";
+let twitchEventsChannelpointsLastProcessedAt = "";
+let twitchEventsChannelpointsLastIgnoredAt = "";
+let twitchEventsChannelpointsLastResultReason = "";
+let twitchEventsChannelpointsLastBusEventId = "";
+let twitchEventsChannelpointsLastError = "";
+let twitchEventsChannelpointsStats = {
+  received: 0,
+  processed: 0,
+  ignored: 0,
+  duplicates: 0,
+  failed: 0,
+  starts: 0,
+  stops: 0
 };
 
 function nowIso() { return new Date().toISOString(); }
@@ -2226,6 +2246,142 @@ function emitChannelpointsBridgeTest(input = {}) {
   return { ok: result && result.ok === true, busResult: result, payload, safety: { noTwitchWrite: true, noVipGrant: true, noSlotWrite: true, noRedemptionFulfillCancel: true } };
 }
 
+
+function normalizeTwitchEventsChannelpointsEnvelope(envelope = {}) {
+  const payload = envelope && typeof envelope.payload === "object" ? envelope.payload : (envelope || {});
+  const redemption = payload.redemption && typeof payload.redemption === "object" ? payload.redemption : {};
+  const reward = payload.reward && typeof payload.reward === "object" ? payload.reward : {};
+  const user = payload.user && typeof payload.user === "object" ? payload.user : {};
+  const event = payload.event && typeof payload.event === "object" ? payload.event : {};
+  return {
+    source: "twitch_events_channelpoints",
+    bridgeSource: "twitch_events",
+    twitchRewardId: cleanString(payload.twitchRewardId || payload.rewardId || reward.id || event.reward_id || event.rewardId || ""),
+    twitchRedemptionId: cleanString(payload.twitchRedemptionId || payload.redemptionId || redemption.id || event.id || event.redemption_id || event.redemptionId || ""),
+    rewardKey: cleanString(payload.rewardKey || reward.key || event.reward_key || ""),
+    actionKey: cleanString(payload.actionKey || reward.actionKey || ""),
+    rewardTitle: cleanString(payload.rewardTitle || reward.title || event.reward_title || event.title || ""),
+    rewardCost: intValue(payload.rewardCost || payload.cost || reward.cost || event.reward_cost || event.cost, 0),
+    userId: cleanString(payload.userId || user.id || event.user_id || event.userId || ""),
+    userLogin: cleanString(payload.userLogin || user.login || event.user_login || event.userLogin || event.user || "").toLowerCase(),
+    userDisplayName: cleanString(payload.userDisplayName || user.displayName || user.name || event.user_name || event.userName || event.user_login || ""),
+    avatarUrl: cleanString(payload.avatarUrl || user.avatarUrl || ""),
+    userInput: cleanString(payload.userInput || payload.input || redemption.userInput || event.user_input || event.userInput || ""),
+    targetIsModerator: boolValue(payload.targetIsModerator ?? payload.target_is_moderator ?? false, false),
+    targetIsVip: boolValue(payload.targetIsVip ?? payload.target_is_vip ?? false, false),
+    redeemedAt: cleanString(payload.redeemedAt || redemption.redeemedAt || event.redeemed_at || event.redeemedAt || nowIso()),
+    event: envelope && typeof envelope.event === "object" ? envelope.event : null
+  };
+}
+
+async function handleTwitchEventsChannelpointsRedemptionCreated(envelope = {}) {
+  twitchEventsChannelpointsStats.received += 1;
+  twitchEventsChannelpointsLastEventAt = nowIso();
+  twitchEventsChannelpointsLastBusEventId = cleanString(envelope && (envelope.id || envelope.event && envelope.event.id) || "");
+  const config = getConfig();
+  if (!config.bridge || config.bridge.enabled === false) {
+    twitchEventsChannelpointsStats.ignored += 1;
+    twitchEventsChannelpointsLastIgnoredAt = nowIso();
+    twitchEventsChannelpointsLastResultReason = "bridge_disabled";
+    return { ok: true, ignored: true, reason: "bridge_disabled" };
+  }
+  if (config.bridge.twitchEventsSubscriberEnabled === false) {
+    twitchEventsChannelpointsStats.ignored += 1;
+    twitchEventsChannelpointsLastIgnoredAt = nowIso();
+    twitchEventsChannelpointsLastResultReason = "twitch_events_subscriber_disabled";
+    return { ok: true, ignored: true, reason: "twitch_events_subscriber_disabled" };
+  }
+  const normalized = normalizeTwitchEventsChannelpointsEnvelope(envelope);
+  const bridgeEnvelope = {
+    ...envelope,
+    payload: normalized,
+    meta: { ...(envelope && envelope.meta || {}), source: "twitch_events", twitchEventsSubscriber: true }
+  };
+  try {
+    const beforeDuplicates = bridgeStats.duplicates;
+    const result = await handleChannelpointsRedemptionBridgeEvent(bridgeEnvelope);
+    twitchEventsChannelpointsLastProcessedAt = nowIso();
+    if (result && result.ignored === true) {
+      twitchEventsChannelpointsStats.ignored += 1;
+      if (result.reason === "duplicate_redemption" || bridgeStats.duplicates > beforeDuplicates) twitchEventsChannelpointsStats.duplicates += 1;
+    } else {
+      twitchEventsChannelpointsStats.processed += 1;
+    }
+    twitchEventsChannelpointsLastResultReason = result && (result.reason || result.status || result.ok && "ok") || "processed";
+    return result;
+  } catch (err) {
+    twitchEventsChannelpointsStats.failed += 1;
+    twitchEventsChannelpointsLastError = err && err.message ? err.message : String(err);
+    twitchEventsChannelpointsLastResultReason = "failed";
+    twitchEventsChannelpointsLastIgnoredAt = nowIso();
+    return { ok: false, error: twitchEventsChannelpointsLastError };
+  }
+}
+
+function buildTwitchEventsChannelpointsSubscriberStatus() {
+  const config = getConfig();
+  return {
+    ok: !twitchEventsChannelpointsLastError,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    enabled: config.bridge && config.bridge.enabled !== false && config.bridge.twitchEventsSubscriberEnabled !== false,
+    active: twitchEventsChannelpointsSubscribed === true,
+    subscriptionId: twitchEventsChannelpointsSubscriptionId,
+    autostart: config.bridge && config.bridge.twitchEventsSubscriberAutostart === true,
+    mode: "manual-runtime-parallel",
+    source: "twitch_events",
+    event: "twitch.channelpoints.redemption.created",
+    channel: "twitch.channelpoints.redemption",
+    action: "created",
+    legacyBridgeKept: true,
+    legacyListens: { channel: "channelpoints.redemption", action: "received" },
+    duplicateProtection: "shared_vip30_redemption_id_cache",
+    stats: { ...twitchEventsChannelpointsStats },
+    lastEventAt: twitchEventsChannelpointsLastEventAt,
+    lastProcessedAt: twitchEventsChannelpointsLastProcessedAt,
+    lastIgnoredAt: twitchEventsChannelpointsLastIgnoredAt,
+    lastResultReason: twitchEventsChannelpointsLastResultReason,
+    lastBusEventId: twitchEventsChannelpointsLastBusEventId,
+    lastError: twitchEventsChannelpointsLastError,
+    safety: { noLegacyRemoval: true, duplicateGuardActive: true, usesExistingVip30DecisionFlow: true }
+  };
+}
+
+function startTwitchEventsChannelpointsSubscriber(reason = "api") {
+  const config = getConfig();
+  if (!config.bridge || config.bridge.enabled === false) return { ok: false, reason: "bridge_disabled", subscriber: buildTwitchEventsChannelpointsSubscriberStatus() };
+  if (config.bridge.twitchEventsSubscriberEnabled === false) return { ok: false, reason: "twitch_events_subscriber_disabled", subscriber: buildTwitchEventsChannelpointsSubscriberStatus() };
+  const currentBus = getBus();
+  if (!currentBus || typeof currentBus.subscribe !== "function") return { ok: false, reason: "bus_subscribe_unavailable", subscriber: buildTwitchEventsChannelpointsSubscriberStatus() };
+  if (twitchEventsChannelpointsSubscribed) return { ok: true, reason: "already_subscribed", subscriber: buildTwitchEventsChannelpointsSubscriberStatus() };
+  twitchEventsChannelpointsSubscriptionId = `module:${MODULE_NAME}:twitch.channelpoints.redemption:created`;
+  const result = currentBus.subscribe({
+    id: twitchEventsChannelpointsSubscriptionId,
+    module: MODULE_NAME,
+    channel: "twitch.channelpoints.redemption",
+    action: "created"
+  }, envelope => handleTwitchEventsChannelpointsRedemptionCreated(envelope));
+  twitchEventsChannelpointsSubscribed = result && result.ok === true;
+  twitchEventsChannelpointsStats.starts += 1;
+  twitchEventsChannelpointsLastResultReason = twitchEventsChannelpointsSubscribed ? `started:${reason}` : (result && result.reason || "subscribe_failed");
+  if (!twitchEventsChannelpointsSubscribed) twitchEventsChannelpointsLastError = result && result.reason ? result.reason : "subscribe_failed";
+  return { ok: twitchEventsChannelpointsSubscribed, reason: twitchEventsChannelpointsLastResultReason, result, subscriber: buildTwitchEventsChannelpointsSubscriberStatus() };
+}
+
+function stopTwitchEventsChannelpointsSubscriber(reason = "api") {
+  const currentBus = getBus();
+  if (!twitchEventsChannelpointsSubscribed) return { ok: true, reason: "already_stopped", subscriber: buildTwitchEventsChannelpointsSubscriberStatus() };
+  let result = { ok: true };
+  if (currentBus && typeof currentBus.unsubscribe === "function" && twitchEventsChannelpointsSubscriptionId) {
+    result = currentBus.unsubscribe(twitchEventsChannelpointsSubscriptionId);
+  }
+  twitchEventsChannelpointsSubscribed = false;
+  twitchEventsChannelpointsStats.stops += 1;
+  twitchEventsChannelpointsLastResultReason = `stopped:${reason}`;
+  return { ok: result && result.ok !== false, reason: twitchEventsChannelpointsLastResultReason, result, subscriber: buildTwitchEventsChannelpointsSubscriberStatus() };
+}
+
 function buildInternalBridgeStatus() {
   return {
     ok: !bridgeLastError,
@@ -2244,7 +2400,8 @@ function buildInternalBridgeStatus() {
     lastError: bridgeLastError,
     stats: { ...bridgeStats },
     reward: buildChannelpointsRewardStatus().reward,
-    routes: [`${ROUTE_PREFIX}/channelpoints/bridge/status`, `${ROUTE_PREFIX}/channelpoints/bridge/test`, `${ROUTE_PREFIX}/channelpoints/reward/link-twitch-id`, `${ROUTE_PREFIX}/channelpoints/bridge/live-check`, `${ROUTE_PREFIX}/channelpoints/bridge/reset-stats`],
+    routes: [`${ROUTE_PREFIX}/channelpoints/bridge/status`, `${ROUTE_PREFIX}/channelpoints/bridge/test`, `${ROUTE_PREFIX}/channelpoints/reward/link-twitch-id`, `${ROUTE_PREFIX}/channelpoints/bridge/live-check`, `${ROUTE_PREFIX}/channelpoints/bridge/reset-stats`, `${ROUTE_PREFIX}/channelpoints/twitch-events/status`, `${ROUTE_PREFIX}/channelpoints/twitch-events/start`, `${ROUTE_PREFIX}/channelpoints/twitch-events/stop`],
+    twitchEventsChannelpointsSubscriber: buildTwitchEventsChannelpointsSubscriberStatus(),
     safety: { noTwitchWrite: true, noVipGrant: true, noSlotWrite: true, noRedemptionFulfillCancel: true }
   };
 }
@@ -4053,7 +4210,7 @@ function buildStatus() {
     status: lastError ? "error" : "ready_step8_6_external_vip_remove_slot_release",
     startedAt,
     routePrefix: ROUTE_PREFIX,
-    routeCount: 20,
+    routeCount: 23,
     routes: [
       `${ROUTE_PREFIX}/status`,
       `${ROUTE_PREFIX}/health`,
@@ -4072,6 +4229,9 @@ function buildStatus() {
       `${ROUTE_PREFIX}/channelpoints/reward/link-twitch-id`,
       `${ROUTE_PREFIX}/channelpoints/bridge/live-check`,
       `${ROUTE_PREFIX}/channelpoints/bridge/reset-stats`,
+      `${ROUTE_PREFIX}/channelpoints/twitch-events/status`,
+      `${ROUTE_PREFIX}/channelpoints/twitch-events/start`,
+      `${ROUTE_PREFIX}/channelpoints/twitch-events/stop`,
       `${ROUTE_PREFIX}/live/check`,
       `${ROUTE_PREFIX}/alert/status`,
       `${ROUTE_PREFIX}/alert/test`
@@ -4090,6 +4250,8 @@ function buildStatus() {
       channelpointsBridgeEnabled: config.bridge && config.bridge.enabled !== false,
       channelpointsBridgeLiveExecutionWhenTileReady: (() => { try { return buildLiveActionSafetyStatus().armed === true; } catch (_) { return false; } })(),
       channelpointsBridgeLiveEventDryRunObserveEnabled: !(config.bridge && config.bridge.liveEventDryRunObserveEnabled === false),
+      twitchEventsChannelpointsSubscriberEnabled: !(config.bridge && config.bridge.twitchEventsSubscriberEnabled === false),
+      twitchEventsChannelpointsSubscriberAutostart: config.bridge && config.bridge.twitchEventsSubscriberAutostart === true,
       settingsSource: tableExists("vip30_settings") ? "db" : "json_fallback",
       settingsDashboardWritable: true
     },
@@ -4168,6 +4330,7 @@ function buildStatus() {
         liveExecutionWhenTileReady: (() => { try { return buildLiveActionSafetyStatus().armed === true; } catch (_) { return false; } })()
       }
     },
+    twitchEventsChannelpointsSubscriber: buildTwitchEventsChannelpointsSubscriberStatus(),
     live: (() => {
       try { return buildLiveActionSafetyStatus(); } catch (err) { return { ok: false, status: "error", error: err && err.message ? err.message : String(err) }; }
     })(),
@@ -4281,6 +4444,7 @@ function registerAtBus() {
       "vip30.redeem.decision",
       "vip30.channelpoints.bridge.listen",
       "vip30.channelpoints.bridge.test",
+      "vip30.twitch_events.channelpoints.listen",
       "vip30.cleanup.check",
       "vip30.cleanup.run",
       "vip30.live.safety",
@@ -4327,6 +4491,7 @@ function init(context = {}) {
     loadConfig();
     registerAtBus();
     registerInternalBridgeSubscription();
+    if (getConfig().bridge && getConfig().bridge.twitchEventsSubscriberAutostart === true) startTwitchEventsChannelpointsSubscriber("autostart");
     registerExternalVipRemoveSubscriptions();
     startBusTimers();
     publishStatus("init_ready");
@@ -4462,6 +4627,32 @@ function init(context = {}) {
       catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, error: err && err.message ? err.message : String(err), safety: { noTwitchWrite: true, noVipGrant: true } }); }
     });
 
+
+    app.get(`${ROUTE_PREFIX}/channelpoints/twitch-events/status`, (_req, res) => {
+      runtimeStats.lastAction = "channelpoints_twitch_events_status";
+      try { res.json(buildTwitchEventsChannelpointsSubscriberStatus()); }
+      catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: err && err.message ? err.message : String(err), safety: { noTwitchWrite: true, noVipGrant: true } }); }
+    });
+    app.get(`${ROUTE_PREFIX}/channelpoints/twitch-events/start`, (req, res) => {
+      runtimeStats.lastAction = "channelpoints_twitch_events_start_get";
+      try { const result = startTwitchEventsChannelpointsSubscriber(cleanString(req && req.query && req.query.reason || "api_get")); res.status(result && result.ok ? 200 : 409).json(result); }
+      catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: err && err.message ? err.message : String(err), safety: { noTwitchWrite: true, noVipGrant: true } }); }
+    });
+    app.post(`${ROUTE_PREFIX}/channelpoints/twitch-events/start`, (req, res) => {
+      runtimeStats.lastAction = "channelpoints_twitch_events_start_post";
+      try { const result = startTwitchEventsChannelpointsSubscriber(cleanString(req && req.body && req.body.reason || req && req.query && req.query.reason || "api_post")); res.status(result && result.ok ? 200 : 409).json(result); }
+      catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: err && err.message ? err.message : String(err), safety: { noTwitchWrite: true, noVipGrant: true } }); }
+    });
+    app.get(`${ROUTE_PREFIX}/channelpoints/twitch-events/stop`, (req, res) => {
+      runtimeStats.lastAction = "channelpoints_twitch_events_stop_get";
+      try { res.json(stopTwitchEventsChannelpointsSubscriber(cleanString(req && req.query && req.query.reason || "api_get"))); }
+      catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: err && err.message ? err.message : String(err), safety: { noTwitchWrite: true, noVipGrant: true } }); }
+    });
+    app.post(`${ROUTE_PREFIX}/channelpoints/twitch-events/stop`, (req, res) => {
+      runtimeStats.lastAction = "channelpoints_twitch_events_stop_post";
+      try { res.json(stopTwitchEventsChannelpointsSubscriber(cleanString(req && req.body && req.body.reason || req && req.query && req.query.reason || "api_post"))); }
+      catch (err) { res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: err && err.message ? err.message : String(err), safety: { noTwitchWrite: true, noVipGrant: true } }); }
+    });
 
     app.get(`${ROUTE_PREFIX}/external-vip-remove/status`, (_req, res) => {
       runtimeStats.lastAction = "external_vip_remove_status";
