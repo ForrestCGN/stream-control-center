@@ -1,18 +1,16 @@
-# FILES
-
-Stand: 2026-06-11
-
-## STEP216-Paket
+# FILES – STEP217 / LWG-5.9
 
 ```text
-Test_STEP216_LWG5_8_admin_points_runtime_ForrestCGN.ps1
-Rollback_STEP216_LWG5_8_admin_points_testuser_ForrestCGN.ps1
-README_STEP216_LWG5_8.md
+Activate_STEP217_LWG5_9_admin_points_commands_ForrestCGN.ps1
+Rollback_STEP217_LWG5_9_admin_points_commands_ForrestCGN.ps1
+Test_STEP217_LWG5_9_admin_points_chat_commands_ForrestCGN.ps1
+Rollback_STEP217_LWG5_9_admin_points_testuser_ForrestCGN.ps1
+README_STEP217_LWG5_9.md
 docs/modules/README.md
 docs/modules/commands.md
 docs/modules/loyalty.md
 docs/modules/loyalty_games.md
-docs/current/CURRENT_CHAT_HANDOFF_STEP216_LWG5_8.md
+docs/current/CURRENT_CHAT_HANDOFF_STEP217_LWG5_9.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -20,14 +18,13 @@ project-state/CHANGELOG.md
 project-state/FILES.md
 ```
 
-## Nicht enthalten
+Nicht enthalten:
 
 ```text
-backend/modules/commands.js
-backend/modules/loyalty.js
-backend/modules/loyalty_games.js
-Datenbanken
+*.sqlite
+*.db
+.env
 Tokens
 Secrets
-.env
+Runtime-JS-Dateien
 ```

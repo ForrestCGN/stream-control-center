@@ -1,22 +1,16 @@
-# TODO
+# TODO – Loyalty / Kekskrümel
 
-Stand: 2026-06-11
+## Erledigt bis STEP217
 
-## Offen / aktuell
+- [x] `!punkte` / `!points` live aktiv
+- [x] zentrale Chat-Ausgabe über `twitch_presence`
+- [x] Admin-Points Runtime kontrolliert getestet
+- [x] direkte Admin-Points-Commands zur Freigabe vorbereitet
 
-- [ ] STEP216 Admin-Points Kontrolltest ausführen und Ergebnis dokumentieren.
-- [ ] StreamElements `!points` / `!punkte` deaktivieren, falls noch nicht erledigt.
-- [ ] Nach STEP216: Gamble-Test STEP217 vorbereiten.
+## Offen
 
-## Nicht entfernen
-
-- [x] `!punkte / !points` Live-Command
-- [x] Command Result Chat Send Bridge über `twitch_presence`
-- [x] Audit-/Transaktionshistorie bei Punktänderungen
-- [x] Module online lassen, auch wenn einzelne Commands deaktiviert sind
-
-## Später
-
-- [ ] Dashboard-Verwaltung für Admin-Point-Commands.
-- [ ] Dashboard-Textvarianten für Admin-Point-Antworten prüfen/erweitern.
-- [ ] Gamble-Konfiguration dashboardfähig machen.
+- [ ] STEP217 aktivieren und mit `-Execute` bestätigen
+- [ ] StreamElements `!points` / `!punkte` deaktiviert halten
+- [ ] Gamble separat freigeben
+- [ ] Dashboard-Konfiguration für Loyalty-Commands planen
+- [ ] Textvarianten im Dashboard verwaltbar machen

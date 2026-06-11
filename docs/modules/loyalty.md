@@ -1,42 +1,50 @@
-# Modul: loyalty
+# Loyalty-Modul – Stand STEP217 / LWG-5.9
 
-Stand: 2026-06-11  
-Aktueller bestätigter Stand: STEP216 / LWG-5.8
-
-## Zweck
-
-`loyalty` verwaltet Kekskrümel, verfügbare Punkte, Reservierungen, Ranking, Transaktionen und Runtime-Command-Antworten.
-
-## Bestätigte Runtime-Basis
+## Live-Basis
 
 ```text
-loyalty version = 0.1.13
-mode            = shadow
-enabled         = true
-currency        = Kekskrümel
+backend/modules/loyalty.js
+Version 0.1.13
+Mode shadow
+Currency Kekskrümel
 ```
 
-## STEP216-Testinhalt
-
-Kontrolliert geprüft werden:
+## Bestätigte Funktionen
 
 ```text
-Viewer darf keine Punkte vergeben.
-Mod darf Punkte vergeben.
-Mod darf Punkte nicht hart setzen.
-Broadcaster darf Punktestand per diff-basierter Transaktion setzen.
-Nach Test wird Zielpunktestand wiederhergestellt.
-Transaktionshistorie bleibt erhalten.
+available balance = balance - offene Reservierungen
+Ranking basiert auf verfügbaren Punkten
+!punkte / !points gibt verfügbare Punkte aus
+Admin-Give/Set Runtime wurde in STEP216 kontrolliert getestet
+Direkte Admin-Chat-Commands wurden in STEP217 freigegeben
 ```
 
-## Sicherheitsregel
-
-`setpoint` darf nicht hart überschreiben, sondern erzeugt eine ausgleichende Transaktion über die Differenz. Das ist wichtig, damit Audit/History nachvollziehbar bleibt.
-
-## Standard-Testziel
+## Admin-Points
 
 ```text
-step216_testuser
+!givepoints @user <amount>
 ```
 
-Der Testuser wird nach dem Test wieder auf den Ausgangsstand gesetzt.
+- benötigt Mod/Streamer
+- nutzt intern `handleGivePointsCommandRuntime`
+- erzeugt Transaktion `points_admin_give`
+- sendet Erfolgsmeldung zentral über `commands.js` → `twitch_presence`
+
+```text
+!setpoint @user <balance>
+```
+
+- benötigt Streamer/Owner
+- setzt nicht hart den DB-Wert, sondern schreibt eine Differenz-Transaktion
+- erzeugt Transaktion `points_admin_set`
+- sendet Erfolgsmeldung zentral über `commands.js` → `twitch_presence`
+
+## Sicherheitsregeln
+
+```text
+Viewer darf keine Punkte geben
+Mod darf keine Punkte setzen
+Owner/Streamer darf setzen
+Setpoint darf nicht unter reservierte Punkte setzen
+Transaktionshistorie bleibt erhalten
+```

@@ -1,48 +1,35 @@
-# CURRENT_STATUS
+# CURRENT STATUS – stream-control-center Loyalty
 
-Stand: 2026-06-11  
-Aktueller Stand: STEP216 / LWG-5.8
+Stand: 2026-06-11 / STEP217 LWG-5.9
 
-## Bestätigt vor STEP216
+## Live bestätigt
 
 ```text
-!punkte / !points läuft live über Node und antwortet im Twitch-Chat.
-commands.js 0.2.2 / LWG_5_6_COMMAND_RESULT_CHAT_SEND_BRIDGE ist live.
-twitch_presence sendet Command-Result-Antworten.
+commands.js 0.2.2 / LWG_5_6_COMMAND_RESULT_CHAT_SEND_BRIDGE
+loyalty.js  0.1.13 / shadow mode
 ```
 
-## STEP216-Umfang
+## Aktive Commands
 
 ```text
-Admin-Points Runtime kontrolliert testen.
-Keine Runtime-Codeänderung.
-Keine neue Command-Aktivierung.
-Keine DB-Datei im Paket.
+!punkte / !points         aktiv, everyone
+!givepoints @user amount  aktiv, mod
+!setpoint @user balance   aktiv, streamer/owner
 ```
 
-## Aktiv
+## Bestätigte Tests
 
 ```text
-!punkte
-!points
+STEP214: Chat Send Bridge sendet über twitch_presence
+STEP216: Admin-Points Runtime Give/Set kontrolliert getestet
+STEP217: Admin-Points Chat-Commands zur Freigabe vorbereitet
 ```
 
-## Weiterhin nicht als eigener Command aktiv
+## Nicht aktiv
 
 ```text
-!givepoints
-!setpoint
 !gamble
-!duell
-!raffle
-!roulette
+Roulette
+Duell
+Raffles
 ```
-
-## Admin-Subcommands unter punkte
-
-```text
-!punkte give @user <amount>  → Mod/Broadcaster
-!punkte set @user <balance> → Broadcaster
-```
-
-Diese Logik wird in STEP216 getestet.

@@ -1,35 +1,63 @@
-# Modul: commands
+# Commands-Modul – Stand STEP217 / LWG-5.9
 
-Stand: 2026-06-11  
-Aktueller bestätigter Stand: STEP216 / LWG-5.8
-
-## Bestätigte Runtime-Basis
+## Live-Basis
 
 ```text
-moduleVersion = 0.2.2
-moduleBuild   = LWG_5_6_COMMAND_RESULT_CHAT_SEND_BRIDGE
+backend/modules/commands.js
+MODULE_VERSION = 0.2.2
+MODULE_BUILD   = LWG_5_6_COMMAND_RESULT_CHAT_SEND_BRIDGE
 ```
 
-## Relevanz für STEP216
-
-`commands.js` ist für den Live-Chat-Flow zuständig. STEP216 selbst testet Admin-Punkte bewusst direkt gegen die Loyalty-Runtime, damit keine unnötigen Chat-Nachrichten erzeugt werden.
-
-## Wichtig
-
-Die zentrale Chat-Send-Brücke aus STEP214 bleibt unverändert aktiv:
+## Relevante Commands
 
 ```text
-result.message → twitch_presence.sendChatMessage(...)
+!punkte / !points         everyone, aktiv
+!givepoints @user amount  mod, aktiv ab STEP217
+!setpoint @user balance   streamer/owner, aktiv ab STEP217
 ```
 
-## Freigabestatus
+## Chat-Ausgabe
+
+Modul-Commands liefern `result.data.message`. Das Commands-Modul sendet diese Antwort zentral über:
 
 ```text
-punkte     enabled=true
-points     Alias von punkte
-givepoints weiterhin disabled
-setpoint   weiterhin disabled
-gamble     weiterhin disabled
+twitch_presence.sendChatMessage(...)
 ```
 
-Die Admin-Subcommands laufen über `!punkte give` und `!punkte set` und werden in `loyalty` selbst per Rollenprüfung geschützt.
+Aktiviert wird die Chat-Ausgabe pro Command über `config.sendResultToChat = true`.
+
+## STEP217-Konfiguration
+
+`!givepoints`:
+
+```json
+{
+  "moduleKey": "loyalty",
+  "actionKey": "points_chat_command_runtime",
+  "targetUrl": "/api/loyalty/runtime/points-command",
+  "permissionLevel": "mod",
+  "config": {
+    "moduleCommand": "givepoints",
+    "sendResultToChat": true,
+    "resultChatTarget": "twitch_presence",
+    "resultChatStep": "STEP217_LWG5_9"
+  }
+}
+```
+
+`!setpoint`:
+
+```json
+{
+  "moduleKey": "loyalty",
+  "actionKey": "points_chat_command_runtime",
+  "targetUrl": "/api/loyalty/runtime/points-command",
+  "permissionLevel": "streamer",
+  "config": {
+    "moduleCommand": "setpoint",
+    "sendResultToChat": true,
+    "resultChatTarget": "twitch_presence",
+    "resultChatStep": "STEP217_LWG5_9"
+  }
+}
+```

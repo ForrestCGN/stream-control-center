@@ -1,29 +1,28 @@
-# Modul: loyalty_games
+# Loyalty Games – Stand STEP217 / LWG-5.9
 
-Stand: 2026-06-11  
-Aktueller bestätigter Stand: STEP216 / LWG-5.8
+## Aktueller Stand
 
-## Status
+```text
+loyalty_games.js 0.2.2 / STEP_LWG_5_2_STATUS_CLEANUP
+gamble vorbereitet, aber weiterhin deaktiviert
+```
 
-Keine Änderung in STEP216.
+## Wichtig
 
-Weiterhin nicht freigegeben:
+STEP217 aktiviert ausschließlich Admin-Points-Commands:
+
+```text
+!givepoints
+!setpoint
+```
+
+Nicht aktiviert werden:
 
 ```text
 !gamble
-!duell
-!roulette
-!raffle
+Roulette
+Duell
+Raffle
 ```
 
-## Nächster möglicher Schritt
-
-Nach bestätigtem Admin-Points-Test kann als nächster fachlicher Schritt ein kontrollierter Gamble-Test vorbereitet werden. Dabei bleibt die Regel bestehen:
-
-```text
-serverseitig
-crypto.randomInt
-nicht vorhersagbar
-nur verfügbare Punkte einsetzbar
-keine Aktivierung ohne eigenen STEP
-```
+Nächster sinnvoller Games-Step bleibt ein separater Freigabe-/Runtime-Test für `!gamble`.
