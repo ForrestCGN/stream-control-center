@@ -210,12 +210,11 @@ window.LoyaltyGiveawaysModule = (function(){
       const uid = state.modal.uid || state.selectedUid;
       if (!uid) return;
       try {
-        await refreshGiveaways(uid, false);
-        state.modal = { type:'control', uid };
-        render();
+        await refreshControlModal(uid);
       } catch (err) {
-        state.error = err.message || String(err);
-        render();
+        const box = root?.querySelector('[data-lgw-control-error]');
+        if (box) box.textContent = err.message || String(err);
+        else { state.error = err.message || String(err); render(); }
       }
     }, 5000);
   }
@@ -227,7 +226,30 @@ window.LoyaltyGiveawaysModule = (function(){
     }
   }
 
+  async function refreshControlModal(uid){
+    if (!uid) return;
+    await refreshGiveaways(uid, false);
+    state.modal = { type:'control', uid };
+    const content = root?.querySelector('[data-lgw-control-content]');
+    const currentUid = content?.dataset?.lgwControlContent;
+    if (!content || currentUid !== uid) {
+      render();
+      return;
+    }
+    const g = selectedGiveaway();
+    if (!g) {
+      render();
+      return;
+    }
+    content.innerHTML = renderControlContent(g);
+    bindControlEvents(content);
+  }
+
   function selectedGiveaway(){ return state.selected || null; }
+
+  function isControlModalFor(uid){
+    return state.modal?.type === 'control' && (!uid || state.modal.uid === uid || state.selectedUid === uid);
+  }
 
   function registerDashboardModule(){
     if (!window.CGN) return;
@@ -442,35 +464,55 @@ window.LoyaltyGiveawaysModule = (function(){
     const map = {
       copy: { path: `${api.detailBase}/${encoded}/copy`, confirm: '', body: () => ({ title: `Kopie von ${selectedGiveaway()?.title || 'Giveaway'}`, actor: 'dashboard' }) },
       open: { path: `${api.detailBase}/${encoded}/open`, confirm: '', body: () => ({ actor: 'dashboard' }), control: true },
-      close: { path: `${api.detailBase}/${encoded}/close-entries`, confirm: '', body: () => ({ actor: 'dashboard' }) },
+      close: { path: `${api.detailBase}/${encoded}/close-entries`, confirm: '', body: () => ({ actor: 'dashboard' }), control: true },
       draw: { path: `${api.detailBase}/${encoded}/draw`, confirm: 'Jetzt fair backendseitig einen Gewinner ziehen?', body: () => ({ actor: 'dashboard' }), control: true },
       replaceLast: { path: `${api.detailBase}/${encoded}/winners/replace-last`, confirm: 'Letzten Gewinner wirklich ersetzen? Der bisherige Gewinner wird entfernt und ein Ersatz wird ausgelost.', body: () => ({ actor: 'dashboard', reason: 'dashboard_replace_last_winner' }), control: true },
-      finish: { path: `${api.detailBase}/${encoded}/finish`, confirm: 'Giveaway wirklich beenden? Danach ist es read-only.', body: () => ({ actor: 'dashboard' }) },
-      cancel: { path: `${api.detailBase}/${encoded}/cancel`, confirm: 'Giveaway wirklich abbrechen?', body: () => ({ actor: 'dashboard' }) },
+      finish: { path: `${api.detailBase}/${encoded}/finish`, confirm: 'Giveaway wirklich beenden? Danach ist es read-only.', body: () => ({ actor: 'dashboard' }), control: true },
+      cancel: { path: `${api.detailBase}/${encoded}/cancel`, confirm: 'Giveaway wirklich abbrechen?', body: () => ({ actor: 'dashboard' }), control: true },
       delete: { path: `${api.detailBase}/${encoded}/delete`, confirm: 'Giveaway wirklich löschen? Es wird als gelöscht markiert.', body: () => ({ actor: 'dashboard' }) }
     };
     const cfg = map[action];
     if (!cfg) return;
     if (cfg.confirm && !window.confirm(cfg.confirm)) return;
-    state.saving = true; render();
+    const controlOpen = isControlModalFor(uid) || options.openControl || cfg.control;
+    state.saving = true;
+    if (!controlOpen) render();
     try {
       const result = await apiPost(cfg.path, cfg.body());
       const nextUid = result.giveaway?.giveawayUid || uid;
       await refreshGiveaways(nextUid, false);
-      if (options.openControl || cfg.control) { state.modal = { type:'control', uid: nextUid }; startControlRefresh(); }
-      setMessage(action === 'draw' ? `Gewinner gezogen: ${result.winner?.userDisplayName || result.winner?.userLogin || 'unbekannt'}` : (action === 'replaceLast' ? `Letzter Gewinner ersetzt. Neuer Gewinner: ${result.winner?.userDisplayName || result.winner?.userLogin || 'unbekannt'}` : 'Giveaway wurde aktualisiert.'));
+      if (controlOpen) {
+        state.modal = { type:'control', uid: nextUid };
+        startControlRefresh();
+        await refreshControlModal(nextUid);
+      } else {
+        setMessage(action === 'draw' ? `Gewinner gezogen: ${result.winner?.userDisplayName || result.winner?.userLogin || 'unbekannt'}` : (action === 'replaceLast' ? `Letzter Gewinner ersetzt. Neuer Gewinner: ${result.winner?.userDisplayName || result.winner?.userLogin || 'unbekannt'}` : 'Giveaway wurde aktualisiert.'));
+      }
     } catch (err) {
-      state.error = err.message || String(err);
+      if (controlOpen) {
+        const box = root?.querySelector('[data-lgw-control-error]');
+        if (box) box.textContent = err.message || String(err);
+        else state.error = err.message || String(err);
+      } else {
+        state.error = err.message || String(err);
+      }
     } finally {
-      state.saving = false; render();
+      state.saving = false;
+      if (controlOpen) {
+        await refreshControlModal(uid).catch(() => render());
+      } else {
+        render();
+      }
     }
   }
 
   async function claimWheel(userLogin, userDisplayName, uid = state.selectedUid){
     if (!uid || !userLogin) return;
-    state.saving = true; render();
+    const controlOpen = isControlModalFor(uid);
+    state.saving = true;
+    if (!controlOpen) render();
     try {
-      const result = await apiPost(`${api.detailBase}/${encodeURIComponent(uid)}/wheel/claim`, {
+      await apiPost(`${api.detailBase}/${encodeURIComponent(uid)}/wheel/claim`, {
         userLogin,
         userDisplayName: userDisplayName || userLogin,
         source: 'dashboard',
@@ -479,18 +521,28 @@ window.LoyaltyGiveawaysModule = (function(){
       await refreshGiveaways(uid, false);
       state.modal = { type:'control', uid };
       startControlRefresh();
-      setMessage(`Glücksrad gestartet: ${result.spin?.selectedFieldLabel || 'Ergebnis folgt'}`);
+      await refreshControlModal(uid);
     } catch (err) {
-      state.error = err.message || String(err);
+      if (controlOpen) {
+        const box = root?.querySelector('[data-lgw-control-error]');
+        if (box) box.textContent = err.message || String(err);
+        else state.error = err.message || String(err);
+      } else {
+        state.error = err.message || String(err);
+      }
     } finally {
-      state.saving = false; render();
+      state.saving = false;
+      if (controlOpen) await refreshControlModal(uid).catch(() => render());
+      else render();
     }
   }
 
   async function confirmClaim(uid, winnerUid){
     if (!uid || !winnerUid) return;
     if (!window.confirm('Claim für diesen Gewinner manuell bestätigen?')) return;
-    state.saving = true; render();
+    const controlOpen = isControlModalFor(uid);
+    state.saving = true;
+    if (!controlOpen) render();
     try {
       const g = selectedGiveaway();
       const winner = winnerRows(g).find(w => w.winnerUid === winnerUid) || {};
@@ -503,11 +555,20 @@ window.LoyaltyGiveawaysModule = (function(){
       });
       await refreshGiveaways(uid, false);
       state.modal = { type:'control', uid };
-      setMessage('Claim wurde manuell bestätigt.');
+      startControlRefresh();
+      await refreshControlModal(uid);
     } catch (err) {
-      state.error = err.message || String(err);
+      if (controlOpen) {
+        const box = root?.querySelector('[data-lgw-control-error]');
+        if (box) box.textContent = err.message || String(err);
+        else state.error = err.message || String(err);
+      } else {
+        state.error = err.message || String(err);
+      }
     } finally {
-      state.saving = false; render();
+      state.saving = false;
+      if (controlOpen) await refreshControlModal(uid).catch(() => render());
+      else render();
     }
   }
 
@@ -859,11 +920,8 @@ window.LoyaltyGiveawaysModule = (function(){
     `;
   }
 
-  function renderControlModal(){
-    const uid = state.modal.uid || state.selectedUid;
-    const g = uid === state.selectedUid ? selectedGiveaway() : rows(state.giveaways).find(item => item.giveawayUid === uid);
-    if (!g) return '';
-    const s = norm(g.status);
+  function getControlState(g){
+    const s = norm(g?.status);
     const wheel = isWheelGiveaway(g);
     const entries = activeEntries(g);
     const winners = winnerRows(g);
@@ -873,84 +931,99 @@ window.LoyaltyGiveawaysModule = (function(){
     const canStart = s === 'draft';
     const canClose = s === 'open';
     const canDraw = s === 'closed_for_entries' && winners.length < winnerTarget(g);
-    const canFinish = !isFinalStatus(g.status) && ['closed_for_entries','waiting_for_claim','waiting_for_wheel','open'].includes(s);
-    const canCancel = !isFinalStatus(g.status) && s !== 'finished';
+    const canFinish = !isFinalStatus(g?.status) && ['closed_for_entries','waiting_for_claim','waiting_for_wheel','open'].includes(s);
+    const canCancel = !isFinalStatus(g?.status) && s !== 'finished';
     const latest = latestWinner(g);
     const latestStatus = norm(latest?.status);
-    const wheelResult = latest?.metadata?.wheelResult || {};
     const drawnCount = winners.length;
     const targetCount = winnerTarget(g);
-    const hasWinnerSlotsOpen = drawnCount < targetCount;
     const hasAnyWinner = drawnCount > 0;
-    const canReplaceLast = hasAnyWinner && !isFinalStatus(g.status) && !['claim_confirmed','awarded','finished','wheel_completed'].includes(latestStatus);
+    const canReplaceLast = hasAnyWinner && !isFinalStatus(g?.status) && !['claim_confirmed','awarded','finished','wheel_completed'].includes(latestStatus);
+    return { s, wheel, entries, winners, pendingClaims, pendingPermissions, usedPermissions, canStart, canClose, canDraw, canFinish, canCancel, drawnCount, targetCount, canReplaceLast };
+  }
+
+  function renderControlContent(g){
+    const c = getControlState(g);
+    return `
+      <div class="lgw-control-title">
+        <div><strong>${esc(g.title || '-')}</strong><small>${esc(statusLabel(g.mode))} · ${esc(g.giveawayUid || '')}</small></div>
+        ${statusBadge(g.status)}
+      </div>
+      <div class="lgw-control-phase">
+        <strong>${esc(controlPhaseText(g))}</strong>
+        <span>${c.wheel ? 'Glücksrad-Giveaway: Die Glücksrad-Drehung ist der Claim.' : 'Normales Giveaway: Chat-Claim ist optional je nach Config.'}</span>
+      </div>
+      <div class="lgw-grid lgw-grid-4 lgw-control-stats">
+        <article class="lgw-card"><span>Teilnehmer</span><strong>${fmtNumber(c.entries.length)}</strong><small>aktive Entries</small></article>
+        <article class="lgw-card"><span>Gewinner</span><strong>${esc(winnerProgressText(g))}</strong><small>${esc(giveawayWinnerText(g))}</small></article>
+        <article class="lgw-card"><span>${c.wheel ? 'Glücksrad' : 'Claim'}</span><strong>${c.wheel ? (c.pendingPermissions.length ? 'Wartet' : (c.usedPermissions.length ? 'Gedreht' : 'Bereit')) : (c.pendingClaims.length ? 'Wartet' : 'OK')}</strong><small>${c.wheel ? `${fmtNumber(c.pendingPermissions.length)} offen · ${fmtNumber(c.usedPermissions.length)} gedreht` : `${fmtNumber(c.pendingClaims.length)} offen`}</small></article>
+        <article class="lgw-card"><span>Nächster Schritt</span><strong>${c.canStart ? 'Starten' : c.canClose ? 'Schließen' : c.canDraw ? (c.drawnCount > 0 ? 'Weiter auslosen' : 'Auslosen') : c.pendingClaims.length ? 'Claim' : c.pendingPermissions.length ? 'Drehung' : !isFinalStatus(g.status) ? 'Abschluss' : 'Fertig'}</strong><small>${fmtDate(g.updatedAt || g.openedAt || g.createdAt)}</small></article>
+      </div>
+
+      <section class="lgw-control-section">
+        <h4>Ablauf</h4>
+        <div class="lgw-control-actions">
+          <button class="lgw-btn" data-lgw-action="open" data-uid="${esc(g.giveawayUid)}" ${c.canStart ? '' : 'disabled'}>Giveaway starten</button>
+          <button class="lgw-btn lgw-btn-secondary" data-lgw-action="close" data-uid="${esc(g.giveawayUid)}" ${c.canClose ? '' : 'disabled'}>Teilnahme schließen</button>
+          <button class="lgw-btn" data-lgw-action="draw" data-uid="${esc(g.giveawayUid)}" ${c.canDraw ? '' : 'disabled'}>${c.drawnCount > 0 ? 'Weiteren Gewinner auslosen' : 'Gewinner auslosen'}</button>
+          <button class="lgw-btn lgw-btn-danger" data-lgw-action="replaceLast" data-uid="${esc(g.giveawayUid)}" ${c.canReplaceLast ? '' : 'disabled'}>Letzten Gewinner ersetzen</button>
+        </div>
+        <div class="lgw-control-help">
+          <p><strong>Weiteren Gewinner auslosen</strong> zieht einen zusätzlichen Gewinner. Bereits gezogene Gewinner bleiben erhalten.</p>
+          <p><strong>Letzten Gewinner ersetzen</strong> entfernt den letzten noch nicht abgeschlossenen Gewinner und lost direkt einen Ersatz aus.</p>
+        </div>
+      </section>
+
+      <section class="lgw-control-section">
+        <h4>${c.wheel ? 'Glücksrad-Claim' : 'Chat-Claim'}</h4>
+        ${c.wheel ? `
+          <p class="lgw-muted">Bei Glücksrad-Giveaways gilt: Gewinner auslosen → Gewinner dreht das Glücksrad → Drehung ist der Claim.</p>
+          <div class="lgw-control-actions">
+            <a class="lgw-btn lgw-btn-secondary" href="${api.overlay}" target="_blank">Glücksrad-Overlay öffnen</a>
+            ${c.pendingPermissions.map(p => `<button class="lgw-btn" data-lgw-claim-wheel="${esc(p.userLogin)}" data-display-name="${esc(p.userDisplayName || p.userLogin)}" data-uid="${esc(g.giveawayUid)}">Glücksrad drehen für ${esc(p.userDisplayName || p.userLogin)}</button>`).join('')}
+            ${!c.pendingPermissions.length ? `<button class="lgw-btn lgw-btn-disabled" disabled>Keine offene Glücksrad-Drehung</button>` : ''}
+          </div>
+          ${c.usedPermissions.length ? `<div class="lgw-mini-list">${c.usedPermissions.slice(-5).map(p => `<span>${esc(p.userDisplayName || p.userLogin || '-')} · ${esc(p.metadata?.resultLabel || p.spinUid || 'gedreht')}</span>`).join('')}</div>` : ''}
+        ` : `
+          <p class="lgw-muted">Bei normalen Giveaways kann ein Gewinner per Chat-Claim oder manuell bestätigt werden.</p>
+          <div class="lgw-control-actions">
+            ${c.pendingClaims.map(w => `<button class="lgw-btn" data-lgw-confirm-claim="${esc(w.winnerUid)}" data-uid="${esc(g.giveawayUid)}">Claim bestätigen: ${esc(w.userDisplayName || w.userLogin)}</button>`).join('')}
+            ${!c.pendingClaims.length ? `<button class="lgw-btn lgw-btn-disabled" disabled>Kein offener Chat-Claim</button>` : ''}
+          </div>
+        `}
+      </section>
+
+      <section class="lgw-control-section">
+        <h4>Abschluss</h4>
+        <div class="lgw-control-actions">
+          <button class="lgw-btn lgw-btn-secondary" data-lgw-refresh-control="${esc(g.giveawayUid)}">Aktualisieren</button>
+          <button class="lgw-btn" data-lgw-action="finish" data-uid="${esc(g.giveawayUid)}" ${c.canFinish ? '' : 'disabled'}>Giveaway abschließen</button>
+          <button class="lgw-btn lgw-btn-danger" data-lgw-action="cancel" data-uid="${esc(g.giveawayUid)}" ${c.canCancel ? '' : 'disabled'}>Giveaway abbrechen</button>
+        </div>
+      </section>
+
+      <div class="lgw-warning">Mehrere Gewinner laufen über dieselbe Konsole: Nach einer bestätigten normalen Claim-Phase oder nach einer Glücksrad-Drehung springt das Giveaway wieder auf „Teilnahme geschlossen“, solange noch Gewinner offen sind. Dann kann über „Weiteren Gewinner auslosen“ der nächste Gewinner gezogen werden.</div>
+      <div class="lgw-control-error" data-lgw-control-error></div>
+    `;
+  }
+
+  function renderControlModal(){
+    const uid = state.modal.uid || state.selectedUid;
+    const g = uid === state.selectedUid ? selectedGiveaway() : rows(state.giveaways).find(item => item.giveawayUid === uid);
+    if (!g) return '';
     return `
       <div class="lgw-modal-backdrop" data-lgw-close-modal>
         <div class="lgw-modal lgw-control-modal" role="dialog" aria-modal="true" aria-label="Giveaway steuern" data-lgw-modal-box>
           <div class="lgw-modal-head">
             <div>
               <h3>Giveaway steuern</h3>
-              <p class="lgw-muted">Dieses Fenster ist die Live-Konsole. Es aktualisiert sich alle 5 Sekunden automatisch.</p>
+              <p class="lgw-muted">Dieses Fenster ist die Live-Konsole. Nur Status, Gewinner, Claim-/Glücksrad-Daten und Buttons werden alle 5 Sekunden aktualisiert.</p>
             </div>
             <button class="lgw-icon-btn" data-lgw-close-modal type="button">×</button>
           </div>
-          <div class="lgw-control-title">
-            <div><strong>${esc(g.title || '-')}</strong><small>${esc(statusLabel(g.mode))} · ${esc(g.giveawayUid || '')}</small></div>
-            ${statusBadge(g.status)}
+          <div data-lgw-control-content="${esc(g.giveawayUid || '')}">
+            ${renderControlContent(g)}
           </div>
-          <div class="lgw-control-phase">
-            <strong>${esc(controlPhaseText(g))}</strong>
-            <span>${wheel ? 'Glücksrad-Giveaway: Die Glücksrad-Drehung ist der Claim.' : 'Normales Giveaway: Chat-Claim ist optional je nach Config.'}</span>
-          </div>
-          <div class="lgw-grid lgw-grid-4 lgw-control-stats">
-            <article class="lgw-card"><span>Teilnehmer</span><strong>${fmtNumber(entries.length)}</strong><small>aktive Entries</small></article>
-            <article class="lgw-card"><span>Gewinner</span><strong>${esc(winnerProgressText(g))}</strong><small>${esc(giveawayWinnerText(g))}</small></article>
-            <article class="lgw-card"><span>${wheel ? 'Glücksrad' : 'Claim'}</span><strong>${wheel ? (pendingPermissions.length ? 'Wartet' : (usedPermissions.length ? 'Gedreht' : 'Bereit')) : (pendingClaims.length ? 'Wartet' : 'OK')}</strong><small>${wheel ? `${fmtNumber(pendingPermissions.length)} offen · ${fmtNumber(usedPermissions.length)} gedreht` : `${fmtNumber(pendingClaims.length)} offen`}</small></article>
-            <article class="lgw-card"><span>Nächster Schritt</span><strong>${canStart ? 'Starten' : canClose ? 'Schließen' : canDraw ? (drawnCount > 0 ? 'Weiter auslosen' : 'Auslosen') : pendingClaims.length ? 'Claim' : pendingPermissions.length ? 'Drehung' : !isFinalStatus(g.status) ? 'Abschluss' : 'Fertig'}</strong><small>${fmtDate(g.updatedAt || g.openedAt || g.createdAt)}</small></article>
-          </div>
-
-          <section class="lgw-control-section">
-            <h4>Ablauf</h4>
-            <div class="lgw-control-actions">
-              <button class="lgw-btn" data-lgw-action="open" data-uid="${esc(g.giveawayUid)}" ${canStart ? '' : 'disabled'}>Giveaway starten</button>
-              <button class="lgw-btn lgw-btn-secondary" data-lgw-action="close" data-uid="${esc(g.giveawayUid)}" ${canClose ? '' : 'disabled'}>Teilnahme schließen</button>
-              <button class="lgw-btn" data-lgw-action="draw" data-uid="${esc(g.giveawayUid)}" ${canDraw ? '' : 'disabled'}>${drawnCount > 0 ? 'Weiteren Gewinner auslosen' : 'Gewinner auslosen'}</button>
-              <button class="lgw-btn lgw-btn-danger" data-lgw-action="replaceLast" data-uid="${esc(g.giveawayUid)}" ${canReplaceLast ? '' : 'disabled'}>Letzten Gewinner ersetzen</button>
-            </div>
-            <div class="lgw-control-help">
-              <p><strong>Weiteren Gewinner auslosen</strong> zieht einen zusätzlichen Gewinner. Bereits gezogene Gewinner bleiben erhalten.</p>
-              <p><strong>Letzten Gewinner ersetzen</strong> entfernt den letzten noch nicht abgeschlossenen Gewinner und lost direkt einen Ersatz aus.</p>
-            </div>
-          </section>
-
-          <section class="lgw-control-section">
-            <h4>${wheel ? 'Glücksrad-Claim' : 'Chat-Claim'}</h4>
-            ${wheel ? `
-              <p class="lgw-muted">Bei Glücksrad-Giveaways gilt: Gewinner auslosen → Gewinner dreht das Glücksrad → Drehung ist der Claim.</p>
-              <div class="lgw-control-actions">
-                <a class="lgw-btn lgw-btn-secondary" href="${api.overlay}" target="_blank">Glücksrad-Overlay öffnen</a>
-                ${pendingPermissions.map(p => `<button class="lgw-btn" data-lgw-claim-wheel="${esc(p.userLogin)}" data-display-name="${esc(p.userDisplayName || p.userLogin)}" data-uid="${esc(g.giveawayUid)}">Glücksrad drehen für ${esc(p.userDisplayName || p.userLogin)}</button>`).join('')}
-                ${!pendingPermissions.length ? `<button class="lgw-btn lgw-btn-disabled" disabled>Keine offene Glücksrad-Drehung</button>` : ''}
-              </div>
-              ${usedPermissions.length ? `<div class="lgw-mini-list">${usedPermissions.slice(-5).map(p => `<span>${esc(p.userDisplayName || p.userLogin || '-')} · ${esc(p.metadata?.resultLabel || p.spinUid || 'gedreht')}</span>`).join('')}</div>` : ''}
-            ` : `
-              <p class="lgw-muted">Bei normalen Giveaways kann ein Gewinner per Chat-Claim oder manuell bestätigt werden.</p>
-              <div class="lgw-control-actions">
-                ${pendingClaims.map(w => `<button class="lgw-btn" data-lgw-confirm-claim="${esc(w.winnerUid)}" data-uid="${esc(g.giveawayUid)}">Claim bestätigen: ${esc(w.userDisplayName || w.userLogin)}</button>`).join('')}
-                ${!pendingClaims.length ? `<button class="lgw-btn lgw-btn-disabled" disabled>Kein offener Chat-Claim</button>` : ''}
-              </div>
-            `}
-          </section>
-
-          <section class="lgw-control-section">
-            <h4>Abschluss</h4>
-            <div class="lgw-control-actions">
-              <button class="lgw-btn lgw-btn-secondary" data-lgw-refresh-control="${esc(g.giveawayUid)}">Aktualisieren</button>
-              <button class="lgw-btn" data-lgw-action="finish" data-uid="${esc(g.giveawayUid)}" ${canFinish ? '' : 'disabled'}>Giveaway abschließen</button>
-              <button class="lgw-btn lgw-btn-danger" data-lgw-action="cancel" data-uid="${esc(g.giveawayUid)}" ${canCancel ? '' : 'disabled'}>Giveaway abbrechen</button>
-            </div>
-          </section>
-
-          <div class="lgw-warning">Mehrere Gewinner laufen über dieselbe Konsole: Nach einer bestätigten normalen Claim-Phase oder nach einer Glücksrad-Drehung springt das Giveaway wieder auf „Teilnahme geschlossen“, solange noch Gewinner offen sind. Dann kann über „Weiteren Gewinner auslosen“ der nächste Gewinner gezogen werden.</div>
         </div>
       </div>
     `;
@@ -977,6 +1050,21 @@ window.LoyaltyGiveawaysModule = (function(){
       ${renderModal()}
     `;
     bindEvents();
+  }
+
+
+  function bindControlEvents(scope){
+    const area = scope || root;
+    if (!area) return;
+    area.querySelectorAll('[data-lgw-action]').forEach(btn => btn.addEventListener('click', () => {
+      giveawayAction(btn.dataset.lgwAction, btn.dataset.uid, { openControl: ['open','draw','close','replaceLast','finish','cancel'].includes(btn.dataset.lgwAction) });
+    }));
+    area.querySelectorAll('[data-lgw-claim-wheel]').forEach(btn => btn.addEventListener('click', () => claimWheel(btn.dataset.lgwClaimWheel, btn.dataset.displayName, btn.dataset.uid)));
+    area.querySelectorAll('[data-lgw-confirm-claim]').forEach(btn => btn.addEventListener('click', () => confirmClaim(btn.dataset.uid, btn.dataset.lgwConfirmClaim)));
+    area.querySelectorAll('[data-lgw-refresh-control]').forEach(btn => btn.addEventListener('click', async () => {
+      await refreshControlModal(btn.dataset.lgwRefreshControl);
+      startControlRefresh();
+    }));
   }
 
   function bindEvents(){
@@ -1015,15 +1103,7 @@ window.LoyaltyGiveawaysModule = (function(){
     root.querySelector('[data-lgw-sort-by]')?.addEventListener('change', ev => { state.sortBy = ev.currentTarget.value; render(); });
     root.querySelector('[data-lgw-sort-dir]')?.addEventListener('change', ev => { state.sortDir = ev.currentTarget.value; render(); });
 
-    root.querySelectorAll('[data-lgw-action]').forEach(btn => btn.addEventListener('click', () => giveawayAction(btn.dataset.lgwAction, btn.dataset.uid, { openControl: ['open','draw'].includes(btn.dataset.lgwAction) })));
-    root.querySelectorAll('[data-lgw-claim-wheel]').forEach(btn => btn.addEventListener('click', () => claimWheel(btn.dataset.lgwClaimWheel, btn.dataset.displayName, btn.dataset.uid)));
-    root.querySelectorAll('[data-lgw-confirm-claim]').forEach(btn => btn.addEventListener('click', () => confirmClaim(btn.dataset.uid, btn.dataset.lgwConfirmClaim)));
-    root.querySelectorAll('[data-lgw-refresh-control]').forEach(btn => btn.addEventListener('click', async () => {
-      await refreshGiveaways(btn.dataset.lgwRefreshControl, false);
-      state.modal = { type:'control', uid: btn.dataset.lgwRefreshControl };
-      startControlRefresh();
-      render();
-    }));
+    bindControlEvents(root);
 
     root.querySelector('[data-lgw-save-giveaway]')?.addEventListener('submit', ev => {
       ev.preventDefault();
