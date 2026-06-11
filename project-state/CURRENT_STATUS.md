@@ -5,7 +5,7 @@ Stand: 2026-06-11
 ## Aktueller bestätigter Hauptstand
 
 ```text
-STEP211 / LWG-5.3 – Dokumentation und Handoff für Loyalty Safety + Gamble Prepared
+STEP212 / LWG-5.4 – Points Command Runtime kontrollierter Test vorbereitet
 ```
 
 Der aktuell bestätigte technische Bereich betrifft das Modul **Loyalty / Kekskrümel / Loyalty Games** mit:
@@ -14,6 +14,7 @@ Der aktuell bestätigte technische Bereich betrifft das Modul **Loyalty / Kekskr
 STEP209 / LWG-5.1 – Loyalty Safety Layer + Gamble vorbereitet
 STEP210 / LWG-5.2 – API-/Status-Cleanup
 STEP211 / LWG-5.3 – Doku-/Projektstand aktualisiert
+STEP212 / LWG-5.4 – Points Command Runtime Testscript + Doku
 ```
 
 ## Bestätigter Runtime-Stand
@@ -31,82 +32,29 @@ backend/modules/loyalty_games/gamble.js
 neu seit LWG-5.1, vorbereitet und angebunden
 ```
 
-## Bestätigte Fachlogik LWG-5.1 / LWG-5.2
+STEP212 enthält bewusst **keine Runtime-JS-Änderung**. Es ergänzt Doku und ein kontrolliertes Testscript.
 
-### Zentrale verfügbare Kekskrümel
-
-```text
-verfügbare Kekskrümel = aktiver Kontostand - offene Reservierungen
-```
-
-Bestätigt:
+## STEP212 Testziel
 
 ```text
-- getAvailableBalance vorhanden
-- canAfford vorhanden
-- spendPointsSafely / awardPoints vorbereitet
-- reserve/release/commit für spätere Duell-/Raffle-Flows vorbereitet
-- Ranking nach verfügbaren Kekskrümeln vorbereitet
+Test_STEP212_LWG5_4_points_command_runtime_ForrestCGN.ps1
 ```
 
-### Points Commands vorbereitet
-
-Vorbereitet, aber deaktiviert:
+Das Script soll nach StepDone und Backend-Neustart prüfen:
 
 ```text
-!punkte / !points
-!givepoints
-!setpoint
+- Loyalty-Status erreichbar
+- verfügbare Kekskrümel und Ranking erreichbar
+- !punkte ist als Command vorhanden
+- Disabled-Guard greift, solange !punkte aus ist
+- !punkte kann temporär für Runtime-Test aktiviert werden
+- !punkte liefert nur verfügbare Kekskrümel + Rankingdaten
+- !points Alias funktioniert
+- !punkte @user wird für Nicht-Mods blockiert
+- ursprünglicher Command-Status wird wiederhergestellt
 ```
 
-Regel für `!punkte`:
-
-```text
-- User sieht nur verfügbare Kekskrümel.
-- Ausgabe soll zusätzlich Platzierung und Gesamtzahl der gewerteten User enthalten.
-- Ranking nach verfügbaren Kekskrümeln.
-```
-
-### Gamble vorbereitet
-
-Vorbereitet, aber nicht als Chat-Command aktiv:
-
-```text
-!gamble 100
-!gamble 50%
-```
-
-Sicherheitsregeln:
-
-```text
-- Einsatz nie höher als verfügbare Kekskrümel.
-- Ergebnis backendseitig und nicht vorhersagbar.
-- Kein Math.random für Ergebnislogik.
-- Kein Browser-/Overlay-Zufall.
-- Keine Berechnung aus Zeit, Username, Counter oder Balance.
-- Ergebnis erst nach gültiger Prüfung/Buchung veröffentlichen.
-```
-
-### Modul aktiv vs. Command aktiv
-
-Neue verbindliche Regel:
-
-```text
-Module bleiben aktiv/online und senden Status/Heartbeat.
-Chat-Commands werden separat aktiviert/deaktiviert.
-```
-
-Das bedeutet:
-
-```text
-loyalty.js       aktiv
-loyalty_games.js aktiv
-gamble.js        vorbereitet/online
-!gamble          deaktiviert
-!punkte          deaktiviert
-```
-
-## Bestätigte Tests aus dem Live-System
+## Bestätigte Tests aus dem Live-System bis STEP210
 
 ### Status
 
@@ -181,16 +129,6 @@ Input: testdummy_gamble, input=1
 Ergebnis: HTTP 403
 error: gamble_disabled
 ```
-
-## Weiterhin bestätigter Giveaways-Stand
-
-Der vorherige bestätigte Stand bleibt gültig:
-
-```text
-STEP LWG-4Q.11 – Manual Winner Flow and Prize Quantity Cleanup
-```
-
-Wichtig: LWG-5 hat keine bestehende Giveaway-Funktionalität entfernt.
 
 ## Wichtige Arbeitsregeln
 

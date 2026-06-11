@@ -1,7 +1,7 @@
 # Modul: loyalty
 
 Stand: 2026-06-11  
-Aktueller dokumentierter Stand: STEP211 / LWG-5.3  
+Aktueller dokumentierter Stand: STEP212 / LWG-5.4  
 Runtime-Basis: STEP210 / LWG-5.2
 
 ## Zweck
@@ -182,10 +182,31 @@ Module bleiben aktiv und melden Status/Heartbeat, Commands werden separat aktivi
 - Keine bestehenden Giveaway-/Wheel-Flows entfernt.
 ```
 
+## STEP212 / LWG-5.4 – Points Command Runtime Testplan
+
+STEP212 enthält keine Runtime-Änderung, sondern ein kontrolliertes Testscript:
+
+```text
+Test_STEP212_LWG5_4_points_command_runtime_ForrestCGN.ps1
+```
+
+Das Script prüft:
+
+```text
+- Loyalty-Status und verfügbare Kekskrümel
+- Command-Seed für !punkte / !points
+- Disabled-Guard solange der Command aus ist
+- temporäre Aktivierung nur von !punkte
+- Runtime-Ausgabe für !punkte
+- Alias !points
+- Permission-Block für !punkte @user bei Nicht-Mod
+- automatische Wiederherstellung des ursprünglichen Command-Status
+```
+
+Wichtig: Das Script aktiviert `!punkte` nur temporär und stellt den vorherigen Status am Ende wieder her.
+
 ## Nächster Schritt
 
 ```text
-STEP212 / LWG-5.4 – Points Command Runtime kontrolliert testen/freigeben
+STEP213 / LWG-5.5 – Nach bestätigtem Points-Test: !punkte optional produktiv freigeben oder Gamble-Runtime isoliert testen
 ```
-
-Vor Aktivierung im Chat zuerst gezielt per API/Test-Execute prüfen.

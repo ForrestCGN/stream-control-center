@@ -5,97 +5,44 @@ Stand: 2026-06-11
 ## Direkt nächster sinnvoller Schritt
 
 ```text
-STEP212 / LWG-5.4 – Points Command Runtime kontrolliert testen/freigeben
+STEP212 / LWG-5.4 – Points Command Runtime kontrolliert testen
 ```
 
-Ziel: Nicht sofort alles aktivieren, sondern zuerst kontrolliert prüfen, ob `!punkte` / `!points` über die Runtime korrekt antwortet.
-
-## Reihenfolge
-
-### 1. STEP210 übernehmen und StepDone ausführen
-
-Falls noch nicht erledigt:
+Nach Entpacken des STEP212-Pakets:
 
 ```cmd
-.\stepdone.cmd "STEP210 / LWG-5.2 Loyalty API- und Status-Cleanup"
+.\stepdone.cmd "STEP212 / LWG-5.4 Points Command Runtime Testscript und Doku"
 ```
 
-Danach Backend neu starten.
-
-### 2. STEP211 Doku übernehmen und StepDone ausführen
-
-Nach Entpacken dieses Doku-Pakets:
-
-```cmd
-.\stepdone.cmd "STEP211 / LWG-5.3 Loyalty Safety + Gamble Prepared Dokumentation"
-```
-
-### 3. Status nach STEP210/STEP211 kurz prüfen
-
-Nur kleine Ausgaben:
+Danach Backend neu starten und ausführen:
 
 ```powershell
-$base = "http://127.0.0.1:8080"
-
-Invoke-RestMethod "$base/api/loyalty/status" |
-  Select-Object module,version,mode,enabled,currencyName,streamElementsStillActive
-
-Invoke-RestMethod "$base/api/loyalty/games/status" |
-  Select-Object module,moduleVersion,moduleBuild,enabled,eventBusReady,lastError
+powershell -ExecutionPolicy Bypass -File .\Test_STEP212_LWG5_4_points_command_runtime_ForrestCGN.ps1
 ```
 
-### 4. Points Runtime testen, ohne Chat-Command freizugeben
-
-Vor Freigabe nur direkte Runtime/API oder Command-Test-Route verwenden.
-
-Zu prüfen:
+## Erwartung
 
 ```text
-- !punkte ohne Target zeigt verfügbare Kekskrümel + Rang.
-- !punkte @user wird für normale User blockiert oder nicht erlaubt.
-- !punkte @user funktioniert für Mod/Streamer-Kontext.
-- !givepoints ist nur mod/streamerfähig.
-- !setpoint ist nur streamerfähig.
-- Alle Texte kommen über DB/Textvarianten.
-```
-
-### 5. Erst danach Command-Aktivierung planen
-
-Nicht sofort alles aktivieren.
-
-Empfohlen:
-
-```text
-1. zuerst !punkte / !points aktivieren
-2. im Chat prüfen
-3. danach !givepoints testen
-4. danach !setpoint testen
-5. erst später !gamble vorbereiten
+- !punkte bleibt vor und nach dem Test im ursprünglichen Zustand.
+- Das Script aktiviert !punkte nur temporär.
+- !punkte zeigt verfügbare Kekskrümel + Rangdaten.
+- !points Alias funktioniert.
+- !punkte @user ist für Nicht-Mods blockiert.
 ```
 
 ## Danach
 
-Wenn Points sauber laufen:
+Wenn STEP212 grün ist:
 
 ```text
-STEP213 / LWG-5.5 – Gamble Shadow-Test mit Dummy-Usern
+STEP213 / LWG-5.5 – Entscheidung: !punkte produktiv freigeben oder Gamble-Runtime isoliert testen
 ```
 
-Ziel:
+Empfohlene Reihenfolge:
 
 ```text
-- Gamble per API/Runtime im Shadow-Modus testen.
-- Percent-Einsatz prüfen.
-- Insufficient Balance prüfen.
-- Cooldown prüfen.
-- Buchungs-/Transaktionshistorie prüfen.
-- Ergebnis nicht vorhersagbar, serverseitig.
-```
-
-## Später vorgemerkt
-
-```text
-Duell: !duell @user 100 / !annehmen / !ablehnen
-Raffle: !raffle [points] [duration] / !join / !cancelraffle
-Roulette: später eigenes Farb-Roulette, nicht Teil von Gamble
+1. Erst !punkte / !points produktiv freigeben, falls gewünscht.
+2. Danach !givepoints / !setpoint getrennt testen.
+3. Danach !gamble isoliert mit Testuser und kleinen Einsätzen testen.
+4. Roulette bleibt weiterhin nur vorgemerkt.
 ```
