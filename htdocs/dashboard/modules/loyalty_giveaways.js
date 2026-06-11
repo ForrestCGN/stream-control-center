@@ -805,7 +805,7 @@ window.LoyaltyGiveawaysModule = (function(){
           <span>Status</span><strong>${statusBadge(g.status)}</strong>
           <span>Modus</span><strong>${esc(statusLabel(g.mode))}</strong>
           <span>Bearbeitbar</span><strong>${editable ? 'Ja' : 'Nein'}</strong>
-          <span>Kosten</span><strong>${fmtNumber(g.costAmount)}</strong>
+          <span>Kosten/Ticket</span><strong>${fmtNumber(g.costAmount)} Kekskrümel</strong>
           <span>Max Tickets/User</span><strong>${fmtNumber(g.maxTicketsPerUser || 1)}</strong>
           <span>Gewinneranzahl</span><strong>${fmtNumber(g.winnerCount || 1)}</strong>
           <span>Glücksrad</span><strong>${g.wheelEnabled ? 'Ja' : 'Nein'}</strong>
@@ -892,7 +892,7 @@ window.LoyaltyGiveawaysModule = (function(){
         <label>Glücksrad-Preset-UID<input name="wheelPresetUid" value="${esc(g?.wheelPresetUid || '')}" placeholder="optional"></label>
       </div>
       <div class="lgw-form-row">
-        <label>Kosten pro Ticket<input name="costAmount" type="number" min="0" value="${esc(g?.costAmount ?? 0)}"></label>
+        <label>Kosten pro Ticket (Kekskrümel)<input name="costAmount" type="number" min="0" value="${esc(g?.costAmount ?? 0)}"><small class="lgw-muted">0 = kostenlos. Bei Kosten werden Punkte beim Ticket-Kauf gebucht.</small></label>
         <label>Max Tickets/User<input name="maxTicketsPerUser" type="number" min="1" value="${esc(g?.maxTicketsPerUser ?? 1)}"></label>
       </div>
       <div class="lgw-form-row">

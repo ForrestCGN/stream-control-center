@@ -8,6 +8,10 @@
  * - setupComplete/setupIssues werden dynamisch berechnet.
  * - Öffnen/Aktivieren wird backendseitig blockiert, wenn Pflichtdaten fehlen.
  * - Wheel-Giveaways brauchen vor dem Öffnen ein gültiges Glücksrad mit nutzbaren Feldern.
+ *
+ * STEP LWG-4Q.1:
+ * - Kostenpflichtige Tickets buchen Loyalty-Punkte beim Entry-Erstellen.
+ * - Entry-Cancel/Giveaway-Cancel erstatten gebuchte Ticketkosten idempotent.
  */
 
 const crypto = require("crypto");
@@ -15,10 +19,11 @@ const core = require("./helpers/helper_core");
 const routes = require("./helpers/helper_routes");
 const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
+const loyaltyCore = require("./loyalty");
 
 const MODULE_NAME = "loyalty_giveaways";
 const MODULE_VERSION = "0.1.1";
-const MODULE_BUILD = "STEP_LWG_4P_3";
+const MODULE_BUILD = "STEP_LWG_4Q_1";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -112,6 +117,10 @@ const CHAT_TEXT_DEFAULTS = {
     "{user}, mehr Tickets passen für dich gerade nicht in den Lostopf. Die Heimleitung hat den Deckel drauf.",
     "{user}, du hast dein Ticket-Limit erreicht. Mehr Papierkram erlaubt die Heimleitung gerade nicht."
   ],
+  "ticket.insufficient_balance": [
+    "{user}, dafür reichen deine Kekskrümel nicht. Benötigt: {required}, vorhanden: {balance}.",
+    "{user}, die Rentnerkasse winkt ab: {required} Kekskrümel nötig, {balance} vorhanden."
+  ],
   "ticket.cost_not_supported_yet": [
     "{user}, kostenpflichtige Tickets sind noch nicht freigeschaltet. Die Rentnerkasse ist noch in Prüfung.",
     "{user}, Tickets mit Punktebuchung kommen später. Aktuell nimmt die Heimleitung nur kostenlose Zettel an."
@@ -144,6 +153,7 @@ const CHAT_TEXT_CATEGORIES = {
   "ticket.no_active": "chat_ticket",
   "ticket.invalid_amount": "chat_ticket",
   "ticket.max_reached": "chat_ticket",
+  "ticket.insufficient_balance": "chat_ticket",
   "ticket.cost_not_supported_yet": "chat_ticket",
   "giveaway.closed": "chat_giveaway",
   "giveaway.draw_not_closed": "chat_giveaway",
@@ -2808,8 +2818,273 @@ function computeTicketCost(giveaway, userLogin, ticketCount) {
     paidTickets: Math.max(0, paidTickets),
     costPerTicket,
     costDue: Math.max(0, paidTickets) * costPerTicket,
-    note: "LWG-4L.5 erlaubt kostenlose Chat-Tickets, bucht aber weiterhin keine Punkte."
+    currencyKey: giveaway.currencyKey || "loyalty_points",
+    booked: false
   };
+}
+
+function getLoyaltyRuntimeMode() {
+  try {
+    const status = loyaltyCore && loyaltyCore._private && typeof loyaltyCore._private.buildStatus === "function"
+      ? loyaltyCore._private.buildStatus()
+      : null;
+    const mode = String(status && status.mode || "shadow").trim().toLowerCase();
+    return mode === "live" ? "live" : "shadow";
+  } catch (_) {
+    return "shadow";
+  }
+}
+
+function loyaltyBalanceField(mode) {
+  return String(mode || "shadow").toLowerCase() === "live" ? "balance_live" : "balance_shadow";
+}
+
+function loyaltySpentField(mode) {
+  return String(mode || "shadow").toLowerCase() === "live" ? "total_spent_live" : "total_spent_shadow";
+}
+
+function loyaltyEarnedField(mode) {
+  return String(mode || "shadow").toLowerCase() === "live" ? "total_earned_live" : "total_earned_shadow";
+}
+
+function ensureLoyaltyUserForBooking(login, displayName) {
+  const userLogin = String(login || "").trim().replace(/^@/, "").toLowerCase();
+  if (!userLogin) throw new Error("user_login_required");
+  const now = nowIso();
+  const userDisplayName = String(displayName || userLogin).trim() || userLogin;
+  const existing = database.get("SELECT * FROM loyalty_users WHERE user_login = :login", { login: userLogin });
+  if (!existing) {
+    database.run(`
+      INSERT INTO loyalty_users
+        (user_login, user_display_name, balance_shadow, balance_live, last_seen_at, created_at, updated_at, metadata_json)
+      VALUES
+        (:login, :displayName, 0, 0, :lastSeenAt, :createdAt, :updatedAt, '{}')
+    `, {
+      login: userLogin,
+      displayName: userDisplayName,
+      lastSeenAt: now,
+      createdAt: now,
+      updatedAt: now
+    });
+    return database.get("SELECT * FROM loyalty_users WHERE user_login = :login", { login: userLogin });
+  }
+
+  database.run(`
+    UPDATE loyalty_users
+    SET user_display_name = CASE WHEN :displayName = '' THEN user_display_name ELSE :displayName END,
+        last_seen_at = :lastSeenAt,
+        updated_at = :updatedAt
+    WHERE user_login = :login
+  `, {
+    login: userLogin,
+    displayName: userDisplayName,
+    lastSeenAt: now,
+    updatedAt: now
+  });
+  return database.get("SELECT * FROM loyalty_users WHERE user_login = :login", { login: userLogin });
+}
+
+function insertLoyaltyBookingTransaction(input = {}) {
+  const now = nowIso();
+  const transactionUid = uid("loyalty_tx");
+  database.run(`
+    INSERT INTO loyalty_transactions
+      (transaction_uid, user_login, user_display_name, amount, balance_before, balance_after, balance_field,
+       type, source_module, source_provider, mode, reason, reference_type, reference_id, created_at, metadata_json)
+    VALUES
+      (:uid, :login, :displayName, :amount, :balanceBefore, :balanceAfter, :balanceField,
+       :type, :sourceModule, :sourceProvider, :mode, :reason, :referenceType, :referenceId, :createdAt, :metadataJson)
+  `, {
+    uid: transactionUid,
+    login: input.login,
+    displayName: input.displayName || input.login,
+    amount: Number(input.amount || 0),
+    balanceBefore: Number(input.balanceBefore || 0),
+    balanceAfter: Number(input.balanceAfter || 0),
+    balanceField: input.mode === "live" ? "live" : "shadow",
+    type: input.type || "giveaway_ticket",
+    sourceModule: MODULE_NAME,
+    sourceProvider: "stream_control_center",
+    mode: input.mode === "live" ? "live" : "shadow",
+    reason: input.reason || "giveaway_ticket",
+    referenceType: input.referenceType || "loyalty_giveaway_entry",
+    referenceId: input.referenceId || "",
+    createdAt: now,
+    metadataJson: json(input.metadata || {})
+  });
+  return transactionUid;
+}
+
+function bookTicketCostForEntry(giveaway, entryUid, userLogin, userDisplayName, ticketCount, cost = {}) {
+  const costDue = Math.max(0, Number(cost.costDue || 0));
+  if (costDue <= 0) {
+    return { ok: true, booked: false, amount: 0, mode: getLoyaltyRuntimeMode(), transactionUid: "" };
+  }
+
+  const mode = getLoyaltyRuntimeMode();
+  const field = loyaltyBalanceField(mode);
+  const spentField = loyaltySpentField(mode);
+  const user = ensureLoyaltyUserForBooking(userLogin, userDisplayName);
+  const before = Number(user && user[field] || 0);
+  if (before < costDue) {
+    return {
+      ok: false,
+      error: "loyalty_insufficient_balance",
+      statusCode: 409,
+      login: userLogin,
+      displayName: userDisplayName || userLogin,
+      balance: before,
+      required: costDue,
+      missing: costDue - before,
+      mode,
+      currencyKey: giveaway.currencyKey || "loyalty_points"
+    };
+  }
+
+  const after = before - costDue;
+  const now = nowIso();
+  database.run(`
+    UPDATE loyalty_users
+    SET ${database.quoteIdentifier(field)} = :balanceAfter,
+        ${database.quoteIdentifier(spentField)} = ${database.quoteIdentifier(spentField)} + :amount,
+        user_display_name = :displayName,
+        last_seen_at = :lastSeenAt,
+        updated_at = :updatedAt
+    WHERE user_login = :login
+  `, {
+    login: userLogin,
+    displayName: userDisplayName || userLogin,
+    balanceAfter: after,
+    amount: costDue,
+    lastSeenAt: now,
+    updatedAt: now
+  });
+
+  const transactionUid = insertLoyaltyBookingTransaction({
+    login: userLogin,
+    displayName: userDisplayName || userLogin,
+    amount: -costDue,
+    balanceBefore: before,
+    balanceAfter: after,
+    mode,
+    type: "giveaway_ticket_purchase",
+    reason: "giveaway_ticket_cost",
+    referenceType: "loyalty_giveaway_entry",
+    referenceId: entryUid,
+    metadata: {
+      giveawayUid: giveaway.giveawayUid,
+      giveawayTitle: giveaway.title || "",
+      ticketCount: Number(ticketCount || 0),
+      paidTickets: Number(cost.paidTickets || 0),
+      costPerTicket: Number(cost.costPerTicket || 0),
+      costDue,
+      firstTicketFree: !!giveaway.firstTicketFree,
+      currencyKey: giveaway.currencyKey || "loyalty_points"
+    }
+  });
+
+  return { ok: true, booked: true, amount: costDue, mode, balanceBefore: before, balanceAfter: after, transactionUid };
+}
+
+function refundTicketCostForEntry(entry, input = {}) {
+  if (!entry) return { ok: false, error: "entry_missing" };
+  const costBooked = Math.max(0, Number(entry.cost_booked || 0));
+  if (costBooked <= 0) return { ok: true, refunded: false, amount: 0, reason: "no_cost_booked" };
+
+  const metadata = parseJson(entry.metadata_json, {});
+  if (metadata && metadata.costRefund && metadata.costRefund.transactionUid) {
+    return { ok: true, refunded: false, alreadyRefunded: true, amount: costBooked, transactionUid: metadata.costRefund.transactionUid };
+  }
+
+  const booking = metadata && metadata.costBooking && typeof metadata.costBooking === "object" ? metadata.costBooking : {};
+  const mode = String(booking.mode || getLoyaltyRuntimeMode()).toLowerCase() === "live" ? "live" : "shadow";
+  const field = loyaltyBalanceField(mode);
+  const spentField = loyaltySpentField(mode);
+  const user = ensureLoyaltyUserForBooking(entry.user_login, entry.user_display_name || entry.user_login);
+  const before = Number(user && user[field] || 0);
+  const after = before + costBooked;
+  const now = nowIso();
+
+  database.run(`
+    UPDATE loyalty_users
+    SET ${database.quoteIdentifier(field)} = :balanceAfter,
+        ${database.quoteIdentifier(spentField)} = CASE WHEN ${database.quoteIdentifier(spentField)} - :amount < 0 THEN 0 ELSE ${database.quoteIdentifier(spentField)} - :amount END,
+        user_display_name = :displayName,
+        last_seen_at = :lastSeenAt,
+        updated_at = :updatedAt
+    WHERE user_login = :login
+  `, {
+    login: entry.user_login,
+    displayName: entry.user_display_name || entry.user_login,
+    balanceAfter: after,
+    amount: costBooked,
+    lastSeenAt: now,
+    updatedAt: now
+  });
+
+  const transactionUid = insertLoyaltyBookingTransaction({
+    login: entry.user_login,
+    displayName: entry.user_display_name || entry.user_login,
+    amount: costBooked,
+    balanceBefore: before,
+    balanceAfter: after,
+    mode,
+    type: "giveaway_ticket_refund",
+    reason: input.reason || "giveaway_ticket_refund",
+    referenceType: "loyalty_giveaway_entry",
+    referenceId: entry.entry_uid,
+    metadata: {
+      giveawayUid: entry.giveaway_uid,
+      entryUid: entry.entry_uid,
+      refundedCost: costBooked,
+      originalTransactionUid: booking.transactionUid || "",
+      refundReason: input.reason || "",
+      refundedBy: input.actor || "system"
+    }
+  });
+
+  return { ok: true, refunded: true, amount: costBooked, mode, balanceBefore: before, balanceAfter: after, transactionUid };
+}
+
+function refundActiveEntriesForGiveaway(giveawayUid, input = {}) {
+  ensureSchema();
+  const entries = database.all(`
+    SELECT *
+    FROM loyalty_giveaway_entries
+    WHERE giveaway_uid = :giveawayUid
+      AND status = 'active'
+      AND cost_booked > 0
+  `, { giveawayUid });
+
+  const refunds = [];
+  for (const entry of entries) {
+    const refund = refundTicketCostForEntry(entry, { ...input, reason: input.reason || "giveaway_cancel_refund" });
+    if (refund && refund.ok) {
+      const metadata = parseJson(entry.metadata_json, {});
+      database.run(`
+        UPDATE loyalty_giveaway_entries
+        SET metadata_json = :metadataJson,
+            updated_at = :updatedAt
+        WHERE entry_uid = :entryUid
+      `, {
+        entryUid: entry.entry_uid,
+        updatedAt: nowIso(),
+        metadataJson: json({
+          ...metadata,
+          costRefund: refund.refunded ? {
+            transactionUid: refund.transactionUid || "",
+            amount: refund.amount || 0,
+            mode: refund.mode || "",
+            refundedAt: nowIso(),
+            reason: input.reason || "giveaway_cancel_refund"
+          } : metadata.costRefund || null
+        })
+      });
+    }
+    refunds.push({ entryUid: entry.entry_uid, userLogin: entry.user_login, ...refund });
+  }
+
+  return { ok: true, count: refunds.length, refundedAmount: refunds.reduce((sum, row) => sum + Number(row.refunded ? row.amount || 0 : 0), 0), rows: refunds };
 }
 
 function createEntry(giveawayUid, input = {}) {
@@ -2849,39 +3124,62 @@ function createEntry(giveawayUid, input = {}) {
   const ticketWeight = ticketCount * multiplier;
   const entryUid = uid("entry");
   const now = nowIso();
+  let booking = null;
 
-  database.run(`
-    INSERT INTO loyalty_giveaway_entries (
-      entry_uid, giveaway_uid, round_uid, user_login, user_display_name,
-      ticket_count, ticket_weight, cost_amount, cost_due, cost_booked,
-      source, status, created_at, updated_at, metadata_json
-    ) VALUES (
-      :entryUid, :giveawayUid, :roundUid, :userLogin, :userDisplayName,
-      :ticketCount, :ticketWeight, :costAmount, :costDue, :costBooked,
-      :source, :status, :createdAt, :updatedAt, :metadataJson
-    )
-  `, {
-    entryUid,
-    giveawayUid,
-    roundUid: currentRound ? currentRound.roundUid : "",
-    userLogin,
-    userDisplayName,
-    ticketCount,
-    ticketWeight,
-    costAmount: giveaway.costAmount,
-    costDue: cost.costDue,
-    costBooked: 0,
-    source,
-    status: "active",
-    createdAt: now,
-    updatedAt: now,
-    metadataJson: json({
-      isSubscriber,
-      subscriberLuckMultiplier: multiplier,
-      cost,
-      note: "Kosten werden in LWG-4H noch nicht gebucht."
-    })
-  });
+  try {
+    const tx = database.transaction(() => {
+      booking = bookTicketCostForEntry(giveaway, entryUid, userLogin, userDisplayName, ticketCount, cost);
+      if (!booking || booking.ok !== true) {
+        const err = new Error(booking && booking.error || "ticket_cost_booking_failed");
+        err.payload = booking || { ok: false, error: "ticket_cost_booking_failed", statusCode: 409 };
+        throw err;
+      }
+
+      database.run(`
+        INSERT INTO loyalty_giveaway_entries (
+          entry_uid, giveaway_uid, round_uid, user_login, user_display_name,
+          ticket_count, ticket_weight, cost_amount, cost_due, cost_booked,
+          source, status, created_at, updated_at, metadata_json
+        ) VALUES (
+          :entryUid, :giveawayUid, :roundUid, :userLogin, :userDisplayName,
+          :ticketCount, :ticketWeight, :costAmount, :costDue, :costBooked,
+          :source, :status, :createdAt, :updatedAt, :metadataJson
+        )
+      `, {
+        entryUid,
+        giveawayUid,
+        roundUid: currentRound ? currentRound.roundUid : "",
+        userLogin,
+        userDisplayName,
+        ticketCount,
+        ticketWeight,
+        costAmount: giveaway.costAmount,
+        costDue: cost.costDue,
+        costBooked: booking.booked ? Number(booking.amount || 0) : 0,
+        source,
+        status: "active",
+        createdAt: now,
+        updatedAt: now,
+        metadataJson: json({
+          isSubscriber,
+          subscriberLuckMultiplier: multiplier,
+          cost: { ...cost, booked: !!booking.booked },
+          costBooking: booking.booked ? {
+            transactionUid: booking.transactionUid || "",
+            amount: booking.amount || 0,
+            mode: booking.mode || "",
+            balanceBefore: booking.balanceBefore || 0,
+            balanceAfter: booking.balanceAfter || 0,
+            bookedAt: now
+          } : null
+        })
+      });
+    });
+    tx();
+  } catch (err) {
+    if (err && err.payload) return err.payload;
+    throw err;
+  }
 
   createEvent({
     giveawayUid,
@@ -2892,11 +3190,11 @@ function createEntry(giveawayUid, input = {}) {
     oldStatus: "",
     newStatus: "active",
     message: `${userDisplayName} joined giveaway`,
-    metadata: { entryUid, ticketCount, ticketWeight, costDue: cost.costDue }
+    metadata: { entryUid, ticketCount, ticketWeight, costDue: cost.costDue, costBooked: booking && booking.booked ? booking.amount || 0 : 0 }
   });
 
-  emitEvent("loyalty.giveaway.entry_created", { giveawayUid, entryUid, userLogin, userDisplayName, ticketCount, ticketWeight, costDue: cost.costDue });
-  return { ok: true, entry: rowToEntry(database.get("SELECT * FROM loyalty_giveaway_entries WHERE entry_uid = :entryUid", { entryUid })) };
+  emitEvent("loyalty.giveaway.entry_created", { giveawayUid, entryUid, userLogin, userDisplayName, ticketCount, ticketWeight, costDue: cost.costDue, costBooked: booking && booking.booked ? booking.amount || 0 : 0 });
+  return { ok: true, entry: rowToEntry(database.get("SELECT * FROM loyalty_giveaway_entries WHERE entry_uid = :entryUid", { entryUid })), booking };
 }
 
 function cancelEntry(giveawayUid, entryUid, input = {}) {
@@ -2911,19 +3209,44 @@ function cancelEntry(giveawayUid, entryUid, input = {}) {
 
 
   const now = nowIso();
-  database.run(`
-    UPDATE loyalty_giveaway_entries
-    SET status = 'cancelled',
-        cancelled_at = :cancelledAt,
-        updated_at = :updatedAt,
-        metadata_json = :metadataJson
-    WHERE entry_uid = :entryUid
-  `, {
-    entryUid,
-    cancelledAt: now,
-    updatedAt: now,
-    metadataJson: json({ ...parseJson(entry.metadata_json, {}), cancelReason: input.reason || "", cancelledBy: input.actor || "dashboard" })
-  });
+  let refund = null;
+  try {
+    const tx = database.transaction(() => {
+      refund = refundTicketCostForEntry(entry, {
+        actor: input.actor || "dashboard",
+        reason: input.reason || "entry_cancelled_refund"
+      });
+      const existingMetadata = parseJson(entry.metadata_json, {});
+      database.run(`
+        UPDATE loyalty_giveaway_entries
+        SET status = 'cancelled',
+            cancelled_at = :cancelledAt,
+            updated_at = :updatedAt,
+            metadata_json = :metadataJson
+        WHERE entry_uid = :entryUid
+      `, {
+        entryUid,
+        cancelledAt: now,
+        updatedAt: now,
+        metadataJson: json({
+          ...existingMetadata,
+          cancelReason: input.reason || "",
+          cancelledBy: input.actor || "dashboard",
+          costRefund: refund && refund.refunded ? {
+            transactionUid: refund.transactionUid || "",
+            amount: refund.amount || 0,
+            mode: refund.mode || "",
+            refundedAt: now,
+            reason: input.reason || "entry_cancelled_refund"
+          } : existingMetadata.costRefund || null
+        })
+      });
+    });
+    tx();
+  } catch (err) {
+    if (err && err.payload) return err.payload;
+    throw err;
+  }
 
   createEvent({
     giveawayUid,
@@ -2934,11 +3257,11 @@ function cancelEntry(giveawayUid, entryUid, input = {}) {
     oldStatus: entry.status,
     newStatus: "cancelled",
     message: input.reason || "Entry cancelled",
-    metadata: { entryUid }
+    metadata: { entryUid, refund }
   });
 
   emitEvent("loyalty.giveaway.entry_cancelled", { giveawayUid, entryUid });
-  return { ok: true, entry: rowToEntry(database.get("SELECT * FROM loyalty_giveaway_entries WHERE entry_uid = :entryUid", { entryUid })) };
+  return { ok: true, entry: rowToEntry(database.get("SELECT * FROM loyalty_giveaway_entries WHERE entry_uid = :entryUid", { entryUid })), refund };
 }
 
 function listWinners(giveawayUid, options = {}) {
@@ -4152,6 +4475,14 @@ function setGiveawayStatus(giveawayUid, status, input = {}) {
     activatedBoundWheel = activation.boundWheel || null;
   }
 
+  let refundSummary = null;
+  if (nextStatus === STATUS.CANCELLED || nextStatus === STATUS.DELETED) {
+    refundSummary = refundActiveEntriesForGiveaway(giveawayUid, {
+      actor: input.actor || "dashboard",
+      reason: nextStatus === STATUS.DELETED ? "giveaway_deleted_refund" : "giveaway_cancelled_refund"
+    });
+  }
+
   if (nextStatus === STATUS.OPEN) patch.openedAt = now;
   if (nextStatus === STATUS.CLOSED_FOR_ENTRIES) patch.entriesClosedAt = now;
   if (nextStatus === STATUS.FINISHED) patch.finishedAt = now;
@@ -4196,12 +4527,14 @@ function setGiveawayStatus(giveawayUid, status, input = {}) {
     actorLogin: input.actor || "",
     oldStatus: row.status,
     newStatus: nextStatus,
-    message: input.reason || ""
+    message: input.reason || "",
+    metadata: refundSummary ? { refunds: refundSummary } : {}
   });
-  emitEvent(eventType, { giveawayUid, oldStatus: row.status, newStatus: nextStatus });
+  emitEvent(eventType, { giveawayUid, oldStatus: row.status, newStatus: nextStatus, refunds: refundSummary || null });
 
   const response = { ok: true, giveaway: getGiveaway(giveawayUid, true) };
   if (activatedBoundWheel) response.boundWheel = activatedBoundWheel;
+  if (refundSummary) response.refunds = refundSummary;
   if (nextStatus === STATUS.CLOSED_FOR_ENTRIES) {
     const chatMessage = renderChatRuntimeText("giveaway.closed", {
       giveawayTitle: row.title || "Giveaway"
@@ -4597,17 +4930,6 @@ function handleTicketCommandRuntime(input = {}) {
     });
   }
 
-  if (Number(giveaway.costAmount || 0) > 0) {
-    return buildCommandRuntimeResponse(input, {
-      ok: false,
-      active: !!(centralCommandDefinition && centralCommandDefinition.enabled),
-      commandsActive: !!(centralCommandDefinition && centralCommandDefinition.enabled),
-      action: "giveaway_ticket",
-      messageKey: "ticket.cost_not_supported_yet",
-      error: "ticket_cost_not_supported_yet",
-      data: { commandDefinition, centralCommandDefinition, giveawayUid: giveaway.giveawayUid, costAmount: giveaway.costAmount, currencyKey: giveaway.currencyKey }
-    });
-  }
 
   const userLogin = normalizeChatLogin(input.userLogin || input.login || input.username || input.user);
   const userDisplayName = normalizeChatDisplayName(input, userLogin);
@@ -4620,13 +4942,20 @@ function handleTicketCommandRuntime(input = {}) {
   });
 
   if (!result.ok) {
-    const key = result.error === "giveaway_max_tickets_reached" ? "ticket.max_reached" : "ticket.invalid_amount";
+    const key = result.error === "giveaway_max_tickets_reached"
+      ? "ticket.max_reached"
+      : (result.error === "loyalty_insufficient_balance" ? "ticket.insufficient_balance" : "ticket.invalid_amount");
     return buildCommandRuntimeResponse(input, {
       ok: false,
       active: !!(centralCommandDefinition && centralCommandDefinition.enabled),
       commandsActive: !!(centralCommandDefinition && centralCommandDefinition.enabled),
       action: "giveaway_ticket",
       messageKey: key,
+      context: {
+        required: result.required || result.costDue || 0,
+        balance: result.balance || 0,
+        missing: result.missing || 0
+      },
       error: result.error || "entry_create_failed",
       data: { ...result, commandDefinition, centralCommandDefinition }
     });
@@ -4638,7 +4967,7 @@ function handleTicketCommandRuntime(input = {}) {
     commandsActive: !!(centralCommandDefinition && centralCommandDefinition.enabled),
     action: "giveaway_ticket",
     messageKey: "ticket.success",
-    context: { tickets: amount.value, giveawayTitle: giveaway.title || "Giveaway" },
+    context: { tickets: amount.value, giveawayTitle: giveaway.title || "Giveaway", cost: result.entry ? result.entry.costBooked || 0 : 0 },
     data: { ...result, commandDefinition, centralCommandDefinition }
   });
 }
