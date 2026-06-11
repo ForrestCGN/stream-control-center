@@ -23,3 +23,8 @@ Gamble-Dashboard soll nicht nur lesen, sondern sicher schreiben können:
 ## Nächster Schritt
 
 Nach erfolgreichem Test: STEP229 / LWG-7.0 Dashboard UI Plan oder einfache Gamble-Dashboard-Seite.
+
+
+## STEP228a / LWG-6.9a Testfix
+
+PowerShell-Testfix: HTTP 403 bei Viewer-Write-Denial wird jetzt als erwartete Ablehnung akzeptiert. Keine Runtime-Aenderung.

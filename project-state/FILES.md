@@ -16,3 +16,8 @@ Docs:
 - `README_STEP228_LWG6_9.md`
 - `docs/current/CURRENT_CHAT_HANDOFF_STEP228_LWG6_9.md`
 - `project-state/*`
+
+
+## STEP228a / LWG-6.9a Testfix
+
+PowerShell-Testfix: HTTP 403 bei Viewer-Write-Denial wird jetzt als erwartete Ablehnung akzeptiert. Keine Runtime-Aenderung.
