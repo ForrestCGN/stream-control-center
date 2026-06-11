@@ -36,3 +36,8 @@ Zusätzlich gibt es `SafetyDisable_STEP220_LWG6_1_gamble_ForrestCGN.ps1`.
 
 ## STEP220a / LWG-6.1a
 Apply-Script Parserfehler korrigiert. Keine Runtime-Logik geaendert.
+
+
+## STEP220C / LWG-6.1C
+
+PowerShell-5 Parserfix fuer Gamble-Test/SafetyDisable: `??` entfernt, keine Runtime-Logikaenderung, vollstaendige Dateien im Paket.

@@ -1,10 +1,3 @@
-# Modules – STEP220 / LWG-6.1
+# Module-Doku — STEP221
 
-Aktualisiert für den kontrollierten Gamble-Runtime-Test.
-
-Relevante Module:
-
-- `commands`: zentrale Command-Ausführung + Chat-Ausgabe über `twitch_presence`.
-- `loyalty`: Punkte, verfügbare Balance, Admin-Points.
-- `loyalty_games`: Wheel + Gamble, jetzt mit sicherer Settings-Runtime-Route.
-- `twitch_presence`: vorhandener Bot-Chat-Sender.
+STEP221 dokumentiert die Live-Freigabe von Node-`!gamble` im Loyalty-Games-Modul.

@@ -1,16 +1,9 @@
-# CURRENT_STATUS – STEP220 / LWG-6.1
+# CURRENT_STATUS — STEP221
 
-Aktueller bestätigter Stand vor STEP220:
+Loyalty-Basis live:
 
-- `!punkte` / `!points` live aktiv.
-- `!givepoints` live aktiv.
-- `!setpoint` live aktiv.
-- Command-Chat-Ausgabe über `twitch_presence` bestätigt.
-- Admin-Points Rechteprüfung bestätigt.
-- `!gamble` weiterhin nicht dauerhaft freigegeben.
+- `!punkte` / `!points`
+- `!givepoints`
+- `!setpoint`
 
-STEP220 ergänzt die technische Grundlage für einen kontrollierten Gamble-Test über `loyalty_games` Settings-Routen.
-
-
-## STEP220a / LWG-6.1a
-Apply-Script Parserfehler korrigiert. Keine Runtime-Logik geaendert.
+STEP221 schaltet zusätzlich `!gamble` im Node-System live. StreamElements-Gamble muss deaktiviert bleiben.

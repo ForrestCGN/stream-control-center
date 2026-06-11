@@ -1,10 +1,10 @@
-# Commands – STEP220 / LWG-6.1
+# Commands — STEP221
 
-Die Command-Bridge aus STEP214 bleibt Grundlage:
+Live aktiv:
 
-- Modul-Command ausführen
-- `result.message` auswerten
-- zentrale Chat-Ausgabe über `twitch_presence.sendChatMessage(...)`
-- Ergebnis als `chatReply` in `command_execution_log`
+- `!punkte` / `!points`
+- `!givepoints`
+- `!setpoint`
+- `!gamble`
 
-Für STEP220 wird `!gamble` nur temporär durch das Testscript aktiviert und anschließend wiederhergestellt. Eine dauerhafte Live-Freigabe erfolgt erst in einem späteren STEP.
+`!gamble` nutzt `targetUrl=/api/loyalty/games/runtime/chat-command`, `responseMode=module` und `sendResultToChat=true`.

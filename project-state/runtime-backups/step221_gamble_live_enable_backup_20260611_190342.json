@@ -1,0 +1,49 @@
+﻿{
+    "step":  "STEP221_LWG6_2_GAMBLE_LIVE_ENABLE",
+    "createdAt":  "2026-06-11T19:03:42.2795538+02:00",
+    "baseUrl":  "http://127.0.0.1:8080",
+    "settings":  {
+                     "games.gamble.maxPercent":  100,
+                     "games.gamble.minPercent":  1,
+                     "games.gamble.allowPercent":  true,
+                     "games.gamble.globalCooldownMs":  0,
+                     "games.gamble.payoutMultiplier":  2,
+                     "games.gamble.userCooldownMs":  60000,
+                     "games.gamble.allowAll":  false,
+                     "games.gamble.liveOnly":  false,
+                     "games.gamble.minBet":  1,
+                     "games.gamble.winChancePercent":  47,
+                     "games.gamble.maxBet":  1000,
+                     "games.gamble.enabled":  false
+                 },
+    "command":  {
+                    "id":  1999,
+                    "trigger":  "gamble",
+                    "aliases":  [
+                                    "[object",
+                                    "object]"
+                                ],
+                    "moduleKey":  "loyalty_games",
+                    "actionKey":  "chat_command_runtime",
+                    "targetMethod":  "POST",
+                    "targetUrl":  "/api/loyalty/games/runtime/chat-command",
+                    "enabled":  false,
+                    "permissionLevel":  "everyone",
+                    "cooldownGlobalMs":  1000,
+                    "cooldownUserMs":  0,
+                    "liveOnly":  false,
+                    "responseMode":  "module",
+                    "config":  {
+                                   "resultChatTarget":  "twitch_presence",
+                                   "sendResultToChat":  true,
+                                   "actionType":  "module_command",
+                                   "seededBy":  "STEP_LWG_5_1",
+                                   "moduleCommand":  "gamble",
+                                   "resultChatStep":  "STEP220_LWG6_1",
+                                   "rawInputMode":  true,
+                                   "activationState":  "controlled_test_restored_step220"
+                               },
+                    "createdAt":  "2026-06-11T15:23:29.137Z",
+                    "updatedAt":  "2026-06-11T16:56:11.469Z"
+                }
+}

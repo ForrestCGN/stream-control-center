@@ -1,9 +1,7 @@
-# TODO – STEP220 / LWG-6.1
+# TODO — STEP221
 
-- [ ] STEP220 entpacken.
-- [ ] Runtime-Datei anwenden.
-- [ ] Deploy/Backend-Neustart.
-- [ ] Kontrolltest ohne Execute.
-- [ ] Kontrolltest mit Execute.
-- [ ] StreamElements-Konflikte beobachten.
-- [ ] Nach Bestätigung Doku-Abschluss STEP221/222 vorbereiten.
+- [ ] StreamElements `!gamble`/`!roulette` deaktiviert bestätigen.
+- [ ] STEP221 Activate ausführen.
+- [ ] STEP221 Test ausführen.
+- [ ] Bei Problemen SafetyDisable ausführen.
+- [ ] Nach Erfolg STEP222 Live-Doku erstellen.
