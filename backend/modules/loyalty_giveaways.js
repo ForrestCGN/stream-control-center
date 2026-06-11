@@ -18,7 +18,7 @@ const database = require("../core/database");
 
 const MODULE_NAME = "loyalty_giveaways";
 const MODULE_VERSION = "0.1.0";
-const MODULE_BUILD = "STEP_LWG_4O_3b";
+const MODULE_BUILD = "STEP_LWG_4O_3c";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -555,6 +555,8 @@ function normalizeChatBusEnvelope(envelope = {}) {
   const chatter = payload.chatter && typeof payload.chatter === "object" ? payload.chatter : {};
   const eventUser = eventPayload.user && typeof eventPayload.user === "object" ? eventPayload.user : {};
   const dataUser = payload.data && payload.data.user && typeof payload.data.user === "object" ? payload.data.user : {};
+  const twitch = payload.twitch && typeof payload.twitch === "object" ? payload.twitch : {};
+  const twitchUser = twitch.user && typeof twitch.user === "object" ? twitch.user : {};
 
   const aliasRoot = {
     envelope: root,
@@ -564,13 +566,34 @@ function normalizeChatBusEnvelope(envelope = {}) {
     user,
     chatter,
     eventUser,
-    dataUser
+    dataUser,
+    twitch,
+    twitchUser
   };
 
   const loginResult = firstNonEmptyValue(aliasRoot, [
     "payload.userLogin",
     "payload.login",
     "payload.user_login",
+    "payload.twitch.user.login",
+    "payload.twitch.user.userLogin",
+    "payload.twitch.user.user_login",
+    "payload.twitch.login",
+    "payload.twitch.userLogin",
+    "payload.twitch.user_login",
+    "payload.twitch.chatter_user_login",
+    "payload.twitch.chatterUserLogin",
+    "twitch.user.login",
+    "twitch.user.userLogin",
+    "twitch.user.user_login",
+    "twitch.login",
+    "twitch.userLogin",
+    "twitch.user_login",
+    "twitch.chatter_user_login",
+    "twitch.chatterUserLogin",
+    "twitchUser.login",
+    "twitchUser.userLogin",
+    "twitchUser.user_login",
     "payload.chatterUserLogin",
     "payload.chatter_user_login",
     "payload.chatter_login",
@@ -620,6 +643,27 @@ function normalizeChatBusEnvelope(envelope = {}) {
     "payload.userDisplayName",
     "payload.displayName",
     "payload.display_name",
+    "payload.twitch.user.displayName",
+    "payload.twitch.user.display_name",
+    "payload.twitch.user.name",
+    "payload.twitch.displayName",
+    "payload.twitch.display_name",
+    "payload.twitch.userDisplayName",
+    "payload.twitch.user_display_name",
+    "payload.twitch.chatter_user_name",
+    "payload.twitch.chatterUserName",
+    "twitch.user.displayName",
+    "twitch.user.display_name",
+    "twitch.user.name",
+    "twitch.displayName",
+    "twitch.display_name",
+    "twitch.userDisplayName",
+    "twitch.user_display_name",
+    "twitch.chatter_user_name",
+    "twitch.chatterUserName",
+    "twitchUser.displayName",
+    "twitchUser.display_name",
+    "twitchUser.name",
     "payload.user_display_name",
     "payload.chatterUserName",
     "payload.chatterUserDisplayName",
@@ -660,13 +704,25 @@ function normalizeChatBusEnvelope(envelope = {}) {
   const userDisplayName = String(displayResult.value || userLogin || "").trim();
   const badges = payload.badges && typeof payload.badges === "object"
     ? payload.badges
-    : (user.badges && typeof user.badges === "object"
-      ? user.badges
-      : (chatter.badges && typeof chatter.badges === "object" ? chatter.badges : {}));
+    : (twitch.badges && typeof twitch.badges === "object"
+      ? twitch.badges
+      : (twitchUser.badges && typeof twitchUser.badges === "object"
+        ? twitchUser.badges
+        : (user.badges && typeof user.badges === "object"
+          ? user.badges
+          : (chatter.badges && typeof chatter.badges === "object" ? chatter.badges : {}))));
   const messageResult = firstNonEmptyValue(aliasRoot, [
     "payload.message",
     "payload.rawMessage",
     "payload.text",
+    "payload.twitch.message",
+    "payload.twitch.text",
+    "payload.twitch.rawMessage",
+    "payload.twitch.body",
+    "twitch.message",
+    "twitch.text",
+    "twitch.rawMessage",
+    "twitch.body",
     "payload.body",
     "payload.chatMessage",
     "payload.data.message",
@@ -681,6 +737,20 @@ function normalizeChatBusEnvelope(envelope = {}) {
     "payload.userId",
     "payload.user_id",
     "payload.chatterUserId",
+    "payload.twitch.user.userId",
+    "payload.twitch.user.user_id",
+    "payload.twitch.userId",
+    "payload.twitch.user_id",
+    "payload.twitch.chatter_user_id",
+    "payload.twitch.chatterUserId",
+    "twitch.user.userId",
+    "twitch.user.user_id",
+    "twitch.userId",
+    "twitch.user_id",
+    "twitch.chatter_user_id",
+    "twitch.chatterUserId",
+    "twitchUser.userId",
+    "twitchUser.user_id",
     "payload.chatter_user_id",
     "payload.user.userId",
     "payload.user.user_id",
@@ -701,14 +771,14 @@ function normalizeChatBusEnvelope(envelope = {}) {
 
   return {
     eventId: root.id || (root.event && root.event.id) || "",
-    channel: payload.channel || root.channel || eventPayload.channel || eventData.channel || "",
-    source: payload.source || (root.source && root.source.module) || "",
+    channel: payload.channel || twitch.channel || root.channel || eventPayload.channel || eventData.channel || "",
+    source: payload.source || twitch.source || (root.source && root.source.module) || "",
     userLogin,
     userDisplayName,
     userId: String(userIdResult.value || "").trim(),
     message: String(messageResult.value || ""),
     badges,
-    receivedAt: payload.receivedAt || payload.received_at || root.timestamp || eventPayload.receivedAt || eventData.receivedAt || core.nowIso(),
+    receivedAt: payload.receivedAt || payload.received_at || twitch.receivedAt || twitch.received_at || root.timestamp || eventPayload.receivedAt || eventData.receivedAt || core.nowIso(),
     userLoginSource: loginResult.source,
     userDisplayNameSource: displayResult.source
   };
