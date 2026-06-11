@@ -4622,7 +4622,7 @@ function hardDeleteGiveaway(giveawayUid, input = {}) {
   const actor = String(input.actor || "dashboard").trim() || "dashboard";
   const reason = String(input.reason || "dashboard_hard_delete").trim() || "dashboard_hard_delete";
 
-  database.transaction(() => {
+  const deleteTransaction = database.transaction(() => {
     database.run("DELETE FROM loyalty_giveaway_bound_wheel_fields WHERE giveaway_uid = :giveawayUid", { giveawayUid });
     database.run("DELETE FROM loyalty_giveaway_bound_wheels WHERE giveaway_uid = :giveawayUid", { giveawayUid });
     database.run("DELETE FROM loyalty_giveaway_wheel_permissions WHERE giveaway_uid = :giveawayUid", { giveawayUid });
@@ -4633,6 +4633,7 @@ function hardDeleteGiveaway(giveawayUid, input = {}) {
     database.run("DELETE FROM loyalty_giveaway_events WHERE giveaway_uid = :giveawayUid", { giveawayUid });
     database.run("DELETE FROM loyalty_giveaways WHERE giveaway_uid = :giveawayUid", { giveawayUid });
   });
+  deleteTransaction();
 
   emitEvent("loyalty.giveaway.hard_deleted", {
     giveawayUid,
