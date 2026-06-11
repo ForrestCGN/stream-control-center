@@ -1,11 +1,5 @@
-# Commands – STEP228 / LWG-6.9
+# commands – STEP229 / LWG-7.0
 
-Der zentrale Command `!gamble` wird nicht durch neue Logik ersetzt. STEP228 erlaubt dem Dashboard lediglich, geschützte Command-Felder kontrolliert zu setzen:
+`commands.js 0.2.3 / LWG_6_5_GAMBLE_RESULT_LOG_CLEANUP` bleibt unveraendert.
 
-- `enabled`
-- `cooldownUserMs`
-- `cooldownGlobalMs`
-- `sendResultToChat`
-- `activationState`
-
-Alle Änderungen laufen über `POST /api/loyalty/games/gamble/dashboard-config` und werden auditiert.
+Die Gamble-UI zeigt und schreibt den Command-Snapshot ueber die Loyalty-Games-Dashboard-API. Direkt am Command-System wird durch STEP229 nichts geaendert.

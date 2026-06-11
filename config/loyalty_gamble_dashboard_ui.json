@@ -1,0 +1,37 @@
+{
+  "_meta": {
+    "step": "STEP229_LWG7_0",
+    "description": "Vorbereitende UI-Konfiguration fuer das Gamble Dashboard. Keine Secrets, keine Runtime-Mutation.",
+    "targetPage": "/dashboard/loyalty-gamble.html"
+  },
+  "module": "loyalty_games",
+  "feature": "gamble",
+  "api": {
+    "read": "GET /api/loyalty/games/gamble/dashboard-config",
+    "write": "POST /api/loyalty/games/gamble/dashboard-config",
+    "audit": "GET /api/loyalty/games/gamble/dashboard-audit?limit=10"
+  },
+  "ui": {
+    "page": "htdocs/dashboard/loyalty-gamble.html",
+    "script": "htdocs/dashboard/modules/loyalty-gamble.js",
+    "style": "htdocs/dashboard/modules/loyalty-gamble.css",
+    "standalone": true,
+    "laterIntegration": "Kann spaeter in den zentralen Dashboard-Router/Navigation eingebunden werden."
+  },
+  "safety": {
+    "dryRunButton": true,
+    "confirmWriteCheckbox": true,
+    "actorRoleRequired": [
+      "streamer",
+      "broadcaster",
+      "owner",
+      "admin"
+    ],
+    "auditRequired": true,
+    "notes": [
+      "STEP229 fuegt nur statische UI-Dateien hinzu.",
+      "Die Write-Sicherheit liegt weiterhin in der STEP228 API.",
+      "Keine Tokens oder Secrets im Frontend speichern."
+    ]
+  }
+}

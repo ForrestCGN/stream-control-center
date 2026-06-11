@@ -1,13 +1,11 @@
-# CURRENT STATUS – STEP228 / LWG-6.9
+# CURRENT_STATUS – STEP229 / LWG-7.0
 
-Gamble Dashboard Write API vorbereitet:
+Aktueller Status:
 
-- geschützte POST-Route
-- Audit-Tabelle
-- Testscript für Dryrun und Restore-Test
-- keine DB-Datei im Paket
+- Loyalty-Basis live
+- Admin-Punktebefehle live
+- Gamble live
+- Gamble Dashboard API read/write bestaetigt
+- erste statische Gamble-Dashboard-UI vorbereitet
 
-
-## STEP228a / LWG-6.9a Testfix
-
-PowerShell-Testfix: HTTP 403 bei Viewer-Write-Denial wird jetzt als erwartete Ablehnung akzeptiert. Keine Runtime-Aenderung.
+Keine Runtime-Codeaenderung in STEP229.

@@ -1,23 +1,20 @@
-# FILES – STEP228 / LWG-6.9
+# FILES – STEP229 / LWG-7.0
 
-Runtime:
-
-- `backend/modules/loyalty_games.js`
-
-Scripts:
-
-- `Apply_STEP228_LWG6_9_gamble_dashboard_write_api_ForrestCGN.ps1`
-- `Rollback_STEP228_LWG6_9_gamble_dashboard_write_api_ForrestCGN.ps1`
-- `SafetyDisable_STEP228_LWG6_9_gamble_ForrestCGN.ps1`
-- `Test_STEP228_LWG6_9_gamble_dashboard_write_api_ForrestCGN.ps1`
-
-Docs:
-
-- `README_STEP228_LWG6_9.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_STEP228_LWG6_9.md`
-- `project-state/*`
-
-
-## STEP228a / LWG-6.9a Testfix
-
-PowerShell-Testfix: HTTP 403 bei Viewer-Write-Denial wird jetzt als erwartete Ablehnung akzeptiert. Keine Runtime-Aenderung.
+```text
+htdocs/dashboard/loyalty-gamble.html
+htdocs/dashboard/modules/loyalty-gamble.js
+htdocs/dashboard/modules/loyalty-gamble.css
+config/loyalty_gamble_dashboard_ui.json
+Test_STEP229_LWG7_0_gamble_dashboard_ui_readiness_ForrestCGN.ps1
+README_STEP229_LWG7_0.md
+docs/modules/README.md
+docs/modules/loyalty_games.md
+docs/modules/commands.md
+docs/modules/loyalty.md
+docs/current/CURRENT_CHAT_HANDOFF_STEP229_LWG7_0.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+```

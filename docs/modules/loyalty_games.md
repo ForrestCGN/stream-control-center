@@ -1,38 +1,26 @@
-# Loyalty Games – STEP228 / LWG-6.9
+# loyalty_games – STEP229 / LWG-7.0
 
-Aktueller Stand:
+## Aktueller Stand
 
-- `loyalty_games.js` Version `0.2.7`
-- Build `STEP_LWG_6_9_GAMBLE_DASHBOARD_WRITE_API`
-- Gamble Dashboard Read/Write API vorhanden
-- Schreibende Aktionen sind rollen- und confirm-geschützt
-- Audit-Tabelle `loyalty_games_dashboard_audit`
+- Runtime: `loyalty_games.js 0.2.7`
+- Build: `STEP_LWG_6_9_GAMBLE_DASHBOARD_WRITE_API`
+- `!gamble` ist live aktiv.
+- Gamble-Konfiguration ist per API lesbar und schreibbar.
+- Echte Writes brauchen Rollenfreigabe und `confirmWrite=true`.
+- Audit erfolgt in `loyalty_games_dashboard_audit`.
 
-## Neue Routes
+## STEP229
+
+Neu hinzugekommen sind statische UI-Dateien:
+
+- `htdocs/dashboard/loyalty-gamble.html`
+- `htdocs/dashboard/modules/loyalty-gamble.js`
+- `htdocs/dashboard/modules/loyalty-gamble.css`
+
+Die UI nutzt:
 
 - `GET /api/loyalty/games/gamble/dashboard-config`
 - `POST /api/loyalty/games/gamble/dashboard-config`
-- `GET /api/loyalty/games/gamble/dashboard-audit`
+- `GET /api/loyalty/games/gamble/dashboard-audit?limit=10`
 
-## Write Payload Beispiel
-
-```json
-{
-  "actorLogin": "forrestcgn",
-  "actorDisplayName": "ForrestCGN",
-  "actorRole": "streamer",
-  "confirmWrite": true,
-  "reason": "Dashboard Änderung",
-  "engine": {
-    "enabled": true,
-    "winChancePercent": 47,
-    "userCooldownMs": 60000
-  },
-  "command": {
-    "enabled": true,
-    "cooldownUserMs": 60000,
-    "sendResultToChat": true,
-    "activationState": "dashboard"
-  }
-}
-```
+Keine bestehende Funktionalitaet wurde entfernt.

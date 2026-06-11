@@ -1,3 +1,5 @@
-# Loyalty – STEP228 / LWG-6.9
+# loyalty – STEP229 / LWG-7.0
 
-Keine Änderung an Punkte-/Balance-/Transaktionslogik. Der STEP betrifft nur Gamble-Dashboard-Konfiguration und Audit.
+Das Punkte-/Balance-System bleibt unveraendert.
+
+Die Gamble-UI fuehrt im Test nur einen Dryrun aus. Es werden keine Punkte geaendert.

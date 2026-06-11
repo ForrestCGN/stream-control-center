@@ -1,13 +1,8 @@
 # CHANGELOG
 
-## STEP228 / LWG-6.9
+## STEP229 / LWG-7.0
 
-- `loyalty_games.js` 0.2.7
-- Gamble Dashboard Write API ergänzt
-- Audit-Tabelle `loyalty_games_dashboard_audit`
-- Rollenprüfung und `confirmWrite` umgesetzt
-
-
-## STEP228a / LWG-6.9a Testfix
-
-PowerShell-Testfix: HTTP 403 bei Viewer-Write-Denial wird jetzt als erwartete Ablehnung akzeptiert. Keine Runtime-Aenderung.
+- Gamble Dashboard UI als statische Seite vorbereitet.
+- UI nutzt vorhandene Read-/Write-/Audit-API.
+- Dryrun, confirmWrite und Audit-Anzeige vorbereitet.
+- Keine Backend-Runtime-Aenderung.

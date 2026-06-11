@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CGN Loyalty – Gamble Dashboard</title>
+  <link rel="stylesheet" href="/dashboard/modules/loyalty-gamble.css">
+</head>
+<body>
+  <main class="cgn-page" data-module="loyalty-gamble">
+    <header class="cgn-hero">
+      <div>
+        <p class="eyebrow">CGN Loyalty</p>
+        <h1>Gamble Control</h1>
+        <p class="subtitle">Dashboard-Vorbereitung fuer !gamble – Status, Einstellungen, Dryrun und auditierter Write.</p>
+      </div>
+      <div class="status-card" id="connectionStatus">lade...</div>
+    </header>
+
+    <section class="grid two">
+      <article class="panel">
+        <div class="panel-head">
+          <h2>Live-Status</h2>
+          <button type="button" class="ghost" id="reloadBtn">Neu laden</button>
+        </div>
+        <div class="status-grid" id="statusGrid"></div>
+      </article>
+
+      <article class="panel">
+        <h2>Schreibschutz</h2>
+        <p class="muted">Diese Seite nutzt die STEP228 Dashboard Write API. Echte Writes brauchen eine Streamer-/Owner-Rolle und die explizite Bestaetigung.</p>
+        <label class="inline-field">
+          <span>Actor Login</span>
+          <input id="actorLogin" type="text" value="forrestcgn" autocomplete="off">
+        </label>
+        <label class="inline-field">
+          <span>Actor Rolle</span>
+          <select id="actorRole">
+            <option value="streamer" selected>streamer</option>
+            <option value="owner">owner</option>
+            <option value="admin">admin</option>
+            <option value="viewer">viewer (soll geblockt werden)</option>
+          </select>
+        </label>
+      </article>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Gamble Einstellungen</h2>
+        <span class="pill" id="dirtyState">unveraendert</span>
+      </div>
+
+      <form id="gambleForm" class="form-grid">
+        <label class="switch-row">
+          <span>Gamble Engine aktiv</span>
+          <input id="enabled" type="checkbox">
+        </label>
+        <label class="switch-row">
+          <span>!gamble Command aktiv</span>
+          <input id="commandEnabled" type="checkbox">
+        </label>
+        <label class="field">
+          <span>Gewinnchance (%)</span>
+          <input id="winChancePercent" type="number" min="1" max="99" step="1">
+        </label>
+        <label class="field">
+          <span>Auszahlung Multiplikator</span>
+          <input id="payoutMultiplier" type="number" min="1" step="0.1">
+        </label>
+        <label class="field">
+          <span>Mindesteinsatz</span>
+          <input id="minBet" type="number" min="1" step="1">
+        </label>
+        <label class="field">
+          <span>Max-Einsatz (0 = kein Limit)</span>
+          <input id="maxBet" type="number" min="0" step="1">
+        </label>
+        <label class="field">
+          <span>User-Cooldown Engine (ms)</span>
+          <input id="userCooldownMs" type="number" min="0" step="1000">
+        </label>
+        <label class="field">
+          <span>Global-Cooldown Engine (ms)</span>
+          <input id="globalCooldownMs" type="number" min="0" step="1000">
+        </label>
+        <label class="field">
+          <span>Command User-Cooldown (ms)</span>
+          <input id="commandCooldownUserMs" type="number" min="0" step="1000">
+        </label>
+        <label class="switch-row">
+          <span>Chat-Antwort senden</span>
+          <input id="sendResultToChat" type="checkbox">
+        </label>
+        <label class="switch-row">
+          <span>Prozent-Einsaetze erlauben</span>
+          <input id="allowPercentBets" type="checkbox">
+        </label>
+        <label class="switch-row">
+          <span>Keyword-Einsaetze erlauben</span>
+          <input id="allowKeywordBets" type="checkbox">
+        </label>
+      </form>
+
+      <div class="actions">
+        <button type="button" id="dryRunBtn">Dryrun pruefen</button>
+        <label class="confirm">
+          <input id="confirmWrite" type="checkbox">
+          <span>Write bestaetigen</span>
+        </label>
+        <button type="button" class="danger" id="saveBtn">Speichern</button>
+      </div>
+    </section>
+
+    <section class="grid two">
+      <article class="panel">
+        <div class="panel-head">
+          <h2>Letzte API-Antwort</h2>
+          <button type="button" class="ghost" id="clearLogBtn">Leeren</button>
+        </div>
+        <pre id="resultBox" class="result-box">Noch keine Aktion.</pre>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <h2>Audit</h2>
+          <button type="button" class="ghost" id="auditBtn">Audit laden</button>
+        </div>
+        <div id="auditList" class="audit-list muted">Noch nicht geladen.</div>
+      </article>
+    </section>
+  </main>
+
+  <script src="/dashboard/modules/loyalty-gamble.js"></script>
+</body>
+</html>

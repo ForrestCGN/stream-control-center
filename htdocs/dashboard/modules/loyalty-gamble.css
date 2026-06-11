@@ -1,0 +1,90 @@
+:root {
+  --bg: #060912;
+  --panel: rgba(15, 23, 42, 0.86);
+  --panel-2: rgba(17, 24, 39, 0.96);
+  --text: #eef4ff;
+  --muted: #9fb0c8;
+  --line: rgba(168, 85, 247, 0.38);
+  --line-strong: rgba(34, 211, 238, 0.58);
+  --accent: #a855f7;
+  --accent-2: #22d3ee;
+  --danger: #f43f5e;
+  --ok: #34d399;
+  --warn: #fbbf24;
+  font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 15% 10%, rgba(168,85,247,.22), transparent 32rem),
+    radial-gradient(circle at 86% 6%, rgba(34,211,238,.16), transparent 28rem),
+    linear-gradient(160deg, #050712 0%, #0b1020 54%, #090816 100%);
+  min-height: 100vh;
+}
+
+.cgn-page { width: min(1180px, calc(100vw - 32px)); margin: 0 auto; padding: 28px 0 46px; }
+.cgn-hero, .panel {
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, var(--panel), rgba(7, 12, 26, .84));
+  border-radius: 22px;
+  box-shadow: 0 0 30px rgba(168,85,247,.12), inset 0 0 24px rgba(34,211,238,.04);
+}
+.cgn-hero { padding: 26px; display: flex; justify-content: space-between; gap: 18px; align-items: center; margin-bottom: 18px; }
+.eyebrow { color: var(--accent-2); text-transform: uppercase; letter-spacing: .18em; font-size: 12px; margin: 0 0 8px; }
+h1, h2 { margin: 0; }
+h1 { font-size: clamp(28px, 4vw, 46px); text-shadow: 0 0 16px rgba(168,85,247,.42); }
+h2 { font-size: 18px; }
+.subtitle, .muted { color: var(--muted); }
+.subtitle { margin: 10px 0 0; }
+.status-card { min-width: 210px; padding: 14px 16px; border-radius: 16px; background: rgba(2, 6, 23, .54); border: 1px solid var(--line-strong); color: var(--accent-2); text-align: right; }
+.grid { display: grid; gap: 18px; margin-bottom: 18px; }
+.grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.panel { padding: 18px; }
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+.status-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.status-item { padding: 12px; border-radius: 14px; background: rgba(2, 6, 23, .48); border: 1px solid rgba(148,163,184,.14); }
+.status-item b { display:block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.status-item span { color: var(--text); }
+.form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.field, .inline-field, .switch-row { display: grid; gap: 8px; color: var(--muted); font-size: 13px; }
+.inline-field { margin-top: 12px; }
+input, select {
+  width: 100%;
+  color: var(--text);
+  background: rgba(2, 6, 23, .72);
+  border: 1px solid rgba(148,163,184,.22);
+  border-radius: 12px;
+  padding: 10px 12px;
+  outline: none;
+}
+input:focus, select:focus { border-color: var(--accent-2); box-shadow: 0 0 0 3px rgba(34,211,238,.12); }
+.switch-row { align-content: start; background: rgba(2, 6, 23, .34); border: 1px solid rgba(148,163,184,.14); border-radius: 14px; padding: 12px; }
+.switch-row input, .confirm input { width: auto; accent-color: var(--accent); }
+.actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 18px; }
+button {
+  cursor: pointer;
+  color: white;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  border: none;
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-weight: 700;
+}
+button.ghost { background: rgba(2, 6, 23, .44); border: 1px solid rgba(148,163,184,.2); }
+button.danger { background: linear-gradient(90deg, #7c2d12, var(--danger)); }
+.confirm { display: inline-flex; gap: 8px; align-items: center; color: var(--muted); }
+.pill { border: 1px solid var(--line-strong); color: var(--accent-2); border-radius: 999px; padding: 6px 10px; font-size: 12px; }
+.result-box { min-height: 240px; white-space: pre-wrap; overflow: auto; color: #dbeafe; background: rgba(2, 6, 23, .72); border: 1px solid rgba(148,163,184,.16); border-radius: 14px; padding: 12px; }
+.audit-list { display: grid; gap: 8px; }
+.audit-row { border: 1px solid rgba(148,163,184,.14); background: rgba(2, 6, 23, .42); border-radius: 12px; padding: 10px; color: var(--muted); }
+.audit-row strong { color: var(--text); }
+
+@media (max-width: 860px) {
+  .cgn-hero, .grid.two { grid-template-columns: 1fr; display: grid; }
+  .status-card { text-align: left; }
+  .form-grid { grid-template-columns: 1fr; }
+  .actions { align-items: stretch; flex-direction: column; }
+}
