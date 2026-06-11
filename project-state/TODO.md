@@ -28,3 +28,13 @@ Stand: 2026-06-11
 - [ ] Keine großen JSON-Dumps in Tests ausgeben; nur relevante Felder.
 - [ ] Keine produktive SQLite-Datei ersetzen oder überschreiben.
 - [ ] Keine neuen parallelen Helper/Bus-Systeme bauen.
+
+
+## STEP212a / LWG-5.4a – Points Runtime Testscript Parserfix
+
+```text
+Stand: 2026-06-11
+Typ: Testscript-/Doku-Hotfix
+Runtime: unverändert
+Grund: PowerShell-Parserfehler bei String mit $Enabled: behoben durch $($Enabled):
+```

@@ -210,3 +210,13 @@ Wichtig: Das Script aktiviert `!punkte` nur temporär und stellt den vorherigen 
 ```text
 STEP213 / LWG-5.5 – Nach bestätigtem Points-Test: !punkte optional produktiv freigeben oder Gamble-Runtime isoliert testen
 ```
+
+
+## STEP212a / LWG-5.4a – Points Runtime Testscript Parserfix
+
+```text
+Stand: 2026-06-11
+Typ: Testscript-/Doku-Hotfix
+Runtime: unverändert
+Grund: PowerShell-Parserfehler bei String mit $Enabled: behoben durch $($Enabled):
+```

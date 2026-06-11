@@ -144,3 +144,13 @@ EventBus/Communication Bus und Heartbeats berücksichtigen.
 Bei Tests nur notwendige Felder ausgeben, keine riesigen Dumps.
 Nach jedem Code-/Doku-STEP stepdone.cmd ausführen.
 ```
+
+
+## STEP212a / LWG-5.4a – Points Runtime Testscript Parserfix
+
+```text
+Stand: 2026-06-11
+Typ: Testscript-/Doku-Hotfix
+Runtime: unverändert
+Grund: PowerShell-Parserfehler bei String mit $Enabled: behoben durch $($Enabled):
+```

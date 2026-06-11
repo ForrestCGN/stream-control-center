@@ -62,3 +62,13 @@ Test_STEP212_LWG5_4_points_command_runtime_ForrestCGN.ps1
 ```
 
 Ziel: kontrollierter Runtime-Test von `!punkte / !points` ohne dauerhafte Aktivierung.
+
+
+## STEP212a / LWG-5.4a – Points Runtime Testscript Parserfix
+
+```text
+Stand: 2026-06-11
+Typ: Testscript-/Doku-Hotfix
+Runtime: unverändert
+Grund: PowerShell-Parserfehler bei String mit $Enabled: behoben durch $($Enabled):
+```

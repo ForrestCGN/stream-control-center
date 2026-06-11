@@ -57,3 +57,13 @@ Statusfelder für Dashboard/Testausgaben bereinigt.
 Zentrale verfügbare Kekskrümel, Reservierungen, sichere Spend/Award-Funktionen und Gamble-Grundlage vorbereitet.
 Commands weiterhin deaktiviert.
 ```
+
+
+## STEP212a / LWG-5.4a – Points Runtime Testscript Parserfix
+
+```text
+Stand: 2026-06-11
+Typ: Testscript-/Doku-Hotfix
+Runtime: unverändert
+Grund: PowerShell-Parserfehler bei String mit $Enabled: behoben durch $($Enabled):
+```

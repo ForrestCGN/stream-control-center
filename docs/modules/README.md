@@ -54,3 +54,13 @@ STEP212 / LWG-5.4 – Points Command Runtime kontrolliert testen/freigeben
 ```
 
 Zuerst weiterhin nur kleine, gezielte PowerShell-Ausgaben nutzen.
+
+
+## STEP212a / LWG-5.4a – Points Runtime Testscript Parserfix
+
+```text
+Stand: 2026-06-11
+Typ: Testscript-/Doku-Hotfix
+Runtime: unverändert
+Grund: PowerShell-Parserfehler bei String mit $Enabled: behoben durch $($Enabled):
+```

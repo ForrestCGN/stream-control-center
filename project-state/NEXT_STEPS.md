@@ -46,3 +46,13 @@ Empfohlene Reihenfolge:
 3. Danach !gamble isoliert mit Testuser und kleinen Einsätzen testen.
 4. Roulette bleibt weiterhin nur vorgemerkt.
 ```
+
+
+## STEP212a / LWG-5.4a – Points Runtime Testscript Parserfix
+
+```text
+Stand: 2026-06-11
+Typ: Testscript-/Doku-Hotfix
+Runtime: unverändert
+Grund: PowerShell-Parserfehler bei String mit $Enabled: behoben durch $($Enabled):
+```
