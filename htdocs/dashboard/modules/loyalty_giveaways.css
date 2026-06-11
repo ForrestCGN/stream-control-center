@@ -364,3 +364,89 @@
 }
 .lgw-control-help p { margin: 0; }
 .lgw-control-help strong { color: inherit; }
+
+/* STEP LWG-4P.3c – Teilnehmerliste im Steuerfenster */
+.lgw-control-participant-card {
+  align-content: start;
+}
+.lgw-control-participant-card .lgw-btn {
+  justify-self: start;
+  margin-top: 4px;
+}
+.lgw-participant-panel {
+  margin-top: 14px;
+}
+.lgw-participant-head,
+.lgw-participant-footer {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.lgw-participant-head h4 {
+  margin: 0 0 4px;
+}
+.lgw-participant-head p {
+  margin: 0;
+}
+.lgw-participant-tools {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.4fr) minmax(150px, .8fr) minmax(140px, .7fr);
+  gap: 12px;
+  margin: 14px 0;
+}
+.lgw-participant-tools label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+.lgw-participant-tools input,
+.lgw-participant-tools select {
+  width: 100%;
+  border: 1px solid rgba(142, 238, 255, .18);
+  background: rgba(0,0,0,.18);
+  color: inherit;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font: inherit;
+}
+.lgw-participant-table-wrap {
+  max-height: min(420px, 48vh);
+}
+.lgw-participant-table {
+  min-width: 760px;
+}
+.lgw-participant-footer {
+  margin-top: 12px;
+  align-items: center;
+}
+
+@media (max-width: 900px) {
+  .lgw-participant-tools {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+.lgw-participant-tools-minimal {
+  grid-template-columns: minmax(240px, 1fr) minmax(150px, .45fr) minmax(150px, .45fr);
+}
+
+.lgw-participant-table-minimal {
+  min-width: 420px;
+}
+
+.lgw-participant-table-minimal th:last-child,
+.lgw-participant-table-minimal td:last-child {
+  text-align: right;
+  width: 120px;
+}
+
+@media (max-width: 760px) {
+  .lgw-participant-tools-minimal {
+    grid-template-columns: 1fr;
+  }
+}

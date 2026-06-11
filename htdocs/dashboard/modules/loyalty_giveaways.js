@@ -23,6 +23,11 @@ window.LoyaltyGiveawaysModule = (function(){
     statusFilter: 'all',
     sortBy: 'active',
     sortDir: 'desc',
+    participantListOpen: false,
+    participantSearch: '',
+    participantSortBy: 'tickets',
+    participantSortDir: 'desc',
+    participantLimit: 25,
     modal: null
   };
 
@@ -140,6 +145,40 @@ window.LoyaltyGiveawaysModule = (function(){
 
   function activeEntries(g){
     return rows(g?.entries || []).filter(e => norm(e.status) !== 'cancelled');
+  }
+
+  function entryTicketCount(entry){
+    const n = Number(entry?.ticketCount ?? entry?.tickets ?? entry?.count ?? 0);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+
+  function totalEntryTickets(entries){
+    return entries.reduce((sum, entry) => sum + entryTicketCount(entry), 0);
+  }
+
+  function sortedParticipantEntries(entries){
+    const q = norm(state.participantSearch).trim();
+    let list = [...entries];
+    if (q) {
+      list = list.filter(entry => norm(`${entry.userDisplayName || ''} ${entry.userLogin || ''}`).includes(q));
+    }
+    const factor = state.participantSortDir === 'asc' ? 1 : -1;
+    list.sort((a,b) => {
+      let av;
+      let bv;
+      if (state.participantSortBy === 'name') {
+        av = norm(a.userDisplayName || a.userLogin || '');
+        bv = norm(b.userDisplayName || b.userLogin || '');
+      } else {
+        av = entryTicketCount(a);
+        bv = entryTicketCount(b);
+      }
+      if (av < bv) return -1 * factor;
+      if (av > bv) return 1 * factor;
+      return norm(a.userDisplayName || a.userLogin || '').localeCompare(norm(b.userDisplayName || b.userLogin || ''), 'de');
+    });
+    return list;
   }
 
   function winnerRows(g){
@@ -382,6 +421,13 @@ window.LoyaltyGiveawaysModule = (function(){
   function setError(err){ state.error = err?.message || String(err || 'Unbekannter Fehler'); render(); }
 
   function openModal(type, uid){
+    if (type === 'control' && state.modal?.type !== 'control') {
+      state.participantListOpen = false;
+      state.participantSearch = '';
+      state.participantSortBy = 'tickets';
+      state.participantSortDir = 'desc';
+      state.participantLimit = 25;
+    }
     state.modal = { type, uid: uid || state.selectedUid || '' };
     if (type === 'control') startControlRefresh();
     else stopControlRefresh();
@@ -390,6 +436,9 @@ window.LoyaltyGiveawaysModule = (function(){
 
   function closeModal(){
     state.modal = null;
+    state.participantListOpen = false;
+    state.participantSearch = '';
+    state.participantLimit = 25;
     stopControlRefresh();
     render();
   }
@@ -942,6 +991,60 @@ window.LoyaltyGiveawaysModule = (function(){
     return { s, wheel, entries, winners, pendingClaims, pendingPermissions, usedPermissions, canStart, canClose, canDraw, canFinish, canCancel, drawnCount, targetCount, canReplaceLast };
   }
 
+  function renderParticipantList(g, controlState){
+    const entries = sortedParticipantEntries(controlState.entries || activeEntries(g));
+    const visible = entries.slice(0, Math.max(1, Number(state.participantLimit || 25)));
+    const totalEntries = (controlState.entries || activeEntries(g)).length;
+    const totalTickets = totalEntryTickets(controlState.entries || activeEntries(g));
+    return `
+      <section class="lgw-control-section lgw-participant-panel" data-lgw-participant-panel>
+        <div class="lgw-participant-head">
+          <div>
+            <h4>Teilnehmerliste</h4>
+            <p class="lgw-muted">${fmtNumber(totalEntries)} Teilnehmer / ${fmtNumber(totalTickets)} Tickets. Die Liste ist bewusst nur bei Bedarf sichtbar.</p>
+          </div>
+          <button class="lgw-btn lgw-btn-small lgw-btn-secondary" type="button" data-lgw-toggle-participants="close">Ausblenden</button>
+        </div>
+        <div class="lgw-participant-tools lgw-participant-tools-minimal">
+          <label>Suche
+            <input type="search" value="${esc(state.participantSearch)}" placeholder="Name oder Login..." data-lgw-participant-search autocomplete="off" />
+          </label>
+          <label>Sortieren nach
+            <select data-lgw-participant-sort>
+              ${[
+                ['tickets','Tickets'],
+                ['name','Name']
+              ].map(([value,label]) => `<option value="${value}" ${state.participantSortBy === value ? 'selected' : ''}>${label}</option>`).join('')}
+            </select>
+          </label>
+          <label>Richtung
+            <select data-lgw-participant-dir>
+              <option value="desc" ${state.participantSortDir === 'desc' ? 'selected' : ''}>Absteigend</option>
+              <option value="asc" ${state.participantSortDir === 'asc' ? 'selected' : ''}>Aufsteigend</option>
+            </select>
+          </label>
+        </div>
+        <div class="lgw-table-wrap lgw-participant-table-wrap">
+          <table class="lgw-table lgw-participant-table lgw-participant-table-minimal">
+            <thead><tr><th>User</th><th>Tickets</th></tr></thead>
+            <tbody>
+              ${visible.map(entry => `
+                <tr>
+                  <td><strong>${esc(entry.userDisplayName || entry.userLogin || '-')}</strong>${entry.userLogin && entry.userLogin !== entry.userDisplayName ? `<br><small>${esc(entry.userLogin)}</small>` : ''}</td>
+                  <td><strong>${fmtNumber(entryTicketCount(entry))}</strong></td>
+                </tr>
+              `).join('') || `<tr><td colspan="2" class="lgw-muted">Keine passenden Teilnehmer gefunden.</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+        <div class="lgw-participant-footer">
+          <span class="lgw-muted">Zeige ${fmtNumber(visible.length)} von ${fmtNumber(entries.length)} gefilterten Einträgen.</span>
+          ${visible.length < entries.length ? `<button class="lgw-btn lgw-btn-small" type="button" data-lgw-participant-more>Mehr anzeigen</button>` : ''}
+        </div>
+      </section>
+    `;
+  }
+
   function renderControlContent(g){
     const c = getControlState(g);
     return `
@@ -954,11 +1057,12 @@ window.LoyaltyGiveawaysModule = (function(){
         <span>${c.wheel ? 'Glücksrad-Giveaway: Die Glücksrad-Drehung ist der Claim.' : 'Normales Giveaway: Chat-Claim ist optional je nach Config.'}</span>
       </div>
       <div class="lgw-grid lgw-grid-4 lgw-control-stats">
-        <article class="lgw-card"><span>Teilnehmer</span><strong>${fmtNumber(c.entries.length)}</strong><small>aktive Entries</small></article>
+        <article class="lgw-card lgw-control-participant-card"><span>Teilnehmer</span><strong>${fmtNumber(c.entries.length)}</strong><small>${fmtNumber(totalEntryTickets(c.entries))} Tickets</small><button class="lgw-btn lgw-btn-small lgw-btn-secondary" type="button" data-lgw-toggle-participants="open">Teilnehmer anzeigen</button></article>
         <article class="lgw-card"><span>Gewinner</span><strong>${esc(winnerProgressText(g))}</strong><small>${esc(giveawayWinnerText(g))}</small></article>
         <article class="lgw-card"><span>${c.wheel ? 'Glücksrad' : 'Claim'}</span><strong>${c.wheel ? (c.pendingPermissions.length ? 'Wartet' : (c.usedPermissions.length ? 'Gedreht' : 'Bereit')) : (c.pendingClaims.length ? 'Wartet' : 'OK')}</strong><small>${c.wheel ? `${fmtNumber(c.pendingPermissions.length)} offen · ${fmtNumber(c.usedPermissions.length)} gedreht` : `${fmtNumber(c.pendingClaims.length)} offen`}</small></article>
         <article class="lgw-card"><span>Nächster Schritt</span><strong>${c.canStart ? 'Starten' : c.canClose ? 'Schließen' : c.canDraw ? (c.drawnCount > 0 ? 'Weiter auslosen' : 'Auslosen') : c.pendingClaims.length ? 'Claim' : c.pendingPermissions.length ? 'Drehung' : !isFinalStatus(g.status) ? 'Abschluss' : 'Fertig'}</strong><small>${fmtDate(g.updatedAt || g.openedAt || g.createdAt)}</small></article>
       </div>
+      ${state.participantListOpen ? renderParticipantList(g, c) : ''}
 
       <section class="lgw-control-section">
         <h4>Ablauf</h4>
@@ -1061,6 +1165,35 @@ window.LoyaltyGiveawaysModule = (function(){
     }));
     area.querySelectorAll('[data-lgw-claim-wheel]').forEach(btn => btn.addEventListener('click', () => claimWheel(btn.dataset.lgwClaimWheel, btn.dataset.displayName, btn.dataset.uid)));
     area.querySelectorAll('[data-lgw-confirm-claim]').forEach(btn => btn.addEventListener('click', () => confirmClaim(btn.dataset.uid, btn.dataset.lgwConfirmClaim)));
+    area.querySelectorAll('[data-lgw-toggle-participants]').forEach(btn => btn.addEventListener('click', async () => {
+      state.participantListOpen = btn.dataset.lgwToggleParticipants !== 'close';
+      state.participantLimit = 25;
+      const uid = state.modal?.uid || state.selectedUid;
+      if (uid) await refreshControlModal(uid);
+    }));
+    area.querySelector('[data-lgw-participant-search]')?.addEventListener('input', async ev => {
+      state.participantSearch = ev.currentTarget.value;
+      state.participantLimit = 25;
+      const uid = state.modal?.uid || state.selectedUid;
+      if (uid) await refreshControlModal(uid);
+    });
+    area.querySelector('[data-lgw-participant-sort]')?.addEventListener('change', async ev => {
+      state.participantSortBy = ev.currentTarget.value;
+      state.participantLimit = 25;
+      const uid = state.modal?.uid || state.selectedUid;
+      if (uid) await refreshControlModal(uid);
+    });
+    area.querySelector('[data-lgw-participant-dir]')?.addEventListener('change', async ev => {
+      state.participantSortDir = ev.currentTarget.value;
+      state.participantLimit = 25;
+      const uid = state.modal?.uid || state.selectedUid;
+      if (uid) await refreshControlModal(uid);
+    });
+    area.querySelector('[data-lgw-participant-more]')?.addEventListener('click', async () => {
+      state.participantLimit = Math.min(Number(state.participantLimit || 25) + 25, 1000);
+      const uid = state.modal?.uid || state.selectedUid;
+      if (uid) await refreshControlModal(uid);
+    });
     area.querySelectorAll('[data-lgw-refresh-control]').forEach(btn => btn.addEventListener('click', async () => {
       await refreshControlModal(btn.dataset.lgwRefreshControl);
       startControlRefresh();
