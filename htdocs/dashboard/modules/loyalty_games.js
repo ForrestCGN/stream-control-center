@@ -1813,6 +1813,17 @@ window.LoyaltyGamesModule = (function(){
     bindEvents();
   }
 
+  async function openGiveawayEditor(giveawayUid){
+    state.activeTab = 'giveaways';
+    if (giveawayUid) state.selectedGiveawayUid = giveawayUid;
+    if (!state.giveaways) {
+      await loadAll(true);
+      return;
+    }
+    if (giveawayUid) await loadGiveaway(giveawayUid, false);
+    render();
+  }
+
   function setTab(tab){
     state.activeTab = tab || 'overview';
     render();
@@ -1827,6 +1838,7 @@ window.LoyaltyGamesModule = (function(){
   return {
     loadAll,
     render,
-    setTab
+    setTab,
+    openGiveawayEditor
   };
 })();

@@ -450,3 +450,44 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* STEP LWG-4Q.3 - prepared giveaway visibility and wheel editor link */
+.lgw-active-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.lgw-active-summary span {
+  border: 1px solid rgba(142, 238, 255, .16);
+  background: rgba(255,255,255,.055);
+  border-radius: 999px;
+  padding: 6px 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.lgw-active-card.is-incomplete {
+  border-color: rgba(255, 211, 105, .32);
+  background:
+    linear-gradient(135deg, rgba(255, 211, 105, .10), rgba(208, 60, 255, .07)),
+    rgba(255,255,255,.045);
+}
+
+.lgw-active-card.is-highlighted {
+  outline: 2px solid rgba(43, 218, 255, .55);
+  box-shadow: 0 0 26px rgba(43, 218, 255, .16);
+}
+
+.lgw-card-issue {
+  color: #fff0b8 !important;
+  font-weight: 800;
+}
+
+.lgw-active-card-actions {
+  gap: 8px;
+  flex-wrap: wrap;
+}

@@ -28,7 +28,8 @@ window.LoyaltyGiveawaysModule = (function(){
     participantSortBy: 'tickets',
     participantSortDir: 'desc',
     participantLimit: 25,
-    modal: null
+    modal: null,
+    highlightedUid: ''
   };
 
   function esc(v){
@@ -374,8 +375,61 @@ window.LoyaltyGiveawaysModule = (function(){
     if (rerender) render();
   }
 
+  function isPreparedGiveaway(g){
+    if (!g) return false;
+    const s = norm(g.status);
+    if (isFinalStatus(s)) return false;
+    return s === 'draft' || isActiveGiveaway(g) || g.setupComplete === false || Array.isArray(g.setupIssues) && g.setupIssues.length > 0;
+  }
+
+  function preparednessRank(g){
+    const s = norm(g?.status);
+    if (isActiveGiveaway(g) && s !== 'draft') return 0;
+    if (g?.setupComplete === false || Array.isArray(g?.setupIssues) && g.setupIssues.length > 0) return 1;
+    if (s === 'draft') return 2;
+    return 3;
+  }
+
   function activeGiveaways(list = rows(state.giveaways)){
     return list.filter(isActiveGiveaway).sort((a,b) => compareGiveaways(a,b,'startDate','desc'));
+  }
+
+  function importantGiveaways(list = rows(state.giveaways)){
+    return list
+      .filter(isPreparedGiveaway)
+      .sort((a,b) => {
+        const ar = preparednessRank(a);
+        const br = preparednessRank(b);
+        if (ar !== br) return ar - br;
+        return compareGiveaways(a,b,'startDate','desc');
+      });
+  }
+
+  function setupIssueText(g){
+    const issues = Array.isArray(g?.setupIssues) ? g.setupIssues : [];
+    if (!issues.length && g?.setupComplete !== false) return '';
+    const mapped = issues.map(issue => {
+      const raw = String(issue?.message || issue?.reason || issue?.code || issue || '').trim();
+      const key = norm(raw);
+      if (key.includes('wheel')) return 'Glücksrad fehlt';
+      if (key.includes('prize')) return 'Preis fehlt';
+      if (key.includes('title')) return 'Titel fehlt';
+      return raw || 'Setup unvollständig';
+    }).filter(Boolean);
+    if (!mapped.length && isWheelGiveaway(g) && !hasGiveawayWheel(g)) mapped.push('Glücksrad fehlt');
+    return mapped.length ? `Noch nicht startbereit: ${mapped.join(', ')}` : 'Noch nicht startbereit.';
+  }
+
+  function hasGiveawayWheel(g){
+    return !!(g?.wheelSnapshotUid || g?.wheelPresetUid || g?.settingsSnapshot?.wheelSnapshotUid || g?.settingsSnapshot?.wheelPresetUid);
+  }
+
+  function needsWheelEditor(g){
+    return isWheelGiveaway(g) && !hasGiveawayWheel(g);
+  }
+
+  function canStartGiveaway(g){
+    return norm(g?.status) === 'draft' && g?.canOpen !== false && g?.setupComplete !== false && !needsWheelEditor(g);
   }
 
   function filteredGiveaways(){
@@ -497,6 +551,8 @@ window.LoyaltyGiveawaysModule = (function(){
       if (uid) result = await apiPut(apiUrl(uid), payload);
       else result = await apiPost(api.detailBase, payload);
       const nextUid = result.giveaway?.giveawayUid || uid || state.selectedUid;
+      state.highlightedUid = nextUid || '';
+      if (!uid) { state.search = ''; state.statusFilter = 'all'; state.sortBy = 'active'; state.sortDir = 'desc'; }
       state.modal = null;
       await refreshGiveaways(nextUid, false);
       setMessage(uid ? 'Giveaway wurde gespeichert.' : 'Giveaway wurde erstellt.');
@@ -647,6 +703,34 @@ window.LoyaltyGiveawaysModule = (function(){
     }
   }
 
+  function openGiveawayWheelEditor(uid){
+    if (!uid) return;
+    if (typeof window.LoyaltyGamesModule?.openGiveawayEditor === 'function') {
+      window.LoyaltyGamesModule.openGiveawayEditor(uid);
+    } else {
+      window.LoyaltyGamesModule?.setTab?.('giveaways');
+    }
+    if (typeof window.CGN?.setActiveModule === 'function') {
+      window.CGN.setActiveModule('loyalty_games', { section: 'loyalty' });
+    }
+  }
+
+  function renderImportantCardActions(g){
+    const uid = esc(g.giveawayUid || '');
+    const s = norm(g.status);
+    const editable = g.editable === true || s === 'draft';
+    const wheel = isWheelGiveaway(g);
+    const actions = [];
+    if (editable) actions.push(`<button class="lgw-btn lgw-btn-small lgw-btn-secondary" data-lgw-edit="${uid}">Bearbeiten</button>`);
+    if (wheel) {
+      actions.push(`<button class="lgw-btn lgw-btn-small lgw-btn-secondary" data-lgw-open-wheel-editor="${uid}">${needsWheelEditor(g) ? 'Glücksrad erstellen' : 'Glücksrad bearbeiten'}</button>`);
+    }
+    if (canStartGiveaway(g)) actions.push(`<button class="lgw-btn lgw-btn-small" data-lgw-action="open" data-uid="${uid}">Starten</button>`);
+    if (isActiveGiveaway(g) && s !== 'draft') actions.push(`<button class="lgw-btn lgw-btn-small" data-lgw-open-control="${uid}">Steuern</button>`);
+    if (!actions.length) actions.push(`<button class="lgw-btn lgw-btn-small" data-lgw-open-details="${uid}">Anzeigen</button>`);
+    return actions.join('');
+  }
+
   function renderTabs(){
     const tabs = [
       ['overview', 'Übersicht'],
@@ -668,40 +752,53 @@ window.LoyaltyGiveawaysModule = (function(){
   }
 
   function renderActiveBar(){
+    const important = importantGiveaways();
     const active = activeGiveaways();
+    const preparedCount = important.filter(g => norm(g.status) === 'draft' || g.setupComplete === false || Array.isArray(g.setupIssues) && g.setupIssues.length > 0).length;
+    const selectedImportantUid = important.some(g => g.giveawayUid === state.selectedUid) ? state.selectedUid : (important[0]?.giveawayUid || '');
     return `
       <section class="lgw-panel lgw-active-panel">
         <div class="lgw-panel-head">
           <div>
-            <h3>Aktive Giveaways</h3>
-            <p class="lgw-muted">Laufende Giveaways bleiben hier immer sichtbar. Das Steuerfenster kann jederzeit wieder geöffnet werden.</p>
+            <h3>Aktive & vorbereitete Giveaways</h3>
+            <p class="lgw-muted">Laufende, vorbereitete und unvollständige Giveaways bleiben hier sichtbar. Fehlende Glücksräder können direkt im Editor angelegt werden.</p>
           </div>
-          <strong>${fmtNumber(active.length)}</strong>
+          <strong>${fmtNumber(important.length)}</strong>
         </div>
-        ${active.length ? `
+        ${important.length ? `
           <div class="lgw-active-row">
-            <label>Aktives Giveaway
+            <label>Giveaway auswählen
               <select data-lgw-active-select>
-                ${active.map(g => `<option value="${esc(g.giveawayUid)}" ${g.giveawayUid === state.selectedUid ? 'selected' : ''}>${esc(g.title || g.giveawayUid)} · ${esc(statusLabel(g.status))}</option>`).join('')}
+                ${important.map(g => `<option value="${esc(g.giveawayUid)}" ${g.giveawayUid === selectedImportantUid ? 'selected' : ''}>${esc(g.title || g.giveawayUid)} · ${esc(statusLabel(g.status))}</option>`).join('')}
               </select>
             </label>
-            <button class="lgw-btn" data-lgw-open-control="${esc(state.selectedUid || active[0].giveawayUid)}">Steuern</button>
+            <button class="lgw-btn" data-lgw-open-control="${esc(selectedImportantUid || important[0].giveawayUid)}" ${isActiveGiveaway(important.find(g => g.giveawayUid === selectedImportantUid) || important[0]) && norm((important.find(g => g.giveawayUid === selectedImportantUid) || important[0])?.status) !== 'draft' ? '' : 'disabled'}>Steuern</button>
+          </div>
+          <div class="lgw-active-summary">
+            <span>${fmtNumber(active.length)} aktiv</span>
+            <span>${fmtNumber(preparedCount)} vorbereitet/offen</span>
           </div>
           <div class="lgw-active-cards">
-            ${active.slice(0, 6).map(g => `
-              <article class="lgw-active-card ${g.giveawayUid === state.selectedUid ? 'is-active' : ''}">
-                <button class="lgw-active-card-main" data-lgw-select="${esc(g.giveawayUid)}" title="Giveaway auswählen und Details öffnen">
-                  <strong>${esc(g.title || '-')}</strong>
-                  <span>${statusBadge(g.status)}</span>
-                  <small>Start: ${fmtDate(giveawayStartDate(g))}</small>
-                </button>
-                <div class="lgw-active-card-actions">
-                  <button class="lgw-btn lgw-btn-small" data-lgw-open-control="${esc(g.giveawayUid)}" title="Giveaway verwalten / Steuerfenster öffnen">Verwalten</button>
-                </div>
-              </article>
-            `).join('')}
+            ${important.slice(0, 8).map(g => {
+              const issue = setupIssueText(g);
+              const isSelected = g.giveawayUid === state.selectedUid;
+              const isHighlighted = g.giveawayUid === state.highlightedUid;
+              return `
+                <article class="lgw-active-card ${isSelected ? 'is-active' : ''} ${isHighlighted ? 'is-highlighted' : ''} ${g.setupComplete === false ? 'is-incomplete' : ''}">
+                  <button class="lgw-active-card-main" data-lgw-select="${esc(g.giveawayUid)}" title="Giveaway auswählen und Details öffnen">
+                    <strong>${esc(g.title || '-')}</strong>
+                    <span>${statusBadge(g.setupComplete === false ? 'unvollständig' : g.status)}</span>
+                    <small>${norm(g.status) === 'draft' ? 'Erstellt' : 'Start'}: ${fmtDate(norm(g.status) === 'draft' ? g.createdAt : giveawayStartDate(g))}</small>
+                    ${issue ? `<small class="lgw-card-issue">${esc(issue)}</small>` : ''}
+                  </button>
+                  <div class="lgw-active-card-actions">
+                    ${renderImportantCardActions(g)}
+                  </div>
+                </article>
+              `;
+            }).join('')}
           </div>
-        ` : `<p class="lgw-muted">Aktuell kein gestartetes Giveaway.</p>`}
+        ` : `<p class="lgw-muted">Aktuell kein aktives oder vorbereitetes Giveaway.</p>`}
       </section>
     `;
   }
@@ -744,7 +841,7 @@ window.LoyaltyGiveawaysModule = (function(){
       <section class="lgw-panel lgw-overview-panel">
         <div class="lgw-panel-head">
           <div>
-            <h3>Giveaway-Übersicht</h3>
+            <h3>Alle Giveaways</h3>
             <p class="lgw-muted">${fmtNumber(list.length)} Treffer · Details, Bearbeitung und Steuerung öffnen separat im Fenster.</p>
           </div>
           <button class="lgw-btn lgw-btn-secondary" data-lgw-create>Neues Giveaway</button>
@@ -767,7 +864,8 @@ window.LoyaltyGiveawaysModule = (function(){
                 <div class="lgw-row-actions lgw-giveaway-actions">
                   <button class="lgw-btn lgw-btn-small" data-lgw-open-details="${esc(g.giveawayUid)}">Anzeigen</button>
                   ${editable ? `<button class="lgw-btn lgw-btn-small lgw-btn-secondary" data-lgw-edit="${esc(g.giveawayUid)}">Bearbeiten</button>` : ''}
-                  ${norm(g.status) === 'draft' ? `<button class="lgw-btn lgw-btn-small" data-lgw-action="open" data-uid="${esc(g.giveawayUid)}">Starten</button>` : ''}
+                  ${canStartGiveaway(g) ? `<button class="lgw-btn lgw-btn-small" data-lgw-action="open" data-uid="${esc(g.giveawayUid)}">Starten</button>` : ''}
+                  ${isWheelGiveaway(g) ? `<button class="lgw-btn lgw-btn-small lgw-btn-secondary" data-lgw-open-wheel-editor="${esc(g.giveawayUid)}">${needsWheelEditor(g) ? 'Glücksrad erstellen' : 'Glücksrad bearbeiten'}</button>` : ''}
                   ${isActiveGiveaway(g) ? `<button class="lgw-btn lgw-btn-small" data-lgw-open-control="${esc(g.giveawayUid)}">Steuern</button>` : ''}
                 </div>
               </article>
@@ -1220,6 +1318,11 @@ window.LoyaltyGiveawaysModule = (function(){
     root.querySelectorAll('[data-lgw-open-control]').forEach(btn => btn.addEventListener('click', async () => {
       await loadGiveaway(btn.dataset.lgwOpenControl, false);
       openModal('control', btn.dataset.lgwOpenControl);
+    }));
+    root.querySelectorAll('[data-lgw-open-wheel-editor]').forEach(btn => btn.addEventListener('click', async () => {
+      const uid = btn.dataset.lgwOpenWheelEditor;
+      await loadGiveaway(uid, false);
+      openGiveawayWheelEditor(uid);
     }));
     root.querySelectorAll('[data-lgw-select]').forEach(btn => btn.addEventListener('click', () => loadGiveaway(btn.dataset.lgwSelect)));
 
