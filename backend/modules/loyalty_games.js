@@ -3,6 +3,10 @@
 /**
  * Loyalty Games host module.
  *
+ * STEP LWG-5.1:
+ * - Gamble-Spiel vorbereitet: DB-Settings, Multitexte, deaktivierter Command, Safety-Layer-Nutzung
+ * - !gamble bleibt deaktiviert bis Loyalty-Freigabe
+ *
  * STEP LWG-4B:
  * - Keeps the existing wheel spin API working.
  * - Adds wheel presets and preset fields in the central database.
@@ -13,17 +17,23 @@
 
 const core = require("./helpers/helper_core");
 const cfg = require("./helpers/helper_config");
+const settingsHelper = require("./helpers/helper_settings");
+const textHelper = require("./helpers/helper_texts");
 const routes = require("./helpers/helper_routes");
 const database = require("../core/database");
 const wheelFactory = require("./loyalty_games/wheel");
+const gambleFactory = require("./loyalty_games/gamble");
 const presetFactory = require("./loyalty_games/presets");
+const loyaltyCore = require("./loyalty");
 
 const MODULE_NAME = "loyalty_games";
-const MODULE_VERSION = "0.2.0";
-const MODULE_BUILD = "STEP_LWG_4B";
+const MODULE_VERSION = "0.2.1";
+const MODULE_BUILD = "STEP_LWG_5_1_GAMBLE_PREPARED";
 const CONFIG_FILE = "loyalty_games.json";
 const SCHEMA_MODULE = "loyalty_games";
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
+const SETTINGS_TABLE = "loyalty_games_settings";
+const TEXT_MODULE = MODULE_NAME;
 
 const MODULE_META = {
   name: MODULE_NAME,
@@ -42,7 +52,8 @@ const MODULE_META = {
       "loyalty.wheel.preset.finished",
       "loyalty.wheel.preset.deleted",
       "loyalty.wheel.spin.started",
-      "loyalty.wheel.spin.finished"
+      "loyalty.wheel.spin.finished",
+      "loyalty.game.gamble.played"
     ],
     consumes: []
   },
@@ -88,10 +99,117 @@ const DEFAULT_CONFIG = {
         { id: "vip_3_days", label: "VIP", sub: "3 Tage", weight: 1, enabled: true, reward: { type: "none", amount: 0 }, colorA: "#18d6ff", colorB: "#d03cff" },
         { id: "miss_2", label: "Niete", sub: "", weight: 2, enabled: true, reward: { type: "none", amount: 0 }, colorA: "#7d27b8", colorB: "#124b72" }
       ]
+    },
+    gamble: {
+      enabled: false,
+      mode: "shadow",
+      minBet: 1,
+      maxBet: 1000,
+      allowPercent: true,
+      minPercent: 1,
+      maxPercent: 100,
+      allowAll: false,
+      winChancePercent: 47,
+      payoutMultiplier: 2,
+      userCooldownMs: 60000,
+      globalCooldownMs: 0,
+      liveOnly: false
     }
   }
 };
 
+const SETTINGS_DEFINITIONS = [
+  { key: "enabled", path: "enabled", valueType: "boolean", description: "Loyalty-Games Host aktivieren/deaktivieren." },
+  { key: "games.gamble.enabled", path: "games.gamble.enabled", valueType: "boolean", description: "Gamble-Command aktivieren/deaktivieren." },
+  { key: "games.gamble.minBet", path: "games.gamble.minBet", valueType: "number", description: "Minimaler Gamble-Einsatz." },
+  { key: "games.gamble.maxBet", path: "games.gamble.maxBet", valueType: "number", description: "Maximaler Gamble-Einsatz." },
+  { key: "games.gamble.allowPercent", path: "games.gamble.allowPercent", valueType: "boolean", description: "Prozent-Einsaetze wie !gamble 50% erlauben." },
+  { key: "games.gamble.minPercent", path: "games.gamble.minPercent", valueType: "number", description: "Minimaler Prozent-Einsatz." },
+  { key: "games.gamble.maxPercent", path: "games.gamble.maxPercent", valueType: "number", description: "Maximaler Prozent-Einsatz." },
+  { key: "games.gamble.allowAll", path: "games.gamble.allowAll", valueType: "boolean", description: "All-in Einsatz erlauben. Standard bewusst aus." },
+  { key: "games.gamble.winChancePercent", path: "games.gamble.winChancePercent", valueType: "number", description: "Gewinnchance in Prozent. Server entscheidet per crypto.randomInt." },
+  { key: "games.gamble.payoutMultiplier", path: "games.gamble.payoutMultiplier", valueType: "number", description: "Brutto-Auszahlung bei Gewinn als Multiplikator des Einsatzes." },
+  { key: "games.gamble.userCooldownMs", path: "games.gamble.userCooldownMs", valueType: "number", description: "User-Cooldown in Millisekunden." },
+  { key: "games.gamble.globalCooldownMs", path: "games.gamble.globalCooldownMs", valueType: "number", description: "Globaler Cooldown in Millisekunden." },
+  { key: "games.gamble.liveOnly", path: "games.gamble.liveOnly", valueType: "boolean", description: "Gamble nur live erlauben." }
+];
+
+const DEFAULT_TEXTS = {
+  "gamble.win": [
+    "{user} wirft {bet} {currencyName} in die Heimleitungs-Maschine... Gewinn! Neuer verfügbarer Stand: {points}.",
+    "{user}, die Keksdose war gnädig: +{profit} {currencyName}. Verfügbar jetzt: {points}.",
+    "Die Rentnergang jubelt: {user} gewinnt beim Gamble mit {bet} {currencyName}. Neuer Stand: {points}."
+  ],
+  "gamble.lose": [
+    "{user} setzt {bet} {currencyName}. Die Heimleitung fegt die Krümel ein. Verfügbar bleiben {points}.",
+    "{user}, die Keksmaschine knirscht... leider verloren. Einsatz: {bet} {currencyName}. Neuer Stand: {points}.",
+    "Die Rentnerkasse sagt Nein: {user} verliert {bet} {currencyName}. Verfügbar: {points}."
+  ],
+  "gamble.disabled": [
+    "{user}, Gamble steht schon im Flur, aber die Heimleitung hat den Schalter noch nicht freigegeben.",
+    "{user}, die Keksmaschine ist vorbereitet, aber noch deaktiviert."
+  ],
+  "gamble.invalid_amount": [
+    "{user}, mit diesem Einsatz kommt die Rentnerkasse durcheinander.",
+    "{user}, bitte einen gültigen Einsatz angeben, z. B. !gamble 100 oder !gamble 50%."
+  ],
+  "gamble.insufficient_balance": [
+    "{user}, dafür reichen deine verfügbaren {currencyName} nicht. Verfügbar: {available}, benötigt: {bet}.",
+    "{user}, die Heimleitung winkt ab: {bet} gebraucht, {available} verfügbar."
+  ],
+  "gamble.cooldown": [
+    "{user}, die Keksmaschine muss kurz abkühlen. Warte noch {seconds} Sekunden.",
+    "{user}, die Heimleitung sortiert noch die Krümel. Cooldown: {seconds} Sekunden."
+  ],
+  "gamble.min_bet": [
+    "{user}, unter {minBet} {currencyName} steht die Heimleitung gar nicht erst auf.",
+    "{user}, Mindest-Einsatz: {minBet} {currencyName}."
+  ],
+  "gamble.max_bet": [
+    "{user}, so viele Krümel lässt die Heimleitung nicht auf einmal in die Maschine. Maximum: {maxBet}.",
+    "{user}, maximal erlaubt sind {maxBet} {currencyName}."
+  ]
+};
+
+const TEXT_CATEGORIES = {
+  "gamble.win": "chat_gamble",
+  "gamble.lose": "chat_gamble",
+  "gamble.disabled": "chat_gamble",
+  "gamble.invalid_amount": "chat_gamble_errors",
+  "gamble.insufficient_balance": "chat_gamble_errors",
+  "gamble.cooldown": "chat_gamble_errors",
+  "gamble.min_bet": "chat_gamble_errors",
+  "gamble.max_bet": "chat_gamble_errors"
+};
+
+const TEXT_CATEGORY_LABELS = {
+  chat_gamble: "Chat · Gamble",
+  chat_gamble_errors: "Chat · Gamble Fehler"
+};
+
+const CENTRAL_COMMAND_DEFINITIONS = [
+  {
+    trigger: "gamble",
+    aliases: [],
+    moduleKey: MODULE_NAME,
+    actionKey: "chat_command_runtime",
+    targetMethod: "POST",
+    targetUrl: "/api/loyalty/games/runtime/chat-command",
+    enabled: false,
+    permissionLevel: "everyone",
+    cooldownGlobalMs: 1000,
+    cooldownUserMs: 60000,
+    liveOnly: false,
+    responseMode: "module",
+    config: {
+      seededBy: "STEP_LWG_5_1",
+      actionType: "module_command",
+      moduleCommand: "gamble",
+      rawInputMode: true,
+      activationState: "prepared_disabled"
+    }
+  }
+];
 
 function createCommunicationBusHandle(meta, buildStatusFn) {
   const moduleName = meta && meta.name ? String(meta.name) : "unknown_module";
@@ -274,11 +392,14 @@ let state = {
   schemaReady: false,
   lastError: "",
   routeCount: 0,
-  eventBusReady: false
+  eventBusReady: false,
+  settings: { ok: false, table: SETTINGS_TABLE, inserted: 0, count: 0, lastError: "" },
+  texts: { ok: false, inserted: 0, lastError: "" }
 };
 
 let config = DEFAULT_CONFIG;
 let wheel = null;
+let gamble = null;
 let presetStore = null;
 let broadcastWS = null;
 let eventBus = null;
@@ -305,6 +426,127 @@ function databaseStatus() {
   }
 }
 
+
+function getNestedValue(object, dottedPath, fallback = undefined) {
+  if (!object || typeof object !== "object") return fallback;
+  const parts = String(dottedPath || "").split(".").filter(Boolean);
+  let current = object;
+  for (const part of parts) {
+    if (!current || typeof current !== "object" || !(part in current)) return fallback;
+    current = current[part];
+  }
+  return current;
+}
+
+function setNestedValue(object, dottedPath, value) {
+  const parts = String(dottedPath || "").split(".").filter(Boolean);
+  if (!parts.length) return object;
+  let current = object;
+  for (let index = 0; index < parts.length - 1; index += 1) {
+    const part = parts[index];
+    if (!current[part] || typeof current[part] !== "object" || Array.isArray(current[part])) current[part] = {};
+    current = current[part];
+  }
+  current[parts[parts.length - 1]] = value;
+  return object;
+}
+
+function mergePlain(base, extra) {
+  if (!extra || typeof extra !== "object" || Array.isArray(extra)) return { ...(base || {}) };
+  const out = { ...(base || {}) };
+  for (const [key, value] of Object.entries(extra)) {
+    if (value && typeof value === "object" && !Array.isArray(value) && out[key] && typeof out[key] === "object" && !Array.isArray(out[key])) out[key] = mergePlain(out[key], value);
+    else if (Array.isArray(value)) out[key] = value.map(item => item && typeof item === "object" ? { ...item } : item);
+    else out[key] = value;
+  }
+  return out;
+}
+
+function normalizeSettingValue(def, value) {
+  const type = String(def && def.valueType || "").toLowerCase();
+  if (type === "boolean") return value === true || value === 1 || ["1", "true", "yes", "ja", "on"].includes(String(value).trim().toLowerCase());
+  if (type === "number") { const n = Number(value); return Number.isFinite(n) ? n : Number(getNestedValue(DEFAULT_CONFIG, def.path, 0) || 0); }
+  if (type === "json") { if (Array.isArray(value) || (value && typeof value === "object")) return value; if (typeof value === "string") { try { return JSON.parse(value); } catch (_) {} } return getNestedValue(DEFAULT_CONFIG, def.path, []); }
+  return String(value ?? "").trim();
+}
+
+function settingDefaultsFromConfig(sourceConfig) {
+  const source = sourceConfig && typeof sourceConfig === "object" ? sourceConfig : DEFAULT_CONFIG;
+  return SETTINGS_DEFINITIONS.map(def => ({ key: def.key, value: normalizeSettingValue(def, getNestedValue(source, def.path, getNestedValue(DEFAULT_CONFIG, def.path, null))), valueType: def.valueType, description: def.description }));
+}
+
+function ensureSettingsSeeded(sourceConfig) {
+  const result = settingsHelper.seedDefaults(SETTINGS_TABLE, settingDefaultsFromConfig(sourceConfig || config));
+  state.settings.ok = !!result.ok;
+  state.settings.inserted = Number(result.inserted || 0);
+  state.settings.lastError = "";
+  const listed = settingsHelper.listSettings(SETTINGS_TABLE, { limit: 1000 });
+  state.settings.count = Number(listed.count || 0);
+  return result;
+}
+
+function applySettingsToConfig(baseConfig) {
+  const next = mergePlain(DEFAULT_CONFIG, baseConfig || {});
+  for (const def of SETTINGS_DEFINITIONS) {
+    const fallback = getNestedValue(next, def.path, getNestedValue(DEFAULT_CONFIG, def.path, null));
+    const setting = settingsHelper.getSetting(SETTINGS_TABLE, def.key, fallback, { valueType: def.valueType, description: def.description });
+    setNestedValue(next, def.path, normalizeSettingValue(def, setting.value));
+  }
+  return next;
+}
+
+function refreshConfigFromSettings() {
+  config = applySettingsToConfig(config);
+  if (gamble && typeof gamble.updateConfig === "function") gamble.updateConfig(config.games && config.games.gamble ? config.games.gamble : DEFAULT_CONFIG.games.gamble, !!config.enabled);
+  return config;
+}
+
+function ensureTextsSeeded() {
+  try {
+    if (typeof textHelper.seedModuleTextVariants === "function") {
+      const result = textHelper.seedModuleTextVariants(TEXT_MODULE, DEFAULT_TEXTS, { categories: TEXT_CATEGORIES, categoryLabels: TEXT_CATEGORY_LABELS, source: "seed" });
+      state.texts.ok = true; state.texts.inserted = Number(result.inserted || 0); state.texts.lastError = "";
+    }
+    if (typeof textHelper.seedModuleTexts === "function") textHelper.seedModuleTexts(TEXT_MODULE, DEFAULT_TEXTS, { source: "seed" });
+    return { ok: true };
+  } catch (err) { state.texts.ok = false; state.texts.lastError = err && err.message ? err.message : String(err); return { ok: false, error: state.texts.lastError }; }
+}
+
+function renderGameText(key, context = {}, options = {}) {
+  ensureTextsSeeded();
+  try {
+    const message = textHelper.renderModuleText(TEXT_MODULE, key, DEFAULT_TEXTS, context, { categories: TEXT_CATEGORIES, categoryLabels: TEXT_CATEGORY_LABELS, ...options });
+    const clean = String(message || "").replace(/[\r\n]+/g, " ").replace(/\s+/g, " ").trim();
+    return clean.length > 450 ? clean.slice(0, 449).trimEnd() + "…" : clean;
+  } catch (_) {
+    const fallback = Array.isArray(DEFAULT_TEXTS[key]) ? DEFAULT_TEXTS[key][0] : "";
+    return Object.entries(context || {}).reduce((text, [name, value]) => text.replace(new RegExp(`\\{${name}\\}`, "g"), String(value ?? "")), fallback);
+  }
+}
+
+function safeParseJson(value, fallback = null) { if (value === undefined || value === null || value === "") return fallback; try { return JSON.parse(String(value)); } catch (_) { return fallback; } }
+function commandSystemTableAvailable() { try { ensureSchema(); if (typeof database.tableExists === "function") return database.tableExists("command_definitions"); const row = database.get("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'command_definitions'"); return !!row; } catch (_) { return false; } }
+function rowToCentralCommand(row) { if (!row) return null; return { id: Number(row.id || 0), trigger: row.trigger || "", aliases: safeParseJson(row.aliases_json, []), moduleKey: row.module_key || "", actionKey: row.action_key || "", targetMethod: row.target_method || "POST", targetUrl: row.target_url || "", enabled: Number(row.enabled || 0) === 1, permissionLevel: row.permission_level || "everyone", cooldownGlobalMs: Number(row.cooldown_global_ms || 0), cooldownUserMs: Number(row.cooldown_user_ms || 0), liveOnly: Number(row.live_only || 0) === 1, responseMode: row.response_mode || "module", config: safeParseJson(row.config_json, {}), createdAt: row.created_at || "", updatedAt: row.updated_at || "" }; }
+function seedCentralCommandDefinitions() {
+  ensureSchema(); if (!commandSystemTableAvailable()) return { ok: false, available: false, inserted: 0, existing: 0, count: 0, commands: [], warning: "Zentrales command_definitions-System ist noch nicht verfuegbar." };
+  const now = core.nowIso(); let inserted = 0; let existing = 0;
+  for (const definition of CENTRAL_COMMAND_DEFINITIONS) {
+    const current = database.get("SELECT id FROM command_definitions WHERE trigger = :trigger", { trigger: definition.trigger });
+    if (current && current.id) { existing += 1; continue; }
+    const result = database.run(`INSERT INTO command_definitions (trigger, aliases_json, module_key, action_key, target_method, target_url, enabled, permission_level, cooldown_global_ms, cooldown_user_ms, live_only, response_mode, config_json, created_at, updated_at) VALUES (:trigger, :aliasesJson, :moduleKey, :actionKey, :targetMethod, :targetUrl, :enabled, :permissionLevel, :cooldownGlobalMs, :cooldownUserMs, :liveOnly, :responseMode, :configJson, :createdAt, :updatedAt)`, { trigger: definition.trigger, aliasesJson: JSON.stringify(definition.aliases || []), moduleKey: definition.moduleKey || MODULE_NAME, actionKey: definition.actionKey || "chat_command_runtime", targetMethod: definition.targetMethod || "POST", targetUrl: definition.targetUrl || "/api/loyalty/games/runtime/chat-command", enabled: definition.enabled ? 1 : 0, permissionLevel: definition.permissionLevel || "everyone", cooldownGlobalMs: Math.max(0, Number(definition.cooldownGlobalMs || 0)), cooldownUserMs: Math.max(0, Number(definition.cooldownUserMs || 0)), liveOnly: definition.liveOnly ? 1 : 0, responseMode: definition.responseMode || "module", configJson: JSON.stringify(definition.config || {}), createdAt: now, updatedAt: now });
+    inserted += Number(result && result.changes ? result.changes : 0);
+  }
+  return listCentralCommandDefinitions({ inserted, existing });
+}
+function listCentralCommandDefinitions(extra = {}) {
+  ensureSchema(); if (!commandSystemTableAvailable()) return { ok: false, available: false, inserted: Number(extra.inserted || 0), existing: Number(extra.existing || 0), count: 0, commands: [], warning: "Zentrales command_definitions-System ist noch nicht verfuegbar." };
+  const triggers = CENTRAL_COMMAND_DEFINITIONS.map(item => item.trigger);
+  const rows = database.all(`SELECT * FROM command_definitions WHERE trigger IN (${triggers.map((_, index) => `:trigger${index}`).join(", ")}) ORDER BY trigger ASC`, triggers.reduce((acc, trigger, index) => { acc[`trigger${index}`] = trigger; return acc; }, {})).map(rowToCentralCommand);
+  return { ok: true, available: true, active: rows.some(command => command && command.enabled), commandsActive: rows.some(command => command && command.enabled), inserted: Number(extra.inserted || 0), existing: Number(extra.existing || Math.max(0, rows.length - Number(extra.inserted || 0))), count: rows.length, commands: rows, note: "!gamble ist vorbereitet und bleibt deaktiviert bis Loyalty-Freigabe." };
+}
+function getChatTextEditorPayload() { ensureSchema(); ensureTextsSeeded(); return textHelper.listModuleTextEditor(TEXT_MODULE, DEFAULT_TEXTS, { categories: TEXT_CATEGORIES, categoryLabels: TEXT_CATEGORY_LABELS }); }
+function handleChatTextEditorPayload(payload = {}) { ensureSchema(); ensureTextsSeeded(); return textHelper.handleModuleTextEditorPayload(TEXT_MODULE, payload || {}, { categories: TEXT_CATEGORIES, categoryLabels: TEXT_CATEGORY_LABELS }); }
+
 function loadConfig() {
   const loaded = cfg.loadConfig(CONFIG_FILE, DEFAULT_CONFIG, {
     createIfMissing: false,
@@ -315,7 +557,7 @@ function loadConfig() {
   state.configPath = loaded.path || "";
   state.configOk = !!loaded.ok || !!loaded.exists;
   state.configError = loaded.error || "";
-  config = loaded.data || loaded.config || DEFAULT_CONFIG;
+  config = mergePlain(DEFAULT_CONFIG, loaded.data || loaded.config || {});
   return config;
 }
 
@@ -554,13 +796,16 @@ function publicConfig() {
     enabled: !!config.enabled,
     version: config.version || 1,
     games: {
-      wheel: wheel ? wheel.getPublicConfig() : (config.games && config.games.wheel ? config.games.wheel : {})
+      wheel: wheel ? wheel.getPublicConfig() : (config.games && config.games.wheel ? config.games.wheel : {}),
+      gamble: gamble ? gamble.getPublicConfig() : (config.games && config.games.gamble ? config.games.gamble : {})
     }
   };
 }
 
 function buildStatus() {
+  refreshConfigFromSettings();
   const wheelStatus = wheel ? wheel.getStatus() : { ok: false, enabled: false, lastError: "wheel_not_loaded" };
+  const gambleStatus = gamble ? gamble.getStatus() : { ok: false, enabled: false, lastError: "gamble_not_loaded" };
   const counts = state.schemaReady ? sessionCounts() : { total: 0, running: 0, finished: 0, failed: 0 };
   const presetStatus = presetStore && state.schemaReady ? presetStore.status() : { ok: false, presets: 0, fields: 0, spins: 0 };
 
@@ -597,8 +842,11 @@ function buildStatus() {
         moduleBus: moduleBusHandle && typeof moduleBusHandle.getState === "function" ? moduleBusHandle.getState() : null
       },
       state: {
-        gamesLoaded: wheel ? 1 : 0,
-        enabled: !!config.enabled
+        gamesLoaded: (wheel ? 1 : 0) + (gamble ? 1 : 0),
+        enabled: !!config.enabled,
+        settings: { ...state.settings },
+        texts: { ...state.texts },
+        centralCommands: state.schemaReady ? listCentralCommandDefinitions() : { ok: false, available: false }
       },
       queue: {
         activeSpin: !!(wheelStatus && wheelStatus.running),
@@ -612,7 +860,8 @@ function buildStatus() {
       errors: state.lastError ? [state.lastError] : []
     },
     games: {
-      wheel: wheelStatus
+      wheel: wheelStatus,
+      gamble: gambleStatus
     }
   };
 }
@@ -623,6 +872,38 @@ function startWheelSpin(input = {}) {
     return { ok: false, error: "wheel_not_ready", statusCode: 503 };
   }
   return wheel.spin(input);
+}
+
+
+function startGamble(input = {}) {
+  if (!gamble || typeof gamble.play !== "function") return { ok: false, error: "gamble_not_ready", statusCode: 503 };
+  refreshConfigFromSettings();
+  return gamble.play(input);
+}
+
+function normalizeCommandLogin(value) { return String(value || "").trim().replace(/^@/, "").toLowerCase(); }
+function commandUser(input = {}) { const login = normalizeCommandLogin(input.userLogin || input.login || input.username || input.user || ""); const displayName = String(input.userDisplayName || input.displayName || input.username || input.user || login).trim() || login; return { login, displayName }; }
+function commandArgs(input = {}) { if (Array.isArray(input.args)) return input.args.map(item => String(item || "").trim()).filter(Boolean); const raw = String(input.argText || input.rawArgs || input.text || input.message || "").trim(); return raw ? raw.split(/\s+/).filter(Boolean) : []; }
+function buildGambleRuntimeResponse(input = {}, result = {}) {
+  const user = commandUser(input); let messageKey = ""; let context = { user: user.displayName || user.login, currencyName: "Kekskrümel" };
+  if (result.ok) return { ok: true, handled: true, module: MODULE_NAME, command: "gamble", action: "gamble", message: result.message || "", messageKey: result.messageKey || "", data: result, active: true, commandsActive: true };
+  const seconds = Math.ceil(Number(result.waitMs || 0) / 1000);
+  if (result.error === "gamble_disabled" || result.error === "loyalty_games_disabled") messageKey = "gamble.disabled";
+  else if (result.error === "gamble_insufficient_available_balance" || result.error === "insufficient_available_balance") { messageKey = "gamble.insufficient_balance"; context = { ...context, bet: result.bet || result.amount || 0, available: result.available || result.summary?.available || 0 }; }
+  else if (result.error === "gamble_user_cooldown" || result.error === "gamble_global_cooldown") { messageKey = "gamble.cooldown"; context = { ...context, seconds }; }
+  else if (result.error === "gamble_bet_below_min") { messageKey = "gamble.min_bet"; context = { ...context, minBet: result.minBet || 0 }; }
+  else if (result.error === "gamble_bet_above_max") { messageKey = "gamble.max_bet"; context = { ...context, maxBet: result.maxBet || 0 }; }
+  else messageKey = "gamble.invalid_amount";
+  return { ok: false, handled: true, module: MODULE_NAME, command: "gamble", action: "gamble", message: renderGameText(messageKey, context), messageKey, error: result.error || "gamble_failed", data: result, active: false, commandsActive: false };
+}
+function handleChatCommandRuntime(input = {}) {
+  ensureSchema(); ensureTextsSeeded(); seedCentralCommandDefinitions();
+  const command = String(input.command || input.commandName || input.cmd || "").trim().replace(/^!/, "").toLowerCase();
+  if (command !== "gamble") return { ok: false, handled: false, module: MODULE_NAME, command, error: "unsupported_command" };
+  const central = listCentralCommandDefinitions(); const commandDefinition = (central.commands || []).find(row => row.trigger === "gamble") || null;
+  if (!commandDefinition || !commandDefinition.enabled) return { ok: false, handled: true, module: MODULE_NAME, command, action: "gamble", message: renderGameText("gamble.disabled", { user: commandUser(input).displayName || commandUser(input).login }), messageKey: "gamble.disabled", error: "chat_commands_disabled", data: { commandDefinition }, active: false, commandsActive: false };
+  const user = commandUser(input); const args = commandArgs(input); const result = startGamble({ ...input, login: user.login, displayName: user.displayName, args, source: "chat_runtime" });
+  return buildGambleRuntimeResponse(input, result);
 }
 
 function registerRoutes(app) {
@@ -662,7 +943,14 @@ function registerRoutes(app) {
     "POST /api/loyalty/games/wheel/presets/:presetUid/fields",
     "PUT /api/loyalty/games/wheel/presets/:presetUid/fields/:fieldUid",
     "POST /api/loyalty/games/wheel/presets/:presetUid/fields/:fieldUid/delete",
-    "GET /api/loyalty/games/wheel/spins"
+    "GET /api/loyalty/games/wheel/spins",
+    "GET /api/loyalty/games/gamble/status",
+    "GET /api/loyalty/games/gamble/config",
+    "POST /api/loyalty/games/gamble/play",
+    "POST /api/loyalty/games/runtime/chat-command",
+    "GET /api/loyalty/games/central-commands",
+    "GET /api/loyalty/games/texts",
+    "POST /api/loyalty/games/texts"
   ];
 
   registered.push(...routes.registerGet(app, "/api/loyalty/games/routes", core.asyncRoute(async (req, res) => {
@@ -679,6 +967,15 @@ function registerRoutes(app) {
       gameKey: req.query.gameKey || req.query.game || ""
     }));
   })));
+
+
+  registered.push(...routes.registerGet(app, "/api/loyalty/games/gamble/status", core.asyncRoute(async (req, res) => { core.sendOk(res, gamble ? gamble.getStatus() : { ok: false, error: "gamble_not_loaded" }); })));
+  registered.push(...routes.registerGet(app, "/api/loyalty/games/gamble/config", core.asyncRoute(async (req, res) => { refreshConfigFromSettings(); core.sendOk(res, { game: "gamble", config: gamble ? gamble.getPublicConfig() : (config.games && config.games.gamble ? config.games.gamble : {}) }); })));
+  registered.push(...routes.registerPost(app, "/api/loyalty/games/gamble/play", core.asyncRoute(async (req, res) => { const result = startGamble({ ...(req.body || {}), ...(req.query || {}), source: req.body?.source || req.query?.source || "api" }); if (!result.ok) return core.sendFail(res, result.error || "gamble_failed", result.statusCode || 409, result); core.sendOk(res, result); })));
+  registered.push(...routes.registerPost(app, "/api/loyalty/games/runtime/chat-command", core.asyncRoute(async (req, res) => { core.sendOk(res, handleChatCommandRuntime(req.body || {})); })));
+  registered.push(...routes.registerGet(app, "/api/loyalty/games/central-commands", core.asyncRoute(async (req, res) => { core.sendOk(res, seedCentralCommandDefinitions()); })));
+  registered.push(...routes.registerGet(app, "/api/loyalty/games/texts", core.asyncRoute(async (req, res) => { core.sendOk(res, getChatTextEditorPayload()); })));
+  registered.push(...routes.registerPost(app, "/api/loyalty/games/texts", core.asyncRoute(async (req, res) => { core.sendOk(res, handleChatTextEditorPayload(req.body || {})); })));
 
   registered.push(...routes.registerGet(app, "/api/loyalty/games/wheel/status", core.asyncRoute(async (req, res) => {
     core.sendOk(res, wheel.getStatus());
@@ -811,6 +1108,9 @@ function init(ctx = {}) {
     state.eventBusReady = !!eventBus;
     database.ensureReady(ctx);
     loadConfig();
+    ensureSettingsSeeded(config);
+    refreshConfigFromSettings();
+    ensureTextsSeeded();
 
     presetStore = presetFactory.createPresetStore({
       database,
@@ -840,6 +1140,21 @@ function init(ctx = {}) {
       nowIso: core.nowIso
     });
 
+    gamble = gambleFactory.createGambleGame({
+      hostModule: MODULE_NAME,
+      moduleVersion: MODULE_VERSION,
+      config: config.games && config.games.gamble ? config.games.gamble : DEFAULT_CONFIG.games.gamble,
+      hostEnabled: !!config.enabled,
+      loyalty: loyaltyCore._private || {},
+      db: { insertSession, updateSession, getSession, listSessions },
+      broadcast,
+      emitEvent,
+      renderText: renderGameText,
+      nowIso: core.nowIso
+    });
+
+    seedCentralCommandDefinitions();
+
     if (ctx && ctx.app) registerRoutes(ctx.app);
 
 
@@ -847,7 +1162,7 @@ function init(ctx = {}) {
     const moduleBusStart = moduleBusHandle.start();
     state.eventBusReady = moduleBusStart && moduleBusStart.ok === true;
 
-    console.log(`[${MODULE_NAME}] loaded v${MODULE_VERSION} games=wheel presets=true enabled=${!!config.enabled} communicationBus=${state.eventBusReady ? "ready" : "unavailable"}`);
+    console.log(`[${MODULE_NAME}] loaded v${MODULE_VERSION} games=wheel,gamble presets=true enabled=${!!config.enabled} communicationBus=${state.eventBusReady ? "ready" : "unavailable"}`);
   } catch (err) {
     state.lastError = err && err.message ? err.message : String(err);
     state.schemaReady = false;
@@ -866,6 +1181,10 @@ module.exports = {
     loadConfig,
     ensureSchema,
     emitEvent,
-    startWheelSpin
+    startWheelSpin,
+    startGamble,
+    handleChatCommandRuntime,
+    seedCentralCommandDefinitions,
+    getChatTextEditorPayload
   }
 };

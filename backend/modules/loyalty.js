@@ -3,6 +3,10 @@
 /**
  * Loyalty / Kekskrümel Core
  *
+ * STEP209:
+ * - Zentrale Loyalty-Safety-Schicht: verfuegbare Kekskruemel, Reservierungen, sichere Buchungen und Punkte-Rang
+ * - Points-Commands werden DB-basiert vorbereitet, bleiben aber deaktiviert bis Loyalty-Freigabe
+ *
  * STEP208:
  * - Subscribe/Resub-Kollisionen werden dedupliziert: ein kurz vor einem Resub gebuchter Subscribe wird kompensiert
  *
@@ -31,7 +35,7 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "loyalty";
-const VERSION = "0.1.11";
+const VERSION = "0.1.12";
 const MODULE_VERSION = VERSION;
 const MODULE_META = {
   name: MODULE_NAME,
@@ -41,15 +45,84 @@ const MODULE_META = {
   legacy: false,
   routesPrefix: ["/api/loyalty"],
   bus: {
-    publishes: ["loyalty.status", "loyalty.event"],
+    publishes: ["loyalty.status", "loyalty.event", "loyalty.points.balance.checked", "loyalty.points.transaction.created", "loyalty.points.reservation.created", "loyalty.points.reservation.released", "loyalty.points.reservation.committed"],
     consumes: ["stream.status"]
   },
   description: "Loyalty/Kekskruemel runtime, points, events and auto-runner"
 };
 const CONFIG_FILE = "loyalty.json";
 const SCHEMA_MODULE = "loyalty";
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 const SETTINGS_TABLE = "loyalty_settings";
+
+const POINTS_TEXT_MODULE = MODULE_NAME;
+
+const CENTRAL_COMMAND_DEFINITIONS = [
+  {
+    trigger: "punkte",
+    aliases: ["points"],
+    moduleKey: MODULE_NAME,
+    actionKey: "points_chat_command_runtime",
+    targetMethod: "POST",
+    targetUrl: "/api/loyalty/runtime/points-command",
+    enabled: false,
+    permissionLevel: "everyone",
+    cooldownGlobalMs: 1000,
+    cooldownUserMs: 5000,
+    liveOnly: false,
+    responseMode: "module",
+    config: {
+      seededBy: "STEP209",
+      actionType: "module_command",
+      moduleCommand: "punkte",
+      rawInputMode: true,
+      activationState: "prepared_disabled",
+      note: "Ohne Zieluser fuer alle; @user-Abfrage wird in der Runtime erst ab Mod/Broadcaster erlaubt."
+    }
+  },
+  {
+    trigger: "givepoints",
+    aliases: [],
+    moduleKey: MODULE_NAME,
+    actionKey: "points_chat_command_runtime",
+    targetMethod: "POST",
+    targetUrl: "/api/loyalty/runtime/points-command",
+    enabled: false,
+    permissionLevel: "mod",
+    cooldownGlobalMs: 1000,
+    cooldownUserMs: 2500,
+    liveOnly: false,
+    responseMode: "module",
+    config: {
+      seededBy: "STEP209",
+      actionType: "module_command",
+      moduleCommand: "givepoints",
+      rawInputMode: true,
+      activationState: "prepared_disabled"
+    }
+  },
+  {
+    trigger: "setpoint",
+    aliases: [],
+    moduleKey: MODULE_NAME,
+    actionKey: "points_chat_command_runtime",
+    targetMethod: "POST",
+    targetUrl: "/api/loyalty/runtime/points-command",
+    enabled: false,
+    permissionLevel: "streamer",
+    cooldownGlobalMs: 1000,
+    cooldownUserMs: 2500,
+    liveOnly: false,
+    responseMode: "module",
+    config: {
+      seededBy: "STEP209",
+      actionType: "module_command",
+      moduleCommand: "setpoint",
+      rawInputMode: true,
+      activationState: "prepared_disabled"
+    }
+  }
+];
 
 const DEFAULT_CONFIG = {
   enabled: true,
@@ -153,6 +226,47 @@ const DEFAULT_TEXTS = {
   ],
   error_invalid_amount: [
     "Bitte eine gültige Punktzahl angeben."
+  ],
+  "points.self": [
+    "{user}, die Heimleitung hat nachgezählt: {available} verfügbare {currencyName}. Platz {rank} von {rankTotal}.",
+    "{user}, deine Keksdose klimpert mit {available} verfügbaren {currencyName}. Damit liegst du auf Platz {rank}/{rankTotal}.",
+    "{user}, laut Rentnerkasse hast du {available} verfügbare {currencyName}. Die Heimleitung führt dich auf Platz {rank} von {rankTotal}."
+  ],
+  "points.self_unranked": [
+    "{user}, die Keksdose ist noch leer: {available} verfügbare {currencyName}. Für die Rangliste braucht es mindestens einen Krümel.",
+    "{user}, die Heimleitung findet aktuell {available} verfügbare {currencyName}. Noch kein Rang in der Krümel-Liga."
+  ],
+  "points.other": [
+    "{actor}, die Heimleitung meldet: {target} hat {available} verfügbare {currencyName} und steht auf Platz {rank} von {rankTotal}.",
+    "{target} hat {available} verfügbare {currencyName}. Die Rentnerkasse führt Platz {rank}/{rankTotal}."
+  ],
+  "points.permission_denied": [
+    "{user}, fremde Keksdosen öffnet nur die Heimleitung. Dafür brauchst du mindestens Mod-Rechte.",
+    "{user}, die Rentnerkasse bleibt zu. @User-Abfragen sind erst ab Mod erlaubt."
+  ],
+  "points.user_not_found": [
+    "{user}, die Heimleitung findet diesen Namen nicht in der Keksdose.",
+    "{user}, dieser User steht noch nicht im Krümel-Register."
+  ],
+  "points.disabled": [
+    "{user}, das Kekskrümel-System ist vorbereitet, aber die Heimleitung hat den Schalter noch nicht freigegeben.",
+    "{user}, die Keksdose ist noch im Verwaltungsmodus. Punkte-Commands sind noch deaktiviert."
+  ],
+  "points.give_success": [
+    "{target} bekommt {amount} {currencyName} von der Heimleitung. Neuer verfügbarer Stand: {available}.",
+    "Die Rentnerkasse bucht {target} {amount} {currencyName} gut. Verfügbar jetzt: {available}."
+  ],
+  "points.set_success": [
+    "Die Heimleitung hat {target} auf {targetBalance} {currencyName} gesetzt. Verfügbar: {available}.",
+    "Rentnerkasse korrigiert: {target} steht jetzt bei {targetBalance} {currencyName}. Verfügbar: {available}."
+  ],
+  "points.invalid_amount": [
+    "{user}, diese Punktzahl bringt die Rentnerkasse durcheinander.",
+    "{user}, bitte eine gültige Anzahl Kekskrümel angeben."
+  ],
+  "points.insufficient_balance": [
+    "{user}, dafür reichen die verfügbaren Kekskrümel nicht. Verfügbar: {available}, benötigt: {amount}.",
+    "{user}, die Heimleitung winkt ab: {amount} gebraucht, {available} verfügbar."
   ]
 };
 
@@ -233,7 +347,25 @@ const TEXT_CATEGORIES = {
   adjusted_reply: "chat",
   ignored_user_reply: "chat",
   error_user_required: "errors",
-  error_invalid_amount: "errors"
+  error_invalid_amount: "errors",
+  "points.self": "chat_points",
+  "points.self_unranked": "chat_points",
+  "points.other": "chat_points",
+  "points.permission_denied": "chat_points",
+  "points.user_not_found": "chat_points",
+  "points.disabled": "chat_points",
+  "points.give_success": "chat_admin",
+  "points.set_success": "chat_admin",
+  "points.invalid_amount": "chat_errors",
+  "points.insufficient_balance": "chat_errors"
+};
+
+const TEXT_CATEGORY_LABELS = {
+  chat: "Chat · Allgemein",
+  errors: "Fehler",
+  chat_points: "Chat · Punkte",
+  chat_admin: "Chat · Punkteverwaltung",
+  chat_errors: "Chat · Punkte-Fehler"
 };
 
 let state = {
@@ -457,6 +589,7 @@ function ensureTextsSeeded() {
     if (typeof textHelper.seedModuleTextVariants === "function") {
       const result = textHelper.seedModuleTextVariants(MODULE_NAME, DEFAULT_TEXTS, {
         categories: TEXT_CATEGORIES,
+        categoryLabels: TEXT_CATEGORY_LABELS,
         defaultCategory: "chat",
         source: "seed"
       });
@@ -930,6 +1063,358 @@ function listTransactions(options = {}) {
   };
 }
 
+
+function emitLoyaltyEvent(type, payload = {}, options = {}) {
+  const event = {
+    type,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    event: "loyalty.event",
+    createdAt: core.nowIso(),
+    payload
+  };
+  try {
+    const communicationBus = require("./communication_bus");
+    const bus = communicationBus && typeof communicationBus.getBus === "function" ? communicationBus.getBus() : null;
+    if (bus && typeof bus.emit === "function") {
+      bus.emit(type, event, {
+        replayable: options.replayable === true,
+        ttlMs: Number(options.ttlMs || 0) || undefined
+      });
+      return { ok: true, delivered: true, mode: "communication_bus" };
+    }
+  } catch (err) {
+    state.lastError = err && err.message ? err.message : String(err);
+  }
+  return { ok: false, delivered: false, reason: state.lastError || "communication_bus_unavailable" };
+}
+
+function ensureReservationSafetySchema() {
+  ensureSchema();
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS loyalty_reservations (
+      id ${database.primaryKeyAutoIncrementSql()},
+      reservation_uid TEXT NOT NULL UNIQUE,
+      user_login TEXT NOT NULL,
+      user_display_name TEXT NOT NULL DEFAULT '',
+      amount INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'held',
+      mode TEXT NOT NULL DEFAULT 'shadow',
+      source_module TEXT NOT NULL DEFAULT 'loyalty',
+      source_provider TEXT NOT NULL DEFAULT 'stream_control_center',
+      reference_type TEXT NOT NULL DEFAULT '',
+      reference_id TEXT NOT NULL DEFAULT '',
+      reason TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      expires_at TEXT NOT NULL DEFAULT '',
+      metadata_json TEXT NOT NULL DEFAULT '{}'
+    );
+  `);
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_reservations_user ON loyalty_reservations(user_login);`);
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_reservations_status ON loyalty_reservations(status);`);
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_reservations_mode ON loyalty_reservations(mode);`);
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_reservations_expires ON loyalty_reservations(expires_at);`);
+}
+
+function expireHeldReservations(now = core.nowIso()) {
+  ensureReservationSafetySchema();
+  database.run(`
+    UPDATE loyalty_reservations
+    SET status = 'expired', updated_at = :updatedAt
+    WHERE status = 'held'
+      AND expires_at != ''
+      AND expires_at <= :now
+  `, { now, updatedAt: now });
+}
+
+function rowToReservation(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    uid: row.reservation_uid,
+    login: row.user_login,
+    displayName: row.user_display_name || row.user_login,
+    amount: Number(row.amount || 0),
+    status: row.status || "held",
+    mode: row.mode || "shadow",
+    sourceModule: row.source_module || "loyalty",
+    sourceProvider: row.source_provider || "stream_control_center",
+    referenceType: row.reference_type || "",
+    referenceId: row.reference_id || "",
+    reason: row.reason || "",
+    createdAt: row.created_at || "",
+    updatedAt: row.updated_at || "",
+    expiresAt: row.expires_at || "",
+    metadata: core.safeJsonParse(row.metadata_json, {})
+  };
+}
+
+function getReservation(reservationUid) {
+  ensureReservationSafetySchema();
+  const uidValue = String(reservationUid || "").trim();
+  if (!uidValue) return null;
+  return rowToReservation(database.get("SELECT * FROM loyalty_reservations WHERE reservation_uid = :uid", { uid: uidValue }));
+}
+
+function getReservedAmount(login, options = {}) {
+  const normalized = normalizeLogin(login);
+  if (!normalized) return 0;
+  refreshConfigFromSettings();
+  ensureReservationSafetySchema();
+  const mode = normalizeMode(options.mode || config.mode);
+  const now = core.nowIso();
+  expireHeldReservations(now);
+  const row = database.get(`
+    SELECT COALESCE(SUM(amount), 0) AS amount
+    FROM loyalty_reservations
+    WHERE user_login = :login
+      AND mode = :mode
+      AND status = 'held'
+      AND (expires_at = '' OR expires_at > :now)
+  `, { login: normalized, mode, now });
+  return Math.max(0, Number(row && row.amount || 0));
+}
+
+function getBalanceSummary(login, options = {}) {
+  refreshConfigFromSettings();
+  const normalized = normalizeLogin(login || options.userLogin || "");
+  if (!normalized) throw new Error("user_login_required");
+  ensureReservationSafetySchema();
+  const displayName = cleanDisplayName(normalized, options.displayName || options.userDisplayName || normalized);
+  const user = options.create === false ? getUser(normalized) : ensureUser(normalized, displayName);
+  const mode = normalizeMode(options.mode || config.mode);
+  const field = modeBalanceField(mode);
+  const activeBalance = user ? Number(user[field === "balance_live" ? "balanceLive" : "balanceShadow"] || 0) : 0;
+  const reserved = getReservedAmount(normalized, { mode });
+  const available = Math.max(0, activeBalance - reserved);
+  return {
+    ok: true,
+    login: normalized,
+    displayName: user ? (user.displayName || displayName) : displayName,
+    mode,
+    currencyName: config.currency && config.currency.name || "Kekskrümel",
+    balance: activeBalance,
+    reserved,
+    available,
+    user: user || null,
+    ignored: isIgnoredUser(normalized)
+  };
+}
+
+
+function getAvailableBalance(login, options = {}) {
+  const summary = getBalanceSummary(login, options);
+  return {
+    ok: true,
+    login: summary.login,
+    displayName: summary.displayName,
+    mode: summary.mode,
+    currencyName: summary.currencyName,
+    balance: summary.balance,
+    reserved: summary.reserved,
+    available: summary.available,
+    summary
+  };
+}
+
+function listAvailableRankings(options = {}) {
+  refreshConfigFromSettings();
+  ensureReservationSafetySchema();
+  const mode = normalizeMode(options.mode || config.mode);
+  const field = modeBalanceField(mode);
+  const now = core.nowIso();
+  expireHeldReservations(now);
+  const rows = database.all(`
+    SELECT
+      u.user_login,
+      u.user_display_name,
+      u.${database.quoteIdentifier(field)} AS balance,
+      COALESCE((
+        SELECT SUM(r.amount)
+        FROM loyalty_reservations r
+        WHERE r.user_login = u.user_login
+          AND r.mode = :mode
+          AND r.status = 'held'
+          AND (r.expires_at = '' OR r.expires_at > :now)
+      ), 0) AS reserved_amount
+    FROM loyalty_users u
+    WHERE NOT EXISTS (
+      SELECT 1 FROM loyalty_ignored_users i
+      WHERE i.user_login = u.user_login AND i.enabled = 1
+    )
+  `, { mode, now }).map(row => {
+    const balance = Number(row.balance || 0);
+    const reserved = Math.max(0, Number(row.reserved_amount || 0));
+    return {
+      login: row.user_login,
+      displayName: row.user_display_name || row.user_login,
+      balance,
+      reserved,
+      available: Math.max(0, balance - reserved)
+    };
+  }).filter(row => options.includeZero === true || row.available > 0)
+    .sort((a, b) => b.available - a.available || String(a.login).localeCompare(String(b.login)));
+
+  return rows.map((row, index) => ({ ...row, rank: index + 1, rankTotal: rows.length }));
+}
+
+function getAvailableRank(login, options = {}) {
+  const normalized = normalizeLogin(login);
+  if (!normalized) return { rank: null, rankTotal: 0 };
+  const rows = listAvailableRankings(options);
+  const row = rows.find(item => item.login === normalized);
+  return { rank: row ? row.rank : null, rankTotal: rows.length, row: row || null };
+}
+
+function canAfford(input = {}) {
+  const amount = Math.floor(Number(input.amount || 0));
+  if (!Number.isFinite(amount) || amount <= 0) return { ok: false, canAfford: false, reason: "invalid_amount", amount: input.amount };
+  const summary = getBalanceSummary(input.login || input.userLogin || input.user, input);
+  const allowed = summary.available >= amount;
+  return {
+    ok: true,
+    canAfford: allowed,
+    reason: allowed ? "ok" : "insufficient_available_balance",
+    amount,
+    balance: summary.balance,
+    reserved: summary.reserved,
+    available: summary.available,
+    missing: allowed ? 0 : amount - summary.available,
+    summary
+  };
+}
+
+function spendPointsSafely(input = {}) {
+  const amount = Math.floor(Number(input.amount || 0));
+  const affordability = canAfford({ ...input, amount });
+  if (!affordability.ok || !affordability.canAfford) {
+    return { ok: false, error: affordability.reason || "insufficient_available_balance", ...affordability };
+  }
+  const result = recordTransaction({
+    ...input,
+    amount: -amount,
+    type: input.type || "spend",
+    reason: input.reason || "safe_spend",
+    sourceModule: input.sourceModule || MODULE_NAME,
+    sourceProvider: input.sourceProvider || "stream_control_center",
+    metadata: { ...(input.metadata || {}), safety: { availableBefore: affordability.available, reservedBefore: affordability.reserved } }
+  });
+  emitLoyaltyEvent("loyalty.points.transaction.created", { kind: "spend", amount, result }, { replayable: true, ttlMs: 60000 });
+  return { ok: true, amount, affordability, transaction: result.transaction, user: result.user };
+}
+
+function awardPoints(input = {}) {
+  const amount = Math.floor(Number(input.amount || 0));
+  if (!Number.isFinite(amount) || amount <= 0) return { ok: false, error: "invalid_amount", amount: input.amount };
+  const result = recordTransaction({
+    ...input,
+    amount,
+    type: input.type || "award",
+    reason: input.reason || "award_points",
+    sourceModule: input.sourceModule || MODULE_NAME,
+    sourceProvider: input.sourceProvider || "stream_control_center"
+  });
+  emitLoyaltyEvent("loyalty.points.transaction.created", { kind: "award", amount, result }, { replayable: true, ttlMs: 60000 });
+  return { ok: true, amount, transaction: result.transaction, user: result.user };
+}
+
+function reservePoints(input = {}) {
+  const amount = Math.floor(Number(input.amount || 0));
+  const affordability = canAfford({ ...input, amount });
+  if (!affordability.ok || !affordability.canAfford) {
+    return { ok: false, error: affordability.reason || "insufficient_available_balance", ...affordability };
+  }
+  const login = normalizeLogin(input.login || input.userLogin || input.user);
+  const displayName = cleanDisplayName(login, input.displayName || input.userDisplayName || login);
+  const mode = normalizeMode(input.mode || config.mode);
+  const now = core.nowIso();
+  const reservationUid = String(input.reservationUid || uid("loyalty_res"));
+  database.run(`
+    INSERT INTO loyalty_reservations (
+      reservation_uid, user_login, user_display_name, amount, status, mode,
+      source_module, source_provider, reference_type, reference_id, reason,
+      created_at, updated_at, expires_at, metadata_json
+    ) VALUES (
+      :reservationUid, :login, :displayName, :amount, 'held', :mode,
+      :sourceModule, :sourceProvider, :referenceType, :referenceId, :reason,
+      :createdAt, :updatedAt, :expiresAt, :metadataJson
+    )
+  `, {
+    reservationUid,
+    login,
+    displayName,
+    amount,
+    mode,
+    sourceModule: String(input.sourceModule || MODULE_NAME),
+    sourceProvider: String(input.sourceProvider || "stream_control_center"),
+    referenceType: String(input.referenceType || ""),
+    referenceId: String(input.referenceId || ""),
+    reason: String(input.reason || "reserve_points"),
+    createdAt: now,
+    updatedAt: now,
+    expiresAt: String(input.expiresAt || input.expires_at || ""),
+    metadataJson: JSON.stringify(input.metadata && typeof input.metadata === "object" ? input.metadata : {})
+  });
+  const reservation = getReservation(reservationUid);
+  emitLoyaltyEvent("loyalty.points.reservation.created", { reservation }, { replayable: true, ttlMs: 60000 });
+  return { ok: true, reservation, affordability };
+}
+
+function releaseReservation(reservationUid, options = {}) {
+  ensureReservationSafetySchema();
+  const reservation = getReservation(reservationUid);
+  if (!reservation) return { ok: false, error: "reservation_not_found" };
+  if (reservation.status !== "held") return { ok: true, skipped: true, reason: "reservation_not_held", reservation };
+  const now = core.nowIso();
+  database.run(`
+    UPDATE loyalty_reservations
+    SET status = :status, updated_at = :updatedAt,
+        reason = CASE WHEN :reason = '' THEN reason ELSE :reason END
+    WHERE reservation_uid = :uid
+  `, {
+    uid: reservation.uid,
+    status: options.status || "released",
+    updatedAt: now,
+    reason: String(options.reason || "")
+  });
+  const updated = getReservation(reservation.uid);
+  emitLoyaltyEvent("loyalty.points.reservation.released", { reservation: updated }, { replayable: true, ttlMs: 60000 });
+  return { ok: true, reservation: updated };
+}
+
+function commitReservation(reservationUid, options = {}) {
+  const reservation = getReservation(reservationUid);
+  if (!reservation) return { ok: false, error: "reservation_not_found" };
+  if (reservation.status !== "held") return { ok: true, skipped: true, reason: "reservation_not_held", reservation };
+  const summary = getBalanceSummary(reservation.login, { mode: reservation.mode, create: false });
+  if (summary.balance < reservation.amount) {
+    return { ok: false, error: "balance_below_reserved_amount", balance: summary.balance, reserved: reservation.amount, reservation };
+  }
+  const spend = recordTransaction({
+    login: reservation.login,
+    displayName: reservation.displayName,
+    amount: -reservation.amount,
+    type: options.type || "reservation_commit",
+    reason: options.reason || reservation.reason || "commit_reservation",
+    mode: reservation.mode,
+    sourceModule: options.sourceModule || reservation.sourceModule || MODULE_NAME,
+    sourceProvider: options.sourceProvider || reservation.sourceProvider || "stream_control_center",
+    referenceType: options.referenceType || reservation.referenceType || "reservation",
+    referenceId: options.referenceId || reservation.uid,
+    metadata: { ...(reservation.metadata || {}), ...(options.metadata || {}), reservationUid: reservation.uid }
+  });
+  const now = core.nowIso();
+  database.run(`
+    UPDATE loyalty_reservations
+    SET status = 'committed', updated_at = :updatedAt
+    WHERE reservation_uid = :uid
+  `, { uid: reservation.uid, updatedAt: now });
+  const updated = getReservation(reservation.uid);
+  emitLoyaltyEvent("loyalty.points.reservation.committed", { reservation: updated, transaction: spend.transaction }, { replayable: true, ttlMs: 60000 });
+  return { ok: true, reservation: updated, transaction: spend.transaction, user: spend.user };
+}
+
 function recordTransaction(input = {}) {
   refreshConfigFromSettings();
   const mode = normalizeMode(input.mode || config.mode);
@@ -1278,6 +1763,354 @@ function listWatchStates(options = {}) {
     LIMIT :limit
   `, { limit }).map(rowToWatchState);
   return { ok: true, count: rows.length, rows };
+}
+
+
+function sanitizeRuntimeChatMessage(value, maxLength = 450) {
+  const clean = String(value || "").replace(/[\r\n]+/g, " ").replace(/\s+/g, " ").trim();
+  const limit = Math.max(40, Math.min(500, Number.parseInt(maxLength, 10) || 450));
+  return clean.length > limit ? clean.slice(0, limit - 1).trimEnd() + "…" : clean;
+}
+
+function renderLoyaltyText(key, context = {}, options = {}) {
+  ensureTextsSeeded();
+  try {
+    const message = textHelper.renderModuleText(POINTS_TEXT_MODULE, key, DEFAULT_TEXTS, context, {
+      categories: TEXT_CATEGORIES,
+      categoryLabels: TEXT_CATEGORY_LABELS,
+      ...options
+    });
+    return sanitizeRuntimeChatMessage(message, options.maxLength || options.max || 450);
+  } catch (_) {
+    const fallback = Array.isArray(DEFAULT_TEXTS[key]) ? DEFAULT_TEXTS[key][0] : "";
+    return sanitizeRuntimeChatMessage(Object.entries(context || {}).reduce((text, [name, value]) => {
+      return text.replace(new RegExp(`\\{${name}\\}`, "g"), String(value ?? ""));
+    }, fallback), options.maxLength || options.max || 450);
+  }
+}
+
+function safeParseJson(value, fallback = null) {
+  if (value === undefined || value === null || value === "") return fallback;
+  try { return JSON.parse(String(value)); } catch (_) { return fallback; }
+}
+
+function commandSystemTableAvailable() {
+  try {
+    ensureSchema();
+    if (typeof database.tableExists === "function") return database.tableExists("command_definitions");
+    const row = database.get("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'command_definitions'");
+    return !!row;
+  } catch (_) {
+    return false;
+  }
+}
+
+function rowToCentralCommand(row) {
+  if (!row) return null;
+  return {
+    id: Number(row.id || 0),
+    trigger: row.trigger || "",
+    aliases: safeParseJson(row.aliases_json, []),
+    moduleKey: row.module_key || "",
+    actionKey: row.action_key || "",
+    targetMethod: row.target_method || "POST",
+    targetUrl: row.target_url || "",
+    enabled: Number(row.enabled || 0) === 1,
+    permissionLevel: row.permission_level || "everyone",
+    cooldownGlobalMs: Number(row.cooldown_global_ms || 0),
+    cooldownUserMs: Number(row.cooldown_user_ms || 0),
+    liveOnly: Number(row.live_only || 0) === 1,
+    responseMode: row.response_mode || "module",
+    config: safeParseJson(row.config_json, {}),
+    createdAt: row.created_at || "",
+    updatedAt: row.updated_at || ""
+  };
+}
+
+function seedCentralCommandDefinitions() {
+  ensureSchema();
+  if (!commandSystemTableAvailable()) {
+    return { ok: false, available: false, inserted: 0, existing: 0, count: 0, commands: [], warning: "Zentrales command_definitions-System ist noch nicht verfuegbar." };
+  }
+  const now = core.nowIso();
+  let inserted = 0;
+  let existing = 0;
+  for (const definition of CENTRAL_COMMAND_DEFINITIONS) {
+    const current = database.get("SELECT id FROM command_definitions WHERE trigger = :trigger", { trigger: definition.trigger });
+    if (current && current.id) { existing += 1; continue; }
+    const result = database.run(`
+      INSERT INTO command_definitions (
+        trigger, aliases_json, module_key, action_key, target_method, target_url,
+        enabled, permission_level, cooldown_global_ms, cooldown_user_ms, live_only,
+        response_mode, config_json, created_at, updated_at
+      ) VALUES (
+        :trigger, :aliasesJson, :moduleKey, :actionKey, :targetMethod, :targetUrl,
+        :enabled, :permissionLevel, :cooldownGlobalMs, :cooldownUserMs, :liveOnly,
+        :responseMode, :configJson, :createdAt, :updatedAt
+      )
+    `, {
+      trigger: definition.trigger,
+      aliasesJson: JSON.stringify(definition.aliases || []),
+      moduleKey: definition.moduleKey || MODULE_NAME,
+      actionKey: definition.actionKey || "points_chat_command_runtime",
+      targetMethod: definition.targetMethod || "POST",
+      targetUrl: definition.targetUrl || "/api/loyalty/runtime/points-command",
+      enabled: definition.enabled ? 1 : 0,
+      permissionLevel: definition.permissionLevel || "everyone",
+      cooldownGlobalMs: Math.max(0, Number(definition.cooldownGlobalMs || 0)),
+      cooldownUserMs: Math.max(0, Number(definition.cooldownUserMs || 0)),
+      liveOnly: definition.liveOnly ? 1 : 0,
+      responseMode: definition.responseMode || "module",
+      configJson: JSON.stringify(definition.config || {}),
+      createdAt: now,
+      updatedAt: now
+    });
+    inserted += Number(result && result.changes ? result.changes : 0);
+  }
+  return listCentralCommandDefinitions({ inserted, existing });
+}
+
+function listCentralCommandDefinitions(extra = {}) {
+  ensureSchema();
+  if (!commandSystemTableAvailable()) {
+    return { ok: false, available: false, inserted: Number(extra.inserted || 0), existing: Number(extra.existing || 0), count: 0, commands: [], warning: "Zentrales command_definitions-System ist noch nicht verfuegbar." };
+  }
+  const triggers = CENTRAL_COMMAND_DEFINITIONS.map(item => item.trigger);
+  const rows = database.all(`
+    SELECT *
+    FROM command_definitions
+    WHERE trigger IN (${triggers.map((_, index) => `:trigger${index}`).join(", ")})
+    ORDER BY trigger ASC
+  `, triggers.reduce((acc, trigger, index) => { acc[`trigger${index}`] = trigger; return acc; }, {})).map(rowToCentralCommand);
+  return {
+    ok: true,
+    available: true,
+    active: rows.some(command => command && command.enabled),
+    commandsActive: rows.some(command => command && command.enabled),
+    inserted: Number(extra.inserted || 0),
+    existing: Number(extra.existing || Math.max(0, rows.length - Number(extra.inserted || 0))),
+    count: rows.length,
+    commands: rows,
+    note: "Punkte-Commands !punkte/!points, !givepoints und !setpoint sind vorbereitet und bleiben deaktiviert bis Loyalty-Freigabe."
+  };
+}
+
+function getChatTextEditorPayload() {
+  ensureSchema();
+  ensureTextsSeeded();
+  return textHelper.listModuleTextEditor(POINTS_TEXT_MODULE, DEFAULT_TEXTS, { categories: TEXT_CATEGORIES, categoryLabels: TEXT_CATEGORY_LABELS });
+}
+
+function handleChatTextEditorPayload(payload = {}) {
+  ensureSchema();
+  ensureTextsSeeded();
+  return textHelper.handleModuleTextEditorPayload(POINTS_TEXT_MODULE, payload || {}, { categories: TEXT_CATEGORIES, categoryLabels: TEXT_CATEGORY_LABELS });
+}
+
+function normalizeCommandLogin(value) {
+  return String(value || "").trim().replace(/^@/, "").toLowerCase();
+}
+
+function commandArgs(input = {}) {
+  if (Array.isArray(input.args)) return input.args.map(item => String(item || "").trim()).filter(Boolean);
+  const raw = String(input.argText || input.rawArgs || input.text || input.message || "").trim();
+  return raw ? raw.split(/\s+/).filter(Boolean) : [];
+}
+
+function commandUser(input = {}) {
+  const login = normalizeCommandLogin(input.userLogin || input.login || input.username || input.user || input.actorLogin || "");
+  const displayName = String(input.userDisplayName || input.displayName || input.username || input.user || login).trim() || login;
+  const badges = input.badges && typeof input.badges === "object" ? input.badges : {};
+  const roles = input.roles && typeof input.roles === "object" ? input.roles : {};
+  const isBroadcaster = input.isBroadcaster === true || roles.broadcaster === true || roles.streamer === true || !!badges.broadcaster;
+  const isMod = input.isMod === true || input.isModerator === true || roles.mod === true || roles.moderator === true || !!badges.moderator || isBroadcaster;
+  return { login, displayName, isBroadcaster, isMod };
+}
+
+function buildCommandRuntimeResponse(input = {}, patch = {}) {
+  const user = commandUser(input);
+  const context = {
+    user: user.displayName || user.login,
+    actor: user.displayName || user.login,
+    currencyName: config.currency && config.currency.name || "Kekskrümel",
+    ...(patch.context || {})
+  };
+  const key = patch.messageKey || "";
+  const message = key ? renderLoyaltyText(key, context, { maxLength: 450 }) : "";
+  return {
+    ok: patch.ok !== false,
+    handled: patch.handled !== false,
+    module: MODULE_NAME,
+    command: String(input.command || input.cmd || "").replace(/^!/, "").toLowerCase(),
+    action: patch.action || "points",
+    message,
+    messageKey: key,
+    error: patch.error || "",
+    data: patch.data || {},
+    active: patch.active === true,
+    commandsActive: patch.commandsActive === true,
+    context
+  };
+}
+
+function parsePositiveInt(value) {
+  const raw = String(value || "").trim().replace(/[^0-9]/g, "");
+  if (!raw) return 0;
+  const amount = Number.parseInt(raw, 10);
+  return Number.isFinite(amount) ? amount : 0;
+}
+
+function handlePointsCommandRuntime(input = {}) {
+  refreshConfigFromSettings();
+  ensureSchema();
+  ensureTextsSeeded();
+  seedCentralCommandDefinitions();
+  const actor = commandUser(input);
+  const args = commandArgs(input);
+  const command = String(input.command || input.commandName || input.cmd || "punkte").trim().replace(/^!/, "").toLowerCase();
+  const centralCommands = listCentralCommandDefinitions();
+  const commandDefinition = (centralCommands.commands || []).find(row => row.trigger === command || (row.aliases || []).includes(command)) || null;
+  const commandEnabled = !!(commandDefinition && commandDefinition.enabled);
+
+  if (!commandEnabled) {
+    return buildCommandRuntimeResponse({ ...input, command }, {
+      ok: false,
+      active: false,
+      commandsActive: false,
+      action: "points",
+      messageKey: "points.disabled",
+      error: "chat_commands_disabled",
+      data: { commandDefinition }
+    });
+  }
+
+  if (command === "givepoints") return handleGivePointsCommandRuntime({ ...input, args, command, actor, commandDefinition });
+  if (command === "setpoint") return handleSetPointCommandRuntime({ ...input, args, command, actor, commandDefinition });
+
+  if (args[0] && ["give", "geben", "add"].includes(args[0].toLowerCase())) {
+    return handleGivePointsCommandRuntime({ ...input, args: args.slice(1), command: "punkte", actor, commandDefinition });
+  }
+  if (args[0] && ["set", "setzen"].includes(args[0].toLowerCase())) {
+    return handleSetPointCommandRuntime({ ...input, args: args.slice(1), command: "punkte", actor, commandDefinition });
+  }
+
+  const targetRaw = args[0] && args[0].startsWith("@") ? args[0] : "";
+  const targetLogin = normalizeCommandLogin(targetRaw || actor.login);
+  const isOther = !!targetRaw && targetLogin !== actor.login;
+  if (isOther && !actor.isMod) {
+    return buildCommandRuntimeResponse({ ...input, command }, {
+      ok: false,
+      action: "points",
+      messageKey: "points.permission_denied",
+      error: "permission_denied",
+      data: { targetLogin }
+    });
+  }
+  const summary = getBalanceSummary(targetLogin, { displayName: isOther ? targetLogin : actor.displayName, create: !isOther });
+  if (isOther && !summary.user) {
+    return buildCommandRuntimeResponse({ ...input, command }, { ok: false, action: "points", messageKey: "points.user_not_found", error: "user_not_found", data: { targetLogin } });
+  }
+  const rank = getAvailableRank(targetLogin, { includeZero: false, mode: summary.mode });
+  const context = {
+    target: summary.displayName || targetLogin,
+    points: summary.available,
+    available: summary.available,
+    balance: summary.balance,
+    reserved: summary.reserved,
+    rank: rank.rank || "-",
+    rankTotal: rank.rankTotal || 0,
+    currencyName: summary.currencyName
+  };
+  emitLoyaltyEvent("loyalty.points.balance.checked", { login: targetLogin, actor: actor.login, summary, rank }, { ttlMs: 15000 });
+  return buildCommandRuntimeResponse({ ...input, command }, {
+    ok: true,
+    active: true,
+    commandsActive: true,
+    action: "points_balance",
+    messageKey: isOther ? "points.other" : (rank.rank ? "points.self" : "points.self_unranked"),
+    context,
+    data: { summary, rank, commandDefinition }
+  });
+}
+
+function handleGivePointsCommandRuntime(input = {}) {
+  const actor = input.actor || commandUser(input);
+  if (!actor.isMod) {
+    return buildCommandRuntimeResponse(input, { ok: false, action: "points_give", messageKey: "points.permission_denied", error: "permission_denied" });
+  }
+  const args = Array.isArray(input.args) ? input.args : commandArgs(input);
+  const targetLogin = normalizeCommandLogin(args[0]);
+  const amount = parsePositiveInt(args[1]);
+  if (!targetLogin) return buildCommandRuntimeResponse(input, { ok: false, action: "points_give", messageKey: "points.user_not_found", error: "user_required" });
+  if (!amount) return buildCommandRuntimeResponse(input, { ok: false, action: "points_give", messageKey: "points.invalid_amount", error: "invalid_amount" });
+  const result = awardPoints({
+    login: targetLogin,
+    displayName: targetLogin,
+    amount,
+    type: "points_admin_give",
+    reason: "chat_givepoints",
+    sourceModule: MODULE_NAME,
+    sourceProvider: "chat_command",
+    referenceType: "chat_command",
+    referenceId: `givepoints:${actor.login}:${core.nowIso()}`,
+    metadata: { actorLogin: actor.login, actorDisplayName: actor.displayName, command: input.command || "givepoints" }
+  });
+  const summary = getBalanceSummary(targetLogin, { create: false });
+  const rank = getAvailableRank(targetLogin, { includeZero: false, mode: summary.mode });
+  return buildCommandRuntimeResponse(input, {
+    ok: true,
+    active: true,
+    commandsActive: true,
+    action: "points_give",
+    messageKey: "points.give_success",
+    context: { target: summary.displayName || targetLogin, amount, available: summary.available, balance: summary.balance, reserved: summary.reserved, rank: rank.rank || "-", rankTotal: rank.rankTotal || 0, currencyName: summary.currencyName },
+    data: { result, summary, rank }
+  });
+}
+
+function handleSetPointCommandRuntime(input = {}) {
+  const actor = input.actor || commandUser(input);
+  if (!actor.isBroadcaster) {
+    return buildCommandRuntimeResponse(input, { ok: false, action: "points_set", messageKey: "points.permission_denied", error: "permission_denied" });
+  }
+  const args = Array.isArray(input.args) ? input.args : commandArgs(input);
+  const targetLogin = normalizeCommandLogin(args[0]);
+  const targetBalance = parsePositiveInt(args[1]);
+  if (!targetLogin) return buildCommandRuntimeResponse(input, { ok: false, action: "points_set", messageKey: "points.user_not_found", error: "user_required" });
+  if (!Number.isFinite(targetBalance) || targetBalance < 0) return buildCommandRuntimeResponse(input, { ok: false, action: "points_set", messageKey: "points.invalid_amount", error: "invalid_amount" });
+  const before = getBalanceSummary(targetLogin, { displayName: targetLogin, create: true });
+  if (targetBalance < before.reserved) {
+    return buildCommandRuntimeResponse(input, { ok: false, action: "points_set", messageKey: "points.insufficient_balance", error: "target_below_reserved", context: { amount: before.reserved, available: before.available }, data: { before, targetBalance } });
+  }
+  const diff = targetBalance - before.balance;
+  let result = { ok: true, skipped: true, reason: "already_target_balance", transaction: null, user: before.user };
+  if (diff !== 0) {
+    result = recordTransaction({
+      login: targetLogin,
+      displayName: before.displayName || targetLogin,
+      amount: diff,
+      type: "points_admin_set",
+      reason: "chat_setpoint",
+      mode: before.mode,
+      sourceModule: MODULE_NAME,
+      sourceProvider: "chat_command",
+      referenceType: "chat_command",
+      referenceId: `setpoint:${actor.login}:${core.nowIso()}`,
+      metadata: { actorLogin: actor.login, actorDisplayName: actor.displayName, command: input.command || "setpoint", targetBalance, balanceBefore: before.balance }
+    });
+    emitLoyaltyEvent("loyalty.points.transaction.created", { kind: "setpoint", amount: diff, result }, { replayable: true, ttlMs: 60000 });
+  }
+  const summary = getBalanceSummary(targetLogin, { create: false });
+  const rank = getAvailableRank(targetLogin, { includeZero: false, mode: summary.mode });
+  return buildCommandRuntimeResponse(input, {
+    ok: true,
+    active: true,
+    commandsActive: true,
+    action: "points_set",
+    messageKey: "points.set_success",
+    context: { target: summary.displayName || targetLogin, targetBalance, available: summary.available, balance: summary.balance, reserved: summary.reserved, rank: rank.rank || "-", rankTotal: rank.rankTotal || 0, currencyName: summary.currencyName },
+    data: { result, summary, rank }
+  });
 }
 
 function counts() {
@@ -2286,6 +3119,13 @@ function buildStatus() {
     texts: { ...state.texts },
     counts: counts(),
     features: { ...config.features },
+    safety: {
+      availableBalance: true,
+      reservations: true,
+      ranking: true,
+      noNegativeSpendGuard: true
+    },
+    centralCommands: state.schema.ok ? listCentralCommandDefinitions() : { ok: false, available: false },
     watch: { ...config.watch },
     autoRunner: getAutoRunnerStatus()
   };
@@ -2726,13 +3566,82 @@ function registerRoutes(app) {
 
   app.get("/api/loyalty/balance/:login", core.asyncRoute(async (req, res) => {
     const login = normalizeLogin(req.params.login);
-    const user = getUser(login) || ensureUser(login, req.query.displayName || req.query.display_name || login);
+    const summary = getBalanceSummary(login, {
+      displayName: req.query.displayName || req.query.display_name || login,
+      create: true
+    });
+    const rank = getAvailableRank(login, { mode: summary.mode, includeZero: false });
     core.sendOk(res, {
       login,
-      user,
-      currencyName: config.currency && config.currency.name || "Kekskrümel",
-      mode: normalizeMode(config.mode)
+      user: summary.user,
+      currencyName: summary.currencyName,
+      mode: summary.mode,
+      balance: summary.balance,
+      reserved: summary.reserved,
+      available: summary.available,
+      rank
     });
+  }));
+
+  app.get("/api/loyalty/available/:login", core.asyncRoute(async (req, res) => {
+    const summary = getBalanceSummary(req.params.login, { create: true });
+    const rank = getAvailableRank(summary.login, { mode: summary.mode, includeZero: false });
+    core.sendOk(res, { summary, rank });
+  }));
+
+  app.post("/api/loyalty/points/can-afford", core.asyncRoute(async (req, res) => {
+    core.sendOk(res, canAfford(req.body || {}));
+  }));
+
+  app.post("/api/loyalty/points/spend", core.asyncRoute(async (req, res) => {
+    const result = spendPointsSafely(req.body || {});
+    if (!result.ok) return core.sendFail(res, result.error || "spend_failed", 409, result);
+    core.sendOk(res, result);
+  }));
+
+  app.post("/api/loyalty/points/award", core.asyncRoute(async (req, res) => {
+    const result = awardPoints(req.body || {});
+    if (!result.ok) return core.sendFail(res, result.error || "award_failed", 400, result);
+    core.sendOk(res, result);
+  }));
+
+  app.post("/api/loyalty/points/reserve", core.asyncRoute(async (req, res) => {
+    const result = reservePoints(req.body || {});
+    if (!result.ok) return core.sendFail(res, result.error || "reserve_failed", 409, result);
+    core.sendOk(res, result);
+  }));
+
+  app.post("/api/loyalty/points/reservations/:reservationUid/release", core.asyncRoute(async (req, res) => {
+    const result = releaseReservation(req.params.reservationUid, req.body || {});
+    if (!result.ok) return core.sendFail(res, result.error || "release_failed", 404, result);
+    core.sendOk(res, result);
+  }));
+
+  app.post("/api/loyalty/points/reservations/:reservationUid/commit", core.asyncRoute(async (req, res) => {
+    const result = commitReservation(req.params.reservationUid, req.body || {});
+    if (!result.ok) return core.sendFail(res, result.error || "commit_failed", 409, result);
+    core.sendOk(res, result);
+  }));
+
+  app.get("/api/loyalty/points/ranking", core.asyncRoute(async (req, res) => {
+    const limit = Math.max(1, Math.min(500, Number(req.query.limit || 100) || 100));
+    core.sendOk(res, { ok: true, rows: listAvailableRankings({ includeZero: false }).slice(0, limit) });
+  }));
+
+  app.get("/api/loyalty/points/commands", core.asyncRoute(async (req, res) => {
+    core.sendOk(res, seedCentralCommandDefinitions());
+  }));
+
+  app.get("/api/loyalty/texts", core.asyncRoute(async (req, res) => {
+    core.sendOk(res, getChatTextEditorPayload());
+  }));
+
+  app.post("/api/loyalty/texts", core.asyncRoute(async (req, res) => {
+    core.sendOk(res, handleChatTextEditorPayload(req.body || {}));
+  }));
+
+  app.post("/api/loyalty/runtime/points-command", core.asyncRoute(async (req, res) => {
+    core.sendOk(res, handlePointsCommandRuntime(req.body || {}));
   }));
 
   app.get("/api/loyalty/transactions", core.asyncRoute(async (req, res) => {
@@ -3009,6 +3918,18 @@ function registerRoutes(app) {
         "GET /api/loyalty/users",
         "GET /api/loyalty/users/:login",
         "GET /api/loyalty/balance/:login",
+        "GET /api/loyalty/available/:login",
+        "POST /api/loyalty/points/can-afford",
+        "POST /api/loyalty/points/spend",
+        "POST /api/loyalty/points/award",
+        "POST /api/loyalty/points/reserve",
+        "POST /api/loyalty/points/reservations/:reservationUid/release",
+        "POST /api/loyalty/points/reservations/:reservationUid/commit",
+        "GET /api/loyalty/points/ranking",
+        "GET /api/loyalty/points/commands",
+        "GET /api/loyalty/texts",
+        "POST /api/loyalty/texts",
+        "POST /api/loyalty/runtime/points-command",
         "GET /api/loyalty/transactions",
         "POST /api/loyalty/transactions/adjust",
         "GET /api/loyalty/test/watch",
@@ -3054,8 +3975,10 @@ function init(ctx = {}) {
     ensureSettingsSeeded(config);
     refreshConfigFromSettings();
     ensureSchema();
+    ensureReservationSafetySchema();
     ensureLoyaltyEventsTable();
     ensureTextsSeeded();
+    seedCentralCommandDefinitions();
 
     if (ctx && ctx.app) registerRoutes(ctx.app);
 
@@ -3084,6 +4007,17 @@ module.exports = {
     SETTINGS_DEFINITIONS,
     normalizeLogin,
     calculateWatchAmount,
+    getReservedAmount,
+    getAvailableBalance,
+    getBalanceSummary,
+    getAvailableRank,
+    listAvailableRankings,
+    canAfford,
+    spendPointsSafely,
+    awardPoints,
+    reservePoints,
+    releaseReservation,
+    commitReservation,
     recordTransaction,
     recordWatchInterval,
     recordWatchHeartbeat,
