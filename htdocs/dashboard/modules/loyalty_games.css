@@ -675,15 +675,10 @@
   }
 }
 
-/* STEP LWG-4Q.6 - giveaway wheel editor context */
+/* STEP LWG-4Q.7 - Giveaway-bound wheel editor context */
 .lg-giveaway-wheel-context {
-  border-color: rgba(43, 218, 255, .32);
-  background:
-    linear-gradient(135deg, rgba(93, 54, 180, .18), rgba(20, 186, 235, .10)),
-    rgba(10, 14, 30, .50);
+  border-color: rgba(34, 211, 238, 0.35);
 }
-
-.lg-giveaway-wheel-context code {
-  color: #8eeeff;
-  overflow-wrap: anywhere;
+.lg-giveaway-wheel-context .lg-panel-head {
+  align-items: flex-start;
 }

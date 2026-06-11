@@ -4603,16 +4603,6 @@ function hardDeleteGiveaway(giveawayUid, input = {}) {
   }
 
   const status = cleanStatus(row.status, STATUS.DRAFT);
-  const allowedStatuses = new Set([STATUS.DRAFT, STATUS.FINISHED, STATUS.CANCELLED, STATUS.DELETED, STATUS.PRIZES_EXHAUSTED]);
-  if (!allowedStatuses.has(status)) {
-    return {
-      ok: false,
-      error: "hard_delete_requires_finished_cancelled_deleted_or_draft",
-      statusCode: 409,
-      status,
-      message: "Dieses Giveaway muss vor dem dauerhaften Löschen beendet, abgebrochen, archiviert oder noch ein Entwurf sein."
-    };
-  }
 
   const before = {
     giveaway: rowToGiveaway(row, true),
@@ -5428,16 +5418,31 @@ function registerRoutes(app) {
   })));
 
   registered.push(...routes.registerPost(app, "/api/loyalty/giveaways/:giveawayUid/delete", core.asyncRoute(async (req, res) => {
+    const row = getGiveawayRow(req.params.giveawayUid);
+    if (!row) return core.sendFail(res, "giveaway_not_found", 404);
+    const currentStatus = cleanStatus(row.status, STATUS.DRAFT);
+    const archiveAllowed = new Set([STATUS.FINISHED, STATUS.CANCELLED, STATUS.PRIZES_EXHAUSTED, STATUS.DELETED]);
+    if (!archiveAllowed.has(currentStatus)) {
+      return core.sendFail(res, "giveaway_archive_requires_completed", 409, {
+        ok: false,
+        error: "giveaway_archive_requires_completed",
+        status: currentStatus,
+        message: "Archivieren ist nur für beendete, abgebrochene oder aufgebrauchte Giveaways erlaubt. Entwürfe oder laufende Giveaways bitte dauerhaft löschen oder vorher abschließen/abbrechen."
+      });
+    }
     const result = setGiveawayStatus(req.params.giveawayUid, STATUS.DELETED, req.body || {});
-    if (!result.ok) return core.sendFail(res, result.error || "giveaway_delete_failed", result.statusCode || 409, result);
+    if (!result.ok) return core.sendFail(res, result.error || "giveaway_archive_failed", result.statusCode || 409, result);
     return core.sendOk(res, result);
   })));
 
-  registered.push(...routes.registerPost(app, "/api/loyalty/giveaways/:giveawayUid/hard-delete", core.asyncRoute(async (req, res) => {
+  async function handleHardDeleteRoute(req, res) {
     const result = hardDeleteGiveaway(req.params.giveawayUid, req.body || {});
     if (!result.ok) return core.sendFail(res, result.error || "giveaway_hard_delete_failed", result.statusCode || 409, result);
     return core.sendOk(res, result);
-  })));
+  }
+
+  registered.push(...routes.registerPost(app, "/api/loyalty/giveaways/:giveawayUid/hard-delete", core.asyncRoute(handleHardDeleteRoute)));
+  registered.push(...routes.registerPost(app, "/api/loyalty/giveaways/:giveawayUid/hard-delete/", core.asyncRoute(handleHardDeleteRoute)));
 
   registered.push(...routes.registerGet(app, "/api/loyalty/giveaways/:giveawayUid/rounds", core.asyncRoute(async (req, res) => {
     if (!getGiveaway(req.params.giveawayUid, false)) return core.sendFail(res, "giveaway_not_found", 404);
