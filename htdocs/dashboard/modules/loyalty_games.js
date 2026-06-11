@@ -68,13 +68,6 @@ window.LoyaltyGamesModule = (function(){
     return Number.isFinite(n) ? n.toLocaleString('de-DE') : '0';
   }
 
-  function badge(value, okText = 'OK', failText = 'Aus'){
-    return value
-      ? `<span class="lg-badge lg-badge-ok">${esc(okText)}</span>`
-      : `<span class="lg-badge lg-badge-off">${esc(failText)}</span>`;
-  }
-
-
   function statusLabel(status){
     const clean = String(status || '').toLowerCase();
     const labels = {
@@ -85,31 +78,51 @@ window.LoyaltyGamesModule = (function(){
       draft: 'Entwurf',
       paused: 'Pausiert',
       closed_for_entries: 'Teilnahme geschlossen',
-      waiting_for_claim: 'Wartet auf Bestätigung',
-      claim_confirmed: 'Bestätigt',
-      waiting_for_wheel: 'Wartet aufs Rad',
-      wheel_completed: 'Rad abgeschlossen',
+      waiting_for_claim: 'Wartet auf Gewinnbestätigung',
+      waiting_for_wheel: 'Wartet auf Glücksrad-Dreh',
+      wheel_completed: 'Glücksrad abgeschlossen',
       finished: 'Beendet',
       exhausted: 'Aufgebraucht',
       cancelled: 'Abgebrochen',
       deleted: 'Gelöscht',
       pending: 'Ausstehend',
-      used: 'Genutzt',
-      revoked: 'Geschlossen',
+      confirmed: 'Bestätigt',
       skipped: 'Übersprungen',
-      no_response: 'Keine Rückmeldung',
+      no_response: 'Nicht bestätigt',
+      used: 'Genutzt',
       classic_single: 'Normales Giveaway',
-      classic_multi: 'Normales Giveaway',
+      classic_multi: 'Normales Giveaway · mehrere Gewinner',
       wheel_single: 'Glücksrad-Giveaway',
-      wheel_multi: 'Glücksrad-Giveaway'
+      wheel_multi: 'Glücksrad-Giveaway · mehrere Gewinner'
     };
     return labels[clean] || String(status || '-');
+  }
+
+  function getChatClaimSettings(giveaway){
+    const snapshot = giveaway?.settingsSnapshot?.chatClaim || {};
+    const direct = giveaway?.chatClaim || {};
+    const meta = giveaway?.metadata?.chatClaim || {};
+    const source = { ...snapshot, ...direct, ...meta };
+    const timeoutSeconds = Number(source.timeoutSeconds || Math.ceil(Number(source.timeoutMs || 0) / 1000) || 60);
+    return {
+      enabled: source.enabled === true || source.enabled === 'true' || source.enabled === 1 || source.enabled === '1',
+      mode: source.mode || 'any_message',
+      timeoutSeconds: Number.isFinite(timeoutSeconds) && timeoutSeconds > 0 ? timeoutSeconds : 60,
+      timeoutMs: Number(source.timeoutMs || timeoutSeconds * 1000) || 60000,
+      activateWheelAfterClaim: source.activateWheelAfterClaim !== false && source.activateWheelAfterClaim !== 'false' && source.activateWheelAfterClaim !== 0 && source.activateWheelAfterClaim !== '0'
+    };
+  }
+
+  function badge(value, okText = 'OK', failText = 'Aus'){
+    return value
+      ? `<span class="lg-badge lg-badge-ok">${esc(okText)}</span>`
+      : `<span class="lg-badge lg-badge-off">${esc(failText)}</span>`;
   }
 
   function statusBadge(status){
     const clean = String(status || '').toLowerCase();
     const label = statusLabel(status);
-    if (['active', 'running', 'ok', 'open', 'claim_confirmed', 'wheel_completed', 'confirmed', 'used'].includes(clean)) return `<span class="lg-badge lg-badge-ok">${esc(label)}</span>`;
+    if (['active', 'running', 'ok', 'open', 'confirmed', 'wheel_completed'].includes(clean)) return `<span class="lg-badge lg-badge-ok">${esc(label)}</span>`;
     if (['draft', 'paused', 'closed_for_entries', 'waiting_for_claim', 'waiting_for_wheel', 'pending'].includes(clean)) return `<span class="lg-badge lg-badge-warn">${esc(label)}</span>`;
     return `<span class="lg-badge lg-badge-off">${esc(label)}</span>`;
   }
@@ -1237,6 +1250,42 @@ window.LoyaltyGamesModule = (function(){
     } finally {
       state.saving = false; render();
     }
+  }
+
+  function renderClaimSummary(giveaway){
+    const settings = getChatClaimSettings(giveaway);
+    const winners = rows(giveaway?.winners || []);
+    const claimRows = winners.filter(w => w?.metadata?.chatClaim || String(w?.status || '').toLowerCase() === 'waiting_for_claim');
+    if (!settings.enabled && !claimRows.length) return '';
+
+    return `
+      <div class="lg-panel">
+        <div class="lg-panel-head">
+          <div>
+            <h3>Gewinnbestätigung</h3>
+            <p class="lg-muted">${settings.enabled ? `Gewinner müssen ihren Gewinn innerhalb von ${esc(settings.timeoutSeconds)} Sekunden im Chat bestätigen.` : 'Für dieses Giveaway ist keine Gewinnbestätigung aktiv.'}</p>
+          </div>
+          ${badge(settings.enabled, 'Aktiv', 'Aus')}
+        </div>
+        ${claimRows.length ? `
+          <div class="lg-table-wrap">
+            <table class="lg-table">
+              <thead><tr><th>Gewinner</th><th>Status</th><th>Bestätigt am</th></tr></thead>
+              <tbody>
+                ${claimRows.map(winner => {
+                  const claim = winner?.metadata?.chatClaim || {};
+                  return `<tr>
+                    <td><strong>${esc(winner.userDisplayName || winner.userLogin || '-')}</strong><br><small>${esc(winner.userLogin || '')}</small></td>
+                    <td>${statusBadge(claim.status || winner.status)}</td>
+                    <td>${fmtDate(claim.confirmedAt || '')}</td>
+                  </tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        ` : `<p class="lg-muted">Noch kein Gewinner wartet auf Bestätigung.</p>`}
+      </div>
+    `;
   }
 
   function renderGiveawayDetails(giveaway){
