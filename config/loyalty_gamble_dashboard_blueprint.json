@@ -1,0 +1,131 @@
+{
+  "_meta": {
+    "step": "STEP226_LWG6_7",
+    "description": "Dashboard-Blueprint für die spätere Gamble-Konfiguration. Noch keine Runtime-Config.",
+    "no_runtime_effect": true
+  },
+  "module": "loyalty_games",
+  "feature": "gamble",
+  "dashboardSection": "Loyalty / Gamble",
+  "fields": [
+    {
+      "key": "enabled",
+      "label": "Gamble aktiv",
+      "type": "boolean",
+      "scope": "engine",
+      "default": true,
+      "dashboardWritable": true,
+      "notes": "Schaltet die Gamble-Engine. Der Chat-Command muss zusätzlich aktiv sein."
+    },
+    {
+      "key": "commandEnabled",
+      "label": "!gamble Command aktiv",
+      "type": "boolean",
+      "scope": "commands",
+      "default": true,
+      "dashboardWritable": true,
+      "notes": "Aktiviert/deaktiviert den Chat-Command im zentralen Command-System."
+    },
+    {
+      "key": "userCooldownMs",
+      "label": "User-Cooldown",
+      "type": "number",
+      "unit": "ms",
+      "default": 60000,
+      "min": 0,
+      "dashboardWritable": true
+    },
+    {
+      "key": "globalCooldownMs",
+      "label": "Globaler Cooldown",
+      "type": "number",
+      "unit": "ms",
+      "default": 0,
+      "min": 0,
+      "dashboardWritable": true
+    },
+    {
+      "key": "winChancePercent",
+      "label": "Gewinnchance",
+      "type": "number",
+      "unit": "%",
+      "default": 47,
+      "min": 1,
+      "max": 99,
+      "dashboardWritable": true
+    },
+    {
+      "key": "payoutMultiplier",
+      "label": "Auszahlungs-Multiplikator",
+      "type": "number",
+      "default": 2,
+      "min": 1,
+      "dashboardWritable": true
+    },
+    {
+      "key": "minBet",
+      "label": "Mindesteinsatz",
+      "type": "number",
+      "unit": "Kekskrümel",
+      "default": 1,
+      "min": 1,
+      "dashboardWritable": true
+    },
+    {
+      "key": "maxBet",
+      "label": "Maximaleinsatz",
+      "type": "number",
+      "unit": "Kekskrümel",
+      "default": 0,
+      "min": 0,
+      "dashboardWritable": true,
+      "notes": "0 bedeutet: kein fixes Maximum, begrenzt durch verfügbaren Kontostand."
+    },
+    {
+      "key": "allowPercentBets",
+      "label": "Prozent-Einsätze erlauben",
+      "type": "boolean",
+      "default": true,
+      "dashboardWritable": true,
+      "examples": [
+        "!gamble 10%",
+        "!gamble 10 prozent"
+      ]
+    },
+    {
+      "key": "allowKeywordBets",
+      "label": "Keyword-Einsätze erlauben",
+      "type": "boolean",
+      "default": true,
+      "dashboardWritable": true,
+      "examples": [
+        "!gamble half",
+        "!gamble halb"
+      ]
+    },
+    {
+      "key": "textKeys",
+      "label": "Text-Keys",
+      "type": "textKeyGroup",
+      "dashboardWritable": false,
+      "keys": [
+        "gamble.win_v2",
+        "gamble.lose_v2",
+        "gamble.invalid_bet",
+        "gamble.not_enough_points"
+      ]
+    }
+  ],
+  "safety": {
+    "requiresAdminRole": true,
+    "auditRequired": true,
+    "backupBeforeWrite": true,
+    "safetyDisableAvailable": true
+  },
+  "futureDashboardNotes": [
+    "Änderungen an enabled/commandEnabled müssen auditierbar sein.",
+    "Sensible Werte gibt es hier aktuell nicht, trotzdem Rollenprüfung erzwingen.",
+    "Texte langfristig über den kategoriebasierten Textvarianten-Editor verwalten.",
+    "StreamElements-Parallelbetrieb ist nur Übergang."
+  ]
+}

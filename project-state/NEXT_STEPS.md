@@ -1,22 +1,5 @@
-# NEXT_STEPS – nach STEP225 / LWG-6.6
+# NEXT_STEPS
 
-## Nächster empfohlener STEP
-
-### STEP226 / LWG-6.7 – Gamble Konfiguration / Dashboard-Vorbereitung
-
-Ziele:
-
-- Gamble-Konfiguration sauber dokumentieren
-- Min-/Max-Einsätze vorbereiten
-- Prozent-Einsatzlimits vorbereiten
-- Gewinnchance/Payout-Multiplier später dashboardfähig machen
-- Textvarianten langfristig DB-/Dashboard-fähig vorbereiten
-- StreamElements-Migration planen
-
-## Weitere mögliche Schritte
-
-- Doppelte Chat-Ausgaben während Übergangsphase beobachten
-- StreamElements `!gamble` später deaktivieren
-- Dashboard-Modul für Loyalty/Games vorbereiten
-- Statistiken für Gamble-Auswertungen vorbereiten
-- Moderations-/Admin-Anzeige für Gamble-Status bauen
+1. STEP226a-Test ausführen.
+2. Bei Erfolg `stepdone.cmd` mit STEP226a ausführen.
+3. Danach Dashboard-Backend/Config-UI für Gamble planen.

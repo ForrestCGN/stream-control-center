@@ -1,66 +1,43 @@
-# Modul: loyalty_games
+# loyalty_games.js / Gamble – STEP226 / LWG-6.7
 
-## Stand nach STEP225 / LWG-6.6
+Aktueller bestätigter Stand:
 
-Bestätigte Version:
+- Version: `0.2.5`
+- Build: `STEP_LWG_6_5_GAMBLE_RESULT_LOG_CLEANUP`
+- `!gamble` live aktiv nach STEP224A
+- Prozent-Einsätze funktionieren, z. B. `!gamble 10%`
+- Strukturierte Ergebnisdaten vorhanden:
+  - `bet`
+  - `outcome`
+  - `won`
+  - `grossPayout`
+  - `winAmount`
+  - `netProfit`
+  - `balanceBefore`
+  - `balanceAfter`
+  - `availableBefore`
+  - `availableAfter`
+- Zufall: serverseitig über `crypto.randomInt`
 
-```text
-loyalty_games.js 0.2.5
-Build: STEP_LWG_6_5_GAMBLE_RESULT_LOG_CLEANUP
-```
+## Dashboard-Vorbereitung
 
-## Aktiver Live-Stand
+Spätere Konfigurationsfelder:
 
-```text
-!gamble: aktiv
-Gamble Engine: aktiv
-User-Cooldown: 60000 ms
-Global-Cooldown: 0 ms
-Win-Chance: 47 %
-Payout-Multiplier: 2
-```
+- Gamble aktiv
+- Command aktiv
+- User-Cooldown
+- Globaler Cooldown
+- Gewinnchance
+- Auszahlungsmultiplikator
+- Mindesteinsatz
+- Maximaleinsatz
+- Prozent-Einsätze erlaubt
+- Keyword-Einsätze erlaubt
+- Textvarianten / Text-Keys
 
-## Unterstützte Einsätze
+## Sicherheitsregeln
 
-Bestätigt:
-
-```text
-!gamble 10%
-```
-
-Vorbereitet/unterstützt durch Parser-Cleanup:
-
-```text
-!gamble 10
-!gamble 10%
-!gamble 10 %
-!gamble 10 prozent
-!gamble half
-!gamble halb
-```
-
-## Ergebnisdaten
-
-Seit STEP224 werden strukturierte Gamble-Daten zurückgegeben und geloggt:
-
-```text
-bet
-outcome
-won
-grossPayout
-winAmount
-netProfit
-balanceBefore
-balanceAfter
-availableBefore
-availableAfter
-```
-
-## Chat-Ausgabe
-
-Die Gamble-Chat-Ausgabe läuft über die Command-Bridge und `twitch_presence`.
-
-## Übergang mit StreamElements
-
-StreamElements darf aktuell parallel laufen.  
-Das ist bewusst erlaubt, solange die vollständige Umstellung noch nicht abgeschlossen ist.
+- Änderungen nur mit Admin-/Owner-Recht.
+- Änderungen müssen auditierbar sein.
+- SafetyDisable muss erhalten bleiben.
+- Keine bestehende Funktionalität entfernen.

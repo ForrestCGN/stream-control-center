@@ -1,59 +1,24 @@
-# Modul: commands
+# commands.js – STEP226 / LWG-6.7
 
-## Stand nach STEP225 / LWG-6.6
+Aktueller bestätigter Stand:
 
-Bestätigte Version:
+- Version: `0.2.3`
+- Build: `LWG_6_5_GAMBLE_RESULT_LOG_CLEANUP`
 
-```text
-commands.js 0.2.3
-Build: LWG_6_5_GAMBLE_RESULT_LOG_CLEANUP
-```
+Relevanz für Gamble:
 
-## Aufgabe
+- `!gamble` wird über das zentrale Command-System erkannt.
+- Chat-Ausgabe erfolgt über `twitch_presence`, wenn `sendResultToChat=true` gesetzt ist.
+- Das strukturierte Gamble-Ergebnis wird im Command-Ergebnis und im Command-Log weitergereicht.
 
-Das `commands`-Modul verarbeitet Chat-Commands aus dem EventBus/Chat-System und ruft die zuständigen Modul-Endpunkte auf.
+Dashboard-Relevanz:
 
-## Aktive relevante Commands
+- `enabled`
+- `cooldownUserMs`
+- `cooldownGlobalMs`
+- `targetUrl`
+- `config.sendResultToChat`
+- `config.moduleCommand`
+- `config.activationState`
 
-```text
-!punkte / !points
-!givepoints
-!setpoint
-!gamble
-```
-
-## Gamble-Integration
-
-`!gamble` ist aktiv und zeigt auf:
-
-```text
-/api/loyalty/games/runtime/chat-command
-```
-
-Die Command-Bridge sendet Resultate über:
-
-```text
-twitch_presence.sendChatMessage(...)
-```
-
-## Strukturierte Gamble-Daten
-
-Seit STEP224 werden strukturierte Ergebnisfelder durchgereicht und im Command-Execution-Log gespeichert, darunter:
-
-```text
-bet
-outcome
-won
-grossPayout
-winAmount
-netProfit
-balanceBefore
-balanceAfter
-availableBefore
-availableAfter
-```
-
-## Hinweis
-
-Der alte STEP221-Aktivator ist für ältere `commands.js`-Versionen gebaut und erwartet `0.2.2`.  
-Für den aktuellen Stand wurde STEP224A verwendet.
+Diese Werte sollen später über ein Admin-Dashboard sichtbar bzw. teilweise steuerbar sein.

@@ -1,24 +1,13 @@
-# Module – aktueller Stand nach STEP225 / LWG-6.6
+# Module – STEP226 / LWG-6.7
 
-Dieses Dokument fasst den aktuellen Modulstand nach der bestätigten Gamble-Live-Freigabe zusammen.
+Dieser Stand dokumentiert die Dashboard-Vorbereitung für das Loyalty-/Gamble-System.
 
-## Bestätigte Module
+Relevante Module:
 
-- `commands`
-- `loyalty`
-- `loyalty_games`
-- `twitch_presence`
+- `commands.js`
+- `loyalty.js`
+- `loyalty_games.js`
+- `loyalty_games/gamble.js`
+- `twitch_presence.js`
 
-## Status
-
-- Punkteanzeige: live
-- Admin-Punktebefehle: live
-- Gamble: live
-- Gamble-Prozent-Einsätze: bestätigt
-- Gamble strukturierte Ergebnisdaten: bestätigt
-- Chat-Ausgabe: über `twitch_presence` bestätigt
-
-## Übergang
-
-StreamElements darf während der Übergangsphase weiterhin parallel laufen.  
-Langfristig soll nur noch das Node-/Control-Center-System die Loyalty-/Gamble-Funktionen übernehmen.
+Dieser Step verändert keine Runtime-Dateien.

@@ -1,29 +1,18 @@
-# Modul: loyalty
+# loyalty.js – STEP226 / LWG-6.7
 
-## Stand nach STEP225 / LWG-6.6
+Aktueller Fokus:
 
-Das `loyalty`-Modul ist die zentrale Punkte-/Kekskrümel-Basis.
+- Punkteverwaltung
+- verfügbare Punkte
+- sichere Punktebewegungen
+- Admin-Befehle `!givepoints` und `!setpoint`
 
-## Bestätigte Funktionen
+Gamble nutzt die Loyalty-Safety-Funktionen für Einsatz und Auszahlung.
 
-```text
-!punkte / !points
-!givepoints
-!setpoint
-```
+Wichtige bestätigte Commands:
 
-## Admin-Befehle
+- `!punkte` / `!points`
+- `!givepoints`
+- `!setpoint`
 
-- `!givepoints @user <amount>`: Mod+
-- `!setpoint @user <balance>`: Streamer/Owner
-
-## Safety
-
-- Testuser wurden in den Tests wiederhergestellt
-- Transaktionen bleiben auditierbar
-- SQLite-Datenbank wird nicht überschrieben
-- Punktestand wird nur über Runtime-/DB-safe Wege verändert
-
-## Bedeutung für Gamble
-
-`loyalty_games` nutzt das Loyalty-Punktesystem für Einsätze, Gewinne, Verluste und verfügbare Balance.
+Die SQLite-Datenbank darf nicht ersetzt oder überschrieben werden.
