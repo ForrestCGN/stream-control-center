@@ -1,20 +1,9 @@
-# TODO – Loyalty / Games
+# TODO – STEP220 / LWG-6.1
 
-## Erledigt
-
-- [x] Points-Command live
-- [x] Admin-Points Commands live
-- [x] Command Result Chat Bridge live
-- [x] Admin-Audit bestätigt
-
-## Aktuell
-
-- [ ] STEP219 Gamble Readiness ausführen
-- [ ] Prüfen, dass `!gamble` weiterhin deaktiviert ist
-- [ ] Prüfen, dass Gamble disabled guards keine Punkte ändern
-
-## Danach
-
-- [ ] STEP220 kontrollierte temporäre Gamble-Aktivierung
-- [ ] Gamble Restore/Rollback testen
-- [ ] Entscheidung, ob `!gamble` live freigegeben wird
+- [ ] STEP220 entpacken.
+- [ ] Runtime-Datei anwenden.
+- [ ] Deploy/Backend-Neustart.
+- [ ] Kontrolltest ohne Execute.
+- [ ] Kontrolltest mit Execute.
+- [ ] StreamElements-Konflikte beobachten.
+- [ ] Nach Bestätigung Doku-Abschluss STEP221/222 vorbereiten.

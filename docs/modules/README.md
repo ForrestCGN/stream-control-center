@@ -1,23 +1,10 @@
-# Module-Dokumentation – Loyalty/Commands Stand STEP219
+# Modules – STEP220 / LWG-6.1
 
-Aktueller Bereich:
+Aktualisiert für den kontrollierten Gamble-Runtime-Test.
 
-```text
-STEP214 / LWG-5.6   Command Result Chat Send Bridge bestätigt
-STEP217 / LWG-5.9   Admin-Points Chat-Commands bestätigt
-STEP219 / LWG-6.0   Gamble Readiness/Safety begonnen
-```
+Relevante Module:
 
-Aktiv live:
-
-```text
-!punkte / !points
-!givepoints
-!setpoint
-```
-
-Weiterhin deaktiviert:
-
-```text
-!gamble
-```
+- `commands`: zentrale Command-Ausführung + Chat-Ausgabe über `twitch_presence`.
+- `loyalty`: Punkte, verfügbare Balance, Admin-Points.
+- `loyalty_games`: Wheel + Gamble, jetzt mit sicherer Settings-Runtime-Route.
+- `twitch_presence`: vorhandener Bot-Chat-Sender.

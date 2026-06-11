@@ -1,30 +1,24 @@
-# Loyalty Games – Stand STEP219 / LWG-6.0
+# Loyalty Games – STEP220 / LWG-6.1
 
-## Gamble Readiness
+## Stand
 
-Gamble ist vorbereitet, bleibt aber deaktiviert.
+`loyalty_games` erhält mit STEP220 eine sichere Runtime-Settings-Route:
 
-Zu prüfen:
+- `GET /api/loyalty/games/settings`
+- `POST /api/loyalty/games/settings`
 
-```text
-/api/loyalty/games/status
-/api/loyalty/games/gamble/status
-/api/loyalty/games/gamble/config
-/api/loyalty/games/gamble/play
-/api/loyalty/games/runtime/chat-command
-```
+Damit können vorhandene Einstellungen aus `loyalty_games_settings` kontrolliert gelesen und gesetzt werden, ohne die SQLite-Datei zu ersetzen.
 
-Sicherheitsvorgaben:
+## Gamble
 
-```text
-- Server entscheidet Ergebnis
-- crypto.randomInt
-- kein User-/Datum-/Pattern-Seed
-- available balance prüfen
-- spendPointsSafely für Einsatz
-- awardPoints für Auszahlung
-- Sessions/Transaktionen auditierbar
-- Chat-Ausgabe später zentral über commands.js → twitch_presence
-```
+Gamble bleibt standardmäßig deaktiviert. Der STEP220-Test aktiviert Gamble nur temporär:
 
-STEP219 aktiviert `!gamble` nicht. Der Test erwartet, dass alle Play-/Runtime-Versuche blockiert werden und der Punktestand unverändert bleibt.
+- `games.gamble.enabled=true`
+- `!gamble` Command temporär enabled
+- Testuser bekommt temporären Punktestand
+- `!gamble` wird einmal kontrolliert ausgeführt
+- Settings, Command-Status und Punktestand werden wiederhergestellt
+
+## Sicherheit
+
+Die Zufallsentscheidung bleibt serverseitig über `crypto.randomInt`. Der User kann das Ergebnis nicht über Datum/User-ID/Pattern beeinflussen.

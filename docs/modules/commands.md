@@ -1,23 +1,10 @@
-# Commands-Modul – Stand STEP219 / LWG-6.0
+# Commands – STEP220 / LWG-6.1
 
-## Live-Basis
+Die Command-Bridge aus STEP214 bleibt Grundlage:
 
-```text
-commands.js 0.2.2 / LWG_5_6_COMMAND_RESULT_CHAT_SEND_BRIDGE
-```
+- Modul-Command ausführen
+- `result.message` auswerten
+- zentrale Chat-Ausgabe über `twitch_presence.sendChatMessage(...)`
+- Ergebnis als `chatReply` in `command_execution_log`
 
-Bestätigt aktiv:
-
-```text
-!punkte / !points         everyone
-!givepoints @user amount  mod
-!setpoint @user balance   streamer/owner
-```
-
-Gamble-Status in STEP219:
-
-```text
-!gamble vorhanden/vorbereitet, aber deaktiviert
-```
-
-Der STEP219-Test prüft, dass deaktivierte Commands nicht versehentlich ausgeführt werden und kein Punktestand geändert wird.
+Für STEP220 wird `!gamble` nur temporär durch das Testscript aktiviert und anschließend wiederhergestellt. Eine dauerhafte Live-Freigabe erfolgt erst in einem späteren STEP.

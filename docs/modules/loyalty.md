@@ -1,21 +1,12 @@
-# Loyalty-Modul – Stand STEP219 / LWG-6.0
+# Loyalty – STEP220 / LWG-6.1
 
-## Aktive Basis
+Loyalty bleibt die Quelle für:
 
-```text
-loyalty.js 0.1.13
-Currency Kekskrümel
-available = balance - reserved
-```
+- Balance
+- verfügbare Punkte
+- Reservierungen
+- sichere Ausgaben/Gutschriften
+- Admin-Points
+- Transaktionshistorie
 
-Bestätigt:
-
-```text
-!punkte / !points
-!givepoints
-!setpoint
-Admin-Transaktionshistorie
-Chat-Ausgabe via twitch_presence
-```
-
-STEP219 ändert keine Punktestände. Der Testuser `step219_gamble_testuser` wird nur gelesen; direkte Gamble-Versuche müssen wegen disabled guard blockieren.
+STEP220 nutzt `!setpoint` ausschließlich für den kontrollierten Testuser-Aufbau und Restore. Die Transaktionshistorie bleibt bewusst erhalten.

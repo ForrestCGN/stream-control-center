@@ -1,27 +1,16 @@
-# CURRENT STATUS – Loyalty / Kekskrümel
+# CURRENT_STATUS – STEP220 / LWG-6.1
 
-Stand: 2026-06-11 / STEP219 LWG-6.0
+Aktueller bestätigter Stand vor STEP220:
 
-## Live bestätigt
+- `!punkte` / `!points` live aktiv.
+- `!givepoints` live aktiv.
+- `!setpoint` live aktiv.
+- Command-Chat-Ausgabe über `twitch_presence` bestätigt.
+- Admin-Points Rechteprüfung bestätigt.
+- `!gamble` weiterhin nicht dauerhaft freigegeben.
 
-```text
-!punkte / !points         aktiv
-!givepoints               aktiv
-!setpoint                 aktiv
-Chat-Ausgabe              commands.js → twitch_presence
-Admin-Audit               bestätigt
-```
+STEP220 ergänzt die technische Grundlage für einen kontrollierten Gamble-Test über `loyalty_games` Settings-Routen.
 
-## In Arbeit
 
-```text
-Gamble Readiness/Safety
-```
-
-## Weiterhin deaktiviert
-
-```text
-!gamble
-```
-
-STEP219 enthält keine Runtime-Codeänderung und keine Live-Aktivierung. Es ist ein sicherer Prüf- und Planungsstand für den nächsten Schritt.
+## STEP220a / LWG-6.1a
+Apply-Script Parserfehler korrigiert. Keine Runtime-Logik geaendert.

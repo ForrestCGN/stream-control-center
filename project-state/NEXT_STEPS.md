@@ -1,24 +1,8 @@
-# NEXT STEPS
+# NEXT_STEPS – nach STEP220 / LWG-6.1
 
-## Direkt nach STEP219
-
-1. Paket entpacken.
-2. Dokumentieren:
-
-```cmd
-.\stepdone.cmd "STEP219 / LWG-6.0 Gamble Readiness"
-```
-
-3. Readiness-Test ausführen:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\Test_STEP219_LWG6_0_gamble_readiness_ForrestCGN.ps1
-```
-
-## Danach
-
-```text
-STEP220 / LWG-6.1 – Gamble kontrolliert temporär aktivieren, testen und wiederherstellen
-```
-
-STEP220 soll erst nach bestandenem STEP219-Test umgesetzt werden.
+1. STEP220 Apply ausführen.
+2. Deploy per `stepdone.cmd`.
+3. Backend neu starten.
+4. STEP220 Test ohne `-Execute`.
+5. STEP220 Test mit `-Execute`.
+6. Wenn bestätigt: STEP221 / LWG-6.2 – Gamble dauerhafte Chat-Freigabe planen.

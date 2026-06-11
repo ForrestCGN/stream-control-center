@@ -1,18 +1,17 @@
 # CHANGELOG
 
-## STEP219 / LWG-6.0 – Gamble Readiness/Safety
+## STEP220 / LWG-6.1
 
-- Readiness-Testscript für Gamble erstellt.
-- Gamble-Sicherheitsanforderungen dokumentiert.
-- STEP220-Planung für temporäre Aktivierung dokumentiert.
-- `!gamble` bleibt deaktiviert.
-- Keine Runtime-Codeänderung.
-- Keine DB-Datei.
-- Keine Secrets.
-- Kein Backend-Neustart nötig.
+- `loyalty_games.js` auf Version `0.2.3` vorbereitet.
+- Settings-Routen für Loyalty Games ergänzt.
+- Kontrolliertes Gamble-Testscript erstellt.
+- Safety-Disable-Script erstellt.
+- Keine DB-Datei enthalten.
+- Keine Secrets enthalten.
+- Keine Funktionalität entfernt.
 
-## Vorher
 
-- STEP218: Admin-Points Chat-Commands live dokumentiert.
-- STEP217: `!givepoints` und `!setpoint` live getestet.
-- STEP214: zentrale Chat-Ausgabe bestätigt.
+## STEP220a / LWG-6.1a
+Apply-Script Parserfehler korrigiert. Keine Runtime-Logik geaendert.
+
+- STEP220b / LWG-6.1b: Apply-Script gegen Quelle=Ziel abgesichert, wenn ZIP direkt ins Repo entpackt wird.
