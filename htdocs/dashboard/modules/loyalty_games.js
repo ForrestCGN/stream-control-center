@@ -74,11 +74,44 @@ window.LoyaltyGamesModule = (function(){
       : `<span class="lg-badge lg-badge-off">${esc(failText)}</span>`;
   }
 
+
+  function statusLabel(status){
+    const clean = String(status || '').toLowerCase();
+    const labels = {
+      active: 'Aktiv',
+      running: 'Läuft',
+      ok: 'OK',
+      open: 'Offen',
+      draft: 'Entwurf',
+      paused: 'Pausiert',
+      closed_for_entries: 'Teilnahme geschlossen',
+      waiting_for_claim: 'Wartet auf Bestätigung',
+      claim_confirmed: 'Bestätigt',
+      waiting_for_wheel: 'Wartet aufs Rad',
+      wheel_completed: 'Rad abgeschlossen',
+      finished: 'Beendet',
+      exhausted: 'Aufgebraucht',
+      cancelled: 'Abgebrochen',
+      deleted: 'Gelöscht',
+      pending: 'Ausstehend',
+      used: 'Genutzt',
+      revoked: 'Geschlossen',
+      skipped: 'Übersprungen',
+      no_response: 'Keine Rückmeldung',
+      classic_single: 'Normales Giveaway',
+      classic_multi: 'Normales Giveaway',
+      wheel_single: 'Glücksrad-Giveaway',
+      wheel_multi: 'Glücksrad-Giveaway'
+    };
+    return labels[clean] || String(status || '-');
+  }
+
   function statusBadge(status){
     const clean = String(status || '').toLowerCase();
-    if (['active', 'running', 'ok', 'open'].includes(clean)) return `<span class="lg-badge lg-badge-ok">${esc(status)}</span>`;
-    if (['draft', 'paused', 'closed_for_entries'].includes(clean)) return `<span class="lg-badge lg-badge-warn">${esc(status)}</span>`;
-    return `<span class="lg-badge lg-badge-off">${esc(status || '-')}</span>`;
+    const label = statusLabel(status);
+    if (['active', 'running', 'ok', 'open', 'claim_confirmed', 'wheel_completed', 'confirmed', 'used'].includes(clean)) return `<span class="lg-badge lg-badge-ok">${esc(label)}</span>`;
+    if (['draft', 'paused', 'closed_for_entries', 'waiting_for_claim', 'waiting_for_wheel', 'pending'].includes(clean)) return `<span class="lg-badge lg-badge-warn">${esc(label)}</span>`;
+    return `<span class="lg-badge lg-badge-off">${esc(label)}</span>`;
   }
 
   function ensureLoyaltyMainSection(){
