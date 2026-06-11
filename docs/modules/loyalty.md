@@ -1,4 +1,4 @@
-# Loyalty-Modul – Stand STEP217 / LWG-5.9
+# Loyalty-Modul – Stand STEP218 / LWG-5.10
 
 ## Live-Basis
 
@@ -9,42 +9,37 @@ Mode shadow
 Currency Kekskrümel
 ```
 
-## Bestätigte Funktionen
+## Aktive Funktionen
 
 ```text
 available balance = balance - offene Reservierungen
 Ranking basiert auf verfügbaren Punkten
-!punkte / !points gibt verfügbare Punkte aus
-Admin-Give/Set Runtime wurde in STEP216 kontrolliert getestet
-Direkte Admin-Chat-Commands wurden in STEP217 freigegeben
+!punkte / !points gibt verfügbare Punkte und Rang aus
+!givepoints kann Punkte vergeben
+!setpoint kann Zielsaldo setzen
+Transaktionshistorie bleibt nachvollziehbar
 ```
 
-## Admin-Points
+## Aktive Chat-Commands
 
 ```text
-!givepoints @user <amount>
+!punkte / !points         everyone
+!givepoints @user amount  mod
+!setpoint @user balance   streamer/owner
 ```
 
-- benötigt Mod/Streamer
-- nutzt intern `handleGivePointsCommandRuntime`
-- erzeugt Transaktion `points_admin_give`
-- sendet Erfolgsmeldung zentral über `commands.js` → `twitch_presence`
+## Bestätigte Admin-Tests
 
 ```text
-!setpoint @user <balance>
+step217_testuser vorher: balance=0, available=0, reserved=0
+!givepoints @step217_testuser 4 → balance=4, available=4, Chat-Antwort gesendet
+!setpoint @step217_testuser 0   → balance=0, available=0, Chat-Antwort gesendet
+final unchanged                 → balance=0, available=0, reserved=0
+recentAdminTransactions=2       → Audit bestätigt
 ```
 
-- benötigt Streamer/Owner
-- setzt nicht hart den DB-Wert, sondern schreibt eine Differenz-Transaktion
-- erzeugt Transaktion `points_admin_set`
-- sendet Erfolgsmeldung zentral über `commands.js` → `twitch_presence`
+## Wichtig
 
-## Sicherheitsregeln
+Die Transaktionen aus dem kontrollierten Test bleiben absichtlich in der Historie. Das ist korrekt und gewollt, da Admin-Änderungen auditierbar sein sollen.
 
-```text
-Viewer darf keine Punkte geben
-Mod darf keine Punkte setzen
-Owner/Streamer darf setzen
-Setpoint darf nicht unter reservierte Punkte setzen
-Transaktionshistorie bleibt erhalten
-```
+StreamElements-Commands `!points` / `!punkte` müssen deaktiviert bleiben, damit keine alte SE-Antwort parallel erscheint.

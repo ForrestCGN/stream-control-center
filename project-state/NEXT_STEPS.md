@@ -1,22 +1,40 @@
 # NEXT STEPS
 
-## Direkt nach STEP217
+## Direkt nach STEP218
 
-1. `Activate_STEP217_LWG5_9_admin_points_commands_ForrestCGN.ps1` ausführen.
-2. `stepdone.cmd` ausführen.
-3. `Test_STEP217_LWG5_9_admin_points_chat_commands_ForrestCGN.ps1` ohne `-Execute` ausführen.
-4. Danach kontrolliert mit `-Execute` testen.
-5. Optional im echten Twitch-Chat klein testen:
+1. Paket entpacken.
+2. STEP dokumentieren:
 
-```text
-!givepoints @step217_testuser 1
-!setpoint @step217_testuser 0
+```cmd
+.\stepdone.cmd "STEP218 / LWG-5.10 Admin-Points Chat-Commands live bestätigt"
 ```
 
-## Danach
+3. StreamElements `!points` / `!punkte` deaktiviert halten.
+
+## Nächster Entwicklungs-STEP
 
 ```text
-STEP218 / LWG-6.0 – Gamble Command Freigabeplanung/-test
+STEP219 / LWG-6.0 – Gamble-Freigabeplanung und kontrollierter Test
 ```
 
-Gamble bleibt bis dahin deaktiviert.
+Geplante Themen für Gamble:
+
+```text
+!gamble <betrag>
+!gamble <prozent>%
+min/max Einsatz
+Cooldowns
+available-balance Check
+spendPointsSafely / awardPoints
+crypto.randomInt
+Chat-Antworten über commands.js → twitch_presence
+Rollback/Testuser-Wiederherstellung
+```
+
+## Später
+
+```text
+Dashboard-Konfiguration für Loyalty-Commands
+Textvarianten-Editor für Loyalty-Texte
+Raffle/Duell/Roulette separat
+```
