@@ -18,7 +18,7 @@ const database = require("../core/database");
 
 const MODULE_NAME = "loyalty_giveaways";
 const MODULE_VERSION = "0.1.0";
-const MODULE_BUILD = "STEP_LWG_4O_3";
+const MODULE_BUILD = "STEP_LWG_4O_3b";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -422,6 +422,8 @@ let state = {
     lastSkippedReason: "",
     lastConfirmedAt: "",
     lastUserLogin: "",
+    lastUserDisplayName: "",
+    lastUserSource: "",
     lastMessagePreview: ""
   }
 };
@@ -519,25 +521,196 @@ function previewChatMessage(value, maxLength = 120) {
   return `${clean.slice(0, Math.max(0, maxLength - 3))}...`;
 }
 
+function getNestedValue(source, path) {
+  if (!source || typeof source !== "object" || !path) return undefined;
+  const parts = String(path).split(".").filter(Boolean);
+  let current = source;
+  for (const part of parts) {
+    if (!current || typeof current !== "object" || !(part in current)) return undefined;
+    current = current[part];
+  }
+  return current;
+}
+
+function firstNonEmptyValue(source, paths = []) {
+  for (const path of paths) {
+    const value = getNestedValue(source, path);
+    if (value === undefined || value === null) continue;
+    const text = String(value).trim();
+    if (text) return { value: text, source: path };
+  }
+  return { value: "", source: "" };
+}
+
+function normalizeTwitchLogin(value) {
+  return String(value || "").trim().replace(/^@/, "").toLowerCase();
+}
+
 function normalizeChatBusEnvelope(envelope = {}) {
-  const payload = envelope && typeof envelope === "object" && envelope.payload && typeof envelope.payload === "object"
-    ? envelope.payload
-    : {};
+  const root = envelope && typeof envelope === "object" ? envelope : {};
+  const payload = root.payload && typeof root.payload === "object" ? root.payload : {};
+  const eventPayload = root.event && root.event.payload && typeof root.event.payload === "object" ? root.event.payload : {};
+  const eventData = root.event && root.event.data && typeof root.event.data === "object" ? root.event.data : {};
   const user = payload.user && typeof payload.user === "object" ? payload.user : {};
-  const badges = payload.badges && typeof payload.badges === "object" ? payload.badges : (user.badges && typeof user.badges === "object" ? user.badges : {});
-  const message = String(payload.message || payload.rawMessage || payload.text || "");
-  const userLogin = String(payload.userLogin || payload.login || user.login || user.userLogin || "").trim().replace(/^@/, "").toLowerCase();
-  const userDisplayName = String(payload.userDisplayName || payload.displayName || user.displayName || userLogin || "").trim();
+  const chatter = payload.chatter && typeof payload.chatter === "object" ? payload.chatter : {};
+  const eventUser = eventPayload.user && typeof eventPayload.user === "object" ? eventPayload.user : {};
+  const dataUser = payload.data && payload.data.user && typeof payload.data.user === "object" ? payload.data.user : {};
+
+  const aliasRoot = {
+    envelope: root,
+    payload,
+    eventPayload,
+    eventData,
+    user,
+    chatter,
+    eventUser,
+    dataUser
+  };
+
+  const loginResult = firstNonEmptyValue(aliasRoot, [
+    "payload.userLogin",
+    "payload.login",
+    "payload.user_login",
+    "payload.chatterUserLogin",
+    "payload.chatter_user_login",
+    "payload.chatter_login",
+    "payload.chatter.login",
+    "payload.chatter.userLogin",
+    "payload.user.login",
+    "payload.user.userLogin",
+    "payload.user.user_login",
+    "payload.user.name",
+    "payload.event.userLogin",
+    "payload.event.user_login",
+    "payload.event.chatter_user_login",
+    "payload.message.user.login",
+    "payload.message.userLogin",
+    "payload.data.userLogin",
+    "payload.data.user_login",
+    "payload.data.login",
+    "payload.data.chatter_user_login",
+    "payload.data.chatterUserLogin",
+    "payload.data.chatter.login",
+    "payload.data.user.login",
+    "eventPayload.userLogin",
+    "eventPayload.login",
+    "eventPayload.user_login",
+    "eventPayload.chatterUserLogin",
+    "eventPayload.chatter_user_login",
+    "eventPayload.user.login",
+    "eventPayload.user.userLogin",
+    "eventData.userLogin",
+    "eventData.login",
+    "eventData.user_login",
+    "eventData.chatterUserLogin",
+    "eventData.chatter_user_login",
+    "eventData.user.login",
+    "user.login",
+    "user.userLogin",
+    "user.user_login",
+    "chatter.login",
+    "chatter.userLogin",
+    "chatter.user_login",
+    "dataUser.login",
+    "dataUser.userLogin",
+    "dataUser.user_login"
+  ]);
+
+  const displayResult = firstNonEmptyValue(aliasRoot, [
+    "payload.userDisplayName",
+    "payload.displayName",
+    "payload.display_name",
+    "payload.user_display_name",
+    "payload.chatterUserName",
+    "payload.chatterUserDisplayName",
+    "payload.chatter_user_name",
+    "payload.chatter_display_name",
+    "payload.user.displayName",
+    "payload.user.display_name",
+    "payload.user.name",
+    "payload.chatter.displayName",
+    "payload.chatter.display_name",
+    "payload.data.userDisplayName",
+    "payload.data.displayName",
+    "payload.data.display_name",
+    "payload.data.user_name",
+    "payload.data.chatter_user_name",
+    "payload.data.chatterUserName",
+    "payload.data.chatter.displayName",
+    "payload.event.userDisplayName",
+    "payload.event.displayName",
+    "eventPayload.userDisplayName",
+    "eventPayload.displayName",
+    "eventPayload.userDisplayName",
+    "eventPayload.user.displayName",
+    "eventData.userDisplayName",
+    "eventData.displayName",
+    "eventData.user_name",
+    "eventData.chatter_user_name",
+    "eventData.user.displayName",
+    "user.displayName",
+    "user.display_name",
+    "chatter.displayName",
+    "chatter.display_name",
+    "dataUser.displayName",
+    "dataUser.display_name"
+  ]);
+
+  const userLogin = normalizeTwitchLogin(loginResult.value);
+  const userDisplayName = String(displayResult.value || userLogin || "").trim();
+  const badges = payload.badges && typeof payload.badges === "object"
+    ? payload.badges
+    : (user.badges && typeof user.badges === "object"
+      ? user.badges
+      : (chatter.badges && typeof chatter.badges === "object" ? chatter.badges : {}));
+  const messageResult = firstNonEmptyValue(aliasRoot, [
+    "payload.message",
+    "payload.rawMessage",
+    "payload.text",
+    "payload.body",
+    "payload.chatMessage",
+    "payload.data.message",
+    "payload.data.text",
+    "payload.event.message",
+    "eventPayload.message",
+    "eventPayload.text",
+    "eventData.message",
+    "eventData.text"
+  ]);
+  const userIdResult = firstNonEmptyValue(aliasRoot, [
+    "payload.userId",
+    "payload.user_id",
+    "payload.chatterUserId",
+    "payload.chatter_user_id",
+    "payload.user.userId",
+    "payload.user.user_id",
+    "payload.data.userId",
+    "payload.data.user_id",
+    "payload.data.chatter_user_id",
+    "eventPayload.userId",
+    "eventPayload.user_id",
+    "eventData.userId",
+    "eventData.user_id",
+    "user.userId",
+    "user.user_id",
+    "chatter.userId",
+    "chatter.user_id",
+    "dataUser.userId",
+    "dataUser.user_id"
+  ]);
+
   return {
-    eventId: envelope.id || (envelope.event && envelope.event.id) || "",
-    channel: payload.channel || envelope.channel || "",
-    source: payload.source || (envelope.source && envelope.source.module) || "",
+    eventId: root.id || (root.event && root.event.id) || "",
+    channel: payload.channel || root.channel || eventPayload.channel || eventData.channel || "",
+    source: payload.source || (root.source && root.source.module) || "",
     userLogin,
     userDisplayName,
-    userId: String(payload.userId || user.userId || "").trim(),
-    message,
+    userId: String(userIdResult.value || "").trim(),
+    message: String(messageResult.value || ""),
     badges,
-    receivedAt: payload.receivedAt || envelope.timestamp || core.nowIso()
+    receivedAt: payload.receivedAt || payload.received_at || root.timestamp || eventPayload.receivedAt || eventData.receivedAt || core.nowIso(),
+    userLoginSource: loginResult.source,
+    userDisplayNameSource: displayResult.source
   };
 }
 
@@ -767,14 +940,16 @@ function handleTwitchChatMessageForClaim(envelope = {}) {
 
   const chat = normalizeChatBusEnvelope(envelope);
   stats.lastUserLogin = chat.userLogin || "";
+  stats.lastUserDisplayName = chat.userDisplayName || "";
+  stats.lastUserSource = chat.userLoginSource || "";
   stats.lastMessagePreview = previewChatMessage(chat.message || "");
 
   if (!chat.userLogin) {
     stats.skipped += 1;
     stats.skippedNoUser += 1;
     stats.lastSkippedAt = core.nowIso();
-    stats.lastSkippedReason = "user_missing";
-    return { ok: true, skipped: true, reason: "user_missing" };
+    stats.lastSkippedReason = "user_login_missing";
+    return { ok: true, skipped: true, reason: "user_login_missing", displayName: chat.userDisplayName || "", userLoginSource: chat.userLoginSource || "" };
   }
 
   const claimWindow = getActiveClaimWindowForChat(chat);
@@ -830,7 +1005,7 @@ function registerChatClaimSubscriber() {
     module: MODULE_NAME,
     capability: "twitch.chat.message",
     meta: {
-      step: "LWG-4O.3",
+      step: "LWG-4O.3b",
       purpose: "giveaway_claim_runtime",
       mode: "confirm_pending_claim_window"
     }
