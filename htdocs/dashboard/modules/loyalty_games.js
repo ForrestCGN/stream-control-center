@@ -88,25 +88,42 @@ window.LoyaltyGamesModule = (function(){
       label: 'Loyalty',
       icon: '🎟️',
       role: 'mod/supermod/streamer',
-      description: 'Punkte, Giveaways, Spiele, Glücksrad, Presets und spätere Rewards.',
-      items: ['loyalty_games']
+      description: 'Punkte, Giveaways, Glücksrad, Raffles, Texte, Statistik, Config und Verlauf.',
+      items: ['loyalty_games'],
+      directModule: 'loyalty_games',
+      defaultModule: 'loyalty_games',
+      hideOverview: true
     };
 
     const nav = document.querySelector('#mainNav .nav-main-block');
-    if (nav && !nav.querySelector('[data-section="loyalty"]')) {
-      const btn = document.createElement('button');
-      btn.className = 'nav-main-item';
-      btn.dataset.section = 'loyalty';
-      btn.innerHTML = '<span class="nav-icon">🎟️</span><span class="nav-label"><strong>Loyalty</strong><small>Punkte, Giveaways, Spiele</small></span>';
+    if (nav) {
+      let btn = nav.querySelector('[data-section="loyalty"]');
+      if (!btn) {
+        btn = document.createElement('button');
+        btn.className = 'nav-main-item';
+        btn.dataset.section = 'loyalty';
+        const communityBtn = nav.querySelector('[data-section="community"]');
+        if (communityBtn) nav.insertBefore(btn, communityBtn);
+        else nav.appendChild(btn);
+      }
 
-      const communityBtn = nav.querySelector('[data-section="community"]');
-      if (communityBtn) nav.insertBefore(btn, communityBtn);
-      else nav.appendChild(btn);
+      btn.innerHTML = '<span class="nav-icon">🎟️</span><span class="nav-label"><strong>Loyalty</strong><small>Punkte, Giveaways, Glücksrad</small></span>';
+      btn.dataset.module = 'loyalty_games';
+      btn.dataset.directModule = 'loyalty_games';
 
-      btn.addEventListener('click', () => {
-        if (btn.disabled) return;
-        window.CGN.setActiveSection('loyalty');
-      });
+      if (btn.dataset.loyaltyDirectBound !== '1') {
+        btn.addEventListener('click', (ev) => {
+          if (btn.disabled) return;
+          ev.preventDefault();
+          ev.stopImmediatePropagation();
+          if (typeof window.CGN.setActiveModule === 'function') {
+            window.CGN.setActiveModule('loyalty_games', { section: 'loyalty' });
+          } else if (typeof window.CGN.setActiveSection === 'function') {
+            window.CGN.setActiveSection('loyalty');
+          }
+        }, true);
+        btn.dataset.loyaltyDirectBound = '1';
+      }
     }
   }
 
@@ -115,7 +132,7 @@ window.LoyaltyGamesModule = (function(){
     ensureLoyaltyMainSection();
 
     window.CGN.modules.loyalty_games = {
-      title: 'Loyalty Games',
+      title: 'Loyalty',
       panelId: 'loyaltyGamesModule',
       group: 'loyalty',
       overlayLink: api.overlay,
@@ -124,10 +141,10 @@ window.LoyaltyGamesModule = (function(){
     };
 
     window.CGN.moduleCatalog.loyalty_games = {
-      label: 'Loyalty Games',
+      label: 'Loyalty',
       icon: '🎡',
       enabled: true,
-      description: 'Spiele, Glücksrad, Presets und Giveaways im Loyalty-System.'
+      description: 'Punkte, Giveaways, Glücksrad, Raffles, Texte, Statistik und Config.'
     };
 
     const loyaltySection = window.CGN.sections?.loyalty;
@@ -1657,12 +1674,12 @@ window.LoyaltyGamesModule = (function(){
     if (!root) return;
 
     if (state.loading) {
-      root.innerHTML = `<div class="lg-panel"><h2>Loyalty Games</h2><p class="lg-muted">Lade Daten...</p></div>`;
+      root.innerHTML = `<div class="lg-panel"><h2>Loyalty</h2><p class="lg-muted">Lade Daten...</p></div>`;
       return;
     }
 
     if (state.error) {
-      root.innerHTML = `<div class="lg-panel lg-error"><h2>Loyalty Games</h2><p>${esc(state.error)}</p><button data-lg-reload>Neu laden</button></div>`;
+      root.innerHTML = `<div class="lg-panel lg-error"><h2>Loyalty</h2><p>${esc(state.error)}</p><button data-lg-reload>Neu laden</button></div>`;
       root.querySelector('[data-lg-reload]')?.addEventListener('click', () => loadAll(true));
       return;
     }
@@ -1670,9 +1687,9 @@ window.LoyaltyGamesModule = (function(){
     root.innerHTML = `
       <div class="lg-head">
         <div>
-          <p class="lg-eyebrow">Loyalty / Spiele</p>
-          <h2>Loyalty Games</h2>
-          <p class="lg-subline">Glücksrad, Presets, Giveaways, Chat-Command-Vorbereitung und Verlauf.</p>
+          <p class="lg-eyebrow">Loyalty / Übersicht</p>
+          <h2>Loyalty</h2>
+          <p class="lg-subline">Punkte, Giveaways, Glücksrad, Raffles, Texte, Statistik, Config und Verlauf.</p>
         </div>
         <div class="lg-actions">
           <a class="lg-btn lg-btn-secondary" href="${api.overlay}" target="_blank">Overlay öffnen</a>
