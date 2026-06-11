@@ -6,8 +6,8 @@ const core = require('./helpers/helper_core');
 const communicationBus = require('./communication_bus');
 
 const MODULE_NAME = 'commands';
-const MODULE_VERSION = '0.2.2';
-const MODULE_BUILD = 'LWG_5_6_COMMAND_RESULT_CHAT_SEND_BRIDGE';
+const MODULE_VERSION = '0.2.3';
+const MODULE_BUILD = 'LWG_6_5_GAMBLE_RESULT_LOG_CLEANUP';
 const SCHEMA_MODULE = 'command_system';
 const SCHEMA_VERSION = 2;
 const API_PREFIX = '/api/commands';
@@ -483,7 +483,53 @@ function markCooldown(command, user) {
 function summarizeResultForLog(result) {
   if (!result || typeof result !== 'object') return result || {};
   const data = result.data && typeof result.data === 'object' ? result.data : null;
-  return { ok: !!result.ok, statusCode: result.statusCode || null, dataOk: data ? !!data.ok : null, message: data ? (data.message || '') : '', error: data ? (data.error || '') : '', module: data ? (data.module || data.data?.module || '') : '', command: data ? (data.command || data.data?.command || '') : '' };
+  const nested = data && data.data && typeof data.data === 'object' ? data.data : null;
+  const summary = {
+    ok: !!result.ok,
+    statusCode: result.statusCode || null,
+    dataOk: data ? !!data.ok : null,
+    message: data ? (data.message || '') : '',
+    error: data ? (data.error || '') : '',
+    module: data ? (data.module || nested?.module || '') : '',
+    command: data ? (data.command || nested?.command || '') : ''
+  };
+
+  const copyFields = [
+    'game', 'action', 'sessionUid', 'login', 'displayName',
+    'bet', 'amount', 'rawBet', 'betMode', 'percent',
+    'outcome', 'won', 'grossPayout', 'payout', 'winAmount', 'netProfit', 'profit',
+    'winChancePercent', 'payoutMultiplier',
+    'balanceBefore', 'availableBefore', 'reservedBefore',
+    'balanceAfter', 'availableAfter', 'reservedAfter',
+    'rank', 'rankTotal', 'startedAt', 'finishedAt', 'messageKey'
+  ];
+
+  for (const source of [data, nested]) {
+    if (!source || typeof source !== 'object') continue;
+    for (const field of copyFields) {
+      if (summary[field] !== undefined) continue;
+      if (source[field] !== undefined && source[field] !== null) summary[field] = source[field];
+    }
+  }
+
+  const summaryBefore = (data && data.summaryBefore) || (nested && nested.summaryBefore) || null;
+  const summaryAfter = (data && data.summaryAfter) || (nested && nested.summaryAfter) || null;
+  if (summaryBefore && typeof summaryBefore === 'object') {
+    summary.summaryBefore = {
+      balance: Number(summaryBefore.balance || 0),
+      available: Number(summaryBefore.available || 0),
+      reserved: Number(summaryBefore.reserved || 0)
+    };
+  }
+  if (summaryAfter && typeof summaryAfter === 'object') {
+    summary.summaryAfter = {
+      balance: Number(summaryAfter.balance || 0),
+      available: Number(summaryAfter.available || 0),
+      reserved: Number(summaryAfter.reserved || 0)
+    };
+  }
+
+  return summary;
 }
 
 function commandResultData(result) {

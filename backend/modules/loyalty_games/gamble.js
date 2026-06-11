@@ -2,6 +2,9 @@
 "use strict";
 
 /**
+ * STEP224 / LWG-6.5:
+ * - Keeps raw gamble result complete for flattened runtime/log responses in loyalty_games.js.
+ *
  * STEP222 / LWG-6.3:
  * - Supports percent syntax variants for chat input, e.g. !gamble 10%, !gamble 10 %, !gamble 10 prozent.
  * - Adds optional half/halb aliases when percent bets are enabled.

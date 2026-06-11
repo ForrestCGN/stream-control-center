@@ -1,42 +1,8 @@
-# NEXT_STEPS – nach STEP223 / LWG-6.4
+# NEXT_STEPS
 
-## Empfohlen
-
-### STEP224 / LWG-6.5 – Gamble Result/Log Cleanup
-
-Ziel:
-
-```text
-Strukturierte Gamble-Ergebnisdaten im Command-Ergebnis/Log sichtbar machen:
-- bet
-- outcome
-- winAmount
-- balanceBefore
-- balanceAfter
-- messageKey
-```
-
-Grund:
-
-STEP222b musste `betInMessage=True` akzeptieren, weil `commands.js` das strukturierte Feld `bet` nicht oben im zusammengefassten Ergebnis spiegelt.
-
-### STEP225 / LWG-6.6 – StreamElements Migration finalisieren
-
-Ziel:
-
-```text
-SE !gamble / !roulette deaktivieren
-Node-Gamble als einzige Quelle bestätigen
-Doppelantworten ausschließen
-Live-Doku aktualisieren
-```
-
-### STEP226 / LWG-7.0 – Dashboard/Config-Planung
-
-Ziel:
-
-```text
-Gamble-Texte dashboardfähig machen
-Gamble-Settings dashboardfähig machen
-Cooldowns, Min/Max, Prozentregeln, Gewinnchance editierbar machen
-```
+1. STEP224 entpacken.
+2. Apply-Script ausführen.
+3. `stepdone.cmd` ausführen.
+4. Backend neu starten.
+5. Dryrun und Execute-Test starten.
+6. Danach STEP225: Gamble Live-Doku finalisieren oder Dashboard-Anbindung planen.

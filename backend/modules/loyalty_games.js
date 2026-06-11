@@ -3,6 +3,10 @@
 /**
  * Loyalty Games host module.
  *
+ * STEP LWG-6.5 / STEP224:
+ * - Flattens Gamble runtime results for commands.js and command_execution_log.
+ * - Adds bet/outcome/payout/profit/balance fields to module responses without changing game logic.
+ *
  * STEP LWG-6.3 / STEP222:
  * - Gamble text cleanup with new CGN/Kekskruemel variants.
  * - Runtime response uses v2 text keys so existing old DB variants do not leak into chat.
@@ -40,8 +44,8 @@ const presetFactory = require("./loyalty_games/presets");
 const loyaltyCore = require("./loyalty");
 
 const MODULE_NAME = "loyalty_games";
-const MODULE_VERSION = "0.2.4";
-const MODULE_BUILD = "STEP_LWG_6_3_GAMBLE_TEXT_PERCENT_PARSER_CLEANUP";
+const MODULE_VERSION = "0.2.5";
+const MODULE_BUILD = "STEP_LWG_6_5_GAMBLE_RESULT_LOG_CLEANUP";
 const CONFIG_FILE = "loyalty_games.json";
 const SCHEMA_MODULE = "loyalty_games";
 const SCHEMA_VERSION = 3;
@@ -998,6 +1002,78 @@ function startGamble(input = {}) {
 function normalizeCommandLogin(value) { return String(value || "").trim().replace(/^@/, "").toLowerCase(); }
 function commandUser(input = {}) { const login = normalizeCommandLogin(input.userLogin || input.login || input.username || input.user || ""); const displayName = String(input.userDisplayName || input.displayName || input.username || input.user || login).trim() || login; return { login, displayName }; }
 function commandArgs(input = {}) { if (Array.isArray(input.args)) return input.args.map(item => String(item || "").trim()).filter(Boolean); const raw = String(input.argText || input.rawArgs || input.text || input.message || "").trim(); return raw ? raw.split(/\s+/).filter(Boolean) : []; }
+function pickNumber(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function compactSummary(summary = {}) {
+  if (!summary || typeof summary !== "object") return { balance: 0, available: 0, reserved: 0 };
+  return {
+    login: summary.login || summary.userLogin || "",
+    displayName: summary.displayName || "",
+    balance: pickNumber(summary.balance, 0),
+    available: pickNumber(summary.available, 0),
+    reserved: pickNumber(summary.reserved, 0),
+    totalEarned: pickNumber(summary.totalEarned ?? summary.total_earned, 0),
+    totalSpent: pickNumber(summary.totalSpent ?? summary.total_spent, 0),
+    rank: summary.rank || null,
+    rankTotal: summary.rankTotal || 0,
+    currencyName: summary.currencyName || "Kekskrümel",
+    mode: summary.mode || ""
+  };
+}
+
+function flattenGambleResult(result = {}) {
+  const before = compactSummary(result.summaryBefore || {});
+  const after = compactSummary(result.summaryAfter || {});
+  const rankAfter = result.rankAfter && typeof result.rankAfter === "object" ? result.rankAfter : {};
+  const won = result.won === true;
+  const outcome = won ? "win" : "lose";
+  const bet = pickNumber(result.bet, 0);
+  const grossPayout = pickNumber(result.grossPayout, 0);
+  const netProfit = pickNumber(result.netProfit, grossPayout - bet);
+
+  return {
+    game: "gamble",
+    action: "gamble",
+    sessionUid: result.sessionUid || "",
+    login: result.login || "",
+    displayName: result.displayName || result.login || "",
+    bet,
+    amount: bet,
+    rawBet: result.rawBet || "",
+    betMode: result.betMode || "",
+    percent: result.percent || null,
+    outcome,
+    won,
+    grossPayout,
+    payout: grossPayout,
+    winAmount: grossPayout,
+    netProfit,
+    profit: netProfit,
+    winChancePercent: pickNumber(result.winChancePercent, 0),
+    payoutMultiplier: pickNumber(result.payoutMultiplier, 0),
+    balanceBefore: before.balance,
+    availableBefore: before.available,
+    reservedBefore: before.reserved,
+    balanceAfter: after.balance,
+    availableAfter: after.available,
+    reservedAfter: after.reserved,
+    rank: rankAfter.rank || null,
+    rankTotal: rankAfter.rankTotal || 0,
+    startedAt: result.startedAt || "",
+    finishedAt: result.finishedAt || "",
+    summaryBefore: before,
+    summaryAfter: after,
+    random: result.random || {
+      method: "crypto.randomInt",
+      serverSide: true,
+      predictableByUser: false
+    }
+  };
+}
+
 function buildGambleRuntimeResponse(input = {}, result = {}) {
   const user = commandUser(input);
   let messageKey = "";
@@ -1005,11 +1081,28 @@ function buildGambleRuntimeResponse(input = {}, result = {}) {
     user: user.displayName || user.login,
     currencyName: "Kekskrümel",
     bet: result.bet || result.amount || 0,
-    available: result.available || result.summary?.available || 0,
+    available: result.available || result.summary?.available || result.summaryAfter?.available || 0,
     rawBet: result.parsedBet?.raw || result.rawBet || "",
     percent: result.parsedBet?.percent || result.percent || ""
   };
-  if (result.ok) return { ok: true, handled: true, module: MODULE_NAME, command: "gamble", action: "gamble", message: result.message || "", messageKey: result.messageKey || "", data: result, active: true, commandsActive: true };
+
+  if (result.ok) {
+    const flat = flattenGambleResult(result);
+    return {
+      ok: true,
+      handled: true,
+      module: MODULE_NAME,
+      command: "gamble",
+      action: "gamble",
+      message: result.message || "",
+      messageKey: result.messageKey || "",
+      active: true,
+      commandsActive: true,
+      data: result,
+      ...flat
+    };
+  }
+
   const seconds = Math.ceil(Number(result.waitMs || 0) / 1000);
   if (result.error === "gamble_disabled" || result.error === "loyalty_games_disabled") messageKey = "gamble.disabled_v2";
   else if (result.error === "gamble_insufficient_available_balance" || result.error === "insufficient_available_balance") messageKey = "gamble.insufficient_balance_v2";
@@ -1019,7 +1112,26 @@ function buildGambleRuntimeResponse(input = {}, result = {}) {
   else if (result.error === "gamble_percent_disabled") messageKey = "gamble.percent_disabled_v2";
   else if (result.error === "gamble_all_disabled") messageKey = "gamble.all_disabled_v2";
   else messageKey = "gamble.invalid_amount_v2";
-  return { ok: false, handled: true, module: MODULE_NAME, command: "gamble", action: "gamble", message: renderGameText(messageKey, context), messageKey, error: result.error || "gamble_failed", data: result, active: false, commandsActive: false };
+
+  return {
+    ok: false,
+    handled: true,
+    module: MODULE_NAME,
+    command: "gamble",
+    action: "gamble",
+    message: renderGameText(messageKey, context),
+    messageKey,
+    error: result.error || "gamble_failed",
+    data: result,
+    active: false,
+    commandsActive: false,
+    game: "gamble",
+    bet: pickNumber(result.bet || result.parsedBet?.bet, 0),
+    rawBet: result.parsedBet?.raw || result.rawBet || "",
+    betMode: result.parsedBet?.mode || result.betMode || "",
+    percent: result.parsedBet?.percent || result.percent || null,
+    available: pickNumber(result.available || result.summary?.available, 0)
+  };
 }
 function handleChatCommandRuntime(input = {}) {
   ensureSchema(); ensureTextsSeeded(); seedCentralCommandDefinitions();
