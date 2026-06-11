@@ -1,5 +1,3 @@
-# commands – STEP230 Hinweis
+# Commands – STEP231
 
-STEP230 nutzt `/api/commands/logs?limit=80` nur lesend, um im Dashboard leichte Gamble-Statistik-Karten zu berechnen.
-
-Keine Aenderung an `commands.js`.
+Keine Command-Runtime-Aenderung. `!gamble` nutzt weiterhin die vorhandene Command-Bridge und strukturierte Logs aus STEP224.

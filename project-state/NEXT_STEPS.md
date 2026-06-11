@@ -1,16 +1,5 @@
-# NEXT STEPS – nach STEP230a
+# NEXT STEPS – STEP231
 
-Stand: STEP230a / LWG-7.1a
-
-## Bestätigter Zweck
-
-Der Gamble-Dashboard-UI-Readiness-Test wurde korrigiert. Der vorhandene Write-Schutz wird jetzt tolerant erkannt:
-
-- Dryrun-Button / Dryrun-Flow
-- confirmWrite-Checkbox
-- Write-Schutz-/Bestätigungs-Hinweis
-- Audit-Hinweis über STEP228a-API
-
-## Keine Runtime-Änderung
-
-Dieses Paket enthält keine Backend-Codeänderung und keine Datenbankdatei.
+1. STEP231 testen.
+2. Optional HTTP-Page prüfen.
+3. STEP232: echte Dashboard-Shell/Navigationsintegration auf Basis des realen Dashboard-Stands.

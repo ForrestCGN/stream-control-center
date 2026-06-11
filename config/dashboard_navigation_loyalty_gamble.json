@@ -1,0 +1,58 @@
+{
+  "step": "STEP231_LWG7_2",
+  "module": "loyalty-gamble",
+  "title": "Loyalty Gamble",
+  "route": "/dashboard/loyalty-gamble.html",
+  "group": "Loyalty",
+  "order": 710,
+  "compact": true,
+  "showInNavigation": true,
+  "labels": [
+    "Config",
+    "Stats",
+    "Audit"
+  ],
+  "api": {
+    "read": "GET /api/loyalty/games/gamble/dashboard-config",
+    "write": "POST /api/loyalty/games/gamble/dashboard-config",
+    "audit": "GET /api/loyalty/games/gamble/dashboard-audit",
+    "statsSource": "GET /api/commands/logs?limit=80"
+  },
+  "ui": {
+    "layout": "compact",
+    "navigation": "breadcrumb + optional dashboard card helper",
+    "avoidOverload": true,
+    "primarySections": [
+      "status",
+      "config",
+      "statistics",
+      "audit"
+    ],
+    "statistics": {
+      "source": "command_execution_log",
+      "cards": [
+        "gambles",
+        "wins",
+        "losses",
+        "net"
+      ]
+    },
+    "config": {
+      "groups": [
+        "basiswerte",
+        "cooldowns",
+        "einsatzarten"
+      ],
+      "writeSafety": [
+        "dryRun",
+        "confirmWrite",
+        "audit"
+      ]
+    }
+  },
+  "notes": [
+    "Keine Backend-Runtime-Änderung in STEP231.",
+    "Nav-Helper ist bewusst optional und nicht-invasiv, damit keine unbekannte Dashboard-Hauptseite überschrieben wird.",
+    "Später kann die bestehende Dashboard-Shell dieses JSON oder window.CGN_DASHBOARD_MODULES auswerten."
+  ]
+}
