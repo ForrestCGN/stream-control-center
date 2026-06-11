@@ -1,11 +1,11 @@
-# commands.js – STEP227 / LWG-6.8
+# Commands – STEP228 / LWG-6.9
 
-Keine Änderung in diesem Step.
+Der zentrale Command `!gamble` wird nicht durch neue Logik ersetzt. STEP228 erlaubt dem Dashboard lediglich, geschützte Command-Felder kontrolliert zu setzen:
 
-Bestätigter Stand bleibt:
+- `enabled`
+- `cooldownUserMs`
+- `cooldownGlobalMs`
+- `sendResultToChat`
+- `activationState`
 
-```text
-0.2.3 / LWG_6_5_GAMBLE_RESULT_LOG_CLEANUP
-```
-
-`!gamble` wird weiterhin über das zentrale Command-System ausgeführt und die Chat-Ausgabe läuft über `twitch_presence`, wenn `sendResultToChat=true` aktiv ist.
+Alle Änderungen laufen über `POST /api/loyalty/games/gamble/dashboard-config` und werden auditiert.

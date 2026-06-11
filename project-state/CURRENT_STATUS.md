@@ -1,6 +1,8 @@
-# CURRENT_STATUS – STEP227 / LWG-6.8
+# CURRENT STATUS – STEP228 / LWG-6.9
 
-- `!gamble` wurde in STEP224a/STEP225 live bestätigt.
-- STEP227 ergänzt eine read-only Dashboard-Snapshot-Route.
-- Keine DB-Datei, keine Secrets.
-- Backend-Neustart nach Deploy erforderlich.
+Gamble Dashboard Write API vorbereitet:
+
+- geschützte POST-Route
+- Audit-Tabelle
+- Testscript für Dryrun und Restore-Test
+- keine DB-Datei im Paket

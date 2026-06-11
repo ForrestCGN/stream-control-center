@@ -1,5 +1,3 @@
-# loyalty.js – STEP227 / LWG-6.8
+# Loyalty – STEP228 / LWG-6.9
 
-Keine Änderung in diesem Step.
-
-Die Punkte-Safety und Admin-Kommandos bleiben unverändert.
+Keine Änderung an Punkte-/Balance-/Transaktionslogik. Der STEP betrifft nur Gamble-Dashboard-Konfiguration und Audit.

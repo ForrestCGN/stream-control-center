@@ -1,8 +1,3 @@
-# Module – STEP227 / LWG-6.8
+# Module Docs – STEP228 / LWG-6.9
 
-Betroffene Module:
-
-- `loyalty_games.js` – neue read-only Dashboard-Snapshot-Route für Gamble
-- `commands.js` – bleibt unverändert auf bestätigtem STEP224-Stand
-- `loyalty.js` – unverändert
-- `twitch_presence.js` – unverändert
+Dieser Stand dokumentiert die Gamble Dashboard Write API mit Rollenprüfung, `confirmWrite` und Audit.

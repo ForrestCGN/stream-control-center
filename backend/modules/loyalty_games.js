@@ -3,6 +3,10 @@
 /**
  * Loyalty Games host module.
  *
+ * STEP LWG-6.9 / STEP228:
+ * - Adds protected Gamble dashboard write API with role checks and audit log.
+ * - Keeps writes scoped to Gamble settings and !gamble command fields.
+ *
  * STEP LWG-6.8 / STEP227:
  * - Adds a read-only dashboard configuration snapshot route for Gamble.
  * - Does not change settings, commands, balance or game logic.
@@ -48,12 +52,13 @@ const presetFactory = require("./loyalty_games/presets");
 const loyaltyCore = require("./loyalty");
 
 const MODULE_NAME = "loyalty_games";
-const MODULE_VERSION = "0.2.6";
-const MODULE_BUILD = "STEP_LWG_6_8_GAMBLE_DASHBOARD_READONLY_API";
+const MODULE_VERSION = "0.2.7";
+const MODULE_BUILD = "STEP_LWG_6_9_GAMBLE_DASHBOARD_WRITE_API";
 const CONFIG_FILE = "loyalty_games.json";
 const SCHEMA_MODULE = "loyalty_games";
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 const SETTINGS_TABLE = "loyalty_games_settings";
+const DASHBOARD_AUDIT_TABLE = "loyalty_games_dashboard_audit";
 const TEXT_MODULE = MODULE_NAME;
 
 const MODULE_META = {
@@ -769,6 +774,28 @@ function ensureSchema() {
   database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_game_sessions_created ON loyalty_game_sessions(created_at);`);
   database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_game_sessions_user ON loyalty_game_sessions(user_login);`);
 
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS ${DASHBOARD_AUDIT_TABLE} (
+      id ${database.primaryKeyAutoIncrementSql()},
+      audit_uid TEXT NOT NULL UNIQUE,
+      feature TEXT NOT NULL DEFAULT '',
+      action TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT '',
+      actor_login TEXT NOT NULL DEFAULT '',
+      actor_display_name TEXT NOT NULL DEFAULT '',
+      actor_role TEXT NOT NULL DEFAULT '',
+      reason TEXT NOT NULL DEFAULT '',
+      before_json TEXT NOT NULL DEFAULT '{}',
+      after_json TEXT NOT NULL DEFAULT '{}',
+      changes_json TEXT NOT NULL DEFAULT '{}',
+      metadata_json TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL
+    );
+  `);
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_games_audit_feature ON ${DASHBOARD_AUDIT_TABLE}(feature);`);
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_games_audit_created ON ${DASHBOARD_AUDIT_TABLE}(created_at);`);
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_games_audit_actor ON ${DASHBOARD_AUDIT_TABLE}(actor_login);`);
+
   if (presetStore && typeof presetStore.ensureSchema === "function") {
     presetStore.ensureSchema();
   }
@@ -1184,6 +1211,274 @@ function settingRowKey(row = {}) {
   return String(row.key || row.setting_key || row.name || "").trim();
 }
 
+function cleanActorLogin(value) {
+  return String(value || "").trim().replace(/^@/, "").toLowerCase();
+}
+
+function normalizeDashboardActor(input = {}) {
+  const body = input && typeof input === "object" ? input : {};
+  const nested = body.actor && typeof body.actor === "object" ? body.actor : {};
+  const login = cleanActorLogin(body.actorLogin || body.userLogin || nested.login || nested.userLogin || nested.username || "");
+  const displayName = String(body.actorDisplayName || body.displayName || nested.displayName || nested.name || login || "").trim();
+  const role = String(body.actorRole || body.role || nested.role || "").trim().toLowerCase();
+  const isBroadcaster = body.isBroadcaster === true || nested.isBroadcaster === true || role === "broadcaster" || role === "streamer" || role === "owner";
+  const isAdmin = body.isAdmin === true || nested.isAdmin === true || role === "admin" || role === "owner";
+  const isMod = body.isMod === true || nested.isMod === true || role === "mod" || role === "moderator" || isBroadcaster || isAdmin;
+  return {
+    login,
+    displayName: displayName || login,
+    role: role || (isAdmin ? "admin" : isBroadcaster ? "streamer" : isMod ? "mod" : "viewer"),
+    isBroadcaster,
+    isAdmin,
+    isMod
+  };
+}
+
+function actorCanWriteGambleDashboard(actor = {}) {
+  return !!(actor && (actor.isBroadcaster || actor.isAdmin || ["streamer", "broadcaster", "owner", "admin"].includes(String(actor.role || "").toLowerCase())));
+}
+
+function auditUid(prefix = "gamble_dashboard") {
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function safeJson(value) {
+  try { return JSON.stringify(value ?? {}); } catch (_) { return "{}"; }
+}
+
+function insertDashboardAudit(entry = {}) {
+  ensureSchema();
+  const now = core.nowIso();
+  const actor = entry.actor || {};
+  const data = {
+    auditUid: entry.auditUid || auditUid(),
+    feature: entry.feature || "gamble",
+    action: entry.action || "dashboard_config_write",
+    status: entry.status || "unknown",
+    actorLogin: actor.login || "",
+    actorDisplayName: actor.displayName || actor.login || "",
+    actorRole: actor.role || "",
+    reason: String(entry.reason || "").trim(),
+    beforeJson: safeJson(entry.before || {}),
+    afterJson: safeJson(entry.after || {}),
+    changesJson: safeJson(entry.changes || {}),
+    metadataJson: safeJson(entry.metadata || {}),
+    createdAt: now
+  };
+  database.run(`
+    INSERT INTO ${DASHBOARD_AUDIT_TABLE} (
+      audit_uid, feature, action, status, actor_login, actor_display_name, actor_role,
+      reason, before_json, after_json, changes_json, metadata_json, created_at
+    ) VALUES (
+      :auditUid, :feature, :action, :status, :actorLogin, :actorDisplayName, :actorRole,
+      :reason, :beforeJson, :afterJson, :changesJson, :metadataJson, :createdAt
+    )
+  `, data);
+  const row = database.get(`SELECT * FROM ${DASHBOARD_AUDIT_TABLE} WHERE audit_uid = :auditUid`, { auditUid: data.auditUid });
+  return rowToDashboardAudit(row);
+}
+
+function rowToDashboardAudit(row) {
+  if (!row) return null;
+  return {
+    id: Number(row.id || 0),
+    auditUid: row.audit_uid || "",
+    feature: row.feature || "",
+    action: row.action || "",
+    status: row.status || "",
+    actorLogin: row.actor_login || "",
+    actorDisplayName: row.actor_display_name || row.actor_login || "",
+    actorRole: row.actor_role || "",
+    reason: row.reason || "",
+    before: safeParseJson(row.before_json, {}),
+    after: safeParseJson(row.after_json, {}),
+    changes: safeParseJson(row.changes_json, {}),
+    metadata: safeParseJson(row.metadata_json, {}),
+    createdAt: row.created_at || ""
+  };
+}
+
+function listDashboardAudit(options = {}) {
+  ensureSchema();
+  const limit = Math.max(1, Math.min(200, Number(options.limit || 50) || 50));
+  const rows = database.all(`SELECT * FROM ${DASHBOARD_AUDIT_TABLE} WHERE feature = :feature ORDER BY id DESC LIMIT :limit`, { feature: "gamble", limit }) || [];
+  return {
+    ok: true,
+    table: DASHBOARD_AUDIT_TABLE,
+    feature: "gamble",
+    count: rows.length,
+    rows: rows.map(rowToDashboardAudit).filter(Boolean)
+  };
+}
+
+function settingDefinitionByKeyOrPath(keyOrPath) {
+  const clean = String(keyOrPath || "").trim();
+  if (!clean) return null;
+  return SETTINGS_DEFINITIONS.find(def => def.key === clean || def.path === clean || def.key === `games.gamble.${clean}` || def.path === `games.gamble.${clean}`) || null;
+}
+
+function clampNumber(value, min, max, fallback = 0) {
+  const n = Number(value);
+  const base = Number.isFinite(n) ? n : fallback;
+  return Math.max(min, Math.min(max, base));
+}
+
+function normalizeDashboardSettingValue(def, value) {
+  let normalized = normalizeSettingValue(def, value);
+  if (!String(def.key || "").startsWith("games.gamble.")) return normalized;
+  switch (def.key) {
+    case "games.gamble.minBet":
+      return Math.max(1, Math.floor(Number(normalized) || 1));
+    case "games.gamble.maxBet":
+      return Math.max(1, Math.floor(Number(normalized) || 1));
+    case "games.gamble.minPercent":
+      return Math.floor(clampNumber(normalized, 1, 100, 1));
+    case "games.gamble.maxPercent":
+      return Math.floor(clampNumber(normalized, 1, 100, 100));
+    case "games.gamble.winChancePercent":
+      return Math.floor(clampNumber(normalized, 0, 100, 47));
+    case "games.gamble.payoutMultiplier":
+      return Math.max(1, Number(normalized) || 2);
+    case "games.gamble.userCooldownMs":
+    case "games.gamble.globalCooldownMs":
+      return Math.max(0, Math.floor(Number(normalized) || 0));
+    default:
+      return normalized;
+  }
+}
+
+function collectDashboardSettingsPatch(payload = {}) {
+  const source = payload && typeof payload === "object" ? payload : {};
+  const out = {};
+  const settings = source.settings && typeof source.settings === "object" ? source.settings : {};
+  const engine = source.engine && typeof source.engine === "object" ? source.engine : {};
+
+  for (const [key, value] of Object.entries(settings)) {
+    const def = settingDefinitionByKeyOrPath(key);
+    if (!def || !String(def.key || "").startsWith("games.gamble.")) continue;
+    out[def.key] = normalizeDashboardSettingValue(def, value);
+  }
+
+  for (const [key, value] of Object.entries(engine)) {
+    const def = settingDefinitionByKeyOrPath(`games.gamble.${key}`);
+    if (!def) continue;
+    out[def.key] = normalizeDashboardSettingValue(def, value);
+  }
+
+  const minBet = out["games.gamble.minBet"];
+  const maxBet = out["games.gamble.maxBet"];
+  if (minBet !== undefined && maxBet !== undefined && maxBet < minBet) out["games.gamble.maxBet"] = minBet;
+
+  const minPercent = out["games.gamble.minPercent"];
+  const maxPercent = out["games.gamble.maxPercent"];
+  if (minPercent !== undefined && maxPercent !== undefined && maxPercent < minPercent) out["games.gamble.maxPercent"] = minPercent;
+
+  return out;
+}
+
+function readGambleCommandDefinition() {
+  const central = seedCentralCommandDefinitions();
+  return (central.commands || []).find(row => row && row.trigger === "gamble") || null;
+}
+
+function normalizeCommandPatch(payload = {}, currentCommand = null) {
+  const command = payload && payload.command && typeof payload.command === "object" ? payload.command : {};
+  const patch = {};
+  if (Object.prototype.hasOwnProperty.call(command, "enabled")) patch.enabled = command.enabled === true || command.enabled === 1 || ["1", "true", "yes", "on"].includes(String(command.enabled).toLowerCase());
+  if (Object.prototype.hasOwnProperty.call(command, "cooldownUserMs")) patch.cooldownUserMs = Math.max(0, Math.floor(Number(command.cooldownUserMs) || 0));
+  if (Object.prototype.hasOwnProperty.call(command, "cooldownGlobalMs")) patch.cooldownGlobalMs = Math.max(0, Math.floor(Number(command.cooldownGlobalMs) || 0));
+  if (Object.prototype.hasOwnProperty.call(command, "sendResultToChat") || Object.prototype.hasOwnProperty.call(command, "activationState")) {
+    const currentConfig = currentCommand && currentCommand.config && typeof currentCommand.config === "object" ? currentCommand.config : {};
+    patch.config = { ...currentConfig };
+    if (Object.prototype.hasOwnProperty.call(command, "sendResultToChat")) patch.config.sendResultToChat = command.sendResultToChat === true || command.sendResultToChat === 1 || ["1", "true", "yes", "on"].includes(String(command.sendResultToChat).toLowerCase());
+    if (Object.prototype.hasOwnProperty.call(command, "activationState")) patch.config.activationState = String(command.activationState || "dashboard_step228").trim() || "dashboard_step228";
+    patch.config.resultChatTarget = patch.config.resultChatTarget || "twitch_presence";
+    patch.config.resultChatStep = "STEP228_LWG6_9";
+  }
+  return patch;
+}
+
+function applyGambleCommandPatch(patch = {}) {
+  const current = readGambleCommandDefinition();
+  if (!current) return { ok: false, error: "gamble_command_missing" };
+  const data = {};
+  if (Object.prototype.hasOwnProperty.call(patch, "enabled")) data.enabled = patch.enabled ? 1 : 0;
+  if (Object.prototype.hasOwnProperty.call(patch, "cooldownUserMs")) data.cooldown_user_ms = Math.max(0, Math.floor(Number(patch.cooldownUserMs) || 0));
+  if (Object.prototype.hasOwnProperty.call(patch, "cooldownGlobalMs")) data.cooldown_global_ms = Math.max(0, Math.floor(Number(patch.cooldownGlobalMs) || 0));
+  if (Object.prototype.hasOwnProperty.call(patch, "config")) data.config_json = JSON.stringify(patch.config || {});
+  if (!Object.keys(data).length) return { ok: true, changed: false, before: current, after: current };
+  data.updated_at = core.nowIso();
+  database.updateByKey("command_definitions", "trigger", "gamble", data);
+  const after = readGambleCommandDefinition();
+  return { ok: true, changed: true, before: current, after };
+}
+
+function buildGambleDashboardWritePreview(payload = {}) {
+  ensureSchema();
+  ensureSettingsSeeded(config);
+  refreshConfigFromSettings();
+  seedCentralCommandDefinitions();
+  const before = buildGambleDashboardConfigPayload();
+  const currentCommand = before.command && before.command.raw ? before.command.raw : readGambleCommandDefinition();
+  const settingsPatch = collectDashboardSettingsPatch(payload);
+  const commandPatch = normalizeCommandPatch(payload, currentCommand);
+  return {
+    before,
+    settingsPatch,
+    commandPatch,
+    hasChanges: Object.keys(settingsPatch).length > 0 || Object.keys(commandPatch).length > 0
+  };
+}
+
+function handleGambleDashboardWrite(payload = {}) {
+  ensureSchema();
+  const input = payload && typeof payload === "object" ? payload : {};
+  const actor = normalizeDashboardActor(input);
+  const reason = String(input.reason || input.changeReason || "dashboard_update").trim() || "dashboard_update";
+  const dryRun = input.dryRun === true || input.dry_run === true;
+  const confirmed = input.confirmWrite === true || input.confirm === true || input.confirmed === true;
+  const preview = buildGambleDashboardWritePreview(input);
+
+  if (!actorCanWriteGambleDashboard(actor)) {
+    const audit = insertDashboardAudit({ actor, status: "denied", reason, before: preview.before, after: preview.before, changes: { settings: preview.settingsPatch, command: preview.commandPatch }, metadata: { error: "permission_denied", dryRun } });
+    return { ok: false, statusCode: 403, error: "permission_denied", message: "Nur Streamer/Owner/Admin duerfen Gamble-Dashboard-Werte schreiben.", actor, audit };
+  }
+
+  if (!preview.hasChanges) {
+    const audit = insertDashboardAudit({ actor, status: dryRun ? "dry_run_no_changes" : "no_changes", reason, before: preview.before, after: preview.before, changes: {}, metadata: { dryRun } });
+    return { ok: true, dryRun, changed: false, saved: 0, commandChanged: false, actor, before: preview.before, after: preview.before, audit };
+  }
+
+  if (!dryRun && !confirmed) {
+    const audit = insertDashboardAudit({ actor, status: "confirm_required", reason, before: preview.before, after: preview.before, changes: { settings: preview.settingsPatch, command: preview.commandPatch }, metadata: { dryRun } });
+    return { ok: false, statusCode: 400, error: "confirm_required", message: "Setze confirmWrite=true fuer schreibende Dashboard-Aenderungen.", actor, audit };
+  }
+
+  if (dryRun) {
+    return { ok: true, dryRun: true, changed: false, saved: 0, commandChanged: false, actor, before: preview.before, afterPreview: { settings: preview.settingsPatch, command: preview.commandPatch }, changes: { settings: preview.settingsPatch, command: preview.commandPatch } };
+  }
+
+  const settingsResult = Object.keys(preview.settingsPatch).length ? saveSettingsFromInput(preview.settingsPatch) : { ok: true, saved: 0, rows: [] };
+  const commandResult = applyGambleCommandPatch(preview.commandPatch);
+  const after = buildGambleDashboardConfigPayload();
+  const audit = insertDashboardAudit({ actor, status: "applied", reason, before: preview.before, after, changes: { settings: preview.settingsPatch, command: preview.commandPatch }, metadata: { settingsSaved: Number(settingsResult.saved || 0), commandChanged: !!commandResult.changed } });
+
+  return {
+    ok: true,
+    dryRun: false,
+    changed: true,
+    saved: Number(settingsResult.saved || 0),
+    commandChanged: !!commandResult.changed,
+    actor,
+    before: preview.before,
+    after,
+    changes: { settings: preview.settingsPatch, command: preview.commandPatch },
+    settings: settingsResult,
+    command: commandResult,
+    audit
+  };
+}
+
 function buildGambleDashboardConfigPayload() {
   ensureSchema();
   ensureSettingsSeeded(config);
@@ -1224,15 +1519,15 @@ function buildGambleDashboardConfigPayload() {
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
     feature: "gamble",
-    readOnly: true,
+    readOnly: false,
     dashboard: {
       section: "Loyalty / Gamble",
-      step: "STEP227_LWG6_8",
-      mode: "readonly_snapshot",
+      step: "STEP228_LWG6_9",
+      mode: "read_write_with_audit",
       notes: [
-        "Diese Route ist bewusst nur lesend.",
-        "Schreibende Dashboard-Aktionen folgen in einem spaeteren Step mit Rollen- und Audit-Pruefung.",
-        "StreamElements-Parallelbetrieb ist waehrend der Umstellung moeglich."
+        "GET ist weiterhin ein Snapshot fuer Dashboard-UI.",
+        "POST ist schreibend und erfordert Streamer/Owner/Admin sowie confirmWrite=true.",
+        "Jede schreibende Aktion wird in loyalty_games_dashboard_audit protokolliert."
       ]
     },
     access: status.access || {},
@@ -1280,14 +1575,18 @@ function buildGambleDashboardConfigPayload() {
       dashboardConfig: "GET /api/loyalty/games/gamble/dashboard-config",
       settingsRead: "GET /api/loyalty/games/settings",
       settingsWrite: "POST /api/loyalty/games/settings",
+      dashboardWrite: "POST /api/loyalty/games/gamble/dashboard-config",
+      dashboardAudit: "GET /api/loyalty/games/gamble/dashboard-audit",
       commandRuntime: "POST /api/loyalty/games/runtime/chat-command",
       texts: "GET/POST /api/loyalty/games/texts"
     },
     safety: {
-      writable: false,
-      writeStepPlanned: "STEP228+",
-      requiresRoleCheckForFutureWrites: true,
-      auditRequiredForFutureWrites: true,
+      writable: true,
+      writeStep: "STEP228_LWG6_9",
+      requiredRole: "streamer|broadcaster|owner|admin",
+      confirmWriteRequired: true,
+      auditRequired: true,
+      auditTable: DASHBOARD_AUDIT_TABLE,
       safetyDisableAvailable: true
     }
   };
@@ -1362,6 +1661,8 @@ function registerRoutes(app) {
     "GET /api/loyalty/games/gamble/status",
     "GET /api/loyalty/games/gamble/config",
     "GET /api/loyalty/games/gamble/dashboard-config",
+    "POST /api/loyalty/games/gamble/dashboard-config",
+    "GET /api/loyalty/games/gamble/dashboard-audit",
     "POST /api/loyalty/games/gamble/play",
     "POST /api/loyalty/games/runtime/chat-command",
     "GET /api/loyalty/games/central-commands",
@@ -1388,6 +1689,8 @@ function registerRoutes(app) {
   registered.push(...routes.registerGet(app, "/api/loyalty/games/gamble/status", core.asyncRoute(async (req, res) => { refreshConfigFromSettings(); core.sendOk(res, decorateGambleStatus(gamble ? gamble.getStatus() : { ok: false, error: "gamble_not_loaded", lastError: "gamble_not_loaded" })); })));
   registered.push(...routes.registerGet(app, "/api/loyalty/games/gamble/config", core.asyncRoute(async (req, res) => { refreshConfigFromSettings(); core.sendOk(res, { game: "gamble", config: gamble ? gamble.getPublicConfig() : (config.games && config.games.gamble ? config.games.gamble : {}) }); })));
   registered.push(...routes.registerGet(app, "/api/loyalty/games/gamble/dashboard-config", core.asyncRoute(async (req, res) => { core.sendOk(res, buildGambleDashboardConfigPayload()); })));
+  registered.push(...routes.registerPost(app, "/api/loyalty/games/gamble/dashboard-config", core.asyncRoute(async (req, res) => { const result = handleGambleDashboardWrite(req.body || {}); if (!result.ok) return core.sendFail(res, result.error || "dashboard_write_failed", result.statusCode || 400, result); core.sendOk(res, result); })));
+  registered.push(...routes.registerGet(app, "/api/loyalty/games/gamble/dashboard-audit", core.asyncRoute(async (req, res) => { core.sendOk(res, listDashboardAudit({ limit: req.query.limit })); })));
   registered.push(...routes.registerPost(app, "/api/loyalty/games/gamble/play", core.asyncRoute(async (req, res) => { const result = startGamble({ ...(req.body || {}), ...(req.query || {}), source: req.body?.source || req.query?.source || "api" }); if (!result.ok) return core.sendFail(res, result.error || "gamble_failed", result.statusCode || 409, result); core.sendOk(res, result); })));
   registered.push(...routes.registerPost(app, "/api/loyalty/games/runtime/chat-command", core.asyncRoute(async (req, res) => { core.sendOk(res, handleChatCommandRuntime(req.body || {})); })));
   registered.push(...routes.registerGet(app, "/api/loyalty/games/central-commands", core.asyncRoute(async (req, res) => { core.sendOk(res, seedCentralCommandDefinitions()); })));
