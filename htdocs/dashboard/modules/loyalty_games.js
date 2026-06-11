@@ -41,13 +41,7 @@ window.LoyaltyGamesModule = (function(){
     selectedPreset: null,
     selectedGiveawayUid: '',
     selectedGiveaway: null,
-    selectedBoundWheel: null,
-    activeTab: 'overview',
-    presetEditorModal: { open: false, mode: 'create', context: 'presets', presetUid: '', targetGiveawayUid: '' },
-    giveawayDraftWheelPresetUid: '',
-    giveawayWheelPresetOverrides: {},
-    giveawayEditorModal: { open: false, mode: 'create', giveawayUid: '' },
-    giveawayStatusFilter: 'all'
+    activeTab: 'overview'
   };
 
   function esc(v){
@@ -80,83 +74,11 @@ window.LoyaltyGamesModule = (function(){
       : `<span class="lg-badge lg-badge-off">${esc(failText)}</span>`;
   }
 
-  const INCOMPLETE_BADGE_STYLE = 'border-color:rgba(255,140,0,.78);background:rgba(255,140,0,.16);color:#ffb35c;box-shadow:0 0 14px rgba(255,140,0,.18)';
-
-  function statusLabel(status){
-    const clean = String(status || '').toLowerCase();
-    const labels = {
-      active: 'Aktiv',
-      running: 'Läuft',
-      ok: 'OK',
-      open: 'Offen',
-      draft: 'Entwurf',
-      paused: 'Pausiert',
-      closed_for_entries: 'Teilnahme geschlossen',
-      finished: 'Beendet',
-      exhausted: 'Aufgebraucht',
-      cancelled: 'Abgebrochen',
-      deleted: 'Gelöscht',
-      pending: 'Ausstehend',
-      used: 'Genutzt',
-      classic_single: 'Classic Single',
-      classic_multi: 'Classic Multi',
-      wheel_single: 'Wheel Single',
-      wheel_multi: 'Wheel Multi'
-    };
-    return labels[clean] || String(status || '-');
-  }
-
   function statusBadge(status){
     const clean = String(status || '').toLowerCase();
-    const label = statusLabel(status);
-    if (['active', 'running', 'ok', 'open'].includes(clean)) return `<span class="lg-badge lg-badge-ok">${esc(label)}</span>`;
-    if (['draft', 'paused', 'closed_for_entries'].includes(clean)) return `<span class="lg-badge lg-badge-warn">${esc(label)}</span>`;
-    return `<span class="lg-badge lg-badge-off">${esc(label)}</span>`;
-  }
-
-  function setupBadge(giveaway){
-    if (!giveaway) return '';
-    if (giveaway.setupComplete === true) return `<span class="lg-badge lg-badge-ok">Bereit</span>`;
-    return `<span class="lg-badge lg-badge-incomplete" style="${INCOMPLETE_BADGE_STYLE}">Unvollständig</span>`;
-  }
-
-  function setupIssuesText(giveaway){
-    const issues = rows(giveaway?.setupIssues);
-    if (!issues.length) return '';
-    return issues.map(issue => issue.message || issue.code || 'Pflichtangabe fehlt').join(', ');
-  }
-
-  function setupWarningBlock(giveaway){
-    if (!giveaway || giveaway.setupComplete === true) return '';
-    const text = setupIssuesText(giveaway) || 'Es fehlen noch Pflichtangaben.';
-    return `<p class="lg-warning"><strong>Noch nicht bereit:</strong> ${esc(text)}<br><small>Speichern als Entwurf ist erlaubt. Öffnen ist erst möglich, wenn alle Pflichtdaten vollständig sind.</small></p>`;
-  }
-
-
-  function isFinalGiveawayStatus(status){
-    return ['finished', 'cancelled', 'deleted'].includes(String(status || '').toLowerCase());
-  }
-
-  function canEditGiveaway(giveaway){
-    return !!giveaway && String(giveaway.status || '').toLowerCase() === 'draft' && giveaway.editable !== false;
-  }
-
-  function hasPendingWheel(giveaway){
-    const winners = rows(giveaway?.winners || []);
-    const permissions = rows(giveaway?.wheelPermissions || []);
-    return winners.some(winner => String(winner.status || '').toLowerCase() === 'waiting_for_wheel')
-      || permissions.some(permission => String(permission.status || '').toLowerCase() === 'pending');
-  }
-
-  function giveawayFilterMatches(giveaway, filter){
-    const clean = String(filter || 'all').toLowerCase();
-    const status = String(giveaway?.status || '').toLowerCase();
-    if (clean === 'all') return true;
-    if (clean === 'incomplete') return giveaway?.setupComplete === false;
-    if (clean === 'ready') return status === 'draft' && giveaway?.setupComplete === true;
-    if (clean === 'draw_open') return status === 'closed_for_entries';
-    if (clean === 'wheel_open') return hasPendingWheel(giveaway);
-    return status === clean;
+    if (['active', 'running', 'ok', 'open'].includes(clean)) return `<span class="lg-badge lg-badge-ok">${esc(status)}</span>`;
+    if (['draft', 'paused', 'closed_for_entries'].includes(clean)) return `<span class="lg-badge lg-badge-warn">${esc(status)}</span>`;
+    return `<span class="lg-badge lg-badge-off">${esc(status || '-')}</span>`;
   }
 
   function ensureLoyaltyMainSection(){
@@ -166,7 +88,7 @@ window.LoyaltyGamesModule = (function(){
       label: 'Loyalty',
       icon: '🎟️',
       role: 'mod/supermod/streamer',
-      description: 'Core, Glücksrad, Giveaways, Raffles, Texte, Statistik, Config und Verlauf.',
+      description: 'Punkte, Giveaways, Spiele, Glücksrad, Presets und spätere Rewards.',
       items: ['loyalty_games']
     };
 
@@ -175,7 +97,7 @@ window.LoyaltyGamesModule = (function(){
       const btn = document.createElement('button');
       btn.className = 'nav-main-item';
       btn.dataset.section = 'loyalty';
-      btn.innerHTML = '<span class="nav-icon">🎟️</span><span class="nav-label"><strong>Loyalty</strong><small>Punkte, Glücksrad, Giveaways</small></span>';
+      btn.innerHTML = '<span class="nav-icon">🎟️</span><span class="nav-label"><strong>Loyalty</strong><small>Punkte, Giveaways, Spiele</small></span>';
 
       const communityBtn = nav.querySelector('[data-section="community"]');
       if (communityBtn) nav.insertBefore(btn, communityBtn);
@@ -183,7 +105,7 @@ window.LoyaltyGamesModule = (function(){
 
       btn.addEventListener('click', () => {
         if (btn.disabled) return;
-        window.CGN.setActiveModule('loyalty_games', { section: 'loyalty' });
+        window.CGN.setActiveSection('loyalty');
       });
     }
   }
@@ -193,7 +115,7 @@ window.LoyaltyGamesModule = (function(){
     ensureLoyaltyMainSection();
 
     window.CGN.modules.loyalty_games = {
-      title: 'Loyalty',
+      title: 'Loyalty Games',
       panelId: 'loyaltyGamesModule',
       group: 'loyalty',
       overlayLink: api.overlay,
@@ -202,10 +124,10 @@ window.LoyaltyGamesModule = (function(){
     };
 
     window.CGN.moduleCatalog.loyalty_games = {
-      label: 'Loyalty',
+      label: 'Loyalty Games',
       icon: '🎡',
       enabled: true,
-      description: 'Loyalty-Zentrale mit Core, Glücksrad, Giveaways, Raffles, Texten, Statistik und Config.'
+      description: 'Spiele, Glücksrad, Presets und Giveaways im Loyalty-System.'
     };
 
     const loyaltySection = window.CGN.sections?.loyalty;
@@ -332,69 +254,6 @@ window.LoyaltyGamesModule = (function(){
     if (rerender) render();
   }
 
-
-  function mapBoundWheelAsEditorModel(data = {}, giveawayUid = ''){
-    const bound = data.boundWheel || data.wheel || null;
-    const giveaway = rows(state.giveaways).find(item => item.giveawayUid === giveawayUid) || state.selectedGiveaway || null;
-    if (!bound) return null;
-    const fields = rows(data.fields || bound.fields || []);
-    const locked = bound.locked === true || String(bound.status || '').toLowerCase() === 'active';
-    return {
-      presetUid: bound.boundWheelUid || bound.wheelSnapshotUid || bound.presetUid || '',
-      boundWheelUid: bound.boundWheelUid || bound.wheelSnapshotUid || '',
-      giveawayUid: bound.giveawayUid || giveawayUid,
-      name: bound.name || `${giveaway?.title || 'Giveaway'} – Glücksrad`,
-      description: bound.description || '',
-      status: bound.status || '',
-      presetType: 'giveaway_bound',
-      minVisibleSlots: Number(bound.minVisibleSlots || bound.min_visible_slots || 12) || 12,
-      locked,
-      editable: !!giveaway && canEditGiveaway(giveaway) && !locked,
-      settings: bound.settings || { removeAfterWin: true },
-      fields,
-      metadata: bound.metadata || {},
-      sourcePresetUid: bound.sourcePresetUid || '',
-      sourcePresetName: bound.sourcePresetName || ''
-    };
-  }
-
-  async function loadBoundWheel(giveawayUid, rerender = true){
-    const uid = String(giveawayUid || '').trim();
-    if (!uid) {
-      state.selectedBoundWheel = null;
-      if (rerender) render();
-      return null;
-    }
-    try {
-      const data = await window.CGN.api(`/api/loyalty/giveaways/${encodeURIComponent(uid)}/wheel/bound`);
-      const model = mapBoundWheelAsEditorModel(data, uid);
-      state.selectedBoundWheel = model;
-      if (rerender) render();
-      return model;
-    } catch (err) {
-      state.error = err.message || String(err);
-      state.selectedBoundWheel = null;
-      if (rerender) render();
-      return null;
-    }
-  }
-
-  async function openBoundWheelEditorModal(giveawayUid){
-    const uid = String(giveawayUid || '').trim();
-    if (!uid) return;
-    state.presetEditorModal = {
-      open: true,
-      mode: 'edit',
-      context: 'giveaway_bound',
-      presetUid: '',
-      targetGiveawayUid: uid
-    };
-    await loadGiveaway(uid, false);
-    await loadBoundWheel(uid, false);
-    state.activeTab = 'giveaways';
-    render();
-  }
-
   async function refreshPresets(selectUid){
     const [presets, spins] = await Promise.all([
       window.CGN.api(api.presets).catch(err => ({ ok:false, error:err.message, rows:[] })),
@@ -441,7 +300,7 @@ window.LoyaltyGamesModule = (function(){
       });
       const uid = result.preset?.presetUid;
       await refreshPresets(uid);
-      state.activeTab = 'wheel';
+      state.activeTab = 'presets';
       setMessage('Preset wurde erstellt.');
     } catch (err) {
       state.error = err.message || String(err);
@@ -450,79 +309,21 @@ window.LoyaltyGamesModule = (function(){
     }
   }
 
-  function collectFieldUpdates(){
-    return Array.from(document.querySelectorAll('[data-lg-field-card][data-field-uid]')).map(card => {
-      const data = new FormData();
-      card.querySelectorAll('input[name], select[name], textarea[name]').forEach(input => {
-        if (input.type === 'checkbox') {
-          if (input.checked) data.set(input.name, 'on');
-        } else {
-          data.set(input.name, input.value);
-        }
-      });
-      return {
-        fieldUid: card.dataset.fieldUid || '',
-        payload: {
-          label: data.get('label'),
-          subLabel: data.get('subLabel'),
-          weight: Number(data.get('weight') || 1),
-          quantityTotal: Number(data.get('quantityTotal') || 1),
-          rewardType: data.get('rewardType') || 'manual',
-          rewardValue: data.get('rewardValue') || '',
-          enabled: true,
-          sortOrder: Number(data.get('sortOrder') || 1)
-        }
-      };
-    }).filter(item => item.fieldUid);
-  }
-
   async function handleUpdatePreset(form){
-    const context = state.presetEditorModal?.context || 'presets';
-    const isBoundWheelContext = context === 'giveaway_bound';
-    const targetGiveawayUid = state.presetEditorModal?.targetGiveawayUid || '';
     const presetUid = state.selectedPresetUid;
+    if (!presetUid) return;
     const data = new FormData(form);
-    const fieldUpdates = isBoundWheelContext
-      ? (state.selectedBoundWheel?.editable ? collectFieldUpdates() : [])
-      : (state.selectedPreset?.editable ? collectFieldUpdates() : []);
-    if (!isBoundWheelContext && !presetUid) return;
-    if (isBoundWheelContext && !targetGiveawayUid) return;
     state.saving = true; render();
     try {
-      if (isBoundWheelContext) {
-        for (const field of fieldUpdates) {
-          await apiPut(`/api/loyalty/giveaways/${encodeURIComponent(targetGiveawayUid)}/wheel/bound/fields/${encodeURIComponent(field.fieldUid)}`, field.payload);
-        }
-        await loadBoundWheel(targetGiveawayUid, false);
-        await refreshGiveaways(targetGiveawayUid);
-        state.activeTab = 'giveaways';
-        state.presetEditorModal = { open: false, mode: 'create', context: 'presets', presetUid: '', targetGiveawayUid: '' };
-        state.selectedBoundWheel = null;
-        setMessage('Giveaway-Glücksrad wurde gespeichert.');
-      } else {
-        await apiPut(`/api/loyalty/games/wheel/presets/${encodeURIComponent(presetUid)}`, {
-          name: data.get('name'),
-          description: data.get('description'),
-          minVisibleSlots: Number(data.get('minVisibleSlots') || 12),
-          removeAfterWin: data.get('removeAfterWin') === 'on',
-          actor: 'dashboard'
-        });
-        for (const field of fieldUpdates) {
-          await apiPut(`/api/loyalty/games/wheel/presets/${encodeURIComponent(presetUid)}/fields/${encodeURIComponent(field.fieldUid)}`, field.payload);
-        }
-        await refreshPresets(presetUid);
-        if (state.presetEditorModal?.open && state.presetEditorModal?.context === 'giveaways') {
-          const targetGiveawayUid = state.presetEditorModal?.targetGiveawayUid || '';
-          rememberGiveawayWheelPresetSelection(targetGiveawayUid, presetUid);
-          if (targetGiveawayUid) await attachPresetToGiveaway(targetGiveawayUid, presetUid);
-          state.activeTab = 'giveaways';
-          state.presetEditorModal = { open: false, mode: 'create', context: 'presets', presetUid: '', targetGiveawayUid: '' };
-          await refreshGiveaways(targetGiveawayUid || state.selectedGiveawayUid);
-          setMessage('Glücksrad wurde gespeichert und im Giveaway ausgewählt.');
-        } else {
-          setMessage(fieldUpdates.length ? 'Preset und Felder wurden gespeichert.' : 'Preset wurde gespeichert.');
-        }
-      }
+      await apiPut(`/api/loyalty/games/wheel/presets/${encodeURIComponent(presetUid)}`, {
+        name: data.get('name'),
+        description: data.get('description'),
+        minVisibleSlots: Number(data.get('minVisibleSlots') || 12),
+        removeAfterWin: data.get('removeAfterWin') === 'on',
+        actor: 'dashboard'
+      });
+      await refreshPresets(presetUid);
+      setMessage('Preset-Einstellungen wurden gespeichert.');
     } catch (err) {
       state.error = err.message || String(err);
     } finally {
@@ -531,32 +332,21 @@ window.LoyaltyGamesModule = (function(){
   }
 
   async function handleCreateField(form){
-    const context = state.presetEditorModal?.context || 'presets';
-    const isBoundWheelContext = context === 'giveaway_bound';
-    const targetGiveawayUid = state.presetEditorModal?.targetGiveawayUid || '';
     const presetUid = state.selectedPresetUid;
-    if (!isBoundWheelContext && !presetUid) return;
-    if (isBoundWheelContext && !targetGiveawayUid) return;
+    if (!presetUid) return;
     const data = new FormData(form);
-    const payload = {
-      label: data.get('label'),
-      subLabel: data.get('subLabel'),
-      weight: Number(data.get('weight') || 1),
-      quantityTotal: Number(data.get('quantityTotal') || 1),
-      rewardType: data.get('rewardType') || 'manual',
-      rewardValue: data.get('rewardValue') || '',
-      enabled: true
-    };
     state.saving = true; render();
     try {
-      if (isBoundWheelContext) {
-        await apiPost(`/api/loyalty/giveaways/${encodeURIComponent(targetGiveawayUid)}/wheel/bound/fields`, payload);
-        await loadBoundWheel(targetGiveawayUid, false);
-        await refreshGiveaways(targetGiveawayUid);
-      } else {
-        await apiPost(`/api/loyalty/games/wheel/presets/${encodeURIComponent(presetUid)}/fields`, payload);
-        await refreshPresets(presetUid);
-      }
+      await apiPost(`/api/loyalty/games/wheel/presets/${encodeURIComponent(presetUid)}/fields`, {
+        label: data.get('label'),
+        subLabel: data.get('subLabel'),
+        weight: Number(data.get('weight') || 1),
+        quantityTotal: Number(data.get('quantityTotal') || 1),
+        rewardType: data.get('rewardType') || 'manual',
+        rewardValue: data.get('rewardValue') || '',
+        enabled: data.get('enabled') === 'on'
+      });
+      await refreshPresets(presetUid);
       setMessage('Feld wurde hinzugefügt.');
     } catch (err) {
       state.error = err.message || String(err);
@@ -579,7 +369,7 @@ window.LoyaltyGamesModule = (function(){
         quantityTotal: Number(data.get('quantityTotal') || 1),
         rewardType: data.get('rewardType') || 'manual',
         rewardValue: data.get('rewardValue') || '',
-        enabled: true,
+        enabled: data.get('enabled') === 'on',
         sortOrder: Number(data.get('sortOrder') || 1)
       });
       await refreshPresets(presetUid);
@@ -626,25 +416,15 @@ window.LoyaltyGamesModule = (function(){
   }
 
   async function deleteField(fieldUid){
-    const context = state.presetEditorModal?.context || 'presets';
-    const isBoundWheelContext = context === 'giveaway_bound';
-    const targetGiveawayUid = state.presetEditorModal?.targetGiveawayUid || '';
     const presetUid = state.selectedPresetUid;
-    if ((!isBoundWheelContext && !presetUid) || !fieldUid) return;
-    if (isBoundWheelContext && !targetGiveawayUid) return;
-    if (!window.confirm('Feld wirklich entfernen?')) return;
+    if (!presetUid || !fieldUid) return;
+    if (!window.confirm('Feld wirklich deaktivieren/löschen?')) return;
 
     state.saving = true; render();
     try {
-      if (isBoundWheelContext) {
-        await apiPost(`/api/loyalty/giveaways/${encodeURIComponent(targetGiveawayUid)}/wheel/bound/fields/${encodeURIComponent(fieldUid)}/delete`, { actor: 'dashboard' });
-        await loadBoundWheel(targetGiveawayUid, false);
-        await refreshGiveaways(targetGiveawayUid);
-      } else {
-        await apiPost(`/api/loyalty/games/wheel/presets/${encodeURIComponent(presetUid)}/fields/${encodeURIComponent(fieldUid)}/delete`, { actor: 'dashboard' });
-        await refreshPresets(presetUid);
-      }
-      setMessage('Feld wurde entfernt.');
+      await apiPost(`/api/loyalty/games/wheel/presets/${encodeURIComponent(presetUid)}/fields/${encodeURIComponent(fieldUid)}/delete`, { actor: 'dashboard' });
+      await refreshPresets(presetUid);
+      setMessage('Feld wurde deaktiviert.');
     } catch (err) {
       state.error = err.message || String(err);
     } finally {
@@ -681,66 +461,15 @@ window.LoyaltyGamesModule = (function(){
     };
   }
 
-  function isWheelGiveawayMode(mode){
-    return String(mode || '').startsWith('wheel_');
-  }
-
-  function getGiveawayWheelPresetSelection(giveaway, wheelMode){
-    if (!wheelMode) return '';
-    const giveawayUid = String(giveaway?.giveawayUid || '').trim();
-    if (giveawayUid && state.giveawayWheelPresetOverrides && state.giveawayWheelPresetOverrides[giveawayUid]) {
-      return state.giveawayWheelPresetOverrides[giveawayUid];
-    }
-    if (!giveaway && state.giveawayDraftWheelPresetUid) return state.giveawayDraftWheelPresetUid;
-    return giveaway?.wheelPresetUid || '';
-  }
-
-  function rememberGiveawayWheelPresetSelection(giveawayUid, presetUid){
-    const uid = String(giveawayUid || '').trim();
-    const preset = String(presetUid || '').trim();
-    if (uid) {
-      state.giveawayWheelPresetOverrides = { ...(state.giveawayWheelPresetOverrides || {}), [uid]: preset };
-      return;
-    }
-    state.giveawayDraftWheelPresetUid = preset;
-  }
-
-  function clearGiveawayWheelPresetSelection(giveawayUid){
-    const uid = String(giveawayUid || '').trim();
-    if (uid && state.giveawayWheelPresetOverrides) {
-      const next = { ...state.giveawayWheelPresetOverrides };
-      delete next[uid];
-      state.giveawayWheelPresetOverrides = next;
-    } else {
-      state.giveawayDraftWheelPresetUid = '';
-    }
-  }
-
-  function syncGiveawayWheelPresetVisibility(form){
-    if (!form) return;
-    const modeSelect = form.querySelector('[data-lg-giveaway-mode-select]');
-    const presetRow = form.querySelector('[data-lg-wheel-preset-row]');
-    const presetSelect = form.querySelector('[data-lg-wheel-preset-select]');
-    const wheelMode = isWheelGiveawayMode(modeSelect?.value || 'classic_single');
-
-    if (presetRow) presetRow.style.display = wheelMode ? '' : 'none';
-    if (presetSelect) {
-      const editable = presetSelect.dataset.editable === '1';
-      presetSelect.disabled = !editable || !wheelMode;
-      if (!wheelMode) presetSelect.value = '';
-    }
-  }
-
   function buildGiveawayPayload(form){
     const data = new FormData(form);
     const mode = String(data.get('mode') || 'classic_single');
-    const wheelMode = isWheelGiveawayMode(mode);
     return {
       title: data.get('title'),
       description: data.get('description'),
       mode,
-      wheelEnabled: wheelMode,
-      wheelPresetUid: wheelMode ? (data.get('wheelPresetUid') || '') : '',
+      wheelEnabled: mode.startsWith('wheel_'),
+      wheelPresetUid: data.get('wheelPresetUid') || '',
       costAmount: Number(data.get('costAmount') || 0),
       maxTicketsPerUser: Number(data.get('maxTicketsPerUser') || 1),
       firstTicketFree: data.get('firstTicketFree') === 'on',
@@ -754,56 +483,15 @@ window.LoyaltyGamesModule = (function(){
         ticketCarryoverMode: data.get('ticketCarryoverMode') || 'none'
       },
       prizes: [buildPrizeFromForm(data)],
-      actor: 'dashboard'
-    };
-  }
-
-  function buildGiveawayPayloadFromRecord(giveaway, override = {}){
-    const currentMode = String(override.mode || giveaway?.mode || 'classic_single');
-    const wheelMode = isWheelGiveawayMode(currentMode);
-    const round = giveaway?.roundPolicy || {};
-    const prize = rows(giveaway?.prizes || [])[0] || {};
-    const wheelPresetUid = override.wheelPresetUid !== undefined
-      ? String(override.wheelPresetUid || '').trim()
-      : String(giveaway?.wheelPresetUid || '').trim();
-
-    return {
-      title: override.title !== undefined ? override.title : (giveaway?.title || ''),
-      description: override.description !== undefined ? override.description : (giveaway?.description || ''),
-      mode: currentMode,
-      wheelEnabled: wheelMode,
-      wheelPresetUid: wheelMode ? wheelPresetUid : '',
-      costAmount: Number(override.costAmount ?? giveaway?.costAmount ?? 0),
-      maxTicketsPerUser: Number(override.maxTicketsPerUser ?? giveaway?.maxTicketsPerUser ?? 1),
-      firstTicketFree: override.firstTicketFree ?? giveaway?.firstTicketFree ?? false,
-      subOnly: override.subOnly ?? giveaway?.subOnly ?? false,
-      subscriberLuckMultiplier: Number(override.subscriberLuckMultiplier ?? giveaway?.subscriberLuckMultiplier ?? 1),
-      winnerCount: Number(override.winnerCount ?? giveaway?.winnerCount ?? 1),
-      roundPolicy: {
-        roundMode: override.roundMode || round.roundMode || 'single',
-        allowNewEntriesBetweenRounds: override.allowNewEntriesBetweenRounds ?? round.allowNewEntriesBetweenRounds ?? false,
-        removeWinnerAfterRound: override.removeWinnerAfterRound ?? round.removeWinnerAfterRound ?? true,
-        ticketCarryoverMode: override.ticketCarryoverMode || round.ticketCarryoverMode || 'none'
+      chatClaim: {
+        enabled: data.get('chatClaimEnabled') === 'on',
+        mode: data.get('chatClaimMode') || 'any_message',
+        timeoutSeconds: Number(data.get('chatClaimTimeoutSeconds') || 60),
+        timeoutMs: Math.max(1, Number(data.get('chatClaimTimeoutSeconds') || 60)) * 1000,
+        activateWheelAfterClaim: data.get('activateWheelAfterClaim') !== 'off'
       },
-      prizes: [{
-        label: prize.label || giveaway?.title || 'Gewinn',
-        description: prize.description || '',
-        quantityTotal: Number(prize.quantityTotal || prize.quantity_total || 1)
-      }],
       actor: 'dashboard'
     };
-  }
-
-  async function attachPresetToGiveaway(giveawayUid, presetUid){
-    const uid = String(giveawayUid || '').trim();
-    const preset = String(presetUid || '').trim();
-    if (!uid || !preset) return false;
-    const giveaway = rows(state.giveaways).find(item => item.giveawayUid === uid) || state.selectedGiveaway;
-    if (!giveaway || !canEditGiveaway(giveaway)) return false;
-    const payload = buildGiveawayPayloadFromRecord(giveaway, { mode: giveaway.mode || 'wheel_single', wheelPresetUid: preset });
-    await apiPut(`/api/loyalty/giveaways/${encodeURIComponent(uid)}`, payload);
-    clearGiveawayWheelPresetSelection(uid);
-    return true;
   }
 
   async function handleCreateGiveaway(form){
@@ -811,8 +499,6 @@ window.LoyaltyGamesModule = (function(){
     try {
       const result = await apiPost('/api/loyalty/giveaways', buildGiveawayPayload(form));
       const uid = result.giveaway?.giveawayUid;
-      clearGiveawayWheelPresetSelection('');
-      state.giveawayEditorModal = { open: false, mode: 'create', giveawayUid: '' };
       await refreshGiveaways(uid);
       state.activeTab = 'giveaways';
       setMessage('Giveaway wurde erstellt.');
@@ -829,8 +515,6 @@ window.LoyaltyGamesModule = (function(){
     state.saving = true; render();
     try {
       await apiPut(`/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}`, buildGiveawayPayload(form));
-      clearGiveawayWheelPresetSelection(giveawayUid);
-      state.giveawayEditorModal = { open: false, mode: 'create', giveawayUid: '' };
       await refreshGiveaways(giveawayUid);
       setMessage('Giveaway wurde gespeichert.');
     } catch (err) {
@@ -947,66 +631,55 @@ window.LoyaltyGamesModule = (function(){
     const rewardsHealth = getHealthInfo('loyalty_rewards', false, { planned: true });
     const channelpointsHealth = getHealthInfo('channelpoints', false);
 
-    const incompleteGiveaways = rows(state.giveaways).filter(g => g && g.setupComplete === false).length;
-    const openGiveaways = giveawaysDiag.open || rows(state.giveaways).filter(g => String(g.status || '').toLowerCase() === 'open').length;
-    const activePresets = presetDiag.active || rows(state.presets).filter(p => String(p.status || '').toLowerCase() === 'active').length;
-
     const moduleCards = [
       {
-        title: 'Core',
-        icon: '💰',
-        tab: 'points',
-        description: 'User, Punkte, Währungen und Transaktionen',
+        title: 'Loyalty Core',
+        icon: '🎟️',
+        tab: 'overview',
+        description: 'Punkte, Konten und Transaktionen',
         health: coreHealth
       },
       {
         title: 'Glücksrad',
         icon: '🎡',
         tab: 'wheel',
-        description: `${fmtNumber(activePresets)} aktive Presets · ${fmtNumber(wheel.fields || 0)} Felder im Live-Rad`,
+        description: `${wheel.enabled === false ? 'deaktiviert' : 'aktiv'} · ${fmtNumber(wheel.fields || 0)} Felder`,
+        health: gamesHealth
+      },
+      {
+        title: 'Presets',
+        icon: '🧩',
+        tab: 'presets',
+        description: `${fmtNumber(presetDiag.presets || rows(state.presets).length)} Presets · ${fmtNumber(presetDiag.active || 0)} aktiv`,
         health: gamesHealth
       },
       {
         title: 'Giveaways',
         icon: '🎁',
         tab: 'giveaways',
-        description: `${fmtNumber(openGiveaways)} offen · ${fmtNumber(incompleteGiveaways)} unvollständig`,
-        health: incompleteGiveaways > 0 ? { color: 'yellow', label: 'Warnung', detail: `${fmtNumber(incompleteGiveaways)} unvollständig` } : giveawaysHealth
-      },
-      {
-        title: 'Raffles',
-        icon: '🎫',
-        tab: 'raffles',
-        description: 'schnelle Chat-Verlosungen · geplant',
-        health: rewardsHealth
-      },
-      {
-        title: 'Texte',
-        icon: '💬',
-        tab: 'texts',
-        description: 'Multi-Textverwaltung für Loyalty-Module',
+        description: `${fmtNumber(giveawaysDiag.total || rows(state.giveaways).length)} Giveaways · Tickets folgen`,
         health: giveawaysHealth
       },
       {
-        title: 'Statistik',
-        icon: '📊',
-        tab: 'statistics',
-        description: 'Nutzung, Gewinner, Gewinne und Teilnehmer',
-        health: coreHealth
+        title: 'Wheel Overlay',
+        icon: '📺',
+        tab: 'wheel',
+        description: 'Overlay-Heartbeat / OBS-Quelle',
+        health: overlayHealth
       },
       {
-        title: 'Config',
-        icon: '⚙️',
-        tab: 'config',
-        description: 'zentrale Einstellungen und Setup-Prüfungen',
+        title: 'Kanalpunkte',
+        icon: '💎',
+        tab: 'notes',
+        description: 'spätere Preset- und Giveaway-Auslöser',
         health: channelpointsHealth
       },
       {
-        title: 'Verlauf',
-        icon: '📜',
-        tab: 'history',
-        description: 'Events, Spins, Ziehungen und Audit',
-        health: gamesHealth
+        title: 'Rewards',
+        icon: '🏆',
+        tab: 'notes',
+        description: 'noch geplant',
+        health: rewardsHealth
       }
     ];
 
@@ -1015,8 +688,8 @@ window.LoyaltyGamesModule = (function(){
         <div class="lg-home-hero">
           <div>
             <p class="lg-eyebrow">Loyalty Control Center</p>
-            <h3>Übersicht</h3>
-            <p class="lg-muted">Wähle direkt den Loyalty-Bereich. Globale Glücksrad-Presets liegen unter Glücksrad, Giveaway-Glücksräder im jeweiligen Giveaway.</p>
+            <h3>Module & Status</h3>
+            <p class="lg-muted">Ampelstatus aus API, vorhandenem Communication-/CanBus und Heartbeats.</p>
           </div>
           <div class="lg-home-legend">
             <span>${renderAmpel({color:'green', detail:'ok'})} aktiv</span>
@@ -1045,15 +718,15 @@ window.LoyaltyGamesModule = (function(){
           ${badge(wheel.enabled !== false, 'Aktiv', 'Aus')}
         </article>
         <article class="lg-card">
-          <span class="lg-card-label">Glücksrad-Presets</span>
+          <span class="lg-card-label">Presets</span>
           <strong>${fmtNumber(presetDiag.presets || rows(state.presets).length)}</strong>
-          <small>unter Glücksrad · aktiv ${fmtNumber(presetDiag.active || 0)} · aufgebraucht ${fmtNumber(presetDiag.exhausted || 0)}</small>
+          <small>active ${fmtNumber(presetDiag.active || 0)} · exhausted ${fmtNumber(presetDiag.exhausted || 0)}</small>
           ${badge(true, 'DB')}
         </article>
         <article class="lg-card">
           <span class="lg-card-label">Giveaways</span>
           <strong>${fmtNumber(giveawaysDiag.total || rows(state.giveaways).length)}</strong>
-          <small>Entwürfe ${fmtNumber(giveawaysDiag.draft || 0)} · offen ${fmtNumber(giveawaysDiag.open || 0)}</small>
+          <small>draft ${fmtNumber(giveawaysDiag.draft || 0)} · open ${fmtNumber(giveawaysDiag.open || 0)}</small>
           ${badge(state.giveawaysStatus?.ok !== false, 'OK', 'Fehler')}
         </article>
       </div>
@@ -1061,7 +734,7 @@ window.LoyaltyGamesModule = (function(){
       <div class="lg-panel">
         <h3>Systemstatus</h3>
         <div class="lg-kv">
-          <span>Core/Glücksrad Schema</span><strong>${esc(String(diag.schemaReady ?? '-'))}</strong>
+          <span>Games Schema</span><strong>${esc(String(diag.schemaReady ?? '-'))}</strong>
           <span>Giveaways Schema</span><strong>${esc(String(state.giveawaysStatus?.diagnostics?.schemaReady ?? '-'))}</strong>
           <span>EventBus Games</span><strong>${diag.eventBus?.ready ? 'bereit' : 'broadcast_only'}</strong>
           <span>EventBus Giveaways</span><strong>${state.giveawaysStatus?.diagnostics?.eventBus?.ready ? 'bereit' : 'broadcast_only'}</strong>
@@ -1079,8 +752,8 @@ window.LoyaltyGamesModule = (function(){
     return `
       <div class="lg-grid lg-grid-3">
         <article class="lg-card">
-          <span class="lg-card-label">Glücksrad Status</span>
-          <strong>${wheel.running ? 'Dreht gerade' : 'Bereit'}</strong>
+          <span class="lg-card-label">Wheel Status</span>
+          <strong>${wheel.running ? 'Running' : 'Idle'}</strong>
           <small>${wheel.enabled === false ? 'deaktiviert' : 'aktiv'}</small>
           ${badge(wheel.enabled !== false, 'Aktiv', 'Aus')}
         </article>
@@ -1125,165 +798,6 @@ window.LoyaltyGamesModule = (function(){
     `;
   }
 
-
-  async function openPresetEditorModal(options = {}){
-    const mode = options.mode === 'edit' ? 'edit' : 'create';
-    const presetUid = String(options.presetUid || '').trim();
-    const context = String(options.context || state.activeTab || 'presets').trim() || 'presets';
-    const targetGiveawayUid = String(options.targetGiveawayUid || '').trim();
-    state.presetEditorModal = {
-      open: true,
-      mode,
-      context,
-      presetUid,
-      targetGiveawayUid
-    };
-    if (context === 'giveaway_bound') {
-      if (targetGiveawayUid) await loadBoundWheel(targetGiveawayUid, false);
-    } else if (mode === 'edit' && presetUid && presetUid !== state.selectedPresetUid) {
-      await loadPreset(presetUid, false);
-    }
-    render();
-  }
-
-  function closePresetEditorModal(){
-    state.presetEditorModal = { open: false, mode: 'create', context: 'presets', presetUid: '', targetGiveawayUid: '' };
-    state.selectedBoundWheel = null;
-    render();
-  }
-
-  async function handleCreatePresetFromModal(form){
-    const data = new FormData(form);
-    state.saving = true; render();
-    try {
-      const result = await apiPost('/api/loyalty/games/wheel/presets', {
-        name: data.get('name'),
-        description: data.get('description'),
-        minVisibleSlots: Number(data.get('minVisibleSlots') || 12),
-        status: data.get('status') || 'draft',
-        removeAfterWin: data.get('removeAfterWin') === 'on',
-        createdBy: 'dashboard',
-        metadata: {
-          createdFrom: 'preset_editor_modal',
-          editorContext: state.presetEditorModal?.context || 'presets',
-          targetGiveawayUid: state.presetEditorModal?.targetGiveawayUid || ''
-        }
-      });
-      const uid = result.preset?.presetUid || '';
-      const context = state.presetEditorModal?.context || 'presets';
-      const targetGiveawayUid = state.presetEditorModal?.targetGiveawayUid || '';
-      await refreshPresets(uid);
-      if (context === 'giveaways' && uid) {
-        rememberGiveawayWheelPresetSelection(targetGiveawayUid, uid);
-        if (targetGiveawayUid) await attachPresetToGiveaway(targetGiveawayUid, uid);
-        state.activeTab = 'giveaways';
-        state.presetEditorModal = { open: true, mode: 'edit', context, presetUid: uid, targetGiveawayUid };
-        if (targetGiveawayUid) await refreshGiveaways(targetGiveawayUid);
-        setMessage('Glücksrad wurde erstellt und im Giveaway ausgewählt. Füge jetzt die Felder hinzu und speichere danach das Glücksrad.');
-      } else {
-        state.presetEditorModal = { open: true, mode: 'edit', context, presetUid: uid, targetGiveawayUid: '' };
-        setMessage('Preset wurde erstellt. Du kannst jetzt Felder hinzufügen.');
-      }
-    } catch (err) {
-      state.error = err.message || String(err);
-    } finally {
-      state.saving = false; render();
-    }
-  }
-
-  function renderPresetEditorModal(){
-    const modal = state.presetEditorModal || {};
-    if (!modal.open) return '';
-    const mode = modal.mode === 'edit' ? 'edit' : 'create';
-    const context = modal.context || 'presets';
-    const isBoundWheelContext = context === 'giveaway_bound';
-    const selected = isBoundWheelContext ? state.selectedBoundWheel : (mode === 'edit' ? state.selectedPreset : null);
-    const fields = rows(selected?.fields || []);
-    const editable = mode === 'create' ? true : !!selected?.editable;
-    const isGiveawayContext = context === 'giveaways' || isBoundWheelContext;
-    const editorNoun = isGiveawayContext ? 'Glücksrad' : 'Preset';
-    const title = mode === 'edit'
-      ? `${editorNoun} bearbeiten: ${selected ? esc(selected.name || editorNoun) : `${editorNoun} wird geladen`}`
-      : (isGiveawayContext ? 'Giveaway-Glücksrad erstellen' : 'Neues Preset erstellen');
-    const introText = isGiveawayContext
-      ? 'Erstelle oder bearbeite hier das Glücksrad, das im Giveaway verwendet wird. Technische Felder werden ausgeblendet.'
-      : 'Erstelle und bearbeite hier globale Presets für das Glücksrad.';
-    const createHint = isGiveawayContext
-      ? 'Nach dem Anlegen öffnet sich direkt die Felder-Bearbeitung. Das Glücksrad wird automatisch im Giveaway ausgewählt.'
-      : 'Nach dem Anlegen kannst du direkt Felder hinzufügen und das Preset weiter bearbeiten.';
-    const createButtonLabel = isGiveawayContext ? 'Glücksrad anlegen & Felder bearbeiten' : 'Preset erstellen';
-    const saveButtonLabel = isGiveawayContext ? 'Glücksrad speichern' : 'Preset-Einstellungen speichern';
-
-    return `
-      <div class="lg-editor-modal-backdrop" data-lg-close-preset-editor>
-        <div class="lg-editor-modal" role="dialog" aria-modal="true" aria-label="Preset-Editor" onclick="event.stopPropagation()">
-          <div class="lg-editor-modal-head">
-            <div>
-              <p class="lg-eyebrow">${isGiveawayContext ? 'Giveaway / Glücksrad-Editor' : 'Glücksrad / Preset-Editor'}</p>
-              <h3>${title}</h3>
-              <p class="lg-muted">${introText}</p>
-              ${isGiveawayContext ? `<p class="lg-muted">Dieses Glücksrad ist erst bereit, wenn mindestens ein gültiges Feld vorhanden ist.</p>` : ''}
-            </div>
-            <button class="lg-btn lg-btn-secondary" type="button" data-lg-close-preset-editor>Schließen</button>
-          </div>
-
-          ${mode === 'create' ? `
-            <form class="lg-form lg-editor-modal-section" data-lg-modal-create-preset>
-              <div class="lg-form-row">
-                <label>Name<input name="name" required placeholder="z. B. Rentner-Rad"></label>
-                <label>Mindest-Slots<input name="minVisibleSlots" type="number" min="1" max="96" value="12"></label>
-              </div>
-              <label>Beschreibung<textarea name="description" rows="2" placeholder="Kurzbeschreibung"></textarea></label>
-              <div class="lg-form-row">
-                ${isGiveawayContext ? `<input name="status" type="hidden" value="draft">` : `
-                  <label>Status
-                    <select name="status">
-                      <option value="draft">Entwurf</option>
-                      <option value="active">Aktiv</option>
-                    </select>
-                  </label>
-                `}
-                <label class="lg-check"><input name="removeAfterWin" type="checkbox" checked> Gewinnfeld nach Auslosung aus diesem Rad entfernen</label>
-              </div>
-              ${isGiveawayContext ? `<p class="lg-warning">${createHint}</p>` : ''}
-              <button class="lg-btn" type="submit" ${state.saving ? 'disabled' : ''}>${createButtonLabel}</button>
-            </form>
-          ` : selected ? `
-            <div class="lg-editor-modal-section">
-              <div class="lg-kv lg-kv-compact">
-                ${isGiveawayContext ? `
-                  <span>Verwendung</span><strong>Giveaway-Glücksrad</strong>
-                ` : `
-                  <span>Status</span><strong>${statusBadge(selected.status)}</strong>
-                  <span>Typ</span><strong>${esc(selected.presetType)}</strong>
-                `}
-                <span>Bearbeitbar</span><strong>${editable ? 'Ja' : 'Nein, nur kopieren/anzeigen'}</strong>
-                <span>Felder</span><strong>${fmtNumber(fields.length)}</strong>
-              </div>
-              ${editable ? (isBoundWheelContext ? `
-                <form class="lg-form lg-preset-settings-form" data-lg-update-preset>
-                  <p class="lg-muted">Dieses Glücksrad gehört nur zu diesem Giveaway. Bearbeite unten die Felder und speichere anschließend das Glücksrad.</p>
-                  <button class="lg-btn" type="submit">${saveButtonLabel}</button>
-                </form>
-              ` : `
-                <form class="lg-form lg-preset-settings-form" data-lg-update-preset>
-                  <div class="lg-form-row">
-                    <label>Name<input name="name" value="${esc(selected.name || '')}" required></label>
-                    <label>Mindest-Slots<input name="minVisibleSlots" type="number" min="1" max="96" value="${esc(selected.minVisibleSlots || 12)}"></label>
-                  </div>
-                  <label>Beschreibung<textarea name="description" rows="2">${esc(selected.description || '')}</textarea></label>
-                  <label class="lg-check"><input name="removeAfterWin" type="checkbox" ${selected.settings?.removeAfterWin === false ? '' : 'checked'}> Gewinnfeld nach Auslosung aus diesem Rad entfernen</label>
-                  <button class="lg-btn" type="submit">${saveButtonLabel}</button>
-                </form>
-              `) : `<p class="lg-warning">${isGiveawayContext ? 'Dieses Glücksrad ist nicht direkt bearbeitbar, weil das Giveaway nicht mehr im Entwurf ist.' : 'Dieses Preset ist nicht direkt bearbeitbar. Änderungen bitte über Kopieren als neues Preset anlegen.'}</p>`}
-            </div>
-            ${renderFieldsEditor(selected, fields, editable)}
-          ` : `<p class="lg-muted">Preset wird geladen...</p>`}
-        </div>
-      </div>
-    `;
-  }
-
   function renderPresets(){
     const presets = rows(state.presets);
     const selected = state.selectedPreset;
@@ -1296,7 +810,6 @@ window.LoyaltyGamesModule = (function(){
         <div class="lg-panel">
           <div class="lg-panel-head">
             <h3>Presets</h3>
-            <button class="lg-btn lg-btn-secondary" data-lg-open-preset-editor data-mode="create" data-context="presets">Neues Preset im Editor</button>
             <button class="lg-btn" data-lg-preset-refresh>Aktualisieren</button>
           </div>
           <div class="lg-preset-list">
@@ -1313,7 +826,7 @@ window.LoyaltyGamesModule = (function(){
         </div>
 
         <div class="lg-panel">
-          <h3>Schnellanlage Standalone-Preset</h3>
+          <h3>Neues Standalone-Preset</h3>
           <form class="lg-form" data-lg-create-preset>
             <label>Name<input name="name" required placeholder="z. B. Rentner-Rad"></label>
             <label>Beschreibung<textarea name="description" rows="2" placeholder="Kurzbeschreibung"></textarea></label>
@@ -1339,7 +852,6 @@ window.LoyaltyGamesModule = (function(){
             ${selected ? `<p class="lg-muted">${esc(selected.description || '')}</p>` : ''}
           </div>
           ${selected ? `<div class="lg-actions">
-            <button class="lg-btn" data-lg-open-preset-editor data-mode="edit" data-context="presets" data-preset-uid="${esc(selected.presetUid)}">Im Editor öffnen</button>
             <button class="lg-btn lg-btn-secondary" data-lg-preset-action="copy" data-preset-uid="${esc(selected.presetUid)}">Kopieren</button>
             ${selected.status === 'active' ? `<button class="lg-btn lg-btn-secondary" data-lg-start-spin="${esc(selected.presetUid)}">Drehen</button>` : ''}
             ${selected.status !== 'active' && selected.status !== 'finished' && selected.status !== 'deleted' ? `<button class="lg-btn" data-lg-preset-action="activate" data-preset-uid="${esc(selected.presetUid)}">Aktivieren</button>` : ''}
@@ -1367,7 +879,7 @@ window.LoyaltyGamesModule = (function(){
               </div>
               <label>Beschreibung<textarea name="description" rows="2">${esc(selected.description || '')}</textarea></label>
               <label class="lg-check"><input name="removeAfterWin" type="checkbox" ${selected.settings?.removeAfterWin === false ? '' : 'checked'}> Gewinnfeld nach Auslosung aus diesem Rad entfernen</label>
-              <button class="lg-btn" type="submit">Preset speichern</button>
+              <button class="lg-btn" type="submit">Preset-Einstellungen speichern</button>
             </form>
           ` : ''}
           ${isGiveawayLinked ? `<p class="lg-warning">Dieses Preset gehört zu einem Giveaway. Bearbeitung nur über den Giveaway-Editor.</p>` : ''}
@@ -1400,16 +912,18 @@ window.LoyaltyGamesModule = (function(){
               <option value="bonus_spin">bonus_spin</option>
             </select>
             <input name="rewardValue" placeholder="Reward-Wert">
+            <label class="lg-check"><input name="enabled" type="checkbox" checked> aktiv</label>
             <button class="lg-btn" type="submit" ${state.saving ? 'disabled' : ''}>Feld hinzufügen</button>
           </form>
         ` : ''}
 
         <div class="lg-field-list">
           ${fields.map(field => `
-            <div class="lg-field-card" data-lg-field-card data-field-uid="${esc(field.fieldUid)}">
+            <form class="lg-field-card" data-lg-update-field data-field-uid="${esc(field.fieldUid)}">
               <div class="lg-field-top">
                 <strong>${esc(field.label)}</strong>
                 <code>${esc(field.fieldUid)}</code>
+                ${field.enabled ? badge(true, 'Aktiv') : badge(false, 'Aktiv', 'Aus')}
               </div>
               <div class="lg-field-grid">
                 <label>Reihenfolge<input name="sortOrder" type="number" value="${esc(field.sortOrder || 1)}" ${editable ? '' : 'disabled'}></label>
@@ -1426,111 +940,11 @@ window.LoyaltyGamesModule = (function(){
                 <label>Reward-Wert<input name="rewardValue" value="${esc(field.rewardValue || '')}" ${editable ? '' : 'disabled'}></label>
               </div>
               <div class="lg-field-actions">
-                ${editable ? `<button class="lg-btn lg-btn-danger" type="button" data-lg-delete-field="${esc(field.fieldUid)}">Entfernen</button>` : ''}
+                <label class="lg-check"><input name="enabled" type="checkbox" ${field.enabled ? 'checked' : ''} ${editable ? '' : 'disabled'}> aktiv</label>
+                ${editable ? `<button class="lg-btn" type="submit">Speichern</button><button class="lg-btn lg-btn-danger" type="button" data-lg-delete-field="${esc(field.fieldUid)}">Deaktivieren</button>` : ''}
               </div>
-            </div>
-          `).join('') || `<p class="lg-muted">Noch keine Felder im Glücksrad.</p>`}
-        </div>
-      </div>
-    `;
-  }
-
-  function renderGiveawaySummaryCard(giveaway){
-    const status = String(giveaway.status || '').toLowerCase();
-    const issues = setupIssuesText(giveaway);
-    const entries = rows(giveaway.entries || []);
-    const winners = rows(giveaway.winners || []);
-    const activeTickets = entries.filter(entry => entry.status !== 'cancelled').length;
-    const editAllowed = canEditGiveaway(giveaway);
-    const canOpen = status === 'draft' && giveaway.setupComplete === true;
-    const openBlocked = status === 'draft' && giveaway.setupComplete !== true;
-    const wheelPending = hasPendingWheel(giveaway);
-    const wheelExists = !!(giveaway.wheelPresetUid || giveaway.wheelSnapshotUid || giveaway.boundWheel?.boundWheelUid || giveaway.setupComplete === true);
-    const wheelButton = giveaway.wheelEnabled && editAllowed
-      ? `<button class="lg-btn lg-btn-secondary" type="button" data-lg-open-bound-wheel-editor data-giveaway-uid="${esc(giveaway.giveawayUid)}">${wheelExists ? 'Glücksrad bearbeiten' : 'Glücksrad erstellen'}</button>`
-      : '';
-
-    return `
-      <article class="lg-giveaway-card">
-        <div class="lg-giveaway-card-head">
-          <div>
-            <strong>${esc(giveaway.title || 'Ohne Titel')}</strong>
-            <small>${esc(statusLabel(giveaway.mode || ''))} · erstellt ${fmtDate(giveaway.createdAt)}</small>
-          </div>
-          <div class="lg-giveaway-card-badges">
-            ${statusBadge(giveaway.status)}
-            ${status === 'draft' ? setupBadge(giveaway) : ''}
-            ${wheelPending ? `<span class="lg-badge lg-badge-warn">Rad offen</span>` : ''}
-          </div>
-        </div>
-        ${status === 'draft' && giveaway.setupComplete !== true ? `<p class="lg-giveaway-card-warning">${esc(issues || 'Es fehlen noch Pflichtangaben.')}</p>` : ''}
-        <div class="lg-giveaway-card-meta">
-          <span>Tickets: <strong>${fmtNumber(activeTickets)}</strong></span>
-          <span>Gewinner: <strong>${fmtNumber(winners.length)}</strong></span>
-          <span>Glücksrad: <strong>${giveaway.wheelEnabled ? (wheelExists ? (giveaway.setupComplete === true ? 'Bereit' : 'Unvollständig') : 'Fehlt') : 'Nicht nötig'}</strong></span>
-        </div>
-        <div class="lg-giveaway-card-actions">
-          ${editAllowed ? `<button class="lg-btn lg-btn-secondary" type="button" data-lg-edit-giveaway="${esc(giveaway.giveawayUid)}">Giveaway bearbeiten</button>` : ''}
-          ${wheelButton}
-          ${canOpen ? `<button class="lg-btn" type="button" data-lg-giveaway-action="open" data-giveaway-uid="${esc(giveaway.giveawayUid)}">Öffnen</button>` : ''}
-          ${openBlocked ? `<button class="lg-btn" type="button" disabled title="${esc(issues || 'Pflichtangaben fehlen')}">Öffnen</button>` : ''}
-          ${status === 'open' ? `<button class="lg-btn lg-btn-secondary" type="button" data-lg-giveaway-action="close" data-giveaway-uid="${esc(giveaway.giveawayUid)}">Teilnahme schließen</button>` : ''}
-          ${status === 'closed_for_entries' ? `<button class="lg-btn" type="button" data-lg-draw-winner="${esc(giveaway.giveawayUid)}">Auslosen</button>` : ''}
-          ${wheelPending ? `<button class="lg-btn lg-btn-secondary" type="button" disabled title="Die Rad-Drehung wird im nächsten Step als eigener Dialog angebunden.">Rad-Drehung offen</button>` : ''}
-          <button class="lg-btn lg-btn-secondary" type="button" data-lg-giveaway-action="copy" data-giveaway-uid="${esc(giveaway.giveawayUid)}">Kopieren</button>
-          ${status !== 'deleted' && !['open','closed_for_entries'].includes(status) ? `<button class="lg-btn lg-btn-danger" type="button" data-lg-giveaway-action="delete" data-giveaway-uid="${esc(giveaway.giveawayUid)}">Löschen</button>` : ''}
-          ${['open','closed_for_entries'].includes(status) ? `<button class="lg-btn lg-btn-danger" type="button" data-lg-giveaway-action="cancel" data-giveaway-uid="${esc(giveaway.giveawayUid)}">Abbrechen</button>` : ''}
-        </div>
-      </article>
-    `;
-  }
-
-  function renderGiveawayEditorModal(presets){
-    const modal = state.giveawayEditorModal || {};
-    if (!modal.open) return '';
-    const mode = modal.mode === 'edit' ? 'edit' : 'create';
-    const selected = mode === 'edit' ? state.selectedGiveaway : null;
-    const editable = mode === 'create' ? true : canEditGiveaway(selected);
-    const title = mode === 'edit'
-      ? `Giveaway bearbeiten: ${selected ? esc(selected.title || 'Ohne Titel') : 'wird geladen'}`
-      : 'Neues Giveaway erstellen';
-    const intro = mode === 'edit'
-      ? 'Bearbeite hier den Entwurf. Nach dem Öffnen wird das Giveaway gesperrt.'
-      : 'Speichern legt zuerst einen Entwurf an. Öffnen ist erst möglich, wenn alle Pflichtdaten vollständig sind.';
-
-    return `
-      <div class="lg-editor-modal-backdrop" data-lg-close-giveaway-modal>
-        <div class="lg-editor-modal" role="dialog" aria-modal="true" aria-label="Giveaway-Editor" onclick="event.stopPropagation()">
-          <div class="lg-editor-modal-head">
-            <div>
-              <p class="lg-eyebrow">Loyalty / Giveaway-Editor</p>
-              <h3>${title}</h3>
-              <p class="lg-muted">${intro}</p>
-            </div>
-            <button class="lg-btn lg-btn-secondary" type="button" data-lg-close-giveaway-modal>Schließen</button>
-          </div>
-          ${mode === 'edit' && !selected ? `<p class="lg-muted">Giveaway wird geladen...</p>` : ''}
-          ${mode === 'edit' && selected ? `
-            <div class="lg-giveaway-summary-strip">
-              <span>Status: <strong>${statusBadge(selected.status)}</strong></span>
-              <span>Bereit: <strong>${setupBadge(selected)}</strong></span>
-              <span>Modus: <strong>${esc(statusLabel(selected.mode))}</strong></span>
-              <span>Kosten: <strong>${fmtNumber(selected.costAmount)}</strong></span>
-              <span>Gewinner: <strong>${fmtNumber(selected.winnerCount)}</strong></span>
-            </div>
-            ${setupWarningBlock(selected)}
-          ` : ''}
-          ${mode === 'create' ? `
-            <form class="lg-form lg-editor-modal-section" data-lg-create-giveaway>
-              ${renderGiveawayFormFields(null, true, presets)}
-              <button class="lg-btn" type="submit" ${state.saving ? 'disabled' : ''}>Giveaway als Entwurf speichern</button>
             </form>
-          ` : selected && editable ? `
-            <form class="lg-form lg-editor-modal-section" data-lg-update-giveaway>
-              ${renderGiveawayFormFields(selected, true, presets)}
-              <button class="lg-btn" type="submit" ${state.saving ? 'disabled' : ''}>Giveaway speichern</button>
-            </form>
-          ` : selected ? `<p class="lg-warning">Dieses Giveaway ist nicht mehr editierbar. Änderungen bitte über „Kopieren“ als neuen Entwurf anlegen.</p>` : ''}
+          `).join('') || `<p class="lg-muted">Noch keine Felder im Preset.</p>`}
         </div>
       </div>
     `;
@@ -1538,61 +952,86 @@ window.LoyaltyGamesModule = (function(){
 
   function renderGiveaways(){
     const giveaways = rows(state.giveaways);
+    const selected = state.selectedGiveaway;
+    const editable = !!selected?.editable;
     const presets = rows(state.presets).filter(p => p.status === 'active' && p.presetType === 'standalone');
-    const filter = state.giveawayStatusFilter || 'all';
-    const visibleGiveaways = giveaways.filter(giveaway => giveawayFilterMatches(giveaway, filter));
-    const counts = {
-      all: giveaways.length,
-      draft: giveaways.filter(g => String(g.status || '').toLowerCase() === 'draft').length,
-      incomplete: giveaways.filter(g => g.setupComplete === false).length,
-      ready: giveaways.filter(g => String(g.status || '').toLowerCase() === 'draft' && g.setupComplete === true).length,
-      open: giveaways.filter(g => String(g.status || '').toLowerCase() === 'open').length,
-      draw_open: giveaways.filter(g => String(g.status || '').toLowerCase() === 'closed_for_entries').length,
-      wheel_open: giveaways.filter(hasPendingWheel).length,
-      finished: giveaways.filter(g => String(g.status || '').toLowerCase() === 'finished').length,
-      cancelled: giveaways.filter(g => String(g.status || '').toLowerCase() === 'cancelled').length
-    };
 
     return `
-      <div class="lg-panel lg-giveaway-overview-panel">
-        <div class="lg-panel-head">
-          <div>
+      <div class="lg-grid lg-editor-grid">
+        <div class="lg-panel">
+          <div class="lg-panel-head">
             <h3>Giveaways</h3>
-            <p class="lg-muted">Übersicht zuerst. Erstellen und Bearbeiten öffnen jeweils ein eigenes Fenster.</p>
+            <button class="lg-btn" data-lg-giveaway-refresh>Aktualisieren</button>
           </div>
-          <div class="lg-actions">
-            <button class="lg-btn" type="button" data-lg-new-giveaway>+ Neues Giveaway</button>
-            <button class="lg-btn lg-btn-secondary" data-lg-giveaway-refresh>Aktualisieren</button>
+          <div class="lg-preset-list">
+            ${giveaways.map(giveaway => `
+              <button class="lg-preset-item ${giveaway.giveawayUid === state.selectedGiveawayUid ? 'is-active' : ''}" data-lg-select-giveaway="${esc(giveaway.giveawayUid)}">
+                <span>
+                  <strong>${esc(giveaway.title)}</strong>
+                  <small>${esc(statusLabel(giveaway.mode))} · ${fmtDate(giveaway.createdAt)}</small>
+                </span>
+                ${statusBadge(giveaway.status)}
+              </button>
+            `).join('') || `<p class="lg-muted">Noch keine Giveaways gefunden.</p>`}
           </div>
         </div>
-        <div class="lg-giveaway-filter-row">
-          <label>Status filtern
-            <select data-lg-giveaway-filter>
-              <option value="all" ${filter === 'all' ? 'selected' : ''}>Alle (${fmtNumber(counts.all)})</option>
-              <option value="draft" ${filter === 'draft' ? 'selected' : ''}>Entwurf (${fmtNumber(counts.draft)})</option>
-              <option value="incomplete" ${filter === 'incomplete' ? 'selected' : ''}>Unvollständig (${fmtNumber(counts.incomplete)})</option>
-              <option value="ready" ${filter === 'ready' ? 'selected' : ''}>Bereit (${fmtNumber(counts.ready)})</option>
-              <option value="open" ${filter === 'open' ? 'selected' : ''}>Offen (${fmtNumber(counts.open)})</option>
-              <option value="draw_open" ${filter === 'draw_open' ? 'selected' : ''}>Auslosung offen (${fmtNumber(counts.draw_open)})</option>
-              <option value="wheel_open" ${filter === 'wheel_open' ? 'selected' : ''}>Rad-Drehung offen (${fmtNumber(counts.wheel_open)})</option>
-              <option value="finished" ${filter === 'finished' ? 'selected' : ''}>Beendet (${fmtNumber(counts.finished)})</option>
-              <option value="cancelled" ${filter === 'cancelled' ? 'selected' : ''}>Abgebrochen (${fmtNumber(counts.cancelled)})</option>
-            </select>
-          </label>
-          <span class="lg-muted">${fmtNumber(visibleGiveaways.length)} von ${fmtNumber(giveaways.length)} sichtbar</span>
-        </div>
-        <div class="lg-giveaway-card-grid">
-          ${visibleGiveaways.map(renderGiveawaySummaryCard).join('') || `<p class="lg-muted">Für diesen Filter wurden keine Giveaways gefunden.</p>`}
+
+        <div class="lg-panel">
+          <h3>Neues Giveaway</h3>
+          <form class="lg-form" data-lg-create-giveaway>
+            ${renderGiveawayFormFields(null, true, presets)}
+            <button class="lg-btn" type="submit" ${state.saving ? 'disabled' : ''}>Giveaway erstellen</button>
+          </form>
         </div>
       </div>
-      ${renderGiveawayEditorModal(presets)}
+
+      <div class="lg-panel">
+        <div class="lg-panel-head">
+          <div>
+            <h3>${selected ? esc(selected.title) : 'Kein Giveaway ausgewählt'}</h3>
+            ${selected ? `<p class="lg-muted">${esc(selected.description || '')}</p>` : ''}
+          </div>
+          ${selected ? `<div class="lg-actions">
+            <button class="lg-btn lg-btn-secondary" data-lg-giveaway-action="copy" data-giveaway-uid="${esc(selected.giveawayUid)}">Kopieren</button>
+            ${selected.status === 'draft' ? `<button class="lg-btn" data-lg-giveaway-action="open" data-giveaway-uid="${esc(selected.giveawayUid)}">Öffnen</button>` : ''}
+            ${selected.status === 'open' ? `<button class="lg-btn lg-btn-secondary" data-lg-giveaway-action="close" data-giveaway-uid="${esc(selected.giveawayUid)}">Teilnahme schließen</button>` : ''}
+            ${['open','closed_for_entries'].includes(selected.status) ? `<button class="lg-btn" data-lg-draw-winner="${esc(selected.giveawayUid)}">Gewinner ziehen</button>` : ''}
+            ${!['finished','cancelled','deleted'].includes(selected.status) ? `<button class="lg-btn lg-btn-danger" data-lg-giveaway-action="finish" data-giveaway-uid="${esc(selected.giveawayUid)}">Beenden</button>` : ''}
+            ${!['finished','cancelled','deleted'].includes(selected.status) ? `<button class="lg-btn lg-btn-danger" data-lg-giveaway-action="cancel" data-giveaway-uid="${esc(selected.giveawayUid)}">Abbrechen</button>` : ''}
+            ${selected.status !== 'deleted' ? `<button class="lg-btn lg-btn-danger" data-lg-giveaway-action="delete" data-giveaway-uid="${esc(selected.giveawayUid)}">Löschen</button>` : ''}
+          </div>` : ''}
+        </div>
+
+        ${selected ? `
+          <div class="lg-kv lg-kv-compact">
+            <span>Status</span><strong>${statusBadge(selected.status)}</strong>
+            <span>Modus</span><strong>${esc(statusLabel(selected.mode))}</strong>
+            <span>Bearbeitbar</span><strong>${editable ? 'Ja' : 'Nein, nur kopieren/anzeigen'}</strong>
+            <span>Kosten</span><strong>${fmtNumber(selected.costAmount)}</strong>
+            <span>Gewinner</span><strong>${fmtNumber(selected.winnerCount)}</strong>
+            <span>Rad</span><strong>${selected.wheelEnabled ? 'Ja' : 'Nein'}</strong>
+            <span>Chat-Claim</span><strong>${getChatClaimSettings(selected).enabled ? 'Ja' : 'Nein'}</strong>
+            <span>UID</span><strong><code>${esc(selected.giveawayUid)}</code></strong>
+            <span>Erstellt</span><strong>${fmtDate(selected.createdAt)}</strong>
+          </div>
+
+          ${editable ? `
+            <form class="lg-form lg-preset-settings-form" data-lg-update-giveaway>
+              ${renderGiveawayFormFields(selected, true, presets)}
+              <button class="lg-btn" type="submit">Giveaway speichern</button>
+            </form>
+          ` : `<p class="lg-warning">Dieses Giveaway ist read-only. Änderungen bitte über „Kopieren“ als neues Giveaway anlegen.</p>`}
+        ` : `<p class="lg-muted">Wähle links ein Giveaway aus.</p>`}
+      </div>
+
+      ${selected ? renderClaimSummary(selected) : ''}
+      ${selected ? renderGiveawayDetails(selected) : ''}
     `;
   }
 
   function renderGiveawayFormFields(giveaway, editable, presets){
     const mode = giveaway?.mode || 'classic_single';
-    const wheelMode = isWheelGiveawayMode(mode);
-    const wheelPresetUid = getGiveawayWheelPresetSelection(giveaway, wheelMode);
+    const wheelPresetUid = giveaway?.wheelPresetUid || '';
     const round = giveaway?.roundPolicy || {};
     const prize = rows(giveaway?.prizes || [])[0] || {};
     const removeWinner = round.removeWinnerAfterRound !== false;
@@ -1600,29 +1039,23 @@ window.LoyaltyGamesModule = (function(){
     return `
       <label>Titel<input name="title" value="${esc(giveaway?.title || '')}" required ${editable ? '' : 'disabled'}></label>
       <label>Beschreibung<textarea name="description" rows="2" ${editable ? '' : 'disabled'}>${esc(giveaway?.description || '')}</textarea></label>
-      <div class="lg-form-row lg-giveaway-mode-row">
+      <div class="lg-form-row">
         <label>Modus
-          <select name="mode" data-lg-giveaway-mode-select ${editable ? '' : 'disabled'}>
+          <select name="mode" ${editable ? '' : 'disabled'}>
             ${[
-              ['classic_single','Classic Single'],
-              ['classic_multi','Classic Multi'],
-              ['wheel_single','Wheel Single'],
-              ['wheel_multi','Wheel Multi']
+              ['classic_single','Normales Giveaway'],
+              ['classic_multi','Normales Giveaway · mehrere Gewinner'],
+              ['wheel_single','Glücksrad-Giveaway'],
+              ['wheel_multi','Glücksrad-Giveaway · mehrere Gewinner']
             ].map(([value,label]) => `<option value="${value}" ${mode === value ? 'selected' : ''}>${label}</option>`).join('')}
           </select>
         </label>
-      </div>
-      <div class="lg-wheel-config-panel" data-lg-wheel-preset-row style="${wheelMode ? '' : 'display:none'}">
-        <label>Glücksrad
-          <select name="wheelPresetUid" data-lg-wheel-preset-select data-editable="${editable ? '1' : '0'}" ${editable && wheelMode ? '' : 'disabled'}>
-            <option value="">Noch kein Glücksrad ausgewählt</option>
-            ${presets.map(p => `<option value="${esc(p.presetUid)}" ${wheelPresetUid === p.presetUid ? 'selected' : ''}>Glücksrad verwenden: ${esc(p.name)}</option>`).join('')}
+        <label>Wheel-Preset
+          <select name="wheelPresetUid" ${editable ? '' : 'disabled'}>
+            <option value="">kein Preset / kein Rad</option>
+            ${presets.map(p => `<option value="${esc(p.presetUid)}" ${wheelPresetUid === p.presetUid ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}
           </select>
         </label>
-        <div class="lg-inline-actions">
-          ${giveaway?.giveawayUid ? `<button class="lg-btn lg-btn-secondary" type="button" data-lg-open-bound-wheel-editor data-giveaway-uid="${esc(giveaway.giveawayUid)}">${wheelPresetUid ? 'Giveaway-Glücksrad bearbeiten' : 'Giveaway-Glücksrad erstellen'}</button>` : ''}
-        </div>
-        <small class="lg-muted">Ohne Glücksrad kann das Giveaway als Entwurf gespeichert, aber nicht geöffnet werden. Ein neues Glücksrad erstellst du nach dem Speichern direkt über die Giveaway-Kachel.</small>
       </div>
       <div class="lg-form-row">
         <label>Kosten pro Ticket<input name="costAmount" type="number" min="0" value="${esc(giveaway?.costAmount ?? 0)}" ${editable ? '' : 'disabled'}></label>
@@ -1651,6 +1084,20 @@ window.LoyaltyGamesModule = (function(){
             ].map(([value,label]) => `<option value="${value}" ${(round.ticketCarryoverMode || 'none') === value ? 'selected' : ''}>${label}</option>`).join('')}
           </select>
         </label>
+      </div>
+      <div class="lg-form-row">
+        <label>Chat-Claim Timeout (Sek.)<input name="chatClaimTimeoutSeconds" type="number" min="10" value="${esc(getChatClaimSettings(giveaway).timeoutSeconds || 60)}" ${editable ? '' : 'disabled'}></label>
+        <label>Claim-Modus
+          <select name="chatClaimMode" ${editable ? '' : 'disabled'}>
+            ${[
+              ['any_message','Irgendeine Chatnachricht']
+            ].map(([value,label]) => `<option value="${value}" ${getChatClaimSettings(giveaway).mode === value ? 'selected' : ''}>${label}</option>`).join('')}
+          </select>
+        </label>
+      </div>
+      <div class="lg-check-row">
+        <label class="lg-check"><input name="chatClaimEnabled" type="checkbox" ${getChatClaimSettings(giveaway).enabled ? 'checked' : ''} ${editable ? '' : 'disabled'}> Gewinner muss sich im Chat melden</label>
+        <label class="lg-check"><input name="activateWheelAfterClaim" type="checkbox" ${getChatClaimSettings(giveaway).activateWheelAfterClaim ? 'checked' : ''} ${editable ? '' : 'disabled'}> Rad erst nach Chatmeldung freigeben</label>
       </div>
       <div class="lg-form-row">
         <label>Gewinn-Label<input name="prizeLabel" value="${esc(prize.label || giveaway?.title || '')}" ${editable ? '' : 'disabled'}></label>
@@ -1706,7 +1153,8 @@ window.LoyaltyGamesModule = (function(){
   }
 
 
-  async function drawGiveawayWinner(giveawayUid = state.selectedGiveawayUid){
+  async function drawGiveawayWinner(){
+    const giveawayUid = state.selectedGiveawayUid;
     if (!giveawayUid) return;
     if (!window.confirm('Jetzt fair backendseitig einen Gewinner ziehen?')) return;
     state.saving = true; render();
@@ -1833,20 +1281,22 @@ window.LoyaltyGamesModule = (function(){
           <table class="lg-table">
             <thead>
               <tr>
-                <th>Zeit</th><th>User</th><th>Preis</th><th>Algorithmus</th><th>Tickets</th><th>Position</th>
+                <th>Zeit</th><th>User</th><th>Status</th><th>Chat-Claim</th><th>Preis</th><th>Algorithmus</th><th>Tickets</th><th>Position</th>
               </tr>
             </thead>
             <tbody>
               ${winners.map(winner => `
                 <tr>
                   <td>${fmtDate(winner.createdAt)}</td>
-                  <td><strong>${esc(winner.userDisplayName || winner.userLogin || '-')}</strong></td>
+                  <td><strong>${esc(winner.userDisplayName || winner.userLogin || '-')}</strong><br><small class="lg-muted">${esc(winner.userLogin || '')}</small></td>
+                  <td>${statusBadge(winner.status || '-')}</td>
+                  <td>${claimStatusLabel(winner)}</td>
                   <td>${esc(winner.prizeLabel || '-')}</td>
                   <td>${esc(winner.drawAlgorithm || '-')}</td>
                   <td>${fmtNumber(winner.totalTicketWeight || 0)}</td>
                   <td>${fmtNumber(winner.ticketPosition || 0)}</td>
                 </tr>
-              `).join('') || `<tr><td colspan="6" class="lg-muted">Noch kein Gewinner gezogen.</td></tr>`}
+              `).join('') || `<tr><td colspan="8" class="lg-muted">Noch kein Gewinner gezogen.</td></tr>`}
             </tbody>
           </table>
         </div>
@@ -2061,8 +1511,8 @@ window.LoyaltyGamesModule = (function(){
       <div class="lg-panel">
         <h3>Hinweise</h3>
         <ul class="lg-notes">
-          <li>LWG-4E ist der erste Giveaway-Dashboard-Editor.</li>
-          <li>Noch keine Tickets, keine Gewinnerziehung und kein Rad-Claim.</li>
+          <li>LWG-4O.5 zeigt die automatische Chat-Claim-Pflicht im Giveaway-Dashboard.</li>
+          <li>Wheel-Giveaways können Gewinner ziehen; die Rad-Freigabe kann bis zur Chatmeldung zurückgehalten werden.</li>
           <li>Abgeschlossene Giveaways sind read-only und sollen kopiert werden.</li>
           <li>Dashboard darf Regeln verwalten, aber später keine Gewinner oder Gewinne erzwingen.</li>
           <li>EventBus/Broadcast-Grundlagen sind vorbereitet.</li>
@@ -2077,136 +1527,15 @@ window.LoyaltyGamesModule = (function(){
     `;
   }
 
-
-  function renderPointsManagement(){
-    return `
-      <div class="lg-panel">
-        <div class="lg-panel-head">
-          <div>
-            <h3>Core</h3>
-            <p class="lg-muted">Dieser Bereich wird die zentrale Verwaltung für User-Konten, Punktestände, Transaktionen und Leaderboards.</p>
-          </div>
-          <span class="lg-badge lg-badge-warn">geplant</span>
-        </div>
-        <div class="lg-grid lg-grid-3">
-          <article class="lg-card"><span class="lg-card-label">User-Konten</span><strong>Geplant</strong><small>User suchen, Punktestand anzeigen, Verlauf prüfen.</small></article>
-          <article class="lg-card"><span class="lg-card-label">Transaktionen</span><strong>Geplant</strong><small>Punkte hinzufügen/abziehen mit Audit-Log.</small></article>
-          <article class="lg-card"><span class="lg-card-label">Leaderboard</span><strong>Geplant</strong><small>Ranglisten und Auswertungen.</small></article>
-        </div>
-      </div>
-    `;
-  }
-
-  function renderWheelArea(){
-    return `
-      <div class="lg-panel">
-        <div class="lg-panel-head">
-          <div>
-            <h3>Glücksrad</h3>
-            <p class="lg-muted">Live-Test, Overlay-Status und globale Presets. Giveaway-Glücksräder werden nur im jeweiligen Giveaway bearbeitet.</p>
-          </div>
-          <a class="lg-btn lg-btn-secondary" href="${api.overlay}" target="_blank">Overlay öffnen</a>
-        </div>
-      </div>
-      ${renderWheel()}
-      <div class="lg-panel">
-        <h3>Globale Presets</h3>
-        <p class="lg-muted">Normale Glücksrad-Presets werden hier verwaltet. Giveaway-gebundene Räder erscheinen im Giveaway selbst.</p>
-      </div>
-      ${renderPresets()}
-    `;
-  }
-
-  function renderRafflesArea(){
-    return `
-      <div class="lg-panel">
-        <div class="lg-panel-head">
-          <div>
-            <h3>Raffles</h3>
-            <p class="lg-muted">Geplanter Bereich für schnelle Chat-Verlosungen mit weniger Setup als Giveaways.</p>
-          </div>
-          <span class="lg-badge lg-badge-warn">geplant</span>
-        </div>
-        <div class="lg-grid lg-grid-3">
-          <article class="lg-card"><span class="lg-card-label">Schnellstart</span><strong>Geplant</strong><small>Raffle starten, Teilnahmebedingung setzen, Gewinner ziehen.</small></article>
-          <article class="lg-card"><span class="lg-card-label">Teilnehmer</span><strong>Geplant</strong><small>Chat-Teilnahmen und Ausschlüsse verwalten.</small></article>
-          <article class="lg-card"><span class="lg-card-label">Gewinner</span><strong>Geplant</strong><small>Wer hat wann was gewonnen.</small></article>
-        </div>
-      </div>
-    `;
-  }
-
-  function renderTextsArea(){
-    return `
-      <div class="lg-panel">
-        <div class="lg-panel-head">
-          <div>
-            <h3>Texte</h3>
-            <p class="lg-muted">Zentrale Multi-Textverwaltung für das Loyalty-System. Module werden später per Dropdown gewählt.</p>
-          </div>
-          <span class="lg-badge lg-badge-ok">Helper-basiert</span>
-        </div>
-      </div>
-      ${renderChatSetup()}
-    `;
-  }
-
-  function renderStatisticsArea(){
-    const giveawaysDiag = state.giveawaysStatus?.diagnostics?.counts || {};
-    const presetDiag = state.status?.diagnostics?.presets || {};
-    return `
-      <div class="lg-panel">
-        <div class="lg-panel-head">
-          <div>
-            <h3>Statistik</h3>
-            <p class="lg-muted">Nutzung und Gewinner-Auswertungen für Punkteverwaltung, Glücksrad, Giveaways und Raffles.</p>
-          </div>
-          <span class="lg-badge lg-badge-warn">Ausbau folgt</span>
-        </div>
-        <div class="lg-grid lg-grid-4">
-          <article class="lg-card"><span class="lg-card-label">Giveaways</span><strong>${fmtNumber(giveawaysDiag.total || rows(state.giveaways).length)}</strong><small>Gewinner-/Teilnehmerstatistik folgt.</small></article>
-          <article class="lg-card"><span class="lg-card-label">Glücksrad-Presets</span><strong>${fmtNumber(presetDiag.presets || rows(state.presets).length)}</strong><small>Gewinnverteilung und Spins folgen.</small></article>
-          <article class="lg-card"><span class="lg-card-label">Raffles</span><strong>Geplant</strong><small>Raffle-Gewinner und Nutzung.</small></article>
-          <article class="lg-card"><span class="lg-card-label">Nutzung</span><strong>Geplant</strong><small>Wer welches Modul wann genutzt hat.</small></article>
-        </div>
-      </div>
-    `;
-  }
-
-  function renderConfigArea(){
-    const commands = rows(state.giveawayCommands);
-    return `
-      <div class="lg-panel">
-        <div class="lg-panel-head">
-          <div>
-            <h3>Config</h3>
-            <p class="lg-muted">Zentrale Einstellungen für Loyalty. Commands werden im zentralen Command-Editor bearbeitet.</p>
-          </div>
-          <span class="lg-badge lg-badge-warn">Foundation</span>
-        </div>
-        <div class="lg-grid lg-grid-3">
-          <article class="lg-card"><span class="lg-card-label">Allgemein</span><strong>Geplant</strong><small>Modul aktiv, Default-Währung, Rollen/Rechte.</small></article>
-          <article class="lg-card"><span class="lg-card-label">Glücksrad</span><strong>Geplant</strong><small>Dauer, Slots, Overlay und Preset-Defaults.</small></article>
-          <article class="lg-card"><span class="lg-card-label">Giveaways</span><strong>Geplant</strong><small>Defaults für Tickets, Gewinner und Chatmeldungen.</small></article>
-          <article class="lg-card"><span class="lg-card-label">Raffles</span><strong>Geplant</strong><small>Defaults für schnelle Verlosungen.</small></article>
-          <article class="lg-card"><span class="lg-card-label">Texte</span><strong>Siehe Texte</strong><small>Multi-Texte über den bestehenden Helper.</small></article>
-          <article class="lg-card"><span class="lg-card-label">Commands</span><strong>${fmtNumber(commands.length)} bekannt</strong><small>Fehlende Standard-Commands später prüfen/anlegen, nie überschreiben.</small></article>
-        </div>
-      </div>
-    `;
-  }
-
   function renderTabs(){
     const tabs = [
       ['overview', 'Übersicht'],
-      ['points', 'Core'],
       ['wheel', 'Glücksrad'],
+      ['presets', 'Presets'],
       ['giveaways', 'Giveaways'],
-      ['raffles', 'Raffles'],
-      ['texts', 'Texte'],
-      ['statistics', 'Statistik'],
-      ['config', 'Config'],
-      ['history', 'Verlauf']
+      ['chat', 'Chat/Commands'],
+      ['history', 'Verlauf'],
+      ['notes', 'Hinweise']
     ];
     return `
       <div class="lg-tabs">
@@ -2216,14 +1545,12 @@ window.LoyaltyGamesModule = (function(){
   }
 
   function renderActiveTab(){
-    if (state.activeTab === 'points') return renderPointsManagement();
-    if (state.activeTab === 'wheel') return renderWheelArea();
+    if (state.activeTab === 'wheel') return renderWheel();
+    if (state.activeTab === 'presets') return renderPresets();
     if (state.activeTab === 'giveaways') return renderGiveaways();
-    if (state.activeTab === 'raffles') return renderRafflesArea();
-    if (state.activeTab === 'texts') return renderTextsArea();
-    if (state.activeTab === 'statistics') return renderStatisticsArea();
-    if (state.activeTab === 'config') return renderConfigArea();
+    if (state.activeTab === 'chat') return renderChatSetup();
     if (state.activeTab === 'history') return renderSessions();
+    if (state.activeTab === 'notes') return renderNotes();
     return renderOverview();
   }
 
@@ -2244,48 +1571,11 @@ window.LoyaltyGamesModule = (function(){
       });
     });
 
-    root.querySelectorAll('[data-lg-open-preset-editor]').forEach(btn => {
-      btn.addEventListener('click', () => openPresetEditorModal({
-        mode: btn.dataset.mode || btn.dataset.lgMode || 'create',
-        context: btn.dataset.context || 'presets',
-        presetUid: btn.dataset.presetUid || '',
-        targetGiveawayUid: btn.dataset.targetGiveawayUid || ''
-      }));
-    });
-    root.querySelectorAll('[data-lg-open-bound-wheel-editor]').forEach(btn => {
-      btn.addEventListener('click', () => openBoundWheelEditorModal(btn.dataset.giveawayUid || ''));
-    });
-    root.querySelectorAll('[data-lg-close-preset-editor]').forEach(btn => {
-      btn.addEventListener('click', () => closePresetEditorModal());
-    });
-    root.querySelector('[data-lg-modal-create-preset]')?.addEventListener('submit', ev => {
-      ev.preventDefault();
-      handleCreatePresetFromModal(ev.currentTarget);
-    });
-
     root.querySelectorAll('[data-lg-select-preset]').forEach(btn => {
       btn.addEventListener('click', () => loadPreset(btn.dataset.lgSelectPreset));
     });
-    root.querySelector('[data-lg-new-giveaway]')?.addEventListener('click', () => {
-      state.giveawayEditorModal = { open: true, mode: 'create', giveawayUid: '' };
-      state.selectedGiveawayUid = '';
-      state.selectedGiveaway = null;
-      clearGiveawayWheelPresetSelection('');
-      render();
-    });
-    root.querySelectorAll('[data-lg-close-giveaway-modal]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        state.giveawayEditorModal = { open: false, mode: 'create', giveawayUid: '' };
-        render();
-      });
-    });
-
-    root.querySelectorAll('[data-lg-edit-giveaway]').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const uid = btn.dataset.lgEditGiveaway || '';
-        state.giveawayEditorModal = { open: true, mode: 'edit', giveawayUid: uid };
-        await loadGiveaway(uid, false);
-      });
+    root.querySelectorAll('[data-lg-select-giveaway]').forEach(btn => {
+      btn.addEventListener('click', () => loadGiveaway(btn.dataset.lgSelectGiveaway));
     });
 
     root.querySelector('[data-lg-preset-refresh]')?.addEventListener('click', async () => {
@@ -2294,10 +1584,6 @@ window.LoyaltyGamesModule = (function(){
     });
     root.querySelector('[data-lg-giveaway-refresh]')?.addEventListener('click', async () => {
       await refreshGiveaways(state.selectedGiveawayUid);
-      render();
-    });
-    root.querySelector('[data-lg-giveaway-filter]')?.addEventListener('change', ev => {
-      state.giveawayStatusFilter = ev.currentTarget.value || 'all';
       render();
     });
 
@@ -2313,6 +1599,12 @@ window.LoyaltyGamesModule = (function(){
       ev.preventDefault();
       handleCreateField(ev.currentTarget);
     });
+    root.querySelectorAll('[data-lg-update-field]').forEach(form => {
+      form.addEventListener('submit', ev => {
+        ev.preventDefault();
+        handleUpdateField(ev.currentTarget);
+      });
+    });
     root.querySelectorAll('[data-lg-delete-field]').forEach(btn => {
       btn.addEventListener('click', () => deleteField(btn.dataset.lgDeleteField));
     });
@@ -2321,11 +1613,6 @@ window.LoyaltyGamesModule = (function(){
     });
     root.querySelectorAll('[data-lg-start-spin]').forEach(btn => {
       btn.addEventListener('click', () => startPresetSpin(btn.dataset.lgStartSpin));
-    });
-
-    root.querySelectorAll('[data-lg-create-giveaway], [data-lg-update-giveaway]').forEach(form => {
-      syncGiveawayWheelPresetVisibility(form);
-      form.querySelector('[data-lg-giveaway-mode-select]')?.addEventListener('change', () => syncGiveawayWheelPresetVisibility(form));
     });
 
     root.querySelector('[data-lg-create-giveaway]')?.addEventListener('submit', ev => {
@@ -2350,7 +1637,7 @@ window.LoyaltyGamesModule = (function(){
     });
 
     root.querySelectorAll('[data-lg-draw-winner]').forEach(btn => {
-      btn.addEventListener('click', () => drawGiveawayWinner(btn.dataset.lgDrawWinner || state.selectedGiveawayUid));
+      btn.addEventListener('click', () => drawGiveawayWinner());
     });
 
     root.querySelectorAll('[data-lg-claim-wheel]').forEach(btn => {
@@ -2370,12 +1657,12 @@ window.LoyaltyGamesModule = (function(){
     if (!root) return;
 
     if (state.loading) {
-      root.innerHTML = `<div class="lg-panel"><h2>Loyalty</h2><p class="lg-muted">Lade Daten...</p></div>`;
+      root.innerHTML = `<div class="lg-panel"><h2>Loyalty Games</h2><p class="lg-muted">Lade Daten...</p></div>`;
       return;
     }
 
     if (state.error) {
-      root.innerHTML = `<div class="lg-panel lg-error"><h2>Loyalty</h2><p>${esc(state.error)}</p><button data-lg-reload>Neu laden</button></div>`;
+      root.innerHTML = `<div class="lg-panel lg-error"><h2>Loyalty Games</h2><p>${esc(state.error)}</p><button data-lg-reload>Neu laden</button></div>`;
       root.querySelector('[data-lg-reload]')?.addEventListener('click', () => loadAll(true));
       return;
     }
@@ -2383,48 +1670,19 @@ window.LoyaltyGamesModule = (function(){
     root.innerHTML = `
       <div class="lg-head">
         <div>
-          <p class="lg-eyebrow">Loyalty</p>
-          <h2>Loyalty-Zentrale</h2>
-          <p class="lg-subline">Core, Glücksrad, Giveaways, Raffles, Texte, Statistik, Config und Verlauf.</p>
+          <p class="lg-eyebrow">Loyalty / Spiele</p>
+          <h2>Loyalty Games</h2>
+          <p class="lg-subline">Glücksrad, Presets, Giveaways, Chat-Command-Vorbereitung und Verlauf.</p>
         </div>
         <div class="lg-actions">
           <a class="lg-btn lg-btn-secondary" href="${api.overlay}" target="_blank">Overlay öffnen</a>
           <button class="lg-btn" data-lg-reload ${state.saving ? 'disabled' : ''}>Reload</button>
         </div>
       </div>
-
-      <style>
-        .lg-editor-modal-backdrop{position:fixed;inset:0;z-index:9999;background:rgba(4,8,18,.72);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:28px;}
-        .lg-editor-modal{width:min(1180px,96vw);max-height:92vh;overflow:auto;border:1px solid rgba(108,226,255,.38);border-radius:22px;background:linear-gradient(180deg,rgba(17,24,39,.98),rgba(10,15,30,.98));box-shadow:0 0 40px rgba(146,92,255,.25),0 0 18px rgba(42,217,255,.18);padding:18px;}
-        .lg-editor-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(108,226,255,.18);}
-        .lg-editor-modal-head h3{margin:.2rem 0 .35rem;}
-        .lg-editor-modal-section{padding:12px;border:1px solid rgba(108,226,255,.14);border-radius:16px;background:rgba(255,255,255,.025);margin-bottom:14px;}
-        .lg-giveaway-filter-row{display:flex;align-items:end;justify-content:space-between;gap:12px;margin:10px 0 14px;flex-wrap:wrap;}
-        .lg-giveaway-filter-row label{min-width:240px;max-width:360px;width:100%;}
-        .lg-giveaway-card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;}
-        .lg-giveaway-card{border:1px solid rgba(108,226,255,.14);background:rgba(255,255,255,.025);border-radius:16px;padding:12px;display:grid;gap:10px;}
-        .lg-giveaway-card.is-active{border-color:rgba(108,226,255,.45);box-shadow:0 0 18px rgba(42,217,255,.10);}
-        .lg-giveaway-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
-        .lg-giveaway-card-head strong{display:block;font-size:15px;}
-        .lg-giveaway-card-head small{display:block;margin-top:3px;color:var(--muted);font-size:12px;}
-        .lg-giveaway-card-badges{display:flex;gap:6px;align-items:center;justify-content:flex-end;flex-wrap:wrap;}
-        .lg-giveaway-card-warning{margin:0;color:#ffb35c;font-size:12px;}
-        .lg-giveaway-card-meta{display:flex;flex-wrap:wrap;gap:8px;color:var(--muted);font-size:12px;}
-        .lg-giveaway-card-actions{display:flex;flex-wrap:wrap;gap:8px;}
-        .lg-giveaway-summary-strip{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 12px;}
-        .lg-giveaway-summary-strip span{border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.03);border-radius:12px;padding:8px 10px;color:var(--muted);font-size:12px;}
-        .lg-giveaway-summary-strip strong{margin-left:4px;color:inherit;}
-        .lg-inline-actions{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;}
-        .lg-giveaway-mode-row > label{grid-column:1 / -1;}
-        .lg-wheel-config-panel{border:1px solid rgba(108,226,255,.14);border-radius:14px;background:rgba(255,255,255,.025);padding:12px;margin-top:4px;margin-bottom:12px;}
-        .lg-wheel-config-panel label{display:block;margin:0;}
-        .lg-wheel-config-panel small{display:block;margin-top:8px;}
-      </style>
       ${state.message ? `<div class="lg-toast">${esc(state.message)}</div>` : ''}
       ${state.saving ? `<div class="lg-toast lg-toast-warn">Speichere...</div>` : ''}
       ${renderTabs()}
       ${renderActiveTab()}
-      ${renderPresetEditorModal()}
     `;
 
     bindEvents();
