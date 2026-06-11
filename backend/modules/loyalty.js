@@ -3,6 +3,10 @@
 /**
  * Loyalty / Kekskrümel Core
  *
+ * STEP210:
+ * - API-Cleanup: Ranking liefert total + rankTotal, Can-Afford liefert required + amount
+ * - Status-/Dashboard-Felder bleiben rueckwaertskompatibel, aber eindeutiger fuer Tests
+ *
  * STEP209:
  * - Zentrale Loyalty-Safety-Schicht: verfuegbare Kekskruemel, Reservierungen, sichere Buchungen und Punkte-Rang
  * - Points-Commands werden DB-basiert vorbereitet, bleiben aber deaktiviert bis Loyalty-Freigabe
@@ -35,7 +39,7 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "loyalty";
-const VERSION = "0.1.12";
+const VERSION = "0.1.13";
 const MODULE_VERSION = VERSION;
 const MODULE_META = {
   name: MODULE_NAME,
@@ -1256,20 +1260,20 @@ function listAvailableRankings(options = {}) {
   }).filter(row => options.includeZero === true || row.available > 0)
     .sort((a, b) => b.available - a.available || String(a.login).localeCompare(String(b.login)));
 
-  return rows.map((row, index) => ({ ...row, rank: index + 1, rankTotal: rows.length }));
+  return rows.map((row, index) => ({ ...row, rank: index + 1, rankTotal: rows.length, total: rows.length }));
 }
 
 function getAvailableRank(login, options = {}) {
   const normalized = normalizeLogin(login);
-  if (!normalized) return { rank: null, rankTotal: 0 };
+  if (!normalized) return { rank: null, rankTotal: 0, total: 0 };
   const rows = listAvailableRankings(options);
   const row = rows.find(item => item.login === normalized);
-  return { rank: row ? row.rank : null, rankTotal: rows.length, row: row || null };
+  return { rank: row ? row.rank : null, rankTotal: rows.length, total: rows.length, row: row || null };
 }
 
 function canAfford(input = {}) {
   const amount = Math.floor(Number(input.amount || 0));
-  if (!Number.isFinite(amount) || amount <= 0) return { ok: false, canAfford: false, reason: "invalid_amount", amount: input.amount };
+  if (!Number.isFinite(amount) || amount <= 0) return { ok: false, canAfford: false, reason: "invalid_amount", amount: input.amount, required: input.amount };
   const summary = getBalanceSummary(input.login || input.userLogin || input.user, input);
   const allowed = summary.available >= amount;
   return {
@@ -1277,6 +1281,7 @@ function canAfford(input = {}) {
     canAfford: allowed,
     reason: allowed ? "ok" : "insufficient_available_balance",
     amount,
+    required: amount,
     balance: summary.balance,
     reserved: summary.reserved,
     available: summary.available,

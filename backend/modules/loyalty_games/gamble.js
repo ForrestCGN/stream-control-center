@@ -92,10 +92,17 @@ function createGambleGame(options = {}) {
   }
 
   function getStatus() {
+    const moduleEnabled = !!hostEnabled;
+    const configEnabled = !!config.enabled;
     return {
       ok: !lastError,
       game: "gamble",
-      enabled: hostEnabled && !!config.enabled,
+      enabled: moduleEnabled,
+      moduleEnabled,
+      moduleOnline: true,
+      gameReady: moduleEnabled && !lastError,
+      configEnabled,
+      playEnabled: moduleEnabled && configEnabled,
       running: false,
       lastResult,
       config: getPublicConfig(),

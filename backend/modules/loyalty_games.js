@@ -3,6 +3,10 @@
 /**
  * Loyalty Games host module.
  *
+ * STEP LWG-5.2 / STEP210:
+ * - Status-Cleanup: Modul aktiv/online sauber von Chat-Command-Freigabe getrennt
+ * - Gamble-Status liefert moduleEnabled, gameReady, commandEnabled/commandsEnabled und configEnabled
+ *
  * STEP LWG-5.1:
  * - Gamble-Spiel vorbereitet: DB-Settings, Multitexte, deaktivierter Command, Safety-Layer-Nutzung
  * - !gamble bleibt deaktiviert bis Loyalty-Freigabe
@@ -27,8 +31,8 @@ const presetFactory = require("./loyalty_games/presets");
 const loyaltyCore = require("./loyalty");
 
 const MODULE_NAME = "loyalty_games";
-const MODULE_VERSION = "0.2.1";
-const MODULE_BUILD = "STEP_LWG_5_1_GAMBLE_PREPARED";
+const MODULE_VERSION = "0.2.2";
+const MODULE_BUILD = "STEP_LWG_5_2_STATUS_CLEANUP";
 const CONFIG_FILE = "loyalty_games.json";
 const SCHEMA_MODULE = "loyalty_games";
 const SCHEMA_VERSION = 3;
@@ -120,7 +124,7 @@ const DEFAULT_CONFIG = {
 
 const SETTINGS_DEFINITIONS = [
   { key: "enabled", path: "enabled", valueType: "boolean", description: "Loyalty-Games Host aktivieren/deaktivieren." },
-  { key: "games.gamble.enabled", path: "games.gamble.enabled", valueType: "boolean", description: "Gamble-Command aktivieren/deaktivieren." },
+  { key: "games.gamble.enabled", path: "games.gamble.enabled", valueType: "boolean", description: "Gamble-Engine/API aktivieren/deaktivieren. Chat-Freigabe läuft separat über command_definitions." },
   { key: "games.gamble.minBet", path: "games.gamble.minBet", valueType: "number", description: "Minimaler Gamble-Einsatz." },
   { key: "games.gamble.maxBet", path: "games.gamble.maxBet", valueType: "number", description: "Maximaler Gamble-Einsatz." },
   { key: "games.gamble.allowPercent", path: "games.gamble.allowPercent", valueType: "boolean", description: "Prozent-Einsaetze wie !gamble 50% erlauben." },
@@ -816,6 +820,9 @@ function buildStatus() {
     moduleBuild: MODULE_BUILD,
     version: MODULE_VERSION,
     enabled: !!config.enabled,
+    moduleEnabled: !!config.enabled,
+    eventBusReady: !!state.eventBusReady,
+    commandsEnabled: state.schemaReady ? !!(listCentralCommandDefinitions().commandsActive) : false,
     routeCount: state.routeCount,
     loadedAt: state.loadedAt,
     lastError: state.lastError,
@@ -906,6 +913,38 @@ function handleChatCommandRuntime(input = {}) {
   return buildGambleRuntimeResponse(input, result);
 }
 
+
+function decorateGambleStatus(status = {}) {
+  const central = state.schemaReady ? listCentralCommandDefinitions() : { ok: false, available: false, commands: [] };
+  const gambleCommand = (central.commands || []).find(row => row && row.trigger === "gamble") || null;
+  const commandEnabled = !!(gambleCommand && gambleCommand.enabled);
+  const moduleEnabled = !!config.enabled;
+  const configEnabled = !!(status.config && status.config.enabled);
+  const gameReady = moduleEnabled && status.ok !== false;
+  return {
+    ...status,
+    enabled: moduleEnabled,
+    moduleEnabled,
+    moduleOnline: true,
+    gameReady,
+    configEnabled,
+    playEnabled: moduleEnabled && configEnabled,
+    commandEnabled,
+    commandsEnabled: commandEnabled,
+    command: gambleCommand,
+    commandSource: "command_definitions",
+    access: {
+      moduleOnline: true,
+      moduleEnabled,
+      gameReady,
+      configEnabled,
+      playEnabled: moduleEnabled && configEnabled,
+      commandEnabled,
+      commandsEnabled: commandEnabled
+    }
+  };
+}
+
 function registerRoutes(app) {
   const registered = [];
 
@@ -969,7 +1008,7 @@ function registerRoutes(app) {
   })));
 
 
-  registered.push(...routes.registerGet(app, "/api/loyalty/games/gamble/status", core.asyncRoute(async (req, res) => { core.sendOk(res, gamble ? gamble.getStatus() : { ok: false, error: "gamble_not_loaded" }); })));
+  registered.push(...routes.registerGet(app, "/api/loyalty/games/gamble/status", core.asyncRoute(async (req, res) => { refreshConfigFromSettings(); core.sendOk(res, decorateGambleStatus(gamble ? gamble.getStatus() : { ok: false, error: "gamble_not_loaded", lastError: "gamble_not_loaded" })); })));
   registered.push(...routes.registerGet(app, "/api/loyalty/games/gamble/config", core.asyncRoute(async (req, res) => { refreshConfigFromSettings(); core.sendOk(res, { game: "gamble", config: gamble ? gamble.getPublicConfig() : (config.games && config.games.gamble ? config.games.gamble : {}) }); })));
   registered.push(...routes.registerPost(app, "/api/loyalty/games/gamble/play", core.asyncRoute(async (req, res) => { const result = startGamble({ ...(req.body || {}), ...(req.query || {}), source: req.body?.source || req.query?.source || "api" }); if (!result.ok) return core.sendFail(res, result.error || "gamble_failed", result.statusCode || 409, result); core.sendOk(res, result); })));
   registered.push(...routes.registerPost(app, "/api/loyalty/games/runtime/chat-command", core.asyncRoute(async (req, res) => { core.sendOk(res, handleChatCommandRuntime(req.body || {})); })));
