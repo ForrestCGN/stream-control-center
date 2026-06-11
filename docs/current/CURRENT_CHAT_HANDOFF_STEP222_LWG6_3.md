@@ -1,15 +1,7 @@
-# Current Chat Handoff – STEP222 / LWG-6.3
+# Handoff – STEP222b / LWG-6.3b
 
-Forrest wollte nach der Live-Aktivierung von Gamble die Texte verbessern und Prozent-Einsätze wie `!gamble 10%` im Node-System sauber unterstützen.
+Aktueller Stand: Gamble ist livefähig, Texte sind im CGN-/Kekskrümel-Stil, Prozent-Einsatz ist implementiert.
 
-STEP222 liefert vollständige Ziel-Dateien, keine Patches:
+STEP222a-Test zeigte korrekte Runtime, scheiterte aber an zu strenger Test-Auswertung, weil die Command-Bridge strukturierte Felder zusammenfasst. STEP222b behebt diese Test-Auswertung.
 
-- `backend/modules/loyalty_games.js`
-- `backend/modules/loyalty_games/gamble.js`
-
-Wichtig:
-
-- Nach Apply `stepdone.cmd` ausführen.
-- Backend neu starten.
-- Danach den STEP222-Test ausführen.
-- StreamElements darf während der Übergangsphase noch parallel antworten.
+Wichtig: Keine Runtime-Änderung gegenüber STEP222a.
