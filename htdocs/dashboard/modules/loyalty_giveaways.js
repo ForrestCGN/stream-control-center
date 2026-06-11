@@ -489,31 +489,6 @@ window.LoyaltyGiveawaysModule = (function(){
     };
   }
 
-  function hasRefundablePaidEntries(g){
-    return rows(g?.entries || []).some(e => {
-      if (norm(e.status) === 'cancelled') return false;
-      if (Number(e.costBooked || e.cost_booked || 0) <= 0) return false;
-      const refund = e.metadata && typeof e.metadata === 'object' ? e.metadata.costRefund : null;
-      return !(refund && refund.transactionUid);
-    });
-  }
-
-  function buildCancelOrDeleteBody(action, uid){
-    const g = rows(state.giveaways).find(item => item.giveawayUid === uid) || selectedGiveaway();
-    const canRefund = hasRefundablePaidEntries(g);
-    let refundPaidTickets = false;
-    if (canRefund) {
-      refundPaidTickets = window.confirm('Bezahlte Tickets zurückerstatten?\n\nOK = Ja, Ticketkosten zurückgeben.\nAbbrechen = Nein, Giveaway nur abbrechen/löschen ohne Rückerstattung.');
-    }
-    return {
-      actor: 'dashboard',
-      refundPaidTickets,
-      reason: action === 'delete'
-        ? (refundPaidTickets ? 'dashboard_delete_with_refund' : 'dashboard_delete_without_refund')
-        : (refundPaidTickets ? 'dashboard_cancel_with_refund' : 'dashboard_cancel_without_refund')
-    };
-  }
-
   async function saveGiveaway(form, uid){
     state.saving = true; render();
     try {
@@ -542,8 +517,8 @@ window.LoyaltyGiveawaysModule = (function(){
       draw: { path: `${api.detailBase}/${encoded}/draw`, confirm: 'Jetzt fair backendseitig einen Gewinner ziehen?', body: () => ({ actor: 'dashboard' }), control: true },
       replaceLast: { path: `${api.detailBase}/${encoded}/winners/replace-last`, confirm: 'Letzten Gewinner wirklich ersetzen? Der bisherige Gewinner wird entfernt und ein Ersatz wird ausgelost.', body: () => ({ actor: 'dashboard', reason: 'dashboard_replace_last_winner' }), control: true },
       finish: { path: `${api.detailBase}/${encoded}/finish`, confirm: 'Giveaway wirklich beenden? Danach ist es read-only.', body: () => ({ actor: 'dashboard' }), control: true },
-      cancel: { path: `${api.detailBase}/${encoded}/cancel`, confirm: 'Giveaway wirklich abbrechen?', body: () => buildCancelOrDeleteBody('cancel', uid), control: true },
-      delete: { path: `${api.detailBase}/${encoded}/delete`, confirm: 'Giveaway wirklich löschen? Es wird als gelöscht markiert.', body: () => buildCancelOrDeleteBody('delete', uid) }
+      cancel: { path: `${api.detailBase}/${encoded}/cancel`, confirm: 'Giveaway wirklich abbrechen?', body: () => ({ actor: 'dashboard' }), control: true },
+      delete: { path: `${api.detailBase}/${encoded}/delete`, confirm: 'Giveaway wirklich löschen? Es wird als gelöscht markiert.', body: () => ({ actor: 'dashboard' }) }
     };
     const cfg = map[action];
     if (!cfg) return;
@@ -1129,7 +1104,6 @@ window.LoyaltyGiveawaysModule = (function(){
           <button class="lgw-btn" data-lgw-action="finish" data-uid="${esc(g.giveawayUid)}" ${c.canFinish ? '' : 'disabled'}>Giveaway abschließen</button>
           <button class="lgw-btn lgw-btn-danger" data-lgw-action="cancel" data-uid="${esc(g.giveawayUid)}" ${c.canCancel ? '' : 'disabled'}>Giveaway abbrechen</button>
         </div>
-        <p class="lgw-muted">Bei bezahlten Tickets fragt das Dashboard beim Abbrechen separat, ob Ticketkosten zurückerstattet werden sollen.</p>
       </section>
 
       <div class="lgw-warning">Mehrere Gewinner laufen über dieselbe Konsole: Nach einer bestätigten normalen Claim-Phase oder nach einer Glücksrad-Drehung springt das Giveaway wieder auf „Teilnahme geschlossen“, solange noch Gewinner offen sind. Dann kann über „Weiteren Gewinner auslosen“ der nächste Gewinner gezogen werden.</div>
