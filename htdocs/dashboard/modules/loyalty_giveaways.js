@@ -809,10 +809,10 @@ window.LoyaltyGiveawaysModule = (function(){
       subscriberLuckMultiplier: Number(data.get('subscriberLuckMultiplier') || 1),
       winnerCount: Number(data.get('winnerCount') || 1),
       roundPolicy: {
-        roundMode: data.get('roundMode') || 'single',
-        allowNewEntriesBetweenRounds: data.get('allowNewEntriesBetweenRounds') === 'on',
-        removeWinnerAfterRound: data.get('removeWinnerAfterRound') === 'on',
-        ticketCarryoverMode: data.get('ticketCarryoverMode') || 'none'
+        roundMode: 'single',
+        allowNewEntriesBetweenRounds: false,
+        removeWinnerAfterRound: true,
+        ticketCarryoverMode: 'tickets'
       },
       prizes: [buildPrizeFromForm(data)],
       chatClaim: {
@@ -1275,15 +1275,15 @@ window.LoyaltyGiveawaysModule = (function(){
   function renderFormFields(g){
     const rawMode = g?.mode || 'classic_single';
     const mode = rawMode === 'classic_multi' ? 'classic_single' : (rawMode === 'wheel_multi' ? 'wheel_single' : rawMode);
+    const isWheelMode = mode.startsWith('wheel_');
     const claim = getChatClaimSettings(g);
-    const round = g?.roundPolicy || {};
+    const claimEnabled = !isWheelMode && claim.enabled === true;
     const prize = rows(g?.prizes || [])[0] || {};
-    const removeWinner = round.removeWinnerAfterRound !== false;
     return `
       <label>Titel<input name="title" value="${esc(g?.title || '')}" required></label>
       <label>Beschreibung<textarea name="description" rows="3">${esc(g?.description || '')}</textarea></label>
       <div class="lgw-form-row">
-        <label>Modus<select name="mode">${[
+        <label>Modus<select name="mode" data-lgw-form-mode>${[
           ['classic_single','Normales Giveaway'], ['wheel_single','Glücksrad-Giveaway']
         ].map(([value,label]) => `<option value="${value}" ${mode === value ? 'selected' : ''}>${label}</option>`).join('')}</select></label>
         <label>Glücksrad-Preset-UID<input name="wheelPresetUid" value="${esc(g?.wheelPresetUid || '')}" placeholder="optional"></label>
@@ -1296,34 +1296,44 @@ window.LoyaltyGiveawaysModule = (function(){
         <label>Gewinneranzahl<input name="winnerCount" type="number" min="1" value="${esc(g?.winnerCount ?? 1)}"></label>
         <label>Sub-Luck Faktor<input name="subscriberLuckMultiplier" type="number" min="1" value="${esc(g?.subscriberLuckMultiplier ?? 1)}"></label>
       </div>
-      <div class="lgw-form-row">
-        <label>Rundenmodus<select name="roundMode">${[
-          ['single','single'], ['new_round_new_entries','jede Runde neu'], ['reuse_previous_entries','bisherige Teilnehmer']
-        ].map(([value,label]) => `<option value="${value}" ${(round.roundMode || 'single') === value ? 'selected' : ''}>${label}</option>`).join('')}</select></label>
-        <label>Ticket-Übernahme<select name="ticketCarryoverMode">${[
-          ['none','none'], ['participants_only','Teilnehmer'], ['tickets','Tickets']
-        ].map(([value,label]) => `<option value="${value}" ${(round.ticketCarryoverMode || 'none') === value ? 'selected' : ''}>${label}</option>`).join('')}</select></label>
+      <div class="lgw-form-note">
+        Weitere Gewinner werden aus den bisherigen Teilnehmern gezogen. Bereits gezogene Gewinner werden nicht erneut gezogen; Tickets der übrigen Teilnehmer bleiben erhalten.
       </div>
-      <div class="lgw-form-row">
-        <label>Chat-Claim Timeout (nur normales Giveaway)<input name="chatClaimTimeoutSeconds" type="number" min="10" value="${esc(claim.timeoutSeconds || 60)}"></label>
+      <div class="lgw-check-row" data-lgw-normal-claim ${isWheelMode ? 'hidden' : ''}>
+        <label class="lgw-check"><input name="chatClaimEnabled" type="checkbox" data-lgw-claim-toggle ${claimEnabled ? 'checked' : ''}> Gewinner muss sich im Chat melden</label>
+      </div>
+      <div class="lgw-form-row" data-lgw-claim-options ${claimEnabled ? '' : 'hidden'}>
+        <label>Chat-Claim Timeout<input name="chatClaimTimeoutSeconds" type="number" min="10" value="${esc(claim.timeoutSeconds || 60)}"></label>
         <label>Claim-Modus<select name="chatClaimMode"><option value="any_message" ${claim.mode === 'any_message' ? 'selected' : ''}>Irgendeine Chatnachricht</option></select></label>
       </div>
-      <div class="lgw-check-row">
-        <label class="lgw-check"><input name="chatClaimEnabled" type="checkbox" ${claim.enabled ? 'checked' : ''}> Gewinner muss sich im Chat melden (nur normales Giveaway)</label>
-        <span class="lgw-muted">Bei Glücksrad-Giveaways ist die Drehung der Claim. Ein zusätzlicher Chat-Claim wird beim Speichern deaktiviert.</span>
+      <div class="lgw-form-note" data-lgw-wheel-hint ${isWheelMode ? '' : 'hidden'}>
+        Bei Glücksrad-Giveaways werden die Gewinne im Glücksrad-Editor gepflegt. Die Drehung dient als Claim.
       </div>
-      <div class="lgw-form-row">
-        <label>Gewinn-Label<input name="prizeLabel" value="${esc(prize.label || g?.title || '')}"></label>
-        <label>Gewinn-Menge<input name="prizeQuantity" type="number" min="1" value="${esc(prize.quantityTotal || g?.winnerCount || 1)}"></label>
+      <div data-lgw-normal-prize ${isWheelMode ? 'hidden' : ''}>
+        <div class="lgw-form-row">
+          <label>Gewinn-Label<input name="prizeLabel" value="${esc(prize.label || g?.title || '')}"></label>
+          <label>Gewinn-Menge<input name="prizeQuantity" type="number" min="1" value="${esc(prize.quantityTotal || g?.winnerCount || 1)}"></label>
+        </div>
+        <label>Gewinn-Beschreibung<textarea name="prizeDescription" rows="2">${esc(prize.description || '')}</textarea></label>
       </div>
-      <label>Gewinn-Beschreibung<textarea name="prizeDescription" rows="2">${esc(prize.description || '')}</textarea></label>
       <div class="lgw-check-row">
         <label class="lgw-check"><input name="firstTicketFree" type="checkbox" ${g?.firstTicketFree ? 'checked' : ''}> erstes Ticket kostenlos</label>
         <label class="lgw-check"><input name="subOnly" type="checkbox" ${g?.subOnly ? 'checked' : ''}> nur Subs</label>
-        <label class="lgw-check"><input name="allowNewEntriesBetweenRounds" type="checkbox" ${round.allowNewEntriesBetweenRounds ? 'checked' : ''}> neue Lose zwischen Runden</label>
-        <label class="lgw-check"><input name="removeWinnerAfterRound" type="checkbox" ${removeWinner ? 'checked' : ''}> Gewinner nach Runde entfernen</label>
       </div>
     `;
+  }
+
+  function syncGiveawayFormVisibility(form){
+    if (!form) return;
+    const mode = String(form.querySelector('[name="mode"]')?.value || 'classic_single');
+    const isWheelMode = mode.startsWith('wheel_');
+    const claimToggle = form.querySelector('[name="chatClaimEnabled"]');
+    const claimEnabled = !isWheelMode && claimToggle?.checked === true;
+    form.querySelectorAll('[data-lgw-normal-claim]').forEach(el => { el.hidden = isWheelMode; });
+    form.querySelectorAll('[data-lgw-claim-options]').forEach(el => { el.hidden = !claimEnabled; });
+    form.querySelectorAll('[data-lgw-wheel-hint]').forEach(el => { el.hidden = !isWheelMode; });
+    form.querySelectorAll('[data-lgw-normal-prize]').forEach(el => { el.hidden = isWheelMode; });
+    if (isWheelMode && claimToggle) claimToggle.checked = false;
   }
 
   function renderModal(){
@@ -1641,9 +1651,15 @@ window.LoyaltyGiveawaysModule = (function(){
 
     bindControlEvents(root);
 
-    root.querySelector('[data-lgw-save-giveaway]')?.addEventListener('submit', ev => {
-      ev.preventDefault();
-      saveGiveaway(ev.currentTarget, ev.currentTarget.dataset.uid || '');
+    root.querySelectorAll('[data-lgw-save-giveaway]').forEach(form => {
+      syncGiveawayFormVisibility(form);
+      form.querySelector('[name="mode"]')?.addEventListener('change', () => syncGiveawayFormVisibility(form));
+      form.querySelector('[name="chatClaimEnabled"]')?.addEventListener('change', () => syncGiveawayFormVisibility(form));
+      form.addEventListener('submit', ev => {
+        ev.preventDefault();
+        syncGiveawayFormVisibility(ev.currentTarget);
+        saveGiveaway(ev.currentTarget, ev.currentTarget.dataset.uid || '');
+      });
     });
 
     root.querySelector('[data-lgw-create-wheel-field]')?.addEventListener('submit', ev => {
