@@ -1,47 +1,70 @@
 # FILES – stream-control-center
 
-Stand: 2026-06-10
+Stand: 2026-06-11
 
-## STEP BUS-TWITCH.17 Dokumentation / Bus-Konsolidierung
-
-Dieses ZIP enthält nur Doku-/Projektstatus-Dateien.
+## Aktueller bestätigter Code-STEP
 
 ```text
-README_STEP_BUS_TWITCH_17_DOCUMENTATION_CONSOLIDATION.md
-ARTIFACT_CHECK_BUS_TWITCH_17.json
-docs/current/CURRENT_STATUS.md
-docs/current/NEXT_STEPS.md
-docs/current/TODO.md
-docs/current/CHANGELOG.md
-docs/current/FILES.md
-docs/current/BUS_TWITCH_STATUS.md
-docs/current/CURRENT_CHAT_HANDOFF_BUS_TWITCH_17.md
-docs/modules/communication_bus.md
-docs/modules/twitch_events.md
-docs/modules/vip30.md
-project-state/CURRENT_STATUS.md
-project-state/NEXT_STEPS.md
-project-state/TODO.md
-project-state/CHANGELOG.md
-project-state/FILES.md
+STEP_LWG-4Q.11_manual_winner_flow_prize_quantity_cleanup.zip
 ```
 
-## Letzte relevante Code-STEPs
+Enthalten laut Artefakt:
 
 ```text
-STEP_BUS_TWITCH_14B_Channelpoints_Parallel_Tap_Reliability.zip
-STEP_BUS_TWITCH_15B_VIP30_TwitchEvents_Payload_Mapping_Fix.zip
-STEP_BUS_TWITCH_16_VIP30_Source_Switch_Autostart.zip
-STEP_BUS_TWITCH_16B_VIP30_Legacy_Bridge_Hard_Disable_Gate.zip
-STEP_BUS_TWITCH_16C_VIP30_Legacy_Bridge_Default_Autostart_Off.zip
+backend/modules/loyalty_giveaways.js
+backend/modules/loyalty_games.js
+htdocs/dashboard/modules/loyalty_giveaways.js
+htdocs/dashboard/modules/loyalty_giveaways.css
+htdocs/dashboard/modules/loyalty_games.js
+htdocs/dashboard/modules/loyalty_games.css
+htdocs/dashboard/index.html
+Test_LWG_4Q11_manual_winner_flow_ForrestCGN.ps1
 ```
 
-## Aktuell relevante Runtime-Dateien
+## Bestätigte Testdatei
 
 ```text
-backend/modules/twitch.js
-backend/modules/twitch_events.js
-backend/modules/commands.js
-backend/modules/twitch_presence.js
-backend/modules/vip30.js
+Test_LWG_4Q11_manual_winner_flow_ForrestCGN.ps1
+```
+
+Ergebnis:
+
+```text
+ModuleBuild: STEP_LWG_4Q_11
+=== TEST OK: Alle aktivierten Szenarien erfolgreich ===
+```
+
+## UI-Testdateien – nicht als finaler Standard verwenden
+
+Diese Scripts wurden im Verlauf erzeugt, waren aber zu fehleranfällig oder zu umständlich:
+
+```text
+Test_LWG_4Q10_ui_assisted_dashboard_scenarios_ForrestCGN.ps1
+Test_LWG_4Q10_ui_assisted_dashboard_scenarios_ForrestCGN_v2.ps1
+Test_LWG_4Q11_ui_assisted_dashboard_scenarios_ForrestCGN.ps1
+Test_LWG_4Q11_ui_assisted_dashboard_scenarios_ForrestCGN_v2.ps1
+Test_LWG_4Q11_ui_assisted_dashboard_scenarios_ForrestCGN_v3.ps1
+```
+
+Künftige UI-Prüfung soll neu und minimal aufgebaut werden.
+
+## Doku-Paket
+
+```text
+STEP_LWG-4Q.11_documentation_handoff.zip
+```
+
+Enthält nur Doku-/Projektstatus-Dateien, keine Runtime-Dateien, keine Datenbank, keine Secrets.
+
+## Weiterhin relevante Runtime-Dateien
+
+```text
+backend/modules/loyalty_giveaways.js
+backend/modules/loyalty_games.js
+backend/modules/loyalty.js
+htdocs/dashboard/modules/loyalty_giveaways.js
+htdocs/dashboard/modules/loyalty_giveaways.css
+htdocs/dashboard/modules/loyalty_games.js
+htdocs/dashboard/modules/loyalty_games.css
+htdocs/dashboard/index.html
 ```

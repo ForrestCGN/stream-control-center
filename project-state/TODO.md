@@ -1,24 +1,30 @@
 # TODO – stream-control-center
 
-Stand: 2026-06-10
+Stand: 2026-06-11
 
 ## Erledigt / bestätigt
 
-- [x] `twitch_events` als zentrale Twitch-Event-Schicht angelegt.
-- [x] EventSub Chat aktiviert und nach Neustart automatisch verfügbar.
-- [x] `commands` verarbeitet Chat über `twitch.chat.message` vom Bus.
-- [x] Presence-/IRC-Direktweg für Commands als Fallback steuerbar gemacht.
-- [x] Channelpoints werden zuverlässig als `twitch.channelpoints.redemption.created` an `twitch_events` weitergegeben.
-- [x] VIP30 liest den neuen Bus-Payload korrekt über `payload.twitch.*`.
-- [x] VIP30 TwitchEvents Subscriber verarbeitet den Reward `30 Tage VIP` über den Bus.
-- [x] VIP30 Legacy Bridge ist hart deaktivierbar.
-- [x] VIP30 Legacy Bridge startet nach Node-Neustart nicht mehr automatisch.
-- [x] VIP30 Legacy bleibt als manueller Fallback erhalten.
+- [x] LWG-4Q.1 Paid Tickets buchen Loyalty-Punkte beim Ticket-Kauf.
+- [x] LWG-4Q.2 / 4Q.2a Refund ist explizit steuerbar und idempotent.
+- [x] LWG-4Q.3 Prepared Giveaway Cards sichtbar gemacht.
+- [x] LWG-4Q.8 Routing weitgehend auf neues Giveaway-Control umgestellt.
+- [x] LWG-4Q.9 / 4Q.9a Löschen = Hard-Delete, Archivieren nur kontrolliert; Transaction-Fix bestätigt.
+- [x] LWG-4Q.10 API-Szenarien mit Classic, Paid, Claim und Wheel bestätigt.
+- [x] LWG-4Q.11 Manual Winner Flow API-seitig bestätigt.
 
-## Offen
+## Offen / wichtig
 
-- [ ] BUS-TWITCH.17 Doku-ZIP einspielen und StepDone ausführen.
-- [ ] Nächstes Modul für Bus-Migration auswählen.
-- [ ] Für Alerts/Subs/Bits/Raids/Follows Event-Mapping erstellen.
-- [ ] Später Dashboard-Anzeige für Bus-/Source-Status planen.
-- [ ] Später optional Diagnoseansicht für `twitch_events` Counts und Subscriber im Control-Center planen.
+- [ ] Dashboard-UI nach LWG-4Q.11 manuell sauber prüfen, aber nur noch in kleinen Einzelschritten.
+- [ ] Prüfen, ob im Formular wirklich nicht mehr sichtbar sind: Gewinneranzahl, Gewinn-Menge, Rundenmodus, Ticket-Übernahme.
+- [ ] Prüfen, ob Chat-Claim-Felder nur sichtbar sind, wenn Checkbox aktiv ist.
+- [ ] Prüfen, ob bei Wheel-Giveaways die Gewinnpflege ausschließlich über den Glücksrad-/Bound-Wheel-Editor läuft.
+- [ ] Prüfen, ob „Glücksrad erstellen“ nur bei fehlendem Bound-Wheel erscheint und „Glücksrad bearbeiten“ nur bei vorhandenem Bound-Wheel.
+- [ ] Prüfen, ob Loyalty → Kachel Giveaways und oberer Tab Giveaways beide das neue Giveaway-Control öffnen.
+- [ ] UI-Teststrategie vereinfachen: pro Test nur ein Giveaway erzeugen, genau einen UI-Punkt prüfen, danach löschen.
+- [ ] Doku nach finalem UI-Test erneut aktualisieren.
+
+## Nicht wiederholen
+
+- [ ] Keine großen UI-assisted Scripts mehr, die mehrere fast gleiche Giveaways gleichzeitig erzeugen.
+- [ ] Keine PowerShell-Scripts mit ungetesteter JS-Syntax wie `||`.
+- [ ] Keine Annahmen über Backend-Abläufe treffen, wenn ein API-Test das echte Verhalten zeigen kann.

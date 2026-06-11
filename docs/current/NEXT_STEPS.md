@@ -1,59 +1,72 @@
 # NEXT_STEPS – stream-control-center
 
-Stand: 2026-06-10
+Stand: 2026-06-11
 
-## Direkt nächster Schritt
+## Direkt nächster sinnvoller Schritt
 
-```text
-STEP BUS-TWITCH.17 Dokumentation Bus Konsolidierung einspielen und StepDone ausführen.
-```
+Kein weiterer Code-Step, bevor die UI wieder ruhig und einzeln geprüft wurde.
 
-Danach ist der VIP30-Migrationsblock dokumentiert abgeschlossen.
-
-## Nächste Modul-Migration laut Plan
-
-Empfohlene Reihenfolge nach VIP30:
+Empfohlener nächster Arbeitsschritt:
 
 ```text
-1. Alerts / Subs / Bits / Raids / Follows
-2. Loyalty / Glücksrad / Giveaways
-3. Shoutout / ClipShoutout
-4. Deathcounter / Streamstatus / Game Sync
+LWG-4Q.12 – Minimaler Einzel-UI-Test / Dashboard Verification
 ```
 
-## Nächster sinnvoller technischer Block
+Ziel: Nicht automatisiert alles auf einmal prüfen, sondern jeweils nur einen einzigen UI-Punkt.
+
+## Empfohlene Reihenfolge
+
+### 1. Einzeltest Classic-Formular
 
 ```text
-BUS-TWITCH.18 – Alerts Event Mapping / Migration Plan
+Ein Classic-Draft-Giveaway erstellen.
+Bearbeiten öffnen.
+Prüfen:
+- Gewinneranzahl nicht sichtbar
+- Gewinn-Menge nicht sichtbar
+- Rundenmodus nicht sichtbar
+- Ticket-Übernahme nicht sichtbar
+- Chat-Claim Checkbox sichtbar
+- Timeout/Claim-Modus nur bei aktivierter Checkbox sichtbar
+Danach Giveaway hard-delete löschen.
 ```
 
-Ziel für BUS-TWITCH.18:
+### 2. Einzeltest Wheel ohne Bound-Wheel
 
 ```text
-- vorhandene Alert-Eventquellen erfassen
-- Eventnamen/Kanäle für twitch_events / communication_bus festlegen
-- alten Alert-Weg zunächst beibehalten
-- neue Bus-Subscriber nur vorbereiten oder parallel testen
-- keine Alert-Queue-/Sound-/Overlay-Logik entfernen
+Ein Wheel-Draft ohne gültiges Bound-Wheel erstellen.
+Prüfen:
+- Button „Glücksrad erstellen“ sichtbar
+- Kein „Glücksrad bearbeiten“, solange kein Bound-Wheel existiert
+Danach Giveaway hard-delete löschen.
 ```
 
-## Optionaler Kontrolltest VIP30
-
-Nach einem Node-Neustart sollte gelten:
-
-```powershell
-$src = Invoke-RestMethod "http://127.0.0.1:8080/api/vip30/channelpoints/source/status"
-$src.twitchEvents | Select-Object enabled,active,autostart,subscriptionId,lastError
-$src.legacyBridge | Select-Object enabled,active,autostart,subscriptionId,lastError
-$src.legacyHardDisableGate
-```
-
-Erwartung:
+### 3. Einzeltest Wheel mit Bound-Wheel
 
 ```text
-twitchEvents.active=True
-twitchEvents.autostart=True
-legacyBridge.active=False
-legacyBridge.autostart=False
-legacyHardDisableGate=True
+Ein Wheel-Draft mit Bound-Wheel und mindestens einem Feld erstellen.
+Prüfen:
+- Button „Glücksrad bearbeiten“ sichtbar
+- Editor öffnet im neuen Giveaway-Control als Modal/Fenster, nicht in der alten Inline-Seite
+Danach Giveaway hard-delete löschen.
+```
+
+### 4. Einzeltest Routing
+
+```text
+Links Loyalty öffnen.
+Kachel Giveaways anklicken.
+Erwartung: neues Giveaway-Control.
+Oben Tab Giveaways anklicken.
+Erwartung: ebenfalls neues Giveaway-Control.
+Keine alte Inline-Giveaway-Seite.
+```
+
+## Danach
+
+Wenn die UI-Prüfung sauber ist:
+
+```text
+LWG-4Q.12 Dokumentation bestätigen
+GitHub/dev und Live-Ziel bewusst synchronisieren
 ```
