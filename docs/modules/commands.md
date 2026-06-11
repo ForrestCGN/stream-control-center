@@ -1,64 +1,35 @@
 # Modul: commands
 
 Stand: 2026-06-11  
-Aktueller bestätigter Stand: STEP215 / LWG-5.7
+Aktueller bestätigter Stand: STEP216 / LWG-5.8
 
-## Zweck
-
-`commands` ist das zentrale Chat-Command-System. Es verarbeitet Twitch-Chat-Events über den Communication Bus, prüft Command-Definitionen, Berechtigungen und Cooldowns und ruft anschließend die Zielmodule per HTTP auf.
-
-## Bestätigte Runtime-Version
+## Bestätigte Runtime-Basis
 
 ```text
 moduleVersion = 0.2.2
 moduleBuild   = LWG_5_6_COMMAND_RESULT_CHAT_SEND_BRIDGE
 ```
 
-## Bestätigte Chat-Result-Brücke
+## Relevanz für STEP216
 
-Die in STEP214 gebaute Brücke ist live getestet:
+`commands.js` ist für den Live-Chat-Flow zuständig. STEP216 selbst testet Admin-Punkte bewusst direkt gegen die Loyalty-Runtime, damit keine unnötigen Chat-Nachrichten erzeugt werden.
 
-```text
-commands.js
-→ Modul-Command ausführen
-→ result.data.message lesen
-→ wenn config.sendResultToChat=true
-→ twitch_presence.sendChatMessage(...)
-→ Send-Ergebnis als chatReply im command_execution_log speichern
-```
+## Wichtig
 
-## Bestätigter Test
+Die zentrale Chat-Send-Brücke aus STEP214 bleibt unverändert aktiv:
 
 ```text
-commands status        OK
-execute sends chat     OK
-log contains chatReply OK
+result.message → twitch_presence.sendChatMessage(...)
 ```
 
-## Wichtige Regeln
-
-- Keine neue Twitch-Sendelogik in einzelnen Modulen bauen.
-- Module liefern `message` zurück.
-- `commands.js` entscheidet anhand der Command-Config, ob eine Chat-Antwort gesendet wird.
-- Für Twitch-Chat wird `twitch_presence.sendChatMessage(...)` genutzt.
-- Commands, die selbst senden, dürfen nicht zusätzlich zentral senden.
-
-## Aktive Command-Freigabe
+## Freigabestatus
 
 ```text
-punkte → enabled=true
-points → Alias von punkte
-config.sendResultToChat=true
-config.resultChatTarget=twitch_presence
+punkte     enabled=true
+points     Alias von punkte
+givepoints weiterhin disabled
+setpoint   weiterhin disabled
+gamble     weiterhin disabled
 ```
 
-## Nicht automatisch freigegeben
-
-```text
-givepoints
-setpoint
-gamble
-duell
-raffle
-roulette
-```
+Die Admin-Subcommands laufen über `!punkte give` und `!punkte set` und werden in `loyalty` selbst per Rollenprüfung geschützt.

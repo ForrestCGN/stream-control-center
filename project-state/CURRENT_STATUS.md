@@ -1,31 +1,23 @@
 # CURRENT_STATUS
 
 Stand: 2026-06-11  
-Aktueller Stand: STEP215 / LWG-5.7
+Aktueller Stand: STEP216 / LWG-5.8
 
-## Bestätigt live
+## Bestätigt vor STEP216
 
 ```text
-!punkte / !points läuft über Node und antwortet im Twitch-Chat.
+!punkte / !points läuft live über Node und antwortet im Twitch-Chat.
+commands.js 0.2.2 / LWG_5_6_COMMAND_RESULT_CHAT_SEND_BRIDGE ist live.
+twitch_presence sendet Command-Result-Antworten.
 ```
 
-## Technischer Stand
+## STEP216-Umfang
 
 ```text
-commands.js      0.2.2 / LWG_5_6_COMMAND_RESULT_CHAT_SEND_BRIDGE
-loyalty.js       0.1.13 / STEP210 Status Cleanup
-twitch_presence  verbunden/joined im erfolgreichen Test
-```
-
-## Erfolgreich getestet
-
-```text
-commands status        OK
-presence joined        OK
-punkte config          OK
-execute sends chat     OK
-presence send count    OK
-log contains chatReply OK
+Admin-Points Runtime kontrolliert testen.
+Keine Runtime-Codeänderung.
+Keine neue Command-Aktivierung.
+Keine DB-Datei im Paket.
 ```
 
 ## Aktiv
@@ -35,7 +27,7 @@ log contains chatReply OK
 !points
 ```
 
-## Nicht aktiv / nicht freigegeben
+## Weiterhin nicht als eigener Command aktiv
 
 ```text
 !givepoints
@@ -46,6 +38,11 @@ log contains chatReply OK
 !roulette
 ```
 
-## Externer offener Punkt
+## Admin-Subcommands unter punkte
 
-StreamElements `!points` / `!punkte` deaktivieren oder umbenennen.
+```text
+!punkte give @user <amount>  → Mod/Broadcaster
+!punkte set @user <balance> → Broadcaster
+```
+
+Diese Logik wird in STEP216 getestet.

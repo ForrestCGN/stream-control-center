@@ -2,54 +2,26 @@
 
 Stand: 2026-06-11
 
-## Direkt als nächstes
+## Direkt nächster Schritt
 
-1. StreamElements `!points` / `!punkte` deaktivieren oder umbenennen.
-2. Im echten Twitch-Chat final prüfen:
+STEP216-Test ausführen:
 
-```text
-!punkte
-!points
+```powershell
+powershell -ExecutionPolicy Bypass -File .\Test_STEP216_LWG5_8_admin_points_runtime_ForrestCGN.ps1 -Execute
 ```
 
-## Nächster Entwicklungs-STEP Vorschlag
-
-### STEP216 / LWG-5.8 – Admin-Points kontrolliert testen
-
-Ziel:
+## Nach erfolgreichem STEP216
 
 ```text
-!givepoints @user amount
-!punkte give @user amount
-!setpoint @user amount
-!punkte set @user amount
+STEP217 / LWG-5.9 – Gamble kontrollierter API-/Runtime-Test vorbereiten
 ```
 
-Regeln:
+## Wichtig für STEP217
 
 ```text
-- givepoints nur Mod/Streamer
-- setpoint nur Streamer/Owner
-- Transaktionshistorie erhalten
-- Test mit Dummy/User und Rückbuchung
-- keine breite Freigabe ohne Test
-```
-
-## Danach möglich
-
-### STEP217 / LWG-5.9 – Gamble kontrollierter Test
-
-```text
-!gamble 100
-!gamble 50%
-```
-
-Regeln:
-
-```text
-- crypto.randomInt
-- nicht vorhersagbar
-- Einsatz maximal verfügbare Punkte
-- Config/Cooldowns/Textvarianten prüfen
-- erst API-Test, dann Live-Freigabe
+!gamble bleibt deaktiviert, bis der Test erfolgreich war.
+Zufallslogik ausschließlich serverseitig mit crypto.randomInt.
+Einsatz darf verfügbare Punkte nicht überschreiten.
+Keine vorhersehbaren Seeds.
+Antwort über zentrale commands.js/twitch_presence-Brücke.
 ```

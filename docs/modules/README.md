@@ -2,10 +2,10 @@
 
 Stand: 2026-06-11
 
-## Aktueller bestätigter Bereich
+## Aktueller Bereich
 
 ```text
-STEP215 / LWG-5.7 – Live-Abschluss Points + Command-Chat-Brücke
+STEP216 / LWG-5.8 – Admin-Points kontrollierter Runtime-Test
 ```
 
 ## Relevante Module
@@ -17,10 +17,21 @@ twitch_presence
 loyalty_games
 ```
 
-## Bestätigt
+## Bestätigte Basis vor STEP216
 
-`!punkte / !points` läuft live über Node und sendet die Antwort zentral über `twitch_presence` in den Twitch-Chat.
+```text
+!punkte / !points läuft live über Node und sendet Antworten zentral über twitch_presence.
+commands.js = 0.2.2 / LWG_5_6_COMMAND_RESULT_CHAT_SEND_BRIDGE
+loyalty.js  = 0.1.13 / STEP210 Status Cleanup
+```
 
-## Verbindliche Regel
+## STEP216-Ziel
 
-Keine neuen Parallel-Sender bauen. Für Twitch-Chat-Ausgaben wird das vorhandene `twitch_presence`-Modul genutzt.
+Kontrolliert prüfen, dass Admin-Punkte über die vorhandene Loyalty-Runtime funktionieren:
+
+```text
+!punkte give @user <amount>  → Mod/Broadcaster
+!punkte set @user <balance> → nur Broadcaster
+```
+
+Der STEP aktiviert keine zusätzlichen Live-Commands und verändert keine Runtime-Dateien.

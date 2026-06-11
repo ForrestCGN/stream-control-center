@@ -2,29 +2,21 @@
 
 Stand: 2026-06-11
 
-## Erledigt
+## Offen / aktuell
 
-- [x] Loyalty-Safety-Layer vorbereitet.
-- [x] `!punkte / !points` Command aktiviert.
-- [x] Command-System empfängt Twitch-Chat über EventBus.
-- [x] Loyalty Runtime erzeugt korrekte Points-/Ranking-Antwort.
-- [x] Zentrale Chat-Ausgabe über vorhandenes `twitch_presence` integriert.
-- [x] STEP214 Live-Test erfolgreich.
-- [x] STEP215 Dokuabschluss erstellt.
+- [ ] STEP216 Admin-Points Kontrolltest ausführen und Ergebnis dokumentieren.
+- [ ] StreamElements `!points` / `!punkte` deaktivieren, falls noch nicht erledigt.
+- [ ] Nach STEP216: Gamble-Test STEP217 vorbereiten.
 
-## Offen
+## Nicht entfernen
 
-- [ ] StreamElements `!points` / `!punkte` deaktivieren/umbenennen.
-- [ ] Admin-Points kontrolliert testen/freigeben.
-- [ ] Gamble kontrolliert testen/freigeben.
-- [ ] Duell-System später planen.
-- [ ] Raffle/Roulette später planen.
-- [ ] Dashboard-Konfiguration für Loyalty-Texte/Settings weiterführen.
+- [x] `!punkte / !points` Live-Command
+- [x] Command Result Chat Send Bridge über `twitch_presence`
+- [x] Audit-/Transaktionshistorie bei Punktänderungen
+- [x] Module online lassen, auch wenn einzelne Commands deaktiviert sind
 
-## Verbindliche Regeln
+## Später
 
-- Keine Funktionalität entfernen.
-- Keine Parallel-Sender für Twitch-Chat bauen.
-- Keine DB überschreiben/ersetzen.
-- Neue STEP-Stände dokumentieren.
-- GitHub/dev und Live bewusst synchron halten.
+- [ ] Dashboard-Verwaltung für Admin-Point-Commands.
+- [ ] Dashboard-Textvarianten für Admin-Point-Antworten prüfen/erweitern.
+- [ ] Gamble-Konfiguration dashboardfähig machen.

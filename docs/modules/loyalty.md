@@ -1,13 +1,13 @@
 # Modul: loyalty
 
 Stand: 2026-06-11  
-Aktueller bestätigter Stand: STEP215 / LWG-5.7
+Aktueller bestätigter Stand: STEP216 / LWG-5.8
 
 ## Zweck
 
-`loyalty` verwaltet die Kekskrümel-Punkte, verfügbare Punkte, Reservierungen, Ranking und Runtime-Command-Antworten.
+`loyalty` verwaltet Kekskrümel, verfügbare Punkte, Reservierungen, Ranking, Transaktionen und Runtime-Command-Antworten.
 
-## Bestätigte Runtime-Version
+## Bestätigte Runtime-Basis
 
 ```text
 loyalty version = 0.1.13
@@ -16,53 +16,27 @@ enabled         = true
 currency        = Kekskrümel
 ```
 
-## Bestätigter Command
+## STEP216-Testinhalt
+
+Kontrolliert geprüft werden:
 
 ```text
-!punkte
-!points
+Viewer darf keine Punkte vergeben.
+Mod darf Punkte vergeben.
+Mod darf Punkte nicht hart setzen.
+Broadcaster darf Punktestand per diff-basierter Transaktion setzen.
+Nach Test wird Zielpunktestand wiederhergestellt.
+Transaktionshistorie bleibt erhalten.
 ```
 
-Der Command zeigt verfügbare Punkte und Rang:
+## Sicherheitsregel
+
+`setpoint` darf nicht hart überschreiben, sondern erzeugt eine ausgleichende Transaktion über die Differenz. Das ist wichtig, damit Audit/History nachvollziehbar bleibt.
+
+## Standard-Testziel
 
 ```text
-available = balance - reserved
-rank      = Platz X von Y
+step216_testuser
 ```
 
-Beispiel aus dem bestätigten Test:
-
-```text
-ForrestCGN, laut Rentnerkasse hast du 3412 verfügbare Kekskrümel...
-```
-
-## Bestätigte Ausgabe-Kette
-
-```text
-loyalty runtime erzeugt result.message
-commands.js liest result.data.message
-commands.js sendet über twitch_presence
-Twitch-Chat zeigt Antwort
-```
-
-## Aktive / freigegebene Commands
-
-```text
-!punkte
-!points
-```
-
-## Weiterhin gesperrt
-
-```text
-!givepoints
-!setpoint
-!gamble
-!duell
-!raffle
-!roulette
-```
-
-## Hinweise
-
-StreamElements `!points` / `!punkte` muss deaktiviert oder umbenannt bleiben, um doppelte oder falsche Antworten zu vermeiden.
+Der Testuser wird nach dem Test wieder auf den Ausgangsstand gesetzt.
