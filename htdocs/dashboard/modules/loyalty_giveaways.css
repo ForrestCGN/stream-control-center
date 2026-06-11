@@ -307,3 +307,60 @@
   justify-content: flex-end;
   margin-top: 4px;
 }
+
+/* STEP LWG-4P.3 - live control console */
+.lgw-control-phase {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 14px;
+  padding: 14px 16px;
+  border: 1px solid rgba(142, 238, 255, .14);
+  background: rgba(255, 255, 255, .045);
+  border-radius: 16px;
+}
+
+.lgw-control-phase strong { font-size: 16px; }
+.lgw-control-phase span { color: var(--muted); font-size: 13px; }
+
+.lgw-control-stats { margin-bottom: 14px; }
+
+.lgw-control-section {
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid rgba(142, 238, 255, .12);
+  background: rgba(255, 255, 255, .035);
+  border-radius: 18px;
+}
+
+.lgw-control-section h4 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.lgw-mini-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.lgw-mini-list span {
+  border: 1px solid rgba(142, 238, 255, .14);
+  background: rgba(0, 0, 0, .15);
+  border-radius: 999px;
+  padding: 6px 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.lgw-control-help {
+  margin-top: 10px;
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.lgw-control-help p { margin: 0; }
+.lgw-control-help strong { color: inherit; }

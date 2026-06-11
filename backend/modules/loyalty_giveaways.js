@@ -17,8 +17,8 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "loyalty_giveaways";
-const MODULE_VERSION = "0.1.0";
-const MODULE_BUILD = "STEP_LWG_4O_4";
+const MODULE_VERSION = "0.1.1";
+const MODULE_BUILD = "STEP_LWG_4P_3";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -155,7 +155,7 @@ const CHAT_TEXT_CATEGORIES = {
 const CHAT_TEXT_CATEGORY_LABELS = {
   chat_ticket: "Chat · Tickets",
   chat_giveaway: "Chat · Giveaway",
-  chat_wheel: "Chat · Wheel/Rad"
+  chat_wheel: "Chat · Glücksrad"
 };
 
 
@@ -3149,12 +3149,19 @@ function activeWinnerCount(giveawayUid) {
 function eligibleEntriesForDraw(giveawayUid) {
   ensureSchema();
   return database.all(`
-    SELECT *
-    FROM loyalty_giveaway_entries
-    WHERE giveaway_uid = :giveawayUid
-      AND status = 'active'
-      AND ticket_weight > 0
-    ORDER BY id ASC
+    SELECT e.*
+    FROM loyalty_giveaway_entries e
+    WHERE e.giveaway_uid = :giveawayUid
+      AND e.status = 'active'
+      AND e.ticket_weight > 0
+      AND NOT EXISTS (
+        SELECT 1
+        FROM loyalty_giveaway_winners w
+        WHERE w.giveaway_uid = e.giveaway_uid
+          AND w.entry_uid = e.entry_uid
+          AND w.status != 'cancelled'
+      )
+    ORDER BY e.id ASC
   `, { giveawayUid });
 }
 
@@ -3174,6 +3181,169 @@ function pickWeightedEntry(entries) {
   }
 
   return { ok: false, error: "weighted_pick_failed", totalWeight, ticketPosition };
+}
+
+
+function replaceLastWinner(giveawayUid, input = {}) {
+  ensureSchema();
+  const giveaway = getGiveaway(giveawayUid, false);
+  if (!giveaway) return { ok: false, error: "giveaway_not_found", statusCode: 404 };
+  if (giveaway.deletedAt) return { ok: false, error: "giveaway_deleted", statusCode: 409 };
+  if ([STATUS.OPEN, STATUS.DRAFT, STATUS.CANCELLED, STATUS.DELETED].includes(String(giveaway.status || ""))) {
+    return { ok: false, error: "giveaway_replace_not_allowed_in_status", statusCode: 409, status: giveaway.status };
+  }
+
+  const lastRow = database.get(`
+    SELECT *
+    FROM loyalty_giveaway_winners
+    WHERE giveaway_uid = :giveawayUid
+      AND status != 'cancelled'
+    ORDER BY id DESC
+    LIMIT 1
+  `, { giveawayUid });
+
+  if (!lastRow) return { ok: false, error: "giveaway_no_winner_to_replace", statusCode: 409 };
+
+  const lastWinner = rowToWinner(lastRow);
+  const lastStatus = String(lastRow.status || "");
+  const force = input.force === true || input.force === "true" || input.force === 1 || input.force === "1";
+  const protectedStatuses = ["claim_confirmed", "awarded", "finished", "wheel_completed"];
+  if (!force && protectedStatuses.includes(lastStatus)) {
+    return {
+      ok: false,
+      error: "giveaway_replace_requires_force_for_completed_winner",
+      statusCode: 409,
+      winner: lastWinner,
+      status: lastStatus
+    };
+  }
+
+  const now = nowIso();
+  const actor = input.actor || "dashboard";
+  const currentMetadata = parseJson(lastRow.metadata_json, {});
+
+  if (lastRow.prize_uid && !["waiting_for_claim"].includes(lastStatus)) {
+    const prize = database.get("SELECT * FROM loyalty_giveaway_prizes WHERE prize_uid = :prizeUid", { prizeUid: lastRow.prize_uid });
+    if (prize) {
+      const nextRemaining = Number(prize.quantity_remaining || 0) + 1;
+      database.run(`
+        UPDATE loyalty_giveaway_prizes
+        SET quantity_remaining = :quantityRemaining,
+            status = :status,
+            updated_at = :updatedAt
+        WHERE prize_uid = :prizeUid
+      `, {
+        prizeUid: lastRow.prize_uid,
+        quantityRemaining: nextRemaining,
+        status: "available",
+        updatedAt: now
+      });
+    }
+  }
+
+  database.run(`
+    UPDATE loyalty_giveaway_wheel_permissions
+    SET status = 'cancelled',
+        updated_at = :updatedAt,
+        metadata_json = :metadataJson
+    WHERE giveaway_uid = :giveawayUid
+      AND winner_uid = :winnerUid
+      AND status = 'pending'
+  `, {
+    giveawayUid,
+    winnerUid: lastRow.winner_uid,
+    updatedAt: now,
+    metadataJson: json({ replacedBy: actor, replacedAt: now, reason: input.reason || "replace_last_winner" })
+  });
+
+  database.run(`
+    UPDATE loyalty_giveaway_winners
+    SET status = 'cancelled',
+        metadata_json = :metadataJson
+    WHERE winner_uid = :winnerUid
+  `, {
+    winnerUid: lastRow.winner_uid,
+    metadataJson: json({
+      ...currentMetadata,
+      replaced: true,
+      replacedAt: now,
+      replacedBy: actor,
+      replaceReason: input.reason || "replace_last_winner",
+      previousStatus: lastStatus
+    })
+  });
+
+  database.run(`
+    UPDATE loyalty_giveaway_rounds
+    SET winner_uid = '',
+        drawn_at = '',
+        status = 'closed'
+    WHERE round_uid = :roundUid
+      AND winner_uid = :winnerUid
+  `, {
+    roundUid: lastRow.round_uid || "",
+    winnerUid: lastRow.winner_uid
+  });
+
+  database.run(`
+    UPDATE loyalty_giveaways
+    SET status = :status,
+        finished_at = '',
+        updated_at = :updatedAt
+    WHERE giveaway_uid = :giveawayUid
+  `, {
+    giveawayUid,
+    status: STATUS.CLOSED_FOR_ENTRIES,
+    updatedAt: now
+  });
+
+  createEvent({
+    giveawayUid,
+    roundUid: lastRow.round_uid || "",
+    eventType: "loyalty.giveaway.winner_replaced",
+    actorType: "dashboard",
+    actorLogin: actor,
+    oldStatus: lastStatus,
+    newStatus: "cancelled",
+    message: `${lastWinner.userDisplayName || lastWinner.userLogin} wurde als letzter Gewinner ersetzt`,
+    metadata: {
+      winnerUid: lastWinner.winnerUid,
+      entryUid: lastWinner.entryUid,
+      userLogin: lastWinner.userLogin,
+      userDisplayName: lastWinner.userDisplayName,
+      reason: input.reason || "replace_last_winner",
+      force
+    }
+  });
+
+  emitEvent("loyalty.giveaway.winner_replaced", {
+    giveawayUid,
+    winnerUid: lastWinner.winnerUid,
+    userLogin: lastWinner.userLogin,
+    userDisplayName: lastWinner.userDisplayName,
+    reason: input.reason || "replace_last_winner",
+    force
+  });
+
+  const drawResult = drawWinner(giveawayUid, { ...input, actor, reason: "replace_last_winner" });
+  if (!drawResult.ok) {
+    return {
+      ...drawResult,
+      replaced: true,
+      replacedWinner: lastWinner,
+      replaceWarning: "last_winner_cancelled_but_replacement_draw_failed"
+    };
+  }
+
+  return {
+    ok: true,
+    replaced: true,
+    replacedWinner: lastWinner,
+    winner: drawResult.winner,
+    wheelPermission: drawResult.wheelPermission || null,
+    claimWindow: drawResult.claimWindow || null,
+    giveaway: drawResult.giveaway || getGiveaway(giveawayUid, true)
+  };
 }
 
 function drawWinner(giveawayUid, input = {}) {
@@ -3202,7 +3372,7 @@ function drawWinner(giveawayUid, input = {}) {
   }
   const isWheelGiveaway = giveaway.wheelEnabled === true;
   const chatClaimSettings = buildRuntimeChatClaimSettings(giveaway, input);
-  const drawRequiresChatClaim = isChatClaimRequiredForDraw(chatClaimSettings);
+  const drawRequiresChatClaim = !isWheelGiveaway && isChatClaimRequiredForDraw(chatClaimSettings);
   let boundWheelContext = null;
   if (isWheelGiveaway) {
     boundWheelContext = getUsableBoundWheelForGiveaway(giveaway, { requireActive: true });
@@ -3566,6 +3736,18 @@ function claimWheelSpin(giveawayUid, input = {}) {
     })
   });
 
+  const updatedWinnerCount = activeWinnerCount(giveawayUid);
+  const pendingPermissionRow = database.get(`
+    SELECT COUNT(*) AS count
+    FROM loyalty_giveaway_wheel_permissions
+    WHERE giveaway_uid = :giveawayUid
+      AND status = 'pending'
+  `, { giveawayUid });
+  const pendingPermissionCount = Number(pendingPermissionRow && pendingPermissionRow.count || 0);
+  const nextGiveawayStatus = pendingPermissionCount > 0
+    ? STATUS.WAITING_FOR_WHEEL
+    : (updatedWinnerCount >= Number(giveaway.winnerCount || 1) ? STATUS.FINISHED : STATUS.CLOSED_FOR_ENTRIES);
+
   database.run(`
     UPDATE loyalty_giveaways
     SET status = :status,
@@ -3574,8 +3756,8 @@ function claimWheelSpin(giveawayUid, input = {}) {
     WHERE giveaway_uid = :giveawayUid
   `, {
     giveawayUid,
-    status: STATUS.FINISHED,
-    finishedAt: now,
+    status: nextGiveawayStatus,
+    finishedAt: nextGiveawayStatus === STATUS.FINISHED ? now : '',
     updatedAt: now
   });
 
@@ -3587,7 +3769,7 @@ function claimWheelSpin(giveawayUid, input = {}) {
     actorLogin: userLogin,
     oldStatus: "pending",
     newStatus: "used",
-    message: `${userDisplayName} spun the wheel and got ${spin.selectedFieldLabel || "a result"}`,
+    message: `${userDisplayName} hat das Glücksrad gedreht und ${spin.selectedFieldLabel || "ein Ergebnis"} erhalten`,
     metadata: {
       permissionUid: permission.permissionUid,
       winnerUid: permission.winnerUid,
@@ -4679,6 +4861,7 @@ function registerRoutes(app) {
     "GET /api/loyalty/giveaways/:giveawayUid/winners",
     "POST /api/loyalty/giveaways/:giveawayUid/winners/:winnerUid/claim/open",
     "POST /api/loyalty/giveaways/:giveawayUid/winners/:winnerUid/claim/confirm",
+    "POST /api/loyalty/giveaways/:giveawayUid/winners/replace-last",
     "POST /api/loyalty/giveaways/:giveawayUid/draw",
     "GET /api/loyalty/giveaways/:giveawayUid/wheel/bound",
     "PUT /api/loyalty/giveaways/:giveawayUid/wheel/bound",
@@ -4863,6 +5046,12 @@ function registerRoutes(app) {
     return core.sendOk(res, result);
   })));
 
+  registered.push(...routes.registerPost(app, "/api/loyalty/giveaways/:giveawayUid/winners/replace-last", core.asyncRoute(async (req, res) => {
+    const result = replaceLastWinner(req.params.giveawayUid, req.body || {});
+    if (!result.ok) return core.sendFail(res, result.error || "replace_last_winner_failed", result.statusCode || 409, result);
+    return core.sendOk(res, result);
+  })));
+
   registered.push(...routes.registerPost(app, "/api/loyalty/giveaways/:giveawayUid/draw", core.asyncRoute(async (req, res) => {
     const result = drawWinner(req.params.giveawayUid, req.body || {});
     if (!result.ok) return core.sendFail(res, result.error || "draw_failed", result.statusCode || 409, result);
@@ -4997,6 +5186,7 @@ module.exports = {
     cancelEntry,
     listWinners,
     drawWinner,
+    replaceLastWinner,
     listWheelPermissions,
     getBoundWheelByGiveaway,
     listBoundWheelFields,
