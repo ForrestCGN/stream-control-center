@@ -1,7 +1,7 @@
 # CHANGELOG
 
-## STEP226a / LWG-6.7a
+## STEP227 / LWG-6.8
 
-- Readiness-Test korrigiert: robuste Auswertung von `moduleVersion`/`moduleBuild`.
-- Settingsroute prüft konkrete Gamble-Keys.
-- `twitch_presence` bleibt optionaler Hinweis.
+- `loyalty_games.js` auf `0.2.6` erhöht.
+- Neue read-only Route `GET /api/loyalty/games/gamble/dashboard-config` ergänzt.
+- Keine Änderung an Gamble-Logik, Punkten oder Live-Zustand.

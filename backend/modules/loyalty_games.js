@@ -3,6 +3,10 @@
 /**
  * Loyalty Games host module.
  *
+ * STEP LWG-6.8 / STEP227:
+ * - Adds a read-only dashboard configuration snapshot route for Gamble.
+ * - Does not change settings, commands, balance or game logic.
+ *
  * STEP LWG-6.5 / STEP224:
  * - Flattens Gamble runtime results for commands.js and command_execution_log.
  * - Adds bet/outcome/payout/profit/balance fields to module responses without changing game logic.
@@ -44,8 +48,8 @@ const presetFactory = require("./loyalty_games/presets");
 const loyaltyCore = require("./loyalty");
 
 const MODULE_NAME = "loyalty_games";
-const MODULE_VERSION = "0.2.5";
-const MODULE_BUILD = "STEP_LWG_6_5_GAMBLE_RESULT_LOG_CLEANUP";
+const MODULE_VERSION = "0.2.6";
+const MODULE_BUILD = "STEP_LWG_6_8_GAMBLE_DASHBOARD_READONLY_API";
 const CONFIG_FILE = "loyalty_games.json";
 const SCHEMA_MODULE = "loyalty_games";
 const SCHEMA_VERSION = 3;
@@ -1175,6 +1179,120 @@ function decorateGambleStatus(status = {}) {
   };
 }
 
+
+function settingRowKey(row = {}) {
+  return String(row.key || row.setting_key || row.name || "").trim();
+}
+
+function buildGambleDashboardConfigPayload() {
+  ensureSchema();
+  ensureSettingsSeeded(config);
+  refreshConfigFromSettings();
+  ensureTextsSeeded();
+  seedCentralCommandDefinitions();
+
+  const publicCfg = publicConfig();
+  const gambleConfig = publicCfg.games && publicCfg.games.gamble ? publicCfg.games.gamble : {};
+  const rawStatus = gamble ? gamble.getStatus() : { ok: false, enabled: false, lastError: "gamble_not_loaded" };
+  const status = decorateGambleStatus(rawStatus);
+  const central = listCentralCommandDefinitions();
+  const gambleCommand = (central.commands || []).find(row => row && row.trigger === "gamble") || null;
+  const listed = settingsHelper.listSettings(SETTINGS_TABLE, { limit: 1000 });
+  const rows = Array.isArray(listed.rows) ? listed.rows : [];
+  const settingsByKey = rows.reduce((acc, row) => {
+    const key = settingRowKey(row);
+    if (key) acc[key] = row;
+    return acc;
+  }, {});
+
+  const gambleSettings = SETTINGS_DEFINITIONS
+    .filter(def => String(def.key || "").startsWith("games.gamble."))
+    .map(def => ({
+      key: def.key,
+      path: def.path,
+      valueType: def.valueType,
+      description: def.description,
+      value: getNestedValue(publicCfg, def.path, getNestedValue(DEFAULT_CONFIG, def.path, null)),
+      writable: true,
+      source: settingsByKey[def.key] ? "settings" : "default",
+      row: settingsByKey[def.key] || null
+    }));
+
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    feature: "gamble",
+    readOnly: true,
+    dashboard: {
+      section: "Loyalty / Gamble",
+      step: "STEP227_LWG6_8",
+      mode: "readonly_snapshot",
+      notes: [
+        "Diese Route ist bewusst nur lesend.",
+        "Schreibende Dashboard-Aktionen folgen in einem spaeteren Step mit Rollen- und Audit-Pruefung.",
+        "StreamElements-Parallelbetrieb ist waehrend der Umstellung moeglich."
+      ]
+    },
+    access: status.access || {},
+    status,
+    command: {
+      available: !!gambleCommand,
+      trigger: gambleCommand ? gambleCommand.trigger : "gamble",
+      enabled: !!(gambleCommand && gambleCommand.enabled),
+      cooldownUserMs: gambleCommand ? Number(gambleCommand.cooldownUserMs || 0) : 0,
+      cooldownGlobalMs: gambleCommand ? Number(gambleCommand.cooldownGlobalMs || 0) : 0,
+      targetUrl: gambleCommand ? gambleCommand.targetUrl : "/api/loyalty/games/runtime/chat-command",
+      responseMode: gambleCommand ? gambleCommand.responseMode : "module",
+      sendResultToChat: !!(gambleCommand && gambleCommand.config && gambleCommand.config.sendResultToChat),
+      raw: gambleCommand
+    },
+    settings: {
+      table: SETTINGS_TABLE,
+      count: Number(listed.count || rows.length || 0),
+      gamble: gambleSettings
+    },
+    config: {
+      engine: gambleConfig,
+      command: gambleCommand
+    },
+    text: {
+      module: TEXT_MODULE,
+      categories: TEXT_CATEGORIES,
+      categoryLabels: TEXT_CATEGORY_LABELS,
+      keys: [
+        "gamble.win_v2",
+        "gamble.lose_v2",
+        "gamble.invalid_amount_v2",
+        "gamble.insufficient_balance_v2",
+        "gamble.cooldown_v2",
+        "gamble.min_bet_v2",
+        "gamble.max_bet_v2",
+        "gamble.percent_disabled_v2",
+        "gamble.all_disabled_v2"
+      ],
+      editorEndpoint: "GET/POST /api/loyalty/games/texts"
+    },
+    endpoints: {
+      status: "GET /api/loyalty/games/gamble/status",
+      config: "GET /api/loyalty/games/gamble/config",
+      dashboardConfig: "GET /api/loyalty/games/gamble/dashboard-config",
+      settingsRead: "GET /api/loyalty/games/settings",
+      settingsWrite: "POST /api/loyalty/games/settings",
+      commandRuntime: "POST /api/loyalty/games/runtime/chat-command",
+      texts: "GET/POST /api/loyalty/games/texts"
+    },
+    safety: {
+      writable: false,
+      writeStepPlanned: "STEP228+",
+      requiresRoleCheckForFutureWrites: true,
+      auditRequiredForFutureWrites: true,
+      safetyDisableAvailable: true
+    }
+  };
+}
+
 function registerRoutes(app) {
   const registered = [];
 
@@ -1243,6 +1361,7 @@ function registerRoutes(app) {
     "GET /api/loyalty/games/wheel/spins",
     "GET /api/loyalty/games/gamble/status",
     "GET /api/loyalty/games/gamble/config",
+    "GET /api/loyalty/games/gamble/dashboard-config",
     "POST /api/loyalty/games/gamble/play",
     "POST /api/loyalty/games/runtime/chat-command",
     "GET /api/loyalty/games/central-commands",
@@ -1268,6 +1387,7 @@ function registerRoutes(app) {
 
   registered.push(...routes.registerGet(app, "/api/loyalty/games/gamble/status", core.asyncRoute(async (req, res) => { refreshConfigFromSettings(); core.sendOk(res, decorateGambleStatus(gamble ? gamble.getStatus() : { ok: false, error: "gamble_not_loaded", lastError: "gamble_not_loaded" })); })));
   registered.push(...routes.registerGet(app, "/api/loyalty/games/gamble/config", core.asyncRoute(async (req, res) => { refreshConfigFromSettings(); core.sendOk(res, { game: "gamble", config: gamble ? gamble.getPublicConfig() : (config.games && config.games.gamble ? config.games.gamble : {}) }); })));
+  registered.push(...routes.registerGet(app, "/api/loyalty/games/gamble/dashboard-config", core.asyncRoute(async (req, res) => { core.sendOk(res, buildGambleDashboardConfigPayload()); })));
   registered.push(...routes.registerPost(app, "/api/loyalty/games/gamble/play", core.asyncRoute(async (req, res) => { const result = startGamble({ ...(req.body || {}), ...(req.query || {}), source: req.body?.source || req.query?.source || "api" }); if (!result.ok) return core.sendFail(res, result.error || "gamble_failed", result.statusCode || 409, result); core.sendOk(res, result); })));
   registered.push(...routes.registerPost(app, "/api/loyalty/games/runtime/chat-command", core.asyncRoute(async (req, res) => { core.sendOk(res, handleChatCommandRuntime(req.body || {})); })));
   registered.push(...routes.registerGet(app, "/api/loyalty/games/central-commands", core.asyncRoute(async (req, res) => { core.sendOk(res, seedCentralCommandDefinitions()); })));
@@ -1482,6 +1602,7 @@ module.exports = {
     startGamble,
     handleChatCommandRuntime,
     seedCentralCommandDefinitions,
-    getChatTextEditorPayload
+    getChatTextEditorPayload,
+    buildGambleDashboardConfigPayload
   }
 };

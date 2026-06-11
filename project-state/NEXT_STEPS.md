@@ -1,5 +1,7 @@
 # NEXT_STEPS
 
-1. STEP226a-Test ausführen.
-2. Bei Erfolg `stepdone.cmd` mit STEP226a ausführen.
-3. Danach Dashboard-Backend/Config-UI für Gamble planen.
+1. STEP227 Apply ausführen.
+2. `stepdone.cmd` ausführen.
+3. Backend neu starten.
+4. STEP227-Test ausführen.
+5. Danach STEP228: schreibende Dashboard-API mit Rollen-/Audit-Schutz.

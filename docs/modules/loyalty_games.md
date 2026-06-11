@@ -1,43 +1,25 @@
-# loyalty_games.js / Gamble – STEP226 / LWG-6.7
+# loyalty_games.js – STEP227 / LWG-6.8
 
-Aktueller bestätigter Stand:
+Neue Version:
 
-- Version: `0.2.5`
-- Build: `STEP_LWG_6_5_GAMBLE_RESULT_LOG_CLEANUP`
-- `!gamble` live aktiv nach STEP224A
-- Prozent-Einsätze funktionieren, z. B. `!gamble 10%`
-- Strukturierte Ergebnisdaten vorhanden:
-  - `bet`
-  - `outcome`
-  - `won`
-  - `grossPayout`
-  - `winAmount`
-  - `netProfit`
-  - `balanceBefore`
-  - `balanceAfter`
-  - `availableBefore`
-  - `availableAfter`
-- Zufall: serverseitig über `crypto.randomInt`
+```text
+0.2.6 / STEP_LWG_6_8_GAMBLE_DASHBOARD_READONLY_API
+```
 
-## Dashboard-Vorbereitung
+Neue Route:
 
-Spätere Konfigurationsfelder:
+```text
+GET /api/loyalty/games/gamble/dashboard-config
+```
 
-- Gamble aktiv
-- Command aktiv
-- User-Cooldown
-- Globaler Cooldown
-- Gewinnchance
-- Auszahlungsmultiplikator
-- Mindesteinsatz
-- Maximaleinsatz
-- Prozent-Einsätze erlaubt
-- Keyword-Einsätze erlaubt
-- Textvarianten / Text-Keys
+Die Route bündelt für das spätere Dashboard:
 
-## Sicherheitsregeln
+- Gamble-Status
+- Engine-Konfiguration
+- `!gamble` Command-Snapshot
+- Settings-Felder
+- Textkeys
+- relevante Endpunkte
+- Safety-Hinweise
 
-- Änderungen nur mit Admin-/Owner-Recht.
-- Änderungen müssen auditierbar sein.
-- SafetyDisable muss erhalten bleiben.
-- Keine bestehende Funktionalität entfernen.
+Die Route ist bewusst `readOnly=true`.

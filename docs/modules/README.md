@@ -1,13 +1,8 @@
-# Module – STEP226 / LWG-6.7
+# Module – STEP227 / LWG-6.8
 
-Dieser Stand dokumentiert die Dashboard-Vorbereitung für das Loyalty-/Gamble-System.
+Betroffene Module:
 
-Relevante Module:
-
-- `commands.js`
-- `loyalty.js`
-- `loyalty_games.js`
-- `loyalty_games/gamble.js`
-- `twitch_presence.js`
-
-Dieser Step verändert keine Runtime-Dateien.
+- `loyalty_games.js` – neue read-only Dashboard-Snapshot-Route für Gamble
+- `commands.js` – bleibt unverändert auf bestätigtem STEP224-Stand
+- `loyalty.js` – unverändert
+- `twitch_presence.js` – unverändert
