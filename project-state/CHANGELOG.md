@@ -1,12 +1,11 @@
 # CHANGELOG
 
-## STEP218 / LWG-5.10 – Admin-Points Chat-Commands live bestätigt
+## STEP219 / LWG-6.0 – Gamble Readiness/Safety
 
-- Erfolgreichen STEP217-Execute-Test dokumentiert.
-- Admin-Points-Live-Status in `CURRENT_STATUS.md` aktualisiert.
-- `NEXT_STEPS.md` auf Gamble-Planung als nächsten Bereich gesetzt.
-- `TODO.md` auf abgeschlossene Points-/Admin-Points-Basis aktualisiert.
-- Handoff für neuen Chat erstellt.
+- Readiness-Testscript für Gamble erstellt.
+- Gamble-Sicherheitsanforderungen dokumentiert.
+- STEP220-Planung für temporäre Aktivierung dokumentiert.
+- `!gamble` bleibt deaktiviert.
 - Keine Runtime-Codeänderung.
 - Keine DB-Datei.
 - Keine Secrets.
@@ -14,6 +13,6 @@
 
 ## Vorher
 
-- STEP217: `!givepoints` und `!setpoint` aktiviert und getestet.
-- STEP216: Admin-Points Runtime kontrolliert getestet.
-- STEP214: Command Result Chat Send Bridge live bestätigt.
+- STEP218: Admin-Points Chat-Commands live dokumentiert.
+- STEP217: `!givepoints` und `!setpoint` live getestet.
+- STEP214: zentrale Chat-Ausgabe bestätigt.

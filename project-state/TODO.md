@@ -1,22 +1,20 @@
-# TODO – Loyalty / Kekskrümel
+# TODO – Loyalty / Games
 
-## Erledigt bis STEP218
+## Erledigt
 
-- [x] `!punkte` / `!points` live aktiv
-- [x] zentrale Chat-Ausgabe über `commands.js` → `twitch_presence`
-- [x] Admin-Points Runtime kontrolliert getestet
-- [x] `!givepoints` live aktiviert und getestet
-- [x] `!setpoint` live aktiviert und getestet
-- [x] Permission-Checks bestätigt
-- [x] ChatReply-Logging bestätigt
-- [x] Admin-Transaktionshistorie bestätigt
-- [x] STEP218 Live-Abschluss dokumentiert
+- [x] Points-Command live
+- [x] Admin-Points Commands live
+- [x] Command Result Chat Bridge live
+- [x] Admin-Audit bestätigt
 
-## Offen
+## Aktuell
 
-- [ ] StreamElements `!points` / `!punkte` dauerhaft deaktiviert halten
-- [ ] STEP219 Gamble-Freigabeplanung
-- [ ] Gamble kontrolliert testen
-- [ ] Dashboard-Konfiguration für Loyalty-Commands planen
-- [ ] Textvarianten dashboardfähig machen
-- [ ] Raffle/Duell/Roulette später separat planen
+- [ ] STEP219 Gamble Readiness ausführen
+- [ ] Prüfen, dass `!gamble` weiterhin deaktiviert ist
+- [ ] Prüfen, dass Gamble disabled guards keine Punkte ändern
+
+## Danach
+
+- [ ] STEP220 kontrollierte temporäre Gamble-Aktivierung
+- [ ] Gamble Restore/Rollback testen
+- [ ] Entscheidung, ob `!gamble` live freigegeben wird

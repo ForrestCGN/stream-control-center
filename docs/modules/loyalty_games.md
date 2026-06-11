@@ -1,37 +1,30 @@
-# Loyalty Games – Stand STEP218 / LWG-5.10
+# Loyalty Games – Stand STEP219 / LWG-6.0
 
-## Aktueller Stand
+## Gamble Readiness
 
-```text
-loyalty_games.js 0.2.2 / STEP_LWG_5_2_STATUS_CLEANUP
-gamble vorbereitet, aber weiterhin deaktiviert
-```
+Gamble ist vorbereitet, bleibt aber deaktiviert.
 
-## Nicht verändert durch STEP218
-
-STEP218 ist nur Doku/Handoff. Es aktiviert keine Spiele.
-
-Nicht aktiv:
+Zu prüfen:
 
 ```text
-!gamble
-!roulette
-!duell
-!raffle
+/api/loyalty/games/status
+/api/loyalty/games/gamble/status
+/api/loyalty/games/gamble/config
+/api/loyalty/games/gamble/play
+/api/loyalty/games/runtime/chat-command
 ```
 
-## Nächster geplanter Bereich
+Sicherheitsvorgaben:
 
 ```text
-STEP219 / LWG-6.0 – Gamble-Freigabeplanung und kontrollierter Runtime-/Chat-Test
+- Server entscheidet Ergebnis
+- crypto.randomInt
+- kein User-/Datum-/Pattern-Seed
+- available balance prüfen
+- spendPointsSafely für Einsatz
+- awardPoints für Auszahlung
+- Sessions/Transaktionen auditierbar
+- Chat-Ausgabe später zentral über commands.js → twitch_presence
 ```
 
-Für Gamble bleibt verbindlich:
-
-```text
-serverseitiger Zufall
-crypto.randomInt
-keine Pattern-/Date-/UserID-Seeds
-klare Limits/Cooldowns
-Punkte-Safety über available balance / spendPointsSafely
-```
+STEP219 aktiviert `!gamble` nicht. Der Test erwartet, dass alle Play-/Runtime-Versuche blockiert werden und der Punktestand unverändert bleibt.

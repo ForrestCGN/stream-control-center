@@ -1,40 +1,24 @@
 # NEXT STEPS
 
-## Direkt nach STEP218
+## Direkt nach STEP219
 
 1. Paket entpacken.
-2. STEP dokumentieren:
+2. Dokumentieren:
 
 ```cmd
-.\stepdone.cmd "STEP218 / LWG-5.10 Admin-Points Chat-Commands live bestätigt"
+.\stepdone.cmd "STEP219 / LWG-6.0 Gamble Readiness"
 ```
 
-3. StreamElements `!points` / `!punkte` deaktiviert halten.
+3. Readiness-Test ausführen:
 
-## Nächster Entwicklungs-STEP
+```powershell
+powershell -ExecutionPolicy Bypass -File .\Test_STEP219_LWG6_0_gamble_readiness_ForrestCGN.ps1
+```
+
+## Danach
 
 ```text
-STEP219 / LWG-6.0 – Gamble-Freigabeplanung und kontrollierter Test
+STEP220 / LWG-6.1 – Gamble kontrolliert temporär aktivieren, testen und wiederherstellen
 ```
 
-Geplante Themen für Gamble:
-
-```text
-!gamble <betrag>
-!gamble <prozent>%
-min/max Einsatz
-Cooldowns
-available-balance Check
-spendPointsSafely / awardPoints
-crypto.randomInt
-Chat-Antworten über commands.js → twitch_presence
-Rollback/Testuser-Wiederherstellung
-```
-
-## Später
-
-```text
-Dashboard-Konfiguration für Loyalty-Commands
-Textvarianten-Editor für Loyalty-Texte
-Raffle/Duell/Roulette separat
-```
+STEP220 soll erst nach bestandenem STEP219-Test umgesetzt werden.
