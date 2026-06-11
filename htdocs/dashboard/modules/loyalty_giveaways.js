@@ -236,13 +236,13 @@ window.LoyaltyGiveawaysModule = (function(){
     return wheelPermissionRows(g).filter(p => ['used','claimed','done'].includes(norm(p.status)) || p.spinUid);
   }
 
-  function winnerTarget(g){
-    const n = Number(g?.winnerCount || 1);
-    return Number.isFinite(n) && n > 0 ? n : 1;
+  function winnerProgressText(g){
+    return fmtNumber(winnerRows(g).length);
   }
 
-  function winnerProgressText(g){
-    return `${fmtNumber(winnerRows(g).length)} / ${fmtNumber(winnerTarget(g))}`;
+  function eligibleEntriesForNextDraw(g){
+    const winners = new Set(winnerRows(g).map(w => String(w.entryUid || '').trim()).filter(Boolean));
+    return activeEntries(g).filter(entry => !winners.has(String(entry.entryUid || '').trim()) && entryTicketCount(entry) > 0);
   }
 
   function openClaimWinners(g){
@@ -268,11 +268,7 @@ window.LoyaltyGiveawaysModule = (function(){
     const wheel = isWheelGiveaway(g);
     if (s === 'draft') return 'Bereit zum Starten.';
     if (s === 'open') return 'Teilnahme läuft. Zuschauer können teilnehmen.';
-    if (s === 'closed_for_entries') {
-      return winnerRows(g).length < winnerTarget(g)
-        ? 'Teilnahme geschlossen. Bereit für die nächste Auslosung.'
-        : 'Alle Gewinner wurden ausgelost. Bereit zum Abschließen.';
-    }
+    if (s === 'closed_for_entries') return 'Teilnahme geschlossen. Bereit für die nächste Auslosung oder zum Beenden.';
     if (s === 'waiting_for_claim') return 'Wartet auf Chat-Claim des Gewinners.';
     if (s === 'waiting_for_wheel') return wheel ? 'Wartet auf Glücksrad-Drehung des Gewinners.' : 'Wartet auf Abschluss.';
     if (s === 'finished') return 'Giveaway ist abgeschlossen.';
@@ -787,7 +783,7 @@ window.LoyaltyGiveawaysModule = (function(){
     return {
       label,
       description: String(data.get('prizeDescription') || '').trim(),
-      quantityTotal: Number(data.get('prizeQuantity') || 1)
+      quantityTotal: 1
     };
   }
 
@@ -807,14 +803,14 @@ window.LoyaltyGiveawaysModule = (function(){
       firstTicketFree: data.get('firstTicketFree') === 'on',
       subOnly: data.get('subOnly') === 'on',
       subscriberLuckMultiplier: Number(data.get('subscriberLuckMultiplier') || 1),
-      winnerCount: Number(data.get('winnerCount') || 1),
+      winnerCount: 1,
       roundPolicy: {
         roundMode: 'single',
         allowNewEntriesBetweenRounds: false,
         removeWinnerAfterRound: true,
         ticketCarryoverMode: 'tickets'
       },
-      prizes: [buildPrizeFromForm(data)],
+      prizes: isWheelMode ? [] : [buildPrizeFromForm(data)],
       chatClaim: {
         enabled: !isWheelMode && data.get('chatClaimEnabled') === 'on',
         mode: data.get('chatClaimMode') || 'any_message',
@@ -1204,7 +1200,6 @@ window.LoyaltyGiveawaysModule = (function(){
           <span>Bearbeitbar</span><strong>${editable ? 'Ja' : 'Nein'}</strong>
           <span>Kosten/Ticket</span><strong>${fmtNumber(g.costAmount)} Kekskrümel</strong>
           <span>Max Tickets/User</span><strong>${fmtNumber(g.maxTicketsPerUser || 1)}</strong>
-          <span>Gewinneranzahl</span><strong>${fmtNumber(g.winnerCount || 1)}</strong>
           <span>Glücksrad</span><strong>${g.wheelEnabled ? 'Ja' : 'Nein'}</strong>
           <span>Chat-Claim</span><strong>${claim.enabled ? `Ja · ${fmtNumber(claim.timeoutSeconds)}s` : 'Nein'}</strong>
           <span>Erstellt</span><strong>${fmtDate(g.createdAt)}</strong>
@@ -1293,7 +1288,6 @@ window.LoyaltyGiveawaysModule = (function(){
         <label>Max Tickets/User<input name="maxTicketsPerUser" type="number" min="1" value="${esc(g?.maxTicketsPerUser ?? 1)}"></label>
       </div>
       <div class="lgw-form-row">
-        <label>Gewinneranzahl<input name="winnerCount" type="number" min="1" value="${esc(g?.winnerCount ?? 1)}"></label>
         <label>Sub-Luck Faktor<input name="subscriberLuckMultiplier" type="number" min="1" value="${esc(g?.subscriberLuckMultiplier ?? 1)}"></label>
       </div>
       <div class="lgw-form-note">
@@ -1312,7 +1306,6 @@ window.LoyaltyGiveawaysModule = (function(){
       <div data-lgw-normal-prize ${isWheelMode ? 'hidden' : ''}>
         <div class="lgw-form-row">
           <label>Gewinn-Label<input name="prizeLabel" value="${esc(prize.label || g?.title || '')}"></label>
-          <label>Gewinn-Menge<input name="prizeQuantity" type="number" min="1" value="${esc(prize.quantityTotal || g?.winnerCount || 1)}"></label>
         </div>
         <label>Gewinn-Beschreibung<textarea name="prizeDescription" rows="2">${esc(prize.description || '')}</textarea></label>
       </div>
@@ -1394,16 +1387,17 @@ window.LoyaltyGiveawaysModule = (function(){
     const usedPermissions = usedWheelPermissions(g);
     const canStart = s === 'draft';
     const canClose = s === 'open';
-    const canDraw = s === 'closed_for_entries' && winners.length < winnerTarget(g);
+    const eligibleNextEntries = eligibleEntriesForNextDraw(g);
+    const canDraw = s === 'closed_for_entries' && eligibleNextEntries.length > 0;
     const canFinish = !isFinalStatus(g?.status) && ['closed_for_entries','waiting_for_claim','waiting_for_wheel','open'].includes(s);
     const canCancel = !isFinalStatus(g?.status) && s !== 'finished';
     const latest = latestWinner(g);
     const latestStatus = norm(latest?.status);
     const drawnCount = winners.length;
-    const targetCount = winnerTarget(g);
+    const targetCount = null;
     const hasAnyWinner = drawnCount > 0;
     const canReplaceLast = hasAnyWinner && !isFinalStatus(g?.status) && !['claim_confirmed','awarded','finished','wheel_completed'].includes(latestStatus);
-    return { s, wheel, entries, winners, pendingClaims, pendingPermissions, usedPermissions, canStart, canClose, canDraw, canFinish, canCancel, drawnCount, targetCount, canReplaceLast };
+    return { s, wheel, entries, winners, pendingClaims, pendingPermissions, usedPermissions, eligibleNextEntries, canStart, canClose, canDraw, canFinish, canCancel, drawnCount, targetCount, canReplaceLast };
   }
 
   function renderParticipantList(g, controlState){
@@ -1473,7 +1467,7 @@ window.LoyaltyGiveawaysModule = (function(){
       </div>
       <div class="lgw-grid lgw-grid-4 lgw-control-stats">
         <article class="lgw-card lgw-control-participant-card"><span>Teilnehmer</span><strong>${fmtNumber(c.entries.length)}</strong><small>${fmtNumber(totalEntryTickets(c.entries))} Tickets</small><button class="lgw-btn lgw-btn-small lgw-btn-secondary" type="button" data-lgw-toggle-participants="open">Teilnehmer anzeigen</button></article>
-        <article class="lgw-card"><span>Gewinner</span><strong>${esc(winnerProgressText(g))}</strong><small>${esc(giveawayWinnerText(g))}</small></article>
+        <article class="lgw-card"><span>Gezogene Gewinner</span><strong>${esc(winnerProgressText(g))}</strong><small>${esc(giveawayWinnerText(g))}</small></article>
         <article class="lgw-card"><span>${c.wheel ? 'Glücksrad' : 'Claim'}</span><strong>${c.wheel ? (c.pendingPermissions.length ? 'Wartet' : (c.usedPermissions.length ? 'Gedreht' : 'Bereit')) : (c.pendingClaims.length ? 'Wartet' : 'OK')}</strong><small>${c.wheel ? `${fmtNumber(c.pendingPermissions.length)} offen · ${fmtNumber(c.usedPermissions.length)} gedreht` : `${fmtNumber(c.pendingClaims.length)} offen`}</small></article>
         <article class="lgw-card"><span>Nächster Schritt</span><strong>${c.canStart ? 'Starten' : c.canClose ? 'Schließen' : c.canDraw ? (c.drawnCount > 0 ? 'Weiter auslosen' : 'Auslosen') : c.pendingClaims.length ? 'Claim' : c.pendingPermissions.length ? 'Drehung' : !isFinalStatus(g.status) ? 'Abschluss' : 'Fertig'}</strong><small>${fmtDate(g.updatedAt || g.openedAt || g.createdAt)}</small></article>
       </div>
@@ -1488,7 +1482,7 @@ window.LoyaltyGiveawaysModule = (function(){
           <button class="lgw-btn lgw-btn-danger" data-lgw-action="replaceLast" data-uid="${esc(g.giveawayUid)}" ${c.canReplaceLast ? '' : 'disabled'}>Letzten Gewinner ersetzen</button>
         </div>
         <div class="lgw-control-help">
-          <p><strong>Weiteren Gewinner auslosen</strong> zieht einen zusätzlichen Gewinner. Bereits gezogene Gewinner bleiben erhalten.</p>
+          <p><strong>Weiteren Gewinner auslosen</strong> zieht einen zusätzlichen Gewinner aus den bisherigen Teilnehmern. Bereits gezogene Gewinner werden nicht erneut gezogen.</p>
           <p><strong>Letzten Gewinner ersetzen</strong> entfernt den letzten noch nicht abgeschlossenen Gewinner und lost direkt einen Ersatz aus.</p>
         </div>
       </section>
@@ -1521,7 +1515,7 @@ window.LoyaltyGiveawaysModule = (function(){
         </div>
       </section>
 
-      <div class="lgw-warning">Mehrere Gewinner laufen über dieselbe Konsole: Nach einer bestätigten normalen Claim-Phase oder nach einer Glücksrad-Drehung springt das Giveaway wieder auf „Teilnahme geschlossen“, solange noch Gewinner offen sind. Dann kann über „Weiteren Gewinner auslosen“ der nächste Gewinner gezogen werden.</div>
+      <div class="lgw-warning">Der Streamer entscheidet live: Nach einer bestätigten normalen Claim-Phase oder nach einer Glücksrad-Drehung springt das Giveaway wieder auf „Teilnahme geschlossen“. Dann kann ein weiterer Gewinner gezogen oder das Giveaway beendet werden.</div>
       <div class="lgw-control-error" data-lgw-control-error></div>
     `;
   }

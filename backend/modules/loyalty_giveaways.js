@@ -23,7 +23,7 @@ const loyaltyCore = require("./loyalty");
 
 const MODULE_NAME = "loyalty_giveaways";
 const MODULE_VERSION = "0.1.1";
-const MODULE_BUILD = "STEP_LWG_4Q_9";
+const MODULE_BUILD = "STEP_LWG_4Q_11";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -475,7 +475,7 @@ function clampInt(value, fallback = 0, min = 0, max = 2147483647) {
 
 function defaultRoundPolicy(input = {}) {
   const roundMode = String(input.roundMode || input.round_mode || "single").trim() || "single";
-  const ticketCarryoverMode = String(input.ticketCarryoverMode || input.ticket_carryover_mode || "none").trim() || "none";
+  const ticketCarryoverMode = String(input.ticketCarryoverMode || input.ticket_carryover_mode || "tickets").trim() || "tickets";
   return {
     roundMode,
     allowNewEntriesBetweenRounds: input.allowNewEntriesBetweenRounds === true || input.allow_new_entries_between_rounds === true,
@@ -1065,25 +1065,6 @@ function applyPostClaimFlowAfterChatClaim(winner = {}, chatClaim = {}, chat = {}
   }
 
   const now = nowIso();
-  let nextRemaining = 1;
-  if (winner.prizeUid) {
-    const prize = database.get("SELECT * FROM loyalty_giveaway_prizes WHERE prize_uid = :prizeUid", { prizeUid: winner.prizeUid });
-    if (prize) {
-      nextRemaining = Math.max(0, Number(prize.quantity_remaining || 0) - 1);
-      database.run(`
-        UPDATE loyalty_giveaway_prizes
-        SET quantity_remaining = :quantityRemaining,
-            status = :status,
-            updated_at = :updatedAt
-        WHERE prize_uid = :prizeUid
-      `, {
-        prizeUid: winner.prizeUid,
-        quantityRemaining: nextRemaining,
-        status: nextRemaining <= 0 ? "awarded" : "available",
-        updatedAt: now
-      });
-    }
-  }
 
   database.run(`
     UPDATE loyalty_giveaway_winners
@@ -1091,23 +1072,19 @@ function applyPostClaimFlowAfterChatClaim(winner = {}, chatClaim = {}, chat = {}
     WHERE winner_uid = :winnerUid
   `, { winnerUid: winner.winnerUid });
 
-  const updatedWinnerCount = activeWinnerCount(winner.giveawayUid);
-  const giveawayFinished = updatedWinnerCount >= giveaway.winnerCount || nextRemaining <= 0;
   database.run(`
     UPDATE loyalty_giveaways
     SET status = :status,
-        finished_at = CASE WHEN :finishedAt != '' THEN :finishedAt ELSE finished_at END,
         updated_at = :updatedAt
     WHERE giveaway_uid = :giveawayUid
   `, {
     giveawayUid: winner.giveawayUid,
-    status: giveawayFinished ? STATUS.FINISHED : STATUS.CLOSED_FOR_ENTRIES,
-    finishedAt: giveawayFinished ? now : "",
+    status: STATUS.CLOSED_FOR_ENTRIES,
     updatedAt: now
   });
 
   const refreshedWinner = rowToWinner(getWinnerRow(winner.winnerUid));
-  return { ok: true, action: "winner_claim_confirmed", winner: refreshedWinner, giveawayFinished };
+  return { ok: true, action: "winner_claim_confirmed", winner: refreshedWinner, giveawayFinished: false };
 }
 
 function handleTwitchChatMessageForClaim(envelope = {}) {
@@ -2543,7 +2520,7 @@ function evaluateGiveawaySetupRow(row) {
     Number(prize.quantityTotal || 0) >= 1 &&
     String(prize.label || "").trim()
   );
-  if (!availablePrizes.length) {
+  if (!wheelMode && !availablePrizes.length) {
     issues.push(setupIssue("giveaway_prize_required", "Mindestens ein gültiger Gewinn fehlt.", "prizes"));
   }
 
@@ -3510,6 +3487,35 @@ function activeWinnerCount(giveawayUid) {
   return Number(row && row.count || 0);
 }
 
+function activePrizeQuantityRemaining(giveawayUid) {
+  ensureSchema();
+  const row = database.get(`
+    SELECT COALESCE(SUM(quantity_remaining), 0) AS remaining
+    FROM loyalty_giveaway_prizes
+    WHERE giveaway_uid = :giveawayUid
+      AND status NOT IN ('deleted', 'cancelled')
+  `, { giveawayUid });
+  return Number(row && row.remaining || 0);
+}
+
+function hasUsableBoundWheelFields(giveawayUid) {
+  const usable = listUsableBoundWheelSpinFields(giveawayUid);
+  if (!usable || usable.ok === false) return false;
+  return Number(usable.count || 0) > 0 || (Array.isArray(usable.fields) && usable.fields.length > 0);
+}
+
+function shouldFinishWheelGiveawayAfterClaim(giveawayUid) {
+  const pendingPermissionRow = database.get(`
+    SELECT COUNT(*) AS count
+    FROM loyalty_giveaway_wheel_permissions
+    WHERE giveaway_uid = :giveawayUid
+      AND status = 'pending'
+  `, { giveawayUid });
+  const pendingPermissionCount = Number(pendingPermissionRow && pendingPermissionRow.count || 0);
+  if (pendingPermissionCount > 0) return false;
+  return !hasUsableBoundWheelFields(giveawayUid);
+}
+
 function eligibleEntriesForDraw(giveawayUid) {
   ensureSchema();
   return database.all(`
@@ -3586,7 +3592,7 @@ function replaceLastWinner(giveawayUid, input = {}) {
   const actor = input.actor || "dashboard";
   const currentMetadata = parseJson(lastRow.metadata_json, {});
 
-  if (lastRow.prize_uid && !["waiting_for_claim"].includes(lastStatus)) {
+  if (lastRow.prize_uid && currentMetadata.prizeConsumed === true && !["waiting_for_claim"].includes(lastStatus)) {
     const prize = database.get("SELECT * FROM loyalty_giveaway_prizes WHERE prize_uid = :prizeUid", { prizeUid: lastRow.prize_uid });
     if (prize) {
       const nextRemaining = Number(prize.quantity_remaining || 0) + 1;
@@ -3744,9 +3750,6 @@ function drawWinner(giveawayUid, input = {}) {
   }
 
   const winnerCount = activeWinnerCount(giveawayUid);
-  if (winnerCount >= giveaway.winnerCount) {
-    return { ok: false, error: "giveaway_winner_count_reached", statusCode: 409, winnerCount, maxWinners: giveaway.winnerCount };
-  }
 
   const prize = isWheelGiveaway ? null : getAvailablePrize(giveawayUid);
   if (!isWheelGiveaway && !prize) return { ok: false, error: "giveaway_no_prizes_available", statusCode: 409 };
@@ -3808,21 +3811,7 @@ function drawWinner(giveawayUid, input = {}) {
     })
   });
 
-  const nextRemaining = prize && !drawRequiresChatClaim ? Math.max(0, Number(prize.quantityRemaining || 0) - 1) : (prize ? Number(prize.quantityRemaining || 1) : 1);
-  if (prize && !drawRequiresChatClaim) {
-    database.run(`
-      UPDATE loyalty_giveaway_prizes
-      SET quantity_remaining = :quantityRemaining,
-          status = :status,
-          updated_at = :updatedAt
-      WHERE prize_uid = :prizeUid
-    `, {
-      prizeUid: prize ? prize.prizeUid : "",
-      quantityRemaining: nextRemaining,
-      status: nextRemaining <= 0 ? "awarded" : "available",
-      updatedAt: now
-    });
-  }
+  const nextRemaining = prize ? Number(prize.quantityRemaining || 1) : 1;
 
   database.run(`
     UPDATE loyalty_giveaway_rounds
@@ -3842,7 +3831,7 @@ function drawWinner(giveawayUid, input = {}) {
   });
 
   const updatedWinnerCount = activeWinnerCount(giveawayUid);
-  const giveawayFinished = !drawRequiresChatClaim && !isWheelGiveaway && (updatedWinnerCount >= giveaway.winnerCount || nextRemaining <= 0);
+  const giveawayFinished = false;
   database.run(`
     UPDATE loyalty_giveaways
     SET status = :status,
@@ -4108,9 +4097,10 @@ function claimWheelSpin(giveawayUid, input = {}) {
       AND status = 'pending'
   `, { giveawayUid });
   const pendingPermissionCount = Number(pendingPermissionRow && pendingPermissionRow.count || 0);
+  const noUsableWheelFieldsLeft = !hasUsableBoundWheelFields(giveawayUid);
   const nextGiveawayStatus = pendingPermissionCount > 0
     ? STATUS.WAITING_FOR_WHEEL
-    : (updatedWinnerCount >= Number(giveaway.winnerCount || 1) ? STATUS.FINISHED : STATUS.CLOSED_FOR_ENTRIES);
+    : (noUsableWheelFieldsLeft ? STATUS.FINISHED : STATUS.CLOSED_FOR_ENTRIES);
 
   database.run(`
     UPDATE loyalty_giveaways
@@ -4295,11 +4285,11 @@ function createGiveaway(input = {}) {
   const prizes = Array.isArray(input.prizes) ? input.prizes : [];
   if (prizes.length) {
     prizes.forEach(prize => createPrize(giveawayUid, prize));
-  } else {
+  } else if (!wheelEnabled) {
     createPrize(giveawayUid, {
       label: title,
       description: "Standard-Gewinn",
-      quantityTotal: clampInt(input.winnerCount ?? input.winner_count, 1, 1, 9999)
+      quantityTotal: 1
     });
   }
 

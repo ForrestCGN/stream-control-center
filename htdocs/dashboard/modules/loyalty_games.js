@@ -538,7 +538,7 @@ window.LoyaltyGamesModule = (function(){
     return {
       label,
       description: String(data.get('prizeDescription') || '').trim(),
-      quantityTotal: Number(data.get('prizeQuantity') || 1)
+      quantityTotal: 1
     };
   }
 
@@ -556,14 +556,14 @@ window.LoyaltyGamesModule = (function(){
       firstTicketFree: data.get('firstTicketFree') === 'on',
       subOnly: data.get('subOnly') === 'on',
       subscriberLuckMultiplier: Number(data.get('subscriberLuckMultiplier') || 1),
-      winnerCount: Number(data.get('winnerCount') || 1),
+      winnerCount: 1,
       roundPolicy: {
         roundMode: 'single',
         allowNewEntriesBetweenRounds: false,
         removeWinnerAfterRound: true,
         ticketCarryoverMode: 'tickets'
       },
-      prizes: [buildPrizeFromForm(data)],
+      prizes: mode.startsWith('wheel_') ? [] : [buildPrizeFromForm(data)],
       chatClaim: {
         enabled: !mode.startsWith('wheel_') && data.get('chatClaimEnabled') === 'on',
         mode: data.get('chatClaimMode') || 'any_message',
@@ -1292,7 +1292,6 @@ window.LoyaltyGamesModule = (function(){
             <span>Modus</span><strong>${esc(statusLabel(selected.mode))}</strong>
             <span>Bearbeitbar</span><strong>${editable ? 'Ja' : 'Nein, nur kopieren/anzeigen'}</strong>
             <span>Kosten</span><strong>${fmtNumber(selected.costAmount)}</strong>
-            <span>Gewinner</span><strong>${fmtNumber(selected.winnerCount)}</strong>
             <span>Rad</span><strong>${selected.wheelEnabled ? 'Ja' : 'Nein'}</strong>
             <span>Chat-Claim</span><strong>${getChatClaimSettings(selected).enabled ? 'Ja' : 'Nein'}</strong>
             <span>UID</span><strong><code>${esc(selected.giveawayUid)}</code></strong>
@@ -1345,7 +1344,6 @@ window.LoyaltyGamesModule = (function(){
         <label>Max Tickets/User<input name="maxTicketsPerUser" type="number" min="1" value="${esc(giveaway?.maxTicketsPerUser ?? 1)}" ${editable ? '' : 'disabled'}></label>
       </div>
       <div class="lg-form-row">
-        <label>Gewinneranzahl<input name="winnerCount" type="number" min="1" value="${esc(giveaway?.winnerCount ?? 1)}" ${editable ? '' : 'disabled'}></label>
         <label>Sub-Luck Faktor<input name="subscriberLuckMultiplier" type="number" min="1" value="${esc(giveaway?.subscriberLuckMultiplier ?? 1)}" ${editable ? '' : 'disabled'}></label>
       </div>
       <p class="lg-muted">Weitere Gewinner werden aus den bisherigen Teilnehmern gezogen. Bereits gezogene Gewinner werden nicht erneut gezogen; Tickets der übrigen Teilnehmer bleiben erhalten.</p>
@@ -1366,7 +1364,6 @@ window.LoyaltyGamesModule = (function(){
       <div data-lg-normal-prize ${isWheelMode ? 'hidden' : ''}>
         <div class="lg-form-row">
           <label>Gewinn-Label<input name="prizeLabel" value="${esc(prize.label || giveaway?.title || '')}" ${editable ? '' : 'disabled'}></label>
-          <label>Gewinn-Menge<input name="prizeQuantity" type="number" min="1" value="${esc(prize.quantityTotal || giveaway?.winnerCount || 1)}" ${editable ? '' : 'disabled'}></label>
         </div>
         <label>Gewinn-Beschreibung<textarea name="prizeDescription" rows="2" ${editable ? '' : 'disabled'}>${esc(prize.description || '')}</textarea></label>
       </div>
