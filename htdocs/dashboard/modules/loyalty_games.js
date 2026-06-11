@@ -113,6 +113,17 @@ window.LoyaltyGamesModule = (function(){
     };
   }
 
+  function claimStatusLabel(winner){
+    const meta = winner?.metadata || {};
+    const claim = meta.chatClaim || meta.claim || {};
+    const status = String(claim.status || winner?.claimStatus || '').toLowerCase();
+    if (!status) return '<span class="lg-muted">-</span>';
+    if (['confirmed', 'accepted', 'ok'].includes(status)) return '<span class="lg-badge lg-badge-ok">Bestätigt</span>';
+    if (['pending', 'open', 'waiting', 'waiting_for_claim'].includes(status)) return '<span class="lg-badge lg-badge-warn">Wartet</span>';
+    if (['expired', 'timeout', 'no_response', 'skipped'].includes(status)) return '<span class="lg-badge lg-badge-off">Nicht bestätigt</span>';
+    return `<span class="lg-badge lg-badge-off">${esc(statusLabel(status))}</span>`;
+  }
+
   function badge(value, okText = 'OK', failText = 'Aus'){
     return value
       ? `<span class="lg-badge lg-badge-ok">${esc(okText)}</span>`
