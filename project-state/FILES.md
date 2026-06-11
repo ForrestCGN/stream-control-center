@@ -2,44 +2,37 @@
 
 Stand: 2026-06-11
 
-## Aktueller Doku-/Test-STEP
+## Aktuelles STEP-Paket
 
 ```text
-loyalty_step212_lwg5_4_points_runtime_test.zip
+loyalty_step213_lwg5_5_points_command_enable_package.zip
 ```
 
-Enthalten:
+## Enthalten
 
 ```text
-Test_STEP212B_LWG5_4b_points_command_runtime_ForrestCGN.ps1
+Activate_STEP213_LWG5_5_points_command_ForrestCGN.ps1
+Rollback_STEP213_LWG5_5_points_command_ForrestCGN.ps1
+Test_STEP213_LWG5_5_points_command_live_ForrestCGN.ps1
+docs/modules/README.md
 docs/modules/loyalty.md
-docs/current/CURRENT_CHAT_HANDOFF_STEP212B_LWG5_4b.md
+docs/modules/loyalty_games.md
+docs/current/CURRENT_CHAT_HANDOFF_STEP213_LWG5_5.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/CHANGELOG.md
 project-state/FILES.md
-README_STEP212B_LWG5_4b.md
+README_STEP213_LWG5_5.md
 ```
 
-## Aktueller Runtime-STEP
+## Nicht enthalten
 
 ```text
-loyalty_step210_lwg5_2_status_cleanup.zip
-```
-
-Enthalten:
-
-```text
-backend/modules/loyalty.js
-backend/modules/loyalty_games.js
-backend/modules/loyalty_games/gamble.js
-```
-
-## Vorherige Doku
-
-```text
-loyalty_step211_lwg5_3_documentation_handoff.zip
+keine Runtime-JS-Dateien
+keine SQLite-/DB-Dateien
+keine Secrets/.env/Tokens
+keine Assets
 ```
 
 ## Weiterhin relevante Runtime-Dateien
@@ -48,27 +41,8 @@ loyalty_step211_lwg5_3_documentation_handoff.zip
 backend/modules/loyalty.js
 backend/modules/loyalty_games.js
 backend/modules/loyalty_games/gamble.js
-backend/modules/loyalty_giveaways.js
 backend/modules/commands.js
-backend/modules/communication_bus.js
 backend/modules/helpers/helper_texts.js
+backend/modules/communication_bus.js
 backend/core/database.js
-```
-
-## Tests
-
-```text
-Test_STEP212B_LWG5_4b_points_command_runtime_ForrestCGN.ps1
-```
-
-Ziel: kontrollierter Runtime-Test von `!punkte / !points` ohne dauerhafte Aktivierung.
-
-
-## STEP212b / LWG-5.4b – Points Runtime Testscript Args-Fix
-
-```text
-Stand: 2026-06-11
-Typ: Testscript-/Doku-Hotfix
-Runtime: unverändert
-Grund: PowerShell-Parserfehler bei String mit $Enabled: behoben durch $($Enabled):
 ```

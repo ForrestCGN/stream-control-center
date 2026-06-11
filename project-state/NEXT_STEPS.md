@@ -5,54 +5,41 @@ Stand: 2026-06-11
 ## Direkt nächster sinnvoller Schritt
 
 ```text
-STEP212b / LWG-5.4b – Points Command Runtime kontrolliert testen
+STEP213 / LWG-5.5 – !punkte / !points produktiv freigeben
 ```
 
-Nach Entpacken des STEP212-Pakets:
+Ablauf:
 
 ```cmd
-.\stepdone.cmd "STEP212b / LWG-5.4b Points Command Runtime Testscript und Doku"
+.\stepdone.cmd "STEP213 / LWG-5.5 Points Command Freigabepaket"
 ```
-
-Danach Backend neu starten und ausführen:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\Test_STEP212B_LWG5_4b_points_command_runtime_ForrestCGN.ps1
+powershell -ExecutionPolicy Bypass -File .\Activate_STEP213_LWG5_5_points_command_ForrestCGN.ps1
+powershell -ExecutionPolicy Bypass -File .\Test_STEP213_LWG5_5_points_command_live_ForrestCGN.ps1
 ```
 
-## Erwartung
+Danach im Chat minimal prüfen:
 
 ```text
-- !punkte bleibt vor und nach dem Test im ursprünglichen Zustand.
-- Das Script aktiviert !punkte nur temporär.
-- !punkte zeigt verfügbare Kekskrümel + Rangdaten.
-- !points Alias funktioniert.
-- !punkte @user ist für Nicht-Mods blockiert.
+!punkte
+!points
+```
+
+## Bei Problemen
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\Rollback_STEP213_LWG5_5_points_command_ForrestCGN.ps1
 ```
 
 ## Danach
 
-Wenn STEP212 grün ist:
+Wenn STEP213 bestätigt ist:
 
 ```text
-STEP213 / LWG-5.5 – Entscheidung: !punkte produktiv freigeben oder Gamble-Runtime isoliert testen
+STEP214 – !givepoints getrennt testen/freigeben
+STEP215 – !setpoint getrennt testen/freigeben
+STEP216 – !gamble isoliert mit Testuser und kleinem Einsatz testen
 ```
 
-Empfohlene Reihenfolge:
-
-```text
-1. Erst !punkte / !points produktiv freigeben, falls gewünscht.
-2. Danach !givepoints / !setpoint getrennt testen.
-3. Danach !gamble isoliert mit Testuser und kleinen Einsätzen testen.
-4. Roulette bleibt weiterhin nur vorgemerkt.
-```
-
-
-## STEP212b / LWG-5.4b – Points Runtime Testscript Args-Fix
-
-```text
-Stand: 2026-06-11
-Typ: Testscript-/Doku-Hotfix
-Runtime: unverändert
-Grund: PowerShell-Parserfehler bei String mit $Enabled: behoben durch $($Enabled):
-```
+Roulette bleibt vorgemerkt und wird jetzt nicht umgesetzt.

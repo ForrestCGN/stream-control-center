@@ -1,153 +1,85 @@
 # Modul: loyalty
 
 Stand: 2026-06-11  
-Aktueller dokumentierter Stand: STEP212b / LWG-5.4b  
-Runtime-Basis: STEP210 / LWG-5.2
+Aktueller bestätigter Stand: STEP213 / LWG-5.5
 
 ## Zweck
 
-`loyalty` ist der zentrale Loyalty-/Kekskrümel-Core. Das Modul verwaltet User-Balances, Transaktionen, Shadow-/Live-Modus, Event-Boni, Watch-Earning und seit STEP209 die zentrale Sicherheitslogik für verfügbare Kekskrümel.
+`loyalty` verwaltet das Kekskrümel-/Loyalty-Konto, verfügbare Punkte, Reservierungen, Transaktionen, Ranking und die vorbereiteten Points-Commands.
 
-## Dateien
+## Aktueller Runtime-Stand
 
 ```text
 backend/modules/loyalty.js
+Version: 0.1.13
+Step: STEP210
 ```
 
-## Aktueller bestätigter Runtime-Stand
+STEP211 bis STEP213 enthalten keine Runtime-JS-Änderungen, sondern Doku/Test-/Freigabe-Scripte.
+
+## Wichtige Fachlogik
 
 ```text
-loyalty.js
-version: 0.1.13
-step: STEP210
+verfügbare Kekskrümel = active balance - offene Reservierungen
 ```
 
-STEP209 brachte die zentrale Safety-Schicht. STEP210 bereinigte API-/Statusfelder für Tests und Dashboard.
+Ranking für `!punkte / !points` basiert auf den verfügbaren Kekskrümeln.
 
-## Datenbanktabellen
-
-Relevante vorhandene Tabellen/Bereiche:
+## Bestätigte Tests
 
 ```text
-loyalty_users
-loyalty_transactions
-loyalty_reservations
-command_definitions
-module_texts
-module_text_variants
+STEP212b / LWG-5.4b – Points Runtime kontrolliert bestätigt
 ```
 
-Regel:
+Bestätigt im Live-System:
 
 ```text
-Produktive SQLite-Datenbank niemals ersetzen/überschreiben.
-Schemaänderungen nur sanft per CREATE TABLE IF NOT EXISTS / sichere Migrationen.
-MySQL/MariaDB-Portabilität bei neuen Queries mitdenken.
+available=3400
+rank=2
+total=418
+!punkte self ok
+!points Alias ok
+!punkte @user blockt Nicht-Mods korrekt
+!punkte wurde nach temporärem Test wieder deaktiviert
 ```
 
-## Zentrale Sicherheitslogik
+## Freigabestand STEP213
 
-Seit STEP209 gilt:
+STEP213 liefert Scripte für:
 
 ```text
-verfügbare Kekskrümel = aktiver Kontostand - offene Reservierungen
+Activate_STEP213_LWG5_5_points_command_ForrestCGN.ps1
+Rollback_STEP213_LWG5_5_points_command_ForrestCGN.ps1
+Test_STEP213_LWG5_5_points_command_live_ForrestCGN.ps1
 ```
 
-Zentrale Funktionen im Core:
+Aktiviert werden darf nur:
 
 ```text
-getReservedAmount()
-getAvailableBalance()
-canAfford()
-spendPointsSafely()
-awardPoints()
-reservePoints()
-releaseReservation()
-commitReservation()
-getAvailableRank()
+!punkte
+!points
 ```
 
-Wichtig:
-
-```text
-recordTransaction() bleibt Low-Level.
-Spiele/Commands dürfen direkte negative Buchungen nicht ohne Safety-Prüfung ausführen.
-```
-
-## Punkte-/Command-Vorbereitung
-
-Vorbereitet, aber per Command-System deaktiviert:
+## Commands
 
 ```text
 !punkte / !points
+- zeigt nur verfügbare Kekskrümel
+- zeigt Rang und Gesamtzahl gewerteter User
+- normale User: nur eigene Punkte
+- Zieluser-Abfrage: erst ab Mod/Streamer
+```
+
+Noch nicht freigegeben:
+
+```text
 !givepoints
 !setpoint
 ```
 
-Berechtigungen:
+## Textsystem
 
-```text
-!punkte                everyone, zeigt nur eigene verfügbare Kekskrümel + Rang
-!punkte @user          Mod/Streamer-Logik im Runtime-Command, zeigt fremde verfügbare Kekskrümel + Rang
-!givepoints @user 100  permissionLevel mod
-!setpoint @user 1000   permissionLevel streamer
-```
-
-`!setpoint` soll nicht hart überschreiben, sondern die Differenz als Transaktion buchen, damit die Historie/Audit-Spur erhalten bleibt.
-
-## API-Routen aus STEP209/STEP210
-
-```text
-GET  /api/loyalty/available/:login
-POST /api/loyalty/points/can-afford
-POST /api/loyalty/points/spend
-POST /api/loyalty/points/award
-POST /api/loyalty/points/reserve
-POST /api/loyalty/points/release-reservation
-POST /api/loyalty/points/commit-reservation
-GET  /api/loyalty/points/ranking
-GET  /api/loyalty/points/commands
-POST /api/loyalty/runtime/points-command
-```
-
-## Bestätigte Tests
-
-Status:
-
-```text
-/api/loyalty/status
-module: loyalty
-version: 0.1.12 bei STEP209-Test, danach 0.1.13 in STEP210-Paket
-mode: shadow
-enabled: True
-currencyName: Kekskrümel
-streamElementsStillActive: True
-```
-
-Available Balance Test:
-
-```text
-user: forrestcgn
-balance: 3400
-reserved: 0
-available: 3400
-rank: 2
-rankTotal-Feld vorhanden
-```
-
-Can-Afford Test:
-
-```text
-amount: 9999999
-available: 3400
-canAfford: False
-missing: 9996599
-reason: insufficient_available_balance
-```
-
-## Textsystem / Multitexte
-
-Alle Chat-Ausgaben dieses Bereichs müssen über DB/Helper laufen:
+Alle Chattexte müssen über DB/Helper laufen:
 
 ```text
 module_texts
@@ -158,65 +90,17 @@ helper_texts
 Stil:
 
 ```text
-CGN / Altersheim / Heimleitung / Rentner / Keksdose
+CGN / Altersheim / Heimleitung / Rentner
 ```
 
-Keine finalen Chat-Texte hart im Code pflegen.
+Keine finalen Chattexte hart codieren.
 
-## EventBus / Heartbeats
-
-Das Modul soll im Control-Center sichtbar bleiben. Grundregel:
+## Datenbank / Migration
 
 ```text
-Modul online/aktiv != Chat-Command aktiv
-```
-
-Module bleiben aktiv und melden Status/Heartbeat, Commands werden separat aktiviert.
-
-## Nicht geändert
-
-```text
-- Keine produktive DB ersetzt.
-- Keine StreamElements-Live-Abschaltung.
-- Keine Chat-Commands produktiv aktiviert.
-- Keine bestehenden Giveaway-/Wheel-Flows entfernt.
-```
-
-## STEP212b / LWG-5.4b – Points Command Runtime Testplan
-
-STEP212 enthält keine Runtime-Änderung, sondern ein kontrolliertes Testscript:
-
-```text
-Test_STEP212B_LWG5_4b_points_command_runtime_ForrestCGN.ps1
-```
-
-Das Script prüft:
-
-```text
-- Loyalty-Status und verfügbare Kekskrümel
-- Command-Seed für !punkte / !points
-- Disabled-Guard solange der Command aus ist
-- temporäre Aktivierung nur von !punkte
-- Runtime-Ausgabe für !punkte
-- Alias !points
-- Permission-Block für !punkte @user bei Nicht-Mod
-- automatische Wiederherstellung des ursprünglichen Command-Status
-```
-
-Wichtig: Das Script aktiviert `!punkte` nur temporär und stellt den vorherigen Status am Ende wieder her.
-
-## Nächster Schritt
-
-```text
-STEP213 / LWG-5.5 – Nach bestätigtem Points-Test: !punkte optional produktiv freigeben oder Gamble-Runtime isoliert testen
-```
-
-
-## STEP212b / LWG-5.4b – Points Runtime Testscript Args-Fix
-
-```text
-Stand: 2026-06-11
-Typ: Testscript-/Doku-Hotfix
-Runtime: unverändert
-Grund: PowerShell-Parserfehler bei String mit $Enabled: behoben durch $($Enabled):
+SQLite aktuell aktiv
+MySQL/MariaDB portabel planen
+keine DB ersetzen
+keine Transaktionen löschen
+nur sichere Migrationen / CREATE TABLE IF NOT EXISTS / Safety-Net
 ```

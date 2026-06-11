@@ -5,19 +5,36 @@ Stand: 2026-06-11
 ## Aktueller bestätigter Hauptstand
 
 ```text
-STEP212b / LWG-5.4b – Points Command Runtime kontrollierter Test vorbereitet
+STEP213 / LWG-5.5 – Points Command Freigabepaket
 ```
 
-Der aktuell bestätigte technische Bereich betrifft das Modul **Loyalty / Kekskrümel / Loyalty Games** mit:
+## Bestätigt
 
 ```text
-STEP209 / LWG-5.1 – Loyalty Safety Layer + Gamble vorbereitet
-STEP210 / LWG-5.2 – API-/Status-Cleanup
-STEP211 / LWG-5.3 – Doku-/Projektstand aktualisiert
-STEP212b / LWG-5.4b – Points Command Runtime Testscript + Doku
+STEP212b / LWG-5.4b – Points Runtime kontrolliert bestätigt
 ```
 
-## Bestätigter Runtime-Stand
+Live-Test-Ergebnis:
+
+```text
+=== TEST OK: STEP212b / LWG-5.4b Points Runtime kontrolliert bestaetigt ===
+```
+
+Bestätigte Punkte:
+
+```text
+Loyalty-Core läuft: v0.1.13 / shadow
+Verfügbare Punkte korrekt: 3400
+Ranking korrekt: Platz 2 von 418
+!punkte war vor Test deaktiviert
+Disabled-Guard greift korrekt
+Temporärer Runtime-Test für !punkte funktioniert
+!points Alias funktioniert
+@user-Abfrage blockt Nicht-Mods korrekt
+Restore hat !punkte wieder deaktiviert
+```
+
+## Runtime-Stand
 
 ```text
 backend/modules/loyalty.js
@@ -29,128 +46,41 @@ moduleVersion: 0.2.2
 moduleBuild: STEP_LWG_5_2_STATUS_CLEANUP
 
 backend/modules/loyalty_games/gamble.js
-neu seit LWG-5.1, vorbereitet und angebunden
+vorbereitet seit LWG-5.1
 ```
 
-STEP212 enthält bewusst **keine Runtime-JS-Änderung**. Es ergänzt Doku und ein kontrolliertes Testscript.
+STEP213 enthält keine Runtime-JS-Änderung, sondern Freigabe-/Rollback-/Testscript plus Doku.
 
-## STEP212 Testziel
+## Freigabeziel STEP213
+
+Nur aktivieren:
 
 ```text
-Test_STEP212B_LWG5_4b_points_command_runtime_ForrestCGN.ps1
+!punkte
+!points
 ```
 
-Das Script soll nach StepDone und Backend-Neustart prüfen:
+Nicht aktivieren:
 
 ```text
-- Loyalty-Status erreichbar
-- verfügbare Kekskrümel und Ranking erreichbar
-- !punkte ist als Command vorhanden
-- Disabled-Guard greift, solange !punkte aus ist
-- !punkte kann temporär für Runtime-Test aktiviert werden
-- !punkte liefert nur verfügbare Kekskrümel + Rankingdaten
-- !points Alias funktioniert
-- !punkte @user wird für Nicht-Mods blockiert
-- ursprünglicher Command-Status wird wiederhergestellt
+!givepoints
+!setpoint
+!gamble
+!duell
+!raffle
+!roulette
 ```
 
-## Bestätigte Tests aus dem Live-System bis STEP210
-
-### Status
-
-```text
-/api/loyalty/status
-module: loyalty
-version: 0.1.12 beim STEP209-Test
-mode: shadow
-enabled: True
-currencyName: Kekskrümel
-streamElementsStillActive: True
-```
-
-```text
-/api/loyalty/games/status
-module: loyalty_games
-moduleVersion: 0.2.1 beim STEP209-Test
-moduleBuild: STEP_LWG_5_1_GAMBLE_PREPARED
-enabled: True
-lastError: leer
-```
-
-STEP210 erhöht die Dateien auf:
-
-```text
-loyalty.js 0.1.13
-loyalty_games.js 0.2.2 / STEP_LWG_5_2_STATUS_CLEANUP
-```
-
-### Commands deaktiviert
-
-Bestätigt:
-
-```text
-gamble      enabled False permission everyone
-punkte      enabled False permission everyone
-givepoints  enabled False permission mod
-setpoint    enabled False permission streamer
-```
-
-### Available Balance
-
-Bestätigt für `forrestcgn`:
-
-```text
-balance: 3400
-reserved: 0
-available: 3400
-rank: 2
-rankKeys: rank, rankTotal, row
-```
-
-### Can-Afford Schutz
-
-Bestätigt:
-
-```text
-amount: 9999999
-available: 3400
-canAfford: False
-missing: 9996599
-reason: insufficient_available_balance
-```
-
-### Gamble disabled Schutz
-
-Bestätigt:
-
-```text
-POST /api/loyalty/games/gamble/play
-Input: testdummy_gamble, input=1
-Ergebnis: HTTP 403
-error: gamble_disabled
-```
-
-## Wichtige Arbeitsregeln
+## Arbeitsregeln
 
 ```text
 Keine Funktionalität entfernen.
 Keine produktive SQLite-Datei ersetzen oder überschreiben.
 Keine Tokens/.env/Secrets in ZIPs aufnehmen.
 Bestehende Transaktionen/Audit-Daten nicht löschen.
-Bei weiteren Änderungen zuerst echte aktuelle Dateien/Repo/Live-Stand prüfen.
 Module aktiv halten; Commands separat freigeben.
 Multitexte über DB/Helper, dashboardfähig, CGN-/Altersheim-/Heimleitung-/Rentner-Stil.
 EventBus/Communication Bus und Heartbeats berücksichtigen.
-Bei Tests nur notwendige Felder ausgeben, keine riesigen Dumps.
+Bei Tests nur notwendige Felder ausgeben.
 Nach jedem Code-/Doku-STEP stepdone.cmd ausführen.
-```
-
-
-## STEP212b / LWG-5.4b – Points Runtime Testscript Args-Fix
-
-```text
-Stand: 2026-06-11
-Typ: Testscript-/Doku-Hotfix
-Runtime: unverändert
-Grund: PowerShell-Parserfehler bei String mit $Enabled: behoben durch $($Enabled):
 ```

@@ -2,74 +2,50 @@
 
 Stand: 2026-06-11
 
-## 2026-06-11 – STEP212b / LWG-5.4b Points Runtime Test Args-Fix
+## 2026-06-11 – STEP213 / LWG-5.5 Points Command Freigabepaket
+
+### Neu
 
 ```text
-Testscript-Hotfix: Invoke-PointsRuntime nutzt CommandArgs statt Args, damit !punkte @user Permission-Test wirklich mit Zielargument ausgefuehrt wird. Keine Runtime-Aenderung.
-```
-
-## 2026-06-11 – STEP212b / LWG-5.4b Points Command Runtime Testscript
-
-### Hinzugefügt
-
-```text
-Test_STEP212B_LWG5_4b_points_command_runtime_ForrestCGN.ps1
-docs/current/CURRENT_CHAT_HANDOFF_STEP212B_LWG5_4b.md
-```
-
-### Aktualisiert
-
-```text
-docs/modules/loyalty.md
-project-state/CURRENT_STATUS.md
-project-state/NEXT_STEPS.md
-project-state/TODO.md
-project-state/CHANGELOG.md
-project-state/FILES.md
+Activate_STEP213_LWG5_5_points_command_ForrestCGN.ps1
+Rollback_STEP213_LWG5_5_points_command_ForrestCGN.ps1
+Test_STEP213_LWG5_5_points_command_live_ForrestCGN.ps1
 ```
 
 ### Ergebnis
 
 ```text
-- Keine Runtime-JS-Änderung.
-- Kein Command wird dauerhaft aktiviert.
-- Testscript aktiviert !punkte nur temporär und stellt den ursprünglichen Status wieder her.
-- Testscript prüft !punkte, !points Alias und Permission-Block für !punkte @user.
+Nur !punkte / !points wird für produktive Freigabe vorbereitet.
+!givepoints, !setpoint und !gamble bleiben deaktiviert.
+Keine Runtime-JS-Änderung.
+Keine Datenbank im Paket.
 ```
 
-## 2026-06-11 – STEP211 / LWG-5.3 Dokumentation und Handoff
+## 2026-06-11 – STEP212b / LWG-5.4b Points Runtime Test bestätigt
+
+### Bestätigt
+
+```text
+=== TEST OK: STEP212b / LWG-5.4b Points Runtime kontrolliert bestaetigt ===
+```
 
 ### Ergebnis
 
 ```text
-Doku-/Projektstand für STEP209/STEP210 erstellt.
-Keine Runtime-Dateien geändert.
+!punkte Runtime ok
+!points Alias ok
+Permission-Block für Zieluser-Abfrage ok
+Restore deaktiviert !punkte wieder
 ```
 
-## 2026-06-11 – STEP210 / LWG-5.2 API-/Status-Cleanup
+## 2026-06-11 – STEP209 bis STEP210 Loyalty Safety + Gamble vorbereitet
 
 ### Ergebnis
 
 ```text
-Module bleiben aktiv/online, Commands bleiben separat deaktiviert.
-Statusfelder für Dashboard/Testausgaben bereinigt.
-```
-
-## 2026-06-11 – STEP209 / LWG-5.1 Loyalty Safety Layer + Gamble Prepared
-
-### Ergebnis
-
-```text
-Zentrale verfügbare Kekskrümel, Reservierungen, sichere Spend/Award-Funktionen und Gamble-Grundlage vorbereitet.
-Commands weiterhin deaktiviert.
-```
-
-
-## STEP212b / LWG-5.4b – Points Runtime Testscript Args-Fix
-
-```text
-Stand: 2026-06-11
-Typ: Testscript-/Doku-Hotfix
-Runtime: unverändert
-Grund: PowerShell-Parserfehler bei String mit $Enabled: behoben durch $($Enabled):
+Zentrale verfügbare Kekskrümel
+Can-Afford Schutz
+Reservierungsbasis
+Gamble vorbereitet und deaktiviert geschützt
+API-/Status-Cleanup
 ```
