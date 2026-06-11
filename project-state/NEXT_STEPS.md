@@ -1,5 +1,5 @@
-# NEXT STEPS – STEP231
+# NEXT STEPS
 
-1. STEP231 testen.
-2. Optional HTTP-Page prüfen.
-3. STEP232: echte Dashboard-Shell/Navigationsintegration auf Basis des realen Dashboard-Stands.
+1. STEP232A entpacken.
+2. Apply-Script ausführen.
+3. Shell-Integration testen.

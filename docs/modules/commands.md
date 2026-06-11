@@ -1,3 +1,3 @@
-# Commands – STEP231
+# Commands – STEP232
 
-Keine Command-Runtime-Aenderung. `!gamble` nutzt weiterhin die vorhandene Command-Bridge und strukturierte Logs aus STEP224.
+Keine Änderung an commands.js. !gamble bleibt im zuletzt bestätigten Live-Zustand.

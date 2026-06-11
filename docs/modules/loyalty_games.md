@@ -1,3 +1,3 @@
-# Loyalty Games – STEP231
+# Loyalty Games – STEP232
 
-`!gamble` bleibt live/konfigurierbar wie STEP228a/STEP230a. STEP231 fuegt nur UI-Routing-/Navigation-Metadaten und einen nicht-invasiven Nav-Helper hinzu.
+STEP232 ergänzt eine kompakte Dashboard-Shell-Karte fuer Gamble. Runtime bleibt unverändert (0.2.7 aus STEP228).

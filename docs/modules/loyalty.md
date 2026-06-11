@@ -1,3 +1,3 @@
-# Loyalty – STEP231
+# Loyalty – STEP232
 
-Keine Loyalty-Core-Aenderung. Punkte-/Balance-Logik unveraendert.
+Keine Änderung an Punktelogik oder Datenbank.

@@ -1,3 +1,3 @@
-# Module Docs – STEP231
+# Module Docs – STEP232
 
-Gamble Dashboard Navigation/Routing vorbereitet.
+Dashboard-Shell-Integration für Loyalty Gamble vorbereitet.

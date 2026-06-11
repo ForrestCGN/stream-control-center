@@ -1,0 +1,39 @@
+{
+  "step": "STEP232_LWG7_3",
+  "module": "loyalty-gamble",
+  "title": "Loyalty Gamble",
+  "url": "/dashboard/loyalty-gamble.html",
+  "category": "loyalty",
+  "shellIntegration": {
+    "mode": "safe-inject-if-shell-found",
+    "cardScript": "/dashboard/modules/loyalty-gamble-shell-card.js",
+    "cardStyle": "/dashboard/modules/loyalty-gamble-shell-card.css",
+    "mountSelectors": [
+      "[data-dashboard-modules]",
+      "[data-dashboard-grid]",
+      "[data-module-grid]",
+      ".dashboard-grid",
+      ".module-grid",
+      ".cgn-dashboard-grid",
+      "main"
+    ],
+    "candidateShellFiles": [
+      "htdocs/dashboard/index.html",
+      "htdocs/dashboard/dashboard.html",
+      "htdocs/dashboard/admin.html",
+      "htdocs/dashboard/control-center.html"
+    ],
+    "overloaded": false,
+    "compact": true
+  },
+  "api": {
+    "status": "GET /api/loyalty/games/gamble/dashboard-config",
+    "audit": "GET /api/loyalty/games/gamble/dashboard-audit",
+    "write": "POST /api/loyalty/games/gamble/dashboard-config"
+  },
+  "notes": [
+    "Die Shell-Integration ist bewusst klein: eine kompakte Karte plus Link zur Detailseite.",
+    "Keine Hauptdashboard-Datei wird blind überschrieben. Apply erstellt Backup und nutzt Marker.",
+    "Wenn keine Shell-Datei gefunden wird, bleibt die Standalone-Seite unverändert nutzbar."
+  ]
+}

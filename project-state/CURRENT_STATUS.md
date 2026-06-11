@@ -1,3 +1,3 @@
-# CURRENT STATUS – STEP231
+# CURRENT STATUS
 
-Gamble Dashboard UI kompakt vorbereitet; Navigation/Routing vorbereitet; Backend unverändert.
+STEP232A / LWG-7.3a vorbereitet: Apply-Script Parserfix für Gamble Dashboard Shell Integration.

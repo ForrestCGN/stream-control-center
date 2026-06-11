@@ -1,0 +1,10 @@
+﻿{
+    "step":  "STEP232A_LWG7_3A",
+    "mode":  "safe-shell-integration-parserfix",
+    "shellFile":  "D:\\git\\stream-control-center\\htdocs\\dashboard\\index.html",
+    "changed":  true,
+    "alreadyIntegrated":  false,
+    "backedUpTo":  "D:\\git\\stream-control-center\\htdocs\\dashboard\\index.html.step232a_lwg7_3a_backup_20260611_202157",
+    "note":  "Shell-Datei sicher integriert. Backup erstellt.",
+    "checkedAt":  "2026-06-11T18:21:57.4060758Z"
+}

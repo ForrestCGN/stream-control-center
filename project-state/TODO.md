@@ -1,5 +1,3 @@
-# TODO – STEP231
+# TODO
 
-- Hauptdashboard-Link später fest einbauen, sobald echte Shell-Dateien geprüft wurden.
-- Statistiken später serverseitig aggregieren statt nur clientseitig aus Logs.
-- Config später rollenbasiert über echte Dashboard-Session absichern.
+- Nach erfolgreichem Test die echte Shell-Integration dokumentieren.

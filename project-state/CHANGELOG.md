@@ -1,6 +1,3 @@
-# CHANGELOG – STEP231
+# CHANGELOG
 
-- Breadcrumb in Gamble-Dashboard ergänzt.
-- Nicht-invasiven Nav-Helper ergänzt.
-- Navigation-Config ergänzt.
-- Testscript ergänzt.
+- STEP232A: Apply-Script PowerShell-5-kompatibel vereinfacht.
