@@ -18,7 +18,7 @@ const database = require("../core/database");
 
 const MODULE_NAME = "loyalty_giveaways";
 const MODULE_VERSION = "0.1.0";
-const MODULE_BUILD = "STEP_LWG_4O_2";
+const MODULE_BUILD = "STEP_LWG_4O_3";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -205,7 +205,9 @@ const MODULE_META = {
       "loyalty.giveaway.winner_drawn",
       "loyalty.giveaway.wheel_permission_created",
       "loyalty.giveaway.wheel_claimed",
-      "loyalty.giveaway.claim.chat_seen"
+      "loyalty.giveaway.claim.chat_window_opened",
+      "loyalty.giveaway.claim.chat_seen",
+      "loyalty.giveaway.claim.confirmed"
     ],
     consumes: [
       "twitch.chat.message"
@@ -407,11 +409,18 @@ let state = {
     skipped: 0,
     skippedNoClaimWindow: 0,
     skippedNoUser: 0,
+    skippedUserMismatch: 0,
+    confirmed: 0,
+    openWindows: 0,
+    expiredWindows: 0,
     emitted: 0,
+    lastClaimWinnerUid: "",
+    lastClaimGiveawayUid: "",
     lastMessageAt: "",
     lastMatchedAt: "",
     lastSkippedAt: "",
     lastSkippedReason: "",
+    lastConfirmedAt: "",
     lastUserLogin: "",
     lastMessagePreview: ""
   }
@@ -532,11 +541,223 @@ function normalizeChatBusEnvelope(envelope = {}) {
   };
 }
 
+function boolish(value, fallback = false) {
+  if (value === undefined || value === null || value === "") return fallback;
+  if (typeof value === "boolean") return value;
+  const clean = String(value).trim().toLowerCase();
+  if (["1", "true", "yes", "on", "enabled", "active"].includes(clean)) return true;
+  if (["0", "false", "no", "off", "disabled", "inactive"].includes(clean)) return false;
+  return fallback;
+}
+
+function claimWindowMsFromInput(input = {}, fallbackMs = 60000) {
+  const seconds = clampInt(input.claimTimeoutSeconds ?? input.claim_timeout_seconds ?? input.timeoutSeconds ?? input.timeout_seconds, 0, 0, 86400);
+  const millis = clampInt(input.claimTimeoutMs ?? input.claim_timeout_ms ?? input.timeoutMs ?? input.timeout_ms, 0, 0, 86400000);
+  if (millis > 0) return millis;
+  if (seconds > 0) return seconds * 1000;
+  return Math.max(1000, Number(fallbackMs || 60000));
+}
+
+function buildChatClaimSettings(input = {}) {
+  const raw = input.chatClaim && typeof input.chatClaim === "object" ? input.chatClaim : {};
+  const enabled = boolish(
+    raw.enabled ?? input.chatClaimEnabled ?? input.chat_claim_enabled ?? input.requireChatClaim ?? input.require_chat_claim,
+    false
+  );
+  const timeoutMs = claimWindowMsFromInput({ ...input, ...raw }, 60000);
+  return {
+    enabled,
+    mode: String(raw.mode || input.chatClaimMode || input.chat_claim_mode || "any_message").trim() || "any_message",
+    timeoutMs,
+    timeoutSeconds: Math.round(timeoutMs / 1000),
+    activateWheelAfterClaim: boolish(raw.activateWheelAfterClaim ?? input.activateWheelAfterClaim ?? input.activate_wheel_after_claim, true),
+    source: "loyalty_giveaways"
+  };
+}
+
+function getWinnerRow(winnerUid) {
+  ensureSchema();
+  const cleanWinnerUid = String(winnerUid || "").trim();
+  if (!cleanWinnerUid) return null;
+  return database.get("SELECT * FROM loyalty_giveaway_winners WHERE winner_uid = :winnerUid", { winnerUid: cleanWinnerUid });
+}
+
+function updateWinnerMetadata(winnerUid, updater) {
+  ensureSchema();
+  const row = getWinnerRow(winnerUid);
+  if (!row) return { ok: false, error: "winner_not_found", statusCode: 404 };
+  const current = parseJson(row.metadata_json, {});
+  const next = typeof updater === "function" ? (updater(current, row) || current) : { ...current, ...(updater || {}) };
+  database.run(`
+    UPDATE loyalty_giveaway_winners
+    SET metadata_json = :metadataJson
+    WHERE winner_uid = :winnerUid
+  `, {
+    winnerUid,
+    metadataJson: json(next)
+  });
+  return { ok: true, winner: rowToWinner(getWinnerRow(winnerUid)), metadata: next };
+}
+
+function openChatClaimWindowForWinner(giveawayUid, winnerUid, input = {}) {
+  ensureSchema();
+  const winnerRow = getWinnerRow(winnerUid);
+  if (!winnerRow) return { ok: false, error: "winner_not_found", statusCode: 404 };
+  if (String(winnerRow.giveaway_uid || "") !== String(giveawayUid || "")) {
+    return { ok: false, error: "winner_giveaway_mismatch", statusCode: 409 };
+  }
+
+  const giveaway = getGiveaway(giveawayUid, false);
+  if (!giveaway) return { ok: false, error: "giveaway_not_found", statusCode: 404 };
+  if (giveaway.deletedAt) return { ok: false, error: "giveaway_deleted", statusCode: 409 };
+
+  const now = nowIso();
+  const timeoutMs = claimWindowMsFromInput(input, 60000);
+  const expiresAt = input.expiresAt || new Date(Date.now() + timeoutMs).toISOString();
+  const claimUid = input.claimUid || uid("claim");
+
+  const updated = updateWinnerMetadata(winnerUid, (metadata) => ({
+    ...metadata,
+    chatClaim: {
+      ...(metadata.chatClaim && typeof metadata.chatClaim === "object" ? metadata.chatClaim : {}),
+      claimUid,
+      enabled: true,
+      status: "pending",
+      mode: String(input.mode || "any_message"),
+      openedAt: now,
+      expiresAt,
+      timeoutMs,
+      openedBy: String(input.actor || input.openedBy || "dashboard"),
+      confirmedAt: "",
+      confirmedByEventId: "",
+      confirmedMessagePreview: "",
+      lastSeenAt: "",
+      lastSeenEventId: ""
+    }
+  }));
+
+  if (!updated.ok) return updated;
+
+  createEvent({
+    giveawayUid,
+    roundUid: winnerRow.round_uid || "",
+    eventType: "loyalty.giveaway.claim.chat_window_opened",
+    actorType: "dashboard",
+    actorLogin: input.actor || input.openedBy || "",
+    oldStatus: "",
+    newStatus: "pending",
+    message: `Chat-Claim-Fenster fuer ${winnerRow.user_display_name || winnerRow.user_login} geoeffnet`,
+    metadata: { winnerUid, claimUid, expiresAt, timeoutMs }
+  });
+
+  emitEvent("loyalty.giveaway.claim.chat_window_opened", {
+    giveawayUid,
+    winnerUid,
+    claimUid,
+    userLogin: winnerRow.user_login || "",
+    userDisplayName: winnerRow.user_display_name || winnerRow.user_login || "",
+    expiresAt,
+    timeoutMs
+  });
+
+  state.chatClaimSubscriber.openWindows += 1;
+  return { ok: true, claimWindow: updated.winner.metadata.chatClaim, winner: updated.winner, giveaway: getGiveaway(giveawayUid, true) };
+}
+
 function getActiveClaimWindowForChat(chat = {}) {
-  // Foundation only: Die eigentliche Claim-Fenster-/Winner-Status-Migration kommt in LWG-4O.3.
-  // Dadurch kann der Subscriber gefahrlos live mitlaufen, ohne bestehende Winner/Wheel-Logik zu verändern.
-  void chat;
-  return { ok: true, active: false, reason: "claim_window_not_enabled_yet" };
+  ensureSchema();
+  const login = String(chat.userLogin || "").trim().replace(/^@/, "").toLowerCase();
+  if (!login) return { ok: true, active: false, reason: "user_missing" };
+
+  const rows = database.all(`
+    SELECT w.*
+    FROM loyalty_giveaway_winners w
+    JOIN loyalty_giveaways g ON g.giveaway_uid = w.giveaway_uid
+    WHERE w.user_login = :userLogin
+      AND w.status != 'cancelled'
+      AND g.deleted_at = ''
+    ORDER BY w.id DESC
+    LIMIT 50
+  `, { userLogin: login });
+
+  const nowMs = Date.now();
+  let expiredCount = 0;
+  for (const row of rows) {
+    const metadata = parseJson(row.metadata_json, {});
+    const claim = metadata.chatClaim && typeof metadata.chatClaim === "object" ? metadata.chatClaim : null;
+    if (!claim || claim.enabled !== true || claim.status !== "pending") continue;
+    const expiresMs = Date.parse(claim.expiresAt || "");
+    if (Number.isFinite(expiresMs) && expiresMs > 0 && expiresMs < nowMs) {
+      expiredCount += 1;
+      updateWinnerMetadata(row.winner_uid, (current) => ({
+        ...current,
+        chatClaim: {
+          ...(current.chatClaim && typeof current.chatClaim === "object" ? current.chatClaim : {}),
+          status: "expired",
+          expiredAt: nowIso()
+        }
+      }));
+      continue;
+    }
+    return { ok: true, active: true, winner: rowToWinner(row), claimWindow: claim };
+  }
+
+  if (expiredCount > 0) {
+    state.chatClaimSubscriber.expiredWindows += expiredCount;
+    return { ok: true, active: false, reason: "claim_window_expired", expired: expiredCount };
+  }
+
+  return { ok: true, active: false, reason: "no_pending_claim_window_for_user" };
+}
+
+function confirmChatClaimWindow(claimWindow, chat = {}) {
+  if (!claimWindow || !claimWindow.winner) return { ok: false, error: "claim_window_missing" };
+  const winner = claimWindow.winner;
+  const now = nowIso();
+  const messagePreview = previewChatMessage(chat.message || "");
+  const updated = updateWinnerMetadata(winner.winnerUid, (metadata) => ({
+    ...metadata,
+    chatClaim: {
+      ...(metadata.chatClaim && typeof metadata.chatClaim === "object" ? metadata.chatClaim : {}),
+      status: "confirmed",
+      confirmedAt: now,
+      confirmedByEventId: chat.eventId || "",
+      confirmedMessagePreview: messagePreview,
+      lastSeenAt: now,
+      lastSeenEventId: chat.eventId || "",
+      userLogin: chat.userLogin || winner.userLogin || "",
+      userDisplayName: chat.userDisplayName || winner.userDisplayName || ""
+    }
+  }));
+  if (!updated.ok) return updated;
+
+  createEvent({
+    giveawayUid: winner.giveawayUid,
+    roundUid: winner.roundUid || "",
+    eventType: "loyalty.giveaway.claim.confirmed",
+    actorType: "chat",
+    actorLogin: chat.userLogin || winner.userLogin || "",
+    oldStatus: "pending",
+    newStatus: "confirmed",
+    message: `${chat.userDisplayName || winner.userDisplayName || winner.userLogin} hat sich im Chat gemeldet`,
+    metadata: {
+      winnerUid: winner.winnerUid,
+      eventId: chat.eventId || "",
+      messagePreview
+    }
+  });
+
+  emitEvent("loyalty.giveaway.claim.confirmed", {
+    giveawayUid: winner.giveawayUid,
+    winnerUid: winner.winnerUid,
+    userLogin: chat.userLogin || winner.userLogin || "",
+    userDisplayName: chat.userDisplayName || winner.userDisplayName || "",
+    eventId: chat.eventId || "",
+    confirmedAt: now,
+    messagePreview
+  });
+
+  return { ok: true, winner: updated.winner, confirmedAt: now };
 }
 
 function handleTwitchChatMessageForClaim(envelope = {}) {
@@ -567,15 +788,30 @@ function handleTwitchChatMessageForClaim(envelope = {}) {
 
   stats.matched += 1;
   stats.lastMatchedAt = core.nowIso();
+  stats.lastClaimWinnerUid = claimWindow.winner ? claimWindow.winner.winnerUid : "";
+  stats.lastClaimGiveawayUid = claimWindow.winner ? claimWindow.winner.giveawayUid : "";
+
+  const confirmResult = confirmChatClaimWindow(claimWindow, chat);
+  if (!confirmResult.ok) {
+    stats.skipped += 1;
+    stats.lastSkippedAt = core.nowIso();
+    stats.lastSkippedReason = confirmResult.error || "claim_confirm_failed";
+    return { ok: true, skipped: true, reason: stats.lastSkippedReason, userLogin: chat.userLogin };
+  }
+
   emitEvent("loyalty.giveaway.claim.chat_seen", {
     userLogin: chat.userLogin,
     userDisplayName: chat.userDisplayName,
     eventId: chat.eventId,
     receivedAt: chat.receivedAt,
-    foundationOnly: true
+    winnerUid: confirmResult.winner ? confirmResult.winner.winnerUid : "",
+    giveawayUid: confirmResult.winner ? confirmResult.winner.giveawayUid : "",
+    confirmed: true
   });
+  stats.confirmed += 1;
+  stats.lastConfirmedAt = core.nowIso();
   stats.emitted += 1;
-  return { ok: true, matched: true, userLogin: chat.userLogin };
+  return { ok: true, matched: true, confirmed: true, userLogin: chat.userLogin, winnerUid: stats.lastClaimWinnerUid, giveawayUid: stats.lastClaimGiveawayUid };
 }
 
 function registerChatClaimSubscriber() {
@@ -588,15 +824,15 @@ function registerChatClaimSubscriber() {
   }
 
   const result = bus.subscribe({
-    id: "loyalty_giveaways:twitch.chat:message:claim_foundation",
+    id: "loyalty_giveaways:twitch.chat:message:claim_runtime",
     channel: "twitch.chat",
     action: "message",
     module: MODULE_NAME,
     capability: "twitch.chat.message",
     meta: {
-      step: "LWG-4O.2",
-      purpose: "giveaway_claim_foundation",
-      mode: "shadow_skip_until_claim_window_exists"
+      step: "LWG-4O.3",
+      purpose: "giveaway_claim_runtime",
+      mode: "confirm_pending_claim_window"
     }
   }, handleTwitchChatMessageForClaim);
 
@@ -2985,6 +3221,7 @@ function buildSettingsSnapshot(input = {}, roundPolicy = {}) {
     subscriberLuckMultiplier: clampInt(input.subscriberLuckMultiplier ?? input.subscriber_luck_multiplier, 1, 1, 1000),
     winnerCount: clampInt(input.winnerCount ?? input.winner_count, 1, 1, 9999),
     roundPolicy,
+    chatClaim: buildChatClaimSettings(input),
     prizes: Array.isArray(input.prizes) ? input.prizes : []
   };
 }
@@ -3936,7 +4173,8 @@ function buildStatus() {
         channel: "twitch.chat",
         action: "message",
         contract: "twitch.chat.message",
-        foundationOnly: true,
+        foundationOnly: false,
+        claimRuntime: true,
         ...state.chatClaimSubscriber
       },
       warnings: [
@@ -4005,6 +4243,8 @@ function registerRoutes(app) {
     "POST /api/loyalty/giveaways/:giveawayUid/entries",
     "POST /api/loyalty/giveaways/:giveawayUid/entries/:entryUid/cancel",
     "GET /api/loyalty/giveaways/:giveawayUid/winners",
+    "POST /api/loyalty/giveaways/:giveawayUid/winners/:winnerUid/claim/open",
+    "POST /api/loyalty/giveaways/:giveawayUid/winners/:winnerUid/claim/confirm",
     "POST /api/loyalty/giveaways/:giveawayUid/draw",
     "GET /api/loyalty/giveaways/:giveawayUid/wheel/bound",
     "PUT /api/loyalty/giveaways/:giveawayUid/wheel/bound",
@@ -4038,8 +4278,9 @@ function registerRoutes(app) {
         requireAck: false,
         priority: "P2"
       },
-      foundationOnly: true,
-      nextStep: "LWG-4O.3 aktiviert echte Claim-Fenster und Gewinner-Abgleich."
+      foundationOnly: false,
+      claimRuntime: true,
+      nextStep: "LWG-4O.4 verbindet Draw-Flow optional automatisch mit Claim-Pflicht/Wheel-Freigabe."
     });
   })));
 
@@ -4163,6 +4404,29 @@ function registerRoutes(app) {
   registered.push(...routes.registerGet(app, "/api/loyalty/giveaways/:giveawayUid/winners", core.asyncRoute(async (req, res) => {
     if (!getGiveaway(req.params.giveawayUid, false)) return core.sendFail(res, "giveaway_not_found", 404);
     return core.sendOk(res, listWinners(req.params.giveawayUid, req.query || {}));
+  })));
+
+  registered.push(...routes.registerPost(app, "/api/loyalty/giveaways/:giveawayUid/winners/:winnerUid/claim/open", core.asyncRoute(async (req, res) => {
+    const result = openChatClaimWindowForWinner(req.params.giveawayUid, req.params.winnerUid, req.body || {});
+    if (!result.ok) return core.sendFail(res, result.error || "claim_open_failed", result.statusCode || 409, result);
+    return core.sendOk(res, result);
+  })));
+
+  registered.push(...routes.registerPost(app, "/api/loyalty/giveaways/:giveawayUid/winners/:winnerUid/claim/confirm", core.asyncRoute(async (req, res) => {
+    const row = getWinnerRow(req.params.winnerUid);
+    if (!row || String(row.giveaway_uid || "") !== String(req.params.giveawayUid || "")) {
+      return core.sendFail(res, "winner_not_found", 404);
+    }
+    const claimWindow = { winner: rowToWinner(row), claimWindow: parseJson(row.metadata_json, {}).chatClaim || {} };
+    const result = confirmChatClaimWindow(claimWindow, {
+      userLogin: req.body?.userLogin || row.user_login || "",
+      userDisplayName: req.body?.userDisplayName || row.user_display_name || row.user_login || "",
+      message: req.body?.message || "manual_confirm",
+      eventId: req.body?.eventId || "manual_confirm",
+      receivedAt: nowIso()
+    });
+    if (!result.ok) return core.sendFail(res, result.error || "claim_confirm_failed", result.statusCode || 409, result);
+    return core.sendOk(res, result);
   })));
 
   registered.push(...routes.registerPost(app, "/api/loyalty/giveaways/:giveawayUid/draw", core.asyncRoute(async (req, res) => {
