@@ -1323,17 +1323,24 @@ window.LoyaltyGiveawaysModule = (function(){
     `;
   }
 
+  function setFormSectionHidden(el, hidden){
+    if (!el) return;
+    el.hidden = !!hidden;
+    el.classList.toggle('lgw-hidden', !!hidden);
+    el.style.display = hidden ? 'none' : '';
+  }
+
   function syncGiveawayFormVisibility(form){
     if (!form) return;
     const mode = String(form.querySelector('[name="mode"]')?.value || 'classic_single');
     const isWheelMode = mode.startsWith('wheel_');
     const claimToggle = form.querySelector('[name="chatClaimEnabled"]');
-    const claimEnabled = !isWheelMode && claimToggle?.checked === true;
-    form.querySelectorAll('[data-lgw-normal-claim]').forEach(el => { el.hidden = isWheelMode; });
-    form.querySelectorAll('[data-lgw-claim-options]').forEach(el => { el.hidden = !claimEnabled; });
-    form.querySelectorAll('[data-lgw-wheel-hint]').forEach(el => { el.hidden = !isWheelMode; });
-    form.querySelectorAll('[data-lgw-normal-prize]').forEach(el => { el.hidden = isWheelMode; });
     if (isWheelMode && claimToggle) claimToggle.checked = false;
+    const claimEnabled = !isWheelMode && claimToggle?.checked === true;
+    form.querySelectorAll('[data-lgw-normal-claim]').forEach(el => setFormSectionHidden(el, isWheelMode));
+    form.querySelectorAll('[data-lgw-claim-options]').forEach(el => setFormSectionHidden(el, !claimEnabled));
+    form.querySelectorAll('[data-lgw-wheel-hint]').forEach(el => setFormSectionHidden(el, !isWheelMode));
+    form.querySelectorAll('[data-lgw-normal-prize]').forEach(el => setFormSectionHidden(el, isWheelMode));
   }
 
   function renderModal(){
