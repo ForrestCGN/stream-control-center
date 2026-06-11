@@ -2993,7 +2993,28 @@ function refundTicketCostForEntry(entry, input = {}) {
 
   const metadata = parseJson(entry.metadata_json, {});
   if (metadata && metadata.costRefund && metadata.costRefund.transactionUid) {
-    return { ok: true, refunded: false, alreadyRefunded: true, amount: costBooked, transactionUid: metadata.costRefund.transactionUid };
+    return { ok: true, refunded: false, alreadyRefunded: true, amount: costBooked, transactionUid: metadata.costRefund.transactionUid, reason: "already_refunded_metadata" };
+  }
+
+  const existingRefund = database.get(`
+    SELECT transaction_uid, amount, mode, created_at
+    FROM loyalty_transactions
+    WHERE type = 'giveaway_ticket_refund'
+      AND reference_type = 'loyalty_giveaway_entry'
+      AND reference_id = :entryUid
+    ORDER BY id DESC
+    LIMIT 1
+  `, { entryUid: entry.entry_uid });
+
+  if (existingRefund) {
+    return {
+      ok: true,
+      refunded: false,
+      alreadyRefunded: true,
+      amount: Math.abs(Number(existingRefund.amount || costBooked)),
+      transactionUid: existingRefund.transaction_uid || "",
+      reason: "already_refunded_transaction"
+    };
   }
 
   const booking = metadata && metadata.costBooking && typeof metadata.costBooking === "object" ? metadata.costBooking : {};
@@ -3209,13 +3230,16 @@ function cancelEntry(giveawayUid, entryUid, input = {}) {
 
 
   const now = nowIso();
-  let refund = null;
+  const refundRequested = input.refundPaidTickets === true || input.refundPaidTickets === 1 || String(input.refundPaidTickets || "").toLowerCase() === "true";
+  let refund = { ok: true, refunded: false, amount: 0, reason: refundRequested ? "no_refund_needed" : "refund_not_requested" };
   try {
     const tx = database.transaction(() => {
-      refund = refundTicketCostForEntry(entry, {
-        actor: input.actor || "dashboard",
-        reason: input.reason || "entry_cancelled_refund"
-      });
+      if (refundRequested) {
+        refund = refundTicketCostForEntry(entry, {
+          actor: input.actor || "dashboard",
+          reason: input.reason || "entry_cancelled_refund"
+        });
+      }
       const existingMetadata = parseJson(entry.metadata_json, {});
       database.run(`
         UPDATE loyalty_giveaway_entries
@@ -3232,6 +3256,7 @@ function cancelEntry(giveawayUid, entryUid, input = {}) {
           ...existingMetadata,
           cancelReason: input.reason || "",
           cancelledBy: input.actor || "dashboard",
+          refundRequested: refundRequested,
           costRefund: refund && refund.refunded ? {
             transactionUid: refund.transactionUid || "",
             amount: refund.amount || 0,
@@ -4476,7 +4501,8 @@ function setGiveawayStatus(giveawayUid, status, input = {}) {
   }
 
   let refundSummary = null;
-  if (nextStatus === STATUS.CANCELLED || nextStatus === STATUS.DELETED) {
+  const refundRequested = input.refundPaidTickets === true || input.refundPaidTickets === 1 || String(input.refundPaidTickets || "").toLowerCase() === "true";
+  if ((nextStatus === STATUS.CANCELLED || nextStatus === STATUS.DELETED) && refundRequested) {
     refundSummary = refundActiveEntriesForGiveaway(giveawayUid, {
       actor: input.actor || "dashboard",
       reason: nextStatus === STATUS.DELETED ? "giveaway_deleted_refund" : "giveaway_cancelled_refund"
@@ -4509,7 +4535,12 @@ function setGiveawayStatus(giveawayUid, status, input = {}) {
     finishedAt: patch.finishedAt,
     cancelledAt: patch.cancelledAt,
     deletedAt: patch.deletedAt,
-    metadataJson: json({ ...parseJson(row.metadata_json, {}), lastStatusChangeReason: input.reason || "", lastStatusChangedAt: now })
+    metadataJson: json({
+      ...parseJson(row.metadata_json, {}),
+      lastStatusChangeReason: input.reason || "",
+      lastStatusChangedAt: now,
+      refundRequested: (nextStatus === STATUS.CANCELLED || nextStatus === STATUS.DELETED) ? refundRequested : undefined
+    })
   });
 
   const eventType = {
@@ -4528,11 +4559,11 @@ function setGiveawayStatus(giveawayUid, status, input = {}) {
     oldStatus: row.status,
     newStatus: nextStatus,
     message: input.reason || "",
-    metadata: refundSummary ? { refunds: refundSummary } : {}
+    metadata: (nextStatus === STATUS.CANCELLED || nextStatus === STATUS.DELETED) ? { refundRequested, refunds: refundSummary || { ok: true, count: 0, refundedAmount: 0, rows: [], reason: "refund_not_requested" } } : {}
   });
-  emitEvent(eventType, { giveawayUid, oldStatus: row.status, newStatus: nextStatus, refunds: refundSummary || null });
+  emitEvent(eventType, { giveawayUid, oldStatus: row.status, newStatus: nextStatus, refundRequested, refunds: refundSummary || null });
 
-  const response = { ok: true, giveaway: getGiveaway(giveawayUid, true) };
+  const response = { ok: true, giveaway: getGiveaway(giveawayUid, true), refundRequested, refunds: refundSummary || null };
   if (activatedBoundWheel) response.boundWheel = activatedBoundWheel;
   if (refundSummary) response.refunds = refundSummary;
   if (nextStatus === STATUS.CLOSED_FOR_ENTRIES) {
