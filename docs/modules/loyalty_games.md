@@ -1,23 +1,40 @@
 # Modul: loyalty_games
 
 Stand: 2026-06-11  
-Aktueller Stand: LWG-5.6 Kontext
+Aktueller bestätigter Stand: STEP215 / LWG-5.7
+
+## Zweck
+
+`loyalty_games` ist das vorbereitete Runtime-Modul für spätere Kekskrümel-Spiele wie Gamble, Duell, Raffle/Roulette.
 
 ## Aktueller Status
 
-```text
-loyalty_games v0.2.2 / STEP_LWG_5_2_STATUS_CLEANUP
-```
+Das Modul bleibt online/geladen, aber spielbezogene Commands bleiben deaktiviert.
 
-## Gamble
-
-`!gamble` ist vorbereitet, aber weiterhin nicht freigegeben.
-
-Wichtig:
+## Weiterhin nicht freigegeben
 
 ```text
-- Gamble nutzt später serverseitige nicht vorhersagbare Zufallsentscheidung.
-- Kein Math.random, sondern crypto.randomInt.
-- Einsatz darf nie größer als verfügbare Kekskrümel sein.
-- Command bleibt deaktiviert, bis Points-Command und Chat-Ausgabe stabil bestätigt sind.
+!gamble
+!duell
+!roulette
+!raffle
 ```
+
+## Gamble-Vorbereitung
+
+`!gamble` ist vorbereitet, aber nicht live freigegeben.
+
+Wichtige Designregel für später:
+
+```text
+- serverseitige Zufallslogik
+- crypto.randomInt
+- keine vorhersagbaren Seeds
+- Einsatz maximal verfügbare Punkte
+- klare Cooldowns/Settings
+- Antwort über zentrale commands.js/twitch_presence-Brücke
+```
+
+## Nächster möglicher Schritt
+
+Nach STEP215 kann kontrolliert mit Admin-Points oder Gamble-API-/Live-Test weitergemacht werden. Keine Aktivierung ohne eigenen STEP und Testplan.

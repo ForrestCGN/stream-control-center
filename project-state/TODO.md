@@ -1,28 +1,30 @@
-# TODO – stream-control-center
+# TODO
 
 Stand: 2026-06-11
 
-## Erledigt / bestätigt
+## Erledigt
 
-- [x] STEP209 / LWG-5.1 Loyalty Safety Layer + Gamble vorbereitet.
-- [x] STEP210 / LWG-5.2 API-/Status-Cleanup.
-- [x] STEP212b / LWG-5.4b Points Runtime kontrolliert bestätigt.
-- [x] STEP213 / LWG-5.5 !punkte / !points Command-Freigabe technisch bestätigt.
+- [x] Loyalty-Safety-Layer vorbereitet.
+- [x] `!punkte / !points` Command aktiviert.
+- [x] Command-System empfängt Twitch-Chat über EventBus.
+- [x] Loyalty Runtime erzeugt korrekte Points-/Ranking-Antwort.
+- [x] Zentrale Chat-Ausgabe über vorhandenes `twitch_presence` integriert.
+- [x] STEP214 Live-Test erfolgreich.
+- [x] STEP215 Dokuabschluss erstellt.
 
-## Aktuell
+## Offen
 
-- [ ] STEP214 / LWG-5.6 Command Result Chat Send Bridge anwenden.
-- [ ] Backend neu starten.
-- [ ] `Configure_STEP214...` ausführen.
-- [ ] `Test_STEP214...` ausführen.
-- [ ] StreamElements `!points` / `!punkte` deaktivieren.
-- [ ] Echten Chat-Test mit `!punkte` und `!points` bestätigen.
+- [ ] StreamElements `!points` / `!punkte` deaktivieren/umbenennen.
+- [ ] Admin-Points kontrolliert testen/freigeben.
+- [ ] Gamble kontrolliert testen/freigeben.
+- [ ] Duell-System später planen.
+- [ ] Raffle/Roulette später planen.
+- [ ] Dashboard-Konfiguration für Loyalty-Texte/Settings weiterführen.
 
-## Weiterhin nicht freigegeben
+## Verbindliche Regeln
 
-- [ ] !givepoints
-- [ ] !setpoint
-- [ ] !gamble
-- [ ] !duell
-- [ ] !raffle
-- [ ] !roulette
+- Keine Funktionalität entfernen.
+- Keine Parallel-Sender für Twitch-Chat bauen.
+- Keine DB überschreiben/ersetzen.
+- Neue STEP-Stände dokumentieren.
+- GitHub/dev und Live bewusst synchron halten.

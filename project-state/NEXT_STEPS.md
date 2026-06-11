@@ -1,23 +1,55 @@
-# NEXT_STEPS – stream-control-center
+# NEXT_STEPS
 
 Stand: 2026-06-11
 
-## Direkt nächster Schritt
+## Direkt als nächstes
+
+1. StreamElements `!points` / `!punkte` deaktivieren oder umbenennen.
+2. Im echten Twitch-Chat final prüfen:
 
 ```text
-STEP214 anwenden, Backend neu starten, !punkte Chat-Ausgabe testen.
+!punkte
+!points
 ```
 
-## Danach
+## Nächster Entwicklungs-STEP Vorschlag
 
-Wenn STEP214 grün ist:
+### STEP216 / LWG-5.8 – Admin-Points kontrolliert testen
+
+Ziel:
 
 ```text
-STEP215 – !punkte Live-Freigabe dokumentieren und StreamElements-Altcommand deaktiviert bestätigen.
+!givepoints @user amount
+!punkte give @user amount
+!setpoint @user amount
+!punkte set @user amount
 ```
 
-Danach erst weiter mit:
+Regeln:
 
 ```text
-!givepoints / !setpoint oder !gamble Testfreigabe
+- givepoints nur Mod/Streamer
+- setpoint nur Streamer/Owner
+- Transaktionshistorie erhalten
+- Test mit Dummy/User und Rückbuchung
+- keine breite Freigabe ohne Test
+```
+
+## Danach möglich
+
+### STEP217 / LWG-5.9 – Gamble kontrollierter Test
+
+```text
+!gamble 100
+!gamble 50%
+```
+
+Regeln:
+
+```text
+- crypto.randomInt
+- nicht vorhersagbar
+- Einsatz maximal verfügbare Punkte
+- Config/Cooldowns/Textvarianten prüfen
+- erst API-Test, dann Live-Freigabe
 ```

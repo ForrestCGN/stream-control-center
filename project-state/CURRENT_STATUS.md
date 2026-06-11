@@ -1,33 +1,51 @@
-# CURRENT_STATUS – stream-control-center
+# CURRENT_STATUS
 
-Stand: 2026-06-11
+Stand: 2026-06-11  
+Aktueller Stand: STEP215 / LWG-5.7
 
-## Aktueller bestätigter Arbeitsstand
-
-```text
-STEP214 / LWG-5.6 – Command Result Chat Send Bridge
-```
-
-## Was wurde erreicht
+## Bestätigt live
 
 ```text
-- !punkte / !points ist im Command-System aktiv.
-- Der Loyalty-Endpoint erzeugt korrekte Antworttexte.
-- commands.js wird um eine zentrale Chat-Send-Brücke erweitert.
-- Die Brücke nutzt das vorhandene Modul twitch_presence.js.
-- Kein neuer Twitch-Chat-Sender wird gebaut.
+!punkte / !points läuft über Node und antwortet im Twitch-Chat.
 ```
 
-## Wichtiger Befund vor STEP214
+## Technischer Stand
 
 ```text
-!punkte wurde erfolgreich ausgeführt.
-Die Antwort lag im command_execution_log unter result.message vor.
-Im Twitch-Chat war aber keine Node-Antwort sichtbar, weil commands.js das Result noch nicht weiter an twitch_presence gesendet hat.
+commands.js      0.2.2 / LWG_5_6_COMMAND_RESULT_CHAT_SEND_BRIDGE
+loyalty.js       0.1.13 / STEP210 Status Cleanup
+twitch_presence  verbunden/joined im erfolgreichen Test
 ```
 
-## Noch wichtig
+## Erfolgreich getestet
 
 ```text
-StreamElements !points / !punkte deaktivieren, sonst kommen alte SE-Antworten parallel.
+commands status        OK
+presence joined        OK
+punkte config          OK
+execute sends chat     OK
+presence send count    OK
+log contains chatReply OK
 ```
+
+## Aktiv
+
+```text
+!punkte
+!points
+```
+
+## Nicht aktiv / nicht freigegeben
+
+```text
+!givepoints
+!setpoint
+!gamble
+!duell
+!raffle
+!roulette
+```
+
+## Externer offener Punkt
+
+StreamElements `!points` / `!punkte` deaktivieren oder umbenennen.

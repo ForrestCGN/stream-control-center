@@ -2,10 +2,10 @@
 
 Stand: 2026-06-11
 
-## Aktueller Bereich
+## Aktueller bestätigter Bereich
 
 ```text
-STEP214 / LWG-5.6 – Command Result Chat Send Bridge
+STEP215 / LWG-5.7 – Live-Abschluss Points + Command-Chat-Brücke
 ```
 
 ## Relevante Module
@@ -17,6 +17,10 @@ twitch_presence
 loyalty_games
 ```
 
-## Regel
+## Bestätigt
+
+`!punkte / !points` läuft live über Node und sendet die Antwort zentral über `twitch_presence` in den Twitch-Chat.
+
+## Verbindliche Regel
 
 Keine neuen Parallel-Sender bauen. Für Twitch-Chat-Ausgaben wird das vorhandene `twitch_presence`-Modul genutzt.

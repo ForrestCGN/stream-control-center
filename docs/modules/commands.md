@@ -1,65 +1,64 @@
 # Modul: commands
 
 Stand: 2026-06-11  
-Aktueller bestätigter Zielstand: STEP214 / LWG-5.6
+Aktueller bestätigter Stand: STEP215 / LWG-5.7
 
 ## Zweck
 
 `commands` ist das zentrale Chat-Command-System. Es verarbeitet Twitch-Chat-Events über den Communication Bus, prüft Command-Definitionen, Berechtigungen und Cooldowns und ruft anschließend die Zielmodule per HTTP auf.
 
-## STEP214 / LWG-5.6
-
-Neu vorbereitet:
+## Bestätigte Runtime-Version
 
 ```text
-Command-Result-Chat-Send-Bridge
+moduleVersion = 0.2.2
+moduleBuild   = LWG_5_6_COMMAND_RESULT_CHAT_SEND_BRIDGE
 ```
 
-Ablauf:
+## Bestätigte Chat-Result-Brücke
+
+Die in STEP214 gebaute Brücke ist live getestet:
 
 ```text
-Command erkannt
-→ Zielmodul ausführen
+commands.js
+→ Modul-Command ausführen
 → result.data.message lesen
-→ falls Command-Konfiguration sendResultToChat=true
-→ vorhandenes twitch_presence.sendChatMessage(...) nutzen
-→ Ergebnis im command_execution_log dokumentieren
+→ wenn config.sendResultToChat=true
+→ twitch_presence.sendChatMessage(...)
+→ Send-Ergebnis als chatReply im command_execution_log speichern
 ```
 
-## Wichtig
-
-Es wird kein neuer Twitch-Sender gebaut. Die Ausgabe läuft über:
+## Bestätigter Test
 
 ```text
-backend/modules/twitch_presence.js
+commands status        OK
+execute sends chat     OK
+log contains chatReply OK
 ```
 
-## Schutz gegen doppelte Ausgaben
+## Wichtige Regeln
 
-Die zentrale Ausgabe wird nur aktiv, wenn ein Command bzw. das Modul-Result dies ausdrücklich erlaubt:
+- Keine neue Twitch-Sendelogik in einzelnen Modulen bauen.
+- Module liefern `message` zurück.
+- `commands.js` entscheidet anhand der Command-Config, ob eine Chat-Antwort gesendet wird.
+- Für Twitch-Chat wird `twitch_presence.sendChatMessage(...)` genutzt.
+- Commands, die selbst senden, dürfen nicht zusätzlich zentral senden.
+
+## Aktive Command-Freigabe
 
 ```text
+punkte → enabled=true
+points → Alias von punkte
 config.sendResultToChat=true
-oder result.data.send=true / result.data.streamerbot_send=1
+config.resultChatTarget=twitch_presence
 ```
 
-Damit senden bestehende Module nicht plötzlich doppelt.
-
-## Aktueller Einsatz
-
-Aktiviert für:
+## Nicht automatisch freigegeben
 
 ```text
-!punkte / !points
-```
-
-Nicht aktiviert für:
-
-```text
-!givepoints
-!setpoint
-!gamble
-!duell
-!raffle
-!roulette
+givepoints
+setpoint
+gamble
+duell
+raffle
+roulette
 ```

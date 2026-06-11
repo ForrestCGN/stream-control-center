@@ -1,34 +1,26 @@
-# CHANGELOG – stream-control-center
+# CHANGELOG
 
-Stand: 2026-06-11
+## STEP215 / LWG-5.7 – 2026-06-11
 
-## 2026-06-11 – STEP214 / LWG-5.6 Command Result Chat Send Bridge
+### Dokumentation
 
-### Geändert
+- Live-Abschluss nach erfolgreichem STEP214-Test dokumentiert.
+- `!punkte / !points` als aktiv bestätigter Node-Command festgehalten.
+- Zentrale Chat-Ausgabe über `twitch_presence` als bestätigte Standardlösung dokumentiert.
+- NEXT_STEPS/TODO/CURRENT_STATUS aktualisiert.
 
-```text
-backend/modules/commands.js (per Apply-Script)
-```
-
-### Ergebnis
-
-```text
-commands.js kann Modul-Result-Nachrichten zentral in den Twitch-Chat senden.
-Dazu wird das vorhandene twitch_presence.sendChatMessage(...) genutzt.
-Die Ausgabe ist config-gesteuert, damit bestehende Commands nicht doppelt senden.
-```
-
-### Für !punkte
+### Keine Runtime-Änderungen
 
 ```text
-!punkte / !points bekommt config.sendResultToChat=true.
+Keine JS-Dateien
+Keine DB-Dateien
+Keine Secrets
+Keine neuen aktivierten Commands
 ```
 
-### Keine Änderung
+## STEP214 / LWG-5.6
 
-```text
-Keine neue Twitch-Sender-Implementierung.
-Keine Datenbank-Ersetzung.
-Keine Secret-Dateien.
-Keine Gamble-Aktivierung.
-```
+- Command Result Chat Send Bridge in `commands.js` integriert.
+- `result.data.message` kann zentral über `twitch_presence.sendChatMessage(...)` in den Chat gesendet werden.
+- `!punkte / !points` mit `sendResultToChat=true` konfiguriert.
+- Live-Test erfolgreich bestätigt.
