@@ -115,7 +115,7 @@ window.LoyaltyGiveawaysModule = (function(){
 
   function isArchiveEligibleGiveaway(g){
     const s = norm(g?.status);
-    return ['finished','cancelled','canceled','exhausted','wheel_completed'].includes(s);
+    return s === 'finished';
   }
 
   function canArchiveGiveaway(g){
@@ -864,7 +864,7 @@ window.LoyaltyGiveawaysModule = (function(){
       },
       hardDelete: {
         path: `${api.detailBase}/${encoded}/hard-delete`,
-        confirm: 'Giveaway WIRKLICH dauerhaft löschen? Das entfernt Giveaway, Entries, Gewinner, Preise, Runden und Glücksrad-Bindung. Es wird dabei NICHT automatisch rückerstattet. Loyalty-Transaktionen bleiben als Punkte-Audit erhalten. Dieser Schritt kann nicht rückgängig gemacht werden.',
+        confirm: 'Giveaway WIRKLICH dauerhaft löschen? Das entfernt dieses Giveaway komplett aus der Giveaway-Datenbank. Es wird dabei NICHT automatisch rückerstattet. Loyalty-Transaktionen bleiben als Punkte-Audit erhalten. Dieser Schritt kann nicht rückgängig gemacht werden.',
         body: () => ({ actor: 'dashboard', reason: 'dashboard_hard_delete', confirmHardDelete: true })
       }
     };

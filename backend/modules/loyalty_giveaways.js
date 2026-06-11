@@ -23,7 +23,7 @@ const loyaltyCore = require("./loyalty");
 
 const MODULE_NAME = "loyalty_giveaways";
 const MODULE_VERSION = "0.1.1";
-const MODULE_BUILD = "STEP_LWG_4Q_1";
+const MODULE_BUILD = "STEP_LWG_4Q_9";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -5421,13 +5421,13 @@ function registerRoutes(app) {
     const row = getGiveawayRow(req.params.giveawayUid);
     if (!row) return core.sendFail(res, "giveaway_not_found", 404);
     const currentStatus = cleanStatus(row.status, STATUS.DRAFT);
-    const archiveAllowed = new Set([STATUS.FINISHED, STATUS.CANCELLED, STATUS.PRIZES_EXHAUSTED, STATUS.DELETED]);
+    const archiveAllowed = new Set([STATUS.FINISHED, STATUS.DELETED]);
     if (!archiveAllowed.has(currentStatus)) {
-      return core.sendFail(res, "giveaway_archive_requires_completed", 409, {
+      return core.sendFail(res, "giveaway_archive_requires_finished", 409, {
         ok: false,
-        error: "giveaway_archive_requires_completed",
+        error: "giveaway_archive_requires_finished",
         status: currentStatus,
-        message: "Archivieren ist nur für beendete, abgebrochene oder aufgebrauchte Giveaways erlaubt. Entwürfe oder laufende Giveaways bitte dauerhaft löschen oder vorher abschließen/abbrechen."
+        message: "Archivieren ist nur für vollständig beendete Giveaways erlaubt. Entwürfe, offene, wartende, abgebrochene oder aufgebrauchte Giveaways bitte dauerhaft löschen oder zuerst regulär beenden."
       });
     }
     const result = setGiveawayStatus(req.params.giveawayUid, STATUS.DELETED, req.body || {});

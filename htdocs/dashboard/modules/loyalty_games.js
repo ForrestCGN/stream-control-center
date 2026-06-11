@@ -614,13 +614,13 @@ window.LoyaltyGamesModule = (function(){
     else if (action === 'close') path = `/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}/close-entries`;
     else if (action === 'finish') { path = `/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}/finish`; confirmText = 'Giveaway wirklich beenden? Danach ist es read-only.'; }
     else if (action === 'cancel') { path = `/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}/cancel`; confirmText = 'Giveaway wirklich abbrechen?'; }
-    else if (action === 'delete') { path = `/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}/delete`; confirmText = 'Giveaway wirklich löschen? Es wird als gelöscht markiert.'; }
+    else if (action === 'delete') { path = `/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}/hard-delete`; confirmText = 'Giveaway WIRKLICH dauerhaft löschen? Dieser Schritt kann nicht rückgängig gemacht werden.'; }
     if (!path) return;
     if (confirmText && !window.confirm(confirmText)) return;
 
     state.saving = true; render();
     try {
-      const body = action === 'copy' ? { title: `Kopie von ${state.selectedGiveaway?.title || 'Giveaway'}`, actor: 'dashboard' } : { actor: 'dashboard' };
+      const body = action === 'copy' ? { title: `Kopie von ${state.selectedGiveaway?.title || 'Giveaway'}`, actor: 'dashboard' } : (action === 'delete' ? { actor: 'dashboard', reason: 'dashboard_hard_delete_from_legacy_guard', confirmHardDelete: true } : { actor: 'dashboard' });
       const result = await apiPost(path, body);
       const uid = result.giveaway?.giveawayUid || giveawayUid;
       await refreshGiveaways(uid);
