@@ -18,7 +18,7 @@ const database = require("../core/database");
 
 const MODULE_NAME = "loyalty_giveaways";
 const MODULE_VERSION = "0.1.0";
-const MODULE_BUILD = "STEP_LWG_4N_8";
+const MODULE_BUILD = "STEP_LWG_4O_2";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -204,9 +204,12 @@ const MODULE_META = {
       "loyalty.giveaway.deleted",
       "loyalty.giveaway.winner_drawn",
       "loyalty.giveaway.wheel_permission_created",
-      "loyalty.giveaway.wheel_claimed"
+      "loyalty.giveaway.wheel_claimed",
+      "loyalty.giveaway.claim.chat_seen"
     ],
-    consumes: []
+    consumes: [
+      "twitch.chat.message"
+    ]
   },
   legacy: false,
   description: "Loyalty giveaway backend foundation"
@@ -394,7 +397,24 @@ let state = {
   schemaReady: false,
   routeCount: 0,
   lastError: "",
-  eventBusReady: false
+  eventBusReady: false,
+  chatClaimSubscriber: {
+    registered: false,
+    subscriptionId: "",
+    lastError: "",
+    seen: 0,
+    matched: 0,
+    skipped: 0,
+    skippedNoClaimWindow: 0,
+    skippedNoUser: 0,
+    emitted: 0,
+    lastMessageAt: "",
+    lastMatchedAt: "",
+    lastSkippedAt: "",
+    lastSkippedReason: "",
+    lastUserLogin: "",
+    lastMessagePreview: ""
+  }
 };
 
 function uid(prefix = "uid") {
@@ -472,6 +492,118 @@ function emitEvent(type, payload = {}) {
   }
 
   return delivered;
+}
+
+function getCommunicationBusDirect() {
+  try {
+    const communicationBus = require("./communication_bus");
+    if (communicationBus && typeof communicationBus.getBus === "function") return communicationBus.getBus();
+  } catch (err) {
+    state.lastError = err && err.message ? err.message : String(err);
+  }
+  return null;
+}
+
+function previewChatMessage(value, maxLength = 120) {
+  const clean = String(value || "").replace(/\s+/g, " ").trim();
+  if (clean.length <= maxLength) return clean;
+  return `${clean.slice(0, Math.max(0, maxLength - 3))}...`;
+}
+
+function normalizeChatBusEnvelope(envelope = {}) {
+  const payload = envelope && typeof envelope === "object" && envelope.payload && typeof envelope.payload === "object"
+    ? envelope.payload
+    : {};
+  const user = payload.user && typeof payload.user === "object" ? payload.user : {};
+  const badges = payload.badges && typeof payload.badges === "object" ? payload.badges : (user.badges && typeof user.badges === "object" ? user.badges : {});
+  const message = String(payload.message || payload.rawMessage || payload.text || "");
+  const userLogin = String(payload.userLogin || payload.login || user.login || user.userLogin || "").trim().replace(/^@/, "").toLowerCase();
+  const userDisplayName = String(payload.userDisplayName || payload.displayName || user.displayName || userLogin || "").trim();
+  return {
+    eventId: envelope.id || (envelope.event && envelope.event.id) || "",
+    channel: payload.channel || envelope.channel || "",
+    source: payload.source || (envelope.source && envelope.source.module) || "",
+    userLogin,
+    userDisplayName,
+    userId: String(payload.userId || user.userId || "").trim(),
+    message,
+    badges,
+    receivedAt: payload.receivedAt || envelope.timestamp || core.nowIso()
+  };
+}
+
+function getActiveClaimWindowForChat(chat = {}) {
+  // Foundation only: Die eigentliche Claim-Fenster-/Winner-Status-Migration kommt in LWG-4O.3.
+  // Dadurch kann der Subscriber gefahrlos live mitlaufen, ohne bestehende Winner/Wheel-Logik zu verändern.
+  void chat;
+  return { ok: true, active: false, reason: "claim_window_not_enabled_yet" };
+}
+
+function handleTwitchChatMessageForClaim(envelope = {}) {
+  const stats = state.chatClaimSubscriber;
+  stats.seen += 1;
+  stats.lastMessageAt = core.nowIso();
+
+  const chat = normalizeChatBusEnvelope(envelope);
+  stats.lastUserLogin = chat.userLogin || "";
+  stats.lastMessagePreview = previewChatMessage(chat.message || "");
+
+  if (!chat.userLogin) {
+    stats.skipped += 1;
+    stats.skippedNoUser += 1;
+    stats.lastSkippedAt = core.nowIso();
+    stats.lastSkippedReason = "user_missing";
+    return { ok: true, skipped: true, reason: "user_missing" };
+  }
+
+  const claimWindow = getActiveClaimWindowForChat(chat);
+  if (!claimWindow || claimWindow.active !== true) {
+    stats.skipped += 1;
+    stats.skippedNoClaimWindow += 1;
+    stats.lastSkippedAt = core.nowIso();
+    stats.lastSkippedReason = claimWindow && claimWindow.reason ? claimWindow.reason : "no_active_claim_window";
+    return { ok: true, skipped: true, reason: stats.lastSkippedReason, userLogin: chat.userLogin };
+  }
+
+  stats.matched += 1;
+  stats.lastMatchedAt = core.nowIso();
+  emitEvent("loyalty.giveaway.claim.chat_seen", {
+    userLogin: chat.userLogin,
+    userDisplayName: chat.userDisplayName,
+    eventId: chat.eventId,
+    receivedAt: chat.receivedAt,
+    foundationOnly: true
+  });
+  stats.emitted += 1;
+  return { ok: true, matched: true, userLogin: chat.userLogin };
+}
+
+function registerChatClaimSubscriber() {
+  const stats = state.chatClaimSubscriber;
+  const bus = getCommunicationBusDirect();
+  if (!bus || typeof bus.subscribe !== "function") {
+    stats.registered = false;
+    stats.lastError = "communication_bus_subscribe_unavailable";
+    return { ok: false, reason: stats.lastError };
+  }
+
+  const result = bus.subscribe({
+    id: "loyalty_giveaways:twitch.chat:message:claim_foundation",
+    channel: "twitch.chat",
+    action: "message",
+    module: MODULE_NAME,
+    capability: "twitch.chat.message",
+    meta: {
+      step: "LWG-4O.2",
+      purpose: "giveaway_claim_foundation",
+      mode: "shadow_skip_until_claim_window_exists"
+    }
+  }, handleTwitchChatMessageForClaim);
+
+  stats.registered = result && result.ok === true;
+  stats.subscriptionId = result && result.subscription ? result.subscription.id : "";
+  stats.lastError = stats.registered ? "" : (result && result.reason ? result.reason : "subscribe_failed");
+  return result;
 }
 
 function shouldSendChatForRequest(input = {}) {
@@ -3799,6 +3931,14 @@ function buildStatus() {
         mode: state.eventBusReady ? "existing_communication_bus_direct" : "broadcast_only",
         moduleBus: moduleBusHandle && typeof moduleBusHandle.getState === "function" ? moduleBusHandle.getState() : null
       },
+      chatClaimSubscriber: {
+        enabled: true,
+        channel: "twitch.chat",
+        action: "message",
+        contract: "twitch.chat.message",
+        foundationOnly: true,
+        ...state.chatClaimSubscriber
+      },
       warnings: [
         "Chat-Commands !ticket, !wheel und !rad sind intern eingetragen und zentral vorbereitet, aber bewusst nicht aktiv.",
         "Draw ist ab STEP_LWG_4M_2 nur nach closed_for_entries erlaubt.",
@@ -3842,6 +3982,7 @@ function registerRoutes(app) {
 
   const routeNames = [
     "GET /api/loyalty/giveaways/status",
+    "GET /api/loyalty/giveaways/chat-claim/status",
     "GET /api/loyalty/giveaways/routes",
     "POST /api/loyalty/giveaways/runtime/chat-command",
     "POST /api/loyalty/giveaways/runtime/command",
@@ -3880,6 +4021,26 @@ function registerRoutes(app) {
 
   registered.push(...routes.registerGet(app, "/api/loyalty/giveaways/status", core.asyncRoute(async (req, res) => {
     core.sendOk(res, buildStatus());
+  })));
+
+  registered.push(...routes.registerGet(app, "/api/loyalty/giveaways/chat-claim/status", core.asyncRoute(async (req, res) => {
+    core.sendOk(res, {
+      ok: true,
+      module: MODULE_NAME,
+      moduleVersion: MODULE_VERSION,
+      moduleBuild: MODULE_BUILD,
+      subscriber: state.chatClaimSubscriber,
+      busContract: {
+        channel: "twitch.chat",
+        action: "message",
+        event: "twitch.chat.message",
+        replayable: false,
+        requireAck: false,
+        priority: "P2"
+      },
+      foundationOnly: true,
+      nextStep: "LWG-4O.3 aktiviert echte Claim-Fenster und Gewinner-Abgleich."
+    });
   })));
 
   registered.push(...routes.registerGet(app, "/api/loyalty/giveaways/routes", core.asyncRoute(async (req, res) => {
@@ -4038,7 +4199,14 @@ function registerRoutes(app) {
     if (!getGiveaway(req.params.giveawayUid, false)) return core.sendFail(res, "giveaway_not_found", 404);
     const result = listBoundWheelFields(req.params.giveawayUid, req.query || {});
     if (!result.ok) return core.sendFail(res, result.error || "bound_wheel_fields_failed", result.statusCode || 409, result);
-    return core.sendOk(res, result);
+    const rows = Array.isArray(result.rows) ? result.rows : [];
+    return core.sendOk(res, {
+      ...result,
+      count: Number(result.count || rows.length || 0),
+      fieldCount: Number(result.count || rows.length || 0),
+      rows,
+      fields: rows
+    });
   })));
 
   registered.push(...routes.registerPost(app, "/api/loyalty/giveaways/:giveawayUid/wheel/bound/fields", core.asyncRoute(async (req, res) => {
@@ -4092,8 +4260,14 @@ function init(ctx = {}) {
     moduleBusHandle = createCommunicationBusHandle(MODULE_META, buildStatus);
     const moduleBusStart = moduleBusHandle.start();
     state.eventBusReady = moduleBusStart && moduleBusStart.ok === true;
+    const chatClaimSubscriberStart = registerChatClaimSubscriber();
+    if (!chatClaimSubscriberStart || chatClaimSubscriberStart.ok !== true) {
+      state.chatClaimSubscriber.lastError = chatClaimSubscriberStart && chatClaimSubscriberStart.reason
+        ? chatClaimSubscriberStart.reason
+        : (state.chatClaimSubscriber.lastError || "chat_claim_subscriber_start_failed");
+    }
 
-    console.log(`[${MODULE_NAME}] loaded v${MODULE_VERSION} enabled=true communicationBus=${state.eventBusReady ? "ready" : "unavailable"}`);
+    console.log(`[${MODULE_NAME}] loaded v${MODULE_VERSION} enabled=true communicationBus=${state.eventBusReady ? "ready" : "unavailable"} chatClaimSubscriber=${state.chatClaimSubscriber.registered ? "ready" : "unavailable"}`);
   } catch (err) {
     state.lastError = err && err.message ? err.message : String(err);
     state.schemaReady = false;
@@ -4112,6 +4286,8 @@ module.exports = {
     BOUND_WHEEL_STATUS,
     buildStatus,
     ensureSchema,
+    registerChatClaimSubscriber,
+    handleTwitchChatMessageForClaim,
     createGiveaway,
     updateGiveaway,
     copyGiveaway,
