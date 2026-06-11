@@ -279,3 +279,31 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* STEP LWG-4P.2a - active giveaway cards get a dedicated manage button */
+.lgw-active-card {
+  cursor: default;
+}
+
+.lgw-active-card-main {
+  display: grid;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  padding: 0;
+  cursor: pointer;
+}
+
+.lgw-active-card-main strong,
+.lgw-active-card-main small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.lgw-active-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}

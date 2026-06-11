@@ -72,9 +72,9 @@ window.LoyaltyGiveawaysModule = (function(){
       confirmed: 'Bestätigt',
       no_response: 'Nicht bestätigt',
       classic_single: 'Normales Giveaway',
-      classic_multi: 'Normales Giveaway · mehrere Gewinner',
+      classic_multi: 'Normales Giveaway',
       wheel_single: 'Glücksrad-Giveaway',
-      wheel_multi: 'Glücksrad-Giveaway · mehrere Gewinner'
+      wheel_multi: 'Glücksrad-Giveaway'
     };
     const key = norm(status);
     return labels[key] || String(status || '-');
@@ -379,7 +379,7 @@ window.LoyaltyGiveawaysModule = (function(){
       });
       await refreshGiveaways(uid, false);
       state.modal = { type:'control', uid };
-      setMessage(`Rad gestartet: ${result.spin?.selectedFieldLabel || 'Ergebnis folgt'}`);
+      setMessage(`Glücksrad gestartet: ${result.spin?.selectedFieldLabel || 'Ergebnis folgt'}`);
     } catch (err) {
       state.error = err.message || String(err);
     } finally {
@@ -396,7 +396,7 @@ window.LoyaltyGiveawaysModule = (function(){
           <p class="lgw-subline">Übersicht, Erstellung, Bearbeitung und Live-Steuerung für laufende Giveaways.</p>
         </div>
         <div class="lgw-actions">
-          <a class="lgw-btn lgw-btn-secondary" href="${api.overlay}" target="_blank">Wheel-Overlay</a>
+          <a class="lgw-btn lgw-btn-secondary" href="${api.overlay}" target="_blank">Glücksrad-Overlay</a>
           <button class="lgw-btn" data-lgw-create ${state.saving ? 'disabled' : ''}>+ Neues Giveaway</button>
           <button class="lgw-btn lgw-btn-secondary" data-lgw-reload ${state.saving ? 'disabled' : ''}>Reload</button>
         </div>
@@ -455,11 +455,16 @@ window.LoyaltyGiveawaysModule = (function(){
           </div>
           <div class="lgw-active-cards">
             ${active.slice(0, 6).map(g => `
-              <button class="lgw-active-card ${g.giveawayUid === state.selectedUid ? 'is-active' : ''}" data-lgw-select="${esc(g.giveawayUid)}">
-                <strong>${esc(g.title || '-')}</strong>
-                <span>${statusBadge(g.status)}</span>
-                <small>Start: ${fmtDate(giveawayStartDate(g))}</small>
-              </button>
+              <article class="lgw-active-card ${g.giveawayUid === state.selectedUid ? 'is-active' : ''}">
+                <button class="lgw-active-card-main" data-lgw-select="${esc(g.giveawayUid)}" title="Giveaway auswählen und Details öffnen">
+                  <strong>${esc(g.title || '-')}</strong>
+                  <span>${statusBadge(g.status)}</span>
+                  <small>Start: ${fmtDate(giveawayStartDate(g))}</small>
+                </button>
+                <div class="lgw-active-card-actions">
+                  <button class="lgw-btn lgw-btn-small" data-lgw-open-control="${esc(g.giveawayUid)}" title="Giveaway verwalten / Steuerfenster öffnen">Verwalten</button>
+                </div>
+              </article>
             `).join('')}
           </div>
         ` : `<p class="lgw-muted">Aktuell kein gestartetes Giveaway.</p>`}
@@ -477,7 +482,7 @@ window.LoyaltyGiveawaysModule = (function(){
           <label>Status
             <select data-lgw-status-filter>
               ${[
-                ['all','Alle'], ['active','Nur aktive'], ['draft','Entwurf'], ['open','Offen'], ['closed_for_entries','Teilnahme geschlossen'], ['waiting_for_claim','Wartet auf Claim'], ['waiting_for_wheel','Wartet auf Rad'], ['wheel_completed','Rad abgeschlossen'], ['finished','Beendet'], ['cancelled','Abgebrochen'], ['deleted','Gelöscht']
+                ['all','Alle'], ['active','Nur aktive'], ['draft','Entwurf'], ['open','Offen'], ['closed_for_entries','Teilnahme geschlossen'], ['waiting_for_claim','Wartet auf Claim'], ['waiting_for_wheel','Wartet auf Glücksrad'], ['wheel_completed','Glücksrad abgeschlossen'], ['finished','Beendet'], ['cancelled','Abgebrochen'], ['deleted','Gelöscht']
               ].map(([value,label]) => `<option value="${value}" ${state.statusFilter === value ? 'selected' : ''}>${label}</option>`).join('')}
             </select>
           </label>
@@ -569,7 +574,7 @@ window.LoyaltyGiveawaysModule = (function(){
           <span>Kosten</span><strong>${fmtNumber(g.costAmount)}</strong>
           <span>Max Tickets/User</span><strong>${fmtNumber(g.maxTicketsPerUser || 1)}</strong>
           <span>Gewinneranzahl</span><strong>${fmtNumber(g.winnerCount || 1)}</strong>
-          <span>Rad</span><strong>${g.wheelEnabled ? 'Ja' : 'Nein'}</strong>
+          <span>Glücksrad</span><strong>${g.wheelEnabled ? 'Ja' : 'Nein'}</strong>
           <span>Chat-Claim</span><strong>${claim.enabled ? `Ja · ${fmtNumber(claim.timeoutSeconds)}s` : 'Nein'}</strong>
           <span>Erstellt</span><strong>${fmtDate(g.createdAt)}</strong>
           <span>Start-Datum</span><strong>${fmtDate(giveawayStartDate(g))}</strong>
@@ -579,7 +584,7 @@ window.LoyaltyGiveawaysModule = (function(){
       <section class="lgw-grid lgw-grid-4">
         <article class="lgw-card"><span>Teilnahmen</span><strong>${fmtNumber(entries.filter(e => e.status !== 'cancelled').length)}</strong><small>gespeicherte Tickets/Entries</small></article>
         <article class="lgw-card"><span>Gewinner</span><strong>${fmtNumber(winners.length)}</strong><small>${esc(giveawayWinnerText(g))}</small></article>
-        <article class="lgw-card"><span>Wheel-Rechte</span><strong>${fmtNumber(permissions.length)}</strong><small>pending/used je nach Backend</small></article>
+        <article class="lgw-card"><span>Glücksrad-Rechte</span><strong>${fmtNumber(permissions.length)}</strong><small>pending/used je nach Backend</small></article>
         <article class="lgw-card"><span>Gewinne</span><strong>${fmtNumber(prizes.length)}</strong><small>Preis-/Mengenliste</small></article>
       </section>
       ${renderWinners(g, winners)}
@@ -623,12 +628,12 @@ window.LoyaltyGiveawaysModule = (function(){
   function renderWheelPermissions(g, permissions){
     return `
       <section class="lgw-panel">
-        <h3>Wheel-Berechtigungen</h3>
+        <h3>Glücksrad-Berechtigungen</h3>
         <div class="lgw-table-wrap">
           <table class="lgw-table">
-            <thead><tr><th>User</th><th>Status</th><th>Spin</th><th>Erstellt</th><th></th></tr></thead>
+            <thead><tr><th>User</th><th>Status</th><th>Drehung</th><th>Erstellt</th><th></th></tr></thead>
             <tbody>
-              ${permissions.map(p => `<tr><td>${esc(p.userDisplayName || p.userLogin || '-')}</td><td>${esc(p.status || '-')}</td><td>${esc(p.spinUid || '-')}</td><td>${fmtDate(p.createdAt)}</td><td>${norm(p.status) === 'pending' ? `<button class="lgw-btn lgw-btn-small" data-lgw-claim-wheel="${esc(p.userLogin)}" data-display-name="${esc(p.userDisplayName || p.userLogin)}" data-uid="${esc(g.giveawayUid)}">Rad drehen</button>` : ''}</td></tr>`).join('') || `<tr><td colspan="5" class="lgw-muted">Keine Wheel-Berechtigungen vorhanden.</td></tr>`}
+              ${permissions.map(p => `<tr><td>${esc(p.userDisplayName || p.userLogin || '-')}</td><td>${esc(p.status || '-')}</td><td>${esc(p.spinUid || '-')}</td><td>${fmtDate(p.createdAt)}</td><td>${norm(p.status) === 'pending' ? `<button class="lgw-btn lgw-btn-small" data-lgw-claim-wheel="${esc(p.userLogin)}" data-display-name="${esc(p.userDisplayName || p.userLogin)}" data-uid="${esc(g.giveawayUid)}">Glücksrad drehen</button>` : ''}</td></tr>`).join('') || `<tr><td colspan="5" class="lgw-muted">Keine Glücksrad-Berechtigungen vorhanden.</td></tr>`}
             </tbody>
           </table>
         </div>
@@ -637,7 +642,8 @@ window.LoyaltyGiveawaysModule = (function(){
   }
 
   function renderFormFields(g){
-    const mode = g?.mode || 'classic_single';
+    const rawMode = g?.mode || 'classic_single';
+    const mode = rawMode === 'classic_multi' ? 'classic_single' : (rawMode === 'wheel_multi' ? 'wheel_single' : rawMode);
     const claim = getChatClaimSettings(g);
     const round = g?.roundPolicy || {};
     const prize = rows(g?.prizes || [])[0] || {};
@@ -647,9 +653,9 @@ window.LoyaltyGiveawaysModule = (function(){
       <label>Beschreibung<textarea name="description" rows="3">${esc(g?.description || '')}</textarea></label>
       <div class="lgw-form-row">
         <label>Modus<select name="mode">${[
-          ['classic_single','Normales Giveaway'], ['classic_multi','Normales Giveaway · mehrere Gewinner'], ['wheel_single','Glücksrad-Giveaway'], ['wheel_multi','Glücksrad-Giveaway · mehrere Gewinner']
+          ['classic_single','Normales Giveaway'], ['wheel_single','Glücksrad-Giveaway']
         ].map(([value,label]) => `<option value="${value}" ${mode === value ? 'selected' : ''}>${label}</option>`).join('')}</select></label>
-        <label>Wheel-Preset-UID<input name="wheelPresetUid" value="${esc(g?.wheelPresetUid || '')}" placeholder="optional"></label>
+        <label>Glücksrad-Preset-UID<input name="wheelPresetUid" value="${esc(g?.wheelPresetUid || '')}" placeholder="optional"></label>
       </div>
       <div class="lgw-form-row">
         <label>Kosten pro Ticket<input name="costAmount" type="number" min="0" value="${esc(g?.costAmount ?? 0)}"></label>
@@ -673,7 +679,7 @@ window.LoyaltyGiveawaysModule = (function(){
       </div>
       <div class="lgw-check-row">
         <label class="lgw-check"><input name="chatClaimEnabled" type="checkbox" ${claim.enabled ? 'checked' : ''}> Gewinner muss sich im Chat melden</label>
-        <label class="lgw-check"><input name="activateWheelAfterClaim" type="checkbox" ${claim.activateWheelAfterClaim ? 'checked' : ''}> Rad erst nach Chatmeldung freigeben</label>
+        <label class="lgw-check"><input name="activateWheelAfterClaim" type="checkbox" ${claim.activateWheelAfterClaim ? 'checked' : ''}> Glücksrad erst nach Chatmeldung freigeben</label>
       </div>
       <div class="lgw-form-row">
         <label>Gewinn-Label<input name="prizeLabel" value="${esc(prize.label || g?.title || '')}"></label>
@@ -750,15 +756,15 @@ window.LoyaltyGiveawaysModule = (function(){
             <article class="lgw-card"><span>Teilnehmer</span><strong>${fmtNumber(entries.filter(e => e.status !== 'cancelled').length)}</strong><small>aktuelle Entries</small></article>
             <article class="lgw-card"><span>Gewinner</span><strong>${fmtNumber(winners.length)}</strong><small>${esc(giveawayWinnerText(g))}</small></article>
             <article class="lgw-card"><span>Claim</span><strong>${claim.enabled ? 'Aktiv' : 'Aus'}</strong><small>${claim.enabled ? `${fmtNumber(claim.timeoutSeconds)} Sekunden` : 'keine Pflicht'}</small></article>
-            <article class="lgw-card"><span>Wheel</span><strong>${g.wheelEnabled ? 'Aktiv' : 'Aus'}</strong><small>${fmtNumber(permissions.length)} Rechte</small></article>
+            <article class="lgw-card"><span>Glücksrad</span><strong>${g.wheelEnabled ? 'Aktiv' : 'Aus'}</strong><small>${fmtNumber(permissions.length)} Rechte</small></article>
           </div>
           <div class="lgw-control-actions">
             ${s === 'draft' ? `<button class="lgw-btn" data-lgw-action="open" data-uid="${esc(g.giveawayUid)}">Giveaway starten/öffnen</button>` : ''}
             ${s === 'open' ? `<button class="lgw-btn lgw-btn-secondary" data-lgw-action="close" data-uid="${esc(g.giveawayUid)}">Teilnahme schließen</button>` : ''}
             ${['open','closed_for_entries'].includes(s) ? `<button class="lgw-btn" data-lgw-action="draw" data-uid="${esc(g.giveawayUid)}">Gewinner ziehen</button>` : ''}
             ${winners.length && claim.enabled ? `<button class="lgw-btn lgw-btn-disabled" disabled title="Backend-Route für manuellen Chat-Hinweis erst später sauber anbinden">Claim-Hinweis senden</button>` : ''}
-            ${g.wheelEnabled ? `<button class="lgw-btn lgw-btn-disabled" disabled title="Wheel-Freigabe läuft aktuell über Backend-Draw/Chat-Claim/Wheel-Permission. Manuelle Freigabe erst nach Backend-Prüfung.">Wheel freigeben</button>` : ''}
-            ${permissions.filter(p => norm(p.status) === 'pending').map(p => `<button class="lgw-btn" data-lgw-claim-wheel="${esc(p.userLogin)}" data-display-name="${esc(p.userDisplayName || p.userLogin)}" data-uid="${esc(g.giveawayUid)}">Rad drehen für ${esc(p.userDisplayName || p.userLogin)}</button>`).join('')}
+            ${g.wheelEnabled ? `<button class="lgw-btn lgw-btn-disabled" disabled title="Glücksrad-Freigabe läuft aktuell über Backend-Draw/Chat-Claim/Glücksrad-Berechtigung. Manuelle Freigabe erst nach Backend-Prüfung.">Glücksrad freigeben</button>` : ''}
+            ${permissions.filter(p => norm(p.status) === 'pending').map(p => `<button class="lgw-btn" data-lgw-claim-wheel="${esc(p.userLogin)}" data-display-name="${esc(p.userDisplayName || p.userLogin)}" data-uid="${esc(g.giveawayUid)}">Glücksrad drehen für ${esc(p.userDisplayName || p.userLogin)}</button>`).join('')}
             ${!isFinalStatus(g.status) ? `<button class="lgw-btn lgw-btn-danger" data-lgw-action="finish" data-uid="${esc(g.giveawayUid)}">Giveaway beenden</button>` : ''}
             <button class="lgw-btn lgw-btn-secondary" data-lgw-refresh-control="${esc(g.giveawayUid)}">Aktualisieren</button>
           </div>
