@@ -2,6 +2,100 @@
 
 Stand: 2026-06-11
 
+## 2026-06-11 – STEP211 / LWG-5.3 Documentation Handoff
+
+### Geändert
+
+```text
+docs/modules/README.md
+docs/modules/loyalty.md
+docs/modules/loyalty_games.md
+docs/current/CURRENT_CHAT_HANDOFF_STEP211_LWG5_3.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+```
+
+### Ergebnis
+
+```text
+Dokumentation für STEP209 / STEP210 aktualisiert.
+Loyalty Safety Layer dokumentiert.
+Gamble Prepared dokumentiert.
+Regel „Module aktiv, Commands separat deaktiviert“ festgehalten.
+Nächster Schritt STEP212 / LWG-5.4 festgelegt.
+```
+
+### Keine Runtime-Änderung
+
+```text
+Keine JS-Dateien geändert.
+Keine Modulversion erhöht.
+Keine Datenbank geändert.
+Keine Chat-Commands aktiviert.
+```
+
+## 2026-06-11 – STEP210 / LWG-5.2 Status Cleanup
+
+### Geändert
+
+```text
+backend/modules/loyalty.js
+backend/modules/loyalty_games.js
+backend/modules/loyalty_games/gamble.js
+```
+
+### Ergebnis
+
+```text
+API-/Statusfelder für Tests und Dashboard bereinigt.
+rank.rankTotal zusätzlich als rank.total geplant/ergänzt.
+can-afford amount zusätzlich als required geplant/ergänzt.
+Gamble-Status trennt Modul-/Game-/Command-Zustand klarer.
+Module bleiben aktiv/online; Commands bleiben separat deaktiviert.
+```
+
+### Versionen
+
+```text
+loyalty.js: 0.1.13 / STEP210
+loyalty_games.js: 0.2.2 / STEP_LWG_5_2_STATUS_CLEANUP
+```
+
+## 2026-06-11 – STEP209 / LWG-5.1 Loyalty Safety Layer + Gamble vorbereitet
+
+### Geändert
+
+```text
+backend/modules/loyalty.js
+backend/modules/loyalty_games.js
+backend/modules/loyalty_games/gamble.js
+```
+
+### Ergebnis
+
+```text
+Zentrale Safety-Funktionen für verfügbare Kekskrümel vorbereitet.
+Reservierungen vorbereitet.
+Ranking nach verfügbaren Kekskrümeln vorbereitet.
+Points Commands vorbereitet, aber deaktiviert.
+Gamble vorbereitet, aber deaktiviert.
+DB-Multitexte im CGN-/Altersheim-/Heimleitung-/Rentner-Stil vorbereitet.
+```
+
+### Bestätigte Tests
+
+```text
+Loyalty-Status erreichbar.
+Loyalty-Games-Status erreichbar.
+Commands gamble/punkte/givepoints/setpoint sind disabled.
+Available Balance für forrestcgn: 3400 verfügbar, Rang 2.
+Can-Afford mit 9999999 blockiert korrekt.
+Gamble Play bei disabled: HTTP 403 gamble_disabled.
+```
+
 ## 2026-06-11 – LWG-4Q.11 Manual Winner Flow and Prize Quantity Cleanup
 
 ### Geändert
