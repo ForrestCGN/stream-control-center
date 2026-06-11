@@ -11,15 +11,15 @@ loyalty_step212_lwg5_4_points_runtime_test.zip
 Enthalten:
 
 ```text
-Test_STEP212_LWG5_4_points_command_runtime_ForrestCGN.ps1
+Test_STEP212B_LWG5_4b_points_command_runtime_ForrestCGN.ps1
 docs/modules/loyalty.md
-docs/current/CURRENT_CHAT_HANDOFF_STEP212_LWG5_4.md
+docs/current/CURRENT_CHAT_HANDOFF_STEP212B_LWG5_4b.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/CHANGELOG.md
 project-state/FILES.md
-README_STEP212_LWG5_4.md
+README_STEP212B_LWG5_4b.md
 ```
 
 ## Aktueller Runtime-STEP
@@ -58,13 +58,13 @@ backend/core/database.js
 ## Tests
 
 ```text
-Test_STEP212_LWG5_4_points_command_runtime_ForrestCGN.ps1
+Test_STEP212B_LWG5_4b_points_command_runtime_ForrestCGN.ps1
 ```
 
 Ziel: kontrollierter Runtime-Test von `!punkte / !points` ohne dauerhafte Aktivierung.
 
 
-## STEP212a / LWG-5.4a – Points Runtime Testscript Parserfix
+## STEP212b / LWG-5.4b – Points Runtime Testscript Args-Fix
 
 ```text
 Stand: 2026-06-11

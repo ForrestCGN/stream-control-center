@@ -1,7 +1,7 @@
 # Modul: loyalty
 
 Stand: 2026-06-11  
-Aktueller dokumentierter Stand: STEP212 / LWG-5.4  
+Aktueller dokumentierter Stand: STEP212b / LWG-5.4b  
 Runtime-Basis: STEP210 / LWG-5.2
 
 ## Zweck
@@ -182,12 +182,12 @@ Module bleiben aktiv und melden Status/Heartbeat, Commands werden separat aktivi
 - Keine bestehenden Giveaway-/Wheel-Flows entfernt.
 ```
 
-## STEP212 / LWG-5.4 – Points Command Runtime Testplan
+## STEP212b / LWG-5.4b – Points Command Runtime Testplan
 
 STEP212 enthält keine Runtime-Änderung, sondern ein kontrolliertes Testscript:
 
 ```text
-Test_STEP212_LWG5_4_points_command_runtime_ForrestCGN.ps1
+Test_STEP212B_LWG5_4b_points_command_runtime_ForrestCGN.ps1
 ```
 
 Das Script prüft:
@@ -212,7 +212,7 @@ STEP213 / LWG-5.5 – Nach bestätigtem Points-Test: !punkte optional produktiv 
 ```
 
 
-## STEP212a / LWG-5.4a – Points Runtime Testscript Parserfix
+## STEP212b / LWG-5.4b – Points Runtime Testscript Args-Fix
 
 ```text
 Stand: 2026-06-11

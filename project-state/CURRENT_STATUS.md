@@ -5,7 +5,7 @@ Stand: 2026-06-11
 ## Aktueller bestätigter Hauptstand
 
 ```text
-STEP212 / LWG-5.4 – Points Command Runtime kontrollierter Test vorbereitet
+STEP212b / LWG-5.4b – Points Command Runtime kontrollierter Test vorbereitet
 ```
 
 Der aktuell bestätigte technische Bereich betrifft das Modul **Loyalty / Kekskrümel / Loyalty Games** mit:
@@ -14,7 +14,7 @@ Der aktuell bestätigte technische Bereich betrifft das Modul **Loyalty / Kekskr
 STEP209 / LWG-5.1 – Loyalty Safety Layer + Gamble vorbereitet
 STEP210 / LWG-5.2 – API-/Status-Cleanup
 STEP211 / LWG-5.3 – Doku-/Projektstand aktualisiert
-STEP212 / LWG-5.4 – Points Command Runtime Testscript + Doku
+STEP212b / LWG-5.4b – Points Command Runtime Testscript + Doku
 ```
 
 ## Bestätigter Runtime-Stand
@@ -37,7 +37,7 @@ STEP212 enthält bewusst **keine Runtime-JS-Änderung**. Es ergänzt Doku und ei
 ## STEP212 Testziel
 
 ```text
-Test_STEP212_LWG5_4_points_command_runtime_ForrestCGN.ps1
+Test_STEP212B_LWG5_4b_points_command_runtime_ForrestCGN.ps1
 ```
 
 Das Script soll nach StepDone und Backend-Neustart prüfen:
@@ -146,7 +146,7 @@ Nach jedem Code-/Doku-STEP stepdone.cmd ausführen.
 ```
 
 
-## STEP212a / LWG-5.4a – Points Runtime Testscript Parserfix
+## STEP212b / LWG-5.4b – Points Runtime Testscript Args-Fix
 
 ```text
 Stand: 2026-06-11

@@ -2,13 +2,19 @@
 
 Stand: 2026-06-11
 
-## 2026-06-11 – STEP212 / LWG-5.4 Points Command Runtime Testscript
+## 2026-06-11 – STEP212b / LWG-5.4b Points Runtime Test Args-Fix
+
+```text
+Testscript-Hotfix: Invoke-PointsRuntime nutzt CommandArgs statt Args, damit !punkte @user Permission-Test wirklich mit Zielargument ausgefuehrt wird. Keine Runtime-Aenderung.
+```
+
+## 2026-06-11 – STEP212b / LWG-5.4b Points Command Runtime Testscript
 
 ### Hinzugefügt
 
 ```text
-Test_STEP212_LWG5_4_points_command_runtime_ForrestCGN.ps1
-docs/current/CURRENT_CHAT_HANDOFF_STEP212_LWG5_4.md
+Test_STEP212B_LWG5_4b_points_command_runtime_ForrestCGN.ps1
+docs/current/CURRENT_CHAT_HANDOFF_STEP212B_LWG5_4b.md
 ```
 
 ### Aktualisiert
@@ -59,7 +65,7 @@ Commands weiterhin deaktiviert.
 ```
 
 
-## STEP212a / LWG-5.4a – Points Runtime Testscript Parserfix
+## STEP212b / LWG-5.4b – Points Runtime Testscript Args-Fix
 
 ```text
 Stand: 2026-06-11

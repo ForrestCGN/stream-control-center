@@ -5,19 +5,19 @@ Stand: 2026-06-11
 ## Direkt nächster sinnvoller Schritt
 
 ```text
-STEP212 / LWG-5.4 – Points Command Runtime kontrolliert testen
+STEP212b / LWG-5.4b – Points Command Runtime kontrolliert testen
 ```
 
 Nach Entpacken des STEP212-Pakets:
 
 ```cmd
-.\stepdone.cmd "STEP212 / LWG-5.4 Points Command Runtime Testscript und Doku"
+.\stepdone.cmd "STEP212b / LWG-5.4b Points Command Runtime Testscript und Doku"
 ```
 
 Danach Backend neu starten und ausführen:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\Test_STEP212_LWG5_4_points_command_runtime_ForrestCGN.ps1
+powershell -ExecutionPolicy Bypass -File .\Test_STEP212B_LWG5_4b_points_command_runtime_ForrestCGN.ps1
 ```
 
 ## Erwartung
@@ -48,7 +48,7 @@ Empfohlene Reihenfolge:
 ```
 
 
-## STEP212a / LWG-5.4a – Points Runtime Testscript Parserfix
+## STEP212b / LWG-5.4b – Points Runtime Testscript Args-Fix
 
 ```text
 Stand: 2026-06-11

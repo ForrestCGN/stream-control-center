@@ -190,13 +190,13 @@ Das bleibt als späteres eigenes Farb-Roulette vorgemerkt.
 ## Nächster Schritt
 
 ```text
-STEP212 / LWG-5.4 – Points Command Runtime kontrolliert testen/freigeben
+STEP212b / LWG-5.4b – Points Command Runtime kontrolliert testen/freigeben
 ```
 
 Danach erst `!gamble` mit Dummy-/Shadow-Test sauber vorbereiten.
 
 
-## STEP212a / LWG-5.4a – Points Runtime Testscript Parserfix
+## STEP212b / LWG-5.4b – Points Runtime Testscript Args-Fix
 
 ```text
 Stand: 2026-06-11

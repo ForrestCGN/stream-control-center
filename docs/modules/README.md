@@ -50,13 +50,13 @@ docs/modules/loyalty_giveaways.md
 ## Nächste technische Arbeit
 
 ```text
-STEP212 / LWG-5.4 – Points Command Runtime kontrolliert testen/freigeben
+STEP212b / LWG-5.4b – Points Command Runtime kontrolliert testen/freigeben
 ```
 
 Zuerst weiterhin nur kleine, gezielte PowerShell-Ausgaben nutzen.
 
 
-## STEP212a / LWG-5.4a – Points Runtime Testscript Parserfix
+## STEP212b / LWG-5.4b – Points Runtime Testscript Args-Fix
 
 ```text
 Stand: 2026-06-11

@@ -8,12 +8,12 @@ Stand: 2026-06-11
 - [x] STEP209 / LWG-5.1 Loyalty Safety Layer + Gamble vorbereitet.
 - [x] STEP210 / LWG-5.2 API-/Status-Cleanup erstellt und STEP209-Sicherheitsbasis getestet.
 - [x] STEP211 / LWG-5.3 Doku-/Projektstand aktualisiert.
-- [x] STEP212 / LWG-5.4 Testscript für Points Command Runtime vorbereitet.
+- [x] STEP212b / LWG-5.4b Testscript für Points Command Runtime vorbereitet.
 
 ## Offen / wichtig
 
 - [ ] STEP212-Testscript im Live-System nach StepDone und Backend-Neustart ausführen.
-- [ ] Ergebnis von `Test_STEP212_LWG5_4_points_command_runtime_ForrestCGN.ps1` dokumentieren.
+- [ ] Ergebnis von `Test_STEP212B_LWG5_4b_points_command_runtime_ForrestCGN.ps1` dokumentieren.
 - [ ] Entscheiden, ob `!punkte / !points` produktiv aktiviert werden soll.
 - [ ] `!givepoints` getrennt testen, bevor produktiv aktiviert wird.
 - [ ] `!setpoint` getrennt testen, bevor produktiv aktiviert wird.
@@ -30,7 +30,7 @@ Stand: 2026-06-11
 - [ ] Keine neuen parallelen Helper/Bus-Systeme bauen.
 
 
-## STEP212a / LWG-5.4a – Points Runtime Testscript Parserfix
+## STEP212b / LWG-5.4b – Points Runtime Testscript Args-Fix
 
 ```text
 Stand: 2026-06-11
@@ -38,3 +38,5 @@ Typ: Testscript-/Doku-Hotfix
 Runtime: unverändert
 Grund: PowerShell-Parserfehler bei String mit $Enabled: behoben durch $($Enabled):
 ```
+
+- [ ] STEP212b / LWG-5.4b Points Runtime Test erneut ausführen und bestätigen.
