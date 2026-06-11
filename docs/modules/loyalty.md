@@ -1,3 +1,5 @@
-# Loyalty — STEP221
+# Loyalty – STEP222 / LWG-6.3
 
-Die Punktebuchung bleibt zentral im Loyalty-Modul. Admin-Set/Give und Gamble-Transaktionen bleiben in der Transaktionshistorie nachvollziehbar.
+Keine Änderung an `loyalty.js`.
+
+Der Test nutzt die vorhandene sichere Punkte-API, setzt einen Testuser kontrolliert und stellt ihn danach wieder auf den ursprünglichen Stand.

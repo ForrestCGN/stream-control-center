@@ -1,10 +1,8 @@
-# Commands — STEP221
+# Commands – STEP222 / LWG-6.3
 
-Live aktiv:
+Der zentrale Command-Bridge-Stand bleibt:
 
-- `!punkte` / `!points`
-- `!givepoints`
-- `!setpoint`
-- `!gamble`
+- `commands.js` Version `0.2.2`
+- Build `LWG_5_6_COMMAND_RESULT_CHAT_SEND_BRIDGE`
 
-`!gamble` nutzt `targetUrl=/api/loyalty/games/runtime/chat-command`, `responseMode=module` und `sendResultToChat=true`.
+STEP222 ändert keine Command-Bridge-Logik. Der Test setzt Cooldowns temporär auf 0 und stellt sie danach wieder her.

@@ -1,7 +1,6 @@
-# TODO — STEP221
+# TODO – Loyalty/Gamble
 
-- [ ] StreamElements `!gamble`/`!roulette` deaktiviert bestätigen.
-- [ ] STEP221 Activate ausführen.
-- [ ] STEP221 Test ausführen.
-- [ ] Bei Problemen SafetyDisable ausführen.
-- [ ] Nach Erfolg STEP222 Live-Doku erstellen.
+- STEP222 testen
+- StreamElements Übergang beobachten
+- Texte später dashboardfähig weiter pflegen
+- optional `all/max` erst freigeben, wenn ausdrücklich gewünscht

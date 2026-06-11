@@ -1,3 +1,8 @@
-# Module-Doku — STEP221
+# Module-Doku – STEP222
 
-STEP221 dokumentiert die Live-Freigabe von Node-`!gamble` im Loyalty-Games-Modul.
+Betroffene Module:
+
+- `loyalty_games`
+- `loyalty_games/gamble`
+- `commands` nur indirekt über bestehende Bridge
+- `loyalty` nur indirekt über sichere Punktefunktionen

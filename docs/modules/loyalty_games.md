@@ -1,9 +1,14 @@
-# Loyalty Games — STEP221
+# Loyalty Games – STEP222 / LWG-6.3
 
-`!gamble` wird über das bestehende `loyalty_games`-Modul live geschaltet. Runtime-Code stammt aus STEP220/LWG-6.1:
+Aktueller Stand nach STEP222:
 
-- Version `0.2.3`
-- Build `STEP_LWG_6_1_GAMBLE_SETTINGS_RUNTIME`
-- Settings-Route `/api/loyalty/games/settings`
-- Runtime-Command `/api/loyalty/games/runtime/chat-command`
-- Zufall über `crypto.randomInt`
+- `loyalty_games.js` Version `0.2.4`
+- Build `STEP_LWG_6_3_GAMBLE_TEXT_PERCENT_PARSER_CLEANUP`
+- `!gamble` nutzt neue v2-Textkeys für Gewinn/Verlust/Fehler
+- Prozent-Einsätze werden im Parser unterstützt:
+  - `!gamble 10%`
+  - `!gamble 10 %`
+  - `!gamble 10 prozent`
+  - optional `half` / `halb`
+
+StreamElements darf während der Migration parallel bleiben.

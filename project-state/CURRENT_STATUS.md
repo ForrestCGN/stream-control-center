@@ -1,9 +1,14 @@
-# CURRENT_STATUS — STEP221
+# CURRENT_STATUS – STEP222 / LWG-6.3
 
-Loyalty-Basis live:
+Loyalty-Basis aktiv:
 
-- `!punkte` / `!points`
+- `!punkte / !points`
 - `!givepoints`
 - `!setpoint`
+- `!gamble` über Node live vorbereitet/aktivierbar
 
-STEP221 schaltet zusätzlich `!gamble` im Node-System live. StreamElements-Gamble muss deaktiviert bleiben.
+STEP222 ergänzt:
+
+- sauberere Gamble-Texte
+- Prozent-Einsatzparser
+- Test für `!gamble 10%`

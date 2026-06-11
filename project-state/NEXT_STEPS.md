@@ -1,5 +1,7 @@
-# NEXT_STEPS — nach STEP221
+# NEXT_STEPS – nach STEP222
 
-1. STEP221 aktivieren und Live-Test durchführen.
-2. Nach erfolgreichem Test STEP222 Dokumentation/Live-Bestätigung erstellen.
-3. Danach Dashboard-Konfiguration für Gamble planen: Einsatzlimits, Cooldowns, Gewinnchance, Texte.
+1. STEP222 anwenden, deployen, Backend neu starten.
+2. Dryrun ausführen.
+3. Execute-Test ausführen.
+4. Falls alles OK: STEP223 Dokumentation Live bestätigt.
+5. Später: StreamElements Gamble final deaktivieren und Doppelantwort entfernen.
