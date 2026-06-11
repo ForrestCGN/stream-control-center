@@ -54,5 +54,7 @@
       "Die Write-Sicherheit liegt weiterhin in der STEP228 API.",
       "Keine Tokens oder Secrets im Frontend speichern."
     ]
-  }
+  },
+  "step": "STEP230A_LWG7_1A",
+  "testfix": "write_safety_ui_detection_tolerant"
 }

@@ -1,17 +1,16 @@
-# CHANGELOG – STEP230 / LWG-7.1
+# CHANGELOG – STEP230a
 
-## Added/Changed
+Stand: STEP230a / LWG-7.1a
 
-- Kompaktere Gamble-Dashboard-Seite
-- KPI-Karten fuer Engine/Command/Chance/Cooldown
-- Statistik-Karten aus Command-Logs
-- gruppierte Config-Felder
-- Audit-Kurzliste
-- aktualisierte UI-Config
+## Bestätigter Zweck
 
-## Not changed
+Der Gamble-Dashboard-UI-Readiness-Test wurde korrigiert. Der vorhandene Write-Schutz wird jetzt tolerant erkannt:
 
-- Backend-Logik
-- DB
-- Gamble-Regeln
-- Punkte-System
+- Dryrun-Button / Dryrun-Flow
+- confirmWrite-Checkbox
+- Write-Schutz-/Bestätigungs-Hinweis
+- Audit-Hinweis über STEP228a-API
+
+## Keine Runtime-Änderung
+
+Dieses Paket enthält keine Backend-Codeänderung und keine Datenbankdatei.
