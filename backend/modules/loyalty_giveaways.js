@@ -4593,6 +4593,80 @@ function setGiveawayStatus(giveawayUid, status, input = {}) {
   return response;
 }
 
+function hardDeleteGiveaway(giveawayUid, input = {}) {
+  ensureSchema();
+  const row = getGiveawayRow(giveawayUid);
+  if (!row) return { ok: false, error: "giveaway_not_found", statusCode: 404 };
+
+  if (!boolFromInput(input.confirmHardDelete ?? input.confirm_hard_delete ?? input.confirm, false)) {
+    return { ok: false, error: "hard_delete_requires_confirmation", statusCode: 400 };
+  }
+
+  const status = cleanStatus(row.status, STATUS.DRAFT);
+  const allowedStatuses = new Set([STATUS.DRAFT, STATUS.FINISHED, STATUS.CANCELLED, STATUS.DELETED, STATUS.PRIZES_EXHAUSTED]);
+  if (!allowedStatuses.has(status)) {
+    return {
+      ok: false,
+      error: "hard_delete_requires_finished_cancelled_deleted_or_draft",
+      statusCode: 409,
+      status,
+      message: "Dieses Giveaway muss vor dem dauerhaften Löschen beendet, abgebrochen, archiviert oder noch ein Entwurf sein."
+    };
+  }
+
+  const before = {
+    giveaway: rowToGiveaway(row, true),
+    counts: {
+      entries: Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_entries WHERE giveaway_uid = :giveawayUid", { giveawayUid })?.count || 0),
+      winners: Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_winners WHERE giveaway_uid = :giveawayUid", { giveawayUid })?.count || 0),
+      prizes: Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_prizes WHERE giveaway_uid = :giveawayUid", { giveawayUid })?.count || 0),
+      rounds: Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_rounds WHERE giveaway_uid = :giveawayUid", { giveawayUid })?.count || 0),
+      permissions: Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_wheel_permissions WHERE giveaway_uid = :giveawayUid", { giveawayUid })?.count || 0),
+      boundWheels: Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_bound_wheels WHERE giveaway_uid = :giveawayUid", { giveawayUid })?.count || 0),
+      boundWheelFields: Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_bound_wheel_fields WHERE giveaway_uid = :giveawayUid", { giveawayUid })?.count || 0),
+      events: Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_events WHERE giveaway_uid = :giveawayUid", { giveawayUid })?.count || 0)
+    }
+  };
+
+  const now = nowIso();
+  const actor = String(input.actor || "dashboard").trim() || "dashboard";
+  const reason = String(input.reason || "dashboard_hard_delete").trim() || "dashboard_hard_delete";
+
+  database.transaction(() => {
+    database.run("DELETE FROM loyalty_giveaway_bound_wheel_fields WHERE giveaway_uid = :giveawayUid", { giveawayUid });
+    database.run("DELETE FROM loyalty_giveaway_bound_wheels WHERE giveaway_uid = :giveawayUid", { giveawayUid });
+    database.run("DELETE FROM loyalty_giveaway_wheel_permissions WHERE giveaway_uid = :giveawayUid", { giveawayUid });
+    database.run("DELETE FROM loyalty_giveaway_winners WHERE giveaway_uid = :giveawayUid", { giveawayUid });
+    database.run("DELETE FROM loyalty_giveaway_entries WHERE giveaway_uid = :giveawayUid", { giveawayUid });
+    database.run("DELETE FROM loyalty_giveaway_prizes WHERE giveaway_uid = :giveawayUid", { giveawayUid });
+    database.run("DELETE FROM loyalty_giveaway_rounds WHERE giveaway_uid = :giveawayUid", { giveawayUid });
+    database.run("DELETE FROM loyalty_giveaway_events WHERE giveaway_uid = :giveawayUid", { giveawayUid });
+    database.run("DELETE FROM loyalty_giveaways WHERE giveaway_uid = :giveawayUid", { giveawayUid });
+  });
+
+  emitEvent("loyalty.giveaway.hard_deleted", {
+    giveawayUid,
+    oldStatus: row.status,
+    actor,
+    reason,
+    hardDeletedAt: now,
+    counts: before.counts
+  });
+
+  return {
+    ok: true,
+    hardDeleted: true,
+    giveawayUid,
+    oldStatus: row.status,
+    title: row.title || "",
+    deletedAt: now,
+    actor,
+    reason,
+    counts: before.counts,
+    note: "Giveaway-Daten wurden dauerhaft gelöscht. Loyalty-Transaktionen bleiben als Punkte-Audit erhalten."
+  };
+}
+
 
 function seedChatCommandDefinitions() {
   ensureSchema();
@@ -5227,6 +5301,7 @@ function registerRoutes(app) {
     "POST /api/loyalty/giveaways/:giveawayUid/finish",
     "POST /api/loyalty/giveaways/:giveawayUid/cancel",
     "POST /api/loyalty/giveaways/:giveawayUid/delete",
+    "POST /api/loyalty/giveaways/:giveawayUid/hard-delete",
     "GET /api/loyalty/giveaways/:giveawayUid/rounds",
     "GET /api/loyalty/giveaways/:giveawayUid/prizes",
     "GET /api/loyalty/giveaways/:giveawayUid/events",
@@ -5355,6 +5430,12 @@ function registerRoutes(app) {
   registered.push(...routes.registerPost(app, "/api/loyalty/giveaways/:giveawayUid/delete", core.asyncRoute(async (req, res) => {
     const result = setGiveawayStatus(req.params.giveawayUid, STATUS.DELETED, req.body || {});
     if (!result.ok) return core.sendFail(res, result.error || "giveaway_delete_failed", result.statusCode || 409, result);
+    return core.sendOk(res, result);
+  })));
+
+  registered.push(...routes.registerPost(app, "/api/loyalty/giveaways/:giveawayUid/hard-delete", core.asyncRoute(async (req, res) => {
+    const result = hardDeleteGiveaway(req.params.giveawayUid, req.body || {});
+    if (!result.ok) return core.sendFail(res, result.error || "giveaway_hard_delete_failed", result.statusCode || 409, result);
     return core.sendOk(res, result);
   })));
 
