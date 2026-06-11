@@ -502,35 +502,38 @@ window.LoyaltyGiveawaysModule = (function(){
   function renderList(){
     const list = filteredGiveaways();
     return `
-      <section class="lgw-panel">
+      <section class="lgw-panel lgw-overview-panel">
         <div class="lgw-panel-head">
           <div>
             <h3>Giveaway-Übersicht</h3>
-            <p class="lgw-muted">${fmtNumber(list.length)} Treffer · Auswahl öffnet rechts die Details.</p>
+            <p class="lgw-muted">${fmtNumber(list.length)} Treffer · Details, Bearbeitung und Steuerung öffnen separat im Fenster.</p>
           </div>
           <button class="lgw-btn lgw-btn-secondary" data-lgw-create>Neues Giveaway</button>
         </div>
-        <div class="lgw-table-wrap">
-          <table class="lgw-table">
-            <thead>
-              <tr><th>Name</th><th>Status</th><th>Erstellt</th><th>Start-Datum</th><th>Gewinner</th><th>Aktionen</th></tr>
-            </thead>
-            <tbody>
-              ${list.map(g => `
-                <tr class="${g.giveawayUid === state.selectedUid ? 'is-active' : ''}">
-                  <td><button class="lgw-link-btn" data-lgw-select="${esc(g.giveawayUid)}"><strong>${esc(g.title || '-')}</strong></button><br><small>${esc(statusLabel(g.mode))} · <code>${esc(String(g.giveawayUid || '').slice(0, 24))}</code></small></td>
-                  <td>${statusBadge(g.status)}</td>
-                  <td>${fmtDate(g.createdAt)}</td>
-                  <td>${fmtDate(giveawayStartDate(g))}</td>
-                  <td>${esc(giveawayWinnerText(g))}</td>
-                  <td class="lgw-row-actions">
-                    <button class="lgw-btn lgw-btn-small" data-lgw-select="${esc(g.giveawayUid)}">Anzeigen</button>
-                    ${isActiveGiveaway(g) ? `<button class="lgw-btn lgw-btn-small" data-lgw-open-control="${esc(g.giveawayUid)}">Steuern</button>` : ''}
-                  </td>
-                </tr>
-              `).join('') || `<tr><td colspan="6" class="lgw-muted">Keine Giveaways gefunden.</td></tr>`}
-            </tbody>
-          </table>
+        <div class="lgw-overview-list">
+          ${list.map(g => {
+            const editable = g.editable === true || norm(g.status) === 'draft';
+            return `
+              <article class="lgw-giveaway-item ${g.giveawayUid === state.selectedUid ? 'is-active' : ''}">
+                <button class="lgw-giveaway-main" data-lgw-open-details="${esc(g.giveawayUid)}">
+                  <strong>${esc(g.title || '-')}</strong>
+                  <span>${esc(statusLabel(g.mode))} · ${esc(String(g.giveawayUid || '').slice(0, 28))}</span>
+                </button>
+                <div class="lgw-giveaway-meta">
+                  <span>${statusBadge(g.status)}</span>
+                  <span><small>Erstellt</small><strong>${fmtDate(g.createdAt)}</strong></span>
+                  <span><small>Start</small><strong>${fmtDate(giveawayStartDate(g))}</strong></span>
+                  <span><small>Gewinner</small><strong>${esc(giveawayWinnerText(g))}</strong></span>
+                </div>
+                <div class="lgw-row-actions lgw-giveaway-actions">
+                  <button class="lgw-btn lgw-btn-small" data-lgw-open-details="${esc(g.giveawayUid)}">Anzeigen</button>
+                  ${editable ? `<button class="lgw-btn lgw-btn-small lgw-btn-secondary" data-lgw-edit="${esc(g.giveawayUid)}">Bearbeiten</button>` : ''}
+                  ${norm(g.status) === 'draft' ? `<button class="lgw-btn lgw-btn-small" data-lgw-action="open" data-uid="${esc(g.giveawayUid)}">Starten</button>` : ''}
+                  ${isActiveGiveaway(g) ? `<button class="lgw-btn lgw-btn-small" data-lgw-open-control="${esc(g.giveawayUid)}">Steuern</button>` : ''}
+                </div>
+              </article>
+            `;
+          }).join('') || `<div class="lgw-empty">Keine Giveaways gefunden.</div>`}
         </div>
       </section>
     `;
@@ -706,8 +709,24 @@ window.LoyaltyGiveawaysModule = (function(){
         </div>
       `;
     }
+    if (state.modal.type === 'details') return renderDetailsModal();
     if (state.modal.type === 'control') return renderControlModal();
     return '';
+  }
+
+  function renderDetailsModal(){
+    const g = selectedGiveaway();
+    return `
+      <div class="lgw-modal-backdrop" data-lgw-close-modal>
+        <div class="lgw-modal lgw-detail-modal" role="dialog" aria-modal="true" aria-label="Giveaway Details" data-lgw-modal-box>
+          <div class="lgw-modal-head">
+            <h3>Giveaway Details</h3>
+            <button class="lgw-icon-btn" data-lgw-close-modal type="button">×</button>
+          </div>
+          ${g ? renderDetails() : `<section class="lgw-panel"><p class="lgw-muted">Keine Details geladen.</p></section>`}
+        </div>
+      </div>
+    `;
   }
 
   function renderControlModal(){
@@ -766,10 +785,7 @@ window.LoyaltyGiveawaysModule = (function(){
       ${renderTabs()}
       ${renderActiveBar()}
       ${renderFilters()}
-      <div class="lgw-main-grid">
-        <div>${renderList()}</div>
-        <div>${renderDetails()}</div>
-      </div>
+      ${renderList()}
       ${renderModal()}
     `;
     bindEvents();
@@ -784,8 +800,18 @@ window.LoyaltyGiveawaysModule = (function(){
       btn.addEventListener('click', () => openLoyaltyGamesTab(btn.dataset.lgwOpenGamesTab || 'overview'));
     });
     root.querySelectorAll('[data-lgw-create]').forEach(btn => btn.addEventListener('click', () => openModal('create')));
-    root.querySelectorAll('[data-lgw-edit]').forEach(btn => btn.addEventListener('click', () => openModal('edit', btn.dataset.lgwEdit)));
-    root.querySelectorAll('[data-lgw-open-control]').forEach(btn => btn.addEventListener('click', () => openModal('control', btn.dataset.lgwOpenControl)));
+    root.querySelectorAll('[data-lgw-open-details]').forEach(btn => btn.addEventListener('click', async () => {
+      await loadGiveaway(btn.dataset.lgwOpenDetails, false);
+      openModal('details', btn.dataset.lgwOpenDetails);
+    }));
+    root.querySelectorAll('[data-lgw-edit]').forEach(btn => btn.addEventListener('click', async () => {
+      await loadGiveaway(btn.dataset.lgwEdit, false);
+      openModal('edit', btn.dataset.lgwEdit);
+    }));
+    root.querySelectorAll('[data-lgw-open-control]').forEach(btn => btn.addEventListener('click', async () => {
+      await loadGiveaway(btn.dataset.lgwOpenControl, false);
+      openModal('control', btn.dataset.lgwOpenControl);
+    }));
     root.querySelectorAll('[data-lgw-select]').forEach(btn => btn.addEventListener('click', () => loadGiveaway(btn.dataset.lgwSelect)));
 
     root.querySelector('[data-lgw-active-select]')?.addEventListener('change', ev => {

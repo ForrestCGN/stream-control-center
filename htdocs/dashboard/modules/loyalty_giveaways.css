@@ -159,3 +159,123 @@
   .lgw-form-row,
   .lgw-check-row { grid-template-columns: 1fr; }
 }
+
+/* STEP LWG-4P.2 - compact overview: keep details/config/live controls in modals */
+.lgw-overview-panel {
+  min-height: 0;
+}
+
+.lgw-overview-list {
+  display: grid;
+  gap: 12px;
+}
+
+.lgw-giveaway-item {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.15fr) minmax(420px, 1.3fr) auto;
+  gap: 14px;
+  align-items: center;
+  border: 1px solid rgba(142, 238, 255, .13);
+  background: rgba(255, 255, 255, .045);
+  border-radius: 18px;
+  padding: 14px;
+}
+
+.lgw-giveaway-item.is-active {
+  outline: 1px solid rgba(43, 218, 255, .42);
+  background: rgba(43, 218, 255, .07);
+}
+
+.lgw-giveaway-main {
+  display: grid;
+  gap: 5px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  padding: 0;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.lgw-giveaway-main strong,
+.lgw-giveaway-main span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.lgw-giveaway-main span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.lgw-giveaway-meta {
+  display: grid;
+  grid-template-columns: auto repeat(3, minmax(92px, 1fr));
+  gap: 10px;
+  align-items: center;
+}
+
+.lgw-giveaway-meta > span:not(.lgw-badge) {
+  display: grid;
+  gap: 3px;
+}
+
+.lgw-giveaway-meta small {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .11em;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.lgw-giveaway-meta strong {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.lgw-giveaway-actions {
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+}
+
+.lgw-empty {
+  border: 1px dashed rgba(142, 238, 255, .18);
+  border-radius: 16px;
+  padding: 18px;
+  color: var(--muted);
+}
+
+.lgw-detail-modal {
+  width: min(1180px, calc(100vw - 48px));
+}
+
+.lgw-detail-modal .lgw-grid-4,
+.lgw-control-modal .lgw-grid-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.lgw-detail-modal .lgw-panel,
+.lgw-control-modal .lgw-panel {
+  margin-top: 14px;
+}
+
+@media (max-width: 1280px) {
+  .lgw-giveaway-item {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .lgw-giveaway-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 900px) {
+  .lgw-giveaway-meta,
+  .lgw-detail-modal .lgw-grid-4,
+  .lgw-control-modal .lgw-grid-4 {
+    grid-template-columns: 1fr;
+  }
+}
