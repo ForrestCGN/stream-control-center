@@ -481,6 +481,236 @@ window.LoyaltyGiveawaysModule = (function(){
     });
   }
 
+  function boundWheelFields(giveaway){
+    return rows(giveaway?.boundWheelFields || giveaway?.wheelFields || giveaway?.boundWheel?.fields || []);
+  }
+
+  async function createGiveawayBoundWheel(giveawayUid){
+    if (!giveawayUid) return null;
+    const giveaway = selectedGiveaway()?.giveawayUid === giveawayUid ? selectedGiveaway() : rows(state.giveaways).find(g => g.giveawayUid === giveawayUid);
+    const title = giveaway?.title || 'Giveaway-Glücksrad';
+    const result = await apiPut(`${api.detailBase}/${encodeURIComponent(giveawayUid)}/wheel/bound`, {
+      title,
+      name: `${title} – Glücksrad`,
+      actor: 'dashboard',
+      source: 'dashboard_giveaway_control_wheel_modal'
+    });
+    await refreshGiveaways(giveawayUid, false);
+    setMessage(result.created ? 'Giveaway-Glücksrad wurde erstellt.' : 'Giveaway-Glücksrad wurde geladen.');
+    return result;
+  }
+
+  async function ensureGiveawayBoundWheel(giveawayUid){
+    if (!giveawayUid) return null;
+    if (!selectedGiveaway() || selectedGiveaway().giveawayUid !== giveawayUid) await loadGiveaway(giveawayUid, false);
+    if (hasGiveawayWheel(selectedGiveaway())) return { ok: true, created: false, boundWheel: selectedGiveaway()?.boundWheel || null };
+    return createGiveawayBoundWheel(giveawayUid);
+  }
+
+  function giveawayWheelFieldPayload(form){
+    const data = new FormData(form);
+    return {
+      label: data.get('label'),
+      subLabel: data.get('subLabel') || '',
+      weight: Number(data.get('weight') || 1),
+      quantityTotal: Number(data.get('quantityTotal') || 1),
+      rewardType: data.get('rewardType') || 'manual',
+      rewardValue: data.get('rewardValue') || '',
+      enabled: data.get('enabled') === 'on',
+      sortOrder: Number(data.get('sortOrder') || 1),
+      actor: 'dashboard'
+    };
+  }
+
+  async function openGiveawayWheelEditor(uid){
+    if (!uid) return;
+    state.saving = true;
+    render();
+    try {
+      await loadGiveaway(uid, false);
+      await ensureGiveawayBoundWheel(uid);
+      await loadGiveaway(uid, false);
+      state.modal = { type: 'wheelEditor', uid };
+      stopControlRefresh();
+      state.error = '';
+    } catch (err) {
+      state.error = err.message || String(err);
+    } finally {
+      state.saving = false;
+      render();
+    }
+  }
+
+  async function handleCreateGiveawayWheelField(form){
+    const giveawayUid = state.modal?.uid || state.selectedUid;
+    if (!giveawayUid) return;
+    state.saving = true;
+    render();
+    try {
+      await ensureGiveawayBoundWheel(giveawayUid);
+      await apiPost(`${api.detailBase}/${encodeURIComponent(giveawayUid)}/wheel/bound/fields`, giveawayWheelFieldPayload(form));
+      await refreshGiveaways(giveawayUid, false);
+      await loadGiveaway(giveawayUid, false);
+      state.modal = { type: 'wheelEditor', uid: giveawayUid };
+      setMessage('Glücksrad-Feld wurde hinzugefügt.');
+    } catch (err) {
+      state.error = err.message || String(err);
+    } finally {
+      state.saving = false;
+      render();
+    }
+  }
+
+  async function handleUpdateGiveawayWheelField(form){
+    const giveawayUid = state.modal?.uid || state.selectedUid;
+    const fieldUid = form.dataset.fieldUid;
+    if (!giveawayUid || !fieldUid) return;
+    state.saving = true;
+    render();
+    try {
+      await apiPut(`${api.detailBase}/${encodeURIComponent(giveawayUid)}/wheel/bound/fields/${encodeURIComponent(fieldUid)}`, giveawayWheelFieldPayload(form));
+      await refreshGiveaways(giveawayUid, false);
+      await loadGiveaway(giveawayUid, false);
+      state.modal = { type: 'wheelEditor', uid: giveawayUid };
+      setMessage('Glücksrad-Feld wurde gespeichert.');
+    } catch (err) {
+      state.error = err.message || String(err);
+    } finally {
+      state.saving = false;
+      render();
+    }
+  }
+
+  async function deleteGiveawayWheelField(fieldUid){
+    const giveawayUid = state.modal?.uid || state.selectedUid;
+    if (!giveawayUid || !fieldUid) return;
+    if (!window.confirm('Dieses Glücksrad-Feld deaktivieren?')) return;
+    state.saving = true;
+    render();
+    try {
+      await apiPost(`${api.detailBase}/${encodeURIComponent(giveawayUid)}/wheel/bound/fields/${encodeURIComponent(fieldUid)}/delete`, { actor: 'dashboard' });
+      await refreshGiveaways(giveawayUid, false);
+      await loadGiveaway(giveawayUid, false);
+      state.modal = { type: 'wheelEditor', uid: giveawayUid };
+      setMessage('Glücksrad-Feld wurde deaktiviert.');
+    } catch (err) {
+      state.error = err.message || String(err);
+    } finally {
+      state.saving = false;
+      render();
+    }
+  }
+
+  function renderWheelEditorModal(){
+    const uid = state.modal?.uid || state.selectedUid;
+    const g = uid === state.selectedUid ? selectedGiveaway() : rows(state.giveaways).find(item => item.giveawayUid === uid);
+    if (!g) return '';
+    const fields = boundWheelFields(g);
+    const existing = hasGiveawayWheel(g);
+    const boundWheel = g.boundWheel || {};
+    const issue = setupIssueText(g);
+    return `
+      <div class="lgw-modal-backdrop" data-lgw-close-modal>
+        <div class="lgw-modal lgw-wheel-editor-modal" role="dialog" aria-modal="true" aria-label="Giveaway-Glücksrad bearbeiten" data-lgw-modal-box>
+          <div class="lgw-modal-head">
+            <div>
+              <p class="lgw-eyebrow">Giveaway-Glücksrad</p>
+              <h3>${existing ? 'Glücksrad bearbeiten' : 'Glücksrad erstellen'}: ${esc(g.title || g.giveawayUid || '-')}</h3>
+              <p class="lgw-muted">Dieses Fenster bearbeitet nur das an dieses Giveaway gebundene Glücksrad.</p>
+            </div>
+            <button class="lgw-icon-btn" data-lgw-close-modal type="button">×</button>
+          </div>
+
+          <section class="lgw-panel lgw-wheel-context">
+            <div class="lgw-kv lgw-kv-compact">
+              <span>Giveaway</span><strong><code>${esc(g.giveawayUid || '-')}</code></strong>
+              <span>Status</span><strong>${statusBadge(g.status)}</strong>
+              <span>Glücksrad</span><strong>${existing ? 'vorhanden' : 'wird erstellt'}</strong>
+              <span>Gebundenes Rad</span><strong>${esc(boundWheel.boundWheelUid || g.boundWheelUid || g.wheelSnapshotUid || g.settingsSnapshot?.wheelSnapshotUid || '-')}</strong>
+              <span>Felder</span><strong>${fmtNumber(fields.length)}</strong>
+              <span>Startbereit</span><strong>${g.setupComplete === false ? 'Nein' : 'Ja'}</strong>
+            </div>
+            ${issue ? `<p class="lgw-warning">Noch nicht startbereit: ${esc(issue.replace(/^Noch nicht startbereit:\s*/i, ''))}</p>` : ''}
+          </section>
+
+          <section class="lgw-panel">
+            <div class="lgw-panel-head">
+              <div>
+                <h3>Felder / Gewinne</h3>
+                <p class="lgw-muted">Mindestens ein aktives Feld ist nötig, damit ein Glücksrad-Giveaway startbereit ist.</p>
+              </div>
+            </div>
+
+            <form class="lgw-form lgw-wheel-field-form" data-lgw-create-wheel-field>
+              <div class="lgw-form-row">
+                <label>Label<input name="label" placeholder="z. B. 500 Kekskrümel" required></label>
+                <label>Subtext<input name="subLabel" placeholder="optional"></label>
+              </div>
+              <div class="lgw-form-row">
+                <label>Gewicht<input name="weight" type="number" min="1" value="1"></label>
+                <label>Gesamtmenge<input name="quantityTotal" type="number" min="1" value="1"></label>
+              </div>
+              <div class="lgw-form-row">
+                <label>Reward-Typ
+                  <select name="rewardType">
+                    <option value="manual">manual</option>
+                    <option value="points">points</option>
+                    <option value="none">none</option>
+                    <option value="bonus_spin">bonus_spin</option>
+                  </select>
+                </label>
+                <label>Reward-Wert<input name="rewardValue" placeholder="optional"></label>
+              </div>
+              <div class="lgw-modal-actions">
+                <label class="lgw-check"><input name="enabled" type="checkbox" checked> aktiv</label>
+                <button class="lgw-btn" type="submit" ${state.saving ? 'disabled' : ''}>Feld hinzufügen</button>
+              </div>
+            </form>
+
+            <div class="lgw-wheel-field-list">
+              ${fields.map(field => `
+                <form class="lgw-wheel-field-card" data-lgw-update-wheel-field data-field-uid="${esc(field.fieldUid)}">
+                  <div class="lgw-wheel-field-top">
+                    <strong>${esc(field.label || '-')}</strong>
+                    ${field.enabled !== false && field.enabled !== 0 ? statusBadge('active') : statusBadge('paused')}
+                  </div>
+                  <div class="lgw-form-row">
+                    <label>Reihenfolge<input name="sortOrder" type="number" value="${esc(field.sortOrder || 1)}"></label>
+                    <label>Label<input name="label" value="${esc(field.label || '')}" required></label>
+                  </div>
+                  <div class="lgw-form-row">
+                    <label>Subtext<input name="subLabel" value="${esc(field.subLabel || field.sub || '')}"></label>
+                    <label>Gewicht<input name="weight" type="number" min="1" value="${esc(field.weight || 1)}"></label>
+                  </div>
+                  <div class="lgw-form-row">
+                    <label>Gesamtmenge<input name="quantityTotal" type="number" min="1" value="${esc(field.quantityTotal || 1)}"></label>
+                    <label>Reward-Typ
+                      <select name="rewardType">
+                        ${['manual','points','none','bonus_spin'].map(type => `<option value="${type}" ${field.rewardType === type ? 'selected' : ''}>${type}</option>`).join('')}
+                      </select>
+                    </label>
+                  </div>
+                  <div class="lgw-form-row">
+                    <label>Reward-Wert<input name="rewardValue" value="${esc(field.rewardValue || '')}"></label>
+                    <label class="lgw-check"><input name="enabled" type="checkbox" ${field.enabled !== false && field.enabled !== 0 ? 'checked' : ''}> aktiv</label>
+                  </div>
+                  <div class="lgw-modal-actions">
+                    <button class="lgw-btn" type="submit">Speichern</button>
+                    <button class="lgw-btn lgw-btn-danger" type="button" data-lgw-delete-wheel-field="${esc(field.fieldUid)}">Deaktivieren</button>
+                  </div>
+                </form>
+              `).join('') || `<p class="lgw-muted">Noch keine Felder vorhanden. Lege mindestens ein Feld an.</p>`}
+            </div>
+          </section>
+
+          <div class="lgw-modal-actions">
+            <button class="lgw-btn lgw-btn-secondary" type="button" data-lgw-close-modal>Zurück zu Giveaways</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   function canStartGiveaway(g){
     return norm(g?.status) === 'draft' && g?.canOpen !== false && g?.setupComplete !== false && !needsWheelEditor(g);
   }
@@ -777,17 +1007,9 @@ window.LoyaltyGiveawaysModule = (function(){
     }
   }
 
-  function openGiveawayWheelEditor(uid){
-    if (!uid) return;
-    if (typeof window.LoyaltyGamesModule?.openGiveawayWheelEditor === 'function') {
-      window.LoyaltyGamesModule.openGiveawayWheelEditor(uid);
-    } else if (typeof window.LoyaltyGamesModule?.setTab === 'function') {
-      window.LoyaltyGamesModule.setTab('wheel');
-    }
-    if (typeof window.CGN?.setActiveModule === 'function') {
-      window.CGN.setActiveModule('loyalty_games', { section: 'loyalty', giveawayUid: uid, wheelEditor: true });
-    }
-  }
+  // Opens the giveaway-bound wheel editor as a modal inside the new Giveaway-Control.
+  // It must not route into the old loyalty_games inline giveaway UI.
+
 
   function renderImportantCardActions(g){
     const uid = esc(g.giveawayUid || '');
@@ -1126,6 +1348,7 @@ window.LoyaltyGiveawaysModule = (function(){
     }
     if (state.modal.type === 'details') return renderDetailsModal();
     if (state.modal.type === 'control') return renderControlModal();
+    if (state.modal.type === 'wheelEditor') return renderWheelEditorModal();
     return '';
   }
 
@@ -1423,6 +1646,20 @@ window.LoyaltyGiveawaysModule = (function(){
       saveGiveaway(ev.currentTarget, ev.currentTarget.dataset.uid || '');
     });
 
+    root.querySelector('[data-lgw-create-wheel-field]')?.addEventListener('submit', ev => {
+      ev.preventDefault();
+      handleCreateGiveawayWheelField(ev.currentTarget);
+    });
+    root.querySelectorAll('[data-lgw-update-wheel-field]').forEach(form => {
+      form.addEventListener('submit', ev => {
+        ev.preventDefault();
+        handleUpdateGiveawayWheelField(ev.currentTarget);
+      });
+    });
+    root.querySelectorAll('[data-lgw-delete-wheel-field]').forEach(btn => {
+      btn.addEventListener('click', () => deleteGiveawayWheelField(btn.dataset.lgwDeleteWheelField));
+    });
+
     root.querySelectorAll('[data-lgw-close-modal]').forEach(el => el.addEventListener('click', ev => {
       if (ev.target.closest('[data-lgw-modal-box]') && !ev.target.matches('[data-lgw-close-modal]')) return;
       closeModal();
@@ -1436,5 +1673,5 @@ window.LoyaltyGiveawaysModule = (function(){
 
   registerDashboardModule();
 
-  return { loadAll, render };
+  return { loadAll, render, openGiveawayWheelEditor, openGiveawayDetails: async function(uid){ if (uid) await loadGiveaway(uid, false); openModal('details', uid); } };
 })();

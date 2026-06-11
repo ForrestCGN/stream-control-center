@@ -683,8 +683,11 @@ window.LoyaltyGamesModule = (function(){
 
   function renderModuleCard(item){
     const info = item.health;
+    const targetAttr = item.moduleId
+      ? `data-lg-open-module="${esc(item.moduleId)}"`
+      : `data-lg-jump-tab="${esc(item.tab || 'overview')}"`;
     return `
-      <button class="lg-module-card" data-lg-jump-tab="${esc(item.tab || 'overview')}">
+      <button class="lg-module-card" ${targetAttr}>
         <span class="lg-module-card-top">
           <span class="lg-module-icon">${esc(item.icon || '•')}</span>
           ${renderAmpel(info)}
@@ -737,7 +740,7 @@ window.LoyaltyGamesModule = (function(){
       {
         title: 'Giveaways',
         icon: '🎁',
-        tab: 'giveaways',
+        moduleId: 'loyalty_giveaways',
         description: `${fmtNumber(giveawaysDiag.total || rows(state.giveaways).length)} Giveaways · Tickets folgen`,
         health: giveawaysHealth
       },
@@ -1866,11 +1869,25 @@ window.LoyaltyGamesModule = (function(){
     `;
   }
 
+  function renderGiveawaysRedirect(){
+    return `
+      <div class="lg-panel">
+        <div class="lg-panel-head">
+          <div>
+            <h3>Giveaway-Control</h3>
+            <p class="lg-muted">Giveaways werden ab jetzt ausschließlich im neuen Giveaway-Control verwaltet. Die alte Inline-Giveaway-Seite ist kein Bedienziel mehr.</p>
+          </div>
+          <button class="lg-btn" data-lg-open-module="loyalty_giveaways">Giveaway-Control öffnen</button>
+        </div>
+      </div>
+    `;
+  }
+
   function renderActiveTab(){
     if (state.activeTab === 'wheel') return renderWheel();
     if (state.activeTab === 'presets') return renderPresets();
     if (state.activeTab === 'giveaway_wheel_editor') return renderGiveawayWheelEditor();
-    if (state.activeTab === 'giveaways') return renderGiveaways();
+    if (state.activeTab === 'giveaways') return renderGiveawaysRedirect();
     if (state.activeTab === 'chat') return renderChatSetup();
     if (state.activeTab === 'history') return renderSessions();
     if (state.activeTab === 'notes') return renderNotes();
@@ -1898,7 +1915,12 @@ window.LoyaltyGamesModule = (function(){
 
     root.querySelectorAll('[data-lg-jump-tab]').forEach(btn => {
       btn.addEventListener('click', () => {
-        state.activeTab = btn.dataset.lgJumpTab || 'overview';
+        const tab = btn.dataset.lgJumpTab || 'overview';
+        if (tab === 'giveaways' && typeof window.CGN?.setActiveModule === 'function') {
+          window.CGN.setActiveModule('loyalty_giveaways', { section: 'loyalty' });
+          return;
+        }
+        state.activeTab = tab;
         render();
       });
     });
@@ -2052,27 +2074,34 @@ window.LoyaltyGamesModule = (function(){
   }
 
   async function openGiveawayEditor(giveawayUid){
-    state.activeTab = 'giveaways';
-    if (giveawayUid) state.selectedGiveawayUid = giveawayUid;
-    if (!state.giveaways) {
-      await loadAll(true);
+    if (typeof window.LoyaltyGiveawaysModule?.openGiveawayDetails === 'function') {
+      await window.LoyaltyGiveawaysModule.openGiveawayDetails(giveawayUid);
+    }
+    if (typeof window.CGN?.setActiveModule === 'function') {
+      window.CGN.setActiveModule('loyalty_giveaways', { section: 'loyalty', giveawayUid });
       return;
     }
-    if (giveawayUid) await loadGiveaway(giveawayUid, false);
+    state.activeTab = 'overview';
     render();
   }
 
   async function openGiveawayWheelEditor(giveawayUid){
-    state.activeTab = 'giveaway_wheel_editor';
-    if (giveawayUid) state.selectedGiveawayUid = giveawayUid;
-    if (!state.giveaways) {
-      await loadAll(true);
+    if (typeof window.LoyaltyGiveawaysModule?.openGiveawayWheelEditor === 'function') {
+      await window.LoyaltyGiveawaysModule.openGiveawayWheelEditor(giveawayUid);
     }
-    if (giveawayUid) await loadGiveaway(giveawayUid, false);
+    if (typeof window.CGN?.setActiveModule === 'function') {
+      window.CGN.setActiveModule('loyalty_giveaways', { section: 'loyalty', giveawayUid, wheelEditor: true });
+      return;
+    }
+    state.activeTab = 'overview';
     render();
   }
 
   function setTab(tab){
+    if (tab === 'giveaways' && typeof window.CGN?.setActiveModule === 'function') {
+      window.CGN.setActiveModule('loyalty_giveaways', { section: 'loyalty' });
+      return;
+    }
     state.activeTab = tab || 'overview';
     render();
   }

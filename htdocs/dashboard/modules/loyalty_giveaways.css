@@ -491,3 +491,52 @@
   gap: 8px;
   flex-wrap: wrap;
 }
+
+
+/* STEP LWG-4Q.8 - giveaway-bound wheel editor modal */
+.lgw-wheel-editor-modal {
+  width: min(1180px, calc(100vw - 48px));
+}
+
+.lgw-wheel-context {
+  margin-bottom: 14px;
+}
+
+.lgw-wheel-field-form {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(142, 238, 255, .12);
+}
+
+.lgw-wheel-field-list {
+  display: grid;
+  gap: 12px;
+}
+
+.lgw-wheel-field-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(142, 238, 255, .14);
+  background: rgba(255,255,255,.045);
+  border-radius: 16px;
+}
+
+.lgw-wheel-field-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.lgw-wheel-field-top strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+  .lgw-wheel-field-top {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
