@@ -138,17 +138,6 @@ window.LoyaltyGiveawaysModule = (function(){
   function registerDashboardModule(){
     if (!window.CGN) return;
 
-    window.CGN.sections.loyalty = {
-      label: 'Loyalty',
-      icon: '🎟️',
-      role: 'mod/supermod/streamer',
-      description: 'Punkte, Giveaways, Glücksrad, Raffles, Texte, Statistik, Config und Verlauf.',
-      items: ['loyalty_giveaways', 'loyalty_games'],
-      directModule: 'loyalty_giveaways',
-      defaultModule: 'loyalty_giveaways',
-      hideOverview: true
-    };
-
     window.CGN.modules.loyalty_giveaways = {
       title: 'Giveaways',
       panelId: 'loyaltyGiveawaysModule',
@@ -165,35 +154,9 @@ window.LoyaltyGiveawaysModule = (function(){
       description: 'Giveaway-Übersicht, Erstellung, Bearbeitung und Live-Steuerung.'
     };
 
-    const nav = document.querySelector('#mainNav .nav-main-block');
-    if (nav) {
-      let btn = nav.querySelector('[data-section="loyalty"]');
-      if (!btn) {
-        btn = document.createElement('button');
-        btn.className = 'nav-main-item';
-        btn.dataset.section = 'loyalty';
-        const communityBtn = nav.querySelector('[data-section="community"]');
-        if (communityBtn) nav.insertBefore(btn, communityBtn);
-        else nav.appendChild(btn);
-      }
-      btn.innerHTML = '<span class="nav-icon">🎟️</span><span class="nav-label"><strong>Loyalty</strong><small>Giveaways, Punkte, Glücksrad</small></span>';
-      btn.dataset.module = 'loyalty_giveaways';
-      btn.dataset.directModule = 'loyalty_giveaways';
-      if (btn.dataset.loyaltyGiveawaysBound !== '1') {
-        btn.addEventListener('click', (ev) => {
-          if (btn.disabled) return;
-          ev.preventDefault();
-          ev.stopImmediatePropagation();
-          window.CGN.setActiveModule?.('loyalty_giveaways', { section: 'loyalty' });
-        }, true);
-        btn.dataset.loyaltyGiveawaysBound = '1';
-      }
-    }
-
-    if (Array.isArray(window.CGN.favorites) && !window.CGN.favorites.includes('loyalty_giveaways')) {
-      const idx = window.CGN.favorites.indexOf('loyalty_games');
-      if (idx >= 0) window.CGN.favorites.splice(idx, 0, 'loyalty_giveaways');
-      else window.CGN.favorites.push('loyalty_giveaways');
+    const loyaltySection = window.CGN.sections?.loyalty;
+    if (loyaltySection && Array.isArray(loyaltySection.items) && !loyaltySection.items.includes('loyalty_giveaways')) {
+      loyaltySection.items.push('loyalty_giveaways');
     }
 
     window.SectionHomeModule?.render?.();
@@ -440,6 +403,33 @@ window.LoyaltyGiveawaysModule = (function(){
       </div>
       ${state.message ? `<div class="lgw-toast">${esc(state.message)}</div>` : ''}
       ${state.saving ? `<div class="lgw-toast lgw-toast-warn">Speichere...</div>` : ''}
+    `;
+  }
+
+  function openLoyaltyGamesTab(tab){
+    window.LoyaltyGamesModule?.setTab?.(tab || 'overview');
+    if (typeof window.CGN?.setActiveModule === 'function') {
+      window.CGN.setActiveModule('loyalty_games', { section: 'loyalty' });
+    }
+  }
+
+  function renderTabs(){
+    const tabs = [
+      ['overview', 'Übersicht'],
+      ['wheel', 'Glücksrad'],
+      ['presets', 'Presets'],
+      ['giveaways', 'Giveaways'],
+      ['chat', 'Chat/Commands'],
+      ['history', 'Verlauf'],
+      ['notes', 'Hinweise']
+    ];
+    return `
+      <div class="lg-tabs">
+        ${tabs.map(([id, label]) => {
+          if (id === 'giveaways') return `<button class="lg-tab is-active" data-lgw-tab-current="giveaways">${label}</button>`;
+          return `<button class="lg-tab" data-lgw-open-games-tab="${id}">${label}</button>`;
+        }).join('')}
+      </div>
     `;
   }
 
@@ -773,6 +763,7 @@ window.LoyaltyGiveawaysModule = (function(){
     }
     root.innerHTML = `
       ${renderHeader()}
+      ${renderTabs()}
       ${renderActiveBar()}
       ${renderFilters()}
       <div class="lgw-main-grid">
@@ -789,6 +780,9 @@ window.LoyaltyGiveawaysModule = (function(){
     if (!root) return;
 
     root.querySelectorAll('[data-lgw-reload]').forEach(btn => btn.addEventListener('click', () => loadAll(true)));
+    root.querySelectorAll('[data-lgw-open-games-tab]').forEach(btn => {
+      btn.addEventListener('click', () => openLoyaltyGamesTab(btn.dataset.lgwOpenGamesTab || 'overview'));
+    });
     root.querySelectorAll('[data-lgw-create]').forEach(btn => btn.addEventListener('click', () => openModal('create')));
     root.querySelectorAll('[data-lgw-edit]').forEach(btn => btn.addEventListener('click', () => openModal('edit', btn.dataset.lgwEdit)));
     root.querySelectorAll('[data-lgw-open-control]').forEach(btn => btn.addEventListener('click', () => openModal('control', btn.dataset.lgwOpenControl)));

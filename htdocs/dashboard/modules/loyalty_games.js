@@ -173,6 +173,7 @@ window.LoyaltyGamesModule = (function(){
           if (btn.disabled) return;
           ev.preventDefault();
           ev.stopImmediatePropagation();
+          state.activeTab = 'overview';
           if (typeof window.CGN.setActiveModule === 'function') {
             window.CGN.setActiveModule('loyalty_games', { section: 'loyalty' });
           } else if (typeof window.CGN.setActiveSection === 'function') {
@@ -1649,7 +1650,12 @@ window.LoyaltyGamesModule = (function(){
     ];
     return `
       <div class="lg-tabs">
-        ${tabs.map(([id, label]) => `<button class="lg-tab ${state.activeTab === id ? 'is-active' : ''}" data-lg-tab="${id}">${label}</button>`).join('')}
+        ${tabs.map(([id, label]) => {
+          if (id === 'giveaways' && window.CGN?.modules?.loyalty_giveaways) {
+            return `<button class="lg-tab" data-lg-open-module="loyalty_giveaways">${label}</button>`;
+          }
+          return `<button class="lg-tab ${state.activeTab === id ? 'is-active' : ''}" data-lg-tab="${id}">${label}</button>`;
+        }).join('')}
       </div>
     `;
   }
@@ -1669,6 +1675,15 @@ window.LoyaltyGamesModule = (function(){
       btn.addEventListener('click', () => {
         state.activeTab = btn.dataset.lgTab || 'overview';
         render();
+      });
+    });
+
+    root.querySelectorAll('[data-lg-open-module]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const moduleId = btn.dataset.lgOpenModule;
+        if (moduleId && typeof window.CGN?.setActiveModule === 'function') {
+          window.CGN.setActiveModule(moduleId, { section: 'loyalty' });
+        }
       });
     });
 
@@ -1798,6 +1813,11 @@ window.LoyaltyGamesModule = (function(){
     bindEvents();
   }
 
+  function setTab(tab){
+    state.activeTab = tab || 'overview';
+    render();
+  }
+
   window.addEventListener('cgn:module-show', event => {
     if (event.detail?.module === 'loyalty_games') loadAll();
   });
@@ -1806,6 +1826,7 @@ window.LoyaltyGamesModule = (function(){
 
   return {
     loadAll,
-    render
+    render,
+    setTab
   };
 })();
