@@ -18,7 +18,7 @@ const database = require("../core/database");
 
 const MODULE_NAME = "loyalty_giveaways";
 const MODULE_VERSION = "0.1.0";
-const MODULE_BUILD = "STEP_LWG_4O_3c";
+const MODULE_BUILD = "STEP_LWG_4O_4";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -165,6 +165,7 @@ const STATUS = {
   CLOSED_FOR_ENTRIES: "closed_for_entries",
   DRAWING: "drawing",
   WAITING_FOR_WHEEL: "waiting_for_wheel",
+  WAITING_FOR_CLAIM: "waiting_for_claim",
   WAITING_NEXT_ROUND: "waiting_next_round",
   PRIZES_EXHAUSTED: "prizes_exhausted",
   FINISHED: "finished",
@@ -207,7 +208,8 @@ const MODULE_META = {
       "loyalty.giveaway.wheel_claimed",
       "loyalty.giveaway.claim.chat_window_opened",
       "loyalty.giveaway.claim.chat_seen",
-      "loyalty.giveaway.claim.confirmed"
+      "loyalty.giveaway.claim.confirmed",
+      "loyalty.giveaway.claim.auto_opened"
     ],
     consumes: [
       "twitch.chat.message"
@@ -818,6 +820,24 @@ function buildChatClaimSettings(input = {}) {
   };
 }
 
+function buildRuntimeChatClaimSettings(giveaway = {}, input = {}) {
+  const snapshot = giveaway && giveaway.settingsSnapshot && typeof giveaway.settingsSnapshot === "object" ? giveaway.settingsSnapshot : {};
+  const stored = snapshot.chatClaim && typeof snapshot.chatClaim === "object" ? snapshot.chatClaim : {};
+  const runtime = input.chatClaim && typeof input.chatClaim === "object" ? input.chatClaim : {};
+  return buildChatClaimSettings({
+    ...stored,
+    ...input,
+    chatClaim: {
+      ...stored,
+      ...runtime
+    }
+  });
+}
+
+function isChatClaimRequiredForDraw(settings = {}) {
+  return settings && settings.enabled === true;
+}
+
 function getWinnerRow(winnerUid) {
   ensureSchema();
   const cleanWinnerUid = String(winnerUid || "").trim();
@@ -870,7 +890,10 @@ function openChatClaimWindowForWinner(giveawayUid, winnerUid, input = {}) {
       openedAt: now,
       expiresAt,
       timeoutMs,
+      timeoutSeconds: Math.round(timeoutMs / 1000),
       openedBy: String(input.actor || input.openedBy || "dashboard"),
+      reason: String(input.reason || "manual"),
+      activateWheelAfterClaim: boolish(input.activateWheelAfterClaim ?? input.activate_wheel_after_claim, true),
       confirmedAt: "",
       confirmedByEventId: "",
       confirmedMessagePreview: "",
@@ -890,7 +913,7 @@ function openChatClaimWindowForWinner(giveawayUid, winnerUid, input = {}) {
     oldStatus: "",
     newStatus: "pending",
     message: `Chat-Claim-Fenster fuer ${winnerRow.user_display_name || winnerRow.user_login} geoeffnet`,
-    metadata: { winnerUid, claimUid, expiresAt, timeoutMs }
+    metadata: { winnerUid, claimUid, expiresAt, timeoutMs, reason: input.reason || "manual", activateWheelAfterClaim: boolish(input.activateWheelAfterClaim ?? input.activate_wheel_after_claim, true) }
   });
 
   emitEvent("loyalty.giveaway.claim.chat_window_opened", {
@@ -900,7 +923,9 @@ function openChatClaimWindowForWinner(giveawayUid, winnerUid, input = {}) {
     userLogin: winnerRow.user_login || "",
     userDisplayName: winnerRow.user_display_name || winnerRow.user_login || "",
     expiresAt,
-    timeoutMs
+    timeoutMs,
+    reason: input.reason || "manual",
+    activateWheelAfterClaim: boolish(input.activateWheelAfterClaim ?? input.activate_wheel_after_claim, true)
   });
 
   state.chatClaimSubscriber.openWindows += 1;
@@ -1000,7 +1025,79 @@ function confirmChatClaimWindow(claimWindow, chat = {}) {
     messagePreview
   });
 
-  return { ok: true, winner: updated.winner, confirmedAt: now };
+  const postClaim = applyPostClaimFlowAfterChatClaim(updated.winner, updated.metadata && updated.metadata.chatClaim ? updated.metadata.chatClaim : {}, chat);
+  return { ok: true, winner: postClaim && postClaim.winner ? postClaim.winner : updated.winner, confirmedAt: now, postClaim };
+}
+
+function applyPostClaimFlowAfterChatClaim(winner = {}, chatClaim = {}, chat = {}) {
+  ensureSchema();
+  if (!winner || !winner.winnerUid) return { ok: false, error: "winner_missing" };
+  const giveaway = getGiveaway(winner.giveawayUid, false);
+  if (!giveaway) return { ok: false, error: "giveaway_not_found", statusCode: 404 };
+
+  if (winner.wheelRequired === true) {
+    if (chatClaim.activateWheelAfterClaim === false) {
+      return { ok: true, action: "wheel_activation_disabled", winner };
+    }
+    if (winner.wheelPermissionUid) {
+      return { ok: true, action: "wheel_permission_already_present", winner };
+    }
+    return createWheelPermissionForWinner(giveaway, winner, {
+      reason: "chat_claim_confirmed",
+      actorType: "system",
+      actorLogin: winner.userLogin,
+      oldStatus: STATUS.WAITING_FOR_CLAIM
+    });
+  }
+
+  if (["claim_confirmed", "awarded", "finished"].includes(String(winner.status || ""))) {
+    return { ok: true, action: "winner_already_confirmed", winner };
+  }
+
+  const now = nowIso();
+  let nextRemaining = 1;
+  if (winner.prizeUid) {
+    const prize = database.get("SELECT * FROM loyalty_giveaway_prizes WHERE prize_uid = :prizeUid", { prizeUid: winner.prizeUid });
+    if (prize) {
+      nextRemaining = Math.max(0, Number(prize.quantity_remaining || 0) - 1);
+      database.run(`
+        UPDATE loyalty_giveaway_prizes
+        SET quantity_remaining = :quantityRemaining,
+            status = :status,
+            updated_at = :updatedAt
+        WHERE prize_uid = :prizeUid
+      `, {
+        prizeUid: winner.prizeUid,
+        quantityRemaining: nextRemaining,
+        status: nextRemaining <= 0 ? "awarded" : "available",
+        updatedAt: now
+      });
+    }
+  }
+
+  database.run(`
+    UPDATE loyalty_giveaway_winners
+    SET status = 'claim_confirmed'
+    WHERE winner_uid = :winnerUid
+  `, { winnerUid: winner.winnerUid });
+
+  const updatedWinnerCount = activeWinnerCount(winner.giveawayUid);
+  const giveawayFinished = updatedWinnerCount >= giveaway.winnerCount || nextRemaining <= 0;
+  database.run(`
+    UPDATE loyalty_giveaways
+    SET status = :status,
+        finished_at = CASE WHEN :finishedAt != '' THEN :finishedAt ELSE finished_at END,
+        updated_at = :updatedAt
+    WHERE giveaway_uid = :giveawayUid
+  `, {
+    giveawayUid: winner.giveawayUid,
+    status: giveawayFinished ? STATUS.FINISHED : STATUS.CLOSED_FOR_ENTRIES,
+    finishedAt: giveawayFinished ? now : "",
+    updatedAt: now
+  });
+
+  const refreshedWinner = rowToWinner(getWinnerRow(winner.winnerUid));
+  return { ok: true, action: "winner_claim_confirmed", winner: refreshedWinner, giveawayFinished };
 }
 
 function handleTwitchChatMessageForClaim(envelope = {}) {
@@ -1075,7 +1172,7 @@ function registerChatClaimSubscriber() {
     module: MODULE_NAME,
     capability: "twitch.chat.message",
     meta: {
-      step: "LWG-4O.3b",
+      step: "LWG-4O.4",
       purpose: "giveaway_claim_runtime",
       mode: "confirm_pending_claim_window"
     }
@@ -2902,6 +2999,96 @@ function createWheelPermission(input = {}) {
   return rowToWheelPermission(database.get("SELECT * FROM loyalty_giveaway_wheel_permissions WHERE permission_uid = :permissionUid", { permissionUid }));
 }
 
+function createWheelPermissionForWinner(giveaway = {}, winner = {}, input = {}) {
+  ensureSchema();
+  if (!giveaway || !giveaway.giveawayUid) return { ok: false, error: "giveaway_missing", statusCode: 404 };
+  if (!winner || !winner.winnerUid) return { ok: false, error: "winner_missing", statusCode: 404 };
+
+  const existing = winner.wheelPermissionUid ? getPendingWheelPermission(giveaway.giveawayUid, winner.userLogin) : null;
+  if (existing) return { ok: true, wheelPermission: existing, winner, existing: true };
+
+  const boundWheelContext = input.boundWheelContext || getUsableBoundWheelForGiveaway(giveaway, { requireActive: true });
+  if (!boundWheelContext || boundWheelContext.ok !== true) return boundWheelContext || { ok: false, error: "bound_wheel_unavailable", statusCode: 409 };
+
+  const wheelPermission = createWheelPermission({
+    giveawayUid: giveaway.giveawayUid,
+    roundUid: winner.roundUid || "",
+    winnerUid: winner.winnerUid,
+    userLogin: winner.userLogin,
+    userDisplayName: winner.userDisplayName,
+    metadata: {
+      wheelPresetUid: giveaway.wheelPresetUid,
+      wheelSnapshotUid: giveaway.wheelSnapshotUid,
+      boundWheelUid: boundWheelContext.boundWheel.boundWheelUid,
+      sourcePresetUid: boundWheelContext.sourcePresetUid,
+      wheelScope: "giveaway",
+      wheelContext: "giveaway_bound_wheel",
+      reason: input.reason || "winner_drawn"
+    }
+  });
+
+  database.run(`
+    UPDATE loyalty_giveaway_winners
+    SET wheel_permission_uid = :permissionUid,
+        status = 'waiting_for_wheel'
+    WHERE winner_uid = :winnerUid
+  `, {
+    winnerUid: winner.winnerUid,
+    permissionUid: wheelPermission.permissionUid
+  });
+
+  database.run(`
+    UPDATE loyalty_giveaways
+    SET status = :status,
+        updated_at = :updatedAt
+    WHERE giveaway_uid = :giveawayUid
+      AND deleted_at = ''
+  `, {
+    giveawayUid: giveaway.giveawayUid,
+    status: STATUS.WAITING_FOR_WHEEL,
+    updatedAt: nowIso()
+  });
+
+  const refreshedWinner = rowToWinner(getWinnerRow(winner.winnerUid));
+
+  createEvent({
+    giveawayUid: giveaway.giveawayUid,
+    roundUid: winner.roundUid || "",
+    eventType: "loyalty.giveaway.wheel_permission_created",
+    actorType: input.actorType || "system",
+    actorLogin: input.actorLogin || winner.userLogin,
+    oldStatus: input.oldStatus || "",
+    newStatus: "pending",
+    message: `${winner.userDisplayName} may spin the wheel`,
+    metadata: {
+      winnerUid: winner.winnerUid,
+      permissionUid: wheelPermission.permissionUid,
+      wheelPresetUid: giveaway.wheelPresetUid,
+      wheelSnapshotUid: giveaway.wheelSnapshotUid,
+      boundWheelUid: boundWheelContext.boundWheel.boundWheelUid,
+      sourcePresetUid: boundWheelContext.sourcePresetUid,
+      wheelScope: "giveaway",
+      reason: input.reason || "winner_drawn"
+    }
+  });
+
+  emitEvent("loyalty.giveaway.wheel_permission_created", {
+    giveawayUid: giveaway.giveawayUid,
+    winnerUid: winner.winnerUid,
+    permissionUid: wheelPermission.permissionUid,
+    userLogin: winner.userLogin,
+    userDisplayName: winner.userDisplayName,
+    wheelPresetUid: giveaway.wheelPresetUid,
+    wheelSnapshotUid: giveaway.wheelSnapshotUid,
+    boundWheelUid: boundWheelContext.boundWheel.boundWheelUid,
+    sourcePresetUid: boundWheelContext.sourcePresetUid,
+    wheelScope: "giveaway",
+    reason: input.reason || "winner_drawn"
+  });
+
+  return { ok: true, wheelPermission, winner: refreshedWinner, boundWheelContext };
+}
+
 function getPendingWheelPermission(giveawayUid, userLogin) {
   ensureSchema();
   const login = String(userLogin || "").trim().replace(/^@/, "").toLowerCase();
@@ -3014,6 +3201,8 @@ function drawWinner(giveawayUid, input = {}) {
     return { ok: false, error: "giveaway_not_drawable", statusCode: 409, status: giveaway.status, requiredStatus: STATUS.CLOSED_FOR_ENTRIES };
   }
   const isWheelGiveaway = giveaway.wheelEnabled === true;
+  const chatClaimSettings = buildRuntimeChatClaimSettings(giveaway, input);
+  const drawRequiresChatClaim = isChatClaimRequiredForDraw(chatClaimSettings);
   let boundWheelContext = null;
   if (isWheelGiveaway) {
     boundWheelContext = getUsableBoundWheelForGiveaway(giveaway, { requireActive: true });
@@ -3067,10 +3256,12 @@ function drawWinner(giveawayUid, input = {}) {
     wheelRequired: isWheelGiveaway ? 1 : 0,
     wheelPermissionUid: "",
     wheelSpinUid: "",
-    status: "drawn",
+    status: drawRequiresChatClaim ? "waiting_for_claim" : "drawn",
     createdAt: now,
     metadataJson: json({
       actor: input.actor || "dashboard",
+      chatClaimRequired: drawRequiresChatClaim,
+      chatClaimSettings: chatClaimSettings,
       selectedEntryUid: entry.entry_uid,
       entryTicketCount: Number(entry.ticket_count || 0),
       entryTicketWeight: Number(entry.ticket_weight || 0),
@@ -3083,8 +3274,8 @@ function drawWinner(giveawayUid, input = {}) {
     })
   });
 
-  const nextRemaining = prize ? Math.max(0, Number(prize.quantityRemaining || 0) - 1) : 1;
-  if (prize) {
+  const nextRemaining = prize && !drawRequiresChatClaim ? Math.max(0, Number(prize.quantityRemaining || 0) - 1) : (prize ? Number(prize.quantityRemaining || 1) : 1);
+  if (prize && !drawRequiresChatClaim) {
     database.run(`
       UPDATE loyalty_giveaway_prizes
       SET quantity_remaining = :quantityRemaining,
@@ -3117,7 +3308,7 @@ function drawWinner(giveawayUid, input = {}) {
   });
 
   const updatedWinnerCount = activeWinnerCount(giveawayUid);
-  const giveawayFinished = !isWheelGiveaway && (updatedWinnerCount >= giveaway.winnerCount || nextRemaining <= 0);
+  const giveawayFinished = !drawRequiresChatClaim && !isWheelGiveaway && (updatedWinnerCount >= giveaway.winnerCount || nextRemaining <= 0);
   database.run(`
     UPDATE loyalty_giveaways
     SET status = :status,
@@ -3127,7 +3318,7 @@ function drawWinner(giveawayUid, input = {}) {
     WHERE giveaway_uid = :giveawayUid
   `, {
     giveawayUid,
-    status: isWheelGiveaway ? STATUS.WAITING_FOR_WHEEL : (giveawayFinished ? STATUS.FINISHED : STATUS.CLOSED_FOR_ENTRIES),
+    status: drawRequiresChatClaim ? STATUS.WAITING_FOR_CLAIM : (isWheelGiveaway ? STATUS.WAITING_FOR_WHEEL : (giveawayFinished ? STATUS.FINISHED : STATUS.CLOSED_FOR_ENTRIES)),
     entriesClosedAt: now,
     finishedAt: giveawayFinished ? now : "",
     updatedAt: now
@@ -3137,69 +3328,61 @@ function drawWinner(giveawayUid, input = {}) {
 
 
   let wheelPermission = null;
-  if (isWheelGiveaway) {
-    wheelPermission = createWheelPermission({
-      giveawayUid,
-      roundUid: round ? round.roundUid : "",
-      winnerUid,
-      userLogin: winner.userLogin,
-      userDisplayName: winner.userDisplayName,
-      metadata: {
-        wheelPresetUid: giveaway.wheelPresetUid,
-        wheelSnapshotUid: giveaway.wheelSnapshotUid,
-        boundWheelUid: boundWheelContext.boundWheel.boundWheelUid,
-        sourcePresetUid: boundWheelContext.sourcePresetUid,
-        wheelScope: "giveaway",
-        wheelContext: "giveaway_bound_wheel",
-        reason: "winner_drawn"
-      }
+  let claimWindow = null;
+  if (drawRequiresChatClaim) {
+    const openedClaim = openChatClaimWindowForWinner(giveawayUid, winnerUid, {
+      ...chatClaimSettings,
+      actor: input.actor || "dashboard",
+      reason: "winner_drawn_auto",
+      activateWheelAfterClaim: chatClaimSettings.activateWheelAfterClaim !== false
     });
-
-    database.run(`
-      UPDATE loyalty_giveaway_winners
-      SET wheel_permission_uid = :permissionUid,
-          status = 'waiting_for_wheel'
-      WHERE winner_uid = :winnerUid
-    `, {
-      winnerUid,
-      permissionUid: wheelPermission.permissionUid
-    });
-
-    winner.wheelPermissionUid = wheelPermission.permissionUid;
-    winner.status = "waiting_for_wheel";
-
-    createEvent({
-      giveawayUid,
-      roundUid: round ? round.roundUid : "",
-      eventType: "loyalty.giveaway.wheel_permission_created",
-      actorType: "system",
-      actorLogin: winner.userLogin,
-      oldStatus: "",
-      newStatus: "pending",
-      message: `${winner.userDisplayName} may spin the wheel`,
-      metadata: {
+    if (openedClaim && openedClaim.ok === true) {
+      claimWindow = openedClaim.claimWindow;
+      winner.metadata = { ...(winner.metadata || {}), chatClaim: claimWindow };
+      createEvent({
+        giveawayUid,
+        roundUid: round ? round.roundUid : "",
+        eventType: "loyalty.giveaway.claim.auto_opened",
+        actorType: "system",
+        actorLogin: winner.userLogin,
+        oldStatus: "drawn",
+        newStatus: STATUS.WAITING_FOR_CLAIM,
+        message: `Chat-Claim fuer ${winner.userDisplayName} automatisch geoeffnet`,
+        metadata: {
+          winnerUid,
+          claimUid: claimWindow.claimUid || "",
+          expiresAt: claimWindow.expiresAt || "",
+          timeoutMs: claimWindow.timeoutMs || chatClaimSettings.timeoutMs,
+          wheelRequired: isWheelGiveaway,
+          activateWheelAfterClaim: chatClaimSettings.activateWheelAfterClaim !== false
+        }
+      });
+      emitEvent("loyalty.giveaway.claim.auto_opened", {
+        giveawayUid,
         winnerUid,
-        permissionUid: wheelPermission.permissionUid,
-        wheelPresetUid: giveaway.wheelPresetUid,
-        wheelSnapshotUid: giveaway.wheelSnapshotUid,
-        boundWheelUid: boundWheelContext.boundWheel.boundWheelUid,
-        sourcePresetUid: boundWheelContext.sourcePresetUid,
-        wheelScope: "giveaway"
-      }
-    });
+        userLogin: winner.userLogin,
+        userDisplayName: winner.userDisplayName,
+        expiresAt: claimWindow.expiresAt || "",
+        timeoutMs: claimWindow.timeoutMs || chatClaimSettings.timeoutMs,
+        wheelRequired: isWheelGiveaway,
+        activateWheelAfterClaim: chatClaimSettings.activateWheelAfterClaim !== false
+      });
+    }
+  }
 
-    emitEvent("loyalty.giveaway.wheel_permission_created", {
-      giveawayUid,
-      winnerUid,
-      permissionUid: wheelPermission.permissionUid,
-      userLogin: winner.userLogin,
-      userDisplayName: winner.userDisplayName,
-      wheelPresetUid: giveaway.wheelPresetUid,
-      wheelSnapshotUid: giveaway.wheelSnapshotUid,
-      boundWheelUid: boundWheelContext.boundWheel.boundWheelUid,
-      sourcePresetUid: boundWheelContext.sourcePresetUid,
-      wheelScope: "giveaway"
+  if (isWheelGiveaway && !drawRequiresChatClaim) {
+    const permissionResult = createWheelPermissionForWinner(giveaway, winner, {
+      boundWheelContext,
+      reason: "winner_drawn",
+      actorType: "system",
+      actorLogin: winner.userLogin
     });
+    if (!permissionResult || permissionResult.ok !== true) return permissionResult || { ok: false, error: "wheel_permission_create_failed", statusCode: 409 };
+    wheelPermission = permissionResult.wheelPermission;
+    if (permissionResult.winner) {
+      winner.wheelPermissionUid = permissionResult.winner.wheelPermissionUid;
+      winner.status = permissionResult.winner.status;
+    }
   }
 
   createEvent({
@@ -3209,8 +3392,8 @@ function drawWinner(giveawayUid, input = {}) {
     actorType: "dashboard",
     actorLogin: input.actor || "",
     oldStatus: giveaway.status,
-    newStatus: isWheelGiveaway ? STATUS.WAITING_FOR_WHEEL : (giveawayFinished ? STATUS.FINISHED : STATUS.CLOSED_FOR_ENTRIES),
-    message: isWheelGiveaway ? `${winner.userDisplayName} may spin the wheel` : `${winner.userDisplayName} won ${winner.prizeLabel}`,
+    newStatus: drawRequiresChatClaim ? STATUS.WAITING_FOR_CLAIM : (isWheelGiveaway ? STATUS.WAITING_FOR_WHEEL : (giveawayFinished ? STATUS.FINISHED : STATUS.CLOSED_FOR_ENTRIES)),
+    message: drawRequiresChatClaim ? `${winner.userDisplayName} muss sich im Chat melden` : (isWheelGiveaway ? `${winner.userDisplayName} may spin the wheel` : `${winner.userDisplayName} won ${winner.prizeLabel}`),
     metadata: {
       winnerUid,
       entryUid: entry.entry_uid,
@@ -3222,7 +3405,10 @@ function drawWinner(giveawayUid, input = {}) {
       boundWheelUid: boundWheelContext && boundWheelContext.boundWheel ? boundWheelContext.boundWheel.boundWheelUid : "",
       sourcePresetUid: boundWheelContext ? boundWheelContext.sourcePresetUid : "",
       wheelSnapshotUid: isWheelGiveaway ? giveaway.wheelSnapshotUid : "",
-      wheelScope: isWheelGiveaway ? "giveaway" : ""
+      wheelScope: isWheelGiveaway ? "giveaway" : "",
+      chatClaimRequired: drawRequiresChatClaim,
+      claimUid: claimWindow && claimWindow.claimUid ? claimWindow.claimUid : "",
+      claimExpiresAt: claimWindow && claimWindow.expiresAt ? claimWindow.expiresAt : ""
     }
   });
 
@@ -3238,13 +3424,16 @@ function drawWinner(giveawayUid, input = {}) {
     sourcePresetUid: boundWheelContext ? boundWheelContext.sourcePresetUid : "",
     wheelSnapshotUid: isWheelGiveaway ? giveaway.wheelSnapshotUid : "",
     wheelScope: isWheelGiveaway ? "giveaway" : "",
+    chatClaimRequired: drawRequiresChatClaim,
+    claimUid: claimWindow && claimWindow.claimUid ? claimWindow.claimUid : "",
+    claimExpiresAt: claimWindow && claimWindow.expiresAt ? claimWindow.expiresAt : "",
     algorithm: "crypto.randomInt",
     eligibleEntriesCount: entries.length,
     totalTicketWeight: pick.totalWeight,
     ticketPosition: pick.ticketPosition
   });
 
-  return { ok: true, winner, wheelPermission, giveaway: getGiveaway(giveawayUid, true) };
+  return { ok: true, winner, wheelPermission, claimWindow, chatClaimRequired: drawRequiresChatClaim, giveaway: getGiveaway(giveawayUid, true) };
 }
 
 function claimWheelSpin(giveawayUid, input = {}) {
@@ -4525,7 +4714,7 @@ function registerRoutes(app) {
       },
       foundationOnly: false,
       claimRuntime: true,
-      nextStep: "LWG-4O.4 verbindet Draw-Flow optional automatisch mit Claim-Pflicht/Wheel-Freigabe."
+      nextStep: "LWG-4O.5 Dashboard/Flow-UX fuer automatische Claim-Pflicht und weitere Gewinner-Entscheidung."
     });
   })));
 
