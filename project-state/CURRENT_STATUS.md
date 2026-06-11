@@ -1,11 +1,6 @@
-# CURRENT_STATUS – STEP229 / LWG-7.0
+# CURRENT_STATUS – STEP230 / LWG-7.1
 
-Aktueller Status:
-
-- Loyalty-Basis live
-- Admin-Punktebefehle live
-- Gamble live
-- Gamble Dashboard API read/write bestaetigt
-- erste statische Gamble-Dashboard-UI vorbereitet
-
-Keine Runtime-Codeaenderung in STEP229.
+- `!gamble` ist live aktiv aus STEP224A/STEP225.
+- Dashboard Read/Write API ist bestaetigt aus STEP227/STEP228a.
+- STEP230 liefert eine kompakte Standalone-Dashboard-Seite fuer Gamble.
+- Backend bleibt unveraendert.

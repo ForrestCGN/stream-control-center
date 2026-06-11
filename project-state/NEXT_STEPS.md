@@ -1,7 +1,6 @@
-# NEXT_STEPS – nach STEP229 / LWG-7.0
+# NEXT_STEPS – nach STEP230
 
-1. STEP229 Paket entpacken.
-2. `stepdone.cmd` ausfuehren.
-3. STEP229 Test ausfuehren.
-4. Optional HTTP-Seite pruefen.
-5. STEP230: Einbindung in die echte Dashboard-Navigation / Rollensteuerung.
+1. STEP230 deployen und testen.
+2. Dashboard-Seite visuell pruefen.
+3. STEP231: Navigation/Routing ins zentrale Dashboard sauber einbinden.
+4. Danach optional: echte aggregierte Gamble-Stats API statt clientseitiger Log-Auswertung.

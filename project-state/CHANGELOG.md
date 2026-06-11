@@ -1,8 +1,17 @@
-# CHANGELOG
+# CHANGELOG – STEP230 / LWG-7.1
 
-## STEP229 / LWG-7.0
+## Added/Changed
 
-- Gamble Dashboard UI als statische Seite vorbereitet.
-- UI nutzt vorhandene Read-/Write-/Audit-API.
-- Dryrun, confirmWrite und Audit-Anzeige vorbereitet.
-- Keine Backend-Runtime-Aenderung.
+- Kompaktere Gamble-Dashboard-Seite
+- KPI-Karten fuer Engine/Command/Chance/Cooldown
+- Statistik-Karten aus Command-Logs
+- gruppierte Config-Felder
+- Audit-Kurzliste
+- aktualisierte UI-Config
+
+## Not changed
+
+- Backend-Logik
+- DB
+- Gamble-Regeln
+- Punkte-System

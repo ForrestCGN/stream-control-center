@@ -1,7 +1,7 @@
 {
   "_meta": {
-    "step": "STEP229_LWG7_0",
-    "description": "Vorbereitende UI-Konfiguration fuer das Gamble Dashboard. Keine Secrets, keine Runtime-Mutation.",
+    "step": "STEP230_LWG7_1",
+    "description": "Kompakte Gamble-Dashboard-UI mit Status, Konfiguration und leichten Statistik-Karten. Keine Secrets, keine Runtime-Mutation.",
     "targetPage": "/dashboard/loyalty-gamble.html"
   },
   "module": "loyalty_games",
@@ -9,14 +9,35 @@
   "api": {
     "read": "GET /api/loyalty/games/gamble/dashboard-config",
     "write": "POST /api/loyalty/games/gamble/dashboard-config",
-    "audit": "GET /api/loyalty/games/gamble/dashboard-audit?limit=10"
+    "audit": "GET /api/loyalty/games/gamble/dashboard-audit?limit=8",
+    "statsSource": "GET /api/commands/logs?limit=80"
   },
   "ui": {
     "page": "htdocs/dashboard/loyalty-gamble.html",
     "script": "htdocs/dashboard/modules/loyalty-gamble.js",
     "style": "htdocs/dashboard/modules/loyalty-gamble.css",
     "standalone": true,
+    "layout": "compact_stats_config",
+    "principles": [
+      "nicht ueberladen",
+      "Status zuerst",
+      "Konfiguration gruppiert",
+      "Statistiken kompakt",
+      "Writes nur mit Dryrun/Confirm"
+    ],
     "laterIntegration": "Kann spaeter in den zentralen Dashboard-Router/Navigation eingebunden werden."
+  },
+  "stats": {
+    "enabled": true,
+    "source": "commands_logs",
+    "limit": 80,
+    "cards": [
+      "gambles",
+      "wins",
+      "losses",
+      "netProfit"
+    ],
+    "note": "Die Statistik ist bewusst leichtgewichtig und wird clientseitig aus vorhandenen Command-Logs berechnet."
   },
   "safety": {
     "dryRunButton": true,
@@ -29,7 +50,7 @@
     ],
     "auditRequired": true,
     "notes": [
-      "STEP229 fuegt nur statische UI-Dateien hinzu.",
+      "STEP230 fuegt nur statische UI-Dateien hinzu.",
       "Die Write-Sicherheit liegt weiterhin in der STEP228 API.",
       "Keine Tokens oder Secrets im Frontend speichern."
     ]

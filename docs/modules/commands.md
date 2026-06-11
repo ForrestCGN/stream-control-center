@@ -1,5 +1,5 @@
-# commands – STEP229 / LWG-7.0
+# commands – STEP230 Hinweis
 
-`commands.js 0.2.3 / LWG_6_5_GAMBLE_RESULT_LOG_CLEANUP` bleibt unveraendert.
+STEP230 nutzt `/api/commands/logs?limit=80` nur lesend, um im Dashboard leichte Gamble-Statistik-Karten zu berechnen.
 
-Die Gamble-UI zeigt und schreibt den Command-Snapshot ueber die Loyalty-Games-Dashboard-API. Direkt am Command-System wird durch STEP229 nichts geaendert.
+Keine Aenderung an `commands.js`.

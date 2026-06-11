@@ -1,8 +1,7 @@
-# TODO – Loyalty/Gamble Dashboard
+# TODO – STEP230
 
-- [ ] STEP229 deployen und testen
-- [ ] HTTP-Seite pruefen: `/dashboard/loyalty-gamble.html`
-- [ ] Dashboard-Navigation anbinden
-- [ ] spaeter echtes Dashboard-Login/Rollen-System verwenden
-- [ ] Textvarianten-Editor fuer Gamble-Texte anbinden
-- [ ] StreamElements-Parallelbetrieb spaeter entfernen
+- [ ] STEP230 entpacken
+- [ ] `stepdone.cmd` ausfuehren
+- [ ] Testscript ausfuehren
+- [ ] Seite im Browser pruefen
+- [ ] Spaeter in Dashboard-Navigation einbinden

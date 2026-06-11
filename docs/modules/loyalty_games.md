@@ -1,26 +1,29 @@
-# loyalty_games – STEP229 / LWG-7.0
+# loyalty_games – Gamble Dashboard UI Stand STEP230
 
-## Aktueller Stand
+## Backend-Stand
 
-- Runtime: `loyalty_games.js 0.2.7`
-- Build: `STEP_LWG_6_9_GAMBLE_DASHBOARD_WRITE_API`
-- `!gamble` ist live aktiv.
-- Gamble-Konfiguration ist per API lesbar und schreibbar.
-- Echte Writes brauchen Rollenfreigabe und `confirmWrite=true`.
-- Audit erfolgt in `loyalty_games_dashboard_audit`.
+Erwartet wird weiterhin:
 
-## STEP229
+- `loyalty_games.js` Version `0.2.7`
+- Build `STEP_LWG_6_9_GAMBLE_DASHBOARD_WRITE_API`
 
-Neu hinzugekommen sind statische UI-Dateien:
+## UI-Stand
 
-- `htdocs/dashboard/loyalty-gamble.html`
-- `htdocs/dashboard/modules/loyalty-gamble.js`
-- `htdocs/dashboard/modules/loyalty-gamble.css`
+STEP230 bringt eine kompaktere UI fuer:
 
-Die UI nutzt:
+- Status-Karten: Engine, Command, Chance, Cooldown
+- gruppierte Konfiguration
+- Statistik-Karten aus Command-Logs
+- Audit-Kurzliste
+- Dryrun + Confirm Write
+
+## API-Nutzung
 
 - `GET /api/loyalty/games/gamble/dashboard-config`
 - `POST /api/loyalty/games/gamble/dashboard-config`
-- `GET /api/loyalty/games/gamble/dashboard-audit?limit=10`
+- `GET /api/loyalty/games/gamble/dashboard-audit?limit=8`
+- `GET /api/commands/logs?limit=80`
 
-Keine bestehende Funktionalitaet wurde entfernt.
+## Sicherheit
+
+Die UI speichert keine Secrets. Schreibschutz liegt weiterhin im Backend.

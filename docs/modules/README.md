@@ -1,13 +1,12 @@
-# Module-Doku – STEP229 / LWG-7.0
+# Module-Doku – STEP230 / LWG-7.1
 
-Aktueller Fokus: Loyalty/Gamble Dashboard UI Vorbereitung.
+Dieser Stand aktualisiert nur die statische Gamble-Dashboard-UI.
 
-Bestaetigter Stand vor diesem Step:
+## Betroffene Module
 
-- `!punkte`, `!givepoints`, `!setpoint` live
-- `!gamble` live
-- `!gamble 10%` bestaetigt
-- strukturierte Gamble-Ergebnisse/Logs bestaetigt
-- Readonly-API bestaetigt
-- Write-API mit Rollen-/Audit-Schutz bestaetigt
-- Dashboard UI wird jetzt statisch vorbereitet
+- `loyalty_games` bleibt Backend-seitig auf STEP228/0.2.7.
+- Dashboard-Seite: `htdocs/dashboard/loyalty-gamble.html`
+- Dashboard-JS: `htdocs/dashboard/modules/loyalty-gamble.js`
+- Dashboard-CSS: `htdocs/dashboard/modules/loyalty-gamble.css`
+
+Keine Backend-Logik wurde veraendert.
