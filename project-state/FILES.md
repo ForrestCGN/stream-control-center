@@ -1,14 +1,27 @@
-# FILES – STEP224
+# FILES – STEP225 / LWG-6.6
+
+## Enthaltene Dateien
 
 ```text
-backend/modules/commands.js
-backend/modules/loyalty_games.js
-backend/modules/loyalty_games/gamble.js
-Apply_STEP224_LWG6_5_gamble_result_log_cleanup_ForrestCGN.ps1
-Rollback_STEP224_LWG6_5_gamble_result_log_cleanup_ForrestCGN.ps1
-SafetyDisable_STEP224_LWG6_5_gamble_ForrestCGN.ps1
-Test_STEP224_LWG6_5_gamble_result_log_cleanup_ForrestCGN.ps1
-README_STEP224_LWG6_5.md
-docs/...
-project-state/...
+README_STEP225_LWG6_6.md
+docs/modules/README.md
+docs/modules/commands.md
+docs/modules/loyalty.md
+docs/modules/loyalty_games.md
+docs/current/CURRENT_CHAT_HANDOFF_STEP225_LWG6_6.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+```
+
+## Nicht enthalten
+
+```text
+Keine backend/*.js Runtime-Dateien
+Keine config Secrets
+Keine SQLite/DB-Dateien
+Keine .env
+Keine ZIP/Backup-Dateien aus dem Live-System
 ```
