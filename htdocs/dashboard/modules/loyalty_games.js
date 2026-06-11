@@ -41,7 +41,8 @@ window.LoyaltyGamesModule = (function(){
     selectedPreset: null,
     selectedGiveawayUid: '',
     selectedGiveaway: null,
-    activeTab: 'overview'
+    activeTab: 'overview',
+    giveawayWheelContext: null
   };
 
   function esc(v){
@@ -54,6 +55,29 @@ window.LoyaltyGamesModule = (function(){
     if (Array.isArray(value?.data?.rows)) return value.data.rows;
     if (Array.isArray(value?.sessions)) return value.sessions;
     return [];
+  }
+
+  function hasDedicatedGiveawaysModule(){
+    return !!(window.LoyaltyGiveawaysModule || window.CGN?.modules?.loyalty_giveaways || window.CGN?.moduleCatalog?.loyalty_giveaways);
+  }
+
+  function giveawayWheelUid(g){
+    return String(g?.wheelSnapshotUid || g?.settingsSnapshot?.wheelSnapshotUid || g?.wheelPresetUid || g?.settingsSnapshot?.wheelPresetUid || '').trim();
+  }
+
+  function routeToGiveawayControl(uid, mode = 'details'){
+    if (typeof window.CGN?.setActiveModule === 'function') {
+      window.CGN.setActiveModule('loyalty_giveaways', { section: 'loyalty' });
+    }
+    window.setTimeout(() => {
+      if (mode === 'edit' && typeof window.LoyaltyGiveawaysModule?.openGiveawayEdit === 'function') {
+        window.LoyaltyGiveawaysModule.openGiveawayEdit(uid);
+      } else if (mode === 'control' && typeof window.LoyaltyGiveawaysModule?.openGiveawayControl === 'function') {
+        window.LoyaltyGiveawaysModule.openGiveawayControl(uid);
+      } else if (typeof window.LoyaltyGiveawaysModule?.openGiveawayDetails === 'function') {
+        window.LoyaltyGiveawaysModule.openGiveawayDetails(uid);
+      }
+    }, 30);
   }
 
   function fmtDate(value){
@@ -873,6 +897,44 @@ window.LoyaltyGamesModule = (function(){
     `;
   }
 
+  function renderGiveawayModuleRedirect(){
+    return `
+      <div class="lg-panel">
+        <div class="lg-panel-head">
+          <div>
+            <h3>Giveaway Control</h3>
+            <p class="lg-muted">Die alte Inline-Giveaway-Ansicht ist ersetzt. Giveaways werden jetzt im eigenen Giveaway-Control geöffnet.</p>
+          </div>
+          <button class="lg-btn" data-lg-open-module="loyalty_giveaways" type="button">Giveaway-Control öffnen</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderGiveawayWheelContextBanner(){
+    const ctx = state.giveawayWheelContext;
+    if (!ctx) return '';
+    const g = state.selectedGiveaway;
+    const presetUid = giveawayWheelUid(g);
+    const title = g?.title || ctx.title || ctx.giveawayUid || 'Giveaway';
+    const actionLabel = presetUid ? 'Glücksrad bearbeiten' : 'Glücksrad erstellen';
+    return `
+      <div class="lg-panel lg-giveaway-wheel-context">
+        <div class="lg-panel-head">
+          <div>
+            <p class="lg-eyebrow">Giveaway-Glücksrad</p>
+            <h3>${esc(actionLabel)}: ${esc(title)}</h3>
+            <p class="lg-muted">Dieser Editor ist im Kontext des Giveaways geöffnet. Bearbeite hier die Glücksrad-Felder/Gewinne; anschließend zurück zum Giveaway-Control und neu laden.</p>
+            ${presetUid ? `<p class="lg-muted">Gebundenes Glücksrad: <code>${esc(presetUid)}</code></p>` : `<p class="lg-warning">Noch kein gebundenes Glücksrad gefunden. Speichere das Giveaway als Glücksrad-Giveaway bzw. erstelle zuerst die Glücksrad-Bindung im Giveaway-Control.</p>`}
+          </div>
+          <div class="lg-actions">
+            <button class="lg-btn lg-btn-secondary" type="button" data-lg-return-giveaway-control="${esc(ctx.giveawayUid || '')}">Zurück zum Giveaway</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   function renderPresets(){
     const presets = rows(state.presets);
     const selected = state.selectedPreset;
@@ -881,6 +943,7 @@ window.LoyaltyGamesModule = (function(){
     const isGiveawayLinked = selected?.presetType === 'giveaway_linked';
 
     return `
+      ${renderGiveawayWheelContextBanner()}
       <div class="lg-grid lg-editor-grid">
         <div class="lg-panel">
           <div class="lg-panel-head">
@@ -1663,7 +1726,7 @@ window.LoyaltyGamesModule = (function(){
   function renderActiveTab(){
     if (state.activeTab === 'wheel') return renderWheel();
     if (state.activeTab === 'presets') return renderPresets();
-    if (state.activeTab === 'giveaways') return renderGiveaways();
+    if (state.activeTab === 'giveaways') return hasDedicatedGiveawaysModule() ? renderGiveawayModuleRedirect() : renderGiveaways();
     if (state.activeTab === 'chat') return renderChatSetup();
     if (state.activeTab === 'history') return renderSessions();
     if (state.activeTab === 'notes') return renderNotes();
@@ -1674,6 +1737,7 @@ window.LoyaltyGamesModule = (function(){
     root.querySelectorAll('[data-lg-tab]').forEach(btn => {
       btn.addEventListener('click', () => {
         state.activeTab = btn.dataset.lgTab || 'overview';
+        if (state.activeTab !== 'presets') state.giveawayWheelContext = null;
         render();
       });
     });
@@ -1685,6 +1749,10 @@ window.LoyaltyGamesModule = (function(){
           window.CGN.setActiveModule(moduleId, { section: 'loyalty' });
         }
       });
+    });
+
+    root.querySelectorAll('[data-lg-return-giveaway-control]').forEach(btn => {
+      btn.addEventListener('click', () => routeToGiveawayControl(btn.dataset.lgReturnGiveawayControl || state.giveawayWheelContext?.giveawayUid || '', 'details'));
     });
 
     root.querySelector('[data-lg-reload]')?.addEventListener('click', () => loadAll(true));
@@ -1813,7 +1881,11 @@ window.LoyaltyGamesModule = (function(){
     bindEvents();
   }
 
-  async function openGiveawayEditor(giveawayUid){
+  async function openGiveawayEditor(giveawayUid, options = {}){
+    if (hasDedicatedGiveawaysModule()) {
+      routeToGiveawayControl(giveawayUid, options.mode || 'details');
+      return;
+    }
     state.activeTab = 'giveaways';
     if (giveawayUid) state.selectedGiveawayUid = giveawayUid;
     if (!state.giveaways) {
@@ -1824,8 +1896,50 @@ window.LoyaltyGamesModule = (function(){
     render();
   }
 
+  async function openGiveawayWheelEditor(giveawayUid, options = {}){
+    if (!giveawayUid) return;
+    state.activeTab = 'presets';
+    state.selectedGiveawayUid = giveawayUid;
+    state.giveawayWheelContext = {
+      giveawayUid,
+      mode: options.mode || '',
+      openedAt: new Date().toISOString()
+    };
+
+    if (!state.giveaways || !state.presets) {
+      await loadAll(true);
+    }
+
+    await loadGiveaway(giveawayUid, false);
+    const g = state.selectedGiveaway;
+    const presetUid = giveawayWheelUid(g);
+    state.giveawayWheelContext = {
+      ...state.giveawayWheelContext,
+      title: g?.title || giveawayUid,
+      presetUid
+    };
+
+    if (presetUid) {
+      state.selectedPresetUid = presetUid;
+      await loadPreset(presetUid, false);
+      if (!state.selectedPreset && state.error) state.message = `Glücksrad ${presetUid} konnte nicht direkt geladen werden. Bitte Presets aktualisieren.`;
+    } else {
+      state.selectedPresetUid = '';
+      state.selectedPreset = null;
+    }
+
+    state.activeTab = 'presets';
+    render();
+  }
+
   function setTab(tab){
-    state.activeTab = tab || 'overview';
+    const next = tab || 'overview';
+    if (next === 'giveaways' && hasDedicatedGiveawaysModule() && typeof window.CGN?.setActiveModule === 'function') {
+      window.CGN.setActiveModule('loyalty_giveaways', { section: 'loyalty' });
+      return;
+    }
+    if (next !== 'presets') state.giveawayWheelContext = null;
+    state.activeTab = next;
     render();
   }
 
@@ -1839,6 +1953,7 @@ window.LoyaltyGamesModule = (function(){
     loadAll,
     render,
     setTab,
-    openGiveawayEditor
+    openGiveawayEditor,
+    openGiveawayWheelEditor
   };
 })();

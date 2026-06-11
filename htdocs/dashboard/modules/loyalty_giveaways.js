@@ -458,8 +458,16 @@ window.LoyaltyGiveawaysModule = (function(){
     return mapped.length ? `Noch nicht startbereit: ${mapped.join(', ')}` : 'Noch nicht startbereit.';
   }
 
+  function giveawayWheelUid(g){
+    return String(g?.wheelSnapshotUid || g?.settingsSnapshot?.wheelSnapshotUid || g?.wheelPresetUid || g?.settingsSnapshot?.wheelPresetUid || '').trim();
+  }
+
   function hasGiveawayWheel(g){
-    return !!(g?.wheelSnapshotUid || g?.wheelPresetUid || g?.settingsSnapshot?.wheelSnapshotUid || g?.settingsSnapshot?.wheelPresetUid);
+    return !!giveawayWheelUid(g);
+  }
+
+  function wheelEditorActionLabel(g){
+    return hasGiveawayWheel(g) ? 'Glücksrad bearbeiten' : 'Glücksrad erstellen';
   }
 
   function needsWheelEditor(g){
@@ -533,6 +541,14 @@ window.LoyaltyGiveawaysModule = (function(){
     state.participantLimit = 25;
     stopControlRefresh();
     render();
+  }
+
+  async function openPublicModal(type, uid){
+    root = document.getElementById('loyaltyGiveawaysModule');
+    if (!root) return;
+    if (!state.giveaways) await loadAll(true);
+    if (uid) await loadGiveaway(uid, false);
+    openModal(type || 'details', uid || state.selectedUid || '');
   }
 
   function formValue(form, name, fallback = ''){ return String(new FormData(form).get(name) ?? fallback); }
@@ -764,14 +780,22 @@ window.LoyaltyGiveawaysModule = (function(){
 
   function openGiveawayWheelEditor(uid){
     if (!uid) return;
-    if (typeof window.LoyaltyGamesModule?.openGiveawayEditor === 'function') {
-      window.LoyaltyGamesModule.openGiveawayEditor(uid);
-    } else {
-      window.LoyaltyGamesModule?.setTab?.('giveaways');
-    }
+    const g = selectedGiveaway()?.giveawayUid === uid
+      ? selectedGiveaway()
+      : rows(state.giveaways).find(item => item.giveawayUid === uid);
+    const mode = hasGiveawayWheel(g) ? 'edit' : 'create';
+
     if (typeof window.CGN?.setActiveModule === 'function') {
       window.CGN.setActiveModule('loyalty_games', { section: 'loyalty' });
     }
+
+    window.setTimeout(() => {
+      if (typeof window.LoyaltyGamesModule?.openGiveawayWheelEditor === 'function') {
+        window.LoyaltyGamesModule.openGiveawayWheelEditor(uid, { mode });
+      } else if (typeof window.LoyaltyGamesModule?.setTab === 'function') {
+        window.LoyaltyGamesModule.setTab('presets');
+      }
+    }, 30);
   }
 
   function renderImportantCardActions(g){
@@ -782,7 +806,7 @@ window.LoyaltyGiveawaysModule = (function(){
     const actions = [];
     if (editable) actions.push(`<button class="lgw-btn lgw-btn-small lgw-btn-secondary" data-lgw-edit="${uid}">Bearbeiten</button>`);
     if (wheel) {
-      actions.push(`<button class="lgw-btn lgw-btn-small lgw-btn-secondary" data-lgw-open-wheel-editor="${uid}">${needsWheelEditor(g) ? 'Glücksrad erstellen' : 'Glücksrad bearbeiten'}</button>`);
+      actions.push(`<button class="lgw-btn lgw-btn-small lgw-btn-secondary" data-lgw-open-wheel-editor="${uid}">${wheelEditorActionLabel(g)}</button>`);
     }
     if (canStartGiveaway(g)) actions.push(`<button class="lgw-btn lgw-btn-small" data-lgw-action="open" data-uid="${uid}">Starten</button>`);
     if (isActiveGiveaway(g) && s !== 'draft') actions.push(`<button class="lgw-btn lgw-btn-small" data-lgw-open-control="${uid}">Steuern</button>`);
@@ -846,7 +870,7 @@ window.LoyaltyGiveawaysModule = (function(){
               const isHighlighted = g.giveawayUid === state.highlightedUid;
               return `
                 <article class="lgw-active-card ${isSelected ? 'is-active' : ''} ${isHighlighted ? 'is-highlighted' : ''} ${g.setupComplete === false ? 'is-incomplete' : ''}">
-                  <button class="lgw-active-card-main" data-lgw-open-details="${esc(g.giveawayUid)}" title="Giveaway-Details öffnen">
+                  <button type="button" class="lgw-active-card-main" data-lgw-open-details="${esc(g.giveawayUid)}" title="Giveaway-Details öffnen">
                     <strong>${esc(g.title || '-')}</strong>
                     <span>${statusBadge(g.setupComplete === false ? 'unvollständig' : g.status)}</span>
                     <small>${norm(g.status) === 'draft' ? 'Erstellt' : 'Start'}: ${fmtDate(norm(g.status) === 'draft' ? g.createdAt : giveawayStartDate(g))}</small>
@@ -912,7 +936,7 @@ window.LoyaltyGiveawaysModule = (function(){
             const editable = g.editable === true || norm(g.status) === 'draft';
             return `
               <article class="lgw-giveaway-item ${g.giveawayUid === state.selectedUid ? 'is-active' : ''}">
-                <button class="lgw-giveaway-main" data-lgw-open-details="${esc(g.giveawayUid)}">
+                <button type="button" class="lgw-giveaway-main" data-lgw-open-details="${esc(g.giveawayUid)}">
                   <strong>${esc(g.title || '-')}</strong>
                   <span>${esc(statusLabel(g.mode))} · ${esc(String(g.giveawayUid || '').slice(0, 28))}</span>
                 </button>
@@ -926,7 +950,7 @@ window.LoyaltyGiveawaysModule = (function(){
                   <button class="lgw-btn lgw-btn-small" data-lgw-open-details="${esc(g.giveawayUid)}">Anzeigen</button>
                   ${editable ? `<button class="lgw-btn lgw-btn-small lgw-btn-secondary" data-lgw-edit="${esc(g.giveawayUid)}">Bearbeiten</button>` : ''}
                   ${canStartGiveaway(g) ? `<button class="lgw-btn lgw-btn-small" data-lgw-action="open" data-uid="${esc(g.giveawayUid)}">Starten</button>` : ''}
-                  ${isWheelGiveaway(g) ? `<button class="lgw-btn lgw-btn-small lgw-btn-secondary" data-lgw-open-wheel-editor="${esc(g.giveawayUid)}">${needsWheelEditor(g) ? 'Glücksrad erstellen' : 'Glücksrad bearbeiten'}</button>` : ''}
+                  ${isWheelGiveaway(g) ? `<button class="lgw-btn lgw-btn-small lgw-btn-secondary" data-lgw-open-wheel-editor="${esc(g.giveawayUid)}">${wheelEditorActionLabel(g)}</button>` : ''}
                   ${isActiveGiveaway(g) ? `<button class="lgw-btn lgw-btn-small" data-lgw-open-control="${esc(g.giveawayUid)}">Steuern</button>` : ''}
                   ${renderArchiveDeleteActions(g, 'lgw-btn-small')}
                 </div>
@@ -1369,19 +1393,27 @@ window.LoyaltyGiveawaysModule = (function(){
       btn.addEventListener('click', () => openLoyaltyGamesTab(btn.dataset.lgwOpenGamesTab || 'overview'));
     });
     root.querySelectorAll('[data-lgw-create]').forEach(btn => btn.addEventListener('click', () => openModal('create')));
-    root.querySelectorAll('[data-lgw-open-details]').forEach(btn => btn.addEventListener('click', async () => {
+    root.querySelectorAll('[data-lgw-open-details]').forEach(btn => btn.addEventListener('click', async ev => {
+      ev.preventDefault();
+      ev.stopPropagation();
       await loadGiveaway(btn.dataset.lgwOpenDetails, false);
       openModal('details', btn.dataset.lgwOpenDetails);
     }));
-    root.querySelectorAll('[data-lgw-edit]').forEach(btn => btn.addEventListener('click', async () => {
+    root.querySelectorAll('[data-lgw-edit]').forEach(btn => btn.addEventListener('click', async ev => {
+      ev.preventDefault();
+      ev.stopPropagation();
       await loadGiveaway(btn.dataset.lgwEdit, false);
       openModal('edit', btn.dataset.lgwEdit);
     }));
-    root.querySelectorAll('[data-lgw-open-control]').forEach(btn => btn.addEventListener('click', async () => {
+    root.querySelectorAll('[data-lgw-open-control]').forEach(btn => btn.addEventListener('click', async ev => {
+      ev.preventDefault();
+      ev.stopPropagation();
       await loadGiveaway(btn.dataset.lgwOpenControl, false);
       openModal('control', btn.dataset.lgwOpenControl);
     }));
-    root.querySelectorAll('[data-lgw-open-wheel-editor]').forEach(btn => btn.addEventListener('click', async () => {
+    root.querySelectorAll('[data-lgw-open-wheel-editor]').forEach(btn => btn.addEventListener('click', async ev => {
+      ev.preventDefault();
+      ev.stopPropagation();
       const uid = btn.dataset.lgwOpenWheelEditor;
       await loadGiveaway(uid, false);
       openGiveawayWheelEditor(uid);
@@ -1421,5 +1453,11 @@ window.LoyaltyGiveawaysModule = (function(){
 
   registerDashboardModule();
 
-  return { loadAll, render };
+  return {
+    loadAll,
+    render,
+    openGiveawayDetails(uid){ return openPublicModal('details', uid); },
+    openGiveawayEdit(uid){ return openPublicModal('edit', uid); },
+    openGiveawayControl(uid){ return openPublicModal('control', uid); }
+  };
 })();
