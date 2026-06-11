@@ -2,47 +2,36 @@
 
 Stand: 2026-06-11
 
-## Aktuelles STEP-Paket
+## Aktueller STEP
 
 ```text
-loyalty_step213_lwg5_5_points_command_enable_package.zip
+loyalty_step214_lwg5_6_command_result_chat_bridge.zip
 ```
 
 ## Enthalten
 
 ```text
-Activate_STEP213_LWG5_5_points_command_ForrestCGN.ps1
-Rollback_STEP213_LWG5_5_points_command_ForrestCGN.ps1
-Test_STEP213_LWG5_5_points_command_live_ForrestCGN.ps1
+Apply_STEP214_LWG5_6_command_result_chat_bridge_ForrestCGN.ps1
+Configure_STEP214_LWG5_6_points_chat_reply_ForrestCGN.ps1
+Rollback_STEP214_LWG5_6_command_result_chat_bridge_ForrestCGN.ps1
+Test_STEP214_LWG5_6_command_result_chat_bridge_ForrestCGN.ps1
 docs/modules/README.md
+docs/modules/commands.md
 docs/modules/loyalty.md
 docs/modules/loyalty_games.md
-docs/current/CURRENT_CHAT_HANDOFF_STEP213_LWG5_5.md
+docs/current/CURRENT_CHAT_HANDOFF_STEP214_LWG5_6.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/CHANGELOG.md
 project-state/FILES.md
-README_STEP213_LWG5_5.md
+README_STEP214_LWG5_6.md
 ```
 
-## Nicht enthalten
+## Runtime-Ziel
 
 ```text
-keine Runtime-JS-Dateien
-keine SQLite-/DB-Dateien
-keine Secrets/.env/Tokens
-keine Assets
-```
-
-## Weiterhin relevante Runtime-Dateien
-
-```text
-backend/modules/loyalty.js
-backend/modules/loyalty_games.js
-backend/modules/loyalty_games/gamble.js
 backend/modules/commands.js
-backend/modules/helpers/helper_texts.js
-backend/modules/communication_bus.js
-backend/core/database.js
 ```
+
+Die Datei wird per Apply-Script auf dem Live-/Repo-Stand gepatcht und vorher gesichert.

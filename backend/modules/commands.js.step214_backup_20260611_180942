@@ -6,8 +6,8 @@ const core = require('./helpers/helper_core');
 const communicationBus = require('./communication_bus');
 
 const MODULE_NAME = 'commands';
-const MODULE_VERSION = '0.2.2';
-const MODULE_BUILD = 'LWG_5_6_COMMAND_RESULT_CHAT_SEND_BRIDGE';
+const MODULE_VERSION = '0.2.1';
+const MODULE_BUILD = 'BUS_TWITCH_9_COMMAND_SOURCE_DEFAULTS';
 const SCHEMA_MODULE = 'command_system';
 const SCHEMA_VERSION = 2;
 const API_PREFIX = '/api/commands';
@@ -111,18 +111,6 @@ const state = {
     lastBusEventId: '',
     lastCommandResult: null,
     lastError: ''
-  },
-  chatReplies: {
-    enabled: true,
-    targetModule: 'twitch_presence',
-    attempted: 0,
-    sent: 0,
-    skipped: 0,
-    failed: 0,
-    lastSentAt: '',
-    lastSkippedReason: '',
-    lastError: '',
-    lastMessagePreview: ''
   },
   ctx: null
 };
@@ -486,108 +474,6 @@ function summarizeResultForLog(result) {
   return { ok: !!result.ok, statusCode: result.statusCode || null, dataOk: data ? !!data.ok : null, message: data ? (data.message || '') : '', error: data ? (data.error || '') : '', module: data ? (data.module || data.data?.module || '') : '', command: data ? (data.command || data.data?.command || '') : '' };
 }
 
-function commandResultData(result) {
-  if (!result || typeof result !== 'object') return null;
-  return result.data && typeof result.data === 'object' ? result.data : null;
-}
-
-function commandResultChatMessage(result) {
-  const data = commandResultData(result);
-  if (!data) return '';
-  return cleanText(data.chatMessage || data.streamerbot_message || data.message || data.text || '');
-}
-
-function commandResultChatSendEnabled(command, result) {
-  const config = command && command.config && typeof command.config === 'object' ? command.config : {};
-  const data = commandResultData(result) || {};
-  if (data.send === false || data.chatOutput === false || data.sendChat === false) return false;
-  if (String(data.streamerbot_send || '').trim() === '0') return false;
-  if (config.disableResultChatSend === true || config.noResultChat === true) return false;
-  return config.sendResultToChat === true
-    || config.resultChatSend === true
-    || config.sendChatReply === true
-    || config.chatReply === true
-    || config.commandResultChat === true
-    || config.chatOutput === true
-    || data.send === true
-    || data.sendChat === true
-    || data.chatOutput === true
-    || String(data.streamerbot_send || '').trim() === '1';
-}
-
-async function maybeSendCommandResultChatReply(command, parsedCommand, user, result, source = {}) {
-  if (!commandResultChatSendEnabled(command, result)) {
-    state.chatReplies.skipped += 1;
-    state.chatReplies.lastSkippedReason = 'not_enabled';
-    return { attempted: false, skipped: true, reason: 'not_enabled' };
-  }
-
-  const message = commandResultChatMessage(result);
-  if (!message) {
-    state.chatReplies.skipped += 1;
-    state.chatReplies.lastSkippedReason = 'empty_message';
-    return { attempted: false, skipped: true, reason: 'empty_message' };
-  }
-
-  state.chatReplies.attempted += 1;
-  try {
-    const twitchPresence = require('./twitch_presence');
-    if (!twitchPresence || typeof twitchPresence.sendChatMessage !== 'function') {
-      throw new Error('twitch_presence_sendChatMessage_unavailable');
-    }
-
-    const sendResult = await Promise.resolve(twitchPresence.sendChatMessage(message, {
-      trigger: `command:${command.trigger}`,
-      source: 'commands',
-      command: command.trigger,
-      aliasTrigger: parsedCommand.trigger || command.trigger,
-      userLogin: user.login || '',
-      userDisplayName: user.displayName || '',
-      rawMessage: parsedCommand.rawMessage || '',
-      commandSource: source.source || ''
-    }));
-
-    if (sendResult && sendResult.ok === true) {
-      state.chatReplies.sent += 1;
-      state.chatReplies.lastSentAt = nowIso();
-      state.chatReplies.lastError = '';
-      state.chatReplies.lastMessagePreview = cleanText(sendResult.message_preview || message).slice(0, 160);
-      return {
-        attempted: true,
-        ok: true,
-        sent: true,
-        targetModule: 'twitch_presence',
-        sentAt: sendResult.sent_at || state.chatReplies.lastSentAt,
-        messagePreview: sendResult.message_preview || state.chatReplies.lastMessagePreview,
-        sendCount: sendResult.send_count || null
-      };
-    }
-
-    const error = cleanText(sendResult && (sendResult.error || sendResult.reason) || 'chat_send_failed');
-    state.chatReplies.failed += 1;
-    state.chatReplies.lastError = error;
-    return {
-      attempted: true,
-      ok: false,
-      sent: false,
-      targetModule: 'twitch_presence',
-      error,
-      result: sendResult || null
-    };
-  } catch (err) {
-    const error = err?.message || String(err);
-    state.chatReplies.failed += 1;
-    state.chatReplies.lastError = error;
-    return {
-      attempted: true,
-      ok: false,
-      sent: false,
-      targetModule: 'twitch_presence',
-      error
-    };
-  }
-}
-
 function logExecution(entry = {}) {
   try {
     ensureSchema();
@@ -816,16 +702,13 @@ async function processMessage(input = {}, options = {}) {
   try {
     markCooldown(command, user);
     const result = await executeCommand(command, parsedCommand, user, options);
-    const chatReply = await maybeSendCommandResultChatReply(command, parsedCommand, user, result, options);
     state.handled += 1;
     state.executed += 1;
     state.lastCommandAt = nowIso();
-    state.lastCommand = { trigger: command.trigger, aliasTrigger: match.aliasTrigger, userLogin: user.login, userDisplayName: user.displayName, rawMessage: parsedCommand.rawMessage, resultStatusCode: result.statusCode || null, chatReply };
+    state.lastCommand = { trigger: command.trigger, aliasTrigger: match.aliasTrigger, userLogin: user.login, userDisplayName: user.displayName, rawMessage: parsedCommand.rawMessage, resultStatusCode: result.statusCode || null };
     state.lastError = '';
-    const summarizedResult = summarizeResultForLog(result);
-    if (chatReply && chatReply.attempted) summarizedResult.chatReply = chatReply;
-    logExecution({ trigger: command.trigger, aliasTrigger: match.aliasTrigger, userLogin: user.login, userDisplayName: user.displayName, rawMessage: parsedCommand.rawMessage, args: parsedCommand.args, moduleKey: command.moduleKey, actionKey: command.actionKey, targetUrl: command.targetUrl, success: true, result: summarizedResult });
-    return { ok: true, command: command.trigger, matchedBy: match.matchedBy, result: summarizedResult, chatReply };
+    logExecution({ trigger: command.trigger, aliasTrigger: match.aliasTrigger, userLogin: user.login, userDisplayName: user.displayName, rawMessage: parsedCommand.rawMessage, args: parsedCommand.args, moduleKey: command.moduleKey, actionKey: command.actionKey, targetUrl: command.targetUrl, success: true, result: summarizeResultForLog(result) });
+    return { ok: true, command: command.trigger, matchedBy: match.matchedBy, result: summarizeResultForLog(result) };
   } catch (err) {
     state.failed += 1;
     state.lastError = err?.message || String(err);
@@ -1048,7 +931,6 @@ function statusPayload() {
     schemaTouchOnStatus: false,
     removedHeavyFields: ['commands', 'moduleCatalog', 'recent'],
     mediaPlaybackBridge: { enabled: true, target: '/api/sound/play', legacyTargetRewritten: '/api/sound/play-media' },
-    commandResultChatSend: { enabled: state.chatReplies.enabled !== false, targetModule: state.chatReplies.targetModule, attempted: state.chatReplies.attempted, sent: state.chatReplies.sent, skipped: state.chatReplies.skipped, failed: state.chatReplies.failed, lastSentAt: state.chatReplies.lastSentAt, lastSkippedReason: state.chatReplies.lastSkippedReason, lastError: state.chatReplies.lastError, lastMessagePreview: state.chatReplies.lastMessagePreview },
     commandChannelGuard: { enabled: true, expectedChannel: cleanChannel(process.env.TWITCH_BOT_CHANNEL || ''), mismatchReason: 'channel_mismatch' },
     busChatSubscriber: getBusChatStatus(),
     diagnostics: buildStandardDiagnostics(),

@@ -2,50 +2,33 @@
 
 Stand: 2026-06-11
 
-## 2026-06-11 – STEP213 / LWG-5.5 Points Command Freigabepaket
+## 2026-06-11 – STEP214 / LWG-5.6 Command Result Chat Send Bridge
 
-### Neu
+### Geändert
 
 ```text
-Activate_STEP213_LWG5_5_points_command_ForrestCGN.ps1
-Rollback_STEP213_LWG5_5_points_command_ForrestCGN.ps1
-Test_STEP213_LWG5_5_points_command_live_ForrestCGN.ps1
+backend/modules/commands.js (per Apply-Script)
 ```
 
 ### Ergebnis
 
 ```text
-Nur !punkte / !points wird für produktive Freigabe vorbereitet.
-!givepoints, !setpoint und !gamble bleiben deaktiviert.
-Keine Runtime-JS-Änderung.
-Keine Datenbank im Paket.
+commands.js kann Modul-Result-Nachrichten zentral in den Twitch-Chat senden.
+Dazu wird das vorhandene twitch_presence.sendChatMessage(...) genutzt.
+Die Ausgabe ist config-gesteuert, damit bestehende Commands nicht doppelt senden.
 ```
 
-## 2026-06-11 – STEP212b / LWG-5.4b Points Runtime Test bestätigt
-
-### Bestätigt
+### Für !punkte
 
 ```text
-=== TEST OK: STEP212b / LWG-5.4b Points Runtime kontrolliert bestaetigt ===
+!punkte / !points bekommt config.sendResultToChat=true.
 ```
 
-### Ergebnis
+### Keine Änderung
 
 ```text
-!punkte Runtime ok
-!points Alias ok
-Permission-Block für Zieluser-Abfrage ok
-Restore deaktiviert !punkte wieder
-```
-
-## 2026-06-11 – STEP209 bis STEP210 Loyalty Safety + Gamble vorbereitet
-
-### Ergebnis
-
-```text
-Zentrale verfügbare Kekskrümel
-Can-Afford Schutz
-Reservierungsbasis
-Gamble vorbereitet und deaktiviert geschützt
-API-/Status-Cleanup
+Keine neue Twitch-Sender-Implementierung.
+Keine Datenbank-Ersetzung.
+Keine Secret-Dateien.
+Keine Gamble-Aktivierung.
 ```

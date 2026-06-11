@@ -1,46 +1,65 @@
 # Modul: commands
 
-Stand: 2026-06-10
+Stand: 2026-06-11  
+Aktueller bestätigter Zielstand: STEP214 / LWG-5.6
 
-## Aktuelle Version
+## Zweck
 
-```text
-0.2.1 / BUS_TWITCH_9_COMMAND_SOURCE_DEFAULTS
-```
+`commands` ist das zentrale Chat-Command-System. Es verarbeitet Twitch-Chat-Events über den Communication Bus, prüft Command-Definitionen, Berechtigungen und Cooldowns und ruft anschließend die Zielmodule per HTTP auf.
 
-## Aufgabe
+## STEP214 / LWG-5.6
 
-`commands` verarbeitet Twitch-Chat-Commands. Der Standard-Eingang ist jetzt der Communication Bus.
-
-## Aktiver Standard
+Neu vorbereitet:
 
 ```text
-communication_bus subscription:
-channel=twitch.chat
-action=message
-subscriptionId=commands:twitch.chat:message
+Command-Result-Chat-Send-Bridge
 ```
 
-## Routen
+Ablauf:
 
 ```text
-GET  /api/commands/bus-chat/status
-GET  /api/commands/bus-chat/start
-POST /api/commands/bus-chat/start
-GET  /api/commands/bus-chat/stop
-POST /api/commands/bus-chat/stop
+Command erkannt
+→ Zielmodul ausführen
+→ result.data.message lesen
+→ falls Command-Konfiguration sendResultToChat=true
+→ vorhandenes twitch_presence.sendChatMessage(...) nutzen
+→ Ergebnis im command_execution_log dokumentieren
 ```
 
-## Bestätigter Live-Zustand
+## Wichtig
+
+Es wird kein neuer Twitch-Sender gebaut. Die Ausgabe läuft über:
 
 ```text
-enabled=True
-active=True
-autostart=True
-subscriptionId=commands:twitch.chat:message
-lastError leer
+backend/modules/twitch_presence.js
 ```
 
-## Fallback-Regel
+## Schutz gegen doppelte Ausgaben
 
-Der alte `twitch_presence`-Direktweg bleibt vorhanden, ist aber default aus.
+Die zentrale Ausgabe wird nur aktiv, wenn ein Command bzw. das Modul-Result dies ausdrücklich erlaubt:
+
+```text
+config.sendResultToChat=true
+oder result.data.send=true / result.data.streamerbot_send=1
+```
+
+Damit senden bestehende Module nicht plötzlich doppelt.
+
+## Aktueller Einsatz
+
+Aktiviert für:
+
+```text
+!punkte / !points
+```
+
+Nicht aktiviert für:
+
+```text
+!givepoints
+!setpoint
+!gamble
+!duell
+!raffle
+!roulette
+```
