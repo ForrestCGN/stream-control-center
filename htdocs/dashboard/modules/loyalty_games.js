@@ -2279,10 +2279,24 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
     `;
   }
 
+  function renderGiveawayWheelEditorRedirect(){
+    return `
+      <div class="lg-panel">
+        <div class="lg-panel-head">
+          <div>
+            <h3>Giveaway-Glücksrad</h3>
+            <p class="lg-muted">Der alte Inline-Glücksrad-Editor in Loyalty Games ist deaktiviert. Giveaway-Glücksräder werden im neuen Giveaway-Control verwaltet.</p>
+          </div>
+          <button class="lg-btn" data-lg-open-module="loyalty_giveaways">Giveaway-Control öffnen</button>
+        </div>
+      </div>
+    `;
+  }
+
   function renderActiveTab(){
     if (state.activeTab === 'wheel') return renderWheel();
     if (state.activeTab === 'presets') return renderPresets();
-    if (state.activeTab === 'giveaway_wheel_editor') return renderGiveawayWheelEditor();
+    if (state.activeTab === 'giveaway_wheel_editor') return renderGiveawayWheelEditorRedirect();
     if (state.activeTab === 'giveaways') return renderGiveawaysRedirect();
     if (state.activeTab === 'gamble') return renderGamble();
     if (state.activeTab === 'config') return renderConfig();
