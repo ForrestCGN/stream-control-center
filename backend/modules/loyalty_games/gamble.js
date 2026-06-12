@@ -237,40 +237,19 @@ function createGambleGame(options = {}) {
       const winThreshold = Math.floor(config.winChancePercent * 100);
       const roll = crypto.randomInt(0, 10000);
       const won = roll < winThreshold;
-      const grossPayout = won ? Math.floor(bet * config.payoutMultiplier) : 0;
-      const netProfit = grossPayout - bet;
+      const grossPayout = won ? bet : 0;
+      const netProfit = won ? bet : -bet;
 
-      const spend = loyalty.spendPointsSafely({
-        login,
-        displayName,
-        amount: bet,
-        type: "game_gamble_bet",
-        reason: "gamble_bet",
-        mode: summaryBefore.mode,
-        sourceModule: hostModule,
-        sourceProvider: "loyalty_games",
-        referenceType: "gamble_session",
-        referenceId,
-        metadata: {
-          sessionUid,
-          bet,
-          parsedBet,
-          winChancePercent: config.winChancePercent,
-          payoutMultiplier: config.payoutMultiplier,
-          randomMethod: "crypto.randomInt",
-          resultPreparedServerSide: true
-        }
-      });
-      if (!spend.ok) return { ok: false, error: spend.error || "gamble_spend_failed", statusCode: 409, spend, summary: summaryBefore };
-
+      let spend = null;
       let payout = null;
-      if (grossPayout > 0) {
+
+      if (won) {
         payout = loyalty.awardPoints({
           login,
           displayName,
-          amount: grossPayout,
-          type: "game_gamble_payout",
-          reason: won ? "gamble_win" : "gamble_refund",
+          amount: bet,
+          type: "game_gamble_win",
+          reason: "gamble_win",
           mode: summaryBefore.mode,
           sourceModule: hostModule,
           sourceProvider: "loyalty_games",
@@ -283,9 +262,38 @@ function createGambleGame(options = {}) {
             netProfit,
             winChancePercent: config.winChancePercent,
             payoutMultiplier: config.payoutMultiplier,
-            randomMethod: "crypto.randomInt"
+            randomMethod: "crypto.randomInt",
+            resultPreparedServerSide: true,
+            simpleWinLossMode: true
           }
         });
+        if (!payout || !payout.ok) return { ok: false, error: payout?.error || "gamble_payout_failed", statusCode: 409, payout, summary: summaryBefore };
+      } else {
+        spend = loyalty.spendPointsSafely({
+          login,
+          displayName,
+          amount: bet,
+          type: "game_gamble_loss",
+          reason: "gamble_loss",
+          mode: summaryBefore.mode,
+          sourceModule: hostModule,
+          sourceProvider: "loyalty_games",
+          referenceType: "gamble_session",
+          referenceId,
+          metadata: {
+            sessionUid,
+            bet,
+            parsedBet,
+            grossPayout,
+            netProfit,
+            winChancePercent: config.winChancePercent,
+            payoutMultiplier: config.payoutMultiplier,
+            randomMethod: "crypto.randomInt",
+            resultPreparedServerSide: true,
+            simpleWinLossMode: true
+          }
+        });
+        if (!spend.ok) return { ok: false, error: spend.error || "gamble_spend_failed", statusCode: 409, spend, summary: summaryBefore };
       }
 
       markCooldown(login);
@@ -350,7 +358,7 @@ function createGambleGame(options = {}) {
             winChancePercent: config.winChancePercent,
             payoutMultiplier: config.payoutMultiplier,
             transactionUids: {
-              spend: spend.transaction ? spend.transaction.uid : "",
+              spend: spend && spend.transaction ? spend.transaction.uid : "",
               payout: payout && payout.transaction ? payout.transaction.uid : ""
             },
             random: result.random
