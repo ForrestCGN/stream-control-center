@@ -19,7 +19,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.42";
+const MODULE_VERSION = "0.2.43";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -29,9 +29,15 @@ const MODULE_META = {
   type: "runtime",
   legacy: false,
   routesPrefix: [API_PREFIX, "/api/clip/shoutout"],
-  capabilities: ["shoutout.display_queue", "shoutout.official_queue", "shoutout.event_output"],
-  bus: { emits: true, registered: false, heartbeat: false, channel: SHOUTOUT_BUS_CHANNEL },
-  note: "CAN-44.26: Shoutout overlay paired text sets; legacy overlay text variants stay as fallback; clip playback unchanged."
+  capabilities: ["shoutout.display_queue", "shoutout.official_queue", "shoutout.event_output", "twitch.chat.message.consumer"],
+  bus: {
+    emits: true,
+    listens: ["twitch.chat.message"],
+    registered: false,
+    heartbeat: false,
+    channel: SHOUTOUT_BUS_CHANNEL
+  },
+  note: "CAN-44.27: AutoShoutout consumes twitch.chat.message via Communication Bus; direct chat wrapper remains fallback."
 };
 
 const AUTO_SHOUTOUT_TEXT_DEFAULTS = {
@@ -435,7 +441,10 @@ const state = {
     autoTriggered: 0,
     autoSkipped: 0,
     busEmitted: 0,
-    busErrors: 0
+    busErrors: 0,
+    autoBusReceived: 0,
+    autoBusDelivered: 0,
+    autoBusErrors: 0
   },
   displayQueue: {
     workerStarted: false,
@@ -481,6 +490,22 @@ const state = {
       lastWindowStartedAt: '',
       lastWindowEndsAt: '',
       lastTriggeredByThreshold: false
+    },
+    busSubscriber: {
+      installed: false,
+      subscriptionId: '',
+      channel: 'twitch.chat',
+      action: 'message',
+      delivered: 0,
+      errors: 0,
+      lastReceivedAt: '',
+      lastHandledAt: '',
+      lastResultReason: '',
+      lastEventId: '',
+      lastSourceModule: '',
+      lastLogin: '',
+      lastMessagePreview: '',
+      lastError: ''
     }
   },
   sceneGate: {
@@ -5531,6 +5556,141 @@ function resetAutoShoutoutRuntimeState(reason = 'manual_reset') {
   emitShoutoutBus('shoutout.auto.runtime_reset', { reason: String(reason || 'manual_reset') }, shoutoutConfig());
 }
 
+function previewText(value, max = 120) {
+  const text = String(value || '').replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!text) return '';
+  return text.length > max ? `${text.slice(0, Math.max(0, max - 3))}...` : text;
+}
+
+function normalizeBusChatPayload(envelope = {}) {
+  const payload = envelope && envelope.payload && typeof envelope.payload === 'object' ? envelope.payload : {};
+  const twitchPayload = payload.twitch && typeof payload.twitch === 'object' ? payload.twitch : payload;
+  const user = twitchPayload.user && typeof twitchPayload.user === 'object' ? twitchPayload.user : {};
+  const roles = user.roles && typeof user.roles === 'object' ? user.roles : {};
+  const badges = user.badges && typeof user.badges === 'object' ? user.badges : {};
+  const login = cleanLogin(user.login || twitchPayload.login || twitchPayload.userLogin || twitchPayload.chatterLogin || '');
+  const displayName = cleanDisplay(user.displayName || twitchPayload.displayName || twitchPayload.userDisplayName || login, login);
+  const message = String(twitchPayload.message || twitchPayload.text || '').trim();
+  const channel = String(twitchPayload.channel || payload.channel || '').replace(/^#/, '').toLowerCase();
+  const messageId = String(twitchPayload.messageId || twitchPayload.id || payload.messageId || envelope.id || '');
+
+  if (!login || !message) return null;
+
+  return {
+    command: 'PRIVMSG',
+    login,
+    displayName,
+    params: [channel, message],
+    message,
+    rawMessage: message,
+    text: message,
+    channel,
+    badges,
+    tags: {
+      login,
+      'display-name': displayName,
+      'user-id': String(user.userId || twitchPayload.userId || ''),
+      id: messageId,
+      mod: roles.mod || roles.moderator || badges.moderator ? '1' : '0',
+      subscriber: roles.subscriber || badges.subscriber || badges.founder ? '1' : '0',
+      source: String(twitchPayload.source || payload.sourceModule || envelope.source?.module || '')
+    },
+    roles,
+    sourceEvent: {
+      busEventId: String(envelope.id || envelope.event?.id || ''),
+      sourceModule: String(payload.sourceModule || envelope.source?.module || ''),
+      eventKey: String(payload.eventKey || 'twitch.chat.message'),
+      receivedAt: String(payload.receivedAt || envelope.timestamp || '')
+    }
+  };
+}
+
+function handleAutoShoutoutBusChatEvent(envelope = {}, env = process.env) {
+  const subscriber = state.autoShoutout.busSubscriber;
+  subscriber.delivered += 1;
+  state.stats.autoBusDelivered += 1;
+  subscriber.lastReceivedAt = nowIso();
+  subscriber.lastEventId = String(envelope.id || envelope.event?.id || '');
+  subscriber.lastSourceModule = String(envelope.payload?.sourceModule || envelope.source?.module || '');
+
+  const parsed = normalizeBusChatPayload(envelope);
+  if (!parsed) {
+    subscriber.lastResultReason = 'invalid_chat_payload';
+    subscriber.lastError = '';
+    return { ok: true, skipped: true, reason: 'invalid_chat_payload' };
+  }
+
+  subscriber.lastLogin = parsed.login;
+  subscriber.lastMessagePreview = previewText(parsed.message || parsed.rawMessage || '');
+
+  Promise.resolve(handleAutoShoutoutChatActivity(parsed, {
+    source: parsed.sourceEvent?.sourceModule || 'twitch_events',
+    channel: parsed.channel || '',
+    busEventId: parsed.sourceEvent?.busEventId || subscriber.lastEventId,
+    eventKey: parsed.sourceEvent?.eventKey || 'twitch.chat.message',
+    busSubscriber: true
+  }, env)).then((result) => {
+    subscriber.lastHandledAt = nowIso();
+    subscriber.lastResultReason = result && (result.reason || result.error || (result.triggered ? 'triggered' : 'ok')) || 'ok';
+    subscriber.lastError = '';
+    return result;
+  }).catch((err) => {
+    const error = err && err.message ? err.message : String(err);
+    subscriber.errors += 1;
+    state.stats.autoBusErrors += 1;
+    subscriber.lastError = error;
+    subscriber.lastResultReason = 'error';
+    state.autoShoutout.lastError = error;
+    try {
+      emitShoutoutBus('shoutout.auto.bus_handler_failed', { error, busEventId: subscriber.lastEventId, targetLogin: subscriber.lastLogin }, shoutoutConfig());
+    } catch (_) {}
+  });
+
+  return { ok: true, accepted: true, reason: 'auto_shoutout_bus_handler_scheduled' };
+}
+
+function installAutoShoutoutBusSubscriber(env = process.env) {
+  const subscriber = state.autoShoutout.busSubscriber;
+  if (subscriber.installed === true) return { ok: true, installed: true, alreadyInstalled: true, subscriptionId: subscriber.subscriptionId };
+
+  const bus = getCommunicationBus();
+  if (!bus || typeof bus.subscribe !== 'function') {
+    subscriber.installed = false;
+    subscriber.lastError = 'communication_bus_subscribe_unavailable';
+    return { ok: false, installed: false, reason: 'communication_bus_subscribe_unavailable' };
+  }
+
+  const result = bus.subscribe({
+    id: 'clip_shoutout:twitch.chat.message:auto_shoutout',
+    module: MODULE_NAME,
+    channel: 'twitch.chat',
+    action: 'message',
+    capability: 'twitch.chat.message.consumer',
+    meta: {
+      purpose: 'AutoShoutout listens to normalized Twitch chat events from twitch_events.',
+      sourceModule: 'twitch_events',
+      fallbackDirectWrapperKept: true
+    }
+  }, (envelope) => {
+    subscriber.lastReceivedAt = nowIso();
+    state.stats.autoBusReceived += 1;
+    return handleAutoShoutoutBusChatEvent(envelope, env);
+  });
+
+  if (!result || result.ok !== true) {
+    subscriber.installed = false;
+    subscriber.lastError = String(result && (result.reason || result.error) || 'subscription_failed');
+    return { ok: false, installed: false, reason: subscriber.lastError };
+  }
+
+  subscriber.installed = true;
+  subscriber.subscriptionId = result.subscription && result.subscription.id ? String(result.subscription.id) : 'clip_shoutout:twitch.chat.message:auto_shoutout';
+  subscriber.lastError = '';
+  subscriber.lastResultReason = 'installed';
+  emitShoutoutBus('shoutout.auto.bus_subscriber.installed', { subscriptionId: subscriber.subscriptionId, channel: subscriber.channel, action: subscriber.action }, shoutoutConfig());
+  return { ok: true, installed: true, subscriptionId: subscriber.subscriptionId };
+}
+
 function autoResetStartIso(mode = 'today') {
   const now = new Date();
   const normalized = String(mode || 'today').trim().toLowerCase();
@@ -5786,7 +5946,8 @@ function autoShoutoutStatus(cfg) {
       lastSkipReason: state.autoShoutout.lastSkipReason,
       lastError: state.autoShoutout.lastError,
       noticeMemoryCount: Object.keys(state.autoShoutout.noticeMemory || {}).length,
-      activity: state.autoShoutout.activity || {}
+      activity: state.autoShoutout.activity || {},
+      busSubscriber: { ...(state.autoShoutout.busSubscriber || {}) }
     }
   };
 }
@@ -6023,9 +6184,13 @@ function installDirectChatCommandBypass(env) {
           };
         }
         if (!parsedCommand) {
-          handleAutoShoutoutChatActivity(parsed, source, env).catch(err => {
-            state.autoShoutout.lastError = err && err.message ? err.message : String(err);
-          });
+          if (state.autoShoutout.busSubscriber && state.autoShoutout.busSubscriber.installed === true) {
+            state.autoShoutout.busSubscriber.lastResultReason = 'direct_wrapper_auto_fallback_skipped_bus_subscriber_installed';
+          } else {
+            handleAutoShoutoutChatActivity(parsed, source, env).catch(err => {
+              state.autoShoutout.lastError = err && err.message ? err.message : String(err);
+            });
+          }
         }
         if (traceId) finishCommandIntakeTrace(traceId, 'not_clip_shoutout_command', { rawMessage });
       }
@@ -6082,6 +6247,7 @@ module.exports.init = function init(ctx) {
   resetStaleDisplayQueueActiveRows();
   registerCommand(cfg);
   installDirectChatCommandBypass(env);
+  installAutoShoutoutBusSubscriber(env);
   startDisplayQueueWorker(env, cfg);
   startOfficialShoutoutWorker(env, cfg);
 
