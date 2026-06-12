@@ -1,0 +1,119 @@
+/* STEP LWG-4Q.12Q - Giveaway Wheel Editor UI Cleanup
+   Zweck: Wheel-Editor scrollbar machen und Standard-Editor vereinfachen.
+   Keine Backend-/DB-/Logikänderung: versteckte Inputs bleiben im DOM und senden Defaults/bestehende Werte weiter. */
+
+/* Modal-Scroll reparieren: Backdrop darf selbst scrollen, Modal bleibt im Viewport. */
+.lgw-modal-backdrop {
+  align-items: start !important;
+  place-items: start center !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+}
+
+.lgw-modal,
+.lgw-wheel-editor-modal,
+.lgw-detail-modal,
+.lgw-control-modal {
+  max-height: calc(100vh - 48px) !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.lgw-wheel-editor-modal {
+  padding-bottom: 28px !important;
+}
+
+/* Wheel-Editor: Kontext kompakter halten. */
+.lgw-wheel-editor-modal .lgw-wheel-context {
+  margin-bottom: 14px;
+}
+
+.lgw-wheel-editor-modal .lgw-kv-compact {
+  grid-template-columns: minmax(140px, 190px) minmax(0, 1fr);
+}
+
+/* Neues Feld: Gewicht/Gesamtmenge aus der normalen UI ausblenden.
+   Die Inputs bleiben im DOM und werden mit value=1 weiter gesendet. */
+.lgw-wheel-editor-modal .lgw-wheel-field-form > .lgw-form-row:nth-of-type(2) {
+  display: none !important;
+}
+
+/* Neues Feld: Aktiv-Checkbox ausblenden.
+   Sie bleibt checked im DOM, neue Felder werden weiter aktiv erstellt. */
+.lgw-wheel-editor-modal .lgw-wheel-field-form > .lgw-modal-actions .lgw-check {
+  display: none !important;
+}
+
+/* Neues Feld: Aktionen sauber rechts halten. */
+.lgw-wheel-editor-modal .lgw-wheel-field-form > .lgw-modal-actions {
+  justify-content: flex-end;
+  border-top: 1px solid rgba(142, 238, 255, .10);
+  padding-top: 14px;
+}
+
+/* Bestehende Felder: Reihenfolge, Gewicht, Gesamtmenge und Aktiv-Checkbox ausblenden.
+   Bestehende Hidden/ausgeblendete Werte bleiben im Formular und werden unverändert mitgesendet. */
+.lgw-wheel-editor-modal .lgw-wheel-field-card > .lgw-form-row:nth-of-type(2) > label:first-child,
+.lgw-wheel-editor-modal .lgw-wheel-field-card > .lgw-form-row:nth-of-type(3) > label:nth-child(2),
+.lgw-wheel-editor-modal .lgw-wheel-field-card > .lgw-form-row:nth-of-type(4) > label:first-child,
+.lgw-wheel-editor-modal .lgw-wheel-field-card > .lgw-form-row:nth-of-type(5) > label:nth-child(2) {
+  display: none !important;
+}
+
+/* Die verbleibenden Felder nach dem Ausblenden sauber auf 2 Spalten strecken. */
+.lgw-wheel-editor-modal .lgw-wheel-field-card > .lgw-form-row:nth-of-type(2),
+.lgw-wheel-editor-modal .lgw-wheel-field-card > .lgw-form-row:nth-of-type(3),
+.lgw-wheel-editor-modal .lgw-wheel-field-card > .lgw-form-row:nth-of-type(4),
+.lgw-wheel-editor-modal .lgw-wheel-field-card > .lgw-form-row:nth-of-type(5) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.lgw-wheel-editor-modal .lgw-wheel-field-card > .lgw-form-row:nth-of-type(2) > label:nth-child(2),
+.lgw-wheel-editor-modal .lgw-wheel-field-card > .lgw-form-row:nth-of-type(3) > label:first-child,
+.lgw-wheel-editor-modal .lgw-wheel-field-card > .lgw-form-row:nth-of-type(4) > label:nth-child(2),
+.lgw-wheel-editor-modal .lgw-wheel-field-card > .lgw-form-row:nth-of-type(5) > label:first-child {
+  grid-column: 1 / -1;
+}
+
+/* Bestehende Feldkarten optisch etwas ruhiger und bedienbarer. */
+.lgw-wheel-editor-modal .lgw-wheel-field-card {
+  background:
+    linear-gradient(135deg, rgba(93, 54, 180, .10), rgba(20, 186, 235, .055)),
+    rgba(255,255,255,.04);
+}
+
+.lgw-wheel-editor-modal .lgw-wheel-field-top {
+  padding-bottom: 4px;
+}
+
+.lgw-wheel-editor-modal .lgw-wheel-field-top .lgw-badge {
+  margin-left: auto;
+}
+
+.lgw-wheel-editor-modal .lgw-wheel-field-card .lgw-modal-actions {
+  justify-content: flex-end;
+  border-top: 1px solid rgba(142, 238, 255, .10);
+  padding-top: 12px;
+}
+
+@media (max-width: 760px) {
+  .lgw-modal-backdrop {
+    padding: 12px !important;
+  }
+
+  .lgw-modal,
+  .lgw-wheel-editor-modal,
+  .lgw-detail-modal,
+  .lgw-control-modal {
+    width: calc(100vw - 24px) !important;
+    max-height: calc(100vh - 24px) !important;
+  }
+
+  .lgw-wheel-editor-modal .lgw-wheel-field-card > .lgw-form-row:nth-of-type(2),
+  .lgw-wheel-editor-modal .lgw-wheel-field-card > .lgw-form-row:nth-of-type(3),
+  .lgw-wheel-editor-modal .lgw-wheel-field-card > .lgw-form-row:nth-of-type(4),
+  .lgw-wheel-editor-modal .lgw-wheel-field-card > .lgw-form-row:nth-of-type(5) {
+    grid-template-columns: 1fr;
+  }
+}
