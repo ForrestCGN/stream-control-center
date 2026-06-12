@@ -152,75 +152,14 @@ window.LoyaltyGamesModule = (function(){
     return `<span class="lg-badge lg-badge-off">${esc(label)}</span>`;
   }
 
-  function ensureLoyaltyMainSection(){
-    if (!window.CGN) return;
-
-    const existingSection = window.CGN.sections?.loyalty;
-    if (existingSection) {
-      existingSection.directModule = existingSection.directModule || 'loyalty_games';
-      existingSection.defaultModule = existingSection.defaultModule || 'loyalty_games';
-      if (Array.isArray(existingSection.items) && !existingSection.items.includes('loyalty_games')) {
-        existingSection.items.push('loyalty_games');
-      }
-    } else {
-      window.CGN.sections.loyalty = {
-        label: 'Loyalty',
-        icon: '🎟️',
-        role: 'mod/supermod/streamer',
-        description: 'Punkte, Giveaways, Glücksrad, Raffles, Texte, Statistik, Config und Verlauf.',
-        items: ['loyalty_games'],
-        directModule: 'loyalty_games',
-        defaultModule: 'loyalty_games',
-        hideOverview: true
-      };
-    }
-
-    const nav = document.querySelector('#mainNav .nav-main-block');
-    if (!nav) return;
-
-    let btn = nav.querySelector('[data-section="loyalty"]');
-    if (!btn) {
-      btn = document.createElement('button');
-      btn.className = 'nav-main-item';
-      btn.dataset.section = 'loyalty';
-      btn.dataset.directModule = 'loyalty_games';
-      btn.innerHTML = '<span class="nav-icon">🎟️</span><span class="nav-label"><strong>Loyalty</strong><small>Punkte, Giveaways, Glücksrad</small></span>';
-      const communityBtn = nav.querySelector('[data-section="community"]');
-      if (communityBtn) nav.insertBefore(btn, communityBtn);
-      else nav.appendChild(btn);
-    } else {
-      btn.dataset.directModule = btn.dataset.directModule || 'loyalty_games';
-    }
-  }
-
   function registerDashboardModule(){
     if (!window.CGN) return;
-    ensureLoyaltyMainSection();
 
-    window.CGN.modules.loyalty_games = {
-      title: 'Loyalty',
-      panelId: 'loyaltyGamesModule',
-      group: 'loyalty',
-      overlayLink: api.overlay,
-      overlayLabel: 'Glücksrad-Overlay öffnen',
-      reload(){ return window.LoyaltyGamesModule?.loadAll?.(true); }
-    };
-
-    window.CGN.moduleCatalog.loyalty_games = {
-      label: 'Loyalty Games',
-      icon: '🎡',
-      enabled: true,
-      description: 'Glücksrad, Presets, Gamble, Texte, Statistik und Config.'
-    };
-
-    const loyaltySection = window.CGN.sections?.loyalty;
-    if (loyaltySection && Array.isArray(loyaltySection.items) && !loyaltySection.items.includes('loyalty_games')) {
-      loyaltySection.items.push('loyalty_games');
-    }
-
-    if (Array.isArray(window.CGN.favorites) && !window.CGN.favorites.includes('loyalty_games')) {
-      const loyaltyIdx = window.CGN.favorites.indexOf('loyalty');
-      if (loyaltyIdx >= 0) window.CGN.favorites.splice(loyaltyIdx + 1, 0, 'loyalty_games');
+    const module = window.CGN.modules?.loyalty_games;
+    if (module) {
+      module.reload = function(){ return window.LoyaltyGamesModule?.loadAll?.(true); };
+      module.overlayLink = module.overlayLink || api.overlay;
+      module.overlayLabel = module.overlayLabel || 'Glücksrad-Overlay öffnen';
     }
 
     window.SectionHomeModule?.render?.();
