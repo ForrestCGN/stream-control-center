@@ -4,40 +4,29 @@ Stand: 2026-06-12
 
 ## Erledigt / bestätigt
 
-- [x] LWG-4Q.1 Paid Tickets buchen Loyalty-Punkte beim Ticket-Kauf.
-- [x] LWG-4Q.2 / 4Q.2a Refund ist explizit steuerbar und idempotent.
-- [x] LWG-4Q.3 Prepared Giveaway Cards sichtbar gemacht.
-- [x] LWG-4Q.8 Routing weitgehend auf neues Giveaway-Control umgestellt.
-- [x] LWG-4Q.9 / 4Q.9a Löschen = Hard-Delete, Archivieren nur kontrolliert; Transaction-Fix bestätigt.
-- [x] LWG-4Q.10 API-Szenarien mit Classic, Paid, Claim und Wheel bestätigt.
-- [x] LWG-4Q.11 Manual Winner Flow API-seitig bestätigt.
-- [x] STEP235H Config UX Standard für Gamble bestätigt.
-- [x] STEP235J Standalone-Gamble entfernt.
-- [x] STEP235K Cleanup-Prüfung ohne alte STEP232-/Gamble-Reste.
-- [x] STEP235L Runtime-Fallback als überflüssig bewertet.
-- [x] STEP235M Runtime-Shell-Fallback aus `loyalty_games.js` entfernt.
-- [x] STEP235N finalen Dashboard-/Loyalty-Stand dokumentiert.
-- [x] STEP235O Actor-/Rollenfelder geprüft.
-- [x] STEP235P Actor-/Rollenfelder aus normaler UI entfernt und spätere Rechteanbindung vorbereitet.
-- [x] STEP235Q Gamble Config UI geprüft.
-- [x] STEP235R Cooldown-UX von Millisekunden auf Sekunden umgestellt.
 - [x] STEP235S Gamble-Config-Cleanup final abgeschlossen.
+- [x] LWG-4Q.12A Classic-Draft-Giveaway Formular geprüft.
+- [x] LWG-4Q.12B Wheel-Draft ohne Bound-Wheel geprüft.
+- [x] LWG-4Q.12C Wheel-Draft mit Bound-Wheel geprüft.
+- [x] LWG-4Q.12D Routing Giveaways geprüft.
+- [x] LWG-4Q.12E Alte Giveaway-/Bound-Wheel-Reste in loyalty_games.js bewertet.
+- [x] LWG-4Q.12F Legacy-Giveaways-Tab in loyalty_games.js geprüft.
+- [x] LWG-4Q.12G Legacy Giveaway Wheel Editor in loyalty_games.js umgeleitet.
+- [x] LWG-4Q.12H Nicht mehr erreichbaren Legacy-Giveaway-Code aus loyalty_games.js entfernt.
+- [x] LWG-4Q.12I Einheitliche Loyalty-Tabs in Giveaways wiederhergestellt.
+- [x] LWG-4Q.12J Abschluss-Doku erstellt.
 
-## Offen / wichtig
+## Offen / später
 
-- [ ] Dashboard-UI nach LWG-4Q.11 manuell sauber prüfen, aber nur noch in kleinen Einzelschritten.
-- [ ] Prüfen, ob im Formular wirklich nicht mehr sichtbar sind: Gewinneranzahl, Gewinn-Menge, Rundenmodus, Ticket-Übernahme.
-- [ ] Prüfen, ob Chat-Claim-Felder nur sichtbar sind, wenn Checkbox aktiv ist.
-- [ ] Prüfen, ob bei Wheel-Giveaways die Gewinnpflege ausschließlich über den Glücksrad-/Bound-Wheel-Editor läuft.
-- [ ] Prüfen, ob „Glücksrad erstellen“ nur bei fehlendem Bound-Wheel erscheint und „Glücksrad bearbeiten“ nur bei vorhandenem Bound-Wheel.
-- [ ] Prüfen, ob Loyalty → Kachel Giveaways und oberer Tab Giveaways beide das neue Giveaway-Control öffnen.
-- [ ] UI-Teststrategie weiterhin klein halten: pro Test nur ein Giveaway erzeugen, genau einen UI-Punkt prüfen, danach löschen.
-- [ ] Später echtes Dashboard-Rechtesystem anbinden und `getDashboardActor()` auf echte Sessiondaten umstellen.
-- [ ] Doku nach finalem Giveaways-UI-Test erneut aktualisieren.
+- [ ] Giveaway-Control optisch weiter glätten.
+- [ ] Wheel-/Preset-/Bound-Wheel-Begriffe dashboardweit vereinheitlichen.
+- [ ] Config-Dropdown für weitere Loyalty-Bereiche ausbauen.
+- [ ] Echtes Dashboard-Rechtesystem anbinden.
+- [ ] Audit-/Write-Rechte in UI aus echter Session ableiten.
 
-## Nicht wiederholen
+## Nicht wieder einführen
 
-- [ ] Keine STEP232-/Standalone-Gamble-Struktur wieder einführen.
-- [ ] Keine großen UI-assisted Scripts mehr, die mehrere fast gleiche Giveaways gleichzeitig erzeugen.
-- [ ] Keine PowerShell-Scripts mit ungetesteter JS-Syntax wie `||`.
-- [ ] Keine Annahmen über Backend-Abläufe treffen, wenn ein API-Test das echte Verhalten zeigen kann.
+- [ ] Alte Inline-Giveaway-Seite in `loyalty_games.js`.
+- [ ] Alten Inline-Giveaway-Wheel-Editor in `loyalty_games.js`.
+- [ ] STEP232-/Standalone-Gamble-Struktur.
+- [ ] Ungetestete große UI-assisted Scripts.

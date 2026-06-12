@@ -2,76 +2,76 @@
 
 Stand: 2026-06-12
 
-## Direkt nächster sinnvoller Schritt
+## Nach LWG-4Q.12J
 
-Nach STEP235S ist der Gamble-Config-Cleanup im Loyalty-Dashboard abgeschlossen.
+Der Giveaways-/Tabs-Cleanup ist abgeschlossen.
 
-Empfohlen:
+## Mögliche nächste Arbeiten
+
+### 1. Giveaway-Control optisch glätten
 
 ```text
-LWG-4Q.12 – Giveaways-UI nach LWG-4Q.11 klein und manuell prüfen
+Labels vereinheitlichen
+Button-Texte prüfen
+Card-Abstände prüfen
+aktive/vorbereitete Giveaways übersichtlicher machen
 ```
 
-## Empfohlene Reihenfolge
-
-### 1. Einzeltest Classic-Formular
+### 2. Wheel-/Preset-Begriffe vereinheitlichen
 
 ```text
-Ein Classic-Draft-Giveaway erstellen.
-Bearbeiten öffnen.
-Genau prüfen:
-- Gewinneranzahl nicht sichtbar
-- Gewinn-Menge nicht sichtbar
-- Rundenmodus nicht sichtbar
-- Ticket-Übernahme nicht sichtbar
-- Chat-Claim Checkbox sichtbar
-- Timeout/Claim-Modus nur bei aktivierter Checkbox sichtbar
-Danach Giveaway hard-delete löschen.
+Glücksrad
+Preset
+Bound-Wheel
+Felder/Gewinne
+Reward-Typ
+Reward-Wert
 ```
 
-### 2. Einzeltest Wheel ohne Bound-Wheel
+### 3. Config-Bereiche weiter ausbauen
 
 ```text
-Ein Wheel-Draft ohne gültiges Bound-Wheel erstellen.
-Prüfen:
-- Button „Glücksrad erstellen“ sichtbar
-- Kein „Glücksrad bearbeiten“, solange kein Bound-Wheel existiert
-Danach Giveaway hard-delete löschen.
+Loyalty → Config → Core
+Loyalty → Config → Giveaways
+Loyalty → Config → Wheel
+Loyalty → Config → Texte
 ```
 
-### 3. Einzeltest Wheel mit Bound-Wheel
+### 4. Später echtes Dashboard-Rechtesystem
 
 ```text
-Ein Wheel-Draft mit Bound-Wheel und mindestens einem Feld erstellen.
-Prüfen:
-- Button „Glücksrad bearbeiten“ sichtbar
-- Editor öffnet im neuen Giveaway-Control als Modal/Fenster
-Danach Giveaway hard-delete löschen.
+Dashboard-Session
+Rollen
+Audit
+Write-Rechte
+Mod/Admin/Streamer-Freigaben
 ```
 
-### 4. Routing prüfen
+## Nicht sofort nötig
 
 ```text
-Links Loyalty öffnen.
-Kachel Giveaways anklicken.
-Oberen Tab Giveaways anklicken.
-Erwartung: neues Giveaway-Control.
-Keine alte Inline-Giveaway-Seite.
+Backend-Umbauten
+DB-Migrationen
+API-Änderungen
+neue große UI-Testskripte
 ```
 
-## Später, nicht jetzt
+## Prüfroutine bei weiteren UI-Änderungen
 
-```text
-Echtes Dashboard-Rechtesystem anbinden.
-getDashboardActor() auf echte Sessiondaten umstellen.
-Config-Dropdown für weitere Loyalty-Bereiche ausbauen.
+```powershell
+node -c .\htdocs\dashboard\modules\loyalty_games.js
+node -c .\htdocs\dashboard\modules\loyalty_giveaways.js
+node -c .\htdocs\dashboard\app.js
 ```
 
-## Nicht wiederholen
+Browser:
 
 ```text
-Keine STEP232-/Standalone-Gamble-Basis mehr verwenden.
-Keine großen UI-assisted Scripts mit mehreren parallelen Testfällen.
-Keine PowerShell-Scripts mit ungetesteter JS-Syntax wie ||.
-Keine Annahmen über Backend-Abläufe treffen, wenn ein API-Test das echte Verhalten zeigen kann.
+/dashboard
+Loyalty → Giveaways
+Tabs vollständig
+Gamble erreichbar
+Config erreichbar
+Wheel-Editor über Giveaways erreichbar
+Keine Console-Fehler
 ```

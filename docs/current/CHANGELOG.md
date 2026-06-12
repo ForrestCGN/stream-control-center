@@ -2,6 +2,33 @@
 
 Stand: 2026-06-12
 
+## 2026-06-12 – LWG-4Q.12J Final Giveaways UI Cleanup
+
+### Ergebnis
+
+```text
+Giveaways-Dashboard-Cleanup abgeschlossen.
+Tabs bleiben beim Wechsel in Giveaways vollständig sichtbar.
+Gamble und Config wurden in der Giveaways-Tab-Leiste wieder ergänzt.
+Nicht mehr erreichbarer Legacy-Giveaway-Code wurde aus loyalty_games.js entfernt.
+```
+
+### Bestätigte Korrekturen
+
+```text
+LWG-4Q.12G Redirect Legacy Giveaway Wheel Editor
+LWG-4Q.12H Remove Legacy Giveaway Code From Loyalty Games
+LWG-4Q.12I Unified Loyalty Tabs In Giveaways
+LWG-4Q.12J Abschluss-Doku
+```
+
+### Neue Zielstruktur
+
+```text
+loyalty_games.js      → Games, Glücksrad, Presets, Gamble, Config
+loyalty_giveaways.js  → Giveaways, Wheel-Editor, Live-Steuerung
+```
+
 ## 2026-06-12 – STEP235S Final Gamble Config Cleanup
 
 ### Ergebnis
@@ -15,51 +42,6 @@ Gamble-Config-Labels verständlicher gemacht.
 Backend/API/DB/Audit unverändert.
 ```
 
-### Bestätigte Teilsteps
-
-```text
-STEP235H Config UX Standard
-STEP235J Remove Standalone Gamble Dashboard
-STEP235M Remove Loyalty Runtime Shell Fallback
-STEP235P Gamble Actor Fields Prepared
-STEP235R Gamble Cooldown UX Cleanup
-STEP235S Final Gamble Config Cleanup
-```
-
-### Aktiver Zielpfad
-
-```text
-/dashboard
-Loyalty → Gamble
-Loyalty → Config → Gamble
-```
-
-### Nicht mehr verwenden
-
-```text
-STEP232-Gamble-Shell-Integration
-loyalty-gamble.html
-loyalty-gamble.js
-loyalty-gamble.css
-loyalty-gamble-nav.js
-loyalty-gamble-shell-card.js
-loyalty-gamble-shell-card.css
-```
-
-## 2026-06-12 – STEP235 Final Loyalty Dashboard Cleanup
-
-### Ergebnis
-
-```text
-Dashboard-Shell für Loyalty stabilisiert.
-Gamble in Loyalty integriert.
-Config-UX für Gamble bereinigt.
-Standalone-Gamble entfernt.
-STEP232-/Gamble-Shell-Reste bereinigt.
-Runtime-Shell-Fallback aus loyalty_games.js entfernt.
-Doku-/Status-Dateien aktualisiert.
-```
-
 ## 2026-06-11 – LWG-4Q.11 Manual Winner Flow and Prize Quantity Cleanup
 
 ### Ergebnis
@@ -70,15 +52,3 @@ Der Streamer entscheidet live über „Weiteren Gewinner auslosen“ und „Been
 Gewinneranzahl und Gewinn-Menge wurden aus dem geplanten Formular-Flow entfernt.
 Glücksrad-Giveaways enden, wenn keine nutzbaren Wheel-Gewinne/Felder mehr vorhanden sind.
 ```
-
-### Bestätigt
-
-```text
-Test_LWG_4Q11_manual_winner_flow_ForrestCGN.ps1
-ModuleBuild: STEP_LWG_4Q_11
-=== TEST OK: Alle aktivierten Szenarien erfolgreich ===
-```
-
-## 2026-06-11 – Qualitätshinweis
-
-Die UI-assisted Scripts nach 4Q.11 waren nicht sauber genug. Sie sollten nicht als belastbarer Teststandard verwendet werden. Künftige UI-Prüfungen bitte klein, einzeln und manuell bestätigt halten.
