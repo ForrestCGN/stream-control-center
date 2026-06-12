@@ -319,15 +319,15 @@ window.LoyaltyGamesModule = (function(){
     return Number.isFinite(num) ? num : raw;
   }
 
-  function getGambleWriteBody(form, { dryRun = false, confirmWrite = false } = {}){
+  function getGambleWriteBody(form, { confirmWrite = false } = {}){
     const actorLogin = String(form?.elements?.actorLogin?.value || 'forrestcgn').trim();
     return {
       actorLogin,
       actorDisplayName: actorLogin || 'ForrestCGN',
       actorRole: String(form?.elements?.actorRole?.value || 'streamer').trim(),
-      dryRun,
+      dryRun: false,
       confirmWrite,
-      reason: dryRun ? 'STEP235E Dashboard Loyalty Config Gamble Dryrun' : 'STEP235E Dashboard Loyalty Config Gamble Write',
+      reason: 'STEP235F Dashboard Loyalty Config Gamble Write',
       engine: {
         enabled: getGambleFormValue(form, 'enabled'),
         winChancePercent: getGambleFormValue(form, 'winChancePercent'),
@@ -343,7 +343,7 @@ window.LoyaltyGamesModule = (function(){
         enabled: getGambleFormValue(form, 'commandEnabled'),
         cooldownUserMs: getGambleFormValue(form, 'commandCooldownUserMs'),
         sendResultToChat: getGambleFormValue(form, 'sendResultToChat'),
-        activationState: dryRun ? 'dashboard_loyalty_config_gamble_dryrun_step235e' : 'dashboard_loyalty_config_gamble_write_step235e'
+        activationState: 'dashboard_loyalty_config_gamble_write_step235f'
       }
     };
   }
@@ -380,23 +380,6 @@ window.LoyaltyGamesModule = (function(){
       state.error = err.message || String(err);
     }
     if (rerender) render();
-  }
-
-  async function submitGambleDryrun(form){
-    state.saving = true;
-    state.gambleResult = 'Dryrun läuft...';
-    render();
-    try {
-      const result = await apiPost(api.gambleConfig, getGambleWriteBody(form, { dryRun: true }));
-      state.gambleResult = JSON.stringify(result, null, 2);
-      state.message = 'Gamble-Dryrun erfolgreich.';
-    } catch (err) {
-      state.gambleResult = JSON.stringify({ ok:false, error: err.message, data: err.data || null }, null, 2);
-      state.error = err.message || String(err);
-    } finally {
-      state.saving = false;
-      render();
-    }
   }
 
   async function submitGambleWrite(form){
@@ -2028,7 +2011,7 @@ window.LoyaltyGamesModule = (function(){
         <div class="lg-panel-head">
           <div>
             <h3>Gamble-Konfiguration</h3>
-            <p class="lg-muted">Zentrale Config-Ansicht. Die bestehende Gamble-API bleibt unverändert. Dryrun schreibt nicht, Speichern fragt vor dem echten Write nach Bestätigung.</p>
+            <p class="lg-muted">Zentrale Config-Ansicht. Speichern fragt vor dem echten Write nach Bestätigung; die bestehende Gamble-API bleibt unverändert.</p>
           </div>
           <div class="lg-actions">
             <button class="lg-btn lg-btn-secondary" data-lg-gamble-reload>Neu laden</button>
@@ -2062,7 +2045,6 @@ window.LoyaltyGamesModule = (function(){
             <label>Actor Rolle<select name="actorRole"><option value="streamer" selected>streamer</option><option value="owner">owner</option><option value="mod">mod</option><option value="viewer">viewer</option></select></label>
           </div>
           <div class="lg-check-row lg-gamble-danger-row">
-            <button class="lg-btn lg-btn-secondary" type="button" data-lg-gamble-dryrun ${state.saving ? 'disabled' : ''}>Dryrun</button>
             <button class="lg-btn" type="button" data-lg-gamble-save ${state.saving ? 'disabled' : ''}>Speichern</button>
             <span class="lg-muted">Speichern fragt vor dem echten Write nach Bestätigung.</span>
           </div>
@@ -2294,11 +2276,6 @@ window.LoyaltyGamesModule = (function(){
     root.querySelector('[data-lg-gamble-clear-result]')?.addEventListener('click', () => {
       state.gambleResult = '';
       render();
-    });
-
-    root.querySelector('[data-lg-gamble-dryrun]')?.addEventListener('click', () => {
-      const form = root.querySelector('[data-lg-gamble-form]');
-      submitGambleDryrun(form);
     });
 
     root.querySelector('[data-lg-gamble-save]')?.addEventListener('click', () => {
