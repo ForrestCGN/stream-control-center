@@ -1,0 +1,311 @@
+/* STEP LWG-4Q.12O - Giveaway-Control UI cleanup
+   Safe CSS-only smoothing for the new Giveaway-Control.
+   No JS, no backend routes, no old inline giveaway UI. */
+
+.loyalty-giveaways-admin {
+  align-content: start;
+}
+
+.loyalty-giveaways-admin .lg-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 12;
+  padding: 10px 0 12px;
+  margin: -4px 0 2px;
+  background:
+    linear-gradient(180deg, rgba(5, 8, 20, .96), rgba(5, 8, 20, .82) 72%, rgba(5, 8, 20, 0));
+  backdrop-filter: blur(8px);
+}
+
+.loyalty-giveaways-admin .lg-tab {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loyalty-giveaways-admin .lgw-head,
+.loyalty-giveaways-admin .lgw-panel,
+.loyalty-giveaways-admin .lgw-card,
+.loyalty-giveaways-admin .lgw-modal {
+  position: relative;
+  overflow: hidden;
+}
+
+.loyalty-giveaways-admin .lgw-head::before,
+.loyalty-giveaways-admin .lgw-panel::before,
+.loyalty-giveaways-admin .lgw-modal::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(208, 60, 255, .12), transparent 34%),
+    radial-gradient(circle at 100% 0%, rgba(43, 218, 255, .10), transparent 30%);
+  opacity: .72;
+}
+
+.loyalty-giveaways-admin .lgw-head > *,
+.loyalty-giveaways-admin .lgw-panel > *,
+.loyalty-giveaways-admin .lgw-modal > * {
+  position: relative;
+  z-index: 1;
+}
+
+.loyalty-giveaways-admin .lgw-panel-head {
+  gap: 14px;
+}
+
+.loyalty-giveaways-admin .lgw-panel-head h3,
+.loyalty-giveaways-admin .lgw-modal-head h3,
+.loyalty-giveaways-admin .lgw-control-section h4 {
+  letter-spacing: .02em;
+}
+
+.loyalty-giveaways-admin .lgw-muted,
+.loyalty-giveaways-admin .lgw-subline {
+  line-height: 1.42;
+}
+
+.loyalty-giveaways-admin .lgw-btn {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: filter .16s ease, transform .16s ease, border-color .16s ease, background .16s ease;
+}
+
+.loyalty-giveaways-admin .lgw-btn:hover:not(:disabled):not(.lgw-btn-disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(142, 238, 255, .46);
+}
+
+.loyalty-giveaways-admin .lgw-btn-small {
+  min-height: 30px;
+  white-space: nowrap;
+}
+
+.loyalty-giveaways-admin .lgw-actions,
+.loyalty-giveaways-admin .lgw-row-actions,
+.loyalty-giveaways-admin .lgw-modal-actions,
+.loyalty-giveaways-admin .lgw-control-actions {
+  align-items: center;
+}
+
+.loyalty-giveaways-admin .lgw-active-panel {
+  border-color: rgba(142, 238, 255, .24);
+}
+
+.loyalty-giveaways-admin .lgw-active-row {
+  padding: 12px;
+  border: 1px solid rgba(142, 238, 255, .11);
+  background: rgba(0, 0, 0, .12);
+  border-radius: 16px;
+}
+
+.loyalty-giveaways-admin .lgw-active-cards {
+  align-items: stretch;
+}
+
+.loyalty-giveaways-admin .lgw-active-card {
+  min-height: 154px;
+  border-color: rgba(142, 238, 255, .18);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.06), rgba(255,255,255,.028)),
+    rgba(255,255,255,.035);
+}
+
+.loyalty-giveaways-admin .lgw-active-card-main {
+  min-height: 0;
+}
+
+.loyalty-giveaways-admin .lgw-active-card-main strong {
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.loyalty-giveaways-admin .lgw-active-card-main small {
+  line-height: 1.35;
+}
+
+.loyalty-giveaways-admin .lgw-active-card-actions {
+  align-self: end;
+  justify-content: flex-start;
+}
+
+.loyalty-giveaways-admin .lgw-active-summary span {
+  background: rgba(0,0,0,.16);
+}
+
+.loyalty-giveaways-admin .lgw-filters {
+  align-items: end;
+}
+
+.loyalty-giveaways-admin .lgw-filters input,
+.loyalty-giveaways-admin .lgw-filters select,
+.loyalty-giveaways-admin .lgw-active-row select,
+.loyalty-giveaways-admin .lgw-form input,
+.loyalty-giveaways-admin .lgw-form textarea,
+.loyalty-giveaways-admin .lgw-form select,
+.loyalty-giveaways-admin .lgw-participant-tools input,
+.loyalty-giveaways-admin .lgw-participant-tools select {
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.025);
+}
+
+.loyalty-giveaways-admin .lgw-overview-list {
+  gap: 10px;
+}
+
+.loyalty-giveaways-admin .lgw-giveaway-item {
+  grid-template-columns: minmax(260px, 1.05fr) minmax(380px, 1.45fr) minmax(250px, auto);
+  border-color: rgba(142, 238, 255, .15);
+  transition: border-color .16s ease, background .16s ease, transform .16s ease;
+}
+
+.loyalty-giveaways-admin .lgw-giveaway-item:hover {
+  border-color: rgba(142, 238, 255, .30);
+  background: rgba(255,255,255,.06);
+  transform: translateY(-1px);
+}
+
+.loyalty-giveaways-admin .lgw-giveaway-main strong {
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.loyalty-giveaways-admin .lgw-giveaway-main span {
+  line-height: 1.35;
+}
+
+.loyalty-giveaways-admin .lgw-giveaway-meta {
+  align-items: stretch;
+}
+
+.loyalty-giveaways-admin .lgw-giveaway-meta > span:not(.lgw-badge) {
+  padding: 7px 9px;
+  border: 1px solid rgba(142, 238, 255, .09);
+  border-radius: 12px;
+  background: rgba(0,0,0,.12);
+}
+
+.loyalty-giveaways-admin .lgw-giveaway-actions {
+  gap: 8px;
+  justify-content: flex-end;
+  align-content: center;
+}
+
+.loyalty-giveaways-admin .lgw-modal-backdrop {
+  align-items: start;
+  overflow: auto;
+}
+
+.loyalty-giveaways-admin .lgw-modal {
+  margin: auto 0;
+}
+
+.loyalty-giveaways-admin .lgw-control-modal,
+.loyalty-giveaways-admin .lgw-detail-modal,
+.loyalty-giveaways-admin .lgw-wheel-editor-modal {
+  width: min(1240px, calc(100vw - 48px));
+}
+
+.loyalty-giveaways-admin .lgw-control-title,
+.loyalty-giveaways-admin .lgw-control-phase,
+.loyalty-giveaways-admin .lgw-control-section,
+.loyalty-giveaways-admin .lgw-wheel-field-card {
+  border-color: rgba(142, 238, 255, .15);
+}
+
+.loyalty-giveaways-admin .lgw-control-section h4 {
+  color: #d8f7ff;
+}
+
+.loyalty-giveaways-admin .lgw-control-help {
+  padding: 10px 12px;
+  border: 1px solid rgba(142, 238, 255, .10);
+  border-radius: 12px;
+  background: rgba(0,0,0,.12);
+}
+
+.loyalty-giveaways-admin .lgw-table-wrap {
+  background: rgba(0,0,0,.10);
+}
+
+.loyalty-giveaways-admin .lgw-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: rgba(9, 13, 28, .96);
+}
+
+.loyalty-giveaways-admin .lgw-table tbody tr:hover td {
+  background: rgba(142, 238, 255, .035);
+}
+
+.loyalty-giveaways-admin .lgw-warning {
+  line-height: 1.42;
+}
+
+@media (max-width: 1500px) {
+  .loyalty-giveaways-admin .lgw-giveaway-item {
+    grid-template-columns: minmax(260px, 1fr) minmax(360px, 1.2fr);
+  }
+
+  .loyalty-giveaways-admin .lgw-giveaway-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 1180px) {
+  .loyalty-giveaways-admin .lg-tabs {
+    position: static;
+    background: transparent;
+    backdrop-filter: none;
+    padding-top: 0;
+  }
+
+  .loyalty-giveaways-admin .lgw-giveaway-item {
+    grid-template-columns: 1fr;
+  }
+
+  .loyalty-giveaways-admin .lgw-giveaway-actions {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 760px) {
+  .loyalty-giveaways-admin .lgw-head,
+  .loyalty-giveaways-admin .lgw-modal-head {
+    display: grid;
+  }
+
+  .loyalty-giveaways-admin .lgw-actions,
+  .loyalty-giveaways-admin .lgw-row-actions,
+  .loyalty-giveaways-admin .lgw-modal-actions,
+  .loyalty-giveaways-admin .lgw-control-actions,
+  .loyalty-giveaways-admin .lgw-active-card-actions {
+    align-items: stretch;
+  }
+
+  .loyalty-giveaways-admin .lgw-actions .lgw-btn,
+  .loyalty-giveaways-admin .lgw-row-actions .lgw-btn,
+  .loyalty-giveaways-admin .lgw-modal-actions .lgw-btn,
+  .loyalty-giveaways-admin .lgw-control-actions .lgw-btn,
+  .loyalty-giveaways-admin .lgw-active-card-actions .lgw-btn {
+    width: 100%;
+  }
+
+  .loyalty-giveaways-admin .lgw-modal-backdrop {
+    padding: 12px;
+  }
+
+  .loyalty-giveaways-admin .lgw-control-modal,
+  .loyalty-giveaways-admin .lgw-detail-modal,
+  .loyalty-giveaways-admin .lgw-wheel-editor-modal,
+  .loyalty-giveaways-admin .lgw-modal {
+    width: calc(100vw - 24px);
+    max-height: calc(100vh - 24px);
+  }
+}
