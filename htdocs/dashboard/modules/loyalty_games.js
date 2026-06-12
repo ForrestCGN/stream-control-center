@@ -327,7 +327,7 @@ window.LoyaltyGamesModule = (function(){
       actorRole: String(form?.elements?.actorRole?.value || 'streamer').trim(),
       dryRun,
       confirmWrite,
-      reason: dryRun ? 'STEP235D Dashboard Loyalty Config Gamble Dryrun' : 'STEP235D Dashboard Loyalty Config Gamble Write',
+      reason: dryRun ? 'STEP235E Dashboard Loyalty Config Gamble Dryrun' : 'STEP235E Dashboard Loyalty Config Gamble Write',
       engine: {
         enabled: getGambleFormValue(form, 'enabled'),
         winChancePercent: getGambleFormValue(form, 'winChancePercent'),
@@ -343,7 +343,7 @@ window.LoyaltyGamesModule = (function(){
         enabled: getGambleFormValue(form, 'commandEnabled'),
         cooldownUserMs: getGambleFormValue(form, 'commandCooldownUserMs'),
         sendResultToChat: getGambleFormValue(form, 'sendResultToChat'),
-        activationState: dryRun ? 'dashboard_loyalty_config_gamble_dryrun_step235d' : 'dashboard_loyalty_config_gamble_write_step235d'
+        activationState: dryRun ? 'dashboard_loyalty_config_gamble_dryrun_step235e' : 'dashboard_loyalty_config_gamble_write_step235e'
       }
     };
   }
@@ -400,8 +400,8 @@ window.LoyaltyGamesModule = (function(){
   }
 
   async function submitGambleWrite(form){
-    if (!form?.elements?.confirmWrite?.checked) {
-      state.gambleResult = 'Write blockiert: Bitte zuerst „Write bestätigen“ aktivieren.';
+    if (!window.confirm('Gamble-Konfiguration wirklich speichern?')) {
+      state.gambleResult = 'Speichern abgebrochen: keine Änderung geschrieben.';
       render();
       return;
     }
@@ -2028,7 +2028,7 @@ window.LoyaltyGamesModule = (function(){
         <div class="lg-panel-head">
           <div>
             <h3>Gamble-Konfiguration</h3>
-            <p class="lg-muted">Zentrale Config-Ansicht. Die bestehende Gamble-API bleibt unverändert. Dryrun schreibt nicht, echter Write braucht Confirm.</p>
+            <p class="lg-muted">Zentrale Config-Ansicht. Die bestehende Gamble-API bleibt unverändert. Dryrun schreibt nicht, Speichern fragt vor dem echten Write nach Bestätigung.</p>
           </div>
           <div class="lg-actions">
             <button class="lg-btn lg-btn-secondary" data-lg-gamble-reload>Neu laden</button>
@@ -2062,9 +2062,9 @@ window.LoyaltyGamesModule = (function(){
             <label>Actor Rolle<select name="actorRole"><option value="streamer" selected>streamer</option><option value="owner">owner</option><option value="mod">mod</option><option value="viewer">viewer</option></select></label>
           </div>
           <div class="lg-check-row lg-gamble-danger-row">
-            <label class="lg-check"><input name="confirmWrite" type="checkbox"> Write bestätigen</label>
             <button class="lg-btn lg-btn-secondary" type="button" data-lg-gamble-dryrun ${state.saving ? 'disabled' : ''}>Dryrun</button>
             <button class="lg-btn" type="button" data-lg-gamble-save ${state.saving ? 'disabled' : ''}>Speichern</button>
+            <span class="lg-muted">Speichern fragt vor dem echten Write nach Bestätigung.</span>
           </div>
         </form>
         <div class="lg-result-box">
