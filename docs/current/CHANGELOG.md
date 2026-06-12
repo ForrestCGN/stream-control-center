@@ -2,85 +2,114 @@
 
 Stand: 2026-06-12
 
-## 2026-06-12 – LWG-4Q.12N Final Gamble/Giveaways Cleanup Docs
+## 2026-06-12 – CAN44.31 AutoShoutout V2 Activity Bridge Docs
 
 ### Ergebnis
 
 ```text
-Doku/TODO/NEXT_STEPS/FILES/CURRENT_STATUS auf aktuellen Stand gebracht.
-Prompt für neuen Chat erstellt.
-Giveaways-/Gamble-Stand konsolidiert.
+AutoShoutout-Buspfad dokumentiert.
+ShoutoutV2-Dashboard-Ursache dokumentiert.
+CAN44.31 Bridge/Patch als aktueller Stand dokumentiert.
+TODO/NEXT_STEPS/FILES/CURRENT_STATUS aktualisiert.
+Handoff für nächsten Chat erstellt.
 ```
 
-## 2026-06-12 – LWG-4Q.12M Gamble Config Cleanup
+### Technische Erkenntnis
+
+```text
+Die sichtbare AutoShoutout-Seite im Dashboard wird von htdocs/dashboard/modules/shoutout_v2.js gerendert.
+Die Datei htdocs/dashboard/modules/auto_shoutout.js wird zusätzlich geladen, war aber nicht der sichtbare Renderer.
+CAN44.31 nutzt auto_shoutout.js als Bridge/Patch für die ShoutoutV2-Aktivitätskarte.
+```
+
+## 2026-06-12 – CAN44.31 AutoShoutout V2 Activity Bridge
 
 ### Ergebnis
 
 ```text
-Gamble-Config-UI an einfache Gewinn-/Verlustlogik angepasst.
-Auszahlung x aus UI entfernt.
-Gamble-Cooldown pro User aus UI entfernt.
-Gamble-Cooldown global aus UI entfernt.
-Command-Cooldown pro User bleibt sichtbar.
-Engine-Cooldown wird beim Dashboard-Speichern intern auf 0 gesetzt.
-payoutMultiplier wird intern auf 2 gesetzt.
+Bridge/Patch für ShoutoutV2-Aktivitätskarte erstellt.
+Ziel: sichtbare Anzeige „Letzte AutoShoutout-Aktivität“ in ShoutoutV2 ersetzen.
+Neue Anzeige: Zeit / Streamer / Status / Info.
+Info-Button öffnet Detail-Modal mit Rohdaten.
 ```
 
-### Zielmodell
+### Dateien
 
 ```text
-Command-System = !gamble aktiv/aus + Cooldown
-Gamble-Engine = Gewinn/Verlust berechnen
+htdocs/dashboard/modules/auto_shoutout.js
+htdocs/dashboard/modules/auto_shoutout.css
 ```
 
-## 2026-06-12 – LWG-4Q.12L Gamble Simple Win/Loss Logic
+### Browser-Prüfung
+
+```javascript
+window.AutoShoutoutV2ActivityPatch?.build
+// CAN44.31_AUTOSO_V2_ACTIVITY_MODAL_BRIDGE
+```
+
+## 2026-06-12 – CAN44.30 AutoShoutout Activity Modal
 
 ### Ergebnis
 
 ```text
-Gamble-Engine rechnet nicht mehr mit sichtbarer Payout-Logik.
-Gewinn = Einsatz dazu.
-Verlust = Einsatz weg.
-Gilt für feste Einsätze und Prozent-Einsätze.
+Kompakte Aktivitätsliste mit Info-Modal in auto_shoutout.js vorbereitet.
+Datei wurde korrekt vom Node-Server ausgeliefert.
+Alle CAN44.30-Marker waren per Invoke-WebRequest sichtbar.
 ```
 
-## 2026-06-12 – LWG-4Q.12K Gamble Single Text Variant Fix
+### Einschränkung
+
+```text
+CAN44.30 änderte die sichtbare ShoutoutV2-Ansicht noch nicht,
+weil diese von shoutout_v2.js gerendert wird.
+```
+
+## 2026-06-12 – CAN44.29 AutoShoutout Loyalty-Style Bus Subscriber
 
 ### Ergebnis
 
 ```text
-Mehrzeilige Legacy-/Variantentexte werden nicht mehr als eine lange Chatnachricht ausgegeben.
-Pro Gamble-Ergebnis wird genau eine nicht-leere Textzeile/Variante verwendet.
+AutoShoutout-Subscriber an funktionierendes Pattern von loyalty_giveaways angepasst.
+Subscription-ID: clip_shoutout:twitch.chat:message:auto_shoutout
+channel: twitch.chat
+action: message
+capability: twitch.chat.message
 ```
 
-## 2026-06-12 – LWG-4Q.12J Final Giveaways UI Cleanup
+### Live-Test
+
+```text
+autoBusReceived  = 4
+autoBusDelivered = 4
+autoBusErrors    = 0
+autoTriggered    = 2
+autoSkipped      = 0
+lastResultReason = queued
+```
+
+## 2026-06-12 – CAN44.28 AutoShoutout Bus Capability Fix
 
 ### Ergebnis
 
 ```text
-Giveaways-Dashboard-Cleanup abgeschlossen.
-Tabs bleiben beim Wechsel in Giveaways vollständig sichtbar.
-Gamble und Config wurden in der Giveaways-Tab-Leiste wieder ergänzt.
-Nicht mehr erreichbarer Legacy-Giveaway-Code wurde aus loyalty_games.js entfernt.
+Capability von twitch.chat.message.consumer auf twitch.chat.message korrigiert.
+Grund: Andere funktionierende Subscriber wie commands/loyalty_giveaways nutzen twitch.chat.message oder keine Capability.
 ```
 
-### Bestätigte Korrekturen
-
-```text
-LWG-4Q.12G Redirect Legacy Giveaway Wheel Editor
-LWG-4Q.12H Remove Legacy Giveaway Code From Loyalty Games
-LWG-4Q.12I Unified Loyalty Tabs In Giveaways
-LWG-4Q.12J Abschluss-Doku
-```
-
-## 2026-06-12 – STEP235S Final Gamble Config Cleanup
+## 2026-06-12 – CAN44.27 AutoShoutout Bus Subscriber
 
 ### Ergebnis
 
 ```text
-Gamble-Config-Cleanup im Loyalty-Dashboard abgeschlossen.
-Actor-/Rollenfelder aus normaler UI entfernt.
-Rechte-/Session-Anbindung nur vorbereitet.
-Cooldowns wurden damals noch in Sekunden angezeigt und intern in ms gespeichert.
-Nach LWG-4Q.12M gilt: sichtbarer Gamble-Cooldown nur noch über Command-System.
+clip_shoutout.js abonniert twitch.chat/message vom Communication Bus.
+Direkter Chat-Wrapper bleibt als Fallback erhalten.
+Status erweitert um busSubscriber und Bus-Stats.
 ```
+
+## Vorheriger dokumentierter Stand
+
+```text
+LWG-4Q.12N – Final Gamble/Giveaways Cleanup Docs + Next Chat Prompt
+```
+
+Der Loyalty-/Gamble-Stand bleibt unverändert gültig. Diese CAN44-Dokumentation ergänzt den Shoutout-/AutoShoutout-Arbeitsstand.

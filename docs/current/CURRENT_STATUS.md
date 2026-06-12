@@ -5,123 +5,150 @@ Stand: 2026-06-12
 ## Aktueller bestätigter Stand
 
 ```text
-LWG-4Q.12N – Final Gamble/Giveaways Cleanup Docs + Next Chat Prompt
+CAN44.31 – AutoShoutout Bus + ShoutoutV2 Activity Bridge dokumentiert
 ```
 
-## Gesamtstand Loyalty / Giveaways / Gamble
+## Gesamtstand Shoutout / AutoShoutout
 
-Der aktuelle Stand umfasst den abgeschlossenen Giveaways-/Tabs-Cleanup aus LWG-4Q.12J und die danach live getesteten Gamble-Fixes aus LWG-4Q.12K bis LWG-4Q.12M.
+Der aktuelle Shoutout-Stand umfasst die erfolgreiche Umstellung des AutoShoutout-Pfads auf den zentralen Communication/EventBus sowie die Dashboard-Korrektur für die sichtbare AutoShoutout-Aktivitätsanzeige im ShoutoutV2-Dashboard.
 
-## Dashboard-Zuständigkeiten
+## Bestätigter Runtime-Ablauf
 
 ```text
-loyalty_games.js
-  → Übersicht
-  → Glücksrad
-  → Presets
-  → Gamble
-  → Config
-  → Chat/Commands
-  → Verlauf
-  → Hinweise
-  → Redirect/Bridge zum neuen Giveaway-Control
-
-loyalty_giveaways.js
-  → Giveaways
-  → Giveaway erstellen/bearbeiten
-  → Details
-  → Live-Steuerung
-  → Bound-Wheel-Editor für Giveaways
-  → Hard-Delete
+Twitch EventSub Chat
+  → twitch_events.js
+  → Communication Bus Event twitch.chat/message
+  → clip_shoutout.js AutoShoutout-Subscriber
+  → DisplayQueue / Video-SO
+  → optional OfficialQueue / Twitch-SO
 ```
 
-## Bestätigter Giveaways-/Tabs-Stand
+Bestätigter Live-Test:
 
 ```text
-Loyalty → Giveaways öffnet das neue Giveaway-Control.
-Die Tab-Leiste bleibt vollständig sichtbar.
-Gamble und Config sind auch im Giveaways-Modul erreichbar.
-Giveaways bleibt im Giveaways-Control aktiv markiert.
-Andere Tabs leiten zurück zu loyalty_games.js.
+autoBusReceived  = 4
+autoBusDelivered = 4
+autoBusErrors    = 0
+autoTriggered    = 2
+autoSkipped      = 0
+lastResultReason = queued
+lastSourceModule = twitch_events_eventsub_chat
 ```
 
-Vollständige Loyalty-Tab-Leiste:
+Damit ist der AutoShoutout-Buspfad funktional.
+
+## Abgeschlossene CAN44-Schritte
+
+### CAN44.27 – AutoShoutout Bus Subscriber
 
 ```text
-Übersicht
-Glücksrad
-Presets
-Giveaways
-Gamble
-Config
-Chat/Commands
-Verlauf
-Hinweise
+clip_shoutout.js lauscht zusätzlich auf twitch.chat/message vom Communication Bus.
+Direkter Chat-Wrapper bleibt als Fallback erhalten.
+Doppelverarbeitung wird vermieden, wenn der Bus-Subscriber installiert ist.
 ```
 
-## Bestätigter Gamble-Stand
+### CAN44.28 – Capability Fix
 
 ```text
-Gamble läuft im Loyalty-Dashboard unter Loyalty → Gamble.
-Gamble-Config läuft unter Loyalty → Config → Gamble.
-Standalone-Gamble-Seite und STEP232-Gamble-Shell sind entfernt.
-Gamble-Textausgabe gibt pro Ergebnis nur noch eine Textvariante aus.
-Gamble-Rechnung ist vereinfacht:
-  Gewinn = Einsatz dazu
-  Verlust = Einsatz weg
-Das gilt für feste Einsätze und Prozent-Einsätze.
+Subscription-Capability wurde von twitch.chat.message.consumer auf twitch.chat.message korrigiert.
+Grund: Der Communication Bus matcht aktive Subscriber passend zu channel/action/capability.
 ```
 
-## Aktuelle Gamble-Config-UI
-
-Sichtbar bleiben:
+### CAN44.29 – Loyalty-Style Bus Subscriber
 
 ```text
-Engine aktiv
-Command aktiv
-Chat-Antwort
-Gewinnchance %
-Command-Cooldown pro User
-Mindesteinsatz
-Maximaleinsatz
-Prozent-Einsätze erlauben
-Keyword-Einsätze erlauben
+Subscription wurde an den funktionierenden Stil von loyalty_giveaways angepasst.
+Subscription-ID: clip_shoutout:twitch.chat:message:auto_shoutout
+channel: twitch.chat
+action: message
+capability: twitch.chat.message
 ```
 
-Entfernt/ausgeblendet:
+Dieser Stand wurde live bestätigt.
+
+### CAN44.30 – AutoShoutout Activity Modal in auto_shoutout.js
 
 ```text
-Auszahlung x
-Gamble-Cooldown pro User
-Gamble-Cooldown global
+auto_shoutout.js bekam eine kompakte Aktivitätsliste mit Info-Button und Detail-Modal.
+Die Datei wurde korrekt über /dashboard/modules/auto_shoutout.js ausgeliefert.
 ```
 
-## Gamble-Zuständigkeit
+Hinweis: CAN44.30 alleine änderte die sichtbare Shoutout-Seite nicht, weil die aktive AutoShoutout-Ansicht im Dashboard aus shoutout_v2.js gerendert wird.
+
+### CAN44.31 – ShoutoutV2 Activity Bridge
 
 ```text
-Command-System
-  → !gamble aktiv/aus
-  → Command-Cooldown
-  → Chat-Antwort-Ziel/Sendefreigabe
-
-Gamble-Engine
-  → Einsatz parsen
-  → Gewinn/Verlust berechnen
-  → Punkte addieren/abziehen
-  → Session/Event/Audit/Runtime-Daten
+Die sichtbare ShoutoutV2-AutoShoutout-Karte wird per Bridge/Patch aus auto_shoutout.js nachgerüstet.
+Dadurch wird die bisherige Anzeige "triggered · triggered" durch eine kompakte Liste mit Info-Modal ersetzt.
 ```
 
-## Interne Absicherung nach LWG-4Q.12M
+Build-Kennung im Browser:
 
-Beim Speichern der Gamble-Config werden intern gesetzt:
+```javascript
+window.AutoShoutoutV2ActivityPatch?.build
+// CAN44.31_AUTOSO_V2_ACTIVITY_MODAL_BRIDGE
+```
+
+## Dashboard-Zuständigkeit Shoutout
 
 ```text
-games.gamble.payoutMultiplier = 2
-games.gamble.userCooldownMs = 0
-games.gamble.globalCooldownMs = 0
+htdocs/dashboard/modules/shoutout_v2.js
+  → aktive sichtbare Shoutout-Hauptseite
+  → Tabs: Übersicht, Shoutout, AutoShoutout, Queues, Texte, Auswertung, Diagnose, Einstellungen
+  → rendert die sichtbare AutoShoutout-Karte mit Streamer-Verwaltung und Aktivitätsliste
+
+htdocs/dashboard/modules/auto_shoutout.js
+  → zusätzlich geladenes AutoShoutout-Modul
+  → CAN44.31 Bridge/Patch für ShoutoutV2-Aktivitätskarte
+  → kompakte Aktivitätsliste + Info-Modal
 ```
 
-Damit gibt es keine doppelte Cooldown-Logik mehr.
+## Aktuelle AutoShoutout-Dashboard-Anzeige
+
+Zielzustand für „Letzte AutoShoutout-Aktivität“:
+
+```text
+Zeit | Streamer | Status | Info
+```
+
+Info-Modal enthält:
+
+```text
+Streamer
+Auslöser
+Status
+Kurzstatus
+Grund
+Zeit
+DisplayQueue
+Quelle
+Chat-Nachricht
+Stream-Day
+Rohdaten aufklappbar
+```
+
+## Wichtige Erkenntnis aus dem Debugging
+
+```text
+Die sichtbare AutoShoutout-Seite wird nicht von AutoShoutoutModule.render() erzeugt.
+Sie kommt aus ShoutoutV2Module / shoutout_v2.js.
+Deshalb muss bei künftigen Shoutout-Dashboard-Änderungen zuerst geprüft werden,
+welche Datei die sichtbare Ansicht tatsächlich rendert.
+```
+
+## Aktuelle relevante Dateien
+
+```text
+backend/modules/clip_shoutout.js
+backend/modules/twitch_events.js
+backend/modules/communication_bus.js
+backend/modules/helpers/helper_communication.js
+htdocs/dashboard/index.html
+htdocs/dashboard/modules/shoutout_v2.js
+htdocs/dashboard/modules/shoutout_v2.css
+htdocs/dashboard/modules/auto_shoutout.js
+htdocs/dashboard/modules/auto_shoutout.css
+```
 
 ## Wichtige Projektregel
 
@@ -130,4 +157,5 @@ Keine Funktionalität entfernen.
 Bestehende echte Dateien/GitHub-dev als Single Source of Truth verwenden.
 SQLite-Datenbank niemals ersetzen oder überschreiben.
 Änderungen immer mit echten Zielpfaden im ZIP liefern.
+Bei Dashboard-Anzeigen zuerst prüfen, welche Datei die sichtbare Ansicht rendert.
 ```

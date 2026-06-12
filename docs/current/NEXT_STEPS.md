@@ -2,90 +2,144 @@
 
 Stand: 2026-06-12
 
-## Nach LWG-4Q.12N
+## Nach CAN44.31
 
-Der aktuelle Giveaways-/Gamble-Cleanup ist dokumentiert.
+Der AutoShoutout-Buspfad ist live bestätigt. Die sichtbare AutoShoutout-Aktivitätsanzeige im ShoutoutV2-Dashboard wurde als Bridge/Patch über `auto_shoutout.js` vorbereitet.
 
 ## Direkt sinnvoll
 
-### 1. Live-Abnahme abschließen
+### 1. CAN44.31 live einspielen und prüfen
+
+```powershell
+Copy-Item -Force `
+  "D:\Git\stream-control-center\htdocs\dashboard\modules\auto_shoutout.js" `
+  "D:\Streaming\stramAssets\htdocs\dashboard\modules\auto_shoutout.js"
+
+Copy-Item -Force `
+  "D:\Git\stream-control-center\htdocs\dashboard\modules\auto_shoutout.css" `
+  "D:\Streaming\stramAssets\htdocs\dashboard\modules\auto_shoutout.css"
+
+node -c "D:\Streaming\stramAssets\htdocs\dashboard\modules\auto_shoutout.js"
+```
+
+Browser prüfen:
+
+```javascript
+window.AutoShoutoutV2ActivityPatch?.build
+// Erwartung: CAN44.31_AUTOSO_V2_ACTIVITY_MODAL_BRIDGE
+```
+
+### 2. ShoutoutV2-AutoShoutout-Karte prüfen
 
 ```text
 Dashboard öffnen
-Loyalty → Config → Gamble prüfen
-Loyalty → Gamble prüfen
-!gamble mit fester Zahl testen
-!gamble mit Prozent testen
-prüfen, dass nur HeimaufsichtCGN antwortet, sobald StreamElements abgeschaltet ist
+Community → Shoutout → AutoShoutout
+Karte „Letzte AutoShoutout-Aktivität“ prüfen
+Erwartung: kompakte Tabelle Zeit / Streamer / Status / Info
+Info-Button öffnet Detailfenster
+ESC oder Schließen schließt Detailfenster
 ```
 
-### 2. StreamElements-Gamble abschalten
+### 3. AutoShoutout erneut mit echtem Auto-Streamer testen
 
 ```text
-StreamElements-Roulette/Gamble deaktivieren
-prüfen, dass keine parallele SE-Antwort mehr kommt
+Eingetragener Auto-Streamer schreibt !lurk
+Danach prüfen:
+- AutoShoutout wird eingereiht
+- autoBusReceived steigt
+- autoBusDelivered steigt
+- autoBusErrors bleibt 0
+- Activity-Liste zeigt sinnvollen Kurzstatus
 ```
 
-### 3. Giveaway-Control optisch glätten
+PowerShell-Prüfung:
 
-```text
-Labels vereinheitlichen
-Button-Texte prüfen
-Card-Abstände prüfen
-aktive/vorbereitete Giveaways übersichtlicher machen
-Bound-Wheel-Begriffe vereinheitlichen
+```powershell
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/clip-shoutout/status"
+$s.autoShoutout.state.busSubscriber
+$s.state.stats | Select-Object autoBusReceived,autoBusDelivered,autoBusErrors,autoTriggered,autoSkipped
+$s.autoShoutout.recentEvents | Select-Object -First 5 target_login,trigger_login,status,reason,display_queue_id,created_at
 ```
 
-### 4. Command-/Chat-Seite prüfen
+### 4. Testdaten aufräumen
+
+Falls ForrestCGN nur testweise als Auto-Streamer eingetragen war:
 
 ```text
-Command aktiv/inaktiv sauber anzeigen
-Command-Cooldown sichtbar machen
-Chat-Antwort-Ziel verständlich machen
-Keine doppelten Cooldown-Quellen
+forrestcgn aus AutoShoutout-Streamern entfernen/deaktivieren
+Test-Events für forrestcgn bei Bedarf per clear-target entfernen
+```
+
+Clear-Target:
+
+```powershell
+Invoke-RestMethod `
+  -Method POST `
+  -Uri "http://127.0.0.1:8080/api/clip-shoutout/auto/clear-target" `
+  -ContentType "application/json" `
+  -Body '{"login":"forrestcgn","mode":"today","reason":"test_cleanup_after_can44_31"}' |
+  ConvertTo-Json -Depth 8
+```
+
+## Danach sinnvoll
+
+### 5. CAN44.31 in GitHub/dev übernehmen
+
+```text
+Änderungen aus Live/Repo vergleichen
+auto_shoutout.js und auto_shoutout.css committen
+Doku-Dateien aus diesem Paket einspielen
+StepDone ausführen
+```
+
+### 6. ShoutoutV2 langfristig sauber integrieren
+
+Die Bridge ist pragmatisch und vermeidet Eingriffe in `shoutout_v2.js`. Später kann die kompakte Activity-Logik direkt in `shoutout_v2.js` integriert werden.
+
+Vorher prüfen:
+
+```text
+Welche Module laden ShoutoutV2?
+Welche Tabs werden von shoutout_v2.js gerendert?
+Gibt es noch alte auto_shoutout.js-Reste, die nicht sichtbar genutzt werden?
 ```
 
 ## Später
 
 ```text
-Loyalty → Config → Core
-Loyalty → Config → Giveaways
-Loyalty → Config → Wheel
-Loyalty → Config → Texte
-echtes Dashboard-Rechtesystem
-Dashboard-Session
-Rollen
-Audit-Viewer
+AutoShoutout-Textvarianten im zentralen Texteditor weiter glätten
+ShoutoutV2-Diagnose um Bus-Subscriber-Status ergänzen
+Activity-Modal optional mit Copy-JSON-Button erweitern
+AutoShoutout-Streamer-Verwaltung optisch weiter vereinheitlichen
+Bridge später durch direkte ShoutoutV2-Implementierung ersetzen
 ```
 
 ## Nicht sofort nötig
 
 ```text
-DB-Migrationen
-neue große Backend-Umbauten
-neue Gamble-Features
-neue Giveaway-Mechaniken
+Neue DB-Migrationen
+Umbau des Communication Bus
+Umbau von twitch_events.js
+Entfernung des Direct-Wrapper-Fallbacks in clip_shoutout.js
+Großer ShoutoutV2-Refactor
 ```
 
-## Prüfroutine bei weiteren UI-/Backend-Änderungen
+## Prüfroutine bei weiteren Shoutout-Änderungen
 
 ```powershell
-node -c .\htdocs\dashboard\modules\loyalty_games.js
-node -c .\htdocs\dashboard\modules\loyalty_giveaways.js
-node -c .\htdocs\dashboard\app.js
-node -c .\backend\modules\loyalty_games.js
-node -c .\backend\modules\loyalty_games\gamble.js
+node -c .\backend\modules\clip_shoutout.js
+node -c .\backend\modules\twitch_events.js
+node -c .\htdocs\dashboard\modules\shoutout_v2.js
+node -c .\htdocs\dashboard\modules\auto_shoutout.js
 ```
 
 Browser:
 
 ```text
 /dashboard
-Loyalty → Giveaways
-Loyalty → Gamble
-Loyalty → Config → Gamble
-Tabs vollständig?
-Keine Console-Fehler?
-Keine alte Inline-Giveaway-Ansicht?
-Keine Standalone-Gamble-Seite?
+Community → Shoutout → AutoShoutout
+Console ohne Fehler?
+window.AutoShoutoutV2ActivityPatch?.build korrekt?
+Activity-Liste kompakt?
+Info-Modal öffnet?
 ```

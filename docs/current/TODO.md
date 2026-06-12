@@ -4,40 +4,42 @@ Stand: 2026-06-12
 
 ## Erledigt / bestätigt
 
-- [x] STEP235S Gamble-Config-Cleanup final abgeschlossen.
-- [x] LWG-4Q.12A Classic-Draft-Giveaway Formular geprüft.
-- [x] LWG-4Q.12B Wheel-Draft ohne Bound-Wheel geprüft.
-- [x] LWG-4Q.12C Wheel-Draft mit Bound-Wheel geprüft.
-- [x] LWG-4Q.12D Routing Giveaways geprüft.
-- [x] LWG-4Q.12E Alte Giveaway-/Bound-Wheel-Reste in `loyalty_games.js` bewertet.
-- [x] LWG-4Q.12F Legacy-Giveaways-Tab in `loyalty_games.js` geprüft.
-- [x] LWG-4Q.12G Legacy Giveaway Wheel Editor in `loyalty_games.js` umgeleitet.
-- [x] LWG-4Q.12H Nicht mehr erreichbaren Legacy-Giveaway-Code aus `loyalty_games.js` entfernt.
-- [x] LWG-4Q.12I Einheitliche Loyalty-Tabs in Giveaways wiederhergestellt.
-- [x] LWG-4Q.12J Abschluss-Doku Giveaways UI Cleanup erstellt.
-- [x] LWG-4Q.12K Gamble-Textvarianten-Fix: pro Ergebnis nur eine Variante.
-- [x] LWG-4Q.12L Gamble Simple Win/Loss Logic: Gewinn +Einsatz, Verlust -Einsatz.
-- [x] LWG-4Q.12M Gamble-Config-UI aufgeräumt: Auszahlung x und Engine-Cooldowns entfernt.
-- [x] LWG-4Q.12N Abschluss-Doku + Prompt für neuen Chat erstellt.
+- [x] CAN44.27 AutoShoutout an Communication Bus angebunden.
+- [x] CAN44.28 AutoShoutout-Bus-Capability korrigiert.
+- [x] CAN44.29 AutoShoutout-Subscriber im Loyalty-Stil umgesetzt und live bestätigt.
+- [x] AutoShoutout-Buspfad live getestet: `autoBusReceived`, `autoBusDelivered`, `autoTriggered` steigen; `autoBusErrors` bleibt 0.
+- [x] `forrestcgn`-Testeintrag per `clear-target` erfolgreich bereinigt.
+- [x] Fehlerursache der alten Dashboard-Anzeige gefunden: sichtbare AutoShoutout-Karte kommt aus `shoutout_v2.js`, nicht aus `auto_shoutout.js`.
+- [x] CAN44.30 kompakte AutoShoutout-Aktivitätsliste in `auto_shoutout.js` vorbereitet.
+- [x] CAN44.31 Bridge/Patch für ShoutoutV2-Aktivitätskarte vorbereitet.
+- [x] Doku/TODO/NEXT_STEPS/FILES/CURRENT_STATUS/CHANGELOG für CAN44.31 aktualisiert.
 
 ## Offen / als Nächstes
 
-- [ ] StreamElements-Gamble/Roulette deaktivieren, damit nur noch HeimaufsichtCGN antwortet.
-- [ ] Live-Abnahme `!gamble 100` und `!gamble 10%` nach StreamElements-Abschaltung.
-- [ ] Giveaway-Control optisch weiter glätten.
-- [ ] Wheel-/Preset-/Bound-Wheel-Begriffe dashboardweit vereinheitlichen.
-- [ ] Config-Dropdown für weitere Loyalty-Bereiche ausbauen.
-- [ ] Command-/Chat-Seite auf zentrale Cooldown-/Aktiv-Schalter prüfen.
-- [ ] Echtes Dashboard-Rechtesystem anbinden.
-- [ ] Audit-/Write-Rechte in UI aus echter Session ableiten.
+- [ ] CAN44.31 Dateien live prüfen: `window.AutoShoutoutV2ActivityPatch?.build` muss `CAN44.31_AUTOSO_V2_ACTIVITY_MODAL_BRIDGE` liefern.
+- [ ] Dashboard Community → Shoutout → AutoShoutout prüfen: Aktivitätsliste muss Zeit/Streamer/Status/Info anzeigen.
+- [ ] Info-Modal testen: Öffnen, Schließen, ESC, Rohdaten aufklappen.
+- [ ] Eingetragenen Auto-Streamer mit `!lurk` testen.
+- [ ] Prüfen, dass `autoBusErrors` bei 0 bleibt.
+- [ ] Testweise eingetragenes `forrestcgn` aus AutoShoutout-Streamer-Liste entfernen/deaktivieren.
+- [ ] Test-Events für `forrestcgn` bei Bedarf per `clear-target` bereinigen.
+- [ ] CAN44.31 in GitHub/dev übernehmen/committen.
+- [ ] `stepdone.cmd "CAN44.31 AutoShoutout V2 Activity Bridge"` ausführen, wenn live bestätigt.
+
+## Später / Verbesserungen
+
+- [ ] Bridge-Logik optional direkt in `shoutout_v2.js` integrieren.
+- [ ] AutoShoutout-Aktivitätsstatus weiter eindeutschen.
+- [ ] Activity-Modal um Copy-JSON-Button ergänzen.
+- [ ] ShoutoutV2-Diagnose um Bus-Subscriber-Status ergänzen.
+- [ ] AutoShoutout-Streamer-Verwaltung optisch an restliche ShoutoutV2-Tabellen angleichen.
+- [ ] Prüfen, ob `auto_shoutout.js` langfristig noch eigenständig gebraucht wird oder nur als Patch-/Bridge-Modul dient.
 
 ## Nicht wieder einführen
 
-- [ ] Alte Inline-Giveaway-Seite in `loyalty_games.js`.
-- [ ] Alten Inline-Giveaway-Wheel-Editor in `loyalty_games.js`.
-- [ ] Standalone-Gamble-Dashboard.
-- [ ] STEP232-Gamble-Shell.
-- [ ] Sichtbares Gamble-Feld „Auszahlung x“.
-- [ ] Zusätzlichen Gamble-Engine-Cooldown neben dem Command-Cooldown.
-- [ ] Brutto-Payout-Logik als sichtbares Chat-Gamble-Modell.
-- [ ] Mehrere Textvarianten in einer Gamble-Chatnachricht.
+- [ ] Capability `twitch.chat.message.consumer` für AutoShoutout-Bus-Subscription.
+- [ ] Direkte AutoShoutout-Fachlogik in `twitch_presence.js`.
+- [ ] Stumpfe Aktivitätsanzeige `triggered · triggered` ohne Streamer/Zeit/Info.
+- [ ] Änderungen an Dashboard-Dateien ohne vorher zu prüfen, welche Datei die sichtbare Ansicht rendert.
+- [ ] SQLite-Datenbank ersetzen/neu bauen.
+- [ ] Funktionalität entfernen, nur um eine UI-Anzeige zu vereinfachen.
