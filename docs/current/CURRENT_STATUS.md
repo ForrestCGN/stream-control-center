@@ -1,16 +1,123 @@
 # CURRENT_STATUS – stream-control-center
 
-Stand: 2026-06-11
+Stand: 2026-06-12
 
-## Aktueller bestätigter Hauptstand
+## Aktueller bestätigter Dashboard-/Loyalty-Stand
+
+```text
+STEP235N – Doku-/Status-Refresh finaler STEP235-Stand
+```
+
+Zuletzt bestätigter Code-Stand:
+
+```text
+518dd6e4 STEP235M Remove Loyalty Runtime Shell Fallback
+9ab5e619 STEP235J Remove Standalone Gamble Dashboard
+```
+
+Der aktuelle bestätigte Dashboard-/Loyalty-Stand ist:
+
+```text
+Loyalty ist fest in app.js und index.html integriert.
+Gamble läuft ausschließlich im Loyalty-Bereich.
+Die alte Standalone-Gamble-Seite ist entfernt.
+STEP232-/Gamble-Shell-Reste sind bereinigt.
+Der Runtime-Shell-Fallback in loyalty_games.js ist entfernt.
+```
+
+## Aktive Zielstruktur Dashboard / Loyalty
+
+Dashboard-Einstieg:
+
+```text
+/dashboard
+```
+
+Aktive Loyalty-Bereiche:
+
+```text
+Loyalty → Gamble
+Loyalty → Config → Gamble
+Loyalty → Core / Kekskrümel
+Loyalty → Giveaways
+```
+
+Aktive relevante Dashboard-Dateien:
+
+```text
+htdocs/dashboard/index.html
+htdocs/dashboard/app.js
+htdocs/dashboard/modules/loyalty.js
+htdocs/dashboard/modules/loyalty.css
+htdocs/dashboard/modules/loyalty_games.js
+htdocs/dashboard/modules/loyalty_games.css
+htdocs/dashboard/modules/loyalty_giveaways.js
+htdocs/dashboard/modules/loyalty_giveaways.css
+```
+
+## Entfernte Altlasten
+
+Folgende alte Standalone-/STEP232-Gamble-Struktur darf nicht mehr als Basis verwendet werden:
+
+```text
+htdocs/dashboard/loyalty-gamble.html
+htdocs/dashboard/modules/loyalty-gamble.js
+htdocs/dashboard/modules/loyalty-gamble.css
+htdocs/dashboard/modules/loyalty-gamble-nav.js
+htdocs/dashboard/modules/loyalty-gamble-shell-card.js
+htdocs/dashboard/modules/loyalty-gamble-shell-card.css
+```
+
+Status:
+
+```text
+Standalone-Gamble entfernt.
+loyalty-gamble-nav.js war bereits nicht mehr vorhanden.
+STEP232-/gamble-shell-card-Verweise wurden in der Prüfung nicht mehr gefunden.
+```
+
+## Bestätigte STEP235-Ergebnisse
+
+```text
+STEP235H – Config UX Standard aktiv
+STEP235J – Standalone Gamble Dashboard entfernt
+STEP235K – Cleanup-Prüfung ohne alte STEP232-/Gamble-Reste
+STEP235L – Runtime-Fallback als überflüssig bewertet
+STEP235M – Runtime-Shell-Fallback aus loyalty_games.js entfernt
+STEP235N – dieser Doku-/Status-Refresh
+```
+
+## Gamble-Zielverhalten
+
+Gamble wird nicht mehr über eine eigene Standalone-Seite gepflegt.
+
+Aktiv ist:
+
+```text
+Loyalty → Gamble
+Loyalty → Config → Gamble
+```
+
+Gamble-Config-UX:
+
+```text
+kein normal sichtbarer Dryrun
+keine sichtbare „Write bestätigen“-Checkbox
+Speichern nutzt Bestätigungsdialog
+intern bleibt confirmWrite=true
+keine rohe JSON-Ausgabe in der normalen Ergebnisbox
+Audit/Statistik bleiben sichtbar
+```
+
+## Weiterhin gültiger LWG-4Q.11 Backend-/Giveaway-Stand
+
+Der vorherige bestätigte Backend-/API-Stand für Loyalty / Giveaways / CGN-Glücksrad bleibt gültig:
 
 ```text
 STEP LWG-4Q.11 – Manual Winner Flow and Prize Quantity Cleanup
 ```
 
-Der aktuell bestätigte technische Stand betrifft das Modul **Loyalty / Giveaways / CGN-Glücksrad**.
-
-Der Backend-/API-Stand ist bestätigt durch:
+Bestätigung:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\Test_LWG_4Q11_manual_winner_flow_ForrestCGN.ps1
@@ -23,93 +130,16 @@ ModuleBuild: STEP_LWG_4Q_11
 === TEST OK: Alle aktivierten Szenarien erfolgreich ===
 ```
 
-## Bestätigte Fachlogik LWG-4Q.11
-
-### Normales Giveaway
+Wichtige LWG-4Q.11-Regeln:
 
 ```text
-Teilnehmer sammeln
-Teilnahme schließen
-Gewinner auslosen
-optional weiteren Gewinner auslosen
-optional weiteren Gewinner auslosen
-Streamer beendet manuell
-```
-
-Bestätigte Regeln:
-
-```text
-- Normale Giveaways enden nicht automatisch nach einer Gewinneranzahl.
-- Es gibt keine sichtbare Gewinneranzahl mehr als Flow-Steuerung.
-- Es gibt keine sichtbare Gewinn-Menge mehr im normalen Formular.
-- Weitere Gewinner werden aus den bisherigen Teilnehmern gezogen.
-- Bereits gezogene Gewinner werden nicht erneut gezogen.
-- Tickets/Chancen der übrigen Teilnehmer bleiben erhalten.
-- Wenn keine gültigen Teilnehmer mehr vorhanden sind, ist kein weiterer Draw möglich.
-- Finaler Abschluss passiert per Streamer-Aktion „Beenden“.
-```
-
-### Glücksrad-Giveaway
-
-```text
-Teilnehmer sammeln
-Teilnahme schließen
-Gewinner auslosen
-Gewinner dreht das Giveaway-gebundene Glücksrad
-Gewinn/Feld wird verbraucht
-nächsten Gewinner ziehen
-wenn keine nutzbaren Gewinne/Felder mehr vorhanden sind → Giveaway beendet
-```
-
-Bestätigte Regeln:
-
-```text
-- Gewinne/Felder werden im Bound-Wheel / Glücksrad-Editor gepflegt.
-- Die Drehung dient als Claim/Preisvergabe.
-- Das Giveaway endet automatisch, wenn keine nutzbaren Glücksrad-Gewinne mehr vorhanden sind.
-```
-
-### Paid Tickets / Loyalty-Punkte
-
-Bestätigt:
-
-```text
-- Kostenpflichtige Tickets buchen Loyalty-Punkte beim Ticket-Kauf ab.
-- Insufficient Balance wird blockiert.
-- Cancel ohne refundPaidTickets=true erstattet nicht.
-- Cancel mit refundPaidTickets=true erstattet idempotent.
-- Double-Refund ist verhindert.
-- Loyalty-Transaktionen bleiben als Audit erhalten.
-```
-
-### Archivieren / Löschen
-
-Bestätigt:
-
-```text
-- Archivieren ist nur bei status=finished erlaubt.
-- Löschen bedeutet echtes Hard-Delete.
-- Hard-Delete entfernt das Giveaway wirklich aus der API-Liste.
-- Die Hard-Delete-Transaction wurde in LWG-4Q.9a repariert.
-```
-
-## Aktuell nicht sauber bestätigt
-
-Die Dashboard-UI nach 4Q.11 ist noch nicht vollständig bestätigt.
-
-Bekannt:
-
-```text
-- Backend/API ist grün.
-- UI-Hilfsscripts nach 4Q.11 waren zu fehleranfällig und wurden abgebrochen.
-- Künftige UI-Tests sollten nur noch einzeln und minimal laufen: ein Giveaway, ein Prüfpunkt, danach löschen.
-```
-
-## Letzte wichtige Artefakte
-
-```text
-STEP_LWG-4Q.11_manual_winner_flow_prize_quantity_cleanup.zip
-Test_LWG_4Q11_manual_winner_flow_ForrestCGN.ps1
+Normale Giveaways enden nicht automatisch nach Gewinneranzahl.
+Streamer entscheidet live über „Weiteren Gewinner auslosen“ und „Beenden“.
+Glücksrad-Giveaways enden, wenn keine nutzbaren Wheel-Gewinne/Felder mehr vorhanden sind.
+Paid Tickets buchen Loyalty-Punkte beim Ticket-Kauf ab.
+Refund ist explizit steuerbar und idempotent.
+Archivieren ist nur bei status=finished erlaubt.
+Löschen bedeutet Hard-Delete.
 ```
 
 ## Wichtige Arbeitsregeln
@@ -122,4 +152,5 @@ Bestehende Transaktionen/Audit-Daten nicht löschen.
 Bei weiteren Änderungen zuerst echte aktuelle Dateien/Repo/Live-Stand prüfen.
 Bei UI-Tests maximal ein Test-Giveaway pro Szenario erzeugen.
 Keine großen UI-assisted Scripts mit mehreren parallelen Testfällen mehr verwenden.
+STEP232-/Standalone-Gamble nicht mehr als Basis verwenden.
 ```

@@ -1,6 +1,53 @@
 # CHANGELOG – stream-control-center
 
-Stand: 2026-06-11
+Stand: 2026-06-12
+
+## 2026-06-12 – STEP235 Final Loyalty Dashboard Cleanup
+
+### Ergebnis
+
+```text
+Dashboard-Shell für Loyalty stabilisiert.
+Gamble in Loyalty integriert.
+Config-UX für Gamble bereinigt.
+Standalone-Gamble entfernt.
+STEP232-/Gamble-Shell-Reste bereinigt.
+Runtime-Shell-Fallback aus loyalty_games.js entfernt.
+Doku-/Status-Dateien aktualisiert.
+```
+
+### Bestätigte Commits
+
+```text
+518dd6e4 STEP235M Remove Loyalty Runtime Shell Fallback
+9ab5e619 STEP235J Remove Standalone Gamble Dashboard
+0b44d8f6 STEP235H Config UX Standard
+```
+
+### Aktiver Zielpfad
+
+```text
+/dashboard
+Loyalty → Gamble
+Loyalty → Config → Gamble
+```
+
+### Entfernte Altlasten
+
+```text
+htdocs/dashboard/loyalty-gamble.html
+htdocs/dashboard/modules/loyalty-gamble.js
+htdocs/dashboard/modules/loyalty-gamble.css
+```
+
+Nicht mehr verwenden:
+
+```text
+loyalty-gamble-nav.js
+loyalty-gamble-shell-card.js
+loyalty-gamble-shell-card.css
+STEP232-Gamble-Shell-Integration
+```
 
 ## 2026-06-11 – LWG-4Q.11 Manual Winner Flow and Prize Quantity Cleanup
 
@@ -47,7 +94,7 @@ Cache-Busting und hidden-Visibility-Fixes wurden ergänzt.
 
 ```text
 API-Flows bestätigt.
-UI nach 4Q.10b/4Q.11 noch nicht vollständig sauber bestätigt.
+UI nach 4Q.10b/4Q.11 muss weiterhin nur klein und einzeln geprüft werden.
 ```
 
 ## 2026-06-11 – LWG-4Q.9 / 4Q.9a Delete / Archive
@@ -65,22 +112,6 @@ Hard-Delete-Transaction-Ausführung repariert.
 ```text
 Test_LWG_4Q9_delete_archive_rules_ForrestCGN.ps1
 === TEST OK ===
-```
-
-## 2026-06-11 – LWG-4Q.8 Routing / Modal Wheel Editor Ansatz
-
-### Ergebnis
-
-```text
-Ziel war, altes Giveaway-UI aus sichtbarem Flow zu verdrängen.
-Neues Giveaway-Control soll Single Source für Giveaways werden.
-Glücksrad erstellen/bearbeiten soll aus dem neuen Giveaway-Control kommen.
-```
-
-### Status
-
-```text
-Routing muss in UI noch final sauber geprüft werden.
 ```
 
 ## 2026-06-11 – Qualitätshinweis

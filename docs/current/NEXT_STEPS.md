@@ -1,72 +1,81 @@
 # NEXT_STEPS – stream-control-center
 
-Stand: 2026-06-11
+Stand: 2026-06-12
 
 ## Direkt nächster sinnvoller Schritt
 
-Kein weiterer Code-Step, bevor die UI wieder ruhig und einzeln geprüft wurde.
-
-Empfohlener nächster Arbeitsschritt:
+Nach STEP235 ist der Dashboard-/Loyalty-Rahmen bereinigt. Der nächste sinnvolle Schritt ist kein großer Umbau, sondern eine gezielte kleine Prüfung/Entscheidung:
 
 ```text
-LWG-4Q.12 – Minimaler Einzel-UI-Test / Dashboard Verification
+STEP235O – Gamble Config Actor-/Rollenfelder prüfen
 ```
 
-Ziel: Nicht automatisiert alles auf einmal prüfen, sondern jeweils nur einen einzigen UI-Punkt.
+Ziel:
 
-## Empfohlene Reihenfolge
+```text
+Prüfen, ob actorLogin/actorRole im Gamble-Config-Tab noch sichtbar bleiben sollen oder ob sie aus der normalen UI verschwinden und später aus echter Dashboard-Session/Rechten kommen.
+```
 
-### 1. Einzeltest Classic-Formular
+Wichtig:
+
+```text
+Keine Backend-Änderung ohne neuen Prüfblock.
+Keine Rechte-/Session-Logik erfinden.
+Keine Gamble-Funktion entfernen.
+```
+
+## Danach mögliche Reihenfolge
+
+### 1. STEP235O – Actor-/Rollenfelder
+
+```text
+Loyalty → Config → Gamble prüfen.
+Actor-/Rollenfelder bewerten.
+Entscheiden:
+- vorerst sichtbar lassen
+- aus normaler UI entfernen und festen safe default nutzen
+- später echte Session-/Rechtequelle anbinden
+```
+
+### 2. LWG-4Q.12 – Minimaler Einzel-UI-Test / Dashboard Verification
+
+Weiterhin gültig, aber erst nach der Dashboard-Rahmenbereinigung:
 
 ```text
 Ein Classic-Draft-Giveaway erstellen.
-Bearbeiten öffnen.
-Prüfen:
-- Gewinneranzahl nicht sichtbar
-- Gewinn-Menge nicht sichtbar
-- Rundenmodus nicht sichtbar
-- Ticket-Übernahme nicht sichtbar
-- Chat-Claim Checkbox sichtbar
-- Timeout/Claim-Modus nur bei aktivierter Checkbox sichtbar
+Genau einen UI-Punkt prüfen.
 Danach Giveaway hard-delete löschen.
 ```
 
-### 2. Einzeltest Wheel ohne Bound-Wheel
+Keine großen UI-assisted Scripts.
+
+### 3. Giveaways-UI kleinteilig prüfen
+
+Prüfen:
 
 ```text
-Ein Wheel-Draft ohne gültiges Bound-Wheel erstellen.
-Prüfen:
-- Button „Glücksrad erstellen“ sichtbar
-- Kein „Glücksrad bearbeiten“, solange kein Bound-Wheel existiert
-Danach Giveaway hard-delete löschen.
+Gewinneranzahl nicht sichtbar
+Gewinn-Menge nicht sichtbar
+Rundenmodus nicht sichtbar
+Ticket-Übernahme nicht sichtbar
+Chat-Claim-Felder nur bei aktivierter Checkbox sichtbar
+Wheel-Gewinnpflege ausschließlich über Bound-Wheel/Glücksrad-Editor
 ```
 
-### 3. Einzeltest Wheel mit Bound-Wheel
+### 4. Routing prüfen
 
 ```text
-Ein Wheel-Draft mit Bound-Wheel und mindestens einem Feld erstellen.
-Prüfen:
-- Button „Glücksrad bearbeiten“ sichtbar
-- Editor öffnet im neuen Giveaway-Control als Modal/Fenster, nicht in der alten Inline-Seite
-Danach Giveaway hard-delete löschen.
-```
-
-### 4. Einzeltest Routing
-
-```text
-Links Loyalty öffnen.
+Loyalty öffnen.
 Kachel Giveaways anklicken.
-Erwartung: neues Giveaway-Control.
-Oben Tab Giveaways anklicken.
-Erwartung: ebenfalls neues Giveaway-Control.
-Keine alte Inline-Giveaway-Seite.
+Oberen Tab Giveaways anklicken.
+Erwartung: neues Giveaway-Control, keine alte Inline-Giveaway-Seite.
 ```
 
-## Danach
-
-Wenn die UI-Prüfung sauber ist:
+## Nicht wiederholen
 
 ```text
-LWG-4Q.12 Dokumentation bestätigen
-GitHub/dev und Live-Ziel bewusst synchronisieren
+Keine STEP232-/Standalone-Gamble-Basis mehr verwenden.
+Keine großen UI-assisted Scripts mit mehreren parallelen Testfällen.
+Keine PowerShell-Scripts mit ungetesteter JS-Syntax wie ||.
+Keine Annahmen über Backend-Abläufe treffen, wenn ein API-Test das echte Verhalten zeigen kann.
 ```
