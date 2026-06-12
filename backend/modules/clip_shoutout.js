@@ -19,7 +19,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.43";
+const MODULE_VERSION = "0.2.45";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -29,7 +29,7 @@ const MODULE_META = {
   type: "runtime",
   legacy: false,
   routesPrefix: [API_PREFIX, "/api/clip/shoutout"],
-  capabilities: ["shoutout.display_queue", "shoutout.official_queue", "shoutout.event_output", "twitch.chat.message.consumer"],
+  capabilities: ["shoutout.display_queue", "shoutout.official_queue", "shoutout.event_output", "twitch.chat.message", "twitch.chat.message.consumer"],
   bus: {
     emits: true,
     listens: ["twitch.chat.message"],
@@ -37,7 +37,7 @@ const MODULE_META = {
     heartbeat: false,
     channel: SHOUTOUT_BUS_CHANNEL
   },
-  note: "CAN-44.27: AutoShoutout consumes twitch.chat.message via Communication Bus; direct chat wrapper remains fallback."
+  note: "CAN-44.29: AutoShoutout bus subscriber aligned with loyalty_giveaways subscriber style and robust chat envelope normalization; direct chat wrapper remains fallback."
 };
 
 const AUTO_SHOUTOUT_TEXT_DEFAULTS = {
@@ -5562,17 +5562,264 @@ function previewText(value, max = 120) {
   return text.length > max ? `${text.slice(0, Math.max(0, max - 3))}...` : text;
 }
 
+function getNestedBusValue(source, pathName) {
+  if (!source || typeof source !== 'object' || !pathName) return undefined;
+  const parts = String(pathName).split('.').filter(Boolean);
+  let current = source;
+  for (const part of parts) {
+    if (!current || typeof current !== 'object' || !(part in current)) return undefined;
+    current = current[part];
+  }
+  return current;
+}
+
+function firstNonEmptyBusValue(source, paths = []) {
+  for (const pathName of paths) {
+    const value = getNestedBusValue(source, pathName);
+    if (value === undefined || value === null) continue;
+    const text = String(value).trim();
+    if (text) return { value: text, source: pathName };
+  }
+  return { value: '', source: '' };
+}
+
 function normalizeBusChatPayload(envelope = {}) {
-  const payload = envelope && envelope.payload && typeof envelope.payload === 'object' ? envelope.payload : {};
-  const twitchPayload = payload.twitch && typeof payload.twitch === 'object' ? payload.twitch : payload;
-  const user = twitchPayload.user && typeof twitchPayload.user === 'object' ? twitchPayload.user : {};
-  const roles = user.roles && typeof user.roles === 'object' ? user.roles : {};
-  const badges = user.badges && typeof user.badges === 'object' ? user.badges : {};
-  const login = cleanLogin(user.login || twitchPayload.login || twitchPayload.userLogin || twitchPayload.chatterLogin || '');
-  const displayName = cleanDisplay(user.displayName || twitchPayload.displayName || twitchPayload.userDisplayName || login, login);
-  const message = String(twitchPayload.message || twitchPayload.text || '').trim();
-  const channel = String(twitchPayload.channel || payload.channel || '').replace(/^#/, '').toLowerCase();
-  const messageId = String(twitchPayload.messageId || twitchPayload.id || payload.messageId || envelope.id || '');
+  const root = envelope && typeof envelope === 'object' ? envelope : {};
+  const payload = root.payload && typeof root.payload === 'object' ? root.payload : {};
+  const eventPayload = root.event && root.event.payload && typeof root.event.payload === 'object' ? root.event.payload : {};
+  const eventData = root.event && root.event.data && typeof root.event.data === 'object' ? root.event.data : {};
+  const user = payload.user && typeof payload.user === 'object' ? payload.user : {};
+  const chatter = payload.chatter && typeof payload.chatter === 'object' ? payload.chatter : {};
+  const dataUser = payload.data && payload.data.user && typeof payload.data.user === 'object' ? payload.data.user : {};
+  const twitch = payload.twitch && typeof payload.twitch === 'object' ? payload.twitch : {};
+  const twitchUser = twitch.user && typeof twitch.user === 'object' ? twitch.user : {};
+
+  const aliasRoot = {
+    envelope: root,
+    payload,
+    eventPayload,
+    eventData,
+    user,
+    chatter,
+    dataUser,
+    twitch,
+    twitchUser
+  };
+
+  const loginResult = firstNonEmptyBusValue(aliasRoot, [
+    'payload.userLogin',
+    'payload.login',
+    'payload.user_login',
+    'payload.chatterUserLogin',
+    'payload.chatter_user_login',
+    'payload.chatter_login',
+    'payload.chatter.login',
+    'payload.chatter.userLogin',
+    'payload.chatter.user_login',
+    'payload.user.login',
+    'payload.user.userLogin',
+    'payload.user.user_login',
+    'payload.user.name',
+    'payload.twitch.user.login',
+    'payload.twitch.user.userLogin',
+    'payload.twitch.user.user_login',
+    'payload.twitch.login',
+    'payload.twitch.userLogin',
+    'payload.twitch.user_login',
+    'payload.twitch.chatter_user_login',
+    'payload.twitch.chatterUserLogin',
+    'payload.data.login',
+    'payload.data.userLogin',
+    'payload.data.user_login',
+    'payload.data.chatterUserLogin',
+    'payload.data.chatter_user_login',
+    'payload.data.chatter.login',
+    'payload.data.user.login',
+    'eventPayload.login',
+    'eventPayload.userLogin',
+    'eventPayload.user_login',
+    'eventPayload.chatterUserLogin',
+    'eventPayload.chatter_user_login',
+    'eventPayload.user.login',
+    'eventData.login',
+    'eventData.userLogin',
+    'eventData.user_login',
+    'eventData.chatterUserLogin',
+    'eventData.chatter_user_login',
+    'eventData.user.login',
+    'twitch.user.login',
+    'twitch.user.userLogin',
+    'twitch.user.user_login',
+    'twitch.login',
+    'twitch.userLogin',
+    'twitch.user_login',
+    'twitch.chatter_user_login',
+    'twitch.chatterUserLogin',
+    'twitchUser.login',
+    'twitchUser.userLogin',
+    'twitchUser.user_login',
+    'user.login',
+    'user.userLogin',
+    'user.user_login',
+    'chatter.login',
+    'chatter.userLogin',
+    'chatter.user_login',
+    'dataUser.login',
+    'dataUser.userLogin',
+    'dataUser.user_login'
+  ]);
+
+  const displayResult = firstNonEmptyBusValue(aliasRoot, [
+    'payload.userDisplayName',
+    'payload.displayName',
+    'payload.display_name',
+    'payload.user_display_name',
+    'payload.chatterUserName',
+    'payload.chatterUserDisplayName',
+    'payload.chatter_user_name',
+    'payload.chatter_display_name',
+    'payload.user.displayName',
+    'payload.user.display_name',
+    'payload.user.name',
+    'payload.chatter.displayName',
+    'payload.chatter.display_name',
+    'payload.twitch.user.displayName',
+    'payload.twitch.user.display_name',
+    'payload.twitch.user.name',
+    'payload.twitch.displayName',
+    'payload.twitch.display_name',
+    'payload.twitch.userDisplayName',
+    'payload.twitch.user_display_name',
+    'payload.twitch.chatter_user_name',
+    'payload.twitch.chatterUserName',
+    'payload.data.userDisplayName',
+    'payload.data.displayName',
+    'payload.data.display_name',
+    'payload.data.user_name',
+    'payload.data.chatter_user_name',
+    'payload.data.chatterUserName',
+    'eventPayload.userDisplayName',
+    'eventPayload.displayName',
+    'eventPayload.user.displayName',
+    'eventData.userDisplayName',
+    'eventData.displayName',
+    'eventData.user_name',
+    'eventData.chatter_user_name',
+    'twitch.user.displayName',
+    'twitch.user.display_name',
+    'twitch.user.name',
+    'twitch.displayName',
+    'twitch.display_name',
+    'twitch.userDisplayName',
+    'twitch.user_display_name',
+    'twitch.chatter_user_name',
+    'twitch.chatterUserName',
+    'twitchUser.displayName',
+    'twitchUser.display_name',
+    'twitchUser.name',
+    'user.displayName',
+    'user.display_name',
+    'chatter.displayName',
+    'chatter.display_name',
+    'dataUser.displayName',
+    'dataUser.display_name'
+  ]);
+
+  const messageResult = firstNonEmptyBusValue(aliasRoot, [
+    'payload.message',
+    'payload.rawMessage',
+    'payload.text',
+    'payload.body',
+    'payload.chatMessage',
+    'payload.twitch.message',
+    'payload.twitch.text',
+    'payload.twitch.rawMessage',
+    'payload.twitch.body',
+    'payload.data.message',
+    'payload.data.text',
+    'payload.event.message',
+    'eventPayload.message',
+    'eventPayload.text',
+    'eventData.message',
+    'eventData.text',
+    'twitch.message',
+    'twitch.text',
+    'twitch.rawMessage',
+    'twitch.body'
+  ]);
+
+  const userIdResult = firstNonEmptyBusValue(aliasRoot, [
+    'payload.userId',
+    'payload.user_id',
+    'payload.chatterUserId',
+    'payload.chatter_user_id',
+    'payload.user.userId',
+    'payload.user.user_id',
+    'payload.twitch.user.userId',
+    'payload.twitch.user.user_id',
+    'payload.twitch.userId',
+    'payload.twitch.user_id',
+    'payload.twitch.chatter_user_id',
+    'payload.twitch.chatterUserId',
+    'payload.data.userId',
+    'payload.data.user_id',
+    'payload.data.chatter_user_id',
+    'eventPayload.userId',
+    'eventPayload.user_id',
+    'eventData.userId',
+    'eventData.user_id',
+    'twitch.user.userId',
+    'twitch.user.user_id',
+    'twitch.userId',
+    'twitch.user_id',
+    'twitch.chatter_user_id',
+    'twitch.chatterUserId',
+    'twitchUser.userId',
+    'twitchUser.user_id',
+    'user.userId',
+    'user.user_id',
+    'chatter.userId',
+    'chatter.user_id',
+    'dataUser.userId',
+    'dataUser.user_id'
+  ]);
+
+  const messageIdResult = firstNonEmptyBusValue(aliasRoot, [
+    'payload.messageId',
+    'payload.message_id',
+    'payload.id',
+    'payload.twitch.messageId',
+    'payload.twitch.message_id',
+    'payload.twitch.id',
+    'payload.data.messageId',
+    'payload.data.message_id',
+    'eventPayload.messageId',
+    'eventPayload.message_id',
+    'eventData.messageId',
+    'eventData.message_id',
+    'twitch.messageId',
+    'twitch.message_id',
+    'twitch.id',
+    'envelope.id'
+  ]);
+
+  const badges = payload.badges && typeof payload.badges === 'object'
+    ? payload.badges
+    : (twitch.badges && typeof twitch.badges === 'object'
+      ? twitch.badges
+      : (twitchUser.badges && typeof twitchUser.badges === 'object'
+        ? twitchUser.badges
+        : (user.badges && typeof user.badges === 'object'
+          ? user.badges
+          : (chatter.badges && typeof chatter.badges === 'object' ? chatter.badges : {}))));
+  const roles = (user.roles && typeof user.roles === 'object')
+    ? user.roles
+    : (twitchUser.roles && typeof twitchUser.roles === 'object' ? twitchUser.roles : {});
+
+  const login = cleanLogin(loginResult.value);
+  const displayName = cleanDisplay(displayResult.value || login, login);
+  const message = String(messageResult.value || '').trim();
+  const channel = String(payload.channel || twitch.channel || root.channel || eventPayload.channel || eventData.channel || '').replace(/^#/, '').toLowerCase();
 
   if (!login || !message) return null;
 
@@ -5580,7 +5827,7 @@ function normalizeBusChatPayload(envelope = {}) {
     command: 'PRIVMSG',
     login,
     displayName,
-    params: [channel, message],
+    params: [channel ? `#${channel}` : '', message],
     message,
     rawMessage: message,
     text: message,
@@ -5589,18 +5836,20 @@ function normalizeBusChatPayload(envelope = {}) {
     tags: {
       login,
       'display-name': displayName,
-      'user-id': String(user.userId || twitchPayload.userId || ''),
-      id: messageId,
+      'user-id': String(userIdResult.value || ''),
+      id: String(messageIdResult.value || root.id || ''),
       mod: roles.mod || roles.moderator || badges.moderator ? '1' : '0',
       subscriber: roles.subscriber || badges.subscriber || badges.founder ? '1' : '0',
-      source: String(twitchPayload.source || payload.sourceModule || envelope.source?.module || '')
+      source: String(payload.source || twitch.source || root.source?.module || '')
     },
     roles,
     sourceEvent: {
-      busEventId: String(envelope.id || envelope.event?.id || ''),
-      sourceModule: String(payload.sourceModule || envelope.source?.module || ''),
+      busEventId: String(root.id || root.event?.id || ''),
+      sourceModule: String(payload.sourceModule || root.source?.module || ''),
       eventKey: String(payload.eventKey || 'twitch.chat.message'),
-      receivedAt: String(payload.receivedAt || envelope.timestamp || '')
+      receivedAt: String(payload.receivedAt || payload.received_at || twitch.receivedAt || twitch.received_at || root.timestamp || eventPayload.receivedAt || eventData.receivedAt || nowIso()),
+      loginSource: loginResult.source,
+      displayNameSource: displayResult.source
     }
   };
 }
@@ -5661,13 +5910,14 @@ function installAutoShoutoutBusSubscriber(env = process.env) {
   }
 
   const result = bus.subscribe({
-    id: 'clip_shoutout:twitch.chat.message:auto_shoutout',
+    id: 'clip_shoutout:twitch.chat:message:auto_shoutout',
     module: MODULE_NAME,
     channel: 'twitch.chat',
     action: 'message',
-    capability: 'twitch.chat.message.consumer',
+    capability: 'twitch.chat.message',
     meta: {
-      purpose: 'AutoShoutout listens to normalized Twitch chat events from twitch_events.',
+      step: 'CAN44.29',
+      purpose: 'auto_shoutout_runtime',
       sourceModule: 'twitch_events',
       fallbackDirectWrapperKept: true
     }
@@ -5684,7 +5934,7 @@ function installAutoShoutoutBusSubscriber(env = process.env) {
   }
 
   subscriber.installed = true;
-  subscriber.subscriptionId = result.subscription && result.subscription.id ? String(result.subscription.id) : 'clip_shoutout:twitch.chat.message:auto_shoutout';
+  subscriber.subscriptionId = result.subscription && result.subscription.id ? String(result.subscription.id) : 'clip_shoutout:twitch.chat:message:auto_shoutout';
   subscriber.lastError = '';
   subscriber.lastResultReason = 'installed';
   emitShoutoutBus('shoutout.auto.bus_subscriber.installed', { subscriptionId: subscriber.subscriptionId, channel: subscriber.channel, action: subscriber.action }, shoutoutConfig());
