@@ -636,11 +636,22 @@ function ensureTextsSeeded() {
   } catch (err) { state.texts.ok = false; state.texts.lastError = err && err.message ? err.message : String(err); return { ok: false, error: state.texts.lastError }; }
 }
 
+function pickSingleRenderedTextLine(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  const lines = raw
+    .split(/[\r\n]+/g)
+    .map(line => line.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+  if (lines.length <= 1) return lines[0] || raw.replace(/\s+/g, " ").trim();
+  return lines[Math.floor(Math.random() * lines.length)];
+}
+
 function renderGameText(key, context = {}, options = {}) {
   ensureTextsSeeded();
   try {
     const message = textHelper.renderModuleText(TEXT_MODULE, key, DEFAULT_TEXTS, context, { categories: TEXT_CATEGORIES, categoryLabels: TEXT_CATEGORY_LABELS, ...options });
-    const clean = String(message || "").replace(/[\r\n]+/g, " ").replace(/\s+/g, " ").trim();
+    const clean = pickSingleRenderedTextLine(message);
     return clean.length > 450 ? clean.slice(0, 449).trimEnd() + "…" : clean;
   } catch (_) {
     const fallback = Array.isArray(DEFAULT_TEXTS[key]) ? DEFAULT_TEXTS[key][0] : "";
