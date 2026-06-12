@@ -309,6 +309,61 @@ window.LoyaltyGamesModule = (function(){
     return config?.command?.[key] ?? fallback;
   }
 
+  function buildGambleResult(kind, title, message, extra = {}){
+    return {
+      kind,
+      title,
+      message,
+      time: extra.time || new Date().toISOString(),
+      summary: Array.isArray(extra.summary) ? extra.summary : [],
+      error: extra.error || ''
+    };
+  }
+
+  function currentGambleSummary(config = state.gambleConfig || {}){
+    const engineOn = Boolean(getGambleEngine(config, 'enabled', false));
+    const commandOn = Boolean(getGambleCommand(config, 'enabled', false));
+    const chatOn = Boolean(getGambleCommand(config, 'sendResultToChat', true));
+    const chance = getGambleEngine(config, 'winChancePercent', '?');
+    const payout = getGambleEngine(config, 'payoutMultiplier', '?');
+    const cooldown = getGambleCommand(config, 'cooldownUserMs', getGambleEngine(config, 'userCooldownMs', '?'));
+    return [
+      ['Engine', engineOn ? 'aktiv' : 'aus'],
+      ['Command', commandOn ? 'aktiv' : 'aus'],
+      ['Chat-Antwort', chatOn ? 'aktiv' : 'aus'],
+      ['Gewinnchance', `${chance}%`],
+      ['Auszahlung', `${payout}x`],
+      ['Cooldown', formatDuration(cooldown)]
+    ];
+  }
+
+  function renderGambleResultBox(title = 'Letztes Config-Ergebnis'){
+    const result = state.gambleResult;
+    const hasStructured = result && typeof result === 'object';
+    const kind = hasStructured ? String(result.kind || 'info') : 'info';
+    const badgeText = kind === 'success' ? 'Gespeichert' : (kind === 'error' ? 'Fehler' : (kind === 'loading' ? 'Läuft' : 'Info'));
+    const badgeClass = kind === 'success' ? 'lg-badge-ok' : (kind === 'error' ? 'lg-badge-off' : 'lg-badge-warn');
+    const heading = hasStructured ? (result.title || title) : 'Noch keine Aktion in dieser Sitzung.';
+    const message = hasStructured ? (result.message || '') : (result || '');
+    const summary = hasStructured && Array.isArray(result.summary) ? result.summary : [];
+    return `
+      <div class="lg-result-box">
+        <div class="lg-panel-head lg-panel-head-compact">
+          <strong>${esc(title)}</strong>
+          <button class="lg-btn lg-btn-secondary" data-lg-gamble-clear-result>Leeren</button>
+        </div>
+        <div class="lg-mini-list">
+          <div class="lg-mini-row">
+            <span><strong>${esc(heading)}</strong><br><small class="lg-muted">${esc(message || 'Keine Details vorhanden.')}</small></span>
+            <span class="lg-badge ${badgeClass}">${esc(badgeText)}</span>
+          </div>
+          ${hasStructured && result.time ? `<div class="lg-mini-row"><span><strong>Zeitpunkt</strong><br><small class="lg-muted">${fmtDate(result.time)}</small></span></div>` : ''}
+          ${summary.map(([label, value]) => `<div class="lg-mini-row"><span><strong>${esc(label)}</strong><br><small class="lg-muted">${esc(value)}</small></span></div>`).join('')}
+        </div>
+      </div>
+    `;
+  }
+
   function getGambleFormValue(form, name){
     const input = form?.elements?.[name];
     if (!input) return null;
@@ -327,7 +382,7 @@ window.LoyaltyGamesModule = (function(){
       actorRole: String(form?.elements?.actorRole?.value || 'streamer').trim(),
       dryRun: false,
       confirmWrite,
-      reason: 'STEP235F Dashboard Loyalty Config Gamble Write',
+      reason: 'STEP235G Dashboard Loyalty Config Gamble Write',
       engine: {
         enabled: getGambleFormValue(form, 'enabled'),
         winChancePercent: getGambleFormValue(form, 'winChancePercent'),
@@ -384,22 +439,24 @@ window.LoyaltyGamesModule = (function(){
 
   async function submitGambleWrite(form){
     if (!window.confirm('Gamble-Konfiguration wirklich speichern?')) {
-      state.gambleResult = 'Speichern abgebrochen: keine Änderung geschrieben.';
+      state.gambleResult = buildGambleResult('info', 'Speichern abgebrochen', 'Es wurde keine Änderung geschrieben.');
       render();
       return;
     }
     state.saving = true;
-    state.gambleResult = 'Speichere Gamble-Konfiguration...';
+    state.gambleResult = buildGambleResult('loading', 'Speichere Gamble-Konfiguration', 'Bitte kurz warten.');
     render();
     try {
       const result = await apiPost(api.gambleConfig, getGambleWriteBody(form, { confirmWrite: true }));
-      state.gambleResult = JSON.stringify(result, null, 2);
+      state.gambleResult = result?.ok
+        ? buildGambleResult('success', 'Gamble-Konfiguration gespeichert', 'Die Gamble-Konfiguration wurde erfolgreich aktualisiert.', { summary: currentGambleSummary(state.gambleConfig) })
+        : buildGambleResult('info', 'Gamble-Write abgeschlossen', 'Bitte Ergebnis prüfen.');
       state.message = result?.ok ? 'Gamble-Konfiguration gespeichert.' : 'Gamble-Write abgeschlossen, bitte Ergebnis prüfen.';
       await loadGambleConfig(false);
       await loadGambleAudit(false);
       await loadGambleStats(false);
     } catch (err) {
-      state.gambleResult = JSON.stringify({ ok:false, error: err.message, data: err.data || null }, null, 2);
+      state.gambleResult = buildGambleResult('error', 'Speichern fehlgeschlagen', err.message || 'Unbekannter Fehler.', { error: err.message || String(err) });
       state.error = err.message || String(err);
     } finally {
       state.saving = false;
@@ -2049,13 +2106,7 @@ window.LoyaltyGamesModule = (function(){
             <span class="lg-muted">Speichern fragt vor dem echten Write nach Bestätigung.</span>
           </div>
         </form>
-        <div class="lg-result-box">
-          <div class="lg-panel-head lg-panel-head-compact">
-            <strong>Letztes Config-Ergebnis</strong>
-            <button class="lg-btn lg-btn-secondary" data-lg-gamble-clear-result>Leeren</button>
-          </div>
-          <pre>${esc(state.gambleResult || 'Noch keine Aktion in dieser Sitzung.')}</pre>
-        </div>
+${renderGambleResultBox('Letztes Config-Ergebnis')}
       </div>
     `;
   }
@@ -2144,13 +2195,7 @@ window.LoyaltyGamesModule = (function(){
             <div class="lg-mini-row"><span><strong>Command</strong><br><small class="lg-muted">${commandOn ? '!gamble aktiv' : '!gamble aus'}</small></span>${badge(commandOn, 'aktiv', 'aus')}</div>
             <div class="lg-mini-row"><span><strong>Aktive Regeln</strong><br><small class="lg-muted">${esc(chance)}% Chance · ${esc(payout)}x Auszahlung · ${esc(formatDuration(cooldown))} Cooldown</small></span></div>
           </div>
-          <div class="lg-result-box">
-            <div class="lg-panel-head lg-panel-head-compact">
-              <strong>Letztes Config-/Test-Ergebnis</strong>
-              <button class="lg-btn lg-btn-secondary" data-lg-gamble-clear-result>Leeren</button>
-            </div>
-            <pre>${esc(state.gambleResult || 'Noch keine Aktion in dieser Sitzung.')}</pre>
-          </div>
+          ${renderGambleResultBox('Letztes Config-Ergebnis')}
         </div>
 
         <div class="lg-panel">
