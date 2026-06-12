@@ -16,11 +16,15 @@ Stand: 2026-06-12
 - [x] STEP235K Cleanup-Prüfung ohne alte STEP232-/Gamble-Reste.
 - [x] STEP235L Runtime-Fallback als überflüssig bewertet.
 - [x] STEP235M Runtime-Shell-Fallback aus `loyalty_games.js` entfernt.
-- [x] STEP235N finalen Dashboard-/Loyalty-Stand dokumentieren.
+- [x] STEP235N finalen Dashboard-/Loyalty-Stand dokumentiert.
+- [x] STEP235O Actor-/Rollenfelder geprüft.
+- [x] STEP235P Actor-/Rollenfelder aus normaler UI entfernt und spätere Rechteanbindung vorbereitet.
+- [x] STEP235Q Gamble Config UI geprüft.
+- [x] STEP235R Cooldown-UX von Millisekunden auf Sekunden umgestellt.
+- [x] STEP235S Gamble-Config-Cleanup final abgeschlossen.
 
 ## Offen / wichtig
 
-- [ ] STEP235O: Actor-/Rollenfelder im Gamble-Config-Tab prüfen und entscheiden.
 - [ ] Dashboard-UI nach LWG-4Q.11 manuell sauber prüfen, aber nur noch in kleinen Einzelschritten.
 - [ ] Prüfen, ob im Formular wirklich nicht mehr sichtbar sind: Gewinneranzahl, Gewinn-Menge, Rundenmodus, Ticket-Übernahme.
 - [ ] Prüfen, ob Chat-Claim-Felder nur sichtbar sind, wenn Checkbox aktiv ist.
@@ -28,7 +32,8 @@ Stand: 2026-06-12
 - [ ] Prüfen, ob „Glücksrad erstellen“ nur bei fehlendem Bound-Wheel erscheint und „Glücksrad bearbeiten“ nur bei vorhandenem Bound-Wheel.
 - [ ] Prüfen, ob Loyalty → Kachel Giveaways und oberer Tab Giveaways beide das neue Giveaway-Control öffnen.
 - [ ] UI-Teststrategie weiterhin klein halten: pro Test nur ein Giveaway erzeugen, genau einen UI-Punkt prüfen, danach löschen.
-- [ ] Doku nach finalem UI-Test erneut aktualisieren.
+- [ ] Später echtes Dashboard-Rechtesystem anbinden und `getDashboardActor()` auf echte Sessiondaten umstellen.
+- [ ] Doku nach finalem Giveaways-UI-Test erneut aktualisieren.
 
 ## Nicht wiederholen
 

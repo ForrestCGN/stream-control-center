@@ -5,14 +5,15 @@ Stand: 2026-06-12
 ## Aktueller bestätigter Dashboard-/Loyalty-Stand
 
 ```text
-STEP235N – Doku-/Status-Refresh finaler STEP235-Stand
+STEP235S – Final Gamble Config Cleanup abgeschlossen
 ```
 
-Zuletzt bestätigter Code-Stand:
+Zuletzt bestätigter Code-/Doku-Stand:
 
 ```text
-518dd6e4 STEP235M Remove Loyalty Runtime Shell Fallback
-9ab5e619 STEP235J Remove Standalone Gamble Dashboard
+STEP235P – Gamble Actor Fields Prepared
+STEP235R – Gamble Cooldown UX Cleanup
+STEP235S – finaler Doku-/Abschlussstand für Gamble-Config-Cleanup
 ```
 
 Der aktuelle bestätigte Dashboard-/Loyalty-Stand ist:
@@ -23,6 +24,8 @@ Gamble läuft ausschließlich im Loyalty-Bereich.
 Die alte Standalone-Gamble-Seite ist entfernt.
 STEP232-/Gamble-Shell-Reste sind bereinigt.
 Der Runtime-Shell-Fallback in loyalty_games.js ist entfernt.
+Actor-/Rollenfelder sind aus der normalen Gamble-Config-UI entfernt.
+Cooldowns werden in der UI als Sekunden angezeigt und intern weiter in ms gesendet.
 ```
 
 ## Aktive Zielstruktur Dashboard / Loyalty
@@ -55,6 +58,67 @@ htdocs/dashboard/modules/loyalty_giveaways.js
 htdocs/dashboard/modules/loyalty_giveaways.css
 ```
 
+## Gamble Config – finaler STEP235-Zustand
+
+Sichtbar im normalen Streamer-Dashboard:
+
+```text
+Engine aktiv
+Command aktiv
+Chat-Antwort
+Gewinnchance %
+Auszahlung x
+Mindesteinsatz
+Maximaleinsatz
+Gamble-Cooldown pro User (Sek.)
+Gamble-Cooldown global (Sek.)
+Command-Cooldown pro User (Sek.)
+Prozent-Einsätze erlauben
+Keyword-Einsätze erlauben
+Speichern
+Letztes Speicher-Ergebnis
+```
+
+Nicht mehr sichtbar:
+
+```text
+Actor Login
+Actor Rolle
+Cooldown-Felder mit ms-Labels
+technische Rohdaten-/JSON-Blöcke in der Ergebnisbox
+Dryrun-Button
+Write-bestätigen-Checkbox
+```
+
+Intern weiterhin erhalten:
+
+```text
+confirmWrite=true
+Audit-Eintrag
+actorLogin / actorDisplayName / actorRole
+Cooldown-Werte in Millisekunden für Backend/API
+```
+
+## Rechtesystem
+
+Das echte Dashboard-Rechtesystem wird später umgesetzt.
+
+Aktuell nur vorbereitet:
+
+```text
+getDashboardActorFallback()
+getDashboardActor()
+window.CGN.auth.user als spätere Quelle
+```
+
+Bis echte Rechte/Sessiondaten angebunden sind, nutzt der Gamble-Config-Write den sicheren Fallback:
+
+```text
+actorLogin = forrestcgn
+actorDisplayName = ForrestCGN
+actorRole = streamer
+```
+
 ## Entfernte Altlasten
 
 Folgende alte Standalone-/STEP232-Gamble-Struktur darf nicht mehr als Basis verwendet werden:
@@ -84,29 +148,12 @@ STEP235J – Standalone Gamble Dashboard entfernt
 STEP235K – Cleanup-Prüfung ohne alte STEP232-/Gamble-Reste
 STEP235L – Runtime-Fallback als überflüssig bewertet
 STEP235M – Runtime-Shell-Fallback aus loyalty_games.js entfernt
-STEP235N – dieser Doku-/Status-Refresh
-```
-
-## Gamble-Zielverhalten
-
-Gamble wird nicht mehr über eine eigene Standalone-Seite gepflegt.
-
-Aktiv ist:
-
-```text
-Loyalty → Gamble
-Loyalty → Config → Gamble
-```
-
-Gamble-Config-UX:
-
-```text
-kein normal sichtbarer Dryrun
-keine sichtbare „Write bestätigen“-Checkbox
-Speichern nutzt Bestätigungsdialog
-intern bleibt confirmWrite=true
-keine rohe JSON-Ausgabe in der normalen Ergebnisbox
-Audit/Statistik bleiben sichtbar
+STEP235N – Doku-/Status-Refresh
+STEP235O – Actor-/Rollenfelder geprüft
+STEP235P – Actor-/Rollenfelder aus normaler UI entfernt, Rechteanbindung vorbereitet
+STEP235Q – Gamble-Config-UI geprüft
+STEP235R – Cooldown-UX von ms auf Sekunden umgestellt
+STEP235S – Gamble-Config-Cleanup final abgeschlossen
 ```
 
 ## Weiterhin gültiger LWG-4Q.11 Backend-/Giveaway-Stand
@@ -128,18 +175,6 @@ Ergebnis:
 ```text
 ModuleBuild: STEP_LWG_4Q_11
 === TEST OK: Alle aktivierten Szenarien erfolgreich ===
-```
-
-Wichtige LWG-4Q.11-Regeln:
-
-```text
-Normale Giveaways enden nicht automatisch nach Gewinneranzahl.
-Streamer entscheidet live über „Weiteren Gewinner auslosen“ und „Beenden“.
-Glücksrad-Giveaways enden, wenn keine nutzbaren Wheel-Gewinne/Felder mehr vorhanden sind.
-Paid Tickets buchen Loyalty-Punkte beim Ticket-Kauf ab.
-Refund ist explizit steuerbar und idempotent.
-Archivieren ist nur bei status=finished erlaubt.
-Löschen bedeutet Hard-Delete.
 ```
 
 ## Wichtige Arbeitsregeln
