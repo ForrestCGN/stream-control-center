@@ -235,6 +235,18 @@ window.LoyaltyGamesModule = (function(){
     return `${ms}ms`;
   }
 
+  function msToSecondsInput(value){
+    const ms = Number(value);
+    if (!Number.isFinite(ms) || ms <= 0) return 0;
+    return Math.round(ms / 1000);
+  }
+
+  function secondsInputToMs(value){
+    const seconds = Number(value);
+    if (!Number.isFinite(seconds) || seconds <= 0) return 0;
+    return Math.round(seconds * 1000);
+  }
+
   function formatSigned(value){
     const num = Number(value) || 0;
     return num > 0 ? `+${num}` : String(num);
@@ -366,14 +378,14 @@ window.LoyaltyGamesModule = (function(){
         payoutMultiplier: getGambleFormValue(form, 'payoutMultiplier'),
         minBet: getGambleFormValue(form, 'minBet'),
         maxBet: getGambleFormValue(form, 'maxBet'),
-        userCooldownMs: getGambleFormValue(form, 'userCooldownMs'),
-        globalCooldownMs: getGambleFormValue(form, 'globalCooldownMs'),
+        userCooldownMs: secondsInputToMs(getGambleFormValue(form, 'userCooldownSeconds')),
+        globalCooldownMs: secondsInputToMs(getGambleFormValue(form, 'globalCooldownSeconds')),
         allowPercentBets: getGambleFormValue(form, 'allowPercentBets'),
         allowKeywordBets: getGambleFormValue(form, 'allowKeywordBets')
       },
       command: {
         enabled: getGambleFormValue(form, 'commandEnabled'),
-        cooldownUserMs: getGambleFormValue(form, 'commandCooldownUserMs'),
+        cooldownUserMs: secondsInputToMs(getGambleFormValue(form, 'commandCooldownUserSeconds')),
         sendResultToChat: getGambleFormValue(form, 'sendResultToChat'),
         activationState: 'dashboard_loyalty_config_gamble_write_step235h'
       }
@@ -2090,12 +2102,12 @@ window.LoyaltyGamesModule = (function(){
           </div>
           <div class="lg-form-row">
             <label>Mindesteinsatz<input name="minBet" type="number" min="0" step="1" value="${esc(getGambleEngine(config, 'minBet', 1))}"></label>
-            <label>Max-Einsatz<input name="maxBet" type="number" min="0" step="1" value="${esc(getGambleEngine(config, 'maxBet', 0))}"></label>
+            <label>Maximaleinsatz<input name="maxBet" type="number" min="0" step="1" value="${esc(getGambleEngine(config, 'maxBet', 0))}"></label>
           </div>
           <div class="lg-form-row">
-            <label>Engine User-CD ms<input name="userCooldownMs" type="number" min="0" step="1000" value="${esc(getGambleEngine(config, 'userCooldownMs', 60000))}"></label>
-            <label>Engine Global-CD ms<input name="globalCooldownMs" type="number" min="0" step="1000" value="${esc(getGambleEngine(config, 'globalCooldownMs', 0))}"></label>
-            <label>Command User-CD ms<input name="commandCooldownUserMs" type="number" min="0" step="1000" value="${esc(getGambleCommand(config, 'cooldownUserMs', 60000))}"></label>
+            <label>Gamble-Cooldown pro User (Sek.)<input name="userCooldownSeconds" type="number" min="0" step="1" value="${esc(msToSecondsInput(getGambleEngine(config, 'userCooldownMs', 60000)))}"></label>
+            <label>Gamble-Cooldown global (Sek.)<input name="globalCooldownSeconds" type="number" min="0" step="1" value="${esc(msToSecondsInput(getGambleEngine(config, 'globalCooldownMs', 0)))}"></label>
+            <label>Command-Cooldown pro User (Sek.)<input name="commandCooldownUserSeconds" type="number" min="0" step="1" value="${esc(msToSecondsInput(getGambleCommand(config, 'cooldownUserMs', 60000)))}"></label>
           </div>
           <div class="lg-check-row">
             <label class="lg-check"><input name="allowPercentBets" type="checkbox" ${getGambleEngine(config, 'allowPercentBets', true) ? 'checked' : ''}> Prozent-Einsätze erlauben</label>
@@ -2106,7 +2118,7 @@ window.LoyaltyGamesModule = (function(){
             <span class="lg-muted">Speichern fragt vor dem echten Write nach Bestätigung.</span>
           </div>
         </form>
-${renderGambleResultBox('Letztes Config-Ergebnis')}
+${renderGambleResultBox('Letztes Speicher-Ergebnis')}
       </div>
     `;
   }
