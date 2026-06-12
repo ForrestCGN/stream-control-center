@@ -325,15 +325,41 @@ window.LoyaltyGamesModule = (function(){
     return Number.isFinite(num) ? num : raw;
   }
 
-  function getGambleWriteBody(form, { confirmWrite = false } = {}){
-    const actorLogin = String(form?.elements?.actorLogin?.value || 'forrestcgn').trim();
+  function getDashboardActorFallback(){
     return {
-      actorLogin,
-      actorDisplayName: actorLogin || 'ForrestCGN',
-      actorRole: String(form?.elements?.actorRole?.value || 'streamer').trim(),
+      actorLogin: 'forrestcgn',
+      actorDisplayName: 'ForrestCGN',
+      actorRole: 'streamer'
+    };
+  }
+
+  function getDashboardActor(){
+    const fallback = getDashboardActorFallback();
+    const user = window.CGN?.auth?.user && typeof window.CGN.auth.user === 'object' ? window.CGN.auth.user : null;
+    if (!user) return fallback;
+
+    const login = String(user.login || user.userLogin || user.username || '').trim().replace(/^@/, '').toLowerCase();
+    if (!login) return fallback;
+
+    const displayName = String(user.displayName || user.display_name || user.name || login).trim();
+    const role = String(user.role || user.dashboardRole || user.permissionRole || fallback.actorRole).trim().toLowerCase();
+
+    return {
+      actorLogin: login,
+      actorDisplayName: displayName || login,
+      actorRole: role || fallback.actorRole
+    };
+  }
+
+  function getGambleWriteBody(form, { confirmWrite = false } = {}){
+    const actor = getDashboardActor();
+    return {
+      actorLogin: actor.actorLogin,
+      actorDisplayName: actor.actorDisplayName,
+      actorRole: actor.actorRole,
       dryRun: false,
       confirmWrite,
-      reason: 'STEP235H Dashboard Loyalty Config UX Standard Gamble Write',
+      reason: 'STEP235P Dashboard Loyalty Config Actor Prepared Write',
       engine: {
         enabled: getGambleFormValue(form, 'enabled'),
         winChancePercent: getGambleFormValue(form, 'winChancePercent'),
@@ -2074,10 +2100,6 @@ window.LoyaltyGamesModule = (function(){
           <div class="lg-check-row">
             <label class="lg-check"><input name="allowPercentBets" type="checkbox" ${getGambleEngine(config, 'allowPercentBets', true) ? 'checked' : ''}> Prozent-Einsätze erlauben</label>
             <label class="lg-check"><input name="allowKeywordBets" type="checkbox" ${getGambleEngine(config, 'allowKeywordBets', true) ? 'checked' : ''}> Keyword-Einsätze erlauben</label>
-          </div>
-          <div class="lg-form-row">
-            <label>Actor Login<input name="actorLogin" value="forrestcgn"></label>
-            <label>Actor Rolle<select name="actorRole"><option value="streamer" selected>streamer</option><option value="owner">owner</option><option value="mod">mod</option><option value="viewer">viewer</option></select></label>
           </div>
           <div class="lg-check-row lg-gamble-danger-row">
             <button class="lg-btn" type="button" data-lg-gamble-save ${state.saving ? 'disabled' : ''}>Speichern</button>
