@@ -735,3 +735,21 @@
   font-size: 12px;
   color: var(--text, #e5eefb);
 }
+
+/* STEP235D - central Loyalty config tab foundation */
+.lg-config-panel {
+  margin-top: 0;
+}
+
+.lg-config-select-label {
+  display: grid;
+  gap: 6px;
+  min-width: 260px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--muted, #a8b3c7);
+}
+
+.lg-config-select-label select {
+  width: 100%;
+}

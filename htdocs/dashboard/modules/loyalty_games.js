@@ -44,6 +44,7 @@ window.LoyaltyGamesModule = (function(){
     gambleAudit: null,
     gambleStats: null,
     gambleResult: '',
+    configSection: 'gamble',
     selectedPresetUid: '',
     selectedPreset: null,
     selectedGiveawayUid: '',
@@ -326,7 +327,7 @@ window.LoyaltyGamesModule = (function(){
       actorRole: String(form?.elements?.actorRole?.value || 'streamer').trim(),
       dryRun,
       confirmWrite,
-      reason: dryRun ? 'STEP235C Dashboard Loyalty Gamble Dryrun' : 'STEP235C Dashboard Loyalty Gamble Write',
+      reason: dryRun ? 'STEP235D Dashboard Loyalty Config Gamble Dryrun' : 'STEP235D Dashboard Loyalty Config Gamble Write',
       engine: {
         enabled: getGambleFormValue(form, 'enabled'),
         winChancePercent: getGambleFormValue(form, 'winChancePercent'),
@@ -342,7 +343,7 @@ window.LoyaltyGamesModule = (function(){
         enabled: getGambleFormValue(form, 'commandEnabled'),
         cooldownUserMs: getGambleFormValue(form, 'commandCooldownUserMs'),
         sendResultToChat: getGambleFormValue(form, 'sendResultToChat'),
-        activationState: dryRun ? 'dashboard_loyalty_gamble_dryrun_step235c' : 'dashboard_loyalty_gamble_write_step235c'
+        activationState: dryRun ? 'dashboard_loyalty_config_gamble_dryrun_step235d' : 'dashboard_loyalty_config_gamble_write_step235d'
       }
     };
   }
@@ -2017,6 +2018,99 @@ window.LoyaltyGamesModule = (function(){
     `;
   }
 
+  function renderGambleConfigPanel(){
+    const config = state.gambleConfig || {};
+    const engineOn = Boolean(getGambleEngine(config, 'enabled', false));
+    const commandOn = Boolean(getGambleCommand(config, 'enabled', false));
+
+    return `
+      <div class="lg-panel">
+        <div class="lg-panel-head">
+          <div>
+            <h3>Gamble-Konfiguration</h3>
+            <p class="lg-muted">Zentrale Config-Ansicht. Die bestehende Gamble-API bleibt unverändert. Dryrun schreibt nicht, echter Write braucht Confirm.</p>
+          </div>
+          <div class="lg-actions">
+            <button class="lg-btn lg-btn-secondary" data-lg-gamble-reload>Neu laden</button>
+          </div>
+        </div>
+        <form class="lg-form lg-gamble-form" data-lg-gamble-form>
+          <div class="lg-check-row">
+            <label class="lg-check"><input name="enabled" type="checkbox" ${engineOn ? 'checked' : ''}> Engine aktiv</label>
+            <label class="lg-check"><input name="commandEnabled" type="checkbox" ${commandOn ? 'checked' : ''}> Command aktiv</label>
+            <label class="lg-check"><input name="sendResultToChat" type="checkbox" ${getGambleCommand(config, 'sendResultToChat', true) ? 'checked' : ''}> Chat-Antwort</label>
+          </div>
+          <div class="lg-form-row">
+            <label>Gewinnchance %<input name="winChancePercent" type="number" min="0" max="100" step="0.01" value="${esc(getGambleEngine(config, 'winChancePercent', 47))}"></label>
+            <label>Auszahlung x<input name="payoutMultiplier" type="number" min="0" step="0.01" value="${esc(getGambleEngine(config, 'payoutMultiplier', 2))}"></label>
+          </div>
+          <div class="lg-form-row">
+            <label>Mindesteinsatz<input name="minBet" type="number" min="0" step="1" value="${esc(getGambleEngine(config, 'minBet', 1))}"></label>
+            <label>Max-Einsatz<input name="maxBet" type="number" min="0" step="1" value="${esc(getGambleEngine(config, 'maxBet', 0))}"></label>
+          </div>
+          <div class="lg-form-row">
+            <label>Engine User-CD ms<input name="userCooldownMs" type="number" min="0" step="1000" value="${esc(getGambleEngine(config, 'userCooldownMs', 60000))}"></label>
+            <label>Engine Global-CD ms<input name="globalCooldownMs" type="number" min="0" step="1000" value="${esc(getGambleEngine(config, 'globalCooldownMs', 0))}"></label>
+            <label>Command User-CD ms<input name="commandCooldownUserMs" type="number" min="0" step="1000" value="${esc(getGambleCommand(config, 'cooldownUserMs', 60000))}"></label>
+          </div>
+          <div class="lg-check-row">
+            <label class="lg-check"><input name="allowPercentBets" type="checkbox" ${getGambleEngine(config, 'allowPercentBets', true) ? 'checked' : ''}> Prozent-Einsätze erlauben</label>
+            <label class="lg-check"><input name="allowKeywordBets" type="checkbox" ${getGambleEngine(config, 'allowKeywordBets', true) ? 'checked' : ''}> Keyword-Einsätze erlauben</label>
+          </div>
+          <div class="lg-form-row">
+            <label>Actor Login<input name="actorLogin" value="forrestcgn"></label>
+            <label>Actor Rolle<select name="actorRole"><option value="streamer" selected>streamer</option><option value="owner">owner</option><option value="mod">mod</option><option value="viewer">viewer</option></select></label>
+          </div>
+          <div class="lg-check-row lg-gamble-danger-row">
+            <label class="lg-check"><input name="confirmWrite" type="checkbox"> Write bestätigen</label>
+            <button class="lg-btn lg-btn-secondary" type="button" data-lg-gamble-dryrun ${state.saving ? 'disabled' : ''}>Dryrun</button>
+            <button class="lg-btn" type="button" data-lg-gamble-save ${state.saving ? 'disabled' : ''}>Speichern</button>
+          </div>
+        </form>
+        <div class="lg-result-box">
+          <div class="lg-panel-head lg-panel-head-compact">
+            <strong>Letztes Config-Ergebnis</strong>
+            <button class="lg-btn lg-btn-secondary" data-lg-gamble-clear-result>Leeren</button>
+          </div>
+          <pre>${esc(state.gambleResult || 'Noch keine Aktion in dieser Sitzung.')}</pre>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderConfig(){
+    const section = state.configSection || 'gamble';
+    const sections = [
+      ['core', 'Kekskrümel/Core', false],
+      ['runner', 'Runner/Watchtime', false],
+      ['wheel', 'Glücksrad', false],
+      ['presets', 'Presets', false],
+      ['giveaways', 'Giveaways', false],
+      ['gamble', 'Gamble', true],
+      ['chat', 'Chat/Commands', false],
+      ['texts', 'Texte', false]
+    ];
+    const current = sections.find(([id]) => id === section) || sections.find(([id]) => id === 'gamble');
+    return `
+      <div class="lg-panel lg-config-panel">
+        <div class="lg-panel-head">
+          <div>
+            <h3>Config</h3>
+            <p class="lg-muted">Zentrale Loyalty-Config. Weitere Bereiche werden später hierher verschoben; aktuell ist Gamble aktiv angebunden.</p>
+          </div>
+          <div class="lg-actions">
+            <label class="lg-config-select-label">Bereich
+              <select data-lg-config-section>
+                ${sections.map(([id, label, enabled]) => `<option value="${esc(id)}" ${id === section ? 'selected' : ''} ${enabled ? '' : 'disabled'}>${esc(label)}${enabled ? '' : ' · geplant'}</option>`).join('')}
+              </select>
+            </label>
+          </div>
+        </div>
+        ${current?.[0] === 'gamble' ? renderGambleConfigPanel() : `<p class="lg-muted">Dieser Config-Bereich ist vorbereitet, aber noch nicht aktiv angebunden.</p>`}
+      </div>
+    `;
+  }
+
   function renderGamble(){
     const config = state.gambleConfig || {};
     const auditRows = Array.isArray(state.gambleAudit?.items) ? state.gambleAudit.items : (Array.isArray(state.gambleAudit?.rows) ? state.gambleAudit.rows : []);
@@ -2055,46 +2149,26 @@ window.LoyaltyGamesModule = (function(){
         <div class="lg-panel">
           <div class="lg-panel-head">
             <div>
-              <h3>Gamble-Konfiguration</h3>
-              <p class="lg-muted">Dashboard-UI nutzt die bestehende Gamble-API. Dryrun schreibt nicht, echter Write braucht Confirm.</p>
+              <h3>Gamble</h3>
+              <p class="lg-muted">Status, Statistik und Audit. Die Bearbeitung der Werte liegt jetzt zentral im Config-Tab.</p>
             </div>
             <div class="lg-actions">
+              <button class="lg-btn" data-lg-open-config-section="gamble">Config bearbeiten</button>
               <button class="lg-btn lg-btn-secondary" data-lg-gamble-reload>Neu laden</button>
             </div>
           </div>
-          <form class="lg-form lg-gamble-form" data-lg-gamble-form>
-            <div class="lg-check-row">
-              <label class="lg-check"><input name="enabled" type="checkbox" ${engineOn ? 'checked' : ''}> Engine aktiv</label>
-              <label class="lg-check"><input name="commandEnabled" type="checkbox" ${commandOn ? 'checked' : ''}> Command aktiv</label>
-              <label class="lg-check"><input name="sendResultToChat" type="checkbox" ${getGambleCommand(config, 'sendResultToChat', true) ? 'checked' : ''}> Chat-Antwort</label>
+          <div class="lg-mini-list">
+            <div class="lg-mini-row"><span><strong>Engine</strong><br><small class="lg-muted">${engineOn ? 'aktiv' : 'inaktiv'}</small></span>${badge(engineOn, 'aktiv', 'aus')}</div>
+            <div class="lg-mini-row"><span><strong>Command</strong><br><small class="lg-muted">${commandOn ? '!gamble aktiv' : '!gamble aus'}</small></span>${badge(commandOn, 'aktiv', 'aus')}</div>
+            <div class="lg-mini-row"><span><strong>Aktive Regeln</strong><br><small class="lg-muted">${esc(chance)}% Chance · ${esc(payout)}x Auszahlung · ${esc(formatDuration(cooldown))} Cooldown</small></span></div>
+          </div>
+          <div class="lg-result-box">
+            <div class="lg-panel-head lg-panel-head-compact">
+              <strong>Letztes Config-/Test-Ergebnis</strong>
+              <button class="lg-btn lg-btn-secondary" data-lg-gamble-clear-result>Leeren</button>
             </div>
-            <div class="lg-form-row">
-              <label>Gewinnchance %<input name="winChancePercent" type="number" min="0" max="100" step="0.01" value="${esc(getGambleEngine(config, 'winChancePercent', 47))}"></label>
-              <label>Auszahlung x<input name="payoutMultiplier" type="number" min="0" step="0.01" value="${esc(getGambleEngine(config, 'payoutMultiplier', 2))}"></label>
-            </div>
-            <div class="lg-form-row">
-              <label>Mindesteinsatz<input name="minBet" type="number" min="0" step="1" value="${esc(getGambleEngine(config, 'minBet', 1))}"></label>
-              <label>Max-Einsatz<input name="maxBet" type="number" min="0" step="1" value="${esc(getGambleEngine(config, 'maxBet', 0))}"></label>
-            </div>
-            <div class="lg-form-row">
-              <label>Engine User-CD ms<input name="userCooldownMs" type="number" min="0" step="1000" value="${esc(getGambleEngine(config, 'userCooldownMs', 60000))}"></label>
-              <label>Engine Global-CD ms<input name="globalCooldownMs" type="number" min="0" step="1000" value="${esc(getGambleEngine(config, 'globalCooldownMs', 0))}"></label>
-              <label>Command User-CD ms<input name="commandCooldownUserMs" type="number" min="0" step="1000" value="${esc(getGambleCommand(config, 'cooldownUserMs', 60000))}"></label>
-            </div>
-            <div class="lg-check-row">
-              <label class="lg-check"><input name="allowPercentBets" type="checkbox" ${getGambleEngine(config, 'allowPercentBets', true) ? 'checked' : ''}> Prozent-Einsätze erlauben</label>
-              <label class="lg-check"><input name="allowKeywordBets" type="checkbox" ${getGambleEngine(config, 'allowKeywordBets', true) ? 'checked' : ''}> Keyword-Einsätze erlauben</label>
-            </div>
-            <div class="lg-form-row">
-              <label>Actor Login<input name="actorLogin" value="forrestcgn"></label>
-              <label>Actor Rolle<select name="actorRole"><option value="streamer" selected>streamer</option><option value="owner">owner</option><option value="mod">mod</option><option value="viewer">viewer</option></select></label>
-            </div>
-            <div class="lg-check-row lg-gamble-danger-row">
-              <label class="lg-check"><input name="confirmWrite" type="checkbox"> Write bestätigen</label>
-              <button class="lg-btn lg-btn-secondary" type="button" data-lg-gamble-dryrun ${state.saving ? 'disabled' : ''}>Dryrun</button>
-              <button class="lg-btn" type="button" data-lg-gamble-save ${state.saving ? 'disabled' : ''}>Speichern</button>
-            </div>
-          </form>
+            <pre>${esc(state.gambleResult || 'Noch keine Aktion in dieser Sitzung.')}</pre>
+          </div>
         </div>
 
         <div class="lg-panel">
@@ -2122,13 +2196,6 @@ window.LoyaltyGamesModule = (function(){
               return `<div class="lg-mini-row"><span><strong>${esc(action)}</strong><br><small class="lg-muted">${esc(actor)} · ${esc(at)}</small></span></div>`;
             }).join('') : `<p class="lg-muted">Keine Audit-Einträge gefunden.</p>`}
           </div>
-          <div class="lg-result-box">
-            <div class="lg-panel-head lg-panel-head-compact">
-              <strong>Letztes Ergebnis</strong>
-              <button class="lg-btn lg-btn-secondary" data-lg-gamble-clear-result>Leeren</button>
-            </div>
-            <pre>${esc(state.gambleResult || 'Noch keine Aktion in dieser Sitzung.')}</pre>
-          </div>
         </div>
       </div>
     `;
@@ -2141,6 +2208,7 @@ window.LoyaltyGamesModule = (function(){
       ['presets', 'Presets'],
       ['giveaways', 'Giveaways'],
       ['gamble', 'Gamble'],
+      ['config', 'Config'],
       ['chat', 'Chat/Commands'],
       ['history', 'Verlauf'],
       ['notes', 'Hinweise']
@@ -2177,6 +2245,7 @@ window.LoyaltyGamesModule = (function(){
     if (state.activeTab === 'giveaway_wheel_editor') return renderGiveawayWheelEditor();
     if (state.activeTab === 'giveaways') return renderGiveawaysRedirect();
     if (state.activeTab === 'gamble') return renderGamble();
+    if (state.activeTab === 'config') return renderConfig();
     if (state.activeTab === 'chat') return renderChatSetup();
     if (state.activeTab === 'history') return renderSessions();
     if (state.activeTab === 'notes') return renderNotes();
@@ -2201,6 +2270,19 @@ window.LoyaltyGamesModule = (function(){
     });
 
     root.querySelector('[data-lg-reload]')?.addEventListener('click', () => loadAll(true));
+
+    root.querySelector('[data-lg-config-section]')?.addEventListener('change', ev => {
+      state.configSection = ev.currentTarget.value || 'gamble';
+      render();
+    });
+
+    root.querySelectorAll('[data-lg-open-config-section]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.configSection = btn.dataset.lgOpenConfigSection || 'gamble';
+        state.activeTab = 'config';
+        render();
+      });
+    });
 
     root.querySelector('[data-lg-gamble-reload]')?.addEventListener('click', async () => {
       await Promise.allSettled([loadGambleConfig(false), loadGambleAudit(false), loadGambleStats(false)]);
