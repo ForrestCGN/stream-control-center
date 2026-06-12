@@ -35,6 +35,8 @@ window.LoyaltyGamesModule = (function(){
     gambleConfig: null,
     gambleAudit: null,
     gambleStats: null,
+    gambleLogRows: [],
+    gambleModal: '',
     gambleResult: '',
     configSection: 'gamble',
     selectedPresetUid: '',
@@ -198,21 +200,105 @@ window.LoyaltyGamesModule = (function(){
     return row || {};
   }
 
-  function buildGambleStats(logs){
-    const stats = { total: 0, wins: 0, losses: 0, netProfit: 0 };
-    normalizeCommandLogs(logs).filter(row => String(row?.trigger || row?.command || row?.aliasTrigger || '').toLowerCase() === 'gamble').forEach(row => {
-      if (row?.ignored === true || row?.success === false) return;
-      const result = parseCommandResult(row);
-      const data = result?.data || {};
-      const outcome = String(result?.outcome || data?.outcome || '').toLowerCase();
-      const won = result?.won === true || data?.won === true || outcome === 'win';
-      const lost = result?.won === false || data?.won === false || outcome === 'lose' || outcome === 'loss';
-      const net = Number(result?.netProfit ?? data?.netProfit ?? 0);
-      stats.total += 1;
-      if (won) stats.wins += 1;
-      else if (lost) stats.losses += 1;
-      if (Number.isFinite(net)) stats.netProfit += net;
+  function isGambleLogRow(row){
+    const raw = String(row?.trigger || row?.command || row?.aliasTrigger || row?.commandName || row?.input || '').toLowerCase();
+    return raw.replace(/^!/, '').split(/\s+/)[0] === 'gamble' || raw.includes('!gamble');
+  }
+
+  function gambleResultData(row){
+    const result = parseCommandResult(row);
+    return { result, data: result?.data || {} };
+  }
+
+  function gambleRowUser(row){
+    const { result, data } = gambleResultData(row);
+    const login = String(
+      row?.userLogin || row?.user_login || row?.login || row?.username ||
+      result?.userLogin || result?.login || data?.userLogin || data?.login || ''
+    ).replace(/^@/, '').trim().toLowerCase();
+    const displayName = String(
+      row?.userDisplayName || row?.user_display_name || row?.displayName || row?.display_name || row?.user ||
+      result?.userDisplayName || result?.displayName || data?.userDisplayName || data?.displayName || login || 'unbekannt'
+    ).replace(/^@/, '').trim();
+    return { login: login || displayName.toLowerCase() || 'unbekannt', displayName: displayName || login || 'unbekannt' };
+  }
+
+  function gambleRowTime(row){
+    return row?.created_at || row?.createdAt || row?.executedAt || row?.timestamp || row?.ts || row?.time || '';
+  }
+
+  function gambleRowOutcome(row){
+    const { result, data } = gambleResultData(row);
+    const outcome = String(result?.outcome || data?.outcome || row?.outcome || '').toLowerCase();
+    const won = result?.won === true || data?.won === true || row?.won === true || outcome === 'win' || outcome === 'won';
+    const lost = result?.won === false || data?.won === false || row?.won === false || outcome === 'lose' || outcome === 'loss' || outcome === 'lost';
+    return { won, lost, outcome: won ? 'Gewonnen' : (lost ? 'Verloren' : (outcome || 'Unklar')) };
+  }
+
+  function gambleRowNet(row){
+    const { result, data } = gambleResultData(row);
+    const net = Number(result?.netProfit ?? data?.netProfit ?? result?.delta ?? data?.delta ?? row?.netProfit ?? row?.delta ?? 0);
+    return Number.isFinite(net) ? net : 0;
+  }
+
+  function gambleRowBet(row){
+    const { result, data } = gambleResultData(row);
+    const bet = Number(result?.bet ?? data?.bet ?? result?.amount ?? data?.amount ?? row?.bet ?? row?.amount ?? 0);
+    return Number.isFinite(bet) ? bet : 0;
+  }
+
+  function normalizeGambleRows(logs){
+    return normalizeCommandLogs(logs).filter(row => {
+      if (!isGambleLogRow(row)) return false;
+      if (row?.ignored === true || row?.success === false) return false;
+      return true;
     });
+  }
+
+  function buildGamblePlayerStats(logs){
+    const map = new Map();
+    normalizeGambleRows(logs).forEach(row => {
+      const user = gambleRowUser(row);
+      const key = user.login || user.displayName.toLowerCase();
+      const current = map.get(key) || {
+        login: user.login,
+        displayName: user.displayName,
+        total: 0,
+        wins: 0,
+        losses: 0,
+        winRate: 0,
+        betTotal: 0,
+        netProfit: 0,
+        lastAt: ''
+      };
+      const outcome = gambleRowOutcome(row);
+      current.total += 1;
+      if (outcome.won) current.wins += 1;
+      else if (outcome.lost) current.losses += 1;
+      current.betTotal += gambleRowBet(row);
+      current.netProfit += gambleRowNet(row);
+      const at = gambleRowTime(row);
+      if (at && (!current.lastAt || Date.parse(at) > Date.parse(current.lastAt || 0))) current.lastAt = at;
+      current.winRate = current.total > 0 ? Math.round((current.wins / current.total) * 1000) / 10 : 0;
+      map.set(key, current);
+    });
+    return Array.from(map.values()).sort((a,b) => {
+      if (b.total !== a.total) return b.total - a.total;
+      return b.netProfit - a.netProfit;
+    });
+  }
+
+  function buildGambleStats(logs){
+    const stats = { total: 0, wins: 0, losses: 0, netProfit: 0, players: [] };
+    const gambleRows = normalizeGambleRows(logs);
+    gambleRows.forEach(row => {
+      const outcome = gambleRowOutcome(row);
+      stats.total += 1;
+      if (outcome.won) stats.wins += 1;
+      else if (outcome.lost) stats.losses += 1;
+      stats.netProfit += gambleRowNet(row);
+    });
+    stats.players = buildGamblePlayerStats(gambleRows);
     return stats;
   }
 
@@ -406,10 +492,12 @@ window.LoyaltyGamesModule = (function(){
   async function loadGambleStats(rerender = true){
     try {
       const data = await window.CGN.api(api.commandLogs);
-      state.gambleStats = buildGambleStats(normalizeCommandLogs(data));
+      state.gambleLogRows = normalizeGambleRows(data);
+      state.gambleStats = buildGambleStats(state.gambleLogRows);
       state.error = '';
     } catch (err) {
-      state.gambleStats = { total: 0, wins: 0, losses: 0, netProfit: 0, error: err.message };
+      state.gambleLogRows = [];
+      state.gambleStats = { total: 0, wins: 0, losses: 0, netProfit: 0, players: [], error: err.message };
       state.error = err.message || String(err);
     }
     if (rerender) render();
@@ -483,7 +571,7 @@ window.LoyaltyGamesModule = (function(){
         selectedGiveawayUid = giveawayRows[0]?.giveawayUid || '';
       }
 
-      state = { ...state, loading:false, error:'', status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, giveawayCommands, giveawayTexts, communicationStatus, gambleConfig, gambleAudit, gambleStats: buildGambleStats(normalizeCommandLogs(commandLogs)), selectedPresetUid, selectedGiveawayUid };
+      state = { ...state, loading:false, error:'', status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, giveawayCommands, giveawayTexts, communicationStatus, gambleConfig, gambleAudit, gambleLogRows: normalizeGambleRows(commandLogs), gambleStats: buildGambleStats(normalizeGambleRows(commandLogs)), selectedPresetUid, selectedGiveawayUid };
       if (selectedPresetUid) await loadPreset(selectedPresetUid, false);
       if (selectedGiveawayUid) await loadGiveaway(selectedGiveawayUid, false);
     } catch (err) {
@@ -1929,36 +2017,137 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
     `;
   }
 
+  function renderGambleStatsModal(){
+    const stats = state.gambleStats || { total: 0, wins: 0, losses: 0, netProfit: 0, players: [] };
+    const players = Array.isArray(stats.players) ? stats.players : buildGamblePlayerStats(state.gambleLogRows || []);
+    return `
+      <div class="lgw-modal-backdrop" data-lg-gamble-modal-close>
+        <div class="lgw-modal lgw-detail-modal" role="dialog" aria-modal="true" aria-label="Gamble Statistik" data-lg-gamble-modal-box>
+          <div class="lgw-modal-head">
+            <div>
+              <p class="lg-eyebrow">Gamble</p>
+              <h3>Spieler-Statistik</h3>
+              <p class="lg-muted">Aus den zuletzt geladenen Command-Logs. Für echte Langzeitstatistik braucht es später eine eigene Backend-API.</p>
+            </div>
+            <button class="lgw-icon-btn" data-lg-gamble-modal-close type="button">×</button>
+          </div>
+          <div class="lg-grid lg-grid-4 lg-gamble-stats">
+            <article class="lg-card"><span class="lg-card-label">Gambles</span><strong>${fmtNumber(stats.total || 0)}</strong></article>
+            <article class="lg-card"><span class="lg-card-label">Gewonnen</span><strong>${fmtNumber(stats.wins || 0)}</strong></article>
+            <article class="lg-card"><span class="lg-card-label">Verloren</span><strong>${fmtNumber(stats.losses || 0)}</strong></article>
+            <article class="lg-card"><span class="lg-card-label">Netto</span><strong>${esc(formatSigned(stats.netProfit || 0))}</strong><small>Kekskrümel</small></article>
+          </div>
+          <section class="lg-panel" style="margin-top:14px">
+            <div class="lg-panel-head">
+              <div>
+                <h3>Spieler</h3>
+                <p class="lg-muted">Sortiert nach Anzahl der geladenen Gamble-Spiele.</p>
+              </div>
+              <button class="lg-btn lg-btn-secondary" data-lg-gamble-stats-refresh type="button">Neu laden</button>
+            </div>
+            <div class="lg-table-wrap">
+              <table class="lg-table">
+                <thead><tr><th>User</th><th>Spiele</th><th>Gewonnen</th><th>Verloren</th><th>Quote</th><th>Einsatz gesamt</th><th>Netto</th><th>Letzter Gamble</th></tr></thead>
+                <tbody>
+                  ${players.slice(0, 80).map(p => `
+                    <tr>
+                      <td><strong>${esc(p.displayName || p.login || '-')}</strong><br><small>${esc(p.login || '')}</small></td>
+                      <td>${fmtNumber(p.total || 0)}</td>
+                      <td>${fmtNumber(p.wins || 0)}</td>
+                      <td>${fmtNumber(p.losses || 0)}</td>
+                      <td>${esc(String(p.winRate ?? 0).replace('.', ','))}%</td>
+                      <td>${fmtNumber(p.betTotal || 0)}</td>
+                      <td><strong>${esc(formatSigned(p.netProfit || 0))}</strong></td>
+                      <td>${fmtDate(p.lastAt)}</td>
+                    </tr>
+                  `).join('') || `<tr><td colspan="8" class="lg-muted">Keine Gamble-Spieler in den geladenen Command-Logs gefunden.</td></tr>`}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderGambleAuditModal(){
+    const auditRows = Array.isArray(state.gambleAudit?.items) ? state.gambleAudit.items : (Array.isArray(state.gambleAudit?.rows) ? state.gambleAudit.rows : []);
+    return `
+      <div class="lgw-modal-backdrop" data-lg-gamble-modal-close>
+        <div class="lgw-modal lgw-detail-modal" role="dialog" aria-modal="true" aria-label="Gamble Audit" data-lg-gamble-modal-box>
+          <div class="lgw-modal-head">
+            <div>
+              <p class="lg-eyebrow">Gamble</p>
+              <h3>Config-Audit</h3>
+              <p class="lg-muted">Technische Schreibvorgänge der Gamble-Konfiguration. Nicht für die normale Tagesansicht gedacht.</p>
+            </div>
+            <button class="lgw-icon-btn" data-lg-gamble-modal-close type="button">×</button>
+          </div>
+          <section class="lg-panel">
+            <div class="lg-panel-head">
+              <div>
+                <h3>Letzte Änderungen</h3>
+                <p class="lg-muted">Zeigt nur Audit-Daten der vorhandenen Gamble-Dashboard-Audit-API.</p>
+              </div>
+              <button class="lg-btn lg-btn-secondary" data-lg-gamble-audit-refresh type="button">Neu laden</button>
+            </div>
+            <div class="lg-table-wrap">
+              <table class="lg-table">
+                <thead><tr><th>Aktion</th><th>User</th><th>Zeitpunkt</th><th>Rolle</th></tr></thead>
+                <tbody>
+                  ${auditRows.length ? auditRows.map(row => {
+                    const actor = row.actor_login || row.actorLogin || row.actor || 'unbekannt';
+                    const display = row.actor_display_name || row.actorDisplayName || actor;
+                    const role = row.actor_role || row.actorRole || '-';
+                    const action = row.action || row.event || row.audit_uid || row.auditUid || 'write';
+                    const at = row.created_at || row.createdAt || row.ts || '';
+                    return `<tr><td><strong>${esc(action)}</strong></td><td>${esc(display)}<br><small>${esc(actor)}</small></td><td>${fmtDate(at)}</td><td>${esc(role)}</td></tr>`;
+                  }).join('') : `<tr><td colspan="4" class="lg-muted">Keine Audit-Einträge gefunden.</td></tr>`}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderGambleModal(){
+    if (state.gambleModal === 'stats') return renderGambleStatsModal();
+    if (state.gambleModal === 'audit') return renderGambleAuditModal();
+    return '';
+  }
+
   function renderGamble(){
     const config = state.gambleConfig || {};
-    const auditRows = Array.isArray(state.gambleAudit?.items) ? state.gambleAudit.items : (Array.isArray(state.gambleAudit?.rows) ? state.gambleAudit.rows : []);
-    const stats = state.gambleStats || { total: 0, wins: 0, losses: 0, netProfit: 0 };
+    const stats = state.gambleStats || { total: 0, wins: 0, losses: 0, netProfit: 0, players: [] };
     const engineOn = Boolean(getGambleEngine(config, 'enabled', false));
     const commandOn = Boolean(getGambleCommand(config, 'enabled', false));
+    const chatOn = Boolean(getGambleCommand(config, 'sendResultToChat', true));
     const chance = getGambleEngine(config, 'winChancePercent', '?');
     const cooldown = getGambleCommand(config, 'cooldownUserMs', '?');
 
     return `
       <div class="lg-grid lg-grid-4 lg-gamble-kpis">
         <article class="lg-card">
-          <span class="lg-card-label">Engine</span>
-          <strong>${engineOn ? 'AN' : 'AUS'}</strong>
-          ${badge(engineOn, 'Berechnung aktiv', 'Berechnung aus')}
-        </article>
-        <article class="lg-card">
-          <span class="lg-card-label">Command</span>
-          <strong>${commandOn ? 'AN' : 'AUS'}</strong>
-          ${badge(commandOn, '!gamble aktiv', '!gamble aus')}
+          <span class="lg-card-label">Gamble</span>
+          <strong>${engineOn && commandOn ? 'AN' : 'AUS'}</strong>
+          ${badge(engineOn && commandOn, 'spielbereit', 'prüfen')}
         </article>
         <article class="lg-card">
           <span class="lg-card-label">Chance</span>
           <strong>${esc(chance)}%</strong>
-          <small>Gewinn/Verlust = Einsatz</small>
+          <small>Gewinn = Einsatz dazu</small>
         </article>
         <article class="lg-card">
           <span class="lg-card-label">Cooldown</span>
           <strong>${esc(formatDuration(cooldown))}</strong>
-          <small>pro User</small>
+          <small>Command-Cooldown pro User</small>
+        </article>
+        <article class="lg-card">
+          <span class="lg-card-label">Netto</span>
+          <strong>${esc(formatSigned(stats.netProfit || 0))}</strong>
+          <small>${fmtNumber(stats.total || 0)} geladene Gambles</small>
         </article>
       </div>
 
@@ -1967,48 +2156,40 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
           <div class="lg-panel-head">
             <div>
               <h3>Gamble</h3>
-              <p class="lg-muted">Status, Statistik und Audit. Die Bearbeitung der Werte liegt jetzt zentral im Config-Tab.</p>
+              <p class="lg-muted">Alltagsansicht für den Stream. Technische Logs und Audit liegen hinter den Buttons.</p>
             </div>
             <div class="lg-actions">
               <button class="lg-btn" data-lg-open-config-section="gamble">Config bearbeiten</button>
+              <button class="lg-btn lg-btn-secondary" data-lg-gamble-stats>Statistik öffnen</button>
+              <button class="lg-btn lg-btn-secondary" data-lg-gamble-audit>Audit öffnen</button>
               <button class="lg-btn lg-btn-secondary" data-lg-gamble-reload>Neu laden</button>
             </div>
           </div>
           <div class="lg-mini-list">
-            <div class="lg-mini-row"><span><strong>Engine</strong><br><small class="lg-muted">${engineOn ? 'aktiv' : 'inaktiv'}</small></span>${badge(engineOn, 'aktiv', 'aus')}</div>
-            <div class="lg-mini-row"><span><strong>Command</strong><br><small class="lg-muted">${commandOn ? '!gamble aktiv' : '!gamble aus'}</small></span>${badge(commandOn, 'aktiv', 'aus')}</div>
-            <div class="lg-mini-row"><span><strong>Aktive Regeln</strong><br><small class="lg-muted">${esc(chance)}% Chance · Gewinn/Verlust = Einsatz · ${esc(formatDuration(cooldown))} Command-Cooldown</small></span></div>
+            <div class="lg-mini-row"><span><strong>Command</strong><br><small class="lg-muted">${commandOn ? '!gamble ist aktiv' : '!gamble ist aus'}</small></span>${badge(commandOn, 'aktiv', 'aus')}</div>
+            <div class="lg-mini-row"><span><strong>Chat-Antwort</strong><br><small class="lg-muted">${chatOn ? 'HeimaufsichtCGN antwortet im Chat.' : 'Keine Chat-Antwort aktiv.'}</small></span>${badge(chatOn, 'aktiv', 'aus')}</div>
+            <div class="lg-mini-row"><span><strong>Rechnung</strong><br><small class="lg-muted">Gewinn = Einsatz dazu · Verlust = Einsatz weg · kein sichtbarer Auszahlungsmultiplikator.</small></span><span class="lg-badge lg-badge-ok">sauber</span></div>
+            <div class="lg-mini-row"><span><strong>Config</strong><br><small class="lg-muted">Werte werden zentral im Config-Tab bearbeitet.</small></span><span class="lg-badge lg-badge-warn">Config-Tab</span></div>
           </div>
-          ${renderGambleResultBox('Letztes Config-Ergebnis')}
         </div>
 
         <div class="lg-panel">
           <div class="lg-panel-head">
             <div>
-              <h3>Statistik & Audit</h3>
-              <p class="lg-muted">Statistik aus Command-Logs, Audit aus Gamble-Dashboard-Audit.</p>
-            </div>
-            <div class="lg-actions">
-              <button class="lg-btn lg-btn-secondary" data-lg-gamble-stats>Stats</button>
-              <button class="lg-btn lg-btn-secondary" data-lg-gamble-audit>Audit</button>
+              <h3>Kurzstatistik</h3>
+              <p class="lg-muted">Aus den zuletzt geladenen Command-Logs. Details findest du über „Statistik öffnen“.</p>
             </div>
           </div>
           <div class="lg-grid lg-grid-4 lg-gamble-stats">
             <article class="lg-card"><span class="lg-card-label">Gambles</span><strong>${fmtNumber(stats.total || 0)}</strong></article>
-            <article class="lg-card"><span class="lg-card-label">Wins</span><strong>${fmtNumber(stats.wins || 0)}</strong></article>
-            <article class="lg-card"><span class="lg-card-label">Losses</span><strong>${fmtNumber(stats.losses || 0)}</strong></article>
+            <article class="lg-card"><span class="lg-card-label">Gewonnen</span><strong>${fmtNumber(stats.wins || 0)}</strong></article>
+            <article class="lg-card"><span class="lg-card-label">Verloren</span><strong>${fmtNumber(stats.losses || 0)}</strong></article>
             <article class="lg-card"><span class="lg-card-label">Netto</span><strong>${esc(formatSigned(stats.netProfit || 0))}</strong></article>
           </div>
-          <div class="lg-mini-list lg-gamble-audit-list">
-            ${auditRows.length ? auditRows.slice(0, 8).map(row => {
-              const actor = row.actor_login || row.actorLogin || row.actor || 'unbekannt';
-              const action = row.action || row.event || row.audit_uid || row.auditUid || 'write';
-              const at = row.created_at || row.createdAt || row.ts || '';
-              return `<div class="lg-mini-row"><span><strong>${esc(action)}</strong><br><small class="lg-muted">${esc(actor)} · ${esc(at)}</small></span></div>`;
-            }).join('') : `<p class="lg-muted">Keine Audit-Einträge gefunden.</p>`}
-          </div>
+          <div class="lg-warning">Hinweis: Diese Statistik basiert aktuell auf den geladenen Command-Logs. Für echte Langzeit-Auswertung planen wir später eine eigene Backend-Statistikroute.</div>
         </div>
       </div>
+      ${renderGambleModal()}
     `;
   }
 
@@ -2114,8 +2295,30 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
       render();
     });
 
-    root.querySelector('[data-lg-gamble-audit]')?.addEventListener('click', () => loadGambleAudit(true));
-    root.querySelector('[data-lg-gamble-stats]')?.addEventListener('click', () => loadGambleStats(true));
+    root.querySelector('[data-lg-gamble-audit]')?.addEventListener('click', async () => {
+      state.gambleModal = 'audit';
+      await loadGambleAudit(false);
+      render();
+    });
+    root.querySelector('[data-lg-gamble-stats]')?.addEventListener('click', async () => {
+      state.gambleModal = 'stats';
+      await loadGambleStats(false);
+      render();
+    });
+    root.querySelector('[data-lg-gamble-audit-refresh]')?.addEventListener('click', async () => {
+      await loadGambleAudit(false);
+      render();
+    });
+    root.querySelector('[data-lg-gamble-stats-refresh]')?.addEventListener('click', async () => {
+      await loadGambleStats(false);
+      render();
+    });
+    root.querySelectorAll('[data-lg-gamble-modal-close]').forEach(el => el.addEventListener('click', ev => {
+      if (ev.target.closest('[data-lg-gamble-modal-box]') && !ev.target.matches('[data-lg-gamble-modal-close]')) return;
+      state.gambleModal = '';
+      render();
+    }));
+    root.querySelectorAll('[data-lg-gamble-modal-box]').forEach(box => box.addEventListener('click', ev => ev.stopPropagation()));
     root.querySelector('[data-lg-gamble-clear-result]')?.addEventListener('click', () => {
       state.gambleResult = '';
       render();
