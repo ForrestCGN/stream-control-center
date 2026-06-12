@@ -1,96 +1,189 @@
 # CURRENT STATUS
 
-Stand: STEP233 / Project Audit nach STEP232
-Datum: 2026-06-11
+Stand: LWG-4Q.12R / Documentation & Next Chat Handoff
+Datum: 2026-06-12
+Projekt: ForrestCGN / stream-control-center
 
 ## Zweck dieses Stands
 
-Dieser Stand friert den aktuellen Projektzustand nach den Loyalty-/Gamble-Schritten und der problematischen Dashboard-Shell-Arbeit ein. Er dient als Audit-/Handoff-Punkt, nicht als neue Feature-Freigabe.
+Dieser Stand konsolidiert die nach STEP233 weitergeführten Loyalty-/Gamble-/Giveaway-Dashboard-Arbeiten. Er dokumentiert die bestätigten UI-Cleanup-Schritte und hält die nächsten offenen Arbeiten fest.
 
-## Stabil bestätigt
+Wichtig: Dieser Doku-Stand ersetzt keine produktive SQLite-Datenbank, ändert keine Backend-Logik und baut keine neuen Runtime-Flows.
 
-### Loyalty / Punkte / Commands
+## Basis / Single Source of Truth
 
-- Node-Command-System ist aktiv und verarbeitet die Loyalty-Kommandos.
-- `!punkte` / `!points` sind aktiv und liefern Antworten über `twitch_presence`.
-- `!givepoints` ist aktiv und auf Mod+ beschränkt.
-- `!setpoint` ist aktiv und auf Streamer/Owner beschränkt.
-- Rechteprüfungen für Viewer/Mod/Streamer wurden in den STEP216/STEP217-Tests bestätigt.
-- Chat-Ausgabe über `twitch_presence.sendChatMessage(...)` wurde bestätigt.
+- Repo: `ForrestCGN/stream-control-center`
+- Branch: `dev`
+- Lokales Repo: `D:\Git\stream-control-center`
+- Live-Ziel: `D:\Streaming\stramAssets`
+- Dashboard: `http://127.0.0.1:8080/dashboard`
+- Produktive SQLite-Datenbank: `D:\Streaming\stramAssets\data\sqlite\app.sqlite`
 
-### Gamble Backend
+## Wichtige Arbeitsregel weiterhin gültig
 
-- `!gamble` ist live aktiv.
-- Gamble-Engine ist live aktiv.
-- Prozent-Einsätze wie `!gamble 10%` sind bestätigt.
-- Server-seitige Zufallsquelle `crypto.randomInt` wurde bestätigt.
-- Strukturierte Gamble-Ergebnisse wurden bestätigt:
-  - `bet`
-  - `outcome`
-  - `won`
-  - `balanceBefore`
-  - `balanceAfter`
-  - weitere Ergebnisfelder
-- `command_execution_log` enthält strukturierte Gamble-Daten.
-- Testuser wurden nach den kontrollierten Tests wiederhergestellt.
+- Nicht raten.
+- Echte Dateien / GitHub-dev / hochgeladene Dateien als Single Source of Truth verwenden.
+- Keine Apply-Scripte.
+- Keine Patch-Scripte.
+- Keine PowerShell-Regex-Patches.
+- Keine Inline-Set-Content-Fixes.
+- Keine Funktionalität entfernen.
+- SQLite-Datenbank niemals ersetzen/überschreiben.
+- Änderungen nur als vollständige Ersatzdateien oder ZIPs mit echten Zielpfaden liefern.
 
-### Gamble Dashboard APIs
+## Seit STEP233 geklärter Stand
 
-- Readonly API bestätigt:
-  - `GET /api/loyalty/games/gamble/dashboard-config`
-- Write API bestätigt:
-  - `POST /api/loyalty/games/gamble/dashboard-config`
-- Audit API bestätigt:
-  - `GET /api/loyalty/games/gamble/dashboard-audit`
-- Rollen-/Rechteschutz wurde bestätigt:
-  - Viewer wird mit HTTP 403 geblockt.
-  - Streamer/Owner darf schreiben.
-- Dryrun ohne Mutation wurde bestätigt.
-- Echter Write + Restore wurde bestätigt.
-- Audit-Tabelle bestätigt:
-  - `loyalty_games_dashboard_audit`
+### Dashboard-Struktur
 
-### Dashboard Detailseite
+Die echte Dashboard-Struktur wurde geprüft.
 
-- Standalone-Detailseite existiert:
-  - `/dashboard/loyalty-gamble.html`
-- HTTP-Test ergab Status 200.
-- Route-Attribut ist vorhanden:
-  - `data-dashboard-route="loyalty-gamble"`
-- STEP231 Navigation/Routing wurde erfolgreich getestet.
+Bestätigt:
 
-## Versionen aus den bestätigten Tests
+- `htdocs/dashboard/index.html` lädt `loyalty_games.css/js`.
+- `htdocs/dashboard/index.html` lädt `loyalty_giveaways.css/js`.
+- `loyaltyGamesModule` und `loyaltyGiveawaysModule` existieren als eigene Dashboard-Module.
+- Loyalty-Hauptnavigation öffnet weiterhin den Loyalty-Games-Bereich.
+- Giveaways sind als eigenes Giveaway-Control vorhanden.
 
-- `commands.js`: `0.2.3`, Build `LWG_6_5_GAMBLE_RESULT_LOG_CLEANUP`
-- `loyalty_games.js`: `0.2.7`, Build `STEP_LWG_6_9_GAMBLE_DASHBOARD_WRITE_API`
+### Giveaways / Giveaway-Control
 
-## Kritisch / nicht als stabile fachliche Basis verwenden
+Bestätigter aktueller Stand:
 
-### STEP232 Dashboard-Shell-Integration
+- Giveaways laufen im neuen Giveaway-Control über `htdocs/dashboard/modules/loyalty_giveaways.js`.
+- Die alte Inline-Giveaway-Seite in `loyalty_games.js` darf nicht wieder eingeführt werden.
+- Der alte Inline-Giveaway-Wheel-Editor darf nicht wieder eingeführt werden.
+- Vollständige Tab-Leiste bleibt sichtbar:
+  - Übersicht
+  - Glücksrad
+  - Presets
+  - Giveaways
+  - Gamble
+  - Config
+  - Chat/Commands
+  - Verlauf
+  - Hinweise
 
-STEP232 wurde technisch getestet und meldete OK. Trotzdem wird STEP232 nicht als fachlich vertrauenswürdige Grundlage für weitere Dashboard-Arbeiten behandelt, weil der Arbeitsschritt auf ungeprüften Annahmen zur echten Dashboard-Struktur aufgebaut wurde.
+### LWG-4Q.12O – Giveaway-Control UI Cleanup
 
-Status STEP232:
+Umgesetzt als reine UI-Ergänzung:
 
-- technisch: Dateien/Marker/HTTP-Check wurden getestet
-- fachlich/prozessual: auditpflichtig
-- nicht weiter darauf aufbauen, bevor die echte Dashboard-Struktur geprüft wurde
+- Giveaway-Control optisch geglättet.
+- Zusätzliche CSS-Datei eingebunden:
+  - `htdocs/dashboard/modules/loyalty_giveaways_cleanup.css`
+- Keine Backend-Änderung.
+- Keine Datenbank-Änderung.
+- Keine Giveaway-Logik geändert.
 
-## Harte Arbeitsregel ab diesem Stand
+### LWG-4Q.12P – Gamble UI Cleanup
 
-Keine neuen Dashboard-Integrationen, keine Shell-Karten, keine Hauptdashboard-Änderungen und keine Komfort-Features, bevor folgende Dateien/Strukturen real geprüft wurden:
+Umgesetzt:
 
-- `htdocs/dashboard/index.html`
-- vorhandene Dashboard-Module unter `htdocs/dashboard/modules/`
-- bestehende Navigation/Shell/Registry-Struktur
-- `config/dashboard*.json`
-- relevante project-state- und docs/current-Dateien
+- Gamble-Hauptansicht entschlackt.
+- Direkte technische Audit-Liste aus der Hauptansicht entfernt.
+- `Statistik öffnen` öffnet ein eigenes Modal.
+- `Audit öffnen` öffnet ein eigenes Modal.
+- Spieler-Statistik wird aktuell aus geladenen Command-Logs aggregiert.
 
-## Nicht geändert durch diesen Doku-Stand
+Einschränkung:
 
-- kein Backend-Code
-- keine Dashboard-Code-Dateien
-- keine Datenbank
-- keine Runtime-Konfiguration
-- keine Commands
-- keine produktiven Flows
+- Aktuelle Spielerstatistik basiert nur auf `/api/commands/logs?limit=80` bzw. den im Frontend geladenen Logs.
+- Für echte Langzeitstatistik ist später eine eigene Backend-API nötig.
+
+Nicht geändert:
+
+- Gamble-Berechnung.
+- Punktebuchung.
+- Command-Logik.
+- Cooldown-Logik.
+- Backend-Routen.
+- Datenbank.
+
+### LWG-4Q.12Q – Giveaway Wheel Editor UI Cleanup
+
+Umgesetzt als reine UI-Ergänzung:
+
+- Glücksrad-Editor-Modal scrollbar gemacht.
+- Unnötige Standardfelder im Wheel-Editor aus der sichtbaren UI genommen:
+  - Gewicht
+  - Gesamtmenge
+  - Aktiv-Checkbox
+  - Reihenfolge bei bestehenden Feldern
+- Technische Werte bleiben erhalten bzw. werden weiterhin mitgesendet:
+  - `weight`
+  - `quantityTotal`
+  - `enabled`
+  - `sortOrder`
+
+Nicht geändert:
+
+- Backend.
+- Datenbank.
+- Giveaway-Logik.
+- Wheel-/Reward-Logik.
+- Gamble.
+- Commands.
+
+## Aktueller Gamble-Stand
+
+Live bestätigt:
+
+- `!gamble` läuft über HeimaufsichtCGN.
+- `!gamble 100` funktioniert.
+- `!gamble 10%` funktioniert.
+- Gewinn = Einsatz dazu.
+- Verlust = Einsatz weg.
+- Pro Ergebnis wird nur eine Textvariante ausgegeben.
+- Engine-Cooldown wurde nicht zusätzlich wieder eingeführt.
+
+Noch offen:
+
+- StreamElements-Gamble/Roulette später abschalten, damit nur HeimaufsichtCGN antwortet.
+- Echte Langzeitstatistik per Backend-Route planen.
+- Config-/Text-Struktur sauber weiterführen.
+
+## Geplante Strukturwünsche aus dem aktuellen Chat
+
+Forrest möchte als nächste größere Dashboard-Struktur:
+
+1. Diverse Modul-Configs sauber in den zentralen `Config`-Tab bauen.
+2. Text-Configs in einen eigenen Tab auslagern.
+3. Text-Config-Tab soll per Dropdown einzelne Module/Textbereiche auswählbar machen.
+4. Keine neuen Parallelstrukturen erfinden.
+5. Vorhandene Helper nutzen:
+   - `backend/modules/helpers/helper_texts.js`
+   - vorhandene module_texts/module_text_variants-Struktur
+6. Config- und Text-Dashboard nicht ungeprüft vermischen.
+
+## Tests für die letzten UI-Schritte
+
+Nach Entpacken/Übernahme der letzten ZIPs:
+
+```powershell
+node -c .\htdocs\dashboard\modules\loyalty_games.js
+node -c .\htdocs\dashboard\modules\loyalty_giveaways.js
+node -c .\htdocs\dashboard\app.js
+```
+
+Manuelle Browserprüfung:
+
+```text
+Dashboard → Loyalty → Gamble
+Dashboard → Loyalty → Giveaways
+Dashboard → Loyalty → Giveaways → Glücksrad bearbeiten
+```
+
+## Offene Risiken / Hinweise
+
+- GitHub-dev-Projektstatus war vor dieser Doku noch auf STEP233. Diese Doku konsolidiert den neueren Chatstand.
+- Wenn Live-System und GitHub/dev auseinanderlaufen, zuerst echte Dateien vergleichen.
+- Keine weiteren UI-/Dashboard-Schritte bauen, ohne vorher echte Dateien zu prüfen.
+- Die neuen CSS-Ergänzungen sind bewusst UI-only; bei Cache-Problemen Browser/Server neu laden.
+
+## Nicht geändert durch diesen Doku-Step
+
+- Kein Backend-Code.
+- Keine Datenbank.
+- Keine Runtime-Konfiguration.
+- Keine Commands.
+- Keine Twitch-/Streamer.bot-Anbindung.
+- Keine Gamble-/Giveaway-Logik.
