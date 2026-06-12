@@ -15,6 +15,9 @@ window.LoyaltyGamesModule = (function(){
     giveawayCommands: '/api/loyalty/giveaways/commands',
     giveawayTexts: '/api/loyalty/giveaways/texts',
     communicationStatus: '/api/communication/status',
+    gambleConfig: '/api/loyalty/games/gamble/dashboard-config',
+    gambleAudit: '/api/loyalty/games/gamble/dashboard-audit?limit=8',
+    commandLogs: '/api/commands/logs?limit=80',
     overlay: '/overlays/loyalty/wheel_overlay.html'
   };
 
@@ -37,6 +40,10 @@ window.LoyaltyGamesModule = (function(){
     giveawayCommands: null,
     giveawayTexts: null,
     communicationStatus: null,
+    gambleConfig: null,
+    gambleAudit: null,
+    gambleStats: null,
+    gambleResult: '',
     selectedPresetUid: '',
     selectedPreset: null,
     selectedGiveawayUid: '',
@@ -240,17 +247,193 @@ window.LoyaltyGamesModule = (function(){
     });
   }
 
+  function normalizeCommandLogs(data){
+    if (Array.isArray(data?.logs)) return data.logs;
+    if (Array.isArray(data?.items)) return data.items;
+    if (Array.isArray(data?.rows)) return data.rows;
+    if (Array.isArray(data?.data?.logs)) return data.data.logs;
+    if (Array.isArray(data)) return data;
+    return [];
+  }
+
+  function parseCommandResult(row){
+    const candidates = [row?.result, row?.response, row?.data, row?.payload];
+    for (const value of candidates) {
+      if (!value) continue;
+      if (typeof value === 'object') return value;
+      if (typeof value === 'string') {
+        try { return JSON.parse(value); } catch (_) {}
+      }
+    }
+    return row || {};
+  }
+
+  function buildGambleStats(logs){
+    const stats = { total: 0, wins: 0, losses: 0, netProfit: 0 };
+    normalizeCommandLogs(logs).filter(row => String(row?.trigger || row?.command || row?.aliasTrigger || '').toLowerCase() === 'gamble').forEach(row => {
+      if (row?.ignored === true || row?.success === false) return;
+      const result = parseCommandResult(row);
+      const data = result?.data || {};
+      const outcome = String(result?.outcome || data?.outcome || '').toLowerCase();
+      const won = result?.won === true || data?.won === true || outcome === 'win';
+      const lost = result?.won === false || data?.won === false || outcome === 'lose' || outcome === 'loss';
+      const net = Number(result?.netProfit ?? data?.netProfit ?? 0);
+      stats.total += 1;
+      if (won) stats.wins += 1;
+      else if (lost) stats.losses += 1;
+      if (Number.isFinite(net)) stats.netProfit += net;
+    });
+    return stats;
+  }
+
+  function formatDuration(value){
+    const ms = Number(value);
+    if (!Number.isFinite(ms)) return String(value ?? '?');
+    if (ms <= 0) return '0s';
+    if (ms % 60000 === 0) return `${ms / 60000}m`;
+    if (ms % 1000 === 0) return `${ms / 1000}s`;
+    return `${ms}ms`;
+  }
+
+  function formatSigned(value){
+    const num = Number(value) || 0;
+    return num > 0 ? `+${num}` : String(num);
+  }
+
+  function getGambleEngine(config, key, fallback = ''){
+    return config?.config?.engine?.[key] ?? fallback;
+  }
+
+  function getGambleCommand(config, key, fallback = ''){
+    return config?.command?.[key] ?? fallback;
+  }
+
+  function getGambleFormValue(form, name){
+    const input = form?.elements?.[name];
+    if (!input) return null;
+    if (input.type === 'checkbox') return Boolean(input.checked);
+    const raw = String(input.value || '').trim();
+    if (raw === '') return null;
+    const num = Number(raw);
+    return Number.isFinite(num) ? num : raw;
+  }
+
+  function getGambleWriteBody(form, { dryRun = false, confirmWrite = false } = {}){
+    const actorLogin = String(form?.elements?.actorLogin?.value || 'forrestcgn').trim();
+    return {
+      actorLogin,
+      actorDisplayName: actorLogin || 'ForrestCGN',
+      actorRole: String(form?.elements?.actorRole?.value || 'streamer').trim(),
+      dryRun,
+      confirmWrite,
+      reason: dryRun ? 'STEP235C Dashboard Loyalty Gamble Dryrun' : 'STEP235C Dashboard Loyalty Gamble Write',
+      engine: {
+        enabled: getGambleFormValue(form, 'enabled'),
+        winChancePercent: getGambleFormValue(form, 'winChancePercent'),
+        payoutMultiplier: getGambleFormValue(form, 'payoutMultiplier'),
+        minBet: getGambleFormValue(form, 'minBet'),
+        maxBet: getGambleFormValue(form, 'maxBet'),
+        userCooldownMs: getGambleFormValue(form, 'userCooldownMs'),
+        globalCooldownMs: getGambleFormValue(form, 'globalCooldownMs'),
+        allowPercentBets: getGambleFormValue(form, 'allowPercentBets'),
+        allowKeywordBets: getGambleFormValue(form, 'allowKeywordBets')
+      },
+      command: {
+        enabled: getGambleFormValue(form, 'commandEnabled'),
+        cooldownUserMs: getGambleFormValue(form, 'commandCooldownUserMs'),
+        sendResultToChat: getGambleFormValue(form, 'sendResultToChat'),
+        activationState: dryRun ? 'dashboard_loyalty_gamble_dryrun_step235c' : 'dashboard_loyalty_gamble_write_step235c'
+      }
+    };
+  }
+
+  async function loadGambleConfig(rerender = true){
+    try {
+      state.gambleConfig = await window.CGN.api(api.gambleConfig);
+      state.error = '';
+    } catch (err) {
+      state.gambleConfig = { ok:false, error: err.message };
+      state.error = err.message || String(err);
+    }
+    if (rerender) render();
+  }
+
+  async function loadGambleAudit(rerender = true){
+    try {
+      state.gambleAudit = await window.CGN.api(api.gambleAudit);
+      state.error = '';
+    } catch (err) {
+      state.gambleAudit = { ok:false, error: err.message, items:[] };
+      state.error = err.message || String(err);
+    }
+    if (rerender) render();
+  }
+
+  async function loadGambleStats(rerender = true){
+    try {
+      const data = await window.CGN.api(api.commandLogs);
+      state.gambleStats = buildGambleStats(normalizeCommandLogs(data));
+      state.error = '';
+    } catch (err) {
+      state.gambleStats = { total: 0, wins: 0, losses: 0, netProfit: 0, error: err.message };
+      state.error = err.message || String(err);
+    }
+    if (rerender) render();
+  }
+
+  async function submitGambleDryrun(form){
+    state.saving = true;
+    state.gambleResult = 'Dryrun läuft...';
+    render();
+    try {
+      const result = await apiPost(api.gambleConfig, getGambleWriteBody(form, { dryRun: true }));
+      state.gambleResult = JSON.stringify(result, null, 2);
+      state.message = 'Gamble-Dryrun erfolgreich.';
+    } catch (err) {
+      state.gambleResult = JSON.stringify({ ok:false, error: err.message, data: err.data || null }, null, 2);
+      state.error = err.message || String(err);
+    } finally {
+      state.saving = false;
+      render();
+    }
+  }
+
+  async function submitGambleWrite(form){
+    if (!form?.elements?.confirmWrite?.checked) {
+      state.gambleResult = 'Write blockiert: Bitte zuerst „Write bestätigen“ aktivieren.';
+      render();
+      return;
+    }
+    state.saving = true;
+    state.gambleResult = 'Speichere Gamble-Konfiguration...';
+    render();
+    try {
+      const result = await apiPost(api.gambleConfig, getGambleWriteBody(form, { confirmWrite: true }));
+      state.gambleResult = JSON.stringify(result, null, 2);
+      state.message = result?.ok ? 'Gamble-Konfiguration gespeichert.' : 'Gamble-Write abgeschlossen, bitte Ergebnis prüfen.';
+      await loadGambleConfig(false);
+      await loadGambleAudit(false);
+      await loadGambleStats(false);
+    } catch (err) {
+      state.gambleResult = JSON.stringify({ ok:false, error: err.message, data: err.data || null }, null, 2);
+      state.error = err.message || String(err);
+    } finally {
+      state.saving = false;
+      render();
+    }
+  }
+
   async function loadAll(force){
     root = document.getElementById('loyaltyGamesModule');
     if (!root || !window.CGN) return;
-    if (!force && state.status && state.wheelStatus && state.presets && state.giveaways && state.giveawayCommands && state.giveawayTexts && state.communicationStatus) { render(); return; }
+    if (!force && state.status && state.wheelStatus && state.presets && state.giveaways && state.giveawayCommands && state.giveawayTexts && state.communicationStatus && state.gambleConfig) { render(); return; }
 
     state.loading = true;
     state.error = '';
     render();
 
     try {
-      const [status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, giveawayCommands, giveawayTexts, communicationStatus] = await Promise.all([
+      const [status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, giveawayCommands, giveawayTexts, communicationStatus, gambleConfig, gambleAudit, commandLogs] = await Promise.all([
         window.CGN.api(api.status).catch(err => ({ ok:false, error:err.message })),
         window.CGN.api(api.config).catch(err => ({ ok:false, error:err.message })),
         window.CGN.api(api.routes).catch(err => ({ ok:false, error:err.message, routes:[] })),
@@ -263,7 +446,10 @@ window.LoyaltyGamesModule = (function(){
         window.CGN.api(api.giveaways).catch(err => ({ ok:false, error:err.message, rows:[] })),
         window.CGN.api(api.giveawayCommands).catch(err => ({ ok:false, error:err.message, rows:[] })),
         window.CGN.api(api.giveawayTexts).catch(err => ({ ok:false, error:err.message, keys:[], categories:[] })),
-        window.CGN.api(api.communicationStatus).catch(err => ({ ok:false, error:err.message, status:{ clients:[] } }))
+        window.CGN.api(api.communicationStatus).catch(err => ({ ok:false, error:err.message, status:{ clients:[] } })),
+        window.CGN.api(api.gambleConfig).catch(err => ({ ok:false, error:err.message })),
+        window.CGN.api(api.gambleAudit).catch(err => ({ ok:false, error:err.message, items:[] })),
+        window.CGN.api(api.commandLogs).catch(err => ({ ok:false, error:err.message, logs:[] }))
       ]);
 
       const presetRows = rows(presets);
@@ -278,7 +464,7 @@ window.LoyaltyGamesModule = (function(){
         selectedGiveawayUid = giveawayRows[0]?.giveawayUid || '';
       }
 
-      state = { ...state, loading:false, error:'', status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, giveawayCommands, giveawayTexts, communicationStatus, selectedPresetUid, selectedGiveawayUid };
+      state = { ...state, loading:false, error:'', status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, giveawayCommands, giveawayTexts, communicationStatus, gambleConfig, gambleAudit, gambleStats: buildGambleStats(normalizeCommandLogs(commandLogs)), selectedPresetUid, selectedGiveawayUid };
       if (selectedPresetUid) await loadPreset(selectedPresetUid, false);
       if (selectedGiveawayUid) await loadGiveaway(selectedGiveawayUid, false);
     } catch (err) {
@@ -1831,12 +2017,130 @@ window.LoyaltyGamesModule = (function(){
     `;
   }
 
+  function renderGamble(){
+    const config = state.gambleConfig || {};
+    const auditRows = Array.isArray(state.gambleAudit?.items) ? state.gambleAudit.items : (Array.isArray(state.gambleAudit?.rows) ? state.gambleAudit.rows : []);
+    const stats = state.gambleStats || { total: 0, wins: 0, losses: 0, netProfit: 0 };
+    const engineOn = Boolean(getGambleEngine(config, 'enabled', false));
+    const commandOn = Boolean(getGambleCommand(config, 'enabled', false));
+    const chance = getGambleEngine(config, 'winChancePercent', '?');
+    const payout = getGambleEngine(config, 'payoutMultiplier', '?');
+    const cooldown = getGambleCommand(config, 'cooldownUserMs', getGambleEngine(config, 'userCooldownMs', '?'));
+
+    return `
+      <div class="lg-grid lg-grid-4 lg-gamble-kpis">
+        <article class="lg-card">
+          <span class="lg-card-label">Engine</span>
+          <strong>${engineOn ? 'AN' : 'AUS'}</strong>
+          ${badge(engineOn, 'Berechnung aktiv', 'Berechnung aus')}
+        </article>
+        <article class="lg-card">
+          <span class="lg-card-label">Command</span>
+          <strong>${commandOn ? 'AN' : 'AUS'}</strong>
+          ${badge(commandOn, '!gamble aktiv', '!gamble aus')}
+        </article>
+        <article class="lg-card">
+          <span class="lg-card-label">Chance</span>
+          <strong>${esc(chance)}%</strong>
+          <small>${esc(payout)}x Auszahlung</small>
+        </article>
+        <article class="lg-card">
+          <span class="lg-card-label">Cooldown</span>
+          <strong>${esc(formatDuration(cooldown))}</strong>
+          <small>pro User</small>
+        </article>
+      </div>
+
+      <div class="lg-grid lg-editor-grid lg-gamble-grid">
+        <div class="lg-panel">
+          <div class="lg-panel-head">
+            <div>
+              <h3>Gamble-Konfiguration</h3>
+              <p class="lg-muted">Dashboard-UI nutzt die bestehende Gamble-API. Dryrun schreibt nicht, echter Write braucht Confirm.</p>
+            </div>
+            <div class="lg-actions">
+              <button class="lg-btn lg-btn-secondary" data-lg-gamble-reload>Neu laden</button>
+            </div>
+          </div>
+          <form class="lg-form lg-gamble-form" data-lg-gamble-form>
+            <div class="lg-check-row">
+              <label class="lg-check"><input name="enabled" type="checkbox" ${engineOn ? 'checked' : ''}> Engine aktiv</label>
+              <label class="lg-check"><input name="commandEnabled" type="checkbox" ${commandOn ? 'checked' : ''}> Command aktiv</label>
+              <label class="lg-check"><input name="sendResultToChat" type="checkbox" ${getGambleCommand(config, 'sendResultToChat', true) ? 'checked' : ''}> Chat-Antwort</label>
+            </div>
+            <div class="lg-form-row">
+              <label>Gewinnchance %<input name="winChancePercent" type="number" min="0" max="100" step="0.01" value="${esc(getGambleEngine(config, 'winChancePercent', 47))}"></label>
+              <label>Auszahlung x<input name="payoutMultiplier" type="number" min="0" step="0.01" value="${esc(getGambleEngine(config, 'payoutMultiplier', 2))}"></label>
+            </div>
+            <div class="lg-form-row">
+              <label>Mindesteinsatz<input name="minBet" type="number" min="0" step="1" value="${esc(getGambleEngine(config, 'minBet', 1))}"></label>
+              <label>Max-Einsatz<input name="maxBet" type="number" min="0" step="1" value="${esc(getGambleEngine(config, 'maxBet', 0))}"></label>
+            </div>
+            <div class="lg-form-row">
+              <label>Engine User-CD ms<input name="userCooldownMs" type="number" min="0" step="1000" value="${esc(getGambleEngine(config, 'userCooldownMs', 60000))}"></label>
+              <label>Engine Global-CD ms<input name="globalCooldownMs" type="number" min="0" step="1000" value="${esc(getGambleEngine(config, 'globalCooldownMs', 0))}"></label>
+              <label>Command User-CD ms<input name="commandCooldownUserMs" type="number" min="0" step="1000" value="${esc(getGambleCommand(config, 'cooldownUserMs', 60000))}"></label>
+            </div>
+            <div class="lg-check-row">
+              <label class="lg-check"><input name="allowPercentBets" type="checkbox" ${getGambleEngine(config, 'allowPercentBets', true) ? 'checked' : ''}> Prozent-Einsätze erlauben</label>
+              <label class="lg-check"><input name="allowKeywordBets" type="checkbox" ${getGambleEngine(config, 'allowKeywordBets', true) ? 'checked' : ''}> Keyword-Einsätze erlauben</label>
+            </div>
+            <div class="lg-form-row">
+              <label>Actor Login<input name="actorLogin" value="forrestcgn"></label>
+              <label>Actor Rolle<select name="actorRole"><option value="streamer" selected>streamer</option><option value="owner">owner</option><option value="mod">mod</option><option value="viewer">viewer</option></select></label>
+            </div>
+            <div class="lg-check-row lg-gamble-danger-row">
+              <label class="lg-check"><input name="confirmWrite" type="checkbox"> Write bestätigen</label>
+              <button class="lg-btn lg-btn-secondary" type="button" data-lg-gamble-dryrun ${state.saving ? 'disabled' : ''}>Dryrun</button>
+              <button class="lg-btn" type="button" data-lg-gamble-save ${state.saving ? 'disabled' : ''}>Speichern</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="lg-panel">
+          <div class="lg-panel-head">
+            <div>
+              <h3>Statistik & Audit</h3>
+              <p class="lg-muted">Statistik aus Command-Logs, Audit aus Gamble-Dashboard-Audit.</p>
+            </div>
+            <div class="lg-actions">
+              <button class="lg-btn lg-btn-secondary" data-lg-gamble-stats>Stats</button>
+              <button class="lg-btn lg-btn-secondary" data-lg-gamble-audit>Audit</button>
+            </div>
+          </div>
+          <div class="lg-grid lg-grid-4 lg-gamble-stats">
+            <article class="lg-card"><span class="lg-card-label">Gambles</span><strong>${fmtNumber(stats.total || 0)}</strong></article>
+            <article class="lg-card"><span class="lg-card-label">Wins</span><strong>${fmtNumber(stats.wins || 0)}</strong></article>
+            <article class="lg-card"><span class="lg-card-label">Losses</span><strong>${fmtNumber(stats.losses || 0)}</strong></article>
+            <article class="lg-card"><span class="lg-card-label">Netto</span><strong>${esc(formatSigned(stats.netProfit || 0))}</strong></article>
+          </div>
+          <div class="lg-mini-list lg-gamble-audit-list">
+            ${auditRows.length ? auditRows.slice(0, 8).map(row => {
+              const actor = row.actor_login || row.actorLogin || row.actor || 'unbekannt';
+              const action = row.action || row.event || row.audit_uid || row.auditUid || 'write';
+              const at = row.created_at || row.createdAt || row.ts || '';
+              return `<div class="lg-mini-row"><span><strong>${esc(action)}</strong><br><small class="lg-muted">${esc(actor)} · ${esc(at)}</small></span></div>`;
+            }).join('') : `<p class="lg-muted">Keine Audit-Einträge gefunden.</p>`}
+          </div>
+          <div class="lg-result-box">
+            <div class="lg-panel-head lg-panel-head-compact">
+              <strong>Letztes Ergebnis</strong>
+              <button class="lg-btn lg-btn-secondary" data-lg-gamble-clear-result>Leeren</button>
+            </div>
+            <pre>${esc(state.gambleResult || 'Noch keine Aktion in dieser Sitzung.')}</pre>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   function renderTabs(){
     const tabs = [
       ['overview', 'Übersicht'],
       ['wheel', 'Glücksrad'],
       ['presets', 'Presets'],
       ['giveaways', 'Giveaways'],
+      ['gamble', 'Gamble'],
       ['chat', 'Chat/Commands'],
       ['history', 'Verlauf'],
       ['notes', 'Hinweise']
@@ -1872,6 +2176,7 @@ window.LoyaltyGamesModule = (function(){
     if (state.activeTab === 'presets') return renderPresets();
     if (state.activeTab === 'giveaway_wheel_editor') return renderGiveawayWheelEditor();
     if (state.activeTab === 'giveaways') return renderGiveawaysRedirect();
+    if (state.activeTab === 'gamble') return renderGamble();
     if (state.activeTab === 'chat') return renderChatSetup();
     if (state.activeTab === 'history') return renderSessions();
     if (state.activeTab === 'notes') return renderNotes();
@@ -1896,6 +2201,28 @@ window.LoyaltyGamesModule = (function(){
     });
 
     root.querySelector('[data-lg-reload]')?.addEventListener('click', () => loadAll(true));
+
+    root.querySelector('[data-lg-gamble-reload]')?.addEventListener('click', async () => {
+      await Promise.allSettled([loadGambleConfig(false), loadGambleAudit(false), loadGambleStats(false)]);
+      render();
+    });
+
+    root.querySelector('[data-lg-gamble-audit]')?.addEventListener('click', () => loadGambleAudit(true));
+    root.querySelector('[data-lg-gamble-stats]')?.addEventListener('click', () => loadGambleStats(true));
+    root.querySelector('[data-lg-gamble-clear-result]')?.addEventListener('click', () => {
+      state.gambleResult = '';
+      render();
+    });
+
+    root.querySelector('[data-lg-gamble-dryrun]')?.addEventListener('click', () => {
+      const form = root.querySelector('[data-lg-gamble-form]');
+      submitGambleDryrun(form);
+    });
+
+    root.querySelector('[data-lg-gamble-save]')?.addEventListener('click', () => {
+      const form = root.querySelector('[data-lg-gamble-form]');
+      submitGambleWrite(form);
+    });
 
     root.querySelectorAll('[data-lg-jump-tab]').forEach(btn => {
       btn.addEventListener('click', () => {

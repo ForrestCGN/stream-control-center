@@ -682,3 +682,56 @@
 .lg-giveaway-wheel-context .lg-panel-head {
   align-items: flex-start;
 }
+
+/* STEP235C - Gamble tab inside Loyalty Games */
+.lg-gamble-kpis .lg-card strong {
+  font-size: 24px;
+}
+
+.lg-gamble-grid {
+  align-items: start;
+}
+
+.lg-gamble-form .lg-check-row,
+.lg-gamble-danger-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: center;
+}
+
+.lg-gamble-danger-row {
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,.10);
+}
+
+.lg-gamble-stats {
+  margin-bottom: 14px;
+}
+
+.lg-gamble-audit-list {
+  margin-top: 8px;
+}
+
+.lg-result-box {
+  margin-top: 14px;
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 14px;
+  background: rgba(0,0,0,.16);
+  padding: 12px;
+}
+
+.lg-panel-head-compact {
+  margin-bottom: 8px;
+}
+
+.lg-result-box pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 280px;
+  overflow: auto;
+  font-size: 12px;
+  color: var(--text, #e5eefb);
+}
