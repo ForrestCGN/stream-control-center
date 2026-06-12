@@ -1031,6 +1031,8 @@ window.LoyaltyGiveawaysModule = (function(){
       ['wheel', 'Glücksrad'],
       ['presets', 'Presets'],
       ['giveaways', 'Giveaways'],
+      ['gamble', 'Gamble'],
+      ['config', 'Config'],
       ['chat', 'Chat/Commands'],
       ['history', 'Verlauf'],
       ['notes', 'Hinweise']
