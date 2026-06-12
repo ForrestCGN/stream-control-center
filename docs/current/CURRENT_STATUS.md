@@ -5,24 +5,42 @@ Stand: 2026-06-12
 ## Aktueller bestätigter Stand
 
 ```text
-LWG-4Q.12J – Final Giveaways UI Cleanup Docs
+LWG-4Q.12N – Final Gamble/Giveaways Cleanup Docs + Next Chat Prompt
 ```
 
-## Zusammenfassung
+## Gesamtstand Loyalty / Giveaways / Gamble
 
-Der Loyalty-/Giveaways-Dashboard-Stand ist nach dem 4Q.12-Cleanup wieder sauber getrennt:
+Der aktuelle Stand umfasst den abgeschlossenen Giveaways-/Tabs-Cleanup aus LWG-4Q.12J und die danach live getesteten Gamble-Fixes aus LWG-4Q.12K bis LWG-4Q.12M.
+
+## Dashboard-Zuständigkeiten
 
 ```text
-loyalty_games.js      = Games, Glücksrad, Presets, Gamble, Config, Chat/Commands, Verlauf, Hinweise
-loyalty_giveaways.js  = Giveaways, Wheel-Editor, Live-Steuerung, Details, Bearbeiten, Hard-Delete
+loyalty_games.js
+  → Übersicht
+  → Glücksrad
+  → Presets
+  → Gamble
+  → Config
+  → Chat/Commands
+  → Verlauf
+  → Hinweise
+  → Redirect/Bridge zum neuen Giveaway-Control
+
+loyalty_giveaways.js
+  → Giveaways
+  → Giveaway erstellen/bearbeiten
+  → Details
+  → Live-Steuerung
+  → Bound-Wheel-Editor für Giveaways
+  → Hard-Delete
 ```
 
-## Bestätigter UI-Stand
+## Bestätigter Giveaways-/Tabs-Stand
 
 ```text
 Loyalty → Giveaways öffnet das neue Giveaway-Control.
 Die Tab-Leiste bleibt vollständig sichtbar.
-Gamble und Config sind auch im Giveaways-Modul wieder erreichbar.
+Gamble und Config sind auch im Giveaways-Modul erreichbar.
 Giveaways bleibt im Giveaways-Control aktiv markiert.
 Andere Tabs leiten zurück zu loyalty_games.js.
 ```
@@ -41,100 +59,75 @@ Verlauf
 Hinweise
 ```
 
-## Legacy-Cleanup
-
-Aus `loyalty_games.js` wurde nicht mehr erreichbarer Legacy-Giveaway-Code entfernt:
+## Bestätigter Gamble-Stand
 
 ```text
-alte Inline-Giveaway-Ansicht
-alter Inline-Giveaway-Wheel-Editor
-alte Giveaway-Formularlogik
-alte Entry-/Winner-/Claim-Bedienlogik
-alte Event-Bindings für Legacy-Giveaway-Attribute
-alte Giveaway-spezifische API-/State-Felder im Games-Modul
+Gamble läuft im Loyalty-Dashboard unter Loyalty → Gamble.
+Gamble-Config läuft unter Loyalty → Config → Gamble.
+Standalone-Gamble-Seite und STEP232-Gamble-Shell sind entfernt.
+Gamble-Textausgabe gibt pro Ergebnis nur noch eine Textvariante aus.
+Gamble-Rechnung ist vereinfacht:
+  Gewinn = Einsatz dazu
+  Verlust = Einsatz weg
+Das gilt für feste Einsätze und Prozent-Einsätze.
 ```
 
-Bewusst erhaltene Brücken:
+## Aktuelle Gamble-Config-UI
+
+Sichtbar bleiben:
 
 ```text
-renderGiveawaysRedirect()
-renderGiveawayWheelEditorRedirect()
-openGiveawayEditor()
-openGiveawayWheelEditor()
-setTab('giveaways')
+Engine aktiv
+Command aktiv
+Chat-Antwort
+Gewinnchance %
+Command-Cooldown pro User
+Mindesteinsatz
+Maximaleinsatz
+Prozent-Einsätze erlauben
+Keyword-Einsätze erlauben
 ```
 
-Diese Brücken leiten weiterhin sauber ins neue `loyalty_giveaways.js`-Modul.
-
-## Bestätigte Teilsteps
+Entfernt/ausgeblendet:
 
 ```text
-LWG-4Q.12A – Classic-Draft-Giveaway Formular geprüft
-LWG-4Q.12B – Wheel-Draft ohne Bound-Wheel geprüft
-LWG-4Q.12C – Wheel-Draft mit Bound-Wheel geprüft
-LWG-4Q.12D – Routing Giveaways geprüft
-LWG-4Q.12E – alte Giveaway-/Bound-Wheel-Reste in loyalty_games.js bewertet
-LWG-4Q.12F – Legacy-Giveaways-Tab geprüft
-LWG-4Q.12G – Legacy Giveaway Wheel Editor auf neues Control umgeleitet
-LWG-4Q.12H – nicht mehr erreichbaren Legacy-Giveaway-Code entfernt
-LWG-4Q.12I – einheitliche Loyalty-Tabs in Giveaways wiederhergestellt
-LWG-4Q.12J – Abschluss-Doku
+Auszahlung x
+Gamble-Cooldown pro User
+Gamble-Cooldown global
 ```
 
-## Aktive Dateien
+## Gamble-Zuständigkeit
 
 ```text
-htdocs/dashboard/modules/loyalty_games.js
-htdocs/dashboard/modules/loyalty_games.css
-htdocs/dashboard/modules/loyalty_giveaways.js
-htdocs/dashboard/modules/loyalty_giveaways.css
-htdocs/dashboard/modules/loyalty.js
-htdocs/dashboard/modules/loyalty.css
-htdocs/dashboard/app.js
-htdocs/dashboard/index.html
+Command-System
+  → !gamble aktiv/aus
+  → Command-Cooldown
+  → Chat-Antwort-Ziel/Sendefreigabe
+
+Gamble-Engine
+  → Einsatz parsen
+  → Gewinn/Verlust berechnen
+  → Punkte addieren/abziehen
+  → Session/Event/Audit/Runtime-Daten
 ```
 
-## Nicht geändert
+## Interne Absicherung nach LWG-4Q.12M
+
+Beim Speichern der Gamble-Config werden intern gesetzt:
 
 ```text
-Backend
-Datenbank
-APIs
-Commands
-Overlays
-Giveaway-Engine
-Wheel-/Bound-Wheel-Endpunkte
+games.gamble.payoutMultiplier = 2
+games.gamble.userCooldownMs = 0
+games.gamble.globalCooldownMs = 0
 ```
 
-## Pflicht-Tests nach weiteren Änderungen
+Damit gibt es keine doppelte Cooldown-Logik mehr.
 
-```powershell
-node -c .\htdocs\dashboard\modules\loyalty_games.js
-node -c .\htdocs\dashboard\modules\loyalty_giveaways.js
-node -c .\htdocs\dashboard\app.js
-```
-
-Browser-Test:
-
-```text
-/dashboard
-Loyalty → Übersicht
-Loyalty → Glücksrad
-Loyalty → Presets
-Loyalty → Giveaways
-Loyalty → Gamble
-Loyalty → Config
-Loyalty → Chat/Commands
-Loyalty → Verlauf
-Loyalty → Hinweise
-```
-
-## Wichtige Regeln
+## Wichtige Projektregel
 
 ```text
 Keine Funktionalität entfernen.
-Keine produktive SQLite-Datei ersetzen oder überschreiben.
-Keine STEP232-/Standalone-Gamble-Struktur wieder einführen.
-Keine alte Inline-Giveaway-Seite in loyalty_games.js reaktivieren.
-Giveaways bleiben im neuen loyalty_giveaways.js.
+Bestehende echte Dateien/GitHub-dev als Single Source of Truth verwenden.
+SQLite-Datenbank niemals ersetzen oder überschreiben.
+Änderungen immer mit echten Zielpfaden im ZIP liefern.
 ```
