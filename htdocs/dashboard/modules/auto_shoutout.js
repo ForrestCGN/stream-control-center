@@ -755,3 +755,270 @@ window.AutoShoutoutModule = (function(){
 
   return { init, loadAll, render, activateAutoTab, deactivateAutoTab };
 })();
+
+/* CAN44.31: ShoutoutV2 AutoShoutout activity compact info-modal bridge.
+   The visible dashboard tab is rendered by shoutout_v2.js, while this file is loaded afterwards.
+   This bridge only replaces the AutoShoutout activity card in ShoutoutV2 with a compact list + modal. */
+(function(){
+  'use strict';
+
+  const API_AUTO = '/api/clip-shoutout/auto';
+  const PATCH_BUILD = 'CAN44.31_AUTOSO_V2_ACTIVITY_MODAL_BRIDGE';
+  let scheduled = false;
+  let loading = false;
+  let lastKey = '';
+  let observer = null;
+  const details = new Map();
+
+  function esc(v){
+    return window.CGN?.esc
+      ? window.CGN.esc(v)
+      : String(v ?? '').replace(/[&<>\"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+  }
+
+  function asArray(v){ return Array.isArray(v) ? v : []; }
+
+  function pick(row, keys, fallback = ''){
+    for (const key of keys) {
+      if (row && row[key] !== undefined && row[key] !== null && row[key] !== '') return row[key];
+    }
+    return fallback;
+  }
+
+  function fmtTime(v){
+    if (!v) return '-';
+    const d = new Date(v);
+    if (!Number.isFinite(d.getTime())) return String(v);
+    return d.toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  }
+
+  function fmtDate(v){
+    if (!v) return '-';
+    const d = new Date(v);
+    if (!Number.isFinite(d.getTime())) return String(v);
+    return d.toLocaleString('de-DE');
+  }
+
+  function target(row){ return pick(row, ['target_display','targetDisplay','target_login','targetLogin','displayName','login'], '-'); }
+  function trigger(row){ return pick(row, ['trigger_display','triggerDisplay','trigger_login','triggerLogin'], '-'); }
+  function reason(row){ return String(pick(row, ['reason','statusReason'], '') || '').trim(); }
+  function status(row){ return String(pick(row, ['status','state','result'], '') || '').trim(); }
+  function eventTime(row){ return pick(row, ['created_at','createdAt','updated_at','updatedAt','time','timestamp'], ''); }
+  function queueId(row){ return pick(row, ['display_queue_id','displayQueueId'], ''); }
+
+  function parseMeta(row){
+    const raw = row && (row.meta || row.meta_json || row.metaJson);
+    if (!raw) return null;
+    if (typeof raw === 'object') return raw;
+    try { return JSON.parse(String(raw)); } catch (_) { return null; }
+  }
+
+  function metaPath(meta, path, fallback = ''){
+    let node = meta;
+    for (const part of path) {
+      if (!node || typeof node !== 'object') return fallback;
+      node = node[part];
+    }
+    return node === undefined || node === null ? fallback : node;
+  }
+
+  function rawMessage(row){
+    const meta = parseMeta(row);
+    return metaPath(meta, ['source','autoRawMessage'], '')
+      || metaPath(meta, ['autoRawMessage'], '')
+      || metaPath(meta, ['activity','meta','source','autoRawMessage'], '')
+      || metaPath(meta, ['result','input','message'], '');
+  }
+
+  function source(row){
+    const meta = parseMeta(row);
+    return metaPath(meta, ['source','source'], '')
+      || metaPath(meta, ['sourceModule'], '')
+      || metaPath(meta, ['source','sourceModule'], '')
+      || metaPath(meta, ['source','module'], '');
+  }
+
+  function streamDay(row){
+    const meta = parseMeta(row);
+    return pick(row, ['stream_day_id','streamDayId'], '')
+      || metaPath(meta, ['streamDay','streamDayId'], '')
+      || metaPath(meta, ['streamState','streamDayId'], '');
+  }
+
+  function shortStatus(row){
+    const st = status(row).toLowerCase();
+    const rs = reason(row).toLowerCase();
+    if (st === 'triggered' && rs === 'queued') return { label:'eingereiht', tone:'ok' };
+    if (st === 'triggered' && rs === 'queued_waiting_start_scene') return { label:'wartet Start', tone:'warn' };
+    if (rs === 'not_configured_streamer') return { label:'ignoriert', tone:'neutral' };
+    if (rs === 'cooldown' || rs.includes('cooldown')) return { label:'Cooldown', tone:'warn' };
+    if (rs === 'already_queued') return { label:'schon gelistet', tone:'warn' };
+    if (rs === 'already_received' || rs === 'already_auto_triggered_this_stream_day' || rs === 'already_had_shoutout_this_stream_day') return { label:'heute erledigt', tone:'neutral' };
+    if (st === 'skipped') return { label:'übersprungen', tone:'warn' };
+    if (st === 'failed' || st === 'error') return { label:'Fehler', tone:'bad' };
+    if (st === 'triggered') return { label: rs || 'ausgelöst', tone:'ok' };
+    return { label: rs || st || '-', tone:'neutral' };
+  }
+
+  function badge(label, tone){
+    const safeTone = tone === 'ok' || tone === 'warn' || tone === 'bad' || tone === 'neutral' ? tone : 'neutral';
+    return `<span class="so2-badge so2-badge-${safeTone}">${esc(label || '-')}</span>`;
+  }
+
+  function getRoot(){ return document.getElementById('shoutoutV2Module'); }
+
+  function findActivityPanel(){
+    const root = getRoot();
+    if (!root || root.hidden) return null;
+    const panels = Array.from(root.querySelectorAll('.so2-panel'));
+    return panels.find(panel => {
+      const title = panel.querySelector('.so2-section-title h3');
+      return title && title.textContent.trim() === 'Letzte AutoShoutout-Aktivität';
+    }) || null;
+  }
+
+  async function fetchRows(){
+    const res = await fetch(`${API_AUTO}?_=${Date.now()}`, { cache:'no-store' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.ok === false) throw new Error(data.error || `HTTP ${res.status}`);
+    const auto = data.autoShoutout || {};
+    const rows = asArray(auto.recentEvents || auto.events).slice(0, 20);
+    return rows;
+  }
+
+  function renderModal(){
+    return `
+      <div class="auto-so-v2-modal-backdrop" data-auto-so-v2-modal hidden>
+        <div class="auto-so-v2-modal" role="dialog" aria-modal="true">
+          <div class="auto-so-v2-modal-head">
+            <div><small>AutoShoutout Status</small><h3>Aktivität Details</h3></div>
+            <button type="button" data-auto-so-v2-modal-close>Schließen</button>
+          </div>
+          <div class="auto-so-v2-modal-body" data-auto-so-v2-modal-body></div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderDetails(row){
+    const short = shortStatus(row);
+    const rows = [
+      ['Streamer', `@${target(row)}`],
+      ['Auslöser', trigger(row)],
+      ['Status', status(row) || '-'],
+      ['Kurzstatus', short.label],
+      ['Grund', reason(row) || '-'],
+      ['Zeit', fmtDate(eventTime(row))],
+      ['DisplayQueue', queueId(row) ? `#${queueId(row)}` : '-'],
+      ['Quelle', source(row) || '-'],
+      ['Chat-Nachricht', rawMessage(row) || '-'],
+      ['Stream-Day', streamDay(row) || '-']
+    ];
+    return `
+      <div class="auto-so-v2-detail-grid">
+        ${rows.map(([label, value]) => `<div class="auto-so-v2-detail-row"><small>${esc(label)}</small><strong>${esc(value)}</strong></div>`).join('')}
+      </div>
+      <details class="auto-so-v2-raw"><summary>Rohdaten anzeigen</summary><pre>${esc(JSON.stringify(row, null, 2))}</pre></details>
+    `;
+  }
+
+  function openDetails(id){
+    const row = details.get(String(id));
+    const root = getRoot();
+    const modal = root && root.querySelector('[data-auto-so-v2-modal]');
+    const body = root && root.querySelector('[data-auto-so-v2-modal-body]');
+    if (!row || !modal || !body) return;
+    body.innerHTML = renderDetails(row);
+    modal.hidden = false;
+  }
+
+  function closeDetails(){
+    const root = getRoot();
+    const modal = root && root.querySelector('[data-auto-so-v2-modal]');
+    if (modal) modal.hidden = true;
+  }
+
+  function renderPanel(panel, rows){
+    details.clear();
+    const key = JSON.stringify(rows.map(row => [row.id, eventTime(row), status(row), reason(row), target(row), queueId(row)]));
+    if (panel.dataset.autoSoV2PatchKey === key && panel.querySelector('[data-auto-so-v2-activity-info]')) return;
+    panel.dataset.autoSoV2PatchKey = key;
+    panel.dataset.autoSoV2PatchBuild = PATCH_BUILD;
+    const body = rows.length ? rows.slice(0, 12).map((row, index) => {
+      const id = String(row.id || `${eventTime(row)}_${index}`);
+      details.set(id, row);
+      const short = shortStatus(row);
+      return `
+        <tr>
+          <td>${esc(fmtTime(eventTime(row)))}</td>
+          <td><strong>@${esc(target(row))}</strong><small>Auslöser: ${esc(trigger(row))}</small></td>
+          <td>${badge(short.label, short.tone)}</td>
+          <td><button type="button" class="auto-so-v2-info-button" data-auto-so-v2-activity-info="${esc(id)}">Info</button></td>
+        </tr>
+      `;
+    }).join('') : '<tr><td colspan="4" class="so2-empty">Noch keine AutoShoutout-Aktivität geladen.</td></tr>';
+
+    panel.innerHTML = `
+      <div class="so2-section-title">
+        <div><h3>Letzte AutoShoutout-Aktivität</h3><p>Kompakte Übersicht. Details öffnen sich über den Info-Button.</p></div>
+      </div>
+      <div class="so2-table-wrap auto-so-v2-activity-wrap">
+        <table class="so2-table auto-so-v2-activity-table">
+          <thead><tr><th>Zeit</th><th>Streamer</th><th>Status</th><th>Info</th></tr></thead>
+          <tbody>${body}</tbody>
+        </table>
+      </div>
+      ${renderModal()}
+    `;
+  }
+
+  async function patchNow(){
+    scheduled = false;
+    if (loading) return;
+    const panel = findActivityPanel();
+    if (!panel) return;
+    if (panel.querySelector('[data-auto-so-v2-activity-info]') && panel.dataset.autoSoV2PatchBuild === PATCH_BUILD) return;
+    loading = true;
+    try {
+      const rows = await fetchRows();
+      renderPanel(panel, rows);
+    } catch (err) {
+      panel.dataset.autoSoV2PatchBuild = PATCH_BUILD;
+      panel.innerHTML = `
+        <div class="so2-section-title"><div><h3>Letzte AutoShoutout-Aktivität</h3></div></div>
+        <div class="so2-alert so2-alert-error">AutoShoutout-Aktivität konnte nicht geladen werden: ${esc(err && err.message ? err.message : err)}</div>
+      `;
+    } finally {
+      loading = false;
+    }
+  }
+
+  function schedulePatch(){
+    if (scheduled) return;
+    scheduled = true;
+    window.requestAnimationFrame(() => { patchNow(); });
+  }
+
+  function start(){
+    if (observer) return;
+    document.addEventListener('click', ev => {
+      const target = ev.target;
+      if (!target) return;
+      const info = target.closest && target.closest('[data-auto-so-v2-activity-info]');
+      if (info) { ev.preventDefault(); return openDetails(info.dataset.autoSoV2ActivityInfo || ''); }
+      if (target.closest && (target.closest('[data-auto-so-v2-modal-close]') || target.matches('[data-auto-so-v2-modal]'))) {
+        ev.preventDefault();
+        return closeDetails();
+      }
+    }, true);
+    document.addEventListener('keydown', ev => { if (ev.key === 'Escape') closeDetails(); });
+    observer = new MutationObserver(() => schedulePatch());
+    observer.observe(document.body, { childList:true, subtree:true });
+    setInterval(schedulePatch, 5000);
+    schedulePatch();
+    window.AutoShoutoutV2ActivityPatch = { patchNow, build: PATCH_BUILD };
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
+})();
