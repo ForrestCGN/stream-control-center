@@ -1384,6 +1384,12 @@ function collectDashboardSettingsPatch(payload = {}) {
   const maxPercent = out["games.gamble.maxPercent"];
   if (minPercent !== undefined && maxPercent !== undefined && maxPercent < minPercent) out["games.gamble.maxPercent"] = minPercent;
 
+  // LWG-4Q.12M: Dashboard-Gamble nutzt einfache Gewinn/Verlust-Logik.
+  // Der sichtbare Cooldown gehört zum zentralen Command-System, nicht doppelt in die Engine.
+  out["games.gamble.payoutMultiplier"] = 2;
+  out["games.gamble.userCooldownMs"] = 0;
+  out["games.gamble.globalCooldownMs"] = 0;
+
   return out;
 }
 

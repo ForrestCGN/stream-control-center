@@ -270,15 +270,14 @@ window.LoyaltyGamesModule = (function(){
     const commandOn = Boolean(getGambleCommand(config, 'enabled', false));
     const chatOn = Boolean(getGambleCommand(config, 'sendResultToChat', true));
     const chance = getGambleEngine(config, 'winChancePercent', '?');
-    const payout = getGambleEngine(config, 'payoutMultiplier', '?');
-    const cooldown = getGambleCommand(config, 'cooldownUserMs', getGambleEngine(config, 'userCooldownMs', '?'));
+    const cooldown = getGambleCommand(config, 'cooldownUserMs', '?');
     return [
       ['Engine', engineOn ? 'aktiv' : 'aus'],
       ['Command', commandOn ? 'aktiv' : 'aus'],
       ['Chat-Antwort', chatOn ? 'aktiv' : 'aus'],
       ['Gewinnchance', `${chance}%`],
-      ['Auszahlung', `${payout}x`],
-      ['Cooldown', formatDuration(cooldown)]
+      ['Gewinnlogik', 'Gewinn = Einsatz dazu · Verlust = Einsatz weg'],
+      ['Command-Cooldown', formatDuration(cooldown)]
     ];
   }
 
@@ -365,11 +364,11 @@ window.LoyaltyGamesModule = (function(){
       engine: {
         enabled: getGambleFormValue(form, 'enabled'),
         winChancePercent: getGambleFormValue(form, 'winChancePercent'),
-        payoutMultiplier: getGambleFormValue(form, 'payoutMultiplier'),
+        payoutMultiplier: 2,
         minBet: getGambleFormValue(form, 'minBet'),
         maxBet: getGambleFormValue(form, 'maxBet'),
-        userCooldownMs: secondsInputToMs(getGambleFormValue(form, 'userCooldownSeconds')),
-        globalCooldownMs: secondsInputToMs(getGambleFormValue(form, 'globalCooldownSeconds')),
+        userCooldownMs: 0,
+        globalCooldownMs: 0,
         allowPercentBets: getGambleFormValue(form, 'allowPercentBets'),
         allowKeywordBets: getGambleFormValue(form, 'allowKeywordBets')
       },
@@ -515,6 +514,25 @@ window.LoyaltyGamesModule = (function(){
     if (rerender) render();
   }
 
+  async function loadGiveaway(giveawayUid, rerender = true){
+    if (!giveawayUid) {
+      state.selectedGiveawayUid = '';
+      state.selectedGiveaway = null;
+      if (rerender) render();
+      return;
+    }
+
+    try {
+      const data = await window.CGN.api(`/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}`);
+      state.selectedGiveawayUid = giveawayUid;
+      state.selectedGiveaway = data.giveaway || null;
+      state.error = '';
+    } catch (err) {
+      state.error = err.message || String(err);
+    }
+
+    if (rerender) render();
+  }
 
   async function refreshPresets(selectUid){
     const [presets, spins] = await Promise.all([
@@ -527,6 +545,16 @@ window.LoyaltyGamesModule = (function(){
     else if (state.selectedPresetUid) await loadPreset(state.selectedPresetUid, false);
   }
 
+  async function refreshGiveaways(selectUid){
+    const [giveawaysStatus, giveaways] = await Promise.all([
+      window.CGN.api(api.giveawaysStatus).catch(err => ({ ok:false, error:err.message })),
+      window.CGN.api(api.giveaways).catch(err => ({ ok:false, error:err.message, rows:[] }))
+    ]);
+    state.giveawaysStatus = giveawaysStatus;
+    state.giveaways = giveaways;
+    if (selectUid) await loadGiveaway(selectUid, false);
+    else if (state.selectedGiveawayUid) await loadGiveaway(state.selectedGiveawayUid, false);
+  }
 
   function setMessage(message){
     state.message = message || '';
@@ -746,7 +774,62 @@ window.LoyaltyGamesModule = (function(){
     };
   }
 
+  async function handleCreateGiveaway(form){
+    state.saving = true; render();
+    try {
+      const result = await apiPost('/api/loyalty/giveaways', buildGiveawayPayload(form));
+      const uid = result.giveaway?.giveawayUid;
+      await refreshGiveaways(uid);
+      state.activeTab = 'giveaways';
+      setMessage('Giveaway wurde erstellt.');
+    } catch (err) {
+      state.error = err.message || String(err);
+    } finally {
+      state.saving = false; render();
+    }
+  }
 
+  async function handleUpdateGiveaway(form){
+    const giveawayUid = state.selectedGiveawayUid;
+    if (!giveawayUid) return;
+    state.saving = true; render();
+    try {
+      await apiPut(`/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}`, buildGiveawayPayload(form));
+      await refreshGiveaways(giveawayUid);
+      setMessage('Giveaway wurde gespeichert.');
+    } catch (err) {
+      state.error = err.message || String(err);
+    } finally {
+      state.saving = false; render();
+    }
+  }
+
+  async function giveawayAction(action, giveawayUid){
+    if (!giveawayUid) return;
+    let path = '';
+    let confirmText = '';
+    if (action === 'copy') path = `/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}/copy`;
+    else if (action === 'open') path = `/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}/open`;
+    else if (action === 'close') path = `/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}/close-entries`;
+    else if (action === 'finish') { path = `/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}/finish`; confirmText = 'Giveaway wirklich beenden? Danach ist es read-only.'; }
+    else if (action === 'cancel') { path = `/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}/cancel`; confirmText = 'Giveaway wirklich abbrechen?'; }
+    else if (action === 'delete') { path = `/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}/hard-delete`; confirmText = 'Giveaway WIRKLICH dauerhaft löschen? Dieser Schritt kann nicht rückgängig gemacht werden.'; }
+    if (!path) return;
+    if (confirmText && !window.confirm(confirmText)) return;
+
+    state.saving = true; render();
+    try {
+      const body = action === 'copy' ? { title: `Kopie von ${state.selectedGiveaway?.title || 'Giveaway'}`, actor: 'dashboard' } : (action === 'delete' ? { actor: 'dashboard', reason: 'dashboard_hard_delete_from_legacy_guard', confirmHardDelete: true } : { actor: 'dashboard' });
+      const result = await apiPost(path, body);
+      const uid = result.giveaway?.giveawayUid || giveawayUid;
+      await refreshGiveaways(uid);
+      setMessage(action === 'copy' ? 'Giveaway wurde kopiert.' : 'Giveaway wurde aktualisiert.');
+    } catch (err) {
+      state.error = err.message || String(err);
+    } finally {
+      state.saving = false; render();
+    }
+  }
 
 
   function communicationClients(){
@@ -1151,24 +1234,404 @@ window.LoyaltyGamesModule = (function(){
   }
 
 
+function boundWheelFields(giveaway){
+    return rows(giveaway?.boundWheelFields || giveaway?.wheelFields || giveaway?.boundWheel?.fields || []);
+  }
+
+async function createGiveawayBoundWheel(giveawayUid){
+    if (!giveawayUid) return null;
+    const giveaway = state.selectedGiveaway && state.selectedGiveaway.giveawayUid === giveawayUid
+      ? state.selectedGiveaway
+      : null;
+    const title = giveaway?.title || 'Giveaway-Glücksrad';
+    const result = await apiPut(`/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}/wheel/bound`, {
+      title,
+      name: `${title} – Glücksrad`,
+      actor: 'dashboard',
+      source: 'dashboard_giveaway_wheel_editor'
+    });
+    await refreshGiveaways(giveawayUid);
+    setMessage(result.created ? 'Giveaway-Glücksrad wurde erstellt.' : 'Giveaway-Glücksrad wurde geladen/aktualisiert.');
+    return result;
+  }
+
+  async function ensureGiveawayBoundWheel(giveawayUid){
+    if (!giveawayUid) return null;
+    if (!state.selectedGiveaway || state.selectedGiveaway.giveawayUid !== giveawayUid) {
+      await loadGiveaway(giveawayUid, false);
+    }
+    if (hasGiveawayBoundWheel(state.selectedGiveaway)) return { ok: true, created: false, boundWheel: state.selectedGiveaway.boundWheel || null };
+    return createGiveawayBoundWheel(giveawayUid);
+  }
+
+async function handleCreateGiveawayWheelField(form){
+    const giveawayUid = state.selectedGiveawayUid;
+    if (!giveawayUid) return;
+    state.saving = true; render();
+    try {
+      await ensureGiveawayBoundWheel(giveawayUid);
+      await apiPost(`/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}/wheel/bound/fields`, giveawayWheelFieldPayload(form));
+      await refreshGiveaways(giveawayUid);
+      state.activeTab = 'giveaway_wheel_editor';
+      setMessage('Glücksrad-Feld wurde hinzugefügt.');
+    } catch (err) {
+      state.error = err.message || String(err);
+    } finally {
+      state.saving = false; render();
+    }
+  }
+
+  async function handleUpdateGiveawayWheelField(form){
+    const giveawayUid = state.selectedGiveawayUid;
+    const fieldUid = form.dataset.fieldUid;
+    if (!giveawayUid || !fieldUid) return;
+    state.saving = true; render();
+    try {
+      await apiPut(`/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}/wheel/bound/fields/${encodeURIComponent(fieldUid)}`, giveawayWheelFieldPayload(form));
+      await refreshGiveaways(giveawayUid);
+      state.activeTab = 'giveaway_wheel_editor';
+      setMessage('Glücksrad-Feld wurde gespeichert.');
+    } catch (err) {
+      state.error = err.message || String(err);
+    } finally {
+      state.saving = false; render();
+    }
+  }
+
+  async function deleteGiveawayWheelField(fieldUid){
+    const giveawayUid = state.selectedGiveawayUid;
+    if (!giveawayUid || !fieldUid) return;
+    if (!window.confirm('Dieses Glücksrad-Feld deaktivieren?')) return;
+    state.saving = true; render();
+    try {
+      await apiPost(`/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}/wheel/bound/fields/${encodeURIComponent(fieldUid)}/delete`, { actor: 'dashboard' });
+      await refreshGiveaways(giveawayUid);
+      state.activeTab = 'giveaway_wheel_editor';
+      setMessage('Glücksrad-Feld wurde deaktiviert.');
+    } catch (err) {
+      state.error = err.message || String(err);
+    } finally {
+      state.saving = false; render();
+    }
+  }
+
+function renderGiveaways(){
+    const giveaways = rows(state.giveaways);
+    const selected = state.selectedGiveaway;
+    const editable = !!selected?.editable;
+    const presets = rows(state.presets).filter(p => p.status === 'active' && p.presetType === 'standalone');
+
+    return `
+      <div class="lg-grid lg-editor-grid">
+        <div class="lg-panel">
+          <div class="lg-panel-head">
+            <h3>Giveaways</h3>
+            <button class="lg-btn" data-lg-giveaway-refresh>Aktualisieren</button>
+          </div>
+          <div class="lg-preset-list">
+            ${giveaways.map(giveaway => `
+              <button class="lg-preset-item ${giveaway.giveawayUid === state.selectedGiveawayUid ? 'is-active' : ''}" data-lg-select-giveaway="${esc(giveaway.giveawayUid)}">
+                <span>
+                  <strong>${esc(giveaway.title)}</strong>
+                  <small>${esc(statusLabel(giveaway.mode))} · ${fmtDate(giveaway.createdAt)}</small>
+                </span>
+                ${statusBadge(giveaway.status)}
+              </button>
+            `).join('') || `<p class="lg-muted">Noch keine Giveaways gefunden.</p>`}
+          </div>
+        </div>
+
+        <div class="lg-panel">
+          <h3>Neues Giveaway</h3>
+          <form class="lg-form" data-lg-create-giveaway>
+            ${renderGiveawayFormFields(null, true, presets)}
+            <button class="lg-btn" type="submit" ${state.saving ? 'disabled' : ''}>Giveaway erstellen</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="lg-panel">
+        <div class="lg-panel-head">
+          <div>
+            <h3>${selected ? esc(selected.title) : 'Kein Giveaway ausgewählt'}</h3>
+            ${selected ? `<p class="lg-muted">${esc(selected.description || '')}</p>` : ''}
+          </div>
+          ${selected ? `<div class="lg-actions">
+            <button class="lg-btn lg-btn-secondary" data-lg-giveaway-action="copy" data-giveaway-uid="${esc(selected.giveawayUid)}">Kopieren</button>
+            ${selected.status === 'draft' ? `<button class="lg-btn" data-lg-giveaway-action="open" data-giveaway-uid="${esc(selected.giveawayUid)}">Öffnen</button>` : ''}
+            ${selected.status === 'open' ? `<button class="lg-btn lg-btn-secondary" data-lg-giveaway-action="close" data-giveaway-uid="${esc(selected.giveawayUid)}">Teilnahme schließen</button>` : ''}
+            ${['open','closed_for_entries'].includes(selected.status) ? `<button class="lg-btn" data-lg-draw-winner="${esc(selected.giveawayUid)}">Gewinner ziehen</button>` : ''}
+            ${!['finished','cancelled','deleted'].includes(selected.status) ? `<button class="lg-btn lg-btn-danger" data-lg-giveaway-action="finish" data-giveaway-uid="${esc(selected.giveawayUid)}">Beenden</button>` : ''}
+            ${!['finished','cancelled','deleted'].includes(selected.status) ? `<button class="lg-btn lg-btn-danger" data-lg-giveaway-action="cancel" data-giveaway-uid="${esc(selected.giveawayUid)}">Abbrechen</button>` : ''}
+            ${selected.status !== 'deleted' ? `<button class="lg-btn lg-btn-danger" data-lg-giveaway-action="delete" data-giveaway-uid="${esc(selected.giveawayUid)}">Löschen</button>` : ''}
+          </div>` : ''}
+        </div>
+
+        ${selected ? `
+          <div class="lg-kv lg-kv-compact">
+            <span>Status</span><strong>${statusBadge(selected.status)}</strong>
+            <span>Modus</span><strong>${esc(statusLabel(selected.mode))}</strong>
+            <span>Bearbeitbar</span><strong>${editable ? 'Ja' : 'Nein, nur kopieren/anzeigen'}</strong>
+            <span>Kosten</span><strong>${fmtNumber(selected.costAmount)}</strong>
+            <span>Rad</span><strong>${selected.wheelEnabled ? 'Ja' : 'Nein'}</strong>
+            <span>Chat-Claim</span><strong>${getChatClaimSettings(selected).enabled ? 'Ja' : 'Nein'}</strong>
+            <span>UID</span><strong><code>${esc(selected.giveawayUid)}</code></strong>
+            <span>Erstellt</span><strong>${fmtDate(selected.createdAt)}</strong>
+          </div>
+
+          ${editable ? `
+            <form class="lg-form lg-preset-settings-form" data-lg-update-giveaway>
+              ${renderGiveawayFormFields(selected, true, presets)}
+              <button class="lg-btn" type="submit">Giveaway speichern</button>
+            </form>
+          ` : `<p class="lg-warning">Dieses Giveaway ist read-only. Änderungen bitte über „Kopieren“ als neues Giveaway anlegen.</p>`}
+        ` : `<p class="lg-muted">Wähle links ein Giveaway aus.</p>`}
+      </div>
+
+      ${selected ? renderClaimSummary(selected) : ''}
+      ${selected ? renderGiveawayDetails(selected) : ''}
+    `;
+  }
+
+function syncGiveawayFormVisibility(form){
+    if (!form) return;
+    const mode = String(form.querySelector('[name="mode"]')?.value || 'classic_single');
+    const isWheelMode = mode.startsWith('wheel_');
+    const claimToggle = form.querySelector('[name="chatClaimEnabled"]');
+    const claimEnabled = !isWheelMode && claimToggle?.checked === true;
+    form.querySelectorAll('[data-lg-normal-claim]').forEach(el => { el.hidden = isWheelMode; });
+    form.querySelectorAll('[data-lg-claim-options]').forEach(el => { el.hidden = !claimEnabled; });
+    form.querySelectorAll('[data-lg-wheel-hint]').forEach(el => { el.hidden = !isWheelMode; });
+    form.querySelectorAll('[data-lg-normal-prize]').forEach(el => { el.hidden = isWheelMode; });
+    if (isWheelMode && claimToggle) claimToggle.checked = false;
+  }
 
 
+  async function handleCreateEntry(form){
+    const giveawayUid = state.selectedGiveawayUid;
+    if (!giveawayUid) return;
+    const data = new FormData(form);
+    state.saving = true; render();
+    try {
+      await apiPost(`/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}/entries`, {
+        userLogin: data.get('userLogin'),
+        userDisplayName: data.get('userDisplayName') || data.get('userLogin'),
+        ticketCount: Number(data.get('ticketCount') || 1),
+        isSubscriber: data.get('isSubscriber') === 'on',
+        source: 'dashboard'
+      });
+      await refreshGiveaways(giveawayUid);
+      setMessage('Teilnahme wurde eingetragen.');
+    } catch (err) {
+      state.error = err.message || String(err);
+    } finally {
+      state.saving = false; render();
+    }
+  }
+
+  async function cancelEntry(entryUid){
+    const giveawayUid = state.selectedGiveawayUid;
+    if (!giveawayUid || !entryUid) return;
+    if (!window.confirm('Teilnahme wirklich stornieren?')) return;
+    state.saving = true; render();
+    try {
+      await apiPost(`/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}/entries/${encodeURIComponent(entryUid)}/cancel`, { actor: 'dashboard' });
+      await refreshGiveaways(giveawayUid);
+      setMessage('Teilnahme wurde storniert.');
+    } catch (err) {
+      state.error = err.message || String(err);
+    } finally {
+      state.saving = false; render();
+    }
+  }
 
 
+  async function drawGiveawayWinner(){
+    const giveawayUid = state.selectedGiveawayUid;
+    if (!giveawayUid) return;
+    if (!window.confirm('Jetzt fair backendseitig einen Gewinner ziehen?')) return;
+    state.saving = true; render();
+    try {
+      const result = await apiPost(`/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}/draw`, { actor: 'dashboard' });
+      await refreshGiveaways(giveawayUid);
+      setMessage(`Gewinner gezogen: ${result.winner?.userDisplayName || result.winner?.userLogin || 'unbekannt'}`);
+    } catch (err) {
+      state.error = err.message || String(err);
+    } finally {
+      state.saving = false; render();
+    }
+  }
 
+  async function claimGiveawayWheel(userLogin, userDisplayName){
+    const giveawayUid = state.selectedGiveawayUid;
+    if (!giveawayUid || !userLogin) return;
+    state.saving = true; render();
+    try {
+      const result = await apiPost(`/api/loyalty/giveaways/${encodeURIComponent(giveawayUid)}/wheel/claim`, {
+        userLogin,
+        userDisplayName: userDisplayName || userLogin,
+        source: 'dashboard',
+        duration: 7000
+      });
+      await refreshGiveaways(giveawayUid);
+      setMessage(`Rad gestartet: ${result.spin?.selectedFieldLabel || 'Ergebnis folgt'}`);
+    } catch (err) {
+      state.error = err.message || String(err);
+    } finally {
+      state.saving = false; render();
+    }
+  }
 
+function renderGiveawayDetails(giveaway){
+    const rounds = rows(giveaway.rounds || []);
+    const prizes = rows(giveaway.prizes || []);
+    const entries = rows(giveaway.entries || []);
+    const winners = rows(giveaway.winners || []);
+    const wheelPermissions = rows(giveaway.wheelPermissions || []);
+    const events = rows(giveaway.events || []);
+    const editableEntries = giveaway.status === 'open';
 
+    return `
+      <div class="lg-grid lg-grid-3">
+        <div class="lg-panel">
+          <h3>Gewinne</h3>
+          <div class="lg-mini-list">
+            ${prizes.map(prize => `
+              <div class="lg-mini-row">
+                <strong>${esc(prize.label)}</strong>
+                <span>${fmtNumber(prize.quantityRemaining)} / ${fmtNumber(prize.quantityTotal)}</span>
+              </div>
+            `).join('') || `<p class="lg-muted">Keine Gewinne.</p>`}
+          </div>
+        </div>
+        <div class="lg-panel">
+          <h3>Runden</h3>
+          <div class="lg-mini-list">
+            ${rounds.map(round => `
+              <div class="lg-mini-row">
+                <strong>Runde ${fmtNumber(round.roundNumber)}</strong>
+                <span>${statusBadge(round.status)}</span>
+              </div>
+            `).join('') || `<p class="lg-muted">Keine Runden.</p>`}
+          </div>
+        </div>
+        <div class="lg-panel">
+          <h3>Teilnahmen</h3>
+          <strong class="lg-big-number">${fmtNumber(entries.filter(entry => entry.status !== 'cancelled').length)}</strong>
+          <p class="lg-muted">Tickets werden gespeichert, Punkte aber noch nicht gebucht.</p>
+        </div>
+        <div class="lg-panel">
+          <h3>Gewinner</h3>
+          <strong class="lg-big-number">${fmtNumber(winners.length)}</strong>
+          <p class="lg-muted">Ziehung per crypto.randomInt.</p>
+        </div>
+      </div>
 
+      <div class="lg-panel">
+        <div class="lg-panel-head">
+          <h3>Teilnahmen / Tickets</h3>
+          <span class="lg-muted">${editableEntries ? 'Giveaway ist offen' : 'Teilnahmen nur bei Status open möglich'}</span>
+        </div>
 
+        ${editableEntries ? `
+          <form class="lg-form lg-entry-form" data-lg-create-entry>
+            <input name="userLogin" placeholder="Twitch-Name" required>
+            <input name="userDisplayName" placeholder="Anzeigename optional">
+            <input name="ticketCount" type="number" min="1" value="1" title="Tickets">
+            <label class="lg-check"><input name="isSubscriber" type="checkbox"> Sub/VIP-Luck anwenden</label>
+            <button class="lg-btn" type="submit">Teilnahme eintragen</button>
+          </form>
+        ` : ''}
 
+        <div class="lg-table-wrap">
+          <table class="lg-table">
+            <thead>
+              <tr>
+                <th>Zeit</th><th>User</th><th>Status</th><th>Tickets</th><th>Gewicht</th><th>Kosten offen</th><th>Quelle</th><th></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${entries.map(entry => `
+                <tr>
+                  <td>${fmtDate(entry.createdAt)}</td>
+                  <td>${esc(entry.userDisplayName || entry.userLogin || '-')}</td>
+                  <td>${esc(entry.status || '-')}</td>
+                  <td>${fmtNumber(entry.ticketCount || 0)}</td>
+                  <td>${fmtNumber(entry.ticketWeight || 0)}</td>
+                  <td>${fmtNumber(entry.costDue || 0)}</td>
+                  <td>${esc(entry.source || '-')}</td>
+                  <td>${entry.status !== 'cancelled' ? `<button class="lg-btn lg-btn-danger" data-lg-cancel-entry="${esc(entry.entryUid)}">Storno</button>` : ''}</td>
+                </tr>
+              `).join('') || `<tr><td colspan="8" class="lg-muted">Noch keine Teilnahmen.</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
+      <div class="lg-panel">
+        <h3>Gewinner</h3>
+        <div class="lg-table-wrap">
+          <table class="lg-table">
+            <thead>
+              <tr>
+                <th>Zeit</th><th>User</th><th>Status</th><th>Chat-Claim</th><th>Preis</th><th>Algorithmus</th><th>Tickets</th><th>Position</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${winners.map(winner => `
+                <tr>
+                  <td>${fmtDate(winner.createdAt)}</td>
+                  <td><strong>${esc(winner.userDisplayName || winner.userLogin || '-')}</strong><br><small class="lg-muted">${esc(winner.userLogin || '')}</small></td>
+                  <td>${statusBadge(winner.status || '-')}</td>
+                  <td>${claimStatusLabel(winner)}</td>
+                  <td>${esc(winner.prizeLabel || '-')}</td>
+                  <td>${esc(winner.drawAlgorithm || '-')}</td>
+                  <td>${fmtNumber(winner.totalTicketWeight || 0)}</td>
+                  <td>${fmtNumber(winner.ticketPosition || 0)}</td>
+                </tr>
+              `).join('') || `<tr><td colspan="8" class="lg-muted">Noch kein Gewinner gezogen.</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
+      <div class="lg-panel">
+        <h3>Wheel-Berechtigungen</h3>
+        <div class="lg-table-wrap">
+          <table class="lg-table">
+            <thead>
+              <tr>
+                <th>User</th><th>Status</th><th>Spin</th><th>Erstellt</th><th></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${wheelPermissions.map(permission => `
+                <tr>
+                  <td>${esc(permission.userDisplayName || permission.userLogin || '-')}</td>
+                  <td>${esc(permission.status || '-')}</td>
+                  <td>${esc(permission.spinUid || '-')}</td>
+                  <td>${fmtDate(permission.createdAt)}</td>
+                  <td>${permission.status === 'pending' ? `<button class="lg-btn" data-lg-claim-wheel="${esc(permission.userLogin)}" data-display-name="${esc(permission.userDisplayName || permission.userLogin)}">Rad drehen</button>` : ''}</td>
+                </tr>
+              `).join('') || `<tr><td colspan="5" class="lg-muted">Keine Wheel-Berechtigung vorhanden.</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-
-
-
-
-
+      <div class="lg-panel">
+        <h3>Events</h3>
+        <div class="lg-mini-list">
+          ${events.slice(0, 12).map(event => `
+            <div class="lg-mini-row">
+              <strong>${esc(event.eventType)}</strong>
+              <span>${fmtDate(event.createdAt)}</span>
+            </div>
+          `).join('') || `<p class="lg-muted">Keine Events.</p>`}
+        </div>
+      </div>
+    `;
+  }
 
   function renderSessions(){
     const list = rows(state.sessions);
@@ -1394,7 +1857,7 @@ window.LoyaltyGamesModule = (function(){
         <div class="lg-panel-head">
           <div>
             <h3>Gamble-Konfiguration</h3>
-            <p class="lg-muted">Zentrale Config-Ansicht. Speichern fragt vor dem echten Write nach Bestätigung; die bestehende Gamble-API bleibt unverändert.</p>
+            <p class="lg-muted">Zentrale Config-Ansicht. Command-Schalter und Command-Cooldown liegen im zentralen Command-System; Gamble selbst rechnet nur Gewinn oder Verlust.</p>
           </div>
           <div class="lg-actions">
             <button class="lg-btn lg-btn-secondary" data-lg-gamble-reload>Neu laden</button>
@@ -1408,16 +1871,15 @@ window.LoyaltyGamesModule = (function(){
           </div>
           <div class="lg-form-row">
             <label>Gewinnchance %<input name="winChancePercent" type="number" min="0" max="100" step="0.01" value="${esc(getGambleEngine(config, 'winChancePercent', 47))}"></label>
-            <label>Auszahlung x<input name="payoutMultiplier" type="number" min="0" step="0.01" value="${esc(getGambleEngine(config, 'payoutMultiplier', 2))}"></label>
+            <label>Command-Cooldown pro User (Sek.)<input name="commandCooldownUserSeconds" type="number" min="0" step="1" value="${esc(msToSecondsInput(getGambleCommand(config, 'cooldownUserMs', 60000)))}"></label>
           </div>
           <div class="lg-form-row">
             <label>Mindesteinsatz<input name="minBet" type="number" min="0" step="1" value="${esc(getGambleEngine(config, 'minBet', 1))}"></label>
             <label>Maximaleinsatz<input name="maxBet" type="number" min="0" step="1" value="${esc(getGambleEngine(config, 'maxBet', 0))}"></label>
           </div>
-          <div class="lg-form-row">
-            <label>Gamble-Cooldown pro User (Sek.)<input name="userCooldownSeconds" type="number" min="0" step="1" value="${esc(msToSecondsInput(getGambleEngine(config, 'userCooldownMs', 60000)))}"></label>
-            <label>Gamble-Cooldown global (Sek.)<input name="globalCooldownSeconds" type="number" min="0" step="1" value="${esc(msToSecondsInput(getGambleEngine(config, 'globalCooldownMs', 0)))}"></label>
-            <label>Command-Cooldown pro User (Sek.)<input name="commandCooldownUserSeconds" type="number" min="0" step="1" value="${esc(msToSecondsInput(getGambleCommand(config, 'cooldownUserMs', 60000)))}"></label>
+          <div class="lg-mini-list">
+            <div class="lg-mini-row"><span><strong>Gamble-Logik</strong><br><small class="lg-muted">Gewonnen = Einsatz dazu · Verloren = Einsatz weg. Kein sichtbarer Auszahlungsmultiplikator.</small></span><span class="lg-badge lg-badge-ok">einfach</span></div>
+            <div class="lg-mini-row"><span><strong>Cooldown-Zuständigkeit</strong><br><small class="lg-muted">Cooldown läuft über den zentralen Command <code>!gamble</code>, nicht doppelt in der Gamble-Engine.</small></span><span class="lg-badge lg-badge-ok">Command</span></div>
           </div>
           <div class="lg-check-row">
             <label class="lg-check"><input name="allowPercentBets" type="checkbox" ${getGambleEngine(config, 'allowPercentBets', true) ? 'checked' : ''}> Prozent-Einsätze erlauben</label>
@@ -1474,8 +1936,7 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
     const engineOn = Boolean(getGambleEngine(config, 'enabled', false));
     const commandOn = Boolean(getGambleCommand(config, 'enabled', false));
     const chance = getGambleEngine(config, 'winChancePercent', '?');
-    const payout = getGambleEngine(config, 'payoutMultiplier', '?');
-    const cooldown = getGambleCommand(config, 'cooldownUserMs', getGambleEngine(config, 'userCooldownMs', '?'));
+    const cooldown = getGambleCommand(config, 'cooldownUserMs', '?');
 
     return `
       <div class="lg-grid lg-grid-4 lg-gamble-kpis">
@@ -1492,7 +1953,7 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
         <article class="lg-card">
           <span class="lg-card-label">Chance</span>
           <strong>${esc(chance)}%</strong>
-          <small>${esc(payout)}x Auszahlung</small>
+          <small>Gewinn/Verlust = Einsatz</small>
         </article>
         <article class="lg-card">
           <span class="lg-card-label">Cooldown</span>
@@ -1516,7 +1977,7 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
           <div class="lg-mini-list">
             <div class="lg-mini-row"><span><strong>Engine</strong><br><small class="lg-muted">${engineOn ? 'aktiv' : 'inaktiv'}</small></span>${badge(engineOn, 'aktiv', 'aus')}</div>
             <div class="lg-mini-row"><span><strong>Command</strong><br><small class="lg-muted">${commandOn ? '!gamble aktiv' : '!gamble aus'}</small></span>${badge(commandOn, 'aktiv', 'aus')}</div>
-            <div class="lg-mini-row"><span><strong>Aktive Regeln</strong><br><small class="lg-muted">${esc(chance)}% Chance · ${esc(payout)}x Auszahlung · ${esc(formatDuration(cooldown))} Cooldown</small></span></div>
+            <div class="lg-mini-row"><span><strong>Aktive Regeln</strong><br><small class="lg-muted">${esc(chance)}% Chance · Gewinn/Verlust = Einsatz · ${esc(formatDuration(cooldown))} Command-Cooldown</small></span></div>
           </div>
           ${renderGambleResultBox('Letztes Config-Ergebnis')}
         </div>
@@ -1714,22 +2175,12 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
       btn.addEventListener('click', () => startPresetSpin(btn.dataset.lgStartSpin));
     });
 
-
-
-
-
-
     root.querySelectorAll('[data-lg-save-chat-text]').forEach(form => {
       form.addEventListener('submit', ev => {
         ev.preventDefault();
         saveChatTextVariant(ev.currentTarget);
       });
     });
-
-
-
-
-
   }
 
   function render(){
