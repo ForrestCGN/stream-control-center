@@ -147,47 +147,41 @@ window.LoyaltyGamesModule = (function(){
   function ensureLoyaltyMainSection(){
     if (!window.CGN) return;
 
-    window.CGN.sections.loyalty = {
-      label: 'Loyalty',
-      icon: '🎟️',
-      role: 'mod/supermod/streamer',
-      description: 'Punkte, Giveaways, Glücksrad, Raffles, Texte, Statistik, Config und Verlauf.',
-      items: ['loyalty_games'],
-      directModule: 'loyalty_games',
-      defaultModule: 'loyalty_games',
-      hideOverview: true
-    };
+    const existingSection = window.CGN.sections?.loyalty;
+    if (existingSection) {
+      existingSection.directModule = existingSection.directModule || 'loyalty_games';
+      existingSection.defaultModule = existingSection.defaultModule || 'loyalty_games';
+      if (Array.isArray(existingSection.items) && !existingSection.items.includes('loyalty_games')) {
+        existingSection.items.push('loyalty_games');
+      }
+    } else {
+      window.CGN.sections.loyalty = {
+        label: 'Loyalty',
+        icon: '🎟️',
+        role: 'mod/supermod/streamer',
+        description: 'Punkte, Giveaways, Glücksrad, Raffles, Texte, Statistik, Config und Verlauf.',
+        items: ['loyalty_games'],
+        directModule: 'loyalty_games',
+        defaultModule: 'loyalty_games',
+        hideOverview: true
+      };
+    }
 
     const nav = document.querySelector('#mainNav .nav-main-block');
-    if (nav) {
-      let btn = nav.querySelector('[data-section="loyalty"]');
-      if (!btn) {
-        btn = document.createElement('button');
-        btn.className = 'nav-main-item';
-        btn.dataset.section = 'loyalty';
-        const communityBtn = nav.querySelector('[data-section="community"]');
-        if (communityBtn) nav.insertBefore(btn, communityBtn);
-        else nav.appendChild(btn);
-      }
+    if (!nav) return;
 
-      btn.innerHTML = '<span class="nav-icon">🎟️</span><span class="nav-label"><strong>Loyalty</strong><small>Punkte, Giveaways, Glücksrad</small></span>';
-      btn.dataset.module = 'loyalty_games';
+    let btn = nav.querySelector('[data-section="loyalty"]');
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.className = 'nav-main-item';
+      btn.dataset.section = 'loyalty';
       btn.dataset.directModule = 'loyalty_games';
-
-      if (btn.dataset.loyaltyDirectBound !== '1') {
-        btn.addEventListener('click', (ev) => {
-          if (btn.disabled) return;
-          ev.preventDefault();
-          ev.stopImmediatePropagation();
-          state.activeTab = 'overview';
-          if (typeof window.CGN.setActiveModule === 'function') {
-            window.CGN.setActiveModule('loyalty_games', { section: 'loyalty' });
-          } else if (typeof window.CGN.setActiveSection === 'function') {
-            window.CGN.setActiveSection('loyalty');
-          }
-        }, true);
-        btn.dataset.loyaltyDirectBound = '1';
-      }
+      btn.innerHTML = '<span class="nav-icon">🎟️</span><span class="nav-label"><strong>Loyalty</strong><small>Punkte, Giveaways, Glücksrad</small></span>';
+      const communityBtn = nav.querySelector('[data-section="community"]');
+      if (communityBtn) nav.insertBefore(btn, communityBtn);
+      else nav.appendChild(btn);
+    } else {
+      btn.dataset.directModule = btn.dataset.directModule || 'loyalty_games';
     }
   }
 
@@ -205,10 +199,10 @@ window.LoyaltyGamesModule = (function(){
     };
 
     window.CGN.moduleCatalog.loyalty_games = {
-      label: 'Loyalty',
+      label: 'Loyalty Games',
       icon: '🎡',
       enabled: true,
-      description: 'Punkte, Giveaways, Glücksrad, Raffles, Texte, Statistik und Config.'
+      description: 'Glücksrad, Presets, Gamble, Texte, Statistik und Config.'
     };
 
     const loyaltySection = window.CGN.sections?.loyalty;

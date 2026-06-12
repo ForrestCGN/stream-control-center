@@ -128,6 +128,29 @@ window.CGN = {
       overlayLink: '',
       reload() { return window.Vip30Module?.loadAll?.(true); }
     },
+    loyalty: {
+      title: 'Kekskrümel-Core',
+      panelId: 'loyaltyModule',
+      group: 'loyalty',
+      overlayLink: '',
+      reload() { return window.LoyaltyModule?.loadAll?.(true); }
+    },
+    loyalty_games: {
+      title: 'Loyalty Games',
+      panelId: 'loyaltyGamesModule',
+      group: 'loyalty',
+      overlayLink: '/overlays/loyalty/wheel_overlay.html',
+      overlayLabel: 'Glücksrad-Overlay öffnen',
+      reload() { return window.LoyaltyGamesModule?.loadAll?.(true); }
+    },
+    loyalty_giveaways: {
+      title: 'Giveaways',
+      panelId: 'loyaltyGiveawaysModule',
+      group: 'loyalty',
+      overlayLink: '/overlays/loyalty/wheel_overlay.html',
+      overlayLabel: 'Glücksrad-Overlay öffnen',
+      reload() { return window.LoyaltyGiveawaysModule?.loadAll?.(true); }
+    },
     adminconfigs: {
       title: 'Admin Configs',
       panelId: 'adminconfigsModule',
@@ -155,6 +178,14 @@ window.CGN = {
       label: 'Control', icon: '🧭', role: 'streamer/local_admin/owner',
       description: 'Alerts, OBS, Overlays und Stream-Steuerung.',
       items: ['controlhome', 'alerts', 'twitch_events', 'obs', 'overlays', 'stream_control']
+    },
+    loyalty: {
+      label: 'Loyalty', icon: '🎟️', role: 'mod/supermod/streamer',
+      description: 'Kekskrümel, Giveaways, Glücksrad, Gamble, Texte, Statistik und Verlauf.',
+      items: ['loyalty', 'loyalty_games', 'loyalty_giveaways'],
+      directModule: 'loyalty_games',
+      defaultModule: 'loyalty_games',
+      hideOverview: true
     },
     community: {
       label: 'Community', icon: '👥', role: 'mod/supermod/streamer',
@@ -187,6 +218,9 @@ window.CGN = {
     stream_control: { label: 'Stream-Steuerung', icon: '📺', enabled: false, description: 'Stream-Aktionen und Schaltungen vorbereitet.' },
     vip: { label: 'VIP-System', icon: '💎', enabled: true, description: 'VIP-/Mod-Sounds, DB-Texte, Rollen, Daily-Usage und Events.' },
     vip30: { label: '30 Tage VIP', icon: '👑', enabled: true, description: 'VIP30-Slots, Logs, Cleanup und EventSub-Status read-only anzeigen.' },
+    loyalty: { label: 'Kekskrümel-Core', icon: '🍪', enabled: true, description: 'Punkte, User, Transaktionen, Runner, Watchtime und Core-Auswertungen.' },
+    loyalty_games: { label: 'Loyalty Games', icon: '🎡', enabled: true, description: 'Glücksrad, Presets, Gamble, Texte, Statistik und Verlauf.' },
+    loyalty_giveaways: { label: 'Giveaways', icon: '🎁', enabled: true, description: 'Giveaway-Übersicht, Tickets, Claims, Gewinner und Live-Steuerung.' },
     hug: { label: 'Hug-System', icon: '🤗', enabled: true, description: 'Hug/Rehug-Statistiken, Texte, Typen und Diagnose.' },
     chat_overlay: { label: 'Chat-Overlay', icon: '💬', enabled: false, description: 'Chat-Overlay Steuerung vorbereitet.' },
     deathcounter: { label: 'Deathcounter', icon: '💀', enabled: false, description: 'Deathcounter V2 Verwaltung vorbereitet.' },
@@ -214,7 +248,7 @@ window.CGN = {
     diagnostics: { label: 'Diagnose', icon: '🩺', enabled: false, description: 'Diagnosewerkzeuge vorbereitet.' }
   },
 
-  favorites: ['clips', 'alerts', 'vip30', 'vip', 'hug', 'tagebuch', 'todo', 'commands', 'obs', 'overlays', 'sound_system', 'bus_diagnostics', 'media', 'message_rotator'],
+  favorites: ['clips', 'alerts', 'vip30', 'loyalty_games', 'loyalty', 'loyalty_giveaways', 'vip', 'hug', 'tagebuch', 'todo', 'commands', 'obs', 'overlays', 'sound_system', 'bus_diagnostics', 'media', 'message_rotator'],
 
   async api(path, options = {}) {
     const res = await fetch(path, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options });
@@ -238,7 +272,15 @@ window.CGN = {
 
   setActiveSection(sectionId, options = {}) {
     const section = this.sections[sectionId] ? sectionId : 'live';
+    const meta = this.sections[section] || {};
     this.activeSection = section;
+
+    const directModule = options.overview === true ? '' : (meta.directModule || meta.defaultModule || '');
+    if (directModule && this.modules[directModule]) {
+      this.setActiveModule(directModule, { ...options, section });
+      return;
+    }
+
     this.setActiveModule('sectionhome', { ...options, section });
   },
 
@@ -267,7 +309,14 @@ window.CGN = {
     });
 
     document.querySelectorAll('.nav-main-item[data-section]').forEach(btn => {
-      const isActive = btn.dataset.section === this.activeSection && moduleName === 'sectionhome';
+      const sectionId = btn.dataset.section || '';
+      const sectionMeta = this.sections[sectionId] || {};
+      const directModule = sectionMeta.directModule || sectionMeta.defaultModule || btn.dataset.directModule || '';
+      const isActive = sectionId === this.activeSection && (
+        moduleName === 'sectionhome'
+        || moduleName === directModule
+        || meta.group === sectionId
+      );
       btn.classList.toggle('active', isActive);
       btn.setAttribute('aria-current', isActive ? 'page' : 'false');
     });
@@ -411,7 +460,14 @@ document.querySelectorAll('.nav-item[data-module]').forEach(btn => {
 document.querySelectorAll('.nav-main-item[data-section]').forEach(btn => {
   btn.addEventListener('click', () => {
     if (btn.disabled) return;
-    window.CGN.setActiveSection(btn.dataset.section);
+    const sectionId = btn.dataset.section;
+    const sectionMeta = window.CGN.sections?.[sectionId] || {};
+    const directModule = btn.dataset.directModule || sectionMeta.directModule || sectionMeta.defaultModule || '';
+    if (directModule && window.CGN.modules?.[directModule]) {
+      window.CGN.setActiveModule(directModule, { section: sectionId });
+      return;
+    }
+    window.CGN.setActiveSection(sectionId);
   });
 });
 

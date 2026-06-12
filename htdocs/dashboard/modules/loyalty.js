@@ -43,30 +43,28 @@ window.LoyaltyModule = (function(){
   function registerDashboardModule(){
     if (!window.CGN) return;
     window.CGN.modules.loyalty = {
-      title: 'Loyalty-System',
+      title: 'Kekskrümel-Core',
       panelId: 'loyaltyModule',
-      group: 'community',
+      group: 'loyalty',
       overlayLink: '',
       reload(){ return window.LoyaltyModule?.loadAll?.(true); }
     };
 
     window.CGN.moduleCatalog.loyalty = {
-      label: 'Loyalty',
+      label: 'Kekskrümel-Core',
       icon: '🍪',
       enabled: true,
       description: 'Kekskrümel, Shadow-Runner, Punkte, User und Auswertungen.'
     };
 
-    const community = window.CGN.sections?.community;
-    if (community && Array.isArray(community.items) && !community.items.includes('loyalty')) {
-      const vipIdx = community.items.indexOf('vip');
-      if (vipIdx >= 0) community.items.splice(vipIdx + 1, 0, 'loyalty');
-      else community.items.unshift('loyalty');
+    const loyaltySection = window.CGN.sections?.loyalty;
+    if (loyaltySection && Array.isArray(loyaltySection.items) && !loyaltySection.items.includes('loyalty')) {
+      loyaltySection.items.unshift('loyalty');
     }
 
     if (Array.isArray(window.CGN.favorites) && !window.CGN.favorites.includes('loyalty')) {
-      const vipIdx = window.CGN.favorites.indexOf('vip');
-      if (vipIdx >= 0) window.CGN.favorites.splice(vipIdx + 1, 0, 'loyalty');
+      const gamesIdx = window.CGN.favorites.indexOf('loyalty_games');
+      if (gamesIdx >= 0) window.CGN.favorites.splice(gamesIdx + 1, 0, 'loyalty');
       else window.CGN.favorites.push('loyalty');
     }
 
