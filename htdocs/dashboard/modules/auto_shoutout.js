@@ -22,13 +22,14 @@ window.AutoShoutoutModule = (function(){
     error: '',
     notice: '',
     autoRefresh: true,
-    activeInShoutout: false
+    activeInShoutout: false,
+    activityDetails: new Map()
   };
 
   function esc(v){
     return window.CGN?.esc
       ? window.CGN.esc(v)
-      : String(v ?? '').replace(/[&<>\"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+      : String(v ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
   }
 
   async function api(path, options = {}){
@@ -101,6 +102,13 @@ window.AutoShoutoutModule = (function(){
     return esc(d.toLocaleString('de-DE'));
   }
 
+  function fmtTime(v){
+    if (!v) return '<span class="auto-so-muted">-</span>';
+    const d = new Date(v);
+    if (Number.isNaN(d.getTime())) return esc(v);
+    return esc(d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+  }
+
   function fmtMs(ms){
     const n = Math.max(0, Number(ms || 0));
     if (!n) return '0s';
@@ -120,9 +128,9 @@ window.AutoShoutoutModule = (function(){
   function statusBadge(value){
     const raw = String(value || '').toLowerCase();
     let cls = 'neutral';
-    if (['ok','active','triggered','queued','live','fresh','database','frei'].includes(raw)) cls = 'ok';
-    else if (['waiting','offline','fallback','false','warn','unknown','stale','aktiv'].includes(raw)) cls = 'warn';
-    else if (['failed','error','bad','removed'].includes(raw)) cls = 'bad';
+    if (['ok','active','triggered','queued','live','fresh','database','frei','eingereiht'].includes(raw)) cls = 'ok';
+    else if (['waiting','offline','fallback','false','warn','unknown','stale','aktiv','wartet','cooldown'].includes(raw)) cls = 'warn';
+    else if (['failed','error','bad','removed','ignoriert'].includes(raw)) cls = 'bad';
     return `<span class="auto-so-badge ${cls}">${esc(value || '-')}</span>`;
   }
 
@@ -448,13 +456,135 @@ window.AutoShoutoutModule = (function(){
     `;
   }
 
+  function eventTarget(row){ return row?.target_display || row?.targetDisplay || row?.target_login || row?.targetLogin || '-'; }
+  function eventTrigger(row){ return row?.trigger_display || row?.triggerDisplay || row?.trigger_login || row?.triggerLogin || '-'; }
+  function eventReason(row){ return String(row?.reason || '').trim(); }
+  function eventStatus(row){ return String(row?.status || '').trim(); }
+  function eventTime(row){ return row?.created_at || row?.createdAt || row?.updated_at || row?.updatedAt || ''; }
+  function eventQueueId(row){ return row?.display_queue_id || row?.displayQueueId || ''; }
+
+  function shortActivityStatus(row){
+    const status = eventStatus(row).toLowerCase();
+    const reason = eventReason(row).toLowerCase();
+    if (status === 'triggered' && reason === 'queued') return { label: 'eingereiht', badge: 'queued' };
+    if (status === 'triggered' && reason === 'queued_waiting_start_scene') return { label: 'wartet Start', badge: 'waiting' };
+    if (reason === 'not_configured_streamer') return { label: 'ignoriert', badge: 'ignored' };
+    if (reason === 'cooldown' || reason.includes('cooldown')) return { label: 'Cooldown', badge: 'cooldown' };
+    if (reason === 'already_queued') return { label: 'schon gelistet', badge: 'waiting' };
+    if (reason === 'already_received' || reason === 'already_auto_triggered_this_stream_day' || reason === 'already_had_shoutout_this_stream_day') return { label: 'heute erledigt', badge: 'waiting' };
+    if (status === 'skipped') return { label: 'übersprungen', badge: 'waiting' };
+    if (status === 'failed' || status === 'error') return { label: 'Fehler', badge: 'error' };
+    return { label: reason || status || '-', badge: status || 'neutral' };
+  }
+
+  function parseMeta(row){
+    const raw = row?.meta || row?.meta_json || row?.metaJson || null;
+    if (!raw) return null;
+    if (typeof raw === 'object') return raw;
+    try { return JSON.parse(String(raw)); } catch (_) { return null; }
+  }
+
+  function metaValue(meta, path, fallback = ''){
+    let node = meta;
+    for (const key of path) {
+      if (!node || typeof node !== 'object') return fallback;
+      node = node[key];
+    }
+    return node === undefined || node === null ? fallback : node;
+  }
+
+  function rawMessageFromEvent(row){
+    const meta = parseMeta(row);
+    return metaValue(meta, ['autoRawMessage'], '')
+      || metaValue(meta, ['source', 'autoRawMessage'], '')
+      || metaValue(meta, ['activity', 'meta', 'source', 'autoRawMessage'], '')
+      || metaValue(meta, ['result', 'input', 'message'], '');
+  }
+
+  function sourceFromEvent(row){
+    const meta = parseMeta(row);
+    return metaValue(meta, ['source', 'source'], '')
+      || metaValue(meta, ['sourceModule'], '')
+      || metaValue(meta, ['source', 'sourceModule'], '')
+      || metaValue(meta, ['source', 'module'], '')
+      || '';
+  }
+
+  function renderActivityDetailsModal(){
+    return `
+      <div class="auto-so-modal-backdrop" data-auto-so-activity-modal hidden>
+        <div class="auto-so-modal" role="dialog" aria-modal="true" aria-labelledby="auto-so-activity-title">
+          <div class="auto-so-modal-head">
+            <div>
+              <div class="auto-so-kicker">AutoShoutout Status</div>
+              <h3 id="auto-so-activity-title">Aktivität Details</h3>
+            </div>
+            <button type="button" class="auto-so-modal-close" data-auto-so-activity-close>Schließen</button>
+          </div>
+          <div class="auto-so-modal-body" data-auto-so-activity-body></div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderActivityDetailBody(row){
+    const meta = parseMeta(row);
+    const status = shortActivityStatus(row);
+    const rawMessage = rawMessageFromEvent(row);
+    const source = sourceFromEvent(row);
+    const streamDay = row?.stream_day_id || row?.streamDayId || metaValue(meta, ['streamDay', 'streamDayId'], '') || metaValue(meta, ['streamState', 'streamDayId'], '');
+    const rows = [
+      ['Streamer', `@${eventTarget(row)}`],
+      ['Auslöser', eventTrigger(row)],
+      ['Status', eventStatus(row) || '-'],
+      ['Kurzstatus', status.label],
+      ['Grund', eventReason(row) || '-'],
+      ['Zeit', fmtDate(eventTime(row))],
+      ['DisplayQueue', eventQueueId(row) ? `#${eventQueueId(row)}` : '-'],
+      ['Quelle', source || '-'],
+      ['Chat-Nachricht', rawMessage || '-'],
+      ['Stream-Day', streamDay || '-']
+    ];
+    return `
+      <div class="auto-so-detail-grid">
+        ${rows.map(([label, value]) => `
+          <div class="auto-so-detail-row">
+            <small>${esc(label)}</small>
+            <strong>${typeof value === 'string' && value.includes('<span') ? value : esc(value)}</strong>
+          </div>
+        `).join('')}
+      </div>
+      <details class="auto-so-raw-details">
+        <summary>Rohdaten anzeigen</summary>
+        <pre>${esc(JSON.stringify(row, null, 2))}</pre>
+      </details>
+    `;
+  }
+
+  function openActivityDetails(id){
+    const row = state.activityDetails.get(String(id));
+    const panel = getPanel(false);
+    const modal = panel?.querySelector('[data-auto-so-activity-modal]');
+    const body = panel?.querySelector('[data-auto-so-activity-body]');
+    if (!row || !modal || !body) return;
+    body.innerHTML = renderActivityDetailBody(row);
+    modal.hidden = false;
+  }
+
+  function closeActivityDetails(){
+    const panel = getPanel(false);
+    const modal = panel?.querySelector('[data-auto-so-activity-modal]');
+    if (modal) modal.hidden = true;
+  }
+
   function renderRecent(){
     const events = Array.isArray(settings().recentEvents) ? settings().recentEvents : [];
     const activity = Array.isArray(settings().recentActivity) ? settings().recentActivity : [];
     const st = settings().state || {};
+    state.activityDetails = new Map();
     return `
       <div class="auto-so-card auto-so-wide">
-        <div class="auto-so-card-head"><div><h3>Letzte Auto-SO-Ereignisse</h3><p>Trigger/Skip-Historie aus der Auto-SO-Event-Tabelle.</p></div></div>
+        <div class="auto-so-card-head"><div><h3>Letzte Auto-SO-Aktivität</h3><p>Kompakte Übersicht. Details öffnen sich über den Info-Button.</p></div></div>
         <div class="auto-so-facts">
           <div><small>Letzter Trigger</small><strong>${esc(st.lastTriggeredLogin || '-')}</strong><span>${fmtDate(st.lastTriggeredAt)}</span></div>
           <div><small>Letzter Skip</small><strong>${esc(st.lastSkippedLogin || '-')}</strong><span>${esc(st.lastSkipReason || '-')}</span></div>
@@ -462,23 +592,26 @@ window.AutoShoutoutModule = (function(){
           <div><small>Letzte Zählung</small><strong>${esc(activity[0]?.displayName || activity[0]?.login || '-')}</strong><span>${activity[0] ? `${esc(activity[0].messageCount)}/${esc(activity[0].requiredMessages)} · bis ${fmtDate(activity[0].windowEndsAt)}` : '-'}</span></div>
         </div>
         <div class="auto-so-table-wrap">
-          <table class="auto-so-table auto-so-table-compact">
-            <thead><tr><th>ID</th><th>Ziel</th><th>Auslöser</th><th>Status</th><th>Grund</th><th>Queue</th><th>Zeit</th></tr></thead>
+          <table class="auto-so-table auto-so-table-compact auto-so-activity-table">
+            <thead><tr><th>Zeit</th><th>Streamer</th><th>Status</th><th>Info</th></tr></thead>
             <tbody>
-              ${events.length ? events.slice(0, 20).map(row => `
-                <tr>
-                  <td>${esc(row.id)}</td>
-                  <td><strong>@${esc(row.target_display || row.targetDisplay || row.target_login || row.targetLogin || '-')}</strong></td>
-                  <td>${esc(row.trigger_display || row.triggerDisplay || row.trigger_login || row.triggerLogin || '-')}</td>
-                  <td>${statusBadge(row.status)}</td>
-                  <td>${esc(row.reason || '')}</td>
-                  <td>${esc(row.display_queue_id || row.displayQueueId || '')}</td>
-                  <td>${fmtDate(row.created_at || row.createdAt)}</td>
-                </tr>
-              `).join('') : '<tr><td colspan="7" class="auto-so-empty">Noch keine Events.</td></tr>'}
+              ${events.length ? events.slice(0, 20).map((row, index) => {
+                const id = String(row.id || `${eventTime(row)}_${index}`);
+                state.activityDetails.set(id, row);
+                const status = shortActivityStatus(row);
+                return `
+                  <tr>
+                    <td>${fmtTime(eventTime(row))}</td>
+                    <td><strong>@${esc(eventTarget(row))}</strong><small>Auslöser: ${esc(eventTrigger(row))}</small></td>
+                    <td>${statusBadge(status.label)}</td>
+                    <td><button type="button" class="auto-so-info-button" data-auto-so-activity-info="${esc(id)}">Info</button></td>
+                  </tr>
+                `;
+              }).join('') : '<tr><td colspan="4" class="auto-so-empty">Noch keine Events.</td></tr>'}
             </tbody>
           </table>
         </div>
+        ${renderActivityDetailsModal()}
       </div>
     `;
   }
@@ -552,6 +685,9 @@ window.AutoShoutoutModule = (function(){
         return;
       }
       if (!state.activeInShoutout) return;
+      if (target.closest('[data-auto-so-activity-close]') || (target.matches?.('[data-auto-so-activity-modal]'))) { ev.preventDefault(); return closeActivityDetails(); }
+      const activityInfo = target.closest('[data-auto-so-activity-info]');
+      if (activityInfo) { ev.preventDefault(); return openActivityDetails(activityInfo.dataset.autoSoActivityInfo || ''); }
       if (target.closest('[data-auto-so-refresh]')) { ev.preventDefault(); return loadAll(true); }
       if (target.closest('[data-auto-so-save-settings]')) { ev.preventDefault(); return saveSettings(); }
       if (target.closest('[data-auto-so-save-streamer]')) { ev.preventDefault(); return saveStreamer(); }
@@ -580,6 +716,7 @@ window.AutoShoutoutModule = (function(){
     });
 
     document.addEventListener('keydown', ev => {
+      if (state.activeInShoutout && ev.key === 'Escape') closeActivityDetails();
       if (state.activeInShoutout && ev.key === 'Enter' && ev.target?.closest?.('[data-auto-so-streamer-form]')) {
         ev.preventDefault();
         saveStreamer();
