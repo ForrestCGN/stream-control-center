@@ -309,7 +309,7 @@ window.LoyaltyGamesModule = (function(){
     return config?.command?.[key] ?? fallback;
   }
 
-  function buildGambleResult(kind, title, message, extra = {}){
+  function buildConfigResult(kind, title, message, extra = {}){
     return {
       kind,
       title,
@@ -318,6 +318,10 @@ window.LoyaltyGamesModule = (function(){
       summary: Array.isArray(extra.summary) ? extra.summary : [],
       error: extra.error || ''
     };
+  }
+
+  function buildGambleResult(kind, title, message, extra = {}){
+    return buildConfigResult(kind, title, message, extra);
   }
 
   function currentGambleSummary(config = state.gambleConfig || {}){
@@ -337,8 +341,7 @@ window.LoyaltyGamesModule = (function(){
     ];
   }
 
-  function renderGambleResultBox(title = 'Letztes Config-Ergebnis'){
-    const result = state.gambleResult;
+  function renderConfigResultBox({ title = 'Letztes Config-Ergebnis', result = null, clearAttr = '' } = {}){
     const hasStructured = result && typeof result === 'object';
     const kind = hasStructured ? String(result.kind || 'info') : 'info';
     const badgeText = kind === 'success' ? 'Gespeichert' : (kind === 'error' ? 'Fehler' : (kind === 'loading' ? 'Läuft' : 'Info'));
@@ -346,11 +349,12 @@ window.LoyaltyGamesModule = (function(){
     const heading = hasStructured ? (result.title || title) : 'Noch keine Aktion in dieser Sitzung.';
     const message = hasStructured ? (result.message || '') : (result || '');
     const summary = hasStructured && Array.isArray(result.summary) ? result.summary : [];
+    const clearButton = clearAttr ? `<button class="lg-btn lg-btn-secondary" ${clearAttr}>Leeren</button>` : '';
     return `
       <div class="lg-result-box">
         <div class="lg-panel-head lg-panel-head-compact">
           <strong>${esc(title)}</strong>
-          <button class="lg-btn lg-btn-secondary" data-lg-gamble-clear-result>Leeren</button>
+          ${clearButton}
         </div>
         <div class="lg-mini-list">
           <div class="lg-mini-row">
@@ -362,6 +366,14 @@ window.LoyaltyGamesModule = (function(){
         </div>
       </div>
     `;
+  }
+
+  function renderGambleResultBox(title = 'Letztes Config-Ergebnis'){
+    return renderConfigResultBox({
+      title,
+      result: state.gambleResult,
+      clearAttr: 'data-lg-gamble-clear-result'
+    });
   }
 
   function getGambleFormValue(form, name){
@@ -382,7 +394,7 @@ window.LoyaltyGamesModule = (function(){
       actorRole: String(form?.elements?.actorRole?.value || 'streamer').trim(),
       dryRun: false,
       confirmWrite,
-      reason: 'STEP235G Dashboard Loyalty Config Gamble Write',
+      reason: 'STEP235H Dashboard Loyalty Config UX Standard Gamble Write',
       engine: {
         enabled: getGambleFormValue(form, 'enabled'),
         winChancePercent: getGambleFormValue(form, 'winChancePercent'),
@@ -398,7 +410,7 @@ window.LoyaltyGamesModule = (function(){
         enabled: getGambleFormValue(form, 'commandEnabled'),
         cooldownUserMs: getGambleFormValue(form, 'commandCooldownUserMs'),
         sendResultToChat: getGambleFormValue(form, 'sendResultToChat'),
-        activationState: 'dashboard_loyalty_config_gamble_write_step235f'
+        activationState: 'dashboard_loyalty_config_gamble_write_step235h'
       }
     };
   }
@@ -2058,6 +2070,33 @@ window.LoyaltyGamesModule = (function(){
     `;
   }
 
+  function renderConfigUxStandard(){
+    return `
+      <div class="lg-panel lg-config-standard-panel">
+        <h3>Config-UX-Standard</h3>
+        <p class="lg-muted">Alle weiteren Loyalty-Config-Bereiche sollen nach diesem Muster angebunden werden.</p>
+        <div class="lg-mini-list">
+          <div class="lg-mini-row"><span><strong>Normale Oberfläche</strong><br><small class="lg-muted">Keine Rohdaten-/JSON-Blöcke im Streamer-Dashboard.</small></span><span class="lg-badge lg-badge-ok">Standard</span></div>
+          <div class="lg-mini-row"><span><strong>Speichern</strong><br><small class="lg-muted">Bestätigungsdialog vor echtem Write, danach verständliche Erfolgsmeldung.</small></span><span class="lg-badge lg-badge-warn">Schutz</span></div>
+          <div class="lg-mini-row"><span><strong>Fehler</strong><br><small class="lg-muted">Klare Fehlermeldung statt technischem Dump. Details nur später im Admin-/Debug-Modus.</small></span><span class="lg-badge lg-badge-warn">UX</span></div>
+          <div class="lg-mini-row"><span><strong>Audit</strong><br><small class="lg-muted">Writes bleiben nachvollziehbar; Backend-/Audit-Verhalten bleibt unverändert.</small></span><span class="lg-badge lg-badge-ok">Pflicht</span></div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderConfigPlaceholder(sectionLabel){
+    return `
+      <div class="lg-panel">
+        <h3>${esc(sectionLabel)}</h3>
+        <p class="lg-muted">Dieser Config-Bereich ist vorbereitet, aber noch nicht aktiv angebunden.</p>
+        <div class="lg-mini-list">
+          <div class="lg-mini-row"><span><strong>Geplanter Standard</strong><br><small class="lg-muted">Speichern mit Bestätigung, klare Ergebnisanzeige, kein technischer JSON-Dump.</small></span><span class="lg-badge lg-badge-warn">geplant</span></div>
+        </div>
+      </div>
+    `;
+  }
+
   function renderGambleConfigPanel(){
     const config = state.gambleConfig || {};
     const engineOn = Boolean(getGambleEngine(config, 'enabled', false));
@@ -2129,7 +2168,7 @@ ${renderGambleResultBox('Letztes Config-Ergebnis')}
         <div class="lg-panel-head">
           <div>
             <h3>Config</h3>
-            <p class="lg-muted">Zentrale Loyalty-Config. Weitere Bereiche werden später hierher verschoben; aktuell ist Gamble aktiv angebunden.</p>
+            <p class="lg-muted">Zentrale Loyalty-Config. Gamble ist aktiv angebunden; weitere Bereiche folgen mit demselben UX-Standard.</p>
           </div>
           <div class="lg-actions">
             <label class="lg-config-select-label">Bereich
@@ -2139,7 +2178,8 @@ ${renderGambleResultBox('Letztes Config-Ergebnis')}
             </label>
           </div>
         </div>
-        ${current?.[0] === 'gamble' ? renderGambleConfigPanel() : `<p class="lg-muted">Dieser Config-Bereich ist vorbereitet, aber noch nicht aktiv angebunden.</p>`}
+        ${current?.[0] === 'gamble' ? renderGambleConfigPanel() : renderConfigPlaceholder(current?.[1] || 'Config-Bereich')}
+        ${renderConfigUxStandard()}
       </div>
     `;
   }
