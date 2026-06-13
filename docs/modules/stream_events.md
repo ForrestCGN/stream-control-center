@@ -867,3 +867,10 @@ Neue Routen:
 Wichtig: EVS-14 spielt noch keinen Sound direkt ab und fasst die Sound-System-Queue nicht an. Stattdessen wird ein `playback`-Payload vorbereitet, der später an das vorhandene `sound_system` angeschlossen werden kann.
 
 Sound-Runden werden als `game_type='sound'` in `stream_events_rounds` gespeichert. Eine aktive Sound-Runde kann gelöst oder als ungelöst markiert werden. Bei einer korrekten Lösung werden Punkte mit `sourceType='sound_solved'` gebucht und im bestehenden Ranking sichtbar.
+
+
+## EVS-15 – Sound Runtime Test Helpers
+
+EVS-15 ergänzt einen sicheren Helper zum Anlegen eines Sound-Testevents. Die Route `POST /api/stream-events/sound-runtime/create-test-event?confirm=1` erstellt ein Event mit `soundEnabled=true`, Test-Snippets, Antwortvarianten und Punkten. Optional kann mit `{ "start": true }` direkt gestartet werden, sofern kein anderes Event aktiv ist.
+
+Die Sound-Runtime bleibt im Prepared-only-Modus: kein direktes Abspielen, kein Sound-System-Queue-Touch, keine direkte Twitch-Chat-Ausgabe.

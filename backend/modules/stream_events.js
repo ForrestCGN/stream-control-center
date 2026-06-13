@@ -17,8 +17,8 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.0";
-const MODULE_BUILD = "STEP_EVS_14_SOUND_RUNTIME_PREP";
+const MODULE_VERSION = "0.5.1";
+const MODULE_BUILD = "STEP_EVS_15_SOUND_RUNTIME_TEST_HELPERS";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -2335,6 +2335,103 @@ function getStatisticsUser(login, eventUid = "") {
   };
 }
 
+
+function createSoundRuntimeTestEvent(body = {}) {
+  ensureSchema();
+  const name = cleanString(body.name, "EVS Sound-Runtime Test");
+  const startImmediately = boolValue(body.start ?? body.startImmediately);
+  const snippets = Array.isArray(body.snippets) && body.snippets.length ? body.snippets : [
+    {
+      uid: "test_sound_1",
+      title: "Forrest Heimleitung Hymne",
+      mediaId: "evs_test_audio_forrest_heimleitung",
+      mediaPath: "",
+      acceptedAnswers: ["forrest heimleitung", "heimleitung", "forrest hymn", "forrest hymne"],
+      points: 25,
+      answerSeconds: 20,
+      active: true
+    },
+    {
+      uid: "test_sound_2",
+      title: "Engel Rentner Disco",
+      mediaId: "evs_test_audio_engel_rentner_disco",
+      mediaPath: "",
+      acceptedAnswers: ["engel disco", "rentner disco", "engel rentner disco"],
+      points: 30,
+      answerSeconds: 20,
+      active: true
+    },
+    {
+      uid: "test_sound_3",
+      title: "CGN Kaffeemaschine Alarm",
+      mediaId: "evs_test_audio_cgn_kaffee_alarm",
+      mediaPath: "",
+      acceptedAnswers: ["kaffeemaschine", "kaffee alarm", "cgn kaffee", "kaffeemaschine alarm"],
+      points: 20,
+      answerSeconds: 20,
+      active: true
+    }
+  ];
+
+  const event = createEvent({
+    name,
+    description: cleanString(body.description, "Automatisch angelegtes Test-Event fuer die EVS Sound-Runtime. Es wird nichts direkt abgespielt."),
+    soundEnabled: true,
+    textEnabled: false,
+    soundConfig: {
+      snippets,
+      answerSeconds: clampNumber(body.answerSeconds, 5, 300, 20),
+      defaultPoints: clampNumber(body.defaultPoints, 0, 10000, 10),
+      unresolvedPolicy: cleanString(body.unresolvedPolicy, "requeue_later"),
+      solvedPolicy: cleanString(body.solvedPolicy, "remove_from_rotation"),
+      avoidImmediateRepeat: body.avoidImmediateRepeat !== undefined ? boolValue(body.avoidImmediateRepeat) : true,
+      revealVideoEnabled: body.revealVideoEnabled !== undefined ? boolValue(body.revealVideoEnabled) : true,
+      directPlaybackEnabled: false,
+      outputPreparedOnly: true
+    },
+    metadata: {
+      testEvent: true,
+      createdByHelper: "sound-runtime-test-event",
+      preparedOnly: true,
+      soundSystemQueueTouched: false,
+      step: MODULE_BUILD
+    },
+    createdBy: cleanString(body.createdBy || body.actor, "evs_test_helper")
+  });
+
+  const validated = validateStoredEvent(event.eventUid);
+  const started = startImmediately ? startEvent(event.eventUid) : null;
+  const active = getActiveEvent();
+  return {
+    ok: true,
+    event: publicEventSummary(getEventByUid(event.eventUid)),
+    eventUid: event.eventUid,
+    validated: publicEventSummary(validated),
+    started,
+    activeEvent: publicEventSummary(active),
+    snippets: getSoundSnippets(getEventByUid(event.eventUid)).map(item => ({
+      snippetUid: item.snippetUid,
+      title: item.title,
+      mediaId: item.mediaId,
+      acceptedAnswers: item.acceptedAnswers,
+      points: item.points,
+      answerSeconds: item.answerSeconds
+    })),
+    testFlow: [
+      { step: 1, method: "POST", route: "/api/stream-events/sound-runtime/next-round", note: "Bereitet eine Sound-Runde vor. Spielt nichts ab." },
+      { step: 2, method: "POST", route: "/api/stream-events/sound-runtime/resolve", body: { user: "soundtester", answer: "heimleitung" }, note: "Loest die aktive Runde, wenn die Antwort passt." },
+      { step: 3, method: "GET", route: "/api/stream-events/sound-runtime/report", note: "Zeigt Runden, Punkte und Ranking." }
+    ],
+    routes: {
+      nextRound: "/api/stream-events/sound-runtime/next-round",
+      resolve: "/api/stream-events/sound-runtime/resolve",
+      unresolved: "/api/stream-events/sound-runtime/unresolved",
+      report: "/api/stream-events/sound-runtime/report"
+    },
+    note: "Dieser Helper legt nur auf ausdrueckliches confirm=1 ein Sound-Test-Event an. Er spielt nichts direkt ab und fasst die Sound-System-Queue nicht an."
+  };
+}
+
 function createTextRuntimeTestEvent(body = {}) {
   ensureSchema();
   const name = cleanString(body.name, "EVS Text-Runtime Test");
@@ -2595,6 +2692,7 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "GET", path: `${prefix}/statistics/user/:login`, description: "User-Detailstatistik fuer Text/Sound/Punkte, optional eventUid" },
       { method: "POST", path: `${prefix}/text-runtime/test-chat`, description: "Testet eine Chatnachricht gegen das aktive Text-Event" },
       { method: "POST", path: `${prefix}/text-runtime/create-test-event`, description: "Legt mit confirm=1 ein sicheres Text-Runtime-Testevent an" },
+      { method: "POST", path: `${prefix}/sound-runtime/create-test-event`, description: "Legt mit confirm=1 ein sicheres Sound-Runtime-Testevent an" },
       { method: "POST", path: `${prefix}/sound-runtime/next-round`, description: "Bereitet die naechste Sound-Runde vor, ohne direkt abzuspielen" },
       { method: "POST", path: `${prefix}/sound-runtime/resolve`, description: "Wertet die aktive Sound-Runde als geloest, wenn die Antwort passt" },
       { method: "POST", path: `${prefix}/sound-runtime/unresolved`, description: "Markiert die aktive Sound-Runde als nicht geloest" },
@@ -2746,6 +2844,22 @@ module.exports.init = function init(ctx) {
       sendJson(res, getSoundRuntimeReport(req.query.eventUid || req.query.event_uid || ""));
     } catch (err) {
       handleError(res, err);
+    }
+  });
+
+  reg("post", `${prefix}/sound-runtime/create-test-event`, (req, res) => {
+    try {
+      const confirm = String(req.query.confirm || (req.body && req.body.confirm) || "").trim();
+      if (confirm !== "1") {
+        return sendJson(res, {
+          ok: false,
+          error: "confirm_required",
+          hint: "POST /api/stream-events/sound-runtime/create-test-event?confirm=1 optional mit { start: true }"
+        }, 400);
+      }
+      sendJson(res, createSoundRuntimeTestEvent(req.body || {}));
+    } catch (err) {
+      handleError(res, err, 400);
     }
   });
 
