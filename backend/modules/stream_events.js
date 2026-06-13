@@ -17,8 +17,8 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.4";
-const MODULE_BUILD = "STEP_EVS_17B_SOUND_DEBUG_ACCEPTED_ANSWERS";
+const MODULE_VERSION = "0.5.5";
+const MODULE_BUILD = "STEP_EVS_18_SOUND_TWITCH_CHAT_ANSWER_RUNTIME";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -185,7 +185,7 @@ const MODULE_META = {
   build: MODULE_BUILD,
   type: "runtime",
   category: "events",
-  description: "Zentrales Event-System Backend: Entwürfe, Validierung, Punkte, Ranking, Bus-Status, Text-Multi-Satz-Config, Textvarianten, globale Config, Communication-Bus Heartbeat, erste Text-Chat-Runtime und sichere Text-Runtime Testhelfer.",
+  description: "Zentrales Event-System Backend: Entwürfe, Validierung, Punkte, Ranking, Bus-Status, Text-Multi-Satz-Config, Textvarianten, globale Config, Communication-Bus Heartbeat, Text- und Sound-Chat-Runtime ueber Twitch-Chat-Bus-Events.",
   routesPrefix: ["/api/stream-events"],
   bus: {
     registered: true,
@@ -1527,11 +1527,61 @@ function processTextChatMessage(chat = {}, options = {}) {
 function handleTwitchChatEnvelope(envelope = {}) {
   const chat = extractChatPayload(envelope);
   const event = getActiveEvent();
-  if (event && event.soundEnabled) return processSoundChatMessage(chat, { source: "bus:twitch.chat.message" });
-  if (event && event.textEnabled) return processTextChatMessage(chat, { source: "bus:twitch.chat.message" });
-  runtimeState.counters.textRuntimeSkipped += 1;
-  runtimeState.counters.soundRuntimeSkipped += 1;
-  return { ok: true, skipped: true, reason: "no_active_chat_runtime" };
+  if (!event) {
+    runtimeState.counters.textRuntimeSkipped += 1;
+    runtimeState.counters.soundRuntimeSkipped += 1;
+    return { ok: true, skipped: true, reason: "no_active_chat_runtime" };
+  }
+
+  const result = {
+    ok: true,
+    source: "bus:twitch.chat.message",
+    eventUid: event.eventUid,
+    soundEnabled: event.soundEnabled === true,
+    textEnabled: event.textEnabled === true,
+    sound: null,
+    text: null,
+    solved: false,
+    handled: false,
+    chatOutputs: [],
+    chatOutputCount: 0,
+    directSend: false,
+    directPlayback: false,
+    soundSystemQueueTouched: false
+  };
+
+  if (event.soundEnabled) {
+    const soundResult = processSoundChatMessage(chat, { source: "bus:twitch.chat.message" });
+    result.sound = soundResult;
+    result.handled = true;
+
+    if (soundResult && soundResult.ok === true && soundResult.solved === true) {
+      result.solved = true;
+      result.chatOutputs = Array.isArray(soundResult.chatOutputs) ? soundResult.chatOutputs : [];
+      result.chatOutputCount = result.chatOutputs.length;
+      result.reason = "sound_answer_solved";
+      return result;
+    }
+  }
+
+  if (event.textEnabled) {
+    const textResult = processTextChatMessage(chat, { source: "bus:twitch.chat.message" });
+    result.text = textResult;
+    result.handled = true;
+    if (!result.chatOutputs.length && textResult && Array.isArray(textResult.chatOutputs)) {
+      result.chatOutputs = textResult.chatOutputs;
+      result.chatOutputCount = result.chatOutputs.length;
+    }
+  }
+
+  if (!event.soundEnabled && !event.textEnabled) {
+    runtimeState.counters.textRuntimeSkipped += 1;
+    runtimeState.counters.soundRuntimeSkipped += 1;
+    return { ok: true, skipped: true, reason: "active_event_without_chat_runtime", eventUid: event.eventUid };
+  }
+
+  result.reason = result.handled ? "chat_runtime_processed" : "chat_runtime_not_handled";
+  return result;
 }
 
 function registerTextChatSubscription() {
@@ -1542,11 +1592,10 @@ function registerTextChatSubscription() {
     module: MODULE_NAME,
     channel: "twitch.chat",
     action: "message",
-    sourceModule: "twitch_events",
-    meta: { step: MODULE_BUILD, purpose: "text_game_chat_runtime" }
+    meta: { step: MODULE_BUILD, purpose: "stream_events_chat_runtime", acceptedSources: ["twitch_presence", "twitch_events"] }
   }, (envelope) => handleTwitchChatEnvelope(envelope));
   if (result && result.ok === true) {
-    publishStatus("chat.subscription.ready", { twitchChatSubscription: true });
+    publishStatus("chat.subscription.ready", { twitchChatSubscription: true, streamEventsChatRuntime: true });
   }
   return result;
 }
