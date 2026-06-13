@@ -1,6 +1,6 @@
 # FILES – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-18c
+Stand: 2026-06-13 nach EVS-19
 
 ## Aktive Projektdateien
 
@@ -11,6 +11,7 @@ htdocs/dashboard/modules/stream_events.css
 docs/modules/stream_events.md
 docs/current/CURRENT_CHAT_HANDOFF_EVS_18_SOUND_TWITCH_CHAT_ANSWER_RUNTIME.md
 docs/current/CURRENT_CHAT_HANDOFF_EVS_18C_EVENT_LIFECYCLE_ARCHIVE_RULES.md
+docs/current/CURRENT_CHAT_HANDOFF_EVS_19_SOUND_TEXT_PARALLEL_AND_RUNTIME.md
 project-state/CURRENT_STATUS.md
 project-state/TODO.md
 project-state/NEXT_STEPS.md
@@ -149,3 +150,5 @@ POST /api/stream-events/sound-runtime/test-chat
 - EVS-17b Sound Debug Accepted Answers
 - EVS-18 Sound Twitch Chat Answer Runtime
 - EVS-18c Event Lifecycle Archive Rules
+
+- EVS-19 Sound/Text Parallel AND Runtime

@@ -1,6 +1,6 @@
 # Modul-Doku: stream_events
 
-Stand: 2026-06-13 nach EVS-18c – Event Lifecycle Archive Rules
+Stand: 2026-06-13 nach EVS-19 – Sound/Text Parallel AND Runtime
 
 ## Zweck
 
@@ -20,8 +20,8 @@ Stand: 2026-06-13 nach EVS-18c – Event Lifecycle Archive Rules
 ## Aktueller Modulstand
 
 ```text
-MODULE_VERSION = 0.5.5
-MODULE_BUILD   = STEP_EVS_18_SOUND_TWITCH_CHAT_ANSWER_RUNTIME
+MODULE_VERSION = 0.5.6
+MODULE_BUILD   = STEP_EVS_19_SOUND_TEXT_PARALLEL_AND_RUNTIME
 ```
 
 EVS-18c ist ein Doku-/Lifecycle-Regel-Step. Es gibt keine Codeänderung und keine Modulversionserhöhung gegenüber EVS-18.
@@ -210,8 +210,8 @@ preparedOnly = true
 EVS-18 wurde erfolgreich getestet:
 
 ```text
-MODULE_VERSION = 0.5.5
-MODULE_BUILD   = STEP_EVS_18_SOUND_TWITCH_CHAT_ANSWER_RUNTIME
+MODULE_VERSION = 0.5.6
+MODULE_BUILD   = STEP_EVS_19_SOUND_TEXT_PARALLEL_AND_RUNTIME
 active          = 0
 solved          = 4
 soundScoreEntries = 4
@@ -241,3 +241,51 @@ Ziele:
 - Richtige Soundantwort darf nicht zusätzlich Textpunkte auslösen.
 - Dashboard klar anzeigen: prepared-only, keine Live-Ausgabe.
 - Keine direkte Twitch-Ausgabe und kein direktes Playback aktivieren.
+
+
+## EVS-19 – Sound/Text Parallel-UND-Runtime
+
+EVS-19 legt die Kombi-Regel eindeutig fest:
+
+```text
+Eine Chatnachricht wird bei aktivem Kombi-Event immer an beide aktiven Spiele gegeben.
+Sound blockiert Text nicht.
+Text blockiert Sound nicht.
+```
+
+Verhalten:
+
+```text
+- Wenn Sound aktiv ist, prüft die Sound-Runtime die Nachricht.
+- Wenn Text aktiv ist, prüft die Text-Runtime dieselbe Nachricht ebenfalls.
+- Soundlösung und Textlösung dürfen beide in derselben Nachricht erkannt werden.
+- Punkte werden getrennt über die jeweilige Runtime gebucht und im gemeinsamen Ranking addiert.
+- ChatOutputs beider Runtimes werden gesammelt, bleiben aber prepared-only.
+- directSend bleibt false.
+- directPlay bleibt false.
+- soundSystemTouched bleibt false.
+- queueTouched bleibt false.
+```
+
+Neue/erweiterte Test-Routen:
+
+```text
+POST /api/stream-events/chat-runtime/create-stealth-test-event?confirm=1
+POST /api/stream-events/chat-runtime/test-chat
+```
+
+`chat-runtime/test-chat` nutzt dieselbe Parallel-UND-Auswertung wie echte `twitch.chat.message` Bus-Events, sendet aber nichts in den Twitch-Chat.
+
+Das Stealth-Testevent erstellt ein Kombi-Event mit Sound und Text, bei dem unauffällige Antworten genutzt werden können. Es ist ausschließlich zum Testen gedacht.
+
+## EVS-19 Testregeln
+
+```text
+1. Kombi-Stealth-Testevent erstellen und starten.
+2. Soundrunde vorbereiten.
+3. Eine Nachricht senden, die nur Text trifft.
+4. Eine Nachricht senden, die nur Sound trifft.
+5. Eine Nachricht senden, die Sound und Text gleichzeitig treffen kann.
+6. Report prüfen: Sound/Text-Ergebnisse getrennt, Ranking addiert, active/solved korrekt.
+7. directSend/directPlay müssen false bleiben.
+```

@@ -17,8 +17,8 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.5";
-const MODULE_BUILD = "STEP_EVS_18_SOUND_TWITCH_CHAT_ANSWER_RUNTIME";
+const MODULE_VERSION = "0.5.6";
+const MODULE_BUILD = "STEP_EVS_19_SOUND_TEXT_PARALLEL_AND_RUNTIME";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -1524,64 +1524,77 @@ function processTextChatMessage(chat = {}, options = {}) {
   return { ok: true, eventUid: event.eventUid, solved, wordHits, chatOutputs, solvedCount: solved.length, wordHitCount: wordHits.length, chatOutputCount: chatOutputs.length };
 }
 
-function handleTwitchChatEnvelope(envelope = {}) {
-  const chat = extractChatPayload(envelope);
+function processParallelChatMessage(chat = {}, context = {}) {
+  const source = cleanString(context.source, "api:parallel-test-chat");
   const event = getActiveEvent();
   if (!event) {
     runtimeState.counters.textRuntimeSkipped += 1;
     runtimeState.counters.soundRuntimeSkipped += 1;
-    return { ok: true, skipped: true, reason: "no_active_chat_runtime" };
+    return { ok: true, skipped: true, reason: "no_active_chat_runtime", source };
   }
 
   const result = {
     ok: true,
-    source: "bus:twitch.chat.message",
+    source,
     eventUid: event.eventUid,
+    mode: "sound_text_parallel_and",
     soundEnabled: event.soundEnabled === true,
     textEnabled: event.textEnabled === true,
     sound: null,
     text: null,
+    soundSolved: false,
+    textSolved: false,
+    textWordHitCount: 0,
     solved: false,
     handled: false,
+    handledBy: [],
     chatOutputs: [],
     chatOutputCount: 0,
     directSend: false,
     directPlayback: false,
-    soundSystemQueueTouched: false
+    soundSystemQueueTouched: false,
+    note: "EVS-19: Jede Chatnachricht wird bei aktivem Kombi-Event an Sound und Text gegeben. Sound blockiert Text nicht, Text blockiert Sound nicht."
   };
-
-  if (event.soundEnabled) {
-    const soundResult = processSoundChatMessage(chat, { source: "bus:twitch.chat.message" });
-    result.sound = soundResult;
-    result.handled = true;
-
-    if (soundResult && soundResult.ok === true && soundResult.solved === true) {
-      result.solved = true;
-      result.chatOutputs = Array.isArray(soundResult.chatOutputs) ? soundResult.chatOutputs : [];
-      result.chatOutputCount = result.chatOutputs.length;
-      result.reason = "sound_answer_solved";
-      return result;
-    }
-  }
-
-  if (event.textEnabled) {
-    const textResult = processTextChatMessage(chat, { source: "bus:twitch.chat.message" });
-    result.text = textResult;
-    result.handled = true;
-    if (!result.chatOutputs.length && textResult && Array.isArray(textResult.chatOutputs)) {
-      result.chatOutputs = textResult.chatOutputs;
-      result.chatOutputCount = result.chatOutputs.length;
-    }
-  }
 
   if (!event.soundEnabled && !event.textEnabled) {
     runtimeState.counters.textRuntimeSkipped += 1;
     runtimeState.counters.soundRuntimeSkipped += 1;
-    return { ok: true, skipped: true, reason: "active_event_without_chat_runtime", eventUid: event.eventUid };
+    return { ok: true, skipped: true, reason: "active_event_without_chat_runtime", eventUid: event.eventUid, source };
   }
 
-  result.reason = result.handled ? "chat_runtime_processed" : "chat_runtime_not_handled";
+  if (event.soundEnabled) {
+    const soundResult = processSoundChatMessage(chat, { source });
+    result.sound = soundResult;
+    result.handled = true;
+    result.handledBy.push("sound");
+    result.soundSolved = !!(soundResult && soundResult.ok === true && soundResult.solved === true);
+    if (Array.isArray(soundResult && soundResult.chatOutputs)) {
+      result.chatOutputs.push(...soundResult.chatOutputs);
+    }
+  }
+
+  if (event.textEnabled) {
+    const textResult = processTextChatMessage(chat, { source });
+    result.text = textResult;
+    result.handled = true;
+    result.handledBy.push("text");
+    result.textSolved = !!(textResult && Number(textResult.solvedCount || 0) > 0);
+    result.textWordHitCount = Number(textResult && textResult.wordHitCount || 0);
+    if (Array.isArray(textResult && textResult.chatOutputs)) {
+      result.chatOutputs.push(...textResult.chatOutputs);
+    }
+  }
+
+  result.solved = result.soundSolved || result.textSolved;
+  result.chatOutputCount = result.chatOutputs.length;
+  result.reason = result.handled ? "parallel_chat_runtime_processed" : "chat_runtime_not_handled";
   return result;
+}
+
+function handleTwitchChatEnvelope(envelope = {}) {
+  const chat = extractChatPayload(envelope);
+  runtimeState.counters.twitchChatMessages += 1;
+  return processParallelChatMessage(chat, { source: "bus:twitch.chat.message" });
 }
 
 function registerTextChatSubscription() {
@@ -2758,6 +2771,132 @@ function createTextRuntimeTestEvent(body = {}) {
   };
 }
 
+function createCombinedRuntimeStealthTestEvent(body = {}) {
+  ensureSchema();
+  const name = cleanString(body.name, "EVS-19 Kombi Stealth-Testevent");
+  const startImmediately = boolValue(body.start ?? body.startImmediately);
+  const snippets = Array.isArray(body.snippets) && body.snippets.length ? body.snippets : [
+    {
+      uid: "evs19_sound_heimleitung",
+      title: "EVS19 Heimleitung Stealth-Sound",
+      mediaId: "evs19_test_audio_heimleitung",
+      mediaPath: "",
+      acceptedAnswers: ["heimleitung", "ich geh kurz kaffee holen", "rentnerbus ist unterwegs"],
+      points: 25,
+      answerSeconds: 20,
+      active: true
+    },
+    {
+      uid: "evs19_sound_schluessel",
+      title: "EVS19 Schluessel Stealth-Sound",
+      mediaId: "evs19_test_audio_schluessel",
+      mediaPath: "",
+      acceptedAnswers: ["die heimleitung sucht den schluessel", "schluessel gefunden", "kaffee ist fertig"],
+      points: 30,
+      answerSeconds: 20,
+      active: true
+    }
+  ];
+  const phrases = Array.isArray(body.phrases) && body.phrases.length ? body.phrases : [
+    {
+      uid: "evs19_phrase_heimleitung_schluessel",
+      phrase: "die heimleitung sucht den schluessel",
+      acceptedAnswers: [
+        "die heimleitung sucht den schluessel",
+        "heimleitung sucht schluessel"
+      ],
+      pointsFirst: 40,
+      active: true
+    },
+    {
+      uid: "evs19_phrase_kaffee_rentnerbus",
+      phrase: "ich geh kurz kaffee holen",
+      acceptedAnswers: [
+        "ich geh kurz kaffee holen",
+        "kaffee holen"
+      ],
+      pointsFirst: 30,
+      active: true
+    }
+  ];
+
+  const event = createEvent({
+    name,
+    description: cleanString(body.description, "EVS-19 Testevent fuer parallele Sound- und Text-Runtime. Es sendet nichts in den Chat und spielt nichts ab."),
+    soundEnabled: true,
+    textEnabled: true,
+    soundConfig: {
+      snippets,
+      answerSeconds: clampNumber(body.answerSeconds, 5, 300, 20),
+      defaultPoints: clampNumber(body.defaultPoints, 0, 10000, 10),
+      unresolvedPolicy: cleanString(body.unresolvedPolicy, "requeue_later"),
+      solvedPolicy: cleanString(body.solvedPolicy, "remove_from_rotation"),
+      avoidImmediateRepeat: body.avoidImmediateRepeat !== undefined ? boolValue(body.avoidImmediateRepeat) : true,
+      revealVideoEnabled: body.revealVideoEnabled !== undefined ? boolValue(body.revealVideoEnabled) : false,
+      directPlaybackEnabled: false,
+      outputPreparedOnly: true
+    },
+    textConfig: {
+      phrases,
+      partialHintsEnabled: body.partialHintsEnabled !== undefined ? boolValue(body.partialHintsEnabled) : true,
+      partialHintVisibility: cleanString(body.partialHintVisibility, "with_sentence"),
+      showPartialWordCount: body.showPartialWordCount !== undefined ? boolValue(body.showPartialWordCount) : true,
+      wordPointsEnabled: body.wordPointsEnabled !== undefined ? boolValue(body.wordPointsEnabled) : true,
+      pointsPerNewWord: clampNumber(body.pointsPerNewWord, 0, 1000, 1),
+      maxWordPointsPerUserPhrase: clampNumber(body.maxWordPointsPerUserPhrase, 0, 10000, 5),
+      partialHintCooldownSeconds: clampNumber(body.partialHintCooldownSeconds, 0, 3600, 0),
+      tokenMinLength: clampNumber(body.tokenMinLength, 1, 20, 3),
+      uniqueWordPerUserPhrase: true
+    },
+    metadata: {
+      testEvent: true,
+      stealthTestEvent: true,
+      createdByHelper: "combined-runtime-stealth-test-event",
+      preparedOnly: true,
+      directSend: false,
+      directPlayback: false,
+      soundSystemQueueTouched: false,
+      step: MODULE_BUILD
+    },
+    createdBy: cleanString(body.createdBy || body.actor, "evs_test_helper")
+  });
+
+  const validated = validateStoredEvent(event.eventUid);
+  const started = startImmediately ? startEvent(event.eventUid) : null;
+  return {
+    ok: true,
+    event: publicEventSummary(getEventByUid(event.eventUid)),
+    eventUid: event.eventUid,
+    validated: publicEventSummary(validated),
+    started,
+    activeEvent: publicEventSummary(getActiveEvent()),
+    snippets: getSoundSnippets(getEventByUid(event.eventUid)).map(item => ({
+      snippetUid: item.snippetUid,
+      title: item.title,
+      acceptedAnswers: item.acceptedAnswers,
+      points: item.points
+    })),
+    phrases: getTextPhrases(getEventByUid(event.eventUid)).map(item => ({
+      phraseUid: item.phraseUid,
+      phrase: item.phrase,
+      acceptedAnswers: item.acceptedAnswers,
+      pointsFirst: item.pointsFirst
+    })),
+    testFlow: [
+      { step: 1, method: "POST", route: "/api/stream-events/sound-runtime/next-round", body: { allowReuse: true }, note: "Aktive Soundrunde vorbereiten, ohne Playback." },
+      { step: 2, method: "POST", route: "/api/stream-events/chat-runtime/test-chat", body: { message: "heimleitung" }, note: "Eine Nachricht wird parallel gegen Sound und Text geprueft." },
+      { step: 3, method: "GET", route: "/api/stream-events/sound-runtime/report", note: "Report zeigt Sound/Text/Punkte/ChatOutputs prepared-only." }
+    ],
+    routes: {
+      createStealthTestEvent: "/api/stream-events/chat-runtime/create-stealth-test-event?confirm=1",
+      testChat: "/api/stream-events/chat-runtime/test-chat",
+      nextRound: "/api/stream-events/sound-runtime/next-round",
+      report: "/api/stream-events/sound-runtime/report"
+    },
+    note: "Dieser Helper legt nur mit confirm=1 ein Kombi-Testevent an. Jede Nachricht wird parallel gegen Sound und Text geprueft. Es gibt keine direkte Twitch-Ausgabe und kein Playback."
+  };
+}
+
 function getTextRuntimeStatus() {
   ensureSchema();
   const activeEvent = getActiveEvent();
@@ -2947,6 +3086,8 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "POST", path: `${prefix}/text-runtime/create-test-event`, description: "Legt mit confirm=1 ein sicheres Text-Runtime-Testevent an" },
       { method: "POST", path: `${prefix}/sound-runtime/create-test-event`, description: "Legt mit confirm=1 ein sicheres Sound-Runtime-Testevent an" },
       { method: "POST", path: `${prefix}/sound-runtime/test-chat`, description: "Testet eine Chatantwort gegen die aktive Sound-Runde, ohne direkt in Twitch zu senden" },
+      { method: "POST", path: `${prefix}/chat-runtime/test-chat`, description: "EVS-19: Testet eine Chatnachricht parallel gegen Sound und Text, ohne direkt zu senden" },
+      { method: "POST", path: `${prefix}/chat-runtime/create-stealth-test-event`, description: "EVS-19: Legt mit confirm=1 ein Kombi-Stealth-Testevent fuer Sound + Text an" },
       { method: "POST", path: `${prefix}/sound-runtime/next-round`, description: "Bereitet die naechste Sound-Runde vor, ohne direkt abzuspielen" },
       { method: "POST", path: `${prefix}/sound-runtime/resolve`, description: "Wertet die aktive Sound-Runde als geloest, wenn die Antwort passt" },
       { method: "POST", path: `${prefix}/sound-runtime/unresolved`, description: "Markiert die aktive Sound-Runde als nicht geloest" },
@@ -3153,6 +3294,37 @@ module.exports.init = function init(ctx) {
         userDisplayName: body.userDisplayName || body.displayName || body.user || req.query.displayName || req.query.user || "SoundTester",
         messageId: body.messageId || req.query.messageId || newUid("test_sound_chat")
       }, { source: "api:sound-test-chat" });
+      sendJson(res, result, result.ok ? 200 : 400);
+    } catch (err) {
+      handleError(res, err, 400);
+    }
+  });
+
+  reg("post", `${prefix}/chat-runtime/create-stealth-test-event`, (req, res) => {
+    try {
+      const confirm = String(req.query.confirm || (req.body && req.body.confirm) || "").trim();
+      if (confirm !== "1") {
+        return sendJson(res, {
+          ok: false,
+          error: "confirm_required",
+          hint: "POST /api/stream-events/chat-runtime/create-stealth-test-event?confirm=1 optional mit { start: true }"
+        }, 400);
+      }
+      sendJson(res, createCombinedRuntimeStealthTestEvent(req.body || {}));
+    } catch (err) {
+      handleError(res, err, 400);
+    }
+  });
+
+  reg("post", `${prefix}/chat-runtime/test-chat`, (req, res) => {
+    try {
+      const body = req.body || {};
+      const result = processParallelChatMessage({
+        message: body.message || body.answer || body.text || req.query.message || req.query.answer || req.query.text,
+        userLogin: body.userLogin || body.login || body.user || req.query.user || "stealthtester",
+        userDisplayName: body.userDisplayName || body.displayName || body.user || req.query.displayName || req.query.user || "StealthTester",
+        messageId: body.messageId || req.query.messageId || newUid("parallel_test_chat")
+      }, { source: "api:parallel-test-chat" });
       sendJson(res, result, result.ok ? 200 : 400);
     } catch (err) {
       handleError(res, err, 400);

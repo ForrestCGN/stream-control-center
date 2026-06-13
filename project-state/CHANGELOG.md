@@ -1,6 +1,21 @@
 # CHANGELOG – stream_events / Event-System
 
-Stand: 2026-06-13
+Stand: 2026-06-13 nach EVS-19
+
+
+## EVS-19 – Sound/Text Parallel AND Runtime
+
+- `MODULE_VERSION` auf `0.5.6` erhöht.
+- `MODULE_BUILD` auf `STEP_EVS_19_SOUND_TEXT_PARALLEL_AND_RUNTIME` gesetzt.
+- Neue Parallel-UND-Auswertung ergänzt: eine Chatnachricht wird bei aktivem Kombi-Event an Sound und Text gegeben.
+- Soundlösung blockiert Textprüfung nicht mehr.
+- Textlösung blockiert Soundprüfung nicht.
+- Ergebnisse werden getrennt im Result-Payload geführt und ChatOutputs gesammelt.
+- Neue Testroute `POST /api/stream-events/chat-runtime/test-chat` ergänzt.
+- Neue Testevent-Route `POST /api/stream-events/chat-runtime/create-stealth-test-event?confirm=1` ergänzt.
+- Keine direkte Twitch-Ausgabe aktiviert.
+- Kein direktes Sound-Playback aktiviert.
+- Keine Sound-System-Queue-Berührung.
 
 ## EVS-18c – Event Lifecycle Archive Rules
 

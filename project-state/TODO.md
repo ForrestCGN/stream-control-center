@@ -1,6 +1,6 @@
 # TODO – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-18c
+Stand: 2026-06-13 nach EVS-19
 
 ## Erledigt / bestätigt
 
@@ -33,7 +33,13 @@ Stand: 2026-06-13 nach EVS-18c
 
 ## Kurzfristig offen
 
-- [ ] EVS-19: Sound/Text Runtime Koexistenz + Stealth-Testevent.
+
+- [x] `POST /api/stream-events/chat-runtime/create-stealth-test-event?confirm=1` vorbereitet.
+- [x] `POST /api/stream-events/chat-runtime/test-chat` vorbereitet.
+- [ ] EVS-19 nach StepDone mit API testen.
+- [ ] EVS-19 danach mit echter Twitch-Chatnachricht testen.
+
+- [x] EVS-19: Sound/Text Runtime Koexistenz + Stealth-Testevent Code vorbereitet.
 - [ ] Prüfen, ob Text-Runtime und Sound-Runtime gemeinsam denselben Twitch-Chat-Event sauber auswerten, ohne sich gegenseitig zu stören.
 - [ ] Prüfen, dass falsche Soundantworten Textprüfung nicht blockieren.
 - [ ] Prüfen, dass richtige Soundantworten nicht zusätzlich Textpunkte auslösen.

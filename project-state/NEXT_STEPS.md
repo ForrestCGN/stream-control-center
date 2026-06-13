@@ -1,108 +1,92 @@
 # NEXT_STEPS – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-18c
+Stand: 2026-06-13 nach EVS-19 vorbereitet
 
-## Sofort sinnvoller nächster Schritt
+## Sofort nächster Schritt
 
-### EVS-19 – Sound/Text Runtime Koexistenz + Stealth-Testevent
+### EVS-19 Test – Sound/Text Parallel-UND-Runtime
 
 Ziel:
 
 ```text
-Sound- und Text-Runtime sollen im selben Event echte bzw. simulierte Chatnachrichten sauber auswerten, ohne sich gegenseitig zu stören.
+Prüfen, dass eine Chatnachricht bei aktivem Kombi-Event an Sound und Text geht.
+Nicht ODER, sondern UND.
 ```
 
-Scope:
-
-- Vorhandenen CommunicationBus nutzen.
-- Keine neue Bus-Struktur.
-- Keine direkte Twitch-Chat-Ausgabe.
-- Kein direktes Playback.
-- Keine Sound-System-Queue-Berührung.
-- Stealth-Testevent mit unauffälligen Antworten vorbereiten.
-- Falsche Soundantwort soll keine Chat-Ausgabe erzeugen und Textprüfung nicht blockieren.
-- Richtige Soundantwort soll Soundrunde lösen und nicht zusätzlich Textpunkte für dieselbe Nachricht erzeugen.
-- Reports sollen klar zeigen, ob Sound oder Text reagiert hat.
-
-Tests:
+Pflicht vor Test:
 
 ```powershell
-node -c .\backend\modules\stream_events.js
-.\stepdone.cmd "EVS-19 Sound Text Runtime Koexistenz Stealth Testevent"
+node -c .ackend\modules\stream_events.js
+.\stepdone.cmd "EVS-19 Sound Text Parallel AND Runtime"
 ```
 
-Danach erst API-/Dashboard-Tests, dann optional echter Chat-Stealth-Test.
+Testablauf:
+
+```powershell
+$e = Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/stream-events/chat-runtime/create-stealth-test-event?confirm=1" -Body (@{
+  start = $true
+} | ConvertTo-Json) -ContentType "application/json"
+
+$n = Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/stream-events/sound-runtime/next-round" -Body (@{
+  allowReuse = $true
+} | ConvertTo-Json) -ContentType "application/json"
+
+$t = Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/stream-events/chat-runtime/test-chat" -Body (@{
+  userLogin = "forrestcgn"
+  userDisplayName = "ForrestCGN"
+  message = "heimleitung"
+} | ConvertTo-Json) -ContentType "application/json"
+
+$t | Select-Object ok,mode,soundSolved,textSolved,textWordHitCount,chatOutputCount,directSend,directPlayback,soundSystemQueueTouched
+$t.sound | ConvertTo-Json -Depth 5
+$t.text | ConvertTo-Json -Depth 5
+```
+
+Erwartung:
+
+```text
+mode = sound_text_parallel_and
+Sound wird geprüft.
+Text wird ebenfalls geprüft.
+Wenn die Nachricht für beide passt, dürfen beide Runtimes Punkte/Ergebnisse buchen.
+directSend = False
+directPlayback = False
+soundSystemQueueTouched = False
+```
 
 ## Danach sinnvolle Schritte
 
-### EVS-20 – ChatOutput Dispatcher Prep
+### EVS-20 – Dashboard-Anzeige für Parallelstatus
 
-Ziel:
+- Im Dashboard klar anzeigen, ob Sound/Text parallel aktiv sind.
+- Aktive Soundrunde und Textstatus streamerfreundlich darstellen.
+- Debug-Antworten nur im API-/Dashboard-Testbereich.
 
-- Vorbereitete ChatOutputs aus Text- und Sound-Spiel an vorhandenes Chat-/Bot-Ausgabesystem anschließbar machen.
-- Noch nicht zwingend direkt senden.
-- Dashboard-Schalter/Config für direkte Ausgabe vorbereiten.
-- Rate-Limit/Spam-Schutz beachten.
-- Live-Ausgabe nur mit klarer Config und sichtbarem Warnstatus.
+### EVS-21 – ChatOutput Dispatcher Prep
 
-### EVS-21 – Sound-System Playback Integration Prep
+- Prepared ChatOutputs aus Sound/Text gesammelt anzeigen.
+- Später optional per Config senden.
+- Kein scharfes Senden ohne Live-Schalter, Rechte und Warnung.
 
-Ziel:
+### EVS-22 – Sound-System Playback Integration Prep
 
-- Vorbereitete Playback-Payloads an vorhandenes Sound-System anbinden.
-- Anfangs weiterhin geschützt per Config-Schalter.
-- Sound-System-Queue nur kontrolliert und optional berühren.
-- Kein zweiter Player.
+- Prepared Playback an vorhandenes Sound-System anschließbar machen.
+- Weiterhin geschützt per Config.
+- Kein zweiter Player, keine unkontrollierte Queue-Berührung.
 
-### EVS-22 – Event Overlay Prep
+### EVS-23 – Event Overlay Prep
 
-Ziel:
+- Aktives Event, Modus, Soundrunde, Textstatus, Punkte/Ranking anzeigen.
+- Keine überladene Show.
 
-- Ein zentrales Event-Overlay vorbereiten.
-- Anzeige aktiver Eventname, Modus, aktive Soundrunde/Textstatus, Punkte/Ranking.
-- Noch keine überladene Show.
-- Debug-Antworten niemals im Overlay anzeigen.
-
-### EVS-23 – Event-Ende / Top 3 / Abschluss
-
-Ziel:
+### EVS-24 – Event-Ende / Top 3 / Abschluss
 
 - Event sauber beenden.
-- Top 3 Ranking ausgeben/vorbereiten.
+- Top 3 Ranking vorbereiten.
 - Textvarianten für Abschluss nutzen.
-- Dashboard/Overlay/ChatOutput vorbereitet.
-
-### EVS-24 – Event Archiv / History / Delete-Safety
-
-Ziel:
-
-- Archiv-/History-Ansicht für alte Events vorbereiten.
-- Standardansichten auf aktives Event fokussieren.
-- Alte Eventwerte nicht in aktive Reports mischen.
-- Geschütztes Hard-Delete planen: Owner/Admin, Bestätigung, Audit, konsistentes Löschen zugehöriger Eventdaten.
-
-### EVS-25 – Statistik langfristig
-
-Ziel:
-
-- User-/Event-/Sound-/Text-Statistiken langfristig auswertbar machen.
-- „User X: wann, wo, welcher Sound, welches Wort, welcher Satz, Punkte“.
-- Sound-Snippet-Erkennungsquote und Text-Lösungsquote.
-
-## Offene UX-/Dashboard-Aufgaben
-
-- Statistik-Untertabs weiter glätten, falls Bedienung noch hakelt.
-- User-Popup scrollbar und AutoReload weiter testen.
-- Texte-Tab Filter weiter verfeinern.
-- Event-Editor später für echte Sound-/Text-Konfiguration produktionsreif machen.
-- Sound-Antworten im Test-/Debugbereich sichtbar lassen, aber niemals im Overlay/Chat.
-- Aktive Eventdaten und Archivdaten im Dashboard klar trennen.
 
 ## Offene Fachfragen
 
-- Wann soll ein Sound-Snippet als ungelöst gelten? Timer? Manueller Button? Beides?
-- Wie lange läuft eine Soundrunde standardmäßig?
-- Sollen falsche Antworten gezählt, aber unsichtbar bleiben? Aktuell ja.
-- Soll es bei Sound mehrere Gewinner geben oder nur erster richtiger User? Aktuell erster/aktive Resolve-Logik.
-- Soll Text-Spiel und Sound-Spiel im selben Event parallel oder abwechselnd laufen? Für EVS-19 gezielt testen.
-- Soll Event-Löschung später wirklich physisch löschen oder standardmäßig nur archivieren? Empfehlung: Standard archivieren, Hard-Delete nur geschützt.
+- Sollen Sound-Misses bei jedem Chat gezählt werden oder nur bei Nachrichten mit Mindestähnlichkeit?
+- Soll eine kombinierte ChatOutput-Zusammenfassung gebaut werden, wenn Sound und Text gleichzeitig gelöst werden?
+- Wie sollen Live-Schalter im Dashboard exakt heißen und wer darf sie aktivieren?

@@ -1,6 +1,6 @@
 # CURRENT_STATUS – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-18c – Event Lifecycle Archive Rules
+Stand: 2026-06-13 nach EVS-19 – Sound/Text Parallel AND Runtime
 
 ## Aktueller bestätigter Stand
 
@@ -9,8 +9,8 @@ Das Modul `stream_events` ist im `stream-control-center` als Backend- und Dashbo
 Aktueller technischer Stand der zuletzt getesteten Dateien:
 
 ```text
-MODULE_VERSION: 0.5.5
-MODULE_BUILD: STEP_EVS_18_SOUND_TWITCH_CHAT_ANSWER_RUNTIME
+MODULE_VERSION: 0.5.6
+MODULE_BUILD: STEP_EVS_19_SOUND_TEXT_PARALLEL_AND_RUNTIME
 ```
 
 EVS-18c ist ein Doku-/Lifecycle-Regel-Step. Es gab keine Codeänderung und keine Modulversionserhöhung.
@@ -144,3 +144,33 @@ ForrestCGN: 45 Punkte / 2 Einträge
 - Textvarianten über vorhandene `helper_texts` / DB-Struktur nutzen.
 - Dashboard streamer-/modfreundlich halten.
 - StepDone vor Live-/Systemtest.
+
+
+## EVS-19 – Umgesetzt / zu testen
+
+EVS-19 setzt die vom Streamer gewünschte UND-Regel um:
+
+```text
+Eine Chatnachricht wird nicht mehr entweder Sound oder Text zugeordnet,
+sondern parallel an Sound und Text gegeben, wenn beide Spieltypen aktiv sind.
+```
+
+Technisch:
+
+```text
+- `processParallelChatMessage(...)` bündelt die koordinierte Auswertung.
+- Echte `twitch.chat.message` Bus-Events nutzen diese Parallel-Auswertung.
+- Neue API-Testroute `POST /api/stream-events/chat-runtime/test-chat` nutzt dieselbe Logik.
+- Neue Testevent-Route `POST /api/stream-events/chat-runtime/create-stealth-test-event?confirm=1` erstellt ein Kombi-Testevent.
+```
+
+Sicherheitsstand bleibt unverändert:
+
+```text
+directSend=false
+directPlay=false
+soundSystemQueueTouched=false
+preparedOnly=true
+```
+
+Noch ausstehend: Live-/API-Test nach StepDone.
