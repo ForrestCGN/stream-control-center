@@ -1,6 +1,6 @@
 # Modul-Doku: stream_events
 
-Stand: EVS-4 / Media-System Picker Vorbereitung  
+Stand: EVS-4b / Sound Media Layout Cleanup  
 Datum: 2026-06-13
 
 ## Zweck
@@ -65,6 +65,14 @@ EVS-4 brachte:
 - Upload über vorhandenes Media-System
 - optionales Auflösungs-Video über vorhandenes Media-System
 - keine neue Upload- oder Player-Struktur
+
+EVS-4b brachte:
+
+- Sound-Konfiguration im Modal klarer aufgeteilt
+- Audio-Schnipsel als Pflicht-Karte
+- Auflösungs-Video als optionale Karte
+- Desktop nebeneinander, kleinere Auflösung untereinander
+- kompaktere MediaField-Buttons
 
 ## Media-System-Konvention
 

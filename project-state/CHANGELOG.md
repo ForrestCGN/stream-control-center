@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## EVS-4b / Stream Events Sound Media Layout Cleanup – 2026-06-13
+
+- Sound-Konfigurationsbereich im Event-Modal neu angeordnet.
+- Audio-Schnipsel als Pflicht-Karte dargestellt.
+- Auflösungs-Video als optionale Karte dargestellt.
+- MediaField-Buttons kompakter und kontextbezogen beschriftet.
+- Responsive Verhalten ergänzt: Desktop nebeneinander, kleinere Auflösung untereinander.
+- Kein Backend-/DB-/Playback-/Overlay-Umbau.
+
 ## EVS-4 / Stream Events Media Picker Prep – 2026-06-13
 
 - Event-Dashboard nutzt für Sound-Schnipsel das vorhandene Media-System.

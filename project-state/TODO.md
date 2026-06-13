@@ -1,6 +1,6 @@
 # TODO
 
-Stand: EVS-4 / Stream Events Media Picker Prep  
+Stand: EVS-4b / Stream Events Sound Media Layout Cleanup  
 Datum: 2026-06-13
 
 ## Event-System
@@ -10,7 +10,8 @@ Datum: 2026-06-13
 - [x] EVS-2 Backendstatus vom Nutzer erfolgreich getestet.
 - [x] EVS-3 Dashboard Skeleton erstellt.
 - [x] EVS-4 Media-System-Picker im Dashboard vorbereitet.
-- [ ] EVS-4 nach StepDone im Dashboard testen.
+- [x] EVS-4b Sound-/Video-Auswahl im Modal klarer aufgeteilt.
+- [ ] EVS-4b nach StepDone im Dashboard testen.
 - [ ] Mehrere Sound-Schnipsel pro Event planen/umsetzen.
 - [ ] Mehrere Text-/Geheimsätze pro Event planen/umsetzen.
 - [ ] Sound-Rundensteuerung planen.

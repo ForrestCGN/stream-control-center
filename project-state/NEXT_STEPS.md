@@ -1,13 +1,13 @@
 # NEXT STEPS
 
-Stand: EVS-4 / Stream Events Media Picker Prep  
+Stand: EVS-4b / Stream Events Sound Media Layout Cleanup  
 Datum: 2026-06-13
 
 ## Sofort nach Übernahme
 
 ```powershell
 node -c .\htdocs\dashboard\modules\stream_events.js
-.\stepdone.cmd "EVS-4 Stream Events Media Picker Prep"
+.\stepdone.cmd "EVS-4b Stream Events Sound Media Layout Cleanup"
 ```
 
 Erst danach Dashboard im Live-System testen.
@@ -15,27 +15,29 @@ Erst danach Dashboard im Live-System testen.
 ## Manuelle Prüfung
 
 ```text
-Dashboard → Community → Event-System → Neues Event
+Dashboard → Community → Event-System → Neues Event → Sound-Spiel konfigurieren
 ```
 
 Prüfen:
 
-- Sound/Text auswählbar.
-- Sound-Schnipsel öffnet Media-Picker.
-- Audio-Upload im Media-Picker möglich.
-- Auswahl setzt Media-ID.
-- Auflösungs-Video öffnet Picker mit Video/Animation.
+- Audio-Schnipsel steht in eigener Karte.
+- Audio-Schnipsel ist als Pflicht sichtbar.
+- Auflösungs-Video steht in eigener Karte.
+- Video ist als optional sichtbar.
+- Audio-Auswahl öffnet MediaPicker mit Audio.
+- Video-Auswahl öffnet MediaPicker mit Video/Animation.
+- Auf kleinerer Fensterbreite fallen die Karten untereinander.
 - Speichern bleibt möglich.
 - Validierung bleibt verständlich.
 
 ## Nächster fachlicher Schritt
 
-EVS-5 sollte nicht direkt Playback oder Chat bauen, sondern zuerst die Konfiguration robuster machen:
+EVS-5 sollte die Konfiguration robuster machen:
 
 ```text
 - mehrere Sound-Schnipsel pro Event
 - mehrere Text-/Geheimsätze pro Event
-- einfache Hinzufügen/Bearbeiten/Entfernen-Dialoge
+- Hinzufügen/Bearbeiten/Entfernen je Spieltyp
 - weiterhin Media-System für Medien
 - weiterhin DB-Snapshot am Event
 ```

@@ -1,32 +1,40 @@
 # CURRENT STATUS
 
-Stand: EVS-4 / Stream Events Media Picker Prep  
+Stand: EVS-4b / Stream Events Sound Media Layout Cleanup  
 Datum: 2026-06-13  
 Projekt: ForrestCGN / stream-control-center
 
 ## Zweck dieses Stands
 
-EVS-4 setzt auf EVS-3 auf und bereitet die Medienauswahl im Event-Dashboard korrekt über das vorhandene Media-System vor.
+EVS-4b verbessert nur die Dashboard-Anordnung der Sound-Spiel-Konfiguration. Die Medienauswahl bleibt vollständig über das vorhandene Media-System gelöst.
 
 ## Bestätigte Grundlage
 
-- EVS-2 Backendstatus wurde vom Nutzer getestet:
-  - `ok: True`
-  - `module: stream_events`
-  - `moduleVersion: 0.1.0`
-  - `moduleBuild: STEP_EVS_2_BACKEND_FOUNDATION`
-  - `routeCount: 13`
-  - `schemaReady: True`
-- EVS-3 Dashboard Skeleton wurde erstellt.
+- EVS-2 Backendstatus wurde vom Nutzer erfolgreich getestet.
+- EVS-3 Dashboard Skeleton wurde übernommen.
+- EVS-4 MediaPicker-Prep wurde im Dashboard sichtbar getestet.
 - Nutzerhinweis: StepDone vor Live-/Dashboard-Test beachten.
 
-## EVS-4 Änderung
+## EVS-4b Änderung
 
-Im Event-Erstellen/Bearbeiten-Dialog werden Medien für Sound-Schnipsel und optionale Auflösungs-Videos über die vorhandenen Media-Komponenten gewählt.
+Im Event-Erstellen/Bearbeiten-Dialog wurde der Bereich `Sound-Spiel konfigurieren` neu angeordnet:
 
 ```text
-Sound-Schnipsel → MediaPicker / audio / stream_events/sound_snippets
-Auflösungs-Video → MediaPicker / video,animation / stream_events/reveal_videos
+Audio-Schnipsel – Pflicht
+Auflösungs-Video – Optional
+```
+
+Desktop:
+
+```text
+Audio-Karte | Video-Karte
+```
+
+Kleinere Auflösungen:
+
+```text
+Audio-Karte
+Video-Karte
 ```
 
 ## Nicht geändert
@@ -42,8 +50,8 @@ Media-System selbst
 
 ## Testregel
 
-Vor Live-Test:
+Vor Live-/Dashboard-Test:
 
 ```powershell
-.\stepdone.cmd "EVS-4 Stream Events Media Picker Prep"
+.\stepdone.cmd "EVS-4b Stream Events Sound Media Layout Cleanup"
 ```
