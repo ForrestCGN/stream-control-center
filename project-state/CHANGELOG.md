@@ -5,6 +5,14 @@ Stand: 2026-06-13 nach EVS-19
 
 
 
+
+## EVS-19c – Parallel Test Options Fix
+
+- `chat-runtime/test-chat` nutzt nun korrekt die uebergebene `eventUid` aus dem Test-Kontext.
+- Fehler `options is not defined` im parallelen Testpfad behoben.
+- Sound/Text-UND-Regel bleibt unveraendert.
+- Keine direkte Twitch-Ausgabe, kein Playback, keine Queue-Beruehrung.
+
 ## EVS-19b – Parallel Test Event Activation Fix
 
 - Stealth-Testevent startet standardmäßig, damit neue Tests nicht auf alte aktive Events laufen.

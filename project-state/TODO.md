@@ -33,10 +33,12 @@ Stand: 2026-06-13 nach EVS-19
 
 ## Kurzfristig offen
 
+- [x] EVS-19c Parallel Test Options Fix: `chat-runtime/test-chat` nutzt die uebergebene `eventUid` korrekt.
+
 
 - [x] `POST /api/stream-events/chat-runtime/create-stealth-test-event?confirm=1` vorbereitet.
 - [x] `POST /api/stream-events/chat-runtime/test-chat` vorbereitet.
-- [ ] EVS-19 nach StepDone mit API testen.
+- [x] EVS-19 nach StepDone mit API testen.
 - [ ] EVS-19 danach mit echter Twitch-Chatnachricht testen.
 
 - [x] EVS-19: Sound/Text Runtime Koexistenz + Stealth-Testevent Code vorbereitet.

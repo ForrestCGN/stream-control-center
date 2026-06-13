@@ -20,8 +20,8 @@ Stand: 2026-06-13 nach EVS-19b – Parallel Test Event Activation Fix
 ## Aktueller Modulstand
 
 ```text
-MODULE_VERSION = 0.5.8
-MODULE_BUILD   = STEP_EVS_19B_PARALLEL_TEST_EVENT_ACTIVATION_FIX
+MODULE_VERSION = 0.5.9
+MODULE_BUILD   = STEP_EVS_19C_PARALLEL_TEST_OPTIONS_FIX
 ```
 
 EVS-18c ist ein Doku-/Lifecycle-Regel-Step. Es gibt keine Codeänderung und keine Modulversionserhöhung gegenüber EVS-18.
@@ -210,8 +210,8 @@ preparedOnly = true
 EVS-18 wurde erfolgreich getestet:
 
 ```text
-MODULE_VERSION = 0.5.8
-MODULE_BUILD   = STEP_EVS_19B_PARALLEL_TEST_EVENT_ACTIVATION_FIX
+MODULE_VERSION = 0.5.9
+MODULE_BUILD   = STEP_EVS_19C_PARALLEL_TEST_OPTIONS_FIX
 active          = 0
 solved          = 4
 soundScoreEntries = 4
