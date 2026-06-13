@@ -1,6 +1,6 @@
 # NEXT STEPS
 
-Stand: 2026-06-13 nach EVS-24a
+Stand: 2026-06-13 nach EVS-24b
 
 ## Jetzt testen
 
@@ -8,11 +8,13 @@ Stand: 2026-06-13 nach EVS-24a
 cd /d D:\Git\stream-control-center
 node -c .\backend\modules\stream_events.js
 node -c .\htdocs\dashboard\modules\stream_events.js
-.\stepdone.cmd "EVS-24a Dashboard Status Simplify"
+.\stepdone.cmd "EVS-24b Streamer Friendly Lifecycle Text"
 ```
 
 Danach im Dashboard prüfen:
 
 - Event-System → Status
-- Kein technischer Block „Chat-Ausgabe Sicherheit“ in der normalen Statusansicht.
-- Sichtbar bleiben nur einfacher Runtime-Status und Event-Lifecycle.
+- Statusbereich bleibt einfach.
+- Event-Verwaltung zeigt freundliche Texte ohne API-Sprache.
+- Löschen fragt nur eine normale Bestätigung ab.
+- Keine Twitch-Ausgabe.

@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.18";
-  const MODULE_BUILD = "STEP_EVS_24_SIMPLE_ACTIVE_EVENT_RUNTIME_GATE";
+  const MODULE_VERSION = "0.5.20";
+  const MODULE_BUILD = "STEP_EVS_24B_STREAMER_FRIENDLY_LIFECYCLE_TEXT";
 
   const api = {
     status: '/api/stream-events/status',
@@ -92,11 +92,17 @@ window.StreamEventsModule = (function(){
     if (s === 'active') cls = 'evs-badge-ok';
     else if (s === 'ready') cls = 'evs-badge-good';
     else if (s === 'draft') cls = 'evs-badge-warn';
-    else if (s === 'finished') cls = 'evs-badge-info';
+    else if (s === 'finished' || s === 'archived') cls = 'evs-badge-info';
     else if (s === 'archived') cls = 'evs-badge-muted';
     else if (s === 'cancelled' || s === 'canceled') cls = 'evs-badge-off';
     const labels = { draft:'Entwurf', ready:'Startbereit', active:'Läuft', finished:'Beendet', archived:'Archiviert', cancelled:'Abgebrochen', canceled:'Abgebrochen' };
     return `<span class="evs-badge ${cls}">${esc(labels[s] || status || '-')}</span>`;
+  }
+
+  function statusText(status){
+    const s = norm(status);
+    const labels = { draft:'Entwurf', ready:'Startbereit', active:'Läuft', finished:'Beendet', archived:'Archiviert', cancelled:'Abgebrochen', canceled:'Abgebrochen' };
+    return labels[s] || status || '-';
   }
 
   function issueLabel(issue){
@@ -169,7 +175,7 @@ window.StreamEventsModule = (function(){
       <div class="evs-page">
         <div class="evs-header glass">
           <div>
-            <div class="evs-kicker">EVS-24a · Einfacher Status</div>
+            <div class="evs-kicker">EVS-24b · einfacher Event-Status</div>
             <h2>Event-System</h2>
             <p>Übersicht zeigt laufende Events. Der Status bleibt einfach: Stream online/offline, aktives Event und ob die Chat-Auswertung gebraucht wird.</p>
           </div>
@@ -933,21 +939,21 @@ window.StreamEventsModule = (function(){
       <section class="evs-card glass evs-tab-panel evs-lifecycle-panel">
         <div class="evs-card-head evs-stats-head">
           <div>
-            <h3>Event-Lifecycle</h3>
-            <span>Archivieren, Löschen und Status-Regeln sichtbar und abgesichert.</span>
+            <h3>Event verwalten</h3>
+            <span>Beenden, archivieren oder löschen – ohne technische Detailansicht.</span>
           </div>
           ${statusBadge(event.status)}
         </div>
         <div class="evs-mini-grid evs-mini-grid-compact">
-          <div><strong>${esc(event.eventUid)}</strong><span>EventUid</span></div>
-          <div><strong>${esc(event.status || '-')}</strong><span>API-Status</span></div>
+          <div><strong>${esc(event.name || 'Unbenanntes Event')}</strong><span>Event</span></div>
+          <div><strong>${esc(statusText(event.status))}</strong><span>Status</span></div>
           <div><strong>${fmtDate(event.finishedAt)}</strong><span>Beendet am</span></div>
-          <div><strong>${fmtDate(event.updatedAt)}</strong><span>Aktualisiert</span></div>
+          <div><strong>${fmtDate(event.updatedAt)}</strong><span>Zuletzt geändert</span></div>
         </div>
         <div class="evs-safety-rule-list">
-          <div class="${canArchive ? 'is-ok' : 'is-blocked'}"><b>Archivieren</b><span>${canArchive ? 'Erlaubt, weil Event beendet ist.' : 'Blockiert: nur beendete Events können archiviert werden.'}</span></div>
-          <div><b>Löschen</b><span>Erlaubt für jeden Status, aber nur nach einer normalen Bestätigung. Dabei werden Eventdaten zur eventUid entfernt.</span></div>
-          <div><b>Datenhaltung</b><span>Archivieren erhält Score/Runden/Textdaten. Löschen entfernt Event + eventUid-Daten.</span></div>
+          <div class="${canArchive ? 'is-ok' : 'is-blocked'}"><b>Archivieren</b><span>${canArchive ? 'Dieses Event ist beendet und kann archiviert werden.' : 'Archivieren ist erst möglich, wenn das Event beendet wurde.'}</span></div>
+          <div><b>Löschen</b><span>Löschen fragt einmal nach und entfernt dieses Event dauerhaft.</span></div>
+          <div><b>Was bleibt erhalten?</b><span>Archivieren behält Punkte, Runden und Textdaten. Löschen entfernt das Event vollständig.</span></div>
         </div>
         <div class="evs-action-row evs-action-row-tight evs-lifecycle-actions">
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="finish" data-uid="${esc(event.eventUid)}" ${canFinish ? '' : 'disabled'}>Beenden</button>
@@ -955,7 +961,7 @@ window.StreamEventsModule = (function(){
           <button type="button" class="evs-btn evs-btn-danger" data-evs-action="cancel" data-uid="${esc(event.eventUid)}" ${canCancel ? '' : 'disabled'}>Abbrechen</button>
           <button type="button" class="evs-btn evs-btn-danger" data-evs-action="deleteEvent" data-uid="${esc(event.eventUid)}">Löschen…</button>
         </div>
-        <div class="evs-tab-help">Archivieren ist nur bei Status „Beendet/finished“ möglich. Löschen fragt eine normale Bestätigung ab; intern bleibt die API-Sicherheitsbestätigung geschützt.</div>
+        <div class="evs-tab-help">Hinweis: Löschen ist endgültig. Vor dem Löschen erscheint eine normale Bestätigung.</div>
       </section>
     `;
   }

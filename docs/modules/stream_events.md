@@ -1,12 +1,12 @@
 # Modul-Doku: stream_events
 
-Stand: 2026-06-13 nach EVS-24a – Dashboard Status Simplify
+Stand: 2026-06-13 nach EVS-24b – Streamer Friendly Lifecycle Text
 
 ## Aktueller Modulstand
 
 ```text
-MODULE_VERSION = 0.5.18
-MODULE_BUILD   = STEP_EVS_24_SIMPLE_ACTIVE_EVENT_RUNTIME_GATE
+MODULE_VERSION = 0.5.20
+MODULE_BUILD   = STEP_EVS_24B_STREAMER_FRIENDLY_LIFECYCLE_TEXT
 ```
 
 ## Zweck
@@ -141,3 +141,26 @@ Der Dashboard-Tab wurde von `Sicherheit` zu `Status` vereinfacht. Das frühere L
 ## EVS-24a Dashboard Status Simplify
 
 Die normale Dashboard-Ansicht wurde wieder vereinfacht. `Event-System → Status` zeigt keinen technischen ChatOutput-Sicherheitsblock mehr, sondern nur noch den einfachen Runtime-Status und den Event-Lifecycle. Die technische Backend-Sicherheit bleibt unverändert; EVS-24a aktiviert kein Twitch-Live-Senden.
+
+
+## EVS-24b Streamer Friendly Lifecycle Text
+
+EVS-24b räumt die normale Dashboard-Ansicht weiter auf. Der Bereich `Event-System → Status` bleibt für Streamer und Mods verständlich. Technische Details wie API-Confirm, eventUid als Hauptinformation oder interne Sicherheitsbegriffe werden aus der normalen Bedienansicht entfernt bzw. entschärft.
+
+Sichtbar bleibt:
+
+- Event-System aktiv/inaktiv,
+- Grund,
+- Stream online/offline,
+- laufendes Event,
+- Sound/Text an/aus,
+- einfache Event-Verwaltung: Beenden, Archivieren, Abbrechen, Löschen.
+
+Die Backend-Schutzlogik bleibt unverändert: Löschen sendet intern weiterhin den API-Confirm, aber im Dashboard reicht eine normale Bestätigung.
+
+Regel für zukünftige Dashboard-Arbeiten:
+
+```text
+Streamer-/Mod-Dashboard = einfache Bedienung.
+Technische Diagnose, interne Flags, API-Details und Payloads = Admin-/Diagnosebereich.
+```

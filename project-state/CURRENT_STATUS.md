@@ -1,15 +1,17 @@
 # CURRENT STATUS
 
-Stand: 2026-06-13 nach EVS-24a – Dashboard Status Simplify
+Stand: 2026-06-13 nach EVS-24b – Streamer Friendly Lifecycle Text
 
 ## Aktueller Stand
 
-EVS-24a vereinfacht die normale Dashboard-Statusansicht. Der alte technische Block „Chat-Ausgabe Sicherheit“ wird im normalen Status nicht mehr gerendert. Sichtbar bleiben Aktiv/Inaktiv, Grund, Stream Online/Offline, laufendes Event und Sound/Text-Status.
+EVS-24b räumt die normale Dashboard-Statusansicht weiter auf. Der Statusbereich bleibt für Streamer und Mods einfach: Aktiv/Inaktiv, Grund, Stream Online/Offline, laufendes Event und Sound/Text-Status.
+
+Der Event-Verwaltungsbereich nutzt jetzt freundlichere Texte: keine API-Sprache, keine technische Confirm-Erklärung und keine eventUid als Hauptinformation. Löschen fragt im Dashboard weiterhin genau eine normale Bestätigung ab.
 
 ## Version
 
-- MODULE_VERSION = 0.5.19
-- MODULE_BUILD = STEP_EVS_24A_DASHBOARD_STATUS_SIMPLIFY
+- MODULE_VERSION = 0.5.20
+- MODULE_BUILD = STEP_EVS_24B_STREAMER_FRIENDLY_LIFECYCLE_TEXT
 
 ## Unverändert
 
@@ -17,3 +19,4 @@ EVS-24a vereinfacht die normale Dashboard-Statusansicht. Der alte technische Blo
 - Kein Sound-Playback.
 - Keine Sound-System-Queue-Berührung.
 - Runtime-Gate bleibt aktiv.
+- Backend-Schutz für Delete bleibt intern erhalten.
