@@ -1,29 +1,28 @@
-# NEXT_STEPS – EVS-8
+# NEXT_STEPS – EVS-8b
 
-Stand: EVS-8 / Config-Dashboard Vorbereitung
+Stand: EVS-8b / EventBus- und Heartbeat-TODO dokumentiert
 
 ## Nach Entpacken
 
+Dieser Step enthält nur Dokumentation/TODO. Optional:
+
 ```powershell
-node -c .\backend\modules\stream_events.js
-node -c .\htdocs\dashboard\modules\stream_events.js
-.\stepdone.cmd "EVS-8 Config Dashboard Prep"
+.\stepdone.cmd "EVS-8b EventBus Heartbeat TODO Docs"
 ```
-
-Erst danach Dashboard testen.
-
-## Dashboard-Test
-
-- Tab Config öffnen.
-- Allgemeine Defaults prüfen.
-- Sound-Spiel Defaults ändern und speichern.
-- Text-Spiel/Wortpunkte Defaults ändern und speichern.
-- Seite neu laden und prüfen, ob Werte erhalten bleiben.
-- Neues Event öffnen und prüfen, ob Default-Werte übernommen werden.
 
 ## Danach
 
+- EVS-8 Dashboard/Config weiter testen und optisch prüfen.
 - Config optisch/inhaltlich nach Test anpassen.
 - Rechte/Freigaben für Config planen.
 - Statistik pro Event im Statistik-Tab vorbereiten.
 - Runtime für Chat-Auswertung planen.
+- EventBus-Anmeldung/Heartbeat bei der Runtime-Umsetzung berücksichtigen.
+
+## EventBus/Heartbeat später umsetzen
+
+- `stream_events` am vorhandenen Bus anmelden.
+- Heartbeat regelmäßig senden.
+- Modulstatus publishen.
+- Aktives Event und Runtime-Status über Diagnose/Bus sichtbar machen.
+- Bus-Events für Eventstart, Eventende, Sound/Text-Treffer, Punkte und Ranking senden.

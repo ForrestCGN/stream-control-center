@@ -1,4 +1,4 @@
-# TODO – EVS-8
+# TODO – EVS-8b
 
 ## Erledigt bis EVS-8
 
@@ -13,6 +13,15 @@
   - Events = konfigurierte Events mit Status.
   - Bearbeitung = separates Modal.
 - Config-Tab mit globalen Defaults vorbereitet.
+
+## EVS-8b festgehalten
+
+- EventBus-Anmeldung für `stream_events` später einplanen.
+- Heartbeat für `stream_events` später einplanen.
+- Vorhandenen `communication_bus` / `helper_communication` nutzen.
+- Keinen neuen parallelen Bus bauen.
+- Modulstatus für Config, Runtime, aktives Event und Fehlerzustände publishen.
+- Runtime-Events für Eventstart/-ende, Sound/Text, Punkte und Ranking über Bus senden.
 
 ## Offen: Config
 
@@ -29,6 +38,7 @@
 - Teiltreffer/Wortpunkte.
 - Punktevergabe.
 - Eventabschluss / Top 3.
+- EventBus-Anmeldung und Heartbeat technisch umsetzen.
 
 ## Offen: Statistik / Overlay
 
