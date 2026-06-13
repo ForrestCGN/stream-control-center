@@ -830,3 +830,24 @@ EVS-12 macht die bisher per PowerShell getestete Text-Runtime im Dashboard sicht
 - Kein Overlay.
 - Keine neue Bus-Struktur.
 - Keine destruktive DB-Aenderung.
+
+## EVS-13 – User Statistics Filter / User Detail Report
+
+Neue Statistik-Routen:
+
+- `GET /api/stream-events/statistics/users?eventUid=<eventUid>`
+- `GET /api/stream-events/statistics/user/:login?eventUid=<eventUid>`
+
+Zweck:
+
+- User-Dropdown im Statistik-Tab befüllen.
+- User-spezifische Detailansicht anzeigen.
+- Sichtbar machen: Punkte, Worttreffer, Satzlösungen, beteiligte Events, Timeline.
+- Sound-Bereich ist vorbereitet und nutzt später Sound-bezogene Score-Einträge.
+
+Wichtig:
+
+- Keine direkte Twitch-Chat-Ausgabe.
+- Keine neue Bus-Struktur.
+- Keine destruktive DB-Änderung.
+- Bestehende EVS-12 Runtime/Reports bleiben erhalten.

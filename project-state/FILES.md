@@ -1,14 +1,11 @@
-# FILES – EVS-12
+# FILES – EVS-13
 
-## Geaendert
-
-- `backend/modules/stream_events.js`
-- `htdocs/dashboard/modules/stream_events.js`
-- `htdocs/dashboard/modules/stream_events.css`
-- `docs/modules/stream_events.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_EVS_12_TEXT_RUNTIME_DASHBOARD_REPORT.md`
-- `project-state/CURRENT_STATUS.md`
-- `project-state/NEXT_STEPS.md`
-- `project-state/TODO.md`
-- `project-state/CHANGELOG.md`
-- `project-state/FILES.md`
+- backend/modules/stream_events.js
+- htdocs/dashboard/modules/stream_events.js
+- htdocs/dashboard/modules/stream_events.css
+- docs/current/CURRENT_CHAT_HANDOFF_EVS_13_USER_STATISTICS_FILTER.md
+- project-state/CURRENT_STATUS.md
+- project-state/NEXT_STEPS.md
+- project-state/TODO.md
+- project-state/CHANGELOG.md
+- project-state/FILES.md

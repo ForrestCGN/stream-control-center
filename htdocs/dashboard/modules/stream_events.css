@@ -199,3 +199,21 @@
 @media (max-width: 620px){
   .evs-runtime-counters{grid-template-columns:1fr;}
 }
+
+/* EVS-13 User Statistics Filter / User Detail Report */
+.stream-events-admin .evs-user-filter{display:grid;grid-template-columns:minmax(260px,1fr) auto auto;gap:10px;align-items:end;margin:14px 0;padding:12px;border:1px solid rgba(34,211,238,.18);background:rgba(10,16,35,.42);border-radius:16px}
+.stream-events-admin .evs-user-filter label{display:grid;gap:6px;color:#cbd5e1;font-size:12px;font-weight:900}
+.stream-events-admin .evs-user-filter select{width:100%;border:1px solid rgba(255,255,255,.14);background:rgba(2,6,23,.55);color:#f8fafc;border-radius:12px;padding:10px 11px;font-weight:800;min-height:40px}
+.stream-events-admin .evs-user-filter small{grid-column:1/-1;color:#93a4c7;font-size:12px}
+.stream-events-admin .evs-user-detail{display:grid;gap:14px;margin-top:14px;border:1px solid rgba(168,85,247,.20);background:linear-gradient(145deg,rgba(88,28,135,.15),rgba(14,116,144,.08));border-radius:18px;padding:14px}
+.stream-events-admin .evs-user-counters{grid-template-columns:repeat(4,minmax(120px,1fr))}
+.stream-events-admin .evs-user-columns{grid-template-columns:repeat(3,minmax(0,1fr))}
+.stream-events-admin .evs-user-timeline{display:grid;gap:8px}
+.stream-events-admin .evs-user-timeline-row{display:grid;grid-template-columns:90px minmax(160px,1.2fr) minmax(220px,2fr) 100px 150px;gap:8px;align-items:center;border-top:1px solid rgba(255,255,255,.07);padding:9px 0;color:#cbd5e1;font-size:12px}
+.stream-events-admin .evs-user-timeline-row:first-of-type{border-top:0}
+.stream-events-admin .evs-user-timeline-row b{color:#f4edff}
+.stream-events-admin .evs-user-timeline-row em{font-style:normal;color:#d8e6ff;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stream-events-admin .evs-user-timeline-row strong{color:#fff;text-align:right}
+.stream-events-admin .evs-user-timeline-row small{color:#8fa7d7;text-align:right}
+@media(max-width:1050px){.stream-events-admin .evs-user-filter{grid-template-columns:1fr}.stream-events-admin .evs-user-columns{grid-template-columns:1fr}.stream-events-admin .evs-user-counters{grid-template-columns:repeat(2,minmax(120px,1fr))}.stream-events-admin .evs-user-timeline-row{grid-template-columns:1fr;gap:3px}.stream-events-admin .evs-user-timeline-row strong,.stream-events-admin .evs-user-timeline-row small{text-align:left}.stream-events-admin .evs-user-timeline-row em{white-space:normal}}
+@media(max-width:620px){.stream-events-admin .evs-user-counters{grid-template-columns:1fr}}

@@ -1,11 +1,9 @@
-# NEXT_STEPS – EVS-12
+# NEXT_STEPS – EVS-13
 
-1. EVS-12 entpacken und Syntax pruefen.
-2. StepDone ausfuehren.
-3. Dashboard oeffnen: Event-System -> Statistik.
-4. Aktives Testevent auswaehlen und Text-Report laden.
-5. Pruefen, ob Ranking, Worttreffer, Satzloesungen und Chat-Payloads sichtbar sind.
-6. Danach entscheiden:
-   - Chat-Ausgabe-Bruecke vorbereiten, oder
-   - Sound-Runtime starten, oder
-   - Dashboard-UX weiter aufraeumen.
+1. EVS-13 entpacken.
+2. Syntaxcheck ausführen.
+3. StepDone ausführen.
+4. API-Routen testen.
+5. Dashboard öffnen und im Statistik-Tab User auswählen.
+
+Möglicher nächster Step: Sound-Runtime-Konzept oder User-Statistik nach Event/Alle Events umschaltbar machen.

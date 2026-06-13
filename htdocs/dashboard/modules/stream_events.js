@@ -7,7 +7,9 @@ window.StreamEventsModule = (function(){
     events: '/api/stream-events/events',
     texts: '/api/stream-events/texts',
     config: '/api/stream-events/config',
-    textRuntimeReport: '/api/stream-events/text-runtime/report'
+    textRuntimeReport: '/api/stream-events/text-runtime/report',
+    statisticsUsers: '/api/stream-events/statistics/users',
+    statisticsUser: '/api/stream-events/statistics/user'
   };
 
   let root = null;
@@ -24,6 +26,9 @@ window.StreamEventsModule = (function(){
     texts: null,
     config: null,
     textRuntimeReport: null,
+    statisticsUsers: null,
+    selectedStatsUser: '',
+    userStatistics: null,
     configSaving: false,
     textSaving: false,
     modal: null,
@@ -126,6 +131,8 @@ window.StreamEventsModule = (function(){
 
   function runtimeReport(){ return state.textRuntimeReport || null; }
   function runtimeReportFor(event){ const report = runtimeReport(); return event && report && report.eventUid === event.eventUid ? report : null; }
+  function statisticsUsers(){ return Array.isArray(state.statisticsUsers?.users) ? state.statisticsUsers.users : []; }
+  function userStatistics(){ return state.userStatistics || null; }
   function reportCount(report, key){ return Number(report?.counts?.[key] || 0); }
   function chatOutputText(output){ return output?.text || output?.chatText || ''; }
   function chatKindLabel(kind){
@@ -409,11 +416,31 @@ window.StreamEventsModule = (function(){
     return `
       <section class="evs-card glass evs-tab-panel">
         <div class="evs-card-head">
-          <div><h3>Statistik & Text-Runtime</h3><span>Ranking, Worttreffer, Satzlösungen und vorbereitete Chatmeldungen für das ausgewählte Event.</span></div>
-          ${event ? `<div class="evs-action-row evs-action-row-tight"><button type="button" class="evs-btn evs-btn-secondary" data-evs-action="ranking" data-uid="${esc(event.eventUid)}">Ranking laden</button><button type="button" class="evs-btn evs-btn-secondary" data-evs-action="runtimeReport" data-uid="${esc(event.eventUid)}">Text-Report laden</button></div>` : ''}
+          <div><h3>Statistik & Text-Runtime</h3><span>Ranking, Worttreffer, Satzlösungen, User-Filter und vorbereitete Chatmeldungen für das ausgewählte Event.</span></div>
+          ${event ? `<div class="evs-action-row evs-action-row-tight"><button type="button" class="evs-btn evs-btn-secondary" data-evs-action="ranking" data-uid="${esc(event.eventUid)}">Ranking laden</button><button type="button" class="evs-btn evs-btn-secondary" data-evs-action="runtimeReport" data-uid="${esc(event.eventUid)}">Text-Report laden</button><button type="button" class="evs-btn evs-btn-secondary" data-evs-action="statsUsers" data-uid="${esc(event.eventUid)}">Userliste laden</button></div>` : ''}
         </div>
-        ${event ? renderRuntimeReportPanel(event, false) : '<div class="evs-empty">Kein Event ausgewählt.</div>'}
+        ${event ? renderStatsUserFilter(event) + renderRuntimeReportPanel(event, false) + renderUserStatisticsPanel(event) : '<div class="evs-empty">Kein Event ausgewählt.</div>'}
       </section>
+    `;
+  }
+
+  function renderStatsUserFilter(event){
+    const users = statisticsUsers();
+    const selected = state.selectedStatsUser || '';
+    const options = ['<option value="">User auswählen…</option>'].concat(users.map(user => {
+      const label = `${user.userDisplayName || user.userLogin} · ${user.totalPoints || 0} Punkte · ${user.wordHits || 0} Wörter · ${user.phraseSolves || 0} Lösungen`;
+      return `<option value="${esc(user.userLogin)}" ${selected === user.userLogin ? 'selected' : ''}>${esc(label)}</option>`;
+    })).join('');
+    return `
+      <div class="evs-user-filter">
+        <label>
+          <span>User-Statistik</span>
+          <select data-evs-user-stat-select data-event-uid="${esc(event.eventUid)}">${options}</select>
+        </label>
+        <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="statsUsers" data-uid="${esc(event.eventUid)}">Dropdown aktualisieren</button>
+        ${selected ? `<button type="button" class="evs-btn evs-btn-secondary" data-evs-action="statsUser" data-user-login="${esc(selected)}" data-uid="${esc(event.eventUid)}">User-Report neu laden</button>` : ''}
+        <small>${users.length ? `${esc(users.length)} User mit Event-Daten gefunden.` : 'Noch keine Userdaten geladen oder vorhanden.'}</small>
+      </div>
     `;
   }
 
@@ -461,6 +488,54 @@ window.StreamEventsModule = (function(){
         <div class="evs-tab-help">Report: ${fmtDate(report.updatedAt)} · Event: ${esc(event.name || event.eventUid)}</div>
       </div>
     `;
+  }
+
+
+  function renderUserStatisticsPanel(event){
+    const report = userStatistics();
+    if (!state.selectedStatsUser) return '';
+    if (!report || !report.user || report.user.userLogin !== state.selectedStatsUser || (event && report.eventUid && report.eventUid !== event.eventUid)) {
+      return `<section class="evs-runtime-box evs-user-detail"><div class="evs-empty">User-Report für ${esc(state.selectedStatsUser)} noch nicht geladen.</div></section>`;
+    }
+    const u = report.user || {};
+    const wordHits = Array.isArray(report.text?.wordHits) ? report.text.wordHits : [];
+    const phraseSolves = Array.isArray(report.text?.phraseSolves) ? report.text.phraseSolves : [];
+    const timeline = Array.isArray(report.timeline) ? report.timeline : [];
+    const soundRows = Array.isArray(report.sound?.rows) ? report.sound.rows : [];
+    return `
+      <section class="evs-user-detail">
+        <div class="evs-runtime-box-head"><h4>User-Detail: ${esc(u.userDisplayName || u.userLogin)}</h4><small>${esc(u.userLogin || '')} · ${fmtDate(report.updatedAt)}</small></div>
+        <div class="evs-runtime-counters evs-user-counters">
+          <div><strong>${esc(u.totalPoints || 0)}</strong><span>Punkte gesamt</span></div>
+          <div><strong>${esc(u.wordHits || 0)}</strong><span>Worttreffer</span></div>
+          <div><strong>${esc(u.phraseSolves || 0)}</strong><span>Satzlösungen</span></div>
+          <div><strong>${esc(u.eventCount || 0)}</strong><span>Events</span></div>
+        </div>
+        <div class="evs-runtime-columns evs-user-columns">
+          <section class="evs-runtime-box">
+            <h4>Gefundene Wörter</h4>
+            ${wordHits.length ? wordHits.slice(0, 20).map(hit => `<div class="evs-runtime-row"><strong>${esc(hit.eventName || hit.eventUid)}</strong><span>Satz ${esc(hit.phraseNumber)} · Wort: ${esc(hit.wordOriginal || hit.wordKey)} · +${esc(hit.pointsAwarded || 0)}</span><small>${fmtDate(hit.createdAt)} · „${esc(hit.chatMessage || '')}“</small></div>`).join('') : '<div class="evs-empty">Keine Worttreffer für diesen User.</div>'}
+          </section>
+          <section class="evs-runtime-box">
+            <h4>Satzlösungen</h4>
+            ${phraseSolves.length ? phraseSolves.slice(0, 20).map(solve => `<div class="evs-runtime-row"><strong>${esc(solve.eventName || solve.eventUid)}</strong><span>Satz ${esc(solve.phraseNumber)} · +${esc(solve.pointsAwarded || 0)} Punkte</span><small>${fmtDate(solve.createdAt)} · „${esc(solve.chatMessage || '')}“</small></div>`).join('') : '<div class="evs-empty">Keine Satzlösungen für diesen User.</div>'}
+          </section>
+          <section class="evs-runtime-box">
+            <h4>Sound-Spiel später</h4>
+            ${soundRows.length ? soundRows.slice(0, 20).map(row => `<div class="evs-runtime-row"><strong>${esc(row.eventName || row.eventUid)}</strong><span>${esc(row.reason || row.sourceType || 'Sound')} · +${esc(row.points || 0)}</span><small>${fmtDate(row.createdAt)}</small></div>`).join('') : `<div class="evs-empty">${esc(report.sound?.note || 'Sound-Statistik ist vorbereitet, aber noch ohne Runtime-Daten.')}</div>`}
+          </section>
+        </div>
+        <section class="evs-runtime-box evs-user-timeline">
+          <h4>Aktivität / Wann, wie, wo</h4>
+          ${timeline.length ? timeline.slice(0, 30).map(item => `<div class="evs-user-timeline-row"><b>${esc(userTimelineLabel(item.kind))}</b><span>${esc(item.row?.eventName || item.row?.eventUid || '')}</span><em>${esc(item.label || '')}</em><strong>${esc(item.points || 0)} Punkte</strong><small>${fmtDate(item.createdAt)}</small></div>`).join('') : '<div class="evs-empty">Keine Aktivität für diesen User.</div>'}
+        </section>
+      </section>
+    `;
+  }
+
+  function userTimelineLabel(kind){
+    const map = { word_hit: 'Wort', phrase_solved: 'Satz', sound_score: 'Sound' };
+    return map[kind] || kind || 'Aktivität';
   }
 
   function renderOverlayTab(event){
@@ -919,6 +994,7 @@ window.StreamEventsModule = (function(){
       if (ev) {
         await loadRanking(ev.eventUid, false);
         await loadTextRuntimeReport(ev.eventUid, false);
+        await loadStatisticsUsers(ev.eventUid, false);
       }
     } catch (err) {
       state.error = err.message || String(err);
@@ -945,6 +1021,36 @@ window.StreamEventsModule = (function(){
       state.textRuntimeReport = await window.CGN.api(`${api.textRuntimeReport}?eventUid=${encodeURIComponent(uid)}`);
     } catch (_) {
       state.textRuntimeReport = null;
+    }
+    if (rerender) render();
+  }
+
+
+  async function loadStatisticsUsers(uid, rerender = true){
+    if (!uid) return;
+    try {
+      state.statisticsUsers = await window.CGN.api(`${api.statisticsUsers}?eventUid=${encodeURIComponent(uid)}`);
+      const users = statisticsUsers();
+      if (state.selectedStatsUser && !users.some(user => user.userLogin === state.selectedStatsUser)) {
+        state.selectedStatsUser = '';
+        state.userStatistics = null;
+      }
+    } catch (_) {
+      state.statisticsUsers = null;
+    }
+    if (rerender) render();
+  }
+
+  async function loadUserStatistics(login, uid, rerender = true){
+    const clean = norm(login).replace(/^@/, '');
+    if (!clean) { state.selectedStatsUser = ''; state.userStatistics = null; if (rerender) render(); return; }
+    state.selectedStatsUser = clean;
+    try {
+      const qs = uid ? `?eventUid=${encodeURIComponent(uid)}` : '';
+      state.userStatistics = await window.CGN.api(`${api.statisticsUser}/${encodeURIComponent(clean)}${qs}`);
+    } catch (err) {
+      state.error = err.message || String(err);
+      state.userStatistics = null;
     }
     if (rerender) render();
   }
@@ -1061,6 +1167,7 @@ window.StreamEventsModule = (function(){
         await loadEvent(state.selectedUid).catch(() => null);
         await loadRanking(state.selectedUid, false);
         await loadTextRuntimeReport(state.selectedUid, false);
+        await loadStatisticsUsers(state.selectedUid, false);
         render();
         return;
       }
@@ -1076,6 +1183,7 @@ window.StreamEventsModule = (function(){
         await loadEvent(uid).catch(() => null);
         await loadRanking(uid, false);
         await loadTextRuntimeReport(uid, false);
+        await loadStatisticsUsers(uid, false);
         state.activeTab = targetTab;
         render();
         return;
@@ -1138,6 +1246,8 @@ window.StreamEventsModule = (function(){
       if (action === 'cancel') return eventAction('cancel', uid);
       if (action === 'ranking') return loadRanking(uid, true);
       if (action === 'runtimeReport') return loadTextRuntimeReport(uid, true);
+      if (action === 'statsUsers') return loadStatisticsUsers(uid, true);
+      if (action === 'statsUser') return loadUserStatistics(btn.dataset.userLogin || state.selectedStatsUser, uid, true);
     });
 
     document.addEventListener('click', ev => {
@@ -1145,6 +1255,13 @@ window.StreamEventsModule = (function(){
         state.modal = null;
         render();
       }
+    });
+
+    document.addEventListener('change', async ev => {
+      const select = ev.target.closest('[data-evs-user-stat-select]');
+      if (!select) return;
+      const uid = select.dataset.eventUid || state.selectedUid;
+      await loadUserStatistics(select.value || '', uid, true);
     });
 
     window.addEventListener('cgn:module-show', ev => {

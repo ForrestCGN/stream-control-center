@@ -3,10 +3,10 @@
 /**
  * Stream Events backend foundation.
  *
- * STEP EVS-11:
- * - Keeps EVS-10b Text-Spiel runtime test helpers.
- * - Prepares chat output payloads from DB-backed text variants.
- * - Seeds 5 Altersheim/CGN/Rentner/Heimleitungs-style variants per relevant text key.
+ * STEP EVS-13:
+ * - Keeps EVS-12 Text-Runtime dashboard report.
+ * - Adds user statistics list/detail endpoints for dropdown filtering.
+ * - Prepares text and future sound statistics in one user-focused report.
  * - Still does not send directly into Twitch chat.
  */
 
@@ -17,8 +17,8 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.4.5";
-const MODULE_BUILD = "STEP_EVS_12_TEXT_RUNTIME_DASHBOARD_REPORT";
+const MODULE_VERSION = "0.4.6";
+const MODULE_BUILD = "STEP_EVS_13_USER_STATISTICS_FILTER";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -1699,6 +1699,299 @@ function buildRuntimeReportChatOutputs(event, wordHits = [], phraseSolves = [], 
   return outputs.sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))).slice(0, 100);
 }
 
+
+function eventFilterSql(eventUid, alias = "") {
+  const uid = cleanString(eventUid);
+  if (!uid) return { sql: "", params: {} };
+  const prefix = alias ? `${alias}.` : "";
+  return { sql: ` AND ${prefix}event_uid = :eventUid`, params: { eventUid: uid } };
+}
+
+function rowEventInfoMap(eventUids = []) {
+  const unique = [...new Set(eventUids.map(cleanString).filter(Boolean))];
+  if (!unique.length) return new Map();
+  const placeholders = unique.map((_, idx) => `:eventUid${idx}`).join(",");
+  const params = Object.fromEntries(unique.map((uid, idx) => [`eventUid${idx}`, uid]));
+  const rows = database.all(`
+    SELECT event_uid, name, status, started_at, finished_at, cancelled_at, created_at
+    FROM stream_events_events
+    WHERE event_uid IN (${placeholders})
+  `, params);
+  return new Map(rows.map(row => [row.event_uid, {
+    eventUid: row.event_uid,
+    eventName: row.name || row.event_uid,
+    eventStatus: normalizeStatus(row.status),
+    startedAt: row.started_at || "",
+    finishedAt: row.finished_at || "",
+    cancelledAt: row.cancelled_at || "",
+    createdAt: row.created_at || ""
+  }]));
+}
+
+function makeUserAccumulator(login, displayName = "") {
+  const userLogin = cleanString(login).replace(/^@/, "").toLowerCase();
+  return {
+    userLogin,
+    userDisplayName: cleanString(displayName, userLogin),
+    totalPoints: 0,
+    wordPoints: 0,
+    phrasePoints: 0,
+    soundPoints: 0,
+    manualPoints: 0,
+    scoreEntries: 0,
+    wordHits: 0,
+    phraseSolves: 0,
+    soundHits: 0,
+    events: new Set(),
+    firstActivityAt: "",
+    lastActivityAt: ""
+  };
+}
+
+function touchUserAccumulator(acc, eventUid, createdAt) {
+  if (eventUid) acc.events.add(eventUid);
+  const at = cleanString(createdAt);
+  if (at && (!acc.firstActivityAt || at < acc.firstActivityAt)) acc.firstActivityAt = at;
+  if (at && (!acc.lastActivityAt || at > acc.lastActivityAt)) acc.lastActivityAt = at;
+}
+
+function getStatisticsUsers(eventUid = "") {
+  ensureSchema();
+  const uid = cleanString(eventUid);
+  const users = new Map();
+  function accFor(login, displayName) {
+    const key = cleanString(login).replace(/^@/, "").toLowerCase();
+    if (!key) return null;
+    if (!users.has(key)) users.set(key, makeUserAccumulator(key, displayName));
+    const acc = users.get(key);
+    if (displayName && (!acc.userDisplayName || acc.userDisplayName === acc.userLogin)) acc.userDisplayName = cleanString(displayName, acc.userLogin);
+    return acc;
+  }
+  const filter = eventFilterSql(uid);
+
+  const scoreRows = database.all(`
+    SELECT event_uid, user_login, user_display_name, source_type, points, created_at
+    FROM stream_events_score_entries
+    WHERE user_login <> ''${filter.sql}
+  `, filter.params);
+  for (const row of scoreRows) {
+    const acc = accFor(row.user_login, row.user_display_name);
+    if (!acc) continue;
+    const points = Number(row.points || 0);
+    const sourceType = cleanString(row.source_type);
+    acc.totalPoints += points;
+    acc.scoreEntries += 1;
+    if (sourceType === "text_word_hit") acc.wordPoints += points;
+    else if (sourceType === "text_phrase_solve") acc.phrasePoints += points;
+    else if (sourceType.startsWith("sound")) acc.soundPoints += points;
+    else acc.manualPoints += points;
+    touchUserAccumulator(acc, row.event_uid, row.created_at);
+  }
+
+  const hitRows = database.all(`
+    SELECT event_uid, user_login, user_display_name, points_awarded, created_at
+    FROM stream_events_text_word_hits
+    WHERE user_login <> ''${filter.sql}
+  `, filter.params);
+  for (const row of hitRows) {
+    const acc = accFor(row.user_login, row.user_display_name);
+    if (!acc) continue;
+    acc.wordHits += 1;
+    touchUserAccumulator(acc, row.event_uid, row.created_at);
+  }
+
+  const solveRows = database.all(`
+    SELECT event_uid, user_login, user_display_name, points_awarded, created_at
+    FROM stream_events_text_phrase_solves
+    WHERE user_login <> ''${filter.sql}
+  `, filter.params);
+  for (const row of solveRows) {
+    const acc = accFor(row.user_login, row.user_display_name);
+    if (!acc) continue;
+    acc.phraseSolves += 1;
+    touchUserAccumulator(acc, row.event_uid, row.created_at);
+  }
+
+  const rows = [...users.values()].map(acc => ({
+    userLogin: acc.userLogin,
+    userDisplayName: acc.userDisplayName || acc.userLogin,
+    totalPoints: acc.totalPoints,
+    wordPoints: acc.wordPoints,
+    phrasePoints: acc.phrasePoints,
+    soundPoints: acc.soundPoints,
+    manualPoints: acc.manualPoints,
+    scoreEntries: acc.scoreEntries,
+    wordHits: acc.wordHits,
+    phraseSolves: acc.phraseSolves,
+    soundHits: acc.soundHits,
+    eventCount: acc.events.size,
+    firstActivityAt: acc.firstActivityAt,
+    lastActivityAt: acc.lastActivityAt
+  })).sort((a, b) => (b.totalPoints - a.totalPoints) || (b.wordHits + b.phraseSolves - a.wordHits - a.phraseSolves) || String(b.lastActivityAt).localeCompare(String(a.lastActivityAt)) || a.userLogin.localeCompare(b.userLogin));
+
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    eventUid: uid,
+    activeEvent: publicEventSummary(getActiveEvent()),
+    count: rows.length,
+    users: rows,
+    updatedAt: nowIso()
+  };
+}
+
+function getStatisticsUser(login, eventUid = "") {
+  ensureSchema();
+  const userLogin = cleanString(login).replace(/^@/, "").toLowerCase();
+  if (!userLogin) return { ok: false, error: "user_login_required" };
+  const uid = cleanString(eventUid);
+  const params = { userLogin };
+  const eventClause = uid ? " AND event_uid = :eventUid" : "";
+  if (uid) params.eventUid = uid;
+
+  const scoreEntries = database.all(`
+    SELECT entry_uid, event_uid, user_login, user_display_name, source_type, source_uid, reason,
+           points, created_by, created_at, metadata_json
+    FROM stream_events_score_entries
+    WHERE user_login = :userLogin${eventClause}
+    ORDER BY created_at DESC, id DESC
+    LIMIT 500
+  `, params).map(row => ({
+    entryUid: row.entry_uid,
+    eventUid: row.event_uid,
+    userLogin: row.user_login,
+    userDisplayName: row.user_display_name || row.user_login,
+    sourceType: row.source_type || "",
+    sourceUid: row.source_uid || "",
+    reason: row.reason || "",
+    points: Number(row.points || 0),
+    createdBy: row.created_by || "",
+    createdAt: row.created_at || "",
+    metadata: safeJsonParse(row.metadata_json, {})
+  }));
+
+  const wordHits = database.all(`
+    SELECT hit_uid, event_uid, phrase_uid, phrase_index, phrase_number, word_key, word_original,
+           user_login, user_display_name, points_awarded, chat_message_id, chat_message, created_at, metadata_json
+    FROM stream_events_text_word_hits
+    WHERE user_login = :userLogin${eventClause}
+    ORDER BY created_at DESC, id DESC
+    LIMIT 500
+  `, params).map(row => ({
+    hitUid: row.hit_uid,
+    eventUid: row.event_uid,
+    phraseUid: row.phrase_uid,
+    phraseIndex: Number(row.phrase_index || 0),
+    phraseNumber: Number(row.phrase_number || 0),
+    wordKey: row.word_key || "",
+    wordOriginal: row.word_original || row.word_key || "",
+    userLogin: row.user_login,
+    userDisplayName: row.user_display_name || row.user_login,
+    pointsAwarded: Number(row.points_awarded || 0),
+    chatMessageId: row.chat_message_id || "",
+    chatMessage: row.chat_message || "",
+    createdAt: row.created_at || "",
+    metadata: safeJsonParse(row.metadata_json, {})
+  }));
+
+  const phraseSolves = database.all(`
+    SELECT solve_uid, event_uid, phrase_uid, phrase_index, phrase_number,
+           user_login, user_display_name, points_awarded, chat_message_id, chat_message, created_at, metadata_json
+    FROM stream_events_text_phrase_solves
+    WHERE user_login = :userLogin${eventClause}
+    ORDER BY created_at DESC, id DESC
+    LIMIT 500
+  `, params).map(row => ({
+    solveUid: row.solve_uid,
+    eventUid: row.event_uid,
+    phraseUid: row.phrase_uid,
+    phraseIndex: Number(row.phrase_index || 0),
+    phraseNumber: Number(row.phrase_number || 0),
+    userLogin: row.user_login,
+    userDisplayName: row.user_display_name || row.user_login,
+    pointsAwarded: Number(row.points_awarded || 0),
+    chatMessageId: row.chat_message_id || "",
+    chatMessage: row.chat_message || "",
+    createdAt: row.created_at || "",
+    metadata: safeJsonParse(row.metadata_json, {})
+  }));
+
+  const eventMap = rowEventInfoMap([...scoreEntries, ...wordHits, ...phraseSolves].map(row => row.eventUid));
+  const enrich = row => ({ ...(eventMap.get(row.eventUid) || { eventUid: row.eventUid, eventName: row.eventUid, eventStatus: "" }), ...row });
+  const enrichedScoreEntries = scoreEntries.map(enrich);
+  const enrichedWordHits = wordHits.map(enrich);
+  const enrichedPhraseSolves = phraseSolves.map(enrich);
+  const soundEntries = enrichedScoreEntries.filter(row => cleanString(row.sourceType).startsWith("sound"));
+
+  const events = new Map();
+  function eventAcc(row) {
+    const key = row.eventUid || "unknown";
+    if (!events.has(key)) {
+      const info = eventMap.get(key) || { eventUid: key, eventName: key, eventStatus: "" };
+      events.set(key, { ...info, totalPoints: 0, wordHits: 0, phraseSolves: 0, soundEntries: 0, scoreEntries: 0, lastActivityAt: "" });
+    }
+    const item = events.get(key);
+    if (row.createdAt && row.createdAt > item.lastActivityAt) item.lastActivityAt = row.createdAt;
+    return item;
+  }
+  for (const row of enrichedScoreEntries) {
+    const item = eventAcc(row);
+    item.totalPoints += Number(row.points || 0);
+    item.scoreEntries += 1;
+    if (cleanString(row.sourceType).startsWith("sound")) item.soundEntries += 1;
+  }
+  for (const row of enrichedWordHits) eventAcc(row).wordHits += 1;
+  for (const row of enrichedPhraseSolves) eventAcc(row).phraseSolves += 1;
+
+  const timeline = [
+    ...enrichedWordHits.map(row => ({ kind: "word_hit", gameType: "text", label: `Wort gefunden: ${row.wordOriginal || row.wordKey}`, points: row.pointsAwarded, createdAt: row.createdAt, row })),
+    ...enrichedPhraseSolves.map(row => ({ kind: "phrase_solved", gameType: "text", label: `Satz ${row.phraseNumber} gelöst`, points: row.pointsAwarded, createdAt: row.createdAt, row })),
+    ...soundEntries.map(row => ({ kind: "sound_score", gameType: "sound", label: row.reason || row.sourceType || "Sound-Punkte", points: row.points, createdAt: row.createdAt, row }))
+  ].sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))).slice(0, 500);
+
+  const summary = {
+    userLogin,
+    userDisplayName: (enrichedScoreEntries[0] || enrichedWordHits[0] || enrichedPhraseSolves[0] || {}).userDisplayName || userLogin,
+    eventCount: events.size,
+    totalPoints: enrichedScoreEntries.reduce((sum, row) => sum + Number(row.points || 0), 0),
+    wordPoints: enrichedScoreEntries.filter(row => row.sourceType === "text_word_hit").reduce((sum, row) => sum + Number(row.points || 0), 0),
+    phrasePoints: enrichedScoreEntries.filter(row => row.sourceType === "text_phrase_solve").reduce((sum, row) => sum + Number(row.points || 0), 0),
+    soundPoints: soundEntries.reduce((sum, row) => sum + Number(row.points || 0), 0),
+    manualPoints: enrichedScoreEntries.filter(row => !["text_word_hit", "text_phrase_solve"].includes(row.sourceType) && !cleanString(row.sourceType).startsWith("sound")).reduce((sum, row) => sum + Number(row.points || 0), 0),
+    scoreEntries: enrichedScoreEntries.length,
+    wordHits: enrichedWordHits.length,
+    phraseSolves: enrichedPhraseSolves.length,
+    soundEntries: soundEntries.length,
+    firstActivityAt: [...timeline].reverse()[0]?.createdAt || "",
+    lastActivityAt: timeline[0]?.createdAt || ""
+  };
+
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    eventUid: uid,
+    activeEvent: publicEventSummary(getActiveEvent()),
+    user: summary,
+    events: [...events.values()].sort((a, b) => String(b.lastActivityAt || "").localeCompare(String(a.lastActivityAt || ""))),
+    text: {
+      wordHits: enrichedWordHits,
+      phraseSolves: enrichedPhraseSolves
+    },
+    sound: {
+      available: soundEntries.length > 0,
+      note: soundEntries.length > 0 ? "Sound-bezogene Punkte aus score_entries." : "Sound-Snippet-Runtime ist noch nicht eingebaut; dieser Bereich ist vorbereitet.",
+      rows: soundEntries
+    },
+    scoreEntries: enrichedScoreEntries,
+    timeline,
+    updatedAt: nowIso()
+  };
+}
+
 function createTextRuntimeTestEvent(body = {}) {
   ensureSchema();
   const name = cleanString(body.name, "EVS Text-Runtime Test");
@@ -1953,6 +2246,8 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "GET", path: `${prefix}/bus-status`, description: "Stream-Events Communication-Bus Registrierung, Heartbeat und letzte Bus-Events" },
       { method: "GET", path: `${prefix}/text-runtime/status`, description: "Text-Spiel Chat-Runtime Status" },
       { method: "GET", path: `${prefix}/text-runtime/report`, description: "Text-Spiel Runtime Report fuer aktives oder angegebenes Event" },
+      { method: "GET", path: `${prefix}/statistics/users`, description: "Statistik-Userliste fuer Dropdown/Filter, optional eventUid" },
+      { method: "GET", path: `${prefix}/statistics/user/:login`, description: "User-Detailstatistik fuer Text/Sound/Punkte, optional eventUid" },
       { method: "POST", path: `${prefix}/text-runtime/test-chat`, description: "Testet eine Chatnachricht gegen das aktive Text-Event" },
       { method: "POST", path: `${prefix}/text-runtime/create-test-event`, description: "Legt mit confirm=1 ein sicheres Text-Runtime-Testevent an" },
       { method: "GET", path: `${prefix}/routes`, description: "Route-Selbstdokumentation" },
@@ -2085,6 +2380,22 @@ module.exports.init = function init(ctx) {
   reg("get", `${prefix}/text-runtime/report`, (req, res) => {
     try {
       sendJson(res, getTextRuntimeReport(req.query.eventUid || req.query.event_uid || ""));
+    } catch (err) {
+      handleError(res, err);
+    }
+  });
+
+  reg("get", `${prefix}/statistics/users`, (req, res) => {
+    try {
+      sendJson(res, getStatisticsUsers(req.query.eventUid || req.query.event_uid || ""));
+    } catch (err) {
+      handleError(res, err);
+    }
+  });
+
+  reg("get", `${prefix}/statistics/user/:login`, (req, res) => {
+    try {
+      sendJson(res, getStatisticsUser(req.params.login || req.query.login || "", req.query.eventUid || req.query.event_uid || ""));
     } catch (err) {
       handleError(res, err);
     }

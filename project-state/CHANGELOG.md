@@ -1,10 +1,7 @@
-# CHANGELOG – EVS-12
+# CHANGELOG – EVS-13
 
-## EVS-12 Text Runtime Dashboard Report
-
-- Backend-Version auf `0.4.5` gesetzt.
-- Build auf `STEP_EVS_12_TEXT_RUNTIME_DASHBOARD_REPORT` gesetzt.
-- Text-Runtime-Report um `chatOutputs` erweitert.
-- Dashboard-Statistik-Tab zeigt Ranking, Worttreffer, Satzloesungen und vorbereitete Chatmeldungen.
-- Uebersicht zeigt Text-Runtime-Zaehler bei laufenden Events.
-- CSS fuer Runtime-Report-Karten ergaenzt.
+## EVS-13
+- Backend: Userliste und User-Detailreport ergänzt.
+- Dashboard: User-Dropdown im Statistik-Tab ergänzt.
+- Dashboard: User-Detailansicht mit Worttreffern, Satzlösungen, Timeline und vorbereitetem Sound-Bereich ergänzt.
+- CSS: User-Statistik-Layout ergänzt.
