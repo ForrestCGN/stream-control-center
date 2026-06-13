@@ -851,3 +851,19 @@ Wichtig:
 - Keine neue Bus-Struktur.
 - Keine destruktive DB-Änderung.
 - Bestehende EVS-12 Runtime/Reports bleiben erhalten.
+
+## EVS-14 – Sound Runtime Prep
+
+EVS-14 ergänzt eine vorbereitende Sound-Spiel-Runtime. Sie nutzt die bestehende Tabelle `stream_events_rounds` und erzeugt Sound-Runden für aktive Events mit aktiviertem Sound-Spiel.
+
+Neue Routen:
+
+- `GET /api/stream-events/sound-runtime/status`
+- `GET /api/stream-events/sound-runtime/report`
+- `POST /api/stream-events/sound-runtime/next-round`
+- `POST /api/stream-events/sound-runtime/resolve`
+- `POST /api/stream-events/sound-runtime/unresolved`
+
+Wichtig: EVS-14 spielt noch keinen Sound direkt ab und fasst die Sound-System-Queue nicht an. Stattdessen wird ein `playback`-Payload vorbereitet, der später an das vorhandene `sound_system` angeschlossen werden kann.
+
+Sound-Runden werden als `game_type='sound'` in `stream_events_rounds` gespeichert. Eine aktive Sound-Runde kann gelöst oder als ungelöst markiert werden. Bei einer korrekten Lösung werden Punkte mit `sourceType='sound_solved'` gebucht und im bestehenden Ranking sichtbar.

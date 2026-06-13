@@ -1,8 +1,10 @@
-# CHANGELOG – EVS-13
+# CHANGELOG
 
-## EVS-13
-- Backend: Userliste und User-Detailreport ergänzt.
-- Dashboard: User-Dropdown im Statistik-Tab ergänzt.
-- Dashboard: User-Detailansicht mit Worttreffern, Satzlösungen, Timeline und vorbereitetem Sound-Bereich ergänzt.
-- CSS: User-Statistik-Layout ergänzt.
-\n## EVS-13b User Statistics Detail Modal + AutoReload\n- User-Statistik im Dashboard öffnet jetzt ein scrollbares Detail-Popup.\n- AutoReload aktualisiert nur das Popup per API, kein Seitenreload.\n- Keine Backend-/DB-/Bus-Änderung in diesem Step.
+## EVS-14
+
+- Sound-Runtime-Status ergänzt.
+- Sound-Runtime-Report ergänzt.
+- Sound-Runde vorbereiten ergänzt.
+- Sound-Runde lösen ergänzt.
+- Sound-Runde ungelöst markieren ergänzt.
+- Sound-System-Playback-Payload vorbereitet, aber nicht ausgeführt.

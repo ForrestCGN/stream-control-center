@@ -17,8 +17,8 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.4.6";
-const MODULE_BUILD = "STEP_EVS_13_USER_STATISTICS_FILTER";
+const MODULE_VERSION = "0.5.0";
+const MODULE_BUILD = "STEP_EVS_14_SOUND_RUNTIME_PREP";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -200,7 +200,11 @@ const MODULE_META = {
       "stream_events.points.added",
       "stream_events.ranking.updated",
       "stream_events.text.word_found",
-      "stream_events.text.phrase_solved"
+      "stream_events.text.phrase_solved",
+      "stream_events.sound.round_prepared",
+      "stream_events.sound.round_started",
+      "stream_events.sound.solved",
+      "stream_events.sound.unresolved"
     ],
     consumes: [
       "twitch.chat.message"
@@ -239,7 +243,11 @@ let runtimeState = {
     textPhraseSolves: 0,
     textRuntimeSkipped: 0,
     busEmitted: 0,
-    busErrors: 0
+    busErrors: 0,
+    soundRoundsPrepared: 0,
+    soundRoundsStarted: 0,
+    soundRoundsSolved: 0,
+    soundRoundsUnresolved: 0
   }
 };
 
@@ -1532,6 +1540,341 @@ function registerTextChatSubscription() {
   return result;
 }
 
+function normalizeSoundSnippet(snippet = {}, index = 0) {
+  const raw = snippet && typeof snippet === "object" ? snippet : {};
+  const mediaId = cleanString(raw.mediaId || raw.snippetMediaId || raw.media_id || raw.mediaPath || raw.file || raw.path);
+  const snippetUid = cleanString(raw.uid || raw.snippetUid || raw.id || raw.key || mediaId, `sound_snippet_${index + 1}`);
+  const title = cleanString(raw.title || raw.name || raw.label || `Sound-Schnipsel ${index + 1}`);
+  const acceptedAnswers = Array.isArray(raw.acceptedAnswers) ? raw.acceptedAnswers : (Array.isArray(raw.answers) ? raw.answers : []);
+  return {
+    snippetUid,
+    index,
+    number: index + 1,
+    title,
+    mediaId,
+    mediaPath: cleanString(raw.mediaPath || raw.file || raw.path),
+    revealVideoId: cleanString(raw.revealVideoId || raw.videoMediaId || raw.revealMediaId),
+    acceptedAnswers: acceptedAnswers.map(cleanString).filter(Boolean),
+    points: clampNumber(raw.points ?? raw.firstPoints ?? raw.score, 0, 10000, 10),
+    answerSeconds: clampNumber(raw.answerSeconds ?? raw.seconds, 5, 300, 20),
+    raw: safeJson(raw, {})
+  };
+}
+
+function getSoundSnippets(event = {}) {
+  const raw = event && event.soundConfig && typeof event.soundConfig === "object" ? event.soundConfig : {};
+  const snippets = Array.isArray(raw.snippets) ? raw.snippets : [];
+  return snippets.map((snippet, index) => normalizeSoundSnippet(snippet, index)).filter(item => item.mediaId || item.mediaPath || item.title);
+}
+
+function getSoundRuntimeConfig(event = {}) {
+  const globalConfig = getEventConfig().config || DEFAULT_EVENT_CONFIG;
+  const soundDefaults = globalConfig.soundDefaults || DEFAULT_EVENT_CONFIG.soundDefaults || {};
+  const eventConfig = event && event.soundConfig && typeof event.soundConfig === "object" ? event.soundConfig : {};
+  return {
+    answerSeconds: clampNumber(eventConfig.answerSeconds ?? eventConfig.defaultAnswerSeconds ?? soundDefaults.defaultAnswerSeconds, 5, 300, 20),
+    defaultPoints: clampNumber(eventConfig.defaultPoints ?? soundDefaults.defaultPoints, 0, 10000, 10),
+    unresolvedPolicy: cleanString(eventConfig.unresolvedPolicy ?? soundDefaults.unresolvedPolicy, "requeue_later"),
+    solvedPolicy: cleanString(eventConfig.solvedPolicy ?? soundDefaults.solvedPolicy, "remove_from_rotation"),
+    avoidImmediateRepeat: eventConfig.avoidImmediateRepeat !== undefined ? boolValue(eventConfig.avoidImmediateRepeat) : boolValue(soundDefaults.avoidImmediateRepeat, true),
+    revealVideoEnabled: eventConfig.revealVideoEnabled !== undefined ? boolValue(eventConfig.revealVideoEnabled) : boolValue(soundDefaults.revealVideoEnabled, true),
+    directPlaybackEnabled: false,
+    outputPreparedOnly: true
+  };
+}
+
+function rowToRound(row) {
+  if (!row) return null;
+  return {
+    roundUid: row.round_uid,
+    eventUid: row.event_uid,
+    gameType: row.game_type,
+    status: row.status,
+    itemUid: row.item_uid || "",
+    result: row.result || "",
+    startedAt: row.started_at || "",
+    finishedAt: row.finished_at || "",
+    config: safeJsonParse(row.config_json, {}),
+    resultData: safeJsonParse(row.result_json, {}),
+    createdAt: row.created_at || "",
+    updatedAt: row.updated_at || ""
+  };
+}
+
+function getActiveSoundRound(eventUid = "") {
+  ensureSchema();
+  const params = {};
+  const where = ["game_type = 'sound'", "status = 'active'"];
+  if (cleanString(eventUid)) {
+    where.push("event_uid = :eventUid");
+    params.eventUid = cleanString(eventUid);
+  }
+  const row = database.get(`
+    SELECT * FROM stream_events_rounds
+    WHERE ${where.join(" AND ")}
+    ORDER BY started_at DESC, id DESC
+    LIMIT 1
+  `, params);
+  return rowToRound(row);
+}
+
+function getSoundRounds(eventUid, limit = 100) {
+  ensureSchema();
+  return database.all(`
+    SELECT * FROM stream_events_rounds
+    WHERE event_uid = :eventUid AND game_type = 'sound'
+    ORDER BY created_at DESC, id DESC
+    LIMIT :limit
+  `, { eventUid, limit: clampNumber(limit, 1, 500, 100) }).map(rowToRound);
+}
+
+function pickNextSoundSnippet(event, options = {}) {
+  const snippets = getSoundSnippets(event);
+  if (!snippets.length) return { ok: false, error: "sound_no_snippets" };
+  const rounds = getSoundRounds(event.eventUid, 500);
+  const blockedStatuses = new Set(["active", "solved"]);
+  const used = new Set(rounds.filter(row => blockedStatuses.has(row.status)).map(row => row.itemUid).filter(Boolean));
+  const active = rounds.find(row => row.status === "active");
+  if (active) return { ok: false, error: "sound_round_already_active", activeRound: active };
+  let candidates = snippets.filter(item => !used.has(item.snippetUid));
+  if (!candidates.length && options.allowReuse === true) candidates = snippets.slice();
+  if (!candidates.length) return { ok: false, error: "sound_no_unused_snippet", used: used.size, total: snippets.length };
+  const runtimeConfig = getSoundRuntimeConfig(event);
+  if (runtimeConfig.avoidImmediateRepeat && candidates.length > 1) {
+    const last = rounds[0] ? rounds[0].itemUid : "";
+    candidates = candidates.filter(item => item.snippetUid !== last);
+  }
+  const selected = candidates[0];
+  return { ok: true, snippet: selected, runtimeConfig, total: snippets.length, remaining: candidates.length };
+}
+
+function buildSoundPlaybackPayload(event, round, snippet, runtimeConfig) {
+  return {
+    prepared: true,
+    directPlay: false,
+    target: "sound_system",
+    via: "bus_payload",
+    channel: "sound.command",
+    action: "play.request.prepared",
+    reason: "stream_events_sound_round_prepared",
+    soundSystemTouched: false,
+    queueTouched: false,
+    item: {
+      sourceModule: MODULE_NAME,
+      eventUid: event.eventUid,
+      roundUid: round.roundUid,
+      snippetUid: snippet.snippetUid,
+      mediaId: snippet.mediaId,
+      mediaPath: snippet.mediaPath,
+      label: snippet.title,
+      category: "stream_event_sound_snippet",
+      requestedBy: MODULE_NAME,
+      priority: 70,
+      outputTarget: "overlay"
+    },
+    meta: {
+      preparedAt: nowIso(),
+      answerSeconds: runtimeConfig.answerSeconds,
+      note: "EVS-14 bereitet nur die Sound-System-Anforderung vor. Abspielen/Queue-Touch kommt in einem spaeteren Step."
+    }
+  };
+}
+
+function createSoundRound(options = {}) {
+  ensureSchema();
+  const event = cleanString(options.eventUid) ? getEventByUid(options.eventUid) : getActiveEvent();
+  if (!event) return { ok: false, error: "active_event_missing" };
+  if (event.status !== STATUS.ACTIVE) return { ok: false, error: "event_not_active", eventUid: event.eventUid, status: event.status };
+  if (!event.soundEnabled) return { ok: false, error: "sound_not_enabled", eventUid: event.eventUid };
+  const picked = pickNextSoundSnippet(event, options);
+  if (!picked.ok) return { ok: false, eventUid: event.eventUid, ...picked };
+  const snippet = picked.snippet;
+  const runtimeConfig = picked.runtimeConfig;
+  const roundUid = newUid("evs_sound_round");
+  const now = nowIso();
+  const roundConfig = {
+    snippet,
+    runtimeConfig,
+    answerSeconds: clampNumber(snippet.answerSeconds || runtimeConfig.answerSeconds, 5, 300, runtimeConfig.answerSeconds)
+  };
+  database.insert("stream_events_rounds", {
+    round_uid: roundUid,
+    event_uid: event.eventUid,
+    game_type: "sound",
+    status: "active",
+    item_uid: snippet.snippetUid,
+    result: "",
+    started_at: now,
+    finished_at: "",
+    config_json: jsonEncode(roundConfig),
+    result_json: jsonEncode({ preparedOnly: true }),
+    created_at: now,
+    updated_at: now
+  });
+  const round = getActiveSoundRound(event.eventUid);
+  const playback = buildSoundPlaybackPayload(event, round, snippet, runtimeConfig);
+  const chatOutput = buildChatOutput("sound.round.started", {
+    title: snippet.title,
+    soundTitle: snippet.title,
+    answerSeconds: roundConfig.answerSeconds,
+    points: snippet.points || runtimeConfig.defaultPoints
+  }, { reason: "sound_round_started" });
+  runtimeState.counters.soundRoundsPrepared += 1;
+  runtimeState.counters.soundRoundsStarted += 1;
+  markAction("sound.round.started", event.eventUid);
+  emitBus("stream_events.sound", "round_started", { eventUid: event.eventUid, round, snippet: safeJson(snippet, {}), playback, chatOutput });
+  publishStatus("sound.round_started", { lastEventUid: event.eventUid, roundUid });
+  return { ok: true, eventUid: event.eventUid, round, snippet, playback, chatOutput, directPlayback: false };
+}
+
+function answerMatchesSoundSnippet(answer, snippet = {}) {
+  const normalized = normalizeTextValue(answer);
+  if (!normalized) return false;
+  const answers = normalizeAcceptedAnswers(snippet.acceptedAnswers || []);
+  return answers.some(item => item === normalized);
+}
+
+function resolveSoundRound(body = {}) {
+  ensureSchema();
+  const round = getActiveSoundRound(body.eventUid || "");
+  if (!round) return { ok: false, error: "active_sound_round_missing" };
+  const event = getEventByUid(round.eventUid);
+  if (!event || event.status !== STATUS.ACTIVE) return { ok: false, error: "event_not_active", eventUid: round.eventUid };
+  const snippet = round.config && round.config.snippet ? round.config.snippet : {};
+  const userLogin = cleanString(body.userLogin || body.login || body.user).replace(/^@/, "").toLowerCase();
+  const userDisplayName = cleanString(body.userDisplayName || body.displayName || body.user, userLogin);
+  const answer = cleanString(body.answer || body.message || body.text);
+  if (!userLogin) return { ok: false, error: "user_login_required" };
+  if (!answer) return { ok: false, error: "answer_required" };
+  const correct = answerMatchesSoundSnippet(answer, snippet);
+  if (!correct) return { ok: true, solved: false, reason: "answer_not_accepted", eventUid: event.eventUid, roundUid: round.roundUid };
+  const points = clampNumber(body.points ?? snippet.points ?? getSoundRuntimeConfig(event).defaultPoints, 0, 10000, 10);
+  const now = nowIso();
+  const resultData = { solved: true, userLogin, userDisplayName, answer, points, solvedAt: now };
+  database.updateByKey("stream_events_rounds", "round_uid", round.roundUid, {
+    status: "solved",
+    result: "solved",
+    finished_at: now,
+    updated_at: now,
+    result_json: jsonEncode(resultData)
+  });
+  const pointsResult = points > 0 ? addPoints(event.eventUid, {
+    userLogin,
+    userDisplayName,
+    points,
+    sourceType: "sound_solved",
+    sourceUid: round.roundUid,
+    reason: "sound_snippet_solved",
+    createdBy: MODULE_NAME,
+    metadata: { roundUid: round.roundUid, snippetUid: snippet.snippetUid, title: snippet.title, answer }
+  }) : { ok: true, ranking: getRanking(event.eventUid).rows };
+  const chatOutput = buildChatOutput("sound.solved", { user: userDisplayName, displayName: userDisplayName, title: snippet.title, soundTitle: snippet.title, points }, { reason: "sound_solved" });
+  runtimeState.counters.soundRoundsSolved += 1;
+  markAction("sound.round.solved", event.eventUid);
+  const updatedRound = database.get("SELECT * FROM stream_events_rounds WHERE round_uid = :roundUid", { roundUid: round.roundUid });
+  emitBus("stream_events.sound", "solved", { eventUid: event.eventUid, round: rowToRound(updatedRound), userLogin, userDisplayName, answer, points, chatOutput, ranking: pointsResult.ranking || [] });
+  publishStatus("sound.solved", { lastEventUid: event.eventUid, roundUid: round.roundUid });
+  return { ok: true, solved: true, eventUid: event.eventUid, roundUid: round.roundUid, points, chatOutput, pointsResult };
+}
+
+function markSoundRoundUnresolved(body = {}) {
+  ensureSchema();
+  const round = getActiveSoundRound(body.eventUid || "");
+  if (!round) return { ok: false, error: "active_sound_round_missing" };
+  const event = getEventByUid(round.eventUid);
+  const snippet = round.config && round.config.snippet ? round.config.snippet : {};
+  const runtimeConfig = getSoundRuntimeConfig(event);
+  const now = nowIso();
+  const policy = cleanString(body.policy || runtimeConfig.unresolvedPolicy, "requeue_later");
+  const resultData = { solved: false, policy, reason: cleanString(body.reason || "manual_unresolved"), unresolvedAt: now };
+  database.updateByKey("stream_events_rounds", "round_uid", round.roundUid, {
+    status: "unresolved",
+    result: "unresolved",
+    finished_at: now,
+    updated_at: now,
+    result_json: jsonEncode(resultData)
+  });
+  const chatOutput = buildChatOutput("sound.unresolved", { title: snippet.title, soundTitle: snippet.title, policy }, { reason: "sound_unresolved" });
+  runtimeState.counters.soundRoundsUnresolved += 1;
+  markAction("sound.round.unresolved", round.eventUid);
+  emitBus("stream_events.sound", "unresolved", { eventUid: round.eventUid, roundUid: round.roundUid, policy, chatOutput });
+  publishStatus("sound.unresolved", { lastEventUid: round.eventUid, roundUid: round.roundUid });
+  return { ok: true, eventUid: round.eventUid, roundUid: round.roundUid, policy, chatOutput };
+}
+
+function getSoundRuntimeStatus(eventUid = "") {
+  ensureSchema();
+  const event = cleanString(eventUid) ? getEventByUid(eventUid) : getActiveEvent();
+  const activeRound = event ? getActiveSoundRound(event.eventUid) : null;
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    activeEvent: publicEventSummary(event),
+    activeSoundRuntime: Boolean(event && event.status === STATUS.ACTIVE && event.soundEnabled),
+    activeRound,
+    snippets: event ? getSoundSnippets(event).map(item => ({ snippetUid: item.snippetUid, title: item.title, mediaId: item.mediaId, acceptedAnswerCount: item.acceptedAnswers.length, points: item.points })) : [],
+    runtimeConfig: event ? getSoundRuntimeConfig(event) : getSoundRuntimeConfig(null),
+    counters: safeJson(runtimeState.counters, {}),
+    rules: {
+      preparedOnly: true,
+      directPlayback: false,
+      soundSystemQueueTouched: false,
+      oneActiveSoundRoundPerEvent: true,
+      solvedRoundsRemovedFromRotation: true,
+      unresolvedPolicyPrepared: true
+    },
+    updatedAt: nowIso()
+  };
+}
+
+function getSoundRuntimeReport(eventUid = "") {
+  ensureSchema();
+  const event = cleanString(eventUid) ? getEventByUid(eventUid) : getActiveEvent();
+  const uid = event ? event.eventUid : cleanString(eventUid);
+  if (!uid) return { ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, event: null, rounds: [], note: "Kein aktives Event und keine eventUid angegeben.", updatedAt: nowIso() };
+  const rounds = getSoundRounds(uid, 200);
+  const scoreRows = database.all(`
+    SELECT * FROM stream_events_score_entries
+    WHERE event_uid = :eventUid AND source_type LIKE 'sound%'
+    ORDER BY created_at DESC, id DESC
+    LIMIT 200
+  `, { eventUid: uid }).map(row => ({
+    entryUid: row.entry_uid,
+    eventUid: row.event_uid,
+    userLogin: row.user_login,
+    userDisplayName: row.user_display_name || row.user_login,
+    sourceType: row.source_type,
+    sourceUid: row.source_uid,
+    reason: row.reason,
+    points: Number(row.points || 0),
+    createdAt: row.created_at,
+    metadata: safeJsonParse(row.metadata_json, {})
+  }));
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    activeEvent: publicEventSummary(getActiveEvent()),
+    event: publicEventSummary(event || getEventByUid(uid)),
+    eventUid: uid,
+    counts: {
+      rounds: rounds.length,
+      active: rounds.filter(row => row.status === "active").length,
+      solved: rounds.filter(row => row.status === "solved").length,
+      unresolved: rounds.filter(row => row.status === "unresolved").length,
+      soundScoreEntries: scoreRows.length
+    },
+    rounds,
+    scoreEntries: scoreRows,
+    ranking: getRanking(uid),
+    note: "EVS-14 bereitet Sound-Runden, Auswertung und Sound-System-Payloads vor; es wird noch nichts direkt abgespielt.",
+    updatedAt: nowIso()
+  };
+}
+
 
 function getTextRuntimeReport(eventUid = "") {
   ensureSchema();
@@ -2246,10 +2589,15 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "GET", path: `${prefix}/bus-status`, description: "Stream-Events Communication-Bus Registrierung, Heartbeat und letzte Bus-Events" },
       { method: "GET", path: `${prefix}/text-runtime/status`, description: "Text-Spiel Chat-Runtime Status" },
       { method: "GET", path: `${prefix}/text-runtime/report`, description: "Text-Spiel Runtime Report fuer aktives oder angegebenes Event" },
+      { method: "GET", path: `${prefix}/sound-runtime/status`, description: "Sound-Spiel Runtime Status und aktive Runde" },
+      { method: "GET", path: `${prefix}/sound-runtime/report`, description: "Sound-Spiel Runtime Report fuer aktives oder angegebenes Event" },
       { method: "GET", path: `${prefix}/statistics/users`, description: "Statistik-Userliste fuer Dropdown/Filter, optional eventUid" },
       { method: "GET", path: `${prefix}/statistics/user/:login`, description: "User-Detailstatistik fuer Text/Sound/Punkte, optional eventUid" },
       { method: "POST", path: `${prefix}/text-runtime/test-chat`, description: "Testet eine Chatnachricht gegen das aktive Text-Event" },
       { method: "POST", path: `${prefix}/text-runtime/create-test-event`, description: "Legt mit confirm=1 ein sicheres Text-Runtime-Testevent an" },
+      { method: "POST", path: `${prefix}/sound-runtime/next-round`, description: "Bereitet die naechste Sound-Runde vor, ohne direkt abzuspielen" },
+      { method: "POST", path: `${prefix}/sound-runtime/resolve`, description: "Wertet die aktive Sound-Runde als geloest, wenn die Antwort passt" },
+      { method: "POST", path: `${prefix}/sound-runtime/unresolved`, description: "Markiert die aktive Sound-Runde als nicht geloest" },
       { method: "GET", path: `${prefix}/routes`, description: "Route-Selbstdokumentation" },
       { method: "GET", path: `${prefix}/config`, description: "Globale Event-System Config lesen" },
       { method: "POST", path: `${prefix}/config`, description: "Globale Event-System Config speichern" },
@@ -2267,7 +2615,7 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "POST", path: `${prefix}/events/:eventUid/points`, description: "Manuelle/Modul-Punkte buchen (nur aktives Event)" }
     ],
     notes: [
-      "EVS-10b verarbeitet Text-Chatnachrichten aus twitch.chat.message fuer aktive Text-Events und bietet sichere Testhelfer; kein Sound-/Video-Playback und kein direkter Chat-Send.",
+      "EVS-14 bereitet Sound-Runden und Sound-System-Payloads vor; kein direktes Sound-/Video-Playback und kein direkter Chat-Send.",
       "Sound/Text-Konfiguration wird als DB-Snapshot am Event gespeichert.",
       "Nur ein aktives Event gleichzeitig."
     ]
@@ -2382,6 +2730,49 @@ module.exports.init = function init(ctx) {
       sendJson(res, getTextRuntimeReport(req.query.eventUid || req.query.event_uid || ""));
     } catch (err) {
       handleError(res, err);
+    }
+  });
+
+  reg("get", `${prefix}/sound-runtime/status`, (req, res) => {
+    try {
+      sendJson(res, getSoundRuntimeStatus(req.query.eventUid || req.query.event_uid || ""));
+    } catch (err) {
+      handleError(res, err);
+    }
+  });
+
+  reg("get", `${prefix}/sound-runtime/report`, (req, res) => {
+    try {
+      sendJson(res, getSoundRuntimeReport(req.query.eventUid || req.query.event_uid || ""));
+    } catch (err) {
+      handleError(res, err);
+    }
+  });
+
+  reg("post", `${prefix}/sound-runtime/next-round`, (req, res) => {
+    try {
+      const result = createSoundRound({ ...(req.body || {}), eventUid: (req.body && (req.body.eventUid || req.body.event_uid)) || req.query.eventUid || req.query.event_uid || "", allowReuse: boolValue((req.body && req.body.allowReuse) ?? req.query.allowReuse) });
+      sendJson(res, result, result.ok ? 200 : 400);
+    } catch (err) {
+      handleError(res, err, 400);
+    }
+  });
+
+  reg("post", `${prefix}/sound-runtime/resolve`, (req, res) => {
+    try {
+      const result = resolveSoundRound({ ...(req.body || {}), eventUid: (req.body && (req.body.eventUid || req.body.event_uid)) || req.query.eventUid || req.query.event_uid || "" });
+      sendJson(res, result, result.ok ? 200 : 400);
+    } catch (err) {
+      handleError(res, err, 400);
+    }
+  });
+
+  reg("post", `${prefix}/sound-runtime/unresolved`, (req, res) => {
+    try {
+      const result = markSoundRoundUnresolved({ ...(req.body || {}), eventUid: (req.body && (req.body.eventUid || req.body.event_uid)) || req.query.eventUid || req.query.event_uid || "" });
+      sendJson(res, result, result.ok ? 200 : 400);
+    } catch (err) {
+      handleError(res, err, 400);
     }
   });
 
@@ -2590,5 +2981,10 @@ module.exports._internal = {
   buildStatus,
   buildBusStatus,
   processTextChatMessage,
-  getTextRuntimeStatus
+  getTextRuntimeStatus,
+  getSoundRuntimeStatus,
+  getSoundRuntimeReport,
+  createSoundRound,
+  resolveSoundRound,
+  markSoundRoundUnresolved
 };
