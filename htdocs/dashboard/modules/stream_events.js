@@ -123,7 +123,7 @@ window.StreamEventsModule = (function(){
       <div class="evs-page">
         <div class="evs-header glass">
           <div>
-            <div class="evs-kicker">EVS-4 · Media-System Vorbereitung</div>
+            <div class="evs-kicker">EVS-5b · Text-Spiel Regeln</div>
             <h2>Event-System</h2>
             <p>Events vorbereiten, Sound/Text auswählen und Medien sauber über das vorhandene Media-System verknüpfen. Gameplay, Chat-Auswertung und Playback kommen später.</p>
           </div>
@@ -303,43 +303,40 @@ window.StreamEventsModule = (function(){
 
             <details class="evs-config-box" ${event.textEnabled ? 'open' : ''}>
               <summary>Text-Spiel konfigurieren</summary>
-              <div class="evs-text-game-grid">
-                <section class="evs-text-card evs-text-card-required">
-                  <div class="evs-sound-card-head">
-                    <div>
-                      <strong>Geheimsatz</strong>
-                      <small>Pflicht · diesen Satz sollen die Zuschauer lösen</small>
-                    </div>
-                    <span class="evs-badge evs-badge-warn">Pflicht</span>
-                  </div>
-                  <label>Geheimsatz<textarea id="evsPhraseText" rows="3" placeholder="z. B. Forrest und Engel machen Party...">${esc(phrase.phrase || phrase.text || phrase.solution || '')}</textarea></label>
-                </section>
+              <div class="evs-text-simple">
+                <div class="evs-text-rule-note">
+                  <strong>Regel:</strong> Der erste komplette Löser bekommt die Punkte. Danach ist dieser Satz im aktuellen Event erledigt und kommt aus der Rotation.
+                </div>
 
-                <section class="evs-text-card evs-text-card-optional">
-                  <div class="evs-sound-card-head">
+                <div class="evs-form-row-head">
+                  <div>
+                    <strong>Geheimsatz / Lösungssatz</strong>
+                    <small>Pflicht · aus diesem Satz werden die Teiltreffer-Wörter automatisch erkannt</small>
+                  </div>
+                  <span class="evs-badge evs-badge-warn">Pflicht</span>
+                </div>
+                <label>Geheimsatz<textarea id="evsPhraseText" rows="3" placeholder="z. B. Forrest und Engel machen Party...">${esc(phrase.phrase || phrase.text || phrase.solution || '')}</textarea></label>
+
+                <div class="evs-two-cols evs-text-answers-points">
+                  <label>Erlaubte Antworten / Varianten <span class="evs-inline-optional">Optional</span><input id="evsPhraseAnswers" value="${esc((phrase.acceptedAnswers || []).join(', '))}" placeholder="optional, z. B. forrest engel party, forrest und engel machen party"></label>
+                  <label>Punkte für den ersten richtigen Löser<input id="evsPhrasePoints" type="number" min="0" value="${esc(phrase.pointsFirst || phrase.points || 40)}"></label>
+                </div>
+
+                <div class="evs-partial-hints-box">
+                  <div class="evs-form-row-head">
                     <div>
-                      <strong>Antworten & Hinweise</strong>
-                      <small>Optional · Varianten und Hinweiswörter für später</small>
+                      <strong>Teiltreffer-Hinweise</strong>
+                      <small>Optional · User bekommen Hinweise, wenn sie neue Wörter aus dem Geheimsatz treffen</small>
                     </div>
                     <span class="evs-badge evs-badge-muted">Optional</span>
                   </div>
-                  <label>Erlaubte Antworten, mit Komma getrennt<input id="evsPhraseAnswers" value="${esc((phrase.acceptedAnswers || []).join(', '))}" placeholder="optional, z. B. forrest engel party, forrest und engel machen party"></label>
-                  <label>Hinweiswörter / Suchwörter<input id="evsPhraseHints" value="${esc(((phrase.hintWords || phrase.keywords || text.hintWords || [])).join(', '))}" placeholder="optional, z. B. community, party, forrest, engel"></label>
-                  <small class="evs-help">Antwortvarianten helfen später bei der Chat-Auswertung. Hinweiswörter sind vorbereitet, lösen aber in diesem Step noch keine Punkte aus.</small>
-                </section>
-
-                <section class="evs-text-card evs-text-card-points">
-                  <div class="evs-sound-card-head">
-                    <div>
-                      <strong>Punkte & Zeitfenster</strong>
-                      <small>Regeln für Gewinner und weitere richtige Antworten</small>
-                    </div>
-                  </div>
+                  <label class="evs-check evs-check-compact"><input id="evsPhrasePartialHintsEnabled" type="checkbox" ${text.hintTokensEnabled === false || text.partialHintsEnabled === false ? '' : 'checked'}> Teiltreffer im Chat melden</label>
                   <div class="evs-two-cols">
-                    <label>Punkte erster Löser<input id="evsPhrasePoints" type="number" min="0" value="${esc(phrase.pointsFirst || phrase.points || 40)}"></label>
-                    <label>Zeitfenster für weitere Löser<input id="evsPhraseFollowupSeconds" type="number" min="0" value="${esc(text.followupSeconds || 60)}"></label>
+                    <label>Hinweis-Regel<select id="evsPhrasePartialHintMode"><option value="new_words_per_user" ${text.partialHintMode !== 'improved_count' ? 'selected' : ''}>Neue Wörter pro User nur einmal melden</option><option value="improved_count" ${text.partialHintMode === 'improved_count' ? 'selected' : ''}>Nur melden, wenn sich die Trefferzahl verbessert</option></select></label>
+                    <label>Zusätzlicher Cooldown in Sekunden<input id="evsPhrasePartialHintCooldown" type="number" min="0" value="${esc(text.partialHintCooldownSeconds ?? text.hintCooldownSeconds ?? 0)}"></label>
                   </div>
-                </section>
+                  <small class="evs-help">Teiltreffer geben keine Punkte. Pro Event, Satz und User wird gemerkt, welche Wörter bereits erkannt wurden.</small>
+                </div>
               </div>
             </details>
 
@@ -376,11 +373,17 @@ window.StreamEventsModule = (function(){
 
     const phraseText = document.getElementById('evsPhraseText')?.value || '';
     const phraseAnswers = splitCsv(document.getElementById('evsPhraseAnswers')?.value || '');
-    const phraseHints = splitCsv(document.getElementById('evsPhraseHints')?.value || '');
+    const partialHintsEnabled = document.getElementById('evsPhrasePartialHintsEnabled')?.checked !== false;
     payload.textConfig = {
-      followupSeconds: Number(document.getElementById('evsPhraseFollowupSeconds')?.value || 60),
-      hintWords: phraseHints,
-      phrases: phraseText ? [{ phrase: phraseText, acceptedAnswers: phraseAnswers, hintWords: phraseHints, pointsFirst: Number(document.getElementById('evsPhrasePoints')?.value || 40) }] : []
+      allowFollowupSolves: false,
+      winnerMode: 'first_complete_solver',
+      solvedPolicy: 'remove_from_rotation',
+      hintTokensEnabled: partialHintsEnabled,
+      partialHintsEnabled,
+      partialHintMode: document.getElementById('evsPhrasePartialHintMode')?.value || 'new_words_per_user',
+      uniqueWordsPerUser: true,
+      partialHintCooldownSeconds: Number(document.getElementById('evsPhrasePartialHintCooldown')?.value || 0),
+      phrases: phraseText ? [{ phrase: phraseText, acceptedAnswers: phraseAnswers, pointsFirst: Number(document.getElementById('evsPhrasePoints')?.value || 40), solvedPolicy: 'remove_from_rotation' }] : []
     };
 
     return payload;

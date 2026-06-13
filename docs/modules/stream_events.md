@@ -1,6 +1,6 @@
 # Modul-Doku: stream_events
 
-Stand: EVS-5 / Text Game Config Layout Cleanup  
+Stand: EVS-5b / Text Game Rule Rebalance  
 Datum: 2026-06-13
 
 ## Zweck
@@ -33,20 +33,13 @@ GET  /api/stream-events/events/:eventUid/ranking
 POST /api/stream-events/events/:eventUid/points
 ```
 
-## Dashboard-Stand EVS-3 bis EVS-5
+## Dashboard-Stand EVS-3 bis EVS-5b
 
 Dashboard-Dateien:
 
 ```text
 htdocs/dashboard/modules/stream_events.js
 htdocs/dashboard/modules/stream_events.css
-```
-
-Integration aus EVS-3:
-
-```text
-htdocs/dashboard/index.html
-htdocs/dashboard/app.js
 ```
 
 EVS-3 brachte:
@@ -74,14 +67,45 @@ EVS-4b brachte:
 - Desktop nebeneinander, kleinere Auflösung untereinander
 - kompaktere MediaField-Buttons
 
-EVS-5 bringt:
+EVS-5 wurde als Zwischenstand getestet, wirkte aber zu kastenlastig. EVS-5b korrigiert die Text-Spiel-Regel und das Layout.
 
-- Text-Spiel-Konfiguration im Modal klarer aufgeteilt
-- Geheimsatz als Pflicht-Karte
-- Antworten & Hinweise als optionale Karte
-- Hinweiswörter/Suchwörter-Feld vorbereitet
-- Punkte & Zeitfenster als eigene Karte
-- responsive Darstellung: Desktop nebeneinander, kleinere Auflösung untereinander
+## Text-Spiel-Konvention aus EVS-5b
+
+Text-Spiel V1:
+
+```text
+Geheimsatz / Lösungssatz: Pflicht
+Erlaubte Antworten / Varianten: Optional
+Punkte für den ersten richtigen Löser: Pflicht/Default
+Teiltreffer-Hinweise: Optional
+```
+
+Fachregel:
+
+```text
+- Der erste User, der den kompletten Satz oder eine erlaubte Variante richtig schreibt, bekommt die Punkte.
+- Danach ist dieser Satz im aktuellen Event erledigt und wird aus der Rotation entfernt.
+- Es gibt in V1 keine weiteren Löser und kein Zeitfenster für weitere Löser.
+- Teiltreffer geben keine Punkte.
+- Teiltreffer-Hinweise werden aus den Wörtern des Geheimsatzes berechnet, kein separates Hinweiswort-Feld in V1.
+- Pro Event, Satz und User wird später gespeichert, welche Wörter bereits erkannt wurden.
+- Ein bereits erkanntes Wort wird für denselben User und Satz nicht erneut gemeldet/gezählt.
+- Optional kann ein zusätzlicher Cooldown gesetzt werden.
+```
+
+Config-Snapshot aus EVS-5b:
+
+```text
+textConfig.winnerMode = first_complete_solver
+textConfig.solvedPolicy = remove_from_rotation
+textConfig.allowFollowupSolves = false
+textConfig.hintTokensEnabled / partialHintsEnabled
+textConfig.partialHintMode = new_words_per_user | improved_count
+textConfig.uniqueWordsPerUser = true
+textConfig.partialHintCooldownSeconds
+```
+
+Die konkrete Chat-Auswertung wird erst später gebaut.
 
 ## Media-System-Konvention
 
@@ -102,28 +126,14 @@ Auflösungs-Video: video, animation
 
 Das Event speichert im Config-Snapshot nur die Media-ID/Referenz.
 
-## Text-Spiel-Konvention aus EVS-5
-
-V1 speichert weiterhin nur einen Text-/Geheimsatz im Event-Snapshot, bereitet aber folgende Struktur vor:
-
-```text
-Geheimsatz: Pflicht
-Erlaubte Antworten: Optional
-Hinweiswörter/Suchwörter: Optional / später für Chat-Auswertung und Teilfortschritt
-Punkte erster Löser: Pflicht/Default
-Zeitfenster für weitere Löser: Default
-```
-
-Hinweiswörter werden in EVS-5 nur gespeichert/vorbereitet. Es gibt noch keine Chat-Auswertung und keine Punktevergabe darüber.
-
 ## Noch nicht umgesetzt
 
 ```text
-Mehrere Sound-Schnipsel pro Event sauber verwalten
-Mehrere Text-Phrasen pro Event sauber verwalten
 Chat-Auswertung
-Sound-/Video-Playback
+Sound-Rundensteuerung
+Text-Rundensteuerung
+Mehrere Schnipsel/Sätze je Event
 Overlay
-Statistikdetails
-Live-Rundensteuerung
+Playback-Anbindung
+Statistik-Auswertung
 ```

@@ -76,3 +76,17 @@
 .stream-events-admin .evs-text-card-points{grid-column:1/-1;border-color:rgba(168,85,247,.20);background:rgba(255,255,255,.028)}
 .stream-events-admin .evs-text-card textarea{min-height:88px;resize:vertical}
 @media(max-width:980px){.stream-events-admin .evs-text-game-grid{grid-template-columns:1fr}.stream-events-admin .evs-text-card-points{grid-column:auto}}
+
+/* EVS-5b: Text-Spiel Regeln vereinfachen und Teiltreffer sauber vorbereiten */
+.stream-events-admin .evs-text-simple{display:grid;gap:12px;margin-top:10px}
+.stream-events-admin .evs-text-rule-note{border:1px solid rgba(34,211,238,.20);background:rgba(34,211,238,.065);border-radius:14px;padding:10px 12px;color:#c7f9ff;font-size:13px;line-height:1.35}
+.stream-events-admin .evs-form-row-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.stream-events-admin .evs-form-row-head strong{display:block;color:#f8fafc;font-size:15px}
+.stream-events-admin .evs-form-row-head small{display:block;color:var(--evs-muted);font-size:12px;line-height:1.35;margin-top:2px}
+.stream-events-admin .evs-inline-optional{display:inline-flex;margin-left:6px;border:1px solid rgba(148,163,184,.25);border-radius:999px;padding:2px 7px;font-size:11px;color:#cbd5e1;background:rgba(148,163,184,.10)}
+.stream-events-admin .evs-text-answers-points{align-items:end}
+.stream-events-admin .evs-partial-hints-box{border:1px solid rgba(148,163,184,.18);background:rgba(255,255,255,.026);border-radius:14px;padding:12px;display:grid;gap:10px}
+.stream-events-admin .evs-check-compact{display:flex;align-items:center;gap:8px;justify-content:flex-start;width:max-content;max-width:100%;padding:8px 10px}
+.stream-events-admin .evs-check-compact input{width:auto;margin:0}
+.stream-events-admin .evs-text-simple textarea{min-height:86px;resize:vertical}
+@media(max-width:760px){.stream-events-admin .evs-form-row-head{display:grid}.stream-events-admin .evs-check-compact{width:100%}}

@@ -1,6 +1,6 @@
 # FILES
 
-Stand: EVS-5 / Stream Events Text Game Config Layout Cleanup  
+Stand: EVS-5b / Stream Events Text Game Rule Rebalance  
 Datum: 2026-06-13
 
 ## In diesem ZIP enthalten
@@ -9,7 +9,7 @@ Datum: 2026-06-13
 htdocs/dashboard/modules/stream_events.js
 htdocs/dashboard/modules/stream_events.css
 docs/modules/stream_events.md
-docs/current/CURRENT_CHAT_HANDOFF_EVS_5_TEXT_GAME_CONFIG_LAYOUT_CLEANUP.md
+docs/current/CURRENT_CHAT_HANDOFF_EVS_5B_TEXT_GAME_RULE_REBALANCE.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -23,7 +23,7 @@ project-state/FILES.md
 htdocs/dashboard/modules/stream_events.js
 htdocs/dashboard/modules/stream_events.css
 docs/modules/stream_events.md
-docs/current/CURRENT_CHAT_HANDOFF_EVS_5_TEXT_GAME_CONFIG_LAYOUT_CLEANUP.md
+docs/current/CURRENT_CHAT_HANDOFF_EVS_5B_TEXT_GAME_RULE_REBALANCE.md
 project-state/*
 ```
 

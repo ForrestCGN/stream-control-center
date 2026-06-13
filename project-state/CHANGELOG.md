@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## EVS-5b / Stream Events Text Game Rule Rebalance – 2026-06-13
+
+- Text-Spiel-Regel für V1 festgelegt: erster kompletter Löser gewinnt.
+- Weitere Löser und Zeitfenster für weitere Löser aus der UI entfernt.
+- Hinweiswörter/Suchwörter-Feld aus der UI entfernt.
+- Teiltreffer-Hinweise als optionale Einstellung vorbereitet.
+- Teiltreffer-Regel vorbereitet: pro Event/Satz/User/Wort nur einmal melden/zählen.
+- Text-Spiel-Layout wieder ruhiger/kompakter gemacht.
+- Keine Backendänderung.
+- Keine Datenbankänderung.
+- Keine Chat-/Playback-/Overlay-Änderung.
+
 ## EVS-5 / Stream Events Text Game Config Layout Cleanup – 2026-06-13
 
 - Text-Spiel-Konfiguration im Dashboard-Modal in Karten aufgeteilt.
