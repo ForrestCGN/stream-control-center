@@ -29,3 +29,10 @@ Nicht geändert:
 - Neuer Endpunkt `GET /api/stream-events/bus-status`.
 - Bus-Events von `stream_events` sind standardmaessig replayable mit laengerem TTL-Fenster fuer Monitoring.
 - Keine Gameplay-/Chat-/Overlay-Runtime hinzugefuegt.
+
+## EVS-10
+
+- Text-Chat-Runtime vorbereitet
+- Bus-Subscription auf twitch.chat.message eingebaut
+- Worttreffer- und Satzloesungs-Tabellen hinzugefuegt
+- Text-Runtime-Status und Test-Chat Route hinzugefuegt

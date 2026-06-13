@@ -46,3 +46,9 @@
 - [ ] Text-Worttreffer-Events final festlegen.
 - [ ] Punkte-/Ranking-Events mit Statistik verbinden.
 - [ ] Keine parallele Bus-Struktur bauen; weiterhin `communication_bus` nutzen.
+
+- [ ] EVS-10 mit aktivem Testevent testen
+- [ ] Chat-Ausgabe fuer Teiltreffer/Loesungen sauber ueber vorhandene Twitch-/Message-Struktur planen
+- [ ] Text-Runtime-Statistik im Dashboard anzeigen
+- [ ] Sound-Runtime/Rotation vorbereiten
+- [ ] Overlay-Runtime vorbereiten

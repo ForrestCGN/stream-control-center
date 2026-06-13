@@ -24,3 +24,10 @@
 - `project-state/TODO.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
+
+## EVS-10 Dateien
+
+- backend/modules/stream_events.js
+- docs/modules/stream_events.md
+- docs/current/CURRENT_CHAT_HANDOFF_EVS_10_TEXT_CHAT_RUNTIME_PREP.md
+- project-state/*

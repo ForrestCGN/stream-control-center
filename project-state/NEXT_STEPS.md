@@ -36,3 +36,5 @@ Erst danach Dashboard testen.
 3. Sound-Rotation und Text-Rotation getrennt vorbereiten.
 4. Worttreffer-/Wortpunkte-Logik mit Spam-Schutz umsetzen.
 5. Statistik- und Overlay-Steps spaeter anbinden.
+
+Naechste Schritte nach EVS-10: Test mit aktivem Text-Testevent, danach direkte Chat-Ausgabe/Message-Routing planen, Dashboard-Statistik fuer Texttreffer bauen oder Sound-Runtime vorbereiten.

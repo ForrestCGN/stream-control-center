@@ -694,3 +694,45 @@ Der neue Bus-Status zeigt fuer `stream_events`:
 - keine automatische Punktevergabe ueber Chat
 - kein Sound-/Video-Playback
 - kein Overlay
+
+
+---
+
+## EVS-10 – Text Chat Runtime Prep
+
+EVS-10 erweitert das Event-System um die erste Runtime-Vorbereitung fuer das Text-Spiel.
+
+### Neu
+
+- `stream_events` abonniert den vorhandenen Communication-Bus auf `twitch.chat.message`.
+- Es wird **kein eigener Bus** gebaut.
+- Aktive Text-Events koennen Chatnachrichten auswerten.
+- Mehrere geheime Saetze pro Event werden beruecksichtigt.
+- Ein Satz gilt als geloest, wenn der komplette Satz oder eine erlaubte Antwortvariante exakt erkannt wird.
+- Pro Satz gibt es weiterhin nur den ersten kompletten Loeser.
+- Geloeste Saetze werden ueber die neue Solve-Tabelle als erledigt markiert und danach nicht erneut gewertet.
+- Einzelne Worttreffer werden pro Event/Satz/User/Wort nur einmal gespeichert.
+- Optionale Wortpunkte werden ueber das bestehende Punkte-/Ranking-System gebucht.
+- Teiltreffer- und Loesungs-Meldungen werden als Bus-Payload vorbereitet, aber noch nicht direkt in den Twitch-Chat gesendet.
+
+### Neue DB-Tabellen
+
+- `stream_events_text_word_hits`
+- `stream_events_text_phrase_solves`
+
+### Neue Routen
+
+- `GET /api/stream-events/text-runtime/status`
+- `POST /api/stream-events/text-runtime/test-chat`
+
+### Weiterhin nicht enthalten
+
+- Sound-Rotation
+- Sound-/Video-Playback
+- Overlay-Ausgabe
+- direkte Chat-Ausgabe
+- Dashboard-Statistikansicht
+
+### Test-Hinweis
+
+Der Test-Endpunkt verarbeitet eine simulierte Chatnachricht gegen das aktuell aktive Text-Event. Wenn Wortpunkte oder Loesungspunkte aktiv sind, kann dieser Test echte Punkte im aktiven Event buchen.

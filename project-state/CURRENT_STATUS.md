@@ -43,3 +43,5 @@ Keine produktive Runtime für Chat, Worterkennung, Sound-Playback oder Overlay.
 Aktueller Stand: `stream_events` hat nun einen eigenen sichtbaren EventBus-/Heartbeat-Step. Das Modul nutzt den vorhandenen `communication_bus`, registriert sich dort als Backend-Modul, sendet Heartbeats und publisht Modulstatus. Zusaetzlich gibt es `GET /api/stream-events/bus-status` fuer Diagnose/Monitoring.
 
 Nicht enthalten: Chat-Runtime, Sound-Playback, Worterkennung, automatische Punktevergabe, Overlay.
+
+EVS-10 Text Chat Runtime Prep ist vorbereitet. Text-Spiel kann aktive Events ueber twitch.chat.message aus dem bestehenden Communication-Bus auswerten; Worttreffer und Satzloesungen werden gespeichert und Punkte optional gebucht. Kein Sound-Playback, Overlay oder direkter Chat-Send in diesem Step.

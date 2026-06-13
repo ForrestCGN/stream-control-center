@@ -3,11 +3,12 @@
 /**
  * Stream Events backend foundation.
  *
- * STEP EVS-9:
- * - Keeps the EVS-8 config/dashboard foundation.
- * - Makes the existing Communication-Bus registration, heartbeat and module-status integration explicit.
- * - Adds a Stream-Events bus-status diagnostic endpoint.
- * - Still keeps gameplay runtime, Twitch chat handling, sound/media playback and overlay out of this step.
+ * STEP EVS-10:
+ * - Keeps the EVS-9 EventBus/Heartbeat integration.
+ * - Adds first Text-Spiel chat runtime preparation via existing Communication-Bus subscription.
+ * - Detects complete phrase solves and per-user/per-phrase word hits for active events.
+ * - Books configured text points through the existing score ledger.
+ * - Still keeps sound/media playback and overlay out of this step.
  */
 
 const crypto = require("crypto");
@@ -17,8 +18,8 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.3.2";
-const MODULE_BUILD = "STEP_EVS_9_EVENTBUS_HEARTBEAT_INTEGRATION";
+const MODULE_VERSION = "0.4.0";
+const MODULE_BUILD = "STEP_EVS_10_TEXT_CHAT_RUNTIME_PREP";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -133,7 +134,7 @@ const MODULE_META = {
   build: MODULE_BUILD,
   type: "runtime",
   category: "events",
-  description: "Zentrales Event-System Backend: Entwürfe, Validierung, Punkte, Ranking, Bus-Status, Text-Multi-Satz-Config, Textvarianten, globale Config und Communication-Bus Heartbeat.",
+  description: "Zentrales Event-System Backend: Entwürfe, Validierung, Punkte, Ranking, Bus-Status, Text-Multi-Satz-Config, Textvarianten, globale Config, Communication-Bus Heartbeat und erste Text-Chat-Runtime.",
   routesPrefix: ["/api/stream-events"],
   bus: {
     registered: true,
@@ -146,9 +147,13 @@ const MODULE_META = {
       "stream_events.event.finished",
       "stream_events.event.cancelled",
       "stream_events.points.added",
-      "stream_events.ranking.updated"
+      "stream_events.ranking.updated",
+      "stream_events.text.word_found",
+      "stream_events.text.phrase_solved"
     ],
-    consumes: []
+    consumes: [
+      "twitch.chat.message"
+    ]
   },
   legacy: false
 };
@@ -177,6 +182,11 @@ let runtimeState = {
     eventsFinished: 0,
     eventsCancelled: 0,
     pointsAdded: 0,
+    twitchChatMessages: 0,
+    textMessagesProcessed: 0,
+    textWordHits: 0,
+    textPhraseSolves: 0,
+    textRuntimeSkipped: 0,
     busEmitted: 0,
     busErrors: 0
   }
@@ -372,6 +382,38 @@ function intValue(value, fallback = 0) {
 function cleanString(value, fallback = "") {
   const clean = String(value ?? "").trim();
   return clean || fallback;
+}
+
+function normalizeTextValue(value) {
+  return String(value ?? "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ß/g, "ss")
+    .replace(/[^a-z0-9äöüÄÖÜ]+/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function tokenizeText(value, options = {}) {
+  const minLength = Math.max(1, intValue(options.minLength, 3));
+  const stopWords = new Set(Array.isArray(options.stopWords) ? options.stopWords.map(normalizeTextValue).filter(Boolean) : []);
+  const normalized = normalizeTextValue(value);
+  if (!normalized) return [];
+  const seen = new Set();
+  const tokens = [];
+  for (const raw of normalized.split(" ")) {
+    const token = normalizeTextValue(raw);
+    if (!token || token.length < minLength || stopWords.has(token) || seen.has(token)) continue;
+    seen.add(token);
+    tokens.push(token);
+  }
+  return tokens;
+}
+
+function normalizeAcceptedAnswers(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map(item => normalizeTextValue(item)).filter(Boolean);
 }
 
 function normalizeStatus(value, fallback = STATUS.DRAFT) {
@@ -590,6 +632,52 @@ function ensureSchema() {
         db.exec(`CREATE INDEX IF NOT EXISTS idx_stream_events_rounds_type ON stream_events_rounds(event_uid, game_type);`);
       }
     });
+
+    database.exec(`
+      CREATE TABLE IF NOT EXISTS stream_events_text_word_hits (
+        id ${database.primaryKeyAutoIncrementSql()},
+        hit_uid TEXT NOT NULL UNIQUE,
+        event_uid TEXT NOT NULL,
+        phrase_uid TEXT NOT NULL DEFAULT '',
+        phrase_index ${database.integerTypeSql()} NOT NULL DEFAULT 0,
+        phrase_number ${database.integerTypeSql()} NOT NULL DEFAULT 0,
+        word_key TEXT NOT NULL,
+        word_original TEXT NOT NULL DEFAULT '',
+        user_login TEXT NOT NULL,
+        user_display_name TEXT NOT NULL DEFAULT '',
+        points_awarded ${database.integerTypeSql()} NOT NULL DEFAULT 0,
+        chat_message_id TEXT NOT NULL DEFAULT '',
+        chat_message TEXT NOT NULL DEFAULT '',
+        created_at ${database.dateTimeTypeSql()} NOT NULL,
+        metadata_json ${database.jsonTypeSql()} NOT NULL,
+        UNIQUE(event_uid, phrase_uid, user_login, word_key)
+      );
+    `);
+    database.exec(`CREATE INDEX IF NOT EXISTS idx_stream_events_text_hits_event ON stream_events_text_word_hits(event_uid);`);
+    database.exec(`CREATE INDEX IF NOT EXISTS idx_stream_events_text_hits_user ON stream_events_text_word_hits(event_uid, user_login);`);
+    database.exec(`CREATE INDEX IF NOT EXISTS idx_stream_events_text_hits_phrase ON stream_events_text_word_hits(event_uid, phrase_uid);`);
+
+    database.exec(`
+      CREATE TABLE IF NOT EXISTS stream_events_text_phrase_solves (
+        id ${database.primaryKeyAutoIncrementSql()},
+        solve_uid TEXT NOT NULL UNIQUE,
+        event_uid TEXT NOT NULL,
+        phrase_uid TEXT NOT NULL DEFAULT '',
+        phrase_index ${database.integerTypeSql()} NOT NULL DEFAULT 0,
+        phrase_number ${database.integerTypeSql()} NOT NULL DEFAULT 0,
+        user_login TEXT NOT NULL,
+        user_display_name TEXT NOT NULL DEFAULT '',
+        points_awarded ${database.integerTypeSql()} NOT NULL DEFAULT 0,
+        chat_message_id TEXT NOT NULL DEFAULT '',
+        chat_message TEXT NOT NULL DEFAULT '',
+        created_at ${database.dateTimeTypeSql()} NOT NULL,
+        metadata_json ${database.jsonTypeSql()} NOT NULL,
+        UNIQUE(event_uid, phrase_uid)
+      );
+    `);
+    database.exec(`CREATE INDEX IF NOT EXISTS idx_stream_events_text_solves_event ON stream_events_text_phrase_solves(event_uid);`);
+    database.exec(`CREATE INDEX IF NOT EXISTS idx_stream_events_text_solves_user ON stream_events_text_phrase_solves(event_uid, user_login);`);
+
     ensureConfigTable();
     runtimeState.schemaReady = true;
     runtimeState.schemaError = "";
@@ -1043,6 +1131,315 @@ function addPoints(eventUid, body = {}) {
   return { ok: true, entryUid, eventUid, userLogin, points, ranking: ranking.rows };
 }
 
+function getTextRuntimeConfig(event = null) {
+  const globalConfig = getEventConfig().config || DEFAULT_EVENT_CONFIG;
+  const textDefaults = globalConfig.textDefaults || DEFAULT_EVENT_CONFIG.textDefaults;
+  const eventConfig = event && event.textConfig && typeof event.textConfig === "object" ? event.textConfig : {};
+  return {
+    partialHintsEnabled: eventConfig.partialHintsEnabled !== undefined ? boolValue(eventConfig.partialHintsEnabled) : boolValue(textDefaults.partialHintsEnabled),
+    partialHintVisibility: cleanString(eventConfig.partialHintVisibility || eventConfig.partialHintDisplayMode || textDefaults.partialHintVisibility, "general"),
+    showPartialWordCount: eventConfig.showPartialWordCount !== undefined ? boolValue(eventConfig.showPartialWordCount) : boolValue(textDefaults.showPartialWordCount),
+    wordPointsEnabled: eventConfig.wordPointsEnabled !== undefined ? boolValue(eventConfig.wordPointsEnabled) : boolValue(textDefaults.wordPointsEnabled),
+    pointsPerNewWord: clampNumber(eventConfig.pointsPerNewWord ?? eventConfig.wordPointsPerNewWord ?? textDefaults.pointsPerNewWord, 0, 1000, 1),
+    maxWordPointsPerUserPhrase: clampNumber(eventConfig.maxWordPointsPerUserPhrase ?? eventConfig.maxWordPointsPerUserAndPhrase ?? textDefaults.maxWordPointsPerUserPhrase, 0, 10000, 5),
+    partialHintCooldownSeconds: clampNumber(eventConfig.partialHintCooldownSeconds ?? eventConfig.hintCooldownSeconds ?? textDefaults.partialHintCooldownSeconds, 0, 3600, 0),
+    uniqueWordPerUserPhrase: eventConfig.uniqueWordPerUserPhrase !== undefined ? boolValue(eventConfig.uniqueWordPerUserPhrase) : boolValue(textDefaults.uniqueWordPerUserPhrase),
+    tokenMinLength: clampNumber(eventConfig.tokenMinLength ?? textDefaults.tokenMinLength, 1, 20, 3)
+  };
+}
+
+function getPhraseUid(phrase = {}, index = 0) {
+  return cleanString(phrase.uid || phrase.phraseUid || phrase.id || phrase.key, `phrase_${index + 1}`);
+}
+
+function getPhraseText(phrase = {}) {
+  return cleanString(phrase.phrase || phrase.text || phrase.solution || phrase.name);
+}
+
+function phraseIsSolved(eventUid, phraseUid) {
+  const row = database.get(`
+    SELECT solve_uid FROM stream_events_text_phrase_solves
+    WHERE event_uid = :eventUid AND phrase_uid = :phraseUid
+    LIMIT 1
+  `, { eventUid, phraseUid });
+  return !!row;
+}
+
+function getExistingWordHits(eventUid, phraseUid, userLogin) {
+  const rows = database.all(`
+    SELECT word_key FROM stream_events_text_word_hits
+    WHERE event_uid = :eventUid AND phrase_uid = :phraseUid AND user_login = :userLogin
+  `, { eventUid, phraseUid, userLogin });
+  return new Set(rows.map(row => row.word_key).filter(Boolean));
+}
+
+function getWordPointSum(eventUid, phraseUid, userLogin) {
+  const row = database.get(`
+    SELECT COALESCE(SUM(points_awarded), 0) AS total
+    FROM stream_events_text_word_hits
+    WHERE event_uid = :eventUid AND phrase_uid = :phraseUid AND user_login = :userLogin
+  `, { eventUid, phraseUid, userLogin }) || {};
+  return Number(row.total || 0);
+}
+
+function renderEventText(key, context = {}) {
+  try {
+    return textHelper.renderModuleText(TEXT_MODULE, key, EVENT_TEXT_DEFAULTS, context, {
+      categories: EVENT_TEXT_CATEGORIES,
+      categoryLabels: EVENT_TEXT_CATEGORY_LABELS
+    });
+  } catch (_) {
+    return "";
+  }
+}
+
+function extractChatPayload(envelope = {}) {
+  const payload = envelope && envelope.payload && typeof envelope.payload === "object" ? envelope.payload : {};
+  const twitch = payload.twitch && typeof payload.twitch === "object" ? payload.twitch : payload;
+  const user = twitch.user && typeof twitch.user === "object" ? twitch.user : {};
+  const message = cleanString(twitch.message || twitch.text || payload.message || payload.text);
+  const userLogin = cleanString(user.login || twitch.userLogin || twitch.login || payload.userLogin || payload.login).replace(/^@/, "").toLowerCase();
+  const userDisplayName = cleanString(user.displayName || twitch.userDisplayName || twitch.displayName || payload.userDisplayName || payload.displayName, userLogin);
+  const messageId = cleanString(twitch.messageId || twitch.message_id || payload.messageId || payload.message_id || envelope.id);
+  return { message, userLogin, userDisplayName, messageId, raw: twitch };
+}
+
+function messageSolvesPhrase(message, phrase = {}) {
+  const normalizedMessage = normalizeTextValue(message);
+  if (!normalizedMessage) return false;
+  const phraseText = getPhraseText(phrase);
+  const candidates = [normalizeTextValue(phraseText), ...normalizeAcceptedAnswers(phrase.acceptedAnswers)].filter(Boolean);
+  return candidates.some(candidate => normalizedMessage === candidate);
+}
+
+function insertPhraseSolve(event, phrase, phraseIndex, chat, points) {
+  const phraseUid = getPhraseUid(phrase, phraseIndex);
+  if (phraseIsSolved(event.eventUid, phraseUid)) return { ok: false, skipped: true, reason: "phrase_already_solved" };
+  const solveUid = newUid("evs_text_solve");
+  const now = nowIso();
+  database.insert("stream_events_text_phrase_solves", {
+    solve_uid: solveUid,
+    event_uid: event.eventUid,
+    phrase_uid: phraseUid,
+    phrase_index: phraseIndex,
+    phrase_number: phraseIndex + 1,
+    user_login: chat.userLogin,
+    user_display_name: chat.userDisplayName,
+    points_awarded: points,
+    chat_message_id: chat.messageId,
+    chat_message: chat.message.slice(0, 500),
+    created_at: now,
+    metadata_json: jsonEncode({ phrase: getPhraseText(phrase), acceptedAnswers: phrase.acceptedAnswers || [] })
+  });
+  runtimeState.counters.textPhraseSolves += 1;
+  const pointsResult = points > 0 ? addPoints(event.eventUid, {
+    userLogin: chat.userLogin,
+    userDisplayName: chat.userDisplayName,
+    points,
+    sourceType: "text_phrase_solve",
+    sourceUid: solveUid,
+    reason: `text_phrase_${phraseIndex + 1}_solved`,
+    createdBy: MODULE_NAME,
+    metadata: { phraseUid, phraseIndex, phraseNumber: phraseIndex + 1 }
+  }) : { ok: true, ranking: getRanking(event.eventUid).rows };
+  const chatText = renderEventText("text.phrase.solved", {
+    user: chat.userDisplayName,
+    displayName: chat.userDisplayName,
+    phraseNumber: phraseIndex + 1,
+    points
+  });
+  emitBus("stream_events.text", "phrase_solved", {
+    eventUid: event.eventUid,
+    phraseUid,
+    phraseIndex,
+    phraseNumber: phraseIndex + 1,
+    userLogin: chat.userLogin,
+    userDisplayName: chat.userDisplayName,
+    points,
+    message: chat.message,
+    chatText,
+    ranking: pointsResult.ranking || []
+  });
+  publishStatus("text.phrase_solved", { lastEventUid: event.eventUid, phraseNumber: phraseIndex + 1 });
+  return { ok: true, solveUid, phraseUid, phraseNumber: phraseIndex + 1, points, chatText, pointsResult };
+}
+
+function insertWordHit(event, phrase, phraseIndex, wordKey, chat, runtimeConfig) {
+  const phraseUid = getPhraseUid(phrase, phraseIndex);
+  const existing = getExistingWordHits(event.eventUid, phraseUid, chat.userLogin);
+  if (existing.has(wordKey)) return { ok: false, skipped: true, reason: "word_already_hit", wordKey };
+  let points = 0;
+  if (runtimeConfig.wordPointsEnabled && runtimeConfig.pointsPerNewWord > 0) {
+    const alreadyAwarded = getWordPointSum(event.eventUid, phraseUid, chat.userLogin);
+    const remaining = runtimeConfig.maxWordPointsPerUserPhrase > 0 ? Math.max(0, runtimeConfig.maxWordPointsPerUserPhrase - alreadyAwarded) : runtimeConfig.pointsPerNewWord;
+    points = Math.min(runtimeConfig.pointsPerNewWord, remaining);
+  }
+  const hitUid = newUid("evs_text_word");
+  const now = nowIso();
+  database.insert("stream_events_text_word_hits", {
+    hit_uid: hitUid,
+    event_uid: event.eventUid,
+    phrase_uid: phraseUid,
+    phrase_index: phraseIndex,
+    phrase_number: phraseIndex + 1,
+    word_key: wordKey,
+    word_original: wordKey,
+    user_login: chat.userLogin,
+    user_display_name: chat.userDisplayName,
+    points_awarded: points,
+    chat_message_id: chat.messageId,
+    chat_message: chat.message.slice(0, 500),
+    created_at: now,
+    metadata_json: jsonEncode({ phrase: getPhraseText(phrase) })
+  });
+  runtimeState.counters.textWordHits += 1;
+  let pointsResult = null;
+  if (points > 0) {
+    pointsResult = addPoints(event.eventUid, {
+      userLogin: chat.userLogin,
+      userDisplayName: chat.userDisplayName,
+      points,
+      sourceType: "text_word_hit",
+      sourceUid: hitUid,
+      reason: `text_phrase_${phraseIndex + 1}_word_hit`,
+      createdBy: MODULE_NAME,
+      metadata: { phraseUid, phraseIndex, phraseNumber: phraseIndex + 1, wordKey }
+    });
+  }
+  return { ok: true, hitUid, phraseUid, phraseNumber: phraseIndex + 1, wordKey, points, pointsResult };
+}
+
+function processTextChatMessage(chat = {}, options = {}) {
+  ensureSchema();
+  runtimeState.counters.twitchChatMessages += 1;
+  if (!chat.message || !chat.userLogin) {
+    runtimeState.counters.textRuntimeSkipped += 1;
+    return { ok: false, skipped: true, reason: "invalid_chat_payload" };
+  }
+  const event = getActiveEvent();
+  if (!event || !event.textEnabled) {
+    runtimeState.counters.textRuntimeSkipped += 1;
+    return { ok: true, skipped: true, reason: "no_active_text_event" };
+  }
+  const phrases = Array.isArray(event.textConfig && event.textConfig.phrases) ? event.textConfig.phrases : [];
+  if (!phrases.length) {
+    runtimeState.counters.textRuntimeSkipped += 1;
+    return { ok: true, skipped: true, reason: "active_event_without_text_phrases", eventUid: event.eventUid };
+  }
+
+  const runtimeConfig = getTextRuntimeConfig(event);
+  const messageTokens = new Set(tokenizeText(chat.message, { minLength: runtimeConfig.tokenMinLength }));
+  const solved = [];
+  const wordHits = [];
+
+  phrases.forEach((phrase, index) => {
+    const phraseText = getPhraseText(phrase);
+    if (!phraseText) return;
+    const phraseUid = getPhraseUid(phrase, index);
+    if (phraseIsSolved(event.eventUid, phraseUid)) return;
+    const solvePoints = clampNumber(phrase.pointsFirst ?? phrase.points ?? event.textConfig.defaultPhrasePoints ?? getEventConfig().config.textDefaults.defaultPhrasePoints, 0, 10000, 40);
+    if (messageSolvesPhrase(chat.message, phrase)) {
+      const result = insertPhraseSolve(event, phrase, index, chat, solvePoints);
+      if (result.ok) solved.push(result);
+      return;
+    }
+    if (!runtimeConfig.partialHintsEnabled && !runtimeConfig.wordPointsEnabled) return;
+    const phraseTokens = tokenizeText(phraseText, { minLength: runtimeConfig.tokenMinLength });
+    for (const wordKey of phraseTokens) {
+      if (!messageTokens.has(wordKey)) continue;
+      const hit = insertWordHit(event, phrase, index, wordKey, chat, runtimeConfig);
+      if (hit.ok) wordHits.push(hit);
+    }
+  });
+
+  if (wordHits.length > 0) {
+    const byPhrase = new Map();
+    for (const hit of wordHits) {
+      const item = byPhrase.get(hit.phraseUid) || { phraseUid: hit.phraseUid, phraseNumber: hit.phraseNumber, hits: [], points: 0 };
+      item.hits.push(hit.wordKey);
+      item.points += Number(hit.points || 0);
+      byPhrase.set(hit.phraseUid, item);
+    }
+    for (const item of byPhrase.values()) {
+      const totalKnown = getExistingWordHits(event.eventUid, item.phraseUid, chat.userLogin).size;
+      const textKey = runtimeConfig.partialHintVisibility === "with_sentence" ? "text.partial.with_sentence" : "text.partial.general";
+      const chatText = runtimeConfig.partialHintsEnabled ? renderEventText(textKey, {
+        user: chat.userDisplayName,
+        displayName: chat.userDisplayName,
+        wordCount: runtimeConfig.showPartialWordCount ? totalKnown : item.hits.length,
+        phraseNumber: item.phraseNumber
+      }) : "";
+      emitBus("stream_events.text", "word_found", {
+        eventUid: event.eventUid,
+        phraseUid: item.phraseUid,
+        phraseNumber: item.phraseNumber,
+        userLogin: chat.userLogin,
+        userDisplayName: chat.userDisplayName,
+        newWords: item.hits,
+        newWordCount: item.hits.length,
+        totalKnownWords: totalKnown,
+        points: item.points,
+        chatText
+      });
+    }
+    publishStatus("text.word_found", { lastEventUid: event.eventUid, wordHitCount: wordHits.length });
+  }
+
+  if (solved.length > 0 || wordHits.length > 0) markAction("text.chat.processed", event.eventUid);
+  runtimeState.counters.textMessagesProcessed += 1;
+  return { ok: true, eventUid: event.eventUid, solved, wordHits, solvedCount: solved.length, wordHitCount: wordHits.length };
+}
+
+function handleTwitchChatEnvelope(envelope = {}) {
+  const chat = extractChatPayload(envelope);
+  return processTextChatMessage(chat, { source: "bus:twitch.chat.message" });
+}
+
+function registerTextChatSubscription() {
+  const bus = getBus();
+  if (!bus || typeof bus.subscribe !== "function") return { ok: false, reason: "communication_bus_subscribe_unavailable" };
+  const result = bus.subscribe({
+    id: `${MODULE_NAME}:twitch.chat.message`,
+    module: MODULE_NAME,
+    channel: "twitch.chat",
+    action: "message",
+    sourceModule: "twitch_events",
+    meta: { step: MODULE_BUILD, purpose: "text_game_chat_runtime" }
+  }, (envelope) => handleTwitchChatEnvelope(envelope));
+  if (result && result.ok === true) {
+    publishStatus("chat.subscription.ready", { twitchChatSubscription: true });
+  }
+  return result;
+}
+
+function getTextRuntimeStatus() {
+  ensureSchema();
+  const activeEvent = getActiveEvent();
+  const hits = database.get("SELECT COUNT(*) AS count FROM stream_events_text_word_hits") || {};
+  const solves = database.get("SELECT COUNT(*) AS count FROM stream_events_text_phrase_solves") || {};
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    activeEvent: publicEventSummary(activeEvent),
+    activeTextRuntime: !!(activeEvent && activeEvent.textEnabled),
+    counters: runtimeState.counters,
+    counts: {
+      wordHits: Number(hits.count || 0),
+      phraseSolves: Number(solves.count || 0)
+    },
+    rules: {
+      oneWinnerPerPhrase: true,
+      wordHitUniquePerEventPhraseUserWord: true,
+      phraseSolvedRemovedFromRotation: true,
+      chatOutputDirectSend: false,
+      chatOutputPreparedAsBusPayload: true
+    },
+    updatedAt: nowIso()
+  };
+}
+
 function getRanking(eventUid) {
   ensureSchema();
   const uid = cleanString(eventUid);
@@ -1097,6 +1494,8 @@ function getCounts() {
     events: database.count("stream_events_events"),
     scoreEntries: database.count("stream_events_score_entries"),
     rounds: database.count("stream_events_rounds"),
+    textWordHits: database.count("stream_events_text_word_hits"),
+    textPhraseSolves: database.count("stream_events_text_phrase_solves"),
     byStatus: {}
   };
   for (const row of byStatus) counts.byStatus[row.status || "unknown"] = Number(row.count || 0);
@@ -1192,6 +1591,8 @@ function publicRoutes(prefix = "/api/stream-events") {
     routes: [
       { method: "GET", path: `${prefix}/status`, description: "Stream-Events Backendstatus" },
       { method: "GET", path: `${prefix}/bus-status`, description: "Stream-Events Communication-Bus Registrierung, Heartbeat und letzte Bus-Events" },
+      { method: "GET", path: `${prefix}/text-runtime/status`, description: "Text-Spiel Chat-Runtime Status" },
+      { method: "POST", path: `${prefix}/text-runtime/test-chat`, description: "Testet eine Chatnachricht gegen das aktive Text-Event" },
       { method: "GET", path: `${prefix}/routes`, description: "Route-Selbstdokumentation" },
       { method: "GET", path: `${prefix}/config`, description: "Globale Event-System Config lesen" },
       { method: "POST", path: `${prefix}/config`, description: "Globale Event-System Config speichern" },
@@ -1209,7 +1610,7 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "POST", path: `${prefix}/events/:eventUid/points`, description: "Manuelle/Modul-Punkte buchen (nur aktives Event)" }
     ],
     notes: [
-      "EVS-9 macht die Communication-Bus Anmeldung/Heartbeat transparent; keine Chat-Auswertung und kein Sound-/Video-Playback.",
+      "EVS-10 verarbeitet Text-Chatnachrichten aus twitch.chat.message fuer aktive Text-Events; kein Sound-/Video-Playback und kein direkter Chat-Send.",
       "Sound/Text-Konfiguration wird als DB-Snapshot am Event gespeichert.",
       "Nur ein aktives Event gleichzeitig."
     ]
@@ -1283,6 +1684,8 @@ module.exports.init = function init(ctx) {
 
   moduleBusHandle = createCommunicationBusHandle(MODULE_META, buildStatus);
   moduleBusHandle.start();
+  const textChatSubscription = registerTextChatSubscription();
+  if (textChatSubscription && textChatSubscription.ok !== true) runtimeState.lastError = textChatSubscription.reason || textChatSubscription.error || runtimeState.lastError;
 
   const prefix = "/api/stream-events";
   const registeredRoutes = [];
@@ -1306,6 +1709,29 @@ module.exports.init = function init(ctx) {
       sendJson(res, buildBusStatus());
     } catch (err) {
       handleError(res, err);
+    }
+  });
+
+  reg("get", `${prefix}/text-runtime/status`, (req, res) => {
+    try {
+      sendJson(res, getTextRuntimeStatus());
+    } catch (err) {
+      handleError(res, err);
+    }
+  });
+
+  reg("post", `${prefix}/text-runtime/test-chat`, (req, res) => {
+    try {
+      const body = req.body || {};
+      const result = processTextChatMessage({
+        message: body.message || body.text || req.query.message || req.query.text,
+        userLogin: body.userLogin || body.login || body.user || req.query.user || "testuser",
+        userDisplayName: body.userDisplayName || body.displayName || body.user || req.query.displayName || req.query.user || "TestUser",
+        messageId: body.messageId || req.query.messageId || newUid("test_chat")
+      }, { source: "api:test-chat" });
+      sendJson(res, result, result.ok ? 200 : 400);
+    } catch (err) {
+      handleError(res, err, 400);
     }
   });
 
@@ -1465,5 +1891,7 @@ module.exports._internal = {
   getEventConfig,
   saveEventConfig,
   buildStatus,
-  buildBusStatus
+  buildBusStatus,
+  processTextChatMessage,
+  getTextRuntimeStatus
 };
