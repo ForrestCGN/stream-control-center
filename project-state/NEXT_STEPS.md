@@ -1,44 +1,47 @@
 # NEXT_STEPS – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-23b
+Stand: 2026-06-13 nach EVS-24
 
-## Aktuelle Lage
+## Direkt testen
 
-EVS-23 ist im Dashboard sichtbar bestätigt:
+1. Syntaxcheck:
 
-- `Event-System → Sicherheit`
-- Bereich `Live-Schalter Konzept`
-- Status `gesperrt`
-- Hinweis `EVS-23 bleibt Testmodus`
-- keine Live-Aktion ausführbar
+```powershell
+node -c .\backend\modules\stream_events.js
+node -c .\htdocs\dashboard\modules\stream_events.js
+```
 
-## Danach mögliche Arbeitsblöcke
+2. StepDone:
 
-### Option A – EVS-24 Rollen-/Audit-/Live-Config Prep
+```powershell
+.\stepdone.cmd "EVS-24 Simple Active Event Runtime Gate"
+```
 
-Ziel:
+3. API:
 
-- echten Config-Endpoint für spätere Live-Schalter vorbereiten,
-- Rollen-/Rechteprüfung vorbereiten,
-- Audit-Log vorbereiten,
-- Status weiterhin nur vorbereitet/gesperrt,
-- noch kein echtes Senden aktivieren.
+```powershell
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/status"
+$s.runtimeGate | ConvertTo-Json -Depth 6
+```
 
-Empfohlen, bevor irgendwann wirklich Live gesendet wird.
+4. Dashboard:
 
-### Option B – EVS-24 ChatOutput Dry-Run Erweiterung
+```text
+Event-System → Status
+```
 
-Ziel:
+## Nächster sinnvoller Block
 
-- einzelne ChatOutputs im Dashboard detaillierter prüfen,
-- mögliche Bündelung/Spam-Schutz anzeigen,
-- Rate-Limit- und Cooldown-Regeln planen,
-- Vorschau für spätere Live-Ausgabe verständlicher machen,
-- weiterhin kein echtes Senden.
+Nach bestätigtem EVS-24-Test:
+
+```text
+EVS-24b – Completion Documentation
+```
+
+Danach erst entscheiden, ob als Nächstes Chatmeldungen kontrolliert vorbereitet/aktiviert werden oder ob zuerst Sound-/Text-Event-Bedienung vereinfacht wird.
 
 ## Harte Grenzen
 
 - Keine Twitch-Ausgabe ohne späteren expliziten Go.
 - Kein Sound-Playback ohne späteren expliziten Go.
 - Keine Sound-System-Queue-Berührung.
-- Kein Aktivieren eines echten Live-Schalters ohne erneute Entscheidung.

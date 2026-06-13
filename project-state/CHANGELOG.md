@@ -2,7 +2,7 @@
 
 Stand: 2026-06-13
 
-## EVS-23b – Completion Documentation
+## EVS-24 – Simple Active Event Runtime Gate
 
 - EVS-23 als sichtbar bestätigt dokumentiert.
 - Dashboard-Pfad `Event-System → Sicherheit` festgehalten.
@@ -12,8 +12,8 @@ Stand: 2026-06-13
 
 ## EVS-23 – Live-Schalter-Konzept Dashboard Prep
 
-- Modulversion auf `0.5.17` erhöht.
-- Build auf `STEP_EVS_23_LIVE_SWITCH_CONCEPT_DASHBOARD_PREP` gesetzt.
+- Modulversion auf `0.5.18` erhöht.
+- Build auf `STEP_EVS_24_SIMPLE_ACTIVE_EVENT_RUNTIME_GATE` gesetzt.
 - Dashboard-Tab `Sicherheit` um `Live-Schalter Konzept` erweitert.
 - Geplante Freigabe-Kette für spätere Chat-Ausgabe sichtbar gemacht.
 - Schutzschalter als deaktivierte Anzeige-Checkboxen dargestellt.
@@ -42,3 +42,11 @@ Stand: 2026-06-13
 - Archive/Delete-Routen vorbereitet und fachlich bestätigt.
 - Archivieren nur bei `finished`.
 - Löschen mit JSON-Body `{ "confirm": "DELETE" }`.
+
+## 2026-06-13 – EVS-24 Simple Active Event Runtime Gate
+
+- `stream_events` auf einfache Aktiv/Inaktiv-Regel zurückgeschnitten.
+- Stream-Status über vorhandenes `stream_status` berücksichtigt.
+- Neuer Endpoint `GET /api/stream-events/runtime-gate/status`.
+- Dashboard-Tab `Status` zeigt Aktiv/Inaktiv + Grund.
+- Keine Live-Ausgabe, kein Sound-Playback, keine Queue-Berührung.

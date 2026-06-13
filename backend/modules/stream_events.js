@@ -16,9 +16,12 @@ const routes = require("./helpers/helper_routes");
 const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
+let streamStatusModule = null;
+try { streamStatusModule = require("./stream_status"); } catch (_) { streamStatusModule = null; }
+
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.17";
-const MODULE_BUILD = "STEP_EVS_23_LIVE_SWITCH_CONCEPT_DASHBOARD_PREP";
+const MODULE_VERSION = "0.5.18";
+const MODULE_BUILD = "STEP_EVS_24_SIMPLE_ACTIVE_EVENT_RUNTIME_GATE";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -195,7 +198,7 @@ const MODULE_META = {
   build: MODULE_BUILD,
   type: "runtime",
   category: "events",
-  description: "Zentrales Event-System Backend: Entwürfe, Validierung, Punkte, Ranking, Bus-Status, Text-Multi-Satz-Config, Textvarianten, globale Config, Communication-Bus Heartbeat, Text- und Sound-Chat-Runtime ueber Twitch-Chat-Bus-Events sowie vorbereiteter ChatOutput-Dispatcher ohne Live-Send und geschuetzter Event-Archiv-/Delete-Lifecycle sowie Dashboard-Vorbereitung fuer ein spaeteres Live-Schalter-Konzept ohne Live-Send.",
+  description: "Zentrales Event-System Backend: Entwürfe, Validierung, Punkte, Ranking, Bus-Status, Text-Multi-Satz-Config, Textvarianten, globale Config, Communication-Bus Heartbeat, Text- und Sound-Chat-Runtime ueber Twitch-Chat-Bus-Events sowie vorbereiteter ChatOutput-Dispatcher ohne Live-Send und geschuetzter Event-Archiv-/Delete-Lifecycle sowie einfache Active-Event-Runtime-Gate-Logik: Stream offline oder kein aktives Event bedeutet keine Event-Chat-Auswertung; weiterhin ohne Live-Send.",
   routesPrefix: ["/api/stream-events"],
   bus: {
     registered: true,
@@ -267,7 +270,10 @@ let runtimeState = {
     soundAnswerMisses: 0,
     soundRuntimeSkipped: 0,
     eventsArchived: 0,
-    eventsDeleted: 0
+    eventsDeleted: 0,
+    runtimeGateSkipped: 0,
+    runtimeGateStreamOffline: 0,
+    runtimeGateNoActiveEvent: 0
   }
 };
 
@@ -863,6 +869,90 @@ function getActiveEvent() {
   const row = database.get("SELECT * FROM stream_events_events WHERE status = 'active' ORDER BY started_at DESC, id DESC LIMIT 1");
   return rowToEvent(row);
 }
+function getStreamStatusSnapshot() {
+  if (!streamStatusModule || typeof streamStatusModule.getCurrentStatus !== "function") {
+    return { ok: false, available: false, online: false, live: false, statusKnown: false, stale: true, reason: "stream_status_unavailable", label: "Stream-Status nicht verfügbar" };
+  }
+  try {
+    const status = streamStatusModule.getCurrentStatus({ refresh: false }) || {};
+    const online = status.live === true || status.online === true || status.isLive === true || String(status.status || "").toLowerCase() === "online" || String(status.type || "").toLowerCase() === "live";
+    const known = status.statusKnown !== false && !status.lastError;
+    const stale = status.stale === true;
+    let reason = online ? "stream_online" : "stream_offline";
+    if (!known) reason = "stream_status_unknown";
+    if (stale) reason = "stream_status_stale";
+    return {
+      ok: true,
+      available: true,
+      online,
+      live: online,
+      statusKnown: known,
+      stale,
+      reason,
+      label: online ? "Stream online" : (known ? "Stream offline" : "Stream-Status unbekannt"),
+      source: cleanString(status.source || "stream_status"),
+      streamId: cleanString(status.streamId || status.stream_id || ""),
+      title: cleanString(status.title || ""),
+      gameName: cleanString(status.gameName || status.game_name || ""),
+      startedAt: cleanString(status.startedAt || status.streamStartedAt || status.stream_started_at || ""),
+      lastCheckedAt: cleanString(status.lastCheckedAt || status.checkedAt || status.updatedAt || ""),
+      lastError: cleanString(status.lastError || "")
+    };
+  } catch (err) {
+    return { ok: false, available: true, online: false, live: false, statusKnown: false, stale: true, reason: "stream_status_error", label: "Stream-Status Fehler", lastError: err && err.message ? err.message : String(err) };
+  }
+}
+
+function getRuntimeGateStatus(options = {}) {
+  ensureSchema();
+  const event = options.event || (cleanString(options.eventUid) ? getEventByUid(options.eventUid) : getActiveEvent());
+  const activeEvent = event && normalizeStatus(event.status) === STATUS.ACTIVE ? event : getActiveEvent();
+  const stream = getStreamStatusSnapshot();
+  const hasActiveEvent = !!activeEvent;
+  const hasChatRuntime = !!(activeEvent && (activeEvent.soundEnabled === true || activeEvent.textEnabled === true));
+  let active = false;
+  let reason = "no_active_event";
+  let label = "Kein Event läuft";
+
+  if (!hasActiveEvent) {
+    reason = "no_active_event";
+    label = "Kein Event läuft";
+  } else if (!hasChatRuntime) {
+    reason = "active_event_without_chat_runtime";
+    label = "Aktives Event ohne Sound/Text-Chatspiel";
+  } else if (!stream.online) {
+    reason = stream.reason || "stream_offline";
+    label = stream.label || "Stream offline";
+  } else {
+    active = true;
+    reason = "active_event_and_stream_online";
+    label = "Event läuft und Stream ist online";
+  }
+
+  return {
+    ok: true,
+    active,
+    status: active ? "active" : "inactive",
+    reason,
+    label,
+    event: publicEventSummary(activeEvent),
+    eventUid: activeEvent ? activeEvent.eventUid : "",
+    eventName: activeEvent ? activeEvent.name : "",
+    soundEnabled: !!(activeEvent && activeEvent.soundEnabled),
+    textEnabled: !!(activeEvent && activeEvent.textEnabled),
+    chatEvaluationActive: active,
+    chatOutputLiveSend: false,
+    stream,
+    rules: {
+      streamOfflineDisablesRuntime: true,
+      noActiveEventDisablesRuntime: true,
+      activeEventRequired: true,
+      liveSendStillDisabled: true
+    },
+    updatedAt: nowIso()
+  };
+}
+
 
 function summarizeConfig(config = {}) {
   const raw = config && typeof config === "object" && !Array.isArray(config) ? config : {};
@@ -1830,11 +1920,21 @@ function processTextChatMessage(chat = {}, options = {}) {
 
 function processParallelChatMessage(chat = {}, context = {}) {
   const source = cleanString(context.source, "api:parallel-test-chat");
+  const busChat = source === "bus:twitch.chat.message" || source.startsWith("bus:");
   const event = cleanString(context.eventUid) ? getEventByUid(context.eventUid) : getActiveEvent();
+  const runtimeGate = getRuntimeGateStatus({ eventUid: event ? event.eventUid : "" });
+  if (busChat && !runtimeGate.active) {
+    runtimeState.counters.textRuntimeSkipped += 1;
+    runtimeState.counters.soundRuntimeSkipped += 1;
+    runtimeState.counters.runtimeGateSkipped += 1;
+    if (runtimeGate.reason === "no_active_event") runtimeState.counters.runtimeGateNoActiveEvent += 1;
+    if (String(runtimeGate.reason || "").startsWith("stream_")) runtimeState.counters.runtimeGateStreamOffline += 1;
+    return { ok: true, skipped: true, reason: runtimeGate.reason || "runtime_gate_inactive", source, runtimeGate };
+  }
   if (!event) {
     runtimeState.counters.textRuntimeSkipped += 1;
     runtimeState.counters.soundRuntimeSkipped += 1;
-    return { ok: true, skipped: true, reason: "no_active_chat_runtime", source };
+    return { ok: true, skipped: true, reason: "no_active_chat_runtime", source, runtimeGate };
   }
 
   const result = {
@@ -1857,13 +1957,14 @@ function processParallelChatMessage(chat = {}, context = {}) {
     directSend: false,
     directPlayback: false,
     soundSystemQueueTouched: false,
-    note: "EVS-19: Jede Chatnachricht wird bei aktivem Kombi-Event an Sound und Text gegeben. Sound blockiert Text nicht, Text blockiert Sound nicht."
+    runtimeGate,
+    note: "EVS-24: Chat wird nur bei aktivem Event und online erkanntem Stream fuer stream_events ausgewertet. Sound blockiert Text nicht, Text blockiert Sound nicht."
   };
 
   if (!event.soundEnabled && !event.textEnabled) {
     runtimeState.counters.textRuntimeSkipped += 1;
     runtimeState.counters.soundRuntimeSkipped += 1;
-    return { ok: true, skipped: true, reason: "active_event_without_chat_runtime", eventUid: event.eventUid, source };
+    return { ok: true, skipped: true, reason: "active_event_without_chat_runtime", eventUid: event.eventUid, source, runtimeGate };
   }
 
   if (event.soundEnabled) {
@@ -3293,10 +3394,12 @@ function buildStatus() {
   if (!runtimeState.schemaReady) errors.push(runtimeState.schemaError || "schema_not_ready");
   let counts = { events: 0, scoreEntries: 0, rounds: 0, byStatus: {} };
   let activeEvent = null;
+  let runtimeGate = null;
   try {
     if (runtimeState.schemaReady) {
       counts = getCounts();
       activeEvent = publicEventSummary(getActiveEvent());
+      runtimeGate = getRuntimeGateStatus();
     }
   } catch (err) {
     errors.push(err && err.message ? err.message : String(err));
@@ -3313,6 +3416,7 @@ function buildStatus() {
     routeCount: runtimeState.routeCount,
     counts,
     activeEvent,
+    runtimeGate,
     lastEventUid: runtimeState.lastEventUid,
     lastAction: runtimeState.lastAction,
     lastActionAt: runtimeState.lastActionAt,
@@ -3388,6 +3492,7 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "POST", path: `${prefix}/sound-runtime/test-chat`, description: "Testet eine Chatantwort gegen die aktive Sound-Runde, ohne direkt in Twitch zu senden" },
       { method: "POST", path: `${prefix}/chat-runtime/test-chat`, description: "EVS-19: Testet eine Chatnachricht parallel gegen Sound und Text, ohne direkt zu senden" },
       { method: "POST", path: `${prefix}/chat-runtime/create-stealth-test-event`, description: "EVS-19: Legt mit confirm=1 ein Kombi-Stealth-Testevent fuer Sound + Text an" },
+      { method: "GET", path: `${prefix}/runtime-gate/status`, description: "EVS-24: einfache Aktiv/Inaktiv-Runtime-Gate-Anzeige ueber Stream online + aktives Event" },
       { method: "GET", path: `${prefix}/chat-output/status`, description: "EVS-20: ChatOutput-Dispatcher Sicherheitsstatus, dry-run only" },
       { method: "GET", path: `${prefix}/chat-output/report`, description: "EVS-20: Vorbereitete ChatOutputs aus Sound/Text mit Dispatch-Preview, dry-run only" },
       { method: "POST", path: `${prefix}/chat-output/test-dispatch`, description: "EVS-20: Testet ChatOutput-Dispatch-Regeln ohne Twitch-Ausgabe" },
@@ -3636,6 +3741,19 @@ module.exports.init = function init(ctx) {
     }
   });
 
+  reg("get", `${prefix}/runtime-gate/status`, (req, res) => {
+    try {
+      sendJson(res, {
+        module: MODULE_NAME,
+        moduleVersion: MODULE_VERSION,
+        moduleBuild: MODULE_BUILD,
+        ...getRuntimeGateStatus({ eventUid: req.query.eventUid || req.query.event_uid || "" })
+      });
+    } catch (err) {
+      handleError(res, err);
+    }
+  });
+
   reg("get", `${prefix}/chat-output/status`, (req, res) => {
     try {
       const eventUid = req.query.eventUid || req.query.event_uid || "";
@@ -3647,6 +3765,7 @@ module.exports.init = function init(ctx) {
         moduleBuild: MODULE_BUILD,
         event: report.event,
         eventUid: report.eventUid,
+        runtimeGate: getRuntimeGateStatus({ eventUid: report.eventUid }),
         config: report.config,
         counts: report.counts,
         blockedReasons: report.blockedReasons,

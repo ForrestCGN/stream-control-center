@@ -1,12 +1,12 @@
 # Modul-Doku: stream_events
 
-Stand: 2026-06-13 nach EVS-23b – Completion Documentation
+Stand: 2026-06-13 nach EVS-24 – Simple Active Event Runtime Gate
 
 ## Aktueller Modulstand
 
 ```text
-MODULE_VERSION = 0.5.17
-MODULE_BUILD   = STEP_EVS_23_LIVE_SWITCH_CONCEPT_DASHBOARD_PREP
+MODULE_VERSION = 0.5.18
+MODULE_BUILD   = STEP_EVS_24_SIMPLE_ACTIVE_EVENT_RUNTIME_GATE
 ```
 
 ## Zweck
@@ -111,3 +111,28 @@ soundSystemQueueTouched = false
 ## Nächster Arbeitsbereich
 
 EVS-24 kann den echten rollen-/auditbasierten Live-Config-Endpoint planen oder zunächst die ChatOutput-Dry-Run-Vorschau weiter verbessern. Ohne ausdrückliches Go bleibt der Live-Schalter weiterhin reine Anzeige.
+
+## EVS-24 Simple Active Event Runtime Gate
+
+EVS-24 vereinfacht die Betriebslogik bewusst:
+
+```text
+Stream offline oder kein aktives Event = keine Event-Chat-Auswertung.
+Stream online + aktives Event = Event-Runtime aktiv.
+```
+
+Neu:
+
+```text
+GET /api/stream-events/runtime-gate/status
+```
+
+Die Antwort zeigt nur die relevanten Bedieninformationen:
+
+- aktiv/inaktiv,
+- Grund,
+- Stream online/offline,
+- laufendes Event,
+- Sound/Text aktiv.
+
+Der Dashboard-Tab wurde von `Sicherheit` zu `Status` vereinfacht. Das frühere Live-Schalter-Konzept bleibt als dokumentierte Vorbereitung erhalten, wird aber nicht weiter als normale Bedienfläche ausgebaut.

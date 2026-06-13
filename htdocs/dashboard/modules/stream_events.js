@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.17";
-  const MODULE_BUILD = "STEP_EVS_23_LIVE_SWITCH_CONCEPT_DASHBOARD_PREP";
+  const MODULE_VERSION = "0.5.18";
+  const MODULE_BUILD = "STEP_EVS_24_SIMPLE_ACTIVE_EVENT_RUNTIME_GATE";
 
   const api = {
     status: '/api/stream-events/status',
@@ -16,7 +16,8 @@ window.StreamEventsModule = (function(){
     statisticsUser: '/api/stream-events/statistics/user',
     chatOutputStatus: '/api/stream-events/chat-output/status',
     chatOutputReport: '/api/stream-events/chat-output/report',
-    chatOutputTestDispatch: '/api/stream-events/chat-output/test-dispatch'
+    chatOutputTestDispatch: '/api/stream-events/chat-output/test-dispatch',
+    runtimeGateStatus: '/api/stream-events/runtime-gate/status'
   };
 
   let root = null;
@@ -37,6 +38,7 @@ window.StreamEventsModule = (function(){
     statisticsUsers: null,
     chatOutputStatus: null,
     chatOutputReport: null,
+    runtimeGateStatus: null,
     statsSubTab: 'overview',
     selectedStatsUser: '',
     userStatistics: null,
@@ -197,7 +199,7 @@ window.StreamEventsModule = (function(){
       { id: 'texts', label: 'Texte', icon: '💬' },
       { id: 'config', label: 'Config', icon: '⚙️' },
       { id: 'stats', label: 'Statistik', icon: '🏆' },
-      { id: 'safety', label: 'Sicherheit', icon: '🛡️' },
+      { id: 'safety', label: 'Status', icon: '🟢' },
       { id: 'overlay', label: 'Overlay', icon: '🖥️' }
     ];
   }
@@ -814,14 +816,63 @@ window.StreamEventsModule = (function(){
     return null;
   }
 
+  function runtimeGate(){ return state.runtimeGateStatus || state.status?.runtimeGate || null; }
+
+  function runtimeGateReasonLabel(reason){
+    const map = {
+      active_event_and_stream_online: 'Event läuft und Stream ist online',
+      no_active_event: 'Kein Event läuft',
+      stream_offline: 'Stream ist offline',
+      stream_status_unknown: 'Stream-Status unbekannt',
+      stream_status_stale: 'Stream-Status ist veraltet',
+      stream_status_unavailable: 'Stream-Status-Modul nicht verfügbar',
+      stream_status_error: 'Stream-Status konnte nicht gelesen werden',
+      active_event_without_chat_runtime: 'Aktives Event hat kein Sound-/Text-Spiel'
+    };
+    return map[reason] || reason || '-';
+  }
+
   function renderSafetyTab(event){
-    if (!event) return renderSelectEventEmpty('Sicherheit');
     return `
       <div class="evs-grid evs-safety-grid">
-        ${renderChatOutputSafetyPanel(event)}
-        ${renderLifecycleSafetyPanel(event)}
+        ${renderRuntimeGatePanel()}
+        ${event ? renderLifecycleSafetyPanel(event) : renderSelectEventEmpty('Event-Lifecycle')}
       </div>
-      ${renderLiveSwitchConceptPanel(event)}
+      ${event ? renderChatOutputSafetyPanel(event) : ''}
+    `;
+  }
+
+  function renderRuntimeGatePanel(){
+    const gate = runtimeGate();
+    const active = gate?.active === true;
+    const stream = gate?.stream || {};
+    return `
+      <section class="evs-card glass evs-tab-panel evs-runtime-gate-panel">
+        <div class="evs-card-head evs-stats-head">
+          <div>
+            <h3>Event-System Status</h3>
+            <span>${active ? 'Aktiv: Stream online und ein Event läuft.' : 'Inaktiv: Keine Event-Chat-Auswertung nötig.'}</span>
+          </div>
+          <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="runtimeGateStatus">Status neu laden</button>
+        </div>
+        ${gate ? `
+          <div class="evs-safety-banner ${active ? 'is-live' : 'is-safe'}">
+            <strong>${active ? '🟢 AKTIV' : '⚪ INAKTIV'}</strong>
+            <span>${esc(runtimeGateReasonLabel(gate.reason))}</span>
+          </div>
+          <div class="evs-mini-grid evs-mini-grid-compact">
+            <div><strong>${esc(stream.online ? 'Online' : 'Offline')}</strong><span>Stream</span></div>
+            <div><strong>${esc(gate.eventName || '-')}</strong><span>Laufendes Event</span></div>
+            <div><strong>${esc(gate.soundEnabled ? 'An' : 'Aus')}</strong><span>Sound-Spiel</span></div>
+            <div><strong>${esc(gate.textEnabled ? 'An' : 'Aus')}</strong><span>Text-Spiel</span></div>
+          </div>
+          <div class="evs-safety-rule-list">
+            <div class="${active ? 'is-ok' : 'is-blocked'}"><b>Chat-Auswertung</b><span>${active ? 'läuft für das aktive Event.' : 'läuft nicht, weil sie aktuell nicht gebraucht wird.'}</span></div>
+            <div><b>Grundregel</b><span>Stream offline oder kein aktives Event = stream_events ignoriert Chat für Eventspiele.</span></div>
+            <div><b>Live-Chatmeldungen</b><span>Bleiben in diesem Step weiterhin aus. EVS-24 aktiviert kein Twitch-Senden.</span></div>
+          </div>
+        ` : '<div class="evs-empty">Runtime-Status noch nicht geladen.</div>'}
+      </section>
     `;
   }
 
@@ -870,48 +921,6 @@ window.StreamEventsModule = (function(){
             ${outputs.length ? outputs.slice(0, 8).map(output => `<div class="evs-chat-output-row"><span>${esc(chatKindLabel(output.kind))} · ${output.wouldSend ? 'würde senden' : 'blockiert'}</span><p>${esc(output.text || output.chatText || '')}</p><small>${esc((output.blockedBy || []).map(blockedReasonLabel).join(', ') || 'keine Blocker')}</small></div>`).join('') : '<div class="evs-empty">Noch keine ChatOutputs im Report.</div>'}
           </div>
         ` : '<div class="evs-empty">ChatOutput-Sicherheitsstatus noch nicht geladen.</div>'}
-      </section>
-    `;
-  }
-
-  function renderLiveSwitchConceptPanel(event){
-    const status = chatOutputSafetyFor(event);
-    const cfg = status?.config || {};
-    const liveReady = Boolean(cfg.dispatcherEnabled && cfg.globalLiveEnabled && cfg.allowDirectSend && !cfg.preparedOnly && cfg.eventChatOutputEnabled && cfg.eventLiveEnabled);
-    const switches = [
-      ['Dispatcher', cfg.dispatcherEnabled, 'Zentrale ChatOutput-Verarbeitung'],
-      ['Global Live', cfg.globalLiveEnabled, 'globale Owner-Freigabe'],
-      ['DirectSend erlaubt', cfg.allowDirectSend, 'technische Sende-Erlaubnis'],
-      ['Prepared-only aus', !cfg.preparedOnly, 'keine reine Vorschau mehr'],
-      ['Event ChatOutput', cfg.eventChatOutputEnabled, 'ChatOutputs am Event erlaubt'],
-      ['Event Live', cfg.eventLiveEnabled, 'Event selbst live freigegeben']
-    ];
-    return `
-      <section class="evs-card glass evs-tab-panel evs-live-switch-panel">
-        <div class="evs-card-head evs-stats-head">
-          <div>
-            <h3>Live-Schalter Konzept</h3>
-            <span>Vorbereitung für späteres Chat-Senden. In diesem Step nur Anzeige und Sicherheitslogik, keine Aktivierung.</span>
-          </div>
-          <span class="evs-safety-pill ${liveReady ? 'is-warn' : 'is-off'}">${esc(liveReady ? 'theoretisch sendebereit' : 'gesperrt')}</span>
-        </div>
-        <div class="evs-safety-banner is-safe">
-          <strong>🛡️ EVS-23 bleibt Testmodus</strong>
-          <span>Die Schalter werden nur erklärt und visualisiert. Es gibt hier noch keinen Button, der Twitch-Ausgaben live schaltet.</span>
-        </div>
-        <div class="evs-live-switch-grid">
-          <div class="evs-runtime-box">
-            <div class="evs-runtime-box-head"><h4>Geplante Freigabe-Kette</h4><small>Streamer-/Mod-freundlich, aber sicher</small></div>
-            <div class="evs-live-step is-ok"><b>1. Vorschau prüfen</b><span>Prepared Outputs, Blockiergründe und Zieltexte im Dashboard prüfen.</span></div>
-            <div class="evs-live-step"><b>2. Event freigeben</b><span>Später: ChatOutput und Event-Live pro Event aktivieren, nicht global versteckt.</span></div>
-            <div class="evs-live-step"><b>3. Global live schalten</b><span>Später nur mit Owner/Admin-Recht und Audit-Log. Aktuell nicht implementiert.</span></div>
-          </div>
-          <div class="evs-runtime-box">
-            <div class="evs-runtime-box-head"><h4>Aktuelle Schutzschalter</h4><small>Nur Anzeige, keine Bedienung</small></div>
-            ${switches.map(([label, value, hint]) => `<label class="evs-live-switch-row"><input type="checkbox" disabled ${value ? 'checked' : ''}><span><b>${esc(label)}</b><em>${esc(hint)}</em></span></label>`).join('')}
-          </div>
-        </div>
-        <div class="evs-tab-help">Nächster technischer Schritt wäre erst ein echter, rollenbasierter Config-/Live-Endpoint mit Audit-Log. Bis dahin bleibt alles prepared-only/dry-run.</div>
       </section>
     `;
   }
@@ -1458,16 +1467,18 @@ window.StreamEventsModule = (function(){
     state.loading = true;
     state.error = '';
     try {
-      const [status, list, texts, config] = await Promise.all([
+      const [status, list, texts, config, runtimeGateStatus] = await Promise.all([
         window.CGN.api(api.status),
         window.CGN.api(api.list),
         window.CGN.api(api.texts),
-        window.CGN.api(api.config)
+        window.CGN.api(api.config),
+        window.CGN.api(api.runtimeGateStatus)
       ]);
       state.status = status;
       state.events = rows(list);
       state.texts = texts;
       state.config = config;
+      state.runtimeGateStatus = runtimeGateStatus;
       if (!state.selectedUid && state.events[0]) state.selectedUid = state.events[0].eventUid;
       const ev = selectedEvent();
       if (ev) {
@@ -1522,6 +1533,16 @@ window.StreamEventsModule = (function(){
     render();
   }
 
+
+  async function loadRuntimeGateStatus(rerender = true){
+    try {
+      state.runtimeGateStatus = await window.CGN.api(api.runtimeGateStatus);
+    } catch (err) {
+      state.runtimeGateStatus = null;
+      state.error = err.message || String(err);
+    }
+    if (rerender) render();
+  }
 
   async function loadChatOutputSafety(uid, rerender = true){
     if (!uid) return;
@@ -1802,8 +1823,9 @@ window.StreamEventsModule = (function(){
       const tab = ev.target.closest('[data-evs-tab]');
       if (tab) {
         state.activeTab = tab.dataset.evsTab || 'overview';
-        if (state.activeTab === 'safety' && state.selectedUid) {
-          await loadChatOutputSafety(state.selectedUid, false);
+        if (state.activeTab === 'safety') {
+          await loadRuntimeGateStatus(false);
+          if (state.selectedUid) await loadChatOutputSafety(state.selectedUid, false);
         }
         render();
         return;
@@ -1884,7 +1906,8 @@ window.StreamEventsModule = (function(){
       if (action === 'cancel') return eventAction('cancel', uid);
       if (action === 'archive') return archiveSelectedEvent(uid);
       if (action === 'deleteEvent') return deleteSelectedEvent(uid);
-      if (action === 'chatOutputSafety') return loadChatOutputSafety(uid, true);
+      if (action === 'runtimeGateStatus') return loadRuntimeGateStatus(true);
+      if (action === 'chatOutputSafety') { await loadRuntimeGateStatus(false); return loadChatOutputSafety(uid, true); }
       if (action === 'statsSubTab') return switchStatsSubTab(btn.dataset.tab || 'overview', uid);
       if (action === 'refreshStatsCurrent') return refreshCurrentStatsSection(uid);
       if (action === 'ranking') return loadRanking(uid, true);
