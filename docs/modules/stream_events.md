@@ -1,26 +1,79 @@
 # Modul-Doku: stream_events
 
-Stand: EVS-7c / Event Overview + Editor Modal Flow Cleanup  
-Datum: 2026-06-13
+Stand: 2026-06-13 nach EVS-17b – Sound Debug Accepted Answers
 
 ## Zweck
 
-`stream_events` ist die neue Backend-/Dashboard-Basis für Stream-Events mit Sound- und/oder Text-Spielen, gemeinsamer Punktewertung, Ranking und späterer Overlay-/Chat-/Playback-Anbindung.
+`stream_events` ist das Event-System im `stream-control-center`. Es verwaltet vorbereitete Stream-Events mit Sound- und/oder Text-Spiel, gemeinsamer Punktewertung, Ranking, Statistik, Dashboard-Konfiguration und späterer Overlay-/Chat-/Playback-Anbindung.
 
-## Backend-Stand aus EVS-2
+## Architektur-Grundsätze
 
-Backend-Modul:
+- Bestehenden `communication_bus` verwenden.
+- Keine zweite Bus-Struktur bauen.
+- Bestehendes `sound_system` verwenden, keinen zweiten Player bauen.
+- Bestehende Media-Komponenten verwenden.
+- Bestehende Textvarianten-Helfer verwenden.
+- SQLite aktuell, aber DB-Logik möglichst portabel halten.
+- Keine Funktionalität entfernen.
+- Direkte Twitch-Ausgabe und direktes Playback bleiben deaktiviert, bis sie ausdrücklich freigegeben werden.
+
+## Aktueller Modulstand
 
 ```text
-backend/modules/stream_events.js
+MODULE_VERSION = 0.5.4
+MODULE_BUILD   = STEP_EVS_17B_SOUND_DEBUG_ACCEPTED_ANSWERS
 ```
 
-Routen:
+## Dashboard
+
+Dashboard-Dateien:
+
+```text
+htdocs/dashboard/modules/stream_events.js
+htdocs/dashboard/modules/stream_events.css
+```
+
+Hauptbereiche:
+
+```text
+Übersicht
+Events
+Texte
+Config
+Statistik
+Overlay
+```
+
+Statistik-Unterbereiche:
+
+```text
+Übersicht
+Ranking
+Text-Spiel
+Sound-Spiel
+User
+```
+
+Texte-Tab:
+
+- Bereichs-/Modul-Dropdown
+- Suche nach Key/Text
+- Textvarianten bleiben editierbar
+
+User-Statistik:
+
+- Dropdown/Userliste
+- User-Detail-Popup
+- Scrollbarer Inhalt
+- AutoReload ohne Seitenreload
+
+## Backend-Routen
+
+### Basis
 
 ```text
 GET  /api/stream-events/status
 GET  /api/stream-events/routes
-GET  /api/stream-events/texts
 GET  /api/stream-events/events
 POST /api/stream-events/events
 GET  /api/stream-events/events/:eventUid
@@ -33,890 +86,102 @@ GET  /api/stream-events/events/:eventUid/ranking
 POST /api/stream-events/events/:eventUid/points
 ```
 
-## Dashboard-Stand EVS-3 bis EVS-5b
-
-Dashboard-Dateien:
+### Config / Texte
 
 ```text
-htdocs/dashboard/modules/stream_events.js
-htdocs/dashboard/modules/stream_events.css
+GET  /api/stream-events/config
+POST /api/stream-events/config
+GET  /api/stream-events/texts
 ```
 
-EVS-3 brachte:
-
-- Community-Modul `stream_events`
-- Eventliste
-- Event erstellen/bearbeiten
-- Sound/Text auswählen
-- Validierungsstatus
-- Start/Beenden/Abbrechen vorbereitet
-- Ranking-Anzeige
-
-EVS-4 brachte:
-
-- Sound-Schnipsel-Auswahl über vorhandenes `MediaField`/`MediaPicker`
-- Upload über vorhandenes Media-System
-- optionales Auflösungs-Video über vorhandenes Media-System
-- keine neue Upload- oder Player-Struktur
-
-EVS-4b brachte:
-
-- Sound-Konfiguration im Modal klarer aufgeteilt
-- Audio-Schnipsel als Pflicht-Karte
-- Auflösungs-Video als optionale Karte
-- Desktop nebeneinander, kleinere Auflösung untereinander
-- kompaktere MediaField-Buttons
-
-EVS-5 wurde als Zwischenstand getestet, wirkte aber zu kastenlastig. EVS-5b korrigiert die Text-Spiel-Regel und das Layout.
-
-## Text-Spiel-Konvention aus EVS-5b
-
-Text-Spiel V1:
+### Bus
 
 ```text
-Geheimsatz / Lösungssatz: Pflicht
-Erlaubte Antworten / Varianten: Optional
-Punkte für den ersten richtigen Löser: Pflicht/Default
-Teiltreffer-Hinweise: Optional
+GET /api/stream-events/bus-status
 ```
 
-Fachregel:
+### Text Runtime
 
 ```text
-- Der erste User, der den kompletten Satz oder eine erlaubte Variante richtig schreibt, bekommt die Punkte.
-- Danach ist dieser Satz im aktuellen Event erledigt und wird aus der Rotation entfernt.
-- Es gibt in V1 keine weiteren Löser und kein Zeitfenster für weitere Löser.
-- Teiltreffer geben keine Punkte.
-- Teiltreffer-Hinweise werden aus den Wörtern des Geheimsatzes berechnet, kein separates Hinweiswort-Feld in V1.
-- Pro Event, Satz und User wird später gespeichert, welche Wörter bereits erkannt wurden.
-- Ein bereits erkanntes Wort wird für denselben User und Satz nicht erneut gemeldet/gezählt.
-- Optional kann ein zusätzlicher Cooldown gesetzt werden.
+GET  /api/stream-events/text-runtime/status
+GET  /api/stream-events/text-runtime/report
+POST /api/stream-events/text-runtime/test-chat
+POST /api/stream-events/text-runtime/create-test-event?confirm=1
 ```
 
-Config-Snapshot aus EVS-5b:
+### User Statistik
 
 ```text
-textConfig.winnerMode = first_complete_solver
-textConfig.solvedPolicy = remove_from_rotation
-textConfig.allowFollowupSolves = false
-textConfig.hintTokensEnabled / partialHintsEnabled
-textConfig.partialHintMode = new_words_per_user | improved_count
-textConfig.uniqueWordsPerUser = true
-textConfig.partialHintCooldownSeconds
+GET /api/stream-events/statistics/users
+GET /api/stream-events/statistics/users?eventUid=<eventUid>
+GET /api/stream-events/statistics/user/:login
+GET /api/stream-events/statistics/user/:login?eventUid=<eventUid>
 ```
 
-Die konkrete Chat-Auswertung wird erst später gebaut.
-
-## Media-System-Konvention
-
-Für Event-Medien werden vorhandene Media-Komponenten genutzt:
+### Sound Runtime
 
 ```text
-moduleKey: stream_events
-categoryKey für Sound-Schnipsel: sound_snippets
-categoryKey für Auflösungs-Videos: reveal_videos
-```
-
-Erlaubte Typen:
-
-```text
-Sound-Schnipsel: audio
-Auflösungs-Video: video, animation
-```
-
-Das Event speichert im Config-Snapshot nur die Media-ID/Referenz.
-
-## Noch nicht umgesetzt
-
-```text
-Chat-Auswertung
-Sound-Rundensteuerung
-Text-Rundensteuerung
-Mehrere Schnipsel/Sätze je Event
-Overlay
-Playback-Anbindung
-Statistik-Auswertung
-```
-
-
-## EVS-5c Dokumentations-/Backend-TODO-Festlegung
-
-Dieser Stand ist eine reine Doku-/TODO-Konsolidierung nach EVS-5b. Es wurden keine Runtime-Dateien verändert.
-
-Wichtig: Die im Dashboard sichtbaren Text-Spiel-Regeln sind nicht nur UI-Notizen. Sie müssen in späteren Backend-/Runtime-Schritten fachlich umgesetzt werden.
-
-### Verbindliche Text-Spiel-Regel für Backend/Runtime
-
-```text
-- Pro aktivem Event kann ein Text-Spiel aktiv sein.
-- Ein Text-Spiel besteht später aus mehreren Geheimsätzen / Lösungssätzen.
-- Pro Satz gewinnt genau der erste User, der den kompletten Satz oder eine erlaubte Antwortvariante korrekt schreibt.
-- Dieser User bekommt die konfigurierten Punkte.
-- Nach korrekter Lösung wird der Satz im aktuellen Event als gelöst markiert und aus der Rotation entfernt.
-- Es gibt in V1 keine weiteren Löser und kein Zeitfenster für weitere Löser.
-- Teiltreffer geben keine Punkte.
-```
-
-### Teiltreffer-Hinweise
-
-```text
-- Teiltreffer-Hinweise können pro Text-Spiel/Event aktiviert oder deaktiviert werden.
-- Die Teiltreffer-Wörter werden automatisch aus dem Geheimsatz berechnet.
-- Es gibt in V1 kein separates Hinweiswörter-/Suchwörter-Feld.
-- Wenn ein User neue Wörter aus dem Geheimsatz schreibt, kann eine Chatmeldung ausgegeben werden.
-- Pro Event, Satz, User und Wort wird gespeichert, ob dieses Wort bereits erkannt/gemeldet wurde.
-- Ein bereits erkanntes Wort darf für denselben User und Satz nicht erneut gemeldet oder gezählt werden.
-- Optional kann zusätzlich ein Cooldown genutzt werden.
-- Standardempfehlung: neue Wörter pro User nur einmal melden, Cooldown 0-10 Sekunden.
-```
-
-### Backend-/DB-TODO für spätere Schritte
-
-Spätere Runtime-Schritte müssen diese Regeln im Backend abbilden. Dafür sind voraussichtlich notwendig:
-
-```text
-stream_event_text_items / stream_event_phrase_items
-- event_uid
-- phrase_uid
-- solution_text
-- answer_variants_json
-- points_first_solver
-- status: open | solved | removed | skipped
-- solved_by_login / solved_by_display_name
-- solved_at
-- metadata_json
-
-stream_event_text_partial_hits
-- event_uid
-- phrase_uid
-- user_login
-- user_display_name
-- token
-- first_seen_at
-- last_seen_at
-- hit_count
-- UNIQUE(event_uid, phrase_uid, user_login, token)
-```
-
-Tabellennamen sind noch Planungsnamen. Umsetzung später nur nach Prüfung des echten Backend-Stands und nur sanft per Migration.
-
-### Dashboard-/Config-TODO
-
-```text
-- Allgemeine Event-Config als Dashboard-Bereich ergänzen.
-- Text-Config / Multi-Texte als Dashboard-Bereich ergänzen.
-- Chatmeldungen für Teiltreffer, Lösung, keine aktive Runde, Eventstart/-ende über helper_texts / module_text_variants pflegen.
-- Keine parallele Textstruktur bauen.
-- Config und Textvarianten sollen streamer-/modfreundlich bearbeitbar sein.
-```
-
-
----
-
-## EVS-5d Ergänzung: Mehrere Sätze, Teiltreffer-Modus und Wortpunkte
-
-EVS-5d ist eine reine Doku-/TODO-Konsolidierung der nach EVS-5c getroffenen Fachentscheidungen. Es wurden keine Code-, DB- oder Runtime-Dateien verändert.
-
-### Text-Spiel: Satz-Pool statt Einzelsatz
-
-Das Text-Spiel darf nicht als einzelner Geheimsatz gedacht werden. Ein Text-Spiel besteht künftig aus einem konfigurierbaren Pool mehrerer geheimer Sätze.
-
-Fachregel:
-
-```text
-- Pro Event kann ein Text-Spiel mehrere geheime Sätze enthalten.
-- Die Anzahl der Sätze muss im Dashboard konfigurierbar sein.
-- Jeder Satz ist einzeln lösbar.
-- Der erste User, der einen Satz vollständig oder über eine erlaubte Variante löst, bekommt die Lösungspunkte dieses Satzes.
-- Danach wird nur dieser Satz als gelöst markiert und aus der aktuellen Rotation entfernt.
-- Andere Sätze bleiben offen und können weiter gelöst werden.
-```
-
-### Teiltreffer-Hinweise: allgemein oder mit Satzbezug
-
-Wenn ein User ein Wort aus einem geheimen Satz trifft, soll die Chatmeldung konfigurierbar sein.
-
-Geplante Modi:
-
-```text
-partialHintDisplayMode = off
-partialHintDisplayMode = generic
-partialHintDisplayMode = with_phrase_number
-```
-
-Bedeutung:
-
-```text
-off:
-- Es gibt keine Teiltreffer-Meldungen.
-
-generic:
-- Der User bekommt nur allgemein die Info, dass er ein Wort aus einem geheimen Satz gefunden hat.
-- Beispiel: "{user} hat ein Wort aus einem geheimen Satz gefunden."
-
-with_phrase_number:
-- Der User bekommt die Info, zu welchem Satz der Treffer gehört.
-- Beispiel: "{user} hat ein Wort aus Satz 2 gefunden."
-```
-
-Optional soll zusätzlich die Anzahl der gefundenen Wörter angezeigt werden können:
-
-```text
-showPartialHitCount = true | false
-```
-
-Beispiele:
-
-```text
-- "{user} hat 3 Wörter aus einem geheimen Satz gefunden."
-- "{user} hat 3 Wörter aus Satz 2 gefunden."
-```
-
-### Teiltreffer-Speicherung
-
-Teiltreffer müssen pro Event, Satz, User und Wort eindeutig gespeichert werden.
-
-Fachregel:
-
-```text
-- Ein Wort zählt pro User und Satz nur einmal.
-- Wiederholt derselbe User dasselbe Wort beim selben Satz, wird es nicht erneut gemeldet.
-- Wiederholt derselbe User dasselbe Wort beim selben Satz, bekommt er dafür keine weiteren Wortpunkte.
-- Trifft derselbe User später neue Wörter aus demselben Satz, können diese neu gemeldet/gezählt werden.
-```
-
-### Wortpunkte: optional konfigurierbar
-
-Zusätzlich zu den Lösungspunkten können gefundene Wörter optional Punkte geben. Das soll im Dashboard konfigurierbar sein.
-
-Fachregel:
-
-```text
-- Wortpunkte sind optional.
-- Teiltreffer können gemeldet werden, ohne Punkte zu geben.
-- Wenn Wortpunkte aktiv sind, bekommt ein User Punkte für neu gefundene Wörter.
-- Jedes Wort zählt pro Event/Satz/User nur einmal.
-- Optional kann ein Punkte-Limit pro User und Satz gesetzt werden.
-- Die komplette Lösung gibt weiterhin separate Lösungspunkte.
-```
-
-Geplante Config-Felder:
-
-```text
-wordPointsEnabled = true | false
-pointsPerNewWord = number
-maxWordPointsPerUserPerPhrase = number | null
-solutionPointsMode = add_on_top | solution_only
-```
-
-Empfohlener Default:
-
-```text
-wordPointsEnabled = false oder true nach Event-Typ
-pointsPerNewWord = 1
-maxWordPointsPerUserPerPhrase = 5
-solutionPointsMode = add_on_top
-```
-
-### Dashboard-/Config-Konsequenzen
-
-Das Dashboard braucht später nicht nur ein einzelnes Textfeld, sondern eine Satzverwaltung.
-
-Geplante Bedienung:
-
-```text
-Text-Spiel konfigurieren
-- mehrere geheime Sätze hinzufügen/bearbeiten/löschen
-- Satz aktiv/deaktiviert
-- Lösungssatz
-- erlaubte Antwortvarianten pro Satz
-- Lösungspunkte pro Satz
-- globale Teiltreffer-Regel
-- globale Wortpunkte-Regel
-- Anzeige-Modus für Teiltreffer: aus / allgemein / mit Satznummer
-- Fortschrittsanzeige: Anzahl Wörter anzeigen ja/nein
-- optionaler Cooldown
-```
-
-### Text-Config / Multi-Texte
-
-Alle Chatmeldungen müssen später über vorhandene Text-/Varianten-Systeme laufen, nicht hart im Code.
-
-Zu berücksichtigen:
-
-```text
-- Chatmeldung bei Teiltreffer allgemein
-- Chatmeldung bei Teiltreffer mit Satznummer
-- Chatmeldung bei Teiltreffer mit Wortanzahl
-- Chatmeldung bei kompletter Lösung
-- Chatmeldung wenn Satz bereits gelöst ist
-- Chatmeldung bei Eventstart / Eventende
-- Chatmeldung bei Zwischenstand / Ranking
-```
-
-Vorgabe:
-
-```text
-- helper_texts / module_text_variants nutzen.
-- Keine parallele Textstruktur bauen.
-- Später Dashboard-Editor für Config und Textvarianten einplanen.
-```
-
-
----
-
-## EVS-6 – Text Multi-Phrase Config Prep
-
-EVS-6 setzt die abgestimmten Mod-Team-Regeln für das Text-Spiel in Dashboard-Vorbereitung und Backend-Validierung um.
-
-### Text-Spiel Regeln
-
-- Ein Text-Spiel kann mehrere geheime Sätze enthalten.
-- Jeder Satz ist einzeln lösbar.
-- Der erste komplette Löser eines Satzes bekommt die Lösungspunkte.
-- Danach wird nur dieser Satz aus der Event-Rotation entfernt.
-- Andere Sätze bleiben offen.
-- Teiltreffer können optional gemeldet werden.
-- Teiltreffer können allgemein oder mit Satznummer gemeldet werden.
-- Optional kann die Anzahl gefundener Wörter angezeigt werden.
-- Optional können neue gefundene Wörter Punkte geben.
-- Jedes Wort zählt pro Event/Satz/User nur einmal.
-- Optional gibt es ein Wortpunkte-Limit pro User und Satz.
-
-### Dashboard-Felder
-
-- Mehrere geheime Sätze mit `+ Satz hinzufügen`.
-- Pro Satz: Geheimsatz, erlaubte Antworten/Varianten, Punkte für komplette Lösung.
-- Globale Text-Spiel-Regeln: Teiltreffer melden, Cooldown, Trefferzahl anzeigen, Wortpunkte aktivieren, Punkte pro Wort, Maximalpunkte pro User/Satz.
-
-### Backend-Felder
-
-Die Backend-Validierung akzeptiert/kennt unter anderem:
-
-- `textConfig.phrases[]`
-- `textConfig.partialHintVisibility`
-- `textConfig.showPartialCount`
-- `textConfig.wordPointsEnabled`
-- `textConfig.pointsPerNewWord`
-- `textConfig.maxWordPointsPerUserPhrase`
-- `textConfig.partialHintCooldownSeconds`
-
-### Noch offen
-
-- Runtime-Chat-Erkennung.
-- Speicherung der bereits gefundenen Wörter pro Event/Satz/User.
-- Punktevergabe für Worttreffer.
-- Entfernen gelöster Sätze aus der laufenden Rotation.
-- Config-Dashboard allgemein.
-- Text-Config/Multi-Texte im Dashboard über vorhandene Text-Helper.
-
----
-
-## EVS-7 – Text-Config Dashboard Prep
-
-EVS-7 bereitet die Text-Config / Multi-Texte im Dashboard vor.
-
-### Ziel
-
-Chat- und Systemtexte für das Event-System sollen nicht hart im Code stehen. Sie müssen später dashboardfähig, variantenfähig und über vorhandene Text-Helper verwaltbar sein.
-
-### Backend
-
-Neue bzw. vorbereitete Textkeys:
-
-- `sound.round.started`
-- `sound.solved`
-- `sound.unresolved`
-- `text.partial.general`
-- `text.partial.with_sentence`
-- `text.word_points.added`
-- `text.phrase.solved`
-- `event.created`
-- `event.not_ready`
-- `event.started`
-- `event.finished`
-- `points.added`
-- `ranking.updated`
-
-EVS-7 nutzt:
-
-- `helper_texts.listModuleTextEditor(...)`
-- `helper_texts.handleModuleTextEditorPayload(...)`
-- `module_text_variants`
-
-Es wird keine parallele Textstruktur aufgebaut.
-
-### Routen
-
-- `GET /api/stream-events/texts` liest Textkategorien, Keys und Varianten.
-- `POST /api/stream-events/texts` speichert oder löscht Textvarianten.
-
-### Dashboard
-
-Im Event-System-Dashboard gibt es ein erstes Text-Config-/Multi-Texte-Panel.
-
-Dort können vorbereitet werden:
-
-- bestehende Textvariante bearbeiten
-- Variante aktiv/inaktiv setzen
-- Gewichtung setzen
-- neue Variante hinzufügen
-- Variante löschen
-
-### Noch offen
-
-- Runtime nutzt diese Texte noch nicht aktiv.
-- Chat-Auswertung kommt später.
-- Config-Dashboard für Event-Regeln kommt später.
-
-
-## EVS-7b – Dashboard Tabs Layout Split
-
-EVS-7b trennt das Event-System im Dashboard in Tabs, damit nicht mehr Eventliste, Konfiguration, Text-Config, Statistik und Overlay-Vorbereitung untereinander auf einer Seite stehen.
-
-Tabs:
-
-```text
-Übersicht
-Event
-Sound-Spiel
-Text-Spiel
-Texte
-Statistik
-Overlay
-```
-
-Regeln:
-
-- Übersicht zeigt Eventliste, Details, Status, Start/Beenden/Abbrechen und Ranking-Kurzansicht.
-- Event zeigt Grunddaten und Spieltypen zum gewählten Event.
-- Sound-Spiel zeigt Sound-spezifische Kurzinfos und öffnet bei Bedarf die Event-Bearbeitung.
-- Text-Spiel zeigt Text-spezifische Kurzinfos, mehrere Sätze, Teiltreffer und Wortpunkte.
-- Texte enthält die Text-Config/Multi-Texte-Verwaltung aus EVS-7.
-- Statistik und Overlay sind als eigene Bereiche vorbereitet, bleiben aber in diesem Step ohne Runtime.
-
-Keine Backend-, DB-, Runtime-, Chat-, Playback- oder Overlay-Logik wurde in EVS-7b geändert.
-
-
-## EVS-7c – Event Overview + Editor Modal Flow Cleanup
-
-EVS-7c korrigiert die Dashboard-Struktur nach Forrests Feedback.
-
-### Neue Hauptlogik
-
-Events sind das Hauptobjekt.
-
-- Ohne Event gibt es kein Sound-Spiel und kein Text-Spiel.
-- Sound-Spiel und Text-Spiel sind Konfigurationen innerhalb eines Events.
-- Die Event-Bearbeitung passiert weiterhin im eigenen Fenster/Modal.
-
-### Haupttabs ab EVS-7c
-
-- Übersicht
-- Events
-- Texte
-- Config
-- Statistik
-- Overlay
-
-### Übersicht
-
-Die Übersicht ist nicht mehr die komplette Eventverwaltung.
-
-Sie zeigt nur laufende Events und schnellen Zugriff auf:
-
-- Status
-- Statistik ansehen
-- Bearbeiten
-- Beenden
-
-Wenn kein Event läuft, verweist die Übersicht auf den Tab Events.
-
-### Events
-
-Der Tab Events zeigt alle konfigurierten Events mit Status:
-
-- Entwurf
-- Startbereit
-- Läuft
-- Beendet
-- Abgebrochen
-
-Dort können Events ausgewählt, geprüft, gestartet, beendet, abgebrochen und bearbeitet werden.
-
-Bearbeiten öffnet ein separates Editor-Fenster.
-
-### Editor-Fenster
-
-Im Editor-Fenster bleiben die eventbezogenen Einstellungen:
-
-- Grunddaten
-- Sound-Spiel aktivieren/deaktivieren
-- Sound-Spiel-Konfiguration
-- Text-Spiel aktivieren/deaktivieren
-- Text-Spiel-Konfiguration
-- Speichern
-
-### Texte
-
-Der Tab Texte bleibt global und nicht eventbezogen.
-
-Hier liegen später die Chat-/Bot-Meldungen und Multi-Texte über die vorhandenen Text-Helper.
-
-### Config
-
-Config ist als eigener Haupttab vorbereitet, aber noch ohne produktive Einstelllogik.
-
-Geplant:
-
-- Standardpunkte
-- Standard-Zeitlimits
-- Standard-Hinweisverhalten
-- Wortpunkte-Defaults
-- Overlay-Defaults
-- Rechte/Freigaben
-
-### Nicht geändert in EVS-7c
-
-- Keine Backend-Logik geändert.
-- Keine Datenbank geändert.
-- Keine Chat-Runtime geändert.
-- Keine Worterkennung geändert.
-- Kein Sound-Playback geändert.
-- Kein Overlay geändert.
-
-
----
-
-## EVS-8 – Config-Dashboard Vorbereitung
-
-Der bisherige Config-Platzhalter wurde zu einem ersten globalen Config-Tab ausgebaut.
-
-### Globale Config
-
-Die Config ist nicht an ein einzelnes Event gebunden. Sie dient als Standard-/Voreinstellungsbereich für neue Events und spätere Runtime-Regeln. Einzelne Events bleiben weiterhin im Event-Editor bearbeitbar.
-
-### Enthaltene Bereiche
-
-- Allgemein
-  - Top-Gewinner anzeigen
-  - nur ein aktives Event gleichzeitig
-  - Übersicht zeigt nur laufende Events
-- Sound-Spiel Defaults
-  - Antwortzeit
-  - Punkte pro Soundlösung
-  - Verhalten bei nicht erkannt
-  - direkte Wiederholung vermeiden
-  - Auflösungs-Video erlauben
-- Text-Spiel Defaults
-  - Punkte für komplette Lösung
-  - Teiltreffer-Hinweise
-  - Hinweis allgemein / mit Satznummer / aus
-  - gefundene Wortanzahl anzeigen
-  - Wort pro User/Satz nur einmal zählen
-- Wortpunkte
-  - Wortpunkte aktivieren
-  - Punkte pro neuem Wort
-  - maximales Wortpunkte-Limit pro User/Satz
-  - zusätzlicher Hinweis-Cooldown
-- Overlay Defaults
-  - Top 3 anzeigen
-  - aktuelle Runde anzeigen
-  - Teiltreffer-Hinweise im Overlay erlauben
-
-### Backend
-
-Neu vorbereitet:
-
-- `GET /api/stream-events/config`
-- `POST /api/stream-events/config`
-- Tabelle `stream_events_config`
-
-Die Config wird als globaler JSON-Snapshot gespeichert und normalisiert.
-
-### Nicht enthalten
-
-- Noch keine Chat-Runtime.
-- Noch keine echte Worterkennung.
-- Noch keine automatische Punktevergabe über Chat.
-- Noch kein Sound-Playback.
-- Noch kein produktives Overlay.
-- Rechte/Freigaben sind weiterhin offen.
-
-
----
-
-## EVS-9 – EventBus / Heartbeat Integration
-
-EVS-9 macht die bereits geplante Communication-Bus-Anbindung des Event-Systems als eigenen Backend-Step sichtbar und testbar.
-
-### Ziel
-
-`stream_events` nutzt weiterhin den vorhandenen `communication_bus` / `helper_communication`. Es wird kein eigener paralleler Bus gebaut.
-
-### Enthalten
-
-- Modul-Anmeldung am vorhandenen Communication-Bus.
-- Heartbeat fuer `stream_events`.
-- regelmaessiger Modulstatus ueber den Bus.
-- Status-Publish bei wichtigen Backend-Aktionen:
-  - Config aktualisiert
-  - Texte aktualisiert
-  - Event erstellt
-  - Event bearbeitet
-  - Event validiert
-  - Event gestartet
-  - Event beendet
-  - Event abgebrochen
-  - Punkte vergeben
-  - Ranking aktualisiert
-- Bus-Diagnose-Endpunkt fuer das Event-System:
-  - `GET /api/stream-events/bus-status`
-
-### Bus-Status
-
-Der neue Bus-Status zeigt fuer `stream_events`:
-
-- ob der Communication-Bus erreichbar ist
-- ob das Modul registriert ist
-- ob Heartbeat gestartet wurde
-- letzter Heartbeat
-- letzter Status-Publish
-- Stream-Events-relevante Bus-Events
-- Stream-Events-Bus-Client-Eintrag
-
-### Nicht enthalten
-
-- keine Chat-Runtime
-- keine Twitch-Chat-Auswertung
-- keine Sound-Rotation
-- keine Worterkennung
-- keine automatische Punktevergabe ueber Chat
-- kein Sound-/Video-Playback
-- kein Overlay
-
-
----
-
-## EVS-10 – Text Chat Runtime Prep
-
-EVS-10 erweitert das Event-System um die erste Runtime-Vorbereitung fuer das Text-Spiel.
-
-### Neu
-
-- `stream_events` abonniert den vorhandenen Communication-Bus auf `twitch.chat.message`.
-- Es wird **kein eigener Bus** gebaut.
-- Aktive Text-Events koennen Chatnachrichten auswerten.
-- Mehrere geheime Saetze pro Event werden beruecksichtigt.
-- Ein Satz gilt als geloest, wenn der komplette Satz oder eine erlaubte Antwortvariante exakt erkannt wird.
-- Pro Satz gibt es weiterhin nur den ersten kompletten Loeser.
-- Geloeste Saetze werden ueber die neue Solve-Tabelle als erledigt markiert und danach nicht erneut gewertet.
-- Einzelne Worttreffer werden pro Event/Satz/User/Wort nur einmal gespeichert.
-- Optionale Wortpunkte werden ueber das bestehende Punkte-/Ranking-System gebucht.
-- Teiltreffer- und Loesungs-Meldungen werden als Bus-Payload vorbereitet, aber noch nicht direkt in den Twitch-Chat gesendet.
-
-### Neue DB-Tabellen
-
-- `stream_events_text_word_hits`
-- `stream_events_text_phrase_solves`
-
-### Neue Routen
-
-- `GET /api/stream-events/text-runtime/status`
-- `POST /api/stream-events/text-runtime/test-chat`
-
-### Weiterhin nicht enthalten
-
-- Sound-Rotation
-- Sound-/Video-Playback
-- Overlay-Ausgabe
-- direkte Chat-Ausgabe
-- Dashboard-Statistikansicht
-
-### Test-Hinweis
-
-Der Test-Endpunkt verarbeitet eine simulierte Chatnachricht gegen das aktuell aktive Text-Event. Wenn Wortpunkte oder Loesungspunkte aktiv sind, kann dieser Test echte Punkte im aktiven Event buchen.
-
-
----
-
-## EVS-10b – Text Runtime Test Helpers
-
-EVS-10b ergänzt die EVS-10 Text-Chat-Runtime um sichere Testhelfer, damit die Runtime ohne manuelle DB-Eingriffe geprüft werden kann.
-
-### Neu
-
-- Test-Report für aktive oder angegebene Events.
-- Optionales Anlegen eines vorbereiteten Text-Testevents nur mit ausdruecklichem `confirm=1`.
-- Das Testevent enthält mehrere geheime Sätze, erlaubte Antwortvarianten, Worttreffer, Wortpunkte und Satzloesung.
-- Der bestehende Test-Chat-Endpunkt bleibt erhalten.
-- Kein direkter Twitch-Chat-Send.
-- Keine Sound-/Video-/Overlay-Runtime.
-
-### Neue Routen
-
-- `GET /api/stream-events/text-runtime/report`
-- `POST /api/stream-events/text-runtime/create-test-event?confirm=1`
-
-### Testablauf
-
-1. Testevent anlegen, optional direkt starten.
-2. Mit `test-chat` einzelne Chatnachrichten simulieren.
-3. Mit `report` Worttreffer, Satzloesungen und Ranking prüfen.
-
-### Sicherheit
-
-`create-test-event` ist absichtlich durch `confirm=1` geschützt. Der Endpunkt legt echte Event-Daten an und kann bei `start=true` ein aktives Testevent starten. Der Endpunkt sendet keine Chatnachricht an Twitch.
-
-
-## EVS-11 – Text Chat Output Prep
-
-EVS-11 erweitert die Text-Spiel-Runtime um vorbereitete Chat-Ausgabe-Payloads. Es wird weiterhin nichts direkt in den Twitch-Chat gesendet. Die Runtime erzeugt nur `chatOutput`-Objekte im Bus-Payload, die spaeter von einem separaten Chat-/Bot-Ausgabemodul verarbeitet werden koennen.
-
-Die Textvarianten werden ueber das bestehende `helper_texts` / `module_text_variants` System verwaltet. Pro relevanter Meldung wurden jeweils 5 Varianten im Altersheim-/CGN-/Rentner-/Heimleitungs-Stil als Seed vorbereitet.
-
-Wichtige Textkeys:
-
-- `text.partial.general`
-- `text.partial.with_sentence`
-- `text.word_points.added`
-- `text.phrase.solved`
-- `sound.round.started`
-- `sound.solved`
-- `sound.unresolved`
-- `event.created` / `event.started` / `event.finished`
-- `points.added` / `ranking.updated`
-
-Wichtig: bestehende DB-Varianten werden nicht ueberschrieben. Neue Seeds werden nur ergaenzt, wenn diese Variante noch nicht existiert.
-
-
-## EVS-11b – Text Chat Output Test Visibility
-
-EVS-11b macht vorbereitete Chat-Ausgaben in den Test-Responses sichtbar.
-
-- Satzlösungsergebnisse enthalten jetzt `chatOutput`.
-- `processTextChatMessage` liefert zusätzlich `chatOutputs` und `chatOutputCount`.
-- Worttreffer, Wortpunkte und Satzlösungen können so ohne Twitch-Chat-Ausgabe geprüft werden.
-- `directSend` bleibt weiterhin `false`.
-- Die Ausgabe ist nur vorbereitet und kann später von einem Chat-/Bot-Ausgabemodul übernommen werden.
-
-Keine DB-, Dashboard-, Sound- oder Overlay-Änderung.
-
-
-## EVS-11c – SafeJson Chat Output Fix
-
-Der Fehler `safeJson is not defined` im vorbereiteten Text-Chat-Output wurde behoben. Direkte Twitch-Chat-Ausgabe bleibt weiterhin deaktiviert.
-
-
-## EVS-12 – Text Runtime Dashboard Report
-
-EVS-12 macht die bisher per PowerShell getestete Text-Runtime im Dashboard sichtbar.
-
-### Neu im Dashboard
-
-- Statistik-Tab zeigt nun Ranking, Worttreffer, Satzloesungen und vorbereitete Chatmeldungen fuer das ausgewaehlte Event.
-- Uebersicht zeigt bei laufenden Events direkt Text-Runtime-Zaehler.
-- Report kann im Dashboard per Button neu geladen werden.
-- Vorbereitete Chatmeldungen zeigen weiterhin `directSend=false` und `via=bus_payload`.
-
-### Backend-Erweiterung
-
-`GET /api/stream-events/text-runtime/report` liefert jetzt zusaetzlich rekonstruierte `chatOutputs` als Report-Vorschau. Diese Vorschau basiert auf den gespeicherten Worttreffern/Satzloesungen und den vorhandenen Textvarianten.
-
-### Keine Aenderung
-
-- Keine direkte Twitch-Chat-Ausgabe.
-- Kein Sound-Playback.
-- Kein Overlay.
-- Keine neue Bus-Struktur.
-- Keine destruktive DB-Aenderung.
-
-## EVS-13 – User Statistics Filter / User Detail Report
-
-Neue Statistik-Routen:
-
-- `GET /api/stream-events/statistics/users?eventUid=<eventUid>`
-- `GET /api/stream-events/statistics/user/:login?eventUid=<eventUid>`
-
-Zweck:
-
-- User-Dropdown im Statistik-Tab befüllen.
-- User-spezifische Detailansicht anzeigen.
-- Sichtbar machen: Punkte, Worttreffer, Satzlösungen, beteiligte Events, Timeline.
-- Sound-Bereich ist vorbereitet und nutzt später Sound-bezogene Score-Einträge.
-
-Wichtig:
-
-- Keine direkte Twitch-Chat-Ausgabe.
-- Keine neue Bus-Struktur.
-- Keine destruktive DB-Änderung.
-- Bestehende EVS-12 Runtime/Reports bleiben erhalten.
-
-## EVS-14 – Sound Runtime Prep
-
-EVS-14 ergänzt eine vorbereitende Sound-Spiel-Runtime. Sie nutzt die bestehende Tabelle `stream_events_rounds` und erzeugt Sound-Runden für aktive Events mit aktiviertem Sound-Spiel.
-
-Neue Routen:
-
-- `GET /api/stream-events/sound-runtime/status`
-- `GET /api/stream-events/sound-runtime/report`
-- `POST /api/stream-events/sound-runtime/next-round`
-- `POST /api/stream-events/sound-runtime/resolve`
-- `POST /api/stream-events/sound-runtime/unresolved`
-
-Wichtig: EVS-14 spielt noch keinen Sound direkt ab und fasst die Sound-System-Queue nicht an. Stattdessen wird ein `playback`-Payload vorbereitet, der später an das vorhandene `sound_system` angeschlossen werden kann.
-
-Sound-Runden werden als `game_type='sound'` in `stream_events_rounds` gespeichert. Eine aktive Sound-Runde kann gelöst oder als ungelöst markiert werden. Bei einer korrekten Lösung werden Punkte mit `sourceType='sound_solved'` gebucht und im bestehenden Ranking sichtbar.
-
-
-## EVS-15 – Sound Runtime Test Helpers
-
-EVS-15 ergänzt einen sicheren Helper zum Anlegen eines Sound-Testevents. Die Route `POST /api/stream-events/sound-runtime/create-test-event?confirm=1` erstellt ein Event mit `soundEnabled=true`, Test-Snippets, Antwortvarianten und Punkten. Optional kann mit `{ "start": true }` direkt gestartet werden, sofern kein anderes Event aktiv ist.
-
-Die Sound-Runtime bleibt im Prepared-only-Modus: kein direktes Abspielen, kein Sound-System-Queue-Touch, keine direkte Twitch-Chat-Ausgabe.
-
-
-## EVS-16 – Sound Runtime Dashboard Report
-
-- Sound-Runtime-Report im Statistik-Tab sichtbar gemacht.
-- Backend-Report liefert vorbereitete Sound-ChatOutputs und PlaybackPayloads.
-- Keine direkte Sound-Ausgabe, keine Queue-Berührung, kein Twitch-Chat-Senden.
-
-## EVS-17 – Sound Chat Answer Prep
-
-Stand: 2026-06-13
-
-Dieser Schritt ergänzt die vorbereitete Sound-Runtime um eine Chat-Antwort-Auswertung gegen die aktuell aktive Sound-Runde. Die Auswertung bleibt weiterhin sicher vorbereitet:
-
-- keine direkte Twitch-Chat-Ausgabe
-- kein direktes Sound-Playback
-- keine Sound-System-Queue-Berührung
-- keine neue Bus-Struktur
-
-Neue/erweiterte Funktionen:
-
-- Chatnachrichten aus `twitch.chat.message` werden bei aktivem Sound-Event gegen die aktive Sound-Runde geprüft.
-- Korrekte Antworten lösen die Runde über die vorhandene `resolveSoundRound`-Logik.
-- Punkte werden wie bisher in `stream_events_score_entries` gebucht.
-- Vorbereitete Chat-Payloads für `sound.solved` werden zurückgegeben und per Bus-Payload vorbereitet.
-- Falsche Antworten werden intern gezählt und als Bus-Event `stream_events.sound/answer_missed` vorbereitet, erzeugen aber bewusst keine direkte Chatmeldung.
-
-Neue Test-Route:
-
-```text
+GET  /api/stream-events/sound-runtime/status
+GET  /api/stream-events/sound-runtime/report
+POST /api/stream-events/sound-runtime/create-test-event?confirm=1
+POST /api/stream-events/sound-runtime/next-round
+POST /api/stream-events/sound-runtime/resolve
+POST /api/stream-events/sound-runtime/unresolved
 POST /api/stream-events/sound-runtime/test-chat
 ```
 
-Beispiel:
+## Text-Spiel Fachregeln
 
-```powershell
-Invoke-RestMethod -Method Post -ContentType "application/json" -Body '{"user":"soundtester","message":"heimleitung"}' http://127.0.0.1:8080/api/stream-events/sound-runtime/test-chat
+- Ein Event kann mehrere Geheimsätze enthalten.
+- Jeder Satz wird unabhängig gelöst.
+- Pro Satz gewinnt der erste komplette Löser.
+- Nach Lösung wird der Satz für das Event als gelöst markiert.
+- Worttreffer werden pro Event/Satz/User/Wort nur einmal gespeichert.
+- Wortpunkte sind optional.
+- ChatOutputs werden vorbereitet, aber nicht direkt gesendet.
+
+## Sound-Spiel Fachregeln
+
+- Ein Event kann mehrere Sound-Snippets enthalten.
+- Eine aktive Sound-Runde bezieht sich auf ein Snippet.
+- Richtige Antwort löst die aktive Runde.
+- Falsche Antworten erzeugen keine Chat-Ausgabe.
+- Punkte werden über das gemeinsame Ranking gebucht.
+- Gelöste Runden werden gespeichert.
+- Unresolved-Policy ist vorbereitet.
+- Playback-Payload wird vorbereitet, aber nicht direkt ausgeführt.
+- Debug-Antworten sind nur API-/Dashboard-Testdaten.
+
+## Debug Accepted Answers
+
+Der Sound-Report liefert im Debug-Kontext:
+
+```text
+soundDebug.testOnly = true
+soundDebug.visibleFor = dashboard_api_debug_only
+soundDebug.acceptedAnswersByRound[]
 ```
 
-Wichtige Regel:
+Diese Werte dürfen nicht im Twitch-Chat oder Overlay erscheinen.
 
-Nur eine aktive Sound-Runde kann gelöst werden. Nach einer korrekten Antwort ist die Runde `solved` und weitere Antworten zählen nicht mehr für diese Runde.
+## Sicherheit
 
+Aktuell gelten weiterhin:
 
-## EVS-17b – Sound Debug Accepted Answers
-Der Sound-Report liefert `soundDebug.acceptedAnswersByRound[]`. `next-round` liefert `acceptedAnswersDebug`. Diese Werte sind nur fuer Dashboard/API-Tests gedacht, damit akzeptierte Testantworten nicht geraten werden muessen. Es erfolgt weiterhin kein direktes Sound-Playback und keine direkte Chat-Ausgabe.
+```text
+directSend = false
+directPlay = false
+soundSystemTouched = false
+queueTouched = false
+preparedOnly = true
+```
+
+## Nächster technischer Schritt
+
+EVS-18:
+
+```text
+Echte `twitch.chat.message` Bus-Events für aktive Sound-Runden auswerten.
+```
+
+Dabei dürfen direkte Chat-Ausgabe und Playback weiterhin nicht aktiviert werden.
