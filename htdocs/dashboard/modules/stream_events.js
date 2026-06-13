@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.20";
-  const MODULE_BUILD = "STEP_EVS_24B_STREAMER_FRIENDLY_LIFECYCLE_TEXT";
+  const MODULE_VERSION = "0.5.21";
+  const MODULE_BUILD = "STEP_EVS_25_OVERVIEW_ACTIVE_EVENT_STATUS";
 
   const api = {
     status: '/api/stream-events/status',
@@ -175,9 +175,9 @@ window.StreamEventsModule = (function(){
       <div class="evs-page">
         <div class="evs-header glass">
           <div>
-            <div class="evs-kicker">EVS-24b · einfacher Event-Status</div>
+            <div class="evs-kicker">EVS-25 · Übersicht als Event-Status</div>
             <h2>Event-System</h2>
-            <p>Übersicht zeigt laufende Events. Der Status bleibt einfach: Stream online/offline, aktives Event und ob die Chat-Auswertung gebraucht wird.</p>
+            <p>Übersicht zeigt den aktuellen Event-Stand: läuft gerade ein Event, welche Aufgaben offen sind und wer führt.</p>
           </div>
           <div class="evs-header-actions">
             <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="reload">Aktualisieren</button>
@@ -205,7 +205,6 @@ window.StreamEventsModule = (function(){
       { id: 'texts', label: 'Texte', icon: '💬' },
       { id: 'config', label: 'Config', icon: '⚙️' },
       { id: 'stats', label: 'Statistik', icon: '🏆' },
-      { id: 'safety', label: 'Status', icon: '🟢' },
       { id: 'overlay', label: 'Overlay', icon: '🖥️' }
     ];
   }
@@ -228,28 +227,123 @@ window.StreamEventsModule = (function(){
     if (tab === 'texts') return renderTextsTab();
     if (tab === 'config') return renderConfigTab();
     if (tab === 'stats') return renderStatsTab(event);
-    if (tab === 'safety') return renderSafetyTab(event);
+    if (tab === 'safety') return renderOverviewTab(event);
     if (tab === 'overlay') return renderOverlayTab(event);
     return renderOverviewTab(event);
   }
 
   function renderOverviewTab(ev){
     const activeEvents = state.events.filter(event => norm(event.status) === 'active');
+    const activeEvent = activeEvents[0] || null;
+    const displayEvent = activeEvent || ev || selectedEvent();
     return `
-      <section class="evs-card glass evs-tab-panel">
+      <div class="evs-overview-main">
+        ${renderOverviewStatusCard(activeEvent)}
+        ${activeEvent ? renderOverviewProgressCard(activeEvent) : renderOverviewNoActiveCard()}
+        ${activeEvent ? renderOverviewTopPlayersCard(activeEvent) : ''}
+      </div>
+    `;
+  }
+
+  function renderOverviewStatusCard(activeEvent){
+    const gate = runtimeGate();
+    const stream = gate?.stream || {};
+    const isActive = !!activeEvent && gate?.active === true;
+    const statusText = isActive ? 'AKTIV' : 'INAKTIV';
+    const reasonText = isActive ? `${activeEvent.name || 'Event'} läuft.` : 'Kein Event läuft.';
+    return `
+      <section class="evs-card glass evs-tab-panel evs-overview-status-card">
         <div class="evs-card-head">
           <div>
-            <h3>Laufende Events</h3>
-            <span>Nur aktive Events und schneller Zugriff auf Status/Statistik.</span>
+            <h3>Event-System</h3>
+            <span>${esc(reasonText)}</span>
           </div>
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="reload">Aktualisieren</button>
         </div>
-        ${activeEvents.length ? `
-          <div class="evs-event-card-grid">
-            ${activeEvents.map(renderRunningEventCard).join('')}
+        <div class="evs-safety-banner ${isActive ? 'is-live' : 'is-safe'}">
+          <strong>${isActive ? '🟢 AKTIV' : '⚪ INAKTIV'}</strong>
+          <span>${esc(reasonText)}</span>
+        </div>
+        <div class="evs-mini-grid evs-mini-grid-compact">
+          <div><strong>${esc(stream.online ? 'Online' : 'Offline')}</strong><span>Stream</span></div>
+          <div><strong>${esc(activeEvent?.name || '-')}</strong><span>Laufendes Event</span></div>
+          <div><strong>${esc(activeEvent?.soundEnabled ? 'An' : 'Aus')}</strong><span>Sound-Spiel</span></div>
+          <div><strong>${esc(activeEvent?.textEnabled ? 'An' : 'Aus')}</strong><span>Text-Spiel</span></div>
+        </div>
+      </section>
+    `;
+  }
+
+  function renderOverviewNoActiveCard(){
+    const readyEvents = state.events.filter(event => norm(event.status) === 'ready');
+    return `
+      <section class="evs-card glass evs-tab-panel evs-overview-progress-card">
+        <div class="evs-card-head">
+          <div>
+            <h3>Aktueller Stand</h3>
+            <span>Keine laufende Runde.</span>
           </div>
-          ${renderRuntimeReportPanel(activeEvents[0], true)}
-        ` : '<div class="evs-empty">Aktuell läuft kein Event. Vorbereitete Events findest du im Tab „Events“.</div>'}
+          <button type="button" class="evs-btn evs-btn-secondary" data-evs-tab="events">Events öffnen</button>
+        </div>
+        <div class="evs-empty">Aktuell läuft kein Event. ${readyEvents.length ? `${esc(readyEvents.length)} Event(s) sind startbereit.` : 'Erstelle oder starte ein Event im Tab „Events“.'}</div>
+      </section>
+    `;
+  }
+
+  function renderOverviewProgressCard(event){
+    const soundCfg = event.soundConfig || {};
+    const textCfg = event.textConfig || {};
+    const soundTotal = Array.isArray(soundCfg.snippets) ? soundCfg.snippets.length : 0;
+    const textTotal = Array.isArray(textCfg.phrases) ? textCfg.phrases.length : 0;
+    const soundReport = soundRuntimeReportFor(event);
+    const textReport = runtimeReportFor(event);
+    const soundSolved = reportCount(soundReport, 'solved');
+    const textSolved = reportCount(textReport, 'phraseSolves');
+    const soundOpen = Math.max(soundTotal - soundSolved, 0);
+    const textOpen = Math.max(textTotal - textSolved, 0);
+    const rankingRows = rows(state.ranking?.rows);
+    return `
+      <section class="evs-card glass evs-tab-panel evs-overview-progress-card">
+        <div class="evs-card-head">
+          <div>
+            <h3>Aufgaben & Fortschritt</h3>
+            <span>${esc(event.name || 'Aktives Event')}</span>
+          </div>
+          <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="refreshStatsCurrent" data-uid="${esc(event.eventUid)}">Werte neu laden</button>
+        </div>
+        <div class="evs-mini-grid evs-mini-grid-compact evs-overview-task-grid">
+          <div><strong>${esc(soundTotal)}</strong><span>Sound-Aufgaben</span></div>
+          <div><strong>${esc(soundSolved)}</strong><span>Sound gelöst</span></div>
+          <div><strong>${esc(soundOpen)}</strong><span>Sound offen</span></div>
+          <div><strong>${esc(textTotal)}</strong><span>Text-Aufgaben</span></div>
+          <div><strong>${esc(textSolved)}</strong><span>Text gelöst</span></div>
+          <div><strong>${esc(textOpen)}</strong><span>Text offen</span></div>
+          <div><strong>${esc(rankingRows.length)}</strong><span>Teilnehmer</span></div>
+          <div><strong>${esc(rankingRows[0]?.points || 0)}</strong><span>Top-Punkte</span></div>
+        </div>
+        <div class="evs-action-row evs-action-row-tight">
+          <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="selectEvent" data-uid="${esc(event.eventUid)}" data-target-tab="stats">Statistik öffnen</button>
+          <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="selectEvent" data-uid="${esc(event.eventUid)}" data-target-tab="events">Event verwalten</button>
+          <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="finish" data-uid="${esc(event.eventUid)}">Event beenden</button>
+        </div>
+      </section>
+    `;
+  }
+
+  function renderOverviewTopPlayersCard(event){
+    const rankingRows = rows(state.ranking?.rows);
+    return `
+      <section class="evs-card glass evs-tab-panel evs-overview-ranking-card">
+        <div class="evs-card-head">
+          <div>
+            <h3>Top-Spieler</h3>
+            <span>Aktueller Punktestand im laufenden Event.</span>
+          </div>
+          <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="ranking" data-uid="${esc(event.eventUid)}">Ranking neu laden</button>
+        </div>
+        <div class="evs-ranking evs-ranking-standalone">
+          ${rankingRows.length ? rankingRows.slice(0, 5).map(row => `<div class="evs-rank-row"><strong>#${esc(row.rank)}</strong><span>${esc(row.userDisplayName || row.userLogin)}</span><b>${esc(row.points)} Punkte</b></div>`).join('') : '<div class="evs-empty">Noch keine Punkte.</div>'}
+        </div>
       </section>
     `;
   }
@@ -1489,6 +1583,7 @@ window.StreamEventsModule = (function(){
       if (ev) {
         await loadRanking(ev.eventUid, false);
         await loadTextRuntimeReport(ev.eventUid, false);
+        await loadSoundRuntimeReport(ev.eventUid, false);
         await loadStatisticsUsers(ev.eventUid, false);
       }
     } catch (err) {

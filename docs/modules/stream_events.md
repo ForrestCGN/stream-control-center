@@ -1,12 +1,12 @@
 # Modul-Doku: stream_events
 
-Stand: 2026-06-13 nach EVS-24b – Streamer Friendly Lifecycle Text
+Stand: 2026-06-13 nach EVS-25 – Overview Active Event Status
 
 ## Aktueller Modulstand
 
 ```text
-MODULE_VERSION = 0.5.20
-MODULE_BUILD   = STEP_EVS_24B_STREAMER_FRIENDLY_LIFECYCLE_TEXT
+MODULE_VERSION = 0.5.21
+MODULE_BUILD   = STEP_EVS_25_OVERVIEW_ACTIVE_EVENT_STATUS
 ```
 
 ## Zweck
@@ -164,3 +164,8 @@ Regel für zukünftige Dashboard-Arbeiten:
 Streamer-/Mod-Dashboard = einfache Bedienung.
 Technische Diagnose, interne Flags, API-Details und Payloads = Admin-/Diagnosebereich.
 ```
+
+
+## EVS-25 Overview Active Event Status
+
+EVS-25 verschiebt den normalen Event-Status in die Übersicht. Der separate Status-Tab wird aus der normalen Streamer-/Mod-Navigation entfernt. Die Übersicht zeigt jetzt nur die relevanten Informationen: aktiv/inaktiv, laufendes Event, Stream online/offline und bei aktivem Event Aufgaben/Gelöst/Offen sowie Top-Spieler. Technische Diagnosewerte gehören nicht in die normale Ansicht.

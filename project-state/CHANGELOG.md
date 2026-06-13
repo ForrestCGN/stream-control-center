@@ -1,20 +1,13 @@
-# CHANGELOG
+# CHANGELOG – stream_events
+
+## 2026-06-13 – EVS-25 Overview Active Event Status
+
+- Normaler Status wurde in die Übersicht verschoben.
+- Status-Tab aus der Streamer-/Mod-Navigation entfernt.
+- Übersicht zeigt Aktiv/Inaktiv, laufendes Event, Streamstatus und Aufgaben/Gelöst/Offen.
+- Bei aktivem Event werden Top-Spieler angezeigt.
+- Keine technische Sicherheits-/Dispatcher-Ansicht im normalen Bereich.
 
 ## 2026-06-13 – EVS-24b Streamer Friendly Lifecycle Text
 
-- Event-Lifecycle-Block im normalen Dashboard in „Event verwalten“ umformuliert.
-- API-/eventUid-/interne Confirm-Sprache aus der normalen Bedienansicht entfernt.
-- Löschen wird als einfache, endgültige Aktion mit normaler Bestätigung beschrieben.
-- Statuslabel `archived` wird nun als „Archiviert“ angezeigt.
-- Keine Backend-Live-Ausgabe aktiviert.
-
-## 2026-06-13 – EVS-24a Dashboard Status Simplify
-
-- Dashboard-Header auf EVS-24a korrigiert.
-- Normale Statusansicht vereinfacht.
-- Technischen ChatOutput-Sicherheitsblock aus der normalen Statusansicht entfernt.
-- Keine Backend-Live-Ausgabe aktiviert.
-
-## 2026-06-13 – EVS-24 Simple Active Event Runtime Gate
-
-- Runtime-Gate nach Stream Online/Offline und aktivem Event eingeführt.
+- Lifecycle-Texte für Streamer/Mods vereinfacht.

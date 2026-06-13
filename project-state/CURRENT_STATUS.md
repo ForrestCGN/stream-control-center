@@ -1,22 +1,17 @@
-# CURRENT STATUS
+# CURRENT_STATUS – stream_events
 
-Stand: 2026-06-13 nach EVS-24b – Streamer Friendly Lifecycle Text
+Stand: 2026-06-13 nach EVS-25 – Overview Active Event Status
 
-## Aktueller Stand
+EVS-25 macht die Übersicht zur normalen Statusseite des Event-Systems. Der eigene Status-Tab wurde aus der Streamer-/Mod-Navigation entfernt.
 
-EVS-24b räumt die normale Dashboard-Statusansicht weiter auf. Der Statusbereich bleibt für Streamer und Mods einfach: Aktiv/Inaktiv, Grund, Stream Online/Offline, laufendes Event und Sound/Text-Status.
+## Aktueller Build
 
-Der Event-Verwaltungsbereich nutzt jetzt freundlichere Texte: keine API-Sprache, keine technische Confirm-Erklärung und keine eventUid als Hauptinformation. Löschen fragt im Dashboard weiterhin genau eine normale Bestätigung ab.
+- MODULE_VERSION = 0.5.21
+- MODULE_BUILD = STEP_EVS_25_OVERVIEW_ACTIVE_EVENT_STATUS
 
-## Version
+## Bestätigte Linie
 
-- MODULE_VERSION = 0.5.20
-- MODULE_BUILD = STEP_EVS_24B_STREAMER_FRIENDLY_LIFECYCLE_TEXT
-
-## Unverändert
-
-- Kein Twitch-Live-Senden.
-- Kein Sound-Playback.
-- Keine Sound-System-Queue-Berührung.
-- Runtime-Gate bleibt aktiv.
-- Backend-Schutz für Delete bleibt intern erhalten.
+- Normales Dashboard bleibt streamer-/modfreundlich.
+- Technische Diagnose gehört später in Admin/Diagnose, nicht in die normale Ansicht.
+- Übersicht zeigt Aktiv/Inaktiv und bei laufendem Event Aufgaben/Gelöst/Offen.
+- Kein Twitch-Live-Senden in diesem Step.

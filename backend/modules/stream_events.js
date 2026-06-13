@@ -20,8 +20,8 @@ let streamStatusModule = null;
 try { streamStatusModule = require("./stream_status"); } catch (_) { streamStatusModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.20";
-const MODULE_BUILD = "STEP_EVS_24B_STREAMER_FRIENDLY_LIFECYCLE_TEXT";
+const MODULE_VERSION = "0.5.21";
+const MODULE_BUILD = "STEP_EVS_25_OVERVIEW_ACTIVE_EVENT_STATUS";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";

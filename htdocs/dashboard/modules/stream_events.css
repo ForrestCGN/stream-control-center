@@ -321,3 +321,24 @@
 /* EVS-24 Simple Active Event Runtime Gate */
 .stream-events-admin .evs-runtime-gate-panel{display:grid;gap:14px;align-content:start}
 .stream-events-admin .evs-runtime-gate-panel .evs-safety-banner.is-live{border-color:rgba(34,197,94,.44);background:linear-gradient(135deg,rgba(22,101,52,.24),rgba(8,47,73,.16));box-shadow:0 0 20px rgba(34,197,94,.10)}
+
+/* EVS-25: Übersicht als normale Event-Statusseite */
+.evs-overview-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+.evs-overview-status-card,
+.evs-overview-progress-card,
+.evs-overview-ranking-card {
+  min-width: 0;
+}
+
+.evs-overview-task-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.evs-overview-ranking-card .evs-ranking-standalone {
+  margin-top: 4px;
+}
