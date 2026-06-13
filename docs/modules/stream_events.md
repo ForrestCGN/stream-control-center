@@ -916,3 +916,7 @@ Invoke-RestMethod -Method Post -ContentType "application/json" -Body '{"user":"s
 Wichtige Regel:
 
 Nur eine aktive Sound-Runde kann gelöst werden. Nach einer korrekten Antwort ist die Runde `solved` und weitere Antworten zählen nicht mehr für diese Runde.
+
+
+## EVS-17b – Sound Debug Accepted Answers
+Der Sound-Report liefert `soundDebug.acceptedAnswersByRound[]`. `next-round` liefert `acceptedAnswersDebug`. Diese Werte sind nur fuer Dashboard/API-Tests gedacht, damit akzeptierte Testantworten nicht geraten werden muessen. Es erfolgt weiterhin kein direktes Sound-Playback und keine direkte Chat-Ausgabe.

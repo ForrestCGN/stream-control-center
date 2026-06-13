@@ -544,6 +544,7 @@ window.StreamEventsModule = (function(){
     const scoreEntries = Array.isArray(report?.scoreEntries) ? report.scoreEntries : [];
     const chatOutputs = Array.isArray(report?.chatOutputs) ? report.chatOutputs : [];
     const playbackPayloads = Array.isArray(report?.playbackPayloads) ? report.playbackPayloads : [];
+    const soundDebugRounds = Array.isArray(report?.soundDebug?.acceptedAnswersByRound) ? report.soundDebug.acceptedAnswersByRound : [];
     if (!report) {
       return `<div class="evs-runtime-report evs-runtime-report-empty evs-sound-report"><div class="evs-empty">Sound-Runtime-Report noch nicht geladen.</div><button type="button" class="evs-btn evs-btn-secondary" data-evs-action="soundRuntimeReport" data-uid="${esc(event.eventUid)}">Sound-Report laden</button></div>`;
     }
@@ -565,7 +566,9 @@ window.StreamEventsModule = (function(){
             ${rounds.length ? rounds.slice(0, compact ? 5 : 16).map(round => {
               const snippet = round.config?.snippet || {};
               const result = round.resultData || {};
-              return `<div class="evs-runtime-row"><strong>${esc(snippet.title || round.itemUid || round.roundUid)}</strong><span>${esc(soundRoundStatusLabel(round.status || round.result))} · ${esc(round.roundUid)}</span><small>${fmtDate(round.startedAt || round.createdAt)}${round.finishedAt ? ` → ${fmtDate(round.finishedAt)}` : ''}${result.userDisplayName ? ` · ${esc(result.userDisplayName)} · +${esc(result.points || 0)}` : ''}</small></div>`;
+              const debugRound = soundDebugRounds.find(item => item.roundUid === round.roundUid) || {};
+              const answersText = debugRound.acceptedAnswersDebug?.acceptedAnswersText || (Array.isArray(snippet.acceptedAnswers) ? snippet.acceptedAnswers.join(' | ') : '');
+              return `<div class="evs-runtime-row"><strong>${esc(snippet.title || round.itemUid || round.roundUid)}</strong><span>${esc(soundRoundStatusLabel(round.status || round.result))} · ${esc(round.roundUid)}</span><small>${fmtDate(round.startedAt || round.createdAt)}${round.finishedAt ? ` → ${fmtDate(round.finishedAt)}` : ''}${result.userDisplayName ? ` · ${esc(result.userDisplayName)} · +${esc(result.points || 0)}` : ''}</small>${answersText ? `<small class="evs-debug-answer-list">Test-Antworten: ${esc(answersText)}</small>` : ''}</div>`;
             }).join('') : '<div class="evs-empty">Noch keine Sound-Runden.</div>'}
           </section>
 

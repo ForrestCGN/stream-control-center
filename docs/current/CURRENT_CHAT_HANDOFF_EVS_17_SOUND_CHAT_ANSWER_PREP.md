@@ -48,3 +48,9 @@ Mit aktivem Sound-Testevent und aktiver Runde:
 Invoke-RestMethod -Method Post -ContentType "application/json" -Body '{"user":"soundtester","message":"heimleitung"}' http://127.0.0.1:8080/api/stream-events/sound-runtime/test-chat
 Invoke-RestMethod http://127.0.0.1:8080/api/stream-events/sound-runtime/report
 ```
+
+
+## EVS-17b – Sound Debug Accepted Answers
+- Accepted-Answers werden fuer API-/Dashboard-Test sichtbar gemacht.
+- Nur Debug/Test sichtbar, nicht Overlay/Chat.
+- Keine Runtime-, DB- oder Playback-Aenderung.

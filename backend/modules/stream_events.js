@@ -17,8 +17,8 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.3";
-const MODULE_BUILD = "STEP_EVS_17_SOUND_CHAT_ANSWER_PREP";
+const MODULE_VERSION = "0.5.4";
+const MODULE_BUILD = "STEP_EVS_17B_SOUND_DEBUG_ACCEPTED_ANSWERS";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -1594,6 +1594,18 @@ function getSoundRuntimeConfig(event = {}) {
   };
 }
 
+function buildSoundAcceptedAnswersDebug(snippet = {}) {
+  const answers = Array.isArray(snippet.acceptedAnswers) ? snippet.acceptedAnswers.map(cleanString).filter(Boolean) : [];
+  return {
+    testOnly: true,
+    visibleFor: "dashboard_api_debug_only",
+    acceptedAnswerCount: answers.length,
+    acceptedAnswers: answers,
+    acceptedAnswersText: answers.join(" | "),
+    note: "Nur fuer Dashboard/API-Test sichtbar. Nicht fuer Overlay oder Twitch-Chat verwenden."
+  };
+}
+
 function rowToRound(row) {
   if (!row) return null;
   return {
@@ -1735,7 +1747,7 @@ function createSoundRound(options = {}) {
   markAction("sound.round.started", event.eventUid);
   emitBus("stream_events.sound", "round_started", { eventUid: event.eventUid, round, snippet: safeJson(snippet, {}), playback, chatOutput });
   publishStatus("sound.round_started", { lastEventUid: event.eventUid, roundUid });
-  return { ok: true, eventUid: event.eventUid, round, snippet, playback, chatOutput, directPlayback: false };
+  return { ok: true, eventUid: event.eventUid, round, snippet, acceptedAnswersDebug: buildSoundAcceptedAnswersDebug(snippet), playback, chatOutput, directPlayback: false };
 }
 
 function answerMatchesSoundSnippet(answer, snippet = {}) {
@@ -1907,7 +1919,7 @@ function getSoundRuntimeStatus(eventUid = "") {
     activeEvent: publicEventSummary(event),
     activeSoundRuntime: Boolean(event && event.status === STATUS.ACTIVE && event.soundEnabled),
     activeRound,
-    snippets: event ? getSoundSnippets(event).map(item => ({ snippetUid: item.snippetUid, title: item.title, mediaId: item.mediaId, acceptedAnswerCount: item.acceptedAnswers.length, points: item.points })) : [],
+    snippets: event ? getSoundSnippets(event).map(item => ({ snippetUid: item.snippetUid, title: item.title, mediaId: item.mediaId, acceptedAnswerCount: item.acceptedAnswers.length, acceptedAnswersDebug: buildSoundAcceptedAnswersDebug(item), points: item.points })) : [],
     runtimeConfig: event ? getSoundRuntimeConfig(event) : getSoundRuntimeConfig(null),
     counters: safeJson(runtimeState.counters, {}),
     rules: {
@@ -2020,6 +2032,20 @@ function getSoundRuntimeReport(eventUid = "") {
     activeEvent: publicEventSummary(getActiveEvent()),
     event: publicEventSummary(eventRow),
     eventUid: uid,
+    soundDebug: {
+      testOnly: true,
+      visibleFor: "dashboard_api_debug_only",
+      acceptedAnswersByRound: rounds.map(round => {
+        const snippet = round && round.config && round.config.snippet ? round.config.snippet : {};
+        return {
+          roundUid: round.roundUid,
+          snippetUid: snippet.snippetUid || round.itemUid || "",
+          title: snippet.title || round.itemUid || "",
+          status: round.status || round.result || "",
+          acceptedAnswersDebug: buildSoundAcceptedAnswersDebug(snippet)
+        };
+      })
+    },
     counts: {
       rounds: rounds.length,
       active: rounds.filter(row => row.status === "active").length,
@@ -2115,6 +2141,20 @@ function getTextRuntimeReport(eventUid = "") {
     activeEvent: publicEventSummary(getActiveEvent()),
     event: publicEventSummary(selectedEvent),
     eventUid: uid,
+    soundDebug: {
+      testOnly: true,
+      visibleFor: "dashboard_api_debug_only",
+      acceptedAnswersByRound: rounds.map(round => {
+        const snippet = round && round.config && round.config.snippet ? round.config.snippet : {};
+        return {
+          roundUid: round.roundUid,
+          snippetUid: snippet.snippetUid || round.itemUid || "",
+          title: snippet.title || round.itemUid || "",
+          status: round.status || round.result || "",
+          acceptedAnswersDebug: buildSoundAcceptedAnswersDebug(snippet)
+        };
+      })
+    },
     counts: {
       wordHits: wordHits.length,
       phraseSolves: phraseSolves.length,
