@@ -17,8 +17,8 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.6";
-const MODULE_BUILD = "STEP_EVS_19_SOUND_TEXT_PARALLEL_AND_RUNTIME";
+const MODULE_VERSION = "0.5.7";
+const MODULE_BUILD = "STEP_EVS_19A_STEALTH_TEST_EVENT_FIX";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -1227,6 +1227,18 @@ function getPhraseUid(phrase = {}, index = 0) {
 
 function getPhraseText(phrase = {}) {
   return cleanString(phrase.phrase || phrase.text || phrase.solution || phrase.name);
+}
+
+function getTextPhrases(event = {}) {
+  const raw = event && event.textConfig && typeof event.textConfig === "object" ? event.textConfig : {};
+  const phrases = Array.isArray(raw.phrases) ? raw.phrases : [];
+  return phrases.map((phrase, index) => ({
+    phraseUid: getPhraseUid(phrase, index),
+    phrase: getPhraseText(phrase),
+    acceptedAnswers: Array.isArray(phrase.acceptedAnswers) ? phrase.acceptedAnswers.map(cleanString).filter(Boolean) : [],
+    pointsFirst: clampNumber(phrase.pointsFirst ?? phrase.firstPoints ?? phrase.points, 0, 10000, 0),
+    raw: safeJson(phrase, {})
+  })).filter(item => item.phrase || item.acceptedAnswers.length);
 }
 
 function phraseIsSolved(eventUid, phraseUid) {

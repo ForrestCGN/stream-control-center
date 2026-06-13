@@ -3,10 +3,18 @@
 Stand: 2026-06-13 nach EVS-19
 
 
+
+## EVS-19a – Stealth Test Event Fix
+
+- Fehler `getTextPhrases is not defined` im neuen Stealth-Testevent-Endpunkt behoben.
+- Lokalen Helper `getTextPhrases(event)` ergänzt.
+- Keine Änderung an direkter Chat-Ausgabe, Playback oder Sound-System-Queue.
+- EVS-19-UND-Regel bleibt aktiv: Sound und Text prüfen dieselbe Chatnachricht parallel.
+
 ## EVS-19 – Sound/Text Parallel AND Runtime
 
 - `MODULE_VERSION` auf `0.5.6` erhöht.
-- `MODULE_BUILD` auf `STEP_EVS_19_SOUND_TEXT_PARALLEL_AND_RUNTIME` gesetzt.
+- `MODULE_BUILD` auf `STEP_EVS_19A_STEALTH_TEST_EVENT_FIX` gesetzt.
 - Neue Parallel-UND-Auswertung ergänzt: eine Chatnachricht wird bei aktivem Kombi-Event an Sound und Text gegeben.
 - Soundlösung blockiert Textprüfung nicht mehr.
 - Textlösung blockiert Soundprüfung nicht.

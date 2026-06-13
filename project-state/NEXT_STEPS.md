@@ -90,3 +90,11 @@ soundSystemQueueTouched = False
 - Sollen Sound-Misses bei jedem Chat gezählt werden oder nur bei Nachrichten mit Mindestähnlichkeit?
 - Soll eine kombinierte ChatOutput-Zusammenfassung gebaut werden, wenn Sound und Text gleichzeitig gelöst werden?
 - Wie sollen Live-Schalter im Dashboard exakt heißen und wer darf sie aktivieren?
+
+
+## Direkt nach EVS-19a testen
+
+- Stealth-Testevent erneut anlegen.
+- Eine aktive Soundrunde starten.
+- Eine Nachricht testen, die Sound und Text gleichzeitig treffen kann.
+- Prüfen: Soundpunkte und Textpunkte werden beide gebucht, `directSend=false`, `directPlay=false`.

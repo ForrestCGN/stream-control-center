@@ -9,8 +9,8 @@ Das Modul `stream_events` ist im `stream-control-center` als Backend- und Dashbo
 Aktueller technischer Stand der zuletzt getesteten Dateien:
 
 ```text
-MODULE_VERSION: 0.5.6
-MODULE_BUILD: STEP_EVS_19_SOUND_TEXT_PARALLEL_AND_RUNTIME
+MODULE_VERSION: 0.5.7
+MODULE_BUILD: STEP_EVS_19A_STEALTH_TEST_EVENT_FIX
 ```
 
 EVS-18c ist ein Doku-/Lifecycle-Regel-Step. Es gab keine Codeänderung und keine Modulversionserhöhung.
@@ -174,3 +174,8 @@ preparedOnly=true
 ```
 
 Noch ausstehend: Live-/API-Test nach StepDone.
+
+
+## EVS-19a Fixstatus
+
+Der Fehler `getTextPhrases is not defined` im Stealth-Testevent-Endpunkt wurde behoben. Modulstand ist `MODULE_VERSION: 0.5.7` / `MODULE_BUILD: STEP_EVS_19A_STEALTH_TEST_EVENT_FIX`. EVS-19-UND-Auswertung bleibt unverändert aktiv.
