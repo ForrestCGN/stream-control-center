@@ -6,7 +6,7 @@ Stand: 2026-06-13 nach EVS-19
 
 
 
-## EVS-19c – Parallel Test Options Fix
+## EVS-19d – Parallel Test Options Fix
 
 - `chat-runtime/test-chat` nutzt nun korrekt die uebergebene `eventUid` aus dem Test-Kontext.
 - Fehler `options is not defined` im parallelen Testpfad behoben.

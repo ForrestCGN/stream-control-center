@@ -17,8 +17,8 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.9";
-const MODULE_BUILD = "STEP_EVS_19C_PARALLEL_TEST_OPTIONS_FIX";
+const MODULE_VERSION = "0.5.10";
+const MODULE_BUILD = "STEP_EVS_19D_PARALLEL_CONTEXT_EVENTUID_FIX";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -1538,7 +1538,7 @@ function processTextChatMessage(chat = {}, options = {}) {
 
 function processParallelChatMessage(chat = {}, context = {}) {
   const source = cleanString(context.source, "api:parallel-test-chat");
-  const event = cleanString(options.eventUid) ? getEventByUid(options.eventUid) : getActiveEvent();
+  const event = cleanString(context.eventUid) ? getEventByUid(context.eventUid) : getActiveEvent();
   if (!event) {
     runtimeState.counters.textRuntimeSkipped += 1;
     runtimeState.counters.soundRuntimeSkipped += 1;

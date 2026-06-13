@@ -9,8 +9,8 @@ Das Modul `stream_events` ist im `stream-control-center` als Backend- und Dashbo
 Aktueller technischer Stand der zuletzt getesteten Dateien:
 
 ```text
-MODULE_VERSION: 0.5.9
-MODULE_BUILD: STEP_EVS_19C_PARALLEL_TEST_OPTIONS_FIX
+MODULE_VERSION: 0.5.10
+MODULE_BUILD: STEP_EVS_19D_PARALLEL_CONTEXT_EVENTUID_FIX
 ```
 
 EVS-18c ist ein Doku-/Lifecycle-Regel-Step. Es gab keine Codeänderung und keine Modulversionserhöhung.
@@ -125,7 +125,7 @@ ForrestCGN: 45 Punkte / 2 Einträge
 ```
 
 
-### EVS-19c – Parallel Test Event Activation Fix
+### EVS-19d – Parallel Test Event Activation Fix
 
 - Stealth-Testevent-Helper startet neue Kombi-Testevents standardmäßig.
 - Alte aktive Test-/Stealth-Events werden beim Helper als `finished` archiviert, nicht gelöscht.
@@ -187,4 +187,4 @@ Noch ausstehend: Live-/API-Test nach StepDone.
 
 ## EVS-19a Fixstatus
 
-Der Fehler `getTextPhrases is not defined` im Stealth-Testevent-Endpunkt wurde behoben. Modulstand ist `MODULE_VERSION: 0.5.9` / `MODULE_BUILD: STEP_EVS_19C_PARALLEL_TEST_OPTIONS_FIX`. EVS-19-UND-Auswertung bleibt unverändert aktiv.
+Der Fehler `getTextPhrases is not defined` im Stealth-Testevent-Endpunkt wurde behoben. Modulstand ist `MODULE_VERSION: 0.5.10` / `MODULE_BUILD: STEP_EVS_19D_PARALLEL_CONTEXT_EVENTUID_FIX`. EVS-19-UND-Auswertung bleibt unverändert aktiv.

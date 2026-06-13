@@ -33,7 +33,7 @@ Stand: 2026-06-13 nach EVS-19
 
 ## Kurzfristig offen
 
-- [x] EVS-19c Parallel Test Options Fix: `chat-runtime/test-chat` nutzt die uebergebene `eventUid` korrekt.
+- [x] EVS-19d Parallel Test Options Fix: `chat-runtime/test-chat` nutzt die uebergebene `eventUid` korrekt.
 
 
 - [x] `POST /api/stream-events/chat-runtime/create-stealth-test-event?confirm=1` vorbereitet.
