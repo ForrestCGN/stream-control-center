@@ -361,3 +361,51 @@ Vorgabe:
 - Keine parallele Textstruktur bauen.
 - Später Dashboard-Editor für Config und Textvarianten einplanen.
 ```
+
+
+---
+
+## EVS-6 – Text Multi-Phrase Config Prep
+
+EVS-6 setzt die abgestimmten Mod-Team-Regeln für das Text-Spiel in Dashboard-Vorbereitung und Backend-Validierung um.
+
+### Text-Spiel Regeln
+
+- Ein Text-Spiel kann mehrere geheime Sätze enthalten.
+- Jeder Satz ist einzeln lösbar.
+- Der erste komplette Löser eines Satzes bekommt die Lösungspunkte.
+- Danach wird nur dieser Satz aus der Event-Rotation entfernt.
+- Andere Sätze bleiben offen.
+- Teiltreffer können optional gemeldet werden.
+- Teiltreffer können allgemein oder mit Satznummer gemeldet werden.
+- Optional kann die Anzahl gefundener Wörter angezeigt werden.
+- Optional können neue gefundene Wörter Punkte geben.
+- Jedes Wort zählt pro Event/Satz/User nur einmal.
+- Optional gibt es ein Wortpunkte-Limit pro User und Satz.
+
+### Dashboard-Felder
+
+- Mehrere geheime Sätze mit `+ Satz hinzufügen`.
+- Pro Satz: Geheimsatz, erlaubte Antworten/Varianten, Punkte für komplette Lösung.
+- Globale Text-Spiel-Regeln: Teiltreffer melden, Cooldown, Trefferzahl anzeigen, Wortpunkte aktivieren, Punkte pro Wort, Maximalpunkte pro User/Satz.
+
+### Backend-Felder
+
+Die Backend-Validierung akzeptiert/kennt unter anderem:
+
+- `textConfig.phrases[]`
+- `textConfig.partialHintVisibility`
+- `textConfig.showPartialCount`
+- `textConfig.wordPointsEnabled`
+- `textConfig.pointsPerNewWord`
+- `textConfig.maxWordPointsPerUserPhrase`
+- `textConfig.partialHintCooldownSeconds`
+
+### Noch offen
+
+- Runtime-Chat-Erkennung.
+- Speicherung der bereits gefundenen Wörter pro Event/Satz/User.
+- Punktevergabe für Worttreffer.
+- Entfernen gelöster Sätze aus der laufenden Rotation.
+- Config-Dashboard allgemein.
+- Text-Config/Multi-Texte im Dashboard über vorhandene Text-Helper.

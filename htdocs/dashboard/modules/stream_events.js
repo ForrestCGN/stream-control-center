@@ -89,6 +89,7 @@ window.StreamEventsModule = (function(){
     if (key === 'sound.answer_seconds_very_short') return 'Antwortzeit für Sound ist sehr kurz.';
     if (key.includes('.answers_empty_uses_phrase')) return 'Beim Text-Rätsel fehlen Antwortvarianten; der Geheimsatz wird als Lösung genutzt.';
     if (key.includes('.points_not_set')) return 'Beim Text-Rätsel sind keine Punkte gesetzt.';
+    if (key === 'text.word_points_enabled_but_zero_points') return 'Wortpunkte sind aktiv, aber Punkte pro Wort stehen auf 0.';
     return key;
   }
 
@@ -123,9 +124,9 @@ window.StreamEventsModule = (function(){
       <div class="evs-page">
         <div class="evs-header glass">
           <div>
-            <div class="evs-kicker">EVS-5b · Text-Spiel Regeln</div>
+            <div class="evs-kicker">EVS-6 · Text-Multi-Sätze</div>
             <h2>Event-System</h2>
-            <p>Events vorbereiten, Sound/Text auswählen und Medien sauber über das vorhandene Media-System verknüpfen. Gameplay, Chat-Auswertung und Playback kommen später.</p>
+            <p>Events vorbereiten, Sound/Text auswählen und Medien sauber über das vorhandene Media-System verknüpfen. Multi-Satz-Textspiel und Wortpunkte werden vorbereitet. Chat-Auswertung und Playback kommen später.</p>
           </div>
           <div class="evs-header-actions">
             <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="reload">Aktualisieren</button>
@@ -232,12 +233,35 @@ window.StreamEventsModule = (function(){
 
   function modalEvent(){ return state.modal?.event || {}; }
 
+  function renderPhraseEditor(phrase, index, total){
+    const answerValue = Array.isArray(phrase.acceptedAnswers) ? phrase.acceptedAnswers.join(', ') : '';
+    return `
+      <section class="evs-phrase-row" data-evs-phrase-row data-index="${index}">
+        <div class="evs-phrase-head">
+          <div>
+            <strong>Satz ${index + 1}</strong>
+            <small>Komplette Lösung gewinnt · Teiltreffer werden aus den Wörtern dieses Satzes berechnet</small>
+          </div>
+          <button type="button" class="evs-icon-btn evs-icon-btn-danger" data-evs-action="removePhrase" data-index="${index}" ${total <= 1 ? 'disabled title="Mindestens ein Satz bleibt sichtbar"' : ''}>×</button>
+        </div>
+        <label>Geheimsatz<textarea data-evs-phrase-text rows="3" placeholder="z. B. Forrest und Engel machen Party...">${esc(phrase.phrase || phrase.text || phrase.solution || '')}</textarea></label>
+        <div class="evs-two-cols evs-text-answers-points">
+          <label>Erlaubte Antworten / Varianten <span class="evs-inline-optional">Optional</span><input data-evs-phrase-answers value="${esc(answerValue)}" placeholder="optional, z. B. forrest engel party, forrest und engel machen party"></label>
+          <label>Punkte für komplette Lösung<input data-evs-phrase-points type="number" min="0" value="${esc(phrase.pointsFirst || phrase.points || 40)}"></label>
+        </div>
+      </section>
+    `;
+  }
+
   function renderModal(){
     const event = modalEvent();
     const sound = event.soundConfig || {};
     const snippet = Array.isArray(sound.snippets) && sound.snippets[0] ? sound.snippets[0] : {};
     const text = event.textConfig || {};
-    const phrase = Array.isArray(text.phrases) && text.phrases[0] ? text.phrases[0] : {};
+    const phrases = Array.isArray(text.phrases) && text.phrases.length ? text.phrases : [{}];
+    const partialMode = text.partialHintVisibility || text.partialHintDisplayMode || (text.hintTokensEnabled === false || text.partialHintsEnabled === false ? 'off' : (text.partialHintWithSentence === true ? 'with_sentence' : 'general'));
+    const showPartialCount = text.showPartialCount === true || text.partialHintShowCount === true;
+    const wordPointsEnabled = text.wordPointsEnabled === true;
     return `
       <div class="evs-modal-backdrop" data-evs-modal-close="1">
         <div class="evs-modal glass" role="dialog" aria-modal="true">
@@ -305,37 +329,42 @@ window.StreamEventsModule = (function(){
               <summary>Text-Spiel konfigurieren</summary>
               <div class="evs-text-simple">
                 <div class="evs-text-rule-note">
-                  <strong>Regel:</strong> Der erste komplette Löser bekommt die Punkte. Danach ist dieser Satz im aktuellen Event erledigt und kommt aus der Rotation.
+                  <strong>Regel:</strong> Ein Text-Spiel kann mehrere geheime Sätze enthalten. Pro Satz gewinnt der erste komplette Löser. Danach ist nur dieser Satz erledigt und kommt aus der Rotation.
                 </div>
 
                 <div class="evs-form-row-head">
                   <div>
-                    <strong>Geheimsatz / Lösungssatz</strong>
-                    <small>Pflicht · aus diesem Satz werden die Teiltreffer-Wörter automatisch erkannt</small>
+                    <strong>Geheime Sätze</strong>
+                    <small>Pflicht · jeder Satz ist einzeln lösbar und kann eigene Antwortvarianten/Punkte haben</small>
                   </div>
-                  <span class="evs-badge evs-badge-warn">Pflicht</span>
+                  <button type="button" class="evs-btn evs-btn-secondary evs-btn-small" data-evs-action="addPhrase">+ Satz hinzufügen</button>
                 </div>
-                <label>Geheimsatz<textarea id="evsPhraseText" rows="3" placeholder="z. B. Forrest und Engel machen Party...">${esc(phrase.phrase || phrase.text || phrase.solution || '')}</textarea></label>
 
-                <div class="evs-two-cols evs-text-answers-points">
-                  <label>Erlaubte Antworten / Varianten <span class="evs-inline-optional">Optional</span><input id="evsPhraseAnswers" value="${esc((phrase.acceptedAnswers || []).join(', '))}" placeholder="optional, z. B. forrest engel party, forrest und engel machen party"></label>
-                  <label>Punkte für den ersten richtigen Löser<input id="evsPhrasePoints" type="number" min="0" value="${esc(phrase.pointsFirst || phrase.points || 40)}"></label>
+                <div class="evs-phrase-list">
+                  ${phrases.map((item, index) => renderPhraseEditor(item, index, phrases.length)).join('')}
                 </div>
 
                 <div class="evs-partial-hints-box">
                   <div class="evs-form-row-head">
                     <div>
-                      <strong>Teiltreffer-Hinweise</strong>
-                      <small>Optional · User bekommen Hinweise, wenn sie neue Wörter aus dem Geheimsatz treffen</small>
+                      <strong>Teiltreffer & Wortpunkte</strong>
+                      <small>Optional · User können Hinweise oder Punkte bekommen, wenn sie neue Wörter aus einem Satz treffen</small>
                     </div>
                     <span class="evs-badge evs-badge-muted">Optional</span>
                   </div>
-                  <label class="evs-check evs-check-compact"><input id="evsPhrasePartialHintsEnabled" type="checkbox" ${text.hintTokensEnabled === false || text.partialHintsEnabled === false ? '' : 'checked'}> Teiltreffer im Chat melden</label>
-                  <div class="evs-two-cols">
-                    <label>Hinweis-Regel<select id="evsPhrasePartialHintMode"><option value="new_words_per_user" ${text.partialHintMode !== 'improved_count' ? 'selected' : ''}>Neue Wörter pro User nur einmal melden</option><option value="improved_count" ${text.partialHintMode === 'improved_count' ? 'selected' : ''}>Nur melden, wenn sich die Trefferzahl verbessert</option></select></label>
-                    <label>Zusätzlicher Cooldown in Sekunden<input id="evsPhrasePartialHintCooldown" type="number" min="0" value="${esc(text.partialHintCooldownSeconds ?? text.hintCooldownSeconds ?? 0)}"></label>
+                  <div class="evs-two-cols evs-text-config-grid">
+                    <label>Teiltreffer melden<select id="evsTextPartialHintVisibility"><option value="off" ${partialMode === 'off' ? 'selected' : ''}>Nicht melden</option><option value="general" ${partialMode === 'general' ? 'selected' : ''}>Allgemein melden</option><option value="with_sentence" ${partialMode === 'with_sentence' ? 'selected' : ''}>Mit Satznummer melden</option></select></label>
+                    <label>Zusätzlicher Cooldown in Sekunden<input id="evsTextPartialHintCooldown" type="number" min="0" value="${esc(text.partialHintCooldownSeconds ?? text.hintCooldownSeconds ?? 0)}"></label>
                   </div>
-                  <small class="evs-help">Teiltreffer geben keine Punkte. Pro Event, Satz und User wird gemerkt, welche Wörter bereits erkannt wurden.</small>
+                  <div class="evs-choice-row evs-choice-row-compact">
+                    <label class="evs-check evs-check-compact"><input id="evsTextShowPartialCount" type="checkbox" ${showPartialCount ? 'checked' : ''}> Anzahl gefundener Wörter anzeigen</label>
+                    <label class="evs-check evs-check-compact"><input id="evsTextWordPointsEnabled" type="checkbox" ${wordPointsEnabled ? 'checked' : ''}> Punkte für gefundene Wörter</label>
+                  </div>
+                  <div class="evs-two-cols evs-text-config-grid">
+                    <label>Punkte pro neues Wort<input id="evsTextPointsPerWord" type="number" min="0" value="${esc(text.pointsPerNewWord ?? text.wordPointsPerNewWord ?? 1)}"></label>
+                    <label>Max. Wortpunkte pro User/Satz<input id="evsTextMaxWordPoints" type="number" min="0" value="${esc(text.maxWordPointsPerUserPhrase ?? text.maxWordPointsPerUserAndPhrase ?? 5)}"></label>
+                  </div>
+                  <small class="evs-help">Ein Wort zählt pro Event, Satz und User nur einmal. Wortpunkte sind optional und werden später in der Chat-Runtime umgesetzt.</small>
                 </div>
               </div>
             </details>
@@ -371,19 +400,32 @@ window.StreamEventsModule = (function(){
       snippets: snippetTitle || snippetMedia || snippetAnswers.length ? [{ title: snippetTitle, mediaId: snippetMedia, acceptedAnswers: snippetAnswers, revealVideoMediaId: snippetVideo }] : []
     };
 
-    const phraseText = document.getElementById('evsPhraseText')?.value || '';
-    const phraseAnswers = splitCsv(document.getElementById('evsPhraseAnswers')?.value || '');
-    const partialHintsEnabled = document.getElementById('evsPhrasePartialHintsEnabled')?.checked !== false;
+    const phraseRows = Array.from(document.querySelectorAll('[data-evs-phrase-row]'));
+    const phrases = phraseRows.map(row => {
+      const phraseText = row.querySelector('[data-evs-phrase-text]')?.value || '';
+      const phraseAnswers = splitCsv(row.querySelector('[data-evs-phrase-answers]')?.value || '');
+      const pointsFirst = Number(row.querySelector('[data-evs-phrase-points]')?.value || 40);
+      return { phrase: phraseText, acceptedAnswers: phraseAnswers, pointsFirst, solvedPolicy: 'remove_from_rotation' };
+    }).filter(item => item.phrase || item.acceptedAnswers.length);
+
+    const partialHintVisibility = document.getElementById('evsTextPartialHintVisibility')?.value || 'off';
+    const partialHintsEnabled = partialHintVisibility !== 'off';
     payload.textConfig = {
       allowFollowupSolves: false,
       winnerMode: 'first_complete_solver',
       solvedPolicy: 'remove_from_rotation',
+      partialHintVisibility,
+      partialHintDisplayMode: partialHintVisibility,
       hintTokensEnabled: partialHintsEnabled,
       partialHintsEnabled,
-      partialHintMode: document.getElementById('evsPhrasePartialHintMode')?.value || 'new_words_per_user',
+      partialHintMode: 'new_words_per_user',
       uniqueWordsPerUser: true,
-      partialHintCooldownSeconds: Number(document.getElementById('evsPhrasePartialHintCooldown')?.value || 0),
-      phrases: phraseText ? [{ phrase: phraseText, acceptedAnswers: phraseAnswers, pointsFirst: Number(document.getElementById('evsPhrasePoints')?.value || 40), solvedPolicy: 'remove_from_rotation' }] : []
+      showPartialCount: document.getElementById('evsTextShowPartialCount')?.checked === true,
+      wordPointsEnabled: document.getElementById('evsTextWordPointsEnabled')?.checked === true,
+      pointsPerNewWord: Number(document.getElementById('evsTextPointsPerWord')?.value || 0),
+      maxWordPointsPerUserPhrase: Number(document.getElementById('evsTextMaxWordPoints')?.value || 0),
+      partialHintCooldownSeconds: Number(document.getElementById('evsTextPartialHintCooldown')?.value || 0),
+      phrases
     };
 
     return payload;
@@ -483,6 +525,26 @@ window.StreamEventsModule = (function(){
       if (action === 'new') { state.modal = { event: { name: '', description: '', soundEnabled: true, textEnabled: false, soundConfig: {}, textConfig: {} } }; render(); return; }
       if (action === 'edit') { const event = await loadEvent(uid); state.modal = { event }; render(); return; }
       if (action === 'closeModal') { state.modal = null; render(); return; }
+      if (action === 'addPhrase') {
+        const payload = readModalPayload();
+        const visibleRows = document.querySelectorAll('[data-evs-phrase-row]').length;
+        while (payload.textConfig.phrases.length < visibleRows) payload.textConfig.phrases.push({ phrase: '', acceptedAnswers: [], pointsFirst: 40, solvedPolicy: 'remove_from_rotation' });
+        payload.textConfig.phrases.push({ phrase: '', acceptedAnswers: [], pointsFirst: 40, solvedPolicy: 'remove_from_rotation' });
+        state.modal.event = { ...(state.modal.event || {}), ...payload };
+        render();
+        return;
+      }
+      if (action === 'removePhrase') {
+        const payload = readModalPayload();
+        const visibleRows = document.querySelectorAll('[data-evs-phrase-row]').length;
+        while (payload.textConfig.phrases.length < visibleRows) payload.textConfig.phrases.push({ phrase: '', acceptedAnswers: [], pointsFirst: 40, solvedPolicy: 'remove_from_rotation' });
+        const index = Number(btn.dataset.index || -1);
+        if (index >= 0 && payload.textConfig.phrases.length > 1) payload.textConfig.phrases.splice(index, 1);
+        if (!payload.textConfig.phrases.length) payload.textConfig.phrases.push({ phrase: '', acceptedAnswers: [], pointsFirst: 40, solvedPolicy: 'remove_from_rotation' });
+        state.modal.event = { ...(state.modal.event || {}), ...payload };
+        render();
+        return;
+      }
       if (action === 'saveEvent') return saveEvent();
       if (action === 'validate') return eventAction('validate', uid);
       if (action === 'start') return eventAction('start', uid);

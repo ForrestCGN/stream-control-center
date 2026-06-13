@@ -54,3 +54,11 @@ EVS-11 Overlay/Ranking/Statistik
 - User-/Mod-Bedienung muss einfach bleiben.
 - Vor jeder Codeänderung echte Dateien/GitHub/dev prüfen.
 ```
+
+
+## Nach EVS-6
+
+1. EVS-6 per StepDone sichern.
+2. Dashboard prüfen: mehrere Sätze hinzufügen/entfernen, speichern, erneut öffnen.
+3. Danach Backend-Runtime für Chat-Erkennung und Satzrotation planen.
+4. Später Config-Dashboard und Text-Config/Multi-Texte über vorhandene Text-Helper einbauen.

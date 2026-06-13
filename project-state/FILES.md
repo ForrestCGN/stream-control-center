@@ -26,3 +26,13 @@ data/*
 ```
 
 EVS-5d ist ein reiner Doku-/TODO-Step.
+
+
+## EVS-6 Dateien
+
+- `backend/modules/stream_events.js`
+- `htdocs/dashboard/modules/stream_events.js`
+- `htdocs/dashboard/modules/stream_events.css`
+- `docs/modules/stream_events.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_EVS_6_TEXT_MULTI_PHRASE_CONFIG_PREP.md`
+- `project-state/*`

@@ -59,3 +59,8 @@ Keine Dashboard-JS/CSS-Änderung
 ## Nächster sinnvoller Schritt
 
 EVS-6 sollte zuerst das Item-/Config-Modell für mehrere Sound-Schnipsel und mehrere Text-Sätze sauber planen bzw. vorbereiten, bevor Runtime/Chat-Auswertung gebaut wird.
+
+
+## EVS-6 Status
+
+EVS-6 vorbereitet: Dashboard unterstützt mehrere Text-Sätze, Teiltreffer-Anzeige und optionale Wortpunkte. Backend-Validierung kennt die neuen Text-Config-Felder. Runtime/Chat/Overlay bleiben offen.

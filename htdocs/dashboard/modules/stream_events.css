@@ -90,3 +90,17 @@
 .stream-events-admin .evs-check-compact input{width:auto;margin:0}
 .stream-events-admin .evs-text-simple textarea{min-height:86px;resize:vertical}
 @media(max-width:760px){.stream-events-admin .evs-form-row-head{display:grid}.stream-events-admin .evs-check-compact{width:100%}}
+
+/* EVS-6 · Text-Multi-Sätze */
+.stream-events-admin .evs-btn-small{padding:8px 11px;font-size:12px;border-radius:11px}
+.stream-events-admin .evs-phrase-list{display:grid;gap:10px}
+.stream-events-admin .evs-phrase-row{border:1px solid rgba(34,211,238,.18);background:rgba(255,255,255,.032);border-radius:15px;padding:11px;display:grid;gap:10px}
+.stream-events-admin .evs-phrase-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.stream-events-admin .evs-phrase-head strong{display:block;color:#f8fafc}
+.stream-events-admin .evs-phrase-head small{display:block;color:var(--evs-muted);font-size:12px;margin-top:2px;font-weight:600;line-height:1.3}
+.stream-events-admin .evs-icon-btn-danger{color:#fecaca;border-color:rgba(239,68,68,.25);background:rgba(239,68,68,.08)}
+.stream-events-admin .evs-icon-btn:disabled{opacity:.42;cursor:not-allowed}
+.stream-events-admin .evs-text-config-grid{align-items:end}
+.stream-events-admin .evs-choice-row-compact{gap:8px;margin-top:2px}
+.stream-events-admin .evs-choice-row-compact .evs-check{padding:8px 10px;font-size:12px}
+@media(max-width:760px){.stream-events-admin .evs-phrase-head{align-items:center}.stream-events-admin .evs-form-row-head{align-items:flex-start;flex-direction:column}.stream-events-admin .evs-form-row-head .evs-btn-small{width:100%;justify-content:center}}

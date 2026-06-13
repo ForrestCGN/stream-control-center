@@ -3,11 +3,10 @@
 /**
  * Stream Events backend foundation.
  *
- * STEP EVS-2:
- * - Adds the central stream event draft/runtime backend foundation.
- * - Keeps gameplay, Twitch chat handling, sound/media playback and dashboard UI out of this step.
- * - Stores event drafts, selected game types, DB-backed config snapshots, score entries and minimal ranking.
- * - Registers at the Communication Bus with heartbeat/status publishing.
+ * STEP EVS-6:
+ * - Keeps the EVS-2 backend foundation.
+ * - Extends text-game validation/settings for multiple phrases, partial hints and optional word points.
+ * - Still keeps gameplay runtime, Twitch chat handling, sound/media playback and overlay out of this step.
  */
 
 const crypto = require("crypto");
@@ -17,8 +16,8 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.1.0";
-const MODULE_BUILD = "STEP_EVS_2_BACKEND_FOUNDATION";
+const MODULE_VERSION = "0.2.0";
+const MODULE_BUILD = "STEP_EVS_6_TEXT_MULTI_PHRASE_CONFIG_PREP";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -72,7 +71,7 @@ const MODULE_META = {
   build: MODULE_BUILD,
   type: "runtime",
   category: "events",
-  description: "Zentrales Event-System Backend: Entwürfe, Validierung, Punkte, Ranking und Bus-Status.",
+  description: "Zentrales Event-System Backend: Entwürfe, Validierung, Punkte, Ranking, Bus-Status und Text-Multi-Satz-Config.",
   routesPrefix: ["/api/stream-events"],
   bus: {
     registered: true,
@@ -562,15 +561,30 @@ function validateTextConfig(config = {}) {
     if (points <= 0) warnings.push(`${label}.points_not_set`);
   });
 
+  const partialHintVisibility = cleanString(raw.partialHintVisibility || raw.partialHintDisplayMode || (raw.hintTokensEnabled === false || raw.partialHintsEnabled === false ? "off" : "general"), "general");
+  const partialHintsEnabled = partialHintVisibility !== "off" && raw.hintTokensEnabled !== false && raw.partialHintsEnabled !== false;
+  const wordPointsEnabled = raw.wordPointsEnabled === true;
+  const pointsPerNewWord = intValue(raw.pointsPerNewWord ?? raw.wordPointsPerNewWord, 0);
+  const maxWordPointsPerUserPhrase = intValue(raw.maxWordPointsPerUserPhrase ?? raw.maxWordPointsPerUserAndPhrase, 0);
+
+  if (wordPointsEnabled && pointsPerNewWord <= 0) warnings.push("text.word_points_enabled_but_zero_points");
+
   return {
     ok: issues.length === 0,
     issues,
     warnings,
     counts: { phrases: phrases.length },
     settings: {
-      hintTokensEnabled: raw.hintTokensEnabled !== false,
-      allowFollowupSolves: raw.allowFollowupSolves === true,
-      followupSeconds: intValue(raw.followupSeconds, 60)
+      hintTokensEnabled: partialHintsEnabled,
+      partialHintVisibility,
+      showPartialCount: raw.showPartialCount === true || raw.partialHintShowCount === true,
+      uniqueWordsPerUser: raw.uniqueWordsPerUser !== false,
+      wordPointsEnabled,
+      pointsPerNewWord,
+      maxWordPointsPerUserPhrase,
+      allowFollowupSolves: false,
+      solvedPolicy: cleanString(raw.solvedPolicy, "remove_from_rotation"),
+      partialHintCooldownSeconds: intValue(raw.partialHintCooldownSeconds ?? raw.hintCooldownSeconds, 0)
     }
   };
 }

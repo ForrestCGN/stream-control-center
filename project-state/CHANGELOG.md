@@ -75,3 +75,12 @@
 
 - Backend-Modul `stream_events` erstellt.
 - Routen, DB-Schema, Validierung, Ranking und Bus-Heartbeat vorbereitet.
+
+
+## EVS-6 – Text Multi Phrase Config Prep
+
+- Dashboard: mehrere geheime Sätze im Text-Spiel vorbereitet.
+- Dashboard: Teiltreffer-Modus allgemein/mit Satznummer/aus vorbereitet.
+- Dashboard: Trefferzahl-Anzeige und optionale Wortpunkte vorbereitet.
+- Backend: Text-Config-Validierung um Multi-Phrase/Wortpunkte-Felder erweitert.
+- Keine Runtime-/Chat-/Overlay-/Playback-Änderungen.

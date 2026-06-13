@@ -63,3 +63,14 @@ Datum: 2026-06-13
 - [ ] Ranking-/Top3-Anzeige.
 - [ ] Sound-/Text-Statistiken.
 - [ ] Audit-/Diagnose-Status für Event-System.
+
+
+## EVS-6 TODO
+
+- [ ] Dashboard-Test Multi-Sätze.
+- [ ] Backend-Test Validation mit mehreren Phrases.
+- [ ] Runtime: pro Event/Satz/User/Wort zählen.
+- [ ] Wortpunkte in Points-Ledger eintragen.
+- [ ] Gelöste Sätze aus aktiver Rotation entfernen.
+- [ ] Config-Dashboard bauen.
+- [ ] Text-Config/Multi-Texte dashboardfähig einbauen.
