@@ -17,8 +17,8 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.16";
-const MODULE_BUILD = "STEP_EVS_22B_DASHBOARD_SINGLE_DELETE_CONFIRM_UX";
+const MODULE_VERSION = "0.5.17";
+const MODULE_BUILD = "STEP_EVS_23_LIVE_SWITCH_CONCEPT_DASHBOARD_PREP";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -195,7 +195,7 @@ const MODULE_META = {
   build: MODULE_BUILD,
   type: "runtime",
   category: "events",
-  description: "Zentrales Event-System Backend: Entwürfe, Validierung, Punkte, Ranking, Bus-Status, Text-Multi-Satz-Config, Textvarianten, globale Config, Communication-Bus Heartbeat, Text- und Sound-Chat-Runtime ueber Twitch-Chat-Bus-Events sowie vorbereiteter ChatOutput-Dispatcher ohne Live-Send und geschuetzter Event-Archiv-/Delete-Lifecycle.",
+  description: "Zentrales Event-System Backend: Entwürfe, Validierung, Punkte, Ranking, Bus-Status, Text-Multi-Satz-Config, Textvarianten, globale Config, Communication-Bus Heartbeat, Text- und Sound-Chat-Runtime ueber Twitch-Chat-Bus-Events sowie vorbereiteter ChatOutput-Dispatcher ohne Live-Send und geschuetzter Event-Archiv-/Delete-Lifecycle sowie Dashboard-Vorbereitung fuer ein spaeteres Live-Schalter-Konzept ohne Live-Send.",
   routesPrefix: ["/api/stream-events"],
   bus: {
     registered: true,

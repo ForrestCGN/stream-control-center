@@ -1,6 +1,6 @@
 # TODO – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-22c
+Stand: 2026-06-13 nach EVS-23
 
 ## Erledigt / bestätigt
 
@@ -10,12 +10,13 @@ Stand: 2026-06-13 nach EVS-22c
 - [x] EVS-21 Event Archive/Delete Lifecycle
 - [x] EVS-22b Dashboard Single Delete Confirm UX geliefert und bestätigt
 - [x] EVS-22c Completion Documentation
+- [x] EVS-23 Live-Schalter-Konzept im Dashboard vorbereitet
 
 ## Kurzfristig offen
 
-- [ ] EVS-23 planen: Live-Schalter-Konzept im Dashboard, weiterhin ohne echtes Senden.
-- [ ] Live-Voraussetzungen sichtbar und streamerfreundlich darstellen.
-- [ ] Rollen-/Audit-/Warnstatus für spätere Live-Aktionen vorbereiten.
+- [ ] EVS-23 im Dashboard testen.
+- [ ] Entscheiden, ob EVS-24 zuerst Rollen/Audit/Config oder Dry-Run-Vorschau erweitert.
+- [ ] Später echten Live-Schalter nur nach explizitem Go und sichtbarer Sicherheitskonfiguration planen.
 
 ## Sicherheits-TODO
 

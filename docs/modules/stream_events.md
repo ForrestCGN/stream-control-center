@@ -1,12 +1,12 @@
 # Modul-Doku: stream_events
 
-Stand: 2026-06-13 nach EVS-22c – Completion Documentation
+Stand: 2026-06-13 nach EVS-23 – Live-Schalter-Konzept Dashboard Prep
 
-## Aktueller bestätigter Modulstand
+## Aktueller Modulstand
 
 ```text
-MODULE_VERSION = 0.5.16
-MODULE_BUILD   = STEP_EVS_22B_DASHBOARD_SINGLE_DELETE_CONFIRM_UX
+MODULE_VERSION = 0.5.17
+MODULE_BUILD   = STEP_EVS_23_LIVE_SWITCH_CONCEPT_DASHBOARD_PREP
 ```
 
 ## Zweck
@@ -17,16 +17,40 @@ MODULE_BUILD   = STEP_EVS_22B_DASHBOARD_SINGLE_DELETE_CONFIRM_UX
 
 - Sound und Text können im selben Event parallel laufen.
 - Eine Chatnachricht wird für Sound UND Text geprüft.
-- ChatOutputs bleiben prepared-only, solange keine Live-Schalter gesetzt sind.
+- ChatOutputs bleiben prepared-only, solange keine späteren Live-Schalter bewusst und sichtbar gesetzt sind.
 - Sound-Playback bleibt prepared-only.
 - Eventdaten bleiben an `eventUid` gebunden.
 - Archivieren ist nur bei `status=finished` erlaubt.
 - Löschen ist API-seitig für jeden Status möglich, aber nur mit JSON-Body `{ "confirm": "DELETE" }`.
 - Das Dashboard fragt dafür genau eine normale Bestätigung ab und sendet den API-Confirm intern.
 
-## EVS-22b/22c Dashboard Safety View
+## EVS-23 Dashboard Live-Schalter-Konzept
 
-Der Dashboard-Tab `Sicherheit` ist bestätigt sichtbar und streamerfreundlich bedienbar:
+Der Dashboard-Tab `Sicherheit` wurde erweitert um den Bereich `Live-Schalter Konzept`.
+
+Dieser Bereich ist ausdrücklich nur Vorbereitung/Anzeige:
+
+- zeigt die geplante Freigabe-Kette für spätere Chat-Ausgaben,
+- zeigt aktuelle Schutzschalter als deaktivierte Checkboxen,
+- erklärt, dass EVS-23 weiterhin Testmodus bleibt,
+- enthält keinen Button zum Live-Schalten,
+- ändert keine Config,
+- sendet nichts in Twitch.
+
+Geplante spätere Schutzschalter:
+
+```text
+Dispatcher
+Global Live
+DirectSend erlaubt
+Prepared-only aus
+Event ChatOutput
+Event Live
+```
+
+## Dashboard Safety View
+
+Der Dashboard-Tab `Sicherheit` zeigt weiterhin:
 
 - Chat-Ausgabe Status: TESTMODUS / LIVE AKTIV.
 - ChatOutput-Zähler: vorbereitet, geprüft, würde senden, blockiert.
@@ -35,8 +59,6 @@ Der Dashboard-Tab `Sicherheit` ist bestätigt sichtbar und streamerfreundlich be
 - Lifecycle-Regeln im Dashboard sichtbar.
 - Archivieren-Button nur bei beendeten Events aktiv.
 - Löschen-Button mit einer normalen Bestätigung.
-- Keine Texteingabe `DELETE` im Dashboard.
-- Keine doppelte Löschbestätigung.
 
 ## Wichtige Routen
 
@@ -56,7 +78,7 @@ Hinweise:
 
 ## Sicherheit
 
-EVS-22 aktiviert weiterhin keine öffentliche Ausgabe:
+EVS-23 aktiviert weiterhin keine öffentliche Ausgabe:
 
 ```text
 directSend = false
@@ -67,4 +89,4 @@ soundSystemQueueTouched = false
 
 ## Nächster Arbeitsbereich
 
-EVS-23 soll das Live-Schalter-Konzept im Dashboard vorbereiten. Das bedeutet sichtbar planen und absichern, aber noch nicht live senden.
+EVS-24 kann den echten rollen-/auditbasierten Live-Config-Endpoint planen oder zunächst die ChatOutput-Dry-Run-Vorschau weiter verbessern. Ohne ausdrückliches Go bleibt der Live-Schalter weiterhin reine Anzeige.

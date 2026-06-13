@@ -1,6 +1,9 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
+  const MODULE_VERSION = "0.5.17";
+  const MODULE_BUILD = "STEP_EVS_23_LIVE_SWITCH_CONCEPT_DASHBOARD_PREP";
+
   const api = {
     status: '/api/stream-events/status',
     list: '/api/stream-events/events?limit=250',
@@ -818,6 +821,7 @@ window.StreamEventsModule = (function(){
         ${renderChatOutputSafetyPanel(event)}
         ${renderLifecycleSafetyPanel(event)}
       </div>
+      ${renderLiveSwitchConceptPanel(event)}
     `;
   }
 
@@ -870,6 +874,48 @@ window.StreamEventsModule = (function(){
     `;
   }
 
+  function renderLiveSwitchConceptPanel(event){
+    const status = chatOutputSafetyFor(event);
+    const cfg = status?.config || {};
+    const liveReady = Boolean(cfg.dispatcherEnabled && cfg.globalLiveEnabled && cfg.allowDirectSend && !cfg.preparedOnly && cfg.eventChatOutputEnabled && cfg.eventLiveEnabled);
+    const switches = [
+      ['Dispatcher', cfg.dispatcherEnabled, 'Zentrale ChatOutput-Verarbeitung'],
+      ['Global Live', cfg.globalLiveEnabled, 'globale Owner-Freigabe'],
+      ['DirectSend erlaubt', cfg.allowDirectSend, 'technische Sende-Erlaubnis'],
+      ['Prepared-only aus', !cfg.preparedOnly, 'keine reine Vorschau mehr'],
+      ['Event ChatOutput', cfg.eventChatOutputEnabled, 'ChatOutputs am Event erlaubt'],
+      ['Event Live', cfg.eventLiveEnabled, 'Event selbst live freigegeben']
+    ];
+    return `
+      <section class="evs-card glass evs-tab-panel evs-live-switch-panel">
+        <div class="evs-card-head evs-stats-head">
+          <div>
+            <h3>Live-Schalter Konzept</h3>
+            <span>Vorbereitung für späteres Chat-Senden. In diesem Step nur Anzeige und Sicherheitslogik, keine Aktivierung.</span>
+          </div>
+          <span class="evs-safety-pill ${liveReady ? 'is-warn' : 'is-off'}">${esc(liveReady ? 'theoretisch sendebereit' : 'gesperrt')}</span>
+        </div>
+        <div class="evs-safety-banner is-safe">
+          <strong>🛡️ EVS-23 bleibt Testmodus</strong>
+          <span>Die Schalter werden nur erklärt und visualisiert. Es gibt hier noch keinen Button, der Twitch-Ausgaben live schaltet.</span>
+        </div>
+        <div class="evs-live-switch-grid">
+          <div class="evs-runtime-box">
+            <div class="evs-runtime-box-head"><h4>Geplante Freigabe-Kette</h4><small>Streamer-/Mod-freundlich, aber sicher</small></div>
+            <div class="evs-live-step is-ok"><b>1. Vorschau prüfen</b><span>Prepared Outputs, Blockiergründe und Zieltexte im Dashboard prüfen.</span></div>
+            <div class="evs-live-step"><b>2. Event freigeben</b><span>Später: ChatOutput und Event-Live pro Event aktivieren, nicht global versteckt.</span></div>
+            <div class="evs-live-step"><b>3. Global live schalten</b><span>Später nur mit Owner/Admin-Recht und Audit-Log. Aktuell nicht implementiert.</span></div>
+          </div>
+          <div class="evs-runtime-box">
+            <div class="evs-runtime-box-head"><h4>Aktuelle Schutzschalter</h4><small>Nur Anzeige, keine Bedienung</small></div>
+            ${switches.map(([label, value, hint]) => `<label class="evs-live-switch-row"><input type="checkbox" disabled ${value ? 'checked' : ''}><span><b>${esc(label)}</b><em>${esc(hint)}</em></span></label>`).join('')}
+          </div>
+        </div>
+        <div class="evs-tab-help">Nächster technischer Schritt wäre erst ein echter, rollenbasierter Config-/Live-Endpoint mit Audit-Log. Bis dahin bleibt alles prepared-only/dry-run.</div>
+      </section>
+    `;
+  }
+
   function renderLifecycleSafetyPanel(event){
     const s = norm(event.status);
     const canArchive = s === 'finished';
@@ -892,7 +938,7 @@ window.StreamEventsModule = (function(){
         </div>
         <div class="evs-safety-rule-list">
           <div class="${canArchive ? 'is-ok' : 'is-blocked'}"><b>Archivieren</b><span>${canArchive ? 'Erlaubt, weil Event beendet ist.' : 'Blockiert: nur beendete Events können archiviert werden.'}</span></div>
-          <div><b>Löschen</b><span>Erlaubt für jeden Status, aber nur nach zweiter deutlicher Bestätigung. Dabei werden Eventdaten zur eventUid entfernt.</span></div>
+          <div><b>Löschen</b><span>Erlaubt für jeden Status, aber nur nach einer normalen Bestätigung. Dabei werden Eventdaten zur eventUid entfernt.</span></div>
           <div><b>Datenhaltung</b><span>Archivieren erhält Score/Runden/Textdaten. Löschen entfernt Event + eventUid-Daten.</span></div>
         </div>
         <div class="evs-action-row evs-action-row-tight evs-lifecycle-actions">
@@ -901,7 +947,7 @@ window.StreamEventsModule = (function(){
           <button type="button" class="evs-btn evs-btn-danger" data-evs-action="cancel" data-uid="${esc(event.eventUid)}" ${canCancel ? '' : 'disabled'}>Abbrechen</button>
           <button type="button" class="evs-btn evs-btn-danger" data-evs-action="deleteEvent" data-uid="${esc(event.eventUid)}">Löschen…</button>
         </div>
-        <div class="evs-tab-help">Archivieren ist nur bei Status „Beendet/finished“ möglich. Löschen fragt eine zweite deutliche Bestätigung ab; intern bleibt die API-Sicherheitsbestätigung geschützt.</div>
+        <div class="evs-tab-help">Archivieren ist nur bei Status „Beendet/finished“ möglich. Löschen fragt eine normale Bestätigung ab; intern bleibt die API-Sicherheitsbestätigung geschützt.</div>
       </section>
     `;
   }
@@ -1754,7 +1800,14 @@ window.StreamEventsModule = (function(){
         return;
       }
       const tab = ev.target.closest('[data-evs-tab]');
-      if (tab) { state.activeTab = tab.dataset.evsTab || 'overview'; render(); return; }
+      if (tab) {
+        state.activeTab = tab.dataset.evsTab || 'overview';
+        if (state.activeTab === 'safety' && state.selectedUid) {
+          await loadChatOutputSafety(state.selectedUid, false);
+        }
+        render();
+        return;
+      }
       const btn = ev.target.closest('[data-evs-action]');
       if (!btn) return;
       const action = btn.dataset.evsAction;

@@ -1,6 +1,6 @@
 # FILES – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-22c
+Stand: 2026-06-13 nach EVS-23
 
 ## Aktive Projektdateien
 
@@ -9,7 +9,7 @@ backend/modules/stream_events.js
 htdocs/dashboard/modules/stream_events.js
 htdocs/dashboard/modules/stream_events.css
 docs/modules/stream_events.md
-docs/current/CURRENT_CHAT_HANDOFF_EVS_22C_COMPLETION_DOCUMENTATION.md
+docs/current/CURRENT_CHAT_HANDOFF_EVS_23_LIVE_SWITCH_CONCEPT_DASHBOARD_PREP.md
 project-state/CURRENT_STATUS.md
 project-state/TODO.md
 project-state/NEXT_STEPS.md
@@ -33,3 +33,4 @@ POST /api/stream-events/events/:eventUid/delete
 - `GET /api/stream-events/events` liefert Eventlisten unter `rows`.
 - Delete-Confirm für die API erfolgt per JSON-Body `{ "confirm": "DELETE" }`.
 - Im Dashboard sieht der User nur eine normale Bestätigung.
+- EVS-23 zeigt Live-Schalter nur als Konzept/Anzeige, nicht als aktive Bedienung.

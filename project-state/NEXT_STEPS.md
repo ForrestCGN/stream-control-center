@@ -1,38 +1,40 @@
 # NEXT_STEPS – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-22c
+Stand: 2026-06-13 nach EVS-23
 
-## Nächster Arbeitsblock
+## Sofortiger Test
 
-### EVS-23 – Live-Schalter-Konzept Dashboard Prep
+### EVS-23 prüfen
+
+- Syntaxcheck ausführen.
+- StepDone ausführen.
+- `/api/stream-events/status` auf Version `0.5.17` prüfen.
+- Dashboard öffnen: `Event-System → Sicherheit`.
+- Bereich `Live-Schalter Konzept` prüfen.
+
+## Danach mögliche Arbeitsblöcke
+
+### Option A – EVS-24 Rollen-/Audit-/Live-Config Prep
 
 Ziel:
 
-- Live-Schalter im Dashboard verständlich vorbereiten.
-- Streamer-/Mod-freundliche Warnungen anzeigen.
-- Klar trennen zwischen Testmodus und späterem Livebetrieb.
-- Rechte-/Audit-/Sicherheitskonzept sichtbar vorbereiten.
-- Weiterhin kein echtes Senden aktivieren.
+- echten Config-Endpoint für spätere Live-Schalter planen,
+- Rollen-/Rechteprüfung vorbereiten,
+- Audit-Log vorbereiten,
+- noch kein echtes Senden aktivieren.
 
-## Harte Grenzen für EVS-23
+### Option B – EVS-24 ChatOutput Dry-Run Erweiterung
+
+Ziel:
+
+- einzelne ChatOutputs im Dashboard detaillierter prüfen,
+- mögliche Bündelung/Spam-Schutz anzeigen,
+- Rate-Limit- und Cooldown-Regeln planen,
+- weiterhin kein echtes Senden.
+
+## Harte Grenzen
 
 - Keine Twitch-Ausgabe ohne späteren expliziten Go.
 - Kein Sound-Playback ohne späteren expliziten Go.
 - Keine Sound-System-Queue-Berührung.
-- Kein Aktivieren eines echten Live-Schalters.
-
-## Mögliche EVS-23 Inhalte
-
-- Anzeige der benötigten Live-Voraussetzungen.
-- Warnbanner: „Testmodus aktiv“ / „Live-Versand gesperrt“.
-- Späteres Rollen-/Audit-Konzept als UI-Vorbereitung.
-- Dashboard-Text für Live-Schalter vorbereiten.
-- Dry-Run bleibt Standard.
-
-## Danach möglich
-
-### EVS-24 – ChatOutput Dispatch Dry-Run Erweiterung
-
-- Einzelnen Output im Dashboard prüfen.
-- Gebündelte ChatOutput-Vorschau vorbereiten.
-- Spam-/Rate-Limit-Regeln planen.
+- Kein Aktivieren eines echten Live-Schalters ohne erneute Entscheidung.
