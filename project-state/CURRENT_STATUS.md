@@ -1,6 +1,6 @@
 # CURRENT STATUS
 
-Stand: EVS-5b / Stream Events Text Game Rule Rebalance  
+Stand: EVS-5c / Text Game Backend TODO Documentation  
 Datum: 2026-06-13  
 Projekt: ForrestCGN / stream-control-center
 
@@ -66,3 +66,20 @@ Vor Live-/Dashboard-Test:
 ```powershell
 .\stepdone.cmd "EVS-5b Stream Events Text Game Rule Rebalance"
 ```
+
+
+## EVS-5c Ergänzung
+
+EVS-5c speichert die fachliche Text-Spiel-Regel zusätzlich als Backend-/Runtime-TODO:
+
+- Der erste komplette Löser gewinnt.
+- Satz danach aus Event-Rotation entfernen.
+- Keine weiteren Löser in V1.
+- Teiltreffer optional melden.
+- Teiltreffer aus dem Geheimsatz berechnen.
+- Pro Event/Satz/User/Wort nur einmal melden/zählen.
+- Teiltreffer geben keine Punkte.
+- Spätere Umsetzung im Backend erforderlich.
+- Config- und Text-Config-/Multi-Text-Dashboard stehen noch aus.
+
+Keine Code-, DB- oder Runtime-Änderung in EVS-5c.

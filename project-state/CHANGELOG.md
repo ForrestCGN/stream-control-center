@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## EVS-5c / Text Game Backend TODO Documentation – 2026-06-13
+
+- Text-Spiel-Regel aus EVS-5b als verbindliches Backend-/Runtime-TODO dokumentiert.
+- Festgelegt: erster kompletter Löser gewinnt, Satz danach aus Rotation entfernen.
+- Festgelegt: Teiltreffer-Hinweise optional, Wörter aus Geheimsatz berechnen.
+- Festgelegt: pro Event/Satz/User/Wort nur einmal melden/zählen.
+- Festgelegt: Teiltreffer geben keine Punkte.
+- TODOs für spätere Backend-, Config- und Multi-Text-Dashboard-Schritte ergänzt.
+- Keine Codeänderung.
+- Keine Datenbankänderung.
+- Keine Runtime-Änderung.
+
+
 ## EVS-5b / Stream Events Text Game Rule Rebalance – 2026-06-13
 
 - Text-Spiel-Regel für V1 festgelegt: erster kompletter Löser gewinnt.

@@ -1,6 +1,6 @@
 # TODO
 
-Stand: EVS-5b / Stream Events Text Game Rule Rebalance  
+Stand: EVS-5c / Text Game Backend TODO Documentation  
 Datum: 2026-06-13
 
 ## Kurzfristig
@@ -25,3 +25,22 @@ Datum: 2026-06-13
 - [ ] Text-/Chat-Auswertung über `twitch.chat.message` planen.
 - [ ] Event-Overlay planen.
 - [ ] Playback-Anbindung an Sound-/Media-System planen.
+
+
+## EVS-5c festgehaltene Backend-TODOs
+
+- [ ] Text-Spiel-Regel im Backend umsetzen: erster kompletter Löser gewinnt.
+- [ ] Nach Lösung Satz im aktuellen Event als gelöst markieren und aus Rotation entfernen.
+- [ ] Keine weiteren Löser / kein Follow-up-Zeitfenster in V1 umsetzen.
+- [ ] Teiltreffer-Hinweise runtimefähig machen.
+- [ ] Teiltreffer-Wörter automatisch aus dem Geheimsatz berechnen.
+- [ ] Pro Event/Satz/User/Wort speichern, welche Wörter bereits erkannt/gemeldet wurden.
+- [ ] Doppelte Teiltreffer pro User/Satz/Wort nicht erneut melden/zählen.
+- [ ] Optionalen Teiltreffer-Cooldown berücksichtigen.
+- [ ] Teiltreffer ohne Punkte behandeln.
+- [ ] Text-/Phrase-Items pro Event planen/umsetzen.
+- [ ] Mehrere Geheimsätze pro Event planen/umsetzen.
+- [ ] Chat-Auswertung über bestehendes `twitch.chat.message` / Communication Bus planen.
+- [ ] Chatmeldungen über `helper_texts` / `module_text_variants` vorbereiten.
+- [ ] Config-Dashboard für Event-System planen/einbauen.
+- [ ] Text-Config / Multi-Texte im Dashboard planen/einbauen.

@@ -137,3 +137,75 @@ Overlay
 Playback-Anbindung
 Statistik-Auswertung
 ```
+
+
+## EVS-5c Dokumentations-/Backend-TODO-Festlegung
+
+Dieser Stand ist eine reine Doku-/TODO-Konsolidierung nach EVS-5b. Es wurden keine Runtime-Dateien verändert.
+
+Wichtig: Die im Dashboard sichtbaren Text-Spiel-Regeln sind nicht nur UI-Notizen. Sie müssen in späteren Backend-/Runtime-Schritten fachlich umgesetzt werden.
+
+### Verbindliche Text-Spiel-Regel für Backend/Runtime
+
+```text
+- Pro aktivem Event kann ein Text-Spiel aktiv sein.
+- Ein Text-Spiel besteht später aus mehreren Geheimsätzen / Lösungssätzen.
+- Pro Satz gewinnt genau der erste User, der den kompletten Satz oder eine erlaubte Antwortvariante korrekt schreibt.
+- Dieser User bekommt die konfigurierten Punkte.
+- Nach korrekter Lösung wird der Satz im aktuellen Event als gelöst markiert und aus der Rotation entfernt.
+- Es gibt in V1 keine weiteren Löser und kein Zeitfenster für weitere Löser.
+- Teiltreffer geben keine Punkte.
+```
+
+### Teiltreffer-Hinweise
+
+```text
+- Teiltreffer-Hinweise können pro Text-Spiel/Event aktiviert oder deaktiviert werden.
+- Die Teiltreffer-Wörter werden automatisch aus dem Geheimsatz berechnet.
+- Es gibt in V1 kein separates Hinweiswörter-/Suchwörter-Feld.
+- Wenn ein User neue Wörter aus dem Geheimsatz schreibt, kann eine Chatmeldung ausgegeben werden.
+- Pro Event, Satz, User und Wort wird gespeichert, ob dieses Wort bereits erkannt/gemeldet wurde.
+- Ein bereits erkanntes Wort darf für denselben User und Satz nicht erneut gemeldet oder gezählt werden.
+- Optional kann zusätzlich ein Cooldown genutzt werden.
+- Standardempfehlung: neue Wörter pro User nur einmal melden, Cooldown 0-10 Sekunden.
+```
+
+### Backend-/DB-TODO für spätere Schritte
+
+Spätere Runtime-Schritte müssen diese Regeln im Backend abbilden. Dafür sind voraussichtlich notwendig:
+
+```text
+stream_event_text_items / stream_event_phrase_items
+- event_uid
+- phrase_uid
+- solution_text
+- answer_variants_json
+- points_first_solver
+- status: open | solved | removed | skipped
+- solved_by_login / solved_by_display_name
+- solved_at
+- metadata_json
+
+stream_event_text_partial_hits
+- event_uid
+- phrase_uid
+- user_login
+- user_display_name
+- token
+- first_seen_at
+- last_seen_at
+- hit_count
+- UNIQUE(event_uid, phrase_uid, user_login, token)
+```
+
+Tabellennamen sind noch Planungsnamen. Umsetzung später nur nach Prüfung des echten Backend-Stands und nur sanft per Migration.
+
+### Dashboard-/Config-TODO
+
+```text
+- Allgemeine Event-Config als Dashboard-Bereich ergänzen.
+- Text-Config / Multi-Texte als Dashboard-Bereich ergänzen.
+- Chatmeldungen für Teiltreffer, Lösung, keine aktive Runde, Eventstart/-ende über helper_texts / module_text_variants pflegen.
+- Keine parallele Textstruktur bauen.
+- Config und Textvarianten sollen streamer-/modfreundlich bearbeitbar sein.
+```
