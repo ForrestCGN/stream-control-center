@@ -1,75 +1,61 @@
 # NEXT_STEPS – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-20
+Stand: 2026-06-13 nach EVS-21
 
-## Sofort testen
+## Aktuell bestätigt
 
-### EVS-20 – ChatOutput Dispatcher Prep prüfen
-
-```powershell
-node -c .\backend\modules\stream_events.js
-.\stepdone.cmd "EVS-20 ChatOutput Dispatcher Prep"
-```
-
-Dann:
-
-```powershell
-Invoke-RestMethod http://127.0.0.1:8080/api/stream-events/status
-Invoke-RestMethod http://127.0.0.1:8080/api/stream-events/chat-output/status
-Invoke-RestMethod http://127.0.0.1:8080/api/stream-events/chat-output/report
-```
-
-Erwartung:
+EVS-21 ergänzt den Event-Lifecycle für alte Events:
 
 ```text
-wouldSend = false
-directSend = false
-dispatched = false
-blockedReasons enthält Sicherheitsblocker
+- Archivieren: nur für status=finished
+- Löschen: für jeden Status möglich, aber nur mit confirm=DELETE
+- Archivieren behält Werte, Löschen entfernt Event + eventUid-Daten
 ```
 
-## Danach sinnvoll
+## Sofort sinnvoller nächster Schritt
 
-### EVS-21 – Dashboard ChatOutput Status
-
-Ziel:
-
-- ChatOutput-Status im Dashboard anzeigen.
-- TESTMODUS / LIVE AKTIV klar sichtbar vorbereiten.
-- Blocker verständlich anzeigen.
-- Keine öffentliche Twitch-Ausgabe.
-- Kein Live-Send-Button ohne späteres Sicherheitskonzept.
-
-### EVS-22 – Sound-System Playback Prep
+### EVS-22 – Dashboard Safety View für ChatOutput + Event-Lifecycle
 
 Ziel:
 
-- Vorbereitete Playback-Payloads an vorhandenes Sound-System anschließbar machen.
-- Anfangs weiterhin geschützt per Config-Schalter.
-- Sound-System-Queue nur kontrolliert und optional berühren.
+```text
+Dashboard soll klar anzeigen:
+- Chat-Ausgabe TESTMODUS / LIVE AKTIV
+- warum vorbereitete ChatOutputs blockiert werden
+- wie viele Outputs vorbereitet sind
+- Event-Lifecycle-Aktionen: Archivieren/Löschen nur mit verständlicher Warnung
+```
+
+Scope:
+
+- Keine echte Twitch-Ausgabe.
+- Kein Sound-Playback.
+- Keine Sound-System-Queue-Berührung.
+- Archivieren/Löschen im Dashboard nur als sicherer UX-Plan bzw. vorbereitete UI.
+- Delete immer mit Bestätigung.
+- Archive nur für finished Events sichtbar/aktiv.
+
+## Danach sinnvolle Schritte
+
+### EVS-23 – ChatOutput Live-Schalter vorbereitet
+
+- Config-/Dashboard-Schalter für Live-Chat vorbereiten.
+- Weiterhin keine direkte Sendefunktion ohne finalen Go.
+- Globaler Schalter + Event-Schalter + Dispatcher-Schalter müssen zusammen passen.
+
+### EVS-24 – Sound-System Playback Integration Prep
+
+- Vorbereitete Playback-Payloads an vorhandenes Sound-System anbinden.
+- Anfangs geschützt per Config-Schalter.
 - Kein zweiter Player.
 
-### EVS-23 – Event Overlay Prep
+### EVS-25 – Event Overlay Prep
 
-Ziel:
-
-- Ein zentrales Event-Overlay vorbereiten.
-- Anzeige aktiver Eventname, Modus, aktive Soundrunde/Textstatus, Punkte/Ranking.
-- Noch keine überladene Show.
-
-### EVS-24 – Event-Ende / Top 3 / Abschluss
-
-Ziel:
-
-- Event sauber beenden.
-- Top 3 Ranking vorbereiten.
-- Textvarianten für Abschluss nutzen.
-- Dashboard/Overlay/ChatOutput prepared-only.
+- Aktives Event, Modus, aktive Runde, Textstatus und Ranking anzeigen.
+- Nicht überladen, streamer-/modfreundlich.
 
 ## Offene Fachfragen
 
-- Wie soll der Live-Schalter im Dashboard geschützt werden?
-- Soll es einen globalen Owner-Schalter plus Event-Schalter geben? Empfehlung: ja.
-- Soll ein Mod Live-Ausgabe aktivieren dürfen oder nur Owner/Admin?
-- Soll es eine sichtbare rote Warnung geben, wenn Chat-Ausgabe live aktiv ist? Empfehlung: ja.
-- Sollen mehrere vorbereitete ChatOutputs später gebündelt werden? Empfehlung: ja, optional.
+- Soll ein abgebrochenes Event später separat archiviert werden dürfen oder nur gelöscht bleiben? Aktuell: Archiv nur `finished`.
+- Wie lange sollen archivierte Events im Dashboard sichtbar bleiben?
+- Welche Rollen dürfen Hard-Delete ausführen?

@@ -1,6 +1,6 @@
 # Modul-Doku: stream_events
 
-Stand: 2026-06-13 nach EVS-20 – ChatOutput Dispatcher Prep
+Stand: 2026-06-13 nach EVS-21 – Event Archive/Delete Lifecycle Prep
 
 ## Zweck
 
@@ -20,8 +20,8 @@ Stand: 2026-06-13 nach EVS-20 – ChatOutput Dispatcher Prep
 ## Aktueller Modulstand
 
 ```text
-MODULE_VERSION = 0.5.12
-MODULE_BUILD   = STEP_EVS_20_CHAT_OUTPUT_DISPATCHER_PREP
+MODULE_VERSION = 0.5.13
+MODULE_BUILD   = STEP_EVS_21_EVENT_ARCHIVE_DELETE_PREP
 ```
 
 ## Aktuell bestätigt
@@ -156,6 +156,31 @@ GET  /api/stream-events/chat-output/status
 GET  /api/stream-events/chat-output/report
 POST /api/stream-events/chat-output/test-dispatch
 ```
+
+## Event-Lifecycle / Archiv / Löschen
+
+EVS-21 ergänzt geschützte Lifecycle-Aktionen für alte Events:
+
+```text
+POST /api/stream-events/events/:eventUid/archive
+POST /api/stream-events/events/:eventUid/delete
+```
+
+Fachregeln:
+
+```text
+- Archivieren ist nur erlaubt, wenn das Event vollständig beendet ist: status=finished.
+- Aktive, ready, draft oder cancelled Events werden nicht archiviert.
+- Löschen ist für jeden Eventstatus möglich, aber nur mit expliziter Bestätigung confirm=DELETE.
+- Löschen entfernt das Event und alle eventUid-gebundenen Daten:
+  - Score-Einträge
+  - Sound-/Text-Runden
+  - Text-Worttreffer
+  - Text-Satzlösungen
+- Archivieren löscht keine Werte; alle Statistiken bleiben eventUid-gebunden erhalten.
+```
+
+Sicherheitsgrundsatz: Archivieren ist historisch/auswertbar, Löschen ist ein Hard-Delete mit Bestätigung.
 
 ## Sicherheit
 

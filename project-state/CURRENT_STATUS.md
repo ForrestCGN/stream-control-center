@@ -1,12 +1,12 @@
 # CURRENT_STATUS – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-20 – ChatOutput Dispatcher Prep
+Stand: 2026-06-13 nach EVS-21 – Event Archive/Delete Lifecycle Prep
 
 ## Aktueller bestätigter Stand
 
 ```text
-MODULE_VERSION: 0.5.12
-MODULE_BUILD: STEP_EVS_20_CHAT_OUTPUT_DISPATCHER_PREP
+MODULE_VERSION: 0.5.13
+MODULE_BUILD: STEP_EVS_21_EVENT_ARCHIVE_DELETE_PREP
 ```
 
 ## Erfolgreich bestätigt
@@ -35,6 +35,15 @@ MODULE_BUILD: STEP_EVS_20_CHAT_OUTPUT_DISPATCHER_PREP
   - `GET /api/stream-events/chat-output/report`
   - `POST /api/stream-events/chat-output/test-dispatch`
 - Blocker-Auswertung, warum ein Output nicht live gesendet würde.
+
+### Event Lifecycle / Archiv / Löschen
+
+- Alte Events können gezielt archiviert oder gelöscht werden.
+- Archivieren ist nur für vollständig beendete Events erlaubt (`status=finished`).
+- Aktive/ready/draft/cancelled Events werden nicht archiviert.
+- Löschen ist statusunabhängig möglich, aber nur mit expliziter Bestätigung `confirm=DELETE`.
+- Hard-Delete entfernt Event plus zugehörige `eventUid`-Daten: Ranking-/Score-Einträge, Runden, Text-Worttreffer und Text-Satzlösungen.
+- Archivierte Events behalten ihre Werte für spätere Auswertung.
 
 ## Weiterhin bewusst NICHT produktiv aktiv
 

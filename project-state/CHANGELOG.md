@@ -2,6 +2,17 @@
 
 Stand: 2026-06-13
 
+## EVS-21 – Event Archive/Delete Lifecycle Prep
+
+- Status `archived` ergänzt.
+- `POST /api/stream-events/events/:eventUid/archive` ergänzt.
+- Archivieren ist nur erlaubt, wenn das Event vollständig beendet ist (`status=finished`).
+- `POST /api/stream-events/events/:eventUid/delete` ergänzt.
+- Löschen ist für jeden Eventstatus möglich, aber nur mit `confirm=DELETE`.
+- Hard-Delete entfernt Event plus zugehörige eventUid-Daten: Score-Einträge, Runden, Text-Worttreffer, Text-Satzlösungen.
+- Archivieren behält Eventwerte für Statistik/Historie.
+- Keine Chat-Ausgabe, kein Playback, keine Queue-Berührung.
+
 ## EVS-20 – ChatOutput Dispatcher Prep
 
 - ChatOutput-Dispatcher als Dry-Run vorbereitet.

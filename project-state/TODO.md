@@ -1,8 +1,10 @@
 # TODO – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-20
+Stand: 2026-06-13 nach EVS-21
 
 ## Erledigt / bestätigt
+
+- [x] EVS-21 Event Archive/Delete Lifecycle Prep
 
 - [x] Backend Foundation `stream_events`
 - [x] Dashboard Skeleton
@@ -40,6 +42,10 @@ Stand: 2026-06-13 nach EVS-20
 - [ ] Dashboard Statistik/User-Popup weiter im Browser prüfen.
 
 ## Mittelfristig offen
+
+- [ ] Dashboard-Aktionen für Archivieren/Löschen mit klarer Warnung und Bestätigung vorbereiten.
+- [ ] Archivansicht/Filter für alte Events im Dashboard vorbereiten.
+- [ ] Delete-Aktion später mit Rollen-/Audit-Logging absichern.
 
 - [ ] Live-Schalter-Konzept im Dashboard streamer-/modfreundlich sichtbar machen.
 - [ ] Config-Schalter für direkte Chat-Ausgabe erst nach ausdrücklichem Go aktivierbar machen.

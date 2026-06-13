@@ -17,8 +17,8 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.12";
-const MODULE_BUILD = "STEP_EVS_20_CHAT_OUTPUT_DISPATCHER_PREP";
+const MODULE_VERSION = "0.5.13";
+const MODULE_BUILD = "STEP_EVS_21_EVENT_ARCHIVE_DELETE_PREP";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -28,7 +28,8 @@ const STATUS = {
   READY: "ready",
   ACTIVE: "active",
   FINISHED: "finished",
-  CANCELLED: "cancelled"
+  CANCELLED: "cancelled",
+  ARCHIVED: "archived"
 };
 
 const EVENT_TEXT_DEFAULTS = {
@@ -194,7 +195,7 @@ const MODULE_META = {
   build: MODULE_BUILD,
   type: "runtime",
   category: "events",
-  description: "Zentrales Event-System Backend: Entwürfe, Validierung, Punkte, Ranking, Bus-Status, Text-Multi-Satz-Config, Textvarianten, globale Config, Communication-Bus Heartbeat, Text- und Sound-Chat-Runtime ueber Twitch-Chat-Bus-Events sowie vorbereiteter ChatOutput-Dispatcher ohne Live-Send.",
+  description: "Zentrales Event-System Backend: Entwürfe, Validierung, Punkte, Ranking, Bus-Status, Text-Multi-Satz-Config, Textvarianten, globale Config, Communication-Bus Heartbeat, Text- und Sound-Chat-Runtime ueber Twitch-Chat-Bus-Events sowie vorbereiteter ChatOutput-Dispatcher ohne Live-Send und geschuetzter Event-Archiv-/Delete-Lifecycle.",
   routesPrefix: ["/api/stream-events"],
   bus: {
     registered: true,
@@ -206,6 +207,8 @@ const MODULE_META = {
       "stream_events.event.started",
       "stream_events.event.finished",
       "stream_events.event.cancelled",
+      "stream_events.event.archived",
+      "stream_events.event.deleted",
       "stream_events.points.added",
       "stream_events.ranking.updated",
       "stream_events.text.word_found",
@@ -262,7 +265,9 @@ let runtimeState = {
     soundChatMessagesProcessed: 0,
     soundAnswerMatches: 0,
     soundAnswerMisses: 0,
-    soundRuntimeSkipped: 0
+    soundRuntimeSkipped: 0,
+    eventsArchived: 0,
+    eventsDeleted: 0
   }
 };
 
@@ -820,7 +825,7 @@ function rowToEvent(row) {
     metadata: safeJsonParse(row.metadata_json, {})
   };
   event.gameTypes = getEventTypes(event);
-  event.startable = event.validation && event.validation.ok === true && event.status !== STATUS.ACTIVE && event.status !== STATUS.FINISHED && event.status !== STATUS.CANCELLED;
+  event.startable = event.validation && event.validation.ok === true && event.status !== STATUS.ACTIVE && event.status !== STATUS.FINISHED && event.status !== STATUS.CANCELLED && event.status !== STATUS.ARCHIVED;
   return event;
 }
 
@@ -1121,7 +1126,7 @@ function startEvent(eventUid) {
   const event = getEventByUid(eventUid);
   if (!event) return { ok: false, error: "event_not_found", eventUid };
   if (event.status === STATUS.ACTIVE) return { ok: true, alreadyActive: true, event };
-  if ([STATUS.FINISHED, STATUS.CANCELLED].includes(event.status)) return { ok: false, error: "event_already_final", eventUid, status: event.status };
+  if ([STATUS.FINISHED, STATUS.CANCELLED, STATUS.ARCHIVED].includes(event.status)) return { ok: false, error: "event_already_final", eventUid, status: event.status };
 
   const validation = validateEventPayload(event);
   if (!validation.ok) {
@@ -1162,11 +1167,99 @@ function cancelEvent(eventUid) {
   return finalizeEvent(eventUid, STATUS.CANCELLED, "cancelled");
 }
 
+function getEventLifecycleCounts(eventUid) {
+  ensureSchema();
+  const uid = cleanString(eventUid);
+  const count = (table) => {
+    const row = database.get(`SELECT COUNT(*) AS count FROM ${table} WHERE event_uid = :eventUid`, { eventUid: uid });
+    return intValue(row && row.count, 0);
+  };
+  return {
+    scoreEntries: count("stream_events_score_entries"),
+    rounds: count("stream_events_rounds"),
+    textWordHits: count("stream_events_text_word_hits"),
+    textPhraseSolves: count("stream_events_text_phrase_solves")
+  };
+}
+
+function archiveEvent(eventUid, body = {}) {
+  ensureSchema();
+  const event = getEventByUid(eventUid);
+  if (!event) return { ok: false, error: "event_not_found", eventUid };
+  if (event.status === STATUS.ARCHIVED) return { ok: true, alreadyArchived: true, event, counts: getEventLifecycleCounts(eventUid) };
+  if (event.status !== STATUS.FINISHED) {
+    return {
+      ok: false,
+      error: "event_not_finished",
+      eventUid,
+      status: event.status,
+      rule: "archive_allowed_only_for_finished_events"
+    };
+  }
+
+  const now = nowIso();
+  const metadata = safeJson(event.metadata, {});
+  metadata.archivedAt = now;
+  metadata.archivedBy = cleanString(body.actor || body.updatedBy || body.user || "stream_events");
+  metadata.previousStatusBeforeArchive = event.status;
+
+  database.updateByKey("stream_events_events", "event_uid", eventUid, {
+    status: STATUS.ARCHIVED,
+    metadata_json: jsonEncode(metadata),
+    updated_at: now
+  });
+
+  runtimeState.counters.eventsArchived += 1;
+  markAction("archived", eventUid);
+  const updated = getEventByUid(eventUid);
+  const counts = getEventLifecycleCounts(eventUid);
+  emitBus("stream_events.event", "archived", { event: publicEventSummary(updated), counts });
+  publishStatus("event.archived", { lastEventUid: eventUid });
+  return { ok: true, event: updated, counts, rule: "archive_allowed_only_for_finished_events" };
+}
+
+function deleteEvent(eventUid, body = {}) {
+  ensureSchema();
+  const event = getEventByUid(eventUid);
+  if (!event) return { ok: false, error: "event_not_found", eventUid };
+
+  const confirm = cleanString(body.confirm || body.confirmDelete || body.deleteConfirm);
+  if (confirm !== "DELETE") {
+    return {
+      ok: false,
+      error: "delete_confirmation_required",
+      eventUid,
+      requiredConfirm: "DELETE",
+      rule: "delete_allowed_for_any_event_status_with_explicit_confirmation"
+    };
+  }
+
+  const countsBefore = getEventLifecycleCounts(eventUid);
+  database.run("DELETE FROM stream_events_text_phrase_solves WHERE event_uid = :eventUid", { eventUid });
+  database.run("DELETE FROM stream_events_text_word_hits WHERE event_uid = :eventUid", { eventUid });
+  database.run("DELETE FROM stream_events_rounds WHERE event_uid = :eventUid", { eventUid });
+  database.run("DELETE FROM stream_events_score_entries WHERE event_uid = :eventUid", { eventUid });
+  database.run("DELETE FROM stream_events_events WHERE event_uid = :eventUid", { eventUid });
+
+  runtimeState.counters.eventsDeleted += 1;
+  markAction("deleted", eventUid);
+  const summary = publicEventSummary(event);
+  emitBus("stream_events.event", "deleted", { event: summary, countsDeleted: countsBefore });
+  publishStatus("event.deleted", { lastEventUid: eventUid });
+  return {
+    ok: true,
+    eventUid,
+    deletedEvent: summary,
+    countsDeleted: countsBefore,
+    rule: "delete_allowed_for_any_event_status_with_explicit_confirmation"
+  };
+}
+
 function finalizeEvent(eventUid, status, action) {
   ensureSchema();
   const event = getEventByUid(eventUid);
   if (!event) return { ok: false, error: "event_not_found", eventUid };
-  if ([STATUS.FINISHED, STATUS.CANCELLED].includes(event.status)) return { ok: true, alreadyFinal: true, event };
+  if ([STATUS.FINISHED, STATUS.CANCELLED, STATUS.ARCHIVED].includes(event.status)) return { ok: true, alreadyFinal: true, event };
   const now = nowIso();
   const patch = {
     status,
@@ -3314,6 +3407,8 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "POST", path: `${prefix}/events/:eventUid/start`, description: "Event starten, wenn startbereit und kein anderes Event aktiv ist" },
       { method: "POST", path: `${prefix}/events/:eventUid/finish`, description: "Event beenden und Ranking liefern" },
       { method: "POST", path: `${prefix}/events/:eventUid/cancel`, description: "Event abbrechen" },
+      { method: "POST", path: `${prefix}/events/:eventUid/archive`, description: "EVS-21: Beendetes Event archivieren; nur status=finished" },
+      { method: "POST", path: `${prefix}/events/:eventUid/delete`, description: "EVS-21: Event und zugehoerige Eventdaten mit confirm=DELETE loeschen" },
       { method: "GET", path: `${prefix}/events/:eventUid/ranking`, description: "Event-Ranking lesen" },
       { method: "POST", path: `${prefix}/events/:eventUid/points`, description: "Manuelle/Modul-Punkte buchen (nur aktives Event)" }
     ],
@@ -3748,6 +3843,24 @@ module.exports.init = function init(ctx) {
     }
   });
 
+  reg("post", `${prefix}/events/:eventUid/archive`, (req, res) => {
+    try {
+      const result = archiveEvent(req.params.eventUid, req.body || {});
+      sendJson(res, result, result.ok ? 200 : 400);
+    } catch (err) {
+      handleError(res, err, 400);
+    }
+  });
+
+  reg("post", `${prefix}/events/:eventUid/delete`, (req, res) => {
+    try {
+      const result = deleteEvent(req.params.eventUid, req.body || {});
+      sendJson(res, result, result.ok ? 200 : 400);
+    } catch (err) {
+      handleError(res, err, 400);
+    }
+  });
+
   reg("get", `${prefix}/events/:eventUid/ranking`, (req, res) => {
     try {
       const event = getEventByUid(req.params.eventUid);
@@ -3780,6 +3893,9 @@ module.exports._internal = {
   startEvent,
   finishEvent,
   cancelEvent,
+  archiveEvent,
+  deleteEvent,
+  getEventLifecycleCounts,
   addPoints,
   getRanking,
   getEventConfig,
