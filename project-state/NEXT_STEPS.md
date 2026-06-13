@@ -1,43 +1,30 @@
-# NEXT STEPS
+# NEXT_STEPS – EVS-7c
 
-Stand: EVS-7b / Dashboard Tabs Layout Split  
-Datum: 2026-06-13
+Stand: EVS-7c / Event Overview + Editor Modal Flow Cleanup
 
-## Sofort nach Entpacken
+## Nach Entpacken
 
 ```powershell
+node -c .ackend\modules\stream_events.js
 node -c .\htdocs\dashboard\modules\stream_events.js
-.\stepdone.cmd "EVS-7b Dashboard Tabs Layout Split"
+.\stepdone.cmd "EVS-7c Event Overview Editor Flow"
 ```
 
-## Danach Dashboard prüfen
+Erst danach Dashboard testen.
 
-- Event-System im Dashboard öffnen.
-- Prüfen, ob Tabs sichtbar sind.
-- Tab `Übersicht` prüfen.
-- Tab `Event` prüfen.
-- Tab `Sound-Spiel` prüfen.
-- Tab `Text-Spiel` prüfen.
-- Tab `Texte` prüfen.
-- Prüfen, ob Textvarianten weiterhin bearbeitbar sind.
+## Dashboard-Test
 
-## Nächster sinnvoller Entwicklungsstep
+- Tab Übersicht prüfen: nur laufende Events / leere Meldung.
+- Tab Events prüfen: alle konfigurierten Events mit Status.
+- Event auswählen.
+- Bearbeiten öffnet Modal.
+- Neues Event öffnet Modal.
+- Texte-Tab prüfen.
+- Config-Tab Platzhalter prüfen.
+- Statistik/Overlay Platzhalter prüfen.
 
-Empfehlung:
+## Danach
 
-```text
-EVS-8 – Event Config Dashboard Prep
-```
-
-Ziel:
-
-- allgemeine Event-Regeln dashboardfähig machen
-- Default-Punkte, Cooldowns, Anzeige-/Hinweis-Modi vorbereiten
-- Text-Config und Event-Config klar trennen
-- später für Mods/Streamer einfach bedienbar halten
-
-Danach:
-
-```text
-EVS-9 – Text Runtime / Chat Detection Prep
-```
+- Config-Tab planen und ausbauen.
+- Event-Statistik pro Event planen.
+- Runtime für Sound/Text vorbereiten.

@@ -128,9 +128,9 @@ window.StreamEventsModule = (function(){
       <div class="evs-page">
         <div class="evs-header glass">
           <div>
-            <div class="evs-kicker">EVS-7b · Tab-Layout Vorbereitung</div>
+            <div class="evs-kicker">EVS-7c · Event-Übersicht & Editor-Fenster</div>
             <h2>Event-System</h2>
-            <p>Events, Konfiguration, Texte, Statistik und Overlay sind getrennt. So bleibt das Modul übersichtlich wie die anderen Dashboard-Bereiche.</p>
+            <p>Übersicht zeigt laufende Events. Die Event-Seite zeigt alle vorbereiteten Events mit Status. Bearbeitung öffnet sich im eigenen Fenster.</p>
           </div>
           <div class="evs-header-actions">
             <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="reload">Aktualisieren</button>
@@ -153,10 +153,9 @@ window.StreamEventsModule = (function(){
   function tabs(){
     return [
       { id: 'overview', label: 'Übersicht', icon: '📋' },
-      { id: 'event', label: 'Event', icon: '🎲' },
-      { id: 'sound', label: 'Sound-Spiel', icon: '🔊' },
-      { id: 'text', label: 'Text-Spiel', icon: '✍️' },
+      { id: 'events', label: 'Events', icon: '🎲' },
       { id: 'texts', label: 'Texte', icon: '💬' },
+      { id: 'config', label: 'Config', icon: '⚙️' },
       { id: 'stats', label: 'Statistik', icon: '🏆' },
       { id: 'overlay', label: 'Overlay', icon: '🖥️' }
     ];
@@ -176,22 +175,44 @@ window.StreamEventsModule = (function(){
 
   function renderActiveTab(event){
     const tab = state.activeTab || 'overview';
-    if (tab === 'event') return renderEventBasicsTab(event);
-    if (tab === 'sound') return renderSoundTab(event);
-    if (tab === 'text') return renderTextGameTab(event);
+    if (tab === 'events') return renderEventsTab(event);
     if (tab === 'texts') return renderTextsTab();
+    if (tab === 'config') return renderConfigTab();
     if (tab === 'stats') return renderStatsTab(event);
     if (tab === 'overlay') return renderOverlayTab(event);
     return renderOverviewTab(event);
   }
 
   function renderOverviewTab(ev){
+    const activeEvents = state.events.filter(event => norm(event.status) === 'active');
+    return `
+      <section class="evs-card glass evs-tab-panel">
+        <div class="evs-card-head">
+          <div>
+            <h3>Laufende Events</h3>
+            <span>Nur aktive Events und schneller Zugriff auf Status/Statistik.</span>
+          </div>
+          <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="reload">Aktualisieren</button>
+        </div>
+        ${activeEvents.length ? `
+          <div class="evs-event-card-grid">
+            ${activeEvents.map(renderRunningEventCard).join('')}
+          </div>
+        ` : '<div class="evs-empty">Aktuell läuft kein Event. Vorbereitete Events findest du im Tab „Events“.</div>'}
+      </section>
+    `;
+  }
+
+  function renderEventsTab(ev){
     return `
       <div class="evs-grid">
         <section class="evs-card glass">
           <div class="evs-card-head">
-            <h3>Vorbereitete Events</h3>
-            <span>${state.events.length} Eintrag/Einträge</span>
+            <div>
+              <h3>Konfigurierte Events</h3>
+              <span>Entwürfe, startbereite, laufende und beendete Events.</span>
+            </div>
+            <button type="button" class="evs-btn evs-btn-small" data-evs-action="new">Neues Event</button>
           </div>
           <div class="evs-list">
             ${state.events.length ? state.events.map(renderEventRow).join('') : '<div class="evs-empty">Noch keine Events vorhanden.</div>'}
@@ -200,7 +221,7 @@ window.StreamEventsModule = (function(){
 
         <section class="evs-card glass">
           <div class="evs-card-head">
-            <h3>Details</h3>
+            <h3>Event-Details</h3>
             ${ev ? statusBadge(ev.status) : ''}
           </div>
           ${ev ? renderEventDetail(ev) : '<div class="evs-empty">Wähle links ein Event aus oder erstelle ein neues.</div>'}
@@ -209,22 +230,46 @@ window.StreamEventsModule = (function(){
     `;
   }
 
-  function renderEventBasicsTab(event){
-    if (!event) return renderSelectEventEmpty('Event-Grunddaten');
+  function renderRunningEventCard(event){
+    const sound = event.soundConfig || {};
+    const text = event.textConfig || {};
+    const snippets = Array.isArray(sound.snippets) ? sound.snippets.length : 0;
+    const phrases = Array.isArray(text.phrases) ? text.phrases.length : 0;
+    return `
+      <article class="evs-running-card">
+        <div class="evs-running-card-head">
+          <div>
+            <h3>${esc(event.name || 'Unbenanntes Event')}</h3>
+            <span>${esc(eventTypes(event))}</span>
+          </div>
+          ${statusBadge(event.status)}
+        </div>
+        <p>${esc(event.description || 'Keine Beschreibung.')}</p>
+        <div class="evs-mini-grid evs-mini-grid-compact">
+          <div><strong>Sounds</strong><span>${esc(snippets)}</span></div>
+          <div><strong>Sätze</strong><span>${esc(phrases)}</span></div>
+          <div><strong>Gestartet</strong><span>${fmtDate(event.startedAt)}</span></div>
+          <div><strong>Geändert</strong><span>${fmtDate(event.updatedAt)}</span></div>
+        </div>
+        <div class="evs-action-row">
+          <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="selectEvent" data-uid="${esc(event.eventUid)}" data-target-tab="stats">Statistik ansehen</button>
+          <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="edit" data-uid="${esc(event.eventUid)}">Bearbeiten</button>
+          <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="finish" data-uid="${esc(event.eventUid)}">Beenden</button>
+        </div>
+      </article>
+    `;
+  }
+
+  function renderConfigTab(){
     return `
       <section class="evs-card glass evs-tab-panel">
         <div class="evs-card-head">
-          <div><h3>Event bearbeiten</h3><span>Grunddaten und Spieltypen. Sound/Text-Details haben eigene Tabs.</span></div>
-          <button type="button" class="evs-btn" data-evs-action="edit" data-uid="${esc(event.eventUid)}">Event öffnen</button>
+          <div>
+            <h3>Event-System Config</h3>
+            <span>Globale Einstellungen kommen in einen eigenen Bereich, getrennt von einzelnen Events.</span>
+          </div>
         </div>
-        <div class="evs-mini-grid evs-mini-grid-compact">
-          <div><strong>Name</strong><span>${esc(event.name || 'Unbenanntes Event')}</span></div>
-          <div><strong>Status</strong><span>${esc(event.status || '-')}</span></div>
-          <div><strong>Spieltypen</strong><span>${esc(eventTypes(event))}</span></div>
-          <div><strong>Geändert</strong><span>${fmtDate(event.updatedAt)}</span></div>
-        </div>
-        ${renderValidation(event)}
-        <div class="evs-tab-help">Hier bleibt nur die Übersicht. Die eigentliche Bearbeitung öffnet sich weiter im Dialog, bis die Runtime-/DB-Schritte komplett sind.</div>
+        <div class="evs-empty">Config ist für einen späteren Step vorbereitet. Geplant: Standardpunkte, Standard-Zeitlimits, Hinweisverhalten, Wortpunkte-Regeln, Overlay-Defaults und Rechte/Freigaben.</div>
       </section>
     `;
   }
@@ -288,11 +333,11 @@ window.StreamEventsModule = (function(){
     return `
       <section class="evs-card glass evs-tab-panel">
         <div class="evs-card-head">
-          <div><h3>Statistik</h3><span>Live-Ranking ist vorbereitet. Auswertung für Sound/Text kommt später.</span></div>
+          <div><h3>Statistik</h3><span>Ranking und spätere Auswertung für das ausgewählte Event.</span></div>
           ${event ? `<button type="button" class="evs-btn evs-btn-secondary" data-evs-action="ranking" data-uid="${esc(event.eventUid)}">Ranking laden</button>` : ''}
         </div>
         ${event ? (rankingRows.length ? rankingRows.slice(0, 10).map(row => `<div class="evs-rank-row"><strong>#${esc(row.rank)}</strong><span>${esc(row.userDisplayName || row.userLogin)}</span><b>${esc(row.points)} Punkte</b></div>`).join('') : '<div class="evs-empty">Noch keine Punkte.</div>') : '<div class="evs-empty">Kein Event ausgewählt.</div>'}
-        <div class="evs-tab-help">Später: Sound-Statistik, Text-Statistik, gelöste Sätze, erkannte Schnipsel, Top-Spieler und Quoten.</div>
+        <div class="evs-tab-help">Später: Auswertung pro Event, Sound-Statistik, Text-Statistik, gelöste Sätze, erkannte Schnipsel, Top-Spieler und Quoten.</div>
       </section>
     `;
   }
@@ -339,11 +384,15 @@ window.StreamEventsModule = (function(){
 
   function renderEventRow(event){
     const active = event.eventUid === state.selectedUid || (!state.selectedUid && event === state.events[0]);
+    const sound = event.soundConfig || {};
+    const text = event.textConfig || {};
+    const snippets = Array.isArray(sound.snippets) ? sound.snippets.length : 0;
+    const phrases = Array.isArray(text.phrases) ? text.phrases.length : 0;
     return `
       <button type="button" class="evs-event-row ${active ? 'is-active' : ''}" data-evs-select="${esc(event.eventUid)}">
         <span>
           <strong>${esc(event.name || 'Unbenanntes Event')}</strong>
-          <small>${esc(eventTypes(event))} · geändert ${fmtDate(event.updatedAt)}</small>
+          <small>${esc(eventTypes(event))} · Sounds ${esc(snippets)} · Sätze ${esc(phrases)} · geändert ${fmtDate(event.updatedAt)}</small>
         </span>
         ${statusBadge(event.status)}
       </button>
@@ -512,7 +561,7 @@ window.StreamEventsModule = (function(){
       <div class="evs-modal-backdrop" data-evs-modal-close="1">
         <div class="evs-modal glass" role="dialog" aria-modal="true">
           <div class="evs-modal-head">
-            <div><h3>${event.eventUid ? 'Event bearbeiten' : 'Neues Event'}</h3><p>Erst Sound und/oder Text auswählen, dann die gewählten Teile konfigurieren.</p></div>
+            <div><h3>${event.eventUid ? 'Event bearbeiten' : 'Neues Event'}</h3><p>Bearbeitung im eigenen Fenster. Grunddaten, Sound-Spiel und Text-Spiel gehören zu diesem Event.</p></div>
             <button type="button" class="evs-icon-btn" data-evs-action="closeModal">×</button>
           </div>
           <div class="evs-form">
@@ -833,6 +882,15 @@ window.StreamEventsModule = (function(){
       if (!btn) return;
       const action = btn.dataset.evsAction;
       const uid = btn.dataset.uid || state.selectedUid;
+      if (action === 'selectEvent') {
+        state.selectedUid = uid;
+        const targetTab = btn.dataset.targetTab || 'events';
+        await loadEvent(uid).catch(() => null);
+        await loadRanking(uid, false);
+        state.activeTab = targetTab;
+        render();
+        return;
+      }
       if (action === 'reload') return loadAll(true);
       if (action === 'reloadTexts') return loadTexts(true);
       if (action === 'new') { state.modal = { event: { name: '', description: '', soundEnabled: true, textEnabled: false, soundConfig: {}, textConfig: {} } }; render(); return; }

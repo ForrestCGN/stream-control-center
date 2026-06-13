@@ -142,3 +142,13 @@
 .stream-events-admin .evs-info-row span{color:var(--evs-muted);font-size:13px;line-height:1.35}
 @media(max-width:920px){.stream-events-admin .evs-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.stream-events-admin .evs-tab{justify-content:center}.stream-events-admin .evs-mini-grid-compact{grid-template-columns:1fr 1fr}}
 @media(max-width:560px){.stream-events-admin .evs-tabs{grid-template-columns:1fr}.stream-events-admin .evs-mini-grid-compact{grid-template-columns:1fr}}
+
+/* EVS-7c: Events are the main object. Overview only shows running events; all configured events live in Events tab. */
+.stream-events-admin .evs-event-card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.stream-events-admin .evs-running-card{border:1px solid rgba(34,211,238,.22);background:linear-gradient(145deg,rgba(34,211,238,.08),rgba(168,85,247,.06));border-radius:18px;padding:14px;box-shadow:0 0 18px rgba(34,211,238,.06)}
+.stream-events-admin .evs-running-card-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:8px}
+.stream-events-admin .evs-running-card h3{margin:0;color:#f8fafc;font-size:17px}
+.stream-events-admin .evs-running-card span{color:var(--evs-muted);font-size:13px}
+.stream-events-admin .evs-running-card p{color:#cbd5e1;font-size:13px;line-height:1.45;margin:8px 0 0}
+.stream-events-admin .evs-running-card .evs-mini-grid{grid-template-columns:repeat(2,minmax(120px,1fr))}
+@media(max-width:640px){.stream-events-admin .evs-running-card-head{display:grid}.stream-events-admin .evs-running-card .evs-mini-grid{grid-template-columns:1fr}}

@@ -1,6 +1,6 @@
 # Modul-Doku: stream_events
 
-Stand: EVS-7b / Dashboard Tabs Layout Split  
+Stand: EVS-7c / Event Overview + Editor Modal Flow Cleanup  
 Datum: 2026-06-13
 
 ## Zweck
@@ -496,3 +496,91 @@ Regeln:
 - Statistik und Overlay sind als eigene Bereiche vorbereitet, bleiben aber in diesem Step ohne Runtime.
 
 Keine Backend-, DB-, Runtime-, Chat-, Playback- oder Overlay-Logik wurde in EVS-7b geändert.
+
+
+## EVS-7c – Event Overview + Editor Modal Flow Cleanup
+
+EVS-7c korrigiert die Dashboard-Struktur nach Forrests Feedback.
+
+### Neue Hauptlogik
+
+Events sind das Hauptobjekt.
+
+- Ohne Event gibt es kein Sound-Spiel und kein Text-Spiel.
+- Sound-Spiel und Text-Spiel sind Konfigurationen innerhalb eines Events.
+- Die Event-Bearbeitung passiert weiterhin im eigenen Fenster/Modal.
+
+### Haupttabs ab EVS-7c
+
+- Übersicht
+- Events
+- Texte
+- Config
+- Statistik
+- Overlay
+
+### Übersicht
+
+Die Übersicht ist nicht mehr die komplette Eventverwaltung.
+
+Sie zeigt nur laufende Events und schnellen Zugriff auf:
+
+- Status
+- Statistik ansehen
+- Bearbeiten
+- Beenden
+
+Wenn kein Event läuft, verweist die Übersicht auf den Tab Events.
+
+### Events
+
+Der Tab Events zeigt alle konfigurierten Events mit Status:
+
+- Entwurf
+- Startbereit
+- Läuft
+- Beendet
+- Abgebrochen
+
+Dort können Events ausgewählt, geprüft, gestartet, beendet, abgebrochen und bearbeitet werden.
+
+Bearbeiten öffnet ein separates Editor-Fenster.
+
+### Editor-Fenster
+
+Im Editor-Fenster bleiben die eventbezogenen Einstellungen:
+
+- Grunddaten
+- Sound-Spiel aktivieren/deaktivieren
+- Sound-Spiel-Konfiguration
+- Text-Spiel aktivieren/deaktivieren
+- Text-Spiel-Konfiguration
+- Speichern
+
+### Texte
+
+Der Tab Texte bleibt global und nicht eventbezogen.
+
+Hier liegen später die Chat-/Bot-Meldungen und Multi-Texte über die vorhandenen Text-Helper.
+
+### Config
+
+Config ist als eigener Haupttab vorbereitet, aber noch ohne produktive Einstelllogik.
+
+Geplant:
+
+- Standardpunkte
+- Standard-Zeitlimits
+- Standard-Hinweisverhalten
+- Wortpunkte-Defaults
+- Overlay-Defaults
+- Rechte/Freigaben
+
+### Nicht geändert in EVS-7c
+
+- Keine Backend-Logik geändert.
+- Keine Datenbank geändert.
+- Keine Chat-Runtime geändert.
+- Keine Worterkennung geändert.
+- Kein Sound-Playback geändert.
+- Kein Overlay geändert.

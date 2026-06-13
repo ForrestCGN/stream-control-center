@@ -1,26 +1,27 @@
-# CHANGELOG
+# CHANGELOG – EVS-7c
 
-## EVS-7b – Dashboard Tabs Layout Split
+## EVS-7c – Event Overview + Editor Modal Flow Cleanup
 
-Datum: 2026-06-13
+Geändert:
 
-### Added
+- Haupttabs neu strukturiert:
+  - Übersicht
+  - Events
+  - Texte
+  - Config
+  - Statistik
+  - Overlay
+- Sound-Spiel und Text-Spiel aus den Haupttabs entfernt.
+- Übersicht zeigt nur laufende Events.
+- Events-Tab zeigt alle konfigurierten Events mit Status.
+- Bearbeitung bleibt im separaten Event-Editor-Fenster.
+- Config-Tab als eigener Bereich vorbereitet.
 
-- Tab-Navigation im Event-System-Dashboard.
-- Eigene Tabs für Übersicht, Event, Sound-Spiel, Text-Spiel, Texte, Statistik und Overlay.
-- Kurzansichten für Sound-Spiel und Text-Spiel.
-- Platzhalterbereiche für spätere Statistik- und Overlay-Konfiguration.
+Nicht geändert:
 
-### Changed
-
-- Text-Config/Multi-Texte steht nicht mehr unter der Hauptansicht, sondern im Tab `Texte`.
-- Hauptseite ist schlanker und näher am Aufbau anderer Dashboard-Module.
-- Dashboard-Kicker auf EVS-7b aktualisiert.
-
-### Not changed
-
-- Keine Backend-Änderung.
-- Keine DB-Änderung.
-- Keine Chat-Runtime.
-- Keine Sound-Runtime.
-- Kein Overlay.
+- Backend
+- Datenbank
+- Runtime
+- Chat-Auswertung
+- Sound-Playback
+- Overlay

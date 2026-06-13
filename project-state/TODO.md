@@ -1,54 +1,40 @@
-# TODO – Stream Events
+# TODO – EVS-7c
 
-Stand: EVS-7b / Dashboard Tabs Layout Split
-
-## Erledigt bis EVS-7b
+## Erledigt bis EVS-7c
 
 - Backend Foundation.
-- Eventliste, Event erstellen/bearbeiten/starten/beenden/abbrechen.
-- Sound/Text-Spiel auswählbar.
-- MediaPicker für Audio-Schnipsel und optionales Video.
-- Multi-Satz-Konfiguration für Text-Spiel.
-- Teiltreffer-Modus konfigurierbar.
-- Wortpunkte optional konfigurierbar.
-- Text-Config/Multi-Texte im Dashboard vorbereitet.
-- Event-System-Dashboard in Tabs getrennt.
+- Dashboard Skeleton.
+- MediaPicker Vorbereitung.
+- Sound-/Text-Konfiguration im Event-Editor.
+- Multi-Satz-Text-Spiel vorbereitet.
+- Text-Config / Multi-Texte vorbereitet.
+- Dashboard-Flow korrigiert:
+  - Übersicht = laufende Events.
+  - Events = konfigurierte Events mit Status.
+  - Bearbeitung = separates Modal.
 
 ## Offen: Config
 
-- Allgemeine Event-Config im Dashboard.
-- Defaultwerte für Sound-/Text-Spiel.
-- Default-Punkte für komplette Lösung.
-- Default-Punkte pro Wort.
-- Default-Cooldowns.
-- Standard-Hinweismodus.
-- Anzeige-Regeln fürs Overlay.
+- Config-Tab fachlich planen.
+- Standardpunkte.
+- Standard-Zeitlimits.
+- Standard-Hinweisverhalten.
+- Wortpunkte-Defaults.
+- Overlay-Defaults.
+- Rechte/Freigaben.
 
-## Offen: Text-Runtime
+## Offen: Runtime
 
-- Twitch-Chat über vorhandene Events/Bus abonnieren.
-- aktive Events prüfen.
-- aktive Text-Sätze/Rotation verwalten.
-- komplette Lösungen erkennen.
-- erlaubte Varianten erkennen.
-- Teiltreffer aus Satzwörtern berechnen.
-- pro Event/Satz/User/Wort nur einmal zählen.
-- optionale Wortpunkte vergeben.
-- Textvarianten aus `helper_texts` für Chatmeldungen nutzen.
+- Sound-Rotation.
+- Text-Rotation.
+- Chat-Auswertung.
+- Teiltreffer/Wortpunkte.
+- Punktevergabe.
+- Eventabschluss / Top 3.
 
-## Offen: Sound-Runtime
+## Offen: Statistik / Overlay
 
-- Sound-Rotation verwalten.
-- Sound über vorhandenes Sound-/Media-System abspielen.
-- Antwortzeit steuern.
-- richtige Antworten erkennen.
-- gelöste Sounds aus Rotation entfernen.
-- ungelöste Sounds nach Config behandeln.
-
-## Offen: Anzeige/Statistik
-
-- Event-Overlay.
-- Live-Ranking.
-- Top 3.
-- Statistik für Sound und Text.
-- Dashboard-Statistikansicht.
+- Statistik pro Event.
+- Sound-Statistik.
+- Text-Statistik.
+- Overlay-Anzeige.
