@@ -1,15 +1,16 @@
 # NEXT_STEPS – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-21
+Stand: 2026-06-13 nach EVS-21b
 
 ## Aktuell bestätigt
 
 EVS-21 ergänzt den Event-Lifecycle für alte Events:
 
 ```text
-- Archivieren: nur für status=finished
-- Löschen: für jeden Status möglich, aber nur mit confirm=DELETE
+- Archivieren: nur für status=finished; aktives Event wird blockiert
+- Löschen: für jeden Status möglich, aber nur mit JSON-Body confirm=DELETE
 - Archivieren behält Werte, Löschen entfernt Event + eventUid-Daten
+- Eventliste kommt aus API-Feld rows
 ```
 
 ## Sofort sinnvoller nächster Schritt

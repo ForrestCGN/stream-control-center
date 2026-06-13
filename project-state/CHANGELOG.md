@@ -2,6 +2,19 @@
 
 Stand: 2026-06-13
 
+
+## EVS-21b – Event Archive/Delete Completion Documentation
+
+- EVS-21 fachlich bestätigt.
+- Aktives Event kann nicht archiviert werden (`event_not_finished`).
+- Finished Event wurde erfolgreich archiviert; Status wurde `archived`.
+- Archivieren erhält zugehörige Werte und schreibt Archiv-Metadaten.
+- Delete ohne Bestätigung wurde blockiert.
+- Delete mit JSON-Body `{ "confirm": "DELETE" }` wurde erfolgreich getestet.
+- Hinweis dokumentiert: `/api/stream-events/events` liefert Eventliste unter `rows`, nicht `events`.
+- Hinweis dokumentiert: Query-Confirm `?confirm=DELETE` ist nicht ausreichend.
+- Keine Code-/Runtime-Änderung in EVS-21b.
+
 ## EVS-21 – Event Archive/Delete Lifecycle Prep
 
 - Status `archived` ergänzt.

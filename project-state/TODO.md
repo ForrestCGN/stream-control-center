@@ -1,10 +1,11 @@
 # TODO – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-21
+Stand: 2026-06-13 nach EVS-21b
 
 ## Erledigt / bestätigt
 
 - [x] EVS-21 Event Archive/Delete Lifecycle Prep
+- [x] EVS-21b Event Archive/Delete Completion Documentation
 
 - [x] Backend Foundation `stream_events`
 - [x] Dashboard Skeleton
@@ -36,7 +37,7 @@ Stand: 2026-06-13 nach EVS-21
 
 ## Kurzfristig offen
 
-- [ ] EVS-20 im Live-System testen: `/chat-output/status`, `/chat-output/report`, `/chat-output/test-dispatch`.
+- [x] EVS-20 im Live-System testen: `/chat-output/status`, `/chat-output/report` geprüft; `wouldSend=0`, `blocked=4`.
 - [ ] EVS-21: Dashboard-Anzeige für ChatOutput-Status/Report vorbereiten.
 - [ ] Dashboard Sound-Spiel: aktive Runde noch deutlicher anzeigen.
 - [ ] Dashboard Statistik/User-Popup weiter im Browser prüfen.
@@ -44,6 +45,9 @@ Stand: 2026-06-13 nach EVS-21
 ## Mittelfristig offen
 
 - [ ] Dashboard-Aktionen für Archivieren/Löschen mit klarer Warnung und Bestätigung vorbereiten.
+  - Archivieren nur bei `status=finished`.
+  - Löschen mit Body-Confirm `confirm=DELETE`.
+  - Eventliste nutzt API-Feld `rows`.
 - [ ] Archivansicht/Filter für alte Events im Dashboard vorbereiten.
 - [ ] Delete-Aktion später mit Rollen-/Audit-Logging absichern.
 

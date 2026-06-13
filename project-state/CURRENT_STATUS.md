@@ -1,6 +1,6 @@
 # CURRENT_STATUS – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-21 – Event Archive/Delete Lifecycle Prep
+Stand: 2026-06-13 nach EVS-21b – Event Archive/Delete Completion Documentation
 
 ## Aktueller bestätigter Stand
 
@@ -25,6 +25,8 @@ MODULE_BUILD: STEP_EVS_21_EVENT_ARCHIVE_DELETE_PREP
 - Sound-Playback bleibt `directPlay=false`.
 - Sound-System-Queue wird nicht berührt.
 - Alte Eventwerte bleiben `eventUid`-gebunden; alte Testevents werden archiviert/finished, nicht blind gelöscht.
+- EVS-20 ChatOutput-Status/Report wurde geprüft: `preparedOutputs=4`, `wouldSend=0`, `blocked=4`, alle Sicherheitsblocker aktiv.
+- EVS-21 Archivieren/Löschen wurde vollständig getestet.
 
 ## EVS-20 hinzugefügt
 
@@ -44,6 +46,8 @@ MODULE_BUILD: STEP_EVS_21_EVENT_ARCHIVE_DELETE_PREP
 - Löschen ist statusunabhängig möglich, aber nur mit expliziter Bestätigung `confirm=DELETE`.
 - Hard-Delete entfernt Event plus zugehörige `eventUid`-Daten: Ranking-/Score-Einträge, Runden, Text-Worttreffer und Text-Satzlösungen.
 - Archivierte Events behalten ihre Werte für spätere Auswertung.
+- `/api/stream-events/events` liefert die Liste unter `rows`.
+- Delete-Bestätigung erfolgt per JSON-Body `{ "confirm": "DELETE" }`, nicht per Query.
 
 ## Weiterhin bewusst NICHT produktiv aktiv
 

@@ -1,6 +1,6 @@
 # Modul-Doku: stream_events
 
-Stand: 2026-06-13 nach EVS-21 – Event Archive/Delete Lifecycle Prep
+Stand: 2026-06-13 nach EVS-21b – Event Archive/Delete Completion Documentation
 
 ## Zweck
 
@@ -26,6 +26,8 @@ MODULE_BUILD   = STEP_EVS_21_EVENT_ARCHIVE_DELETE_PREP
 
 ## Aktuell bestätigt
 
+- EVS-20: ChatOutput Dispatcher Prep wurde im Live-System geprüft; alle vorbereiteten Outputs blieben blockiert (`wouldSend=0`, `dispatched=false`).
+- EVS-21: Event-Archivieren/Löschen wurde fachlich bestätigt.
 - EVS-18: echte Twitch-Chatnachrichten werden über `twitch.chat.message` vom Bus verarbeitet.
 - EVS-19e: Sound und Text laufen parallel im selben Event.
 - Eine Chatnachricht wird für Sound UND Text geprüft.
@@ -182,6 +184,31 @@ Fachregeln:
 
 Sicherheitsgrundsatz: Archivieren ist historisch/auswertbar, Löschen ist ein Hard-Delete mit Bestätigung.
 
+
+## EVS-21b bestätigte Lifecycle-Tests
+
+Bestätigte Testregeln aus EVS-21b:
+
+```text
+GET /api/stream-events/events liefert rows, nicht events.
+Archivieren aktiver Events wird blockiert.
+Archivieren ist nur für status=finished erlaubt.
+Archivieren setzt status=archived und löscht keine Werte.
+Löschen ohne Bestätigung wird blockiert.
+Löschen funktioniert mit JSON-Body { "confirm": "DELETE" }.
+Query-Confirm ?confirm=DELETE ist nicht ausreichend.
+Hard-Delete entfernt Event plus eventUid-gebundene Daten.
+```
+
+Bestätigte Testfälle:
+
+```text
+Aktives Event archive -> ok=false, error=event_not_finished.
+Finished Event archive -> ok=true, status=archived, Werte bleiben erhalten.
+Delete ohne Body-Confirm -> ok=false, error=delete_confirmation_required.
+Delete mit Body confirm=DELETE -> ok=true, Event danach nicht mehr in rows.
+```
+
 ## Sicherheit
 
 Aktuell gelten weiterhin:
@@ -198,7 +225,7 @@ EVS-20 sendet nicht. EVS-20 ist nur Vorschau, Prüfung und Sicherheitsstatus.
 
 ## Nächster technischer Schritt
 
-EVS-21 sollte das Dashboard für ChatOutput-Status/Report vorbereiten:
+EVS-22 sollte das Dashboard für ChatOutput-Status/Report und Event-Lifecycle vorbereiten:
 
 ```text
 - Anzeige TESTMODUS / LIVE AKTIV vorbereiten

@@ -1,6 +1,6 @@
 # FILES – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-21
+Stand: 2026-06-13 nach EVS-21b
 
 ## Aktive Projektdateien
 
@@ -11,6 +11,7 @@ htdocs/dashboard/modules/stream_events.css
 docs/modules/stream_events.md
 docs/current/CURRENT_CHAT_HANDOFF_EVS_20_CHAT_OUTPUT_DISPATCHER_PREP.md
 docs/current/CURRENT_CHAT_HANDOFF_EVS_21_EVENT_ARCHIVE_DELETE_LIFECYCLE_PREP.md
+docs/current/CURRENT_CHAT_HANDOFF_EVS_21B_COMPLETION_DOCUMENTATION.md
 project-state/CURRENT_STATUS.md
 project-state/TODO.md
 project-state/NEXT_STEPS.md
@@ -81,3 +82,4 @@ POST /api/stream-events/chat-output/test-dispatch
 - EVS-20 ChatOutput Dispatcher Prep
 
 - EVS-21 Event Archive/Delete Lifecycle Prep
+- EVS-21b Event Archive/Delete Completion Documentation
