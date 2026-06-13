@@ -1,104 +1,49 @@
 # CURRENT STATUS
 
-Stand: EVS-3 / Stream Events Dashboard Skeleton
-Datum: 2026-06-13
+Stand: EVS-4 / Stream Events Media Picker Prep  
+Datum: 2026-06-13  
 Projekt: ForrestCGN / stream-control-center
 
 ## Zweck dieses Stands
 
-EVS-3 ergaenzt nach der funktionierenden EVS-2 Backend-Basis eine erste Dashboard-Oberflaeche fuer das Event-System.
+EVS-4 setzt auf EVS-3 auf und bereitet die Medienauswahl im Event-Dashboard korrekt über das vorhandene Media-System vor.
 
-Der Schritt bleibt bewusst klein und sicher:
+## Bestätigte Grundlage
 
-- Dashboard-Skeleton ja
-- keine neue Spiel-Engine
-- keine Chat-Auswertung
-- kein Sound-/Video-Playback
-- kein Overlay
-- kein Backend-Umbau
+- EVS-2 Backendstatus wurde vom Nutzer getestet:
+  - `ok: True`
+  - `module: stream_events`
+  - `moduleVersion: 0.1.0`
+  - `moduleBuild: STEP_EVS_2_BACKEND_FOUNDATION`
+  - `routeCount: 13`
+  - `schemaReady: True`
+- EVS-3 Dashboard Skeleton wurde erstellt.
+- Nutzerhinweis: StepDone vor Live-/Dashboard-Test beachten.
 
-## Bestaetigter EVS-2 Test
+## EVS-4 Änderung
 
-Forrest hat EVS-2 gegen Live/API geprueft:
-
-```text
-ok            : True
-module        : stream_events
-moduleVersion : 0.1.0
-moduleBuild   : STEP_EVS_2_BACKEND_FOUNDATION
-routeCount    : 13
-lastError     :
-```
-
-Diagnostics:
+Im Event-Erstellen/Bearbeiten-Dialog werden Medien für Sound-Schnipsel und optionale Auflösungs-Videos über die vorhandenen Media-Komponenten gewählt.
 
 ```text
-ok            : True
-health        : ok
-schemaReady   : True
-schemaVersion : 1
-lastError     :
+Sound-Schnipsel → MediaPicker / audio / stream_events/sound_snippets
+Auflösungs-Video → MediaPicker / video,animation / stream_events/reveal_videos
 ```
 
-## EVS-3 umgesetzt
-
-Neue Dateien:
+## Nicht geändert
 
 ```text
-htdocs/dashboard/modules/stream_events.js
-htdocs/dashboard/modules/stream_events.css
+Backend
+Datenbank
+Twitch-Chat-Auswertung
+Sound-/Video-Playback
+Overlay
+Media-System selbst
 ```
 
-Geaenderte Datei:
+## Testregel
 
-```text
-htdocs/dashboard/index.html
-```
-
-Doku aktualisiert:
-
-```text
-docs/modules/stream_events.md
-docs/current/CURRENT_CHAT_HANDOFF_EVS_3_DASHBOARD_SKELETON.md
-project-state/CURRENT_STATUS.md
-project-state/NEXT_STEPS.md
-project-state/TODO.md
-project-state/CHANGELOG.md
-project-state/FILES.md
-```
-
-## Dashboard-Funktionen
-
-- Eventliste anzeigen
-- Eventdetails anzeigen
-- neues Event erstellen
-- Event bearbeiten
-- Sound/Text auswaehlen
-- einfache Sound-Konfiguration speichern
-- einfache Text-Konfiguration speichern
-- Validierungsstatus lesbar anzeigen
-- Start/Beenden/Abbrechen mit Bestaetigung
-- Ranking laden
-
-## Nicht geaendert durch EVS-3
-
-- kein Backend-Code
-- keine DB-Migration
-- keine Twitch-Events/Chat-Verarbeitung
-- kein Sound-System-Code
-- kein Media-System-Code
-- kein Overlay
-- keine bestehende Dashboard-Funktion entfernt
-
-## Wichtiger Ablauf fuer Test
-
-Forrest-Hinweis: `stepdone.cmd` muss vor Live-/Dashboard-Test ausgefuehrt werden, sonst ist der Stand nicht im Live-System.
+Vor Live-Test:
 
 ```powershell
-.\stepdone.cmd "EVS-3 Stream Events Dashboard Skeleton"
+.\stepdone.cmd "EVS-4 Stream Events Media Picker Prep"
 ```
-
-## Naechster Schritt
-
-EVS-4: Sound-Spiel Backend / Rotation planen und bauen.
-

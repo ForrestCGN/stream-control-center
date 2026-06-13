@@ -1,32 +1,22 @@
 # TODO
 
-Stand: EVS-3 / Stream Events Dashboard Skeleton
+Stand: EVS-4 / Stream Events Media Picker Prep  
 Datum: 2026-06-13
 
-## Stream Events / EVS
+## Event-System
 
-- [x] EVS-1 Planungs-/Architektur-Doku erstellt.
-- [x] EVS-2 Backend-Foundation erstellt.
-- [x] EVS-2 Live/API-Test erfolgreich.
-- [x] EVS-3 Dashboard-Skeleton erstellt.
-- [x] Event-System im Dashboard Community-Bereich vorbereitet.
-- [x] Eventliste und Detailansicht vorbereitet.
-- [x] Event-Erstellung mit Sound/Text-Auswahl vorbereitet.
-- [x] Einfache Sound-/Text-Konfiguration im Dashboard vorbereitet.
-- [x] Validierungsstatus im Dashboard vorbereitet.
-- [ ] EVS-3 entpacken.
-- [ ] `stepdone.cmd` vor Live-Test ausfuehren.
-- [ ] EVS-3 Dashboard-Test durchfuehren.
-- [ ] EVS-4 Sound-Spiel Backend planen und bauen.
-- [ ] EVS-5 Text-Spiel Backend planen.
-- [ ] EVS-6 Twitch-Chat Subscriber planen.
-- [ ] EVS-7 Overlay/Playback planen.
+- [x] EVS-1 Planungsdoku erstellt.
+- [x] EVS-2 Backend Foundation erstellt.
+- [x] EVS-2 Backendstatus vom Nutzer erfolgreich getestet.
+- [x] EVS-3 Dashboard Skeleton erstellt.
+- [x] EVS-4 Media-System-Picker im Dashboard vorbereitet.
+- [ ] EVS-4 nach StepDone im Dashboard testen.
+- [ ] Mehrere Sound-Schnipsel pro Event planen/umsetzen.
+- [ ] Mehrere Text-/Geheimsätze pro Event planen/umsetzen.
+- [ ] Sound-Rundensteuerung planen.
+- [ ] Chat-Auswertung planen.
+- [ ] Overlay-/Playback-Anbindung planen.
 
-## Weiterhin offen aus LWG-4Q.12R
+## Wichtige Regel
 
-- [ ] StreamElements-Gamble/Roulette später abschalten.
-- [ ] Echte Gamble-Langzeitstatistik per Backend-Route planen.
-- [ ] Begriffe im Giveaway-Control vereinheitlichen.
-- [ ] Zentrale Config-Tab-Struktur prüfen.
-- [ ] Eigenen Texte-Tab planen.
-
+- [ ] Vor Live-/Dashboard-Test immer zuerst `stepdone.cmd` nach Übernahme ausführen.

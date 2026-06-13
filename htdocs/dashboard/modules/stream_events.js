@@ -123,9 +123,9 @@ window.StreamEventsModule = (function(){
       <div class="evs-page">
         <div class="evs-header glass">
           <div>
-            <div class="evs-kicker">EVS-3 · Dashboard Skeleton</div>
+            <div class="evs-kicker">EVS-4 · Media-System Vorbereitung</div>
             <h2>Event-System</h2>
-            <p>Events vorbereiten, Sound/Text auswählen und Startbereitschaft prüfen. Gameplay, Chat-Auswertung und Playback kommen später.</p>
+            <p>Events vorbereiten, Sound/Text auswählen und Medien sauber über das vorhandene Media-System verknüpfen. Gameplay, Chat-Auswertung und Playback kommen später.</p>
           </div>
           <div class="evs-header-actions">
             <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="reload">Aktualisieren</button>
@@ -159,6 +159,18 @@ window.StreamEventsModule = (function(){
         ${state.modal ? renderModal() : ''}
       </div>
     `;
+    attachMediaFields(root);
+  }
+
+  function attachMediaFields(scope){
+    if (!scope) return;
+    if (window.MediaField?.initAll) {
+      window.MediaField.initAll(scope);
+      return;
+    }
+    scope.querySelectorAll('[data-media-field-preview]').forEach(preview => {
+      preview.innerHTML = '<span class="mf-muted">Media-System-Komponente nicht geladen.</span>';
+    });
   }
 
   function renderEventRow(event){
@@ -242,10 +254,21 @@ window.StreamEventsModule = (function(){
               </div>
               <div class="evs-two-cols">
                 <label>Schnipsel-Name<input id="evsSnippetTitle" value="${esc(snippet.title || snippet.name || '')}" placeholder="z. B. Knight Rider"></label>
-                <label>Media-Datei / Media-ID<input id="evsSnippetMedia" value="${esc(snippet.mediaId || snippet.mediaPath || snippet.file || snippet.snippetMediaId || '')}" placeholder="z. B. intros/knight_rider.mp3"></label>
+                <div class="evs-field-block">
+                  <span class="evs-label">Sound-Schnipsel aus Media-System</span>
+                  <div class="evs-media-field" data-media-field data-module-key="stream_events" data-category-key="sound_snippets" data-allowed-types="audio" data-title="Sound-Schnipsel auswählen" data-value-input="#evsSnippetMedia">
+                    <input id="evsSnippetMedia" type="hidden" data-media-field-value value="${esc(snippet.mediaId || snippet.mediaPath || snippet.file || snippet.snippetMediaId || '')}">
+                  </div>
+                </div>
               </div>
               <label>Erlaubte Antworten, mit Komma getrennt<input id="evsSnippetAnswers" value="${esc((snippet.acceptedAnswers || []).join(', '))}" placeholder="knight rider, knightrider"></label>
-              <label>Optionales Auflösungs-Video<input id="evsSnippetVideo" value="${esc(snippet.revealVideoMediaId || snippet.videoMediaId || '')}" placeholder="optional, später Media-System"></label>
+              <div class="evs-field-block">
+                <span class="evs-label">Optionales Auflösungs-Video aus Media-System</span>
+                <div class="evs-media-field" data-media-field data-module-key="stream_events" data-category-key="reveal_videos" data-allowed-types="video,animation" data-title="Auflösungs-Video auswählen" data-value-input="#evsSnippetVideo">
+                  <input id="evsSnippetVideo" type="hidden" data-media-field-value value="${esc(snippet.revealVideoMediaId || snippet.videoMediaId || '')}">
+                </div>
+                <small class="evs-help">Upload und Auswahl laufen über das vorhandene Media-System. Das Event speichert nur die Media-ID/Referenz.</small>
+              </div>
             </details>
 
             <details class="evs-config-box" ${event.textEnabled ? 'open' : ''}>

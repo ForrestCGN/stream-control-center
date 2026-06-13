@@ -1,74 +1,49 @@
 # NEXT STEPS
 
-Stand: EVS-3 / Stream Events Dashboard Skeleton
+Stand: EVS-4 / Stream Events Media Picker Prep  
 Datum: 2026-06-13
 
-## Sofort nach Entpacken
-
-Syntax pruefen:
+## Sofort nach Übernahme
 
 ```powershell
 node -c .\htdocs\dashboard\modules\stream_events.js
+.\stepdone.cmd "EVS-4 Stream Events Media Picker Prep"
 ```
 
-Danach vor Dashboard-/Live-Test unbedingt:
+Erst danach Dashboard im Live-System testen.
 
-```powershell
-.\stepdone.cmd "EVS-3 Stream Events Dashboard Skeleton"
-```
-
-Erst danach Live-System/Dashboard testen.
-
-## Dashboard-Test nach StepDone
+## Manuelle Prüfung
 
 ```text
-Dashboard -> Community -> Event-System
+Dashboard → Community → Event-System → Neues Event
 ```
 
-Testfolge:
+Prüfen:
 
-1. Event-System oeffnen
-2. Neues Event erstellen
-3. Sound und/oder Text aktivieren
-4. Gewaehlten Spieltyp konfigurieren
-5. Speichern
-6. Validierung ansehen
-7. Start/Finish/Cancel nur mit Test-Event pruefen
+- Sound/Text auswählbar.
+- Sound-Schnipsel öffnet Media-Picker.
+- Audio-Upload im Media-Picker möglich.
+- Auswahl setzt Media-ID.
+- Auflösungs-Video öffnet Picker mit Video/Animation.
+- Speichern bleibt möglich.
+- Validierung bleibt verständlich.
 
-## Naechster fachlicher Arbeitsblock
+## Nächster fachlicher Schritt
 
-### EVS-4 – Sound-Spiel Backend / Rotation
+EVS-5 sollte nicht direkt Playback oder Chat bauen, sondern zuerst die Konfiguration robuster machen:
 
-Ziel:
+```text
+- mehrere Sound-Schnipsel pro Event
+- mehrere Text-/Geheimsätze pro Event
+- einfache Hinzufügen/Bearbeiten/Entfernen-Dialoge
+- weiterhin Media-System für Medien
+- weiterhin DB-Snapshot am Event
+```
 
-- Sound-Snippet-Konfiguration sauberer als eigene Backend-Struktur vorbereiten
-- Eventbezogene Snippet-Rotation
-- korrekt erkannt -> aus aktueller Rotation entfernen / erkannt markieren
-- nicht erkannt -> je nach Config erneut einreihen oder entfernen
-- direkte Wiederholung vermeiden
-- Statistikgrundlage vorbereiten
+Danach erst:
 
-Noch nicht:
-
-- kein automatisches Sound-Playback
-- kein Video-Playback
-- keine Twitch-Chat-Auswertung
-
-## Danach
-
-### EVS-5 – Text-Spiel Backend
-
-- Phrase-Hunt-Konfiguration
-- Hinweiswoerter/Tokens
-- Loesungserkennung vorbereiten
-
-### EVS-6 – Twitch-Chat Subscriber
-
-- `twitch.chat.message` nur bei aktivem Event/Spiel konsumieren
-- bestehende Command-/Twitch-Flows nicht stoeren
-
-### EVS-7 – Overlay/Playback
-
-- zentrales Event-Overlay
-- Sound/Video ueber vorhandenes Sound-/Media-System, soweit moeglich
-
+```text
+EVS-6 Sound-Rundensteuerung
+EVS-7 Chat-Auswertung
+EVS-8 Overlay/Playback-Anbindung
+```
