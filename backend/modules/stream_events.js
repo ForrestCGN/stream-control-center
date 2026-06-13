@@ -3,9 +3,10 @@
 /**
  * Stream Events backend foundation.
  *
- * STEP EVS-8:
- * - Keeps the EVS-7 overview/editor/text dashboard structure.
- * - Adds dashboard-capable global Event-System config storage.
+ * STEP EVS-9:
+ * - Keeps the EVS-8 config/dashboard foundation.
+ * - Makes the existing Communication-Bus registration, heartbeat and module-status integration explicit.
+ * - Adds a Stream-Events bus-status diagnostic endpoint.
  * - Still keeps gameplay runtime, Twitch chat handling, sound/media playback and overlay out of this step.
  */
 
@@ -16,8 +17,8 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.3.1";
-const MODULE_BUILD = "STEP_EVS_8_CONFIG_DASHBOARD_PREP";
+const MODULE_VERSION = "0.3.2";
+const MODULE_BUILD = "STEP_EVS_9_EVENTBUS_HEARTBEAT_INTEGRATION";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -132,7 +133,7 @@ const MODULE_META = {
   build: MODULE_BUILD,
   type: "runtime",
   category: "events",
-  description: "Zentrales Event-System Backend: Entwürfe, Validierung, Punkte, Ranking, Bus-Status, Text-Multi-Satz-Config, Textvarianten und globale Config.",
+  description: "Zentrales Event-System Backend: Entwürfe, Validierung, Punkte, Ranking, Bus-Status, Text-Multi-Satz-Config, Textvarianten, globale Config und Communication-Bus Heartbeat.",
   routesPrefix: ["/api/stream-events"],
   bus: {
     registered: true,
@@ -239,7 +240,7 @@ function createCommunicationBusHandle(meta, buildStatusFn) {
         build: meta.build || "",
         type: meta.type || "runtime",
         routesPrefix: Array.isArray(meta.routesPrefix) ? meta.routesPrefix : [],
-        registeredBy: "stream_events_backend_foundation",
+        registeredBy: "stream_events_eventbus_heartbeat_integration",
         registeredAt: core.nowIso()
       }
     };
@@ -1150,6 +1151,39 @@ function buildStatus() {
   };
 }
 
+function buildBusStatus() {
+  const bus = getBus();
+  const handleState = moduleBusHandle ? moduleBusHandle.getState() : null;
+  const status = bus && typeof bus.getStatus === "function" ? bus.getStatus() : null;
+  const clients = status && Array.isArray(status.clients) ? status.clients : [];
+  const events = status && Array.isArray(status.events) ? status.events : [];
+  const subscriptions = status && Array.isArray(status.subscriptions) ? status.subscriptions : [];
+  const streamEventClients = clients.filter(client => client && (client.module === MODULE_NAME || client.id === `module:${MODULE_NAME}`));
+  const streamEvents = events.filter(event => {
+    const source = event && event.source ? event.source : {};
+    return source.module === MODULE_NAME || source.id === `module:${MODULE_NAME}` || String(event.channel || "").startsWith("stream_events");
+  });
+
+  return {
+    ok: !!bus,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    handle: handleState || { ok: false, registered: false, heartbeatStarted: false, lastError: "not_started" },
+    communicationBusAvailable: !!bus,
+    communicationBusEnabled: status ? status.enabled !== false : false,
+    busName: status ? status.bus || "" : "",
+    busVersion: status ? status.version || "" : "",
+    clients: streamEventClients,
+    clientCount: streamEventClients.length,
+    events: streamEvents,
+    eventCount: streamEvents.length,
+    subscriptionCount: subscriptions.length,
+    stats: status && status.stats ? status.stats : {},
+    updatedAt: nowIso()
+  };
+}
+
 function publicRoutes(prefix = "/api/stream-events") {
   return {
     ok: true,
@@ -1157,6 +1191,7 @@ function publicRoutes(prefix = "/api/stream-events") {
     moduleVersion: MODULE_VERSION,
     routes: [
       { method: "GET", path: `${prefix}/status`, description: "Stream-Events Backendstatus" },
+      { method: "GET", path: `${prefix}/bus-status`, description: "Stream-Events Communication-Bus Registrierung, Heartbeat und letzte Bus-Events" },
       { method: "GET", path: `${prefix}/routes`, description: "Route-Selbstdokumentation" },
       { method: "GET", path: `${prefix}/config`, description: "Globale Event-System Config lesen" },
       { method: "POST", path: `${prefix}/config`, description: "Globale Event-System Config speichern" },
@@ -1174,7 +1209,7 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "POST", path: `${prefix}/events/:eventUid/points`, description: "Manuelle/Modul-Punkte buchen (nur aktives Event)" }
     ],
     notes: [
-      "EVS-8 bereitet globale Config im Dashboard vor; keine Chat-Auswertung und kein Sound-/Video-Playback.",
+      "EVS-9 macht die Communication-Bus Anmeldung/Heartbeat transparent; keine Chat-Auswertung und kein Sound-/Video-Playback.",
       "Sound/Text-Konfiguration wird als DB-Snapshot am Event gespeichert.",
       "Nur ein aktives Event gleichzeitig."
     ]
@@ -1212,8 +1247,8 @@ function emitBus(channel, action, payload = {}, options = {}) {
       payload,
       meta: {
         requireAck: options.requireAck === true,
-        replayable: options.replayable === true,
-        ttlMs: Number.isFinite(Number(options.ttlMs)) ? Number(options.ttlMs) : 15000
+        replayable: options.replayable !== false,
+        ttlMs: Number.isFinite(Number(options.ttlMs)) ? Number(options.ttlMs) : 30000
       }
     });
     runtimeState.counters.busEmitted += 1;
@@ -1261,6 +1296,14 @@ module.exports.init = function init(ctx) {
   reg("get", `${prefix}/status`, (req, res) => {
     try {
       sendJson(res, buildStatus());
+    } catch (err) {
+      handleError(res, err);
+    }
+  });
+
+  reg("get", `${prefix}/bus-status`, (req, res) => {
+    try {
+      sendJson(res, buildBusStatus());
     } catch (err) {
       handleError(res, err);
     }
@@ -1421,5 +1464,6 @@ module.exports._internal = {
   getRanking,
   getEventConfig,
   saveEventConfig,
-  buildStatus
+  buildStatus,
+  buildBusStatus
 };

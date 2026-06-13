@@ -1,6 +1,6 @@
 # Modul-Doku: stream_events
 
-Stand: EVS-8b / EventBus Heartbeat TODO Documentation  
+Stand: EVS-7c / Event Overview + Editor Modal Flow Cleanup  
 Datum: 2026-06-13
 
 ## Zweck
@@ -646,93 +646,51 @@ Die Config wird als globaler JSON-Snapshot gespeichert und normalisiert.
 
 ---
 
-## EVS-8b Ergänzung: EventBus-Anmeldung, Heartbeat und Modulstatus
+## EVS-9 – EventBus / Heartbeat Integration
 
-EVS-8b ist eine reine Doku-/TODO-Konsolidierung. Es wurden keine Code-, DB- oder Runtime-Dateien verändert.
+EVS-9 macht die bereits geplante Communication-Bus-Anbindung des Event-Systems als eigenen Backend-Step sichtbar und testbar.
 
-### Verbindliche Vorgabe
+### Ziel
 
-Das Event-System darf später keinen eigenen parallelen Bus bauen. Es muss den vorhandenen Communication-/EventBus des Projekts nutzen.
+`stream_events` nutzt weiterhin den vorhandenen `communication_bus` / `helper_communication`. Es wird kein eigener paralleler Bus gebaut.
 
-Relevante bestehende Systeme:
+### Enthalten
 
-```text
-backend/modules/communication_bus.js
-backend/modules/helpers/helper_communication.js
-```
+- Modul-Anmeldung am vorhandenen Communication-Bus.
+- Heartbeat fuer `stream_events`.
+- regelmaessiger Modulstatus ueber den Bus.
+- Status-Publish bei wichtigen Backend-Aktionen:
+  - Config aktualisiert
+  - Texte aktualisiert
+  - Event erstellt
+  - Event bearbeitet
+  - Event validiert
+  - Event gestartet
+  - Event beendet
+  - Event abgebrochen
+  - Punkte vergeben
+  - Ranking aktualisiert
+- Bus-Diagnose-Endpunkt fuer das Event-System:
+  - `GET /api/stream-events/bus-status`
 
-### Modul-Anmeldung am Bus
+### Bus-Status
 
-Für spätere Runtime-Schritte ist einzuplanen:
+Der neue Bus-Status zeigt fuer `stream_events`:
 
-```text
-- stream_events meldet sich sauber am bestehenden Bus an.
-- stream_events veröffentlicht einen Modulstatus.
-- stream_events sendet regelmäßig Heartbeats.
-- Statusfehler werden nicht nur geloggt, sondern auch für Diagnose/Monitoring verfügbar gemacht.
-```
-
-### Geplante Statusinformationen
-
-Der Modulstatus soll später mindestens abbilden:
-
-```text
-- Modul geladen / nicht geladen
-- Config bereit / Config-Fehler
-- DB-Schema bereit / DB-Fehler
-- Runtime bereit / Runtime noch nicht aktiv
-- aktives Event vorhanden / kein aktives Event
-- aktives Event: eventUid, Name, Status
-- Sound-Runtime bereit / nicht bereit
-- Text-Runtime bereit / nicht bereit
-- Chat-Auswertung aktiv / nicht aktiv
-- letzter Fehler
+- ob der Communication-Bus erreichbar ist
+- ob das Modul registriert ist
+- ob Heartbeat gestartet wurde
 - letzter Heartbeat
-```
+- letzter Status-Publish
+- Stream-Events-relevante Bus-Events
+- Stream-Events-Bus-Client-Eintrag
 
-### Geplante Bus-Events
+### Nicht enthalten
 
-Spätere Runtime-Schritte sollen wichtige Event-System-Aktionen über den vorhandenen Bus veröffentlichen:
-
-```text
-stream_events.event.started
-stream_events.event.finished
-stream_events.event.cancelled
-stream_events.event.status_changed
-stream_events.sound.round_started
-stream_events.sound.correct_answer
-stream_events.sound.not_solved
-stream_events.text.phrase_started
-stream_events.text.word_found
-stream_events.text.phrase_solved
-stream_events.points.awarded
-stream_events.ranking.updated
-stream_events.config.updated
-stream_events.error
-```
-
-Die konkreten Eventnamen können bei der Runtime-Implementierung noch an bestehende Projektkonventionen angepasst werden. Wichtig ist die Richtung: zentraler Bus, keine Parallelstruktur.
-
-### Dashboard-/Diagnose-Ziel
-
-Das Dashboard soll später erkennen können:
-
-```text
-- läuft das Event-System?
-- welches Event ist gerade aktiv?
-- sind Sound/Text/Chat-Auswertung bereit?
-- wann kam der letzte Heartbeat?
-- gab es Fehler?
-- welche Runde/Satz/Sound ist aktuell aktiv?
-```
-
-### TODO für spätere Backend-Runtime
-
-```text
-- echte EventBus-Anmeldung im Runtime-Stand prüfen/erweitern
-- Heartbeat regelmäßig senden
-- Modulstatus bei Config-/Event-/Runtime-Änderungen publishen
-- Bus-Events für Eventstart/-ende, Sound-Runden, Text-Treffer, Punkte und Ranking senden
-- Diagnose/Status-Route ggf. um Bus-/Heartbeat-Details erweitern
-- keine neue Bus-Implementierung bauen
-```
+- keine Chat-Runtime
+- keine Twitch-Chat-Auswertung
+- keine Sound-Rotation
+- keine Worterkennung
+- keine automatische Punktevergabe ueber Chat
+- kein Sound-/Video-Playback
+- kein Overlay

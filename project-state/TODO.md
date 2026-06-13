@@ -1,4 +1,4 @@
-# TODO – EVS-8b
+# TODO – EVS-8
 
 ## Erledigt bis EVS-8
 
@@ -13,15 +13,6 @@
   - Events = konfigurierte Events mit Status.
   - Bearbeitung = separates Modal.
 - Config-Tab mit globalen Defaults vorbereitet.
-
-## EVS-8b festgehalten
-
-- EventBus-Anmeldung für `stream_events` später einplanen.
-- Heartbeat für `stream_events` später einplanen.
-- Vorhandenen `communication_bus` / `helper_communication` nutzen.
-- Keinen neuen parallelen Bus bauen.
-- Modulstatus für Config, Runtime, aktives Event und Fehlerzustände publishen.
-- Runtime-Events für Eventstart/-ende, Sound/Text, Punkte und Ranking über Bus senden.
 
 ## Offen: Config
 
@@ -38,7 +29,6 @@
 - Teiltreffer/Wortpunkte.
 - Punktevergabe.
 - Eventabschluss / Top 3.
-- EventBus-Anmeldung und Heartbeat technisch umsetzen.
 
 ## Offen: Statistik / Overlay
 
@@ -46,3 +36,13 @@
 - Sound-Statistik.
 - Text-Statistik.
 - Overlay-Anzeige.
+
+
+## TODO nach EVS-9
+
+- [ ] Bus-Status im Dashboard spaeter schoener anzeigen.
+- [ ] Runtime-Events bei echter Chat-Auswertung konkretisieren.
+- [ ] Sound-Runden-Events final festlegen.
+- [ ] Text-Worttreffer-Events final festlegen.
+- [ ] Punkte-/Ranking-Events mit Statistik verbinden.
+- [ ] Keine parallele Bus-Struktur bauen; weiterhin `communication_bus` nutzen.

@@ -1,10 +1,10 @@
-# CURRENT_STATUS – EVS-8b
+# CURRENT_STATUS – EVS-8
 
-Stand: EVS-8b / EventBus- und Heartbeat-TODO dokumentiert
+Stand: EVS-8 / Config-Dashboard Vorbereitung
 
 ## Aktueller Stand
 
-Das Event-System-Dashboard hat die Haupttabs:
+Das Event-System-Dashboard hat jetzt die Haupttabs:
 
 - Übersicht
 - Events
@@ -15,24 +15,19 @@ Das Event-System-Dashboard hat die Haupttabs:
 
 Übersicht zeigt laufende Events. Events zeigt die konfigurierten Events mit Status. Bearbeitung läuft über ein separates Editor-Fenster.
 
-Der Config-Tab ist als erster echter Einstellbereich vorbereitet. Globale Defaults können geladen und gespeichert werden.
+Der Config-Tab ist jetzt als erster echter Einstellbereich vorbereitet. Globale Defaults können geladen und gespeichert werden.
 
-## Neu festgehalten in EVS-8b
+## Config umfasst
 
-Für spätere Runtime-Schritte ist verbindlich dokumentiert:
-
-- vorhandenen Communication-/EventBus nutzen
-- keinen neuen parallelen Bus bauen
-- `stream_events` später sauber am Bus anmelden
-- Heartbeat für `stream_events` einplanen
-- Modulstatus für Config, Runtime, aktives Event und Fehler publishen
-- Runtime-Events für Eventstart/-ende, Sound/Text, Punkte und Ranking senden
+- Allgemeine Event-Defaults
+- Sound-Spiel Defaults
+- Text-Spiel Defaults
+- Wortpunkte Defaults
+- Overlay Defaults
 
 ## Unverändert
 
 Keine produktive Runtime für Chat, Worterkennung, Sound-Playback oder Overlay.
-
-EVS-8b enthält keine Code- oder DB-Änderung.
 
 ## Offen
 
@@ -40,5 +35,11 @@ EVS-8b enthält keine Code- oder DB-Änderung.
 - Event-Statistik pro Event.
 - Sound-/Text-Runtime.
 - Chat-Auswertung.
-- EventBus-Anmeldung/Heartbeat technisch umsetzen.
 - Overlay.
+
+
+## EVS-9 – EventBus / Heartbeat Integration
+
+Aktueller Stand: `stream_events` hat nun einen eigenen sichtbaren EventBus-/Heartbeat-Step. Das Modul nutzt den vorhandenen `communication_bus`, registriert sich dort als Backend-Modul, sendet Heartbeats und publisht Modulstatus. Zusaetzlich gibt es `GET /api/stream-events/bus-status` fuer Diagnose/Monitoring.
+
+Nicht enthalten: Chat-Runtime, Sound-Playback, Worterkennung, automatische Punktevergabe, Overlay.
