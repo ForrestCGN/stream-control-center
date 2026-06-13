@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## EVS-5d / Text Multi-Phrase + Word Points Documentation – 2026-06-13
+
+- Mehrere geheime Sätze pro Text-Spiel als fachliche Regel dokumentiert.
+- Festgelegt: Anzahl der Sätze muss konfigurierbar sein.
+- Festgelegt: jeder Satz ist einzeln lösbar und wird nach Lösung separat aus der Rotation entfernt.
+- Festgelegt: andere Sätze bleiben nach Lösung eines Satzes offen.
+- Teiltreffer-Meldungen als konfigurierbar dokumentiert: aus / allgemein / mit Satznummer.
+- Optionale Anzeige der gefundenen Wortanzahl dokumentiert.
+- Optionale Wortpunkte dokumentiert.
+- Festgelegt: jedes Wort zählt pro Event/Satz/User nur einmal.
+- Optionales Wortpunkte-Limit pro User und Satz dokumentiert.
+- Config-Dashboard und Text-Config/Multi-Texte als spätere Pflicht ergänzt.
+- Keine Codeänderung.
+- Keine Datenbankänderung.
+- Keine Runtime-Änderung.
+
 ## EVS-5c / Text Game Backend TODO Documentation – 2026-06-13
 
 - Text-Spiel-Regel aus EVS-5b als verbindliches Backend-/Runtime-TODO dokumentiert.
@@ -11,7 +27,6 @@
 - Keine Codeänderung.
 - Keine Datenbankänderung.
 - Keine Runtime-Änderung.
-
 
 ## EVS-5b / Stream Events Text Game Rule Rebalance – 2026-06-13
 

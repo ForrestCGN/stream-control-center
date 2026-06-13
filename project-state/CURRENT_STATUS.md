@@ -1,85 +1,61 @@
 # CURRENT STATUS
 
-Stand: EVS-5c / Text Game Backend TODO Documentation  
+Stand: EVS-5d / Text Multi-Phrase + Word Points Documentation  
 Datum: 2026-06-13  
 Projekt: ForrestCGN / stream-control-center
 
 ## Zweck dieses Stands
 
-EVS-5b korrigiert den Text-/Geheimsatz-Bereich im Event-Erstellen/Bearbeiten-Dialog fachlich und optisch.
+EVS-5d ist ein reiner Doku-/TODO-Step. Er speichert die neu festgelegten Text-Spiel-Regeln für das Event-System.
 
-## Bestätigte Grundlage
+## Aktueller bestätigter Stand
 
-- EVS-2 Backendstatus wurde vom Nutzer erfolgreich getestet.
+- EVS-2 Backend Foundation wurde erfolgreich getestet.
 - EVS-3 Dashboard Skeleton wurde übernommen.
-- EVS-4 MediaPicker-Prep wurde im Dashboard sichtbar getestet.
-- EVS-4b Sound-/Video-Karten wurden sichtbar getestet.
-- EVS-5 Text-Karten wurden getestet, aber als optisch schlechter bewertet.
-- Nutzerhinweis bleibt verbindlich: `stepdone.cmd` vor Live-/Dashboard-Test.
+- EVS-4 MediaPicker Prep wurde im Dashboard sichtbar getestet.
+- EVS-4b Sound-/Video-Layout wurde sichtbar getestet.
+- EVS-5b Text Game Rule Rebalance wurde als ZIP geliefert.
+- EVS-5c hat Backend-TODOs für Text-Spiel-Regeln dokumentiert.
+- EVS-5d ergänzt mehrere Sätze, Teiltreffer-Modi und optionale Wortpunkte.
 
-## EVS-5b Änderung
-
-Text-Spiel V1 ist jetzt fachlich festgelegt:
+## Wichtige Festlegung Text-Spiel
 
 ```text
-- Erster kompletter Löser gewinnt.
-- Keine weiteren Löser in V1.
-- Kein Zeitfenster für weitere Löser.
-- Satz wird nach Lösung aus der aktuellen Event-Rotation entfernt.
-- Teiltreffer-Hinweise sind optional.
-- Teiltreffer werden aus den Wörtern des Geheimsatzes berechnet.
-- Pro Event/Satz/User/Wort wird nur einmal gemeldet/gezählt.
+- Ein Text-Spiel kann mehrere geheime Sätze enthalten.
+- Die Anzahl der Sätze muss konfigurierbar sein.
+- Jeder Satz ist einzeln lösbar.
+- Nach Lösung wird nur dieser Satz aus der Rotation entfernt.
+- Andere Sätze bleiben offen.
+- Teiltreffer können allgemein oder mit Satznummer gemeldet werden.
+- Optional kann die Anzahl gefundener Wörter angezeigt werden.
+- Optional können gefundene Wörter Punkte geben.
+- Ein Wort zählt pro User und Satz nur einmal.
+- Optional kann es ein Wortpunkte-Limit pro User und Satz geben.
 ```
 
-UI wurde vereinfacht:
+## Noch nicht umgesetzt
 
 ```text
-Geheimsatz / Lösungssatz
-Erlaubte Antworten / Varianten
-Punkte für den ersten richtigen Löser
-Teiltreffer-Hinweise
-```
-
-Entfernt aus der UI:
-
-```text
-Hinweiswörter / Suchwörter
-Zeitfenster für weitere Löser
-```
-
-## Nicht geändert
-
-```text
-Backend
-Datenbank
-Twitch-Chat-Auswertung
-Sound-/Video-Playback
+Backend-Runtime für mehrere Sätze
+Teiltreffer-Tracking in DB/Runtime
+Wortpunkte-System
+Chat-Auswertung über twitch.chat.message
+Config-Dashboard
+Text-Config / Multi-Texte im Dashboard
 Overlay
-Media-System
-Sound-Konfig-Logik
+Playback
+Statistiken
 ```
 
-## Testregel
+## Keine Änderung in EVS-5d
 
-Vor Live-/Dashboard-Test:
-
-```powershell
-.\stepdone.cmd "EVS-5b Stream Events Text Game Rule Rebalance"
+```text
+Keine Codeänderung
+Keine DB-Änderung
+Keine Runtime-Änderung
+Keine Dashboard-JS/CSS-Änderung
 ```
 
+## Nächster sinnvoller Schritt
 
-## EVS-5c Ergänzung
-
-EVS-5c speichert die fachliche Text-Spiel-Regel zusätzlich als Backend-/Runtime-TODO:
-
-- Der erste komplette Löser gewinnt.
-- Satz danach aus Event-Rotation entfernen.
-- Keine weiteren Löser in V1.
-- Teiltreffer optional melden.
-- Teiltreffer aus dem Geheimsatz berechnen.
-- Pro Event/Satz/User/Wort nur einmal melden/zählen.
-- Teiltreffer geben keine Punkte.
-- Spätere Umsetzung im Backend erforderlich.
-- Config- und Text-Config-/Multi-Text-Dashboard stehen noch aus.
-
-Keine Code-, DB- oder Runtime-Änderung in EVS-5c.
+EVS-6 sollte zuerst das Item-/Config-Modell für mehrere Sound-Schnipsel und mehrere Text-Sätze sauber planen bzw. vorbereiten, bevor Runtime/Chat-Auswertung gebaut wird.

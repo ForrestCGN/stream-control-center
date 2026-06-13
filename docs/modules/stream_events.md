@@ -1,6 +1,6 @@
 # Modul-Doku: stream_events
 
-Stand: EVS-5b / Text Game Rule Rebalance  
+Stand: EVS-5d / Text Game Multi-Phrase Word Points Documentation  
 Datum: 2026-06-13
 
 ## Zweck
@@ -208,4 +208,156 @@ Tabellennamen sind noch Planungsnamen. Umsetzung später nur nach Prüfung des e
 - Chatmeldungen für Teiltreffer, Lösung, keine aktive Runde, Eventstart/-ende über helper_texts / module_text_variants pflegen.
 - Keine parallele Textstruktur bauen.
 - Config und Textvarianten sollen streamer-/modfreundlich bearbeitbar sein.
+```
+
+
+---
+
+## EVS-5d Ergänzung: Mehrere Sätze, Teiltreffer-Modus und Wortpunkte
+
+EVS-5d ist eine reine Doku-/TODO-Konsolidierung der nach EVS-5c getroffenen Fachentscheidungen. Es wurden keine Code-, DB- oder Runtime-Dateien verändert.
+
+### Text-Spiel: Satz-Pool statt Einzelsatz
+
+Das Text-Spiel darf nicht als einzelner Geheimsatz gedacht werden. Ein Text-Spiel besteht künftig aus einem konfigurierbaren Pool mehrerer geheimer Sätze.
+
+Fachregel:
+
+```text
+- Pro Event kann ein Text-Spiel mehrere geheime Sätze enthalten.
+- Die Anzahl der Sätze muss im Dashboard konfigurierbar sein.
+- Jeder Satz ist einzeln lösbar.
+- Der erste User, der einen Satz vollständig oder über eine erlaubte Variante löst, bekommt die Lösungspunkte dieses Satzes.
+- Danach wird nur dieser Satz als gelöst markiert und aus der aktuellen Rotation entfernt.
+- Andere Sätze bleiben offen und können weiter gelöst werden.
+```
+
+### Teiltreffer-Hinweise: allgemein oder mit Satzbezug
+
+Wenn ein User ein Wort aus einem geheimen Satz trifft, soll die Chatmeldung konfigurierbar sein.
+
+Geplante Modi:
+
+```text
+partialHintDisplayMode = off
+partialHintDisplayMode = generic
+partialHintDisplayMode = with_phrase_number
+```
+
+Bedeutung:
+
+```text
+off:
+- Es gibt keine Teiltreffer-Meldungen.
+
+generic:
+- Der User bekommt nur allgemein die Info, dass er ein Wort aus einem geheimen Satz gefunden hat.
+- Beispiel: "{user} hat ein Wort aus einem geheimen Satz gefunden."
+
+with_phrase_number:
+- Der User bekommt die Info, zu welchem Satz der Treffer gehört.
+- Beispiel: "{user} hat ein Wort aus Satz 2 gefunden."
+```
+
+Optional soll zusätzlich die Anzahl der gefundenen Wörter angezeigt werden können:
+
+```text
+showPartialHitCount = true | false
+```
+
+Beispiele:
+
+```text
+- "{user} hat 3 Wörter aus einem geheimen Satz gefunden."
+- "{user} hat 3 Wörter aus Satz 2 gefunden."
+```
+
+### Teiltreffer-Speicherung
+
+Teiltreffer müssen pro Event, Satz, User und Wort eindeutig gespeichert werden.
+
+Fachregel:
+
+```text
+- Ein Wort zählt pro User und Satz nur einmal.
+- Wiederholt derselbe User dasselbe Wort beim selben Satz, wird es nicht erneut gemeldet.
+- Wiederholt derselbe User dasselbe Wort beim selben Satz, bekommt er dafür keine weiteren Wortpunkte.
+- Trifft derselbe User später neue Wörter aus demselben Satz, können diese neu gemeldet/gezählt werden.
+```
+
+### Wortpunkte: optional konfigurierbar
+
+Zusätzlich zu den Lösungspunkten können gefundene Wörter optional Punkte geben. Das soll im Dashboard konfigurierbar sein.
+
+Fachregel:
+
+```text
+- Wortpunkte sind optional.
+- Teiltreffer können gemeldet werden, ohne Punkte zu geben.
+- Wenn Wortpunkte aktiv sind, bekommt ein User Punkte für neu gefundene Wörter.
+- Jedes Wort zählt pro Event/Satz/User nur einmal.
+- Optional kann ein Punkte-Limit pro User und Satz gesetzt werden.
+- Die komplette Lösung gibt weiterhin separate Lösungspunkte.
+```
+
+Geplante Config-Felder:
+
+```text
+wordPointsEnabled = true | false
+pointsPerNewWord = number
+maxWordPointsPerUserPerPhrase = number | null
+solutionPointsMode = add_on_top | solution_only
+```
+
+Empfohlener Default:
+
+```text
+wordPointsEnabled = false oder true nach Event-Typ
+pointsPerNewWord = 1
+maxWordPointsPerUserPerPhrase = 5
+solutionPointsMode = add_on_top
+```
+
+### Dashboard-/Config-Konsequenzen
+
+Das Dashboard braucht später nicht nur ein einzelnes Textfeld, sondern eine Satzverwaltung.
+
+Geplante Bedienung:
+
+```text
+Text-Spiel konfigurieren
+- mehrere geheime Sätze hinzufügen/bearbeiten/löschen
+- Satz aktiv/deaktiviert
+- Lösungssatz
+- erlaubte Antwortvarianten pro Satz
+- Lösungspunkte pro Satz
+- globale Teiltreffer-Regel
+- globale Wortpunkte-Regel
+- Anzeige-Modus für Teiltreffer: aus / allgemein / mit Satznummer
+- Fortschrittsanzeige: Anzahl Wörter anzeigen ja/nein
+- optionaler Cooldown
+```
+
+### Text-Config / Multi-Texte
+
+Alle Chatmeldungen müssen später über vorhandene Text-/Varianten-Systeme laufen, nicht hart im Code.
+
+Zu berücksichtigen:
+
+```text
+- Chatmeldung bei Teiltreffer allgemein
+- Chatmeldung bei Teiltreffer mit Satznummer
+- Chatmeldung bei Teiltreffer mit Wortanzahl
+- Chatmeldung bei kompletter Lösung
+- Chatmeldung wenn Satz bereits gelöst ist
+- Chatmeldung bei Eventstart / Eventende
+- Chatmeldung bei Zwischenstand / Ranking
+```
+
+Vorgabe:
+
+```text
+- helper_texts / module_text_variants nutzen.
+- Keine parallele Textstruktur bauen.
+- Später Dashboard-Editor für Config und Textvarianten einplanen.
 ```

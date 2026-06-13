@@ -1,70 +1,56 @@
 # NEXT STEPS
 
-Stand: EVS-5c / Text Game Backend TODO Documentation  
+Stand: EVS-5d / Text Multi-Phrase + Word Points Documentation  
 Datum: 2026-06-13
 
-## Sofort nach Übernahme
+## Sofort
+
+EVS-5d ist ein Doku-/TODO-Step. Es gibt keinen Syntaxcheck, weil keine Code-Dateien verändert wurden.
+
+Optionaler StepDone:
 
 ```powershell
-node -c .\htdocs\dashboard\modules\stream_events.js
-.\stepdone.cmd "EVS-5b Stream Events Text Game Rule Rebalance"
+.\stepdone.cmd "EVS-5d Text Multi Phrase Word Points Docs"
 ```
 
-Erst danach Dashboard im Live-System testen.
+## Danach
 
-## Manuelle Prüfung
+EVS-6 sollte nicht direkt als komplette Runtime gebaut werden.
+
+Empfohlener nächster Schritt:
 
 ```text
-Dashboard → Community → Event-System → Neues Event → Text-/Geheimsatz-Spiel aktivieren
+EVS-6 – Event Item Config Model Planning / Prep
 ```
 
-Prüfen:
-
-- Text-Spiel-Bereich wirkt wieder ruhiger/kompakter.
-- Geheimsatz ist als Pflicht erkennbar.
-- Es gibt kein Feld `Hinweiswörter / Suchwörter` mehr.
-- Es gibt kein Feld `Zeitfenster für weitere Löser` mehr.
-- Punkte für den ersten richtigen Löser sind vorhanden.
-- Teiltreffer-Hinweise sind optional konfigurierbar.
-- Speichern bleibt möglich.
-- Validierung bleibt verständlich.
-
-## Nächster fachlicher Schritt
-
-EVS-6 sollte die Datenpflege robuster machen:
+Ziel:
 
 ```text
-- mehrere Sound-Schnipsel pro Event verwalten
-- mehrere Text-/Geheimsätze pro Event verwalten
-- Hinzufügen/Bearbeiten/Entfernen je Spieltyp
-- Validierung je Eintrag
-- weiterhin Media-System für Medien
-- weiterhin DB-Snapshot am Event
+- mehrere Sound-Schnipsel pro Event sauber planen
+- mehrere Text-Sätze pro Event sauber planen
+- Satz-Pool statt Einzeltext abbilden
+- Sound-/Text-Items mit Status/Rotation vorbereiten
+- Config-Dashboard-Felder vorbereiten
+- Text-Config / Multi-Texte berücksichtigen
+- vorhandene helper_texts / module_text_variants nutzen
 ```
 
-Danach erst:
+## Spätere Schritte
 
 ```text
-EVS-7 Sound-Rundensteuerung
-EVS-8 Text-/Chat-Auswertung über twitch.chat.message
-EVS-9 Overlay/Playback-Anbindung
+EVS-7 Backend/DB-Migration für Event-Items
+EVS-8 Dashboard-Item-Verwaltung
+EVS-9 Text-/Chat-Auswertung über twitch.chat.message
+EVS-10 Sound-Rundensteuerung über vorhandenes Sound-/Media-System
+EVS-11 Overlay/Ranking/Statistik
 ```
 
+## Nicht vergessen
 
-## Nach EVS-5c
-
-Empfohlene Reihenfolge:
-
-1. EVS-6 nicht als Komplett-Runtime bauen.
-2. Zuerst Backend-Config-Schema für Text-Spiel prüfen/angleichen.
-3. Mehrere Text-Sätze pro Event sauber planen.
-4. Danach Chat-Auswertung über bestehendes `twitch.chat.message` / Communication Bus bauen.
-5. Danach Sound-Rundensteuerung und Rotation planen.
-6. Danach Event-Overlay und Playback-Anbindung.
-
-Wichtige offene Dashboard-Themen:
-
-- Allgemeine Event-Config.
-- Text-Config / Multi-Texte.
-- Chat-Textvarianten für Teiltreffer, Lösung, Eventstatus.
-- Streamer-/modfreundliche Bedienung, keine technische Überladung.
+```text
+- Keine parallele Textstruktur bauen.
+- Keine parallele Media-/Sound-Struktur bauen.
+- Config und Textvarianten müssen dashboardfähig werden.
+- User-/Mod-Bedienung muss einfach bleiben.
+- Vor jeder Codeänderung echte Dateien/GitHub/dev prüfen.
+```
