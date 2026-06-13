@@ -1,8 +1,8 @@
 # TODO – Stream Events
 
-Stand: EVS-7 / Text-Config Dashboard Prep
+Stand: EVS-7b / Dashboard Tabs Layout Split
 
-## Erledigt bis EVS-7
+## Erledigt bis EVS-7b
 
 - Backend Foundation.
 - Eventliste, Event erstellen/bearbeiten/starten/beenden/abbrechen.
@@ -12,6 +12,7 @@ Stand: EVS-7 / Text-Config Dashboard Prep
 - Teiltreffer-Modus konfigurierbar.
 - Wortpunkte optional konfigurierbar.
 - Text-Config/Multi-Texte im Dashboard vorbereitet.
+- Event-System-Dashboard in Tabs getrennt.
 
 ## Offen: Config
 

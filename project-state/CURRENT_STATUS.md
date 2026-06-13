@@ -1,12 +1,12 @@
 # CURRENT STATUS
 
-Stand: EVS-7 / Text-Config Dashboard Prep  
+Stand: EVS-7b / Dashboard Tabs Layout Split  
 Datum: 2026-06-13  
 Projekt: ForrestCGN / stream-control-center
 
 ## Aktueller Stand
 
-EVS-7 baut auf EVS-6 auf.
+EVS-7b baut auf EVS-7 auf.
 
 Vorhanden:
 
@@ -15,17 +15,26 @@ Vorhanden:
 - MediaPicker-Integration für Sound-Schnipsel und optionale Videos.
 - Multi-Satz-Textspiel-Konfiguration.
 - Teiltreffer-/Wortpunkte-Konfiguration als Event-Config.
-- Text-Config-/Multi-Texte-Panel im Dashboard vorbereitet.
+- Text-Config-/Multi-Texte-Panel im Dashboard.
+- Event-System-Dashboard ist nun in Tabs getrennt.
 
-## EVS-7 neu
+## EVS-7b neu
 
-- `stream_events` hat Textkeys für Sound-/Text-Spiel vorbereitet.
-- `/api/stream-events/texts` kann Textvarianten lesen und per POST speichern/löschen.
-- Dashboard zeigt Textkategorien, Textkeys und Varianten an.
-- Varianten können bearbeitet, aktiviert/deaktiviert, gewichtet, hinzugefügt und gelöscht werden.
+- Tabs im Event-System-Dashboard:
+  - Übersicht
+  - Event
+  - Sound-Spiel
+  - Text-Spiel
+  - Texte
+  - Statistik
+  - Overlay
+- Text-Config/Multi-Texte wurde in den Tab `Texte` verschoben.
+- Eventliste und Detailansicht bleiben im Tab `Übersicht`.
+- Sound/Text/Statistik/Overlay haben eigene Bereiche und überladen nicht mehr die Hauptseite.
 
 ## Weiterhin offen
 
+- Allgemeine Event-Config im Dashboard.
 - Twitch-Chat-Auswertung.
 - Text-Spiel-Runtime.
 - Worttreffer-Tracking pro Event/Satz/User/Wort.
@@ -33,4 +42,3 @@ Vorhanden:
 - Sound-Rundensteuerung.
 - Overlay.
 - Statistikansicht.
-- Allgemeines Config-Dashboard für Event-Regeln.

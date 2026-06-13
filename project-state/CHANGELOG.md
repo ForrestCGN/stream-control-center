@@ -1,26 +1,26 @@
 # CHANGELOG
 
-## EVS-7 – Text Config Dashboard Prep
+## EVS-7b – Dashboard Tabs Layout Split
 
 Datum: 2026-06-13
 
 ### Added
 
-- Text-Config-/Multi-Texte-Panel im Event-System-Dashboard.
-- `POST /api/stream-events/texts` zum Speichern/Löschen von Textvarianten.
-- zusätzliche Textkeys für Sound- und Text-Spiel.
-- Textkategorien `sound_game` und `text_game`.
-- Dashboard-Bearbeitung für Varianten, Aktiv-Status und Gewichtung.
+- Tab-Navigation im Event-System-Dashboard.
+- Eigene Tabs für Übersicht, Event, Sound-Spiel, Text-Spiel, Texte, Statistik und Overlay.
+- Kurzansichten für Sound-Spiel und Text-Spiel.
+- Platzhalterbereiche für spätere Statistik- und Overlay-Konfiguration.
 
 ### Changed
 
-- Modulversion `stream_events` auf `0.3.0`.
-- Build auf `STEP_EVS_7_TEXT_CONFIG_DASHBOARD_PREP`.
-- Dashboard-Kicker auf EVS-7 aktualisiert.
+- Text-Config/Multi-Texte steht nicht mehr unter der Hauptansicht, sondern im Tab `Texte`.
+- Hauptseite ist schlanker und näher am Aufbau anderer Dashboard-Module.
+- Dashboard-Kicker auf EVS-7b aktualisiert.
 
 ### Not changed
 
+- Keine Backend-Änderung.
+- Keine DB-Änderung.
 - Keine Chat-Runtime.
-- Keine Playback-Runtime.
-- Keine DB-Rebuilds.
-- Keine parallele Textstruktur.
+- Keine Sound-Runtime.
+- Kein Overlay.

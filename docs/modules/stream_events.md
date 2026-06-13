@@ -1,6 +1,6 @@
 # Modul-Doku: stream_events
 
-Stand: EVS-5d / Text Game Multi-Phrase Word Points Documentation  
+Stand: EVS-7b / Dashboard Tabs Layout Split  
 Datum: 2026-06-13
 
 ## Zweck
@@ -468,3 +468,31 @@ Dort können vorbereitet werden:
 - Runtime nutzt diese Texte noch nicht aktiv.
 - Chat-Auswertung kommt später.
 - Config-Dashboard für Event-Regeln kommt später.
+
+
+## EVS-7b – Dashboard Tabs Layout Split
+
+EVS-7b trennt das Event-System im Dashboard in Tabs, damit nicht mehr Eventliste, Konfiguration, Text-Config, Statistik und Overlay-Vorbereitung untereinander auf einer Seite stehen.
+
+Tabs:
+
+```text
+Übersicht
+Event
+Sound-Spiel
+Text-Spiel
+Texte
+Statistik
+Overlay
+```
+
+Regeln:
+
+- Übersicht zeigt Eventliste, Details, Status, Start/Beenden/Abbrechen und Ranking-Kurzansicht.
+- Event zeigt Grunddaten und Spieltypen zum gewählten Event.
+- Sound-Spiel zeigt Sound-spezifische Kurzinfos und öffnet bei Bedarf die Event-Bearbeitung.
+- Text-Spiel zeigt Text-spezifische Kurzinfos, mehrere Sätze, Teiltreffer und Wortpunkte.
+- Texte enthält die Text-Config/Multi-Texte-Verwaltung aus EVS-7.
+- Statistik und Overlay sind als eigene Bereiche vorbereitet, bleiben aber in diesem Step ohne Runtime.
+
+Keine Backend-, DB-, Runtime-, Chat-, Playback- oder Overlay-Logik wurde in EVS-7b geändert.

@@ -21,7 +21,8 @@ window.StreamEventsModule = (function(){
     ranking: null,
     texts: null,
     textSaving: false,
-    modal: null
+    modal: null,
+    activeTab: 'overview'
   };
 
   function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? '').replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c])); }
@@ -127,9 +128,9 @@ window.StreamEventsModule = (function(){
       <div class="evs-page">
         <div class="evs-header glass">
           <div>
-            <div class="evs-kicker">EVS-7 · Text-Config Vorbereitung</div>
+            <div class="evs-kicker">EVS-7b · Tab-Layout Vorbereitung</div>
             <h2>Event-System</h2>
-            <p>Events vorbereiten, Sound/Text konfigurieren und erste Chat-/Systemtexte als Multi-Texte bearbeiten. Chat-Auswertung und Playback kommen später.</p>
+            <p>Events, Konfiguration, Texte, Statistik und Overlay sind getrennt. So bleibt das Modul übersichtlich wie die anderen Dashboard-Bereiche.</p>
           </div>
           <div class="evs-header-actions">
             <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="reload">Aktualisieren</button>
@@ -140,32 +141,181 @@ window.StreamEventsModule = (function(){
         ${state.error ? `<div class="evs-alert evs-alert-error">${esc(state.error)}</div>` : ''}
         ${state.message ? `<div class="evs-alert evs-alert-ok">${esc(state.message)}</div>` : ''}
 
-        <div class="evs-grid">
-          <section class="evs-card glass">
-            <div class="evs-card-head">
-              <h3>Vorbereitete Events</h3>
-              <span>${state.events.length} Eintrag/Einträge</span>
-            </div>
-            <div class="evs-list">
-              ${state.events.length ? state.events.map(renderEventRow).join('') : '<div class="evs-empty">Noch keine Events vorhanden.</div>'}
-            </div>
-          </section>
-
-          <section class="evs-card glass">
-            <div class="evs-card-head">
-              <h3>Details</h3>
-              ${ev ? statusBadge(ev.status) : ''}
-            </div>
-            ${ev ? renderEventDetail(ev) : '<div class="evs-empty">Wähle links ein Event aus oder erstelle ein neues.</div>'}
-          </section>
-        </div>
-
-        ${renderTextConfigPanel()}
+        ${renderTabs()}
+        ${renderActiveTab(ev)}
 
         ${state.modal ? renderModal() : ''}
       </div>
     `;
     attachMediaFields(root);
+  }
+
+  function tabs(){
+    return [
+      { id: 'overview', label: 'Übersicht', icon: '📋' },
+      { id: 'event', label: 'Event', icon: '🎲' },
+      { id: 'sound', label: 'Sound-Spiel', icon: '🔊' },
+      { id: 'text', label: 'Text-Spiel', icon: '✍️' },
+      { id: 'texts', label: 'Texte', icon: '💬' },
+      { id: 'stats', label: 'Statistik', icon: '🏆' },
+      { id: 'overlay', label: 'Overlay', icon: '🖥️' }
+    ];
+  }
+
+  function renderTabs(){
+    return `
+      <nav class="evs-tabs glass" aria-label="Event-System Bereiche">
+        ${tabs().map(tab => `
+          <button type="button" class="evs-tab ${state.activeTab === tab.id ? 'is-active' : ''}" data-evs-tab="${esc(tab.id)}">
+            <span>${esc(tab.icon)}</span><b>${esc(tab.label)}</b>
+          </button>
+        `).join('')}
+      </nav>
+    `;
+  }
+
+  function renderActiveTab(event){
+    const tab = state.activeTab || 'overview';
+    if (tab === 'event') return renderEventBasicsTab(event);
+    if (tab === 'sound') return renderSoundTab(event);
+    if (tab === 'text') return renderTextGameTab(event);
+    if (tab === 'texts') return renderTextsTab();
+    if (tab === 'stats') return renderStatsTab(event);
+    if (tab === 'overlay') return renderOverlayTab(event);
+    return renderOverviewTab(event);
+  }
+
+  function renderOverviewTab(ev){
+    return `
+      <div class="evs-grid">
+        <section class="evs-card glass">
+          <div class="evs-card-head">
+            <h3>Vorbereitete Events</h3>
+            <span>${state.events.length} Eintrag/Einträge</span>
+          </div>
+          <div class="evs-list">
+            ${state.events.length ? state.events.map(renderEventRow).join('') : '<div class="evs-empty">Noch keine Events vorhanden.</div>'}
+          </div>
+        </section>
+
+        <section class="evs-card glass">
+          <div class="evs-card-head">
+            <h3>Details</h3>
+            ${ev ? statusBadge(ev.status) : ''}
+          </div>
+          ${ev ? renderEventDetail(ev) : '<div class="evs-empty">Wähle links ein Event aus oder erstelle ein neues.</div>'}
+        </section>
+      </div>
+    `;
+  }
+
+  function renderEventBasicsTab(event){
+    if (!event) return renderSelectEventEmpty('Event-Grunddaten');
+    return `
+      <section class="evs-card glass evs-tab-panel">
+        <div class="evs-card-head">
+          <div><h3>Event bearbeiten</h3><span>Grunddaten und Spieltypen. Sound/Text-Details haben eigene Tabs.</span></div>
+          <button type="button" class="evs-btn" data-evs-action="edit" data-uid="${esc(event.eventUid)}">Event öffnen</button>
+        </div>
+        <div class="evs-mini-grid evs-mini-grid-compact">
+          <div><strong>Name</strong><span>${esc(event.name || 'Unbenanntes Event')}</span></div>
+          <div><strong>Status</strong><span>${esc(event.status || '-')}</span></div>
+          <div><strong>Spieltypen</strong><span>${esc(eventTypes(event))}</span></div>
+          <div><strong>Geändert</strong><span>${fmtDate(event.updatedAt)}</span></div>
+        </div>
+        ${renderValidation(event)}
+        <div class="evs-tab-help">Hier bleibt nur die Übersicht. Die eigentliche Bearbeitung öffnet sich weiter im Dialog, bis die Runtime-/DB-Schritte komplett sind.</div>
+      </section>
+    `;
+  }
+
+  function renderSoundTab(event){
+    if (!event) return renderSelectEventEmpty('Sound-Spiel');
+    const sound = event.soundConfig || {};
+    const snippets = Array.isArray(sound.snippets) ? sound.snippets : [];
+    return `
+      <section class="evs-card glass evs-tab-panel">
+        <div class="evs-card-head">
+          <div><h3>Sound-Spiel</h3><span>Audio-Schnipsel, Antwortzeit, Lösungen und Verhalten bei nicht erkannt.</span></div>
+          <button type="button" class="evs-btn" data-evs-action="edit" data-uid="${esc(event.eventUid)}">Sound konfigurieren</button>
+        </div>
+        ${event.soundEnabled ? `
+          <div class="evs-mini-grid evs-mini-grid-compact">
+            <div><strong>Antwortzeit</strong><span>${esc(sound.answerSeconds || sound.defaultAnswerSeconds || 20)} Sekunden</span></div>
+            <div><strong>Nicht erkannt</strong><span>${esc(sound.unresolvedPolicy === 'remove' ? 'Entfernen' : 'Später nochmal')}</span></div>
+            <div><strong>Schnipsel</strong><span>${esc(snippets.length)}</span></div>
+            <div><strong>Auflösungs-Video</strong><span>${esc(snippets.some(s => s.revealVideoMediaId) ? 'vorbereitet' : 'optional')}</span></div>
+          </div>
+          <div class="evs-list evs-tab-list">
+            ${snippets.length ? snippets.map((snip, idx) => `<div class="evs-info-row"><strong>${esc(idx + 1)}. ${snip.title || snip.name || 'Unbenannter Schnipsel'}</strong><span>${esc((snip.acceptedAnswers || []).join(', ') || 'Antworten fehlen')}</span></div>`).join('') : '<div class="evs-empty">Noch kein Sound-Schnipsel hinterlegt.</div>'}
+          </div>
+        ` : '<div class="evs-empty">Sound-Spiel ist für dieses Event nicht aktiviert.</div>'}
+      </section>
+    `;
+  }
+
+  function renderTextGameTab(event){
+    if (!event) return renderSelectEventEmpty('Text-Spiel');
+    const text = event.textConfig || {};
+    const phrases = Array.isArray(text.phrases) ? text.phrases : [];
+    return `
+      <section class="evs-card glass evs-tab-panel">
+        <div class="evs-card-head">
+          <div><h3>Text-Spiel</h3><span>Mehrere geheime Sätze, Worttreffer, Wortpunkte und Teiltreffer-Hinweise.</span></div>
+          <button type="button" class="evs-btn" data-evs-action="edit" data-uid="${esc(event.eventUid)}">Text-Spiel konfigurieren</button>
+        </div>
+        ${event.textEnabled ? `
+          <div class="evs-mini-grid evs-mini-grid-compact">
+            <div><strong>Geheime Sätze</strong><span>${esc(phrases.length)}</span></div>
+            <div><strong>Teiltreffer</strong><span>${esc(text.partialHintVisibility === 'with_sentence' ? 'mit Satznummer' : (text.partialHintVisibility === 'general' ? 'allgemein' : 'aus'))}</span></div>
+            <div><strong>Wortpunkte</strong><span>${esc(text.wordPointsEnabled ? `${text.pointsPerNewWord || 0} pro Wort` : 'aus')}</span></div>
+            <div><strong>Limit</strong><span>${esc(text.maxWordPointsPerUserPhrase || 0)} pro User/Satz</span></div>
+          </div>
+          <div class="evs-list evs-tab-list">
+            ${phrases.length ? phrases.map((phrase, idx) => `<div class="evs-info-row"><strong>Satz ${esc(idx + 1)}</strong><span>${esc(phrase.phrase || phrase.text || phrase.solution || 'Geheimsatz fehlt')}</span></div>`).join('') : '<div class="evs-empty">Noch kein Geheimsatz hinterlegt.</div>'}
+          </div>
+        ` : '<div class="evs-empty">Text-Spiel ist für dieses Event nicht aktiviert.</div>'}
+      </section>
+    `;
+  }
+
+  function renderTextsTab(){
+    return renderTextConfigPanel(true);
+  }
+
+  function renderStatsTab(event){
+    const rankingRows = rows(state.ranking?.rows);
+    return `
+      <section class="evs-card glass evs-tab-panel">
+        <div class="evs-card-head">
+          <div><h3>Statistik</h3><span>Live-Ranking ist vorbereitet. Auswertung für Sound/Text kommt später.</span></div>
+          ${event ? `<button type="button" class="evs-btn evs-btn-secondary" data-evs-action="ranking" data-uid="${esc(event.eventUid)}">Ranking laden</button>` : ''}
+        </div>
+        ${event ? (rankingRows.length ? rankingRows.slice(0, 10).map(row => `<div class="evs-rank-row"><strong>#${esc(row.rank)}</strong><span>${esc(row.userDisplayName || row.userLogin)}</span><b>${esc(row.points)} Punkte</b></div>`).join('') : '<div class="evs-empty">Noch keine Punkte.</div>') : '<div class="evs-empty">Kein Event ausgewählt.</div>'}
+        <div class="evs-tab-help">Später: Sound-Statistik, Text-Statistik, gelöste Sätze, erkannte Schnipsel, Top-Spieler und Quoten.</div>
+      </section>
+    `;
+  }
+
+  function renderOverlayTab(event){
+    return `
+      <section class="evs-card glass evs-tab-panel">
+        <div class="evs-card-head">
+          <div><h3>Overlay</h3><span>Vorschau und Anzeigeoptionen werden später hier getrennt eingebaut.</span></div>
+          ${event ? statusBadge(event.status) : ''}
+        </div>
+        <div class="evs-empty">Overlay ist noch nicht Teil dieses Steps. Geplant: aktuelles Event, aktuelle Runde, Hinweise, Gewinner und Top 3.</div>
+      </section>
+    `;
+  }
+
+  function renderSelectEventEmpty(title){
+    return `
+      <section class="evs-card glass evs-tab-panel">
+        <div class="evs-card-head"><h3>${esc(title)}</h3></div>
+        <div class="evs-empty">Bitte zuerst in der Übersicht ein Event auswählen oder ein neues Event erstellen.</div>
+      </section>
+    `;
   }
 
   function attachMediaFields(scope){
@@ -310,18 +460,18 @@ window.StreamEventsModule = (function(){
     `;
   }
 
-  function renderTextConfigPanel(){
+  function renderTextConfigPanel(asTab = false){
     const categories = textCategories();
     if (!state.texts) {
       return `
-        <section class="evs-card glass evs-text-config-panel">
+        <section class="evs-card glass evs-text-config-panel ${asTab ? 'evs-tab-panel' : ''}">
           <div class="evs-card-head"><h3>Text-Config / Multi-Texte</h3><button type="button" class="evs-btn evs-btn-small evs-btn-secondary" data-evs-action="reloadTexts">Texte laden</button></div>
           <div class="evs-empty">Texte werden beim Aktualisieren geladen.</div>
         </section>
       `;
     }
     return `
-      <section class="evs-card glass evs-text-config-panel">
+      <section class="evs-card glass evs-text-config-panel ${asTab ? 'evs-tab-panel' : ''}">
         <div class="evs-card-head">
           <div>
             <h3>Text-Config / Multi-Texte</h3>
@@ -677,6 +827,8 @@ window.StreamEventsModule = (function(){
         render();
         return;
       }
+      const tab = ev.target.closest('[data-evs-tab]');
+      if (tab) { state.activeTab = tab.dataset.evsTab || 'overview'; render(); return; }
       const btn = ev.target.closest('[data-evs-action]');
       if (!btn) return;
       const action = btn.dataset.evsAction;

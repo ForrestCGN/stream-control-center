@@ -1,31 +1,27 @@
 # NEXT STEPS
 
-Stand: EVS-7 / Text-Config Dashboard Prep  
+Stand: EVS-7b / Dashboard Tabs Layout Split  
 Datum: 2026-06-13
 
 ## Sofort nach Entpacken
 
 ```powershell
-node -c .\backend\modules\stream_events.js
 node -c .\htdocs\dashboard\modules\stream_events.js
-.\stepdone.cmd "EVS-7 Text Config Dashboard Prep"
+.\stepdone.cmd "EVS-7b Dashboard Tabs Layout Split"
 ```
 
 ## Danach Dashboard prüfen
 
 - Event-System im Dashboard öffnen.
-- Text-Config / Multi-Texte Bereich prüfen.
-- Bestehende Textvariante bearbeiten und speichern.
-- Neue Variante hinzufügen.
-- Variante aktiv/inaktiv setzen.
-- Dashboard neu laden und prüfen, ob Varianten erhalten bleiben.
+- Prüfen, ob Tabs sichtbar sind.
+- Tab `Übersicht` prüfen.
+- Tab `Event` prüfen.
+- Tab `Sound-Spiel` prüfen.
+- Tab `Text-Spiel` prüfen.
+- Tab `Texte` prüfen.
+- Prüfen, ob Textvarianten weiterhin bearbeitbar sind.
 
 ## Nächster sinnvoller Entwicklungsstep
-
-EVS-8 sollte noch nicht direkt Vollruntime werden, sondern zuerst entweder:
-
-1. allgemeine Event-Config im Dashboard vorbereiten, oder
-2. Text-Spiel-Runtime planen/anfangen.
 
 Empfehlung:
 
@@ -35,7 +31,7 @@ EVS-8 – Event Config Dashboard Prep
 
 Ziel:
 
-- globale Event-Regeln dashboardfähig machen
+- allgemeine Event-Regeln dashboardfähig machen
 - Default-Punkte, Cooldowns, Anzeige-/Hinweis-Modi vorbereiten
 - Text-Config und Event-Config klar trennen
 - später für Mods/Streamer einfach bedienbar halten
