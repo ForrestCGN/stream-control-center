@@ -1,127 +1,113 @@
 # NEXT STEPS
 
-Stand: LWG-4Q.12R / Documentation & Next Chat Handoff
-Datum: 2026-06-12
+Stand: EVS-2 / Stream Events Backend Foundation
+Datum: 2026-06-13
 
-## Sofortiger nächster Schritt
+## Sofort nach Übernahme testen
 
-Vor neuer Umsetzung zuerst prüfen:
+```powershell
+node -c .\backend\modules\stream_events.js
+```
 
-1. GitHub/dev und Live-System abgleichen.
-2. Aktuelle echte Dateien lesen.
-3. Prüfen, ob die letzten ZIPs LWG-4Q.12O/P/Q bereits per `stepdone.cmd` übernommen wurden.
-4. Nur dann gezielt weiterplanen.
+Server starten/neustarten und dann:
+
+```powershell
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/status"
+$s | Select-Object ok,module,moduleVersion,moduleBuild,routeCount,lastError
+$s.diagnostics
+```
+
+Routen prüfen:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/routes" | ConvertTo-Json -Depth 5
+```
 
 ## Nächster fachlicher Arbeitsblock
 
-### A) Config-Tab konsolidieren
+### EVS-3 – Dashboard Skeleton
 
 Ziel:
 
-- Diverse Modul-Configs sauber im zentralen Loyalty-`Config`-Tab bündeln.
-- Keine doppelten Config-UIs pro Modul bauen, wenn zentrale Config-Struktur möglich ist.
-- Bestehende Save-/Load-Routen und Berechtigungen prüfen.
+- `stream_events` im Dashboard sichtbar machen.
+- Streamer-/modfreundliche Eventverwaltung vorbereiten.
+- Keine technische Tabellenwand.
+- Noch kein Chat/Playback/Overlay.
 
-Vor Umsetzung prüfen:
+Vor Umsetzung echte Dateien prüfen:
 
 ```text
+htdocs/dashboard/index.html
+htdocs/dashboard/app.js
+htdocs/dashboard/modules/loyalty_giveaways.js
+htdocs/dashboard/modules/loyalty_giveaways.css
 htdocs/dashboard/modules/loyalty_games.js
 htdocs/dashboard/modules/loyalty_games.css
-backend/modules/loyalty_games.js
-backend/modules/loyalty_games/gamble.js
-backend/modules/commands.js
-config/*loyalty*
-config/*dashboard*
+backend/modules/stream_events.js
 ```
 
-Nicht ungeprüft ändern:
-
-- Backend-Routen.
-- Datenbank.
-- Command-System.
-- Rechte-/Sessionmodell.
-
-### B) Eigener Texte-Tab
-
-Ziel:
-
-- Text-Configs aus den Config-Flächen herauslösen.
-- Eigener Tab `Texte` oder vergleichbarer Name.
-- Dropdown zur Auswahl einzelner Module/Textbereiche.
-- Varianten pro Text-Key dashboardfähig anzeigen/bearbeiten.
-
-Vor Umsetzung prüfen:
+Geplante Dateien:
 
 ```text
-backend/modules/helpers/helper_texts.js
-backend/modules/helpers/helper_messages.js
-backend/modules/loyalty_giveaways.js
-backend/modules/commands.js
-htdocs/dashboard/modules/loyalty_games.js
-module_texts
-module_text_variants
+htdocs/dashboard/modules/stream_events.js
+htdocs/dashboard/modules/stream_events.css
 ```
 
-Wichtig:
-
-- Keine neue Parallel-Textstruktur bauen.
-- Vorhandene `module_texts` / `module_text_variants` nutzen.
-- Texte weiterhin kategorisiert und variantenfähig halten.
-
-### C) Gamble-Langzeitstatistik
-
-Aktueller Zustand:
-
-- Gamble-Statistik im Modal basiert nur auf geladenen Command-Logs im Frontend.
-
-Später sauber planen:
-
-- Backend-Route für echte aggregierte Gamble-Statistik.
-- Zeitraumfilter.
-- User-Statistik:
-  - Spiele
-  - Gewinne
-  - Verluste
-  - Gewinnrate
-  - Einsatz gesamt
-  - Netto
-  - letzter Gamble
-
-Vor Umsetzung prüfen:
+Mögliche Änderung an bestehender Datei, nur nach vollständiger Prüfung:
 
 ```text
-backend/modules/commands.js
-backend/modules/loyalty_games.js
-backend/modules/loyalty_games/gamble.js
-command_execution_log
-loyalty transaction/audit Tabellen
+htdocs/dashboard/index.html
 ```
 
-### D) StreamElements abschalten
+Dashboard-Funktionen EVS-3:
 
-Später manuell/extern erledigen:
+- Eventliste
+- Neues Event anlegen
+- Sound/Text auswählen
+- Startbarkeit/Validierung anzeigen
+- Bearbeiten nur für Draft/Ready
+- Start/Finish/Cancel mit klaren Buttons und Bestätigung
+- Platzhalter/erste Dialogstruktur für Sound-/Text-Konfiguration
 
-- StreamElements-Gamble/Roulette abschalten.
-- Ziel: Nur HeimaufsichtCGN antwortet auf Gamble.
+Nicht in EVS-3:
 
-## Standard-Testblock bei Dashboard-JS-Änderungen
+- Twitch-Chat-Auswertung
+- Sound-/Video-Playback
+- Overlay
+- automatische Rundenlogik
+
+## Danach
+
+### EVS-4 – Sound-Spiel Backend
+
+- Sound-Snippets als Event-Konfiguration
+- Rotation
+- erkannt/nicht erkannt Status
+- Requeue/Remove-Regeln
+- später Sound-System-Aufruf
+
+### EVS-5 – Text-Spiel Backend
+
+- Phrase-Hunt-Konfiguration
+- Hinweis-Tokens
+- Lösungserkennung
+- Punktevergabe
+
+### EVS-6 – Twitch-Chat Subscriber
+
+- `twitch.chat.message` nur bei aktivem Event/Spiel auswerten
+- keine dauerhafte unnötige Chatverarbeitung
+- bestehende Command-/Twitch-Struktur nicht stören
+
+### EVS-7 – Overlay/Playback
+
+- zentrales Event-Overlay
+- Sound/Video über vorhandenes Sound-/Media-System, soweit möglich
+
+## StepDone
+
+Nach erfolgreicher Übernahme von EVS-2:
 
 ```powershell
-node -c .\htdocs\dashboard\modules\loyalty_games.js
-node -c .\htdocs\dashboard\modules\loyalty_giveaways.js
-node -c .\htdocs\dashboard\app.js
-```
-
-## Standard-Testblock bei Backend-Gamble-/Loyalty-Änderungen
-
-```powershell
-node -c .\backend\modules\loyalty_games.js
-node -c .\backend\modules\loyalty_games\gamble.js
-node -c .\backend\modules\commands.js
-```
-
-## Nach erfolgreicher Übernahme dieses Doku-Steps
-
-```powershell
-.\stepdone.cmd "LWG-4Q.12R Documentation and Next Chat Handoff"
+.\stepdone.cmd "EVS-2 Stream Events Backend Foundation"
 ```

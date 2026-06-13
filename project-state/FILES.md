@@ -1,74 +1,78 @@
 # FILES
 
-Stand: LWG-4Q.12R / Documentation & Next Chat Handoff
-Datum: 2026-06-12
+Stand: EVS-2 / Stream Events Backend Foundation
+Datum: 2026-06-13
 
-## In diesem Doku-ZIP enthalten
+## In diesem Code-/Doku-ZIP enthalten
 
 ```text
-README_LWG_4Q12R.md
-NEXT_CHAT_PROMPT_LWG_4Q12R.md
+backend/modules/stream_events.js
+docs/modules/stream_events.md
+docs/current/CURRENT_CHAT_HANDOFF_EVS_2_STREAM_EVENTS_BACKEND_FOUNDATION.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/CHANGELOG.md
 project-state/FILES.md
-docs/current/CURRENT_CHAT_HANDOFF_LWG_4Q12R_DOCUMENTATION_AND_NEXT_CHAT.md
 ```
 
-## Zuletzt gelieferte Code-/UI-ZIPs
+## Neue Runtime-Datei
 
 ```text
-LWG-4Q.12O_Giveaway-Control_UI_Cleanup.zip
-LWG-4Q.12P_Gamble_UI_Cleanup.zip
-LWG-4Q.12Q_Giveaway_Wheel_Editor_UI_Cleanup.zip
+backend/modules/stream_events.js
 ```
 
-## Wichtige Runtime-Dateien aus den letzten Schritten
+## Neue/aktualisierte Doku-Dateien
+
+```text
+docs/modules/stream_events.md
+docs/current/CURRENT_CHAT_HANDOFF_EVS_2_STREAM_EVENTS_BACKEND_FOUNDATION.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+```
+
+## Neue API-Routen
+
+```text
+GET  /api/stream-events/status
+GET  /api/stream-events/routes
+GET  /api/stream-events/texts
+GET  /api/stream-events/events
+POST /api/stream-events/events
+GET  /api/stream-events/events/:eventUid
+PUT  /api/stream-events/events/:eventUid
+POST /api/stream-events/events/:eventUid/validate
+POST /api/stream-events/events/:eventUid/start
+POST /api/stream-events/events/:eventUid/finish
+POST /api/stream-events/events/:eventUid/cancel
+GET  /api/stream-events/events/:eventUid/ranking
+POST /api/stream-events/events/:eventUid/points
+```
+
+## Neue DB-Tabellen
+
+Nicht ersetzen, nicht manuell löschen:
+
+```text
+stream_events_events
+stream_events_score_entries
+stream_events_rounds
+```
+
+## Durch EVS-2 NICHT geändert
 
 ```text
 htdocs/dashboard/index.html
-htdocs/dashboard/modules/loyalty_games.js
-htdocs/dashboard/modules/loyalty_games.css
-htdocs/dashboard/modules/loyalty_giveaways.js
-htdocs/dashboard/modules/loyalty_giveaways.css
-htdocs/dashboard/modules/loyalty_giveaways_cleanup.css
-htdocs/dashboard/modules/loyalty_giveaways_wheel_editor_cleanup.css
-```
-
-## Wichtige Backend-Dateien für spätere Prüfung
-
-```text
-backend/modules/loyalty_games.js
-backend/modules/loyalty_games/gamble.js
+htdocs/dashboard/app.js
+htdocs/dashboard/modules/*
+backend/modules/sound_system.js
+backend/modules/helpers/helper_media.js
+backend/modules/twitch_presence.js
+backend/modules/twitch_events.js
 backend/modules/loyalty_giveaways.js
+backend/modules/loyalty_games.js
 backend/modules/commands.js
-backend/modules/helpers/helper_texts.js
-backend/modules/helpers/helper_messages.js
-```
-
-## Wichtige Datenbanktabellen für spätere Prüfung
-
-Nicht ersetzen, nicht neu bauen, nur sicher migrieren/lesen:
-
-```text
-command_execution_log
-loyalty_games_dashboard_audit
-module_texts
-module_text_variants
-loyalty_giveaways
-loyalty_giveaway_entries
-loyalty_giveaway_winners
-loyalty_giveaway_wheel_permissions
-```
-
-## Durch diesen Doku-Step NICHT geändert
-
-```text
-Backend-Code
-Dashboard-Code
-Datenbank
-Runtime-Konfiguration
-Commands
-Twitch-/Streamer.bot-Flows
 ```

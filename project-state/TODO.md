@@ -1,62 +1,39 @@
 # TODO
 
-Stand: LWG-4Q.12R / Documentation & Next Chat Handoff
-Datum: 2026-06-12
+Stand: EVS-2 / Stream Events Backend Foundation
+Datum: 2026-06-13
 
-## Kurzfristig
+## Stream Events / EVS
+
+- [x] EVS-1 Planungs-/Architektur-Doku erstellt.
+- [x] EVS-2 Backend-Foundation erstellt.
+- [x] Event-Grunddaten und Spieltyp-Auswahl vorbereitet.
+- [x] Validierung für Sound/Text-Grundkonfiguration vorbereitet.
+- [x] Gemeinsames Punkte-Ledger vorbereitet.
+- [x] Ranking/Top 3 vorbereitet.
+- [x] Bus-Registrierung/Heartbeat/Status vorbereitet.
+- [x] Textvarianten-Seeding über `helper_texts` vorbereitet.
+- [ ] EVS-2 im Live-System entpacken und testen.
+- [ ] Nach erfolgreichem Test `stepdone.cmd` ausführen.
+- [ ] EVS-3 Dashboard-Skeleton planen und bauen.
+- [ ] EVS-4 Sound-Spiel Backend planen.
+- [ ] EVS-5 Text-Spiel Backend planen.
+- [ ] EVS-6 Twitch-Chat Subscriber planen.
+- [ ] EVS-7 Overlay/Playback planen.
+
+## Weiterhin offen aus LWG-4Q.12R
 
 - [ ] Prüfen, ob LWG-4Q.12O übernommen und getestet wurde.
 - [ ] Prüfen, ob LWG-4Q.12P übernommen und getestet wurde.
 - [ ] Prüfen, ob LWG-4Q.12Q übernommen und getestet wurde.
-- [ ] Nach erfolgreicher Prüfung `stepdone.cmd` für LWG-4Q.12R ausführen.
-
-## Gamble
-
-- [x] `!gamble 100` live geprüft.
-- [x] `!gamble 10%` live geprüft.
-- [x] Gamble-Hauptansicht entschlackt.
-- [x] Audit aus Gamble-Hauptansicht in Modal verschoben.
-- [x] Statistik aus Gamble-Hauptansicht in Modal verschoben.
 - [ ] StreamElements-Gamble/Roulette später abschalten.
 - [ ] Echte Gamble-Langzeitstatistik per Backend-Route planen.
-- [ ] Zeitraumfilter für Gamble-Statistik planen.
-- [ ] Spieler-Detailstatistik planen.
-
-## Giveaways / Giveaway-Control
-
-- [x] Giveaway-Control als eigenes Modul bestätigt.
-- [x] Alte Inline-Giveaway-Seite nicht wieder eingeführt.
-- [x] Giveaway-Control optisch geglättet.
-- [x] Wheel-Editor scrollbar gemacht.
-- [x] Wheel-Editor-Standardmaske entschlackt.
-- [ ] Begriffe vereinheitlichen:
-  - Wheel
-  - Glücksrad
-  - Preset
-  - Bound-Wheel
-  - Giveaway-Glücksrad
-- [ ] Später komfortable Sortierung für Wheel-Felder planen, z. B. Pfeile oder Drag & Drop.
-- [ ] Später prüfen, ob Gewicht/Gesamtmenge als optionale Profi-Einstellungen wieder in ein aufklappbares Advanced-Panel gehören.
-
-## Config-Dashboard
-
+- [ ] Begriffe im Giveaway-Control vereinheitlichen.
 - [ ] Zentrale Config-Tab-Struktur prüfen.
-- [ ] Gamble-Config im Config-Tab als Muster prüfen.
-- [ ] Weitere Modul-Configs erfassen.
-- [ ] Einheitliches Save-/Load-/Audit-Muster planen.
-- [ ] Rechte-/Sessionmodell vor produktiven Writes prüfen.
-
-## Text-Dashboard
-
 - [ ] Eigenen Texte-Tab planen.
-- [ ] Dropdown pro Modul/Textbereich planen.
-- [ ] `helper_texts.js` und bestehende Tabellen prüfen.
-- [ ] `module_texts` / `module_text_variants` als primäre Struktur nutzen.
-- [ ] Keine parallele Textstruktur bauen.
-- [ ] Kategorien und Varianten im Dashboard editierbar machen.
 
 ## Dokumentation
 
-- [x] Aktuellen Chatstand konsolidiert.
-- [x] Next-Chat-Prompt erstellt.
-- [ ] Nach nächstem Code-Step `CURRENT_STATUS.md`, `NEXT_STEPS.md`, `TODO.md`, `CHANGELOG.md`, `FILES.md` wieder aktualisieren.
+- [x] `docs/modules/stream_events.md` erstellt.
+- [x] `docs/current/CURRENT_CHAT_HANDOFF_EVS_2_STREAM_EVENTS_BACKEND_FOUNDATION.md` erstellt.
+- [x] Projektstand-Dateien für EVS-2 aktualisiert.

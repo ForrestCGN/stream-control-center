@@ -1,5 +1,29 @@
 # CHANGELOG
 
+## EVS-2 / Stream Events Backend Foundation – 2026-06-13
+
+- Neues Backend-Modul `backend/modules/stream_events.js` erstellt.
+- API-Prefix `/api/stream-events` eingeführt.
+- Event-Entwürfe, Spieltyp-Auswahl Sound/Text und Validierung vorbereitet.
+- Regel umgesetzt: nur ein aktives Event gleichzeitig.
+- Score-Ledger und Ranking/Top 3 vorbereitet.
+- DB-Schema-Skeleton für Events, Score-Einträge und Runden ergänzt.
+- Communication-Bus-Registrierung, Heartbeat und Status-Publishing ergänzt.
+- Erste Textvarianten für `stream_events` über `helper_texts` vorbereitet.
+- Doku `docs/modules/stream_events.md` erstellt.
+- Handoff `docs/current/CURRENT_CHAT_HANDOFF_EVS_2_STREAM_EVENTS_BACKEND_FOUNDATION.md` erstellt.
+- Keine Dashboard-UI.
+- Keine Twitch-Chat-Auswertung.
+- Kein Sound-/Video-Playback.
+- Kein Overlay.
+- Keine bestehende Funktionalität entfernt.
+
+## EVS-1 / Event System Planning – 2026-06-13
+
+- Architektur für Event-System geplant.
+- Regeln festgelegt: mehrere Events vorbereitbar, nur ein aktives Event, Sound und/oder Text pro Event.
+- DB-/Dashboard-Config, Multi-Texte, Bus, Twitch-Events, Sound-/Media-System und Helper-Nutzung als Pflicht festgelegt.
+
 ## LWG-4Q.12R / Documentation & Next Chat Handoff – 2026-06-12
 
 - Aktuellen Stand nach LWG-4Q.12O/P/Q konsolidiert.
@@ -9,39 +33,6 @@
 - `FILES.md` aktualisiert.
 - Neuen Chat-Handoff erstellt.
 - Neuen Next-Chat-Prompt erstellt.
-- Keine Codeänderung.
-- Keine Datenbankänderung.
-- Keine Runtime-Änderung.
-
-## LWG-4Q.12Q / Giveaway Wheel Editor UI Cleanup – 2026-06-12
-
-- Glücksrad-Editor-Modal scrollbar gemacht.
-- Standard-UI im Wheel-Editor entschlackt.
-- Gewicht, Gesamtmenge, Aktiv-Checkbox und Reihenfolge aus der Standardansicht ausgeblendet.
-- Technische Werte bleiben erhalten und werden weiterhin mitgesendet.
-- Keine Backend-/DB-/Logikänderung.
-
-## LWG-4Q.12P / Gamble UI Cleanup – 2026-06-12
-
-- Gamble-Hauptansicht aufgeräumt.
-- Technische Audit-Liste aus der Hauptansicht entfernt.
-- Statistik in Modal verschoben.
-- Audit in Modal verschoben.
-- Spielerstatistik aus geladenen Command-Logs aggregiert.
-- Keine Backend-/DB-/Logikänderung.
-
-## LWG-4Q.12O / Giveaway-Control UI Cleanup – 2026-06-12
-
-- Giveaway-Control optisch geglättet.
-- CSS-only Ergänzung für Giveaway-Control eingebunden.
-- Keine Backend-/DB-/Logikänderung.
-
-## STEP233 / Project Audit nach STEP232 – 2026-06-11
-
-- Doku-Stand nach problematischer STEP232-Dashboard-Shell-Arbeit eingefroren.
-- Stabil bestätigte Loyalty-/Gamble-Bereiche dokumentiert.
-- Dashboard-Shell-Integration STEP232 als auditpflichtig markiert.
-- Weitere Dashboard-Arbeiten blockiert, bis die echte Dashboard-Struktur geprüft wurde.
 - Keine Codeänderung.
 - Keine Datenbankänderung.
 - Keine Runtime-Änderung.
