@@ -17,8 +17,8 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.10";
-const MODULE_BUILD = "STEP_EVS_19D_PARALLEL_CONTEXT_EVENTUID_FIX";
+const MODULE_VERSION = "0.5.11";
+const MODULE_BUILD = "STEP_EVS_19E_TEXT_OPTIONS_REGRESSION_FIX";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -1422,7 +1422,7 @@ function processTextChatMessage(chat = {}, options = {}) {
     runtimeState.counters.textRuntimeSkipped += 1;
     return { ok: false, skipped: true, reason: "invalid_chat_payload" };
   }
-  const event = cleanString(context.eventUid) ? getEventByUid(context.eventUid) : getActiveEvent();
+  const event = cleanString(options.eventUid) ? getEventByUid(options.eventUid) : getActiveEvent();
   if (!event || !event.textEnabled) {
     runtimeState.counters.textRuntimeSkipped += 1;
     return { ok: true, skipped: true, reason: "no_active_text_event" };
