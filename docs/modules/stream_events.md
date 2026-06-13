@@ -1,6 +1,6 @@
 # Modul-Doku: stream_events
 
-Stand: 2026-06-13 nach EVS-19a – Stealth Test Event Fix
+Stand: 2026-06-13 nach EVS-19b – Parallel Test Event Activation Fix
 
 ## Zweck
 
@@ -20,8 +20,8 @@ Stand: 2026-06-13 nach EVS-19a – Stealth Test Event Fix
 ## Aktueller Modulstand
 
 ```text
-MODULE_VERSION = 0.5.7
-MODULE_BUILD   = STEP_EVS_19A_STEALTH_TEST_EVENT_FIX
+MODULE_VERSION = 0.5.8
+MODULE_BUILD   = STEP_EVS_19B_PARALLEL_TEST_EVENT_ACTIVATION_FIX
 ```
 
 EVS-18c ist ein Doku-/Lifecycle-Regel-Step. Es gibt keine Codeänderung und keine Modulversionserhöhung gegenüber EVS-18.
@@ -210,8 +210,8 @@ preparedOnly = true
 EVS-18 wurde erfolgreich getestet:
 
 ```text
-MODULE_VERSION = 0.5.7
-MODULE_BUILD   = STEP_EVS_19A_STEALTH_TEST_EVENT_FIX
+MODULE_VERSION = 0.5.8
+MODULE_BUILD   = STEP_EVS_19B_PARALLEL_TEST_EVENT_ACTIVATION_FIX
 active          = 0
 solved          = 4
 soundScoreEntries = 4
@@ -290,6 +290,16 @@ Das Stealth-Testevent erstellt ein Kombi-Event mit Sound und Text, bei dem unauf
 7. directSend/directPlay müssen false bleiben.
 ```
 
+
+
+## EVS-19b – Parallel Test Event Activation Fix
+
+- Der Stealth-Testevent-Helper startet das Kombi-Testevent standardmäßig.
+- Falls noch ein altes Test-/Stealth-Event aktiv ist, wird es als `finished` archiviert, nicht gelöscht.
+- Produktive/nicht erkannte aktive Events werden nicht automatisch beendet.
+- `chat-runtime/test-chat` kann optional `eventUid` entgegennehmen.
+- Text-Report wurde von versehentlich eingefügtem Sound-Debug-Code bereinigt.
+- UND-Regel bleibt aktiv: eine Nachricht wird bei Kombi-Events gegen Sound und Text geprüft.
 
 ## EVS-19a Fix
 

@@ -4,6 +4,15 @@ Stand: 2026-06-13 nach EVS-19
 
 
 
+
+## EVS-19b – Parallel Test Event Activation Fix
+
+- Stealth-Testevent startet standardmäßig, damit neue Tests nicht auf alte aktive Events laufen.
+- Alte aktive Test-/Stealth-Events werden als `finished` archiviert, nicht gelöscht.
+- `chat-runtime/test-chat` kann optional `eventUid` nutzen.
+- `text-runtime/report` repariert; versehentlicher `rounds`-Verweis entfernt.
+- Keine direkte Twitch-Ausgabe, kein Playback, keine Sound-System-Queue-Berührung.
+
 ## EVS-19a – Stealth Test Event Fix
 
 - Fehler `getTextPhrases is not defined` im neuen Stealth-Testevent-Endpunkt behoben.

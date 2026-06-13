@@ -9,8 +9,8 @@ Das Modul `stream_events` ist im `stream-control-center` als Backend- und Dashbo
 Aktueller technischer Stand der zuletzt getesteten Dateien:
 
 ```text
-MODULE_VERSION: 0.5.7
-MODULE_BUILD: STEP_EVS_19A_STEALTH_TEST_EVENT_FIX
+MODULE_VERSION: 0.5.8
+MODULE_BUILD: STEP_EVS_19B_PARALLEL_TEST_EVENT_ACTIVATION_FIX
 ```
 
 EVS-18c ist ein Doku-/Lifecycle-Regel-Step. Es gab keine Codeänderung und keine Modulversionserhöhung.
@@ -124,6 +124,15 @@ soundtester: 55 Punkte / 2 Einträge
 ForrestCGN: 45 Punkte / 2 Einträge
 ```
 
+
+### EVS-19b – Parallel Test Event Activation Fix
+
+- Stealth-Testevent-Helper startet neue Kombi-Testevents standardmäßig.
+- Alte aktive Test-/Stealth-Events werden beim Helper als `finished` archiviert, nicht gelöscht.
+- Der neue Test nutzt dadurch nicht mehr versehentlich ein altes aktives Event.
+- `GET /api/stream-events/text-runtime/report` wurde repariert; der versehentlich eingefügte Sound-Debug-Block wurde entfernt.
+- `POST /api/stream-events/chat-runtime/test-chat` kann optional `eventUid` nutzen.
+
 ## Weiterhin bewusst NICHT produktiv aktiv
 
 - Keine direkte Twitch-Chat-Ausgabe.
@@ -178,4 +187,4 @@ Noch ausstehend: Live-/API-Test nach StepDone.
 
 ## EVS-19a Fixstatus
 
-Der Fehler `getTextPhrases is not defined` im Stealth-Testevent-Endpunkt wurde behoben. Modulstand ist `MODULE_VERSION: 0.5.7` / `MODULE_BUILD: STEP_EVS_19A_STEALTH_TEST_EVENT_FIX`. EVS-19-UND-Auswertung bleibt unverändert aktiv.
+Der Fehler `getTextPhrases is not defined` im Stealth-Testevent-Endpunkt wurde behoben. Modulstand ist `MODULE_VERSION: 0.5.8` / `MODULE_BUILD: STEP_EVS_19B_PARALLEL_TEST_EVENT_ACTIVATION_FIX`. EVS-19-UND-Auswertung bleibt unverändert aktiv.

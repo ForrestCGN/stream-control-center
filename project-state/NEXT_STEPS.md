@@ -54,6 +54,29 @@ directPlayback = False
 soundSystemQueueTouched = False
 ```
 
+
+### EVS-19b bestätigt / Testfokus
+
+Vor EVS-20 muss EVS-19b getestet werden:
+
+```powershell
+POST /api/stream-events/chat-runtime/create-stealth-test-event?confirm=1
+POST /api/stream-events/sound-runtime/next-round
+POST /api/stream-events/chat-runtime/test-chat
+GET  /api/stream-events/text-runtime/report
+GET  /api/stream-events/sound-runtime/report
+```
+
+Erwartung:
+
+```text
+- neues Stealth-Testevent ist aktiv
+- alte Testevents sind finished/archiviert
+- eine Chatnachricht wird gegen Sound und Text geprüft
+- Text-Report liefert keinen rounds-Fehler mehr
+- directSend/directPlay bleiben false
+```
+
 ## Danach sinnvolle Schritte
 
 ### EVS-20 – Dashboard-Anzeige für Parallelstatus

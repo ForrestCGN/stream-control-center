@@ -155,3 +155,4 @@ POST /api/stream-events/sound-runtime/test-chat
 - EVS-19 Sound/Text Parallel AND Runtime
 
 - EVS-19a Stealth Test Event Fix
+- EVS-19b Parallel Test Event Activation Fix

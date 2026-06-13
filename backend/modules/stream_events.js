@@ -17,8 +17,8 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.7";
-const MODULE_BUILD = "STEP_EVS_19A_STEALTH_TEST_EVENT_FIX";
+const MODULE_VERSION = "0.5.8";
+const MODULE_BUILD = "STEP_EVS_19B_PARALLEL_TEST_EVENT_ACTIVATION_FIX";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -1422,7 +1422,7 @@ function processTextChatMessage(chat = {}, options = {}) {
     runtimeState.counters.textRuntimeSkipped += 1;
     return { ok: false, skipped: true, reason: "invalid_chat_payload" };
   }
-  const event = getActiveEvent();
+  const event = cleanString(options.eventUid) ? getEventByUid(options.eventUid) : getActiveEvent();
   if (!event || !event.textEnabled) {
     runtimeState.counters.textRuntimeSkipped += 1;
     return { ok: true, skipped: true, reason: "no_active_text_event" };
@@ -1538,7 +1538,7 @@ function processTextChatMessage(chat = {}, options = {}) {
 
 function processParallelChatMessage(chat = {}, context = {}) {
   const source = cleanString(context.source, "api:parallel-test-chat");
-  const event = getActiveEvent();
+  const event = cleanString(options.eventUid) ? getEventByUid(options.eventUid) : getActiveEvent();
   if (!event) {
     runtimeState.counters.textRuntimeSkipped += 1;
     runtimeState.counters.soundRuntimeSkipped += 1;
@@ -1575,7 +1575,7 @@ function processParallelChatMessage(chat = {}, context = {}) {
   }
 
   if (event.soundEnabled) {
-    const soundResult = processSoundChatMessage(chat, { source });
+    const soundResult = processSoundChatMessage(chat, { source, eventUid: event.eventUid });
     result.sound = soundResult;
     result.handled = true;
     result.handledBy.push("sound");
@@ -1586,7 +1586,7 @@ function processParallelChatMessage(chat = {}, context = {}) {
   }
 
   if (event.textEnabled) {
-    const textResult = processTextChatMessage(chat, { source });
+    const textResult = processTextChatMessage(chat, { source, eventUid: event.eventUid });
     result.text = textResult;
     result.handled = true;
     result.handledBy.push("text");
@@ -1881,7 +1881,7 @@ function processSoundChatMessage(chat = {}, options = {}) {
     runtimeState.counters.soundRuntimeSkipped += 1;
     return { ok: false, skipped: true, reason: "invalid_chat_payload" };
   }
-  const event = getActiveEvent();
+  const event = cleanString(options.eventUid) ? getEventByUid(options.eventUid) : getActiveEvent();
   if (!event || !event.soundEnabled) {
     runtimeState.counters.soundRuntimeSkipped += 1;
     return { ok: true, skipped: true, reason: "no_active_sound_event" };
@@ -2106,20 +2106,6 @@ function getSoundRuntimeReport(eventUid = "") {
     activeEvent: publicEventSummary(getActiveEvent()),
     event: publicEventSummary(eventRow),
     eventUid: uid,
-    soundDebug: {
-      testOnly: true,
-      visibleFor: "dashboard_api_debug_only",
-      acceptedAnswersByRound: rounds.map(round => {
-        const snippet = round && round.config && round.config.snippet ? round.config.snippet : {};
-        return {
-          roundUid: round.roundUid,
-          snippetUid: snippet.snippetUid || round.itemUid || "",
-          title: snippet.title || round.itemUid || "",
-          status: round.status || round.result || "",
-          acceptedAnswersDebug: buildSoundAcceptedAnswersDebug(snippet)
-        };
-      })
-    },
     counts: {
       rounds: rounds.length,
       active: rounds.filter(row => row.status === "active").length,
@@ -2215,20 +2201,6 @@ function getTextRuntimeReport(eventUid = "") {
     activeEvent: publicEventSummary(getActiveEvent()),
     event: publicEventSummary(selectedEvent),
     eventUid: uid,
-    soundDebug: {
-      testOnly: true,
-      visibleFor: "dashboard_api_debug_only",
-      acceptedAnswersByRound: rounds.map(round => {
-        const snippet = round && round.config && round.config.snippet ? round.config.snippet : {};
-        return {
-          roundUid: round.roundUid,
-          snippetUid: snippet.snippetUid || round.itemUid || "",
-          title: snippet.title || round.itemUid || "",
-          status: round.status || round.result || "",
-          acceptedAnswersDebug: buildSoundAcceptedAnswersDebug(snippet)
-        };
-      })
-    },
     counts: {
       wordHits: wordHits.length,
       phraseSolves: phraseSolves.length,
@@ -2617,7 +2589,8 @@ function getStatisticsUser(login, eventUid = "") {
 function createSoundRuntimeTestEvent(body = {}) {
   ensureSchema();
   const name = cleanString(body.name, "EVS Sound-Runtime Test");
-  const startImmediately = boolValue(body.start ?? body.startImmediately);
+  const startImmediately = body.start !== undefined || body.startImmediately !== undefined ? boolValue(body.start ?? body.startImmediately) : true;
+  const finishExistingTestActive = body.finishExistingTestActive !== undefined ? boolValue(body.finishExistingTestActive) : true;
   const snippets = Array.isArray(body.snippets) && body.snippets.length ? body.snippets : [
     {
       uid: "test_sound_1",
@@ -2713,7 +2686,8 @@ function createSoundRuntimeTestEvent(body = {}) {
 function createTextRuntimeTestEvent(body = {}) {
   ensureSchema();
   const name = cleanString(body.name, "EVS Text-Runtime Test");
-  const startImmediately = boolValue(body.start ?? body.startImmediately);
+  const startImmediately = body.start !== undefined || body.startImmediately !== undefined ? boolValue(body.start ?? body.startImmediately) : true;
+  const finishExistingTestActive = body.finishExistingTestActive !== undefined ? boolValue(body.finishExistingTestActive) : true;
   const phrases = Array.isArray(body.phrases) && body.phrases.length ? body.phrases : [
     {
       uid: "test_phrase_1",
@@ -2783,10 +2757,24 @@ function createTextRuntimeTestEvent(body = {}) {
   };
 }
 
+function isSafeAutoFinalizableTestEvent(event = {}) {
+  const meta = event && event.metadata && typeof event.metadata === "object" ? event.metadata : {};
+  const name = cleanString(event.name || "").toLowerCase();
+  return Boolean(
+    meta.testEvent === true ||
+    meta.stealthTestEvent === true ||
+    cleanString(meta.createdByHelper) ||
+    name.includes("testevent") ||
+    name.includes("stealth") ||
+    name.includes("evs-")
+  );
+}
+
 function createCombinedRuntimeStealthTestEvent(body = {}) {
   ensureSchema();
   const name = cleanString(body.name, "EVS-19 Kombi Stealth-Testevent");
-  const startImmediately = boolValue(body.start ?? body.startImmediately);
+  const startImmediately = body.start !== undefined || body.startImmediately !== undefined ? boolValue(body.start ?? body.startImmediately) : true;
+  const finishExistingTestActive = body.finishExistingTestActive !== undefined ? boolValue(body.finishExistingTestActive) : true;
   const snippets = Array.isArray(body.snippets) && body.snippets.length ? body.snippets : [
     {
       uid: "evs19_sound_heimleitung",
@@ -2874,6 +2862,13 @@ function createCombinedRuntimeStealthTestEvent(body = {}) {
   });
 
   const validated = validateStoredEvent(event.eventUid);
+  let finalizedPreviousActive = null;
+  if (startImmediately) {
+    const activeBeforeStart = getActiveEvent();
+    if (activeBeforeStart && activeBeforeStart.eventUid !== event.eventUid && finishExistingTestActive && isSafeAutoFinalizableTestEvent(activeBeforeStart)) {
+      finalizedPreviousActive = finishEvent(activeBeforeStart.eventUid);
+    }
+  }
   const started = startImmediately ? startEvent(event.eventUid) : null;
   return {
     ok: true,
@@ -2881,6 +2876,7 @@ function createCombinedRuntimeStealthTestEvent(body = {}) {
     eventUid: event.eventUid,
     validated: publicEventSummary(validated),
     started,
+    finalizedPreviousActive,
     activeEvent: publicEventSummary(getActiveEvent()),
     snippets: getSoundSnippets(getEventByUid(event.eventUid)).map(item => ({
       snippetUid: item.snippetUid,
@@ -2895,7 +2891,7 @@ function createCombinedRuntimeStealthTestEvent(body = {}) {
       pointsFirst: item.pointsFirst
     })),
     testFlow: [
-      { step: 1, method: "POST", route: "/api/stream-events/sound-runtime/next-round", body: { allowReuse: true }, note: "Aktive Soundrunde vorbereiten, ohne Playback." },
+      { step: 1, method: "POST", route: "/api/stream-events/sound-runtime/next-round", body: { allowReuse: true }, note: "Aktive Soundrunde fuer das aktive Stealth-Testevent vorbereiten, ohne Playback." },
       { step: 2, method: "POST", route: "/api/stream-events/chat-runtime/test-chat", body: { message: "heimleitung" }, note: "Eine Nachricht wird parallel gegen Sound und Text geprueft." },
       { step: 3, method: "GET", route: "/api/stream-events/sound-runtime/report", note: "Report zeigt Sound/Text/Punkte/ChatOutputs prepared-only." }
     ],
@@ -3336,7 +3332,7 @@ module.exports.init = function init(ctx) {
         userLogin: body.userLogin || body.login || body.user || req.query.user || "stealthtester",
         userDisplayName: body.userDisplayName || body.displayName || body.user || req.query.displayName || req.query.user || "StealthTester",
         messageId: body.messageId || req.query.messageId || newUid("parallel_test_chat")
-      }, { source: "api:parallel-test-chat" });
+      }, { source: "api:parallel-test-chat", eventUid: body.eventUid || body.event_uid || req.query.eventUid || req.query.event_uid || "" });
       sendJson(res, result, result.ok ? 200 : 400);
     } catch (err) {
       handleError(res, err, 400);
