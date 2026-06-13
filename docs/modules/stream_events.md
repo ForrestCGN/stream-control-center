@@ -1,235 +1,59 @@
 # Modul-Doku: stream_events
 
-Stand: 2026-06-13 nach EVS-21b – Event Archive/Delete Completion Documentation
-
-## Zweck
-
-`stream_events` ist das Event-System im `stream-control-center`. Es verwaltet vorbereitete Stream-Events mit Sound- und/oder Text-Spiel, gemeinsamer Punktewertung, Ranking, Statistik, Dashboard-Konfiguration und späterer Overlay-/Chat-/Playback-Anbindung.
-
-## Architektur-Grundsätze
-
-- Bestehenden `communication_bus` verwenden.
-- Keine zweite Bus-Struktur bauen.
-- Bestehendes `sound_system` verwenden, keinen zweiten Player bauen.
-- Bestehende Media-Komponenten verwenden.
-- Bestehende Textvarianten-Helfer verwenden.
-- SQLite aktuell, aber DB-Logik möglichst portabel halten.
-- Keine Funktionalität entfernen.
-- Direkte Twitch-Ausgabe und direktes Playback bleiben deaktiviert, bis sie ausdrücklich freigegeben werden.
+Stand: 2026-06-13 nach EVS-22 – Dashboard Safety View
 
 ## Aktueller Modulstand
 
 ```text
-MODULE_VERSION = 0.5.13
-MODULE_BUILD   = STEP_EVS_21_EVENT_ARCHIVE_DELETE_PREP
+MODULE_VERSION = 0.5.14
+MODULE_BUILD   = STEP_EVS_22_DASHBOARD_SAFETY_VIEW
 ```
 
-## Aktuell bestätigt
+## Zweck
 
-- EVS-20: ChatOutput Dispatcher Prep wurde im Live-System geprüft; alle vorbereiteten Outputs blieben blockiert (`wouldSend=0`, `dispatched=false`).
-- EVS-21: Event-Archivieren/Löschen wurde fachlich bestätigt.
-- EVS-18: echte Twitch-Chatnachrichten werden über `twitch.chat.message` vom Bus verarbeitet.
-- EVS-19e: Sound und Text laufen parallel im selben Event.
+`stream_events` verwaltet Stream-Events mit Sound- und/oder Text-Spiel, gemeinsamer Punktewertung, Ranking, Statistik, Dashboard-Konfiguration und vorbereitetem ChatOutput-/Playback-Flow.
+
+## Bestätigte Grundregeln
+
+- Sound und Text können im selben Event parallel laufen.
 - Eine Chatnachricht wird für Sound UND Text geprüft.
-- Eine Chatnachricht kann Sound UND Text lösen.
-- Sound blockiert Text nicht und Text blockiert Sound nicht.
-- ChatOutputs bleiben vorbereitet (`directSend=false`).
-- Playback bleibt vorbereitet (`directPlay=false`).
-- Sound-System-Queue wird nicht berührt.
-- Eventwerte bleiben `eventUid`-gebunden; alte Events werden archiviert/finished, nicht blind gelöscht.
+- ChatOutputs bleiben prepared-only, solange keine Live-Schalter gesetzt sind.
+- Sound-Playback bleibt prepared-only.
+- Eventdaten bleiben an `eventUid` gebunden.
+- Archivieren ist nur bei `status=finished` erlaubt.
+- Löschen ist für jeden Status möglich, aber nur mit JSON-Body `{ "confirm": "DELETE" }`.
 
-## EVS-20 ChatOutput Dispatcher Prep
+## EVS-22 Dashboard Safety View
 
-EVS-20 bereitet einen zentralen ChatOutput-Dispatcher vor, ohne live in Twitch zu senden.
+EVS-22 ergänzt im Dashboard den Tab `Sicherheit`:
 
-Neue Routen:
+- Chat-Ausgabe Status: TESTMODUS / LIVE AKTIV.
+- ChatOutput-Zähler: vorbereitet, geprüft, würde senden, blockiert.
+- Blockiergründe verständlich angezeigt.
+- Output-Preview als Dry-Run.
+- Lifecycle-Regeln im Dashboard sichtbar.
+- Archivieren-Button nur bei beendeten Events aktiv.
+- Löschen-Button mit zusätzlicher DELETE-Bestätigung.
 
-```text
-GET  /api/stream-events/chat-output/status
-GET  /api/stream-events/chat-output/report
-POST /api/stream-events/chat-output/test-dispatch
-```
-
-Zweck:
-
-- vorbereitete ChatOutputs aus Sound- und Text-Runtime sammeln,
-- jeden Output normalisieren,
-- prüfen, ob er theoretisch sendefähig wäre,
-- blockierende Sicherheitsgründe sichtbar machen,
-- weiterhin kein echter Send-Aufruf.
-
-Sicherheitsstatus:
-
-```text
-dispatcherEnabled=false
-globalLiveEnabled=false
-allowDirectSend=false
-preparedOnly=true
-eventChatOutputEnabled=<Event-Setting>
-eventLiveEnabled=false/direct nicht gesetzt
-```
-
-Solange einer der Sicherheitsgründe blockiert, bleibt:
-
-```text
-wouldSend=false
-directSend=false
-dispatched=false
-```
-
-Typische Blocker:
-
-```text
-dispatcher_disabled
-global_live_disabled
-direct_send_not_allowed
-prepared_only_mode
-event_chat_output_disabled
-event_live_disabled
-output_direct_send_false
-```
-
-## Backend-Routen
-
-### Basis
-
-```text
-GET  /api/stream-events/status
-GET  /api/stream-events/routes
-GET  /api/stream-events/events
-POST /api/stream-events/events
-GET  /api/stream-events/events/:eventUid
-PUT  /api/stream-events/events/:eventUid
-POST /api/stream-events/events/:eventUid/validate
-POST /api/stream-events/events/:eventUid/start
-POST /api/stream-events/events/:eventUid/finish
-POST /api/stream-events/events/:eventUid/cancel
-GET  /api/stream-events/events/:eventUid/ranking
-POST /api/stream-events/events/:eventUid/points
-```
-
-### Config / Texte
-
-```text
-GET  /api/stream-events/config
-POST /api/stream-events/config
-GET  /api/stream-events/texts
-POST /api/stream-events/texts
-```
-
-### Bus
-
-```text
-GET /api/stream-events/bus-status
-```
-
-### Text Runtime
-
-```text
-GET  /api/stream-events/text-runtime/status
-GET  /api/stream-events/text-runtime/report
-POST /api/stream-events/text-runtime/test-chat
-POST /api/stream-events/text-runtime/create-test-event?confirm=1
-```
-
-### Sound Runtime
-
-```text
-GET  /api/stream-events/sound-runtime/status
-GET  /api/stream-events/sound-runtime/report
-POST /api/stream-events/sound-runtime/create-test-event?confirm=1
-POST /api/stream-events/sound-runtime/next-round
-POST /api/stream-events/sound-runtime/resolve
-POST /api/stream-events/sound-runtime/unresolved
-POST /api/stream-events/sound-runtime/test-chat
-```
-
-### Kombi-Runtime
-
-```text
-POST /api/stream-events/chat-runtime/create-stealth-test-event?confirm=1
-POST /api/stream-events/chat-runtime/test-chat
-```
-
-### ChatOutput Dispatcher Prep
+## Wichtige Routen
 
 ```text
 GET  /api/stream-events/chat-output/status
 GET  /api/stream-events/chat-output/report
 POST /api/stream-events/chat-output/test-dispatch
-```
-
-## Event-Lifecycle / Archiv / Löschen
-
-EVS-21 ergänzt geschützte Lifecycle-Aktionen für alte Events:
-
-```text
 POST /api/stream-events/events/:eventUid/archive
 POST /api/stream-events/events/:eventUid/delete
 ```
 
-Fachregeln:
-
-```text
-- Archivieren ist nur erlaubt, wenn das Event vollständig beendet ist: status=finished.
-- Aktive, ready, draft oder cancelled Events werden nicht archiviert.
-- Löschen ist für jeden Eventstatus möglich, aber nur mit expliziter Bestätigung confirm=DELETE.
-- Löschen entfernt das Event und alle eventUid-gebundenen Daten:
-  - Score-Einträge
-  - Sound-/Text-Runden
-  - Text-Worttreffer
-  - Text-Satzlösungen
-- Archivieren löscht keine Werte; alle Statistiken bleiben eventUid-gebunden erhalten.
-```
-
-Sicherheitsgrundsatz: Archivieren ist historisch/auswertbar, Löschen ist ein Hard-Delete mit Bestätigung.
-
-
-## EVS-21b bestätigte Lifecycle-Tests
-
-Bestätigte Testregeln aus EVS-21b:
-
-```text
-GET /api/stream-events/events liefert rows, nicht events.
-Archivieren aktiver Events wird blockiert.
-Archivieren ist nur für status=finished erlaubt.
-Archivieren setzt status=archived und löscht keine Werte.
-Löschen ohne Bestätigung wird blockiert.
-Löschen funktioniert mit JSON-Body { "confirm": "DELETE" }.
-Query-Confirm ?confirm=DELETE ist nicht ausreichend.
-Hard-Delete entfernt Event plus eventUid-gebundene Daten.
-```
-
-Bestätigte Testfälle:
-
-```text
-Aktives Event archive -> ok=false, error=event_not_finished.
-Finished Event archive -> ok=true, status=archived, Werte bleiben erhalten.
-Delete ohne Body-Confirm -> ok=false, error=delete_confirmation_required.
-Delete mit Body confirm=DELETE -> ok=true, Event danach nicht mehr in rows.
-```
+Hinweis: `GET /api/stream-events/events` liefert die Eventliste unter `rows`, nicht unter `events`.
 
 ## Sicherheit
 
-Aktuell gelten weiterhin:
+EVS-22 aktiviert weiterhin keine öffentliche Ausgabe:
 
 ```text
 directSend = false
-directPlay = false
-soundSystemTouched = false
-queueTouched = false
-preparedOnly = true
-```
-
-EVS-20 sendet nicht. EVS-20 ist nur Vorschau, Prüfung und Sicherheitsstatus.
-
-## Nächster technischer Schritt
-
-EVS-22 sollte das Dashboard für ChatOutput-Status/Report und Event-Lifecycle vorbereiten:
-
-```text
-- Anzeige TESTMODUS / LIVE AKTIV vorbereiten
-- Blocker im Dashboard sichtbar machen
-- keine öffentliche Twitch-Ausgabe
-- kein Live-Send-Button ohne späteres Sicherheitskonzept
+directPlayback = false
+dispatched = false
+soundSystemQueueTouched = false
 ```

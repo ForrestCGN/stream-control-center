@@ -10,7 +10,10 @@ window.StreamEventsModule = (function(){
     textRuntimeReport: '/api/stream-events/text-runtime/report',
     soundRuntimeReport: '/api/stream-events/sound-runtime/report',
     statisticsUsers: '/api/stream-events/statistics/users',
-    statisticsUser: '/api/stream-events/statistics/user'
+    statisticsUser: '/api/stream-events/statistics/user',
+    chatOutputStatus: '/api/stream-events/chat-output/status',
+    chatOutputReport: '/api/stream-events/chat-output/report',
+    chatOutputTestDispatch: '/api/stream-events/chat-output/test-dispatch'
   };
 
   let root = null;
@@ -29,6 +32,8 @@ window.StreamEventsModule = (function(){
     textRuntimeReport: null,
     soundRuntimeReport: null,
     statisticsUsers: null,
+    chatOutputStatus: null,
+    chatOutputReport: null,
     statsSubTab: 'overview',
     selectedStatsUser: '',
     userStatistics: null,
@@ -83,8 +88,9 @@ window.StreamEventsModule = (function(){
     else if (s === 'ready') cls = 'evs-badge-good';
     else if (s === 'draft') cls = 'evs-badge-warn';
     else if (s === 'finished') cls = 'evs-badge-info';
+    else if (s === 'archived') cls = 'evs-badge-muted';
     else if (s === 'cancelled' || s === 'canceled') cls = 'evs-badge-off';
-    const labels = { draft:'Entwurf', ready:'Startbereit', active:'Läuft', finished:'Beendet', cancelled:'Abgebrochen', canceled:'Abgebrochen' };
+    const labels = { draft:'Entwurf', ready:'Startbereit', active:'Läuft', finished:'Beendet', archived:'Archiviert', cancelled:'Abgebrochen', canceled:'Abgebrochen' };
     return `<span class="evs-badge ${cls}">${esc(labels[s] || status || '-')}</span>`;
   }
 
@@ -158,9 +164,9 @@ window.StreamEventsModule = (function(){
       <div class="evs-page">
         <div class="evs-header glass">
           <div>
-            <div class="evs-kicker">EVS-16 · Sound-Runtime Dashboard Report</div>
+            <div class="evs-kicker">EVS-22 · Dashboard Safety View</div>
             <h2>Event-System</h2>
-            <p>Übersicht zeigt laufende Events. Text- und Sound-Runtime, User-Details, Runden, Treffer, Payloads und Ranking sind dashboardfreundlich sichtbar.</p>
+            <p>Übersicht zeigt laufende Events. Sicherheit, ChatOutput-Preview, Event-Lifecycle, Text-/Sound-Runtime und Ranking bleiben dashboardfreundlich sichtbar.</p>
           </div>
           <div class="evs-header-actions">
             <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="reload">Aktualisieren</button>
@@ -188,6 +194,7 @@ window.StreamEventsModule = (function(){
       { id: 'texts', label: 'Texte', icon: '💬' },
       { id: 'config', label: 'Config', icon: '⚙️' },
       { id: 'stats', label: 'Statistik', icon: '🏆' },
+      { id: 'safety', label: 'Sicherheit', icon: '🛡️' },
       { id: 'overlay', label: 'Overlay', icon: '🖥️' }
     ];
   }
@@ -210,6 +217,7 @@ window.StreamEventsModule = (function(){
     if (tab === 'texts') return renderTextsTab();
     if (tab === 'config') return renderConfigTab();
     if (tab === 'stats') return renderStatsTab(event);
+    if (tab === 'safety') return renderSafetyTab(event);
     if (tab === 'overlay') return renderOverlayTab(event);
     return renderOverviewTab(event);
   }
@@ -772,6 +780,132 @@ window.StreamEventsModule = (function(){
     `;
   }
 
+
+  function yesNoBadge(value, onLabel = 'An', offLabel = 'Aus'){
+    return `<span class="evs-safety-pill ${value ? 'is-ok' : 'is-off'}">${esc(value ? onLabel : offLabel)}</span>`;
+  }
+
+  function blockedReasonLabel(reason){
+    const map = {
+      dispatcher_disabled: 'Dispatcher ist aus',
+      global_live_disabled: 'Globaler Live-Schalter ist aus',
+      direct_send_not_allowed: 'Direktes Senden ist nicht erlaubt',
+      prepared_only_mode: 'Prepared-only Modus aktiv',
+      event_live_disabled: 'Event-Live-Schalter ist aus',
+      event_chat_output_disabled: 'ChatOutput am Event ist aus',
+      output_direct_send_false: 'Output selbst hat directSend=false',
+      no_event: 'Kein Event ausgewählt'
+    };
+    return map[reason] || reason || '-';
+  }
+
+  function chatOutputSafetyFor(event){
+    const status = state.chatOutputStatus;
+    if (event && status && status.eventUid === event.eventUid) return status;
+    return null;
+  }
+
+  function chatOutputReportFor(event){
+    const report = state.chatOutputReport;
+    if (event && report && report.eventUid === event.eventUid) return report;
+    return null;
+  }
+
+  function renderSafetyTab(event){
+    if (!event) return renderSelectEventEmpty('Sicherheit');
+    return `
+      <div class="evs-grid evs-safety-grid">
+        ${renderChatOutputSafetyPanel(event)}
+        ${renderLifecycleSafetyPanel(event)}
+      </div>
+    `;
+  }
+
+  function renderChatOutputSafetyPanel(event){
+    const status = chatOutputSafetyFor(event);
+    const report = chatOutputReportFor(event);
+    const cfg = status?.config || {};
+    const counts = status?.counts || report?.counts || {};
+    const reasons = status?.blockedReasons || report?.blockedReasons || {};
+    const outputs = Array.isArray(report?.outputs) ? report.outputs : [];
+    const liveActive = Number(counts.wouldSend || 0) > 0;
+    return `
+      <section class="evs-card glass evs-tab-panel evs-safety-panel">
+        <div class="evs-card-head evs-stats-head">
+          <div>
+            <h3>Chat-Ausgabe Sicherheit</h3>
+            <span>${liveActive ? 'LIVE AKTIV – Outputs würden gesendet.' : 'TESTMODUS – nichts wird öffentlich gesendet.'}</span>
+          </div>
+          <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="chatOutputSafety" data-uid="${esc(event.eventUid)}">Status neu laden</button>
+        </div>
+        <div class="evs-safety-banner ${liveActive ? 'is-live' : 'is-safe'}">
+          <strong>${liveActive ? '⚠️ LIVE AKTIV' : '🛡️ TESTMODUS / blockiert'}</strong>
+          <span>${liveActive ? 'Mindestens ein ChatOutput würde aktuell gesendet.' : 'Alle vorbereiteten ChatOutputs bleiben blockiert und werden nur angezeigt.'}</span>
+        </div>
+        ${status ? `
+          <div class="evs-mini-grid evs-mini-grid-compact evs-safety-counters">
+            <div><strong>${esc(counts.preparedOutputs || 0)}</strong><span>Vorbereitet</span></div>
+            <div><strong>${esc(counts.previewedOutputs || 0)}</strong><span>Geprüft</span></div>
+            <div><strong>${esc(counts.wouldSend || 0)}</strong><span>Würde senden</span></div>
+            <div><strong>${esc(counts.blocked || 0)}</strong><span>Blockiert</span></div>
+          </div>
+          <div class="evs-safety-switches">
+            <div><b>Dispatcher</b>${yesNoBadge(cfg.dispatcherEnabled, 'An', 'Aus')}</div>
+            <div><b>Global Live</b>${yesNoBadge(cfg.globalLiveEnabled, 'An', 'Aus')}</div>
+            <div><b>DirectSend erlaubt</b>${yesNoBadge(cfg.allowDirectSend, 'Erlaubt', 'Blockiert')}</div>
+            <div><b>Prepared-only</b>${yesNoBadge(cfg.preparedOnly, 'Aktiv', 'Aus')}</div>
+            <div><b>Event ChatOutput</b>${yesNoBadge(cfg.eventChatOutputEnabled, 'An', 'Aus')}</div>
+            <div><b>Event Live</b>${yesNoBadge(cfg.eventLiveEnabled, 'An', 'Aus')}</div>
+          </div>
+          <div class="evs-runtime-box evs-safety-reasons">
+            <div class="evs-runtime-box-head"><h4>Blockiergründe</h4><small>Warum aktuell nicht gesendet wird</small></div>
+            ${Object.keys(reasons).length ? Object.entries(reasons).map(([key, value]) => `<div class="evs-info-row"><strong>${esc(blockedReasonLabel(key))}</strong><span>${esc(value)} Output(s)</span></div>`).join('') : '<div class="evs-empty">Keine Blockiergründe gemeldet.</div>'}
+          </div>
+          <div class="evs-runtime-box evs-safety-output-preview">
+            <div class="evs-runtime-box-head"><h4>Output-Preview</h4><small>dry-run / dispatched=false</small></div>
+            ${outputs.length ? outputs.slice(0, 8).map(output => `<div class="evs-chat-output-row"><span>${esc(chatKindLabel(output.kind))} · ${output.wouldSend ? 'würde senden' : 'blockiert'}</span><p>${esc(output.text || output.chatText || '')}</p><small>${esc((output.blockedBy || []).map(blockedReasonLabel).join(', ') || 'keine Blocker')}</small></div>`).join('') : '<div class="evs-empty">Noch keine ChatOutputs im Report.</div>'}
+          </div>
+        ` : '<div class="evs-empty">ChatOutput-Sicherheitsstatus noch nicht geladen.</div>'}
+      </section>
+    `;
+  }
+
+  function renderLifecycleSafetyPanel(event){
+    const s = norm(event.status);
+    const canArchive = s === 'finished';
+    const canFinish = s === 'active';
+    const canCancel = ['draft','ready','active'].includes(s);
+    return `
+      <section class="evs-card glass evs-tab-panel evs-lifecycle-panel">
+        <div class="evs-card-head evs-stats-head">
+          <div>
+            <h3>Event-Lifecycle</h3>
+            <span>Archivieren, Löschen und Status-Regeln sichtbar und abgesichert.</span>
+          </div>
+          ${statusBadge(event.status)}
+        </div>
+        <div class="evs-mini-grid evs-mini-grid-compact">
+          <div><strong>${esc(event.eventUid)}</strong><span>EventUid</span></div>
+          <div><strong>${esc(event.status || '-')}</strong><span>API-Status</span></div>
+          <div><strong>${fmtDate(event.finishedAt)}</strong><span>Beendet am</span></div>
+          <div><strong>${fmtDate(event.updatedAt)}</strong><span>Aktualisiert</span></div>
+        </div>
+        <div class="evs-safety-rule-list">
+          <div class="${canArchive ? 'is-ok' : 'is-blocked'}"><b>Archivieren</b><span>${canArchive ? 'Erlaubt, weil Event beendet ist.' : 'Blockiert: nur beendete Events können archiviert werden.'}</span></div>
+          <div><b>Löschen</b><span>Erlaubt für jeden Status, aber nur mit expliziter Eingabe DELETE. Dabei werden Eventdaten zur eventUid entfernt.</span></div>
+          <div><b>Datenhaltung</b><span>Archivieren erhält Score/Runden/Textdaten. Löschen entfernt Event + eventUid-Daten.</span></div>
+        </div>
+        <div class="evs-action-row evs-action-row-tight evs-lifecycle-actions">
+          <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="finish" data-uid="${esc(event.eventUid)}" ${canFinish ? '' : 'disabled'}>Beenden</button>
+          <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="archive" data-uid="${esc(event.eventUid)}" ${canArchive ? '' : 'disabled'}>Archivieren</button>
+          <button type="button" class="evs-btn evs-btn-danger" data-evs-action="cancel" data-uid="${esc(event.eventUid)}" ${canCancel ? '' : 'disabled'}>Abbrechen</button>
+          <button type="button" class="evs-btn evs-btn-danger" data-evs-action="deleteEvent" data-uid="${esc(event.eventUid)}">Löschen…</button>
+        </div>
+        <div class="evs-tab-help">Archivieren ist nur bei Status „Beendet/finished“ möglich. Löschen fragt zusätzlich das Wort DELETE ab.</div>
+      </section>
+    `;
+  }
+
   function renderOverlayTab(event){
     return `
       <section class="evs-card glass evs-tab-panel">
@@ -854,7 +988,9 @@ window.StreamEventsModule = (function(){
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="validate" data-uid="${esc(event.eventUid)}">Prüfen</button>
           <button type="button" class="evs-btn" data-evs-action="start" data-uid="${esc(event.eventUid)}" ${event.status === 'ready' ? '' : 'disabled'}>Starten</button>
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="finish" data-uid="${esc(event.eventUid)}" ${event.status === 'active' ? '' : 'disabled'}>Beenden</button>
+          <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="archive" data-uid="${esc(event.eventUid)}" ${norm(event.status) === 'finished' ? '' : 'disabled'}>Archivieren</button>
           <button type="button" class="evs-btn evs-btn-danger" data-evs-action="cancel" data-uid="${esc(event.eventUid)}" ${['draft','ready','active'].includes(norm(event.status)) ? '' : 'disabled'}>Abbrechen</button>
+          <button type="button" class="evs-btn evs-btn-danger" data-evs-action="deleteEvent" data-uid="${esc(event.eventUid)}">Löschen…</button>
         </div>
 
         <div class="evs-ranking">
@@ -1334,9 +1470,25 @@ window.StreamEventsModule = (function(){
       loadRanking(eventUid, false),
       loadTextRuntimeReport(eventUid, false),
       loadSoundRuntimeReport(eventUid, false),
+      loadChatOutputSafety(eventUid, false),
       loadStatisticsUsers(eventUid, false)
     ]);
     render();
+  }
+
+
+  async function loadChatOutputSafety(uid, rerender = true){
+    if (!uid) return;
+    try {
+      const qs = `?eventUid=${encodeURIComponent(uid)}`;
+      state.chatOutputStatus = await window.CGN.api(`${api.chatOutputStatus}${qs}`);
+      state.chatOutputReport = await window.CGN.api(`${api.chatOutputReport}${qs}`);
+    } catch (err) {
+      state.chatOutputStatus = null;
+      state.chatOutputReport = null;
+      state.error = err.message || String(err);
+    }
+    if (rerender) render();
   }
 
   async function loadSoundRuntimeReport(uid, rerender = true){
@@ -1551,6 +1703,48 @@ window.StreamEventsModule = (function(){
     }
   }
 
+
+  async function archiveSelectedEvent(uid){
+    if (!uid) return;
+    const event = state.events.find(e => e.eventUid === uid) || state.selected;
+    if (norm(event?.status) !== 'finished') {
+      state.error = 'Archivieren ist nur bei beendeten Events erlaubt.';
+      render();
+      return;
+    }
+    if (!confirm('Dieses beendete Event archivieren? Die Werte bleiben erhalten.')) return;
+    try {
+      const result = await window.CGN.api(`${api.events}/${encodeURIComponent(uid)}/archive`, { method: 'POST', body: JSON.stringify({ actor: 'dashboard' }) });
+      state.message = result.alreadyArchived ? 'Event war bereits archiviert.' : 'Event archiviert.';
+      await loadAll(true);
+    } catch (err) {
+      state.error = err.message || String(err);
+      render();
+    }
+  }
+
+  async function deleteSelectedEvent(uid){
+    if (!uid) return;
+    const event = state.events.find(e => e.eventUid === uid) || state.selected || {};
+    const first = confirm(`Event "${event.name || uid}" wirklich löschen? Dabei werden Event und zugehörige Werte entfernt.`);
+    if (!first) return;
+    const typed = prompt('Zum endgültigen Löschen bitte DELETE eingeben:');
+    if (typed !== 'DELETE') {
+      state.error = 'Löschen abgebrochen: Bestätigung DELETE wurde nicht eingegeben.';
+      render();
+      return;
+    }
+    try {
+      const result = await window.CGN.api(`${api.events}/${encodeURIComponent(uid)}/delete`, { method: 'POST', body: JSON.stringify({ confirm: 'DELETE', actor: 'dashboard' }) });
+      state.message = `Event gelöscht. Score: ${result.countsDeleted?.scoreEntries || 0}, Runden: ${result.countsDeleted?.rounds || 0}.`;
+      if (state.selectedUid === uid) state.selectedUid = '';
+      await loadAll(true);
+    } catch (err) {
+      state.error = err.message || String(err);
+      render();
+    }
+  }
+
   function bind(){
     document.addEventListener('click', async ev => {
       const select = ev.target.closest('[data-evs-select]');
@@ -1577,6 +1771,7 @@ window.StreamEventsModule = (function(){
         await loadRanking(uid, false);
         await loadTextRuntimeReport(uid, false);
         await loadSoundRuntimeReport(uid, false);
+        await loadChatOutputSafety(uid, false);
         await loadStatisticsUsers(uid, false);
         state.activeTab = targetTab;
         render();
@@ -1639,6 +1834,9 @@ window.StreamEventsModule = (function(){
       if (action === 'start') return eventAction('start', uid);
       if (action === 'finish') return eventAction('finish', uid);
       if (action === 'cancel') return eventAction('cancel', uid);
+      if (action === 'archive') return archiveSelectedEvent(uid);
+      if (action === 'deleteEvent') return deleteSelectedEvent(uid);
+      if (action === 'chatOutputSafety') return loadChatOutputSafety(uid, true);
       if (action === 'statsSubTab') return switchStatsSubTab(btn.dataset.tab || 'overview', uid);
       if (action === 'refreshStatsCurrent') return refreshCurrentStatsSection(uid);
       if (action === 'ranking') return loadRanking(uid, true);
