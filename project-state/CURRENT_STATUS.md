@@ -1,126 +1,104 @@
 # CURRENT STATUS
 
-Stand: EVS-2 / Stream Events Backend Foundation
+Stand: EVS-3 / Stream Events Dashboard Skeleton
 Datum: 2026-06-13
 Projekt: ForrestCGN / stream-control-center
 
 ## Zweck dieses Stands
 
-Dieser Stand führt nach EVS-1 die erste Backend-Basis für das geplante Event-System ein.
+EVS-3 ergaenzt nach der funktionierenden EVS-2 Backend-Basis eine erste Dashboard-Oberflaeche fuer das Event-System.
 
-EVS-2 ist bewusst ein kleiner, sicherer Foundation-Step:
+Der Schritt bleibt bewusst klein und sicher:
 
-- keine Dashboard-UI
-- keine Twitch-Chat-Auswertung
+- Dashboard-Skeleton ja
+- keine neue Spiel-Engine
+- keine Chat-Auswertung
 - kein Sound-/Video-Playback
 - kein Overlay
-- keine produktive Auszahlung
+- kein Backend-Umbau
 
-## Basis / Single Source of Truth
+## Bestaetigter EVS-2 Test
 
-- Repo: `ForrestCGN/stream-control-center`
-- Branch: `dev`
-- Lokales Repo: `D:\Git\stream-control-center`
-- Live-Ziel: `D:\Streaming\stramAssets`
-- Dashboard: `http://127.0.0.1:8080/dashboard`
-- Produktive SQLite-Datenbank: `D:\Streaming\stramAssets\data\sqlite\app.sqlite`
-
-## Wichtige Arbeitsregel weiterhin gültig
-
-- Nicht raten.
-- Echte Dateien / GitHub-dev / hochgeladene Dateien als Single Source of Truth verwenden.
-- Keine Apply-Scripte.
-- Keine Patch-Scripte.
-- Keine PowerShell-Regex-Patches.
-- Keine Inline-Set-Content-Fixes.
-- Keine Funktionalität entfernen.
-- SQLite-Datenbank niemals ersetzen/überschreiben.
-- Änderungen nur als vollständige Ersatzdateien oder ZIPs mit echten Zielpfaden liefern.
-
-## EVS-2 umgesetzt
-
-Neue Datei:
+Forrest hat EVS-2 gegen Live/API geprueft:
 
 ```text
-backend/modules/stream_events.js
+ok            : True
+module        : stream_events
+moduleVersion : 0.1.0
+moduleBuild   : STEP_EVS_2_BACKEND_FOUNDATION
+routeCount    : 13
+lastError     :
 ```
 
-Neue Doku:
+Diagnostics:
+
+```text
+ok            : True
+health        : ok
+schemaReady   : True
+schemaVersion : 1
+lastError     :
+```
+
+## EVS-3 umgesetzt
+
+Neue Dateien:
+
+```text
+htdocs/dashboard/modules/stream_events.js
+htdocs/dashboard/modules/stream_events.css
+```
+
+Geaenderte Datei:
+
+```text
+htdocs/dashboard/index.html
+```
+
+Doku aktualisiert:
 
 ```text
 docs/modules/stream_events.md
-docs/current/CURRENT_CHAT_HANDOFF_EVS_2_STREAM_EVENTS_BACKEND_FOUNDATION.md
+docs/current/CURRENT_CHAT_HANDOFF_EVS_3_DASHBOARD_SKELETON.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/CHANGELOG.md
+project-state/FILES.md
 ```
 
-## Stream Events Backend-Basis
+## Dashboard-Funktionen
 
-Enthalten:
+- Eventliste anzeigen
+- Eventdetails anzeigen
+- neues Event erstellen
+- Event bearbeiten
+- Sound/Text auswaehlen
+- einfache Sound-Konfiguration speichern
+- einfache Text-Konfiguration speichern
+- Validierungsstatus lesbar anzeigen
+- Start/Beenden/Abbrechen mit Bestaetigung
+- Ranking laden
 
-- Modul-Meta / Version / Build
-- automatische Ladbarkeit über bestehendes `backend/server.js`-Modulmuster
-- `GET /api/stream-events/status`
-- `GET /api/stream-events/routes`
-- `GET /api/stream-events/texts`
-- Event-Entwürfe erstellen/listen/lesen/bearbeiten
-- Sound und/oder Text am Event auswählbar
-- Validierung der gewählten Spieltypen
-- Start blockiert, wenn Event nicht valide ist
-- nur ein aktives Event gleichzeitig
-- Finish/Cancel
-- Score-Ledger
-- Ranking/Top 3
-- Bus-Registrierung / Heartbeat / Status-Publishing
-- erste Textvarianten via `helper_texts`
+## Nicht geaendert durch EVS-3
 
-## Neue DB-Tabellen
+- kein Backend-Code
+- keine DB-Migration
+- keine Twitch-Events/Chat-Verarbeitung
+- kein Sound-System-Code
+- kein Media-System-Code
+- kein Overlay
+- keine bestehende Dashboard-Funktion entfernt
 
-Sanft angelegt per `database.ensureSchema` und `CREATE TABLE IF NOT EXISTS`:
+## Wichtiger Ablauf fuer Test
 
-```text
-stream_events_events
-stream_events_score_entries
-stream_events_rounds
-```
-
-## Nicht geändert durch EVS-2
-
-- Kein Dashboard-Code.
-- Keine bestehende Dashboard-Navigation.
-- Keine Twitch-/Streamer.bot-Flows.
-- Keine bestehende Loyalty-/Gamble-/Giveaway-Logik.
-- Kein Sound-System-Code.
-- Kein Media-System-Code.
-- Keine produktive SQLite-Datei ersetzt.
-- Keine bestehenden Tabellen gelöscht oder umgebaut.
-
-## Tests
+Forrest-Hinweis: `stepdone.cmd` muss vor Live-/Dashboard-Test ausgefuehrt werden, sonst ist der Stand nicht im Live-System.
 
 ```powershell
-node -c .\backend\modules\stream_events.js
+.\stepdone.cmd "EVS-3 Stream Events Dashboard Skeleton"
 ```
 
-Nach Serverstart:
+## Naechster Schritt
 
-```powershell
-$s = Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/status"
-$s | Select-Object ok,module,moduleVersion,moduleBuild,routeCount,lastError
-$s.diagnostics
-```
+EVS-4: Sound-Spiel Backend / Rotation planen und bauen.
 
-## Nächster Schritt
-
-EVS-3: Dashboard-Skeleton für Stream Events.
-
-Ziel:
-
-- Eventliste
-- Event erstellen
-- Sound/Text auswählen
-- Validierungsstatus verständlich anzeigen
-- Sound-/Text-Konfiguration über einfache Dialogstruktur vorbereiten
-
-Noch nicht:
-
-- Chat-Auswertung
-- Playback
-- Overlay

@@ -1,113 +1,74 @@
 # NEXT STEPS
 
-Stand: EVS-2 / Stream Events Backend Foundation
+Stand: EVS-3 / Stream Events Dashboard Skeleton
 Datum: 2026-06-13
 
-## Sofort nach Übernahme testen
+## Sofort nach Entpacken
+
+Syntax pruefen:
 
 ```powershell
-node -c .\backend\modules\stream_events.js
+node -c .\htdocs\dashboard\modules\stream_events.js
 ```
 
-Server starten/neustarten und dann:
+Danach vor Dashboard-/Live-Test unbedingt:
 
 ```powershell
-$s = Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/status"
-$s | Select-Object ok,module,moduleVersion,moduleBuild,routeCount,lastError
-$s.diagnostics
+.\stepdone.cmd "EVS-3 Stream Events Dashboard Skeleton"
 ```
 
-Routen prüfen:
+Erst danach Live-System/Dashboard testen.
 
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/routes" | ConvertTo-Json -Depth 5
+## Dashboard-Test nach StepDone
+
+```text
+Dashboard -> Community -> Event-System
 ```
 
-## Nächster fachlicher Arbeitsblock
+Testfolge:
 
-### EVS-3 – Dashboard Skeleton
+1. Event-System oeffnen
+2. Neues Event erstellen
+3. Sound und/oder Text aktivieren
+4. Gewaehlten Spieltyp konfigurieren
+5. Speichern
+6. Validierung ansehen
+7. Start/Finish/Cancel nur mit Test-Event pruefen
+
+## Naechster fachlicher Arbeitsblock
+
+### EVS-4 – Sound-Spiel Backend / Rotation
 
 Ziel:
 
-- `stream_events` im Dashboard sichtbar machen.
-- Streamer-/modfreundliche Eventverwaltung vorbereiten.
-- Keine technische Tabellenwand.
-- Noch kein Chat/Playback/Overlay.
+- Sound-Snippet-Konfiguration sauberer als eigene Backend-Struktur vorbereiten
+- Eventbezogene Snippet-Rotation
+- korrekt erkannt -> aus aktueller Rotation entfernen / erkannt markieren
+- nicht erkannt -> je nach Config erneut einreihen oder entfernen
+- direkte Wiederholung vermeiden
+- Statistikgrundlage vorbereiten
 
-Vor Umsetzung echte Dateien prüfen:
+Noch nicht:
 
-```text
-htdocs/dashboard/index.html
-htdocs/dashboard/app.js
-htdocs/dashboard/modules/loyalty_giveaways.js
-htdocs/dashboard/modules/loyalty_giveaways.css
-htdocs/dashboard/modules/loyalty_games.js
-htdocs/dashboard/modules/loyalty_games.css
-backend/modules/stream_events.js
-```
-
-Geplante Dateien:
-
-```text
-htdocs/dashboard/modules/stream_events.js
-htdocs/dashboard/modules/stream_events.css
-```
-
-Mögliche Änderung an bestehender Datei, nur nach vollständiger Prüfung:
-
-```text
-htdocs/dashboard/index.html
-```
-
-Dashboard-Funktionen EVS-3:
-
-- Eventliste
-- Neues Event anlegen
-- Sound/Text auswählen
-- Startbarkeit/Validierung anzeigen
-- Bearbeiten nur für Draft/Ready
-- Start/Finish/Cancel mit klaren Buttons und Bestätigung
-- Platzhalter/erste Dialogstruktur für Sound-/Text-Konfiguration
-
-Nicht in EVS-3:
-
-- Twitch-Chat-Auswertung
-- Sound-/Video-Playback
-- Overlay
-- automatische Rundenlogik
+- kein automatisches Sound-Playback
+- kein Video-Playback
+- keine Twitch-Chat-Auswertung
 
 ## Danach
-
-### EVS-4 – Sound-Spiel Backend
-
-- Sound-Snippets als Event-Konfiguration
-- Rotation
-- erkannt/nicht erkannt Status
-- Requeue/Remove-Regeln
-- später Sound-System-Aufruf
 
 ### EVS-5 – Text-Spiel Backend
 
 - Phrase-Hunt-Konfiguration
-- Hinweis-Tokens
-- Lösungserkennung
-- Punktevergabe
+- Hinweiswoerter/Tokens
+- Loesungserkennung vorbereiten
 
 ### EVS-6 – Twitch-Chat Subscriber
 
-- `twitch.chat.message` nur bei aktivem Event/Spiel auswerten
-- keine dauerhafte unnötige Chatverarbeitung
-- bestehende Command-/Twitch-Struktur nicht stören
+- `twitch.chat.message` nur bei aktivem Event/Spiel konsumieren
+- bestehende Command-/Twitch-Flows nicht stoeren
 
 ### EVS-7 – Overlay/Playback
 
 - zentrales Event-Overlay
-- Sound/Video über vorhandenes Sound-/Media-System, soweit möglich
+- Sound/Video ueber vorhandenes Sound-/Media-System, soweit moeglich
 
-## StepDone
-
-Nach erfolgreicher Übernahme von EVS-2:
-
-```powershell
-.\stepdone.cmd "EVS-2 Stream Events Backend Foundation"
-```
