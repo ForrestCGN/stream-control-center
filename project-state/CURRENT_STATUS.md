@@ -55,3 +55,12 @@ EVS-10 Text Chat Runtime Prep ist vorbereitet. Text-Spiel kann aktive Events ueb
 - Neue Route: `GET /api/stream-events/text-runtime/report`
 - Neue Route: `POST /api/stream-events/text-runtime/create-test-event?confirm=1`
 - Keine direkte Chat-Ausgabe, kein Sound-Playback, kein Overlay.
+
+
+## EVS-11 – Text Chat Output Prep
+
+- Build: `STEP_EVS_11_TEXT_CHAT_OUTPUT_PREP`
+- Backend-Version: `stream_events` 0.4.2
+- Chattexte werden fuer Text-Worttreffer, Wortpunkte und Satzloesungen als Bus-Payload vorbereitet.
+- Keine direkte Twitch-Chat-Ausgabe.
+- Textvarianten: je 5 Altersheim-/CGN-/Rentner-/Heimleitungs-Varianten pro relevantem Key.

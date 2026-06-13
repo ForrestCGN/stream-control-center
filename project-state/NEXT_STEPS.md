@@ -48,3 +48,10 @@ Naechste Schritte nach EVS-10: Test mit aktivem Text-Testevent, danach direkte C
 - Neue Route: `GET /api/stream-events/text-runtime/report`
 - Neue Route: `POST /api/stream-events/text-runtime/create-test-event?confirm=1`
 - Keine direkte Chat-Ausgabe, kein Sound-Playback, kein Overlay.
+
+
+## Nach EVS-11
+
+- Testevent starten und Bus-Payloads fuer `chatOutput` pruefen.
+- Danach entscheiden, welches bestehende Chat-/Bot-Ausgabesystem die vorbereiteten Texte senden soll.
+- Direkte Twitch-Ausgabe erst nach ausdruecklichem Go.

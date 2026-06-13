@@ -3,10 +3,11 @@
 /**
  * Stream Events backend foundation.
  *
- * STEP EVS-10b:
- * - Keeps the EVS-10 Text-Spiel chat runtime preparation.
- * - Adds safe runtime test helper routes for a prepared Text-Spiel test event and report view.
- * - Does not add direct chat output, sound playback or overlay runtime.
+ * STEP EVS-11:
+ * - Keeps EVS-10b Text-Spiel runtime test helpers.
+ * - Prepares chat output payloads from DB-backed text variants.
+ * - Seeds 5 Altersheim/CGN/Rentner/Heimleitungs-style variants per relevant text key.
+ * - Still does not send directly into Twitch chat.
  */
 
 const crypto = require("crypto");
@@ -16,8 +17,8 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.4.1";
-const MODULE_BUILD = "STEP_EVS_10B_TEXT_RUNTIME_TEST_HELPERS";
+const MODULE_VERSION = "0.4.2";
+const MODULE_BUILD = "STEP_EVS_11_TEXT_CHAT_OUTPUT_PREP";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -32,43 +33,95 @@ const STATUS = {
 
 const EVENT_TEXT_DEFAULTS = {
   "event.created": [
-    "Das Event {eventName} wurde vorbereitet. Die Heimleitung legt schon mal die Klemmbretter raus."
+    "📋 {eventName} wurde vorbereitet. Die Heimleitung hat das Klemmbrett gezückt.",
+    "📝 {eventName} liegt bereit. Die Rentnergang darf sich schon mal warmraten.",
+    "💜 {eventName} ist im System. Die CGN-Heimleitung sortiert noch die Stifte.",
+    "🏠 {eventName} wurde angelegt. Im Aufenthaltsraum wird schon getuschelt.",
+    "🎮 {eventName} ist vorbereitet. Forrests Event-Akte ist eröffnet."
   ],
   "event.not_ready": [
-    "{eventName} ist noch nicht startklar. Da fehlt noch etwas in der Vorbereitung."
+    "⚠️ {eventName} ist noch nicht startklar. Da fehlt noch ein Häkchen im Heimleitungsordner.",
+    "🧓 {eventName} braucht noch etwas Pflege. Die Rentner dürfen noch nicht losrennen.",
+    "📋 {eventName} ist noch unvollständig. Die CGN-Akte ist noch nicht abgestempelt.",
+    "⏳ {eventName} ist noch nicht bereit. Die Heimleitung sucht noch den letzten Zettel.",
+    "🔧 {eventName} muss noch kurz eingestellt werden. Noch kein Startsignal aus dem Altersheim."
   ],
   "event.started": [
-    "Das Event {eventName} läuft jetzt. Die Rentnergang darf raten und Punkte sammeln."
+    "🚨 {eventName} läuft jetzt. Die Rentnergang darf raten und Punkte sammeln!",
+    "🎮 {eventName} ist gestartet. CGN-Community, die Heimleitung schaut genau hin!",
+    "🏁 {eventName} geht los. Brillen putzen, Hörgeräte rein, Punkte sammeln!",
+    "💜 {eventName} ist live. Das Altersheim ist offiziell im Rätselmodus.",
+    "📢 {eventName} startet. Wer zuerst richtig liegt, bekommt den Heimleitungsstempel!"
   ],
   "event.finished": [
-    "Das Event {eventName} ist beendet. Die Heimleitung zählt die Punkte zusammen."
+    "🏆 {eventName} ist beendet. Die Heimleitung zählt jetzt in Ruhe die Punkte.",
+    "📋 {eventName} ist durch. Die Rentnergang darf kurz durchatmen.",
+    "💜 {eventName} ist vorbei. CGN zählt nach, wer den Rollator vorne hatte.",
+    "🎉 {eventName} ist abgeschlossen. Die Heimleitung klappt das Klemmbrett zu.",
+    "🧓 {eventName} ist beendet. Die Punkte gehen jetzt in die Altersheim-Abrechnung."
   ],
   "sound.round.started": [
-    "🔊 Soundrunde gestartet. Lauscher auf, Rentnergang!"
+    "🔊 Soundrunde gestartet. Lauscher auf, Rentnergang!",
+    "👂 Hörgeräte auf Maximum: Der nächste Sound läuft!",
+    "🔊 Die Heimleitung spielt etwas ab. Wer erkennt den Schnipsel?",
+    "🎧 CGN-Soundalarm! Jetzt gut hinhören und schnell tippen.",
+    "📻 Aus dem Aufenthaltsraum kommt ein Geräusch. Wer weiß, was es ist?"
   ],
   "sound.solved": [
-    "✅ {user} hat den Sound erkannt und bekommt {points} Punkt(e)!"
+    "✅ {user} hat den Sound erkannt und bekommt {points} Punkt(e)!",
+    "🎉 {user} hat richtig gelauscht. {points} Punkt(e) gehen aufs CGN-Konto!",
+    "👂 {user} hat die Heimleitungsprüfung bestanden: Sound erkannt, {points} Punkt(e)!",
+    "🏆 {user} war schneller als der Rentnerbus und bekommt {points} Punkt(e)!",
+    "💜 {user} hat den Schnipsel gelöst. Die Heimleitung notiert {points} Punkt(e)."
   ],
   "sound.unresolved": [
-    "⏱️ Niemand hat den Sound erkannt. Die Heimleitung legt ihn erstmal zurück."
+    "⏱️ Niemand hat den Sound erkannt. Die Heimleitung legt ihn erstmal zurück.",
+    "🤔 Der Sound bleibt ungelöst. Das Altersheim murmelt ratlos weiter.",
+    "📻 Keine richtige Antwort. Der Schnipsel wandert zurück in die CGN-Schublade.",
+    "🧓 Niemand war schnell genug. Die Heimleitung hebt den Sound für später auf.",
+    "🔇 Runde vorbei. Der Sound bleibt erstmal ein kleines Heimleitungsgeheimnis."
   ],
   "text.partial.general": [
-    "👀 {user} hat {wordCount} Wort/Wörter aus einem geheimen Satz gefunden."
+    "👀 {user} hat {wordCount} Wort/Wörter aus einem geheimen Satz erwischt.",
+    "🧓 {user} schnuppert am richtigen Satz: {wordCount} Wort/Wörter gefunden.",
+    "📋 Die Heimleitung notiert: {user} hat {wordCount} Wort/Wörter gefunden.",
+    "💜 {user} ist auf der richtigen Spur: {wordCount} Wort/Wörter passen.",
+    "🔎 {user} hat im CGN-Satzpuzzle {wordCount} Wort/Wörter entdeckt."
   ],
   "text.partial.with_sentence": [
-    "👀 {user} hat {wordCount} Wort/Wörter aus Satz {phraseNumber} gefunden."
+    "👀 {user} hat {wordCount} Wort/Wörter aus Satz {phraseNumber} gefunden.",
+    "📋 Satz {phraseNumber}: {user} hat {wordCount} Wort/Wörter auf dem Heimleitungszettel.",
+    "🧓 {user} wühlt in Satz {phraseNumber} und hat {wordCount} Wort/Wörter erwischt.",
+    "💜 CGN-Hinweis: {user} hat bei Satz {phraseNumber} schon {wordCount} Wort/Wörter gefunden.",
+    "🔎 Satz {phraseNumber} knistert: {user} liegt mit {wordCount} Wort/Wörter(n) richtig."
   ],
   "text.word_points.added": [
-    "⭐ {user} bekommt {points} Punkt(e) für neue Worttreffer."
+    "⭐ {user} bekommt {points} Punkt(e) für neue Worttreffer.",
+    "📋 Die Heimleitung schreibt {user} {points} Wortpunkt(e) gut.",
+    "🧓 {user} hat Wortpunkte abgestaubt: +{points} Punkt(e).",
+    "💜 CGN-Konto aktualisiert: {user} bekommt +{points} Punkt(e) für neue Wörter.",
+    "🏠 Wortfund im Altersheim! {user} sammelt +{points} Punkt(e)."
   ],
   "text.phrase.solved": [
-    "🎉 {user} hat Satz {phraseNumber} gelöst und bekommt {points} Punkt(e)!"
+    "🎉 {user} hat Satz {phraseNumber} gelöst und bekommt {points} Punkt(e)!",
+    "🏆 Satz {phraseNumber} ist geknackt! {user} bekommt {points} Punkt(e) von der Heimleitung.",
+    "💜 {user} hat den geheimen Satz {phraseNumber} gefunden. +{points} Punkt(e) fürs CGN-Konto!",
+    "🧓 Rollator-Speed! {user} löst Satz {phraseNumber} und kassiert {points} Punkt(e).",
+    "📋 Die Heimleitung bestätigt: {user} hat Satz {phraseNumber} gelöst. {points} Punkt(e)!"
   ],
   "points.added": [
-    "{user} bekommt {points} Punkt(e). Die Heimleitung hat es notiert."
+    "{user} bekommt {points} Punkt(e). Die Heimleitung hat es notiert.",
+    "📋 +{points} Punkt(e) für {user}. Der CGN-Stempel sitzt.",
+    "🧓 {user} sammelt {points} Punkt(e). Das Altersheim nickt anerkennend.",
+    "💜 {points} Punkt(e) gehen an {user}. Die Heimleitung führt Buch.",
+    "🏠 {user} bekommt {points} Punkt(e) auf das Event-Konto."
   ],
   "ranking.updated": [
-    "Die Rangliste wurde aktualisiert."
+    "Die Rangliste wurde aktualisiert.",
+    "📊 Die Heimleitung hat die Rangliste neu sortiert.",
+    "🏆 Das CGN-Ranking wurde aktualisiert.",
+    "🧓 Die Rentnerwertung ist auf dem neuesten Stand.",
+    "📋 Punkte gezählt, Ranking angepasst."
   ]
 };
 
@@ -1191,6 +1244,25 @@ function renderEventText(key, context = {}) {
   }
 }
 
+function buildChatOutput(textKey, context = {}, options = {}) {
+  const text = renderEventText(textKey, context);
+  return {
+    prepared: Boolean(text),
+    directSend: false,
+    textKey,
+    text,
+    target: "twitch_chat",
+    via: "bus_payload",
+    style: "altersheim_cgn_rentner_heimleitung",
+    context: safeJson(context, {}),
+    meta: {
+      source: MODULE_NAME,
+      reason: cleanString(options.reason || "runtime_text_output"),
+      preparedAt: nowIso()
+    }
+  };
+}
+
 function extractChatPayload(envelope = {}) {
   const payload = envelope && envelope.payload && typeof envelope.payload === "object" ? envelope.payload : {};
   const twitch = payload.twitch && typeof payload.twitch === "object" ? payload.twitch : payload;
@@ -1240,12 +1312,13 @@ function insertPhraseSolve(event, phrase, phraseIndex, chat, points) {
     createdBy: MODULE_NAME,
     metadata: { phraseUid, phraseIndex, phraseNumber: phraseIndex + 1 }
   }) : { ok: true, ranking: getRanking(event.eventUid).rows };
-  const chatText = renderEventText("text.phrase.solved", {
+  const chatOutput = buildChatOutput("text.phrase.solved", {
     user: chat.userDisplayName,
     displayName: chat.userDisplayName,
     phraseNumber: phraseIndex + 1,
     points
-  });
+  }, { reason: "text_phrase_solved" });
+  const chatText = chatOutput.text;
   emitBus("stream_events.text", "phrase_solved", {
     eventUid: event.eventUid,
     phraseUid,
@@ -1256,6 +1329,7 @@ function insertPhraseSolve(event, phrase, phraseIndex, chat, points) {
     points,
     message: chat.message,
     chatText,
+    chatOutput,
     ranking: pointsResult.ranking || []
   });
   publishStatus("text.phrase_solved", { lastEventUid: event.eventUid, phraseNumber: phraseIndex + 1 });
@@ -1361,12 +1435,15 @@ function processTextChatMessage(chat = {}, options = {}) {
     for (const item of byPhrase.values()) {
       const totalKnown = getExistingWordHits(event.eventUid, item.phraseUid, chat.userLogin).size;
       const textKey = runtimeConfig.partialHintVisibility === "with_sentence" ? "text.partial.with_sentence" : "text.partial.general";
-      const chatText = runtimeConfig.partialHintsEnabled ? renderEventText(textKey, {
+      const chatContext = {
         user: chat.userDisplayName,
         displayName: chat.userDisplayName,
         wordCount: runtimeConfig.showPartialWordCount ? totalKnown : item.hits.length,
-        phraseNumber: item.phraseNumber
-      }) : "";
+        phraseNumber: item.phraseNumber,
+        points: item.points
+      };
+      const chatOutput = runtimeConfig.partialHintsEnabled ? buildChatOutput(textKey, chatContext, { reason: "text_word_found" }) : null;
+      const wordPointsChatOutput = item.points > 0 ? buildChatOutput("text.word_points.added", chatContext, { reason: "text_word_points_added" }) : null;
       emitBus("stream_events.text", "word_found", {
         eventUid: event.eventUid,
         phraseUid: item.phraseUid,
@@ -1377,7 +1454,10 @@ function processTextChatMessage(chat = {}, options = {}) {
         newWordCount: item.hits.length,
         totalKnownWords: totalKnown,
         points: item.points,
-        chatText
+        chatText: chatOutput ? chatOutput.text : "",
+        chatOutput,
+        wordPointsChatText: wordPointsChatOutput ? wordPointsChatOutput.text : "",
+        wordPointsChatOutput
       });
     }
     publishStatus("text.word_found", { lastEventUid: event.eventUid, wordHitCount: wordHits.length });

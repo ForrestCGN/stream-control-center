@@ -41,3 +41,11 @@
 - Neue Route: `GET /api/stream-events/text-runtime/report`
 - Neue Route: `POST /api/stream-events/text-runtime/create-test-event?confirm=1`
 - Keine direkte Chat-Ausgabe, kein Sound-Playback, kein Overlay.
+
+
+## EVS-11 Dateien
+
+- `backend/modules/stream_events.js`
+- `docs/modules/stream_events.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_EVS_11_TEXT_CHAT_OUTPUT_PREP.md`
+- `project-state/*`

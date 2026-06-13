@@ -767,3 +767,24 @@ EVS-10b ergänzt die EVS-10 Text-Chat-Runtime um sichere Testhelfer, damit die R
 ### Sicherheit
 
 `create-test-event` ist absichtlich durch `confirm=1` geschützt. Der Endpunkt legt echte Event-Daten an und kann bei `start=true` ein aktives Testevent starten. Der Endpunkt sendet keine Chatnachricht an Twitch.
+
+
+## EVS-11 – Text Chat Output Prep
+
+EVS-11 erweitert die Text-Spiel-Runtime um vorbereitete Chat-Ausgabe-Payloads. Es wird weiterhin nichts direkt in den Twitch-Chat gesendet. Die Runtime erzeugt nur `chatOutput`-Objekte im Bus-Payload, die spaeter von einem separaten Chat-/Bot-Ausgabemodul verarbeitet werden koennen.
+
+Die Textvarianten werden ueber das bestehende `helper_texts` / `module_text_variants` System verwaltet. Pro relevanter Meldung wurden jeweils 5 Varianten im Altersheim-/CGN-/Rentner-/Heimleitungs-Stil als Seed vorbereitet.
+
+Wichtige Textkeys:
+
+- `text.partial.general`
+- `text.partial.with_sentence`
+- `text.word_points.added`
+- `text.phrase.solved`
+- `sound.round.started`
+- `sound.solved`
+- `sound.unresolved`
+- `event.created` / `event.started` / `event.finished`
+- `points.added` / `ranking.updated`
+
+Wichtig: bestehende DB-Varianten werden nicht ueberschrieben. Neue Seeds werden nur ergaenzt, wenn diese Variante noch nicht existiert.

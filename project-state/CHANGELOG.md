@@ -46,3 +46,11 @@ Nicht geändert:
 - Neue Route: `GET /api/stream-events/text-runtime/report`
 - Neue Route: `POST /api/stream-events/text-runtime/create-test-event?confirm=1`
 - Keine direkte Chat-Ausgabe, kein Sound-Playback, kein Overlay.
+
+
+## EVS-11 – Text Chat Output Prep
+
+- `stream_events` auf 0.4.2 / `STEP_EVS_11_TEXT_CHAT_OUTPUT_PREP` gesetzt.
+- Textvarianten-Seeds auf 5 Varianten im CGN-/Altersheim-Stil erweitert.
+- `chatOutput` und `wordPointsChatOutput` fuer Runtime-Bus-Payloads vorbereitet.
+- Keine direkte Chat-Ausgabe eingefuehrt.

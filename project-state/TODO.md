@@ -62,3 +62,11 @@
 - Neue Route: `GET /api/stream-events/text-runtime/report`
 - Neue Route: `POST /api/stream-events/text-runtime/create-test-event?confirm=1`
 - Keine direkte Chat-Ausgabe, kein Sound-Playback, kein Overlay.
+
+
+## EVS-11 TODO / Folgepunkte
+
+- Chat-Ausgabemodul an `chatOutput`-Payloads anbinden.
+- Dashboard-Textvarianten weiter pruefen.
+- Spaeter Rechte/Rollen fuer Text-Config beruecksichtigen.
+- Statistikansicht fuer Worttreffer/Satzloesungen vorbereiten.
