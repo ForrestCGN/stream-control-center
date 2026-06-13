@@ -1,76 +1,53 @@
-# TODO
+# TODO – Stream Events
 
-Stand: EVS-5d / Text Multi-Phrase + Word Points Documentation  
-Datum: 2026-06-13
+Stand: EVS-7 / Text-Config Dashboard Prep
 
-## Event-System – erledigt / dokumentiert
+## Erledigt bis EVS-7
 
-- [x] Backend-Basis `stream_events` erstellt.
-- [x] Dashboard-Skeleton erstellt.
-- [x] MediaPicker für Audio-Schnipsel vorbereitet.
-- [x] MediaPicker für optionales Auflösungs-Video vorbereitet.
-- [x] Sound-Konfiguration optisch in Audio/Video-Karten aufgeteilt.
-- [x] Text-Spiel-Regel festgelegt: erster kompletter Löser eines Satzes gewinnt.
-- [x] Teiltreffer-Hinweise als Konfiguration vorbereitet.
-- [x] Mehrere geheime Sätze als fachliche Regel dokumentiert.
-- [x] Teiltreffer-Meldung allgemein oder mit Satznummer dokumentiert.
-- [x] Optionale Anzeige der gefundenen Wortanzahl dokumentiert.
-- [x] Optionale Wortpunkte dokumentiert.
-- [x] Config-Dashboard und Text-Config/Multi-Texte als spätere Pflicht festgehalten.
+- Backend Foundation.
+- Eventliste, Event erstellen/bearbeiten/starten/beenden/abbrechen.
+- Sound/Text-Spiel auswählbar.
+- MediaPicker für Audio-Schnipsel und optionales Video.
+- Multi-Satz-Konfiguration für Text-Spiel.
+- Teiltreffer-Modus konfigurierbar.
+- Wortpunkte optional konfigurierbar.
+- Text-Config/Multi-Texte im Dashboard vorbereitet.
 
-## Text-Spiel Backend-/Runtime-TODO
+## Offen: Config
 
-- [ ] Text-Spiel als Satz-Pool statt Einzelsatz umsetzen.
-- [ ] Anzahl geheimer Sätze konfigurierbar machen.
-- [ ] Pro Satz eigene Antwortvarianten ermöglichen.
-- [ ] Pro Satz eigene Lösungspunkte ermöglichen.
-- [ ] Satzstatus speichern: offen / gelöst / übersprungen / entfernt.
-- [ ] Nach kompletter Lösung nur diesen Satz aus der Rotation entfernen.
-- [ ] Andere Sätze weiter offen lassen.
-- [ ] Teiltreffer pro Event/Satz/User/Wort speichern.
-- [ ] Ein Wort pro User und Satz nur einmal melden/zählen.
-- [ ] Teiltreffer-Hinweis-Modi umsetzen: aus / allgemein / mit Satznummer.
-- [ ] Optionale Anzeige der gefundenen Wortanzahl umsetzen.
-- [ ] Optionales Wortpunkte-System umsetzen.
-- [ ] Punkte pro neuem Wort konfigurierbar machen.
-- [ ] Optionales Wortpunkte-Limit pro User und Satz umsetzen.
-- [ ] Wortpunkte und Lösungspunkte sauber in die gemeinsame Eventwertung schreiben.
+- Allgemeine Event-Config im Dashboard.
+- Defaultwerte für Sound-/Text-Spiel.
+- Default-Punkte für komplette Lösung.
+- Default-Punkte pro Wort.
+- Default-Cooldowns.
+- Standard-Hinweismodus.
+- Anzeige-Regeln fürs Overlay.
 
-## Sound-Spiel TODO
+## Offen: Text-Runtime
 
-- [ ] Mehrere Sound-Schnipsel pro Event planen/umsetzen.
-- [ ] Antwortvarianten pro Sound-Schnipsel ermöglichen.
-- [ ] Punkte pro Sound-Schnipsel ermöglichen.
-- [ ] Status/Rotation pro Sound-Schnipsel speichern.
-- [ ] Regel für nicht erkannte Schnipsel konfigurieren: später erneut / entfernen / manuell.
-- [ ] Sound-Playback über vorhandenes Sound-/Media-System anbinden.
+- Twitch-Chat über vorhandene Events/Bus abonnieren.
+- aktive Events prüfen.
+- aktive Text-Sätze/Rotation verwalten.
+- komplette Lösungen erkennen.
+- erlaubte Varianten erkennen.
+- Teiltreffer aus Satzwörtern berechnen.
+- pro Event/Satz/User/Wort nur einmal zählen.
+- optionale Wortpunkte vergeben.
+- Textvarianten aus `helper_texts` für Chatmeldungen nutzen.
 
-## Dashboard-/Config TODO
+## Offen: Sound-Runtime
 
-- [ ] Config-Dashboard für Event-System planen/einbauen.
-- [ ] Text-Config / Multi-Texte im Dashboard planen/einbauen.
-- [ ] Satzverwaltung im Dashboard planen: hinzufügen/bearbeiten/löschen/aktivieren.
-- [ ] Sound-Schnipsel-Verwaltung im Dashboard planen.
-- [ ] Teiltreffer-Regeln streamer-/modfreundlich darstellen.
-- [ ] Wortpunkte-Regeln streamer-/modfreundlich darstellen.
-- [ ] Chatmeldungen über `helper_texts` / `module_text_variants` pflegen.
-- [ ] Keine parallele Textstruktur bauen.
+- Sound-Rotation verwalten.
+- Sound über vorhandenes Sound-/Media-System abspielen.
+- Antwortzeit steuern.
+- richtige Antworten erkennen.
+- gelöste Sounds aus Rotation entfernen.
+- ungelöste Sounds nach Config behandeln.
 
-## Spätere Runtime TODO
+## Offen: Anzeige/Statistik
 
-- [ ] Chat-Auswertung über bestehendes `twitch.chat.message` / Communication Bus.
-- [ ] Event-Overlay.
-- [ ] Ranking-/Top3-Anzeige.
-- [ ] Sound-/Text-Statistiken.
-- [ ] Audit-/Diagnose-Status für Event-System.
-
-
-## EVS-6 TODO
-
-- [ ] Dashboard-Test Multi-Sätze.
-- [ ] Backend-Test Validation mit mehreren Phrases.
-- [ ] Runtime: pro Event/Satz/User/Wort zählen.
-- [ ] Wortpunkte in Points-Ledger eintragen.
-- [ ] Gelöste Sätze aus aktiver Rotation entfernen.
-- [ ] Config-Dashboard bauen.
-- [ ] Text-Config/Multi-Texte dashboardfähig einbauen.
+- Event-Overlay.
+- Live-Ranking.
+- Top 3.
+- Statistik für Sound und Text.
+- Dashboard-Statistikansicht.

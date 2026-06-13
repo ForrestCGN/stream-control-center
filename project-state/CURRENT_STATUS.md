@@ -1,66 +1,36 @@
 # CURRENT STATUS
 
-Stand: EVS-5d / Text Multi-Phrase + Word Points Documentation  
+Stand: EVS-7 / Text-Config Dashboard Prep  
 Datum: 2026-06-13  
 Projekt: ForrestCGN / stream-control-center
 
-## Zweck dieses Stands
+## Aktueller Stand
 
-EVS-5d ist ein reiner Doku-/TODO-Step. Er speichert die neu festgelegten Text-Spiel-Regeln für das Event-System.
+EVS-7 baut auf EVS-6 auf.
 
-## Aktueller bestätigter Stand
+Vorhanden:
 
-- EVS-2 Backend Foundation wurde erfolgreich getestet.
-- EVS-3 Dashboard Skeleton wurde übernommen.
-- EVS-4 MediaPicker Prep wurde im Dashboard sichtbar getestet.
-- EVS-4b Sound-/Video-Layout wurde sichtbar getestet.
-- EVS-5b Text Game Rule Rebalance wurde als ZIP geliefert.
-- EVS-5c hat Backend-TODOs für Text-Spiel-Regeln dokumentiert.
-- EVS-5d ergänzt mehrere Sätze, Teiltreffer-Modi und optionale Wortpunkte.
+- Backend Foundation für Stream Events.
+- Dashboard-Skeleton für Events.
+- MediaPicker-Integration für Sound-Schnipsel und optionale Videos.
+- Multi-Satz-Textspiel-Konfiguration.
+- Teiltreffer-/Wortpunkte-Konfiguration als Event-Config.
+- Text-Config-/Multi-Texte-Panel im Dashboard vorbereitet.
 
-## Wichtige Festlegung Text-Spiel
+## EVS-7 neu
 
-```text
-- Ein Text-Spiel kann mehrere geheime Sätze enthalten.
-- Die Anzahl der Sätze muss konfigurierbar sein.
-- Jeder Satz ist einzeln lösbar.
-- Nach Lösung wird nur dieser Satz aus der Rotation entfernt.
-- Andere Sätze bleiben offen.
-- Teiltreffer können allgemein oder mit Satznummer gemeldet werden.
-- Optional kann die Anzahl gefundener Wörter angezeigt werden.
-- Optional können gefundene Wörter Punkte geben.
-- Ein Wort zählt pro User und Satz nur einmal.
-- Optional kann es ein Wortpunkte-Limit pro User und Satz geben.
-```
+- `stream_events` hat Textkeys für Sound-/Text-Spiel vorbereitet.
+- `/api/stream-events/texts` kann Textvarianten lesen und per POST speichern/löschen.
+- Dashboard zeigt Textkategorien, Textkeys und Varianten an.
+- Varianten können bearbeitet, aktiviert/deaktiviert, gewichtet, hinzugefügt und gelöscht werden.
 
-## Noch nicht umgesetzt
+## Weiterhin offen
 
-```text
-Backend-Runtime für mehrere Sätze
-Teiltreffer-Tracking in DB/Runtime
-Wortpunkte-System
-Chat-Auswertung über twitch.chat.message
-Config-Dashboard
-Text-Config / Multi-Texte im Dashboard
-Overlay
-Playback
-Statistiken
-```
-
-## Keine Änderung in EVS-5d
-
-```text
-Keine Codeänderung
-Keine DB-Änderung
-Keine Runtime-Änderung
-Keine Dashboard-JS/CSS-Änderung
-```
-
-## Nächster sinnvoller Schritt
-
-EVS-6 sollte zuerst das Item-/Config-Modell für mehrere Sound-Schnipsel und mehrere Text-Sätze sauber planen bzw. vorbereiten, bevor Runtime/Chat-Auswertung gebaut wird.
-
-
-## EVS-6 Status
-
-EVS-6 vorbereitet: Dashboard unterstützt mehrere Text-Sätze, Teiltreffer-Anzeige und optionale Wortpunkte. Backend-Validierung kennt die neuen Text-Config-Felder. Runtime/Chat/Overlay bleiben offen.
+- Twitch-Chat-Auswertung.
+- Text-Spiel-Runtime.
+- Worttreffer-Tracking pro Event/Satz/User/Wort.
+- Punktevergabe für Worttreffer.
+- Sound-Rundensteuerung.
+- Overlay.
+- Statistikansicht.
+- Allgemeines Config-Dashboard für Event-Regeln.

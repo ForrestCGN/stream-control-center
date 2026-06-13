@@ -1,64 +1,47 @@
 # NEXT STEPS
 
-Stand: EVS-5d / Text Multi-Phrase + Word Points Documentation  
+Stand: EVS-7 / Text-Config Dashboard Prep  
 Datum: 2026-06-13
 
-## Sofort
-
-EVS-5d ist ein Doku-/TODO-Step. Es gibt keinen Syntaxcheck, weil keine Code-Dateien verändert wurden.
-
-Optionaler StepDone:
+## Sofort nach Entpacken
 
 ```powershell
-.\stepdone.cmd "EVS-5d Text Multi Phrase Word Points Docs"
+node -c .\backend\modules\stream_events.js
+node -c .\htdocs\dashboard\modules\stream_events.js
+.\stepdone.cmd "EVS-7 Text Config Dashboard Prep"
 ```
 
-## Danach
+## Danach Dashboard prüfen
 
-EVS-6 sollte nicht direkt als komplette Runtime gebaut werden.
+- Event-System im Dashboard öffnen.
+- Text-Config / Multi-Texte Bereich prüfen.
+- Bestehende Textvariante bearbeiten und speichern.
+- Neue Variante hinzufügen.
+- Variante aktiv/inaktiv setzen.
+- Dashboard neu laden und prüfen, ob Varianten erhalten bleiben.
 
-Empfohlener nächster Schritt:
+## Nächster sinnvoller Entwicklungsstep
+
+EVS-8 sollte noch nicht direkt Vollruntime werden, sondern zuerst entweder:
+
+1. allgemeine Event-Config im Dashboard vorbereiten, oder
+2. Text-Spiel-Runtime planen/anfangen.
+
+Empfehlung:
 
 ```text
-EVS-6 – Event Item Config Model Planning / Prep
+EVS-8 – Event Config Dashboard Prep
 ```
 
 Ziel:
 
-```text
-- mehrere Sound-Schnipsel pro Event sauber planen
-- mehrere Text-Sätze pro Event sauber planen
-- Satz-Pool statt Einzeltext abbilden
-- Sound-/Text-Items mit Status/Rotation vorbereiten
-- Config-Dashboard-Felder vorbereiten
-- Text-Config / Multi-Texte berücksichtigen
-- vorhandene helper_texts / module_text_variants nutzen
-```
+- globale Event-Regeln dashboardfähig machen
+- Default-Punkte, Cooldowns, Anzeige-/Hinweis-Modi vorbereiten
+- Text-Config und Event-Config klar trennen
+- später für Mods/Streamer einfach bedienbar halten
 
-## Spätere Schritte
+Danach:
 
 ```text
-EVS-7 Backend/DB-Migration für Event-Items
-EVS-8 Dashboard-Item-Verwaltung
-EVS-9 Text-/Chat-Auswertung über twitch.chat.message
-EVS-10 Sound-Rundensteuerung über vorhandenes Sound-/Media-System
-EVS-11 Overlay/Ranking/Statistik
+EVS-9 – Text Runtime / Chat Detection Prep
 ```
-
-## Nicht vergessen
-
-```text
-- Keine parallele Textstruktur bauen.
-- Keine parallele Media-/Sound-Struktur bauen.
-- Config und Textvarianten müssen dashboardfähig werden.
-- User-/Mod-Bedienung muss einfach bleiben.
-- Vor jeder Codeänderung echte Dateien/GitHub/dev prüfen.
-```
-
-
-## Nach EVS-6
-
-1. EVS-6 per StepDone sichern.
-2. Dashboard prüfen: mehrere Sätze hinzufügen/entfernen, speichern, erneut öffnen.
-3. Danach Backend-Runtime für Chat-Erkennung und Satzrotation planen.
-4. Später Config-Dashboard und Text-Config/Multi-Texte über vorhandene Text-Helper einbauen.

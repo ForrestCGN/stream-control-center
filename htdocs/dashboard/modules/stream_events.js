@@ -4,7 +4,8 @@ window.StreamEventsModule = (function(){
   const api = {
     status: '/api/stream-events/status',
     list: '/api/stream-events/events?limit=250',
-    events: '/api/stream-events/events'
+    events: '/api/stream-events/events',
+    texts: '/api/stream-events/texts'
   };
 
   let root = null;
@@ -18,6 +19,8 @@ window.StreamEventsModule = (function(){
     selectedUid: '',
     selected: null,
     ranking: null,
+    texts: null,
+    textSaving: false,
     modal: null
   };
 
@@ -124,9 +127,9 @@ window.StreamEventsModule = (function(){
       <div class="evs-page">
         <div class="evs-header glass">
           <div>
-            <div class="evs-kicker">EVS-6 · Text-Multi-Sätze</div>
+            <div class="evs-kicker">EVS-7 · Text-Config Vorbereitung</div>
             <h2>Event-System</h2>
-            <p>Events vorbereiten, Sound/Text auswählen und Medien sauber über das vorhandene Media-System verknüpfen. Multi-Satz-Textspiel und Wortpunkte werden vorbereitet. Chat-Auswertung und Playback kommen später.</p>
+            <p>Events vorbereiten, Sound/Text konfigurieren und erste Chat-/Systemtexte als Multi-Texte bearbeiten. Chat-Auswertung und Playback kommen später.</p>
           </div>
           <div class="evs-header-actions">
             <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="reload">Aktualisieren</button>
@@ -156,6 +159,8 @@ window.StreamEventsModule = (function(){
             ${ev ? renderEventDetail(ev) : '<div class="evs-empty">Wähle links ein Event aus oder erstelle ein neues.</div>'}
           </section>
         </div>
+
+        ${renderTextConfigPanel()}
 
         ${state.modal ? renderModal() : ''}
       </div>
@@ -248,6 +253,97 @@ window.StreamEventsModule = (function(){
         <div class="evs-two-cols evs-text-answers-points">
           <label>Erlaubte Antworten / Varianten <span class="evs-inline-optional">Optional</span><input data-evs-phrase-answers value="${esc(answerValue)}" placeholder="optional, z. B. forrest engel party, forrest und engel machen party"></label>
           <label>Punkte für komplette Lösung<input data-evs-phrase-points type="number" min="0" value="${esc(phrase.pointsFirst || phrase.points || 40)}"></label>
+        </div>
+      </section>
+    `;
+  }
+
+
+  function textCategories(){
+    const list = Array.isArray(state.texts?.categories) ? state.texts.categories : [];
+    return list.length ? list : [{ id: 'general', label: 'Texte', key: 'general' }];
+  }
+
+  function textKeysForCategory(categoryId){
+    const keys = Array.isArray(state.texts?.keys) ? state.texts.keys : [];
+    return keys.filter(item => String(item.category || 'general') === String(categoryId || 'general'));
+  }
+
+  function renderTextVariant(variant, keyItem){
+    const id = variant?.id || '';
+    const value = variant?.value || variant?.text || '';
+    const enabled = variant?.enabled !== false;
+    const weight = variant?.weight || 1;
+    return `
+      <div class="evs-text-variant" data-evs-text-variant data-variant-id="${esc(id)}" data-text-key="${esc(keyItem.key)}" data-category="${esc(keyItem.category || 'general')}">
+        <textarea rows="2" data-evs-text-value placeholder="Textvariante">${esc(value)}</textarea>
+        <div class="evs-text-variant-actions">
+          <label class="evs-check evs-check-compact"><input type="checkbox" data-evs-text-enabled ${enabled ? 'checked' : ''}> Aktiv</label>
+          <label class="evs-mini-label">Gewichtung<input type="number" min="1" data-evs-text-weight value="${esc(weight)}"></label>
+          <button type="button" class="evs-btn evs-btn-small" data-evs-action="saveTextVariant">Speichern</button>
+          <button type="button" class="evs-btn evs-btn-small evs-btn-danger" data-evs-action="deleteTextVariant" ${id ? '' : 'disabled'}>Löschen</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderTextKeyEditor(keyItem){
+    const variants = Array.isArray(keyItem.variants) && keyItem.variants.length ? keyItem.variants : [];
+    const category = keyItem.category || 'general';
+    return `
+      <details class="evs-text-key" data-evs-text-key="${esc(keyItem.key)}" open>
+        <summary>
+          <span><strong>${esc(keyItem.key)}</strong><small>${esc(keyItem.activeCount || 0)} aktiv / ${esc(keyItem.totalCount || variants.length)} Varianten</small></span>
+        </summary>
+        <div class="evs-text-key-body">
+          ${variants.map(v => renderTextVariant(v, keyItem)).join('') || '<div class="evs-empty">Noch keine Variante vorhanden.</div>'}
+          <div class="evs-text-variant evs-text-variant-new" data-evs-text-new data-text-key="${esc(keyItem.key)}" data-category="${esc(category)}">
+            <textarea rows="2" data-evs-text-value placeholder="Neue Variante hinzufügen"></textarea>
+            <div class="evs-text-variant-actions">
+              <label class="evs-check evs-check-compact"><input type="checkbox" data-evs-text-enabled checked> Aktiv</label>
+              <label class="evs-mini-label">Gewichtung<input type="number" min="1" data-evs-text-weight value="1"></label>
+              <button type="button" class="evs-btn evs-btn-small evs-btn-secondary" data-evs-action="saveTextVariant">+ Variante speichern</button>
+            </div>
+          </div>
+        </div>
+      </details>
+    `;
+  }
+
+  function renderTextConfigPanel(){
+    const categories = textCategories();
+    if (!state.texts) {
+      return `
+        <section class="evs-card glass evs-text-config-panel">
+          <div class="evs-card-head"><h3>Text-Config / Multi-Texte</h3><button type="button" class="evs-btn evs-btn-small evs-btn-secondary" data-evs-action="reloadTexts">Texte laden</button></div>
+          <div class="evs-empty">Texte werden beim Aktualisieren geladen.</div>
+        </section>
+      `;
+    }
+    return `
+      <section class="evs-card glass evs-text-config-panel">
+        <div class="evs-card-head">
+          <div>
+            <h3>Text-Config / Multi-Texte</h3>
+            <span>Chat- und Systemtexte für Eventmeldungen. Varianten können später zufällig genutzt werden.</span>
+          </div>
+          <button type="button" class="evs-btn evs-btn-small evs-btn-secondary" data-evs-action="reloadTexts">Texte neu laden</button>
+        </div>
+        <div class="evs-text-config-help">
+          <strong>Vorbereitung:</strong> Diese Texte sind dashboardfähig und werden später von der Chat-Runtime genutzt. Platzhalter wie <code>{user}</code>, <code>{points}</code>, <code>{eventName}</code>, <code>{phraseNumber}</code> und <code>{wordCount}</code> bleiben im Text stehen.
+        </div>
+        <div class="evs-text-category-list">
+          ${categories.map(cat => {
+            const keys = textKeysForCategory(cat.id || cat.key);
+            return `
+              <details class="evs-text-category" open>
+                <summary><strong>${esc(cat.label || cat.id || cat.key)}</strong><small>${esc(keys.length)} Text-Key(s)</small></summary>
+                <div class="evs-text-category-body">
+                  ${keys.length ? keys.map(renderTextKeyEditor).join('') : '<div class="evs-empty">Keine Texte in dieser Kategorie.</div>'}
+                </div>
+              </details>
+            `;
+          }).join('')}
         </div>
       </section>
     `;
@@ -438,12 +534,14 @@ window.StreamEventsModule = (function(){
     state.loading = true;
     state.error = '';
     try {
-      const [status, list] = await Promise.all([
+      const [status, list, texts] = await Promise.all([
         window.CGN.api(api.status),
-        window.CGN.api(api.list)
+        window.CGN.api(api.list),
+        window.CGN.api(api.texts)
       ]);
       state.status = status;
       state.events = rows(list);
+      state.texts = texts;
       if (!state.selectedUid && state.events[0]) state.selectedUid = state.events[0].eventUid;
       const ev = selectedEvent();
       if (ev) await loadRanking(ev.eventUid, false);
@@ -493,6 +591,68 @@ window.StreamEventsModule = (function(){
     }
   }
 
+
+  async function loadTexts(rerender = true){
+    try {
+      state.texts = await window.CGN.api(api.texts);
+      if (rerender) render();
+    } catch (err) {
+      state.error = err.message || String(err);
+      if (rerender) render();
+    }
+  }
+
+  function readTextVariantPayload(row){
+    if (!row) return null;
+    const id = Number(row.dataset.variantId || 0) || 0;
+    const key = row.dataset.textKey || '';
+    const category = row.dataset.category || 'general';
+    const value = row.querySelector('[data-evs-text-value]')?.value || '';
+    const enabled = row.querySelector('[data-evs-text-enabled]')?.checked !== false;
+    const weight = Number(row.querySelector('[data-evs-text-weight]')?.value || 1);
+    if (!key) return null;
+    return { action: 'saveVariant', variant: { id, key, category, value, enabled, weight } };
+  }
+
+  async function saveTextVariant(row){
+    const payload = readTextVariantPayload(row);
+    if (!payload) return;
+    if (!String(payload.variant.value || '').trim()) {
+      state.error = 'Textvariante darf nicht leer sein.';
+      render();
+      return;
+    }
+    state.textSaving = true;
+    state.error = '';
+    try {
+      const result = await window.CGN.api(api.texts, { method: 'POST', body: JSON.stringify(payload) });
+      state.texts = result.texts || result;
+      state.message = 'Textvariante gespeichert.';
+      render();
+    } catch (err) {
+      state.error = err.message || String(err);
+      render();
+    } finally {
+      state.textSaving = false;
+    }
+  }
+
+  async function deleteTextVariant(row){
+    if (!row) return;
+    const id = Number(row.dataset.variantId || 0) || 0;
+    if (!id) return;
+    if (!confirm('Textvariante wirklich löschen?')) return;
+    try {
+      const result = await window.CGN.api(api.texts, { method: 'POST', body: JSON.stringify({ action: 'deleteVariant', id }) });
+      state.texts = result.texts || result;
+      state.message = 'Textvariante gelöscht.';
+      render();
+    } catch (err) {
+      state.error = err.message || String(err);
+      render();
+    }
+  }
+
   async function eventAction(action, uid){
     if (!uid) return;
     if (action === 'start' && !confirm('Event wirklich starten? Es darf nur ein Event gleichzeitig laufen.')) return;
@@ -522,6 +682,7 @@ window.StreamEventsModule = (function(){
       const action = btn.dataset.evsAction;
       const uid = btn.dataset.uid || state.selectedUid;
       if (action === 'reload') return loadAll(true);
+      if (action === 'reloadTexts') return loadTexts(true);
       if (action === 'new') { state.modal = { event: { name: '', description: '', soundEnabled: true, textEnabled: false, soundConfig: {}, textConfig: {} } }; render(); return; }
       if (action === 'edit') { const event = await loadEvent(uid); state.modal = { event }; render(); return; }
       if (action === 'closeModal') { state.modal = null; render(); return; }
@@ -545,6 +706,8 @@ window.StreamEventsModule = (function(){
         render();
         return;
       }
+      if (action === 'saveTextVariant') return saveTextVariant(btn.closest('[data-evs-text-variant], [data-evs-text-new]'));
+      if (action === 'deleteTextVariant') return deleteTextVariant(btn.closest('[data-evs-text-variant]'));
       if (action === 'saveEvent') return saveEvent();
       if (action === 'validate') return eventAction('validate', uid);
       if (action === 'start') return eventAction('start', uid);

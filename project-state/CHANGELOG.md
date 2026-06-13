@@ -1,86 +1,26 @@
 # CHANGELOG
 
-## EVS-5d / Text Multi-Phrase + Word Points Documentation – 2026-06-13
+## EVS-7 – Text Config Dashboard Prep
 
-- Mehrere geheime Sätze pro Text-Spiel als fachliche Regel dokumentiert.
-- Festgelegt: Anzahl der Sätze muss konfigurierbar sein.
-- Festgelegt: jeder Satz ist einzeln lösbar und wird nach Lösung separat aus der Rotation entfernt.
-- Festgelegt: andere Sätze bleiben nach Lösung eines Satzes offen.
-- Teiltreffer-Meldungen als konfigurierbar dokumentiert: aus / allgemein / mit Satznummer.
-- Optionale Anzeige der gefundenen Wortanzahl dokumentiert.
-- Optionale Wortpunkte dokumentiert.
-- Festgelegt: jedes Wort zählt pro Event/Satz/User nur einmal.
-- Optionales Wortpunkte-Limit pro User und Satz dokumentiert.
-- Config-Dashboard und Text-Config/Multi-Texte als spätere Pflicht ergänzt.
-- Keine Codeänderung.
-- Keine Datenbankänderung.
-- Keine Runtime-Änderung.
+Datum: 2026-06-13
 
-## EVS-5c / Text Game Backend TODO Documentation – 2026-06-13
+### Added
 
-- Text-Spiel-Regel aus EVS-5b als verbindliches Backend-/Runtime-TODO dokumentiert.
-- Festgelegt: erster kompletter Löser gewinnt, Satz danach aus Rotation entfernen.
-- Festgelegt: Teiltreffer-Hinweise optional, Wörter aus Geheimsatz berechnen.
-- Festgelegt: pro Event/Satz/User/Wort nur einmal melden/zählen.
-- Festgelegt: Teiltreffer geben keine Punkte.
-- TODOs für spätere Backend-, Config- und Multi-Text-Dashboard-Schritte ergänzt.
-- Keine Codeänderung.
-- Keine Datenbankänderung.
-- Keine Runtime-Änderung.
+- Text-Config-/Multi-Texte-Panel im Event-System-Dashboard.
+- `POST /api/stream-events/texts` zum Speichern/Löschen von Textvarianten.
+- zusätzliche Textkeys für Sound- und Text-Spiel.
+- Textkategorien `sound_game` und `text_game`.
+- Dashboard-Bearbeitung für Varianten, Aktiv-Status und Gewichtung.
 
-## EVS-5b / Stream Events Text Game Rule Rebalance – 2026-06-13
+### Changed
 
-- Text-Spiel-Regel für V1 festgelegt: erster kompletter Löser gewinnt.
-- Weitere Löser und Zeitfenster für weitere Löser aus der UI entfernt.
-- Hinweiswörter/Suchwörter-Feld aus der UI entfernt.
-- Teiltreffer-Hinweise als optionale Einstellung vorbereitet.
-- Teiltreffer-Regel vorbereitet: pro Event/Satz/User/Wort nur einmal melden/zählen.
-- Text-Spiel-Layout wieder ruhiger/kompakter gemacht.
-- Keine Backendänderung.
-- Keine Datenbankänderung.
-- Keine Chat-/Playback-/Overlay-Änderung.
+- Modulversion `stream_events` auf `0.3.0`.
+- Build auf `STEP_EVS_7_TEXT_CONFIG_DASHBOARD_PREP`.
+- Dashboard-Kicker auf EVS-7 aktualisiert.
 
-## EVS-5 / Stream Events Text Game Config Layout Cleanup – 2026-06-13
+### Not changed
 
-- Text-Spiel-Konfiguration im Dashboard-Modal in Karten aufgeteilt.
-- `Geheimsatz` als Pflichtbereich markiert.
-- `Antworten & Hinweise` als optionaler Bereich markiert.
-- Hinweiswörter/Suchwörter-Feld vorbereitet.
-- Punkte und Zeitfenster in eigene Karte verschoben.
-- Feldtext `Zeitfenster für weitere Löser` verständlicher formuliert.
-- Keine Backendänderung.
-- Keine Datenbankänderung.
-- Keine Chat-/Playback-/Overlay-Änderung.
-
-## EVS-4b / Sound Media Layout Cleanup – 2026-06-13
-
-- Sound-Konfiguration im Dashboard-Modal in zwei Karten aufgeteilt.
-- Audio-Schnipsel als Pflichtbereich markiert.
-- Auflösungs-Video als optionaler Bereich markiert.
-- MediaField-Buttons kompakter angeordnet.
-- Keine Backend-/DB-/Playback-Änderung.
-
-## EVS-4 / Media Picker Prep – 2026-06-13
-
-- Sound-Schnipsel-Auswahl über vorhandenes Media-System vorbereitet.
-- Optionales Auflösungs-Video über vorhandenes Media-System vorbereitet.
-- Keine eigene Upload-Struktur gebaut.
-
-## EVS-3 / Dashboard Skeleton – 2026-06-13
-
-- Dashboard-Modul für Stream Events erstellt.
-- Eventliste, Event-Erstellung, Validierung und Ranking-Anzeige vorbereitet.
-
-## EVS-2 / Backend Foundation – 2026-06-13
-
-- Backend-Modul `stream_events` erstellt.
-- Routen, DB-Schema, Validierung, Ranking und Bus-Heartbeat vorbereitet.
-
-
-## EVS-6 – Text Multi Phrase Config Prep
-
-- Dashboard: mehrere geheime Sätze im Text-Spiel vorbereitet.
-- Dashboard: Teiltreffer-Modus allgemein/mit Satznummer/aus vorbereitet.
-- Dashboard: Trefferzahl-Anzeige und optionale Wortpunkte vorbereitet.
-- Backend: Text-Config-Validierung um Multi-Phrase/Wortpunkte-Felder erweitert.
-- Keine Runtime-/Chat-/Overlay-/Playback-Änderungen.
+- Keine Chat-Runtime.
+- Keine Playback-Runtime.
+- Keine DB-Rebuilds.
+- Keine parallele Textstruktur.

@@ -3,9 +3,9 @@
 /**
  * Stream Events backend foundation.
  *
- * STEP EVS-6:
- * - Keeps the EVS-2 backend foundation.
- * - Extends text-game validation/settings for multiple phrases, partial hints and optional word points.
+ * STEP EVS-7:
+ * - Keeps the EVS-6 backend/dashboard foundation.
+ * - Adds dashboard-capable text variant routes for Stream Events chat/system texts.
  * - Still keeps gameplay runtime, Twitch chat handling, sound/media playback and overlay out of this step.
  */
 
@@ -16,8 +16,8 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.2.0";
-const MODULE_BUILD = "STEP_EVS_6_TEXT_MULTI_PHRASE_CONFIG_PREP";
+const MODULE_VERSION = "0.3.0";
+const MODULE_BUILD = "STEP_EVS_7_TEXT_CONFIG_DASHBOARD_PREP";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -43,6 +43,27 @@ const EVENT_TEXT_DEFAULTS = {
   "event.finished": [
     "Das Event {eventName} ist beendet. Die Heimleitung zählt die Punkte zusammen."
   ],
+  "sound.round.started": [
+    "🔊 Soundrunde gestartet. Lauscher auf, Rentnergang!"
+  ],
+  "sound.solved": [
+    "✅ {user} hat den Sound erkannt und bekommt {points} Punkt(e)!"
+  ],
+  "sound.unresolved": [
+    "⏱️ Niemand hat den Sound erkannt. Die Heimleitung legt ihn erstmal zurück."
+  ],
+  "text.partial.general": [
+    "👀 {user} hat {wordCount} Wort/Wörter aus einem geheimen Satz gefunden."
+  ],
+  "text.partial.with_sentence": [
+    "👀 {user} hat {wordCount} Wort/Wörter aus Satz {phraseNumber} gefunden."
+  ],
+  "text.word_points.added": [
+    "⭐ {user} bekommt {points} Punkt(e) für neue Worttreffer."
+  ],
+  "text.phrase.solved": [
+    "🎉 {user} hat Satz {phraseNumber} gelöst und bekommt {points} Punkt(e)!"
+  ],
   "points.added": [
     "{user} bekommt {points} Punkt(e). Die Heimleitung hat es notiert."
   ],
@@ -56,12 +77,21 @@ const EVENT_TEXT_CATEGORIES = {
   "event.not_ready": "event_status",
   "event.started": "event_status",
   "event.finished": "event_status",
+  "sound.round.started": "sound_game",
+  "sound.solved": "sound_game",
+  "sound.unresolved": "sound_game",
+  "text.partial.general": "text_game",
+  "text.partial.with_sentence": "text_game",
+  "text.word_points.added": "text_game",
+  "text.phrase.solved": "text_game",
   "points.added": "scoring",
   "ranking.updated": "scoring"
 };
 
 const EVENT_TEXT_CATEGORY_LABELS = {
   event_status: "Event · Status",
+  sound_game: "Sound-Spiel",
+  text_game: "Text-Spiel",
   scoring: "Event · Punkte"
 };
 
@@ -71,7 +101,7 @@ const MODULE_META = {
   build: MODULE_BUILD,
   type: "runtime",
   category: "events",
-  description: "Zentrales Event-System Backend: Entwürfe, Validierung, Punkte, Ranking, Bus-Status und Text-Multi-Satz-Config.",
+  description: "Zentrales Event-System Backend: Entwürfe, Validierung, Punkte, Ranking, Bus-Status, Text-Multi-Satz-Config und Textvarianten-Verwaltung.",
   routesPrefix: ["/api/stream-events"],
   bus: {
     registered: true,
@@ -985,7 +1015,8 @@ function publicRoutes(prefix = "/api/stream-events") {
     routes: [
       { method: "GET", path: `${prefix}/status`, description: "Stream-Events Backendstatus" },
       { method: "GET", path: `${prefix}/routes`, description: "Route-Selbstdokumentation" },
-      { method: "GET", path: `${prefix}/texts`, description: "DB-/Dashboardfähige Textvarianten für stream_events" },
+      { method: "GET", path: `${prefix}/texts`, description: "DB-/Dashboardfähige Textvarianten für stream_events lesen" },
+      { method: "POST", path: `${prefix}/texts`, description: "Textvariante speichern oder löschen" },
       { method: "GET", path: `${prefix}/events`, description: "Events listen" },
       { method: "POST", path: `${prefix}/events`, description: "Event-Entwurf erstellen" },
       { method: "GET", path: `${prefix}/events/:eventUid`, description: "Eventdetails lesen" },
@@ -998,7 +1029,7 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "POST", path: `${prefix}/events/:eventUid/points`, description: "Manuelle/Modul-Punkte buchen (nur aktives Event)" }
     ],
     notes: [
-      "EVS-2 ist Backend-Basis: kein Dashboard, keine Chat-Auswertung, kein Sound-/Video-Playback.",
+      "EVS-7 bereitet Textvarianten im Dashboard vor; keine Chat-Auswertung und kein Sound-/Video-Playback.",
       "Sound/Text-Konfiguration wird als DB-Snapshot am Event gespeichert.",
       "Nur ein aktives Event gleichzeitig."
     ]
@@ -1101,6 +1132,21 @@ module.exports.init = function init(ctx) {
       sendJson(res, texts);
     } catch (err) {
       handleError(res, err);
+    }
+  });
+
+
+  reg("post", `${prefix}/texts`, (req, res) => {
+    try {
+      const result = textHelper.handleModuleTextEditorPayload(TEXT_MODULE, req.body || {}, {
+        categories: EVENT_TEXT_CATEGORIES,
+        categoryLabels: EVENT_TEXT_CATEGORY_LABELS
+      });
+      markAction("texts_updated");
+      publishStatus("texts_updated", { textUpdated: true });
+      sendJson(res, result);
+    } catch (err) {
+      handleError(res, err, 400);
     }
   });
 

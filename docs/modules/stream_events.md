@@ -409,3 +409,62 @@ Die Backend-Validierung akzeptiert/kennt unter anderem:
 - Entfernen gelöster Sätze aus der laufenden Rotation.
 - Config-Dashboard allgemein.
 - Text-Config/Multi-Texte im Dashboard über vorhandene Text-Helper.
+
+---
+
+## EVS-7 – Text-Config Dashboard Prep
+
+EVS-7 bereitet die Text-Config / Multi-Texte im Dashboard vor.
+
+### Ziel
+
+Chat- und Systemtexte für das Event-System sollen nicht hart im Code stehen. Sie müssen später dashboardfähig, variantenfähig und über vorhandene Text-Helper verwaltbar sein.
+
+### Backend
+
+Neue bzw. vorbereitete Textkeys:
+
+- `sound.round.started`
+- `sound.solved`
+- `sound.unresolved`
+- `text.partial.general`
+- `text.partial.with_sentence`
+- `text.word_points.added`
+- `text.phrase.solved`
+- `event.created`
+- `event.not_ready`
+- `event.started`
+- `event.finished`
+- `points.added`
+- `ranking.updated`
+
+EVS-7 nutzt:
+
+- `helper_texts.listModuleTextEditor(...)`
+- `helper_texts.handleModuleTextEditorPayload(...)`
+- `module_text_variants`
+
+Es wird keine parallele Textstruktur aufgebaut.
+
+### Routen
+
+- `GET /api/stream-events/texts` liest Textkategorien, Keys und Varianten.
+- `POST /api/stream-events/texts` speichert oder löscht Textvarianten.
+
+### Dashboard
+
+Im Event-System-Dashboard gibt es ein erstes Text-Config-/Multi-Texte-Panel.
+
+Dort können vorbereitet werden:
+
+- bestehende Textvariante bearbeiten
+- Variante aktiv/inaktiv setzen
+- Gewichtung setzen
+- neue Variante hinzufügen
+- Variante löschen
+
+### Noch offen
+
+- Runtime nutzt diese Texte noch nicht aktiv.
+- Chat-Auswertung kommt später.
+- Config-Dashboard für Event-Regeln kommt später.
