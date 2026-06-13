@@ -1,76 +1,33 @@
-# CURRENT_STATUS – EVS-8
+# CURRENT_STATUS – EVS-12
 
-Stand: EVS-8 / Config-Dashboard Vorbereitung
+Stand: EVS-12 / Text Runtime Dashboard Report
 
 ## Aktueller Stand
 
-Das Event-System-Dashboard hat jetzt die Haupttabs:
+Das Event-System hat nun eine erste echte Dashboard-Auswertung fuer die Text-Runtime.
 
-- Übersicht
-- Events
-- Texte
-- Config
-- Statistik
-- Overlay
+Sichtbar im Dashboard:
 
-Übersicht zeigt laufende Events. Events zeigt die konfigurierten Events mit Status. Bearbeitung läuft über ein separates Editor-Fenster.
+- Ranking fuer das ausgewaehlte Event
+- Worttreffer
+- Satzloesungen
+- vorbereitete Chatmeldungen (`directSend=false`, `via=bus_payload`)
+- Zaehler auf laufenden Event-Karten
 
-Der Config-Tab ist jetzt als erster echter Einstellbereich vorbereitet. Globale Defaults können geladen und gespeichert werden.
+## Backend
 
-## Config umfasst
+`GET /api/stream-events/text-runtime/report` liefert neben Worttreffern, Satzloesungen und Ranking jetzt auch `chatOutputs` als Report-Vorschau.
 
-- Allgemeine Event-Defaults
-- Sound-Spiel Defaults
-- Text-Spiel Defaults
-- Wortpunkte Defaults
-- Overlay Defaults
+## Unveraendert
 
-## Unverändert
-
-Keine produktive Runtime für Chat, Worterkennung, Sound-Playback oder Overlay.
-
-## Offen
-
-- Rechte/Freigaben für Config.
-- Event-Statistik pro Event.
-- Sound-/Text-Runtime.
-- Chat-Auswertung.
-- Overlay.
-
-
-## EVS-9 – EventBus / Heartbeat Integration
-
-Aktueller Stand: `stream_events` hat nun einen eigenen sichtbaren EventBus-/Heartbeat-Step. Das Modul nutzt den vorhandenen `communication_bus`, registriert sich dort als Backend-Modul, sendet Heartbeats und publisht Modulstatus. Zusaetzlich gibt es `GET /api/stream-events/bus-status` fuer Diagnose/Monitoring.
-
-Nicht enthalten: Chat-Runtime, Sound-Playback, Worterkennung, automatische Punktevergabe, Overlay.
-
-EVS-10 Text Chat Runtime Prep ist vorbereitet. Text-Spiel kann aktive Events ueber twitch.chat.message aus dem bestehenden Communication-Bus auswerten; Worttreffer und Satzloesungen werden gespeichert und Punkte optional gebucht. Kein Sound-Playback, Overlay oder direkter Chat-Send in diesem Step.
-
-
-## EVS-10b – Text Runtime Test Helpers
-
-- Build: `STEP_EVS_10B_TEXT_RUNTIME_TEST_HELPERS`
-- Backend-Version: `stream_events` 0.4.1
-- Sichere Testhelfer fuer Text-Runtime hinzugefuegt.
-- Neue Route: `GET /api/stream-events/text-runtime/report`
-- Neue Route: `POST /api/stream-events/text-runtime/create-test-event?confirm=1`
-- Keine direkte Chat-Ausgabe, kein Sound-Playback, kein Overlay.
-
-
-## EVS-11 – Text Chat Output Prep
-
-- Build: `STEP_EVS_11_TEXT_CHAT_OUTPUT_PREP`
-- Backend-Version: `stream_events` 0.4.2
-- Chattexte werden fuer Text-Worttreffer, Wortpunkte und Satzloesungen als Bus-Payload vorbereitet.
 - Keine direkte Twitch-Chat-Ausgabe.
-- Textvarianten: je 5 Altersheim-/CGN-/Rentner-/Heimleitungs-Varianten pro relevantem Key.
+- Kein Sound-Playback.
+- Kein Overlay.
+- Keine neue Bus-Struktur.
+- Keine destruktive DB-Aenderung.
 
+## Naechste sinnvolle Schritte
 
-## EVS-11b – Text Chat Output Test Visibility
-
-Aktueller Zusatzstand: vorbereitete Text-Chat-Ausgaben sind in den Test-Responses sichtbar. Direkte Twitch-Ausgabe bleibt deaktiviert.
-
-
-## EVS-11c – SafeJson Chat Output Fix
-
-Der Fehler `safeJson is not defined` im vorbereiteten Text-Chat-Output wurde behoben. Direkte Twitch-Chat-Ausgabe bleibt weiterhin deaktiviert.
+- Dashboard-Test mit aktivem Text-Testevent.
+- Danach optional Chat-Ausgabe-Bruecke planen: Chat-/Bot-Modul uebernimmt vorbereitete Bus-Payloads.
+- Oder Sound-Runtime vorbereiten.

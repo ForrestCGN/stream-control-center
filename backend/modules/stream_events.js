@@ -17,8 +17,8 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.4.4";
-const MODULE_BUILD = "STEP_EVS_11C_SAFEJSON_CHAT_OUTPUT_FIX";
+const MODULE_VERSION = "0.4.5";
+const MODULE_BUILD = "STEP_EVS_12_TEXT_RUNTIME_DASHBOARD_REPORT";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -1597,6 +1597,9 @@ function getTextRuntimeReport(eventUid = "") {
     createdAt: row.created_at || ""
   }));
 
+  const runtimeConfig = selectedEvent ? getTextRuntimeConfig(selectedEvent) : getTextRuntimeConfig(null);
+  const chatOutputs = buildRuntimeReportChatOutputs(selectedEvent, wordHits, phraseSolves, runtimeConfig);
+
   return {
     ok: true,
     module: MODULE_NAME,
@@ -1607,13 +1610,93 @@ function getTextRuntimeReport(eventUid = "") {
     eventUid: uid,
     counts: {
       wordHits: wordHits.length,
-      phraseSolves: phraseSolves.length
+      phraseSolves: phraseSolves.length,
+      chatOutputs: chatOutputs.length
     },
     wordHits,
     phraseSolves,
+    chatOutputs,
     ranking: getRanking(uid),
     updatedAt: nowIso()
   };
+}
+
+function countKnownWordsForReport(eventUid, phraseUid, userLogin) {
+  try {
+    const row = database.get(`
+      SELECT COUNT(*) AS total
+      FROM stream_events_text_word_hits
+      WHERE event_uid = :eventUid AND phrase_uid = :phraseUid AND user_login = :userLogin
+    `, { eventUid, phraseUid, userLogin }) || {};
+    return Number(row.total || 0);
+  } catch (_) {
+    return 0;
+  }
+}
+
+function buildRuntimeReportChatOutputs(event, wordHits = [], phraseSolves = [], runtimeConfig = {}) {
+  const outputs = [];
+  if (!event) return outputs;
+  for (const hit of wordHits.slice(0, 60)) {
+    const totalKnown = countKnownWordsForReport(event.eventUid, hit.phraseUid, hit.userLogin);
+    const textKey = runtimeConfig.partialHintVisibility === "with_sentence" ? "text.partial.with_sentence" : "text.partial.general";
+    const context = {
+      user: hit.userDisplayName || hit.userLogin,
+      displayName: hit.userDisplayName || hit.userLogin,
+      wordCount: runtimeConfig.showPartialWordCount ? totalKnown : 1,
+      phraseNumber: hit.phraseNumber,
+      points: hit.pointsAwarded
+    };
+    if (runtimeConfig.partialHintsEnabled !== false) {
+      outputs.push({
+        kind: "word_found",
+        eventUid: hit.eventUid,
+        phraseUid: hit.phraseUid,
+        phraseNumber: hit.phraseNumber,
+        userLogin: hit.userLogin,
+        userDisplayName: hit.userDisplayName,
+        points: hit.pointsAwarded,
+        createdAt: hit.createdAt,
+        reportPreview: true,
+        ...buildChatOutput(textKey, context, { reason: "runtime_report_word_found_preview" })
+      });
+    }
+    if (Number(hit.pointsAwarded || 0) > 0) {
+      outputs.push({
+        kind: "word_points_added",
+        eventUid: hit.eventUid,
+        phraseUid: hit.phraseUid,
+        phraseNumber: hit.phraseNumber,
+        userLogin: hit.userLogin,
+        userDisplayName: hit.userDisplayName,
+        points: hit.pointsAwarded,
+        createdAt: hit.createdAt,
+        reportPreview: true,
+        ...buildChatOutput("text.word_points.added", context, { reason: "runtime_report_word_points_preview" })
+      });
+    }
+  }
+  for (const solve of phraseSolves.slice(0, 60)) {
+    const context = {
+      user: solve.userDisplayName || solve.userLogin,
+      displayName: solve.userDisplayName || solve.userLogin,
+      phraseNumber: solve.phraseNumber,
+      points: solve.pointsAwarded
+    };
+    outputs.push({
+      kind: "phrase_solved",
+      eventUid: solve.eventUid,
+      phraseUid: solve.phraseUid,
+      phraseNumber: solve.phraseNumber,
+      userLogin: solve.userLogin,
+      userDisplayName: solve.userDisplayName,
+      points: solve.pointsAwarded,
+      createdAt: solve.createdAt,
+      reportPreview: true,
+      ...buildChatOutput("text.phrase.solved", context, { reason: "runtime_report_phrase_solved_preview" })
+    });
+  }
+  return outputs.sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))).slice(0, 100);
 }
 
 function createTextRuntimeTestEvent(body = {}) {

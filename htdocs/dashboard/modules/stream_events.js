@@ -6,7 +6,8 @@ window.StreamEventsModule = (function(){
     list: '/api/stream-events/events?limit=250',
     events: '/api/stream-events/events',
     texts: '/api/stream-events/texts',
-    config: '/api/stream-events/config'
+    config: '/api/stream-events/config',
+    textRuntimeReport: '/api/stream-events/text-runtime/report'
   };
 
   let root = null;
@@ -22,6 +23,7 @@ window.StreamEventsModule = (function(){
     ranking: null,
     texts: null,
     config: null,
+    textRuntimeReport: null,
     configSaving: false,
     textSaving: false,
     modal: null,
@@ -121,6 +123,16 @@ window.StreamEventsModule = (function(){
     return list.length ? list.join(' + ') : '-';
   }
 
+
+  function runtimeReport(){ return state.textRuntimeReport || null; }
+  function runtimeReportFor(event){ const report = runtimeReport(); return event && report && report.eventUid === event.eventUid ? report : null; }
+  function reportCount(report, key){ return Number(report?.counts?.[key] || 0); }
+  function chatOutputText(output){ return output?.text || output?.chatText || ''; }
+  function chatKindLabel(kind){
+    const map = { word_found: 'Worttreffer', word_points_added: 'Wortpunkte', phrase_solved: 'Satz gelöst' };
+    return map[kind] || kind || 'Chat-Output';
+  }
+
   function render(){
     root = document.getElementById('streamEventsModule');
     if (!root) return;
@@ -131,9 +143,9 @@ window.StreamEventsModule = (function(){
       <div class="evs-page">
         <div class="evs-header glass">
           <div>
-            <div class="evs-kicker">EVS-8 · Config-Dashboard Vorbereitung</div>
+            <div class="evs-kicker">EVS-12 · Text-Runtime Dashboard Report</div>
             <h2>Event-System</h2>
-            <p>Übersicht zeigt laufende Events. Events werden im Events-Tab verwaltet. Globale Standardwerte liegen getrennt im Config-Tab.</p>
+            <p>Übersicht zeigt laufende Events. Text-Runtime, Worttreffer, Satzlösungen und Ranking sind jetzt direkt im Dashboard sichtbar.</p>
           </div>
           <div class="evs-header-actions">
             <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="reload">Aktualisieren</button>
@@ -201,6 +213,7 @@ window.StreamEventsModule = (function(){
           <div class="evs-event-card-grid">
             ${activeEvents.map(renderRunningEventCard).join('')}
           </div>
+          ${renderRuntimeReportPanel(activeEvents[0], true)}
         ` : '<div class="evs-empty">Aktuell läuft kein Event. Vorbereitete Events findest du im Tab „Events“.</div>'}
       </section>
     `;
@@ -251,6 +264,8 @@ window.StreamEventsModule = (function(){
         <div class="evs-mini-grid evs-mini-grid-compact">
           <div><strong>Sounds</strong><span>${esc(snippets)}</span></div>
           <div><strong>Sätze</strong><span>${esc(phrases)}</span></div>
+          <div><strong>Wörter</strong><span>${esc(reportCount(runtimeReportFor(event), 'wordHits'))}</span></div>
+          <div><strong>Lösungen</strong><span>${esc(reportCount(runtimeReportFor(event), 'phraseSolves'))}</span></div>
           <div><strong>Gestartet</strong><span>${fmtDate(event.startedAt)}</span></div>
           <div><strong>Geändert</strong><span>${fmtDate(event.updatedAt)}</span></div>
         </div>
@@ -391,16 +406,60 @@ window.StreamEventsModule = (function(){
   }
 
   function renderStatsTab(event){
-    const rankingRows = rows(state.ranking?.rows);
     return `
       <section class="evs-card glass evs-tab-panel">
         <div class="evs-card-head">
-          <div><h3>Statistik</h3><span>Ranking und spätere Auswertung für das ausgewählte Event.</span></div>
-          ${event ? `<button type="button" class="evs-btn evs-btn-secondary" data-evs-action="ranking" data-uid="${esc(event.eventUid)}">Ranking laden</button>` : ''}
+          <div><h3>Statistik & Text-Runtime</h3><span>Ranking, Worttreffer, Satzlösungen und vorbereitete Chatmeldungen für das ausgewählte Event.</span></div>
+          ${event ? `<div class="evs-action-row evs-action-row-tight"><button type="button" class="evs-btn evs-btn-secondary" data-evs-action="ranking" data-uid="${esc(event.eventUid)}">Ranking laden</button><button type="button" class="evs-btn evs-btn-secondary" data-evs-action="runtimeReport" data-uid="${esc(event.eventUid)}">Text-Report laden</button></div>` : ''}
         </div>
-        ${event ? (rankingRows.length ? rankingRows.slice(0, 10).map(row => `<div class="evs-rank-row"><strong>#${esc(row.rank)}</strong><span>${esc(row.userDisplayName || row.userLogin)}</span><b>${esc(row.points)} Punkte</b></div>`).join('') : '<div class="evs-empty">Noch keine Punkte.</div>') : '<div class="evs-empty">Kein Event ausgewählt.</div>'}
-        <div class="evs-tab-help">Später: Auswertung pro Event, Sound-Statistik, Text-Statistik, gelöste Sätze, erkannte Schnipsel, Top-Spieler und Quoten.</div>
+        ${event ? renderRuntimeReportPanel(event, false) : '<div class="evs-empty">Kein Event ausgewählt.</div>'}
       </section>
+    `;
+  }
+
+  function renderRuntimeReportPanel(event, compact){
+    if (!event) return '<div class="evs-empty">Kein Event ausgewählt.</div>';
+    const report = runtimeReportFor(event);
+    const rankingRows = rows((report?.ranking && report.ranking.rows) ? report.ranking : state.ranking);
+    const wordHits = Array.isArray(report?.wordHits) ? report.wordHits : [];
+    const phraseSolves = Array.isArray(report?.phraseSolves) ? report.phraseSolves : [];
+    const chatOutputs = Array.isArray(report?.chatOutputs) ? report.chatOutputs : [];
+    if (!report) {
+      return `<div class="evs-runtime-report evs-runtime-report-empty"><div class="evs-empty">Text-Runtime-Report noch nicht geladen.</div><button type="button" class="evs-btn evs-btn-secondary" data-evs-action="runtimeReport" data-uid="${esc(event.eventUid)}">Report laden</button></div>`;
+    }
+    return `
+      <div class="evs-runtime-report ${compact ? 'is-compact' : ''}">
+        <div class="evs-runtime-counters">
+          <div><strong>${esc(reportCount(report, 'wordHits'))}</strong><span>Worttreffer</span></div>
+          <div><strong>${esc(reportCount(report, 'phraseSolves'))}</strong><span>Satzlösungen</span></div>
+          <div><strong>${esc(reportCount(report, 'chatOutputs'))}</strong><span>Chat-Payloads</span></div>
+          <div><strong>${esc(rankingRows.length)}</strong><span>Spieler im Ranking</span></div>
+        </div>
+
+        <div class="evs-runtime-columns">
+          <section class="evs-runtime-box">
+            <h4>Ranking</h4>
+            ${rankingRows.length ? rankingRows.slice(0, compact ? 5 : 10).map(row => `<div class="evs-rank-row"><strong>#${esc(row.rank)}</strong><span>${esc(row.userDisplayName || row.userLogin)}</span><b>${esc(row.points)} Punkte</b></div>`).join('') : '<div class="evs-empty">Noch keine Punkte.</div>'}
+          </section>
+
+          <section class="evs-runtime-box">
+            <h4>Worttreffer</h4>
+            ${wordHits.length ? wordHits.slice(0, compact ? 5 : 12).map(hit => `<div class="evs-runtime-row"><strong>${esc(hit.userDisplayName || hit.userLogin)}</strong><span>Satz ${esc(hit.phraseNumber)} · ${esc(hit.wordOriginal || hit.wordKey)} · +${esc(hit.pointsAwarded || 0)}</span><small>${fmtDate(hit.createdAt)}</small></div>`).join('') : '<div class="evs-empty">Noch keine Worttreffer.</div>'}
+          </section>
+
+          <section class="evs-runtime-box">
+            <h4>Satzlösungen</h4>
+            ${phraseSolves.length ? phraseSolves.slice(0, compact ? 5 : 12).map(solve => `<div class="evs-runtime-row"><strong>${esc(solve.userDisplayName || solve.userLogin)}</strong><span>Satz ${esc(solve.phraseNumber)} · +${esc(solve.pointsAwarded || 0)} Punkte</span><small>${fmtDate(solve.createdAt)}</small></div>`).join('') : '<div class="evs-empty">Noch keine Satzlösung.</div>'}
+          </section>
+        </div>
+
+        <section class="evs-runtime-box evs-runtime-chatoutputs">
+          <div class="evs-runtime-box-head"><h4>Vorbereitete Chatmeldungen</h4><small>directSend=false · via=bus_payload</small></div>
+          ${chatOutputs.length ? chatOutputs.slice(0, compact ? 4 : 12).map(output => `<div class="evs-chat-output-row"><span>${esc(chatKindLabel(output.kind))}</span><p>${esc(chatOutputText(output))}</p><small>${esc(output.textKey || '')} · ${fmtDate(output.createdAt)}</small></div>`).join('') : '<div class="evs-empty">Noch keine vorbereiteten Chatmeldungen im Report.</div>'}
+        </section>
+
+        <div class="evs-tab-help">Report: ${fmtDate(report.updatedAt)} · Event: ${esc(event.name || event.eventUid)}</div>
+      </div>
     `;
   }
 
@@ -857,7 +916,10 @@ window.StreamEventsModule = (function(){
       state.config = config;
       if (!state.selectedUid && state.events[0]) state.selectedUid = state.events[0].eventUid;
       const ev = selectedEvent();
-      if (ev) await loadRanking(ev.eventUid, false);
+      if (ev) {
+        await loadRanking(ev.eventUid, false);
+        await loadTextRuntimeReport(ev.eventUid, false);
+      }
     } catch (err) {
       state.error = err.message || String(err);
     } finally {
@@ -872,6 +934,17 @@ window.StreamEventsModule = (function(){
       state.ranking = await window.CGN.api(`${api.events}/${encodeURIComponent(uid)}/ranking`);
     } catch (_) {
       state.ranking = null;
+    }
+    if (rerender) render();
+  }
+
+
+  async function loadTextRuntimeReport(uid, rerender = true){
+    if (!uid) return;
+    try {
+      state.textRuntimeReport = await window.CGN.api(`${api.textRuntimeReport}?eventUid=${encodeURIComponent(uid)}`);
+    } catch (_) {
+      state.textRuntimeReport = null;
     }
     if (rerender) render();
   }
@@ -987,6 +1060,7 @@ window.StreamEventsModule = (function(){
         state.selectedUid = select.dataset.evsSelect;
         await loadEvent(state.selectedUid).catch(() => null);
         await loadRanking(state.selectedUid, false);
+        await loadTextRuntimeReport(state.selectedUid, false);
         render();
         return;
       }
@@ -1001,6 +1075,7 @@ window.StreamEventsModule = (function(){
         const targetTab = btn.dataset.targetTab || 'events';
         await loadEvent(uid).catch(() => null);
         await loadRanking(uid, false);
+        await loadTextRuntimeReport(uid, false);
         state.activeTab = targetTab;
         render();
         return;
@@ -1062,6 +1137,7 @@ window.StreamEventsModule = (function(){
       if (action === 'finish') return eventAction('finish', uid);
       if (action === 'cancel') return eventAction('cancel', uid);
       if (action === 'ranking') return loadRanking(uid, true);
+      if (action === 'runtimeReport') return loadTextRuntimeReport(uid, true);
     });
 
     document.addEventListener('click', ev => {

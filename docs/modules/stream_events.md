@@ -806,3 +806,27 @@ Keine DB-, Dashboard-, Sound- oder Overlay-Änderung.
 ## EVS-11c – SafeJson Chat Output Fix
 
 Der Fehler `safeJson is not defined` im vorbereiteten Text-Chat-Output wurde behoben. Direkte Twitch-Chat-Ausgabe bleibt weiterhin deaktiviert.
+
+
+## EVS-12 – Text Runtime Dashboard Report
+
+EVS-12 macht die bisher per PowerShell getestete Text-Runtime im Dashboard sichtbar.
+
+### Neu im Dashboard
+
+- Statistik-Tab zeigt nun Ranking, Worttreffer, Satzloesungen und vorbereitete Chatmeldungen fuer das ausgewaehlte Event.
+- Uebersicht zeigt bei laufenden Events direkt Text-Runtime-Zaehler.
+- Report kann im Dashboard per Button neu geladen werden.
+- Vorbereitete Chatmeldungen zeigen weiterhin `directSend=false` und `via=bus_payload`.
+
+### Backend-Erweiterung
+
+`GET /api/stream-events/text-runtime/report` liefert jetzt zusaetzlich rekonstruierte `chatOutputs` als Report-Vorschau. Diese Vorschau basiert auf den gespeicherten Worttreffern/Satzloesungen und den vorhandenen Textvarianten.
+
+### Keine Aenderung
+
+- Keine direkte Twitch-Chat-Ausgabe.
+- Kein Sound-Playback.
+- Kein Overlay.
+- Keine neue Bus-Struktur.
+- Keine destruktive DB-Aenderung.
