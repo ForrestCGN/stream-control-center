@@ -874,3 +874,10 @@ Sound-Runden werden als `game_type='sound'` in `stream_events_rounds` gespeicher
 EVS-15 ergänzt einen sicheren Helper zum Anlegen eines Sound-Testevents. Die Route `POST /api/stream-events/sound-runtime/create-test-event?confirm=1` erstellt ein Event mit `soundEnabled=true`, Test-Snippets, Antwortvarianten und Punkten. Optional kann mit `{ "start": true }` direkt gestartet werden, sofern kein anderes Event aktiv ist.
 
 Die Sound-Runtime bleibt im Prepared-only-Modus: kein direktes Abspielen, kein Sound-System-Queue-Touch, keine direkte Twitch-Chat-Ausgabe.
+
+
+## EVS-16 – Sound Runtime Dashboard Report
+
+- Sound-Runtime-Report im Statistik-Tab sichtbar gemacht.
+- Backend-Report liefert vorbereitete Sound-ChatOutputs und PlaybackPayloads.
+- Keine direkte Sound-Ausgabe, keine Queue-Berührung, kein Twitch-Chat-Senden.

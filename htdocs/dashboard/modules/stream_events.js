@@ -8,6 +8,7 @@ window.StreamEventsModule = (function(){
     texts: '/api/stream-events/texts',
     config: '/api/stream-events/config',
     textRuntimeReport: '/api/stream-events/text-runtime/report',
+    soundRuntimeReport: '/api/stream-events/sound-runtime/report',
     statisticsUsers: '/api/stream-events/statistics/users',
     statisticsUser: '/api/stream-events/statistics/user'
   };
@@ -26,6 +27,7 @@ window.StreamEventsModule = (function(){
     texts: null,
     config: null,
     textRuntimeReport: null,
+    soundRuntimeReport: null,
     statisticsUsers: null,
     selectedStatsUser: '',
     userStatistics: null,
@@ -132,12 +134,14 @@ window.StreamEventsModule = (function(){
 
   function runtimeReport(){ return state.textRuntimeReport || null; }
   function runtimeReportFor(event){ const report = runtimeReport(); return event && report && report.eventUid === event.eventUid ? report : null; }
+  function soundRuntimeReport(){ return state.soundRuntimeReport || null; }
+  function soundRuntimeReportFor(event){ const report = soundRuntimeReport(); return event && report && report.eventUid === event.eventUid ? report : null; }
   function statisticsUsers(){ return Array.isArray(state.statisticsUsers?.users) ? state.statisticsUsers.users : []; }
   function userStatistics(){ return state.userStatistics || null; }
   function reportCount(report, key){ return Number(report?.counts?.[key] || 0); }
   function chatOutputText(output){ return output?.text || output?.chatText || ''; }
   function chatKindLabel(kind){
-    const map = { word_found: 'Worttreffer', word_points_added: 'Wortpunkte', phrase_solved: 'Satz gelöst' };
+    const map = { word_found: 'Worttreffer', word_points_added: 'Wortpunkte', phrase_solved: 'Satz gelöst', sound_round_started: 'Sound gestartet', sound_solved: 'Sound gelöst', sound_unresolved: 'Sound ungelöst' };
     return map[kind] || kind || 'Chat-Output';
   }
 
@@ -151,9 +155,9 @@ window.StreamEventsModule = (function(){
       <div class="evs-page">
         <div class="evs-header glass">
           <div>
-            <div class="evs-kicker">EVS-13b · User-Statistik Popup + AutoReload</div>
+            <div class="evs-kicker">EVS-16 · Sound-Runtime Dashboard Report</div>
             <h2>Event-System</h2>
-            <p>Übersicht zeigt laufende Events. Text-Runtime, User-Details, Worttreffer, Satzlösungen und Ranking sind dashboardfreundlich sichtbar.</p>
+            <p>Übersicht zeigt laufende Events. Text- und Sound-Runtime, User-Details, Runden, Treffer, Payloads und Ranking sind dashboardfreundlich sichtbar.</p>
           </div>
           <div class="evs-header-actions">
             <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="reload">Aktualisieren</button>
@@ -418,10 +422,10 @@ window.StreamEventsModule = (function(){
     return `
       <section class="evs-card glass evs-tab-panel">
         <div class="evs-card-head">
-          <div><h3>Statistik & Text-Runtime</h3><span>Ranking, Worttreffer, Satzlösungen, User-Filter und vorbereitete Chatmeldungen für das ausgewählte Event.</span></div>
-          ${event ? `<div class="evs-action-row evs-action-row-tight"><button type="button" class="evs-btn evs-btn-secondary" data-evs-action="ranking" data-uid="${esc(event.eventUid)}">Ranking laden</button><button type="button" class="evs-btn evs-btn-secondary" data-evs-action="runtimeReport" data-uid="${esc(event.eventUid)}">Text-Report laden</button><button type="button" class="evs-btn evs-btn-secondary" data-evs-action="statsUsers" data-uid="${esc(event.eventUid)}">Userliste laden</button></div>` : ''}
+          <div><h3>Statistik & Runtime</h3><span>Ranking, Text-Spiel, Sound-Spiel, User-Filter und vorbereitete Payloads für das ausgewählte Event.</span></div>
+          ${event ? `<div class="evs-action-row evs-action-row-tight"><button type="button" class="evs-btn evs-btn-secondary" data-evs-action="ranking" data-uid="${esc(event.eventUid)}">Ranking laden</button><button type="button" class="evs-btn evs-btn-secondary" data-evs-action="runtimeReport" data-uid="${esc(event.eventUid)}">Text-Report laden</button><button type="button" class="evs-btn evs-btn-secondary" data-evs-action="soundRuntimeReport" data-uid="${esc(event.eventUid)}">Sound-Report laden</button><button type="button" class="evs-btn evs-btn-secondary" data-evs-action="statsUsers" data-uid="${esc(event.eventUid)}">Userliste laden</button></div>` : ''}
         </div>
-        ${event ? renderStatsUserFilter(event) + renderRuntimeReportPanel(event, false) : '<div class="evs-empty">Kein Event ausgewählt.</div>'}
+        ${event ? renderStatsUserFilter(event) + renderSoundRuntimeReportPanel(event, false) + renderRuntimeReportPanel(event, false) : '<div class="evs-empty">Kein Event ausgewählt.</div>'}
       </section>
     `;
   }
@@ -444,6 +448,73 @@ window.StreamEventsModule = (function(){
         <small>${users.length ? `${esc(users.length)} User mit Event-Daten gefunden.` : 'Noch keine Userdaten geladen oder vorhanden.'}</small>
       </div>
     `;
+  }
+
+  function renderSoundRuntimeReportPanel(event, compact){
+    if (!event) return '<div class="evs-empty">Kein Event ausgewählt.</div>';
+    const report = soundRuntimeReportFor(event);
+    const rankingRows = rows((report?.ranking && report.ranking.rows) ? report.ranking : state.ranking);
+    const rounds = Array.isArray(report?.rounds) ? report.rounds : [];
+    const scoreEntries = Array.isArray(report?.scoreEntries) ? report.scoreEntries : [];
+    const chatOutputs = Array.isArray(report?.chatOutputs) ? report.chatOutputs : [];
+    const playbackPayloads = Array.isArray(report?.playbackPayloads) ? report.playbackPayloads : [];
+    if (!report) {
+      return `<div class="evs-runtime-report evs-runtime-report-empty evs-sound-report"><div class="evs-empty">Sound-Runtime-Report noch nicht geladen.</div><button type="button" class="evs-btn evs-btn-secondary" data-evs-action="soundRuntimeReport" data-uid="${esc(event.eventUid)}">Sound-Report laden</button></div>`;
+    }
+    return `
+      <div class="evs-runtime-report evs-sound-report ${compact ? 'is-compact' : ''}">
+        <div class="evs-runtime-box-head evs-sound-report-head"><h4>Sound-Runtime</h4><small>preparedOnly=true · directPlayback=false · soundSystemQueueTouched=false</small></div>
+        <div class="evs-runtime-counters">
+          <div><strong>${esc(reportCount(report, 'rounds'))}</strong><span>Runden</span></div>
+          <div><strong>${esc(reportCount(report, 'solved'))}</strong><span>Gelöst</span></div>
+          <div><strong>${esc(reportCount(report, 'unresolved'))}</strong><span>Ungelöst</span></div>
+          <div><strong>${esc(reportCount(report, 'soundScoreEntries'))}</strong><span>Sound-Punkte</span></div>
+          <div><strong>${esc(reportCount(report, 'playbackPayloads'))}</strong><span>Playback-Payloads</span></div>
+          <div><strong>${esc(reportCount(report, 'chatOutputs'))}</strong><span>Chat-Payloads</span></div>
+        </div>
+
+        <div class="evs-runtime-columns">
+          <section class="evs-runtime-box">
+            <h4>Sound-Runden</h4>
+            ${rounds.length ? rounds.slice(0, compact ? 5 : 16).map(round => {
+              const snippet = round.config?.snippet || {};
+              const result = round.resultData || {};
+              return `<div class="evs-runtime-row"><strong>${esc(snippet.title || round.itemUid || round.roundUid)}</strong><span>${esc(soundRoundStatusLabel(round.status || round.result))} · ${esc(round.roundUid)}</span><small>${fmtDate(round.startedAt || round.createdAt)}${round.finishedAt ? ` → ${fmtDate(round.finishedAt)}` : ''}${result.userDisplayName ? ` · ${esc(result.userDisplayName)} · +${esc(result.points || 0)}` : ''}</small></div>`;
+            }).join('') : '<div class="evs-empty">Noch keine Sound-Runden.</div>'}
+          </section>
+
+          <section class="evs-runtime-box">
+            <h4>Sound-Punkte</h4>
+            ${scoreEntries.length ? scoreEntries.slice(0, compact ? 5 : 16).map(row => `<div class="evs-runtime-row"><strong>${esc(row.userDisplayName || row.userLogin)}</strong><span>${esc(row.reason || row.sourceType)} · +${esc(row.points || 0)} Punkte</span><small>${fmtDate(row.createdAt)} · ${esc(row.metadata?.title || row.sourceUid || '')}</small></div>`).join('') : '<div class="evs-empty">Noch keine Sound-Punkte.</div>'}
+          </section>
+
+          <section class="evs-runtime-box">
+            <h4>Ranking</h4>
+            ${rankingRows.length ? rankingRows.slice(0, compact ? 5 : 10).map(row => `<div class="evs-rank-row"><strong>#${esc(row.rank)}</strong><span>${esc(row.userDisplayName || row.userLogin)}</span><b>${esc(row.points)} Punkte</b></div>`).join('') : '<div class="evs-empty">Noch keine Punkte.</div>'}
+          </section>
+        </div>
+
+        <div class="evs-runtime-columns">
+          <section class="evs-runtime-box evs-runtime-chatoutputs">
+            <div class="evs-runtime-box-head"><h4>Vorbereitete Sound-Chatmeldungen</h4><small>directSend=false · via=bus_payload</small></div>
+            ${chatOutputs.length ? chatOutputs.slice(0, compact ? 4 : 12).map(output => `<div class="evs-chat-output-row"><span>${esc(chatKindLabel(output.kind))}</span><p>${esc(chatOutputText(output))}</p><small>${esc(output.textKey || '')} · ${fmtDate(output.createdAt)}</small></div>`).join('') : '<div class="evs-empty">Noch keine vorbereiteten Sound-Chatmeldungen.</div>'}
+          </section>
+
+          <section class="evs-runtime-box evs-runtime-chatoutputs">
+            <div class="evs-runtime-box-head"><h4>Vorbereitete Playback-Payloads</h4><small>target=sound_system · queueTouched=false</small></div>
+            ${playbackPayloads.length ? playbackPayloads.slice(0, compact ? 3 : 8).map(payload => `<div class="evs-chat-output-row"><span>${esc(payload.action || 'Playback')}</span><p>${esc(payload.item?.label || payload.item?.mediaId || 'Sound-System Payload')}</p><small>${esc(payload.channel || '')} · directPlay=${esc(payload.directPlay)} · queueTouched=${esc(payload.queueTouched)}</small></div>`).join('') : '<div class="evs-empty">Aktuell kein Playback-Payload im Report. Bei aktiver Sound-Runde erscheint hier die vorbereitete Sound-System-Anforderung.</div>'}
+          </section>
+        </div>
+
+        <div class="evs-tab-help">Sound-Report: ${fmtDate(report.updatedAt)} · Event: ${esc(event.name || event.eventUid)}</div>
+      </div>
+    `;
+  }
+
+  function soundRoundStatusLabel(status){
+    const s = norm(status);
+    const map = { active: 'Aktiv', solved: 'Gelöst', unresolved: 'Ungelöst', skipped: 'Übersprungen', finished: 'Beendet' };
+    return map[s] || status || '-';
   }
 
   function renderRuntimeReportPanel(event, compact){
@@ -1089,6 +1160,17 @@ window.StreamEventsModule = (function(){
   }
 
 
+  async function loadSoundRuntimeReport(uid, rerender = true){
+    try {
+      const qs = uid ? `?eventUid=${encodeURIComponent(uid)}` : '';
+      state.soundRuntimeReport = await window.CGN.api(`${api.soundRuntimeReport}${qs}`);
+      if (rerender) render();
+    } catch (err) {
+      state.error = err.message || String(err);
+      if (rerender) render();
+    }
+  }
+
   async function loadTextRuntimeReport(uid, rerender = true){
     if (!uid) return;
     try {
@@ -1298,6 +1380,7 @@ window.StreamEventsModule = (function(){
         await loadEvent(state.selectedUid).catch(() => null);
         await loadRanking(state.selectedUid, false);
         await loadTextRuntimeReport(state.selectedUid, false);
+        await loadSoundRuntimeReport(state.selectedUid, false);
         await loadStatisticsUsers(state.selectedUid, false);
         render();
         return;
@@ -1314,6 +1397,7 @@ window.StreamEventsModule = (function(){
         await loadEvent(uid).catch(() => null);
         await loadRanking(uid, false);
         await loadTextRuntimeReport(uid, false);
+        await loadSoundRuntimeReport(uid, false);
         await loadStatisticsUsers(uid, false);
         state.activeTab = targetTab;
         render();
@@ -1377,6 +1461,7 @@ window.StreamEventsModule = (function(){
       if (action === 'cancel') return eventAction('cancel', uid);
       if (action === 'ranking') return loadRanking(uid, true);
       if (action === 'runtimeReport') return loadTextRuntimeReport(uid, true);
+      if (action === 'soundRuntimeReport') return loadSoundRuntimeReport(uid, true);
       if (action === 'statsUsers') return loadStatisticsUsers(uid, true);
       if (action === 'statsUser') return loadUserStatistics(btn.dataset.userLogin || state.selectedStatsUser, uid, true);
       if (action === 'openUserStats') return openUserStatsModal(btn.dataset.userLogin || state.selectedStatsUser, uid);

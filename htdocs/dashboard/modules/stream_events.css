@@ -232,3 +232,13 @@
 .stream-events-admin .evs-user-modal-footer span{color:#93a4c7;font-size:12px;line-height:1.35}
 @media(max-width:1050px){.stream-events-admin .evs-user-modal-grid{grid-template-columns:1fr}.stream-events-admin .evs-user-modal-grid .evs-runtime-box{max-height:300px}.stream-events-admin .evs-user-modal-footer{display:grid}}
 @media(max-width:620px){.stream-events-admin .evs-user-modal-toolbar .evs-btn,.stream-events-admin .evs-user-modal-footer .evs-btn{width:100%}}
+
+/* EVS-16 Sound-Runtime Dashboard Report */
+.stream-events-admin .evs-sound-report{border:1px solid rgba(34,211,238,.18);background:linear-gradient(145deg,rgba(8,47,73,.18),rgba(88,28,135,.10));border-radius:18px;padding:14px;margin-top:16px}
+.stream-events-admin .evs-sound-report-head{border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:8px;margin-bottom:12px}
+.stream-events-admin .evs-sound-report .evs-runtime-counters{grid-template-columns:repeat(6,minmax(100px,1fr))}
+.stream-events-admin .evs-sound-report .evs-runtime-box{min-height:0;max-height:420px;overflow:auto;scrollbar-color:rgba(34,211,238,.45) rgba(2,6,23,.35)}
+.stream-events-admin .evs-sound-report .evs-chat-output-row p{word-break:break-word}
+@media(max-width:1280px){.stream-events-admin .evs-sound-report .evs-runtime-counters{grid-template-columns:repeat(3,minmax(110px,1fr))}}
+@media(max-width:720px){.stream-events-admin .evs-sound-report .evs-runtime-counters{grid-template-columns:repeat(2,minmax(110px,1fr))}}
+@media(max-width:520px){.stream-events-admin .evs-sound-report .evs-runtime-counters{grid-template-columns:1fr}}

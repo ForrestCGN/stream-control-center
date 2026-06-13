@@ -17,8 +17,8 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.1";
-const MODULE_BUILD = "STEP_EVS_15_SOUND_RUNTIME_TEST_HELPERS";
+const MODULE_VERSION = "0.5.2";
+const MODULE_BUILD = "STEP_EVS_16_SOUND_RUNTIME_DASHBOARD_REPORT";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -1829,11 +1829,77 @@ function getSoundRuntimeStatus(eventUid = "") {
   };
 }
 
+function buildSoundReportDerivedOutputs(event, rounds = []) {
+  const chatOutputs = [];
+  const playbackPayloads = [];
+  for (const round of rounds) {
+    const snippet = round && round.config && round.config.snippet ? round.config.snippet : {};
+    const runtimeConfig = round && round.config && round.config.runtimeConfig ? round.config.runtimeConfig : getSoundRuntimeConfig(event);
+    if (!round || !round.roundUid) continue;
+    if (round.status === "active") {
+      playbackPayloads.push(buildSoundPlaybackPayload(event, round, snippet, runtimeConfig));
+      chatOutputs.push({
+        kind: "sound_round_started",
+        roundUid: round.roundUid,
+        snippetUid: snippet.snippetUid || round.itemUid || "",
+        title: snippet.title || round.itemUid || "",
+        status: round.status,
+        createdAt: round.startedAt || round.createdAt || "",
+        ...buildChatOutput("sound.round.started", {
+          title: snippet.title || "Sound-Schnipsel",
+          soundTitle: snippet.title || "Sound-Schnipsel",
+          answerSeconds: round.config && round.config.answerSeconds ? round.config.answerSeconds : runtimeConfig.answerSeconds,
+          points: snippet.points || runtimeConfig.defaultPoints
+        }, { reason: "sound_report_round_started" })
+      });
+    } else if (round.status === "solved" || round.result === "solved") {
+      const result = round.resultData || {};
+      chatOutputs.push({
+        kind: "sound_solved",
+        roundUid: round.roundUid,
+        snippetUid: snippet.snippetUid || round.itemUid || "",
+        title: snippet.title || round.itemUid || "",
+        status: round.status,
+        createdAt: round.finishedAt || round.updatedAt || "",
+        userLogin: result.userLogin || "",
+        userDisplayName: result.userDisplayName || result.userLogin || "",
+        answer: result.answer || "",
+        points: Number(result.points || snippet.points || runtimeConfig.defaultPoints || 0),
+        ...buildChatOutput("sound.solved", {
+          user: result.userDisplayName || result.userLogin || "",
+          displayName: result.userDisplayName || result.userLogin || "",
+          title: snippet.title || "Sound-Schnipsel",
+          soundTitle: snippet.title || "Sound-Schnipsel",
+          points: Number(result.points || snippet.points || runtimeConfig.defaultPoints || 0)
+        }, { reason: "sound_report_solved" })
+      });
+    } else if (round.status === "unresolved" || round.result === "unresolved") {
+      const result = round.resultData || {};
+      chatOutputs.push({
+        kind: "sound_unresolved",
+        roundUid: round.roundUid,
+        snippetUid: snippet.snippetUid || round.itemUid || "",
+        title: snippet.title || round.itemUid || "",
+        status: round.status,
+        createdAt: round.finishedAt || round.updatedAt || "",
+        policy: result.policy || runtimeConfig.unresolvedPolicy || "",
+        ...buildChatOutput("sound.unresolved", {
+          title: snippet.title || "Sound-Schnipsel",
+          soundTitle: snippet.title || "Sound-Schnipsel",
+          policy: result.policy || runtimeConfig.unresolvedPolicy || ""
+        }, { reason: "sound_report_unresolved" })
+      });
+    }
+  }
+  return { chatOutputs, playbackPayloads };
+}
+
 function getSoundRuntimeReport(eventUid = "") {
   ensureSchema();
   const event = cleanString(eventUid) ? getEventByUid(eventUid) : getActiveEvent();
   const uid = event ? event.eventUid : cleanString(eventUid);
-  if (!uid) return { ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, event: null, rounds: [], note: "Kein aktives Event und keine eventUid angegeben.", updatedAt: nowIso() };
+  if (!uid) return { ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, event: null, rounds: [], chatOutputs: [], playbackPayloads: [], note: "Kein aktives Event und keine eventUid angegeben.", updatedAt: nowIso() };
+  const eventRow = event || getEventByUid(uid);
   const rounds = getSoundRounds(uid, 200);
   const scoreRows = database.all(`
     SELECT * FROM stream_events_score_entries
@@ -1852,25 +1918,30 @@ function getSoundRuntimeReport(eventUid = "") {
     createdAt: row.created_at,
     metadata: safeJsonParse(row.metadata_json, {})
   }));
+  const derived = buildSoundReportDerivedOutputs(eventRow || {}, rounds);
   return {
     ok: true,
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
     activeEvent: publicEventSummary(getActiveEvent()),
-    event: publicEventSummary(event || getEventByUid(uid)),
+    event: publicEventSummary(eventRow),
     eventUid: uid,
     counts: {
       rounds: rounds.length,
       active: rounds.filter(row => row.status === "active").length,
       solved: rounds.filter(row => row.status === "solved").length,
       unresolved: rounds.filter(row => row.status === "unresolved").length,
-      soundScoreEntries: scoreRows.length
+      soundScoreEntries: scoreRows.length,
+      chatOutputs: derived.chatOutputs.length,
+      playbackPayloads: derived.playbackPayloads.length
     },
     rounds,
     scoreEntries: scoreRows,
+    chatOutputs: derived.chatOutputs,
+    playbackPayloads: derived.playbackPayloads,
     ranking: getRanking(uid),
-    note: "EVS-14 bereitet Sound-Runden, Auswertung und Sound-System-Payloads vor; es wird noch nichts direkt abgespielt.",
+    note: "EVS-16 zeigt Sound-Runden, Punkte, Ranking und vorbereitete Sound-/Chat-Payloads im Dashboard; es wird noch nichts direkt abgespielt.",
     updatedAt: nowIso()
   };
 }
