@@ -1,16 +1,16 @@
 # NEXT_STEPS – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-23
+Stand: 2026-06-13 nach EVS-23b
 
-## Sofortiger Test
+## Aktuelle Lage
 
-### EVS-23 prüfen
+EVS-23 ist im Dashboard sichtbar bestätigt:
 
-- Syntaxcheck ausführen.
-- StepDone ausführen.
-- `/api/stream-events/status` auf Version `0.5.17` prüfen.
-- Dashboard öffnen: `Event-System → Sicherheit`.
-- Bereich `Live-Schalter Konzept` prüfen.
+- `Event-System → Sicherheit`
+- Bereich `Live-Schalter Konzept`
+- Status `gesperrt`
+- Hinweis `EVS-23 bleibt Testmodus`
+- keine Live-Aktion ausführbar
 
 ## Danach mögliche Arbeitsblöcke
 
@@ -18,10 +18,13 @@ Stand: 2026-06-13 nach EVS-23
 
 Ziel:
 
-- echten Config-Endpoint für spätere Live-Schalter planen,
+- echten Config-Endpoint für spätere Live-Schalter vorbereiten,
 - Rollen-/Rechteprüfung vorbereiten,
 - Audit-Log vorbereiten,
+- Status weiterhin nur vorbereitet/gesperrt,
 - noch kein echtes Senden aktivieren.
+
+Empfohlen, bevor irgendwann wirklich Live gesendet wird.
 
 ### Option B – EVS-24 ChatOutput Dry-Run Erweiterung
 
@@ -30,6 +33,7 @@ Ziel:
 - einzelne ChatOutputs im Dashboard detaillierter prüfen,
 - mögliche Bündelung/Spam-Schutz anzeigen,
 - Rate-Limit- und Cooldown-Regeln planen,
+- Vorschau für spätere Live-Ausgabe verständlicher machen,
 - weiterhin kein echtes Senden.
 
 ## Harte Grenzen

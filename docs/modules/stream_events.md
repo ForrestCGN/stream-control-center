@@ -1,6 +1,6 @@
 # Modul-Doku: stream_events
 
-Stand: 2026-06-13 nach EVS-23 – Live-Schalter-Konzept Dashboard Prep
+Stand: 2026-06-13 nach EVS-23b – Completion Documentation
 
 ## Aktueller Modulstand
 
@@ -23,6 +23,27 @@ MODULE_BUILD   = STEP_EVS_23_LIVE_SWITCH_CONCEPT_DASHBOARD_PREP
 - Archivieren ist nur bei `status=finished` erlaubt.
 - Löschen ist API-seitig für jeden Status möglich, aber nur mit JSON-Body `{ "confirm": "DELETE" }`.
 - Das Dashboard fragt dafür genau eine normale Bestätigung ab und sendet den API-Confirm intern.
+
+
+## EVS-23b Bestätigung
+
+EVS-23 wurde im Dashboard sichtbar bestätigt.
+
+Pfad:
+
+```text
+Event-System → Sicherheit
+```
+
+Sichtbar:
+
+- Bereich `Live-Schalter Konzept`.
+- Status `gesperrt`.
+- Hinweis `EVS-23 bleibt Testmodus`.
+- Geplante Freigabe-Kette.
+- Aktuelle Schutzschalter nur als Anzeige/deaktiviert.
+
+Weiterhin gilt: keine Twitch-Ausgabe, kein Sound-Playback und keine Sound-System-Queue-Berührung.
 
 ## EVS-23 Dashboard Live-Schalter-Konzept
 

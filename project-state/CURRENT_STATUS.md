@@ -1,6 +1,6 @@
 # CURRENT_STATUS – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-23 – Live-Schalter-Konzept Dashboard Prep
+Stand: 2026-06-13 nach EVS-23b – Completion Documentation
 
 ## Aktueller Stand
 
@@ -9,7 +9,7 @@ MODULE_VERSION: 0.5.17
 MODULE_BUILD: STEP_EVS_23_LIVE_SWITCH_CONCEPT_DASHBOARD_PREP
 ```
 
-## Bestätigt bis EVS-22c
+## Bestätigt bis EVS-23b
 
 - EVS-19e: Sound/Text Parallel-UND-Regel fachlich bestätigt. Eine Chatnachricht kann Sound UND Text lösen.
 - EVS-20: ChatOutput Dispatcher Prep bestätigt. Outputs werden gefunden, geprüft und blockiert.
@@ -20,22 +20,25 @@ MODULE_BUILD: STEP_EVS_23_LIVE_SWITCH_CONCEPT_DASHBOARD_PREP
   - ChatOutput-Zähler und Blockiergründe sind sichtbar.
   - Event-Lifecycle-Regeln sind sichtbar.
   - Löschen im Dashboard nutzt genau eine normale Bestätigung ohne Texteingabe.
-
-## Neu in EVS-23
-
-- Dashboard-Bereich `Live-Schalter Konzept` im Tab `Sicherheit` ergänzt.
-- Geplante spätere Freigabe-Kette sichtbar gemacht.
-- Aktuelle Schutzschalter als deaktivierte Checkboxen dargestellt.
-- Safety-Tab lädt beim Öffnen den ChatOutput-Sicherheitsstatus.
-- Keine Live-Schalter-Aktion eingebaut.
+- EVS-23: Live-Schalter-Konzept im Dashboard bestätigt.
+  - Bereich `Live-Schalter Konzept` ist im Tab `Sicherheit` sichtbar.
+  - Statusbadge `gesperrt` ist sichtbar.
+  - Hinweis `EVS-23 bleibt Testmodus` ist sichtbar.
+  - Geplante Freigabe-Kette ist sichtbar.
+  - Aktuelle Schutzschalter sind nur Anzeige/deaktiviert.
 
 ## Weiterhin NICHT produktiv aktiv
 
 - Keine direkte Twitch-Ausgabe.
 - Kein direktes Sound-Playback.
 - Keine Sound-System-Queue-Berührung.
-- Kein Live-Sendeschalter aktiv.
+- Kein echter Live-Sendeschalter aktiv.
 
-## Nächster Schritt
+## Nächste Entscheidung
 
-EVS-23 im Dashboard prüfen. Danach entscheiden: Rollen-/Audit-/Config-Endpoint vorbereiten oder Dry-Run-Vorschau weiter verbessern.
+EVS-24 sollte bewusst gewählt werden:
+
+1. Rollen-/Audit-/Config-Endpoint für spätere Live-Schalter vorbereiten.
+2. ChatOutput-Dry-Run-Vorschau/Preview weiter verbessern.
+
+Vor echtem Live-Senden ist erneut eine explizite Entscheidung nötig.
