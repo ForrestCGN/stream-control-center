@@ -242,3 +242,20 @@
 @media(max-width:1280px){.stream-events-admin .evs-sound-report .evs-runtime-counters{grid-template-columns:repeat(3,minmax(110px,1fr))}}
 @media(max-width:720px){.stream-events-admin .evs-sound-report .evs-runtime-counters{grid-template-columns:repeat(2,minmax(110px,1fr))}}
 @media(max-width:520px){.stream-events-admin .evs-sound-report .evs-runtime-counters{grid-template-columns:1fr}}
+
+/* EVS-16b Statistik Tab Layout Cleanup */
+.stream-events-admin .evs-stats-shell{overflow:hidden}
+.stream-events-admin .evs-stats-head{align-items:flex-start;gap:14px}
+.stream-events-admin .evs-stats-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 16px;padding:8px;border:1px solid rgba(34,211,238,.14);background:rgba(2,6,23,.28);border-radius:18px}
+.stream-events-admin .evs-stats-tab{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#dbeafe;border-radius:14px;padding:10px 14px;font-weight:900;cursor:pointer;transition:.16s ease;min-height:40px}
+.stream-events-admin .evs-stats-tab:hover{border-color:rgba(34,211,238,.34);background:rgba(34,211,238,.10);transform:translateY(-1px)}
+.stream-events-admin .evs-stats-tab.is-active{border-color:rgba(168,85,247,.72);background:linear-gradient(135deg,rgba(168,85,247,.28),rgba(34,211,238,.16));box-shadow:0 0 18px rgba(168,85,247,.18),inset 0 0 0 1px rgba(255,255,255,.06);color:#fff}
+.stream-events-admin .evs-stats-content{display:grid;gap:14px;min-height:160px}
+.stream-events-admin .evs-stats-overview{display:grid;gap:14px}
+.stream-events-admin .evs-stats-overview-grid{margin-bottom:0}
+.stream-events-admin .evs-stats-section{display:grid;gap:14px}
+.stream-events-admin .evs-stats-section-head{margin-bottom:4px}
+.stream-events-admin .evs-ranking-standalone{margin-top:0;max-height:520px;overflow:auto;padding-right:4px}
+.stream-events-admin .evs-stats-local-actions{justify-content:flex-start;margin-top:12px}
+.stream-events-admin .evs-stats-user-section .evs-user-filter{margin-top:0}
+@media(max-width:760px){.stream-events-admin .evs-stats-tabs{display:grid;grid-template-columns:1fr 1fr}.stream-events-admin .evs-stats-tab{width:100%}.stream-events-admin .evs-stats-head{display:grid}.stream-events-admin .evs-stats-head .evs-btn{width:100%}}

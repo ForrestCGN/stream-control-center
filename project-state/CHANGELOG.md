@@ -1,24 +1,11 @@
-# CHANGELOG
+# CHANGELOG – EVS-16b Statistik Tab Layout Cleanup
 
-## EVS-14
+Stand: 2026-06-13
 
-- Sound-Runtime-Status ergänzt.
-- Sound-Runtime-Report ergänzt.
-- Sound-Runde vorbereiten ergänzt.
-- Sound-Runde lösen ergänzt.
-- Sound-Runde ungelöst markieren ergänzt.
-- Sound-System-Playback-Payload vorbereitet, aber nicht ausgeführt.
+EVS-16b bereinigt den Statistik-Tab im Event-System-Dashboard. Die bisherige Button-Reihe wurde durch Untertabs ersetzt: Übersicht, Ranking, Text-Spiel, Sound-Spiel und User. Der aktive Bereich kann gezielt aktualisiert werden, ohne die Seite neu zu laden.
 
+Geändert:
+- htdocs/dashboard/modules/stream_events.js
+- htdocs/dashboard/modules/stream_events.css
 
-## EVS-15 Sound Runtime Test Helpers
-
-- Backend-Helper `POST /api/stream-events/sound-runtime/create-test-event?confirm=1` ergänzt.
-- Sound-Testevent mit Test-Snippets, Antwortvarianten und Prepared-only-Playback-Payload.
-- Keine direkte Sound-Ausgabe, kein Queue-Touch, keine direkte Chat-Ausgabe.
-
-
-## EVS-16 – Sound Runtime Dashboard Report
-
-- Sound-Runtime-Report im Statistik-Tab sichtbar gemacht.
-- Backend-Report liefert vorbereitete Sound-ChatOutputs und PlaybackPayloads.
-- Keine direkte Sound-Ausgabe, keine Queue-Berührung, kein Twitch-Chat-Senden.
+Keine Backend- oder DB-Änderung.

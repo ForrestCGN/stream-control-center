@@ -1,22 +1,11 @@
-# FILES
+# FILES – EVS-16b Statistik Tab Layout Cleanup
 
-- backend/modules/stream_events.js
+Stand: 2026-06-13
+
+EVS-16b bereinigt den Statistik-Tab im Event-System-Dashboard. Die bisherige Button-Reihe wurde durch Untertabs ersetzt: Übersicht, Ranking, Text-Spiel, Sound-Spiel und User. Der aktive Bereich kann gezielt aktualisiert werden, ohne die Seite neu zu laden.
+
+Geändert:
 - htdocs/dashboard/modules/stream_events.js
 - htdocs/dashboard/modules/stream_events.css
-- docs/modules/stream_events.md
-- docs/current/CURRENT_CHAT_HANDOFF_EVS_14_SOUND_RUNTIME_PREP.md
-- project-state/*
 
-
-## EVS-15 Sound Runtime Test Helpers
-
-- Backend-Helper `POST /api/stream-events/sound-runtime/create-test-event?confirm=1` ergänzt.
-- Sound-Testevent mit Test-Snippets, Antwortvarianten und Prepared-only-Playback-Payload.
-- Keine direkte Sound-Ausgabe, kein Queue-Touch, keine direkte Chat-Ausgabe.
-
-
-## EVS-16 – Sound Runtime Dashboard Report
-
-- Sound-Runtime-Report im Statistik-Tab sichtbar gemacht.
-- Backend-Report liefert vorbereitete Sound-ChatOutputs und PlaybackPayloads.
-- Keine direkte Sound-Ausgabe, keine Queue-Berührung, kein Twitch-Chat-Senden.
+Keine Backend- oder DB-Änderung.

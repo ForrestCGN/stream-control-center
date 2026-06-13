@@ -1,17 +1,11 @@
-# CURRENT STATUS – EVS-14 Sound Runtime Prep
+# CURRENT_STATUS – EVS-16b Statistik Tab Layout Cleanup
 
-EVS-14 bereitet Sound-Runden im Event-System vor. Sound-Schnipsel können als Runde angelegt, gelöst oder als ungelöst markiert werden. Es wird noch nichts direkt abgespielt.
+Stand: 2026-06-13
 
+EVS-16b bereinigt den Statistik-Tab im Event-System-Dashboard. Die bisherige Button-Reihe wurde durch Untertabs ersetzt: Übersicht, Ranking, Text-Spiel, Sound-Spiel und User. Der aktive Bereich kann gezielt aktualisiert werden, ohne die Seite neu zu laden.
 
-## EVS-15 Sound Runtime Test Helpers
+Geändert:
+- htdocs/dashboard/modules/stream_events.js
+- htdocs/dashboard/modules/stream_events.css
 
-- Backend-Helper `POST /api/stream-events/sound-runtime/create-test-event?confirm=1` ergänzt.
-- Sound-Testevent mit Test-Snippets, Antwortvarianten und Prepared-only-Playback-Payload.
-- Keine direkte Sound-Ausgabe, kein Queue-Touch, keine direkte Chat-Ausgabe.
-
-
-## EVS-16 – Sound Runtime Dashboard Report
-
-- Sound-Runtime-Report im Statistik-Tab sichtbar gemacht.
-- Backend-Report liefert vorbereitete Sound-ChatOutputs und PlaybackPayloads.
-- Keine direkte Sound-Ausgabe, keine Queue-Berührung, kein Twitch-Chat-Senden.
+Keine Backend- oder DB-Änderung.

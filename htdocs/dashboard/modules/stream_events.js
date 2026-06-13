@@ -29,6 +29,7 @@ window.StreamEventsModule = (function(){
     textRuntimeReport: null,
     soundRuntimeReport: null,
     statisticsUsers: null,
+    statsSubTab: 'overview',
     selectedStatsUser: '',
     userStatistics: null,
     userStatsModal: { open: false, login: '', eventUid: '', autoRefresh: true, intervalMs: 5000, lastScrollTop: 0, lastRefreshAt: '' },
@@ -419,14 +420,97 @@ window.StreamEventsModule = (function(){
   }
 
   function renderStatsTab(event){
+    const active = state.statsSubTab || 'overview';
     return `
-      <section class="evs-card glass evs-tab-panel">
-        <div class="evs-card-head">
-          <div><h3>Statistik & Runtime</h3><span>Ranking, Text-Spiel, Sound-Spiel, User-Filter und vorbereitete Payloads für das ausgewählte Event.</span></div>
-          ${event ? `<div class="evs-action-row evs-action-row-tight"><button type="button" class="evs-btn evs-btn-secondary" data-evs-action="ranking" data-uid="${esc(event.eventUid)}">Ranking laden</button><button type="button" class="evs-btn evs-btn-secondary" data-evs-action="runtimeReport" data-uid="${esc(event.eventUid)}">Text-Report laden</button><button type="button" class="evs-btn evs-btn-secondary" data-evs-action="soundRuntimeReport" data-uid="${esc(event.eventUid)}">Sound-Report laden</button><button type="button" class="evs-btn evs-btn-secondary" data-evs-action="statsUsers" data-uid="${esc(event.eventUid)}">Userliste laden</button></div>` : ''}
+      <section class="evs-card glass evs-tab-panel evs-stats-shell">
+        <div class="evs-card-head evs-stats-head">
+          <div><h3>Statistik & Runtime</h3><span>Übersichtlich getrennt nach Übersicht, Ranking, Text-Spiel, Sound-Spiel und User.</span></div>
+          ${event ? `<button type="button" class="evs-btn evs-btn-secondary" data-evs-action="refreshStatsCurrent" data-uid="${esc(event.eventUid)}">Aktuellen Bereich aktualisieren</button>` : ''}
         </div>
-        ${event ? renderStatsUserFilter(event) + renderSoundRuntimeReportPanel(event, false) + renderRuntimeReportPanel(event, false) : '<div class="evs-empty">Kein Event ausgewählt.</div>'}
+        ${event ? renderStatsTabs(active, event) + `<div class="evs-stats-content" data-evs-stats-content>${renderStatsSubTab(active, event)}</div>` : '<div class="evs-empty">Kein Event ausgewählt.</div>'}
       </section>
+    `;
+  }
+
+  function renderStatsTabs(active, event){
+    const tabs = [
+      ['overview', 'Übersicht'],
+      ['ranking', 'Ranking'],
+      ['text', 'Text-Spiel'],
+      ['sound', 'Sound-Spiel'],
+      ['user', 'User']
+    ];
+    return `
+      <div class="evs-stats-tabs" role="tablist" aria-label="Statistik Bereiche">
+        ${tabs.map(([id, label]) => `<button type="button" class="evs-stats-tab ${active === id ? 'is-active' : ''}" data-evs-action="statsSubTab" data-tab="${esc(id)}" data-uid="${esc(event.eventUid)}" role="tab" aria-selected="${active === id ? 'true' : 'false'}">${esc(label)}</button>`).join('')}
+      </div>
+    `;
+  }
+
+  function renderStatsSubTab(active, event){
+    if (active === 'ranking') return renderStatsRankingPanel(event);
+    if (active === 'text') return renderRuntimeReportPanel(event, false);
+    if (active === 'sound') return renderSoundRuntimeReportPanel(event, false);
+    if (active === 'user') return renderStatsUserPanel(event);
+    return renderStatsOverviewPanel(event);
+  }
+
+  function renderStatsOverviewPanel(event){
+    const text = runtimeReportFor(event);
+    const sound = soundRuntimeReportFor(event);
+    const rankingRows = rows(state.ranking?.rows);
+    return `
+      <div class="evs-stats-overview">
+        <div class="evs-mini-grid evs-mini-grid-compact evs-stats-overview-grid">
+          <div><strong>${esc(event.status || '-')}</strong><span>Status</span></div>
+          <div><strong>${esc(rankingRows.length)}</strong><span>Ranking-User</span></div>
+          <div><strong>${esc(reportCount(text, 'wordHits'))}</strong><span>Worttreffer</span></div>
+          <div><strong>${esc(reportCount(text, 'phraseSolves'))}</strong><span>Satzlösungen</span></div>
+          <div><strong>${esc(reportCount(sound, 'rounds'))}</strong><span>Sound-Runden</span></div>
+          <div><strong>${esc(reportCount(sound, 'solved'))}</strong><span>Sound gelöst</span></div>
+        </div>
+        <div class="evs-runtime-columns">
+          <section class="evs-runtime-box">
+            <div class="evs-runtime-box-head"><h4>Aktuelles Event</h4><small>${fmtDate(event.startedAt || event.createdAt)}</small></div>
+            <div class="evs-info-row"><strong>${esc(event.name || event.eventUid)}</strong><span>${esc(eventTypes(event))}</span></div>
+            <div class="evs-action-row evs-action-row-tight evs-stats-local-actions">
+              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="statsSubTab" data-tab="ranking" data-uid="${esc(event.eventUid)}">Ranking öffnen</button>
+              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="statsSubTab" data-tab="text" data-uid="${esc(event.eventUid)}">Text-Spiel öffnen</button>
+              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="statsSubTab" data-tab="sound" data-uid="${esc(event.eventUid)}">Sound-Spiel öffnen</button>
+            </div>
+          </section>
+          <section class="evs-runtime-box">
+            <div class="evs-runtime-box-head"><h4>Letzte Text-Payloads</h4><small>directSend=false</small></div>
+            ${Array.isArray(text?.chatOutputs) && text.chatOutputs.length ? text.chatOutputs.slice(0, 4).map(output => `<div class="evs-chat-output-row"><span>${esc(chatKindLabel(output.kind))}</span><p>${esc(chatOutputText(output))}</p></div>`).join('') : '<div class="evs-empty">Noch keine Text-Payloads geladen.</div>'}
+          </section>
+          <section class="evs-runtime-box">
+            <div class="evs-runtime-box-head"><h4>Letzte Sound-Payloads</h4><small>prepared-only</small></div>
+            ${Array.isArray(sound?.chatOutputs) && sound.chatOutputs.length ? sound.chatOutputs.slice(0, 4).map(output => `<div class="evs-chat-output-row"><span>${esc(chatKindLabel(output.kind))}</span><p>${esc(chatOutputText(output))}</p></div>`).join('') : '<div class="evs-empty">Noch keine Sound-Payloads geladen.</div>'}
+          </section>
+        </div>
+        <div class="evs-tab-help">Die Untertabs laden nur ihren eigenen Bereich nach. Kein Seitenreload.</div>
+      </div>
+    `;
+  }
+
+  function renderStatsRankingPanel(event){
+    const rankingRows = rows(state.ranking?.rows);
+    return `
+      <div class="evs-stats-section">
+        <div class="evs-runtime-box-head evs-stats-section-head"><h4>Ranking</h4><button type="button" class="evs-btn evs-btn-secondary" data-evs-action="ranking" data-uid="${esc(event.eventUid)}">Ranking aktualisieren</button></div>
+        <div class="evs-ranking evs-ranking-standalone">
+          ${rankingRows.length ? rankingRows.map(row => `<div class="evs-rank-row"><strong>#${esc(row.rank)}</strong><span>${esc(row.userDisplayName || row.userLogin)}</span><b>${esc(row.points)} Punkte</b></div>`).join('') : '<div class="evs-empty">Noch keine Punkte im Ranking.</div>'}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderStatsUserPanel(event){
+    return `
+      <div class="evs-stats-section evs-stats-user-section">
+        ${renderStatsUserFilter(event)}
+        <div class="evs-tab-help">User-Auswahl öffnet ein scrollbares Detail-Popup. AutoReload aktualisiert nur das Popup, nicht die Seite.</div>
+      </div>
     `;
   }
 
@@ -1160,6 +1244,33 @@ window.StreamEventsModule = (function(){
   }
 
 
+  async function switchStatsSubTab(tab, uid){
+    const allowed = ['overview', 'ranking', 'text', 'sound', 'user'];
+    state.statsSubTab = allowed.includes(tab) ? tab : 'overview';
+    const eventUid = uid || state.selectedUid;
+    if (state.statsSubTab === 'ranking') return loadRanking(eventUid, true);
+    if (state.statsSubTab === 'text') return loadTextRuntimeReport(eventUid, true);
+    if (state.statsSubTab === 'sound') return loadSoundRuntimeReport(eventUid, true);
+    if (state.statsSubTab === 'user') return loadStatisticsUsers(eventUid, true);
+    render();
+  }
+
+  async function refreshCurrentStatsSection(uid){
+    const eventUid = uid || state.selectedUid;
+    const tab = state.statsSubTab || 'overview';
+    if (tab === 'ranking') return loadRanking(eventUid, true);
+    if (tab === 'text') return loadTextRuntimeReport(eventUid, true);
+    if (tab === 'sound') return loadSoundRuntimeReport(eventUid, true);
+    if (tab === 'user') return loadStatisticsUsers(eventUid, true);
+    await Promise.all([
+      loadRanking(eventUid, false),
+      loadTextRuntimeReport(eventUid, false),
+      loadSoundRuntimeReport(eventUid, false),
+      loadStatisticsUsers(eventUid, false)
+    ]);
+    render();
+  }
+
   async function loadSoundRuntimeReport(uid, rerender = true){
     try {
       const qs = uid ? `?eventUid=${encodeURIComponent(uid)}` : '';
@@ -1459,6 +1570,8 @@ window.StreamEventsModule = (function(){
       if (action === 'start') return eventAction('start', uid);
       if (action === 'finish') return eventAction('finish', uid);
       if (action === 'cancel') return eventAction('cancel', uid);
+      if (action === 'statsSubTab') return switchStatsSubTab(btn.dataset.tab || 'overview', uid);
+      if (action === 'refreshStatsCurrent') return refreshCurrentStatsSection(uid);
       if (action === 'ranking') return loadRanking(uid, true);
       if (action === 'runtimeReport') return loadTextRuntimeReport(uid, true);
       if (action === 'soundRuntimeReport') return loadSoundRuntimeReport(uid, true);
