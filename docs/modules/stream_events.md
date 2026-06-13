@@ -881,3 +881,38 @@ Die Sound-Runtime bleibt im Prepared-only-Modus: kein direktes Abspielen, kein S
 - Sound-Runtime-Report im Statistik-Tab sichtbar gemacht.
 - Backend-Report liefert vorbereitete Sound-ChatOutputs und PlaybackPayloads.
 - Keine direkte Sound-Ausgabe, keine Queue-Berührung, kein Twitch-Chat-Senden.
+
+## EVS-17 – Sound Chat Answer Prep
+
+Stand: 2026-06-13
+
+Dieser Schritt ergänzt die vorbereitete Sound-Runtime um eine Chat-Antwort-Auswertung gegen die aktuell aktive Sound-Runde. Die Auswertung bleibt weiterhin sicher vorbereitet:
+
+- keine direkte Twitch-Chat-Ausgabe
+- kein direktes Sound-Playback
+- keine Sound-System-Queue-Berührung
+- keine neue Bus-Struktur
+
+Neue/erweiterte Funktionen:
+
+- Chatnachrichten aus `twitch.chat.message` werden bei aktivem Sound-Event gegen die aktive Sound-Runde geprüft.
+- Korrekte Antworten lösen die Runde über die vorhandene `resolveSoundRound`-Logik.
+- Punkte werden wie bisher in `stream_events_score_entries` gebucht.
+- Vorbereitete Chat-Payloads für `sound.solved` werden zurückgegeben und per Bus-Payload vorbereitet.
+- Falsche Antworten werden intern gezählt und als Bus-Event `stream_events.sound/answer_missed` vorbereitet, erzeugen aber bewusst keine direkte Chatmeldung.
+
+Neue Test-Route:
+
+```text
+POST /api/stream-events/sound-runtime/test-chat
+```
+
+Beispiel:
+
+```powershell
+Invoke-RestMethod -Method Post -ContentType "application/json" -Body '{"user":"soundtester","message":"heimleitung"}' http://127.0.0.1:8080/api/stream-events/sound-runtime/test-chat
+```
+
+Wichtige Regel:
+
+Nur eine aktive Sound-Runde kann gelöst werden. Nach einer korrekten Antwort ist die Runde `solved` und weitere Antworten zählen nicht mehr für diese Runde.

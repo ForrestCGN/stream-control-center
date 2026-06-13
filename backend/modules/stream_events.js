@@ -17,8 +17,8 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.2";
-const MODULE_BUILD = "STEP_EVS_16_SOUND_RUNTIME_DASHBOARD_REPORT";
+const MODULE_VERSION = "0.5.3";
+const MODULE_BUILD = "STEP_EVS_17_SOUND_CHAT_ANSWER_PREP";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -204,7 +204,9 @@ const MODULE_META = {
       "stream_events.sound.round_prepared",
       "stream_events.sound.round_started",
       "stream_events.sound.solved",
-      "stream_events.sound.unresolved"
+      "stream_events.sound.unresolved",
+      "stream_events.sound.answer_checked",
+      "stream_events.sound.answer_missed"
     ],
     consumes: [
       "twitch.chat.message"
@@ -247,7 +249,11 @@ let runtimeState = {
     soundRoundsPrepared: 0,
     soundRoundsStarted: 0,
     soundRoundsSolved: 0,
-    soundRoundsUnresolved: 0
+    soundRoundsUnresolved: 0,
+    soundChatMessagesProcessed: 0,
+    soundAnswerMatches: 0,
+    soundAnswerMisses: 0,
+    soundRuntimeSkipped: 0
   }
 };
 
@@ -1520,7 +1526,12 @@ function processTextChatMessage(chat = {}, options = {}) {
 
 function handleTwitchChatEnvelope(envelope = {}) {
   const chat = extractChatPayload(envelope);
-  return processTextChatMessage(chat, { source: "bus:twitch.chat.message" });
+  const event = getActiveEvent();
+  if (event && event.soundEnabled) return processSoundChatMessage(chat, { source: "bus:twitch.chat.message" });
+  if (event && event.textEnabled) return processTextChatMessage(chat, { source: "bus:twitch.chat.message" });
+  runtimeState.counters.textRuntimeSkipped += 1;
+  runtimeState.counters.soundRuntimeSkipped += 1;
+  return { ok: true, skipped: true, reason: "no_active_chat_runtime" };
 }
 
 function registerTextChatSubscription() {
@@ -1750,7 +1761,7 @@ function resolveSoundRound(body = {}) {
   if (!correct) return { ok: true, solved: false, reason: "answer_not_accepted", eventUid: event.eventUid, roundUid: round.roundUid };
   const points = clampNumber(body.points ?? snippet.points ?? getSoundRuntimeConfig(event).defaultPoints, 0, 10000, 10);
   const now = nowIso();
-  const resultData = { solved: true, userLogin, userDisplayName, answer, points, solvedAt: now };
+  const resultData = { solved: true, userLogin, userDisplayName, answer, points, solvedAt: now, chatMessageId: cleanString(body.messageId || body.chatMessageId || body.message_id) };
   database.updateByKey("stream_events_rounds", "round_uid", round.roundUid, {
     status: "solved",
     result: "solved",
@@ -1766,7 +1777,7 @@ function resolveSoundRound(body = {}) {
     sourceUid: round.roundUid,
     reason: "sound_snippet_solved",
     createdBy: MODULE_NAME,
-    metadata: { roundUid: round.roundUid, snippetUid: snippet.snippetUid, title: snippet.title, answer }
+    metadata: { roundUid: round.roundUid, snippetUid: snippet.snippetUid, title: snippet.title, answer, chatMessageId: cleanString(body.messageId || body.chatMessageId || body.message_id) }
   }) : { ok: true, ranking: getRanking(event.eventUid).rows };
   const chatOutput = buildChatOutput("sound.solved", { user: userDisplayName, displayName: userDisplayName, title: snippet.title, soundTitle: snippet.title, points }, { reason: "sound_solved" });
   runtimeState.counters.soundRoundsSolved += 1;
@@ -1775,6 +1786,88 @@ function resolveSoundRound(body = {}) {
   emitBus("stream_events.sound", "solved", { eventUid: event.eventUid, round: rowToRound(updatedRound), userLogin, userDisplayName, answer, points, chatOutput, ranking: pointsResult.ranking || [] });
   publishStatus("sound.solved", { lastEventUid: event.eventUid, roundUid: round.roundUid });
   return { ok: true, solved: true, eventUid: event.eventUid, roundUid: round.roundUid, points, chatOutput, pointsResult };
+}
+
+
+function processSoundChatMessage(chat = {}, options = {}) {
+  ensureSchema();
+  if (!chat.message || !chat.userLogin) {
+    runtimeState.counters.soundRuntimeSkipped += 1;
+    return { ok: false, skipped: true, reason: "invalid_chat_payload" };
+  }
+  const event = getActiveEvent();
+  if (!event || !event.soundEnabled) {
+    runtimeState.counters.soundRuntimeSkipped += 1;
+    return { ok: true, skipped: true, reason: "no_active_sound_event" };
+  }
+  const round = getActiveSoundRound(event.eventUid);
+  if (!round) {
+    runtimeState.counters.soundRuntimeSkipped += 1;
+    return { ok: true, skipped: true, reason: "no_active_sound_round", eventUid: event.eventUid };
+  }
+  const snippet = round.config && round.config.snippet ? round.config.snippet : {};
+  const answer = cleanString(chat.message);
+  const userLogin = cleanString(chat.userLogin).replace(/^@/, "").toLowerCase();
+  const userDisplayName = cleanString(chat.userDisplayName || chat.displayName || userLogin, userLogin);
+  const correct = answerMatchesSoundSnippet(answer, snippet);
+  runtimeState.counters.soundChatMessagesProcessed += 1;
+
+  if (!correct) {
+    runtimeState.counters.soundAnswerMisses += 1;
+    emitBus("stream_events.sound", "answer_missed", {
+      eventUid: event.eventUid,
+      roundUid: round.roundUid,
+      snippetUid: snippet.snippetUid || round.itemUid,
+      userLogin,
+      userDisplayName,
+      answer,
+      messageId: cleanString(chat.messageId),
+      preparedOnly: true,
+      directSend: false
+    });
+    publishStatus("sound.answer_missed", { lastEventUid: event.eventUid, roundUid: round.roundUid });
+    return {
+      ok: true,
+      solved: false,
+      reason: "answer_not_accepted",
+      eventUid: event.eventUid,
+      roundUid: round.roundUid,
+      snippetUid: snippet.snippetUid || round.itemUid,
+      userLogin,
+      answer,
+      chatOutputs: [],
+      chatOutputCount: 0
+    };
+  }
+
+  const result = resolveSoundRound({
+    eventUid: event.eventUid,
+    userLogin,
+    userDisplayName,
+    answer,
+    messageId: cleanString(chat.messageId),
+    source: cleanString(options.source || "sound_chat_runtime")
+  });
+  if (result && result.ok === true && result.solved === true) {
+    runtimeState.counters.soundAnswerMatches += 1;
+    const chatOutputs = result.chatOutput ? [{
+      kind: "sound_solved",
+      roundUid: result.roundUid,
+      points: result.points,
+      ...result.chatOutput
+    }] : [];
+    return {
+      ...result,
+      source: cleanString(options.source || "sound_chat_runtime"),
+      snippetUid: snippet.snippetUid || round.itemUid,
+      userLogin,
+      userDisplayName,
+      answer,
+      chatOutputs,
+      chatOutputCount: chatOutputs.length
+    };
+  }
+  return result;
 }
 
 function markSoundRoundUnresolved(body = {}) {
@@ -2764,6 +2857,7 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "POST", path: `${prefix}/text-runtime/test-chat`, description: "Testet eine Chatnachricht gegen das aktive Text-Event" },
       { method: "POST", path: `${prefix}/text-runtime/create-test-event`, description: "Legt mit confirm=1 ein sicheres Text-Runtime-Testevent an" },
       { method: "POST", path: `${prefix}/sound-runtime/create-test-event`, description: "Legt mit confirm=1 ein sicheres Sound-Runtime-Testevent an" },
+      { method: "POST", path: `${prefix}/sound-runtime/test-chat`, description: "Testet eine Chatantwort gegen die aktive Sound-Runde, ohne direkt in Twitch zu senden" },
       { method: "POST", path: `${prefix}/sound-runtime/next-round`, description: "Bereitet die naechste Sound-Runde vor, ohne direkt abzuspielen" },
       { method: "POST", path: `${prefix}/sound-runtime/resolve`, description: "Wertet die aktive Sound-Runde als geloest, wenn die Antwort passt" },
       { method: "POST", path: `${prefix}/sound-runtime/unresolved`, description: "Markiert die aktive Sound-Runde als nicht geloest" },
@@ -2955,6 +3049,21 @@ module.exports.init = function init(ctx) {
   reg("post", `${prefix}/sound-runtime/unresolved`, (req, res) => {
     try {
       const result = markSoundRoundUnresolved({ ...(req.body || {}), eventUid: (req.body && (req.body.eventUid || req.body.event_uid)) || req.query.eventUid || req.query.event_uid || "" });
+      sendJson(res, result, result.ok ? 200 : 400);
+    } catch (err) {
+      handleError(res, err, 400);
+    }
+  });
+
+  reg("post", `${prefix}/sound-runtime/test-chat`, (req, res) => {
+    try {
+      const body = req.body || {};
+      const result = processSoundChatMessage({
+        message: body.message || body.answer || body.text || req.query.message || req.query.answer || req.query.text,
+        userLogin: body.userLogin || body.login || body.user || req.query.user || "soundtester",
+        userDisplayName: body.userDisplayName || body.displayName || body.user || req.query.displayName || req.query.user || "SoundTester",
+        messageId: body.messageId || req.query.messageId || newUid("test_sound_chat")
+      }, { source: "api:sound-test-chat" });
       sendJson(res, result, result.ok ? 200 : 400);
     } catch (err) {
       handleError(res, err, 400);
@@ -3166,6 +3275,7 @@ module.exports._internal = {
   buildStatus,
   buildBusStatus,
   processTextChatMessage,
+  processSoundChatMessage,
   getTextRuntimeStatus,
   getSoundRuntimeStatus,
   getSoundRuntimeReport,
