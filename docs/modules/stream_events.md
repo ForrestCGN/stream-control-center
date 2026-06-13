@@ -801,3 +801,8 @@ EVS-11b macht vorbereitete Chat-Ausgaben in den Test-Responses sichtbar.
 - Die Ausgabe ist nur vorbereitet und kann später von einem Chat-/Bot-Ausgabemodul übernommen werden.
 
 Keine DB-, Dashboard-, Sound- oder Overlay-Änderung.
+
+
+## EVS-11c – SafeJson Chat Output Fix
+
+Der Fehler `safeJson is not defined` im vorbereiteten Text-Chat-Output wurde behoben. Direkte Twitch-Chat-Ausgabe bleibt weiterhin deaktiviert.

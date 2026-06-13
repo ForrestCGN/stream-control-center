@@ -61,3 +61,10 @@ Nicht geändert:
 - `chatOutputs` und `chatOutputCount` fuer Test-Responses ergänzt.
 - Satzlösungsergebnis enthält vorbereitetes `chatOutput`.
 - Keine direkte Chat-Ausgabe.
+
+
+## EVS-11c – SafeJson Chat Output Fix
+
+- Runtime-Fehler `safeJson is not defined` in `buildChatOutput()` behoben.
+- Fehlender Helper ergänzt, damit vorbereitete Chat-Outputs im Test sichtbar werden können.
+- Keine DB-/Runtime-Logikänderung außer Fehlerbehebung.

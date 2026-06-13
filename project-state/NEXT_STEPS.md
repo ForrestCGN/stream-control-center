@@ -61,3 +61,8 @@ Naechste Schritte nach EVS-10: Test mit aktivem Text-Testevent, danach direkte C
 
 - Mit aktivem Testevent prüfen, ob `chatOutputs` die erwarteten Altersheim-/CGN-/Rentner-Texte liefert.
 - Danach entscheiden, ob ein Chat-Ausgabemodul die vorbereiteten Payloads senden soll.
+
+
+## EVS-11c – SafeJson Chat Output Fix
+
+Der Fehler `safeJson is not defined` im vorbereiteten Text-Chat-Output wurde behoben. Direkte Twitch-Chat-Ausgabe bleibt weiterhin deaktiviert.

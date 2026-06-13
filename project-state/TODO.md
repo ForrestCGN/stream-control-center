@@ -76,3 +76,9 @@
 
 - ChatOutput-Payloads im Test prüfen.
 - Später direkte Ausgabe über vorhandene Chat-/Bot-Ausgabe anbinden, nicht im Event-System hart verdrahten.
+
+
+## EVS-11c Follow-up
+
+- Nach Fix erneut `text-runtime/test-chat` mit aktivem Testevent prüfen.
+- Danach Chat-Output-Payloads weiter in Richtung späteres Chat-Ausgabemodul vorbereiten.

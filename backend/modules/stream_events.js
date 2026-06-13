@@ -17,8 +17,8 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.4.3";
-const MODULE_BUILD = "STEP_EVS_11B_TEXT_CHAT_OUTPUT_TEST_VISIBILITY";
+const MODULE_VERSION = "0.4.4";
+const MODULE_BUILD = "STEP_EVS_11C_SAFEJSON_CHAT_OUTPUT_FIX";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -483,6 +483,14 @@ function safeJsonParse(value, fallback = {}) {
   try {
     const parsed = JSON.parse(String(value));
     return parsed === null || parsed === undefined ? fallback : parsed;
+  } catch (_) {
+    return fallback;
+  }
+}
+
+function safeJson(value, fallback = null) {
+  try {
+    return JSON.parse(JSON.stringify(value ?? fallback));
   } catch (_) {
     return fallback;
   }

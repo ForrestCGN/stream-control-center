@@ -69,3 +69,8 @@ EVS-10 Text Chat Runtime Prep ist vorbereitet. Text-Spiel kann aktive Events ueb
 ## EVS-11b – Text Chat Output Test Visibility
 
 Aktueller Zusatzstand: vorbereitete Text-Chat-Ausgaben sind in den Test-Responses sichtbar. Direkte Twitch-Ausgabe bleibt deaktiviert.
+
+
+## EVS-11c – SafeJson Chat Output Fix
+
+Der Fehler `safeJson is not defined` im vorbereiteten Text-Chat-Output wurde behoben. Direkte Twitch-Chat-Ausgabe bleibt weiterhin deaktiviert.

@@ -57,3 +57,9 @@
 - `docs/modules/stream_events.md`
 - `docs/current/CURRENT_CHAT_HANDOFF_EVS_11B_TEXT_CHAT_OUTPUT_TEST_VISIBILITY.md`
 - `project-state/*`
+
+
+## EVS-11c
+
+- `backend/modules/stream_events.js` – SafeJson Helper für ChatOutput-Kontext ergänzt.
+- `docs/current/CURRENT_CHAT_HANDOFF_EVS_11C_SAFEJSON_CHAT_OUTPUT_FIX.md` – Handoff.
