@@ -736,3 +736,34 @@ EVS-10 erweitert das Event-System um die erste Runtime-Vorbereitung fuer das Tex
 ### Test-Hinweis
 
 Der Test-Endpunkt verarbeitet eine simulierte Chatnachricht gegen das aktuell aktive Text-Event. Wenn Wortpunkte oder Loesungspunkte aktiv sind, kann dieser Test echte Punkte im aktiven Event buchen.
+
+
+---
+
+## EVS-10b – Text Runtime Test Helpers
+
+EVS-10b ergänzt die EVS-10 Text-Chat-Runtime um sichere Testhelfer, damit die Runtime ohne manuelle DB-Eingriffe geprüft werden kann.
+
+### Neu
+
+- Test-Report für aktive oder angegebene Events.
+- Optionales Anlegen eines vorbereiteten Text-Testevents nur mit ausdruecklichem `confirm=1`.
+- Das Testevent enthält mehrere geheime Sätze, erlaubte Antwortvarianten, Worttreffer, Wortpunkte und Satzloesung.
+- Der bestehende Test-Chat-Endpunkt bleibt erhalten.
+- Kein direkter Twitch-Chat-Send.
+- Keine Sound-/Video-/Overlay-Runtime.
+
+### Neue Routen
+
+- `GET /api/stream-events/text-runtime/report`
+- `POST /api/stream-events/text-runtime/create-test-event?confirm=1`
+
+### Testablauf
+
+1. Testevent anlegen, optional direkt starten.
+2. Mit `test-chat` einzelne Chatnachrichten simulieren.
+3. Mit `report` Worttreffer, Satzloesungen und Ranking prüfen.
+
+### Sicherheit
+
+`create-test-event` ist absichtlich durch `confirm=1` geschützt. Der Endpunkt legt echte Event-Daten an und kann bei `start=true` ein aktives Testevent starten. Der Endpunkt sendet keine Chatnachricht an Twitch.

@@ -3,12 +3,10 @@
 /**
  * Stream Events backend foundation.
  *
- * STEP EVS-10:
- * - Keeps the EVS-9 EventBus/Heartbeat integration.
- * - Adds first Text-Spiel chat runtime preparation via existing Communication-Bus subscription.
- * - Detects complete phrase solves and per-user/per-phrase word hits for active events.
- * - Books configured text points through the existing score ledger.
- * - Still keeps sound/media playback and overlay out of this step.
+ * STEP EVS-10b:
+ * - Keeps the EVS-10 Text-Spiel chat runtime preparation.
+ * - Adds safe runtime test helper routes for a prepared Text-Spiel test event and report view.
+ * - Does not add direct chat output, sound playback or overlay runtime.
  */
 
 const crypto = require("crypto");
@@ -18,8 +16,8 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.4.0";
-const MODULE_BUILD = "STEP_EVS_10_TEXT_CHAT_RUNTIME_PREP";
+const MODULE_VERSION = "0.4.1";
+const MODULE_BUILD = "STEP_EVS_10B_TEXT_RUNTIME_TEST_HELPERS";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -134,7 +132,7 @@ const MODULE_META = {
   build: MODULE_BUILD,
   type: "runtime",
   category: "events",
-  description: "Zentrales Event-System Backend: Entwürfe, Validierung, Punkte, Ranking, Bus-Status, Text-Multi-Satz-Config, Textvarianten, globale Config, Communication-Bus Heartbeat und erste Text-Chat-Runtime.",
+  description: "Zentrales Event-System Backend: Entwürfe, Validierung, Punkte, Ranking, Bus-Status, Text-Multi-Satz-Config, Textvarianten, globale Config, Communication-Bus Heartbeat, erste Text-Chat-Runtime und sichere Text-Runtime Testhelfer.",
   routesPrefix: ["/api/stream-events"],
   bus: {
     registered: true,
@@ -1412,6 +1410,163 @@ function registerTextChatSubscription() {
   return result;
 }
 
+
+function getTextRuntimeReport(eventUid = "") {
+  ensureSchema();
+  const selectedEvent = cleanString(eventUid) ? getEventByUid(eventUid) : getActiveEvent();
+  const uid = selectedEvent ? selectedEvent.eventUid : cleanString(eventUid);
+  if (!uid) {
+    return {
+      ok: true,
+      module: MODULE_NAME,
+      moduleVersion: MODULE_VERSION,
+      moduleBuild: MODULE_BUILD,
+      activeEvent: null,
+      event: null,
+      wordHits: [],
+      phraseSolves: [],
+      ranking: { ok: false, error: "event_uid_required", rows: [] },
+      note: "Kein aktives Event und keine eventUid angegeben.",
+      updatedAt: nowIso()
+    };
+  }
+
+  const wordHits = database.all(`
+    SELECT hit_uid, event_uid, phrase_uid, phrase_index, phrase_number, word_key, word_original,
+           user_login, user_display_name, points_awarded, chat_message_id, chat_message, created_at
+    FROM stream_events_text_word_hits
+    WHERE event_uid = :eventUid
+    ORDER BY created_at DESC, id DESC
+    LIMIT 200
+  `, { eventUid: uid }).map(row => ({
+    hitUid: row.hit_uid,
+    eventUid: row.event_uid,
+    phraseUid: row.phrase_uid,
+    phraseIndex: Number(row.phrase_index || 0),
+    phraseNumber: Number(row.phrase_number || 0),
+    wordKey: row.word_key || "",
+    wordOriginal: row.word_original || row.word_key || "",
+    userLogin: row.user_login || "",
+    userDisplayName: row.user_display_name || row.user_login || "",
+    pointsAwarded: Number(row.points_awarded || 0),
+    chatMessageId: row.chat_message_id || "",
+    chatMessage: row.chat_message || "",
+    createdAt: row.created_at || ""
+  }));
+
+  const phraseSolves = database.all(`
+    SELECT solve_uid, event_uid, phrase_uid, phrase_index, phrase_number,
+           user_login, user_display_name, points_awarded, chat_message_id, chat_message, created_at
+    FROM stream_events_text_phrase_solves
+    WHERE event_uid = :eventUid
+    ORDER BY created_at DESC, id DESC
+    LIMIT 200
+  `, { eventUid: uid }).map(row => ({
+    solveUid: row.solve_uid,
+    eventUid: row.event_uid,
+    phraseUid: row.phrase_uid,
+    phraseIndex: Number(row.phrase_index || 0),
+    phraseNumber: Number(row.phrase_number || 0),
+    userLogin: row.user_login || "",
+    userDisplayName: row.user_display_name || row.user_login || "",
+    pointsAwarded: Number(row.points_awarded || 0),
+    chatMessageId: row.chat_message_id || "",
+    chatMessage: row.chat_message || "",
+    createdAt: row.created_at || ""
+  }));
+
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    activeEvent: publicEventSummary(getActiveEvent()),
+    event: publicEventSummary(selectedEvent),
+    eventUid: uid,
+    counts: {
+      wordHits: wordHits.length,
+      phraseSolves: phraseSolves.length
+    },
+    wordHits,
+    phraseSolves,
+    ranking: getRanking(uid),
+    updatedAt: nowIso()
+  };
+}
+
+function createTextRuntimeTestEvent(body = {}) {
+  ensureSchema();
+  const name = cleanString(body.name, "EVS Text-Runtime Test");
+  const startImmediately = boolValue(body.start ?? body.startImmediately);
+  const phrases = Array.isArray(body.phrases) && body.phrases.length ? body.phrases : [
+    {
+      uid: "test_phrase_1",
+      phrase: "Forrest und Engel machen Party mit der Community",
+      acceptedAnswers: [
+        "Forrest und Engel machen Party mit der Community",
+        "forrest engel party community"
+      ],
+      pointsFirst: 40,
+      active: true
+    },
+    {
+      uid: "test_phrase_2",
+      phrase: "Die Rentnergang findet den geheimen Satz",
+      acceptedAnswers: [
+        "Die Rentnergang findet den geheimen Satz",
+        "rentnergang geheimer satz"
+      ],
+      pointsFirst: 35,
+      active: true
+    }
+  ];
+
+  const event = createEvent({
+    name,
+    description: cleanString(body.description, "Automatisch angelegtes Test-Event fuer die EVS Text-Chat-Runtime."),
+    soundEnabled: false,
+    textEnabled: true,
+    textConfig: {
+      phrases,
+      partialHintsEnabled: body.partialHintsEnabled !== undefined ? boolValue(body.partialHintsEnabled) : true,
+      partialHintVisibility: cleanString(body.partialHintVisibility, "with_sentence"),
+      showPartialWordCount: body.showPartialWordCount !== undefined ? boolValue(body.showPartialWordCount) : true,
+      wordPointsEnabled: body.wordPointsEnabled !== undefined ? boolValue(body.wordPointsEnabled) : true,
+      pointsPerNewWord: clampNumber(body.pointsPerNewWord, 0, 1000, 1),
+      maxWordPointsPerUserPhrase: clampNumber(body.maxWordPointsPerUserPhrase, 0, 10000, 5),
+      partialHintCooldownSeconds: clampNumber(body.partialHintCooldownSeconds, 0, 3600, 0),
+      tokenMinLength: clampNumber(body.tokenMinLength, 1, 20, 3),
+      uniqueWordPerUserPhrase: true
+    },
+    metadata: {
+      testEvent: true,
+      createdByHelper: "text-runtime-test-event",
+      step: MODULE_BUILD
+    },
+    createdBy: cleanString(body.createdBy || body.actor, "evs_test_helper")
+  });
+
+  const validated = validateStoredEvent(event.eventUid);
+  const started = startImmediately ? startEvent(event.eventUid) : null;
+  return {
+    ok: true,
+    event: publicEventSummary(getEventByUid(event.eventUid)),
+    eventUid: event.eventUid,
+    validated: publicEventSummary(validated),
+    started,
+    testMessages: [
+      { user: "testuser", message: "Party" },
+      { user: "testuser", message: "Forrest Engel Party" },
+      { user: "andereruser", message: "Forrest und Engel machen Party mit der Community" }
+    ],
+    routes: {
+      testChat: "/api/stream-events/text-runtime/test-chat",
+      report: "/api/stream-events/text-runtime/report"
+    },
+    note: "Dieser Helper legt nur auf ausdrueckliches confirm=1 ein Test-Event an. Er sendet nichts direkt in den Twitch-Chat."
+  };
+}
+
 function getTextRuntimeStatus() {
   ensureSchema();
   const activeEvent = getActiveEvent();
@@ -1592,7 +1747,9 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "GET", path: `${prefix}/status`, description: "Stream-Events Backendstatus" },
       { method: "GET", path: `${prefix}/bus-status`, description: "Stream-Events Communication-Bus Registrierung, Heartbeat und letzte Bus-Events" },
       { method: "GET", path: `${prefix}/text-runtime/status`, description: "Text-Spiel Chat-Runtime Status" },
+      { method: "GET", path: `${prefix}/text-runtime/report`, description: "Text-Spiel Runtime Report fuer aktives oder angegebenes Event" },
       { method: "POST", path: `${prefix}/text-runtime/test-chat`, description: "Testet eine Chatnachricht gegen das aktive Text-Event" },
+      { method: "POST", path: `${prefix}/text-runtime/create-test-event`, description: "Legt mit confirm=1 ein sicheres Text-Runtime-Testevent an" },
       { method: "GET", path: `${prefix}/routes`, description: "Route-Selbstdokumentation" },
       { method: "GET", path: `${prefix}/config`, description: "Globale Event-System Config lesen" },
       { method: "POST", path: `${prefix}/config`, description: "Globale Event-System Config speichern" },
@@ -1610,7 +1767,7 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "POST", path: `${prefix}/events/:eventUid/points`, description: "Manuelle/Modul-Punkte buchen (nur aktives Event)" }
     ],
     notes: [
-      "EVS-10 verarbeitet Text-Chatnachrichten aus twitch.chat.message fuer aktive Text-Events; kein Sound-/Video-Playback und kein direkter Chat-Send.",
+      "EVS-10b verarbeitet Text-Chatnachrichten aus twitch.chat.message fuer aktive Text-Events und bietet sichere Testhelfer; kein Sound-/Video-Playback und kein direkter Chat-Send.",
       "Sound/Text-Konfiguration wird als DB-Snapshot am Event gespeichert.",
       "Nur ein aktives Event gleichzeitig."
     ]
@@ -1717,6 +1874,30 @@ module.exports.init = function init(ctx) {
       sendJson(res, getTextRuntimeStatus());
     } catch (err) {
       handleError(res, err);
+    }
+  });
+
+  reg("get", `${prefix}/text-runtime/report`, (req, res) => {
+    try {
+      sendJson(res, getTextRuntimeReport(req.query.eventUid || req.query.event_uid || ""));
+    } catch (err) {
+      handleError(res, err);
+    }
+  });
+
+  reg("post", `${prefix}/text-runtime/create-test-event`, (req, res) => {
+    try {
+      const confirm = String(req.query.confirm || (req.body && req.body.confirm) || "").trim();
+      if (confirm !== "1") {
+        return sendJson(res, {
+          ok: false,
+          error: "confirm_required",
+          hint: "POST /api/stream-events/text-runtime/create-test-event?confirm=1 optional mit { start: true }"
+        }, 400);
+      }
+      sendJson(res, createTextRuntimeTestEvent(req.body || {}));
+    } catch (err) {
+      handleError(res, err, 400);
     }
   });
 

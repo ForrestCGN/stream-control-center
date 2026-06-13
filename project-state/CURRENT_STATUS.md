@@ -45,3 +45,13 @@ Aktueller Stand: `stream_events` hat nun einen eigenen sichtbaren EventBus-/Hear
 Nicht enthalten: Chat-Runtime, Sound-Playback, Worterkennung, automatische Punktevergabe, Overlay.
 
 EVS-10 Text Chat Runtime Prep ist vorbereitet. Text-Spiel kann aktive Events ueber twitch.chat.message aus dem bestehenden Communication-Bus auswerten; Worttreffer und Satzloesungen werden gespeichert und Punkte optional gebucht. Kein Sound-Playback, Overlay oder direkter Chat-Send in diesem Step.
+
+
+## EVS-10b – Text Runtime Test Helpers
+
+- Build: `STEP_EVS_10B_TEXT_RUNTIME_TEST_HELPERS`
+- Backend-Version: `stream_events` 0.4.1
+- Sichere Testhelfer fuer Text-Runtime hinzugefuegt.
+- Neue Route: `GET /api/stream-events/text-runtime/report`
+- Neue Route: `POST /api/stream-events/text-runtime/create-test-event?confirm=1`
+- Keine direkte Chat-Ausgabe, kein Sound-Playback, kein Overlay.
