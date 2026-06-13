@@ -1,23 +1,26 @@
 # TODO
 
-Stand: EVS-4b / Stream Events Sound Media Layout Cleanup  
+Stand: EVS-5 / Stream Events Text Game Config Layout Cleanup  
 Datum: 2026-06-13
+
+## Kurzfristig
+
+- [ ] EVS-5 ZIP in `D:\Git\stream-control-center` entpacken.
+- [ ] `node -c .\htdocs\dashboard\modules\stream_events.js` ausführen.
+- [ ] `stepdone.cmd` für EVS-5 ausführen.
+- [ ] Erst danach Dashboard/Live-System prüfen.
 
 ## Event-System
 
-- [x] EVS-1 Planungsdoku erstellt.
-- [x] EVS-2 Backend Foundation erstellt.
-- [x] EVS-2 Backendstatus vom Nutzer erfolgreich getestet.
-- [x] EVS-3 Dashboard Skeleton erstellt.
-- [x] EVS-4 Media-System-Picker im Dashboard vorbereitet.
-- [x] EVS-4b Sound-/Video-Auswahl im Modal klarer aufgeteilt.
-- [ ] EVS-4b nach StepDone im Dashboard testen.
+- [x] Backend-Basis `stream_events` erstellt.
+- [x] Dashboard-Skeleton erstellt.
+- [x] MediaPicker für Audio-Schnipsel vorbereitet.
+- [x] MediaPicker für optionales Auflösungs-Video vorbereitet.
+- [x] Sound-Konfiguration optisch in Audio/Video-Karten aufgeteilt.
+- [x] Text-Konfiguration optisch in Pflicht/Optional/Punkte-Karten aufgeteilt.
 - [ ] Mehrere Sound-Schnipsel pro Event planen/umsetzen.
 - [ ] Mehrere Text-/Geheimsätze pro Event planen/umsetzen.
 - [ ] Sound-Rundensteuerung planen.
-- [ ] Chat-Auswertung planen.
-- [ ] Overlay-/Playback-Anbindung planen.
-
-## Wichtige Regel
-
-- [ ] Vor Live-/Dashboard-Test immer zuerst `stepdone.cmd` nach Übernahme ausführen.
+- [ ] Chat-Auswertung über `twitch.chat.message` planen.
+- [ ] Event-Overlay planen.
+- [ ] Playback-Anbindung an Sound-/Media-System planen.

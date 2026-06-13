@@ -1,13 +1,13 @@
 # NEXT STEPS
 
-Stand: EVS-4b / Stream Events Sound Media Layout Cleanup  
+Stand: EVS-5 / Stream Events Text Game Config Layout Cleanup  
 Datum: 2026-06-13
 
 ## Sofort nach Übernahme
 
 ```powershell
 node -c .\htdocs\dashboard\modules\stream_events.js
-.\stepdone.cmd "EVS-4b Stream Events Sound Media Layout Cleanup"
+.\stepdone.cmd "EVS-5 Stream Events Text Game Config Layout Cleanup"
 ```
 
 Erst danach Dashboard im Live-System testen.
@@ -15,28 +15,27 @@ Erst danach Dashboard im Live-System testen.
 ## Manuelle Prüfung
 
 ```text
-Dashboard → Community → Event-System → Neues Event → Sound-Spiel konfigurieren
+Dashboard → Community → Event-System → Neues Event → Text-/Geheimsatz-Spiel aktivieren
 ```
 
 Prüfen:
 
-- Audio-Schnipsel steht in eigener Karte.
-- Audio-Schnipsel ist als Pflicht sichtbar.
-- Auflösungs-Video steht in eigener Karte.
-- Video ist als optional sichtbar.
-- Audio-Auswahl öffnet MediaPicker mit Audio.
-- Video-Auswahl öffnet MediaPicker mit Video/Animation.
+- Text-Spiel-Bereich ist sauber in Karten aufgeteilt.
+- Geheimsatz ist als Pflicht sichtbar.
+- Antworten & Hinweise sind als optional sichtbar.
+- Hinweiswörter-Feld ist vorhanden.
+- Punkte & Zeitfenster stehen in eigener Karte.
 - Auf kleinerer Fensterbreite fallen die Karten untereinander.
 - Speichern bleibt möglich.
 - Validierung bleibt verständlich.
 
 ## Nächster fachlicher Schritt
 
-EVS-5 sollte die Konfiguration robuster machen:
+EVS-6 sollte nicht sofort die komplette Live-Logik bauen, sondern zunächst die Datenpflege robuster machen:
 
 ```text
-- mehrere Sound-Schnipsel pro Event
-- mehrere Text-/Geheimsätze pro Event
+- mehrere Sound-Schnipsel pro Event verwalten
+- mehrere Text-/Geheimsätze pro Event verwalten
 - Hinzufügen/Bearbeiten/Entfernen je Spieltyp
 - weiterhin Media-System für Medien
 - weiterhin DB-Snapshot am Event
@@ -45,7 +44,7 @@ EVS-5 sollte die Konfiguration robuster machen:
 Danach erst:
 
 ```text
-EVS-6 Sound-Rundensteuerung
-EVS-7 Chat-Auswertung
-EVS-8 Overlay/Playback-Anbindung
+EVS-7 Sound-Rundensteuerung
+EVS-8 Chat-Auswertung
+EVS-9 Overlay/Playback-Anbindung
 ```

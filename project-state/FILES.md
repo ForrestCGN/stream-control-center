@@ -1,6 +1,6 @@
 # FILES
 
-Stand: EVS-4b / Stream Events Sound Media Layout Cleanup  
+Stand: EVS-5 / Stream Events Text Game Config Layout Cleanup  
 Datum: 2026-06-13
 
 ## In diesem ZIP enthalten
@@ -9,7 +9,7 @@ Datum: 2026-06-13
 htdocs/dashboard/modules/stream_events.js
 htdocs/dashboard/modules/stream_events.css
 docs/modules/stream_events.md
-docs/current/CURRENT_CHAT_HANDOFF_EVS_4B_SOUND_MEDIA_LAYOUT_CLEANUP.md
+docs/current/CURRENT_CHAT_HANDOFF_EVS_5_TEXT_GAME_CONFIG_LAYOUT_CLEANUP.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -17,17 +17,25 @@ project-state/CHANGELOG.md
 project-state/FILES.md
 ```
 
-## Wichtig
+## Geändert
 
-`htdocs/dashboard/index.html` wird in diesem Mini-Step nicht geändert und ist deshalb nicht enthalten. EVS-3/EVS-4 haben die Dashboard-Einbindung bereits geliefert.
+```text
+htdocs/dashboard/modules/stream_events.js
+htdocs/dashboard/modules/stream_events.css
+docs/modules/stream_events.md
+docs/current/CURRENT_CHAT_HANDOFF_EVS_5_TEXT_GAME_CONFIG_LAYOUT_CLEANUP.md
+project-state/*
+```
 
-## Nicht enthalten / nicht geändert
+## Nicht geändert
 
 ```text
 backend/modules/stream_events.js
-backend/core/database.js
-Media-System Backend
-Sound-System Backend
-Overlays
 htdocs/dashboard/index.html
+htdocs/dashboard/app.js
+Datenbank
+Media-System
+Sound-System
+Twitch-/Chat-Module
+Overlay-Dateien
 ```

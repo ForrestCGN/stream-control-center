@@ -1,34 +1,37 @@
 # CHANGELOG
 
-## EVS-4b / Stream Events Sound Media Layout Cleanup – 2026-06-13
+## EVS-5 / Stream Events Text Game Config Layout Cleanup – 2026-06-13
 
-- Sound-Konfigurationsbereich im Event-Modal neu angeordnet.
-- Audio-Schnipsel als Pflicht-Karte dargestellt.
-- Auflösungs-Video als optionale Karte dargestellt.
-- MediaField-Buttons kompakter und kontextbezogen beschriftet.
-- Responsive Verhalten ergänzt: Desktop nebeneinander, kleinere Auflösung untereinander.
-- Kein Backend-/DB-/Playback-/Overlay-Umbau.
+- Text-Spiel-Konfiguration im Dashboard-Modal in Karten aufgeteilt.
+- `Geheimsatz` als Pflichtbereich markiert.
+- `Antworten & Hinweise` als optionaler Bereich markiert.
+- Hinweiswörter/Suchwörter-Feld vorbereitet.
+- Punkte und Zeitfenster in eigene Karte verschoben.
+- Feldtext `Zeitfenster für weitere Löser` verständlicher formuliert.
+- Keine Backendänderung.
+- Keine Datenbankänderung.
+- Keine Chat-/Playback-/Overlay-Änderung.
 
-## EVS-4 / Stream Events Media Picker Prep – 2026-06-13
+## EVS-4b / Sound Media Layout Cleanup – 2026-06-13
 
-- Event-Dashboard nutzt für Sound-Schnipsel das vorhandene Media-System.
-- Optionales Auflösungs-Video nutzt ebenfalls vorhandenes Media-System.
-- Keine neue Upload-Struktur gebaut.
-- Keine neue Playback-Struktur gebaut.
-- Keine Backend-/DB-Änderung.
-- Keine Chat-Auswertung.
-- Keine Overlay-Änderung.
+- Sound-Konfiguration im Dashboard-Modal in zwei Karten aufgeteilt.
+- Audio-Schnipsel als Pflichtbereich markiert.
+- Auflösungs-Video als optionaler Bereich markiert.
+- MediaField-Buttons kompakter angeordnet.
+- Keine Backend-/DB-/Playback-Änderung.
 
-## EVS-3 / Stream Events Dashboard Skeleton – 2026-06-13
+## EVS-4 / Media Picker Prep – 2026-06-13
 
-- Dashboard-Modul für `stream_events` erstellt.
-- Eventliste, Event-Erstellung, Sound/Text-Auswahl und Validierungsstatus vorbereitet.
-- Start/Beenden/Abbrechen mit Bestätigung vorbereitet.
-- Ranking-Anzeige vorbereitet.
+- Sound-Schnipsel-Auswahl über vorhandenes Media-System vorbereitet.
+- Optionales Auflösungs-Video über vorhandenes Media-System vorbereitet.
+- Keine eigene Upload-Struktur gebaut.
 
-## EVS-2 / Stream Events Backend Foundation – 2026-06-13
+## EVS-3 / Dashboard Skeleton – 2026-06-13
 
-- Backend-Modul `backend/modules/stream_events.js` erstellt.
-- Status-/Routes-/Events-/Ranking-/Punkte-Routen vorbereitet.
-- DB-Schema für Events, Punkte und Rundenhistorie vorbereitet.
-- Bus-Registrierung/Heartbeat/Status vorbereitet.
+- Dashboard-Modul für Stream Events erstellt.
+- Eventliste, Event-Erstellung, Validierung und Ranking-Anzeige vorbereitet.
+
+## EVS-2 / Backend Foundation – 2026-06-13
+
+- Backend-Modul `stream_events` erstellt.
+- Routen, DB-Schema, Validierung, Ranking und Bus-Heartbeat vorbereitet.

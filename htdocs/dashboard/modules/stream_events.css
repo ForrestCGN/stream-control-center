@@ -67,3 +67,12 @@
 .stream-events-admin .evs-media-field .media-field-preview{grid-column:1/-1;min-height:42px}
 .stream-events-admin .evs-media-field [data-media-field-value]{display:none}
 @media(max-width:980px){.stream-events-admin .evs-sound-media-grid{grid-template-columns:1fr}.stream-events-admin .evs-media-field{grid-template-columns:1fr}.stream-events-admin .evs-media-field [data-media-field-clear]{width:100%}}
+
+/* EVS-5: Text-Spiel Konfiguration klarer strukturieren */
+.stream-events-admin .evs-text-game-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(280px,.95fr);gap:12px;align-items:start;margin-top:12px}
+.stream-events-admin .evs-text-card{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.035);border-radius:16px;padding:12px;display:grid;gap:10px;align-content:start;min-width:0}
+.stream-events-admin .evs-text-card-required{border-color:rgba(34,211,238,.30);box-shadow:0 0 18px rgba(34,211,238,.055)}
+.stream-events-admin .evs-text-card-optional{border-color:rgba(148,163,184,.22);background:rgba(255,255,255,.026)}
+.stream-events-admin .evs-text-card-points{grid-column:1/-1;border-color:rgba(168,85,247,.20);background:rgba(255,255,255,.028)}
+.stream-events-admin .evs-text-card textarea{min-height:88px;resize:vertical}
+@media(max-width:980px){.stream-events-admin .evs-text-game-grid{grid-template-columns:1fr}.stream-events-admin .evs-text-card-points{grid-column:auto}}

@@ -1,41 +1,38 @@
 # CURRENT STATUS
 
-Stand: EVS-4b / Stream Events Sound Media Layout Cleanup  
+Stand: EVS-5 / Stream Events Text Game Config Layout Cleanup  
 Datum: 2026-06-13  
 Projekt: ForrestCGN / stream-control-center
 
 ## Zweck dieses Stands
 
-EVS-4b verbessert nur die Dashboard-Anordnung der Sound-Spiel-Konfiguration. Die Medienauswahl bleibt vollständig über das vorhandene Media-System gelöst.
+EVS-5 verbessert nur die Dashboard-Anordnung der Text-/Geheimsatz-Spiel-Konfiguration im Event-Erstellen/Bearbeiten-Dialog.
 
 ## Bestätigte Grundlage
 
 - EVS-2 Backendstatus wurde vom Nutzer erfolgreich getestet.
 - EVS-3 Dashboard Skeleton wurde übernommen.
 - EVS-4 MediaPicker-Prep wurde im Dashboard sichtbar getestet.
-- Nutzerhinweis: StepDone vor Live-/Dashboard-Test beachten.
+- EVS-4b Sound-/Video-Karten wurden im Dashboard sichtbar getestet und als Richtung bestätigt.
+- Nutzerhinweis bleibt verbindlich: `stepdone.cmd` vor Live-/Dashboard-Test.
 
-## EVS-4b Änderung
+## EVS-5 Änderung
 
-Im Event-Erstellen/Bearbeiten-Dialog wurde der Bereich `Sound-Spiel konfigurieren` neu angeordnet:
-
-```text
-Audio-Schnipsel – Pflicht
-Auflösungs-Video – Optional
-```
-
-Desktop:
+Im Bereich `Text-Spiel konfigurieren` wurde das Formular in klare Karten aufgeteilt:
 
 ```text
-Audio-Karte | Video-Karte
+Geheimsatz – Pflicht
+Antworten & Hinweise – Optional
+Punkte & Zeitfenster
 ```
 
-Kleinere Auflösungen:
+Neu/verbessert:
 
-```text
-Audio-Karte
-Video-Karte
-```
+- Geheimsatz ist als Pflicht sichtbar.
+- Antwortvarianten sind als optional sichtbar.
+- Hinweiswörter/Suchwörter sind vorbereitet.
+- Feldtext `Weitere Löser Zeitfenster` wurde verständlicher als `Zeitfenster für weitere Löser` formuliert.
+- Layout bleibt responsive: Desktop nebeneinander, kleinere Breite untereinander.
 
 ## Nicht geändert
 
@@ -45,7 +42,8 @@ Datenbank
 Twitch-Chat-Auswertung
 Sound-/Video-Playback
 Overlay
-Media-System selbst
+Media-System
+Sound-Konfig-Logik
 ```
 
 ## Testregel
@@ -53,5 +51,5 @@ Media-System selbst
 Vor Live-/Dashboard-Test:
 
 ```powershell
-.\stepdone.cmd "EVS-4b Stream Events Sound Media Layout Cleanup"
+.\stepdone.cmd "EVS-5 Stream Events Text Game Config Layout Cleanup"
 ```

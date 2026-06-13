@@ -303,11 +303,43 @@ window.StreamEventsModule = (function(){
 
             <details class="evs-config-box" ${event.textEnabled ? 'open' : ''}>
               <summary>Text-Spiel konfigurieren</summary>
-              <label>Geheimsatz<textarea id="evsPhraseText" rows="2" placeholder="z. B. Forrest und Engel machen Party...">${esc(phrase.phrase || phrase.text || phrase.solution || '')}</textarea></label>
-              <label>Erlaubte Antworten, mit Komma getrennt<input id="evsPhraseAnswers" value="${esc((phrase.acceptedAnswers || []).join(', '))}" placeholder="optional"></label>
-              <div class="evs-two-cols">
-                <label>Punkte erster Löser<input id="evsPhrasePoints" type="number" min="0" value="${esc(phrase.pointsFirst || phrase.points || 40)}"></label>
-                <label>Weitere Löser Zeitfenster<input id="evsPhraseFollowupSeconds" type="number" min="0" value="${esc(text.followupSeconds || 60)}"></label>
+              <div class="evs-text-game-grid">
+                <section class="evs-text-card evs-text-card-required">
+                  <div class="evs-sound-card-head">
+                    <div>
+                      <strong>Geheimsatz</strong>
+                      <small>Pflicht · diesen Satz sollen die Zuschauer lösen</small>
+                    </div>
+                    <span class="evs-badge evs-badge-warn">Pflicht</span>
+                  </div>
+                  <label>Geheimsatz<textarea id="evsPhraseText" rows="3" placeholder="z. B. Forrest und Engel machen Party...">${esc(phrase.phrase || phrase.text || phrase.solution || '')}</textarea></label>
+                </section>
+
+                <section class="evs-text-card evs-text-card-optional">
+                  <div class="evs-sound-card-head">
+                    <div>
+                      <strong>Antworten & Hinweise</strong>
+                      <small>Optional · Varianten und Hinweiswörter für später</small>
+                    </div>
+                    <span class="evs-badge evs-badge-muted">Optional</span>
+                  </div>
+                  <label>Erlaubte Antworten, mit Komma getrennt<input id="evsPhraseAnswers" value="${esc((phrase.acceptedAnswers || []).join(', '))}" placeholder="optional, z. B. forrest engel party, forrest und engel machen party"></label>
+                  <label>Hinweiswörter / Suchwörter<input id="evsPhraseHints" value="${esc(((phrase.hintWords || phrase.keywords || text.hintWords || [])).join(', '))}" placeholder="optional, z. B. community, party, forrest, engel"></label>
+                  <small class="evs-help">Antwortvarianten helfen später bei der Chat-Auswertung. Hinweiswörter sind vorbereitet, lösen aber in diesem Step noch keine Punkte aus.</small>
+                </section>
+
+                <section class="evs-text-card evs-text-card-points">
+                  <div class="evs-sound-card-head">
+                    <div>
+                      <strong>Punkte & Zeitfenster</strong>
+                      <small>Regeln für Gewinner und weitere richtige Antworten</small>
+                    </div>
+                  </div>
+                  <div class="evs-two-cols">
+                    <label>Punkte erster Löser<input id="evsPhrasePoints" type="number" min="0" value="${esc(phrase.pointsFirst || phrase.points || 40)}"></label>
+                    <label>Zeitfenster für weitere Löser<input id="evsPhraseFollowupSeconds" type="number" min="0" value="${esc(text.followupSeconds || 60)}"></label>
+                  </div>
+                </section>
               </div>
             </details>
 
@@ -344,9 +376,11 @@ window.StreamEventsModule = (function(){
 
     const phraseText = document.getElementById('evsPhraseText')?.value || '';
     const phraseAnswers = splitCsv(document.getElementById('evsPhraseAnswers')?.value || '');
+    const phraseHints = splitCsv(document.getElementById('evsPhraseHints')?.value || '');
     payload.textConfig = {
       followupSeconds: Number(document.getElementById('evsPhraseFollowupSeconds')?.value || 60),
-      phrases: phraseText ? [{ phrase: phraseText, acceptedAnswers: phraseAnswers, pointsFirst: Number(document.getElementById('evsPhrasePoints')?.value || 40) }] : []
+      hintWords: phraseHints,
+      phrases: phraseText ? [{ phrase: phraseText, acceptedAnswers: phraseAnswers, hintWords: phraseHints, pointsFirst: Number(document.getElementById('evsPhrasePoints')?.value || 40) }] : []
     };
 
     return payload;
