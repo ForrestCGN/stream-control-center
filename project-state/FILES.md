@@ -1,6 +1,6 @@
 # FILES – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-19
+Stand: 2026-06-13 nach EVS-19e
 
 ## Aktive Projektdateien
 
@@ -13,6 +13,9 @@ docs/current/CURRENT_CHAT_HANDOFF_EVS_18_SOUND_TWITCH_CHAT_ANSWER_RUNTIME.md
 docs/current/CURRENT_CHAT_HANDOFF_EVS_18C_EVENT_LIFECYCLE_ARCHIVE_RULES.md
 docs/current/CURRENT_CHAT_HANDOFF_EVS_19_SOUND_TEXT_PARALLEL_AND_RUNTIME.md
 docs/current/CURRENT_CHAT_HANDOFF_EVS_19A_STEALTH_TEST_EVENT_FIX.md
+docs/current/CURRENT_CHAT_HANDOFF_EVS_19B_PARALLEL_TEST_EVENT_ACTIVATION_FIX.md
+docs/current/CURRENT_CHAT_HANDOFF_EVS_19E_TEXT_OPTIONS_REGRESSION_FIX.md
+docs/current/CURRENT_CHAT_HANDOFF_EVS_19E_COMPLETION_DOCUMENTATION.md
 project-state/CURRENT_STATUS.md
 project-state/TODO.md
 project-state/NEXT_STEPS.md
@@ -72,20 +75,6 @@ GET  /api/stream-events/events/:eventUid/ranking
 POST /api/stream-events/events/:eventUid/points
 ```
 
-Config/Texte:
-
-```text
-GET  /api/stream-events/config
-POST /api/stream-events/config
-GET  /api/stream-events/texts
-```
-
-Bus:
-
-```text
-GET /api/stream-events/bus-status
-```
-
 Text Runtime:
 
 ```text
@@ -93,15 +82,6 @@ GET  /api/stream-events/text-runtime/status
 GET  /api/stream-events/text-runtime/report
 POST /api/stream-events/text-runtime/test-chat
 POST /api/stream-events/text-runtime/create-test-event?confirm=1
-```
-
-User Statistik:
-
-```text
-GET /api/stream-events/statistics/users
-GET /api/stream-events/statistics/users?eventUid=<eventUid>
-GET /api/stream-events/statistics/user/:login
-GET /api/stream-events/statistics/user/:login?eventUid=<eventUid>
 ```
 
 Sound Runtime:
@@ -114,6 +94,13 @@ POST /api/stream-events/sound-runtime/next-round
 POST /api/stream-events/sound-runtime/resolve
 POST /api/stream-events/sound-runtime/unresolved
 POST /api/stream-events/sound-runtime/test-chat
+```
+
+Kombi-/Chat Runtime:
+
+```text
+POST /api/stream-events/chat-runtime/create-stealth-test-event?confirm=1
+POST /api/stream-events/chat-runtime/test-chat
 ```
 
 ## Bisherige Artefakte / Steps
@@ -151,8 +138,10 @@ POST /api/stream-events/sound-runtime/test-chat
 - EVS-17b Sound Debug Accepted Answers
 - EVS-18 Sound Twitch Chat Answer Runtime
 - EVS-18c Event Lifecycle Archive Rules
-
 - EVS-19 Sound/Text Parallel AND Runtime
-
 - EVS-19a Stealth Test Event Fix
 - EVS-19b Parallel Test Event Activation Fix
+- EVS-19c Parallel Test Options Fix
+- EVS-19d Parallel Context EventUid Fix
+- EVS-19e Text Options Regression Fix / Parallel AND bestätigt
+```

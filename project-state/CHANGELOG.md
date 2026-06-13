@@ -1,17 +1,46 @@
 # CHANGELOG – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-19
+Stand: 2026-06-13 nach EVS-19e
 
+## EVS-19e – Text Options Regression Fix / Parallel AND bestätigt
 
+- `MODULE_VERSION` auf `0.5.11` erhöht.
+- `MODULE_BUILD` auf `STEP_EVS_19E_TEXT_OPTIONS_REGRESSION_FIX` gesetzt.
+- Regression repariert: `processTextChatMessage(...)` nutzt wieder `options.eventUid`.
+- `processParallelChatMessage(...)` nutzt weiterhin die korrekte Context-/EventUid-Logik.
+- Finaler UND-Test bestätigt:
+  - eine Nachricht wurde an Sound und Text gegeben.
+  - Sound wurde gelöst.
+  - Text wurde gelöst.
+  - beide Punktebuchungen wurden erzeugt.
+  - zwei ChatOutputs wurden nur vorbereitet.
+  - `directSend=false`, `directPlayback=false`, `soundSystemQueueTouched=false`.
 
+Bestätigter Test:
 
+```text
+Event: evs_event_mqcbpyjc_bf53fece7d25
+Nachricht: die heimleitung sucht den schluessel
+soundSolved=true
+textSolved=true
+handledBy=sound,text
+Soundpunkte=30
+Textpunkte=40
+chatOutputCount=2
+directSend=false
+directPlayback=false
+soundSystemQueueTouched=false
+```
 
-## EVS-19d – Parallel Test Options Fix
+## EVS-19d – Parallel Context EventUid Fix
 
-- `chat-runtime/test-chat` nutzt nun korrekt die uebergebene `eventUid` aus dem Test-Kontext.
-- Fehler `options is not defined` im parallelen Testpfad behoben.
-- Sound/Text-UND-Regel bleibt unveraendert.
-- Keine direkte Twitch-Ausgabe, kein Playback, keine Queue-Beruehrung.
+- `processParallelChatMessage(...)` auf Context-basierte EventUid-Prüfung korrigiert.
+- Nachfolgend in EVS-19e eine Text-Regression behoben.
+
+## EVS-19c – Parallel Test Options Fix
+
+- Erster Fixversuch für den `options is not defined` Fehler im Parallel-Testpfad.
+- In EVS-19d/19e final korrigiert.
 
 ## EVS-19b – Parallel Test Event Activation Fix
 
@@ -26,12 +55,11 @@ Stand: 2026-06-13 nach EVS-19
 - Fehler `getTextPhrases is not defined` im neuen Stealth-Testevent-Endpunkt behoben.
 - Lokalen Helper `getTextPhrases(event)` ergänzt.
 - Keine Änderung an direkter Chat-Ausgabe, Playback oder Sound-System-Queue.
-- EVS-19-UND-Regel bleibt aktiv: Sound und Text prüfen dieselbe Chatnachricht parallel.
+- EVS-19-UND-Regel bleibt aktiv.
 
 ## EVS-19 – Sound/Text Parallel AND Runtime
 
 - `MODULE_VERSION` auf `0.5.6` erhöht.
-- `MODULE_BUILD` auf `STEP_EVS_19A_STEALTH_TEST_EVENT_FIX` gesetzt.
 - Neue Parallel-UND-Auswertung ergänzt: eine Chatnachricht wird bei aktivem Kombi-Event an Sound und Text gegeben.
 - Soundlösung blockiert Textprüfung nicht mehr.
 - Textlösung blockiert Soundprüfung nicht.
@@ -52,12 +80,10 @@ Stand: 2026-06-13 nach EVS-19
 - Hard-Delete nur später als geschützte Owner/Admin-Aktion mit Bestätigung und Audit planen.
 - Keine Codeänderung.
 - Keine DB-Änderung.
-- Keine Modulversionserhöhung gegenüber EVS-18.
 
 ## EVS-18 – Sound Twitch Chat Answer Runtime
 
 - Echte `twitch.chat.message` Bus-Events für aktive Sound-Runden ausgewertet.
-- Sound- und Text-Dispatcher koexistenzsicher vorbereitet.
 - Richtige Soundantwort löst aktive Soundrunde.
 - Falsche Soundantwort erzeugt keine Chat-Ausgabe.
 - Punkte werden in das gemeinsame Ranking gebucht.
@@ -65,77 +91,13 @@ Stand: 2026-06-13 nach EVS-19
 - Kein direktes Sound-Playback.
 - Keine Sound-System-Queue-Berührung.
 
-Bestätigter Test:
-
-```text
-moduleVersion=0.5.5
-moduleBuild=STEP_EVS_18_SOUND_TWITCH_CHAT_ANSWER_RUNTIME
-soundChatMessagesProcessed=2
-soundAnswerMisses=1
-soundAnswerMatches=1
-active=0
-solved=4
-soundScoreEntries=4
-chatOutputs=4
-playbackPayloads=0
-directSend=False
-```
-
 ## EVS-17b – Sound Debug Accepted Answers
 
 - Akzeptierte Sound-Antworten im API-/Dashboard-Test sichtbar gemacht.
 - `soundDebug.acceptedAnswersByRound` im Sound-Report ergänzt.
 - Debugausgabe ist ausdrücklich nur für Dashboard/API-Test gedacht.
 - Keine Ausgabe im Overlay oder Twitch-Chat.
-- Keine DB-Änderung.
-- Keine Runtime-Änderung am Playback.
-- Keine Sound-System-Queue-Berührung.
 
-Bestätigter Test:
+## EVS-1 bis EVS-17
 
-```text
-acceptedAnswersText sichtbar für test_sound_1 und test_sound_2
-```
-
-## EVS-17 – Sound Chat Answer Prep
-
-- `POST /api/stream-events/sound-runtime/test-chat` ergänzt.
-- Aktive Sound-Runde kann per Chat-Testantwort gelöst werden.
-- Falsche Antwort wird abgelehnt, ohne ChatOutput zu erzeugen.
-- Richtige Antwort bucht Punkte und erzeugt `sound.solved` ChatOutput.
-
-## EVS-16c – Texte Tab Module Filter Cleanup
-
-- Texte-Tab um Bereichs-Dropdown erweitert.
-- Suche nach Key/Text vorbereitet.
-- Keine Backend-/DB-/Runtime-Änderung.
-
-## EVS-16b – Statistik Tab Layout Cleanup
-
-- Statistik-Buttonreihe durch Untertabs ersetzt.
-- Bereiche: Übersicht, Ranking, Text-Spiel, Sound-Spiel, User.
-- Kein Seitenreload, nur Bereichsaktualisierung.
-
-## EVS-16 – Sound Runtime Dashboard Report
-
-- Sound-Report im Dashboard vorbereitet.
-- Sound-Runden, Punkte, Ranking, ChatOutputs und PlaybackPayloads sichtbar.
-
-## EVS-15 – Sound Runtime Test Helpers
-
-- Sound-Testevent mit Test-Snippets ergänzt.
-- Testflow für `next-round`, `resolve`, `report`.
-
-## EVS-14 – Sound Runtime Prep
-
-- Sound-Runden vorbereitet.
-- Resolve/Unresolved vorbereitet.
-- Playback-Payload nur prepared-only.
-
-## EVS-10 bis EVS-13b
-
-- Text-Runtime, Text-Testhelper, Text-ChatOutputs, Text-Dashboard-Report, User-Statistik und User-Detailmodal aufgebaut.
-
-## EVS-1 bis EVS-9
-
-- Planung, Backend Foundation, Dashboard-Grundstruktur, MediaPicker, Text-/Sound-Konfiguration, Config, Textvarianten, EventBus/Heartbeat aufgebaut.
+- Planung, Backend Foundation, Dashboard-Grundstruktur, MediaPicker, Text-/Sound-Konfiguration, Config, Textvarianten, EventBus/Heartbeat, Text-Runtime, User-Statistik, Sound-Runtime und Sound-Testhelper aufgebaut.

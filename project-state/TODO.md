@@ -1,6 +1,6 @@
 # TODO – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-19
+Stand: 2026-06-13 nach EVS-19e
 
 ## Erledigt / bestätigt
 
@@ -27,34 +27,28 @@ Stand: 2026-06-13 nach EVS-19
 - [x] Sound-Report im Dashboard
 - [x] Sound-Testchat-Antwortauswertung
 - [x] Sound-Debug Accepted Answers
-- [x] EVS-18: Echter `twitch.chat.message` Bus-Stream für Soundantworten bestätigt
-- [x] Sound-Misses zählen/verarbeiten, ohne Chat-Spam auszugeben
-- [x] Event-Lifecycle/Archiv-Regeln dokumentiert: Werte bleiben eventUid-gebunden, neues Event bekommt eigenes Ranking
+- [x] EVS-18: echten `twitch.chat.message` Bus-Stream für Soundantworten nutzen
+- [x] EVS-18c: Event-Lifecycle-/Archiv-Regeln dokumentieren
+- [x] EVS-19: Sound/Text Parallel-UND-Auswertung einführen
+- [x] EVS-19a: Stealth-Testevent Helper reparieren
+- [x] EVS-19b: Stealth-Testevent aktivieren und alte Testevents archivieren
+- [x] EVS-19c/19d/19e: Options-/Context-Regressionen im Parallel-Testpfad reparieren
+- [x] EVS-19e: eine Nachricht löst Sound UND Text im selben Event
 
 ## Kurzfristig offen
 
-- [x] EVS-19d Parallel Test Options Fix: `chat-runtime/test-chat` nutzt die uebergebene `eventUid` korrekt.
-
-
-- [x] `POST /api/stream-events/chat-runtime/create-stealth-test-event?confirm=1` vorbereitet.
-- [x] `POST /api/stream-events/chat-runtime/test-chat` vorbereitet.
-- [x] EVS-19 nach StepDone mit API testen.
-- [ ] EVS-19 danach mit echter Twitch-Chatnachricht testen.
-
-- [x] EVS-19: Sound/Text Runtime Koexistenz + Stealth-Testevent Code vorbereitet.
-- [ ] Prüfen, ob Text-Runtime und Sound-Runtime gemeinsam denselben Twitch-Chat-Event sauber auswerten, ohne sich gegenseitig zu stören.
-- [ ] Prüfen, dass falsche Soundantworten Textprüfung nicht blockieren.
-- [ ] Prüfen, dass richtige Soundantworten nicht zusätzlich Textpunkte auslösen.
-- [ ] Dashboard Sound-Spiel: aktive Runde noch deutlicher anzeigen.
-- [ ] Dashboard Statistik/User-Popup nach EVS-16b/16c im Browser prüfen.
-- [ ] Dashboard/Reports standardmäßig aktives Event fokussieren und alte Eventwerte nicht als aktive Werte anzeigen.
+- [ ] Doku-/Dashboard-Anzeige für Kombi-Runtime noch im Browser prüfen.
+- [ ] Text-Runtime-Report nach EVS-19e erneut gegen echtes Stealth-Event prüfen.
+- [ ] Sound-Misses zählen und im Report übersichtlich anzeigen, ohne Chat-Spam.
+- [ ] Dashboard Sound-Spiel: aktive Runde deutlicher anzeigen.
+- [ ] Dashboard Statistik/User-Popup nach EVS-19e im Browser prüfen.
 
 ## Mittelfristig offen
 
-- [ ] Event-Archiv-/History-Ansicht vorbereiten.
-- [ ] Geschützten Event-Delete planen: Owner/Admin, Bestätigung, Audit, Cascade über zugehörige Eventdaten.
-- [ ] ChatOutput-Dispatcher vorbereiten.
-- [ ] Config-Schalter für direkte Chat-Ausgabe vorbereiten.
+- [ ] EVS-20: ChatOutput-Dispatcher vorbereiten.
+- [ ] Config-/Dashboard-Schalter für direkte Chat-Ausgabe vorbereiten.
+- [ ] Live-Ausgabe niemals ohne klaren Dashboard-Warnstatus aktivieren.
+- [ ] Kombinierte ChatOutput-Zusammenfassung für gleichzeitige Sound+Text-Lösung planen.
 - [ ] Sound-System-Playback-Anbindung vorbereitet und später geschützt aktivierbar machen.
 - [ ] Event-Overlay vorbereiten.
 - [ ] Event-Abschluss mit Top 3 vorbereiten.
@@ -68,8 +62,7 @@ Stand: 2026-06-13 nach EVS-19
 - [ ] Keine zweite Media-/Player-Struktur bauen.
 - [ ] Keine neue Textvarianten-Struktur bauen.
 - [ ] Keine Funktionalität entfernen.
-- [ ] Debug-Antworten niemals in Twitch-Chat oder Overlay ausgeben.
-- [ ] Hard-Delete nie ohne Rechteprüfung, Bestätigung und Audit.
+- [ ] Hard-Delete von Events nur später mit Owner/Admin, Bestätigung und Audit.
 
 ## Testbefehle allgemein
 

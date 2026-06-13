@@ -1,123 +1,91 @@
 # NEXT_STEPS – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-19 vorbereitet
+Stand: 2026-06-13 nach EVS-19e
 
-## Sofort nächster Schritt
+## Nächster sinnvoller Schritt
 
-### EVS-19 Test – Sound/Text Parallel-UND-Runtime
+### EVS-20 – ChatOutput Dispatcher Prep / Live-Schalter-Konzept
 
 Ziel:
 
 ```text
-Prüfen, dass eine Chatnachricht bei aktivem Kombi-Event an Sound und Text geht.
-Nicht ODER, sondern UND.
+Vorbereitete ChatOutputs aus Text- und Sound-Spiel an das vorhandene Chat-/Bot-Ausgabesystem anschließbar machen, aber weiterhin geschützt und konfigurierbar.
 ```
 
-Pflicht vor Test:
+Scope:
 
-```powershell
-node -c .ackend\modules\stream_events.js
-.\stepdone.cmd "EVS-19 Sound Text Parallel AND Runtime"
-```
+- Vorhandene Chat-/Bot-Ausgabe verwenden, keine zweite Ausgabestruktur bauen.
+- `directSend=false` bleibt Default.
+- Config-/Dashboard-Schalter vorbereiten.
+- Rate-Limit und Spam-Schutz einplanen.
+- Gleichzeitige Sound+Text-Lösung berücksichtigen.
+- Option für gebündelte Chat-Ausgabe planen, damit nicht zwei Nachrichten gleichzeitig spammen.
+- Debug-Antworten bleiben nur API-/Dashboard-Test und dürfen nie in Chat/Overlay.
+- Live-Schalter sichtbar als gefährlicher Status: „LIVE-AUSGABE AKTIV“.
 
-Testablauf:
+Nicht Ziel von EVS-20:
 
-```powershell
-$e = Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/stream-events/chat-runtime/create-stealth-test-event?confirm=1" -Body (@{
-  start = $true
-} | ConvertTo-Json) -ContentType "application/json"
-
-$n = Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/stream-events/sound-runtime/next-round" -Body (@{
-  allowReuse = $true
-} | ConvertTo-Json) -ContentType "application/json"
-
-$t = Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/stream-events/chat-runtime/test-chat" -Body (@{
-  userLogin = "forrestcgn"
-  userDisplayName = "ForrestCGN"
-  message = "heimleitung"
-} | ConvertTo-Json) -ContentType "application/json"
-
-$t | Select-Object ok,mode,soundSolved,textSolved,textWordHitCount,chatOutputCount,directSend,directPlayback,soundSystemQueueTouched
-$t.sound | ConvertTo-Json -Depth 5
-$t.text | ConvertTo-Json -Depth 5
-```
-
-Erwartung:
-
-```text
-mode = sound_text_parallel_and
-Sound wird geprüft.
-Text wird ebenfalls geprüft.
-Wenn die Nachricht für beide passt, dürfen beide Runtimes Punkte/Ergebnisse buchen.
-directSend = False
-directPlayback = False
-soundSystemQueueTouched = False
-```
-
-
-### EVS-19b bestätigt / Testfokus
-
-Vor EVS-20 muss EVS-19b getestet werden:
-
-```powershell
-POST /api/stream-events/chat-runtime/create-stealth-test-event?confirm=1
-POST /api/stream-events/sound-runtime/next-round
-POST /api/stream-events/chat-runtime/test-chat
-GET  /api/stream-events/text-runtime/report
-GET  /api/stream-events/sound-runtime/report
-```
-
-Erwartung:
-
-```text
-- neues Stealth-Testevent ist aktiv
-- alte Testevents sind finished/archiviert
-- eine Chatnachricht wird gegen Sound und Text geprüft
-- Text-Report liefert keinen rounds-Fehler mehr
-- directSend/directPlay bleiben false
-```
+- Kein automatisches Direkt-Senden ohne Config.
+- Kein Sound-Playback.
+- Keine Sound-System-Queue-Berührung.
+- Kein Overlay-Livebetrieb.
 
 ## Danach sinnvolle Schritte
 
-### EVS-20 – Dashboard-Anzeige für Parallelstatus
+### EVS-21 – Sound-System Playback Integration Prep
 
-- Im Dashboard klar anzeigen, ob Sound/Text parallel aktiv sind.
-- Aktive Soundrunde und Textstatus streamerfreundlich darstellen.
-- Debug-Antworten nur im API-/Dashboard-Testbereich.
+Ziel:
 
-### EVS-21 – ChatOutput Dispatcher Prep
+- Vorbereitete Playback-Payloads an vorhandenes Sound-System anbinden.
+- Anfangs weiterhin geschützt per Config-Schalter.
+- Sound-System-Queue nur kontrolliert und optional berühren.
+- Kein zweiter Player.
 
-- Prepared ChatOutputs aus Sound/Text gesammelt anzeigen.
-- Später optional per Config senden.
-- Kein scharfes Senden ohne Live-Schalter, Rechte und Warnung.
+### EVS-22 – Dashboard Live Safety / Admin-Schalter
 
-### EVS-22 – Sound-System Playback Integration Prep
+Ziel:
 
-- Prepared Playback an vorhandenes Sound-System anschließbar machen.
-- Weiterhin geschützt per Config.
-- Kein zweiter Player, keine unkontrollierte Queue-Berührung.
+- Live-Schalter im Dashboard streamer-/modfreundlich darstellen.
+- Klare Warnungen und Statusanzeigen.
+- Rechte/Freigaben berücksichtigen.
+- Audit-Log für Aktivierungen vorbereiten.
 
 ### EVS-23 – Event Overlay Prep
 
-- Aktives Event, Modus, Soundrunde, Textstatus, Punkte/Ranking anzeigen.
-- Keine überladene Show.
+Ziel:
+
+- Ein zentrales Event-Overlay vorbereiten.
+- Anzeige aktiver Eventname, Modus, aktive Soundrunde/Textstatus, Punkte/Ranking.
+- Noch keine überladene Show.
 
 ### EVS-24 – Event-Ende / Top 3 / Abschluss
 
+Ziel:
+
 - Event sauber beenden.
-- Top 3 Ranking vorbereiten.
+- Top 3 Ranking ausgeben/vorbereiten.
 - Textvarianten für Abschluss nutzen.
+- Dashboard/Overlay/ChatOutput vorbereitet.
+
+### EVS-25 – Statistik langfristig
+
+Ziel:
+
+- User-/Event-/Sound-/Text-Statistiken langfristig auswertbar machen.
+- „User X: wann, wo, welcher Sound, welches Wort, welcher Satz, Punkte“.
+- Sound-Snippet-Erkennungsquote und Text-Lösungsquote.
+
+## Offene UX-/Dashboard-Aufgaben
+
+- Statistik-Untertabs weiter glätten, falls Bedienung noch hakelt.
+- User-Popup scrollbar und AutoReload weiter testen.
+- Texte-Tab Filter weiter verfeinern.
+- Event-Editor später für echte Sound-/Text-Konfiguration produktionsreif machen.
+- Sound-Antworten im Test-/Debugbereich sichtbar lassen, aber niemals im Overlay/Chat.
 
 ## Offene Fachfragen
 
 - Sollen Sound-Misses bei jedem Chat gezählt werden oder nur bei Nachrichten mit Mindestähnlichkeit?
 - Soll eine kombinierte ChatOutput-Zusammenfassung gebaut werden, wenn Sound und Text gleichzeitig gelöst werden?
 - Wie sollen Live-Schalter im Dashboard exakt heißen und wer darf sie aktivieren?
-
-
-## Direkt nach EVS-19a testen
-
-- Stealth-Testevent erneut anlegen.
-- Eine aktive Soundrunde starten.
-- Eine Nachricht testen, die Sound und Text gleichzeitig treffen kann.
-- Prüfen: Soundpunkte und Textpunkte werden beide gebucht, `directSend=false`, `directPlay=false`.
+- Soll eine gleichzeitig gelöste Sound+Text-Nachricht später eine gemeinsame Chatmeldung oder zwei getrennte Meldungen erzeugen?
