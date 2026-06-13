@@ -1,6 +1,6 @@
 # Modul-Doku: stream_events
 
-Stand: 2026-06-13 nach EVS-17b – Sound Debug Accepted Answers
+Stand: 2026-06-13 nach EVS-18c – Event Lifecycle Archive Rules
 
 ## Zweck
 
@@ -20,9 +20,11 @@ Stand: 2026-06-13 nach EVS-17b – Sound Debug Accepted Answers
 ## Aktueller Modulstand
 
 ```text
-MODULE_VERSION = 0.5.4
-MODULE_BUILD   = STEP_EVS_17B_SOUND_DEBUG_ACCEPTED_ANSWERS
+MODULE_VERSION = 0.5.5
+MODULE_BUILD   = STEP_EVS_18_SOUND_TWITCH_CHAT_ANSWER_RUNTIME
 ```
+
+EVS-18c ist ein Doku-/Lifecycle-Regel-Step. Es gibt keine Codeänderung und keine Modulversionserhöhung gegenüber EVS-18.
 
 ## Dashboard
 
@@ -130,6 +132,31 @@ POST /api/stream-events/sound-runtime/unresolved
 POST /api/stream-events/sound-runtime/test-chat
 ```
 
+## Event-Lifecycle / Archiv-Regeln
+
+EVS-18c legt verbindlich fest, wie Eventdaten behandelt werden:
+
+- Jedes Event besitzt eine eigene `eventUid`.
+- Punkte, Runden, Sound-Ergebnisse, Text-Worttreffer und Text-Satzlösungen bleiben immer an diese `eventUid` gebunden.
+- Ein neues Event startet mit eigener `eventUid` und damit mit leerem Event-Ranking.
+- Alte Eventdaten werden beim Start eines neuen Events nicht automatisch gelöscht.
+- Alte Eventdaten gelten nach `finish` oder späterem `archive` als historisch/archiviert.
+- Dashboard-Ansichten sollen standardmäßig das aktive Event anzeigen und alte Werte nicht in aktive Reports mischen.
+- Historische Eventdaten sollen später über Archiv-/History-Ansichten abrufbar bleiben.
+- Hard-Delete darf später nur als geschützte Owner/Admin-Aktion mit Bestätigung und Audit-Log umgesetzt werden.
+
+Aktuell vorhandene eventbezogene Datenbereiche:
+
+```text
+stream_events_events.event_uid
+stream_events_score_entries.event_uid
+stream_events_rounds.event_uid
+stream_events_text_word_hits.event_uid
+stream_events_text_phrase_solves.event_uid
+```
+
+Wenn ein Event später gelöscht wird, muss das Löschen konsistent über alle zugehörigen Datenbereiche laufen. Bis dahin gilt: lieber archivieren als löschen.
+
 ## Text-Spiel Fachregeln
 
 - Ein Event kann mehrere Geheimsätze enthalten.
@@ -151,6 +178,8 @@ POST /api/stream-events/sound-runtime/test-chat
 - Unresolved-Policy ist vorbereitet.
 - Playback-Payload wird vorbereitet, aber nicht direkt ausgeführt.
 - Debug-Antworten sind nur API-/Dashboard-Testdaten.
+- Echte `twitch.chat.message` Bus-Events können aktive Sound-Runden lösen.
+- Sound- und Text-Runtime dürfen sich bei Kombi-Events nicht gegenseitig blockieren.
 
 ## Debug Accepted Answers
 
@@ -176,12 +205,39 @@ queueTouched = false
 preparedOnly = true
 ```
 
-## Nächster technischer Schritt
+## Zuletzt bestätigte Tests
 
-EVS-18:
+EVS-18 wurde erfolgreich getestet:
 
 ```text
-Echte `twitch.chat.message` Bus-Events für aktive Sound-Runden auswerten.
+MODULE_VERSION = 0.5.5
+MODULE_BUILD   = STEP_EVS_18_SOUND_TWITCH_CHAT_ANSWER_RUNTIME
+active          = 0
+solved          = 4
+soundScoreEntries = 4
+directSend      = false
+playbackPayloads = 0
 ```
 
-Dabei dürfen direkte Chat-Ausgabe und Playback weiterhin nicht aktiviert werden.
+Bestätigte Ranking-Werte aus Testevent:
+
+```text
+soundtester: 55 Punkte / 2 Einträge
+ForrestCGN: 45 Punkte / 2 Einträge
+```
+
+## Nächster technischer Schritt
+
+EVS-19:
+
+```text
+Sound/Text Runtime Koexistenz + Stealth-Testevent.
+```
+
+Ziele:
+
+- Kombi-Event mit Sound + Text testen.
+- Falsche Soundantwort darf Textprüfung nicht blockieren.
+- Richtige Soundantwort darf nicht zusätzlich Textpunkte auslösen.
+- Dashboard klar anzeigen: prepared-only, keine Live-Ausgabe.
+- Keine direkte Twitch-Ausgabe und kein direktes Playback aktivieren.

@@ -1,6 +1,6 @@
 # TODO – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-17b
+Stand: 2026-06-13 nach EVS-18c
 
 ## Erledigt / bestätigt
 
@@ -27,17 +27,24 @@ Stand: 2026-06-13 nach EVS-17b
 - [x] Sound-Report im Dashboard
 - [x] Sound-Testchat-Antwortauswertung
 - [x] Sound-Debug Accepted Answers
+- [x] EVS-18: Echter `twitch.chat.message` Bus-Stream für Soundantworten bestätigt
+- [x] Sound-Misses zählen/verarbeiten, ohne Chat-Spam auszugeben
+- [x] Event-Lifecycle/Archiv-Regeln dokumentiert: Werte bleiben eventUid-gebunden, neues Event bekommt eigenes Ranking
 
 ## Kurzfristig offen
 
-- [ ] EVS-18: Echten `twitch.chat.message` Bus-Stream für Soundantworten nutzen.
+- [ ] EVS-19: Sound/Text Runtime Koexistenz + Stealth-Testevent.
 - [ ] Prüfen, ob Text-Runtime und Sound-Runtime gemeinsam denselben Twitch-Chat-Event sauber auswerten, ohne sich gegenseitig zu stören.
-- [ ] Sound-Misses zählen und im Report anzeigen, aber nicht spammen.
+- [ ] Prüfen, dass falsche Soundantworten Textprüfung nicht blockieren.
+- [ ] Prüfen, dass richtige Soundantworten nicht zusätzlich Textpunkte auslösen.
 - [ ] Dashboard Sound-Spiel: aktive Runde noch deutlicher anzeigen.
 - [ ] Dashboard Statistik/User-Popup nach EVS-16b/16c im Browser prüfen.
+- [ ] Dashboard/Reports standardmäßig aktives Event fokussieren und alte Eventwerte nicht als aktive Werte anzeigen.
 
 ## Mittelfristig offen
 
+- [ ] Event-Archiv-/History-Ansicht vorbereiten.
+- [ ] Geschützten Event-Delete planen: Owner/Admin, Bestätigung, Audit, Cascade über zugehörige Eventdaten.
 - [ ] ChatOutput-Dispatcher vorbereiten.
 - [ ] Config-Schalter für direkte Chat-Ausgabe vorbereiten.
 - [ ] Sound-System-Playback-Anbindung vorbereitet und später geschützt aktivierbar machen.
@@ -53,6 +60,8 @@ Stand: 2026-06-13 nach EVS-17b
 - [ ] Keine zweite Media-/Player-Struktur bauen.
 - [ ] Keine neue Textvarianten-Struktur bauen.
 - [ ] Keine Funktionalität entfernen.
+- [ ] Debug-Antworten niemals in Twitch-Chat oder Overlay ausgeben.
+- [ ] Hard-Delete nie ohne Rechteprüfung, Bestätigung und Audit.
 
 ## Testbefehle allgemein
 

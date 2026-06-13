@@ -1,6 +1,6 @@
 # FILES – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-17b
+Stand: 2026-06-13 nach EVS-18c
 
 ## Aktive Projektdateien
 
@@ -9,7 +9,8 @@ backend/modules/stream_events.js
 htdocs/dashboard/modules/stream_events.js
 htdocs/dashboard/modules/stream_events.css
 docs/modules/stream_events.md
-docs/current/CURRENT_CHAT_HANDOFF_EVS_17B_SOUND_DEBUG_ACCEPTED_ANSWERS.md
+docs/current/CURRENT_CHAT_HANDOFF_EVS_18_SOUND_TWITCH_CHAT_ANSWER_RUNTIME.md
+docs/current/CURRENT_CHAT_HANDOFF_EVS_18C_EVENT_LIFECYCLE_ARCHIVE_RULES.md
 project-state/CURRENT_STATUS.md
 project-state/TODO.md
 project-state/NEXT_STEPS.md
@@ -30,6 +31,24 @@ backend/modules/twitch_presence.js
 backend/core/database.js
 htdocs/dashboard/components/media_picker.js
 htdocs/dashboard/components/media_field.js
+```
+
+## Wichtige eventbezogene Datenbereiche
+
+```text
+stream_events_events.event_uid
+stream_events_score_entries.event_uid
+stream_events_rounds.event_uid
+stream_events_text_word_hits.event_uid
+stream_events_text_phrase_solves.event_uid
+```
+
+Regel ab EVS-18c:
+
+```text
+Alle Runtime-/Statistikdaten bleiben eventUid-gebunden.
+Neues Event = eigene eventUid = eigenes Ranking.
+Alte Werte werden nicht blind gelöscht, sondern bleiben historisch/archiviert abrufbar.
 ```
 
 ## Wichtige Routen
@@ -128,3 +147,5 @@ POST /api/stream-events/sound-runtime/test-chat
 - EVS-16c Texts Tab Module Filter Cleanup
 - EVS-17 Sound Chat Answer Prep
 - EVS-17b Sound Debug Accepted Answers
+- EVS-18 Sound Twitch Chat Answer Runtime
+- EVS-18c Event Lifecycle Archive Rules

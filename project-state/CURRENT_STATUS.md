@@ -1,6 +1,6 @@
 # CURRENT_STATUS – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-17b – Sound Debug Accepted Answers
+Stand: 2026-06-13 nach EVS-18c – Event Lifecycle Archive Rules
 
 ## Aktueller bestätigter Stand
 
@@ -9,9 +9,11 @@ Das Modul `stream_events` ist im `stream-control-center` als Backend- und Dashbo
 Aktueller technischer Stand der zuletzt getesteten Dateien:
 
 ```text
-MODULE_VERSION: 0.5.4
-MODULE_BUILD: STEP_EVS_17B_SOUND_DEBUG_ACCEPTED_ANSWERS
+MODULE_VERSION: 0.5.5
+MODULE_BUILD: STEP_EVS_18_SOUND_TWITCH_CHAT_ANSWER_RUNTIME
 ```
+
+EVS-18c ist ein Doku-/Lifecycle-Regel-Step. Es gab keine Codeänderung und keine Modulversionserhöhung.
 
 ## Erfolgreich getestet
 
@@ -82,27 +84,44 @@ MODULE_BUILD: STEP_EVS_17B_SOUND_DEBUG_ACCEPTED_ANSWERS
 - Sound-System-Queue wird nicht berührt.
 - Falsche Soundantworten erzeugen keine Chat-Ausgabe, damit kein Spam entsteht.
 - Richtige Soundantworten können per Testchat erkannt werden.
+- Echte Twitch-Chatantworten über `twitch.chat.message` lösen aktive Soundrunden korrekt.
 - `sound.solved` ChatOutput wird vorbereitet.
 - Debug-Ausgabe für akzeptierte Sound-Antworten ist im API-/Dashboard-Test sichtbar, nicht im Overlay oder Chat.
 
+### Event-Lifecycle / Archiv-Regeln
+
+- Alle Eventwerte bleiben an die jeweilige `eventUid` gebunden.
+- Neues Event bedeutet neue `eventUid` und eigenes Event-Ranking.
+- Alte Werte werden nicht in aktive Reports gemischt, wenn eine konkrete/aktive `eventUid` genutzt wird.
+- Alte Eventdaten sollen archiviert/historisch abrufbar bleiben.
+- Beim Start eines neuen Events wird nichts blind gelöscht.
+- Hard-Delete wird später nur als geschützte Owner/Admin-Aktion mit Bestätigung und Audit geplant.
+
 ## Zuletzt bestätigter Test
 
-EVS-17b Sound Debug Accepted Answers:
+EVS-18 Sound Twitch Chat Answer Runtime:
 
 ```text
-soundDebug.testOnly=True
-visibleFor=dashboard_api_debug_only
-acceptedAnswersText sichtbar
+status.ok=True
+moduleVersion=0.5.5
+moduleBuild=STEP_EVS_18_SOUND_TWITCH_CHAT_ANSWER_RUNTIME
+subscriptionCount=9
+soundChatMessagesProcessed=2
+soundAnswerMisses=1
+soundAnswerMatches=1
+active=0
+solved=4
+soundScoreEntries=4
+chatOutputs=4
+playbackPayloads=0
+directSend=False
 ```
 
-Beispiele:
+Ranking im Testevent:
 
 ```text
-test_sound_2:
-engel disco | rentner disco | engel rentner disco
-
-test_sound_1:
-forrest heimleitung | heimleitung | forrest hymn | forrest hymne
+soundtester: 55 Punkte / 2 Einträge
+ForrestCGN: 45 Punkte / 2 Einträge
 ```
 
 ## Weiterhin bewusst NICHT produktiv aktiv

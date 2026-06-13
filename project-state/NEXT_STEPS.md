@@ -1,43 +1,41 @@
 # NEXT_STEPS – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-17b
+Stand: 2026-06-13 nach EVS-18c
 
 ## Sofort sinnvoller nächster Schritt
 
-### EVS-18 – Echter Twitch-Chat für Sound-Antworten
+### EVS-19 – Sound/Text Runtime Koexistenz + Stealth-Testevent
 
 Ziel:
 
 ```text
-Aktive Sound-Runde soll echte `twitch.chat.message` Bus-Events auswerten.
+Sound- und Text-Runtime sollen im selben Event echte bzw. simulierte Chatnachrichten sauber auswerten, ohne sich gegenseitig zu stören.
 ```
 
 Scope:
 
 - Vorhandenen CommunicationBus nutzen.
 - Keine neue Bus-Struktur.
-- Sound-Testchat-Logik als Basis verwenden.
-- Bei aktiver Sound-Runde echte Twitch-Chatnachricht prüfen.
-- Richtige Antwort löst aktive Soundrunde.
-- Punkte buchen.
-- `sound.solved` ChatOutput vorbereiten.
-- Falsche Antwort still zählen/ignorieren, keine Chat-Spam-Ausgabe.
-- Weiterhin keine direkte Twitch-Chat-Ausgabe.
-- Weiterhin kein direktes Playback.
-- Weiterhin keine Sound-System-Queue-Berührung.
+- Keine direkte Twitch-Chat-Ausgabe.
+- Kein direktes Playback.
+- Keine Sound-System-Queue-Berührung.
+- Stealth-Testevent mit unauffälligen Antworten vorbereiten.
+- Falsche Soundantwort soll keine Chat-Ausgabe erzeugen und Textprüfung nicht blockieren.
+- Richtige Soundantwort soll Soundrunde lösen und nicht zusätzlich Textpunkte für dieselbe Nachricht erzeugen.
+- Reports sollen klar zeigen, ob Sound oder Text reagiert hat.
 
 Tests:
 
 ```powershell
 node -c .\backend\modules\stream_events.js
-.\stepdone.cmd "EVS-18 Sound Twitch Chat Answer Runtime"
+.\stepdone.cmd "EVS-19 Sound Text Runtime Koexistenz Stealth Testevent"
 ```
 
-Danach mit aktivem Sound-Testevent und aktiver Runde im echten Chat testen.
+Danach erst API-/Dashboard-Tests, dann optional echter Chat-Stealth-Test.
 
 ## Danach sinnvolle Schritte
 
-### EVS-19 – ChatOutput Dispatcher Prep
+### EVS-20 – ChatOutput Dispatcher Prep
 
 Ziel:
 
@@ -45,8 +43,9 @@ Ziel:
 - Noch nicht zwingend direkt senden.
 - Dashboard-Schalter/Config für direkte Ausgabe vorbereiten.
 - Rate-Limit/Spam-Schutz beachten.
+- Live-Ausgabe nur mit klarer Config und sichtbarem Warnstatus.
 
-### EVS-20 – Sound-System Playback Integration Prep
+### EVS-21 – Sound-System Playback Integration Prep
 
 Ziel:
 
@@ -55,15 +54,16 @@ Ziel:
 - Sound-System-Queue nur kontrolliert und optional berühren.
 - Kein zweiter Player.
 
-### EVS-21 – Event Overlay Prep
+### EVS-22 – Event Overlay Prep
 
 Ziel:
 
 - Ein zentrales Event-Overlay vorbereiten.
 - Anzeige aktiver Eventname, Modus, aktive Soundrunde/Textstatus, Punkte/Ranking.
 - Noch keine überladene Show.
+- Debug-Antworten niemals im Overlay anzeigen.
 
-### EVS-22 – Event-Ende / Top 3 / Abschluss
+### EVS-23 – Event-Ende / Top 3 / Abschluss
 
 Ziel:
 
@@ -72,7 +72,16 @@ Ziel:
 - Textvarianten für Abschluss nutzen.
 - Dashboard/Overlay/ChatOutput vorbereitet.
 
-### EVS-23 – Statistik langfristig
+### EVS-24 – Event Archiv / History / Delete-Safety
+
+Ziel:
+
+- Archiv-/History-Ansicht für alte Events vorbereiten.
+- Standardansichten auf aktives Event fokussieren.
+- Alte Eventwerte nicht in aktive Reports mischen.
+- Geschütztes Hard-Delete planen: Owner/Admin, Bestätigung, Audit, konsistentes Löschen zugehöriger Eventdaten.
+
+### EVS-25 – Statistik langfristig
 
 Ziel:
 
@@ -87,6 +96,7 @@ Ziel:
 - Texte-Tab Filter weiter verfeinern.
 - Event-Editor später für echte Sound-/Text-Konfiguration produktionsreif machen.
 - Sound-Antworten im Test-/Debugbereich sichtbar lassen, aber niemals im Overlay/Chat.
+- Aktive Eventdaten und Archivdaten im Dashboard klar trennen.
 
 ## Offene Fachfragen
 
@@ -94,4 +104,5 @@ Ziel:
 - Wie lange läuft eine Soundrunde standardmäßig?
 - Sollen falsche Antworten gezählt, aber unsichtbar bleiben? Aktuell ja.
 - Soll es bei Sound mehrere Gewinner geben oder nur erster richtiger User? Aktuell erster/aktive Resolve-Logik.
-- Soll Text-Spiel und Sound-Spiel im selben Event parallel oder abwechselnd laufen? Bisher vorbereitet, Runtime bisher separat.
+- Soll Text-Spiel und Sound-Spiel im selben Event parallel oder abwechselnd laufen? Für EVS-19 gezielt testen.
+- Soll Event-Löschung später wirklich physisch löschen oder standardmäßig nur archivieren? Empfehlung: Standard archivieren, Hard-Delete nur geschützt.

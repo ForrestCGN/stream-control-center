@@ -2,6 +2,45 @@
 
 Stand: 2026-06-13
 
+## EVS-18c – Event Lifecycle Archive Rules
+
+- Event-Lifecycle-Regeln dokumentiert.
+- Festgelegt: Eventwerte bleiben immer an die jeweilige `eventUid` gebunden.
+- Neues Event bekommt eigene `eventUid` und eigenes Event-Ranking.
+- Alte Werte werden beim Start eines neuen Events nicht automatisch gelöscht.
+- Alte Eventdaten sollen archiviert/historisch abrufbar bleiben.
+- Hard-Delete nur später als geschützte Owner/Admin-Aktion mit Bestätigung und Audit planen.
+- Keine Codeänderung.
+- Keine DB-Änderung.
+- Keine Modulversionserhöhung gegenüber EVS-18.
+
+## EVS-18 – Sound Twitch Chat Answer Runtime
+
+- Echte `twitch.chat.message` Bus-Events für aktive Sound-Runden ausgewertet.
+- Sound- und Text-Dispatcher koexistenzsicher vorbereitet.
+- Richtige Soundantwort löst aktive Soundrunde.
+- Falsche Soundantwort erzeugt keine Chat-Ausgabe.
+- Punkte werden in das gemeinsame Ranking gebucht.
+- `sound.solved` ChatOutput bleibt prepared-only mit `directSend=false`.
+- Kein direktes Sound-Playback.
+- Keine Sound-System-Queue-Berührung.
+
+Bestätigter Test:
+
+```text
+moduleVersion=0.5.5
+moduleBuild=STEP_EVS_18_SOUND_TWITCH_CHAT_ANSWER_RUNTIME
+soundChatMessagesProcessed=2
+soundAnswerMisses=1
+soundAnswerMatches=1
+active=0
+solved=4
+soundScoreEntries=4
+chatOutputs=4
+playbackPayloads=0
+directSend=False
+```
+
 ## EVS-17b – Sound Debug Accepted Answers
 
 - Akzeptierte Sound-Antworten im API-/Dashboard-Test sichtbar gemacht.
