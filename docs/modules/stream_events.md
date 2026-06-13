@@ -1,8 +1,8 @@
 # Modul-Doku: stream_events
 
-Stand: 2026-06-13 nach EVS-22b – Dashboard Single Delete Confirm UX
+Stand: 2026-06-13 nach EVS-22c – Completion Documentation
 
-## Aktueller Modulstand
+## Aktueller bestätigter Modulstand
 
 ```text
 MODULE_VERSION = 0.5.16
@@ -21,11 +21,12 @@ MODULE_BUILD   = STEP_EVS_22B_DASHBOARD_SINGLE_DELETE_CONFIRM_UX
 - Sound-Playback bleibt prepared-only.
 - Eventdaten bleiben an `eventUid` gebunden.
 - Archivieren ist nur bei `status=finished` erlaubt.
-- Löschen ist API-seitig für jeden Status möglich, aber nur mit JSON-Body `{ "confirm": "DELETE" }`; das Dashboard fragt dafür eine normale Bestätigung ab und sendet den API-Confirm intern.
+- Löschen ist API-seitig für jeden Status möglich, aber nur mit JSON-Body `{ "confirm": "DELETE" }`.
+- Das Dashboard fragt dafür genau eine normale Bestätigung ab und sendet den API-Confirm intern.
 
-## EVS-22b Dashboard Single Delete Confirm UX
+## EVS-22b/22c Dashboard Safety View
 
-EVS-22b aktualisiert den Dashboard-Tab `Sicherheit`:
+Der Dashboard-Tab `Sicherheit` ist bestätigt sichtbar und streamerfreundlich bedienbar:
 
 - Chat-Ausgabe Status: TESTMODUS / LIVE AKTIV.
 - ChatOutput-Zähler: vorbereitet, geprüft, würde senden, blockiert.
@@ -33,11 +34,14 @@ EVS-22b aktualisiert den Dashboard-Tab `Sicherheit`:
 - Output-Preview als Dry-Run.
 - Lifecycle-Regeln im Dashboard sichtbar.
 - Archivieren-Button nur bei beendeten Events aktiv.
-- Löschen-Button mit einer normalen Bestätigung, ohne Texteingabe DELETE und ohne doppelte Abfrage.
+- Löschen-Button mit einer normalen Bestätigung.
+- Keine Texteingabe `DELETE` im Dashboard.
+- Keine doppelte Löschbestätigung.
 
 ## Wichtige Routen
 
 ```text
+GET  /api/stream-events/events
 GET  /api/stream-events/chat-output/status
 GET  /api/stream-events/chat-output/report
 POST /api/stream-events/chat-output/test-dispatch
@@ -45,7 +49,10 @@ POST /api/stream-events/events/:eventUid/archive
 POST /api/stream-events/events/:eventUid/delete
 ```
 
-Hinweis: `GET /api/stream-events/events` liefert die Eventliste unter `rows`, nicht unter `events`.
+Hinweise:
+
+- `GET /api/stream-events/events` liefert die Eventliste unter `rows`, nicht unter `events`.
+- `POST /api/stream-events/events/:eventUid/delete` erwartet den Confirm im JSON-Body, nicht als Query-Parameter.
 
 ## Sicherheit
 
@@ -58,7 +65,6 @@ dispatched = false
 soundSystemQueueTouched = false
 ```
 
+## Nächster Arbeitsbereich
 
-### EVS-22b Bedienentscheidung
-
-Der Streamer klickt im Dashboard auf Löschen und bestätigt danach einmal im Browser-Dialog. Intern bleibt die API-Schutzregel erhalten: Das Dashboard sendet `{ "confirm": "DELETE", "actor": "dashboard" }` an den Backend-Endpunkt.
+EVS-23 soll das Live-Schalter-Konzept im Dashboard vorbereiten. Das bedeutet sichtbar planen und absichern, aber noch nicht live senden.

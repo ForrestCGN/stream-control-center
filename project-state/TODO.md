@@ -1,6 +1,6 @@
 # TODO – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-22b
+Stand: 2026-06-13 nach EVS-22c
 
 ## Erledigt / bestätigt
 
@@ -8,14 +8,14 @@ Stand: 2026-06-13 nach EVS-22b
 - [x] EVS-19e Sound/Text Parallel-UND-Regel
 - [x] EVS-20 ChatOutput Dispatcher Prep
 - [x] EVS-21 Event Archive/Delete Lifecycle
-- [x] EVS-22b Dashboard Single Delete Confirm UX geliefert
+- [x] EVS-22b Dashboard Single Delete Confirm UX geliefert und bestätigt
+- [x] EVS-22c Completion Documentation
 
 ## Kurzfristig offen
 
-- [ ] EVS-22b im Dashboard visuell prüfen.
-- [ ] Safety-Tab prüfen: TESTMODUS, Blockiergründe, Output-Preview.
-- [ ] Lifecycle-Buttons prüfen: Archivieren nur bei Beendet, Löschen mit zweiter Bestätigung ohne Texteingabe.
-- [ ] Danach EVS-23 planen: Live-Schalter-Konzept im Dashboard, weiterhin ohne echtes Senden.
+- [ ] EVS-23 planen: Live-Schalter-Konzept im Dashboard, weiterhin ohne echtes Senden.
+- [ ] Live-Voraussetzungen sichtbar und streamerfreundlich darstellen.
+- [ ] Rollen-/Audit-/Warnstatus für spätere Live-Aktionen vorbereiten.
 
 ## Sicherheits-TODO
 

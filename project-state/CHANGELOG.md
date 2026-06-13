@@ -2,6 +2,13 @@
 
 Stand: 2026-06-13
 
+## EVS-22c – Completion Documentation
+
+- EVS-22b als bestätigt dokumentiert.
+- Doku korrigiert: Dashboard-Löschen nutzt genau eine normale Bestätigung.
+- Doku korrigiert: keine `DELETE`-Eingabe und keine doppelte Bestätigung im Dashboard.
+- Nächster Schritt EVS-23 als Live-Schalter-Konzept Dashboard Prep festgehalten.
+
 ## EVS-22b – Dashboard Single Delete Confirm UX
 
 - Dashboard-Tab `Sicherheit` ergänzt.
@@ -11,7 +18,7 @@ Stand: 2026-06-13
 - Output-Preview als Dry-Run angezeigt.
 - Event-Lifecycle-Regeln sichtbar gemacht.
 - Archivieren nur bei `finished` als UI-Regel.
-- Löschen im Dashboard auf eine Bestätigung ohne Texteingabe umgestellt.
+- Löschen im Dashboard auf eine normale Bestätigung ohne Texteingabe umgestellt.
 - Keine direkte Twitch-Ausgabe aktiviert.
 - Kein Sound-Playback aktiviert.
 
