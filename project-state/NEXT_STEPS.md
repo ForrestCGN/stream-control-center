@@ -55,3 +55,9 @@ Naechste Schritte nach EVS-10: Test mit aktivem Text-Testevent, danach direkte C
 - Testevent starten und Bus-Payloads fuer `chatOutput` pruefen.
 - Danach entscheiden, welches bestehende Chat-/Bot-Ausgabesystem die vorbereiteten Texte senden soll.
 - Direkte Twitch-Ausgabe erst nach ausdruecklichem Go.
+
+
+## Nach EVS-11b
+
+- Mit aktivem Testevent prüfen, ob `chatOutputs` die erwarteten Altersheim-/CGN-/Rentner-Texte liefert.
+- Danach entscheiden, ob ein Chat-Ausgabemodul die vorbereiteten Payloads senden soll.

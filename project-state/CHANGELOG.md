@@ -54,3 +54,10 @@ Nicht geändert:
 - Textvarianten-Seeds auf 5 Varianten im CGN-/Altersheim-Stil erweitert.
 - `chatOutput` und `wordPointsChatOutput` fuer Runtime-Bus-Payloads vorbereitet.
 - Keine direkte Chat-Ausgabe eingefuehrt.
+
+
+## EVS-11b – Text Chat Output Test Visibility
+
+- `chatOutputs` und `chatOutputCount` fuer Test-Responses ergänzt.
+- Satzlösungsergebnis enthält vorbereitetes `chatOutput`.
+- Keine direkte Chat-Ausgabe.

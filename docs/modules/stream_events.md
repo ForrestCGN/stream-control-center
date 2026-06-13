@@ -788,3 +788,16 @@ Wichtige Textkeys:
 - `points.added` / `ranking.updated`
 
 Wichtig: bestehende DB-Varianten werden nicht ueberschrieben. Neue Seeds werden nur ergaenzt, wenn diese Variante noch nicht existiert.
+
+
+## EVS-11b – Text Chat Output Test Visibility
+
+EVS-11b macht vorbereitete Chat-Ausgaben in den Test-Responses sichtbar.
+
+- Satzlösungsergebnisse enthalten jetzt `chatOutput`.
+- `processTextChatMessage` liefert zusätzlich `chatOutputs` und `chatOutputCount`.
+- Worttreffer, Wortpunkte und Satzlösungen können so ohne Twitch-Chat-Ausgabe geprüft werden.
+- `directSend` bleibt weiterhin `false`.
+- Die Ausgabe ist nur vorbereitet und kann später von einem Chat-/Bot-Ausgabemodul übernommen werden.
+
+Keine DB-, Dashboard-, Sound- oder Overlay-Änderung.

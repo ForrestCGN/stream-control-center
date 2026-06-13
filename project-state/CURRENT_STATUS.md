@@ -64,3 +64,8 @@ EVS-10 Text Chat Runtime Prep ist vorbereitet. Text-Spiel kann aktive Events ueb
 - Chattexte werden fuer Text-Worttreffer, Wortpunkte und Satzloesungen als Bus-Payload vorbereitet.
 - Keine direkte Twitch-Chat-Ausgabe.
 - Textvarianten: je 5 Altersheim-/CGN-/Rentner-/Heimleitungs-Varianten pro relevantem Key.
+
+
+## EVS-11b – Text Chat Output Test Visibility
+
+Aktueller Zusatzstand: vorbereitete Text-Chat-Ausgaben sind in den Test-Responses sichtbar. Direkte Twitch-Ausgabe bleibt deaktiviert.

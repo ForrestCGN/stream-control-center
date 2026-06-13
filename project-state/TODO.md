@@ -70,3 +70,9 @@
 - Dashboard-Textvarianten weiter pruefen.
 - Spaeter Rechte/Rollen fuer Text-Config beruecksichtigen.
 - Statistikansicht fuer Worttreffer/Satzloesungen vorbereiten.
+
+
+## EVS-11b TODO
+
+- ChatOutput-Payloads im Test prüfen.
+- Später direkte Ausgabe über vorhandene Chat-/Bot-Ausgabe anbinden, nicht im Event-System hart verdrahten.

@@ -49,3 +49,11 @@
 - `docs/modules/stream_events.md`
 - `docs/current/CURRENT_CHAT_HANDOFF_EVS_11_TEXT_CHAT_OUTPUT_PREP.md`
 - `project-state/*`
+
+
+## EVS-11b geänderte Dateien
+
+- `backend/modules/stream_events.js`
+- `docs/modules/stream_events.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_EVS_11B_TEXT_CHAT_OUTPUT_TEST_VISIBILITY.md`
+- `project-state/*`

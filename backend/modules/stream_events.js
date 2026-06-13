@@ -17,8 +17,8 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.4.2";
-const MODULE_BUILD = "STEP_EVS_11_TEXT_CHAT_OUTPUT_PREP";
+const MODULE_VERSION = "0.4.3";
+const MODULE_BUILD = "STEP_EVS_11B_TEXT_CHAT_OUTPUT_TEST_VISIBILITY";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -1333,7 +1333,7 @@ function insertPhraseSolve(event, phrase, phraseIndex, chat, points) {
     ranking: pointsResult.ranking || []
   });
   publishStatus("text.phrase_solved", { lastEventUid: event.eventUid, phraseNumber: phraseIndex + 1 });
-  return { ok: true, solveUid, phraseUid, phraseNumber: phraseIndex + 1, points, chatText, pointsResult };
+  return { ok: true, solveUid, phraseUid, phraseNumber: phraseIndex + 1, points, chatText, chatOutput, pointsResult };
 }
 
 function insertWordHit(event, phrase, phraseIndex, wordKey, chat, runtimeConfig) {
@@ -1403,6 +1403,7 @@ function processTextChatMessage(chat = {}, options = {}) {
   const messageTokens = new Set(tokenizeText(chat.message, { minLength: runtimeConfig.tokenMinLength }));
   const solved = [];
   const wordHits = [];
+  const chatOutputs = [];
 
   phrases.forEach((phrase, index) => {
     const phraseText = getPhraseText(phrase);
@@ -1412,7 +1413,18 @@ function processTextChatMessage(chat = {}, options = {}) {
     const solvePoints = clampNumber(phrase.pointsFirst ?? phrase.points ?? event.textConfig.defaultPhrasePoints ?? getEventConfig().config.textDefaults.defaultPhrasePoints, 0, 10000, 40);
     if (messageSolvesPhrase(chat.message, phrase)) {
       const result = insertPhraseSolve(event, phrase, index, chat, solvePoints);
-      if (result.ok) solved.push(result);
+      if (result.ok) {
+        solved.push(result);
+        if (result.chatOutput) {
+          chatOutputs.push({
+            kind: "phrase_solved",
+            phraseUid: result.phraseUid,
+            phraseNumber: result.phraseNumber,
+            points: result.points,
+            ...result.chatOutput
+          });
+        }
+      }
       return;
     }
     if (!runtimeConfig.partialHintsEnabled && !runtimeConfig.wordPointsEnabled) return;
@@ -1444,6 +1456,28 @@ function processTextChatMessage(chat = {}, options = {}) {
       };
       const chatOutput = runtimeConfig.partialHintsEnabled ? buildChatOutput(textKey, chatContext, { reason: "text_word_found" }) : null;
       const wordPointsChatOutput = item.points > 0 ? buildChatOutput("text.word_points.added", chatContext, { reason: "text_word_points_added" }) : null;
+      if (chatOutput) {
+        chatOutputs.push({
+          kind: "word_found",
+          phraseUid: item.phraseUid,
+          phraseNumber: item.phraseNumber,
+          points: item.points,
+          newWordCount: item.hits.length,
+          totalKnownWords: totalKnown,
+          ...chatOutput
+        });
+      }
+      if (wordPointsChatOutput) {
+        chatOutputs.push({
+          kind: "word_points_added",
+          phraseUid: item.phraseUid,
+          phraseNumber: item.phraseNumber,
+          points: item.points,
+          newWordCount: item.hits.length,
+          totalKnownWords: totalKnown,
+          ...wordPointsChatOutput
+        });
+      }
       emitBus("stream_events.text", "word_found", {
         eventUid: event.eventUid,
         phraseUid: item.phraseUid,
@@ -1465,7 +1499,7 @@ function processTextChatMessage(chat = {}, options = {}) {
 
   if (solved.length > 0 || wordHits.length > 0) markAction("text.chat.processed", event.eventUid);
   runtimeState.counters.textMessagesProcessed += 1;
-  return { ok: true, eventUid: event.eventUid, solved, wordHits, solvedCount: solved.length, wordHitCount: wordHits.length };
+  return { ok: true, eventUid: event.eventUid, solved, wordHits, chatOutputs, solvedCount: solved.length, wordHitCount: wordHits.length, chatOutputCount: chatOutputs.length };
 }
 
 function handleTwitchChatEnvelope(envelope = {}) {
