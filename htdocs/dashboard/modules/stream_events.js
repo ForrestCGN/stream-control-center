@@ -35,6 +35,8 @@ window.StreamEventsModule = (function(){
     userStatsModal: { open: false, login: '', eventUid: '', autoRefresh: true, intervalMs: 5000, lastScrollTop: 0, lastRefreshAt: '' },
     configSaving: false,
     textSaving: false,
+    textModuleFilter: 'all',
+    textSearchFilter: '',
     modal: null,
     activeTab: 'overview'
   };
@@ -893,6 +895,52 @@ window.StreamEventsModule = (function(){
     return keys.filter(item => String(item.category || 'general') === String(categoryId || 'general'));
   }
 
+
+  function textModuleOptions(){
+    return [
+      { id: 'all', label: 'Alle Textbereiche', hint: 'Alles anzeigen' },
+      { id: 'event', label: 'Event-System allgemein', hint: 'Start, Ende, Status, Eventmeldungen' },
+      { id: 'text', label: 'Text-Spiel', hint: 'Worttreffer, Satzlösung, Text-Runtime' },
+      { id: 'sound', label: 'Sound-Spiel', hint: 'Soundrunde, erkannt, ungelöst' },
+      { id: 'points', label: 'Punkte & Ranking', hint: 'Punkte, Rangliste, Top 3' },
+      { id: 'system', label: 'System / Sonstiges', hint: 'Alles, was nicht eindeutig zugeordnet ist' }
+    ];
+  }
+
+  function textModuleForKey(keyItem){
+    const key = String(keyItem?.key || '').toLowerCase();
+    const cat = String(keyItem?.category || '').toLowerCase();
+    if (key.startsWith('text.') || cat.includes('text')) return 'text';
+    if (key.startsWith('sound.') || cat.includes('sound')) return 'sound';
+    if (key.startsWith('points.') || key.startsWith('ranking.') || cat.includes('point') || cat.includes('ranking')) return 'points';
+    if (key.startsWith('event.') || cat.includes('event') || key.includes('started') || key.includes('finished')) return 'event';
+    return 'system';
+  }
+
+  function textKeyMatchesFilters(keyItem){
+    const selectedModule = state.textModuleFilter || 'all';
+    if (selectedModule !== 'all' && textModuleForKey(keyItem) !== selectedModule) return false;
+    const search = String(state.textSearchFilter || '').trim().toLowerCase();
+    if (!search) return true;
+    const haystack = [
+      keyItem?.key,
+      keyItem?.category,
+      keyItem?.label,
+      ...(Array.isArray(keyItem?.variants) ? keyItem.variants.map(v => v?.value || v?.text || '') : [])
+    ].join(' ').toLowerCase();
+    return haystack.includes(search);
+  }
+
+  function textKeysForCategoryFiltered(categoryId){
+    return textKeysForCategory(categoryId).filter(textKeyMatchesFilters);
+  }
+
+  function countTextKeysForModule(moduleId){
+    const keys = Array.isArray(state.texts?.keys) ? state.texts.keys : [];
+    if (moduleId === 'all') return keys.length;
+    return keys.filter(item => textModuleForKey(item) === moduleId).length;
+  }
+
   function renderTextVariant(variant, keyItem){
     const id = variant?.id || '';
     const value = variant?.value || variant?.text || '';
@@ -956,18 +1004,35 @@ window.StreamEventsModule = (function(){
         <div class="evs-text-config-help">
           <strong>Vorbereitung:</strong> Diese Texte sind dashboardfähig und werden später von der Chat-Runtime genutzt. Platzhalter wie <code>{user}</code>, <code>{points}</code>, <code>{eventName}</code>, <code>{phraseNumber}</code> und <code>{wordCount}</code> bleiben im Text stehen.
         </div>
+        <div class="evs-text-filter-bar">
+          <label>
+            <span>Textbereich</span>
+            <select data-evs-text-module-filter>
+              ${textModuleOptions().map(opt => `<option value="${esc(opt.id)}" ${String(state.textModuleFilter || 'all') === opt.id ? 'selected' : ''}>${esc(opt.label)} (${esc(countTextKeysForModule(opt.id))})</option>`).join('')}
+            </select>
+          </label>
+          <label class="evs-text-search">
+            <span>Suchen</span>
+            <input data-evs-text-search-filter value="${esc(state.textSearchFilter || '')}" placeholder="Key oder Text suchen...">
+          </label>
+          <button type="button" class="evs-btn evs-btn-small evs-btn-secondary" data-evs-action="clearTextFilters">Filter zurücksetzen</button>
+        </div>
+        <div class="evs-text-filter-hint">
+          ${esc((textModuleOptions().find(opt => opt.id === (state.textModuleFilter || 'all')) || textModuleOptions()[0]).hint)}
+        </div>
         <div class="evs-text-category-list">
           ${categories.map(cat => {
-            const keys = textKeysForCategory(cat.id || cat.key);
+            const keys = textKeysForCategoryFiltered(cat.id || cat.key);
+            if (!keys.length) return '';
             return `
               <details class="evs-text-category" open>
-                <summary><strong>${esc(cat.label || cat.id || cat.key)}</strong><small>${esc(keys.length)} Text-Key(s)</small></summary>
+                <summary><strong>${esc(cat.label || cat.id || cat.key)}</strong><small>${esc(keys.length)} sichtbare Text-Key(s)</small></summary>
                 <div class="evs-text-category-body">
-                  ${keys.length ? keys.map(renderTextKeyEditor).join('') : '<div class="evs-empty">Keine Texte in dieser Kategorie.</div>'}
+                  ${keys.map(renderTextKeyEditor).join('')}
                 </div>
               </details>
             `;
-          }).join('')}
+          }).join('') || '<div class="evs-empty">Keine Texte für diesen Filter gefunden.</div>'}
         </div>
       </section>
     `;
@@ -1516,6 +1581,7 @@ window.StreamEventsModule = (function(){
       }
       if (action === 'reload') return loadAll(true);
       if (action === 'reloadTexts') return loadTexts(true);
+      if (action === 'clearTextFilters') { state.textModuleFilter = 'all'; state.textSearchFilter = ''; render(); return; }
       if (action === 'saveConfig') return saveConfig();
       if (action === 'new') {
         const cfg = state.config?.config || {};
@@ -1594,10 +1660,23 @@ window.StreamEventsModule = (function(){
     });
 
     document.addEventListener('change', async ev => {
+      const textModuleSelect = ev.target.closest('[data-evs-text-module-filter]');
+      if (textModuleSelect) {
+        state.textModuleFilter = textModuleSelect.value || 'all';
+        render();
+        return;
+      }
       const select = ev.target.closest('[data-evs-user-stat-select]');
       if (!select) return;
       const uid = select.dataset.eventUid || state.selectedUid;
       await openUserStatsModal(select.value || '', uid);
+    });
+
+    document.addEventListener('input', ev => {
+      const search = ev.target.closest('[data-evs-text-search-filter]');
+      if (!search) return;
+      state.textSearchFilter = search.value || '';
+      render();
     });
 
     window.addEventListener('cgn:module-show', ev => {

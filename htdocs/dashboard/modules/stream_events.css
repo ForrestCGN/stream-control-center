@@ -259,3 +259,34 @@
 .stream-events-admin .evs-stats-local-actions{justify-content:flex-start;margin-top:12px}
 .stream-events-admin .evs-stats-user-section .evs-user-filter{margin-top:0}
 @media(max-width:760px){.stream-events-admin .evs-stats-tabs{display:grid;grid-template-columns:1fr 1fr}.stream-events-admin .evs-stats-tab{width:100%}.stream-events-admin .evs-stats-head{display:grid}.stream-events-admin .evs-stats-head .evs-btn{width:100%}}
+
+.stream-events-admin .evs-text-filter-bar{
+  display:grid;
+  grid-template-columns:minmax(220px,320px) minmax(220px,1fr) auto;
+  gap:10px;
+  align-items:end;
+  margin:12px 0 8px;
+  padding:12px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:16px;
+  background:rgba(2,6,23,.26);
+}
+.stream-events-admin .evs-text-filter-bar label{
+  display:grid;
+  gap:6px;
+  color:var(--evs-muted);
+  font-size:12px;
+  font-weight:800;
+}
+.stream-events-admin .evs-text-filter-bar select,
+.stream-events-admin .evs-text-filter-bar input{
+  min-height:36px;
+}
+.stream-events-admin .evs-text-filter-hint{
+  color:var(--evs-muted);
+  font-size:12px;
+  margin:0 0 10px;
+}
+@media (max-width: 860px){
+  .stream-events-admin .evs-text-filter-bar{grid-template-columns:1fr}
+}

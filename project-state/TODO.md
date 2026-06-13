@@ -1,11 +1,12 @@
-# TODO – EVS-16b Statistik Tab Layout Cleanup
+# TODO
 
-Stand: 2026-06-13
-
-EVS-16b bereinigt den Statistik-Tab im Event-System-Dashboard. Die bisherige Button-Reihe wurde durch Untertabs ersetzt: Übersicht, Ranking, Text-Spiel, Sound-Spiel und User. Der aktive Bereich kann gezielt aktualisiert werden, ohne die Seite neu zu laden.
+Aktueller Stand: EVS-16c Texte Tab Module Filter Cleanup.
 
 Geändert:
+- Texte-Tab hat nun Dropdown-Filter nach Textbereich/Modul.
+- Suche nach Key/Text vorbereitet.
+- Keine Backend-/DB-/Runtime-Änderung.
+
+Betroffene Dateien:
 - htdocs/dashboard/modules/stream_events.js
 - htdocs/dashboard/modules/stream_events.css
-
-Keine Backend- oder DB-Änderung.
