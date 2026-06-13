@@ -1,6 +1,6 @@
 # FILES – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-19e
+Stand: 2026-06-13 nach EVS-20
 
 ## Aktive Projektdateien
 
@@ -9,13 +9,7 @@ backend/modules/stream_events.js
 htdocs/dashboard/modules/stream_events.js
 htdocs/dashboard/modules/stream_events.css
 docs/modules/stream_events.md
-docs/current/CURRENT_CHAT_HANDOFF_EVS_18_SOUND_TWITCH_CHAT_ANSWER_RUNTIME.md
-docs/current/CURRENT_CHAT_HANDOFF_EVS_18C_EVENT_LIFECYCLE_ARCHIVE_RULES.md
-docs/current/CURRENT_CHAT_HANDOFF_EVS_19_SOUND_TEXT_PARALLEL_AND_RUNTIME.md
-docs/current/CURRENT_CHAT_HANDOFF_EVS_19A_STEALTH_TEST_EVENT_FIX.md
-docs/current/CURRENT_CHAT_HANDOFF_EVS_19B_PARALLEL_TEST_EVENT_ACTIVATION_FIX.md
-docs/current/CURRENT_CHAT_HANDOFF_EVS_19E_TEXT_OPTIONS_REGRESSION_FIX.md
-docs/current/CURRENT_CHAT_HANDOFF_EVS_19E_COMPLETION_DOCUMENTATION.md
+docs/current/CURRENT_CHAT_HANDOFF_EVS_20_CHAT_OUTPUT_DISPATCHER_PREP.md
 project-state/CURRENT_STATUS.md
 project-state/TODO.md
 project-state/NEXT_STEPS.md
@@ -38,69 +32,12 @@ htdocs/dashboard/components/media_picker.js
 htdocs/dashboard/components/media_field.js
 ```
 
-## Wichtige eventbezogene Datenbereiche
+## Neue EVS-20-Routen
 
 ```text
-stream_events_events.event_uid
-stream_events_score_entries.event_uid
-stream_events_rounds.event_uid
-stream_events_text_word_hits.event_uid
-stream_events_text_phrase_solves.event_uid
-```
-
-Regel ab EVS-18c:
-
-```text
-Alle Runtime-/Statistikdaten bleiben eventUid-gebunden.
-Neues Event = eigene eventUid = eigenes Ranking.
-Alte Werte werden nicht blind gelöscht, sondern bleiben historisch/archiviert abrufbar.
-```
-
-## Wichtige Routen
-
-Basis:
-
-```text
-GET  /api/stream-events/status
-GET  /api/stream-events/routes
-GET  /api/stream-events/events
-POST /api/stream-events/events
-GET  /api/stream-events/events/:eventUid
-PUT  /api/stream-events/events/:eventUid
-POST /api/stream-events/events/:eventUid/validate
-POST /api/stream-events/events/:eventUid/start
-POST /api/stream-events/events/:eventUid/finish
-POST /api/stream-events/events/:eventUid/cancel
-GET  /api/stream-events/events/:eventUid/ranking
-POST /api/stream-events/events/:eventUid/points
-```
-
-Text Runtime:
-
-```text
-GET  /api/stream-events/text-runtime/status
-GET  /api/stream-events/text-runtime/report
-POST /api/stream-events/text-runtime/test-chat
-POST /api/stream-events/text-runtime/create-test-event?confirm=1
-```
-
-Sound Runtime:
-
-```text
-GET  /api/stream-events/sound-runtime/status
-GET  /api/stream-events/sound-runtime/report
-POST /api/stream-events/sound-runtime/create-test-event?confirm=1
-POST /api/stream-events/sound-runtime/next-round
-POST /api/stream-events/sound-runtime/resolve
-POST /api/stream-events/sound-runtime/unresolved
-POST /api/stream-events/sound-runtime/test-chat
-```
-
-Kombi-/Chat Runtime:
-
-```text
-POST /api/stream-events/chat-runtime/create-stealth-test-event?confirm=1
-POST /api/stream-events/chat-runtime/test-chat
+GET  /api/stream-events/chat-output/status
+GET  /api/stream-events/chat-output/report
+POST /api/stream-events/chat-output/test-dispatch
 ```
 
 ## Bisherige Artefakte / Steps
@@ -139,9 +76,5 @@ POST /api/stream-events/chat-runtime/test-chat
 - EVS-18 Sound Twitch Chat Answer Runtime
 - EVS-18c Event Lifecycle Archive Rules
 - EVS-19 Sound/Text Parallel AND Runtime
-- EVS-19a Stealth Test Event Fix
-- EVS-19b Parallel Test Event Activation Fix
-- EVS-19c Parallel Test Options Fix
-- EVS-19d Parallel Context EventUid Fix
-- EVS-19e Text Options Regression Fix / Parallel AND bestätigt
-```
+- EVS-19a/b/c/d/e Fixes bis bestätigt
+- EVS-20 ChatOutput Dispatcher Prep

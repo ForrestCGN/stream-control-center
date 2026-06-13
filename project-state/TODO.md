@@ -1,6 +1,6 @@
 # TODO – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-19e
+Stand: 2026-06-13 nach EVS-20
 
 ## Erledigt / bestätigt
 
@@ -28,27 +28,21 @@ Stand: 2026-06-13 nach EVS-19e
 - [x] Sound-Testchat-Antwortauswertung
 - [x] Sound-Debug Accepted Answers
 - [x] EVS-18: echten `twitch.chat.message` Bus-Stream für Soundantworten nutzen
-- [x] EVS-18c: Event-Lifecycle-/Archiv-Regeln dokumentieren
-- [x] EVS-19: Sound/Text Parallel-UND-Auswertung einführen
-- [x] EVS-19a: Stealth-Testevent Helper reparieren
-- [x] EVS-19b: Stealth-Testevent aktivieren und alte Testevents archivieren
-- [x] EVS-19c/19d/19e: Options-/Context-Regressionen im Parallel-Testpfad reparieren
-- [x] EVS-19e: eine Nachricht löst Sound UND Text im selben Event
+- [x] EVS-18c: Eventwerte eventUid-gebunden/Archivregeln dokumentiert
+- [x] EVS-19e: Sound/Text Parallel-UND-Regel bestätigt
+- [x] EVS-20: ChatOutput Dispatcher Prep / Dry-Run-Status vorbereitet
 
 ## Kurzfristig offen
 
-- [ ] Doku-/Dashboard-Anzeige für Kombi-Runtime noch im Browser prüfen.
-- [ ] Text-Runtime-Report nach EVS-19e erneut gegen echtes Stealth-Event prüfen.
-- [ ] Sound-Misses zählen und im Report übersichtlich anzeigen, ohne Chat-Spam.
-- [ ] Dashboard Sound-Spiel: aktive Runde deutlicher anzeigen.
-- [ ] Dashboard Statistik/User-Popup nach EVS-19e im Browser prüfen.
+- [ ] EVS-20 im Live-System testen: `/chat-output/status`, `/chat-output/report`, `/chat-output/test-dispatch`.
+- [ ] EVS-21: Dashboard-Anzeige für ChatOutput-Status/Report vorbereiten.
+- [ ] Dashboard Sound-Spiel: aktive Runde noch deutlicher anzeigen.
+- [ ] Dashboard Statistik/User-Popup weiter im Browser prüfen.
 
 ## Mittelfristig offen
 
-- [ ] EVS-20: ChatOutput-Dispatcher vorbereiten.
-- [ ] Config-/Dashboard-Schalter für direkte Chat-Ausgabe vorbereiten.
-- [ ] Live-Ausgabe niemals ohne klaren Dashboard-Warnstatus aktivieren.
-- [ ] Kombinierte ChatOutput-Zusammenfassung für gleichzeitige Sound+Text-Lösung planen.
+- [ ] Live-Schalter-Konzept im Dashboard streamer-/modfreundlich sichtbar machen.
+- [ ] Config-Schalter für direkte Chat-Ausgabe erst nach ausdrücklichem Go aktivierbar machen.
 - [ ] Sound-System-Playback-Anbindung vorbereitet und später geschützt aktivierbar machen.
 - [ ] Event-Overlay vorbereiten.
 - [ ] Event-Abschluss mit Top 3 vorbereiten.
@@ -62,7 +56,6 @@ Stand: 2026-06-13 nach EVS-19e
 - [ ] Keine zweite Media-/Player-Struktur bauen.
 - [ ] Keine neue Textvarianten-Struktur bauen.
 - [ ] Keine Funktionalität entfernen.
-- [ ] Hard-Delete von Events nur später mit Owner/Admin, Bestätigung und Audit.
 
 ## Testbefehle allgemein
 
@@ -77,5 +70,6 @@ Status:
 Invoke-RestMethod http://127.0.0.1:8080/api/stream-events/status
 Invoke-RestMethod http://127.0.0.1:8080/api/stream-events/text-runtime/status
 Invoke-RestMethod http://127.0.0.1:8080/api/stream-events/sound-runtime/status
-Invoke-RestMethod http://127.0.0.1:8080/api/stream-events/sound-runtime/report
+Invoke-RestMethod http://127.0.0.1:8080/api/stream-events/chat-output/status
+Invoke-RestMethod http://127.0.0.1:8080/api/stream-events/chat-output/report
 ```

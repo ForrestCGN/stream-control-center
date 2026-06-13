@@ -1,54 +1,53 @@
 # NEXT_STEPS – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-19e
+Stand: 2026-06-13 nach EVS-20
 
-## Nächster sinnvoller Schritt
+## Sofort testen
 
-### EVS-20 – ChatOutput Dispatcher Prep / Live-Schalter-Konzept
+### EVS-20 – ChatOutput Dispatcher Prep prüfen
 
-Ziel:
-
-```text
-Vorbereitete ChatOutputs aus Text- und Sound-Spiel an das vorhandene Chat-/Bot-Ausgabesystem anschließbar machen, aber weiterhin geschützt und konfigurierbar.
+```powershell
+node -c .\backend\modules\stream_events.js
+.\stepdone.cmd "EVS-20 ChatOutput Dispatcher Prep"
 ```
 
-Scope:
+Dann:
 
-- Vorhandene Chat-/Bot-Ausgabe verwenden, keine zweite Ausgabestruktur bauen.
-- `directSend=false` bleibt Default.
-- Config-/Dashboard-Schalter vorbereiten.
-- Rate-Limit und Spam-Schutz einplanen.
-- Gleichzeitige Sound+Text-Lösung berücksichtigen.
-- Option für gebündelte Chat-Ausgabe planen, damit nicht zwei Nachrichten gleichzeitig spammen.
-- Debug-Antworten bleiben nur API-/Dashboard-Test und dürfen nie in Chat/Overlay.
-- Live-Schalter sichtbar als gefährlicher Status: „LIVE-AUSGABE AKTIV“.
+```powershell
+Invoke-RestMethod http://127.0.0.1:8080/api/stream-events/status
+Invoke-RestMethod http://127.0.0.1:8080/api/stream-events/chat-output/status
+Invoke-RestMethod http://127.0.0.1:8080/api/stream-events/chat-output/report
+```
 
-Nicht Ziel von EVS-20:
+Erwartung:
 
-- Kein automatisches Direkt-Senden ohne Config.
-- Kein Sound-Playback.
-- Keine Sound-System-Queue-Berührung.
-- Kein Overlay-Livebetrieb.
+```text
+wouldSend = false
+directSend = false
+dispatched = false
+blockedReasons enthält Sicherheitsblocker
+```
 
-## Danach sinnvolle Schritte
+## Danach sinnvoll
 
-### EVS-21 – Sound-System Playback Integration Prep
+### EVS-21 – Dashboard ChatOutput Status
 
 Ziel:
 
-- Vorbereitete Playback-Payloads an vorhandenes Sound-System anbinden.
+- ChatOutput-Status im Dashboard anzeigen.
+- TESTMODUS / LIVE AKTIV klar sichtbar vorbereiten.
+- Blocker verständlich anzeigen.
+- Keine öffentliche Twitch-Ausgabe.
+- Kein Live-Send-Button ohne späteres Sicherheitskonzept.
+
+### EVS-22 – Sound-System Playback Prep
+
+Ziel:
+
+- Vorbereitete Playback-Payloads an vorhandenes Sound-System anschließbar machen.
 - Anfangs weiterhin geschützt per Config-Schalter.
 - Sound-System-Queue nur kontrolliert und optional berühren.
 - Kein zweiter Player.
-
-### EVS-22 – Dashboard Live Safety / Admin-Schalter
-
-Ziel:
-
-- Live-Schalter im Dashboard streamer-/modfreundlich darstellen.
-- Klare Warnungen und Statusanzeigen.
-- Rechte/Freigaben berücksichtigen.
-- Audit-Log für Aktivierungen vorbereiten.
 
 ### EVS-23 – Event Overlay Prep
 
@@ -63,29 +62,14 @@ Ziel:
 Ziel:
 
 - Event sauber beenden.
-- Top 3 Ranking ausgeben/vorbereiten.
+- Top 3 Ranking vorbereiten.
 - Textvarianten für Abschluss nutzen.
-- Dashboard/Overlay/ChatOutput vorbereitet.
-
-### EVS-25 – Statistik langfristig
-
-Ziel:
-
-- User-/Event-/Sound-/Text-Statistiken langfristig auswertbar machen.
-- „User X: wann, wo, welcher Sound, welches Wort, welcher Satz, Punkte“.
-- Sound-Snippet-Erkennungsquote und Text-Lösungsquote.
-
-## Offene UX-/Dashboard-Aufgaben
-
-- Statistik-Untertabs weiter glätten, falls Bedienung noch hakelt.
-- User-Popup scrollbar und AutoReload weiter testen.
-- Texte-Tab Filter weiter verfeinern.
-- Event-Editor später für echte Sound-/Text-Konfiguration produktionsreif machen.
-- Sound-Antworten im Test-/Debugbereich sichtbar lassen, aber niemals im Overlay/Chat.
+- Dashboard/Overlay/ChatOutput prepared-only.
 
 ## Offene Fachfragen
 
-- Sollen Sound-Misses bei jedem Chat gezählt werden oder nur bei Nachrichten mit Mindestähnlichkeit?
-- Soll eine kombinierte ChatOutput-Zusammenfassung gebaut werden, wenn Sound und Text gleichzeitig gelöst werden?
-- Wie sollen Live-Schalter im Dashboard exakt heißen und wer darf sie aktivieren?
-- Soll eine gleichzeitig gelöste Sound+Text-Nachricht später eine gemeinsame Chatmeldung oder zwei getrennte Meldungen erzeugen?
+- Wie soll der Live-Schalter im Dashboard geschützt werden?
+- Soll es einen globalen Owner-Schalter plus Event-Schalter geben? Empfehlung: ja.
+- Soll ein Mod Live-Ausgabe aktivieren dürfen oder nur Owner/Admin?
+- Soll es eine sichtbare rote Warnung geben, wenn Chat-Ausgabe live aktiv ist? Empfehlung: ja.
+- Sollen mehrere vorbereitete ChatOutputs später gebündelt werden? Empfehlung: ja, optional.

@@ -17,8 +17,8 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.11";
-const MODULE_BUILD = "STEP_EVS_19E_TEXT_OPTIONS_REGRESSION_FIX";
+const MODULE_VERSION = "0.5.12";
+const MODULE_BUILD = "STEP_EVS_20_CHAT_OUTPUT_DISPATCHER_PREP";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -176,6 +176,15 @@ const DEFAULT_EVENT_CONFIG = {
     showTop3: true,
     showCurrentRound: true,
     showPartialHints: true
+  },
+  chatOutputDefaults: {
+    dispatcherEnabled: false,
+    liveEnabled: false,
+    allowDirectSend: false,
+    preparedOnly: true,
+    requireEventChatOutputEnabled: true,
+    requireEventLiveEnabled: true,
+    maxPreviewOutputs: 50
   }
 };
 
@@ -185,7 +194,7 @@ const MODULE_META = {
   build: MODULE_BUILD,
   type: "runtime",
   category: "events",
-  description: "Zentrales Event-System Backend: Entwürfe, Validierung, Punkte, Ranking, Bus-Status, Text-Multi-Satz-Config, Textvarianten, globale Config, Communication-Bus Heartbeat, Text- und Sound-Chat-Runtime ueber Twitch-Chat-Bus-Events.",
+  description: "Zentrales Event-System Backend: Entwürfe, Validierung, Punkte, Ranking, Bus-Status, Text-Multi-Satz-Config, Textvarianten, globale Config, Communication-Bus Heartbeat, Text- und Sound-Chat-Runtime ueber Twitch-Chat-Bus-Events sowie vorbereiteter ChatOutput-Dispatcher ohne Live-Send.",
   routesPrefix: ["/api/stream-events"],
   bus: {
     registered: true,
@@ -565,6 +574,15 @@ function normalizeEventConfig(input = {}) {
   cfg.overlayDefaults.showTop3 = boolValue(cfg.overlayDefaults.showTop3, true);
   cfg.overlayDefaults.showCurrentRound = boolValue(cfg.overlayDefaults.showCurrentRound, true);
   cfg.overlayDefaults.showPartialHints = boolValue(cfg.overlayDefaults.showPartialHints, true);
+
+  cfg.chatOutputDefaults = cfg.chatOutputDefaults && typeof cfg.chatOutputDefaults === "object" ? cfg.chatOutputDefaults : {};
+  cfg.chatOutputDefaults.dispatcherEnabled = boolValue(cfg.chatOutputDefaults.dispatcherEnabled, false);
+  cfg.chatOutputDefaults.liveEnabled = boolValue(cfg.chatOutputDefaults.liveEnabled, false);
+  cfg.chatOutputDefaults.allowDirectSend = boolValue(cfg.chatOutputDefaults.allowDirectSend, false);
+  cfg.chatOutputDefaults.preparedOnly = boolValue(cfg.chatOutputDefaults.preparedOnly, true);
+  cfg.chatOutputDefaults.requireEventChatOutputEnabled = boolValue(cfg.chatOutputDefaults.requireEventChatOutputEnabled, true);
+  cfg.chatOutputDefaults.requireEventLiveEnabled = boolValue(cfg.chatOutputDefaults.requireEventLiveEnabled, true);
+  cfg.chatOutputDefaults.maxPreviewOutputs = clampNumber(cfg.chatOutputDefaults.maxPreviewOutputs, 1, 500, 50);
 
   return cfg;
 }
@@ -1294,6 +1312,187 @@ function buildChatOutput(textKey, context = {}, options = {}) {
       reason: cleanString(options.reason || "runtime_text_output"),
       preparedAt: nowIso()
     }
+  };
+}
+
+function getChatOutputDispatcherConfig(event = null) {
+  const globalConfig = getEventConfig().config || DEFAULT_EVENT_CONFIG;
+  const defaults = globalConfig.chatOutputDefaults || DEFAULT_EVENT_CONFIG.chatOutputDefaults;
+  const settings = event && event.settings && typeof event.settings === "object" ? event.settings : {};
+  return {
+    dispatcherEnabled: boolValue(defaults.dispatcherEnabled, false),
+    globalLiveEnabled: boolValue(defaults.liveEnabled, false),
+    allowDirectSend: boolValue(defaults.allowDirectSend, false),
+    preparedOnly: boolValue(defaults.preparedOnly, true),
+    requireEventChatOutputEnabled: boolValue(defaults.requireEventChatOutputEnabled, true),
+    requireEventLiveEnabled: boolValue(defaults.requireEventLiveEnabled, true),
+    eventChatOutputEnabled: boolValue(settings.chatOutputEnabled, false),
+    eventLiveEnabled: boolValue(settings.chatOutputLiveEnabled || settings.chatLiveEnabled || settings.liveChatOutputEnabled, false),
+    maxPreviewOutputs: clampNumber(defaults.maxPreviewOutputs, 1, 500, 50)
+  };
+}
+
+function normalizeChatOutputForDispatch(output = {}, index = 0, source = "runtime_report") {
+  const raw = output && typeof output === "object" ? output : {};
+  const meta = raw.meta && typeof raw.meta === "object" ? raw.meta : {};
+  return {
+    index,
+    source: cleanString(source, "runtime_report"),
+    kind: cleanString(raw.kind || meta.reason || raw.reason || "chat_output"),
+    prepared: boolValue(raw.prepared, false),
+    directSend: boolValue(raw.directSend, false),
+    textKey: cleanString(raw.textKey || raw.key),
+    text: cleanString(raw.text),
+    target: cleanString(raw.target, "twitch_chat"),
+    via: cleanString(raw.via, "bus_payload"),
+    context: safeJson(raw.context, {}),
+    meta: safeJson(meta, {}),
+    raw: safeJson(raw, {})
+  };
+}
+
+function evaluateChatOutputDispatch(output = {}, options = {}) {
+  const event = options.event || null;
+  const eventUid = cleanString(options.eventUid || (event && event.eventUid));
+  const config = options.config || getChatOutputDispatcherConfig(event);
+  const normalized = normalizeChatOutputForDispatch(output, options.index || 0, options.source || "runtime_report");
+  const blockedBy = [];
+  const warnings = [];
+
+  if (!normalized.prepared) blockedBy.push("output_not_prepared");
+  if (!normalized.text) blockedBy.push("output_without_text");
+  if (normalized.target !== "twitch_chat") warnings.push("target_is_not_twitch_chat");
+  if (!config.dispatcherEnabled) blockedBy.push("dispatcher_disabled");
+  if (!config.globalLiveEnabled) blockedBy.push("global_live_disabled");
+  if (!config.allowDirectSend) blockedBy.push("direct_send_not_allowed");
+  if (config.preparedOnly) blockedBy.push("prepared_only_mode");
+  if (config.requireEventChatOutputEnabled && !config.eventChatOutputEnabled) blockedBy.push("event_chat_output_disabled");
+  if (config.requireEventLiveEnabled && !config.eventLiveEnabled) blockedBy.push("event_live_disabled");
+  if (!normalized.directSend) blockedBy.push("output_direct_send_false");
+
+  return {
+    ok: true,
+    eventUid,
+    output: normalized,
+    wouldSend: blockedBy.length === 0,
+    directSend: false,
+    dispatched: false,
+    preparedOnly: true,
+    blockedBy,
+    warnings,
+    safety: {
+      dispatcherEnabled: config.dispatcherEnabled,
+      globalLiveEnabled: config.globalLiveEnabled,
+      allowDirectSend: config.allowDirectSend,
+      preparedOnly: config.preparedOnly,
+      eventChatOutputEnabled: config.eventChatOutputEnabled,
+      eventLiveEnabled: config.eventLiveEnabled
+    },
+    note: "EVS-20 prueft nur, ob ein ChatOutput dispatch-faehig waere. Es wird nichts in Twitch gesendet."
+  };
+}
+
+function collectPreparedChatOutputs(eventUid = "") {
+  ensureSchema();
+  const event = cleanString(eventUid) ? getEventByUid(eventUid) : getActiveEvent();
+  const uid = event ? event.eventUid : cleanString(eventUid);
+  if (!uid) return { ok: true, event: null, eventUid: "", outputs: [], sourceReports: {}, note: "Kein aktives Event und keine eventUid angegeben." };
+
+  const sourceReports = {};
+  const outputs = [];
+  try {
+    const soundReport = getSoundRuntimeReport(uid);
+    sourceReports.sound = { ok: soundReport.ok === true, counts: soundReport.counts || {} };
+    if (Array.isArray(soundReport.chatOutputs)) {
+      for (const item of soundReport.chatOutputs) outputs.push(normalizeChatOutputForDispatch(item, outputs.length, "sound_runtime_report"));
+    }
+  } catch (err) {
+    sourceReports.sound = { ok: false, error: err && err.message ? err.message : String(err) };
+  }
+  try {
+    const textReport = getTextRuntimeReport(uid);
+    sourceReports.text = { ok: textReport.ok === true, counts: textReport.counts || {} };
+    if (Array.isArray(textReport.chatOutputs)) {
+      for (const item of textReport.chatOutputs) outputs.push(normalizeChatOutputForDispatch(item, outputs.length, "text_runtime_report"));
+    }
+  } catch (err) {
+    sourceReports.text = { ok: false, error: err && err.message ? err.message : String(err) };
+  }
+
+  return { ok: true, event: publicEventSummary(event || getEventByUid(uid)), eventUid: uid, outputs, sourceReports };
+}
+
+function getChatOutputDispatchReport(eventUid = "", options = {}) {
+  const collected = collectPreparedChatOutputs(eventUid);
+  const event = collected.eventUid ? getEventByUid(collected.eventUid) : null;
+  const config = getChatOutputDispatcherConfig(event);
+  const max = clampNumber(options.maxPreviewOutputs ?? config.maxPreviewOutputs, 1, 500, config.maxPreviewOutputs);
+  const outputs = collected.outputs.slice(0, max);
+  const evaluations = outputs.map((output, index) => evaluateChatOutputDispatch(output.raw || output, {
+    event,
+    eventUid: collected.eventUid,
+    index,
+    source: output.source,
+    config
+  }));
+  const blockedReasons = {};
+  for (const item of evaluations) {
+    for (const reason of item.blockedBy || []) blockedReasons[reason] = (blockedReasons[reason] || 0) + 1;
+  }
+  return {
+    ok: collected.ok === true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    event: collected.event,
+    eventUid: collected.eventUid,
+    config,
+    counts: {
+      preparedOutputs: collected.outputs.length,
+      previewedOutputs: outputs.length,
+      wouldSend: evaluations.filter(item => item.wouldSend).length,
+      blocked: evaluations.filter(item => !item.wouldSend).length
+    },
+    blockedReasons,
+    outputs: evaluations,
+    sourceReports: collected.sourceReports,
+    directSend: false,
+    dispatched: false,
+    note: "EVS-20 Dispatcher-Prep: Status/Report pruefen vorbereitete ChatOutputs. Es wird weiterhin nichts oeffentlich gesendet.",
+    updatedAt: nowIso()
+  };
+}
+
+function testChatOutputDispatch(input = {}) {
+  const eventUid = cleanString(input.eventUid || input.event_uid || "");
+  const event = eventUid ? getEventByUid(eventUid) : getActiveEvent();
+  const config = getChatOutputDispatcherConfig(event);
+  const rawOutputs = Array.isArray(input.chatOutputs) ? input.chatOutputs : (input.chatOutput ? [input.chatOutput] : []);
+  const outputs = rawOutputs.length ? rawOutputs : collectPreparedChatOutputs(eventUid).outputs.map(item => item.raw || item);
+  const evaluations = outputs.map((output, index) => evaluateChatOutputDispatch(output, {
+    event,
+    eventUid: event ? event.eventUid : eventUid,
+    index,
+    source: "test_dispatch_input",
+    config
+  }));
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    event: publicEventSummary(event),
+    eventUid: event ? event.eventUid : eventUid,
+    counts: {
+      inputOutputs: outputs.length,
+      wouldSend: evaluations.filter(item => item.wouldSend).length,
+      blocked: evaluations.filter(item => !item.wouldSend).length
+    },
+    outputs: evaluations,
+    directSend: false,
+    dispatched: false,
+    note: "Test-Dispatch ist absichtlich dry-run only. Keine Twitch-Ausgabe, kein Bot-Send, keine Queue.",
+    updatedAt: nowIso()
   };
 }
 
@@ -3096,6 +3295,9 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "POST", path: `${prefix}/sound-runtime/test-chat`, description: "Testet eine Chatantwort gegen die aktive Sound-Runde, ohne direkt in Twitch zu senden" },
       { method: "POST", path: `${prefix}/chat-runtime/test-chat`, description: "EVS-19: Testet eine Chatnachricht parallel gegen Sound und Text, ohne direkt zu senden" },
       { method: "POST", path: `${prefix}/chat-runtime/create-stealth-test-event`, description: "EVS-19: Legt mit confirm=1 ein Kombi-Stealth-Testevent fuer Sound + Text an" },
+      { method: "GET", path: `${prefix}/chat-output/status`, description: "EVS-20: ChatOutput-Dispatcher Sicherheitsstatus, dry-run only" },
+      { method: "GET", path: `${prefix}/chat-output/report`, description: "EVS-20: Vorbereitete ChatOutputs aus Sound/Text mit Dispatch-Preview, dry-run only" },
+      { method: "POST", path: `${prefix}/chat-output/test-dispatch`, description: "EVS-20: Testet ChatOutput-Dispatch-Regeln ohne Twitch-Ausgabe" },
       { method: "POST", path: `${prefix}/sound-runtime/next-round`, description: "Bereitet die naechste Sound-Runde vor, ohne direkt abzuspielen" },
       { method: "POST", path: `${prefix}/sound-runtime/resolve`, description: "Wertet die aktive Sound-Runde als geloest, wenn die Antwort passt" },
       { method: "POST", path: `${prefix}/sound-runtime/unresolved`, description: "Markiert die aktive Sound-Runde als nicht geloest" },
@@ -3339,6 +3541,47 @@ module.exports.init = function init(ctx) {
     }
   });
 
+  reg("get", `${prefix}/chat-output/status`, (req, res) => {
+    try {
+      const eventUid = req.query.eventUid || req.query.event_uid || "";
+      const report = getChatOutputDispatchReport(eventUid, { maxPreviewOutputs: req.query.maxPreviewOutputs });
+      sendJson(res, {
+        ok: report.ok,
+        module: MODULE_NAME,
+        moduleVersion: MODULE_VERSION,
+        moduleBuild: MODULE_BUILD,
+        event: report.event,
+        eventUid: report.eventUid,
+        config: report.config,
+        counts: report.counts,
+        blockedReasons: report.blockedReasons,
+        directSend: false,
+        dispatched: false,
+        note: report.note,
+        updatedAt: report.updatedAt
+      });
+    } catch (err) {
+      handleError(res, err);
+    }
+  });
+
+  reg("get", `${prefix}/chat-output/report`, (req, res) => {
+    try {
+      sendJson(res, getChatOutputDispatchReport(req.query.eventUid || req.query.event_uid || "", { maxPreviewOutputs: req.query.maxPreviewOutputs }));
+    } catch (err) {
+      handleError(res, err);
+    }
+  });
+
+  reg("post", `${prefix}/chat-output/test-dispatch`, (req, res) => {
+    try {
+      const result = testChatOutputDispatch(req.body || {});
+      sendJson(res, result, result.ok ? 200 : 400);
+    } catch (err) {
+      handleError(res, err, 400);
+    }
+  });
+
   reg("get", `${prefix}/statistics/users`, (req, res) => {
     try {
       sendJson(res, getStatisticsUsers(req.query.eventUid || req.query.event_uid || ""));
@@ -3548,6 +3791,8 @@ module.exports._internal = {
   getTextRuntimeStatus,
   getSoundRuntimeStatus,
   getSoundRuntimeReport,
+  getChatOutputDispatchReport,
+  testChatOutputDispatch,
   createSoundRound,
   resolveSoundRound,
   markSoundRoundUnresolved
