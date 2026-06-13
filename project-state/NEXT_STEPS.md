@@ -7,3 +7,4 @@
 5. Dashboard öffnen und im Statistik-Tab User auswählen.
 
 Möglicher nächster Step: Sound-Runtime-Konzept oder User-Statistik nach Event/Alle Events umschaltbar machen.
+\n## EVS-13b User Statistics Detail Modal + AutoReload\n- User-Statistik im Dashboard öffnet jetzt ein scrollbares Detail-Popup.\n- AutoReload aktualisiert nur das Popup per API, kein Seitenreload.\n- Keine Backend-/DB-/Bus-Änderung in diesem Step.

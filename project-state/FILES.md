@@ -9,3 +9,4 @@
 - project-state/TODO.md
 - project-state/CHANGELOG.md
 - project-state/FILES.md
+\n## EVS-13b User Statistics Detail Modal + AutoReload\n- User-Statistik im Dashboard öffnet jetzt ein scrollbares Detail-Popup.\n- AutoReload aktualisiert nur das Popup per API, kein Seitenreload.\n- Keine Backend-/DB-/Bus-Änderung in diesem Step.

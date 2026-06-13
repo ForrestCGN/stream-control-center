@@ -29,6 +29,7 @@ window.StreamEventsModule = (function(){
     statisticsUsers: null,
     selectedStatsUser: '',
     userStatistics: null,
+    userStatsModal: { open: false, login: '', eventUid: '', autoRefresh: true, intervalMs: 5000, lastScrollTop: 0, lastRefreshAt: '' },
     configSaving: false,
     textSaving: false,
     modal: null,
@@ -150,9 +151,9 @@ window.StreamEventsModule = (function(){
       <div class="evs-page">
         <div class="evs-header glass">
           <div>
-            <div class="evs-kicker">EVS-12 · Text-Runtime Dashboard Report</div>
+            <div class="evs-kicker">EVS-13b · User-Statistik Popup + AutoReload</div>
             <h2>Event-System</h2>
-            <p>Übersicht zeigt laufende Events. Text-Runtime, Worttreffer, Satzlösungen und Ranking sind jetzt direkt im Dashboard sichtbar.</p>
+            <p>Übersicht zeigt laufende Events. Text-Runtime, User-Details, Worttreffer, Satzlösungen und Ranking sind dashboardfreundlich sichtbar.</p>
           </div>
           <div class="evs-header-actions">
             <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="reload">Aktualisieren</button>
@@ -167,6 +168,7 @@ window.StreamEventsModule = (function(){
         ${renderActiveTab(ev)}
 
         ${state.modal ? renderModal() : ''}
+        ${state.userStatsModal?.open ? renderUserStatsModal() : ''}
       </div>
     `;
     attachMediaFields(root);
@@ -419,7 +421,7 @@ window.StreamEventsModule = (function(){
           <div><h3>Statistik & Text-Runtime</h3><span>Ranking, Worttreffer, Satzlösungen, User-Filter und vorbereitete Chatmeldungen für das ausgewählte Event.</span></div>
           ${event ? `<div class="evs-action-row evs-action-row-tight"><button type="button" class="evs-btn evs-btn-secondary" data-evs-action="ranking" data-uid="${esc(event.eventUid)}">Ranking laden</button><button type="button" class="evs-btn evs-btn-secondary" data-evs-action="runtimeReport" data-uid="${esc(event.eventUid)}">Text-Report laden</button><button type="button" class="evs-btn evs-btn-secondary" data-evs-action="statsUsers" data-uid="${esc(event.eventUid)}">Userliste laden</button></div>` : ''}
         </div>
-        ${event ? renderStatsUserFilter(event) + renderRuntimeReportPanel(event, false) + renderUserStatisticsPanel(event) : '<div class="evs-empty">Kein Event ausgewählt.</div>'}
+        ${event ? renderStatsUserFilter(event) + renderRuntimeReportPanel(event, false) : '<div class="evs-empty">Kein Event ausgewählt.</div>'}
       </section>
     `;
   }
@@ -438,7 +440,7 @@ window.StreamEventsModule = (function(){
           <select data-evs-user-stat-select data-event-uid="${esc(event.eventUid)}">${options}</select>
         </label>
         <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="statsUsers" data-uid="${esc(event.eventUid)}">Dropdown aktualisieren</button>
-        ${selected ? `<button type="button" class="evs-btn evs-btn-secondary" data-evs-action="statsUser" data-user-login="${esc(selected)}" data-uid="${esc(event.eventUid)}">User-Report neu laden</button>` : ''}
+        ${selected ? `<button type="button" class="evs-btn" data-evs-action="openUserStats" data-user-login="${esc(selected)}" data-uid="${esc(event.eventUid)}">User-Details öffnen</button>` : ''}
         <small>${users.length ? `${esc(users.length)} User mit Event-Daten gefunden.` : 'Noch keine Userdaten geladen oder vorhanden.'}</small>
       </div>
     `;
@@ -536,6 +538,78 @@ window.StreamEventsModule = (function(){
   function userTimelineLabel(kind){
     const map = { word_hit: 'Wort', phrase_solved: 'Satz', sound_score: 'Sound' };
     return map[kind] || kind || 'Aktivität';
+  }
+
+
+  function selectedStatsEvent(){
+    const uid = state.userStatsModal?.eventUid || state.selectedUid;
+    return state.events.find(e => e.eventUid === uid) || selectedEvent();
+  }
+
+  function renderUserStatsModal(){
+    const modal = state.userStatsModal || {};
+    const event = selectedStatsEvent();
+    const report = userStatistics();
+    const login = modal.login || state.selectedStatsUser || '';
+    const hasReport = report && report.user && report.user.userLogin === login && (!modal.eventUid || report.eventUid === modal.eventUid);
+    const u = hasReport ? (report.user || {}) : { userLogin: login, userDisplayName: login };
+    const wordHits = hasReport && Array.isArray(report.text?.wordHits) ? report.text.wordHits : [];
+    const phraseSolves = hasReport && Array.isArray(report.text?.phraseSolves) ? report.text.phraseSolves : [];
+    const timeline = hasReport && Array.isArray(report.timeline) ? report.timeline : [];
+    const soundRows = hasReport && Array.isArray(report.sound?.rows) ? report.sound.rows : [];
+    const auto = modal.autoRefresh !== false;
+    return `
+      <div class="evs-modal-backdrop evs-user-modal-backdrop" data-evs-user-modal-close="1">
+        <div class="evs-modal glass evs-user-modal" role="dialog" aria-modal="true" aria-label="User Statistik">
+          <div class="evs-modal-head evs-user-modal-head">
+            <div>
+              <h3>User-Statistik: ${esc(u.userDisplayName || u.userLogin || login)}</h3>
+              <p>${event ? `Aktuelles Event: ${esc(event.name || event.eventUid)}` : 'Aktuelles Event'} · ${hasReport ? `Stand: ${fmtDate(report.updatedAt)}` : 'Report wird geladen oder ist noch leer.'}</p>
+            </div>
+            <button type="button" class="evs-icon-btn" data-evs-action="closeUserStatsModal">×</button>
+          </div>
+          <div class="evs-user-modal-toolbar">
+            <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="refreshUserStatsModal" data-user-login="${esc(login)}" data-uid="${esc(modal.eventUid || state.selectedUid || '')}">Jetzt aktualisieren</button>
+            <button type="button" class="evs-btn evs-btn-secondary ${auto ? 'is-active' : ''}" data-evs-action="toggleUserStatsAuto">AutoReload: ${auto ? 'An' : 'Aus'}</button>
+            <small>Aktualisiert nur dieses Popup im Hintergrund. Kein Seitenreload.</small>
+          </div>
+          <div class="evs-user-modal-body" data-evs-user-modal-body>
+            ${hasReport ? `
+              <div class="evs-runtime-counters evs-user-counters">
+                <div><strong>${esc(u.totalPoints || 0)}</strong><span>Punkte gesamt</span></div>
+                <div><strong>${esc(u.wordHits || 0)}</strong><span>Worttreffer</span></div>
+                <div><strong>${esc(u.phraseSolves || 0)}</strong><span>Satzlösungen</span></div>
+                <div><strong>${esc(u.eventCount || 0)}</strong><span>Events</span></div>
+              </div>
+
+              <div class="evs-user-modal-grid">
+                <section class="evs-runtime-box">
+                  <h4>Gefundene Wörter</h4>
+                  ${wordHits.length ? wordHits.map(hit => `<div class="evs-runtime-row"><strong>${esc(hit.eventName || hit.eventUid)}</strong><span>Satz ${esc(hit.phraseNumber)} · Wort: ${esc(hit.wordOriginal || hit.wordKey)} · +${esc(hit.pointsAwarded || 0)}</span><small>${fmtDate(hit.createdAt)} · „${esc(hit.chatMessage || '')}“</small></div>`).join('') : '<div class="evs-empty">Keine Worttreffer für diesen User.</div>'}
+                </section>
+                <section class="evs-runtime-box">
+                  <h4>Gelöste Sätze</h4>
+                  ${phraseSolves.length ? phraseSolves.map(solve => `<div class="evs-runtime-row"><strong>${esc(solve.eventName || solve.eventUid)}</strong><span>Satz ${esc(solve.phraseNumber)} · +${esc(solve.pointsAwarded || 0)} Punkte</span><small>${fmtDate(solve.createdAt)} · „${esc(solve.chatMessage || '')}“</small></div>`).join('') : '<div class="evs-empty">Keine Satzlösungen für diesen User.</div>'}
+                </section>
+                <section class="evs-runtime-box">
+                  <h4>Sound-Spiel später</h4>
+                  ${soundRows.length ? soundRows.map(row => `<div class="evs-runtime-row"><strong>${esc(row.eventName || row.eventUid)}</strong><span>${esc(row.reason || row.sourceType || 'Sound')} · +${esc(row.points || 0)}</span><small>${fmtDate(row.createdAt)}</small></div>`).join('') : `<div class="evs-empty">${esc(report.sound?.note || 'Sound-Statistik ist vorbereitet, aber noch ohne Runtime-Daten.')}</div>`}
+                </section>
+              </div>
+
+              <section class="evs-runtime-box evs-user-timeline evs-user-modal-timeline">
+                <h4>Aktivität / Wann, wie, wo</h4>
+                ${timeline.length ? timeline.map(item => `<div class="evs-user-timeline-row"><b>${esc(userTimelineLabel(item.kind))}</b><span>${esc(item.row?.eventName || item.row?.eventUid || '')}</span><em>${esc(item.label || '')}</em><strong>${esc(item.points || 0)} Punkte</strong><small>${fmtDate(item.createdAt)}</small></div>`).join('') : '<div class="evs-empty">Keine Aktivität für diesen User.</div>'}
+              </section>
+            ` : `<div class="evs-empty">User-Report für ${esc(login)} wird geladen oder enthält noch keine Daten im aktuellen Event.</div>`}
+          </div>
+          <div class="evs-user-modal-footer">
+            <span>${auto ? `AutoReload alle ${esc(Math.round((modal.intervalMs || 5000) / 1000))} Sekunden` : 'AutoReload aus'}${modal.lastRefreshAt ? ` · zuletzt: ${fmtDate(modal.lastRefreshAt)}` : ''}</span>
+            <button type="button" class="evs-btn" data-evs-action="closeUserStatsModal">Schließen</button>
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   function renderOverlayTab(event){
@@ -1041,6 +1115,63 @@ window.StreamEventsModule = (function(){
     if (rerender) render();
   }
 
+
+  let userStatsAutoTimer = null;
+
+  function stopUserStatsAutoRefresh(){
+    if (userStatsAutoTimer) clearInterval(userStatsAutoTimer);
+    userStatsAutoTimer = null;
+  }
+
+  function startUserStatsAutoRefresh(){
+    stopUserStatsAutoRefresh();
+    const modal = state.userStatsModal || {};
+    if (!modal.open || modal.autoRefresh === false || !modal.login) return;
+    const intervalMs = Math.max(3000, Number(modal.intervalMs || 5000));
+    userStatsAutoTimer = setInterval(() => refreshUserStatsModal(false), intervalMs);
+  }
+
+  async function openUserStatsModal(login, uid){
+    const clean = norm(login).replace(/^@/, '');
+    if (!clean) return;
+    state.selectedStatsUser = clean;
+    state.userStatsModal = { ...(state.userStatsModal || {}), open: true, login: clean, eventUid: uid || state.selectedUid || '', autoRefresh: state.userStatsModal?.autoRefresh !== false, intervalMs: state.userStatsModal?.intervalMs || 5000, lastScrollTop: 0 };
+    await loadUserStatistics(clean, state.userStatsModal.eventUid, false);
+    render();
+    startUserStatsAutoRefresh();
+  }
+
+  function closeUserStatsModal(){
+    stopUserStatsAutoRefresh();
+    state.userStatsModal = { ...(state.userStatsModal || {}), open: false, lastScrollTop: 0 };
+    render();
+  }
+
+  function preserveUserModalScroll(){
+    const body = document.querySelector('[data-evs-user-modal-body]');
+    if (body && state.userStatsModal) state.userStatsModal.lastScrollTop = body.scrollTop || 0;
+  }
+
+  function restoreUserModalScroll(){
+    const body = document.querySelector('[data-evs-user-modal-body]');
+    if (body && state.userStatsModal) body.scrollTop = Number(state.userStatsModal.lastScrollTop || 0);
+  }
+
+  async function refreshUserStatsModal(rerender = true){
+    const modal = state.userStatsModal || {};
+    if (!modal.open || !modal.login) return;
+    preserveUserModalScroll();
+    await loadUserStatistics(modal.login, modal.eventUid || state.selectedUid, false);
+    if (state.userStatsModal) state.userStatsModal.lastRefreshAt = new Date().toISOString();
+    if (rerender !== false) {
+      render();
+      restoreUserModalScroll();
+    } else {
+      render();
+      restoreUserModalScroll();
+    }
+  }
+
   async function loadUserStatistics(login, uid, rerender = true){
     const clean = norm(login).replace(/^@/, '');
     if (!clean) { state.selectedStatsUser = ''; state.userStatistics = null; if (rerender) render(); return; }
@@ -1248,6 +1379,10 @@ window.StreamEventsModule = (function(){
       if (action === 'runtimeReport') return loadTextRuntimeReport(uid, true);
       if (action === 'statsUsers') return loadStatisticsUsers(uid, true);
       if (action === 'statsUser') return loadUserStatistics(btn.dataset.userLogin || state.selectedStatsUser, uid, true);
+      if (action === 'openUserStats') return openUserStatsModal(btn.dataset.userLogin || state.selectedStatsUser, uid);
+      if (action === 'refreshUserStatsModal') return refreshUserStatsModal(true);
+      if (action === 'closeUserStatsModal') return closeUserStatsModal();
+      if (action === 'toggleUserStatsAuto') { state.userStatsModal.autoRefresh = state.userStatsModal.autoRefresh === false; if (state.userStatsModal.autoRefresh) startUserStatsAutoRefresh(); else stopUserStatsAutoRefresh(); render(); return; }
     });
 
     document.addEventListener('click', ev => {
@@ -1255,13 +1390,16 @@ window.StreamEventsModule = (function(){
         state.modal = null;
         render();
       }
+      if (ev.target.dataset?.evsUserModalClose === '1') {
+        closeUserStatsModal();
+      }
     });
 
     document.addEventListener('change', async ev => {
       const select = ev.target.closest('[data-evs-user-stat-select]');
       if (!select) return;
       const uid = select.dataset.eventUid || state.selectedUid;
-      await loadUserStatistics(select.value || '', uid, true);
+      await openUserStatsModal(select.value || '', uid);
     });
 
     window.addEventListener('cgn:module-show', ev => {
