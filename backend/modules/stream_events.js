@@ -3,9 +3,9 @@
 /**
  * Stream Events backend foundation.
  *
- * STEP EVS-7:
- * - Keeps the EVS-6 backend/dashboard foundation.
- * - Adds dashboard-capable text variant routes for Stream Events chat/system texts.
+ * STEP EVS-8:
+ * - Keeps the EVS-7 overview/editor/text dashboard structure.
+ * - Adds dashboard-capable global Event-System config storage.
  * - Still keeps gameplay runtime, Twitch chat handling, sound/media playback and overlay out of this step.
  */
 
@@ -16,8 +16,8 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.3.0";
-const MODULE_BUILD = "STEP_EVS_7_TEXT_CONFIG_DASHBOARD_PREP";
+const MODULE_VERSION = "0.3.1";
+const MODULE_BUILD = "STEP_EVS_8_CONFIG_DASHBOARD_PREP";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -95,13 +95,44 @@ const EVENT_TEXT_CATEGORY_LABELS = {
   scoring: "Event · Punkte"
 };
 
+const DEFAULT_EVENT_CONFIG = {
+  eventDefaults: {
+    defaultTopWinners: 3,
+    allowOnlyOneActiveEvent: true,
+    overviewShowsOnlyRunningEvents: true
+  },
+  soundDefaults: {
+    defaultAnswerSeconds: 20,
+    defaultPoints: 10,
+    unresolvedPolicy: "requeue_later",
+    avoidImmediateRepeat: true,
+    revealVideoEnabled: true
+  },
+  textDefaults: {
+    defaultPhrasePoints: 40,
+    partialHintsEnabled: true,
+    partialHintVisibility: "general",
+    showPartialWordCount: true,
+    wordPointsEnabled: false,
+    pointsPerNewWord: 1,
+    maxWordPointsPerUserPhrase: 5,
+    partialHintCooldownSeconds: 0,
+    uniqueWordPerUserPhrase: true
+  },
+  overlayDefaults: {
+    showTop3: true,
+    showCurrentRound: true,
+    showPartialHints: true
+  }
+};
+
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
   build: MODULE_BUILD,
   type: "runtime",
   category: "events",
-  description: "Zentrales Event-System Backend: Entwürfe, Validierung, Punkte, Ranking, Bus-Status, Text-Multi-Satz-Config und Textvarianten-Verwaltung.",
+  description: "Zentrales Event-System Backend: Entwürfe, Validierung, Punkte, Ranking, Bus-Status, Text-Multi-Satz-Config, Textvarianten und globale Config.",
   routesPrefix: ["/api/stream-events"],
   bus: {
     registered: true,
@@ -367,6 +398,117 @@ function jsonEncode(value) {
   return database.jsonEncode ? database.jsonEncode(value ?? null) : JSON.stringify(value ?? null);
 }
 
+function deepMerge(base, override) {
+  if (!override || typeof override !== "object" || Array.isArray(override)) return { ...(base || {}) };
+  const out = { ...(base || {}) };
+  for (const [key, value] of Object.entries(override)) {
+    if (value && typeof value === "object" && !Array.isArray(value) && base && typeof base[key] === "object" && !Array.isArray(base[key])) {
+      out[key] = deepMerge(base[key], value);
+    } else {
+      out[key] = value;
+    }
+  }
+  return out;
+}
+
+function normalizePolicy(value, allowed, fallback) {
+  const clean = String(value || "").trim();
+  return allowed.includes(clean) ? clean : fallback;
+}
+
+function clampNumber(value, min, max, fallback) {
+  const n = Number.parseInt(value, 10);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(min, Math.min(max, n));
+}
+
+function normalizeEventConfig(input = {}) {
+  const raw = deepMerge(DEFAULT_EVENT_CONFIG, input);
+  const cfg = deepMerge(DEFAULT_EVENT_CONFIG, raw);
+
+  cfg.eventDefaults.defaultTopWinners = clampNumber(cfg.eventDefaults.defaultTopWinners, 1, 10, 3);
+  cfg.eventDefaults.allowOnlyOneActiveEvent = boolValue(cfg.eventDefaults.allowOnlyOneActiveEvent, true);
+  cfg.eventDefaults.overviewShowsOnlyRunningEvents = boolValue(cfg.eventDefaults.overviewShowsOnlyRunningEvents, true);
+
+  cfg.soundDefaults.defaultAnswerSeconds = clampNumber(cfg.soundDefaults.defaultAnswerSeconds, 5, 300, 20);
+  cfg.soundDefaults.defaultPoints = clampNumber(cfg.soundDefaults.defaultPoints, 0, 10000, 10);
+  cfg.soundDefaults.unresolvedPolicy = normalizePolicy(cfg.soundDefaults.unresolvedPolicy, ["requeue_later", "remove", "manual"], "requeue_later");
+  cfg.soundDefaults.avoidImmediateRepeat = boolValue(cfg.soundDefaults.avoidImmediateRepeat, true);
+  cfg.soundDefaults.revealVideoEnabled = boolValue(cfg.soundDefaults.revealVideoEnabled, true);
+
+  cfg.textDefaults.defaultPhrasePoints = clampNumber(cfg.textDefaults.defaultPhrasePoints, 0, 10000, 40);
+  cfg.textDefaults.partialHintsEnabled = boolValue(cfg.textDefaults.partialHintsEnabled, true);
+  cfg.textDefaults.partialHintVisibility = normalizePolicy(cfg.textDefaults.partialHintVisibility, ["off", "general", "with_sentence"], "general");
+  cfg.textDefaults.showPartialWordCount = boolValue(cfg.textDefaults.showPartialWordCount, true);
+  cfg.textDefaults.wordPointsEnabled = boolValue(cfg.textDefaults.wordPointsEnabled, false);
+  cfg.textDefaults.pointsPerNewWord = clampNumber(cfg.textDefaults.pointsPerNewWord, 0, 1000, 1);
+  cfg.textDefaults.maxWordPointsPerUserPhrase = clampNumber(cfg.textDefaults.maxWordPointsPerUserPhrase, 0, 10000, 5);
+  cfg.textDefaults.partialHintCooldownSeconds = clampNumber(cfg.textDefaults.partialHintCooldownSeconds, 0, 3600, 0);
+  cfg.textDefaults.uniqueWordPerUserPhrase = boolValue(cfg.textDefaults.uniqueWordPerUserPhrase, true);
+
+  cfg.overlayDefaults.showTop3 = boolValue(cfg.overlayDefaults.showTop3, true);
+  cfg.overlayDefaults.showCurrentRound = boolValue(cfg.overlayDefaults.showCurrentRound, true);
+  cfg.overlayDefaults.showPartialHints = boolValue(cfg.overlayDefaults.showPartialHints, true);
+
+  return cfg;
+}
+
+function ensureConfigTable() {
+  const table = "stream_events_config";
+  const qTable = database.quoteIdentifier(table);
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS ${qTable} (
+      id ${database.primaryKeyAutoIncrementSql()},
+      config_key TEXT NOT NULL UNIQUE,
+      config_json ${database.jsonTypeSql()} NOT NULL,
+      updated_by TEXT NOT NULL DEFAULT '',
+      created_at ${database.dateTimeTypeSql()} NOT NULL,
+      updated_at ${database.dateTimeTypeSql()} NOT NULL
+    );
+  `);
+  return table;
+}
+
+function getEventConfig() {
+  const table = ensureConfigTable();
+  const qTable = database.quoteIdentifier(table);
+  const row = database.get(`SELECT config_json, updated_by, created_at, updated_at FROM ${qTable} WHERE config_key = :key`, { key: "global" });
+  const stored = row ? safeJsonParse(row.config_json, {}) : {};
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    config: normalizeEventConfig(stored),
+    source: row ? "database" : "default",
+    updatedBy: row ? row.updated_by || "" : "",
+    createdAt: row ? row.created_at || "" : "",
+    updatedAt: row ? row.updated_at || "" : ""
+  };
+}
+
+function saveEventConfig(input = {}, actor = "") {
+  const table = ensureConfigTable();
+  const qTable = database.quoteIdentifier(table);
+  const config = normalizeEventConfig(input.config || input);
+  const now = nowIso();
+  database.run(`
+    INSERT INTO ${qTable} (config_key, config_json, updated_by, created_at, updated_at)
+    VALUES (:key, :configJson, :updatedBy, :createdAt, :updatedAt)
+    ON CONFLICT(config_key) DO UPDATE SET
+      config_json = excluded.config_json,
+      updated_by = excluded.updated_by,
+      updated_at = excluded.updated_at
+  `, {
+    key: "global",
+    configJson: jsonEncode(config),
+    updatedBy: String(actor || "dashboard"),
+    createdAt: now,
+    updatedAt: now
+  });
+  markAction("config_updated");
+  publishStatus("config_updated", { configUpdated: true });
+  return getEventConfig();
+}
+
 function getEventTypes(rowOrBody = {}) {
   return {
     sound: boolValue(rowOrBody.sound_enabled ?? rowOrBody.soundEnabled),
@@ -447,6 +589,7 @@ function ensureSchema() {
         db.exec(`CREATE INDEX IF NOT EXISTS idx_stream_events_rounds_type ON stream_events_rounds(event_uid, game_type);`);
       }
     });
+    ensureConfigTable();
     runtimeState.schemaReady = true;
     runtimeState.schemaError = "";
     return true;
@@ -1015,6 +1158,8 @@ function publicRoutes(prefix = "/api/stream-events") {
     routes: [
       { method: "GET", path: `${prefix}/status`, description: "Stream-Events Backendstatus" },
       { method: "GET", path: `${prefix}/routes`, description: "Route-Selbstdokumentation" },
+      { method: "GET", path: `${prefix}/config`, description: "Globale Event-System Config lesen" },
+      { method: "POST", path: `${prefix}/config`, description: "Globale Event-System Config speichern" },
       { method: "GET", path: `${prefix}/texts`, description: "DB-/Dashboardfähige Textvarianten für stream_events lesen" },
       { method: "POST", path: `${prefix}/texts`, description: "Textvariante speichern oder löschen" },
       { method: "GET", path: `${prefix}/events`, description: "Events listen" },
@@ -1029,7 +1174,7 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "POST", path: `${prefix}/events/:eventUid/points`, description: "Manuelle/Modul-Punkte buchen (nur aktives Event)" }
     ],
     notes: [
-      "EVS-7 bereitet Textvarianten im Dashboard vor; keine Chat-Auswertung und kein Sound-/Video-Playback.",
+      "EVS-8 bereitet globale Config im Dashboard vor; keine Chat-Auswertung und kein Sound-/Video-Playback.",
       "Sound/Text-Konfiguration wird als DB-Snapshot am Event gespeichert.",
       "Nur ein aktives Event gleichzeitig."
     ]
@@ -1122,6 +1267,22 @@ module.exports.init = function init(ctx) {
   });
 
   reg("get", `${prefix}/routes`, (req, res) => sendJson(res, publicRoutes(prefix)));
+
+  reg("get", `${prefix}/config`, (req, res) => {
+    try {
+      sendJson(res, getEventConfig());
+    } catch (err) {
+      handleError(res, err);
+    }
+  });
+
+  reg("post", `${prefix}/config`, (req, res) => {
+    try {
+      sendJson(res, saveEventConfig(req.body || {}, req.body?.updatedBy || req.body?.actor || "dashboard"));
+    } catch (err) {
+      handleError(res, err, 400);
+    }
+  });
 
   reg("get", `${prefix}/texts`, (req, res) => {
     try {
@@ -1258,5 +1419,7 @@ module.exports._internal = {
   cancelEvent,
   addPoints,
   getRanking,
+  getEventConfig,
+  saveEventConfig,
   buildStatus
 };

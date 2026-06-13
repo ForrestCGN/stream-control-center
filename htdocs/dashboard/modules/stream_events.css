@@ -152,3 +152,17 @@
 .stream-events-admin .evs-running-card p{color:#cbd5e1;font-size:13px;line-height:1.45;margin:8px 0 0}
 .stream-events-admin .evs-running-card .evs-mini-grid{grid-template-columns:repeat(2,minmax(120px,1fr))}
 @media(max-width:640px){.stream-events-admin .evs-running-card-head{display:grid}.stream-events-admin .evs-running-card .evs-mini-grid{grid-template-columns:1fr}}
+
+/* EVS-8 · Config-Dashboard Vorbereitung */
+.stream-events-admin .evs-config-panel{display:grid;gap:12px}
+.stream-events-admin .evs-config-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;align-items:start}
+.stream-events-admin .evs-config-card{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);border-radius:16px;padding:12px;display:grid;gap:10px;min-width:0}
+.stream-events-admin .evs-config-card-head{display:grid;gap:2px;margin-bottom:2px}
+.stream-events-admin .evs-config-card-head strong{color:#f8fafc;font-size:15px}
+.stream-events-admin .evs-config-card-head small{color:var(--evs-muted);font-size:12px;line-height:1.35}
+.stream-events-admin .evs-config-card label:not(.evs-check){display:grid;gap:6px;color:#cbd5e1;font-size:12px;font-weight:800}
+.stream-events-admin .evs-config-card input[type="number"],
+.stream-events-admin .evs-config-card select{width:100%;border:1px solid rgba(255,255,255,.14);background:rgba(2,6,23,.45);color:#f8fafc;border-radius:12px;padding:10px 11px;font-weight:800;min-height:40px}
+.stream-events-admin .evs-config-card .evs-check{justify-content:flex-start;width:100%;padding:9px 10px}
+.stream-events-admin .evs-config-card .evs-check input{width:auto;margin:0}
+@media(max-width:720px){.stream-events-admin .evs-config-grid{grid-template-columns:1fr}}

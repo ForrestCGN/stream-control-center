@@ -584,3 +584,61 @@ Geplant:
 - Keine Worterkennung geändert.
 - Kein Sound-Playback geändert.
 - Kein Overlay geändert.
+
+
+---
+
+## EVS-8 – Config-Dashboard Vorbereitung
+
+Der bisherige Config-Platzhalter wurde zu einem ersten globalen Config-Tab ausgebaut.
+
+### Globale Config
+
+Die Config ist nicht an ein einzelnes Event gebunden. Sie dient als Standard-/Voreinstellungsbereich für neue Events und spätere Runtime-Regeln. Einzelne Events bleiben weiterhin im Event-Editor bearbeitbar.
+
+### Enthaltene Bereiche
+
+- Allgemein
+  - Top-Gewinner anzeigen
+  - nur ein aktives Event gleichzeitig
+  - Übersicht zeigt nur laufende Events
+- Sound-Spiel Defaults
+  - Antwortzeit
+  - Punkte pro Soundlösung
+  - Verhalten bei nicht erkannt
+  - direkte Wiederholung vermeiden
+  - Auflösungs-Video erlauben
+- Text-Spiel Defaults
+  - Punkte für komplette Lösung
+  - Teiltreffer-Hinweise
+  - Hinweis allgemein / mit Satznummer / aus
+  - gefundene Wortanzahl anzeigen
+  - Wort pro User/Satz nur einmal zählen
+- Wortpunkte
+  - Wortpunkte aktivieren
+  - Punkte pro neuem Wort
+  - maximales Wortpunkte-Limit pro User/Satz
+  - zusätzlicher Hinweis-Cooldown
+- Overlay Defaults
+  - Top 3 anzeigen
+  - aktuelle Runde anzeigen
+  - Teiltreffer-Hinweise im Overlay erlauben
+
+### Backend
+
+Neu vorbereitet:
+
+- `GET /api/stream-events/config`
+- `POST /api/stream-events/config`
+- Tabelle `stream_events_config`
+
+Die Config wird als globaler JSON-Snapshot gespeichert und normalisiert.
+
+### Nicht enthalten
+
+- Noch keine Chat-Runtime.
+- Noch keine echte Worterkennung.
+- Noch keine automatische Punktevergabe über Chat.
+- Noch kein Sound-Playback.
+- Noch kein produktives Overlay.
+- Rechte/Freigaben sind weiterhin offen.

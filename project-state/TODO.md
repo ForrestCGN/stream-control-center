@@ -1,6 +1,6 @@
-# TODO – EVS-7c
+# TODO – EVS-8
 
-## Erledigt bis EVS-7c
+## Erledigt bis EVS-8
 
 - Backend Foundation.
 - Dashboard Skeleton.
@@ -12,16 +12,14 @@
   - Übersicht = laufende Events.
   - Events = konfigurierte Events mit Status.
   - Bearbeitung = separates Modal.
+- Config-Tab mit globalen Defaults vorbereitet.
 
 ## Offen: Config
 
-- Config-Tab fachlich planen.
-- Standardpunkte.
-- Standard-Zeitlimits.
-- Standard-Hinweisverhalten.
-- Wortpunkte-Defaults.
-- Overlay-Defaults.
-- Rechte/Freigaben.
+- Rechte/Freigaben für Config.
+- Weitere Streamer-/Mod-freundliche Labels.
+- Prüfen, welche Defaults automatisch in neue Events übernommen werden sollen.
+- Config ggf. in Kategorien/Tabs weiter verfeinern.
 
 ## Offen: Runtime
 

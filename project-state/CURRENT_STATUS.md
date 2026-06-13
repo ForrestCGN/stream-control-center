@@ -1,26 +1,37 @@
-# CURRENT_STATUS – EVS-7c
+# CURRENT_STATUS – EVS-8
 
-Stand: EVS-7c / Event Overview + Editor Modal Flow Cleanup
+Stand: EVS-8 / Config-Dashboard Vorbereitung
 
 ## Aktueller Stand
 
-Das Event-System-Dashboard ist auf einen logischeren Flow umgestellt:
+Das Event-System-Dashboard hat jetzt die Haupttabs:
 
-- Übersicht zeigt laufende Events.
-- Events zeigt alle konfigurierten Events mit Status.
-- Bearbeiten öffnet ein separates Editor-Fenster.
-- Sound-Spiel und Text-Spiel sind keine Haupttabs mehr, sondern Bestandteil des Event-Editors.
-- Texte bleibt ein eigener globaler Tab für Multi-Texte.
-- Config ist als eigener Tab vorbereitet.
-- Statistik und Overlay bleiben vorbereitet.
+- Übersicht
+- Events
+- Texte
+- Config
+- Statistik
+- Overlay
+
+Übersicht zeigt laufende Events. Events zeigt die konfigurierten Events mit Status. Bearbeitung läuft über ein separates Editor-Fenster.
+
+Der Config-Tab ist jetzt als erster echter Einstellbereich vorbereitet. Globale Defaults können geladen und gespeichert werden.
+
+## Config umfasst
+
+- Allgemeine Event-Defaults
+- Sound-Spiel Defaults
+- Text-Spiel Defaults
+- Wortpunkte Defaults
+- Overlay Defaults
 
 ## Unverändert
 
-Keine Backend-, DB-, Runtime-, Chat-, Playback- oder Overlay-Logik geändert.
+Keine produktive Runtime für Chat, Worterkennung, Sound-Playback oder Overlay.
 
 ## Offen
 
-- Config-Tab fachlich ausbauen.
+- Rechte/Freigaben für Config.
 - Event-Statistik pro Event.
 - Sound-/Text-Runtime.
 - Chat-Auswertung.

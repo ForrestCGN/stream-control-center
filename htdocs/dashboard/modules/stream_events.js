@@ -5,7 +5,8 @@ window.StreamEventsModule = (function(){
     status: '/api/stream-events/status',
     list: '/api/stream-events/events?limit=250',
     events: '/api/stream-events/events',
-    texts: '/api/stream-events/texts'
+    texts: '/api/stream-events/texts',
+    config: '/api/stream-events/config'
   };
 
   let root = null;
@@ -20,6 +21,8 @@ window.StreamEventsModule = (function(){
     selected: null,
     ranking: null,
     texts: null,
+    config: null,
+    configSaving: false,
     textSaving: false,
     modal: null,
     activeTab: 'overview'
@@ -128,9 +131,9 @@ window.StreamEventsModule = (function(){
       <div class="evs-page">
         <div class="evs-header glass">
           <div>
-            <div class="evs-kicker">EVS-7c · Event-Übersicht & Editor-Fenster</div>
+            <div class="evs-kicker">EVS-8 · Config-Dashboard Vorbereitung</div>
             <h2>Event-System</h2>
-            <p>Übersicht zeigt laufende Events. Die Event-Seite zeigt alle vorbereiteten Events mit Status. Bearbeitung öffnet sich im eigenen Fenster.</p>
+            <p>Übersicht zeigt laufende Events. Events werden im Events-Tab verwaltet. Globale Standardwerte liegen getrennt im Config-Tab.</p>
           </div>
           <div class="evs-header-actions">
             <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="reload">Aktualisieren</button>
@@ -261,15 +264,74 @@ window.StreamEventsModule = (function(){
   }
 
   function renderConfigTab(){
+    const cfg = state.config?.config || {};
+    const eventDefaults = cfg.eventDefaults || {};
+    const soundDefaults = cfg.soundDefaults || {};
+    const textDefaults = cfg.textDefaults || {};
+    const overlayDefaults = cfg.overlayDefaults || {};
     return `
-      <section class="evs-card glass evs-tab-panel">
+      <section class="evs-card glass evs-tab-panel evs-config-panel">
         <div class="evs-card-head">
           <div>
             <h3>Event-System Config</h3>
-            <span>Globale Einstellungen kommen in einen eigenen Bereich, getrennt von einzelnen Events.</span>
+            <span>Globale Standardwerte. Einzelne Events können davon später abweichen.</span>
+          </div>
+          <button type="button" class="evs-btn" data-evs-action="saveConfig">Config speichern</button>
+        </div>
+
+        <div class="evs-text-rule-note">Diese Einstellungen sind die Voreinstellungen für neue Events und spätere Runtime-Regeln. Sie ersetzen keine Event-Bearbeitung.</div>
+
+        <div class="evs-config-grid">
+          <div class="evs-config-card">
+            <div class="evs-config-card-head"><strong>Allgemein</strong><small>Grundverhalten des Event-Systems</small></div>
+            <label><span>Top-Gewinner anzeigen</span><input id="evsCfgTopWinners" type="number" min="1" max="10" value="${esc(eventDefaults.defaultTopWinners ?? 3)}"></label>
+            <label class="evs-check"><input id="evsCfgOneActive" type="checkbox" ${eventDefaults.allowOnlyOneActiveEvent !== false ? 'checked' : ''}> Nur ein aktives Event gleichzeitig</label>
+            <label class="evs-check"><input id="evsCfgOverviewRunning" type="checkbox" ${eventDefaults.overviewShowsOnlyRunningEvents !== false ? 'checked' : ''}> Übersicht nur laufende Events</label>
+          </div>
+
+          <div class="evs-config-card">
+            <div class="evs-config-card-head"><strong>Sound-Spiel Defaults</strong><small>Standardwerte für neue Sound-Runden</small></div>
+            <label><span>Antwortzeit in Sekunden</span><input id="evsCfgSoundAnswerSeconds" type="number" min="5" max="300" value="${esc(soundDefaults.defaultAnswerSeconds ?? 20)}"></label>
+            <label><span>Punkte pro Soundlösung</span><input id="evsCfgSoundPoints" type="number" min="0" max="10000" value="${esc(soundDefaults.defaultPoints ?? 10)}"></label>
+            <label><span>Wenn nicht erkannt</span><select id="evsCfgSoundUnresolved">
+              <option value="requeue_later" ${soundDefaults.unresolvedPolicy === 'requeue_later' ? 'selected' : ''}>Später nochmal</option>
+              <option value="remove" ${soundDefaults.unresolvedPolicy === 'remove' ? 'selected' : ''}>Aus Event entfernen</option>
+              <option value="manual" ${soundDefaults.unresolvedPolicy === 'manual' ? 'selected' : ''}>Manuell entscheiden</option>
+            </select></label>
+            <label class="evs-check"><input id="evsCfgSoundAvoidRepeat" type="checkbox" ${soundDefaults.avoidImmediateRepeat !== false ? 'checked' : ''}> Direkte Wiederholung vermeiden</label>
+            <label class="evs-check"><input id="evsCfgRevealVideo" type="checkbox" ${soundDefaults.revealVideoEnabled !== false ? 'checked' : ''}> Auflösungs-Video erlauben</label>
+          </div>
+
+          <div class="evs-config-card">
+            <div class="evs-config-card-head"><strong>Text-Spiel Defaults</strong><small>Sätze, Teiltreffer und Wortpunkte</small></div>
+            <label><span>Punkte für komplette Lösung</span><input id="evsCfgTextPhrasePoints" type="number" min="0" max="10000" value="${esc(textDefaults.defaultPhrasePoints ?? 40)}"></label>
+            <label><span>Teiltreffer-Meldung</span><select id="evsCfgPartialVisibility">
+              <option value="off" ${textDefaults.partialHintVisibility === 'off' ? 'selected' : ''}>Aus</option>
+              <option value="general" ${textDefaults.partialHintVisibility === 'general' ? 'selected' : ''}>Allgemein</option>
+              <option value="with_sentence" ${textDefaults.partialHintVisibility === 'with_sentence' ? 'selected' : ''}>Mit Satznummer</option>
+            </select></label>
+            <label class="evs-check"><input id="evsCfgPartialHints" type="checkbox" ${textDefaults.partialHintsEnabled !== false ? 'checked' : ''}> Teiltreffer-Hinweise aktivieren</label>
+            <label class="evs-check"><input id="evsCfgShowWordCount" type="checkbox" ${textDefaults.showPartialWordCount !== false ? 'checked' : ''}> Anzahl gefundener Wörter anzeigen</label>
+            <label class="evs-check"><input id="evsCfgUniqueWords" type="checkbox" ${textDefaults.uniqueWordPerUserPhrase !== false ? 'checked' : ''}> Wort pro User/Satz nur einmal zählen</label>
+          </div>
+
+          <div class="evs-config-card">
+            <div class="evs-config-card-head"><strong>Wortpunkte</strong><small>Optional, damit mehr User Punkte sammeln können</small></div>
+            <label class="evs-check"><input id="evsCfgWordPoints" type="checkbox" ${textDefaults.wordPointsEnabled ? 'checked' : ''}> Punkte für gefundene Wörter aktivieren</label>
+            <label><span>Punkte pro neuem Wort</span><input id="evsCfgPointsPerWord" type="number" min="0" max="1000" value="${esc(textDefaults.pointsPerNewWord ?? 1)}"></label>
+            <label><span>Max. Wortpunkte pro User/Satz</span><input id="evsCfgMaxWordPoints" type="number" min="0" max="10000" value="${esc(textDefaults.maxWordPointsPerUserPhrase ?? 5)}"></label>
+            <label><span>Zusätzlicher Hinweis-Cooldown</span><input id="evsCfgPartialCooldown" type="number" min="0" max="3600" value="${esc(textDefaults.partialHintCooldownSeconds ?? 0)}"></label>
+          </div>
+
+          <div class="evs-config-card">
+            <div class="evs-config-card-head"><strong>Overlay Defaults</strong><small>Vorbereitung für den späteren Overlay-Step</small></div>
+            <label class="evs-check"><input id="evsCfgOverlayTop3" type="checkbox" ${overlayDefaults.showTop3 !== false ? 'checked' : ''}> Top 3 anzeigen</label>
+            <label class="evs-check"><input id="evsCfgOverlayRound" type="checkbox" ${overlayDefaults.showCurrentRound !== false ? 'checked' : ''}> aktuelle Runde anzeigen</label>
+            <label class="evs-check"><input id="evsCfgOverlayHints" type="checkbox" ${overlayDefaults.showPartialHints !== false ? 'checked' : ''}> Teiltreffer-Hinweise im Overlay erlauben</label>
           </div>
         </div>
-        <div class="evs-empty">Config ist für einen späteren Step vorbereitet. Geplant: Standardpunkte, Standard-Zeitlimits, Hinweisverhalten, Wortpunkte-Regeln, Overlay-Defaults und Rechte/Freigaben.</div>
+
+        <div class="evs-tab-help">Quelle: ${esc(state.config?.source || 'default')} · Letzte Änderung: ${fmtDate(state.config?.updatedAt)}</div>
       </section>
     `;
   }
@@ -728,19 +790,71 @@ window.StreamEventsModule = (function(){
 
   function splitCsv(value){ return String(value || '').split(',').map(v => v.trim()).filter(Boolean); }
 
+  function readConfigPayload(){
+    return {
+      config: {
+        eventDefaults: {
+          defaultTopWinners: Number(document.getElementById('evsCfgTopWinners')?.value || 3),
+          allowOnlyOneActiveEvent: document.getElementById('evsCfgOneActive')?.checked !== false,
+          overviewShowsOnlyRunningEvents: document.getElementById('evsCfgOverviewRunning')?.checked !== false
+        },
+        soundDefaults: {
+          defaultAnswerSeconds: Number(document.getElementById('evsCfgSoundAnswerSeconds')?.value || 20),
+          defaultPoints: Number(document.getElementById('evsCfgSoundPoints')?.value || 10),
+          unresolvedPolicy: document.getElementById('evsCfgSoundUnresolved')?.value || 'requeue_later',
+          avoidImmediateRepeat: document.getElementById('evsCfgSoundAvoidRepeat')?.checked !== false,
+          revealVideoEnabled: document.getElementById('evsCfgRevealVideo')?.checked !== false
+        },
+        textDefaults: {
+          defaultPhrasePoints: Number(document.getElementById('evsCfgTextPhrasePoints')?.value || 40),
+          partialHintsEnabled: document.getElementById('evsCfgPartialHints')?.checked !== false,
+          partialHintVisibility: document.getElementById('evsCfgPartialVisibility')?.value || 'general',
+          showPartialWordCount: document.getElementById('evsCfgShowWordCount')?.checked !== false,
+          uniqueWordPerUserPhrase: document.getElementById('evsCfgUniqueWords')?.checked !== false,
+          wordPointsEnabled: document.getElementById('evsCfgWordPoints')?.checked === true,
+          pointsPerNewWord: Number(document.getElementById('evsCfgPointsPerWord')?.value || 1),
+          maxWordPointsPerUserPhrase: Number(document.getElementById('evsCfgMaxWordPoints')?.value || 5),
+          partialHintCooldownSeconds: Number(document.getElementById('evsCfgPartialCooldown')?.value || 0)
+        },
+        overlayDefaults: {
+          showTop3: document.getElementById('evsCfgOverlayTop3')?.checked !== false,
+          showCurrentRound: document.getElementById('evsCfgOverlayRound')?.checked !== false,
+          showPartialHints: document.getElementById('evsCfgOverlayHints')?.checked !== false
+        }
+      }
+    };
+  }
+
+  async function saveConfig(){
+    state.configSaving = true;
+    state.error = '';
+    try {
+      state.config = await window.CGN.api(api.config, { method: 'POST', body: JSON.stringify(readConfigPayload()) });
+      state.message = 'Config gespeichert.';
+      render();
+    } catch (err) {
+      state.error = err.message || String(err);
+      render();
+    } finally {
+      state.configSaving = false;
+    }
+  }
+
   async function loadAll(force){
     if (state.loading && !force) return;
     state.loading = true;
     state.error = '';
     try {
-      const [status, list, texts] = await Promise.all([
+      const [status, list, texts, config] = await Promise.all([
         window.CGN.api(api.status),
         window.CGN.api(api.list),
-        window.CGN.api(api.texts)
+        window.CGN.api(api.texts),
+        window.CGN.api(api.config)
       ]);
       state.status = status;
       state.events = rows(list);
       state.texts = texts;
+      state.config = config;
       if (!state.selectedUid && state.events[0]) state.selectedUid = state.events[0].eventUid;
       const ev = selectedEvent();
       if (ev) await loadRanking(ev.eventUid, false);
@@ -893,7 +1007,31 @@ window.StreamEventsModule = (function(){
       }
       if (action === 'reload') return loadAll(true);
       if (action === 'reloadTexts') return loadTexts(true);
-      if (action === 'new') { state.modal = { event: { name: '', description: '', soundEnabled: true, textEnabled: false, soundConfig: {}, textConfig: {} } }; render(); return; }
+      if (action === 'saveConfig') return saveConfig();
+      if (action === 'new') {
+        const cfg = state.config?.config || {};
+        const soundDefaults = cfg.soundDefaults || {};
+        const textDefaults = cfg.textDefaults || {};
+        state.modal = { event: {
+          name: '',
+          description: '',
+          soundEnabled: true,
+          textEnabled: false,
+          soundConfig: { answerSeconds: soundDefaults.defaultAnswerSeconds || 20, unresolvedPolicy: soundDefaults.unresolvedPolicy || 'requeue_later', snippets: [] },
+          textConfig: {
+            partialHintsEnabled: textDefaults.partialHintsEnabled !== false,
+            partialHintVisibility: textDefaults.partialHintVisibility || 'general',
+            showPartialWordCount: textDefaults.showPartialWordCount !== false,
+            wordPointsEnabled: textDefaults.wordPointsEnabled === true,
+            pointsPerNewWord: textDefaults.pointsPerNewWord || 1,
+            maxWordPointsPerUserPhrase: textDefaults.maxWordPointsPerUserPhrase || 5,
+            partialHintCooldownSeconds: textDefaults.partialHintCooldownSeconds || 0,
+            phrases: [{ phrase: '', acceptedAnswers: [], pointsFirst: textDefaults.defaultPhrasePoints || 40, solvedPolicy: 'remove_from_rotation' }]
+          }
+        } };
+        render();
+        return;
+      }
       if (action === 'edit') { const event = await loadEvent(uid); state.modal = { event }; render(); return; }
       if (action === 'closeModal') { state.modal = null; render(); return; }
       if (action === 'addPhrase') {
