@@ -17,8 +17,8 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.14";
-const MODULE_BUILD = "STEP_EVS_22_DASHBOARD_SAFETY_VIEW";
+const MODULE_VERSION = "0.5.16";
+const MODULE_BUILD = "STEP_EVS_22B_DASHBOARD_SINGLE_DELETE_CONFIRM_UX";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";

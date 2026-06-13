@@ -2,7 +2,7 @@
 
 Stand: 2026-06-13
 
-## EVS-22 – Dashboard Safety View
+## EVS-22b – Dashboard Single Delete Confirm UX
 
 - Dashboard-Tab `Sicherheit` ergänzt.
 - ChatOutput Safety View ergänzt.
@@ -11,7 +11,7 @@ Stand: 2026-06-13
 - Output-Preview als Dry-Run angezeigt.
 - Event-Lifecycle-Regeln sichtbar gemacht.
 - Archivieren nur bei `finished` als UI-Regel.
-- Löschen mit DELETE-Eingabe im Dashboard vorbereitet.
+- Löschen im Dashboard auf eine Bestätigung ohne Texteingabe umgestellt.
 - Keine direkte Twitch-Ausgabe aktiviert.
 - Kein Sound-Playback aktiviert.
 

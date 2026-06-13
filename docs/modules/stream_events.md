@@ -1,12 +1,12 @@
 # Modul-Doku: stream_events
 
-Stand: 2026-06-13 nach EVS-22 – Dashboard Safety View
+Stand: 2026-06-13 nach EVS-22b – Dashboard Single Delete Confirm UX
 
 ## Aktueller Modulstand
 
 ```text
-MODULE_VERSION = 0.5.14
-MODULE_BUILD   = STEP_EVS_22_DASHBOARD_SAFETY_VIEW
+MODULE_VERSION = 0.5.16
+MODULE_BUILD   = STEP_EVS_22B_DASHBOARD_SINGLE_DELETE_CONFIRM_UX
 ```
 
 ## Zweck
@@ -21,11 +21,11 @@ MODULE_BUILD   = STEP_EVS_22_DASHBOARD_SAFETY_VIEW
 - Sound-Playback bleibt prepared-only.
 - Eventdaten bleiben an `eventUid` gebunden.
 - Archivieren ist nur bei `status=finished` erlaubt.
-- Löschen ist für jeden Status möglich, aber nur mit JSON-Body `{ "confirm": "DELETE" }`.
+- Löschen ist API-seitig für jeden Status möglich, aber nur mit JSON-Body `{ "confirm": "DELETE" }`; das Dashboard fragt dafür eine normale Bestätigung ab und sendet den API-Confirm intern.
 
-## EVS-22 Dashboard Safety View
+## EVS-22b Dashboard Single Delete Confirm UX
 
-EVS-22 ergänzt im Dashboard den Tab `Sicherheit`:
+EVS-22b aktualisiert den Dashboard-Tab `Sicherheit`:
 
 - Chat-Ausgabe Status: TESTMODUS / LIVE AKTIV.
 - ChatOutput-Zähler: vorbereitet, geprüft, würde senden, blockiert.
@@ -33,7 +33,7 @@ EVS-22 ergänzt im Dashboard den Tab `Sicherheit`:
 - Output-Preview als Dry-Run.
 - Lifecycle-Regeln im Dashboard sichtbar.
 - Archivieren-Button nur bei beendeten Events aktiv.
-- Löschen-Button mit zusätzlicher DELETE-Bestätigung.
+- Löschen-Button mit einer normalen Bestätigung, ohne Texteingabe DELETE und ohne doppelte Abfrage.
 
 ## Wichtige Routen
 
@@ -57,3 +57,8 @@ directPlayback = false
 dispatched = false
 soundSystemQueueTouched = false
 ```
+
+
+### EVS-22b Bedienentscheidung
+
+Der Streamer klickt im Dashboard auf Löschen und bestätigt danach einmal im Browser-Dialog. Intern bleibt die API-Schutzregel erhalten: Das Dashboard sendet `{ "confirm": "DELETE", "actor": "dashboard" }` an den Backend-Endpunkt.

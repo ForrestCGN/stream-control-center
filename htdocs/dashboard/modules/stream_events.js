@@ -892,7 +892,7 @@ window.StreamEventsModule = (function(){
         </div>
         <div class="evs-safety-rule-list">
           <div class="${canArchive ? 'is-ok' : 'is-blocked'}"><b>Archivieren</b><span>${canArchive ? 'Erlaubt, weil Event beendet ist.' : 'Blockiert: nur beendete Events können archiviert werden.'}</span></div>
-          <div><b>Löschen</b><span>Erlaubt für jeden Status, aber nur mit expliziter Eingabe DELETE. Dabei werden Eventdaten zur eventUid entfernt.</span></div>
+          <div><b>Löschen</b><span>Erlaubt für jeden Status, aber nur nach zweiter deutlicher Bestätigung. Dabei werden Eventdaten zur eventUid entfernt.</span></div>
           <div><b>Datenhaltung</b><span>Archivieren erhält Score/Runden/Textdaten. Löschen entfernt Event + eventUid-Daten.</span></div>
         </div>
         <div class="evs-action-row evs-action-row-tight evs-lifecycle-actions">
@@ -901,7 +901,7 @@ window.StreamEventsModule = (function(){
           <button type="button" class="evs-btn evs-btn-danger" data-evs-action="cancel" data-uid="${esc(event.eventUid)}" ${canCancel ? '' : 'disabled'}>Abbrechen</button>
           <button type="button" class="evs-btn evs-btn-danger" data-evs-action="deleteEvent" data-uid="${esc(event.eventUid)}">Löschen…</button>
         </div>
-        <div class="evs-tab-help">Archivieren ist nur bei Status „Beendet/finished“ möglich. Löschen fragt zusätzlich das Wort DELETE ab.</div>
+        <div class="evs-tab-help">Archivieren ist nur bei Status „Beendet/finished“ möglich. Löschen fragt eine zweite deutliche Bestätigung ab; intern bleibt die API-Sicherheitsbestätigung geschützt.</div>
       </section>
     `;
   }
@@ -1726,14 +1726,9 @@ window.StreamEventsModule = (function(){
   async function deleteSelectedEvent(uid){
     if (!uid) return;
     const event = state.events.find(e => e.eventUid === uid) || state.selected || {};
-    const first = confirm(`Event "${event.name || uid}" wirklich löschen? Dabei werden Event und zugehörige Werte entfernt.`);
-    if (!first) return;
-    const typed = prompt('Zum endgültigen Löschen bitte DELETE eingeben:');
-    if (typed !== 'DELETE') {
-      state.error = 'Löschen abgebrochen: Bestätigung DELETE wurde nicht eingegeben.';
-      render();
-      return;
-    }
+    const label = event.name || uid;
+    const accepted = confirm(`Event "${label}" wirklich löschen? Das entfernt Event und zugehörige Werte endgültig.`);
+    if (!accepted) return;
     try {
       const result = await window.CGN.api(`${api.events}/${encodeURIComponent(uid)}/delete`, { method: 'POST', body: JSON.stringify({ confirm: 'DELETE', actor: 'dashboard' }) });
       state.message = `Event gelöscht. Score: ${result.countsDeleted?.scoreEntries || 0}, Runden: ${result.countsDeleted?.rounds || 0}.`;

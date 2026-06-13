@@ -1,15 +1,15 @@
 # NEXT_STEPS – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-22
+Stand: 2026-06-13 nach EVS-22b
 
 ## Aktueller nächster Test
 
-### EVS-22 Dashboard Safety View prüfen
+### EVS-22b Dashboard Single Delete Confirm UX prüfen
 
 ```powershell
 node -c .\backend\modules\stream_events.js
 node -c .\htdocs\dashboard\modules\stream_events.js
-.\stepdone.cmd "EVS-22 Dashboard Safety View"
+.\stepdone.cmd "EVS-22b Dashboard Single Delete Confirm UX"
 ```
 
 Danach im Dashboard:
@@ -24,7 +24,7 @@ Prüfen:
 - wouldSend bleibt 0.
 - Blockiergründe werden verständlich angezeigt.
 - Archivieren ist nur bei Beendet aktiv.
-- Löschen fragt DELETE ab.
+- Löschen fragt eine eine Bestätigung ab, ohne Texteingabe.
 
 ## Danach sinnvoll
 

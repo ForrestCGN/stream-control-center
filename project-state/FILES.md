@@ -1,6 +1,6 @@
 # FILES – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-22
+Stand: 2026-06-13 nach EVS-22b
 
 ## Aktive Projektdateien
 
@@ -9,7 +9,7 @@ backend/modules/stream_events.js
 htdocs/dashboard/modules/stream_events.js
 htdocs/dashboard/modules/stream_events.css
 docs/modules/stream_events.md
-docs/current/CURRENT_CHAT_HANDOFF_EVS_22_DASHBOARD_SAFETY_VIEW.md
+docs/current/CURRENT_CHAT_HANDOFF_EVS_22B_DASHBOARD_SINGLE_DELETE_CONFIRM_UX.md
 project-state/CURRENT_STATUS.md
 project-state/TODO.md
 project-state/NEXT_STEPS.md

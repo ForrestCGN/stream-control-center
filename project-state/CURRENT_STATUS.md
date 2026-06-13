@@ -1,12 +1,12 @@
 # CURRENT_STATUS – stream_events / Event-System
 
-Stand: 2026-06-13 nach EVS-22 – Dashboard Safety View
+Stand: 2026-06-13 nach EVS-22b – Dashboard Single Delete Confirm UX
 
 ## Aktueller bestätigter/gelieferter Stand
 
 ```text
-MODULE_VERSION: 0.5.14
-MODULE_BUILD: STEP_EVS_22_DASHBOARD_SAFETY_VIEW
+MODULE_VERSION: 0.5.16
+MODULE_BUILD: STEP_EVS_22B_DASHBOARD_SINGLE_DELETE_CONFIRM_UX
 ```
 
 ## Bestätigt bis EVS-21
@@ -19,14 +19,14 @@ MODULE_BUILD: STEP_EVS_22_DASHBOARD_SAFETY_VIEW
   - Delete ohne Confirm wird blockiert.
   - Delete mit JSON-Body `{ "confirm": "DELETE" }` funktioniert.
 
-## EVS-22 geliefert
+## EVS-22b geliefert
 
 - Neuer Dashboard-Tab `Sicherheit`.
 - ChatOutput Safety View mit TESTMODUS/LIVE AKTIV.
 - Blockiergründe und Output-Preview sichtbar.
 - Event-Lifecycle-Aktionen sichtbar.
 - Archivieren nur bei `finished`.
-- Löschen mit DELETE-Eingabe.
+- Löschen mit zweiter Bestätigung ohne Texteingabe.
 
 ## Weiterhin NICHT produktiv aktiv
 
