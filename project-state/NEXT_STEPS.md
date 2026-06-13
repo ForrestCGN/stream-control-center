@@ -1,47 +1,18 @@
-# NEXT_STEPS – stream_events / Event-System
+# NEXT STEPS
 
-Stand: 2026-06-13 nach EVS-24
+Stand: 2026-06-13 nach EVS-24a
 
-## Direkt testen
-
-1. Syntaxcheck:
+## Jetzt testen
 
 ```powershell
+cd /d D:\Git\stream-control-center
 node -c .\backend\modules\stream_events.js
 node -c .\htdocs\dashboard\modules\stream_events.js
+.\stepdone.cmd "EVS-24a Dashboard Status Simplify"
 ```
 
-2. StepDone:
+Danach im Dashboard prüfen:
 
-```powershell
-.\stepdone.cmd "EVS-24 Simple Active Event Runtime Gate"
-```
-
-3. API:
-
-```powershell
-$s = Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/status"
-$s.runtimeGate | ConvertTo-Json -Depth 6
-```
-
-4. Dashboard:
-
-```text
-Event-System → Status
-```
-
-## Nächster sinnvoller Block
-
-Nach bestätigtem EVS-24-Test:
-
-```text
-EVS-24b – Completion Documentation
-```
-
-Danach erst entscheiden, ob als Nächstes Chatmeldungen kontrolliert vorbereitet/aktiviert werden oder ob zuerst Sound-/Text-Event-Bedienung vereinfacht wird.
-
-## Harte Grenzen
-
-- Keine Twitch-Ausgabe ohne späteren expliziten Go.
-- Kein Sound-Playback ohne späteren expliziten Go.
-- Keine Sound-System-Queue-Berührung.
+- Event-System → Status
+- Kein technischer Block „Chat-Ausgabe Sicherheit“ in der normalen Statusansicht.
+- Sichtbar bleiben nur einfacher Runtime-Status und Event-Lifecycle.

@@ -1,37 +1,19 @@
-# CURRENT_STATUS – stream_events / Event-System
+# CURRENT STATUS
 
-Stand: 2026-06-13 nach EVS-24 – Simple Active Event Runtime Gate
+Stand: 2026-06-13 nach EVS-24a – Dashboard Status Simplify
 
 ## Aktueller Stand
 
-```text
-MODULE_VERSION: 0.5.18
-MODULE_BUILD: STEP_EVS_24_SIMPLE_ACTIVE_EVENT_RUNTIME_GATE
-```
+EVS-24a vereinfacht die normale Dashboard-Statusansicht. Der alte technische Block „Chat-Ausgabe Sicherheit“ wird im normalen Status nicht mehr gerendert. Sichtbar bleiben Aktiv/Inaktiv, Grund, Stream Online/Offline, laufendes Event und Sound/Text-Status.
 
-## Bestätigt bis EVS-23b
+## Version
 
-- EVS-19e: Sound/Text Parallel-UND-Regel fachlich bestätigt.
-- EVS-20: ChatOutput Dispatcher Prep bestätigt.
-- EVS-21: Event Archive/Delete Lifecycle bestätigt.
-- EVS-22b: Dashboard Safety View bestätigt, Löschen mit genau einer normalen Bestätigung.
-- EVS-23b: Live-Schalter-Konzept sichtbar dokumentiert, aber ohne Live-Aktion.
+- MODULE_VERSION = 0.5.19
+- MODULE_BUILD = STEP_EVS_24A_DASHBOARD_STATUS_SIMPLIFY
 
-## EVS-24 geliefert
+## Unverändert
 
-- einfache Runtime-Gate-Regel:
-  - Stream offline → keine Event-Chat-Auswertung,
-  - kein aktives Event → keine Event-Chat-Auswertung,
-  - Stream online + aktives Event → Event-Chat-Auswertung aktiv.
-- neuer Endpoint `GET /api/stream-events/runtime-gate/status`.
-- `/api/stream-events/status` enthält `runtimeGate`.
-- Dashboard-Tab `Status` zeigt Aktiv/Inaktiv + einfachen Grund.
-- keine neue Rechte-/Audit-Matrix.
-- kein echtes Twitch-Senden.
-
-## Weiterhin NICHT produktiv aktiv
-
-- Keine direkte Twitch-Ausgabe.
-- Kein direktes Sound-Playback.
+- Kein Twitch-Live-Senden.
+- Kein Sound-Playback.
 - Keine Sound-System-Queue-Berührung.
-- Kein echter Live-Sendeschalter aktiv.
+- Runtime-Gate bleibt aktiv.

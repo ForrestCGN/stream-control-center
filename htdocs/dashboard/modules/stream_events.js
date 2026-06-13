@@ -169,9 +169,9 @@ window.StreamEventsModule = (function(){
       <div class="evs-page">
         <div class="evs-header glass">
           <div>
-            <div class="evs-kicker">EVS-22 · Dashboard Safety View</div>
+            <div class="evs-kicker">EVS-24a · Einfacher Status</div>
             <h2>Event-System</h2>
-            <p>Übersicht zeigt laufende Events. Sicherheit, ChatOutput-Preview, Event-Lifecycle, Text-/Sound-Runtime und Ranking bleiben dashboardfreundlich sichtbar.</p>
+            <p>Übersicht zeigt laufende Events. Der Status bleibt einfach: Stream online/offline, aktives Event und ob die Chat-Auswertung gebraucht wird.</p>
           </div>
           <div class="evs-header-actions">
             <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="reload">Aktualisieren</button>
@@ -838,7 +838,6 @@ window.StreamEventsModule = (function(){
         ${renderRuntimeGatePanel()}
         ${event ? renderLifecycleSafetyPanel(event) : renderSelectEventEmpty('Event-Lifecycle')}
       </div>
-      ${event ? renderChatOutputSafetyPanel(event) : ''}
     `;
   }
 

@@ -1,6 +1,6 @@
 # Modul-Doku: stream_events
 
-Stand: 2026-06-13 nach EVS-24 – Simple Active Event Runtime Gate
+Stand: 2026-06-13 nach EVS-24a – Dashboard Status Simplify
 
 ## Aktueller Modulstand
 
@@ -136,3 +136,8 @@ Die Antwort zeigt nur die relevanten Bedieninformationen:
 - Sound/Text aktiv.
 
 Der Dashboard-Tab wurde von `Sicherheit` zu `Status` vereinfacht. Das frühere Live-Schalter-Konzept bleibt als dokumentierte Vorbereitung erhalten, wird aber nicht weiter als normale Bedienfläche ausgebaut.
+
+
+## EVS-24a Dashboard Status Simplify
+
+Die normale Dashboard-Ansicht wurde wieder vereinfacht. `Event-System → Status` zeigt keinen technischen ChatOutput-Sicherheitsblock mehr, sondern nur noch den einfachen Runtime-Status und den Event-Lifecycle. Die technische Backend-Sicherheit bleibt unverändert; EVS-24a aktiviert kein Twitch-Live-Senden.
