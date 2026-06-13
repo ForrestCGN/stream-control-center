@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.21";
-  const MODULE_BUILD = "STEP_EVS_25_OVERVIEW_ACTIVE_EVENT_STATUS";
+  const MODULE_VERSION = "0.5.22";
+  const MODULE_BUILD = "STEP_EVS_25A_EMPTY_OVERVIEW_ACTION_CLEANUP";
 
   const api = {
     status: '/api/stream-events/status',
@@ -175,9 +175,9 @@ window.StreamEventsModule = (function(){
       <div class="evs-page">
         <div class="evs-header glass">
           <div>
-            <div class="evs-kicker">EVS-25 · Übersicht als Event-Status</div>
+            <div class="evs-kicker">EVS-25a · Übersicht aufgeräumt</div>
             <h2>Event-System</h2>
-            <p>Übersicht zeigt den aktuellen Event-Stand: läuft gerade ein Event, welche Aufgaben offen sind und wer führt.</p>
+            <p>Übersicht zeigt den aktuellen Event-Stand und die nächste sinnvolle Aktion.</p>
           </div>
           <div class="evs-header-actions">
             <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="reload">Aktualisieren</button>
@@ -276,16 +276,19 @@ window.StreamEventsModule = (function(){
 
   function renderOverviewNoActiveCard(){
     const readyEvents = state.events.filter(event => norm(event.status) === 'ready');
+    const hint = readyEvents.length
+      ? `${readyEvents.length} vorbereitete${readyEvents.length === 1 ? 's' : ''} Event${readyEvents.length === 1 ? '' : 's'} ${readyEvents.length === 1 ? 'ist' : 'sind'} startbereit.`
+      : 'Lege ein neues Event an oder bereite eins im Tab „Events“ vor.';
     return `
-      <section class="evs-card glass evs-tab-panel evs-overview-progress-card">
+      <section class="evs-card glass evs-tab-panel evs-overview-progress-card evs-overview-empty-action">
         <div class="evs-card-head">
           <div>
-            <h3>Aktueller Stand</h3>
-            <span>Keine laufende Runde.</span>
+            <h3>Nächstes Event</h3>
+            <span>${esc(hint)}</span>
           </div>
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-tab="events">Events öffnen</button>
         </div>
-        <div class="evs-empty">Aktuell läuft kein Event. ${readyEvents.length ? `${esc(readyEvents.length)} Event(s) sind startbereit.` : 'Erstelle oder starte ein Event im Tab „Events“.'}</div>
+        <div class="evs-empty evs-empty-action-text">Starte ein vorbereitetes Event oder erstelle ein neues Event.</div>
       </section>
     `;
   }

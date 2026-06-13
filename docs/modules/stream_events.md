@@ -1,12 +1,12 @@
 # Modul-Doku: stream_events
 
-Stand: 2026-06-13 nach EVS-25 – Overview Active Event Status
+Stand: 2026-06-13 nach EVS-25a – Empty Overview Action Cleanup
 
 ## Aktueller Modulstand
 
 ```text
-MODULE_VERSION = 0.5.21
-MODULE_BUILD   = STEP_EVS_25_OVERVIEW_ACTIVE_EVENT_STATUS
+MODULE_VERSION = 0.5.22
+MODULE_BUILD   = STEP_EVS_25A_EMPTY_OVERVIEW_ACTION_CLEANUP
 ```
 
 ## Zweck
@@ -24,6 +24,24 @@ MODULE_BUILD   = STEP_EVS_25_OVERVIEW_ACTIVE_EVENT_STATUS
 - Löschen ist API-seitig für jeden Status möglich, aber nur mit JSON-Body `{ "confirm": "DELETE" }`.
 - Das Dashboard fragt dafür genau eine normale Bestätigung ab und sendet den API-Confirm intern.
 
+
+
+## EVS-25a Übersicht-Cleanup
+
+EVS-25a räumt die leere Übersicht auf:
+
+- Der normale Event-Status bleibt in `Übersicht`.
+- Der separate `Status`-Tab bleibt entfernt.
+- Bei keinem aktiven Event wird nicht mehr doppelt erklärt, dass kein Event läuft.
+- Der zweite Block heißt nun `Nächstes Event` und führt zur Aktion `Events öffnen`.
+- Technische Diagnose bleibt aus der normalen Streamer-/Mod-Ansicht heraus.
+
+Grundregel für das Dashboard:
+
+```text
+Streamer/Mods sehen: Was läuft? Was ist der nächste sinnvolle Schritt?
+Admin/Diagnose sieht später: technische Flags, Dispatcher, DirectSend, Prepared-only, Payloads.
+```
 
 ## EVS-23b Bestätigung
 

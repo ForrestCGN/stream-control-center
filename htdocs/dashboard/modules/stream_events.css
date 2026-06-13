@@ -342,3 +342,8 @@
 .evs-overview-ranking-card .evs-ranking-standalone {
   margin-top: 4px;
 }
+
+/* EVS-25a: Leere Übersicht als klare Aktion */
+.evs-overview-empty-action .evs-empty-action-text {
+  text-align: left;
+}

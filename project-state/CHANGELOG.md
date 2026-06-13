@@ -1,5 +1,13 @@
 # CHANGELOG – stream_events
 
+## 2026-06-13 – EVS-25a Empty Overview Action Cleanup
+
+- Leere Übersicht bei keinem aktiven Event entdoppelt.
+- Block `Aktueller Stand` in `Nächstes Event` geändert.
+- Hinweistext auf einfache nächste Aktion reduziert.
+- Keine technische Diagnose in die normale Übersicht zurückgebracht.
+- Build auf `0.5.22 / STEP_EVS_25A_EMPTY_OVERVIEW_ACTION_CLEANUP` gesetzt.
+
 ## 2026-06-13 – EVS-25 Overview Active Event Status
 
 - Normaler Status wurde in die Übersicht verschoben.
