@@ -27,8 +27,8 @@ const axios = require('axios');
 const WebSocket = require('ws');
 
 const MODULE_NAME = 'twitch_events';
-const MODULE_VERSION = '0.1.11';
-const MODULE_BUILD = 'CAN44.39_PENDING_EVENT_GUARD';
+const MODULE_VERSION = '0.1.12';
+const MODULE_BUILD = 'CAN44.41_MANUAL_OVERRIDE_LOCK';
 const MODULE_ID = `module:${MODULE_NAME}`;
 const MODULE_STARTED_AT = nowIso();
 
@@ -1491,18 +1491,38 @@ function normalizeStreamStateFromStreamStatus(payload) {
 function applyManualOverride(normalized, reason = 'manual_override') {
   if (!isManualOverrideActive()) return normalized;
   const override = state.streamState.manualOverride || {};
+  const cleanStatus = cleanString(override.status || '').toLowerCase();
+  const forceConfirmed = override.forceConfirmed === true || (override.live === true && ['confirmed', 'live_confirmed', 'online_confirmed', 'twitch_confirmed', 'live'].includes(cleanStatus) && cleanString(override.streamId || ''));
+  const now = nowIso();
+  const manualStreamId = forceConfirmed
+    ? cleanSessionToken(override.streamId || state.streamState.streamId || `manual_${streamSessionCompactId(override.setAt || now)}`, `manual_${streamSessionCompactId(override.setAt || now)}`)
+    : cleanString(override.streamId || normalized.streamId || state.streamState.streamId || '');
+  const manualStatus = cleanStatus || (forceConfirmed ? 'live' : (override.live === true ? 'pending' : 'offline'));
+  const manualStartedAt = cleanString(state.streamState.startedAt || normalized.startedAt || override.setAt || now);
   return {
     ...normalized,
+    provider: 'manual_override',
     known: true,
-    live: override.live === true,
+    live: forceConfirmed ? true : false,
+    status: forceConfirmed ? 'live' : manualStatus,
+    manualStatus: forceConfirmed ? 'live' : manualStatus,
+    sessionStatus: forceConfirmed ? 'live' : manualStatus,
     source: 'manual_override',
-    sourceSummary: 'manual_override',
-    confidence: 'manual',
-    eventSubLive: override.live === true ? 'online' : 'offline',
+    sourceSummary: forceConfirmed ? 'manual_override_confirmed' : 'manual_override',
+    confidence: forceConfirmed ? 'manual_confirmed' : 'manual',
+    streamId: forceConfirmed ? manualStreamId : manualStreamId,
+    startedAt: manualStartedAt,
+    obsStreaming: override.live === true,
+    twitchStreamsLive: forceConfirmed,
+    streamStatusLive: forceConfirmed,
+    eventSubLive: forceConfirmed ? 'online' : (override.live === true ? 'online' : 'offline'),
+    bandwidthTest: manualStatus === 'bandwidth_test',
     warnings: [
+      ...(forceConfirmed ? [{ key: 'manual_confirmed_live_override', message: 'Dashboard/manual override marks the stream as confirmed live for tests.' }] : []),
       ...(Array.isArray(normalized.warnings) ? normalized.warnings : []),
       { key: 'manual_override_active', message: `Manual stream-state override active (${reason || override.reason || 'manual_override'}).` }
-    ]
+    ],
+    lastCheckedAt: now
   };
 }
 
@@ -2042,6 +2062,7 @@ async function setStreamStateOverride(live, options = {}) {
   const requestedStatusLower = requestedStatus.toLowerCase();
   const forceConfirmed = live === true && (
     options.forceConfirmed === true ||
+    options.confirmed === true ||
     ['confirmed', 'live_confirmed', 'online_confirmed', 'twitch_confirmed'].includes(requestedStatusLower)
   );
   const manualStreamId = forceConfirmed
