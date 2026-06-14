@@ -19,7 +19,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.47";
+const MODULE_VERSION = "0.2.48";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -29,15 +29,15 @@ const MODULE_META = {
   type: "runtime",
   legacy: false,
   routesPrefix: [API_PREFIX, "/api/clip/shoutout"],
-  capabilities: ["shoutout.display_queue", "shoutout.official_queue", "shoutout.event_output", "twitch.chat.message", "twitch.chat.message.consumer"],
+  capabilities: ["shoutout.display_queue", "shoutout.official_queue", "shoutout.event_output", "twitch.chat.message", "twitch.chat.message.consumer", "twitch.stream.state.consumer"],
   bus: {
     emits: true,
-    listens: ["twitch.chat.message"],
+    listens: ["twitch.chat.message", "twitch.stream.online", "twitch.stream.offline"],
     registered: false,
     heartbeat: false,
     channel: SHOUTOUT_BUS_CHANNEL
   },
-  note: "CAN-44.32: AutoShoutout stream-day reliability fix; stale active stream-days are closed, new Twitch stream IDs create new days, and stream-day diagnostics are exposed."
+  note: "CAN44.36: AutoShoutout subscribes to twitch.stream.online/offline from twitch_events as first stream-state bus consumer."
 };
 
 const AUTO_SHOUTOUT_TEXT_DEFAULTS = {
@@ -505,6 +505,32 @@ const state = {
       lastSourceModule: '',
       lastLogin: '',
       lastMessagePreview: '',
+      lastError: ''
+    },
+    streamBusSubscriber: {
+      installed: false,
+      subscriptionId: '',
+      channel: 'twitch.stream',
+      action: '',
+      delivered: 0,
+      onlineReceived: 0,
+      offlineReceived: 0,
+      errors: 0,
+      lastReceivedAt: '',
+      lastHandledAt: '',
+      lastEventId: '',
+      lastEventKey: '',
+      lastAction: '',
+      lastLive: false,
+      lastPreviousLive: false,
+      lastReason: '',
+      lastSourceModule: '',
+      lastStreamDayId: '',
+      lastStreamSessionId: '',
+      lastStreamId: '',
+      lastTitle: '',
+      lastGameName: '',
+      lastResultReason: '',
       lastError: ''
     }
   },
@@ -5970,6 +5996,167 @@ function handleAutoShoutoutBusChatEvent(envelope = {}, env = process.env) {
   return { ok: true, accepted: true, reason: 'auto_shoutout_bus_handler_scheduled' };
 }
 
+
+function normalizeStreamBusPayload(envelope = {}) {
+  const payload = envelope && typeof envelope.payload === 'object' ? envelope.payload : {};
+  const twitch = payload && typeof payload.twitch === 'object' ? payload.twitch : {};
+  const action = String(twitch.action || payload.action || envelope.action || '').trim().toLowerCase();
+  const eventKey = String(payload.eventKey || twitch.eventKey || (action ? `twitch.stream.${action}` : '') || '').trim();
+  const live = twitch.live === true || payload.live === true || action === 'online' || eventKey === 'twitch.stream.online';
+  const previousLive = twitch.previousLive === true || payload.previousLive === true;
+  return {
+    eventKey,
+    action: action || (live ? 'online' : 'offline'),
+    live,
+    previousLive,
+    reason: String(twitch.reason || payload.reason || '').trim(),
+    broadcasterLogin: cleanLogin(twitch.broadcasterLogin || payload.broadcasterLogin || ''),
+    streamId: String(twitch.streamId || payload.streamId || '').trim(),
+    startedAt: String(twitch.startedAt || payload.startedAt || '').trim(),
+    title: String(twitch.title || payload.title || '').trim(),
+    gameName: String(twitch.gameName || payload.gameName || '').trim(),
+    streamSessionId: String(twitch.streamSessionId || payload.streamSessionId || '').trim(),
+    streamDayId: String(twitch.streamDayId || payload.streamDayId || '').trim(),
+    sourceModule: String(payload.sourceModule || envelope.source?.module || '').trim(),
+    busEventId: String(envelope.id || envelope.event?.id || '').trim(),
+    receivedAt: String(payload.receivedAt || twitch.receivedAt || envelope.timestamp || nowIso()).trim()
+  };
+}
+
+function handleAutoShoutoutStreamBusEvent(envelope = {}, env = process.env) {
+  const subscriber = state.autoShoutout.streamBusSubscriber;
+  subscriber.delivered += 1;
+  subscriber.lastReceivedAt = nowIso();
+  subscriber.lastEventId = String(envelope.id || envelope.event?.id || '');
+  subscriber.lastSourceModule = String(envelope.payload?.sourceModule || envelope.source?.module || '');
+
+  try {
+    const parsed = normalizeStreamBusPayload(envelope);
+    const action = parsed.action === 'online' ? 'online' : 'offline';
+    subscriber.lastHandledAt = nowIso();
+    subscriber.lastEventKey = parsed.eventKey || `twitch.stream.${action}`;
+    subscriber.lastAction = action;
+    subscriber.lastLive = parsed.live === true;
+    subscriber.lastPreviousLive = parsed.previousLive === true;
+    subscriber.lastReason = parsed.reason || 'stream_state_event';
+    subscriber.lastStreamDayId = parsed.streamDayId;
+    subscriber.lastStreamSessionId = parsed.streamSessionId;
+    subscriber.lastStreamId = parsed.streamId;
+    subscriber.lastTitle = parsed.title;
+    subscriber.lastGameName = parsed.gameName;
+    subscriber.lastError = '';
+    subscriber.lastResultReason = 'accepted';
+    if (action === 'online') subscriber.onlineReceived += 1;
+    if (action === 'offline') subscriber.offlineReceived += 1;
+
+    state.autoShoutout.streamState = {
+      live: parsed.live === true,
+      previousLive: parsed.previousLive === true,
+      eventKey: subscriber.lastEventKey,
+      action,
+      reason: subscriber.lastReason,
+      sourceModule: subscriber.lastSourceModule || parsed.sourceModule || 'twitch_events',
+      busEventId: parsed.busEventId || subscriber.lastEventId,
+      streamDayId: parsed.streamDayId,
+      streamSessionId: parsed.streamSessionId,
+      streamId: parsed.streamId,
+      title: parsed.title,
+      gameName: parsed.gameName,
+      receivedAt: parsed.receivedAt || subscriber.lastReceivedAt,
+      handledAt: subscriber.lastHandledAt
+    };
+
+    if (action === 'online') {
+      state.autoShoutout.lastSkipReason = '';
+      state.autoShoutout.streamDay = {
+        ...(state.autoShoutout.streamDay || {}),
+        lastBusEventAt: subscriber.lastHandledAt,
+        lastBusEventKey: subscriber.lastEventKey,
+        lastBusLive: true,
+        lastBusStreamDayId: parsed.streamDayId,
+        lastBusStreamSessionId: parsed.streamSessionId,
+        lastBusStreamId: parsed.streamId,
+        lastBusReason: subscriber.lastReason
+      };
+    }
+
+    if (action === 'offline') {
+      state.autoShoutout.streamDay = {
+        ...(state.autoShoutout.streamDay || {}),
+        lastBusEventAt: subscriber.lastHandledAt,
+        lastBusEventKey: subscriber.lastEventKey,
+        lastBusLive: false,
+        lastBusStreamDayId: parsed.streamDayId,
+        lastBusStreamSessionId: parsed.streamSessionId,
+        lastBusStreamId: parsed.streamId,
+        lastBusReason: subscriber.lastReason
+      };
+    }
+
+    emitShoutoutBus('shoutout.auto.stream_state.received', {
+      eventKey: subscriber.lastEventKey,
+      action,
+      live: parsed.live === true,
+      streamDayId: parsed.streamDayId,
+      streamSessionId: parsed.streamSessionId,
+      streamId: parsed.streamId,
+      sourceModule: subscriber.lastSourceModule || parsed.sourceModule || 'twitch_events',
+      busEventId: parsed.busEventId || subscriber.lastEventId
+    }, shoutoutConfig());
+
+    return { ok: true, accepted: true, reason: 'auto_shoutout_stream_bus_event_accepted', action, live: parsed.live === true };
+  } catch (err) {
+    const error = err && err.message ? err.message : String(err);
+    subscriber.errors += 1;
+    subscriber.lastError = error;
+    subscriber.lastResultReason = 'error';
+    state.autoShoutout.lastError = error;
+    try { emitShoutoutBus('shoutout.auto.stream_state.failed', { error, busEventId: subscriber.lastEventId }, shoutoutConfig()); } catch (_) {}
+    return { ok: false, error };
+  }
+}
+
+function installAutoShoutoutStreamBusSubscriber(env = process.env) {
+  const subscriber = state.autoShoutout.streamBusSubscriber;
+  if (subscriber.installed === true) return { ok: true, installed: true, alreadyInstalled: true, subscriptionId: subscriber.subscriptionId };
+
+  const bus = getCommunicationBus();
+  if (!bus || typeof bus.subscribe !== 'function') {
+    subscriber.installed = false;
+    subscriber.lastError = 'communication_bus_subscribe_unavailable';
+    return { ok: false, installed: false, reason: 'communication_bus_subscribe_unavailable' };
+  }
+
+  const result = bus.subscribe({
+    id: 'clip_shoutout:twitch.stream:auto_shoutout',
+    module: MODULE_NAME,
+    channel: 'twitch.stream',
+    action: '',
+    capability: '',
+    meta: {
+      step: 'CAN44.36',
+      purpose: 'auto_shoutout_stream_state_runtime',
+      sourceModule: 'twitch_events',
+      consumes: ['twitch.stream.online', 'twitch.stream.offline']
+    }
+  }, (envelope) => {
+    return handleAutoShoutoutStreamBusEvent(envelope, env);
+  });
+
+  if (!result || result.ok !== true) {
+    subscriber.installed = false;
+    subscriber.lastError = String(result && (result.reason || result.error) || 'subscription_failed');
+    return { ok: false, installed: false, reason: subscriber.lastError };
+  }
+
+  subscriber.installed = true;
+  subscriber.subscriptionId = result.subscription && result.subscription.id ? String(result.subscription.id) : 'clip_shoutout:twitch.stream:auto_shoutout';
+  subscriber.lastError = '';
+  subscriber.lastResultReason = 'installed';
+  emitShoutoutBus('shoutout.auto.stream_bus_subscriber.installed', { subscriptionId: subscriber.subscriptionId, channel: subscriber.channel, action: subscriber.action || '*' }, shoutoutConfig());
+  return { ok: true, installed: true, subscriptionId: subscriber.subscriptionId };
+}
+
 function installAutoShoutoutBusSubscriber(env = process.env) {
   const subscriber = state.autoShoutout.busSubscriber;
   if (subscriber.installed === true) return { ok: true, installed: true, alreadyInstalled: true, subscriptionId: subscriber.subscriptionId };
@@ -6270,7 +6457,9 @@ function autoShoutoutStatus(cfg) {
       noticeMemoryCount: Object.keys(state.autoShoutout.noticeMemory || {}).length,
       activity: state.autoShoutout.activity || {},
       streamDay: state.autoShoutout.streamDay || {},
-      busSubscriber: { ...(state.autoShoutout.busSubscriber || {}) }
+      streamState: state.autoShoutout.streamState || {},
+      busSubscriber: { ...(state.autoShoutout.busSubscriber || {}) },
+      streamBusSubscriber: { ...(state.autoShoutout.streamBusSubscriber || {}) }
     }
   };
 }
@@ -6594,6 +6783,7 @@ module.exports.init = function init(ctx) {
   registerCommand(cfg);
   installDirectChatCommandBypass(env);
   installAutoShoutoutBusSubscriber(env);
+  installAutoShoutoutStreamBusSubscriber(env);
   startDisplayQueueWorker(env, cfg);
   startOfficialShoutoutWorker(env, cfg);
 
