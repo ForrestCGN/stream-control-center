@@ -19,7 +19,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.45";
+const MODULE_VERSION = "0.2.46";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -37,7 +37,7 @@ const MODULE_META = {
     heartbeat: false,
     channel: SHOUTOUT_BUS_CHANNEL
   },
-  note: "CAN-44.29: AutoShoutout bus subscriber aligned with loyalty_giveaways subscriber style and robust chat envelope normalization; direct chat wrapper remains fallback."
+  note: "CAN-44.32: AutoShoutout stream-day reliability fix; stale active stream-days are closed, new Twitch stream IDs create new days, and stream-day diagnostics are exposed."
 };
 
 const AUTO_SHOUTOUT_TEXT_DEFAULTS = {
@@ -388,7 +388,7 @@ const DEFAULT_CONFIG = {
       globalCooldownMs: 120000,
       perStreamerCooldownMs: 43200000,
       sendChatMessage: true,
-      storeSkippedEvents: false,
+      storeSkippedEvents: true,
       suppressImmediateQueuedMessage: true,
       immediateQueuedMessageThresholdMs: 10000,
       queuedMessage: "📺 @{displayName} wurde der Shoutout-Warteliste hinzugefügt. Wartezeit: ca. {waitTime}.",
@@ -1239,6 +1239,55 @@ function ensureStreamDaySchema() {
   `);
 }
 
+function clipShoutoutStreamDayRowLastSeenMs(row) {
+  return msFromIso(row && (row.last_seen_at || row.first_seen_at || row.stream_started_at));
+}
+
+function closeClipShoutoutStreamDayRow(row, now, source = 'offline', reason = 'closed', streamState = null) {
+  if (!row || !row.id) return false;
+  const previousMeta = safeJsonParse(row.meta_json, {});
+  database.run(`
+    UPDATE clip_shoutout_stream_days
+    SET status='closed', ended_at=CASE WHEN ended_at='' THEN :now ELSE ended_at END,
+        restart_grace_until='', last_seen_at=:now, source=:source, meta_json=:metaJson
+    WHERE id=:id
+  `, {
+    id: row.id,
+    now,
+    source: String(source || 'offline'),
+    metaJson: JSON.stringify({ ...previousMeta, closedReason: String(reason || 'closed'), closedAt: now, lastObserved: streamState || previousMeta.lastObserved || null })
+  });
+  return true;
+}
+
+function closeExpiredClipShoutoutStreamDayGraceRows(now) {
+  database.run(`
+    UPDATE clip_shoutout_stream_days
+    SET status='closed', ended_at=CASE WHEN ended_at='' THEN :now ELSE ended_at END,
+        restart_grace_until='', last_seen_at=:now
+    WHERE status='grace' AND restart_grace_until<>'' AND restart_grace_until<:now
+  `, { now });
+}
+
+function publicAutoStreamDayDecision(streamDay = {}) {
+  const streamState = streamDay && streamDay.streamState ? streamDay.streamState : {};
+  return {
+    lastResolvedAt: nowIso(),
+    lastStreamDayId: String(streamDay.streamDayId || ''),
+    lastOk: streamDay.ok === true,
+    lastSource: String(streamState.source || ''),
+    lastStatus: String(streamState.sessionStatus || ''),
+    lastLive: streamState.live === true,
+    lastStatusKnown: streamState.statusKnown !== false,
+    lastStale: streamState.stale === true,
+    lastGrace: streamDay.grace === true,
+    lastFallback: streamDay.fallback === true,
+    lastError: String(streamDay.error || ''),
+    lastClosedStaleActive: streamDay.closedStaleActive === true,
+    lastClosedReason: String(streamDay.closedReason || '')
+  };
+}
+
 function resolveCurrentStreamDay(env, cfg) {
   ensureStreamDaySchema();
   const scfg = streamDayLimitConfig(cfg);
@@ -1247,6 +1296,7 @@ function resolveCurrentStreamDay(env, cfg) {
   const graceMs = Math.max(0, Number(scfg.restartGraceMs || 1800000));
   const broadcaster = cleanLogin(env.TWITCH_BOT_CHANNEL || env.TWITCH_CHANNEL || env.TWITCH_BROADCASTER_LOGIN || "forrestcgn") || "forrestcgn";
   const streamState = readCurrentStreamState(cfg);
+  closeExpiredClipShoutoutStreamDayGraceRows(now);
 
   if (streamState.live) {
     const recent = database.get(`
@@ -1255,9 +1305,15 @@ function resolveCurrentStreamDay(env, cfg) {
       ORDER BY id DESC LIMIT 1
     `, { broadcaster });
     const recentGraceMs = msFromIso(recent && recent.restart_grace_until);
-    const sameStream = recent && streamState.streamId && String(recent.stream_id || "") === String(streamState.streamId || "");
+    const incomingStreamId = String(streamState.streamId || '');
+    const recentStreamId = String(recent && recent.stream_id || '');
+    const sameStream = recent && incomingStreamId && recentStreamId && recentStreamId === incomingStreamId;
     const withinGrace = recent && recentGraceMs && recentGraceMs >= nowMs;
-    if (recent && (sameStream || withinGrace || recent.status === 'active')) {
+    const canReuseActiveWithoutReliableStreamId = recent && recent.status === 'active' && (!incomingStreamId || !recentStreamId);
+
+    if (recent && incomingStreamId && recentStreamId && !sameStream && !withinGrace) {
+      closeClipShoutoutStreamDayRow(recent, now, streamState.source || 'stream_status', 'new_stream_id_detected', streamState);
+    } else if (recent && (sameStream || withinGrace || canReuseActiveWithoutReliableStreamId)) {
       database.run(`
         UPDATE clip_shoutout_stream_days
         SET status='active', stream_id=CASE WHEN :streamId='' THEN stream_id ELSE :streamId END,
@@ -1303,14 +1359,20 @@ function resolveCurrentStreamDay(env, cfg) {
     ORDER BY id DESC LIMIT 1
   `, { broadcaster });
   if (active) {
-    const graceUntil = isoFromMs(nowMs + graceMs);
-    database.run(`
-      UPDATE clip_shoutout_stream_days
-      SET status='grace', ended_at=CASE WHEN ended_at='' THEN :now ELSE ended_at END,
-          restart_grace_until=:graceUntil, last_seen_at=:now, source=:source
-      WHERE id=:id
-    `, { id: active.id, now, graceUntil, source: streamState.source || "offline" });
-    return { ok: true, streamDayId: active.stream_day_id, row: database.get(`SELECT * FROM clip_shoutout_stream_days WHERE id=:id`, { id: active.id }), streamState, grace: true };
+    const lastSeenMs = clipShoutoutStreamDayRowLastSeenMs(active);
+    const activeCanEnterGrace = lastSeenMs > 0 && (nowMs - lastSeenMs) <= graceMs;
+    if (!activeCanEnterGrace) {
+      closeClipShoutoutStreamDayRow(active, now, streamState.source || 'offline', 'stale_active_closed_before_grace', streamState);
+    } else {
+      const graceUntil = isoFromMs(nowMs + graceMs);
+      database.run(`
+        UPDATE clip_shoutout_stream_days
+        SET status='grace', ended_at=CASE WHEN ended_at='' THEN :now ELSE ended_at END,
+            restart_grace_until=:graceUntil, last_seen_at=:now, source=:source
+        WHERE id=:id
+      `, { id: active.id, now, graceUntil, source: streamState.source || "offline" });
+      return { ok: true, streamDayId: active.stream_day_id, row: database.get(`SELECT * FROM clip_shoutout_stream_days WHERE id=:id`, { id: active.id }), streamState, grace: true };
+    }
   }
 
   const grace = database.get(`
@@ -4698,7 +4760,7 @@ function normalizeAutoSettings(input = {}, fallback = {}) {
     sendChatMessage: input.sendChatMessage === undefined ? base.sendChatMessage !== false : database.boolFromDb(database.normalizeBool(input.sendChatMessage)),
     suppressImmediateQueuedMessage: input.suppressImmediateQueuedMessage === undefined ? base.suppressImmediateQueuedMessage !== false : database.boolFromDb(database.normalizeBool(input.suppressImmediateQueuedMessage)),
     immediateQueuedMessageThresholdMs: Math.max(0, Number(input.immediateQueuedMessageThresholdMs === undefined ? base.immediateQueuedMessageThresholdMs : input.immediateQueuedMessageThresholdMs) || 0),
-    storeSkippedEvents: input.storeSkippedEvents === undefined ? base.storeSkippedEvents === true : database.boolFromDb(database.normalizeBool(input.storeSkippedEvents)),
+    storeSkippedEvents: input.storeSkippedEvents === undefined ? base.storeSkippedEvents !== false : database.boolFromDb(database.normalizeBool(input.storeSkippedEvents)),
     queuedMessage,
     messages,
     sceneGate,
@@ -5111,9 +5173,14 @@ async function simulateAutoShoutoutChatActivity(parsed, source = {}, env = proce
 
   const streamDay = resolveCurrentStreamDay(env, cfg);
   const streamDayId = streamDay && streamDay.streamDayId ? String(streamDay.streamDayId) : '';
+  state.autoShoutout.streamDay = publicAutoStreamDayDecision(streamDay || {});
   const varsBase = { login, displayName: streamer.displayName || displayName || login, waitTime: 'wenige Sekunden', streamDayId };
   const autoRawMessage = autoMessageTextFromParsed(parsed);
   const instantTrigger = isAutoInstantTriggerMessage(autoRawMessage, acfg);
+
+  if (!streamDayId) {
+    return { ok: true, dryRun: true, skipped: true, reason: streamDay && streamDay.error ? streamDay.error : 'stream_day_unavailable', wouldTrigger: false, targetLogin: login, streamDay, streamState };
+  }
 
   const pendingDisplay = findPendingDisplayShoutout(login);
   if (pendingDisplay) {
@@ -5386,9 +5453,14 @@ async function handleAutoShoutoutChatActivity(parsed, source = {}, env = process
 
   const streamDay = resolveCurrentStreamDay(env, cfg);
   const streamDayId = streamDay && streamDay.streamDayId ? String(streamDay.streamDayId) : '';
+  state.autoShoutout.streamDay = publicAutoStreamDayDecision(streamDay || {});
   const varsBase = { login, displayName: streamer.displayName || displayName || login, waitTime: 'wenige Sekunden', streamDayId };
   const autoRawMessage = autoMessageTextFromParsed(parsed);
   const instantTrigger = isAutoInstantTriggerMessage(autoRawMessage, acfg);
+
+  if (!streamDayId) {
+    return autoSkip(login, displayName, streamDay && streamDay.error ? streamDay.error : 'stream_day_unavailable', { streamDay, streamState }, cfg);
+  }
 
   const pendingDisplay = findPendingDisplayShoutout(login);
   if (pendingDisplay) {
@@ -6197,6 +6269,7 @@ function autoShoutoutStatus(cfg) {
       lastError: state.autoShoutout.lastError,
       noticeMemoryCount: Object.keys(state.autoShoutout.noticeMemory || {}).length,
       activity: state.autoShoutout.activity || {},
+      streamDay: state.autoShoutout.streamDay || {},
       busSubscriber: { ...(state.autoShoutout.busSubscriber || {}) }
     }
   };
