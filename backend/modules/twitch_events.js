@@ -27,8 +27,8 @@ const axios = require('axios');
 const WebSocket = require('ws');
 
 const MODULE_NAME = 'twitch_events';
-const MODULE_VERSION = '0.1.8';
-const MODULE_BUILD = 'CAN44.35_STREAM_STATE_PROVIDER';
+const MODULE_VERSION = '0.1.9';
+const MODULE_BUILD = 'CAN44.37_STREAM_SESSION_AUTHORITY';
 const MODULE_ID = `module:${MODULE_NAME}`;
 const MODULE_STARTED_AT = nowIso();
 
@@ -61,6 +61,14 @@ const MODULE_META = {
       'twitch.eventsub.session.reconnect',
       'twitch.stream.online',
       'twitch.stream.offline',
+      'twitch.stream.session.started',
+      'twitch.stream.session.pending',
+      'twitch.stream.session.confirmed',
+      'twitch.stream.session.warning',
+      'twitch.stream.session.grace',
+      'twitch.stream.session.reconnect',
+      'twitch.stream.session.resumed',
+      'twitch.stream.session.ended',
       'twitch.stream.updated',
       'twitch.channel.updated',
       'twitch.follow.received',
@@ -416,10 +424,42 @@ const state = {
     sessionStatus: '',
     restartGraceUntil: '',
     obsStreaming: false,
+    obsConnected: false,
+    obsDetected: false,
+    bandwidthTest: false,
+    bandwidthTestKey: '',
     twitchStreamsLive: false,
     twitchSearchLive: false,
     streamStatusLive: false,
     eventSubLive: 'unknown',
+    status: 'offline',
+    calendarDay: '',
+    streamDateLabel: '',
+    streamDayMode: 'stream_session',
+    streamSession: {
+      active: false,
+      status: 'offline',
+      streamSessionId: '',
+      streamDayId: '',
+      calendarDay: '',
+      streamDateLabel: '',
+      startedAt: '',
+      confirmedAt: '',
+      lastSeenAt: '',
+      graceStartedAt: '',
+      graceUntil: '',
+      endedAt: '',
+      closedAt: '',
+      closedReason: '',
+      source: '',
+      confidence: 'unknown',
+      twitchStreamId: '',
+      obsStarted: false,
+      twitchConfirmed: false,
+      bandwidthTest: false,
+      pendingWarningAt: '',
+      meta: {}
+    },
     lastCheckedAt: '',
     lastChangedAt: '',
     lastPublishedAt: '',
@@ -437,7 +477,14 @@ const state = {
       offlineEmitted: 0,
       overrideSet: 0,
       overrideCleared: 0,
-      errors: 0
+      errors: 0,
+      sessionStarted: 0,
+      sessionPending: 0,
+      sessionConfirmed: 0,
+      sessionGrace: 0,
+      sessionResumed: 0,
+      sessionEnded: 0,
+      sessionWarnings: 0
     },
     manualOverride: {
       active: false,
@@ -535,6 +582,16 @@ module.exports.init = function init(ctx = {}) {
       }
     };
     registered.push(...routes.registerGet(app, ['/api/twitch/events/stream-state', '/twitch/events/stream-state'], streamStateRoute));
+    const streamSessionRoute = async (req, res) => {
+      try {
+        const refresh = String(req.query && req.query.refresh || '').trim() === '1';
+        const data = refresh ? await refreshStreamState({ reason: 'stream_session_route_refresh', forcePublish: false }) : getStreamState();
+        res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, streamSession: data.streamSession, streamState: data });
+      } catch (err) {
+        res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: err && err.message ? err.message : String(err), streamSession: getStreamState().streamSession });
+      }
+    };
+    registered.push(...routes.registerGet(app, ['/api/twitch/events/stream-session', '/twitch/events/stream-session'], streamSessionRoute));
 
     const overrideStreamStateRoute = async (req, res) => {
       try {
@@ -547,7 +604,8 @@ module.exports.init = function init(ctx = {}) {
         }
         const ttlMs = Math.max(0, Number(firstValue(body.ttlMs, req.query && req.query.ttlMs, 600000)) || 600000);
         const reason = cleanString(firstValue(body.reason, req.query && req.query.reason, 'manual_override'), 'manual_override');
-        const data = await setStreamStateOverride(parsedLive, { reason, ttlMs });
+        const status = cleanString(firstValue(body.status, req.query && req.query.status, ''));
+        const data = await setStreamStateOverride(parsedLive, { reason, ttlMs, status });
         res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, streamState: data });
       } catch (err) {
         res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: err && err.message ? err.message : String(err), streamState: getStreamState() });
@@ -1231,7 +1289,13 @@ function streamStateConfig() {
     fallbackUrl: cleanString(env.TWITCH_EVENTS_STREAM_STATE_FALLBACK_URL || 'http://127.0.0.1:8080/api/stream-status/status?forceApi=1'),
     pollIntervalMs: Math.max(5000, Number(env.TWITCH_EVENTS_STREAM_STATE_POLL_MS || 30000) || 30000),
     requestTimeoutMs: Math.max(1000, Number(env.TWITCH_EVENTS_STREAM_STATE_TIMEOUT_MS || 5000) || 5000),
-    overrideDefaultTtlMs: Math.max(0, Number(env.TWITCH_EVENTS_STREAM_STATE_OVERRIDE_TTL_MS || 600000) || 600000)
+    overrideDefaultTtlMs: Math.max(0, Number(env.TWITCH_EVENTS_STREAM_STATE_OVERRIDE_TTL_MS || 600000) || 600000),
+    pendingConfirmMs: Math.max(10000, Number(env.TWITCH_EVENTS_STREAM_SESSION_PENDING_CONFIRM_MS || 60000) || 60000),
+    pendingWarningMs: Math.max(30000, Number(env.TWITCH_EVENTS_STREAM_SESSION_PENDING_WARNING_MS || 300000) || 300000),
+    reconnectGraceMs: Math.max(60000, Number(env.TWITCH_EVENTS_STREAM_SESSION_RECONNECT_GRACE_MS || 2700000) || 2700000),
+    endingGraceMs: Math.max(10000, Number(env.TWITCH_EVENTS_STREAM_SESSION_ENDING_GRACE_MS || 120000) || 120000),
+    bandwidthTestKeys: cleanString(env.TWITCH_EVENTS_STREAM_SESSION_BANDWIDTH_KEYS || 'bwtest,bandwidthtest,bandwidthTest,bandwidth_test,testBandwidth,enableBandwidthTest')
+      .split(/[;,]/).map(v => v.trim()).filter(Boolean)
   };
 }
 
@@ -1282,6 +1346,7 @@ function getStreamState() {
     initialized: state.streamState.initialized === true,
     known: state.streamState.known === true,
     live: state.streamState.live === true,
+    status: state.streamState.status || state.streamState.sessionStatus || 'offline',
     previousLive: state.streamState.previousLive,
     source: state.streamState.source,
     sourceSummary: state.streamState.sourceSummary,
@@ -1297,6 +1362,10 @@ function getStreamState() {
     streamDayId: state.streamState.streamDayId,
     sessionStatus: state.streamState.sessionStatus,
     restartGraceUntil: state.streamState.restartGraceUntil,
+    calendarDay: state.streamState.calendarDay || '',
+    streamDateLabel: state.streamState.streamDateLabel || '',
+    streamDayMode: state.streamState.streamDayMode || 'stream_session',
+    streamSession: safeJson(state.streamState.streamSession, {}),
     sources: {
       obsStreaming: state.streamState.obsStreaming === true,
       twitchStreamsLive: state.streamState.twitchStreamsLive === true,
@@ -1320,7 +1389,8 @@ function getStreamState() {
       status: '/api/twitch/events/stream-state',
       refresh: '/api/twitch/events/stream-state?refresh=1',
       override: '/api/twitch/events/stream-state/override',
-      clearOverride: '/api/twitch/events/stream-state/clear-override'
+      clearOverride: '/api/twitch/events/stream-state/clear-override',
+      streamSession: '/api/twitch/events/stream-session'
     }
   };
 }
@@ -1360,6 +1430,10 @@ function normalizeStreamStateFromMonitor(payload) {
     sessionStatus: cleanString(streamStatusRaw.sessionStatus || ''),
     restartGraceUntil: cleanString(streamStatusRaw.restartGraceUntil || ''),
     obsStreaming: d.obsStreaming === true,
+    obsConnected: parsed.obs && parsed.obs.obsConnected === true,
+    obsDetected: parsed.obs && parsed.obs.obsDetected === true,
+    bandwidthTest: d.bandwidthTest === true || (parsed.obs && parsed.obs.bandwidthTest === true),
+    bandwidthTestKey: cleanString(d.bandwidthTestKey || (parsed.obs && parsed.obs.bandwidthTestKey) || ''),
     twitchStreamsLive: d.twitchStreamsLive === true,
     twitchSearchLive: d.twitchSearchLive === true,
     streamStatusLive: d.streamStatusLive === true,
@@ -1388,6 +1462,10 @@ function normalizeStreamStateFromStreamStatus(payload) {
     sessionStatus: cleanString(payload && payload.sessionStatus || ''),
     restartGraceUntil: cleanString(payload && payload.restartGraceUntil || ''),
     obsStreaming: false,
+    obsConnected: false,
+    obsDetected: false,
+    bandwidthTest: false,
+    bandwidthTestKey: '',
     twitchStreamsLive: payload && payload.live === true,
     twitchSearchLive: false,
     streamStatusLive: payload && payload.live === true,
@@ -1415,12 +1493,323 @@ function applyManualOverride(normalized, reason = 'manual_override') {
   };
 }
 
+
+function streamSessionCalendarDay(value) {
+  const ms = Date.parse(String(value || ''));
+  const d = Number.isFinite(ms) ? new Date(ms) : new Date();
+  return d.toISOString().slice(0, 10);
+}
+
+function streamSessionCompactId(value) {
+  const ms = Date.parse(String(value || '')) || Date.now();
+  return new Date(ms).toISOString().replace(/[-:.]/g, '').replace(/Z$/, 'Z').toLowerCase();
+}
+
+function cleanSessionToken(value, fallback = 'manual') {
+  const text = cleanString(value || fallback).replace(/[^a-zA-Z0-9_-]+/g, '').slice(0, 64);
+  return text || fallback;
+}
+
+function makeAuthoritySessionIds(normalized, startedAt) {
+  const broadcaster = cleanString(normalized.broadcasterLogin || state.streamState.broadcasterLogin || 'forrestcgn').toLowerCase() || 'stream';
+  const streamId = cleanSessionToken(normalized.streamId || 'pending', 'pending');
+  const stamp = streamSessionCompactId(startedAt);
+  const sessionId = normalized.streamSessionId || `${broadcaster}_${stamp}_${streamId}`.toLowerCase();
+  const dayId = normalized.streamDayId || `stream_${sessionId}`.toLowerCase();
+  return { sessionId, dayId };
+}
+
+function publicStreamSession(session) {
+  const s = session && typeof session === 'object' ? session : {};
+  return {
+    active: s.active === true,
+    status: cleanString(s.status || 'offline'),
+    streamSessionId: cleanString(s.streamSessionId || ''),
+    streamDayId: cleanString(s.streamDayId || ''),
+    calendarDay: cleanString(s.calendarDay || ''),
+    streamDateLabel: cleanString(s.streamDateLabel || ''),
+    startedAt: cleanString(s.startedAt || ''),
+    confirmedAt: cleanString(s.confirmedAt || ''),
+    lastSeenAt: cleanString(s.lastSeenAt || ''),
+    graceStartedAt: cleanString(s.graceStartedAt || ''),
+    graceUntil: cleanString(s.graceUntil || ''),
+    endedAt: cleanString(s.endedAt || ''),
+    closedAt: cleanString(s.closedAt || ''),
+    closedReason: cleanString(s.closedReason || ''),
+    source: cleanString(s.source || ''),
+    confidence: cleanString(s.confidence || 'unknown'),
+    twitchStreamId: cleanString(s.twitchStreamId || ''),
+    obsStarted: s.obsStarted === true,
+    twitchConfirmed: s.twitchConfirmed === true,
+    bandwidthTest: s.bandwidthTest === true,
+    pendingWarningAt: cleanString(s.pendingWarningAt || ''),
+    meta: safeJson(s.meta, {})
+  };
+}
+
+function isAuthoritySessionActive(session) {
+  return !!(session && session.active === true && ['pending', 'pending_warning', 'live', 'degraded', 'grace', 'reconnect', 'ending'].includes(String(session.status || '')));
+}
+
+function hasTwitchLiveConfirmation(normalized) {
+  return !!(normalized && (normalized.twitchStreamsLive === true || normalized.twitchSearchLive === true || normalized.streamStatusLive === true || cleanString(normalized.streamId || '')));
+}
+
+function detectBandwidthTest(normalized, cfg) {
+  if (!normalized || typeof normalized !== 'object') return { detected: false, key: '' };
+  if (normalized.bandwidthTest === true) return { detected: true, key: cleanString(normalized.bandwidthTestKey || 'bandwidthTest') };
+  const keys = Array.isArray(cfg && cfg.bandwidthTestKeys) ? cfg.bandwidthTestKeys : [];
+  const candidates = [normalized, normalized.obs || {}, normalized.streamServiceSettings || {}, normalized.serviceSettings || {}];
+  for (const obj of candidates) {
+    if (!obj || typeof obj !== 'object') continue;
+    for (const key of keys) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        const value = obj[key];
+        if (value === true || value === 1 || String(value).toLowerCase() === 'true' || String(value).toLowerCase() === '1') {
+          return { detected: true, key };
+        }
+      }
+    }
+  }
+  return { detected: false, key: '' };
+}
+
+function publishStreamSessionEvent(action, session, normalized, reason = '') {
+  if (!bus || typeof publishTwitchEvent !== 'function') return { ok: false, reason: 'bus_unavailable' };
+  const cleanAction = cleanString(action || 'updated');
+  const eventKey = `twitch.stream.session.${cleanAction}`;
+  const publicSession = publicStreamSession(session);
+  const payload = {
+    eventKey,
+    action: cleanAction,
+    reason: cleanString(reason || cleanAction),
+    live: normalized && normalized.live === true,
+    status: publicSession.status,
+    streamSessionId: publicSession.streamSessionId,
+    streamDayId: publicSession.streamDayId,
+    calendarDay: publicSession.calendarDay,
+    streamDateLabel: publicSession.streamDateLabel,
+    startedAt: publicSession.startedAt,
+    confirmedAt: publicSession.confirmedAt,
+    endedAt: publicSession.endedAt,
+    graceUntil: publicSession.graceUntil,
+    broadcasterLogin: normalized && normalized.broadcasterLogin || state.streamState.broadcasterLogin || '',
+    streamId: normalized && normalized.streamId || publicSession.twitchStreamId || '',
+    title: normalized && normalized.title || '',
+    gameName: normalized && normalized.gameName || '',
+    source: normalized && normalized.source || '',
+    sourceSummary: normalized && normalized.sourceSummary || '',
+    confidence: normalized && normalized.confidence || publicSession.confidence || '',
+    obsStreaming: normalized && normalized.obsStreaming === true,
+    obsConnected: normalized && normalized.obsConnected === true,
+    twitchConfirmed: publicSession.twitchConfirmed === true,
+    bandwidthTest: publicSession.bandwidthTest === true,
+    eventSubRequired: false,
+    generatedBy: MODULE_NAME,
+    provider: 'stream_session_authority',
+    streamSession: publicSession,
+    warnings: normalized && Array.isArray(normalized.warnings) ? normalized.warnings : [],
+    receivedAt: normalized && normalized.lastCheckedAt || nowIso()
+  };
+  const result = publishTwitchEvent(eventKey, payload, { source: 'twitch_events_stream_session', receivedAt: payload.receivedAt }, {
+    requireAck: false,
+    replayable: true,
+    ttlMs: 3600000,
+    priority: 'P1',
+    target: { type: 'all', id: '*' }
+  });
+  if (cleanAction === 'started') state.streamState.counters.sessionStarted += 1;
+  if (cleanAction === 'pending') state.streamState.counters.sessionPending += 1;
+  if (cleanAction === 'confirmed') state.streamState.counters.sessionConfirmed += 1;
+  if (cleanAction === 'grace' || cleanAction === 'reconnect') state.streamState.counters.sessionGrace += 1;
+  if (cleanAction === 'resumed') state.streamState.counters.sessionResumed += 1;
+  if (cleanAction === 'ended') state.streamState.counters.sessionEnded += 1;
+  if (cleanAction === 'warning') state.streamState.counters.sessionWarnings += 1;
+  return result;
+}
+
+function applyStreamSessionAuthority(normalized, options = {}) {
+  const cfg = streamStateConfig();
+  const now = normalized.lastCheckedAt || nowIso();
+  const nowMs = Date.parse(now) || Date.now();
+  const manualStatus = cleanString(normalized.manualStatus || options.status || '').toLowerCase();
+  const bandwidth = manualStatus === 'bandwidth_test' ? { detected: true, key: 'manual_status' } : detectBandwidthTest(normalized, cfg);
+  const twitchConfirmed = hasTwitchLiveConfirmation(normalized);
+  const obsStreaming = normalized.obsStreaming === true;
+  const obsConnected = normalized.obsConnected === true;
+  let session = publicStreamSession(state.streamState.streamSession);
+  const oldSessionStatus = session.status || 'offline';
+  let sessionEvent = '';
+  let sessionEventReason = options.reason || 'stream_session_update';
+
+  if (bandwidth.detected) {
+    normalized.live = false;
+    normalized.sessionStatus = 'bandwidth_test';
+    normalized.confidence = 'bandwidth_test';
+    normalized.streamSessionId = '';
+    normalized.streamDayId = '';
+    normalized.warnings = [
+      ...(Array.isArray(normalized.warnings) ? normalized.warnings : []),
+      { key: 'obs_bandwidth_test', message: `OBS bandwidth test mode detected${bandwidth.key ? ` (${bandwidth.key})` : ''}. No stream session is opened.` }
+    ];
+    state.streamState.streamSession = { ...session, active: false, status: 'bandwidth_test', bandwidthTest: true, closedReason: 'bandwidth_test', lastSeenAt: now };
+    return normalized;
+  }
+
+  if (!isAuthoritySessionActive(session)) {
+    if (twitchConfirmed || obsStreaming) {
+      const startedAt = normalized.startedAt || now;
+      const ids = makeAuthoritySessionIds(normalized, startedAt);
+      const status = twitchConfirmed ? 'live' : 'pending';
+      session = {
+        active: true,
+        status,
+        streamSessionId: ids.sessionId,
+        streamDayId: ids.dayId,
+        calendarDay: streamSessionCalendarDay(startedAt),
+        streamDateLabel: streamSessionCalendarDay(startedAt),
+        startedAt,
+        confirmedAt: twitchConfirmed ? now : '',
+        lastSeenAt: now,
+        graceStartedAt: '',
+        graceUntil: '',
+        endedAt: '',
+        closedAt: '',
+        closedReason: '',
+        source: twitchConfirmed ? 'twitch_confirmed' : 'obs_pending',
+        confidence: twitchConfirmed ? 'high' : 'pending',
+        twitchStreamId: normalized.streamId || '',
+        obsStarted: obsStreaming === true,
+        twitchConfirmed,
+        bandwidthTest: false,
+        pendingWarningAt: '',
+        meta: { createdReason: sessionEventReason, createdBy: MODULE_NAME }
+      };
+      sessionEvent = 'started';
+      normalized.live = twitchConfirmed === true;
+      normalized.sessionStatus = status;
+      if (!twitchConfirmed) {
+        normalized.warnings = [
+          ...(Array.isArray(normalized.warnings) ? normalized.warnings : []),
+          { key: 'obs_online_twitch_pending', message: 'OBS is streaming, Twitch has not confirmed the stream yet.' }
+        ];
+      }
+    } else {
+      normalized.live = false;
+      normalized.sessionStatus = 'offline';
+      normalized.streamSessionId = '';
+      normalized.streamDayId = '';
+      state.streamState.streamSession = { ...session, active: false, status: 'offline', lastSeenAt: now };
+      return normalized;
+    }
+  } else {
+    const startedAt = session.startedAt || normalized.startedAt || now;
+    if (twitchConfirmed) {
+      const wasRecovering = ['pending', 'pending_warning', 'grace', 'reconnect', 'ending', 'degraded'].includes(session.status);
+      const wasPending = ['pending', 'pending_warning'].includes(session.status);
+      session.status = 'live';
+      session.active = true;
+      session.lastSeenAt = now;
+      session.graceStartedAt = '';
+      session.graceUntil = '';
+      session.closedReason = '';
+      session.source = 'twitch_confirmed';
+      session.confidence = 'high';
+      session.twitchStreamId = normalized.streamId || session.twitchStreamId || '';
+      session.twitchConfirmed = true;
+      session.obsStarted = session.obsStarted || obsStreaming === true;
+      if (!session.confirmedAt) session.confirmedAt = now;
+      normalized.live = true;
+      normalized.sessionStatus = 'live';
+      if (wasPending) sessionEvent = 'confirmed';
+      else if (wasRecovering) sessionEvent = 'resumed';
+    } else if (obsStreaming) {
+      session.active = true;
+      session.lastSeenAt = now;
+      session.obsStarted = true;
+      if (session.twitchConfirmed === true) {
+        session.status = 'degraded';
+        session.source = 'obs_protected_twitch_missing';
+        session.confidence = 'medium';
+        normalized.live = true;
+        normalized.sessionStatus = 'degraded';
+        normalized.warnings = [
+          ...(Array.isArray(normalized.warnings) ? normalized.warnings : []),
+          { key: 'twitch_missing_but_obs_streaming', message: 'Twitch is not confirming live, but OBS is still streaming. Keeping stream session alive.' }
+        ];
+        if (oldSessionStatus !== session.status) sessionEvent = 'warning';
+      } else {
+        const pendingAge = nowMs - (Date.parse(session.startedAt || startedAt) || nowMs);
+        session.status = pendingAge >= cfg.pendingWarningMs ? 'pending_warning' : 'pending';
+        session.source = 'obs_pending';
+        session.confidence = pendingAge >= cfg.pendingWarningMs ? 'warning' : 'pending';
+        session.pendingWarningAt = pendingAge >= cfg.pendingWarningMs ? (session.pendingWarningAt || now) : session.pendingWarningAt || '';
+        normalized.live = false;
+        normalized.sessionStatus = session.status;
+        normalized.warnings = [
+          ...(Array.isArray(normalized.warnings) ? normalized.warnings : []),
+          { key: pendingAge >= cfg.pendingWarningMs ? 'obs_online_twitch_not_confirmed_timeout' : 'obs_online_twitch_pending', message: pendingAge >= cfg.pendingWarningMs ? 'OBS is streaming, but Twitch has not confirmed the stream within the warning window.' : 'OBS is streaming, Twitch has not confirmed the stream yet.' }
+        ];
+        if (oldSessionStatus !== session.status) sessionEvent = pendingAge >= cfg.pendingWarningMs ? 'warning' : 'pending';
+      }
+    } else {
+      const graceMs = obsConnected ? cfg.endingGraceMs : cfg.reconnectGraceMs;
+      const graceStatus = obsConnected ? 'ending' : 'reconnect';
+      const graceReason = obsConnected ? 'obs_not_streaming_ending_grace' : 'obs_lost_or_twitch_offline_reconnect_grace';
+      let graceUntilMs = Date.parse(session.graceUntil || '');
+      if (!Number.isFinite(graceUntilMs) || graceUntilMs <= 0 || !['ending', 'reconnect', 'grace'].includes(session.status)) {
+        session.graceStartedAt = now;
+        session.graceUntil = new Date(nowMs + graceMs).toISOString();
+        graceUntilMs = nowMs + graceMs;
+        sessionEvent = obsConnected ? 'grace' : 'reconnect';
+      }
+      session.status = graceStatus;
+      session.source = graceReason;
+      session.confidence = 'grace';
+      session.lastSeenAt = now;
+      normalized.live = false;
+      normalized.sessionStatus = graceStatus;
+      normalized.restartGraceUntil = session.graceUntil;
+      normalized.warnings = [
+        ...(Array.isArray(normalized.warnings) ? normalized.warnings : []),
+        { key: graceReason, message: obsConnected ? 'OBS is connected but not streaming. Waiting briefly before closing the stream session.' : 'OBS/Twitch is not confirming live. Keeping the stream session open during reconnect grace.' }
+      ];
+      if (graceUntilMs <= nowMs) {
+        session.status = 'closed';
+        session.active = false;
+        session.endedAt = session.endedAt || now;
+        session.closedAt = now;
+        session.closedReason = obsConnected ? 'obs_stream_stopped_grace_expired' : 'reconnect_timeout';
+        normalized.sessionStatus = 'closed';
+        normalized.live = false;
+        sessionEvent = 'ended';
+      }
+    }
+    session.calendarDay = session.calendarDay || streamSessionCalendarDay(startedAt);
+    session.streamDateLabel = session.streamDateLabel || streamSessionCalendarDay(startedAt);
+  }
+
+  normalized.streamSessionId = session.streamSessionId || '';
+  normalized.streamDayId = session.streamDayId || '';
+  normalized.startedAt = normalized.startedAt || session.startedAt || '';
+  normalized.sessionStatus = normalized.sessionStatus || session.status || 'offline';
+  normalized.restartGraceUntil = normalized.restartGraceUntil || session.graceUntil || '';
+  normalized.calendarDay = streamSessionCalendarDay(now);
+  normalized.streamDateLabel = session.streamDateLabel || '';
+  normalized.streamSession = publicStreamSession(session);
+  state.streamState.streamSession = publicStreamSession(session);
+
+  if (sessionEvent) publishStreamSessionEvent(sessionEvent, session, normalized, sessionEventReason);
+  return normalized;
+}
+
 function streamPayloadFromState(normalized, previousLive, action, reason) {
   return {
     eventKey: action === 'online' ? 'twitch.stream.online' : 'twitch.stream.offline',
     action,
     reason: cleanString(reason || 'stream_state_changed'),
     live: normalized.live === true,
+    status: normalized.sessionStatus || normalized.status || (normalized.live === true ? 'live' : 'offline'),
     previousLive: previousLive === true,
     known: normalized.known === true,
     broadcasterLogin: normalized.broadcasterLogin || '',
@@ -1430,8 +1819,12 @@ function streamPayloadFromState(normalized, previousLive, action, reason) {
     gameName: normalized.gameName || '',
     viewerCount: Number(normalized.viewerCount || 0) || 0,
     streamSessionId: normalized.streamSessionId || '',
+    streamSession: normalized.streamSession || publicStreamSession(state.streamState.streamSession),
     streamDayId: normalized.streamDayId || '',
     sessionStatus: normalized.sessionStatus || '',
+    calendarDay: normalized.calendarDay || streamSessionCalendarDay(normalized.lastCheckedAt || nowIso()),
+    streamDateLabel: normalized.streamDateLabel || (normalized.streamSession && normalized.streamSession.streamDateLabel) || '',
+    streamDayMode: 'stream_session',
     restartGraceUntil: normalized.restartGraceUntil || '',
     source: normalized.source || '',
     sourceSummary: normalized.sourceSummary || '',
@@ -1441,6 +1834,9 @@ function streamPayloadFromState(normalized, previousLive, action, reason) {
     twitchSearchLive: normalized.twitchSearchLive === true,
     streamStatusLive: normalized.streamStatusLive === true,
     eventSubLive: normalized.eventSubLive || 'unknown',
+    obsConnected: normalized.obsConnected === true,
+    obsDetected: normalized.obsDetected === true,
+    bandwidthTest: normalized.bandwidthTest === true,
     eventSubRequired: false,
     generatedBy: MODULE_NAME,
     provider: 'stream_state_provider',
@@ -1472,6 +1868,7 @@ function publishStreamStateTransition(normalized, previousLive, reason = 'stream
 }
 
 function updateStreamState(normalized, options = {}) {
+  normalized = applyStreamSessionAuthority(normalized, options);
   const now = nowIso();
   const previousKnown = state.streamState.initialized === true && state.streamState.known === true;
   const previousLive = state.streamState.live === true;
@@ -1493,7 +1890,12 @@ function updateStreamState(normalized, options = {}) {
   state.streamState.viewerCount = Number(normalized.viewerCount || 0) || 0;
   state.streamState.streamSessionId = normalized.streamSessionId || '';
   state.streamState.streamDayId = normalized.streamDayId || '';
-  state.streamState.sessionStatus = normalized.sessionStatus || '';
+  state.streamState.sessionStatus = normalized.sessionStatus || normalized.status || '';
+  state.streamState.status = normalized.sessionStatus || normalized.status || (normalized.live === true ? 'live' : 'offline');
+  state.streamState.calendarDay = normalized.calendarDay || streamSessionCalendarDay(now);
+  state.streamState.streamDateLabel = normalized.streamDateLabel || (normalized.streamSession && normalized.streamSession.streamDateLabel) || '';
+  state.streamState.streamDayMode = 'stream_session';
+  if (normalized.streamSession) state.streamState.streamSession = publicStreamSession(normalized.streamSession);
   state.streamState.restartGraceUntil = normalized.restartGraceUntil || '';
   state.streamState.obsStreaming = normalized.obsStreaming === true;
   state.streamState.twitchStreamsLive = normalized.twitchStreamsLive === true;
@@ -1577,7 +1979,8 @@ async function setStreamStateOverride(live, options = {}) {
     setAt: now,
     expiresAt: ttlMs > 0 ? new Date(Date.now() + ttlMs).toISOString() : '',
     reason: cleanString(options.reason || 'manual_override'),
-    source: 'manual_override'
+    source: 'manual_override',
+    status: cleanString(options.status || '')
   };
   state.streamState.counters.overrideSet += 1;
   const normalized = applyManualOverride({
@@ -1602,14 +2005,19 @@ async function setStreamStateOverride(live, options = {}) {
     twitchSearchLive: false,
     streamStatusLive: false,
     eventSubLive: live === true ? 'online' : 'offline',
+    manualStatus: cleanString(options.status || ''),
+    bandwidthTest: cleanString(options.status || '').toLowerCase() === 'bandwidth_test',
     warnings: [],
     lastCheckedAt: now
   }, options.reason || 'manual_override');
-  return updateStreamState(normalized, { reason: options.reason || 'manual_override', forcePublish: true });
+  return updateStreamState(normalized, { reason: options.reason || 'manual_override', status: options.status || '', forcePublish: true });
 }
 
 async function clearStreamStateOverride(options = {}) {
   state.streamState.manualOverride.active = false;
+  state.streamState.manualOverride.live = false;
+  state.streamState.manualOverride.setAt = '';
+  state.streamState.manualOverride.expiresAt = '';
   state.streamState.manualOverride.reason = cleanString(options.reason || 'clear_override');
   state.streamState.counters.overrideCleared += 1;
   return refreshStreamState({ reason: options.reason || 'clear_override', forcePublish: false });

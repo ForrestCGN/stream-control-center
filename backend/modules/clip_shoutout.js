@@ -19,7 +19,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.48";
+const MODULE_VERSION = "0.2.49";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -37,7 +37,7 @@ const MODULE_META = {
     heartbeat: false,
     channel: SHOUTOUT_BUS_CHANNEL
   },
-  note: "CAN44.36: AutoShoutout subscribes to twitch.stream.online/offline from twitch_events as first stream-state bus consumer."
+  note: "CAN44.37: AutoShoutout consumes central twitch_events streamSession/streamDay authority for stable stream-day handling."
 };
 
 const AUTO_SHOUTOUT_TEXT_DEFAULTS = {
@@ -1209,7 +1209,42 @@ function readCentralStreamStatus() {
   }
 }
 
+
+function readRecentAutoStreamStateFromBus() {
+  const busState = state && state.autoShoutout && state.autoShoutout.streamState ? state.autoShoutout.streamState : null;
+  if (!busState || typeof busState !== 'object') return null;
+  const handledMs = msFromIso(busState.handledAt || busState.receivedAt || '');
+  if (!handledMs || Date.now() - handledMs > 6 * 60 * 60 * 1000) return null;
+  return {
+    live: busState.live === true,
+    source: 'twitch_events_bus',
+    upstreamSource: String(busState.sourceModule || 'twitch_events_stream_state'),
+    file: '',
+    fileModifiedAt: '',
+    fileAgeSeconds: 0,
+    stale: false,
+    statusKnown: true,
+    streamId: String(busState.streamId || ''),
+    startedAt: String(busState.startedAt || busState.receivedAt || ''),
+    title: String(busState.title || ''),
+    gameName: String(busState.gameName || ''),
+    viewerCount: 0,
+    streamSessionId: String(busState.streamSessionId || ''),
+    streamDayId: String(busState.streamDayId || ''),
+    sessionStatus: String(busState.sessionStatus || busState.status || busState.action || ''),
+    restartGraceUntil: String(busState.restartGraceUntil || ''),
+    calendarDay: String(busState.calendarDay || ''),
+    streamDateLabel: String(busState.streamDateLabel || ''),
+    streamDayMode: String(busState.streamDayMode || 'stream_session'),
+    lastCheckedAt: String(busState.receivedAt || ''),
+    lastLiveAt: busState.live === true ? String(busState.receivedAt || '') : '',
+    error: ''
+  };
+}
+
 function readCurrentStreamState(cfg) {
+  const busState = readRecentAutoStreamStateFromBus();
+  if (busState && (busState.streamDayId || busState.streamSessionId || busState.source === 'twitch_events_bus')) return busState;
   const centralCfg = (cfg && cfg.streamStatus) || {};
   if (centralCfg.enabled !== false && centralCfg.preferCentralStatus !== false) {
     const central = readCentralStreamStatus();
@@ -1407,6 +1442,13 @@ function resolveCurrentStreamDay(env, cfg) {
     ORDER BY id DESC LIMIT 1
   `, { broadcaster, now });
   if (grace) return { ok: true, streamDayId: grace.stream_day_id, row: grace, streamState, grace: true };
+
+  if (streamState.source === 'twitch_events_bus' && streamState.statusKnown !== false && !streamState.live) {
+    const authoritativeStatus = String(streamState.sessionStatus || '').toLowerCase();
+    if (['offline', 'closed', 'ending', 'reconnect', 'grace', 'pending', 'pending_warning', 'bandwidth_test'].includes(authoritativeStatus)) {
+      return { ok: false, streamDayId: '', streamState, error: `stream_session_${authoritativeStatus || 'not_live'}` };
+    }
+  }
 
   if (scfg.fallbackWhenStreamUnknown === false) return { ok: false, streamDayId: "", streamState, error: "stream_day_unknown" };
   const fallbackHours = Math.max(1, Number(scfg.fallbackSessionHours || 12));
@@ -6016,6 +6058,11 @@ function normalizeStreamBusPayload(envelope = {}) {
     title: String(twitch.title || payload.title || '').trim(),
     gameName: String(twitch.gameName || payload.gameName || '').trim(),
     streamSessionId: String(twitch.streamSessionId || payload.streamSessionId || '').trim(),
+    sessionStatus: String(twitch.sessionStatus || payload.sessionStatus || payload.status || '').trim(),
+    calendarDay: String(twitch.calendarDay || payload.calendarDay || '').trim(),
+    streamDateLabel: String(twitch.streamDateLabel || payload.streamDateLabel || '').trim(),
+    streamDayMode: String(twitch.streamDayMode || payload.streamDayMode || 'stream_session').trim(),
+    restartGraceUntil: String(twitch.restartGraceUntil || payload.restartGraceUntil || '').trim(),
     streamDayId: String(twitch.streamDayId || payload.streamDayId || '').trim(),
     sourceModule: String(payload.sourceModule || envelope.source?.module || '').trim(),
     busEventId: String(envelope.id || envelope.event?.id || '').trim(),
@@ -6059,6 +6106,11 @@ function handleAutoShoutoutStreamBusEvent(envelope = {}, env = process.env) {
       busEventId: parsed.busEventId || subscriber.lastEventId,
       streamDayId: parsed.streamDayId,
       streamSessionId: parsed.streamSessionId,
+      sessionStatus: parsed.sessionStatus,
+      calendarDay: parsed.calendarDay,
+      streamDateLabel: parsed.streamDateLabel,
+      streamDayMode: parsed.streamDayMode,
+      restartGraceUntil: parsed.restartGraceUntil,
       streamId: parsed.streamId,
       title: parsed.title,
       gameName: parsed.gameName,
@@ -6099,6 +6151,11 @@ function handleAutoShoutoutStreamBusEvent(envelope = {}, env = process.env) {
       live: parsed.live === true,
       streamDayId: parsed.streamDayId,
       streamSessionId: parsed.streamSessionId,
+      sessionStatus: parsed.sessionStatus,
+      calendarDay: parsed.calendarDay,
+      streamDateLabel: parsed.streamDateLabel,
+      streamDayMode: parsed.streamDayMode,
+      restartGraceUntil: parsed.restartGraceUntil,
       streamId: parsed.streamId,
       sourceModule: subscriber.lastSourceModule || parsed.sourceModule || 'twitch_events',
       busEventId: parsed.busEventId || subscriber.lastEventId
