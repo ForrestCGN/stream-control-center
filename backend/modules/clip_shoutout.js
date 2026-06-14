@@ -19,7 +19,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.46";
+const MODULE_VERSION = "0.2.47";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -6275,6 +6275,29 @@ function autoShoutoutStatus(cfg) {
   };
 }
 
+function effectiveShoutoutSettingsPayload(currentCfg) {
+  const effectiveAutoShoutout = autoShoutoutConfig(currentCfg);
+  const legacyAutoShoutoutConfig = autoShoutoutJsonConfig(currentCfg);
+  const settings = mergePlain({}, currentCfg || {});
+
+  settings.autoShoutout = effectiveAutoShoutout;
+
+  return {
+    settings,
+    autoShoutout: effectiveAutoShoutout,
+    effectiveAutoShoutout,
+    legacyAutoShoutoutConfig,
+    autoShoutoutTruth: {
+      source: effectiveAutoShoutout.configSource || 'database',
+      jsonFallbackUsed: effectiveAutoShoutout.jsonFallbackUsed === true,
+      database: effectiveAutoShoutout.database || {},
+      legacyJsonEnabled: legacyAutoShoutoutConfig.enabled === true,
+      effectiveEnabled: effectiveAutoShoutout.enabled === true,
+      note: 'settings.autoShoutout is the effective AutoShoutout configuration. legacyAutoShoutoutConfig is read-only compatibility/debug output.'
+    }
+  };
+}
+
 
 let directChatCommandBypassInstalled = false;
 let originalCommandsHandleChatMessage = null;
@@ -6642,8 +6665,17 @@ module.exports.init = function init(ctx) {
   app.post("/api/clip/shoutout", (req, res) => handleRun(req, res, env));
 
   app.get(`${API_PREFIX}/settings`, (req, res) => {
-    const currentCfg = shoutoutConfig();
-    res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, settings: currentCfg });
+    try {
+      const currentCfg = shoutoutConfig();
+      res.json({
+        ok: true,
+        module: MODULE_NAME,
+        moduleVersion: MODULE_VERSION,
+        ...effectiveShoutoutSettingsPayload(currentCfg)
+      });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
+    }
   });
 
 
@@ -6764,9 +6796,18 @@ module.exports.init = function init(ctx) {
       }
 
       const settings = Object.keys(allowed).length ? saveShoutoutConfig(allowed) : shoutoutConfig();
+      const currentSettings = shoutoutConfig();
       const commandRegistration = registerCommand(settings, { syncFromConfig: Object.prototype.hasOwnProperty.call(body, "command") || Object.prototype.hasOwnProperty.call(body, "aliases") });
       emitShoutoutBus("shoutout.settings.updated", { changedKeys: Object.keys(allowed), autoShoutoutChanged: !!autoSettings, commandRegistration }, settings);
-      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, settings: shoutoutConfig(), autoSettings, autoStreamerUpdates, commandRegistration });
+      res.json({
+        ok: true,
+        module: MODULE_NAME,
+        moduleVersion: MODULE_VERSION,
+        ...effectiveShoutoutSettingsPayload(currentSettings),
+        autoSettings,
+        autoStreamerUpdates,
+        commandRegistration
+      });
     } catch (err) {
       res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
     }
