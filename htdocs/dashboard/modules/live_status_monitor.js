@@ -55,7 +55,7 @@
     };
     window.CGN.moduleCatalog[MODULE_ID] = {
       label: 'Live-Status', icon: '📡', enabled: true,
-      description: 'OBS, Twitch, EventSub und Stream-Status vergleichen und loggen.'
+      description: 'OBS, Twitch Events/Bus, Twitch und Stream-Status vergleichen und loggen.'
     };
     if (window.CGN.sections?.admin && !window.CGN.sections.admin.items.includes(MODULE_ID)) {
       const items = window.CGN.sections.admin.items;
@@ -133,7 +133,7 @@
         </div>
         <div class="lsm-badges">
           ${badge('OBS sendet', d.obsStreaming)}
-          ${badge('EventSub', d.eventSubLive || 'unknown')}
+          ${badge('Twitch Events', d.eventSubConnected === true ? true : (d.eventSubLive || 'unknown'))}
           ${badge('Twitch /streams', d.twitchStreamsLive)}
           ${badge('Twitch Search', d.twitchSearchLive)}
           ${badge('stream_status', d.streamStatusLive)}
@@ -181,7 +181,7 @@
       <div class="lsm-head">
         <div>
           <h2>Live-Status Monitor</h2>
-          <p>Vergleicht OBS, Twitch /streams, Twitch Search, Stream-Status und EventSub. Die Historie speichert standardmäßig nur Änderungen.</p>
+          <p>Vergleicht OBS, Twitch /streams, Twitch Search, Stream-Status und Twitch-Events/Bus. Die Historie speichert standardmäßig nur Änderungen.</p>
         </div>
         <div class="lsm-actions">
           <button id="lsmRefreshBtn">Alle Quellen testen</button>
@@ -199,6 +199,7 @@
         <a href="/api/live-status-monitor/logs?limit=25" target="_blank">Monitor Historie</a>
         <a href="/api/twitch/stream?login=forrestcgn&debug=1" target="_blank">Twitch Stream Debug</a>
         <a href="/api/stream-status/status?forceApi=1" target="_blank">Stream Status</a>
+        <a href="/api/twitch/events/status" target="_blank">Twitch Events Status</a>
       </div>
     `;
     panel.querySelector('#lsmRefreshBtn')?.addEventListener('click', () => loadStatus(true));

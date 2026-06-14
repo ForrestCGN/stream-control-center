@@ -7,10 +7,12 @@ const https = require("https");
 const core = require("./helpers/helper_core");
 const configHelper = require("./helpers/helper_config");
 const database = require("../core/database");
+let communicationBus = null;
+try { communicationBus = require("./communication_bus"); } catch (_) { communicationBus = null; }
 
 const MODULE_NAME = "stream_status";
-const MODULE_VERSION = "0.1.2";
-const MODULE_BUILD = "step278-meta";
+const MODULE_VERSION = "0.1.3";
+const MODULE_BUILD = "CAN44.34_STREAM_BUS_EVENTS";
 const API_PREFIX = "/api/stream-status";
 const MODULE_META = {
   name: MODULE_NAME,
@@ -20,7 +22,7 @@ const MODULE_META = {
   category: "stream",
   description: "Central stream live/session status and refresh routes.",
   routesPrefix: [API_PREFIX],
-  bus: { registered: false, heartbeat: false, emits: [], listens: [] },
+  bus: { registered: false, heartbeat: false, emits: ["twitch.stream.online", "twitch.stream.offline"], listens: [] },
   legacy: false
 };
 
@@ -44,7 +46,18 @@ const state = {
   autoRefreshNextRunAt: "",
   autoRefreshIntervalMs: 0,
   autoRefreshRunning: false,
-  autoRefreshTimer: null
+  autoRefreshTimer: null,
+  streamBus: {
+    enabled: true,
+    emitted: 0,
+    errors: 0,
+    lastEventAt: "",
+    lastEventKey: "",
+    lastEventId: "",
+    lastAction: "",
+    lastReason: "",
+    lastError: ""
+  }
 };
 
 function nowIso() {
@@ -149,6 +162,108 @@ function writeStoredStatus(status) {
       value_json=excluded.value_json,
       updated_at=excluded.updated_at
   `, { valueJson: JSON.stringify(status || {}), updatedAt: nowIso() });
+}
+
+function getBus() {
+  try {
+    if (!communicationBus || typeof communicationBus.getBus !== "function") return null;
+    return communicationBus.getBus();
+  } catch (err) {
+    state.streamBus.errors += 1;
+    state.streamBus.lastError = err && err.message ? err.message : String(err);
+    return null;
+  }
+}
+
+function streamPayloadFromStatus(status, previousStatus, action, reason) {
+  const current = status || {};
+  const previous = previousStatus || {};
+  const eventKey = action === "online" ? "twitch.stream.online" : "twitch.stream.offline";
+  return {
+    eventKey,
+    action,
+    reason: String(reason || "live_state_changed"),
+    broadcasterLogin: String(current.broadcasterLogin || previous.broadcasterLogin || ""),
+    live: current.live === true,
+    previousLive: previous.live === true,
+    statusKnown: current.statusKnown !== false,
+    stale: current.stale === true,
+    streamId: String(current.streamId || previous.streamId || ""),
+    startedAt: String(current.startedAt || previous.startedAt || ""),
+    endedAt: String(current.endedAt || ""),
+    lastCheckedAt: String(current.lastCheckedAt || nowIso()),
+    lastLiveAt: String(current.lastLiveAt || previous.lastLiveAt || ""),
+    streamSessionId: String(current.streamSessionId || previous.streamSessionId || ""),
+    streamDayId: String(current.streamDayId || previous.streamDayId || ""),
+    previousStreamSessionId: String(previous.streamSessionId || ""),
+    previousStreamDayId: String(previous.streamDayId || ""),
+    sessionStatus: String(current.sessionStatus || ""),
+    restartGraceUntil: String(current.restartGraceUntil || ""),
+    source: String(current.source || ""),
+    upstreamSource: String(current.upstreamSource || ""),
+    title: String(current.title || previous.title || ""),
+    gameName: String(current.gameName || previous.gameName || ""),
+    viewerCount: Number(current.viewerCount || 0),
+    generatedBy: MODULE_NAME,
+    eventSubRequired: false
+  };
+}
+
+function emitStreamBusEvent(status, previousStatus, action, reason) {
+  const bus = getBus();
+  const eventKey = action === "online" ? "twitch.stream.online" : "twitch.stream.offline";
+  if (!bus || typeof bus.emit !== "function") {
+    state.streamBus.lastReason = "bus_unavailable";
+    state.streamBus.lastError = "communication_bus_unavailable";
+    return { ok: false, reason: "bus_unavailable" };
+  }
+
+  try {
+    const payload = streamPayloadFromStatus(status, previousStatus, action, reason);
+    const result = bus.emit({
+      type: "event",
+      channel: "twitch.stream",
+      action,
+      source: { type: "module", id: MODULE_NAME, module: MODULE_NAME },
+      target: { type: "all", id: "*" },
+      payload,
+      meta: {
+        requireAck: false,
+        replayable: true,
+        ttlMs: 3600000,
+        preview: true,
+        mirror: true,
+        productionTarget: true
+      }
+    }) || {};
+    state.streamBus.emitted += 1;
+    state.streamBus.lastEventAt = nowIso();
+    state.streamBus.lastEventKey = eventKey;
+    state.streamBus.lastEventId = String(result.eventId || "");
+    state.streamBus.lastAction = action;
+    state.streamBus.lastReason = String(reason || "live_state_changed");
+    state.streamBus.lastError = "";
+    return { ok: result.ok !== false, eventId: result.eventId || "", eventKey, action };
+  } catch (err) {
+    state.streamBus.errors += 1;
+    state.streamBus.lastEventAt = nowIso();
+    state.streamBus.lastEventKey = eventKey;
+    state.streamBus.lastAction = action;
+    state.streamBus.lastReason = "emit_error";
+    state.streamBus.lastError = err && err.message ? err.message : String(err);
+    return { ok: false, reason: "emit_error", error: state.streamBus.lastError };
+  }
+}
+
+function maybeEmitStreamTransition(status, previousStatus) {
+  if (!status || !previousStatus) return null;
+  if (previousStatus.live === true && status.live !== true) {
+    return emitStreamBusEvent(status, previousStatus, "offline", "live_to_offline");
+  }
+  if (previousStatus.live !== true && status.live === true) {
+    return emitStreamBusEvent(status, previousStatus, "online", "offline_to_live");
+  }
+  return null;
 }
 
 function extractStatusFromPayload(payload) {
@@ -463,8 +578,11 @@ function buildStatusFromSource(sourceStatus, session, cfg) {
 }
 
 function persistRefreshedStatus(sourceStatus, cfg) {
+  const previous = state.lastStatus || readStoredStatus();
   const session = updateSessionForStatus(cfg, sourceStatus);
   const status = buildStatusFromSource(sourceStatus, session, cfg);
+  const streamBusResult = maybeEmitStreamTransition(status, previous);
+  if (streamBusResult) status.streamBusEvent = streamBusResult;
   writeStoredStatus(status);
   state.lastCheckedAt = status.lastCheckedAt;
   state.lastStatus = status;
@@ -606,6 +724,9 @@ function statusPayload(options = {}) {
       autoRefreshNextRunAt: state.autoRefreshNextRunAt,
       autoRefreshIntervalMs: state.autoRefreshIntervalMs,
       autoRefreshRunning: state.autoRefreshRunning,
+      streamBus: {
+        ...state.streamBus
+      },
       lastError: state.lastError
     },
     routes: [

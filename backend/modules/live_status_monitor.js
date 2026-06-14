@@ -5,8 +5,8 @@ const https = require("https");
 const database = require("../core/database");
 
 const MODULE_NAME = "live_status_monitor";
-const MODULE_VERSION = "0.1.4";
-const MODULE_BUILD = "CAN-44.20.1";
+const MODULE_VERSION = "0.1.5";
+const MODULE_BUILD = "CAN44.34_STREAM_BUS_EVENTS";
 const API_PREFIX = "/api/live-status-monitor";
 
 const MODULE_META = {
@@ -275,20 +275,39 @@ function parseStreamStatus(source) {
 
 function parseEventSub(source) {
   const payload = source && source.data;
-  const text = JSON.stringify(payload || {}).toLowerCase();
-  const connected = /connected|open|ready|enabled/.test(text) || !!get(payload, "eventsub.connected", false) || !!get(payload, "connected", false);
+  const diag = get(payload, "diagnostics", payload || {});
+  const eventSubChat = get(diag, "eventSubChat", get(payload, "eventSubChat", {}));
+  const websocket = get(eventSubChat, "websocket", {});
+  const subscription = get(eventSubChat, "subscription", {});
+  const counters = get(eventSubChat, "counters", {});
+  const readyState = String(get(websocket, "readyState", get(eventSubChat, "websocketReadyState", "")));
+  const subscriptionStatus = String(get(subscription, "status", get(eventSubChat, "subscriptionStatus", "")));
+  const connected = readyState === "OPEN"
+    || subscriptionStatus === "enabled"
+    || get(eventSubChat, "active", false) === true
+    || get(diag, "eventSubChat.active", false) === true
+    || !!get(payload, "connected", false);
+
   let live = "unknown";
   const candidates = [
-    get(payload, "live"), get(payload, "isLive"), get(payload, "eventSubLive"), get(payload, "eventsubLive"), get(payload, "streamLive"), get(payload, "state.live"), get(payload, "status.live")
+    get(payload, "live"), get(payload, "isLive"), get(payload, "eventSubLive"), get(payload, "eventsubLive"),
+    get(payload, "streamLive"), get(payload, "state.live"), get(payload, "status.live"),
+    get(diag, "stream.live"), get(diag, "eventSubLive")
   ];
   if (candidates.some(v => v === true || v === "true" || v === "online" || v === "live")) live = "online";
   if (candidates.some(v => v === false || v === "false" || v === "offline")) live = "offline";
+
   return {
     ok: !!(source && source.ok),
     connected,
     live,
     routeAvailable: !!(source && source.status !== 404 && !String(source.error || "").includes("404")),
-    error: String(source && source.error || "")
+    readyState,
+    subscriptionStatus,
+    chatMessagesEmitted: Number(get(counters, "chatMessagesEmitted", 0)) || 0,
+    notifications: Number(get(counters, "notifications", 0)) || 0,
+    source: String(get(payload, "module", "twitch_events") || "twitch_events"),
+    error: String(source && source.error || get(payload, "error", "") || "")
   };
 }
 
@@ -301,6 +320,7 @@ function buildDecision(parsed) {
   const streamStatusLive = parsed.streamStatus.live === true;
   const eventSubOnline = parsed.eventSub.live === "online";
   const eventSubOffline = parsed.eventSub.live === "offline";
+  const eventSubConnected = parsed.eventSub.connected === true;
   const effectiveLive = obsStreaming || eventSubOnline || twitchStreamsLive || twitchSearchLive || streamStatusLive;
   const sourceParts = [];
   if (obsStreaming) sourceParts.push("obs");
@@ -331,6 +351,9 @@ function buildDecision(parsed) {
     effectiveLive,
     obsStreaming,
     eventSubLive: parsed.eventSub.live,
+    eventSubConnected,
+    eventSubReadyState: parsed.eventSub.readyState || "",
+    eventSubSubscriptionStatus: parsed.eventSub.subscriptionStatus || "",
     twitchStreamsLive,
     twitchSearchLive,
     streamStatusLive,
@@ -354,7 +377,7 @@ async function collectStatus(cfg, options = {}) {
     twitchStream: `${base}/api/twitch/stream?login=${login}&debug=1`,
     twitchSummary: `${base}/api/twitch/stream/summary?login=${login}&debug=1`,
     streamStatus: `${base}/api/stream-status/status?forceApi=1`,
-    eventSub: `${base}/api/twitch/eventsub/status?refresh=1`
+    eventSub: `${base}/api/twitch/events/status`
   };
 
   const baseResults = await Promise.all([
