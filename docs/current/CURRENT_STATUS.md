@@ -5,12 +5,12 @@ Stand: 2026-06-14
 ## Aktueller bestätigter Stand
 
 ```text
-CAN44.42 – Shoutout / AutoShoutout / Twitch-Events / Live-Status stabiler Arbeitsstand
+CAN44.42 – Shoutout / AutoShoutout / Twitch-Events / Live-Status live-real bestätigt
 ```
 
 ## Kurzfazit
 
-Der aktuelle Shoutout-/AutoShoutout-/Live-Status-Umbau ist technisch abgeschlossen und intern getestet.
+Der aktuelle Shoutout-/AutoShoutout-/Live-Status-Umbau ist technisch abgeschlossen, intern getestet und am 2026-06-14 mit echtem OBS/Twitch-Streamstart sowie echtem Streamende live-real bestätigt.
 
 ```text
 SO / Shoutout:
@@ -23,6 +23,8 @@ AutoShoutout:
 ✅ AutoShoutout hängt am Communication Bus
 ✅ AutoShoutout empfängt twitch.stream.online/offline
 ✅ Pending/Bandbreitentest erzeugen keine falschen Streamtage/Online-Events
+✅ echter Online-Event wurde live empfangen und akzeptiert
+✅ echter Offline-Event wurde live empfangen und akzeptiert
 
 Twitch Events / Bus:
 ✅ twitch_events ist zentrale Twitch-Event-Schicht
@@ -30,6 +32,8 @@ Twitch Events / Bus:
 ✅ Stream-State / StreamSession werden zentral bereitgestellt
 ✅ Online/Offline werden über Communication Bus verteilt
 ✅ Module können abfragen und abonnieren
+✅ twitch.stream.online wurde live-real genau einmal emitted
+✅ twitch.stream.offline wurde live-real genau einmal emitted
 
 Live / StreamSession:
 ✅ Streamtag ist nicht mehr Kalendertag
@@ -38,6 +42,8 @@ Live / StreamSession:
 ✅ OBS/Pending, Twitch-Bestätigung, Grace/Ending und Bandbreitentest sind getrennt
 ✅ Dashboard Manual Override funktioniert
 ✅ Dashboard zeigt effektiven Override-Status und echte Quellen getrennt
+✅ echter Streamstart wurde als live bestätigt
+✅ echtes Streamende wurde als offline bestätigt
 ```
 
 ## Bestätigte Modulversionen
@@ -48,6 +54,115 @@ backend/modules/clip_shoutout.js       0.2.49  CAN44.37 StreamSession-aware Auto
 backend/modules/stream_status.js       0.1.4   stream_status source-only, twitch_events owner for stream bus
 backend/modules/live_status_monitor.js 0.1.5   Live-Status-Monitor Backend
 htdocs/dashboard/modules/live_status_monitor.js CAN44.42 Dashboard Effective Stream State Display
+```
+
+## Live-Real-Test 2026-06-14
+
+### Streamstart bestätigt
+
+```text
+status = live
+live = True
+source = twitch_confirmed
+confidence = high
+streamId = 317679322342
+twitchConfirmed = true
+obsStarted = true
+bandwidthTest = false
+lastEventKey = twitch.stream.online
+onlineEmitted = 1
+offlineEmitted = 0
+errors = 0
+sessionStarted = 1
+sessionConfirmed = 1
+```
+
+Stabile Stream-Zuordnung während des Live-Starts:
+
+```text
+streamSessionId = forrestcgn_20260614t140137581z_pending
+streamDayId     = stream_forrestcgn_20260614t140137581z_pending
+streamDateLabel = 2026-06-14
+```
+
+Quellen beim Live-Test:
+
+```text
+obsStreaming      = True
+twitchStreamsLive = True
+twitchSearchLive  = True
+streamStatusLive  = True
+eventSubLive      = unknown
+```
+
+`eventSubLive = unknown` war beim Test nicht kritisch, weil OBS, Twitch /streams, Twitch Search und stream_status eindeutig live meldeten.
+
+### AutoShoutout Online-Consumer bestätigt
+
+```text
+clip_shoutout moduleVersion = 0.2.49
+streamBusSubscriber.installed = True
+delivered = 1
+onlineReceived = 1
+offlineReceived = 0
+errors = 0
+lastEventKey = twitch.stream.online
+lastResultReason = accepted
+```
+
+AutoShoutout erhielt dabei die zentrale Stream-Zuordnung:
+
+```text
+streamDayId     = stream_forrestcgn_20260614t140137581z_pending
+streamSessionId = forrestcgn_20260614t140137581z_pending
+streamId        = 317679322342
+sessionStatus   = live
+streamDayMode   = stream_session
+```
+
+### Streamende bestätigt
+
+```text
+status = offline
+live = False
+lastEventKey = twitch.stream.offline
+onlineEmitted = 1
+offlineEmitted = 1
+errors = 0
+sessionStarted = 1
+sessionConfirmed = 1
+sessionGrace = 1
+sessionEnded = 1
+bandwidthTestDetected = 0
+```
+
+Nach Ende zeigt der globale aktuelle Stream-State korrekt keine aktive Session mehr:
+
+```text
+streamSession.active = false
+streamSession.status = offline
+streamSessionId = ""
+streamDayId = ""
+```
+
+### AutoShoutout Offline-Consumer bestätigt
+
+```text
+delivered = 2
+onlineReceived = 1
+offlineReceived = 1
+errors = 0
+lastEventKey = twitch.stream.offline
+lastResultReason = accepted
+```
+
+AutoShoutout speicherte beim Offline-Event weiterhin die zugehörige beendete Stream-Zuordnung als Diagnose-/Event-Kontext:
+
+```text
+streamDayId     = stream_forrestcgn_20260614t140137581z_pending
+streamSessionId = forrestcgn_20260614t140137581z_pending
+sessionStatus   = ending
+restartGraceUntil = 2026-06-14T19:42:11.407Z
 ```
 
 ## Abgeschlossene Schritte seit CAN44.31
@@ -143,6 +258,7 @@ htdocs/dashboard/modules/live_status_monitor.js CAN44.42 Dashboard Effective Str
 - Dashboard trennt effektiven Stream-State und echte Quellen.
 - Bei Override wird unten ONLINE (Override) angezeigt.
 - Echte Quellen bleiben separat sichtbar: OBS/Twitch/Streams/Search/stream_status.
+- CAN44.42 wurde am 2026-06-14 live-real bestätigt.
 ```
 
 ## Aktueller bestätigter Datenfluss
@@ -184,7 +300,7 @@ Live-Status Monitor:
 - Echte Quellen zeigen OBS/Twitch/API-Rohstatus getrennt.
 ```
 
-Bestätigtes Beispiel:
+Bestätigtes Override-Beispiel:
 
 ```text
 Effektiver Stream-State:
@@ -200,27 +316,28 @@ Twitch Search NEIN
 Stream Status NEIN
 ```
 
-## Noch nicht real getestet
+Bestätigter echter Live-Test:
 
 ```text
-Echter OBS-Streamstart:
-OBS StreamStarted
-→ pending
-→ Twitch /streams bestätigt
-→ live
-→ echte streamId
-→ stabile streamDayId
-→ AutoShoutout nutzt diese Session
-```
+Effektiver Stream-State:
+ONLINE
 
-Dieser Test ist erst beim nächsten echten Streamstart möglich.
+Quelle:
+twitch_confirmed
+
+Echte Quellen:
+OBS JA
+Twitch /streams JA
+Twitch Search JA
+Stream Status JA
+```
 
 ## Aktueller Status
 
 ```text
-SO / AutoSO / Live: intern abgeschlossen.
-Nächster Real-Test: nächster echter Streamstart.
-Keine akuten Codeänderungen offen.
+SO / AutoSO / Live: intern abgeschlossen und live-real bestätigt.
+CAN44.42 gilt als stabiler Shoutout/AutoSO/Live-Stand.
+Nächster sinnvoller Arbeitsblock: Tagebuch an zentralen StreamState anbinden.
 ```
 
 ## Wichtige Projektregeln

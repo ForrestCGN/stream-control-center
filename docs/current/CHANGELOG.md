@@ -2,6 +2,101 @@
 
 Stand: 2026-06-14
 
+## 2026-06-14 – CAN44.42 Real-Test bestätigt
+
+### Ergebnis
+
+```text
+CAN44.42 wurde mit echtem OBS/Twitch-Streamstart und echtem Streamende live-real bestätigt.
+```
+
+### Bestätigter Streamstart
+
+```text
+status = live
+live = True
+source = twitch_confirmed
+confidence = high
+streamId = 317679322342
+twitchConfirmed = true
+obsStarted = true
+bandwidthTest = false
+lastEventKey = twitch.stream.online
+onlineEmitted = 1
+offlineEmitted = 0
+errors = 0
+sessionStarted = 1
+sessionConfirmed = 1
+```
+
+### Bestätigter AutoShoutout Online-Consumer
+
+```text
+moduleVersion = 0.2.49
+streamBusSubscriber.installed = True
+delivered = 1
+onlineReceived = 1
+offlineReceived = 0
+errors = 0
+lastEventKey = twitch.stream.online
+lastResultReason = accepted
+streamDayId = stream_forrestcgn_20260614t140137581z_pending
+streamSessionId = forrestcgn_20260614t140137581z_pending
+```
+
+### Bestätigtes Streamende
+
+```text
+status = offline
+live = False
+lastEventKey = twitch.stream.offline
+onlineEmitted = 1
+offlineEmitted = 1
+errors = 0
+sessionGrace = 1
+sessionEnded = 1
+bandwidthTestDetected = 0
+```
+
+### Bestätigter AutoShoutout Offline-Consumer
+
+```text
+delivered = 2
+onlineReceived = 1
+offlineReceived = 1
+errors = 0
+lastEventKey = twitch.stream.offline
+lastResultReason = accepted
+```
+
+### Bewertung
+
+```text
+- twitch.stream.online wurde live-real genau einmal gesendet.
+- twitch.stream.offline wurde live-real genau einmal gesendet.
+- AutoShoutout empfing beide Events über den Communication Bus.
+- StreamSession/StreamDay blieb während des Streams stabil.
+- Nach Streamende wurde die aktive Session korrekt geschlossen.
+- Keine Fehler, keine doppelten Events, kein Bandbreitentest-Fehlverhalten.
+```
+
+### Dateien
+
+```text
+docs/current/CURRENT_STATUS.md
+docs/current/TODO.md
+docs/current/NEXT_STEPS.md
+docs/current/CHANGELOG.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN44_42_SHOUTOUT_AUTOSO_LIVE.md
+docs/current/CURRENT_CHAT_HANDOFF_CAN44_43_AFTER_REAL_TEST.md
+```
+
+### Nächster Schritt
+
+```text
+Tagebuch als nächstes Modul an zentralen StreamState anbinden.
+```
+
 ## 2026-06-14 – CAN44.42 Dashboard Effective Stream State Display
 
 ### Ergebnis
@@ -105,6 +200,7 @@ AutoShoutout nutzt zentralen streamState/streamDayId.
 ```text
 clip_shoutout/AutoShoutout abonniert twitch.stream online/offline.
 Consumer-Test mit Manual Override erfolgreich.
+Live-Real-Test mit echtem Streamstart/Streamende erfolgreich.
 ```
 
 ## 2026-06-14 – CAN44.35 Twitch Events Stream State Provider

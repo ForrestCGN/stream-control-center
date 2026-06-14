@@ -2,175 +2,145 @@
 
 Stand: 2026-06-14
 
-## Aktueller Stand nach CAN44.42
+## Aktueller Stand nach CAN44.42 Real-Test
 
 ```text
-SO / AutoSO / Live-Status sind intern durchgetestet.
-CAN44.42 ist der aktuelle stabile Arbeitsstand.
+SO / AutoSO / Live-Status sind intern durchgetestet und live-real bestätigt.
+CAN44.42 ist der aktuelle stabile Shoutout/AutoSO/Live-Arbeitsstand.
 ```
 
-## Direkt beim nächsten echten Streamstart testen
+## Real-Test 2026-06-14 – Ergebnis
 
-### 1. Vor Streamstart
-
-```powershell
-$t = Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/status"
-$t.diagnostics.streamState.status
-$t.diagnostics.streamState.live
-$t.diagnostics.streamState.streamSession | ConvertTo-Json -Depth 10
-$t.diagnostics.streamState.counters
-```
-
-Erwartung:
-
-```text
-status = offline
-live = False
-streamSession.active = false
-streamDayId = ""
-```
-
-### 2. OBS Stream starten
-
-Nach 5–10 Sekunden:
-
-```powershell
-$t = Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/stream-state?refresh=1"
-$t.streamState.status
-$t.streamState.live
-$t.streamState.sources
-$t.streamState.streamSession | ConvertTo-Json -Depth 10
-$t.streamState.counters
-```
-
-Erlaubte gute Zustände:
-
-```text
-pending
-→ OBS sendet, Twitch hat noch nicht bestätigt
-
-live
-→ Twitch hat bestätigt
-```
-
-### 3. Twitch-Bestätigung prüfen
-
-Nach 30–60 Sekunden:
-
-```powershell
-$t = Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/stream-state?refresh=1"
-$t.streamState.status
-$t.streamState.live
-$t.streamState.streamId
-$t.streamState.streamDayId
-$t.streamState.streamSession | ConvertTo-Json -Depth 10
-$t.streamState.lastEventKey
-$t.streamState.counters
-```
-
-Erwartung bei echtem Live:
+### Streamstart
 
 ```text
 status = live
 live = True
+streamId = 317679322342
 streamSession.twitchConfirmed = true
-streamDayId vorhanden und stabil
+streamDayId = stream_forrestcgn_20260614t140137581z_pending
 lastEventKey = twitch.stream.online
 onlineEmitted = 1
+offlineEmitted = 0
+errors = 0
 ```
 
-### 4. AutoShoutout Consumer prüfen
-
-```powershell
-$s = Invoke-RestMethod "http://127.0.0.1:8080/api/clip-shoutout/status"
-$s.moduleVersion
-$s.autoShoutout.state.streamState
-$s.autoShoutout.state.streamBusSubscriber
-```
-
-Erwartung:
+### AutoShoutout Online-Consumer
 
 ```text
 clip_shoutout = 0.2.49
 streamBusSubscriber.installed = True
-streamState.eventKey = twitch.stream.online
-streamState.streamDayId vorhanden
+onlineReceived = 1
+lastEventKey = twitch.stream.online
+lastResultReason = accepted
+streamDayId = stream_forrestcgn_20260614t140137581z_pending
 ```
 
-## Beim echten Streamende prüfen
-
-```powershell
-$t = Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/stream-state?refresh=1"
-$t.streamState.status
-$t.streamState.live
-$t.streamState.streamSession | ConvertTo-Json -Depth 10
-$t.streamState.lastEventKey
-$t.streamState.counters
-```
-
-Erwartung:
+### Streamende
 
 ```text
-OBS bewusst gestoppt
-→ status ending/grace
-→ danach closed
-→ twitch.stream.offline genau einmal
+status = offline
+live = False
+lastEventKey = twitch.stream.offline
+onlineEmitted = 1
+offlineEmitted = 1
+sessionGrace = 1
+sessionEnded = 1
+errors = 0
+bandwidthTestDetected = 0
 ```
 
-## Dashboard-Test
+### AutoShoutout Offline-Consumer
 
 ```text
-Dashboard → Live-Status Monitor
+delivered = 2
+onlineReceived = 1
+offlineReceived = 1
+lastEventKey = twitch.stream.offline
+lastResultReason = accepted
+errors = 0
 ```
 
-Prüfen:
+## Bewertung
 
 ```text
-- Stream-State Override Bereich sichtbar.
-- Online bestätigt simulieren zeigt oben Override live.
-- Effektiver Stream-State zeigt ONLINE (Override).
-- Echte Quellen bleiben getrennt sichtbar.
-- Override löschen geht zurück zu echten Quellen.
+✅ Echter Streamstart wurde erkannt.
+✅ Twitch bestätigte den Stream als live.
+✅ streamDayId blieb während des Streams stabil.
+✅ twitch.stream.online wurde genau einmal emitted.
+✅ AutoShoutout empfing und akzeptierte online.
+✅ Echtes Streamende wurde erkannt.
+✅ twitch.stream.offline wurde genau einmal emitted.
+✅ AutoShoutout empfing und akzeptierte offline.
+✅ Keine Fehler.
+✅ Kein Bandbreitentest-Fehlverhalten.
+✅ Keine doppelten Events.
 ```
 
-## Optionaler interner Test ohne echten Stream
-
-Confirmed Online:
-
-```powershell
-Invoke-RestMethod `
-  -Method POST `
-  -Uri "http://127.0.0.1:8080/api/twitch/events/stream-state/override" `
-  -ContentType "application/json" `
-  -Body '{"live":true,"status":"live","confirmed":true,"forceConfirmed":true,"streamId":"manual_dashboard_test","reason":"manual_confirmed_test","ttlMs":600000}' |
-  ConvertTo-Json -Depth 10
-```
-
-Clear:
-
-```powershell
-Invoke-RestMethod `
-  -Method POST `
-  -Uri "http://127.0.0.1:8080/api/twitch/events/stream-state/clear-override" `
-  -ContentType "application/json" `
-  -Body '{"reason":"manual_override_test_done"}' |
-  ConvertTo-Json -Depth 10
-```
-
-## Danach sinnvoll
+## Nächster sinnvoller Arbeitsblock
 
 ```text
-1. Nach echtem Streamstart/Ende Ergebnisse dokumentieren.
-2. Falls stabil: CAN44.42 als finalen stabilen Shoutout/AutoSO/Live-Stand markieren.
-3. Nächstes Modul an StreamState anbinden, z. B. Tagebuch oder Alerts.
+Tagebuch an zentralen StreamState anbinden.
+```
+
+Warum Tagebuch zuerst:
+
+```text
+- fachlich stark vom echten Streamtag abhängig
+- geringeres Risiko als Alerts/VIP30/Loyalty
+- guter erster Consumer nach AutoShoutout
+- Stream über 00:00 soll sauber derselbe Streamtag bleiben
+- Systemeinträge sollen nicht durch Pending/Bandbreitentest ausgelöst werden
+```
+
+## Vor Umsetzung Tagebuch zwingend prüfen
+
+```text
+1. Echte Dateien aus GitHub/dev prüfen.
+2. Bestehende Tagebuch-Module/Helper/Routes prüfen.
+3. Bestehende DB-Tabellen/Migrationen nur lesend prüfen.
+4. Bestehenden Communication Bus / Helper verwenden.
+5. Keine neue Parallelstruktur bauen.
+6. Keine DB ersetzen oder neu bauen.
+7. Ziel/Dateien/Änderungen/Nichtänderungen/Tests nennen.
+8. Auf Forrests go warten.
+```
+
+## Vermutlich relevante Bereiche für Tagebuch-Prüfung
+
+```text
+backend/modules/tagebuch.js
+backend/modules/discord/tagebuch.js
+backend/modules/helpers/helper_communication.js
+backend/modules/helpers/helper_texts.js
+backend/modules/helpers/helper_messages.js
+backend/core/database.js
+htdocs/dashboard/modules/tagebuch.js
+htdocs/dashboard/modules/tagebuch.css
+docs/modules/tagebuch.md
+```
+
+Hinweis: Die echten Pfade müssen vor Umsetzung im Repo geprüft werden. Nicht raten.
+
+## Danach sinnvolle Reihenfolge
+
+```text
+1. Tagebuch an zentralen StreamState anbinden
+2. Clips an zentralen StreamState anbinden
+3. ShoutoutV2-/AutoShoutout-Diagnose erweitern
+4. Alerts an zentralen StreamState anbinden
+5. VIP30 / Channelpoints Live-only Regeln
+6. Loyalty / Giveaways / Glücksrad
+7. Event-System
 ```
 
 ## Nicht jetzt nötig
 
 ```text
 Großer Refactor
-Neue DB-Migrationen
+Neue DB-Migrationen ohne konkrete Notwendigkeit
 Umbau Communication Bus
 Entfernen bestehender Fallbacks
 Umbau ShoutoutV2
+Produktive Alert-/VIP30-/Loyalty-Änderungen vor Tagebuch-Testconsumer
 ```

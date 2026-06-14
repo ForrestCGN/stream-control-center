@@ -8,7 +8,7 @@ Live-Ziel: `D:\Streaming\stramAssets`
 ## Startanweisung für neuen Chat
 
 ```text
-Wir machen nach CAN44.42 weiter. Bitte lies docs/current/CURRENT_CHAT_HANDOFF_CAN44_42_SHOUTOUT_AUTOSO_LIVE.md und halte dich an den Master-Prompt. Aktueller Stand: SO / AutoSO / Twitch-Events / Live-Status sind intern stabil. Nächster echter Test ist ein realer OBS/Twitch-Streamstart. Keine Annahmen, echte Dateien/GitHub-dev als Source of Truth.
+Wir machen nach CAN44.42 weiter. Bitte lies docs/current/CURRENT_CHAT_HANDOFF_CAN44_42_SHOUTOUT_AUTOSO_LIVE.md und halte dich an den Master-Prompt. Aktueller Stand: SO / AutoSO / Twitch-Events / Live-Status sind intern stabil und seit 2026-06-14 live-real mit echtem OBS/Twitch-Streamstart und Streamende bestätigt. Keine Annahmen, echte Dateien/GitHub-dev als Source of Truth.
 ```
 
 ## Arbeitsregeln
@@ -26,10 +26,10 @@ Nach ZIP StepDone ausführen.
 ## Aktueller stabiler Stand
 
 ```text
-CAN44.42 – Dashboard Effective Stream State Display
+CAN44.42 – Shoutout / AutoShoutout / Twitch-Events / Live-Status live-real bestätigt
 ```
 
-### Bestätigt
+### Bestätigt intern
 
 ```text
 Manual Override confirmed online:
@@ -45,6 +45,70 @@ streamDayId vorhanden
 Dashboard:
 Effektiver Stream-State zeigt ONLINE (Override)
 Echte Quellen zeigen weiterhin reale Quellen getrennt
+```
+
+### Bestätigt live-real am 2026-06-14
+
+Streamstart:
+
+```text
+status = live
+live = True
+source = twitch_confirmed
+confidence = high
+streamId = 317679322342
+twitchConfirmed = true
+obsStarted = true
+bandwidthTest = false
+lastEventKey = twitch.stream.online
+onlineEmitted = 1
+offlineEmitted = 0
+errors = 0
+sessionStarted = 1
+sessionConfirmed = 1
+```
+
+Stabile Stream-Zuordnung:
+
+```text
+streamSessionId = forrestcgn_20260614t140137581z_pending
+streamDayId     = stream_forrestcgn_20260614t140137581z_pending
+streamDateLabel = 2026-06-14
+```
+
+AutoShoutout Online:
+
+```text
+moduleVersion = 0.2.49
+streamBusSubscriber.installed = True
+onlineReceived = 1
+lastEventKey = twitch.stream.online
+lastResultReason = accepted
+```
+
+Streamende:
+
+```text
+status = offline
+live = False
+lastEventKey = twitch.stream.offline
+onlineEmitted = 1
+offlineEmitted = 1
+errors = 0
+sessionGrace = 1
+sessionEnded = 1
+bandwidthTestDetected = 0
+```
+
+AutoShoutout Offline:
+
+```text
+delivered = 2
+onlineReceived = 1
+offlineReceived = 1
+lastEventKey = twitch.stream.offline
+lastResultReason = accepted
+errors = 0
 ```
 
 ## Wichtige Architektur
@@ -99,61 +163,6 @@ Offline wird nur emitted, wenn vorher online emitted wurde.
 Manual Override active=true ist harte Wahrheit.
 ```
 
-## Nächster echter Test
-
-Beim nächsten Streamstart:
-
-```powershell
-$t = Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/stream-state?refresh=1"
-$t.streamState.status
-$t.streamState.live
-$t.streamState.streamSession | ConvertTo-Json -Depth 10
-$t.streamState.lastEventKey
-$t.streamState.counters
-```
-
-Erwartung:
-
-```text
-OBS startet → pending
-Twitch bestätigt → live
-streamDayId bleibt stabil
-twitch.stream.online genau einmal
-AutoShoutout empfängt online
-```
-
-Beim Streamende:
-
-```text
-OBS StreamStopped → ending/grace
-danach offline
-twitch.stream.offline genau einmal
-```
-
-## Wichtige Tests ohne echten Stream
-
-Confirmed Online:
-
-```powershell
-Invoke-RestMethod `
-  -Method POST `
-  -Uri "http://127.0.0.1:8080/api/twitch/events/stream-state/override" `
-  -ContentType "application/json" `
-  -Body '{"live":true,"status":"live","confirmed":true,"forceConfirmed":true,"streamId":"manual_dashboard_test","reason":"manual_confirmed_test","ttlMs":600000}' |
-  ConvertTo-Json -Depth 10
-```
-
-Clear:
-
-```powershell
-Invoke-RestMethod `
-  -Method POST `
-  -Uri "http://127.0.0.1:8080/api/twitch/events/stream-state/clear-override" `
-  -ContentType "application/json" `
-  -Body '{"reason":"manual_override_test_done"}' |
-  ConvertTo-Json -Depth 10
-```
-
 ## Relevante Dateien
 
 ```text
@@ -173,7 +182,15 @@ docs/current/CHANGELOG.md
 ## Offene Punkte
 
 ```text
-- Echter OBS/Twitch-Start noch nicht live-real bestätigt.
 - Optional: manualOverride.status/forceConfirmed/streamId beim Clear vollständig leeren.
-- Weitere Module später an zentralen StreamState anbinden.
+- Weitere Module an zentralen StreamState anbinden.
+- Nächster empfohlener Arbeitsblock: Tagebuch an zentralen StreamState anbinden.
+```
+
+## Nächster Schritt
+
+```text
+Vor Umsetzung Tagebuch-Dateien und bestehende Helper/Routen/DB-Strukturen prüfen.
+Dann Ziel/Dateien/Änderungen/Nichtänderungen/Tests nennen.
+Auf Forrests go warten.
 ```

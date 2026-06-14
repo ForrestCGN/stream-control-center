@@ -23,32 +23,30 @@ Stand: 2026-06-14
 - [x] Pending getestet: StreamSession/streamDayId wird vorbereitet, aber kein Online/Offline-Event.
 - [x] AutoShoutout empfängt twitch.stream.online/offline über Communication Bus.
 - [x] Dashboard trennt effektiven Stream-State und echte Quellen sichtbar.
+- [x] Echter OBS/Twitch-Streamstart live-real geprüft: Status `live`, `streamSession.twitchConfirmed = true`, stabile `streamDayId`, `twitch.stream.online` genau einmal.
+- [x] AutoShoutout live-real geprüft: `onlineReceived = 1`, `lastEventKey = twitch.stream.online`, `lastResultReason = accepted`.
+- [x] Echtes Streamende live-real geprüft: Status `offline`, `twitch.stream.offline` genau einmal, `offlineEmitted = 1`, `sessionEnded = 1`.
+- [x] AutoShoutout Offline-Event live-real geprüft: `offlineReceived = 1`, `lastEventKey = twitch.stream.offline`, `lastResultReason = accepted`.
 
-## Offen / nächster echter Test
+## Nächster Arbeitsblock
 
-- [ ] Beim nächsten echten Streamstart prüfen:
-  - [ ] OBS startet → Status `pending`.
-  - [ ] Twitch bestätigt → Status `live`.
-  - [ ] `streamSession.twitchConfirmed = true`.
-  - [ ] `streamDayId` bleibt stabil.
-  - [ ] `streamDateLabel` bleibt Startdatum, auch über 00:00.
-  - [ ] `twitch.stream.online` wird genau einmal gesendet.
-  - [ ] AutoShoutout empfängt `twitch.stream.online`.
-- [ ] Bei echtem Streamende prüfen:
-  - [ ] OBS StreamStopped → `ending`/Grace.
-  - [ ] danach `twitch.stream.offline`.
-  - [ ] Session wird nach Grace geschlossen.
-- [ ] Bei kurzem OBS/Internet-Abbruch im Stream beobachten:
-  - [ ] kein neuer StreamDay.
-  - [ ] Session geht in reconnect/grace.
-  - [ ] Resume bleibt dieselbe Session.
+- [ ] Tagebuch an zentralen StreamState anbinden.
+  - [ ] Vor Umsetzung echte Dateien prüfen.
+  - [ ] Bestehende Tagebuch-Module/Helper/DB-Tabellen prüfen.
+  - [ ] Keine neue Parallelstruktur bauen.
+  - [ ] Bestehenden Communication Bus / Helper verwenden.
+  - [ ] StreamDay-/StreamSession-Kontext nur aus zentralem StreamState übernehmen.
+  - [ ] Bandbreitentest/Pending nicht als echten Streamtag behandeln.
+  - [ ] Reconnect/Grace nicht als neuen Streamtag behandeln.
 
-## Nach dem nächsten echten Streamstart optional
+## Danach sinnvoll
 
-- [ ] AutoShoutout mit eingetragenem echten Auto-Streamer testen.
-- [ ] Prüfen, ob `storeSkippedEvents` bei AutoShoutout sinnvolle Gründe loggt.
-- [ ] Prüfen, ob Test-User `forrestcgn` als AutoShoutout-Streamer noch entfernt/deaktiviert werden soll.
-- [ ] Alte Diagnose-/Testevents bei Bedarf bereinigen.
+- [ ] Clips an zentralen StreamState anbinden.
+- [ ] ShoutoutV2-Diagnose optional um StreamSession-/AutoShoutout-Consumer-Status erweitern.
+- [ ] Alerts an zentralen StreamState anbinden.
+- [ ] VIP30/Channelpoints Live-only-Regeln an zentralen StreamState anbinden.
+- [ ] Giveaways/Loyalty an zentralen StreamState anbinden.
+- [ ] Event-System an zentralen StreamState anbinden.
 
 ## Später / Verbesserungen
 
@@ -60,14 +58,9 @@ Stand: 2026-06-14
   - `twitch.stream.session.grace`
   - `twitch.stream.session.resumed`
   - `twitch.stream.session.ended`
-- [ ] Weitere Module an zentralen StreamState anbinden:
-  - Alerts
-  - Giveaways/Loyalty
-  - Tagebuch
-  - Clips
-  - VIP30/Channelpoints live-only Regeln
 - [ ] Prüfen, ob OBS Bandbreitentestmodus über OBS-WebSocket-Service-Settings sicher auslesbar ist.
-- [ ] ShoutoutV2-Diagnose optional um StreamSession-/AutoShoutout-Consumer-Status erweitern.
+- [ ] Prüfen, ob Test-User `forrestcgn` als AutoShoutout-Streamer noch entfernt/deaktiviert werden soll.
+- [ ] Alte Diagnose-/Testevents bei Bedarf bereinigen.
 
 ## Nicht wieder einführen
 
