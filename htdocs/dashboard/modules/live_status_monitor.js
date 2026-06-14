@@ -155,29 +155,45 @@
     const s = state.status || {};
     const d = s.decision || {};
     const p = s.parsed || {};
+    const st = streamState() || {};
+    const ov = st.manualOverride || {};
+    const overrideActive = ov.active === true;
+    const effectiveLive = overrideActive ? st.live === true : d.effectiveLive === true;
+    const effectiveStatus = overrideActive ? (st.status || st.sessionStatus || (st.live ? 'live' : 'offline')) : (d.effectiveLive ? 'live' : 'offline');
+    const effectiveSource = overrideActive ? (st.provider || st.source || 'manual_override') : (d.sourceSummary || 'keine Quelle');
+    const effectiveConfidence = overrideActive ? (st.confidence || 'manual') : (d.confidence || 'unknown');
+    const liveLabel = effectiveLive ? (overrideActive ? 'ONLINE (Override)' : 'ONLINE') : (overrideActive ? 'OFFLINE (Override)' : 'OFFLINE');
     const warnings = Array.isArray(d.warnings) ? d.warnings : [];
+    const overrideNote = overrideActive
+      ? `<p class="lsm-effective-note">Manual Override aktiv: Der effektive Status kommt aus <strong>${esc(effectiveSource)}</strong>. Die Kacheln rechts zeigen weiterhin die echten Quellen.</p>`
+      : '';
     return `
-      <div class="lsm-hero glass">
+      <div class="lsm-hero glass ${overrideActive ? 'is-override':''}">
         <div>
-          <div class="lsm-kicker">Projekt-Live</div>
-          <div class="lsm-live ${d.effectiveLive ? 'is-live':'is-off'}">${d.effectiveLive ? 'ONLINE' : 'OFFLINE'}</div>
-          <p>${esc(d.sourceSummary || 'keine Quelle')} · Confidence: <strong>${esc(d.confidence || 'unknown')}</strong></p>
+          <div class="lsm-kicker">Effektiver Stream-State</div>
+          <div class="lsm-live ${effectiveLive ? 'is-live':'is-off'}">${esc(liveLabel)}</div>
+          <p>Status: <strong>${esc(effectiveStatus)}</strong> · Quelle: <strong>${esc(effectiveSource)}</strong> · Confidence: <strong>${esc(effectiveConfidence)}</strong></p>
+          ${overrideNote}
         </div>
-        <div class="lsm-badges">
-          ${badge('OBS sendet', d.obsStreaming)}
-          ${badge('Twitch Events', d.eventSubConnected === true ? true : (d.eventSubLive || 'unknown'))}
-          ${badge('Twitch /streams', d.twitchStreamsLive)}
-          ${badge('Twitch Search', d.twitchSearchLive)}
-          ${badge('stream_status', d.streamStatusLive)}
+        <div class="lsm-badges-wrap">
+          <div class="lsm-badges-title">Echte Quellen</div>
+          <div class="lsm-badges">
+            ${badge('OBS sendet', d.obsStreaming)}
+            ${badge('Twitch Events', d.eventSubConnected === true ? true : (d.eventSubLive || 'unknown'))}
+            ${badge('Twitch /streams', d.twitchStreamsLive)}
+            ${badge('Twitch Search', d.twitchSearchLive)}
+            ${badge('stream_status', d.streamStatusLive)}
+          </div>
         </div>
       </div>
       <div class="lsm-grid">
         <div class="lsm-card glass"><strong>Szene</strong><span>${esc(d.sceneName || p.obs?.currentScene || '-')}</span></div>
-        <div class="lsm-card glass"><strong>Spiel</strong><span>${esc(d.gameName || '-')}</span></div>
-        <div class="lsm-card glass"><strong>Titel</strong><span>${esc(d.title || '-')}</span></div>
-        <div class="lsm-card glass"><strong>Stream-ID</strong><span>${esc(d.streamId || '-')}</span></div>
+        <div class="lsm-card glass"><strong>Spiel</strong><span>${esc(d.gameName || st.gameName || '-')}</span></div>
+        <div class="lsm-card glass"><strong>Titel</strong><span>${esc(d.title || st.title || '-')}</span></div>
+        <div class="lsm-card glass"><strong>Stream-ID</strong><span>${esc(d.streamId || st.streamId || '-')}</span></div>
       </div>
-      ${warnings.length ? `<div class="lsm-warnings glass"><strong>Warnungen</strong>${warnings.map(w => `<div>⚠️ <b>${esc(w.key)}</b>: ${esc(w.message)}</div>`).join('')}</div>` : `<div class="lsm-okline glass">Keine Abweichungen in der aktuellen Auswertung.</div>`}
+      ${overrideActive ? `<div class="lsm-okline glass lsm-effective-source-note">Effektiver Override ist aktiv. Die echten Quellen dürfen offline sein, ohne den Teststatus zu überschreiben.</div>` : ''}
+      ${warnings.length ? `<div class="lsm-warnings glass"><strong>Warnungen echte Quellen</strong>${warnings.map(w => `<div>⚠️ <b>${esc(w.key)}</b>: ${esc(w.message)}</div>`).join('')}</div>` : `<div class="lsm-okline glass">Keine Abweichungen in der aktuellen Auswertung.</div>`}
     `;
   }
   function renderStreamOverride(){
