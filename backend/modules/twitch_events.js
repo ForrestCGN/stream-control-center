@@ -27,8 +27,8 @@ const axios = require('axios');
 const WebSocket = require('ws');
 
 const MODULE_NAME = 'twitch_events';
-const MODULE_VERSION = '0.1.10';
-const MODULE_BUILD = 'CAN44.38_STREAM_SESSION_CLEANUP';
+const MODULE_VERSION = '0.1.11';
+const MODULE_BUILD = 'CAN44.39_PENDING_EVENT_GUARD';
 const MODULE_ID = `module:${MODULE_NAME}`;
 const MODULE_STARTED_AT = nowIso();
 
@@ -1579,8 +1579,21 @@ function isBandwidthTestState(normalized) {
   return !!(normalized && (normalized.bandwidthTest === true || cleanString(normalized.sessionStatus || normalized.status || '').toLowerCase() === 'bandwidth_test'));
 }
 
+function isPendingLikeStreamStatus(normalized) {
+  const status = cleanString(normalized && (normalized.sessionStatus || normalized.status || normalized.manualStatus || '')).toLowerCase();
+  return ['pending', 'pending_warning', 'starting', 'reconnect', 'ending', 'grace', 'closed', 'offline', 'bandwidth_test'].includes(status);
+}
+
+function hasPublishedOnlineStreamState() {
+  return state.streamState && (state.streamState.lastAction === 'online' || state.streamState.lastEventKey === 'twitch.stream.online');
+}
+
 function shouldPublishStreamStateTransition(normalized, previousKnown, previousLive, changed, options = {}) {
-  if (isBandwidthTestState(normalized) && previousLive !== true) return false;
+  if (isBandwidthTestState(normalized) && previousLive !== true && !hasPublishedOnlineStreamState()) return false;
+  if (!normalized || normalized.live !== true) {
+    if (isPendingLikeStreamStatus(normalized) && previousLive !== true && !hasPublishedOnlineStreamState()) return false;
+    if (previousLive !== true && !hasPublishedOnlineStreamState()) return false;
+  }
   return changed || options.forcePublish === true;
 }
 
