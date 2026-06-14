@@ -1,31 +1,20 @@
 # FILES – stream-control-center
 
-Stand: 2026-06-12
+Stand: 2026-06-14
 
 ## Aktueller Stand
 
 ```text
-CAN44.31 – AutoShoutout Bus + ShoutoutV2 Activity Bridge
+CAN44.42 – Shoutout / AutoShoutout / Twitch-Events / Live-Status stabiler Arbeitsstand
 ```
 
-## Aktive Dashboard-Dateien für Shoutout / AutoShoutout
-
-```text
-htdocs/dashboard/index.html
-htdocs/dashboard/app.js
-htdocs/dashboard/modules/shoutout_v2.js
-htdocs/dashboard/modules/shoutout_v2.css
-htdocs/dashboard/modules/auto_shoutout.js
-htdocs/dashboard/modules/auto_shoutout.css
-htdocs/dashboard/modules/shoutout_texts.js
-htdocs/dashboard/modules/shoutout_texts.css
-```
-
-## Aktive Backend-Dateien für Shoutout / AutoShoutout
+## Relevante Backend-Dateien
 
 ```text
 backend/modules/clip_shoutout.js
 backend/modules/twitch_events.js
+backend/modules/stream_status.js
+backend/modules/live_status_monitor.js
 backend/modules/twitch_presence.js
 backend/modules/communication_bus.js
 backend/modules/helpers/helper_communication.js
@@ -34,72 +23,96 @@ backend/modules/helpers/helper_settings.js
 backend/core/database.js
 ```
 
-## Zuständigkeiten
-
-### backend/modules/twitch_presence.js
+## Relevante Dashboard-Dateien
 
 ```text
-Twitch IRC/Bot-Verbindung
-Chat senden
-IRC-Chat empfangen und an twitch_events weitergeben
-Keine AutoShoutout-Fachlogik
-Direct command hook bleibt standardmäßig aus
+htdocs/dashboard/modules/live_status_monitor.js
+htdocs/dashboard/modules/live_status_monitor.css
+htdocs/dashboard/modules/shoutout_v2.js
+htdocs/dashboard/modules/shoutout_v2.css
+htdocs/dashboard/modules/auto_shoutout.js
+htdocs/dashboard/modules/auto_shoutout.css
+htdocs/dashboard/modules/shoutout_texts.js
+htdocs/dashboard/modules/shoutout_texts.css
+htdocs/dashboard/index.html
+htdocs/dashboard/app.js
 ```
+
+## Zuständigkeiten
 
 ### backend/modules/twitch_events.js
 
 ```text
-Zentrale Twitch-Event-Normalisierung
-EventSub Chat / IRC Chat normalisieren
-Communication Bus Event twitch.chat/message emittieren
-Quelle für AutoShoutout-Buspfad
+Zentrale Twitch-Event-Schicht.
+Normalisiert Chat-Events.
+Stellt Stream-State und StreamSession bereit.
+Besitzt twitch.stream.online/offline Bus-Events.
+Bietet Manual Override Routen.
 ```
 
-### backend/modules/communication_bus.js + helper_communication.js
+Wichtige Routen:
 
 ```text
-Communication/EventBus
-channel/action/capability matching
-in-process module-to-module subscriptions
-subscriber deliveries / diagnostics
+GET  /api/twitch/events/status
+GET  /api/twitch/events/stream-state
+GET  /api/twitch/events/stream-state?refresh=1
+POST /api/twitch/events/stream-state/override
+POST /api/twitch/events/stream-state/clear-override
+GET  /api/twitch/events/stream-session
+GET  /api/twitch/events/stream-session?refresh=1
+```
+
+### backend/modules/stream_status.js
+
+```text
+Zentrale Statusquelle für Twitch API / Streamstatus.
+Seit CAN44.35 source-only für Streambus.
+twitch.stream.online/offline werden nicht hier, sondern in twitch_events emitted.
+```
+
+### backend/modules/live_status_monitor.js
+
+```text
+Backend-Auswertung für Dashboard Live-Status.
+Vergleicht OBS, Twitch /streams, Twitch Search, stream_status und twitch_events.
 ```
 
 ### backend/modules/clip_shoutout.js
 
 ```text
-Shoutout-System Backend
-Manueller SO
-DisplayQueue / Video-SO
-OfficialQueue / Twitch-SO
-AutoShoutout-Regeln
-AutoShoutout-Bus-Subscriber clip_shoutout:twitch.chat:message:auto_shoutout
+Shoutout-System Backend.
+Manueller SO, DisplayQueue, OfficialQueue.
+AutoShoutout DB-Konfiguration.
+AutoShoutout Consumer für twitch.chat/message und twitch.stream online/offline.
+Nutzt zentrale StreamSession/streamDayId.
+```
+
+### htdocs/dashboard/modules/live_status_monitor.js
+
+```text
+Sichtbarer Live-Status Monitor im Dashboard.
+Stream-State Override Controls.
+Effektiver Stream-State + echte Quellen getrennt.
+```
+
+### htdocs/dashboard/modules/live_status_monitor.css
+
+```text
+Styles für Live-Status-Monitor, Override-Bereich, Effektiv-Block und Quellen-Kacheln.
 ```
 
 ### htdocs/dashboard/modules/shoutout_v2.js
 
 ```text
-Aktive sichtbare Shoutout-Hauptseite im Dashboard
-Tabs: Übersicht, Shoutout, AutoShoutout, Queues, Texte, Auswertung, Diagnose, Einstellungen
-Rendert sichtbare AutoShoutout-Karte mit Streamer-Verwaltung und Aktivitätsliste
+Sichtbare Shoutout-Hauptseite.
+Tabs: Übersicht, Shoutout, AutoShoutout, Queues, Texte, Auswertung, Diagnose, Einstellungen.
 ```
 
 ### htdocs/dashboard/modules/auto_shoutout.js
 
 ```text
-Zusätzlich geladenes AutoShoutout-Modul
-CAN44.30 kompakte Activity-Liste vorbereitet
-CAN44.31 Bridge/Patch für sichtbare ShoutoutV2-Aktivitätskarte
-Build-Prüfung: window.AutoShoutoutV2ActivityPatch?.build
-```
-
-### htdocs/dashboard/modules/auto_shoutout.css
-
-```text
-Styles für kompakte AutoShoutout-Aktivitätsliste
-Info-Button
-Modal / Backdrop
-Detail-Grid
-Rohdaten-Details
+Zusätzlich geladenes AutoShoutout-Modul.
+CAN44.31 Bridge/Patch für ShoutoutV2 Activity-Anzeige bleibt historisch relevant.
 ```
 
 ## Wichtige Live-Pfade
@@ -111,52 +124,53 @@ D:\Git\stream-control-center
 Live-Ziel:
 D:\Streaming\stramAssets
 
-Dashboard Live-Dateien:
-D:\Streaming\stramAssets\htdocs\dashboard\modules\shoutout_v2.js
-D:\Streaming\stramAssets\htdocs\dashboard\modules\auto_shoutout.js
-D:\Streaming\stramAssets\htdocs\dashboard\modules\auto_shoutout.css
+Backend live:
+D:\Streaming\stramAssets\backend\modules
+
+Dashboard live:
+D:\Streaming\stramAssets\htdocs\dashboard\modules
 ```
 
-## Wichtige Routen
+## Wichtige Prüfbefehle
+
+```powershell
+node -c "D:\Streaming\stramAssets\backend\modules\twitch_events.js"
+node -c "D:\Streaming\stramAssets\backend\modules\clip_shoutout.js"
+node -c "D:\Streaming\stramAssets\backend\modules\stream_status.js"
+node -c "D:\Streaming\stramAssets\backend\modules\live_status_monitor.js"
+node -c "D:\Streaming\stramAssets\htdocs\dashboard\modules\live_status_monitor.js"
+```
+
+## Wichtige Statusprüfungen
+
+```powershell
+$t = Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/status"
+$t.moduleVersion
+$t.diagnostics.streamState.moduleBuild
+$t.diagnostics.streamState.status
+$t.diagnostics.streamState.streamSession | ConvertTo-Json -Depth 10
+
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/clip-shoutout/status"
+$s.moduleVersion
+$s.autoShoutout.state.streamState
+$s.autoShoutout.state.streamBusSubscriber
+```
+
+## Bekannte aktuelle Versionen
 
 ```text
-GET  /api/clip-shoutout/status
-GET  /api/clip-shoutout/auto
-GET  /api/clip-shoutout/auto/streamers
-POST /api/clip-shoutout/auto/streamers
-POST /api/clip-shoutout/auto/streamers/remove
-GET  /api/clip-shoutout/auto/test-chat
-POST /api/clip-shoutout/auto/clear-target
-GET  /api/communication/status
-GET  /api/twitch/events/status
-```
-
-## Prüfbefehle
-
-```powershell
-node -c .\backend\modules\clip_shoutout.js
-node -c .\backend\modules\twitch_events.js
-node -c .\htdocs\dashboard\modules\shoutout_v2.js
-node -c .\htdocs\dashboard\modules\auto_shoutout.js
-```
-
-Live-Auslieferung prüfen:
-
-```powershell
-(Invoke-WebRequest "http://127.0.0.1:8080/dashboard/modules/auto_shoutout.js?cachetest=$(Get-Random)" -UseBasicParsing).Content |
-  Select-String -Pattern "AutoShoutoutV2ActivityPatch","CAN44.31_AUTOSO_V2_ACTIVITY_MODAL_BRIDGE","data-auto-so-activity-info"
+twitch_events.js     0.1.12 CAN44.41_MANUAL_OVERRIDE_LOCK
+clip_shoutout.js     0.2.49
+stream_status.js     0.1.4
+live_status_monitor  0.1.5
+Dashboard Live Monitor: CAN44.42 Effective Stream State Display
 ```
 
 ## ZIP-/Deploy-Regel
 
-ZIPs immer mit echten Zielpfaden liefern, z. B.:
-
 ```text
-backend/modules/clip_shoutout.js
-htdocs/dashboard/modules/auto_shoutout.js
-htdocs/dashboard/modules/auto_shoutout.css
-docs/current/CURRENT_STATUS.md
-project-state/CAN44_31_AUTOSHOUTOUT_BUS_DASHBOARD_STATUS.md
+ZIPs immer mit echten Zielpfaden liefern.
+Keine losen Dateien.
+Keine produktive SQLite ersetzen.
+Nach STEP immer stepdone.cmd mit passender Beschreibung ausführen.
 ```
-
-Keine losen Dateien ohne Zielpfad.

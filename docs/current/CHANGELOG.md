@@ -1,115 +1,153 @@
 # CHANGELOG – stream-control-center
 
-Stand: 2026-06-12
+Stand: 2026-06-14
 
-## 2026-06-12 – CAN44.31 AutoShoutout V2 Activity Bridge Docs
-
-### Ergebnis
-
-```text
-AutoShoutout-Buspfad dokumentiert.
-ShoutoutV2-Dashboard-Ursache dokumentiert.
-CAN44.31 Bridge/Patch als aktueller Stand dokumentiert.
-TODO/NEXT_STEPS/FILES/CURRENT_STATUS aktualisiert.
-Handoff für nächsten Chat erstellt.
-```
-
-### Technische Erkenntnis
-
-```text
-Die sichtbare AutoShoutout-Seite im Dashboard wird von htdocs/dashboard/modules/shoutout_v2.js gerendert.
-Die Datei htdocs/dashboard/modules/auto_shoutout.js wird zusätzlich geladen, war aber nicht der sichtbare Renderer.
-CAN44.31 nutzt auto_shoutout.js als Bridge/Patch für die ShoutoutV2-Aktivitätskarte.
-```
-
-## 2026-06-12 – CAN44.31 AutoShoutout V2 Activity Bridge
+## 2026-06-14 – CAN44.42 Dashboard Effective Stream State Display
 
 ### Ergebnis
 
 ```text
-Bridge/Patch für ShoutoutV2-Aktivitätskarte erstellt.
-Ziel: sichtbare Anzeige „Letzte AutoShoutout-Aktivität“ in ShoutoutV2 ersetzen.
-Neue Anzeige: Zeit / Streamer / Status / Info.
-Info-Button öffnet Detail-Modal mit Rohdaten.
+Live-Status-Monitor trennt jetzt:
+- Effektiver Stream-State
+- Echte Quellen
+
+Bei aktivem Manual Override zeigt der Effektiv-Block ONLINE (Override), während OBS/Twitch/stream_status als echte Quellen weiter separat angezeigt werden.
 ```
 
 ### Dateien
 
 ```text
-htdocs/dashboard/modules/auto_shoutout.js
-htdocs/dashboard/modules/auto_shoutout.css
+htdocs/dashboard/modules/live_status_monitor.js
+htdocs/dashboard/modules/live_status_monitor.css
 ```
 
-### Browser-Prüfung
-
-```javascript
-window.AutoShoutoutV2ActivityPatch?.build
-// CAN44.31_AUTOSO_V2_ACTIVITY_MODAL_BRIDGE
-```
-
-## 2026-06-12 – CAN44.30 AutoShoutout Activity Modal
+## 2026-06-14 – CAN44.41 Manual Override Lock Fix
 
 ### Ergebnis
 
 ```text
-Kompakte Aktivitätsliste mit Info-Modal in auto_shoutout.js vorbereitet.
-Datei wurde korrekt vom Node-Server ausgeliefert.
-Alle CAN44.30-Marker waren per Invoke-WebRequest sichtbar.
+Manual Override ist während active=true harte Wahrheit.
+Confirmed Online bleibt stabil live=true/status=live/provider=manual_override.
+live_status_monitor überschreibt confirmed-online nicht mehr sofort zu ending/offline.
 ```
 
-### Einschränkung
+### Bestätigt
 
 ```text
-CAN44.30 änderte die sichtbare ShoutoutV2-Ansicht noch nicht,
-weil diese von shoutout_v2.js gerendert wird.
+status = live
+live = True
+provider = manual_override
+source = manual_override
+lastEventKey = twitch.stream.online
+streamSession.twitchConfirmed = true
 ```
 
-## 2026-06-12 – CAN44.29 AutoShoutout Loyalty-Style Bus Subscriber
+## 2026-06-14 – CAN44.40 Dashboard Stream-State Override Controls
 
 ### Ergebnis
 
 ```text
-AutoShoutout-Subscriber an funktionierendes Pattern von loyalty_giveaways angepasst.
-Subscription-ID: clip_shoutout:twitch.chat:message:auto_shoutout
-channel: twitch.chat
-action: message
-capability: twitch.chat.message
+Live-Status-Monitor bekam Testbuttons:
+- OBS/Pending simulieren
+- Online bestätigt simulieren
+- Offline simulieren
+- Bandbreitentest
+- Override löschen
+- TTL-Auswahl
 ```
 
-### Live-Test
-
-```text
-autoBusReceived  = 4
-autoBusDelivered = 4
-autoBusErrors    = 0
-autoTriggered    = 2
-autoSkipped      = 0
-lastResultReason = queued
-```
-
-## 2026-06-12 – CAN44.28 AutoShoutout Bus Capability Fix
+## 2026-06-14 – CAN44.39 Pending Event Guard
 
 ### Ergebnis
 
 ```text
-Capability von twitch.chat.message.consumer auf twitch.chat.message korrigiert.
-Grund: Andere funktionierende Subscriber wie commands/loyalty_giveaways nutzen twitch.chat.message oder keine Capability.
+Pending erzeugt kein twitch.stream.offline mehr.
+offline wird nur gesendet, wenn vorher wirklich online emitted wurde.
 ```
 
-## 2026-06-12 – CAN44.27 AutoShoutout Bus Subscriber
+### Bestätigt
+
+```text
+status = pending
+live = False
+streamSession.active = True
+streamDayId vorhanden
+onlineEmitted = 0
+offlineEmitted = 0
+lastEventKey = ""
+```
+
+## 2026-06-14 – CAN44.38 Stream Session Cleanup
 
 ### Ergebnis
 
 ```text
-clip_shoutout.js abonniert twitch.chat/message vom Communication Bus.
-Direkter Chat-Wrapper bleibt als Fallback erhalten.
-Status erweitert um busSubscriber und Bus-Stats.
+Bandbreitentest erzeugt kein Online/Offline.
+clear-override räumt bandwidthTest/closedReason sauber auf.
+Counter bandwidthTestDetected ergänzt.
+```
+
+## 2026-06-14 – CAN44.37 Stream Session Authority
+
+### Ergebnis
+
+```text
+StreamSession/StreamDay eingeführt.
+Streamtag nach Stream statt Kalendertag.
+Pending, live, ending, reconnect, bandwidth_test getrennt.
+AutoShoutout nutzt zentralen streamState/streamDayId.
+```
+
+## 2026-06-14 – CAN44.36 AutoShoutout Stream Bus Consumer
+
+### Ergebnis
+
+```text
+clip_shoutout/AutoShoutout abonniert twitch.stream online/offline.
+Consumer-Test mit Manual Override erfolgreich.
+```
+
+## 2026-06-14 – CAN44.35 Twitch Events Stream State Provider
+
+### Ergebnis
+
+```text
+twitch_events wurde zentraler Owner für twitch.stream.online/offline.
+stream_status bleibt source-only.
+Manual Override und stream-state Routen eingeführt.
+```
+
+## 2026-06-14 – CAN44.34 Twitch Stream Bus Events
+
+### Ergebnis
+
+```text
+Zwischenschritt: Online/Offline über Bus vorbereitet.
+Danach in CAN44.35 korrekt in twitch_events zentralisiert.
+```
+
+## 2026-06-14 – CAN44.33 AutoShoutout Settings Truth Fix
+
+### Ergebnis
+
+```text
+settings.autoShoutout zeigt effektive DB-/Runtime-Config.
+legacyAutoShoutoutConfig ist nur noch Diagnose.
+```
+
+## 2026-06-14 – CAN44.32 AutoShoutout StreamDay Reliability
+
+### Ergebnis
+
+```text
+Stale StreamDays werden nicht mehr endlos weiterverwendet.
+StreamDay-Fallback blockiert AutoShoutout nicht mehr still über neue Streamtage hinweg.
 ```
 
 ## Vorheriger dokumentierter Stand
 
 ```text
-LWG-4Q.12N – Final Gamble/Giveaways Cleanup Docs + Next Chat Prompt
+CAN44.31 – AutoShoutout Bus + ShoutoutV2 Activity Bridge
 ```
 
-Der Loyalty-/Gamble-Stand bleibt unverändert gültig. Diese CAN44-Dokumentation ergänzt den Shoutout-/AutoShoutout-Arbeitsstand.
+Diese Doku ersetzt den alten CAN44.31-Doku-Fokus für den aktuellen Shoutout/AutoSO/Live-Arbeitsstand.

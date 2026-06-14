@@ -1,161 +1,235 @@
 # CURRENT_STATUS – stream-control-center
 
-Stand: 2026-06-12
+Stand: 2026-06-14
 
 ## Aktueller bestätigter Stand
 
 ```text
-CAN44.31 – AutoShoutout Bus + ShoutoutV2 Activity Bridge dokumentiert
+CAN44.42 – Shoutout / AutoShoutout / Twitch-Events / Live-Status stabiler Arbeitsstand
 ```
 
-## Gesamtstand Shoutout / AutoShoutout
+## Kurzfazit
 
-Der aktuelle Shoutout-Stand umfasst die erfolgreiche Umstellung des AutoShoutout-Pfads auf den zentralen Communication/EventBus sowie die Dashboard-Korrektur für die sichtbare AutoShoutout-Aktivitätsanzeige im ShoutoutV2-Dashboard.
-
-## Bestätigter Runtime-Ablauf
+Der aktuelle Shoutout-/AutoShoutout-/Live-Status-Umbau ist technisch abgeschlossen und intern getestet.
 
 ```text
-Twitch EventSub Chat
-  → twitch_events.js
-  → Communication Bus Event twitch.chat/message
-  → clip_shoutout.js AutoShoutout-Subscriber
-  → DisplayQueue / Video-SO
-  → optional OfficialQueue / Twitch-SO
+SO / Shoutout:
+✅ bestehender Shoutout-Pfad bleibt erhalten
+✅ DisplayQueue / OfficialQueue bleiben erhalten
+
+AutoShoutout:
+✅ effektive DB-Config ist die Wahrheit
+✅ alte JSON-Fallback-Werte werden nicht mehr als aktive Wahrheit angezeigt
+✅ AutoShoutout hängt am Communication Bus
+✅ AutoShoutout empfängt twitch.stream.online/offline
+✅ Pending/Bandbreitentest erzeugen keine falschen Streamtage/Online-Events
+
+Twitch Events / Bus:
+✅ twitch_events ist zentrale Twitch-Event-Schicht
+✅ Chat-Events werden weiter zentral bereitgestellt
+✅ Stream-State / StreamSession werden zentral bereitgestellt
+✅ Online/Offline werden über Communication Bus verteilt
+✅ Module können abfragen und abonnieren
+
+Live / StreamSession:
+✅ Streamtag ist nicht mehr Kalendertag
+✅ streamDayId basiert auf StreamSession
+✅ Stream über 00:00 bleibt derselbe Streamtag
+✅ OBS/Pending, Twitch-Bestätigung, Grace/Ending und Bandbreitentest sind getrennt
+✅ Dashboard Manual Override funktioniert
+✅ Dashboard zeigt effektiven Override-Status und echte Quellen getrennt
 ```
 
-Bestätigter Live-Test:
+## Bestätigte Modulversionen
 
 ```text
-autoBusReceived  = 4
-autoBusDelivered = 4
-autoBusErrors    = 0
-autoTriggered    = 2
-autoSkipped      = 0
-lastResultReason = queued
-lastSourceModule = twitch_events_eventsub_chat
+backend/modules/twitch_events.js       0.1.12  CAN44.41_MANUAL_OVERRIDE_LOCK
+backend/modules/clip_shoutout.js       0.2.49  CAN44.37 StreamSession-aware AutoShoutout
+backend/modules/stream_status.js       0.1.4   stream_status source-only, twitch_events owner for stream bus
+backend/modules/live_status_monitor.js 0.1.5   Live-Status-Monitor Backend
+htdocs/dashboard/modules/live_status_monitor.js CAN44.42 Dashboard Effective Stream State Display
 ```
 
-Damit ist der AutoShoutout-Buspfad funktional.
+## Abgeschlossene Schritte seit CAN44.31
 
-## Abgeschlossene CAN44-Schritte
-
-### CAN44.27 – AutoShoutout Bus Subscriber
+### CAN44.32 – AutoShoutout StreamDay Reliability
 
 ```text
-clip_shoutout.js lauscht zusätzlich auf twitch.chat/message vom Communication Bus.
-Direkter Chat-Wrapper bleibt als Fallback erhalten.
-Doppelverarbeitung wird vermieden, wenn der Bus-Subscriber installiert ist.
+- Stale/alte StreamDay-Zeilen werden nicht mehr endlos wiederverwendet.
+- Alte active/grace StreamDays blockieren AutoShoutout nicht mehr still.
+- storeSkippedEvents wurde sichtbar/testbar gemacht.
 ```
 
-### CAN44.28 – Capability Fix
+### CAN44.33 – AutoShoutout Settings Truth Fix
 
 ```text
-Subscription-Capability wurde von twitch.chat.message.consumer auf twitch.chat.message korrigiert.
-Grund: Der Communication Bus matcht aktive Subscriber passend zu channel/action/capability.
+- /api/clip-shoutout/settings zeigt settings.autoShoutout jetzt als effektive DB-/Runtime-Wahrheit.
+- legacyAutoShoutoutConfig ist nur noch Diagnose/Alt-JSON.
+- Das frühere „enabled=false“-Anzeigechaos ist entschärft.
 ```
 
-### CAN44.29 – Loyalty-Style Bus Subscriber
+### CAN44.34 – Twitch Stream Bus Events
 
 ```text
-Subscription wurde an den funktionierenden Stil von loyalty_giveaways angepasst.
-Subscription-ID: clip_shoutout:twitch.chat:message:auto_shoutout
-channel: twitch.chat
-action: message
-capability: twitch.chat.message
+- stream_status wurde zunächst um Online/Offline-Bus-Events erweitert.
+- Ergebnis wurde danach zugunsten von twitch_events als zentralem Owner weiterentwickelt.
 ```
 
-Dieser Stand wurde live bestätigt.
-
-### CAN44.30 – AutoShoutout Activity Modal in auto_shoutout.js
+### CAN44.35 – Twitch Events Stream State Provider
 
 ```text
-auto_shoutout.js bekam eine kompakte Aktivitätsliste mit Info-Button und Detail-Modal.
-Die Datei wurde korrekt über /dashboard/modules/auto_shoutout.js ausgeliefert.
+- twitch_events wurde zentrale Stream-State-Schicht.
+- Online/Offline kann ohne Twitch-EventSub-Abo aus Statusquellen kommen.
+- /api/twitch/events/stream-state und Override-Routen wurden eingeführt.
+- stream_status wurde source-only; twitch_events besitzt twitch.stream.online/offline.
 ```
 
-Hinweis: CAN44.30 alleine änderte die sichtbare Shoutout-Seite nicht, weil die aktive AutoShoutout-Ansicht im Dashboard aus shoutout_v2.js gerendert wird.
-
-### CAN44.31 – ShoutoutV2 Activity Bridge
+### CAN44.36 – AutoShoutout Stream Bus Consumer
 
 ```text
-Die sichtbare ShoutoutV2-AutoShoutout-Karte wird per Bridge/Patch aus auto_shoutout.js nachgerüstet.
-Dadurch wird die bisherige Anzeige "triggered · triggered" durch eine kompakte Liste mit Info-Modal ersetzt.
+- clip_shoutout/AutoShoutout abonniert twitch.stream online/offline.
+- AutoShoutout speichert empfangenen streamState.
 ```
 
-Build-Kennung im Browser:
-
-```javascript
-window.AutoShoutoutV2ActivityPatch?.build
-// CAN44.31_AUTOSO_V2_ACTIVITY_MODAL_BRIDGE
-```
-
-## Dashboard-Zuständigkeit Shoutout
+### CAN44.37 – Stream Session Authority
 
 ```text
-htdocs/dashboard/modules/shoutout_v2.js
-  → aktive sichtbare Shoutout-Hauptseite
-  → Tabs: Übersicht, Shoutout, AutoShoutout, Queues, Texte, Auswertung, Diagnose, Einstellungen
-  → rendert die sichtbare AutoShoutout-Karte mit Streamer-Verwaltung und Aktivitätsliste
-
-htdocs/dashboard/modules/auto_shoutout.js
-  → zusätzlich geladenes AutoShoutout-Modul
-  → CAN44.31 Bridge/Patch für ShoutoutV2-Aktivitätskarte
-  → kompakte Aktivitätsliste + Info-Modal
+- StreamSession/StreamDay eingeführt.
+- streamDayId ist Stream-basiert, nicht Kalendertag-basiert.
+- Statuswerte: offline, pending, live, ending, reconnect, bandwidth_test usw.
+- OBS/Pending und Twitch-Bestätigung werden getrennt.
+- Bandbreitentest zählt nicht als echter Stream.
 ```
 
-## Aktuelle AutoShoutout-Dashboard-Anzeige
-
-Zielzustand für „Letzte AutoShoutout-Aktivität“:
+### CAN44.38 – Stream Session Cleanup
 
 ```text
-Zeit | Streamer | Status | Info
+- Bandbreitentest erzeugt kein online/offline Event.
+- clear-override räumt Bandbreitentest-Reste auf.
+- Diagnose-Counter bandwidthTestDetected ergänzt.
 ```
 
-Info-Modal enthält:
+### CAN44.39 – Pending Event Guard
 
 ```text
-Streamer
-Auslöser
-Status
-Kurzstatus
-Grund
-Zeit
-DisplayQueue
-Quelle
-Chat-Nachricht
-Stream-Day
-Rohdaten aufklappbar
+- Pending erzeugt kein twitch.stream.offline mehr.
+- Offline wird nur gesendet, wenn vorher ein echtes Online-Event veröffentlicht wurde.
+- Pending erzeugt eine Session/streamDayId, aber kein Online/Offline.
 ```
 
-## Wichtige Erkenntnis aus dem Debugging
+### CAN44.40 – Dashboard Stream-State Override Controls
 
 ```text
-Die sichtbare AutoShoutout-Seite wird nicht von AutoShoutoutModule.render() erzeugt.
-Sie kommt aus ShoutoutV2Module / shoutout_v2.js.
-Deshalb muss bei künftigen Shoutout-Dashboard-Änderungen zuerst geprüft werden,
-welche Datei die sichtbare Ansicht tatsächlich rendert.
+- Live-Status-Monitor bekam Buttons:
+  OBS/Pending simulieren
+  Online bestätigt simulieren
+  Offline simulieren
+  Bandbreitentest
+  Override löschen
+- TTL-Auswahl ergänzt.
 ```
 
-## Aktuelle relevante Dateien
+### CAN44.41 – Manual Override Lock Fix
 
 ```text
-backend/modules/clip_shoutout.js
-backend/modules/twitch_events.js
-backend/modules/communication_bus.js
-backend/modules/helpers/helper_communication.js
-htdocs/dashboard/index.html
-htdocs/dashboard/modules/shoutout_v2.js
-htdocs/dashboard/modules/shoutout_v2.css
-htdocs/dashboard/modules/auto_shoutout.js
-htdocs/dashboard/modules/auto_shoutout.css
+- Manual Override ist während active=true harte Wahrheit.
+- live_status_monitor darf confirmed-online Override nicht sofort auf ending/offline überschreiben.
+- Confirmed Online bleibt provider=manual_override, live=true, status=live.
 ```
 
-## Wichtige Projektregel
+### CAN44.42 – Dashboard Effective Stream State Display
+
+```text
+- Dashboard trennt effektiven Stream-State und echte Quellen.
+- Bei Override wird unten ONLINE (Override) angezeigt.
+- Echte Quellen bleiben separat sichtbar: OBS/Twitch/Streams/Search/stream_status.
+```
+
+## Aktueller bestätigter Datenfluss
+
+```text
+Twitch/OBS/Statusquellen
+  → live_status_monitor / stream_status
+  → twitch_events Stream-State Provider
+  → Communication Bus
+  → Consumer-Module, z. B. clip_shoutout AutoShoutout
+```
+
+Für Chat:
+
+```text
+Twitch Chat / EventSub / IRC
+  → twitch_events
+  → Communication Bus twitch.chat/message
+  → Module abonnieren selektiv
+```
+
+Für Stream-State:
+
+```text
+OBS/Pending/Manual/Twitch API
+  → twitch_events streamState + streamSession
+  → Bus Events:
+     twitch.stream.online
+     twitch.stream.offline
+  → Module können zusätzlich GET /api/twitch/events/stream-state abfragen
+```
+
+## Dashboard-Verhalten
+
+```text
+Live-Status Monitor:
+- Stream-State Override zeigt Test-/Override-Zustand.
+- Effektiver Stream-State zeigt den Zustand, der für Module gilt.
+- Echte Quellen zeigen OBS/Twitch/API-Rohstatus getrennt.
+```
+
+Bestätigtes Beispiel:
+
+```text
+Effektiver Stream-State:
+ONLINE (Override)
+
+Quelle:
+manual_override
+
+Echte Quellen:
+OBS NEIN
+Twitch /streams NEIN
+Twitch Search NEIN
+Stream Status NEIN
+```
+
+## Noch nicht real getestet
+
+```text
+Echter OBS-Streamstart:
+OBS StreamStarted
+→ pending
+→ Twitch /streams bestätigt
+→ live
+→ echte streamId
+→ stabile streamDayId
+→ AutoShoutout nutzt diese Session
+```
+
+Dieser Test ist erst beim nächsten echten Streamstart möglich.
+
+## Aktueller Status
+
+```text
+SO / AutoSO / Live: intern abgeschlossen.
+Nächster Real-Test: nächster echter Streamstart.
+Keine akuten Codeänderungen offen.
+```
+
+## Wichtige Projektregeln
 
 ```text
 Keine Funktionalität entfernen.
-Bestehende echte Dateien/GitHub-dev als Single Source of Truth verwenden.
-SQLite-Datenbank niemals ersetzen oder überschreiben.
-Änderungen immer mit echten Zielpfaden im ZIP liefern.
-Bei Dashboard-Anzeigen zuerst prüfen, welche Datei die sichtbare Ansicht rendert.
+SQLite-Datenbank niemals überschreiben/ersetzen.
+GitHub/dev und echte Dateien als Single Source of Truth verwenden.
+ZIPs immer mit echten Zielpfaden liefern.
+Bei neuem STEP StepDone ausführen.
+Bei Dashboard-Arbeiten zuerst prüfen, welche Datei die sichtbare Ansicht rendert.
 ```

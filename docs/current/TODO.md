@@ -1,45 +1,81 @@
 # TODO – stream-control-center
 
-Stand: 2026-06-12
+Stand: 2026-06-14
 
 ## Erledigt / bestätigt
 
 - [x] CAN44.27 AutoShoutout an Communication Bus angebunden.
 - [x] CAN44.28 AutoShoutout-Bus-Capability korrigiert.
 - [x] CAN44.29 AutoShoutout-Subscriber im Loyalty-Stil umgesetzt und live bestätigt.
-- [x] AutoShoutout-Buspfad live getestet: `autoBusReceived`, `autoBusDelivered`, `autoTriggered` steigen; `autoBusErrors` bleibt 0.
-- [x] `forrestcgn`-Testeintrag per `clear-target` erfolgreich bereinigt.
-- [x] Fehlerursache der alten Dashboard-Anzeige gefunden: sichtbare AutoShoutout-Karte kommt aus `shoutout_v2.js`, nicht aus `auto_shoutout.js`.
-- [x] CAN44.30 kompakte AutoShoutout-Aktivitätsliste in `auto_shoutout.js` vorbereitet.
-- [x] CAN44.31 Bridge/Patch für ShoutoutV2-Aktivitätskarte vorbereitet.
-- [x] Doku/TODO/NEXT_STEPS/FILES/CURRENT_STATUS/CHANGELOG für CAN44.31 aktualisiert.
+- [x] CAN44.30/CAN44.31 AutoShoutout-Aktivitätsanzeige/Bridge dokumentiert.
+- [x] CAN44.32 AutoShoutout StreamDay Reliability umgesetzt.
+- [x] CAN44.33 AutoShoutout Settings Truth Fix umgesetzt.
+- [x] CAN44.35 twitch_events als zentraler Stream-State-Provider umgesetzt.
+- [x] CAN44.36 AutoShoutout als Consumer für twitch.stream.online/offline angebunden.
+- [x] CAN44.37 StreamSession/StreamDay-Authority umgesetzt.
+- [x] CAN44.38 Bandbreitentest-/Override-Cleanup umgesetzt.
+- [x] CAN44.39 Pending Event Guard umgesetzt.
+- [x] CAN44.40 Dashboard Override Controls umgesetzt.
+- [x] CAN44.41 Manual Override Lock Fix umgesetzt.
+- [x] CAN44.42 Dashboard Effective Stream State Display umgesetzt.
+- [x] Manual Override confirmed-online getestet: `status=live`, `live=True`, `provider=manual_override`, `lastEventKey=twitch.stream.online`.
+- [x] Bandbreitentest getestet: kein Streamtag, kein `twitch.stream.online`, kein `twitch.stream.offline`.
+- [x] Pending getestet: StreamSession/streamDayId wird vorbereitet, aber kein Online/Offline-Event.
+- [x] AutoShoutout empfängt twitch.stream.online/offline über Communication Bus.
+- [x] Dashboard trennt effektiven Stream-State und echte Quellen sichtbar.
 
-## Offen / als Nächstes
+## Offen / nächster echter Test
 
-- [ ] CAN44.31 Dateien live prüfen: `window.AutoShoutoutV2ActivityPatch?.build` muss `CAN44.31_AUTOSO_V2_ACTIVITY_MODAL_BRIDGE` liefern.
-- [ ] Dashboard Community → Shoutout → AutoShoutout prüfen: Aktivitätsliste muss Zeit/Streamer/Status/Info anzeigen.
-- [ ] Info-Modal testen: Öffnen, Schließen, ESC, Rohdaten aufklappen.
-- [ ] Eingetragenen Auto-Streamer mit `!lurk` testen.
-- [ ] Prüfen, dass `autoBusErrors` bei 0 bleibt.
-- [ ] Testweise eingetragenes `forrestcgn` aus AutoShoutout-Streamer-Liste entfernen/deaktivieren.
-- [ ] Test-Events für `forrestcgn` bei Bedarf per `clear-target` bereinigen.
-- [ ] CAN44.31 in GitHub/dev übernehmen/committen.
-- [ ] `stepdone.cmd "CAN44.31 AutoShoutout V2 Activity Bridge"` ausführen, wenn live bestätigt.
+- [ ] Beim nächsten echten Streamstart prüfen:
+  - [ ] OBS startet → Status `pending`.
+  - [ ] Twitch bestätigt → Status `live`.
+  - [ ] `streamSession.twitchConfirmed = true`.
+  - [ ] `streamDayId` bleibt stabil.
+  - [ ] `streamDateLabel` bleibt Startdatum, auch über 00:00.
+  - [ ] `twitch.stream.online` wird genau einmal gesendet.
+  - [ ] AutoShoutout empfängt `twitch.stream.online`.
+- [ ] Bei echtem Streamende prüfen:
+  - [ ] OBS StreamStopped → `ending`/Grace.
+  - [ ] danach `twitch.stream.offline`.
+  - [ ] Session wird nach Grace geschlossen.
+- [ ] Bei kurzem OBS/Internet-Abbruch im Stream beobachten:
+  - [ ] kein neuer StreamDay.
+  - [ ] Session geht in reconnect/grace.
+  - [ ] Resume bleibt dieselbe Session.
+
+## Nach dem nächsten echten Streamstart optional
+
+- [ ] AutoShoutout mit eingetragenem echten Auto-Streamer testen.
+- [ ] Prüfen, ob `storeSkippedEvents` bei AutoShoutout sinnvolle Gründe loggt.
+- [ ] Prüfen, ob Test-User `forrestcgn` als AutoShoutout-Streamer noch entfernt/deaktiviert werden soll.
+- [ ] Alte Diagnose-/Testevents bei Bedarf bereinigen.
 
 ## Später / Verbesserungen
 
-- [ ] Bridge-Logik optional direkt in `shoutout_v2.js` integrieren.
-- [ ] AutoShoutout-Aktivitätsstatus weiter eindeutschen.
-- [ ] Activity-Modal um Copy-JSON-Button ergänzen.
-- [ ] ShoutoutV2-Diagnose um Bus-Subscriber-Status ergänzen.
-- [ ] AutoShoutout-Streamer-Verwaltung optisch an restliche ShoutoutV2-Tabellen angleichen.
-- [ ] Prüfen, ob `auto_shoutout.js` langfristig noch eigenständig gebraucht wird oder nur als Patch-/Bridge-Modul dient.
+- [ ] Manual Override Clear: optional auch `status`, `forceConfirmed`, `streamId` im `manualOverride`-Objekt vollständig leeren.
+- [ ] Dashboard: Optional Button/Anzeige für „echte Quellen aktualisieren“ im Override-Zustand deutlicher machen.
+- [ ] StreamSession-Events optional erweitern:
+  - `twitch.stream.session.pending`
+  - `twitch.stream.session.confirmed`
+  - `twitch.stream.session.grace`
+  - `twitch.stream.session.resumed`
+  - `twitch.stream.session.ended`
+- [ ] Weitere Module an zentralen StreamState anbinden:
+  - Alerts
+  - Giveaways/Loyalty
+  - Tagebuch
+  - Clips
+  - VIP30/Channelpoints live-only Regeln
+- [ ] Prüfen, ob OBS Bandbreitentestmodus über OBS-WebSocket-Service-Settings sicher auslesbar ist.
+- [ ] ShoutoutV2-Diagnose optional um StreamSession-/AutoShoutout-Consumer-Status erweitern.
 
 ## Nicht wieder einführen
 
-- [ ] Capability `twitch.chat.message.consumer` für AutoShoutout-Bus-Subscription.
-- [ ] Direkte AutoShoutout-Fachlogik in `twitch_presence.js`.
-- [ ] Stumpfe Aktivitätsanzeige `triggered · triggered` ohne Streamer/Zeit/Info.
-- [ ] Änderungen an Dashboard-Dateien ohne vorher zu prüfen, welche Datei die sichtbare Ansicht rendert.
+- [ ] Kalendertag als alleinige StreamDay-Wahrheit.
+- [ ] Fallback-StreamDay in AutoShoutout, wenn zentraler StreamState klar offline/pending/bandwidth_test ist.
+- [ ] `twitch.stream.offline` aus `pending` senden.
+- [ ] Bandbreitentest als echten Stream behandeln.
+- [ ] Alte JSON-AutoShoutout-Config als aktive Wahrheit anzeigen.
+- [ ] Direct-Fachlogik in `twitch_presence.js`.
 - [ ] SQLite-Datenbank ersetzen/neu bauen.
-- [ ] Funktionalität entfernen, nur um eine UI-Anzeige zu vereinfachen.
+- [ ] Funktionalität entfernen, um eine Anzeige zu vereinfachen.

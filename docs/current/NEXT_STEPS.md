@@ -1,145 +1,176 @@
 # NEXT_STEPS – stream-control-center
 
-Stand: 2026-06-12
+Stand: 2026-06-14
 
-## Nach CAN44.31
+## Aktueller Stand nach CAN44.42
 
-Der AutoShoutout-Buspfad ist live bestätigt. Die sichtbare AutoShoutout-Aktivitätsanzeige im ShoutoutV2-Dashboard wurde als Bridge/Patch über `auto_shoutout.js` vorbereitet.
+```text
+SO / AutoSO / Live-Status sind intern durchgetestet.
+CAN44.42 ist der aktuelle stabile Arbeitsstand.
+```
 
-## Direkt sinnvoll
+## Direkt beim nächsten echten Streamstart testen
 
-### 1. CAN44.31 live einspielen und prüfen
+### 1. Vor Streamstart
 
 ```powershell
-Copy-Item -Force `
-  "D:\Git\stream-control-center\htdocs\dashboard\modules\auto_shoutout.js" `
-  "D:\Streaming\stramAssets\htdocs\dashboard\modules\auto_shoutout.js"
-
-Copy-Item -Force `
-  "D:\Git\stream-control-center\htdocs\dashboard\modules\auto_shoutout.css" `
-  "D:\Streaming\stramAssets\htdocs\dashboard\modules\auto_shoutout.css"
-
-node -c "D:\Streaming\stramAssets\htdocs\dashboard\modules\auto_shoutout.js"
+$t = Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/status"
+$t.diagnostics.streamState.status
+$t.diagnostics.streamState.live
+$t.diagnostics.streamState.streamSession | ConvertTo-Json -Depth 10
+$t.diagnostics.streamState.counters
 ```
 
-Browser prüfen:
-
-```javascript
-window.AutoShoutoutV2ActivityPatch?.build
-// Erwartung: CAN44.31_AUTOSO_V2_ACTIVITY_MODAL_BRIDGE
-```
-
-### 2. ShoutoutV2-AutoShoutout-Karte prüfen
+Erwartung:
 
 ```text
-Dashboard öffnen
-Community → Shoutout → AutoShoutout
-Karte „Letzte AutoShoutout-Aktivität“ prüfen
-Erwartung: kompakte Tabelle Zeit / Streamer / Status / Info
-Info-Button öffnet Detailfenster
-ESC oder Schließen schließt Detailfenster
+status = offline
+live = False
+streamSession.active = false
+streamDayId = ""
 ```
 
-### 3. AutoShoutout erneut mit echtem Auto-Streamer testen
+### 2. OBS Stream starten
+
+Nach 5–10 Sekunden:
+
+```powershell
+$t = Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/stream-state?refresh=1"
+$t.streamState.status
+$t.streamState.live
+$t.streamState.sources
+$t.streamState.streamSession | ConvertTo-Json -Depth 10
+$t.streamState.counters
+```
+
+Erlaubte gute Zustände:
 
 ```text
-Eingetragener Auto-Streamer schreibt !lurk
-Danach prüfen:
-- AutoShoutout wird eingereiht
-- autoBusReceived steigt
-- autoBusDelivered steigt
-- autoBusErrors bleibt 0
-- Activity-Liste zeigt sinnvollen Kurzstatus
+pending
+→ OBS sendet, Twitch hat noch nicht bestätigt
+
+live
+→ Twitch hat bestätigt
 ```
 
-PowerShell-Prüfung:
+### 3. Twitch-Bestätigung prüfen
+
+Nach 30–60 Sekunden:
+
+```powershell
+$t = Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/stream-state?refresh=1"
+$t.streamState.status
+$t.streamState.live
+$t.streamState.streamId
+$t.streamState.streamDayId
+$t.streamState.streamSession | ConvertTo-Json -Depth 10
+$t.streamState.lastEventKey
+$t.streamState.counters
+```
+
+Erwartung bei echtem Live:
+
+```text
+status = live
+live = True
+streamSession.twitchConfirmed = true
+streamDayId vorhanden und stabil
+lastEventKey = twitch.stream.online
+onlineEmitted = 1
+```
+
+### 4. AutoShoutout Consumer prüfen
 
 ```powershell
 $s = Invoke-RestMethod "http://127.0.0.1:8080/api/clip-shoutout/status"
-$s.autoShoutout.state.busSubscriber
-$s.state.stats | Select-Object autoBusReceived,autoBusDelivered,autoBusErrors,autoTriggered,autoSkipped
-$s.autoShoutout.recentEvents | Select-Object -First 5 target_login,trigger_login,status,reason,display_queue_id,created_at
+$s.moduleVersion
+$s.autoShoutout.state.streamState
+$s.autoShoutout.state.streamBusSubscriber
 ```
 
-### 4. Testdaten aufräumen
-
-Falls ForrestCGN nur testweise als Auto-Streamer eingetragen war:
+Erwartung:
 
 ```text
-forrestcgn aus AutoShoutout-Streamern entfernen/deaktivieren
-Test-Events für forrestcgn bei Bedarf per clear-target entfernen
+clip_shoutout = 0.2.49
+streamBusSubscriber.installed = True
+streamState.eventKey = twitch.stream.online
+streamState.streamDayId vorhanden
 ```
 
-Clear-Target:
+## Beim echten Streamende prüfen
+
+```powershell
+$t = Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/stream-state?refresh=1"
+$t.streamState.status
+$t.streamState.live
+$t.streamState.streamSession | ConvertTo-Json -Depth 10
+$t.streamState.lastEventKey
+$t.streamState.counters
+```
+
+Erwartung:
+
+```text
+OBS bewusst gestoppt
+→ status ending/grace
+→ danach closed
+→ twitch.stream.offline genau einmal
+```
+
+## Dashboard-Test
+
+```text
+Dashboard → Live-Status Monitor
+```
+
+Prüfen:
+
+```text
+- Stream-State Override Bereich sichtbar.
+- Online bestätigt simulieren zeigt oben Override live.
+- Effektiver Stream-State zeigt ONLINE (Override).
+- Echte Quellen bleiben getrennt sichtbar.
+- Override löschen geht zurück zu echten Quellen.
+```
+
+## Optionaler interner Test ohne echten Stream
+
+Confirmed Online:
 
 ```powershell
 Invoke-RestMethod `
   -Method POST `
-  -Uri "http://127.0.0.1:8080/api/clip-shoutout/auto/clear-target" `
+  -Uri "http://127.0.0.1:8080/api/twitch/events/stream-state/override" `
   -ContentType "application/json" `
-  -Body '{"login":"forrestcgn","mode":"today","reason":"test_cleanup_after_can44_31"}' |
-  ConvertTo-Json -Depth 8
+  -Body '{"live":true,"status":"live","confirmed":true,"forceConfirmed":true,"streamId":"manual_dashboard_test","reason":"manual_confirmed_test","ttlMs":600000}' |
+  ConvertTo-Json -Depth 10
+```
+
+Clear:
+
+```powershell
+Invoke-RestMethod `
+  -Method POST `
+  -Uri "http://127.0.0.1:8080/api/twitch/events/stream-state/clear-override" `
+  -ContentType "application/json" `
+  -Body '{"reason":"manual_override_test_done"}' |
+  ConvertTo-Json -Depth 10
 ```
 
 ## Danach sinnvoll
 
-### 5. CAN44.31 in GitHub/dev übernehmen
-
 ```text
-Änderungen aus Live/Repo vergleichen
-auto_shoutout.js und auto_shoutout.css committen
-Doku-Dateien aus diesem Paket einspielen
-StepDone ausführen
+1. Nach echtem Streamstart/Ende Ergebnisse dokumentieren.
+2. Falls stabil: CAN44.42 als finalen stabilen Shoutout/AutoSO/Live-Stand markieren.
+3. Nächstes Modul an StreamState anbinden, z. B. Tagebuch oder Alerts.
 ```
 
-### 6. ShoutoutV2 langfristig sauber integrieren
-
-Die Bridge ist pragmatisch und vermeidet Eingriffe in `shoutout_v2.js`. Später kann die kompakte Activity-Logik direkt in `shoutout_v2.js` integriert werden.
-
-Vorher prüfen:
+## Nicht jetzt nötig
 
 ```text
-Welche Module laden ShoutoutV2?
-Welche Tabs werden von shoutout_v2.js gerendert?
-Gibt es noch alte auto_shoutout.js-Reste, die nicht sichtbar genutzt werden?
-```
-
-## Später
-
-```text
-AutoShoutout-Textvarianten im zentralen Texteditor weiter glätten
-ShoutoutV2-Diagnose um Bus-Subscriber-Status ergänzen
-Activity-Modal optional mit Copy-JSON-Button erweitern
-AutoShoutout-Streamer-Verwaltung optisch weiter vereinheitlichen
-Bridge später durch direkte ShoutoutV2-Implementierung ersetzen
-```
-
-## Nicht sofort nötig
-
-```text
+Großer Refactor
 Neue DB-Migrationen
-Umbau des Communication Bus
-Umbau von twitch_events.js
-Entfernung des Direct-Wrapper-Fallbacks in clip_shoutout.js
-Großer ShoutoutV2-Refactor
-```
-
-## Prüfroutine bei weiteren Shoutout-Änderungen
-
-```powershell
-node -c .\backend\modules\clip_shoutout.js
-node -c .\backend\modules\twitch_events.js
-node -c .\htdocs\dashboard\modules\shoutout_v2.js
-node -c .\htdocs\dashboard\modules\auto_shoutout.js
-```
-
-Browser:
-
-```text
-/dashboard
-Community → Shoutout → AutoShoutout
-Console ohne Fehler?
-window.AutoShoutoutV2ActivityPatch?.build korrekt?
-Activity-Liste kompakt?
-Info-Modal öffnet?
+Umbau Communication Bus
+Entfernen bestehender Fallbacks
+Umbau ShoutoutV2
 ```
