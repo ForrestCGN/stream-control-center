@@ -27,8 +27,8 @@ const axios = require('axios');
 const WebSocket = require('ws');
 
 const MODULE_NAME = 'twitch_events';
-const MODULE_VERSION = '0.1.9';
-const MODULE_BUILD = 'CAN44.37_STREAM_SESSION_AUTHORITY';
+const MODULE_VERSION = '0.1.10';
+const MODULE_BUILD = 'CAN44.38_STREAM_SESSION_CLEANUP';
 const MODULE_ID = `module:${MODULE_NAME}`;
 const MODULE_STARTED_AT = nowIso();
 
@@ -484,7 +484,8 @@ const state = {
       sessionGrace: 0,
       sessionResumed: 0,
       sessionEnded: 0,
-      sessionWarnings: 0
+      sessionWarnings: 0,
+      bandwidthTestDetected: 0
     },
     manualOverride: {
       active: false,
@@ -1547,6 +1548,42 @@ function publicStreamSession(session) {
   };
 }
 
+function makeOfflineStreamSession(now = nowIso()) {
+  return {
+    active: false,
+    status: 'offline',
+    streamSessionId: '',
+    streamDayId: '',
+    calendarDay: '',
+    streamDateLabel: '',
+    startedAt: '',
+    confirmedAt: '',
+    lastSeenAt: now,
+    graceStartedAt: '',
+    graceUntil: '',
+    endedAt: '',
+    closedAt: '',
+    closedReason: '',
+    source: '',
+    confidence: 'unknown',
+    twitchStreamId: '',
+    obsStarted: false,
+    twitchConfirmed: false,
+    bandwidthTest: false,
+    pendingWarningAt: '',
+    meta: {}
+  };
+}
+
+function isBandwidthTestState(normalized) {
+  return !!(normalized && (normalized.bandwidthTest === true || cleanString(normalized.sessionStatus || normalized.status || '').toLowerCase() === 'bandwidth_test'));
+}
+
+function shouldPublishStreamStateTransition(normalized, previousKnown, previousLive, changed, options = {}) {
+  if (isBandwidthTestState(normalized) && previousLive !== true) return false;
+  return changed || options.forcePublish === true;
+}
+
 function isAuthoritySessionActive(session) {
   return !!(session && session.active === true && ['pending', 'pending_warning', 'live', 'degraded', 'grace', 'reconnect', 'ending'].includes(String(session.status || '')));
 }
@@ -1643,7 +1680,9 @@ function applyStreamSessionAuthority(normalized, options = {}) {
   let sessionEventReason = options.reason || 'stream_session_update';
 
   if (bandwidth.detected) {
+    state.streamState.counters.bandwidthTestDetected += 1;
     normalized.live = false;
+    normalized.bandwidthTest = true;
     normalized.sessionStatus = 'bandwidth_test';
     normalized.confidence = 'bandwidth_test';
     normalized.streamSessionId = '';
@@ -1699,7 +1738,8 @@ function applyStreamSessionAuthority(normalized, options = {}) {
       normalized.sessionStatus = 'offline';
       normalized.streamSessionId = '';
       normalized.streamDayId = '';
-      state.streamState.streamSession = { ...session, active: false, status: 'offline', lastSeenAt: now };
+      state.streamState.streamSession = makeOfflineStreamSession(now);
+      normalized.streamSession = publicStreamSession(state.streamState.streamSession);
       return normalized;
     }
   } else {
@@ -1907,7 +1947,7 @@ function updateStreamState(normalized, options = {}) {
   state.streamState.lastError = '';
   state.streamState.warnings = Array.isArray(normalized.warnings) ? normalized.warnings : [];
   if (changed) state.streamState.lastChangedAt = now;
-  if (changed || options.forcePublish === true) {
+  if (shouldPublishStreamStateTransition(normalized, previousKnown, previousLive, changed, options)) {
     publishStreamStateTransition(normalized, previousKnown ? previousLive : !normalized.live, options.reason || (changed ? 'live_state_changed' : 'manual_publish'));
   }
   state.updatedAt = nowIso();
@@ -2019,6 +2059,16 @@ async function clearStreamStateOverride(options = {}) {
   state.streamState.manualOverride.setAt = '';
   state.streamState.manualOverride.expiresAt = '';
   state.streamState.manualOverride.reason = cleanString(options.reason || 'clear_override');
+  const currentSession = state.streamState.streamSession || {};
+  if (currentSession.bandwidthTest === true || cleanString(currentSession.status || '').toLowerCase() === 'bandwidth_test') {
+    state.streamState.streamSession = makeOfflineStreamSession(nowIso());
+    state.streamState.streamSessionId = '';
+    state.streamState.streamDayId = '';
+    state.streamState.sessionStatus = 'offline';
+    state.streamState.status = 'offline';
+    state.streamState.bandwidthTest = false;
+    state.streamState.bandwidthTestKey = '';
+  }
   state.streamState.counters.overrideCleared += 1;
   return refreshStreamState({ reason: options.reason || 'clear_override', forcePublish: false });
 }
