@@ -11,8 +11,8 @@ let communicationBus = null;
 try { communicationBus = require("./communication_bus"); } catch (_) { communicationBus = null; }
 
 const MODULE_NAME = "stream_status";
-const MODULE_VERSION = "0.1.3";
-const MODULE_BUILD = "CAN44.34_STREAM_BUS_EVENTS";
+const MODULE_VERSION = "0.1.4";
+const MODULE_BUILD = "CAN44.35_STREAM_STATE_SOURCE_ONLY";
 const API_PREFIX = "/api/stream-status";
 const MODULE_META = {
   name: MODULE_NAME,
@@ -22,7 +22,7 @@ const MODULE_META = {
   category: "stream",
   description: "Central stream live/session status and refresh routes.",
   routesPrefix: [API_PREFIX],
-  bus: { registered: false, heartbeat: false, emits: ["twitch.stream.online", "twitch.stream.offline"], listens: [] },
+  bus: { registered: false, heartbeat: false, emits: [], listens: [] },
   legacy: false
 };
 
@@ -48,7 +48,9 @@ const state = {
   autoRefreshRunning: false,
   autoRefreshTimer: null,
   streamBus: {
-    enabled: true,
+    enabled: false,
+    owner: "twitch_events",
+    note: "CAN44.35: twitch.stream.online/offline are emitted by twitch_events stream-state provider. stream_status is source-only.",
     emitted: 0,
     errors: 0,
     lastEventAt: "",
@@ -256,13 +258,8 @@ function emitStreamBusEvent(status, previousStatus, action, reason) {
 }
 
 function maybeEmitStreamTransition(status, previousStatus) {
-  if (!status || !previousStatus) return null;
-  if (previousStatus.live === true && status.live !== true) {
-    return emitStreamBusEvent(status, previousStatus, "offline", "live_to_offline");
-  }
-  if (previousStatus.live !== true && status.live === true) {
-    return emitStreamBusEvent(status, previousStatus, "online", "offline_to_live");
-  }
+  state.streamBus.lastReason = "source_only_twitch_events_owner";
+  state.streamBus.lastError = "";
   return null;
 }
 

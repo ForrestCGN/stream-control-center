@@ -27,8 +27,8 @@ const axios = require('axios');
 const WebSocket = require('ws');
 
 const MODULE_NAME = 'twitch_events';
-const MODULE_VERSION = '0.1.7';
-const MODULE_BUILD = 'BUS_TWITCH_14_CHANNELPOINTS_PARALLEL_EMIT';
+const MODULE_VERSION = '0.1.8';
+const MODULE_BUILD = 'CAN44.35_STREAM_STATE_PROVIDER';
 const MODULE_ID = `module:${MODULE_NAME}`;
 const MODULE_STARTED_AT = nowIso();
 
@@ -390,6 +390,63 @@ const state = {
       websocketErrors: 0,
       reconnects: 0
     }
+  },
+  streamState: {
+    enabled: true,
+    provider: 'live_status_monitor',
+    sourceUrl: '',
+    fallbackUrl: '',
+    pollIntervalMs: 30000,
+    initialized: false,
+    known: false,
+    live: false,
+    previousLive: null,
+    source: 'unknown',
+    sourceSummary: '',
+    confidence: 'unknown',
+    eventSubRequired: false,
+    broadcasterLogin: '',
+    streamId: '',
+    startedAt: '',
+    title: '',
+    gameName: '',
+    viewerCount: 0,
+    streamSessionId: '',
+    streamDayId: '',
+    sessionStatus: '',
+    restartGraceUntil: '',
+    obsStreaming: false,
+    twitchStreamsLive: false,
+    twitchSearchLive: false,
+    streamStatusLive: false,
+    eventSubLive: 'unknown',
+    lastCheckedAt: '',
+    lastChangedAt: '',
+    lastPublishedAt: '',
+    lastEventKey: '',
+    lastEventId: '',
+    lastAction: '',
+    lastReason: '',
+    lastRefreshReason: '',
+    lastError: '',
+    warnings: [],
+    counters: {
+      refreshes: 0,
+      transitions: 0,
+      onlineEmitted: 0,
+      offlineEmitted: 0,
+      overrideSet: 0,
+      overrideCleared: 0,
+      errors: 0
+    },
+    manualOverride: {
+      active: false,
+      live: false,
+      setAt: '',
+      expiresAt: '',
+      reason: '',
+      source: 'manual_override'
+    }
   }
 };
 
@@ -397,6 +454,7 @@ let bus = null;
 let twitchCore = null;
 let eventSubChatWs = null;
 let eventSubChatReconnectTimer = null;
+let streamStateTimer = null;
 const chatDedupeCache = new Map();
 
 function getTwitchCore() {
@@ -425,6 +483,8 @@ module.exports.handleIrcEvent = handleIrcEvent;
 module.exports.handleEventSubNotification = handleEventSubNotification;
 module.exports.handleEventSubLifecycle = handleEventSubLifecycle;
 module.exports.handleRedemptionLifecycleEvent = handleRedemptionLifecycleEvent;
+module.exports.getStreamState = getStreamState;
+module.exports.refreshStreamState = refreshStreamState;
 
 module.exports.init = function init(ctx = {}) {
   const app = ctx.app;
@@ -464,6 +524,49 @@ module.exports.init = function init(ctx = {}) {
     registered.push(...routes.registerGet(app, ['/api/twitch/events/status', '/twitch/events/status'], (req, res) => {
       res.json(getStatus());
     }));
+
+    const streamStateRoute = async (req, res) => {
+      try {
+        const refresh = /^1|true|yes|on$/i.test(String((req.query && req.query.refresh) || ''));
+        const data = refresh ? await refreshStreamState({ reason: 'route_refresh', forcePublish: false }) : getStreamState();
+        res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, streamState: data });
+      } catch (err) {
+        res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: err && err.message ? err.message : String(err), streamState: getStreamState() });
+      }
+    };
+    registered.push(...routes.registerGet(app, ['/api/twitch/events/stream-state', '/twitch/events/stream-state'], streamStateRoute));
+
+    const overrideStreamStateRoute = async (req, res) => {
+      try {
+        const body = req.body || {};
+        const rawLive = firstValue(body.live, req.query && req.query.live, body.online, req.query && req.query.online, '');
+        const parsedLive = parseLiveOverrideValue(rawLive);
+        if (parsedLive === null) {
+          res.status(400).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: 'live_required_boolean' });
+          return;
+        }
+        const ttlMs = Math.max(0, Number(firstValue(body.ttlMs, req.query && req.query.ttlMs, 600000)) || 600000);
+        const reason = cleanString(firstValue(body.reason, req.query && req.query.reason, 'manual_override'), 'manual_override');
+        const data = await setStreamStateOverride(parsedLive, { reason, ttlMs });
+        res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, streamState: data });
+      } catch (err) {
+        res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: err && err.message ? err.message : String(err), streamState: getStreamState() });
+      }
+    };
+    registered.push(...routes.registerPost(app, ['/api/twitch/events/stream-state/override', '/twitch/events/stream-state/override'], overrideStreamStateRoute));
+    registered.push(...routes.registerGet(app, ['/api/twitch/events/stream-state/override', '/twitch/events/stream-state/override'], overrideStreamStateRoute));
+
+    const clearStreamStateOverrideRoute = async (req, res) => {
+      try {
+        const reason = cleanString(firstValue(req.body && req.body.reason, req.query && req.query.reason, 'clear_override'), 'clear_override');
+        const data = await clearStreamStateOverride({ reason });
+        res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, streamState: data });
+      } catch (err) {
+        res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: err && err.message ? err.message : String(err), streamState: getStreamState() });
+      }
+    };
+    registered.push(...routes.registerPost(app, ['/api/twitch/events/stream-state/clear-override', '/twitch/events/stream-state/clear-override'], clearStreamStateOverrideRoute));
+    registered.push(...routes.registerGet(app, ['/api/twitch/events/stream-state/clear-override', '/twitch/events/stream-state/clear-override'], clearStreamStateOverrideRoute));
     registered.push(...routes.registerGet(app, ['/api/twitch/events/catalog', '/twitch/events/catalog'], (req, res) => {
       res.json({
         ok: true,
@@ -1120,10 +1223,403 @@ function setError(err, fallback = 'unknown_error') {
   return state.lastError;
 }
 
+function streamStateConfig() {
+  const env = state.env || process.env || {};
+  return {
+    enabled: boolEnv('TWITCH_EVENTS_STREAM_STATE_PROVIDER_ENABLED', true),
+    sourceUrl: cleanString(env.TWITCH_EVENTS_STREAM_STATE_SOURCE_URL || 'http://127.0.0.1:8080/api/live-status-monitor/status?raw=1'),
+    fallbackUrl: cleanString(env.TWITCH_EVENTS_STREAM_STATE_FALLBACK_URL || 'http://127.0.0.1:8080/api/stream-status/status?forceApi=1'),
+    pollIntervalMs: Math.max(5000, Number(env.TWITCH_EVENTS_STREAM_STATE_POLL_MS || 30000) || 30000),
+    requestTimeoutMs: Math.max(1000, Number(env.TWITCH_EVENTS_STREAM_STATE_TIMEOUT_MS || 5000) || 5000),
+    overrideDefaultTtlMs: Math.max(0, Number(env.TWITCH_EVENTS_STREAM_STATE_OVERRIDE_TTL_MS || 600000) || 600000)
+  };
+}
+
+function parseLiveOverrideValue(value) {
+  if (value === true || value === false) return value;
+  const raw = String(value ?? '').trim().toLowerCase();
+  if (['1', 'true', 'yes', 'ja', 'on', 'online', 'live'].includes(raw)) return true;
+  if (['0', 'false', 'no', 'nein', 'off', 'offline'].includes(raw)) return false;
+  return null;
+}
+
+function isManualOverrideActive() {
+  const override = state.streamState.manualOverride || {};
+  if (override.active !== true) return false;
+  const expiresMs = Date.parse(String(override.expiresAt || ''));
+  if (Number.isFinite(expiresMs) && expiresMs > 0 && expiresMs <= Date.now()) {
+    override.active = false;
+    state.streamState.manualOverride = override;
+    return false;
+  }
+  return true;
+}
+
+function publicManualOverride() {
+  const override = state.streamState.manualOverride || {};
+  return {
+    active: isManualOverrideActive(),
+    live: override.live === true,
+    setAt: cleanString(override.setAt || ''),
+    expiresAt: cleanString(override.expiresAt || ''),
+    reason: cleanString(override.reason || ''),
+    source: cleanString(override.source || 'manual_override')
+  };
+}
+
+function getStreamState() {
+  const cfg = streamStateConfig();
+  return {
+    schemaVersion: 1,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    enabled: cfg.enabled === true,
+    provider: state.streamState.provider,
+    sourceUrl: state.streamState.sourceUrl || cfg.sourceUrl,
+    fallbackUrl: state.streamState.fallbackUrl || cfg.fallbackUrl,
+    pollIntervalMs: state.streamState.pollIntervalMs || cfg.pollIntervalMs,
+    initialized: state.streamState.initialized === true,
+    known: state.streamState.known === true,
+    live: state.streamState.live === true,
+    previousLive: state.streamState.previousLive,
+    source: state.streamState.source,
+    sourceSummary: state.streamState.sourceSummary,
+    confidence: state.streamState.confidence,
+    eventSubRequired: false,
+    broadcasterLogin: state.streamState.broadcasterLogin,
+    streamId: state.streamState.streamId,
+    startedAt: state.streamState.startedAt,
+    title: state.streamState.title,
+    gameName: state.streamState.gameName,
+    viewerCount: state.streamState.viewerCount,
+    streamSessionId: state.streamState.streamSessionId,
+    streamDayId: state.streamState.streamDayId,
+    sessionStatus: state.streamState.sessionStatus,
+    restartGraceUntil: state.streamState.restartGraceUntil,
+    sources: {
+      obsStreaming: state.streamState.obsStreaming === true,
+      twitchStreamsLive: state.streamState.twitchStreamsLive === true,
+      twitchSearchLive: state.streamState.twitchSearchLive === true,
+      streamStatusLive: state.streamState.streamStatusLive === true,
+      eventSubLive: state.streamState.eventSubLive
+    },
+    lastCheckedAt: state.streamState.lastCheckedAt,
+    lastChangedAt: state.streamState.lastChangedAt,
+    lastPublishedAt: state.streamState.lastPublishedAt,
+    lastEventKey: state.streamState.lastEventKey,
+    lastEventId: state.streamState.lastEventId,
+    lastAction: state.streamState.lastAction,
+    lastReason: state.streamState.lastReason,
+    lastRefreshReason: state.streamState.lastRefreshReason,
+    lastError: state.streamState.lastError,
+    warnings: Array.isArray(state.streamState.warnings) ? state.streamState.warnings : [],
+    manualOverride: publicManualOverride(),
+    counters: safeJson(state.streamState.counters, {}),
+    routes: {
+      status: '/api/twitch/events/stream-state',
+      refresh: '/api/twitch/events/stream-state?refresh=1',
+      override: '/api/twitch/events/stream-state/override',
+      clearOverride: '/api/twitch/events/stream-state/clear-override'
+    }
+  };
+}
+
+function responseData(response) {
+  return response && response.data && typeof response.data === 'object' ? response.data : {};
+}
+
+async function fetchJsonForStreamState(url, timeoutMs) {
+  const cleanUrl = cleanString(url || '');
+  if (!cleanUrl) throw new Error('stream_state_url_missing');
+  const response = await axios.get(cleanUrl, { timeout: Math.max(1000, Number(timeoutMs || 5000) || 5000) });
+  return responseData(response);
+}
+
+function normalizeStreamStateFromMonitor(payload) {
+  const d = payload && payload.decision ? payload.decision : {};
+  const parsed = payload && payload.parsed ? payload.parsed : {};
+  const sources = payload && payload.sources ? payload.sources : {};
+  const streamStatusRaw = sources && sources.streamStatus && sources.streamStatus.data ? sources.streamStatus.data : {};
+  const eventSubLive = d.eventSubLive || (parsed.eventSub && parsed.eventSub.live) || 'unknown';
+  return {
+    provider: 'live_status_monitor',
+    known: payload && payload.ok === true,
+    live: d.effectiveLive === true,
+    source: 'live_status_monitor',
+    sourceSummary: cleanString(d.sourceSummary || 'none'),
+    confidence: cleanString(d.confidence || 'unknown'),
+    broadcasterLogin: cleanString(payload && payload.broadcasterLogin || streamStatusRaw.broadcasterLogin || ''),
+    streamId: cleanString(d.streamId || streamStatusRaw.streamId || ''),
+    startedAt: cleanString(streamStatusRaw.startedAt || ''),
+    title: cleanString(d.title || streamStatusRaw.title || ''),
+    gameName: cleanString(d.gameName || streamStatusRaw.gameName || ''),
+    viewerCount: Number(streamStatusRaw.viewerCount || 0) || 0,
+    streamSessionId: cleanString(streamStatusRaw.streamSessionId || ''),
+    streamDayId: cleanString(streamStatusRaw.streamDayId || ''),
+    sessionStatus: cleanString(streamStatusRaw.sessionStatus || ''),
+    restartGraceUntil: cleanString(streamStatusRaw.restartGraceUntil || ''),
+    obsStreaming: d.obsStreaming === true,
+    twitchStreamsLive: d.twitchStreamsLive === true,
+    twitchSearchLive: d.twitchSearchLive === true,
+    streamStatusLive: d.streamStatusLive === true,
+    eventSubLive,
+    warnings: Array.isArray(d.warnings) ? d.warnings : [],
+    lastCheckedAt: cleanString(payload && payload.checkedAt || nowIso())
+  };
+}
+
+function normalizeStreamStateFromStreamStatus(payload) {
+  return {
+    provider: 'stream_status',
+    known: payload && payload.statusKnown !== false,
+    live: payload && payload.live === true,
+    source: cleanString(payload && payload.source || 'stream_status'),
+    sourceSummary: payload && payload.live === true ? 'stream_status' : 'none',
+    confidence: payload && payload.statusKnown !== false ? 'high' : 'low',
+    broadcasterLogin: cleanString(payload && payload.broadcasterLogin || ''),
+    streamId: cleanString(payload && payload.streamId || ''),
+    startedAt: cleanString(payload && payload.startedAt || ''),
+    title: cleanString(payload && payload.title || ''),
+    gameName: cleanString(payload && payload.gameName || ''),
+    viewerCount: Number(payload && payload.viewerCount || 0) || 0,
+    streamSessionId: cleanString(payload && payload.streamSessionId || ''),
+    streamDayId: cleanString(payload && payload.streamDayId || ''),
+    sessionStatus: cleanString(payload && payload.sessionStatus || ''),
+    restartGraceUntil: cleanString(payload && payload.restartGraceUntil || ''),
+    obsStreaming: false,
+    twitchStreamsLive: payload && payload.live === true,
+    twitchSearchLive: false,
+    streamStatusLive: payload && payload.live === true,
+    eventSubLive: 'unknown',
+    warnings: payload && payload.lastError ? [{ key: 'stream_status_warning', message: payload.lastError }] : [],
+    lastCheckedAt: cleanString(payload && payload.lastCheckedAt || nowIso())
+  };
+}
+
+function applyManualOverride(normalized, reason = 'manual_override') {
+  if (!isManualOverrideActive()) return normalized;
+  const override = state.streamState.manualOverride || {};
+  return {
+    ...normalized,
+    known: true,
+    live: override.live === true,
+    source: 'manual_override',
+    sourceSummary: 'manual_override',
+    confidence: 'manual',
+    eventSubLive: override.live === true ? 'online' : 'offline',
+    warnings: [
+      ...(Array.isArray(normalized.warnings) ? normalized.warnings : []),
+      { key: 'manual_override_active', message: `Manual stream-state override active (${reason || override.reason || 'manual_override'}).` }
+    ]
+  };
+}
+
+function streamPayloadFromState(normalized, previousLive, action, reason) {
+  return {
+    eventKey: action === 'online' ? 'twitch.stream.online' : 'twitch.stream.offline',
+    action,
+    reason: cleanString(reason || 'stream_state_changed'),
+    live: normalized.live === true,
+    previousLive: previousLive === true,
+    known: normalized.known === true,
+    broadcasterLogin: normalized.broadcasterLogin || '',
+    streamId: normalized.streamId || '',
+    startedAt: normalized.startedAt || '',
+    title: normalized.title || '',
+    gameName: normalized.gameName || '',
+    viewerCount: Number(normalized.viewerCount || 0) || 0,
+    streamSessionId: normalized.streamSessionId || '',
+    streamDayId: normalized.streamDayId || '',
+    sessionStatus: normalized.sessionStatus || '',
+    restartGraceUntil: normalized.restartGraceUntil || '',
+    source: normalized.source || '',
+    sourceSummary: normalized.sourceSummary || '',
+    confidence: normalized.confidence || '',
+    obsStreaming: normalized.obsStreaming === true,
+    twitchStreamsLive: normalized.twitchStreamsLive === true,
+    twitchSearchLive: normalized.twitchSearchLive === true,
+    streamStatusLive: normalized.streamStatusLive === true,
+    eventSubLive: normalized.eventSubLive || 'unknown',
+    eventSubRequired: false,
+    generatedBy: MODULE_NAME,
+    provider: 'stream_state_provider',
+    warnings: Array.isArray(normalized.warnings) ? normalized.warnings : [],
+    receivedAt: normalized.lastCheckedAt || nowIso()
+  };
+}
+
+function publishStreamStateTransition(normalized, previousLive, reason = 'stream_state_changed') {
+  const action = normalized.live === true ? 'online' : 'offline';
+  const eventKey = action === 'online' ? 'twitch.stream.online' : 'twitch.stream.offline';
+  const payload = streamPayloadFromState(normalized, previousLive, action, reason);
+  const result = publishTwitchEvent(eventKey, payload, { source: 'twitch_events_stream_state', receivedAt: payload.receivedAt }, {
+    requireAck: false,
+    replayable: true,
+    ttlMs: 3600000,
+    priority: 'P1',
+    target: { type: 'all', id: '*' }
+  });
+  state.streamState.counters.transitions += 1;
+  if (action === 'online') state.streamState.counters.onlineEmitted += 1;
+  if (action === 'offline') state.streamState.counters.offlineEmitted += 1;
+  state.streamState.lastPublishedAt = nowIso();
+  state.streamState.lastEventKey = eventKey;
+  state.streamState.lastEventId = result && result.busEventId ? result.busEventId : '';
+  state.streamState.lastAction = action;
+  state.streamState.lastReason = cleanString(reason || 'stream_state_changed');
+  return result;
+}
+
+function updateStreamState(normalized, options = {}) {
+  const now = nowIso();
+  const previousKnown = state.streamState.initialized === true && state.streamState.known === true;
+  const previousLive = state.streamState.live === true;
+  const changed = previousKnown && previousLive !== (normalized.live === true);
+  state.streamState.initialized = true;
+  state.streamState.known = normalized.known === true;
+  state.streamState.previousLive = previousKnown ? previousLive : null;
+  state.streamState.live = normalized.live === true;
+  state.streamState.provider = normalized.provider || state.streamState.provider || 'stream_status';
+  state.streamState.source = normalized.source || '';
+  state.streamState.sourceSummary = normalized.sourceSummary || '';
+  state.streamState.confidence = normalized.confidence || 'unknown';
+  state.streamState.eventSubRequired = false;
+  state.streamState.broadcasterLogin = normalized.broadcasterLogin || '';
+  state.streamState.streamId = normalized.streamId || '';
+  state.streamState.startedAt = normalized.startedAt || '';
+  state.streamState.title = normalized.title || '';
+  state.streamState.gameName = normalized.gameName || '';
+  state.streamState.viewerCount = Number(normalized.viewerCount || 0) || 0;
+  state.streamState.streamSessionId = normalized.streamSessionId || '';
+  state.streamState.streamDayId = normalized.streamDayId || '';
+  state.streamState.sessionStatus = normalized.sessionStatus || '';
+  state.streamState.restartGraceUntil = normalized.restartGraceUntil || '';
+  state.streamState.obsStreaming = normalized.obsStreaming === true;
+  state.streamState.twitchStreamsLive = normalized.twitchStreamsLive === true;
+  state.streamState.twitchSearchLive = normalized.twitchSearchLive === true;
+  state.streamState.streamStatusLive = normalized.streamStatusLive === true;
+  state.streamState.eventSubLive = normalized.eventSubLive || 'unknown';
+  state.streamState.lastCheckedAt = normalized.lastCheckedAt || now;
+  state.streamState.lastRefreshReason = cleanString(options.reason || 'refresh');
+  state.streamState.lastError = '';
+  state.streamState.warnings = Array.isArray(normalized.warnings) ? normalized.warnings : [];
+  if (changed) state.streamState.lastChangedAt = now;
+  if (changed || options.forcePublish === true) {
+    publishStreamStateTransition(normalized, previousKnown ? previousLive : !normalized.live, options.reason || (changed ? 'live_state_changed' : 'manual_publish'));
+  }
+  state.updatedAt = nowIso();
+  return getStreamState();
+}
+
+async function readStreamStateSource(cfg) {
+  try {
+    const monitorPayload = await fetchJsonForStreamState(cfg.sourceUrl, cfg.requestTimeoutMs);
+    const normalized = normalizeStreamStateFromMonitor(monitorPayload);
+    state.streamState.provider = 'live_status_monitor';
+    state.streamState.sourceUrl = cfg.sourceUrl;
+    return normalized;
+  } catch (err) {
+    state.streamState.lastError = err && err.message ? err.message : String(err);
+    const fallbackPayload = await fetchJsonForStreamState(cfg.fallbackUrl, cfg.requestTimeoutMs);
+    const normalized = normalizeStreamStateFromStreamStatus(fallbackPayload);
+    normalized.warnings = [
+      ...(Array.isArray(normalized.warnings) ? normalized.warnings : []),
+      { key: 'live_status_monitor_fallback', message: state.streamState.lastError }
+    ];
+    state.streamState.provider = 'stream_status_fallback';
+    state.streamState.fallbackUrl = cfg.fallbackUrl;
+    return normalized;
+  }
+}
+
+async function refreshStreamState(options = {}) {
+  const cfg = streamStateConfig();
+  state.streamState.enabled = cfg.enabled === true;
+  state.streamState.pollIntervalMs = cfg.pollIntervalMs;
+  state.streamState.sourceUrl = cfg.sourceUrl;
+  state.streamState.fallbackUrl = cfg.fallbackUrl;
+  if (!cfg.enabled) return getStreamState();
+  try {
+    let normalized = await readStreamStateSource(cfg);
+    normalized = applyManualOverride(normalized, options.reason || 'refresh');
+    state.streamState.counters.refreshes += 1;
+    return updateStreamState(normalized, options);
+  } catch (err) {
+    state.streamState.counters.errors += 1;
+    state.streamState.lastError = err && err.message ? err.message : String(err);
+    state.updatedAt = nowIso();
+    return getStreamState();
+  }
+}
+
+function startStreamStateProvider() {
+  const cfg = streamStateConfig();
+  state.streamState.enabled = cfg.enabled === true;
+  state.streamState.pollIntervalMs = cfg.pollIntervalMs;
+  state.streamState.sourceUrl = cfg.sourceUrl;
+  state.streamState.fallbackUrl = cfg.fallbackUrl;
+  if (!cfg.enabled) return;
+  refreshStreamState({ reason: 'provider_start', forcePublish: false }).catch(err => { state.streamState.lastError = err && err.message ? err.message : String(err); });
+  streamStateTimer = setInterval(() => {
+    refreshStreamState({ reason: 'provider_interval', forcePublish: false }).catch(err => { state.streamState.lastError = err && err.message ? err.message : String(err); });
+  }, cfg.pollIntervalMs);
+  if (streamStateTimer && typeof streamStateTimer.unref === 'function') streamStateTimer.unref();
+}
+
+async function setStreamStateOverride(live, options = {}) {
+  const cfg = streamStateConfig();
+  const ttlMs = Math.max(0, Number(options.ttlMs || cfg.overrideDefaultTtlMs || 600000) || 600000);
+  const now = nowIso();
+  state.streamState.manualOverride = {
+    active: true,
+    live: live === true,
+    setAt: now,
+    expiresAt: ttlMs > 0 ? new Date(Date.now() + ttlMs).toISOString() : '',
+    reason: cleanString(options.reason || 'manual_override'),
+    source: 'manual_override'
+  };
+  state.streamState.counters.overrideSet += 1;
+  const normalized = applyManualOverride({
+    provider: 'manual_override',
+    known: true,
+    live: live === true,
+    source: 'manual_override',
+    sourceSummary: 'manual_override',
+    confidence: 'manual',
+    broadcasterLogin: state.streamState.broadcasterLogin || '',
+    streamId: state.streamState.streamId || '',
+    startedAt: state.streamState.startedAt || '',
+    title: state.streamState.title || '',
+    gameName: state.streamState.gameName || '',
+    viewerCount: state.streamState.viewerCount || 0,
+    streamSessionId: state.streamState.streamSessionId || '',
+    streamDayId: state.streamState.streamDayId || '',
+    sessionStatus: state.streamState.sessionStatus || '',
+    restartGraceUntil: state.streamState.restartGraceUntil || '',
+    obsStreaming: live === true,
+    twitchStreamsLive: false,
+    twitchSearchLive: false,
+    streamStatusLive: false,
+    eventSubLive: live === true ? 'online' : 'offline',
+    warnings: [],
+    lastCheckedAt: now
+  }, options.reason || 'manual_override');
+  return updateStreamState(normalized, { reason: options.reason || 'manual_override', forcePublish: true });
+}
+
+async function clearStreamStateOverride(options = {}) {
+  state.streamState.manualOverride.active = false;
+  state.streamState.manualOverride.reason = cleanString(options.reason || 'clear_override');
+  state.streamState.counters.overrideCleared += 1;
+  return refreshStreamState({ reason: options.reason || 'clear_override', forcePublish: false });
+}
+
 function startTimers() {
   stopTimers();
   state.heartbeatTimer = setInterval(sendHeartbeat, 5000);
   state.statusTimer = setInterval(() => publishStatus('interval'), 30000);
+  startStreamStateProvider();
   if (state.heartbeatTimer && typeof state.heartbeatTimer.unref === 'function') state.heartbeatTimer.unref();
   if (state.statusTimer && typeof state.statusTimer.unref === 'function') state.statusTimer.unref();
 }
@@ -1131,8 +1627,10 @@ function startTimers() {
 function stopTimers() {
   if (state.heartbeatTimer) clearInterval(state.heartbeatTimer);
   if (state.statusTimer) clearInterval(state.statusTimer);
+  if (streamStateTimer) clearInterval(streamStateTimer);
   state.heartbeatTimer = null;
   state.statusTimer = null;
+  streamStateTimer = null;
 }
 
 function sendHeartbeat() {
@@ -1196,6 +1694,7 @@ function getStatusPayload(trigger = 'status') {
     eventSubOwnership: safeJson(EVENTSUB_OWNERSHIP, {}),
     eventSubChatReadiness: safeJson(EVENTSUB_CHAT_READINESS, {}),
     eventSubChat: getEventSubChatStatus(),
+    streamState: getStreamState(),
     bus: {
       registered: state.registeredOnBus,
       heartbeat: true,
@@ -1253,6 +1752,7 @@ function getStatus() {
       eventSubOwnership: safeJson(EVENTSUB_OWNERSHIP, {}),
       eventSubChatReadiness: safeJson(EVENTSUB_CHAT_READINESS, {}),
       eventSubChat: getEventSubChatStatus(),
+      streamState: getStreamState(),
       runtime: {
         loadedAt: state.loadedAt,
         updatedAt: state.updatedAt,
