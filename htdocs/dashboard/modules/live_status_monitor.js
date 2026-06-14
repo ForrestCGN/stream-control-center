@@ -6,13 +6,20 @@
     test: '/api/live-status-monitor/test',
     logs: '/api/live-status-monitor/logs?limit=25',
     streamStatus: '/api/stream-status/status?forceApi=1',
-    twitchDebug: '/api/twitch/stream?login=forrestcgn&debug=1'
+    twitchDebug: '/api/twitch/stream?login=forrestcgn&debug=1',
+    streamState: '/api/twitch/events/stream-state',
+    streamStateRefresh: '/api/twitch/events/stream-state?refresh=1',
+    streamOverride: '/api/twitch/events/stream-state/override',
+    streamOverrideClear: '/api/twitch/events/stream-state/clear-override'
   };
-  const state = { status: null, logs: [], monitorState: null, loading: false, error: '' };
+  const state = { status: null, logs: [], monitorState: null, streamState: null, loading: false, error: '', notice: '' };
 
   function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? '').replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
   function bool(v){ return v === true || v === 1 || v === 'true'; }
   function yesNo(v){ if (v === 'unknown' || v === undefined || v === null || v === '') return 'UNBEKANNT'; return bool(v) || v === 'online' ? 'JA' : 'NEIN'; }
+  function overrideTtl(){ const sel = document.getElementById('lsmOverrideTtl'); const n = Number(sel && sel.value || 600000); return Number.isFinite(n) && n > 0 ? n : 600000; }
+  function streamState(){ return state.streamState || state.status?.sources?.eventSub?.data?.diagnostics?.streamState || state.status?.sources?.eventSub?.data?.streamState || null; }
+  function fmtDurationUntil(v){ if (!v) return ''; const ms = Date.parse(String(v)) - Date.now(); if (!Number.isFinite(ms) || ms <= 0) return 'abgelaufen'; const m = Math.floor(ms / 60000); const s = Math.floor((ms % 60000) / 1000); return `${m}:${String(s).padStart(2,'0')} Min.`; }
   function badge(label, value, kind){
     const cls = kind || (value === true || value === 'online' ? 'ok' : (value === 'unknown' ? 'warn' : 'off'));
     return `<span class="lsm-badge lsm-badge-${cls}"><strong>${esc(label)}</strong><em>${esc(yesNo(value))}</em></span>`;
@@ -99,8 +106,33 @@
     catch(err){ state.error = err.message || String(err); }
     if (renderAfter) render();
   }
+  async function loadStreamState(renderAfter = true, refresh = false){
+    try { const data = await api(refresh ? API.streamStateRefresh : API.streamState); state.streamState = data.streamState || data.diagnostics?.streamState || data; }
+    catch(err){ state.error = err.message || String(err); }
+    if (renderAfter) render();
+  }
+  async function postStreamOverride(payload, label){
+    state.loading = true; state.error = ''; state.notice = ''; render();
+    try {
+      const data = await api(API.streamOverride, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload || {}) });
+      state.streamState = data.streamState || null;
+      state.notice = label || 'Stream-State Override gesetzt.';
+      await loadStatus(false);
+    } catch(err){ state.error = err.message || String(err); }
+    finally { state.loading = false; render(); }
+  }
+  async function clearStreamOverride(){
+    state.loading = true; state.error = ''; state.notice = ''; render();
+    try {
+      const data = await api(API.streamOverrideClear, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ reason:'dashboard_clear_override' }) });
+      state.streamState = data.streamState || null;
+      state.notice = 'Manual Override wurde gelöscht.';
+      await loadStatus(false);
+    } catch(err){ state.error = err.message || String(err); }
+    finally { state.loading = false; render(); }
+  }
   async function loadAll(force){
-    await Promise.all([loadStatus(false), loadLogs(false)]);
+    await Promise.all([loadStatus(false), loadLogs(false), loadStreamState(false, !!force)]);
     render();
   }
   function renderLogMeta(){
@@ -148,6 +180,45 @@
       ${warnings.length ? `<div class="lsm-warnings glass"><strong>Warnungen</strong>${warnings.map(w => `<div>⚠️ <b>${esc(w.key)}</b>: ${esc(w.message)}</div>`).join('')}</div>` : `<div class="lsm-okline glass">Keine Abweichungen in der aktuellen Auswertung.</div>`}
     `;
   }
+  function renderStreamOverride(){
+    const st = streamState() || {};
+    const session = st.streamSession || {};
+    const ov = st.manualOverride || {};
+    const active = ov.active === true;
+    const status = st.status || st.sessionStatus || (st.live ? 'live' : 'offline');
+    return `<div class="lsm-override glass">
+      <div class="lsm-override-head">
+        <div>
+          <h3>Stream-State Override</h3>
+          <p>Nur für Tests: überschreibt OBS/Twitch temporär und nutzt die vorhandenen twitch_events-Routen.</p>
+        </div>
+        <div class="lsm-override-state ${active ? 'is-active':'is-idle'}">${active ? 'OVERRIDE AKTIV' : 'kein Override'}</div>
+      </div>
+      <div class="lsm-override-grid">
+        <div><strong>Status</strong><span>${esc(status || '-')}</span></div>
+        <div><strong>Live</strong><span>${st.live === true ? 'JA' : 'NEIN'}</span></div>
+        <div><strong>Quelle</strong><span>${esc(st.provider || st.source || '-')}</span></div>
+        <div><strong>läuft ab</strong><span>${esc(active ? (fmtDurationUntil(ov.expiresAt) || '-') : '-')}</span></div>
+        <div><strong>StreamSession</strong><span>${esc(session.streamSessionId || st.streamSessionId || '-')}</span></div>
+        <div><strong>StreamDay</strong><span>${esc(session.streamDayId || st.streamDayId || '-')}</span></div>
+        <div><strong>Streamtag</strong><span>${esc(session.streamDateLabel || st.streamDateLabel || '-')}</span></div>
+        <div><strong>Kalendertag</strong><span>${esc(session.calendarDay || st.calendarDay || '-')}</span></div>
+      </div>
+      <div class="lsm-override-controls">
+        <label>TTL <select id="lsmOverrideTtl">
+          <option value="300000">5 Minuten</option>
+          <option value="600000" selected>10 Minuten</option>
+          <option value="1800000">30 Minuten</option>
+        </select></label>
+        <button id="lsmOverridePendingBtn" type="button">OBS/Pending simulieren</button>
+        <button id="lsmOverrideOnlineBtn" type="button">Online bestätigt simulieren</button>
+        <button id="lsmOverrideOfflineBtn" type="button">Offline simulieren</button>
+        <button id="lsmOverrideBandwidthBtn" type="button">Bandbreitentest</button>
+        <button id="lsmOverrideClearBtn" type="button" class="danger">Override löschen</button>
+      </div>
+      <div class="lsm-override-note">⚠️ Manual Override ist nur für Tests. Solange aktiv, überschreibt er OBS/Twitch/Live-Status. Confirmed-Online erzeugt bewusst ein echtes Test-Online-Event.</div>
+    </div>`;
+  }
   function renderLogs(){
     const rows = state.logs || [];
     if (!rows.length) return '<p class="muted">Noch keine Logs vorhanden.</p>';
@@ -191,6 +262,8 @@
       </div>
       ${state.error ? `<div class="lsm-error">${esc(state.error)}</div>` : ''}
       ${state.loading ? '<div class="lsm-loading">Lade Live-Quellen...</div>' : ''}
+      ${state.notice ? `<div class="lsm-notice">${esc(state.notice)}</div>` : ''}
+      ${renderStreamOverride()}
       ${state.status ? renderDecision() : '<div class="glass lsm-empty">Noch keine Daten geladen.</div>'}
       <div class="lsm-section"><h3>Änderungshistorie</h3>${renderLogMeta()}${renderLogs()}</div>
       <div class="lsm-section"><h3>Rohdaten</h3>${renderRaw()}</div>
@@ -200,11 +273,18 @@
         <a href="/api/twitch/stream?login=forrestcgn&debug=1" target="_blank">Twitch Stream Debug</a>
         <a href="/api/stream-status/status?forceApi=1" target="_blank">Stream Status</a>
         <a href="/api/twitch/events/status" target="_blank">Twitch Events Status</a>
+        <a href="/api/twitch/events/stream-state" target="_blank">Stream State</a>
+        <a href="/api/twitch/events/stream-session" target="_blank">Stream Session</a>
       </div>
     `;
-    panel.querySelector('#lsmRefreshBtn')?.addEventListener('click', () => loadStatus(true));
+    panel.querySelector('#lsmRefreshBtn')?.addEventListener('click', () => loadAll(true));
     panel.querySelector('#lsmManualLogBtn')?.addEventListener('click', () => runTest());
     panel.querySelector('#lsmLogsBtn')?.addEventListener('click', () => loadLogs(true));
+    panel.querySelector('#lsmOverridePendingBtn')?.addEventListener('click', () => postStreamOverride({ live:true, status:'pending', reason:'dashboard_manual_pending', ttlMs: overrideTtl() }, 'OBS/Pending wurde simuliert.'));
+    panel.querySelector('#lsmOverrideOnlineBtn')?.addEventListener('click', () => postStreamOverride({ live:true, status:'live_confirmed', confirmed:true, forceConfirmed:true, reason:'dashboard_manual_online_confirmed', ttlMs: overrideTtl() }, 'Online bestätigt wurde simuliert.'));
+    panel.querySelector('#lsmOverrideOfflineBtn')?.addEventListener('click', () => postStreamOverride({ live:false, status:'offline', reason:'dashboard_manual_offline', ttlMs: overrideTtl() }, 'Offline wurde simuliert.'));
+    panel.querySelector('#lsmOverrideBandwidthBtn')?.addEventListener('click', () => postStreamOverride({ live:true, status:'bandwidth_test', reason:'dashboard_bandwidth_test', ttlMs: overrideTtl() }, 'Bandbreitentest wurde simuliert.'));
+    panel.querySelector('#lsmOverrideClearBtn')?.addEventListener('click', () => clearStreamOverride());
   }
 
   ensurePanel();

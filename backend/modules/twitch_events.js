@@ -606,7 +606,16 @@ module.exports.init = function init(ctx = {}) {
         const ttlMs = Math.max(0, Number(firstValue(body.ttlMs, req.query && req.query.ttlMs, 600000)) || 600000);
         const reason = cleanString(firstValue(body.reason, req.query && req.query.reason, 'manual_override'), 'manual_override');
         const status = cleanString(firstValue(body.status, req.query && req.query.status, ''));
-        const data = await setStreamStateOverride(parsedLive, { reason, ttlMs, status });
+        const forceConfirmedRaw = firstValue(body.forceConfirmed, req.query && req.query.forceConfirmed, body.confirmed, req.query && req.query.confirmed, '');
+        const forceConfirmedParsed = forceConfirmedRaw === '' ? null : parseLiveOverrideValue(forceConfirmedRaw);
+        const streamId = cleanString(firstValue(body.streamId, req.query && req.query.streamId, body.twitchStreamId, req.query && req.query.twitchStreamId, ''));
+        const data = await setStreamStateOverride(parsedLive, {
+          reason,
+          ttlMs,
+          status,
+          forceConfirmed: forceConfirmedParsed === true,
+          streamId
+        });
         res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, streamState: data });
       } catch (err) {
         res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: err && err.message ? err.message : String(err), streamState: getStreamState() });
@@ -1323,12 +1332,15 @@ function isManualOverrideActive() {
 function publicManualOverride() {
   const override = state.streamState.manualOverride || {};
   return {
-    active: isManualOverrideActive(),
+    active: override.active === true,
     live: override.live === true,
     setAt: cleanString(override.setAt || ''),
     expiresAt: cleanString(override.expiresAt || ''),
     reason: cleanString(override.reason || ''),
-    source: cleanString(override.source || 'manual_override')
+    source: cleanString(override.source || 'manual_override'),
+    status: cleanString(override.status || ''),
+    forceConfirmed: override.forceConfirmed === true,
+    streamId: cleanString(override.streamId || '')
   };
 }
 
@@ -2026,6 +2038,16 @@ async function setStreamStateOverride(live, options = {}) {
   const cfg = streamStateConfig();
   const ttlMs = Math.max(0, Number(options.ttlMs || cfg.overrideDefaultTtlMs || 600000) || 600000);
   const now = nowIso();
+  const requestedStatus = cleanString(options.status || '');
+  const requestedStatusLower = requestedStatus.toLowerCase();
+  const forceConfirmed = live === true && (
+    options.forceConfirmed === true ||
+    ['confirmed', 'live_confirmed', 'online_confirmed', 'twitch_confirmed'].includes(requestedStatusLower)
+  );
+  const manualStreamId = forceConfirmed
+    ? cleanSessionToken(options.streamId || state.streamState.streamId || `manual_${streamSessionCompactId(now)}`, `manual_${streamSessionCompactId(now)}`)
+    : cleanString(options.streamId || '');
+
   state.streamState.manualOverride = {
     active: true,
     live: live === true,
@@ -2033,7 +2055,9 @@ async function setStreamStateOverride(live, options = {}) {
     expiresAt: ttlMs > 0 ? new Date(Date.now() + ttlMs).toISOString() : '',
     reason: cleanString(options.reason || 'manual_override'),
     source: 'manual_override',
-    status: cleanString(options.status || '')
+    status: requestedStatus,
+    forceConfirmed,
+    streamId: manualStreamId
   };
   state.streamState.counters.overrideSet += 1;
   const normalized = applyManualOverride({
@@ -2041,29 +2065,29 @@ async function setStreamStateOverride(live, options = {}) {
     known: true,
     live: live === true,
     source: 'manual_override',
-    sourceSummary: 'manual_override',
-    confidence: 'manual',
+    sourceSummary: forceConfirmed ? 'manual_override_confirmed' : 'manual_override',
+    confidence: forceConfirmed ? 'manual_confirmed' : 'manual',
     broadcasterLogin: state.streamState.broadcasterLogin || '',
-    streamId: state.streamState.streamId || '',
-    startedAt: state.streamState.startedAt || '',
+    streamId: forceConfirmed ? manualStreamId : (state.streamState.streamId || ''),
+    startedAt: state.streamState.startedAt || now,
     title: state.streamState.title || '',
     gameName: state.streamState.gameName || '',
     viewerCount: state.streamState.viewerCount || 0,
     streamSessionId: state.streamState.streamSessionId || '',
     streamDayId: state.streamState.streamDayId || '',
-    sessionStatus: state.streamState.sessionStatus || '',
+    sessionStatus: forceConfirmed ? 'live' : (state.streamState.sessionStatus || ''),
     restartGraceUntil: state.streamState.restartGraceUntil || '',
     obsStreaming: live === true,
-    twitchStreamsLive: false,
+    twitchStreamsLive: forceConfirmed,
     twitchSearchLive: false,
-    streamStatusLive: false,
+    streamStatusLive: forceConfirmed,
     eventSubLive: live === true ? 'online' : 'offline',
-    manualStatus: cleanString(options.status || ''),
-    bandwidthTest: cleanString(options.status || '').toLowerCase() === 'bandwidth_test',
-    warnings: [],
+    manualStatus: forceConfirmed ? 'live' : requestedStatus,
+    bandwidthTest: requestedStatusLower === 'bandwidth_test',
+    warnings: forceConfirmed ? [{ key: 'manual_confirmed_live_override', message: 'Dashboard/manual override marks the stream as confirmed live for tests.' }] : [],
     lastCheckedAt: now
   }, options.reason || 'manual_override');
-  return updateStreamState(normalized, { reason: options.reason || 'manual_override', status: options.status || '', forcePublish: true });
+  return updateStreamState(normalized, { reason: options.reason || 'manual_override', status: forceConfirmed ? 'live' : requestedStatus, forcePublish: true });
 }
 
 async function clearStreamStateOverride(options = {}) {
