@@ -23,8 +23,8 @@ const database = require("../core/database");
 const loyaltyCore = require("./loyalty");
 
 const MODULE_NAME = "loyalty_giveaways";
-const MODULE_VERSION = "0.1.4";
-const MODULE_BUILD = "STEP_LC_RAFFLE_1C";
+const MODULE_VERSION = "0.1.5";
+const MODULE_BUILD = "STEP_LC_RAFFLE_1D";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -198,11 +198,11 @@ const CHAT_TEXT_DEFAULTS = {
     "Die Heimleitung lässt erst auslosen, wenn die Ticket-Ausgabe offiziell geschlossen ist."
   ],
   "raffle.started": [
-    "Die Heimleitung öffnet die kleine Lostrommel! Tippt !join – {duration} Sekunden Zeit. Im Topf liegen {prizePool} Kekskrümel.",
-    "Raffle läuft! {duration} Sekunden, ein Los pro Nase. Rein mit !join – {prizePool} Kekskrümel werden geteilt.",
-    "Die Rentnergang zählt die Lose: !join in den Chat, {duration} Sekunden Zeit. Gewinnpool: {prizePool} Kekskrümel.",
-    "Kekskrümel-Tombola gestartet! Wer mit will, ruft !join. Zeitfenster: {duration}s, Pool: {prizePool}.",
-    "Die Lostrommel klappert durchs Altersheim. !join tippen, bevor die Heimleitung den {prizePool}-Kekskrümel-Deckel schließt."
+    "Die Heimleitung öffnet die kleine Lostrommel! Tippt !join – ihr habt {duration} Sekunden Zeit.",
+    "Raffle läuft! Ein Los pro Nase. Rein mit !join – die Heimleitung zählt gleich aus.",
+    "Die Rentnergang zählt die Lose: !join in den Chat, {duration} Sekunden Zeit.",
+    "Kekskrümel-Tombola gestartet! Wer mit will, ruft !join. Zeitfenster: {duration}s.",
+    "Die Lostrommel klappert durchs Altersheim. !join tippen, bevor die Heimleitung den Deckel schließt."
   ],
   "raffle.already_active": [
     "Es läuft schon eine Raffle. Die Heimleitung öffnet nicht zwei Lostrommeln gleichzeitig.",
@@ -254,11 +254,11 @@ const CHAT_TEXT_DEFAULTS = {
     "Raffle beendet: 0 Teilnehmer. Die Heimleitung schaut streng in den leeren Lostopf."
   ],
   "raffle.winners": [
-    "Raffle beendet! Gewinner ({winnerCount}/{entries}): {winners} – je {prizeAmount} Kekskrümel aus dem {prizePool}-Pool.",
-    "Die Heimleitung hat gezogen. Gewinner: {winners} – je {prizeAmount} Kekskrümel. Teilnehmer: {entries}.",
-    "Lostrommel zu, Brille geputzt: {winners}. Auszahlung: je {prizeAmount} Kekskrümel.",
-    "Die Rentner-Trommel hat gesprochen! {winners} bekommen je {prizeAmount} Kekskrümel.",
-    "Klemmbrett finalisiert: {winnerCount} Gewinner aus {entries}. {winners} – je {prizeAmount} Kekskrümel."
+    "🎉 Die Heimleitung hat gezogen: {winners} – je {prizeAmount} Kekskrümel!",
+    "🎉 Die Lostrommel hat entschieden: {winners} – je {prizeAmount} Kekskrümel!",
+    "Die Rentner-Trommel hat gesprochen! Glückwunsch an {winners}: je {prizeAmount} Kekskrümel!",
+    "Klemmbrett finalisiert: {winners} bekommt je {prizeAmount} Kekskrümel. Die Heimleitung gratuliert streng.",
+    "Raffle beendet! {winners} darf sich über je {prizeAmount} Kekskrümel freuen."
   ],
   "raffle.permission_denied": [
     "{user}, die Lostrommel darf nur die Heimleitung öffnen.",
@@ -5067,6 +5067,12 @@ function sanitizeRuntimeChatMessage(value, maxLength = 450) {
   return clean.length > limit ? clean.slice(0, limit - 1).trimEnd() + "…" : clean;
 }
 
+function formatRaffleNumber(value) {
+  const numeric = Number(value || 0);
+  if (!Number.isFinite(numeric)) return "0";
+  return Math.trunc(numeric).toLocaleString("de-DE");
+}
+
 function renderChatRuntimeText(key, context = {}, options = {}) {
   seedChatTextVariants();
   const message = textHelper.renderModuleText(TEXT_MODULE, key, CHAT_TEXT_DEFAULTS, context, {
@@ -5179,7 +5185,7 @@ function buildCommandRuntimeResponse(input = {}, patch = {}) {
     directChatAttempted: shouldDirectSend,
     error: patch.error || "",
     data: patch.data || {},
-    note: patch.note || "Runtime verarbeitet fachliche Regeln. Raffle-Chatmeldungen werden ab STEP_LC_RAFFLE_1B direkt ueber helper_chat_output gesendet."
+    note: patch.note || "Runtime verarbeitet fachliche Regeln. Raffle-Chatmeldungen werden direkt ueber helper_chat_output gesendet; der interne Gewinnpool wird nicht im Chat angezeigt."
   };
 }
 
@@ -5394,7 +5400,7 @@ function finishRaffleRuntime(reason = "timer") {
     winnerCount: winners.length,
     winners: winners.map(item => `@${item.displayName || item.login}`).join(", "),
     prizePool: prizePoolAmount,
-    prizeAmount: prizeAmountPerWinner,
+    prizeAmount: formatRaffleNumber(prizeAmountPerWinner),
     prizeRemainder
   };
 
@@ -5847,7 +5853,7 @@ function buildStatus() {
       raffle: getRaffleSnapshot(),
       warnings: [
         "Chat-Commands !ticket, !wheel und !rad bleiben bestehende Giveaway-/Wheel-Commands.",
-        "!raffle und !join sind ab STEP_LC_RAFFLE_1B als einfache Chat-Raffle mit direkter Chat-Ausgabe ueber helper_chat_output eingebettet.",
+        "!raffle und !join sind ab STEP_LC_RAFFLE_1D als einfache Chat-Raffle mit direkter Chat-Ausgabe, Loyalty-Auszahlung und ohne Pool-Anzeige im Chat eingebettet.",
         "Draw ist ab STEP_LWG_4M_2 nur nach closed_for_entries erlaubt.",
         "Wheel-Giveaways nutzen ab STEP_LWG_4M_5 ein aktives giveaway-bound Wheel fuer Permission/Claim/Spin."
       ],
