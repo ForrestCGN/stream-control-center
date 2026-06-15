@@ -41,7 +41,7 @@ const database = require("../core/database");
 const MODULE_NAME = "loyalty";
 const VERSION = "0.1.13";
 const MODULE_VERSION = VERSION;
-const STREAM_STATUS_API_PATH = "/api/stream-status/status?forceApi=1";
+const STREAM_STATUS_API_PATH = "/api/twitch/events/stream-state";
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
@@ -3363,25 +3363,42 @@ function getRequestBaseUrl(req) {
 
 function parseCentralStreamStatusPayload(payload = {}) {
   const data = payload && typeof payload === "object" ? payload : {};
-  const live = data.live === true || data.isLive === true || data.status === "live";
-  const statusKnown = data.statusKnown !== false;
-  const stale = data.stale === true;
+  const diagnostics = data.diagnostics && typeof data.diagnostics === "object" ? data.diagnostics : {};
+  const streamState = data.streamState && typeof data.streamState === "object"
+    ? data.streamState
+    : (diagnostics.streamState && typeof diagnostics.streamState === "object" ? diagnostics.streamState : data);
+  const manualOverride = streamState.manualOverride && typeof streamState.manualOverride === "object" ? streamState.manualOverride : {};
+  const streamSession = streamState.streamSession && typeof streamState.streamSession === "object" ? streamState.streamSession : {};
+  const overrideActive = manualOverride.active === true;
+  const baseLive = streamState.live === true || streamState.isLive === true || streamState.status === "live" || streamState.sessionStatus === "live";
+  const overrideLive = manualOverride.live === true || manualOverride.status === "live" || streamState.live === true || streamState.status === "live";
+  const live = overrideActive ? overrideLive : baseLive;
+  const statusKnown = data.statusKnown !== false && streamState.statusKnown !== false;
+  const stale = data.stale === true || streamState.stale === true;
+  const source = overrideActive
+    ? String(streamState.provider || streamState.source || manualOverride.provider || manualOverride.source || "manual_override")
+    : String(streamState.provider || streamState.source || data.source || "twitch_events_stream_state");
+  const status = String(streamState.status || streamState.sessionStatus || manualOverride.status || (live ? "live" : "offline"));
+
   return {
     ok: data.ok !== false && statusKnown && !stale,
     live,
     statusKnown,
     stale,
-    source: String(data.source || "stream_status"),
-    upstreamSource: String(data.upstreamSource || ""),
-    streamId: String(data.streamId || ""),
-    startedAt: String(data.startedAt || ""),
-    title: String(data.title || ""),
-    gameName: String(data.gameName || ""),
-    streamSessionId: String(data.streamSessionId || ""),
-    streamDayId: String(data.streamDayId || ""),
-    sessionStatus: String(data.sessionStatus || ""),
-    lastCheckedAt: String(data.lastCheckedAt || ""),
-    lastError: String(data.lastError || data.error || "")
+    source,
+    upstreamSource: String(streamState.upstreamSource || data.upstreamSource || ""),
+    streamId: String(streamState.streamId || streamSession.streamId || data.streamId || ""),
+    startedAt: String(streamState.startedAt || streamSession.startedAt || streamSession.started_at || data.startedAt || ""),
+    title: String(streamState.title || streamSession.title || data.title || ""),
+    gameName: String(streamState.gameName || streamState.game_name || streamSession.gameName || streamSession.game_name || data.gameName || ""),
+    streamSessionId: String(streamState.streamSessionId || streamSession.streamSessionId || streamSession.id || data.streamSessionId || ""),
+    streamDayId: String(streamState.streamDayId || streamSession.streamDayId || data.streamDayId || ""),
+    sessionStatus: status,
+    confidence: String(streamState.confidence || data.confidence || (overrideActive ? "manual" : "")),
+    manualOverrideActive: overrideActive,
+    manualOverride,
+    lastCheckedAt: String(streamState.lastCheckedAt || data.checkedAt || data.lastCheckedAt || ""),
+    lastError: String(streamState.lastError || data.lastError || data.error || "")
   };
 }
 
@@ -3435,7 +3452,7 @@ async function refreshAutoStreamStateFromCentralStatus(req, options = {}) {
     state.streamStatusBinding.lastSource = parsed.source || "stream_status";
     state.streamStatusBinding.lastReason = "central_status_sync";
     state.streamStatusBinding.lastError = "";
-    state.streamStatusBinding.lastResult = { ok: true, live: parsed.live, source: parsed.source, manualCleared: manual.cleared };
+    state.streamStatusBinding.lastResult = { ok: true, live: parsed.live, source: parsed.source, manualOverrideActive: parsed.manualOverrideActive === true, manualCleared: manual.cleared };
 
     return {
       ok: true,
