@@ -2071,6 +2071,29 @@ function renderGiveawayDetails(giveaway){
     return Number.isFinite(n) ? n : fallback;
   }
 
+  function pathValue(source, path, fallback = undefined){
+    if (!source || !path) return fallback;
+    const parts = String(path).split('.').filter(Boolean);
+    let current = source;
+    for (const part of parts) {
+      if (current && Object.prototype.hasOwnProperty.call(current, part)) {
+        current = current[part];
+      } else {
+        return fallback;
+      }
+    }
+    return current === undefined ? fallback : current;
+  }
+
+  function coreConfigValue(path, fallback = undefined){
+    return pathValue(state.coreSettings?.config, path, fallback);
+  }
+
+  function coreSettingMap(){
+    const settings = Array.isArray(state.coreStatus?.settings) ? state.coreStatus.settings : [];
+    return new Map(settings.map(row => [row.key, row.value ?? row.rawValue]));
+  }
+
   function renderReadonlySelect(label, value, options, help){
     const safeOptions = Array.isArray(options) && options.length ? options : [[String(value ?? ''), configDisplayValue(value)]];
     return `<label class="lg-config-field"><span>${esc(label)} ${help ? configInfoNote(help) : ''}</span><select disabled>
@@ -2139,11 +2162,10 @@ function renderGiveawayDetails(giveaway){
 
   function renderCoreConfigPanel(){
     const core = state.coreStatus || {};
-    const settings = Array.isArray(core.settings) ? core.settings : [];
-    const settingMap = new Map(settings.map(row => [row.key, row.value ?? row.rawValue]));
-    const enabled = boolSettingValue(settingMap.get('enabled'), true);
-    const currencyName = settingMap.get('currency.name') || state.coreSettings?.config?.currency?.name || 'Kekskrümel';
-    const eventBonusesEnabled = boolSettingValue(settingMap.get('features.eventBonusesEnabled'), false);
+    const settingMap = coreSettingMap();
+    const enabled = boolSettingValue(coreConfigValue('enabled', settingMap.get('enabled')), true);
+    const currencyName = coreConfigValue('currency.name', settingMap.get('currency.name')) || 'Kekskrümel';
+    const eventBonusesEnabled = boolSettingValue(coreConfigValue('features.eventBonusesEnabled', settingMap.get('features.eventBonusesEnabled')), false);
     const mainCore = renderConfigPanelShell('Core', 'Alles, was direkt Punkte erzeugt oder die automatische Vergabe steuert, liegt hier gebündelt.', `
       <form class="lg-form" data-lg-core-basic-settings>
         <div class="lg-config-form-grid">
@@ -2176,18 +2198,17 @@ function renderGiveawayDetails(giveaway){
 
   function renderRunnerConfigPanel(){
     const core = state.coreStatus || {};
-    const settings = Array.isArray(core.settings) ? core.settings : [];
-    const settingMap = new Map(settings.map(row => [row.key, row.value ?? row.rawValue]));
+    const settingMap = coreSettingMap();
     const runner = core.runner || core.diagnostics?.pointsRunner || core.pointsRunner || {};
-    const watchEnabled = boolSettingValue(settingMap.get('watch.enabled'), true);
-    const watchEarningEnabled = boolSettingValue(settingMap.get('features.watchEarningEnabled'), true);
+    const watchEnabled = boolSettingValue(coreConfigValue('watch.enabled', settingMap.get('watch.enabled')), true);
+    const watchEarningEnabled = boolSettingValue(coreConfigValue('features.watchEarningEnabled', settingMap.get('features.watchEarningEnabled')), true);
     const autoPointsEnabled = watchEnabled && watchEarningEnabled;
-    const watchAmount = numberSettingValue(settingMap.get('watch.amount'), 2);
-    const intervalMinutes = numberSettingValue(settingMap.get('watch.intervalMinutes'), 10);
-    const runOnlyWhenLive = boolSettingValue(settingMap.get('autoRunner.runOnlyWhenLive'), true);
-    const activeMinutes = numberSettingValue(settingMap.get('autoRunner.activeMinutes'), 30);
-    const maxUsersPerRun = numberSettingValue(settingMap.get('autoRunner.maxUsersPerRun'), 250);
-    const includeJoinedOnly = boolSettingValue(settingMap.get('autoRunner.includeJoinedOnly'), true);
+    const watchAmount = numberSettingValue(coreConfigValue('watch.amount', settingMap.get('watch.amount')), 2);
+    const intervalMinutes = numberSettingValue(coreConfigValue('watch.intervalMinutes', settingMap.get('watch.intervalMinutes')), 10);
+    const runOnlyWhenLive = boolSettingValue(coreConfigValue('autoRunner.runOnlyWhenLive', settingMap.get('autoRunner.runOnlyWhenLive')), true);
+    const activeMinutes = numberSettingValue(coreConfigValue('autoRunner.activeMinutes', settingMap.get('autoRunner.activeMinutes')), 30);
+    const maxUsersPerRun = numberSettingValue(coreConfigValue('autoRunner.maxUsersPerRun', settingMap.get('autoRunner.maxUsersPerRun')), 250);
+    const includeJoinedOnly = boolSettingValue(coreConfigValue('autoRunner.includeJoinedOnly', settingMap.get('autoRunner.includeJoinedOnly')), true);
     return renderConfigPanelShell('Core · Automatische Punkte', 'Regeln für Punkte, die Zuschauer automatisch durch Anwesenheit oder Aktivität bekommen.', `
       <form class="lg-form" data-lg-core-auto-points-settings>
         <div class="lg-config-form-grid">
@@ -2213,11 +2234,22 @@ function renderGiveawayDetails(giveaway){
     `, { badgeText: 'schreibbar', badgeType: 'ok' });
   }
 
+  function giftReceiverModeLabel(mode){
+    const labels = {
+      disabled: 'Nicht erfassen',
+      track_only: 'Nur im Verlauf anzeigen, keine Punkte',
+      small_bonus: 'Kleiner Dankeschön-Bonus',
+      half_bonus: 'Hälfte vom Geschenk-Abo-Wert',
+      custom: 'Eigene Punktewerte'
+    };
+    return labels[String(mode || 'track_only')] || 'Nur im Verlauf anzeigen, keine Punkte';
+  }
+
   function renderGiftConfigPanel(){
     const gift = state.coreStatus?.diagnostics?.bonusMapping?.giftSub || {};
     const receiver = state.coreStatus?.diagnostics?.bonusMapping?.bonusValues?.rules?.giftSubReceiver?.config || {};
-    const mode = gift.receiverMode || receiver.mode || 'track_only';
-    const modeLabel = gift.receiverModeLabel || receiver.modeLabel || 'Nur im Verlauf anzeigen, keine Punkte';
+    const mode = coreConfigValue('bonuses.giftSubReceiver.mode', gift.receiverMode || receiver.mode || 'track_only');
+    const modeLabel = mode === gift.receiverMode ? (gift.receiverModeLabel || receiver.modeLabel || 'Nur im Verlauf anzeigen, keine Punkte') : giftReceiverModeLabel(mode);
     return renderConfigPanelShell('Core · Geschenk-Abos / GiftBombs', 'Hier stellst du ein, wie Schenker und Empfänger von Geschenk-Abos behandelt werden.', `
       <form class="lg-form" data-lg-core-gift-settings>
         <div class="lg-config-form-grid">
@@ -2247,7 +2279,8 @@ function renderGiveawayDetails(giveaway){
 
   function renderRaidConfigPanel(){
     const raid = state.coreStatus?.diagnostics?.bonusMapping?.bonusValues?.rules?.raid || {};
-    const cfg = raid.config || {};
+    const statusCfg = raid.config || {};
+    const cfg = { ...statusCfg, ...(coreConfigValue('bonuses.raid', {}) || {}) };
     const mode = cfg.mode || (raid.viewerCountAffectsPoints ? 'base_plus_viewers' : 'fixed');
     const amount = cfg.amount ?? 50;
     const baseAmount = cfg.baseAmount ?? cfg.amount ?? 25;
