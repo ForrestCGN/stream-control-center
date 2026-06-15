@@ -131,6 +131,21 @@ window.LoyaltyModule = (function(){
     return rows(state.settings?.settings || state.settings);
   }
 
+  function settingDefinitions(){
+    return rows(state.settings?.definitions || []);
+  }
+
+  function settingDefinitionMap(){
+    const map = new Map();
+    settingDefinitions().forEach(def => { if (def?.key) map.set(def.key, def); });
+    return map;
+  }
+
+  function settingMeta(row){
+    const def = settingDefinitionMap().get(row.key) || {};
+    return { ...def, ...row, options: def.options || row.options || [] };
+  }
+
   function runnerEvents(){
     return rows(state.runnerEvents);
   }
@@ -266,7 +281,7 @@ window.LoyaltyModule = (function(){
     if (!row) return;
     await window.CGN.api(api.settings, {
       method: 'POST',
-      body: JSON.stringify({ key, value: getSettingInputValue(row) })
+      body: JSON.stringify({ [key]: getSettingInputValue(row), source: 'dashboard' })
     });
     await loadAll(true);
   }
@@ -497,19 +512,23 @@ window.LoyaltyModule = (function(){
   }
 
   function renderConfig(){
-    const groups = [
-      ['Core', row => ['mode','currencyName','enabled','streamElementsStillActive'].includes(row.key)],
-      ['Features', row => row.key.startsWith('features.')],
-      ['Watch', row => row.key.startsWith('watch.')],
-      ['Stream-State', row => row.key.startsWith('streamState.')],
-      ['Presence', row => row.key.startsWith('presence.')],
-      ['Auto Runner', row => row.key.startsWith('autoRunner.')],
-      ['Rest', row => true]
-    ];
-    const all = settings();
+    const all = settings().map(settingMeta);
     const used = new Set();
+    const groups = [
+      ['Grundlagen', row => ['mode','currency.name','enabled','streamElementsStillActive'].includes(row.key)],
+      ['Punkte verdienen', row => row.key.startsWith('watch.') || row.key.startsWith('features.')],
+      ['Support-Boni', row => row.key.startsWith('bonuses.follow.') || row.key.startsWith('bonuses.subscribe.') || row.key.startsWith('bonuses.resub.') || row.key.startsWith('bonuses.cheer.') || row.key.startsWith('bonuses.raid.')],
+      ['Geschenk-Abos', row => row.key.startsWith('bonuses.giftSub')],
+      ['Stream-Status', row => row.key.startsWith('streamState.') || row.key.startsWith('presence.') || row.key.startsWith('autoRunner.')],
+      ['System', row => row.key.startsWith('expiration.') || row.key.startsWith('import.')],
+      ['Weitere Einstellungen', row => true]
+    ];
 
     return `<div class="loyalty-config-list">
+      <section class="loyalty-card loyalty-config-intro">
+        <h3>Konfiguration</h3>
+        <p class="loyalty-note">Streamer-/Mod-Ansicht: verständliche Namen, Dropdowns statt technische Eingaben wo möglich und Erklärungen per Mouse-over. Änderungen werden erst mit Speichern übernommen.</p>
+      </section>
       ${groups.map(([label, predicate]) => {
         const list = all.filter(row => !used.has(row.key) && predicate(row));
         list.forEach(row => used.add(row.key));
@@ -521,27 +540,77 @@ window.LoyaltyModule = (function(){
     </div>`;
   }
 
-  function renderSettingRow(row){
-    return `<article class="loyalty-setting-row">
+  function settingTitle(row){
+    const titleMap = {
+      'mode': 'Loyalty-Modus',
+      'currency.name': 'Name der Punkte',
+      'enabled': 'Loyalty aktiv',
+      'features.eventBonusesEnabled': 'Support-Events geben Punkte',
+      'bonuses.giftSubGiver.enabled': 'Geschenk-Abo Gifter belohnen',
+      'bonuses.giftSubGiver.amount': 'Gifter-Basiswert',
+      'bonuses.giftSubGiver.tierAmounts': 'Gifter-Punkte je Tier',
+      'bonuses.giftSubReceiver.mode': 'Geschenk-Abo Empfänger',
+      'bonuses.giftSubReceiver.enabled': 'Empfänger-Erfassung aktiv',
+      'bonuses.giftSubReceiver.amount': 'Eigener Empfänger-Basiswert',
+      'bonuses.giftSubReceiver.tierAmounts': 'Eigene Empfänger-Punkte je Tier',
+      'bonuses.raid.mode': 'Raid-Berechnung',
+      'bonuses.raid.baseAmount': 'Raid-Basispunkte',
+      'bonuses.raid.amountPerViewer': 'Raid-Punkte pro Zuschauer',
+      'bonuses.raid.maxAmount': 'Raid-Maximum'
+    };
+    return row.label || titleMap[row.key] || row.key;
+  }
+
+  function settingHelp(row){
+    return row.help || row.description || '';
+  }
+
+  function renderSettingRow(rawRow){
+    const row = settingMeta(rawRow);
+    const title = settingTitle(row);
+    const help = settingHelp(row);
+    return `<article class="loyalty-setting-row ${row.key === 'bonuses.giftSubReceiver.mode' ? 'is-highlight' : ''}">
       <div>
-        <strong>${esc(row.key)}</strong>
-        <span>${esc(row.valueType || 'string')} · ${esc(row.source || '')}</span>
-        <small>${esc(row.description || '')}</small>
+        <strong>${esc(title)} ${help ? `<span class="loyalty-help" title="${esc(help)}">?</span>` : ''}</strong>
+        <span>${esc(row.description || '')}</span>
+        <small>${esc(row.key)} · ${esc(row.valueType || 'string')} · ${esc(row.source || '')}</small>
       </div>
       <div class="loyalty-setting-input">${renderSettingInput(row)}</div>
       <button type="button" data-loyalty-save-setting="${esc(row.key)}">Speichern</button>
     </article>`;
   }
 
-  function renderSettingInput(row){
+  function renderSettingInput(rawRow){
+    const row = settingMeta(rawRow);
+    if (Array.isArray(row.options) && row.options.length) {
+      return `<select data-loyalty-setting="${esc(row.key)}">
+        ${row.options.map(opt => {
+          const value = typeof opt === 'object' ? opt.value : opt;
+          const label = typeof opt === 'object' ? (opt.label || opt.value) : opt;
+          const description = typeof opt === 'object' ? (opt.description || '') : '';
+          return `<option value="${esc(value)}" ${String(row.value ?? row.rawValue ?? '') === String(value) ? 'selected' : ''} title="${esc(description)}">${esc(label)}</option>`;
+        }).join('')}
+      </select>${row.key === 'bonuses.giftSubReceiver.mode' ? renderGiftReceiverModeHint(row.value) : ''}`;
+    }
     if (row.valueType === 'boolean') {
-      return `<select data-loyalty-setting="${esc(row.key)}"><option value="true" ${row.value === true ? 'selected' : ''}>true</option><option value="false" ${row.value === false ? 'selected' : ''}>false</option></select>`;
+      return `<select data-loyalty-setting="${esc(row.key)}"><option value="true" ${row.value === true ? 'selected' : ''}>Aktiv</option><option value="false" ${row.value === false ? 'selected' : ''}>Inaktiv</option></select>`;
     }
     if (row.valueType === 'json') {
       return `<textarea data-loyalty-setting="${esc(row.key)}" spellcheck="false">${esc(JSON.stringify(row.value, null, 2))}</textarea>`;
     }
     const type = row.valueType === 'number' ? 'number' : 'text';
     return `<input data-loyalty-setting="${esc(row.key)}" type="${type}" value="${esc(row.rawValue ?? row.value ?? '')}">`;
+  }
+
+  function renderGiftReceiverModeHint(mode){
+    const hints = {
+      disabled: 'Empfänger werden nicht erfasst und bekommen keine Punkte.',
+      track_only: 'Empfohlen: Empfänger werden im Verlauf sichtbar, bekommen aber keine Punkte.',
+      small_bonus: 'Empfänger bekommen einen kleinen Dankeschön-Bonus.',
+      half_bonus: 'Empfänger bekommen die Hälfte des Geschenk-Abo-Werts. Kann bei GiftBombs viele Punkte erzeugen.',
+      custom: 'Empfänger bekommen deine eigenen Werte aus „Eigene Empfänger-Punkte je Tier“.'
+    };
+    return `<small class="loyalty-setting-hint">${esc(hints[String(mode || 'track_only')] || hints.track_only)}</small>`;
   }
 
   function renderEvents(){

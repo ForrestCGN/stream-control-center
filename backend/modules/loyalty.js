@@ -39,7 +39,7 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "loyalty";
-const VERSION = "0.1.22";
+const VERSION = "0.1.23";
 const MODULE_VERSION = VERSION;
 const STREAM_STATUS_API_PATH = "/api/twitch/events/stream-state";
 const MODULE_META = {
@@ -75,10 +75,36 @@ const TWITCH_EVENT_BONUS_INTERNAL_DERIVED_EVENTS = [
   {
     eventKey: "loyalty.gifted_sub_received.derived",
     eventType: "gifted_sub_received",
-    sourceEvents: ["twitch.subgift.received", "twitch.giftbomb.received"],
-    reason: "recipient_bonus_after_gift_sub_or_gift_bomb"
+    sourceEvents: ["twitch.sub.received when gift receiver", "twitch.subgift.received", "twitch.giftbomb.received"],
+    reason: "recipient_tracking_after_gift_sub_or_gift_bomb"
   }
 ];
+
+const GIFT_SUB_RECEIVER_MODES = {
+  disabled: {
+    label: "Nicht erfassen",
+    description: "Empfaenger von Geschenk-Abos werden ignoriert und bekommen keine Punkte."
+  },
+  track_only: {
+    label: "Nur im Verlauf anzeigen, keine Punkte",
+    description: "Empfaenger werden im Verlauf sichtbar, bekommen aber keine Punkte. Empfohlen fuer faire Loyalty-Wertung."
+  },
+  small_bonus: {
+    label: "Kleiner Dankeschoen-Bonus",
+    description: "Empfaenger bekommen einen kleinen Bonus: Tier 1 = 5, Tier 2 = 10, Tier 3 = 15."
+  },
+  half_bonus: {
+    label: "Haelfte vom Geschenk-Abo-Wert",
+    description: "Empfaenger bekommen die Haelfte des normalen Geschenk-Abo-Werts."
+  },
+  custom: {
+    label: "Eigene Punktewerte",
+    description: "Empfaenger bekommen die im Feld Eigene Punktewerte eingetragenen Punkte."
+  }
+};
+
+const GIFT_SUB_RECEIVER_SMALL_TIER_AMOUNTS = { "1000": 5, "2000": 10, "3000": 15 };
+const GIFT_SUB_RECEIVER_HALF_TIER_AMOUNTS = { "1000": 25, "2000": 50, "3000": 75 };
 const TWITCH_EVENT_BONUS_SUBSCRIPTIONS = TWITCH_EVENT_BONUS_KEYS.map((eventKey) => {
   const [namespace, eventName, action] = String(eventKey || "").split(".");
   return {
@@ -186,7 +212,7 @@ const DEFAULT_CONFIG = {
     subscribe: { enabled: true, amount: 50, tierAmounts: { "1000": 50, "2000": 100, "3000": 150 } },
     resub: { enabled: true, amount: 50, tierAmounts: { "1000": 50, "2000": 100, "3000": 150 } },
     giftSubGiver: { enabled: false, amount: 50, tierAmounts: { "1000": 50, "2000": 100, "3000": 150 } },
-    giftSubReceiver: { enabled: false, amount: 25, tierAmounts: { "1000": 25, "2000": 50, "3000": 75 } },
+    giftSubReceiver: { enabled: true, mode: "track_only", amount: 0, tierAmounts: { "1000": 0, "2000": 0, "3000": 0 } },
     subStreak: {
       enabled: false,
       rules: [
@@ -337,9 +363,44 @@ const SETTINGS_DEFINITIONS = [
   { key: "bonuses.giftSubGiver.enabled", path: "bonuses.giftSubGiver.enabled", valueType: "boolean", description: "Gift-Sub-Gifter-Bonus aktivieren." },
   { key: "bonuses.giftSubGiver.amount", path: "bonuses.giftSubGiver.amount", valueType: "number", description: "Gift-Sub-Gifter-Bonus in Punkten." },
   { key: "bonuses.giftSubGiver.tierAmounts", path: "bonuses.giftSubGiver.tierAmounts", valueType: "json", description: "Gift-Sub-Gifter-Bonus je Tier als JSON-Objekt." },
-  { key: "bonuses.giftSubReceiver.enabled", path: "bonuses.giftSubReceiver.enabled", valueType: "boolean", description: "Gift-Sub-Empfänger-Bonus aktivieren." },
-  { key: "bonuses.giftSubReceiver.amount", path: "bonuses.giftSubReceiver.amount", valueType: "number", description: "Gift-Sub-Empfänger-Bonus in Punkten." },
-  { key: "bonuses.giftSubReceiver.tierAmounts", path: "bonuses.giftSubReceiver.tierAmounts", valueType: "json", description: "Gift-Sub-Empfänger-Bonus je Tier als JSON-Objekt." },
+  {
+    key: "bonuses.giftSubReceiver.mode",
+    path: "bonuses.giftSubReceiver.mode",
+    valueType: "string",
+    label: "Geschenk-Abo Empfänger",
+    group: "Geschenk-Abos",
+    description: "Was soll passieren, wenn jemand ein Geschenk-Abo erhält? Empfohlen: Nur im Verlauf anzeigen, keine Punkte.",
+    help: "Empfänger haben selbst nichts aktiv ausgegeben. Deshalb ist 'Nur im Verlauf anzeigen' fair: Der Empfänger erscheint im Log, bekommt aber keine Loyalty-Punkte.",
+    input: "select",
+    options: Object.entries(GIFT_SUB_RECEIVER_MODES).map(([value, meta]) => ({ value, label: meta.label, description: meta.description }))
+  },
+  {
+    key: "bonuses.giftSubReceiver.enabled",
+    path: "bonuses.giftSubReceiver.enabled",
+    valueType: "boolean",
+    label: "Empfänger-Erfassung aktiv",
+    group: "Geschenk-Abos",
+    description: "Legacy-Schalter. Im Normalfall den Modus oben verwenden.",
+    help: "Dieser Schalter bleibt aus Kompatibilitätsgründen vorhanden. Für Streamer/Mods ist der Modus 'Geschenk-Abo Empfänger' entscheidend."
+  },
+  {
+    key: "bonuses.giftSubReceiver.amount",
+    path: "bonuses.giftSubReceiver.amount",
+    valueType: "number",
+    label: "Eigener Empfänger-Basiswert",
+    group: "Geschenk-Abos",
+    description: "Fallback-Punkte, wenn bei eigenen Punktewerten kein Tier-Wert passt.",
+    help: "Nur relevant, wenn 'Eigene Punktewerte' gewählt ist. Bei 'Nur im Verlauf anzeigen' bleibt der Wert wirkungslos."
+  },
+  {
+    key: "bonuses.giftSubReceiver.tierAmounts",
+    path: "bonuses.giftSubReceiver.tierAmounts",
+    valueType: "json",
+    label: "Eigene Empfänger-Punkte je Tier",
+    group: "Geschenk-Abos",
+    description: "Eigene Punktewerte fuer Geschenk-Abo-Empfänger je Tier, z. B. 1000/2000/3000.",
+    help: "Nur relevant, wenn 'Eigene Punktewerte' gewählt ist. Beispiel: {\"1000\":5,\"2000\":10,\"3000\":15}."
+  },
   { key: "bonuses.subStreak.enabled", path: "bonuses.subStreak.enabled", valueType: "boolean", description: "Sub-Streak-Bonus aktivieren." },
   { key: "bonuses.subStreak.rules", path: "bonuses.subStreak.rules", valueType: "json", description: "Sub-Streak-Regeln als JSON-Array." },
   { key: "bonuses.cheer.enabled", path: "bonuses.cheer.enabled", valueType: "boolean", description: "Cheer/Bits-Bonus aktivieren." },
@@ -539,6 +600,17 @@ function normalizeMode(value) {
   return "shadow";
 }
 
+function normalizeGiftSubReceiverMode(value) {
+  const raw = String(value || "").trim().toLowerCase();
+  if (Object.prototype.hasOwnProperty.call(GIFT_SUB_RECEIVER_MODES, raw)) return raw;
+  return "track_only";
+}
+
+function giftSubReceiverModeLabel(mode) {
+  const normalized = normalizeGiftSubReceiverMode(mode);
+  return GIFT_SUB_RECEIVER_MODES[normalized]?.label || normalized;
+}
+
 function normalizeImportStatus(value) {
   const raw = String(value || "").trim().toLowerCase();
   if (["not_imported", "dry_run", "imported"].includes(raw)) return raw;
@@ -550,6 +622,7 @@ function normalizeSettingValue(def, value) {
   const type = String(def && def.valueType || "").toLowerCase();
 
   if (key === "mode") return normalizeMode(value);
+  if (key === "bonuses.giftSubReceiver.mode") return normalizeGiftSubReceiverMode(value);
   if (key === "import.status") return normalizeImportStatus(value);
 
   if (type === "boolean") return value === true || value === 1 || ["1", "true", "yes", "ja", "on"].includes(String(value).trim().toLowerCase());
@@ -627,6 +700,10 @@ function refreshConfigFromSettings() {
 
 function saveSettingsFromInput(input) {
   const source = input && typeof input === "object" ? input : {};
+  const normalizedSource = { ...source };
+  if (typeof source.key === "string" && Object.prototype.hasOwnProperty.call(source, "value")) {
+    normalizedSource[source.key] = source.value;
+  }
   const rows = [];
   let saved = 0;
 
@@ -634,11 +711,11 @@ function saveSettingsFromInput(input) {
     let value;
     let found = false;
 
-    if (Object.prototype.hasOwnProperty.call(source, def.key)) {
-      value = source[def.key];
+    if (Object.prototype.hasOwnProperty.call(normalizedSource, def.key)) {
+      value = normalizedSource[def.key];
       found = true;
-    } else if (hasNestedValue(source, def.path)) {
-      value = getNestedValue(source, def.path);
+    } else if (hasNestedValue(normalizedSource, def.path)) {
+      value = getNestedValue(normalizedSource, def.path);
       found = true;
     }
 
@@ -2501,8 +2578,21 @@ function calculateEventBonus(input = {}) {
   }
 
   if (type === "gifted_sub_received") {
-    if (!bonuses.giftSubReceiver?.enabled) return { ok: false, skipped: true, reason: "gift_sub_receiver_bonus_disabled", type, amount: 0, tier, quantity };
-    return { ok: true, type, amount: tierAmount(bonuses.giftSubReceiver.tierAmounts, tier, bonuses.giftSubReceiver.amount), tier, quantity };
+    const receiver = bonuses.giftSubReceiver || {};
+    const receiverMode = normalizeGiftSubReceiverMode(receiver.mode);
+    if (receiverMode === "disabled") {
+      return { ok: false, skipped: true, reason: "gift_sub_receiver_tracking_disabled", type, amount: 0, tier, quantity, receiverMode };
+    }
+    if (receiverMode === "track_only") {
+      return { ok: true, type, amount: 0, tier, quantity, receiverMode, trackOnly: true, reason: "tracked_no_points" };
+    }
+    if (receiverMode === "small_bonus") {
+      return { ok: true, type, amount: tierAmount(GIFT_SUB_RECEIVER_SMALL_TIER_AMOUNTS, tier, 5), tier, quantity, receiverMode };
+    }
+    if (receiverMode === "half_bonus") {
+      return { ok: true, type, amount: tierAmount(GIFT_SUB_RECEIVER_HALF_TIER_AMOUNTS, tier, 25), tier, quantity, receiverMode };
+    }
+    return { ok: true, type, amount: tierAmount(receiver.tierAmounts, tier, receiver.amount), tier, quantity, receiverMode };
   }
 
   return { ok: false, skipped: true, reason: "unsupported_event_type", type, amount: 0, tier, quantity };
@@ -2705,6 +2795,17 @@ function recordEventBonus(input = {}) {
   }
 
   const calculated = calculateEventBonus({ ...input, eventType, tier, quantity, amount: valueAmount });
+  if (calculated.ok && calculated.trackOnly === true) {
+    const reason = calculated.reason || "tracked_no_points";
+    const row = insertLoyaltyEventRow({
+      eventUid, provider, eventType: calculated.type || eventType, sourceType, login, displayName,
+      amount: valueAmount, tier, quantity, points: 0, mode, processed: 1, duplicate: 0, skipped: 0,
+      reason, transactionUid: "", createdAt: now,
+      rawJson: JSON.stringify(raw || {}), metadataJson: JSON.stringify({ ...metadata, calculated, trackedOnly: true })
+    });
+    return { ok: true, skipped: false, trackedOnly: true, reason, calculated, event: rowToLoyaltyEvent(row), transaction: null };
+  }
+
   if (!calculated.ok || calculated.skipped || Number(calculated.amount || 0) <= 0) {
     const reason = calculated.reason || "no_points";
     const row = insertLoyaltyEventRow({
@@ -2780,6 +2881,8 @@ function recordEventBonus(input = {}) {
 
     if (isIgnoredUser(recipientLogin)) {
       receiverSkippedReason = "receiver_ignored_user";
+    } else if (receiverCalculated.ok && receiverCalculated.trackOnly === true) {
+      receiverSkippedReason = receiverCalculated.reason || "tracked_no_points";
     } else if (receiverCalculated.ok && !receiverCalculated.skipped && Number(receiverCalculated.amount || 0) > 0) {
       receiverResult = recordTransaction({
         login: recipientLogin,
@@ -2821,7 +2924,7 @@ function recordEventBonus(input = {}) {
       login: recipientLogin,
       displayName: recipientDisplayName,
       calculated: receiverCalculated,
-      skipped: !receiverResult,
+      skipped: !(receiverResult || receiverCalculated?.trackOnly === true),
       reason: receiverResult ? "processed" : receiverSkippedReason,
       transactionUid: receiverResult?.transaction?.uid || ""
     } : null,
@@ -3590,10 +3693,18 @@ function describeBonusConfigForType(type) {
   }
 
   if (normalized === "gifted_sub_received") {
+    const receiver = bonuses.giftSubReceiver || {};
+    const receiverMode = normalizeGiftSubReceiverMode(receiver.mode);
     return {
-      enabled: bonuses.giftSubReceiver?.enabled === true,
-      amount: Math.floor(Number(bonuses.giftSubReceiver?.amount || 0)),
-      tierAmounts: { ...(bonuses.giftSubReceiver?.tierAmounts || {}) }
+      enabled: receiverMode !== "disabled",
+      mode: receiverMode,
+      modeLabel: giftSubReceiverModeLabel(receiverMode),
+      amount: Math.floor(Number(receiver.amount || 0)),
+      tierAmounts: { ...(receiver.tierAmounts || {}) },
+      smallBonusTierAmounts: { ...GIFT_SUB_RECEIVER_SMALL_TIER_AMOUNTS },
+      halfBonusTierAmounts: { ...GIFT_SUB_RECEIVER_HALF_TIER_AMOUNTS },
+      awardsPoints: !["disabled", "track_only"].includes(receiverMode),
+      trackOnly: receiverMode === "track_only"
     };
   }
 
@@ -3647,7 +3758,9 @@ function describeBonusCalculation(input = {}) {
       quantity: Math.max(1, Number.parseInt(calculated && calculated.quantity || input.quantity || input.total || input.count || 1, 10) || 1),
       bits: Number(calculated && calculated.bits || 0) || 0,
       viewers: Number(calculated && calculated.viewers || 0) || 0,
-      months: Number(calculated && calculated.months || 0) || 0
+      months: Number(calculated && calculated.months || 0) || 0,
+      receiverMode: calculated && calculated.receiverMode ? calculated.receiverMode : "",
+      trackOnly: calculated && calculated.trackOnly === true
     }
   };
 }
@@ -3726,7 +3839,7 @@ function buildBonusValueDiagnostics() {
       giftSubReceiver: {
         eventTypes: ["gifted_sub_received"],
         config: describeBonusConfigForType("gifted_sub_received"),
-        sourceEvents: ["twitch.subgift.received", "twitch.giftbomb.received"],
+        sourceEvents: ["twitch.sub.received when gift receiver", "twitch.subgift.received", "twitch.giftbomb.received"],
         busSubscribed: false,
         internalDerived: true,
         quantityRule: "one_receiver_bonus_per_known_recipient",
@@ -3773,7 +3886,9 @@ function buildBonusMappingRow({ eventKey, channel = "", action = "", eventType, 
     reason,
     config: describeBonusConfigForType(eventType),
     sample,
-    activeForProcessing: !!config.enabled && features.eventBonusesEnabled === true && sample && sample.ok === true && sample.skipped !== true && Number(sample.amount || 0) > 0
+    awardsPoints: sample && sample.ok === true && sample.skipped !== true && Number(sample.amount || 0) > 0,
+    trackOnly: sample && sample.trackOnly === true,
+    activeForProcessing: !!config.enabled && features.eventBonusesEnabled === true && sample && sample.ok === true && sample.skipped !== true && (Number(sample.amount || 0) > 0 || sample.trackOnly === true)
   };
 }
 
@@ -3839,11 +3954,14 @@ function buildLoyaltyDiagnostics() {
       supportedEvents: buildEventBonusMappingDiagnostics(),
       giftSub: {
         giverBonusEnabled: config.bonuses?.giftSubGiver?.enabled === true,
-        receiverBonusEnabled: config.bonuses?.giftSubReceiver?.enabled === true,
+        receiverMode: normalizeGiftSubReceiverMode(config.bonuses?.giftSubReceiver?.mode),
+        receiverModeLabel: giftSubReceiverModeLabel(config.bonuses?.giftSubReceiver?.mode),
+        receiverTrackingEnabled: normalizeGiftSubReceiverMode(config.bonuses?.giftSubReceiver?.mode) !== "disabled",
+        receiverAwardsPoints: !["disabled", "track_only"].includes(normalizeGiftSubReceiverMode(config.bonuses?.giftSubReceiver?.mode)),
         receiverEventType: "gifted_sub_received",
         receiverEventBusSubscribed: false,
         receiverInternalDerived: true,
-        receiverSourceEvents: ["twitch.subgift.received", "twitch.giftbomb.received"]
+        receiverSourceEvents: ["twitch.sub.received when gift receiver", "twitch.subgift.received", "twitch.giftbomb.received"]
       },
       bonusValues: buildBonusValueDiagnostics()
     },
@@ -4319,12 +4437,30 @@ function normalizeTwitchEventUser(user = {}) {
   };
 }
 
+function boolish(value) {
+  return value === true || value === 1 || ["1", "true", "yes", "ja", "on"].includes(String(value ?? "").trim().toLowerCase());
+}
+
+function hasGiftReceiverFlag(...sources) {
+  for (const source of sources) {
+    if (!source || typeof source !== "object") continue;
+    if (boolish(source.isGift) || boolish(source.is_gift) || boolish(source.gifted) || boolish(source.isGifted) || boolish(source.is_gifted)) return true;
+    if (boolish(source.giftSub) || boolish(source.gift_sub) || boolish(source.subGift) || boolish(source.sub_gift)) return true;
+    if (boolish(source.wasGifted) || boolish(source.was_gifted)) return true;
+  }
+  return false;
+}
+
 function normalizeTwitchEventBonusEnvelope(envelope = {}) {
   const payload = envelope && typeof envelope.payload === "object" ? envelope.payload : {};
   const twitch = payload && typeof payload.twitch === "object" ? payload.twitch : {};
   const eventKey = stringValue(payload.eventKey || twitch.eventKey || envelope.eventKey || envelope.meta?.eventKey);
-  const eventType = TWITCH_EVENT_BONUS_MAP[eventKey] || "";
+  let eventType = TWITCH_EVENT_BONUS_MAP[eventKey] || "";
   if (!eventType) return { ok: false, skipped: true, reason: "unsupported_twitch_event", eventKey };
+  const payloadEvent = payload && typeof payload.event === "object" ? payload.event : {};
+  if (eventKey === "twitch.sub.received" && hasGiftReceiverFlag(twitch, payload, payloadEvent, envelope)) {
+    eventType = "gifted_sub_received";
+  }
 
   const baseUser = normalizeTwitchEventUser(twitch.user || {});
   const gifter = normalizeTwitchEventUser(twitch.gifter || {});
