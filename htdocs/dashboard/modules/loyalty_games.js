@@ -54,6 +54,7 @@ window.LoyaltyGamesModule = (function(){
     logEvent: 'all',
     logStatus: 'all',
     logSearch: '',
+    logDetailKey: '',
     selectedPresetUid: '',
     selectedPreset: null,
     activeTab: 'overview'
@@ -1858,7 +1859,8 @@ function renderGiveawayDetails(giveaway){
         login: row.login || row.userLogin || '',
         status: row.status || 'processed',
         points,
-        details: row.transactionUid ? `Transaktion: ${row.transactionUid}` : (row.reason || row.uid || ''),
+        details: row.reason || '',
+        transactionUid: row.transactionUid || '',
         technicalId: row.uid || row.eventUid || row.transactionUid || '',
         raw: row
       };
@@ -1925,6 +1927,81 @@ function renderGiveawayDetails(giveaway){
     return all.sort((a, b) => Date.parse(b.at || 0) - Date.parse(a.at || 0));
   }
 
+  function logRowKey(row){
+    return [row.module || '', row.eventType || '', row.at || '', row.technicalId || '', row.login || row.user || ''].join('|');
+  }
+
+  function findLogRowByKey(key){
+    return buildCentralLogRows().find(row => logRowKey(row) === key) || null;
+  }
+
+  function logRowShortDetail(row){
+    const status = logStatusInfo(row).key;
+    if (row.module === 'core') {
+      if (status === 'tracked') return 'Nur erfasst';
+      if (status === 'skipped') return 'Übersprungen';
+      if (status === 'duplicate') return 'Duplikat erkannt';
+      if (status === 'error') return 'Fehler prüfen';
+      if (row.transactionUid || row.raw?.transactionUid) return 'Buchung vorhanden';
+      if (Number(row.points || 0) !== 0) return 'Punkte gebucht';
+      return row.details || 'Core-Ereignis';
+    }
+    return row.details || 'Details verfügbar';
+  }
+
+  function renderLogDetailModal(){
+    if (!state.logDetailKey) return '';
+    const row = findLogRowByKey(state.logDetailKey);
+    if (!row) return '';
+    const status = logStatusInfo(row);
+    const raw = row.raw || {};
+    const technicalRows = [
+      ['Event-ID', row.technicalId || raw.uid || raw.eventUid || ''],
+      ['Transaktion', row.transactionUid || raw.transactionUid || ''],
+      ['Typ', row.eventType || ''],
+      ['Bereich', row.moduleLabel || row.module || '']
+    ].filter(([, value]) => String(value || '').trim());
+    return `
+      <div class="lgw-modal-backdrop" data-lg-log-modal-close>
+        <div class="lgw-modal lgw-detail-modal" role="dialog" aria-modal="true" aria-label="Log-Details" data-lg-log-modal-box>
+          <div class="lgw-modal-head">
+            <div>
+              <h3>Log-Details</h3>
+              <p class="lg-muted">${esc(row.eventLabel || row.eventType || 'Ereignis')} · ${esc(fmtDate(row.at))}</p>
+            </div>
+            <button class="lgw-icon-btn" data-lg-log-modal-close type="button">×</button>
+          </div>
+          <div class="lg-log-detail-grid">
+            <article class="lg-card"><span class="lg-card-label">Bereich</span><strong>${esc(row.moduleLabel || row.module || '-')}</strong></article>
+            <article class="lg-card"><span class="lg-card-label">User</span><strong>${esc(row.user || '-')}</strong><small>${esc(row.login || '')}</small></article>
+            <article class="lg-card"><span class="lg-card-label">Status</span><strong>${esc(status.label)}</strong></article>
+            <article class="lg-card"><span class="lg-card-label">Punkte</span><strong>${Number(row.points || 0) ? esc(formatSigned(row.points)) : '-'}</strong></article>
+          </div>
+          <div class="lg-detail-section">
+            <h4>Verarbeitung</h4>
+            <div class="lg-config-summary-list">
+              <div class="lg-config-summary-row"><span>Event</span><strong>${esc(row.eventLabel || row.eventType || '-')}</strong></div>
+              <div class="lg-config-summary-row"><span>Ergebnis</span><strong>${esc(logRowShortDetail(row))}</strong></div>
+              ${row.details ? `<div class="lg-config-summary-row"><span>Hinweis</span><strong>${esc(row.details)}</strong></div>` : ''}
+            </div>
+          </div>
+          ${technicalRows.length ? `
+            <div class="lg-detail-section">
+              <h4>Technische Details</h4>
+              <div class="lg-config-summary-list">
+                ${technicalRows.map(([label, value]) => `<div class="lg-config-summary-row"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join('')}
+              </div>
+            </div>
+          ` : ''}
+          <details class="lg-detail-section">
+            <summary>Rohdaten anzeigen</summary>
+            <pre class="loyalty-json">${esc(JSON.stringify(raw, null, 2))}</pre>
+          </details>
+        </div>
+      </div>
+    `;
+  }
+
   function logFilterOptions(rowsList, field, labelField){
     const map = new Map();
     rowsList.forEach(row => {
@@ -1975,7 +2052,7 @@ function renderGiveawayDetails(giveaway){
           </div>
           <button class="lg-btn lg-btn-secondary" data-lg-reload>Neu laden</button>
         </div>
-        <div class="lg-filterbar lg-log-filterbar">
+        <div class="lg-filterbar lg-log-filterbar lg-log-filterbar-compact">
           <label>Bereich
             <select data-lg-log-module>
               <option value="all" ${state.logModule === 'all' ? 'selected' : ''}>Alle</option>
@@ -2020,14 +2097,15 @@ function renderGiveawayDetails(giveaway){
                   <td>${esc(row.user || '-')}<br><small class="lg-muted">${esc(row.login || '')}</small></td>
                   <td>${logStatusBadge(row)}</td>
                   <td>${Number(row.points || 0) ? `<strong>${esc(formatSigned(row.points))}</strong>` : '<span class="lg-muted">-</span>'}</td>
-                  <td>${esc(row.details || '-')} ${row.technicalId ? `<br><small class="lg-muted" title="${esc(row.technicalId)}">ID: ${esc(String(row.technicalId).slice(0, 24))}</small>` : ''}</td>
+                  <td class="lg-log-details-cell"><span>${esc(logRowShortDetail(row))}</span><button class="lg-btn lg-btn-small" type="button" data-lg-log-detail="${esc(logRowKey(row))}">Anzeigen</button></td>
                 </tr>
               `).join('') || `<tr><td colspan="7" class="lg-muted">Keine Logs für diese Filter gefunden.</td></tr>`}
             </tbody>
           </table>
         </div>
-        <div class="lg-info">Details bleiben bewusst lesbar. Technische IDs werden nur gekürzt angezeigt und dienen zur Fehlersuche.</div>
+        <div class="lg-info">Technische IDs stehen nicht mehr in der Tabelle. Öffne bei Bedarf die Details.</div>
       </div>
+      ${renderLogDetailModal()}
     `;
   }
 
@@ -2940,6 +3018,19 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
       state.logSearch = ev.currentTarget.value || '';
       render();
     });
+
+    root.querySelectorAll('[data-lg-log-detail]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.logDetailKey = btn.dataset.lgLogDetail || '';
+        render();
+      });
+    });
+    root.querySelectorAll('[data-lg-log-modal-close]').forEach(el => el.addEventListener('click', ev => {
+      if (ev.target.closest('[data-lg-log-modal-box]') && !ev.target.matches('[data-lg-log-modal-close]')) return;
+      state.logDetailKey = '';
+      render();
+    }));
+    root.querySelectorAll('[data-lg-log-modal-box]').forEach(box => box.addEventListener('click', ev => ev.stopPropagation()));
 
     root.querySelector('[data-lg-core-clear-result]')?.addEventListener('click', () => {
       state.coreSettingsResult = '';
