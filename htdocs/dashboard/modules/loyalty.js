@@ -808,7 +808,7 @@ window.LoyaltyModule = (function(){
     { id: 'wheel', label: 'Glücksrad', description: 'Glücksrad und Gewinne.', module: 'loyalty_games', gamesTab: 'wheel' },
     { id: 'presets', label: 'Presets', description: 'Vorlagen für Loyalty-Aktionen.', module: 'loyalty_games', gamesTab: 'presets' },
     { id: 'giveaways', label: 'Giveaways', description: 'Giveaways verwalten.', module: 'loyalty_giveaways' },
-    { id: 'gamble', label: 'Gamble', description: 'Gamble-Spiel und Auswertung.', module: 'loyalty_games', gamesTab: 'gamble' },
+    { id: 'minigames', label: 'Mini-Spiele', description: 'Raffle, Gamble und spätere Chat-Spiele.', module: 'loyalty_games', gamesTab: 'minigames' },
     { id: 'config', label: 'Einstellungen', description: 'Zentrale Loyalty-Konfiguration mit Bereichsauswahl.', module: 'loyalty_games', gamesTab: 'config' },
     { id: 'texts', label: 'Texte', description: 'Zentrale Loyalty-Texte je Modul/Bereich.', module: 'loyalty_games', gamesTab: 'texts' },
     { id: 'chat', label: 'Chat & Befehle', description: 'Chatbefehle und Antworten.', module: 'loyalty_games', gamesTab: 'chat' },

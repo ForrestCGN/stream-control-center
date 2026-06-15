@@ -21,6 +21,7 @@ window.LoyaltyGamesModule = (function(){
     communicationStatus: '/api/communication/status',
     gambleConfig: '/api/loyalty/games/gamble/dashboard-config',
     gambleAudit: '/api/loyalty/games/gamble/dashboard-audit?limit=8',
+    raffleConfig: '/api/loyalty/raffle/config',
     commandLogs: '/api/commands/logs?limit=80',
     overlay: '/overlays/loyalty/wheel_overlay.html'
   };
@@ -47,6 +48,8 @@ window.LoyaltyGamesModule = (function(){
     gambleConfig: null,
     gambleAudit: null,
     gambleStats: null,
+    raffleConfig: null,
+    raffleResult: '',
     gambleLogRows: [],
     gambleModal: '',
     gambleResult: '',
@@ -510,6 +513,57 @@ window.LoyaltyGamesModule = (function(){
     if (rerender) render();
   }
 
+
+  async function loadRaffleConfig(rerender = true){
+    try {
+      state.raffleConfig = await window.CGN.api(api.raffleConfig);
+    } catch (err) {
+      state.raffleConfig = { ok:false, error: err.message };
+    }
+    if (rerender) render();
+  }
+
+  async function submitRaffleConfig(form){
+    if (!form) return;
+    const boolValue = name => !!form.elements[name]?.checked;
+    const intValue = (name, fallback, min = 0) => {
+      const value = Number(form.elements[name]?.value);
+      if (!Number.isFinite(value)) return fallback;
+      return Math.max(min, Math.floor(value));
+    };
+    const textValue = (name, fallback) => String(form.elements[name]?.value || fallback || '').trim();
+
+    const body = {
+      enabled: boolValue('enabled'),
+      durationSeconds: intValue('durationSeconds', 120, 10),
+      prizePoolAmount: intValue('prizePoolAmount', 5000, 0),
+      entryCostEnabled: boolValue('entryCostEnabled'),
+      entryCostAmount: intValue('entryCostAmount', 0, 0),
+      liveOnly: boolValue('liveOnly'),
+      startPermission: textValue('startPermission', 'mod'),
+      raffleCommand: textValue('raffleCommand', 'raffle').replace(/^!+/, ''),
+      joinCommand: textValue('joinCommand', 'join').replace(/^!+/, ''),
+      showPoolInChat: false
+    };
+
+    state.saving = true;
+    state.raffleResult = buildGambleResult('loading', 'Speichere Raffle-Konfiguration', 'Bitte kurz warten.');
+    render();
+    try {
+      const result = await apiPost(api.raffleConfig, body);
+      state.raffleResult = result?.ok
+        ? buildGambleResult('success', 'Raffle-Konfiguration gespeichert', 'Die Einstellungen wurden übernommen. Der Pool bleibt im Chat weiterhin ausgeblendet.')
+        : buildGambleResult('error', 'Speichern unklar', result?.error || 'Die Antwort war nicht eindeutig.', result || {});
+      await loadRaffleConfig(false);
+    } catch (err) {
+      state.raffleResult = buildGambleResult('error', 'Speichern fehlgeschlagen', err.message || 'Unbekannter Fehler.', { error: err.message || String(err) });
+      state.error = err.message || String(err);
+    } finally {
+      state.saving = false;
+      render();
+    }
+  }
+
   async function loadGambleStats(rerender = true){
     try {
       const data = await window.CGN.api(api.commandLogs);
@@ -595,14 +649,14 @@ window.LoyaltyGamesModule = (function(){
   async function loadAll(force){
     root = document.getElementById('loyaltyGamesModule');
     if (!root || !window.CGN) return;
-    if (!force && state.coreStatus && state.coreSettings && state.status && state.wheelStatus && state.presets && state.giveaways && state.giveawayCommands && state.giveawayTexts && state.communicationStatus && state.gambleConfig) { render(); return; }
+    if (!force && state.coreStatus && state.coreSettings && state.status && state.wheelStatus && state.presets && state.giveaways && state.giveawayCommands && state.giveawayTexts && state.communicationStatus && state.gambleConfig && state.raffleConfig) { render(); return; }
 
     state.loading = true;
     state.error = '';
     render();
 
     try {
-      const [coreStatus, coreSettings, coreHistory, status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, giveawayCommands, giveawayTexts, communicationStatus, gambleConfig, gambleAudit, commandLogs] = await Promise.all([
+      const [coreStatus, coreSettings, coreHistory, status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, giveawayCommands, giveawayTexts, communicationStatus, gambleConfig, gambleAudit, raffleConfig, commandLogs] = await Promise.all([
         window.CGN.api(api.coreStatus).catch(err => ({ ok:false, error:err.message })),
         window.CGN.api(api.loyaltySettings).catch(err => ({ ok:false, error:err.message, settings:[] })),
         window.CGN.api(api.coreHistory).catch(err => ({ ok:false, error:err.message, rows:[] })),
@@ -621,6 +675,7 @@ window.LoyaltyGamesModule = (function(){
         window.CGN.api(api.communicationStatus).catch(err => ({ ok:false, error:err.message, status:{ clients:[] } })),
         window.CGN.api(api.gambleConfig).catch(err => ({ ok:false, error:err.message })),
         window.CGN.api(api.gambleAudit).catch(err => ({ ok:false, error:err.message, items:[] })),
+        window.CGN.api(api.raffleConfig).catch(err => ({ ok:false, error:err.message })),
         window.CGN.api(api.commandLogs).catch(err => ({ ok:false, error:err.message, logs:[] }))
       ]);
 
@@ -636,7 +691,7 @@ window.LoyaltyGamesModule = (function(){
         selectedGiveawayUid = giveawayRows[0]?.giveawayUid || '';
       }
 
-      state = { ...state, loading:false, error:'', coreStatus, coreSettings, coreHistory, status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, giveawayCommands, giveawayTexts, communicationStatus, gambleConfig, gambleAudit, gambleLogRows: normalizeGambleRows(commandLogs), gambleStats: buildGambleStats(normalizeGambleRows(commandLogs)), selectedPresetUid, selectedGiveawayUid };
+      state = { ...state, loading:false, error:'', coreStatus, coreSettings, coreHistory, status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, giveawayCommands, giveawayTexts, communicationStatus, gambleConfig, gambleAudit, raffleConfig, gambleLogRows: normalizeGambleRows(commandLogs), gambleStats: buildGambleStats(normalizeGambleRows(commandLogs)), selectedPresetUid, selectedGiveawayUid };
       if (selectedPresetUid) await loadPreset(selectedPresetUid, false);
       if (selectedGiveawayUid) await loadGiveaway(selectedGiveawayUid, false);
     } catch (err) {
@@ -1098,6 +1153,13 @@ window.LoyaltyGamesModule = (function(){
         moduleId: 'loyalty_giveaways',
         description: `${fmtNumber(giveawaysDiag.total || rows(state.giveaways).length)} Giveaways · Tickets folgen`,
         health: giveawaysHealth
+      },
+      {
+        title: 'Mini-Spiele',
+        icon: '🎲',
+        tab: 'minigames',
+        description: 'Raffle und Gamble in einem Bereich',
+        health: gamesHealth
       },
       {
         title: 'Wheel Overlay',
@@ -3018,6 +3080,134 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
     `;
   }
 
+
+  function renderRaffleResultBox(){
+    return renderConfigResultBox({
+      title: 'Letztes Raffle-Ergebnis',
+      result: state.raffleResult,
+      clearAttr: 'data-lg-raffle-clear-result'
+    });
+  }
+
+  function renderRaffleConfigCard(){
+    const data = state.raffleConfig || {};
+    const cfg = data.config || data.raffle?.config || {};
+    const runtime = data.runtime || data.raffle || {};
+    const textKeys = Array.isArray(data.textKeys) ? data.textKeys : [];
+    const winnerRule = Array.isArray(data.winnerRule) ? data.winnerRule : [];
+    const error = data.ok === false ? `<div class="lg-warning">Raffle-Konfiguration konnte nicht geladen werden: ${esc(data.error || 'Unbekannter Fehler')}</div>` : '';
+    return `
+      <div class="lg-panel">
+        <div class="lg-panel-head">
+          <div>
+            <h3>Raffle</h3>
+            <p class="lg-muted">Chat-Tombola als Mini-Spiel. Der Gewinnpool ist im Dashboard sichtbar, wird im Chat aber nicht angezeigt.</p>
+          </div>
+          <button class="lg-btn lg-btn-secondary" data-lg-raffle-reload type="button">Neu laden</button>
+        </div>
+        ${error}
+        <div class="lg-grid lg-grid-4">
+          <article class="lg-kpi"><span>Status</span><strong>${esc(statusLabel(runtime.status || 'idle'))}</strong><small>${runtime.active ? 'läuft' : 'inaktiv'}</small></article>
+          <article class="lg-kpi"><span>Teilnehmer</span><strong>${fmtNumber(runtime.participantCount || 0)}</strong><small>aktueller/letzter Lauf</small></article>
+          <article class="lg-kpi"><span>Interner Pool</span><strong>${fmtNumber(cfg.prizePoolAmount || runtime.prizePoolAmount || 0)}</strong><small>nicht im Chat anzeigen</small></article>
+          <article class="lg-kpi"><span>Dauer</span><strong>${fmtNumber(cfg.durationSeconds || runtime.durationSeconds || 120)}s</strong><small>Standardlaufzeit</small></article>
+        </div>
+        ${renderRaffleResultBox()}
+        <form class="lg-form lg-gamble-form" data-lg-raffle-form>
+          <div class="lg-grid lg-editor-grid">
+            <label class="lg-check-row"><span><strong>Raffle aktiv</strong><br><small class="lg-muted">Erlaubt !raffle/!join.</small></span><input type="checkbox" name="enabled" ${cfg.enabled !== false ? 'checked' : ''}></label>
+            <label><span>Dauer in Sekunden</span><input type="number" name="durationSeconds" min="10" max="${Number(cfg.maxDurationSeconds || 3600)}" step="1" value="${esc(cfg.durationSeconds || 120)}"></label>
+            <label><span>Gewinnpool intern</span><input type="number" name="prizePoolAmount" min="0" step="1" value="${esc(cfg.prizePoolAmount || 5000)}"></label>
+            <label><span>Start-Berechtigung</span><select name="startPermission">
+              ${['mod','broadcaster','vip','everyone'].map(v => `<option value="${esc(v)}" ${String(cfg.startPermission || 'mod') === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}
+            </select></label>
+            <label><span>Start-Command</span><input type="text" name="raffleCommand" value="${esc(cfg.raffleCommand || 'raffle')}"></label>
+            <label><span>Join-Command</span><input type="text" name="joinCommand" value="${esc(cfg.joinCommand || 'join')}"></label>
+            <label class="lg-check-row"><span><strong>Nur live</strong><br><small class="lg-muted">Wenn aktiv, soll Raffle nur im Livestream laufen.</small></span><input type="checkbox" name="liveOnly" ${cfg.liveOnly ? 'checked' : ''}></label>
+            <label class="lg-check-row"><span><strong>Teilnahmekosten aktiv</strong><br><small class="lg-muted">Aktuell vorbereitet; Standard bleibt kostenlos.</small></span><input type="checkbox" name="entryCostEnabled" ${cfg.entryCostEnabled ? 'checked' : ''}></label>
+            <label><span>Teilnahmekosten</span><input type="number" name="entryCostAmount" min="0" step="1" value="${esc(cfg.entryCostAmount || 0)}"></label>
+          </div>
+          <div class="lg-warning">Chat-Regel: Der Pool wird nie öffentlich angezeigt. Gewinner sehen nur Gewinnerliste und Gewinnbetrag.</div>
+          <div class="lg-actions">
+            <button class="lg-btn" type="button" data-lg-raffle-save ${state.saving ? 'disabled' : ''}>Raffle speichern</button>
+            <button class="lg-btn lg-btn-secondary" type="button" data-lg-jump-tab="texts">Texte bearbeiten</button>
+          </div>
+        </form>
+        <div class="lg-grid lg-editor-grid">
+          <div class="lg-note-card">
+            <h4>Gewinnerregel</h4>
+            <div class="lg-rows compact">
+              ${winnerRule.length ? winnerRule.map(rule => `<div><span>${esc(rule.min)}${rule.max ? `–${esc(rule.max)}` : '+'} Teilnehmer</span><strong>${esc(rule.winners || '-')}</strong></div>`).join('') : '<div><span>Regel</span><strong>Standardregel aktiv</strong></div>'}
+            </div>
+          </div>
+          <div class="lg-note-card">
+            <h4>Textkeys</h4>
+            <p class="lg-muted">Die Varianten bleiben im zentralen Loyalty-Texte-Bereich.</p>
+            <div class="lg-key-list">
+              ${textKeys.length ? textKeys.map(key => `<code>${esc(key)}</code>`).join('') : '<span class="lg-muted">Keine Textkeys geladen.</span>'}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderMinigames(){
+    const gambleCfg = state.gambleConfig || {};
+    const gambleSummary = currentGambleSummary(gambleCfg);
+    const gambleSummaryText = Array.isArray(gambleSummary) ? gambleSummary.map(row => `${row[0]}: ${row[1]}`).slice(0, 2).join(' · ') : String(gambleSummary || 'Konfiguration vorhanden');
+    const raffleCfg = state.raffleConfig?.config || {};
+    const raffleRuntime = state.raffleConfig?.runtime || {};
+    return `
+      <div class="lg-grid lg-grid-2">
+        <article class="lg-panel">
+          <div class="lg-panel-head">
+            <div>
+              <h3>Mini-Spiele</h3>
+              <p class="lg-muted">Schnelle Loyalty-Spiele für den Chat. Raffle und Gamble werden hier gemeinsam verwaltet.</p>
+            </div>
+          </div>
+          <div class="lg-grid lg-grid-2">
+            <button class="lg-module-card" data-lg-mini-scroll="raffle">
+              <span class="lg-module-card-top"><span class="lg-module-icon">🎟️</span>${badge(raffleCfg.enabled !== false, 'aktiv', 'aus')}</span>
+              <strong>Raffle</strong>
+              <small>${fmtNumber(raffleCfg.durationSeconds || 120)}s · Pool intern ${fmtNumber(raffleCfg.prizePoolAmount || 5000)}</small>
+              <span class="lg-module-state">${esc(statusLabel(raffleRuntime.status || 'idle'))} · !${esc(raffleCfg.raffleCommand || 'raffle')} / !${esc(raffleCfg.joinCommand || 'join')}</span>
+            </button>
+            <button class="lg-module-card" data-lg-mini-scroll="gamble">
+              <span class="lg-module-card-top"><span class="lg-module-icon">🎲</span>${badge(gambleCfg.enabled !== false, 'aktiv', 'aus')}</span>
+              <strong>Gamble</strong>
+              <small>${esc(gambleSummaryText || 'Konfiguration vorhanden')}</small>
+              <span class="lg-module-state">bestehendes Mini-Spiel · !gamble</span>
+            </button>
+          </div>
+        </article>
+        <article class="lg-panel" data-lg-mini-section="gamble">
+          <div class="lg-panel-head">
+            <div>
+              <h3>Gamble</h3>
+              <p class="lg-muted">Gamble bleibt technisch unverändert. Die bestehende Konfiguration öffnest du hier.</p>
+            </div>
+            <button class="lg-btn" data-lg-open-config-section="gamble" type="button">Gamble konfigurieren</button>
+          </div>
+          <div class="lg-grid lg-grid-3">
+            <article class="lg-kpi"><span>Status</span><strong>${gambleCfg.enabled === false ? 'Aus' : 'Aktiv'}</strong><small>bestehende Config</small></article>
+            <article class="lg-kpi"><span>Logs geladen</span><strong>${fmtNumber((state.gambleLogRows || []).length)}</strong><small>Command-Logs</small></article>
+            <article class="lg-kpi"><span>Statistik</span><strong>${fmtNumber((state.gambleStats || {}).total || 0)}</strong><small>geladene Spiele</small></article>
+          </div>
+          <div class="lg-actions">
+            <button class="lg-btn lg-btn-secondary" data-lg-gamble-stats type="button">Statistik öffnen</button>
+            <button class="lg-btn lg-btn-secondary" data-lg-gamble-audit type="button">Audit öffnen</button>
+          </div>
+        </article>
+      </div>
+      <div data-lg-mini-section="raffle">
+        ${renderRaffleConfigCard()}
+      </div>
+      ${renderGambleModal()}
+    `;
+  }
+
   function renderGambleStatsModal(){
     const stats = state.gambleStats || { total: 0, wins: 0, losses: 0, netProfit: 0, players: [] };
     const players = Array.isArray(stats.players) ? stats.players : buildGamblePlayerStats(state.gambleLogRows || []);
@@ -3204,7 +3394,7 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
       ['wheel', 'Glücksrad'],
       ['presets', 'Presets'],
       ['giveaways', 'Giveaways'],
-      ['gamble', 'Gamble'],
+      ['minigames', 'Mini-Spiele'],
       ['config', 'Einstellungen'],
       ['texts', 'Texte'],
       ['chat', 'Chat & Befehle'],
@@ -3250,6 +3440,7 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
     if (state.activeTab === 'presets') return renderPresets();
     if (state.activeTab === 'giveaway_wheel_editor') return renderGiveawayWheelEditorRedirect();
     if (state.activeTab === 'giveaways') return renderGiveawaysRedirect();
+    if (state.activeTab === 'minigames') return renderMinigames();
     if (state.activeTab === 'gamble') return renderGamble();
     if (state.activeTab === 'config') return renderConfig();
     if (state.activeTab === 'texts') return renderTexts();
@@ -3473,6 +3664,21 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
     root.querySelector('[data-lg-gamble-clear-result]')?.addEventListener('click', () => {
       state.gambleResult = '';
       render();
+    });
+    root.querySelector('[data-lg-raffle-clear-result]')?.addEventListener('click', () => {
+      state.raffleResult = '';
+      render();
+    });
+    root.querySelector('[data-lg-raffle-reload]')?.addEventListener('click', () => loadRaffleConfig(true));
+    root.querySelector('[data-lg-raffle-save]')?.addEventListener('click', () => {
+      const form = root.querySelector('[data-lg-raffle-form]');
+      submitRaffleConfig(form);
+    });
+    root.querySelectorAll('[data-lg-mini-scroll]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = root.querySelector(`[data-lg-mini-section="${btn.dataset.lgMiniScroll}"]`);
+        target?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+      });
     });
 
     root.querySelector('[data-lg-gamble-save]')?.addEventListener('click', () => {
