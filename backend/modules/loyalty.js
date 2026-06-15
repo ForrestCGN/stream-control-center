@@ -39,7 +39,7 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "loyalty";
-const VERSION = "0.1.17";
+const VERSION = "0.1.18";
 const MODULE_VERSION = VERSION;
 const STREAM_STATUS_API_PATH = "/api/twitch/events/stream-state";
 const MODULE_META = {
@@ -3189,6 +3189,260 @@ function listRunnerEvents(options = {}) {
 }
 
 
+function compactLoyaltyEventRow(row) {
+  const event = rowToLoyaltyEvent(row);
+  if (!event) return null;
+  return {
+    uid: event.uid,
+    provider: event.provider,
+    eventType: event.eventType,
+    sourceType: event.sourceType,
+    login: event.login,
+    displayName: event.displayName,
+    amount: event.amount,
+    tier: event.tier,
+    quantity: event.quantity,
+    points: event.points,
+    mode: event.mode,
+    processed: event.processed,
+    duplicate: event.duplicate,
+    skipped: event.skipped,
+    reason: event.reason,
+    transactionUid: event.transactionUid,
+    createdAt: event.createdAt
+  };
+}
+
+function listRecentLoyaltyEventsForStatus(limit = 10) {
+  try {
+    ensureLoyaltyEventsTable();
+    const rows = database.all(`
+      SELECT *
+      FROM loyalty_events
+      ORDER BY id DESC
+      LIMIT :limit
+    `, { limit: Math.max(1, Math.min(25, Number(limit || 10) || 10)) });
+    return rows.map(compactLoyaltyEventRow).filter(Boolean);
+  } catch (err) {
+    return [];
+  }
+}
+
+function listRecentEventBonusTransactionsForStatus(limit = 10) {
+  try {
+    ensureSchema();
+    const rows = database.all(`
+      SELECT *
+      FROM loyalty_transactions
+      WHERE type = 'event_bonus'
+      ORDER BY id DESC
+      LIMIT :limit
+    `, { limit: Math.max(1, Math.min(25, Number(limit || 10) || 10)) });
+    return rows.map(rowToTransaction).filter(Boolean).map((tx) => ({
+      uid: tx.uid,
+      login: tx.login,
+      displayName: tx.displayName,
+      amount: tx.amount,
+      type: tx.type,
+      sourceProvider: tx.sourceProvider,
+      mode: tx.mode,
+      reason: tx.reason,
+      referenceType: tx.referenceType,
+      referenceId: tx.referenceId,
+      createdAt: tx.createdAt
+    }));
+  } catch (err) {
+    return [];
+  }
+}
+
+function countLoyaltyEventsByTypeForStatus() {
+  try {
+    ensureLoyaltyEventsTable();
+    const rows = database.all(`
+      SELECT
+        event_type AS eventType,
+        COUNT(*) AS total,
+        SUM(CASE WHEN processed = 1 THEN 1 ELSE 0 END) AS processed,
+        SUM(CASE WHEN skipped = 1 THEN 1 ELSE 0 END) AS skipped,
+        SUM(CASE WHEN duplicate = 1 THEN 1 ELSE 0 END) AS duplicates
+      FROM loyalty_events
+      GROUP BY event_type
+      ORDER BY event_type ASC
+    `);
+    return rows.map((row) => ({
+      eventType: row.eventType || "unknown",
+      total: Number(row.total || 0),
+      processed: Number(row.processed || 0),
+      skipped: Number(row.skipped || 0),
+      duplicates: Number(row.duplicates || 0)
+    }));
+  } catch (err) {
+    return [];
+  }
+}
+
+function describeBonusConfigForType(type) {
+  const bonuses = config.bonuses || {};
+  const normalized = normalizeEventType(type);
+
+  if (normalized === "follow") {
+    return { enabled: bonuses.follow?.enabled === true, amount: Math.floor(Number(bonuses.follow?.amount || 0)) };
+  }
+
+  if (normalized === "cheer") {
+    return { enabled: bonuses.cheer?.enabled === true, amountPer100Bits: Math.floor(Number(bonuses.cheer?.amountPer100Bits || 0)) };
+  }
+
+  if (normalized === "raid") {
+    return { enabled: bonuses.raid?.enabled === true, amount: Math.floor(Number(bonuses.raid?.amount || 0)) };
+  }
+
+  if (normalized === "subscribe") {
+    return {
+      enabled: bonuses.subscribe?.enabled === true,
+      amount: Math.floor(Number(bonuses.subscribe?.amount || 0)),
+      tierAmounts: { ...(bonuses.subscribe?.tierAmounts || {}) }
+    };
+  }
+
+  if (normalized === "resub") {
+    return {
+      enabled: bonuses.resub?.enabled === true,
+      amount: Math.floor(Number(bonuses.resub?.amount || 0)),
+      tierAmounts: { ...(bonuses.resub?.tierAmounts || {}) },
+      subStreakEnabled: bonuses.subStreak?.enabled === true,
+      subStreakRules: Array.isArray(bonuses.subStreak?.rules) ? bonuses.subStreak.rules.map((rule) => ({ ...rule })) : []
+    };
+  }
+
+  if (normalized === "gift_sub" || normalized === "gift_bomb") {
+    return {
+      enabled: bonuses.giftSubGiver?.enabled === true,
+      amount: Math.floor(Number(bonuses.giftSubGiver?.amount || 0)),
+      tierAmounts: { ...(bonuses.giftSubGiver?.tierAmounts || {}) }
+    };
+  }
+
+  if (normalized === "gifted_sub_received") {
+    return {
+      enabled: bonuses.giftSubReceiver?.enabled === true,
+      amount: Math.floor(Number(bonuses.giftSubReceiver?.amount || 0)),
+      tierAmounts: { ...(bonuses.giftSubReceiver?.tierAmounts || {}) }
+    };
+  }
+
+  return { enabled: false, amount: 0 };
+}
+
+function sampleBonusInputForType(type) {
+  const normalized = normalizeEventType(type);
+  if (normalized === "cheer") return { eventType: normalized, bits: 100, amount: 100, tier: "none", quantity: 1 };
+  if (normalized === "raid") return { eventType: normalized, viewers: 1, amount: 1, tier: "none", quantity: 1 };
+  if (normalized === "gift_bomb") return { eventType: normalized, tier: "1000", quantity: 5 };
+  if (normalized === "gift_sub") return { eventType: normalized, tier: "1000", quantity: 1 };
+  if (normalized === "subscribe") return { eventType: normalized, tier: "1000", quantity: 1 };
+  if (normalized === "resub") return { eventType: normalized, tier: "1000", quantity: 1, months: 1 };
+  return { eventType: normalized, tier: "none", quantity: 1 };
+}
+
+function buildEventBonusMappingDiagnostics() {
+  const features = config.features || {};
+  return TWITCH_EVENT_BONUS_SUBSCRIPTIONS.map((item) => {
+    const eventType = TWITCH_EVENT_BONUS_MAP[item.eventKey] || "unknown";
+    let sample = null;
+    try {
+      sample = calculateEventBonus(sampleBonusInputForType(eventType));
+    } catch (err) {
+      sample = {
+        ok: false,
+        skipped: true,
+        reason: err && err.message ? err.message : String(err),
+        type: eventType,
+        amount: 0
+      };
+    }
+    return {
+      eventKey: item.eventKey,
+      channel: item.channel,
+      action: item.action,
+      eventType,
+      config: describeBonusConfigForType(eventType),
+      sample,
+      activeForProcessing: !!config.enabled && features.eventBonusesEnabled === true && sample && sample.ok === true && sample.skipped !== true && Number(sample.amount || 0) > 0
+    };
+  });
+}
+
+function buildLoyaltyDiagnostics() {
+  const binding = state.twitchEventBonusBinding || {};
+  const runner = getAutoRunnerStatus();
+  return {
+    eventSubBonusBinding: {
+      installed: binding.installed === true,
+      subscriptionCount: Number(binding.subscriptionCount || 0),
+      expectedSubscriptionCount: TWITCH_EVENT_BONUS_SUBSCRIPTIONS.length,
+      complete: binding.installed === true && Number(binding.subscriptionCount || 0) === TWITCH_EVENT_BONUS_SUBSCRIPTIONS.length,
+      consumedEvents: Array.isArray(binding.consumedEvents) ? [...binding.consumedEvents] : [],
+      consumedChannels: Array.isArray(binding.consumedChannels) ? [...binding.consumedChannels] : [],
+      subscriptions: Array.isArray(binding.subscriptions) ? binding.subscriptions.map((sub) => ({ ...sub })) : [],
+      received: Number(binding.received || 0),
+      processed: Number(binding.processed || 0),
+      skipped: Number(binding.skipped || 0),
+      duplicates: Number(binding.duplicates || 0),
+      errors: Number(binding.errors || 0),
+      lastEventAt: binding.lastEventAt || "",
+      lastEventKey: binding.lastEventKey || "",
+      lastLogin: binding.lastLogin || "",
+      lastResult: binding.lastResult || null,
+      lastError: binding.lastError || ""
+    },
+    bonusMapping: {
+      enabled: !!config.enabled && !!(config.features && config.features.eventBonusesEnabled === true),
+      moduleEnabled: !!config.enabled,
+      eventBonusesEnabled: !!(config.features && config.features.eventBonusesEnabled === true),
+      mode: normalizeMode(config.mode),
+      supportedEvents: buildEventBonusMappingDiagnostics()
+    },
+    pointsRunner: {
+      enabled: runner.enabled === true,
+      timerActive: runner.timerActive === true,
+      running: runner.running === true,
+      trigger: runner.trigger || "",
+      runCount: Number(runner.runCount || 0),
+      successCount: Number(runner.successCount || 0),
+      errorCount: Number(runner.errorCount || 0),
+      lastRunAt: runner.lastRunAt || "",
+      lastRunResult: runner.lastRunResult || null,
+      lastError: runner.lastError || ""
+    },
+    liveState: {
+      sourceApiPath: STREAM_STATUS_API_PATH,
+      binding: { ...state.streamStatusBinding },
+      runnerLiveGate: !!(config.autoRunner && config.autoRunner.runOnlyWhenLive === true),
+      effectiveLive: state.streamStatusBinding ? state.streamStatusBinding.lastLive : null,
+      lastSource: state.streamStatusBinding ? state.streamStatusBinding.lastSource || "" : "",
+      lastReason: state.streamStatusBinding ? state.streamStatusBinding.lastReason || "" : ""
+    },
+    legacyFallbacks: {
+      streamElementsStillActive: true,
+      legacyLoyaltyDirectForwardOwnedByTwitchModule: true,
+      legacyLoyaltyDirectForwardStatusRoute: "/api/twitch/eventsub/status",
+      directEventBonusRouteStillAvailable: true,
+      directEventBonusRoutes: [
+        "POST /api/loyalty/events/ingest",
+        "GET /api/loyalty/events/test/:type"
+      ]
+    },
+    recent: {
+      eventCountsByType: countLoyaltyEventsByTypeForStatus(),
+      events: listRecentLoyaltyEventsForStatus(10),
+      eventBonusTransactions: listRecentEventBonusTransactionsForStatus(10)
+    }
+  };
+}
+
+
 function buildStatus() {
   refreshConfigFromSettings();
   return {
@@ -3222,7 +3476,8 @@ function buildStatus() {
     watch: { ...config.watch },
     autoRunner: getAutoRunnerStatus(),
     streamStatusBinding: { ...state.streamStatusBinding },
-    twitchEventBonusBinding: { ...state.twitchEventBonusBinding }
+    twitchEventBonusBinding: { ...state.twitchEventBonusBinding },
+    diagnostics: buildLoyaltyDiagnostics()
   };
 }
 
