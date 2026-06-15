@@ -44,7 +44,7 @@ window.LoyaltyGamesModule = (function(){
     gambleLogRows: [],
     gambleModal: '',
     gambleResult: '',
-    configSection: 'gamble',
+    configSection: 'core',
     selectedPresetUid: '',
     selectedPreset: null,
     activeTab: 'overview'
@@ -2027,6 +2027,10 @@ function renderGiveawayDetails(giveaway){
     return `<label class="lg-config-field"><span>${esc(label)} ${help ? configInfoNote(help) : ''}</span><div class="lg-config-readonly-value"><strong>${esc(configDisplayValue(value))}</strong>${suffix ? `<small>${esc(suffix)}</small>` : ''}</div></label>`;
   }
 
+  function renderReadonlyDisplay(label, value, help, suffix = ''){
+    return renderReadonlyNumber(label, value, help, suffix);
+  }
+
   function renderReadonlyToggle(label, value, help){
     return renderReadonlySelect(label, value ? 'on' : 'off', [['on', 'Aktiv'], ['off', 'Inaktiv']], help);
   }
@@ -2054,25 +2058,34 @@ function renderGiveawayDetails(giveaway){
     const core = state.coreStatus || {};
     const settings = Array.isArray(core.settings) ? core.settings : [];
     const settingMap = new Map(settings.map(row => [row.key, row.value ?? row.rawValue]));
-    return renderConfigPanelShell('Core', 'Grundregeln für Punkte, Support-Boni und automatische Vergabe. Das ist die zentrale Stelle für Core-Einstellungen.', `
+    const mainCore = renderConfigPanelShell('Core', 'Alles, was direkt Punkte erzeugt oder die automatische Vergabe steuert, liegt hier gebündelt.', `
       <div class="lg-config-form-grid">
-        ${renderReadonlyToggle('Loyalty aktiv', settingMap.get('enabled') !== false, 'Schaltet das Punktesystem grundsätzlich ein oder aus.')}
-        ${renderReadonlySelect('Punkte-Name', settingMap.get('currency.name') || 'Kekskrümel', [[settingMap.get('currency.name') || 'Kekskrümel', settingMap.get('currency.name') || 'Kekskrümel']], 'So heißen die Punkte im Stream.')}
-        ${renderReadonlyToggle('Support-Events geben Punkte', settingMap.get('features.eventBonusesEnabled') !== false, 'Follow, Subs, Bits, Raids und Geschenk-Abos können Punkte auslösen.')}
+        ${renderReadonlyDisplay('Loyalty aktiv', settingMap.get('enabled') !== false ? 'Ja' : 'Nein', 'Schaltet das Punktesystem grundsätzlich ein oder aus.')}
+        ${renderReadonlyDisplay('Punkte-Name', settingMap.get('currency.name') || 'Kekskrümel', 'So heißen die Punkte im Stream.')}
+        ${renderReadonlyDisplay('Support-Events geben Punkte', settingMap.get('features.eventBonusesEnabled') !== false ? 'Ja' : 'Nein', 'Follow, Subs, Bits, Raids und Geschenk-Abos können Punkte auslösen.')}
       </div>
       ${renderConfigSummaryRows([
         ['Status', core.ok === false ? 'prüfen' : 'geladen'],
         ['Version', core.version || core.moduleVersion || '-'],
-        ['Core-Regeln', 'zentral hier in Einstellungen']
+        ['Bearbeitung', 'noch nicht schreibbar angebunden']
       ])}
-      <div class="lg-config-note">Core-Regeln gehören künftig hierher. Der Core-Tab bleibt für Kontrolle, User, Auswertung und Bedienung.</div>
-    `);
+      <div class="lg-config-note">Diese Werte werden aktuell angezeigt. Schreibbare Felder werden erst aktiviert, wenn der sichere Speicherweg angebunden ist.</div>
+    `, { badgeText: 'Ansicht', badgeType: 'warn' });
+
+    return `
+      ${mainCore}
+      <div class="lg-config-core-stack">
+        ${renderRunnerConfigPanel()}
+        ${renderGiftConfigPanel()}
+        ${renderRaidConfigPanel()}
+      </div>
+    `;
   }
 
   function renderRunnerConfigPanel(){
     const core = state.coreStatus || {};
     const runner = core.runner || core.diagnostics?.pointsRunner || core.pointsRunner || {};
-    return renderConfigPanelShell('Automatische Punkte', 'Regeln für Punkte, die Zuschauer automatisch durch Anwesenheit oder Aktivität bekommen.', `
+    return renderConfigPanelShell('Core · Automatische Punkte', 'Regeln für Punkte, die Zuschauer automatisch durch Anwesenheit oder Aktivität bekommen.', `
       <div class="lg-config-form-grid">
         ${renderReadonlyToggle('Automatische Vergabe', Boolean(runner.enabled ?? runner.timerActive ?? false), 'Wenn aktiv, kann das System regelmäßig Punkte vergeben.')}
         ${renderReadonlySelect('Live-Regel', runner.liveRequired ? 'live_only' : 'configured', [['configured', 'Wie eingestellt'], ['live_only', 'Nur wenn Stream live ist']], 'Legt fest, ob Punkte nur während eines Live-Streams gezählt werden sollen.')}
@@ -2086,7 +2099,7 @@ function renderGiveawayDetails(giveaway){
     const gift = state.coreStatus?.diagnostics?.bonusMapping?.giftSub || {};
     const receiver = state.coreStatus?.diagnostics?.bonusMapping?.bonusValues?.rules?.giftSubReceiver?.config || {};
     const mode = gift.receiverMode || receiver.mode || 'track_only';
-    return renderConfigPanelShell('Geschenk-Abos / GiftBombs', 'Hier wird festgelegt, wie Schenker und Empfänger von Geschenk-Abos behandelt werden.', `
+    return renderConfigPanelShell('Core · Geschenk-Abos / GiftBombs', 'Hier wird angezeigt, wie Schenker und Empfänger von Geschenk-Abos behandelt werden.', `
       <div class="lg-config-form-grid">
         ${renderReadonlyToggle('Schenker belohnen', gift.giverBonusEnabled !== false, 'Der Zuschauer, der ein Geschenk-Abo oder eine GiftBomb auslöst, bekommt Punkte.')}
         ${renderReadonlySelect('Empfänger von Geschenk-Abos', mode, [
@@ -2110,7 +2123,7 @@ function renderGiveawayDetails(giveaway){
   function renderRaidConfigPanel(){
     const raid = state.coreStatus?.diagnostics?.bonusMapping?.bonusValues?.rules?.raid || {};
     const cfg = raid.config || {};
-    return renderConfigPanelShell('Raids', 'Punkte für Raids sollen fair zur Zuschauerzahl passen, aber durch ein Maximum begrenzt bleiben.', `
+    return renderConfigPanelShell('Core · Raids', 'Punkte für Raids sollen fair zur Zuschauerzahl passen, aber durch ein Maximum begrenzt bleiben.', `
       <div class="lg-config-form-grid">
         ${renderReadonlySelect('Raid-Berechnung', cfg.mode || 'base_plus_viewers', [['fixed', 'Fixer Betrag'], ['base_plus_viewers', 'Basis + Zuschauer']], 'Fixer Betrag gibt immer gleich viele Punkte. Basis + Zuschauer berücksichtigt die Raid-Größe.')}
         ${renderReadonlyNumber('Basispunkte', cfg.baseAmount ?? cfg.amount ?? 50, 'Grundwert, den jeder Raid bekommt.')}
@@ -2223,13 +2236,16 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
     `;
   }
 
+  function normalizeConfigSection(section){
+    if (section === 'runner' || section === 'gift_subs' || section === 'raids') return 'core';
+    return section || 'core';
+  }
+
   function renderConfig(){
-    const section = state.configSection || 'core';
+    const section = normalizeConfigSection(state.configSection || 'core');
+    if (state.configSection !== section) state.configSection = section;
     const sections = [
       ['core', 'Core'],
-      ['runner', 'Automatische Punkte'],
-      ['gift_subs', 'Geschenk-Abos / GiftBombs'],
-      ['raids', 'Raids'],
       ['wheel', 'Glücksrad'],
       ['presets', 'Presets'],
       ['giveaways', 'Giveaways'],
@@ -2239,9 +2255,6 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
     const current = sections.find(([id]) => id === section) || sections[0];
     const panels = {
       core: renderCoreConfigPanel,
-      runner: renderRunnerConfigPanel,
-      gift_subs: renderGiftConfigPanel,
-      raids: renderRaidConfigPanel,
       wheel: renderWheelConfigPanel,
       presets: renderPresetsConfigPanel,
       giveaways: renderGiveawaysConfigPanel,
@@ -2254,7 +2267,7 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
         <div class="lg-panel-head">
           <div>
             <h3>Loyalty-Einstellungen</h3>
-            <p class="lg-muted">Eine zentrale Seite für alle Loyalty-Einstellungen. Wähle den Bereich aus; Texte und Logs haben eigene Tabs.</p>
+            <p class="lg-muted">Eine zentrale Seite für alle Loyalty-Einstellungen. Core enthält Grundregeln, automatische Punkte, Support-Events, Geschenk-Abos und Raids. Texte und Logs haben eigene Tabs.</p>
           </div>
           <div class="lg-actions">
             <label class="lg-config-select-label">Bereich auswählen
@@ -2534,13 +2547,13 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
     root.querySelector('[data-lg-reload]')?.addEventListener('click', () => loadAll(true));
 
     root.querySelector('[data-lg-config-section]')?.addEventListener('change', ev => {
-      state.configSection = ev.currentTarget.value || 'gamble';
+      state.configSection = normalizeConfigSection(ev.currentTarget.value || 'core');
       render();
     });
 
     root.querySelectorAll('[data-lg-open-config-section]').forEach(btn => {
       btn.addEventListener('click', () => {
-        state.configSection = btn.dataset.lgOpenConfigSection || 'gamble';
+        state.configSection = normalizeConfigSection(btn.dataset.lgOpenConfigSection || 'core');
         state.activeTab = 'config';
         render();
       });
