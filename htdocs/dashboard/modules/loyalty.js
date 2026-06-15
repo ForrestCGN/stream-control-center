@@ -322,6 +322,61 @@ window.LoyaltyModule = (function(){
     `;
   }
 
+
+  function eventLabel(type){
+    const labels = {
+      follow: 'Follow',
+      subscribe: 'Sub',
+      resub: 'Resub',
+      gift_sub: 'Geschenk-Abo',
+      gift_bomb: 'GiftBomb',
+      gifted_sub_received: 'Geschenk-Abo Empfänger',
+      cheer: 'Bits / Cheer',
+      raid: 'Raid'
+    };
+    return labels[String(type || '')] || String(type || '-');
+  }
+
+  function renderCoreDiagnostics(){
+    const diagnostics = state.status?.diagnostics || {};
+    const binding = diagnostics.eventSubBonusBinding || state.status?.twitchEventBonusBinding || {};
+    const mapping = diagnostics.bonusMapping || {};
+    const gift = mapping.giftSub || {};
+    const bonusValues = mapping.bonusValues || {};
+    const raid = bonusValues.rules?.raid || {};
+    const raidSamples = Array.isArray(raid.samples) ? raid.samples : [];
+    const sampleLine = raidSamples.length ? raidSamples.map(sample => {
+      const viewers = sample?.input?.viewers;
+      const amount = sample?.result?.amount;
+      return `${fmtNumber(viewers)} Zuschauer → ${fmtNumber(amount)}`;
+    }).join(' · ') : 'Keine Beispiele geladen';
+    const directEvents = Array.isArray(mapping.directBusEvents) ? mapping.directBusEvents : [];
+    const complete = binding.complete === true || (Number(binding.subscriptionCount || 0) > 0 && Number(binding.subscriptionCount || 0) === Number(binding.expectedSubscriptionCount || binding.subscriptionCount || 0));
+
+    return `
+      <section class="loyalty-card loyalty-card-main loyalty-readonly-status">
+        <h3>Loyalty Event-Status</h3>
+        <p class="loyalty-note">Read-only Übersicht: Welche Twitch-Support-Events ankommen, wie Geschenk-Abos behandelt werden und welche Raid-Regel aktiv ist.</p>
+        <div class="loyalty-kpis two">
+          <div><strong>${fmtNumber(binding.subscriptionCount || 0)} / ${fmtNumber(binding.expectedSubscriptionCount || 7)}</strong><span>Event-Bus Bindings</span></div>
+          <div><strong>${complete ? 'Vollständig' : 'Prüfen'}</strong><span>Support-Event-Anbindung</span></div>
+        </div>
+        <div class="loyalty-rows compact">
+          <div><span>Letztes Support-Event</span><strong>${esc(binding.lastEventKey || '-')}</strong></div>
+          <div><span>Letzter User</span><strong>${esc(binding.lastLogin || '-')}</strong></div>
+          <div><span>Verarbeitet / Fehler</span><strong>${fmtNumber(binding.processed || 0)} / ${fmtNumber(binding.errors || 0)}</strong></div>
+          <div><span>GiftSub-Empfänger</span><strong>${esc(gift.receiverModeLabel || 'Nur im Verlauf anzeigen, keine Punkte')}</strong></div>
+          <div><span>Empfänger bekommen Punkte</span><strong>${gift.receiverAwardsPoints ? 'Ja' : 'Nein'}</strong></div>
+          <div><span>Raid-Berechnung</span><strong>${raid.viewerCountAffectsPoints ? 'Nach Zuschauerzahl' : 'Fixer Betrag'}</strong></div>
+        </div>
+        ${directEvents.length ? `<div class="loyalty-chip-list loyalty-event-chip-list">
+          ${directEvents.map(ev => `<span title="${esc(ev.eventKey || '')}"><strong>${esc(eventLabel(ev.eventType))}</strong>${ev.activeForProcessing ? 'aktiv' : 'inaktiv'}</span>`).join('')}
+        </div>` : ''}
+        <p class="loyalty-note loyalty-sample-line">Raid-Beispiele: ${esc(sampleLine)}</p>
+      </section>
+    `;
+  }
+
   function renderOverview(){
     const status = state.status || {};
     const stream = getStream();
@@ -356,6 +411,9 @@ window.LoyaltyModule = (function(){
             <div><span>Auto geprüft</span><strong>${fmtDate(stream?.auto?.checkedAt)}</strong></div>
           </div>
         </section>
+      </div>
+      <div class="loyalty-grid">
+        ${renderCoreDiagnostics()}
       </div>
     `;
   }
@@ -626,7 +684,7 @@ window.LoyaltyModule = (function(){
         <div class="loyalty-history-filters">
           <label><span>Event</span><select data-loyalty-history-filter="type">
             <option value="" ${!filters.type ? 'selected' : ''}>Alle</option>
-            ${eventTypes.map(type => `<option value="${esc(type)}" ${filters.type === type ? 'selected' : ''}>${esc(type)}</option>`).join('')}
+            ${eventTypes.map(type => `<option value="${esc(type)}" ${filters.type === type ? 'selected' : ''}>${esc(eventLabel(type))}</option>`).join('')}
           </select></label>
           <label><span>Status</span><select data-loyalty-history-filter="status">
             <option value="" ${!filters.status ? 'selected' : ''}>Alle</option>
@@ -642,7 +700,7 @@ window.LoyaltyModule = (function(){
         ${eventList.length ? `<div class="loyalty-table-wrap"><table><thead><tr><th>Zeit</th><th>Event</th><th>User</th><th>Tier/Menge</th><th>Wert</th><th>Punkte</th><th>Status</th><th>Buchung</th><th>Details</th></tr></thead><tbody>
           ${eventList.map(row => `<tr>
             <td>${fmtDate(row.createdAt)}</td>
-            <td><strong>${esc(row.eventType || '-')}</strong><small>${esc(row.sourceType || row.provider || '')}</small></td>
+            <td><strong>${esc(eventLabel(row.eventType))}</strong><small>${esc(row.eventType || '')} · ${esc(row.sourceType || row.provider || '')}</small></td>
             <td><strong>${esc(row.displayName || row.login || '-')}</strong><small>${esc(row.login || '')}</small>${row.receiver?.login ? `<small>Receiver: ${esc(row.receiver.displayName || row.receiver.login)}</small>` : ''}</td>
             <td>${esc(row.tier || '-')}<small>x${fmtNumber(row.quantity || 1)}</small></td>
             <td>${fmtNumber(row.amount)}</td>
@@ -683,7 +741,7 @@ window.LoyaltyModule = (function(){
         <header>
           <div>
             <h3>Event-Details</h3>
-            <p>${esc(event.eventType || '-')} · ${fmtDate(event.createdAt)}</p>
+            <p>${esc(eventLabel(event.eventType))} · ${fmtDate(event.createdAt)}</p>
           </div>
           <button type="button" data-loyalty-close-detail>Schließen</button>
         </header>

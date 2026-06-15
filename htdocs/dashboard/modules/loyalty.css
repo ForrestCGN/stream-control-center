@@ -26,3 +26,10 @@
 .loyalty-setting-input select{width:100%}
 html[data-theme=dark] .loyalty-config-intro{background:#1b2428;border-color:#31515a}
 html[data-theme=dark] .loyalty-setting-row.is-highlight{background:#241d2c;border-color:#51405f}
+
+/* STEP LC-CORE-DASHBOARD-READONLY-1 - kompakte Read-only Diagnose */
+.loyalty-readonly-status{border-color:rgba(34,211,238,.22);background:rgba(34,211,238,.045)}
+.loyalty-event-chip-list{margin-top:12px}
+.loyalty-event-chip-list span{display:inline-flex;gap:8px;align-items:center}
+.loyalty-sample-line{margin:12px 0 0}
+html[data-theme=dark] .loyalty-readonly-status{background:#1b2428;border-color:#31515a}
