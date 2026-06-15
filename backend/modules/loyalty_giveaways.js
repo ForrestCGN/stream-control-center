@@ -23,8 +23,8 @@ const database = require("../core/database");
 const loyaltyCore = require("./loyalty");
 
 const MODULE_NAME = "loyalty_giveaways";
-const MODULE_VERSION = "0.1.8";
-const MODULE_BUILD = "STEP_LC_RAFFLE_2A_CONFIG_ROUTES";
+const MODULE_VERSION = "0.1.9";
+const MODULE_BUILD = "STEP_LC_RAFFLE_2A_FIX1_CONFIG_ENDPOINT";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -836,7 +836,7 @@ function buildRaffleConfigPayload() {
     config: getRaffleConfig(),
     runtime: getRaffleSnapshot(),
     winnerRule: getRaffleWinnerRuleDescription(),
-    textKeys: Object.keys(CHAT_TEXT_VARIANTS).filter(key => key.startsWith("raffle.public.")),
+    textKeys: Object.keys(CHAT_TEXT_DEFAULTS).filter(key => key.startsWith("raffle.public.")),
     dashboard: {
       group: "minigames",
       label: "Raffle",
