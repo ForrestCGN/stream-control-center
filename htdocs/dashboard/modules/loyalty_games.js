@@ -17,6 +17,7 @@ window.LoyaltyGamesModule = (function(){
     giveaways: '/api/loyalty/giveaways?limit=250',
     giveawayCommands: '/api/loyalty/giveaways/commands',
     giveawayTexts: '/api/loyalty/giveaways/texts',
+    gameTexts: '/api/loyalty/games/texts',
     communicationStatus: '/api/communication/status',
     gambleConfig: '/api/loyalty/games/gamble/dashboard-config',
     gambleAudit: '/api/loyalty/games/gamble/dashboard-audit?limit=8',
@@ -58,6 +59,7 @@ window.LoyaltyGamesModule = (function(){
     textSection: 'all',
     textSearch: '',
     textEditKey: '',
+    gameTexts: null,
     selectedPresetUid: '',
     selectedPreset: null,
     activeTab: 'overview'
@@ -2119,12 +2121,14 @@ function renderGiveawayDetails(giveaway){
 
   async function refreshChatSetup(rerender = true){
     try {
-      const [giveawayCommands, giveawayTexts] = await Promise.all([
+      const [giveawayCommands, giveawayTexts, gameTexts] = await Promise.all([
         window.CGN.api(api.giveawayCommands).catch(err => ({ ok:false, error:err.message, rows:[] })),
-        window.CGN.api(api.giveawayTexts).catch(err => ({ ok:false, error:err.message, keys:[], categories:[] }))
+        window.CGN.api(api.giveawayTexts).catch(err => ({ ok:false, error:err.message, keys:[], categories:[] })),
+        window.CGN.api(api.gameTexts).catch(err => ({ ok:false, error:err.message, keys:[], categories:[] }))
       ]);
       state.giveawayCommands = giveawayCommands;
       state.giveawayTexts = giveawayTexts;
+      state.gameTexts = gameTexts;
       if (rerender) render();
     } catch (err) {
       state.error = err.message || String(err);
@@ -2132,15 +2136,64 @@ function renderGiveawayDetails(giveaway){
     }
   }
 
+  function cloneTextKeyForSource(item, source){
+    const copy = { ...(item || {}) };
+    copy.sourceTextApi = source.endpoint || '';
+    copy.sourceTextModule = source.module || '';
+    copy.sourceTextLabel = source.label || '';
+    copy.variants = Array.isArray(item?.variants)
+      ? item.variants.map(variant => ({
+          ...variant,
+          sourceTextApi: source.endpoint || '',
+          sourceTextModule: source.module || '',
+          sourceTextLabel: source.label || ''
+        }))
+      : [];
+    copy.activeCount = Number(copy.activeCount ?? copy.variants.filter(variant => variant.enabled !== false && variant.active !== false).length);
+    copy.totalCount = Number(copy.totalCount ?? copy.variants.length);
+    return copy;
+  }
+
+  function centralTextPayload(){
+    const sources = [
+      { payload: state.giveawayTexts, endpoint: api.giveawayTexts, module: 'loyalty_giveaways', label: 'Giveaways / Glücksrad' },
+      { payload: state.gameTexts, endpoint: api.gameTexts, module: 'loyalty_games', label: 'Games / Gamble' }
+    ];
+    const categories = [];
+    const keys = [];
+    for (const source of sources) {
+      const payload = source.payload || {};
+      if (Array.isArray(payload.categories)) {
+        payload.categories.forEach(cat => categories.push({ ...cat, sourceTextApi: source.endpoint, sourceTextModule: source.module, sourceTextLabel: source.label }));
+      }
+      if (Array.isArray(payload.keys)) {
+        payload.keys.forEach(item => keys.push(cloneTextKeyForSource(item, source)));
+      }
+    }
+    return {
+      ok: sources.some(source => source.payload && source.payload.ok !== false),
+      categories,
+      keys,
+      count: keys.length,
+      variantCount: keys.reduce((sum, item) => sum + Number(item.totalCount || (Array.isArray(item.variants) ? item.variants.length : 0) || 0), 0)
+    };
+  }
+
+  function textItemEndpoint(item){
+    return String(item?.sourceTextApi || '').trim();
+  }
+
   async function saveChatTextVariant(form){
     const data = new FormData(form);
     const key = String(data.get('key') || '').trim();
     const category = String(data.get('category') || 'general').trim();
     const value = String(data.get('value') || '').trim();
-    if (!key || !value) return;
+    const item = findTextItem(String(data.get('itemUid') || state.textEditKey || '').trim());
+    const endpoint = textItemEndpoint(item) || api.giveawayTexts;
+    if (!key || !value || !endpoint) return;
     state.saving = true; render();
     try {
-      await apiPost(api.giveawayTexts, {
+      await apiPost(endpoint, {
         action: 'saveVariant',
         variant: { key, category, value, enabled: true, weight: 1 }
       });
@@ -2170,7 +2223,8 @@ function renderGiveawayDetails(giveaway){
     state.saving = true;
     render();
     try {
-      await apiPost(api.giveawayTexts, {
+      const endpoint = textItemEndpoint(item) || api.giveawayTexts;
+      await apiPost(endpoint, {
         action: 'saveVariant',
         variant: {
           id: variant.id,
@@ -2207,7 +2261,8 @@ function renderGiveawayDetails(giveaway){
     state.saving = true;
     render();
     try {
-      await apiPost(api.giveawayTexts, { action: 'deleteVariant', id: variant.id });
+      const endpoint = textItemEndpoint(item) || api.giveawayTexts;
+      await apiPost(endpoint, { action: 'deleteVariant', id: variant.id });
       await refreshChatSetup(false);
       const stillExists = findTextItem(itemUid);
       state.textEditKey = stillExists ? itemUid : '';
@@ -2272,7 +2327,8 @@ function renderGiveawayDetails(giveaway){
   function classifyTextSection(item){
     const key = norm(item?.key || item?.name || '');
     const category = norm(item?.category || item?.module || '');
-    const source = `${category} ${key}`;
+    const moduleName = norm(item?.sourceTextModule || item?.module || '');
+    const source = `${moduleName} ${category} ${key}`;
     if (source.includes('gift') || source.includes('subgift') || source.includes('giftbomb') || source.includes('geschenk')) return 'gifts';
     if (source.includes('wheel') || source.includes('rad') || source.includes('spin') || source.includes('gluecksrad') || source.includes('glücksrad')) return 'wheel';
     if (source.includes('giveaway')) return 'giveaways';
@@ -2290,11 +2346,11 @@ function renderGiveawayDetails(giveaway){
   }
 
   function textItemUid(item){
-    return `${String(item?.category || 'general')}::${String(item?.key || '')}`;
+    return `${String(item?.sourceTextModule || 'texts')}::${String(item?.category || 'general')}::${String(item?.key || '')}`;
   }
 
   function findTextItem(uid){
-    const keys = Array.isArray(state.giveawayTexts?.keys) ? state.giveawayTexts.keys : [];
+    const keys = Array.isArray(centralTextPayload().keys) ? centralTextPayload().keys : [];
     return keys.find(item => textItemUid(item) === uid) || null;
   }
 
@@ -2305,7 +2361,7 @@ function renderGiveawayDetails(giveaway){
     const section = classifyTextSection(item);
     const activeCount = Number(item.activeCount || 0);
     const totalCount = Number(item.totalCount || variants.length || 0);
-    const allowSave = section === 'giveaways' || section === 'chat' || state.textSection === 'all';
+    const allowSave = !!textItemEndpoint(item);
     return `
       <div class="lgw-modal-backdrop" data-lg-text-modal-close>
         <div class="lgw-modal lgw-detail-modal lg-text-editor-modal" role="dialog" aria-modal="true" aria-label="Text bearbeiten" data-lg-text-modal-box>
@@ -2344,7 +2400,7 @@ function renderGiveawayDetails(giveaway){
                         <button class="lg-btn lg-btn-small lg-btn-secondary" type="button" data-lg-text-toggle-variant="${esc(variantId)}" data-lg-text-toggle-key="${esc(textItemUid(item))}" data-lg-text-toggle-enabled="${enabled ? '0' : '1'}" ${state.saving ? 'disabled' : ''}>${enabled ? 'Deaktivieren' : 'Aktivieren'}</button>
                         <button class="lg-btn lg-btn-small lg-btn-danger" type="button" data-lg-text-delete-variant="${esc(variantId)}" data-lg-text-delete-key="${esc(textItemUid(item))}" ${state.saving ? 'disabled' : ''}>Löschen</button>
                       </div>
-                    ` : `<div class="lg-muted lg-text-variant-note">Diese Variante hat keine sichere ID und kann hier noch nicht verändert werden.</div>`}
+                    ` : `<div class="lg-muted lg-text-variant-note">Diese Variante kommt noch ohne sichere Varianten-ID aus der API. Nach dem nächsten Speichern/Neu laden wird sie über die zentrale Text-API bearbeitbar.</div>`}
                   </article>
                 `;
               }).join('') || '<p class="lg-muted">Noch keine Variante vorhanden.</p>'}
@@ -2355,6 +2411,7 @@ function renderGiveawayDetails(giveaway){
             <h4>Neue Variante hinzufügen</h4>
             ${allowSave ? `
               <form class="lg-text-editor-form" data-lg-save-chat-text>
+                <input type="hidden" name="itemUid" value="${esc(textItemUid(item))}">
                 <input type="hidden" name="key" value="${esc(item.key)}">
                 <input type="hidden" name="category" value="${esc(item.category || 'general')}">
                 <textarea name="value" rows="5" placeholder="Neue Textvariante im CGN-Stil eintragen..." autocomplete="off"></textarea>
@@ -2364,7 +2421,7 @@ function renderGiveawayDetails(giveaway){
                 </div>
               </form>
             ` : `
-              <div class="lg-info">Dieser Bereich ist vorbereitet. Bearbeitung wird aktiviert, sobald die Modultexte an die zentrale Text-API angebunden sind.</div>
+              <div class="lg-info">Dieser Bereich ist noch nicht an eine bearbeitbare Text-API angebunden.</div>
             `}
           </section>
 
@@ -2378,7 +2435,7 @@ function renderGiveawayDetails(giveaway){
   }
 
   function renderTexts(){
-    const textPayload = state.giveawayTexts || {};
+    const textPayload = centralTextPayload();
     const categories = Array.isArray(textPayload.categories) ? textPayload.categories : [];
     const keys = Array.isArray(textPayload.keys) ? textPayload.keys : [];
     const selectedSection = state.textSection || 'all';
@@ -2393,7 +2450,7 @@ function renderGiveawayDetails(giveaway){
       ['gifts', 'Geschenk-Abos / GiftBombs'],
       ['notices', 'Hinweise / Fehlertexte']
     ];
-    const preparedSections = ['core', 'wheel', 'gamble', 'gifts', 'notices'];
+    const preparedSections = ['core', 'gifts', 'notices'];
     const filteredKeys = keys.filter(item => {
       const section = classifyTextSection(item);
       if (selectedSection !== 'all' && section !== selectedSection) return false;
@@ -2405,7 +2462,6 @@ function renderGiveawayDetails(giveaway){
       const count = keys.filter(item => classifyTextSection(item) === id).length;
       return { id, label, count };
     });
-    const canSaveInSelectedSection = selectedSection === 'all' || selectedSection === 'giveaways' || selectedSection === 'chat';
     const selectedHasRows = filteredKeys.length > 0;
     const selectedIsPreparedOnly = !selectedHasRows && preparedSections.includes(selectedSection);
     const variantTotal = keys.reduce((sum, item) => sum + Number(item.totalCount || (Array.isArray(item.variants) ? item.variants.length : 0) || 0), 0);
@@ -2456,7 +2512,7 @@ function renderGiveawayDetails(giveaway){
           <div class="lg-mini-list">
             <div class="lg-mini-row"><span><strong>Mehrere Varianten</strong><br><small class="lg-muted">Pro Zweck können mehrere aktive Texte bestehen. Das hält Chat-Antworten abwechslungsreich.</small></span><span class="lg-badge lg-badge-ok">aktiv</span></div>
             <div class="lg-mini-row"><span><strong>CGN-Stil</strong><br><small class="lg-muted">Kurz, freundlich, Altersheim-/Rentner-Humor wo passend.</small></span><span class="lg-badge lg-badge-ok">Standard</span></div>
-            <div class="lg-mini-row"><span><strong>Bearbeitung</strong><br><small class="lg-muted">Neue Varianten werden über die vorhandene Text-API gespeichert.</small></span><span class="lg-badge lg-badge-ok">angebunden</span></div>
+            <div class="lg-mini-row"><span><strong>Bearbeitung</strong><br><small class="lg-muted">Neue Varianten und Aktiv/Inaktiv werden über die vorhandenen Text-APIs gespeichert.</small></span><span class="lg-badge lg-badge-ok">angebunden</span></div>
           </div>
         </div>
       </div>
