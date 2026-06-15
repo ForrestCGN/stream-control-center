@@ -11,8 +11,8 @@ const database = require('../core/database');
 const communicationBus = require('./communication_bus');
 
 const MODULE_NAME = 'twitch';
-const MODULE_VERSION = '0.1.9';
-const MODULE_BUILD = 'LC_CORE_POINTS_3D_DISABLE_LEGACY_LOYALTY_DIRECT_FORWARD';
+const MODULE_VERSION = '0.1.10';
+const MODULE_BUILD = 'LC_CORE_POINTS_3E_SKIP_DISABLED_LEGACY_LOYALTY_DIRECT_CALL';
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
@@ -3786,15 +3786,17 @@ function buildFakeTwitchAlertEvent(kind, query) {
           console.warn('[eventsub-deathcounter] sync handler failed:', e?.message || e);
         }
 
-        try {
-          const loyaltyDirectResult = await forwardLegacyLoyaltyEventSubDirect(sub.type, event, meta, sub, 'notification');
-          if (loyaltyDirectResult && loyaltyDirectResult.ok === false) {
-            rememberTwitchAlertBridge({ action: 'loyalty_failed', subscriptionType: sub.type, error: loyaltyDirectResult.error || loyaltyDirectResult.reason || 'unknown' });
-            console.warn('[eventsub-loyalty] forward failed:', loyaltyDirectResult.error || loyaltyDirectResult.reason || 'unknown');
+        if (legacyLoyaltyDirectForwardState.enabled === true) {
+          try {
+            const loyaltyDirectResult = await forwardLegacyLoyaltyEventSubDirect(sub.type, event, meta, sub, 'notification');
+            if (loyaltyDirectResult && loyaltyDirectResult.ok === false) {
+              rememberTwitchAlertBridge({ action: 'loyalty_failed', subscriptionType: sub.type, error: loyaltyDirectResult.error || loyaltyDirectResult.reason || 'unknown' });
+              console.warn('[eventsub-loyalty] forward failed:', loyaltyDirectResult.error || loyaltyDirectResult.reason || 'unknown');
+            }
+          } catch (e) {
+            rememberTwitchAlertBridge({ action: 'loyalty_failed', subscriptionType: sub.type, error: e?.message || String(e) });
+            console.warn('[eventsub-loyalty] forward failed:', e?.message || e);
           }
-        } catch (e) {
-          rememberTwitchAlertBridge({ action: 'loyalty_failed', subscriptionType: sub.type, error: e?.message || String(e) });
-          console.warn('[eventsub-loyalty] forward failed:', e?.message || e);
         }
 
         const auditRecord = createTwitchEventSubAuditRecord(meta, sub, event);
