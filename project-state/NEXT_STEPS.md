@@ -1,77 +1,68 @@
 # NEXT_STEPS – stream-control-center
 
-Stand: 2026-06-15
+Stand: 2026-06-15 19:55
 
 ## Direkt nächster sinnvoller Schritt
 
-1. Doku-Stand einspielen.
-2. StepDone ausführen:
-
-```powershell
-.\stepdone.cmd "STEP LC-LIVE-POSTSTREAM-DOCS Loyalty Go-Live Raffle und Punkteimport dokumentiert"
+```text
+LC-MINIGAMES-2A Struktur-Cleanup
 ```
 
-3. Beim nächsten Stream oder Testlauf Raffle-Chattexte prüfen:
+Ziel:
 
 ```text
-!raffle
-!join
+Mini-Spiele bleibt Übersicht/Bedienung/Status.
+Raffle-Config wird in Loyalty -> Einstellungen -> Bereich Raffle/Mini-Spiele-Raffle verschoben.
+Raffle-Texte werden über Loyalty -> Texte -> Bereich Raffle gepflegt.
+Commands/Rechte/Cooldowns langfristig über Loyalty -> Chat & Befehle.
 ```
 
-Erwartung:
+## Vor LC-MINIGAMES-2A prüfen
 
 ```text
-Startmeldung ohne Pool
-Join-Meldung sauber
-Gewinnermeldung nennt Gewinner und Gewinnbetrag
-Pool wird nicht öffentlich angezeigt
+Aktuelle Dateien aus Repo/Live als Source of Truth nehmen.
+Keine Funktionalität entfernen.
+Bestehende Raffle-Config und API nicht brechen.
+Bestehende Gamble-Config nicht umbauen.
 ```
 
 ## Danach priorisiert
 
-### A. Raffle-Konfiguration vorbereiten
-
-Später per Dashboard einstellbar machen:
+### A. Raffle-Texte im Textbereich verbessern
 
 ```text
-Dauer
-Gewinnpool
-Gewinnerregel
-Chattext-Varianten
-Aktivierung/Rechte
+Bereichsfilter Raffle sichtbar/komfortabel machen.
+Raffle-Keys schnell auffindbar machen.
+Varianten löschen/deaktivieren bleibt möglich.
 ```
 
-### B. Subscriber-Tier-Erkennung prüfen
-
-Grund:
+### B. Raffle-Laufzeit-Test im Chat
 
 ```text
-Watch-Punkte funktionieren, aber viele Buchungen zeigen subscriberTier unknown/none und nutzen subscriber_multiplier_fallback.
+!raffle
+!join
+Gewinnermeldung prüfen
+Punktebuchung als raffle_win prüfen
+Pool darf nicht öffentlich im Chat stehen
 ```
 
-Prüfen:
+### C. Subscriber-Tier-Erkennung prüfen
 
 ```text
-Tier 1 / Tier 2 / Tier 3 Erkennung
-Fallback-Verhalten
-Datenquelle für Subscriber-Tier
+Viele Watch-Buchungen nutzen subscriber_multiplier_fallback.
+Tier-2/Tier-3-Erkennung später testen.
 ```
 
-### C. GiftSub-Receiver-Konfig gegen reale Buchung abgleichen
-
-Beobachtung:
+### D. GiftSub-Receiver-Konfig/Buchung abgleichen
 
 ```text
-Dashboard-Konfig small_bonus/tierAmounts vorhanden.
-Event-Buchungen Receiver zeigen teilweise amount = 5.
+Dashboard-Konfig small_bonus/tierAmounts vs reale event_bonus-Buchungen prüfen.
 ```
 
-### D. Alert-Twitch-Events Shadow weiter beobachten
-
-Regel:
+### E. Alert Shadow weiter beobachten
 
 ```text
 Keine Produktivumschaltung.
 Mehrere Streams Shadow prüfen.
-Danach erst Umbau planen.
+Später alte direkte Alert-Route ablösen, wenn stabil.
 ```

@@ -1,75 +1,93 @@
 # CURRENT_STATUS – stream-control-center
 
-Stand: 2026-06-15 nach Loyalty-Go-Live-Stream
+Stand: 2026-06-15 19:55
 
 ## Aktueller bestätigter Stand
 
 Loyalty Core ist produktiv live.
-
-Bestätigt:
 
 ```text
 loyalty version = 0.1.23
 mode = live
 eventBonusesEnabled = true
 watchEarningEnabled = true
+currency = Kekskrümel
 ```
 
-StreamElements-Punkte wurden additiv in den Live-Modus importiert:
+StreamElements-Punkte wurden additiv importiert:
 
 ```text
 Erfolgreich importiert: 479 User / 1.832.557 Kekskrümel
 Fehler: 0
 ```
 
-Twitch-Events wurden über `twitch_events` / Communication Bus verarbeitet:
+Twitch-Events laufen über `twitch_events` / Communication Bus:
 
 ```text
-received = 22
-processed = 22
-skipped = 0
-duplicates = 0
-errors = 0
+Support-Events wurden produktiv als event_bonus gebucht.
+Alerts bleiben Shadow.
 ```
 
-Alert-Twitch-Events bleiben Shadow:
+## Raffle Backend
+
+`loyalty_giveaways` enthält die einfache Chat-Raffle.
 
 ```text
-effectiveMode = shadow
-enqueued = 0
-errors = 0
+moduleVersion = 0.1.9
+moduleBuild = STEP_LC_RAFFLE_2A_FIX1_CONFIG_ENDPOINT
+lastError = leer
 ```
 
-`loyalty_giveaways` enthält jetzt die einfache Chat-Raffle:
+Raffle-Konfiguration:
 
 ```text
-moduleVersion = 0.1.7
-moduleBuild = STEP_LC_RAFFLE_1F
-!raffle = mod
-!join = everyone
+durationSeconds = 120
+prizePoolAmount = 5000
+entryCostAmount = 0
+entryCostEnabled = false
+startPermission = mod
+raffleCommand = raffle
+joinCommand = join
+showPoolInChat = false
 ```
 
 Raffle bucht live Loyalty-Punkte:
 
 ```text
-interner Gewinnpool = 5000 Kekskrümel
+interner Gewinn = 5000 Kekskrümel
 Auszahlung = floor(5000 / Gewinneranzahl)
 type = raffle_win
 reason = loyalty_raffle_win
 ```
 
-Watch-Punkte wurden im Stream gebucht:
+## Dashboard Mini-Spiele
+
+Aktueller Stand umgesetzt und sichtbar:
 
 ```text
-watch_interval aktiv
-Viewer = 2
-Subscriber/Fallback = 6
+LC-MINIGAMES-1B Dashboard-Tab Mini-Spiele
+LC-MINIGAMES-1C Dashboard Layout-Cleanup
+LC-MINIGAMES-1D Raffle Detail-Layout unten
+```
+
+Bestätigt sichtbar:
+
+```text
+Loyalty -> Mini-Spiele
+Raffle-Karte
+Gamble-Karte
+saubere KPIs
+Raffle-Gewinn gesamt
+Gewinnerregel als Liste
+Textkeys als Chips
+Raffle-Config lädt und speichert
 ```
 
 ## Bekannte offene Punkte
 
-- Raffle-Chattexte aus STEP_LC_RAFFLE_1F müssen im nächsten Test/Stream sichtbar geprüft werden.
-- Subscriber-Tier-Erkennung läuft häufig über Fallback; Tier 2/3 später prüfen.
-- GiftSub-Receiver-Konfig/Buchung abgleichen.
-- Raffle später über Dashboard konfigurierbar machen.
-- Alert-Twitch-Events weiter Shadow beobachten.
+```text
+Mini-Spiele strukturell aufräumen: Config in Einstellungen, Texte in Texte, Commands in Chat & Befehle.
+Subscriber-Tier-Erkennung prüfen.
+GiftSub-Receiver-Konfig/Buchung abgleichen.
+Alert-Twitch-Events weiter im Shadow-Modus beobachten.
+```

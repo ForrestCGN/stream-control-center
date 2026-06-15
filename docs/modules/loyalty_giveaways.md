@@ -1,161 +1,157 @@
-# Modul: loyalty_giveaways
+# Modul-Doku – Loyalty Giveaways / Raffle
 
-Stand: 2026-06-09  
-Aktueller bestätigter Stand: LWG-4K.2
+Stand: 2026-06-15 19:55
 
 ## Zweck
 
-`loyalty_giveaways` verwaltet Giveaways, Entries/Tickets, Gewinnerziehungen, Wheel-Permissions und vorbereitete Chat-Command-/Text-Definitionen.
+`loyalty_giveaways.js` verwaltet bestehende Giveaway-/Wheel-Funktionen und enthält aktuell zusätzlich die einfache Chat-Raffle.
 
-## Dateien
+Raffle wurde bewusst **nicht** als neues Parallelmodul gebaut, sondern kompatibel in das bestehende Modul integriert.
 
-```text
-backend/modules/loyalty_giveaways.js
-htdocs/dashboard/modules/loyalty_games.js
-htdocs/dashboard/modules/loyalty_games.css
-```
-
-## Bestätigte Steps
+## Aktueller Modulstand
 
 ```text
-LWG-4D   Giveaway Backend Grundsystem
-LWG-4E   Giveaway Dashboard Editor
-LWG-4F.1 bestehender Communication-/CanBus
-LWG-4G   Loyalty Dashboard Home / Ampel
-LWG-4H   Entries/Tickets
-LWG-4H.1 Entries Table Safety Fix
-LWG-4I   Gewinnerziehung ohne Rad
-LWG-4I.1 Winners Table Safety Fix
-LWG-4J   Giveaway Wheel Claim
-LWG-4J.1 Wheel Permissions Table Safety Fix
-LWG-4J.2 Wheel Routes Registration Fix
-LWG-4K.1 Inaktive Chat-Commands + Textvarianten
-LWG-4K.2 Static Chat Routes Order Fix
+Datei: backend/modules/loyalty_giveaways.js
+moduleVersion = 0.1.9
+moduleBuild = STEP_LC_RAFFLE_2A_FIX1_CONFIG_ENDPOINT
+routeCount = 45
+lastError = leer
 ```
 
-## Datenbanktabellen
+Prüfung:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/giveaways/status" |
+  Select-Object moduleVersion,moduleBuild,lastError
+```
+
+## Raffle-Routen
 
 ```text
-loyalty_giveaways
-loyalty_giveaway_rounds
-loyalty_giveaway_prizes
-loyalty_giveaway_events
-loyalty_giveaway_entries
-loyalty_giveaway_winners
-loyalty_giveaway_wheel_permissions
-loyalty_giveaway_command_definitions
-module_texts
-module_text_variants
+GET  /api/loyalty/raffle/status
+GET  /api/loyalty/raffle/config
+POST /api/loyalty/raffle/config
 ```
 
-Alle neuen Tabellen werden per `CREATE TABLE IF NOT EXISTS` / Safety-Net angelegt. Bestehende Daten werden nicht ersetzt.
-
-## Bestätigte API-Bereiche
+Kompatibilität:
 
 ```text
-Giveaway CRUD / Lifecycle
-Entries/Tickets + Storno
-Winners / Draw per crypto.randomInt
-Wheel Permissions / Wheel Claim
-Commands/Text-Setup
+GET /api/loyalty/giveaways/raffle/status
 ```
 
-## Chat-Setup-Routen
+## Commands
 
 ```text
-GET  /api/loyalty/giveaways/commands
-GET  /api/loyalty/giveaways/texts
-POST /api/loyalty/giveaways/texts
+!raffle -> mod
+!join   -> everyone
 ```
 
-Wichtig: Diese statischen Routen müssen vor `/api/loyalty/giveaways/:giveawayUid` registriert werden.
-
-## Eingetragene, aber inaktive Commands
+Die Commands laufen über das zentrale Command-System:
 
 ```text
-!ticket
-!ticket <anzahl>
-!wheel
-!rad
+moduleKey = loyalty_giveaways
+actionKey = chat_command_runtime
+targetUrl = /api/loyalty/giveaways/runtime/chat-command
 ```
 
-Nicht verwendet:
+## Raffle-Config
+
+Aktuell bestätigte Werte:
 
 ```text
-!join
+enabled = true
+durationSeconds = 120
+maxDurationSeconds = 3600
+prizePoolAmount = 5000
+entryCostAmount = 0
+entryCostEnabled = false
+liveOnly = false
+startPermission = mod
+raffleCommand = raffle
+joinCommand = join
+showPoolInChat = false
+dashboardGroup = minigames
+dashboardLabel = Raffle
+textCategory = chat_raffle
 ```
 
-Command-Status:
+## Auszahlung
 
 ```text
-enabled = false
-active = false
+Gesamtgewinn intern = 5000 Kekskrümel
+Auszahlung je Gewinner = floor(5000 / winnerCount)
+Rest = unvergeben
+Teilnahme = kostenlos
 ```
 
-Es gibt in LWG-4K.2 keine aktive Twitch-Command-Ausführung.
-
-## Chattexte
-
-Modulname im Textsystem:
+Transaktion pro Gewinner:
 
 ```text
-loyalty_giveaways
+type = raffle_win
+sourceModule = loyalty_giveaways
+sourceProvider = raffle
+mode = live
+reason = loyalty_raffle_win
+referenceType = raffle
+referenceId = <raffle_uid>
 ```
 
-Tabellen:
+## Gewinnerregel
 
 ```text
-module_texts
-module_text_variants
+1 Teilnehmer        -> 1 Gewinner
+2–10 Teilnehmer    -> Hälfte der Teilnehmer, abgerundet
+11–20 Teilnehmer   -> 1 Gewinner je 4 Teilnehmer
+21–50 Teilnehmer   -> 1 Gewinner je 5 Teilnehmer
+51–200 Teilnehmer  -> 1 Gewinner je 8 Teilnehmer
+201+ Teilnehmer    -> 1 Gewinner je 20 Teilnehmer
 ```
 
-Kategorien:
+## Öffentliche Textkeys
 
 ```text
-Chat · Tickets
-Chat · Wheel/Rad
+raffle.public.started
+raffle.public.already_active
+raffle.public.joined
+raffle.public.already_joined
+raffle.public.no_active
+raffle.public.status
+raffle.public.cancelled
+raffle.public.no_entries
+raffle.public.winners
+raffle.public.permission_denied
 ```
 
-Aktuell bestätigt:
+Wichtig:
 
 ```text
-9 Textkeys
-27 Varianten
+Pool wird nie öffentlich im Chat angezeigt.
+Gewinner sehen Gewinnerliste und Gewinnbetrag.
 ```
 
-Stil:
+## Dashboard-Bezug
+
+Raffle ist für das Dashboard unter `Mini-Spiele` vorbereitet:
 
 ```text
-CGN / Altersheim / Rentner
+dashboardGroup = minigames
+dashboardLabel = Raffle
 ```
 
-## Communication-/CanBus
-
-Das Modul nutzt den bestehenden Communication Bus direkt.
+Langfristige Zielstruktur:
 
 ```text
-module:loyalty_giveaways
-heartbeat=true
-status=online
+Mini-Spiele = Status/Bedienung/Shortcuts
+Einstellungen = dauerhafte Raffle-Config
+Texte = Raffle-Textvarianten
+Chat & Befehle = Trigger/Rechte/Cooldowns
 ```
 
-Kein neuer Bus, kein neuer paralleler Helper.
-
-## Nicht enthalten / bewusst offen
+## Nicht ändern ohne Freigabe
 
 ```text
-- Keine Streamer.bot-Anbindung.
-- Keine aktive Twitch-Command-Ausführung.
-- Keine Punktebuchung.
-- Keine Channel-Point-Anbindung.
-- Keine Reward-Ausführung.
-- Keine Nutzung von !join.
+Keine neue Raffle-Parallelstruktur.
+Keine Entfernung bestehender Giveaway-/Wheel-Funktionalität.
+Keine Änderung an Punktebuchung ohne Test.
+Keine öffentliche Pool-Anzeige im Chat.
 ```
-
-## Nächster sinnvoller Schritt
-
-```text
-LWG-4K.3 – echte Node/Twitch-Command-Struktur prüfen und Aktivierungsplan
-```
-
-Vor Aktivierung müssen die echten Twitch-/Command-Dateien geprüft werden. Keine Parallel-Systeme bauen.
