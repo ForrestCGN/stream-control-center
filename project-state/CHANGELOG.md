@@ -1,90 +1,32 @@
 # CHANGELOG – stream-control-center
 
-## 2026-06-15 – Loyalty Core / Dashboard / Config / Logs / Texte
+## 2026-06-15 – Loyalty Go-Live / Punkteimport / Raffle
 
-### Backend / Loyalty Core
+### Added
 
-- `loyalty.js` auf Version `0.1.23` gebracht.
-- Loyalty EventSub-Bonus-Diagnose erweitert.
-- Bonus-Mapping-Diagnose erweitert.
-- Bonus-Werte-Diagnose erweitert.
-- Raid-Bonus von fixer Pauschale auf skalierbare Formel umgestellt:
-  - `base_plus_viewers`
-  - `baseAmount`
-  - `amountPerViewer`
-  - `maxAmount`
-- Loyalty Event-History-Routen ergänzt:
-  - `GET /api/loyalty/events/history`
-  - `GET /api/loyalty/events/history/:eventUid`
-- GiftSub-/GiftBomb-Empfänger-Modus eingeführt:
-  - `disabled`
-  - `track_only`
-  - `small_bonus`
-  - `half_bonus`
-  - `custom`
-- Default: `track_only`.
+- `!raffle` und `!join` im bestehenden `loyalty_giveaways`-Modul.
+- Raffle-Loyalty-Auszahlung mit internem 5000er Gewinnpool.
+- Raffle-Transaktionen vom Typ `raffle_win`.
+- Öffentliche Raffle-Textkeys `raffle.public.*`, um alte DB-Varianten mit Pool-Anzeige zu umgehen.
+- StreamElements-Import-Tool und Importdateien für Top-489-Import.
 
-### Dashboard Struktur
+### Changed
 
-- Loyalty-Navigation aufgeräumt:
-  - Start
-  - Core
-  - Glücksrad
-  - Presets
-  - Giveaways
-  - Gamble
-  - Einstellungen
-  - Texte
-  - Chat & Befehle
-  - Logs
-- Core-Untermenü entschlackt.
-- Doppelte Core-Regeln/Core-Verlauf entfernt und zentral auf Einstellungen/Logs verwiesen.
-- Hilfe-Tab entfernt/nicht mehr als eigener Haupttab geführt.
+- Loyalty-Modus von `shadow` auf `live` gesetzt.
+- Watch-Punkte produktiv aktiv.
+- Event-Boni produktiv über `twitch_events` verarbeitet.
+- Raffle-Chattexte bereinigt: Pool soll öffentlich nicht mehr angezeigt werden.
 
-### Dashboard Einstellungen
+### Confirmed
 
-- Zentrale Config-Seite `Loyalty → Einstellungen` aufgebaut.
-- Core-nahe Einstellungen unter Core gruppiert:
-  - Grundregeln
-  - Automatische Punkte
-  - Abo-Bonus bei automatischen Punkten
-  - Geschenk-Abos / GiftBombs
-  - Raids
-- Erste echte Schreibfunktionen angebunden:
-  - GiftSub-/GiftBomb-Empfänger-Modus
-  - Raid-Regel
-  - Core-Grundregeln
-  - Automatische Punkte
-  - Abo-Bonus bei automatischen Punkten
-- Settings-Reload-Bug behoben: Dashboard liest gespeicherte Werte bevorzugt aus `/api/loyalty/settings`.
+- StreamElements-Import erfolgreich: 479 User / 1.832.557 Punkte.
+- Twitch-Event-Boni: 22 received / 22 processed / 0 errors.
+- Watch-Punkte gebucht.
+- Raffle-Gewinne gebucht.
+- Alerts weiterhin Shadow: enqueued = 0.
 
-### Dashboard Logs
+### Known Issues / Follow-up
 
-- `Loyalty → Logs` als zentrale Ansicht aufgebaut.
-- Filter ergänzt:
-  - Bereich
-  - Event
-  - Status
-  - Suche
-- Haupttabelle vereinfacht.
-- Technische IDs in Detailfenster verschoben.
-
-### Dashboard Texte
-
-- `Loyalty → Texte` als zentrale Textpflege aufgebaut.
-- Bereichsfilter ergänzt.
-- Haupttabelle komprimiert.
-- Editor-Modal pro Textzweck ergänzt.
-- Neue Varianten hinzufügen weiterhin über vorhandene APIs.
-- Aktivieren/Deaktivieren/Löschen mit Nachfrage für Varianten mit sicherer ID vorbereitet/angebunden.
-- Mehrere vorhandene Text-APIs eingebunden:
-  - `/api/loyalty/giveaways/texts`
-  - `/api/loyalty/games/texts`
-
-### Nicht geändert
-
-- Keine Produktiv-Umschaltung der Alerts auf Bus.
-- Keine DB-Struktur ersetzt.
-- Keine vorhandenen Textdaten gelöscht.
-- Keine Punkte rückwirkend verändert.
-- Keine Preset-/Gamble-/Giveaway-Funktion entfernt.
+- Raffle-Chattexte aus 1F im nächsten Stream prüfen.
+- Subscriber-Tier-Erkennung prüfen.
+- GiftSub-Receiver-Konfig/Buchung abgleichen.

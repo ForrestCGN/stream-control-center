@@ -1,110 +1,77 @@
 # NEXT_STEPS – stream-control-center
 
 Stand: 2026-06-15
-Fokus nächster Chat: Stream-Go-Live + Punkteimport
 
-## 1. Go-Live Check vor dem Stream
+## Direkt nächster sinnvoller Schritt
 
-Prüfen:
+1. Doku-Stand einspielen.
+2. StepDone ausführen:
 
 ```powershell
-node -c .\htdocs\dashboard\modules\loyalty_games.js
-node -c .\htdocs\dashboard\modules\loyalty.js
-node -c .\backend\modules\loyalty.js
+.\stepdone.cmd "STEP LC-LIVE-POSTSTREAM-DOCS Loyalty Go-Live Raffle und Punkteimport dokumentiert"
 ```
 
-Status prüfen:
+3. Beim nächsten Stream oder Testlauf Raffle-Chattexte prüfen:
 
-```powershell
-$loy = Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/status"
-$loy | Select-Object ok,module,version,lastError
-$loy.twitchEventBonusBinding | Select-Object installed,subscriptionCount,received,processed,skipped,duplicates,errors,lastEventKey,lastLogin,lastError
-```
-
-Settings prüfen:
-
-```powershell
-$cfg = Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/settings"
-$cfg.config.watch
-$cfg.config.autoRunner
-$cfg.config.bonuses.raid
-$cfg.config.bonuses.giftSubReceiver
-```
-
-Twitch EventSub / Events prüfen:
-
-```powershell
-$t = Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/eventsub/status"
-$t.twitchEventsParallel.supportEvents | Select-Object enabled,forwarded,failed,lastEventSubType,lastUserLogin,lastError
-$t.legacyLoyaltyDirectForward | Select-Object enabled,forwarded,skipped,failed,lastEventSubType,lastUserLogin,lastError
-```
-
-Alert Shadow prüfen:
-
-```powershell
-$a = Invoke-RestMethod "http://127.0.0.1:8080/api/alerts/twitch-events/status"
-$a | Select-Object installed,effectiveMode,received,mapped,wouldEnqueue,enqueued,skipped,errors,lastEventKey,lastLogin,lastTypeKey,lastError
+```text
+!raffle
+!join
 ```
 
 Erwartung:
 
 ```text
-Loyalty ok.
-Event Binding 7/7.
-Alert effectiveMode shadow.
-Keine Alert-Bus-Produktivumschaltung.
+Startmeldung ohne Pool
+Join-Meldung sauber
+Gewinnermeldung nennt Gewinner und Gewinnbetrag
+Pool wird nicht öffentlich angezeigt
 ```
 
-## 2. Letzte Testwerte zurückstellen
+## Danach priorisiert
 
-Kontrollieren, ob Testwerte zurückgestellt wurden:
+### A. Raffle-Konfiguration vorbereiten
+
+Später per Dashboard einstellbar machen:
 
 ```text
-Raid maxAmount sollte vermutlich 250 sein, wenn 249 nur Test war.
-watch.amount wurde wieder auf 2 gestellt.
-subscriberMultiplier / Tier-Werte prüfen, weil sie im Test geändert wurden.
+Dauer
+Gewinnpool
+Gewinnerregel
+Chattext-Varianten
+Aktivierung/Rechte
 ```
 
-## 3. Punkteimport vorbereiten
+### B. Subscriber-Tier-Erkennung prüfen
 
-Erst Quelle prüfen:
+Grund:
 
 ```text
-Dateiformat?
-Spalten/Felder?
-User-Mapping?
-Addieren oder ersetzen?
-Import als Transaktion?
+Watch-Punkte funktionieren, aber viele Buchungen zeigen subscriberTier unknown/none und nutzen subscriber_multiplier_fallback.
 ```
 
-Empfehlung:
+Prüfen:
 
 ```text
-Dry-Run zuerst.
-Danach Backup.
-Dann Import additiv über Transaktionen.
-Keine direkte DB-Überschreibung.
+Tier 1 / Tier 2 / Tier 3 Erkennung
+Fallback-Verhalten
+Datenquelle für Subscriber-Tier
 ```
 
-## 4. Punkteimport implementieren
+### C. GiftSub-Receiver-Konfig gegen reale Buchung abgleichen
 
-Erst nach Sichtung der Importquelle:
+Beobachtung:
 
 ```text
-Import-Route oder CLI-Import prüfen/planen.
-Keine bestehenden User/Punkte blind überschreiben.
-Transaktionsgrund eindeutig setzen.
-Audit/Log erfassen.
-Import-Ergebnis als CSV/JSON-Zusammenfassung ausgeben.
+Dashboard-Konfig small_bonus/tierAmounts vorhanden.
+Event-Buchungen Receiver zeigen teilweise amount = 5.
 ```
 
-## 5. Nach dem Stream beobachten
+### D. Alert-Twitch-Events Shadow weiter beobachten
+
+Regel:
 
 ```text
-Loyalty → Logs
-Support-Events
-Auto-Punkte
-GiftSub/GiftBomb Receiver Tracking
-Raid-Berechnung
-Fehler/Skips/Duplikate
+Keine Produktivumschaltung.
+Mehrere Streams Shadow prüfen.
+Danach erst Umbau planen.
 ```

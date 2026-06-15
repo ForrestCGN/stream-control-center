@@ -1,244 +1,110 @@
-# Modul-Doku – Loyalty
+# Modul-Doku – Loyalty / Raffle Stand 2026-06-15
 
-Stand: 2026-06-15
+## Loyalty Core
 
-## Zweck
-
-Das Loyalty-System verwaltet Kekskrümel/Punkte, automatische Punktevergabe, Support-Event-Boni, Glücksrad/Presets, Giveaways, Gamble, Texte und Logs im `stream-control-center`.
-
-## Aktuelle Dashboard-Struktur
+Status:
 
 ```text
-Loyalty
-├─ Start
-├─ Core
-├─ Glücksrad
-├─ Presets
-├─ Giveaways
-├─ Gamble
-├─ Einstellungen
-├─ Texte
-├─ Chat & Befehle
-└─ Logs
+live
+version 0.1.23
 ```
 
-## Core
-
-Core ist für Punkte-Grundsystem und automatische Vergabe zuständig.
-
-Core-Unterbereiche:
+Wichtige Routen:
 
 ```text
-Übersicht
-Steuerung
-Auswertung
-User
-Bots ignorieren
+GET  /api/loyalty/status
+GET  /api/loyalty/settings
+POST /api/loyalty/settings
+GET  /api/loyalty/transactions
+GET  /api/loyalty/balance/:login
 ```
 
-Core-Regeln liegen nicht mehr als eigener Core-Untertab vor, sondern zentral unter:
+## StreamElements Import
+
+Import wurde additiv über Transaktionen durchgeführt.
 
 ```text
-Loyalty → Einstellungen → Core
+type = legacy_points_import
+sourceProvider = streamelements
+mode = live
+reason = streamelements_points_import
+referenceId = streamelements_top489_2026-06-15
 ```
 
-Core-Logs liegen nicht mehr als eigener Core-Untertab vor, sondern zentral unter:
+## Watch-Punkte
 
 ```text
-Loyalty → Logs
+Viewer: 2 pro Intervall
+Subscriber/Fallback: 6 pro Intervall
+Intervall: 10 Minuten
 ```
 
-## Einstellungen
+## Event-Boni
 
-Zentrale Config-Seite:
+Support-Events werden als `event_bonus` gebucht.
+
+Beispiele:
 
 ```text
-Loyalty → Einstellungen
+Cheer100 -> 10
+GiftSub Gifter -> 50
+GiftSub Receiver -> 5
 ```
 
-Hauptbereiche:
+## Raffle
+
+Raffle ist im Modul eingebettet:
 
 ```text
-Core
-Glücksrad
-Presets
-Giveaways
-Gamble
-Chat & Befehle
+backend/modules/loyalty_giveaways.js
+moduleVersion = 0.1.7
+moduleBuild = STEP_LC_RAFFLE_1F
 ```
 
-Core enthält:
+Commands:
 
 ```text
-Grundregeln
-Automatische Punkte
-Abo-Bonus bei automatischen Punkten
-Geschenk-Abos / GiftBombs
-Raids
+!raffle -> mod
+!join -> everyone
 ```
 
-Speicherbar bestätigt:
+Raffle-Konstanten aktuell:
 
 ```text
-enabled
-currency.name
-features.eventBonusesEnabled
-watch.enabled
-watch.amount
-watch.intervalMinutes
-features.watchEarningEnabled
-autoRunner.runOnlyWhenLive
-autoRunner.activeMinutes
-autoRunner.maxUsersPerRun
-autoRunner.includeJoinedOnly
-watch.subscriberMultiplier
-watch.subscriberTierAmounts.1000
-watch.subscriberTierAmounts.2000
-watch.subscriberTierAmounts.3000
-bonuses.giftSubReceiver.mode
-bonuses.raid.mode
-bonuses.raid.amount
-bonuses.raid.baseAmount
-bonuses.raid.amountPerViewer
-bonuses.raid.maxAmount
+durationSeconds = 120
+prizePoolAmount = 5000
+participationCost = 0
+payout = floor(5000 / winnerCount)
 ```
 
-## Support-Events
-
-Loyalty nutzt Twitch-Events über den Communication Bus.
-
-Eventfluss:
+Transaktion:
 
 ```text
-Twitch EventSub
-→ twitch.js
-→ twitch_events
-→ Communication Bus
-→ loyalty
+type = raffle_win
+sourceModule = loyalty_giveaways
+sourceProvider = raffle
+reason = loyalty_raffle_win
+referenceType = raffle
+referenceId = raffleUid
 ```
 
-Gebundene Events:
+Öffentliche Textkeys:
 
 ```text
-twitch.follow.received
-twitch.sub.received
-twitch.resub.received
-twitch.subgift.received
-twitch.giftbomb.received
-twitch.cheer.received
-twitch.raid.received
+raffle.public.started
+raffle.public.joined
+raffle.public.already_joined
+raffle.public.no_active
+raffle.public.status
+raffle.public.cancelled
+raffle.public.no_entries
+raffle.public.winners
+raffle.public.permission_denied
 ```
 
-## GiftSub / GiftBomb Receiver
-
-Receiver-Modi:
+Regel:
 
 ```text
-disabled
-track_only
-small_bonus
-half_bonus
-custom
-```
-
-Default / empfohlener Stream-Stand:
-
-```text
-track_only = Empfänger im Verlauf anzeigen, aber keine Punkte vergeben
-```
-
-Keine Fake-Receiver erzeugen.
-GiftBomb-Receiver werden nur gezählt, wenn Twitch/Source echte Empfängerinformationen liefert.
-
-## Raid-Regel
-
-Aktuelle skalierbare Formel:
-
-```text
-min(baseAmount + viewers * amountPerViewer, maxAmount)
-```
-
-Default/empfohlen:
-
-```text
-mode = base_plus_viewers
-baseAmount = 25
-amountPerViewer = 2
-maxAmount = 250
-```
-
-## Logs
-
-Zentrale Ansicht:
-
-```text
-Loyalty → Logs
-```
-
-Filter:
-
-```text
-Bereich
-Event
-Status
-Suche
-```
-
-Technische Details nur im Detailfenster.
-
-## Texte
-
-Zentrale Textpflege:
-
-```text
-Loyalty → Texte
-```
-
-Bereiche:
-
-```text
-Alle Textbereiche
-Core
-Glücksrad
-Giveaways
-Gamble
-Chat & Befehle
-Geschenk-Abos / GiftBombs
-Hinweise / Fehlertexte
-```
-
-Text-APIs:
-
-```text
-/api/loyalty/giveaways/texts
-/api/loyalty/games/texts
-```
-
-Regeln:
-
-```text
-Mehrere aktive Varianten pro Zweck sind erlaubt.
-Deaktivieren erhält Varianten, nimmt sie aus aktiver Auswahl.
-Löschen nur mit Nachfrage.
-Keine Fake-IDs verwenden.
-```
-
-## Go-Live Hinweise
-
-Vor Stream:
-
-```text
-Settings prüfen.
-Runner/Live-State prüfen.
-Event-Bindings prüfen.
-Alert-Shadow prüfen.
-Testwerte zurückstellen.
-```
-
-Nicht tun:
-
-```text
-Alerts nicht auf Bus produktiv schalten.
-DB nicht ersetzen.
-Punkteimport nicht blind ausführen.
+Pool intern ja, im Chat nein.
+Gewinnertext nennt Gewinner und Betrag.
 ```

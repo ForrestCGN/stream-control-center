@@ -1,132 +1,75 @@
 # CURRENT_STATUS – stream-control-center
 
-Stand: 2026-06-15
-Fokus: Loyalty Core / Dashboard / Go-Live Vorbereitung / Punkteimport
+Stand: 2026-06-15 nach Loyalty-Go-Live-Stream
 
-## Aktueller Status
+## Aktueller bestätigter Stand
 
-```text
-Loyalty Core ist produktiv über Twitch Events + Communication Bus angebunden.
-Dashboard wurde in zentrale Bereiche aufgeräumt: Einstellungen, Texte, Logs.
-Mehrere Core-Einstellungen sind inzwischen wirklich speicherbar.
-Logs sind zentral lesbar.
-Texte sind zentral bearbeitbar, soweit Varianten sichere IDs haben.
-```
+Loyalty Core ist produktiv live.
 
-## Wichtige Versionen / Stände
+Bestätigt:
 
 ```text
-backend/modules/loyalty.js: 0.1.23
-htdocs/dashboard/modules/loyalty_games.js: Stand LC-DASHBOARD-TEXTS-4
-htdocs/dashboard/modules/loyalty.js: Stand nach Dashboard-Cleanup/Core-Config-Arbeiten
+loyalty version = 0.1.23
+mode = live
+eventBonusesEnabled = true
+watchEarningEnabled = true
 ```
 
-## Bestätigte Core-Funktion
+StreamElements-Punkte wurden additiv in den Live-Modus importiert:
 
 ```text
-Twitch EventSub → twitch.js → twitch_events → Communication Bus → loyalty
-7 gezielte Support-Event-Bindings aktiv:
-- follow
-- sub
-- resub
-- subgift
-- giftbomb
-- cheer
-- raid
+Erfolgreich importiert: 479 User / 1.832.557 Kekskrümel
+Fehler: 0
 ```
 
-## Bestätigte speicherbare Dashboard-Settings
-
-Unter `Loyalty → Einstellungen → Core`:
+Twitch-Events wurden über `twitch_events` / Communication Bus verarbeitet:
 
 ```text
-Core-Grundregeln
-Automatische Punkte
-Abo-Bonus bei automatischen Punkten
-Geschenk-Abo-/GiftBomb-Empfänger-Modus
-Raid-Regel
+received = 22
+processed = 22
+skipped = 0
+duplicates = 0
+errors = 0
 ```
 
-Getestet:
+Alert-Twitch-Events bleiben Shadow:
 
 ```text
-Gift Receiver Mode speichert und wird vom Backend gelesen.
-Raid maxAmount speichert und verändert Samples.
-watch.amount speichert korrekt.
-subscriberMultiplier und subscriberTierAmounts speichern korrekt.
+effectiveMode = shadow
+enqueued = 0
+errors = 0
 ```
 
-## Dashboard Struktur
-
-Aktuelle Top-Navigation:
+`loyalty_giveaways` enthält jetzt die einfache Chat-Raffle:
 
 ```text
-Start
-Core
-Glücksrad
-Presets
-Giveaways
-Gamble
-Einstellungen
-Texte
-Chat & Befehle
-Logs
+moduleVersion = 0.1.7
+moduleBuild = STEP_LC_RAFFLE_1F
+!raffle = mod
+!join = everyone
 ```
 
-Core-Untermenü ist entschlackt:
+Raffle bucht live Loyalty-Punkte:
 
 ```text
-Übersicht
-Steuerung
-Auswertung
-User
-Bots ignorieren
+interner Gewinnpool = 5000 Kekskrümel
+Auszahlung = floor(5000 / Gewinneranzahl)
+type = raffle_win
+reason = loyalty_raffle_win
 ```
 
-Core-Regeln liegen zentral unter Einstellungen. Core-Verlauf/Events liegen zentral unter Logs.
-
-## Logs
-
-`Loyalty → Logs` ist zentrale Log-Ansicht für:
+Watch-Punkte wurden im Stream gebucht:
 
 ```text
-Core Events / Punktebuchungen
-Glücksrad Sessions
-Gamble Logs
+watch_interval aktiv
+Viewer = 2
+Subscriber/Fallback = 6
 ```
 
-Details werden über Modal angezeigt. Technische IDs stehen nicht mehr direkt in der Haupttabelle.
+## Bekannte offene Punkte
 
-## Texte
-
-`Loyalty → Texte` ist zentrale Textpflege.
-
-```text
-Bereichsauswahl
-Suche
-kompakte Haupttabelle
-Editor-Modal pro Textzweck
-Neue Varianten hinzufügen
-Aktivieren/Deaktivieren/Löschen mit Nachfrage, wenn sichere Varianten-ID vorhanden
-```
-
-Nutzt aktuell:
-
-```text
-/api/loyalty/giveaways/texts
-/api/loyalty/games/texts
-```
-
-## Alert-System
-
-```text
-Alert-Bus-Weg bleibt im Shadow-Modus.
-Produktive Alerts laufen weiterhin über alten Direktpfad.
-Nicht vor Stream-Go-Live umschalten.
-```
-
-## Nächster Fokus
-
-```text
-Stream-Go-Live vorbereiten und Punkteimport planen/umsetzen.
-```
+- Raffle-Chattexte aus STEP_LC_RAFFLE_1F müssen im nächsten Test/Stream sichtbar geprüft werden.
+- Subscriber-Tier-Erkennung läuft häufig über Fallback; Tier 2/3 später prüfen.
+- GiftSub-Receiver-Konfig/Buchung abgleichen.
+- Raffle später über Dashboard konfigurierbar machen.
+- Alert-Twitch-Events weiter Shadow beobachten.
