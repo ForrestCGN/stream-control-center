@@ -23,8 +23,8 @@ const database = require("../core/database");
 const loyaltyCore = require("./loyalty");
 
 const MODULE_NAME = "loyalty_giveaways";
-const MODULE_VERSION = "0.1.5";
-const MODULE_BUILD = "STEP_LC_RAFFLE_1D";
+const MODULE_VERSION = "0.1.7";
+const MODULE_BUILD = "STEP_LC_RAFFLE_1F";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -212,11 +212,11 @@ const CHAT_TEXT_DEFAULTS = {
     "Eine Raffle ist bereits aktiv. Die Heimleitung hat nur eine Brille und eine Trommel."
   ],
   "raffle.joined": [
-    "{user} liegt im Lostopf. Bitte nicht am Deckel rütteln.",
-    "{user}, dein Loszettel wurde abgestempelt.",
-    "{user} ist drin. Die Heimleitung nickt streng, aber fair.",
-    "{user} hat sich einen Platz in der Rentner-Trommel gesichert. Teilnehmer: {entries}.",
-    "Los eingeworfen: {user}. Die Trommel wird langsam schwer."
+    "{user} hat den Loszettel abgegeben.",
+    "{user} wurde von der Heimleitung notiert.",
+    "{user} ist im Lostopf. Die Heimleitung nickt.",
+    "{user} ist dabei. Jetzt heißt es Daumen drücken.",
+    "{user} hat sich einen Platz in der Lostrommel gesichert."
   ],
   "raffle.already_joined": [
     "{user}, du liegst schon im Lostopf. Nicht doppelt drängeln, Rentner!",
@@ -267,6 +267,76 @@ const CHAT_TEXT_DEFAULTS = {
     "{user}, ohne Heimleitungs-Ausweis bleibt die Tombola zu.",
     "{user}, netter Versuch. Die Raffle-Schlüssel liegen beim Mod-Team."
   ],
+  "raffle.public.started": [
+    "Kekskrümel-Tombola gestartet! Wer mit will, ruft !join. Zeitfenster: {duration}s.",
+    "Die Heimleitung öffnet die Lostrommel! Mit !join kommt ihr rein. Zeit: {duration}s.",
+    "Raffle läuft! Ein Los pro Nase. Tippt !join – {duration}s Zeit.",
+    "Die Rentnergang zählt gleich aus. Wer teilnehmen will: !join. Zeit: {duration}s.",
+    "Lostrommel offen! !join tippen und Daumen drücken. Zeitfenster: {duration}s."
+  ],
+  "raffle.public.already_active": [
+    "Es läuft schon eine Raffle. Mit !join könnt ihr noch rein. Restzeit: {remaining}s.",
+    "Die Lostrommel ist bereits offen. Teilnehmer bisher: {entries}. Restzeit: {remaining}s.",
+    "Eine Raffle läuft schon. Nicht zwei Trommeln gleichzeitig, sagt die Heimleitung.",
+    "Raffle ist bereits aktiv. Mit !join könnt ihr noch teilnehmen.",
+    "Die Heimleitung hat schon eine Tombola offen. Restzeit: {remaining}s."
+  ],
+  "raffle.public.joined": [
+    "{user} hat den Loszettel abgegeben.",
+    "{user} wurde von der Heimleitung notiert.",
+    "{user} ist im Lostopf. Die Heimleitung nickt.",
+    "{user} ist dabei. Jetzt heißt es Daumen drücken.",
+    "{user} hat sich einen Platz in der Lostrommel gesichert."
+  ],
+  "raffle.public.already_joined": [
+    "{user}, du bist schon im Lostopf.",
+    "{user}, ein Los pro Nase. Die Heimleitung hat dich schon notiert.",
+    "{user}, dein Los liegt bereits in der Trommel.",
+    "{user}, du bist schon dabei. Jetzt nur noch Daumen drücken.",
+    "{user}, doppelt einwerfen gilt nicht. Die Heimleitung passt auf."
+  ],
+  "raffle.public.no_active": [
+    "Aktuell läuft keine Raffle.",
+    "Keine aktive Raffle gefunden. Erst muss die Heimleitung !raffle starten.",
+    "Die Lostrommel ist gerade geschlossen.",
+    "Gerade gibt es nichts zum Beitreten. Erst wenn !raffle läuft, bringt !join etwas.",
+    "Noch keine Tombola offen. Die Heimleitung sucht wohl noch den Schlüssel."
+  ],
+  "raffle.public.status": [
+    "Raffle läuft noch {remaining}s. Teilnehmer: {entries}. Mit !join rein in den Lostopf.",
+    "Lostrommel offen: {entries} Teilnehmer, noch {remaining}s Restzeit.",
+    "Zwischenstand: {entries} Lose in der Trommel, {remaining}s bis zur Ziehung.",
+    "Die Heimleitung zählt: {entries} Teilnehmer. Noch {remaining}s Zeit für !join.",
+    "Raffle-Status: {entries} dabei, {remaining}s bis zur Ziehung."
+  ],
+  "raffle.public.cancelled": [
+    "Raffle abgebrochen. Die Heimleitung legt die Lose zurück.",
+    "Die aktuelle Raffle wurde beendet. Keine Ziehung.",
+    "Tombola gestoppt. Die Lostrommel wird wieder geschlossen.",
+    "Raffle gecancelt. Die Rentnergang räumt die Zettel weg.",
+    "Abbruch durch die Heimleitung. Die Lose gehen zurück in die Aktenmappe."
+  ],
+  "raffle.public.no_entries": [
+    "Die Raffle ist vorbei, aber niemand ist eingestiegen.",
+    "Keine Teilnehmer. Die Heimleitung schaut streng in den leeren Lostopf.",
+    "Ziehung ohne Lose. Die Lostrommel bleibt leer.",
+    "Die Trommel war offen, aber keiner wollte rein.",
+    "Raffle beendet: 0 Teilnehmer. Keine Gewinner."
+  ],
+  "raffle.public.winners": [
+    "🎉 Die Heimleitung hat gezogen: {winners} – je {prizeAmount} Kekskrümel!",
+    "🎉 Die Lostrommel hat entschieden: {winners} gewinnen je {prizeAmount} Kekskrümel!",
+    "Glückwunsch an {winners}! Es gibt je {prizeAmount} Kekskrümel.",
+    "Die Rentner-Trommel hat gesprochen: {winners} bekommen je {prizeAmount} Kekskrümel!",
+    "Raffle beendet! {winners} freuen sich über je {prizeAmount} Kekskrümel."
+  ],
+  "raffle.public.permission_denied": [
+    "{user}, die Lostrommel darf nur die Heimleitung öffnen.",
+    "{user}, dafür brauchst du Mod-Rechte. Die Rentnergang passt auf.",
+    "{user}, Finger weg von der Lostrommel. Nur Mods dürfen starten oder abbrechen.",
+    "{user}, ohne Heimleitungs-Ausweis bleibt die Tombola zu.",
+    "{user}, netter Versuch. Die Raffle-Schlüssel liegen beim Mod-Team."
+  ],
   "wheel.disabled": [
     "{user}, das Glücksrad steht bereit, aber der Hausmeister hat den Strom noch nicht eingeschaltet.",
     "{user}, der Rad-Freigabeschein ist vorbereitet, aber die Ausgabe ist noch nicht aktiv."
@@ -301,6 +371,16 @@ const CHAT_TEXT_CATEGORIES = {
   "raffle.no_entries": "chat_raffle",
   "raffle.winners": "chat_raffle",
   "raffle.permission_denied": "chat_raffle",
+  "raffle.public.started": "chat_raffle",
+  "raffle.public.already_active": "chat_raffle",
+  "raffle.public.joined": "chat_raffle",
+  "raffle.public.already_joined": "chat_raffle",
+  "raffle.public.no_active": "chat_raffle",
+  "raffle.public.status": "chat_raffle",
+  "raffle.public.cancelled": "chat_raffle",
+  "raffle.public.no_entries": "chat_raffle",
+  "raffle.public.winners": "chat_raffle",
+  "raffle.public.permission_denied": "chat_raffle",
   "wheel.disabled": "chat_wheel",
   "wheel.no_permission": "chat_wheel",
   "wheel.success": "chat_wheel"
@@ -5404,7 +5484,7 @@ function finishRaffleRuntime(reason = "timer") {
     prizeRemainder
   };
 
-  const messageKey = participants.length > 0 ? "raffle.winners" : "raffle.no_entries";
+  const messageKey = participants.length > 0 ? "raffle.public.winners" : "raffle.public.no_entries";
   setTimeout(() => {
     sendRaffleChatMessage(messageKey, context).catch(() => {});
   }, 0);
@@ -5430,7 +5510,7 @@ function startRaffleRuntime(input = {}) {
     return buildCommandRuntimeResponse(input, {
       ok: false,
       action: "raffle_start",
-      messageKey: "raffle.permission_denied",
+      messageKey: "raffle.public.permission_denied",
       error: "permission_denied"
     });
   }
@@ -5440,7 +5520,7 @@ function startRaffleRuntime(input = {}) {
     return buildCommandRuntimeResponse(input, {
       ok: false,
       action: "raffle_start",
-      messageKey: "raffle.already_active",
+      messageKey: "raffle.public.already_active",
       context: { entries: snapshot.participantCount, remaining: snapshot.remainingSeconds },
       error: "raffle_already_active",
       data: snapshot
@@ -5481,7 +5561,7 @@ function startRaffleRuntime(input = {}) {
   return buildCommandRuntimeResponse(input, {
     ok: true,
     action: "raffle_start",
-    messageKey: "raffle.started",
+    messageKey: "raffle.public.started",
     context: { duration: durationSeconds, entries: 0, remaining: durationSeconds, prizePool: RAFFLE_PRIZE_POOL_AMOUNT },
     data: getRaffleSnapshot()
   });
@@ -5492,7 +5572,7 @@ function cancelRaffleRuntime(input = {}) {
     return buildCommandRuntimeResponse(input, {
       ok: false,
       action: "raffle_cancel",
-      messageKey: "raffle.permission_denied",
+      messageKey: "raffle.public.permission_denied",
       error: "permission_denied"
     });
   }
@@ -5501,7 +5581,7 @@ function cancelRaffleRuntime(input = {}) {
     return buildCommandRuntimeResponse(input, {
       ok: false,
       action: "raffle_cancel",
-      messageKey: "raffle.no_active",
+      messageKey: "raffle.public.no_active",
       error: "raffle_no_active",
       data: getRaffleSnapshot()
     });
@@ -5521,7 +5601,7 @@ function cancelRaffleRuntime(input = {}) {
   return buildCommandRuntimeResponse(input, {
     ok: true,
     action: "raffle_cancel",
-    messageKey: "raffle.cancelled",
+    messageKey: "raffle.public.cancelled",
     data: snapshot
   });
 }
@@ -5532,7 +5612,7 @@ function statusRaffleRuntime(input = {}) {
     return buildCommandRuntimeResponse(input, {
       ok: false,
       action: "raffle_status",
-      messageKey: "raffle.no_active",
+      messageKey: "raffle.public.no_active",
       error: "raffle_no_active",
       data: snapshot
     });
@@ -5540,7 +5620,7 @@ function statusRaffleRuntime(input = {}) {
   return buildCommandRuntimeResponse(input, {
     ok: true,
     action: "raffle_status",
-    messageKey: "raffle.status",
+    messageKey: "raffle.public.status",
     context: { entries: snapshot.participantCount, remaining: snapshot.remainingSeconds, duration: snapshot.durationSeconds },
     data: snapshot
   });
@@ -5551,7 +5631,7 @@ function joinRaffleRuntime(input = {}) {
     return buildCommandRuntimeResponse(input, {
       ok: false,
       action: "raffle_join",
-      messageKey: "raffle.no_active",
+      messageKey: "raffle.public.no_active",
       error: "raffle_no_active",
       data: getRaffleSnapshot()
     });
@@ -5563,7 +5643,7 @@ function joinRaffleRuntime(input = {}) {
     return buildCommandRuntimeResponse(input, {
       ok: false,
       action: "raffle_join",
-      messageKey: "raffle.no_active",
+      messageKey: "raffle.public.no_active",
       error: "missing_user_login",
       data: getRaffleSnapshot()
     });
@@ -5574,7 +5654,7 @@ function joinRaffleRuntime(input = {}) {
     return buildCommandRuntimeResponse(input, {
       ok: false,
       action: "raffle_join",
-      messageKey: "raffle.already_joined",
+      messageKey: "raffle.public.already_joined",
       error: "raffle_already_joined",
       context: { entries: state.raffle.participants.length },
       data: getRaffleSnapshot()
@@ -5601,7 +5681,7 @@ function joinRaffleRuntime(input = {}) {
   return buildCommandRuntimeResponse(input, {
     ok: true,
     action: "raffle_join",
-    messageKey: "raffle.joined",
+    messageKey: "raffle.public.joined",
     context: { entries: state.raffle.participants.length, remaining: getRaffleSnapshot().remainingSeconds },
     data: getRaffleSnapshot()
   });
