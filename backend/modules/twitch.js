@@ -11,8 +11,8 @@ const database = require('../core/database');
 const communicationBus = require('./communication_bus');
 
 const MODULE_NAME = 'twitch';
-const MODULE_VERSION = '0.1.7';
-const MODULE_BUILD = 'LC_CORE_POINTS_3C_FILTERED_LOYALTY_SUBSCRIPTIONS_LEGACY_DIAGNOSTICS';
+const MODULE_VERSION = '0.1.8';
+const MODULE_BUILD = 'LC_CORE_POINTS_3C1_TWITCH_EVENTSUB_STATUS_HOTFIX';
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
@@ -277,12 +277,12 @@ module.exports.init = function init(ctx) {
 
 
   function getLegacyLoyaltyDirectForwardStatus() {
-    const cfg = getTwitchAlertBridgeConfig();
+    const cfg = twitchAlertBridgeState.config || DEFAULT_TWITCH_ALERT_CONFIG;
     const loyaltyCfg = cfg.loyaltyForward || DEFAULT_TWITCH_ALERT_CONFIG.loyaltyForward;
     return {
       ...legacyLoyaltyDirectForwardState,
-      targetUrl: loyaltyCfg?.url || DEFAULT_TWITCH_ALERT_CONFIG.loyaltyForward.url,
-      configEnabled: loyaltyCfg?.enabled !== false
+      targetUrl: loyaltyCfg && loyaltyCfg.url ? loyaltyCfg.url : DEFAULT_TWITCH_ALERT_CONFIG.loyaltyForward.url,
+      configEnabled: !loyaltyCfg || loyaltyCfg.enabled !== false
     };
   }
 
