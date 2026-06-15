@@ -1,21 +1,90 @@
-# CHANGELOG – stream_events
+# CHANGELOG – stream-control-center
 
-## 2026-06-13 – EVS-25a Empty Overview Action Cleanup
+## 2026-06-15 – Loyalty Core / Dashboard / Config / Logs / Texte
 
-- Leere Übersicht bei keinem aktiven Event entdoppelt.
-- Block `Aktueller Stand` in `Nächstes Event` geändert.
-- Hinweistext auf einfache nächste Aktion reduziert.
-- Keine technische Diagnose in die normale Übersicht zurückgebracht.
-- Build auf `0.5.22 / STEP_EVS_25A_EMPTY_OVERVIEW_ACTION_CLEANUP` gesetzt.
+### Backend / Loyalty Core
 
-## 2026-06-13 – EVS-25 Overview Active Event Status
+- `loyalty.js` auf Version `0.1.23` gebracht.
+- Loyalty EventSub-Bonus-Diagnose erweitert.
+- Bonus-Mapping-Diagnose erweitert.
+- Bonus-Werte-Diagnose erweitert.
+- Raid-Bonus von fixer Pauschale auf skalierbare Formel umgestellt:
+  - `base_plus_viewers`
+  - `baseAmount`
+  - `amountPerViewer`
+  - `maxAmount`
+- Loyalty Event-History-Routen ergänzt:
+  - `GET /api/loyalty/events/history`
+  - `GET /api/loyalty/events/history/:eventUid`
+- GiftSub-/GiftBomb-Empfänger-Modus eingeführt:
+  - `disabled`
+  - `track_only`
+  - `small_bonus`
+  - `half_bonus`
+  - `custom`
+- Default: `track_only`.
 
-- Normaler Status wurde in die Übersicht verschoben.
-- Status-Tab aus der Streamer-/Mod-Navigation entfernt.
-- Übersicht zeigt Aktiv/Inaktiv, laufendes Event, Streamstatus und Aufgaben/Gelöst/Offen.
-- Bei aktivem Event werden Top-Spieler angezeigt.
-- Keine technische Sicherheits-/Dispatcher-Ansicht im normalen Bereich.
+### Dashboard Struktur
 
-## 2026-06-13 – EVS-24b Streamer Friendly Lifecycle Text
+- Loyalty-Navigation aufgeräumt:
+  - Start
+  - Core
+  - Glücksrad
+  - Presets
+  - Giveaways
+  - Gamble
+  - Einstellungen
+  - Texte
+  - Chat & Befehle
+  - Logs
+- Core-Untermenü entschlackt.
+- Doppelte Core-Regeln/Core-Verlauf entfernt und zentral auf Einstellungen/Logs verwiesen.
+- Hilfe-Tab entfernt/nicht mehr als eigener Haupttab geführt.
 
-- Lifecycle-Texte für Streamer/Mods vereinfacht.
+### Dashboard Einstellungen
+
+- Zentrale Config-Seite `Loyalty → Einstellungen` aufgebaut.
+- Core-nahe Einstellungen unter Core gruppiert:
+  - Grundregeln
+  - Automatische Punkte
+  - Abo-Bonus bei automatischen Punkten
+  - Geschenk-Abos / GiftBombs
+  - Raids
+- Erste echte Schreibfunktionen angebunden:
+  - GiftSub-/GiftBomb-Empfänger-Modus
+  - Raid-Regel
+  - Core-Grundregeln
+  - Automatische Punkte
+  - Abo-Bonus bei automatischen Punkten
+- Settings-Reload-Bug behoben: Dashboard liest gespeicherte Werte bevorzugt aus `/api/loyalty/settings`.
+
+### Dashboard Logs
+
+- `Loyalty → Logs` als zentrale Ansicht aufgebaut.
+- Filter ergänzt:
+  - Bereich
+  - Event
+  - Status
+  - Suche
+- Haupttabelle vereinfacht.
+- Technische IDs in Detailfenster verschoben.
+
+### Dashboard Texte
+
+- `Loyalty → Texte` als zentrale Textpflege aufgebaut.
+- Bereichsfilter ergänzt.
+- Haupttabelle komprimiert.
+- Editor-Modal pro Textzweck ergänzt.
+- Neue Varianten hinzufügen weiterhin über vorhandene APIs.
+- Aktivieren/Deaktivieren/Löschen mit Nachfrage für Varianten mit sicherer ID vorbereitet/angebunden.
+- Mehrere vorhandene Text-APIs eingebunden:
+  - `/api/loyalty/giveaways/texts`
+  - `/api/loyalty/games/texts`
+
+### Nicht geändert
+
+- Keine Produktiv-Umschaltung der Alerts auf Bus.
+- Keine DB-Struktur ersetzt.
+- Keine vorhandenen Textdaten gelöscht.
+- Keine Punkte rückwirkend verändert.
+- Keine Preset-/Gamble-/Giveaway-Funktion entfernt.

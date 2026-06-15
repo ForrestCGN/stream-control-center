@@ -1,35 +1,110 @@
-# NEXT_STEPS – stream_events
+# NEXT_STEPS – stream-control-center
 
-Stand: 2026-06-13 nach EVS-25a
+Stand: 2026-06-15
+Fokus nächster Chat: Stream-Go-Live + Punkteimport
 
-## Direkt als nächstes
+## 1. Go-Live Check vor dem Stream
 
-EVS-25a einspielen und im Dashboard prüfen:
+Prüfen:
 
 ```powershell
-cd /d D:\Git\stream-control-center
-node -c .ackend\modules\stream_events.js
-node -c .\htdocs\dashboard\modules\stream_events.js
-.\stepdone.cmd "EVS-25a Empty Overview Action Cleanup"
+node -c .\htdocs\dashboard\modules\loyalty_games.js
+node -c .\htdocs\dashboard\modules\loyalty.js
+node -c .\backend\modules\loyalty.js
 ```
 
-Danach prüfen:
+Status prüfen:
 
-- `Event-System → Übersicht` ist weiterhin die normale Start-/Statusseite.
-- Der separate `Status`-Tab ist nicht sichtbar.
-- Bei keinem aktiven Event gibt es keine doppelte Erklärung mehr.
-- Der zweite Block heißt `Nächstes Event` und führt zu `Events öffnen`.
-- Keine technischen Dispatcher-/DirectSend-/Prepared-only-Blöcke in der normalen Ansicht.
+```powershell
+$loy = Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/status"
+$loy | Select-Object ok,module,version,lastError
+$loy.twitchEventBonusBinding | Select-Object installed,subscriptionCount,received,processed,skipped,duplicates,errors,lastEventKey,lastLogin,lastError
+```
 
-## Danach sinnvoll
+Settings prüfen:
 
-1. Aktives Testevent starten und Übersicht prüfen:
-   - Sound-Aufgaben gesamt/gelöst/offen.
-   - Text-Aufgaben gesamt/gelöst/offen.
-   - Teilnehmer / Top-Spieler.
-2. Falls nötig kleine UI-Korrektur für aktive Event-Übersicht.
-3. Erst danach wieder Funktionslogik planen.
+```powershell
+$cfg = Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/settings"
+$cfg.config.watch
+$cfg.config.autoRunner
+$cfg.config.bonuses.raid
+$cfg.config.bonuses.giftSubReceiver
+```
 
-## Bewusste Grenze
+Twitch EventSub / Events prüfen:
 
-Live-Chatmeldungen und echtes Sound-Playback bleiben weiterhin aus, bis Forrest ausdrücklich den nächsten Live-Schritt freigibt.
+```powershell
+$t = Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/eventsub/status"
+$t.twitchEventsParallel.supportEvents | Select-Object enabled,forwarded,failed,lastEventSubType,lastUserLogin,lastError
+$t.legacyLoyaltyDirectForward | Select-Object enabled,forwarded,skipped,failed,lastEventSubType,lastUserLogin,lastError
+```
+
+Alert Shadow prüfen:
+
+```powershell
+$a = Invoke-RestMethod "http://127.0.0.1:8080/api/alerts/twitch-events/status"
+$a | Select-Object installed,effectiveMode,received,mapped,wouldEnqueue,enqueued,skipped,errors,lastEventKey,lastLogin,lastTypeKey,lastError
+```
+
+Erwartung:
+
+```text
+Loyalty ok.
+Event Binding 7/7.
+Alert effectiveMode shadow.
+Keine Alert-Bus-Produktivumschaltung.
+```
+
+## 2. Letzte Testwerte zurückstellen
+
+Kontrollieren, ob Testwerte zurückgestellt wurden:
+
+```text
+Raid maxAmount sollte vermutlich 250 sein, wenn 249 nur Test war.
+watch.amount wurde wieder auf 2 gestellt.
+subscriberMultiplier / Tier-Werte prüfen, weil sie im Test geändert wurden.
+```
+
+## 3. Punkteimport vorbereiten
+
+Erst Quelle prüfen:
+
+```text
+Dateiformat?
+Spalten/Felder?
+User-Mapping?
+Addieren oder ersetzen?
+Import als Transaktion?
+```
+
+Empfehlung:
+
+```text
+Dry-Run zuerst.
+Danach Backup.
+Dann Import additiv über Transaktionen.
+Keine direkte DB-Überschreibung.
+```
+
+## 4. Punkteimport implementieren
+
+Erst nach Sichtung der Importquelle:
+
+```text
+Import-Route oder CLI-Import prüfen/planen.
+Keine bestehenden User/Punkte blind überschreiben.
+Transaktionsgrund eindeutig setzen.
+Audit/Log erfassen.
+Import-Ergebnis als CSV/JSON-Zusammenfassung ausgeben.
+```
+
+## 5. Nach dem Stream beobachten
+
+```text
+Loyalty → Logs
+Support-Events
+Auto-Punkte
+GiftSub/GiftBomb Receiver Tracking
+Raid-Berechnung
+Fehler/Skips/Duplikate
+```
