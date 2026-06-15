@@ -355,19 +355,19 @@ window.LoyaltyModule = (function(){
 
     return `
       <section class="loyalty-card loyalty-card-main loyalty-readonly-status">
-        <h3>Loyalty Event-Status</h3>
-        <p class="loyalty-note">Read-only Übersicht: Welche Twitch-Support-Events ankommen, wie Geschenk-Abos behandelt werden und welche Raid-Regel aktiv ist.</p>
+        <h3>Support-Events</h3>
+        <p class="loyalty-note">Übersicht für Streamer und Mods: Welche Unterstützungen ankommen, wie Geschenk-Abos behandelt werden und welche Raid-Regel aktiv ist.</p>
         <div class="loyalty-kpis two">
-          <div><strong>${fmtNumber(binding.subscriptionCount || 0)} / ${fmtNumber(binding.expectedSubscriptionCount || 7)}</strong><span>Event-Bus Bindings</span></div>
-          <div><strong>${complete ? 'Vollständig' : 'Prüfen'}</strong><span>Support-Event-Anbindung</span></div>
+          <div><strong>${fmtNumber(binding.subscriptionCount || 0)} / ${fmtNumber(binding.expectedSubscriptionCount || 7)}</strong><span>Support-Events verbunden</span></div>
+          <div><strong>${complete ? 'Vollständig' : 'Prüfen'}</strong><span>Anbindung</span></div>
         </div>
         <div class="loyalty-rows compact">
-          <div><span>Letztes Support-Event</span><strong>${esc(binding.lastEventKey || '-')}</strong></div>
+          <div><span>Letzte Unterstützung</span><strong>${esc(binding.lastEventKey || '-')}</strong></div>
           <div><span>Letzter User</span><strong>${esc(binding.lastLogin || '-')}</strong></div>
-          <div><span>Verarbeitet / Fehler</span><strong>${fmtNumber(binding.processed || 0)} / ${fmtNumber(binding.errors || 0)}</strong></div>
-          <div><span>GiftSub-Empfänger</span><strong>${esc(gift.receiverModeLabel || 'Nur im Verlauf anzeigen, keine Punkte')}</strong></div>
-          <div><span>Empfänger bekommen Punkte</span><strong>${gift.receiverAwardsPoints ? 'Ja' : 'Nein'}</strong></div>
-          <div><span>Raid-Berechnung</span><strong>${raid.viewerCountAffectsPoints ? 'Nach Zuschauerzahl' : 'Fixer Betrag'}</strong></div>
+          <div><span>Gebucht / Fehler</span><strong>${fmtNumber(binding.processed || 0)} / ${fmtNumber(binding.errors || 0)}</strong></div>
+          <div><span>Geschenk-Abo-Empfänger</span><strong>${esc(gift.receiverModeLabel || 'Nur im Verlauf anzeigen, keine Punkte')}</strong></div>
+          <div><span>Empfängerpunkte</span><strong>${gift.receiverAwardsPoints ? 'Ja' : 'Nein'}</strong></div>
+          <div><span>Raid-Punkte</span><strong>${raid.viewerCountAffectsPoints ? 'Nach Zuschauerzahl' : 'Fixer Betrag'}</strong></div>
         </div>
         ${directEvents.length ? `<div class="loyalty-chip-list loyalty-event-chip-list">
           ${directEvents.map(ev => `<span title="${esc(ev.eventKey || '')}"><strong>${esc(eventLabel(ev.eventType))}</strong>${ev.activeForProcessing ? 'aktiv' : 'inaktiv'}</span>`).join('')}
@@ -584,8 +584,8 @@ window.LoyaltyModule = (function(){
 
     return `<div class="loyalty-config-list">
       <section class="loyalty-card loyalty-config-intro">
-        <h3>Konfiguration</h3>
-        <p class="loyalty-note">Streamer-/Mod-Ansicht: verständliche Namen, Dropdowns statt technische Eingaben wo möglich und Erklärungen per Mouse-over. Änderungen werden erst mit Speichern übernommen.</p>
+        <h3>Core-Regeln</h3>
+        <p class="loyalty-note">Diese Regeln betreffen den Punkte-Core. Zentrale Loyalty-Einstellungen und spätere Texte gehören in den oberen Bereich „Einstellungen“. Namen bleiben absichtlich streamer-/modfreundlich; Details stehen per Mouse-over am Fragezeichen.</p>
       </section>
       ${groups.map(([label, predicate]) => {
         const list = all.filter(row => !used.has(row.key) && predicate(row));
@@ -679,10 +679,10 @@ window.LoyaltyModule = (function(){
     const statuses = state.loyaltyEvents?.statuses || ['processed','skipped','duplicate'];
     return `
       <section class="loyalty-card">
-        <h3>Loyalty Verlauf / Event-Log</h3>
-        <p class="loyalty-note">Read-only Verlauf: erkannte Twitch-/Loyalty-Events, Verarbeitung, Punktebuchung und GiftSub-/GiftBomb-Verteilung.</p>
+        <h3>Verlauf / Log</h3>
+        <p class="loyalty-note">Read-only: Hier siehst du, was erkannt wurde, ob es gebucht wurde und wie Geschenk-Abos oder GiftBombs behandelt wurden.</p>
         <div class="loyalty-history-filters">
-          <label><span>Event</span><select data-loyalty-history-filter="type">
+          <label><span>Art</span><select data-loyalty-history-filter="type">
             <option value="" ${!filters.type ? 'selected' : ''}>Alle</option>
             ${eventTypes.map(type => `<option value="${esc(type)}" ${filters.type === type ? 'selected' : ''}>${esc(eventLabel(type))}</option>`).join('')}
           </select></label>
@@ -690,14 +690,14 @@ window.LoyaltyModule = (function(){
             <option value="" ${!filters.status ? 'selected' : ''}>Alle</option>
             ${statuses.map(status => `<option value="${esc(status)}" ${filters.status === status ? 'selected' : ''}>${esc(historyStatusLabel(status))}</option>`).join('')}
           </select></label>
-          <label><span>User</span><input data-loyalty-history-filter="login" type="text" value="${esc(filters.login || '')}" placeholder="Login"></label>
-          <label><span>Suche</span><input data-loyalty-history-filter="q" type="text" value="${esc(filters.q || '')}" placeholder="UID, Grund, Quelle"></label>
+          <label><span>User</span><input data-loyalty-history-filter="login" type="text" value="${esc(filters.login || '')}" placeholder="Twitch-Name"></label>
+          <label><span>Suche</span><input data-loyalty-history-filter="q" type="text" value="${esc(filters.q || '')}" placeholder="Name, Grund, Quelle"></label>
           <label><span>Limit</span><select data-loyalty-history-filter="limit">
             ${[50,120,250,500].map(limit => `<option value="${limit}" ${Number(filters.limit || 120) === limit ? 'selected' : ''}>${limit}</option>`).join('')}
           </select></label>
           <button type="button" data-loyalty-history-apply>Filtern</button>
         </div>
-        ${eventList.length ? `<div class="loyalty-table-wrap"><table><thead><tr><th>Zeit</th><th>Event</th><th>User</th><th>Tier/Menge</th><th>Wert</th><th>Punkte</th><th>Status</th><th>Buchung</th><th>Details</th></tr></thead><tbody>
+        ${eventList.length ? `<div class="loyalty-table-wrap"><table><thead><tr><th>Zeit</th><th>Art</th><th>User</th><th>Tier/Menge</th><th>Wert</th><th>Punkte</th><th>Status</th><th>Buchung</th><th>Details</th></tr></thead><tbody>
           ${eventList.map(row => `<tr>
             <td>${fmtDate(row.createdAt)}</td>
             <td><strong>${esc(eventLabel(row.eventType))}</strong><small>${esc(row.eventType || '')} · ${esc(row.sourceType || row.provider || '')}</small></td>
@@ -749,7 +749,7 @@ window.LoyaltyModule = (function(){
           <article>
             <h4>Erkannt</h4>
             <div class="loyalty-rows compact">
-              <div><span>UID</span><strong>${esc(event.uid || '-')}</strong></div>
+              <div><span>Event-ID</span><strong>${esc(event.uid || '-')}</strong></div>
               <div><span>Quelle</span><strong>${esc(event.provider || '-')} / ${esc(event.sourceType || '-')}</strong></div>
               <div><span>User</span><strong>${esc(event.displayName || event.login || '-')}</strong></div>
               <div><span>Tier / Menge</span><strong>${esc(event.tier || '-')} / x${fmtNumber(event.quantity || 1)}</strong></div>
@@ -761,26 +761,26 @@ window.LoyaltyModule = (function(){
             <h4>Buchung</h4>
             <div class="loyalty-rows compact">
               <div><span>Punkte gesamt</span><strong>${fmtNumber(event.points)}</strong></div>
-              <div><span>Main TX</span><strong>${esc(event.transactionUid || '-')}</strong></div>
+              <div><span>Hauptbuchung</span><strong>${esc(event.transactionUid || '-')}</strong></div>
               <div><span>Transaktionen</span><strong>${fmtNumber((detail.transactions || []).length)}</strong></div>
-              <div><span>Mode</span><strong>${esc(event.mode || '-')}</strong></div>
+              <div><span>Regel</span><strong>${esc(event.mode || '-')}</strong></div>
             </div>
           </article>
         </div>
-        ${gift ? `<section class="loyalty-detail-section"><h4>GiftSub / GiftBomb Verteilung</h4>
+        ${gift ? `<section class="loyalty-detail-section"><h4>Geschenk-Abo / GiftBomb-Verteilung</h4>
           <div class="loyalty-rows compact">
-            <div><span>Gifter</span><strong>${esc(gift.giver?.displayName || gift.giver?.login || '-')} · ${fmtNumber(gift.giver?.points || 0)} Punkte</strong></div>
-            <div><span>Bekannte Receiver</span><strong>${fmtNumber(gift.knownReceiverCount)} / ${fmtNumber(gift.expectedReceiverCount)}</strong></div>
-            <div><span>Fehlende Receiver</span><strong>${fmtNumber(gift.missingReceiverCount)}</strong></div>
+            <div><span>Schenker</span><strong>${esc(gift.giver?.displayName || gift.giver?.login || '-')} · ${fmtNumber(gift.giver?.points || 0)} Punkte</strong></div>
+            <div><span>Bekannte Empfänger</span><strong>${fmtNumber(gift.knownReceiverCount)} / ${fmtNumber(gift.expectedReceiverCount)}</strong></div>
+            <div><span>Fehlende Empfänger</span><strong>${fmtNumber(gift.missingReceiverCount)}</strong></div>
             <div><span>Hinweis</span><strong>${esc(gift.note || '')}</strong></div>
           </div>
-          ${gift.receiver ? `<div class="loyalty-rows compact"><div><span>Receiver</span><strong>${esc(gift.receiver.displayName || gift.receiver.login || '-')} · ${fmtNumber(gift.receiver.calculatedAmount || 0)} Punkte · ${esc(gift.receiver.reason || '')}</strong></div></div>` : ''}
+          ${gift.receiver ? `<div class="loyalty-rows compact"><div><span>Empfänger</span><strong>${esc(gift.receiver.displayName || gift.receiver.login || '-')} · ${fmtNumber(gift.receiver.calculatedAmount || 0)} Punkte · ${esc(gift.receiver.reason || '')}</strong></div></div>` : ''}
         </section>` : ''}
         <section class="loyalty-detail-section"><h4>Transaktionen</h4>
           ${(detail.transactions || []).length ? `<div class="loyalty-table-wrap"><table><thead><tr><th>Zeit</th><th>User</th><th>Betrag</th><th>Grund</th><th>Ref</th></tr></thead><tbody>${detail.transactions.map(tx => `<tr><td>${fmtDate(tx.createdAt)}</td><td>${esc(tx.displayName || tx.login || '-')}<small>${esc(tx.login || '')}</small></td><td>${fmtNumber(tx.amount)}</td><td>${esc(tx.reason || '-')}</td><td><small>${esc(tx.referenceType || '')}</small><small>${esc(tx.referenceId || '')}</small></td></tr>`).join('')}</tbody></table></div>` : '<div class="loyalty-empty">Keine Transaktionen gefunden.</div>'}
         </section>
         <section class="loyalty-detail-section"><h4>Berechnung</h4>${jsonBlock(detail.calculation || {})}</section>
-        <section class="loyalty-detail-section"><h4>Raw / Metadata</h4>${jsonBlock({ raw: detail.raw || {}, metadata: detail.metadata || {} })}</section>
+        <section class="loyalty-detail-section"><h4>Technische Details</h4>${jsonBlock({ raw: detail.raw || {}, metadata: detail.metadata || {} })}</section>
       </section>
     </div>`;
   }
@@ -789,23 +789,23 @@ window.LoyaltyModule = (function(){
 
 
   const MAIN_TABS = [
-    { id: 'overview', label: 'Übersicht', module: 'loyalty_games', gamesTab: 'overview' },
-    { id: 'core', label: 'Core', module: 'loyalty' },
-    { id: 'wheel', label: 'Glücksrad', module: 'loyalty_games', gamesTab: 'wheel' },
-    { id: 'presets', label: 'Presets', module: 'loyalty_games', gamesTab: 'presets' },
-    { id: 'giveaways', label: 'Giveaways', module: 'loyalty_giveaways' },
-    { id: 'gamble', label: 'Gamble', module: 'loyalty_games', gamesTab: 'gamble' },
-    { id: 'config', label: 'Config', module: 'loyalty_games', gamesTab: 'config' },
-    { id: 'chat', label: 'Chat/Commands', module: 'loyalty_games', gamesTab: 'chat' },
-    { id: 'history', label: 'Verlauf', module: 'loyalty_games', gamesTab: 'history' },
-    { id: 'notes', label: 'Hinweise', module: 'loyalty_games', gamesTab: 'notes' }
+    { id: 'overview', label: 'Start', description: 'Gesamtüberblick über Loyalty.', module: 'loyalty_games', gamesTab: 'overview' },
+    { id: 'core', label: 'Punkte-Core', description: 'Punkte, User, Regeln und Core-Verlauf.', module: 'loyalty' },
+    { id: 'wheel', label: 'Glücksrad', description: 'Glücksrad und Gewinne.', module: 'loyalty_games', gamesTab: 'wheel' },
+    { id: 'presets', label: 'Presets', description: 'Vorlagen für Loyalty-Aktionen.', module: 'loyalty_games', gamesTab: 'presets' },
+    { id: 'giveaways', label: 'Giveaways', description: 'Giveaways verwalten.', module: 'loyalty_giveaways' },
+    { id: 'gamble', label: 'Gamble', description: 'Gamble-Spiel und Auswertung.', module: 'loyalty_games', gamesTab: 'gamble' },
+    { id: 'config', label: 'Einstellungen', description: 'Zentrale Loyalty-Konfiguration.', module: 'loyalty_games', gamesTab: 'config' },
+    { id: 'chat', label: 'Chat & Befehle', description: 'Chatbefehle und Antworten.', module: 'loyalty_games', gamesTab: 'chat' },
+    { id: 'history', label: 'Verlauf & Logs', description: 'Ereignisse, Buchungen und Prüfungen.', module: 'loyalty_games', gamesTab: 'history' },
+    { id: 'notes', label: 'Hilfe', description: 'Hinweise und offene Punkte.', module: 'loyalty_games', gamesTab: 'notes' }
   ];
 
   function renderMainTabs(activeId = 'core'){
     const active = String(activeId || 'core');
     return `
       <div class="lg-tabs loyalty-main-tabs" data-loyalty-main-tabs>
-        ${MAIN_TABS.map(tab => `<button type="button" class="lg-tab ${tab.id === active ? 'is-active' : ''}" data-loyalty-main-tab="${esc(tab.id)}">${esc(tab.label)}</button>`).join('')}
+        ${MAIN_TABS.map(tab => `<button type="button" class="lg-tab ${tab.id === active ? 'is-active' : ''}" data-loyalty-main-tab="${esc(tab.id)}" title="${esc(tab.description || tab.label)}">${esc(tab.label)}</button>`).join('')}
       </div>
     `;
   }
@@ -839,19 +839,19 @@ window.LoyaltyModule = (function(){
     const tabs = [
       ['overview','Übersicht'],
       ['control','Steuerung'],
-      ['stats','Statistiken'],
+      ['stats','Auswertung'],
       ['users','User'],
-      ['ignored','Ignore'],
-      ['config','Konfig'],
-      ['events','Verlauf/Log']
+      ['ignored','Bots ignorieren'],
+      ['config','Core-Regeln'],
+      ['events','Core-Verlauf']
     ];
 
     root.innerHTML = `
       <div class="loyalty-admin-wrap">
         <section class="loyalty-card loyalty-hero">
           <div>
-            <h2>🍪 Loyalty / Core</h2>
-            <p>Kekskrümel-Core kontrollieren: Shadow/Live-Status, Stream-State, Runner, Punkte, User, Bots, Konfiguration und Auswertungen.</p>
+            <h2>🍪 Loyalty / Punkte-Core</h2>
+            <p>Hier kontrollierst du Punkte, automatische Vergabe, User, Core-Regeln und den Core-Verlauf. Zentrale Einstellungen, Texte und globale Logs liegen oben im Loyalty-Bereich.</p>
           </div>
           <div class="loyalty-actions">
             <button type="button" data-loyalty-refresh>Aktualisieren</button>

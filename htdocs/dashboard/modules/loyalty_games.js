@@ -2023,13 +2023,13 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
   function renderConfig(){
     const section = state.configSection || 'gamble';
     const sections = [
-      ['core', 'Kekskrümel/Core', false],
-      ['runner', 'Runner/Watchtime', false],
+      ['core', 'Punkte-Core', false],
+      ['runner', 'Automatische Punkte', false],
       ['wheel', 'Glücksrad', false],
       ['presets', 'Presets', false],
       ['giveaways', 'Giveaways', false],
       ['gamble', 'Gamble', true],
-      ['chat', 'Chat/Commands', false],
+      ['chat', 'Chat & Befehle', false],
       ['texts', 'Texte', false]
     ];
     const current = sections.find(([id]) => id === section) || sections.find(([id]) => id === 'gamble');
@@ -2037,11 +2037,11 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
       <div class="lg-panel lg-config-panel">
         <div class="lg-panel-head">
           <div>
-            <h3>Config</h3>
-            <p class="lg-muted">Zentrale Loyalty-Config. Gamble ist aktiv angebunden; weitere Bereiche folgen mit demselben UX-Standard.</p>
+            <h3>Loyalty-Einstellungen</h3>
+            <p class="lg-muted">Zentrale Stelle für Loyalty-Regeln. Streamer und Mods sollen hier verständliche Namen, Dropdowns und kurze Erklärungen sehen – keine technische Schlüssel-Sammlung.</p>
           </div>
           <div class="lg-actions">
-            <label class="lg-config-select-label">Bereich
+            <label class="lg-config-select-label">Bereich auswählen
               <select data-lg-config-section>
                 ${sections.map(([id, label, enabled]) => `<option value="${esc(id)}" ${id === section ? 'selected' : ''} ${enabled ? '' : 'disabled'}>${esc(label)}${enabled ? '' : ' · geplant'}</option>`).join('')}
               </select>
@@ -2241,10 +2241,10 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
       ['presets', 'Presets'],
       ['giveaways', 'Giveaways'],
       ['gamble', 'Gamble'],
-      ['config', 'Config'],
-      ['chat', 'Chat/Commands'],
-      ['history', 'Verlauf'],
-      ['notes', 'Hinweise']
+      ['config', 'Einstellungen'],
+      ['chat', 'Chat & Befehle'],
+      ['history', 'Verlauf & Logs'],
+      ['notes', 'Hilfe']
     ];
     return `
       <div class="lg-tabs loyalty-main-tabs">
@@ -2443,7 +2443,7 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
         <div>
           <p class="lg-eyebrow">Loyalty / Übersicht</p>
           <h2>Loyalty</h2>
-          <p class="lg-subline">Punkte, Giveaways, Glücksrad, Raffles, Texte, Statistik, Config und Verlauf.</p>
+          <p class="lg-subline">Punkte, Giveaways, Glücksrad, Texte, Einstellungen und Verlauf – zentral für Streamer und Mods.</p>
         </div>
         <div class="lg-actions">
           <a class="lg-btn lg-btn-secondary" href="${api.overlay}" target="_blank">Overlay öffnen</a>
