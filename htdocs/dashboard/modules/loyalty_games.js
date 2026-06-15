@@ -2005,16 +2005,182 @@ function renderGiveawayDetails(giveaway){
     `;
   }
 
-  function renderConfigPlaceholder(sectionLabel){
-    return `
-      <div class="lg-panel">
-        <h3>${esc(sectionLabel)}</h3>
-        <p class="lg-muted">Dieser Config-Bereich ist vorbereitet, aber noch nicht aktiv angebunden.</p>
-        <div class="lg-mini-list">
-          <div class="lg-mini-row"><span><strong>Geplanter Standard</strong><br><small class="lg-muted">Speichern mit Bestätigung, klare Ergebnisanzeige, kein technischer JSON-Dump.</small></span><span class="lg-badge lg-badge-warn">geplant</span></div>
+  function configInfoNote(text){
+    return `<span class="lg-config-help" title="${esc(text)}">?</span>`;
+  }
+
+  function configDisplayValue(value, fallback = '-'){
+    if (value === true) return 'Ja';
+    if (value === false) return 'Nein';
+    if (value === null || value === undefined || value === '') return fallback;
+    return String(value);
+  }
+
+  function renderReadonlySelect(label, value, options, help){
+    const safeOptions = Array.isArray(options) && options.length ? options : [[String(value ?? ''), configDisplayValue(value)]];
+    return `<label class="lg-config-field"><span>${esc(label)} ${help ? configInfoNote(help) : ''}</span><select disabled>
+      ${safeOptions.map(opt => {
+        const id = Array.isArray(opt) ? opt[0] : opt;
+        const text = Array.isArray(opt) ? opt[1] : opt;
+        return `<option value="${esc(id)}" ${String(id) === String(value) ? 'selected' : ''}>${esc(text)}</option>`;
+      }).join('')}
+    </select></label>`;
+  }
+
+  function renderReadonlyNumber(label, value, help, suffix = ''){
+    return `<label class="lg-config-field"><span>${esc(label)} ${help ? configInfoNote(help) : ''}</span><div class="lg-config-readonly-value"><strong>${esc(configDisplayValue(value))}</strong>${suffix ? `<small>${esc(suffix)}</small>` : ''}</div></label>`;
+  }
+
+  function renderReadonlyToggle(label, value, help){
+    return renderReadonlySelect(label, value ? 'on' : 'off', [['on', 'Aktiv'], ['off', 'Inaktiv']], help);
+  }
+
+  function renderConfigSummaryRows(rows){
+    return `<div class="lg-config-summary-list">
+      ${rows.map(row => `<div class="lg-config-summary-row"><span>${esc(row[0])}</span><strong>${esc(configDisplayValue(row[1]))}</strong></div>`).join('')}
+    </div>`;
+  }
+
+  function renderConfigPanelShell(title, description, body, { badgeText = 'vorbereitet', badgeType = 'warn' } = {}){
+    return `<div class="lg-panel lg-config-detail-panel">
+      <div class="lg-panel-head">
+        <div>
+          <h3>${esc(title)}</h3>
+          <p class="lg-muted">${esc(description)}</p>
         </div>
+        <span class="lg-badge lg-badge-${esc(badgeType)}">${esc(badgeText)}</span>
       </div>
-    `;
+      ${body}
+    </div>`;
+  }
+
+  function renderCoreConfigPanel(){
+    const core = state.coreStatus || {};
+    const settings = Array.isArray(core.settings) ? core.settings : [];
+    const settingMap = new Map(settings.map(row => [row.key, row.value ?? row.rawValue]));
+    return renderConfigPanelShell('Core', 'Grundregeln für Punkte, Support-Boni und die automatische Vergabe. Detailbearbeitung bleibt im Core-Regeln-Bereich, wird später hier zentral zusammengeführt.', `
+      <div class="lg-config-form-grid">
+        ${renderReadonlyToggle('Loyalty aktiv', settingMap.get('enabled') !== false, 'Schaltet das Punktesystem grundsätzlich ein oder aus.')}
+        ${renderReadonlySelect('Punkte-Name', settingMap.get('currency.name') || 'Kekskrümel', [[settingMap.get('currency.name') || 'Kekskrümel', settingMap.get('currency.name') || 'Kekskrümel']], 'So heißen die Punkte im Stream.')}
+        ${renderReadonlyToggle('Support-Events geben Punkte', settingMap.get('features.eventBonusesEnabled') !== false, 'Follow, Subs, Bits, Raids und Geschenk-Abos können Punkte auslösen.')}
+      </div>
+      ${renderConfigSummaryRows([
+        ['Status', core.ok === false ? 'prüfen' : 'geladen'],
+        ['Version', core.version || core.moduleVersion || '-'],
+        ['Core-Regeln', 'im Core-Tab vorhanden']
+      ])}
+      <div class="lg-warning">Keine Einstellung geht verloren: Die vorhandenen Core-Regeln bleiben im Core-Bereich erhalten und werden später schrittweise in diese zentrale Seite übernommen.</div>
+    `);
+  }
+
+  function renderRunnerConfigPanel(){
+    const core = state.coreStatus || {};
+    const runner = core.runner || core.diagnostics?.pointsRunner || core.pointsRunner || {};
+    return renderConfigPanelShell('Automatische Punkte', 'Regeln für Punkte, die Zuschauer automatisch durch Anwesenheit oder Aktivität bekommen.', `
+      <div class="lg-config-form-grid">
+        ${renderReadonlyToggle('Automatische Vergabe', Boolean(runner.enabled ?? runner.timerActive ?? false), 'Wenn aktiv, kann das System regelmäßig Punkte vergeben.')}
+        ${renderReadonlySelect('Live-Regel', runner.liveRequired ? 'live_only' : 'configured', [['configured', 'Wie eingestellt'], ['live_only', 'Nur wenn Stream live ist']], 'Legt fest, ob Punkte nur während eines Live-Streams gezählt werden sollen.')}
+        ${renderReadonlyNumber('Letzte Prüfung', runner.lastRunAt || runner.updatedAt || '-', 'Zeitpunkt der letzten bekannten automatischen Prüfung.')}
+      </div>
+      <div class="lg-warning">Dieser Bereich ist vorbereitet. Schreibbare Felder kommen erst, wenn die bestehende Runner-Config sauber an die zentrale Config-Seite angebunden ist.</div>
+    `);
+  }
+
+  function renderGiftConfigPanel(){
+    const gift = state.coreStatus?.diagnostics?.bonusMapping?.giftSub || {};
+    const receiver = state.coreStatus?.diagnostics?.bonusMapping?.bonusValues?.rules?.giftSubReceiver?.config || {};
+    const mode = gift.receiverMode || receiver.mode || 'track_only';
+    return renderConfigPanelShell('Geschenk-Abos / GiftBombs', 'Hier wird festgelegt, wie Schenker und Empfänger von Geschenk-Abos behandelt werden.', `
+      <div class="lg-config-form-grid">
+        ${renderReadonlyToggle('Schenker belohnen', gift.giverBonusEnabled !== false, 'Der Zuschauer, der ein Geschenk-Abo oder eine GiftBomb auslöst, bekommt Punkte.')}
+        ${renderReadonlySelect('Empfänger von Geschenk-Abos', mode, [
+          ['disabled', 'Nicht erfassen'],
+          ['track_only', 'Nur im Verlauf anzeigen, keine Punkte'],
+          ['small_bonus', 'Kleiner Dankeschön-Bonus'],
+          ['half_bonus', 'Hälfte vom Geschenk-Abo-Wert'],
+          ['custom', 'Eigene Punktewerte']
+        ], 'Empfänger haben selbst nichts aktiv ausgegeben. Deshalb ist „Nur im Verlauf anzeigen, keine Punkte“ der faire Standard.')}
+        ${renderReadonlyToggle('Empfänger bekommen Punkte', Boolean(gift.receiverAwardsPoints || receiver.awardsPoints), 'Zeigt, ob Empfänger aktuell wirklich Punkte bekommen.')}
+      </div>
+      ${renderConfigSummaryRows([
+        ['Aktueller Empfänger-Modus', gift.receiverModeLabel || receiver.modeLabel || 'Nur im Verlauf anzeigen, keine Punkte'],
+        ['Empfänger-Erfassung', gift.receiverTrackingEnabled ? 'aktiv' : 'aus'],
+        ['Empfänger-Punkte', gift.receiverAwardsPoints ? 'ja' : 'nein']
+      ])}
+      <div class="lg-warning">GiftBomb-Empfänger werden nur erfasst, wenn Twitch echte Empfänger liefert. Es werden keine Empfänger geraten oder künstlich erzeugt.</div>
+    `, { badgeText: 'aktiv', badgeType: 'ok' });
+  }
+
+  function renderRaidConfigPanel(){
+    const raid = state.coreStatus?.diagnostics?.bonusMapping?.bonusValues?.rules?.raid || {};
+    const cfg = raid.config || {};
+    return renderConfigPanelShell('Raids', 'Punkte für Raids sollen fair zur Zuschauerzahl passen, aber durch ein Maximum begrenzt bleiben.', `
+      <div class="lg-config-form-grid">
+        ${renderReadonlySelect('Raid-Berechnung', cfg.mode || 'base_plus_viewers', [['fixed', 'Fixer Betrag'], ['base_plus_viewers', 'Basis + Zuschauer']], 'Fixer Betrag gibt immer gleich viele Punkte. Basis + Zuschauer berücksichtigt die Raid-Größe.')}
+        ${renderReadonlyNumber('Basispunkte', cfg.baseAmount ?? cfg.amount ?? 50, 'Grundwert, den jeder Raid bekommt.')}
+        ${renderReadonlyNumber('Punkte pro Zuschauer', cfg.amountPerViewer ?? 0, 'Zusätzliche Punkte pro mitgebrachtem Zuschauer.')}
+        ${renderReadonlyNumber('Maximalpunkte', cfg.maxAmount ?? '-', 'Deckel, damit sehr große Raids das Punktesystem nicht sprengen.')}
+      </div>
+      ${renderConfigSummaryRows([
+        ['Berechnung', raid.viewerCountAffectsPoints ? 'nach Zuschauerzahl' : 'fix'],
+        ['Formel', raid.formula || '-'],
+        ['Beispiele', Array.isArray(raid.samples) ? `${raid.samples.length} geladen` : '-']
+      ])}
+    `, { badgeText: raid.viewerCountAffectsPoints ? 'aktiv' : 'prüfen', badgeType: raid.viewerCountAffectsPoints ? 'ok' : 'warn' });
+  }
+
+  function renderWheelConfigPanel(){
+    const wheel = state.wheelConfig || {};
+    const status = state.wheelStatus || {};
+    return renderConfigPanelShell('Glücksrad', 'Globale Regeln für das Glücksrad. Preset-Felder und Preise bleiben im Presets-Tab.', `
+      <div class="lg-config-form-grid">
+        ${renderReadonlyToggle('Glücksrad aktiv', status.enabled !== false, 'Ob das Glücksrad grundsätzlich verwendet werden kann.')}
+        ${renderReadonlySelect('Gewinn nach Dreh', wheel.removeAfterWin === false ? 'keep' : 'remove', [['remove', 'Gewinnfeld entfernen'], ['keep', 'Gewinnfeld behalten']], 'Legt fest, ob ein Gewinnfeld nach dem Treffer aus dem Rad genommen wird.')}
+        ${renderReadonlyNumber('Letzte Session', status.lastSessionAt || status.updatedAt || '-', 'Letzte bekannte Aktivität des Glücksrads.')}
+      </div>
+      <div class="lg-warning">Die konkrete Bearbeitung der Felder und Preise bleibt im Tab „Presets“, damit die Config-Seite nicht überladen wird.</div>
+    `);
+  }
+
+  function renderPresetsConfigPanel(){
+    const presetRows = rows(state.presets);
+    return renderConfigPanelShell('Presets', 'Vorgaben für Glücksräder und Gewinnfelder. Die eigentlichen Preise bleiben im Presets-Tab bearbeitbar.', `
+      <div class="lg-config-form-grid">
+        ${renderReadonlyNumber('Geladene Presets', presetRows.length, 'Anzahl der aktuell bekannten Presets.')}
+        ${renderReadonlySelect('Preset-Bearbeitung', 'presets_tab', [['presets_tab', 'Im Presets-Tab']], 'Presets enthalten Preise und Felder. Deshalb werden sie bewusst nicht in der allgemeinen Config versteckt.')}
+      </div>
+      <button class="lg-btn" type="button" data-lg-jump-tab="presets">Presets öffnen</button>
+    `);
+  }
+
+  function renderGiveawaysConfigPanel(){
+    const giveawayRows = rows(state.giveaways);
+    return renderConfigPanelShell('Giveaways', 'Giveaway-Regeln liegen im eigenen Giveaway-Control. Hier bleibt nur die zentrale Einordnung sichtbar.', `
+      <div class="lg-config-form-grid">
+        ${renderReadonlyNumber('Geladene Giveaways', giveawayRows.length, 'Anzahl der aktuell geladenen Giveaways.')}
+        ${renderReadonlySelect('Bearbeitung', 'giveaway_control', [['giveaway_control', 'Im Giveaway-Control']], 'Giveaways haben eigene Abläufe und werden dort verwaltet.')}
+      </div>
+      <button class="lg-btn" type="button" data-lg-open-module="loyalty_giveaways">Giveaway-Control öffnen</button>
+    `);
+  }
+
+  function renderChatConfigPanel(){
+    const commandRows = rows(state.giveawayCommands);
+    return renderConfigPanelShell('Chat & Befehle', 'Hier geht es um Command-Regeln. Texte werden im eigenen Texte-Tab gepflegt.', `
+      <div class="lg-config-form-grid">
+        ${renderReadonlyNumber('Bekannte Commands', commandRows.length, 'Anzahl der geladenen Loyalty-Commands.')}
+        ${renderReadonlySelect('Texte bearbeiten', 'texts_tab', [['texts_tab', 'Im Texte-Tab']], 'Chat-Antworten und Varianten gehören nicht in die Config.')}
+      </div>
+      <div class="lg-actions"><button class="lg-btn" type="button" data-lg-jump-tab="chat">Commands öffnen</button><button class="lg-btn lg-btn-secondary" type="button" data-lg-jump-tab="texts">Texte öffnen</button></div>
+    `);
+  }
+
+  function renderConfigPlaceholder(sectionLabel){
+    return renderConfigPanelShell(sectionLabel, 'Dieser Bereich ist in der zentralen Config eingeplant, aber noch nicht schreibbar angebunden.', `
+      <div class="lg-mini-list">
+        <div class="lg-mini-row"><span><strong>Geplanter Standard</strong><br><small class="lg-muted">Dropdowns, kurze Erklärungen und Speichern mit Bestätigung.</small></span><span class="lg-badge lg-badge-warn">geplant</span></div>
+      </div>
+    `);
   }
 
   function renderGambleConfigPanel(){
@@ -2026,8 +2192,8 @@ function renderGiveawayDetails(giveaway){
       <div class="lg-panel">
         <div class="lg-panel-head">
           <div>
-            <h3>Gamble-Konfiguration</h3>
-            <p class="lg-muted">Zentrale Config-Ansicht. Command-Schalter und Command-Cooldown liegen im zentralen Command-System; Gamble selbst rechnet nur Gewinn oder Verlust.</p>
+            <h3>Gamble</h3>
+            <p class="lg-muted">Zentrale Config-Ansicht. Command-Schalter und Command-Cooldown liegen im zentralen Command-System; Gamble selbst rechnet Gewinn oder Verlust.</p>
           </div>
           <div class="lg-actions">
             <button class="lg-btn lg-btn-secondary" data-lg-gamble-reload>Neu laden</button>
@@ -2035,25 +2201,21 @@ function renderGiveawayDetails(giveaway){
         </div>
         <form class="lg-form lg-gamble-form" data-lg-gamble-form>
           <div class="lg-check-row">
-            <label class="lg-check"><input name="enabled" type="checkbox" ${engineOn ? 'checked' : ''}> Engine aktiv</label>
-            <label class="lg-check"><input name="commandEnabled" type="checkbox" ${commandOn ? 'checked' : ''}> Command aktiv</label>
-            <label class="lg-check"><input name="sendResultToChat" type="checkbox" ${getGambleCommand(config, 'sendResultToChat', true) ? 'checked' : ''}> Chat-Antwort</label>
+            <label class="lg-check"><input name="enabled" type="checkbox" ${engineOn ? 'checked' : ''}> Gamble aktiv ${configInfoNote('Schaltet das Gamble-Spiel grundsätzlich ein oder aus.')}</label>
+            <label class="lg-check"><input name="commandEnabled" type="checkbox" ${commandOn ? 'checked' : ''}> Command aktiv ${configInfoNote('Legt fest, ob der Chatbefehl genutzt werden darf.')}</label>
+            <label class="lg-check"><input name="sendResultToChat" type="checkbox" ${getGambleCommand(config, 'sendResultToChat', true) ? 'checked' : ''}> Chat-Antwort ${configInfoNote('Wenn aktiv, antwortet der Bot nach einem Gamble im Chat.')}</label>
           </div>
           <div class="lg-form-row">
-            <label>Gewinnchance %<input name="winChancePercent" type="number" min="0" max="100" step="0.01" value="${esc(getGambleEngine(config, 'winChancePercent', 47))}"></label>
-            <label>Command-Cooldown pro User (Sek.)<input name="commandCooldownUserSeconds" type="number" min="0" step="1" value="${esc(msToSecondsInput(getGambleCommand(config, 'cooldownUserMs', 60000)))}"></label>
+            <label>Gewinnchance % ${configInfoNote('Wie wahrscheinlich ein Gewinn ist. 47 bedeutet 47 Prozent Gewinnchance.')}<input name="winChancePercent" type="number" min="0" max="100" step="0.01" value="${esc(getGambleEngine(config, 'winChancePercent', 47))}"></label>
+            <label>Command-Cooldown pro User (Sek.) ${configInfoNote('Wie lange ein Zuschauer warten muss, bevor er erneut gambeln darf.')}<input name="commandCooldownUserSeconds" type="number" min="0" step="1" value="${esc(msToSecondsInput(getGambleCommand(config, 'cooldownUserMs', 60000)))}"></label>
           </div>
           <div class="lg-form-row">
-            <label>Mindesteinsatz<input name="minBet" type="number" min="0" step="1" value="${esc(getGambleEngine(config, 'minBet', 1))}"></label>
-            <label>Maximaleinsatz<input name="maxBet" type="number" min="0" step="1" value="${esc(getGambleEngine(config, 'maxBet', 0))}"></label>
-          </div>
-          <div class="lg-mini-list">
-            <div class="lg-mini-row"><span><strong>Gamble-Logik</strong><br><small class="lg-muted">Gewonnen = Einsatz dazu · Verloren = Einsatz weg. Kein sichtbarer Auszahlungsmultiplikator.</small></span><span class="lg-badge lg-badge-ok">einfach</span></div>
-            <div class="lg-mini-row"><span><strong>Cooldown-Zuständigkeit</strong><br><small class="lg-muted">Cooldown läuft über den zentralen Command <code>!gamble</code>, nicht doppelt in der Gamble-Engine.</small></span><span class="lg-badge lg-badge-ok">Command</span></div>
+            <label>Mindesteinsatz ${configInfoNote('Kleinster erlaubter Einsatz pro Gamble.')}<input name="minBet" type="number" min="0" step="1" value="${esc(getGambleEngine(config, 'minBet', 1))}"></label>
+            <label>Maximaleinsatz ${configInfoNote('0 bedeutet: kein festes Maximum durch diese Einstellung.')}<input name="maxBet" type="number" min="0" step="1" value="${esc(getGambleEngine(config, 'maxBet', 0))}"></label>
           </div>
           <div class="lg-check-row">
-            <label class="lg-check"><input name="allowPercentBets" type="checkbox" ${getGambleEngine(config, 'allowPercentBets', true) ? 'checked' : ''}> Prozent-Einsätze erlauben</label>
-            <label class="lg-check"><input name="allowKeywordBets" type="checkbox" ${getGambleEngine(config, 'allowKeywordBets', true) ? 'checked' : ''}> Keyword-Einsätze erlauben</label>
+            <label class="lg-check"><input name="allowPercentBets" type="checkbox" ${getGambleEngine(config, 'allowPercentBets', true) ? 'checked' : ''}> Prozent-Einsätze erlauben ${configInfoNote('Erlaubt Einsätze wie 50 Prozent der eigenen Punkte.')}</label>
+            <label class="lg-check"><input name="allowKeywordBets" type="checkbox" ${getGambleEngine(config, 'allowKeywordBets', true) ? 'checked' : ''}> Keyword-Einsätze erlauben ${configInfoNote('Erlaubt Begriffe wie all oder half, sofern das Command-System sie unterstützt.')}</label>
           </div>
           <div class="lg-check-row lg-gamble-danger-row">
             <button class="lg-btn" type="button" data-lg-gamble-save ${state.saving ? 'disabled' : ''}>Speichern</button>
@@ -2066,35 +2228,51 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
   }
 
   function renderConfig(){
-    const section = state.configSection || 'gamble';
+    const section = state.configSection || 'core';
     const sections = [
-      ['core', 'Core', false],
-      ['runner', 'Automatische Punkte', false],
-      ['gift_subs', 'Geschenk-Abos / GiftBombs', false],
-      ['raids', 'Raids', false],
-      ['wheel', 'Glücksrad', false],
-      ['presets', 'Presets', false],
-      ['giveaways', 'Giveaways', false],
-      ['gamble', 'Gamble', true],
-      ['chat', 'Chat & Befehle', false]
+      ['core', 'Core'],
+      ['runner', 'Automatische Punkte'],
+      ['gift_subs', 'Geschenk-Abos / GiftBombs'],
+      ['raids', 'Raids'],
+      ['wheel', 'Glücksrad'],
+      ['presets', 'Presets'],
+      ['giveaways', 'Giveaways'],
+      ['gamble', 'Gamble'],
+      ['chat', 'Chat & Befehle']
     ];
-    const current = sections.find(([id]) => id === section) || sections.find(([id]) => id === 'gamble');
+    const current = sections.find(([id]) => id === section) || sections[0];
+    const panels = {
+      core: renderCoreConfigPanel,
+      runner: renderRunnerConfigPanel,
+      gift_subs: renderGiftConfigPanel,
+      raids: renderRaidConfigPanel,
+      wheel: renderWheelConfigPanel,
+      presets: renderPresetsConfigPanel,
+      giveaways: renderGiveawaysConfigPanel,
+      gamble: renderGambleConfigPanel,
+      chat: renderChatConfigPanel
+    };
+    const renderPanel = panels[current[0]] || (() => renderConfigPlaceholder(current[1] || 'Config-Bereich'));
     return `
       <div class="lg-panel lg-config-panel">
         <div class="lg-panel-head">
           <div>
             <h3>Loyalty-Einstellungen</h3>
-            <p class="lg-muted">Eine zentrale Seite für alle Loyalty-Einstellungen. Wähle oben den Bereich aus; Texte und Logs haben eigene Tabs.</p>
+            <p class="lg-muted">Eine zentrale Seite für alle Loyalty-Einstellungen. Wähle den Bereich aus; Texte und Logs haben eigene Tabs.</p>
           </div>
           <div class="lg-actions">
             <label class="lg-config-select-label">Bereich auswählen
               <select data-lg-config-section>
-                ${sections.map(([id, label, enabled]) => `<option value="${esc(id)}" ${id === section ? 'selected' : ''} ${enabled ? '' : 'disabled'}>${esc(label)}${enabled ? '' : ' · geplant'}</option>`).join('')}
+                ${sections.map(([id, label]) => `<option value="${esc(id)}" ${id === current[0] ? 'selected' : ''}>${esc(label)}</option>`).join('')}
               </select>
             </label>
           </div>
         </div>
-        ${current?.[0] === 'gamble' ? renderGambleConfigPanel() : renderConfigPlaceholder(current?.[1] || 'Config-Bereich')}
+        <div class="lg-config-intro-strip">
+          <span><strong>Streamer-/Mod-Ansicht:</strong> klare Namen, Dropdowns und kurze Erklärungen.</span>
+          <span>Technische Details bleiben in Logs oder Diagnose.</span>
+        </div>
+        ${renderPanel()}
         ${renderConfigUxStandard()}
       </div>
     `;
@@ -2288,8 +2466,8 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
       ['giveaways', 'Giveaways'],
       ['gamble', 'Gamble'],
       ['config', 'Einstellungen'],
-      ['chat', 'Chat & Befehle'],
       ['texts', 'Texte'],
+      ['chat', 'Chat & Befehle'],
       ['history', 'Logs']
     ];
     return `
