@@ -4,6 +4,7 @@ window.LoyaltyGamesModule = (function(){
   const api = {
     coreStatus: '/api/loyalty/status',
     loyaltySettings: '/api/loyalty/settings',
+    coreHistory: '/api/loyalty/events/history?limit=120',
     status: '/api/loyalty/games/status',
     config: '/api/loyalty/games/config',
     routes: '/api/loyalty/games/routes',
@@ -31,6 +32,7 @@ window.LoyaltyGamesModule = (function(){
     message: '',
     coreStatus: null,
     coreSettings: null,
+    coreHistory: null,
     coreSettingsResult: '',
     status: null,
     config: null,
@@ -48,6 +50,10 @@ window.LoyaltyGamesModule = (function(){
     gambleModal: '',
     gambleResult: '',
     configSection: 'core',
+    logModule: 'all',
+    logEvent: 'all',
+    logStatus: 'all',
+    logSearch: '',
     selectedPresetUid: '',
     selectedPreset: null,
     activeTab: 'overview'
@@ -590,9 +596,10 @@ window.LoyaltyGamesModule = (function(){
     render();
 
     try {
-      const [coreStatus, coreSettings, status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, giveawayCommands, giveawayTexts, communicationStatus, gambleConfig, gambleAudit, commandLogs] = await Promise.all([
+      const [coreStatus, coreSettings, coreHistory, status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, giveawayCommands, giveawayTexts, communicationStatus, gambleConfig, gambleAudit, commandLogs] = await Promise.all([
         window.CGN.api(api.coreStatus).catch(err => ({ ok:false, error:err.message })),
         window.CGN.api(api.loyaltySettings).catch(err => ({ ok:false, error:err.message, settings:[] })),
+        window.CGN.api(api.coreHistory).catch(err => ({ ok:false, error:err.message, rows:[] })),
         window.CGN.api(api.status).catch(err => ({ ok:false, error:err.message })),
         window.CGN.api(api.config).catch(err => ({ ok:false, error:err.message })),
         window.CGN.api(api.routes).catch(err => ({ ok:false, error:err.message, routes:[] })),
@@ -623,7 +630,7 @@ window.LoyaltyGamesModule = (function(){
         selectedGiveawayUid = giveawayRows[0]?.giveawayUid || '';
       }
 
-      state = { ...state, loading:false, error:'', coreStatus, coreSettings, status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, giveawayCommands, giveawayTexts, communicationStatus, gambleConfig, gambleAudit, gambleLogRows: normalizeGambleRows(commandLogs), gambleStats: buildGambleStats(normalizeGambleRows(commandLogs)), selectedPresetUid, selectedGiveawayUid };
+      state = { ...state, loading:false, error:'', coreStatus, coreSettings, coreHistory, status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, giveawayCommands, giveawayTexts, communicationStatus, gambleConfig, gambleAudit, gambleLogRows: normalizeGambleRows(commandLogs), gambleStats: buildGambleStats(normalizeGambleRows(commandLogs)), selectedPresetUid, selectedGiveawayUid };
       if (selectedPresetUid) await loadPreset(selectedPresetUid, false);
       if (selectedGiveawayUid) await loadGiveaway(selectedGiveawayUid, false);
     } catch (err) {
@@ -1799,62 +1806,233 @@ function renderGiveawayDetails(giveaway){
     `;
   }
 
-  function renderSessions(){
-    const list = rows(state.sessions);
-    const spinRows = rows(state.spins);
+  function friendlyLoyaltyEvent(type){
+    const clean = String(type || '').toLowerCase();
+    const labels = {
+      follow: 'Follow',
+      subscribe: 'Sub',
+      sub: 'Sub',
+      resub: 'Resub',
+      gift_sub: 'Geschenk-Abo',
+      gift_bomb: 'GiftBomb',
+      gifted_sub_received: 'Geschenk-Abo Empfänger',
+      cheer: 'Bits / Cheer',
+      raid: 'Raid',
+      wheel_session: 'Glücksrad-Dreh',
+      wheel_spin: 'Preset-Dreh',
+      gamble: 'Gamble',
+      giveaway: 'Giveaway'
+    };
+    return labels[clean] || statusLabel(type);
+  }
+
+  function logStatusInfo(row){
+    const raw = String(row?.status || '').toLowerCase();
+    const points = Number(row?.points ?? row?.amount ?? row?.net ?? 0);
+    const type = String(row?.eventType || '').toLowerCase();
+    if (['error', 'failed', 'fail'].includes(raw)) return { key:'error', label:'Fehler', cls:'lg-badge-off' };
+    if (['duplicate', 'duplicated'].includes(raw)) return { key:'duplicate', label:'Duplikat', cls:'lg-badge-warn' };
+    if (['skipped', 'skip'].includes(raw)) return { key:'skipped', label:'Übersprungen', cls:'lg-badge-warn' };
+    if (type === 'gifted_sub_received' && points === 0) return { key:'tracked', label:'Nur erfasst', cls:'lg-badge-warn' };
+    if (points !== 0 || ['processed', 'booked', 'success', 'ok'].includes(raw)) return { key:'booked', label: points !== 0 ? 'Gebucht' : 'Verarbeitet', cls:'lg-badge-ok' };
+    if (['pending', 'waiting', 'open'].includes(raw)) return { key:'pending', label:'Offen', cls:'lg-badge-warn' };
+    return { key: raw || 'info', label: statusLabel(raw || 'Info'), cls:'lg-badge-off' };
+  }
+
+  function logStatusBadge(row){
+    const info = logStatusInfo(row);
+    return `<span class="lg-badge ${info.cls}">${esc(info.label)}</span>`;
+  }
+
+  function normalizeCoreLogRows(){
+    return rows(state.coreHistory).map(row => {
+      const type = row.eventType || row.type || 'event';
+      const points = Number(row.points ?? row.amount ?? 0) || 0;
+      return {
+        module: 'core',
+        moduleLabel: 'Core',
+        at: row.createdAt || row.created_at || row.updatedAt || '',
+        eventType: type,
+        eventLabel: friendlyLoyaltyEvent(type),
+        user: row.displayName || row.login || row.userLogin || '-',
+        login: row.login || row.userLogin || '',
+        status: row.status || 'processed',
+        points,
+        details: row.transactionUid ? `Transaktion: ${row.transactionUid}` : (row.reason || row.uid || ''),
+        technicalId: row.uid || row.eventUid || row.transactionUid || '',
+        raw: row
+      };
+    });
+  }
+
+  function normalizeWheelLogRows(){
+    const sessions = rows(state.sessions).map(row => ({
+      module: 'wheel',
+      moduleLabel: 'Glücksrad',
+      at: row.createdAt || row.startedAt || '',
+      eventType: 'wheel_session',
+      eventLabel: 'Glücksrad-Dreh',
+      user: row.displayName || row.login || '-',
+      login: row.login || '',
+      status: row.status || '-',
+      points: 0,
+      details: row.selectedFieldLabel || row.resultLabel || row.source || '-',
+      technicalId: row.sessionUid || '',
+      raw: row
+    }));
+    const spins = rows(state.spins).map(row => ({
+      module: 'wheel',
+      moduleLabel: 'Glücksrad',
+      at: row.createdAt || row.startedAt || '',
+      eventType: 'wheel_spin',
+      eventLabel: 'Preset-Dreh',
+      user: row.displayName || row.login || '-',
+      login: row.login || '',
+      status: row.status || '-',
+      points: 0,
+      details: row.resultLabel || row.selectedFieldLabel || '-',
+      technicalId: row.spinUid || row.sessionUid || '',
+      raw: row
+    }));
+    return sessions.concat(spins);
+  }
+
+  function normalizeGambleLogRowsForLogs(){
+    return (state.gambleLogRows || []).map(row => {
+      const user = gambleRowUser(row);
+      const outcome = gambleRowOutcome(row);
+      const net = gambleRowNet(row);
+      const bet = gambleRowBet(row);
+      return {
+        module: 'gamble',
+        moduleLabel: 'Gamble',
+        at: gambleRowTime(row),
+        eventType: 'gamble',
+        eventLabel: 'Gamble',
+        user: user.displayName || user.login || '-',
+        login: user.login || '',
+        status: outcome.won ? 'won' : (outcome.lost ? 'lost' : 'processed'),
+        points: net,
+        details: `${outcome.outcome}${bet ? ` · Einsatz ${fmtNumber(bet)}` : ''}`,
+        technicalId: row.uid || row.id || row.commandLogUid || '',
+        raw: row
+      };
+    });
+  }
+
+  function buildCentralLogRows(){
+    const all = normalizeCoreLogRows().concat(normalizeWheelLogRows(), normalizeGambleLogRowsForLogs());
+    return all.sort((a, b) => Date.parse(b.at || 0) - Date.parse(a.at || 0));
+  }
+
+  function logFilterOptions(rowsList, field, labelField){
+    const map = new Map();
+    rowsList.forEach(row => {
+      const key = String(row[field] || '').toLowerCase();
+      if (!key) return;
+      map.set(key, row[labelField] || row[field]);
+    });
+    return Array.from(map.entries()).sort((a, b) => String(a[1]).localeCompare(String(b[1]), 'de'));
+  }
+
+  function filterCentralLogRows(list){
+    const moduleFilter = String(state.logModule || 'all');
+    const eventFilter = String(state.logEvent || 'all').toLowerCase();
+    const statusFilter = String(state.logStatus || 'all').toLowerCase();
+    const search = String(state.logSearch || '').trim().toLowerCase();
+    return list.filter(row => {
+      if (moduleFilter !== 'all' && row.module !== moduleFilter) return false;
+      if (eventFilter !== 'all' && String(row.eventType || '').toLowerCase() !== eventFilter) return false;
+      const statusKey = logStatusInfo(row).key;
+      if (statusFilter !== 'all' && statusKey !== statusFilter) return false;
+      if (search) {
+        const hay = `${row.user || ''} ${row.login || ''} ${row.eventLabel || ''} ${row.details || ''} ${row.technicalId || ''}`.toLowerCase();
+        if (!hay.includes(search)) return false;
+      }
+      return true;
+    });
+  }
+
+  function renderLogs(){
+    const allRows = buildCentralLogRows();
+    const filteredRows = filterCentralLogRows(allRows).slice(0, 120);
+    const moduleOptions = logFilterOptions(allRows, 'module', 'moduleLabel');
+    const eventOptions = logFilterOptions(allRows, 'eventType', 'eventLabel');
+    const statusOptions = [
+      ['booked', 'Gebucht / verarbeitet'],
+      ['tracked', 'Nur erfasst'],
+      ['skipped', 'Übersprungen'],
+      ['duplicate', 'Duplikat'],
+      ['error', 'Fehler'],
+      ['pending', 'Offen']
+    ];
     return `
       <div class="lg-panel">
-        <h3>Letzte Sessions</h3>
+        <div class="lg-panel-head">
+          <div>
+            <h3>Logs</h3>
+            <p class="lg-muted">Zentrale Ansicht für Loyalty-Ereignisse. Hier landen Core-Buchungen, GiftSubs/GiftBombs, Glücksrad-Drehungen und Gamble-Logs an einer Stelle.</p>
+          </div>
+          <button class="lg-btn lg-btn-secondary" data-lg-reload>Neu laden</button>
+        </div>
+        <div class="lg-filterbar lg-log-filterbar">
+          <label>Bereich
+            <select data-lg-log-module>
+              <option value="all" ${state.logModule === 'all' ? 'selected' : ''}>Alle</option>
+              ${moduleOptions.map(([value, label]) => `<option value="${esc(value)}" ${state.logModule === value ? 'selected' : ''}>${esc(label)}</option>`).join('')}
+            </select>
+          </label>
+          <label>Event
+            <select data-lg-log-event>
+              <option value="all" ${state.logEvent === 'all' ? 'selected' : ''}>Alle</option>
+              ${eventOptions.map(([value, label]) => `<option value="${esc(value)}" ${String(state.logEvent || '').toLowerCase() === value ? 'selected' : ''}>${esc(label)}</option>`).join('')}
+            </select>
+          </label>
+          <label>Status
+            <select data-lg-log-status>
+              <option value="all" ${state.logStatus === 'all' ? 'selected' : ''}>Alle</option>
+              ${statusOptions.map(([value, label]) => `<option value="${esc(value)}" ${state.logStatus === value ? 'selected' : ''}>${esc(label)}</option>`).join('')}
+            </select>
+          </label>
+          <label>Suche
+            <input data-lg-log-search value="${esc(state.logSearch || '')}" placeholder="User, Event, ID">
+          </label>
+        </div>
+        <div class="lg-grid lg-grid-4">
+          <article class="lg-card"><span class="lg-card-label">Geladen</span><strong>${fmtNumber(allRows.length)}</strong><small>alle Log-Einträge</small></article>
+          <article class="lg-card"><span class="lg-card-label">Angezeigt</span><strong>${fmtNumber(filteredRows.length)}</strong><small>nach Filter</small></article>
+          <article class="lg-card"><span class="lg-card-label">Core</span><strong>${fmtNumber(normalizeCoreLogRows().length)}</strong><small>Punkte/Support-Events</small></article>
+          <article class="lg-card"><span class="lg-card-label">Games</span><strong>${fmtNumber(normalizeWheelLogRows().length + normalizeGambleLogRowsForLogs().length)}</strong><small>Glücksrad + Gamble</small></article>
+        </div>
         <div class="lg-table-wrap">
           <table class="lg-table">
             <thead>
               <tr>
-                <th>Zeit</th><th>User</th><th>Status</th><th>Gewinn</th><th>Dauer</th><th>Source</th><th>Session</th>
+                <th>Zeit</th><th>Bereich</th><th>Event</th><th>User</th><th>Status</th><th>Punkte</th><th>Details</th>
               </tr>
             </thead>
             <tbody>
-              ${list.map(row => `
+              ${filteredRows.map(row => `
                 <tr>
-                  <td>${fmtDate(row.createdAt || row.startedAt)}</td>
-                  <td>${esc(row.displayName || row.login || '-')}</td>
-                  <td>${esc(row.status || '-')}</td>
-                  <td><strong>${esc(row.selectedFieldLabel || '-')}</strong></td>
-                  <td>${fmtNumber(row.durationMs || 0)} ms</td>
-                  <td>${esc(row.source || '-')}</td>
-                  <td><code title="${esc(row.sessionUid || '')}">${esc(String(row.sessionUid || '').slice(0, 24))}</code></td>
+                  <td>${fmtDate(row.at)}</td>
+                  <td>${esc(row.moduleLabel || row.module || '-')}</td>
+                  <td><strong>${esc(row.eventLabel || row.eventType || '-')}</strong><br><small class="lg-muted">${esc(row.eventType || '')}</small></td>
+                  <td>${esc(row.user || '-')}<br><small class="lg-muted">${esc(row.login || '')}</small></td>
+                  <td>${logStatusBadge(row)}</td>
+                  <td>${Number(row.points || 0) ? `<strong>${esc(formatSigned(row.points))}</strong>` : '<span class="lg-muted">-</span>'}</td>
+                  <td>${esc(row.details || '-')} ${row.technicalId ? `<br><small class="lg-muted" title="${esc(row.technicalId)}">ID: ${esc(String(row.technicalId).slice(0, 24))}</small>` : ''}</td>
                 </tr>
-              `).join('') || `<tr><td colspan="7" class="lg-muted">Keine Sessions gefunden.</td></tr>`}
+              `).join('') || `<tr><td colspan="7" class="lg-muted">Keine Logs für diese Filter gefunden.</td></tr>`}
             </tbody>
           </table>
         </div>
-      </div>
-
-      <div class="lg-panel">
-        <h3>Dreh-Verlauf mit Preset</h3>
-        <div class="lg-table-wrap">
-          <table class="lg-table">
-            <thead>
-              <tr>
-                <th>Zeit</th><th>User</th><th>Status</th><th>Preset</th><th>Ergebnis</th><th>Gewicht</th><th>Spin</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${spinRows.map(row => `
-                <tr>
-                  <td>${fmtDate(row.createdAt || row.startedAt)}</td>
-                  <td>${esc(row.displayName || row.login || '-')}</td>
-                  <td>${esc(row.status || '-')}</td>
-                  <td><code>${esc(String(row.presetUid || '').slice(0, 22))}</code></td>
-                  <td><strong>${esc(row.resultLabel || '-')}</strong></td>
-                  <td>${fmtNumber(row.totalWeight || 0)}</td>
-                  <td><code title="${esc(row.spinUid || '')}">${esc(String(row.spinUid || '').slice(0, 22))}</code></td>
-                </tr>
-              `).join('') || `<tr><td colspan="7" class="lg-muted">Noch keine Preset-Drehungen gespeichert.</td></tr>`}
-            </tbody>
-          </table>
-        </div>
+        <div class="lg-info">Details bleiben bewusst lesbar. Technische IDs werden nur gekürzt angezeigt und dienen zur Fehlersuche.</div>
       </div>
     `;
+  }
+
+  function renderSessions(){
+    return renderLogs();
   }
 
 
@@ -2744,6 +2922,23 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
         state.activeTab = 'config';
         render();
       });
+    });
+
+    root.querySelector('[data-lg-log-module]')?.addEventListener('change', ev => {
+      state.logModule = ev.currentTarget.value || 'all';
+      render();
+    });
+    root.querySelector('[data-lg-log-event]')?.addEventListener('change', ev => {
+      state.logEvent = ev.currentTarget.value || 'all';
+      render();
+    });
+    root.querySelector('[data-lg-log-status]')?.addEventListener('change', ev => {
+      state.logStatus = ev.currentTarget.value || 'all';
+      render();
+    });
+    root.querySelector('[data-lg-log-search]')?.addEventListener('input', ev => {
+      state.logSearch = ev.currentTarget.value || '';
+      render();
     });
 
     root.querySelector('[data-lg-core-clear-result]')?.addEventListener('click', () => {
