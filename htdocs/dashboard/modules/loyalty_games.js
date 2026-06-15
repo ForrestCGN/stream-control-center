@@ -2069,7 +2069,7 @@ function renderGiveawayDetails(giveaway){
         ['Version', core.version || core.moduleVersion || '-'],
         ['Core-Regeln', 'im Core-Tab vorhanden']
       ])}
-      <div class="lg-warning">Keine Einstellung geht verloren: Die vorhandenen Core-Regeln bleiben im Core-Bereich erhalten und werden später schrittweise in diese zentrale Seite übernommen.</div>
+      <div class="lg-config-note">Die vorhandenen Core-Regeln bleiben erhalten und werden später schrittweise hier zentral zusammengeführt.</div>
     `);
   }
 
@@ -2082,7 +2082,7 @@ function renderGiveawayDetails(giveaway){
         ${renderReadonlySelect('Live-Regel', runner.liveRequired ? 'live_only' : 'configured', [['configured', 'Wie eingestellt'], ['live_only', 'Nur wenn Stream live ist']], 'Legt fest, ob Punkte nur während eines Live-Streams gezählt werden sollen.')}
         ${renderReadonlyNumber('Letzte Prüfung', runner.lastRunAt || runner.updatedAt || '-', 'Zeitpunkt der letzten bekannten automatischen Prüfung.')}
       </div>
-      <div class="lg-warning">Dieser Bereich ist vorbereitet. Schreibbare Felder kommen erst, wenn die bestehende Runner-Config sauber an die zentrale Config-Seite angebunden ist.</div>
+      <div class="lg-config-note">Aktuell nur Ansicht. Schreibbare Felder werden erst aktiviert, wenn die vorhandene automatische Vergabe sauber an diese zentrale Einstellungsseite angebunden ist.</div>
     `);
   }
 
@@ -2107,7 +2107,7 @@ function renderGiveawayDetails(giveaway){
         ['Empfänger-Erfassung', gift.receiverTrackingEnabled ? 'aktiv' : 'aus'],
         ['Empfänger-Punkte', gift.receiverAwardsPoints ? 'ja' : 'nein']
       ])}
-      <div class="lg-warning">GiftBomb-Empfänger werden nur erfasst, wenn Twitch echte Empfänger liefert. Es werden keine Empfänger geraten oder künstlich erzeugt.</div>
+      <div class="lg-config-note">GiftBomb-Empfänger werden nur erfasst, wenn Twitch echte Empfänger liefert. Es werden keine Empfänger geraten.</div>
     `, { badgeText: 'aktiv', badgeType: 'ok' });
   }
 
@@ -2138,7 +2138,7 @@ function renderGiveawayDetails(giveaway){
         ${renderReadonlySelect('Gewinn nach Dreh', wheel.removeAfterWin === false ? 'keep' : 'remove', [['remove', 'Gewinnfeld entfernen'], ['keep', 'Gewinnfeld behalten']], 'Legt fest, ob ein Gewinnfeld nach dem Treffer aus dem Rad genommen wird.')}
         ${renderReadonlyNumber('Letzte Session', status.lastSessionAt || status.updatedAt || '-', 'Letzte bekannte Aktivität des Glücksrads.')}
       </div>
-      <div class="lg-warning">Die konkrete Bearbeitung der Felder und Preise bleibt im Tab „Presets“, damit die Config-Seite nicht überladen wird.</div>
+      <div class="lg-config-note">Felder und Preise bleiben im Tab „Presets“, damit diese Seite übersichtlich bleibt.</div>
     `);
   }
 
@@ -2273,7 +2273,6 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
           <span>Technische Details bleiben in Logs oder Diagnose.</span>
         </div>
         ${renderPanel()}
-        ${renderConfigUxStandard()}
       </div>
     `;
   }
