@@ -41,6 +41,7 @@ const database = require("../core/database");
 const MODULE_NAME = "loyalty";
 const VERSION = "0.1.13";
 const MODULE_VERSION = VERSION;
+const STREAM_STATUS_API_PATH = "/api/stream-status/status?forceApi=1";
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
@@ -50,7 +51,7 @@ const MODULE_META = {
   routesPrefix: ["/api/loyalty"],
   bus: {
     publishes: ["loyalty.status", "loyalty.event", "loyalty.points.balance.checked", "loyalty.points.transaction.created", "loyalty.points.reservation.created", "loyalty.points.reservation.released", "loyalty.points.reservation.committed"],
-    consumes: ["stream.status"]
+    consumes: ["stream.status", "twitch.stream.online", "twitch.stream.offline"]
   },
   description: "Loyalty/Kekskruemel runtime, points, events and auto-runner"
 };
@@ -392,6 +393,19 @@ let state = {
   schema: {
     ok: false,
     version: SCHEMA_VERSION,
+    lastError: ""
+  },
+  streamStatusBinding: {
+    installed: false,
+    subscriptionId: "",
+    lastSyncAt: "",
+    lastEventAt: "",
+    lastEventKey: "",
+    lastLive: null,
+    lastSource: "",
+    lastReason: "",
+    lastResult: null,
+    errors: 0,
     lastError: ""
   },
   lastError: ""
@@ -3132,7 +3146,8 @@ function buildStatus() {
     },
     centralCommands: state.schema.ok ? listCentralCommandDefinitions() : { ok: false, available: false },
     watch: { ...config.watch },
-    autoRunner: getAutoRunnerStatus()
+    autoRunner: getAutoRunnerStatus(),
+    streamStatusBinding: { ...state.streamStatusBinding }
   };
 }
 
@@ -3339,6 +3354,247 @@ async function fetchJson(url, timeoutMs = 5000) {
   }
 }
 
+
+function getRequestBaseUrl(req) {
+  const proto = req && req.protocol ? req.protocol : "http";
+  const host = req && typeof req.get === "function" ? req.get("host") : "127.0.0.1:8080";
+  return `${proto}://${host}`;
+}
+
+function parseCentralStreamStatusPayload(payload = {}) {
+  const data = payload && typeof payload === "object" ? payload : {};
+  const live = data.live === true || data.isLive === true || data.status === "live";
+  const statusKnown = data.statusKnown !== false;
+  const stale = data.stale === true;
+  return {
+    ok: data.ok !== false && statusKnown && !stale,
+    live,
+    statusKnown,
+    stale,
+    source: String(data.source || "stream_status"),
+    upstreamSource: String(data.upstreamSource || ""),
+    streamId: String(data.streamId || ""),
+    startedAt: String(data.startedAt || ""),
+    title: String(data.title || ""),
+    gameName: String(data.gameName || ""),
+    streamSessionId: String(data.streamSessionId || ""),
+    streamDayId: String(data.streamDayId || ""),
+    sessionStatus: String(data.sessionStatus || ""),
+    lastCheckedAt: String(data.lastCheckedAt || ""),
+    lastError: String(data.lastError || data.error || "")
+  };
+}
+
+function clearLegacyManualStreamStateForCentralStatus(reason = "central_stream_status") {
+  const before = getStreamState();
+  const manual = before && before.manual ? before.manual : null;
+  if (!manual || manual.configuredActive !== true) {
+    return { cleared: false, before };
+  }
+  const after = clearManualStreamState({ source: "central_stream_status", reason });
+  return { cleared: true, before, after };
+}
+
+async function refreshAutoStreamStateFromCentralStatus(req, options = {}) {
+  const url = `${getRequestBaseUrl(req)}${STREAM_STATUS_API_PATH}`;
+  const controlRunner = options.controlRunner === true;
+  const sourceKind = String(options.sourceKind || "auto").trim() || "auto";
+  const triggerSource = String(options.source || "central_stream_status").trim() || "central_stream_status";
+
+  try {
+    const result = await fetchJson(url);
+    const parsed = parseCentralStreamStatusPayload(result.data || {});
+    if (!result.ok || !parsed.ok) {
+      return {
+        ok: false,
+        skipped: true,
+        reason: !result.ok ? "central_stream_status_http_not_ok" : (parsed.stale ? "central_stream_status_stale" : "central_stream_status_unknown"),
+        url,
+        status: result.status,
+        live: parsed.live,
+        parsed,
+        state: getStreamState(),
+        runner: null,
+        error: parsed.lastError || (!result.ok ? "central_stream_status_http_not_ok" : "central_stream_status_not_usable")
+      };
+    }
+
+    const manual = clearLegacyManualStreamStateForCentralStatus("central_stream_status_sync");
+    const stateRow = updateAutoStreamState(parsed.live, { source: `${triggerSource}:${parsed.source || "stream_status"}` });
+    const runner = controlRunner
+      ? controlAutoRunnerForStreamState(parsed.live, {
+          source: triggerSource,
+          reason: `central_stream_status:${parsed.source || "stream_status"}`,
+          sourceKind,
+          req
+        })
+      : null;
+
+    state.streamStatusBinding.lastSyncAt = core.nowIso();
+    state.streamStatusBinding.lastLive = parsed.live === true;
+    state.streamStatusBinding.lastSource = parsed.source || "stream_status";
+    state.streamStatusBinding.lastReason = "central_status_sync";
+    state.streamStatusBinding.lastError = "";
+    state.streamStatusBinding.lastResult = { ok: true, live: parsed.live, source: parsed.source, manualCleared: manual.cleared };
+
+    return {
+      ok: true,
+      live: parsed.live,
+      url,
+      status: result.status,
+      parsed,
+      state: stateRow,
+      previousManual: manual.before ? manual.before.manual : null,
+      manualCleared: manual.cleared,
+      runner,
+      error: ""
+    };
+  } catch (err) {
+    const error = err && err.message ? err.message : String(err);
+    state.streamStatusBinding.errors += 1;
+    state.streamStatusBinding.lastError = error;
+    return {
+      ok: false,
+      skipped: true,
+      reason: "central_stream_status_fetch_failed",
+      url,
+      status: 0,
+      live: false,
+      parsed: null,
+      state: getStreamState(),
+      runner: null,
+      error
+    };
+  }
+}
+
+function normalizeStreamBusPayload(envelope = {}) {
+  const payload = envelope && typeof envelope.payload === "object" ? envelope.payload : {};
+  const twitch = payload && typeof payload.twitch === "object" ? payload.twitch : {};
+  const actionRaw = String(twitch.action || payload.action || envelope.action || "").trim().toLowerCase();
+  const eventKey = String(payload.eventKey || twitch.eventKey || (actionRaw ? `twitch.stream.${actionRaw}` : "") || "").trim();
+  const action = actionRaw || (eventKey === "twitch.stream.online" ? "online" : (eventKey === "twitch.stream.offline" ? "offline" : ""));
+  const live = action === "online" || eventKey === "twitch.stream.online" || twitch.live === true || payload.live === true;
+  return {
+    eventKey: eventKey || (live ? "twitch.stream.online" : "twitch.stream.offline"),
+    action: live ? "online" : "offline",
+    live,
+    previousLive: twitch.previousLive === true || payload.previousLive === true,
+    reason: String(twitch.reason || payload.reason || "central_stream_event").trim(),
+    sourceModule: String(payload.sourceModule || envelope.source?.module || "twitch_events").trim() || "twitch_events",
+    busEventId: String(envelope.id || envelope.event?.id || "").trim(),
+    streamId: String(twitch.streamId || payload.streamId || "").trim(),
+    streamSessionId: String(twitch.streamSessionId || payload.streamSessionId || "").trim(),
+    streamDayId: String(twitch.streamDayId || payload.streamDayId || "").trim(),
+    sessionStatus: String(twitch.sessionStatus || payload.sessionStatus || payload.status || "").trim(),
+    title: String(twitch.title || payload.title || "").trim(),
+    gameName: String(twitch.gameName || payload.gameName || "").trim(),
+    receivedAt: String(payload.receivedAt || twitch.receivedAt || envelope.timestamp || core.nowIso()).trim()
+  };
+}
+
+function handleCentralStreamBusEvent(envelope = {}) {
+  const binding = state.streamStatusBinding;
+  binding.lastEventAt = core.nowIso();
+  try {
+    const parsed = normalizeStreamBusPayload(envelope);
+    const manual = clearLegacyManualStreamStateForCentralStatus(`central_bus:${parsed.eventKey}`);
+    const streamState = updateAutoStreamState(parsed.live, { source: parsed.eventKey || "twitch.stream" });
+    const runner = controlAutoRunnerForStreamState(parsed.live, {
+      source: parsed.eventKey || "twitch.stream",
+      reason: parsed.reason || "central_stream_event",
+      sourceKind: "stream_state",
+      req: null
+    });
+
+    binding.lastEventKey = parsed.eventKey;
+    binding.lastLive = parsed.live === true;
+    binding.lastSource = parsed.sourceModule || "twitch_events";
+    binding.lastReason = parsed.reason || "central_stream_event";
+    binding.lastError = "";
+    binding.lastResult = { ok: true, accepted: true, live: parsed.live, action: parsed.action, manualCleared: manual.cleared, runner };
+
+    logStreamStateEvent(parsed.live ? "central_stream_online_received" : "central_stream_offline_received", {
+      source: parsed.eventKey,
+      reason: parsed.reason,
+      streamState,
+      previousStreamState: manual.before || null,
+      signal: parsed,
+      automation: runner
+    });
+
+    return { ok: true, accepted: true, reason: "central_stream_event_accepted", live: parsed.live, action: parsed.action };
+  } catch (err) {
+    const error = err && err.message ? err.message : String(err);
+    binding.errors += 1;
+    binding.lastError = error;
+    binding.lastResult = { ok: false, error };
+    return { ok: false, error };
+  }
+}
+
+function getCommunicationBus() {
+  try {
+    const communicationBus = require("./communication_bus");
+    return communicationBus && typeof communicationBus.getBus === "function" ? communicationBus.getBus() : null;
+  } catch (err) {
+    state.streamStatusBinding.errors += 1;
+    state.streamStatusBinding.lastError = err && err.message ? err.message : String(err);
+    return null;
+  }
+}
+
+function installCentralStreamStatusSubscriber() {
+  const binding = state.streamStatusBinding;
+  if (binding.installed === true) return { ok: true, installed: true, alreadyInstalled: true, subscriptionId: binding.subscriptionId };
+  const bus = getCommunicationBus();
+  if (!bus || typeof bus.subscribe !== "function") {
+    binding.installed = false;
+    binding.lastError = "communication_bus_subscribe_unavailable";
+    return { ok: false, installed: false, reason: binding.lastError };
+  }
+
+  const result = bus.subscribe({
+    id: "loyalty:twitch.stream:central_status",
+    module: MODULE_NAME,
+    channel: "twitch.stream",
+    action: "",
+    capability: "",
+    meta: {
+      step: "LC-CORE-LIVE-1",
+      purpose: "loyalty_runner_central_stream_status",
+      sourceModule: "twitch_events",
+      consumes: ["twitch.stream.online", "twitch.stream.offline"]
+    }
+  }, (envelope) => handleCentralStreamBusEvent(envelope));
+
+  if (!result || result.ok !== true) {
+    binding.installed = false;
+    binding.lastError = String(result && (result.reason || result.error) || "subscription_failed");
+    return { ok: false, installed: false, reason: binding.lastError };
+  }
+
+  binding.installed = true;
+  binding.subscriptionId = result.subscription && result.subscription.id ? String(result.subscription.id) : "loyalty:twitch.stream:central_status";
+  binding.lastError = "";
+  binding.lastResult = { ok: true, installed: true, subscriptionId: binding.subscriptionId };
+  return { ok: true, installed: true, subscriptionId: binding.subscriptionId };
+}
+
+function scheduleInitialCentralStreamStatusSync() {
+  const timer = setTimeout(() => {
+    refreshAutoStreamStateFromCentralStatus(null, {
+      controlRunner: true,
+      sourceKind: "stream_state",
+      source: "central_stream_status_boot_sync"
+    }).catch(err => {
+      state.streamStatusBinding.errors += 1;
+      state.streamStatusBinding.lastError = err && err.message ? err.message : String(err);
+    });
+  }, 5000);
+  if (typeof timer.unref === "function") timer.unref();
+}
+
 async function refreshAutoStreamStateFromTwitch(req, options = {}) {
   const login = normalizeLogin(config?.streamState?.broadcasterLogin || "forrestcgn") || "forrestcgn";
   const proto = req && req.protocol ? req.protocol : "http";
@@ -3419,7 +3675,10 @@ async function runPresenceOnce(req, options = {}) {
 
   let auto = null;
   if (checkAuto) {
-    auto = await refreshAutoStreamStateFromTwitch(req);
+    auto = await refreshAutoStreamStateFromCentralStatus(req);
+    if (!auto || auto.ok !== true) {
+      auto = await refreshAutoStreamStateFromTwitch(req);
+    }
   }
 
   const streamState = getStreamState();
@@ -3818,6 +4077,29 @@ function registerRoutes(app) {
     core.sendOk(res, getAutoRunnerStatus());
   }));
 
+  app.get("/api/loyalty/stream-status-binding/status", core.asyncRoute(async (req, res) => {
+    core.sendOk(res, { ok: true, binding: { ...state.streamStatusBinding }, streamState: getStreamState(), autoRunner: getAutoRunnerStatus() });
+  }));
+
+  app.get("/api/loyalty/stream-status-binding/sync", core.asyncRoute(async (req, res) => {
+    const result = await refreshAutoStreamStateFromCentralStatus(req, {
+      controlRunner: String(req.query.controlRunner || "false") === "true",
+      sourceKind: String(req.query.sourceKind || "auto"),
+      source: "central_stream_status_manual_sync"
+    });
+    core.sendOk(res, result);
+  }));
+
+  app.post("/api/loyalty/stream-status-binding/sync", core.asyncRoute(async (req, res) => {
+    const body = req.body && typeof req.body === "object" ? req.body : {};
+    const result = await refreshAutoStreamStateFromCentralStatus(req, {
+      controlRunner: body.controlRunner === true,
+      sourceKind: String(body.sourceKind || "auto"),
+      source: "central_stream_status_manual_sync"
+    });
+    core.sendOk(res, result);
+  }));
+
   app.get("/api/loyalty/runner/start", core.asyncRoute(async (req, res) => {
     core.sendOk(res, startAutoRunner({ trigger: core.getParam(req, "source", "manual_get"), req }));
   }));
@@ -3954,6 +4236,9 @@ function registerRoutes(app) {
         "POST /api/loyalty/presence/run-once",
         "GET /api/loyalty/presence/run-once",
         "GET /api/loyalty/runner/status",
+        "GET /api/loyalty/stream-status-binding/status",
+        "GET /api/loyalty/stream-status-binding/sync",
+        "POST /api/loyalty/stream-status-binding/sync",
         "POST /api/loyalty/runner/start",
         "GET /api/loyalty/runner/start",
         "POST /api/loyalty/runner/stop",
@@ -3986,6 +4271,9 @@ function init(ctx = {}) {
     seedCentralCommandDefinitions();
 
     if (ctx && ctx.app) registerRoutes(ctx.app);
+
+    installCentralStreamStatusSubscriber();
+    scheduleInitialCentralStreamStatusSync();
 
     refreshConfigFromSettings();
     if (core.boolParam(config?.autoRunner?.enabledOnBoot, false)) {
