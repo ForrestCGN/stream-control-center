@@ -1,146 +1,104 @@
 # NEXT_STEPS – stream-control-center
 
-Stand: 2026-06-14
+Stand: 2026-06-15
 
-## Aktueller Stand nach CAN44.42 Real-Test
+## Aktueller Stand nach LC-CORE-LIVE-1.1
 
 ```text
-SO / AutoSO / Live-Status sind intern durchgetestet und live-real bestätigt.
-CAN44.42 ist der aktuelle stabile Shoutout/AutoSO/Live-Arbeitsstand.
+Loyalty nutzt jetzt /api/twitch/events/stream-state als effektive Live-Wahrheit.
+Online-Override und Override-Clear wurden getestet.
+Runner startet/stoppt passend zum zentralen Stream-State.
 ```
 
-## Real-Test 2026-06-14 – Ergebnis
+## Bestätigte Tests
 
-### Streamstart
+### Online Override
 
 ```text
-status = live
-live = True
-streamId = 317679322342
-streamSession.twitchConfirmed = true
-streamDayId = stream_forrestcgn_20260614t140137581z_pending
-lastEventKey = twitch.stream.online
-onlineEmitted = 1
-offlineEmitted = 0
-errors = 0
+parsed.live = true
+parsed.source = manual_override
+parsed.manualOverrideActive = true
+state.effective.live = true
+runner.enabled = true
+runner.timerActive = true
 ```
 
-### AutoShoutout Online-Consumer
+### Override entfernen / offline
 
 ```text
-clip_shoutout = 0.2.49
-streamBusSubscriber.installed = True
-onlineReceived = 1
-lastEventKey = twitch.stream.online
-lastResultReason = accepted
-streamDayId = stream_forrestcgn_20260614t140137581z_pending
-```
-
-### Streamende
-
-```text
-status = offline
-live = False
-lastEventKey = twitch.stream.offline
-onlineEmitted = 1
-offlineEmitted = 1
-sessionGrace = 1
-sessionEnded = 1
-errors = 0
-bandwidthTestDetected = 0
-```
-
-### AutoShoutout Offline-Consumer
-
-```text
-delivered = 2
-onlineReceived = 1
-offlineReceived = 1
-lastEventKey = twitch.stream.offline
-lastResultReason = accepted
-errors = 0
-```
-
-## Bewertung
-
-```text
-✅ Echter Streamstart wurde erkannt.
-✅ Twitch bestätigte den Stream als live.
-✅ streamDayId blieb während des Streams stabil.
-✅ twitch.stream.online wurde genau einmal emitted.
-✅ AutoShoutout empfing und akzeptierte online.
-✅ Echtes Streamende wurde erkannt.
-✅ twitch.stream.offline wurde genau einmal emitted.
-✅ AutoShoutout empfing und akzeptierte offline.
-✅ Keine Fehler.
-✅ Kein Bandbreitentest-Fehlverhalten.
-✅ Keine doppelten Events.
+parsed.live = false
+parsed.source = live_status_monitor
+parsed.manualOverrideActive = false
+state.effective.live = false
+runner.enabled = false
+runner.timerActive = false
 ```
 
 ## Nächster sinnvoller Arbeitsblock
 
 ```text
-Tagebuch an zentralen StreamState anbinden.
+LC-CORE-CLEANUP-1 – alte Loyalty-StreamState-/Twitch-Direktlogik entfernen
 ```
 
-Warum Tagebuch zuerst:
+## Ziel von LC-CORE-CLEANUP-1
 
 ```text
-- fachlich stark vom echten Streamtag abhängig
-- geringeres Risiko als Alerts/VIP30/Loyalty
-- guter erster Consumer nach AutoShoutout
-- Stream über 00:00 soll sauber derselbe Streamtag bleiben
-- Systemeinträge sollen nicht durch Pending/Bandbreitentest ausgelöst werden
+- alte direkte Twitch-Live-Abfrage aus Loyalty entfernen
+- alte Refresh-Auto-Route entfernen, wenn keine aktive Verwendung mehr besteht
+- runPresenceOnce dauerhaft über twitch_events Stream-State laufen lassen
+- Routenliste bereinigen
+- keine ersetzte Altlogik nur verstecken/deprecaten, wenn sie wirklich weg kann
 ```
 
-## Vor Umsetzung Tagebuch zwingend prüfen
+## Vor Umsetzung zwingend prüfen
 
 ```text
-1. Echte Dateien aus GitHub/dev prüfen.
-2. Bestehende Tagebuch-Module/Helper/Routes prüfen.
-3. Bestehende DB-Tabellen/Migrationen nur lesend prüfen.
-4. Bestehenden Communication Bus / Helper verwenden.
-5. Keine neue Parallelstruktur bauen.
-6. Keine DB ersetzen oder neu bauen.
-7. Ziel/Dateien/Änderungen/Nichtänderungen/Tests nennen.
-8. Auf Forrests go warten.
+1. Echte aktuelle backend/modules/loyalty.js aus GitHub/dev prüfen.
+2. Suchen, ob refreshAutoStreamStateFromTwitch noch verwendet wird.
+3. Suchen, ob parseExternalLivePayload noch verwendet wird.
+4. Suchen, ob /api/loyalty/stream-state/refresh-auto im Dashboard oder in anderen Modulen verwendet wird.
+5. Ziel/Dateien/Änderungen/Nichtänderungen/Tests nennen.
+6. Auf Forrests go warten.
 ```
 
-## Vermutlich relevante Bereiche für Tagebuch-Prüfung
+## Voraussichtlich betroffene Datei
 
 ```text
-backend/modules/tagebuch.js
-backend/modules/discord/tagebuch.js
-backend/modules/helpers/helper_communication.js
-backend/modules/helpers/helper_texts.js
-backend/modules/helpers/helper_messages.js
-backend/core/database.js
-htdocs/dashboard/modules/tagebuch.js
-htdocs/dashboard/modules/tagebuch.css
-docs/modules/tagebuch.md
+backend/modules/loyalty.js
 ```
 
-Hinweis: Die echten Pfade müssen vor Umsetzung im Repo geprüft werden. Nicht raten.
-
-## Danach sinnvolle Reihenfolge
+Optional Doku:
 
 ```text
-1. Tagebuch an zentralen StreamState anbinden
-2. Clips an zentralen StreamState anbinden
-3. ShoutoutV2-/AutoShoutout-Diagnose erweitern
-4. Alerts an zentralen StreamState anbinden
-5. VIP30 / Channelpoints Live-only Regeln
-6. Loyalty / Giveaways / Glücksrad
-7. Event-System
+docs/current/STEP_LC_CORE_CLEANUP_1_LOYALTY_STREAMSTATE_CLEANUP.md
 ```
 
-## Nicht jetzt nötig
+## Nicht ändern
 
 ```text
-Großer Refactor
-Neue DB-Migrationen ohne konkrete Notwendigkeit
-Umbau Communication Bus
-Entfernen bestehender Fallbacks
-Umbau ShoutoutV2
-Produktive Alert-/VIP30-/Loyalty-Änderungen vor Tagebuch-Testconsumer
+Keine DB löschen/ersetzen.
+Keine Punkte-/Watch-/Event-Bonus-Logik ändern.
+Keine Command-Änderung.
+Kein Shadow/Live-Wechsel.
+Keine neue Parallelstruktur.
+Keine Dashboard-Entfernung ohne vorherige Verwendungsprüfung.
+```
+
+## Danach mögliche Reihenfolge
+
+```text
+1. Loyalty Cleanup abschließen
+2. Dashboard-Anzeige für Loyalty Live-Quelle prüfen/vereinfachen
+3. Giveaways/Loyalty Games Live-only an zentralen Stream-State anbinden
+4. Tagebuch/Clips/Alerts/VIP30/Event-System schrittweise anbinden
+```
+
+## StepDone-Regel
+
+```text
+Bei Datei-/Doku-ZIPs:
+1. ZIP einspielen/deployen
+2. stepdone.cmd ausführen
+3. danach testen
+4. kein zweites StepDone nach erfolgreichem Test
 ```

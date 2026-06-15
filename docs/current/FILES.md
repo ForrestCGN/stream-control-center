@@ -1,18 +1,19 @@
 # FILES – stream-control-center
 
-Stand: 2026-06-14
+Stand: 2026-06-15
 
 ## Aktueller Stand
 
 ```text
-CAN44.42 – Shoutout / AutoShoutout / Twitch-Events / Live-Status stabiler Arbeitsstand
+LC-CORE-LIVE-1.1 – Loyalty nutzt twitch_events Stream-State als effektive Live-Wahrheit
 ```
 
 ## Relevante Backend-Dateien
 
 ```text
-backend/modules/clip_shoutout.js
+backend/modules/loyalty.js
 backend/modules/twitch_events.js
+backend/modules/clip_shoutout.js
 backend/modules/stream_status.js
 backend/modules/live_status_monitor.js
 backend/modules/twitch_presence.js
@@ -28,12 +29,8 @@ backend/core/database.js
 ```text
 htdocs/dashboard/modules/live_status_monitor.js
 htdocs/dashboard/modules/live_status_monitor.css
-htdocs/dashboard/modules/shoutout_v2.js
-htdocs/dashboard/modules/shoutout_v2.css
-htdocs/dashboard/modules/auto_shoutout.js
-htdocs/dashboard/modules/auto_shoutout.css
-htdocs/dashboard/modules/shoutout_texts.js
-htdocs/dashboard/modules/shoutout_texts.css
+htdocs/dashboard/modules/loyalty.js
+htdocs/dashboard/modules/loyalty_games.js
 htdocs/dashboard/index.html
 htdocs/dashboard/app.js
 ```
@@ -43,11 +40,10 @@ htdocs/dashboard/app.js
 ### backend/modules/twitch_events.js
 
 ```text
-Zentrale Twitch-Event-Schicht.
-Normalisiert Chat-Events.
-Stellt Stream-State und StreamSession bereit.
-Besitzt twitch.stream.online/offline Bus-Events.
-Bietet Manual Override Routen.
+Zentrale Twitch-Event- und Stream-State-Schicht.
+Besitzt /api/twitch/events/stream-state.
+Besitzt Manual Override Routen.
+Emittiert twitch.stream.online/offline über Communication Bus.
 ```
 
 Wichtige Routen:
@@ -62,11 +58,41 @@ GET  /api/twitch/events/stream-session
 GET  /api/twitch/events/stream-session?refresh=1
 ```
 
+### backend/modules/loyalty.js
+
+```text
+Loyalty/Kekskrümel Core.
+Seit LC-CORE-LIVE-1.1 Consumer von /api/twitch/events/stream-state.
+Nutzt loyalty_stream_state aktuell als lokalen Runner-/Dashboard-Spiegel.
+Runner startet/stoppt anhand des zentralen Stream-State.
+```
+
+Aktuelle relevante Routen:
+
+```text
+GET  /api/loyalty/stream-status-binding/status
+GET  /api/loyalty/stream-status-binding/sync
+POST /api/loyalty/stream-status-binding/sync
+GET  /api/loyalty/stream-state
+GET  /api/loyalty/runner/status
+GET  /api/loyalty/runner/run-once
+POST /api/loyalty/runner/run-once
+```
+
+Altlasten für Cleanup-Prüfung:
+
+```text
+refreshAutoStreamStateFromTwitch()
+parseExternalLivePayload()
+/api/loyalty/stream-state/refresh-auto
+alte Loyalty-eigene StreamState-Manual-Routen, soweit nicht mehr aktiv gebraucht
+```
+
 ### backend/modules/stream_status.js
 
 ```text
-Zentrale Statusquelle für Twitch API / Streamstatus.
-Seit CAN44.35 source-only für Streambus.
+Source-only Statusquelle für Twitch API / Streamstatus.
+Nicht als alleinige effektive Live-Wahrheit für Module nutzen.
 twitch.stream.online/offline werden nicht hier, sondern in twitch_events emitted.
 ```
 
@@ -77,42 +103,12 @@ Backend-Auswertung für Dashboard Live-Status.
 Vergleicht OBS, Twitch /streams, Twitch Search, stream_status und twitch_events.
 ```
 
-### backend/modules/clip_shoutout.js
-
-```text
-Shoutout-System Backend.
-Manueller SO, DisplayQueue, OfficialQueue.
-AutoShoutout DB-Konfiguration.
-AutoShoutout Consumer für twitch.chat/message und twitch.stream online/offline.
-Nutzt zentrale StreamSession/streamDayId.
-```
-
 ### htdocs/dashboard/modules/live_status_monitor.js
 
 ```text
-Sichtbarer Live-Status Monitor im Dashboard.
-Stream-State Override Controls.
-Effektiver Stream-State + echte Quellen getrennt.
-```
-
-### htdocs/dashboard/modules/live_status_monitor.css
-
-```text
-Styles für Live-Status-Monitor, Override-Bereich, Effektiv-Block und Quellen-Kacheln.
-```
-
-### htdocs/dashboard/modules/shoutout_v2.js
-
-```text
-Sichtbare Shoutout-Hauptseite.
-Tabs: Übersicht, Shoutout, AutoShoutout, Queues, Texte, Auswertung, Diagnose, Einstellungen.
-```
-
-### htdocs/dashboard/modules/auto_shoutout.js
-
-```text
-Zusätzlich geladenes AutoShoutout-Modul.
-CAN44.31 Bridge/Patch für ShoutoutV2 Activity-Anzeige bleibt historisch relevant.
+Dashboard Live-Status-Monitor.
+Zeigt effektiven Stream-State aus twitch_events Stream-State und echte Quellen getrennt.
+Bietet Override-Buttons für Tests.
 ```
 
 ## Wichtige Live-Pfade
@@ -134,43 +130,28 @@ D:\Streaming\stramAssets\htdocs\dashboard\modules
 ## Wichtige Prüfbefehle
 
 ```powershell
+node -c "D:\Streaming\stramAssets\backend\modules\loyalty.js"
 node -c "D:\Streaming\stramAssets\backend\modules\twitch_events.js"
 node -c "D:\Streaming\stramAssets\backend\modules\clip_shoutout.js"
 node -c "D:\Streaming\stramAssets\backend\modules\stream_status.js"
 node -c "D:\Streaming\stramAssets\backend\modules\live_status_monitor.js"
-node -c "D:\Streaming\stramAssets\htdocs\dashboard\modules\live_status_monitor.js"
 ```
 
 ## Wichtige Statusprüfungen
 
 ```powershell
-$t = Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/status"
-$t.moduleVersion
-$t.diagnostics.streamState.moduleBuild
-$t.diagnostics.streamState.status
-$t.diagnostics.streamState.streamSession | ConvertTo-Json -Depth 10
-
-$s = Invoke-RestMethod "http://127.0.0.1:8080/api/clip-shoutout/status"
-$s.moduleVersion
-$s.autoShoutout.state.streamState
-$s.autoShoutout.state.streamBusSubscriber
+Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/stream-state" | ConvertTo-Json -Depth 10
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/stream-status-binding/sync?controlRunner=true&sourceKind=stream_state" | ConvertTo-Json -Depth 8
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/runner/status" | ConvertTo-Json -Depth 8
 ```
 
-## Bekannte aktuelle Versionen
-
-```text
-twitch_events.js     0.1.12 CAN44.41_MANUAL_OVERRIDE_LOCK
-clip_shoutout.js     0.2.49
-stream_status.js     0.1.4
-live_status_monitor  0.1.5
-Dashboard Live Monitor: CAN44.42 Effective Stream State Display
-```
-
-## ZIP-/Deploy-Regel
+## ZIP-/Deploy-/StepDone-Regel
 
 ```text
 ZIPs immer mit echten Zielpfaden liefern.
 Keine losen Dateien.
 Keine produktive SQLite ersetzen.
-Nach STEP immer stepdone.cmd mit passender Beschreibung ausführen.
+Nach Einspielen/Deploy stepdone.cmd mit passender Beschreibung ausführen.
+Danach testen.
+Nach erfolgreichem Test kein zweites StepDone.
 ```

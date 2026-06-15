@@ -1,13 +1,12 @@
 # TODO – stream-control-center
 
-Stand: 2026-06-14
+Stand: 2026-06-15
 
 ## Erledigt / bestätigt
 
 - [x] CAN44.27 AutoShoutout an Communication Bus angebunden.
 - [x] CAN44.28 AutoShoutout-Bus-Capability korrigiert.
 - [x] CAN44.29 AutoShoutout-Subscriber im Loyalty-Stil umgesetzt und live bestätigt.
-- [x] CAN44.30/CAN44.31 AutoShoutout-Aktivitätsanzeige/Bridge dokumentiert.
 - [x] CAN44.32 AutoShoutout StreamDay Reliability umgesetzt.
 - [x] CAN44.33 AutoShoutout Settings Truth Fix umgesetzt.
 - [x] CAN44.35 twitch_events als zentraler Stream-State-Provider umgesetzt.
@@ -18,49 +17,35 @@ Stand: 2026-06-14
 - [x] CAN44.40 Dashboard Override Controls umgesetzt.
 - [x] CAN44.41 Manual Override Lock Fix umgesetzt.
 - [x] CAN44.42 Dashboard Effective Stream State Display umgesetzt.
-- [x] Manual Override confirmed-online getestet: `status=live`, `live=True`, `provider=manual_override`, `lastEventKey=twitch.stream.online`.
-- [x] Bandbreitentest getestet: kein Streamtag, kein `twitch.stream.online`, kein `twitch.stream.offline`.
-- [x] Pending getestet: StreamSession/streamDayId wird vorbereitet, aber kein Online/Offline-Event.
-- [x] AutoShoutout empfängt twitch.stream.online/offline über Communication Bus.
-- [x] Dashboard trennt effektiven Stream-State und echte Quellen sichtbar.
-- [x] Echter OBS/Twitch-Streamstart live-real geprüft: Status `live`, `streamSession.twitchConfirmed = true`, stabile `streamDayId`, `twitch.stream.online` genau einmal.
-- [x] AutoShoutout live-real geprüft: `onlineReceived = 1`, `lastEventKey = twitch.stream.online`, `lastResultReason = accepted`.
-- [x] Echtes Streamende live-real geprüft: Status `offline`, `twitch.stream.offline` genau einmal, `offlineEmitted = 1`, `sessionEnded = 1`.
-- [x] AutoShoutout Offline-Event live-real geprüft: `offlineReceived = 1`, `lastEventKey = twitch.stream.offline`, `lastResultReason = accepted`.
+- [x] CAN44.42 echter OBS/Twitch-Streamstart und echtes Streamende live-real bestätigt.
+- [x] LC-CORE-LIVE-1 Loyalty an zentrale Live-Status-/Bus-Struktur angebunden.
+- [x] LC-CORE-LIVE-1.1 Loyalty auf `/api/twitch/events/stream-state` korrigiert.
+- [x] Loyalty Online-Override-Test bestätigt: `parsed.live=true`, `manualOverrideActive=true`, `state.effective.live=true`, Runner aktiv.
+- [x] Loyalty Offline-/Override-Clear-Test bestätigt: `parsed.live=false`, `state.effective.live=false`, Runner aus.
+- [x] Projektregel präzisiert: StepDone wird nach Einspielen/Deploy und vor Tests ausgeführt; danach nicht nochmal.
 
 ## Nächster Arbeitsblock
 
-- [ ] Tagebuch an zentralen StreamState anbinden.
-  - [ ] Vor Umsetzung echte Dateien prüfen.
-  - [ ] Bestehende Tagebuch-Module/Helper/DB-Tabellen prüfen.
-  - [ ] Keine neue Parallelstruktur bauen.
-  - [ ] Bestehenden Communication Bus / Helper verwenden.
-  - [ ] StreamDay-/StreamSession-Kontext nur aus zentralem StreamState übernehmen.
-  - [ ] Bandbreitentest/Pending nicht als echten Streamtag behandeln.
-  - [ ] Reconnect/Grace nicht als neuen Streamtag behandeln.
+- [ ] LC-CORE-CLEANUP-1 – alte Loyalty-StreamState-/Twitch-Direktlogik entfernen.
+  - [ ] Vorher echte aktuelle `backend/modules/loyalty.js` prüfen.
+  - [ ] Verwendungen von `refreshAutoStreamStateFromTwitch()` prüfen.
+  - [ ] Verwendungen von `parseExternalLivePayload()` prüfen.
+  - [ ] Verwendungen/Routenaufrufe von `/api/loyalty/stream-state/refresh-auto` prüfen.
+  - [ ] Nicht mehr benötigte direkte Twitch-Live-Abfrage entfernen, nicht nur deprecaten.
+  - [ ] Routenliste bereinigen.
+  - [ ] Doku aktualisieren.
+  - [ ] Keine Punkte-/Watch-/Event-Bonus-Logik ändern.
+  - [ ] Keine produktive DB ersetzen oder löschen.
 
 ## Danach sinnvoll
 
+- [ ] Dashboard prüfen: Loyalty-Anzeige soll zentrale Stream-State-Quelle verständlich zeigen.
+- [ ] Giveaways/Loyalty Games an denselben zentralen Stream-State anbinden, wo Live-only-Regeln nötig sind.
+- [ ] Tagebuch an zentralen StreamState anbinden.
 - [ ] Clips an zentralen StreamState anbinden.
-- [ ] ShoutoutV2-Diagnose optional um StreamSession-/AutoShoutout-Consumer-Status erweitern.
 - [ ] Alerts an zentralen StreamState anbinden.
 - [ ] VIP30/Channelpoints Live-only-Regeln an zentralen StreamState anbinden.
-- [ ] Giveaways/Loyalty an zentralen StreamState anbinden.
 - [ ] Event-System an zentralen StreamState anbinden.
-
-## Später / Verbesserungen
-
-- [ ] Manual Override Clear: optional auch `status`, `forceConfirmed`, `streamId` im `manualOverride`-Objekt vollständig leeren.
-- [ ] Dashboard: Optional Button/Anzeige für „echte Quellen aktualisieren“ im Override-Zustand deutlicher machen.
-- [ ] StreamSession-Events optional erweitern:
-  - `twitch.stream.session.pending`
-  - `twitch.stream.session.confirmed`
-  - `twitch.stream.session.grace`
-  - `twitch.stream.session.resumed`
-  - `twitch.stream.session.ended`
-- [ ] Prüfen, ob OBS Bandbreitentestmodus über OBS-WebSocket-Service-Settings sicher auslesbar ist.
-- [ ] Prüfen, ob Test-User `forrestcgn` als AutoShoutout-Streamer noch entfernt/deaktiviert werden soll.
-- [ ] Alte Diagnose-/Testevents bei Bedarf bereinigen.
 
 ## Nicht wieder einführen
 
@@ -71,4 +56,4 @@ Stand: 2026-06-14
 - [ ] Alte JSON-AutoShoutout-Config als aktive Wahrheit anzeigen.
 - [ ] Direct-Fachlogik in `twitch_presence.js`.
 - [ ] SQLite-Datenbank ersetzen/neu bauen.
-- [ ] Funktionalität entfernen, um eine Anzeige zu vereinfachen.
+- [ ] Alte Logik nur „deaktivieren“, obwohl sie fachlich ersetzt und unbenutzt ist.
