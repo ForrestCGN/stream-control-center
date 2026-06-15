@@ -5,109 +5,69 @@ Stand: 2026-06-15
 ## Aktueller bestätigter Stand
 
 ```text
-LC-CORE-LIVE-1.1 – Loyalty nutzt twitch_events Stream-State als effektive Live-Wahrheit
+LC-CORE-CLEANUP-1 – Loyalty alte lokale StreamState- und Twitch-Direktlogik entfernt
 ```
 
 ## Kurzfazit
 
-Der aktuelle bestätigte Stand erweitert den stabilen CAN44.42 Shoutout-/AutoShoutout-/Twitch-Events-/Live-Status-Stand um die Loyalty-Core-Anbindung an den zentralen Stream-State.
+Loyalty nutzt weiterhin `/api/twitch/events/stream-state` als effektive Live-Wahrheit. Die alten lokalen Loyalty-Start/Stop-/Clear-/Refresh-Routen und die direkte Twitch-Live-Abfrage wurden aus `backend/modules/loyalty.js` entfernt.
 
-Loyalty liest für Live/Offline-Entscheidungen jetzt nicht mehr die rohe `stream_status`-/Twitch-API-Abfrage mit `forceApi=1`, sondern die effektive zentrale Stream-State-Wahrheit aus `twitch_events`:
-
-```text
-/api/twitch/events/stream-state
-```
-
-Damit verwendet Loyalty dieselbe Quelle, die auch der Live-Status-Monitor für den effektiven Override-Zustand nutzt.
-
-## Bestätigt am 2026-06-15
-
-### LC-CORE-LIVE-1
-
-```text
-- Loyalty wurde an eine zentrale Statusquelle angebunden.
-- Alter lokaler Manual-Blocker in loyalty_stream_state wurde deaktiviert.
-- Binding-/Diagnoserouten wurden ergänzt:
-  GET  /api/loyalty/stream-status-binding/status
-  GET  /api/loyalty/stream-status-binding/sync
-  POST /api/loyalty/stream-status-binding/sync
-```
-
-Ergebnis aus dem ersten Test:
-
-```text
-binding.installed = true
-subscriptionId = loyalty:twitch.stream:central_status
-errors = 0
-manual.active = false
-```
-
-### LC-CORE-LIVE-1.1
-
-```text
-- Falsche Quelle /api/stream-status/status?forceApi=1 wurde ersetzt.
-- Neue Quelle ist /api/twitch/events/stream-state.
-- Parser berücksichtigt manualOverride.active, live, status, provider/source, streamSessionId und streamDayId.
-- Online-Override-Test erfolgreich.
-- Override-Clear/Offline-Test erfolgreich.
-```
-
-Online-Test mit Dashboard-Override:
-
-```text
-url = /api/twitch/events/stream-state
-parsed.live = true
-parsed.source = manual_override
-parsed.manualOverrideActive = true
-state.effective.live = true
-runner.enabled = true
-runner.timerActive = true
-```
-
-Offline-Test nach Override-Clear:
-
-```text
-url = /api/twitch/events/stream-state
-parsed.live = false
-parsed.source = live_status_monitor
-parsed.manualOverrideActive = false
-state.effective.live = false
-runner.enabled = false
-runner.timerActive = false
-```
-
-## Aktuelle fachliche Wahrheit
+## Fachliche Wahrheit
 
 ```text
 twitch_events ist zentrale Twitch-/Stream-State-Schicht.
 /api/twitch/events/stream-state ist die effektive Live-Wahrheit für Module.
-stream_status bleibt source-only und darf nicht als alleinige Effektiv-Wahrheit genutzt werden.
-Live-Status-Monitor zeigt effektiven Stream-State und echte Quellen getrennt.
-Loyalty ist Consumer des zentralen Stream-State.
+stream_status bleibt source-only.
+loyalty_stream_state bleibt vorerst nur lokaler Runner-/Dashboard-Spiegel.
 ```
 
-## Wichtige bestätigte Modulbereiche
+## Geändert in LC-CORE-CLEANUP-1
 
 ```text
-backend/modules/twitch_events.js        zentrale Stream-State-/Bus-Schicht
-backend/modules/stream_status.js        source-only Statusquelle
-backend/modules/live_status_monitor.js  Diagnose/Quellenvergleich
-backend/modules/clip_shoutout.js        AutoShoutout Consumer
-backend/modules/loyalty.js              Loyalty Core, jetzt Stream-State Consumer
+backend/modules/loyalty.js
+htdocs/dashboard/modules/loyalty.js
+docs/current/STEP_LC_CORE_CLEANUP_1_LOYALTY_STREAMSTATE_CLEANUP.md
 ```
 
-## Aktueller nächster Arbeitsblock
+## Ergebnis
 
 ```text
-LC-CORE-CLEANUP-1 – alte Loyalty-StreamState-/Twitch-Direktlogik entfernen
+- refreshAutoStreamStateFromTwitch() entfernt.
+- parseExternalLivePayload() entfernt.
+- Fallback auf alte Twitch-Direktabfrage in runPresenceOnce() entfernt.
+- /api/loyalty/stream-state/start entfernt.
+- /api/loyalty/stream-state/stop entfernt.
+- /api/loyalty/stream-state/clear-override entfernt.
+- /api/loyalty/stream-state/refresh-auto entfernt.
+- Dashboard-Buttons für lokalen Loyalty-Start/Stop entfernt.
+- Routenliste bereinigt.
 ```
 
-Ziel: Jetzt nicht nur deaktivieren, sondern wirklich alte, nicht mehr benötigte Logik entfernen. Vorher müssen echte Verwendungen im Code geprüft werden.
-
-## Verbindliche Arbeitsregel aus diesem Stand
+## Nicht geändert
 
 ```text
-StepDone-Reihenfolge:
+Keine Punkte-/Watch-/EventBonus-/Command-Logik geändert.
+Keine produktive SQLite ersetzt oder neu gebaut.
+Kein Shadow/Live-Wechsel.
+Runner-Routen bleiben erhalten.
+/api/loyalty/stream-state bleibt read-only erhalten.
+/api/loyalty/stream-status-binding/sync bleibt erhalten.
+```
+
+## Tests nach Einspielen
+
+```powershell
+node -c "D:\Streaming\stramAssets\backend\modules\loyalty.js"
+node -c "D:\Streaming\stramAssets\htdocs\dashboard\modules\loyalty.js"
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/routes" | ConvertTo-Json -Depth 6
+Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/stream-state" | ConvertTo-Json -Depth 10
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/stream-status-binding/sync?controlRunner=true&sourceKind=stream_state" | ConvertTo-Json -Depth 8
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/runner/status" | ConvertTo-Json -Depth 8
+```
+
+## StepDone-Regel
+
+```text
 1. Dateien/ZIP einspielen/deployen
 2. stepdone.cmd ausführen
 3. danach testen

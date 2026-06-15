@@ -4,42 +4,30 @@ Stand: 2026-06-15
 
 ## Erledigt / bestätigt
 
-- [x] CAN44.27 AutoShoutout an Communication Bus angebunden.
-- [x] CAN44.28 AutoShoutout-Bus-Capability korrigiert.
-- [x] CAN44.29 AutoShoutout-Subscriber im Loyalty-Stil umgesetzt und live bestätigt.
-- [x] CAN44.32 AutoShoutout StreamDay Reliability umgesetzt.
-- [x] CAN44.33 AutoShoutout Settings Truth Fix umgesetzt.
-- [x] CAN44.35 twitch_events als zentraler Stream-State-Provider umgesetzt.
-- [x] CAN44.36 AutoShoutout als Consumer für twitch.stream.online/offline angebunden.
-- [x] CAN44.37 StreamSession/StreamDay-Authority umgesetzt.
-- [x] CAN44.38 Bandbreitentest-/Override-Cleanup umgesetzt.
-- [x] CAN44.39 Pending Event Guard umgesetzt.
-- [x] CAN44.40 Dashboard Override Controls umgesetzt.
-- [x] CAN44.41 Manual Override Lock Fix umgesetzt.
-- [x] CAN44.42 Dashboard Effective Stream State Display umgesetzt.
-- [x] CAN44.42 echter OBS/Twitch-Streamstart und echtes Streamende live-real bestätigt.
-- [x] LC-CORE-LIVE-1 Loyalty an zentrale Live-Status-/Bus-Struktur angebunden.
-- [x] LC-CORE-LIVE-1.1 Loyalty auf `/api/twitch/events/stream-state` korrigiert.
-- [x] Loyalty Online-Override-Test bestätigt: `parsed.live=true`, `manualOverrideActive=true`, `state.effective.live=true`, Runner aktiv.
-- [x] Loyalty Offline-/Override-Clear-Test bestätigt: `parsed.live=false`, `state.effective.live=false`, Runner aus.
-- [x] Projektregel präzisiert: StepDone wird nach Einspielen/Deploy und vor Tests ausgeführt; danach nicht nochmal.
+- [x] LC-CORE-LIVE-1.1 Loyalty nutzt `/api/twitch/events/stream-state` als effektive Live-Wahrheit.
+- [x] Online-Override-Test bestätigt: `parsed.live=true`, `manualOverrideActive=true`, `state.effective.live=true`, Runner aktiv.
+- [x] Offline-/Override-Clear-Test bestätigt: `parsed.live=false`, `state.effective.live=false`, Runner aus.
+- [x] LC-CORE-CLEANUP-1 alte direkte Twitch-Live-Abfrage aus Loyalty entfernt.
+- [x] `refreshAutoStreamStateFromTwitch()` entfernt.
+- [x] `parseExternalLivePayload()` entfernt.
+- [x] Fallback von `runPresenceOnce()` auf Twitch-Direktabfrage entfernt.
+- [x] Legacy-Routen `/api/loyalty/stream-state/start|stop|clear-override|refresh-auto` entfernt.
+- [x] Dashboard-Buttons für lokalen Loyalty-StreamState Start/Stop entfernt.
+- [x] Routenliste bereinigt.
 
-## Nächster Arbeitsblock
+## Jetzt testen
 
-- [ ] LC-CORE-CLEANUP-1 – alte Loyalty-StreamState-/Twitch-Direktlogik entfernen.
-  - [ ] Vorher echte aktuelle `backend/modules/loyalty.js` prüfen.
-  - [ ] Verwendungen von `refreshAutoStreamStateFromTwitch()` prüfen.
-  - [ ] Verwendungen von `parseExternalLivePayload()` prüfen.
-  - [ ] Verwendungen/Routenaufrufe von `/api/loyalty/stream-state/refresh-auto` prüfen.
-  - [ ] Nicht mehr benötigte direkte Twitch-Live-Abfrage entfernen, nicht nur deprecaten.
-  - [ ] Routenliste bereinigen.
-  - [ ] Doku aktualisieren.
-  - [ ] Keine Punkte-/Watch-/Event-Bonus-Logik ändern.
-  - [ ] Keine produktive DB ersetzen oder löschen.
+- [ ] Backend-Syntax prüfen.
+- [ ] Dashboard-Syntax prüfen.
+- [ ] `/api/loyalty/routes` prüfen: alte Legacy-Routen dürfen nicht mehr gelistet sein.
+- [ ] `/api/twitch/events/stream-state` prüfen.
+- [ ] `/api/loyalty/stream-status-binding/sync?controlRunner=true&sourceKind=stream_state` prüfen.
+- [ ] `/api/loyalty/runner/status` prüfen.
+- [ ] Online-/Offline-Test über zentrale Twitch-Events-/Override-Logik erneut durchführen.
 
 ## Danach sinnvoll
 
-- [ ] Dashboard prüfen: Loyalty-Anzeige soll zentrale Stream-State-Quelle verständlich zeigen.
+- [ ] Dashboard-Anzeige für Loyalty Live-Quelle weiter vereinfachen/verständlich machen.
 - [ ] Giveaways/Loyalty Games an denselben zentralen Stream-State anbinden, wo Live-only-Regeln nötig sind.
 - [ ] Tagebuch an zentralen StreamState anbinden.
 - [ ] Clips an zentralen StreamState anbinden.
@@ -49,11 +37,8 @@ Stand: 2026-06-15
 
 ## Nicht wieder einführen
 
-- [ ] Kalendertag als alleinige StreamDay-Wahrheit.
-- [ ] Fallback-StreamDay in AutoShoutout, wenn zentraler StreamState klar offline/pending/bandwidth_test ist.
-- [ ] `twitch.stream.offline` aus `pending` senden.
-- [ ] Bandbreitentest als echten Stream behandeln.
-- [ ] Alte JSON-AutoShoutout-Config als aktive Wahrheit anzeigen.
-- [ ] Direct-Fachlogik in `twitch_presence.js`.
-- [ ] SQLite-Datenbank ersetzen/neu bauen.
-- [ ] Alte Logik nur „deaktivieren“, obwohl sie fachlich ersetzt und unbenutzt ist.
+- [ ] `/api/stream-status/status?forceApi=1` als effektive Live-Wahrheit für Module.
+- [ ] Direkte Twitch-Live-Abfrage innerhalb von Loyalty.
+- [ ] Lokale Loyalty-Start/Stop-Routen als Stream-Wahrheit.
+- [ ] Alte Logik nur deaktivieren, obwohl sie fachlich ersetzt und unbenutzt ist.
+- [ ] Produktive SQLite ersetzen/neu bauen.

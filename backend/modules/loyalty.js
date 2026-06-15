@@ -39,7 +39,7 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "loyalty";
-const VERSION = "0.1.13";
+const VERSION = "0.1.14";
 const MODULE_VERSION = VERSION;
 const STREAM_STATUS_API_PATH = "/api/twitch/events/stream-state";
 const MODULE_META = {
@@ -51,7 +51,7 @@ const MODULE_META = {
   routesPrefix: ["/api/loyalty"],
   bus: {
     publishes: ["loyalty.status", "loyalty.event", "loyalty.points.balance.checked", "loyalty.points.transaction.created", "loyalty.points.reservation.created", "loyalty.points.reservation.released", "loyalty.points.reservation.committed"],
-    consumes: ["stream.status", "twitch.stream.online", "twitch.stream.offline"]
+    consumes: ["twitch.stream.online", "twitch.stream.offline"]
   },
   description: "Loyalty/Kekskruemel runtime, points, events and auto-runner"
 };
@@ -2982,54 +2982,6 @@ function controlAutoRunnerForStreamState(live, options = {}) {
   return payload;
 }
 
-function applyStreamStateChange(live, options = {}) {
-  const source = String(options.source || "manual").trim() || "manual";
-  const reason = String(options.reason || "").trim();
-  const requestedLive = !!live;
-  const previousStreamState = getStreamState();
-  const previousManual = previousStreamState && previousStreamState.manual ? previousStreamState.manual : null;
-  const isDuplicateSignal = !!(
-    previousManual &&
-    previousManual.configuredActive === true &&
-    previousManual.expired !== true &&
-    previousManual.live === requestedLive
-  );
-
-  const streamState = isDuplicateSignal
-    ? previousStreamState
-    : setManualStreamState(requestedLive, { source, reason });
-
-  const automation = controlAutoRunnerForStreamState(requestedLive, {
-    source,
-    reason,
-    sourceKind: "stream_state",
-    req: options.req || null
-  });
-
-  const signal = {
-    requestedLive,
-    duplicate: isDuplicateSignal,
-    preservedExistingState: isDuplicateSignal,
-    source,
-    reason,
-    previousManual
-  };
-
-  const eventType = requestedLive
-    ? (isDuplicateSignal ? "stream_state_start_signal" : "stream_state_started")
-    : (isDuplicateSignal ? "stream_state_stop_signal" : "stream_state_stopped");
-
-  logStreamStateEvent(eventType, {
-    source,
-    reason,
-    streamState,
-    previousStreamState,
-    signal,
-    automation
-  });
-
-  return { streamState, runner: automation, signal };
-}
 
 function recoverAutoRunnerFromStoredStreamStateOnBoot(options = {}) {
   refreshConfigFromSettings();
@@ -3263,29 +3215,6 @@ function getStreamState() {
   return rowToStreamState(updated);
 }
 
-function setManualStreamState(live, options = {}) {
-  ensureSchema();
-  ensureStreamStateRow();
-  const now = core.nowIso();
-  database.run(`
-    UPDATE loyalty_stream_state
-    SET manual_live = :manualLive,
-        manual_active = 1,
-        manual_source = :manualSource,
-        manual_reason = :manualReason,
-        manual_updated_at = :manualUpdatedAt,
-        updated_at = :updatedAt
-    WHERE key = :key
-  `, {
-    key: streamStateKey(),
-    manualLive: live ? 1 : 0,
-    manualSource: String(options.source || "manual").trim() || "manual",
-    manualReason: String(options.reason || "").trim(),
-    manualUpdatedAt: now,
-    updatedAt: now
-  });
-  return getStreamState();
-}
 
 function clearManualStreamState(options = {}) {
   ensureSchema();
@@ -3328,13 +3257,6 @@ function updateAutoStreamState(live, options = {}) {
   return getStreamState();
 }
 
-function parseExternalLivePayload(payload) {
-  if (!payload || typeof payload !== "object") return false;
-  if (payload.is_live === true || payload.isLive === true || payload.live === true) return true;
-  if (Array.isArray(payload.data)) return payload.data.length > 0;
-  if (payload.data && typeof payload.data === "object" && Array.isArray(payload.data.data)) return payload.data.data.length > 0;
-  return false;
-}
 
 async function fetchJson(url, timeoutMs = 5000) {
   const controller = new AbortController();
@@ -3612,55 +3534,6 @@ function scheduleInitialCentralStreamStatusSync() {
   if (typeof timer.unref === "function") timer.unref();
 }
 
-async function refreshAutoStreamStateFromTwitch(req, options = {}) {
-  const login = normalizeLogin(config?.streamState?.broadcasterLogin || "forrestcgn") || "forrestcgn";
-  const proto = req && req.protocol ? req.protocol : "http";
-  const host = req && typeof req.get === "function" ? req.get("host") : "127.0.0.1:8080";
-  const url = `${proto}://${host}/api/twitch/stream?login=${encodeURIComponent(login)}`;
-  try {
-    const result = await fetchJson(url);
-    const live = result.ok && parseExternalLivePayload(result.data);
-    const source = result.ok ? "twitch_stream_api" : "twitch_stream_api_error";
-    const stateRow = updateAutoStreamState(live, { source });
-    const runner = options.controlRunner === true
-      ? controlAutoRunnerForStreamState(live, {
-          source,
-          reason: result.ok ? "twitch_auto_live_refresh" : "twitch_stream_api_not_ok",
-          sourceKind: "auto",
-          req
-        })
-      : null;
-    return {
-      ok: result.ok,
-      live,
-      url,
-      status: result.status,
-      state: stateRow,
-      runner,
-      error: result.ok ? "" : "twitch_stream_api_not_ok"
-    };
-  } catch (err) {
-    const source = "twitch_stream_api_error";
-    const stateRow = updateAutoStreamState(false, { source });
-    const runner = options.controlRunner === true
-      ? controlAutoRunnerForStreamState(false, {
-          source,
-          reason: err && err.message ? err.message : String(err),
-          sourceKind: "auto",
-          req
-        })
-      : null;
-    return {
-      ok: false,
-      live: false,
-      url,
-      status: 0,
-      state: stateRow,
-      runner,
-      error: err && err.message ? err.message : String(err)
-    };
-  }
-}
 
 async function fetchPresenceActiveUsers(req, options = {}) {
   const proto = req && req.protocol ? req.protocol : "http";
@@ -3693,9 +3566,6 @@ async function runPresenceOnce(req, options = {}) {
   let auto = null;
   if (checkAuto) {
     auto = await refreshAutoStreamStateFromCentralStatus(req);
-    if (!auto || auto.ok !== true) {
-      auto = await refreshAutoStreamStateFromTwitch(req);
-    }
   }
 
   const streamState = getStreamState();
@@ -4000,65 +3870,6 @@ function registerRoutes(app) {
     });
   }));
 
-  app.get("/api/loyalty/stream-state/start", core.asyncRoute(async (req, res) => {
-    core.sendOk(res, applyStreamStateChange(true, {
-      source: core.getParam(req, "source", "manual_get"),
-      reason: core.getParam(req, "reason", ""),
-      req
-    }));
-  }));
-
-  app.post("/api/loyalty/stream-state/start", core.asyncRoute(async (req, res) => {
-    core.sendOk(res, applyStreamStateChange(true, {
-      source: core.getParam(req, "source", "manual_post"),
-      reason: core.getParam(req, "reason", ""),
-      req
-    }));
-  }));
-
-  app.get("/api/loyalty/stream-state/stop", core.asyncRoute(async (req, res) => {
-    core.sendOk(res, applyStreamStateChange(false, {
-      source: core.getParam(req, "source", "manual_get"),
-      reason: core.getParam(req, "reason", ""),
-      req
-    }));
-  }));
-
-  app.post("/api/loyalty/stream-state/stop", core.asyncRoute(async (req, res) => {
-    core.sendOk(res, applyStreamStateChange(false, {
-      source: core.getParam(req, "source", "manual_post"),
-      reason: core.getParam(req, "reason", ""),
-      req
-    }));
-  }));
-
-  app.get("/api/loyalty/stream-state/clear-override", core.asyncRoute(async (req, res) => {
-    core.sendOk(res, {
-      streamState: clearManualStreamState({
-        source: core.getParam(req, "source", "manual_get"),
-        reason: core.getParam(req, "reason", "clear_override")
-      })
-    });
-  }));
-
-  app.post("/api/loyalty/stream-state/clear-override", core.asyncRoute(async (req, res) => {
-    core.sendOk(res, {
-      streamState: clearManualStreamState({
-        source: core.getParam(req, "source", "manual_post"),
-        reason: core.getParam(req, "reason", "clear_override")
-      })
-    });
-  }));
-
-  app.get("/api/loyalty/stream-state/refresh-auto", core.asyncRoute(async (req, res) => {
-    const result = await refreshAutoStreamStateFromTwitch(req, { controlRunner: true });
-    core.sendOk(res, result);
-  }));
-
-  app.post("/api/loyalty/stream-state/refresh-auto", core.asyncRoute(async (req, res) => {
-    const result = await refreshAutoStreamStateFromTwitch(req, { controlRunner: true });
-    core.sendOk(res, result);
-  }));
 
   app.get("/api/loyalty/presence/status", core.asyncRoute(async (req, res) => {
     core.sendOk(res, {
@@ -4241,14 +4052,6 @@ function registerRoutes(app) {
         "POST /api/loyalty/watch/heartbeat",
         "GET /api/loyalty/watch/states",
         "GET /api/loyalty/stream-state",
-        "POST /api/loyalty/stream-state/start",
-        "GET /api/loyalty/stream-state/start",
-        "POST /api/loyalty/stream-state/stop",
-        "GET /api/loyalty/stream-state/stop",
-        "POST /api/loyalty/stream-state/clear-override",
-        "GET /api/loyalty/stream-state/clear-override",
-        "POST /api/loyalty/stream-state/refresh-auto",
-        "GET /api/loyalty/stream-state/refresh-auto",
         "GET /api/loyalty/presence/status",
         "POST /api/loyalty/presence/run-once",
         "GET /api/loyalty/presence/run-once",

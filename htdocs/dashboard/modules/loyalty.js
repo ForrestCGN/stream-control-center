@@ -5,8 +5,6 @@ window.LoyaltyModule = (function(){
     status: '/api/loyalty/status',
     routes: '/api/loyalty/routes',
     streamState: '/api/loyalty/stream-state',
-    streamStart: '/api/loyalty/stream-state/start?source=dashboard',
-    streamStop: '/api/loyalty/stream-state/stop?source=dashboard',
     runnerStatus: '/api/loyalty/runner/status',
     runnerStart: '/api/loyalty/runner/start?source=dashboard',
     runnerStop: '/api/loyalty/runner/stop?source=dashboard',
@@ -323,16 +321,12 @@ window.LoyaltyModule = (function(){
     return `
       <div class="loyalty-grid">
         <section class="loyalty-card">
-          <h3>Stream-State steuern</h3>
-          <p class="loyalty-note">Das entspricht den Streamer.bot-Start/Stop-Routen. Normal setzt Streamer.bot diese Werte automatisch.</p>
-          <div class="loyalty-actions">
-            <button type="button" data-loyalty-action="stream-start">Stream Start setzen</button>
-            <button type="button" data-loyalty-action="stream-stop">Stream Stop setzen</button>
-          </div>
+          <h3>Live-Gate</h3>
+          <p class="loyalty-note">Loyalty setzt den Stream-State nicht mehr lokal. Effektive Live-Wahrheit kommt aus twitch_events.</p>
           <div class="loyalty-rows compact">
             <div><span>Effective live</span><strong>${boolText(stream?.effective?.live)}</strong></div>
             <div><span>Quelle</span><strong>${esc(stream?.effective?.source || '-')}</strong></div>
-            <div><span>Letztes Manual Update</span><strong>${fmtDate(stream?.manual?.updatedAt)}</strong></div>
+            <div><span>Auto geprüft</span><strong>${fmtDate(stream?.auto?.checkedAt)}</strong></div>
           </div>
         </section>
 
@@ -667,8 +661,6 @@ window.LoyaltyModule = (function(){
     root?.querySelectorAll('[data-loyalty-action]').forEach(btn => btn.addEventListener('click', () => {
       const action = btn.dataset.loyaltyAction;
       const map = {
-        'stream-start': api.streamStart,
-        'stream-stop': api.streamStop,
         'runner-start': api.runnerStart,
         'runner-stop': api.runnerStop,
         'runner-run-once': api.runnerRunOnce

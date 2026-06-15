@@ -2,103 +2,58 @@
 
 Stand: 2026-06-15
 
-## Aktueller Stand nach LC-CORE-LIVE-1.1
+## Aktueller Stand nach LC-CORE-CLEANUP-1
 
 ```text
-Loyalty nutzt jetzt /api/twitch/events/stream-state als effektive Live-Wahrheit.
-Online-Override und Override-Clear wurden getestet.
-Runner startet/stoppt passend zum zentralen Stream-State.
+Loyalty hat keine alte direkte Twitch-Live-Abfrage mehr.
+Loyalty-local Start/Stop/Clear/Refresh-Routen wurden entfernt.
+Dashboard setzt den Loyalty-StreamState nicht mehr lokal.
 ```
 
-## Bestätigte Tests
+## Direkt nach Einspielen
 
-### Online Override
-
-```text
-parsed.live = true
-parsed.source = manual_override
-parsed.manualOverrideActive = true
-state.effective.live = true
-runner.enabled = true
-runner.timerActive = true
+```powershell
+.\stepdone.cmd "LC-CORE-CLEANUP-1 Loyalty alte lokale StreamState- und Twitch-Direktlogik entfernt"
 ```
 
-### Override entfernen / offline
+Danach testen, kein zweites StepDone nach erfolgreichem Test.
 
-```text
-parsed.live = false
-parsed.source = live_status_monitor
-parsed.manualOverrideActive = false
-state.effective.live = false
-runner.enabled = false
-runner.timerActive = false
+## Tests
+
+```powershell
+node -c "D:\Streaming\stramAssets\backend\modules\loyalty.js"
+node -c "D:\Streaming\stramAssets\htdocs\dashboard\modules\loyalty.js"
 ```
 
-## Nächster sinnvoller Arbeitsblock
-
-```text
-LC-CORE-CLEANUP-1 – alte Loyalty-StreamState-/Twitch-Direktlogik entfernen
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/routes" | ConvertTo-Json -Depth 6
+Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/stream-state" | ConvertTo-Json -Depth 10
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/stream-status-binding/sync?controlRunner=true&sourceKind=stream_state" | ConvertTo-Json -Depth 8
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/runner/status" | ConvertTo-Json -Depth 8
 ```
 
-## Ziel von LC-CORE-CLEANUP-1
+## Erwartung
 
 ```text
-- alte direkte Twitch-Live-Abfrage aus Loyalty entfernen
-- alte Refresh-Auto-Route entfernen, wenn keine aktive Verwendung mehr besteht
-- runPresenceOnce dauerhaft über twitch_events Stream-State laufen lassen
-- Routenliste bereinigen
-- keine ersetzte Altlogik nur verstecken/deprecaten, wenn sie wirklich weg kann
+/api/loyalty/routes listet keine alten stream-state/start|stop|clear-override|refresh-auto Routen mehr.
+/api/loyalty/stream-status-binding/sync nutzt /api/twitch/events/stream-state.
+Runner reagiert weiterhin auf zentralen Stream-State.
+Dashboard zeigt keine lokalen Stream-State-Start/Stop-Buttons mehr.
 ```
 
-## Vor Umsetzung zwingend prüfen
+## Nächster sinnvoller Arbeitsblock nach Test
 
 ```text
-1. Echte aktuelle backend/modules/loyalty.js aus GitHub/dev prüfen.
-2. Suchen, ob refreshAutoStreamStateFromTwitch noch verwendet wird.
-3. Suchen, ob parseExternalLivePayload noch verwendet wird.
-4. Suchen, ob /api/loyalty/stream-state/refresh-auto im Dashboard oder in anderen Modulen verwendet wird.
-5. Ziel/Dateien/Änderungen/Nichtänderungen/Tests nennen.
-6. Auf Forrests go warten.
+LC-DASH-LIVEVIEW-1 – Loyalty Dashboard Live-Gate Anzeige weiter vereinfachen und zentralen Stream-State deutlicher anzeigen.
 ```
 
-## Voraussichtlich betroffene Datei
+Danach schrittweise weitere Module an den zentralen Stream-State anbinden:
 
 ```text
-backend/modules/loyalty.js
-```
-
-Optional Doku:
-
-```text
-docs/current/STEP_LC_CORE_CLEANUP_1_LOYALTY_STREAMSTATE_CLEANUP.md
-```
-
-## Nicht ändern
-
-```text
-Keine DB löschen/ersetzen.
-Keine Punkte-/Watch-/Event-Bonus-Logik ändern.
-Keine Command-Änderung.
-Kein Shadow/Live-Wechsel.
-Keine neue Parallelstruktur.
-Keine Dashboard-Entfernung ohne vorherige Verwendungsprüfung.
-```
-
-## Danach mögliche Reihenfolge
-
-```text
-1. Loyalty Cleanup abschließen
-2. Dashboard-Anzeige für Loyalty Live-Quelle prüfen/vereinfachen
-3. Giveaways/Loyalty Games Live-only an zentralen Stream-State anbinden
-4. Tagebuch/Clips/Alerts/VIP30/Event-System schrittweise anbinden
-```
-
-## StepDone-Regel
-
-```text
-Bei Datei-/Doku-ZIPs:
-1. ZIP einspielen/deployen
-2. stepdone.cmd ausführen
-3. danach testen
-4. kein zweites StepDone nach erfolgreichem Test
+Giveaways / Loyalty Games
+Tagebuch
+Clips
+Alerts
+VIP30 / Channelpoints
+Event-System
 ```
