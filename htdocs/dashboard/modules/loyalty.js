@@ -559,24 +559,49 @@ window.LoyaltyModule = (function(){
   }
 
 
-  function renderSharedLoyaltyTabs(){
-    const tabs = [
-      { id: 'overview', label: 'Übersicht', module: 'loyalty_games', gamesTab: 'overview' },
-      { id: 'core', label: 'Core', module: 'loyalty', active: true },
-      { id: 'wheel', label: 'Glücksrad', module: 'loyalty_games', gamesTab: 'wheel' },
-      { id: 'presets', label: 'Presets', module: 'loyalty_games', gamesTab: 'presets' },
-      { id: 'giveaways', label: 'Giveaways', module: 'loyalty_giveaways' },
-      { id: 'gamble', label: 'Gamble', module: 'loyalty_games', gamesTab: 'gamble' },
-      { id: 'config', label: 'Config', module: 'loyalty_games', gamesTab: 'config' },
-      { id: 'chat', label: 'Chat/Commands', module: 'loyalty_games', gamesTab: 'chat' },
-      { id: 'history', label: 'Verlauf', module: 'loyalty_games', gamesTab: 'history' },
-      { id: 'notes', label: 'Hinweise', module: 'loyalty_games', gamesTab: 'notes' }
-    ];
+
+  const MAIN_TABS = [
+    { id: 'overview', label: 'Übersicht', module: 'loyalty_games', gamesTab: 'overview' },
+    { id: 'core', label: 'Core', module: 'loyalty' },
+    { id: 'wheel', label: 'Glücksrad', module: 'loyalty_games', gamesTab: 'wheel' },
+    { id: 'presets', label: 'Presets', module: 'loyalty_games', gamesTab: 'presets' },
+    { id: 'giveaways', label: 'Giveaways', module: 'loyalty_giveaways' },
+    { id: 'gamble', label: 'Gamble', module: 'loyalty_games', gamesTab: 'gamble' },
+    { id: 'config', label: 'Config', module: 'loyalty_games', gamesTab: 'config' },
+    { id: 'chat', label: 'Chat/Commands', module: 'loyalty_games', gamesTab: 'chat' },
+    { id: 'history', label: 'Verlauf', module: 'loyalty_games', gamesTab: 'history' },
+    { id: 'notes', label: 'Hinweise', module: 'loyalty_games', gamesTab: 'notes' }
+  ];
+
+  function renderMainTabs(activeId = 'core'){
+    const active = String(activeId || 'core');
     return `
-      <div class="lg-tabs loyalty-core-main-tabs">
-        ${tabs.map(tab => `<button type="button" class="lg-tab ${tab.active ? 'is-active' : ''}" data-loyalty-open-module="${esc(tab.module)}" ${tab.gamesTab ? `data-loyalty-games-tab="${esc(tab.gamesTab)}"` : ''}>${esc(tab.label)}</button>`).join('')}
+      <div class="lg-tabs loyalty-main-tabs" data-loyalty-main-tabs>
+        ${MAIN_TABS.map(tab => `<button type="button" class="lg-tab ${tab.id === active ? 'is-active' : ''}" data-loyalty-main-tab="${esc(tab.id)}">${esc(tab.label)}</button>`).join('')}
       </div>
     `;
+  }
+
+  function openMainTab(tabId){
+    const tab = MAIN_TABS.find(item => item.id === tabId) || MAIN_TABS[0];
+    if (tab.module === 'loyalty_games' && tab.gamesTab && typeof window.LoyaltyGamesModule?.setTab === 'function') {
+      window.LoyaltyGamesModule.setTab(tab.gamesTab);
+    }
+    if (tab.module === 'loyalty_giveaways' && typeof window.LoyaltyGiveawaysModule?.loadAll === 'function') {
+      window.LoyaltyGiveawaysModule.loadAll(false);
+    }
+    if (tab.module && typeof window.CGN?.setActiveModule === 'function') {
+      window.CGN.setActiveModule(tab.module, { section: 'loyalty' });
+    }
+  }
+
+  function bindMainTabs(scope){
+    const container = scope || root || document;
+    container.querySelectorAll('[data-loyalty-main-tab]').forEach(btn => {
+      if (btn.dataset.loyaltyMainBound === '1') return;
+      btn.dataset.loyaltyMainBound = '1';
+      btn.addEventListener('click', () => openMainTab(btn.dataset.loyaltyMainTab || 'overview'));
+    });
   }
 
   function render(){
@@ -605,7 +630,7 @@ window.LoyaltyModule = (function(){
           </div>
         </section>
 
-        ${renderSharedLoyaltyTabs()}
+        ${renderMainTabs('core')}
         ${state.error ? `<div class="loyalty-error">${esc(state.error)}</div>` : ''}
         ${state.loading ? '<div class="loyalty-card">Lade Loyalty-Daten...</div>' : `
           <div class="loyalty-tabs">${tabs.map(([id,label]) => `<button type="button" class="${state.tab === id ? 'active' : ''}" data-loyalty-tab="${id}">${label}</button>`).join('')}</div>
@@ -623,16 +648,7 @@ window.LoyaltyModule = (function(){
   }
 
   function bind(){
-    root?.querySelectorAll('[data-loyalty-open-module]').forEach(btn => btn.addEventListener('click', () => {
-      const moduleId = btn.dataset.loyaltyOpenModule || '';
-      const gamesTab = btn.dataset.loyaltyGamesTab || '';
-      if (gamesTab && typeof window.LoyaltyGamesModule?.setTab === 'function') {
-        window.LoyaltyGamesModule.setTab(gamesTab);
-      }
-      if (moduleId && typeof window.CGN?.setActiveModule === 'function') {
-        window.CGN.setActiveModule(moduleId, { section: 'loyalty' });
-      }
-    }));
+    bindMainTabs(root);
 
     root?.querySelector('[data-loyalty-refresh]')?.addEventListener('click', () => loadAll(true));
     root?.querySelectorAll('[data-loyalty-tab]').forEach(btn => btn.addEventListener('click', () => {
@@ -676,5 +692,5 @@ window.LoyaltyModule = (function(){
     root = document.getElementById('loyaltyModule');
   }
 
-  return { loadAll, render, registerDashboardModule };
+  return { loadAll, render, registerDashboardModule, renderMainTabs, bindMainTabs, openMainTab };
 })();

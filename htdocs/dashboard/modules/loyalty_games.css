@@ -753,3 +753,18 @@
 .lg-config-select-label select {
   width: 100%;
 }
+
+
+/* STEP LC-SHELL-1 - gemeinsame Loyalty-Hauptnavigation */
+.loyalty-main-tabs{
+  position: sticky;
+  top: 0;
+  z-index: 35;
+  padding: 10px 0 12px;
+  margin: -4px 0 2px;
+  background: linear-gradient(180deg, rgba(5,8,20,.96), rgba(5,8,20,.86) 72%, rgba(5,8,20,0));
+  backdrop-filter: blur(8px);
+}
+.loyalty-main-tabs .lg-tab{
+  min-height: 38px;
+}

@@ -183,8 +183,8 @@ window.CGN = {
       label: 'Loyalty', icon: '🎟️', role: 'mod/supermod/streamer',
       description: 'Kekskrümel, Giveaways, Glücksrad, Gamble, Texte, Statistik und Verlauf.',
       items: ['loyalty', 'loyalty_games', 'loyalty_giveaways'],
-      directModule: 'loyalty_games',
-      defaultModule: 'loyalty_games',
+      directModule: 'loyalty',
+      defaultModule: 'loyalty',
       hideOverview: true
     },
     community: {

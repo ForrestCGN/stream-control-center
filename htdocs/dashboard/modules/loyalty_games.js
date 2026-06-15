@@ -2,6 +2,7 @@ window.LoyaltyGamesModule = (function(){
   'use strict';
 
   const api = {
+    coreStatus: '/api/loyalty/status',
     status: '/api/loyalty/games/status',
     config: '/api/loyalty/games/config',
     routes: '/api/loyalty/games/routes',
@@ -10,6 +11,10 @@ window.LoyaltyGamesModule = (function(){
     wheelConfig: '/api/loyalty/games/wheel/config',
     presets: '/api/loyalty/games/wheel/presets',
     spins: '/api/loyalty/games/wheel/spins?limit=50',
+    giveawaysStatus: '/api/loyalty/giveaways/status',
+    giveaways: '/api/loyalty/giveaways?limit=250',
+    giveawayCommands: '/api/loyalty/giveaways/commands',
+    giveawayTexts: '/api/loyalty/giveaways/texts',
     communicationStatus: '/api/communication/status',
     gambleConfig: '/api/loyalty/games/gamble/dashboard-config',
     gambleAudit: '/api/loyalty/games/gamble/dashboard-audit?limit=8',
@@ -23,6 +28,7 @@ window.LoyaltyGamesModule = (function(){
     saving: false,
     error: '',
     message: '',
+    coreStatus: null,
     status: null,
     config: null,
     routes: null,
@@ -533,14 +539,15 @@ window.LoyaltyGamesModule = (function(){
   async function loadAll(force){
     root = document.getElementById('loyaltyGamesModule');
     if (!root || !window.CGN) return;
-    if (!force && state.status && state.wheelStatus && state.presets && state.giveaways && state.giveawayCommands && state.giveawayTexts && state.communicationStatus && state.gambleConfig) { render(); return; }
+    if (!force && state.coreStatus && state.status && state.wheelStatus && state.presets && state.giveaways && state.giveawayCommands && state.giveawayTexts && state.communicationStatus && state.gambleConfig) { render(); return; }
 
     state.loading = true;
     state.error = '';
     render();
 
     try {
-      const [status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, giveawayCommands, giveawayTexts, communicationStatus, gambleConfig, gambleAudit, commandLogs] = await Promise.all([
+      const [coreStatus, status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, giveawayCommands, giveawayTexts, communicationStatus, gambleConfig, gambleAudit, commandLogs] = await Promise.all([
+        window.CGN.api(api.coreStatus).catch(err => ({ ok:false, error:err.message })),
         window.CGN.api(api.status).catch(err => ({ ok:false, error:err.message })),
         window.CGN.api(api.config).catch(err => ({ ok:false, error:err.message })),
         window.CGN.api(api.routes).catch(err => ({ ok:false, error:err.message, routes:[] })),
@@ -571,7 +578,7 @@ window.LoyaltyGamesModule = (function(){
         selectedGiveawayUid = giveawayRows[0]?.giveawayUid || '';
       }
 
-      state = { ...state, loading:false, error:'', status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, giveawayCommands, giveawayTexts, communicationStatus, gambleConfig, gambleAudit, gambleLogRows: normalizeGambleRows(commandLogs), gambleStats: buildGambleStats(normalizeGambleRows(commandLogs)), selectedPresetUid, selectedGiveawayUid };
+      state = { ...state, loading:false, error:'', coreStatus, status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, giveawayCommands, giveawayTexts, communicationStatus, gambleConfig, gambleAudit, gambleLogRows: normalizeGambleRows(commandLogs), gambleStats: buildGambleStats(normalizeGambleRows(commandLogs)), selectedPresetUid, selectedGiveawayUid };
       if (selectedPresetUid) await loadPreset(selectedPresetUid, false);
       if (selectedGiveawayUid) await loadGiveaway(selectedGiveawayUid, false);
     } catch (err) {
@@ -988,6 +995,9 @@ window.LoyaltyGamesModule = (function(){
 
   function renderOverview(){
     const status = state.status || {};
+    const core = state.coreStatus || {};
+    const coreCounts = core.counts || {};
+    const coreFeatures = core.features || {};
     const diag = status.diagnostics || {};
     const wheel = state.wheelStatus || status.games?.wheel || {};
     const presetDiag = diag.presets || {};
@@ -1007,7 +1017,7 @@ window.LoyaltyGamesModule = (function(){
         title: 'Loyalty Core',
         icon: '🍪',
         moduleId: 'loyalty',
-        description: 'Punkte, Konten und Transaktionen',
+        description: `${esc(core.mode || 'shadow')} · ${fmtNumber(coreCounts.users || 0)} User · ${fmtNumber(coreCounts.transactions || 0)} Transaktionen`,
         health: coreHealth
       },
       {
@@ -1077,6 +1087,30 @@ window.LoyaltyGamesModule = (function(){
 
       <div class="lg-grid lg-grid-4">
         <article class="lg-card">
+          <span class="lg-card-label">Core Modus</span>
+          <strong>${esc(core.mode || '-')}</strong>
+          <small>StreamElements ${core.streamElementsStillActive ? 'aktiv' : 'aus'} · Shadow ${core.shadowMode ? 'ja' : 'nein'}</small>
+          ${badge(core.ok !== false && core.enabled !== false, 'Core OK', 'Core Fehler')}
+        </article>
+        <article class="lg-card">
+          <span class="lg-card-label">Core Daten</span>
+          <strong>${fmtNumber(coreCounts.users || 0)}</strong>
+          <small>${fmtNumber(coreCounts.transactions || 0)} Transaktionen · ${fmtNumber(coreCounts.watchStates || 0)} WatchStates</small>
+          ${badge(core.ok !== false, 'DB', 'Fehler')}
+        </article>
+        <article class="lg-card">
+          <span class="lg-card-label">Sammeln</span>
+          <strong>${coreFeatures.watchEarningEnabled ? 'Aktiv' : 'Aus'}</strong>
+          <small>Events ${coreFeatures.eventBonusesEnabled ? 'aktiv' : 'aus'} · Commands ${coreFeatures.publicCommandsEnabled ? 'public' : 'Command-DB'}</small>
+          ${badge(coreFeatures.watchEarningEnabled || coreFeatures.eventBonusesEnabled, 'läuft', 'aus')}
+        </article>
+        <article class="lg-card">
+          <span class="lg-card-label">Giveaways</span>
+          <strong>${fmtNumber(giveawaysDiag.total || rows(state.giveaways).length)}</strong>
+          <small>draft ${fmtNumber(giveawaysDiag.draft || 0)} · open ${fmtNumber(giveawaysDiag.open || 0)}</small>
+          ${badge(state.giveawaysStatus?.ok !== false, 'OK', 'Fehler')}
+        </article>
+        <article class="lg-card">
           <span class="lg-card-label">CanBus Clients</span>
           <strong>${fmtNumber(clients.length)}</strong>
           <small>registrierte Clients im Communication-Bus</small>
@@ -1095,16 +1129,19 @@ window.LoyaltyGamesModule = (function(){
           ${badge(true, 'DB')}
         </article>
         <article class="lg-card">
-          <span class="lg-card-label">Giveaways</span>
-          <strong>${fmtNumber(giveawaysDiag.total || rows(state.giveaways).length)}</strong>
-          <small>draft ${fmtNumber(giveawaysDiag.draft || 0)} · open ${fmtNumber(giveawaysDiag.open || 0)}</small>
-          ${badge(state.giveawaysStatus?.ok !== false, 'OK', 'Fehler')}
+          <span class="lg-card-label">Runner</span>
+          <strong>${core.autoRunner?.enabled ? 'An' : 'Aus'}</strong>
+          <small>letzter Lauf ${core.autoRunner?.lastRunAt ? fmtDate(core.autoRunner.lastRunAt) : '-'}</small>
+          ${badge(core.autoRunner?.enabled, 'aktiv', 'aus')}
         </article>
       </div>
 
       <div class="lg-panel">
         <h3>Systemstatus</h3>
         <div class="lg-kv">
+          <span>Core Schema</span><strong>${esc(core.schema?.ok ? 'OK · ' + (core.schema?.version ?? '-') : String(core.schema?.ok ?? '-'))}</strong>
+          <span>Core Modus</span><strong>${esc(core.mode || '-')}</strong>
+          <span>StreamElements</span><strong>${core.streamElementsStillActive ? 'aktiv' : 'aus'}</strong>
           <span>Games Schema</span><strong>${esc(String(diag.schemaReady ?? '-'))}</strong>
           <span>Giveaways Schema</span><strong>${esc(String(state.giveawaysStatus?.diagnostics?.schemaReady ?? '-'))}</strong>
           <span>EventBus Games</span><strong>${diag.eventBus?.ready ? 'bereit' : 'broadcast_only'}</strong>
@@ -2194,6 +2231,9 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
   }
 
   function renderTabs(){
+    if (typeof window.LoyaltyModule?.renderMainTabs === 'function') {
+      return window.LoyaltyModule.renderMainTabs(state.activeTab || 'overview');
+    }
     const tabs = [
       ['overview', 'Übersicht'],
       ['core', 'Core'],
@@ -2207,16 +2247,8 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
       ['notes', 'Hinweise']
     ];
     return `
-      <div class="lg-tabs">
-        ${tabs.map(([id, label]) => {
-          if (id === 'core' && window.CGN?.modules?.loyalty) {
-            return `<button class="lg-tab" data-lg-open-module="loyalty">${label}</button>`;
-          }
-          if (id === 'giveaways' && window.CGN?.modules?.loyalty_giveaways) {
-            return `<button class="lg-tab" data-lg-open-module="loyalty_giveaways">${label}</button>`;
-          }
-          return `<button class="lg-tab ${state.activeTab === id ? 'is-active' : ''}" data-lg-tab="${id}">${label}</button>`;
-        }).join('')}
+      <div class="lg-tabs loyalty-main-tabs">
+        ${tabs.map(([id, label]) => `<button class="lg-tab ${state.activeTab === id ? 'is-active' : ''}" data-lg-tab="${id}">${label}</button>`).join('')}
       </div>
     `;
   }
@@ -2263,6 +2295,7 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
   }
 
   function bindEvents(){
+    window.LoyaltyModule?.bindMainTabs?.(root);
     root.querySelectorAll('[data-lg-tab]').forEach(btn => {
       btn.addEventListener('click', () => {
         state.activeTab = btn.dataset.lgTab || 'overview';

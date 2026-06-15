@@ -1026,8 +1026,12 @@ window.LoyaltyGiveawaysModule = (function(){
   }
 
   function renderTabs(){
+    if (typeof window.LoyaltyModule?.renderMainTabs === 'function') {
+      return window.LoyaltyModule.renderMainTabs('giveaways');
+    }
     const tabs = [
       ['overview', 'Übersicht'],
+      ['core', 'Core'],
       ['wheel', 'Glücksrad'],
       ['presets', 'Presets'],
       ['giveaways', 'Giveaways'],
@@ -1038,7 +1042,7 @@ window.LoyaltyGiveawaysModule = (function(){
       ['notes', 'Hinweise']
     ];
     return `
-      <div class="lg-tabs">
+      <div class="lg-tabs loyalty-main-tabs">
         ${tabs.map(([id, label]) => {
           if (id === 'giveaways') return `<button class="lg-tab is-active" data-lgw-tab-current="giveaways">${label}</button>`;
           return `<button class="lg-tab" data-lgw-open-games-tab="${id}">${label}</button>`;
@@ -1612,6 +1616,7 @@ window.LoyaltyGiveawaysModule = (function(){
   }
 
   function bindEvents(){
+    window.LoyaltyModule?.bindMainTabs?.(root);
     root = document.getElementById('loyaltyGiveawaysModule');
     if (!root) return;
 
