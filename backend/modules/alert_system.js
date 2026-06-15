@@ -31,8 +31,8 @@ try {
 const MODULE = 'alert_system';
 const SCHEMA_VERSION = 6;
 const MODULE_STEP = 365;
-const MODULE_VERSION = '3.1.10';
-const MODULE_BUILD = 'diagnostics-standard';
+const MODULE_VERSION = '3.1.11';
+const MODULE_BUILD = 'ALERT_TWITCH_1A_TWITCH_EVENTS_SHADOW_BINDING';
 const ALERT_EVENTBUS_CAPABILITY = 'alert.event_output';
 const ALERT_EVENTBUS_STATUS_API_VERSION = '1.0.0';
 const ALERT_CANBUS_HEARTBEAT_INTERVAL_MS = 5000;
@@ -50,8 +50,30 @@ const MODULE_META = {
   routesPrefix: ['/api/alerts'],
   capabilities: [ALERT_EVENTBUS_CAPABILITY],
   bus: { emits: true, registered: true, heartbeat: true, status: true },
-  note: 'STEP CAN-4.1: additive read-only visual delivery state diagnostics; runtime flow unchanged.'
+  note: 'ALERT-TWITCH-1A: additive Twitch-Events shadow diagnostics; runtime alert flow unchanged.'
 };
+
+
+const TWITCH_EVENT_ALERT_MAP = {
+  'twitch.follow.received': 'follow',
+  'twitch.sub.received': 'sub',
+  'twitch.resub.received': 'resub',
+  'twitch.subgift.received': 'gift_sub',
+  'twitch.giftbomb.received': 'gift_bomb',
+  'twitch.cheer.received': 'bits',
+  'twitch.raid.received': 'raid'
+};
+
+const TWITCH_EVENT_ALERT_KEYS = Object.keys(TWITCH_EVENT_ALERT_MAP);
+const TWITCH_EVENT_ALERT_SUBSCRIPTIONS = TWITCH_EVENT_ALERT_KEYS.map((eventKey) => {
+  const [namespace, eventName, action] = String(eventKey || '').split('.');
+  return {
+    eventKey,
+    channel: `${namespace}.${eventName}`,
+    action: action || 'received',
+    subscriptionId: `alert_system:twitch.events:${eventName || 'unknown'}_${action || 'received'}`
+  };
+});
 
 const DEFAULT_CONFIG = {
   enabled: true,
@@ -267,7 +289,28 @@ const state = {
     lastIssuesBefore: 0,
     lastResult: null
   },
-  overlayDeliveryByEvent: new Map()
+  overlayDeliveryByEvent: new Map(),
+  twitchEventAlertBinding: {
+    installed: false,
+    mode: 'shadow',
+    subscriptionIds: [],
+    subscriptions: [],
+    subscriptionCount: 0,
+    subscribedAction: 'received',
+    consumedEvents: [...TWITCH_EVENT_ALERT_KEYS],
+    consumedChannels: TWITCH_EVENT_ALERT_SUBSCRIPTIONS.map((item) => item.channel),
+    lastEventAt: '',
+    lastEventKey: '',
+    lastLogin: '',
+    lastTypeKey: '',
+    lastResult: null,
+    received: 0,
+    mapped: 0,
+    wouldEnqueue: 0,
+    skipped: 0,
+    errors: 0,
+    lastError: ''
+  }
 };
 
 module.exports.MODULE_META = MODULE_META;
@@ -293,6 +336,7 @@ module.exports.init = function init(ctx) {
   const upload = createUploadMiddleware();
 
   routes.registerGet(app, '/api/alerts/status', (req, res) => res.json(buildStatus(req)));
+  routes.registerGet(app, '/api/alerts/twitch-events/status', guard, (req, res) => res.json(buildTwitchEventAlertBindingStatus()));
   routes.registerGet(app, '/api/alerts/health', (req, res) => res.json(buildHealth(req)));
   routes.registerGet(app, '/api/alerts/eventbus/status', guard, (req, res) => res.json(buildAlertEventBusStatus({ includeRecentEvents: req.query.recent !== '0' })));
   routes.registerGet(app, '/api/alerts/eventbus/ack-status', guard, (req, res) => res.json(buildAlertEventBusAckStatus({ includeRecent: req.query.recent !== '0' })));
@@ -444,6 +488,7 @@ module.exports.init = function init(ctx) {
   routes.registerPost(app, '/api/alerts/config', guard, (req, res) => res.json(saveAlertConfig(req.body || {})));
 
   startAlertCanBusParticipant();
+  installTwitchEventAlertSubscriber();
 
   console.log('[alert_system] STEP126 Preview-Overlay Unified aktiv');
 };
@@ -909,6 +954,231 @@ function alertBusMirrorEffectiveConfig() {
       module: cleanKey(cfg.targetModule || DEFAULT_CONFIG.communicationBusMirror.targetModule),
       capability: cleanText(cfg.targetCapability || DEFAULT_CONFIG.communicationBusMirror.targetCapability)
     }
+  };
+}
+
+
+function getTwitchEventAlertCommunicationBus() {
+  if (!communicationBus || typeof communicationBus.getBus !== 'function') return null;
+  try {
+    return communicationBus.getBus();
+  } catch (err) {
+    state.twitchEventAlertBinding.errors += 1;
+    state.twitchEventAlertBinding.lastError = err && err.message ? err.message : String(err);
+    return null;
+  }
+}
+
+function normalizeTwitchEventAlertUser(user = {}) {
+  const source = user && typeof user === 'object' ? user : {};
+  const login = cleanKey(source.login || source.userLogin || source.user_login || source.name || source.displayName || source.display_name || '').toLowerCase();
+  const displayName = cleanText(source.displayName || source.display_name || source.name || source.userName || source.user_name || login || 'Unbekannt');
+  return {
+    id: cleanText(source.id || source.userId || source.user_id || ''),
+    login,
+    displayName
+  };
+}
+
+function normalizeTwitchEventAlertEnvelope(envelope = {}) {
+  const payload = envelope && typeof envelope.payload === 'object' ? envelope.payload : {};
+  const twitch = payload && typeof payload.twitch === 'object' ? payload.twitch : {};
+  const eventKey = cleanText(payload.eventKey || twitch.eventKey || envelope.eventKey || (envelope.meta && envelope.meta.eventKey) || '');
+  const typeKey = TWITCH_EVENT_ALERT_MAP[eventKey] || '';
+  if (!typeKey) return { ok: false, skipped: true, reason: 'unsupported_twitch_event', eventKey };
+
+  const user = normalizeTwitchEventAlertUser(twitch.user || {});
+  const gifter = normalizeTwitchEventAlertUser(twitch.gifter || {});
+  const recipient = normalizeTwitchEventAlertUser(twitch.recipient || {});
+  const fromBroadcaster = normalizeTwitchEventAlertUser(twitch.fromBroadcaster || {});
+
+  let actor = user;
+  if ((typeKey === 'gift_sub' || typeKey === 'gift_bomb') && gifter.login) actor = gifter;
+  if (typeKey === 'raid' && fromBroadcaster.login) actor = fromBroadcaster;
+
+  const bits = Number(twitch.bits || 0) || 0;
+  const viewers = Number(twitch.viewers || twitch.viewerCount || 0) || 0;
+  const total = Math.max(1, Number.parseInt(twitch.total || twitch.quantity || twitch.count || 1, 10) || 1);
+  const months = Math.max(1, Number.parseInt(twitch.cumulativeMonths || twitch.cumulative_months || twitch.streakMonths || twitch.streak_months || 1, 10) || 1);
+  const amount = typeKey === 'bits' ? bits : (typeKey === 'raid' ? viewers : (typeKey === 'resub' ? months : (typeKey === 'gift_sub' || typeKey === 'gift_bomb' ? total : 1)));
+  const message = cleanText(twitch.message || '');
+
+  const alertPayload = normalizeAlertPayload({
+    source: 'twitch',
+    provider: 'twitch_events',
+    eventsubType: cleanText(twitch.eventSubType || twitch.subscriptionType || ''),
+    type: typeKey,
+    type_key: typeKey,
+    user: actor.displayName || actor.login || 'Unbekannt',
+    login: actor.login || '',
+    user_login: actor.login || '',
+    userDisplay: actor.displayName || actor.login || 'Unbekannt',
+    amount,
+    message,
+    title: cleanText(twitch.title || ''),
+    tier: cleanText(twitch.tier || twitch.subTier || twitch.subscriptionTier || ''),
+    quantity: total,
+    total,
+    bits,
+    viewers,
+    recipientLogin: recipient.login || '',
+    recipientDisplayName: recipient.displayName || '',
+    eventKey,
+    busEventId: cleanText(envelope.id || (envelope.event && envelope.event.id) || ''),
+    raw: { eventKey, twitch, busEnvelope: envelope }
+  }, 'twitch');
+
+  return {
+    ok: true,
+    eventKey,
+    typeKey,
+    login: actor.login || '',
+    displayName: actor.displayName || actor.login || '',
+    amount,
+    alertPayload
+  };
+}
+
+function handleTwitchEventAlertBusEvent(envelope = {}) {
+  const binding = state.twitchEventAlertBinding;
+  binding.received += 1;
+  binding.lastEventAt = nowIso();
+
+  try {
+    const parsed = normalizeTwitchEventAlertEnvelope(envelope);
+    binding.lastEventKey = parsed.eventKey || '';
+    binding.lastTypeKey = parsed.typeKey || '';
+
+    if (!parsed.ok || parsed.skipped) {
+      binding.skipped += 1;
+      binding.lastResult = parsed;
+      return parsed;
+    }
+
+    binding.mapped += 1;
+    binding.lastLogin = parsed.login || '';
+
+    let matchingRule = null;
+    try {
+      matchingRule = findMatchingRule(parsed.alertPayload);
+    } catch (err) {
+      matchingRule = null;
+    }
+
+    const result = {
+      ok: true,
+      shadow: true,
+      wouldEnqueue: !!matchingRule || state.config.playUnmatchedAlerts === true,
+      matchedRuleId: matchingRule ? Number(matchingRule.id || 0) : 0,
+      eventKey: parsed.eventKey,
+      typeKey: parsed.typeKey,
+      login: parsed.login,
+      amount: parsed.amount,
+      productiveEnqueue: false,
+      reason: matchingRule ? 'matched_rule_shadow_only' : (state.config.playUnmatchedAlerts === true ? 'play_unmatched_enabled_shadow_only' : 'no_matching_rule_shadow_only')
+    };
+
+    if (result.wouldEnqueue) binding.wouldEnqueue += 1;
+    else binding.skipped += 1;
+
+    binding.lastResult = result;
+    binding.lastError = '';
+    return result;
+  } catch (err) {
+    const error = err && err.message ? err.message : String(err);
+    binding.errors += 1;
+    binding.lastError = error;
+    binding.lastResult = { ok: false, error };
+    return binding.lastResult;
+  }
+}
+
+function installTwitchEventAlertSubscriber() {
+  const binding = state.twitchEventAlertBinding;
+  if (binding.installed === true) {
+    return { ok: true, installed: true, alreadyInstalled: true, subscriptionIds: [...binding.subscriptionIds], subscriptionCount: Number(binding.subscriptionCount || 0) };
+  }
+
+  const bus = getTwitchEventAlertCommunicationBus();
+  if (!bus || typeof bus.subscribe !== 'function') {
+    binding.installed = false;
+    binding.lastError = 'communication_bus_subscribe_unavailable';
+    return { ok: false, installed: false, reason: binding.lastError };
+  }
+
+  const installed = [];
+  for (const item of TWITCH_EVENT_ALERT_SUBSCRIPTIONS) {
+    const result = bus.subscribe({
+      id: item.subscriptionId,
+      module: MODULE,
+      sourceModule: 'twitch_events',
+      channel: item.channel,
+      action: item.action,
+      meta: {
+        step: 'ALERT-TWITCH-1A',
+        purpose: 'alert_shadow_diagnostics_from_twitch_events_support_events',
+        sourceModule: 'twitch_events',
+        eventKey: item.eventKey,
+        mode: 'shadow',
+        productiveEnqueue: false,
+        consumes: [item.eventKey]
+      }
+    }, (envelope) => handleTwitchEventAlertBusEvent(envelope));
+
+    if (!result || result.ok !== true) {
+      binding.installed = false;
+      binding.subscriptionIds = installed.map((sub) => sub.subscriptionId);
+      binding.subscriptions = installed;
+      binding.subscriptionCount = installed.length;
+      binding.lastError = String(result && (result.reason || result.error) || `subscription_failed:${item.eventKey}`);
+      binding.lastResult = { ok: false, installed: false, reason: binding.lastError, failedEventKey: item.eventKey, installed };
+      return binding.lastResult;
+    }
+
+    installed.push({
+      eventKey: item.eventKey,
+      channel: item.channel,
+      action: item.action,
+      subscriptionId: result.subscription && result.subscription.id ? String(result.subscription.id) : item.subscriptionId
+    });
+  }
+
+  binding.installed = true;
+  binding.subscriptions = installed;
+  binding.subscriptionIds = installed.map((item) => item.subscriptionId);
+  binding.subscriptionCount = installed.length;
+  binding.lastError = '';
+  binding.lastResult = { ok: true, installed: true, mode: 'shadow', subscriptionIds: [...binding.subscriptionIds], subscriptionCount: binding.subscriptionCount };
+  return binding.lastResult;
+}
+
+function buildTwitchEventAlertBindingStatus() {
+  return {
+    ok: true,
+    module: MODULE,
+    version: MODULE_VERSION,
+    build: MODULE_BUILD,
+    binding: 'twitch_events_alert_shadow',
+    installed: state.twitchEventAlertBinding.installed === true,
+    mode: state.twitchEventAlertBinding.mode || 'shadow',
+    productiveEnqueue: false,
+    subscriptionIds: [...state.twitchEventAlertBinding.subscriptionIds],
+    subscriptions: state.twitchEventAlertBinding.subscriptions.map((item) => ({ ...item })),
+    subscriptionCount: Number(state.twitchEventAlertBinding.subscriptionCount || 0),
+    consumedEvents: [...state.twitchEventAlertBinding.consumedEvents],
+    consumedChannels: [...state.twitchEventAlertBinding.consumedChannels],
+    received: Number(state.twitchEventAlertBinding.received || 0),
+    mapped: Number(state.twitchEventAlertBinding.mapped || 0),
+    wouldEnqueue: Number(state.twitchEventAlertBinding.wouldEnqueue || 0),
+    skipped: Number(state.twitchEventAlertBinding.skipped || 0),
+    errors: Number(state.twitchEventAlertBinding.errors || 0),
+    lastEventAt: state.twitchEventAlertBinding.lastEventAt || '',
+    lastEventKey: state.twitchEventAlertBinding.lastEventKey || '',
+    lastLogin: state.twitchEventAlertBinding.lastLogin || '',
+    lastTypeKey: state.twitchEventAlertBinding.lastTypeKey || '',
+    lastResult: state.twitchEventAlertBinding.lastResult || null,
+    lastError: state.twitchEventAlertBinding.lastError || '',
+    note: 'Shadow-only: zaehlt und mappt Twitch-Events, reiht aber keine Alerts ein.'
   };
 }
 
@@ -2828,6 +3098,7 @@ function buildStatus(req = null) {
     alertOutput: buildAlertOutputStatus(),
     alertBusMirror: buildAlertBusMirrorStatus(),
     alertEventBus: buildAlertEventBusStatus({ includeRecentEvents: false }),
+    twitchEventAlertBinding: buildTwitchEventAlertBindingStatus(),
     canBus: { ...state.canBus },
     alertSoundCorrelation: buildAlertSoundCorrelationStatus(),
     alertDashboardCorrelation: {
@@ -2852,6 +3123,7 @@ function buildStatus(req = null) {
       routes: '/api/alerts/routes',
       health: '/api/alerts/health',
       eventBusStatus: '/api/alerts/eventbus/status',
+      twitchEventsStatus: '/api/alerts/twitch-events/status',
       ackStatus: '/api/alerts/eventbus/ack-status',
       overlayWatchdog: '/api/alerts/overlay-watchdog/status'
     },
