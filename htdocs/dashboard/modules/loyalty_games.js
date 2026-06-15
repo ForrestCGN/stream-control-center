@@ -57,6 +57,7 @@ window.LoyaltyGamesModule = (function(){
     logDetailKey: '',
     textSection: 'all',
     textSearch: '',
+    textEditKey: '',
     selectedPresetUid: '',
     selectedPreset: null,
     activeTab: 'overview'
@@ -2221,6 +2222,86 @@ function renderGiveawayDetails(giveaway){
     return raw.charAt(0).toUpperCase() + raw.slice(1);
   }
 
+  function textItemUid(item){
+    return `${String(item?.category || 'general')}::${String(item?.key || '')}`;
+  }
+
+  function findTextItem(uid){
+    const keys = Array.isArray(state.giveawayTexts?.keys) ? state.giveawayTexts.keys : [];
+    return keys.find(item => textItemUid(item) === uid) || null;
+  }
+
+  function renderTextEditorModal(){
+    const item = findTextItem(state.textEditKey);
+    if (!item) return '';
+    const variants = Array.isArray(item.variants) ? item.variants : [];
+    const section = classifyTextSection(item);
+    const activeCount = Number(item.activeCount || 0);
+    const totalCount = Number(item.totalCount || variants.length || 0);
+    const allowSave = section === 'giveaways' || section === 'chat' || state.textSection === 'all';
+    return `
+      <div class="lgw-modal-backdrop" data-lg-text-modal-close>
+        <div class="lgw-modal lgw-detail-modal lg-text-editor-modal" role="dialog" aria-modal="true" aria-label="Text bearbeiten" data-lg-text-modal-box>
+          <div class="lgw-modal-head">
+            <div>
+              <p class="lg-eyebrow">Texte / ${esc(textSectionLabel(section))}</p>
+              <h3>${esc(textKeyPurpose(item))}</h3>
+              <p class="lg-muted">Bestehende Varianten bleiben erhalten. Neue Varianten werden über die vorhandene Text-API ergänzt.</p>
+            </div>
+            <button class="lgw-icon-btn" data-lg-text-modal-close type="button">×</button>
+          </div>
+
+          <div class="lg-text-editor-summary">
+            <article><span>Bereich</span><strong>${esc(textSectionLabel(section))}</strong></article>
+            <article><span>Status</span><strong>${fmtNumber(activeCount)} / ${fmtNumber(totalCount)} aktiv</strong></article>
+            <article><span>Key</span><strong>${esc(item.key || '-')}</strong></article>
+            <article><span>Kategorie</span><strong>${esc(item.category || 'general')}</strong></article>
+          </div>
+
+          <section class="lg-text-editor-section">
+            <h4>Varianten</h4>
+            <div class="lg-text-editor-variants">
+              ${variants.map((v, idx) => {
+                const enabled = v.enabled !== false && v.active !== false;
+                return `
+                  <article class="lg-text-variant-card ${enabled ? 'is-active' : 'is-inactive'}">
+                    <div class="lg-text-variant-head">
+                      <strong>Variante ${fmtNumber(idx + 1)}</strong>
+                      <span class="lg-badge ${enabled ? 'lg-badge-ok' : 'lg-badge-warn'}">${enabled ? 'aktiv' : 'inaktiv'}</span>
+                    </div>
+                    <p>${esc(v.value || v.text || '')}</p>
+                  </article>
+                `;
+              }).join('') || '<p class="lg-muted">Noch keine Variante vorhanden.</p>'}
+            </div>
+          </section>
+
+          <section class="lg-text-editor-section">
+            <h4>Neue Variante hinzufügen</h4>
+            ${allowSave ? `
+              <form class="lg-text-editor-form" data-lg-save-chat-text>
+                <input type="hidden" name="key" value="${esc(item.key)}">
+                <input type="hidden" name="category" value="${esc(item.category || 'general')}">
+                <textarea name="value" rows="5" placeholder="Neue Textvariante im CGN-Stil eintragen..." autocomplete="off"></textarea>
+                <div class="lg-text-editor-actions">
+                  <button class="lg-btn" type="submit" ${state.saving ? 'disabled' : ''}>Neue Variante speichern</button>
+                  <button class="lg-btn lg-btn-secondary" type="button" data-lg-text-modal-close>Schließen</button>
+                </div>
+              </form>
+            ` : `
+              <div class="lg-info">Dieser Bereich ist vorbereitet. Bearbeitung wird aktiviert, sobald die Modultexte an die zentrale Text-API angebunden sind.</div>
+            `}
+          </section>
+
+          <section class="lg-text-editor-section">
+            <h4>Hinweis</h4>
+            <p class="lg-muted">Bearbeiten oder Deaktivieren vorhandener Varianten wird erst eingebaut, wenn die vorhandene Text-API dafür sichere Aktionen bereitstellt. Bis dahin werden vorhandene Texte nicht verändert.</p>
+          </section>
+        </div>
+      </div>
+    `;
+  }
+
   function renderTexts(){
     const textPayload = state.giveawayTexts || {};
     const categories = Array.isArray(textPayload.categories) ? textPayload.categories : [];
@@ -2314,9 +2395,9 @@ function renderGiveawayDetails(giveaway){
         </div>
         ${selectedIsPreparedOnly ? `<div class="lg-config-note">Für diesen Bereich sind noch keine Text-Keys geladen. Der Bereich ist vorbereitet und wird mit der zentralen Text-API gefüllt, sobald die Modultexte angebunden sind.</div>` : ''}
         <div class="lg-table-wrap">
-          <table class="lg-table lg-text-table">
+          <table class="lg-table lg-text-table lg-text-table-compact">
             <thead>
-              <tr><th>Zweck</th><th>Bereich</th><th>Status</th><th>Varianten</th><th>Neue Variante</th></tr>
+              <tr><th>Zweck</th><th>Bereich</th><th>Status</th><th>Vorschau</th><th>Aktion</th></tr>
             </thead>
             <tbody>
               ${filteredKeys.map(item => {
@@ -2324,33 +2405,21 @@ function renderGiveawayDetails(giveaway){
                 const variants = Array.isArray(item.variants) ? item.variants : [];
                 const activeCount = Number(item.activeCount || 0);
                 const totalCount = Number(item.totalCount || variants.length || 0);
-                const allowSave = canSaveInSelectedSection || section === 'giveaways' || section === 'chat';
+                const preview = variants.find(v => v.enabled !== false && v.active !== false) || variants[0] || null;
                 return `
                 <tr>
                   <td><strong>${esc(textKeyPurpose(item))}</strong><small class="lg-muted">Key: ${esc(item.key || '-')}</small></td>
                   <td>${esc(textSectionLabel(section))}<small class="lg-muted">${esc(item.category || 'general')}</small></td>
                   <td><span class="lg-badge ${activeCount > 0 ? 'lg-badge-ok' : 'lg-badge-warn'}">${fmtNumber(activeCount)} / ${fmtNumber(totalCount)} aktiv</span></td>
-                  <td>
-                    <div class="lg-text-variant-list">
-                      ${variants.slice(0, 5).map(v => `<div>• ${esc(v.value || v.text || '')}</div>`).join('') || '<span class="lg-muted">Noch keine Variante.</span>'}
-                      ${variants.length > 5 ? `<small class="lg-muted">+ ${fmtNumber(variants.length - 5)} weitere Varianten</small>` : ''}
-                    </div>
-                  </td>
-                  <td>
-                    ${allowSave ? `
-                    <form class="lg-inline-form lg-text-save-form" data-lg-save-chat-text>
-                      <input type="hidden" name="key" value="${esc(item.key)}">
-                      <input type="hidden" name="category" value="${esc(item.category || 'general')}">
-                      <input name="value" placeholder="Neue Variante im CGN-Stil..." autocomplete="off">
-                      <button class="lg-btn lg-btn-secondary" type="submit">Speichern</button>
-                    </form>` : '<span class="lg-muted">Bearbeitung folgt mit Modul-Anbindung.</span>'}
-                  </td>
+                  <td><span class="lg-text-preview">${preview ? esc(preview.value || preview.text || '') : 'Noch keine Variante.'}</span></td>
+                  <td><button class="lg-btn lg-btn-small" type="button" data-lg-text-edit="${esc(textItemUid(item))}">Bearbeiten</button></td>
                 </tr>`;
               }).join('') || `<tr><td colspan="5" class="lg-muted">Keine Textkeys für diesen Bereich gefunden.</td></tr>`}
             </tbody>
           </table>
         </div>
       </div>
+      ${renderTextEditorModal()}
     `;
   }
 
@@ -3122,6 +3191,18 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
         render();
       });
     });
+    root.querySelectorAll('[data-lg-text-edit]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.textEditKey = btn.dataset.lgTextEdit || '';
+        render();
+      });
+    });
+    root.querySelectorAll('[data-lg-text-modal-close]').forEach(el => el.addEventListener('click', ev => {
+      if (ev.target.closest('[data-lg-text-modal-box]') && !ev.target.matches('[data-lg-text-modal-close]')) return;
+      state.textEditKey = '';
+      render();
+    }));
+    root.querySelectorAll('[data-lg-text-modal-box]').forEach(box => box.addEventListener('click', ev => ev.stopPropagation()));
     root.querySelector('[data-lg-text-reload]')?.addEventListener('click', async () => {
       await refreshChatSetup(false);
       render();
