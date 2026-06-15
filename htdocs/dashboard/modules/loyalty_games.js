@@ -2090,6 +2090,11 @@ function renderGiveawayDetails(giveaway){
     </select></label>`;
   }
 
+  function renderEditableNumber(label, name, value, help, { min = 0, step = 1 } = {}){
+    const safeValue = Number.isFinite(Number(value)) ? Number(value) : 0;
+    return `<label class="lg-config-field"><span>${esc(label)} ${help ? configInfoNote(help) : ''}</span><input name="${esc(name)}" type="number" min="${esc(min)}" step="${esc(step)}" value="${esc(safeValue)}"></label>`;
+  }
+
 
   function renderConfigSummaryRows(rows){
     return `<div class="lg-config-summary-list">
@@ -2186,19 +2191,32 @@ function renderGiveawayDetails(giveaway){
   function renderRaidConfigPanel(){
     const raid = state.coreStatus?.diagnostics?.bonusMapping?.bonusValues?.rules?.raid || {};
     const cfg = raid.config || {};
+    const mode = cfg.mode || (raid.viewerCountAffectsPoints ? 'base_plus_viewers' : 'fixed');
+    const amount = cfg.amount ?? 50;
+    const baseAmount = cfg.baseAmount ?? cfg.amount ?? 25;
+    const amountPerViewer = cfg.amountPerViewer ?? 2;
+    const maxAmount = cfg.maxAmount ?? 250;
     return renderConfigPanelShell('Core · Raids', 'Punkte für Raids sollen fair zur Zuschauerzahl passen, aber durch ein Maximum begrenzt bleiben.', `
-      <div class="lg-config-form-grid">
-        ${renderReadonlySelect('Raid-Berechnung', cfg.mode || 'base_plus_viewers', [['fixed', 'Fixer Betrag'], ['base_plus_viewers', 'Basis + Zuschauer']], 'Fixer Betrag gibt immer gleich viele Punkte. Basis + Zuschauer berücksichtigt die Raid-Größe.')}
-        ${renderReadonlyNumber('Basispunkte', cfg.baseAmount ?? cfg.amount ?? 50, 'Grundwert, den jeder Raid bekommt.')}
-        ${renderReadonlyNumber('Punkte pro Zuschauer', cfg.amountPerViewer ?? 0, 'Zusätzliche Punkte pro mitgebrachtem Zuschauer.')}
-        ${renderReadonlyNumber('Maximalpunkte', cfg.maxAmount ?? '-', 'Deckel, damit sehr große Raids das Punktesystem nicht sprengen.')}
-      </div>
-      ${renderConfigSummaryRows([
-        ['Berechnung', raid.viewerCountAffectsPoints ? 'nach Zuschauerzahl' : 'fix'],
-        ['Formel', raid.formula || '-'],
-        ['Beispiele', Array.isArray(raid.samples) ? `${raid.samples.length} geladen` : '-']
-      ])}
-    `, { badgeText: raid.viewerCountAffectsPoints ? 'aktiv' : 'prüfen', badgeType: raid.viewerCountAffectsPoints ? 'ok' : 'warn' });
+      <form class="lg-form" data-lg-core-raid-settings>
+        <div class="lg-config-form-grid">
+          ${renderEditableSelect('Raid-Berechnung', 'raidMode', mode, [['fixed', 'Fixer Betrag'], ['base_plus_viewers', 'Nach Zuschauerzahl']], 'Fixer Betrag gibt immer gleich viele Punkte. Nach Zuschauerzahl berücksichtigt die Raid-Größe.')}
+          ${renderEditableNumber('Fixer Betrag', 'raidAmount', amount, 'Wird genutzt, wenn die Raid-Berechnung auf fixer Betrag steht.', { min: 0, step: 1 })}
+          ${renderEditableNumber('Basispunkte', 'raidBaseAmount', baseAmount, 'Grundwert, den jeder Raid bekommt, wenn nach Zuschauerzahl gerechnet wird.', { min: 0, step: 1 })}
+          ${renderEditableNumber('Punkte pro Zuschauer', 'raidAmountPerViewer', amountPerViewer, 'Zusätzliche Punkte pro mitgebrachtem Zuschauer.', { min: 0, step: 1 })}
+          ${renderEditableNumber('Maximalpunkte', 'raidMaxAmount', maxAmount, 'Deckel, damit sehr große Raids das Punktesystem nicht sprengen. 0 bedeutet: kein Deckel.', { min: 0, step: 1 })}
+        </div>
+        ${renderConfigSummaryRows([
+          ['Aktuelle Berechnung', raid.viewerCountAffectsPoints ? 'nach Zuschauerzahl' : 'fix'],
+          ['Formel', raid.formula || '-'],
+          ['Beispiele', Array.isArray(raid.samples) ? `${raid.samples.length} geladen` : '-']
+        ])}
+        <div class="lg-config-note">Empfehlung: „Nach Zuschauerzahl“ mit Basispunkten, Punkten pro Zuschauer und Maximalpunkten. So bleiben kleine Raids wertvoll und große Raids fair begrenzt.</div>
+        <div class="lg-actions lg-config-actions">
+          <button class="lg-btn" type="submit" ${state.saving ? 'disabled' : ''}>Raid-Regel speichern</button>
+        </div>
+      </form>
+      ${state.coreSettingsResult ? renderConfigResultBox({ title: 'Letztes Core-Ergebnis', result: state.coreSettingsResult, clearAttr: 'data-lg-core-clear-result' }) : ''}
+    `, { badgeText: 'schreibbar', badgeType: 'ok' });
   }
 
   function renderWheelConfigPanel(){
@@ -2632,6 +2650,28 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
       const form = ev.currentTarget;
       const mode = String(form.elements.receiverMode?.value || 'track_only').trim();
       submitCoreSetting({ key: 'bonuses.giftSubReceiver.mode', value: mode }, 'Geschenk-Abo-Empfänger-Regel');
+    });
+
+    root.querySelector('[data-lg-core-raid-settings]')?.addEventListener('submit', ev => {
+      ev.preventDefault();
+      const form = ev.currentTarget;
+      const numberValue = (name, fallback) => {
+        const value = Number(form.elements[name]?.value);
+        return Number.isFinite(value) && value >= 0 ? Math.floor(value) : fallback;
+      };
+      const mode = String(form.elements.raidMode?.value || 'base_plus_viewers').trim();
+      const body = {
+        bonuses: {
+          raid: {
+            mode,
+            amount: numberValue('raidAmount', 50),
+            baseAmount: numberValue('raidBaseAmount', 25),
+            amountPerViewer: numberValue('raidAmountPerViewer', 2),
+            maxAmount: numberValue('raidMaxAmount', 250)
+          }
+        }
+      };
+      submitCoreSetting(body, 'Raid-Regel');
     });
 
     root.querySelector('[data-lg-gamble-reload]')?.addEventListener('click', async () => {
