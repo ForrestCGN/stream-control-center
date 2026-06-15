@@ -39,7 +39,7 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "loyalty";
-const VERSION = "0.1.18";
+const VERSION = "0.1.19";
 const MODULE_VERSION = VERSION;
 const STREAM_STATUS_API_PATH = "/api/twitch/events/stream-state";
 const MODULE_META = {
@@ -71,6 +71,14 @@ const TWITCH_EVENT_BONUS_MAP = {
 };
 
 const TWITCH_EVENT_BONUS_KEYS = Object.keys(TWITCH_EVENT_BONUS_MAP);
+const TWITCH_EVENT_BONUS_INTERNAL_DERIVED_EVENTS = [
+  {
+    eventKey: "loyalty.gifted_sub_received.derived",
+    eventType: "gifted_sub_received",
+    sourceEvents: ["twitch.subgift.received", "twitch.giftbomb.received"],
+    reason: "recipient_bonus_after_gift_sub_or_gift_bomb"
+  }
+];
 const TWITCH_EVENT_BONUS_SUBSCRIPTIONS = TWITCH_EVENT_BONUS_KEYS.map((eventKey) => {
   const [namespace, eventName, action] = String(eventKey || "").split(".");
   return {
@@ -3341,37 +3349,69 @@ function sampleBonusInputForType(type) {
   if (normalized === "raid") return { eventType: normalized, viewers: 1, amount: 1, tier: "none", quantity: 1 };
   if (normalized === "gift_bomb") return { eventType: normalized, tier: "1000", quantity: 5 };
   if (normalized === "gift_sub") return { eventType: normalized, tier: "1000", quantity: 1 };
+  if (normalized === "gifted_sub_received") return { eventType: normalized, tier: "1000", quantity: 1 };
   if (normalized === "subscribe") return { eventType: normalized, tier: "1000", quantity: 1 };
   if (normalized === "resub") return { eventType: normalized, tier: "1000", quantity: 1, months: 1 };
   return { eventType: normalized, tier: "none", quantity: 1 };
 }
 
-function buildEventBonusMappingDiagnostics() {
+function buildBonusMappingRow({ eventKey, channel = "", action = "", eventType, busSubscribed, internalDerived = false, sourceEvents = [], reason = "" }) {
   const features = config.features || {};
-  return TWITCH_EVENT_BONUS_SUBSCRIPTIONS.map((item) => {
-    const eventType = TWITCH_EVENT_BONUS_MAP[item.eventKey] || "unknown";
-    let sample = null;
-    try {
-      sample = calculateEventBonus(sampleBonusInputForType(eventType));
-    } catch (err) {
-      sample = {
-        ok: false,
-        skipped: true,
-        reason: err && err.message ? err.message : String(err),
-        type: eventType,
-        amount: 0
-      };
-    }
-    return {
-      eventKey: item.eventKey,
-      channel: item.channel,
-      action: item.action,
-      eventType,
-      config: describeBonusConfigForType(eventType),
-      sample,
-      activeForProcessing: !!config.enabled && features.eventBonusesEnabled === true && sample && sample.ok === true && sample.skipped !== true && Number(sample.amount || 0) > 0
+  let sample = null;
+  try {
+    sample = calculateEventBonus(sampleBonusInputForType(eventType));
+  } catch (err) {
+    sample = {
+      ok: false,
+      skipped: true,
+      reason: err && err.message ? err.message : String(err),
+      type: eventType,
+      amount: 0
     };
-  });
+  }
+
+  return {
+    eventKey,
+    channel,
+    action,
+    eventType,
+    busSubscribed: busSubscribed === true,
+    internalDerived: internalDerived === true,
+    sourceEvents: Array.isArray(sourceEvents) ? [...sourceEvents] : [],
+    reason,
+    config: describeBonusConfigForType(eventType),
+    sample,
+    activeForProcessing: !!config.enabled && features.eventBonusesEnabled === true && sample && sample.ok === true && sample.skipped !== true && Number(sample.amount || 0) > 0
+  };
+}
+
+function buildDirectEventBonusMappingDiagnostics() {
+  return TWITCH_EVENT_BONUS_SUBSCRIPTIONS.map((item) => buildBonusMappingRow({
+    eventKey: item.eventKey,
+    channel: item.channel,
+    action: item.action,
+    eventType: TWITCH_EVENT_BONUS_MAP[item.eventKey] || "unknown",
+    busSubscribed: true,
+    internalDerived: false
+  }));
+}
+
+function buildInternalDerivedEventBonusMappingDiagnostics() {
+  return TWITCH_EVENT_BONUS_INTERNAL_DERIVED_EVENTS.map((item) => buildBonusMappingRow({
+    eventKey: item.eventKey,
+    eventType: item.eventType,
+    busSubscribed: false,
+    internalDerived: true,
+    sourceEvents: item.sourceEvents,
+    reason: item.reason
+  }));
+}
+
+function buildEventBonusMappingDiagnostics() {
+  return [
+    ...buildDirectEventBonusMappingDiagnostics(),
+    ...buildInternalDerivedEventBonusMappingDiagnostics()
+  ];
 }
 
 function buildLoyaltyDiagnostics() {
@@ -3402,7 +3442,17 @@ function buildLoyaltyDiagnostics() {
       moduleEnabled: !!config.enabled,
       eventBonusesEnabled: !!(config.features && config.features.eventBonusesEnabled === true),
       mode: normalizeMode(config.mode),
-      supportedEvents: buildEventBonusMappingDiagnostics()
+      directBusEvents: buildDirectEventBonusMappingDiagnostics(),
+      internalDerivedEvents: buildInternalDerivedEventBonusMappingDiagnostics(),
+      supportedEvents: buildEventBonusMappingDiagnostics(),
+      giftSub: {
+        giverBonusEnabled: config.bonuses?.giftSubGiver?.enabled === true,
+        receiverBonusEnabled: config.bonuses?.giftSubReceiver?.enabled === true,
+        receiverEventType: "gifted_sub_received",
+        receiverEventBusSubscribed: false,
+        receiverInternalDerived: true,
+        receiverSourceEvents: ["twitch.subgift.received", "twitch.giftbomb.received"]
+      }
     },
     pointsRunner: {
       enabled: runner.enabled === true,
