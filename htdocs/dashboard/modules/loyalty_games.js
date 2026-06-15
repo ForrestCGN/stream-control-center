@@ -3133,17 +3133,23 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
             <button class="lg-btn lg-btn-secondary" type="button" data-lg-jump-tab="texts">Texte bearbeiten</button>
           </div>
         </form>
-        <div class="lg-grid lg-editor-grid">
-          <div class="lg-note-card">
+        <div class="lg-grid lg-editor-grid lg-raffle-detail-grid">
+          <div class="lg-note-card lg-raffle-rule-card">
             <h4>Gewinnerregel</h4>
-            <div class="lg-rows compact">
-              ${winnerRule.length ? winnerRule.map(rule => `<div><span>${esc(rule.min)}${rule.max ? `–${esc(rule.max)}` : '+'} Teilnehmer</span><strong>${esc(rule.winners || '-')}</strong></div>`).join('') : '<div><span>Regel</span><strong>Standardregel aktiv</strong></div>'}
+            <p class="lg-muted">Die Anzahl der Gewinner wird automatisch aus der Teilnehmerzahl berechnet.</p>
+            <div class="lg-raffle-rule-list">
+              ${winnerRule.length ? winnerRule.map(rule => `
+                <div class="lg-raffle-rule-row">
+                  <span>${esc(rule.min)}${rule.max ? `–${esc(rule.max)}` : '+'} Teilnehmer</span>
+                  <strong>${esc(rule.winners || '-')}</strong>
+                </div>
+              `).join('') : '<div class="lg-raffle-rule-row"><span>Regel</span><strong>Standardregel aktiv</strong></div>'}
             </div>
           </div>
-          <div class="lg-note-card">
+          <div class="lg-note-card lg-raffle-textkey-card">
             <h4>Textkeys</h4>
             <p class="lg-muted">Die Varianten bleiben im zentralen Loyalty-Texte-Bereich.</p>
-            <div class="lg-key-list">
+            <div class="lg-raffle-key-list">
               ${textKeys.length ? textKeys.map(key => `<code>${esc(key)}</code>`).join('') : '<span class="lg-muted">Keine Textkeys geladen.</span>'}
             </div>
           </div>

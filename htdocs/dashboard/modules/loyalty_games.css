@@ -842,3 +842,75 @@
 .lg-raffle-form .lg-warning {
   margin-top: 14px;
 }
+
+
+/* STEP_LC_MINIGAMES_1D - Raffle Detail-Layout unten */
+.lg-raffle-detail-grid {
+  margin-top: 18px;
+  align-items: start;
+}
+
+.lg-raffle-rule-card,
+.lg-raffle-textkey-card {
+  min-width: 0;
+}
+
+.lg-raffle-rule-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.lg-raffle-rule-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 180px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  padding: 9px 11px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 12px;
+  background: rgba(255,255,255,.03);
+}
+
+.lg-raffle-rule-row span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.lg-raffle-rule-row strong {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.lg-raffle-key-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  max-width: 100%;
+}
+
+.lg-raffle-key-list code {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 6px 9px;
+  border: 1px solid rgba(99,203,255,.22);
+  border-radius: 999px;
+  background: rgba(99,203,255,.08);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 900px) {
+  .lg-raffle-rule-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}
