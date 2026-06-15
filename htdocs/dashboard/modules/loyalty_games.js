@@ -55,6 +55,8 @@ window.LoyaltyGamesModule = (function(){
     logStatus: 'all',
     logSearch: '',
     logDetailKey: '',
+    textSection: 'all',
+    textSearch: '',
     selectedPresetUid: '',
     selectedPreset: null,
     activeTab: 'overview'
@@ -2185,10 +2187,46 @@ function renderGiveawayDetails(giveaway){
     `;
   }
 
+  function textSectionLabel(section){
+    const labels = {
+      all: 'Alle Textbereiche',
+      core: 'Core',
+      wheel: 'Glücksrad',
+      giveaways: 'Giveaways',
+      gamble: 'Gamble',
+      chat: 'Chat & Befehle',
+      gifts: 'Geschenk-Abos / GiftBombs',
+      notices: 'Hinweise / Fehlertexte'
+    };
+    return labels[String(section || 'all')] || 'Alle Textbereiche';
+  }
+
+  function classifyTextSection(item){
+    const key = norm(item?.key || item?.name || '');
+    const category = norm(item?.category || item?.module || '');
+    const source = `${category} ${key}`;
+    if (source.includes('gift') || source.includes('subgift') || source.includes('giftbomb') || source.includes('geschenk')) return 'gifts';
+    if (source.includes('wheel') || source.includes('rad') || source.includes('spin') || source.includes('gluecksrad') || source.includes('glücksrad')) return 'wheel';
+    if (source.includes('giveaway')) return 'giveaways';
+    if (source.includes('gamble')) return 'gamble';
+    if (source.includes('command') || source.includes('chat') || source.includes('reply') || source.includes('antwort')) return 'chat';
+    if (source.includes('error') || source.includes('fehler') || source.includes('hint') || source.includes('hinweis') || source.includes('notice')) return 'notices';
+    if (source.includes('core') || source.includes('loyalty') || source.includes('points') || source.includes('punkte')) return 'core';
+    return 'giveaways';
+  }
+
+  function textKeyPurpose(item){
+    const raw = String(item?.label || item?.title || item?.description || item?.key || 'Text').replace(/[._-]+/g, ' ').trim();
+    if (!raw) return 'Text';
+    return raw.charAt(0).toUpperCase() + raw.slice(1);
+  }
+
   function renderTexts(){
     const textPayload = state.giveawayTexts || {};
     const categories = Array.isArray(textPayload.categories) ? textPayload.categories : [];
     const keys = Array.isArray(textPayload.keys) ? textPayload.keys : [];
+    const selectedSection = state.textSection || 'all';
+    const search = norm(state.textSearch || '');
     const sections = [
       ['all', 'Alle Textbereiche'],
       ['core', 'Core'],
@@ -2199,65 +2237,116 @@ function renderGiveawayDetails(giveaway){
       ['gifts', 'Geschenk-Abos / GiftBombs'],
       ['notices', 'Hinweise / Fehlertexte']
     ];
+    const preparedSections = ['core', 'wheel', 'gamble', 'gifts', 'notices'];
+    const filteredKeys = keys.filter(item => {
+      const section = classifyTextSection(item);
+      if (selectedSection !== 'all' && section !== selectedSection) return false;
+      if (!search) return true;
+      const variantText = (item.variants || []).map(v => v.value || v.text || '').join(' ');
+      return norm(`${item.key || ''} ${item.category || ''} ${variantText}`).includes(search);
+    });
+    const sectionCounts = sections.filter(([id]) => id !== 'all').map(([id, label]) => {
+      const count = keys.filter(item => classifyTextSection(item) === id).length;
+      return { id, label, count };
+    });
+    const canSaveInSelectedSection = selectedSection === 'all' || selectedSection === 'giveaways' || selectedSection === 'chat';
+    const selectedHasRows = filteredKeys.length > 0;
+    const selectedIsPreparedOnly = !selectedHasRows && preparedSections.includes(selectedSection);
+    const variantTotal = keys.reduce((sum, item) => sum + Number(item.totalCount || (Array.isArray(item.variants) ? item.variants.length : 0) || 0), 0);
+    const activeTotal = keys.reduce((sum, item) => sum + Number(item.activeCount || 0), 0);
     return `
       <div class="lg-panel lg-texts-panel">
         <div class="lg-panel-head">
           <div>
             <h3>Loyalty-Texte</h3>
-            <p class="lg-muted">Zentrale Stelle für Texte und Varianten. Wähle später hier das Modul aus und bearbeite die passenden Chat-/Hinweis-/Fehlertexte.</p>
+            <p class="lg-muted">Zentrale Textpflege für Loyalty. Wähle ein Modul aus, prüfe Varianten und ergänze neue Chat-/Hinweis-Texte ohne technische Suche.</p>
           </div>
-          <div class="lg-actions">
-            <label class="lg-config-select-label">Bereich auswählen
-              <select data-lg-text-section>
-                ${sections.map(([id, label]) => `<option value="${esc(id)}">${esc(label)}${id === 'all' ? '' : ' · vorbereitet'}</option>`).join('')}
-              </select>
-            </label>
-          </div>
+          <button class="lg-btn lg-btn-secondary" type="button" data-lg-text-reload>Neu laden</button>
         </div>
-        <div class="lg-warning">Aktuell werden die vorhandenen Textvarianten angezeigt. Neue Bereiche werden später an die zentrale Textverwaltung angebunden.</div>
+
+        <div class="lg-text-filterbar">
+          <label>Bereich
+            <select data-lg-text-section>
+              ${sections.map(([id, label]) => `<option value="${esc(id)}" ${selectedSection === id ? 'selected' : ''}>${esc(label)}</option>`).join('')}
+            </select>
+          </label>
+          <label>Suche
+            <input data-lg-text-search value="${esc(state.textSearch || '')}" placeholder="Text, Zweck, Key..." autocomplete="off">
+          </label>
+        </div>
+
+        <div class="lg-grid lg-grid-4 lg-text-stats">
+          <article class="lg-card"><span class="lg-card-label">Bereich</span><strong>${esc(textSectionLabel(selectedSection))}</strong></article>
+          <article class="lg-card"><span class="lg-card-label">Text-Zwecke</span><strong>${fmtNumber(filteredKeys.length)}</strong></article>
+          <article class="lg-card"><span class="lg-card-label">Varianten</span><strong>${fmtNumber(variantTotal)}</strong></article>
+          <article class="lg-card"><span class="lg-card-label">Aktiv</span><strong>${fmtNumber(activeTotal)}</strong></article>
+        </div>
       </div>
 
       <div class="lg-grid lg-grid-2">
         <div class="lg-panel">
-          <h3>Text-Kategorien</h3>
-          <p class="lg-muted">CGN-/Altersheim-/Rentner-Texte laufen über den bestehenden Helper für Textvarianten.</p>
-          <div class="lg-kv">
-            ${categories.map(cat => `<span>${esc(cat.label || cat.id)}</span><strong>${fmtNumber(cat.variantCount || cat.count || 0)} Varianten</strong>`).join('') || '<span>Texte</span><strong>-</strong>'}
+          <h3>Module</h3>
+          <p class="lg-muted">Texte werden zentral nach Bereich gefiltert. Bestehende Varianten bleiben erhalten.</p>
+          <div class="lg-text-section-list">
+            ${sectionCounts.map(row => `
+              <button type="button" class="lg-text-section ${selectedSection === row.id ? 'is-active' : ''}" data-lg-text-section-jump="${esc(row.id)}">
+                <span>${esc(row.label)}</span><strong>${fmtNumber(row.count)}</strong>
+              </button>
+            `).join('')}
           </div>
         </div>
         <div class="lg-panel">
-          <h3>Bedienlogik</h3>
+          <h3>Text-Regeln</h3>
           <div class="lg-mini-list">
-            <div class="lg-mini-row"><span><strong>Modul auswählen</strong><br><small class="lg-muted">Texte werden künftig je Bereich gefiltert.</small></span><span class="lg-badge lg-badge-warn">vorbereitet</span></div>
-            <div class="lg-mini-row"><span><strong>Varianten</strong><br><small class="lg-muted">Mehrere aktive Antworten pro Text-Key bleiben möglich.</small></span><span class="lg-badge lg-badge-ok">vorhanden</span></div>
+            <div class="lg-mini-row"><span><strong>Mehrere Varianten</strong><br><small class="lg-muted">Pro Zweck können mehrere aktive Texte bestehen. Das hält Chat-Antworten abwechslungsreich.</small></span><span class="lg-badge lg-badge-ok">aktiv</span></div>
+            <div class="lg-mini-row"><span><strong>CGN-Stil</strong><br><small class="lg-muted">Kurz, freundlich, Altersheim-/Rentner-Humor wo passend.</small></span><span class="lg-badge lg-badge-ok">Standard</span></div>
+            <div class="lg-mini-row"><span><strong>Bearbeitung</strong><br><small class="lg-muted">Neue Varianten werden über die vorhandene Text-API gespeichert.</small></span><span class="lg-badge lg-badge-ok">angebunden</span></div>
           </div>
         </div>
       </div>
 
       <div class="lg-panel">
-        <h3>Textvarianten</h3>
+        <div class="lg-panel-head">
+          <div>
+            <h3>Textvarianten</h3>
+            <p class="lg-muted">Aktueller Bereich: ${esc(textSectionLabel(selectedSection))}. Technische Keys bleiben sichtbar, aber nicht im Vordergrund.</p>
+          </div>
+        </div>
+        ${selectedIsPreparedOnly ? `<div class="lg-config-note">Für diesen Bereich sind noch keine Text-Keys geladen. Der Bereich ist vorbereitet und wird mit der zentralen Text-API gefüllt, sobald die Modultexte angebunden sind.</div>` : ''}
         <div class="lg-table-wrap">
-          <table class="lg-table">
+          <table class="lg-table lg-text-table">
             <thead>
-              <tr><th>Key</th><th>Kategorie</th><th>Aktive Varianten</th><th>Varianten</th></tr>
+              <tr><th>Zweck</th><th>Bereich</th><th>Status</th><th>Varianten</th><th>Neue Variante</th></tr>
             </thead>
             <tbody>
-              ${keys.map(item => `
+              ${filteredKeys.map(item => {
+                const section = classifyTextSection(item);
+                const variants = Array.isArray(item.variants) ? item.variants : [];
+                const activeCount = Number(item.activeCount || 0);
+                const totalCount = Number(item.totalCount || variants.length || 0);
+                const allowSave = canSaveInSelectedSection || section === 'giveaways' || section === 'chat';
+                return `
                 <tr>
-                  <td><code>${esc(item.key)}</code></td>
-                  <td>${esc(item.category || 'general')}</td>
-                  <td>${fmtNumber(item.activeCount || 0)} / ${fmtNumber(item.totalCount || 0)}</td>
+                  <td><strong>${esc(textKeyPurpose(item))}</strong><small class="lg-muted">Key: ${esc(item.key || '-')}</small></td>
+                  <td>${esc(textSectionLabel(section))}<small class="lg-muted">${esc(item.category || 'general')}</small></td>
+                  <td><span class="lg-badge ${activeCount > 0 ? 'lg-badge-ok' : 'lg-badge-warn'}">${fmtNumber(activeCount)} / ${fmtNumber(totalCount)} aktiv</span></td>
                   <td>
-                    ${(item.variants || []).map(v => `<div class="lg-muted">• ${esc(v.value || v.text || '')}</div>`).join('')}
-                    <form class="lg-inline-form" data-lg-save-chat-text>
+                    <div class="lg-text-variant-list">
+                      ${variants.slice(0, 5).map(v => `<div>• ${esc(v.value || v.text || '')}</div>`).join('') || '<span class="lg-muted">Noch keine Variante.</span>'}
+                      ${variants.length > 5 ? `<small class="lg-muted">+ ${fmtNumber(variants.length - 5)} weitere Varianten</small>` : ''}
+                    </div>
+                  </td>
+                  <td>
+                    ${allowSave ? `
+                    <form class="lg-inline-form lg-text-save-form" data-lg-save-chat-text>
                       <input type="hidden" name="key" value="${esc(item.key)}">
                       <input type="hidden" name="category" value="${esc(item.category || 'general')}">
                       <input name="value" placeholder="Neue Variante im CGN-Stil..." autocomplete="off">
-                      <button class="lg-btn lg-btn-secondary" type="submit">Variante speichern</button>
-                    </form>
+                      <button class="lg-btn lg-btn-secondary" type="submit">Speichern</button>
+                    </form>` : '<span class="lg-muted">Bearbeitung folgt mit Modul-Anbindung.</span>'}
                   </td>
-                </tr>
-              `).join('') || `<tr><td colspan="4" class="lg-muted">Keine Textkeys geladen.</td></tr>`}
+                </tr>`;
+              }).join('') || `<tr><td colspan="5" class="lg-muted">Keine Textkeys für diesen Bereich gefunden.</td></tr>`}
             </tbody>
           </table>
         </div>
@@ -3016,6 +3105,25 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
     });
     root.querySelector('[data-lg-log-search]')?.addEventListener('input', ev => {
       state.logSearch = ev.currentTarget.value || '';
+      render();
+    });
+
+    root.querySelector('[data-lg-text-section]')?.addEventListener('change', ev => {
+      state.textSection = ev.currentTarget.value || 'all';
+      render();
+    });
+    root.querySelector('[data-lg-text-search]')?.addEventListener('input', ev => {
+      state.textSearch = ev.currentTarget.value || '';
+      render();
+    });
+    root.querySelectorAll('[data-lg-text-section-jump]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.textSection = btn.dataset.lgTextSectionJump || 'all';
+        render();
+      });
+    });
+    root.querySelector('[data-lg-text-reload]')?.addEventListener('click', async () => {
+      await refreshChatSetup(false);
       render();
     });
 
