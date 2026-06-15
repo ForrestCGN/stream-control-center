@@ -31,8 +31,8 @@ try {
 const MODULE = 'alert_system';
 const SCHEMA_VERSION = 6;
 const MODULE_STEP = 365;
-const MODULE_VERSION = '3.1.11';
-const MODULE_BUILD = 'ALERT_TWITCH_1A_TWITCH_EVENTS_SHADOW_BINDING';
+const MODULE_VERSION = '3.1.12';
+const MODULE_BUILD = 'ALERT_TWITCH_1B_TWITCH_EVENTS_SWITCHABLE_BUS_ALERTS';
 const ALERT_EVENTBUS_CAPABILITY = 'alert.event_output';
 const ALERT_EVENTBUS_STATUS_API_VERSION = '1.0.0';
 const ALERT_CANBUS_HEARTBEAT_INTERVAL_MS = 5000;
@@ -50,7 +50,7 @@ const MODULE_META = {
   routesPrefix: ['/api/alerts'],
   capabilities: [ALERT_EVENTBUS_CAPABILITY],
   bus: { emits: true, registered: true, heartbeat: true, status: true },
-  note: 'ALERT-TWITCH-1A: additive Twitch-Events shadow diagnostics; runtime alert flow unchanged.'
+  note: 'ALERT-TWITCH-1B: Twitch-Events alert binding is switchable; default remains shadow-safe.'
 };
 
 
@@ -112,6 +112,12 @@ const DEFAULT_CONFIG = {
   // Sicherheitsnetz: Provider-/Live-Events ohne passende aktive Regel werden ignoriert.
   // Verhindert z.B. Tipeee-Follow-Alerts, wenn nur Twitch-Follow-Regeln existieren.
   playUnmatchedAlerts: false,
+  twitchEventAlertBinding: {
+    enabled: true,
+    mode: 'shadow',
+    allowBusEnqueue: false,
+    requireBusConfirm: true
+  },
   preview: {
     localBrowserAudio: true,
     sendToLiveOverlay: false,
@@ -293,6 +299,12 @@ const state = {
   twitchEventAlertBinding: {
     installed: false,
     mode: 'shadow',
+    requestedMode: 'shadow',
+    effectiveMode: 'shadow',
+    enabled: true,
+    allowBusEnqueue: false,
+    busConfirmSatisfied: false,
+    modeWarning: '',
     subscriptionIds: [],
     subscriptions: [],
     subscriptionCount: 0,
@@ -307,6 +319,8 @@ const state = {
     received: 0,
     mapped: 0,
     wouldEnqueue: 0,
+    enqueued: 0,
+    blocked: 0,
     skipped: 0,
     errors: 0,
     lastError: ''
@@ -969,6 +983,67 @@ function getTwitchEventAlertCommunicationBus() {
   }
 }
 
+
+function validateTwitchEventAlertBindingMode(value, fallback = 'shadow') {
+  const clean = cleanKey(value || '').toLowerCase();
+  if (['shadow', 'bus', 'disabled'].includes(clean)) return clean;
+  return fallback;
+}
+
+function boolEnv(value, fallback = false) {
+  if (value === undefined || value === null || value === '') return fallback;
+  if (value === true || value === 1) return true;
+  const clean = String(value).trim().toLowerCase();
+  if (['1', 'true', 'yes', 'ja', 'on'].includes(clean)) return true;
+  if (['0', 'false', 'no', 'nein', 'off'].includes(clean)) return false;
+  return fallback;
+}
+
+function getEffectiveTwitchEventAlertBindingConfig() {
+  const cfg = state.config && state.config.twitchEventAlertBinding ? state.config.twitchEventAlertBinding : DEFAULT_CONFIG.twitchEventAlertBinding;
+  const requestedFromConfig = validateTwitchEventAlertBindingMode(cfg.mode || DEFAULT_CONFIG.twitchEventAlertBinding.mode, 'shadow');
+  const envMode = String(process.env.ALERT_TWITCH_EVENTS_ALERT_MODE || '').trim();
+  const requestedMode = envMode ? validateTwitchEventAlertBindingMode(envMode, requestedFromConfig) : requestedFromConfig;
+  const enabled = boolValue(cfg.enabled, DEFAULT_CONFIG.twitchEventAlertBinding.enabled) !== false;
+  const allowFromConfig = boolValue(cfg.allowBusEnqueue, DEFAULT_CONFIG.twitchEventAlertBinding.allowBusEnqueue) === true;
+  const requireBusConfirm = boolValue(cfg.requireBusConfirm, DEFAULT_CONFIG.twitchEventAlertBinding.requireBusConfirm) !== false;
+  const allowBusEnv = boolEnv(process.env.ALERT_TWITCH_EVENTS_ALERT_ALLOW_BUS, false);
+  const busConfirmSatisfied = requireBusConfirm ? (allowFromConfig === true || allowBusEnv === true) : true;
+
+  let effectiveMode = enabled ? requestedMode : 'disabled';
+  let modeWarning = '';
+  if (effectiveMode === 'bus' && !busConfirmSatisfied) {
+    effectiveMode = 'shadow';
+    modeWarning = 'bus_mode_requires_alert_allow_bus_confirm';
+  }
+
+  return {
+    enabled,
+    requestedMode,
+    effectiveMode,
+    mode: effectiveMode,
+    allowBusEnqueue: allowFromConfig || allowBusEnv,
+    requireBusConfirm,
+    busConfirmSatisfied,
+    envMode: envMode || '',
+    envAllowBus: String(process.env.ALERT_TWITCH_EVENTS_ALERT_ALLOW_BUS || '').trim(),
+    modeWarning
+  };
+}
+
+function syncTwitchEventAlertBindingRuntimeConfig() {
+  const effective = getEffectiveTwitchEventAlertBindingConfig();
+  const binding = state.twitchEventAlertBinding;
+  binding.requestedMode = effective.requestedMode;
+  binding.effectiveMode = effective.effectiveMode;
+  binding.mode = effective.effectiveMode;
+  binding.enabled = effective.enabled;
+  binding.allowBusEnqueue = effective.allowBusEnqueue;
+  binding.busConfirmSatisfied = effective.busConfirmSatisfied;
+  binding.modeWarning = effective.modeWarning;
+  return effective;
+}
+
 function normalizeTwitchEventAlertUser(user = {}) {
   const source = user && typeof user === 'object' ? user : {};
   const login = cleanKey(source.login || source.userLogin || source.user_login || source.name || source.displayName || source.display_name || '').toLowerCase();
@@ -1041,6 +1116,7 @@ function normalizeTwitchEventAlertEnvelope(envelope = {}) {
 
 function handleTwitchEventAlertBusEvent(envelope = {}) {
   const binding = state.twitchEventAlertBinding;
+  const modeConfig = syncTwitchEventAlertBindingRuntimeConfig();
   binding.received += 1;
   binding.lastEventAt = nowIso();
 
@@ -1065,22 +1141,56 @@ function handleTwitchEventAlertBusEvent(envelope = {}) {
       matchingRule = null;
     }
 
-    const result = {
+    const wouldEnqueue = !!matchingRule || state.config.playUnmatchedAlerts === true;
+    const baseResult = {
       ok: true,
-      shadow: true,
-      wouldEnqueue: !!matchingRule || state.config.playUnmatchedAlerts === true,
+      mode: modeConfig.effectiveMode,
+      requestedMode: modeConfig.requestedMode,
+      modeWarning: modeConfig.modeWarning || '',
+      wouldEnqueue,
       matchedRuleId: matchingRule ? Number(matchingRule.id || 0) : 0,
       eventKey: parsed.eventKey,
       typeKey: parsed.typeKey,
       login: parsed.login,
-      amount: parsed.amount,
-      productiveEnqueue: false,
-      reason: matchingRule ? 'matched_rule_shadow_only' : (state.config.playUnmatchedAlerts === true ? 'play_unmatched_enabled_shadow_only' : 'no_matching_rule_shadow_only')
+      amount: parsed.amount
     };
 
-    if (result.wouldEnqueue) binding.wouldEnqueue += 1;
-    else binding.skipped += 1;
+    if (!wouldEnqueue) {
+      binding.skipped += 1;
+      const result = { ...baseResult, shadow: modeConfig.effectiveMode !== 'bus', productiveEnqueue: false, reason: 'no_matching_rule' };
+      binding.lastResult = result;
+      binding.lastError = '';
+      return result;
+    }
 
+    binding.wouldEnqueue += 1;
+
+    if (modeConfig.effectiveMode === 'disabled') {
+      binding.blocked += 1;
+      const result = { ...baseResult, shadow: false, productiveEnqueue: false, blocked: true, reason: 'binding_disabled' };
+      binding.lastResult = result;
+      binding.lastError = '';
+      return result;
+    }
+
+    if (modeConfig.effectiveMode !== 'bus') {
+      const result = { ...baseResult, shadow: true, productiveEnqueue: false, reason: matchingRule ? 'matched_rule_shadow_only' : 'play_unmatched_enabled_shadow_only' };
+      binding.lastResult = result;
+      binding.lastError = '';
+      return result;
+    }
+
+    const enqueueResult = enqueueAlert(parsed.alertPayload, state.broadcastWS);
+    if (enqueueResult && enqueueResult.ok === true) {
+      binding.enqueued += 1;
+      const result = { ...baseResult, shadow: false, productiveEnqueue: true, enqueueResult, reason: 'enqueued_from_twitch_events_bus' };
+      binding.lastResult = result;
+      binding.lastError = '';
+      return result;
+    }
+
+    binding.blocked += 1;
+    const result = { ...baseResult, shadow: false, productiveEnqueue: true, enqueueResult, reason: enqueueResult && (enqueueResult.reason || enqueueResult.error) || 'enqueue_failed_or_rejected' };
     binding.lastResult = result;
     binding.lastError = '';
     return result;
@@ -1115,12 +1225,12 @@ function installTwitchEventAlertSubscriber() {
       channel: item.channel,
       action: item.action,
       meta: {
-        step: 'ALERT-TWITCH-1A',
-        purpose: 'alert_shadow_diagnostics_from_twitch_events_support_events',
+        step: 'ALERT-TWITCH-1B',
+        purpose: 'alert_switchable_binding_from_twitch_events_support_events',
         sourceModule: 'twitch_events',
         eventKey: item.eventKey,
-        mode: 'shadow',
-        productiveEnqueue: false,
+        mode: 'switchable_shadow_default',
+        productiveEnqueue: 'requires_effective_mode_bus',
         consumes: [item.eventKey]
       }
     }, (envelope) => handleTwitchEventAlertBusEvent(envelope));
@@ -1148,20 +1258,31 @@ function installTwitchEventAlertSubscriber() {
   binding.subscriptionIds = installed.map((item) => item.subscriptionId);
   binding.subscriptionCount = installed.length;
   binding.lastError = '';
-  binding.lastResult = { ok: true, installed: true, mode: 'shadow', subscriptionIds: [...binding.subscriptionIds], subscriptionCount: binding.subscriptionCount };
+  const modeConfig = syncTwitchEventAlertBindingRuntimeConfig();
+  binding.lastResult = { ok: true, installed: true, mode: modeConfig.effectiveMode, requestedMode: modeConfig.requestedMode, subscriptionIds: [...binding.subscriptionIds], subscriptionCount: binding.subscriptionCount };
   return binding.lastResult;
 }
 
 function buildTwitchEventAlertBindingStatus() {
+  const modeConfig = syncTwitchEventAlertBindingRuntimeConfig();
   return {
     ok: true,
     module: MODULE,
     version: MODULE_VERSION,
     build: MODULE_BUILD,
-    binding: 'twitch_events_alert_shadow',
+    binding: 'twitch_events_alert_switchable',
     installed: state.twitchEventAlertBinding.installed === true,
-    mode: state.twitchEventAlertBinding.mode || 'shadow',
-    productiveEnqueue: false,
+    mode: modeConfig.effectiveMode,
+    requestedMode: modeConfig.requestedMode,
+    effectiveMode: modeConfig.effectiveMode,
+    enabled: modeConfig.enabled,
+    productiveEnqueue: modeConfig.effectiveMode === 'bus',
+    allowBusEnqueue: modeConfig.allowBusEnqueue,
+    requireBusConfirm: modeConfig.requireBusConfirm,
+    busConfirmSatisfied: modeConfig.busConfirmSatisfied,
+    envMode: modeConfig.envMode,
+    envAllowBus: modeConfig.envAllowBus,
+    modeWarning: modeConfig.modeWarning,
     subscriptionIds: [...state.twitchEventAlertBinding.subscriptionIds],
     subscriptions: state.twitchEventAlertBinding.subscriptions.map((item) => ({ ...item })),
     subscriptionCount: Number(state.twitchEventAlertBinding.subscriptionCount || 0),
@@ -1170,6 +1291,8 @@ function buildTwitchEventAlertBindingStatus() {
     received: Number(state.twitchEventAlertBinding.received || 0),
     mapped: Number(state.twitchEventAlertBinding.mapped || 0),
     wouldEnqueue: Number(state.twitchEventAlertBinding.wouldEnqueue || 0),
+    enqueued: Number(state.twitchEventAlertBinding.enqueued || 0),
+    blocked: Number(state.twitchEventAlertBinding.blocked || 0),
     skipped: Number(state.twitchEventAlertBinding.skipped || 0),
     errors: Number(state.twitchEventAlertBinding.errors || 0),
     lastEventAt: state.twitchEventAlertBinding.lastEventAt || '',
@@ -1178,7 +1301,7 @@ function buildTwitchEventAlertBindingStatus() {
     lastTypeKey: state.twitchEventAlertBinding.lastTypeKey || '',
     lastResult: state.twitchEventAlertBinding.lastResult || null,
     lastError: state.twitchEventAlertBinding.lastError || '',
-    note: 'Shadow-only: zaehlt und mappt Twitch-Events, reiht aber keine Alerts ein.'
+    note: modeConfig.effectiveMode === 'bus' ? 'Produktiver Bus-Modus: Twitch-Events koennen Alerts einreihen.' : 'Standard sicher: Shadow/Disabled-Modus reiht keine Alerts ein.'
   };
 }
 
@@ -3237,6 +3360,7 @@ function sanitizeRuntimeConfig(input) {
   cfg.alertEventBus = mergePlainConfig(DEFAULT_CONFIG.alertEventBus, cfg.alertEventBus || {});
   cfg.alertOverlayWatchdog = mergePlainConfig(DEFAULT_CONFIG.alertOverlayWatchdog, cfg.alertOverlayWatchdog || {});
   cfg.dashboardSettings = mergePlainConfig(DEFAULT_CONFIG.dashboardSettings, cfg.dashboardSettings || {});
+  cfg.twitchEventAlertBinding = mergePlainConfig(DEFAULT_CONFIG.twitchEventAlertBinding, cfg.twitchEventAlertBinding || {});
 
   cfg.preview.localBrowserAudio = boolValue(cfg.preview.localBrowserAudio, DEFAULT_CONFIG.preview.localBrowserAudio);
   cfg.preview.sendToLiveOverlay = boolValue(cfg.preview.sendToLiveOverlay, DEFAULT_CONFIG.preview.sendToLiveOverlay);
@@ -3298,6 +3422,11 @@ function sanitizeRuntimeConfig(input) {
   cfg.dashboardSettings.preferSqliteSettings = boolValue(cfg.dashboardSettings.preferSqliteSettings, DEFAULT_CONFIG.dashboardSettings.preferSqliteSettings);
   cfg.dashboardSettings.allowRuntimeEdit = boolValue(cfg.dashboardSettings.allowRuntimeEdit, DEFAULT_CONFIG.dashboardSettings.allowRuntimeEdit);
   cfg.dashboardSettings.settingsTable = cleanKey(cfg.dashboardSettings.settingsTable || DEFAULT_CONFIG.dashboardSettings.settingsTable) || DEFAULT_CONFIG.dashboardSettings.settingsTable;
+
+  cfg.twitchEventAlertBinding.enabled = boolValue(cfg.twitchEventAlertBinding.enabled, DEFAULT_CONFIG.twitchEventAlertBinding.enabled);
+  cfg.twitchEventAlertBinding.mode = validateTwitchEventAlertBindingMode(cfg.twitchEventAlertBinding.mode || DEFAULT_CONFIG.twitchEventAlertBinding.mode, DEFAULT_CONFIG.twitchEventAlertBinding.mode);
+  cfg.twitchEventAlertBinding.allowBusEnqueue = boolValue(cfg.twitchEventAlertBinding.allowBusEnqueue, DEFAULT_CONFIG.twitchEventAlertBinding.allowBusEnqueue);
+  cfg.twitchEventAlertBinding.requireBusConfirm = boolValue(cfg.twitchEventAlertBinding.requireBusConfirm, DEFAULT_CONFIG.twitchEventAlertBinding.requireBusConfirm);
 
   return cfg;
 }
