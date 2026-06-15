@@ -2057,6 +2057,20 @@ function renderGiveawayDetails(giveaway){
     return String(value);
   }
 
+  function boolSettingValue(value, fallback = false){
+    if (value === true || value === false) return value;
+    if (value === 1 || value === 0) return Boolean(value);
+    const raw = String(value ?? '').trim().toLowerCase();
+    if (['1', 'true', 'yes', 'ja', 'on', 'aktiv'].includes(raw)) return true;
+    if (['0', 'false', 'no', 'nein', 'off', 'inaktiv'].includes(raw)) return false;
+    return Boolean(fallback);
+  }
+
+  function numberSettingValue(value, fallback = 0){
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
   function renderReadonlySelect(label, value, options, help){
     const safeOptions = Array.isArray(options) && options.length ? options : [[String(value ?? ''), configDisplayValue(value)]];
     return `<label class="lg-config-field"><span>${esc(label)} ${help ? configInfoNote(help) : ''}</span><select disabled>
@@ -2095,6 +2109,14 @@ function renderGiveawayDetails(giveaway){
     return `<label class="lg-config-field"><span>${esc(label)} ${help ? configInfoNote(help) : ''}</span><input name="${esc(name)}" type="number" min="${esc(min)}" step="${esc(step)}" value="${esc(safeValue)}"></label>`;
   }
 
+  function renderEditableText(label, name, value, help){
+    return `<label class="lg-config-field"><span>${esc(label)} ${help ? configInfoNote(help) : ''}</span><input name="${esc(name)}" type="text" value="${esc(value ?? '')}"></label>`;
+  }
+
+  function renderEditableToggle(label, name, value, help){
+    return renderEditableSelect(label, name, boolSettingValue(value) ? 'true' : 'false', [['true', 'Aktiv'], ['false', 'Inaktiv']], help);
+  }
+
 
   function renderConfigSummaryRows(rows){
     return `<div class="lg-config-summary-list">
@@ -2119,19 +2141,28 @@ function renderGiveawayDetails(giveaway){
     const core = state.coreStatus || {};
     const settings = Array.isArray(core.settings) ? core.settings : [];
     const settingMap = new Map(settings.map(row => [row.key, row.value ?? row.rawValue]));
+    const enabled = boolSettingValue(settingMap.get('enabled'), true);
+    const currencyName = settingMap.get('currency.name') || state.coreSettings?.config?.currency?.name || 'Kekskrümel';
+    const eventBonusesEnabled = boolSettingValue(settingMap.get('features.eventBonusesEnabled'), false);
     const mainCore = renderConfigPanelShell('Core', 'Alles, was direkt Punkte erzeugt oder die automatische Vergabe steuert, liegt hier gebündelt.', `
-      <div class="lg-config-form-grid">
-        ${renderReadonlyDisplay('Loyalty aktiv', settingMap.get('enabled') !== false ? 'Ja' : 'Nein', 'Schaltet das Punktesystem grundsätzlich ein oder aus.')}
-        ${renderReadonlyDisplay('Punkte-Name', settingMap.get('currency.name') || 'Kekskrümel', 'So heißen die Punkte im Stream.')}
-        ${renderReadonlyDisplay('Support-Events geben Punkte', settingMap.get('features.eventBonusesEnabled') !== false ? 'Ja' : 'Nein', 'Follow, Subs, Bits, Raids und Geschenk-Abos können Punkte auslösen.')}
-      </div>
-      ${renderConfigSummaryRows([
-        ['Status', core.ok === false ? 'prüfen' : 'geladen'],
-        ['Version', core.version || core.moduleVersion || '-'],
-        ['Bearbeitung', 'noch nicht schreibbar angebunden']
-      ])}
-      <div class="lg-config-note">Diese Werte werden aktuell angezeigt. Schreibbare Felder werden erst aktiviert, wenn der sichere Speicherweg angebunden ist.</div>
-    `, { badgeText: 'Ansicht', badgeType: 'warn' });
+      <form class="lg-form" data-lg-core-basic-settings>
+        <div class="lg-config-form-grid">
+          ${renderEditableToggle('Loyalty aktiv', 'enabled', enabled, 'Schaltet das Punktesystem grundsätzlich ein oder aus.')}
+          ${renderEditableText('Punkte-Name', 'currencyName', currencyName, 'So heißen die Punkte im Stream, zum Beispiel Kekskrümel.')}
+          ${renderEditableToggle('Support-Events geben Punkte', 'eventBonusesEnabled', eventBonusesEnabled, 'Wenn aktiv, können Follow, Subs, Bits, Raids und Geschenk-Abos Punkte auslösen.')}
+        </div>
+        ${renderConfigSummaryRows([
+          ['Status', core.ok === false ? 'prüfen' : 'geladen'],
+          ['Version', core.version || core.moduleVersion || '-'],
+          ['Bearbeitung', 'speicherbar']
+        ])}
+        <div class="lg-config-note">Diese Grundregeln wirken direkt auf den Punkte-Core. Änderungen werden erst nach Bestätigung gespeichert.</div>
+        <div class="lg-actions lg-config-actions">
+          <button class="lg-btn" type="submit" ${state.saving ? 'disabled' : ''}>Core-Grundregeln speichern</button>
+        </div>
+      </form>
+      ${state.coreSettingsResult ? renderConfigResultBox({ title: 'Letztes Core-Ergebnis', result: state.coreSettingsResult, clearAttr: 'data-lg-core-clear-result' }) : ''}
+    `, { badgeText: 'schreibbar', badgeType: 'ok' });
 
     return `
       ${mainCore}
@@ -2145,15 +2176,41 @@ function renderGiveawayDetails(giveaway){
 
   function renderRunnerConfigPanel(){
     const core = state.coreStatus || {};
+    const settings = Array.isArray(core.settings) ? core.settings : [];
+    const settingMap = new Map(settings.map(row => [row.key, row.value ?? row.rawValue]));
     const runner = core.runner || core.diagnostics?.pointsRunner || core.pointsRunner || {};
+    const watchEnabled = boolSettingValue(settingMap.get('watch.enabled'), true);
+    const watchEarningEnabled = boolSettingValue(settingMap.get('features.watchEarningEnabled'), true);
+    const autoPointsEnabled = watchEnabled && watchEarningEnabled;
+    const watchAmount = numberSettingValue(settingMap.get('watch.amount'), 2);
+    const intervalMinutes = numberSettingValue(settingMap.get('watch.intervalMinutes'), 10);
+    const runOnlyWhenLive = boolSettingValue(settingMap.get('autoRunner.runOnlyWhenLive'), true);
+    const activeMinutes = numberSettingValue(settingMap.get('autoRunner.activeMinutes'), 30);
+    const maxUsersPerRun = numberSettingValue(settingMap.get('autoRunner.maxUsersPerRun'), 250);
+    const includeJoinedOnly = boolSettingValue(settingMap.get('autoRunner.includeJoinedOnly'), true);
     return renderConfigPanelShell('Core · Automatische Punkte', 'Regeln für Punkte, die Zuschauer automatisch durch Anwesenheit oder Aktivität bekommen.', `
-      <div class="lg-config-form-grid">
-        ${renderReadonlyToggle('Automatische Vergabe', Boolean(runner.enabled ?? runner.timerActive ?? false), 'Wenn aktiv, kann das System regelmäßig Punkte vergeben.')}
-        ${renderReadonlySelect('Live-Regel', runner.liveRequired ? 'live_only' : 'configured', [['configured', 'Wie eingestellt'], ['live_only', 'Nur wenn Stream live ist']], 'Legt fest, ob Punkte nur während eines Live-Streams gezählt werden sollen.')}
-        ${renderReadonlyNumber('Letzte Prüfung', runner.lastRunAt || runner.updatedAt || '-', 'Zeitpunkt der letzten bekannten automatischen Prüfung.')}
-      </div>
-      <div class="lg-config-note">Aktuell nur Ansicht. Schreibbare Felder werden erst aktiviert, wenn die vorhandene automatische Vergabe sauber an diese zentrale Einstellungsseite angebunden ist.</div>
-    `);
+      <form class="lg-form" data-lg-core-auto-points-settings>
+        <div class="lg-config-form-grid">
+          ${renderEditableToggle('Automatische Punkte vergeben', 'autoPointsEnabled', autoPointsEnabled, 'Wenn aktiv, kann das System regelmäßig Anwesenheitspunkte vergeben.')}
+          ${renderEditableNumber('Punkte pro Intervall', 'watchAmount', watchAmount, 'So viele Punkte bekommt ein Zuschauer pro gültigem Intervall.', { min: 0, step: 1 })}
+          ${renderEditableNumber('Intervall in Minuten', 'intervalMinutes', intervalMinutes, 'Nach wie vielen Minuten erneut Punkte vergeben werden können.', { min: 1, step: 1 })}
+          ${renderEditableToggle('Nur wenn Stream live ist', 'runOnlyWhenLive', runOnlyWhenLive, 'Empfohlen: aktiv. Dann zählt die automatische Vergabe nur während eines Live-Streams.')}
+          ${renderEditableNumber('Aktivitätsfenster', 'activeMinutes', activeMinutes, 'Zuschauer gelten als aktiv, wenn sie innerhalb dieser Minuten gesehen wurden.', { min: 1, step: 1 })}
+          ${renderEditableNumber('Max. User pro Lauf', 'maxUsersPerRun', maxUsersPerRun, 'Schutzlimit, damit ein Lauf nicht zu viele User auf einmal verarbeitet.', { min: 1, step: 1 })}
+          ${renderEditableToggle('JOIN-only User mitzählen', 'includeJoinedOnly', includeJoinedOnly, 'Wenn aktiv, können auch User aus der Presence-Erkennung berücksichtigt werden, selbst wenn sie gerade nichts geschrieben haben.')}
+        </div>
+        ${renderConfigSummaryRows([
+          ['Runner aktuell', runner.enabled || runner.timerActive ? 'aktiv' : 'inaktiv'],
+          ['Letzte Prüfung', runner.lastRunAt || runner.updatedAt || '-'],
+          ['Letzter Fehler', runner.lastError || '-']
+        ])}
+        <div class="lg-config-note">Diese Werte steuern die automatische Punktevergabe. Für Start/Stop des Runners bleibt die Core-Steuerung zuständig.</div>
+        <div class="lg-actions lg-config-actions">
+          <button class="lg-btn" type="submit" ${state.saving ? 'disabled' : ''}>Automatische Punkte speichern</button>
+        </div>
+      </form>
+      ${state.coreSettingsResult ? renderConfigResultBox({ title: 'Letztes Core-Ergebnis', result: state.coreSettingsResult, clearAttr: 'data-lg-core-clear-result' }) : ''}
+    `, { badgeText: 'schreibbar', badgeType: 'ok' });
   }
 
   function renderGiftConfigPanel(){
@@ -2643,6 +2700,45 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
     root.querySelector('[data-lg-core-clear-result]')?.addEventListener('click', () => {
       state.coreSettingsResult = '';
       render();
+    });
+
+    root.querySelector('[data-lg-core-basic-settings]')?.addEventListener('submit', ev => {
+      ev.preventDefault();
+      const form = ev.currentTarget;
+      const enabled = String(form.elements.enabled?.value || 'true') === 'true';
+      const eventBonusesEnabled = String(form.elements.eventBonusesEnabled?.value || 'false') === 'true';
+      const currencyName = String(form.elements.currencyName?.value || 'Kekskrümel').trim() || 'Kekskrümel';
+      submitCoreSetting({
+        enabled,
+        currency: { name: currencyName },
+        features: { eventBonusesEnabled }
+      }, 'Core-Grundregeln');
+    });
+
+    root.querySelector('[data-lg-core-auto-points-settings]')?.addEventListener('submit', ev => {
+      ev.preventDefault();
+      const form = ev.currentTarget;
+      const enabled = String(form.elements.autoPointsEnabled?.value || 'false') === 'true';
+      const numberValue = (name, fallback, min = 0) => {
+        const value = Number(form.elements[name]?.value);
+        return Number.isFinite(value) && value >= min ? Math.floor(value) : fallback;
+      };
+      submitCoreSetting({
+        watch: {
+          enabled,
+          amount: numberValue('watchAmount', 2, 0),
+          intervalMinutes: numberValue('intervalMinutes', 10, 1)
+        },
+        features: {
+          watchEarningEnabled: enabled
+        },
+        autoRunner: {
+          runOnlyWhenLive: String(form.elements.runOnlyWhenLive?.value || 'true') === 'true',
+          activeMinutes: numberValue('activeMinutes', 30, 1),
+          maxUsersPerRun: numberValue('maxUsersPerRun', 250, 1),
+          includeJoinedOnly: String(form.elements.includeJoinedOnly?.value || 'true') === 'true'
+        }
+      }, 'Automatische Punkte');
     });
 
     root.querySelector('[data-lg-core-gift-settings]')?.addEventListener('submit', ev => {
