@@ -2153,6 +2153,73 @@ function renderGiveawayDetails(giveaway){
     }
   }
 
+  function findTextVariant(item, variantId){
+    const id = String(variantId || '').trim();
+    if (!id || !item || !Array.isArray(item.variants)) return null;
+    return item.variants.find(variant => String(variant.id || variant.variantId || '') === id) || null;
+  }
+
+  async function setChatTextVariantActive(itemUid, variantId, enabled){
+    const item = findTextItem(itemUid);
+    const variant = findTextVariant(item, variantId);
+    if (!item || !variant) return;
+
+    const text = String(variant.value || variant.text || '').trim();
+    if (!text) return;
+
+    state.saving = true;
+    render();
+    try {
+      await apiPost(api.giveawayTexts, {
+        action: 'saveVariant',
+        variant: {
+          id: variant.id,
+          key: item.key || variant.key,
+          category: item.category || variant.category || 'general',
+          value: text,
+          enabled: !!enabled,
+          weight: variant.weight || 1,
+          sortOrder: variant.sortOrder || variant.sort_order || 0,
+          description: variant.description || ''
+        }
+      });
+      await refreshChatSetup(false);
+      state.textEditKey = itemUid;
+      setMessage(enabled ? 'Textvariante aktiviert.' : 'Textvariante deaktiviert.');
+    } catch (err) {
+      state.error = err.message || String(err);
+    } finally {
+      state.saving = false;
+      render();
+    }
+  }
+
+  async function deleteChatTextVariant(itemUid, variantId){
+    const item = findTextItem(itemUid);
+    const variant = findTextVariant(item, variantId);
+    if (!item || !variant) return;
+
+    const preview = String(variant.value || variant.text || '').trim();
+    const shortPreview = preview.length > 120 ? `${preview.slice(0, 120)}…` : preview;
+    const confirmed = window.confirm(`Diese Textvariante wirklich löschen?\n\n${shortPreview || 'Leere Variante'}\n\nDer Text wird danach nicht mehr verwendet.`);
+    if (!confirmed) return;
+
+    state.saving = true;
+    render();
+    try {
+      await apiPost(api.giveawayTexts, { action: 'deleteVariant', id: variant.id });
+      await refreshChatSetup(false);
+      const stillExists = findTextItem(itemUid);
+      state.textEditKey = stillExists ? itemUid : '';
+      setMessage('Textvariante gelöscht.');
+    } catch (err) {
+      state.error = err.message || String(err);
+    } finally {
+      state.saving = false;
+      render();
+    }
+  }
+
   function renderChatSetup(){
     const commands = rows(state.giveawayCommands);
     return `
@@ -2263,6 +2330,8 @@ function renderGiveawayDetails(giveaway){
             <div class="lg-text-editor-variants">
               ${variants.map((v, idx) => {
                 const enabled = v.enabled !== false && v.active !== false;
+                const variantId = String(v.id || v.variantId || '');
+                const canManage = allowSave && variantId;
                 return `
                   <article class="lg-text-variant-card ${enabled ? 'is-active' : 'is-inactive'}">
                     <div class="lg-text-variant-head">
@@ -2270,6 +2339,12 @@ function renderGiveawayDetails(giveaway){
                       <span class="lg-badge ${enabled ? 'lg-badge-ok' : 'lg-badge-warn'}">${enabled ? 'aktiv' : 'inaktiv'}</span>
                     </div>
                     <p>${esc(v.value || v.text || '')}</p>
+                    ${canManage ? `
+                      <div class="lg-text-variant-actions">
+                        <button class="lg-btn lg-btn-small lg-btn-secondary" type="button" data-lg-text-toggle-variant="${esc(variantId)}" data-lg-text-toggle-key="${esc(textItemUid(item))}" data-lg-text-toggle-enabled="${enabled ? '0' : '1'}" ${state.saving ? 'disabled' : ''}>${enabled ? 'Deaktivieren' : 'Aktivieren'}</button>
+                        <button class="lg-btn lg-btn-small lg-btn-danger" type="button" data-lg-text-delete-variant="${esc(variantId)}" data-lg-text-delete-key="${esc(textItemUid(item))}" ${state.saving ? 'disabled' : ''}>Löschen</button>
+                      </div>
+                    ` : `<div class="lg-muted lg-text-variant-note">Diese Variante hat keine sichere ID und kann hier noch nicht verändert werden.</div>`}
                   </article>
                 `;
               }).join('') || '<p class="lg-muted">Noch keine Variante vorhanden.</p>'}
@@ -2295,7 +2370,7 @@ function renderGiveawayDetails(giveaway){
 
           <section class="lg-text-editor-section">
             <h4>Hinweis</h4>
-            <p class="lg-muted">Bearbeiten oder Deaktivieren vorhandener Varianten wird erst eingebaut, wenn die vorhandene Text-API dafür sichere Aktionen bereitstellt. Bis dahin werden vorhandene Texte nicht verändert.</p>
+            <p class="lg-muted">Deaktivieren lässt Varianten erhalten, nimmt sie aber aus der aktiven Zufallsauswahl. Löschen fragt vorher nach und entfernt die Variante dauerhaft.</p>
           </section>
         </div>
       </div>
@@ -3203,6 +3278,16 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
       render();
     }));
     root.querySelectorAll('[data-lg-text-modal-box]').forEach(box => box.addEventListener('click', ev => ev.stopPropagation()));
+    root.querySelectorAll('[data-lg-text-toggle-variant]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        setChatTextVariantActive(btn.dataset.lgTextToggleKey || '', btn.dataset.lgTextToggleVariant || '', btn.dataset.lgTextToggleEnabled === '1');
+      });
+    });
+    root.querySelectorAll('[data-lg-text-delete-variant]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        deleteChatTextVariant(btn.dataset.lgTextDeleteKey || '', btn.dataset.lgTextDeleteVariant || '');
+      });
+    });
     root.querySelector('[data-lg-text-reload]')?.addEventListener('click', async () => {
       await refreshChatSetup(false);
       render();
