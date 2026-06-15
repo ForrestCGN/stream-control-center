@@ -23,8 +23,8 @@ const database = require("../core/database");
 const loyaltyCore = require("./loyalty");
 
 const MODULE_NAME = "loyalty_giveaways";
-const MODULE_VERSION = "0.1.7";
-const MODULE_BUILD = "STEP_LC_RAFFLE_1F";
+const MODULE_VERSION = "0.1.8";
+const MODULE_BUILD = "STEP_LC_RAFFLE_2A_CONFIG_ROUTES";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -33,6 +33,23 @@ const TEXT_MODULE = "loyalty_giveaways";
 const RAFFLE_DEFAULT_DURATION_SECONDS = 120;
 const RAFFLE_MAX_DURATION_SECONDS = 3600;
 const RAFFLE_PRIZE_POOL_AMOUNT = 5000;
+const RAFFLE_CONFIG_KEY = "chat_raffle";
+const RAFFLE_DEFAULT_CONFIG = Object.freeze({
+  enabled: true,
+  durationSeconds: RAFFLE_DEFAULT_DURATION_SECONDS,
+  maxDurationSeconds: RAFFLE_MAX_DURATION_SECONDS,
+  prizePoolAmount: RAFFLE_PRIZE_POOL_AMOUNT,
+  entryCostAmount: 0,
+  entryCostEnabled: false,
+  liveOnly: false,
+  startPermission: "mod",
+  raffleCommand: "raffle",
+  joinCommand: "join",
+  showPoolInChat: false,
+  dashboardGroup: "minigames",
+  dashboardLabel: "Raffle",
+  textCategory: "chat_raffle"
+});
 
 const CHAT_COMMAND_DEFINITIONS = [
   {
@@ -693,7 +710,8 @@ let state = {
       finished: 0,
       noEntries: 0
     }
-  }
+  },
+  raffleConfig: { ...RAFFLE_DEFAULT_CONFIG }
 };
 
 function uid(prefix = "uid") {
@@ -708,6 +726,125 @@ function json(value) {
 function parseJson(value, fallback = {}) {
   return core.safeJsonParse(value, fallback);
 }
+function normalizeBoolean(value, fallback = false) {
+  if (value === true || value === 1) return true;
+  if (value === false || value === 0) return false;
+  const text = String(value ?? "").trim().toLowerCase();
+  if (["1", "true", "yes", "ja", "on", "enabled"].includes(text)) return true;
+  if (["0", "false", "no", "nein", "off", "disabled"].includes(text)) return false;
+  return fallback;
+}
+
+function normalizeRaffleConfig(input = {}, previous = RAFFLE_DEFAULT_CONFIG) {
+  const source = input && typeof input === "object" ? input : {};
+  const base = previous && typeof previous === "object" ? previous : RAFFLE_DEFAULT_CONFIG;
+  const durationSeconds = clampInt(source.durationSeconds ?? source.duration ?? base.durationSeconds, RAFFLE_DEFAULT_CONFIG.durationSeconds, 10, RAFFLE_MAX_DURATION_SECONDS);
+  const prizePoolAmount = clampInt(source.prizePoolAmount ?? source.prizePool ?? base.prizePoolAmount, RAFFLE_DEFAULT_CONFIG.prizePoolAmount, 0, 100000000);
+  const entryCostAmount = clampInt(source.entryCostAmount ?? source.entryCost ?? base.entryCostAmount, 0, 0, 0);
+  const startPermissionRaw = String(source.startPermission ?? base.startPermission ?? "mod").trim().toLowerCase();
+  const startPermission = ["mod", "moderator", "broadcaster", "owner"].includes(startPermissionRaw) ? (startPermissionRaw === "moderator" ? "mod" : startPermissionRaw) : "mod";
+  const raffleCommand = String(source.raffleCommand ?? base.raffleCommand ?? "raffle").trim().replace(/^!+/, "") || "raffle";
+  const joinCommand = String(source.joinCommand ?? base.joinCommand ?? "join").trim().replace(/^!+/, "") || "join";
+  return {
+    enabled: normalizeBoolean(source.enabled, base.enabled !== false),
+    durationSeconds,
+    maxDurationSeconds: RAFFLE_MAX_DURATION_SECONDS,
+    prizePoolAmount,
+    entryCostAmount,
+    entryCostEnabled: false,
+    liveOnly: normalizeBoolean(source.liveOnly, base.liveOnly === true),
+    startPermission,
+    raffleCommand,
+    joinCommand,
+    showPoolInChat: false,
+    dashboardGroup: "minigames",
+    dashboardLabel: "Raffle",
+    textCategory: "chat_raffle"
+  };
+}
+
+function ensureRaffleConfigTable() {
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS loyalty_raffle_config (
+      id ${database.primaryKeyAutoIncrementSql()},
+      config_key TEXT NOT NULL UNIQUE,
+      config_json TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
+}
+
+function loadRaffleConfig() {
+  try {
+    ensureRaffleConfigTable();
+    const row = database.get("SELECT config_json FROM loyalty_raffle_config WHERE config_key = :key", { key: RAFFLE_CONFIG_KEY });
+    const loaded = row && row.config_json ? parseJson(row.config_json, {}) : {};
+    const config = normalizeRaffleConfig(loaded, RAFFLE_DEFAULT_CONFIG);
+    if (!row) {
+      const now = nowIso();
+      database.run(`
+        INSERT INTO loyalty_raffle_config (config_key, config_json, created_at, updated_at)
+        VALUES (:key, :configJson, :createdAt, :updatedAt)
+      `, { key: RAFFLE_CONFIG_KEY, configJson: json(config), createdAt: now, updatedAt: now });
+    }
+    state.raffleConfig = config;
+    return config;
+  } catch (err) {
+    state.lastError = err && err.message ? err.message : String(err);
+    state.raffleConfig = normalizeRaffleConfig(state.raffleConfig || RAFFLE_DEFAULT_CONFIG, RAFFLE_DEFAULT_CONFIG);
+    return state.raffleConfig;
+  }
+}
+
+function getRaffleConfig() {
+  if (!state.raffleConfig || typeof state.raffleConfig !== "object") return loadRaffleConfig();
+  return normalizeRaffleConfig(state.raffleConfig, RAFFLE_DEFAULT_CONFIG);
+}
+
+function saveRaffleConfig(input = {}) {
+  ensureRaffleConfigTable();
+  const previous = getRaffleConfig();
+  const config = normalizeRaffleConfig(input, previous);
+  const now = nowIso();
+  database.run(`
+    INSERT INTO loyalty_raffle_config (config_key, config_json, created_at, updated_at)
+    VALUES (:key, :configJson, :createdAt, :updatedAt)
+    ON CONFLICT(config_key) DO UPDATE SET
+      config_json = excluded.config_json,
+      updated_at = excluded.updated_at
+  `, { key: RAFFLE_CONFIG_KEY, configJson: json(config), createdAt: now, updatedAt: now });
+  state.raffleConfig = config;
+  return { ok: true, config, savedAt: now, note: "Raffle-Config gespeichert. Pool bleibt intern und wird im Chat nicht angezeigt." };
+}
+
+function getRaffleWinnerRuleDescription() {
+  return [
+    { min: 1, max: 1, winners: "1 Gewinner" },
+    { min: 2, max: 10, winners: "Haelfte der Teilnehmer, abgerundet" },
+    { min: 11, max: 20, winners: "1 Gewinner je 4 Teilnehmer" },
+    { min: 21, max: 50, winners: "1 Gewinner je 5 Teilnehmer" },
+    { min: 51, max: 200, winners: "1 Gewinner je 8 Teilnehmer" },
+    { min: 201, max: null, winners: "1 Gewinner je 20 Teilnehmer" }
+  ];
+}
+
+function buildRaffleConfigPayload() {
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    config: getRaffleConfig(),
+    runtime: getRaffleSnapshot(),
+    winnerRule: getRaffleWinnerRuleDescription(),
+    textKeys: Object.keys(CHAT_TEXT_VARIANTS).filter(key => key.startsWith("raffle.public.")),
+    dashboard: {
+      group: "minigames",
+      label: "Raffle",
+      note: "Raffle ist fuer das Dashboard als Mini-Spiel vorgesehen. Backend bleibt vorerst kompatibel im bestehenden Giveaways-Modul."
+    }
+  };
+}
+
 
 function nowIso() {
   return core.nowIso();
@@ -1796,6 +1933,9 @@ function ensureSchema() {
 
   database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_command_definitions_action ON loyalty_giveaway_command_definitions(action);`);
   database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_giveaway_command_definitions_enabled ON loyalty_giveaway_command_definitions(enabled, active);`);
+
+  ensureRaffleConfigTable();
+  loadRaffleConfig();
 
 
   database.exec(`
@@ -5279,11 +5419,12 @@ function getRaffleSnapshot() {
   const now = Date.now();
   const endsAtMs = raffle.endsAt ? Date.parse(raffle.endsAt) : 0;
   const remainingSeconds = raffle.active && endsAtMs > now ? Math.max(0, Math.ceil((endsAtMs - now) / 1000)) : 0;
+  const config = getRaffleConfig();
   return {
     active: raffle.active === true,
     uid: raffle.uid || "",
     status: raffle.status || "idle",
-    durationSeconds: Number(raffle.durationSeconds || RAFFLE_DEFAULT_DURATION_SECONDS),
+    durationSeconds: Number(raffle.durationSeconds || config.durationSeconds || RAFFLE_DEFAULT_DURATION_SECONDS),
     startedAt: raffle.startedAt || "",
     endsAt: raffle.endsAt || "",
     remainingSeconds,
@@ -5292,12 +5433,13 @@ function getRaffleSnapshot() {
     participantCount: Array.isArray(raffle.participants) ? raffle.participants.length : 0,
     participants: Array.isArray(raffle.participants) ? raffle.participants.map(item => ({ ...item })) : [],
     winners: Array.isArray(raffle.winners) ? raffle.winners.map(item => ({ ...item })) : [],
-    prizePoolAmount: Number(raffle.prizePoolAmount || RAFFLE_PRIZE_POOL_AMOUNT),
+    prizePoolAmount: Number(raffle.prizePoolAmount || config.prizePoolAmount || RAFFLE_PRIZE_POOL_AMOUNT),
     prizeAmountPerWinner: Number(raffle.prizeAmountPerWinner || 0),
     payoutTransactions: Array.isArray(raffle.payoutTransactions) ? raffle.payoutTransactions.map(item => ({ ...item })) : [],
     finishedAt: raffle.finishedAt || "",
     lastError: raffle.lastError || "",
-    counters: { ...(raffle.counters || {}) }
+    counters: { ...(raffle.counters || {}) },
+    config
   };
 }
 
@@ -5310,9 +5452,10 @@ function clearRaffleTimer() {
 
 function parseRaffleDuration(input = {}) {
   const args = Array.isArray(input.args) ? input.args : [];
+  const config = getRaffleConfig();
   const raw = String(input.durationSeconds ?? input.duration ?? input.seconds ?? args[0] ?? "").trim();
-  if (!raw || !/^\d+$/.test(raw)) return RAFFLE_DEFAULT_DURATION_SECONDS;
-  return clampInt(raw, RAFFLE_DEFAULT_DURATION_SECONDS, 10, RAFFLE_MAX_DURATION_SECONDS);
+  if (!raw || !/^\d+$/.test(raw)) return clampInt(config.durationSeconds, RAFFLE_DEFAULT_DURATION_SECONDS, 10, RAFFLE_MAX_DURATION_SECONDS);
+  return clampInt(raw, config.durationSeconds || RAFFLE_DEFAULT_DURATION_SECONDS, 10, RAFFLE_MAX_DURATION_SECONDS);
 }
 
 function calculateRaffleWinnerCount(entryCount) {
@@ -5359,7 +5502,8 @@ function resetRaffleRuntime(patch = {}) {
   state.raffle.active = false;
   state.raffle.uid = patch.uid || "";
   state.raffle.status = patch.status || "idle";
-  state.raffle.durationSeconds = patch.durationSeconds || RAFFLE_DEFAULT_DURATION_SECONDS;
+  const config = getRaffleConfig();
+  state.raffle.durationSeconds = patch.durationSeconds || config.durationSeconds || RAFFLE_DEFAULT_DURATION_SECONDS;
   state.raffle.startedAt = patch.startedAt || "";
   state.raffle.endsAt = patch.endsAt || "";
   state.raffle.startedBy = patch.startedBy || "";
@@ -5367,7 +5511,7 @@ function resetRaffleRuntime(patch = {}) {
   state.raffle.participants = [];
   state.raffle.participantsByLogin = {};
   state.raffle.winners = [];
-  state.raffle.prizePoolAmount = patch.prizePoolAmount || RAFFLE_PRIZE_POOL_AMOUNT;
+  state.raffle.prizePoolAmount = patch.prizePoolAmount || config.prizePoolAmount || RAFFLE_PRIZE_POOL_AMOUNT;
   state.raffle.prizeAmountPerWinner = 0;
   state.raffle.payoutTransactions = [];
   state.raffle.finishedAt = patch.finishedAt || "";
@@ -5428,7 +5572,7 @@ function bookRafflePrizeForWinner(raffleUid, winner, prizeAmount, context = {}) 
       raffleUid,
       winnerLogin: userLogin,
       winnerDisplayName: userDisplayName,
-      prizePoolAmount: Number(context.prizePoolAmount || RAFFLE_PRIZE_POOL_AMOUNT),
+      prizePoolAmount: Number(context.prizePoolAmount || getRaffleConfig().prizePoolAmount || RAFFLE_PRIZE_POOL_AMOUNT),
       prizeAmountPerWinner: amount,
       winnerCount: Number(context.winnerCount || 0),
       participantCount: Number(context.participantCount || 0),
@@ -5448,7 +5592,8 @@ function finishRaffleRuntime(reason = "timer") {
   const winners = pickRaffleWinners(participants);
   const finishedAt = nowIso();
   const raffleUid = state.raffle.uid || "";
-  const prizePoolAmount = RAFFLE_PRIZE_POOL_AMOUNT;
+  const config = getRaffleConfig();
+  const prizePoolAmount = Math.max(0, Number.parseInt(config.prizePoolAmount, 10) || 0);
   const prizeAmountPerWinner = winners.length > 0 ? Math.floor(prizePoolAmount / winners.length) : 0;
   const prizeRemainder = winners.length > 0 ? prizePoolAmount - (prizeAmountPerWinner * winners.length) : 0;
   const payoutTransactions = [];
@@ -5506,6 +5651,17 @@ function finishRaffleRuntime(reason = "timer") {
 }
 
 function startRaffleRuntime(input = {}) {
+  const config = getRaffleConfig();
+  if (config.enabled === false) {
+    return buildCommandRuntimeResponse(input, {
+      ok: false,
+      action: "raffle_start",
+      messageKey: "raffle.public.no_active",
+      error: "raffle_disabled",
+      context: { entries: 0, remaining: 0 }
+    });
+  }
+
   if (!isRaffleOperator(input)) {
     return buildCommandRuntimeResponse(input, {
       ok: false,
@@ -5562,7 +5718,7 @@ function startRaffleRuntime(input = {}) {
     ok: true,
     action: "raffle_start",
     messageKey: "raffle.public.started",
-    context: { duration: durationSeconds, entries: 0, remaining: durationSeconds, prizePool: RAFFLE_PRIZE_POOL_AMOUNT },
+    context: { duration: durationSeconds, entries: 0, remaining: durationSeconds, prizePool: config.prizePoolAmount },
     data: getRaffleSnapshot()
   });
 }
@@ -5627,6 +5783,16 @@ function statusRaffleRuntime(input = {}) {
 }
 
 function joinRaffleRuntime(input = {}) {
+  const config = getRaffleConfig();
+  if (config.enabled === false) {
+    return buildCommandRuntimeResponse(input, {
+      ok: false,
+      action: "raffle_join",
+      messageKey: "raffle.public.no_active",
+      error: "raffle_disabled"
+    });
+  }
+
   if (!state.raffle.active) {
     return buildCommandRuntimeResponse(input, {
       ok: false,
@@ -5931,9 +6097,15 @@ function buildStatus() {
         ...state.chatClaimSubscriber
       },
       raffle: getRaffleSnapshot(),
+      minigames: {
+        prepared: true,
+        raffle: { routePrefix: "/api/loyalty/raffle", dashboardGroup: "minigames" },
+        gamble: { existing: true, note: "Gamble soll spaeter gemeinsam mit Raffle unter Loyalty/Mini-Spiele sichtbar werden." }
+      },
       warnings: [
         "Chat-Commands !ticket, !wheel und !rad bleiben bestehende Giveaway-/Wheel-Commands.",
-        "!raffle und !join sind ab STEP_LC_RAFFLE_1D als einfache Chat-Raffle mit direkter Chat-Ausgabe, Loyalty-Auszahlung und ohne Pool-Anzeige im Chat eingebettet.",
+        "!raffle und !join sind als einfache Chat-Raffle mit direkter Chat-Ausgabe, Loyalty-Auszahlung und ohne Pool-Anzeige im Chat eingebettet.",
+        "Ab STEP_LC_RAFFLE_2A ist Raffle fuer Loyalty/Mini-Spiele vorbereitet und besitzt eigene /api/loyalty/raffle/... Routen.",
         "Draw ist ab STEP_LWG_4M_2 nur nach closed_for_entries erlaubt.",
         "Wheel-Giveaways nutzen ab STEP_LWG_4M_5 ein aktives giveaway-bound Wheel fuer Permission/Claim/Spin."
       ],
@@ -5972,8 +6144,21 @@ function registerRoutes(app) {
     return core.sendOk(res, handleChatCommandRuntime(req.body || {}));
   })));
 
+  registered.push(...routes.registerGet(app, "/api/loyalty/raffle/status", core.asyncRoute(async (req, res) => {
+    return core.sendOk(res, { ok: true, message: "ok", module: MODULE_NAME, raffle: getRaffleSnapshot(), config: getRaffleConfig(), winnerRule: getRaffleWinnerRuleDescription() });
+  })));
+
+  registered.push(...routes.registerGet(app, "/api/loyalty/raffle/config", core.asyncRoute(async (req, res) => {
+    return core.sendOk(res, buildRaffleConfigPayload());
+  })));
+
+  registered.push(...routes.registerPost(app, "/api/loyalty/raffle/config", core.asyncRoute(async (req, res) => {
+    const result = saveRaffleConfig(req.body || {});
+    return core.sendOk(res, { ...result, runtime: getRaffleSnapshot(), winnerRule: getRaffleWinnerRuleDescription() });
+  })));
+
   registered.push(...routes.registerGet(app, "/api/loyalty/giveaways/raffle/status", core.asyncRoute(async (req, res) => {
-    return core.sendOk(res, { ok: true, message: "ok", module: MODULE_NAME, raffle: getRaffleSnapshot() });
+    return core.sendOk(res, { ok: true, message: "ok", module: MODULE_NAME, raffle: getRaffleSnapshot(), config: getRaffleConfig(), compatibilityRoute: true });
   })));
 
 
@@ -5983,6 +6168,9 @@ function registerRoutes(app) {
     "GET /api/loyalty/giveaways/routes",
     "POST /api/loyalty/giveaways/runtime/chat-command",
     "POST /api/loyalty/giveaways/runtime/command",
+    "GET /api/loyalty/raffle/status",
+    "GET /api/loyalty/raffle/config",
+    "POST /api/loyalty/raffle/config",
     "GET /api/loyalty/giveaways/raffle/status",
     "GET /api/loyalty/giveaways/central-commands",
     "GET /api/loyalty/giveaways",
