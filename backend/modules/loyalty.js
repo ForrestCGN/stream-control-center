@@ -39,7 +39,7 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "loyalty";
-const VERSION = "0.1.16";
+const VERSION = "0.1.17";
 const MODULE_VERSION = VERSION;
 const STREAM_STATUS_API_PATH = "/api/twitch/events/stream-state";
 const MODULE_META = {
@@ -71,6 +71,15 @@ const TWITCH_EVENT_BONUS_MAP = {
 };
 
 const TWITCH_EVENT_BONUS_KEYS = Object.keys(TWITCH_EVENT_BONUS_MAP);
+const TWITCH_EVENT_BONUS_SUBSCRIPTIONS = TWITCH_EVENT_BONUS_KEYS.map((eventKey) => {
+  const [namespace, eventName, action] = String(eventKey || "").split(".");
+  return {
+    eventKey,
+    channel: `${namespace}.${eventName}`,
+    action: action || "received",
+    subscriptionId: `loyalty:twitch.events:${eventName || "unknown"}_${action || "received"}`
+  };
+});
 
 const POINTS_TEXT_MODULE = MODULE_NAME;
 
@@ -425,8 +434,12 @@ let state = {
   twitchEventBonusBinding: {
     installed: false,
     subscriptionId: "",
+    subscriptionIds: [],
+    subscriptions: [],
+    subscriptionCount: 0,
     subscribedAction: "received",
     consumedEvents: [...TWITCH_EVENT_BONUS_KEYS],
+    consumedChannels: TWITCH_EVENT_BONUS_SUBSCRIPTIONS.map((item) => item.channel),
     lastEventAt: "",
     lastEventKey: "",
     lastLogin: "",
@@ -3720,7 +3733,17 @@ function handleTwitchEventBonusBusEvent(envelope = {}) {
 
 function installTwitchEventBonusSubscriber() {
   const binding = state.twitchEventBonusBinding;
-  if (binding.installed === true) return { ok: true, installed: true, alreadyInstalled: true, subscriptionId: binding.subscriptionId };
+  if (binding.installed === true) {
+    return {
+      ok: true,
+      installed: true,
+      alreadyInstalled: true,
+      subscriptionId: binding.subscriptionId,
+      subscriptionIds: Array.isArray(binding.subscriptionIds) ? [...binding.subscriptionIds] : [],
+      subscriptionCount: Number(binding.subscriptionCount || 0)
+    };
+  }
+
   const bus = getCommunicationBus();
   if (!bus || typeof bus.subscribe !== "function") {
     binding.installed = false;
@@ -3728,30 +3751,59 @@ function installTwitchEventBonusSubscriber() {
     return { ok: false, installed: false, reason: binding.lastError };
   }
 
-  const result = bus.subscribe({
-    id: "loyalty:twitch.events:bonus_events",
-    module: MODULE_NAME,
-    sourceModule: "twitch_events",
-    action: "received",
-    meta: {
-      step: "LC-CORE-POINTS-3A",
-      purpose: "loyalty_event_bonus_from_twitch_events",
+  const installed = [];
+  for (const item of TWITCH_EVENT_BONUS_SUBSCRIPTIONS) {
+    const result = bus.subscribe({
+      id: item.subscriptionId,
+      module: MODULE_NAME,
       sourceModule: "twitch_events",
-      consumes: [...TWITCH_EVENT_BONUS_KEYS]
-    }
-  }, (envelope) => handleTwitchEventBonusBusEvent(envelope));
+      channel: item.channel,
+      action: item.action,
+      meta: {
+        step: "LC-CORE-POINTS-3C",
+        purpose: "loyalty_event_bonus_from_twitch_events_filtered_support_events",
+        sourceModule: "twitch_events",
+        eventKey: item.eventKey,
+        consumes: [item.eventKey]
+      }
+    }, (envelope) => handleTwitchEventBonusBusEvent(envelope));
 
-  if (!result || result.ok !== true) {
-    binding.installed = false;
-    binding.lastError = String(result && (result.reason || result.error) || "subscription_failed");
-    return { ok: false, installed: false, reason: binding.lastError };
+    if (!result || result.ok !== true) {
+      binding.installed = false;
+      binding.subscriptionIds = installed.map((sub) => sub.subscriptionId);
+      binding.subscriptions = installed;
+      binding.subscriptionCount = installed.length;
+      binding.lastError = String(result && (result.reason || result.error) || `subscription_failed:${item.eventKey}`);
+      binding.lastResult = { ok: false, installed: false, reason: binding.lastError, failedEventKey: item.eventKey, installed };
+      return { ok: false, installed: false, reason: binding.lastError, failedEventKey: item.eventKey, installed };
+    }
+
+    installed.push({
+      eventKey: item.eventKey,
+      channel: item.channel,
+      action: item.action,
+      subscriptionId: result.subscription && result.subscription.id ? String(result.subscription.id) : item.subscriptionId
+    });
   }
 
   binding.installed = true;
-  binding.subscriptionId = result.subscription && result.subscription.id ? String(result.subscription.id) : "loyalty:twitch.events:bonus_events";
+  binding.subscriptions = installed;
+  binding.subscriptionIds = installed.map((item) => item.subscriptionId);
+  binding.subscriptionCount = installed.length;
+  binding.subscriptionId = binding.subscriptionIds.join(",");
   binding.lastError = "";
-  binding.lastResult = { ok: true, installed: true, subscriptionId: binding.subscriptionId };
-  return { ok: true, installed: true, subscriptionId: binding.subscriptionId };
+  binding.lastResult = {
+    ok: true,
+    installed: true,
+    subscriptionIds: [...binding.subscriptionIds],
+    subscriptionCount: binding.subscriptionCount
+  };
+  return {
+    ok: true,
+    installed: true,
+    subscriptionIds: [...binding.subscriptionIds],
+    subscriptionCount: binding.subscriptionCount
+  };
 }
 
 function installCentralStreamStatusSubscriber() {

@@ -11,8 +11,8 @@ const database = require('../core/database');
 const communicationBus = require('./communication_bus');
 
 const MODULE_NAME = 'twitch';
-const MODULE_VERSION = '0.1.6';
-const MODULE_BUILD = 'LC_CORE_POINTS_3B_SUPPORT_EVENTS_TWITCH_EVENTS_PARALLEL';
+const MODULE_VERSION = '0.1.7';
+const MODULE_BUILD = 'LC_CORE_POINTS_3C_FILTERED_LOYALTY_SUBSCRIPTIONS_LEGACY_DIAGNOSTICS';
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
@@ -217,6 +217,27 @@ module.exports.init = function init(ctx) {
     maxSeenMessages: 1000
   };
 
+
+  const legacyLoyaltyDirectForwardState = {
+    enabled: env.TWITCH_EVENTSUB_LOYALTY_DIRECT_FORWARD !== 'false',
+    mode: 'legacy-direct-forward-safety-net',
+    source: 'twitch.js EventSub notification handler',
+    targetUrl: DEFAULT_TWITCH_ALERT_CONFIG.loyaltyForward.url,
+    note: 'Legacy-Sicherheitsnetz bleibt bis zum gezielten Cleanup aktiv. Nicht entfernen, bevor Twitch-Events -> Loyalty stabil getestet und freigegeben ist.',
+    forwarded: 0,
+    skipped: 0,
+    failed: 0,
+    byType: {},
+    lastForwardedAt: '',
+    lastSkippedAt: '',
+    lastFailedAt: '',
+    lastResultReason: '',
+    lastEventSubType: '',
+    lastUserLogin: '',
+    lastMessageId: '',
+    lastError: ''
+  };
+
   function getTwitchEventsModule() {
     if (twitchEventsModule) return twitchEventsModule;
     try {
@@ -251,6 +272,17 @@ module.exports.init = function init(ctx) {
       seenMessageCount: supportEventsTwitchEventsParallelState.seenMessageIdSet instanceof Set
         ? supportEventsTwitchEventsParallelState.seenMessageIdSet.size
         : 0
+    };
+  }
+
+
+  function getLegacyLoyaltyDirectForwardStatus() {
+    const cfg = getTwitchAlertBridgeConfig();
+    const loyaltyCfg = cfg.loyaltyForward || DEFAULT_TWITCH_ALERT_CONFIG.loyaltyForward;
+    return {
+      ...legacyLoyaltyDirectForwardState,
+      targetUrl: loyaltyCfg?.url || DEFAULT_TWITCH_ALERT_CONFIG.loyaltyForward.url,
+      configEnabled: loyaltyCfg?.enabled !== false
     };
   }
 
@@ -2683,6 +2715,7 @@ module.exports.init = function init(ctx) {
         channelpoints: getChannelpointsTwitchEventsParallelStatus(),
         supportEvents: getSupportEventsTwitchEventsParallelStatus()
       },
+      legacyLoyaltyDirectForward: getLegacyLoyaltyDirectForwardStatus(),
       shoutoutReadiness: buildShoutoutEventSubReadinessSnapshot(),
       deathcounterSync: getDeathcounterSyncStatus(),
       vipEventBus: {
@@ -3368,6 +3401,56 @@ module.exports.init = function init(ctx) {
   }
 
   
+  async function forwardLegacyLoyaltyEventSubDirect(subscriptionType, event = {}, meta = {}, subscription = {}, source = 'notification') {
+    const type = String(subscriptionType || '').trim();
+    legacyLoyaltyDirectForwardState.lastEventSubType = type;
+    legacyLoyaltyDirectForwardState.lastMessageId = String(meta?.message_id || meta?.messageId || meta?.id || '');
+
+    if (legacyLoyaltyDirectForwardState.enabled !== true) {
+      legacyLoyaltyDirectForwardState.skipped += 1;
+      legacyLoyaltyDirectForwardState.lastSkippedAt = core.nowIso();
+      legacyLoyaltyDirectForwardState.lastResultReason = 'disabled_by_env';
+      return { ok: true, skipped: true, reason: 'legacy_loyalty_direct_forward_disabled_by_env' };
+    }
+
+    try {
+      const loyaltyPayload = normalizeTwitchEventSubToLoyaltyEvent(type, event, meta, subscription);
+      if (!loyaltyPayload) {
+        legacyLoyaltyDirectForwardState.skipped += 1;
+        legacyLoyaltyDirectForwardState.lastSkippedAt = core.nowIso();
+        legacyLoyaltyDirectForwardState.lastResultReason = 'no_loyalty_payload';
+        return { ok: true, skipped: true, reason: 'no_loyalty_payload' };
+      }
+
+      const result = await forwardLoyaltyPayloadToLoyaltySystem(loyaltyPayload, type);
+      legacyLoyaltyDirectForwardState.lastUserLogin = String(loyaltyPayload.login || loyaltyPayload.userLogin || '').trim().toLowerCase();
+      legacyLoyaltyDirectForwardState.lastResultReason = result && (result.reason || result.error) ? String(result.reason || result.error) : 'ok';
+      legacyLoyaltyDirectForwardState.byType[type] = Number(legacyLoyaltyDirectForwardState.byType[type] || 0) + 1;
+
+      if (result && result.ok === false) {
+        legacyLoyaltyDirectForwardState.failed += 1;
+        legacyLoyaltyDirectForwardState.lastFailedAt = core.nowIso();
+        legacyLoyaltyDirectForwardState.lastError = String(result.error || result.reason || 'legacy_loyalty_forward_failed');
+      } else if (result && result.skipped === true) {
+        legacyLoyaltyDirectForwardState.skipped += 1;
+        legacyLoyaltyDirectForwardState.lastSkippedAt = core.nowIso();
+        legacyLoyaltyDirectForwardState.lastError = '';
+      } else {
+        legacyLoyaltyDirectForwardState.forwarded += 1;
+        legacyLoyaltyDirectForwardState.lastForwardedAt = core.nowIso();
+        legacyLoyaltyDirectForwardState.lastError = '';
+      }
+
+      return result || { ok: false, reason: 'no_result' };
+    } catch (err) {
+      legacyLoyaltyDirectForwardState.failed += 1;
+      legacyLoyaltyDirectForwardState.lastFailedAt = core.nowIso();
+      legacyLoyaltyDirectForwardState.lastResultReason = 'exception';
+      legacyLoyaltyDirectForwardState.lastError = err && err.message ? err.message : String(err);
+      return { ok: false, reason: 'exception', error: legacyLoyaltyDirectForwardState.lastError };
+    }
+  }
+
 function normalizeTwitchEventSubToLoyaltyEvent(subscriptionType, event, meta = {}, subscription = {}) {
     const messageId = meta.message_id || meta.messageId || '';
     const base = {
@@ -3700,8 +3783,11 @@ function buildFakeTwitchAlertEvent(kind, query) {
         }
 
         try {
-          const loyaltyPayload = normalizeTwitchEventSubToLoyaltyEvent(sub.type, event, meta, sub);
-          if (loyaltyPayload) await forwardLoyaltyPayloadToLoyaltySystem(loyaltyPayload, sub.type);
+          const loyaltyDirectResult = await forwardLegacyLoyaltyEventSubDirect(sub.type, event, meta, sub, 'notification');
+          if (loyaltyDirectResult && loyaltyDirectResult.ok === false) {
+            rememberTwitchAlertBridge({ action: 'loyalty_failed', subscriptionType: sub.type, error: loyaltyDirectResult.error || loyaltyDirectResult.reason || 'unknown' });
+            console.warn('[eventsub-loyalty] forward failed:', loyaltyDirectResult.error || loyaltyDirectResult.reason || 'unknown');
+          }
         } catch (e) {
           rememberTwitchAlertBridge({ action: 'loyalty_failed', subscriptionType: sub.type, error: e?.message || String(e) });
           console.warn('[eventsub-loyalty] forward failed:', e?.message || e);
