@@ -1,45 +1,57 @@
 # Twitch Events → Loyalty Bonus Events
 
 Stand: 2026-06-15
-Projekt: `stream-control-center`
+Status: LC-CORE-POINTS-3E live bestätigt
 
-## Zweck
+## Ziel
 
-Diese Doku beschreibt den aktuellen bestätigten Pfad für Twitch-Support-Events, die Loyalty-Punkte auslösen.
+`twitch_events` ist die zentrale Quelle für abonnierbare Twitch-Events. `loyalty` verarbeitet Twitch-Bonus-Events nicht mehr über den direkten Legacy-Pfad, sondern über gezielte Subscriptions am Communication Bus.
 
-## Produktiver Pfad
+## Bestätigte Verarbeitungskette
 
 ```text
-Twitch EventSub Notification
+Twitch EventSub
 → backend/modules/twitch.js
 → twitch_events.handleEventSubNotification(...)
 → backend/modules/twitch_events.js
 → Communication Bus
 → backend/modules/loyalty.js
 → recordEventBonus(...)
-→ Loyalty Event + Transaktion
+→ Loyalty-Event + Transaktion
 ```
 
-## Unterstützte Eventtypen
+## Beteiligte Dateien
 
 ```text
-channel.follow                → twitch.follow.received
-channel.subscribe             → twitch.sub.received
-channel.subscription.message  → twitch.resub.received
-channel.subscription.gift     → twitch.subgift.received
-channel.cheer                 → twitch.cheer.received
-channel.raid                  → twitch.raid.received
+backend/modules/twitch.js
+backend/modules/twitch_events.js
+backend/modules/communication_bus.js
+backend/modules/loyalty.js
+backend/modules/helpers/helper_communication.js
 ```
 
-Hinweis:
+## Versionen
 
 ```text
-GiftBomb wird über das vorhandene Mapping/Handling in twitch_events/loyalty berücksichtigt, soweit dort EventSub-Daten entsprechend erkannt werden.
+backend/modules/loyalty.js  0.1.17
+backend/modules/twitch.js   0.1.10
+```
+
+## Unterstützte Bonus-Events
+
+```text
+twitch.follow.received   → follow
+twitch.sub.received      → subscribe
+twitch.resub.received    → resub
+twitch.subgift.received  → gift_sub
+twitch.giftbomb.received → gift_bomb
+twitch.cheer.received    → cheer
+twitch.raid.received     → raid
 ```
 
 ## Loyalty-Subscriptions
 
-`loyalty.js` nutzt seit Version 0.1.17 gezielte Subscriptions:
+`loyalty` nutzt 7 gezielte Bus-Subscriptions:
 
 ```text
 twitch.follow   / received
@@ -51,25 +63,32 @@ twitch.cheer    / received
 twitch.raid     / received
 ```
 
-Dadurch werden rohe EventSub-Events wie `twitch.eventsub.notification.received` nicht mehr als Loyalty-Skips gezählt.
+Dadurch werden rohe/systemnahe Events wie `twitch.eventsub.notification.received` nicht mehr als Loyalty-Bonus-Event gesehen und erzeugen keine unnötigen `skipped`-Zähler mehr.
 
 ## Legacy-Direktforward
 
-Der alte direkte Pfad:
+Der alte direkte Forward von EventSub zu Loyalty ist im Code noch vorhanden, aber standardmäßig deaktiviert.
+
+Standard:
 
 ```text
-EventSub → normalizeTwitchEventSubToLoyaltyEvent(...) → /api/loyalty/events/bonus
+TWITCH_EVENTSUB_LOYALTY_DIRECT_FORWARD nicht gesetzt
+→ disabled
 ```
 
-ist seit `twitch.js` Version 0.1.9 standardmäßig deaktiviert.
-
-Fallback:
+Notfall-Fallback:
 
 ```text
 TWITCH_EVENTSUB_LOYALTY_DIRECT_FORWARD=true
 ```
 
-Nur im Notfall verwenden, wenn der neue Bus-Weg ausfällt.
+Seit LC-CORE-POINTS-3E wird die Legacy-Funktion bei deaktiviertem Zustand nicht mehr pro Event aufgerufen. Dadurch bleiben die Legacy-Zähler bei normalen Events sauber:
+
+```text
+legacy.forwarded = 0
+legacy.skipped = 0
+legacy.failed = 0
+```
 
 ## Statusrouten
 
@@ -79,10 +98,18 @@ Nur im Notfall verwenden, wenn der neue Bus-Weg ausfällt.
 GET /api/loyalty/status
 ```
 
-Wichtiger Block:
+Wichtige Felder:
 
 ```text
-twitchEventBonusBinding
+version
+twitchEventBonusBinding.installed
+twitchEventBonusBinding.subscriptionCount
+twitchEventBonusBinding.received
+twitchEventBonusBinding.processed
+twitchEventBonusBinding.skipped
+twitchEventBonusBinding.errors
+twitchEventBonusBinding.lastEventKey
+twitchEventBonusBinding.lastLogin
 ```
 
 ### Twitch EventSub
@@ -91,27 +118,51 @@ twitchEventBonusBinding
 GET /api/twitch/eventsub/status
 ```
 
-Wichtige Blöcke:
+Wichtige Felder:
 
 ```text
-twitchEventsParallel.supportEvents
-legacyLoyaltyDirectForward
+twitchEventsParallel.supportEvents.enabled
+twitchEventsParallel.supportEvents.forwarded
+twitchEventsParallel.supportEvents.failed
+twitchEventsParallel.supportEvents.lastEventSubType
+twitchEventsParallel.supportEvents.lastUserLogin
+legacyLoyaltyDirectForward.enabled
+legacyLoyaltyDirectForward.forwarded
+legacyLoyaltyDirectForward.skipped
+legacyLoyaltyDirectForward.failed
 ```
 
-### Twitch Events
+## Bestätigte Live-Tests
+
+### Cheer
 
 ```text
-GET /api/twitch/events/status
+lastEventKey: twitch.cheer.received
+lastLogin: akighosty
+received: 1
+processed: 1
+skipped: 0
+errors: 0
+supportEvents.forwarded: 1
+legacy.forwarded: 0
+legacy.skipped: 0 nach 3E
 ```
 
-Wichtige Blöcke:
+### Follow
 
 ```text
-diagnostics.counts
-diagnostics.runtime.lastEvent
+lastEventKey: twitch.follow.received
+lastLogin: bossmod_cgn
+received: 1
+processed: 1
+skipped: 0
+errors: 0
+supportEvents.forwarded: 1
+legacy.forwarded: 0
+legacy.skipped: 0
 ```
 
-## Minimaltest
+## Minimaler Testblock
 
 ```powershell
 $loy = Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/status"
@@ -122,13 +173,16 @@ $t.twitchEventsParallel.supportEvents | Select-Object enabled,forwarded,failed,l
 $t.legacyLoyaltyDirectForward | Select-Object enabled,forwarded,skipped,failed,lastEventSubType,lastUserLogin,lastError
 ```
 
-Erwartung nach echtem Event:
+## Nächster fachlicher Bereich
+
+Twitch Events als zentrale Alert-Event-Quelle vorbereiten.
+
+Nicht sofort umbauen. Erst prüfen:
 
 ```text
-supportEvents.forwarded steigt
-loyalty.received steigt
-loyalty.processed steigt
-loyalty.skipped bleibt 0
-legacyLoyaltyDirectForward.forwarded bleibt 0
-errors/failed bleiben 0
+alert_system.js aktueller Event-Eingang
+vorhandene Twitch-Event-Mappings
+benötigte Alert-Daten pro Eventtyp
+bestehende Legacy-Pfade
+Tests und Rollback
 ```
