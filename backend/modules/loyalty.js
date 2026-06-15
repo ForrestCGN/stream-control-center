@@ -39,7 +39,7 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "loyalty";
-const VERSION = "0.1.19";
+const VERSION = "0.1.20";
 const MODULE_VERSION = VERSION;
 const STREAM_STATUS_API_PATH = "/api/twitch/events/stream-state";
 const MODULE_META = {
@@ -3355,6 +3355,141 @@ function sampleBonusInputForType(type) {
   return { eventType: normalized, tier: "none", quantity: 1 };
 }
 
+
+function describeBonusCalculation(input = {}) {
+  let calculated = null;
+  try {
+    calculated = calculateEventBonus(input);
+  } catch (err) {
+    calculated = {
+      ok: false,
+      skipped: true,
+      reason: err && err.message ? err.message : String(err),
+      type: normalizeEventType(input.eventType || input.type),
+      amount: 0
+    };
+  }
+
+  return {
+    input: {
+      eventType: normalizeEventType(input.eventType || input.type),
+      tier: normalizeTier(input.tier || input.subTier || input.subscriptionTier),
+      quantity: Math.max(1, Number.parseInt(input.quantity || input.total || input.count || 1, 10) || 1),
+      bits: Number(input.bits || 0) || 0,
+      viewers: Number(input.viewers || 0) || 0,
+      months: Number(input.months || input.cumulativeMonths || input.cumulative_months || 0) || 0,
+      amount: Number(input.amount || 0) || 0
+    },
+    result: {
+      ok: calculated && calculated.ok === true,
+      skipped: calculated && calculated.skipped === true,
+      reason: calculated && calculated.reason ? calculated.reason : "",
+      type: calculated && calculated.type ? calculated.type : normalizeEventType(input.eventType || input.type),
+      amount: Math.floor(Number(calculated && calculated.amount || 0)),
+      tier: calculated && calculated.tier ? calculated.tier : normalizeTier(input.tier || input.subTier || input.subscriptionTier),
+      quantity: Math.max(1, Number.parseInt(calculated && calculated.quantity || input.quantity || input.total || input.count || 1, 10) || 1),
+      bits: Number(calculated && calculated.bits || 0) || 0,
+      viewers: Number(calculated && calculated.viewers || 0) || 0,
+      months: Number(calculated && calculated.months || 0) || 0
+    }
+  };
+}
+
+function buildTierBonusSamples(eventType, tiers = ["1000", "2000", "3000"]) {
+  return tiers.map((tier) => describeBonusCalculation({ eventType, tier, quantity: 1 }));
+}
+
+function buildResubBonusSamples() {
+  const samples = [];
+  for (const tier of ["1000", "2000", "3000"]) {
+    for (const months of [1, 3, 6, 12]) {
+      samples.push(describeBonusCalculation({ eventType: "resub", tier, months, quantity: 1 }));
+    }
+  }
+  return samples;
+}
+
+function buildGiftBombBonusSamples() {
+  const samples = [];
+  for (const tier of ["1000", "2000", "3000"]) {
+    for (const quantity of [1, 5, 10, 25]) {
+      samples.push(describeBonusCalculation({ eventType: "gift_bomb", tier, quantity }));
+    }
+  }
+  return samples;
+}
+
+function buildCheerBonusSamples() {
+  return [1, 50, 99, 100, 250, 500, 1000, 5000, 10000].map((bits) => (
+    describeBonusCalculation({ eventType: "cheer", bits, amount: bits, quantity: 1 })
+  ));
+}
+
+function buildRaidBonusSamples() {
+  return [1, 5, 10, 25, 50, 100].map((viewers) => (
+    describeBonusCalculation({ eventType: "raid", viewers, amount: viewers, quantity: 1 })
+  ));
+}
+
+function buildBonusValueDiagnostics() {
+  const bonuses = config.bonuses || {};
+  const features = config.features || {};
+
+  return {
+    moduleEnabled: config.enabled === true,
+    eventBonusesEnabled: features.eventBonusesEnabled === true,
+    mode: normalizeMode(config.mode),
+    rules: {
+      follow: {
+        config: describeBonusConfigForType("follow"),
+        samples: [describeBonusCalculation({ eventType: "follow", quantity: 1 })]
+      },
+      subscribe: {
+        config: describeBonusConfigForType("subscribe"),
+        tierNormalization: { prime: "1000", tier1: "1000", tier2: "2000", tier3: "3000" },
+        samples: buildTierBonusSamples("subscribe")
+      },
+      resub: {
+        config: describeBonusConfigForType("resub"),
+        streak: {
+          enabled: bonuses.subStreak?.enabled === true,
+          rules: Array.isArray(bonuses.subStreak?.rules) ? bonuses.subStreak.rules.map((rule) => ({ ...rule })) : []
+        },
+        samples: buildResubBonusSamples()
+      },
+      giftSubGiver: {
+        eventTypes: ["gift_sub", "gift_bomb"],
+        config: describeBonusConfigForType("gift_sub"),
+        quantityRule: "single_tier_amount_times_quantity",
+        samples: [
+          ...buildTierBonusSamples("gift_sub"),
+          ...buildGiftBombBonusSamples()
+        ]
+      },
+      giftSubReceiver: {
+        eventTypes: ["gifted_sub_received"],
+        config: describeBonusConfigForType("gifted_sub_received"),
+        sourceEvents: ["twitch.subgift.received", "twitch.giftbomb.received"],
+        busSubscribed: false,
+        internalDerived: true,
+        quantityRule: "one_receiver_bonus_per_known_recipient",
+        samples: buildTierBonusSamples("gifted_sub_received")
+      },
+      cheer: {
+        config: describeBonusConfigForType("cheer"),
+        formula: "floor((bits / 100) * amountPer100Bits)",
+        samples: buildCheerBonusSamples()
+      },
+      raid: {
+        config: describeBonusConfigForType("raid"),
+        formula: "fixed_amount_per_raid_event",
+        viewerCountAffectsPoints: false,
+        samples: buildRaidBonusSamples()
+      }
+    }
+  };
+}
+
 function buildBonusMappingRow({ eventKey, channel = "", action = "", eventType, busSubscribed, internalDerived = false, sourceEvents = [], reason = "" }) {
   const features = config.features || {};
   let sample = null;
@@ -3452,7 +3587,8 @@ function buildLoyaltyDiagnostics() {
         receiverEventBusSubscribed: false,
         receiverInternalDerived: true,
         receiverSourceEvents: ["twitch.subgift.received", "twitch.giftbomb.received"]
-      }
+      },
+      bonusValues: buildBonusValueDiagnostics()
     },
     pointsRunner: {
       enabled: runner.enabled === true,
