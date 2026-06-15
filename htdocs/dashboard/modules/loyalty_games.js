@@ -2205,23 +2205,39 @@ function renderGiveawayDetails(giveaway){
     const autoPointsEnabled = watchEnabled && watchEarningEnabled;
     const watchAmount = numberSettingValue(coreConfigValue('watch.amount', settingMap.get('watch.amount')), 2);
     const intervalMinutes = numberSettingValue(coreConfigValue('watch.intervalMinutes', settingMap.get('watch.intervalMinutes')), 10);
+    const subscriberMultiplier = numberSettingValue(coreConfigValue('watch.subscriberMultiplier', settingMap.get('watch.subscriberMultiplier')), 3);
+    const subscriberTierAmounts = coreConfigValue('watch.subscriberTierAmounts', {});
+    const tier1000 = numberSettingValue(pathValue(subscriberTierAmounts, '1000', undefined), Math.max(0, Math.floor(watchAmount * subscriberMultiplier)));
+    const tier2000 = numberSettingValue(pathValue(subscriberTierAmounts, '2000', undefined), tier1000);
+    const tier3000 = numberSettingValue(pathValue(subscriberTierAmounts, '3000', undefined), tier1000);
     const runOnlyWhenLive = boolSettingValue(coreConfigValue('autoRunner.runOnlyWhenLive', settingMap.get('autoRunner.runOnlyWhenLive')), true);
     const activeMinutes = numberSettingValue(coreConfigValue('autoRunner.activeMinutes', settingMap.get('autoRunner.activeMinutes')), 30);
     const maxUsersPerRun = numberSettingValue(coreConfigValue('autoRunner.maxUsersPerRun', settingMap.get('autoRunner.maxUsersPerRun')), 250);
     const includeJoinedOnly = boolSettingValue(coreConfigValue('autoRunner.includeJoinedOnly', settingMap.get('autoRunner.includeJoinedOnly')), true);
     return renderConfigPanelShell('Core · Automatische Punkte', 'Regeln für Punkte, die Zuschauer automatisch durch Anwesenheit oder Aktivität bekommen.', `
       <form class="lg-form" data-lg-core-auto-points-settings>
+        <h4 class="lg-config-subtitle">Zuschauerpunkte</h4>
         <div class="lg-config-form-grid">
           ${renderEditableToggle('Automatische Punkte vergeben', 'autoPointsEnabled', autoPointsEnabled, 'Wenn aktiv, kann das System regelmäßig Anwesenheitspunkte vergeben.')}
-          ${renderEditableNumber('Punkte pro Intervall', 'watchAmount', watchAmount, 'So viele Punkte bekommt ein Zuschauer pro gültigem Intervall.', { min: 0, step: 1 })}
+          ${renderEditableNumber('Punkte pro Intervall', 'watchAmount', watchAmount, 'So viele Punkte bekommt ein normaler Zuschauer pro gültigem Intervall.', { min: 0, step: 1 })}
           ${renderEditableNumber('Intervall in Minuten', 'intervalMinutes', intervalMinutes, 'Nach wie vielen Minuten erneut Punkte vergeben werden können.', { min: 1, step: 1 })}
           ${renderEditableToggle('Nur wenn Stream live ist', 'runOnlyWhenLive', runOnlyWhenLive, 'Empfohlen: aktiv. Dann zählt die automatische Vergabe nur während eines Live-Streams.')}
           ${renderEditableNumber('Aktivitätsfenster', 'activeMinutes', activeMinutes, 'Zuschauer gelten als aktiv, wenn sie innerhalb dieser Minuten gesehen wurden.', { min: 1, step: 1 })}
           ${renderEditableNumber('Max. User pro Lauf', 'maxUsersPerRun', maxUsersPerRun, 'Schutzlimit, damit ein Lauf nicht zu viele User auf einmal verarbeitet.', { min: 1, step: 1 })}
           ${renderEditableToggle('JOIN-only User mitzählen', 'includeJoinedOnly', includeJoinedOnly, 'Wenn aktiv, können auch User aus der Presence-Erkennung berücksichtigt werden, selbst wenn sie gerade nichts geschrieben haben.')}
         </div>
+        <h4 class="lg-config-subtitle">Abo-Bonus bei automatischen Punkten</h4>
+        <p class="lg-muted">Subs können pro Intervall andere Werte bekommen als normale Zuschauer. Diese Werte werden vom Punkte-Runner verwendet.</p>
+        <div class="lg-config-form-grid">
+          ${renderEditableNumber('Sub-Fallback-Multiplikator', 'subscriberMultiplier', subscriberMultiplier, 'Wird nur genutzt, wenn für ein Sub-Tier kein eigener Wert gesetzt ist. Beispiel: 2 Punkte × 3 = 6 Punkte.', { min: 1, step: 1 })}
+          ${renderEditableNumber('Tier 1 Sub pro Intervall', 'subTier1000', tier1000, 'Punkte pro Intervall für Tier-1-Subs.', { min: 0, step: 1 })}
+          ${renderEditableNumber('Tier 2 Sub pro Intervall', 'subTier2000', tier2000, 'Punkte pro Intervall für Tier-2-Subs.', { min: 0, step: 1 })}
+          ${renderEditableNumber('Tier 3 Sub pro Intervall', 'subTier3000', tier3000, 'Punkte pro Intervall für Tier-3-Subs.', { min: 0, step: 1 })}
+        </div>
         ${renderConfigSummaryRows([
           ['Runner aktuell', runner.enabled || runner.timerActive ? 'aktiv' : 'inaktiv'],
+          ['Normale Zuschauer', `${watchAmount} pro Intervall`],
+          ['Tier 1 / Tier 2 / Tier 3', `${tier1000} / ${tier2000} / ${tier3000} pro Intervall`],
           ['Letzte Prüfung', runner.lastRunAt || runner.updatedAt || '-'],
           ['Letzter Fehler', runner.lastError || '-']
         ])}
@@ -2760,7 +2776,13 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
         watch: {
           enabled,
           amount: numberValue('watchAmount', 2, 0),
-          intervalMinutes: numberValue('intervalMinutes', 10, 1)
+          intervalMinutes: numberValue('intervalMinutes', 10, 1),
+          subscriberMultiplier: numberValue('subscriberMultiplier', 3, 1),
+          subscriberTierAmounts: {
+            1000: numberValue('subTier1000', 6, 0),
+            2000: numberValue('subTier2000', 8, 0),
+            3000: numberValue('subTier3000', 10, 0)
+          }
         },
         features: {
           watchEarningEnabled: enabled
