@@ -23,8 +23,8 @@ const database = require("../core/database");
 const loyaltyCore = require("./loyalty");
 
 const MODULE_NAME = "loyalty_giveaways";
-const MODULE_VERSION = "0.1.2";
-const MODULE_BUILD = "STEP_LC_RAFFLE_1";
+const MODULE_VERSION = "0.1.3";
+const MODULE_BUILD = "STEP_LC_RAFFLE_1B";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -129,7 +129,7 @@ const CENTRAL_COMMAND_DEFINITIONS = [
     liveOnly: false,
     responseMode: "module",
     config: {
-      seededBy: "STEP_LC_RAFFLE_1",
+      seededBy: "STEP_LC_RAFFLE_1B",
       actionType: "module_command",
       moduleCommand: "raffle",
       rawInputMode: true,
@@ -150,7 +150,7 @@ const CENTRAL_COMMAND_DEFINITIONS = [
     liveOnly: false,
     responseMode: "module",
     config: {
-      seededBy: "STEP_LC_RAFFLE_1",
+      seededBy: "STEP_LC_RAFFLE_1B",
       actionType: "module_command",
       moduleCommand: "join",
       rawInputMode: true,
@@ -199,45 +199,72 @@ const CHAT_TEXT_DEFAULTS = {
   "raffle.started": [
     "Die Heimleitung öffnet die kleine Lostrommel! Tippt !join – {duration} Sekunden Zeit.",
     "Raffle läuft! {duration} Sekunden, ein Los pro Nase. Rein mit !join.",
-    "Die Rentnergang zählt die Lose: !join in den Chat, {duration} Sekunden Zeit."
+    "Die Rentnergang zählt die Lose: !join in den Chat, {duration} Sekunden Zeit.",
+    "Kekskrümel-Tombola gestartet! Wer mit will, ruft !join. Zeitfenster: {duration}s.",
+    "Die Lostrommel klappert durchs Altersheim. !join tippen, bevor die Heimleitung den Deckel schließt."
   ],
   "raffle.already_active": [
     "Es läuft schon eine Raffle. Die Heimleitung öffnet nicht zwei Lostrommeln gleichzeitig.",
-    "Langsam, Chef: Eine Raffle ist bereits offen. Erst die aktuelle auslosen lassen."
+    "Langsam, Chef: Eine Raffle ist bereits offen. Erst die aktuelle auslosen lassen.",
+    "Die aktuelle Raffle läuft noch {remaining}s. Mit !join kommt ihr noch rein.",
+    "Nicht drängeln: Die Lostrommel ist schon offen. Teilnehmer bisher: {entries}.",
+    "Eine Raffle ist bereits aktiv. Die Heimleitung hat nur eine Brille und eine Trommel."
   ],
   "raffle.joined": [
     "{user} liegt im Lostopf. Bitte nicht am Deckel rütteln.",
     "{user}, dein Loszettel wurde abgestempelt.",
-    "{user} ist drin. Die Heimleitung nickt streng, aber fair."
+    "{user} ist drin. Die Heimleitung nickt streng, aber fair.",
+    "{user} hat sich einen Platz in der Rentner-Trommel gesichert. Teilnehmer: {entries}.",
+    "Los eingeworfen: {user}. Die Trommel wird langsam schwer."
   ],
   "raffle.already_joined": [
     "{user}, du liegst schon im Lostopf. Nicht doppelt drängeln, Rentner!",
-    "{user}, ein Los pro Nase. Die Heimleitung hat dich schon notiert."
+    "{user}, ein Los pro Nase. Die Heimleitung hat dich schon notiert.",
+    "{user}, dein Zettel klebt bereits im Klemmbrett.",
+    "{user}, zweimal eintragen zählt nicht. Die Rentnergang prüft mit Lesebrille.",
+    "{user}, du bist schon dabei. Bitte zurück in die Warteschlange am Buffet."
   ],
   "raffle.no_active": [
     "Aktuell läuft keine Raffle. Die Lostrommel macht Pause.",
-    "Keine aktive Raffle gefunden. Erst muss die Heimleitung !raffle rufen."
+    "Keine aktive Raffle gefunden. Erst muss die Heimleitung !raffle rufen.",
+    "Noch keine Tombola offen. Die Heimleitung sucht gerade den Schlüssel zur Lostrommel.",
+    "Gerade gibt es nichts zum Beitreten. Erst wenn !raffle läuft, bringt !join etwas.",
+    "Die Lostrommel ist zu. Ohne aktive Raffle bleibt dein Loszettel auf dem Tisch."
   ],
   "raffle.status": [
     "Raffle läuft noch {remaining}s. Teilnehmer: {entries}. Mit !join rein in den Lostopf.",
-    "Lostrommel offen: {entries} Teilnehmer, noch {remaining}s Restzeit."
+    "Lostrommel offen: {entries} Teilnehmer, noch {remaining}s Restzeit.",
+    "Zwischenstand vom Klemmbrett: {entries} Lose, {remaining}s bis zur Ziehung.",
+    "Die Heimleitung zählt: {entries} Teilnehmer. Noch {remaining}s Zeit für !join.",
+    "Raffle-Status: Trommel offen, {entries} drin, {remaining}s bis zur Rentner-Ziehung."
   ],
   "raffle.cancelled": [
     "Raffle abgebrochen. Die Heimleitung kippt die Lose zurück in die Schublade.",
-    "Die aktuelle Raffle wurde beendet. Keine Ziehung, keine Diskussion am Kaffeetisch."
+    "Die aktuelle Raffle wurde beendet. Keine Ziehung, keine Diskussion am Kaffeetisch.",
+    "Tombola gestoppt. Die Lostrommel wird wieder in den Schrank gerollt.",
+    "Raffle gecancelt. Die Rentnergang legt die Zettel wieder glatt.",
+    "Abbruch durch die Heimleitung. Alle Lose gehen zurück in die Aktenmappe."
   ],
   "raffle.no_entries": [
     "Die Raffle ist vorbei, aber niemand ist eingestiegen. Die Lostrommel ist leer.",
-    "Keine Teilnehmer. Die Heimleitung trägt ein trauriges Nichts ins Klemmbrett ein."
+    "Keine Teilnehmer. Die Heimleitung trägt ein trauriges Nichts ins Klemmbrett ein.",
+    "Ziehung ohne Lose. Das Altersheim schweigt betroffen.",
+    "Die Trommel war offen, aber keiner wollte rein. Kaffee gibt es trotzdem.",
+    "Raffle beendet: 0 Teilnehmer. Die Heimleitung schaut streng in den leeren Lostopf."
   ],
   "raffle.winners": [
     "Raffle beendet! Gewinner ({winnerCount}/{entries}): {winners}",
     "Die Heimleitung hat gezogen. Gewinner: {winners} – Teilnehmer: {entries}.",
-    "Lostrommel zu, Brille geputzt, Gewinner gefunden: {winners}"
+    "Lostrommel zu, Brille geputzt, Gewinner gefunden: {winners}",
+    "Die Rentner-Trommel hat gesprochen! Glückwunsch an: {winners}",
+    "Klemmbrett finalisiert. Gewinner ({winnerCount}) aus {entries} Teilnehmern: {winners}"
   ],
   "raffle.permission_denied": [
     "{user}, die Lostrommel darf nur die Heimleitung öffnen.",
-    "{user}, dafür brauchst du Mod-Rechte. Die Rentnergang passt auf."
+    "{user}, dafür brauchst du Mod-Rechte. Die Rentnergang passt auf.",
+    "{user}, Finger weg von der Lostrommel. Nur Mods dürfen starten oder abbrechen.",
+    "{user}, ohne Heimleitungs-Ausweis bleibt die Tombola zu.",
+    "{user}, netter Versuch. Die Raffle-Schlüssel liegen beim Mod-Team."
   ],
   "wheel.disabled": [
     "{user}, das Glücksrad steht bereit, aber der Hausmeister hat den Strom noch nicht eingeschaltet.",
@@ -5115,6 +5142,22 @@ function buildCommandRuntimeResponse(input = {}, patch = {}) {
   };
   const messageKey = patch.messageKey || "";
   const message = patch.message || (messageKey ? renderChatRuntimeText(messageKey, context, patch.options || {}) : "");
+  const isRaffleMessage = String(messageKey || "").startsWith("raffle.");
+  const shouldDirectSend = isRaffleMessage && Boolean(message) && patch.directChat !== false && shouldSendChatForRequest(input);
+
+  if (shouldDirectSend) {
+    setTimeout(() => {
+      chatOutputHelper.sendChatMessage(message, {
+        source: MODULE_NAME,
+        reason: `raffle_${messageKey}`,
+        directSendEnabled: true,
+        fallbackToStreamerbot: true,
+        maxLength: 450
+      }).catch(err => {
+        if (state.raffle) state.raffle.lastError = err && err.message ? err.message : String(err);
+      });
+    }, 0);
+  }
 
   return {
     ok: patch.ok === true,
@@ -5129,9 +5172,10 @@ function buildCommandRuntimeResponse(input = {}, patch = {}) {
     message,
     chatMessage: message,
     shouldSendChat: Boolean(message),
+    directChatAttempted: shouldDirectSend,
     error: patch.error || "",
     data: patch.data || {},
-    note: patch.note || "Runtime verarbeitet fachliche Regeln. Ob der Chat-Command aufgerufen wird, entscheidet das zentrale commands-System."
+    note: patch.note || "Runtime verarbeitet fachliche Regeln. Raffle-Chatmeldungen werden ab STEP_LC_RAFFLE_1B direkt ueber helper_chat_output gesendet."
   };
 }
 
@@ -5700,7 +5744,7 @@ function buildStatus() {
       raffle: getRaffleSnapshot(),
       warnings: [
         "Chat-Commands !ticket, !wheel und !rad bleiben bestehende Giveaway-/Wheel-Commands.",
-        "!raffle und !join sind ab STEP_LC_RAFFLE_1 als einfache Chat-Raffle im Giveaway-Modul eingebettet.",
+        "!raffle und !join sind ab STEP_LC_RAFFLE_1B als einfache Chat-Raffle mit direkter Chat-Ausgabe ueber helper_chat_output eingebettet.",
         "Draw ist ab STEP_LWG_4M_2 nur nach closed_for_entries erlaubt.",
         "Wheel-Giveaways nutzen ab STEP_LWG_4M_5 ein aktives giveaway-bound Wheel fuer Permission/Claim/Spin."
       ],
