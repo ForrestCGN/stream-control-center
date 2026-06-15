@@ -1137,17 +1137,13 @@ window.LoyaltyGamesModule = (function(){
       </div>
 
       <div class="lg-panel">
-        <h3>Technik-Status</h3>
+        <h3>Kurzer Systemblick</h3>
+        <p class="lg-muted">Nur das Wichtigste. Technische Details gehören später in Logs oder Diagnose, nicht in die Startseite.</p>
         <div class="lg-kv">
-          <span>Core Schema</span><strong>${esc(core.schema?.ok ? 'OK · ' + (core.schema?.version ?? '-') : String(core.schema?.ok ?? '-'))}</strong>
-          <span>Core Modus</span><strong>${esc(core.mode || '-')}</strong>
-          <span>StreamElements</span><strong>${core.streamElementsStillActive ? 'aktiv' : 'aus'}</strong>
-          <span>Games Schema</span><strong>${esc(String(diag.schemaReady ?? '-'))}</strong>
-          <span>Giveaways Schema</span><strong>${esc(String(state.giveawaysStatus?.diagnostics?.schemaReady ?? '-'))}</strong>
-          <span>EventBus Games</span><strong>${diag.eventBus?.ready ? 'bereit' : 'broadcast_only'}</strong>
-          <span>EventBus Giveaways</span><strong>${state.giveawaysStatus?.diagnostics?.eventBus?.ready ? 'bereit' : 'broadcast_only'}</strong>
-          <span>DB</span><strong>${esc(db.adapter || db.dialect || '-')}</strong>
-          <span>LastError</span><strong>${status.lastError ? esc(status.lastError) : '<span class="lg-muted">leer</span>'}</strong>
+          <span>Core</span><strong>${core.ok === false ? 'prüfen' : 'OK'}</strong>
+          <span>Glücksrad/Games</span><strong>${status.ok === false ? 'prüfen' : 'OK'}</strong>
+          <span>Giveaways</span><strong>${state.giveawaysStatus?.ok === false ? 'prüfen' : 'OK'}</strong>
+          <span>Letzter Fehler</span><strong>${status.lastError ? esc(status.lastError) : '<span class="lg-muted">leer</span>'}</strong>
         </div>
       </div>
     `;
@@ -2058,7 +2054,7 @@ function renderGiveawayDetails(giveaway){
     const core = state.coreStatus || {};
     const settings = Array.isArray(core.settings) ? core.settings : [];
     const settingMap = new Map(settings.map(row => [row.key, row.value ?? row.rawValue]));
-    return renderConfigPanelShell('Core', 'Grundregeln für Punkte, Support-Boni und die automatische Vergabe. Detailbearbeitung bleibt im Core-Regeln-Bereich, wird später hier zentral zusammengeführt.', `
+    return renderConfigPanelShell('Core', 'Grundregeln für Punkte, Support-Boni und automatische Vergabe. Das ist die zentrale Stelle für Core-Einstellungen.', `
       <div class="lg-config-form-grid">
         ${renderReadonlyToggle('Loyalty aktiv', settingMap.get('enabled') !== false, 'Schaltet das Punktesystem grundsätzlich ein oder aus.')}
         ${renderReadonlySelect('Punkte-Name', settingMap.get('currency.name') || 'Kekskrümel', [[settingMap.get('currency.name') || 'Kekskrümel', settingMap.get('currency.name') || 'Kekskrümel']], 'So heißen die Punkte im Stream.')}
@@ -2067,9 +2063,9 @@ function renderGiveawayDetails(giveaway){
       ${renderConfigSummaryRows([
         ['Status', core.ok === false ? 'prüfen' : 'geladen'],
         ['Version', core.version || core.moduleVersion || '-'],
-        ['Core-Regeln', 'im Core-Tab vorhanden']
+        ['Core-Regeln', 'zentral hier in Einstellungen']
       ])}
-      <div class="lg-config-note">Die vorhandenen Core-Regeln bleiben erhalten und werden später schrittweise hier zentral zusammengeführt.</div>
+      <div class="lg-config-note">Core-Regeln gehören künftig hierher. Der Core-Tab bleibt für Kontrolle, User, Auswertung und Bedienung.</div>
     `);
   }
 

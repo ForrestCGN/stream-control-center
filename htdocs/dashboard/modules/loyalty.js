@@ -414,6 +414,20 @@ window.LoyaltyModule = (function(){
       </div>
       <div class="loyalty-grid">
         ${renderCoreDiagnostics()}
+        <section class="loyalty-card">
+          <h3>Zentrale Bereiche</h3>
+          <p class="loyalty-note">Core-Regeln und Core-Logs sind nicht doppelt hier versteckt, sondern zentral im Loyalty-Bereich.</p>
+          <div class="loyalty-actions loyalty-quick-actions">
+            <button type="button" data-loyalty-main-tab="config">Einstellungen öffnen</button>
+            <button type="button" data-loyalty-main-tab="history">Logs öffnen</button>
+            <button type="button" data-loyalty-main-tab="texts">Texte öffnen</button>
+          </div>
+          <div class="loyalty-rows compact">
+            <div><span>Regeln</span><strong>zentral unter Einstellungen</strong></div>
+            <div><span>Verlauf</span><strong>zentral unter Logs</strong></div>
+            <div><span>Texte</span><strong>zentral unter Texte</strong></div>
+          </div>
+        </section>
       </div>
     `;
   }
@@ -841,9 +855,7 @@ window.LoyaltyModule = (function(){
       ['control','Steuerung'],
       ['stats','Auswertung'],
       ['users','User'],
-      ['ignored','Bots ignorieren'],
-      ['config','Core-Regeln'],
-      ['events','Core-Logs']
+      ['ignored','Bots ignorieren']
     ];
 
     root.innerHTML = `
@@ -851,7 +863,7 @@ window.LoyaltyModule = (function(){
         <section class="loyalty-card loyalty-hero">
           <div>
             <h2>🍪 Loyalty / Core</h2>
-            <p>Hier kontrollierst du Punkte, automatische Vergabe, User, Bots und Core-Logs. Zentrale Einstellungen, Texte und Logs liegen oben im Loyalty-Bereich.</p>
+            <p>Hier kontrollierst du den Punkte-Core: Status, automatische Vergabe, User und ignorierte Bots. Einstellungen und Logs liegen zentral im Loyalty-Bereich.</p>
           </div>
           <div class="loyalty-actions">
             <button type="button" data-loyalty-refresh>Aktualisieren</button>
