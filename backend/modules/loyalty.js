@@ -39,7 +39,7 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "loyalty";
-const VERSION = "0.1.20";
+const VERSION = "0.1.21";
 const MODULE_VERSION = VERSION;
 const STREAM_STATUS_API_PATH = "/api/twitch/events/stream-state";
 const MODULE_META = {
@@ -196,7 +196,7 @@ const DEFAULT_CONFIG = {
       ]
     },
     cheer: { enabled: true, amountPer100Bits: 10 },
-    raid: { enabled: true, amount: 50 }
+    raid: { enabled: true, amount: 50, mode: "base_plus_viewers", baseAmount: 25, amountPerViewer: 2, maxAmount: 250 }
   },
   ignoredUsers: [
     "streamelements",
@@ -346,6 +346,10 @@ const SETTINGS_DEFINITIONS = [
   { key: "bonuses.cheer.amountPer100Bits", path: "bonuses.cheer.amountPer100Bits", valueType: "number", description: "Punkte pro 100 Bits." },
   { key: "bonuses.raid.enabled", path: "bonuses.raid.enabled", valueType: "boolean", description: "Raid-Bonus aktivieren." },
   { key: "bonuses.raid.amount", path: "bonuses.raid.amount", valueType: "number", description: "Raid-Bonus in Punkten." },
+  { key: "bonuses.raid.mode", path: "bonuses.raid.mode", valueType: "string", description: "Raid-Bonus-Modus: fixed oder base_plus_viewers." },
+  { key: "bonuses.raid.baseAmount", path: "bonuses.raid.baseAmount", valueType: "number", description: "Raid-Basispunkte im Modus base_plus_viewers." },
+  { key: "bonuses.raid.amountPerViewer", path: "bonuses.raid.amountPerViewer", valueType: "number", description: "Raid-Punkte pro Viewer im Modus base_plus_viewers." },
+  { key: "bonuses.raid.maxAmount", path: "bonuses.raid.maxAmount", valueType: "number", description: "Maximale Raid-Punkte pro Event im Modus base_plus_viewers. 0 deaktiviert das Limit." },
 
   { key: "expiration.enabled", path: "expiration.enabled", valueType: "boolean", description: "Punkteverfall aktivieren." },
   { key: "expiration.inactiveAfterDays", path: "expiration.inactiveAfterDays", valueType: "number", description: "Inaktivitätstage bis Punkteverfall." },
@@ -2453,7 +2457,18 @@ function calculateEventBonus(input = {}) {
 
   if (type === "raid") {
     if (!bonuses.raid?.enabled) return { ok: false, skipped: true, reason: "raid_bonus_disabled", type, amount: 0, tier, quantity };
-    return { ok: true, type, amount: Math.floor(Number(bonuses.raid.amount || 0)), tier, quantity, viewers: valueAmount };
+    const raid = bonuses.raid || {};
+    const viewers = Math.max(0, Math.floor(Number(input.viewers || input.amount || valueAmount || 0) || 0));
+    const mode = String(raid.mode || "fixed").trim().toLowerCase();
+    if (mode === "base_plus_viewers") {
+      const baseAmount = Math.floor(Number(raid.baseAmount || 0));
+      const amountPerViewer = Number(raid.amountPerViewer || 0);
+      const maxAmount = Math.floor(Number(raid.maxAmount || 0));
+      const rawAmount = Math.floor(baseAmount + (viewers * amountPerViewer));
+      const amount = maxAmount > 0 ? Math.min(rawAmount, maxAmount) : rawAmount;
+      return { ok: true, type, amount: Math.max(0, amount), tier, quantity, viewers, mode, baseAmount, amountPerViewer, maxAmount };
+    }
+    return { ok: true, type, amount: Math.floor(Number(raid.amount || 0)), tier, quantity, viewers, mode: "fixed" };
   }
 
   if (type === "tip") {
@@ -3303,7 +3318,15 @@ function describeBonusConfigForType(type) {
   }
 
   if (normalized === "raid") {
-    return { enabled: bonuses.raid?.enabled === true, amount: Math.floor(Number(bonuses.raid?.amount || 0)) };
+    const raid = bonuses.raid || {};
+    return {
+      enabled: raid.enabled === true,
+      amount: Math.floor(Number(raid.amount || 0)),
+      mode: String(raid.mode || "fixed").trim().toLowerCase(),
+      baseAmount: Math.floor(Number(raid.baseAmount || 0)),
+      amountPerViewer: Number(raid.amountPerViewer || 0),
+      maxAmount: Math.floor(Number(raid.maxAmount || 0))
+    };
   }
 
   if (normalized === "subscribe") {
@@ -3426,7 +3449,7 @@ function buildCheerBonusSamples() {
 }
 
 function buildRaidBonusSamples() {
-  return [1, 5, 10, 25, 50, 100].map((viewers) => (
+  return [1, 5, 10, 25, 50, 100, 150].map((viewers) => (
     describeBonusCalculation({ eventType: "raid", viewers, amount: viewers, quantity: 1 })
   ));
 }
@@ -3482,8 +3505,8 @@ function buildBonusValueDiagnostics() {
       },
       raid: {
         config: describeBonusConfigForType("raid"),
-        formula: "fixed_amount_per_raid_event",
-        viewerCountAffectsPoints: false,
+        formula: describeBonusConfigForType("raid").mode === "base_plus_viewers" ? "min(baseAmount + viewers * amountPerViewer, maxAmount)" : "fixed_amount_per_raid_event",
+        viewerCountAffectsPoints: describeBonusConfigForType("raid").mode === "base_plus_viewers",
         samples: buildRaidBonusSamples()
       }
     }
