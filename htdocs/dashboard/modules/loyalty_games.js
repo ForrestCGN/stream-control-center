@@ -1014,7 +1014,7 @@ window.LoyaltyGamesModule = (function(){
 
     const moduleCards = [
       {
-        title: 'Loyalty Core',
+        title: 'Core',
         icon: '🍪',
         moduleId: 'loyalty',
         description: `${esc(core.mode || 'shadow')} · ${fmtNumber(coreCounts.users || 0)} User · ${fmtNumber(coreCounts.transactions || 0)} Transaktionen`,
@@ -1051,14 +1051,14 @@ window.LoyaltyGamesModule = (function(){
       {
         title: 'Kanalpunkte',
         icon: '💎',
-        tab: 'notes',
+        tab: 'overview',
         description: 'spätere Preset- und Giveaway-Auslöser',
         health: channelpointsHealth
       },
       {
         title: 'Rewards',
         icon: '🏆',
-        tab: 'notes',
+        tab: 'overview',
         description: 'noch geplant',
         health: rewardsHealth
       }
@@ -1111,9 +1111,9 @@ window.LoyaltyGamesModule = (function(){
           ${badge(state.giveawaysStatus?.ok !== false, 'OK', 'Fehler')}
         </article>
         <article class="lg-card">
-          <span class="lg-card-label">CanBus Clients</span>
+          <span class="lg-card-label">Verbindungen</span>
           <strong>${fmtNumber(clients.length)}</strong>
-          <small>registrierte Clients im Communication-Bus</small>
+          <small>registrierte Dashboard-/Overlay-Verbindungen</small>
           ${badge(state.communicationStatus?.ok !== false, 'OK', 'Fehler')}
         </article>
         <article class="lg-card">
@@ -1137,7 +1137,7 @@ window.LoyaltyGamesModule = (function(){
       </div>
 
       <div class="lg-panel">
-        <h3>Systemstatus</h3>
+        <h3>Technik-Status</h3>
         <div class="lg-kv">
           <span>Core Schema</span><strong>${esc(core.schema?.ok ? 'OK · ' + (core.schema?.version ?? '-') : String(core.schema?.ok ?? '-'))}</strong>
           <span>Core Modus</span><strong>${esc(core.mode || '-')}</strong>
@@ -1855,14 +1855,11 @@ function renderGiveawayDetails(giveaway){
 
   function renderChatSetup(){
     const commands = rows(state.giveawayCommands);
-    const textPayload = state.giveawayTexts || {};
-    const categories = Array.isArray(textPayload.categories) ? textPayload.categories : [];
-    const keys = Array.isArray(textPayload.keys) ? textPayload.keys : [];
     return `
       <div class="lg-grid lg-grid-2">
         <div class="lg-panel">
-          <h3>Chat-Commands</h3>
-          <p class="lg-muted">Eingetragen, aber bewusst nicht aktiv. Keine Twitch-Command-Ausführung in diesem Step.</p>
+          <h3>Chat & Befehle</h3>
+          <p class="lg-muted">Hier siehst du die Loyalty-Commands. Texte werden zentral im Tab „Texte“ gepflegt.</p>
           <div class="lg-table-wrap">
             <table class="lg-table">
               <thead>
@@ -1882,7 +1879,48 @@ function renderGiveawayDetails(giveaway){
             </table>
           </div>
         </div>
+        <div class="lg-panel">
+          <h3>Texte bearbeiten</h3>
+          <p class="lg-muted">Chat-Antworten, Hinweise und Varianten liegen nicht mehr hier versteckt, sondern zentral im Texte-Tab.</p>
+          <button class="lg-btn" type="button" data-lg-jump-tab="texts">Texte öffnen</button>
+        </div>
+      </div>
+    `;
+  }
 
+  function renderTexts(){
+    const textPayload = state.giveawayTexts || {};
+    const categories = Array.isArray(textPayload.categories) ? textPayload.categories : [];
+    const keys = Array.isArray(textPayload.keys) ? textPayload.keys : [];
+    const sections = [
+      ['all', 'Alle Textbereiche'],
+      ['core', 'Core'],
+      ['wheel', 'Glücksrad'],
+      ['giveaways', 'Giveaways'],
+      ['gamble', 'Gamble'],
+      ['chat', 'Chat & Befehle'],
+      ['gifts', 'Geschenk-Abos / GiftBombs'],
+      ['notices', 'Hinweise / Fehlertexte']
+    ];
+    return `
+      <div class="lg-panel lg-texts-panel">
+        <div class="lg-panel-head">
+          <div>
+            <h3>Loyalty-Texte</h3>
+            <p class="lg-muted">Zentrale Stelle für Texte und Varianten. Wähle später hier das Modul aus und bearbeite die passenden Chat-/Hinweis-/Fehlertexte.</p>
+          </div>
+          <div class="lg-actions">
+            <label class="lg-config-select-label">Bereich auswählen
+              <select data-lg-text-section>
+                ${sections.map(([id, label]) => `<option value="${esc(id)}">${esc(label)}${id === 'all' ? '' : ' · vorbereitet'}</option>`).join('')}
+              </select>
+            </label>
+          </div>
+        </div>
+        <div class="lg-warning">Aktuell werden die vorhandenen Textvarianten angezeigt. Neue Bereiche werden später an die zentrale Textverwaltung angebunden.</div>
+      </div>
+
+      <div class="lg-grid lg-grid-2">
         <div class="lg-panel">
           <h3>Text-Kategorien</h3>
           <p class="lg-muted">CGN-/Altersheim-/Rentner-Texte laufen über den bestehenden Helper für Textvarianten.</p>
@@ -1890,10 +1928,17 @@ function renderGiveawayDetails(giveaway){
             ${categories.map(cat => `<span>${esc(cat.label || cat.id)}</span><strong>${fmtNumber(cat.variantCount || cat.count || 0)} Varianten</strong>`).join('') || '<span>Texte</span><strong>-</strong>'}
           </div>
         </div>
+        <div class="lg-panel">
+          <h3>Bedienlogik</h3>
+          <div class="lg-mini-list">
+            <div class="lg-mini-row"><span><strong>Modul auswählen</strong><br><small class="lg-muted">Texte werden künftig je Bereich gefiltert.</small></span><span class="lg-badge lg-badge-warn">vorbereitet</span></div>
+            <div class="lg-mini-row"><span><strong>Varianten</strong><br><small class="lg-muted">Mehrere aktive Antworten pro Text-Key bleiben möglich.</small></span><span class="lg-badge lg-badge-ok">vorhanden</span></div>
+          </div>
+        </div>
       </div>
 
       <div class="lg-panel">
-        <h3>Chat-Multi-Texte</h3>
+        <h3>Textvarianten</h3>
         <div class="lg-table-wrap">
           <table class="lg-table">
             <thead>
@@ -2023,14 +2068,15 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
   function renderConfig(){
     const section = state.configSection || 'gamble';
     const sections = [
-      ['core', 'Punkte-Core', false],
+      ['core', 'Core', false],
       ['runner', 'Automatische Punkte', false],
+      ['gift_subs', 'Geschenk-Abos / GiftBombs', false],
+      ['raids', 'Raids', false],
       ['wheel', 'Glücksrad', false],
       ['presets', 'Presets', false],
       ['giveaways', 'Giveaways', false],
       ['gamble', 'Gamble', true],
-      ['chat', 'Chat & Befehle', false],
-      ['texts', 'Texte', false]
+      ['chat', 'Chat & Befehle', false]
     ];
     const current = sections.find(([id]) => id === section) || sections.find(([id]) => id === 'gamble');
     return `
@@ -2038,7 +2084,7 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
         <div class="lg-panel-head">
           <div>
             <h3>Loyalty-Einstellungen</h3>
-            <p class="lg-muted">Zentrale Stelle für Loyalty-Regeln. Streamer und Mods sollen hier verständliche Namen, Dropdowns und kurze Erklärungen sehen – keine technische Schlüssel-Sammlung.</p>
+            <p class="lg-muted">Eine zentrale Seite für alle Loyalty-Einstellungen. Wähle oben den Bereich aus; Texte und Logs haben eigene Tabs.</p>
           </div>
           <div class="lg-actions">
             <label class="lg-config-select-label">Bereich auswählen
@@ -2243,8 +2289,8 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
       ['gamble', 'Gamble'],
       ['config', 'Einstellungen'],
       ['chat', 'Chat & Befehle'],
-      ['history', 'Verlauf & Logs'],
-      ['notes', 'Hilfe']
+      ['texts', 'Texte'],
+      ['history', 'Logs']
     ];
     return `
       <div class="lg-tabs loyalty-main-tabs">
@@ -2288,9 +2334,9 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
     if (state.activeTab === 'giveaways') return renderGiveawaysRedirect();
     if (state.activeTab === 'gamble') return renderGamble();
     if (state.activeTab === 'config') return renderConfig();
+    if (state.activeTab === 'texts') return renderTexts();
     if (state.activeTab === 'chat') return renderChatSetup();
     if (state.activeTab === 'history') return renderSessions();
-    if (state.activeTab === 'notes') return renderNotes();
     return renderOverview();
   }
 
@@ -2443,7 +2489,7 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
         <div>
           <p class="lg-eyebrow">Loyalty / Übersicht</p>
           <h2>Loyalty</h2>
-          <p class="lg-subline">Punkte, Giveaways, Glücksrad, Texte, Einstellungen und Verlauf – zentral für Streamer und Mods.</p>
+          <p class="lg-subline">Kompakter Überblick, zentrale Einstellungen, Texte und Logs – für Streamer und Mods.</p>
         </div>
         <div class="lg-actions">
           <a class="lg-btn lg-btn-secondary" href="${api.overlay}" target="_blank">Overlay öffnen</a>

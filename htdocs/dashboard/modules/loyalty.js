@@ -790,15 +790,15 @@ window.LoyaltyModule = (function(){
 
   const MAIN_TABS = [
     { id: 'overview', label: 'Start', description: 'Gesamtüberblick über Loyalty.', module: 'loyalty_games', gamesTab: 'overview' },
-    { id: 'core', label: 'Punkte-Core', description: 'Punkte, User, Regeln und Core-Verlauf.', module: 'loyalty' },
+    { id: 'core', label: 'Core', description: 'Punkte, User, Regeln und Core-Logs.', module: 'loyalty' },
     { id: 'wheel', label: 'Glücksrad', description: 'Glücksrad und Gewinne.', module: 'loyalty_games', gamesTab: 'wheel' },
     { id: 'presets', label: 'Presets', description: 'Vorlagen für Loyalty-Aktionen.', module: 'loyalty_games', gamesTab: 'presets' },
     { id: 'giveaways', label: 'Giveaways', description: 'Giveaways verwalten.', module: 'loyalty_giveaways' },
     { id: 'gamble', label: 'Gamble', description: 'Gamble-Spiel und Auswertung.', module: 'loyalty_games', gamesTab: 'gamble' },
-    { id: 'config', label: 'Einstellungen', description: 'Zentrale Loyalty-Konfiguration.', module: 'loyalty_games', gamesTab: 'config' },
+    { id: 'config', label: 'Einstellungen', description: 'Zentrale Loyalty-Konfiguration mit Bereichsauswahl.', module: 'loyalty_games', gamesTab: 'config' },
+    { id: 'texts', label: 'Texte', description: 'Zentrale Loyalty-Texte je Modul/Bereich.', module: 'loyalty_games', gamesTab: 'texts' },
     { id: 'chat', label: 'Chat & Befehle', description: 'Chatbefehle und Antworten.', module: 'loyalty_games', gamesTab: 'chat' },
-    { id: 'history', label: 'Verlauf & Logs', description: 'Ereignisse, Buchungen und Prüfungen.', module: 'loyalty_games', gamesTab: 'history' },
-    { id: 'notes', label: 'Hilfe', description: 'Hinweise und offene Punkte.', module: 'loyalty_games', gamesTab: 'notes' }
+    { id: 'history', label: 'Logs', description: 'Zentrale Logs für alle Loyalty-Bereiche.', module: 'loyalty_games', gamesTab: 'history' }
   ];
 
   function renderMainTabs(activeId = 'core'){
@@ -843,15 +843,15 @@ window.LoyaltyModule = (function(){
       ['users','User'],
       ['ignored','Bots ignorieren'],
       ['config','Core-Regeln'],
-      ['events','Core-Verlauf']
+      ['events','Core-Logs']
     ];
 
     root.innerHTML = `
       <div class="loyalty-admin-wrap">
         <section class="loyalty-card loyalty-hero">
           <div>
-            <h2>🍪 Loyalty / Punkte-Core</h2>
-            <p>Hier kontrollierst du Punkte, automatische Vergabe, User, Core-Regeln und den Core-Verlauf. Zentrale Einstellungen, Texte und globale Logs liegen oben im Loyalty-Bereich.</p>
+            <h2>🍪 Loyalty / Core</h2>
+            <p>Hier kontrollierst du Punkte, automatische Vergabe, User, Bots und Core-Logs. Zentrale Einstellungen, Texte und Logs liegen oben im Loyalty-Bereich.</p>
           </div>
           <div class="loyalty-actions">
             <button type="button" data-loyalty-refresh>Aktualisieren</button>
