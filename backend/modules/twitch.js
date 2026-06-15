@@ -11,8 +11,8 @@ const database = require('../core/database');
 const communicationBus = require('./communication_bus');
 
 const MODULE_NAME = 'twitch';
-const MODULE_VERSION = '0.1.8';
-const MODULE_BUILD = 'LC_CORE_POINTS_3C1_TWITCH_EVENTSUB_STATUS_HOTFIX';
+const MODULE_VERSION = '0.1.9';
+const MODULE_BUILD = 'LC_CORE_POINTS_3D_DISABLE_LEGACY_LOYALTY_DIRECT_FORWARD';
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
@@ -219,11 +219,11 @@ module.exports.init = function init(ctx) {
 
 
   const legacyLoyaltyDirectForwardState = {
-    enabled: env.TWITCH_EVENTSUB_LOYALTY_DIRECT_FORWARD !== 'false',
-    mode: 'legacy-direct-forward-safety-net',
+    enabled: env.TWITCH_EVENTSUB_LOYALTY_DIRECT_FORWARD === 'true',
+    mode: 'legacy-direct-forward-disabled-by-default',
     source: 'twitch.js EventSub notification handler',
     targetUrl: DEFAULT_TWITCH_ALERT_CONFIG.loyaltyForward.url,
-    note: 'Legacy-Sicherheitsnetz bleibt bis zum gezielten Cleanup aktiv. Nicht entfernen, bevor Twitch-Events -> Loyalty stabil getestet und freigegeben ist.',
+    note: 'Legacy-Direktforward ist nach LC-CORE-POINTS-3D standardmaessig deaktiviert. Bei Notfall kann TWITCH_EVENTSUB_LOYALTY_DIRECT_FORWARD=true gesetzt werden.',
     forwarded: 0,
     skipped: 0,
     failed: 0,
@@ -282,7 +282,11 @@ module.exports.init = function init(ctx) {
     return {
       ...legacyLoyaltyDirectForwardState,
       targetUrl: loyaltyCfg && loyaltyCfg.url ? loyaltyCfg.url : DEFAULT_TWITCH_ALERT_CONFIG.loyaltyForward.url,
-      configEnabled: !loyaltyCfg || loyaltyCfg.enabled !== false
+      configEnabled: !loyaltyCfg || loyaltyCfg.enabled !== false,
+      envOverrideRequired: true,
+      envName: 'TWITCH_EVENTSUB_LOYALTY_DIRECT_FORWARD',
+      envValue: env.TWITCH_EVENTSUB_LOYALTY_DIRECT_FORWARD || '',
+      disabledReason: legacyLoyaltyDirectForwardState.enabled === true ? '' : 'disabled_by_default_bus_path_active'
     };
   }
 
