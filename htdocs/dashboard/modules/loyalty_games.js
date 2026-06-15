@@ -1005,8 +1005,8 @@ window.LoyaltyGamesModule = (function(){
     const moduleCards = [
       {
         title: 'Loyalty Core',
-        icon: '🎟️',
-        tab: 'overview',
+        icon: '🍪',
+        moduleId: 'loyalty',
         description: 'Punkte, Konten und Transaktionen',
         health: coreHealth
       },
@@ -2196,6 +2196,7 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
   function renderTabs(){
     const tabs = [
       ['overview', 'Übersicht'],
+      ['core', 'Core'],
       ['wheel', 'Glücksrad'],
       ['presets', 'Presets'],
       ['giveaways', 'Giveaways'],
@@ -2208,6 +2209,9 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
     return `
       <div class="lg-tabs">
         ${tabs.map(([id, label]) => {
+          if (id === 'core' && window.CGN?.modules?.loyalty) {
+            return `<button class="lg-tab" data-lg-open-module="loyalty">${label}</button>`;
+          }
           if (id === 'giveaways' && window.CGN?.modules?.loyalty_giveaways) {
             return `<button class="lg-tab" data-lg-open-module="loyalty_giveaways">${label}</button>`;
           }
