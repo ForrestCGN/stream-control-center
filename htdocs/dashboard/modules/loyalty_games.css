@@ -768,3 +768,77 @@
 .loyalty-main-tabs .lg-tab{
   min-height: 38px;
 }
+
+
+/* STEP_LC_MINIGAMES_1C - Mini-Spiele Layout-Cleanup */
+.lg-mini-kpi-grid {
+  align-items: stretch;
+}
+
+.lg-mini-kpi {
+  display: grid;
+  gap: 7px;
+  align-content: start;
+  min-height: 92px;
+  padding: 14px 16px;
+}
+
+.lg-mini-kpi span,
+.lg-mini-kpi strong,
+.lg-mini-kpi small {
+  display: block;
+  line-height: 1.25;
+}
+
+.lg-mini-kpi span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .02em;
+}
+
+.lg-mini-kpi strong {
+  font-size: 22px;
+  color: var(--text);
+}
+
+.lg-mini-kpi small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.lg-raffle-form .lg-editor-grid {
+  gap: 14px 16px;
+}
+
+.lg-raffle-form label {
+  display: grid;
+  gap: 7px;
+}
+
+.lg-raffle-form label > span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.lg-raffle-form .lg-check-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 14px;
+  background: rgba(255,255,255,.035);
+}
+
+.lg-raffle-form .lg-check-row input[type=checkbox] {
+  justify-self: end;
+}
+
+.lg-raffle-form .lg-warning {
+  margin-top: 14px;
+}

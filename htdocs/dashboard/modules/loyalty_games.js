@@ -3106,18 +3106,18 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
           <button class="lg-btn lg-btn-secondary" data-lg-raffle-reload type="button">Neu laden</button>
         </div>
         ${error}
-        <div class="lg-grid lg-grid-4">
-          <article class="lg-kpi"><span>Status</span><strong>${esc(statusLabel(runtime.status || 'idle'))}</strong><small>${runtime.active ? 'läuft' : 'inaktiv'}</small></article>
-          <article class="lg-kpi"><span>Teilnehmer</span><strong>${fmtNumber(runtime.participantCount || 0)}</strong><small>aktueller/letzter Lauf</small></article>
-          <article class="lg-kpi"><span>Interner Pool</span><strong>${fmtNumber(cfg.prizePoolAmount || runtime.prizePoolAmount || 0)}</strong><small>nicht im Chat anzeigen</small></article>
-          <article class="lg-kpi"><span>Dauer</span><strong>${fmtNumber(cfg.durationSeconds || runtime.durationSeconds || 120)}s</strong><small>Standardlaufzeit</small></article>
+        <div class="lg-grid lg-grid-4 lg-mini-kpi-grid">
+          <article class="lg-kpi lg-mini-kpi"><span>Status</span><strong>${esc(statusLabel(runtime.status || 'idle'))}</strong><small>${runtime.active ? 'läuft' : 'inaktiv'}</small></article>
+          <article class="lg-kpi lg-mini-kpi"><span>Teilnehmer</span><strong>${fmtNumber(runtime.participantCount || 0)}</strong><small>aktueller/letzter Lauf</small></article>
+          <article class="lg-kpi lg-mini-kpi"><span>Raffle-Gewinn gesamt</span><strong>${fmtNumber(cfg.prizePoolAmount || runtime.prizePoolAmount || 0)}</strong><small>wird intern auf Gewinner aufgeteilt</small></article>
+          <article class="lg-kpi lg-mini-kpi"><span>Dauer</span><strong>${fmtNumber(cfg.durationSeconds || runtime.durationSeconds || 120)}s</strong><small>Standardlaufzeit</small></article>
         </div>
         ${renderRaffleResultBox()}
-        <form class="lg-form lg-gamble-form" data-lg-raffle-form>
+        <form class="lg-form lg-gamble-form lg-raffle-form" data-lg-raffle-form>
           <div class="lg-grid lg-editor-grid">
             <label class="lg-check-row"><span><strong>Raffle aktiv</strong><br><small class="lg-muted">Erlaubt !raffle/!join.</small></span><input type="checkbox" name="enabled" ${cfg.enabled !== false ? 'checked' : ''}></label>
             <label><span>Dauer in Sekunden</span><input type="number" name="durationSeconds" min="10" max="${Number(cfg.maxDurationSeconds || 3600)}" step="1" value="${esc(cfg.durationSeconds || 120)}"></label>
-            <label><span>Gewinnpool intern</span><input type="number" name="prizePoolAmount" min="0" step="1" value="${esc(cfg.prizePoolAmount || 5000)}"></label>
+            <label><span>Raffle-Gewinn gesamt</span><input type="number" name="prizePoolAmount" min="0" step="1" value="${esc(cfg.prizePoolAmount || 5000)}"></label>
             <label><span>Start-Berechtigung</span><select name="startPermission">
               ${['mod','broadcaster','vip','everyone'].map(v => `<option value="${esc(v)}" ${String(cfg.startPermission || 'mod') === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}
             </select></label>
@@ -3190,10 +3190,10 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
             </div>
             <button class="lg-btn" data-lg-open-config-section="gamble" type="button">Gamble konfigurieren</button>
           </div>
-          <div class="lg-grid lg-grid-3">
-            <article class="lg-kpi"><span>Status</span><strong>${gambleCfg.enabled === false ? 'Aus' : 'Aktiv'}</strong><small>bestehende Config</small></article>
-            <article class="lg-kpi"><span>Logs geladen</span><strong>${fmtNumber((state.gambleLogRows || []).length)}</strong><small>Command-Logs</small></article>
-            <article class="lg-kpi"><span>Statistik</span><strong>${fmtNumber((state.gambleStats || {}).total || 0)}</strong><small>geladene Spiele</small></article>
+          <div class="lg-grid lg-grid-3 lg-mini-kpi-grid">
+            <article class="lg-kpi lg-mini-kpi"><span>Status</span><strong>${gambleCfg.enabled === false ? 'Aus' : 'Aktiv'}</strong><small>bestehende Config</small></article>
+            <article class="lg-kpi lg-mini-kpi"><span>Logs geladen</span><strong>${fmtNumber((state.gambleLogRows || []).length)}</strong><small>Command-Logs</small></article>
+            <article class="lg-kpi lg-mini-kpi"><span>Statistik</span><strong>${fmtNumber((state.gambleStats || {}).total || 0)}</strong><small>geladene Spiele</small></article>
           </div>
           <div class="lg-actions">
             <button class="lg-btn lg-btn-secondary" data-lg-gamble-stats type="button">Statistik öffnen</button>
