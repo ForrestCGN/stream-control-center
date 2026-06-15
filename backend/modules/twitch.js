@@ -11,8 +11,8 @@ const database = require('../core/database');
 const communicationBus = require('./communication_bus');
 
 const MODULE_NAME = 'twitch';
-const MODULE_VERSION = '0.1.5';
-const MODULE_BUILD = 'BUS_TWITCH_14B_CHANNELPOINTS_PARALLEL_RELIABILITY';
+const MODULE_VERSION = '0.1.6';
+const MODULE_BUILD = 'LC_CORE_POINTS_3B_SUPPORT_EVENTS_TWITCH_EVENTS_PARALLEL';
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
@@ -174,6 +174,49 @@ module.exports.init = function init(ctx) {
     maxSeenRedemptions: 1000
   };
 
+  const SUPPORT_EVENTSUB_TYPES_FOR_TWITCH_EVENTS = new Set([
+    'channel.follow',
+    'channel.subscribe',
+    'channel.subscription.message',
+    'channel.subscription.gift',
+    'channel.cheer',
+    'channel.raid'
+  ]);
+
+  const supportEventsTwitchEventsParallelState = {
+    enabled: env.TWITCH_EVENTSUB_TWITCH_EVENTS_SUPPORT_PARALLEL !== 'false',
+    mode: 'parallel-tap-reliable',
+    source: 'twitch.js EventSub notification handler',
+    targetModule: 'twitch_events',
+    eventSubTypes: Array.from(SUPPORT_EVENTSUB_TYPES_FOR_TWITCH_EVENTS),
+    busEvents: [
+      'twitch.follow.received',
+      'twitch.sub.received',
+      'twitch.resub.received',
+      'twitch.subgift.received',
+      'twitch.cheer.received',
+      'twitch.raid.received'
+    ],
+    forwarded: 0,
+    skipped: 0,
+    duplicateSkipped: 0,
+    failed: 0,
+    byType: {},
+    lastForwardedAt: '',
+    lastSkippedAt: '',
+    lastDuplicateAt: '',
+    lastForwardSource: '',
+    lastResultReason: '',
+    lastBusEventId: '',
+    lastEventSubType: '',
+    lastMessageId: '',
+    lastUserLogin: '',
+    lastError: '',
+    seenMessageIds: [],
+    seenMessageIdSet: new Set(),
+    maxSeenMessages: 1000
+  };
+
   function getTwitchEventsModule() {
     if (twitchEventsModule) return twitchEventsModule;
     try {
@@ -196,6 +239,175 @@ module.exports.init = function init(ctx) {
         ? channelpointsTwitchEventsParallelState.seenRedemptionIdSet.size
         : 0
     };
+  }
+
+  function getSupportEventsTwitchEventsParallelStatus() {
+    const { seenMessageIdSet, ...publicState } = supportEventsTwitchEventsParallelState;
+    return {
+      ...publicState,
+      seenMessageIds: Array.isArray(supportEventsTwitchEventsParallelState.seenMessageIds)
+        ? supportEventsTwitchEventsParallelState.seenMessageIds.slice(-10)
+        : [],
+      seenMessageCount: supportEventsTwitchEventsParallelState.seenMessageIdSet instanceof Set
+        ? supportEventsTwitchEventsParallelState.seenMessageIdSet.size
+        : 0
+    };
+  }
+
+  function isSupportEventSubTypeForTwitchEvents(subscriptionType) {
+    return SUPPORT_EVENTSUB_TYPES_FOR_TWITCH_EVENTS.has(String(subscriptionType || '').trim());
+  }
+
+  function getSupportParallelMessageId(subscriptionType, event = {}, meta = {}, subscription = {}) {
+    return String(
+      meta.message_id ||
+      meta.messageId ||
+      event.id ||
+      event.event_id ||
+      event.message_id ||
+      event.messageId ||
+      ''
+    ).trim() || [
+      String(subscriptionType || '').trim(),
+      String(subscription && subscription.id || '').trim(),
+      String(meta.message_timestamp || meta.messageTimestamp || '').trim(),
+      String(event.user_id || event.userId || event.from_broadcaster_user_id || event.fromBroadcasterUserId || '').trim(),
+      String(event.user_login || event.userLogin || event.from_broadcaster_user_login || event.fromBroadcasterUserLogin || '').trim().toLowerCase()
+    ].filter(Boolean).join('|');
+  }
+
+  function rememberSupportParallelMessage(id) {
+    const clean = String(id || '').trim();
+    if (!clean) return true;
+    if (!(supportEventsTwitchEventsParallelState.seenMessageIdSet instanceof Set)) {
+      supportEventsTwitchEventsParallelState.seenMessageIdSet = new Set();
+    }
+    if (!Array.isArray(supportEventsTwitchEventsParallelState.seenMessageIds)) {
+      supportEventsTwitchEventsParallelState.seenMessageIds = [];
+    }
+    if (supportEventsTwitchEventsParallelState.seenMessageIdSet.has(clean)) return false;
+    supportEventsTwitchEventsParallelState.seenMessageIdSet.add(clean);
+    supportEventsTwitchEventsParallelState.seenMessageIds.push(clean);
+    const max = Number(supportEventsTwitchEventsParallelState.maxSeenMessages || 1000);
+    while (supportEventsTwitchEventsParallelState.seenMessageIds.length > max) {
+      const old = supportEventsTwitchEventsParallelState.seenMessageIds.shift();
+      if (old) supportEventsTwitchEventsParallelState.seenMessageIdSet.delete(old);
+    }
+    return true;
+  }
+
+  function summarizeSupportParallelEvent(subscriptionType, event = {}) {
+    const type = String(subscriptionType || '').trim();
+    if (type === 'channel.raid') {
+      return {
+        userLogin: String(event.from_broadcaster_user_login || event.fromBroadcasterUserLogin || '').trim().toLowerCase(),
+        amount: Number(event.viewers || 0) || 0,
+        tier: ''
+      };
+    }
+    if (type === 'channel.cheer') {
+      return {
+        userLogin: String(event.user_login || event.userLogin || '').trim().toLowerCase(),
+        amount: Number(event.bits || 0) || 0,
+        tier: ''
+      };
+    }
+    if (type === 'channel.subscription.gift') {
+      return {
+        userLogin: String(event.user_login || event.userLogin || '').trim().toLowerCase(),
+        amount: Number(event.total || event.amount || 1) || 1,
+        tier: String(event.tier || '').trim()
+      };
+    }
+    return {
+      userLogin: String(event.user_login || event.userLogin || '').trim().toLowerCase(),
+      amount: Number(event.cumulative_months || event.cumulativeMonths || event.streak_months || event.streakMonths || 1) || 1,
+      tier: String(event.tier || '').trim()
+    };
+  }
+
+  function forwardSupportEventSubToTwitchEvents(subscriptionType, event = {}, meta = {}, subscription = {}, source = 'notification') {
+    if (!isSupportEventSubTypeForTwitchEvents(subscriptionType)) {
+      return { ok: true, skipped: true, reason: 'not_support_eventsub' };
+    }
+
+    if (supportEventsTwitchEventsParallelState.enabled !== true) {
+      supportEventsTwitchEventsParallelState.skipped += 1;
+      supportEventsTwitchEventsParallelState.lastSkippedAt = core.nowIso();
+      supportEventsTwitchEventsParallelState.lastResultReason = 'disabled';
+      supportEventsTwitchEventsParallelState.lastEventSubType = String(subscriptionType || '').trim();
+      return { ok: true, skipped: true, reason: 'disabled' };
+    }
+
+    const messageId = getSupportParallelMessageId(subscriptionType, event, meta, subscription);
+    if (!rememberSupportParallelMessage(messageId)) {
+      supportEventsTwitchEventsParallelState.duplicateSkipped += 1;
+      supportEventsTwitchEventsParallelState.lastDuplicateAt = core.nowIso();
+      supportEventsTwitchEventsParallelState.lastResultReason = 'duplicate_parallel_source';
+      supportEventsTwitchEventsParallelState.lastEventSubType = String(subscriptionType || '').trim();
+      supportEventsTwitchEventsParallelState.lastMessageId = messageId;
+      rememberEventSubState({ action: 'support_twitch_events_parallel_duplicate', type: subscriptionType, messageId, source });
+      return { ok: true, skipped: true, duplicate: true, reason: 'duplicate_parallel_source', messageId };
+    }
+
+    const target = getTwitchEventsModule();
+    if (!target || typeof target.handleEventSubNotification !== 'function') {
+      supportEventsTwitchEventsParallelState.failed += 1;
+      supportEventsTwitchEventsParallelState.lastError = 'twitch_events_handleEventSubNotification_unavailable';
+      supportEventsTwitchEventsParallelState.lastResultReason = 'target_unavailable';
+      supportEventsTwitchEventsParallelState.lastEventSubType = String(subscriptionType || '').trim();
+      supportEventsTwitchEventsParallelState.lastMessageId = messageId;
+      rememberEventSubState({ action: 'support_twitch_events_parallel_failed', type: subscriptionType, reason: supportEventsTwitchEventsParallelState.lastError, source });
+      return { ok: false, reason: supportEventsTwitchEventsParallelState.lastError };
+    }
+
+    try {
+      const result = target.handleEventSubNotification({
+        payload: {
+          metadata: meta || {},
+          subscription: subscription || {},
+          event: event || {}
+        }
+      }, {
+        source: `twitch_eventsub_support_parallel_${source || 'unknown'}`,
+        originModule: MODULE_NAME,
+        migrationStep: 'LC-CORE-POINTS-3B'
+      });
+
+      const type = String(subscriptionType || '').trim();
+      supportEventsTwitchEventsParallelState.byType[type] = Number(supportEventsTwitchEventsParallelState.byType[type] || 0) + 1;
+
+      if (result && result.ok === true) {
+        const summary = summarizeSupportParallelEvent(subscriptionType, event);
+        supportEventsTwitchEventsParallelState.forwarded += 1;
+        supportEventsTwitchEventsParallelState.lastForwardedAt = core.nowIso();
+        supportEventsTwitchEventsParallelState.lastForwardSource = source || 'unknown';
+        supportEventsTwitchEventsParallelState.lastResultReason = 'ok';
+        supportEventsTwitchEventsParallelState.lastBusEventId = result.busEventId || result.eventId || result.id || '';
+        supportEventsTwitchEventsParallelState.lastEventSubType = type;
+        supportEventsTwitchEventsParallelState.lastMessageId = messageId;
+        supportEventsTwitchEventsParallelState.lastUserLogin = summary.userLogin;
+        supportEventsTwitchEventsParallelState.lastError = '';
+        rememberEventSubState({ action: 'support_twitch_events_parallel_forwarded', type: subscriptionType, eventId: supportEventsTwitchEventsParallelState.lastBusEventId || null, messageId, source });
+      } else {
+        supportEventsTwitchEventsParallelState.skipped += 1;
+        supportEventsTwitchEventsParallelState.lastSkippedAt = core.nowIso();
+        supportEventsTwitchEventsParallelState.lastResultReason = result && result.reason ? result.reason : 'not_forwarded';
+        supportEventsTwitchEventsParallelState.lastEventSubType = type;
+        supportEventsTwitchEventsParallelState.lastMessageId = messageId;
+        rememberEventSubState({ action: 'support_twitch_events_parallel_skipped', type: subscriptionType, reason: supportEventsTwitchEventsParallelState.lastResultReason, messageId, source });
+      }
+
+      return result || { ok: false, reason: 'no_result' };
+    } catch (err) {
+      supportEventsTwitchEventsParallelState.failed += 1;
+      supportEventsTwitchEventsParallelState.lastError = err && err.message ? err.message : String(err);
+      supportEventsTwitchEventsParallelState.lastResultReason = 'failed';
+      supportEventsTwitchEventsParallelState.lastEventSubType = String(subscriptionType || '').trim();
+      supportEventsTwitchEventsParallelState.lastMessageId = messageId;
+      rememberEventSubState({ action: 'support_twitch_events_parallel_failed', type: subscriptionType, error: supportEventsTwitchEventsParallelState.lastError, messageId, source });
+      return { ok: false, reason: 'failed', error: supportEventsTwitchEventsParallelState.lastError };
+    }
   }
 
   function getChannelpointsParallelRedemptionId(event = {}, meta = {}) {
@@ -2467,6 +2679,10 @@ module.exports.init = function init(ctx) {
       knownSubscriptionsCount: eventsubKnownSubscriptions.size,
       knownSubscriptions: Array.from(eventsubKnownSubscriptions).sort(),
       state: { ...eventSubState, recent: eventSubState.recent.slice(0, 30) },
+      twitchEventsParallel: {
+        channelpoints: getChannelpointsTwitchEventsParallelStatus(),
+        supportEvents: getSupportEventsTwitchEventsParallelStatus()
+      },
       shoutoutReadiness: buildShoutoutEventSubReadinessSnapshot(),
       deathcounterSync: getDeathcounterSyncStatus(),
       vipEventBus: {
@@ -3450,6 +3666,16 @@ function buildFakeTwitchAlertEvent(kind, query) {
         } catch (e) {
           rememberEventSubState({ action: 'channelpoints_twitch_events_parallel_handler_failed', type: sub.type || '', error: e?.message || String(e) });
           console.warn('[eventsub-channelpoints-twitch-events] handler failed:', e?.message || e);
+        }
+
+        try {
+          const supportParallelResult = forwardSupportEventSubToTwitchEvents(sub.type, event, meta, sub, 'notification');
+          if (supportParallelResult && supportParallelResult.ok === false) {
+            console.warn('[eventsub-support-twitch-events] forward skipped/failed:', supportParallelResult.reason || supportParallelResult.error || 'unknown');
+          }
+        } catch (e) {
+          rememberEventSubState({ action: 'support_twitch_events_parallel_handler_failed', type: sub.type || '', error: e?.message || String(e) });
+          console.warn('[eventsub-support-twitch-events] handler failed:', e?.message || e);
         }
 
         try {
