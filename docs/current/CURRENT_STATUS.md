@@ -2,15 +2,26 @@
 
 Stand: 2026-06-15
 
-## Aktueller Arbeitsstand
+## Aktueller bestätigter Arbeitsstand
 
 ```text
 LC-CORE-POINTS-2C – Twitch Presence / aktive User bestätigt
+Nächster geplanter Block: LC-CORE-POINTS-3A – Twitch Events als abonnierbare Bonus-Events vorbereiten
 ```
 
 ## Kurzfazit
 
-Nach `LC-CORE-CLEANUP-1` und `LC-CORE-POINTS-1` ist der Loyalty-Core auf die StreamElements-nahe Punktevergabe vorbereitet und getestet. Loyalty nutzt weiterhin `/api/twitch/events/stream-state` als zentrale Live-Wahrheit. Watch-Punkte, Sub-Tier-Fallbacks, Resub-Bonus, EventBus-AutoRunner-Start und Twitch-Presence-Verarbeitung wurden fachlich bestätigt.
+Der Loyalty-Core ist aktuell technisch stabil aufgestellt:
+
+```text
+LC-CORE-CLEANUP-1   bestätigt
+LC-CORE-POINTS-1    bestätigt
+LC-CORE-POINTS-2A   bestätigt
+LC-CORE-POINTS-2B   bestätigt
+LC-CORE-POINTS-2C   bestätigt
+```
+
+Loyalty nutzt `/api/twitch/events/stream-state` als zentrale Live-Wahrheit. Watch-Punkte, Sub-Tier-Fallbacks, Resub-Bonus, EventBus-AutoRunner-Start und Twitch-Presence-Verarbeitung wurden fachlich bestätigt.
 
 ## Bestätigte Punkte-Zielwerte
 
@@ -61,6 +72,13 @@ Ignored/Systemuser werden übersprungen.
 Echte aktive User erhalten Watch-Punkte.
 ```
 
+## Neue bestätigte Entscheidung
+
+```text
+forrestcgn soll dauerhaft wieder ignoriert werden.
+Der Ignored-User-Eintrag wurde vom Nutzer gesetzt.
+```
+
 ## Offene Beobachtung
 
 ```text
@@ -68,12 +86,37 @@ JOIN-basierte Presence erkennt Subscriber ja/nein, aber das konkrete Sub-Tier ko
 In diesem Fall greift korrekt der bestehende Subscriber-Fallback über `subscriberMultiplier` und vergibt 6 Punkte.
 ```
 
-## Offener Entscheid
+## Nächster Plan: LC-CORE-POINTS-3A
+
+Der bisher geplante direkte EventBonus-Test wird zurückgestellt. Stattdessen soll zuerst die zentrale Event-Schicht sauber erweitert werden:
 
 ```text
-Prüfen, ob `forrestcgn` dauerhaft wieder ignoriert werden soll.
-Im bestätigten Presence-Test bekam `forrestcgn` Watch-Punkte, weil der User aktuell nicht aktiv ignoriert wurde.
+Twitch / EventSub / IRC / spätere Quellen
+        ↓
+backend/modules/twitch_events.js
+        ↓ Communication Bus
+Subscriber:
+- loyalty
+- alerts
+- dashboard
+- event-system
 ```
+
+Ziel ist, dass `twitch_events` zentrale Bonus-relevante Twitch-Events publiziert und `loyalty` diese über den Communication Bus abonniert.
+
+## Geplante EventKeys
+
+```text
+twitch.follow
+twitch.subscribe
+twitch.resub
+twitch.gift_sub
+twitch.gift_bomb
+twitch.cheer
+twitch.raid
+```
+
+Tip/Donation wird separat als neutrales Payment-/Donation-Event geplant, weil es nicht nativ von Twitch EventSub kommt.
 
 ## Nicht geändert
 
@@ -83,4 +126,5 @@ Keine Live-/Shadow-Umstellung.
 Keine produktive SQLite ersetzt oder gelöscht.
 Keine Giveaway-/Games-Änderung.
 Keine Dashboard-Neustruktur.
+Keine direkte Twitch-Sonderlogik in Loyalty einbauen.
 ```
