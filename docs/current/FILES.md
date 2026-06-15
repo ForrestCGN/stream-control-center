@@ -2,18 +2,17 @@
 
 Stand: 2026-06-15
 
-## Aktueller Stand
+## Aktueller Arbeitsstand
 
 ```text
-LC-CORE-CLEANUP-1 – Loyalty alte lokale StreamState- und Twitch-Direktlogik entfernt
+LC-CORE-POINTS-1 – Sub-Tier-Watch-Werte und Resub-Bonus vorbereitet
 ```
 
 ## Geänderte Dateien
 
 ```text
 backend/modules/loyalty.js
-htdocs/dashboard/modules/loyalty.js
-docs/current/STEP_LC_CORE_CLEANUP_1_LOYALTY_STREAMSTATE_CLEANUP.md
+docs/current/STEP_LC_CORE_POINTS_1_SUB_TIER_REWARDS.md
 docs/current/CURRENT_STATUS.md
 docs/current/TODO.md
 docs/current/NEXT_STEPS.md
@@ -24,64 +23,50 @@ docs/current/CHANGELOG.md
 ## Relevante Backend-Dateien
 
 ```text
-backend/modules/loyalty.js              Loyalty Core, Stream-State Consumer, Runner/Watch/Punkte
+backend/modules/loyalty.js              Loyalty Core, Watch/Presence/Punkte/Event-Boni
 backend/modules/twitch_events.js        zentrale Stream-State-/Bus-Schicht
-backend/modules/stream_status.js        source-only Statusquelle
-backend/modules/live_status_monitor.js  Diagnose/Quellenvergleich
-backend/modules/communication_bus.js    zentraler Bus
+backend/modules/twitch_presence.js      Presence-/Activity-Quelle für Watch-Runner
+backend/modules/helpers/helper_settings.js  DB-basierte Settings, bestehende Werte werden nicht blind überschrieben
+backend/core/database.js                produktive DB-Anbindung
 ```
 
-## Relevante Dashboard-Dateien
+## Relevante Routen
 
 ```text
-htdocs/dashboard/modules/loyalty.js
-htdocs/dashboard/modules/loyalty.css
-htdocs/dashboard/modules/live_status_monitor.js
-htdocs/dashboard/modules/twitch_events.js
-```
-
-## Loyalty-Routen nach Cleanup
-
-Wichtig im Cleanup-Kontext:
-
-```text
-GET  /api/loyalty/stream-state
-GET  /api/loyalty/stream-status-binding/status
-GET  /api/loyalty/stream-status-binding/sync
-POST /api/loyalty/stream-status-binding/sync
-GET  /api/loyalty/runner/status
+GET  /api/loyalty/status
+GET  /api/loyalty/settings
+POST /api/loyalty/settings
+GET  /api/loyalty/watch/heartbeat
+POST /api/loyalty/watch/heartbeat
+GET  /api/loyalty/watch/states
+GET  /api/loyalty/presence/run-once
+POST /api/loyalty/presence/run-once
 GET  /api/loyalty/runner/run-once
 POST /api/loyalty/runner/run-once
-GET  /api/loyalty/runner/start
-POST /api/loyalty/runner/start
-GET  /api/loyalty/runner/stop
-POST /api/loyalty/runner/stop
+GET  /api/loyalty/transactions
+GET  /api/loyalty/events
+POST /api/loyalty/events/ingest
 ```
 
-Entfernt:
+## Settings-Schlüssel
 
 ```text
-GET/POST /api/loyalty/stream-state/start
-GET/POST /api/loyalty/stream-state/stop
-GET/POST /api/loyalty/stream-state/clear-override
-GET/POST /api/loyalty/stream-state/refresh-auto
+watch.amount
+watch.intervalMinutes
+watch.subscriberMultiplier
+watch.subscriberTierAmounts
+bonuses.subscribe.tierAmounts
+bonuses.resub.enabled
+bonuses.resub.tierAmounts
+bonuses.follow.amount
+bonuses.cheer.amountPer100Bits
+bonuses.tip.amountPerEuro
+bonuses.raid.amount
 ```
 
-## Zentrale Live-Wahrheit
+## Produktive DB-Regel
 
 ```text
-GET  /api/twitch/events/stream-state
-POST /api/twitch/events/stream-state/override
-POST /api/twitch/events/stream-state/clear-override
-```
-
-## Prüfbefehle
-
-```powershell
-node -c "D:\Streaming\stramAssets\backend\modules\loyalty.js"
-node -c "D:\Streaming\stramAssets\htdocs\dashboard\modules\loyalty.js"
-Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/routes" | ConvertTo-Json -Depth 6
-Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/stream-state" | ConvertTo-Json -Depth 10
-Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/stream-status-binding/sync?controlRunner=true&sourceKind=stream_state" | ConvertTo-Json -Depth 8
-Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/runner/status" | ConvertTo-Json -Depth 8
+D:\Streaming\stramAssets\data\sqlite\app.sqlite niemals ersetzen, löschen oder neu bauen.
+Settings bei Bedarf nur gezielt über /api/loyalty/settings setzen.
 ```

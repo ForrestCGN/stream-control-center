@@ -2,52 +2,45 @@
 
 Stand: 2026-06-15
 
-## 2026-06-15 – LC-CORE-CLEANUP-1 Loyalty StreamState Cleanup
+## 2026-06-15 – LC-CORE-POINTS-1 Sub-Tier-Watch-Werte und Resub-Bonus
 
 ### Ergebnis
 
 ```text
-Alte lokale Loyalty-StreamState- und Twitch-Direktlogik wurde entfernt.
-Loyalty bleibt Consumer von /api/twitch/events/stream-state.
+Der Loyalty-Core wurde auf StreamElements-nahe Punktewerte vorbereitet. Watch-Punkte können jetzt nach Subscriber-Tier berechnet werden. Resub ist im Default aktiviert. Neue Watch-User erhalten keine Sofortpunkte mehr, sondern warten bis zum ersten Intervall.
 ```
 
 ### Backend
 
 ```text
-- backend/modules/loyalty.js von 0.1.13 auf 0.1.14 erhöht.
-- refreshAutoStreamStateFromTwitch() entfernt.
-- parseExternalLivePayload() entfernt.
-- Fallback in runPresenceOnce() auf Twitch-Direktabfrage entfernt.
-- Legacy-Routen entfernt:
-  - /api/loyalty/stream-state/start
-  - /api/loyalty/stream-state/stop
-  - /api/loyalty/stream-state/clear-override
-  - /api/loyalty/stream-state/refresh-auto
-- /api/loyalty/routes bereinigt.
-```
-
-### Dashboard
-
-```text
-- Lokale Loyalty-StreamState Start/Stop-Buttons entfernt.
-- API-Einträge streamStart/streamStop entfernt.
-- Action-Bindings stream-start/stream-stop entfernt.
-- Control-Ansicht zeigt Live-Gate read-only mit twitch_events-Hinweis.
+- backend/modules/loyalty.js von 0.1.14 auf 0.1.15 erhöht.
+- watch.subscriberTierAmounts ergänzt: 1000=6, 2000=8, 3000=10.
+- SETTINGS_DEFINITIONS um watch.subscriberTierAmounts ergänzt.
+- bonuses.resub.enabled im Default auf true gesetzt.
+- calculateWatchAmount() nutzt Subscriber-Tier bevorzugt und subscriberMultiplier als Fallback.
+- recordWatchHeartbeat() verarbeitet subscriberTier/subscriber_tier/tier/subTier/subscriptionTier.
+- Presence-Runner gibt Subscriber-Tier an den Watch-Heartbeat weiter.
+- Erster Watch-Heartbeat erzeugt initialen Watch-State ohne Sofortpunkte.
 ```
 
 ### Nicht geändert
 
 ```text
-Keine produktive DB ersetzt oder neu gebaut.
-Keine Punkte-/Watch-/EventBonus-/Command-Logik geändert.
-Kein Shadow/Live-Wechsel.
-Runner-Routen bleiben erhalten.
-loyalty_stream_state bleibt als lokaler Runner-/Dashboard-Spiegel erhalten.
+Keine Commands aktiviert.
+Keine Live-/Shadow-Umstellung.
+Keine produktive DB ersetzt oder gelöscht.
+Keine Giveaway-/Games-Änderung.
+Keine Dashboard-Neustruktur.
 ```
 
-## 2026-06-15 – LC-CORE-LIVE-1.1 Loyalty nutzt twitch_events Stream-State
+### Hinweis
 
 ```text
-Loyalty nutzt für Live/Offline-Entscheidungen /api/twitch/events/stream-state.
-Die vorherige Quelle /api/stream-status/status?forceApi=1 war für Override-Tests falsch, weil sie rohe Twitch-API/source-only Daten lieferte.
+Bestehende DB-Settings werden nicht automatisch überschrieben. Nach Deploy /api/loyalty/settings prüfen und neue Werte bei Bedarf gezielt setzen.
+```
+
+## 2026-06-15 – LC-CORE-CLEANUP-1 Loyalty StreamState Cleanup
+
+```text
+Alte lokale Loyalty-StreamState- und Twitch-Direktlogik wurde entfernt. Loyalty bleibt Consumer von /api/twitch/events/stream-state.
 ```

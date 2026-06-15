@@ -39,7 +39,7 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "loyalty";
-const VERSION = "0.1.14";
+const VERSION = "0.1.15";
 const MODULE_VERSION = VERSION;
 const STREAM_STATUS_API_PATH = "/api/twitch/events/stream-state";
 const MODULE_META = {
@@ -139,7 +139,8 @@ const DEFAULT_CONFIG = {
     enabled: true,
     amount: 2,
     intervalMinutes: 10,
-    subscriberMultiplier: 3
+    subscriberMultiplier: 3,
+    subscriberTierAmounts: { "1000": 6, "2000": 8, "3000": 10 }
   },
   features: {
     publicCommandsEnabled: false,
@@ -154,7 +155,7 @@ const DEFAULT_CONFIG = {
     follow: { enabled: true, amount: 10 },
     tip: { enabled: true, amountPerEuro: 10 },
     subscribe: { enabled: true, amount: 50, tierAmounts: { "1000": 50, "2000": 100, "3000": 150 } },
-    resub: { enabled: false, amount: 50, tierAmounts: { "1000": 50, "2000": 100, "3000": 150 } },
+    resub: { enabled: true, amount: 50, tierAmounts: { "1000": 50, "2000": 100, "3000": 150 } },
     giftSubGiver: { enabled: false, amount: 50, tierAmounts: { "1000": 50, "2000": 100, "3000": 150 } },
     giftSubReceiver: { enabled: false, amount: 25, tierAmounts: { "1000": 25, "2000": 50, "3000": 75 } },
     subStreak: {
@@ -283,7 +284,8 @@ const SETTINGS_DEFINITIONS = [
   { key: "watch.enabled", path: "watch.enabled", valueType: "boolean", description: "Watch-Punkte grundsätzlich aktivieren." },
   { key: "watch.amount", path: "watch.amount", valueType: "number", description: "Punkte pro Watch-Intervall." },
   { key: "watch.intervalMinutes", path: "watch.intervalMinutes", valueType: "number", description: "Watch-Intervall in Minuten." },
-  { key: "watch.subscriberMultiplier", path: "watch.subscriberMultiplier", valueType: "number", description: "Multiplikator für Subscriber im Watch-Intervall." },
+  { key: "watch.subscriberMultiplier", path: "watch.subscriberMultiplier", valueType: "number", description: "Fallback-Multiplikator für Subscriber im Watch-Intervall." },
+  { key: "watch.subscriberTierAmounts", path: "watch.subscriberTierAmounts", valueType: "json", description: "Watch-Punkte je Subscriber-Tier, z. B. 1000/2000/3000." },
 
   { key: "features.publicCommandsEnabled", path: "features.publicCommandsEnabled", valueType: "boolean", description: "Öffentliche Chat-Commands erlauben." },
   { key: "features.modCommandsEnabled", path: "features.modCommandsEnabled", valueType: "boolean", description: "Mod/Admin-Commands erlauben." },
@@ -1518,9 +1520,40 @@ function recordTransaction(input = {}) {
   };
 }
 
-function calculateWatchAmount(isSubscriber = false) {
+function isSubscriberInput(input = {}) {
+  if (input === true) return true;
+  if (!input || typeof input !== "object") return ["1", "true", "yes", "ja", "on"].includes(String(input || "").toLowerCase());
+  return input.subscriber === true || input.isSubscriber === true || ["1", "true", "yes", "ja", "on"].includes(String(input.subscriber ?? input.isSubscriber ?? input.sub ?? "").toLowerCase());
+}
+
+function watchSubscriberTierAmount(tier) {
+  const map = config.watch && config.watch.subscriberTierAmounts && typeof config.watch.subscriberTierAmounts === "object"
+    ? config.watch.subscriberTierAmounts
+    : {};
+  const normalized = normalizeTier(tier);
+  const keys = [normalized, tierLabel(normalized), normalized.replace(/^tier/, ""), String(tier || "")];
+  for (const key of keys) {
+    if (!key) continue;
+    const value = Number(map[key]);
+    if (Number.isFinite(value)) return Math.floor(value);
+  }
+  return null;
+}
+
+function calculateWatchAmount(input = {}) {
+  const source = input && typeof input === "object" ? input : { subscriber: input };
   const amount = Number(config.watch && config.watch.amount || 0);
-  const multiplier = isSubscriber ? Number(config.watch && config.watch.subscriberMultiplier || 1) : 1;
+  const subscriber = isSubscriberInput(source);
+  if (!subscriber) {
+    const result = Math.floor(amount);
+    return Number.isFinite(result) ? result : 0;
+  }
+
+  const tier = normalizeTier(source.subscriberTier || source.subscriber_tier || source.tier || source.subTier || source.subscriptionTier || "");
+  const tierSpecific = watchSubscriberTierAmount(tier);
+  if (tierSpecific !== null) return tierSpecific;
+
+  const multiplier = Number(config.watch && config.watch.subscriberMultiplier || 1);
   const result = Math.floor(amount * multiplier);
   return Number.isFinite(result) ? result : 0;
 }
@@ -1531,8 +1564,9 @@ function recordWatchInterval(input = {}) {
     return { ok: false, skipped: true, reason: "watch_earning_disabled" };
   }
 
-  const subscriber = input.subscriber === true || input.isSubscriber === true || ["1", "true", "yes", "ja", "on"].includes(String(input.subscriber || input.isSubscriber || "").toLowerCase());
-  const amount = calculateWatchAmount(subscriber);
+  const subscriber = isSubscriberInput(input);
+  const subscriberTier = normalizeTier(input.subscriberTier || input.subscriber_tier || input.tier || input.subTier || input.subscriptionTier || "");
+  const amount = calculateWatchAmount({ subscriber, subscriberTier });
 
   return recordTransaction({
     login: input.login || input.userLogin,
@@ -1547,9 +1581,12 @@ function recordWatchInterval(input = {}) {
     referenceId: String(input.referenceId || ""),
     metadata: {
       subscriber,
+      subscriberTier,
       intervalMinutes: Number(config.watch.intervalMinutes || 10),
       baseAmount: Number(config.watch.amount || 0),
-      subscriberMultiplier: Number(config.watch.subscriberMultiplier || 1)
+      subscriberMultiplier: Number(config.watch.subscriberMultiplier || 1),
+      subscriberTierAmounts: config.watch.subscriberTierAmounts || null,
+      watchAmountSource: subscriber && watchSubscriberTierAmount(subscriberTier) !== null ? "subscriber_tier_amount" : (subscriber ? "subscriber_multiplier_fallback" : "viewer_base")
     }
   });
 }
@@ -1680,11 +1717,34 @@ function markWatchRewarded(login, rewardAt, nextRewardAt) {
   return getWatchState(normalized);
 }
 
+function setWatchNextRewardAt(login, nextRewardAt) {
+  const normalized = normalizeLogin(login);
+  if (!normalized) throw new Error("user_login_required");
+  const now = core.nowIso();
+  database.run(`
+    UPDATE loyalty_watch_state
+    SET next_reward_at = :nextRewardAt,
+        updated_at = :updatedAt
+    WHERE user_login = :login
+  `, {
+    login: normalized,
+    nextRewardAt,
+    updatedAt: now
+  });
+  return getWatchState(normalized);
+}
+
 function shouldRewardWatch(stateRow, nowIso, intervalMinutes) {
-  if (!stateRow || !stateRow.lastRewardAt) return true;
-  const last = Date.parse(stateRow.lastRewardAt);
+  if (!stateRow) return true;
   const nowMs = Date.parse(nowIso);
-  if (!Number.isFinite(last) || !Number.isFinite(nowMs)) return true;
+  if (!Number.isFinite(nowMs)) return true;
+
+  const next = Date.parse(stateRow.nextRewardAt || "");
+  if (Number.isFinite(next)) return nowMs >= next;
+
+  if (!stateRow.lastRewardAt) return true;
+  const last = Date.parse(stateRow.lastRewardAt);
+  if (!Number.isFinite(last)) return true;
   return nowMs - last >= Math.max(1, Number(intervalMinutes || 10)) * 60 * 1000;
 }
 
@@ -1705,6 +1765,7 @@ function recordWatchHeartbeat(input = {}) {
   const now = core.nowIso();
   const intervalMinutes = Math.max(1, Number(config.watch.intervalMinutes || 10));
   const previous = getWatchState(login);
+  const subscriberTier = normalizeTier(input.subscriberTier || input.subscriber_tier || input.tier || input.subTier || input.subscriptionTier || "");
   const watchStateBeforeReward = upsertWatchState({
     login,
     displayName: input.displayName || input.userDisplayName || input.display_name,
@@ -1714,9 +1775,28 @@ function recordWatchHeartbeat(input = {}) {
     now,
     metadata: {
       userId: input.userId || input.user_id || "",
-      rawSource: input.source || ""
+      rawSource: input.source || "",
+      subscriberTier
     }
   });
+
+  if (!previous) {
+    const nextRewardAt = addMinutesIso(now, intervalMinutes);
+    const watchState = setWatchNextRewardAt(login, nextRewardAt);
+    return {
+      ok: true,
+      skipped: true,
+      awarded: false,
+      ignored: false,
+      login,
+      reason: "watch_interval_initial_wait",
+      secondsUntilNextReward: secondsUntilIso(nextRewardAt),
+      nextRewardAt,
+      watchState,
+      transaction: null,
+      user: getUser(login)
+    };
+  }
 
   if (!shouldRewardWatch(previous, now, intervalMinutes)) {
     return {
@@ -1739,6 +1819,7 @@ function recordWatchHeartbeat(input = {}) {
     login,
     displayName: input.displayName || input.userDisplayName || input.display_name,
     subscriber: input.subscriber ?? input.isSubscriber ?? input.sub,
+    subscriberTier,
     mode,
     referenceId: input.referenceId || input.reference_id || `watch_${login}_${now}`
   });
@@ -3613,6 +3694,7 @@ async function runPresenceOnce(req, options = {}) {
         login,
         displayName: user.displayName || user.display_name || login,
         subscriber: !!user.subscriber,
+        subscriberTier: user.subscriberTier || user.subscriber_tier || user.tier || user.subscriptionTier || "",
         source: "twitch_presence_runner",
         userId: user.userId || user.user_id || "",
         metadata: {
@@ -3827,6 +3909,7 @@ function registerRoutes(app) {
       login: req.query.login || req.query.user,
       displayName: req.query.displayName || req.query.display_name,
       subscriber: req.query.subscriber || req.query.sub || false,
+      subscriberTier: req.query.subscriberTier || req.query.subscriber_tier || req.query.tier || req.query.subTier || req.query.subscriptionTier || "",
       mode: req.query.mode || config.mode,
       referenceId: req.query.referenceId || ""
     });
@@ -3838,6 +3921,7 @@ function registerRoutes(app) {
       login: req.query.login || req.query.user,
       displayName: req.query.displayName || req.query.display_name,
       subscriber: req.query.subscriber || req.query.sub || false,
+      subscriberTier: req.query.subscriberTier || req.query.subscriber_tier || req.query.tier || req.query.subTier || req.query.subscriptionTier || "",
       mode: req.query.mode || config.mode,
       source: req.query.source || "manual_get",
       userId: req.query.userId || req.query.user_id || "",
@@ -3852,6 +3936,7 @@ function registerRoutes(app) {
       login: body.login || body.userLogin || body.user,
       displayName: body.displayName || body.userDisplayName || body.display_name,
       subscriber: body.subscriber ?? body.sub ?? body.isSubscriber ?? false,
+      subscriberTier: body.subscriberTier || body.subscriber_tier || body.tier || body.subTier || body.subscriptionTier || "",
       mode: body.mode || config.mode,
       source: body.source || body.sourceModule || "manual_post",
       userId: body.userId || body.user_id || "",

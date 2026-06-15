@@ -2,58 +2,58 @@
 
 Stand: 2026-06-15
 
-## Aktueller Stand nach LC-CORE-CLEANUP-1
-
-```text
-Loyalty hat keine alte direkte Twitch-Live-Abfrage mehr.
-Loyalty-local Start/Stop/Clear/Refresh-Routen wurden entfernt.
-Dashboard setzt den Loyalty-StreamState nicht mehr lokal.
-```
-
-## Direkt nach Einspielen
+## Direkt nach Einspielen von LC-CORE-POINTS-1
 
 ```powershell
-.\stepdone.cmd "LC-CORE-CLEANUP-1 Loyalty alte lokale StreamState- und Twitch-Direktlogik entfernt"
+.\stepdone.cmd "LC-CORE-POINTS-1 Sub-Tier-Watch-Werte und Resub-Bonus vorbereitet"
 ```
 
 Danach testen, kein zweites StepDone nach erfolgreichem Test.
 
-## Tests
+## Syntax
 
 ```powershell
 node -c "D:\Streaming\stramAssets\backend\modules\loyalty.js"
-node -c "D:\Streaming\stramAssets\htdocs\dashboard\modules\loyalty.js"
 ```
+
+## Settings prüfen
 
 ```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/routes" | ConvertTo-Json -Depth 6
-Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/stream-state" | ConvertTo-Json -Depth 10
-Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/stream-status-binding/sync?controlRunner=true&sourceKind=stream_state" | ConvertTo-Json -Depth 8
-Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/runner/status" | ConvertTo-Json -Depth 8
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/settings" | ConvertTo-Json -Depth 8
 ```
 
-## Erwartung
+Wenn bestehende Live-Settings noch alte Werte enthalten, gezielt setzen:
 
-```text
-/api/loyalty/routes listet keine alten stream-state/start|stop|clear-override|refresh-auto Routen mehr.
-/api/loyalty/stream-status-binding/sync nutzt /api/twitch/events/stream-state.
-Runner reagiert weiterhin auf zentralen Stream-State.
-Dashboard zeigt keine lokalen Stream-State-Start/Stop-Buttons mehr.
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/settings" -Method POST -ContentType "application/json" -Body '{"key":"watch.subscriberTierAmounts","value":{"1000":6,"2000":8,"3000":10}}'
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/settings" -Method POST -ContentType "application/json" -Body '{"key":"bonuses.resub.enabled","value":true}'
 ```
 
-## Nächster sinnvoller Arbeitsblock nach Test
+## Core-Status prüfen
 
-```text
-LC-DASH-LIVEVIEW-1 – Loyalty Dashboard Live-Gate Anzeige weiter vereinfachen und zentralen Stream-State deutlicher anzeigen.
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/status" | ConvertTo-Json -Depth 8
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/watch/states?limit=20" | ConvertTo-Json -Depth 8
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/transactions?limit=20&type=watch_interval" | ConvertTo-Json -Depth 8
 ```
 
-Danach schrittweise weitere Module an den zentralen Stream-State anbinden:
+## Watch-Flow testen
+
+Nur mit klaren Testusern testen, weil Einträge in der produktiven SQLite entstehen.
+
+Erwartung:
 
 ```text
-Giveaways / Loyalty Games
-Tagebuch
-Clips
-Alerts
-VIP30 / Channelpoints
-Event-System
+Erster Heartbeat: skipped=true, awarded=false, reason=watch_interval_initial_wait.
+Fälliger Heartbeat nach Intervall: awarded=true.
+Viewer: 2.
+Tier 1: 6.
+Tier 2: 8.
+Tier 3: 10.
+```
+
+## Danach sinnvoll
+
+```text
+LC-CORE-POINTS-2 – EventBonus-Pfad mit echten Twitch-Events prüfen: Follow/Sub/Resub/Cheer/Raid/Tip.
 ```

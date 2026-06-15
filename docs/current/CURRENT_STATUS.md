@@ -2,74 +2,57 @@
 
 Stand: 2026-06-15
 
-## Aktueller bestätigter Stand
+## Aktueller Arbeitsstand
 
 ```text
-LC-CORE-CLEANUP-1 – Loyalty alte lokale StreamState- und Twitch-Direktlogik entfernt
+LC-CORE-POINTS-1 – Sub-Tier-Watch-Werte und Resub-Bonus vorbereitet
 ```
 
 ## Kurzfazit
 
-Loyalty nutzt weiterhin `/api/twitch/events/stream-state` als effektive Live-Wahrheit. Die alten lokalen Loyalty-Start/Stop-/Clear-/Refresh-Routen und die direkte Twitch-Live-Abfrage wurden aus `backend/modules/loyalty.js` entfernt.
+Nach dem bestätigten Cleanup `LC-CORE-CLEANUP-1` bleibt Loyalty Consumer von `/api/twitch/events/stream-state`. Der nächste Core-Schritt pflegt die bisherige StreamElements-Punktevergabe in den Loyalty-Core ein.
 
-## Fachliche Wahrheit
+## Punkte-Zielwerte
 
 ```text
-twitch_events ist zentrale Twitch-/Stream-State-Schicht.
-/api/twitch/events/stream-state ist die effektive Live-Wahrheit für Module.
-stream_status bleibt source-only.
-loyalty_stream_state bleibt vorerst nur lokaler Runner-/Dashboard-Spiegel.
+Viewer: 2 Kekskrümel alle 10 Minuten
+Tier 1 Subscriber: 6 Kekskrümel alle 10 Minuten
+Tier 2 Subscriber: 8 Kekskrümel alle 10 Minuten
+Tier 3 Subscriber: 10 Kekskrümel alle 10 Minuten
+
+Follow: 10
+Sub Tier 1/2/3: 50 / 100 / 150
+Resub Tier 1/2/3: 50 / 100 / 150
+Cheer: 10 pro 100 Bits
+Tip: 10 pro 1 EUR
+Raid: 50
 ```
 
-## Geändert in LC-CORE-CLEANUP-1
+## Geändert in LC-CORE-POINTS-1
 
 ```text
 backend/modules/loyalty.js
-htdocs/dashboard/modules/loyalty.js
-docs/current/STEP_LC_CORE_CLEANUP_1_LOYALTY_STREAMSTATE_CLEANUP.md
 ```
-
-## Ergebnis
 
 ```text
-- refreshAutoStreamStateFromTwitch() entfernt.
-- parseExternalLivePayload() entfernt.
-- Fallback auf alte Twitch-Direktabfrage in runPresenceOnce() entfernt.
-- /api/loyalty/stream-state/start entfernt.
-- /api/loyalty/stream-state/stop entfernt.
-- /api/loyalty/stream-state/clear-override entfernt.
-- /api/loyalty/stream-state/refresh-auto entfernt.
-- Dashboard-Buttons für lokalen Loyalty-Start/Stop entfernt.
-- Routenliste bereinigt.
+- Version 0.1.15.
+- watch.subscriberTierAmounts ergänzt.
+- Resub-Bonus im Default aktiviert.
+- Watch-Punkte nutzen Subscriber-Tier bevorzugt.
+- Subscriber-Multiplier bleibt Fallback.
+- Erster Watch-Heartbeat legt nur den Watch-State an; Punkte gibt es erst nach Ablauf des Intervalls.
 ```
+
+## Bestehende Settings beachten
+
+Bestehende Werte in `loyalty_settings` werden nicht automatisch überschrieben. Nach Deploy müssen `watch.subscriberTierAmounts` und `bonuses.resub.enabled` geprüft und bei Bedarf per Settings-API gesetzt werden.
 
 ## Nicht geändert
 
 ```text
-Keine Punkte-/Watch-/EventBonus-/Command-Logik geändert.
-Keine produktive SQLite ersetzt oder neu gebaut.
-Kein Shadow/Live-Wechsel.
-Runner-Routen bleiben erhalten.
-/api/loyalty/stream-state bleibt read-only erhalten.
-/api/loyalty/stream-status-binding/sync bleibt erhalten.
-```
-
-## Tests nach Einspielen
-
-```powershell
-node -c "D:\Streaming\stramAssets\backend\modules\loyalty.js"
-node -c "D:\Streaming\stramAssets\htdocs\dashboard\modules\loyalty.js"
-Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/routes" | ConvertTo-Json -Depth 6
-Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/stream-state" | ConvertTo-Json -Depth 10
-Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/stream-status-binding/sync?controlRunner=true&sourceKind=stream_state" | ConvertTo-Json -Depth 8
-Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/runner/status" | ConvertTo-Json -Depth 8
-```
-
-## StepDone-Regel
-
-```text
-1. Dateien/ZIP einspielen/deployen
-2. stepdone.cmd ausführen
-3. danach testen
-4. nach erfolgreichem Test kein zweites StepDone
+Keine Commands aktiviert.
+Keine Live-/Shadow-Umstellung.
+Keine produktive SQLite ersetzt oder gelöscht.
+Keine Giveaway-/Games-Änderung.
+Keine Dashboard-Neustruktur.
 ```
