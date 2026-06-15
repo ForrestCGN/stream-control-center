@@ -3,6 +3,7 @@ window.LoyaltyGamesModule = (function(){
 
   const api = {
     coreStatus: '/api/loyalty/status',
+    loyaltySettings: '/api/loyalty/settings',
     status: '/api/loyalty/games/status',
     config: '/api/loyalty/games/config',
     routes: '/api/loyalty/games/routes',
@@ -29,6 +30,8 @@ window.LoyaltyGamesModule = (function(){
     error: '',
     message: '',
     coreStatus: null,
+    coreSettings: null,
+    coreSettingsResult: '',
     status: null,
     config: null,
     routes: null,
@@ -536,18 +539,60 @@ window.LoyaltyGamesModule = (function(){
     }
   }
 
+
+  async function loadCoreLoyalty(rerender = true){
+    try {
+      const [coreStatus, coreSettings] = await Promise.all([
+        window.CGN.api(api.coreStatus).catch(err => ({ ok:false, error:err.message })),
+        window.CGN.api(api.loyaltySettings).catch(err => ({ ok:false, error:err.message, settings:[] }))
+      ]);
+      state.coreStatus = coreStatus;
+      state.coreSettings = coreSettings;
+      state.error = '';
+    } catch (err) {
+      state.error = err.message || String(err);
+    }
+    if (rerender) render();
+  }
+
+  async function submitCoreSetting(body, label = 'Core-Einstellung'){
+    if (!window.confirm(`${label} wirklich speichern?`)) {
+      state.coreSettingsResult = buildGambleResult('info', 'Speichern abgebrochen', 'Es wurde keine Änderung geschrieben.');
+      render();
+      return;
+    }
+    state.saving = true;
+    state.coreSettingsResult = buildGambleResult('loading', `${label} wird gespeichert`, 'Bitte kurz warten.');
+    render();
+    try {
+      const result = await apiPost(api.loyaltySettings, body || {});
+      state.coreSettingsResult = result?.ok
+        ? buildGambleResult('success', `${label} gespeichert`, 'Die Einstellung wurde aktualisiert und neu geladen.')
+        : buildGambleResult('info', `${label} gespeichert`, 'Bitte Ergebnis prüfen.');
+      state.message = result?.ok ? `${label} gespeichert.` : `${label} gespeichert, bitte Ergebnis prüfen.`;
+      await loadCoreLoyalty(false);
+    } catch (err) {
+      state.coreSettingsResult = buildGambleResult('error', 'Speichern fehlgeschlagen', err.message || 'Unbekannter Fehler.', { error: err.message || String(err) });
+      state.error = err.message || String(err);
+    } finally {
+      state.saving = false;
+      render();
+    }
+  }
+
   async function loadAll(force){
     root = document.getElementById('loyaltyGamesModule');
     if (!root || !window.CGN) return;
-    if (!force && state.coreStatus && state.status && state.wheelStatus && state.presets && state.giveaways && state.giveawayCommands && state.giveawayTexts && state.communicationStatus && state.gambleConfig) { render(); return; }
+    if (!force && state.coreStatus && state.coreSettings && state.status && state.wheelStatus && state.presets && state.giveaways && state.giveawayCommands && state.giveawayTexts && state.communicationStatus && state.gambleConfig) { render(); return; }
 
     state.loading = true;
     state.error = '';
     render();
 
     try {
-      const [coreStatus, status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, giveawayCommands, giveawayTexts, communicationStatus, gambleConfig, gambleAudit, commandLogs] = await Promise.all([
+      const [coreStatus, coreSettings, status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, giveawayCommands, giveawayTexts, communicationStatus, gambleConfig, gambleAudit, commandLogs] = await Promise.all([
         window.CGN.api(api.coreStatus).catch(err => ({ ok:false, error:err.message })),
+        window.CGN.api(api.loyaltySettings).catch(err => ({ ok:false, error:err.message, settings:[] })),
         window.CGN.api(api.status).catch(err => ({ ok:false, error:err.message })),
         window.CGN.api(api.config).catch(err => ({ ok:false, error:err.message })),
         window.CGN.api(api.routes).catch(err => ({ ok:false, error:err.message, routes:[] })),
@@ -578,7 +623,7 @@ window.LoyaltyGamesModule = (function(){
         selectedGiveawayUid = giveawayRows[0]?.giveawayUid || '';
       }
 
-      state = { ...state, loading:false, error:'', coreStatus, status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, giveawayCommands, giveawayTexts, communicationStatus, gambleConfig, gambleAudit, gambleLogRows: normalizeGambleRows(commandLogs), gambleStats: buildGambleStats(normalizeGambleRows(commandLogs)), selectedPresetUid, selectedGiveawayUid };
+      state = { ...state, loading:false, error:'', coreStatus, coreSettings, status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, giveawayCommands, giveawayTexts, communicationStatus, gambleConfig, gambleAudit, gambleLogRows: normalizeGambleRows(commandLogs), gambleStats: buildGambleStats(normalizeGambleRows(commandLogs)), selectedPresetUid, selectedGiveawayUid };
       if (selectedPresetUid) await loadPreset(selectedPresetUid, false);
       if (selectedGiveawayUid) await loadGiveaway(selectedGiveawayUid, false);
     } catch (err) {
@@ -2034,6 +2079,17 @@ function renderGiveawayDetails(giveaway){
   function renderReadonlyToggle(label, value, help){
     return renderReadonlySelect(label, value ? 'on' : 'off', [['on', 'Aktiv'], ['off', 'Inaktiv']], help);
   }
+  function renderEditableSelect(label, name, value, options, help){
+    const safeOptions = Array.isArray(options) && options.length ? options : [[String(value ?? ''), configDisplayValue(value)]];
+    return `<label class="lg-config-field"><span>${esc(label)} ${help ? configInfoNote(help) : ''}</span><select name="${esc(name)}">
+      ${safeOptions.map(opt => {
+        const id = Array.isArray(opt) ? opt[0] : opt;
+        const text = Array.isArray(opt) ? opt[1] : opt;
+        return `<option value="${esc(id)}" ${String(id) === String(value) ? 'selected' : ''}>${esc(text)}</option>`;
+      }).join('')}
+    </select></label>`;
+  }
+
 
   function renderConfigSummaryRows(rows){
     return `<div class="lg-config-summary-list">
@@ -2099,25 +2155,32 @@ function renderGiveawayDetails(giveaway){
     const gift = state.coreStatus?.diagnostics?.bonusMapping?.giftSub || {};
     const receiver = state.coreStatus?.diagnostics?.bonusMapping?.bonusValues?.rules?.giftSubReceiver?.config || {};
     const mode = gift.receiverMode || receiver.mode || 'track_only';
-    return renderConfigPanelShell('Core · Geschenk-Abos / GiftBombs', 'Hier wird angezeigt, wie Schenker und Empfänger von Geschenk-Abos behandelt werden.', `
-      <div class="lg-config-form-grid">
-        ${renderReadonlyToggle('Schenker belohnen', gift.giverBonusEnabled !== false, 'Der Zuschauer, der ein Geschenk-Abo oder eine GiftBomb auslöst, bekommt Punkte.')}
-        ${renderReadonlySelect('Empfänger von Geschenk-Abos', mode, [
-          ['disabled', 'Nicht erfassen'],
-          ['track_only', 'Nur im Verlauf anzeigen, keine Punkte'],
-          ['small_bonus', 'Kleiner Dankeschön-Bonus'],
-          ['half_bonus', 'Hälfte vom Geschenk-Abo-Wert'],
-          ['custom', 'Eigene Punktewerte']
-        ], 'Empfänger haben selbst nichts aktiv ausgegeben. Deshalb ist „Nur im Verlauf anzeigen, keine Punkte“ der faire Standard.')}
-        ${renderReadonlyToggle('Empfänger bekommen Punkte', Boolean(gift.receiverAwardsPoints || receiver.awardsPoints), 'Zeigt, ob Empfänger aktuell wirklich Punkte bekommen.')}
-      </div>
-      ${renderConfigSummaryRows([
-        ['Aktueller Empfänger-Modus', gift.receiverModeLabel || receiver.modeLabel || 'Nur im Verlauf anzeigen, keine Punkte'],
-        ['Empfänger-Erfassung', gift.receiverTrackingEnabled ? 'aktiv' : 'aus'],
-        ['Empfänger-Punkte', gift.receiverAwardsPoints ? 'ja' : 'nein']
-      ])}
-      <div class="lg-config-note">GiftBomb-Empfänger werden nur erfasst, wenn Twitch echte Empfänger liefert. Es werden keine Empfänger geraten.</div>
-    `, { badgeText: 'aktiv', badgeType: 'ok' });
+    const modeLabel = gift.receiverModeLabel || receiver.modeLabel || 'Nur im Verlauf anzeigen, keine Punkte';
+    return renderConfigPanelShell('Core · Geschenk-Abos / GiftBombs', 'Hier stellst du ein, wie Schenker und Empfänger von Geschenk-Abos behandelt werden.', `
+      <form class="lg-form" data-lg-core-gift-settings>
+        <div class="lg-config-form-grid">
+          ${renderReadonlyToggle('Schenker belohnen', gift.giverBonusEnabled !== false, 'Der Zuschauer, der ein Geschenk-Abo oder eine GiftBomb auslöst, bekommt Punkte.')}
+          ${renderEditableSelect('Empfänger von Geschenk-Abos', 'receiverMode', mode, [
+            ['disabled', 'Nicht erfassen'],
+            ['track_only', 'Nur im Verlauf anzeigen, keine Punkte'],
+            ['small_bonus', 'Kleiner Dankeschön-Bonus'],
+            ['half_bonus', 'Hälfte vom Geschenk-Abo-Wert'],
+            ['custom', 'Eigene Punktewerte']
+          ], 'Empfänger haben selbst nichts aktiv ausgegeben. Der faire Standard ist: nur im Verlauf anzeigen, keine Punkte.')}
+          ${renderReadonlyToggle('Empfänger bekommen Punkte', Boolean(gift.receiverAwardsPoints || receiver.awardsPoints), 'Zeigt, ob Empfänger aktuell wirklich Punkte bekommen.')}
+        </div>
+        ${renderConfigSummaryRows([
+          ['Aktueller Empfänger-Modus', modeLabel],
+          ['Empfänger-Erfassung', gift.receiverTrackingEnabled ? 'aktiv' : 'aus'],
+          ['Empfänger-Punkte', gift.receiverAwardsPoints ? 'ja' : 'nein']
+        ])}
+        <div class="lg-config-note">GiftBomb-Empfänger werden nur erfasst, wenn Twitch echte Empfänger liefert. Es werden keine Empfänger geraten.</div>
+        <div class="lg-actions lg-config-actions">
+          <button class="lg-btn" type="submit" ${state.saving ? 'disabled' : ''}>Empfänger-Regel speichern</button>
+        </div>
+      </form>
+      ${state.coreSettingsResult ? renderConfigResultBox({ title: 'Letztes Core-Ergebnis', result: state.coreSettingsResult, clearAttr: 'data-lg-core-clear-result' }) : ''}
+    `, { badgeText: 'schreibbar', badgeType: 'ok' });
   }
 
   function renderRaidConfigPanel(){
@@ -2557,6 +2620,18 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
         state.activeTab = 'config';
         render();
       });
+    });
+
+    root.querySelector('[data-lg-core-clear-result]')?.addEventListener('click', () => {
+      state.coreSettingsResult = '';
+      render();
+    });
+
+    root.querySelector('[data-lg-core-gift-settings]')?.addEventListener('submit', ev => {
+      ev.preventDefault();
+      const form = ev.currentTarget;
+      const mode = String(form.elements.receiverMode?.value || 'track_only').trim();
+      submitCoreSetting({ key: 'bonuses.giftSubReceiver.mode', value: mode }, 'Geschenk-Abo-Empfänger-Regel');
     });
 
     root.querySelector('[data-lg-gamble-reload]')?.addEventListener('click', async () => {
