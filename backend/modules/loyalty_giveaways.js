@@ -18,17 +18,20 @@ const crypto = require("crypto");
 const core = require("./helpers/helper_core");
 const routes = require("./helpers/helper_routes");
 const textHelper = require("./helpers/helper_texts");
+const chatOutputHelper = require("./helpers/helper_chat_output");
 const database = require("../core/database");
 const loyaltyCore = require("./loyalty");
 
 const MODULE_NAME = "loyalty_giveaways";
-const MODULE_VERSION = "0.1.1";
-const MODULE_BUILD = "STEP_LWG_4Q_11";
+const MODULE_VERSION = "0.1.2";
+const MODULE_BUILD = "STEP_LC_RAFFLE_1";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
 const CHAT_COMMANDS_ACTIVE = false;
 const TEXT_MODULE = "loyalty_giveaways";
+const RAFFLE_DEFAULT_DURATION_SECONDS = 120;
+const RAFFLE_MAX_DURATION_SECONDS = 3600;
 
 const CHAT_COMMAND_DEFINITIONS = [
   {
@@ -48,6 +51,24 @@ const CHAT_COMMAND_DEFINITIONS = [
     active: false,
     description: "!wheel / !rad – Rad-Claim nur fuer Gewinner mit offener Permission. Noch nicht aktiv.",
     usage: "!wheel"
+  },
+  {
+    command: "raffle",
+    aliases: [],
+    action: "raffle_control",
+    enabled: true,
+    active: true,
+    description: "!raffle – startet eine einfache Chat-Raffle mit 120 Sekunden Laufzeit. Mod/Streamer.",
+    usage: "!raffle [status|cancel]"
+  },
+  {
+    command: "join",
+    aliases: [],
+    action: "raffle_join",
+    enabled: true,
+    active: true,
+    description: "!join – Teilnahme an der aktuell laufenden Raffle.",
+    usage: "!join"
   }
 ];
 
@@ -93,6 +114,48 @@ const CENTRAL_COMMAND_DEFINITIONS = [
       rawInputMode: true,
       activationState: "prepared_disabled"
     }
+  },
+  {
+    trigger: "raffle",
+    aliases: [],
+    moduleKey: MODULE_NAME,
+    actionKey: "chat_command_runtime",
+    targetMethod: "POST",
+    targetUrl: "/api/loyalty/giveaways/runtime/chat-command",
+    enabled: true,
+    permissionLevel: "mod",
+    cooldownGlobalMs: 1000,
+    cooldownUserMs: 3000,
+    liveOnly: false,
+    responseMode: "module",
+    config: {
+      seededBy: "STEP_LC_RAFFLE_1",
+      actionType: "module_command",
+      moduleCommand: "raffle",
+      rawInputMode: true,
+      activationState: "enabled"
+    }
+  },
+  {
+    trigger: "join",
+    aliases: [],
+    moduleKey: MODULE_NAME,
+    actionKey: "chat_command_runtime",
+    targetMethod: "POST",
+    targetUrl: "/api/loyalty/giveaways/runtime/chat-command",
+    enabled: true,
+    permissionLevel: "everyone",
+    cooldownGlobalMs: 500,
+    cooldownUserMs: 2500,
+    liveOnly: false,
+    responseMode: "module",
+    config: {
+      seededBy: "STEP_LC_RAFFLE_1",
+      actionType: "module_command",
+      moduleCommand: "join",
+      rawInputMode: true,
+      activationState: "enabled"
+    }
   }
 ];
 
@@ -133,6 +196,49 @@ const CHAT_TEXT_DEFAULTS = {
     "Erst wird die Lostrommel geschlossen, dann wird ausgelost. Ordnung muss sein.",
     "Die Heimleitung lässt erst auslosen, wenn die Ticket-Ausgabe offiziell geschlossen ist."
   ],
+  "raffle.started": [
+    "Die Heimleitung öffnet die kleine Lostrommel! Tippt !join – {duration} Sekunden Zeit.",
+    "Raffle läuft! {duration} Sekunden, ein Los pro Nase. Rein mit !join.",
+    "Die Rentnergang zählt die Lose: !join in den Chat, {duration} Sekunden Zeit."
+  ],
+  "raffle.already_active": [
+    "Es läuft schon eine Raffle. Die Heimleitung öffnet nicht zwei Lostrommeln gleichzeitig.",
+    "Langsam, Chef: Eine Raffle ist bereits offen. Erst die aktuelle auslosen lassen."
+  ],
+  "raffle.joined": [
+    "{user} liegt im Lostopf. Bitte nicht am Deckel rütteln.",
+    "{user}, dein Loszettel wurde abgestempelt.",
+    "{user} ist drin. Die Heimleitung nickt streng, aber fair."
+  ],
+  "raffle.already_joined": [
+    "{user}, du liegst schon im Lostopf. Nicht doppelt drängeln, Rentner!",
+    "{user}, ein Los pro Nase. Die Heimleitung hat dich schon notiert."
+  ],
+  "raffle.no_active": [
+    "Aktuell läuft keine Raffle. Die Lostrommel macht Pause.",
+    "Keine aktive Raffle gefunden. Erst muss die Heimleitung !raffle rufen."
+  ],
+  "raffle.status": [
+    "Raffle läuft noch {remaining}s. Teilnehmer: {entries}. Mit !join rein in den Lostopf.",
+    "Lostrommel offen: {entries} Teilnehmer, noch {remaining}s Restzeit."
+  ],
+  "raffle.cancelled": [
+    "Raffle abgebrochen. Die Heimleitung kippt die Lose zurück in die Schublade.",
+    "Die aktuelle Raffle wurde beendet. Keine Ziehung, keine Diskussion am Kaffeetisch."
+  ],
+  "raffle.no_entries": [
+    "Die Raffle ist vorbei, aber niemand ist eingestiegen. Die Lostrommel ist leer.",
+    "Keine Teilnehmer. Die Heimleitung trägt ein trauriges Nichts ins Klemmbrett ein."
+  ],
+  "raffle.winners": [
+    "Raffle beendet! Gewinner ({winnerCount}/{entries}): {winners}",
+    "Die Heimleitung hat gezogen. Gewinner: {winners} – Teilnehmer: {entries}.",
+    "Lostrommel zu, Brille geputzt, Gewinner gefunden: {winners}"
+  ],
+  "raffle.permission_denied": [
+    "{user}, die Lostrommel darf nur die Heimleitung öffnen.",
+    "{user}, dafür brauchst du Mod-Rechte. Die Rentnergang passt auf."
+  ],
   "wheel.disabled": [
     "{user}, das Glücksrad steht bereit, aber der Hausmeister hat den Strom noch nicht eingeschaltet.",
     "{user}, der Rad-Freigabeschein ist vorbereitet, aber die Ausgabe ist noch nicht aktiv."
@@ -157,6 +263,16 @@ const CHAT_TEXT_CATEGORIES = {
   "ticket.cost_not_supported_yet": "chat_ticket",
   "giveaway.closed": "chat_giveaway",
   "giveaway.draw_not_closed": "chat_giveaway",
+  "raffle.started": "chat_raffle",
+  "raffle.already_active": "chat_raffle",
+  "raffle.joined": "chat_raffle",
+  "raffle.already_joined": "chat_raffle",
+  "raffle.no_active": "chat_raffle",
+  "raffle.status": "chat_raffle",
+  "raffle.cancelled": "chat_raffle",
+  "raffle.no_entries": "chat_raffle",
+  "raffle.winners": "chat_raffle",
+  "raffle.permission_denied": "chat_raffle",
   "wheel.disabled": "chat_wheel",
   "wheel.no_permission": "chat_wheel",
   "wheel.success": "chat_wheel"
@@ -165,6 +281,7 @@ const CHAT_TEXT_CATEGORIES = {
 const CHAT_TEXT_CATEGORY_LABELS = {
   chat_ticket: "Chat · Tickets",
   chat_giveaway: "Chat · Giveaway",
+  chat_raffle: "Chat · Raffle",
   chat_wheel: "Chat · Glücksrad"
 };
 
@@ -214,6 +331,10 @@ const MODULE_META = {
       "loyalty.giveaway.cancelled",
       "loyalty.giveaway.deleted",
       "loyalty.giveaway.winner_drawn",
+      "loyalty.giveaway.raffle.started",
+      "loyalty.giveaway.raffle.joined",
+      "loyalty.giveaway.raffle.cancelled",
+      "loyalty.giveaway.raffle.finished",
       "loyalty.giveaway.wheel_permission_created",
       "loyalty.giveaway.wheel_claimed",
       "loyalty.giveaway.claim.chat_window_opened",
@@ -437,6 +558,30 @@ let state = {
     lastUserDisplayName: "",
     lastUserSource: "",
     lastMessagePreview: ""
+  },
+  raffle: {
+    active: false,
+    uid: "",
+    status: "idle",
+    durationSeconds: RAFFLE_DEFAULT_DURATION_SECONDS,
+    startedAt: "",
+    endsAt: "",
+    startedBy: "",
+    startedByDisplayName: "",
+    participants: [],
+    participantsByLogin: {},
+    winners: [],
+    timer: null,
+    finishedAt: "",
+    lastError: "",
+    counters: {
+      started: 0,
+      joined: 0,
+      duplicateJoins: 0,
+      cancelled: 0,
+      finished: 0,
+      noEntries: 0
+    }
   }
 };
 
@@ -4803,7 +4948,7 @@ function listCentralCommandDefinitions(extra = {}) {
     existing: Number(extra.existing || Math.max(0, rows.length - Number(extra.inserted || 0))),
     count: rows.length,
     commands: rows,
-    note: "Zentrale Commands !ticket, !wheel und Alias !rad sind vorbereitet. Aktivierung erfolgt ausschliesslich ueber das zentrale commands-System."
+    note: "Zentrale Commands !ticket, !wheel/!rad sowie !raffle und !join werden ueber das zentrale commands-System verwaltet."
   };
 }
 
@@ -4919,7 +5064,7 @@ function findCentralCommandDefinition(commandName) {
     SELECT *
     FROM command_definitions
     WHERE module_key = :moduleKey
-      AND trigger IN ('ticket', 'wheel')
+      AND trigger IN ('ticket', 'wheel', 'raffle', 'join')
     ORDER BY trigger ASC
   `, { moduleKey: MODULE_NAME }).map(rowToCentralCommand).filter(Boolean);
 
@@ -4988,6 +5133,333 @@ function buildCommandRuntimeResponse(input = {}, patch = {}) {
     data: patch.data || {},
     note: patch.note || "Runtime verarbeitet fachliche Regeln. Ob der Chat-Command aufgerufen wird, entscheidet das zentrale commands-System."
   };
+}
+
+
+function isRaffleOperator(input = {}) {
+  return input.isBroadcaster === true || input.isOwner === true || input.isMod === true || input.isModerator === true;
+}
+
+function getRaffleSnapshot() {
+  const raffle = state.raffle || {};
+  const now = Date.now();
+  const endsAtMs = raffle.endsAt ? Date.parse(raffle.endsAt) : 0;
+  const remainingSeconds = raffle.active && endsAtMs > now ? Math.max(0, Math.ceil((endsAtMs - now) / 1000)) : 0;
+  return {
+    active: raffle.active === true,
+    uid: raffle.uid || "",
+    status: raffle.status || "idle",
+    durationSeconds: Number(raffle.durationSeconds || RAFFLE_DEFAULT_DURATION_SECONDS),
+    startedAt: raffle.startedAt || "",
+    endsAt: raffle.endsAt || "",
+    remainingSeconds,
+    startedBy: raffle.startedBy || "",
+    startedByDisplayName: raffle.startedByDisplayName || "",
+    participantCount: Array.isArray(raffle.participants) ? raffle.participants.length : 0,
+    participants: Array.isArray(raffle.participants) ? raffle.participants.map(item => ({ ...item })) : [],
+    winners: Array.isArray(raffle.winners) ? raffle.winners.map(item => ({ ...item })) : [],
+    finishedAt: raffle.finishedAt || "",
+    lastError: raffle.lastError || "",
+    counters: { ...(raffle.counters || {}) }
+  };
+}
+
+function clearRaffleTimer() {
+  if (state.raffle && state.raffle.timer) {
+    clearTimeout(state.raffle.timer);
+    state.raffle.timer = null;
+  }
+}
+
+function parseRaffleDuration(input = {}) {
+  const args = Array.isArray(input.args) ? input.args : [];
+  const raw = String(input.durationSeconds ?? input.duration ?? input.seconds ?? args[0] ?? "").trim();
+  if (!raw || !/^\d+$/.test(raw)) return RAFFLE_DEFAULT_DURATION_SECONDS;
+  return clampInt(raw, RAFFLE_DEFAULT_DURATION_SECONDS, 10, RAFFLE_MAX_DURATION_SECONDS);
+}
+
+function calculateRaffleWinnerCount(entryCount) {
+  const count = Math.max(0, Number.parseInt(entryCount, 10) || 0);
+  if (count <= 0) return 0;
+  if (count === 1) return 1;
+  if (count <= 10) return Math.max(1, Math.floor(count / 2));
+  if (count <= 20) return Math.max(1, Math.floor(count / 4));
+  if (count <= 50) return Math.max(1, Math.floor(count / 5));
+  if (count <= 200) return Math.max(1, Math.floor(count / 8));
+  return Math.max(1, Math.floor(count / 20));
+}
+
+function pickRaffleWinners(participants) {
+  const pool = Array.isArray(participants) ? participants.map(item => ({ ...item })) : [];
+  const winnerCount = calculateRaffleWinnerCount(pool.length);
+  const winners = [];
+  while (pool.length > 0 && winners.length < winnerCount) {
+    const index = crypto.randomInt(0, pool.length);
+    winners.push(pool.splice(index, 1)[0]);
+  }
+  return winners;
+}
+
+async function sendRaffleChatMessage(key, context = {}, options = {}) {
+  try {
+    const message = renderChatRuntimeText(key, context, options);
+    if (!message) return { ok: false, skipped: true, reason: "empty_message" };
+    return await chatOutputHelper.sendChatMessage(message, {
+      source: MODULE_NAME,
+      reason: `raffle_${key}`,
+      directSendEnabled: true,
+      fallbackToStreamerbot: true,
+      maxLength: options.maxLength || 450
+    });
+  } catch (err) {
+    state.raffle.lastError = err && err.message ? err.message : String(err);
+    return { ok: false, error: state.raffle.lastError };
+  }
+}
+
+function resetRaffleRuntime(patch = {}) {
+  clearRaffleTimer();
+  state.raffle.active = false;
+  state.raffle.uid = patch.uid || "";
+  state.raffle.status = patch.status || "idle";
+  state.raffle.durationSeconds = patch.durationSeconds || RAFFLE_DEFAULT_DURATION_SECONDS;
+  state.raffle.startedAt = patch.startedAt || "";
+  state.raffle.endsAt = patch.endsAt || "";
+  state.raffle.startedBy = patch.startedBy || "";
+  state.raffle.startedByDisplayName = patch.startedByDisplayName || "";
+  state.raffle.participants = [];
+  state.raffle.participantsByLogin = {};
+  state.raffle.winners = [];
+  state.raffle.finishedAt = patch.finishedAt || "";
+  state.raffle.lastError = "";
+}
+
+function finishRaffleRuntime(reason = "timer") {
+  if (!state.raffle.active) return { ok: false, error: "raffle_not_active" };
+  clearRaffleTimer();
+
+  const participants = Array.isArray(state.raffle.participants) ? state.raffle.participants.map(item => ({ ...item })) : [];
+  const winners = pickRaffleWinners(participants);
+  const finishedAt = nowIso();
+  const raffleUid = state.raffle.uid || "";
+  state.raffle.active = false;
+  state.raffle.status = participants.length > 0 ? "finished" : "no_entries";
+  state.raffle.winners = winners;
+  state.raffle.finishedAt = finishedAt;
+  state.raffle.counters.finished += 1;
+  if (!participants.length) state.raffle.counters.noEntries += 1;
+
+  const context = {
+    entries: participants.length,
+    winnerCount: winners.length,
+    winners: winners.map(item => `@${item.displayName || item.login}`).join(", ")
+  };
+
+  const messageKey = participants.length > 0 ? "raffle.winners" : "raffle.no_entries";
+  setTimeout(() => {
+    sendRaffleChatMessage(messageKey, context).catch(() => {});
+  }, 0);
+
+  emitEvent("loyalty.giveaway.raffle.finished", {
+    raffleUid,
+    reason,
+    participantCount: participants.length,
+    winnerCount: winners.length,
+    winners: winners.map(item => item.login),
+    finishedAt
+  });
+
+  return { ok: true, raffleUid, status: state.raffle.status, participants, winners, finishedAt };
+}
+
+function startRaffleRuntime(input = {}) {
+  if (!isRaffleOperator(input)) {
+    return buildCommandRuntimeResponse(input, {
+      ok: false,
+      action: "raffle_start",
+      messageKey: "raffle.permission_denied",
+      error: "permission_denied"
+    });
+  }
+
+  if (state.raffle.active) {
+    const snapshot = getRaffleSnapshot();
+    return buildCommandRuntimeResponse(input, {
+      ok: false,
+      action: "raffle_start",
+      messageKey: "raffle.already_active",
+      context: { entries: snapshot.participantCount, remaining: snapshot.remainingSeconds },
+      error: "raffle_already_active",
+      data: snapshot
+    });
+  }
+
+  const userLogin = normalizeChatLogin(input.userLogin || input.login || input.username || input.user);
+  const userDisplayName = normalizeChatDisplayName(input, userLogin);
+  const durationSeconds = parseRaffleDuration(input);
+  const startedAt = nowIso();
+  const endsAt = new Date(Date.now() + durationSeconds * 1000).toISOString();
+  const raffleUid = uid("raffle");
+
+  resetRaffleRuntime({
+    uid: raffleUid,
+    status: "open",
+    durationSeconds,
+    startedAt,
+    endsAt,
+    startedBy: userLogin,
+    startedByDisplayName: userDisplayName
+  });
+  state.raffle.active = true;
+  state.raffle.counters.started += 1;
+  state.raffle.timer = setTimeout(() => {
+    finishRaffleRuntime("timer");
+  }, durationSeconds * 1000);
+
+  emitEvent("loyalty.giveaway.raffle.started", {
+    raffleUid,
+    durationSeconds,
+    startedAt,
+    endsAt,
+    actorLogin: userLogin,
+    actorDisplayName: userDisplayName
+  });
+
+  return buildCommandRuntimeResponse(input, {
+    ok: true,
+    action: "raffle_start",
+    messageKey: "raffle.started",
+    context: { duration: durationSeconds, entries: 0, remaining: durationSeconds },
+    data: getRaffleSnapshot()
+  });
+}
+
+function cancelRaffleRuntime(input = {}) {
+  if (!isRaffleOperator(input)) {
+    return buildCommandRuntimeResponse(input, {
+      ok: false,
+      action: "raffle_cancel",
+      messageKey: "raffle.permission_denied",
+      error: "permission_denied"
+    });
+  }
+
+  if (!state.raffle.active) {
+    return buildCommandRuntimeResponse(input, {
+      ok: false,
+      action: "raffle_cancel",
+      messageKey: "raffle.no_active",
+      error: "raffle_no_active",
+      data: getRaffleSnapshot()
+    });
+  }
+
+  const snapshot = getRaffleSnapshot();
+  resetRaffleRuntime({ status: "cancelled", finishedAt: nowIso() });
+  state.raffle.counters.cancelled += 1;
+
+  emitEvent("loyalty.giveaway.raffle.cancelled", {
+    raffleUid: snapshot.uid,
+    actorLogin: normalizeChatLogin(input.userLogin || input.login || input.username || input.user),
+    participantCount: snapshot.participantCount,
+    cancelledAt: nowIso()
+  });
+
+  return buildCommandRuntimeResponse(input, {
+    ok: true,
+    action: "raffle_cancel",
+    messageKey: "raffle.cancelled",
+    data: snapshot
+  });
+}
+
+function statusRaffleRuntime(input = {}) {
+  const snapshot = getRaffleSnapshot();
+  if (!snapshot.active) {
+    return buildCommandRuntimeResponse(input, {
+      ok: false,
+      action: "raffle_status",
+      messageKey: "raffle.no_active",
+      error: "raffle_no_active",
+      data: snapshot
+    });
+  }
+  return buildCommandRuntimeResponse(input, {
+    ok: true,
+    action: "raffle_status",
+    messageKey: "raffle.status",
+    context: { entries: snapshot.participantCount, remaining: snapshot.remainingSeconds, duration: snapshot.durationSeconds },
+    data: snapshot
+  });
+}
+
+function joinRaffleRuntime(input = {}) {
+  if (!state.raffle.active) {
+    return buildCommandRuntimeResponse(input, {
+      ok: false,
+      action: "raffle_join",
+      messageKey: "raffle.no_active",
+      error: "raffle_no_active",
+      data: getRaffleSnapshot()
+    });
+  }
+
+  const userLogin = normalizeChatLogin(input.userLogin || input.login || input.username || input.user);
+  const userDisplayName = normalizeChatDisplayName(input, userLogin);
+  if (!userLogin) {
+    return buildCommandRuntimeResponse(input, {
+      ok: false,
+      action: "raffle_join",
+      messageKey: "raffle.no_active",
+      error: "missing_user_login",
+      data: getRaffleSnapshot()
+    });
+  }
+
+  if (state.raffle.participantsByLogin[userLogin]) {
+    state.raffle.counters.duplicateJoins += 1;
+    return buildCommandRuntimeResponse(input, {
+      ok: false,
+      action: "raffle_join",
+      messageKey: "raffle.already_joined",
+      error: "raffle_already_joined",
+      context: { entries: state.raffle.participants.length },
+      data: getRaffleSnapshot()
+    });
+  }
+
+  const participant = {
+    login: userLogin,
+    displayName: userDisplayName || userLogin,
+    joinedAt: nowIso()
+  };
+  state.raffle.participants.push(participant);
+  state.raffle.participantsByLogin[userLogin] = participant;
+  state.raffle.counters.joined += 1;
+
+  emitEvent("loyalty.giveaway.raffle.joined", {
+    raffleUid: state.raffle.uid,
+    userLogin,
+    userDisplayName: participant.displayName,
+    participantCount: state.raffle.participants.length,
+    joinedAt: participant.joinedAt
+  });
+
+  return buildCommandRuntimeResponse(input, {
+    ok: true,
+    action: "raffle_join",
+    messageKey: "raffle.joined",
+    context: { entries: state.raffle.participants.length, remaining: getRaffleSnapshot().remainingSeconds },
+    data: getRaffleSnapshot()
+  });
+}
+
+function handleRaffleCommandRuntime(input = {}) {
+  const args = Array.isArray(input.args) ? input.args.map(item => String(item || "").trim()).filter(Boolean) : [];
+  const subcommand = String(args[0] || "").trim().toLowerCase();
+  if (["cancel", "stop", "abort", "abbrechen"].includes(subcommand)) return cancelRaffleRuntime(input);
+  if (["status", "info"].includes(subcommand)) return statusRaffleRuntime(input);
+  return startRaffleRuntime(input);
 }
 
 function handleTicketCommandRuntime(input = {}) {
@@ -5156,12 +5628,14 @@ function handleChatCommandRuntime(input = {}) {
   const command = String(input.command || input.commandName || input.cmd || "").trim().replace(/^!/, "").toLowerCase();
   if (command === "ticket") return handleTicketCommandRuntime({ ...input, command });
   if (command === "wheel" || command === "rad") return handleWheelCommandRuntime({ ...input, command });
+  if (command === "raffle") return handleRaffleCommandRuntime({ ...input, command });
+  if (command === "join") return joinRaffleRuntime({ ...input, command });
 
   return buildCommandRuntimeResponse({ ...input, command }, {
     ok: false,
     handled: false,
     error: "unsupported_command",
-    note: "Loyalty-Giveaway-Runtime kennt aktuell nur !ticket, !wheel und !rad."
+    note: "Loyalty-Giveaway-Runtime kennt aktuell !ticket, !wheel/!rad, !raffle und !join."
   });
 }
 
@@ -5180,7 +5654,7 @@ function counts() {
   const events = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_events")?.count || 0);
   const commandDefinitions = Number(database.get("SELECT COUNT(*) AS count FROM loyalty_giveaway_command_definitions")?.count || 0);
   const centralCommandDefinitions = commandSystemTableAvailable()
-    ? Number(database.get("SELECT COUNT(*) AS count FROM command_definitions WHERE module_key = :moduleKey AND trigger IN ('ticket', 'wheel')", { moduleKey: MODULE_NAME })?.count || 0)
+    ? Number(database.get("SELECT COUNT(*) AS count FROM command_definitions WHERE module_key = :moduleKey AND trigger IN ('ticket', 'wheel', 'raffle', 'join')", { moduleKey: MODULE_NAME })?.count || 0)
     : 0;
   const chatTextVariants = Number(database.get("SELECT COUNT(*) AS count FROM module_text_variants WHERE module_name = :moduleName", { moduleName: TEXT_MODULE })?.count || 0);
   return { total, draft, open, finished, deleted, prizes, entries, winners, wheelPermissions, boundWheelFields, events, commandDefinitions, centralCommandDefinitions, chatTextVariants };
@@ -5223,8 +5697,10 @@ function buildStatus() {
         claimRuntime: true,
         ...state.chatClaimSubscriber
       },
+      raffle: getRaffleSnapshot(),
       warnings: [
-        "Chat-Commands !ticket, !wheel und !rad sind intern eingetragen und zentral vorbereitet, aber bewusst nicht aktiv.",
+        "Chat-Commands !ticket, !wheel und !rad bleiben bestehende Giveaway-/Wheel-Commands.",
+        "!raffle und !join sind ab STEP_LC_RAFFLE_1 als einfache Chat-Raffle im Giveaway-Modul eingebettet.",
         "Draw ist ab STEP_LWG_4M_2 nur nach closed_for_entries erlaubt.",
         "Wheel-Giveaways nutzen ab STEP_LWG_4M_5 ein aktives giveaway-bound Wheel fuer Permission/Claim/Spin."
       ],
@@ -5263,6 +5739,10 @@ function registerRoutes(app) {
     return core.sendOk(res, handleChatCommandRuntime(req.body || {}));
   })));
 
+  registered.push(...routes.registerGet(app, "/api/loyalty/giveaways/raffle/status", core.asyncRoute(async (req, res) => {
+    return core.sendOk(res, { ok: true, message: "ok", module: MODULE_NAME, raffle: getRaffleSnapshot() });
+  })));
+
 
   const routeNames = [
     "GET /api/loyalty/giveaways/status",
@@ -5270,6 +5750,7 @@ function registerRoutes(app) {
     "GET /api/loyalty/giveaways/routes",
     "POST /api/loyalty/giveaways/runtime/chat-command",
     "POST /api/loyalty/giveaways/runtime/command",
+    "GET /api/loyalty/giveaways/raffle/status",
     "GET /api/loyalty/giveaways/central-commands",
     "GET /api/loyalty/giveaways",
     "GET /api/loyalty/giveaways/:giveawayUid",
@@ -5653,6 +6134,10 @@ module.exports = {
     getPendingWheelPermissionForUser,
     claimWheelSpin,
     handleChatCommandRuntime,
+    handleRaffleCommandRuntime,
+    joinRaffleRuntime,
+    getRaffleSnapshot,
+    finishRaffleRuntime,
     seedCentralCommandDefinitions,
     listCentralCommandDefinitions,
     listChatCommandDefinitions,
