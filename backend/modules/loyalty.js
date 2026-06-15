@@ -39,7 +39,7 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "loyalty";
-const VERSION = "0.1.21";
+const VERSION = "0.1.22";
 const MODULE_VERSION = VERSION;
 const STREAM_STATUS_API_PATH = "/api/twitch/events/stream-state";
 const MODULE_META = {
@@ -2886,6 +2886,240 @@ function listLoyaltyEvents(options = {}) {
 }
 
 
+function normalizeHistoryStatus(value) {
+  const raw = String(value || "").trim().toLowerCase();
+  if (["processed", "booked", "gebucht", "ok"].includes(raw)) return "processed";
+  if (["skipped", "skip", "ignored", "uebersprungen", "übersprungen"].includes(raw)) return "skipped";
+  if (["duplicate", "duplicates", "dupe", "doppelt"].includes(raw)) return "duplicate";
+  if (["all", "alle", "*"] .includes(raw)) return "";
+  return raw;
+}
+
+function loyaltyEventHistoryStatus(event) {
+  if (!event) return "unknown";
+  if (event.duplicate) return "duplicate";
+  if (event.skipped) return "skipped";
+  if (event.processed) return "processed";
+  return "pending";
+}
+
+function transactionSummary(tx) {
+  if (!tx) return null;
+  return {
+    uid: tx.uid,
+    login: tx.login,
+    displayName: tx.displayName,
+    amount: tx.amount,
+    balanceBefore: tx.balanceBefore,
+    balanceAfter: tx.balanceAfter,
+    balanceField: tx.balanceField,
+    type: tx.type,
+    sourceModule: tx.sourceModule,
+    sourceProvider: tx.sourceProvider,
+    mode: tx.mode,
+    reason: tx.reason,
+    referenceType: tx.referenceType,
+    referenceId: tx.referenceId,
+    createdAt: tx.createdAt
+  };
+}
+
+function getTransactionByUid(uidValue) {
+  const txUid = String(uidValue || "").trim();
+  if (!txUid) return null;
+  ensureSchema();
+  return rowToTransaction(database.get("SELECT * FROM loyalty_transactions WHERE transaction_uid = :uid", { uid: txUid }));
+}
+
+function collectEventTransactionUids(event) {
+  const uids = new Set();
+  if (event?.transactionUid) uids.add(String(event.transactionUid));
+  const metadata = event?.metadata && typeof event.metadata === "object" ? event.metadata : {};
+  if (metadata.receiver?.transactionUid) uids.add(String(metadata.receiver.transactionUid));
+  if (metadata.dedupe?.adjustmentTransaction?.uid) uids.add(String(metadata.dedupe.adjustmentTransaction.uid));
+  if (Array.isArray(metadata.transactions)) {
+    metadata.transactions.forEach(tx => {
+      if (tx && tx.uid) uids.add(String(tx.uid));
+    });
+  }
+  return Array.from(uids).filter(Boolean);
+}
+
+function listTransactionsForEvent(event) {
+  if (!event) return [];
+  ensureSchema();
+  const uidList = collectEventTransactionUids(event);
+  const params = { eventUid: event.uid, receiverLike: `${event.uid}:receiver:%` };
+  const uidWhere = uidList.map((uidValue, index) => {
+    const key = `uid${index}`;
+    params[key] = uidValue;
+    return `transaction_uid = :${key}`;
+  });
+  const where = [
+    "reference_id = :eventUid",
+    "reference_id LIKE :receiverLike"
+  ];
+  if (uidWhere.length) where.push(...uidWhere);
+  const rows = database.all(`
+    SELECT *
+    FROM loyalty_transactions
+    WHERE ${where.join(" OR ")}
+    ORDER BY id ASC
+    LIMIT 100
+  `, params).map(rowToTransaction).filter(Boolean);
+
+  const seen = new Set();
+  return rows.filter((tx) => {
+    if (!tx.uid || seen.has(tx.uid)) return false;
+    seen.add(tx.uid);
+    return true;
+  });
+}
+
+function buildGiftDistribution(event, transactions = []) {
+  if (!event || !["gift_sub", "gift_bomb"].includes(event.eventType)) return null;
+  const metadata = event.metadata && typeof event.metadata === "object" ? event.metadata : {};
+  const receiver = metadata.receiver || null;
+  const giverTransaction = transactions.find(tx => tx.uid === event.transactionUid || tx.referenceType === "event_bonus") || null;
+  const receiverTransactions = transactions.filter(tx => tx.reason === "event_gifted_sub_received" || tx.referenceType === "event_bonus_receiver");
+  const expectedReceiverCount = Number(event.quantity || 1);
+  const knownReceiverCount = receiverTransactions.length || (receiver && receiver.transactionUid ? 1 : 0);
+  const missingReceiverCount = event.eventType === "gift_bomb" ? Math.max(0, expectedReceiverCount - knownReceiverCount) : 0;
+
+  return {
+    eventType: event.eventType,
+    tier: event.tier,
+    quantity: event.quantity,
+    giver: {
+      login: event.login,
+      displayName: event.displayName,
+      points: giverTransaction ? Number(giverTransaction.amount || 0) : Number(event.points || 0),
+      transactionUid: giverTransaction?.uid || event.transactionUid || ""
+    },
+    receiver: receiver ? {
+      login: receiver.login || "",
+      displayName: receiver.displayName || receiver.login || "",
+      skipped: receiver.skipped === true,
+      reason: receiver.reason || "",
+      calculatedAmount: Number(receiver.calculated?.amount || 0),
+      transactionUid: receiver.transactionUid || ""
+    } : null,
+    receiverTransactions: receiverTransactions.map(transactionSummary),
+    knownReceiverCount,
+    expectedReceiverCount,
+    missingReceiverCount,
+    note: event.eventType === "gift_bomb"
+      ? "GiftBomb-Receiver werden nur sichtbar, wenn Twitch/Source konkrete Empfaengerdaten im Event oder als abgeleitete Receiver-Buchung liefert."
+      : "Einzel-GiftSub kann genau einen bekannten Receiver enthalten."
+  };
+}
+
+function compactLoyaltyEventHistoryRow(row) {
+  const event = rowToLoyaltyEvent(row);
+  if (!event) return null;
+  const metadata = event.metadata && typeof event.metadata === "object" ? event.metadata : {};
+  const receiver = metadata.receiver || null;
+  return {
+    id: event.id,
+    uid: event.uid,
+    createdAt: event.createdAt,
+    provider: event.provider,
+    sourceType: event.sourceType,
+    eventType: event.eventType,
+    login: event.login,
+    displayName: event.displayName,
+    amount: event.amount,
+    tier: event.tier,
+    quantity: event.quantity,
+    points: event.points,
+    mode: event.mode,
+    status: loyaltyEventHistoryStatus(event),
+    processed: event.processed,
+    duplicate: event.duplicate,
+    skipped: event.skipped,
+    reason: event.reason,
+    transactionUid: event.transactionUid,
+    receiver: receiver ? {
+      login: receiver.login || "",
+      displayName: receiver.displayName || receiver.login || "",
+      skipped: receiver.skipped === true,
+      reason: receiver.reason || "",
+      transactionUid: receiver.transactionUid || "",
+      calculatedAmount: Number(receiver.calculated?.amount || 0)
+    } : null,
+    transactionCount: collectEventTransactionUids(event).length,
+    detailsAvailable: true
+  };
+}
+
+function listLoyaltyEventHistory(options = {}) {
+  ensureLoyaltyEventsTable();
+  const limit = Math.max(1, Math.min(500, Number(options.limit || 100) || 100));
+  const login = normalizeLogin(options.login || "");
+  const type = normalizeEventType(options.type || options.eventType || "");
+  const status = normalizeHistoryStatus(options.status || "");
+  const q = String(options.q || options.search || "").trim().toLowerCase();
+  const where = [];
+  const params = { limit };
+
+  if (login) {
+    where.push("user_login = :login");
+    params.login = login;
+  }
+  if (type && type !== "unknown") {
+    where.push("event_type = :type");
+    params.type = type;
+  }
+  if (status === "processed") where.push("processed = 1 AND skipped = 0 AND duplicate = 0");
+  if (status === "skipped") where.push("skipped = 1");
+  if (status === "duplicate") where.push("duplicate = 1");
+  if (q) {
+    where.push("(LOWER(user_login) LIKE :q OR LOWER(user_display_name) LIKE :q OR LOWER(event_uid) LIKE :q OR LOWER(reason) LIKE :q OR LOWER(source_type) LIKE :q)");
+    params.q = `%${q}%`;
+  }
+
+  const rows = database.all(`
+    SELECT *
+    FROM loyalty_events
+    ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
+    ORDER BY id DESC
+    LIMIT :limit
+  `, params).map(compactLoyaltyEventHistoryRow).filter(Boolean);
+
+  return {
+    ok: true,
+    count: rows.length,
+    filters: { limit, login, type: type && type !== "unknown" ? type : "", status, q },
+    eventTypes: ["follow", "subscribe", "resub", "gift_sub", "gift_bomb", "gifted_sub_received", "cheer", "raid"],
+    statuses: ["processed", "skipped", "duplicate"],
+    rows
+  };
+}
+
+function getLoyaltyEventHistoryDetail(uidValue) {
+  ensureLoyaltyEventsTable();
+  const eventUid = String(uidValue || "").trim();
+  if (!eventUid) return { ok: false, error: "event_uid_required" };
+  const row = database.get("SELECT * FROM loyalty_events WHERE event_uid = :eventUid", { eventUid });
+  if (!row) return { ok: false, error: "event_not_found", eventUid };
+  const event = rowToLoyaltyEvent(row);
+  const transactions = listTransactionsForEvent(event);
+  return {
+    ok: true,
+    event,
+    status: loyaltyEventHistoryStatus(event),
+    mainTransaction: transactionSummary(getTransactionByUid(event.transactionUid)),
+    transactions: transactions.map(transactionSummary),
+    giftDistribution: buildGiftDistribution(event, transactions),
+    calculation: event.metadata?.calculated || null,
+    receiver: event.metadata?.receiver || null,
+    dedupe: event.metadata?.dedupe || null,
+    raw: event.raw || {},
+    metadata: event.metadata || {}
+  };
+}
+
+
 function ensureRunnerEventsTable() {
   database.run(`
     CREATE TABLE IF NOT EXISTS loyalty_runner_events (
@@ -4757,6 +4991,22 @@ function registerRoutes(app) {
     }));
   }));
 
+  app.get("/api/loyalty/events/history", core.asyncRoute(async (req, res) => {
+    core.sendOk(res, listLoyaltyEventHistory({
+      limit: req.query.limit,
+      login: req.query.login,
+      type: req.query.type || req.query.eventType,
+      status: req.query.status,
+      q: req.query.q || req.query.search
+    }));
+  }));
+
+  app.get("/api/loyalty/events/history/:eventUid", core.asyncRoute(async (req, res) => {
+    const result = getLoyaltyEventHistoryDetail(req.params.eventUid);
+    if (!result.ok) return core.sendFail(res, result.error || "event_history_detail_failed", result.error === "event_not_found" ? 404 : 400, result);
+    core.sendOk(res, result);
+  }));
+
   app.post("/api/loyalty/events/ingest", core.asyncRoute(async (req, res) => {
     const result = recordEventBonus(req.body || {});
     core.sendOk(res, result);
@@ -4858,6 +5108,8 @@ function registerRoutes(app) {
         "GET /api/loyalty/runner/run-once",
         "GET /api/loyalty/runner/events",
         "GET /api/loyalty/events",
+        "GET /api/loyalty/events/history",
+        "GET /api/loyalty/events/history/:eventUid",
         "POST /api/loyalty/events/ingest",
         "GET /api/loyalty/events/test/:type",
         "GET /api/loyalty/ignored-users",

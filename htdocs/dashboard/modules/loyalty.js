@@ -10,7 +10,8 @@ window.LoyaltyModule = (function(){
     runnerStop: '/api/loyalty/runner/stop?source=dashboard',
     runnerRunOnce: '/api/loyalty/runner/run-once?source=dashboard',
     runnerEvents: '/api/loyalty/runner/events?limit=40',
-    loyaltyEvents: '/api/loyalty/events?limit=80',
+    loyaltyEvents: '/api/loyalty/events/history?limit=120',
+    loyaltyEventDetail: '/api/loyalty/events/history/',
     users: '/api/loyalty/users?limit=100',
     transactions: '/api/loyalty/transactions?limit=120',
     watchStates: '/api/loyalty/watch/states?limit=120',
@@ -33,6 +34,8 @@ window.LoyaltyModule = (function(){
     ignoredUsers: null,
     runnerEvents: null,
     loyaltyEvents: null,
+    eventDetail: null,
+    historyFilters: { type: '', status: '', login: '', q: '', limit: 120 },
     settings: null,
     presenceActive: null,
     routes: null
@@ -136,6 +139,33 @@ window.LoyaltyModule = (function(){
     return rows(state.loyaltyEvents);
   }
 
+  function eventHistoryFilters(){
+    return state.historyFilters || { type: '', status: '', login: '', q: '', limit: 120 };
+  }
+
+  function buildEventHistoryUrl(){
+    const filters = eventHistoryFilters();
+    const params = new URLSearchParams();
+    params.set('limit', String(filters.limit || 120));
+    if (filters.type) params.set('type', filters.type);
+    if (filters.status) params.set('status', filters.status);
+    if (filters.login) params.set('login', filters.login);
+    if (filters.q) params.set('q', filters.q);
+    return `/api/loyalty/events/history?${params.toString()}`;
+  }
+
+  function historyStatusLabel(value){
+    const v = String(value || '').toLowerCase();
+    if (v === 'processed') return 'Gebucht';
+    if (v === 'skipped') return 'Übersprungen';
+    if (v === 'duplicate') return 'Duplikat';
+    return v || '-';
+  }
+
+  function jsonBlock(value){
+    return `<pre class="loyalty-json">${esc(JSON.stringify(value || {}, null, 2))}</pre>`;
+  }
+
   function aggregateTransactions(){
     const tx = transactions();
     const totalEarned = tx.filter(t => Number(t.amount) > 0).reduce((sum, t) => sum + Number(t.amount || 0), 0);
@@ -183,7 +213,7 @@ window.LoyaltyModule = (function(){
         window.CGN.api(api.watchStates).catch(err => ({ ok:false, error:err.message, rows:[] })),
         window.CGN.api(api.ignoredUsers).catch(err => ({ ok:false, error:err.message, rows:[] })),
         window.CGN.api(api.runnerEvents).catch(err => ({ ok:false, error:err.message, rows:[] })),
-        window.CGN.api(api.loyaltyEvents).catch(err => ({ ok:false, error:err.message, rows:[] })),
+        window.CGN.api(buildEventHistoryUrl()).catch(err => ({ ok:false, error:err.message, rows:[] })),
         window.CGN.api(api.settings).catch(err => ({ ok:false, error:err.message, rows:[] })),
         window.CGN.api(api.presenceActive).catch(err => ({ ok:false, error:err.message, data:{ users:[] } })),
         window.CGN.api(api.routes).catch(err => ({ ok:false, error:err.message, routes:[] }))
@@ -517,21 +547,42 @@ window.LoyaltyModule = (function(){
   function renderEvents(){
     const eventList = loyaltyEvents();
     const runnerList = runnerEvents();
+    const filters = eventHistoryFilters();
+    const eventTypes = state.loyaltyEvents?.eventTypes || ['follow','subscribe','resub','gift_sub','gift_bomb','gifted_sub_received','cheer','raid'];
+    const statuses = state.loyaltyEvents?.statuses || ['processed','skipped','duplicate'];
     return `
       <section class="loyalty-card">
-        <h3>Loyalty Events</h3>
-        ${eventList.length ? `<div class="loyalty-table-wrap"><table><thead><tr><th>Zeit</th><th>Event</th><th>User</th><th>Tier</th><th>Wert</th><th>Punkte</th><th>Status</th><th>Ref</th></tr></thead><tbody>
+        <h3>Loyalty Verlauf / Event-Log</h3>
+        <p class="loyalty-note">Read-only Verlauf: erkannte Twitch-/Loyalty-Events, Verarbeitung, Punktebuchung und GiftSub-/GiftBomb-Verteilung.</p>
+        <div class="loyalty-history-filters">
+          <label><span>Event</span><select data-loyalty-history-filter="type">
+            <option value="" ${!filters.type ? 'selected' : ''}>Alle</option>
+            ${eventTypes.map(type => `<option value="${esc(type)}" ${filters.type === type ? 'selected' : ''}>${esc(type)}</option>`).join('')}
+          </select></label>
+          <label><span>Status</span><select data-loyalty-history-filter="status">
+            <option value="" ${!filters.status ? 'selected' : ''}>Alle</option>
+            ${statuses.map(status => `<option value="${esc(status)}" ${filters.status === status ? 'selected' : ''}>${esc(historyStatusLabel(status))}</option>`).join('')}
+          </select></label>
+          <label><span>User</span><input data-loyalty-history-filter="login" type="text" value="${esc(filters.login || '')}" placeholder="Login"></label>
+          <label><span>Suche</span><input data-loyalty-history-filter="q" type="text" value="${esc(filters.q || '')}" placeholder="UID, Grund, Quelle"></label>
+          <label><span>Limit</span><select data-loyalty-history-filter="limit">
+            ${[50,120,250,500].map(limit => `<option value="${limit}" ${Number(filters.limit || 120) === limit ? 'selected' : ''}>${limit}</option>`).join('')}
+          </select></label>
+          <button type="button" data-loyalty-history-apply>Filtern</button>
+        </div>
+        ${eventList.length ? `<div class="loyalty-table-wrap"><table><thead><tr><th>Zeit</th><th>Event</th><th>User</th><th>Tier/Menge</th><th>Wert</th><th>Punkte</th><th>Status</th><th>Buchung</th><th>Details</th></tr></thead><tbody>
           ${eventList.map(row => `<tr>
             <td>${fmtDate(row.createdAt)}</td>
-            <td>${esc(row.eventType || '-')}</td>
-            <td><strong>${esc(row.displayName || row.login || '-')}</strong><small>${esc(row.login || '')}</small></td>
-            <td>${esc(row.tier || '-')}</td>
-            <td>${fmtNumber(row.amount)} / x${fmtNumber(row.quantity || 1)}</td>
-            <td>${fmtNumber(row.points)}</td>
-            <td>${row.duplicate ? 'Duplicate' : row.skipped ? `Skipped: ${esc(row.reason || '-')}` : 'Gebucht'}</td>
-            <td><small>${esc(row.uid || '')}</small></td>
+            <td><strong>${esc(row.eventType || '-')}</strong><small>${esc(row.sourceType || row.provider || '')}</small></td>
+            <td><strong>${esc(row.displayName || row.login || '-')}</strong><small>${esc(row.login || '')}</small>${row.receiver?.login ? `<small>Receiver: ${esc(row.receiver.displayName || row.receiver.login)}</small>` : ''}</td>
+            <td>${esc(row.tier || '-')}<small>x${fmtNumber(row.quantity || 1)}</small></td>
+            <td>${fmtNumber(row.amount)}</td>
+            <td><strong>${fmtNumber(row.points)}</strong></td>
+            <td>${esc(historyStatusLabel(row.status))}<small>${esc(row.reason || '')}</small></td>
+            <td><small>${esc(row.transactionUid || '-')}</small>${row.transactionCount ? `<small>${fmtNumber(row.transactionCount)} Tx</small>` : ''}</td>
+            <td><button type="button" class="small" data-loyalty-event-detail="${esc(row.uid || '')}">Anzeigen</button></td>
           </tr>`).join('')}
-        </tbody></table></div>` : '<div class="loyalty-empty">Keine Loyalty-Events.</div>'}
+        </tbody></table></div>` : '<div class="loyalty-empty">Keine Loyalty-Events für die aktuellen Filter.</div>'}
       </section>
 
       <section class="loyalty-card">
@@ -549,8 +600,64 @@ window.LoyaltyModule = (function(){
           </tr>`).join('')}
         </tbody></table></div>` : '<div class="loyalty-empty">Keine Runner-Events.</div>'}
       </section>
+      ${renderEventDetailModal()}
     `;
   }
+
+  function renderEventDetailModal(){
+    const detail = state.eventDetail;
+    if (!detail) return '';
+    const event = detail.event || {};
+    const gift = detail.giftDistribution || null;
+    return `<div class="loyalty-modal-backdrop" data-loyalty-close-detail>
+      <section class="loyalty-modal" role="dialog" aria-modal="true" onclick="event.stopPropagation()">
+        <header>
+          <div>
+            <h3>Event-Details</h3>
+            <p>${esc(event.eventType || '-')} · ${fmtDate(event.createdAt)}</p>
+          </div>
+          <button type="button" data-loyalty-close-detail>Schließen</button>
+        </header>
+        <div class="loyalty-detail-grid">
+          <article>
+            <h4>Erkannt</h4>
+            <div class="loyalty-rows compact">
+              <div><span>UID</span><strong>${esc(event.uid || '-')}</strong></div>
+              <div><span>Quelle</span><strong>${esc(event.provider || '-')} / ${esc(event.sourceType || '-')}</strong></div>
+              <div><span>User</span><strong>${esc(event.displayName || event.login || '-')}</strong></div>
+              <div><span>Tier / Menge</span><strong>${esc(event.tier || '-')} / x${fmtNumber(event.quantity || 1)}</strong></div>
+              <div><span>Status</span><strong>${esc(historyStatusLabel(detail.status))}</strong></div>
+              <div><span>Grund</span><strong>${esc(event.reason || '-')}</strong></div>
+            </div>
+          </article>
+          <article>
+            <h4>Buchung</h4>
+            <div class="loyalty-rows compact">
+              <div><span>Punkte gesamt</span><strong>${fmtNumber(event.points)}</strong></div>
+              <div><span>Main TX</span><strong>${esc(event.transactionUid || '-')}</strong></div>
+              <div><span>Transaktionen</span><strong>${fmtNumber((detail.transactions || []).length)}</strong></div>
+              <div><span>Mode</span><strong>${esc(event.mode || '-')}</strong></div>
+            </div>
+          </article>
+        </div>
+        ${gift ? `<section class="loyalty-detail-section"><h4>GiftSub / GiftBomb Verteilung</h4>
+          <div class="loyalty-rows compact">
+            <div><span>Gifter</span><strong>${esc(gift.giver?.displayName || gift.giver?.login || '-')} · ${fmtNumber(gift.giver?.points || 0)} Punkte</strong></div>
+            <div><span>Bekannte Receiver</span><strong>${fmtNumber(gift.knownReceiverCount)} / ${fmtNumber(gift.expectedReceiverCount)}</strong></div>
+            <div><span>Fehlende Receiver</span><strong>${fmtNumber(gift.missingReceiverCount)}</strong></div>
+            <div><span>Hinweis</span><strong>${esc(gift.note || '')}</strong></div>
+          </div>
+          ${gift.receiver ? `<div class="loyalty-rows compact"><div><span>Receiver</span><strong>${esc(gift.receiver.displayName || gift.receiver.login || '-')} · ${fmtNumber(gift.receiver.calculatedAmount || 0)} Punkte · ${esc(gift.receiver.reason || '')}</strong></div></div>` : ''}
+        </section>` : ''}
+        <section class="loyalty-detail-section"><h4>Transaktionen</h4>
+          ${(detail.transactions || []).length ? `<div class="loyalty-table-wrap"><table><thead><tr><th>Zeit</th><th>User</th><th>Betrag</th><th>Grund</th><th>Ref</th></tr></thead><tbody>${detail.transactions.map(tx => `<tr><td>${fmtDate(tx.createdAt)}</td><td>${esc(tx.displayName || tx.login || '-')}<small>${esc(tx.login || '')}</small></td><td>${fmtNumber(tx.amount)}</td><td>${esc(tx.reason || '-')}</td><td><small>${esc(tx.referenceType || '')}</small><small>${esc(tx.referenceId || '')}</small></td></tr>`).join('')}</tbody></table></div>` : '<div class="loyalty-empty">Keine Transaktionen gefunden.</div>'}
+        </section>
+        <section class="loyalty-detail-section"><h4>Berechnung</h4>${jsonBlock(detail.calculation || {})}</section>
+        <section class="loyalty-detail-section"><h4>Raw / Metadata</h4>${jsonBlock({ raw: detail.raw || {}, metadata: detail.metadata || {} })}</section>
+      </section>
+    </div>`;
+  }
+
 
 
 
@@ -609,7 +716,7 @@ window.LoyaltyModule = (function(){
       ['users','User'],
       ['ignored','Ignore'],
       ['config','Konfig'],
-      ['events','Events']
+      ['events','Verlauf/Log']
     ];
 
     root.innerHTML = `
@@ -641,12 +748,58 @@ window.LoyaltyModule = (function(){
     bind();
   }
 
+  async function loadEventHistory(){
+    state.loyaltyEvents = await window.CGN.api(buildEventHistoryUrl()).catch(err => ({ ok:false, error:err.message, rows:[] }));
+    render();
+  }
+
+  async function openEventDetail(uid){
+    const cleanUid = String(uid || '').trim();
+    if (!cleanUid) return;
+    state.eventDetail = await window.CGN.api(api.loyaltyEventDetail + encodeURIComponent(cleanUid));
+    render();
+  }
+
+  function readHistoryFiltersFromDom(){
+    const next = { ...eventHistoryFilters() };
+    root?.querySelectorAll('[data-loyalty-history-filter]').forEach(input => {
+      const key = input.dataset.loyaltyHistoryFilter;
+      if (!key) return;
+      next[key] = input.value || '';
+    });
+    next.limit = Math.max(1, Math.min(500, Number(next.limit || 120) || 120));
+    state.historyFilters = next;
+  }
+
   function bind(){
     bindMainTabs(root);
 
     root?.querySelector('[data-loyalty-refresh]')?.addEventListener('click', () => loadAll(true));
     root?.querySelectorAll('[data-loyalty-tab]').forEach(btn => btn.addEventListener('click', () => {
       state.tab = btn.dataset.loyaltyTab || 'overview';
+      render();
+    }));
+
+    root?.querySelector('[data-loyalty-history-apply]')?.addEventListener('click', () => {
+      readHistoryFiltersFromDom();
+      loadEventHistory().catch(err => { state.error = err.message; render(); });
+    });
+
+    root?.querySelectorAll('[data-loyalty-history-filter]').forEach(input => {
+      input.addEventListener('keydown', ev => {
+        if (ev.key === 'Enter') {
+          readHistoryFiltersFromDom();
+          loadEventHistory().catch(err => { state.error = err.message; render(); });
+        }
+      });
+    });
+
+    root?.querySelectorAll('[data-loyalty-event-detail]').forEach(btn => btn.addEventListener('click', () => {
+      openEventDetail(btn.dataset.loyaltyEventDetail).catch(err => { state.error = err.message; render(); });
+    }));
+
+    root?.querySelectorAll('[data-loyalty-close-detail]').forEach(btn => btn.addEventListener('click', () => {
+      state.eventDetail = null;
       render();
     }));
 
