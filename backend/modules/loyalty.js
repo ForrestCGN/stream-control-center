@@ -39,7 +39,7 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "loyalty";
-const VERSION = "0.1.15";
+const VERSION = "0.1.16";
 const MODULE_VERSION = VERSION;
 const STREAM_STATUS_API_PATH = "/api/twitch/events/stream-state";
 const MODULE_META = {
@@ -51,7 +51,7 @@ const MODULE_META = {
   routesPrefix: ["/api/loyalty"],
   bus: {
     publishes: ["loyalty.status", "loyalty.event", "loyalty.points.balance.checked", "loyalty.points.transaction.created", "loyalty.points.reservation.created", "loyalty.points.reservation.released", "loyalty.points.reservation.committed"],
-    consumes: ["twitch.stream.online", "twitch.stream.offline"]
+    consumes: ["twitch.stream.online", "twitch.stream.offline", "twitch.follow.received", "twitch.sub.received", "twitch.resub.received", "twitch.subgift.received", "twitch.giftbomb.received", "twitch.cheer.received", "twitch.raid.received"]
   },
   description: "Loyalty/Kekskruemel runtime, points, events and auto-runner"
 };
@@ -59,6 +59,18 @@ const CONFIG_FILE = "loyalty.json";
 const SCHEMA_MODULE = "loyalty";
 const SCHEMA_VERSION = 4;
 const SETTINGS_TABLE = "loyalty_settings";
+
+const TWITCH_EVENT_BONUS_MAP = {
+  "twitch.follow.received": "follow",
+  "twitch.sub.received": "subscribe",
+  "twitch.resub.received": "resub",
+  "twitch.subgift.received": "gift_sub",
+  "twitch.giftbomb.received": "gift_bomb",
+  "twitch.cheer.received": "cheer",
+  "twitch.raid.received": "raid"
+};
+
+const TWITCH_EVENT_BONUS_KEYS = Object.keys(TWITCH_EVENT_BONUS_MAP);
 
 const POINTS_TEXT_MODULE = MODULE_NAME;
 
@@ -407,6 +419,22 @@ let state = {
     lastSource: "",
     lastReason: "",
     lastResult: null,
+    errors: 0,
+    lastError: ""
+  },
+  twitchEventBonusBinding: {
+    installed: false,
+    subscriptionId: "",
+    subscribedAction: "received",
+    consumedEvents: [...TWITCH_EVENT_BONUS_KEYS],
+    lastEventAt: "",
+    lastEventKey: "",
+    lastLogin: "",
+    lastResult: null,
+    received: 0,
+    processed: 0,
+    skipped: 0,
+    duplicates: 0,
     errors: 0,
     lastError: ""
   },
@@ -3180,7 +3208,8 @@ function buildStatus() {
     centralCommands: state.schema.ok ? listCentralCommandDefinitions() : { ok: false, available: false },
     watch: { ...config.watch },
     autoRunner: getAutoRunnerStatus(),
-    streamStatusBinding: { ...state.streamStatusBinding }
+    streamStatusBinding: { ...state.streamStatusBinding },
+    twitchEventBonusBinding: { ...state.twitchEventBonusBinding }
   };
 }
 
@@ -3562,6 +3591,167 @@ function getCommunicationBus() {
     state.streamStatusBinding.lastError = err && err.message ? err.message : String(err);
     return null;
   }
+}
+
+function stringValue(value, fallback = "") {
+  const clean = String(value ?? "").trim();
+  return clean || fallback;
+}
+
+function normalizeTwitchEventUser(user = {}) {
+  const source = user && typeof user === "object" ? user : {};
+  const login = normalizeLogin(source.login || source.userLogin || source.user_login || source.name || source.displayName || source.display_name || "");
+  return {
+    id: stringValue(source.id || source.userId || source.user_id),
+    login,
+    displayName: cleanDisplayName(login, source.displayName || source.display_name || source.name || source.userName || source.user_name || login)
+  };
+}
+
+function normalizeTwitchEventBonusEnvelope(envelope = {}) {
+  const payload = envelope && typeof envelope.payload === "object" ? envelope.payload : {};
+  const twitch = payload && typeof payload.twitch === "object" ? payload.twitch : {};
+  const eventKey = stringValue(payload.eventKey || twitch.eventKey || envelope.eventKey || envelope.meta?.eventKey);
+  const eventType = TWITCH_EVENT_BONUS_MAP[eventKey] || "";
+  if (!eventType) return { ok: false, skipped: true, reason: "unsupported_twitch_event", eventKey };
+
+  const baseUser = normalizeTwitchEventUser(twitch.user || {});
+  const gifter = normalizeTwitchEventUser(twitch.gifter || {});
+  const recipient = normalizeTwitchEventUser(twitch.recipient || {});
+  const fromBroadcaster = normalizeTwitchEventUser(twitch.fromBroadcaster || {});
+
+  let actor = baseUser;
+  if ((eventType === "gift_sub" || eventType === "gift_bomb") && gifter.login) actor = gifter;
+  if (eventType === "raid" && fromBroadcaster.login) actor = fromBroadcaster;
+
+  const tier = normalizeTier(twitch.tier || twitch.subTier || twitch.subscriptionTier || "");
+  const quantity = Math.max(1, Number.parseInt(twitch.total || twitch.quantity || twitch.count || 1, 10) || 1);
+  const bits = Math.max(0, Number(twitch.bits || 0) || 0);
+  const viewers = Math.max(0, Number(twitch.viewers || twitch.viewerCount || 0) || 0);
+  const amount = eventType === "cheer" ? bits : (eventType === "raid" ? viewers : 0);
+  const explicitEventId = stringValue(
+    twitch.eventId || twitch.event_id || twitch.id || twitch.messageId || twitch.message_id ||
+    payload.correlationId || payload.eventSubMessageId || payload.eventsubMessageId ||
+    envelope.id || envelope.event?.id
+  );
+  const receivedAt = stringValue(payload.receivedAt || twitch.receivedAt || envelope.timestamp || core.nowIso());
+  const eventUid = explicitEventId || `${eventKey}:${actor.login || "unknown"}:${recipient.login || ""}:${tier}:${quantity}:${amount}:${receivedAt}`;
+
+  return {
+    ok: true,
+    eventKey,
+    eventType,
+    eventUid,
+    login: actor.login,
+    displayName: actor.displayName,
+    userId: actor.id,
+    recipientLogin: recipient.login,
+    recipientDisplayName: recipient.displayName,
+    recipientUserId: recipient.id,
+    tier,
+    quantity,
+    amount,
+    bits,
+    viewers,
+    provider: "twitch_events",
+    sourceType: eventKey,
+    raw: payload,
+    metadata: {
+      source: "communication_bus",
+      sourceModule: payload.sourceModule || envelope.source?.module || "twitch_events",
+      eventKey,
+      busEventId: stringValue(envelope.id || envelope.event?.id),
+      receivedAt,
+      normalizedAt: stringValue(payload.normalizedAt),
+      twitch
+    }
+  };
+}
+
+function handleTwitchEventBonusBusEvent(envelope = {}) {
+  const binding = state.twitchEventBonusBinding;
+  binding.received += 1;
+  binding.lastEventAt = core.nowIso();
+
+  try {
+    const parsed = normalizeTwitchEventBonusEnvelope(envelope);
+    binding.lastEventKey = parsed.eventKey || "";
+
+    if (!parsed.ok || parsed.skipped) {
+      binding.skipped += 1;
+      binding.lastResult = parsed;
+      return parsed;
+    }
+
+    if (!parsed.login) {
+      binding.skipped += 1;
+      binding.lastLogin = "";
+      binding.lastResult = { ok: false, skipped: true, reason: "user_login_required", eventKey: parsed.eventKey };
+      return binding.lastResult;
+    }
+
+    const result = recordEventBonus(parsed);
+    binding.lastLogin = parsed.login;
+    binding.lastResult = {
+      ok: result && result.ok === true,
+      skipped: result && result.skipped === true,
+      duplicate: result && result.duplicate === true,
+      reason: result && result.reason || "",
+      eventKey: parsed.eventKey,
+      eventType: parsed.eventType,
+      eventUid: parsed.eventUid,
+      login: parsed.login
+    };
+
+    if (result && result.duplicate === true) binding.duplicates += 1;
+    else if (result && result.skipped === true) binding.skipped += 1;
+    else binding.processed += 1;
+
+    binding.lastError = "";
+    return binding.lastResult;
+  } catch (err) {
+    const error = err && err.message ? err.message : String(err);
+    binding.errors += 1;
+    binding.lastError = error;
+    binding.lastResult = { ok: false, error };
+    return binding.lastResult;
+  }
+}
+
+function installTwitchEventBonusSubscriber() {
+  const binding = state.twitchEventBonusBinding;
+  if (binding.installed === true) return { ok: true, installed: true, alreadyInstalled: true, subscriptionId: binding.subscriptionId };
+  const bus = getCommunicationBus();
+  if (!bus || typeof bus.subscribe !== "function") {
+    binding.installed = false;
+    binding.lastError = "communication_bus_subscribe_unavailable";
+    return { ok: false, installed: false, reason: binding.lastError };
+  }
+
+  const result = bus.subscribe({
+    id: "loyalty:twitch.events:bonus_events",
+    module: MODULE_NAME,
+    sourceModule: "twitch_events",
+    action: "received",
+    meta: {
+      step: "LC-CORE-POINTS-3A",
+      purpose: "loyalty_event_bonus_from_twitch_events",
+      sourceModule: "twitch_events",
+      consumes: [...TWITCH_EVENT_BONUS_KEYS]
+    }
+  }, (envelope) => handleTwitchEventBonusBusEvent(envelope));
+
+  if (!result || result.ok !== true) {
+    binding.installed = false;
+    binding.lastError = String(result && (result.reason || result.error) || "subscription_failed");
+    return { ok: false, installed: false, reason: binding.lastError };
+  }
+
+  binding.installed = true;
+  binding.subscriptionId = result.subscription && result.subscription.id ? String(result.subscription.id) : "loyalty:twitch.events:bonus_events";
+  binding.lastError = "";
+  binding.lastResult = { ok: true, installed: true, subscriptionId: binding.subscriptionId };
+  return { ok: true, installed: true, subscriptionId: binding.subscriptionId };
 }
 
 function installCentralStreamStatusSubscriber() {
@@ -4178,6 +4368,7 @@ function init(ctx = {}) {
     if (ctx && ctx.app) registerRoutes(ctx.app);
 
     installCentralStreamStatusSubscriber();
+    installTwitchEventBonusSubscriber();
     scheduleInitialCentralStreamStatusSync();
 
     refreshConfigFromSettings();
@@ -4226,6 +4417,9 @@ module.exports = {
     startAutoRunner,
     stopAutoRunner,
     recoverAutoRunnerFromStoredStreamStateOnBoot,
-    buildStatus
+    buildStatus,
+    normalizeTwitchEventBonusEnvelope,
+    handleTwitchEventBonusBusEvent,
+    installTwitchEventBonusSubscriber
   }
 };
