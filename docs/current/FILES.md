@@ -5,19 +5,19 @@ Stand: 2026-06-15
 ## Aktueller Arbeitsstand
 
 ```text
-LC-CORE-POINTS-1 – Sub-Tier-Watch-Werte und Resub-Bonus vorbereitet
+LC-CORE-POINTS-2C – Twitch Presence / aktive User bestätigt
 ```
 
-## Geänderte Dateien
+## Für diesen Doku-Stand geänderte Dateien
 
 ```text
-backend/modules/loyalty.js
-docs/current/STEP_LC_CORE_POINTS_1_SUB_TIER_REWARDS.md
 docs/current/CURRENT_STATUS.md
 docs/current/TODO.md
 docs/current/NEXT_STEPS.md
 docs/current/FILES.md
 docs/current/CHANGELOG.md
+docs/current/STEP_LC_CORE_POINTS_2ABC_CONFIRMED.md
+project-state/CURRENT_STATUS_LC_CORE_POINTS_2ABC_CONFIRMED.md
 ```
 
 ## Relevante Backend-Dateien
@@ -26,7 +26,9 @@ docs/current/CHANGELOG.md
 backend/modules/loyalty.js              Loyalty Core, Watch/Presence/Punkte/Event-Boni
 backend/modules/twitch_events.js        zentrale Stream-State-/Bus-Schicht
 backend/modules/twitch_presence.js      Presence-/Activity-Quelle für Watch-Runner
-backend/modules/helpers/helper_settings.js  DB-basierte Settings, bestehende Werte werden nicht blind überschrieben
+backend/modules/communication_bus.js    Communication-Bus API
+backend/modules/helpers/helper_communication.js  In-process Subscriptions/EventBus Core
+backend/modules/helpers/helper_settings.js       DB-basierte Settings
 backend/core/database.js                produktive DB-Anbindung
 ```
 
@@ -41,11 +43,22 @@ POST /api/loyalty/watch/heartbeat
 GET  /api/loyalty/watch/states
 GET  /api/loyalty/presence/run-once
 POST /api/loyalty/presence/run-once
+GET  /api/loyalty/runner/status
 GET  /api/loyalty/runner/run-once
 POST /api/loyalty/runner/run-once
 GET  /api/loyalty/transactions
 GET  /api/loyalty/events
 POST /api/loyalty/events/ingest
+GET  /api/loyalty/ignored-users
+
+GET  /api/twitch/events/stream-state
+POST /api/twitch/events/stream-state/override
+POST /api/twitch/events/stream-state/clear-override
+
+GET  /api/twitch/presence/status
+GET  /api/twitch/presence/start
+GET  /api/twitch/presence/activity
+GET  /api/twitch/presence/activity/active
 ```
 
 ## Settings-Schlüssel
@@ -69,4 +82,5 @@ bonuses.raid.amount
 ```text
 D:\Streaming\stramAssets\data\sqlite\app.sqlite niemals ersetzen, löschen oder neu bauen.
 Settings bei Bedarf nur gezielt über /api/loyalty/settings setzen.
+Ignored-User nur gezielt über /api/loyalty/ignored-users ändern.
 ```

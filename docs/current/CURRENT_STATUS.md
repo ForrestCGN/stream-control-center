@@ -5,14 +5,14 @@ Stand: 2026-06-15
 ## Aktueller Arbeitsstand
 
 ```text
-LC-CORE-POINTS-1 – Sub-Tier-Watch-Werte und Resub-Bonus vorbereitet
+LC-CORE-POINTS-2C – Twitch Presence / aktive User bestätigt
 ```
 
 ## Kurzfazit
 
-Nach dem bestätigten Cleanup `LC-CORE-CLEANUP-1` bleibt Loyalty Consumer von `/api/twitch/events/stream-state`. Der nächste Core-Schritt pflegt die bisherige StreamElements-Punktevergabe in den Loyalty-Core ein.
+Nach `LC-CORE-CLEANUP-1` und `LC-CORE-POINTS-1` ist der Loyalty-Core auf die StreamElements-nahe Punktevergabe vorbereitet und getestet. Loyalty nutzt weiterhin `/api/twitch/events/stream-state` als zentrale Live-Wahrheit. Watch-Punkte, Sub-Tier-Fallbacks, Resub-Bonus, EventBus-AutoRunner-Start und Twitch-Presence-Verarbeitung wurden fachlich bestätigt.
 
-## Punkte-Zielwerte
+## Bestätigte Punkte-Zielwerte
 
 ```text
 Viewer: 2 Kekskrümel alle 10 Minuten
@@ -28,24 +28,52 @@ Tip: 10 pro 1 EUR
 Raid: 50
 ```
 
-## Geändert in LC-CORE-POINTS-1
+## Bestätigt in LC-CORE-POINTS-1
 
 ```text
-backend/modules/loyalty.js
+backend/modules/loyalty.js Version 0.1.15 läuft.
+watch.subscriberTierAmounts ist aktiv.
+bonuses.resub.enabled ist aktiv.
+Erster Watch-Heartbeat vergibt keine Sofortpunkte.
+Fällige Watch-Intervalle vergeben korrekte Werte:
+Viewer 2, Tier 1 6, Tier 2 8, Tier 3 10.
 ```
+
+## Bestätigt in LC-CORE-POINTS-2A / 2B
 
 ```text
-- Version 0.1.15.
-- watch.subscriberTierAmounts ergänzt.
-- Resub-Bonus im Default aktiviert.
-- Watch-Punkte nutzen Subscriber-Tier bevorzugt.
-- Subscriber-Multiplier bleibt Fallback.
-- Erster Watch-Heartbeat legt nur den Watch-State an; Punkte gibt es erst nach Ablauf des Intervalls.
+Normaler Online-Override ohne Confirm setzt Twitch Events auf pending.
+Pending startet den Loyalty-AutoRunner bewusst nicht automatisch.
+Confirmed Override (`live=true`, `confirmed=true`, `status=confirmed`) publiziert `twitch.stream.online`.
+Loyalty empfängt das Bus-Event und startet den AutoRunner.
+Clear-Override publiziert `twitch.stream.offline` und stoppt den AutoRunner.
 ```
 
-## Bestehende Settings beachten
+## Bestätigt in LC-CORE-POINTS-2C
 
-Bestehende Werte in `loyalty_settings` werden nicht automatisch überschrieben. Nach Deploy müssen `watch.subscriberTierAmounts` und `bonuses.resub.enabled` geprüft und bei Bedarf per Settings-API gesetzt werden.
+```text
+Twitch Presence kann gestartet werden.
+Bot `heimaufsichtcgn` verbindet sich mit Twitch IRC und joined `#forrestcgn`.
+Presence Activity speichert JOIN-/Activity-Daten in `twitch_presence_activity`.
+`/api/twitch/presence/activity/active` liefert aktive/presente User.
+`/api/loyalty/presence/run-once` verarbeitet Presence-User.
+Ignored/Systemuser werden übersprungen.
+Echte aktive User erhalten Watch-Punkte.
+```
+
+## Offene Beobachtung
+
+```text
+JOIN-basierte Presence erkennt Subscriber ja/nein, aber das konkrete Sub-Tier kommt häufig als `none`/`unknown`.
+In diesem Fall greift korrekt der bestehende Subscriber-Fallback über `subscriberMultiplier` und vergibt 6 Punkte.
+```
+
+## Offener Entscheid
+
+```text
+Prüfen, ob `forrestcgn` dauerhaft wieder ignoriert werden soll.
+Im bestätigten Presence-Test bekam `forrestcgn` Watch-Punkte, weil der User aktuell nicht aktiv ignoriert wurde.
+```
 
 ## Nicht geändert
 

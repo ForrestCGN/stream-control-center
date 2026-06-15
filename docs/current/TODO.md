@@ -19,22 +19,34 @@ Stand: 2026-06-15
 - [x] LC-CORE-CLEANUP-1 Offline-/Clear-Override-Test über zentrale `twitch_events` Logik bestanden.
 - [x] Runner startet/stoppt nach Cleanup korrekt über `/api/twitch/events/stream-state`.
 - [x] Falsch erzeugter Workspace-Parallelordner `dashboard/` geprüft und bereinigt.
+- [x] LC-CORE-POINTS-1 eingespielt und bestätigt.
+- [x] Loyalty läuft mit `backend/modules/loyalty.js` Version `0.1.15`.
+- [x] `watch.subscriberTierAmounts` aktiv: Tier 1 = 6, Tier 2 = 8, Tier 3 = 10.
+- [x] `bonuses.resub.enabled=true` aktiv; Resub Tier 1/2/3 = 50/100/150.
+- [x] Erster Watch-Heartbeat vergibt keine Sofortpunkte, sondern `watch_interval_initial_wait`.
+- [x] Fälliger Watch-Heartbeat vergibt Viewer 2, Tier 1 6, Tier 2 8, Tier 3 10.
+- [x] LC-CORE-POINTS-2A Diagnose-/Logging-Ablauf bestätigt.
+- [x] Normaler Online-Override ohne Confirm ist `pending` und startet den AutoRunner bewusst nicht automatisch.
+- [x] LC-CORE-POINTS-2B confirmed Override bestätigt: `twitch.stream.online` wird publiziert und Loyalty-AutoRunner startet.
+- [x] Clear-Override nach confirmed Test publiziert `twitch.stream.offline` und stoppt den AutoRunner.
+- [x] LC-CORE-POINTS-2C Twitch Presence bestätigt: IRC-Verbindung startet, Bot authentifiziert und joint `#forrestcgn`.
+- [x] Presence Activity schreibt JOIN-Events in `twitch_presence_activity`.
+- [x] `/api/twitch/presence/activity/active` liefert aktive/presente User.
+- [x] `/api/loyalty/presence/run-once` verarbeitet Presence-User korrekt.
+- [x] Ignored/Systemuser werden im Presence-Runner übersprungen.
+- [x] Presence-Runner vergibt Watch-Punkte an echte aktive User.
 
-## Jetzt testen
+## Jetzt prüfen / offene Core-Punkte
 
-- [ ] LC-CORE-POINTS-1 ZIP einspielen/deployen.
-- [ ] StepDone ausführen: `.\stepdone.cmd "LC-CORE-POINTS-1 Sub-Tier-Watch-Werte und Resub-Bonus vorbereitet"`
-- [ ] `node -c "D:\Streaming\stramAssets\backend\modules\loyalty.js"` prüfen.
-- [ ] `/api/loyalty/status` prüfen.
-- [ ] `/api/loyalty/settings` prüfen.
-- [ ] Falls bestehende Settings abweichen: `watch.subscriberTierAmounts` setzen.
-- [ ] Falls bestehende Settings abweichen: `bonuses.resub.enabled=true` setzen.
-- [ ] Watch-Heartbeat mit Testusern prüfen.
-- [ ] Bestätigen: erster Heartbeat vergibt keine Sofortpunkte, sondern `watch_interval_initial_wait`.
-- [ ] Bestätigen: Tier 1/2/3 ergeben 6/8/10 Kekskrümel nach fälligem Intervall.
+- [ ] Entscheiden, ob `forrestcgn` wieder dauerhaft in `loyalty_ignored_users` aktiv sein soll.
+- [ ] Prüfen, ob Bot-/Systemuser-Liste vollständig ist: `streamstickers`, `streamelements`, `kofistreambot` wurden im Test ignoriert.
+- [ ] Prüfen, wie Subscriber-Tier aus echter Presence künftig zuverlässig ermittelt wird.
+- [ ] Dokumentieren: JOIN-Only-Presence erkennt Subscriber ja/nein, aber Tier oft nur `none`/`unknown`; Fallback bleibt `subscriberMultiplier`.
+- [ ] Optional: Dev-/Testuser-Bereinigung für `cgn_test_*` und `cgn_presence_test` planen, ohne produktive Daten zu gefährden.
 
 ## Später / nach Core-Fortsetzung
 
+- [ ] EventBonus-Pfad mit echten Twitch-Events prüfen: Follow/Sub/Resub/Cheer/Raid/Tip.
 - [ ] Dashboard-Anzeige für Loyalty Live-Quelle weiter vereinfachen/verständlich machen.
 - [ ] Giveaways/Loyalty Games an denselben zentralen Stream-State anbinden, wo Live-only-Regeln nötig sind.
 - [ ] Tagebuch an zentralen StreamState anbinden.

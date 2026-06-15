@@ -2,6 +2,56 @@
 
 Stand: 2026-06-15
 
+## 2026-06-15 – LC-CORE-POINTS-2C Twitch Presence / aktive User bestätigt
+
+### Ergebnis
+
+```text
+Twitch Presence wurde als aktive Quelle für Watch-Punkte bestätigt. Der Bot kann sich mit Twitch IRC verbinden, joined #forrestcgn, schreibt JOIN-/Activity-Daten und liefert aktive User an den Loyalty-Presence-Runner. Der Runner verarbeitet diese User korrekt, ignoriert Systemuser und vergibt Watch-Punkte an echte aktive User.
+```
+
+### Bestätigte Routen
+
+```text
+GET /api/twitch/presence/status
+GET /api/twitch/presence/start
+GET /api/twitch/presence/activity
+GET /api/twitch/presence/activity/active
+GET /api/loyalty/presence/run-once
+```
+
+### Beobachtung
+
+```text
+JOIN-basierte Presence liefert Subscriber ja/nein, aber nicht zuverlässig das konkrete Tier. Bei subscriber=true und subscriberTier=none greift der Fallback über subscriberMultiplier und vergibt 6 Punkte.
+```
+
+### Offener Punkt
+
+```text
+`forrestcgn` bekam im Test Watch-Punkte. Entscheiden, ob `forrestcgn` wieder dauerhaft ignoriert werden soll.
+```
+
+## 2026-06-15 – LC-CORE-POINTS-2B EventBus / AutoRunner-Autostart bestätigt
+
+### Ergebnis
+
+```text
+Confirmed Manual Override (`live=true`, `confirmed=true`, `status=confirmed`) erzeugt in twitch_events ein echtes `twitch.stream.online` Bus-Event. Loyalty empfängt das Event und startet den AutoRunner automatisch.
+```
+
+### Cleanup
+
+```text
+Clear-Override erzeugt `twitch.stream.offline`; Loyalty übernimmt den Offline-State und stoppt den AutoRunner.
+```
+
+## 2026-06-15 – LC-CORE-POINTS-2A Diagnose / Logging
+
+```text
+Diagnoseablauf mit kompaktem PowerShell-Logging erstellt und genutzt. Normaler Online-Override ohne Confirm ist bewusst pending und kein echter AutoRunner-Starttest.
+```
+
 ## 2026-06-15 – LC-CORE-POINTS-1 Sub-Tier-Watch-Werte und Resub-Bonus
 
 ### Ergebnis
