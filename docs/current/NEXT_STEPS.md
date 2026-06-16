@@ -7,7 +7,7 @@ Stand: 2026-06-16
 Im neuen Chat mit diesem Block weitermachen:
 
 ```text
-LC-MINIGAMES-2B Kosten-Live-Test abschließen
+LC-MINIGAMES-2C4 Raffle Live-Test: Logs, Kosten und Statistik gegen echten Ablauf prüfen
 ```
 
 ## Ausgangslage
@@ -17,18 +17,25 @@ Loyalty Core läuft live-only.
 Shadow-Migration ist abgeschlossen.
 Shadow ist leer: candidates=0 totalShadow=0.
 /api/loyalty/status bestätigt mode=live, enabled=true, shadowMode=false, pointsState=active.
-Cleanup-3 ist geprüft: Hauptstatus ist auf Aktiv/Inaktiv bereinigt.
-streamElementsStillActive/importStatus sind aus dem normalen Hauptstatus entfernt.
-Legacy-Hinweise bleiben nur im Diagnosebereich.
-Urlug und Tronic6 wurden erfolgreich geprüft.
-Raffle-Teilnahmekosten sind eingebaut.
-Config speichert entryCostAmount=10 und entryCostEnabled=true korrekt.
-Text-DB-Cleanup ist bestätigt.
-Keine aktiven mehrzeiligen Textvarianten mehr in /api/loyalty/giveaways/texts.
-Kosten-Live-Test steht noch aus.
+Raffle-Logs funktionieren grundsätzlich.
+Raffle-Statistik funktioniert grundsätzlich.
+Mini-Spiel-Auswahl ist kompakt und funktional geprüft.
+Design-Feinschliff wird später gemacht.
 ```
 
-## Schritt 1 – aktuellen Raffle-Stand prüfen
+## Wichtige aktuelle UI-Regel
+
+```text
+Logs = Buchungen und Ereignisse.
+Raffle-Seite = Statistik und Raffle-Status.
+Einstellungen = dauerhafte Config.
+Texte = Textvarianten.
+Chat & Befehle = Command-Konfiguration.
+```
+
+Nicht wieder alles in eine lange Mini-Spiele-Seite packen.
+
+## Schritt 1 – Raffle-Config prüfen
 
 ```powershell
 Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/raffle/config" | ConvertTo-Json -Depth 6
@@ -41,18 +48,19 @@ entryCostAmount = 10
 entryCostEnabled = true
 ```
 
+Für kostenlosen Test:
+
+```text
+entryCostAmount = 0
+entryCostEnabled = false
+```
+
 ## Schritt 2 – Balance vor Join prüfen
 
 Für einen echten Testuser oder einen bewusst gewählten Account:
 
 ```powershell
 Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/balance/tronic6?displayName=Tronic6" | ConvertTo-Json -Depth 8
-```
-
-Oder für Urlug als Kontrollreferenz:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/balance/urlug?displayName=Urlug" | ConvertTo-Json -Depth 8
 ```
 
 Referenzwerte nach Migration:
@@ -79,7 +87,37 @@ Bei Kosten > 0 wird Betrag abgezogen.
 Chattext kommt als eine Variante, nicht als Sammeltext.
 ```
 
-## Schritt 4 – Doppeljoin prüfen
+## Schritt 4 – Logs prüfen
+
+Dashboard:
+
+```text
+Loyalty -> Logs
+Event = Raffle
+Status = Alle
+```
+
+Dann einzelne Filter prüfen:
+
+```text
+Gestartet
+Teilnahme
+Bezahlt
+Gewinn
+Beendet
+Abgebrochen
+Erstattet
+```
+
+Wichtige Erwartung:
+
+```text
+Bei Punktebewegungen steht der betroffene User in der User-Spalte.
+Bei Start/Abbruch steht der auslösende User/System in der User-Spalte.
+Details erklären verständlich, was passiert ist.
+```
+
+## Schritt 5 – Doppeljoin prüfen
 
 Im Chat erneut:
 
@@ -92,9 +130,10 @@ Erwartung:
 ```text
 already_joined Text
 keine zweite Abbuchung
+kein doppelter kostenpflichtiger Join
 ```
 
-## Schritt 5 – zu wenig Punkte testen
+## Schritt 6 – zu wenig Punkte testen
 
 Mit Testuser oder reduziertem Konto:
 
@@ -108,9 +147,10 @@ Erwartung:
 Keine Teilnahme.
 Kein Abzug.
 Textkey: raffle.public.insufficient_balance
+Log/Details zeigen keinen falschen bezahlten Join.
 ```
 
-## Schritt 6 – Cancel/Refund testen
+## Schritt 7 – Cancel/Refund testen
 
 Bei laufender kostenpflichtiger Raffle:
 
@@ -122,11 +162,12 @@ Erwartung:
 
 ```text
 Bezahlte Teilnahmen werden erstattet.
-refundTransactions wird befüllt.
-Balance ist nach Refund wieder korrekt.
+Event=Raffle Status=Abgebrochen sichtbar.
+Event=Raffle Status=Erstattet sichtbar.
+Balance ist nach Refund korrekt.
 ```
 
-## Schritt 7 – normaler Abschluss testen
+## Schritt 8 – normaler Abschluss testen
 
 ```text
 Raffle normal auslaufen lassen oder sauber auslosen.
@@ -137,24 +178,19 @@ Erwartung:
 ```text
 Keine Erstattung.
 Gewinner erhalten Auszahlung.
-payoutTransactions wird befüllt.
+Event=Raffle Status=Gewinn sichtbar.
+Event=Raffle Status=Beendet sichtbar.
+Raffle-Statistik aktualisiert Gewinner/Gewonnen/Teilnahmen/Starter.
 ```
 
 ## Danach
 
-Wenn Kosten-Live-Test bestätigt ist:
+Wenn der Raffle-Live-Test bestätigt ist:
 
 ```text
 1. Doku erneut aktualisieren.
-2. LC-MINIGAMES-2B als bestätigt markieren.
-3. Danach nächsten Loyalty-Block planen.
-```
-
-Später separater technischer Cleanup, nicht im Raffle-Test:
-
-```text
-- Shadow-DB-Spalten nur nach vollständiger Referenzprüfung droppen.
-- Legacy-Diagnosefelder nur entfernen, wenn keine Diagnose-/Fallback-Funktion mehr gebraucht wird.
+2. LC-MINIGAMES-2C als stabil markieren.
+3. Dann nächsten Loyalty-Block planen.
 ```
 
 ## Nicht tun
@@ -167,4 +203,5 @@ Keine Alerts produktiv umschalten.
 Keine neue Raffle-Parallelstruktur bauen.
 Keinen Shadow-Modus wieder aktivieren.
 Keine Shadow-DB-Spalten ohne Referenzprüfung droppen.
+Keine technischen Raffle-Unterevents als Event-Dropdown-Chaos einbauen.
 ```

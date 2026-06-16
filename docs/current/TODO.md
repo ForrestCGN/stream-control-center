@@ -19,6 +19,9 @@ Stand: 2026-06-16
 - [x] Abschlussprüfung: `candidates=0 totalShadow=0`, `excluded=0 excludedShadow=0`.
 - [x] LC-CORE-LIVE-CLEANUP-2: Shadow-Modus ausgeblendet und Live-only vorbereitet.
 - [x] `/api/loyalty/status` bestätigt: `mode=live`, `enabled=true`, `shadowMode=false`, `pointsState=active`, Version `0.1.24`.
+- [x] LC-CORE-LIVE-CLEANUP-3: Status und Dashboard auf Aktiv/Inaktiv bereinigt.
+- [x] Hauptstatus bereinigt: `streamElementsStillActive` und `importStatus` stehen nicht mehr oben im normalen Status.
+- [x] Dashboard-Wording bereinigt: „Shadow-Runner“ entfernt, Punkte-Core fachlich Aktiv/Inaktiv.
 - [x] Raffle produktiv als Mini-Spiel im bestehenden Modul `loyalty_giveaways.js` vorbereitet.
 - [x] Dashboard-Tab `Mini-Spiele` für Raffle/Gamble aufgebaut.
 - [x] Raffle-Config aus Mini-Spiele herausgezogen und unter `Loyalty -> Einstellungen -> Raffle` eingeordnet.
@@ -30,34 +33,51 @@ Stand: 2026-06-16
 - [x] Raffle-Config speichert `entryCostAmount=10` und `entryCostEnabled=true` korrekt.
 - [x] Alte aktive mehrzeilige Text-Sammelvarianten in `chat_raffle`, `chat_giveaway`, `chat_ticket`, `chat_wheel` bereinigt.
 - [x] Prüfung auf aktive mehrzeilige Textvarianten in `/api/loyalty/giveaways/texts` liefert keine Ausgabe.
-- [x] LC-CORE-LIVE-CLEANUP-3: Status und Dashboard auf Aktiv/Inaktiv bereinigt.
-- [x] Hauptstatus bereinigt: `streamElementsStillActive` und `importStatus` stehen nicht mehr oben im normalen Status.
-- [x] Dashboard-Wording bereinigt: „Shadow-Runner“ entfernt, Punkte-Core fachlich Aktiv/Inaktiv.
-- [x] Legacy-Hinweise bleiben bewusst nur im Diagnosebereich `diagnostics.legacyFallbacks`.
+- [x] LC-MINIGAMES-2C0: Raffle-Navigation bereinigt; Config-/Text-Sprungbuttons und Textkey-Chips aus Raffle-Bedienbereich entfernt.
+- [x] LC-MINIGAMES-2C1: Raffle-Logs und Statistik eingebaut.
+- [x] LC-MINIGAMES-2C1-FIX1: Raffle-Log Status und User klarer gemappt.
+- [x] LC-MINIGAMES-2C1-FIX2: Raffle-Logs vollständiger gemappt; alte Gewinne sichtbar, neue Ereignisse vollständiger.
+- [x] LC-MINIGAMES-2C2: Raffle-Statistik mit Sortierung und User-Auswahl eingebaut.
+- [x] LC-MINIGAMES-2C3: Mini-Spiele Detail-Navigation eingebaut; nicht mehr alle Spiel-Details untereinander.
+- [x] LC-MINIGAMES-2C3-FIX1: Mini-Spiel-Auswahl kompakt gemacht und funktional geprüft.
 
 ## Aktuell offen / als nächstes testen
 
-- [ ] Raffle-Teilnahmekosten live testen:
+- [ ] Raffle-Teilnahmekosten live vollständig testen:
   - [ ] `entryCostAmount=0` -> kostenloser Join.
   - [ ] `entryCostAmount>0` und genug Punkte -> Punkteabzug + Teilnahme.
   - [ ] `entryCostAmount>0` und zu wenig Punkte -> keine Teilnahme + Text über `helper_texts`.
   - [ ] Doppeltes `!join` -> keine zweite Abbuchung.
   - [ ] Raffle Cancel -> bezahlte Teilnahmen werden erstattet.
   - [ ] Normaler Raffle-Abschluss -> keine Erstattung, Gewinner erhalten Auszahlung.
-- [ ] Nach Kosten-Live-Test Transaktionen/Balances gegenprüfen.
-- [ ] Nach Kosten-Live-Test Raffle-Texte im Dashboard prüfen und ggf. Varianten kürzen/ergänzen.
+- [ ] Raffle-Logs nach einem neuen echten Raffle-Lauf kontrollieren:
+  - [ ] Event=Raffle, Status=Gestartet.
+  - [ ] Event=Raffle, Status=Teilnahme.
+  - [ ] Event=Raffle, Status=Bezahlt, wenn Kosten aktiv.
+  - [ ] Event=Raffle, Status=Gewinn.
+  - [ ] Event=Raffle, Status=Beendet.
+  - [ ] Event=Raffle, Status=Abgebrochen/Erstattet bei Cancel.
+- [ ] Raffle-Statistik nach neuem Raffle-Lauf kontrollieren:
+  - [ ] Starter zählt hoch.
+  - [ ] Teilnehmer zählen hoch.
+  - [ ] Gewinner/Gewonnen stimmen.
+  - [ ] User-Dropdown filtert korrekt.
+- [ ] Design-Feinschliff Mini-Spiele später separat planen, nicht jetzt im Funktionstest.
 
-## Nächster Cleanup nach Live-only-Bestätigung
+## Nächster sinnvoller Arbeitsblock
 
-- [ ] Später separater DB-Schema-Cleanup planen:
+- [ ] LC-MINIGAMES-2C4 Test/Polish nach echtem Raffle-Lauf:
+  - [ ] Logs gegen tatsächlichen Chat-Ablauf prüfen.
+  - [ ] Statistik gegen Logs/Transactions prüfen.
+  - [ ] Beschriftungen nur wenn nötig weiter glätten.
+  - [ ] Keine neue Navigation hinzufügen, wenn vorhandene Tabs reichen.
+
+## Späterer Cleanup
+
+- [ ] DB-Schema-Cleanup nur separat planen und erst nach vollständiger Referenzprüfung:
   - [ ] `balance_shadow`
   - [ ] `total_earned_shadow`
   - [ ] `total_spent_shadow`
-  - [ ] nur nach Prüfung aller Backend-/Dashboard-/Tool-Referenzen droppen.
-
-## Nächster Hauptblock danach
-
-- [ ] LC-CORE-POINTS-3A weiterführen: Twitch Events als abonnierbare Bonus-Events vorbereiten bzw. bisherige Shadow-/Diagnosephase weiter beobachten.
 - [ ] Alerts weiterhin Shadow/Diagnose beobachten, keine Produktivumschaltung ohne Freigabe.
 
 ## Nicht wieder einführen
@@ -70,3 +90,5 @@ Stand: 2026-06-16
 - [ ] Mehrzeilige Sammelvarianten als aktive Textvarianten.
 - [ ] Produktive SQLite ersetzen/neu bauen.
 - [ ] Shadow-Modus als produktiven Loyalty-Betrieb wieder aktivieren.
+- [ ] Technische Raffle-Unterevents als einzelne Event-Dropdown-Einträge.
+- [ ] Gamble + Raffle + Statistik wieder als lange Seite untereinander anzeigen.

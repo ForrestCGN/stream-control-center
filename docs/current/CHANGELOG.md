@@ -2,156 +2,110 @@
 
 Stand: 2026-06-16
 
-## 2026-06-16 – LC-CORE-LIVE-CLEANUP-3 Status/Dashboard Aktiv-Inaktiv
+## 2026-06-16 – LC-MINIGAMES-2C3 FIX1 Mini-Spiel-Auswahl kompakt
 
 ### Ergebnis
 
 ```text
-Der Loyalty-Core ist fachlich auf Aktiv/Inaktiv bzw. Live-only bereinigt. Shadow ist kein sichtbarer oder auswählbarer Betriebsmodus mehr.
-```
-
-### Bestätigt
-
-```text
-/api/loyalty/status meldet mode=live, enabled=true, shadowMode=false, pointsState=active.
-Die alten Hauptstatusfelder streamElementsStillActive und importStatus sind aus dem normalen Status entfernt.
-Legacy-Hinweise bleiben nur im Diagnosebereich diagnostics.legacyFallbacks.
-Dashboard-Wording wurde auf Punkte-Core Aktiv/Inaktiv bereinigt.
-```
-
-### Nicht geändert
-
-```text
-Keine produktive SQLite ersetzt.
-Keine Transaktionen gelöscht.
-Keine DB-Shadow-Spalten gedroppt.
-Keine Raffle-Logik geändert.
-```
-
-## 2026-06-16 – LC-CORE-LIVE-CLEANUP-2 Live-only geprüft
-
-### Ergebnis
-
-```text
-Loyalty läuft jetzt fachlich live-only. Shadow-Migration ist abgeschlossen und Shadow ist leer.
-```
-
-### Bestätigt
-
-```text
-/api/loyalty/status:
-  version = 0.1.24
-  mode = live
-  enabled = true
-  shadowMode = false
-
-Migrationstool-Dry-Run:
-  candidates=0 totalShadow=0
-  excluded=0 excludedShadow=0
-```
-
-### Referenzprüfungen
-
-```text
-Urlug:
-  balanceShadow = 0
-  balanceLive   = 1006852
-  activeBalance = 1006852
-
-Tronic6:
-  balanceShadow = 0
-  balanceLive   = 12536
-  activeBalance = 12536
-```
-
-### Wichtig
-
-```text
-DB-Spalten fuer Shadow bleiben vorerst bestehen, werden aber fachlich nicht mehr genutzt.
-API-Kompatibilitätsfelder bleiben vorerst vorhanden.
-Späterer Cleanup soll alte Shadow-/Import-Begriffe in Status/Dashboard/Doku prüfen und bereinigen.
-```
-
-## 2026-06-16 – LC-CORE Shadow->Live Migration
-
-### Ergebnis
-
-```text
-Normale User wurden mit ihren Shadow-Punkten nach Live migriert.
-Test-/Bridge-/Diagnose-User wurden aus der produktiven Migration ausgeschlossen.
-Ignored/System-Reste wurden nicht nach Live gebucht.
-Rest-Shadow-Werte wurden danach gezielt genullt.
-```
-
-### Zahlen
-
-```text
-migrated = 468
-amount = 69116
-failed_ignored_by_api = 4
-Rest-Clear = 40 User / 10064 Kekskrümel
-Abschluss = 0 Shadow-User / 0 Shadow-Summe
-```
-
-## 2026-06-16 – LC-MINIGAMES-2B FIX3 Text DB Cleanup
-
-### Ergebnis
-
-```text
-Alte aktive mehrzeilige Text-Sammelvarianten im Loyalty-Giveaways-/Mini-Spiel-Textbereich wurden bereinigt. Die Prüfung auf aktive Varianten mit Zeilenumbrüchen liefert keine Ausgabe mehr.
-```
-
-### Betroffene Bereiche
-
-```text
-chat_raffle
-chat_giveaway
-chat_ticket
-chat_wheel
-```
-
-### Wichtig
-
-```text
-Texte laufen weiterhin über helper_texts.renderModuleText(...).
-Keine eigene Zufallslogik wurde gebaut.
-Alte raffle.* Seed-Keys wurden aus dem aktiven Pfad entfernt/bereinigt.
-Produktiver Raffle-Pfad nutzt raffle.public.*.
-```
-
-## 2026-06-16 – LC-MINIGAMES-2B Raffle Teilnahmekosten
-
-### Ergebnis
-
-```text
-Raffle unterstützt backendseitig Teilnahmekosten. entryCostAmount=0 bedeutet kostenlos. entryCostAmount>0 setzt entryCostEnabled=true und soll beim Join Punkte abbuchen.
-```
-
-### Bestätigt
-
-```text
-/api/loyalty/raffle/config speichert entryCostAmount=10 und entryCostEnabled=true korrekt.
-```
-
-### Offen
-
-```text
-Live-Test mit !raffle / !join bei genug Punkten, zu wenig Punkten, Doppeljoin, Cancel/Refund und normalem Abschluss.
-```
-
-## 2026-06-16 – LC-MINIGAMES-2A Dashboard Cleanup
-
-### Ergebnis
-
-```text
-Mini-Spiele wurde als Status-/Bedienseite bereinigt. Raffle-Config liegt unter Loyalty -> Einstellungen -> Raffle. Raffle-Texte liegen unter Loyalty -> Texte -> Raffle.
+Die Mini-Spiele-Auswahl wurde von großen Vollbreiten-Karten auf kompakte Auswahl-Chips/Kacheln umgestellt. Darunter wird nur noch das ausgewählte Spiel angezeigt.
 ```
 
 ### Details
 
 ```text
-Einstellungen -> Raffle zeigt nur fachliche Config.
-Command-Felder wurden aus Raffle-Config entfernt.
-Texte-Dropdown hat keine Option Alle Textbereiche mehr.
-Textvarianten-Tabelle zeigt nur den ausgewählten Bereich.
+Raffle und Gamble stehen nicht mehr als große Blöcke untereinander.
+Das aktuell ausgewählte Spiel ist klar markiert.
+Raffle/Gamble bleiben funktional auswählbar.
+Design-Feinschliff wird später gemacht.
 ```
+
+## 2026-06-16 – LC-MINIGAMES-2C3 Detail-Navigation Mini-Spiele
+
+### Ergebnis
+
+```text
+Mini-Spiele zeigt nicht mehr gleichzeitig Gamble, Raffle und Raffle-Statistik untereinander. Es gibt eine Detail-Navigation: Auswahl des Spiels und darunter nur dessen Detailansicht.
+```
+
+### Raffle
+
+```text
+Raffle besitzt die Unteransichten Übersicht und Statistik.
+Übersicht enthält Status, Teilnehmer, Gewinn, Dauer und Gewinnerregel.
+Statistik enthält KPIs, Sortierung, User-Dropdown und Statistik-Tabelle.
+```
+
+## 2026-06-16 – LC-MINIGAMES-2C2 Raffle-Statistik
+
+### Ergebnis
+
+```text
+Raffle-Statistik wurde auf der Raffle-Seite ergänzt. Sie ist nach Sortierung und User filterbar.
+```
+
+### Enthält
+
+```text
+KPIs: Gestartet, Teilnahmen, Ausgezahlt, Erstattet
+Sortierung: Gewinner, Teilnehmer, Starter, Gezahlte Gebühren
+User-Dropdown: Alle User oder einzelner User
+Tabelle: User, Gestartet, Teilnahmen, Gewinne, Gewonnen, Gezahlt, Erstattet
+```
+
+### Hinweis
+
+```text
+Historische Raffle-Gewinne sind aus Transactions rekonstruierbar. Historische Starts/Teilnahmen sind nur sichtbar, wenn sie aus alten Command-Logs oder neuen Raffle-Events ableitbar sind.
+```
+
+## 2026-06-16 – LC-MINIGAMES-2C1 Raffle Logs
+
+### Ergebnis
+
+```text
+Raffle ist als einzelner Event-Filter in der Log-Seite sichtbar. Die Raffle-Unterarten liegen im Statusfilter, nicht als Event-Dropdown-Chaos.
+```
+
+### Statusfilter
+
+```text
+Alle
+Bezahlt
+Erstattet
+Gewinn
+Gestartet
+Teilnahme
+Beendet
+Abgebrochen
+```
+
+### User-/Details-Regel
+
+```text
+Bei Punktebewegungen zeigt User den betroffenen User.
+Bei Start/Abbruch zeigt User den Auslöser.
+Details beschreiben Vorgang, Zieluser, Betrag und Kontext.
+```
+
+## 2026-06-16 – LC-MINIGAMES-2C0 Raffle Navigation Cleanup
+
+```text
+Raffle-Config- und Raffle-Text-Sprungbuttons wurden aus der Raffle-Bedienansicht entfernt. Textkey-Chips wurden aus dem normalen Raffle-Statusbereich entfernt. Config bleibt im Tab Einstellungen, Texte bleiben im Tab Texte.
+```
+
+## 2026-06-16 – LC-CORE-LIVE-CLEANUP-3
+
+```text
+Loyalty-Status und Dashboard wurden auf Aktiv/Inaktiv bereinigt. mode=live, enabled=true, shadowMode=false, pointsState=active. streamElementsStillActive/importStatus stehen nicht mehr im normalen Hauptstatus.
+```
+
+## 2026-06-16 – LC-MINIGAMES-2B Raffle Teilnahmekosten und Text-Cleanup
+
+```text
+Raffle unterstützt backendseitig Teilnahmekosten. entryCostAmount=0 bedeutet kostenlos. entryCostAmount>0 setzt entryCostEnabled=true und soll beim Join Punkte abbuchen.
+Alte aktive mehrzeilige Text-Sammelvarianten im Loyalty-Giveaways-/Mini-Spiel-Textbereich wurden bereinigt.
+```
+
+## Vorheriger Stand
+
+Der vorherige Doku-Stand beschrieb LC-CORE-LIVE-CLEANUP-3 und Raffle-Kosten als offenen nächsten Test. Dieser Stand ergänzt die danach erfolgten Raffle-Log-/Statistik-/Navigation-Schritte.

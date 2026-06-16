@@ -5,38 +5,29 @@ Stand: 2026-06-16
 ## Aktueller bestätigter Arbeitsstand
 
 ```text
-LC-CORE-LIVE-CLEANUP-3 – Status/Dashboard auf Aktiv/Inaktiv bereinigt und geprüft
-Nächster offener Test: Raffle-Teilnahmekosten live prüfen
+LC-MINIGAMES-2C3 FIX1 – Mini-Spiel-Auswahl kompakt, Raffle-Logs und Raffle-Statistik funktional geprüft
+Design-Feinschliff später
 ```
 
 ## Kurzfazit
 
-Der Loyalty-Core läuft produktiv im Live-only-Betrieb. Die zuvor im Shadow-Modus gesammelten Punkte wurden vollständig bereinigt: normale User wurden nach Live migriert, Test-/Bridge-/System-Reste wurden genullt. Shadow ist leer und wird fachlich nicht mehr als Betriebsmodus genutzt. Der normale Status und das Dashboard sind jetzt auf Aktiv/Inaktiv ausgerichtet.
+Der Loyalty-Core läuft produktiv im Live-only-Betrieb. Shadow ist leer und fachlich nicht mehr Teil des normalen Betriebs. Das Dashboard ist im Loyalty-Bereich auf Aktiv/Inaktiv ausgerichtet.
+
+Der Mini-Spiele-Bereich wurde nach dem Raffle-/Gamble-Ausbau wieder entschlackt: Es gibt oben eine kompakte Spielauswahl statt großer Vollbreiten-Karten, darunter wird nur noch das ausgewählte Spiel angezeigt. Raffle hat eine eigene Unteransicht mit `Übersicht` und `Statistik`.
 
 Bestätigt:
 
 ```text
 Loyalty Core läuft produktiv.
 /api/loyalty/status meldet mode=live, enabled=true, shadowMode=false, pointsState=active.
-/api/loyalty/balance/urlug meldet balanceShadow=0, balanceLive=1006852, activeBalance=1006852.
-/api/loyalty/balance/tronic6 meldet balanceShadow=0, balanceLive=12536, activeBalance=12536.
-Migrationstool-Dry-Run meldet candidates=0 totalShadow=0 und excluded=0 excludedShadow=0.
-Live ist ab jetzt der einzige relevante Punkte-Stand.
-Die normalen Statusfelder streamElementsStillActive/importStatus wurden aus dem Hauptstatus entfernt.
-Legacy-Infos bleiben nur noch im Diagnosebereich, wo sie bewusst als technische Hinweise dienen.
+Shadow-Migration ist abgeschlossen: candidates=0 totalShadow=0.
+Raffle-Logs sind unter Loyalty -> Logs über Event=Raffle sichtbar.
+Raffle-Statusfilter sind verständlich: Bezahlt, Erstattet, Gewinn, Gestartet, Teilnahme, Beendet, Abgebrochen.
+Raffle-Statistik sitzt auf der Raffle-Seite und ist nach User/Sortierung filterbar.
+Mini-Spiele-Seite zeigt nicht mehr Gamble + Raffle + Statistik untereinander.
 ```
 
 ## Loyalty Live-only / Shadow-Migration
-
-### Migrationsergebnis
-
-```text
-Normale User migriert: 468
-Nach Live gebuchte Shadow-Summe: 69116 Kekskrümel
-Ignored/API-blockierte User wurden nicht nach Live gebucht.
-Test-/Bridge-/Diagnose-User wurden aus der Migration ausgeschlossen.
-Rest-Shadow-Werte wurden anschließend gezielt genullt.
-```
 
 ### Abschlussprüfung
 
@@ -77,7 +68,7 @@ Aktiv   = live
 Inaktiv = off
 ```
 
-`shadowMode` bleibt aus Kompatibilitätsgründen vorerst als API-Feld vorhanden, ist aber `false`. Alte `mode=shadow`-Werte aus Config/API sollen im Runtime-Pfad nicht mehr zu Shadow-Buchungen führen, sondern als Live behandelt werden.
+`shadowMode` bleibt aus Kompatibilitätsgründen vorerst als API-Feld vorhanden, ist aber `false`. Alte `mode=shadow`-Werte sollen im Runtime-Pfad nicht mehr zu Shadow-Buchungen führen.
 
 ## Status Live-System
 
@@ -100,8 +91,17 @@ Bestätigt: Die alten Hauptstatusfelder `streamElementsStillActive` und `importS
 
 ```text
 backend/modules/loyalty_giveaways.js
-moduleVersion = 0.1.13
-moduleBuild = STEP_LC_MINIGAMES_2B_FIX3_TEXT_DB_CLEANUP
+moduleVersion = 0.1.14
+moduleBuild = STEP_LC_MINIGAMES_2C1_FIX1_RAFFLE_LOG_STATUS_USER
+```
+
+Spätere Dashboard-only-Fixes seitdem:
+
+```text
+LC-MINIGAMES-2C1-FIX2 Raffle-Logs vollständiger gemappt
+LC-MINIGAMES-2C2 Raffle-Statistik mit User-Sortierung
+LC-MINIGAMES-2C3 Mini-Spiele Detail-Navigation
+LC-MINIGAMES-2C3-FIX1 Mini-Spiel-Auswahl kompakt
 ```
 
 Bestätigte Raffle-Routen:
@@ -110,8 +110,98 @@ Bestätigte Raffle-Routen:
 GET  /api/loyalty/raffle/status
 GET  /api/loyalty/raffle/config
 POST /api/loyalty/raffle/config
+GET  /api/loyalty/raffle/logs
+GET  /api/loyalty/raffle/stats
 GET  /api/loyalty/giveaways/raffle/status   Kompatibilität
 ```
+
+## Raffle-Logs
+
+Die Log-Seite ist für Buchungen und Ereignisse zuständig:
+
+```text
+Loyalty -> Logs
+Event = Raffle
+```
+
+Statusfilter bei Raffle:
+
+```text
+Alle
+Bezahlt
+Erstattet
+Gewinn
+Gestartet
+Teilnahme
+Beendet
+Abgebrochen
+```
+
+Wichtige Log-Regel:
+
+```text
+Bei Punktebewegungen steht in der User-Spalte der betroffene User.
+Bei Start/Abbruch steht in der User-Spalte der auslösende Mod/Streamer/System-User.
+Details erklären den Vorgang verständlich.
+Technische IDs stehen nicht mehr direkt in der Tabelle, sondern im Detaildialog.
+```
+
+Für alte Raffles sind historische Gewinne über vorhandene Transactions sichtbar. Start/Teilnahme/Beendet/Abgebrochen können nur angezeigt werden, wenn sie historisch aus vorhandenen Command-Logs oder neuen Raffle-Events rekonstruierbar sind. Ab dem neuen Stand werden neue Raffle-Ereignisse sauberer gespeichert.
+
+## Raffle-Statistik
+
+Die Statistik gehört auf die Raffle-Seite:
+
+```text
+Loyalty -> Mini-Spiele -> Raffle -> Statistik
+```
+
+Bestätigter Inhalt:
+
+```text
+KPIs:
+- Gestartet
+- Teilnahmen
+- Ausgezahlt
+- Erstattet
+
+Sortierung:
+- Gewinner
+- Teilnehmer
+- Starter
+- Gezahlte Gebühren
+
+User-Filter:
+- Alle User
+- einzelner User
+
+Tabelle:
+- User
+- Gestartet
+- Teilnahmen
+- Gewinne
+- Gewonnen
+- Gezahlt
+- Erstattet
+```
+
+Hinweis: Bei alten Raffles sind Gewinnsummen zuverlässig vorhanden; historische Starts und Teilnahmen sind nur teilweise rekonstruierbar. Neue Raffles werden ab dem aktuellen Stand vollständiger geloggt.
+
+## Mini-Spiele-Dashboard
+
+Aktueller bestätigter UX-Stand:
+
+```text
+Mini-Spiele zeigt oben eine kompakte Spielauswahl.
+Raffle und Gamble erscheinen als kleine Auswahl-Chips/Kacheln.
+Nur das aktuell gewählte Spiel wird darunter angezeigt.
+Raffle hat die Unteransichten Übersicht und Statistik.
+Gamble wird nur angezeigt, wenn Gamble ausgewählt ist.
+Config und Texte bleiben in den eigenen Tabs Einstellungen bzw. Texte.
+Logs bleiben im Tab Logs.
+```
+
+Design-Feinschliff ist bewusst zurückgestellt. Funktionalität ist wichtiger als weitere optische Nacharbeit in diesem Schritt.
 
 ## Raffle-Config
 
@@ -132,7 +222,7 @@ Command-Felder werden nicht mehr im Raffle-Config-Bereich bearbeitet. Sie bleibe
 
 ## Teilnahmekosten
 
-Teilnahmekosten wurden backendseitig vorbereitet/eingebaut:
+Teilnahmekosten wurden backendseitig eingebaut:
 
 ```text
 entryCostAmount = 0  -> kostenlos
@@ -145,13 +235,14 @@ Bestätigt:
 POST/GET /api/loyalty/raffle/config speichert entryCostAmount=10 und entryCostEnabled=true korrekt.
 ```
 
-Noch offen:
+Noch separat sauber zu prüfen:
 
 ```text
-Live-Test mit !raffle / !join bei genug Punkten
-Live-Test mit !join bei zu wenig Punkten
-Cancel-Test mit Erstattung bezahlter Teilnahmen
-Normaler Ablauf mit Auszahlung und ohne Erstattung
+Kostenpflichtiger Join bei genug Punkten
+Join bei zu wenig Punkten
+Doppeljoin ohne zweite Abbuchung
+Cancel/Refund bezahlter Teilnahmen
+Normaler Ablauf mit Auszahlung ohne Erstattung
 ```
 
 ## Textsystem / Cleanup
@@ -174,29 +265,6 @@ Raffle nutzt produktiv neue Keys raffle.public.*.
 Alte raffle.* Seed-Keys wurden aus dem aktiven Pfad entfernt/bereinigt.
 ```
 
-## Dashboard-Stand
-
-Geänderte Dashboard-Dateien im aktuellen Stand:
-
-```text
-htdocs/dashboard/modules/loyalty.js
-htdocs/dashboard/modules/loyalty_games.js
-```
-
-Bestätigt:
-
-```text
-Mini-Spiele ist Status-/Bedienseite.
-Raffle-Config wurde aus Mini-Spiele herausgezogen.
-Einstellungen -> Raffle zeigt nur fachliche Config.
-Texte -> Raffle zeigt nur Raffle-Texte.
-Dropdown „Alle Textbereiche“ wurde entfernt.
-Texttabelle zeigt immer nur den aktuell gewählten Bereich.
-Loyalty-Core-Dashboard ist auf Aktiv/Inaktiv bzw. Live-only bereinigt.
-Dashboard-Beschreibung „Shadow-Runner“ wurde entfernt.
-Status-/Config-Anzeige nutzt keine Import-/StreamElements-Hauptfelder mehr.
-```
-
 ## Nicht geändert
 
 ```text
@@ -208,4 +276,5 @@ Keine Alert-Produktivumschaltung.
 Keine neue Raffle-Parallelstruktur gebaut.
 DB-Spalten balance_shadow, total_earned_shadow, total_spent_shadow wurden noch nicht gedroppt.
 Diagnose-Legacyfelder unter diagnostics wurden nicht entfernt.
+Design-Feinschliff im Mini-Spiele-Bereich wurde bewusst verschoben.
 ```

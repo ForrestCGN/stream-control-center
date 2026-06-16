@@ -4,56 +4,45 @@ Stand: 2026-06-16
 
 ## Zweck
 
-Das Loyalty-Core-Modul verwaltet Kekskrümel, automatische Watch-Punkte, Event-Boni, Transaktionen, Balances, Rankings, Reservierungen und zentrale Einstellungen.
+Das Loyalty-Core-Modul verwaltet Kekskrümel, automatische Watch-Punkte, Event-Boni, Transaktionen, Balances und zentrale Einstellungen.
 
 ## Aktueller Status
 
 ```text
 Produktivmodus: live-only
-Fachliche Zustände: aktiv / inaktiv
+Fachliche Zustände: Aktiv / Inaktiv
 Version: 0.1.24
 Currency: Kekskrümel
 Watch-Punkte: aktiv
 Twitch-Event-Boni: aktiv
-Shadow-Modus: fachlich beendet, shadowMode=false
-Alerts: weiterhin Diagnose/Shadow-Beobachtung, keine Produktivumschaltung über neue Alert-Route
+Shadow-Modus: fachlich entfernt, API-Feld shadowMode=false bleibt kompatibel
+Alerts: weiterhin Diagnose/Shadow, keine Alert-Produktivumschaltung in diesem Step
 ```
 
-## Live-only-Regel
-
-Ab LC-CORE-LIVE-CLEANUP-2 gilt fachlich:
+Bestätigt aus `/api/loyalty/status`:
 
 ```text
-Aktiv   = live
-Inaktiv = off
+mode = live
+enabled = true
+shadowMode = false
+pointsState = active
 ```
 
-`shadowMode` bleibt aus API-Kompatibilität vorerst vorhanden, ist aber `false`. Alte Config/API-Werte mit `mode=shadow` sollen nicht mehr in Shadow buchen, sondern als Live behandelt werden.
+## Live-only / Shadow-Migration
 
-## Shadow-Migration
-
-Die frühere Shadow-Phase wurde abgeschlossen:
+Shadow wurde bereinigt:
 
 ```text
 Normale User wurden nach Live migriert.
-Test-/Bridge-/Diagnose-User wurden ausgeschlossen.
-Ignored/System-Reste wurden nicht nach Live gebucht.
-Rest-Shadow-Werte wurden gezielt genullt.
-Abschlussprüfung: candidates=0 totalShadow=0.
+Test-/Bridge-/System-Reste wurden gezielt genullt.
+Abschluss-Dry-Run: candidates=0 totalShadow=0.
 ```
 
 Referenzwerte:
 
 ```text
-Urlug:
-  balanceShadow = 0
-  balanceLive   = 1006852
-  activeBalance = 1006852
-
-Tronic6:
-  balanceShadow = 0
-  balanceLive   = 12536
-  activeBalance = 12536
+Urlug   balanceLive=1006852 balanceShadow=0 activeBalance=1006852
+Tronic6 balanceLive=12536   balanceShadow=0 activeBalance=12536
 ```
 
 ## Wichtige Routen
@@ -64,9 +53,7 @@ GET  /api/loyalty/settings
 POST /api/loyalty/settings
 GET  /api/loyalty/transactions
 GET  /api/loyalty/balance/:login
-GET  /api/loyalty/users
 GET  /api/loyalty/events/history
-GET  /api/loyalty/runner/status
 ```
 
 ## Watch-Punkte
@@ -111,40 +98,10 @@ GiftSub Gifter -> 50
 GiftSub Receiver -> 5
 ```
 
-Status-Diagnose bestätigt:
-
-```text
-bonusMapping.mode = live
-eventBonusesEnabled = true
-supportedEvents enthalten follow, subscribe, resub, gift_sub, gift_bomb, cheer, raid und derived gifted_sub_received
-```
-
 Offen:
 
 ```text
 GiftSub-Receiver-Buchung mit Dashboard-Konfig abgleichen.
-```
-
-## Live-only / Shadow-Migration
-
-Die vorherigen Shadow-Punkte wurden am 2026-06-16 vollständig bereinigt. Normale User wurden per Live-Transaktion migriert, Test-/Bridge-/System-Reste wurden gezielt genullt.
-
-Bestätigter Status:
-
-```text
-mode = live
-enabled = true
-shadowMode = false
-pointsState = active
-remainingShadowUsers = 0
-remainingShadowTotal = 0
-```
-
-Fachlich gibt es nur noch:
-
-```text
-Aktiv   = Punkte laufen live
-Inaktiv = Punkte werden nicht verarbeitet
 ```
 
 ## StreamElements-Import
@@ -159,43 +116,15 @@ reason = streamelements_points_import
 referenceId = streamelements_top489_2026-06-15
 ```
 
-Bestätigtes Ergebnis aus Importphase:
+Wichtiger Nachtrag:
 
 ```text
-Erfolgreich: 479 User
-Gebucht: 1.832.557 Kekskrümel
-Fehler: 0
+Vor dem Import im neuen Loyalty-System gesammelte Shadow-Punkte wurden beim StreamElements-Import nicht automatisch addiert. Deshalb wurde später eine eigene Shadow->Live-Migration durchgeführt.
 ```
 
-Nachträglich wurde erkannt, dass die bereits im neuen System gesammelten Shadow-Punkte nicht addiert waren. Das wurde über die Shadow->Live-Migration korrigiert.
+## Dashboard-Wording
 
-## Bekannte Kompatibilitäts-/Cleanup-Punkte
-
-Folgende Felder/Begriffe können noch in Status/Diagnose/Dashboard vorkommen und sollen später bereinigt werden:
-
-```text
-streamElementsStillActive
-importStatus
-shadowMode als reines Kompatibilitätsfeld
-alte Dashboard-Texte mit Shadow-/Runner-Bezug
-```
-
-Dabei gilt:
-
-```text
-Keine API-Breaking-Changes ohne bewusste Freigabe.
-DB-Spalten nicht blind droppen.
-Erst alle Referenzen in Backend, Dashboard, Tools und Doku prüfen.
-```
-
-## Cleanup-3 Ergebnis
-
-```text
-Normale Status-/Dashboard-Anzeigen sind auf Aktiv/Inaktiv bereinigt.
-streamElementsStillActive/importStatus wurden aus dem Hauptstatus entfernt.
-Legacy-Hinweise bleiben nur noch im Diagnosebereich diagnostics.legacyFallbacks.
-DB-Shadow-Spalten wurden noch nicht gedroppt.
-```
+Der normale Loyalty-Core-Bereich zeigt fachlich Aktiv/Inaktiv. Shadow-/Import-Hauptstatusfelder wurden entfernt. Legacy-Hinweise bleiben nur im Diagnosebereich.
 
 ## Dateien
 
@@ -215,8 +144,12 @@ htdocs/dashboard/modules/loyalty_games.js
 htdocs/dashboard/modules/loyalty_games.css
 ```
 
-Tools:
+## Späterer Cleanup
+
+DB-Spalten für Shadow bleiben vorerst erhalten und dürfen nur nach vollständiger Referenzprüfung entfernt werden:
 
 ```text
-tools/loyalty_migrate_shadow_to_live_once.js
+balance_shadow
+total_earned_shadow
+total_spent_shadow
 ```
