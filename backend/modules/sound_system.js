@@ -16,8 +16,8 @@ try {
 }
 
 const MODULE_NAME = "sound_system";
-const MODULE_VERSION = "0.1.27";
-const MODULE_BUILD = "STEP_SOUND_GAP_1_POST_PLAYBACK_GAP_EVENT_HOLD";
+const MODULE_VERSION = "0.1.28";
+const MODULE_BUILD = "STEP_SOUND_LOG_1_RECENT_PLAYBACK_LOG";
 const SOUND_BUS_CAPABILITY = "sound.event_output";
 const SOUND_BUS_COMMAND_CAPABILITY = "sound.command_input";
 const SOUND_BUS_STATUS_API_VERSION = "1.0.0";
@@ -44,7 +44,7 @@ const MODULE_META = {
   deliveryClassification: SOUND_BUS_DELIVERY_CLASSIFICATION,
   commandDeliveryClassification: SOUND_BUS_COMMAND_DELIVERY_CLASSIFICATION,
   bus: { emits: true, registered: true, heartbeat: true, status: true },
-  note: "SOUND-GAP-1: Globale 2s Pause zwischen Sound-Requests plus EventSound-Overlay-Hold nach Playback-Ende."
+  note: "SOUND-LOG-1: Recent Playback Log fuer zuletzt gespielte Sounds als API-/Dashboard-Basis."
 };
 
 const DEFAULT_OUTPUT = {
@@ -120,6 +120,11 @@ const DEFAULT_CONFIG = {
     maxMs: 10000,
     blockQueueStart: true,
     holdEventRuntimeOverlay: true,
+    dashboardTodo: true
+  },
+  playbackLog: {
+    enabled: true,
+    maxItems: 100,
     dashboardTodo: true
   },
   soundBusCommand: {
@@ -338,6 +343,16 @@ module.exports.init = function init(ctx) {
       soundId: "",
       label: "",
       lastEndedAt: ""
+    },
+    playbackLog: {
+      enabled: true,
+      maxItems: 100,
+      dashboardTodo: true,
+      items: [],
+      lastStartedAt: "",
+      lastFinishedAt: "",
+      lastErrorAt: "",
+      lastStatus: ""
     }
   };
 
@@ -351,7 +366,7 @@ module.exports.init = function init(ctx) {
   const SOUND_SETTINGS_SCHEMA_MODULE = "sound_system_settings";
   const SOUND_SETTINGS_SCHEMA_VERSION = 1;
   const SOUND_SETTINGS_TABLE = "sound_settings";
-  const SOUND_SETTINGS_BLOCKS = ["output", "overlay", "queue", "priorities", "defaults", "categoryDefaults", "targets", "discordRouting", "soundBus", "soundBusCommand", "eventPreRoll", "soundGap", "soundsBaseDir", "allowedExtensions"];
+  const SOUND_SETTINGS_BLOCKS = ["output", "overlay", "queue", "priorities", "defaults", "categoryDefaults", "targets", "discordRouting", "soundBus", "soundBusCommand", "eventPreRoll", "soundGap", "playbackLog", "soundsBaseDir", "allowedExtensions"];
 
   function deepMergeRuntimeSettings(base, override) {
     if (!isPlainObject(base)) base = {};
@@ -452,6 +467,7 @@ module.exports.init = function init(ctx) {
         { method: "GET", path: `${prefix}/routes`, description: "Route self-documentation" },
         { method: "GET", path: `${prefix}/integration-check`, description: "Integration and DB/JSON/Sound overlay consistency check" },
         { method: "GET", path: `${prefix}/eventbus/status`, description: "Sound-System EventBus status and recent sound.* events" },
+        { method: "GET", path: `${prefix}/recent-playback`, description: "SOUND-LOG-1: Zuletzt gespielte Sounds als sauberer Verlauf fuer Tests und Dashboard" },
         { method: "GET", path: `${prefix}/eventbus/test`, description: "Emit a test-only sound.test EventBus event without playing audio or touching queue" },
         { method: "POST", path: `${prefix}/eventbus/test`, description: "Emit a test-only sound.test EventBus event without playing audio or touching queue" },
         { method: "GET", path: `${prefix}/eventbus/reset`, description: "Reset Sound-System EventBus counters only" },
@@ -2492,6 +2508,17 @@ function publicSoundBusQueueStatus() {
       currentBundle: state.current && state.current.bundleId ? publicBundleInfo(state.current.bundleId) : null,
       activeBundleLock: state.activeBundleLock ? { ...state.activeBundleLock } : null,
       postPlaybackGap: publicPostPlaybackGapStatus(),
+      playbackLog: {
+        prepared: true,
+        enabled: playbackLogConfig().enabled,
+        maxItems: playbackLogConfig().maxItems,
+        dashboardTodo: true,
+        stored: Array.isArray(state.playbackLog && state.playbackLog.items) ? state.playbackLog.items.length : 0,
+        lastStartedAt: state.playbackLog.lastStartedAt || "",
+        lastFinishedAt: state.playbackLog.lastFinishedAt || "",
+        lastErrorAt: state.playbackLog.lastErrorAt || "",
+        endpoint: `${(config.routes && config.routes.prefix) || "/api/sound"}/recent-playback`
+      },
       bundles: publicBundleQueue(),
       client: { ...state.client },
       device: { ...state.device },
@@ -2509,7 +2536,8 @@ function publicSoundBusQueueStatus() {
         settings: `${(config.routes && config.routes.prefix) || "/api/sound"}/settings`,
         integrationCheck: `${(config.routes && config.routes.prefix) || "/api/sound"}/integration-check`,
         eventBus: `${(config.routes && config.routes.prefix) || "/api/sound"}/eventbus/status`,
-        commandBus: `${(config.routes && config.routes.prefix) || "/api/sound"}/eventbus/command/status`
+        commandBus: `${(config.routes && config.routes.prefix) || "/api/sound"}/eventbus/command/status`,
+        recentPlayback: `${(config.routes && config.routes.prefix) || "/api/sound"}/recent-playback`
       },
       diagnostics: buildStandardDiagnostics(routeInfo),
       stats: { ...state.stats },
@@ -2522,6 +2550,7 @@ function publicSoundBusQueueStatus() {
         soundBus: config.soundBus || {},
         eventPreRoll: config.eventPreRoll || {},
         soundGap: config.soundGap || {},
+        playbackLog: config.playbackLog || {},
         soundBusCommand: config.soundBusCommand || {},
         overlay: config.overlay || {},
         output: config.output || {},
@@ -2606,6 +2635,180 @@ function publicSoundBusQueueStatus() {
         dropIfBusy: !!item.dropIfBusy,
         parallelAllowed: !!item.parallelAllowed
       }
+    };
+  }
+
+
+  function playbackLogConfig() {
+    const block = isPlainObject(config.playbackLog) ? config.playbackLog : {};
+    const defaults = DEFAULT_CONFIG.playbackLog || {};
+    const max = Math.max(10, Math.min(500, Number(block.maxItems || defaults.maxItems || 100)));
+    return {
+      enabled: block.enabled !== false,
+      maxItems: max,
+      dashboardTodo: block.dashboardTodo !== false
+    };
+  }
+
+  function playbackLogIso(ms) {
+    const n = Number(ms || 0);
+    if (!Number.isFinite(n) || n <= 0) return "";
+    try { return new Date(n).toISOString(); } catch (_) { return ""; }
+  }
+
+  function playbackLogItemBase(item) {
+    const meta = isPlainObject(item && item.meta) ? item.meta : {};
+    const visual = isPlainObject(item && item.visual) ? item.visual : {};
+    const lifecycle = isPlainObject(item && item.lifecycle) ? item.lifecycle : {};
+    return {
+      requestId: item && item.requestId ? String(item.requestId) : "",
+      correlationId: compactMetaValue(meta.correlationId || item?.requestId || ""),
+      soundId: item && item.soundId ? String(item.soundId) : "",
+      label: item && (item.label || item.soundId) ? String(item.label || item.soundId) : "",
+      file: item && item.file ? String(item.file) : "",
+      audioUrl: item && (item.audioUrl || item.mediaUrl || item.videoUrl) ? String(item.audioUrl || item.mediaUrl || item.videoUrl) : "",
+      mediaType: item && item.mediaType ? String(item.mediaType) : "audio",
+      hasAudio: !(item && item.hasAudio === false),
+      hasVideo: !!(item && item.hasVideo),
+      source: item && (item.source || meta.source || visual.module) ? String(item.source || meta.source || visual.module) : "",
+      sourceModule: compactMetaValue(meta.module || visual.module || (item && item.source) || ""),
+      category: item && item.category ? String(item.category) : "",
+      target: item && item.target ? String(item.target) : "",
+      outputTarget: item && item.outputTarget ? String(item.outputTarget) : "",
+      requestedBy: item && (item.requestedBy || meta.user || meta.login || visual.login || visual.user) ? String(item.requestedBy || meta.user || meta.login || visual.login || visual.user) : "",
+      priority: Number(item && item.priority || 0),
+      volume: Number(item && item.volume || 0),
+      configuredDurationMs: Number(item && item.durationMs || 0),
+      bundleId: item && item.bundleId ? String(item.bundleId) : "",
+      bundleType: item && item.bundleType ? String(item.bundleType) : "",
+      eventPreRoll: !!(lifecycle && lifecycle.eventPreRoll && lifecycle.eventPreRoll.enabled === true),
+      meta: {
+        alertType: compactMetaValue(meta.alertType || visual.alertType || ""),
+        alertSource: compactMetaValue(meta.alertSource || visual.alertSource || ""),
+        soundType: compactMetaValue(meta.soundType || visual.type || ""),
+        eventUid: compactMetaValue(meta.eventUid || meta.streamEventUid || ""),
+        roundUid: compactMetaValue(meta.roundUid || meta.streamEventRoundUid || "")
+      }
+    };
+  }
+
+  function findPlaybackLogIndex(requestId) {
+    if (!requestId || !state.playbackLog || !Array.isArray(state.playbackLog.items)) return -1;
+    return state.playbackLog.items.findIndex(entry => entry && entry.requestId === requestId);
+  }
+
+  function upsertPlaybackLog(item, status, data = {}) {
+    const cfgLog = playbackLogConfig();
+    state.playbackLog.enabled = cfgLog.enabled;
+    state.playbackLog.maxItems = cfgLog.maxItems;
+    state.playbackLog.dashboardTodo = cfgLog.dashboardTodo;
+    if (cfgLog.enabled === false || !item) return null;
+    if (!Array.isArray(state.playbackLog.items)) state.playbackLog.items = [];
+
+    const requestId = item.requestId ? String(item.requestId) : "";
+    const nowMs = Date.now();
+    const nowIso = core.nowIso();
+    let entry = null;
+    const idx = findPlaybackLogIndex(requestId);
+    if (idx >= 0) {
+      entry = state.playbackLog.items[idx];
+      Object.assign(entry, playbackLogItemBase(item));
+    } else {
+      entry = {
+        ...playbackLogItemBase(item),
+        sequence: `${nowMs}_${Math.random().toString(36).slice(2, 7)}`,
+        queuedAt: playbackLogIso(item.queuedAt),
+        startedAt: "",
+        finishedAt: "",
+        status: "prepared",
+        reason: "",
+        durationMs: 0,
+        playbackMs: 0,
+        gapMs: 0,
+        error: ""
+      };
+      state.playbackLog.items.unshift(entry);
+    }
+
+    const cleanStatus = String(status || "updated");
+    entry.status = cleanStatus;
+    entry.reason = String(data.reason || entry.reason || cleanStatus);
+    entry.updatedAt = nowIso;
+
+    if (cleanStatus === "started") {
+      entry.startedAt = playbackLogIso(item.startedAt || nowMs) || nowIso;
+      entry.startedAtMs = Number(item.startedAt || nowMs);
+      entry.finishedAt = "";
+      entry.finishedAtMs = 0;
+      entry.durationMs = Number(item.durationMs || 0);
+      entry.playbackMs = 0;
+      entry.gapMs = 0;
+      entry.error = "";
+      state.playbackLog.lastStartedAt = entry.startedAt;
+    } else if (cleanStatus === "finished" || cleanStatus === "error" || cleanStatus === "skipped" || cleanStatus === "stopped") {
+      const startedMs = Number(entry.startedAtMs || item.startedAt || 0);
+      const finishedMs = Number(data.finishedAtMs || nowMs);
+      entry.finishedAtMs = finishedMs;
+      entry.finishedAt = playbackLogIso(finishedMs) || nowIso;
+      entry.playbackMs = startedMs > 0 ? Math.max(0, finishedMs - startedMs) : 0;
+      entry.durationMs = Number(item.durationMs || entry.durationMs || 0);
+      entry.gapMs = Number(data.gapMs || (state.postPlaybackGap && state.postPlaybackGap.durationMs) || 0);
+      entry.error = String(data.error || entry.error || "");
+      if (cleanStatus === "error") state.playbackLog.lastErrorAt = entry.finishedAt;
+      state.playbackLog.lastFinishedAt = entry.finishedAt;
+    }
+
+    state.playbackLog.lastStatus = cleanStatus;
+    if (state.playbackLog.items.length > cfgLog.maxItems) state.playbackLog.items.length = cfgLog.maxItems;
+    return entry;
+  }
+
+  function markPlaybackStarted(item, reason) {
+    return upsertPlaybackLog(item, "started", { reason: reason || "item_started" });
+  }
+
+  function markPlaybackFinished(item, reason, options = {}) {
+    if (!item) return null;
+    const idx = findPlaybackLogIndex(item.requestId || "");
+    const existing = idx >= 0 ? state.playbackLog.items[idx] : null;
+    const finalStatus = existing && existing.status === "error" ? "error" : "finished";
+    return upsertPlaybackLog(item, finalStatus, { reason: reason || finalStatus, ...options });
+  }
+
+  function markPlaybackError(item, error, reason) {
+    return upsertPlaybackLog(item, "error", { reason: reason || "client_error", error: error || "client_error" });
+  }
+
+  function markPlaybackSkipped(item, reason) {
+    const status = reason === "manual_stop" ? "stopped" : "skipped";
+    return upsertPlaybackLog(item, status, { reason: reason || status });
+  }
+
+  function publicRecentPlayback(options = {}) {
+    const limitRaw = Number(options.limit || (options.query && options.query.limit) || 50);
+    const limit = Math.max(1, Math.min(500, Number.isFinite(limitRaw) ? limitRaw : 50));
+    const statusFilter = String(options.status || (options.query && options.query.status) || "").trim().toLowerCase();
+    const sourceFilter = String(options.source || (options.query && options.query.source) || "").trim().toLowerCase();
+    let items = Array.isArray(state.playbackLog && state.playbackLog.items) ? state.playbackLog.items.slice() : [];
+    if (statusFilter) items = items.filter(entry => String(entry.status || "").toLowerCase() === statusFilter);
+    if (sourceFilter) items = items.filter(entry => String(entry.source || entry.sourceModule || "").toLowerCase() === sourceFilter);
+    return {
+      ok: true,
+      module: MODULE_NAME,
+      moduleVersion: MODULE_VERSION,
+      moduleBuild: MODULE_BUILD,
+      step: "SOUND-LOG-1",
+      prepared: true,
+      dashboardTodo: true,
+      enabled: playbackLogConfig().enabled,
+      maxItems: playbackLogConfig().maxItems,
+      count: Math.min(items.length, limit),
+      totalStored: Array.isArray(state.playbackLog && state.playbackLog.items) ? state.playbackLog.items.length : 0,
+      lastStartedAt: state.playbackLog.lastStartedAt || "",
+      lastFinishedAt: state.playbackLog.lastFinishedAt || "",
+      lastErrorAt: state.playbackLog.lastErrorAt || "",
+      lastStatus: state.playbackLog.lastStatus || "",
+      items: items.slice(0, limit)
     };
   }
 
@@ -4098,6 +4301,7 @@ function publicSoundBusQueueStatus() {
 
   function finalizeFinishedItemAfterGap(finished, reason, parallel = false) {
     if (finished) clearEventPreRollRuntime(finished, "hide", reason || "finished");
+    if (finished) markPlaybackFinished(finished, reason || "finished", { gapMs: Number(state.postPlaybackGap && state.postPlaybackGap.durationMs || 0) });
     emit(reason || (parallel ? "parallel_finished" : "finished"));
     if (finished) emitSoundBus("item_finished", { item: finished, kind: "item", extra: { reason: reason || "finished", parallel: !!parallel, postPlaybackGap: publicPostPlaybackGapStatus() } });
     if (!parallel && finished && finished.bundleId && state.activeBundleLock && state.activeBundleLock.bundleId === finished.bundleId) {
@@ -4191,6 +4395,7 @@ function publicSoundBusQueueStatus() {
 
     playDeviceOutput(item);
     playDiscordOutput(item);
+    markPlaybackStarted(item, "item_started");
     emitItemEvent("item_started", item, { parallel: !!parallel });
 
     if (shouldUseOverlay(item)) emit("play_stream");
@@ -4287,6 +4492,7 @@ function publicSoundBusQueueStatus() {
   function stopCurrent(reason) {
     const stopped = state.current;
     if (stopped) killDeviceProcess(stopped, reason || "stopped");
+    if (stopped) markPlaybackSkipped(stopped, reason || "stopped");
     clearFinishTimer();
     clearPostPlaybackGap("manual_stop");
     state.current = null;
@@ -4471,6 +4677,7 @@ function publicSoundBusQueueStatus() {
   app.get(`${prefix}/integration-check`, (req, res) => res.json(publicSoundIntegrationCheck()));
 
   app.get(`${prefix}/status`, (req, res) => res.json(publicState()));
+  app.get(`${prefix}/recent-playback`, (req, res) => res.json(publicRecentPlayback({ query: req.query || {} })));
   app.get(`${prefix}/event-preroll/status`, (req, res) => res.json(publicEventPreRollStatus()));
   app.get(`${prefix}/event-preroll/test`, (req, res) => {
     const result = runEventPreRollTest({}, req.query || {});
@@ -4694,13 +4901,15 @@ function publicSoundBusQueueStatus() {
     state.stats.failed += 1;
     const requestId = clientRequestId(req);
     const item = findActiveItemByRequestId(requestId) || state.current || null;
+    const clientErrorMessage = String((req.body && req.body.error) || (req.query && req.query.error) || "client_error");
+    if (item) markPlaybackError(item, clientErrorMessage, "client_error");
     emitSoundBus("client_error", {
       item,
       kind: "client",
       extra: {
         requestId,
         matchedActive: !!item,
-        error: String((req.body && req.body.error) || (req.query && req.query.error) || "client_error")
+        error: clientErrorMessage
       }
     });
     if (clientRequestMatchesCurrent(req)) finishCurrent("client_error");
