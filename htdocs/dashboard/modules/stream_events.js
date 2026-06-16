@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.24";
-  const MODULE_BUILD = "STEP_EVS_26B_FIX4_EVENT_DETAIL_REFRESH_AFTER_SAVE";
+  const MODULE_VERSION = "0.5.25";
+  const MODULE_BUILD = "STEP_EVS_27B_LIVE_STATUS_POINTS_MODAL";
 
   const api = {
     status: '/api/stream-events/status',
@@ -43,6 +43,7 @@ window.StreamEventsModule = (function(){
     selectedStatsUser: '',
     userStatistics: null,
     userStatsModal: { open: false, login: '', eventUid: '', autoRefresh: true, intervalMs: 5000, lastScrollTop: 0, lastRefreshAt: '' },
+    liveStatusModal: { open: false, eventUid: '', autoRefresh: true, intervalMs: 5000, lastRefreshAt: '' },
     configSaving: false,
     textSaving: false,
     textModuleFilter: 'all',
@@ -187,7 +188,7 @@ window.StreamEventsModule = (function(){
       <div class="evs-page">
         <div class="evs-header glass">
           <div>
-            <div class="evs-kicker">EVS-27A · Event-Einstellungen & Sound-Defaults</div>
+            <div class="evs-kicker">EVS-27B · Live-Status & Punkte-Fenster</div>
             <h2>Event-System</h2>
             <p>Übersicht zeigt den aktuellen Event-Stand und die nächste sinnvolle Aktion.</p>
           </div>
@@ -205,6 +206,7 @@ window.StreamEventsModule = (function(){
 
         ${state.modal ? renderModal() : ''}
         ${state.userStatsModal?.open ? renderUserStatsModal() : ''}
+        ${state.liveStatusModal?.open ? renderLiveStatusModal() : ''}
       </div>
     `;
     attachMediaFields(root);
@@ -654,6 +656,118 @@ window.StreamEventsModule = (function(){
         <div class="evs-runtime-box-head evs-stats-section-head"><h4>Ranking</h4><button type="button" class="evs-btn evs-btn-secondary" data-evs-action="ranking" data-uid="${esc(event.eventUid)}">Ranking aktualisieren</button></div>
         <div class="evs-ranking evs-ranking-standalone">
           ${rankingRows.length ? rankingRows.map(row => `<div class="evs-rank-row"><strong>#${esc(row.rank)}</strong><span>${esc(row.userDisplayName || row.userLogin)}</span><b>${esc(row.points)} Punkte</b></div>`).join('') : '<div class="evs-empty">Noch keine Punkte im Ranking.</div>'}
+        </div>
+      </div>
+    `;
+  }
+
+
+  function activeSoundRoundFromReport(report){
+    const rounds = Array.isArray(report?.rounds) ? report.rounds : [];
+    return rounds.find(round => norm(round.status || round.result) === 'active') || rounds[0] || null;
+  }
+
+  function soundRotationSummary(event, report){
+    const snippets = Array.isArray(event?.soundConfig?.snippets) ? event.soundConfig.snippets : [];
+    const rounds = Array.isArray(report?.rounds) ? report.rounds : [];
+    const playedKeys = new Set(rounds.map(round => String(round.itemUid || round.config?.snippet?.uid || round.config?.snippet?.title || '').trim()).filter(Boolean));
+    const solvedKeys = new Set(rounds.filter(round => ['solved','finished'].includes(norm(round.status || round.result))).map(round => String(round.itemUid || round.config?.snippet?.uid || round.config?.snippet?.title || '').trim()).filter(Boolean));
+    const unresolvedKeys = new Set(rounds.filter(round => norm(round.status || round.result) === 'unresolved').map(round => String(round.itemUid || round.config?.snippet?.uid || round.config?.snippet?.title || '').trim()).filter(Boolean));
+    const open = snippets.filter(snippet => !playedKeys.has(String(snippet.uid || snippet.title || '').trim())).length;
+    return { total: snippets.length, played: playedKeys.size, solved: solvedKeys.size, unresolved: unresolvedKeys.size, open: Math.max(0, open) };
+  }
+
+  function renderLiveStatusModal(){
+    const modal = state.liveStatusModal || {};
+    const uid = modal.eventUid || state.selectedUid;
+    const event = uid ? (state.events.find(e => e.eventUid === uid) || state.selected || selectedEvent()) : selectedEvent();
+    const soundReport = event ? soundRuntimeReportFor(event) : null;
+    const textReport = event ? runtimeReportFor(event) : null;
+    const rankingRows = rows((soundReport?.ranking && soundReport.ranking.rows) ? soundReport.ranking : state.ranking);
+    const soundRounds = Array.isArray(soundReport?.rounds) ? soundReport.rounds : [];
+    const textWordHits = Array.isArray(textReport?.wordHits) ? textReport.wordHits : [];
+    const textPhraseSolves = Array.isArray(textReport?.phraseSolves) ? textReport.phraseSolves : [];
+    const activeRound = activeSoundRoundFromReport(soundReport);
+    const activeSnippet = activeRound?.config?.snippet || {};
+    const rotation = soundRotationSummary(event, soundReport);
+    const auto = modal.autoRefresh !== false;
+    const isActive = norm(event?.status) === 'active';
+    return `
+      <div class="evs-modal-backdrop evs-live-modal-backdrop" data-evs-live-modal-close="1">
+        <div class="evs-modal glass evs-live-modal" role="dialog" aria-modal="true" aria-label="Event Live-Status">
+          <div class="evs-modal-head evs-live-modal-head">
+            <div>
+              <h3>Status & Punkte</h3>
+              <p>${event ? `${esc(event.name || event.eventUid)} · ${esc(statusText(event.status))} · ${esc(eventTypes(event))}` : 'Kein Event ausgewählt.'}${modal.lastRefreshAt ? ` · Stand: ${fmtDate(modal.lastRefreshAt)}` : ''}</p>
+            </div>
+            <button type="button" class="evs-icon-btn" data-evs-action="closeLiveStatusModal">×</button>
+          </div>
+
+          <div class="evs-live-toolbar">
+            <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="refreshLiveStatusModal" data-uid="${esc(uid || '')}">Jetzt aktualisieren</button>
+            <button type="button" class="evs-btn evs-btn-secondary ${auto ? 'is-active' : ''}" data-evs-action="toggleLiveStatusAuto">AutoReload: ${auto ? 'An' : 'Aus'}</button>
+            <small>Dieses Fenster ist für Live-Blick und Punkte. Konfiguration bleibt in den Event-Editoren.</small>
+          </div>
+
+          ${event ? `
+            <div class="evs-live-status-pill ${isActive ? 'is-live' : 'is-idle'}">${isActive ? 'Event läuft' : 'Event läuft aktuell nicht'}${isActive ? '' : ' · Live-Steuerung wird erst bei aktivem Event relevant'}</div>
+
+            <div class="evs-runtime-counters evs-live-counters">
+              <div><strong>${esc(rankingRows.length)}</strong><span>Spieler im Ranking</span></div>
+              <div><strong>${esc(rankingRows[0]?.points || 0)}</strong><span>Top-Punkte</span></div>
+              <div><strong>${esc(reportCount(soundReport, 'rounds'))}</strong><span>Sound-Runden</span></div>
+              <div><strong>${esc(reportCount(soundReport, 'solved'))}</strong><span>Sound gelöst</span></div>
+              <div><strong>${esc(reportCount(textReport, 'wordHits'))}</strong><span>Worttreffer</span></div>
+              <div><strong>${esc(reportCount(textReport, 'phraseSolves'))}</strong><span>Satzlösungen</span></div>
+            </div>
+
+            <div class="evs-live-grid">
+              <section class="evs-runtime-box evs-live-current-round">
+                <div class="evs-runtime-box-head"><h4>Aktuelle Runde</h4><small>${activeRound ? esc(soundRoundStatusLabel(activeRound.status || activeRound.result)) : 'Noch keine aktive Runde'}</small></div>
+                ${activeRound ? `
+                  <div class="evs-live-current-title"><strong>${esc(activeSnippet.title || activeRound.itemUid || activeRound.roundUid)}</strong><span>${fmtDate(activeRound.startedAt || activeRound.createdAt)}</span></div>
+                  <div class="evs-info-row"><strong>Antwortzeit</strong><span>${esc(activeSnippet.answerSeconds || event.soundConfig?.answerSeconds || '-')} Sekunden</span></div>
+                  <div class="evs-info-row"><strong>Runden-ID</strong><span>${esc(activeRound.roundUid || '-')}</span></div>
+                ` : '<div class="evs-empty">Noch keine Sound-Runde aktiv oder geladen.</div>'}
+              </section>
+
+              <section class="evs-runtime-box evs-live-ranking-box">
+                <div class="evs-runtime-box-head"><h4>Punkte / Rangliste</h4><small>Top 10</small></div>
+                ${rankingRows.length ? rankingRows.slice(0, 10).map(row => `<div class="evs-rank-row"><strong>#${esc(row.rank)}</strong><span>${esc(row.userDisplayName || row.userLogin)}</span><b>${esc(row.points)} Punkte</b></div>`).join('') : '<div class="evs-empty">Noch keine Punkte.</div>'}
+              </section>
+
+              <section class="evs-runtime-box evs-live-rotation-box">
+                <div class="evs-runtime-box-head"><h4>Sound-Rotation</h4><small>aus Event + Runtime-Report</small></div>
+                <div class="evs-mini-grid evs-mini-grid-compact evs-live-rotation-mini">
+                  <div><strong>${esc(rotation.total)}</strong><span>Schnipsel gesamt</span></div>
+                  <div><strong>${esc(rotation.open)}</strong><span>offen</span></div>
+                  <div><strong>${esc(rotation.solved)}</strong><span>gelöst</span></div>
+                  <div><strong>${esc(rotation.unresolved)}</strong><span>nicht erkannt</span></div>
+                </div>
+              </section>
+            </div>
+
+            <div class="evs-live-grid evs-live-history-grid">
+              <section class="evs-runtime-box">
+                <div class="evs-runtime-box-head"><h4>Rundenverlauf</h4><small>letzte Sound-Runden</small></div>
+                ${soundRounds.length ? soundRounds.slice(0, 12).map(round => {
+                  const snippet = round.config?.snippet || {};
+                  const result = round.resultData || {};
+                  return `<div class="evs-runtime-row"><strong>${esc(snippet.title || round.itemUid || round.roundUid)}</strong><span>${esc(soundRoundStatusLabel(round.status || round.result))}${result.userDisplayName ? ` · ${esc(result.userDisplayName)} · +${esc(result.points || 0)}` : ''}</span><small>${fmtDate(round.startedAt || round.createdAt)}${round.finishedAt ? ` → ${fmtDate(round.finishedAt)}` : ''}</small></div>`;
+                }).join('') : '<div class="evs-empty">Noch keine Sound-Runden.</div>'}
+              </section>
+
+              <section class="evs-runtime-box">
+                <div class="evs-runtime-box-head"><h4>Text-Verlauf</h4><small>Wörter und Lösungen</small></div>
+                ${textPhraseSolves.length || textWordHits.length ? `
+                  ${textPhraseSolves.slice(0, 8).map(solve => `<div class="evs-runtime-row"><strong>${esc(solve.userDisplayName || solve.userLogin || 'User')}</strong><span>Satz gelöst · +${esc(solve.pointsAwarded || 0)}</span><small>${fmtDate(solve.createdAt)} · „${esc(solve.chatMessage || '')}“</small></div>`).join('')}
+                  ${textWordHits.slice(0, 8).map(hit => `<div class="evs-runtime-row"><strong>${esc(hit.userDisplayName || hit.userLogin || 'User')}</strong><span>Wort: ${esc(hit.wordOriginal || hit.wordKey)} · +${esc(hit.pointsAwarded || 0)}</span><small>${fmtDate(hit.createdAt)} · „${esc(hit.chatMessage || '')}“</small></div>`).join('')}
+                ` : '<div class="evs-empty">Noch keine Text-Treffer.</div>'}
+              </section>
+            </div>
+
+            <div class="evs-live-footer-note">Nächster Step: manuelle Sound-Rundensteuerung. Dieses Fenster zeigt den Live-Zustand und aktualisiert Punkte/Runden, startet aber noch keine Sounds.</div>
+          ` : '<div class="evs-empty">Kein Event ausgewählt.</div>'}
         </div>
       </div>
     `;
@@ -1277,6 +1391,7 @@ window.StreamEventsModule = (function(){
         <div class="evs-action-row">
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="edit" data-uid="${esc(event.eventUid)}">Bearbeiten</button>
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="editSettings" data-uid="${esc(event.eventUid)}">Einstellungen bearbeiten</button>
+          <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="openLiveStatus" data-uid="${esc(event.eventUid)}" ${norm(event.status) === 'active' ? '' : 'disabled title="Status & Punkte wird relevant, sobald das Event läuft"'}>Status & Punkte</button>
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="validate" data-uid="${esc(event.eventUid)}">Prüfen</button>
           <button type="button" class="evs-btn" data-evs-action="start" data-uid="${esc(event.eventUid)}" ${event.status === 'ready' ? '' : 'disabled'}>Starten</button>
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="finish" data-uid="${esc(event.eventUid)}" ${event.status === 'active' ? '' : 'disabled'}>Beenden</button>
@@ -2442,6 +2557,58 @@ window.StreamEventsModule = (function(){
   }
 
 
+  let liveStatusAutoTimer = null;
+
+  function stopLiveStatusAutoRefresh(){
+    if (liveStatusAutoTimer) clearInterval(liveStatusAutoTimer);
+    liveStatusAutoTimer = null;
+  }
+
+  function startLiveStatusAutoRefresh(){
+    stopLiveStatusAutoRefresh();
+    const modal = state.liveStatusModal || {};
+    if (!modal.open || modal.autoRefresh === false || !modal.eventUid) return;
+    const intervalMs = Math.max(3000, Number(modal.intervalMs || 5000));
+    liveStatusAutoTimer = setInterval(() => refreshLiveStatusModal(false), intervalMs);
+  }
+
+  async function openLiveStatusModal(uid){
+    const eventUid = uid || state.selectedUid;
+    if (!eventUid) return;
+    state.liveStatusModal = { ...(state.liveStatusModal || {}), open: true, eventUid, autoRefresh: state.liveStatusModal?.autoRefresh !== false, intervalMs: state.liveStatusModal?.intervalMs || 5000 };
+    await refreshLiveStatusModal(false);
+    render();
+    startLiveStatusAutoRefresh();
+  }
+
+  function closeLiveStatusModal(){
+    stopLiveStatusAutoRefresh();
+    state.liveStatusModal = { ...(state.liveStatusModal || {}), open: false };
+    render();
+  }
+
+  async function refreshLiveStatusModal(rerender = true){
+    const modal = state.liveStatusModal || {};
+    const uid = modal.eventUid || state.selectedUid;
+    if (!uid) return;
+    try {
+      await refreshSelectedEventAfterSave(uid);
+      await Promise.all([
+        loadRanking(uid, false),
+        loadSoundRuntimeReport(uid, false),
+        loadTextRuntimeReport(uid, false),
+        loadStatisticsUsers(uid, false),
+        loadRuntimeGateStatus(false)
+      ]);
+      if (state.liveStatusModal) state.liveStatusModal.lastRefreshAt = new Date().toISOString();
+    } catch (err) {
+      state.error = err.message || String(err);
+    }
+    if (rerender !== false) render();
+    else render();
+  }
+
+
   async function loadTexts(rerender = true){
     try {
       state.texts = await window.CGN.api(api.texts);
@@ -2624,6 +2791,10 @@ window.StreamEventsModule = (function(){
       }
       if (action === 'edit') { const event = await loadEvent(uid); state.modal = { event }; render(); return; }
       if (action === 'editSettings') { const event = await loadEvent(uid); state.modal = { event, editor: 'settings' }; render(); return; }
+      if (action === 'openLiveStatus') return openLiveStatusModal(uid);
+      if (action === 'closeLiveStatusModal') return closeLiveStatusModal();
+      if (action === 'refreshLiveStatusModal') return refreshLiveStatusModal(true);
+      if (action === 'toggleLiveStatusAuto') { state.liveStatusModal.autoRefresh = state.liveStatusModal.autoRefresh === false; if (state.liveStatusModal.autoRefresh) startLiveStatusAutoRefresh(); else stopLiveStatusAutoRefresh(); render(); return; }
       if (action === 'closeModal') { state.modal = null; render(); return; }
       if (action === 'openSettingsEditor') { syncModalBasicsFromDom(); state.modal.editor = 'settings'; render(); return; }
       if (action === 'openSoundEditor') { syncModalBasicsFromDom(); state.modal.editor = 'sound'; render(); return; }
@@ -2718,6 +2889,9 @@ window.StreamEventsModule = (function(){
       }
       if (ev.target.dataset?.evsUserModalClose === '1') {
         closeUserStatsModal();
+      }
+      if (ev.target.dataset?.evsLiveModalClose === '1') {
+        closeLiveStatusModal();
       }
       if (ev.target.dataset?.evsSubmodalClose === '1') {
         syncVisibleEditorToState();
