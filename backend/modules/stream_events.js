@@ -20,8 +20,8 @@ let streamStatusModule = null;
 try { streamStatusModule = require("./stream_status"); } catch (_) { streamStatusModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.26";
-const MODULE_BUILD = "STEP_EVENT_RUNTIME_2C_PHASED_OVERLAY";
+const MODULE_VERSION = "0.5.27";
+const MODULE_BUILD = "STEP_EVENT_SOUND_1_BUS_INTEGRATION_PLAN";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -2294,6 +2294,153 @@ function buildSoundPreRollPlan(runtimeConfig = {}) {
   };
 }
 
+function buildEventSoundBusIntegrationPlan(eventUid = "") {
+  const status = getSoundRuntimeStatus(eventUid);
+  const runtimeConfig = status.runtimeConfig || getSoundRuntimeConfig(null);
+
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    step: "EVENT-SOUND-1",
+    purpose: "Read-only Kommunikationsplan fuer Countdown-before-Playback ueber den bestehenden Communication/EventBus und das vorhandene Sound-System.",
+    currentMode: {
+      readOnly: true,
+      productivePlaybackChanged: false,
+      queueTouched: false,
+      audioTouched: false,
+      databaseWrite: false,
+      soundSystemOverlayChanged: false,
+      runtimeOverlayChanged: false
+    },
+    existingCommunicationFindings: {
+      communicationBus: {
+        module: "communication_bus",
+        supportsTargeting: ["target.type", "target.id", "target.module", "target.capability"],
+        clientHelloCapabilities: true,
+        heartbeatAndAckSupported: true
+      },
+      soundSystem: {
+        ownerRole: "central_audio_media_layer",
+        module: "sound_system",
+        eventCapability: "sound.event_output",
+        commandCapability: "sound.command_input",
+        productiveOverlayCapability: "sound.event_output",
+        queueEntryPoint: "enqueueOrStart(item)",
+        selectedGatePoint: "sound_system.startItem(item) after current-item reservation and before activateItemAudio(item)",
+        reason: "Nach state.current-Reservierung kann kein fremder Sound zwischen Countdown und exakt diesem Sound dazwischenfunken."
+      },
+      soundOverlay: {
+        file: "htdocs/overlays/sound_system_overlay.html",
+        role: "audio_playback_client",
+        consumesCapability: "sound.event_output",
+        reports: ["/api/sound/client/audio-started", "/api/sound/client/audio-ended", "/api/sound/client/error"],
+        staysUnchangedForEventCountdown: true
+      },
+      runtimeOverlay: {
+        file: "htdocs/overlays/stream_events/event_runtime_overlay.html",
+        role: "visual_event_runtime_display",
+        capability: "stream_events.runtime_display",
+        startsSound: false,
+        queueTouch: false,
+        stateRoute: "/api/stream-events/runtime-overlay/state"
+      }
+    },
+    proposedBusContract: {
+      runtimeOverlayTarget: {
+        type: "capability",
+        capability: "stream_events.runtime_display",
+        channel: "stream_events.runtime"
+      },
+      soundOverlayTarget: {
+        type: "capability",
+        capability: "sound.event_output",
+        channel: "sound"
+      },
+      commandTarget: {
+        type: "module",
+        module: "sound_system",
+        capability: "sound.command_input",
+        channel: "sound.command"
+      },
+      eventNames: [
+        { channel: "stream_events.runtime", action: "countdown.start", targetCapability: "stream_events.runtime_display", owner: "sound_system_orchestrated_gate" },
+        { channel: "stream_events.runtime", action: "guessing.start", targetCapability: "stream_events.runtime_display", owner: "sound_system_orchestrated_gate" },
+        { channel: "stream_events.runtime", action: "hide", targetCapability: "stream_events.runtime_display", owner: "sound_system_orchestrated_gate" },
+        { channel: "sound", action: "starting", targetCapability: "sound.event_output", alreadyExisting: true },
+        { channel: "sound", action: "started", targetCapability: "sound.event_output", alreadyExisting: true },
+        { channel: "sound", action: "client.audio_started", targetCapability: "sound.event_output", alreadyExisting: true },
+        { channel: "sound", action: "client.audio_ended", targetCapability: "sound.event_output", alreadyExisting: true },
+        { channel: "sound", action: "finished", targetCapability: "sound.event_output", alreadyExisting: true }
+      ]
+    },
+    recommendedLifecycle: [
+      { step: 1, owner: "stream_events", action: "prepare_round", note: "Soundrunde und Payload vorbereiten; noch kein Audio." },
+      { step: 2, owner: "sound_system", action: "accept_or_queue_item", note: "Sound-System nimmt den EventSound an oder queued ihn nach normaler Policy." },
+      { step: 3, owner: "sound_system", action: "reserve_current_item", note: "state.current wird gesetzt; genau ab hier darf Countdown laufen, weil der Sound-Slot reserviert ist." },
+      { step: 4, owner: "sound_system", action: "emit_runtime_countdown_start", note: "Bus an stream_events.runtime_display; Overlay zeigt 3/2/1." },
+      { step: 5, owner: "sound_system", action: "emit_runtime_guessing_start", note: "LOS/JETZT RATEN wird sichtbar; direkt danach startet Sound-Playback." },
+      { step: 6, owner: "sound_system", action: "activateItemAudio", note: "Bestehender Sound-Flow startet Overlay-/Device-/Discord-Ausgabe." },
+      { step: 7, owner: "sound_system_overlay", action: "client_audio_started", note: "Bestehender ACK vom Sound-Overlay bleibt erhalten." },
+      { step: 8, owner: "sound_system_overlay", action: "client_audio_ended", note: "Bestehender ACK beendet aktuellen Sound im Sound-System." },
+      { step: 9, owner: "sound_system", action: "emit_runtime_hide", note: "Runtime-Overlay blendet sauber aus; Fallback ueber Sound-System-Finish bleibt moeglich." }
+    ],
+    selectedImplementationGate: {
+      owner: "sound_system",
+      function: "startItem(item, reason, options)",
+      exactWindow: "after state.current/state.parallel reservation; before emitItemEvent('item_starting') and activateItemAudio(item)",
+      fallback: "If no audio-ended ACK arrives, existing overlay_fallback_finished/auto_finished still ends the sound; runtime overlay can then hide from state/bus.",
+      whyNotOverlayTimer: "Overlay-Timer waere nicht queue-sicher und koennte Soundstart/Ende nur raten.",
+      whyNotStreamEventsDirectPlay: "Stream-Events darf nicht an der Sound-System-Queue vorbei starten."
+    },
+    payloadShapeDraft: {
+      itemMeta: {
+        sourceModule: MODULE_NAME,
+        eventUid: "<eventUid>",
+        roundUid: "<roundUid>",
+        snippetUid: "<snippetUid>",
+        preRoll: { enabled: true, countdownSeconds: runtimeConfig.countdownPreRollSeconds || 3, overlayCapability: "stream_events.runtime_display" }
+      },
+      busPayload: {
+        eventUid: "<eventUid>",
+        roundUid: "<roundUid>",
+        requestId: "<soundSystemRequestId>",
+        countdownSeconds: runtimeConfig.countdownPreRollSeconds || 3,
+        finalLabel: "LOS!",
+        caption: "JETZT RATEN!"
+      }
+    },
+    safetyRules: {
+      soundSystemStaysPlaybackOwner: true,
+      streamEventsDoesNotStartAudioDirectly: true,
+      runtimeOverlayDoesNotStartAudio: true,
+      soundSystemOverlayDoesNotHandleEventCountdown: true,
+      noNewWebSocketSystem: true,
+      useCommunicationBusTargetCapabilities: true,
+      viewerSafeOverlayStateRequired: true,
+      noAcceptedAnswersInOverlayState: true
+    },
+    nextStep: {
+      name: "EVENT-SOUND-2",
+      goal: "Sound-System PreRoll-Gate minimal additiv vorbereiten: item.meta.preRoll erkennen, Bus-Countdown an Runtime-Overlay senden, danach bestehenden activateItemAudio-Flow starten.",
+      filesToReviewOrChange: [
+        "backend/modules/sound_system.js",
+        "backend/modules/stream_events.js",
+        "htdocs/overlays/stream_events/event_runtime_overlay.html"
+      ]
+    },
+    activeRuntime: {
+      activeEvent: status.activeEvent || null,
+      activeRound: status.activeRound || null,
+      counters: status.counters || {},
+      preRollPlan: buildSoundPreRollPlan(runtimeConfig)
+    },
+    updatedAt: nowIso()
+  };
+}
+
+
 function buildSoundRuntimeSafetyPlan(eventUid = "") {
   const status = getSoundRuntimeStatus(eventUid);
   const runtimeConfig = status.runtimeConfig || getSoundRuntimeConfig(null);
@@ -3997,6 +4144,16 @@ function buildStatus() {
       plannedFile: "htdocs/overlays/stream_events/event_runtime_overlay.html",
       viewerSafe: true
     },
+    eventSoundBusIntegration: {
+      planned: true,
+      step: "EVENT-SOUND-1",
+      planRoute: "/api/stream-events/sound-runtime/bus-integration-plan",
+      soundSystemGatekeeper: true,
+      communicationBusRequired: true,
+      runtimeOverlayCapability: "stream_events.runtime_display",
+      soundOverlayCapability: "sound.event_output",
+      playbackChanged: false
+    },
     updatedAt: nowIso()
   };
 }
@@ -4047,6 +4204,7 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "GET", path: `${prefix}/sound-runtime/status`, description: "Sound-Spiel Runtime Status und aktive Runde" },
       { method: "GET", path: `${prefix}/sound-runtime/report`, description: "Sound-Spiel Runtime Report fuer aktives oder angegebenes Event" },
       { method: "GET", path: `${prefix}/sound-runtime/safety-plan`, description: "SOUND-SAFE-1: Read-only Plan fuer Sound-System-Erweiterungspunkt, PreRoll/Countdown und Tests" },
+      { method: "GET", path: `${prefix}/sound-runtime/bus-integration-plan`, description: "EVENT-SOUND-1: Read-only Kommunikationsplan fuer Countdown-before-Playback ueber Communication/EventBus und Sound-System-Gate" },
       { method: "GET", path: `${prefix}/runtime-overlay/state`, description: "EVENT-RUNTIME-2C: Viewer-sicherer Read-only State fuer Countdown-/Result-phasen des Event-Runtime-Overlays" },
       { method: "GET", path: `${prefix}/statistics/users`, description: "Statistik-Userliste fuer Dropdown/Filter, optional eventUid" },
       { method: "GET", path: `${prefix}/statistics/user/:login`, description: "User-Detailstatistik fuer Text/Sound/Punkte, optional eventUid" },
@@ -4222,6 +4380,14 @@ module.exports.init = function init(ctx) {
   reg("get", `${prefix}/sound-runtime/safety-plan`, (req, res) => {
     try {
       sendJson(res, buildSoundRuntimeSafetyPlan(req.query.eventUid || req.query.event_uid || ""));
+    } catch (err) {
+      handleError(res, err);
+    }
+  });
+
+  reg("get", `${prefix}/sound-runtime/bus-integration-plan`, (req, res) => {
+    try {
+      sendJson(res, buildEventSoundBusIntegrationPlan(req.query.eventUid || req.query.event_uid || ""));
     } catch (err) {
       handleError(res, err);
     }
