@@ -19,9 +19,12 @@ const database = require("../core/database");
 let streamStatusModule = null;
 try { streamStatusModule = require("./stream_status"); } catch (_) { streamStatusModule = null; }
 
+let soundSystemModule = null;
+try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
+
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.30";
-const MODULE_BUILD = "STEP_EVENT_SOUND_3B_COUNTDOWN_TIMING_DEDUPE_FIX";
+const MODULE_VERSION = "0.5.31";
+const MODULE_BUILD = "STEP_EVENT_SOUND_4_ROUND_PLAYBACK_BINDING";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -3014,11 +3017,52 @@ function buildSoundPlaybackPayload(event, round, snippet, runtimeConfig) {
     meta: {
       preparedAt: nowIso(),
       answerSeconds: runtimeConfig.answerSeconds,
-      soundSafeStep: "SOUND-SAFE-1",
+      soundSafeStep: "EVENT-SOUND-4",
       extensionPoint: "stream_events.before_sound_system_play_request",
-      note: "SOUND-SAFE-1 bereitet nur die Sound-System-Anforderung und den PreRoll-Erweiterungspunkt vor. Abspielen/Queue-Touch kommt in einem spaeteren Step."
+      note: "EVENT-SOUND-4: Payload kann mit explizitem confirm/play ueber das Sound-System gequeued/gestartet werden. Sound-System bleibt Playback-/Queue-Owner."
     }
   };
+}
+
+
+function requestSoundSystemPlaybackForSoundRound(playback = {}, options = {}) {
+  const item = playback && playback.item && typeof playback.item === "object" && !Array.isArray(playback.item) ? playback.item : null;
+  if (!item) return { ok: false, error: "playback_item_missing" };
+  if (!soundSystemModule || typeof soundSystemModule.playStreamEventPreRollItem !== "function") {
+    return { ok: false, error: "sound_system_play_function_unavailable" };
+  }
+  const confirm = String(options.confirm || options.confirmed || "").trim();
+  if (confirm !== "1" && confirm.toLowerCase() !== "true") {
+    return { ok: false, error: "confirm_required", hint: "Setze play=1 und confirm=1 fuer kontrolliertes EventSound-Playback." };
+  }
+  const requestedItem = {
+    ...item,
+    sourceModule: MODULE_NAME,
+    source: MODULE_NAME,
+    requestedBy: MODULE_NAME,
+    meta: {
+      ...(item.meta || {}),
+      module: MODULE_NAME,
+      owner: MODULE_NAME,
+      eventSoundRoundPlayback: true,
+      eventSound4: true
+    }
+  };
+  try {
+    const result = soundSystemModule.playStreamEventPreRollItem(requestedItem);
+    return {
+      ok: !!(result && result.ok),
+      module: MODULE_NAME,
+      step: "EVENT-SOUND-4",
+      playbackRequested: true,
+      soundSystemResult: result || null,
+      queueTouched: !!(result && result.result && (result.result.started || result.result.queued || result.result.parallel)),
+      audioTouched: !!(result && result.result && (result.result.started || result.result.parallel)),
+      error: result && result.error ? result.error : ""
+    };
+  } catch (err) {
+    return { ok: false, module: MODULE_NAME, step: "EVENT-SOUND-4", playbackRequested: true, error: err && err.message ? err.message : String(err) };
+  }
 }
 
 function createSoundRound(options = {}) {
@@ -3054,6 +3098,15 @@ function createSoundRound(options = {}) {
   });
   const round = getActiveSoundRound(event.eventUid);
   const playback = buildSoundPlaybackPayload(event, round, snippet, runtimeConfig);
+  const shouldPlay = boolValue(options.play || options.playback || options.startPlayback || options.withPlayback, false);
+  const playbackResult = shouldPlay ? requestSoundSystemPlaybackForSoundRound(playback, { confirm: options.confirm || options.confirmed }) : { ok: true, playbackRequested: false, preparedOnly: true };
+  const playbackResultData = { preparedOnly: !shouldPlay, playbackRequested: !!shouldPlay, playbackResult };
+  try {
+    database.updateByKey("stream_events_rounds", "round_uid", round.roundUid, {
+      result_json: jsonEncode(playbackResultData),
+      updated_at: nowIso()
+    });
+  } catch (_) {}
   const chatOutput = buildChatOutput("sound.round.started", {
     title: snippet.title,
     soundTitle: snippet.title,
@@ -3065,7 +3118,7 @@ function createSoundRound(options = {}) {
   markAction("sound.round.started", event.eventUid);
   emitBus("stream_events.sound", "round_started", { eventUid: event.eventUid, round, snippet: safeJson(snippet, {}), playback, chatOutput });
   publishStatus("sound.round_started", { lastEventUid: event.eventUid, roundUid });
-  return { ok: true, eventUid: event.eventUid, round, snippet, acceptedAnswersDebug: buildSoundAcceptedAnswersDebug(snippet), playback, chatOutput, directPlayback: false };
+  return { ok: true, eventUid: event.eventUid, round: getActiveSoundRound(event.eventUid) || round, snippet, acceptedAnswersDebug: buildSoundAcceptedAnswersDebug(snippet), playback, playbackResult, chatOutput, directPlayback: false, soundSystemPlaybackRequested: !!shouldPlay };
 }
 
 function answerMatchesSoundSnippet(answer, snippet = {}) {
@@ -3241,10 +3294,11 @@ function getSoundRuntimeStatus(eventUid = "") {
     runtimeConfig: event ? getSoundRuntimeConfig(event) : getSoundRuntimeConfig(null),
     counters: safeJson(runtimeState.counters, {}),
     rules: {
-      preparedOnly: true,
+      preparedOnly: false,
       directPlayback: false,
-      soundSystemQueueTouched: false,
+      soundSystemQueueTouched: "only_with_explicit_play_confirm",
       preRollExtensionPointPrepared: true,
+      eventSoundPlaybackBindingPrepared: true,
       safetyPlanRoute: "/api/stream-events/sound-runtime/safety-plan",
       oneActiveSoundRoundPerEvent: true,
       solvedRoundsRemovedFromRotation: true,
@@ -4318,6 +4372,8 @@ function buildStatus() {
       controlledTestRoute: "/api/sound/event-preroll/test",
       countdownSecondsConfigurable: true,
       testFlowPrepared: true,
+      roundPlaybackBindingPrepared: true,
+      controlledRoundPlaybackRoute: "/api/stream-events/sound-runtime/next-round?play=1&confirm=1",
       countdownTimingFixed: true,
       countdownDedupeEnabled: true
     },
@@ -4385,7 +4441,7 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "GET", path: `${prefix}/chat-output/status`, description: "EVS-20: ChatOutput-Dispatcher Sicherheitsstatus, dry-run only" },
       { method: "GET", path: `${prefix}/chat-output/report`, description: "EVS-20: Vorbereitete ChatOutputs aus Sound/Text mit Dispatch-Preview, dry-run only" },
       { method: "POST", path: `${prefix}/chat-output/test-dispatch`, description: "EVS-20: Testet ChatOutput-Dispatch-Regeln ohne Twitch-Ausgabe" },
-      { method: "POST", path: `${prefix}/sound-runtime/next-round`, description: "Bereitet die naechste Sound-Runde vor, ohne direkt abzuspielen" },
+      { method: "POST", path: `${prefix}/sound-runtime/next-round`, description: "Bereitet die naechste Sound-Runde vor; mit play=1&confirm=1 kontrolliert ueber Sound-System-PreRoll abspielen" },
       { method: "POST", path: `${prefix}/sound-runtime/resolve`, description: "Wertet die aktive Sound-Runde als geloest, wenn die Antwort passt" },
       { method: "POST", path: `${prefix}/sound-runtime/unresolved`, description: "Markiert die aktive Sound-Runde als nicht geloest" },
       { method: "GET", path: `${prefix}/routes`, description: "Route-Selbstdokumentation" },
@@ -4588,7 +4644,7 @@ module.exports.init = function init(ctx) {
 
   reg("post", `${prefix}/sound-runtime/next-round`, (req, res) => {
     try {
-      const result = createSoundRound({ ...(req.body || {}), eventUid: (req.body && (req.body.eventUid || req.body.event_uid)) || req.query.eventUid || req.query.event_uid || "", allowReuse: boolValue((req.body && req.body.allowReuse) ?? req.query.allowReuse) });
+      const result = createSoundRound({ ...(req.body || {}), eventUid: (req.body && (req.body.eventUid || req.body.event_uid)) || req.query.eventUid || req.query.event_uid || "", allowReuse: boolValue((req.body && req.body.allowReuse) ?? req.query.allowReuse), play: (req.body && (req.body.play || req.body.playback || req.body.startPlayback || req.body.withPlayback)) ?? req.query.play ?? req.query.playback ?? req.query.startPlayback ?? req.query.withPlayback, confirm: (req.body && (req.body.confirm || req.body.confirmed)) ?? req.query.confirm ?? req.query.confirmed });
       sendJson(res, result, result.ok ? 200 : 400);
     } catch (err) {
       handleError(res, err, 400);

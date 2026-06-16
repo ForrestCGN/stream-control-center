@@ -16,8 +16,8 @@ try {
 }
 
 const MODULE_NAME = "sound_system";
-const MODULE_VERSION = "0.1.25";
-const MODULE_BUILD = "STEP_EVENT_SOUND_3B_COUNTDOWN_TIMING_DEDUPE_FIX";
+const MODULE_VERSION = "0.1.26";
+const MODULE_BUILD = "STEP_EVENT_SOUND_4_STREAM_EVENTS_ROUND_PLAYBACK_BINDING";
 const SOUND_BUS_CAPABILITY = "sound.event_output";
 const SOUND_BUS_COMMAND_CAPABILITY = "sound.command_input";
 const SOUND_BUS_STATUS_API_VERSION = "1.0.0";
@@ -4377,6 +4377,55 @@ function publicSoundBusQueueStatus() {
       status: publicState()
     }));
   }
+
+
+  function playStreamEventPreRollItem(input = {}) {
+    const raw = input && typeof input === "object" && !Array.isArray(input) ? input : {};
+    const meta = raw.meta && typeof raw.meta === "object" && !Array.isArray(raw.meta) ? raw.meta : {};
+    const preRoll = meta.eventPreRoll && typeof meta.eventPreRoll === "object" && !Array.isArray(meta.eventPreRoll) ? meta.eventPreRoll : {};
+    if (String(raw.sourceModule || meta.module || meta.owner || "") !== "stream_events") {
+      throw new Error("stream_events_source_required");
+    }
+    if (preRoll.enabled !== true) {
+      throw new Error("event_preroll_flag_required");
+    }
+    const item = normalizePlayRequest({
+      ...raw,
+      source: raw.source || "stream_events",
+      requestedBy: raw.requestedBy || "stream_events",
+      category: raw.category || "stream_event_sound_snippet"
+    });
+    const result = enqueueOrStart(item);
+    return {
+      ok: true,
+      module: MODULE_NAME,
+      moduleVersion: MODULE_VERSION,
+      moduleBuild: MODULE_BUILD,
+      step: "EVENT-SOUND-4",
+      accepted: !!(result.started || result.queued || result.parallel),
+      result: {
+        started: !!result.started,
+        queued: !!result.queued,
+        dropped: !!result.dropped,
+        parallel: !!result.parallel,
+        queuePosition: result.queuePosition || 0,
+        reason: result.reason || "",
+        retryAfterMs: result.retryAfterMs || 0
+      },
+      item: publicItem(item),
+      eventPreRoll: publicEventPreRollStatus(),
+      safetyRules: {
+        streamEventsOnly: true,
+        explicitEventPreRollFlagRequired: true,
+        soundSystemStaysPlaybackOwner: true,
+        runtimeOverlayDoesNotStartSound: true,
+        normalSoundsUnaffectedUnlessExplicitFlag: true
+      },
+      status: publicState()
+    };
+  }
+
+  module.exports.playStreamEventPreRollItem = playStreamEventPreRollItem;
 
   app.post(`${prefix}/play`, core.asyncRoute(async (req, res) => playResponse(req, res, req.body || {})));
   app.get(`${prefix}/play`, core.asyncRoute(async (req, res) => playResponse(req, res, req.query || {})));
