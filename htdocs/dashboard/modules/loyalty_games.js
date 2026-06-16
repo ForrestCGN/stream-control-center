@@ -53,6 +53,8 @@ window.LoyaltyGamesModule = (function(){
     raffleConfig: null,
     raffleLogs: null,
     raffleStats: null,
+    raffleStatsView: 'winners',
+    raffleStatsUser: 'all',
     raffleResult: '',
     gambleLogRows: [],
     commandLogRows: [],
@@ -3296,15 +3298,112 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
     `;
   }
 
+  function raffleStatUserKey(row){
+    return String(row?.login || row?.userLogin || row?.targetLogin || row?.displayName || row?.user || '').trim().toLowerCase();
+  }
+
+  function raffleStatDisplayName(row){
+    return String(row?.displayName || row?.userDisplayName || row?.targetDisplayName || row?.login || row?.user || '-').trim() || '-';
+  }
+
+  function mergedRaffleStatUsers(stats){
+    const map = new Map();
+    const add = (row, source) => {
+      const login = raffleStatUserKey(row);
+      if (!login) return;
+      const current = map.get(login) || {
+        login,
+        displayName: raffleStatDisplayName(row),
+        started: 0,
+        wins: 0,
+        totalWon: 0,
+        highestWin: 0,
+        entries: 0,
+        paidEntries: 0,
+        freeEntries: 0,
+        paidAmount: 0,
+        refundedAmount: 0,
+        lastAt: ''
+      };
+      if (source === 'starter') {
+        current.started += Number(row?.started || row?.totalStarted || row?.count || 0) || 0;
+      } else if (source === 'winner') {
+        current.wins += Number(row?.wins || row?.count || 0) || 0;
+        current.totalWon += Number(row?.totalWon || row?.totalAmount || row?.amount || 0) || 0;
+        current.highestWin = Math.max(current.highestWin, Number(row?.highestWin || row?.maxWin || row?.amount || 0) || 0);
+      } else if (source === 'participant') {
+        current.entries += Number(row?.entries || row?.totalEntries || row?.count || 0) || 0;
+        current.paidEntries += Number(row?.paidEntries || row?.paid || 0) || 0;
+        current.freeEntries += Number(row?.freeEntries || row?.free || 0) || 0;
+        current.paidAmount += Number(row?.paidAmount || row?.totalPaid || row?.entryCostTotal || 0) || 0;
+        current.refundedAmount += Number(row?.refundedAmount || row?.totalRefunded || 0) || 0;
+      }
+      const at = row?.lastAt || row?.updatedAt || row?.createdAt || '';
+      if (at && (!current.lastAt || Date.parse(at) > Date.parse(current.lastAt || 0))) current.lastAt = at;
+      map.set(login, current);
+    };
+    (Array.isArray(stats?.starters) ? stats.starters : []).forEach(row => add(row, 'starter'));
+    (Array.isArray(stats?.winners) ? stats.winners : []).forEach(row => add(row, 'winner'));
+    (Array.isArray(stats?.participants) ? stats.participants : []).forEach(row => add(row, 'participant'));
+    return Array.from(map.values()).sort((a, b) => String(a.displayName || a.login).localeCompare(String(b.displayName || b.login), 'de'));
+  }
+
+  function sortRaffleStatRows(rowsList, view){
+    const list = Array.isArray(rowsList) ? rowsList.slice() : [];
+    const key = String(view || 'winners');
+    const valueFor = (row) => {
+      if (key === 'starters') return Number(row.started || 0);
+      if (key === 'participants') return Number(row.entries || 0) + Number(row.paidEntries || 0) + Number(row.freeEntries || 0);
+      if (key === 'paid') return Number(row.paidAmount || 0);
+      return Number(row.totalWon || 0);
+    };
+    return list.sort((a, b) => valueFor(b) - valueFor(a) || String(a.displayName || a.login).localeCompare(String(b.displayName || b.login), 'de'));
+  }
+
+  function renderRaffleStatTable(users, view, selectedUser){
+    let list = sortRaffleStatRows(users, view);
+    if (selectedUser && selectedUser !== 'all') list = list.filter(row => row.login === selectedUser);
+    const title = selectedUser && selectedUser !== 'all'
+      ? 'User-Statistik'
+      : (view === 'starters' ? 'Starter' : view === 'participants' ? 'Teilnehmer' : view === 'paid' ? 'Gebühren' : 'Gewinner');
+    return `
+      <div class="lg-table-wrap lg-raffle-stats-table">
+        <table class="lg-table">
+          <thead>
+            <tr>
+              <th>${esc(title)}</th>
+              <th>Gestartet</th>
+              <th>Teilnahmen</th>
+              <th>Gewinne</th>
+              <th>Gewonnen</th>
+              <th>Gezahlt</th>
+              <th>Erstattet</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${list.length ? list.slice(0, 30).map(row => `
+              <tr>
+                <td><strong>${esc(row.displayName || row.login || '-')}</strong><br><small class="lg-muted">${esc(row.login || '')}</small></td>
+                <td>${fmtNumber(row.started || 0)}</td>
+                <td>${fmtNumber((row.entries || 0) + (row.paidEntries || 0) + (row.freeEntries || 0))}</td>
+                <td>${fmtNumber(row.wins || 0)}</td>
+                <td>${fmtNumber(row.totalWon || 0)}</td>
+                <td>${fmtNumber(row.paidAmount || 0)}</td>
+                <td>${fmtNumber(row.refundedAmount || 0)}</td>
+              </tr>
+            `).join('') : '<tr><td colspan="7" class="lg-muted">Noch keine Raffle-Statistik für diese Auswahl.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
   function renderRaffleStatsCard(){
     const stats = state.raffleStats || {};
     const totals = stats.totals || {};
-    const starters = Array.isArray(stats.starters) ? stats.starters : [];
-    const winners = Array.isArray(stats.winners) ? stats.winners : [];
-    const participants = Array.isArray(stats.participants) ? stats.participants : [];
-    const topStarter = starters[0];
-    const topWinner = winners[0];
-    const topParticipant = participants[0];
+    const users = mergedRaffleStatUsers(stats);
+    const view = state.raffleStatsView || 'winners';
+    const selectedUser = state.raffleStatsUser || 'all';
     return `
       <div class="lg-note-card lg-raffle-stats-card">
         <div class="lg-panel-head lg-panel-head-tight">
@@ -3315,27 +3414,27 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
         </div>
         <div class="lg-grid lg-grid-4 lg-mini-kpi-grid">
           <article class="lg-kpi lg-mini-kpi"><span>Gestartet</span><strong>${fmtNumber(totals.totalStarted || 0)}</strong><small>Raffles</small></article>
-          <article class="lg-kpi lg-mini-kpi"><span>Teilnahmen</span><strong>${fmtNumber((totals.totalPaidEntries || 0) + (totals.totalFreeEntries || 0))}</strong><small>geladen</small></article>
+          <article class="lg-kpi lg-mini-kpi"><span>Teilnahmen</span><strong>${fmtNumber((totals.totalPaidEntries || 0) + (totals.totalFreeEntries || 0))}</strong><small>gesamt</small></article>
           <article class="lg-kpi lg-mini-kpi"><span>Ausgezahlt</span><strong>${fmtNumber(totals.totalPayout || 0)}</strong><small>Kekskrümel</small></article>
           <article class="lg-kpi lg-mini-kpi"><span>Erstattet</span><strong>${fmtNumber(totals.totalRefundedAmount || 0)}</strong><small>Kekskrümel</small></article>
         </div>
-        <div class="lg-grid lg-grid-3 lg-raffle-top-grid">
-          <article class="lg-card">
-            <span class="lg-card-label">Top Starter</span>
-            <strong>${esc(topStarter?.displayName || topStarter?.login || '-')}</strong>
-            <small>${fmtNumber(topStarter?.started || 0)} gestartet</small>
-          </article>
-          <article class="lg-card">
-            <span class="lg-card-label">Top Gewinner</span>
-            <strong>${esc(topWinner?.displayName || topWinner?.login || '-')}</strong>
-            <small>${fmtNumber(topWinner?.wins || 0)} Gewinne · ${fmtNumber(topWinner?.totalWon || 0)} Kekskrümel</small>
-          </article>
-          <article class="lg-card">
-            <span class="lg-card-label">Top Teilnehmer</span>
-            <strong>${esc(topParticipant?.displayName || topParticipant?.login || '-')}</strong>
-            <small>${fmtNumber((topParticipant?.entries || 0) + (topParticipant?.paidEntries || 0))} Teilnahmen</small>
-          </article>
+        <div class="lg-grid lg-grid-2 lg-form-row">
+          <label><span>Sortierung</span>
+            <select data-lg-raffle-stats-view>
+              <option value="winners" ${view === 'winners' ? 'selected' : ''}>Gewinner</option>
+              <option value="participants" ${view === 'participants' ? 'selected' : ''}>Teilnehmer</option>
+              <option value="starters" ${view === 'starters' ? 'selected' : ''}>Starter</option>
+              <option value="paid" ${view === 'paid' ? 'selected' : ''}>Gezahlte Gebühren</option>
+            </select>
+          </label>
+          <label><span>User</span>
+            <select data-lg-raffle-stats-user>
+              <option value="all" ${selectedUser === 'all' ? 'selected' : ''}>Alle User</option>
+              ${users.map(user => `<option value="${esc(user.login)}" ${selectedUser === user.login ? 'selected' : ''}>${esc(user.displayName || user.login)}</option>`).join('')}
+            </select>
+          </label>
         </div>
+        ${renderRaffleStatTable(users, view, selectedUser)}
       </div>
     `;
   }
@@ -3890,6 +3989,15 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
       state.gambleResult = '';
       render();
     });
+    root.querySelector('[data-lg-raffle-stats-view]')?.addEventListener('change', ev => {
+      state.raffleStatsView = ev.currentTarget.value || 'winners';
+      render();
+    });
+    root.querySelector('[data-lg-raffle-stats-user]')?.addEventListener('change', ev => {
+      state.raffleStatsUser = ev.currentTarget.value || 'all';
+      render();
+    });
+
     root.querySelector('[data-lg-raffle-clear-result]')?.addEventListener('click', () => {
       state.raffleResult = '';
       render();
