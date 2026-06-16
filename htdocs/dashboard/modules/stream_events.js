@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.27";
-  const MODULE_BUILD = "STEP_EVS_27C_FIX2_EDITOR_REGRESSION_FIX";
+  const MODULE_VERSION = "0.5.28";
+  const MODULE_BUILD = "STEP_EVS_27D_MANUAL_SOUND_ROUND_CONTROL";
 
   const api = {
     status: '/api/stream-events/status',
@@ -17,7 +17,8 @@ window.StreamEventsModule = (function(){
     chatOutputStatus: '/api/stream-events/chat-output/status',
     chatOutputReport: '/api/stream-events/chat-output/report',
     chatOutputTestDispatch: '/api/stream-events/chat-output/test-dispatch',
-    runtimeGateStatus: '/api/stream-events/runtime-gate/status'
+    runtimeGateStatus: '/api/stream-events/runtime-gate/status',
+    soundNextRound: '/api/stream-events/sound-runtime/next-round'
   };
 
   let root = null;
@@ -707,6 +708,7 @@ window.StreamEventsModule = (function(){
 
           <div class="evs-live-toolbar">
             <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="refreshLiveStatusModal" data-uid="${esc(uid || '')}">Jetzt aktualisieren</button>
+            <button type="button" class="evs-btn" data-evs-action="soundNextRound" data-uid="${esc(uid || '')}" ${isActive && event?.soundEnabled ? '' : 'disabled'}>Nächsten Schnipsel vorbereiten</button>
             <button type="button" class="evs-btn evs-btn-secondary ${auto ? 'is-active' : ''}" data-evs-action="toggleLiveStatusAuto">AutoReload: ${auto ? 'An' : 'Aus'}</button>
             <small>Dieses Fenster ist für Live-Blick und Punkte. Konfiguration bleibt in den Event-Editoren.</small>
           </div>
@@ -1342,6 +1344,36 @@ window.StreamEventsModule = (function(){
     `;
   }
 
+  function renderSoundLiveControls(event){
+    if (!event?.soundEnabled || norm(event.status) !== 'active') return '';
+    const report = soundRuntimeReportFor(event);
+    const activeRound = activeSoundRoundFromReport(report);
+    const snippet = activeRound?.config?.snippet || {};
+    const roundLabel = activeRound
+      ? `${esc(snippet.title || activeRound.itemUid || activeRound.roundUid)} · ${esc(soundRoundStatusLabel(activeRound.status || activeRound.result))}`
+      : 'Keine aktive Sound-Runde geladen.';
+    return `
+      <section class="evs-sound-live-control evs-runtime-box">
+        <div class="evs-runtime-box-head">
+          <div>
+            <h4>Sound-Steuerung</h4>
+            <small>Manuelle Vorbereitung fuer Tests und moderierte Events. Noch kein echtes Playback.</small>
+          </div>
+          <button type="button" class="evs-btn evs-btn-secondary evs-btn-small" data-evs-action="soundRuntimeReport" data-uid="${esc(event.eventUid)}">Status neu laden</button>
+        </div>
+        <div class="evs-live-control-current">
+          <strong>Aktuelle Runde</strong>
+          <span>${roundLabel}</span>
+        </div>
+        <div class="evs-action-row evs-action-row-tight">
+          <button type="button" class="evs-btn" data-evs-action="soundNextRound" data-uid="${esc(event.eventUid)}">Nächsten Schnipsel vorbereiten</button>
+          <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="openLiveStatus" data-uid="${esc(event.eventUid)}">Status & Punkte öffnen</button>
+        </div>
+        <small class="evs-muted">Dieser Schritt erstellt nur die nächste Sound-Runde und den vorbereiteten Sound-Payload. Abspielen über Sound-/Media-System kommt im nächsten Runtime-Step.</small>
+      </section>
+    `;
+  }
+
   function renderEventConfigSummary(event){
     const sound = soundSettingsSummary(event.soundConfig || {});
     const text = event.textConfig || {};
@@ -1389,6 +1421,7 @@ window.StreamEventsModule = (function(){
 
         ${renderValidation(event)}
         ${renderEventConfigSummary(event)}
+        ${renderSoundLiveControls(event)}
 
         <div class="evs-action-row">
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="edit" data-uid="${esc(event.eventUid)}">Bearbeiten</button>
@@ -2718,6 +2751,40 @@ window.StreamEventsModule = (function(){
   }
 
 
+  async function prepareNextSoundRound(uid){
+    if (!uid) return;
+    const event = state.events.find(e => e.eventUid === uid) || state.selected;
+    if (norm(event?.status) !== 'active') {
+      state.error = 'Sound-Runden können erst vorbereitet werden, wenn das Event läuft.';
+      render();
+      return;
+    }
+    if (!event.soundEnabled) {
+      state.error = 'Dieses Event hat kein Sound-Spiel aktiviert.';
+      render();
+      return;
+    }
+    try {
+      const result = await window.CGN.api(api.soundNextRound, {
+        method: 'POST',
+        body: JSON.stringify({ eventUid: uid, actor: 'dashboard', allowReuse: false })
+      });
+      const snippetTitle = result?.snippet?.title || result?.round?.itemUid || 'Sound-Schnipsel';
+      state.message = `${snippetTitle} wurde als nächste Sound-Runde vorbereitet. Es wurde noch nichts abgespielt.`;
+      await refreshSelectedEventAfterSave(uid);
+      await loadSoundRuntimeReport(uid, false);
+      await loadRanking(uid, false);
+      if (state.liveStatusModal?.eventUid === uid) {
+        state.liveStatusModal.lastRefreshAt = new Date().toISOString();
+      }
+      render();
+    } catch (err) {
+      state.error = err.message || String(err);
+      render();
+    }
+  }
+
+
   async function archiveSelectedEvent(uid){
     if (!uid) return;
     const event = state.events.find(e => e.eventUid === uid) || state.selected;
@@ -2968,6 +3035,7 @@ window.StreamEventsModule = (function(){
       if (action === 'ranking') return loadRanking(uid, true);
       if (action === 'runtimeReport') return loadTextRuntimeReport(uid, true);
       if (action === 'soundRuntimeReport') return loadSoundRuntimeReport(uid, true);
+      if (action === 'soundNextRound') return prepareNextSoundRound(uid);
       if (action === 'statsUsers') return loadStatisticsUsers(uid, true);
       if (action === 'statsUser') return loadUserStatistics(btn.dataset.userLogin || state.selectedStatsUser, uid, true);
       if (action === 'openUserStats') return openUserStatsModal(btn.dataset.userLogin || state.selectedStatsUser, uid);

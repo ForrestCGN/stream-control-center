@@ -531,3 +531,35 @@
 .evs-name-dialog input[data-evs-name-dialog-input] {
   width: 100%;
 }
+
+/* EVENTSYS-27D: manuelle Sound-Rundensteuerung */
+.evs-sound-live-control {
+  margin: 14px 0;
+  border-color: rgba(34, 211, 238, 0.45);
+}
+
+.evs-live-control-current {
+  display: grid;
+  grid-template-columns: 170px 1fr;
+  gap: 10px;
+  align-items: center;
+  margin: 10px 0 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.evs-live-control-current strong {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.evs-live-control-current span,
+.evs-muted {
+  color: rgba(203, 213, 225, 0.86);
+}
+
+.evs-action-row-tight {
+  gap: 10px;
+  margin: 10px 0;
+}
