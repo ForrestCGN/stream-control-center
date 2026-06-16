@@ -413,7 +413,7 @@
       mode: "obs_overlay",
       module: "stream_events",
       name: "Stream Events Runtime Overlay",
-      version: "0.2.5",
+      version: "0.2.6",
       heartbeatIntervalMs: 5000,
       capabilities: [
         "overlay.heartbeat",
@@ -437,6 +437,7 @@
       "use strict";
 
       const STATE_ROUTE = "/api/stream-events/runtime-overlay/state";
+      const PREROLL_STATUS_ROUTE = "/api/sound/event-preroll/status";
       const DEBUG = /[?&]debug=1\b/.test(window.location.search);
       const qs = new URLSearchParams(window.location.search);
       const forcedEventUid = String(qs.get("eventUid") || qs.get("event_uid") || "").trim();
@@ -454,7 +455,7 @@
 
       let pollTimer = null;
       let demoTimer = null;
-      let pollMs = 900;
+      let pollMs = 300;
       let lastState = null;
       let lastDemoSecond = null;
       let lastRuntimePhaseKey = "";
@@ -613,6 +614,110 @@
         return item ? cleanText(item.result || item.title || "", "") : "";
       }
 
+      function isoToMs(value) {
+        const ms = Date.parse(String(value || ""));
+        return Number.isFinite(ms) ? ms : 0;
+      }
+
+      function normalizePrerollPayload(entry) {
+        if (!entry || typeof entry !== "object") return null;
+        const payload = entry.payload && typeof entry.payload === "object" ? entry.payload : {};
+        const action = cleanText(entry.action || payload.action || "", "");
+        if (!action) return null;
+        const atMs = isoToMs(entry.at) || Date.now();
+        const seconds = Math.max(1, Math.min(30, Math.ceil(number(payload.seconds, 3))));
+        const requestId = cleanText(entry.requestId || payload.requestId || "", "");
+        const soundId = cleanText(entry.soundId || payload.soundId || "", "");
+        const phaseKey = cleanText(payload.phaseKey || `${action}:${requestId}:${atMs}`, `${action}:${atMs}`);
+        return {
+          action,
+          atMs,
+          seconds,
+          requestId,
+          soundId,
+          eventUid: cleanText(payload.eventUid, ""),
+          roundUid: cleanText(payload.roundUid, ""),
+          phaseKey,
+          mode: cleanText(payload.mode || (action === "countdown.start" ? "countdown" : (action === "guessing.start" ? "guessing" : "hidden")), "hidden")
+        };
+      }
+
+      function buildStateFromPrerollStatus(status) {
+        const events = status && Array.isArray(status.recentEvents) ? status.recentEvents : [];
+        if (!events.length) return null;
+        const now = Date.now();
+        const latest = normalizePrerollPayload(events[0]);
+        if (!latest) return null;
+
+        if (latest.action === "hide" || latest.action === "cancel" || latest.action === "failed") {
+          return {
+            ok: true,
+            phase: { key: "hidden", label: "", visible: false, reason: "sound_preroll_fallback_hide" },
+            display: { overlayMode: "hidden", showCountdown: false, countdownFinalLabel: "LOS!", guessingLabel: "Jetzt raten!" },
+            countdown: { active: false, mode: "sound_preroll_fallback", seconds: latest.seconds, phaseKey: latest.phaseKey, requestId: latest.requestId },
+            overlay: { pollMs: 300 }
+          };
+        }
+
+        if (latest.action === "countdown.start") {
+          const countdownEndsAtMs = latest.atMs + (latest.seconds * 1000);
+          if (now > countdownEndsAtMs + 900) return null;
+          return {
+            ok: true,
+            phase: { key: "sound_preroll_countdown", label: "Sound startet gleich", visible: true, reason: "sound_preroll_status_fallback" },
+            display: { overlayMode: "countdown", headline: "Sound startet gleich", subline: "Gleich im Chat raten!", showCountdown: true, countdownFinalLabel: "LOS!", guessingLabel: "Jetzt raten!" },
+            countdown: {
+              active: true,
+              mode: "sound_preroll_status_fallback",
+              owner: "sound_system",
+              seconds: latest.seconds,
+              remainingSeconds: Math.max(1, Math.min(latest.seconds, Math.ceil((countdownEndsAtMs - now) / 1000))),
+              phaseKey: latest.phaseKey,
+              requestId: latest.requestId,
+              countdownStartedAtMs: latest.atMs,
+              countdownEndsAtMs,
+              finalLabel: "LOS!",
+              guessingLabel: "Jetzt raten!"
+            },
+            overlay: { pollMs: 300 }
+          };
+        }
+
+        if (latest.action === "guessing.start") {
+          const maxGuessingMs = 30000;
+          if (now > latest.atMs + maxGuessingMs) return null;
+          return {
+            ok: true,
+            phase: { key: "sound_guessing", label: "Jetzt raten", visible: true, reason: "sound_preroll_status_fallback" },
+            display: { overlayMode: "guessing", headline: "Soundrunde läuft", subline: "Jetzt im Chat raten!", showCountdown: false, countdownFinalLabel: "LOS!", guessingLabel: "Jetzt raten!" },
+            countdown: { active: false, mode: "sound_preroll_status_fallback", owner: "sound_system", seconds: latest.seconds, phaseKey: latest.phaseKey, requestId: latest.requestId, finalLabel: "LOS!", guessingLabel: "Jetzt raten!" },
+            overlay: { pollMs: 300 }
+          };
+        }
+
+        return null;
+      }
+
+      async function fetchPrerollFallbackState() {
+        try {
+          const res = await fetch(`${PREROLL_STATUS_ROUTE}?_=${Date.now()}`, { cache: "no-store" });
+          if (!res.ok) return null;
+          const data = await res.json();
+          return buildStateFromPrerollStatus(data);
+        } catch (_) {
+          return null;
+        }
+      }
+
+      function shouldUsePrerollFallback(state) {
+        if (!state || !state.ok) return true;
+        const mode = safeModeFromPhase(state);
+        if (mode === "hidden") return true;
+        const phase = state.phase || {};
+        if (phase.visible === false) return true;
+        return false;
+      }
+
       function applyResult(state, mode) {
         const phase = state && state.phase ? state.phase : {};
         const display = state && state.display ? state.display : {};
@@ -685,8 +790,24 @@
           const res = await fetch(url, { cache: "no-store" });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.json();
+
+          if (shouldUsePrerollFallback(data)) {
+            const fallback = await fetchPrerollFallbackState();
+            if (fallback && fallback.ok) {
+              applyState(fallback);
+              if (DEBUG) els.debug.textContent = JSON.stringify({ source: "preroll_status_fallback", state: fallback, original: data }, null, 2);
+              return;
+            }
+          }
+
           applyState(data);
         } catch (err) {
+          const fallback = await fetchPrerollFallbackState();
+          if (fallback && fallback.ok) {
+            applyState(fallback);
+            if (DEBUG) els.debug.textContent = JSON.stringify({ source: "preroll_status_fallback_after_error", state: fallback, error: err && err.message ? err.message : String(err) }, null, 2);
+            return;
+          }
           applyClass("hidden", false);
           if (DEBUG) els.debug.textContent = `[event-runtime-overlay] ${err && err.message ? err.message : err}`;
         }
@@ -772,7 +893,7 @@
     data-mode="obs_overlay"
     data-module="stream_events"
     data-name="Stream Events Runtime Overlay"
-    data-version="0.2.5"
+    data-version="0.2.6"
     data-heartbeat-ms="5000"
   ></script>
 </body>
