@@ -347,3 +347,17 @@
 .evs-overview-empty-action .evs-empty-action-text {
   text-align: left;
 }
+
+/* EVS-26A Sound-Event: mehrere Sound-Schnipsel im Dashboard */
+.stream-events-admin .evs-sound-snippet-list-head{margin-top:12px;margin-bottom:10px}
+.stream-events-admin .evs-sound-snippet-list{display:grid;gap:12px;margin-top:10px}
+.stream-events-admin .evs-sound-snippet{border:1px solid rgba(34,211,238,.18);background:rgba(255,255,255,.028);border-radius:16px;padding:0;overflow:hidden}
+.stream-events-admin .evs-sound-snippet[open]{border-color:rgba(34,211,238,.34);box-shadow:0 0 18px rgba(34,211,238,.07)}
+.stream-events-admin .evs-sound-snippet>summary{display:flex;justify-content:space-between;gap:12px;align-items:center;cursor:pointer;padding:12px 14px;list-style:none}
+.stream-events-admin .evs-sound-snippet>summary::-webkit-details-marker{display:none}
+.stream-events-admin .evs-sound-snippet>summary span{display:grid;gap:3px;min-width:0}
+.stream-events-admin .evs-sound-snippet>summary strong{color:#f8fafc;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stream-events-admin .evs-sound-snippet>summary small{color:var(--evs-muted);font-size:12px;line-height:1.35}
+.stream-events-admin .evs-sound-snippet>summary .evs-btn{flex:0 0 auto}
+.stream-events-admin .evs-sound-snippet .evs-sound-media-grid{padding:0 12px 12px;margin-top:0}
+@media(max-width:720px){.stream-events-admin .evs-sound-snippet>summary{display:grid}.stream-events-admin .evs-sound-snippet>summary .evs-btn{width:100%}}

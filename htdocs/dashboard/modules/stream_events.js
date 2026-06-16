@@ -1334,10 +1334,64 @@ window.StreamEventsModule = (function(){
     `;
   }
 
+  function renderSoundSnippetEditor(snippet, index, total){
+    const item = snippet || {};
+    const mediaValue = item.mediaId || item.mediaPath || item.file || item.snippetMediaId || '';
+    const videoValue = item.revealVideoMediaId || item.videoMediaId || '';
+    const answers = Array.isArray(item.acceptedAnswers) ? item.acceptedAnswers : [];
+    const label = item.title || item.name || mediaValue || `Schnipsel ${index + 1}`;
+    const audioInputId = `evsSnippetMedia_${index}`;
+    const videoInputId = `evsSnippetVideo_${index}`;
+    return `
+      <details class="evs-sound-snippet" data-evs-sound-snippet-row data-index="${esc(index)}" ${index === 0 || item.title || mediaValue ? 'open' : ''}>
+        <summary>
+          <span><strong>${esc(label)}</strong><small>${esc(answers.length)} Antwort(en) · ${mediaValue ? 'Audio gesetzt' : 'Audio fehlt'}${videoValue ? ' · Video gesetzt' : ''}</small></span>
+          <button type="button" class="evs-btn evs-btn-danger evs-btn-small" data-evs-action="removeSoundSnippet" data-index="${esc(index)}" ${total <= 1 ? 'disabled' : ''}>Entfernen</button>
+        </summary>
+        <div class="evs-sound-media-grid">
+          <section class="evs-sound-card evs-sound-card-required">
+            <div class="evs-sound-card-head">
+              <div>
+                <strong>Audio-Schnipsel ${esc(index + 1)}</strong>
+                <small>Pflicht · das sollen die Zuschauer erraten</small>
+              </div>
+              <span class="evs-badge evs-badge-warn">Pflicht</span>
+            </div>
+            <label>Schnipsel-Name<input data-evs-snippet-title value="${esc(item.title || item.name || '')}" placeholder="z. B. Knight Rider"></label>
+            <label>Erlaubte Antworten, mit Komma getrennt<input data-evs-snippet-answers value="${esc(answers.join(', '))}" placeholder="knight rider, knightrider"></label>
+            <div class="evs-field-block">
+              <span class="evs-label">Audio aus Media-System</span>
+              <div class="evs-media-field evs-media-field-audio" data-media-field data-module-key="stream_events" data-category-key="sound_snippets" data-allowed-types="audio" data-title="Audio-Schnipsel auswählen oder hochladen" data-open-label="Audio-Schnipsel auswählen" data-clear-label="Entfernen" data-value-input="#${esc(audioInputId)}">
+                <input id="${esc(audioInputId)}" type="hidden" data-media-field-value data-evs-snippet-media value="${esc(mediaValue)}">
+              </div>
+            </div>
+          </section>
+
+          <section class="evs-sound-card evs-sound-card-optional">
+            <div class="evs-sound-card-head">
+              <div>
+                <strong>Auflösungs-Video</strong>
+                <small>Optional · kann nach der Lösung gezeigt werden</small>
+              </div>
+              <span class="evs-badge evs-badge-muted">Optional</span>
+            </div>
+            <div class="evs-field-block">
+              <span class="evs-label">Video aus Media-System</span>
+              <div class="evs-media-field evs-media-field-video" data-media-field data-module-key="stream_events" data-category-key="reveal_videos" data-allowed-types="video,animation" data-title="Optionales Auflösungs-Video auswählen oder hochladen" data-open-label="Optionales Video auswählen" data-clear-label="Entfernen" data-value-input="#${esc(videoInputId)}">
+                <input id="${esc(videoInputId)}" type="hidden" data-media-field-value data-evs-snippet-video value="${esc(videoValue)}">
+              </div>
+              <small class="evs-help">Kann leer bleiben. Upload und Auswahl laufen über das vorhandene Media-System.</small>
+            </div>
+          </section>
+        </div>
+      </details>
+    `;
+  }
+
   function renderModal(){
     const event = modalEvent();
     const sound = event.soundConfig || {};
-    const snippet = Array.isArray(sound.snippets) && sound.snippets[0] ? sound.snippets[0] : {};
+    const snippets = Array.isArray(sound.snippets) && sound.snippets.length ? sound.snippets : [{}];
     const text = event.textConfig || {};
     const phrases = Array.isArray(text.phrases) && text.phrases.length ? text.phrases : [{}];
     const partialMode = text.partialHintVisibility || text.partialHintDisplayMode || (text.hintTokensEnabled === false || text.partialHintsEnabled === false ? 'off' : (text.partialHintWithSentence === true ? 'with_sentence' : 'general'));
@@ -1366,44 +1420,19 @@ window.StreamEventsModule = (function(){
                 <label>Wenn nicht erkannt<select id="evsSoundUnresolvedPolicy"><option value="requeue_later" ${sound.unresolvedPolicy !== 'remove' ? 'selected' : ''}>Später nochmal versuchen</option><option value="remove" ${sound.unresolvedPolicy === 'remove' ? 'selected' : ''}>Für dieses Event entfernen</option></select></label>
               </div>
 
-              <div class="evs-sound-media-grid">
-                <section class="evs-sound-card evs-sound-card-required">
-                  <div class="evs-sound-card-head">
-                    <div>
-                      <strong>Audio-Schnipsel</strong>
-                      <small>Pflicht · das sollen die Zuschauer erraten</small>
-                    </div>
-                    <span class="evs-badge evs-badge-warn">Pflicht</span>
-                  </div>
-                  <label>Schnipsel-Name<input id="evsSnippetTitle" value="${esc(snippet.title || snippet.name || '')}" placeholder="z. B. Knight Rider"></label>
-                  <label>Erlaubte Antworten, mit Komma getrennt<input id="evsSnippetAnswers" value="${esc((snippet.acceptedAnswers || []).join(', '))}" placeholder="knight rider, knightrider"></label>
-                  <div class="evs-field-block">
-                    <span class="evs-label">Audio aus Media-System</span>
-                    <div class="evs-media-field evs-media-field-audio" data-media-field data-module-key="stream_events" data-category-key="sound_snippets" data-allowed-types="audio" data-title="Audio-Schnipsel auswählen oder hochladen" data-open-label="Audio-Schnipsel auswählen" data-clear-label="Entfernen" data-value-input="#evsSnippetMedia">
-                      <input id="evsSnippetMedia" type="hidden" data-media-field-value value="${esc(snippet.mediaId || snippet.mediaPath || snippet.file || snippet.snippetMediaId || '')}">
-                    </div>
-                  </div>
-                </section>
-
-                <section class="evs-sound-card evs-sound-card-optional">
-                  <div class="evs-sound-card-head">
-                    <div>
-                      <strong>Auflösungs-Video</strong>
-                      <small>Optional · kann nach der Lösung gezeigt werden</small>
-                    </div>
-                    <span class="evs-badge evs-badge-muted">Optional</span>
-                  </div>
-                  <div class="evs-field-block">
-                    <span class="evs-label">Video aus Media-System</span>
-                    <div class="evs-media-field evs-media-field-video" data-media-field data-module-key="stream_events" data-category-key="reveal_videos" data-allowed-types="video,animation" data-title="Optionales Auflösungs-Video auswählen oder hochladen" data-open-label="Optionales Video auswählen" data-clear-label="Entfernen" data-value-input="#evsSnippetVideo">
-                      <input id="evsSnippetVideo" type="hidden" data-media-field-value value="${esc(snippet.revealVideoMediaId || snippet.videoMediaId || '')}">
-                    </div>
-                    <small class="evs-help">Kann leer bleiben. Upload und Auswahl laufen über das vorhandene Media-System.</small>
-                  </div>
-                </section>
+              <div class="evs-form-row-head evs-sound-snippet-list-head">
+                <div>
+                  <strong>Sound-Schnipsel</strong>
+                  <small>Mehrere Aufgaben pro Event. Jeder Schnipsel bekommt eigene Antworten, Audio und optional ein Auflösungs-Video.</small>
+                </div>
+                <button type="button" class="evs-btn evs-btn-secondary evs-btn-small" data-evs-action="addSoundSnippet">+ Schnipsel hinzufügen</button>
               </div>
 
-              <small class="evs-help">Das Event speichert nur die Media-ID/Referenz. Wiedergabe und Upload bleiben beim vorhandenen Media-System.</small>
+              <div class="evs-sound-snippet-list">
+                ${snippets.map((item, index) => renderSoundSnippetEditor(item, index, snippets.length)).join('')}
+              </div>
+
+              <small class="evs-help">Das Event speichert nur Media-IDs/Referenzen. Wiedergabe und Upload bleiben beim vorhandenen Media-System.</small>
             </details>
 
             <details class="evs-config-box" ${event.textEnabled ? 'open' : ''}>
@@ -1470,15 +1499,11 @@ window.StreamEventsModule = (function(){
       textEnabled
     };
 
-    const snippetTitle = document.getElementById('evsSnippetTitle')?.value || '';
-    const snippetMedia = document.getElementById('evsSnippetMedia')?.value || '';
-    const snippetAnswers = splitCsv(document.getElementById('evsSnippetAnswers')?.value || '');
-    const snippetVideo = document.getElementById('evsSnippetVideo')?.value || '';
     payload.soundConfig = {
       answerSeconds: Number(document.getElementById('evsSoundAnswerSeconds')?.value || 20),
       solvedPolicy: 'remove_from_rotation',
       unresolvedPolicy: document.getElementById('evsSoundUnresolvedPolicy')?.value || 'requeue_later',
-      snippets: snippetTitle || snippetMedia || snippetAnswers.length ? [{ title: snippetTitle, mediaId: snippetMedia, acceptedAnswers: snippetAnswers, revealVideoMediaId: snippetVideo }] : []
+      snippets: collectSoundSnippets(false)
     };
 
     const phraseRows = Array.from(document.querySelectorAll('[data-evs-phrase-row]'));
@@ -1513,6 +1538,17 @@ window.StreamEventsModule = (function(){
   }
 
   function splitCsv(value){ return String(value || '').split(',').map(v => v.trim()).filter(Boolean); }
+
+  function collectSoundSnippets(keepEmpty = false){
+    const rows = Array.from(document.querySelectorAll('[data-evs-sound-snippet-row]'));
+    return rows.map(row => {
+      const title = row.querySelector('[data-evs-snippet-title]')?.value || '';
+      const mediaId = row.querySelector('[data-evs-snippet-media]')?.value || '';
+      const acceptedAnswers = splitCsv(row.querySelector('[data-evs-snippet-answers]')?.value || '');
+      const revealVideoMediaId = row.querySelector('[data-evs-snippet-video]')?.value || '';
+      return { title, mediaId, acceptedAnswers, revealVideoMediaId };
+    }).filter(item => keepEmpty || item.title || item.mediaId || item.acceptedAnswers.length || item.revealVideoMediaId);
+  }
 
   function readConfigPayload(){
     return {
@@ -1980,6 +2016,24 @@ window.StreamEventsModule = (function(){
       }
       if (action === 'edit') { const event = await loadEvent(uid); state.modal = { event }; render(); return; }
       if (action === 'closeModal') { state.modal = null; render(); return; }
+      if (action === 'addSoundSnippet') {
+        const payload = readModalPayload();
+        const snippets = collectSoundSnippets(true);
+        snippets.push({ title: '', mediaId: '', acceptedAnswers: [], revealVideoMediaId: '' });
+        state.modal.event = { ...(state.modal.event || {}), ...payload, soundConfig: { ...(payload.soundConfig || {}), snippets } };
+        render();
+        return;
+      }
+      if (action === 'removeSoundSnippet') {
+        const payload = readModalPayload();
+        const snippets = collectSoundSnippets(true);
+        const index = Number(btn.dataset.index || -1);
+        if (index >= 0 && snippets.length > 1) snippets.splice(index, 1);
+        if (!snippets.length) snippets.push({ title: '', mediaId: '', acceptedAnswers: [], revealVideoMediaId: '' });
+        state.modal.event = { ...(state.modal.event || {}), ...payload, soundConfig: { ...(payload.soundConfig || {}), snippets } };
+        render();
+        return;
+      }
       if (action === 'addPhrase') {
         const payload = readModalPayload();
         const visibleRows = document.querySelectorAll('[data-evs-phrase-row]').length;
