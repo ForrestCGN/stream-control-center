@@ -23,8 +23,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.32";
-const MODULE_BUILD = "STEP_EVENT_SOUND_4B_PREROLL_FLAG_FIX";
+const MODULE_VERSION = "0.5.33";
+const MODULE_BUILD = "STEP_EVENT_SOUND_4C_MEDIA_RESOLUTION_FIX";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -2970,9 +2970,82 @@ function pickNextSoundSnippet(event, options = {}) {
   return { ok: true, snippet: selected, runtimeConfig, total: snippets.length, remaining: candidates.length };
 }
 
+
+function buildSoundSystemMediaFieldsForSnippet(snippet = {}) {
+  const mediaId = cleanString(snippet.mediaId || snippet.media_id || "");
+  const mediaPath = cleanString(snippet.mediaPath || snippet.file || snippet.path || "");
+  const title = cleanString(snippet.title || "EventSound");
+  const lowerId = mediaId.toLowerCase();
+
+  // Test-Helper-Sounds sind absichtlich keine echten Media-Registry-IDs.
+  // Sie werden fuer kontrollierte Runtime-Tests als generated_beep an das Sound-System gegeben,
+  // damit der PreRoll-/Countdown-Flow ohne geratenen lokalen Dateipfad testbar bleibt.
+  if (lowerId.startsWith("evs_test_audio_") || lowerId.startsWith("evs19_test_audio_")) {
+    let frequency = 740;
+    if (lowerId.includes("engel")) frequency = 880;
+    if (lowerId.includes("kaffee")) frequency = 990;
+    if (lowerId.includes("schluessel")) frequency = 660;
+    return {
+      ok: true,
+      testGeneratedBeep: true,
+      type: "generated_beep",
+      mediaType: "audio",
+      durationMs: 1200,
+      frequency,
+      label: title,
+      mediaId: "",
+      mediaAssetId: "",
+      mediaPath: "",
+      mediaRelativePath: ""
+    };
+  }
+
+  if (/^https?:\/\//i.test(mediaPath || mediaId)) {
+    return {
+      ok: true,
+      mediaUrl: mediaPath || mediaId,
+      audioUrl: mediaPath || mediaId,
+      mediaType: "audio",
+      label: title
+    };
+  }
+
+  if (mediaPath) {
+    return {
+      ok: true,
+      mediaPath,
+      mediaRelativePath: mediaPath,
+      registryPath: mediaPath,
+      label: title
+    };
+  }
+
+  if (mediaId && /^\d+$/.test(mediaId)) {
+    return {
+      ok: true,
+      mediaId,
+      mediaAssetId: mediaId,
+      assetId: mediaId,
+      label: title
+    };
+  }
+
+  return {
+    ok: false,
+    error: "sound_media_file_missing",
+    mediaId,
+    mediaPath,
+    label: title,
+    note: "Sound-Schnipsel hat keine aufloesbare Media-Registry-ID, keinen Media-Pfad und ist kein Test-Beep."
+  };
+}
+
 function buildSoundPlaybackPayload(event, round, snippet, runtimeConfig) {
+  const mediaFields = buildSoundSystemMediaFieldsForSnippet(snippet);
   return {
     prepared: true,
+    mediaResolved: !!(mediaFields && mediaFields.ok),
+    mediaResolution: mediaFields,
     directPlay: false,
     target: "sound_system",
     via: "bus_payload",
@@ -2986,9 +3059,11 @@ function buildSoundPlaybackPayload(event, round, snippet, runtimeConfig) {
       eventUid: event.eventUid,
       roundUid: round.roundUid,
       snippetUid: snippet.snippetUid,
-      mediaId: snippet.mediaId,
-      mediaPath: snippet.mediaPath,
+      mediaId: mediaFields.ok ? (mediaFields.mediaId || "") : snippet.mediaId,
+      mediaPath: mediaFields.ok ? (mediaFields.mediaPath || "") : snippet.mediaPath,
+      mediaResolutionError: mediaFields.ok ? "" : mediaFields.error,
       label: snippet.title,
+      ...(mediaFields.ok ? mediaFields : {}),
       category: "stream_event_sound_snippet",
       requestedBy: MODULE_NAME,
       priority: 70,
@@ -3017,9 +3092,9 @@ function buildSoundPlaybackPayload(event, round, snippet, runtimeConfig) {
     meta: {
       preparedAt: nowIso(),
       answerSeconds: runtimeConfig.answerSeconds,
-      soundSafeStep: "EVENT-SOUND-4B",
+      soundSafeStep: "EVENT-SOUND-4C",
       extensionPoint: "stream_events.before_sound_system_play_request",
-      note: "EVENT-SOUND-4B: Payload wird beim kontrollierten Playback mit erforderlichem eventPreRoll-Flag markiert. Sound-System bleibt Playback-/Queue-Owner."
+      note: "EVENT-SOUND-4C: Payload wird mit eventPreRoll-Flag markiert und Sound-Media wird vor Sound-System-Uebergabe aufloesbar gemappt."
     }
   };
 }
@@ -3049,6 +3124,7 @@ function requestSoundSystemPlaybackForSoundRound(playback = {}, options = {}) {
       eventSoundRoundPlayback: true,
       eventSound4: true,
       eventSound4B: true,
+      eventSound4C: true,
       eventPreRoll: {
         ...originalPreRoll,
         enabled: true,
@@ -3064,12 +3140,15 @@ function requestSoundSystemPlaybackForSoundRound(playback = {}, options = {}) {
       }
     }
   };
+  if (requestedItem.mediaResolutionError) {
+    return { ok: false, module: MODULE_NAME, step: "EVENT-SOUND-4C", playbackRequested: true, error: requestedItem.mediaResolutionError, mediaId: requestedItem.mediaId || "", mediaPath: requestedItem.mediaPath || "" };
+  }
   try {
     const result = soundSystemModule.playStreamEventPreRollItem(requestedItem);
     return {
       ok: !!(result && result.ok),
       module: MODULE_NAME,
-      step: "EVENT-SOUND-4B",
+      step: "EVENT-SOUND-4C",
       playbackRequested: true,
       soundSystemResult: result || null,
       queueTouched: !!(result && result.result && (result.result.started || result.result.queued || result.result.parallel)),
@@ -3077,7 +3156,7 @@ function requestSoundSystemPlaybackForSoundRound(playback = {}, options = {}) {
       error: result && result.error ? result.error : ""
     };
   } catch (err) {
-    return { ok: false, module: MODULE_NAME, step: "EVENT-SOUND-4B", playbackRequested: true, error: err && err.message ? err.message : String(err) };
+    return { ok: false, module: MODULE_NAME, step: "EVENT-SOUND-4C", playbackRequested: true, error: err && err.message ? err.message : String(err) };
   }
 }
 
@@ -3118,10 +3197,17 @@ function createSoundRound(options = {}) {
   const playbackResult = shouldPlay ? requestSoundSystemPlaybackForSoundRound(playback, { confirm: options.confirm || options.confirmed }) : { ok: true, playbackRequested: false, preparedOnly: true };
   const playbackResultData = { preparedOnly: !shouldPlay, playbackRequested: !!shouldPlay, playbackResult };
   try {
-    database.updateByKey("stream_events_rounds", "round_uid", round.roundUid, {
+    const update = {
       result_json: jsonEncode(playbackResultData),
       updated_at: nowIso()
-    });
+    };
+    // Wenn kontrolliertes Playback vor dem Queue-/Start-Accept fehlschlaegt, darf keine aktive Testrunde haengen bleiben.
+    if (shouldPlay && !(playbackResult && playbackResult.ok)) {
+      update.status = "failed";
+      update.result = "playback_failed";
+      update.finished_at = nowIso();
+    }
+    database.updateByKey("stream_events_rounds", "round_uid", round.roundUid, update);
   } catch (_) {}
   const chatOutput = buildChatOutput("sound.round.started", {
     title: snippet.title,
