@@ -2,6 +2,32 @@
 
 Stand: 2026-06-16
 
+## 2026-06-16 – LC-CORE-LIVE-CLEANUP-3 Status/Dashboard Aktiv-Inaktiv
+
+### Ergebnis
+
+```text
+Der Loyalty-Core ist fachlich auf Aktiv/Inaktiv bzw. Live-only bereinigt. Shadow ist kein sichtbarer oder auswählbarer Betriebsmodus mehr.
+```
+
+### Bestätigt
+
+```text
+/api/loyalty/status meldet mode=live, enabled=true, shadowMode=false, pointsState=active.
+Die alten Hauptstatusfelder streamElementsStillActive und importStatus sind aus dem normalen Status entfernt.
+Legacy-Hinweise bleiben nur im Diagnosebereich diagnostics.legacyFallbacks.
+Dashboard-Wording wurde auf Punkte-Core Aktiv/Inaktiv bereinigt.
+```
+
+### Nicht geändert
+
+```text
+Keine produktive SQLite ersetzt.
+Keine Transaktionen gelöscht.
+Keine DB-Shadow-Spalten gedroppt.
+Keine Raffle-Logik geändert.
+```
+
 ## 2026-06-16 – LC-CORE-LIVE-CLEANUP-2 Live-only geprüft
 
 ### Ergebnis

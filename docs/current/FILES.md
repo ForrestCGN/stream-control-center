@@ -13,7 +13,9 @@ LC-CORE-LIVE-CLEANUP-2 – Live-only geprüft, Shadow-Migration abgeschlossen
 ```text
 backend/modules/loyalty.js
 htdocs/dashboard/modules/loyalty.js
+backend/modules/loyalty.js
 backend/modules/loyalty_giveaways.js
+htdocs/dashboard/modules/loyalty.js
 htdocs/dashboard/modules/loyalty_games.js
 tools/loyalty_migrate_shadow_to_live_once.js
 docs/current/CURRENT_STATUS.md
@@ -62,8 +64,9 @@ backend/modules/loyalty_giveaways.js
 Aktueller dokumentierter Modulstand:
 
 ```text
-moduleVersion = 0.1.13
-moduleBuild = STEP_LC_MINIGAMES_2B_FIX3_TEXT_DB_CLEANUP
+loyalty.js version = 0.1.24
+loyalty_giveaways.js moduleVersion = 0.1.13
+loyalty_giveaways.js moduleBuild = STEP_LC_MINIGAMES_2B_FIX3_TEXT_DB_CLEANUP
 ```
 
 Wichtige Routen:
@@ -89,6 +92,7 @@ Enthält:
 ```text
 Loyalty-Core Live-only Ansicht
 Status Aktiv/Inaktiv statt Shadow/Live Fokus
+Loyalty Core Status-/Config-Anzeige auf Aktiv/Inaktiv
 Mini-Spiele Status-/Bedienansicht
 Raffle Config unter Einstellungen
 Raffle Texte unter Texte
@@ -140,6 +144,7 @@ Shadow-Spalten bleiben vorerst bestehen und werden nicht blind gedroppt.
 Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/status" | ConvertTo-Json -Depth 8
 Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/balance/urlug?displayName=Urlug" | ConvertTo-Json -Depth 8
 Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/balance/tronic6?displayName=Tronic6" | ConvertTo-Json -Depth 8
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/status" | ConvertTo-Json -Depth 5
 Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/raffle/config" | ConvertTo-Json -Depth 6
 Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/giveaways/texts" | ConvertTo-Json -Depth 6
 ```

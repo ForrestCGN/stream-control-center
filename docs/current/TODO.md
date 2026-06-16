@@ -18,7 +18,7 @@ Stand: 2026-06-16
 - [x] Rest-Shadow-Werte für Test-/Bridge-/System-/Ignored-User gezielt genullt.
 - [x] Abschlussprüfung: `candidates=0 totalShadow=0`, `excluded=0 excludedShadow=0`.
 - [x] LC-CORE-LIVE-CLEANUP-2: Shadow-Modus ausgeblendet und Live-only vorbereitet.
-- [x] `/api/loyalty/status` bestätigt: `mode=live`, `enabled=true`, `shadowMode=false`, Version `0.1.24`.
+- [x] `/api/loyalty/status` bestätigt: `mode=live`, `enabled=true`, `shadowMode=false`, `pointsState=active`, Version `0.1.24`.
 - [x] Raffle produktiv als Mini-Spiel im bestehenden Modul `loyalty_giveaways.js` vorbereitet.
 - [x] Dashboard-Tab `Mini-Spiele` für Raffle/Gamble aufgebaut.
 - [x] Raffle-Config aus Mini-Spiele herausgezogen und unter `Loyalty -> Einstellungen -> Raffle` eingeordnet.
@@ -30,6 +30,10 @@ Stand: 2026-06-16
 - [x] Raffle-Config speichert `entryCostAmount=10` und `entryCostEnabled=true` korrekt.
 - [x] Alte aktive mehrzeilige Text-Sammelvarianten in `chat_raffle`, `chat_giveaway`, `chat_ticket`, `chat_wheel` bereinigt.
 - [x] Prüfung auf aktive mehrzeilige Textvarianten in `/api/loyalty/giveaways/texts` liefert keine Ausgabe.
+- [x] LC-CORE-LIVE-CLEANUP-3: Status und Dashboard auf Aktiv/Inaktiv bereinigt.
+- [x] Hauptstatus bereinigt: `streamElementsStillActive` und `importStatus` stehen nicht mehr oben im normalen Status.
+- [x] Dashboard-Wording bereinigt: „Shadow-Runner“ entfernt, Punkte-Core fachlich Aktiv/Inaktiv.
+- [x] Legacy-Hinweise bleiben bewusst nur im Diagnosebereich `diagnostics.legacyFallbacks`.
 
 ## Aktuell offen / als nächstes testen
 
@@ -45,11 +49,6 @@ Stand: 2026-06-16
 
 ## Nächster Cleanup nach Live-only-Bestätigung
 
-- [ ] Alte Shadow-/Import-Begriffe in Status/Dashboard/Doku prüfen und streamerfreundlich bereinigen:
-  - [ ] `streamElementsStillActive` Status-/Diagnosefeld fachlich bewerten.
-  - [ ] `importStatus` nach abgeschlossener Migration neu bewerten oder entfernen/umbenennen.
-  - [ ] Dashboard-Texte wie „Shadow-Runner“ vollständig entfernen/umbenennen.
-  - [ ] API-Kompatibilität erhalten, keine Breaking Changes ohne bewusste Freigabe.
 - [ ] Später separater DB-Schema-Cleanup planen:
   - [ ] `balance_shadow`
   - [ ] `total_earned_shadow`

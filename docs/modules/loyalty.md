@@ -125,6 +125,28 @@ Offen:
 GiftSub-Receiver-Buchung mit Dashboard-Konfig abgleichen.
 ```
 
+## Live-only / Shadow-Migration
+
+Die vorherigen Shadow-Punkte wurden am 2026-06-16 vollständig bereinigt. Normale User wurden per Live-Transaktion migriert, Test-/Bridge-/System-Reste wurden gezielt genullt.
+
+Bestätigter Status:
+
+```text
+mode = live
+enabled = true
+shadowMode = false
+pointsState = active
+remainingShadowUsers = 0
+remainingShadowTotal = 0
+```
+
+Fachlich gibt es nur noch:
+
+```text
+Aktiv   = Punkte laufen live
+Inaktiv = Punkte werden nicht verarbeitet
+```
+
 ## StreamElements-Import
 
 Import wurde additiv über Transaktionen durchgeführt, keine direkte DB-Überschreibung.
@@ -164,6 +186,15 @@ Dabei gilt:
 Keine API-Breaking-Changes ohne bewusste Freigabe.
 DB-Spalten nicht blind droppen.
 Erst alle Referenzen in Backend, Dashboard, Tools und Doku prüfen.
+```
+
+## Cleanup-3 Ergebnis
+
+```text
+Normale Status-/Dashboard-Anzeigen sind auf Aktiv/Inaktiv bereinigt.
+streamElementsStillActive/importStatus wurden aus dem Hauptstatus entfernt.
+Legacy-Hinweise bleiben nur noch im Diagnosebereich diagnostics.legacyFallbacks.
+DB-Shadow-Spalten wurden noch nicht gedroppt.
 ```
 
 ## Dateien

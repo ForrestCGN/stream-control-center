@@ -16,7 +16,10 @@ LC-MINIGAMES-2B Kosten-Live-Test abschließen
 Loyalty Core läuft live-only.
 Shadow-Migration ist abgeschlossen.
 Shadow ist leer: candidates=0 totalShadow=0.
-/api/loyalty/status bestätigt mode=live, enabled=true, shadowMode=false.
+/api/loyalty/status bestätigt mode=live, enabled=true, shadowMode=false, pointsState=active.
+Cleanup-3 ist geprüft: Hauptstatus ist auf Aktiv/Inaktiv bereinigt.
+streamElementsStillActive/importStatus sind aus dem normalen Hauptstatus entfernt.
+Legacy-Hinweise bleiben nur im Diagnosebereich.
 Urlug und Tronic6 wurden erfolgreich geprüft.
 Raffle-Teilnahmekosten sind eingebaut.
 Config speichert entryCostAmount=10 und entryCostEnabled=true korrekt.
@@ -144,10 +147,14 @@ Wenn Kosten-Live-Test bestätigt ist:
 ```text
 1. Doku erneut aktualisieren.
 2. LC-MINIGAMES-2B als bestätigt markieren.
-3. Danach LC-CORE-LIVE-CLEANUP-3 planen:
-   - alte Shadow-/Import-Begriffe aus Status/Dashboard/Doku bereinigen
-   - Kompatibilitätsfelder bewusst prüfen
-   - DB-Schema-Cleanup für Shadow-Spalten nur planen, noch nicht blind droppen
+3. Danach nächsten Loyalty-Block planen.
+```
+
+Später separater technischer Cleanup, nicht im Raffle-Test:
+
+```text
+- Shadow-DB-Spalten nur nach vollständiger Referenzprüfung droppen.
+- Legacy-Diagnosefelder nur entfernen, wenn keine Diagnose-/Fallback-Funktion mehr gebraucht wird.
 ```
 
 ## Nicht tun

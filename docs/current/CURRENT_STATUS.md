@@ -5,23 +5,25 @@ Stand: 2026-06-16
 ## Aktueller bestätigter Arbeitsstand
 
 ```text
-LC-CORE-LIVE-CLEANUP-2 – Loyalty live-only geprüft, Shadow-Migration abgeschlossen
+LC-CORE-LIVE-CLEANUP-3 – Status/Dashboard auf Aktiv/Inaktiv bereinigt und geprüft
 Nächster offener Test: Raffle-Teilnahmekosten live prüfen
 ```
 
 ## Kurzfazit
 
-Der Loyalty-Core läuft produktiv im Live-Modus. Die zuvor im Shadow-Modus gesammelten Punkte wurden vollständig bereinigt: normale User wurden nach Live migriert, Test-/Bridge-/System-Reste wurden genullt. Shadow ist leer und wird fachlich nicht mehr als Betriebsmodus genutzt.
+Der Loyalty-Core läuft produktiv im Live-only-Betrieb. Die zuvor im Shadow-Modus gesammelten Punkte wurden vollständig bereinigt: normale User wurden nach Live migriert, Test-/Bridge-/System-Reste wurden genullt. Shadow ist leer und wird fachlich nicht mehr als Betriebsmodus genutzt. Der normale Status und das Dashboard sind jetzt auf Aktiv/Inaktiv ausgerichtet.
 
 Bestätigt:
 
 ```text
 Loyalty Core läuft produktiv.
-/api/loyalty/status meldet mode=live, enabled=true, shadowMode=false.
+/api/loyalty/status meldet mode=live, enabled=true, shadowMode=false, pointsState=active.
 /api/loyalty/balance/urlug meldet balanceShadow=0, balanceLive=1006852, activeBalance=1006852.
 /api/loyalty/balance/tronic6 meldet balanceShadow=0, balanceLive=12536, activeBalance=12536.
 Migrationstool-Dry-Run meldet candidates=0 totalShadow=0 und excluded=0 excludedShadow=0.
 Live ist ab jetzt der einzige relevante Punkte-Stand.
+Die normalen Statusfelder streamElementsStillActive/importStatus wurden aus dem Hauptstatus entfernt.
+Legacy-Infos bleiben nur noch im Diagnosebereich, wo sie bewusst als technische Hinweise dienen.
 ```
 
 ## Loyalty Live-only / Shadow-Migration
@@ -79,7 +81,7 @@ Inaktiv = off
 
 ## Status Live-System
 
-Bestätigte Statuswerte aus `/api/loyalty/status`:
+Bestätigte Statuswerte aus `/api/loyalty/status` nach Cleanup-3:
 
 ```text
 module = loyalty
@@ -87,11 +89,12 @@ version = 0.1.24
 mode = live
 enabled = true
 shadowMode = false
+pointsState = active
 currencyName = Kekskrümel
 schema.version = 4
 ```
 
-Wichtig: Im Status existieren noch alte Kompatibilitäts-/Diagnosefelder wie `streamElementsStillActive` und `importStatus`. Diese sind kein Funktionsfehler, sollen aber in einem separaten Cleanup-Step geprüft, umbenannt oder entfernt werden.
+Bestätigt: Die alten Hauptstatusfelder `streamElementsStillActive` und `importStatus` sind im normalen Status nicht mehr vorhanden. Legacy-Infos bleiben nur im Diagnosebereich `diagnostics.legacyFallbacks`.
 
 ## Raffle / Mini-Spiele – bestätigter Stand
 
@@ -189,7 +192,9 @@ Einstellungen -> Raffle zeigt nur fachliche Config.
 Texte -> Raffle zeigt nur Raffle-Texte.
 Dropdown „Alle Textbereiche“ wurde entfernt.
 Texttabelle zeigt immer nur den aktuell gewählten Bereich.
-Loyalty-Core-Dashboard ist auf Aktiv/Inaktiv bzw. Live-only vorbereitet.
+Loyalty-Core-Dashboard ist auf Aktiv/Inaktiv bzw. Live-only bereinigt.
+Dashboard-Beschreibung „Shadow-Runner“ wurde entfernt.
+Status-/Config-Anzeige nutzt keine Import-/StreamElements-Hauptfelder mehr.
 ```
 
 ## Nicht geändert
@@ -202,4 +207,5 @@ Keine Command-Registry umgebaut.
 Keine Alert-Produktivumschaltung.
 Keine neue Raffle-Parallelstruktur gebaut.
 DB-Spalten balance_shadow, total_earned_shadow, total_spent_shadow wurden noch nicht gedroppt.
+Diagnose-Legacyfelder unter diagnostics wurden nicht entfernt.
 ```
