@@ -23,8 +23,8 @@ const database = require("../core/database");
 const loyaltyCore = require("./loyalty");
 
 const MODULE_NAME = "loyalty_giveaways";
-const MODULE_VERSION = "0.1.10";
-const MODULE_BUILD = "STEP_LC_MINIGAMES_2B_RAFFLE_ENTRY_COSTS";
+const MODULE_VERSION = "0.1.11";
+const MODULE_BUILD = "STEP_LC_MINIGAMES_2B_FIX1_RAFFLE_CONFIG_RESPONSE_CLEANUP";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -863,12 +863,7 @@ function buildRaffleConfigPayload() {
     config: getRaffleConfig(),
     runtime: getRaffleSnapshot(),
     winnerRule: getRaffleWinnerRuleDescription(),
-    textKeys: Object.keys(CHAT_TEXT_DEFAULTS).filter(key => key.startsWith("raffle.public.")),
-    dashboard: {
-      group: "minigames",
-      label: "Raffle",
-      note: "Raffle ist fuer das Dashboard als Mini-Spiel vorgesehen. Backend bleibt vorerst kompatibel im bestehenden Giveaways-Modul."
-    }
+    textKeys: Object.keys(CHAT_TEXT_DEFAULTS).filter(key => key.startsWith("raffle.public."))
   };
 }
 
