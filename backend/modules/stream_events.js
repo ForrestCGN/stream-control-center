@@ -21,7 +21,7 @@ try { streamStatusModule = require("./stream_status"); } catch (_) { streamStatu
 
 const MODULE_NAME = "stream_events";
 const MODULE_VERSION = "0.5.22";
-const MODULE_BUILD = "STEP_EVS_27C_EVENT_DUPLICATE";
+const MODULE_BUILD = "STEP_EVS_27C_FIX2_EDITOR_REGRESSION_FIX";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";

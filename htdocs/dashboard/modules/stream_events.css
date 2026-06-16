@@ -348,15 +348,186 @@
   text-align: left;
 }
 
-/* EVENTSYS-27C-FIX1: Eventname/Kopie-Name Dialog */
+/* EVS-26A Sound-Event: mehrere Sound-Schnipsel im Dashboard */
+.stream-events-admin .evs-sound-snippet-list-head{margin-top:12px;margin-bottom:10px}
+.stream-events-admin .evs-sound-snippet-list{display:grid;gap:12px;margin-top:10px}
+.stream-events-admin .evs-sound-snippet{border:1px solid rgba(34,211,238,.18);background:rgba(255,255,255,.028);border-radius:16px;padding:0;overflow:hidden}
+.stream-events-admin .evs-sound-snippet[open]{border-color:rgba(34,211,238,.34);box-shadow:0 0 18px rgba(34,211,238,.07)}
+.stream-events-admin .evs-sound-snippet>summary{display:flex;justify-content:space-between;gap:12px;align-items:center;cursor:pointer;padding:12px 14px;list-style:none}
+.stream-events-admin .evs-sound-snippet>summary::-webkit-details-marker{display:none}
+.stream-events-admin .evs-sound-snippet>summary span{display:grid;gap:3px;min-width:0}
+.stream-events-admin .evs-sound-snippet>summary strong{color:#f8fafc;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stream-events-admin .evs-sound-snippet>summary small{color:var(--evs-muted);font-size:12px;line-height:1.35}
+.stream-events-admin .evs-sound-snippet>summary .evs-btn{flex:0 0 auto}
+.stream-events-admin .evs-sound-snippet .evs-sound-media-grid{padding:0 12px 12px;margin-top:0}
+@media(max-width:720px){.stream-events-admin .evs-sound-snippet>summary{display:grid}.stream-events-admin .evs-sound-snippet>summary .evs-btn{width:100%}}
+
+/* EVS-26B: getrennte Editor-Fenster für Sound-Schnipsel und Text-Spiel */
+.stream-events-admin .evs-event-main-modal{width:min(820px,calc(100vw - 28px))}
+.stream-events-admin .evs-editor-summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:2px}
+.stream-events-admin .evs-editor-summary-card{border:1px solid rgba(34,211,238,.18);background:rgba(255,255,255,.035);border-radius:16px;padding:13px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;min-width:0}
+.stream-events-admin .evs-editor-summary-card.is-enabled{border-color:rgba(34,211,238,.34);box-shadow:0 0 18px rgba(34,211,238,.06)}
+.stream-events-admin .evs-editor-summary-card.is-disabled{border-color:rgba(148,163,184,.18);opacity:.88}
+.stream-events-admin .evs-editor-summary-title{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:4px}
+.stream-events-admin .evs-editor-summary-title strong{color:#f8fafc;font-size:15px}
+.stream-events-admin .evs-editor-summary-card p{font-size:12px;line-height:1.35;margin:0 0 9px;color:var(--evs-muted)}
+.stream-events-admin .evs-editor-summary-badges{display:flex;flex-wrap:wrap;gap:6px}
+.stream-events-admin .evs-editor-summary-badges span{border:1px solid rgba(255,255,255,.10);background:rgba(2,6,23,.28);border-radius:999px;padding:4px 8px;color:#cbd5e1;font-size:11px;font-weight:800}
+.stream-events-admin .evs-submodal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.50);z-index:92;display:grid;place-items:center;padding:24px}
+.stream-events-admin .evs-submodal{width:min(1040px,calc(100vw - 28px));max-height:calc(100vh - 42px);overflow:auto;padding:18px;box-shadow:0 0 36px rgba(34,211,238,.13),0 0 80px rgba(0,0,0,.34)}
+.stream-events-admin .evs-sound-editor-modal .evs-sound-snippet-list,.stream-events-admin .evs-text-editor-modal .evs-phrase-list{max-height:none}
+@media(max-width:900px){.stream-events-admin .evs-editor-summary-grid{grid-template-columns:1fr}.stream-events-admin .evs-editor-summary-card{grid-template-columns:1fr}.stream-events-admin .evs-editor-summary-card .evs-btn{width:100%;justify-content:center}}
+
+/* EVS-26B-FIX3: konkrete Pflichtfeldanzeige pro Sound-Schnipsel */
+.stream-events-admin .evs-sound-snippet.has-missing-required{
+  border-color:rgba(245,158,11,.42);
+  box-shadow:0 0 18px rgba(245,158,11,.07);
+}
+.stream-events-admin .evs-snippet-missing{
+  color:#fde68a!important;
+  font-weight:900;
+}
+.stream-events-admin .evs-snippet-missing.is-empty{
+  display:none;
+}
+
+/* EVENTSYS-27A – Event-Einstellungen / Sound-Defaults */
+.evs-config-card-wide {
+  grid-column: span 1;
+}
+
+.evs-config-inline-grid {
+  gap: 12px;
+}
+
+.evs-editor-settings-card,
+.evs-event-config-summary,
+.evs-settings-section {
+  border: 1px solid rgba(57, 213, 255, 0.32);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.045);
+  padding: 14px;
+}
+
+.evs-editor-settings-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 8px 0 14px;
+}
+
+.evs-editor-settings-card p,
+.evs-event-config-summary small,
+.evs-settings-section small {
+  color: var(--evs-muted, #b8c7dd);
+  margin: 4px 0 0;
+}
+
+.evs-event-config-summary {
+  margin: 14px 0;
+}
+
+.evs-event-config-grid {
+  margin-top: 12px;
+}
+
+.evs-settings-editor-modal {
+  max-width: 980px;
+}
+
+.evs-settings-section {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.evs-settings-section .evs-config-card-head {
+  margin-bottom: 2px;
+}
+
+@media (max-width: 900px) {
+  .evs-editor-settings-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+/* EVS-27B Live-Statusfenster */
+.evs-live-modal{
+  width:min(1180px, calc(100vw - 48px));
+  max-height:calc(100vh - 54px);
+  overflow:auto;
+}
+.evs-live-modal-head p{color:#bfd1ee;margin:.25rem 0 0;}
+.evs-live-toolbar{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+  margin:0 0 14px;
+}
+.evs-live-toolbar small{color:#9fb0c8;}
+.evs-live-status-pill{
+  border:1px solid rgba(148,163,184,.28);
+  background:rgba(15,23,42,.55);
+  color:#dbeafe;
+  padding:10px 12px;
+  border-radius:14px;
+  margin-bottom:14px;
+  font-weight:800;
+}
+.evs-live-status-pill.is-live{
+  border-color:rgba(34,197,94,.55);
+  background:rgba(22,101,52,.20);
+  color:#bbf7d0;
+}
+.evs-live-status-pill.is-idle{
+  border-color:rgba(245,158,11,.45);
+  background:rgba(120,53,15,.18);
+  color:#fde68a;
+}
+.evs-live-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+  margin-top:14px;
+}
+.evs-live-history-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+.evs-live-current-title{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:flex-start;
+  padding:10px 0 12px;
+  border-bottom:1px solid rgba(148,163,184,.18);
+  margin-bottom:10px;
+}
+.evs-live-current-title strong{font-size:1.05rem;color:#fff;}
+.evs-live-current-title span{color:#9fb0c8;font-size:.9rem;}
+.evs-live-rotation-mini{grid-template-columns:repeat(2,minmax(0,1fr));}
+.evs-live-footer-note{
+  margin-top:14px;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid rgba(34,211,238,.30);
+  background:rgba(8,47,73,.20);
+  color:#d9f7ff;
+}
+@media (max-width: 980px){
+  .evs-live-grid,.evs-live-history-grid{grid-template-columns:1fr;}
+}
+
+
 .evs-name-dialog {
   max-width: 560px;
 }
 
 .evs-name-dialog-form {
-  gap: 16px;
+  display: grid;
+  gap: 14px;
 }
 
 .evs-name-dialog input[data-evs-name-dialog-input] {
-  font-weight: 700;
+  width: 100%;
 }
