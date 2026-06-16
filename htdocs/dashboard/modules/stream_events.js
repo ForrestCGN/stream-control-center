@@ -350,12 +350,56 @@ window.StreamEventsModule = (function(){
           <div><strong>${esc(rankingRows.length)}</strong><span>Teilnehmer</span></div>
           <div><strong>${esc(rankingRows[0]?.points || 0)}</strong><span>Top-Punkte</span></div>
         </div>
+        ${renderOverviewLiveControls(event)}
         <div class="evs-action-row evs-action-row-tight">
-          <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="selectEvent" data-uid="${esc(event.eventUid)}" data-target-tab="stats">Statistik öffnen</button>
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="selectEvent" data-uid="${esc(event.eventUid)}" data-target-tab="events">Event verwalten</button>
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="finish" data-uid="${esc(event.eventUid)}">Event beenden</button>
         </div>
       </section>
+    `;
+  }
+
+  function renderOverviewLiveControls(event){
+    if (!event || norm(event.status) !== 'active') return '';
+    const soundControl = event.soundEnabled ? renderOverviewSoundControl(event) : '';
+    const statusButton = `<button type="button" class="evs-btn evs-btn-secondary" data-evs-action="openLiveStatus" data-uid="${esc(event.eventUid)}">Status & Punkte öffnen</button>`;
+    return `
+      <section class="evs-overview-live-control evs-runtime-box">
+        <div class="evs-runtime-box-head">
+          <div>
+            <h4>Live-Bedienung</h4>
+            <small>Direkte Steuerung für das laufende Event. Konfiguration bleibt im Events-Tab.</small>
+          </div>
+          <button type="button" class="evs-btn evs-btn-secondary evs-btn-small" data-evs-action="reload">Status neu laden</button>
+        </div>
+        ${soundControl}
+        <div class="evs-action-row evs-action-row-tight">
+          ${statusButton}
+          <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="selectEvent" data-uid="${esc(event.eventUid)}" data-target-tab="events">Event verwalten</button>
+          <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="finish" data-uid="${esc(event.eventUid)}">Event beenden</button>
+        </div>
+      </section>
+    `;
+  }
+
+  function renderOverviewSoundControl(event){
+    const report = soundRuntimeReportFor(event);
+    const activeRound = activeSoundRoundFromReport(report);
+    const snippet = activeRound?.config?.snippet || {};
+    const roundLabel = activeRound
+      ? `${esc(snippet.title || snippet.name || activeRound.itemUid || activeRound.roundUid)} · ${esc(soundRoundStatusLabel(activeRound.status || activeRound.result))}`
+      : 'Keine aktive Sound-Runde geladen.';
+    return `
+      <div class="evs-overview-live-row">
+        <div class="evs-live-control-current">
+          <strong>Sound-Runde</strong>
+          <span>${roundLabel}</span>
+        </div>
+        <div class="evs-action-row evs-action-row-tight">
+          <button type="button" class="evs-btn" data-evs-action="soundNextRound" data-uid="${esc(event.eventUid)}">Nächsten Schnipsel vorbereiten</button>
+        </div>
+        <small class="evs-muted">Manuelle Vorbereitung für Tests und moderierte Events. Echtes Playback kommt im nächsten Runtime-Step.</small>
+      </div>
     `;
   }
 

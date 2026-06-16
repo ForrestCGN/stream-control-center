@@ -565,3 +565,30 @@
   gap: 10px;
   margin: 10px 0;
 }
+
+/* EVENTSYS-27D-FIX2: Live-Bedienung direkt in der Übersicht */
+.evs-overview-live-control {
+  margin: 14px 0 4px;
+  border-color: rgba(250, 204, 21, 0.35);
+  background: rgba(20, 16, 8, 0.34);
+}
+
+.evs-overview-live-row {
+  display: grid;
+  gap: 8px;
+}
+
+.evs-overview-live-control .evs-live-control-current {
+  margin: 0;
+}
+
+.evs-overview-live-control .evs-action-row {
+  justify-content: flex-start;
+}
+
+@media (max-width: 820px) {
+  .evs-overview-live-control .evs-action-row {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}
