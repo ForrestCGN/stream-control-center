@@ -16,8 +16,8 @@ try {
 }
 
 const MODULE_NAME = "sound_system";
-const MODULE_VERSION = "0.1.26";
-const MODULE_BUILD = "STEP_EVENT_SOUND_4_STREAM_EVENTS_ROUND_PLAYBACK_BINDING";
+const MODULE_VERSION = "0.1.27";
+const MODULE_BUILD = "STEP_SOUND_GAP_1_POST_PLAYBACK_GAP_EVENT_HOLD";
 const SOUND_BUS_CAPABILITY = "sound.event_output";
 const SOUND_BUS_COMMAND_CAPABILITY = "sound.command_input";
 const SOUND_BUS_STATUS_API_VERSION = "1.0.0";
@@ -44,7 +44,7 @@ const MODULE_META = {
   deliveryClassification: SOUND_BUS_DELIVERY_CLASSIFICATION,
   commandDeliveryClassification: SOUND_BUS_COMMAND_DELIVERY_CLASSIFICATION,
   bus: { emits: true, registered: true, heartbeat: true, status: true },
-  note: "EVENT-SOUND-3B: Timing-/Dedupe-Fix fuer kontrollierten EventSound-Countdown; normale Sound-Flows bleiben unveraendert."
+  note: "SOUND-GAP-1: Globale 2s Pause zwischen Sound-Requests plus EventSound-Overlay-Hold nach Playback-Ende."
 };
 
 const DEFAULT_OUTPUT = {
@@ -113,6 +113,15 @@ const DEFAULT_CONFIG = {
     runtimeChannel: EVENT_RUNTIME_BUS_CHANNEL,
     hideOnAudioEnded: true
   },
+  soundGap: {
+    enabled: true,
+    postPlaybackGapMs: 2000,
+    minMs: 0,
+    maxMs: 10000,
+    blockQueueStart: true,
+    holdEventRuntimeOverlay: true,
+    dashboardTodo: true
+  },
   soundBusCommand: {
     enabled: true,
     channel: "sound.command",
@@ -129,7 +138,7 @@ const DEFAULT_CONFIG = {
     allowQueueTouch: false,
     allowAudioTouch: false
   },
-  overlay: { enabled: true, clientRequired: true, fallbackFinishMs: 12000, introMs: 0, outroMs: 350, gapBetweenSoundsMs: 750 },
+  overlay: { enabled: true, clientRequired: true, fallbackFinishMs: 12000, introMs: 0, outroMs: 350, gapBetweenSoundsMs: 2000 },
   output: DEFAULT_OUTPUT,
   queue: {
     enabled: true,
@@ -318,19 +327,31 @@ module.exports.init = function init(ctx) {
       lastAt: "",
       recentCommands: []
     },
-    activeBundleLock: null
+    activeBundleLock: null,
+    postPlaybackGap: {
+      active: false,
+      startedAt: 0,
+      untilMs: 0,
+      durationMs: 0,
+      reason: "",
+      requestId: "",
+      soundId: "",
+      label: "",
+      lastEndedAt: ""
+    }
   };
 
   let config = DEFAULT_CONFIG;
   let messages = DEFAULT_MESSAGES;
   let finishTimer = null;
+  let postPlaybackGapTimer = null;
   let soundCanBusHeartbeatTimer = null;
   let soundCanBusLastStatusMs = 0;
   const recent = { sounds: new Map(), categories: new Map(), users: new Map(), userSounds: new Map() };
   const SOUND_SETTINGS_SCHEMA_MODULE = "sound_system_settings";
   const SOUND_SETTINGS_SCHEMA_VERSION = 1;
   const SOUND_SETTINGS_TABLE = "sound_settings";
-  const SOUND_SETTINGS_BLOCKS = ["output", "overlay", "queue", "priorities", "defaults", "categoryDefaults", "targets", "discordRouting", "soundBus", "soundBusCommand", "eventPreRoll", "soundsBaseDir", "allowedExtensions"];
+  const SOUND_SETTINGS_BLOCKS = ["output", "overlay", "queue", "priorities", "defaults", "categoryDefaults", "targets", "discordRouting", "soundBus", "soundBusCommand", "eventPreRoll", "soundGap", "soundsBaseDir", "allowedExtensions"];
 
   function deepMergeRuntimeSettings(base, override) {
     if (!isPlainObject(base)) base = {};
@@ -718,6 +739,7 @@ module.exports.init = function init(ctx) {
         requestedBy: current.requestedBy || ""
       } : null,
       activeBundleLock: state.activeBundleLock ? { ...state.activeBundleLock } : null,
+      postPlaybackGap: publicPostPlaybackGapStatus(),
       client: {
         connected: !!state.client.connected,
         lastEvent: state.client.lastEvent || "",
@@ -891,6 +913,7 @@ module.exports.init = function init(ctx) {
       parallelCount: state.parallel.length,
       queuedCount: state.queue.length,
       activeBundleLock: state.activeBundleLock ? { ...state.activeBundleLock } : null,
+      postPlaybackGap: publicPostPlaybackGapStatus(),
       client: { ...state.client },
       device: { ...state.device },
       discord: { ...state.discord },
@@ -2426,7 +2449,7 @@ function publicSoundBusQueueStatus() {
       state: {
         enabled: state.enabled !== false,
         paused: state.paused === true,
-        phase: state.current ? "playing" : (state.queue.length ? "queued" : "idle"),
+        phase: state.current ? "playing" : (isPostPlaybackGapActive() ? "post_playback_gap" : (state.queue.length ? "queued" : "idle")),
         clientConnected: !!state.client.connected,
         clientLastSeenAt: Number(state.client.lastSeenAt || 0),
         clientLastEvent: state.client.lastEvent || "",
@@ -2440,7 +2463,9 @@ function publicSoundBusQueueStatus() {
         soundBusEnabled: soundBusConfig().enabled !== false,
         soundBusCommandMode: soundBusCommandConfig().mode || "",
         soundBusCommandConsumerMode: soundBusCommandConfig().consumerMode || "",
-        canBusRegistered: !!state.canBus.registered
+        canBusRegistered: !!state.canBus.registered,
+        postPlaybackGapActive: publicPostPlaybackGapStatus().active,
+        postPlaybackGapRemainingMs: publicPostPlaybackGapStatus().remainingMs
       },
       warnings,
       errors,
@@ -2466,6 +2491,7 @@ function publicSoundBusQueueStatus() {
       queuedCount: state.queue.length,
       currentBundle: state.current && state.current.bundleId ? publicBundleInfo(state.current.bundleId) : null,
       activeBundleLock: state.activeBundleLock ? { ...state.activeBundleLock } : null,
+      postPlaybackGap: publicPostPlaybackGapStatus(),
       bundles: publicBundleQueue(),
       client: { ...state.client },
       device: { ...state.device },
@@ -2495,6 +2521,7 @@ function publicSoundBusQueueStatus() {
         websocket: config.websocket || {},
         soundBus: config.soundBus || {},
         eventPreRoll: config.eventPreRoll || {},
+        soundGap: config.soundGap || {},
         soundBusCommand: config.soundBusCommand || {},
         overlay: config.overlay || {},
         output: config.output || {},
@@ -3982,6 +4009,135 @@ function publicSoundBusQueueStatus() {
   }
 
 
+  function clampPostPlaybackGapMs(value, fallback = 2000) {
+    const cfg = config.soundGap && typeof config.soundGap === "object" ? config.soundGap : {};
+    const maxMs = Math.max(0, Number(cfg.maxMs || 10000));
+    const minMs = Math.max(0, Number(cfg.minMs || 0));
+    let n = Number(value);
+    if (!Number.isFinite(n)) n = Number(fallback);
+    if (!Number.isFinite(n)) n = 2000;
+    n = Math.round(n);
+    if (maxMs > 0) n = Math.min(n, maxMs);
+    n = Math.max(minMs, n);
+    return Math.max(0, n);
+  }
+
+  function configuredPostPlaybackGapMs(item = null) {
+    const cfg = config.soundGap && typeof config.soundGap === "object" ? config.soundGap : {};
+    if (cfg.enabled === false) return 0;
+    const itemGap = item && item.postPlaybackGapMs != null ? item.postPlaybackGapMs : null;
+    const configured = itemGap != null
+      ? itemGap
+      : (cfg.postPlaybackGapMs != null ? cfg.postPlaybackGapMs : 2000);
+    return clampPostPlaybackGapMs(configured, 2000);
+  }
+
+  function publicPostPlaybackGapStatus() {
+    const now = Date.now();
+    const active = !!(state.postPlaybackGap && state.postPlaybackGap.active && state.postPlaybackGap.untilMs > now);
+    return {
+      prepared: true,
+      enabled: !(config.soundGap && config.soundGap.enabled === false),
+      active,
+      durationMs: Number((state.postPlaybackGap && state.postPlaybackGap.durationMs) || configuredPostPlaybackGapMs()),
+      remainingMs: active ? Math.max(0, Number(state.postPlaybackGap.untilMs || 0) - now) : 0,
+      untilMs: Number((state.postPlaybackGap && state.postPlaybackGap.untilMs) || 0),
+      reason: (state.postPlaybackGap && state.postPlaybackGap.reason) || "",
+      requestId: (state.postPlaybackGap && state.postPlaybackGap.requestId) || "",
+      soundId: (state.postPlaybackGap && state.postPlaybackGap.soundId) || "",
+      label: (state.postPlaybackGap && state.postPlaybackGap.label) || "",
+      holdEventRuntimeOverlay: !!(config.soundGap && config.soundGap.holdEventRuntimeOverlay !== false),
+      blockQueueStart: !!(config.soundGap && config.soundGap.blockQueueStart !== false),
+      dashboardTodo: true
+    };
+  }
+
+  function clearPostPlaybackGap(reason = "cleared") {
+    if (postPlaybackGapTimer) {
+      clearTimeout(postPlaybackGapTimer);
+      postPlaybackGapTimer = null;
+    }
+    state.postPlaybackGap = {
+      ...(state.postPlaybackGap || {}),
+      active: false,
+      untilMs: 0,
+      durationMs: 0,
+      reason: String(reason || "cleared")
+    };
+  }
+
+  function isPostPlaybackGapActive() {
+    if (!state.postPlaybackGap || state.postPlaybackGap.active !== true) return false;
+    if (Number(state.postPlaybackGap.untilMs || 0) <= Date.now()) {
+      clearPostPlaybackGap("expired");
+      return false;
+    }
+    return true;
+  }
+
+  function queueBehindPostPlaybackGap(item) {
+    const maxLength = Number(config.queue?.maxLength || 50);
+    if (state.queue.length >= maxLength) {
+      if (shouldDropQueueFull(item)) return { started: false, queued: false, dropped: true, queuePosition: -1, item, reason: "queue_full_post_playback_gap" };
+      throw new Error(msg("queueFull"));
+    }
+    state.queue.push(item);
+    sortQueue();
+    state.stats.queued += 1;
+    emit("queued");
+    emitSoundBus("item_queued", { item, kind: "item", extra: { reason: "post_playback_gap", gap: publicPostPlaybackGapStatus() } });
+    return {
+      started: false,
+      queued: true,
+      queuePosition: state.queue.findIndex(q => q.requestId === item.requestId) + 1,
+      item,
+      reason: "post_playback_gap",
+      retryAfterMs: publicPostPlaybackGapStatus().remainingMs
+    };
+  }
+
+  function finalizeFinishedItemAfterGap(finished, reason, parallel = false) {
+    if (finished) clearEventPreRollRuntime(finished, "hide", reason || "finished");
+    emit(reason || (parallel ? "parallel_finished" : "finished"));
+    if (finished) emitSoundBus("item_finished", { item: finished, kind: "item", extra: { reason: reason || "finished", parallel: !!parallel, postPlaybackGap: publicPostPlaybackGapStatus() } });
+    if (!parallel && finished && finished.bundleId && state.activeBundleLock && state.activeBundleLock.bundleId === finished.bundleId) {
+      const hasMoreBundleItems = state.queue.some(item => item && item.bundleId === finished.bundleId);
+      if (!hasMoreBundleItems) {
+        const lock = { ...state.activeBundleLock };
+        state.activeBundleLock = null;
+        emitSoundBus("bundle_lock_finished", { item: finished, kind: "bundle_lock", extra: { activeBundleLock: lock, reason: reason || "finished" } });
+      }
+    }
+    clearPostPlaybackGap("finished");
+    startNextIfPossible("gap_finished");
+  }
+
+  function schedulePostPlaybackGap(finished, reason, parallel = false) {
+    const gapMs = configuredPostPlaybackGapMs(finished);
+    if (gapMs <= 0) {
+      finalizeFinishedItemAfterGap(finished, reason, parallel);
+      return 0;
+    }
+    clearPostPlaybackGap("rescheduled");
+    const now = Date.now();
+    state.postPlaybackGap = {
+      active: true,
+      startedAt: now,
+      untilMs: now + gapMs,
+      durationMs: gapMs,
+      reason: String(reason || "finished"),
+      requestId: finished && finished.requestId ? String(finished.requestId) : "",
+      soundId: finished && finished.soundId ? String(finished.soundId) : "",
+      label: finished && finished.label ? String(finished.label) : "",
+      lastEndedAt: core.nowIso()
+    };
+    emitSoundBus("post_playback_gap_started", { item: finished, kind: "item", extra: { reason: reason || "finished", parallel: !!parallel, gap: publicPostPlaybackGapStatus() } });
+    postPlaybackGapTimer = setTimeout(() => finalizeFinishedItemAfterGap(finished, reason, parallel), gapMs);
+    if (postPlaybackGapTimer && typeof postPlaybackGapTimer.unref === "function") postPlaybackGapTimer.unref();
+    return gapMs;
+  }
+
+
   function activateItemAfterEventPreRoll(item, parallel) {
     if (!itemStillActive(item, parallel)) return;
     const preRoll = item.lifecycle && item.lifecycle.eventPreRoll ? item.lifecycle.eventPreRoll : null;
@@ -4105,14 +4261,12 @@ function publicSoundBusQueueStatus() {
     const index = state.parallel.findIndex(item => item.requestId === requestId);
     if (index < 0) return null;
     const [finished] = state.parallel.splice(index, 1);
-    clearEventPreRollRuntime(finished, "hide", reason || "parallel_finished");
-    emit(reason || "parallel_finished");
-    emitSoundBus("item_finished", { item: finished, kind: "item", extra: { reason: reason || "parallel_finished", parallel: true } });
+    schedulePostPlaybackGap(finished, reason || "parallel_finished", true);
     return finished;
   }
 
   function startNextIfPossible(reason) {
-    if (state.paused || state.current || !state.queue.length) return false;
+    if (state.paused || state.current || isPostPlaybackGapActive() || !state.queue.length) return false;
     const lockedNext = pickNextLockedBundleItem();
     const next = lockedNext || state.queue.shift();
     if (state.activeBundleLock && (!next || next.bundleId !== state.activeBundleLock.bundleId)) {
@@ -4126,19 +4280,7 @@ function publicSoundBusQueueStatus() {
     clearFinishTimer();
     const finished = state.current;
     state.current = null;
-    clearEventPreRollRuntime(finished, "hide", reason || "finished");
-    emit(reason || "finished");
-    if (finished) emitSoundBus("item_finished", { item: finished, kind: "item", extra: { reason: reason || "finished", parallel: false } });
-    const gap = Number((finished && finished.gapAfterMs) || config.overlay?.gapBetweenSoundsMs || 750);
-    if (finished && finished.bundleId && state.activeBundleLock && state.activeBundleLock.bundleId === finished.bundleId) {
-      const hasMoreBundleItems = state.queue.some(item => item && item.bundleId === finished.bundleId);
-      if (!hasMoreBundleItems) {
-        const lock = { ...state.activeBundleLock };
-        state.activeBundleLock = null;
-        emitSoundBus("bundle_lock_finished", { item: finished, kind: "bundle_lock", extra: { activeBundleLock: lock, reason: reason || "finished" } });
-      }
-    }
-    setTimeout(() => startNextIfPossible("gap_finished"), Math.max(0, gap));
+    schedulePostPlaybackGap(finished, reason || "finished", false);
     return finished;
   }
 
@@ -4146,6 +4288,7 @@ function publicSoundBusQueueStatus() {
     const stopped = state.current;
     if (stopped) killDeviceProcess(stopped, reason || "stopped");
     clearFinishTimer();
+    clearPostPlaybackGap("manual_stop");
     state.current = null;
     state.stats.stopped += 1;
     emit(reason || "stopped");
@@ -4210,6 +4353,11 @@ function publicSoundBusQueueStatus() {
     const cooldown = checkCooldown(item);
     if (cooldown) return { started: false, queued: false, dropped: true, queuePosition: -1, item, reason: cooldown.reason, retryAfterMs: cooldown.retryAfterMs };
     if (item.clearQueue) { state.queue = []; state.activeBundleLock = null; }
+
+    if (isPostPlaybackGapActive() && !(state.current && canInterruptCurrent(item, state.current))) {
+      if (shouldDropBusy(item)) return { started: false, queued: false, dropped: true, queuePosition: -1, item, reason: "post_playback_gap_drop_policy", retryAfterMs: publicPostPlaybackGapStatus().remainingMs };
+      return queueBehindPostPlaybackGap(item);
+    }
 
     if (state.activeBundleLock && !itemMatchesActiveBundleLock(item)) {
       return queueBehindActiveBundleLock(item);
