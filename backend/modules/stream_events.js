@@ -23,8 +23,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.35";
-const MODULE_BUILD = "STEP_EVENT_SOUND_5_REAL_MEDIA_SNIPPET_PLAYBACK";
+const MODULE_VERSION = "0.5.36";
+const MODULE_BUILD = "STEP_EVENT_SOUND_5B_OUTPUT_TARGET_CONFIG";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -181,6 +181,8 @@ const DEFAULT_EVENT_CONFIG = {
     preRollSeconds: 3,
     countdownPreRollEnabled: false,
     countdownPreRollSeconds: 3,
+    outputTarget: "default",
+    target: "stream",
     manualTriggerEnabled: true
   },
   textDefaults: {
@@ -618,6 +620,8 @@ function normalizeEventConfig(input = {}) {
   cfg.soundDefaults.preRollSeconds = clampNumber(cfg.soundDefaults.preRollSeconds, 0, 30, 3);
   cfg.soundDefaults.countdownPreRollEnabled = boolValue(cfg.soundDefaults.countdownPreRollEnabled, false);
   cfg.soundDefaults.countdownPreRollSeconds = clampNumber(cfg.soundDefaults.countdownPreRollSeconds, 0, 30, 3);
+  cfg.soundDefaults.outputTarget = normalizePolicy(cfg.soundDefaults.outputTarget, ["default", "overlay", "device", "both"], "default");
+  cfg.soundDefaults.target = normalizePolicy(cfg.soundDefaults.target, ["stream", "discord", "both"], "stream");
   cfg.soundDefaults.manualTriggerEnabled = true;
 
   cfg.textDefaults.defaultPhrasePoints = clampNumber(cfg.textDefaults.defaultPhrasePoints, 0, 10000, 40);
@@ -1033,7 +1037,9 @@ function normalizeSoundEventSettings(config = {}, defaults = null) {
     preRollEnabled: raw.preRollEnabled !== undefined ? boolValue(raw.preRollEnabled) : boolValue(base.preRollEnabled, false),
     preRollSeconds: clampNumber(raw.preRollSeconds ?? base.preRollSeconds, 0, 30, 3),
     countdownPreRollEnabled: raw.countdownPreRollEnabled !== undefined ? boolValue(raw.countdownPreRollEnabled) : boolValue(base.countdownPreRollEnabled, false),
-    countdownPreRollSeconds: clampNumber(raw.countdownPreRollSeconds ?? base.countdownPreRollSeconds, 0, 30, 3)
+    countdownPreRollSeconds: clampNumber(raw.countdownPreRollSeconds ?? base.countdownPreRollSeconds, 0, 30, 3),
+    outputTarget: normalizePolicy(raw.outputTarget ?? raw.soundOutputTarget ?? base.outputTarget, ["default", "overlay", "device", "both"], "default"),
+    target: normalizePolicy(raw.target ?? raw.soundTarget ?? base.target, ["stream", "discord", "both"], "stream")
   };
 }
 
@@ -3133,7 +3139,8 @@ function buildSoundPlaybackPayload(event, round, snippet, runtimeConfig) {
       category: "stream_event_sound_snippet",
       requestedBy: MODULE_NAME,
       priority: 70,
-      outputTarget: "overlay",
+      target: runtimeConfig.target || "stream",
+      ...(runtimeConfig.outputTarget && runtimeConfig.outputTarget !== "default" ? { outputTarget: runtimeConfig.outputTarget } : {}),
       source: MODULE_NAME,
       meta: {
         module: MODULE_NAME,
@@ -3158,9 +3165,9 @@ function buildSoundPlaybackPayload(event, round, snippet, runtimeConfig) {
     meta: {
       preparedAt: nowIso(),
       answerSeconds: runtimeConfig.answerSeconds,
-      soundSafeStep: "EVENT-SOUND-5",
+      soundSafeStep: "EVENT-SOUND-5B",
       extensionPoint: "stream_events.before_sound_system_play_request",
-      note: "EVENT-SOUND-5: Payload kann echte Media-Registry-Snippets verwenden; generated_beep bleibt nur Test-Fallback."
+      note: "EVENT-SOUND-5B: EventSound nutzt standardmaessig die Sound-System-Ausgabequelle; outputTarget wird nur bei expliziter Config ueberschrieben."
     }
   };
 }
@@ -3192,6 +3199,7 @@ function requestSoundSystemPlaybackForSoundRound(playback = {}, options = {}) {
       eventSound4B: true,
       eventSound4C: true,
       eventSound5: true,
+      eventSound5B: true,
       eventPreRoll: {
         ...originalPreRoll,
         enabled: true,
@@ -3208,14 +3216,14 @@ function requestSoundSystemPlaybackForSoundRound(playback = {}, options = {}) {
     }
   };
   if (requestedItem.mediaResolutionError) {
-    return { ok: false, module: MODULE_NAME, step: "EVENT-SOUND-5", playbackRequested: true, error: requestedItem.mediaResolutionError, mediaId: requestedItem.mediaId || "", mediaPath: requestedItem.mediaPath || "" };
+    return { ok: false, module: MODULE_NAME, step: "EVENT-SOUND-5B", playbackRequested: true, error: requestedItem.mediaResolutionError, mediaId: requestedItem.mediaId || "", mediaPath: requestedItem.mediaPath || "" };
   }
   try {
     const result = soundSystemModule.playStreamEventPreRollItem(requestedItem);
     return {
       ok: !!(result && result.ok),
       module: MODULE_NAME,
-      step: "EVENT-SOUND-5",
+      step: "EVENT-SOUND-5B",
       playbackRequested: true,
       soundSystemResult: result || null,
       queueTouched: !!(result && result.result && (result.result.started || result.result.queued || result.result.parallel)),
@@ -3223,7 +3231,7 @@ function requestSoundSystemPlaybackForSoundRound(playback = {}, options = {}) {
       error: result && result.error ? result.error : ""
     };
   } catch (err) {
-    return { ok: false, module: MODULE_NAME, step: "EVENT-SOUND-5", playbackRequested: true, error: err && err.message ? err.message : String(err) };
+    return { ok: false, module: MODULE_NAME, step: "EVENT-SOUND-5B", playbackRequested: true, error: err && err.message ? err.message : String(err) };
   }
 }
 
