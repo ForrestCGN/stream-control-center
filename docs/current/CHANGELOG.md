@@ -2,6 +2,71 @@
 
 Stand: 2026-06-16
 
+## 2026-06-16 – LC-CORE-LIVE-CLEANUP-2 Live-only geprüft
+
+### Ergebnis
+
+```text
+Loyalty läuft jetzt fachlich live-only. Shadow-Migration ist abgeschlossen und Shadow ist leer.
+```
+
+### Bestätigt
+
+```text
+/api/loyalty/status:
+  version = 0.1.24
+  mode = live
+  enabled = true
+  shadowMode = false
+
+Migrationstool-Dry-Run:
+  candidates=0 totalShadow=0
+  excluded=0 excludedShadow=0
+```
+
+### Referenzprüfungen
+
+```text
+Urlug:
+  balanceShadow = 0
+  balanceLive   = 1006852
+  activeBalance = 1006852
+
+Tronic6:
+  balanceShadow = 0
+  balanceLive   = 12536
+  activeBalance = 12536
+```
+
+### Wichtig
+
+```text
+DB-Spalten fuer Shadow bleiben vorerst bestehen, werden aber fachlich nicht mehr genutzt.
+API-Kompatibilitätsfelder bleiben vorerst vorhanden.
+Späterer Cleanup soll alte Shadow-/Import-Begriffe in Status/Dashboard/Doku prüfen und bereinigen.
+```
+
+## 2026-06-16 – LC-CORE Shadow->Live Migration
+
+### Ergebnis
+
+```text
+Normale User wurden mit ihren Shadow-Punkten nach Live migriert.
+Test-/Bridge-/Diagnose-User wurden aus der produktiven Migration ausgeschlossen.
+Ignored/System-Reste wurden nicht nach Live gebucht.
+Rest-Shadow-Werte wurden danach gezielt genullt.
+```
+
+### Zahlen
+
+```text
+migrated = 468
+amount = 69116
+failed_ignored_by_api = 4
+Rest-Clear = 40 User / 10064 Kekskrümel
+Abschluss = 0 Shadow-User / 0 Shadow-Summe
+```
+
 ## 2026-06-16 – LC-MINIGAMES-2B FIX3 Text DB Cleanup
 
 ### Ergebnis
@@ -62,15 +127,5 @@ Mini-Spiele wurde als Status-/Bedienseite bereinigt. Raffle-Config liegt unter L
 Einstellungen -> Raffle zeigt nur fachliche Config.
 Command-Felder wurden aus Raffle-Config entfernt.
 Texte-Dropdown hat keine Option Alle Textbereiche mehr.
-Textvarianten-Tabelle zeigt nur noch den ausgewählten Bereich.
+Textvarianten-Tabelle zeigt nur den ausgewählten Bereich.
 ```
-
-## 2026-06-15/16 – StreamElements Import Hinweis
-
-```text
-Beim StreamElements-Punkteimport wurden die StreamElements-Punkte in die Datenbank importiert, aber Punkte, die im neuen Loyalty-System bereits gesammelt wurden, wurden dabei nicht addiert. Das ist für spätere Prüfungen/Korrekturen relevant.
-```
-
-## Vorheriger Stand
-
-Der vorherige Doku-Stand beschrieb LC-CORE-POINTS-3A als nächsten Hauptblock. Dieser bleibt weiterhin geplant, wird aber nach Abschluss des Raffle-Kosten-Live-Tests fortgesetzt.

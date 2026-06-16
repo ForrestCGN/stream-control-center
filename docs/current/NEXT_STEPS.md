@@ -13,6 +13,11 @@ LC-MINIGAMES-2B Kosten-Live-Test abschließen
 ## Ausgangslage
 
 ```text
+Loyalty Core läuft live-only.
+Shadow-Migration ist abgeschlossen.
+Shadow ist leer: candidates=0 totalShadow=0.
+/api/loyalty/status bestätigt mode=live, enabled=true, shadowMode=false.
+Urlug und Tronic6 wurden erfolgreich geprüft.
 Raffle-Teilnahmekosten sind eingebaut.
 Config speichert entryCostAmount=10 und entryCostEnabled=true korrekt.
 Text-DB-Cleanup ist bestätigt.
@@ -20,7 +25,7 @@ Keine aktiven mehrzeiligen Textvarianten mehr in /api/loyalty/giveaways/texts.
 Kosten-Live-Test steht noch aus.
 ```
 
-## Schritt 1 – aktuellen Stand prüfen
+## Schritt 1 – aktuellen Raffle-Stand prüfen
 
 ```powershell
 Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/raffle/config" | ConvertTo-Json -Depth 6
@@ -35,11 +40,24 @@ entryCostEnabled = true
 
 ## Schritt 2 – Balance vor Join prüfen
 
+Für einen echten Testuser oder einen bewusst gewählten Account:
+
 ```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/balance/forrestcgn?displayName=ForrestCGN" | ConvertTo-Json -Depth 6
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/balance/tronic6?displayName=Tronic6" | ConvertTo-Json -Depth 8
 ```
 
-Falls Testpunkte fehlen, nur gezielt kleine Testpunkte per vorhandener Admin-Adjustment-Route vergeben.
+Oder für Urlug als Kontrollreferenz:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/balance/urlug?displayName=Urlug" | ConvertTo-Json -Depth 8
+```
+
+Referenzwerte nach Migration:
+
+```text
+Urlug   balanceLive=1006852 balanceShadow=0 activeBalance=1006852
+Tronic6 balanceLive=12536   balanceShadow=0 activeBalance=12536
+```
 
 ## Schritt 3 – Raffle starten und Join testen
 
@@ -126,7 +144,10 @@ Wenn Kosten-Live-Test bestätigt ist:
 ```text
 1. Doku erneut aktualisieren.
 2. LC-MINIGAMES-2B als bestätigt markieren.
-3. Danach LC-CORE-POINTS-3A / Twitch Events weiterführen.
+3. Danach LC-CORE-LIVE-CLEANUP-3 planen:
+   - alte Shadow-/Import-Begriffe aus Status/Dashboard/Doku bereinigen
+   - Kompatibilitätsfelder bewusst prüfen
+   - DB-Schema-Cleanup für Shadow-Spalten nur planen, noch nicht blind droppen
 ```
 
 ## Nicht tun
@@ -137,4 +158,6 @@ Keine Raffle-Commands im Raffle-Config-Bereich bearbeiten.
 Keine alten raffle.* Textkeys reaktivieren.
 Keine Alerts produktiv umschalten.
 Keine neue Raffle-Parallelstruktur bauen.
+Keinen Shadow-Modus wieder aktivieren.
+Keine Shadow-DB-Spalten ohne Referenzprüfung droppen.
 ```

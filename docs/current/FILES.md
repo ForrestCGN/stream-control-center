@@ -5,25 +5,55 @@ Stand: 2026-06-16
 ## Aktueller Arbeitsstand
 
 ```text
-LC-MINIGAMES-2B FIX3 – Raffle Teilnahmekosten + Text-DB-Cleanup
+LC-CORE-LIVE-CLEANUP-2 – Live-only geprüft, Shadow-Migration abgeschlossen
 ```
 
 ## Für diesen Doku-Stand relevante geänderte Dateien
 
 ```text
+backend/modules/loyalty.js
+htdocs/dashboard/modules/loyalty.js
 backend/modules/loyalty_giveaways.js
 htdocs/dashboard/modules/loyalty_games.js
+tools/loyalty_migrate_shadow_to_live_once.js
 docs/current/CURRENT_STATUS.md
 docs/current/TODO.md
 docs/current/NEXT_STEPS.md
 docs/current/FILES.md
 docs/current/CHANGELOG.md
-docs/current/CURRENT_CHAT_HANDOFF_LC_MINIGAMES_2B_DOCUMENTED.md
-docs/modules/loyalty_giveaways.md
-project-state/CURRENT_STATUS_LC_MINIGAMES_2B_DOCUMENTED.md
+docs/current/CURRENT_CHAT_HANDOFF_LC_CORE_LIVE_CLEANUP_2.md
+docs/modules/loyalty.md
+project-state/CURRENT_STATUS_LC_CORE_LIVE_CLEANUP_2.md
 ```
 
-## Backend
+## Backend Loyalty Core
+
+```text
+backend/modules/loyalty.js
+```
+
+Aktueller geprüfter Live-Stand:
+
+```text
+module = loyalty
+version = 0.1.24
+mode = live
+enabled = true
+shadowMode = false
+```
+
+Wichtige Routen:
+
+```text
+GET  /api/loyalty/status
+GET  /api/loyalty/settings
+POST /api/loyalty/settings
+GET  /api/loyalty/transactions
+GET  /api/loyalty/balance/:login
+GET  /api/loyalty/users
+```
+
+## Backend Mini-Spiele / Raffle
 
 ```text
 backend/modules/loyalty_giveaways.js
@@ -50,17 +80,37 @@ GET  /api/loyalty/giveaways/raffle/status
 ## Dashboard
 
 ```text
+htdocs/dashboard/modules/loyalty.js
 htdocs/dashboard/modules/loyalty_games.js
 ```
 
 Enthält:
 
 ```text
+Loyalty-Core Live-only Ansicht
+Status Aktiv/Inaktiv statt Shadow/Live Fokus
 Mini-Spiele Status-/Bedienansicht
 Raffle Config unter Einstellungen
 Raffle Texte unter Texte
 bereichsgebundene Texttabelle ohne Alle-Textbereiche
 ```
+
+## Migrationstool
+
+```text
+tools/loyalty_migrate_shadow_to_live_once.js
+```
+
+Genutzt für:
+
+```text
+Shadow->Live Migration normaler User
+Ausschluss Test-/Bridge-/Diagnose-User
+gezieltes Nullen restlicher Shadow-Werte
+Abschlussprüfung candidates=0 totalShadow=0
+```
+
+Das Tool bleibt vorerst als Archiv-/Diagnosewerkzeug im Projekt. Es soll nicht automatisch regelmäßig ausgeführt werden.
 
 ## Textsystem
 
@@ -80,14 +130,16 @@ Kein eigenes Zufallssystem im Raffle-/Giveaway-Modul.
 
 ```text
 D:\Streaming\stramAssets\data\sqlite\app.sqlite niemals ersetzen, löschen oder neu bauen.
-Vor Text-/DB-Cleanup wurde ein Backup empfohlen.
-Text-Cleanup betrifft nur gezielte Seed-Textbereiche, keine Punkte/Transaktionen/User-Balances.
+Vor Text-/DB-Cleanup und Migration wurde ein Backup empfohlen.
+Shadow-Spalten bleiben vorerst bestehen und werden nicht blind gedroppt.
 ```
 
-## Offene Testdateien / Befehle
+## Offene Testbefehle
 
 ```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/status" | ConvertTo-Json -Depth 8
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/balance/urlug?displayName=Urlug" | ConvertTo-Json -Depth 8
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/balance/tronic6?displayName=Tronic6" | ConvertTo-Json -Depth 8
 Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/raffle/config" | ConvertTo-Json -Depth 6
 Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/giveaways/texts" | ConvertTo-Json -Depth 6
-Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/balance/forrestcgn?displayName=ForrestCGN" | ConvertTo-Json -Depth 6
 ```

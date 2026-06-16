@@ -10,6 +10,15 @@ Stand: 2026-06-16
 - [x] Twitch Presence / aktive User für Watch-Punkte bestätigt.
 - [x] Loyalty Core live geschaltet.
 - [x] StreamElements-Punkteimport durchgeführt.
+- [x] Shadow-Punkte geprüft: StreamElements-Import hatte die vorher im neuen System gesammelten Shadow-Punkte nicht addiert.
+- [x] Shadow->Live-Migration für normale User durchgeführt.
+- [x] Urlug geprüft: `balanceShadow=0`, `balanceLive=1006852`, `activeBalance=1006852`.
+- [x] Tronic6 geprüft: `balanceShadow=0`, `balanceLive=12536`, `activeBalance=12536`.
+- [x] Test-/Bridge-/Diagnose-User aus produktiver Migration ausgeschlossen.
+- [x] Rest-Shadow-Werte für Test-/Bridge-/System-/Ignored-User gezielt genullt.
+- [x] Abschlussprüfung: `candidates=0 totalShadow=0`, `excluded=0 excludedShadow=0`.
+- [x] LC-CORE-LIVE-CLEANUP-2: Shadow-Modus ausgeblendet und Live-only vorbereitet.
+- [x] `/api/loyalty/status` bestätigt: `mode=live`, `enabled=true`, `shadowMode=false`, Version `0.1.24`.
 - [x] Raffle produktiv als Mini-Spiel im bestehenden Modul `loyalty_giveaways.js` vorbereitet.
 - [x] Dashboard-Tab `Mini-Spiele` für Raffle/Gamble aufgebaut.
 - [x] Raffle-Config aus Mini-Spiele herausgezogen und unter `Loyalty -> Einstellungen -> Raffle` eingeordnet.
@@ -34,22 +43,23 @@ Stand: 2026-06-16
 - [ ] Nach Kosten-Live-Test Transaktionen/Balances gegenprüfen.
 - [ ] Nach Kosten-Live-Test Raffle-Texte im Dashboard prüfen und ggf. Varianten kürzen/ergänzen.
 
-## Wichtige spätere Korrektur / Prüfung
+## Nächster Cleanup nach Live-only-Bestätigung
 
-- [ ] StreamElements-Import prüfen: Beim Import wurden die bereits im neuen Loyalty-System gesammelten Punkte nicht addiert. Für spätere Korrektur/Abgleich berücksichtigen.
+- [ ] Alte Shadow-/Import-Begriffe in Status/Dashboard/Doku prüfen und streamerfreundlich bereinigen:
+  - [ ] `streamElementsStillActive` Status-/Diagnosefeld fachlich bewerten.
+  - [ ] `importStatus` nach abgeschlossener Migration neu bewerten oder entfernen/umbenennen.
+  - [ ] Dashboard-Texte wie „Shadow-Runner“ vollständig entfernen/umbenennen.
+  - [ ] API-Kompatibilität erhalten, keine Breaking Changes ohne bewusste Freigabe.
+- [ ] Später separater DB-Schema-Cleanup planen:
+  - [ ] `balance_shadow`
+  - [ ] `total_earned_shadow`
+  - [ ] `total_spent_shadow`
+  - [ ] nur nach Prüfung aller Backend-/Dashboard-/Tool-Referenzen droppen.
 
 ## Nächster Hauptblock danach
 
-- [ ] LC-CORE-POINTS-3A weiterführen: Twitch Events als abonnierbare Bonus-Events vorbereiten.
-- [ ] Vor Umsetzung echte Dateien aus GitHub/dev prüfen:
-  - [ ] `backend/modules/twitch_events.js`
-  - [ ] `backend/modules/loyalty.js`
-  - [ ] `backend/modules/communication_bus.js`
-  - [ ] `backend/modules/helpers/helper_communication.js`
-  - [ ] relevante Dokus in `docs/current/*`
-- [ ] EventKeys/Payload für Bonus-relevante Twitch Events finalisieren.
-- [ ] Loyalty-Bus-Subscriber für EventBonus-Events planen/umsetzen.
-- [ ] Alerts weiterhin Shadow beobachten, keine Produktivumschaltung ohne Freigabe.
+- [ ] LC-CORE-POINTS-3A weiterführen: Twitch Events als abonnierbare Bonus-Events vorbereiten bzw. bisherige Shadow-/Diagnosephase weiter beobachten.
+- [ ] Alerts weiterhin Shadow/Diagnose beobachten, keine Produktivumschaltung ohne Freigabe.
 
 ## Nicht wieder einführen
 
@@ -60,3 +70,4 @@ Stand: 2026-06-16
 - [ ] Alte `raffle.*` Chatkeys als produktiven Raffle-Pfad.
 - [ ] Mehrzeilige Sammelvarianten als aktive Textvarianten.
 - [ ] Produktive SQLite ersetzen/neu bauen.
+- [ ] Shadow-Modus als produktiven Loyalty-Betrieb wieder aktivieren.

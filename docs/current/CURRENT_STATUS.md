@@ -5,25 +5,93 @@ Stand: 2026-06-16
 ## Aktueller bestätigter Arbeitsstand
 
 ```text
-LC-MINIGAMES-2B FIX3 – Raffle Teilnahmekosten vorbereitet, Text-DB-Cleanup bestätigt
+LC-CORE-LIVE-CLEANUP-2 – Loyalty live-only geprüft, Shadow-Migration abgeschlossen
 Nächster offener Test: Raffle-Teilnahmekosten live prüfen
 ```
 
 ## Kurzfazit
 
-Der Loyalty-Core ist live. Raffle ist weiterhin bewusst im bestehenden Modul `backend/modules/loyalty_giveaways.js` integriert und wurde im Dashboard sauberer in die Loyalty-Struktur einsortiert.
+Der Loyalty-Core läuft produktiv im Live-Modus. Die zuvor im Shadow-Modus gesammelten Punkte wurden vollständig bereinigt: normale User wurden nach Live migriert, Test-/Bridge-/System-Reste wurden genullt. Shadow ist leer und wird fachlich nicht mehr als Betriebsmodus genutzt.
 
 Bestätigt:
 
 ```text
 Loyalty Core läuft produktiv.
-StreamElements-Punkteimport wurde durchgeführt.
-Watch-Punkte und Twitch-Event-Boni wurden produktiv gebucht.
-Raffle-Config ist im Dashboard unter Loyalty -> Einstellungen -> Raffle.
-Raffle-Status/Bedienung bleibt unter Loyalty -> Mini-Spiele.
-Raffle-Texte sind unter Loyalty -> Texte -> Raffle sichtbar.
-Raffle-Textvarianten-Tabelle filtert nur noch den ausgewählten Bereich.
+/api/loyalty/status meldet mode=live, enabled=true, shadowMode=false.
+/api/loyalty/balance/urlug meldet balanceShadow=0, balanceLive=1006852, activeBalance=1006852.
+/api/loyalty/balance/tronic6 meldet balanceShadow=0, balanceLive=12536, activeBalance=12536.
+Migrationstool-Dry-Run meldet candidates=0 totalShadow=0 und excluded=0 excludedShadow=0.
+Live ist ab jetzt der einzige relevante Punkte-Stand.
 ```
+
+## Loyalty Live-only / Shadow-Migration
+
+### Migrationsergebnis
+
+```text
+Normale User migriert: 468
+Nach Live gebuchte Shadow-Summe: 69116 Kekskrümel
+Ignored/API-blockierte User wurden nicht nach Live gebucht.
+Test-/Bridge-/Diagnose-User wurden aus der Migration ausgeschlossen.
+Rest-Shadow-Werte wurden anschließend gezielt genullt.
+```
+
+### Abschlussprüfung
+
+```text
+node .\tools\loyalty_migrate_shadow_to_live_once.js --dry-run
+```
+
+Ergebnis:
+
+```text
+candidates=0 totalShadow=0
+excluded=0 excludedShadow=0
+Keine User mit balanceShadow > 0 gefunden.
+```
+
+### Wichtige Referenzwerte
+
+```text
+Urlug:
+  balanceShadow = 0
+  balanceLive   = 1006852
+  activeBalance = 1006852
+  activeMode    = live
+
+Tronic6:
+  balanceShadow = 0
+  balanceLive   = 12536
+  activeBalance = 12536
+  activeMode    = live
+```
+
+## Betriebslogik ab jetzt
+
+Fachlich gibt es im Loyalty-Core nur noch:
+
+```text
+Aktiv   = live
+Inaktiv = off
+```
+
+`shadowMode` bleibt aus Kompatibilitätsgründen vorerst als API-Feld vorhanden, ist aber `false`. Alte `mode=shadow`-Werte aus Config/API sollen im Runtime-Pfad nicht mehr zu Shadow-Buchungen führen, sondern als Live behandelt werden.
+
+## Status Live-System
+
+Bestätigte Statuswerte aus `/api/loyalty/status`:
+
+```text
+module = loyalty
+version = 0.1.24
+mode = live
+enabled = true
+shadowMode = false
+currencyName = Kekskrümel
+schema.version = 4
+```
+
+Wichtig: Im Status existieren noch alte Kompatibilitäts-/Diagnosefelder wie `streamElementsStillActive` und `importStatus`. Diese sind kein Funktionsfehler, sollen aber in einem separaten Cleanup-Step geprüft, umbenannt oder entfernt werden.
 
 ## Raffle / Mini-Spiele – bestätigter Stand
 
@@ -103,20 +171,12 @@ Raffle nutzt produktiv neue Keys raffle.public.*.
 Alte raffle.* Seed-Keys wurden aus dem aktiven Pfad entfernt/bereinigt.
 ```
 
-Betroffene Textbereiche:
-
-```text
-chat_raffle
-chat_giveaway
-chat_ticket
-chat_wheel
-```
-
 ## Dashboard-Stand
 
-Geänderte Dashboard-Datei im aktuellen Mini-Spiele-/Raffle-Cleanup:
+Geänderte Dashboard-Dateien im aktuellen Stand:
 
 ```text
+htdocs/dashboard/modules/loyalty.js
 htdocs/dashboard/modules/loyalty_games.js
 ```
 
@@ -129,20 +189,17 @@ Einstellungen -> Raffle zeigt nur fachliche Config.
 Texte -> Raffle zeigt nur Raffle-Texte.
 Dropdown „Alle Textbereiche“ wurde entfernt.
 Texttabelle zeigt immer nur den aktuell gewählten Bereich.
+Loyalty-Core-Dashboard ist auf Aktiv/Inaktiv bzw. Live-only vorbereitet.
 ```
-
-## Wichtige Beobachtung zum StreamElements-Import
-
-Beim StreamElements-Punkteimport am 2026-06-15 wurden die StreamElements-Punkte importiert, aber Punkte, die im neuen Loyalty-System bereits gesammelt wurden, wurden dabei nicht addiert. Das muss für spätere Prüfungen/Korrekturen berücksichtigt werden.
 
 ## Nicht geändert
 
 ```text
 Keine produktive SQLite ersetzt.
-Keine User-Balances pauschal verändert.
 Keine Transaktionen gelöscht.
 Keine Raffle-Gewinnerregel geändert.
 Keine Command-Registry umgebaut.
 Keine Alert-Produktivumschaltung.
 Keine neue Raffle-Parallelstruktur gebaut.
+DB-Spalten balance_shadow, total_earned_shadow, total_spent_shadow wurden noch nicht gedroppt.
 ```
