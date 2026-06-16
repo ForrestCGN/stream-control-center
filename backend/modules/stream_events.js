@@ -23,8 +23,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.33";
-const MODULE_BUILD = "STEP_EVENT_SOUND_4C_MEDIA_RESOLUTION_FIX";
+const MODULE_VERSION = "0.5.34";
+const MODULE_BUILD = "STEP_EVENT_SOUND_4D_TEST_STATE_CLEANUP";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -1563,6 +1563,71 @@ function duplicateEvent(eventUid, body = {}) {
   };
 }
 
+
+function closeActiveSoundRoundsForEvent(eventUid, reason = "event_finalized") {
+  ensureSchema();
+  const uid = cleanString(eventUid);
+  if (!uid) return { ok: false, closed: 0, error: "event_uid_required" };
+  const beforeRow = database.get("SELECT COUNT(*) AS count FROM stream_events_rounds WHERE event_uid = :eventUid AND status = 'active'", { eventUid: uid });
+  const before = intValue(beforeRow && beforeRow.count, 0);
+  if (before <= 0) return { ok: true, closed: 0, eventUid: uid, reason };
+  const now = nowIso();
+  database.run(`
+    UPDATE stream_events_rounds
+    SET status = :status,
+        result = :result,
+        finished_at = CASE WHEN finished_at = '' THEN :now ELSE finished_at END,
+        updated_at = :now,
+        result_json = :resultJson
+    WHERE event_uid = :eventUid AND status = 'active'
+  `, {
+    eventUid: uid,
+    status: reason === "event_finished" ? "event_finished" : "cancelled",
+    result: reason,
+    now,
+    resultJson: jsonEncode({ autoClosed: true, reason, closedAt: now, step: "EVENT-SOUND-4D" })
+  });
+  const afterRow = database.get("SELECT COUNT(*) AS count FROM stream_events_rounds WHERE event_uid = :eventUid AND status = 'active'", { eventUid: uid });
+  const after = intValue(afterRow && afterRow.count, 0);
+  return { ok: true, eventUid: uid, reason, closed: Math.max(0, before - after), before, after };
+}
+
+function cleanupSoundRuntimeTestState(options = {}) {
+  ensureSchema();
+  const includeCurrentActive = boolValue(options.includeCurrentActive, false);
+  const forceAllTestEvents = boolValue(options.forceAllTestEvents, false);
+  const where = [
+    "sound_enabled = 1",
+    "(created_by = 'evs_test_helper' OR name = 'EVS Sound-Runtime Test' OR metadata_json LIKE '%sound-runtime-test-event%')"
+  ];
+  if (!forceAllTestEvents) where.push("status = 'active'");
+  const rows = database.all(`
+    SELECT event_uid, name, status, created_by, metadata_json
+    FROM stream_events_events
+    WHERE ${where.join(" AND ")}
+    ORDER BY started_at DESC, id DESC
+    LIMIT 25
+  `, {});
+  const cleaned = [];
+  for (const row of rows) {
+    const uid = row.event_uid || "";
+    const roundCleanup = closeActiveSoundRoundsForEvent(uid, "test_state_cleanup");
+    let eventCancelled = false;
+    if (row.status === STATUS.ACTIVE || includeCurrentActive) {
+      const now = nowIso();
+      database.updateByKey("stream_events_events", "event_uid", uid, {
+        status: STATUS.CANCELLED,
+        cancelled_at: row.status === STATUS.CANCELLED ? "" : now,
+        updated_at: now
+      });
+      eventCancelled = true;
+    }
+    cleaned.push({ eventUid: uid, name: row.name || "", previousStatus: row.status || "", eventCancelled, roundCleanup });
+  }
+  publishStatus("sound.test_state_cleanup", { cleaned: cleaned.length });
+  return { ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, step: "EVENT-SOUND-4D", cleanedCount: cleaned.length, cleaned };
+}
+
 function finalizeEvent(eventUid, status, action) {
   ensureSchema();
   const event = getEventByUid(eventUid);
@@ -1576,6 +1641,7 @@ function finalizeEvent(eventUid, status, action) {
   if (status === STATUS.FINISHED) patch.finished_at = now;
   if (status === STATUS.CANCELLED) patch.cancelled_at = now;
   database.updateByKey("stream_events_events", "event_uid", eventUid, patch);
+  const activeRoundCleanup = closeActiveSoundRoundsForEvent(eventUid, status === STATUS.FINISHED ? "event_finished" : "event_cancelled");
 
   if (status === STATUS.FINISHED) runtimeState.counters.eventsFinished += 1;
   if (status === STATUS.CANCELLED) runtimeState.counters.eventsCancelled += 1;
@@ -1583,7 +1649,7 @@ function finalizeEvent(eventUid, status, action) {
   const updated = getEventByUid(eventUid);
   emitBus("stream_events.event", action, { event: publicEventSummary(updated), ranking: getRanking(eventUid).rows });
   publishStatus(`event.${action}`, { lastEventUid: eventUid });
-  return { ok: true, event: updated, ranking: getRanking(eventUid).rows };
+  return { ok: true, event: updated, activeRoundCleanup, ranking: getRanking(eventUid).rows };
 }
 
 function addPoints(eventUid, body = {}) {
@@ -3162,12 +3228,14 @@ function requestSoundSystemPlaybackForSoundRound(playback = {}, options = {}) {
 
 function createSoundRound(options = {}) {
   ensureSchema();
+  const forceResetTestState = boolValue(options.forceReset || options.forceResetTestState || options.resetTestState, false);
+  const preCleanup = forceResetTestState ? cleanupSoundRuntimeTestState({ includeCurrentActive: true }) : null;
   const event = cleanString(options.eventUid) ? getEventByUid(options.eventUid) : getActiveEvent();
   if (!event) return { ok: false, error: "active_event_missing" };
   if (event.status !== STATUS.ACTIVE) return { ok: false, error: "event_not_active", eventUid: event.eventUid, status: event.status };
   if (!event.soundEnabled) return { ok: false, error: "sound_not_enabled", eventUid: event.eventUid };
   const picked = pickNextSoundSnippet(event, options);
-  if (!picked.ok) return { ok: false, eventUid: event.eventUid, ...picked };
+  if (!picked.ok) return { ok: false, eventUid: event.eventUid, preCleanup, ...picked };
   const snippet = picked.snippet;
   const runtimeConfig = picked.runtimeConfig;
   const roundUid = newUid("evs_sound_round");
@@ -3220,7 +3288,7 @@ function createSoundRound(options = {}) {
   markAction("sound.round.started", event.eventUid);
   emitBus("stream_events.sound", "round_started", { eventUid: event.eventUid, round, snippet: safeJson(snippet, {}), playback, chatOutput });
   publishStatus("sound.round_started", { lastEventUid: event.eventUid, roundUid });
-  return { ok: true, eventUid: event.eventUid, round: getActiveSoundRound(event.eventUid) || round, snippet, acceptedAnswersDebug: buildSoundAcceptedAnswersDebug(snippet), playback, playbackResult, chatOutput, directPlayback: false, soundSystemPlaybackRequested: !!shouldPlay };
+  return { ok: true, eventUid: event.eventUid, preCleanup, round: getActiveSoundRound(event.eventUid) || round, snippet, acceptedAnswersDebug: buildSoundAcceptedAnswersDebug(snippet), playback, playbackResult, chatOutput, directPlayback: false, soundSystemPlaybackRequested: !!shouldPlay };
 }
 
 function answerMatchesSoundSnippet(answer, snippet = {}) {
@@ -3993,6 +4061,7 @@ function createSoundRuntimeTestEvent(body = {}) {
   const name = cleanString(body.name, "EVS Sound-Runtime Test");
   const startImmediately = body.start !== undefined || body.startImmediately !== undefined ? boolValue(body.start ?? body.startImmediately) : true;
   const finishExistingTestActive = body.finishExistingTestActive !== undefined ? boolValue(body.finishExistingTestActive) : true;
+  const preCleanup = finishExistingTestActive ? cleanupSoundRuntimeTestState({ includeCurrentActive: true }) : { ok: true, cleanedCount: 0, skipped: true };
   const snippets = Array.isArray(body.snippets) && body.snippets.length ? body.snippets : [
     {
       uid: "test_sound_1",
@@ -4062,6 +4131,7 @@ function createSoundRuntimeTestEvent(body = {}) {
     validated: publicEventSummary(validated),
     started,
     activeEvent: publicEventSummary(active),
+    preCleanup,
     snippets: getSoundSnippets(getEventByUid(event.eventUid)).map(item => ({
       snippetUid: item.snippetUid,
       title: item.title,
@@ -4462,7 +4532,7 @@ function buildStatus() {
     },
     eventSoundBusIntegration: {
       planned: true,
-      step: "EVENT-SOUND-3B",
+      step: "EVENT-SOUND-4D",
       planRoute: "/api/stream-events/sound-runtime/bus-integration-plan",
       soundSystemGatekeeper: true,
       communicationBusRequired: true,
@@ -4477,7 +4547,9 @@ function buildStatus() {
       roundPlaybackBindingPrepared: true,
       controlledRoundPlaybackRoute: "/api/stream-events/sound-runtime/next-round?play=1&confirm=1",
       countdownTimingFixed: true,
-      countdownDedupeEnabled: true
+      countdownDedupeEnabled: true,
+      testStateCleanupPrepared: true,
+      testResetRoute: "/api/stream-events/sound-runtime/reset-test-state"
     },
     updatedAt: nowIso()
   };
@@ -4535,7 +4607,8 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "GET", path: `${prefix}/statistics/user/:login`, description: "User-Detailstatistik fuer Text/Sound/Punkte, optional eventUid" },
       { method: "POST", path: `${prefix}/text-runtime/test-chat`, description: "Testet eine Chatnachricht gegen das aktive Text-Event" },
       { method: "POST", path: `${prefix}/text-runtime/create-test-event`, description: "Legt mit confirm=1 ein sicheres Text-Runtime-Testevent an" },
-      { method: "POST", path: `${prefix}/sound-runtime/create-test-event`, description: "Legt mit confirm=1 ein sicheres Sound-Runtime-Testevent an" },
+      { method: "POST", path: `${prefix}/sound-runtime/create-test-event`, description: "Legt mit confirm=1 ein sicheres Sound-Runtime-Testevent an; alte aktive Testevents werden vorher geschlossen" },
+      { method: "POST", path: `${prefix}/sound-runtime/reset-test-state`, description: "EVENT-SOUND-4D: Raeumt haengende Sound-Testevents und aktive Testrunden mit confirm=1 auf" },
       { method: "POST", path: `${prefix}/sound-runtime/test-chat`, description: "Testet eine Chatantwort gegen die aktive Sound-Runde, ohne direkt in Twitch zu senden" },
       { method: "POST", path: `${prefix}/chat-runtime/test-chat`, description: "EVS-19: Testet eine Chatnachricht parallel gegen Sound und Text, ohne direkt zu senden" },
       { method: "POST", path: `${prefix}/chat-runtime/create-stealth-test-event`, description: "EVS-19: Legt mit confirm=1 ein Kombi-Stealth-Testevent fuer Sound + Text an" },
@@ -4728,6 +4801,19 @@ module.exports.init = function init(ctx) {
     }
   });
 
+  reg("post", `${prefix}/sound-runtime/reset-test-state`, (req, res) => {
+    try {
+      const confirm = String(req.query.confirm || (req.body && req.body.confirm) || "").trim();
+      if (confirm !== "1") {
+        return sendJson(res, { ok: false, error: "confirm_required", hint: "POST /api/stream-events/sound-runtime/reset-test-state?confirm=1" }, 400);
+      }
+      const result = cleanupSoundRuntimeTestState({ includeCurrentActive: true, forceAllTestEvents: boolValue((req.body && req.body.forceAllTestEvents) ?? req.query.forceAllTestEvents, false) });
+      sendJson(res, result, result.ok ? 200 : 400);
+    } catch (err) {
+      handleError(res, err, 400);
+    }
+  });
+
   reg("post", `${prefix}/sound-runtime/create-test-event`, (req, res) => {
     try {
       const confirm = String(req.query.confirm || (req.body && req.body.confirm) || "").trim();
@@ -4746,7 +4832,7 @@ module.exports.init = function init(ctx) {
 
   reg("post", `${prefix}/sound-runtime/next-round`, (req, res) => {
     try {
-      const result = createSoundRound({ ...(req.body || {}), eventUid: (req.body && (req.body.eventUid || req.body.event_uid)) || req.query.eventUid || req.query.event_uid || "", allowReuse: boolValue((req.body && req.body.allowReuse) ?? req.query.allowReuse), play: (req.body && (req.body.play || req.body.playback || req.body.startPlayback || req.body.withPlayback)) ?? req.query.play ?? req.query.playback ?? req.query.startPlayback ?? req.query.withPlayback, confirm: (req.body && (req.body.confirm || req.body.confirmed)) ?? req.query.confirm ?? req.query.confirmed });
+      const result = createSoundRound({ ...(req.body || {}), eventUid: (req.body && (req.body.eventUid || req.body.event_uid)) || req.query.eventUid || req.query.event_uid || "", allowReuse: boolValue((req.body && req.body.allowReuse) ?? req.query.allowReuse), forceReset: (req.body && (req.body.forceReset || req.body.forceResetTestState || req.body.resetTestState)) ?? req.query.forceReset ?? req.query.forceResetTestState ?? req.query.resetTestState, play: (req.body && (req.body.play || req.body.playback || req.body.startPlayback || req.body.withPlayback)) ?? req.query.play ?? req.query.playback ?? req.query.startPlayback ?? req.query.withPlayback, confirm: (req.body && (req.body.confirm || req.body.confirmed)) ?? req.query.confirm ?? req.query.confirmed });
       sendJson(res, result, result.ok ? 200 : 400);
     } catch (err) {
       handleError(res, err, 400);
