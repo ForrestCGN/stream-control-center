@@ -533,12 +533,13 @@ window.LoyaltyGamesModule = (function(){
     };
     const textValue = (name, fallback) => String(form.elements[name]?.value || fallback || '').trim();
 
+    const entryCostAmount = intValue('entryCostAmount', 0, 0);
     const body = {
       enabled: boolValue('enabled'),
       durationSeconds: intValue('durationSeconds', 120, 10),
       prizePoolAmount: intValue('prizePoolAmount', 5000, 0),
-      entryCostEnabled: boolValue('entryCostEnabled'),
-      entryCostAmount: intValue('entryCostAmount', 0, 0),
+      entryCostEnabled: entryCostAmount > 0,
+      entryCostAmount,
       liveOnly: boolValue('liveOnly'),
       startPermission: textValue('startPermission', 'mod'),
       raffleCommand: textValue('raffleCommand', 'raffle').replace(/^!+/, ''),
@@ -3076,10 +3077,6 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
             </label>
           </div>
         </div>
-        <div class="lg-config-intro-strip">
-          <span><strong>Streamer-/Mod-Ansicht:</strong> klare Namen, Dropdowns und kurze Erklärungen.</span>
-          <span>Technische Details bleiben in Logs oder Diagnose.</span>
-        </div>
         ${renderPanel()}
       </div>
     `;
@@ -3115,6 +3112,7 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
         <form class="lg-form lg-gamble-form lg-raffle-form" data-lg-raffle-form>
           <div class="lg-grid lg-editor-grid">
             <label class="lg-check-row"><span><strong>Raffle aktiv</strong><br><small class="lg-muted">Erlaubt !raffle/!join.</small></span><input type="checkbox" name="enabled" ${cfg.enabled !== false ? 'checked' : ''}></label>
+            <label class="lg-check-row"><span><strong>Nur live</strong><br><small class="lg-muted">Nur während eines Livestreams startbar.</small></span><input type="checkbox" name="liveOnly" ${cfg.liveOnly ? 'checked' : ''}></label>
             <label><span>Dauer in Sekunden</span><input type="number" name="durationSeconds" min="10" max="${Number(cfg.maxDurationSeconds || 3600)}" step="1" value="${esc(cfg.durationSeconds || 120)}"></label>
             <label><span>Raffle-Gewinn gesamt</span><input type="number" name="prizePoolAmount" min="0" step="1" value="${esc(cfg.prizePoolAmount || 5000)}"></label>
             <label><span>Start-Berechtigung</span><select name="startPermission">
@@ -3122,9 +3120,7 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
             </select></label>
             <label><span>Start-Command</span><input type="text" name="raffleCommand" value="${esc(cfg.raffleCommand || 'raffle')}"></label>
             <label><span>Join-Command</span><input type="text" name="joinCommand" value="${esc(cfg.joinCommand || 'join')}"></label>
-            <label class="lg-check-row"><span><strong>Nur live</strong><br><small class="lg-muted">Wenn aktiv, soll Raffle nur im Livestream laufen.</small></span><input type="checkbox" name="liveOnly" ${cfg.liveOnly ? 'checked' : ''}></label>
-            <label class="lg-check-row"><span><strong>Teilnahmekosten aktiv</strong><br><small class="lg-muted">Aktuell vorbereitet; Standard bleibt kostenlos.</small></span><input type="checkbox" name="entryCostEnabled" ${cfg.entryCostEnabled ? 'checked' : ''}></label>
-            <label><span>Teilnahmekosten</span><input type="number" name="entryCostAmount" min="0" step="1" value="${esc(cfg.entryCostAmount || 0)}"></label>
+            <label><span>Teilnahmekosten<br><small class="lg-muted">0 = kostenlos</small></span><input type="number" name="entryCostAmount" min="0" step="1" value="${esc(cfg.entryCostAmount || 0)}"></label>
           </div>
           <div class="lg-warning">Chat-Regel: Der Pool wird nie öffentlich angezeigt.</div>
           <div class="lg-actions">
