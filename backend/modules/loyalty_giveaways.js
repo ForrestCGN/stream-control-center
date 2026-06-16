@@ -23,8 +23,8 @@ const database = require("../core/database");
 const loyaltyCore = require("./loyalty");
 
 const MODULE_NAME = "loyalty_giveaways";
-const MODULE_VERSION = "0.1.12";
-const MODULE_BUILD = "STEP_LC_MINIGAMES_2B_FIX2_RAFFLE_TEXT_VARIANT_GUARD";
+const MODULE_VERSION = "0.1.13";
+const MODULE_BUILD = "STEP_LC_MINIGAMES_2B_FIX3_TEXT_DB_CLEANUP";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -214,76 +214,6 @@ const CHAT_TEXT_DEFAULTS = {
     "Erst wird die Lostrommel geschlossen, dann wird ausgelost. Ordnung muss sein.",
     "Die Heimleitung lässt erst auslosen, wenn die Ticket-Ausgabe offiziell geschlossen ist."
   ],
-  "raffle.started": [
-    "Die Heimleitung öffnet die kleine Lostrommel! Tippt !join – ihr habt {duration} Sekunden Zeit.",
-    "Raffle läuft! Ein Los pro Nase. Rein mit !join – die Heimleitung zählt gleich aus.",
-    "Die Rentnergang zählt die Lose: !join in den Chat, {duration} Sekunden Zeit.",
-    "Kekskrümel-Tombola gestartet! Wer mit will, ruft !join. Zeitfenster: {duration}s.",
-    "Die Lostrommel klappert durchs Altersheim. !join tippen, bevor die Heimleitung den Deckel schließt."
-  ],
-  "raffle.already_active": [
-    "Es läuft schon eine Raffle. Die Heimleitung öffnet nicht zwei Lostrommeln gleichzeitig.",
-    "Langsam, Chef: Eine Raffle ist bereits offen. Erst die aktuelle auslosen lassen.",
-    "Die aktuelle Raffle läuft noch {remaining}s. Mit !join kommt ihr noch rein.",
-    "Nicht drängeln: Die Lostrommel ist schon offen. Teilnehmer bisher: {entries}.",
-    "Eine Raffle ist bereits aktiv. Die Heimleitung hat nur eine Brille und eine Trommel."
-  ],
-  "raffle.joined": [
-    "{user} hat den Loszettel abgegeben.",
-    "{user} wurde von der Heimleitung notiert.",
-    "{user} ist im Lostopf. Die Heimleitung nickt.",
-    "{user} ist dabei. Jetzt heißt es Daumen drücken.",
-    "{user} hat sich einen Platz in der Lostrommel gesichert."
-  ],
-  "raffle.already_joined": [
-    "{user}, du liegst schon im Lostopf. Nicht doppelt drängeln, Rentner!",
-    "{user}, ein Los pro Nase. Die Heimleitung hat dich schon notiert.",
-    "{user}, dein Zettel klebt bereits im Klemmbrett.",
-    "{user}, zweimal eintragen zählt nicht. Die Rentnergang prüft mit Lesebrille.",
-    "{user}, du bist schon dabei. Bitte zurück in die Warteschlange am Buffet."
-  ],
-  "raffle.no_active": [
-    "Aktuell läuft keine Raffle. Die Lostrommel macht Pause.",
-    "Keine aktive Raffle gefunden. Erst muss die Heimleitung !raffle rufen.",
-    "Noch keine Tombola offen. Die Heimleitung sucht gerade den Schlüssel zur Lostrommel.",
-    "Gerade gibt es nichts zum Beitreten. Erst wenn !raffle läuft, bringt !join etwas.",
-    "Die Lostrommel ist zu. Ohne aktive Raffle bleibt dein Loszettel auf dem Tisch."
-  ],
-  "raffle.status": [
-    "Raffle läuft noch {remaining}s. Teilnehmer: {entries}. Mit !join rein in den Lostopf.",
-    "Lostrommel offen: {entries} Teilnehmer, noch {remaining}s Restzeit.",
-    "Zwischenstand vom Klemmbrett: {entries} Lose, {remaining}s bis zur Ziehung.",
-    "Die Heimleitung zählt: {entries} Teilnehmer. Noch {remaining}s Zeit für !join.",
-    "Raffle-Status: Trommel offen, {entries} drin, {remaining}s bis zur Rentner-Ziehung."
-  ],
-  "raffle.cancelled": [
-    "Raffle abgebrochen. Die Heimleitung kippt die Lose zurück in die Schublade.",
-    "Die aktuelle Raffle wurde beendet. Keine Ziehung, keine Diskussion am Kaffeetisch.",
-    "Tombola gestoppt. Die Lostrommel wird wieder in den Schrank gerollt.",
-    "Raffle gecancelt. Die Rentnergang legt die Zettel wieder glatt.",
-    "Abbruch durch die Heimleitung. Alle Lose gehen zurück in die Aktenmappe."
-  ],
-  "raffle.no_entries": [
-    "Die Raffle ist vorbei, aber niemand ist eingestiegen. Die Lostrommel ist leer.",
-    "Keine Teilnehmer. Die Heimleitung trägt ein trauriges Nichts ins Klemmbrett ein.",
-    "Ziehung ohne Lose. Das Altersheim schweigt betroffen.",
-    "Die Trommel war offen, aber keiner wollte rein. Kaffee gibt es trotzdem.",
-    "Raffle beendet: 0 Teilnehmer. Die Heimleitung schaut streng in den leeren Lostopf."
-  ],
-  "raffle.winners": [
-    "🎉 Die Heimleitung hat gezogen: {winners} – je {prizeAmount} Kekskrümel!",
-    "🎉 Die Lostrommel hat entschieden: {winners} – je {prizeAmount} Kekskrümel!",
-    "Die Rentner-Trommel hat gesprochen! Glückwunsch an {winners}: je {prizeAmount} Kekskrümel!",
-    "Klemmbrett finalisiert: {winners} bekommt je {prizeAmount} Kekskrümel. Die Heimleitung gratuliert streng.",
-    "Raffle beendet! {winners} darf sich über je {prizeAmount} Kekskrümel freuen."
-  ],
-  "raffle.permission_denied": [
-    "{user}, die Lostrommel darf nur die Heimleitung öffnen.",
-    "{user}, dafür brauchst du Mod-Rechte. Die Rentnergang passt auf.",
-    "{user}, Finger weg von der Lostrommel. Nur Mods dürfen starten oder abbrechen.",
-    "{user}, ohne Heimleitungs-Ausweis bleibt die Tombola zu.",
-    "{user}, netter Versuch. Die Raffle-Schlüssel liegen beim Mod-Team."
-  ],
   "raffle.public.started": [
     "Kekskrümel-Tombola gestartet! Wer mit will, ruft !join. Zeitfenster: {duration}s.",
     "Die Heimleitung öffnet die Lostrommel! Mit !join kommt ihr rein. Zeit: {duration}s.",
@@ -402,16 +332,6 @@ const CHAT_TEXT_CATEGORIES = {
   "ticket.cost_not_supported_yet": "chat_ticket",
   "giveaway.closed": "chat_giveaway",
   "giveaway.draw_not_closed": "chat_giveaway",
-  "raffle.started": "chat_raffle",
-  "raffle.already_active": "chat_raffle",
-  "raffle.joined": "chat_raffle",
-  "raffle.already_joined": "chat_raffle",
-  "raffle.no_active": "chat_raffle",
-  "raffle.status": "chat_raffle",
-  "raffle.cancelled": "chat_raffle",
-  "raffle.no_entries": "chat_raffle",
-  "raffle.winners": "chat_raffle",
-  "raffle.permission_denied": "chat_raffle",
   "raffle.public.started": "chat_raffle",
   "raffle.public.already_active": "chat_raffle",
   "raffle.public.joined": "chat_raffle",
@@ -5227,23 +5147,35 @@ function listCentralCommandDefinitions(extra = {}) {
 
 function seedChatTextVariants() {
   try {
-    textHelper.seedModuleTextVariants(TEXT_MODULE, CHAT_TEXT_DEFAULTS, {
+    const seeded = textHelper.seedModuleTextVariants(TEXT_MODULE, CHAT_TEXT_DEFAULTS, {
       categories: CHAT_TEXT_CATEGORIES,
       categoryLabels: CHAT_TEXT_CATEGORY_LABELS,
       source: "seed"
     });
-    textHelper.seedModuleTexts(TEXT_MODULE, CHAT_TEXT_DEFAULTS, {
-      source: "seed"
-    });
-    const cleanup = deactivateBundledRafflePublicTextVariants();
-    return { ok: true, cleanup };
+    const cleanup = cleanupLegacyBundledChatTextRows();
+    return { ok: true, seeded, cleanup };
   } catch (err) {
     return { ok: false, error: err && err.message ? err.message : String(err) };
   }
 }
 
-function isRafflePublicTextKey(key) {
+function isPublicRaffleTextKey(key) {
   return /^raffle\.public\./.test(String(key || ""));
+}
+
+function isLegacyRaffleTextKey(key) {
+  const clean = String(key || "");
+  return /^raffle\./.test(clean) && !isPublicRaffleTextKey(clean);
+}
+
+function isManagedChatTextKey(key) {
+  const clean = String(key || "");
+  if (isLegacyRaffleTextKey(clean)) return true;
+  return Object.prototype.hasOwnProperty.call(CHAT_TEXT_CATEGORIES, clean);
+}
+
+function hasRuntimeTextLineBreak(value) {
+  return /\r|\n/.test(String(value || ""));
 }
 
 function splitRuntimeTextLines(value) {
@@ -5261,37 +5193,81 @@ function pickFirstRuntimeTextLine(value) {
   return String(value || "");
 }
 
-function deactivateBundledRafflePublicTextVariants() {
+function cleanupLegacyBundledChatTextRows() {
+  const result = {
+    ok: true,
+    variantsDeleted: 0,
+    legacyTextsDeleted: 0,
+    oldRaffleKeysDeleted: 0,
+    bundledSeedRowsDeleted: 0,
+    error: ""
+  };
+
   try {
-    const rows = database.all(`
-      SELECT id, text_key, text_value
+    const variantRows = database.all(`
+      SELECT id, text_key, category, text_value, source
       FROM module_text_variants
       WHERE module_name = :moduleName
-        AND text_key LIKE 'raffle.public.%'
-        AND enabled != 0
+        AND source = 'seed'
     `, { moduleName: TEXT_MODULE });
 
-    const now = nowIso();
-    let disabled = 0;
-    for (const row of rows || []) {
-      if (!row || !isRafflePublicTextKey(row.text_key)) continue;
-      const lines = splitRuntimeTextLines(row.text_value);
-      if (lines.length <= 1) continue;
-      database.run(`
-        UPDATE module_text_variants
-        SET enabled = 0,
-            updated_at = :updatedAt
-        WHERE id = :id
-          AND module_name = :moduleName
-      `, { id: row.id, moduleName: TEXT_MODULE, updatedAt: now });
-      disabled += 1;
+    const variantIdsToDelete = [];
+    for (const row of variantRows || []) {
+      if (!row || !isManagedChatTextKey(row.text_key)) continue;
+      const oldRaffleKey = isLegacyRaffleTextKey(row.text_key);
+      const bundledSeedRow = hasRuntimeTextLineBreak(row.text_value);
+      if (!oldRaffleKey && !bundledSeedRow) continue;
+      variantIdsToDelete.push(row.id);
+      if (oldRaffleKey) result.oldRaffleKeysDeleted += 1;
+      if (bundledSeedRow) result.bundledSeedRowsDeleted += 1;
     }
 
-    return { ok: true, disabled };
+    for (const id of variantIdsToDelete) {
+      const deleted = database.run(`
+        DELETE FROM module_text_variants
+        WHERE id = :id
+          AND module_name = :moduleName
+          AND source = 'seed'
+      `, { id, moduleName: TEXT_MODULE });
+      result.variantsDeleted += Number(deleted?.changes || 0);
+    }
+
+    try {
+      const legacyRows = database.all(`
+        SELECT id, text_key, text_value, source
+        FROM module_texts
+        WHERE module_name = :moduleName
+          AND source = 'seed'
+      `, { moduleName: TEXT_MODULE });
+
+      const legacyIdsToDelete = [];
+      for (const row of legacyRows || []) {
+        if (!row || !isManagedChatTextKey(row.text_key)) continue;
+        if (!isLegacyRaffleTextKey(row.text_key) && !hasRuntimeTextLineBreak(row.text_value)) continue;
+        legacyIdsToDelete.push(row.id);
+      }
+
+      for (const id of legacyIdsToDelete) {
+        const deleted = database.run(`
+          DELETE FROM module_texts
+          WHERE id = :id
+            AND module_name = :moduleName
+            AND source = 'seed'
+        `, { id, moduleName: TEXT_MODULE });
+        result.legacyTextsDeleted += Number(deleted?.changes || 0);
+      }
+    } catch (legacyErr) {
+      result.legacyTextCleanupWarning = legacyErr && legacyErr.message ? legacyErr.message : String(legacyErr);
+    }
+
+    return result;
   } catch (err) {
-    return { ok: false, disabled: 0, error: err && err.message ? err.message : String(err) };
+    result.ok = false;
+    result.error = err && err.message ? err.message : String(err);
+    return result;
   }
 }
+
 
 function rowToCommandDefinition(row) {
   if (!row) return null;
@@ -5333,7 +5309,8 @@ function getChatTextEditorPayload() {
   seedChatTextVariants();
   return textHelper.listModuleTextEditor(TEXT_MODULE, CHAT_TEXT_DEFAULTS, {
     categories: CHAT_TEXT_CATEGORIES,
-    categoryLabels: CHAT_TEXT_CATEGORY_LABELS
+    categoryLabels: CHAT_TEXT_CATEGORY_LABELS,
+    migrateLegacy: false
   });
 }
 
@@ -5342,7 +5319,8 @@ function handleChatTextEditorPayload(payload = {}) {
   seedChatTextVariants();
   return textHelper.handleModuleTextEditorPayload(TEXT_MODULE, payload || {}, {
     categories: CHAT_TEXT_CATEGORIES,
-    categoryLabels: CHAT_TEXT_CATEGORY_LABELS
+    categoryLabels: CHAT_TEXT_CATEGORY_LABELS,
+    migrateLegacy: false
   });
 }
 
@@ -5372,9 +5350,10 @@ function renderChatRuntimeText(key, context = {}, options = {}) {
   let message = textHelper.renderModuleText(TEXT_MODULE, key, CHAT_TEXT_DEFAULTS, context, {
     categories: CHAT_TEXT_CATEGORIES,
     categoryLabels: CHAT_TEXT_CATEGORY_LABELS,
+    migrateLegacy: false,
     ...options
   });
-  if (isRafflePublicTextKey(key)) {
+  if (isPublicRaffleTextKey(key)) {
     message = pickFirstRuntimeTextLine(message);
   }
   return sanitizeRuntimeChatMessage(message, options.maxLength || options.max || 450);
