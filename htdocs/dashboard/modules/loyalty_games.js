@@ -3106,7 +3106,6 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
     const data = state.raffleConfig || {};
     const cfg = data.config || data.raffle?.config || {};
     const runtime = data.runtime || data.raffle || {};
-    const textKeys = Array.isArray(data.textKeys) ? data.textKeys : [];
     const winnerRule = Array.isArray(data.winnerRule) ? data.winnerRule : [];
     const error = data.ok === false ? `<div class="lg-warning">Raffle-Status konnte nicht geladen werden: ${esc(data.error || 'Unbekannter Fehler')}</div>` : '';
     return `
@@ -3117,8 +3116,6 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
             <p class="lg-muted">Bedien- und Statusansicht. Dauerhafte Einstellungen liegen im Tab „Einstellungen“, Textvarianten im Tab „Texte“.</p>
           </div>
           <div class="lg-actions">
-            <button class="lg-btn" data-lg-open-config-section="raffle" type="button">Raffle konfigurieren</button>
-            <button class="lg-btn lg-btn-secondary" data-lg-open-text-section="raffle" type="button">Raffle-Texte bearbeiten</button>
             <button class="lg-btn lg-btn-secondary" data-lg-raffle-reload type="button">Neu laden</button>
           </div>
         </div>
@@ -3129,7 +3126,7 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
           <article class="lg-kpi lg-mini-kpi"><span>Raffle-Gewinn gesamt</span><strong>${fmtNumber(cfg.prizePoolAmount || runtime.prizePoolAmount || 0)}</strong><small>nur intern, nicht im Chat</small></article>
           <article class="lg-kpi lg-mini-kpi"><span>Dauer</span><strong>${fmtNumber(cfg.durationSeconds || runtime.durationSeconds || 120)}s</strong><small>Standardlaufzeit</small></article>
         </div>
-        <div class="lg-grid lg-editor-grid lg-raffle-detail-grid">
+        <div class="lg-grid lg-grid-2 lg-raffle-detail-grid">
           <div class="lg-note-card lg-raffle-rule-card">
             <h4>Gewinnerregel</h4>
             <p class="lg-muted">Die Anzahl der Gewinner wird automatisch aus der Teilnehmerzahl berechnet.</p>
@@ -3142,12 +3139,9 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
               `).join('') : '<div class="lg-raffle-rule-row"><span>Regel</span><strong>Standardregel aktiv</strong></div>'}
             </div>
           </div>
-          <div class="lg-note-card lg-raffle-textkey-card">
-            <h4>Textkeys</h4>
-            <p class="lg-muted">Die Varianten werden zentral unter „Texte → Raffle“ gepflegt.</p>
-            <div class="lg-raffle-key-list">
-              ${textKeys.length ? textKeys.map(key => `<code>${esc(key)}</code>`).join('') : '<span class="lg-muted">Keine Textkeys geladen.</span>'}
-            </div>
+          <div class="lg-note-card">
+            <h4>Raffle-Statistik</h4>
+            <p class="lg-muted">Kommt im nächsten Schritt direkt hier auf die Raffle-Seite. Buchungen und Ereignisse bleiben im Tab „Logs“.</p>
           </div>
         </div>
       </div>
@@ -3166,7 +3160,7 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
           <div class="lg-panel-head">
             <div>
               <h3>Mini-Spiele</h3>
-              <p class="lg-muted">Schnelle Loyalty-Spiele für den Chat. Hier liegen Status, Kurzwerte und direkte Sprungpunkte zu Config und Texten.</p>
+              <p class="lg-muted">Schnelle Loyalty-Spiele für den Chat. Hier liegen Status und Kurzwerte. Dauerhafte Einstellungen, Texte und Logs bleiben in den eigenen Tabs.</p>
             </div>
           </div>
           <div class="lg-grid lg-grid-2">
