@@ -4,68 +4,86 @@ Stand: 2026-06-16
 
 ## Erledigt / bestätigt
 
-- [x] EVENTSYS-26A Sound-Event Dashboard unterstützt mehrere Sound-Schnipsel.
-- [x] EVENTSYS-26B Sound-Schnipsel und Text-Spiel haben getrennte Editor-Fenster.
-- [x] EVENTSYS-26B-FIX1 MediaPicker-State wird beim Öffnen/Neu-Rendern erhalten bzw. aufgelöst.
-- [x] EVENTSYS-26B-FIX2 Sound-Schnipsel-Summary aktualisiert sich beim Bearbeiten.
-- [x] EVENTSYS-26B-FIX3 Sound-Schnipsel werden konkret pro Schnipsel validiert.
-- [x] EVENTSYS-26B-FIX4 Eventdetails/Eventliste/Startbereit-Status werden nach Speichern neu geladen.
-- [x] EVENTSYS-27A globale Sound-Defaults erweitert.
-- [x] EVENTSYS-27A eventbezogenes Fenster `Einstellungen bearbeiten` eingebaut.
-- [x] EVENTSYS-27A Config- und Event-Einstellungen funktional geprüft.
+- [x] Eventsystem als aktueller Arbeitsblock wieder aufgenommen.
+- [x] EVENTSYS-26A: Sound-Event Mehrfach-Schnipsel im Dashboard.
+- [x] EVENTSYS-26B: getrennte Editor-Fenster für Sound-Schnipsel und Text-Spiel.
+- [x] EVENTSYS-26B-FIX1: MediaPicker-State beim Öffnen/Neu-Rendern erhalten.
+- [x] EVENTSYS-26B-FIX2: Sound-Editor-Summary nach Änderungen sofort aktualisieren.
+- [x] EVENTSYS-26B-FIX3: konkrete Sound-Schnipsel-Validierung mit Live-Refresh.
+- [x] EVENTSYS-26B-FIX4: Eventdetails nach Speichern neu laden.
+- [x] EVENTSYS-27A: globale Sound-Defaults + Event-spezifisches Einstellungsfenster.
+- [x] EVENTSYS-DOCS-1: Eventsystem 27A dokumentiert.
+- [x] EVENTSYS-27B: Live-Statusfenster für laufende Events vorbereitet.
+- [x] EVENTSYS-27C: Events kopieren.
+- [x] EVENTSYS-27C-FIX1: Eventnamen bearbeiten + Kopie benennen.
+- [x] EVENTSYS-27C-FIX2: Editor-Regressionsfix nach Umbenennen/Kopieren.
+- [x] EVENTSYS-27D: manuelle Sound-Rundensteuerung vorbereitet.
+- [x] EVENTSYS-27D-FIX1: Reload nach mutierenden Buttons.
+- [x] EVENTSYS-27D-FIX2: Live-Bedienung in der Übersicht.
 
-## Aktuell offen / als nächstes bauen
+## Aktuell offen / als nächstes
 
-- [ ] EVENTSYS-27B Live-Statusfenster für laufende Events:
-  - [ ] Button `Status & Punkte öffnen` bei laufendem Event.
-  - [ ] Eventstatus anzeigen.
-  - [ ] Rangliste/Punkte anzeigen.
-  - [ ] aktuelle Runde anzeigen, soweit Backenddaten vorhanden.
-  - [ ] Rundenverlauf anzeigen, soweit Backenddaten vorhanden.
-  - [ ] Sound-Rotation anzeigen, sobald Runtime-Daten vorhanden sind.
-- [ ] EVENTSYS-27C Manuelle Sound-Rundensteuerung:
-  - [ ] `Nächsten Schnipsel abspielen/vorbereiten`.
-  - [ ] aktuelle Runde anzeigen.
-  - [ ] Runde überspringen.
-  - [ ] Runde als ungelöst markieren.
-  - [ ] manuelle Auslösung dauerhaft behalten.
-- [ ] EVENTSYS-27D Sound-/Media-Playback-Anbindung:
-  - [ ] vorhandenes Sound-System prüfen.
-  - [ ] vorhandenes Media-System prüfen.
-  - [ ] Payload aus Sound-Runtime an vorhandenes System senden.
-  - [ ] kein paralleles Playback-System bauen.
-- [ ] EVENTSYS-27E Automatik:
-  - [ ] zufälliges Abspielen alle X ± Y Minuten.
-  - [ ] Intervall/Jitter aus Event-Einstellungen nutzen.
-  - [ ] Wiederholschutz beachten.
-  - [ ] Solved/Unresolved-Policies beachten.
-- [ ] EVENTSYS-27F Auflösungs-Video:
-  - [ ] Video nach Lösung abspielen, wenn vorhanden und aktiviert.
-  - [ ] Media-System nutzen.
-- [ ] EVENTSYS-27G Chat-Ausgaben:
-  - [ ] helper_texts/helper_messages nutzen.
-  - [ ] Zufallsvarianten.
+- [ ] SOUND-SAFE-1: Sound-System prüfen und sicheren Erweiterungspunkt für EventSound + Countdown-PreRoll festlegen.
+  - [ ] `backend/modules/sound_system.js` vollständig prüfen.
+  - [ ] Sound-System Overlay prüfen.
+  - [ ] `/api/sound/play` Payload prüfen.
+  - [ ] Queue-/Busy-/Prioritätslogik prüfen.
+  - [ ] Media-ID Playback prüfen.
+  - [ ] Rückmeldung/Status/Bus-Events prüfen.
+  - [ ] Kompatibilitätsregel dokumentieren: ohne neue Felder exakt altes Verhalten.
+
+- [ ] SOUND-SAFE-2: optionalen Countdown-PreRoll im Sound-System additiv einbauen.
+  - [ ] `preRoll` optional unterstützen.
+  - [ ] `preRoll.enabled !== true` -> altes Verhalten.
+  - [ ] Countdown als Teil desselben Queue-Jobs.
+  - [ ] CGN-Stil Overlay 3 → 2 → 1.
+  - [ ] Kein Eingriff in alte Sound-Flows.
+
+- [ ] EVENTSYS-27E: Event-Sound-Playback über Sound-System-Queue.
+  - [ ] `Nächsten Schnipsel vorbereiten` zu `Nächsten Schnipsel abspielen` erweitern.
+  - [ ] Runde erstellen/vorbereiten.
+  - [ ] Sound-System-Job mit Media-ID senden.
+  - [ ] Countdown-Config aus Event/Defaults beachten.
+  - [ ] Status & Punkte Fenster aktualisieren.
+
+- [ ] EVENTSYS-27F: Antwortphase + Timer.
+  - [ ] Antwortzeit aus Event-Einstellungen.
+  - [ ] Restzeit anzeigen.
+  - [ ] Timeout als ungelöst markieren.
+  - [ ] manuelle Runde sauber beenden/überspringen.
+
+- [ ] EVENTSYS-27G: Chat-Antworten über Twitch-Events prüfen.
+  - [ ] `twitch.chat.message` weiter als einzige Chat-Quelle nutzen.
+  - [ ] Antworten gegen aktive Sound-Runde prüfen.
+  - [ ] Punkte buchen.
+  - [ ] gelöste Schnipsel je nach Config aus Rotation entfernen.
+
+- [ ] EVENTSYS-27H: Chat-Ausgaben.
+  - [ ] Textkeys über helper_texts/helper_messages.
   - [ ] CGN-/Heimleitung-/Rentner-/Altersheim-Stil.
-  - [ ] keine harten Chattexte im Runtime-Code.
-- [ ] EVENTSYS-27H Statistik-Ausbau:
-  - [ ] pro Event.
-  - [ ] optional global.
-  - [ ] gespielt / erkannt / nicht erkannt / Lösungsquote / schnellste Antwort / Top-Spieler.
+  - [ ] mehrere aktive Varianten.
+  - [ ] Platzhalter: User, Punkte, Sekunden, Schnipsel.
 
-## Später / nicht vergessen
+- [ ] EVENTSYS-27I: Auflösungs-Video nach richtiger Antwort.
+  - [ ] Video nur wenn vorhanden und Config aktiv.
+  - [ ] über Media-/Sound-System bzw. vorhandene Overlaystruktur.
+  - [ ] kein Parallel-Playback.
 
-- [ ] Doku nach 27B erneut aktualisieren.
-- [ ] docs/modules/stream_events.md bei jedem größeren Runtime-Step weiterführen.
-- [ ] Dashboard weiterhin streamer-/modfreundlich halten.
-- [ ] Technische Diagnose nicht in normale Bedienansicht kippen.
-- [ ] Live-Chat-Ausgaben erst separat freigeben.
-- [ ] Safety-/Audit-/Rollenprüfung bei produktiven Live-Aktionen beachten.
+- [ ] EVENTSYS-27J: Auto-Rotation.
+  - [ ] zufällig alle X ± Y Minuten.
+  - [ ] Mindestabstand zwischen Schnipseln.
+  - [ ] Wiederholschutz.
+  - [ ] Auto-Weiter nur wenn manuelles Playback stabil ist.
 
-## Nicht wieder einführen
+- [ ] EVENTSYS-DOCS-2: Doku nach Sound-System-Anbindung aktualisieren.
 
-- [ ] Ein riesiges Event-Bearbeiten-Modal mit Sound, Text, Einstellungen und Live-Steuerung zusammen.
-- [ ] Sound-Playback parallel zum vorhandenen Sound-/Media-System.
-- [ ] Chat-Ausgaben direkt hart im Code.
-- [ ] Automatik ohne manuelle Steuerungsmöglichkeit.
-- [ ] Event-Defaults als hart codierte einzige Wahrheit statt Config/DB.
-- [ ] Alte Loyalty/Raffle-Doku als aktueller Eventsystem-Startpunkt.
+## Dauerhafte Regeln
+
+- [ ] Keine Funktionalität entfernen.
+- [ ] Ersetzte Altlogik nach Tests gezielt entfernen, aber keine aktive Produktivlogik brechen.
+- [ ] Bestehendes Sound-System muss unverändert weiterlaufen.
+- [ ] Keine parallele Sound-Queue bauen.
+- [ ] Countdown darf nicht am Sound-System vorbei laufen.
+- [ ] Config über DB/Helper, nicht hart im Code.
+- [ ] Chat-Auswertung über Twitch-Events, keine parallele Chat-Abfrage.
+- [ ] Chattexte über helper_texts/helper_messages und dashboardfähige Varianten.

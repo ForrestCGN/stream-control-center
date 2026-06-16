@@ -2,73 +2,121 @@
 
 Stand: 2026-06-16
 
-## 2026-06-16 – EVENTSYS-27A Event-Einstellungen und Sound-Defaults
+## 2026-06-16 – EVENTSYS-27D-FIX2 Live-Bedienung in der Übersicht
 
 ### Ergebnis
 
 ```text
-Das Event-System hat jetzt erweiterte globale Sound-Defaults und ein eigenes eventbezogenes Einstellungsfenster. Sound-Schnipsel, Text-Spiel und Event-Einstellungen sind getrennt bearbeitbar.
+Die Live-Bedienung für laufende Events wurde in die Übersicht verschoben. Bei laufendem Event sind die wichtigsten Bedienaktionen direkt im Live-Bereich sichtbar.
 ```
 
-### Details
+### Enthält
 
 ```text
-- Sound-Defaults im Config-Tab erweitert.
-- Antwortzeit-Standard auf 60 Sekunden gesetzt.
-- Abspielmodus, Intervall, Zufallsabweichung, Reihenfolge und Rotation konfigurierbar.
-- Solved/Unresolved-Policies konfigurierbar.
-- Auflösungs-Video nach Lösung konfigurierbar.
-- Eventdetails/Bearbeiten besitzt Button `Einstellungen bearbeiten`.
-- Neue Events übernehmen Defaults aus Config/DB.
-- Bestehende Events bekommen sichere Fallbacks.
+- Live-Bedienung in der Übersicht.
+- Nächsten Schnipsel vorbereiten.
+- Status & Punkte öffnen.
+- Event verwalten.
+- Event beenden.
 ```
 
 ### Nicht enthalten
 
 ```text
-- kein echtes Sound-Playback
-- kein Timer-Worker
-- keine automatische Rotation
-- kein Auflösungs-Video-Playback
-- kein direkter Chat-Send
+Kein echtes Sound-Playback.
+Kein Timer-Worker.
+Keine Auto-Rotation.
+Kein Countdown-PreRoll.
+Kein Auflösungs-Video.
+Kein Chat-Live-Send.
 ```
 
-## 2026-06-16 – EVENTSYS-26B-FIX4 Eventdetails nach Speichern neu laden
+## 2026-06-16 – EVENTSYS-27D-FIX1 Reload nach mutierenden Buttons
 
 ```text
-Nach erfolgreichem Speichern wird das ausgewählte Event frisch vom Backend geladen. Eventliste, Detailpanel, Status-Badge, `Noch nötig`-Box und Starten-Button aktualisieren sich ohne manuellen Reload.
+Nach mutierenden Aktionen werden Eventliste, ausgewähltes Event, Übersicht, Runtime-Gate und relevante Reports neu geladen.
 ```
 
-## 2026-06-16 – EVENTSYS-26B-FIX3 konkrete Sound-Schnipsel-Validierung mit Live-Refresh
+Betroffene Aktionen:
 
 ```text
-Sound-Schnipsel werden pro Schnipsel geprüft. Fehlende Pflichtfelder werden konkret angezeigt, z. B. Antwort fehlt, Audio fehlt oder Name fehlt. Die Anzeige aktualisiert sich beim Bearbeiten direkt im Editor.
+Starten
+Beenden
+Abbrechen
+Prüfen
+Speichern
+Umbenennen
+Kopieren
+Löschen
+Archivieren
+Config speichern
+Nächsten Schnipsel vorbereiten
 ```
 
-## 2026-06-16 – EVENTSYS-26B-FIX2 Sound-Editor Summary nach Änderungen sofort aktualisieren
+## 2026-06-16 – EVENTSYS-27D Manuelle Sound-Rundensteuerung vorbereitet
 
 ```text
-Schnipsel-Kopfzeile, Antwortanzahl, Audio-/Video-Status und Hauptmodal-Summary werden nach Änderungen direkt aktualisiert.
+Bei laufenden Sound-Events wurde ein Bereich Sound-Steuerung ergänzt. Die vorhandene Route /api/stream-events/sound-runtime/next-round kann aus dem Dashboard ausgelöst werden. Dies bereitet nur die Runde vor und spielt noch nichts ab.
 ```
 
-## 2026-06-16 – EVENTSYS-26B-FIX1 Sound-Editor MediaPicker-State erhalten
+## 2026-06-16 – EVENTSYS-27C-FIX2 Editor-Regressionsfix
 
 ```text
-Gespeicherte Media-IDs werden beim Öffnen/Neu-Rendern wieder sichtbar aufgelöst. Falls die Vorschau nicht geladen werden kann, wird die gespeicherte mediaId angezeigt.
+Der alte Inline-Soundbereich wurde nach einer Regression wieder entfernt. Getrennte Editor-Fenster, MediaPicker-State, Umbenennen, Kopieren und Live-Statusfenster wurden zusammengeführt.
 ```
 
-## 2026-06-16 – EVENTSYS-26B getrennte Editor-Fenster
+## 2026-06-16 – EVENTSYS-27C-FIX1 Eventnamen bearbeiten und Kopie benennen
 
 ```text
-Sound-Schnipsel und Text-Spiel wurden aus dem Haupt-Event-Modal in eigene Editor-Fenster ausgelagert. Das Hauptmodal bleibt auf Grunddaten und zentrale Aktionen reduziert.
+Events können umbenannt werden. Beim Kopieren öffnet sich ein Dialog, in dem der Name der Kopie gesetzt werden kann.
 ```
 
-## 2026-06-16 – EVENTSYS-26A Sound-Event Mehrfach-Schnipsel
+## 2026-06-16 – EVENTSYS-27C Events kopieren
 
 ```text
-Sound-Events können im Dashboard mehrere Sound-Schnipsel verwalten. Jeder Schnipsel hat Name, Antworten, Audio und optional ein Auflösungs-Video.
+Events können als Entwurf dupliziert werden. Konfiguration, Sound-Schnipsel, Textdaten und Media-Referenzen werden kopiert. Punkte, Runden, Ranking und Laufzeitdaten werden nicht kopiert.
 ```
 
-## Hinweis
+## 2026-06-16 – EVENTSYS-27B Live-Statusfenster
 
-Die bisherigen Loyalty-/Raffle-Dokueinträge bleiben historisch gültig, sind aber nicht mehr der aktuelle aktive Arbeitsblock.
+```text
+Für laufende Events wurde ein Statusfenster mit Punkten/Rangliste/Rundenübersicht vorbereitet. Vollständiger Funktionstest folgt erst nach echter Runtime/Playback-Anbindung.
+```
+
+## 2026-06-16 – EVENTSYS-DOCS-1 Eventsystem 27A dokumentiert
+
+```text
+Doku wurde vom alten Loyalty/Raffle-Stand auf den Eventsystem-Stand bis 27A aktualisiert.
+```
+
+## 2026-06-16 – EVENTSYS-27A Event-Einstellungen und Sound-Defaults
+
+```text
+Globale Sound-Defaults wurden erweitert. Pro Event gibt es ein eigenes Fenster Einstellungen bearbeiten. Neue Events übernehmen Defaults aus Config/DB; bestehende Events erhalten sichere Fallbacks.
+```
+
+Bestätigte Standardwerte:
+
+```text
+Antwortzeit 60 Sekunden
+Zufällig automatisch
+Intervall 15 Minuten
+Zufallsabweichung ± 5 Minuten
+Wiederholschutz aktiv
+Mindestabstand 3
+Erkannte Schnipsel aus Rotation entfernen
+Nicht erkannte später erneut versuchen
+Auflösungs-Video nach Lösung automatisch, wenn vorhanden
+```
+
+## 2026-06-16 – EVENTSYS-26B Fix-Serie
+
+```text
+Getrennte Editor-Fenster, MediaPicker-State, Live-Summary, konkrete Sound-Schnipsel-Validierung und Refresh nach Speichern wurden eingebaut.
+```
+
+## Nächster Changelog-Block
+
+```text
+SOUND-SAFE-1 – Sound-System prüfen und sicheren Erweiterungspunkt für Countdown-PreRoll/EventSound festlegen.
+```

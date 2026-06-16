@@ -1,105 +1,60 @@
 # Modul-Doku: stream_events
 
-Stand: 2026-06-16 nach EVENTSYS-27A – Event-Einstellungen und Sound-Defaults
+Stand: 2026-06-16 nach EVENTSYS-27D-FIX2
 
 ## Aktueller Modulstand
 
+Runtime zuletzt bestätigt:
+
 ```text
-MODULE_VERSION = 0.5.22
-MODULE_BUILD   = STEP_EVS_25A_EMPTY_OVERVIEW_ACTION_CLEANUP
+module = stream_events
+moduleVersion = 0.5.22
+moduleBuild = STEP_EVS_25A_EMPTY_OVERVIEW_ACTION_CLEANUP
+enabled = true
+schemaReady = true
+bus.registered = true
 ```
 
-Hinweis: Die Basis-Modulversion ist weiterhin `0.5.22`. Die jüngsten EVS-26/27-Schritte betreffen Dashboard-/Validierungs-/Config-Ausbau und müssen bei der nächsten echten Modulversionsrunde sauber eingeordnet werden.
+Hinweis: Die Modulversion wurde in den aktuellen Dashboard-/Eventsystem-Steps nicht zwingend erhöht. Der dokumentierte Arbeitsstand liegt funktional bei EVENTSYS-27D-FIX2.
 
 ## Zweck
 
 `stream_events` verwaltet Stream-Events mit Sound- und/oder Text-Spiel, gemeinsamer Punktewertung, Ranking, Statistik, Dashboard-Konfiguration und vorbereitetem ChatOutput-/Playback-Flow.
 
-## Bestätigte Grundregeln
+## Aktueller Funktionsumfang
 
-- Sound und Text können im selben Event parallel laufen.
-- Nur ein Event darf gleichzeitig aktiv sein.
-- Eine Chatnachricht wird über Twitch-Events/Communication-Bus verarbeitet.
-- `stream_events` konsumiert `twitch.chat.message`.
-- ChatOutputs bleiben prepared-only, solange keine späteren Live-Schalter bewusst und sichtbar gesetzt sind.
-- Sound-Playback bleibt vorbereitet, aber noch nicht produktiv angebunden.
-- Eventdaten bleiben an `eventUid` gebunden.
-- Config-Defaults gelten für neue Events, ersetzen aber keine Event-Bearbeitung.
-
-## EVS-27A Event-Einstellungen und Sound-Defaults
-
-EVS-27A erweitert die Sound-Konfiguration deutlich und trennt globale Defaults von eventbezogenen Einstellungen.
-
-### Globale Defaults
-
-Pfad im Dashboard:
+### Eventverwaltung
 
 ```text
-Event-System → Config → Sound-Spiel Defaults
+- Events listen
+- Eventdetails lesen
+- Event-Entwurf erstellen
+- Event bearbeiten
+- Event validieren
+- Event starten
+- Event beenden
+- Event abbrechen
+- Event archivieren
+- Event löschen
+- Event kopieren
+- Event umbenennen
 ```
 
-Bestätigte Standardwerte:
+### Sound-Event-Konfiguration
 
 ```text
-Antwortzeit in Sekunden: 60
-Punkte pro Soundlösung: 10
-Abspielmodus: Zufällig automatisch
-Alle X Minuten: 15
-Zufallsabweichung ± Minuten: 5
-Reihenfolge: Zufällig
-Wenn erkannt: Aus aktueller Rotation entfernen
-Wenn nicht erkannt: Später nochmal
-Pause nach Runde in Sekunden: 60
-Mindestabstand Wiederholung: 3
-Erste Runde automatisch beim Eventstart: aus
-Nach einer Runde automatisch weitermachen: an
-Direkte Wiederholung vermeiden: an
-Auflösungs-Video nach Lösung erlauben: an
-Video-Modus: Nach richtiger Antwort automatisch
+- mehrere Sound-Schnipsel pro Event
+- Name pro Schnipsel
+- erlaubte Antworten pro Schnipsel
+- Audio-Media-Auswahl pro Schnipsel
+- optionales Auflösungs-Video pro Schnipsel
+- konkrete Pflichtprüfung pro Schnipsel
 ```
 
-### Event-spezifische Einstellungen
-
-Pfad im Dashboard:
+Pflichtfelder pro Sound-Schnipsel:
 
 ```text
-Event-Details → Einstellungen bearbeiten
-```
-
-Enthält:
-
-```text
-Sound · Ablauf & Timing
-Sound · Rotation
-Sound · Auflösung
-```
-
-Diese Regeln gelten nur für das konkrete Event. Neue Events übernehmen Startwerte aus Config/DB.
-
-## EVS-26B getrennte Editor-Fenster
-
-Das Haupt-Event-Fenster wurde entschlackt. Sound, Text und Einstellungen sind getrennt:
-
-```text
-Einstellungen bearbeiten
-Sound-Schnipsel bearbeiten
-Text-Spiel bearbeiten
-```
-
-Regel:
-
-```text
-Konfiguration nicht in ein einziges großes Hauptmodal zurückbauen.
-```
-
-## Sound-Schnipsel
-
-Ein Sound-Event kann mehrere Sound-Schnipsel enthalten.
-
-Pflicht pro Schnipsel:
-
-```text
-- Schnipsel-Name
+- Name
 - mindestens eine Antwort
 - Audio-Medium
 ```
@@ -110,45 +65,128 @@ Optional:
 - Auflösungs-Video
 ```
 
-Validierung meldet konkret, welcher Schnipsel was braucht:
+### Editor-Struktur
+
+Das Dashboard nutzt getrennte Fenster:
 
 ```text
-Sound-Schnipsel 1: Antwort fehlt.
-Sound-Schnipsel 2: Audio fehlt.
-Sound-Schnipsel 3: Name fehlt.
+- Einstellungen bearbeiten
+- Sound-Schnipsel bearbeiten
+- Text-Spiel bearbeiten
 ```
 
-## Aktueller Runtime-Stand
+Das Hauptfenster enthält keine alte Inline-Sound-Konfiguration mehr.
 
-Vorhanden/vorbereitet:
+### Globale Sound-Defaults
+
+Globale Defaults werden im Config-Tab gespeichert und von neuen Events übernommen.
+
+Bestätigte Standardrichtung:
 
 ```text
-GET  /api/stream-events/sound-runtime/status
-GET  /api/stream-events/sound-runtime/report
-POST /api/stream-events/sound-runtime/next-round
-POST /api/stream-events/sound-runtime/resolve
-POST /api/stream-events/sound-runtime/unresolved
+Antwortzeit 60 Sekunden
+Zufällig automatisch
+Intervall 15 Minuten
+Zufallsabweichung ± 5 Minuten
+Wiederholschutz aktiv
+Mindestabstand 3
+Wenn erkannt: aus Rotation entfernen
+Wenn nicht erkannt: später erneut versuchen
+Video nach Lösung automatisch, wenn vorhanden
 ```
 
-Noch nicht produktiv angebunden:
+### Event-spezifische Einstellungen
+
+Pro Event gibt es ein eigenes Einstellungsfenster. Dort können Sound-Regeln überschrieben werden, ohne die globalen Defaults zu verändern.
+
+Grundregel:
 
 ```text
-- echtes Sound-Playback
-- Timer-Worker
-- automatische Rotation
-- Auflösungs-Video-Playback
-- produktive Chat-Ausgaben
+Globale Config = Defaults für neue Events.
+Event-Einstellungen = Snapshot/Regeln für dieses konkrete Event.
+```
+
+### Live-Bedienung
+
+Bei laufendem Event zeigt die Übersicht:
+
+```text
+- EVENT LÄUFT
+- Runtime-Hinweis
+- Live-Bedienung
+- Nächsten Schnipsel vorbereiten
+- Status & Punkte öffnen
+- Event verwalten
+- Event beenden
+```
+
+## Runtime-Stand
+
+Aktuell:
+
+```text
+- Sound-Runden können vorbereitet werden.
+- Es gibt noch kein echtes Playback über das Sound-System.
+- Es gibt noch keinen Countdown-PreRoll.
+- Es gibt noch keinen Antwort-Timer.
+- Es gibt noch keine Auto-Rotation.
+- Chat-Live-Send bleibt vorbereitet/deaktiviert.
+```
+
+## Sound-System-Regel für kommende Schritte
+
+Für Event-Sounds darf keine direkte Audioausgabe in `stream_events` gebaut werden.
+
+Richtig:
+
+```text
+stream_events entscheidet/erstellt Runde
+→ Sound-System erhält Queue-Job
+→ Sound-System steuert Countdown + Audio
+→ stream_events reagiert auf Runtime/Status
+```
+
+Falsch:
+
+```text
+stream_events zeigt Countdown direkt
+stream_events spielt Sound direkt
+stream_events baut eigene Queue
+```
+
+## Geplante EventSound-/Countdown-Erweiterung
+
+Countdown vor Sound soll optional sein und über das Sound-System laufen.
+
+Geplante additive Daten:
+
+```json
+{
+  "preRoll": {
+    "type": "countdown",
+    "enabled": true,
+    "seconds": 3,
+    "style": "cgn"
+  }
+}
+```
+
+Kompatibilität:
+
+```text
+preRoll fehlt -> altes Sound-System-Verhalten.
+preRoll.enabled !== true -> altes Verhalten.
 ```
 
 ## Wichtige Routen
+
+Bekannte Eventsystem-Routen:
 
 ```text
 GET  /api/stream-events/status
 GET  /api/stream-events/routes
 GET  /api/stream-events/config
 POST /api/stream-events/config
-GET  /api/stream-events/texts
-POST /api/stream-events/texts
 GET  /api/stream-events/events
 POST /api/stream-events/events
 GET  /api/stream-events/events/:eventUid
@@ -159,40 +197,30 @@ POST /api/stream-events/events/:eventUid/finish
 POST /api/stream-events/events/:eventUid/cancel
 POST /api/stream-events/events/:eventUid/archive
 POST /api/stream-events/events/:eventUid/delete
+POST /api/stream-events/events/:eventUid/duplicate
+POST /api/stream-events/events/:eventUid/rename
 GET  /api/stream-events/events/:eventUid/ranking
 POST /api/stream-events/events/:eventUid/points
-GET  /api/stream-events/runtime-gate/status
+POST /api/stream-events/sound-runtime/next-round
+GET  /api/stream-events/sound-runtime/status
+GET  /api/stream-events/sound-runtime/report
+GET  /api/stream-events/text-runtime/status
+GET  /api/stream-events/text-runtime/report
 ```
 
-## Nächster Arbeitsbereich
+## Sicherheit
+
+Weiterhin gilt:
 
 ```text
-EVENTSYS-27B – Live-Statusfenster für laufende Events mit Punkten/Rangliste
+Kein Twitch-Live-Send ohne separate Freigabe.
+Kein Sound-Playback am Sound-System vorbei.
+Keine alte Sound-/Alert-/UserSound-Logik brechen.
+Keine produktive DB ersetzen.
 ```
 
-Ziel:
+## Nächster Modul-Schritt
 
 ```text
-Bei laufendem Event ein eigenes Statusfenster öffnen können.
-```
-
-Danach:
-
-```text
-EVENTSYS-27C – Manuelle Sound-Rundensteuerung
-EVENTSYS-27D – Sound-/Media-Playback-Anbindung
-EVENTSYS-27E – Automatik: zufällig alle X ± Y Minuten
-EVENTSYS-27F – Auflösungs-Video nach Lösung
-EVENTSYS-27G – Chat-Ausgaben über helper_texts/helper_messages
-EVENTSYS-27H – Statistik-Ausbau
-```
-
-## Sicherheit / Nicht ändern ohne separaten STEP
-
-```text
-Keine direkte Twitch-Ausgabe.
-Kein Sound-/Video-Playback ohne dedizierten Playback-Step.
-Keine automatische Rotation ohne dedizierten Runtime-Step.
-Keine parallele Chat-Auswertung neben Twitch-Events/Communication-Bus.
-Keine parallele Config-Struktur neben bestehenden Helpern/DB-Patterns.
+SOUND-SAFE-1 – Sound-System prüfen und Erweiterungspunkt für EventSound + Countdown-PreRoll festlegen.
 ```

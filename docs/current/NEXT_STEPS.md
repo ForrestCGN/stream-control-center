@@ -4,205 +4,130 @@ Stand: 2026-06-16
 
 ## Neuer Chat / nächster Startpunkt
 
-Im neuen Chat mit diesem Block weitermachen:
-
 ```text
-EVENTSYS-27B – Live-Statusfenster für laufende Events mit Punkten/Rangliste
+SOUND-SAFE-1 – Sound-System prüfen und sicheren Erweiterungspunkt für EventSound + Countdown-PreRoll festlegen
 ```
 
 ## Ausgangslage
 
 ```text
-EVENTSYS-27A ist funktional bestätigt.
-Config-Fenster ist brauchbar aufgebaut.
-Sound-Defaults werden gespeichert.
-Event-spezifisches Einstellungsfenster ist vorhanden.
-Sound-Schnipsel und Text-Spiel sind getrennte Editor-Fenster.
-Konkrete Sound-Schnipsel-Validierung funktioniert.
-Eventdetails aktualisieren sich nach Speichern ohne manuellen Reload.
+EVENTSYS-27D-FIX2 ist der aktuelle Arbeitsstand.
+Live-Bedienung ist in der Übersicht sichtbar.
+Sound-Runden können vorbereitet werden.
+Echtes Playback ist noch nicht angebunden.
+Countdown-Overlay ist gewünscht, muss aber über das Sound-System laufen.
+Das alte Sound-System darf nicht kaputtgehen.
 ```
 
-## Wichtige aktuelle UI-Regel
+## Wichtigste Regel für den nächsten Block
 
 ```text
-Config-Tab = globale Defaults für neue Events.
-Event-Einstellungen = Regeln für ein konkretes Event.
-Sound-Schnipsel-Fenster = Sound-Dateien, Antworten, optionales Video.
-Text-Spiel-Fenster = Textaufgaben / Sätze / Lösungen.
-Live-Statusfenster = laufendes Event, Punkte, Ranking, Rundenstatus.
+Keine direkte Eventsystem-Audioausgabe bauen.
+Keinen Countdown am Sound-System vorbei triggern.
+Keine zweite Queue bauen.
+Keine bestehende Sound-System-Route in ihrem Verhalten brechen.
+Neue Felder müssen optional sein.
+Fehlen neue Felder, läuft alles wie bisher.
 ```
 
-Nicht wieder alles in ein langes Hauptmodal packen.
+## Schritt 1 – Sound-System wirklich prüfen
 
-## Schritt 1 – EVENTSYS-27B planen/bauen
+Benötigte Dateien aus aktuellem Stand prüfen:
+
+```text
+backend/modules/sound_system.js
+htdocs/overlays/sound_system_overlay.html
+ggf. htdocs/overlays/js/ws-client.js
+backend/modules/media*.js
+backend/modules/stream_events.js
+```
 
 Ziel:
 
 ```text
-Wenn ein Event läuft, soll ein eigenes Statusfenster geöffnet werden können.
+- vorhandene Queue-Logik verstehen
+- vorhandene /api/sound/play Payload verstehen
+- vorhandene Overlay-Ausgabe verstehen
+- prüfen, ob Media-IDs direkt abgespielt werden
+- prüfen, welche Status-/Callback-/Bus-Signale existieren
 ```
 
-Inhalt:
+## Schritt 2 – Kompatiblen EventSound-Job planen
 
-```text
-Event-Status
-- Eventname
-- Status: läuft / pausiert / beendet
-- Spieltyp: Sound / Text / Kombi
-- gestartet seit
-- aktive Runde
-- verbleibende Antwortzeit, sobald Runtime aktiv ist
+Geplante additive Payload, nur wenn vom vorhandenen Sound-System sauber unterstützt oder gefahrlos ergänzt:
 
-Punkte / Rangliste
-- Platz
-- User
-- Punkte
-- richtige Antworten
-- schnellste Antwort, sobald messbar
-- letzte Aktion
-
-Rundenverlauf
-- Schnipsel/Text
-- gelöst / nicht gelöst / übersprungen
-- Gewinner
-- Punkte
-- Zeit
-
-Sound-Rotation
-- offene Schnipsel
-- gelöste Schnipsel
-- nicht erkannte Schnipsel
-- wieder eingereiht
-- aus Rotation entfernt
+```json
+{
+  "mediaId": "...",
+  "source": "stream_events",
+  "category": "event_sound",
+  "priority": 55,
+  "preRoll": {
+    "type": "countdown",
+    "enabled": true,
+    "seconds": 3,
+    "style": "cgn"
+  },
+  "meta": {
+    "eventUid": "...",
+    "roundUid": "...",
+    "snippetUid": "..."
+  }
+}
 ```
 
-## Schritt 2 – EVENTSYS-27C danach
+Kompatibilitätsregel:
 
 ```text
-Manuelle Sound-Rundensteuerung.
+preRoll fehlt -> altes Verhalten
+preRoll.enabled !== true -> altes Verhalten
+source/category/meta fehlen -> altes Verhalten
 ```
 
-Muss dauerhaft möglich bleiben:
+## Schritt 3 – Erst danach bauen
+
+Empfohlene Reihenfolge:
 
 ```text
-- zum Testen
-- wenn der Streamer/Mod das Event bewusst steuern will
-```
+SOUND-SAFE-1
+Sound-System prüfen und Erweiterungspunkt dokumentieren.
 
-Geplante Buttons bei laufendem Sound-Event:
+SOUND-SAFE-2
+Optionalen Countdown-PreRoll im Sound-System additiv einbauen.
+Altes Verhalten muss unverändert bleiben.
 
-```text
-- Nächsten Schnipsel abspielen/vorbereiten
-- Runde überspringen
-- Runde als ungelöst markieren
-- Runde wiederholen
-```
+EVENTSYS-27E
+stream_events nutzt Sound-System-Queue für Event-Sounds.
+Button wird von „Nächsten Schnipsel vorbereiten“ zu „Nächsten Schnipsel abspielen“.
 
-## Schritt 3 – EVENTSYS-27D danach
+EVENTSYS-27F
+Antwortphase/Timer starten, nachdem Sound-System den Soundstart meldet oder der Job erfolgreich gestartet wurde.
 
-```text
-Sound-/Media-Playback-Anbindung.
-```
+EVENTSYS-27G
+Chat-Antworten über twitch.chat.message prüfen und Punkte buchen.
 
-Vorher prüfen:
+EVENTSYS-27H
+Chat-Ausgaben über helper_texts/helper_messages mit CGN-Heimleitung-Rentner-Textvarianten.
 
-```text
-- vorhandenes Sound-System
-- vorhandenes Media-System
-- vorhandene Playback-/Overlay-Routen
-- kein paralleles Sound-System bauen
-```
+EVENTSYS-27I
+Auflösungs-Video nach richtiger Antwort über Media-/Sound-System.
 
-## Schritt 4 – EVENTSYS-27E danach
+EVENTSYS-27J
+Auto-Rotation: zufällig alle X ± Y Minuten.
 
-```text
-Automatik: zufälliges Abspielen alle X ± Y Minuten.
-```
-
-Muss die Event-spezifischen Einstellungen aus EVS-27A verwenden:
-
-```text
-playbackMode
-intervalMinutes
-intervalJitterMinutes
-orderMode
-avoidImmediateRepeat
-minRepeatDistance
-solvedPolicy
-unresolvedPolicy
-autoStartFirstRound
-autoAdvanceRounds
-roundDelaySeconds
-```
-
-## Schritt 5 – EVENTSYS-27F danach
-
-```text
-Auflösungs-Video nach Lösung.
-```
-
-Regel:
-
-```text
-Wenn gelöst und Video vorhanden, Video gemäß Event-Einstellung abspielen.
-```
-
-## Schritt 6 – EVENTSYS-27G danach
-
-```text
-Chat-Ausgaben über helper_texts/helper_messages.
-```
-
-Textkeys vorbereiten:
-
-```text
-stream_events.sound.event.started
-stream_events.sound.event.finished
-stream_events.sound.round.started
-stream_events.sound.round.solved
-stream_events.sound.round.timeout
-stream_events.sound.round.unresolved
-stream_events.sound.round.video
-stream_events.sound.event.no_more_snippets
-```
-
-Stil:
-
-```text
-CGN / Heimleitung / Rentner / Altersheim
-kurz
-chatgeeignet
-mehrere Varianten
-Platzhalterfähig
-```
-
-## Schritt 7 – EVENTSYS-27H danach
-
-```text
-Statistik-Ausbau.
-```
-
-Erfassen/anzeigen:
-
-```text
-- gespielt
-- erkannt
-- nicht erkannt
-- schnellste Antwort
-- Top-Spieler
-- Lösungsquote
-- Punkte
-- pro Event und optional global
+EVENTSYS-DOCS-2
+Doku nach Sound-System-Anbindung aktualisieren.
 ```
 
 ## Nicht tun
 
 ```text
-Keine produktive SQLite ersetzen.
-Keine neue Config-Parallelstruktur bauen.
-Keine Twitch-Chat-Ausgaben direkt hart im Code senden.
-Kein Sound-/Media-System parallel bauen.
-Keine Automatik aktivieren, bevor manuelle Steuerung/Statusfenster testbar sind.
-Keine alten Loyalty/Raffle-Next-Steps als aktuellen Eventsystem-Startpunkt verwenden.
-Keine technischen API-Details in die normale Streamer-/Mod-UI kippen.
+Keine direkte Audioausgabe aus stream_events.
+Kein Countdown-Overlay separat am Sound-System vorbei.
+Keine neue Sound-Queue.
+Keine bestehenden Sound-Routen brechen.
+Keine alten Alert-/Sound-/UserSound-Flows verändern.
+Kein Auto-Timer, bevor manuelles Playback stabil ist.
+Kein Chat-Live-Send.
+Keine produktive DB ersetzen.
 ```
