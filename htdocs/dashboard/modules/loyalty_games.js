@@ -552,7 +552,7 @@ window.LoyaltyGamesModule = (function(){
     try {
       const result = await apiPost(api.raffleConfig, body);
       state.raffleResult = result?.ok
-        ? buildGambleResult('success', 'Raffle-Konfiguration gespeichert', 'Die Einstellungen wurden übernommen. Der Pool bleibt im Chat weiterhin ausgeblendet.')
+        ? buildGambleResult('success', 'Gespeichert', 'Die Raffle-Einstellungen wurden übernommen.')
         : buildGambleResult('error', 'Speichern unklar', result?.error || 'Die Antwort war nicht eindeutig.', result || {});
       await loadRaffleConfig(false);
     } catch (err) {
@@ -3086,12 +3086,16 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
   }
 
 
-  function renderRaffleResultBox(){
-    return renderConfigResultBox({
-      title: 'Letztes Raffle-Ergebnis',
-      result: state.raffleResult,
-      clearAttr: 'data-lg-raffle-clear-result'
-    });
+  function renderRaffleSaveNotice(){
+    const result = state.raffleResult;
+    if (!result) return '';
+    const hasStructured = result && typeof result === 'object';
+    const kind = hasStructured ? String(result.kind || 'info') : 'info';
+    const badgeText = kind === 'success' ? 'Gespeichert' : (kind === 'error' ? 'Fehler' : (kind === 'loading' ? 'Speichert' : 'Info'));
+    const badgeClass = kind === 'success' ? 'lg-badge-ok' : (kind === 'error' ? 'lg-badge-off' : 'lg-badge-warn');
+    const heading = hasStructured ? (result.title || badgeText) : 'Hinweis';
+    const message = hasStructured ? (result.message || '') : String(result || '');
+    return `<div class="lg-mini-row lg-config-save-notice"><span><strong>${esc(heading)}</strong>${message ? `<br><small class="lg-muted">${esc(message)}</small>` : ''}</span><span class="lg-badge ${badgeClass}">${esc(badgeText)}</span></div>`;
   }
 
   function renderRaffleConfigCard(){
@@ -3108,7 +3112,6 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
           <button class="lg-btn lg-btn-secondary" data-lg-raffle-reload type="button">Neu laden</button>
         </div>
         ${error}
-        ${renderRaffleResultBox()}
         <form class="lg-form lg-gamble-form lg-raffle-form" data-lg-raffle-form>
           <div class="lg-grid lg-editor-grid">
             <label class="lg-check-row"><span><strong>Raffle aktiv</strong><br><small class="lg-muted">Erlaubt !raffle/!join.</small></span><input type="checkbox" name="enabled" ${cfg.enabled !== false ? 'checked' : ''}></label>
@@ -3127,6 +3130,7 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
           <div class="lg-actions">
             <button class="lg-btn" type="button" data-lg-raffle-save ${state.saving ? 'disabled' : ''}>Raffle speichern</button>
           </div>
+          ${renderRaffleSaveNotice()}
         </form>
       </div>
     `;
