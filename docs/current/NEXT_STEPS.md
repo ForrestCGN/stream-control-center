@@ -1,147 +1,140 @@
 # NEXT_STEPS – stream-control-center
 
-Stand: 2026-06-15
+Stand: 2026-06-16
 
-## Neuer Chat – Startpunkt
+## Neuer Chat / nächster Startpunkt
 
-Im neuen Chat mit folgendem Block weitermachen:
+Im neuen Chat mit diesem Block weitermachen:
 
 ```text
-LC-CORE-POINTS-3A – Twitch Events als abonnierbare Bonus-Events vorbereiten
+LC-MINIGAMES-2B Kosten-Live-Test abschließen
 ```
 
 ## Ausgangslage
 
 ```text
-LC-CORE-CLEANUP-1 bestätigt.
-LC-CORE-POINTS-1 bestätigt.
-LC-CORE-POINTS-2A bestätigt.
-LC-CORE-POINTS-2B bestätigt.
-LC-CORE-POINTS-2C bestätigt.
-forrestcgn wurde wieder als Ignored-User gesetzt.
+Raffle-Teilnahmekosten sind eingebaut.
+Config speichert entryCostAmount=10 und entryCostEnabled=true korrekt.
+Text-DB-Cleanup ist bestätigt.
+Keine aktiven mehrzeiligen Textvarianten mehr in /api/loyalty/giveaways/texts.
+Kosten-Live-Test steht noch aus.
 ```
 
-## Wichtige Entscheidung
-
-Der direkte EventBonus-Test per `/api/loyalty/events/ingest` wird zurückgestellt.
-
-Stattdessen soll zuerst `twitch_events` als zentrale Event-Schicht erweitert werden, damit mehrere Module dieselben Events abonnieren können:
-
-```text
-Twitch / EventSub / IRC / spätere Quellen
-        ↓
-twitch_events
-        ↓
-Communication Bus
-        ↓
-loyalty / alerts / dashboard / event-system
-```
-
-## Erster Schritt im neuen Chat
-
-### 1. Echte Dateien prüfen
-
-```text
-backend/modules/twitch_events.js
-backend/modules/loyalty.js
-backend/modules/communication_bus.js
-backend/modules/helpers/helper_communication.js
-docs/current/CURRENT_STATUS.md
-docs/current/TODO.md
-docs/current/NEXT_STEPS.md
-docs/current/FILES.md
-docs/current/CHANGELOG.md
-```
-
-### 2. Event-Katalog und EventSub-Mapping prüfen
-
-Klären:
-
-```text
-Welche EventKeys existieren bereits?
-Welche EventSub-Typen werden normalisiert?
-Welche Events werden schon über publishTwitchEvent() publiziert?
-Welche Events fehlen oder sind nur teilweise vorhanden?
-```
-
-### 3. Ziel-EventKeys festlegen
-
-```text
-twitch.follow
-twitch.subscribe
-twitch.resub
-twitch.gift_sub
-twitch.gift_bomb
-twitch.cheer
-twitch.raid
-```
-
-### 4. Payload-Vertrag festlegen
-
-Mindestens:
-
-```json
-{
-  "eventKey": "twitch.subscribe",
-  "provider": "eventsub",
-  "sourceModule": "twitch_events",
-  "user": {
-    "login": "example",
-    "displayName": "Example",
-    "id": "123"
-  },
-  "recipient": null,
-  "tier": "1000",
-  "quantity": 1,
-  "months": 1,
-  "bits": 0,
-  "viewers": 0,
-  "raw": {}
-}
-```
-
-### 5. Loyalty-Subscriber planen
-
-Mapping:
-
-```text
-twitch.follow       → recordEventBonus({ eventType: "follow" })
-twitch.subscribe    → recordEventBonus({ eventType: "subscribe" })
-twitch.resub        → recordEventBonus({ eventType: "resub" })
-twitch.cheer        → recordEventBonus({ eventType: "cheer" })
-twitch.raid         → recordEventBonus({ eventType: "raid" })
-twitch.gift_sub     → recordEventBonus({ eventType: "gift_sub" })
-twitch.gift_bomb    → recordEventBonus({ eventType: "gift_bomb" })
-```
-
-## Tests nach Umsetzung
-
-```text
-1. node -c backend/modules/twitch_events.js
-2. node -c backend/modules/loyalty.js
-3. Bus-Test: twitch_events publiziert Testevent.
-4. Loyalty-Subscriber-Test: Event landet in loyalty_events.
-5. Transaction-Test: event_bonus wird korrekt gebucht.
-6. Ignored-Test: forrestcgn wird ignoriert.
-7. Duplicate-Test: gleiche eventUid wird dedupliziert.
-8. Doku aktualisieren.
-```
-
-## StepDone nach Umsetzung
-
-Nur nach tatsächlicher Code-/Doku-Umsetzung:
+## Schritt 1 – aktuellen Stand prüfen
 
 ```powershell
-.\stepdone.cmd "LC-CORE-POINTS-3A Twitch EventBus Bonus Events vorbereitet"
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/raffle/config" | ConvertTo-Json -Depth 6
+```
+
+Erwartung bei aktivem Kostentest:
+
+```text
+entryCostAmount = 10
+entryCostEnabled = true
+```
+
+## Schritt 2 – Balance vor Join prüfen
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/balance/forrestcgn?displayName=ForrestCGN" | ConvertTo-Json -Depth 6
+```
+
+Falls Testpunkte fehlen, nur gezielt kleine Testpunkte per vorhandener Admin-Adjustment-Route vergeben.
+
+## Schritt 3 – Raffle starten und Join testen
+
+Im Chat:
+
+```text
+!raffle
+!join
+```
+
+Prüfen:
+
+```text
+User wird eingetragen.
+Bei Kosten > 0 wird Betrag abgezogen.
+Chattext kommt als eine Variante, nicht als Sammeltext.
+```
+
+## Schritt 4 – Doppeljoin prüfen
+
+Im Chat erneut:
+
+```text
+!join
+```
+
+Erwartung:
+
+```text
+already_joined Text
+keine zweite Abbuchung
+```
+
+## Schritt 5 – zu wenig Punkte testen
+
+Mit Testuser oder reduziertem Konto:
+
+```text
+!join
+```
+
+Erwartung:
+
+```text
+Keine Teilnahme.
+Kein Abzug.
+Textkey: raffle.public.insufficient_balance
+```
+
+## Schritt 6 – Cancel/Refund testen
+
+Bei laufender kostenpflichtiger Raffle:
+
+```text
+Raffle abbrechen/canceln
+```
+
+Erwartung:
+
+```text
+Bezahlte Teilnahmen werden erstattet.
+refundTransactions wird befüllt.
+Balance ist nach Refund wieder korrekt.
+```
+
+## Schritt 7 – normaler Abschluss testen
+
+```text
+Raffle normal auslaufen lassen oder sauber auslosen.
+```
+
+Erwartung:
+
+```text
+Keine Erstattung.
+Gewinner erhalten Auszahlung.
+payoutTransactions wird befüllt.
+```
+
+## Danach
+
+Wenn Kosten-Live-Test bestätigt ist:
+
+```text
+1. Doku erneut aktualisieren.
+2. LC-MINIGAMES-2B als bestätigt markieren.
+3. Danach LC-CORE-POINTS-3A / Twitch Events weiterführen.
 ```
 
 ## Nicht tun
 
 ```text
 Keine produktive SQLite ersetzen.
-Keine Commands aktivieren.
-Keine Live-/Shadow-Umstellung.
-Keine neue parallele Event-Schicht bauen.
-Keine Loyalty-Direktanbindung an Twitch-Sonderfälle.
-Keine Apply-/Patch-/Regex-Scripte.
+Keine Raffle-Commands im Raffle-Config-Bereich bearbeiten.
+Keine alten raffle.* Textkeys reaktivieren.
+Keine Alerts produktiv umschalten.
+Keine neue Raffle-Parallelstruktur bauen.
 ```

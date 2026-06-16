@@ -1,10 +1,10 @@
 # Modul-Doku – Loyalty Giveaways / Raffle
 
-Stand: 2026-06-15 19:55
+Stand: 2026-06-16
 
 ## Zweck
 
-`loyalty_giveaways.js` verwaltet bestehende Giveaway-/Wheel-Funktionen und enthält aktuell zusätzlich die einfache Chat-Raffle.
+`loyalty_giveaways.js` verwaltet bestehende Giveaway-/Wheel-/Ticket-Funktionen und enthält zusätzlich die einfache Chat-Raffle.
 
 Raffle wurde bewusst **nicht** als neues Parallelmodul gebaut, sondern kompatibel in das bestehende Modul integriert.
 
@@ -12,10 +12,8 @@ Raffle wurde bewusst **nicht** als neues Parallelmodul gebaut, sondern kompatibe
 
 ```text
 Datei: backend/modules/loyalty_giveaways.js
-moduleVersion = 0.1.9
-moduleBuild = STEP_LC_RAFFLE_2A_FIX1_CONFIG_ENDPOINT
-routeCount = 45
-lastError = leer
+moduleVersion = 0.1.13
+moduleBuild = STEP_LC_MINIGAMES_2B_FIX3_TEXT_DB_CLEANUP
 ```
 
 Prüfung:
@@ -39,61 +37,93 @@ Kompatibilität:
 GET /api/loyalty/giveaways/raffle/status
 ```
 
+## Text-/Editor-Route
+
+```text
+GET /api/loyalty/giveaways/texts
+```
+
+Diese Route liefert die Textkeys/Varianten für Loyalty-Giveaways/Mini-Spiele. Nach LC-MINIGAMES-2B FIX3 wurde bestätigt, dass keine aktiven mehrzeiligen Textvarianten mehr vorhanden sind.
+
 ## Commands
+
+Aktuelle produktive Commands laufen über das zentrale Command-System:
 
 ```text
 !raffle -> mod
 !join   -> everyone
 ```
 
-Die Commands laufen über das zentrale Command-System:
-
-```text
-moduleKey = loyalty_giveaways
-actionKey = chat_command_runtime
-targetUrl = /api/loyalty/giveaways/runtime/chat-command
-```
+Command-Felder werden nicht mehr im Raffle-Config-Bereich bearbeitet. Langfristig gehören Command, Rechte, Cooldowns und Aliases nach `Loyalty -> Chat & Befehle` bzw. in das zentrale Command-Modul.
 
 ## Raffle-Config
 
-Aktuell bestätigte Werte:
+Fachlich relevante Werte:
 
 ```text
-enabled = true
-durationSeconds = 120
-maxDurationSeconds = 3600
-prizePoolAmount = 5000
-entryCostAmount = 0
-entryCostEnabled = false
-liveOnly = false
-startPermission = mod
-raffleCommand = raffle
-joinCommand = join
+enabled
+liveOnly
+durationSeconds
+maxDurationSeconds
+prizePoolAmount
+entryCostAmount
+entryCostEnabled
 showPoolInChat = false
 dashboardGroup = minigames
 dashboardLabel = Raffle
 textCategory = chat_raffle
 ```
 
+Interne/Kompatibilitätswerte bleiben erhalten:
+
+```text
+startPermission
+raffleCommand
+joinCommand
+```
+
+Sie werden im Raffle-Config-Dashboard nicht mehr direkt angezeigt.
+
+## Teilnahmekosten
+
+```text
+entryCostAmount = 0  -> kostenlos
+entryCostAmount > 0  -> entryCostEnabled=true
+```
+
+Geplantes/implementiertes Verhalten:
+
+```text
+Bei genug Punkten: Betrag wird abgezogen, User wird eingetragen.
+Bei zu wenig Punkten: keine Teilnahme, kein Abzug, Text über helper_texts.
+Bei Doppeljoin: keine zweite Abbuchung.
+Bei Cancel: bezahlte Teilnahmen werden erstattet.
+Bei normalem Abschluss: keine Erstattung, Gewinner erhalten Auszahlung.
+```
+
+Bestätigt:
+
+```text
+/api/loyalty/raffle/config speichert entryCostAmount=10 und entryCostEnabled=true korrekt.
+```
+
+Noch offen:
+
+```text
+Live-Test von Abbuchung, Block bei zu wenig Punkten, Doppeljoin, Cancel/Refund und Auszahlung.
+```
+
 ## Auszahlung
 
 ```text
-Gesamtgewinn intern = 5000 Kekskrümel
-Auszahlung je Gewinner = floor(5000 / winnerCount)
+Gesamtgewinn intern = prizePoolAmount
+Auszahlung je Gewinner = floor(prizePoolAmount / winnerCount)
 Rest = unvergeben
-Teilnahme = kostenlos
-```
-
-Transaktion pro Gewinner:
-
-```text
-type = raffle_win
+Transaktionstyp = raffle_win
+reason = loyalty_raffle_win
 sourceModule = loyalty_giveaways
 sourceProvider = raffle
 mode = live
-reason = loyalty_raffle_win
-referenceType = raffle
-referenceId = <raffle_uid>
 ```
 
 ## Gewinnerregel
@@ -107,12 +137,17 @@ referenceId = <raffle_uid>
 201+ Teilnehmer    -> 1 Gewinner je 20 Teilnehmer
 ```
 
-## Öffentliche Textkeys
+## Öffentliche Raffle-Textkeys
+
+Produktiver Raffle-Pfad nutzt:
 
 ```text
 raffle.public.started
+raffle.public.started_paid
 raffle.public.already_active
 raffle.public.joined
+raffle.public.joined_paid
+raffle.public.insufficient_balance
 raffle.public.already_joined
 raffle.public.no_active
 raffle.public.status
@@ -122,23 +157,60 @@ raffle.public.winners
 raffle.public.permission_denied
 ```
 
-Wichtig:
+Alte `raffle.*` Seed-Keys wurden aus dem aktiven Pfad entfernt/bereinigt. Sie sollen nicht wieder als produktiver Chatpfad genutzt werden.
+
+## Textsystem
+
+Texte laufen über:
 
 ```text
-Pool wird nie öffentlich im Chat angezeigt.
-Gewinner sehen Gewinnerliste und Gewinnbetrag.
+backend/modules/helpers/helper_texts.js
+helper_texts.renderModuleText(...)
+```
+
+Regel:
+
+```text
+Eine Textvariante = eine Chatmeldung.
+Keine mehrzeiligen Sammelvarianten als aktive Varianten.
+```
+
+LC-MINIGAMES-2B FIX3 bereinigt aktive mehrzeilige Seed-/Sammelvarianten für:
+
+```text
+chat_raffle
+chat_giveaway
+chat_ticket
+chat_wheel
+```
+
+Prüfung:
+
+```powershell
+$t = Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/giveaways/texts"
+
+$t.keys |
+  ForEach-Object {
+    $key = $_.key
+    $_.variants | ForEach-Object {
+      $_ | Add-Member -NotePropertyName key -NotePropertyValue $key -Force
+      $_
+    }
+  } |
+  Where-Object { $_.enabled -eq $true -and $_.value -match "(`r|`n)" } |
+  Select-Object id,key,category,enabled,source,value |
+  Format-List
+```
+
+Erwartung:
+
+```text
+Keine Ausgabe.
 ```
 
 ## Dashboard-Bezug
 
-Raffle ist für das Dashboard unter `Mini-Spiele` vorbereitet:
-
-```text
-dashboardGroup = minigames
-dashboardLabel = Raffle
-```
-
-Langfristige Zielstruktur:
+Langfristige Struktur:
 
 ```text
 Mini-Spiele = Status/Bedienung/Shortcuts
@@ -147,11 +219,21 @@ Texte = Raffle-Textvarianten
 Chat & Befehle = Trigger/Rechte/Cooldowns
 ```
 
+Aktuell umgesetzt:
+
+```text
+Loyalty -> Mini-Spiele       Status/Bedienung
+Loyalty -> Einstellungen     Raffle-Config
+Loyalty -> Texte             Raffle-Texte, bereichsgefiltert
+```
+
 ## Nicht ändern ohne Freigabe
 
 ```text
 Keine neue Raffle-Parallelstruktur.
-Keine Entfernung bestehender Giveaway-/Wheel-Funktionalität.
+Keine Entfernung bestehender Giveaway-/Wheel-/Ticket-Funktionalität.
 Keine Änderung an Punktebuchung ohne Test.
 Keine öffentliche Pool-Anzeige im Chat.
+Keine Command-Bearbeitung im Raffle-Config-Bereich.
+Keine Reaktivierung alter raffle.* Chatkeys.
 ```

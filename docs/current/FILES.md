@@ -1,87 +1,93 @@
 # FILES – stream-control-center
 
-Stand: 2026-06-15
+Stand: 2026-06-16
 
 ## Aktueller Arbeitsstand
 
 ```text
-Handoff für LC-CORE-POINTS-3A – Twitch Events als abonnierbare Bonus-Events
+LC-MINIGAMES-2B FIX3 – Raffle Teilnahmekosten + Text-DB-Cleanup
 ```
 
-## Für diesen Doku-Stand geänderte Dateien
+## Für diesen Doku-Stand relevante geänderte Dateien
 
 ```text
+backend/modules/loyalty_giveaways.js
+htdocs/dashboard/modules/loyalty_games.js
 docs/current/CURRENT_STATUS.md
 docs/current/TODO.md
 docs/current/NEXT_STEPS.md
 docs/current/FILES.md
 docs/current/CHANGELOG.md
-docs/current/CURRENT_CHAT_HANDOFF_LC_CORE_POINTS_3A.md
-project-state/CURRENT_STATUS_LC_CORE_POINTS_3A_HANDOFF.md
+docs/current/CURRENT_CHAT_HANDOFF_LC_MINIGAMES_2B_DOCUMENTED.md
+docs/modules/loyalty_giveaways.md
+project-state/CURRENT_STATUS_LC_MINIGAMES_2B_DOCUMENTED.md
 ```
 
-## Relevante Backend-Dateien für den nächsten Chat
+## Backend
 
 ```text
-backend/modules/twitch_events.js              zentrale Twitch-Event-/EventSub-/Bus-Schicht
-backend/modules/loyalty.js                    Loyalty Core, Watch/Presence/Punkte/Event-Boni
-backend/modules/communication_bus.js          Communication Bus Modul
-backend/modules/helpers/helper_communication.js  In-process Subscriptions/EventBus Core
-backend/modules/twitch_presence.js            Presence-/IRC-Quelle, bereits bestätigt für Watch
-backend/modules/helpers/helper_settings.js    DB-basierte Settings
-backend/core/database.js                      produktive DB-Anbindung
+backend/modules/loyalty_giveaways.js
 ```
 
-## Relevante bestätigte Routen
+Aktueller dokumentierter Modulstand:
 
 ```text
-GET  /api/loyalty/status
-GET  /api/loyalty/settings
-POST /api/loyalty/settings
-GET  /api/loyalty/events
-POST /api/loyalty/events/ingest
-GET  /api/loyalty/ignored-users
-
-GET  /api/twitch/events/status
-GET  /api/twitch/events/catalog
-GET  /api/twitch/events/stream-state
-POST /api/twitch/events/stream-state/override
-POST /api/twitch/events/stream-state/clear-override
-
-GET  /api/twitch/presence/status
-GET  /api/twitch/presence/start
-GET  /api/twitch/presence/activity
-GET  /api/twitch/presence/activity/active
+moduleVersion = 0.1.13
+moduleBuild = STEP_LC_MINIGAMES_2B_FIX3_TEXT_DB_CLEANUP
 ```
 
-## Geplante neue/erweiterte EventBus-Events
+Wichtige Routen:
 
 ```text
-twitch.follow
-twitch.subscribe
-twitch.resub
-twitch.gift_sub
-twitch.gift_bomb
-twitch.cheer
-twitch.raid
+GET  /api/loyalty/giveaways/status
+GET  /api/loyalty/giveaways/texts
+GET  /api/loyalty/raffle/status
+GET  /api/loyalty/raffle/config
+POST /api/loyalty/raffle/config
+GET  /api/loyalty/giveaways/raffle/status
 ```
 
-## Loyalty-EventBonus-Zieltypen
+## Dashboard
 
 ```text
-follow
-subscribe
-resub
-gift_sub
-gift_bomb
-cheer
-raid
+htdocs/dashboard/modules/loyalty_games.js
 ```
+
+Enthält:
+
+```text
+Mini-Spiele Status-/Bedienansicht
+Raffle Config unter Einstellungen
+Raffle Texte unter Texte
+bereichsgebundene Texttabelle ohne Alle-Textbereiche
+```
+
+## Textsystem
+
+```text
+backend/modules/helpers/helper_texts.js
+```
+
+Wird weiter genutzt für:
+
+```text
+helper_texts.renderModuleText(...)
+```
+
+Kein eigenes Zufallssystem im Raffle-/Giveaway-Modul.
 
 ## Produktive DB-Regel
 
 ```text
 D:\Streaming\stramAssets\data\sqlite\app.sqlite niemals ersetzen, löschen oder neu bauen.
-Settings bei Bedarf nur gezielt über /api/loyalty/settings setzen.
-Ignored-User nur gezielt über /api/loyalty/ignored-users ändern.
+Vor Text-/DB-Cleanup wurde ein Backup empfohlen.
+Text-Cleanup betrifft nur gezielte Seed-Textbereiche, keine Punkte/Transaktionen/User-Balances.
+```
+
+## Offene Testdateien / Befehle
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/raffle/config" | ConvertTo-Json -Depth 6
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/giveaways/texts" | ConvertTo-Json -Depth 6
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/balance/forrestcgn?displayName=ForrestCGN" | ConvertTo-Json -Depth 6
 ```

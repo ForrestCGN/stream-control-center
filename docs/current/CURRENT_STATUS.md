@@ -1,130 +1,148 @@
 # CURRENT_STATUS – stream-control-center
 
-Stand: 2026-06-15
+Stand: 2026-06-16
 
 ## Aktueller bestätigter Arbeitsstand
 
 ```text
-LC-CORE-POINTS-2C – Twitch Presence / aktive User bestätigt
-Nächster geplanter Block: LC-CORE-POINTS-3A – Twitch Events als abonnierbare Bonus-Events vorbereiten
+LC-MINIGAMES-2B FIX3 – Raffle Teilnahmekosten vorbereitet, Text-DB-Cleanup bestätigt
+Nächster offener Test: Raffle-Teilnahmekosten live prüfen
 ```
 
 ## Kurzfazit
 
-Der Loyalty-Core ist aktuell technisch stabil aufgestellt:
+Der Loyalty-Core ist live. Raffle ist weiterhin bewusst im bestehenden Modul `backend/modules/loyalty_giveaways.js` integriert und wurde im Dashboard sauberer in die Loyalty-Struktur einsortiert.
+
+Bestätigt:
 
 ```text
-LC-CORE-CLEANUP-1   bestätigt
-LC-CORE-POINTS-1    bestätigt
-LC-CORE-POINTS-2A   bestätigt
-LC-CORE-POINTS-2B   bestätigt
-LC-CORE-POINTS-2C   bestätigt
+Loyalty Core läuft produktiv.
+StreamElements-Punkteimport wurde durchgeführt.
+Watch-Punkte und Twitch-Event-Boni wurden produktiv gebucht.
+Raffle-Config ist im Dashboard unter Loyalty -> Einstellungen -> Raffle.
+Raffle-Status/Bedienung bleibt unter Loyalty -> Mini-Spiele.
+Raffle-Texte sind unter Loyalty -> Texte -> Raffle sichtbar.
+Raffle-Textvarianten-Tabelle filtert nur noch den ausgewählten Bereich.
 ```
 
-Loyalty nutzt `/api/twitch/events/stream-state` als zentrale Live-Wahrheit. Watch-Punkte, Sub-Tier-Fallbacks, Resub-Bonus, EventBus-AutoRunner-Start und Twitch-Presence-Verarbeitung wurden fachlich bestätigt.
-
-## Bestätigte Punkte-Zielwerte
+## Raffle / Mini-Spiele – bestätigter Stand
 
 ```text
-Viewer: 2 Kekskrümel alle 10 Minuten
-Tier 1 Subscriber: 6 Kekskrümel alle 10 Minuten
-Tier 2 Subscriber: 8 Kekskrümel alle 10 Minuten
-Tier 3 Subscriber: 10 Kekskrümel alle 10 Minuten
-
-Follow: 10
-Sub Tier 1/2/3: 50 / 100 / 150
-Resub Tier 1/2/3: 50 / 100 / 150
-Cheer: 10 pro 100 Bits
-Tip: 10 pro 1 EUR
-Raid: 50
+backend/modules/loyalty_giveaways.js
+moduleVersion = 0.1.13
+moduleBuild = STEP_LC_MINIGAMES_2B_FIX3_TEXT_DB_CLEANUP
 ```
 
-## Bestätigt in LC-CORE-POINTS-1
+Bestätigte Raffle-Routen:
 
 ```text
-backend/modules/loyalty.js Version 0.1.15 läuft.
-watch.subscriberTierAmounts ist aktiv.
-bonuses.resub.enabled ist aktiv.
-Erster Watch-Heartbeat vergibt keine Sofortpunkte.
-Fällige Watch-Intervalle vergeben korrekte Werte:
-Viewer 2, Tier 1 6, Tier 2 8, Tier 3 10.
+GET  /api/loyalty/raffle/status
+GET  /api/loyalty/raffle/config
+POST /api/loyalty/raffle/config
+GET  /api/loyalty/giveaways/raffle/status   Kompatibilität
 ```
 
-## Bestätigt in LC-CORE-POINTS-2A / 2B
+## Raffle-Config
+
+Aktuell fachlich relevante Config:
 
 ```text
-Normaler Online-Override ohne Confirm setzt Twitch Events auf pending.
-Pending startet den Loyalty-AutoRunner bewusst nicht automatisch.
-Confirmed Override (`live=true`, `confirmed=true`, `status=confirmed`) publiziert `twitch.stream.online`.
-Loyalty empfängt das Bus-Event und startet den AutoRunner.
-Clear-Override publiziert `twitch.stream.offline` und stoppt den AutoRunner.
+enabled
+liveOnly
+durationSeconds
+maxDurationSeconds
+prizePoolAmount
+entryCostAmount
+entryCostEnabled
+showPoolInChat = false
 ```
 
-## Bestätigt in LC-CORE-POINTS-2C
+Command-Felder werden nicht mehr im Raffle-Config-Bereich bearbeitet. Sie bleiben intern erhalten und gehören langfristig nach `Loyalty -> Chat & Befehle` bzw. in das zentrale Command-Modul.
+
+## Teilnahmekosten
+
+Teilnahmekosten wurden backendseitig vorbereitet/eingebaut:
 
 ```text
-Twitch Presence kann gestartet werden.
-Bot `heimaufsichtcgn` verbindet sich mit Twitch IRC und joined `#forrestcgn`.
-Presence Activity speichert JOIN-/Activity-Daten in `twitch_presence_activity`.
-`/api/twitch/presence/activity/active` liefert aktive/presente User.
-`/api/loyalty/presence/run-once` verarbeitet Presence-User.
-Ignored/Systemuser werden übersprungen.
-Echte aktive User erhalten Watch-Punkte.
+entryCostAmount = 0  -> kostenlos
+entryCostAmount > 0  -> entryCostEnabled=true, Join soll Punkte abbuchen
 ```
 
-## Neue bestätigte Entscheidung
+Bestätigt:
 
 ```text
-forrestcgn soll dauerhaft wieder ignoriert werden.
-Der Ignored-User-Eintrag wurde vom Nutzer gesetzt.
+POST/GET /api/loyalty/raffle/config speichert entryCostAmount=10 und entryCostEnabled=true korrekt.
 ```
 
-## Offene Beobachtung
+Noch offen:
 
 ```text
-JOIN-basierte Presence erkennt Subscriber ja/nein, aber das konkrete Sub-Tier kommt häufig als `none`/`unknown`.
-In diesem Fall greift korrekt der bestehende Subscriber-Fallback über `subscriberMultiplier` und vergibt 6 Punkte.
+Live-Test mit !raffle / !join bei genug Punkten
+Live-Test mit !join bei zu wenig Punkten
+Cancel-Test mit Erstattung bezahlter Teilnahmen
+Normaler Ablauf mit Auszahlung und ohne Erstattung
 ```
 
-## Nächster Plan: LC-CORE-POINTS-3A
+## Textsystem / Cleanup
 
-Der bisher geplante direkte EventBonus-Test wird zurückgestellt. Stattdessen soll zuerst die zentrale Event-Schicht sauber erweitert werden:
+Raffle/Giveaway/Ticket/Wheel-Texte laufen weiter über den vorhandenen Helper:
 
 ```text
-Twitch / EventSub / IRC / spätere Quellen
-        ↓
-backend/modules/twitch_events.js
-        ↓ Communication Bus
-Subscriber:
-- loyalty
-- alerts
-- dashboard
-- event-system
+backend/modules/helpers/helper_texts.js
+helper_texts.renderModuleText(...)
 ```
 
-Ziel ist, dass `twitch_events` zentrale Bonus-relevante Twitch-Events publiziert und `loyalty` diese über den Communication Bus abonniert.
+Keine eigene Zufallslogik wurde gebaut.
 
-## Geplante EventKeys
+Bestätigt:
 
 ```text
-twitch.follow
-twitch.subscribe
-twitch.resub
-twitch.gift_sub
-twitch.gift_bomb
-twitch.cheer
-twitch.raid
+Alte aktive mehrzeilige Sammelvarianten wurden für loyalty_giveaways Textbereiche bereinigt.
+Prüfung auf aktive Varianten mit Zeilenumbrüchen lieferte keine Ausgabe.
+Raffle nutzt produktiv neue Keys raffle.public.*.
+Alte raffle.* Seed-Keys wurden aus dem aktiven Pfad entfernt/bereinigt.
 ```
 
-Tip/Donation wird separat als neutrales Payment-/Donation-Event geplant, weil es nicht nativ von Twitch EventSub kommt.
+Betroffene Textbereiche:
+
+```text
+chat_raffle
+chat_giveaway
+chat_ticket
+chat_wheel
+```
+
+## Dashboard-Stand
+
+Geänderte Dashboard-Datei im aktuellen Mini-Spiele-/Raffle-Cleanup:
+
+```text
+htdocs/dashboard/modules/loyalty_games.js
+```
+
+Bestätigt:
+
+```text
+Mini-Spiele ist Status-/Bedienseite.
+Raffle-Config wurde aus Mini-Spiele herausgezogen.
+Einstellungen -> Raffle zeigt nur fachliche Config.
+Texte -> Raffle zeigt nur Raffle-Texte.
+Dropdown „Alle Textbereiche“ wurde entfernt.
+Texttabelle zeigt immer nur den aktuell gewählten Bereich.
+```
+
+## Wichtige Beobachtung zum StreamElements-Import
+
+Beim StreamElements-Punkteimport am 2026-06-15 wurden die StreamElements-Punkte importiert, aber Punkte, die im neuen Loyalty-System bereits gesammelt wurden, wurden dabei nicht addiert. Das muss für spätere Prüfungen/Korrekturen berücksichtigt werden.
 
 ## Nicht geändert
 
 ```text
-Keine Commands aktiviert.
-Keine Live-/Shadow-Umstellung.
-Keine produktive SQLite ersetzt oder gelöscht.
-Keine Giveaway-/Games-Änderung.
-Keine Dashboard-Neustruktur.
-Keine direkte Twitch-Sonderlogik in Loyalty einbauen.
+Keine produktive SQLite ersetzt.
+Keine User-Balances pauschal verändert.
+Keine Transaktionen gelöscht.
+Keine Raffle-Gewinnerregel geändert.
+Keine Command-Registry umgebaut.
+Keine Alert-Produktivumschaltung.
+Keine neue Raffle-Parallelstruktur gebaut.
 ```
