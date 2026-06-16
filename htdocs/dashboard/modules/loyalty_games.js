@@ -533,6 +533,7 @@ window.LoyaltyGamesModule = (function(){
     };
     const textValue = (name, fallback) => String(form.elements[name]?.value || fallback || '').trim();
 
+    const currentConfig = state.raffleConfig?.config || state.raffleConfig?.raffle?.config || {};
     const entryCostAmount = intValue('entryCostAmount', 0, 0);
     const body = {
       enabled: boolValue('enabled'),
@@ -541,9 +542,9 @@ window.LoyaltyGamesModule = (function(){
       entryCostEnabled: entryCostAmount > 0,
       entryCostAmount,
       liveOnly: boolValue('liveOnly'),
-      startPermission: textValue('startPermission', 'mod'),
-      raffleCommand: textValue('raffleCommand', 'raffle').replace(/^!+/, ''),
-      joinCommand: textValue('joinCommand', 'join').replace(/^!+/, ''),
+      startPermission: String(currentConfig.startPermission || 'mod').trim() || 'mod',
+      raffleCommand: String(currentConfig.raffleCommand || 'raffle').trim().replace(/^!+/, '') || 'raffle',
+      joinCommand: String(currentConfig.joinCommand || 'join').trim().replace(/^!+/, '') || 'join',
       showPoolInChat: false
     };
 
@@ -3115,11 +3116,6 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
             <label class="lg-check-row"><span><strong>Nur live</strong><br><small class="lg-muted">Nur während eines Livestreams startbar.</small></span><input type="checkbox" name="liveOnly" ${cfg.liveOnly ? 'checked' : ''}></label>
             <label><span>Dauer in Sekunden</span><input type="number" name="durationSeconds" min="10" max="${Number(cfg.maxDurationSeconds || 3600)}" step="1" value="${esc(cfg.durationSeconds || 120)}"></label>
             <label><span>Raffle-Gewinn gesamt</span><input type="number" name="prizePoolAmount" min="0" step="1" value="${esc(cfg.prizePoolAmount || 5000)}"></label>
-            <label><span>Start-Berechtigung</span><select name="startPermission">
-              ${['mod','broadcaster','vip','everyone'].map(v => `<option value="${esc(v)}" ${String(cfg.startPermission || 'mod') === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}
-            </select></label>
-            <label><span>Start-Command</span><input type="text" name="raffleCommand" value="${esc(cfg.raffleCommand || 'raffle')}"></label>
-            <label><span>Join-Command</span><input type="text" name="joinCommand" value="${esc(cfg.joinCommand || 'join')}"></label>
             <label><span>Teilnahmekosten<br><small class="lg-muted">0 = kostenlos</small></span><input type="number" name="entryCostAmount" min="0" step="1" value="${esc(cfg.entryCostAmount || 0)}"></label>
           </div>
           <div class="lg-warning">Chat-Regel: Der Pool wird nie öffentlich angezeigt.</div>
