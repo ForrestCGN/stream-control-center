@@ -1084,6 +1084,75 @@ window.StreamEventsModule = (function(){
     `;
   }
 
+  function mediaFieldInput(field){
+    if (!field) return null;
+    const selector = field.dataset.valueInput || '';
+    if (selector) {
+      try {
+        return field.querySelector(selector) || document.querySelector(selector) || field.querySelector('[data-media-field-value]');
+      } catch (_) {
+        return field.querySelector('[data-media-field-value]');
+      }
+    }
+    return field.querySelector('[data-media-field-value]');
+  }
+
+  function mediaPreviewAssetFromResolved(data){
+    const asset = data?.asset || data?.option || data?.media || data;
+    if (!asset || !asset.id) return null;
+    return {
+      ...asset,
+      id: asset.id,
+      type: asset.type || '',
+      label: asset.label || asset.displayName || asset.fileName || asset.relativePath || `#${asset.id}`,
+      displayName: asset.displayName || asset.label || asset.fileName || '',
+      fileName: asset.fileName || '',
+      relativePath: asset.relativePath || data?.paths?.relativePath || '',
+      webPath: asset.webPath || data?.paths?.webPath || '',
+      durationMs: Number(asset.durationMs || 0),
+      hasAudio: !!asset.hasAudio,
+      hasVideo: !!asset.hasVideo
+    };
+  }
+
+  function renderStoredMediaFallback(field, mediaId, errorText = ''){
+    const preview = field?.querySelector('[data-media-field-preview]');
+    if (!preview || !mediaId) return;
+    preview.innerHTML = `
+      <div class="mf-preview-meta">
+        <strong>Medium gespeichert</strong>
+        <small>${esc(errorText || 'Vorschau konnte nicht geladen werden. Die gespeicherte Media-ID bleibt erhalten.')}</small>
+        <code>mediaId=${esc(mediaId)}</code>
+      </div>`;
+  }
+
+  async function hydrateMediaFieldPreview(field){
+    if (!field || field.dataset.evsHydrated === '1') return;
+    const input = mediaFieldInput(field);
+    const mediaId = String(input?.value || field.dataset.mediaId || '').trim();
+    if (!mediaId) return;
+    field.dataset.mediaId = mediaId;
+    field.dataset.evsHydrated = '1';
+    renderStoredMediaFallback(field, mediaId, 'Vorschau wird geladen…');
+    if (!window.CGN?.api) return;
+    try {
+      const data = await window.CGN.api(`/api/media/resolve?mediaId=${encodeURIComponent(mediaId)}`);
+      const asset = mediaPreviewAssetFromResolved(data);
+      if (asset && window.MediaField?.updateValue) {
+        window.MediaField.updateValue(field, field.__mediaFieldConfig || {}, asset);
+      } else {
+        renderStoredMediaFallback(field, mediaId, data?.error || 'Medium ist gespeichert, aber die Vorschau konnte nicht aufgelöst werden.');
+      }
+    } catch (err) {
+      renderStoredMediaFallback(field, mediaId, err?.message || 'Medium ist gespeichert, aber die Vorschau konnte nicht geladen werden.');
+    }
+  }
+
+  function hydrateMediaFields(scope){
+    if (!scope) return;
+    scope.querySelectorAll('[data-media-field]').forEach(field => { hydrateMediaFieldPreview(field); });
+  }
+
   function attachMediaFields(scope){
     if (!scope) return;
     if (window.MediaField?.initAll) {
@@ -1096,6 +1165,7 @@ window.StreamEventsModule = (function(){
         if (openLabel && openBtn) openBtn.textContent = openLabel;
         if (clearLabel && clearBtn) clearBtn.textContent = clearLabel;
       });
+      hydrateMediaFields(scope);
       return;
     }
     scope.querySelectorAll('[data-media-field-preview]').forEach(preview => {
