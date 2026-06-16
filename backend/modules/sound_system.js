@@ -16,8 +16,8 @@ try {
 }
 
 const MODULE_NAME = "sound_system";
-const MODULE_VERSION = "0.1.22";
-const MODULE_BUILD = "diagnostics-standard";
+const MODULE_VERSION = "0.1.23";
+const MODULE_BUILD = "STEP_EVENT_SOUND_2_PREROLL_GATE";
 const SOUND_BUS_CAPABILITY = "sound.event_output";
 const SOUND_BUS_COMMAND_CAPABILITY = "sound.command_input";
 const SOUND_BUS_STATUS_API_VERSION = "1.0.0";
@@ -27,6 +27,8 @@ const SOUND_BUS_COMMAND_DELIVERY_CLASSIFICATION = "module_scoped_command_dry_run
 const SOUND_BUS_TARGET_CAPABILITY = "sound.event_output";
 const SOUND_CANBUS_HEARTBEAT_INTERVAL_MS = 5000;
 const SOUND_CANBUS_STATUS_INTERVAL_MS = 10000;
+const EVENT_RUNTIME_BUS_CAPABILITY = "stream_events.runtime_display";
+const EVENT_RUNTIME_BUS_CHANNEL = "stream_events.runtime";
 const CONFIG_FILE = "sound_system.json";
 const MESSAGES_FILE = "messages/sound_system.json";
 const MODULE_META = {
@@ -42,7 +44,7 @@ const MODULE_META = {
   deliveryClassification: SOUND_BUS_DELIVERY_CLASSIFICATION,
   commandDeliveryClassification: SOUND_BUS_COMMAND_DELIVERY_CLASSIFICATION,
   bus: { emits: true, registered: true, heartbeat: true, status: true },
-  note: "STEP CAN-3.1: additive trace/correlation diagnostics; runtime flow unchanged."
+  note: "EVENT-SOUND-2: minimal additiver PreRoll-Gate fuer stream_events EventSounds; normale Sound-Flows bleiben unveraendert."
 };
 
 const DEFAULT_OUTPUT = {
@@ -102,6 +104,14 @@ const DEFAULT_CONFIG = {
       clientAudioEnded: "client.audio_ended",
       clientError: "client.error"
     }
+  },
+  eventPreRoll: {
+    enabled: true,
+    maxSeconds: 10,
+    fallbackSeconds: 3,
+    runtimeOverlayCapability: EVENT_RUNTIME_BUS_CAPABILITY,
+    runtimeChannel: EVENT_RUNTIME_BUS_CHANNEL,
+    hideOnAudioEnded: true
   },
   soundBusCommand: {
     enabled: true,
@@ -275,6 +285,24 @@ module.exports.init = function init(ctx) {
       lastStatusAt: "",
       lastError: ""
     },
+    eventPreRoll: {
+      prepared: true,
+      enabled: true,
+      active: false,
+      emitted: 0,
+      skipped: 0,
+      errors: 0,
+      lastAction: "",
+      lastEventId: "",
+      lastRequestId: "",
+      lastSoundId: "",
+      lastStartedAt: "",
+      lastEndedAt: "",
+      lastError: "",
+      lastResult: null,
+      current: null,
+      recentEvents: []
+    },
     soundBusCommand: {
       emitted: 0,
       skipped: 0,
@@ -302,7 +330,7 @@ module.exports.init = function init(ctx) {
   const SOUND_SETTINGS_SCHEMA_MODULE = "sound_system_settings";
   const SOUND_SETTINGS_SCHEMA_VERSION = 1;
   const SOUND_SETTINGS_TABLE = "sound_settings";
-  const SOUND_SETTINGS_BLOCKS = ["output", "overlay", "queue", "priorities", "defaults", "categoryDefaults", "targets", "discordRouting", "soundBus", "soundBusCommand", "soundsBaseDir", "allowedExtensions"];
+  const SOUND_SETTINGS_BLOCKS = ["output", "overlay", "queue", "priorities", "defaults", "categoryDefaults", "targets", "discordRouting", "soundBus", "soundBusCommand", "eventPreRoll", "soundsBaseDir", "allowedExtensions"];
 
   function deepMergeRuntimeSettings(base, override) {
     if (!isPlainObject(base)) base = {};
@@ -406,6 +434,7 @@ module.exports.init = function init(ctx) {
         { method: "GET", path: `${prefix}/eventbus/test`, description: "Emit a test-only sound.test EventBus event without playing audio or touching queue" },
         { method: "POST", path: `${prefix}/eventbus/test`, description: "Emit a test-only sound.test EventBus event without playing audio or touching queue" },
         { method: "GET", path: `${prefix}/eventbus/reset`, description: "Reset Sound-System EventBus counters only" },
+        { method: "GET", path: `${prefix}/event-preroll/status`, description: "EVENT-SOUND-2: Stream-Events Countdown/PreRoll-Gate Status ohne Soundstart" },
         { method: "GET", path: `${prefix}/eventbus/command/status`, description: "Sound EventBus command dry-run consumer status without playing audio" },
         { method: "GET", path: `${prefix}/eventbus/command/test`, description: "Emit a test-only sound.command play request without touching audio or queue" },
         { method: "POST", path: `${prefix}/eventbus/command/test`, description: "Emit a test-only sound.command play request without touching audio or queue" },
@@ -2440,6 +2469,7 @@ function publicSoundBusQueueStatus() {
       device: { ...state.device },
       discord: { ...state.discord },
       soundBus: publicSoundBusStatus(),
+      eventPreRoll: publicEventPreRollStatus(),
       soundBusCommand: publicSoundBusCommandStatus({ includeRecentCommands: false }),
       canBus: { ...state.canBus },
       routes: routeInfo.routes,
@@ -2462,6 +2492,7 @@ function publicSoundBusQueueStatus() {
         routes: config.routes || {},
         websocket: config.websocket || {},
         soundBus: config.soundBus || {},
+        eventPreRoll: config.eventPreRoll || {},
         soundBusCommand: config.soundBusCommand || {},
         overlay: config.overlay || {},
         output: config.output || {},
@@ -2478,6 +2509,18 @@ function publicSoundBusQueueStatus() {
       updatedAt: state.updatedAt,
       loadedAt: state.loadedAt
     };
+  }
+
+  function publicLifecycle(lifecycle) {
+    if (!lifecycle || !isPlainObject(lifecycle)) return {};
+    const out = { ...lifecycle };
+    if (out.eventPreRoll && isPlainObject(out.eventPreRoll)) {
+      out.eventPreRoll = { ...out.eventPreRoll };
+      delete out.eventPreRoll.timer;
+      delete out.eventPreRoll.guessingTimer;
+      delete out.eventPreRoll.candidate;
+    }
+    return out;
   }
 
   function publicItem(item) {
@@ -2510,7 +2553,7 @@ function publicSoundBusQueueStatus() {
       requestedBy: item.requestedBy,
       meta: item.meta || {},
       visual: item.visual || {},
-      lifecycle: item.lifecycle || {},
+      lifecycle: publicLifecycle(item.lifecycle),
       levelCorrection: item.levelCorrection || null,
       queuedAt: item.queuedAt,
       startedAt: item.startedAt || 0,
@@ -3607,6 +3650,243 @@ function publicSoundBusQueueStatus() {
       });
   }
 
+
+  function publicEventPreRollStatus() {
+    const cfg = config.eventPreRoll && isPlainObject(config.eventPreRoll) ? config.eventPreRoll : DEFAULT_CONFIG.eventPreRoll;
+    return core.ok({
+      module: MODULE_NAME,
+      moduleVersion: MODULE_VERSION,
+      moduleBuild: MODULE_BUILD,
+      step: "EVENT-SOUND-2",
+      prepared: true,
+      enabled: cfg.enabled !== false,
+      gatePoint: "startItem(item) after reservation before item_starting/activateItemAudio",
+      runtimeOverlayCapability: String(cfg.runtimeOverlayCapability || EVENT_RUNTIME_BUS_CAPABILITY),
+      runtimeChannel: String(cfg.runtimeChannel || EVENT_RUNTIME_BUS_CHANNEL),
+      playbackOwner: "sound_system",
+      overlayStartsSound: false,
+      queueTouchedByDefault: false,
+      active: !!state.eventPreRoll.active,
+      current: state.eventPreRoll.current || null,
+      counters: {
+        emitted: state.eventPreRoll.emitted,
+        skipped: state.eventPreRoll.skipped,
+        errors: state.eventPreRoll.errors
+      },
+      last: {
+        action: state.eventPreRoll.lastAction,
+        eventId: state.eventPreRoll.lastEventId,
+        requestId: state.eventPreRoll.lastRequestId,
+        soundId: state.eventPreRoll.lastSoundId,
+        startedAt: state.eventPreRoll.lastStartedAt,
+        endedAt: state.eventPreRoll.lastEndedAt,
+        error: state.eventPreRoll.lastError,
+        result: state.eventPreRoll.lastResult
+      },
+      recentEvents: Array.isArray(state.eventPreRoll.recentEvents) ? state.eventPreRoll.recentEvents.slice(0, 20) : [],
+      safetyRules: {
+        normalSoundsUnaffectedUnlessExplicitFlag: true,
+        soundSystemStaysPlaybackOwner: true,
+        runtimeOverlayDoesNotStartSound: true,
+        soundSystemOverlayUnchanged: true,
+        usesCommunicationBusTargetCapability: true
+      },
+      updatedAt: core.nowIso()
+    });
+  }
+
+  function clampEventPreRollSeconds(value, fallback = 3) {
+    const cfg = config.eventPreRoll && isPlainObject(config.eventPreRoll) ? config.eventPreRoll : DEFAULT_CONFIG.eventPreRoll;
+    const max = Math.max(1, Math.min(30, Number(cfg.maxSeconds || 10)));
+    const n = Number(value);
+    if (!Number.isFinite(n)) return Math.max(1, Math.min(max, Number(fallback || cfg.fallbackSeconds || 3)));
+    return Math.max(1, Math.min(max, Math.ceil(n)));
+  }
+
+  function eventPreRollCandidate(item) {
+    if (!item) return null;
+    const meta = item.meta && isPlainObject(item.meta) ? item.meta : {};
+    const visual = item.visual && isPlainObject(item.visual) ? item.visual : {};
+    const candidates = [
+      meta.eventPreRoll,
+      meta.eventRuntimePreRoll,
+      meta.streamEventsPreRoll,
+      meta.streamEventsRuntimePreRoll,
+      visual.eventPreRoll,
+      visual.eventRuntimePreRoll,
+      visual.streamEventsPreRoll,
+      visual.streamEventsRuntimePreRoll
+    ].filter(isPlainObject);
+    if (!candidates.length) return null;
+    return candidates.find(candidate => candidate.enabled === true || candidate.countdownEnabled === true || candidate.preRollEnabled === true) || null;
+  }
+
+  function resolveEventPreRoll(item, options = {}) {
+    const cfg = config.eventPreRoll && isPlainObject(config.eventPreRoll) ? config.eventPreRoll : DEFAULT_CONFIG.eventPreRoll;
+    if (cfg.enabled === false) return { enabled: false, reason: "event_preroll_disabled" };
+    if (!item || options.parallel) return { enabled: false, reason: options.parallel ? "parallel_not_gated" : "missing_item" };
+    const meta = item.meta && isPlainObject(item.meta) ? item.meta : {};
+    const visual = item.visual && isPlainObject(item.visual) ? item.visual : {};
+    const candidate = eventPreRollCandidate(item);
+    if (!candidate) return { enabled: false, reason: "no_explicit_event_preroll_flag" };
+    const owner = String(candidate.owner || meta.owner || meta.module || visual.module || item.source || "").trim().toLowerCase();
+    const eventUid = String(candidate.eventUid || candidate.eventUID || meta.eventUid || meta.eventUID || meta.streamEventUid || visual.eventUid || "").trim();
+    const roundUid = String(candidate.roundUid || candidate.roundUID || meta.roundUid || meta.roundUID || visual.roundUid || "").trim();
+    const fromStreamEvents = owner === "stream_events" || owner === "stream-events" || item.source === "stream_events" || !!eventUid || !!roundUid;
+    if (!fromStreamEvents) return { enabled: false, reason: "not_stream_events_preroll" };
+    const seconds = clampEventPreRollSeconds(candidate.seconds ?? candidate.countdownSeconds ?? candidate.preRollSeconds ?? meta.countdownPreRollSeconds ?? meta.preRollSeconds, cfg.fallbackSeconds || 3);
+    return {
+      enabled: true,
+      seconds,
+      eventUid,
+      roundUid,
+      finalLabel: String(candidate.finalLabel || candidate.countdownFinalLabel || "LOS!").trim() || "LOS!",
+      caption: String(candidate.caption || candidate.countdownCaption || "Sound startet gleich").trim() || "Sound startet gleich",
+      guessingLabel: String(candidate.guessingLabel || candidate.guessingCaption || "Jetzt raten!").trim() || "Jetzt raten!",
+      source: "stream_events",
+      candidate
+    };
+  }
+
+  function rememberEventPreRollEvent(action, item, payload, result) {
+    const entry = {
+      at: core.nowIso(),
+      action: String(action || ""),
+      eventId: result && result.eventId ? String(result.eventId) : "",
+      deliveredCount: result && Number.isFinite(Number(result.deliveredCount)) ? Number(result.deliveredCount) : 0,
+      requestId: item ? String(item.requestId || "") : "",
+      soundId: item ? String(item.soundId || "") : "",
+      payload: payload && isPlainObject(payload) ? {
+        mode: payload.mode || "",
+        seconds: payload.seconds || 0,
+        eventUid: payload.eventUid || "",
+        roundUid: payload.roundUid || ""
+      } : null
+    };
+    state.eventPreRoll.recentEvents.unshift(entry);
+    if (state.eventPreRoll.recentEvents.length > 50) state.eventPreRoll.recentEvents.length = 50;
+    state.eventPreRoll.lastAction = entry.action;
+    state.eventPreRoll.lastEventId = entry.eventId;
+    state.eventPreRoll.lastRequestId = entry.requestId;
+    state.eventPreRoll.lastSoundId = entry.soundId;
+    state.eventPreRoll.lastResult = result || null;
+    state.eventPreRoll.lastError = "";
+    if (action === "countdown.start") state.eventPreRoll.lastStartedAt = entry.at;
+    if (action === "hide" || action === "cancel" || action === "failed") state.eventPreRoll.lastEndedAt = entry.at;
+  }
+
+  function emitRuntimeOverlayBus(action, item, preRoll = {}, extra = {}) {
+    const bus = getCommunicationBus();
+    const cfg = config.eventPreRoll && isPlainObject(config.eventPreRoll) ? config.eventPreRoll : DEFAULT_CONFIG.eventPreRoll;
+    if (!bus || typeof bus.emit !== "function") {
+      state.eventPreRoll.skipped += 1;
+      state.eventPreRoll.lastError = "communication_bus_unavailable";
+      return { ok: false, skipped: true, reason: state.eventPreRoll.lastError };
+    }
+    const cleanAction = String(action || "state").trim();
+    const payload = {
+      module: MODULE_NAME,
+      moduleVersion: MODULE_VERSION,
+      moduleBuild: MODULE_BUILD,
+      owner: "sound_system",
+      playbackOwner: "sound_system",
+      overlayStartsSound: false,
+      mode: cleanAction === "countdown.start" ? "countdown" : (cleanAction === "guessing.start" ? "guessing" : (cleanAction === "hide" ? "hidden" : "state")),
+      eventUid: String(preRoll.eventUid || ""),
+      roundUid: String(preRoll.roundUid || ""),
+      requestId: item ? String(item.requestId || "") : "",
+      soundId: item ? String(item.soundId || "") : "",
+      label: item ? String(item.label || item.soundId || "") : "",
+      seconds: Number(preRoll.seconds || 3),
+      remainingSeconds: Number.isFinite(Number(extra.remainingSeconds)) ? Number(extra.remainingSeconds) : null,
+      finalLabel: String(preRoll.finalLabel || "LOS!"),
+      caption: String(preRoll.caption || "Sound startet gleich"),
+      guessingLabel: String(preRoll.guessingLabel || "Jetzt raten!"),
+      item: item ? publicItem(item) : null,
+      extra: isPlainObject(extra) ? extra : {},
+      emittedAt: core.nowIso()
+    };
+    try {
+      const result = bus.emit({
+        type: "event",
+        channel: String(cfg.runtimeChannel || EVENT_RUNTIME_BUS_CHANNEL),
+        action: cleanAction,
+        source: { type: "module", id: MODULE_NAME, module: MODULE_NAME },
+        target: { type: "all", id: "*", module: "", capability: String(cfg.runtimeOverlayCapability || EVENT_RUNTIME_BUS_CAPABILITY) },
+        payload,
+        meta: {
+          module: MODULE_NAME,
+          moduleVersion: MODULE_VERSION,
+          capability: String(cfg.runtimeOverlayCapability || EVENT_RUNTIME_BUS_CAPABILITY),
+          requireAck: false,
+          replayable: false,
+          ttlMs: 15000
+        }
+      });
+      state.eventPreRoll.emitted += 1;
+      rememberEventPreRollEvent(cleanAction, item, payload, result);
+      return result;
+    } catch (err) {
+      state.eventPreRoll.errors += 1;
+      state.eventPreRoll.lastAction = cleanAction;
+      state.eventPreRoll.lastError = err && err.message ? err.message : String(err);
+      return { ok: false, error: state.eventPreRoll.lastError };
+    }
+  }
+
+  function clearEventPreRollRuntime(item, action = "hide", reason = "finished") {
+    if (!item || !item.lifecycle || !item.lifecycle.eventPreRoll || item.lifecycle.eventPreRoll.enabled !== true) return null;
+    const preRoll = item.lifecycle.eventPreRoll;
+    if (preRoll.timer) {
+      clearTimeout(preRoll.timer);
+      preRoll.timer = null;
+    }
+    if (preRoll.guessingTimer) {
+      clearTimeout(preRoll.guessingTimer);
+      preRoll.guessingTimer = null;
+    }
+    state.eventPreRoll.active = false;
+    state.eventPreRoll.current = null;
+    return emitRuntimeOverlayBus(action, item, preRoll, { reason });
+  }
+
+  function activateItemAfterEventPreRoll(item, parallel) {
+    if (!itemStillActive(item, parallel)) return;
+    const preRoll = item.lifecycle && item.lifecycle.eventPreRoll ? item.lifecycle.eventPreRoll : null;
+    if (preRoll && preRoll.enabled === true) {
+      emitRuntimeOverlayBus("guessing.start", item, preRoll, { reason: "countdown_finished" });
+    }
+    emitItemEvent("item_starting", item, { parallel, visualLeadMs: 0, eventPreRoll: true });
+    activateItemAudio(item, parallel);
+  }
+
+  function startItemEventPreRollGate(item, parallel, resolved) {
+    item.lifecycle = {
+      ...(item.lifecycle || {}),
+      eventPreRoll: {
+        ...(resolved || {}),
+        enabled: true,
+        startedAt: Date.now(),
+        timer: null,
+        guessingTimer: null
+      }
+    };
+    state.eventPreRoll.active = true;
+    state.eventPreRoll.current = {
+      requestId: item.requestId || "",
+      soundId: item.soundId || "",
+      label: item.label || item.soundId || "",
+      eventUid: resolved.eventUid || "",
+      roundUid: resolved.roundUid || "",
+      seconds: resolved.seconds || 3,
+      startedAt: core.nowIso()
+    };
+    emitRuntimeOverlayBus("countdown.start", item, item.lifecycle.eventPreRoll, { reason: "sound_slot_reserved" });
+    const delayMs = Math.max(250, Number(resolved.seconds || 3) * 1000);
+    item.lifecycle.eventPreRoll.timer = setTimeout(() => activateItemAfterEventPreRoll(item, parallel), delayMs);
+    if (item.lifecycle.eventPreRoll.timer && typeof item.lifecycle.eventPreRoll.timer.unref === "function") item.lifecycle.eventPreRoll.timer.unref();
+  }
+
   function activateItemAudio(item, parallel) {
     if (!itemStillActive(item, parallel)) return;
 
@@ -3666,6 +3946,12 @@ function publicSoundBusQueueStatus() {
       emit(reason || "started");
     }
 
+    const eventPreRoll = resolveEventPreRoll(item, { parallel });
+    if (eventPreRoll.enabled === true) {
+      startItemEventPreRollGate(item, parallel, eventPreRoll);
+      return;
+    }
+
     if (visualLeadMs > 0) {
       emitItemEvent("item_starting", item, { parallel, visualLeadMs });
       setTimeout(() => activateItemAudio(item, parallel), visualLeadMs);
@@ -3680,6 +3966,7 @@ function publicSoundBusQueueStatus() {
     const index = state.parallel.findIndex(item => item.requestId === requestId);
     if (index < 0) return null;
     const [finished] = state.parallel.splice(index, 1);
+    clearEventPreRollRuntime(finished, "hide", reason || "parallel_finished");
     emit(reason || "parallel_finished");
     emitSoundBus("item_finished", { item: finished, kind: "item", extra: { reason: reason || "parallel_finished", parallel: true } });
     return finished;
@@ -3700,6 +3987,7 @@ function publicSoundBusQueueStatus() {
     clearFinishTimer();
     const finished = state.current;
     state.current = null;
+    clearEventPreRollRuntime(finished, "hide", reason || "finished");
     emit(reason || "finished");
     if (finished) emitSoundBus("item_finished", { item: finished, kind: "item", extra: { reason: reason || "finished", parallel: false } });
     const gap = Number((finished && finished.gapAfterMs) || config.overlay?.gapBetweenSoundsMs || 750);
@@ -3896,6 +4184,7 @@ function publicSoundBusQueueStatus() {
   app.get(`${prefix}/integration-check`, (req, res) => res.json(publicSoundIntegrationCheck()));
 
   app.get(`${prefix}/status`, (req, res) => res.json(publicState()));
+  app.get(`${prefix}/event-preroll/status`, (req, res) => res.json(publicEventPreRollStatus()));
   app.get(`${prefix}/eventbus/status`, (req, res) => res.json(publicSoundBusStatus({ includeRecentEvents: true })));
   app.get(`${prefix}/eventbus/reset`, (req, res) => res.json({ ...resetSoundBusRuntime(), reset: true, resetAt: core.nowIso() }));
   app.get(`${prefix}/eventbus/test`, (req, res) => res.json(emitSoundBusTest(req.query || {})));
