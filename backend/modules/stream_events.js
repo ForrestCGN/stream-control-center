@@ -20,8 +20,8 @@ let streamStatusModule = null;
 try { streamStatusModule = require("./stream_status"); } catch (_) { streamStatusModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.29";
-const MODULE_BUILD = "STEP_EVENT_SOUND_3_PREROLL_TEST_FLOW";
+const MODULE_VERSION = "0.5.30";
+const MODULE_BUILD = "STEP_EVENT_SOUND_3B_COUNTDOWN_TIMING_DEDUPE_FIX";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -2239,24 +2239,40 @@ function normalizeRuntimeOverlayBusPayload(envelope = {}) {
   const mode = cleanString(payload.mode || (action === "countdown.start" ? "countdown" : (action === "guessing.start" ? "guessing" : "hidden")), "hidden");
   const seconds = clampNumber(payload.seconds, 1, 30, 3);
   const nowMs = Date.now();
+  const payloadStartedAtMs = Number(payload.phaseStartedAtMs || payload.countdownStartedAtMs || payload.emittedAtMs || 0);
+  const phaseStartedAtMs = Number.isFinite(payloadStartedAtMs) && payloadStartedAtMs > 0 ? payloadStartedAtMs : nowMs;
+  let countdownEndsAtMs = Number(payload.countdownEndsAtMs || 0);
+  if (!Number.isFinite(countdownEndsAtMs) || countdownEndsAtMs <= 0) countdownEndsAtMs = phaseStartedAtMs + (seconds * 1000);
+
   let ttlMs = 8000;
-  if (mode === "countdown") ttlMs = (seconds * 1000) + 1400;
-  if (mode === "guessing") ttlMs = 30000;
-  if (mode === "hidden") ttlMs = 1200;
+  let expiresAtMs = nowMs + ttlMs;
+  if (mode === "countdown") {
+    expiresAtMs = Math.max(countdownEndsAtMs + 600, nowMs + 600);
+  } else if (mode === "guessing") {
+    ttlMs = 30000;
+    expiresAtMs = nowMs + ttlMs;
+  } else if (mode === "hidden") {
+    ttlMs = 1200;
+    expiresAtMs = nowMs + ttlMs;
+  }
 
   return {
     action,
     mode,
     visible: mode !== "hidden",
-    eventId: cleanString(envelope.id || envelope.eventId || ""),
+    eventId: cleanString(envelope.id || envelope.eventId || payload.eventId || ""),
+    phaseKey: cleanString(payload.phaseKey || `${mode}:${cleanString(payload.requestId)}:${phaseStartedAtMs}`),
     eventUid: cleanString(payload.eventUid),
     roundUid: cleanString(payload.roundUid),
     requestId: cleanString(payload.requestId),
     soundId: cleanString(payload.soundId),
     label: cleanString(payload.label),
     seconds,
-    startedAtMs: nowMs,
-    expiresAtMs: nowMs + ttlMs,
+    startedAtMs: phaseStartedAtMs,
+    phaseStartedAtMs,
+    countdownStartedAtMs: mode === "countdown" ? phaseStartedAtMs : Number(payload.countdownStartedAtMs || 0) || null,
+    countdownEndsAtMs: mode === "countdown" ? countdownEndsAtMs : Number(payload.countdownEndsAtMs || 0) || null,
+    expiresAtMs,
     finalLabel: cleanString(payload.finalLabel, "LOS!"),
     caption: cleanString(payload.caption, "Sound startet gleich"),
     guessingLabel: cleanString(payload.guessingLabel, "Jetzt raten!"),
@@ -2270,14 +2286,19 @@ function normalizeRuntimeOverlayBusPayload(envelope = {}) {
 
 function handleRuntimeOverlayBusEnvelope(envelope = {}) {
   const normalized = normalizeRuntimeOverlayBusPayload(envelope);
+  const current = runtimeState.runtimeOverlayBus.state || null;
+  if (current && current.phaseKey && normalized.phaseKey && current.phaseKey === normalized.phaseKey && current.action === normalized.action) {
+    runtimeState.runtimeOverlayBus.lastAt = nowIso();
+    return { ok: true, action: normalized.action, mode: normalized.mode, deduped: true };
+  }
   runtimeState.runtimeOverlayBus.state = normalized;
   runtimeState.runtimeOverlayBus.lastAction = normalized.action;
   runtimeState.runtimeOverlayBus.lastEventId = normalized.eventId;
   runtimeState.runtimeOverlayBus.lastAt = nowIso();
   runtimeState.runtimeOverlayBus.lastError = "";
   runtimeState.counters.runtimeOverlayBusEvents += 1;
-  publishStatus("runtime_overlay.bus_event", { lastRuntimeOverlayAction: normalized.action, runtimeOverlayMode: normalized.mode });
-  return { ok: true, action: normalized.action, mode: normalized.mode };
+  publishStatus("runtime_overlay.bus_event", { lastRuntimeOverlayAction: normalized.action, runtimeOverlayMode: normalized.mode, phaseKey: normalized.phaseKey });
+  return { ok: true, action: normalized.action, mode: normalized.mode, phaseKey: normalized.phaseKey };
 }
 
 function registerRuntimeOverlayBusSubscription() {
@@ -2392,7 +2413,7 @@ function buildEventSoundBusIntegrationPlan(eventUid = "") {
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
-    step: "EVENT-SOUND-3",
+    step: "EVENT-SOUND-3B",
     purpose: "Sound-System-kompatibler PreRoll-Gate ist minimal additiv vorbereitet; produktiv nur fuer explizit markierte stream_events EventSound-Items.",
     currentMode: {
       readOnly: false,
@@ -2752,7 +2773,7 @@ function buildRuntimeOverlayCountdownPlan(runtimeConfig = {}, phase = {}) {
   const busOverlay = phase && phase.busOverlay ? phase.busOverlay : null;
   const seconds = busOverlay ? clampNumber(busOverlay.seconds, 1, 30, 3) : clampNumber(runtimeConfig.countdownPreRollSeconds ?? runtimeConfig.preRollSeconds, 1, 30, 3);
   const remainingSeconds = busOverlay && phase.key === "sound_preroll_countdown"
-    ? Math.max(1, Math.ceil((Number(busOverlay.expiresAtMs || 0) - Date.now() - 1000) / 1000))
+    ? Math.max(1, Math.min(seconds, Math.ceil((Number(busOverlay.countdownEndsAtMs || busOverlay.expiresAtMs || 0) - Date.now()) / 1000)))
     : null;
   return {
     prepared: true,
@@ -2761,6 +2782,10 @@ function buildRuntimeOverlayCountdownPlan(runtimeConfig = {}, phase = {}) {
     owner: "sound_system_compatible_event_flow",
     seconds,
     remainingSeconds,
+    phaseKey: busOverlay ? cleanString(busOverlay.phaseKey) : "",
+    requestId: busOverlay ? cleanString(busOverlay.requestId) : "",
+    countdownStartedAtMs: busOverlay ? Number(busOverlay.countdownStartedAtMs || 0) || null : null,
+    countdownEndsAtMs: busOverlay ? Number(busOverlay.countdownEndsAtMs || 0) || null : null,
     sequence: Array.from({ length: seconds }, (_, index) => seconds - index).filter(value => value > 0),
     finalLabel: busOverlay ? cleanString(busOverlay.finalLabel, "LOS!") : "LOS!",
     overlayFile: "htdocs/overlays/stream_events/event_runtime_overlay.html",
@@ -2811,7 +2836,7 @@ function getRuntimeOverlayState(eventUid = "") {
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
-    step: "EVENT-SOUND-3",
+    step: "EVENT-SOUND-3B",
     purpose: "Read-only State fuer das phasenbasierte Event-Runtime-Overlay: Countdown jetzt, Auswertung spaeter vorbereitet.",
     mode: {
       readOnly: true,
@@ -4281,7 +4306,7 @@ function buildStatus() {
     },
     eventSoundBusIntegration: {
       planned: true,
-      step: "EVENT-SOUND-3",
+      step: "EVENT-SOUND-3B",
       planRoute: "/api/stream-events/sound-runtime/bus-integration-plan",
       soundSystemGatekeeper: true,
       communicationBusRequired: true,
@@ -4292,7 +4317,9 @@ function buildStatus() {
       soundSystemPreRollGatePrepared: true,
       controlledTestRoute: "/api/sound/event-preroll/test",
       countdownSecondsConfigurable: true,
-      testFlowPrepared: true
+      testFlowPrepared: true,
+      countdownTimingFixed: true,
+      countdownDedupeEnabled: true
     },
     updatedAt: nowIso()
   };

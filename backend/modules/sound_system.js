@@ -16,8 +16,8 @@ try {
 }
 
 const MODULE_NAME = "sound_system";
-const MODULE_VERSION = "0.1.24";
-const MODULE_BUILD = "STEP_EVENT_SOUND_3_PREROLL_TEST_FLOW";
+const MODULE_VERSION = "0.1.25";
+const MODULE_BUILD = "STEP_EVENT_SOUND_3B_COUNTDOWN_TIMING_DEDUPE_FIX";
 const SOUND_BUS_CAPABILITY = "sound.event_output";
 const SOUND_BUS_COMMAND_CAPABILITY = "sound.command_input";
 const SOUND_BUS_STATUS_API_VERSION = "1.0.0";
@@ -44,7 +44,7 @@ const MODULE_META = {
   deliveryClassification: SOUND_BUS_DELIVERY_CLASSIFICATION,
   commandDeliveryClassification: SOUND_BUS_COMMAND_DELIVERY_CLASSIFICATION,
   bus: { emits: true, registered: true, heartbeat: true, status: true },
-  note: "EVENT-SOUND-3: kontrollierter Test-Flow fuer EventSound-Countdown vor Playback; normale Sound-Flows bleiben unveraendert."
+  note: "EVENT-SOUND-3B: Timing-/Dedupe-Fix fuer kontrollierten EventSound-Countdown; normale Sound-Flows bleiben unveraendert."
 };
 
 const DEFAULT_OUTPUT = {
@@ -434,9 +434,9 @@ module.exports.init = function init(ctx) {
         { method: "GET", path: `${prefix}/eventbus/test`, description: "Emit a test-only sound.test EventBus event without playing audio or touching queue" },
         { method: "POST", path: `${prefix}/eventbus/test`, description: "Emit a test-only sound.test EventBus event without playing audio or touching queue" },
         { method: "GET", path: `${prefix}/eventbus/reset`, description: "Reset Sound-System EventBus counters only" },
-        { method: "GET", path: `${prefix}/event-preroll/status`, description: "EVENT-SOUND-3: Stream-Events Countdown/PreRoll-Gate Status" },
-        { method: "GET", path: `${prefix}/event-preroll/test`, description: "EVENT-SOUND-3: kontrollierter Test fuer Countdown -> Playback mit generated beep; confirm=1 erforderlich" },
-        { method: "POST", path: `${prefix}/event-preroll/test`, description: "EVENT-SOUND-3: kontrollierter Test fuer Countdown -> Playback mit generated beep; confirm=1 erforderlich" },
+        { method: "GET", path: `${prefix}/event-preroll/status`, description: "EVENT-SOUND-3B: Stream-Events Countdown/PreRoll-Gate Status mit Timing-/Dedupe-Fix" },
+        { method: "GET", path: `${prefix}/event-preroll/test`, description: "EVENT-SOUND-3B: kontrollierter Test fuer Countdown -> Playback mit Timing-/Dedupe-Fix; confirm=1 erforderlich" },
+        { method: "POST", path: `${prefix}/event-preroll/test`, description: "EVENT-SOUND-3B: kontrollierter Test fuer Countdown -> Playback mit Timing-/Dedupe-Fix; confirm=1 erforderlich" },
         { method: "GET", path: `${prefix}/eventbus/command/status`, description: "Sound EventBus command dry-run consumer status without playing audio" },
         { method: "GET", path: `${prefix}/eventbus/command/test`, description: "Emit a test-only sound.command play request without touching audio or queue" },
         { method: "POST", path: `${prefix}/eventbus/command/test`, description: "Emit a test-only sound.command play request without touching audio or queue" },
@@ -3659,7 +3659,7 @@ function publicSoundBusQueueStatus() {
       module: MODULE_NAME,
       moduleVersion: MODULE_VERSION,
       moduleBuild: MODULE_BUILD,
-      step: "EVENT-SOUND-3",
+      step: "EVENT-SOUND-3B",
       prepared: true,
       enabled: cfg.enabled !== false,
       gatePoint: "startItem(item) after reservation before item_starting/activateItemAudio",
@@ -3702,7 +3702,9 @@ function publicSoundBusQueueStatus() {
         countdownSecondsDefault: Number(cfg.fallbackSeconds || 3),
         countdownSecondsMax: Number(cfg.maxSeconds || 10),
         soundStartsAfterCountdown: true,
-        hideAfterAudioEndedOrFallback: true
+        hideAfterAudioEndedOrFallback: true,
+        countdownTimingFixed: true,
+        dedupeFields: ["requestId", "phaseKey", "countdownStartedAtMs", "countdownEndsAtMs"]
       },
       updatedAt: core.nowIso()
     });
@@ -3819,6 +3821,22 @@ function publicSoundBusQueueStatus() {
       extra: isPlainObject(extra) ? extra : {},
       emittedAt: core.nowIso()
     };
+
+    const nowMs = Date.now();
+    payload.emittedAtMs = nowMs;
+    payload.phaseStartedAtMs = Number.isFinite(Number(extra.phaseStartedAtMs)) ? Number(extra.phaseStartedAtMs) : nowMs;
+    if (cleanAction === "countdown.start") {
+      const seconds = clampEventPreRollSeconds(preRoll.seconds || payload.seconds || cfg.fallbackSeconds || 3, cfg.fallbackSeconds || 3);
+      payload.seconds = seconds;
+      payload.remainingSeconds = seconds;
+      payload.countdownStartedAtMs = payload.phaseStartedAtMs;
+      payload.countdownEndsAtMs = payload.phaseStartedAtMs + (seconds * 1000);
+      payload.phaseKey = `countdown:${payload.requestId}:${payload.countdownStartedAtMs}`;
+    } else if (cleanAction === "guessing.start") {
+      payload.phaseKey = `guessing:${payload.requestId}:${payload.phaseStartedAtMs}`;
+    } else if (cleanAction === "hide" || cleanAction === "cancel" || cleanAction === "failed") {
+      payload.phaseKey = `${cleanAction}:${payload.requestId}:${payload.phaseStartedAtMs}`;
+    }
     try {
       const result = bus.emit({
         type: "event",
@@ -3872,7 +3890,7 @@ function publicSoundBusQueueStatus() {
         module: MODULE_NAME,
         moduleVersion: MODULE_VERSION,
         moduleBuild: MODULE_BUILD,
-        step: "EVENT-SOUND-3",
+        step: "EVENT-SOUND-3B",
         hint: "POST /api/sound/event-preroll/test?confirm=1 oder GET /api/sound/event-preroll/test?confirm=1",
         touchesQueue: false,
         touchesAudio: false
@@ -3888,7 +3906,7 @@ function publicSoundBusQueueStatus() {
 
     const item = normalizePlayRequest({
       type: "generated_beep",
-      label: String(merged.label || "EVENT-SOUND-3 PreRoll Test-Beep"),
+      label: String(merged.label || "EVENT-SOUND-3B PreRoll Test-Beep"),
       category: "stream_event_sound_test",
       source: "stream_events",
       requestedBy: String(merged.requestedBy || "event_sound_test"),
@@ -3921,7 +3939,7 @@ function publicSoundBusQueueStatus() {
           guessingLabel: String(merged.guessingLabel || "Jetzt raten!")
         },
         testOnly: true,
-        step: "EVENT-SOUND-3"
+        step: "EVENT-SOUND-3B"
       }
     });
 
@@ -3930,7 +3948,7 @@ function publicSoundBusQueueStatus() {
       module: MODULE_NAME,
       moduleVersion: MODULE_VERSION,
       moduleBuild: MODULE_BUILD,
-      step: "EVENT-SOUND-3",
+      step: "EVENT-SOUND-3B",
       message: result.started ? "EventSound-PreRoll-Test gestartet." : (result.queued ? "EventSound-PreRoll-Test wurde gequeued." : "EventSound-PreRoll-Test wurde nicht gestartet."),
       confirmRequired: true,
       testOnly: true,
@@ -3986,17 +4004,24 @@ function publicSoundBusQueueStatus() {
       }
     };
     state.eventPreRoll.active = true;
+    const countdownStartedAtMs = Date.now();
+    const seconds = clampEventPreRollSeconds(resolved.seconds || 3, 3);
     state.eventPreRoll.current = {
       requestId: item.requestId || "",
       soundId: item.soundId || "",
       label: item.label || item.soundId || "",
       eventUid: resolved.eventUid || "",
       roundUid: resolved.roundUid || "",
-      seconds: resolved.seconds || 3,
-      startedAt: core.nowIso()
+      seconds,
+      startedAt: core.nowIso(),
+      countdownStartedAtMs,
+      countdownEndsAtMs: countdownStartedAtMs + (seconds * 1000)
     };
-    emitRuntimeOverlayBus("countdown.start", item, item.lifecycle.eventPreRoll, { reason: "sound_slot_reserved" });
-    const delayMs = Math.max(250, Number(resolved.seconds || 3) * 1000);
+    item.lifecycle.eventPreRoll.seconds = seconds;
+    item.lifecycle.eventPreRoll.countdownStartedAtMs = countdownStartedAtMs;
+    item.lifecycle.eventPreRoll.countdownEndsAtMs = countdownStartedAtMs + (seconds * 1000);
+    emitRuntimeOverlayBus("countdown.start", item, item.lifecycle.eventPreRoll, { reason: "sound_slot_reserved", phaseStartedAtMs: countdownStartedAtMs });
+    const delayMs = Math.max(250, seconds * 1000);
     item.lifecycle.eventPreRoll.timer = setTimeout(() => activateItemAfterEventPreRoll(item, parallel), delayMs);
     if (item.lifecycle.eventPreRoll.timer && typeof item.lifecycle.eventPreRoll.timer.unref === "function") item.lifecycle.eventPreRoll.timer.unref();
   }

@@ -457,6 +457,8 @@
       let pollMs = 900;
       let lastState = null;
       let lastDemoSecond = null;
+      let lastRuntimePhaseKey = "";
+      let lastRuntimeMode = "";
 
       if (DEBUG) document.body.classList.add("debug");
 
@@ -495,12 +497,16 @@
 
       function countdownValue(state) {
         const countdown = state && state.countdown ? state.countdown : {};
+        const seconds = Math.max(1, Math.min(30, Math.ceil(number(countdown.seconds, 3))));
         const remaining = countdown.remainingSeconds;
         if (remaining !== null && remaining !== undefined && Number.isFinite(Number(remaining))) {
-          return Math.max(0, Math.ceil(Number(remaining)));
+          return Math.max(1, Math.min(seconds, Math.ceil(Number(remaining))));
         }
-        const seconds = number(countdown.seconds, 3);
-        return Math.max(1, Math.min(30, Math.ceil(seconds)));
+        const endsAt = Number(countdown.countdownEndsAtMs || 0);
+        if (Number.isFinite(endsAt) && endsAt > 0) {
+          return Math.max(1, Math.min(seconds, Math.ceil((endsAt - Date.now()) / 1000)));
+        }
+        return seconds;
       }
 
       function forceNumberRestart(value) {
@@ -515,6 +521,12 @@
       }
 
       function applyCountdown(state) {
+        const countdown = state && state.countdown ? state.countdown : {};
+        const phaseKey = cleanText(countdown.phaseKey || countdown.requestId || "", "");
+        if (phaseKey && phaseKey !== lastRuntimePhaseKey) {
+          lastRuntimePhaseKey = phaseKey;
+          lastRuntimeMode = "countdown";
+        }
         const value = countdownValue(state);
         forceNumberRestart(value > 0 ? String(value) : "LOS!");
         setText(els.caption, "Sound startet gleich", "Sound startet gleich");
@@ -522,6 +534,7 @@
 
       function applyGuessing(state) {
         const display = state && state.display ? state.display : {};
+        if (lastRuntimeMode !== "guessing") lastRuntimeMode = "guessing";
         forceNumberRestart(cleanText(display.countdownFinalLabel, "LOS!"));
         setText(els.caption, cleanText(display.guessingLabel, "Jetzt raten!"), "Jetzt raten!");
       }
@@ -580,7 +593,10 @@
         } else if (mode === "guessing") {
           applyGuessing(state);
         } else if (mode === "result" || mode === "finished" || mode === "cancelled") {
+          lastRuntimeMode = mode;
           applyResult(state, mode);
+        } else if (mode === "hidden") {
+          lastRuntimeMode = "hidden";
         }
 
         applyClass(mode, visible);
@@ -671,7 +687,7 @@
       window.addEventListener("focus", fetchState);
       window.addEventListener("beforeunload", function () {
         if (pollTimer) window.clearInterval(pollTimer);
-        if (demoTimer) window.clearInterval(demoTimer);
+        if (demoTimer) window.clearTimeout(demoTimer);
       });
     })();
   </script>
@@ -683,7 +699,7 @@
     data-mode="obs_overlay"
     data-module="stream_events"
     data-name="Stream Events Runtime Overlay"
-    data-version="0.2.3"
+    data-version="0.2.4"
     data-heartbeat-ms="5000"
   ></script>
 </body>
