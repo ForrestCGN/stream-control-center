@@ -22,6 +22,8 @@ window.LoyaltyGamesModule = (function(){
     gambleConfig: '/api/loyalty/games/gamble/dashboard-config',
     gambleAudit: '/api/loyalty/games/gamble/dashboard-audit?limit=8',
     raffleConfig: '/api/loyalty/raffle/config',
+    raffleLogs: '/api/loyalty/raffle/logs?limit=250',
+    raffleStats: '/api/loyalty/raffle/stats',
     commandLogs: '/api/commands/logs?limit=80',
     overlay: '/overlays/loyalty/wheel_overlay.html'
   };
@@ -49,6 +51,8 @@ window.LoyaltyGamesModule = (function(){
     gambleAudit: null,
     gambleStats: null,
     raffleConfig: null,
+    raffleLogs: null,
+    raffleStats: null,
     raffleResult: '',
     gambleLogRows: [],
     gambleModal: '',
@@ -651,14 +655,14 @@ window.LoyaltyGamesModule = (function(){
   async function loadAll(force){
     root = document.getElementById('loyaltyGamesModule');
     if (!root || !window.CGN) return;
-    if (!force && state.coreStatus && state.coreSettings && state.status && state.wheelStatus && state.presets && state.giveaways && state.giveawayCommands && state.giveawayTexts && state.communicationStatus && state.gambleConfig && state.raffleConfig) { render(); return; }
+    if (!force && state.coreStatus && state.coreSettings && state.status && state.wheelStatus && state.presets && state.giveaways && state.giveawayCommands && state.giveawayTexts && state.communicationStatus && state.gambleConfig && state.raffleConfig && state.raffleLogs && state.raffleStats) { render(); return; }
 
     state.loading = true;
     state.error = '';
     render();
 
     try {
-      const [coreStatus, coreSettings, coreHistory, status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, giveawayCommands, giveawayTexts, communicationStatus, gambleConfig, gambleAudit, raffleConfig, commandLogs] = await Promise.all([
+      const [coreStatus, coreSettings, coreHistory, status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, giveawayCommands, giveawayTexts, communicationStatus, gambleConfig, gambleAudit, raffleConfig, raffleLogs, raffleStats, commandLogs] = await Promise.all([
         window.CGN.api(api.coreStatus).catch(err => ({ ok:false, error:err.message })),
         window.CGN.api(api.loyaltySettings).catch(err => ({ ok:false, error:err.message, settings:[] })),
         window.CGN.api(api.coreHistory).catch(err => ({ ok:false, error:err.message, rows:[] })),
@@ -678,6 +682,8 @@ window.LoyaltyGamesModule = (function(){
         window.CGN.api(api.gambleConfig).catch(err => ({ ok:false, error:err.message })),
         window.CGN.api(api.gambleAudit).catch(err => ({ ok:false, error:err.message, items:[] })),
         window.CGN.api(api.raffleConfig).catch(err => ({ ok:false, error:err.message })),
+        window.CGN.api(api.raffleLogs).catch(err => ({ ok:false, error:err.message, rows:[] })),
+        window.CGN.api(api.raffleStats).catch(err => ({ ok:false, error:err.message, totals:{}, starters:[], winners:[], participants:[] })),
         window.CGN.api(api.commandLogs).catch(err => ({ ok:false, error:err.message, logs:[] }))
       ]);
 
@@ -693,7 +699,7 @@ window.LoyaltyGamesModule = (function(){
         selectedGiveawayUid = giveawayRows[0]?.giveawayUid || '';
       }
 
-      state = { ...state, loading:false, error:'', coreStatus, coreSettings, coreHistory, status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, giveawayCommands, giveawayTexts, communicationStatus, gambleConfig, gambleAudit, raffleConfig, gambleLogRows: normalizeGambleRows(commandLogs), gambleStats: buildGambleStats(normalizeGambleRows(commandLogs)), selectedPresetUid, selectedGiveawayUid };
+      state = { ...state, loading:false, error:'', coreStatus, coreSettings, coreHistory, status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, giveawayCommands, giveawayTexts, communicationStatus, gambleConfig, gambleAudit, raffleConfig, raffleLogs, raffleStats, gambleLogRows: normalizeGambleRows(commandLogs), gambleStats: buildGambleStats(normalizeGambleRows(commandLogs)), selectedPresetUid, selectedGiveawayUid };
       if (selectedPresetUid) await loadPreset(selectedPresetUid, false);
       if (selectedGiveawayUid) await loadGiveaway(selectedGiveawayUid, false);
     } catch (err) {
@@ -1891,6 +1897,7 @@ function renderGiveawayDetails(giveaway){
       wheel_session: 'Glücksrad-Dreh',
       wheel_spin: 'Preset-Dreh',
       gamble: 'Gamble',
+      raffle: 'Raffle',
       giveaway: 'Giveaway'
     };
     return labels[clean] || statusLabel(type);
@@ -1900,6 +1907,20 @@ function renderGiveawayDetails(giveaway){
     const raw = String(row?.status || '').toLowerCase();
     const points = Number(row?.points ?? row?.amount ?? row?.net ?? 0);
     const type = String(row?.eventType || '').toLowerCase();
+    if (type === 'raffle') {
+      const raffleLabels = {
+        paid: ['Bezahlt', 'lg-badge-ok'],
+        refunded: ['Erstattet', 'lg-badge-ok'],
+        win: ['Gewinn', 'lg-badge-ok'],
+        started: ['Gestartet', 'lg-badge-warn'],
+        joined: ['Teilnahme', 'lg-badge-warn'],
+        finished: ['Beendet', 'lg-badge-ok'],
+        cancelled: ['Abgebrochen', 'lg-badge-off'],
+        info: ['Info', 'lg-badge-off']
+      };
+      const item = raffleLabels[raw] || raffleLabels.info;
+      return { key: raffleLabels[raw] ? raw : 'info', label: item[0], cls: item[1] };
+    }
     if (['error', 'failed', 'fail'].includes(raw)) return { key:'error', label:'Fehler', cls:'lg-badge-off' };
     if (['duplicate', 'duplicated'].includes(raw)) return { key:'duplicate', label:'Duplikat', cls:'lg-badge-warn' };
     if (['skipped', 'skip'].includes(raw)) return { key:'skipped', label:'Übersprungen', cls:'lg-badge-warn' };
@@ -1991,8 +2012,39 @@ function renderGiveawayDetails(giveaway){
     });
   }
 
+  function normalizeRaffleLogRowsForLogs(){
+    return rows(state.raffleLogs).map(row => {
+      const amount = Number(row.amount || 0) || 0;
+      const actorLogin = row.actorLogin || row.actor_login || row.metadata?.actorLogin || row.metadata?.refundedBy || '';
+      const actorDisplayName = row.actorDisplayName || row.actor_display_name || row.metadata?.actorDisplayName || actorLogin || '';
+      const targetLogin = row.targetLogin || row.login || row.metadata?.targetLogin || row.metadata?.userLogin || row.metadata?.winnerLogin || '';
+      const targetDisplayName = row.targetDisplayName || row.displayName || row.metadata?.targetDisplayName || row.metadata?.userDisplayName || row.metadata?.winnerDisplayName || targetLogin || '';
+      const userLabel = targetDisplayName || actorDisplayName || row.displayName || row.login || '-';
+      const loginLabel = targetLogin || actorLogin || row.login || '';
+      return {
+        module: 'minigames',
+        moduleLabel: 'Mini-Spiele',
+        at: row.createdAt || row.created_at || '',
+        eventType: 'raffle',
+        eventLabel: 'Raffle',
+        user: userLabel,
+        login: loginLabel,
+        actorLogin,
+        actorDisplayName,
+        targetLogin,
+        targetDisplayName,
+        status: row.status || (amount ? 'booked' : 'info'),
+        points: amount,
+        details: row.details || row.label || 'Raffle',
+        technicalId: row.transactionUid || row.uid || row.raffleUid || '',
+        transactionUid: row.transactionUid || '',
+        raw: row
+      };
+    });
+  }
+
   function buildCentralLogRows(){
-    const all = normalizeCoreLogRows().concat(normalizeWheelLogRows(), normalizeGambleLogRowsForLogs());
+    const all = normalizeCoreLogRows().concat(normalizeWheelLogRows(), normalizeGambleLogRowsForLogs(), normalizeRaffleLogRowsForLogs());
     return all.sort((a, b) => Date.parse(b.at || 0) - Date.parse(a.at || 0));
   }
 
@@ -2006,6 +2058,15 @@ function renderGiveawayDetails(giveaway){
 
   function logRowShortDetail(row){
     const status = logStatusInfo(row).key;
+    if (row.eventType === 'raffle') {
+      if (status === 'paid') return row.details || 'Teilnahme bezahlt';
+      if (status === 'refunded') return row.details || 'Teilnahmegebühr erstattet';
+      if (status === 'win') return row.details || 'Gewinn gebucht';
+      if (status === 'started') return row.details || 'Raffle gestartet';
+      if (status === 'joined') return row.details || 'Teilnahme erfasst';
+      if (status === 'finished') return row.details || 'Raffle beendet';
+      if (status === 'cancelled') return row.details || 'Raffle abgebrochen';
+    }
     if (row.module === 'core') {
       if (status === 'tracked') return 'Nur erfasst';
       if (status === 'skipped') return 'Übersprungen';
@@ -2028,7 +2089,9 @@ function renderGiveawayDetails(giveaway){
       ['Event-ID', row.technicalId || raw.uid || raw.eventUid || ''],
       ['Transaktion', row.transactionUid || raw.transactionUid || ''],
       ['Typ', row.eventType || ''],
-      ['Bereich', row.moduleLabel || row.module || '']
+      ['Bereich', row.moduleLabel || row.module || ''],
+      ['Ausgelöst durch', row.actorDisplayName || row.actorLogin || raw.actorDisplayName || raw.actorLogin || ''],
+      ['Betroffener User', row.targetDisplayName || row.targetLogin || row.user || row.login || '']
     ].filter(([, value]) => String(value || '').trim());
     return `
       <div class="lgw-modal-backdrop" data-lg-log-modal-close>
@@ -2104,7 +2167,16 @@ function renderGiveawayDetails(giveaway){
     const filteredRows = filterCentralLogRows(allRows).slice(0, 120);
     const moduleOptions = logFilterOptions(allRows, 'module', 'moduleLabel');
     const eventOptions = logFilterOptions(allRows, 'eventType', 'eventLabel');
-    const statusOptions = [
+    const raffleSelected = String(state.logEvent || '').toLowerCase() === 'raffle';
+    const statusOptions = raffleSelected ? [
+      ['paid', 'Bezahlt'],
+      ['refunded', 'Erstattet'],
+      ['win', 'Gewinn'],
+      ['started', 'Gestartet'],
+      ['joined', 'Teilnahme'],
+      ['finished', 'Beendet'],
+      ['cancelled', 'Abgebrochen']
+    ] : [
       ['booked', 'Gebucht / verarbeitet'],
       ['tracked', 'Nur erfasst'],
       ['skipped', 'Übersprungen'],
@@ -2112,12 +2184,13 @@ function renderGiveawayDetails(giveaway){
       ['error', 'Fehler'],
       ['pending', 'Offen']
     ];
+    if (state.logStatus !== 'all' && !statusOptions.some(([value]) => value === state.logStatus)) state.logStatus = 'all';
     return `
       <div class="lg-panel">
         <div class="lg-panel-head">
           <div>
             <h3>Logs</h3>
-            <p class="lg-muted">Zentrale Ansicht für Loyalty-Ereignisse. Hier landen Core-Buchungen, GiftSubs/GiftBombs, Glücksrad-Drehungen und Gamble-Logs an einer Stelle.</p>
+            <p class="lg-muted">Zentrale Ansicht für Loyalty-Ereignisse. Hier landen Core-Buchungen, GiftSubs/GiftBombs, Glücksrad-Drehungen, Gamble-Logs und Raffle-Buchungen an einer Stelle.</p>
           </div>
           <button class="lg-btn lg-btn-secondary" data-lg-reload>Neu laden</button>
         </div>
@@ -2148,7 +2221,7 @@ function renderGiveawayDetails(giveaway){
           <article class="lg-card"><span class="lg-card-label">Geladen</span><strong>${fmtNumber(allRows.length)}</strong><small>alle Log-Einträge</small></article>
           <article class="lg-card"><span class="lg-card-label">Angezeigt</span><strong>${fmtNumber(filteredRows.length)}</strong><small>nach Filter</small></article>
           <article class="lg-card"><span class="lg-card-label">Core</span><strong>${fmtNumber(normalizeCoreLogRows().length)}</strong><small>Punkte/Support-Events</small></article>
-          <article class="lg-card"><span class="lg-card-label">Games</span><strong>${fmtNumber(normalizeWheelLogRows().length + normalizeGambleLogRowsForLogs().length)}</strong><small>Glücksrad + Gamble</small></article>
+          <article class="lg-card"><span class="lg-card-label">Games</span><strong>${fmtNumber(normalizeWheelLogRows().length + normalizeGambleLogRowsForLogs().length + normalizeRaffleLogRowsForLogs().length)}</strong><small>Glücksrad + Gamble</small></article>
         </div>
         <div class="lg-table-wrap">
           <table class="lg-table">
@@ -3102,6 +3175,50 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
     `;
   }
 
+  function renderRaffleStatsCard(){
+    const stats = state.raffleStats || {};
+    const totals = stats.totals || {};
+    const starters = Array.isArray(stats.starters) ? stats.starters : [];
+    const winners = Array.isArray(stats.winners) ? stats.winners : [];
+    const participants = Array.isArray(stats.participants) ? stats.participants : [];
+    const topStarter = starters[0];
+    const topWinner = winners[0];
+    const topParticipant = participants[0];
+    return `
+      <div class="lg-note-card lg-raffle-stats-card">
+        <div class="lg-panel-head lg-panel-head-tight">
+          <div>
+            <h4>Raffle-Statistik</h4>
+            <p class="lg-muted">Buchungen und Ereignisse stehen im Tab „Logs“. Die Statistik bleibt direkt auf der Raffle-Seite.</p>
+          </div>
+        </div>
+        <div class="lg-grid lg-grid-4 lg-mini-kpi-grid">
+          <article class="lg-kpi lg-mini-kpi"><span>Gestartet</span><strong>${fmtNumber(totals.totalStarted || 0)}</strong><small>Raffles</small></article>
+          <article class="lg-kpi lg-mini-kpi"><span>Teilnahmen</span><strong>${fmtNumber((totals.totalPaidEntries || 0) + (totals.totalFreeEntries || 0))}</strong><small>geladen</small></article>
+          <article class="lg-kpi lg-mini-kpi"><span>Ausgezahlt</span><strong>${fmtNumber(totals.totalPayout || 0)}</strong><small>Kekskrümel</small></article>
+          <article class="lg-kpi lg-mini-kpi"><span>Erstattet</span><strong>${fmtNumber(totals.totalRefundedAmount || 0)}</strong><small>Kekskrümel</small></article>
+        </div>
+        <div class="lg-grid lg-grid-3 lg-raffle-top-grid">
+          <article class="lg-card">
+            <span class="lg-card-label">Top Starter</span>
+            <strong>${esc(topStarter?.displayName || topStarter?.login || '-')}</strong>
+            <small>${fmtNumber(topStarter?.started || 0)} gestartet</small>
+          </article>
+          <article class="lg-card">
+            <span class="lg-card-label">Top Gewinner</span>
+            <strong>${esc(topWinner?.displayName || topWinner?.login || '-')}</strong>
+            <small>${fmtNumber(topWinner?.wins || 0)} Gewinne · ${fmtNumber(topWinner?.totalWon || 0)} Kekskrümel</small>
+          </article>
+          <article class="lg-card">
+            <span class="lg-card-label">Top Teilnehmer</span>
+            <strong>${esc(topParticipant?.displayName || topParticipant?.login || '-')}</strong>
+            <small>${fmtNumber((topParticipant?.entries || 0) + (topParticipant?.paidEntries || 0))} Teilnahmen</small>
+          </article>
+        </div>
+      </div>
+    `;
+  }
+
   function renderRaffleOverviewCard(){
     const data = state.raffleConfig || {};
     const cfg = data.config || data.raffle?.config || {};
@@ -3139,10 +3256,7 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
               `).join('') : '<div class="lg-raffle-rule-row"><span>Regel</span><strong>Standardregel aktiv</strong></div>'}
             </div>
           </div>
-          <div class="lg-note-card">
-            <h4>Raffle-Statistik</h4>
-            <p class="lg-muted">Kommt im nächsten Schritt direkt hier auf die Raffle-Seite. Buchungen und Ereignisse bleiben im Tab „Logs“.</p>
-          </div>
+          ${renderRaffleStatsCard()}
         </div>
       </div>
     `;

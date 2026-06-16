@@ -23,8 +23,8 @@ const database = require("../core/database");
 const loyaltyCore = require("./loyalty");
 
 const MODULE_NAME = "loyalty_giveaways";
-const MODULE_VERSION = "0.1.13";
-const MODULE_BUILD = "STEP_LC_MINIGAMES_2B_FIX3_TEXT_DB_CLEANUP";
+const MODULE_VERSION = "0.1.12";
+const MODULE_BUILD = "STEP_LC_MINIGAMES_2B_FIX2_RAFFLE_TEXT_VARIANT_GUARD";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -214,6 +214,76 @@ const CHAT_TEXT_DEFAULTS = {
     "Erst wird die Lostrommel geschlossen, dann wird ausgelost. Ordnung muss sein.",
     "Die Heimleitung lässt erst auslosen, wenn die Ticket-Ausgabe offiziell geschlossen ist."
   ],
+  "raffle.started": [
+    "Die Heimleitung öffnet die kleine Lostrommel! Tippt !join – ihr habt {duration} Sekunden Zeit.",
+    "Raffle läuft! Ein Los pro Nase. Rein mit !join – die Heimleitung zählt gleich aus.",
+    "Die Rentnergang zählt die Lose: !join in den Chat, {duration} Sekunden Zeit.",
+    "Kekskrümel-Tombola gestartet! Wer mit will, ruft !join. Zeitfenster: {duration}s.",
+    "Die Lostrommel klappert durchs Altersheim. !join tippen, bevor die Heimleitung den Deckel schließt."
+  ],
+  "raffle.already_active": [
+    "Es läuft schon eine Raffle. Die Heimleitung öffnet nicht zwei Lostrommeln gleichzeitig.",
+    "Langsam, Chef: Eine Raffle ist bereits offen. Erst die aktuelle auslosen lassen.",
+    "Die aktuelle Raffle läuft noch {remaining}s. Mit !join kommt ihr noch rein.",
+    "Nicht drängeln: Die Lostrommel ist schon offen. Teilnehmer bisher: {entries}.",
+    "Eine Raffle ist bereits aktiv. Die Heimleitung hat nur eine Brille und eine Trommel."
+  ],
+  "raffle.joined": [
+    "{user} hat den Loszettel abgegeben.",
+    "{user} wurde von der Heimleitung notiert.",
+    "{user} ist im Lostopf. Die Heimleitung nickt.",
+    "{user} ist dabei. Jetzt heißt es Daumen drücken.",
+    "{user} hat sich einen Platz in der Lostrommel gesichert."
+  ],
+  "raffle.already_joined": [
+    "{user}, du liegst schon im Lostopf. Nicht doppelt drängeln, Rentner!",
+    "{user}, ein Los pro Nase. Die Heimleitung hat dich schon notiert.",
+    "{user}, dein Zettel klebt bereits im Klemmbrett.",
+    "{user}, zweimal eintragen zählt nicht. Die Rentnergang prüft mit Lesebrille.",
+    "{user}, du bist schon dabei. Bitte zurück in die Warteschlange am Buffet."
+  ],
+  "raffle.no_active": [
+    "Aktuell läuft keine Raffle. Die Lostrommel macht Pause.",
+    "Keine aktive Raffle gefunden. Erst muss die Heimleitung !raffle rufen.",
+    "Noch keine Tombola offen. Die Heimleitung sucht gerade den Schlüssel zur Lostrommel.",
+    "Gerade gibt es nichts zum Beitreten. Erst wenn !raffle läuft, bringt !join etwas.",
+    "Die Lostrommel ist zu. Ohne aktive Raffle bleibt dein Loszettel auf dem Tisch."
+  ],
+  "raffle.status": [
+    "Raffle läuft noch {remaining}s. Teilnehmer: {entries}. Mit !join rein in den Lostopf.",
+    "Lostrommel offen: {entries} Teilnehmer, noch {remaining}s Restzeit.",
+    "Zwischenstand vom Klemmbrett: {entries} Lose, {remaining}s bis zur Ziehung.",
+    "Die Heimleitung zählt: {entries} Teilnehmer. Noch {remaining}s Zeit für !join.",
+    "Raffle-Status: Trommel offen, {entries} drin, {remaining}s bis zur Rentner-Ziehung."
+  ],
+  "raffle.cancelled": [
+    "Raffle abgebrochen. Die Heimleitung kippt die Lose zurück in die Schublade.",
+    "Die aktuelle Raffle wurde beendet. Keine Ziehung, keine Diskussion am Kaffeetisch.",
+    "Tombola gestoppt. Die Lostrommel wird wieder in den Schrank gerollt.",
+    "Raffle gecancelt. Die Rentnergang legt die Zettel wieder glatt.",
+    "Abbruch durch die Heimleitung. Alle Lose gehen zurück in die Aktenmappe."
+  ],
+  "raffle.no_entries": [
+    "Die Raffle ist vorbei, aber niemand ist eingestiegen. Die Lostrommel ist leer.",
+    "Keine Teilnehmer. Die Heimleitung trägt ein trauriges Nichts ins Klemmbrett ein.",
+    "Ziehung ohne Lose. Das Altersheim schweigt betroffen.",
+    "Die Trommel war offen, aber keiner wollte rein. Kaffee gibt es trotzdem.",
+    "Raffle beendet: 0 Teilnehmer. Die Heimleitung schaut streng in den leeren Lostopf."
+  ],
+  "raffle.winners": [
+    "🎉 Die Heimleitung hat gezogen: {winners} – je {prizeAmount} Kekskrümel!",
+    "🎉 Die Lostrommel hat entschieden: {winners} – je {prizeAmount} Kekskrümel!",
+    "Die Rentner-Trommel hat gesprochen! Glückwunsch an {winners}: je {prizeAmount} Kekskrümel!",
+    "Klemmbrett finalisiert: {winners} bekommt je {prizeAmount} Kekskrümel. Die Heimleitung gratuliert streng.",
+    "Raffle beendet! {winners} darf sich über je {prizeAmount} Kekskrümel freuen."
+  ],
+  "raffle.permission_denied": [
+    "{user}, die Lostrommel darf nur die Heimleitung öffnen.",
+    "{user}, dafür brauchst du Mod-Rechte. Die Rentnergang passt auf.",
+    "{user}, Finger weg von der Lostrommel. Nur Mods dürfen starten oder abbrechen.",
+    "{user}, ohne Heimleitungs-Ausweis bleibt die Tombola zu.",
+    "{user}, netter Versuch. Die Raffle-Schlüssel liegen beim Mod-Team."
+  ],
   "raffle.public.started": [
     "Kekskrümel-Tombola gestartet! Wer mit will, ruft !join. Zeitfenster: {duration}s.",
     "Die Heimleitung öffnet die Lostrommel! Mit !join kommt ihr rein. Zeit: {duration}s.",
@@ -332,6 +402,16 @@ const CHAT_TEXT_CATEGORIES = {
   "ticket.cost_not_supported_yet": "chat_ticket",
   "giveaway.closed": "chat_giveaway",
   "giveaway.draw_not_closed": "chat_giveaway",
+  "raffle.started": "chat_raffle",
+  "raffle.already_active": "chat_raffle",
+  "raffle.joined": "chat_raffle",
+  "raffle.already_joined": "chat_raffle",
+  "raffle.no_active": "chat_raffle",
+  "raffle.status": "chat_raffle",
+  "raffle.cancelled": "chat_raffle",
+  "raffle.no_entries": "chat_raffle",
+  "raffle.winners": "chat_raffle",
+  "raffle.permission_denied": "chat_raffle",
   "raffle.public.started": "chat_raffle",
   "raffle.public.already_active": "chat_raffle",
   "raffle.public.joined": "chat_raffle",
@@ -720,6 +800,24 @@ function ensureRaffleConfigTable() {
       updated_at TEXT NOT NULL
     );
   `);
+
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS loyalty_raffle_events (
+      id ${database.primaryKeyAutoIncrementSql()},
+      event_uid TEXT NOT NULL UNIQUE,
+      raffle_uid TEXT NOT NULL DEFAULT '',
+      event_type TEXT NOT NULL DEFAULT '',
+      actor_login TEXT NOT NULL DEFAULT '',
+      actor_display_name TEXT NOT NULL DEFAULT '',
+      amount INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'info',
+      created_at TEXT NOT NULL,
+      metadata_json TEXT NOT NULL DEFAULT '{}'
+    );
+  `);
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_raffle_events_raffle ON loyalty_raffle_events(raffle_uid);`);
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_raffle_events_type ON loyalty_raffle_events(event_type);`);
+  database.exec(`CREATE INDEX IF NOT EXISTS idx_loyalty_raffle_events_created ON loyalty_raffle_events(created_at);`);
 }
 
 function loadRaffleConfig() {
@@ -784,6 +882,258 @@ function buildRaffleConfigPayload() {
     runtime: getRaffleSnapshot(),
     winnerRule: getRaffleWinnerRuleDescription(),
     textKeys: Object.keys(CHAT_TEXT_DEFAULTS).filter(key => key.startsWith("raffle.public."))
+  };
+}
+
+function recordRaffleEvent(eventType, input = {}) {
+  try {
+    ensureRaffleConfigTable();
+    const now = input.createdAt || nowIso();
+    const eventUid = input.eventUid || uid("raffle_event");
+    const actorLogin = normalizeChatLogin(input.actorLogin || input.userLogin || input.login || input.actor || "");
+    const actorDisplayName = String(input.actorDisplayName || input.userDisplayName || input.displayName || actorLogin || "").trim();
+    database.run(`
+      INSERT OR IGNORE INTO loyalty_raffle_events
+        (event_uid, raffle_uid, event_type, actor_login, actor_display_name, amount, status, created_at, metadata_json)
+      VALUES
+        (:eventUid, :raffleUid, :eventType, :actorLogin, :actorDisplayName, :amount, :status, :createdAt, :metadataJson)
+    `, {
+      eventUid,
+      raffleUid: input.raffleUid || "",
+      eventType: String(eventType || "info"),
+      actorLogin,
+      actorDisplayName,
+      amount: Number(input.amount || 0),
+      status: input.status || "info",
+      createdAt: now,
+      metadataJson: json(input.metadata || {})
+    });
+    return { ok: true, eventUid, createdAt: now };
+  } catch (err) {
+    state.lastError = err && err.message ? err.message : String(err);
+    return { ok: false, error: state.lastError };
+  }
+}
+
+function raffleEventLabel(kind) {
+  const labels = {
+    started: "Raffle gestartet",
+    joined: "Raffle Teilnahme",
+    finished: "Raffle beendet",
+    no_entries: "Raffle ohne Teilnehmer",
+    cancelled: "Raffle abgebrochen",
+    entry_cost: "Raffle Teilnahme bezahlt",
+    entry_refund: "Raffle Teilnahme erstattet",
+    win: "Raffle Gewinn gebucht"
+  };
+  return labels[String(kind || "").toLowerCase()] || "Raffle";
+}
+
+function raffleLogStatusForKind(kind, fallback = "info") {
+  const clean = String(kind || "").toLowerCase();
+  if (clean === "entry_cost") return "paid";
+  if (clean === "entry_refund") return "refunded";
+  if (clean === "win") return "win";
+  if (clean === "started") return "started";
+  if (clean === "joined") return "joined";
+  if (clean === "finished" || clean === "no_entries") return "finished";
+  if (clean === "cancelled") return "cancelled";
+  return fallback || "info";
+}
+
+function parseTransactionMetadata(row) {
+  return parseJson(row && (row.metadata_json || row.metadataJson), {});
+}
+
+function listRaffleTransactionRows(limit = 250) {
+  const safeLimit = Math.max(1, Math.min(1000, Number.parseInt(limit, 10) || 250));
+  try {
+    return database.all(`
+      SELECT transaction_uid, user_login, user_display_name, amount, balance_before, balance_after,
+             type, source_module, source_provider, mode, reason, reference_type, reference_id, created_at, metadata_json
+      FROM loyalty_transactions
+      WHERE source_provider = 'raffle' OR type LIKE 'raffle_%'
+      ORDER BY created_at DESC, id DESC
+      LIMIT ${safeLimit}
+    `);
+  } catch (err) {
+    state.lastError = err && err.message ? err.message : String(err);
+    return [];
+  }
+}
+
+function listRaffleEventRows(limit = 250) {
+  const safeLimit = Math.max(1, Math.min(1000, Number.parseInt(limit, 10) || 250));
+  try {
+    ensureRaffleConfigTable();
+    return database.all(`
+      SELECT event_uid, raffle_uid, event_type, actor_login, actor_display_name, amount, status, created_at, metadata_json
+      FROM loyalty_raffle_events
+      ORDER BY created_at DESC, id DESC
+      LIMIT ${safeLimit}
+    `);
+  } catch (err) {
+    state.lastError = err && err.message ? err.message : String(err);
+    return [];
+  }
+}
+
+function normalizeRaffleTransactionLog(row) {
+  const type = String(row && row.type || "").toLowerCase();
+  const metadata = parseTransactionMetadata(row);
+  const kind = type === "raffle_win" ? "win" : (type === "raffle_entry_refund" ? "entry_refund" : (type === "raffle_entry_cost" ? "entry_cost" : type.replace(/^raffle_/, "")));
+  const amount = Number(row && row.amount || 0);
+  const targetLogin = row.user_login || metadata.userLogin || metadata.winnerLogin || "";
+  const targetDisplayName = row.user_display_name || metadata.userDisplayName || metadata.winnerDisplayName || targetLogin || "";
+  const actorLogin = metadata.refundedBy || metadata.actorLogin || "system";
+  const actorDisplayName = metadata.actorDisplayName || (actorLogin === "system" ? "Raffle/System" : actorLogin);
+  const absAmount = Math.abs(amount).toLocaleString("de-DE");
+  return {
+    uid: row.transaction_uid || "",
+    raffleUid: row.reference_id || metadata.raffleUid || "",
+    source: "transaction",
+    kind,
+    label: raffleEventLabel(kind),
+    login: targetLogin,
+    displayName: targetDisplayName,
+    actorLogin,
+    actorDisplayName,
+    targetLogin,
+    targetDisplayName,
+    amount,
+    status: raffleLogStatusForKind(kind, amount === 0 ? "info" : "booked"),
+    createdAt: row.created_at || "",
+    details: kind === "win"
+      ? `${targetDisplayName || targetLogin || "User"} hat ${absAmount} Kekskrümel gewonnen.`
+      : (kind === "entry_refund" ? `${targetDisplayName || targetLogin || "User"} bekam ${absAmount} Kekskrümel Teilnahmegebühr erstattet.` : `${targetDisplayName || targetLogin || "User"} hat ${absAmount} Kekskrümel Teilnahmegebühr bezahlt.`),
+    transactionUid: row.transaction_uid || "",
+    metadata
+  };
+}
+
+function normalizeRaffleEventLog(row) {
+  const metadata = parseJson(row && row.metadata_json, {});
+  const kind = String(row && row.event_type || "info").toLowerCase();
+  const actorLogin = row.actor_login || metadata.actorLogin || metadata.userLogin || "";
+  const actorDisplayName = row.actor_display_name || metadata.actorDisplayName || metadata.userDisplayName || actorLogin || "";
+  const amount = Number(row.amount || 0);
+  let details = metadata.details || metadata.reason || raffleEventLabel(kind);
+  if (kind === "started") details = `${actorDisplayName || actorLogin || "Mod/System"} hat die Raffle gestartet.`;
+  else if (kind === "joined") details = `${actorDisplayName || actorLogin || "User"} ist der Raffle beigetreten.`;
+  else if (kind === "cancelled") details = `${actorDisplayName || actorLogin || "Mod/System"} hat die Raffle abgebrochen. Erstattet: ${Number(metadata.refundedAmount || amount || 0).toLocaleString("de-DE")} Kekskrümel.`;
+  else if (kind === "finished") details = `Raffle beendet. Teilnehmer: ${Number(metadata.participantCount || 0).toLocaleString("de-DE")}, Gewinner: ${Number(metadata.winnerCount || 0).toLocaleString("de-DE")}.`;
+  else if (kind === "no_entries") details = "Raffle ohne Teilnehmer beendet.";
+  return {
+    uid: row.event_uid || "",
+    raffleUid: row.raffle_uid || metadata.raffleUid || "",
+    source: "event",
+    kind,
+    label: raffleEventLabel(kind),
+    login: actorLogin,
+    displayName: actorDisplayName,
+    actorLogin,
+    actorDisplayName,
+    targetLogin: metadata.targetLogin || metadata.userLogin || actorLogin || "",
+    targetDisplayName: metadata.targetDisplayName || metadata.userDisplayName || actorDisplayName || "",
+    amount,
+    status: raffleLogStatusForKind(kind, row.status || (kind === "cancelled" ? "cancelled" : "info")),
+    createdAt: row.created_at || "",
+    details,
+    transactionUid: "",
+    metadata
+  };
+}
+
+function buildRaffleLogsPayload(input = {}) {
+  const limit = Math.max(1, Math.min(1000, Number.parseInt(input.limit, 10) || 250));
+  const events = listRaffleEventRows(limit).map(normalizeRaffleEventLog);
+  const tx = listRaffleTransactionRows(limit).map(normalizeRaffleTransactionLog);
+  const rows = events.concat(tx)
+    .sort((a, b) => Date.parse(b.createdAt || 0) - Date.parse(a.createdAt || 0))
+    .slice(0, limit);
+  return { ok: true, module: MODULE_NAME, rows, total: rows.length };
+}
+
+function buildRaffleStatsPayload() {
+  const events = listRaffleEventRows(1000).map(normalizeRaffleEventLog);
+  const tx = listRaffleTransactionRows(1000).map(normalizeRaffleTransactionLog);
+  const starters = new Map();
+  const winners = new Map();
+  const participants = new Map();
+  let totalStarted = 0;
+  let totalFinished = 0;
+  let totalCancelled = 0;
+  let totalNoEntries = 0;
+  let totalPaidEntries = 0;
+  let totalEntryFees = 0;
+  let totalRefunds = 0;
+  let totalRefundedAmount = 0;
+  let totalWins = 0;
+  let totalPayout = 0;
+
+  function touch(map, login, displayName) {
+    const key = normalizeChatLogin(login || displayName || "") || String(displayName || "unbekannt").toLowerCase();
+    const item = map.get(key) || { login: key, displayName: displayName || login || "unbekannt" };
+    if (displayName && (!item.displayName || item.displayName === item.login)) item.displayName = displayName;
+    map.set(key, item);
+    return item;
+  }
+
+  events.forEach(row => {
+    if (row.kind === "started") {
+      totalStarted += 1;
+      const item = touch(starters, row.login, row.displayName);
+      item.started = Number(item.started || 0) + 1;
+      item.lastStartedAt = !item.lastStartedAt || Date.parse(row.createdAt || 0) > Date.parse(item.lastStartedAt || 0) ? row.createdAt : item.lastStartedAt;
+    } else if (row.kind === "finished") totalFinished += 1;
+    else if (row.kind === "no_entries") totalNoEntries += 1;
+    else if (row.kind === "cancelled") totalCancelled += 1;
+    else if (row.kind === "joined") {
+      const item = touch(participants, row.login, row.displayName);
+      item.entries = Number(item.entries || 0) + 1;
+      item.lastJoinedAt = !item.lastJoinedAt || Date.parse(row.createdAt || 0) > Date.parse(item.lastJoinedAt || 0) ? row.createdAt : item.lastJoinedAt;
+    }
+  });
+
+  tx.forEach(row => {
+    if (row.kind === "entry_cost") {
+      const amount = Math.abs(Number(row.amount || 0));
+      totalPaidEntries += 1;
+      totalEntryFees += amount;
+      const item = touch(participants, row.login, row.displayName);
+      item.paidEntries = Number(item.paidEntries || 0) + 1;
+      item.entryFees = Number(item.entryFees || 0) + amount;
+    } else if (row.kind === "entry_refund") {
+      const amount = Math.abs(Number(row.amount || 0));
+      totalRefunds += 1;
+      totalRefundedAmount += amount;
+      const item = touch(participants, row.login, row.displayName);
+      item.refunds = Number(item.refunds || 0) + 1;
+      item.refundedAmount = Number(item.refundedAmount || 0) + amount;
+    } else if (row.kind === "win") {
+      const amount = Math.max(0, Number(row.amount || 0));
+      totalWins += 1;
+      totalPayout += amount;
+      const item = touch(winners, row.login, row.displayName);
+      item.wins = Number(item.wins || 0) + 1;
+      item.totalWon = Number(item.totalWon || 0) + amount;
+      item.highestWin = Math.max(Number(item.highestWin || 0), amount);
+      item.lastWinAt = !item.lastWinAt || Date.parse(row.createdAt || 0) > Date.parse(item.lastWinAt || 0) ? row.createdAt : item.lastWinAt;
+    }
+  });
+
+  const byStarted = Array.from(starters.values()).sort((a, b) => Number(b.started || 0) - Number(a.started || 0));
+  const byWon = Array.from(winners.values()).sort((a, b) => Number(b.totalWon || 0) - Number(a.totalWon || 0));
+  const byEntries = Array.from(participants.values()).sort((a, b) => Number(b.entries || 0) + Number(b.paidEntries || 0) - (Number(a.entries || 0) + Number(a.paidEntries || 0)));
+
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    totals: { totalStarted, totalFinished, totalCancelled, totalNoEntries, totalPaidEntries, totalEntryFees, totalRefunds, totalRefundedAmount, totalWins, totalPayout },
+    starters: byStarted.slice(0, 25),
+    winners: byWon.slice(0, 25),
+    participants: byEntries.slice(0, 25),
+    note: "Statistik basiert auf Raffle-Events und Raffle-Buchungen. Neue Start-/Join-/Ende-Ereignisse werden ab diesem Stand dauerhaft geloggt."
   };
 }
 
@@ -5147,35 +5497,23 @@ function listCentralCommandDefinitions(extra = {}) {
 
 function seedChatTextVariants() {
   try {
-    const seeded = textHelper.seedModuleTextVariants(TEXT_MODULE, CHAT_TEXT_DEFAULTS, {
+    textHelper.seedModuleTextVariants(TEXT_MODULE, CHAT_TEXT_DEFAULTS, {
       categories: CHAT_TEXT_CATEGORIES,
       categoryLabels: CHAT_TEXT_CATEGORY_LABELS,
       source: "seed"
     });
-    const cleanup = cleanupLegacyBundledChatTextRows();
-    return { ok: true, seeded, cleanup };
+    textHelper.seedModuleTexts(TEXT_MODULE, CHAT_TEXT_DEFAULTS, {
+      source: "seed"
+    });
+    const cleanup = deactivateBundledRafflePublicTextVariants();
+    return { ok: true, cleanup };
   } catch (err) {
     return { ok: false, error: err && err.message ? err.message : String(err) };
   }
 }
 
-function isPublicRaffleTextKey(key) {
+function isRafflePublicTextKey(key) {
   return /^raffle\.public\./.test(String(key || ""));
-}
-
-function isLegacyRaffleTextKey(key) {
-  const clean = String(key || "");
-  return /^raffle\./.test(clean) && !isPublicRaffleTextKey(clean);
-}
-
-function isManagedChatTextKey(key) {
-  const clean = String(key || "");
-  if (isLegacyRaffleTextKey(clean)) return true;
-  return Object.prototype.hasOwnProperty.call(CHAT_TEXT_CATEGORIES, clean);
-}
-
-function hasRuntimeTextLineBreak(value) {
-  return /\r|\n/.test(String(value || ""));
 }
 
 function splitRuntimeTextLines(value) {
@@ -5193,81 +5531,37 @@ function pickFirstRuntimeTextLine(value) {
   return String(value || "");
 }
 
-function cleanupLegacyBundledChatTextRows() {
-  const result = {
-    ok: true,
-    variantsDeleted: 0,
-    legacyTextsDeleted: 0,
-    oldRaffleKeysDeleted: 0,
-    bundledSeedRowsDeleted: 0,
-    error: ""
-  };
-
+function deactivateBundledRafflePublicTextVariants() {
   try {
-    const variantRows = database.all(`
-      SELECT id, text_key, category, text_value, source
+    const rows = database.all(`
+      SELECT id, text_key, text_value
       FROM module_text_variants
       WHERE module_name = :moduleName
-        AND source = 'seed'
+        AND text_key LIKE 'raffle.public.%'
+        AND enabled != 0
     `, { moduleName: TEXT_MODULE });
 
-    const variantIdsToDelete = [];
-    for (const row of variantRows || []) {
-      if (!row || !isManagedChatTextKey(row.text_key)) continue;
-      const oldRaffleKey = isLegacyRaffleTextKey(row.text_key);
-      const bundledSeedRow = hasRuntimeTextLineBreak(row.text_value);
-      if (!oldRaffleKey && !bundledSeedRow) continue;
-      variantIdsToDelete.push(row.id);
-      if (oldRaffleKey) result.oldRaffleKeysDeleted += 1;
-      if (bundledSeedRow) result.bundledSeedRowsDeleted += 1;
-    }
-
-    for (const id of variantIdsToDelete) {
-      const deleted = database.run(`
-        DELETE FROM module_text_variants
+    const now = nowIso();
+    let disabled = 0;
+    for (const row of rows || []) {
+      if (!row || !isRafflePublicTextKey(row.text_key)) continue;
+      const lines = splitRuntimeTextLines(row.text_value);
+      if (lines.length <= 1) continue;
+      database.run(`
+        UPDATE module_text_variants
+        SET enabled = 0,
+            updated_at = :updatedAt
         WHERE id = :id
           AND module_name = :moduleName
-          AND source = 'seed'
-      `, { id, moduleName: TEXT_MODULE });
-      result.variantsDeleted += Number(deleted?.changes || 0);
+      `, { id: row.id, moduleName: TEXT_MODULE, updatedAt: now });
+      disabled += 1;
     }
 
-    try {
-      const legacyRows = database.all(`
-        SELECT id, text_key, text_value, source
-        FROM module_texts
-        WHERE module_name = :moduleName
-          AND source = 'seed'
-      `, { moduleName: TEXT_MODULE });
-
-      const legacyIdsToDelete = [];
-      for (const row of legacyRows || []) {
-        if (!row || !isManagedChatTextKey(row.text_key)) continue;
-        if (!isLegacyRaffleTextKey(row.text_key) && !hasRuntimeTextLineBreak(row.text_value)) continue;
-        legacyIdsToDelete.push(row.id);
-      }
-
-      for (const id of legacyIdsToDelete) {
-        const deleted = database.run(`
-          DELETE FROM module_texts
-          WHERE id = :id
-            AND module_name = :moduleName
-            AND source = 'seed'
-        `, { id, moduleName: TEXT_MODULE });
-        result.legacyTextsDeleted += Number(deleted?.changes || 0);
-      }
-    } catch (legacyErr) {
-      result.legacyTextCleanupWarning = legacyErr && legacyErr.message ? legacyErr.message : String(legacyErr);
-    }
-
-    return result;
+    return { ok: true, disabled };
   } catch (err) {
-    result.ok = false;
-    result.error = err && err.message ? err.message : String(err);
-    return result;
+    return { ok: false, disabled: 0, error: err && err.message ? err.message : String(err) };
   }
 }
-
 
 function rowToCommandDefinition(row) {
   if (!row) return null;
@@ -5309,8 +5603,7 @@ function getChatTextEditorPayload() {
   seedChatTextVariants();
   return textHelper.listModuleTextEditor(TEXT_MODULE, CHAT_TEXT_DEFAULTS, {
     categories: CHAT_TEXT_CATEGORIES,
-    categoryLabels: CHAT_TEXT_CATEGORY_LABELS,
-    migrateLegacy: false
+    categoryLabels: CHAT_TEXT_CATEGORY_LABELS
   });
 }
 
@@ -5319,8 +5612,7 @@ function handleChatTextEditorPayload(payload = {}) {
   seedChatTextVariants();
   return textHelper.handleModuleTextEditorPayload(TEXT_MODULE, payload || {}, {
     categories: CHAT_TEXT_CATEGORIES,
-    categoryLabels: CHAT_TEXT_CATEGORY_LABELS,
-    migrateLegacy: false
+    categoryLabels: CHAT_TEXT_CATEGORY_LABELS
   });
 }
 
@@ -5350,10 +5642,9 @@ function renderChatRuntimeText(key, context = {}, options = {}) {
   let message = textHelper.renderModuleText(TEXT_MODULE, key, CHAT_TEXT_DEFAULTS, context, {
     categories: CHAT_TEXT_CATEGORIES,
     categoryLabels: CHAT_TEXT_CATEGORY_LABELS,
-    migrateLegacy: false,
     ...options
   });
-  if (isPublicRaffleTextKey(key)) {
+  if (isRafflePublicTextKey(key)) {
     message = pickFirstRuntimeTextLine(message);
   }
   return sanitizeRuntimeChatMessage(message, options.maxLength || options.max || 450);
@@ -5853,6 +6144,14 @@ function finishRaffleRuntime(reason = "timer") {
     sendRaffleChatMessage(messageKey, context).catch(() => {});
   }, 0);
 
+  recordRaffleEvent(participants.length > 0 ? "finished" : "no_entries", {
+    raffleUid,
+    amount: prizePoolAmount,
+    status: participants.length > 0 ? "finished" : "info",
+    createdAt: finishedAt,
+    metadata: { reason, participantCount: participants.length, winnerCount: winners.length, prizePoolAmount, prizeAmountPerWinner, prizeRemainder }
+  });
+
   emitEvent("loyalty.giveaway.raffle.finished", {
     raffleUid,
     reason,
@@ -5926,6 +6225,15 @@ function startRaffleRuntime(input = {}) {
     finishRaffleRuntime("timer");
   }, durationSeconds * 1000);
 
+  recordRaffleEvent("started", {
+    raffleUid,
+    actorLogin: userLogin,
+    actorDisplayName: userDisplayName,
+    status: "info",
+    createdAt: startedAt,
+    metadata: { durationSeconds, entryCostAmount, endsAt }
+  });
+
   emitEvent("loyalty.giveaway.raffle.started", {
     raffleUid,
     durationSeconds,
@@ -5974,6 +6282,15 @@ function cancelRaffleRuntime(input = {}) {
   resetRaffleRuntime({ status: "cancelled", finishedAt: nowIso() });
   state.raffle.refundTransactions = refunds.rows || [];
   state.raffle.counters.cancelled += 1;
+
+  recordRaffleEvent("cancelled", {
+    raffleUid: snapshot.uid,
+    actorLogin: normalizeChatLogin(input.userLogin || input.login || input.username || input.user),
+    actorDisplayName: normalizeChatDisplayName(input, normalizeChatLogin(input.userLogin || input.login || input.username || input.user)),
+    amount: refunds.refundedAmount || 0,
+    status: "cancelled",
+    metadata: { participantCount: snapshot.participantCount, refundedAmount: refunds.refundedAmount || 0, refundCount: refunds.count || 0 }
+  });
 
   emitEvent("loyalty.giveaway.raffle.cancelled", {
     raffleUid: snapshot.uid,
@@ -6100,6 +6417,15 @@ function joinRaffleRuntime(input = {}) {
   state.raffle.participants.push(participant);
   state.raffle.participantsByLogin[userLogin] = participant;
   state.raffle.counters.joined += 1;
+
+  recordRaffleEvent("joined", {
+    raffleUid: state.raffle.uid,
+    actorLogin: userLogin,
+    actorDisplayName: participant.displayName,
+    amount: participant.entryCostBooked || 0,
+    status: "info",
+    metadata: { participantCount: state.raffle.participants.length, entryCostAmount, entryCostBooked: participant.entryCostBooked || 0, costTransactionUid: participant.entryCostTransactionUid || "" }
+  });
 
   emitEvent("loyalty.giveaway.raffle.joined", {
     raffleUid: state.raffle.uid,
@@ -6422,6 +6748,14 @@ function registerRoutes(app) {
     return core.sendOk(res, { ok: true, message: "ok", module: MODULE_NAME, raffle: getRaffleSnapshot(), config: getRaffleConfig(), winnerRule: getRaffleWinnerRuleDescription() });
   })));
 
+  registered.push(...routes.registerGet(app, "/api/loyalty/raffle/logs", core.asyncRoute(async (req, res) => {
+    return core.sendOk(res, buildRaffleLogsPayload({ limit: req.query && req.query.limit }));
+  })));
+
+  registered.push(...routes.registerGet(app, "/api/loyalty/raffle/stats", core.asyncRoute(async (req, res) => {
+    return core.sendOk(res, buildRaffleStatsPayload());
+  })));
+
   registered.push(...routes.registerGet(app, "/api/loyalty/raffle/config", core.asyncRoute(async (req, res) => {
     return core.sendOk(res, buildRaffleConfigPayload());
   })));
@@ -6444,6 +6778,8 @@ function registerRoutes(app) {
     "POST /api/loyalty/giveaways/runtime/command",
     "GET /api/loyalty/raffle/status",
     "GET /api/loyalty/raffle/config",
+    "GET /api/loyalty/raffle/logs",
+    "GET /api/loyalty/raffle/stats",
     "POST /api/loyalty/raffle/config",
     "GET /api/loyalty/giveaways/raffle/status",
     "GET /api/loyalty/giveaways/central-commands",
