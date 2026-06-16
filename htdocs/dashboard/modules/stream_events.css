@@ -390,3 +390,65 @@
 .stream-events-admin .evs-snippet-missing.is-empty{
   display:none;
 }
+
+/* EVENTSYS-27A – Event-Einstellungen / Sound-Defaults */
+.evs-config-card-wide {
+  grid-column: span 1;
+}
+
+.evs-config-inline-grid {
+  gap: 12px;
+}
+
+.evs-editor-settings-card,
+.evs-event-config-summary,
+.evs-settings-section {
+  border: 1px solid rgba(57, 213, 255, 0.32);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.045);
+  padding: 14px;
+}
+
+.evs-editor-settings-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 8px 0 14px;
+}
+
+.evs-editor-settings-card p,
+.evs-event-config-summary small,
+.evs-settings-section small {
+  color: var(--evs-muted, #b8c7dd);
+  margin: 4px 0 0;
+}
+
+.evs-event-config-summary {
+  margin: 14px 0;
+}
+
+.evs-event-config-grid {
+  margin-top: 12px;
+}
+
+.evs-settings-editor-modal {
+  max-width: 980px;
+}
+
+.evs-settings-section {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.evs-settings-section .evs-config-card-head {
+  margin-bottom: 2px;
+}
+
+@media (max-width: 900px) {
+  .evs-editor-settings-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

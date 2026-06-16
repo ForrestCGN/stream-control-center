@@ -21,7 +21,7 @@ try { streamStatusModule = require("./stream_status"); } catch (_) { streamStatu
 
 const MODULE_NAME = "stream_events";
 const MODULE_VERSION = "0.5.22";
-const MODULE_BUILD = "STEP_EVS_25A_EMPTY_OVERVIEW_ACTION_CLEANUP";
+const MODULE_BUILD = "STEP_EVS_27A_SOUND_EVENT_SETTINGS_DEFAULTS";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -159,11 +159,22 @@ const DEFAULT_EVENT_CONFIG = {
     overviewShowsOnlyRunningEvents: true
   },
   soundDefaults: {
-    defaultAnswerSeconds: 20,
+    defaultAnswerSeconds: 60,
     defaultPoints: 10,
+    playbackMode: "random_auto",
+    autoStartFirstRound: true,
+    autoAdvanceRounds: true,
+    intervalMinutes: 5,
+    intervalJitterMinutes: 2,
+    orderMode: "random",
+    roundDelaySeconds: 5,
+    solvedPolicy: "remove_from_rotation",
     unresolvedPolicy: "requeue_later",
     avoidImmediateRepeat: true,
-    revealVideoEnabled: true
+    minRepeatDistance: 3,
+    revealVideoEnabled: true,
+    revealVideoMode: "after_solved",
+    manualTriggerEnabled: true
   },
   textDefaults: {
     defaultPhrasePoints: 40,
@@ -566,11 +577,22 @@ function normalizeEventConfig(input = {}) {
   cfg.eventDefaults.allowOnlyOneActiveEvent = boolValue(cfg.eventDefaults.allowOnlyOneActiveEvent, true);
   cfg.eventDefaults.overviewShowsOnlyRunningEvents = boolValue(cfg.eventDefaults.overviewShowsOnlyRunningEvents, true);
 
-  cfg.soundDefaults.defaultAnswerSeconds = clampNumber(cfg.soundDefaults.defaultAnswerSeconds, 5, 300, 20);
+  cfg.soundDefaults.defaultAnswerSeconds = clampNumber(cfg.soundDefaults.defaultAnswerSeconds, 5, 300, 60);
   cfg.soundDefaults.defaultPoints = clampNumber(cfg.soundDefaults.defaultPoints, 0, 10000, 10);
+  cfg.soundDefaults.playbackMode = normalizePolicy(cfg.soundDefaults.playbackMode, ["manual", "random_auto", "sequence_auto"], "random_auto");
+  cfg.soundDefaults.autoStartFirstRound = boolValue(cfg.soundDefaults.autoStartFirstRound, cfg.soundDefaults.playbackMode !== "manual");
+  cfg.soundDefaults.autoAdvanceRounds = boolValue(cfg.soundDefaults.autoAdvanceRounds, cfg.soundDefaults.playbackMode !== "manual");
+  cfg.soundDefaults.intervalMinutes = clampNumber(cfg.soundDefaults.intervalMinutes, 1, 240, 5);
+  cfg.soundDefaults.intervalJitterMinutes = clampNumber(cfg.soundDefaults.intervalJitterMinutes, 0, 120, 2);
+  cfg.soundDefaults.orderMode = normalizePolicy(cfg.soundDefaults.orderMode, ["list", "random"], cfg.soundDefaults.playbackMode === "sequence_auto" ? "list" : "random");
+  cfg.soundDefaults.roundDelaySeconds = clampNumber(cfg.soundDefaults.roundDelaySeconds, 0, 3600, 5);
+  cfg.soundDefaults.solvedPolicy = normalizePolicy(cfg.soundDefaults.solvedPolicy, ["remove_from_rotation", "keep_available", "manual"], "remove_from_rotation");
   cfg.soundDefaults.unresolvedPolicy = normalizePolicy(cfg.soundDefaults.unresolvedPolicy, ["requeue_later", "remove", "manual"], "requeue_later");
   cfg.soundDefaults.avoidImmediateRepeat = boolValue(cfg.soundDefaults.avoidImmediateRepeat, true);
+  cfg.soundDefaults.minRepeatDistance = clampNumber(cfg.soundDefaults.minRepeatDistance, 0, 100, 3);
   cfg.soundDefaults.revealVideoEnabled = boolValue(cfg.soundDefaults.revealVideoEnabled, true);
+  cfg.soundDefaults.revealVideoMode = normalizePolicy(cfg.soundDefaults.revealVideoMode, ["after_solved", "manual", "disabled"], cfg.soundDefaults.revealVideoEnabled === false ? "disabled" : "after_solved");
+  cfg.soundDefaults.manualTriggerEnabled = true;
 
   cfg.textDefaults.defaultPhrasePoints = clampNumber(cfg.textDefaults.defaultPhrasePoints, 0, 10000, 40);
   cfg.textDefaults.partialHintsEnabled = boolValue(cfg.textDefaults.partialHintsEnabled, true);
@@ -959,10 +981,43 @@ function summarizeConfig(config = {}) {
   return raw;
 }
 
+function normalizeSoundEventSettings(config = {}, defaults = null) {
+  const raw = config && typeof config === "object" && !Array.isArray(config) ? config : {};
+  const base = defaults && typeof defaults === "object" ? defaults : ((getEventConfig().config || DEFAULT_EVENT_CONFIG).soundDefaults || DEFAULT_EVENT_CONFIG.soundDefaults);
+  const playbackMode = normalizePolicy(raw.playbackMode ?? base.playbackMode, ["manual", "random_auto", "sequence_auto"], "random_auto");
+  return {
+    answerSeconds: clampNumber(raw.answerSeconds ?? raw.defaultAnswerSeconds ?? base.defaultAnswerSeconds, 5, 300, 60),
+    defaultPoints: clampNumber(raw.defaultPoints ?? base.defaultPoints, 0, 10000, 10),
+    playbackMode,
+    manualTriggerEnabled: true,
+    autoStartFirstRound: raw.autoStartFirstRound !== undefined ? boolValue(raw.autoStartFirstRound) : boolValue(base.autoStartFirstRound, playbackMode !== "manual"),
+    autoAdvanceRounds: raw.autoAdvanceRounds !== undefined ? boolValue(raw.autoAdvanceRounds) : boolValue(base.autoAdvanceRounds, playbackMode !== "manual"),
+    intervalMinutes: clampNumber(raw.intervalMinutes ?? base.intervalMinutes, 1, 240, 5),
+    intervalJitterMinutes: clampNumber(raw.intervalJitterMinutes ?? base.intervalJitterMinutes, 0, 120, 2),
+    orderMode: normalizePolicy(raw.orderMode ?? base.orderMode, ["list", "random"], playbackMode === "sequence_auto" ? "list" : "random"),
+    roundDelaySeconds: clampNumber(raw.roundDelaySeconds ?? base.roundDelaySeconds, 0, 3600, 5),
+    solvedPolicy: normalizePolicy(raw.solvedPolicy ?? base.solvedPolicy, ["remove_from_rotation", "keep_available", "manual"], "remove_from_rotation"),
+    unresolvedPolicy: normalizePolicy(raw.unresolvedPolicy ?? base.unresolvedPolicy, ["requeue_later", "remove", "manual"], "requeue_later"),
+    avoidImmediateRepeat: raw.avoidImmediateRepeat !== undefined ? boolValue(raw.avoidImmediateRepeat) : boolValue(base.avoidImmediateRepeat, true),
+    minRepeatDistance: clampNumber(raw.minRepeatDistance ?? base.minRepeatDistance, 0, 100, 3),
+    revealVideoEnabled: raw.revealVideoEnabled !== undefined ? boolValue(raw.revealVideoEnabled) : boolValue(base.revealVideoEnabled, true),
+    revealVideoMode: normalizePolicy(raw.revealVideoMode ?? base.revealVideoMode, ["after_solved", "manual", "disabled"], raw.revealVideoEnabled === false ? "disabled" : "after_solved")
+  };
+}
+
+function mergeSoundEventConfig(config = {}, defaults = null) {
+  const raw = config && typeof config === "object" && !Array.isArray(config) ? config : {};
+  return {
+    ...raw,
+    ...normalizeSoundEventSettings(raw, defaults),
+    snippets: Array.isArray(raw.snippets) ? raw.snippets : []
+  };
+}
+
 function validateSoundConfig(config = {}) {
   const issues = [];
   const warnings = [];
-  const raw = summarizeConfig(config);
+  const raw = mergeSoundEventConfig(summarizeConfig(config));
   const snippets = Array.isArray(raw.snippets) ? raw.snippets : [];
 
   if (!snippets.length) issues.push("sound.no_snippets");
@@ -980,8 +1035,8 @@ function validateSoundConfig(config = {}) {
     if (!answers.length) issues.push(`${label}.answers_missing`);
   });
 
-  const answerSeconds = intValue(raw.answerSeconds ?? raw.defaultAnswerSeconds, 20);
-  if (answerSeconds < 5) warnings.push("sound.answer_seconds_very_short");
+  const answerSeconds = intValue(raw.answerSeconds ?? raw.defaultAnswerSeconds, 60);
+  if (answerSeconds < 10) warnings.push("sound.answer_seconds_very_short");
 
   return {
     ok: issues.length === 0,
@@ -990,8 +1045,19 @@ function validateSoundConfig(config = {}) {
     counts: { snippets: snippets.length },
     settings: {
       answerSeconds,
+      defaultPoints: raw.defaultPoints,
+      playbackMode: raw.playbackMode,
+      orderMode: raw.orderMode,
+      intervalMinutes: raw.intervalMinutes,
+      intervalJitterMinutes: raw.intervalJitterMinutes,
+      roundDelaySeconds: raw.roundDelaySeconds,
       unresolvedPolicy: cleanString(raw.unresolvedPolicy, "requeue_later"),
-      solvedPolicy: cleanString(raw.solvedPolicy, "remove_from_rotation")
+      solvedPolicy: cleanString(raw.solvedPolicy, "remove_from_rotation"),
+      avoidImmediateRepeat: raw.avoidImmediateRepeat,
+      minRepeatDistance: raw.minRepeatDistance,
+      revealVideoEnabled: raw.revealVideoEnabled,
+      revealVideoMode: raw.revealVideoMode,
+      manualTriggerEnabled: true
     }
   };
 }
@@ -1088,7 +1154,7 @@ function normalizeEventInput(body = {}, existing = null) {
     description: cleanString(input.description, existing ? existing.description : ""),
     soundEnabled,
     textEnabled,
-    soundConfig: input.soundConfig !== undefined ? summarizeConfig(input.soundConfig) : (existing ? existing.soundConfig : {}),
+    soundConfig: input.soundConfig !== undefined ? mergeSoundEventConfig(input.soundConfig) : (existing ? mergeSoundEventConfig(existing.soundConfig) : mergeSoundEventConfig({})),
     textConfig: input.textConfig !== undefined ? summarizeConfig(input.textConfig) : (existing ? existing.textConfig : {}),
     scoringConfig: input.scoringConfig !== undefined ? summarizeConfig(input.scoringConfig) : (existing ? existing.scoringConfig : defaultScoringConfig()),
     settings: input.settings !== undefined ? summarizeConfig(input.settings) : (existing ? existing.settings : defaultEventSettings()),
@@ -2055,13 +2121,9 @@ function getSoundRuntimeConfig(event = {}) {
   const globalConfig = getEventConfig().config || DEFAULT_EVENT_CONFIG;
   const soundDefaults = globalConfig.soundDefaults || DEFAULT_EVENT_CONFIG.soundDefaults || {};
   const eventConfig = event && event.soundConfig && typeof event.soundConfig === "object" ? event.soundConfig : {};
+  const settings = normalizeSoundEventSettings(eventConfig, soundDefaults);
   return {
-    answerSeconds: clampNumber(eventConfig.answerSeconds ?? eventConfig.defaultAnswerSeconds ?? soundDefaults.defaultAnswerSeconds, 5, 300, 20),
-    defaultPoints: clampNumber(eventConfig.defaultPoints ?? soundDefaults.defaultPoints, 0, 10000, 10),
-    unresolvedPolicy: cleanString(eventConfig.unresolvedPolicy ?? soundDefaults.unresolvedPolicy, "requeue_later"),
-    solvedPolicy: cleanString(eventConfig.solvedPolicy ?? soundDefaults.solvedPolicy, "remove_from_rotation"),
-    avoidImmediateRepeat: eventConfig.avoidImmediateRepeat !== undefined ? boolValue(eventConfig.avoidImmediateRepeat) : boolValue(soundDefaults.avoidImmediateRepeat, true),
-    revealVideoEnabled: eventConfig.revealVideoEnabled !== undefined ? boolValue(eventConfig.revealVideoEnabled) : boolValue(soundDefaults.revealVideoEnabled, true),
+    ...settings,
     directPlaybackEnabled: false,
     outputPreparedOnly: true
   };
@@ -3030,7 +3092,7 @@ function createSoundRuntimeTestEvent(body = {}) {
     textEnabled: false,
     soundConfig: {
       snippets,
-      answerSeconds: clampNumber(body.answerSeconds, 5, 300, 20),
+      answerSeconds: clampNumber(body.answerSeconds, 5, 300, 60),
       defaultPoints: clampNumber(body.defaultPoints, 0, 10000, 10),
       unresolvedPolicy: cleanString(body.unresolvedPolicy, "requeue_later"),
       solvedPolicy: cleanString(body.solvedPolicy, "remove_from_rotation"),
@@ -3226,7 +3288,7 @@ function createCombinedRuntimeStealthTestEvent(body = {}) {
     textEnabled: true,
     soundConfig: {
       snippets,
-      answerSeconds: clampNumber(body.answerSeconds, 5, 300, 20),
+      answerSeconds: clampNumber(body.answerSeconds, 5, 300, 60),
       defaultPoints: clampNumber(body.defaultPoints, 0, 10000, 10),
       unresolvedPolicy: cleanString(body.unresolvedPolicy, "requeue_later"),
       solvedPolicy: cleanString(body.solvedPolicy, "remove_from_rotation"),

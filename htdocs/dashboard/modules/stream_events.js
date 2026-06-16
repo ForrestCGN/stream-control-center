@@ -187,7 +187,7 @@ window.StreamEventsModule = (function(){
       <div class="evs-page">
         <div class="evs-header glass">
           <div>
-            <div class="evs-kicker">EVS-26B-FIX4 · Eventdetails aktualisieren nach Speichern</div>
+            <div class="evs-kicker">EVS-27A · Event-Einstellungen & Sound-Defaults</div>
             <h2>Event-System</h2>
             <p>Übersicht zeigt den aktuellen Event-Stand und die nächste sinnvolle Aktion.</p>
           </div>
@@ -448,17 +448,41 @@ window.StreamEventsModule = (function(){
             <label class="evs-check"><input id="evsCfgOverviewRunning" type="checkbox" ${eventDefaults.overviewShowsOnlyRunningEvents !== false ? 'checked' : ''}> Übersicht nur laufende Events</label>
           </div>
 
-          <div class="evs-config-card">
-            <div class="evs-config-card-head"><strong>Sound-Spiel Defaults</strong><small>Standardwerte für neue Sound-Runden</small></div>
-            <label><span>Antwortzeit in Sekunden</span><input id="evsCfgSoundAnswerSeconds" type="number" min="5" max="300" value="${esc(soundDefaults.defaultAnswerSeconds ?? 20)}"></label>
+          <div class="evs-config-card evs-config-card-wide">
+            <div class="evs-config-card-head"><strong>Sound-Spiel Defaults</strong><small>Standardwerte für neue Sound-Events</small></div>
+            <label><span>Antwortzeit in Sekunden</span><input id="evsCfgSoundAnswerSeconds" type="number" min="5" max="300" value="${esc(soundDefaults.defaultAnswerSeconds ?? 60)}"></label>
             <label><span>Punkte pro Soundlösung</span><input id="evsCfgSoundPoints" type="number" min="0" max="10000" value="${esc(soundDefaults.defaultPoints ?? 10)}"></label>
+            <label><span>Abspielmodus</span><select id="evsCfgSoundPlaybackMode">
+              <option value="manual" ${soundDefaults.playbackMode === 'manual' ? 'selected' : ''}>Manuell</option>
+              <option value="random_auto" ${(soundDefaults.playbackMode || 'random_auto') === 'random_auto' ? 'selected' : ''}>Zufällig automatisch</option>
+              <option value="sequence_auto" ${soundDefaults.playbackMode === 'sequence_auto' ? 'selected' : ''}>Automatisch in Reihenfolge</option>
+            </select></label>
+            <div class="evs-two-cols evs-config-inline-grid">
+              <label><span>Alle X Minuten</span><input id="evsCfgSoundIntervalMinutes" type="number" min="1" max="240" value="${esc(soundDefaults.intervalMinutes ?? 5)}"></label>
+              <label><span>Zufallsabweichung ± Minuten</span><input id="evsCfgSoundIntervalJitter" type="number" min="0" max="120" value="${esc(soundDefaults.intervalJitterMinutes ?? 2)}"></label>
+            </div>
+            <label><span>Reihenfolge</span><select id="evsCfgSoundOrderMode">
+              <option value="random" ${(soundDefaults.orderMode || 'random') === 'random' ? 'selected' : ''}>Zufällig</option>
+              <option value="list" ${soundDefaults.orderMode === 'list' ? 'selected' : ''}>Listenreihenfolge</option>
+            </select></label>
+            <label><span>Wenn erkannt</span><select id="evsCfgSoundSolvedPolicy">
+              <option value="remove_from_rotation" ${(soundDefaults.solvedPolicy || 'remove_from_rotation') === 'remove_from_rotation' ? 'selected' : ''}>Aus aktueller Rotation entfernen</option>
+              <option value="keep_available" ${soundDefaults.solvedPolicy === 'keep_available' ? 'selected' : ''}>Später erneut möglich</option>
+              <option value="manual" ${soundDefaults.solvedPolicy === 'manual' ? 'selected' : ''}>Manuell entscheiden</option>
+            </select></label>
             <label><span>Wenn nicht erkannt</span><select id="evsCfgSoundUnresolved">
-              <option value="requeue_later" ${soundDefaults.unresolvedPolicy === 'requeue_later' ? 'selected' : ''}>Später nochmal</option>
+              <option value="requeue_later" ${(soundDefaults.unresolvedPolicy || 'requeue_later') === 'requeue_later' ? 'selected' : ''}>Später nochmal</option>
               <option value="remove" ${soundDefaults.unresolvedPolicy === 'remove' ? 'selected' : ''}>Aus Event entfernen</option>
               <option value="manual" ${soundDefaults.unresolvedPolicy === 'manual' ? 'selected' : ''}>Manuell entscheiden</option>
             </select></label>
+            <div class="evs-two-cols evs-config-inline-grid">
+              <label><span>Pause nach Runde in Sekunden</span><input id="evsCfgSoundRoundDelay" type="number" min="0" max="3600" value="${esc(soundDefaults.roundDelaySeconds ?? 5)}"></label>
+              <label><span>Mindestabstand Wiederholung</span><input id="evsCfgSoundRepeatDistance" type="number" min="0" max="100" value="${esc(soundDefaults.minRepeatDistance ?? 3)}"></label>
+            </div>
+            <label class="evs-check"><input id="evsCfgSoundAutoStart" type="checkbox" ${soundDefaults.autoStartFirstRound !== false ? 'checked' : ''}> Erste Runde automatisch beim Eventstart</label>
+            <label class="evs-check"><input id="evsCfgSoundAutoAdvance" type="checkbox" ${soundDefaults.autoAdvanceRounds !== false ? 'checked' : ''}> Nach einer Runde automatisch weitermachen</label>
             <label class="evs-check"><input id="evsCfgSoundAvoidRepeat" type="checkbox" ${soundDefaults.avoidImmediateRepeat !== false ? 'checked' : ''}> Direkte Wiederholung vermeiden</label>
-            <label class="evs-check"><input id="evsCfgRevealVideo" type="checkbox" ${soundDefaults.revealVideoEnabled !== false ? 'checked' : ''}> Auflösungs-Video erlauben</label>
+            <label class="evs-check"><input id="evsCfgRevealVideo" type="checkbox" ${soundDefaults.revealVideoEnabled !== false ? 'checked' : ''}> Auflösungs-Video nach Lösung erlauben</label>
           </div>
 
           <div class="evs-config-card">
@@ -1202,6 +1226,33 @@ window.StreamEventsModule = (function(){
     `;
   }
 
+  function renderEventConfigSummary(event){
+    const sound = soundSettingsSummary(event.soundConfig || {});
+    const text = event.textConfig || {};
+    return `
+      <section class="evs-event-config-summary">
+        <div class="evs-form-row-head">
+          <div>
+            <strong>Event-Einstellungen</strong>
+            <small>Diese Regeln gelten nur für dieses Event. Globale Defaults bleiben im Config-Tab.</small>
+          </div>
+          <button type="button" class="evs-btn evs-btn-secondary evs-btn-small" data-evs-action="editSettings" data-uid="${esc(event.eventUid)}">Einstellungen bearbeiten</button>
+        </div>
+        <div class="evs-mini-grid evs-mini-grid-compact evs-event-config-grid">
+          ${event.soundEnabled ? `
+            <div><strong>${esc(soundPlaybackModeLabel(sound.playbackMode))}</strong><span>Sound-Ablauf</span></div>
+            <div><strong>${esc(sound.intervalMinutes)} ± ${esc(sound.intervalJitterMinutes)} Min.</strong><span>Intervall</span></div>
+            <div><strong>${esc(sound.answerSeconds)} Sek.</strong><span>Antwortzeit</span></div>
+            <div><strong>${esc(soundSolvedPolicyLabel(sound.solvedPolicy))}</strong><span>Wenn erkannt</span></div>
+            <div><strong>${esc(soundUnresolvedPolicyLabel(sound.unresolvedPolicy))}</strong><span>Wenn nicht erkannt</span></div>
+            <div><strong>${esc(soundRevealModeLabel(sound.revealVideoMode, sound.revealVideoEnabled))}</strong><span>Auflösung</span></div>
+          ` : '<div><strong>Sound aus</strong><span>Kein Sound-Spiel aktiv</span></div>'}
+          ${event.textEnabled ? `<div><strong>${esc(text.defaultPhrasePoints || text.pointsFirst || 40)} Punkte</strong><span>Text-Lösung</span></div>` : ''}
+        </div>
+      </section>
+    `;
+  }
+
   function renderEventDetail(event){
     const rankingRows = rows(state.ranking?.rows);
     return `
@@ -1221,9 +1272,11 @@ window.StreamEventsModule = (function(){
         </div>
 
         ${renderValidation(event)}
+        ${renderEventConfigSummary(event)}
 
         <div class="evs-action-row">
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="edit" data-uid="${esc(event.eventUid)}">Bearbeiten</button>
+          <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="editSettings" data-uid="${esc(event.eventUid)}">Einstellungen bearbeiten</button>
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="validate" data-uid="${esc(event.eventUid)}">Prüfen</button>
           <button type="button" class="evs-btn" data-evs-action="start" data-uid="${esc(event.eventUid)}" ${event.status === 'ready' ? '' : 'disabled'}>Starten</button>
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="finish" data-uid="${esc(event.eventUid)}" ${event.status === 'active' ? '' : 'disabled'}>Beenden</button>
@@ -1493,6 +1546,70 @@ window.StreamEventsModule = (function(){
     `;
   }
 
+  function soundPlaybackModeLabel(mode){
+    const map = { manual: 'Manuell', random_auto: 'Zufällig automatisch', sequence_auto: 'Automatisch in Reihenfolge' };
+    return map[String(mode || '')] || 'Zufällig automatisch';
+  }
+
+  function soundOrderModeLabel(mode){
+    return String(mode || 'random') === 'list' ? 'Listenreihenfolge' : 'Zufällig';
+  }
+
+  function soundSolvedPolicyLabel(policy){
+    const map = { remove_from_rotation: 'Erkannte entfernen', keep_available: 'Weiter verfügbar', manual: 'Manuell entscheiden' };
+    return map[String(policy || '')] || 'Erkannte entfernen';
+  }
+
+  function soundUnresolvedPolicyLabel(policy){
+    const map = { requeue_later: 'Später nochmal', remove: 'Entfernen', manual: 'Manuell entscheiden' };
+    return map[String(policy || '')] || 'Später nochmal';
+  }
+
+  function soundRevealModeLabel(mode, enabled){
+    if (enabled === false || String(mode || '') === 'disabled') return 'Video aus';
+    if (String(mode || '') === 'manual') return 'Video manuell';
+    return 'Video nach Lösung';
+  }
+
+  function normalizeSoundSettings(sound = {}, defaults = {}){
+    const playbackMode = sound.playbackMode || defaults.playbackMode || 'random_auto';
+    const revealVideoEnabled = sound.revealVideoEnabled !== undefined ? sound.revealVideoEnabled !== false : defaults.revealVideoEnabled !== false;
+    return {
+      answerSeconds: Number(sound.answerSeconds || sound.defaultAnswerSeconds || defaults.defaultAnswerSeconds || 60),
+      defaultPoints: Number(sound.defaultPoints || defaults.defaultPoints || 10),
+      playbackMode,
+      manualTriggerEnabled: true,
+      autoStartFirstRound: sound.autoStartFirstRound !== undefined ? sound.autoStartFirstRound !== false : defaults.autoStartFirstRound !== false,
+      autoAdvanceRounds: sound.autoAdvanceRounds !== undefined ? sound.autoAdvanceRounds !== false : defaults.autoAdvanceRounds !== false,
+      intervalMinutes: Number(sound.intervalMinutes || defaults.intervalMinutes || 5),
+      intervalJitterMinutes: Number(sound.intervalJitterMinutes ?? defaults.intervalJitterMinutes ?? 2),
+      orderMode: sound.orderMode || defaults.orderMode || (playbackMode === 'sequence_auto' ? 'list' : 'random'),
+      roundDelaySeconds: Number(sound.roundDelaySeconds ?? defaults.roundDelaySeconds ?? 5),
+      solvedPolicy: sound.solvedPolicy || defaults.solvedPolicy || 'remove_from_rotation',
+      unresolvedPolicy: sound.unresolvedPolicy || defaults.unresolvedPolicy || 'requeue_later',
+      avoidImmediateRepeat: sound.avoidImmediateRepeat !== undefined ? sound.avoidImmediateRepeat !== false : defaults.avoidImmediateRepeat !== false,
+      minRepeatDistance: Number(sound.minRepeatDistance ?? defaults.minRepeatDistance ?? 3),
+      revealVideoEnabled,
+      revealVideoMode: revealVideoEnabled ? (sound.revealVideoMode || defaults.revealVideoMode || 'after_solved') : 'disabled'
+    };
+  }
+
+  function soundSettingsSummary(sound){
+    const cfg = state.config?.config || {};
+    const settings = normalizeSoundSettings(sound || {}, cfg.soundDefaults || {});
+    return {
+      ...settings,
+      badges: [
+        soundPlaybackModeLabel(settings.playbackMode),
+        `${settings.intervalMinutes} Min. ± ${settings.intervalJitterMinutes}`,
+        `${settings.answerSeconds} Sek. Antwortzeit`,
+        soundOrderModeLabel(settings.orderMode),
+        `Wiederholabstand ${settings.minRepeatDistance}`,
+        soundRevealModeLabel(settings.revealVideoMode, settings.revealVideoEnabled)
+      ]
+    };
+  }
+
   function soundSummary(sound){
     const snippets = Array.isArray(sound?.snippets) ? sound.snippets : [];
     const filled = snippets.filter(item => item && (item.title || item.name || item.mediaId || item.mediaPath || item.file || (Array.isArray(item.acceptedAnswers) && item.acceptedAnswers.length) || item.revealVideoMediaId || item.videoMediaId));
@@ -1522,9 +1639,7 @@ window.StreamEventsModule = (function(){
       soundEnabled: base.soundEnabled === true,
       textEnabled: base.textEnabled === true,
       soundConfig: {
-        answerSeconds: sound.answerSeconds || sound.defaultAnswerSeconds || soundDefaults.defaultAnswerSeconds || 20,
-        solvedPolicy: sound.solvedPolicy || 'remove_from_rotation',
-        unresolvedPolicy: sound.unresolvedPolicy || soundDefaults.unresolvedPolicy || 'requeue_later',
+        ...normalizeSoundSettings(sound, soundDefaults),
         snippets: Array.isArray(sound.snippets) ? sound.snippets : []
       },
       textConfig: {
@@ -1597,6 +1712,17 @@ window.StreamEventsModule = (function(){
               <label class="evs-check"><input id="evsTextEnabled" type="checkbox" ${event.textEnabled ? 'checked' : ''}> Text-/Geheimsatz-Spiel</label>
             </div>
 
+            <section class="evs-editor-settings-card">
+              <div>
+                <strong>Event-Einstellungen</strong>
+                <p>Ablauf, Timing, Zufall, Wiederholschutz und Auflösung für dieses Event.</p>
+                <div class="evs-editor-summary-badges">
+                  ${soundSettingsSummary(event.soundConfig || {}).badges.slice(0, 4).map(item => `<span>${esc(item)}</span>`).join('')}
+                </div>
+              </div>
+              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="openSettingsEditor">Einstellungen bearbeiten</button>
+            </section>
+
             <div class="evs-editor-summary-grid">
               ${renderEditorSummaryCard('sound', event.soundEnabled, 'Sound-Schnipsel', 'Audio-Aufgaben, Antworten und optionale Auflösungs-Videos getrennt verwalten.', [
                 `${s.filled || s.total || 0} Schnipsel`,
@@ -1620,6 +1746,80 @@ window.StreamEventsModule = (function(){
     `;
   }
 
+  function renderEventSettingsModal(event){
+    const sound = soundSettingsSummary(event.soundConfig || {});
+    return `
+      <div class="evs-submodal-backdrop" data-evs-submodal-close="1">
+        <div class="evs-modal glass evs-submodal evs-settings-editor-modal" role="dialog" aria-modal="true">
+          <div class="evs-modal-head">
+            <div><h3>Event-Einstellungen bearbeiten</h3><p>Diese Regeln gelten nur für dieses Event. Neue Events bekommen ihre Vorgaben aus Config/DB.</p></div>
+            <button type="button" class="evs-icon-btn" data-evs-action="closeSubEditor">×</button>
+          </div>
+          <div class="evs-form" data-evs-event-settings-editor>
+            <div class="evs-text-rule-note">Manuelle Auslösung bleibt immer möglich. Automatik und echtes Playback werden in den nächsten Runtime-Steps angebunden.</div>
+            <section class="evs-settings-section">
+              <div class="evs-config-card-head"><strong>Sound · Ablauf & Timing</strong><small>Wann und wie Schnipsel gestartet werden</small></div>
+              <div class="evs-two-cols evs-text-config-grid">
+                <label>Abspielmodus<select id="evsSoundPlaybackMode">
+                  <option value="manual" ${sound.playbackMode === 'manual' ? 'selected' : ''}>Manuell</option>
+                  <option value="random_auto" ${sound.playbackMode === 'random_auto' ? 'selected' : ''}>Zufällig automatisch</option>
+                  <option value="sequence_auto" ${sound.playbackMode === 'sequence_auto' ? 'selected' : ''}>Automatisch in Reihenfolge</option>
+                </select></label>
+                <label>Antwortzeit in Sekunden<input id="evsSoundAnswerSeconds" type="number" min="5" max="300" value="${esc(sound.answerSeconds)}"></label>
+              </div>
+              <div class="evs-two-cols evs-text-config-grid">
+                <label>Alle X Minuten<input id="evsSoundIntervalMinutes" type="number" min="1" max="240" value="${esc(sound.intervalMinutes)}"></label>
+                <label>Zufallsabweichung ± Minuten<input id="evsSoundIntervalJitter" type="number" min="0" max="120" value="${esc(sound.intervalJitterMinutes)}"></label>
+              </div>
+              <div class="evs-two-cols evs-text-config-grid">
+                <label>Pause nach Runde in Sekunden<input id="evsSoundRoundDelay" type="number" min="0" max="3600" value="${esc(sound.roundDelaySeconds)}"></label>
+                <label>Punkte pro Soundlösung<input id="evsSoundDefaultPoints" type="number" min="0" max="10000" value="${esc(sound.defaultPoints)}"></label>
+              </div>
+              <label class="evs-check"><input id="evsSoundAutoStart" type="checkbox" ${sound.autoStartFirstRound !== false ? 'checked' : ''}> Erste Runde automatisch beim Eventstart starten</label>
+              <label class="evs-check"><input id="evsSoundAutoAdvance" type="checkbox" ${sound.autoAdvanceRounds !== false ? 'checked' : ''}> Nach einer Runde automatisch weitermachen</label>
+            </section>
+            <section class="evs-settings-section">
+              <div class="evs-config-card-head"><strong>Sound · Rotation</strong><small>Zufall, Wiederholschutz und Verhalten nach Runden</small></div>
+              <div class="evs-two-cols evs-text-config-grid">
+                <label>Reihenfolge<select id="evsSoundOrderMode">
+                  <option value="random" ${sound.orderMode === 'random' ? 'selected' : ''}>Zufällig</option>
+                  <option value="list" ${sound.orderMode === 'list' ? 'selected' : ''}>Listenreihenfolge</option>
+                </select></label>
+                <label>Mindestabstand gleicher Schnipsel<input id="evsSoundRepeatDistance" type="number" min="0" max="100" value="${esc(sound.minRepeatDistance)}"></label>
+              </div>
+              <div class="evs-two-cols evs-text-config-grid">
+                <label>Wenn erkannt<select id="evsSoundSolvedPolicy">
+                  <option value="remove_from_rotation" ${sound.solvedPolicy === 'remove_from_rotation' ? 'selected' : ''}>Aus aktueller Rotation entfernen</option>
+                  <option value="keep_available" ${sound.solvedPolicy === 'keep_available' ? 'selected' : ''}>Später erneut möglich</option>
+                  <option value="manual" ${sound.solvedPolicy === 'manual' ? 'selected' : ''}>Manuell entscheiden</option>
+                </select></label>
+                <label>Wenn nicht erkannt<select id="evsSoundUnresolvedPolicy">
+                  <option value="requeue_later" ${sound.unresolvedPolicy === 'requeue_later' ? 'selected' : ''}>Später nochmal versuchen</option>
+                  <option value="remove" ${sound.unresolvedPolicy === 'remove' ? 'selected' : ''}>Für dieses Event entfernen</option>
+                  <option value="manual" ${sound.unresolvedPolicy === 'manual' ? 'selected' : ''}>Manuell entscheiden</option>
+                </select></label>
+              </div>
+              <label class="evs-check"><input id="evsSoundAvoidRepeat" type="checkbox" ${sound.avoidImmediateRepeat !== false ? 'checked' : ''}> Direkte Wiederholung vermeiden</label>
+            </section>
+            <section class="evs-settings-section">
+              <div class="evs-config-card-head"><strong>Sound · Auflösung</strong><small>Was nach richtiger Antwort passieren soll</small></div>
+              <label class="evs-check"><input id="evsSoundRevealVideo" type="checkbox" ${sound.revealVideoEnabled !== false ? 'checked' : ''}> Auflösungs-Video abspielen, wenn vorhanden</label>
+              <label>Video-Modus<select id="evsSoundRevealVideoMode">
+                <option value="after_solved" ${sound.revealVideoMode === 'after_solved' ? 'selected' : ''}>Nach richtiger Antwort automatisch</option>
+                <option value="manual" ${sound.revealVideoMode === 'manual' ? 'selected' : ''}>Nur manuell zeigen</option>
+                <option value="disabled" ${sound.revealVideoMode === 'disabled' ? 'selected' : ''}>Nie automatisch zeigen</option>
+              </select></label>
+            </section>
+            <div class="evs-modal-actions">
+              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="closeSubEditor">Zurück</button>
+              <button type="button" class="evs-btn" data-evs-action="applySettingsEditor">Übernehmen</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   function renderSoundEditorModal(event){
     const sound = event.soundConfig || {};
     const snippets = Array.isArray(sound.snippets) && sound.snippets.length ? sound.snippets : [{}];
@@ -1631,9 +1831,8 @@ window.StreamEventsModule = (function(){
             <button type="button" class="evs-icon-btn" data-evs-action="closeSubEditor">×</button>
           </div>
           <div class="evs-form" data-evs-sound-editor>
-            <div class="evs-two-cols evs-sound-rule-grid">
-              <label>Antwortzeit in Sekunden<input id="evsSoundAnswerSeconds" type="number" min="5" value="${esc(sound.answerSeconds || sound.defaultAnswerSeconds || 20)}"></label>
-              <label>Wenn nicht erkannt<select id="evsSoundUnresolvedPolicy"><option value="requeue_later" ${sound.unresolvedPolicy !== 'remove' ? 'selected' : ''}>Später nochmal versuchen</option><option value="remove" ${sound.unresolvedPolicy === 'remove' ? 'selected' : ''}>Für dieses Event entfernen</option></select></label>
+            <div class="evs-text-rule-note">
+              Ablauf, Antwortzeit, Zufall und Wiederholschutz bearbeitest du im Fenster „Einstellungen bearbeiten“. Hier geht es nur um die einzelnen Sound-Schnipsel.
             </div>
             <div class="evs-form-row-head evs-sound-snippet-list-head">
               <div>
@@ -1720,20 +1919,42 @@ window.StreamEventsModule = (function(){
     state.modal.event = event;
     return `
       ${renderMainEventModal(event)}
+      ${state.modal?.editor === 'settings' ? renderEventSettingsModal(event) : ''}
       ${state.modal?.editor === 'sound' ? renderSoundEditorModal(event) : ''}
       ${state.modal?.editor === 'text' ? renderTextEditorModal(event) : ''}
     `;
   }
 
   function readSoundConfigFromDom(fallback = {}){
-    const answerEl = document.getElementById('evsSoundAnswerSeconds');
-    const policyEl = document.getElementById('evsSoundUnresolvedPolicy');
     return {
       ...(fallback || {}),
-      answerSeconds: Number(answerEl?.value || fallback.answerSeconds || fallback.defaultAnswerSeconds || 20),
-      solvedPolicy: 'remove_from_rotation',
-      unresolvedPolicy: policyEl?.value || fallback.unresolvedPolicy || 'requeue_later',
       snippets: collectSoundSnippets(true, fallback.snippets || [])
+    };
+  }
+
+  function readEventSettingsFromDom(fallback = {}){
+    const cfg = state.config?.config || {};
+    const current = normalizeSoundSettings(fallback || {}, cfg.soundDefaults || {});
+    const revealEnabled = document.getElementById('evsSoundRevealVideo')?.checked !== false;
+    return {
+      ...(fallback || {}),
+      answerSeconds: Number(document.getElementById('evsSoundAnswerSeconds')?.value || current.answerSeconds || 60),
+      defaultPoints: Number(document.getElementById('evsSoundDefaultPoints')?.value || current.defaultPoints || 10),
+      playbackMode: document.getElementById('evsSoundPlaybackMode')?.value || current.playbackMode || 'random_auto',
+      manualTriggerEnabled: true,
+      autoStartFirstRound: document.getElementById('evsSoundAutoStart')?.checked !== false,
+      autoAdvanceRounds: document.getElementById('evsSoundAutoAdvance')?.checked !== false,
+      intervalMinutes: Number(document.getElementById('evsSoundIntervalMinutes')?.value || current.intervalMinutes || 5),
+      intervalJitterMinutes: Number(document.getElementById('evsSoundIntervalJitter')?.value ?? current.intervalJitterMinutes ?? 2),
+      orderMode: document.getElementById('evsSoundOrderMode')?.value || current.orderMode || 'random',
+      roundDelaySeconds: Number(document.getElementById('evsSoundRoundDelay')?.value ?? current.roundDelaySeconds ?? 5),
+      solvedPolicy: document.getElementById('evsSoundSolvedPolicy')?.value || current.solvedPolicy || 'remove_from_rotation',
+      unresolvedPolicy: document.getElementById('evsSoundUnresolvedPolicy')?.value || current.unresolvedPolicy || 'requeue_later',
+      avoidImmediateRepeat: document.getElementById('evsSoundAvoidRepeat')?.checked !== false,
+      minRepeatDistance: Number(document.getElementById('evsSoundRepeatDistance')?.value ?? current.minRepeatDistance ?? 3),
+      revealVideoEnabled: revealEnabled,
+      revealVideoMode: revealEnabled ? (document.getElementById('evsSoundRevealVideoMode')?.value || current.revealVideoMode || 'after_solved') : 'disabled',
+      snippets: Array.isArray(fallback.snippets) ? fallback.snippets : []
     };
   }
 
@@ -1773,6 +1994,9 @@ window.StreamEventsModule = (function(){
     if (!state.modal?.event) return;
     syncModalBasicsFromDom();
     const event = ensureModalEventDefaults(state.modal.event);
+    if (document.querySelector('[data-evs-event-settings-editor]')) {
+      event.soundConfig = readEventSettingsFromDom(event.soundConfig || {});
+    }
     if (document.querySelector('[data-evs-sound-editor]')) {
       event.soundConfig = readSoundConfigFromDom(event.soundConfig || {});
     }
@@ -1911,11 +2135,22 @@ window.StreamEventsModule = (function(){
           overviewShowsOnlyRunningEvents: document.getElementById('evsCfgOverviewRunning')?.checked !== false
         },
         soundDefaults: {
-          defaultAnswerSeconds: Number(document.getElementById('evsCfgSoundAnswerSeconds')?.value || 20),
+          defaultAnswerSeconds: Number(document.getElementById('evsCfgSoundAnswerSeconds')?.value || 60),
           defaultPoints: Number(document.getElementById('evsCfgSoundPoints')?.value || 10),
+          playbackMode: document.getElementById('evsCfgSoundPlaybackMode')?.value || 'random_auto',
+          autoStartFirstRound: document.getElementById('evsCfgSoundAutoStart')?.checked !== false,
+          autoAdvanceRounds: document.getElementById('evsCfgSoundAutoAdvance')?.checked !== false,
+          intervalMinutes: Number(document.getElementById('evsCfgSoundIntervalMinutes')?.value || 5),
+          intervalJitterMinutes: Number(document.getElementById('evsCfgSoundIntervalJitter')?.value || 0),
+          orderMode: document.getElementById('evsCfgSoundOrderMode')?.value || 'random',
+          roundDelaySeconds: Number(document.getElementById('evsCfgSoundRoundDelay')?.value || 5),
+          solvedPolicy: document.getElementById('evsCfgSoundSolvedPolicy')?.value || 'remove_from_rotation',
           unresolvedPolicy: document.getElementById('evsCfgSoundUnresolved')?.value || 'requeue_later',
           avoidImmediateRepeat: document.getElementById('evsCfgSoundAvoidRepeat')?.checked !== false,
-          revealVideoEnabled: document.getElementById('evsCfgRevealVideo')?.checked !== false
+          minRepeatDistance: Number(document.getElementById('evsCfgSoundRepeatDistance')?.value || 3),
+          revealVideoEnabled: document.getElementById('evsCfgRevealVideo')?.checked !== false,
+          revealVideoMode: document.getElementById('evsCfgRevealVideo')?.checked !== false ? 'after_solved' : 'disabled',
+          manualTriggerEnabled: true
         },
         textDefaults: {
           defaultPhrasePoints: Number(document.getElementById('evsCfgTextPhrasePoints')?.value || 40),
@@ -2372,7 +2607,7 @@ window.StreamEventsModule = (function(){
           description: '',
           soundEnabled: true,
           textEnabled: false,
-          soundConfig: { answerSeconds: soundDefaults.defaultAnswerSeconds || 20, unresolvedPolicy: soundDefaults.unresolvedPolicy || 'requeue_later', snippets: [] },
+          soundConfig: { ...normalizeSoundSettings({}, soundDefaults), snippets: [] },
           textConfig: {
             partialHintsEnabled: textDefaults.partialHintsEnabled !== false,
             partialHintVisibility: textDefaults.partialHintVisibility || 'general',
@@ -2388,10 +2623,13 @@ window.StreamEventsModule = (function(){
         return;
       }
       if (action === 'edit') { const event = await loadEvent(uid); state.modal = { event }; render(); return; }
+      if (action === 'editSettings') { const event = await loadEvent(uid); state.modal = { event, editor: 'settings' }; render(); return; }
       if (action === 'closeModal') { state.modal = null; render(); return; }
+      if (action === 'openSettingsEditor') { syncModalBasicsFromDom(); state.modal.editor = 'settings'; render(); return; }
       if (action === 'openSoundEditor') { syncModalBasicsFromDom(); state.modal.editor = 'sound'; render(); return; }
       if (action === 'openTextEditor') { syncModalBasicsFromDom(); state.modal.editor = 'text'; render(); return; }
       if (action === 'closeSubEditor') { syncVisibleEditorToState(); state.modal.editor = null; render(); return; }
+      if (action === 'applySettingsEditor') { syncVisibleEditorToState(); state.modal.editor = null; render(); return; }
       if (action === 'applySoundEditor') { syncVisibleEditorToState(); state.modal.editor = null; render(); return; }
       if (action === 'applyTextEditor') { syncVisibleEditorToState(); state.modal.editor = null; render(); return; }
       if (action === 'addSoundSnippet') {
