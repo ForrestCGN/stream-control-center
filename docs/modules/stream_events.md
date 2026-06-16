@@ -1,6 +1,6 @@
 # Modul-Doku: stream_events
 
-Stand: 2026-06-13 nach EVS-25a – Empty Overview Action Cleanup
+Stand: 2026-06-16 nach EVENTSYS-27A – Event-Einstellungen und Sound-Defaults
 
 ## Aktueller Modulstand
 
@@ -9,6 +9,8 @@ MODULE_VERSION = 0.5.22
 MODULE_BUILD   = STEP_EVS_25A_EMPTY_OVERVIEW_ACTION_CLEANUP
 ```
 
+Hinweis: Die Basis-Modulversion ist weiterhin `0.5.22`. Die jüngsten EVS-26/27-Schritte betreffen Dashboard-/Validierungs-/Config-Ausbau und müssen bei der nächsten echten Modulversionsrunde sauber eingeordnet werden.
+
 ## Zweck
 
 `stream_events` verwaltet Stream-Events mit Sound- und/oder Text-Spiel, gemeinsamer Punktewertung, Ranking, Statistik, Dashboard-Konfiguration und vorbereitetem ChatOutput-/Playback-Flow.
@@ -16,174 +18,181 @@ MODULE_BUILD   = STEP_EVS_25A_EMPTY_OVERVIEW_ACTION_CLEANUP
 ## Bestätigte Grundregeln
 
 - Sound und Text können im selben Event parallel laufen.
-- Eine Chatnachricht wird für Sound UND Text geprüft.
+- Nur ein Event darf gleichzeitig aktiv sein.
+- Eine Chatnachricht wird über Twitch-Events/Communication-Bus verarbeitet.
+- `stream_events` konsumiert `twitch.chat.message`.
 - ChatOutputs bleiben prepared-only, solange keine späteren Live-Schalter bewusst und sichtbar gesetzt sind.
-- Sound-Playback bleibt prepared-only.
+- Sound-Playback bleibt vorbereitet, aber noch nicht produktiv angebunden.
 - Eventdaten bleiben an `eventUid` gebunden.
-- Archivieren ist nur bei `status=finished` erlaubt.
-- Löschen ist API-seitig für jeden Status möglich, aber nur mit JSON-Body `{ "confirm": "DELETE" }`.
-- Das Dashboard fragt dafür genau eine normale Bestätigung ab und sendet den API-Confirm intern.
+- Config-Defaults gelten für neue Events, ersetzen aber keine Event-Bearbeitung.
 
+## EVS-27A Event-Einstellungen und Sound-Defaults
 
+EVS-27A erweitert die Sound-Konfiguration deutlich und trennt globale Defaults von eventbezogenen Einstellungen.
 
-## EVS-25a Übersicht-Cleanup
+### Globale Defaults
 
-EVS-25a räumt die leere Übersicht auf:
-
-- Der normale Event-Status bleibt in `Übersicht`.
-- Der separate `Status`-Tab bleibt entfernt.
-- Bei keinem aktiven Event wird nicht mehr doppelt erklärt, dass kein Event läuft.
-- Der zweite Block heißt nun `Nächstes Event` und führt zur Aktion `Events öffnen`.
-- Technische Diagnose bleibt aus der normalen Streamer-/Mod-Ansicht heraus.
-
-Grundregel für das Dashboard:
+Pfad im Dashboard:
 
 ```text
-Streamer/Mods sehen: Was läuft? Was ist der nächste sinnvolle Schritt?
-Admin/Diagnose sieht später: technische Flags, Dispatcher, DirectSend, Prepared-only, Payloads.
+Event-System → Config → Sound-Spiel Defaults
 ```
 
-## EVS-23b Bestätigung
-
-EVS-23 wurde im Dashboard sichtbar bestätigt.
-
-Pfad:
+Bestätigte Standardwerte:
 
 ```text
-Event-System → Sicherheit
+Antwortzeit in Sekunden: 60
+Punkte pro Soundlösung: 10
+Abspielmodus: Zufällig automatisch
+Alle X Minuten: 15
+Zufallsabweichung ± Minuten: 5
+Reihenfolge: Zufällig
+Wenn erkannt: Aus aktueller Rotation entfernen
+Wenn nicht erkannt: Später nochmal
+Pause nach Runde in Sekunden: 60
+Mindestabstand Wiederholung: 3
+Erste Runde automatisch beim Eventstart: aus
+Nach einer Runde automatisch weitermachen: an
+Direkte Wiederholung vermeiden: an
+Auflösungs-Video nach Lösung erlauben: an
+Video-Modus: Nach richtiger Antwort automatisch
 ```
 
-Sichtbar:
+### Event-spezifische Einstellungen
 
-- Bereich `Live-Schalter Konzept`.
-- Status `gesperrt`.
-- Hinweis `EVS-23 bleibt Testmodus`.
-- Geplante Freigabe-Kette.
-- Aktuelle Schutzschalter nur als Anzeige/deaktiviert.
-
-Weiterhin gilt: keine Twitch-Ausgabe, kein Sound-Playback und keine Sound-System-Queue-Berührung.
-
-## EVS-23 Dashboard Live-Schalter-Konzept
-
-Der Dashboard-Tab `Sicherheit` wurde erweitert um den Bereich `Live-Schalter Konzept`.
-
-Dieser Bereich ist ausdrücklich nur Vorbereitung/Anzeige:
-
-- zeigt die geplante Freigabe-Kette für spätere Chat-Ausgaben,
-- zeigt aktuelle Schutzschalter als deaktivierte Checkboxen,
-- erklärt, dass EVS-23 weiterhin Testmodus bleibt,
-- enthält keinen Button zum Live-Schalten,
-- ändert keine Config,
-- sendet nichts in Twitch.
-
-Geplante spätere Schutzschalter:
+Pfad im Dashboard:
 
 ```text
-Dispatcher
-Global Live
-DirectSend erlaubt
-Prepared-only aus
-Event ChatOutput
-Event Live
+Event-Details → Einstellungen bearbeiten
 ```
 
-## Dashboard Safety View
+Enthält:
 
-Der Dashboard-Tab `Sicherheit` zeigt weiterhin:
+```text
+Sound · Ablauf & Timing
+Sound · Rotation
+Sound · Auflösung
+```
 
-- Chat-Ausgabe Status: TESTMODUS / LIVE AKTIV.
-- ChatOutput-Zähler: vorbereitet, geprüft, würde senden, blockiert.
-- Blockiergründe verständlich angezeigt.
-- Output-Preview als Dry-Run.
-- Lifecycle-Regeln im Dashboard sichtbar.
-- Archivieren-Button nur bei beendeten Events aktiv.
-- Löschen-Button mit einer normalen Bestätigung.
+Diese Regeln gelten nur für das konkrete Event. Neue Events übernehmen Startwerte aus Config/DB.
+
+## EVS-26B getrennte Editor-Fenster
+
+Das Haupt-Event-Fenster wurde entschlackt. Sound, Text und Einstellungen sind getrennt:
+
+```text
+Einstellungen bearbeiten
+Sound-Schnipsel bearbeiten
+Text-Spiel bearbeiten
+```
+
+Regel:
+
+```text
+Konfiguration nicht in ein einziges großes Hauptmodal zurückbauen.
+```
+
+## Sound-Schnipsel
+
+Ein Sound-Event kann mehrere Sound-Schnipsel enthalten.
+
+Pflicht pro Schnipsel:
+
+```text
+- Schnipsel-Name
+- mindestens eine Antwort
+- Audio-Medium
+```
+
+Optional:
+
+```text
+- Auflösungs-Video
+```
+
+Validierung meldet konkret, welcher Schnipsel was braucht:
+
+```text
+Sound-Schnipsel 1: Antwort fehlt.
+Sound-Schnipsel 2: Audio fehlt.
+Sound-Schnipsel 3: Name fehlt.
+```
+
+## Aktueller Runtime-Stand
+
+Vorhanden/vorbereitet:
+
+```text
+GET  /api/stream-events/sound-runtime/status
+GET  /api/stream-events/sound-runtime/report
+POST /api/stream-events/sound-runtime/next-round
+POST /api/stream-events/sound-runtime/resolve
+POST /api/stream-events/sound-runtime/unresolved
+```
+
+Noch nicht produktiv angebunden:
+
+```text
+- echtes Sound-Playback
+- Timer-Worker
+- automatische Rotation
+- Auflösungs-Video-Playback
+- produktive Chat-Ausgaben
+```
 
 ## Wichtige Routen
 
 ```text
+GET  /api/stream-events/status
+GET  /api/stream-events/routes
+GET  /api/stream-events/config
+POST /api/stream-events/config
+GET  /api/stream-events/texts
+POST /api/stream-events/texts
 GET  /api/stream-events/events
-GET  /api/stream-events/chat-output/status
-GET  /api/stream-events/chat-output/report
-POST /api/stream-events/chat-output/test-dispatch
+POST /api/stream-events/events
+GET  /api/stream-events/events/:eventUid
+PUT  /api/stream-events/events/:eventUid
+POST /api/stream-events/events/:eventUid/validate
+POST /api/stream-events/events/:eventUid/start
+POST /api/stream-events/events/:eventUid/finish
+POST /api/stream-events/events/:eventUid/cancel
 POST /api/stream-events/events/:eventUid/archive
 POST /api/stream-events/events/:eventUid/delete
-```
-
-Hinweise:
-
-- `GET /api/stream-events/events` liefert die Eventliste unter `rows`, nicht unter `events`.
-- `POST /api/stream-events/events/:eventUid/delete` erwartet den Confirm im JSON-Body, nicht als Query-Parameter.
-
-## Sicherheit
-
-EVS-23 aktiviert weiterhin keine öffentliche Ausgabe:
-
-```text
-directSend = false
-directPlayback = false
-dispatched = false
-soundSystemQueueTouched = false
+GET  /api/stream-events/events/:eventUid/ranking
+POST /api/stream-events/events/:eventUid/points
+GET  /api/stream-events/runtime-gate/status
 ```
 
 ## Nächster Arbeitsbereich
 
-EVS-24 kann den echten rollen-/auditbasierten Live-Config-Endpoint planen oder zunächst die ChatOutput-Dry-Run-Vorschau weiter verbessern. Ohne ausdrückliches Go bleibt der Live-Schalter weiterhin reine Anzeige.
-
-## EVS-24 Simple Active Event Runtime Gate
-
-EVS-24 vereinfacht die Betriebslogik bewusst:
-
 ```text
-Stream offline oder kein aktives Event = keine Event-Chat-Auswertung.
-Stream online + aktives Event = Event-Runtime aktiv.
+EVENTSYS-27B – Live-Statusfenster für laufende Events mit Punkten/Rangliste
 ```
 
-Neu:
+Ziel:
 
 ```text
-GET /api/stream-events/runtime-gate/status
+Bei laufendem Event ein eigenes Statusfenster öffnen können.
 ```
 
-Die Antwort zeigt nur die relevanten Bedieninformationen:
-
-- aktiv/inaktiv,
-- Grund,
-- Stream online/offline,
-- laufendes Event,
-- Sound/Text aktiv.
-
-Der Dashboard-Tab wurde von `Sicherheit` zu `Status` vereinfacht. Das frühere Live-Schalter-Konzept bleibt als dokumentierte Vorbereitung erhalten, wird aber nicht weiter als normale Bedienfläche ausgebaut.
-
-
-## EVS-24a Dashboard Status Simplify
-
-Die normale Dashboard-Ansicht wurde wieder vereinfacht. `Event-System → Status` zeigt keinen technischen ChatOutput-Sicherheitsblock mehr, sondern nur noch den einfachen Runtime-Status und den Event-Lifecycle. Die technische Backend-Sicherheit bleibt unverändert; EVS-24a aktiviert kein Twitch-Live-Senden.
-
-
-## EVS-24b Streamer Friendly Lifecycle Text
-
-EVS-24b räumt die normale Dashboard-Ansicht weiter auf. Der Bereich `Event-System → Status` bleibt für Streamer und Mods verständlich. Technische Details wie API-Confirm, eventUid als Hauptinformation oder interne Sicherheitsbegriffe werden aus der normalen Bedienansicht entfernt bzw. entschärft.
-
-Sichtbar bleibt:
-
-- Event-System aktiv/inaktiv,
-- Grund,
-- Stream online/offline,
-- laufendes Event,
-- Sound/Text an/aus,
-- einfache Event-Verwaltung: Beenden, Archivieren, Abbrechen, Löschen.
-
-Die Backend-Schutzlogik bleibt unverändert: Löschen sendet intern weiterhin den API-Confirm, aber im Dashboard reicht eine normale Bestätigung.
-
-Regel für zukünftige Dashboard-Arbeiten:
+Danach:
 
 ```text
-Streamer-/Mod-Dashboard = einfache Bedienung.
-Technische Diagnose, interne Flags, API-Details und Payloads = Admin-/Diagnosebereich.
+EVENTSYS-27C – Manuelle Sound-Rundensteuerung
+EVENTSYS-27D – Sound-/Media-Playback-Anbindung
+EVENTSYS-27E – Automatik: zufällig alle X ± Y Minuten
+EVENTSYS-27F – Auflösungs-Video nach Lösung
+EVENTSYS-27G – Chat-Ausgaben über helper_texts/helper_messages
+EVENTSYS-27H – Statistik-Ausbau
 ```
 
+## Sicherheit / Nicht ändern ohne separaten STEP
 
-## EVS-25 Overview Active Event Status
-
-EVS-25 verschiebt den normalen Event-Status in die Übersicht. Der separate Status-Tab wird aus der normalen Streamer-/Mod-Navigation entfernt. Die Übersicht zeigt jetzt nur die relevanten Informationen: aktiv/inaktiv, laufendes Event, Stream online/offline und bei aktivem Event Aufgaben/Gelöst/Offen sowie Top-Spieler. Technische Diagnosewerte gehören nicht in die normale Ansicht.
+```text
+Keine direkte Twitch-Ausgabe.
+Kein Sound-/Video-Playback ohne dedizierten Playback-Step.
+Keine automatische Rotation ohne dedizierten Runtime-Step.
+Keine parallele Chat-Auswertung neben Twitch-Events/Communication-Bus.
+Keine parallele Config-Struktur neben bestehenden Helpern/DB-Patterns.
+```

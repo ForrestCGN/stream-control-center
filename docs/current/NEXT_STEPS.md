@@ -7,201 +7,202 @@ Stand: 2026-06-16
 Im neuen Chat mit diesem Block weitermachen:
 
 ```text
-LC-MINIGAMES-2C4 Raffle Live-Test: Logs, Kosten und Statistik gegen echten Ablauf prüfen
+EVENTSYS-27B – Live-Statusfenster für laufende Events mit Punkten/Rangliste
 ```
 
 ## Ausgangslage
 
 ```text
-Loyalty Core läuft live-only.
-Shadow-Migration ist abgeschlossen.
-Shadow ist leer: candidates=0 totalShadow=0.
-/api/loyalty/status bestätigt mode=live, enabled=true, shadowMode=false, pointsState=active.
-Raffle-Logs funktionieren grundsätzlich.
-Raffle-Statistik funktioniert grundsätzlich.
-Mini-Spiel-Auswahl ist kompakt und funktional geprüft.
-Design-Feinschliff wird später gemacht.
+EVENTSYS-27A ist funktional bestätigt.
+Config-Fenster ist brauchbar aufgebaut.
+Sound-Defaults werden gespeichert.
+Event-spezifisches Einstellungsfenster ist vorhanden.
+Sound-Schnipsel und Text-Spiel sind getrennte Editor-Fenster.
+Konkrete Sound-Schnipsel-Validierung funktioniert.
+Eventdetails aktualisieren sich nach Speichern ohne manuellen Reload.
 ```
 
 ## Wichtige aktuelle UI-Regel
 
 ```text
-Logs = Buchungen und Ereignisse.
-Raffle-Seite = Statistik und Raffle-Status.
-Einstellungen = dauerhafte Config.
-Texte = Textvarianten.
-Chat & Befehle = Command-Konfiguration.
+Config-Tab = globale Defaults für neue Events.
+Event-Einstellungen = Regeln für ein konkretes Event.
+Sound-Schnipsel-Fenster = Sound-Dateien, Antworten, optionales Video.
+Text-Spiel-Fenster = Textaufgaben / Sätze / Lösungen.
+Live-Statusfenster = laufendes Event, Punkte, Ranking, Rundenstatus.
 ```
 
-Nicht wieder alles in eine lange Mini-Spiele-Seite packen.
+Nicht wieder alles in ein langes Hauptmodal packen.
 
-## Schritt 1 – Raffle-Config prüfen
+## Schritt 1 – EVENTSYS-27B planen/bauen
 
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/raffle/config" | ConvertTo-Json -Depth 6
-```
-
-Erwartung bei aktivem Kostentest:
+Ziel:
 
 ```text
-entryCostAmount = 10
-entryCostEnabled = true
+Wenn ein Event läuft, soll ein eigenes Statusfenster geöffnet werden können.
 ```
 
-Für kostenlosen Test:
+Inhalt:
 
 ```text
-entryCostAmount = 0
-entryCostEnabled = false
+Event-Status
+- Eventname
+- Status: läuft / pausiert / beendet
+- Spieltyp: Sound / Text / Kombi
+- gestartet seit
+- aktive Runde
+- verbleibende Antwortzeit, sobald Runtime aktiv ist
+
+Punkte / Rangliste
+- Platz
+- User
+- Punkte
+- richtige Antworten
+- schnellste Antwort, sobald messbar
+- letzte Aktion
+
+Rundenverlauf
+- Schnipsel/Text
+- gelöst / nicht gelöst / übersprungen
+- Gewinner
+- Punkte
+- Zeit
+
+Sound-Rotation
+- offene Schnipsel
+- gelöste Schnipsel
+- nicht erkannte Schnipsel
+- wieder eingereiht
+- aus Rotation entfernt
 ```
 
-## Schritt 2 – Balance vor Join prüfen
-
-Für einen echten Testuser oder einen bewusst gewählten Account:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/balance/tronic6?displayName=Tronic6" | ConvertTo-Json -Depth 8
-```
-
-Referenzwerte nach Migration:
+## Schritt 2 – EVENTSYS-27C danach
 
 ```text
-Urlug   balanceLive=1006852 balanceShadow=0 activeBalance=1006852
-Tronic6 balanceLive=12536   balanceShadow=0 activeBalance=12536
+Manuelle Sound-Rundensteuerung.
 ```
 
-## Schritt 3 – Raffle starten und Join testen
-
-Im Chat:
+Muss dauerhaft möglich bleiben:
 
 ```text
-!raffle
-!join
+- zum Testen
+- wenn der Streamer/Mod das Event bewusst steuern will
 ```
 
-Prüfen:
+Geplante Buttons bei laufendem Sound-Event:
 
 ```text
-User wird eingetragen.
-Bei Kosten > 0 wird Betrag abgezogen.
-Chattext kommt als eine Variante, nicht als Sammeltext.
+- Nächsten Schnipsel abspielen/vorbereiten
+- Runde überspringen
+- Runde als ungelöst markieren
+- Runde wiederholen
 ```
 
-## Schritt 4 – Logs prüfen
-
-Dashboard:
+## Schritt 3 – EVENTSYS-27D danach
 
 ```text
-Loyalty -> Logs
-Event = Raffle
-Status = Alle
+Sound-/Media-Playback-Anbindung.
 ```
 
-Dann einzelne Filter prüfen:
+Vorher prüfen:
 
 ```text
-Gestartet
-Teilnahme
-Bezahlt
-Gewinn
-Beendet
-Abgebrochen
-Erstattet
+- vorhandenes Sound-System
+- vorhandenes Media-System
+- vorhandene Playback-/Overlay-Routen
+- kein paralleles Sound-System bauen
 ```
 
-Wichtige Erwartung:
+## Schritt 4 – EVENTSYS-27E danach
 
 ```text
-Bei Punktebewegungen steht der betroffene User in der User-Spalte.
-Bei Start/Abbruch steht der auslösende User/System in der User-Spalte.
-Details erklären verständlich, was passiert ist.
+Automatik: zufälliges Abspielen alle X ± Y Minuten.
 ```
 
-## Schritt 5 – Doppeljoin prüfen
-
-Im Chat erneut:
+Muss die Event-spezifischen Einstellungen aus EVS-27A verwenden:
 
 ```text
-!join
+playbackMode
+intervalMinutes
+intervalJitterMinutes
+orderMode
+avoidImmediateRepeat
+minRepeatDistance
+solvedPolicy
+unresolvedPolicy
+autoStartFirstRound
+autoAdvanceRounds
+roundDelaySeconds
 ```
 
-Erwartung:
+## Schritt 5 – EVENTSYS-27F danach
 
 ```text
-already_joined Text
-keine zweite Abbuchung
-kein doppelter kostenpflichtiger Join
+Auflösungs-Video nach Lösung.
 ```
 
-## Schritt 6 – zu wenig Punkte testen
-
-Mit Testuser oder reduziertem Konto:
+Regel:
 
 ```text
-!join
+Wenn gelöst und Video vorhanden, Video gemäß Event-Einstellung abspielen.
 ```
 
-Erwartung:
+## Schritt 6 – EVENTSYS-27G danach
 
 ```text
-Keine Teilnahme.
-Kein Abzug.
-Textkey: raffle.public.insufficient_balance
-Log/Details zeigen keinen falschen bezahlten Join.
+Chat-Ausgaben über helper_texts/helper_messages.
 ```
 
-## Schritt 7 – Cancel/Refund testen
-
-Bei laufender kostenpflichtiger Raffle:
+Textkeys vorbereiten:
 
 ```text
-Raffle abbrechen/canceln
+stream_events.sound.event.started
+stream_events.sound.event.finished
+stream_events.sound.round.started
+stream_events.sound.round.solved
+stream_events.sound.round.timeout
+stream_events.sound.round.unresolved
+stream_events.sound.round.video
+stream_events.sound.event.no_more_snippets
 ```
 
-Erwartung:
+Stil:
 
 ```text
-Bezahlte Teilnahmen werden erstattet.
-Event=Raffle Status=Abgebrochen sichtbar.
-Event=Raffle Status=Erstattet sichtbar.
-Balance ist nach Refund korrekt.
+CGN / Heimleitung / Rentner / Altersheim
+kurz
+chatgeeignet
+mehrere Varianten
+Platzhalterfähig
 ```
 
-## Schritt 8 – normaler Abschluss testen
+## Schritt 7 – EVENTSYS-27H danach
 
 ```text
-Raffle normal auslaufen lassen oder sauber auslosen.
+Statistik-Ausbau.
 ```
 
-Erwartung:
+Erfassen/anzeigen:
 
 ```text
-Keine Erstattung.
-Gewinner erhalten Auszahlung.
-Event=Raffle Status=Gewinn sichtbar.
-Event=Raffle Status=Beendet sichtbar.
-Raffle-Statistik aktualisiert Gewinner/Gewonnen/Teilnahmen/Starter.
-```
-
-## Danach
-
-Wenn der Raffle-Live-Test bestätigt ist:
-
-```text
-1. Doku erneut aktualisieren.
-2. LC-MINIGAMES-2C als stabil markieren.
-3. Dann nächsten Loyalty-Block planen.
+- gespielt
+- erkannt
+- nicht erkannt
+- schnellste Antwort
+- Top-Spieler
+- Lösungsquote
+- Punkte
+- pro Event und optional global
 ```
 
 ## Nicht tun
 
 ```text
 Keine produktive SQLite ersetzen.
-Keine Raffle-Commands im Raffle-Config-Bereich bearbeiten.
-Keine alten raffle.* Textkeys reaktivieren.
-Keine Alerts produktiv umschalten.
-Keine neue Raffle-Parallelstruktur bauen.
-Keinen Shadow-Modus wieder aktivieren.
-Keine Shadow-DB-Spalten ohne Referenzprüfung droppen.
-Keine technischen Raffle-Unterevents als Event-Dropdown-Chaos einbauen.
+Keine neue Config-Parallelstruktur bauen.
+Keine Twitch-Chat-Ausgaben direkt hart im Code senden.
+Kein Sound-/Media-System parallel bauen.
+Keine Automatik aktivieren, bevor manuelle Steuerung/Statusfenster testbar sind.
+Keine alten Loyalty/Raffle-Next-Steps als aktuellen Eventsystem-Startpunkt verwenden.
+Keine technischen API-Details in die normale Streamer-/Mod-UI kippen.
 ```

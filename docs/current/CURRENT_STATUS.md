@@ -5,276 +5,161 @@ Stand: 2026-06-16
 ## Aktueller bestätigter Arbeitsstand
 
 ```text
-LC-MINIGAMES-2C3 FIX1 – Mini-Spiel-Auswahl kompakt, Raffle-Logs und Raffle-Statistik funktional geprüft
-Design-Feinschliff später
+EVENTSYS-27A – Event-Einstellungen und Sound-Defaults bestätigt
 ```
 
 ## Kurzfazit
 
-Der Loyalty-Core läuft produktiv im Live-only-Betrieb. Shadow ist leer und fachlich nicht mehr Teil des normalen Betriebs. Das Dashboard ist im Loyalty-Bereich auf Aktiv/Inaktiv ausgerichtet.
+Das Event-System ist wieder der aktive Arbeitsbereich. Der zuletzt bestätigte Loyalty-/Raffle-Stand bleibt erhalten, ist aber nicht mehr der aktuelle Bearbeitungsschwerpunkt.
 
-Der Mini-Spiele-Bereich wurde nach dem Raffle-/Gamble-Ausbau wieder entschlackt: Es gibt oben eine kompakte Spielauswahl statt großer Vollbreiten-Karten, darunter wird nur noch das ausgewählte Spiel angezeigt. Raffle hat eine eigene Unteransicht mit `Übersicht` und `Statistik`.
+`stream_events` ist geladen, gesund und läuft mit Backend-Version `0.5.22`. Der bestätigte Dashboard-/Modulstand wurde bis EVS-27A erweitert: getrennte Editor-Fenster, konkrete Sound-Schnipsel-Validierung, Live-Refresh nach Speichern sowie globale Sound-Defaults und eventbezogene Event-Einstellungen.
 
-Bestätigt:
+## Bestätigt
 
 ```text
-Loyalty Core läuft produktiv.
-/api/loyalty/status meldet mode=live, enabled=true, shadowMode=false, pointsState=active.
-Shadow-Migration ist abgeschlossen: candidates=0 totalShadow=0.
-Raffle-Logs sind unter Loyalty -> Logs über Event=Raffle sichtbar.
-Raffle-Statusfilter sind verständlich: Bezahlt, Erstattet, Gewinn, Gestartet, Teilnahme, Beendet, Abgebrochen.
-Raffle-Statistik sitzt auf der Raffle-Seite und ist nach User/Sortierung filterbar.
-Mini-Spiele-Seite zeigt nicht mehr Gamble + Raffle + Statistik untereinander.
+- stream_events Backend ok
+- moduleVersion/version 0.5.22
+- moduleBuild Basis: STEP_EVS_25A_EMPTY_OVERVIEW_ACTION_CLEANUP
+- enabled=true
+- schemaReady=true
+- health=ok
+- routeCount=38
+- Communication-Bus registriert
+- Heartbeat aktiv
+- consumes:twitch.chat.message vorhanden
+- Runtime-Gate korrekt inaktiv bei offline/no_active_event
+- ChatOutput bleibt prepared-only / Live-Send aus
 ```
 
-## Loyalty Live-only / Shadow-Migration
-
-### Abschlussprüfung
+## Bestätigter Dashboard-Stand EVS-26B bis EVS-27A
 
 ```text
-node .\tools\loyalty_migrate_shadow_to_live_once.js --dry-run
+EVS-26A
+- Sound-Event Dashboard kann mehrere Sound-Schnipsel verwalten.
+
+EVS-26B
+- Sound-Schnipsel und Text-Spiel haben getrennte Editor-Fenster.
+- Haupt-Event-Fenster ist entschlackt.
+
+EVS-26B-FIX1
+- gespeicherte Media-IDs werden beim erneuten Öffnen wieder sichtbar aufgelöst.
+
+EVS-26B-FIX2
+- Sound-Schnipsel-Zusammenfassungen aktualisieren sich direkt beim Bearbeiten.
+
+EVS-26B-FIX3
+- Sound-Schnipsel werden pro Schnipsel validiert.
+- Fehlende Pflichtfelder werden konkret angezeigt.
+
+EVS-26B-FIX4
+- Eventdetails, Eventliste und Startbereit-Status werden nach Speichern frisch geladen.
+
+EVS-27A
+- Sound-Defaults wurden erweitert.
+- Event-spezifische Einstellungen haben ein eigenes Fenster.
+- Defaults aus Config/DB werden für neue Events genutzt.
 ```
 
-Ergebnis:
+## Sound-Event Stand
+
+### Sound-Schnipsel
+
+Ein Sound-Event kann mehrere Schnipsel enthalten. Pro Schnipsel sind Pflicht:
 
 ```text
-candidates=0 totalShadow=0
-excluded=0 excludedShadow=0
-Keine User mit balanceShadow > 0 gefunden.
+- Schnipsel-Name
+- mindestens eine erlaubte Antwort
+- Audio-Medium
 ```
 
-### Wichtige Referenzwerte
+Optional:
 
 ```text
-Urlug:
-  balanceShadow = 0
-  balanceLive   = 1006852
-  activeBalance = 1006852
-  activeMode    = live
-
-Tronic6:
-  balanceShadow = 0
-  balanceLive   = 12536
-  activeBalance = 12536
-  activeMode    = live
+- Auflösungs-Video
 ```
 
-## Betriebslogik ab jetzt
-
-Fachlich gibt es im Loyalty-Core nur noch:
+Die Validierung meldet konkret, welcher Schnipsel was nicht hat, z. B.:
 
 ```text
-Aktiv   = live
-Inaktiv = off
+Sound-Schnipsel 3: Antwort fehlt.
+Sound-Schnipsel 2: Audio fehlt.
+Sound-Schnipsel 1: Name fehlt.
 ```
 
-`shadowMode` bleibt aus Kompatibilitätsgründen vorerst als API-Feld vorhanden, ist aber `false`. Alte `mode=shadow`-Werte sollen im Runtime-Pfad nicht mehr zu Shadow-Buchungen führen.
+### Globale Sound-Defaults
 
-## Status Live-System
-
-Bestätigte Statuswerte aus `/api/loyalty/status` nach Cleanup-3:
+Bestätigte Standardwerte/Optionen im Config-Tab:
 
 ```text
-module = loyalty
-version = 0.1.24
-mode = live
-enabled = true
-shadowMode = false
-pointsState = active
-currencyName = Kekskrümel
-schema.version = 4
+Antwortzeit: 60 Sekunden
+Punkte pro Soundlösung: 10
+Abspielmodus: Zufällig automatisch
+Intervall: alle 15 Minuten
+Zufallsabweichung: ± 5 Minuten
+Reihenfolge: Zufällig
+Wenn erkannt: aus aktueller Rotation entfernen
+Wenn nicht erkannt: später nochmal versuchen
+Pause nach Runde: 60 Sekunden
+Mindestabstand Wiederholung: 3
+Erste Runde automatisch beim Eventstart: aus
+Nach einer Runde automatisch weitermachen: an
+Direkte Wiederholung vermeiden: an
+Auflösungs-Video nach Lösung erlauben: an
+Video-Modus: nach richtiger Antwort automatisch
 ```
 
-Bestätigt: Die alten Hauptstatusfelder `streamElementsStillActive` und `importStatus` sind im normalen Status nicht mehr vorhanden. Legacy-Infos bleiben nur im Diagnosebereich `diagnostics.legacyFallbacks`.
+### Event-spezifische Einstellungen
 
-## Raffle / Mini-Spiele – bestätigter Stand
+In Eventdetails und Eventbearbeitung gibt es ein eigenes Fenster:
 
 ```text
-backend/modules/loyalty_giveaways.js
-moduleVersion = 0.1.14
-moduleBuild = STEP_LC_MINIGAMES_2C1_FIX1_RAFFLE_LOG_STATUS_USER
+Einstellungen bearbeiten
 ```
 
-Spätere Dashboard-only-Fixes seitdem:
+Dort werden pro Event geregelt:
 
 ```text
-LC-MINIGAMES-2C1-FIX2 Raffle-Logs vollständiger gemappt
-LC-MINIGAMES-2C2 Raffle-Statistik mit User-Sortierung
-LC-MINIGAMES-2C3 Mini-Spiele Detail-Navigation
-LC-MINIGAMES-2C3-FIX1 Mini-Spiel-Auswahl kompakt
+Sound · Ablauf & Timing
+Sound · Rotation
+Sound · Auflösung
 ```
 
-Bestätigte Raffle-Routen:
+Neue Events übernehmen ihre Vorgaben aus Config/DB. Bestehende Events bekommen sichere Fallbacks, werden aber nicht blind überschrieben.
+
+## Aktueller Runtime-Stand
+
+Noch nicht produktiv angebunden:
 
 ```text
-GET  /api/loyalty/raffle/status
-GET  /api/loyalty/raffle/config
-POST /api/loyalty/raffle/config
-GET  /api/loyalty/raffle/logs
-GET  /api/loyalty/raffle/stats
-GET  /api/loyalty/giveaways/raffle/status   Kompatibilität
+- echtes Sound-Playback
+- Timer-Worker / Auto-Rotation
+- manuelle Sound-Rundensteuerung als Live-Aktion
+- Auflösungs-Video-Playback
+- produktive Chat-Ausgaben
 ```
 
-## Raffle-Logs
-
-Die Log-Seite ist für Buchungen und Ereignisse zuständig:
+Weiterhin gilt:
 
 ```text
-Loyalty -> Logs
-Event = Raffle
+- keine direkte Twitch-Ausgabe
+- kein direkter Chat-Send
+- kein echtes Sound-/Video-Playback ohne separaten STEP
+- Chat-Auswertung über Twitch-Events / Communication-Bus
 ```
 
-Statusfilter bei Raffle:
+## Nächster sinnvoller Arbeitsblock
 
 ```text
-Alle
-Bezahlt
-Erstattet
-Gewinn
-Gestartet
-Teilnahme
-Beendet
-Abgebrochen
+EVENTSYS-27B – Live-Statusfenster für laufende Events mit Punkten/Rangliste
 ```
 
-Wichtige Log-Regel:
+Danach:
 
 ```text
-Bei Punktebewegungen steht in der User-Spalte der betroffene User.
-Bei Start/Abbruch steht in der User-Spalte der auslösende Mod/Streamer/System-User.
-Details erklären den Vorgang verständlich.
-Technische IDs stehen nicht mehr direkt in der Tabelle, sondern im Detaildialog.
-```
-
-Für alte Raffles sind historische Gewinne über vorhandene Transactions sichtbar. Start/Teilnahme/Beendet/Abgebrochen können nur angezeigt werden, wenn sie historisch aus vorhandenen Command-Logs oder neuen Raffle-Events rekonstruierbar sind. Ab dem neuen Stand werden neue Raffle-Ereignisse sauberer gespeichert.
-
-## Raffle-Statistik
-
-Die Statistik gehört auf die Raffle-Seite:
-
-```text
-Loyalty -> Mini-Spiele -> Raffle -> Statistik
-```
-
-Bestätigter Inhalt:
-
-```text
-KPIs:
-- Gestartet
-- Teilnahmen
-- Ausgezahlt
-- Erstattet
-
-Sortierung:
-- Gewinner
-- Teilnehmer
-- Starter
-- Gezahlte Gebühren
-
-User-Filter:
-- Alle User
-- einzelner User
-
-Tabelle:
-- User
-- Gestartet
-- Teilnahmen
-- Gewinne
-- Gewonnen
-- Gezahlt
-- Erstattet
-```
-
-Hinweis: Bei alten Raffles sind Gewinnsummen zuverlässig vorhanden; historische Starts und Teilnahmen sind nur teilweise rekonstruierbar. Neue Raffles werden ab dem aktuellen Stand vollständiger geloggt.
-
-## Mini-Spiele-Dashboard
-
-Aktueller bestätigter UX-Stand:
-
-```text
-Mini-Spiele zeigt oben eine kompakte Spielauswahl.
-Raffle und Gamble erscheinen als kleine Auswahl-Chips/Kacheln.
-Nur das aktuell gewählte Spiel wird darunter angezeigt.
-Raffle hat die Unteransichten Übersicht und Statistik.
-Gamble wird nur angezeigt, wenn Gamble ausgewählt ist.
-Config und Texte bleiben in den eigenen Tabs Einstellungen bzw. Texte.
-Logs bleiben im Tab Logs.
-```
-
-Design-Feinschliff ist bewusst zurückgestellt. Funktionalität ist wichtiger als weitere optische Nacharbeit in diesem Schritt.
-
-## Raffle-Config
-
-Aktuell fachlich relevante Config:
-
-```text
-enabled
-liveOnly
-durationSeconds
-maxDurationSeconds
-prizePoolAmount
-entryCostAmount
-entryCostEnabled
-showPoolInChat = false
-```
-
-Command-Felder werden nicht mehr im Raffle-Config-Bereich bearbeitet. Sie bleiben intern erhalten und gehören langfristig nach `Loyalty -> Chat & Befehle` bzw. in das zentrale Command-Modul.
-
-## Teilnahmekosten
-
-Teilnahmekosten wurden backendseitig eingebaut:
-
-```text
-entryCostAmount = 0  -> kostenlos
-entryCostAmount > 0  -> entryCostEnabled=true, Join soll Punkte abbuchen
-```
-
-Bestätigt:
-
-```text
-POST/GET /api/loyalty/raffle/config speichert entryCostAmount=10 und entryCostEnabled=true korrekt.
-```
-
-Noch separat sauber zu prüfen:
-
-```text
-Kostenpflichtiger Join bei genug Punkten
-Join bei zu wenig Punkten
-Doppeljoin ohne zweite Abbuchung
-Cancel/Refund bezahlter Teilnahmen
-Normaler Ablauf mit Auszahlung ohne Erstattung
-```
-
-## Textsystem / Cleanup
-
-Raffle/Giveaway/Ticket/Wheel-Texte laufen weiter über den vorhandenen Helper:
-
-```text
-backend/modules/helpers/helper_texts.js
-helper_texts.renderModuleText(...)
-```
-
-Keine eigene Zufallslogik wurde gebaut.
-
-Bestätigt:
-
-```text
-Alte aktive mehrzeilige Sammelvarianten wurden für loyalty_giveaways Textbereiche bereinigt.
-Prüfung auf aktive Varianten mit Zeilenumbrüchen lieferte keine Ausgabe.
-Raffle nutzt produktiv neue Keys raffle.public.*.
-Alte raffle.* Seed-Keys wurden aus dem aktiven Pfad entfernt/bereinigt.
-```
-
-## Nicht geändert
-
-```text
-Keine produktive SQLite ersetzt.
-Keine Transaktionen gelöscht.
-Keine Raffle-Gewinnerregel geändert.
-Keine Command-Registry umgebaut.
-Keine Alert-Produktivumschaltung.
-Keine neue Raffle-Parallelstruktur gebaut.
-DB-Spalten balance_shadow, total_earned_shadow, total_spent_shadow wurden noch nicht gedroppt.
-Diagnose-Legacyfelder unter diagnostics wurden nicht entfernt.
-Design-Feinschliff im Mini-Spiele-Bereich wurde bewusst verschoben.
+EVENTSYS-27C – Manuelle Sound-Rundensteuerung
+EVENTSYS-27D – Sound-/Media-Playback-Anbindung
+EVENTSYS-27E – Automatik: zufällig alle X ± Y Minuten
+EVENTSYS-27F – Auflösungs-Video nach Lösung
+EVENTSYS-27G – Chat-Ausgaben über helper_texts/helper_messages
+EVENTSYS-27H – Statistik-Ausbau
 ```

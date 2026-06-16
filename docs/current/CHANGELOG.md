@@ -2,110 +2,73 @@
 
 Stand: 2026-06-16
 
-## 2026-06-16 – LC-MINIGAMES-2C3 FIX1 Mini-Spiel-Auswahl kompakt
+## 2026-06-16 – EVENTSYS-27A Event-Einstellungen und Sound-Defaults
 
 ### Ergebnis
 
 ```text
-Die Mini-Spiele-Auswahl wurde von großen Vollbreiten-Karten auf kompakte Auswahl-Chips/Kacheln umgestellt. Darunter wird nur noch das ausgewählte Spiel angezeigt.
+Das Event-System hat jetzt erweiterte globale Sound-Defaults und ein eigenes eventbezogenes Einstellungsfenster. Sound-Schnipsel, Text-Spiel und Event-Einstellungen sind getrennt bearbeitbar.
 ```
 
 ### Details
 
 ```text
-Raffle und Gamble stehen nicht mehr als große Blöcke untereinander.
-Das aktuell ausgewählte Spiel ist klar markiert.
-Raffle/Gamble bleiben funktional auswählbar.
-Design-Feinschliff wird später gemacht.
+- Sound-Defaults im Config-Tab erweitert.
+- Antwortzeit-Standard auf 60 Sekunden gesetzt.
+- Abspielmodus, Intervall, Zufallsabweichung, Reihenfolge und Rotation konfigurierbar.
+- Solved/Unresolved-Policies konfigurierbar.
+- Auflösungs-Video nach Lösung konfigurierbar.
+- Eventdetails/Bearbeiten besitzt Button `Einstellungen bearbeiten`.
+- Neue Events übernehmen Defaults aus Config/DB.
+- Bestehende Events bekommen sichere Fallbacks.
 ```
 
-## 2026-06-16 – LC-MINIGAMES-2C3 Detail-Navigation Mini-Spiele
-
-### Ergebnis
+### Nicht enthalten
 
 ```text
-Mini-Spiele zeigt nicht mehr gleichzeitig Gamble, Raffle und Raffle-Statistik untereinander. Es gibt eine Detail-Navigation: Auswahl des Spiels und darunter nur dessen Detailansicht.
+- kein echtes Sound-Playback
+- kein Timer-Worker
+- keine automatische Rotation
+- kein Auflösungs-Video-Playback
+- kein direkter Chat-Send
 ```
 
-### Raffle
+## 2026-06-16 – EVENTSYS-26B-FIX4 Eventdetails nach Speichern neu laden
 
 ```text
-Raffle besitzt die Unteransichten Übersicht und Statistik.
-Übersicht enthält Status, Teilnehmer, Gewinn, Dauer und Gewinnerregel.
-Statistik enthält KPIs, Sortierung, User-Dropdown und Statistik-Tabelle.
+Nach erfolgreichem Speichern wird das ausgewählte Event frisch vom Backend geladen. Eventliste, Detailpanel, Status-Badge, `Noch nötig`-Box und Starten-Button aktualisieren sich ohne manuellen Reload.
 ```
 
-## 2026-06-16 – LC-MINIGAMES-2C2 Raffle-Statistik
-
-### Ergebnis
+## 2026-06-16 – EVENTSYS-26B-FIX3 konkrete Sound-Schnipsel-Validierung mit Live-Refresh
 
 ```text
-Raffle-Statistik wurde auf der Raffle-Seite ergänzt. Sie ist nach Sortierung und User filterbar.
+Sound-Schnipsel werden pro Schnipsel geprüft. Fehlende Pflichtfelder werden konkret angezeigt, z. B. Antwort fehlt, Audio fehlt oder Name fehlt. Die Anzeige aktualisiert sich beim Bearbeiten direkt im Editor.
 ```
 
-### Enthält
+## 2026-06-16 – EVENTSYS-26B-FIX2 Sound-Editor Summary nach Änderungen sofort aktualisieren
 
 ```text
-KPIs: Gestartet, Teilnahmen, Ausgezahlt, Erstattet
-Sortierung: Gewinner, Teilnehmer, Starter, Gezahlte Gebühren
-User-Dropdown: Alle User oder einzelner User
-Tabelle: User, Gestartet, Teilnahmen, Gewinne, Gewonnen, Gezahlt, Erstattet
+Schnipsel-Kopfzeile, Antwortanzahl, Audio-/Video-Status und Hauptmodal-Summary werden nach Änderungen direkt aktualisiert.
 ```
 
-### Hinweis
+## 2026-06-16 – EVENTSYS-26B-FIX1 Sound-Editor MediaPicker-State erhalten
 
 ```text
-Historische Raffle-Gewinne sind aus Transactions rekonstruierbar. Historische Starts/Teilnahmen sind nur sichtbar, wenn sie aus alten Command-Logs oder neuen Raffle-Events ableitbar sind.
+Gespeicherte Media-IDs werden beim Öffnen/Neu-Rendern wieder sichtbar aufgelöst. Falls die Vorschau nicht geladen werden kann, wird die gespeicherte mediaId angezeigt.
 ```
 
-## 2026-06-16 – LC-MINIGAMES-2C1 Raffle Logs
-
-### Ergebnis
+## 2026-06-16 – EVENTSYS-26B getrennte Editor-Fenster
 
 ```text
-Raffle ist als einzelner Event-Filter in der Log-Seite sichtbar. Die Raffle-Unterarten liegen im Statusfilter, nicht als Event-Dropdown-Chaos.
+Sound-Schnipsel und Text-Spiel wurden aus dem Haupt-Event-Modal in eigene Editor-Fenster ausgelagert. Das Hauptmodal bleibt auf Grunddaten und zentrale Aktionen reduziert.
 ```
 
-### Statusfilter
+## 2026-06-16 – EVENTSYS-26A Sound-Event Mehrfach-Schnipsel
 
 ```text
-Alle
-Bezahlt
-Erstattet
-Gewinn
-Gestartet
-Teilnahme
-Beendet
-Abgebrochen
+Sound-Events können im Dashboard mehrere Sound-Schnipsel verwalten. Jeder Schnipsel hat Name, Antworten, Audio und optional ein Auflösungs-Video.
 ```
 
-### User-/Details-Regel
+## Hinweis
 
-```text
-Bei Punktebewegungen zeigt User den betroffenen User.
-Bei Start/Abbruch zeigt User den Auslöser.
-Details beschreiben Vorgang, Zieluser, Betrag und Kontext.
-```
-
-## 2026-06-16 – LC-MINIGAMES-2C0 Raffle Navigation Cleanup
-
-```text
-Raffle-Config- und Raffle-Text-Sprungbuttons wurden aus der Raffle-Bedienansicht entfernt. Textkey-Chips wurden aus dem normalen Raffle-Statusbereich entfernt. Config bleibt im Tab Einstellungen, Texte bleiben im Tab Texte.
-```
-
-## 2026-06-16 – LC-CORE-LIVE-CLEANUP-3
-
-```text
-Loyalty-Status und Dashboard wurden auf Aktiv/Inaktiv bereinigt. mode=live, enabled=true, shadowMode=false, pointsState=active. streamElementsStillActive/importStatus stehen nicht mehr im normalen Hauptstatus.
-```
-
-## 2026-06-16 – LC-MINIGAMES-2B Raffle Teilnahmekosten und Text-Cleanup
-
-```text
-Raffle unterstützt backendseitig Teilnahmekosten. entryCostAmount=0 bedeutet kostenlos. entryCostAmount>0 setzt entryCostEnabled=true und soll beim Join Punkte abbuchen.
-Alte aktive mehrzeilige Text-Sammelvarianten im Loyalty-Giveaways-/Mini-Spiel-Textbereich wurden bereinigt.
-```
-
-## Vorheriger Stand
-
-Der vorherige Doku-Stand beschrieb LC-CORE-LIVE-CLEANUP-3 und Raffle-Kosten als offenen nächsten Test. Dieser Stand ergänzt die danach erfolgten Raffle-Log-/Statistik-/Navigation-Schritte.
+Die bisherigen Loyalty-/Raffle-Dokueinträge bleiben historisch gültig, sind aber nicht mehr der aktuelle aktive Arbeitsblock.

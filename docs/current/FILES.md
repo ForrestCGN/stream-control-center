@@ -5,119 +5,140 @@ Stand: 2026-06-16
 ## Aktueller Arbeitsstand
 
 ```text
-LC-MINIGAMES-2C3 FIX1 – Mini-Spiel-Auswahl kompakt, Raffle-Logs/Statistik funktional geprüft
+EVENTSYS-27A – Event-Einstellungen und Sound-Defaults bestätigt
 ```
 
-## Für diesen Doku-Stand relevante geänderte Dateien
+## Für diesen Doku-Stand relevante Dateien
 
 ```text
-backend/modules/loyalty_giveaways.js
-htdocs/dashboard/modules/loyalty_games.js
-htdocs/dashboard/modules/loyalty.js
+backend/modules/stream_events.js
+htdocs/dashboard/modules/stream_events.js
+htdocs/dashboard/modules/stream_events.css
 docs/current/CURRENT_STATUS.md
-docs/current/TODO.md
 docs/current/NEXT_STEPS.md
+docs/current/TODO.md
 docs/current/FILES.md
 docs/current/CHANGELOG.md
-docs/current/CURRENT_CHAT_HANDOFF_LC_MINIGAMES_2C3.md
-docs/modules/loyalty.md
-docs/modules/loyalty_giveaways.md
-project-state/CURRENT_STATUS_LC_MINIGAMES_2C3.md
+docs/current/CURRENT_CHAT_HANDOFF_EVENTSYS_27A.md
+docs/modules/stream_events.md
+project-state/CURRENT_STATUS_EVENTSYS_27A.md
 ```
 
 ## Backend
 
 ```text
-backend/modules/loyalty_giveaways.js
+backend/modules/stream_events.js
 ```
 
-Aktueller dokumentierter Modulstand:
+Dokumentierter Basisstand:
 
 ```text
-moduleVersion = 0.1.14
-moduleBuild = STEP_LC_MINIGAMES_2C1_FIX1_RAFFLE_LOG_STATUS_USER
+MODULE_VERSION = 0.5.22
+MODULE_BUILD   = STEP_EVS_25A_EMPTY_OVERVIEW_ACTION_CLEANUP
 ```
 
-Spätere relevante Dashboard-only-Fixes:
+Seitdem relevante Eventsystem-Steps:
 
 ```text
-LC-MINIGAMES-2C1-FIX2 Raffle-Logs vollständiger gemappt
-LC-MINIGAMES-2C2 Raffle-Statistik mit User-Sortierung
-LC-MINIGAMES-2C3 Mini-Spiele Detail-Navigation
-LC-MINIGAMES-2C3-FIX1 Mini-Spiel-Auswahl kompakt
+EVENTSYS-26A Sound-Event Mehrfach-Schnipsel im Dashboard
+EVENTSYS-26B getrennte Editor-Fenster für Sound-Schnipsel und Text-Spiel
+EVENTSYS-26B-FIX1 Sound-Editor MediaPicker-State erhalten
+EVENTSYS-26B-FIX2 Sound-Editor Summary nach Änderungen sofort aktualisieren
+EVENTSYS-26B-FIX3 konkrete Sound-Schnipsel-Validierung mit Live-Refresh
+EVENTSYS-26B-FIX4 Eventdetails nach Speichern neu laden
+EVENTSYS-27A Event-Einstellungen und Sound-Defaults
 ```
 
-Wichtige Routen:
+Wichtige Routen aus aktuellem Modulstand:
 
 ```text
-GET  /api/loyalty/giveaways/status
-GET  /api/loyalty/giveaways/texts
-GET  /api/loyalty/raffle/status
-GET  /api/loyalty/raffle/config
-POST /api/loyalty/raffle/config
-GET  /api/loyalty/raffle/logs
-GET  /api/loyalty/raffle/stats
-GET  /api/loyalty/giveaways/raffle/status
+GET  /api/stream-events/status
+GET  /api/stream-events/routes
+GET  /api/stream-events/config
+POST /api/stream-events/config
+GET  /api/stream-events/events
+POST /api/stream-events/events
+GET  /api/stream-events/events/:eventUid
+PUT  /api/stream-events/events/:eventUid
+POST /api/stream-events/events/:eventUid/validate
+POST /api/stream-events/events/:eventUid/start
+POST /api/stream-events/events/:eventUid/finish
+POST /api/stream-events/events/:eventUid/cancel
+POST /api/stream-events/events/:eventUid/archive
+POST /api/stream-events/events/:eventUid/delete
+GET  /api/stream-events/events/:eventUid/ranking
+POST /api/stream-events/events/:eventUid/points
+GET  /api/stream-events/runtime-gate/status
+GET  /api/stream-events/sound-runtime/status
+GET  /api/stream-events/sound-runtime/report
+POST /api/stream-events/sound-runtime/next-round
+POST /api/stream-events/sound-runtime/resolve
+POST /api/stream-events/sound-runtime/unresolved
 ```
 
 ## Dashboard
 
 ```text
-htdocs/dashboard/modules/loyalty_games.js
+htdocs/dashboard/modules/stream_events.js
+htdocs/dashboard/modules/stream_events.css
 ```
 
 Enthält aktuell:
 
 ```text
-Mini-Spiele kompakte Spielauswahl
-Raffle Detailansicht Übersicht/Statistik
-Raffle Statistik mit Sortierung und User-Dropdown
-Raffle Logs Mapping für Event=Raffle und Statusfilter
-Gamble Detail nur bei Auswahl Gamble
-Raffle Config unter Einstellungen
-Raffle Texte unter Texte
-bereichsgebundene Texttabelle ohne Alle-Textbereiche
-```
-
-```text
-htdocs/dashboard/modules/loyalty.js
-```
-
-Enthält aktuell:
-
-```text
-Loyalty-Core Anzeige auf Aktiv/Inaktiv bzw. Live-only bereinigt
-Shadow-/Import-Hauptstatus-Wording entfernt
+- Event-System Tabs Übersicht, Events, Texte, Config, Statistik, Overlay
+- mehrere Sound-Schnipsel pro Sound-Event
+- eigenes Sound-Schnipsel-Fenster
+- eigenes Text-Spiel-Fenster
+- eigenes Event-Einstellungen-Fenster
+- globale Sound-Defaults im Config-Tab
+- konkrete Validierungsanzeige pro Sound-Schnipsel
+- Detail-Refresh nach Speichern
 ```
 
 ## Textsystem
 
+Vorhandene Helper sollen genutzt werden:
+
 ```text
 backend/modules/helpers/helper_texts.js
+backend/modules/helpers/helper_messages.js
 ```
 
-Wird weiter genutzt für:
+Für spätere Chat-Ausgaben:
 
 ```text
-helper_texts.renderModuleText(...)
+- DB-/dashboardfähige Textvarianten
+- mehrere aktive Varianten
+- Zufallsauswahl
+- Platzhalter
+- CGN-/Heimleitung-/Rentner-/Altersheim-Stil
 ```
 
-Kein eigenes Zufallssystem im Raffle-/Giveaway-Modul.
+## Communication Bus / Twitch-Events
+
+`stream_events` ist am Communication-Bus registriert und konsumiert:
+
+```text
+consumes:twitch.chat.message
+```
+
+Keine parallele Chat-Auswertung bauen.
 
 ## Produktive DB-Regel
 
 ```text
-D:\Streaming\stramAssets\data\sqlite\app.sqlite niemals ersetzen, löschen oder neu bauen.
-Vor Text-/DB-Cleanup wurde ein Backup empfohlen.
-Raffle-Logs/Stats ergänzen Anzeige und Logik, löschen aber keine alten Punkte/Transaktionen/User-Balances.
+D:\Streaming\stramAssets\data\sqlitepp.sqlite niemals ersetzen, löschen oder neu bauen.
+Schemaänderungen nur sanft, falls später nötig.
+Config/DB-Helper nutzen, keine Sonderstruktur bauen.
 ```
 
 ## Offene Testbefehle
 
+Nur bei Bedarf gezielt:
+
 ```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/status" | ConvertTo-Json -Depth 6
-Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/raffle/config" | ConvertTo-Json -Depth 6
-Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/raffle/logs" | ConvertTo-Json -Depth 6
-Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/raffle/stats" | ConvertTo-Json -Depth 6
-Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/balance/urlug?displayName=Urlug" | ConvertTo-Json -Depth 8
+Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/status" | ConvertTo-Json -Depth 6
+Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/runtime-gate/status" | ConvertTo-Json -Depth 6
+Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/config" | ConvertTo-Json -Depth 8
 ```
