@@ -389,7 +389,7 @@ window.LoyaltyModule = (function(){
           ${renderKpis()}
           <div class="loyalty-rows">
             <div><span>Currency</span><strong>${esc(status.currencyName || '-')}</strong></div>
-            <div><span>StreamElements aktiv</span><strong>${boolText(status.streamElementsStillActive)}</strong></div>
+            <div><span>Punkte-Core</span><strong>${status.enabled ? 'Aktiv' : 'Inaktiv'}</strong></div>
             <div><span>Schema</span><strong>${esc(status.schema?.ok ? 'OK' : 'Fehler')} · ${esc(status.schema?.version ?? '-')}</strong></div>
             <div><span>Aktive Presence-User</span><strong>${fmtNumber(presenceCount)}</strong></div>
             <div><span>Runner letzter Lauf</span><strong>${fmtDate(runner.lastRunAt)}</strong></div>
@@ -586,12 +586,12 @@ window.LoyaltyModule = (function(){
     const all = settings().map(settingMeta);
     const used = new Set();
     const groups = [
-      ['Grundlagen', row => ['currency.name','enabled','streamElementsStillActive'].includes(row.key)],
+      ['Grundlagen', row => ['currency.name','enabled'].includes(row.key)],
       ['Punkte verdienen', row => row.key.startsWith('watch.') || row.key.startsWith('features.')],
       ['Support-Boni', row => row.key.startsWith('bonuses.follow.') || row.key.startsWith('bonuses.subscribe.') || row.key.startsWith('bonuses.resub.') || row.key.startsWith('bonuses.cheer.') || row.key.startsWith('bonuses.raid.')],
       ['Geschenk-Abos', row => row.key.startsWith('bonuses.giftSub')],
       ['Stream-Status', row => row.key.startsWith('streamState.') || row.key.startsWith('presence.') || row.key.startsWith('autoRunner.')],
-      ['System', row => row.key.startsWith('expiration.') || row.key.startsWith('import.')],
+      ['System', row => row.key.startsWith('expiration.')],
       ['Weitere Einstellungen', row => true]
     ];
 

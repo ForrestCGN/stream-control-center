@@ -277,9 +277,6 @@ const DEFAULT_TEXTS = {
     "{displayName} hat aktuell {points} {currencyName}.",
     "Kontostand für {displayName}: {points} {currencyName}."
   ],
-  balance_shadow_reply: [
-    "{displayName} hat im Shadow Mode aktuell {points} {currencyName}."
-  ],
   adjusted_reply: [
     "{displayName}: {amount} {currencyName} gebucht. Neuer Stand: {points}."
   ],
@@ -337,7 +334,7 @@ const DEFAULT_TEXTS = {
 
 const SETTINGS_DEFINITIONS = [
   { key: "enabled", path: "enabled", valueType: "boolean", description: "Loyalty-System aktivieren/deaktivieren." },
-  { key: "mode", path: "mode", valueType: "string", description: "Interner Legacy-Modus: off oder live. Shadow wird automatisch als live behandelt.", options: [{ value: "live", label: "Aktiv", description: "Punkte werden live gebucht." }, { value: "off", label: "Inaktiv", description: "Punkteverarbeitung ist deaktiviert." }] },
+  { key: "mode", path: "mode", valueType: "string", description: "Punkteverarbeitung: aktiv oder inaktiv. Alte Shadow-Werte werden intern als aktiv/live behandelt.", options: [{ value: "live", label: "Aktiv", description: "Punkte werden aktiv gebucht." }, { value: "off", label: "Inaktiv", description: "Punkteverarbeitung ist deaktiviert." }] },
   { key: "currency.name", path: "currency.name", valueType: "string", description: "Name der Währung, z. B. Kekskrümel." },
 
   { key: "watch.enabled", path: "watch.enabled", valueType: "boolean", description: "Watch-Punkte grundsätzlich aktivieren." },
@@ -348,11 +345,11 @@ const SETTINGS_DEFINITIONS = [
 
   { key: "features.publicCommandsEnabled", path: "features.publicCommandsEnabled", valueType: "boolean", description: "Öffentliche Chat-Commands erlauben." },
   { key: "features.modCommandsEnabled", path: "features.modCommandsEnabled", valueType: "boolean", description: "Mod/Admin-Commands erlauben." },
-  { key: "features.watchEarningEnabled", path: "features.watchEarningEnabled", valueType: "boolean", description: "Watch-Earning im aktuellen Modus aktivieren." },
-  { key: "features.eventBonusesEnabled", path: "features.eventBonusesEnabled", valueType: "boolean", description: "Event-Boni im aktuellen Modus aktivieren." },
-  { key: "features.rewardsEnabled", path: "features.rewardsEnabled", valueType: "boolean", description: "Rewards/Store im aktuellen Modus aktivieren." },
-  { key: "features.giveawaysEnabled", path: "features.giveawaysEnabled", valueType: "boolean", description: "Giveaways im aktuellen Modus aktivieren." },
-  { key: "features.gamesEnabled", path: "features.gamesEnabled", valueType: "boolean", description: "Chat-Games im aktuellen Modus aktivieren." },
+  { key: "features.watchEarningEnabled", path: "features.watchEarningEnabled", valueType: "boolean", description: "Watch-Earning aktivieren." },
+  { key: "features.eventBonusesEnabled", path: "features.eventBonusesEnabled", valueType: "boolean", description: "Event-Boni aktivieren." },
+  { key: "features.rewardsEnabled", path: "features.rewardsEnabled", valueType: "boolean", description: "Rewards/Store aktivieren." },
+  { key: "features.giveawaysEnabled", path: "features.giveawaysEnabled", valueType: "boolean", description: "Giveaways aktivieren." },
+  { key: "features.gamesEnabled", path: "features.gamesEnabled", valueType: "boolean", description: "Chat-Games aktivieren." },
 
   { key: "bonuses.follow.enabled", path: "bonuses.follow.enabled", valueType: "boolean", description: "Follow-Bonus aktivieren." },
   { key: "bonuses.follow.amount", path: "bonuses.follow.amount", valueType: "number", description: "Follow-Bonus in Punkten." },
@@ -418,9 +415,6 @@ const SETTINGS_DEFINITIONS = [
 
   { key: "expiration.enabled", path: "expiration.enabled", valueType: "boolean", description: "Punkteverfall aktivieren." },
   { key: "expiration.inactiveAfterDays", path: "expiration.inactiveAfterDays", valueType: "number", description: "Inaktivitätstage bis Punkteverfall." },
-  { key: "import.status", path: "import.status", valueType: "string", description: "Importstatus: not_imported, dry_run oder imported." },
-  { key: "import.provider", path: "import.provider", valueType: "string", description: "Geplanter Import-Provider." },
-
   { key: "streamState.broadcasterLogin", path: "streamState.broadcasterLogin", valueType: "string", description: "Twitch Broadcaster Login fuer Live-Status-Pruefung." },
   { key: "streamState.broadcasterId", path: "streamState.broadcasterId", valueType: "string", description: "Twitch Broadcaster ID fuer Channel Summary." },
   { key: "streamState.autoProvider", path: "streamState.autoProvider", valueType: "string", description: "Automatischer Live-Status-Provider, aktuell twitch." },
@@ -448,8 +442,7 @@ const SETTINGS_DEFINITIONS = [
 
 const TEXT_CATEGORIES = {
   balance_reply: "chat",
-  balance_shadow_reply: "chat",
-  adjusted_reply: "chat",
+    adjusted_reply: "chat",
   ignored_user_reply: "chat",
   error_user_required: "errors",
   error_invalid_amount: "errors",
@@ -3233,7 +3226,7 @@ function ensureRunnerEventsTable() {
   database.run(`
     CREATE TABLE IF NOT EXISTS loyalty_runner_events (
       id ${database.primaryKeyAutoIncrementSql()},
-      runner_key TEXT NOT NULL DEFAULT 'auto_shadow',
+      runner_key TEXT NOT NULL DEFAULT 'auto_live',
       event_type TEXT NOT NULL,
       trigger TEXT NOT NULL DEFAULT '',
       ok INTEGER NOT NULL DEFAULT 0,
@@ -3260,7 +3253,7 @@ function logRunnerEvent(eventType, payload = {}) {
         :awarded, :processedCount, :errorCount, :createdAt, :metadataJson
       )
     `, {
-      runnerKey: "auto_shadow",
+      runnerKey: "auto_live",
       eventType: String(eventType || "event"),
       trigger: String(payload.trigger || ""),
       ok: payload.ok ? 1 : 0,
@@ -3992,7 +3985,6 @@ function buildLoyaltyDiagnostics() {
       lastReason: state.streamStatusBinding ? state.streamStatusBinding.lastReason || "" : ""
     },
     legacyFallbacks: {
-      streamElementsStillActive: true,
       legacyLoyaltyDirectForwardOwnedByTwitchModule: true,
       legacyLoyaltyDirectForwardStatusRoute: "/api/twitch/eventsub/status",
       directEventBonusRouteStillAvailable: true,
@@ -4020,8 +4012,7 @@ function buildStatus() {
     enabled: !!config.enabled,
     currencyName: config.currency && config.currency.name || "Kekskrümel",
     shadowMode: false,
-    streamElementsStillActive: true,
-    importStatus: config.import && config.import.status || "not_imported",
+    pointsState: config.enabled ? "active" : "inactive",
     config: {
       path: state.configPath,
       ok: state.configOk,
