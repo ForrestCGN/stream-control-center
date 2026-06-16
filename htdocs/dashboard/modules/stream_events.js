@@ -1404,18 +1404,28 @@ window.StreamEventsModule = (function(){
     `;
   }
 
-  function renderSoundSnippetEditor(snippet, index, total){
+  function soundSnippetSummaryData(snippet, index){
     const item = snippet || {};
     const mediaValue = item.mediaId || item.mediaPath || item.file || item.snippetMediaId || '';
     const videoValue = item.revealVideoMediaId || item.videoMediaId || '';
     const answers = Array.isArray(item.acceptedAnswers) ? item.acceptedAnswers : [];
     const label = item.title || item.name || mediaValue || `Schnipsel ${index + 1}`;
+    const meta = `${answers.length} Antwort(en) · ${mediaValue ? 'Audio gesetzt' : 'Audio fehlt'}${videoValue ? ' · Video gesetzt' : ''}`;
+    return { label, meta, answers, mediaValue, videoValue };
+  }
+
+  function renderSoundSnippetEditor(snippet, index, total){
+    const item = snippet || {};
+    const summary = soundSnippetSummaryData(item, index);
+    const mediaValue = summary.mediaValue;
+    const videoValue = summary.videoValue;
+    const answers = summary.answers;
     const audioInputId = `evsSnippetMedia_${index}`;
     const videoInputId = `evsSnippetVideo_${index}`;
     return `
       <details class="evs-sound-snippet" data-evs-sound-snippet-row data-index="${esc(index)}" ${index === 0 || item.title || mediaValue ? 'open' : ''}>
         <summary>
-          <span><strong>${esc(label)}</strong><small>${esc(answers.length)} Antwort(en) · ${mediaValue ? 'Audio gesetzt' : 'Audio fehlt'}${videoValue ? ' · Video gesetzt' : ''}</small></span>
+          <span><strong data-evs-snippet-summary-label>${esc(summary.label)}</strong><small data-evs-snippet-summary-meta>${esc(summary.meta)}</small></span>
           <button type="button" class="evs-btn evs-btn-danger evs-btn-small" data-evs-action="removeSoundSnippet" data-index="${esc(index)}" ${total <= 1 ? 'disabled' : ''}>Entfernen</button>
         </summary>
         <div class="evs-sound-media-grid">
@@ -1530,11 +1540,11 @@ window.StreamEventsModule = (function(){
 
   function renderEditorSummaryCard(kind, enabled, title, text, badges, actionLabel){
     return `
-      <section class="evs-editor-summary-card ${enabled ? 'is-enabled' : 'is-disabled'}">
+      <section class="evs-editor-summary-card ${enabled ? 'is-enabled' : 'is-disabled'}" data-evs-editor-summary-card="${esc(kind)}">
         <div>
           <div class="evs-editor-summary-title"><strong>${esc(title)}</strong>${enabled ? '<span class="evs-badge evs-badge-good">Aktiv</span>' : '<span class="evs-badge evs-badge-muted">Inaktiv</span>'}</div>
           <p>${esc(text)}</p>
-          <div class="evs-editor-summary-badges">${badges.map(item => `<span>${esc(item)}</span>`).join('')}</div>
+          <div class="evs-editor-summary-badges" data-evs-editor-summary-badges>${badges.map(item => `<span>${esc(item)}</span>`).join('')}</div>
         </div>
         <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="${kind === 'sound' ? 'openSoundEditor' : 'openTextEditor'}">${esc(actionLabel)}</button>
       </section>
@@ -1777,13 +1787,74 @@ window.StreamEventsModule = (function(){
     }).filter(item => keepEmpty || item.title || item.mediaId || item.acceptedAnswers.length || item.revealVideoMediaId);
   }
 
+  function soundSnippetFromRow(row){
+    if (!row) return {};
+    const title = row.querySelector('[data-evs-snippet-title]')?.value || '';
+    const mediaId = row.querySelector('[data-evs-snippet-media]')?.value || '';
+    const acceptedAnswers = splitCsv(row.querySelector('[data-evs-snippet-answers]')?.value || '');
+    const revealVideoMediaId = row.querySelector('[data-evs-snippet-video]')?.value || '';
+    return { title, mediaId, acceptedAnswers, revealVideoMediaId };
+  }
+
+  function refreshSoundSnippetRowSummary(row){
+    if (!row) return;
+    const index = Number(row.dataset.index || 0) || 0;
+    const summary = soundSnippetSummaryData(soundSnippetFromRow(row), index);
+    const labelEl = row.querySelector('[data-evs-snippet-summary-label]');
+    const metaEl = row.querySelector('[data-evs-snippet-summary-meta]');
+    if (labelEl) labelEl.textContent = summary.label;
+    if (metaEl) metaEl.textContent = summary.meta;
+  }
+
+  function refreshSoundSnippetSummaries(){
+    document.querySelectorAll('[data-evs-sound-snippet-row]').forEach(row => refreshSoundSnippetRowSummary(row));
+  }
+
+  function refreshMainEditorSummaryFromState(){
+    if (!state.modal?.event) return;
+    const mainModal = document.querySelector('.evs-event-main-modal');
+    if (!mainModal || state.modal.editor) return;
+    const event = ensureModalEventDefaults(state.modal.event);
+    const soundSummaryCard = mainModal.querySelector('[data-evs-editor-summary-card="sound"]');
+    const textSummaryCard = mainModal.querySelector('[data-evs-editor-summary-card="text"]');
+    if (soundSummaryCard) {
+      const s = soundSummary(event.soundConfig || {});
+      const badges = [`${s.filled || 0}/${s.total || 0} Schnipsel`, `${s.audioSet || 0} Audio gesetzt`, `${s.answers || 0} Antwort(en)`];
+      const badgeBox = soundSummaryCard.querySelector('[data-evs-editor-summary-badges]');
+      if (badgeBox) badgeBox.innerHTML = badges.map(item => `<span>${esc(item)}</span>`).join('');
+      soundSummaryCard.classList.toggle('is-enabled', event.soundEnabled === true);
+      soundSummaryCard.classList.toggle('is-disabled', event.soundEnabled !== true);
+    }
+    if (textSummaryCard) {
+      const t = textSummary(event.textConfig || {});
+      const badges = [`${t.filled || 0}/${t.total || 0} Sätze`, `${t.answers || 0} Antwort(en)`, t.partial ? 'Hinweise an' : 'Hinweise aus'];
+      const badgeBox = textSummaryCard.querySelector('[data-evs-editor-summary-badges]');
+      if (badgeBox) badgeBox.innerHTML = badges.map(item => `<span>${esc(item)}</span>`).join('');
+      textSummaryCard.classList.toggle('is-enabled', event.textEnabled === true);
+      textSummaryCard.classList.toggle('is-disabled', event.textEnabled !== true);
+    }
+  }
+
   function reindexSoundSnippetRows(){
     const rows = Array.from(document.querySelectorAll('[data-evs-sound-snippet-row]'));
     rows.forEach((row, index) => {
       row.dataset.index = String(index);
       row.querySelectorAll('[data-index]').forEach(el => { el.dataset.index = String(index); });
+      const audioInput = row.querySelector('[data-evs-snippet-media]');
+      const videoInput = row.querySelector('[data-evs-snippet-video]');
+      const audioField = row.querySelector('.evs-media-field-audio[data-media-field]');
+      const videoField = row.querySelector('.evs-media-field-video[data-media-field]');
+      if (audioInput) {
+        audioInput.id = `evsSnippetMedia_${index}`;
+        if (audioField) audioField.dataset.valueInput = `#${audioInput.id}`;
+      }
+      if (videoInput) {
+        videoInput.id = `evsSnippetVideo_${index}`;
+        if (videoField) videoField.dataset.valueInput = `#${videoInput.id}`;
+      }
       const title = row.querySelector('.evs-sound-card-required .evs-sound-card-head strong');
       if (title) title.textContent = `Audio-Schnipsel ${index + 1}`;
+      refreshSoundSnippetRowSummary(row);
     });
     const removeButtons = Array.from(document.querySelectorAll('[data-evs-action="removeSoundSnippet"]'));
     removeButtons.forEach(btn => { btn.disabled = rows.length <= 1; });
@@ -2344,6 +2415,13 @@ window.StreamEventsModule = (function(){
     });
 
     document.addEventListener('click', ev => {
+      if (ev.target.closest('[data-media-field]')) {
+        setTimeout(() => {
+          const row = ev.target.closest('[data-evs-sound-snippet-row]');
+          if (row) refreshSoundSnippetRowSummary(row);
+          syncVisibleEditorToState();
+        }, 80);
+      }
       if (ev.target.dataset?.evsModalClose === '1') {
         state.modal = null;
         render();
@@ -2359,6 +2437,19 @@ window.StreamEventsModule = (function(){
     });
 
     document.addEventListener('change', async ev => {
+      const snippetMediaInput = ev.target.closest('[data-evs-snippet-media], [data-evs-snippet-video]');
+      if (snippetMediaInput) {
+        const row = snippetMediaInput.closest('[data-evs-sound-snippet-row]');
+        refreshSoundSnippetRowSummary(row);
+        syncVisibleEditorToState();
+        return;
+      }
+      const soundToggle = ev.target.closest('#evsSoundEnabled, #evsTextEnabled');
+      if (soundToggle) {
+        syncModalBasicsFromDom();
+        refreshMainEditorSummaryFromState();
+        return;
+      }
       const textModuleSelect = ev.target.closest('[data-evs-text-module-filter]');
       if (textModuleSelect) {
         state.textModuleFilter = textModuleSelect.value || 'all';
@@ -2372,6 +2463,18 @@ window.StreamEventsModule = (function(){
     });
 
     document.addEventListener('input', ev => {
+      const snippetInput = ev.target.closest('[data-evs-snippet-title], [data-evs-snippet-answers]');
+      if (snippetInput) {
+        const row = snippetInput.closest('[data-evs-sound-snippet-row]');
+        refreshSoundSnippetRowSummary(row);
+        syncVisibleEditorToState();
+        return;
+      }
+      const modalInput = ev.target.closest('#evsEventName, #evsEventDescription');
+      if (modalInput) {
+        syncModalBasicsFromDom();
+        return;
+      }
       const search = ev.target.closest('[data-evs-text-search-filter]');
       if (!search) return;
       state.textSearchFilter = search.value || '';
