@@ -110,13 +110,20 @@ window.StreamEventsModule = (function(){
     const map = {
       'event.name_missing': 'Eventname fehlt.',
       'event.no_game_type_selected': 'Mindestens Sound oder Text auswählen.',
-      'sound.no_snippets': 'Sound ist aktiv, aber es gibt noch keinen gültigen Schnipsel.',
+      'sound.no_snippets': 'Sound ist aktiv, aber es gibt noch keinen Sound-Schnipsel.',
       'text.no_phrases': 'Text ist aktiv, aber es gibt noch keinen gültigen Geheimsatz.'
     };
     if (map[key]) return map[key];
-    if (key.includes('.title_missing')) return 'Bei einem Sound-Schnipsel fehlt der Name.';
-    if (key.includes('.media_missing')) return 'Bei einem Sound-Schnipsel fehlt die Mediendatei/Referenz.';
-    if (key.includes('.answers_missing')) return 'Bei einem Sound-Schnipsel fehlen erlaubte Antworten.';
+    const soundMatch = key.match(/^sound\.snippet\.(\d+)\.(title_missing|media_missing|answers_missing)$/);
+    if (soundMatch) {
+      const number = soundMatch[1];
+      const type = soundMatch[2];
+      if (type === 'title_missing') return `Sound-Schnipsel ${number}: Name fehlt.`;
+      if (type === 'media_missing') return `Sound-Schnipsel ${number}: Audio fehlt.`;
+      if (type === 'answers_missing') return `Sound-Schnipsel ${number}: Antwort fehlt.`;
+    }
+    const textMatch = key.match(/^text\.phrase\.(\d+)\.(phrase_missing)$/);
+    if (textMatch) return `Text-Satz ${textMatch[1]}: Geheimsatz fehlt.`;
     if (key.includes('.phrase_missing')) return 'Bei einem Text-Rätsel fehlt der Geheimsatz.';
     return key;
   }
@@ -1404,14 +1411,27 @@ window.StreamEventsModule = (function(){
     `;
   }
 
+  function soundSnippetMissingFields(snippet){
+    const item = snippet || {};
+    const title = String(item.title || item.name || '').trim();
+    const mediaValue = String(item.mediaId || item.mediaPath || item.file || item.snippetMediaId || '').trim();
+    const answers = Array.isArray(item.acceptedAnswers) ? item.acceptedAnswers.map(v => String(v || '').trim()).filter(Boolean) : [];
+    const missing = [];
+    if (!title) missing.push('Name');
+    if (!answers.length) missing.push('Antwort');
+    if (!mediaValue) missing.push('Audio');
+    return missing;
+  }
+
   function soundSnippetSummaryData(snippet, index){
     const item = snippet || {};
     const mediaValue = item.mediaId || item.mediaPath || item.file || item.snippetMediaId || '';
     const videoValue = item.revealVideoMediaId || item.videoMediaId || '';
     const answers = Array.isArray(item.acceptedAnswers) ? item.acceptedAnswers : [];
     const label = item.title || item.name || mediaValue || `Schnipsel ${index + 1}`;
+    const missing = soundSnippetMissingFields(item);
     const meta = `${answers.length} Antwort(en) · ${mediaValue ? 'Audio gesetzt' : 'Audio fehlt'}${videoValue ? ' · Video gesetzt' : ''}`;
-    return { label, meta, answers, mediaValue, videoValue };
+    return { label, meta, answers, mediaValue, videoValue, missing };
   }
 
   function renderSoundSnippetEditor(snippet, index, total){
@@ -1423,9 +1443,9 @@ window.StreamEventsModule = (function(){
     const audioInputId = `evsSnippetMedia_${index}`;
     const videoInputId = `evsSnippetVideo_${index}`;
     return `
-      <details class="evs-sound-snippet" data-evs-sound-snippet-row data-index="${esc(index)}" ${index === 0 || item.title || mediaValue ? 'open' : ''}>
+      <details class="evs-sound-snippet ${summary.missing.length ? 'has-missing-required' : ''}" data-evs-sound-snippet-row data-index="${esc(index)}" ${index === 0 || item.title || mediaValue ? 'open' : ''}>
         <summary>
-          <span><strong data-evs-snippet-summary-label>${esc(summary.label)}</strong><small data-evs-snippet-summary-meta>${esc(summary.meta)}</small></span>
+          <span><strong data-evs-snippet-summary-label>${esc(summary.label)}</strong><small data-evs-snippet-summary-meta>${esc(summary.meta)}</small><small class="evs-snippet-missing" data-evs-snippet-missing>${summary.missing.length ? `Fehlt: ${esc(summary.missing.join(', '))}` : ''}</small></span>
           <button type="button" class="evs-btn evs-btn-danger evs-btn-small" data-evs-action="removeSoundSnippet" data-index="${esc(index)}" ${total <= 1 ? 'disabled' : ''}>Entfernen</button>
         </summary>
         <div class="evs-sound-media-grid">
@@ -1802,8 +1822,14 @@ window.StreamEventsModule = (function(){
     const summary = soundSnippetSummaryData(soundSnippetFromRow(row), index);
     const labelEl = row.querySelector('[data-evs-snippet-summary-label]');
     const metaEl = row.querySelector('[data-evs-snippet-summary-meta]');
+    const missingEl = row.querySelector('[data-evs-snippet-missing]');
     if (labelEl) labelEl.textContent = summary.label;
     if (metaEl) metaEl.textContent = summary.meta;
+    if (missingEl) {
+      missingEl.textContent = summary.missing.length ? `Fehlt: ${summary.missing.join(', ')}` : '';
+      missingEl.classList.toggle('is-empty', summary.missing.length === 0);
+    }
+    row.classList.toggle('has-missing-required', summary.missing.length > 0);
   }
 
   function refreshSoundSnippetSummaries(){

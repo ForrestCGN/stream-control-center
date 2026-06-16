@@ -377,3 +377,16 @@
 .stream-events-admin .evs-submodal{width:min(1040px,calc(100vw - 28px));max-height:calc(100vh - 42px);overflow:auto;padding:18px;box-shadow:0 0 36px rgba(34,211,238,.13),0 0 80px rgba(0,0,0,.34)}
 .stream-events-admin .evs-sound-editor-modal .evs-sound-snippet-list,.stream-events-admin .evs-text-editor-modal .evs-phrase-list{max-height:none}
 @media(max-width:900px){.stream-events-admin .evs-editor-summary-grid{grid-template-columns:1fr}.stream-events-admin .evs-editor-summary-card{grid-template-columns:1fr}.stream-events-admin .evs-editor-summary-card .evs-btn{width:100%;justify-content:center}}
+
+/* EVS-26B-FIX3: konkrete Pflichtfeldanzeige pro Sound-Schnipsel */
+.stream-events-admin .evs-sound-snippet.has-missing-required{
+  border-color:rgba(245,158,11,.42);
+  box-shadow:0 0 18px rgba(245,158,11,.07);
+}
+.stream-events-admin .evs-snippet-missing{
+  color:#fde68a!important;
+  font-weight:900;
+}
+.stream-events-admin .evs-snippet-missing.is-empty{
+  display:none;
+}

@@ -969,11 +969,15 @@ function validateSoundConfig(config = {}) {
 
   snippets.forEach((snippet, index) => {
     const label = `sound.snippet.${index + 1}`;
-    if (!cleanString(snippet && (snippet.title || snippet.name))) issues.push(`${label}.title_missing`);
+    const title = cleanString(snippet && (snippet.title || snippet.name));
+    if (!title) issues.push(`${label}.title_missing`);
     const mediaRef = cleanString(snippet && (snippet.mediaId || snippet.mediaPath || snippet.file || snippet.snippetMediaId));
     if (!mediaRef) issues.push(`${label}.media_missing`);
-    const answers = Array.isArray(snippet && snippet.acceptedAnswers) ? snippet.acceptedAnswers : [];
-    if (!answers.map(value => cleanString(value)).filter(Boolean).length) issues.push(`${label}.answers_missing`);
+    const rawAnswers = Array.isArray(snippet && snippet.acceptedAnswers)
+      ? snippet.acceptedAnswers
+      : (Array.isArray(snippet && snippet.answers) ? snippet.answers : []);
+    const answers = rawAnswers.map(value => cleanString(value)).filter(Boolean);
+    if (!answers.length) issues.push(`${label}.answers_missing`);
   });
 
   const answerSeconds = intValue(raw.answerSeconds ?? raw.defaultAnswerSeconds, 20);
@@ -1198,7 +1202,9 @@ function validateStoredEvent(eventUid) {
   const event = getEventByUid(eventUid);
   if (!event) return { ok: false, error: "event_not_found", eventUid };
   const validation = validateEventPayload(event);
-  const nextStatus = validation.ok && event.status === STATUS.DRAFT ? STATUS.READY : event.status;
+  let nextStatus = event.status;
+  if (validation.ok && event.status === STATUS.DRAFT) nextStatus = STATUS.READY;
+  if (!validation.ok && event.status === STATUS.READY) nextStatus = STATUS.DRAFT;
   database.updateByKey("stream_events_events", "event_uid", eventUid, {
     status: nextStatus,
     validation_json: jsonEncode(validation),
