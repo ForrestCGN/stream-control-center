@@ -3530,18 +3530,20 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
             <p class="lg-muted">Schnelle Loyalty-Spiele für den Chat. Wähle ein Spiel aus; darunter wird nur dessen Detailansicht angezeigt.</p>
           </div>
         </div>
-        <div class="lg-grid lg-grid-2">
-          <button class="lg-module-card ${selected === 'raffle' ? 'lg-module-card-active' : ''}" data-lg-mini-select="raffle">
-            <span class="lg-module-card-top"><span class="lg-module-icon">🎟️</span>${badge(raffleCfg.enabled !== false, selected === 'raffle' ? 'ausgewählt' : 'aktiv', 'aus')}</span>
-            <strong>Raffle</strong>
-            <small>${fmtNumber(raffleCfg.durationSeconds || 120)}s · Gewinn intern ${fmtNumber(raffleCfg.prizePoolAmount || 5000)}</small>
-            <span class="lg-module-state">${esc(statusLabel(raffleRuntime.status || 'idle'))} · !${esc(raffleCfg.raffleCommand || 'raffle')} / !${esc(raffleCfg.joinCommand || 'join')}</span>
+        <div class="lg-mini-select-row" style="display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;margin-top:14px">
+          <button class="lg-btn ${selected === 'raffle' ? 'lg-btn-primary' : 'lg-btn-secondary'}" data-lg-mini-select="raffle" type="button" style="display:flex;gap:10px;align-items:center;min-height:44px;padding:10px 14px;text-align:left">
+            <span aria-hidden="true">🎟️</span>
+            <span style="display:flex;flex-direction:column;gap:2px;line-height:1.15">
+              <strong>Raffle</strong>
+              <small>${esc(statusLabel(raffleRuntime.status || 'idle'))} · ${fmtNumber(raffleCfg.durationSeconds || 120)}s · ${fmtNumber(raffleCfg.prizePoolAmount || 5000)} Gewinn</small>
+            </span>
           </button>
-          <button class="lg-module-card ${selected === 'gamble' ? 'lg-module-card-active' : ''}" data-lg-mini-select="gamble">
-            <span class="lg-module-card-top"><span class="lg-module-icon">🎲</span>${badge(gambleCfg.enabled !== false, selected === 'gamble' ? 'ausgewählt' : 'aktiv', 'aus')}</span>
-            <strong>Gamble</strong>
-            <small>${esc(gambleSummaryText || 'Konfiguration vorhanden')}</small>
-            <span class="lg-module-state">bestehendes Mini-Spiel · !gamble</span>
+          <button class="lg-btn ${selected === 'gamble' ? 'lg-btn-primary' : 'lg-btn-secondary'}" data-lg-mini-select="gamble" type="button" style="display:flex;gap:10px;align-items:center;min-height:44px;padding:10px 14px;text-align:left">
+            <span aria-hidden="true">🎲</span>
+            <span style="display:flex;flex-direction:column;gap:2px;line-height:1.15">
+              <strong>Gamble</strong>
+              <small>${gambleCfg.enabled === false ? 'aus' : 'aktiv'} · !gamble</small>
+            </span>
           </button>
         </div>
       </article>
