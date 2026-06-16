@@ -2525,14 +2525,10 @@ function renderGiveawayDetails(giveaway){
       const variantText = (item.variants || []).map(v => v.value || v.text || '').join(' ');
       return norm(`${item.key || ''} ${item.category || ''} ${variantText}`).includes(search);
     });
-    const sectionCounts = sections.filter(([id]) => id !== 'all').map(([id, label]) => {
-      const count = keys.filter(item => classifyTextSection(item) === id).length;
-      return { id, label, count };
-    });
     const selectedHasRows = filteredKeys.length > 0;
     const selectedIsPreparedOnly = !selectedHasRows && preparedSections.includes(selectedSection);
-    const variantTotal = keys.reduce((sum, item) => sum + Number(item.totalCount || (Array.isArray(item.variants) ? item.variants.length : 0) || 0), 0);
-    const activeTotal = keys.reduce((sum, item) => sum + Number(item.activeCount || 0), 0);
+    const variantTotal = filteredKeys.reduce((sum, item) => sum + Number(item.totalCount || (Array.isArray(item.variants) ? item.variants.length : 0) || 0), 0);
+    const activeTotal = filteredKeys.reduce((sum, item) => sum + Number(item.activeCount || 0), 0);
     return `
       <div class="lg-panel lg-texts-panel">
         <div class="lg-panel-head">
@@ -2559,28 +2555,6 @@ function renderGiveawayDetails(giveaway){
           <article class="lg-card"><span class="lg-card-label">Text-Zwecke</span><strong>${fmtNumber(filteredKeys.length)}</strong></article>
           <article class="lg-card"><span class="lg-card-label">Varianten</span><strong>${fmtNumber(variantTotal)}</strong></article>
           <article class="lg-card"><span class="lg-card-label">Aktiv</span><strong>${fmtNumber(activeTotal)}</strong></article>
-        </div>
-      </div>
-
-      <div class="lg-grid lg-grid-2">
-        <div class="lg-panel">
-          <h3>Module</h3>
-          <p class="lg-muted">Texte werden zentral nach Bereich gefiltert. Bestehende Varianten bleiben erhalten.</p>
-          <div class="lg-text-section-list">
-            ${sectionCounts.map(row => `
-              <button type="button" class="lg-text-section ${selectedSection === row.id ? 'is-active' : ''}" data-lg-text-section-jump="${esc(row.id)}">
-                <span>${esc(row.label)}</span><strong>${fmtNumber(row.count)}</strong>
-              </button>
-            `).join('')}
-          </div>
-        </div>
-        <div class="lg-panel">
-          <h3>Text-Regeln</h3>
-          <div class="lg-mini-list">
-            <div class="lg-mini-row"><span><strong>Mehrere Varianten</strong><br><small class="lg-muted">Pro Zweck können mehrere aktive Texte bestehen. Das hält Chat-Antworten abwechslungsreich.</small></span><span class="lg-badge lg-badge-ok">aktiv</span></div>
-            <div class="lg-mini-row"><span><strong>CGN-Stil</strong><br><small class="lg-muted">Kurz, freundlich, Altersheim-/Rentner-Humor wo passend.</small></span><span class="lg-badge lg-badge-ok">Standard</span></div>
-            <div class="lg-mini-row"><span><strong>Bearbeitung</strong><br><small class="lg-muted">Neue Varianten und Aktiv/Inaktiv werden über die vorhandenen Text-APIs gespeichert.</small></span><span class="lg-badge lg-badge-ok">angebunden</span></div>
-          </div>
         </div>
       </div>
 
@@ -3534,12 +3508,6 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
     root.querySelector('[data-lg-text-search]')?.addEventListener('input', ev => {
       state.textSearch = ev.currentTarget.value || '';
       render();
-    });
-    root.querySelectorAll('[data-lg-text-section-jump]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        state.textSection = btn.dataset.lgTextSectionJump || 'all';
-        render();
-      });
     });
     root.querySelectorAll('[data-lg-text-edit]').forEach(btn => {
       btn.addEventListener('click', () => {
