@@ -20,8 +20,8 @@ let streamStatusModule = null;
 try { streamStatusModule = require("./stream_status"); } catch (_) { streamStatusModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.25";
-const MODULE_BUILD = "STEP_EVENT_RUNTIME_2_OVERLAY_DISPLAY";
+const MODULE_VERSION = "0.5.26";
+const MODULE_BUILD = "STEP_EVENT_RUNTIME_2C_PHASED_OVERLAY";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -2413,7 +2413,7 @@ function buildRuntimeOverlayPhase(event, activeRound, latestRound) {
   }
   if (status === STATUS.ACTIVE) {
     if (event.soundEnabled && activeRound) {
-      return { key: "sound_answer_window", label: "Soundrunde aktiv", visible: true, reason: "active_sound_round" };
+      return { key: "sound_answer_window", label: "Soundrunde aktiv", visible: false, reason: "sound_playback_owned_by_sound_system" };
     }
     if (event.soundEnabled && latestRound && latestRound.status === "solved") {
       return { key: "sound_solved", label: "Sound erkannt", visible: true, reason: "latest_sound_round_solved" };
@@ -2422,7 +2422,7 @@ function buildRuntimeOverlayPhase(event, activeRound, latestRound) {
       return { key: "sound_unresolved", label: "Sound nicht erkannt", visible: true, reason: "latest_sound_round_unresolved" };
     }
     if (event.soundEnabled) {
-      return { key: "sound_waiting", label: "Soundrunde wartet", visible: true, reason: "sound_enabled_no_active_round" };
+      return { key: "sound_waiting", label: "Soundrunde wartet", visible: false, reason: "countdown_only_overlay_waiting_for_preroll" };
     }
     if (event.textEnabled) {
       return { key: "text_active", label: "Textevent aktiv", visible: true, reason: "text_event_active" };
@@ -2478,9 +2478,61 @@ function buildRuntimeOverlayDisplay(event, phase, activeRound, latestRound, rank
     eventName,
     phaseLabel: phase.label || "",
     answerSeconds,
-    showCountdown: phase.key === "sound_answer_window" && answerSeconds > 0,
-    showTop3: top3.length > 0,
+    overlayMode: runtimeOverlayModeForPhase(phase),
+    showCountdown: phase.key === "sound_preroll_countdown" || phase.key === "countdown",
+    showTop3: ["sound_solved", "sound_unresolved", "finished"].includes(phase.key) && top3.length > 0,
     top3
+  };
+}
+
+function runtimeOverlayModeForPhase(phase = {}) {
+  const key = String(phase.key || "");
+  if (key === "sound_preroll_countdown" || key === "countdown") return "countdown";
+  if (key === "sound_solved" || key === "sound_unresolved") return "result";
+  if (key === "finished") return "finished";
+  if (key === "cancelled") return "cancelled";
+  return "hidden";
+}
+
+function buildRuntimeOverlayCountdownPlan(runtimeConfig = {}) {
+  const preRollPlan = buildSoundPreRollPlan(runtimeConfig);
+  const seconds = clampNumber(runtimeConfig.countdownPreRollSeconds ?? runtimeConfig.preRollSeconds, 1, 30, 3);
+  return {
+    prepared: true,
+    active: false,
+    mode: "planned_only",
+    owner: "sound_system_compatible_event_flow",
+    seconds,
+    remainingSeconds: null,
+    sequence: Array.from({ length: seconds }, (_, index) => seconds - index).filter(value => value > 0),
+    finalLabel: "LOS!",
+    overlayFile: "htdocs/overlays/stream_events/event_runtime_overlay.html",
+    stateRoute: "/api/stream-events/runtime-overlay/state",
+    soundStartsAfterCountdown: true,
+    overlayStartsSound: false,
+    soundSystemControlsPlayback: true,
+    preRollPlan
+  };
+}
+
+function buildRuntimeOverlayResultPlan(phase = {}, latestRound = null, ranking = null) {
+  const key = String(phase.key || "");
+  const visible = ["sound_solved", "sound_unresolved", "finished", "cancelled"].includes(key);
+  const top3 = ranking && Array.isArray(ranking.top3) ? ranking.top3.slice(0, 3).map(row => ({
+    rank: row.rank,
+    userLogin: row.userLogin,
+    userDisplayName: row.userDisplayName,
+    points: row.points
+  })) : [];
+  return {
+    prepared: true,
+    visible,
+    mode: runtimeOverlayModeForPhase(phase),
+    animated: true,
+    revealAllowed: visible,
+    top3Prepared: true,
+    top3,
+    note: "Auswertung/Result-Animation ist vorbereitet, finale Darstellung wird separat abgestimmt."
   };
 }
 
@@ -2502,11 +2554,14 @@ function getRuntimeOverlayState(eventUid = "") {
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
-    step: "EVENT-RUNTIME-2",
-    purpose: "Read-only State fuer das gebaute kombinierte Event-Runtime-Overlay.",
+    step: "EVENT-RUNTIME-2C",
+    purpose: "Read-only State fuer das phasenbasierte Event-Runtime-Overlay: Countdown jetzt, Auswertung spaeter vorbereitet.",
     mode: {
       readOnly: true,
       overlayBuilt: true,
+      phasedRuntimeOverlay: true,
+      countdownOnlyCurrentFocus: true,
+      resultAnimationPrepared: true,
       directPlayback: false,
       soundSystemQueueTouched: false,
       audioTouched: false,
@@ -2526,6 +2581,8 @@ function getRuntimeOverlayState(eventUid = "") {
     eventUid: uid,
     phase,
     display: buildRuntimeOverlayDisplay(selectedEvent, phase, activeRound, latestRound, ranking),
+    countdown: buildRuntimeOverlayCountdownPlan(runtimeConfig),
+    result: buildRuntimeOverlayResultPlan(phase, latestRound, ranking),
     sound: {
       enabled: !!(selectedEvent && selectedEvent.soundEnabled),
       activeRound: publicRoundOverlaySummary(activeRound, { reveal: false }),
@@ -2554,7 +2611,9 @@ function getRuntimeOverlayState(eventUid = "") {
       noSoundSystemOverlayChange: true,
       noSoundSystemPlaybackChange: true,
       countdownOverlayWillBeEventOwned: true,
-      resultOverlayWillUseSameCombinedOverlay: true
+      resultOverlayWillUseSameCombinedOverlay: true,
+      overlayDoesNotStartSound: true,
+      soundSystemMustGateCountdownAndPlayback: true
     },
     updatedAt: nowIso()
   };
@@ -3931,6 +3990,9 @@ function buildStatus() {
     runtimeOverlay: {
       prepared: true,
       built: true,
+      phased: true,
+      currentFocus: "countdown_before_sound",
+      resultAnimationPrepared: true,
       stateRoute: "/api/stream-events/runtime-overlay/state",
       plannedFile: "htdocs/overlays/stream_events/event_runtime_overlay.html",
       viewerSafe: true
@@ -3985,7 +4047,7 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "GET", path: `${prefix}/sound-runtime/status`, description: "Sound-Spiel Runtime Status und aktive Runde" },
       { method: "GET", path: `${prefix}/sound-runtime/report`, description: "Sound-Spiel Runtime Report fuer aktives oder angegebenes Event" },
       { method: "GET", path: `${prefix}/sound-runtime/safety-plan`, description: "SOUND-SAFE-1: Read-only Plan fuer Sound-System-Erweiterungspunkt, PreRoll/Countdown und Tests" },
-      { method: "GET", path: `${prefix}/runtime-overlay/state`, description: "EVENT-RUNTIME-2: Viewer-sicherer Read-only State fuer das kombinierte Event-Runtime-Overlay" },
+      { method: "GET", path: `${prefix}/runtime-overlay/state`, description: "EVENT-RUNTIME-2C: Viewer-sicherer Read-only State fuer Countdown-/Result-phasen des Event-Runtime-Overlays" },
       { method: "GET", path: `${prefix}/statistics/users`, description: "Statistik-Userliste fuer Dropdown/Filter, optional eventUid" },
       { method: "GET", path: `${prefix}/statistics/user/:login`, description: "User-Detailstatistik fuer Text/Sound/Punkte, optional eventUid" },
       { method: "POST", path: `${prefix}/text-runtime/test-chat`, description: "Testet eine Chatnachricht gegen das aktive Text-Event" },
