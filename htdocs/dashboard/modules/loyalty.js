@@ -55,7 +55,7 @@ window.LoyaltyModule = (function(){
       label: 'Kekskrümel-Core',
       icon: '🍪',
       enabled: true,
-      description: 'Kekskrümel, Shadow-Runner, Punkte, User und Auswertungen.'
+      description: 'Kekskrümel, Live-Punkte, User und Auswertungen.'
     };
 
     const loyaltySection = window.CGN.sections?.loyalty;
@@ -312,7 +312,7 @@ window.LoyaltyModule = (function(){
     const counts = status.counts || {};
     return `
       <div class="loyalty-kpis">
-        <div><strong>${esc(status.mode || '-')}</strong><span>Modus</span></div>
+        <div><strong>${status.enabled ? 'Aktiv' : 'Inaktiv'}</strong><span>Status</span></div>
         <div><strong>${stream?.effective?.live ? 'Live' : 'Offline'}</strong><span>Stream-State</span></div>
         <div><strong>${runner.enabled ? 'An' : 'Aus'}</strong><span>Auto Runner</span></div>
         <div><strong>${fmtNumber(counts.users ?? users().length)}</strong><span>User</span></div>
@@ -390,7 +390,6 @@ window.LoyaltyModule = (function(){
           <div class="loyalty-rows">
             <div><span>Currency</span><strong>${esc(status.currencyName || '-')}</strong></div>
             <div><span>StreamElements aktiv</span><strong>${boolText(status.streamElementsStillActive)}</strong></div>
-            <div><span>Shadow Mode</span><strong>${boolText(status.shadowMode)}</strong></div>
             <div><span>Schema</span><strong>${esc(status.schema?.ok ? 'OK' : 'Fehler')} · ${esc(status.schema?.version ?? '-')}</strong></div>
             <div><span>Aktive Presence-User</span><strong>${fmtNumber(presenceCount)}</strong></div>
             <div><span>Runner letzter Lauf</span><strong>${fmtDate(runner.lastRunAt)}</strong></div>
@@ -448,8 +447,8 @@ window.LoyaltyModule = (function(){
         </section>
 
         <section class="loyalty-card">
-          <h3>Auto Shadow Runner</h3>
-          <p class="loyalty-note">Der Runner verarbeitet Presence-User automatisch im Intervall. Er bleibt beim Boot aus, bis du ihn startest.</p>
+          <h3>Auto Runner</h3>
+          <p class="loyalty-note">Der Runner verarbeitet Presence-User automatisch im Intervall und bucht direkt in den Live-Punktestand. Er bleibt beim Boot aus, bis du ihn startest.</p>
           <div class="loyalty-actions">
             <button type="button" data-loyalty-action="runner-run-once">Einmal laufen lassen</button>
             <button type="button" data-loyalty-action="runner-start">Runner starten</button>
@@ -513,12 +512,12 @@ window.LoyaltyModule = (function(){
 
   function renderUserTable(list){
     if (!list.length) return '<div class="loyalty-empty">Keine Userdaten.</div>';
-    return `<div class="loyalty-table-wrap"><table><thead><tr><th>User</th><th>Shadow</th><th>Live</th><th>Verdient</th><th>Letzter Seen</th></tr></thead><tbody>
+    return `<div class="loyalty-table-wrap"><table><thead><tr><th>User</th><th>Kekskrümel</th><th>Verdient</th><th>Ausgegeben</th><th>Letzter Seen</th></tr></thead><tbody>
       ${list.map(row => `<tr>
         <td><strong>${esc(row.displayName || row.login)}</strong><small>${esc(row.login || '')}</small></td>
-        <td>${fmtNumber(row.balanceShadow ?? row.activeBalance)}</td>
-        <td>${fmtNumber(row.balanceLive)}</td>
-        <td>${fmtNumber(row.totalEarnedShadow)}</td>
+        <td>${fmtNumber(row.activeBalance ?? row.balanceLive)}</td>
+        <td>${fmtNumber(row.totalEarnedLive)}</td>
+        <td>${fmtNumber(row.totalSpentLive)}</td>
         <td>${fmtDate(row.lastSeenAt)}</td>
       </tr>`).join('')}
     </tbody></table></div>`;
@@ -587,7 +586,7 @@ window.LoyaltyModule = (function(){
     const all = settings().map(settingMeta);
     const used = new Set();
     const groups = [
-      ['Grundlagen', row => ['mode','currency.name','enabled','streamElementsStillActive'].includes(row.key)],
+      ['Grundlagen', row => ['currency.name','enabled','streamElementsStillActive'].includes(row.key)],
       ['Punkte verdienen', row => row.key.startsWith('watch.') || row.key.startsWith('features.')],
       ['Support-Boni', row => row.key.startsWith('bonuses.follow.') || row.key.startsWith('bonuses.subscribe.') || row.key.startsWith('bonuses.resub.') || row.key.startsWith('bonuses.cheer.') || row.key.startsWith('bonuses.raid.')],
       ['Geschenk-Abos', row => row.key.startsWith('bonuses.giftSub')],
@@ -614,7 +613,7 @@ window.LoyaltyModule = (function(){
 
   function settingTitle(row){
     const titleMap = {
-      'mode': 'Loyalty-Modus',
+      'mode': 'Interner Modus',
       'currency.name': 'Name der Punkte',
       'enabled': 'Loyalty aktiv',
       'features.eventBonusesEnabled': 'Support-Events geben Punkte',

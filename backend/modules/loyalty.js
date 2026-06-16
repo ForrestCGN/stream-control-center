@@ -29,6 +29,10 @@
  * - StreamElements bleibt aktiv
  * - DB-first, JSON nur Seed/Fallback/technische Boot-Konfig
  * - alle Punkteänderungen als Transaktion
+ *
+ * LC-CORE-LIVE-CLEANUP-2:
+ * - Shadow-Migration abgeschlossen: Runtime arbeitet live-only.
+ * - Shadow bleibt nur als historische DB-Kompatibilität erhalten.
  */
 
 const crypto = require("crypto");
@@ -39,7 +43,7 @@ const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 
 const MODULE_NAME = "loyalty";
-const VERSION = "0.1.23";
+const VERSION = "0.1.24";
 const MODULE_VERSION = VERSION;
 const STREAM_STATUS_API_PATH = "/api/twitch/events/stream-state";
 const MODULE_META = {
@@ -186,7 +190,7 @@ const CENTRAL_COMMAND_DEFINITIONS = [
 
 const DEFAULT_CONFIG = {
   enabled: true,
-  mode: "shadow",
+  mode: "live",
   currency: {
     name: "Kekskrümel"
   },
@@ -333,7 +337,7 @@ const DEFAULT_TEXTS = {
 
 const SETTINGS_DEFINITIONS = [
   { key: "enabled", path: "enabled", valueType: "boolean", description: "Loyalty-System aktivieren/deaktivieren." },
-  { key: "mode", path: "mode", valueType: "string", description: "Loyalty-Modus: off, shadow oder live." },
+  { key: "mode", path: "mode", valueType: "string", description: "Interner Legacy-Modus: off oder live. Shadow wird automatisch als live behandelt.", options: [{ value: "live", label: "Aktiv", description: "Punkte werden live gebucht." }, { value: "off", label: "Inaktiv", description: "Punkteverarbeitung ist deaktiviert." }] },
   { key: "currency.name", path: "currency.name", valueType: "string", description: "Name der Währung, z. B. Kekskrümel." },
 
   { key: "watch.enabled", path: "watch.enabled", valueType: "boolean", description: "Watch-Punkte grundsätzlich aktivieren." },
@@ -596,8 +600,10 @@ function mergePlain(base, extra) {
 
 function normalizeMode(value) {
   const raw = String(value || "").trim().toLowerCase();
-  if (["off", "shadow", "live"].includes(raw)) return raw;
-  return "shadow";
+  if (["off", "disabled", "inactive", "inaktiv", "0", "false", "no", "nein"].includes(raw)) return "off";
+  // Shadow ist nach abgeschlossener Migration kein aktiver Runtime-Modus mehr.
+  // Alte Config-/API-Werte werden bewusst live interpretiert, damit nichts mehr in Shadow gebucht wird.
+  return "live";
 }
 
 function normalizeGiftSubReceiverMode(value) {
@@ -938,14 +944,14 @@ function uid(prefix) {
 }
 
 function modeBalanceField(mode) {
-  return normalizeMode(mode) === "live" ? "balance_live" : "balance_shadow";
+  // Live-only Runtime: Shadow-Spalten bleiben nur für historische/alte DB-Kompatibilität bestehen.
+  return "balance_live";
 }
 
 function modeTotalFields(mode) {
-  const suffix = normalizeMode(mode) === "live" ? "live" : "shadow";
   return {
-    earned: `total_earned_${suffix}`,
-    spent: `total_spent_${suffix}`
+    earned: "total_earned_live",
+    spent: "total_spent_live"
   };
 }
 
@@ -1287,7 +1293,7 @@ function rowToReservation(row) {
     displayName: row.user_display_name || row.user_login,
     amount: Number(row.amount || 0),
     status: row.status || "held",
-    mode: row.mode || "shadow",
+    mode: normalizeMode(row.mode || config.mode),
     sourceModule: row.source_module || "loyalty",
     sourceProvider: row.source_provider || "stream_control_center",
     referenceType: row.reference_type || "",
@@ -1747,7 +1753,7 @@ function rowToWatchState(row) {
   return {
     login: row.user_login,
     displayName: row.user_display_name || row.user_login,
-    mode: row.mode || "shadow",
+    mode: normalizeMode(row.mode || config.mode),
     subscriber: Number(row.subscriber || 0) !== 0,
     source: row.source || "manual",
     lastHeartbeatAt: row.last_heartbeat_at || "",
@@ -2497,7 +2503,7 @@ function rowToLoyaltyEvent(row) {
     tier: row.tier || "",
     quantity: Number(row.quantity || 0),
     points: Number(row.points || 0),
-    mode: row.mode || "shadow",
+    mode: normalizeMode(row.mode || config.mode),
     processed: Number(row.processed || 0) === 1,
     duplicate: Number(row.duplicate || 0) === 1,
     skipped: Number(row.skipped || 0) === 1,
@@ -4013,7 +4019,7 @@ function buildStatus() {
     mode: normalizeMode(config.mode),
     enabled: !!config.enabled,
     currencyName: config.currency && config.currency.name || "Kekskrümel",
-    shadowMode: normalizeMode(config.mode) === "shadow",
+    shadowMode: false,
     streamElementsStillActive: true,
     importStatus: config.import && config.import.status || "not_imported",
     config: {
