@@ -1265,6 +1265,35 @@ function updateEvent(eventUid, body = {}) {
   return event;
 }
 
+
+function renameEvent(eventUid, body = {}) {
+  ensureSchema();
+  const existing = getEventByUid(eventUid);
+  if (!existing) return { ok: false, error: "event_not_found", eventUid };
+
+  const nextName = cleanString(body.name || body.newName || body.eventName || "");
+  if (!nextName) return { ok: false, error: "name_required", eventUid, message: "Bitte einen Eventnamen eingeben." };
+
+  const now = nowIso();
+  const metadata = safeJson(existing.metadata, {});
+  metadata.renamedAt = now;
+  metadata.renamedBy = cleanString(body.actor || body.updatedBy || body.user || "dashboard");
+  metadata.previousName = existing.name || "";
+
+  database.updateByKey("stream_events_events", "event_uid", eventUid, {
+    name: nextName,
+    updated_at: now,
+    metadata_json: jsonEncode(metadata)
+  });
+
+  runtimeState.counters.eventsUpdated += 1;
+  markAction("renamed", eventUid);
+  const event = getEventByUid(eventUid);
+  emitBus("stream_events.event", "renamed", { event: publicEventSummary(event), previousName: existing.name || "" });
+  publishStatus("event.renamed", { lastEventUid: eventUid });
+  return { ok: true, event, previousName: existing.name || "" };
+}
+
 function validateStoredEvent(eventUid) {
   const event = getEventByUid(eventUid);
   if (!event) return { ok: false, error: "event_not_found", eventUid };
@@ -3658,6 +3687,7 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "POST", path: `${prefix}/events`, description: "Event-Entwurf erstellen" },
       { method: "GET", path: `${prefix}/events/:eventUid`, description: "Eventdetails lesen" },
       { method: "PUT", path: `${prefix}/events/:eventUid`, description: "Event-Entwurf bearbeiten" },
+      { method: "POST", path: `${prefix}/events/:eventUid/rename`, description: "EVS-27C-FIX1: Eventname bearbeiten, ohne Konfiguration oder Verlauf zu ändern" },
       { method: "POST", path: `${prefix}/events/:eventUid/validate`, description: "Event validieren" },
       { method: "POST", path: `${prefix}/events/:eventUid/start`, description: "Event starten, wenn startbereit und kein anderes Event aktiv ist" },
       { method: "POST", path: `${prefix}/events/:eventUid/finish`, description: "Event beenden und Ranking liefern" },
@@ -4076,6 +4106,15 @@ module.exports.init = function init(ctx) {
     }
   });
 
+  reg("post", `${prefix}/events/:eventUid/rename`, (req, res) => {
+    try {
+      const result = renameEvent(req.params.eventUid, req.body || {});
+      sendJson(res, result, result.ok ? 200 : (result.error === "event_not_found" ? 404 : 400));
+    } catch (err) {
+      handleError(res, err, 400);
+    }
+  });
+
   reg("post", `${prefix}/events/:eventUid/validate`, (req, res) => {
     try {
       const event = validateStoredEvent(req.params.eventUid);
@@ -4169,6 +4208,7 @@ module.exports._internal = {
   validateEventPayload,
   createEvent,
   updateEvent,
+  renameEvent,
   startEvent,
   finishEvent,
   cancelEvent,

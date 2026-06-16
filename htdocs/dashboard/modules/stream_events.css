@@ -347,3 +347,16 @@
 .evs-overview-empty-action .evs-empty-action-text {
   text-align: left;
 }
+
+/* EVENTSYS-27C-FIX1: Eventname/Kopie-Name Dialog */
+.evs-name-dialog {
+  max-width: 560px;
+}
+
+.evs-name-dialog-form {
+  gap: 16px;
+}
+
+.evs-name-dialog input[data-evs-name-dialog-input] {
+  font-weight: 700;
+}

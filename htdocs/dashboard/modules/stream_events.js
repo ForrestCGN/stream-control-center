@@ -48,6 +48,7 @@ window.StreamEventsModule = (function(){
     textModuleFilter: 'all',
     textSearchFilter: '',
     modal: null,
+    nameDialog: null,
     activeTab: 'overview'
   };
 
@@ -192,6 +193,7 @@ window.StreamEventsModule = (function(){
         ${renderActiveTab(ev)}
 
         ${state.modal ? renderModal() : ''}
+        ${state.nameDialog ? renderNameDialog() : ''}
         ${state.userStatsModal?.open ? renderUserStatsModal() : ''}
       </div>
     `;
@@ -1055,6 +1057,7 @@ window.StreamEventsModule = (function(){
         <div class="evs-action-row evs-action-row-tight evs-lifecycle-actions">
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="finish" data-uid="${esc(event.eventUid)}" ${canFinish ? '' : 'disabled'}>Beenden</button>
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="archive" data-uid="${esc(event.eventUid)}" ${canArchive ? '' : 'disabled'}>Archivieren</button>
+          <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="renameEvent" data-uid="${esc(event.eventUid)}">Umbenennen</button>
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="duplicateEvent" data-uid="${esc(event.eventUid)}">Kopieren</button>
           <button type="button" class="evs-btn evs-btn-danger" data-evs-action="cancel" data-uid="${esc(event.eventUid)}" ${canCancel ? '' : 'disabled'}>Abbrechen</button>
           <button type="button" class="evs-btn evs-btn-danger" data-evs-action="deleteEvent" data-uid="${esc(event.eventUid)}">Löschen…</button>
@@ -1144,6 +1147,7 @@ window.StreamEventsModule = (function(){
         <div class="evs-action-row">
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="edit" data-uid="${esc(event.eventUid)}">Bearbeiten</button>
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="validate" data-uid="${esc(event.eventUid)}">Prüfen</button>
+          <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="renameEvent" data-uid="${esc(event.eventUid)}">Umbenennen</button>
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="duplicateEvent" data-uid="${esc(event.eventUid)}">Kopieren</button>
           <button type="button" class="evs-btn" data-evs-action="start" data-uid="${esc(event.eventUid)}" ${event.status === 'ready' ? '' : 'disabled'}>Starten</button>
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="finish" data-uid="${esc(event.eventUid)}" ${event.status === 'active' ? '' : 'disabled'}>Beenden</button>
@@ -1333,6 +1337,35 @@ window.StreamEventsModule = (function(){
           }).join('') || '<div class="evs-empty">Keine Texte für diesen Filter gefunden.</div>'}
         </div>
       </section>
+    `;
+  }
+
+
+  function renderNameDialog(){
+    const dialog = state.nameDialog || {};
+    const isDuplicate = dialog.mode === 'duplicate';
+    const title = isDuplicate ? 'Event kopieren' : 'Event umbenennen';
+    const help = isDuplicate
+      ? 'Name für die neue Kopie festlegen. Punkte, Runden und Verlauf werden nicht übernommen.'
+      : 'Nur der Eventname wird geändert. Konfiguration, Punkte und Verlauf bleiben unverändert.';
+    const primary = isDuplicate ? 'Kopie erstellen' : 'Namen speichern';
+    return `
+      <div class="evs-modal-backdrop evs-name-dialog-backdrop" data-evs-name-dialog-close="1">
+        <div class="evs-modal glass evs-name-dialog" role="dialog" aria-modal="true" aria-label="${esc(title)}">
+          <div class="evs-modal-head">
+            <div><h3>${esc(title)}</h3><p>${esc(help)}</p></div>
+            <button type="button" class="evs-icon-btn" data-evs-action="closeNameDialog">×</button>
+          </div>
+          <div class="evs-form evs-name-dialog-form">
+            <label>Eventname<input id="evsNameDialogInput" data-evs-name-dialog-input value="${esc(dialog.name || '')}" placeholder="Eventname eingeben"></label>
+            ${dialog.error ? `<div class="evs-alert evs-alert-error">${esc(dialog.error)}</div>` : ''}
+            <div class="evs-modal-actions">
+              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="closeNameDialog">Abbrechen</button>
+              <button type="button" class="evs-btn" data-evs-action="confirmNameDialog">${esc(primary)}</button>
+            </div>
+          </div>
+        </div>
+      </div>
     `;
   }
 
@@ -1913,23 +1946,69 @@ window.StreamEventsModule = (function(){
   }
 
 
-  async function duplicateSelectedEvent(uid){
+  function openDuplicateDialog(uid){
     if (!uid) return;
     const event = state.events.find(e => e.eventUid === uid) || state.selected || {};
     const label = event.name || uid;
-    const accepted = confirm(`Event "${label}" kopieren? Punkte, Runden und Verlauf werden nicht übernommen.`);
-    if (!accepted) return;
+    state.nameDialog = {
+      mode: 'duplicate',
+      uid,
+      sourceName: label,
+      name: `Kopie von ${label}`,
+      error: ''
+    };
+    render();
+    setTimeout(() => document.getElementById('evsNameDialogInput')?.focus(), 0);
+  }
+
+  function openRenameDialog(uid){
+    if (!uid) return;
+    const event = state.events.find(e => e.eventUid === uid) || state.selected || {};
+    state.nameDialog = {
+      mode: 'rename',
+      uid,
+      sourceName: event.name || uid,
+      name: event.name || '',
+      error: ''
+    };
+    render();
+    setTimeout(() => {
+      const input = document.getElementById('evsNameDialogInput');
+      if (input) { input.focus(); input.select(); }
+    }, 0);
+  }
+
+  async function confirmNameDialog(){
+    const dialog = state.nameDialog || {};
+    const uid = dialog.uid || state.selectedUid;
+    const input = document.getElementById('evsNameDialogInput');
+    const name = String(input?.value || '').trim();
+    if (!uid) return;
+    if (!name) {
+      state.nameDialog = { ...dialog, name, error: 'Bitte einen Eventnamen eingeben.' };
+      render();
+      return;
+    }
     try {
-      const result = await window.CGN.api(`${api.events}/${encodeURIComponent(uid)}/duplicate`, { method: 'POST', body: JSON.stringify({ actor: 'dashboard' }) });
-      const copied = result.event || {};
-      state.message = `Event kopiert: ${copied.name || 'Kopie'}.`;
-      state.selectedUid = copied.eventUid || state.selectedUid;
+      if (dialog.mode === 'duplicate') {
+        const result = await window.CGN.api(`${api.events}/${encodeURIComponent(uid)}/duplicate`, { method: 'POST', body: JSON.stringify({ actor: 'dashboard', name }) });
+        const copied = result.event || {};
+        state.message = `Event kopiert: ${copied.name || name}.`;
+        state.selectedUid = copied.eventUid || state.selectedUid;
+      } else {
+        const result = await window.CGN.api(`${api.events}/${encodeURIComponent(uid)}/rename`, { method: 'POST', body: JSON.stringify({ actor: 'dashboard', name }) });
+        const renamed = result.event || {};
+        state.message = `Event umbenannt: ${renamed.name || name}.`;
+        state.selectedUid = renamed.eventUid || uid;
+      }
+      state.nameDialog = null;
       await loadAll(true);
     } catch (err) {
-      state.error = err.message || String(err);
+      state.nameDialog = { ...dialog, name, error: err.message || String(err) };
       render();
     }
   }
+
 
   function bind(){
     document.addEventListener('click', async ev => {
@@ -2029,7 +2108,10 @@ window.StreamEventsModule = (function(){
       if (action === 'finish') return eventAction('finish', uid);
       if (action === 'cancel') return eventAction('cancel', uid);
       if (action === 'archive') return archiveSelectedEvent(uid);
-      if (action === 'duplicateEvent') return duplicateSelectedEvent(uid);
+      if (action === 'renameEvent') return openRenameDialog(uid);
+      if (action === 'duplicateEvent') return openDuplicateDialog(uid);
+      if (action === 'closeNameDialog') { state.nameDialog = null; render(); return; }
+      if (action === 'confirmNameDialog') return confirmNameDialog();
       if (action === 'deleteEvent') return deleteSelectedEvent(uid);
       if (action === 'runtimeGateStatus') return loadRuntimeGateStatus(true);
       if (action === 'chatOutputSafety') { await loadRuntimeGateStatus(false); return loadChatOutputSafety(uid, true); }
@@ -2051,9 +2133,19 @@ window.StreamEventsModule = (function(){
         state.modal = null;
         render();
       }
+      if (ev.target.dataset?.evsNameDialogClose === '1') {
+        state.nameDialog = null;
+        render();
+      }
       if (ev.target.dataset?.evsUserModalClose === '1') {
         closeUserStatsModal();
       }
+    });
+
+    document.addEventListener('keydown', ev => {
+      if (!state.nameDialog) return;
+      if (ev.key === 'Escape') { state.nameDialog = null; render(); }
+      if (ev.key === 'Enter' && ev.target?.matches?.('[data-evs-name-dialog-input]')) { ev.preventDefault(); confirmNameDialog(); }
     });
 
     document.addEventListener('change', async ev => {
