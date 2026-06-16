@@ -20,8 +20,8 @@ let streamStatusModule = null;
 try { streamStatusModule = require("./stream_status"); } catch (_) { streamStatusModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.24";
-const MODULE_BUILD = "STEP_EVENT_RUNTIME_1_READONLY_OVERLAY_STATE";
+const MODULE_VERSION = "0.5.25";
+const MODULE_BUILD = "STEP_EVENT_RUNTIME_2_OVERLAY_DISPLAY";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -2502,11 +2502,11 @@ function getRuntimeOverlayState(eventUid = "") {
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
-    step: "EVENT-RUNTIME-1",
-    purpose: "Read-only State-Vertrag fuer das spaetere kombinierte Event-Runtime-Overlay.",
+    step: "EVENT-RUNTIME-2",
+    purpose: "Read-only State fuer das gebaute kombinierte Event-Runtime-Overlay.",
     mode: {
       readOnly: true,
-      overlayBuilt: false,
+      overlayBuilt: true,
       directPlayback: false,
       soundSystemQueueTouched: false,
       audioTouched: false,
@@ -3930,7 +3930,7 @@ function buildStatus() {
     },
     runtimeOverlay: {
       prepared: true,
-      built: false,
+      built: true,
       stateRoute: "/api/stream-events/runtime-overlay/state",
       plannedFile: "htdocs/overlays/stream_events/event_runtime_overlay.html",
       viewerSafe: true
@@ -3985,7 +3985,7 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "GET", path: `${prefix}/sound-runtime/status`, description: "Sound-Spiel Runtime Status und aktive Runde" },
       { method: "GET", path: `${prefix}/sound-runtime/report`, description: "Sound-Spiel Runtime Report fuer aktives oder angegebenes Event" },
       { method: "GET", path: `${prefix}/sound-runtime/safety-plan`, description: "SOUND-SAFE-1: Read-only Plan fuer Sound-System-Erweiterungspunkt, PreRoll/Countdown und Tests" },
-      { method: "GET", path: `${prefix}/runtime-overlay/state`, description: "EVENT-RUNTIME-1: Viewer-sicherer Read-only State fuer das spaetere kombinierte Event-Runtime-Overlay" },
+      { method: "GET", path: `${prefix}/runtime-overlay/state`, description: "EVENT-RUNTIME-2: Viewer-sicherer Read-only State fuer das kombinierte Event-Runtime-Overlay" },
       { method: "GET", path: `${prefix}/statistics/users`, description: "Statistik-Userliste fuer Dropdown/Filter, optional eventUid" },
       { method: "GET", path: `${prefix}/statistics/user/:login`, description: "User-Detailstatistik fuer Text/Sound/Punkte, optional eventUid" },
       { method: "POST", path: `${prefix}/text-runtime/test-chat`, description: "Testet eine Chatnachricht gegen das aktive Text-Event" },
@@ -4023,7 +4023,7 @@ function publicRoutes(prefix = "/api/stream-events") {
     ],
     notes: [
       "SOUND-SAFE-1 legt nur den Erweiterungspunkt fuer EventSound-Playback + Countdown-PreRoll fest; kein direktes Sound-/Video-Playback und kein Queue-Touch.",
-      "EVENT-RUNTIME-1 liefert nur einen viewer-sicheren Overlay-State-Vertrag; das kombinierte Overlay wird noch nicht gebaut.",
+      "EVENT-RUNTIME-2 liefert den viewer-sicheren Overlay-State fuer das gebaute kombinierte Event-Runtime-Overlay.",
       "Sound/Text-Konfiguration wird als DB-Snapshot am Event gespeichert.",
       "Nur ein aktives Event gleichzeitig."
     ]

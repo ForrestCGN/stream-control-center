@@ -1,0 +1,829 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=1920,height=1080,initial-scale=1" />
+  <title>ForrestCGN Event Runtime Overlay</title>
+  <style>
+    :root {
+      --w: 1920px;
+      --h: 1080px;
+      --cyan: #39e6ff;
+      --cyan-soft: rgba(57, 230, 255, .20);
+      --violet: #a855f7;
+      --violet-2: #7a2cff;
+      --pink: #ff4fd8;
+      --gold: #ffe66d;
+      --text: #f8fbff;
+      --muted: rgba(248, 251, 255, .74);
+      --dark-a: rgba(6, 8, 24, .94);
+      --dark-b: rgba(15, 8, 35, .94);
+      --danger: #ff6b8f;
+      --ok: #76ffb4;
+      --radius: 32px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      margin: 0;
+      width: var(--w);
+      height: var(--h);
+      overflow: hidden;
+      background: transparent;
+      color: var(--text);
+      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+      pointer-events: none;
+    }
+
+    body {
+      position: relative;
+    }
+
+    #stage {
+      position: fixed;
+      inset: 0;
+      width: var(--w);
+      height: var(--h);
+      overflow: hidden;
+      opacity: 0;
+      transform: translateY(22px) scale(.985);
+      filter: blur(4px);
+      transition: opacity .34s ease, transform .52s cubic-bezier(.16,1,.3,1), filter .34s ease;
+      isolation: isolate;
+    }
+
+    #stage.visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      filter: blur(0);
+    }
+
+    .bg {
+      position: absolute;
+      inset: -90px;
+      z-index: 0;
+      background:
+        radial-gradient(circle at 18% 22%, rgba(57, 230, 255, .20), transparent 29%),
+        radial-gradient(circle at 83% 18%, rgba(168, 85, 247, .22), transparent 31%),
+        radial-gradient(circle at 58% 92%, rgba(255, 79, 216, .16), transparent 36%),
+        linear-gradient(135deg, rgba(3, 5, 18, .84), rgba(15, 8, 34, .88) 54%, rgba(5, 8, 22, .86));
+    }
+
+    .stars {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      opacity: .32;
+      background-image:
+        radial-gradient(circle, rgba(255,255,255,.88) 0 1px, transparent 1.4px),
+        radial-gradient(circle, rgba(57,230,255,.68) 0 1px, transparent 1.5px),
+        radial-gradient(circle, rgba(196,92,255,.62) 0 1px, transparent 1.5px);
+      background-size: 170px 170px, 250px 250px, 330px 330px;
+      background-position: 22px 54px, 86px 122px, 150px 30px;
+      animation: starDrift 28s linear infinite;
+    }
+
+    @keyframes starDrift {
+      to { background-position: 192px 224px, 336px 372px, 480px 360px; }
+    }
+
+    .safe-frame {
+      position: absolute;
+      inset: 32px;
+      z-index: 2;
+      border-radius: 34px;
+      border: 1px solid rgba(184,108,255,.28);
+      box-shadow: inset 0 0 28px rgba(111,50,255,.16), 0 0 26px rgba(111,50,255,.12);
+    }
+
+    .shell {
+      position: absolute;
+      left: 150px;
+      right: 150px;
+      top: 145px;
+      min-height: 770px;
+      z-index: 5;
+      display: grid;
+      grid-template-columns: 360px 1fr 300px;
+      grid-template-rows: auto 1fr auto;
+      gap: 28px;
+      padding: 42px;
+      border-radius: var(--radius);
+      border: 3px solid transparent;
+      background:
+        radial-gradient(circle at 9% 3%, rgba(57,230,255,.13), transparent 34%) padding-box,
+        radial-gradient(circle at 88% 100%, rgba(196,92,255,.18), transparent 42%) padding-box,
+        linear-gradient(135deg, var(--dark-a), rgba(12,15,38,.96) 48%, var(--dark-b)) padding-box,
+        linear-gradient(135deg, rgba(57,230,255,.96), rgba(168,85,247,.92) 42%, rgba(255,79,216,.80) 72%, rgba(57,230,255,.85)) border-box;
+      box-shadow:
+        0 0 34px rgba(168,85,247,.48),
+        0 0 86px rgba(57,230,255,.14),
+        0 28px 80px rgba(0,0,0,.62),
+        inset 0 0 38px rgba(57,230,255,.055);
+      overflow: hidden;
+    }
+
+    .shell::before {
+      content: "";
+      position: absolute;
+      inset: 16px;
+      z-index: 1;
+      border-radius: calc(var(--radius) - 14px);
+      border: 1px solid rgba(143,244,255,.15);
+      box-shadow: inset 0 0 34px rgba(196,92,255,.08);
+    }
+
+    .shell::after {
+      content: "";
+      position: absolute;
+      left: -55%;
+      top: 0;
+      width: 44%;
+      height: 100%;
+      z-index: 2;
+      background: linear-gradient(90deg, transparent, rgba(57,230,255,.12), rgba(255,255,255,.08), rgba(196,92,255,.14), transparent);
+      transform: skewX(-18deg);
+      animation: runner 5.8s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes runner {
+      to { transform: translateX(470%) skewX(-18deg); }
+    }
+
+    .left,
+    .center,
+    .right,
+    .footer {
+      position: relative;
+      z-index: 4;
+    }
+
+    .left {
+      grid-column: 1;
+      grid-row: 1 / 4;
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      gap: 22px;
+      padding: 16px 0;
+    }
+
+    .phase-orb {
+      position: relative;
+      width: 248px;
+      height: 248px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 50% 42%, rgba(57,230,255,.26), transparent 45%),
+        radial-gradient(circle at 52% 68%, rgba(168,85,247,.28), transparent 48%),
+        linear-gradient(135deg, rgba(8,10,31,.96), rgba(18,10,43,.96));
+      box-shadow: 0 0 42px rgba(168,85,247,.72), 0 0 72px rgba(57,230,255,.20), inset 0 0 30px rgba(57,230,255,.08);
+    }
+
+    .phase-orb::before {
+      content: "";
+      position: absolute;
+      inset: -12px;
+      border-radius: 50%;
+      background: conic-gradient(from 0deg, var(--cyan), var(--violet), var(--pink), var(--cyan));
+      z-index: -1;
+      filter: blur(.2px);
+      opacity: .92;
+      animation: spin 7s linear infinite;
+    }
+
+    .phase-orb::after {
+      content: "";
+      position: absolute;
+      inset: -26px;
+      border-radius: 50%;
+      border: 1px dashed rgba(143,244,255,.32);
+      opacity: .78;
+      animation: spinReverse 11s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes spinReverse { to { transform: rotate(-360deg); } }
+
+    .phase-icon {
+      font-size: 92px;
+      line-height: 1;
+      text-shadow: 0 0 26px rgba(57,230,255,.65), 0 0 38px rgba(168,85,247,.60);
+      transform: translateY(-2px);
+    }
+
+    .phase-pill,
+    .event-pill {
+      max-width: 310px;
+      padding: 11px 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(143,244,255,.30);
+      background: rgba(7,10,31,.54);
+      color: rgba(248,251,255,.86);
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 1.6px;
+      font-size: 14px;
+      font-weight: 900;
+      box-shadow: inset 0 0 15px rgba(196,92,255,.10);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .event-pill {
+      color: var(--cyan);
+      letter-spacing: 1px;
+      text-transform: none;
+      font-size: 16px;
+    }
+
+    .center {
+      grid-column: 2;
+      grid-row: 1 / 3;
+      display: grid;
+      align-content: center;
+      gap: 22px;
+      min-width: 0;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      justify-self: start;
+      min-height: 44px;
+      padding: 0 22px;
+      border-radius: 999px;
+      border: 1px solid rgba(57,230,255,.46);
+      background: rgba(8,10,31,.58);
+      color: var(--cyan);
+      font-size: 15px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      box-shadow: 0 0 20px rgba(57,230,255,.14), inset 0 0 14px rgba(168,85,247,.12);
+    }
+
+    .headline {
+      margin: 0;
+      max-width: 820px;
+      font-size: 76px;
+      line-height: .98;
+      font-weight: 950;
+      letter-spacing: -2px;
+      color: var(--text);
+      text-shadow: 0 0 24px rgba(168,85,247,.70), 0 0 36px rgba(57,230,255,.18);
+      overflow-wrap: anywhere;
+    }
+
+    .subline {
+      margin: 0;
+      max-width: 840px;
+      font-size: 31px;
+      line-height: 1.22;
+      font-weight: 750;
+      color: var(--muted);
+      text-shadow: 0 0 18px rgba(0,0,0,.42);
+      overflow-wrap: anywhere;
+    }
+
+    .answer-box {
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      align-items: center;
+      gap: 22px;
+      max-width: 840px;
+      min-height: 118px;
+      padding: 20px 24px;
+      border-radius: 24px;
+      border: 1px solid rgba(143,244,255,.20);
+      background: linear-gradient(135deg, rgba(6,8,24,.58), rgba(23,11,48,.50));
+      box-shadow: inset 0 0 22px rgba(57,230,255,.055);
+    }
+
+    .timer {
+      width: 124px;
+      height: 124px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      justify-self: center;
+      border: 3px solid rgba(57,230,255,.62);
+      background: radial-gradient(circle at 50% 35%, rgba(57,230,255,.18), rgba(10,12,34,.92));
+      box-shadow: 0 0 24px rgba(57,230,255,.26), inset 0 0 20px rgba(168,85,247,.14);
+      color: var(--text);
+      font-size: 45px;
+      font-weight: 950;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .timer.warn {
+      border-color: rgba(255,230,109,.85);
+      color: var(--gold);
+      box-shadow: 0 0 28px rgba(255,230,109,.22), inset 0 0 20px rgba(168,85,247,.14);
+    }
+
+    .timer.danger {
+      border-color: rgba(255,107,143,.88);
+      color: var(--danger);
+      box-shadow: 0 0 30px rgba(255,107,143,.26), inset 0 0 20px rgba(168,85,247,.14);
+    }
+
+    .answer-copy {
+      display: grid;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .answer-label {
+      color: var(--cyan);
+      text-transform: uppercase;
+      letter-spacing: 1.6px;
+      font-weight: 950;
+      font-size: 15px;
+    }
+
+    .answer-text {
+      color: rgba(248,251,255,.90);
+      font-size: 25px;
+      line-height: 1.25;
+      font-weight: 780;
+    }
+
+    .right {
+      grid-column: 3;
+      grid-row: 1 / 3;
+      display: grid;
+      align-content: center;
+      gap: 16px;
+      min-width: 0;
+    }
+
+    .side-card {
+      padding: 18px;
+      border-radius: 22px;
+      border: 1px solid rgba(143,244,255,.18);
+      background: rgba(8,10,31,.44);
+      box-shadow: inset 0 0 18px rgba(196,92,255,.06);
+    }
+
+    .side-title {
+      margin: 0 0 12px 0;
+      color: var(--cyan);
+      font-size: 15px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: 1.6px;
+    }
+
+    .top-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .rank-row {
+      display: grid;
+      grid-template-columns: 36px 1fr auto;
+      align-items: center;
+      gap: 10px;
+      min-height: 38px;
+      padding: 6px 8px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.045);
+      color: rgba(248,251,255,.88);
+      font-size: 17px;
+      font-weight: 800;
+    }
+
+    .rank-row .rank {
+      color: var(--gold);
+      font-weight: 950;
+      text-align: center;
+    }
+
+    .rank-row .name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .rank-row .points {
+      color: var(--cyan);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .mini {
+      display: grid;
+      gap: 8px;
+      color: rgba(248,251,255,.76);
+      font-size: 15px;
+      line-height: 1.28;
+    }
+
+    .mini-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid rgba(143,244,255,.08);
+      padding-bottom: 7px;
+    }
+
+    .mini-row:last-child { border-bottom: 0; padding-bottom: 0; }
+    .mini-row b { color: rgba(248,251,255,.92); }
+    .mini-row span:last-child { color: var(--cyan); font-weight: 850; text-align: right; }
+
+    .footer {
+      grid-column: 2 / 4;
+      grid-row: 3;
+      align-self: end;
+      min-height: 74px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 22px;
+      padding: 16px 22px;
+      border-radius: 22px;
+      border: 1px solid rgba(143,244,255,.17);
+      background: rgba(4,6,20,.36);
+    }
+
+    .solution {
+      min-width: 0;
+      color: rgba(248,251,255,.88);
+      font-size: 22px;
+      font-weight: 850;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .solution b { color: var(--cyan); }
+
+    .status-dot {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: rgba(248,251,255,.72);
+      font-size: 14px;
+      font-weight: 850;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .status-dot::before {
+      content: "";
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: var(--ok);
+      box-shadow: 0 0 16px rgba(118,255,180,.68);
+    }
+
+    #debug {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      z-index: 50;
+      display: none;
+      width: 620px;
+      max-height: 420px;
+      overflow: auto;
+      padding: 14px 16px;
+      border: 1px solid rgba(57,230,255,.34);
+      border-radius: 14px;
+      background: rgba(2,4,14,.82);
+      color: rgba(248,251,255,.88);
+      font: 12px/1.35 Consolas, Monaco, monospace;
+      pointer-events: auto;
+      white-space: pre-wrap;
+    }
+
+    body.debug #debug { display: block; }
+
+    #stage.phase-sound_answer_window .phase-icon::after { content: ""; }
+    #stage.phase-sound_solved .phase-orb::before { background: conic-gradient(from 0deg, var(--ok), var(--cyan), var(--violet), var(--ok)); }
+    #stage.phase-sound_unresolved .phase-orb::before,
+    #stage.phase-cancelled .phase-orb::before { background: conic-gradient(from 0deg, var(--danger), var(--violet), var(--pink), var(--danger)); }
+
+    @media (max-width: 1280px) {
+      body { transform-origin: top left; transform: scale(.6666667); }
+    }
+  </style>
+</head>
+<body>
+  <div id="stage" aria-live="polite">
+    <div class="bg"></div>
+    <div class="stars"></div>
+    <div class="safe-frame"></div>
+
+    <main class="shell">
+      <section class="left">
+        <div class="phase-orb"><div id="phaseIcon" class="phase-icon">🎮</div></div>
+        <div id="phasePill" class="phase-pill">Bereit</div>
+        <div id="eventPill" class="event-pill">Eventsystem</div>
+      </section>
+
+      <section class="center">
+        <div id="eyebrow" class="eyebrow">CGN Event</div>
+        <h1 id="headline" class="headline">Eventsystem</h1>
+        <p id="subline" class="subline">Bereit.</p>
+        <div id="answerBox" class="answer-box">
+          <div id="timer" class="timer">--</div>
+          <div class="answer-copy">
+            <div id="answerLabel" class="answer-label">Hinweis</div>
+            <div id="answerText" class="answer-text">Warte auf die nächste Runde.</div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="right">
+        <div class="side-card">
+          <p class="side-title">Top 3</p>
+          <div id="topList" class="top-list"></div>
+        </div>
+        <div class="side-card">
+          <p class="side-title">Runde</p>
+          <div class="mini">
+            <div class="mini-row"><b>Typ</b><span id="gameType">Event</span></div>
+            <div class="mini-row"><b>Antwortzeit</b><span id="answerSeconds">0s</span></div>
+            <div class="mini-row"><b>Snippets</b><span id="snippetCount">0</span></div>
+          </div>
+        </div>
+      </aside>
+
+      <footer class="footer">
+        <div id="solution" class="solution">Keine Lösung eingeblendet.</div>
+        <div id="status" class="status-dot">Read-only Anzeige</div>
+      </footer>
+    </main>
+  </div>
+
+  <pre id="debug"></pre>
+
+  <script>
+    (function () {
+      "use strict";
+
+      const STATE_ROUTE = "/api/stream-events/runtime-overlay/state";
+      const DEBUG = /[?&]debug=1\b/.test(window.location.search);
+      const qs = new URLSearchParams(window.location.search);
+      const forcedEventUid = String(qs.get("eventUid") || qs.get("event_uid") || "").trim();
+
+      const els = {
+        stage: document.getElementById("stage"),
+        phaseIcon: document.getElementById("phaseIcon"),
+        phasePill: document.getElementById("phasePill"),
+        eventPill: document.getElementById("eventPill"),
+        eyebrow: document.getElementById("eyebrow"),
+        headline: document.getElementById("headline"),
+        subline: document.getElementById("subline"),
+        answerBox: document.getElementById("answerBox"),
+        timer: document.getElementById("timer"),
+        answerLabel: document.getElementById("answerLabel"),
+        answerText: document.getElementById("answerText"),
+        topList: document.getElementById("topList"),
+        gameType: document.getElementById("gameType"),
+        answerSeconds: document.getElementById("answerSeconds"),
+        snippetCount: document.getElementById("snippetCount"),
+        solution: document.getElementById("solution"),
+        status: document.getElementById("status"),
+        debug: document.getElementById("debug")
+      };
+
+      let pollTimer = null;
+      let countdownTimer = null;
+      let pollMs = 900;
+      let lastState = null;
+      let lastRequestKey = "";
+
+      if (DEBUG) document.body.classList.add("debug");
+
+      function cleanText(value, fallback) {
+        const text = String(value == null ? "" : value).replace(/[\r\n\t]+/g, " ").replace(/\s{2,}/g, " ").trim();
+        return text || fallback || "";
+      }
+
+      function number(value, fallback) {
+        const n = Number(value);
+        return Number.isFinite(n) ? n : fallback;
+      }
+
+      function setText(el, value, fallback) {
+        if (!el) return;
+        el.textContent = cleanText(value, fallback);
+      }
+
+      function phaseIcon(key) {
+        switch (key) {
+          case "sound_waiting": return "🎧";
+          case "sound_answer_window": return "🔊";
+          case "sound_solved": return "✅";
+          case "sound_unresolved": return "❌";
+          case "text_active": return "💬";
+          case "finished": return "🏆";
+          case "cancelled": return "⛔";
+          case "event_active": return "🎮";
+          default: return "🎮";
+        }
+      }
+
+      function answerCopyFor(state) {
+        const key = state && state.phase ? String(state.phase.key || "") : "";
+        const sound = state && state.sound ? state.sound : {};
+        const latest = sound.latestRound || null;
+        const latestItem = latest && latest.itemVisible && latest.item ? latest.item : null;
+        const result = latestItem ? cleanText(latestItem.result || latestItem.title || "", "") : "";
+
+        if (key === "sound_answer_window") {
+          return { label: "Jetzt raten", text: "Schreib deine Antwort in den Chat. Lösungen werden hier nicht angezeigt." };
+        }
+        if (key === "sound_waiting") {
+          return { label: "Vorbereitung", text: "Die nächste Soundrunde wird vorbereitet." };
+        }
+        if (key === "sound_solved") {
+          return { label: "Gelöst", text: result ? `Lösung: ${result}` : "Der Sound wurde erkannt." };
+        }
+        if (key === "sound_unresolved") {
+          return { label: "Nicht erkannt", text: result ? `Lösung: ${result}` : "Der Sound wurde nicht erkannt." };
+        }
+        if (key === "finished") {
+          return { label: "Event beendet", text: "Die Heimleitung zählt die Punkte aus." };
+        }
+        if (key === "cancelled") {
+          return { label: "Abgebrochen", text: "Dieses Event wurde gestoppt." };
+        }
+        if (key === "text_active") {
+          return { label: "Textrunde", text: "Achte auf den Chat-Hinweis und antworte schnell." };
+        }
+        return { label: "Status", text: "Warte auf die nächste Runde." };
+      }
+
+      function calcRemainingSeconds(state) {
+        const round = state && state.sound ? state.sound.activeRound : null;
+        if (!round || !round.startedAt) return null;
+        const answerSeconds = number(round.answerSeconds || (state.display && state.display.answerSeconds), 0);
+        if (answerSeconds <= 0) return null;
+        const started = Date.parse(round.startedAt);
+        if (!Number.isFinite(started)) return null;
+        const elapsed = Math.floor((Date.now() - started) / 1000);
+        return Math.max(0, answerSeconds - elapsed);
+      }
+
+      function updateTimer() {
+        const state = lastState;
+        const remaining = calcRemainingSeconds(state);
+        const show = !!(state && state.display && state.display.showCountdown && remaining !== null);
+        if (!show) {
+          els.timer.textContent = "--";
+          els.timer.classList.remove("warn", "danger");
+          return;
+        }
+        els.timer.textContent = String(remaining);
+        els.timer.classList.toggle("warn", remaining <= 10 && remaining > 5);
+        els.timer.classList.toggle("danger", remaining <= 5);
+      }
+
+      function startCountdown() {
+        if (countdownTimer) window.clearInterval(countdownTimer);
+        updateTimer();
+        countdownTimer = window.setInterval(updateTimer, 250);
+      }
+
+      function topRows(rows) {
+        const list = Array.isArray(rows) ? rows.slice(0, 3) : [];
+        if (!list.length) {
+          return `<div class="rank-row"><span class="rank">–</span><span class="name">Noch keine Punkte</span><span class="points">0</span></div>`;
+        }
+        return list.map((row, index) => {
+          const rank = number(row.rank, index + 1);
+          const name = cleanText(row.userDisplayName || row.userLogin, "Unbekannt");
+          const points = number(row.points, 0);
+          return `<div class="rank-row"><span class="rank">#${rank}</span><span class="name"></span><span class="points">${points}</span></div>`;
+        }).join("");
+      }
+
+      function fillTopRows(rows) {
+        const list = Array.isArray(rows) ? rows.slice(0, 3) : [];
+        els.topList.innerHTML = topRows(list);
+        const nameEls = els.topList.querySelectorAll(".name");
+        if (!list.length) return;
+        list.forEach((row, index) => {
+          if (nameEls[index]) nameEls[index].textContent = cleanText(row.userDisplayName || row.userLogin, "Unbekannt");
+        });
+      }
+
+      function solutionText(state) {
+        const key = state && state.phase ? String(state.phase.key || "") : "";
+        const latest = state && state.sound ? state.sound.latestRound : null;
+        const item = latest && latest.itemVisible && latest.item ? latest.item : null;
+        const title = item ? cleanText(item.result || item.title || "", "") : "";
+        if ((key === "sound_solved" || key === "sound_unresolved" || key === "finished" || key === "cancelled") && title) {
+          return `Lösung: ${title}`;
+        }
+        return "Keine Lösung eingeblendet.";
+      }
+
+      function applyState(data) {
+        const state = data && data.ok ? data : null;
+        lastState = state;
+        if (!state) {
+          els.stage.className = "";
+          setText(els.headline, "Eventsystem", "Eventsystem");
+          setText(els.subline, "State konnte nicht geladen werden.", "State konnte nicht geladen werden.");
+          if (DEBUG) els.debug.textContent = JSON.stringify(data || {}, null, 2);
+          return;
+        }
+
+        const phase = state.phase || {};
+        const display = state.display || {};
+        const sound = state.sound || {};
+        const runtime = sound.runtimeConfig || {};
+        const key = String(phase.key || "idle");
+        const visible = !!phase.visible;
+        const eventName = cleanText(display.eventName || (state.event && state.event.name), "Eventsystem");
+        const answer = answerCopyFor(state);
+        const rows = state.ranking && Array.isArray(state.ranking.top3) ? state.ranking.top3 : (Array.isArray(display.top3) ? display.top3 : []);
+
+        pollMs = Math.max(300, Math.min(5000, number(state.overlay && state.overlay.pollMs, pollMs)));
+
+        els.stage.className = visible ? `visible phase-${key}` : `phase-${key}`;
+        setText(els.phaseIcon, phaseIcon(key), "🎮");
+        setText(els.phasePill, phase.label || display.phaseLabel, "Bereit");
+        setText(els.eventPill, eventName, "Eventsystem");
+        setText(els.eyebrow, key.startsWith("sound") ? "CGN Sound-Event" : "CGN Event", "CGN Event");
+        setText(els.headline, display.headline, eventName);
+        setText(els.subline, display.subline, "Bereit.");
+        setText(els.answerLabel, answer.label, "Hinweis");
+        setText(els.answerText, answer.text, "Warte auf die nächste Runde.");
+        setText(els.gameType, sound.enabled ? "Sound" : (state.text && state.text.enabled ? "Text" : "Event"), "Event");
+        setText(els.answerSeconds, `${number(display.answerSeconds || runtime.answerSeconds, 0)}s`, "0s");
+        setText(els.snippetCount, String(number(sound.snippetCount, 0)), "0");
+        setText(els.solution, solutionText(state), "Keine Lösung eingeblendet.");
+        setText(els.status, state.mode && state.mode.viewerSafe ? "Viewer-safe Read-only" : "Read-only Anzeige", "Read-only Anzeige");
+        fillTopRows(rows);
+        startCountdown();
+
+        const requestKey = [key, state.eventUid || "", phase.reason || "", display.headline || ""].join("|");
+        if (requestKey !== lastRequestKey) lastRequestKey = requestKey;
+
+        if (DEBUG) els.debug.textContent = JSON.stringify(state, null, 2);
+      }
+
+      async function fetchState() {
+        try {
+          const url = forcedEventUid
+            ? `${STATE_ROUTE}?eventUid=${encodeURIComponent(forcedEventUid)}&_=${Date.now()}`
+            : `${STATE_ROUTE}?_=${Date.now()}`;
+          const res = await fetch(url, { cache: "no-store" });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          applyState(data);
+        } catch (err) {
+          if (DEBUG) els.debug.textContent = `[event-runtime-overlay] ${err && err.message ? err.message : err}`;
+        }
+      }
+
+      function schedulePoll() {
+        if (pollTimer) window.clearInterval(pollTimer);
+        pollTimer = window.setInterval(fetchState, pollMs);
+      }
+
+      function handleBusMessage(event) {
+        const msg = event && event.detail ? event.detail : null;
+        if (!msg || typeof msg !== "object") return;
+        const moduleName = String(msg.module || (msg.source && msg.source.module) || "");
+        const channel = String(msg.channel || msg.type || msg.op || "");
+        if (moduleName === "stream_events" || channel.indexOf("stream_events") >= 0 || channel.indexOf("stream-events") >= 0) {
+          fetchState();
+        }
+      }
+
+      fetchState().then(schedulePoll);
+      window.addEventListener("cgn:overlay-bus-message", handleBusMessage);
+      window.addEventListener("focus", fetchState);
+      window.addEventListener("beforeunload", function () {
+        if (pollTimer) window.clearInterval(pollTimer);
+        if (countdownTimer) window.clearInterval(countdownTimer);
+      });
+    })();
+  </script>
+
+  <script
+    src="/overlays/shared/overlay_bus_client.js"
+    data-overlay-id="stream_events_runtime_overlay"
+    data-client-type="overlay"
+    data-mode="obs_overlay"
+    data-module="stream_events"
+    data-name="Stream Events Runtime Overlay"
+    data-version="0.1.0"
+    data-heartbeat-ms="5000"
+  ></script>
+</body>
+</html>
