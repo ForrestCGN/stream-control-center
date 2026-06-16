@@ -299,6 +299,8 @@
 .stream-events-admin .evs-safety-banner strong{font-size:15px;color:#fff}.stream-events-admin .evs-safety-banner span{color:#cbd5e1;font-size:12px}
 .stream-events-admin .evs-safety-banner.is-safe{border-color:rgba(34,197,94,.34);background:linear-gradient(135deg,rgba(22,101,52,.20),rgba(8,47,73,.12))}
 .stream-events-admin .evs-safety-banner.is-live{border-color:rgba(239,68,68,.48);background:linear-gradient(135deg,rgba(127,29,29,.28),rgba(88,28,135,.15));box-shadow:0 0 20px rgba(239,68,68,.12)}
+.stream-events-admin .evs-safety-banner.is-warning{border-color:rgba(245,158,11,.42);background:linear-gradient(135deg,rgba(120,53,15,.22),rgba(8,47,73,.14));box-shadow:0 0 18px rgba(245,158,11,.10)}
+.stream-events-admin .evs-valid-ok.is-live{border-color:rgba(34,197,94,.45);background:linear-gradient(135deg,rgba(22,101,52,.22),rgba(8,47,73,.12));color:#bbf7d0}
 .stream-events-admin .evs-safety-counters{margin:0}.stream-events-admin .evs-safety-counters div strong{font-size:22px;color:#fff}
 .stream-events-admin .evs-safety-switches{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .stream-events-admin .evs-safety-switches>div{border:1px solid rgba(255,255,255,.10);background:rgba(2,6,23,.28);border-radius:14px;padding:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;color:#dbeafe;font-size:12px}

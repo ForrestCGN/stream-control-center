@@ -149,7 +149,12 @@ window.StreamEventsModule = (function(){
     const validation = event?.validation || {};
     const issues = Array.isArray(validation.issues) ? validation.issues : [];
     const warnings = Array.isArray(validation.warnings) ? validation.warnings : [];
+    const status = norm(event?.status);
     if (!event) return '<div class="evs-empty">Kein Event ausgewählt.</div>';
+    if (status === 'active') return '<div class="evs-valid-ok is-live">🟢 Event läuft.</div>';
+    if (status === 'finished') return '<div class="evs-valid-ok">🏁 Event ist beendet.</div>';
+    if (status === 'archived') return '<div class="evs-empty">Event ist archiviert.</div>';
+    if (status === 'cancelled' || status === 'canceled') return '<div class="evs-validation"><div class="evs-validation-block evs-validation-warn"><strong>Abgebrochen:</strong><div>Dieses Event wurde abgebrochen.</div></div></div>';
     if (issues.length === 0 && warnings.length === 0) return '<div class="evs-valid-ok">✅ Event ist startbereit.</div>';
     return `
       <div class="evs-validation">
@@ -190,7 +195,7 @@ window.StreamEventsModule = (function(){
       <div class="evs-page">
         <div class="evs-header glass">
           <div>
-            <div class="evs-kicker">EVS-27C-FIX2 · Editor-Regressionsfix</div>
+            <div class="evs-kicker">EVS-27D-FIX1 · Reload nach Statusaktionen</div>
             <h2>Event-System</h2>
             <p>Übersicht zeigt den aktuellen Event-Stand und die nächste sinnvolle Aktion.</p>
           </div>
@@ -265,9 +270,13 @@ window.StreamEventsModule = (function(){
   function renderOverviewStatusCard(activeEvent){
     const gate = runtimeGate();
     const stream = gate?.stream || {};
-    const isActive = !!activeEvent && gate?.active === true;
-    const statusText = isActive ? 'AKTIV' : 'INAKTIV';
-    const reasonText = isActive ? `${activeEvent.name || 'Event'} läuft.` : 'Kein Event läuft.';
+    const hasRunningEvent = !!activeEvent;
+    const runtimeActive = hasRunningEvent && gate?.active === true;
+    const statusText = hasRunningEvent ? (runtimeActive ? 'AKTIV' : 'EVENT LÄUFT') : 'INAKTIV';
+    const reasonText = hasRunningEvent
+      ? (runtimeActive ? `${activeEvent.name || 'Event'} läuft.` : `${activeEvent.name || 'Event'} läuft, Runtime wartet auf gültige Bedingungen.`)
+      : 'Kein Event läuft.';
+    const bannerClass = hasRunningEvent ? (runtimeActive ? 'is-live' : 'is-warning') : 'is-safe';
     return `
       <section class="evs-card glass evs-tab-panel evs-overview-status-card">
         <div class="evs-card-head">
@@ -277,8 +286,8 @@ window.StreamEventsModule = (function(){
           </div>
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="reload">Aktualisieren</button>
         </div>
-        <div class="evs-safety-banner ${isActive ? 'is-live' : 'is-safe'}">
-          <strong>${isActive ? '🟢 AKTIV' : '⚪ INAKTIV'}</strong>
+        <div class="evs-safety-banner ${bannerClass}">
+          <strong>${hasRunningEvent ? (runtimeActive ? '🟢 AKTIV' : '🟡 EVENT LÄUFT') : '⚪ INAKTIV'}</strong>
           <span>${esc(reasonText)}</span>
         </div>
         <div class="evs-mini-grid evs-mini-grid-compact">
@@ -2359,7 +2368,7 @@ window.StreamEventsModule = (function(){
     try {
       state.config = await window.CGN.api(api.config, { method: 'POST', body: JSON.stringify(readConfigPayload()) });
       state.message = 'Config gespeichert.';
-      render();
+      await reloadDashboardAfterMutation(state.selectedUid, { keepTab: true });
     } catch (err) {
       state.error = err.message || String(err);
       render();
@@ -2368,7 +2377,7 @@ window.StreamEventsModule = (function(){
     }
   }
 
-  async function loadAll(force){
+  async function loadAll(force, rerender = true){
     if (state.loading && !force) return;
     state.loading = true;
     state.error = '';
@@ -2397,7 +2406,7 @@ window.StreamEventsModule = (function(){
       state.error = err.message || String(err);
     } finally {
       state.loading = false;
-      render();
+      if (rerender !== false) render();
     }
   }
 
@@ -2591,6 +2600,37 @@ window.StreamEventsModule = (function(){
     else if (fresh.eventUid) state.events.unshift(fresh);
   }
 
+  async function reloadDashboardAfterMutation(uid, options = {}){
+    const keepUid = uid || state.selectedUid || '';
+    const keepTab = options.keepTab !== false ? (state.activeTab || 'overview') : (options.tab || state.activeTab || 'overview');
+    await loadAll(true, false);
+    state.activeTab = keepTab;
+    if (keepUid) {
+      const exists = state.events.some(event => event.eventUid === keepUid);
+      if (exists) {
+        await refreshSelectedEventAfterSave(keepUid);
+      } else if (state.selectedUid === keepUid) {
+        state.selectedUid = state.events[0]?.eventUid || '';
+        state.selected = state.events[0] || null;
+      }
+    }
+    const selected = selectedEvent();
+    const selectedUid = selected?.eventUid || state.selectedUid || '';
+    if (selectedUid) {
+      await Promise.all([
+        loadRanking(selectedUid, false),
+        loadTextRuntimeReport(selectedUid, false),
+        loadSoundRuntimeReport(selectedUid, false),
+        loadStatisticsUsers(selectedUid, false),
+        loadChatOutputSafety(selectedUid, false)
+      ]);
+    }
+    if (state.liveStatusModal?.open && state.liveStatusModal.eventUid) {
+      state.liveStatusModal.lastRefreshAt = new Date().toISOString();
+    }
+    render();
+  }
+
   async function saveEvent(){
     const current = state.modal?.event || {};
     const payload = readModalPayload();
@@ -2605,15 +2645,7 @@ window.StreamEventsModule = (function(){
       state.modal = null;
       state.selectedUid = uid || state.selectedUid;
       state.selected = null;
-      await loadAll(true);
-      if (state.selectedUid) {
-        await refreshSelectedEventAfterSave(state.selectedUid);
-        await loadRanking(state.selectedUid, false);
-        await loadTextRuntimeReport(state.selectedUid, false);
-        await loadSoundRuntimeReport(state.selectedUid, false);
-        await loadStatisticsUsers(state.selectedUid, false);
-      }
-      render();
+      await reloadDashboardAfterMutation(state.selectedUid, { keepTab: true });
     } catch (err) {
       state.error = err.message || String(err);
       render();
@@ -2743,7 +2775,8 @@ window.StreamEventsModule = (function(){
     try {
       const result = await window.CGN.api(`${api.events}/${encodeURIComponent(uid)}/${action}`, { method: 'POST', body: '{}' });
       state.message = result.message || 'Aktion ausgeführt.';
-      await loadAll(true);
+      state.selectedUid = result.event?.eventUid || uid;
+      await reloadDashboardAfterMutation(state.selectedUid, { keepTab: true });
     } catch (err) {
       state.error = err.message || String(err);
       render();
@@ -2771,13 +2804,7 @@ window.StreamEventsModule = (function(){
       });
       const snippetTitle = result?.snippet?.title || result?.round?.itemUid || 'Sound-Schnipsel';
       state.message = `${snippetTitle} wurde als nächste Sound-Runde vorbereitet. Es wurde noch nichts abgespielt.`;
-      await refreshSelectedEventAfterSave(uid);
-      await loadSoundRuntimeReport(uid, false);
-      await loadRanking(uid, false);
-      if (state.liveStatusModal?.eventUid === uid) {
-        state.liveStatusModal.lastRefreshAt = new Date().toISOString();
-      }
-      render();
+      await reloadDashboardAfterMutation(uid, { keepTab: true });
     } catch (err) {
       state.error = err.message || String(err);
       render();
@@ -2797,7 +2824,7 @@ window.StreamEventsModule = (function(){
     try {
       const result = await window.CGN.api(`${api.events}/${encodeURIComponent(uid)}/archive`, { method: 'POST', body: JSON.stringify({ actor: 'dashboard' }) });
       state.message = result.alreadyArchived ? 'Event war bereits archiviert.' : 'Event archiviert.';
-      await loadAll(true);
+      await reloadDashboardAfterMutation(uid, { keepTab: true });
     } catch (err) {
       state.error = err.message || String(err);
       render();
@@ -2814,7 +2841,7 @@ window.StreamEventsModule = (function(){
       const result = await window.CGN.api(`${api.events}/${encodeURIComponent(uid)}/delete`, { method: 'POST', body: JSON.stringify({ confirm: 'DELETE', actor: 'dashboard' }) });
       state.message = `Event gelöscht. Score: ${result.countsDeleted?.scoreEntries || 0}, Runden: ${result.countsDeleted?.rounds || 0}.`;
       if (state.selectedUid === uid) state.selectedUid = '';
-      await loadAll(true);
+      await reloadDashboardAfterMutation('', { keepTab: true });
     } catch (err) {
       state.error = err.message || String(err);
       render();
@@ -2878,7 +2905,7 @@ window.StreamEventsModule = (function(){
         state.selectedUid = renamed.eventUid || uid;
       }
       state.nameDialog = null;
-      await loadAll(true);
+      await reloadDashboardAfterMutation(state.selectedUid, { keepTab: true });
     } catch (err) {
       state.nameDialog = { ...dialog, name, error: err.message || String(err) };
       render();
