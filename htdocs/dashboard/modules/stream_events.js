@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.22";
-  const MODULE_BUILD = "STEP_EVS_25A_EMPTY_OVERVIEW_ACTION_CLEANUP";
+  const MODULE_VERSION = "0.5.23";
+  const MODULE_BUILD = "STEP_EVS_26B_SPLIT_SOUND_TEXT_EDITORS";
 
   const api = {
     status: '/api/stream-events/status',
@@ -175,7 +175,7 @@ window.StreamEventsModule = (function(){
       <div class="evs-page">
         <div class="evs-header glass">
           <div>
-            <div class="evs-kicker">EVS-25a · Übersicht aufgeräumt</div>
+            <div class="evs-kicker">EVS-26B · getrennte Sound-/Text-Editoren</div>
             <h2>Event-System</h2>
             <p>Übersicht zeigt den aktuellen Event-Stand und die nächste sinnvolle Aktion.</p>
           </div>
@@ -1388,20 +1388,99 @@ window.StreamEventsModule = (function(){
     `;
   }
 
-  function renderModal(){
-    const event = modalEvent();
+  function soundSummary(sound){
+    const snippets = Array.isArray(sound?.snippets) ? sound.snippets : [];
+    const filled = snippets.filter(item => item && (item.title || item.name || item.mediaId || item.mediaPath || item.file || (Array.isArray(item.acceptedAnswers) && item.acceptedAnswers.length) || item.revealVideoMediaId || item.videoMediaId));
+    const audioSet = snippets.filter(item => item && (item.mediaId || item.mediaPath || item.file || item.snippetMediaId)).length;
+    const answers = snippets.reduce((sum, item) => sum + (Array.isArray(item?.acceptedAnswers) ? item.acceptedAnswers.length : 0), 0);
+    return { total: snippets.length, filled: filled.length, audioSet, answers };
+  }
+
+  function textSummary(text){
+    const phrases = Array.isArray(text?.phrases) ? text.phrases : [];
+    const filled = phrases.filter(item => item && (item.phrase || item.text || item.solution || (Array.isArray(item.acceptedAnswers) && item.acceptedAnswers.length)));
+    const answers = phrases.reduce((sum, item) => sum + (Array.isArray(item?.acceptedAnswers) ? item.acceptedAnswers.length : 0), 0);
+    const wordPoints = text?.wordPointsEnabled === true;
+    const partial = String(text?.partialHintVisibility || text?.partialHintDisplayMode || '').toLowerCase();
+    return { total: phrases.length, filled: filled.length, answers, wordPoints, partial: partial && partial !== 'off' };
+  }
+
+  function ensureModalEventDefaults(event){
+    const cfg = state.config?.config || {};
+    const soundDefaults = cfg.soundDefaults || {};
+    const textDefaults = cfg.textDefaults || {};
+    const base = event || {};
+    const sound = base.soundConfig || {};
+    const text = base.textConfig || {};
+    return {
+      ...base,
+      soundEnabled: base.soundEnabled === true,
+      textEnabled: base.textEnabled === true,
+      soundConfig: {
+        answerSeconds: sound.answerSeconds || sound.defaultAnswerSeconds || soundDefaults.defaultAnswerSeconds || 20,
+        solvedPolicy: sound.solvedPolicy || 'remove_from_rotation',
+        unresolvedPolicy: sound.unresolvedPolicy || soundDefaults.unresolvedPolicy || 'requeue_later',
+        snippets: Array.isArray(sound.snippets) ? sound.snippets : []
+      },
+      textConfig: {
+        allowFollowupSolves: false,
+        winnerMode: text.winnerMode || 'first_complete_solver',
+        solvedPolicy: text.solvedPolicy || 'remove_from_rotation',
+        partialHintsEnabled: text.partialHintsEnabled !== false,
+        partialHintVisibility: text.partialHintVisibility || text.partialHintDisplayMode || textDefaults.partialHintVisibility || 'general',
+        partialHintDisplayMode: text.partialHintDisplayMode || text.partialHintVisibility || textDefaults.partialHintVisibility || 'general',
+        hintTokensEnabled: text.hintTokensEnabled !== false,
+        partialHintMode: text.partialHintMode || 'new_words_per_user',
+        uniqueWordsPerUser: text.uniqueWordsPerUser !== false,
+        showPartialCount: text.showPartialCount === true || text.partialHintShowCount === true || textDefaults.showPartialWordCount !== false,
+        wordPointsEnabled: text.wordPointsEnabled === true,
+        pointsPerNewWord: text.pointsPerNewWord ?? text.wordPointsPerNewWord ?? textDefaults.pointsPerNewWord ?? 1,
+        maxWordPointsPerUserPhrase: text.maxWordPointsPerUserPhrase ?? text.maxWordPointsPerUserAndPhrase ?? textDefaults.maxWordPointsPerUserPhrase ?? 5,
+        partialHintCooldownSeconds: text.partialHintCooldownSeconds ?? text.hintCooldownSeconds ?? textDefaults.partialHintCooldownSeconds ?? 0,
+        phrases: Array.isArray(text.phrases) ? text.phrases : [{ phrase: '', acceptedAnswers: [], pointsFirst: textDefaults.defaultPhrasePoints || 40, solvedPolicy: 'remove_from_rotation' }]
+      }
+    };
+  }
+
+  function syncModalBasicsFromDom(){
+    if (!state.modal?.event) return;
+    const current = ensureModalEventDefaults(state.modal.event);
+    const nameEl = document.getElementById('evsEventName');
+    const descEl = document.getElementById('evsEventDescription');
+    const soundEl = document.getElementById('evsSoundEnabled');
+    const textEl = document.getElementById('evsTextEnabled');
+    state.modal.event = {
+      ...current,
+      name: nameEl ? nameEl.value : current.name,
+      description: descEl ? descEl.value : current.description,
+      soundEnabled: soundEl ? soundEl.checked === true : current.soundEnabled === true,
+      textEnabled: textEl ? textEl.checked === true : current.textEnabled === true
+    };
+  }
+
+  function renderEditorSummaryCard(kind, enabled, title, text, badges, actionLabel){
+    return `
+      <section class="evs-editor-summary-card ${enabled ? 'is-enabled' : 'is-disabled'}">
+        <div>
+          <div class="evs-editor-summary-title"><strong>${esc(title)}</strong>${enabled ? '<span class="evs-badge evs-badge-good">Aktiv</span>' : '<span class="evs-badge evs-badge-muted">Inaktiv</span>'}</div>
+          <p>${esc(text)}</p>
+          <div class="evs-editor-summary-badges">${badges.map(item => `<span>${esc(item)}</span>`).join('')}</div>
+        </div>
+        <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="${kind === 'sound' ? 'openSoundEditor' : 'openTextEditor'}">${esc(actionLabel)}</button>
+      </section>
+    `;
+  }
+
+  function renderMainEventModal(event){
     const sound = event.soundConfig || {};
-    const snippets = Array.isArray(sound.snippets) && sound.snippets.length ? sound.snippets : [{}];
     const text = event.textConfig || {};
-    const phrases = Array.isArray(text.phrases) && text.phrases.length ? text.phrases : [{}];
-    const partialMode = text.partialHintVisibility || text.partialHintDisplayMode || (text.hintTokensEnabled === false || text.partialHintsEnabled === false ? 'off' : (text.partialHintWithSentence === true ? 'with_sentence' : 'general'));
-    const showPartialCount = text.showPartialCount === true || text.partialHintShowCount === true;
-    const wordPointsEnabled = text.wordPointsEnabled === true;
+    const s = soundSummary(sound);
+    const t = textSummary(text);
     return `
       <div class="evs-modal-backdrop" data-evs-modal-close="1">
-        <div class="evs-modal glass" role="dialog" aria-modal="true">
+        <div class="evs-modal glass evs-event-main-modal" role="dialog" aria-modal="true">
           <div class="evs-modal-head">
-            <div><h3>${event.eventUid ? 'Event bearbeiten' : 'Neues Event'}</h3><p>Bearbeitung im eigenen Fenster. Grunddaten, Sound-Spiel und Text-Spiel gehören zu diesem Event.</p></div>
+            <div><h3>${event.eventUid ? 'Event bearbeiten' : 'Neues Event'}</h3><p>Grunddaten bleiben hier. Sound-Schnipsel und Text-Spiel werden in eigenen Fenstern bearbeitet.</p></div>
             <button type="button" class="evs-icon-btn" data-evs-action="closeModal">×</button>
           </div>
           <div class="evs-form">
@@ -1413,71 +1492,18 @@ window.StreamEventsModule = (function(){
               <label class="evs-check"><input id="evsTextEnabled" type="checkbox" ${event.textEnabled ? 'checked' : ''}> Text-/Geheimsatz-Spiel</label>
             </div>
 
-            <details class="evs-config-box" ${event.soundEnabled ? 'open' : ''}>
-              <summary>Sound-Spiel konfigurieren</summary>
-              <div class="evs-two-cols evs-sound-rule-grid">
-                <label>Antwortzeit in Sekunden<input id="evsSoundAnswerSeconds" type="number" min="5" value="${esc(sound.answerSeconds || sound.defaultAnswerSeconds || 20)}"></label>
-                <label>Wenn nicht erkannt<select id="evsSoundUnresolvedPolicy"><option value="requeue_later" ${sound.unresolvedPolicy !== 'remove' ? 'selected' : ''}>Später nochmal versuchen</option><option value="remove" ${sound.unresolvedPolicy === 'remove' ? 'selected' : ''}>Für dieses Event entfernen</option></select></label>
-              </div>
-
-              <div class="evs-form-row-head evs-sound-snippet-list-head">
-                <div>
-                  <strong>Sound-Schnipsel</strong>
-                  <small>Mehrere Aufgaben pro Event. Jeder Schnipsel bekommt eigene Antworten, Audio und optional ein Auflösungs-Video.</small>
-                </div>
-                <button type="button" class="evs-btn evs-btn-secondary evs-btn-small" data-evs-action="addSoundSnippet">+ Schnipsel hinzufügen</button>
-              </div>
-
-              <div class="evs-sound-snippet-list">
-                ${snippets.map((item, index) => renderSoundSnippetEditor(item, index, snippets.length)).join('')}
-              </div>
-
-              <small class="evs-help">Das Event speichert nur Media-IDs/Referenzen. Wiedergabe und Upload bleiben beim vorhandenen Media-System.</small>
-            </details>
-
-            <details class="evs-config-box" ${event.textEnabled ? 'open' : ''}>
-              <summary>Text-Spiel konfigurieren</summary>
-              <div class="evs-text-simple">
-                <div class="evs-text-rule-note">
-                  <strong>Regel:</strong> Ein Text-Spiel kann mehrere geheime Sätze enthalten. Pro Satz gewinnt der erste komplette Löser. Danach ist nur dieser Satz erledigt und kommt aus der Rotation.
-                </div>
-
-                <div class="evs-form-row-head">
-                  <div>
-                    <strong>Geheime Sätze</strong>
-                    <small>Pflicht · jeder Satz ist einzeln lösbar und kann eigene Antwortvarianten/Punkte haben</small>
-                  </div>
-                  <button type="button" class="evs-btn evs-btn-secondary evs-btn-small" data-evs-action="addPhrase">+ Satz hinzufügen</button>
-                </div>
-
-                <div class="evs-phrase-list">
-                  ${phrases.map((item, index) => renderPhraseEditor(item, index, phrases.length)).join('')}
-                </div>
-
-                <div class="evs-partial-hints-box">
-                  <div class="evs-form-row-head">
-                    <div>
-                      <strong>Teiltreffer & Wortpunkte</strong>
-                      <small>Optional · User können Hinweise oder Punkte bekommen, wenn sie neue Wörter aus einem Satz treffen</small>
-                    </div>
-                    <span class="evs-badge evs-badge-muted">Optional</span>
-                  </div>
-                  <div class="evs-two-cols evs-text-config-grid">
-                    <label>Teiltreffer melden<select id="evsTextPartialHintVisibility"><option value="off" ${partialMode === 'off' ? 'selected' : ''}>Nicht melden</option><option value="general" ${partialMode === 'general' ? 'selected' : ''}>Allgemein melden</option><option value="with_sentence" ${partialMode === 'with_sentence' ? 'selected' : ''}>Mit Satznummer melden</option></select></label>
-                    <label>Zusätzlicher Cooldown in Sekunden<input id="evsTextPartialHintCooldown" type="number" min="0" value="${esc(text.partialHintCooldownSeconds ?? text.hintCooldownSeconds ?? 0)}"></label>
-                  </div>
-                  <div class="evs-choice-row evs-choice-row-compact">
-                    <label class="evs-check evs-check-compact"><input id="evsTextShowPartialCount" type="checkbox" ${showPartialCount ? 'checked' : ''}> Anzahl gefundener Wörter anzeigen</label>
-                    <label class="evs-check evs-check-compact"><input id="evsTextWordPointsEnabled" type="checkbox" ${wordPointsEnabled ? 'checked' : ''}> Punkte für gefundene Wörter</label>
-                  </div>
-                  <div class="evs-two-cols evs-text-config-grid">
-                    <label>Punkte pro neues Wort<input id="evsTextPointsPerWord" type="number" min="0" value="${esc(text.pointsPerNewWord ?? text.wordPointsPerNewWord ?? 1)}"></label>
-                    <label>Max. Wortpunkte pro User/Satz<input id="evsTextMaxWordPoints" type="number" min="0" value="${esc(text.maxWordPointsPerUserPhrase ?? text.maxWordPointsPerUserAndPhrase ?? 5)}"></label>
-                  </div>
-                  <small class="evs-help">Ein Wort zählt pro Event, Satz und User nur einmal. Wortpunkte sind optional und werden später in der Chat-Runtime umgesetzt.</small>
-                </div>
-              </div>
-            </details>
+            <div class="evs-editor-summary-grid">
+              ${renderEditorSummaryCard('sound', event.soundEnabled, 'Sound-Schnipsel', 'Audio-Aufgaben, Antworten und optionale Auflösungs-Videos getrennt verwalten.', [
+                `${s.filled || s.total || 0} Schnipsel`,
+                `${s.audioSet} Audio gesetzt`,
+                `${s.answers} Antwort(en)`
+              ], 'Sound-Schnipsel bearbeiten')}
+              ${renderEditorSummaryCard('text', event.textEnabled, 'Text-Spiel', 'Geheimsätze, Antwortvarianten, Punkte und Teiltreffer-Regeln getrennt verwalten.', [
+                `${t.filled || t.total || 0} Satz/Sätze`,
+                `${t.answers} Antwortvariante(n)`,
+                t.partial ? 'Teiltreffer aktiv' : 'Teiltreffer aus'
+              ], 'Text-Spiel bearbeiten')}
+            </div>
 
             <div class="evs-modal-actions">
               <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="closeModal">Abbrechen</button>
@@ -1489,34 +1515,137 @@ window.StreamEventsModule = (function(){
     `;
   }
 
-  function readModalPayload(){
-    const soundEnabled = document.getElementById('evsSoundEnabled')?.checked === true;
-    const textEnabled = document.getElementById('evsTextEnabled')?.checked === true;
-    const payload = {
-      name: document.getElementById('evsEventName')?.value || '',
-      description: document.getElementById('evsEventDescription')?.value || '',
-      soundEnabled,
-      textEnabled
-    };
+  function renderSoundEditorModal(event){
+    const sound = event.soundConfig || {};
+    const snippets = Array.isArray(sound.snippets) && sound.snippets.length ? sound.snippets : [{}];
+    return `
+      <div class="evs-submodal-backdrop" data-evs-submodal-close="1">
+        <div class="evs-modal glass evs-submodal evs-sound-editor-modal" role="dialog" aria-modal="true">
+          <div class="evs-modal-head">
+            <div><h3>Sound-Schnipsel bearbeiten</h3><p>Mehrere Aufgaben pro Event. Jeder Schnipsel bekommt eigene Antworten, Audio und optional ein Auflösungs-Video.</p></div>
+            <button type="button" class="evs-icon-btn" data-evs-action="closeSubEditor">×</button>
+          </div>
+          <div class="evs-form" data-evs-sound-editor>
+            <div class="evs-two-cols evs-sound-rule-grid">
+              <label>Antwortzeit in Sekunden<input id="evsSoundAnswerSeconds" type="number" min="5" value="${esc(sound.answerSeconds || sound.defaultAnswerSeconds || 20)}"></label>
+              <label>Wenn nicht erkannt<select id="evsSoundUnresolvedPolicy"><option value="requeue_later" ${sound.unresolvedPolicy !== 'remove' ? 'selected' : ''}>Später nochmal versuchen</option><option value="remove" ${sound.unresolvedPolicy === 'remove' ? 'selected' : ''}>Für dieses Event entfernen</option></select></label>
+            </div>
+            <div class="evs-form-row-head evs-sound-snippet-list-head">
+              <div>
+                <strong>Sound-Schnipsel</strong>
+                <small>Audio + Antwortvarianten + optionales Video. Bestehende Auswahl bleibt beim Hinzufügen sichtbar.</small>
+              </div>
+              <button type="button" class="evs-btn evs-btn-secondary evs-btn-small" data-evs-action="addSoundSnippet">+ Schnipsel hinzufügen</button>
+            </div>
+            <div class="evs-sound-snippet-list" data-evs-sound-snippet-list>
+              ${snippets.map((item, index) => renderSoundSnippetEditor(item, index, snippets.length)).join('')}
+            </div>
+            <small class="evs-help">Das Event speichert nur Media-IDs/Referenzen. Wiedergabe und Upload bleiben beim vorhandenen Media-System.</small>
+            <div class="evs-modal-actions">
+              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="closeSubEditor">Zurück</button>
+              <button type="button" class="evs-btn" data-evs-action="applySoundEditor">Übernehmen</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
 
-    payload.soundConfig = {
-      answerSeconds: Number(document.getElementById('evsSoundAnswerSeconds')?.value || 20),
+  function renderTextEditorModal(event){
+    const text = event.textConfig || {};
+    const phrases = Array.isArray(text.phrases) && text.phrases.length ? text.phrases : [{}];
+    const partialMode = text.partialHintVisibility || text.partialHintDisplayMode || (text.hintTokensEnabled === false || text.partialHintsEnabled === false ? 'off' : (text.partialHintWithSentence === true ? 'with_sentence' : 'general'));
+    const showPartialCount = text.showPartialCount === true || text.partialHintShowCount === true;
+    const wordPointsEnabled = text.wordPointsEnabled === true;
+    return `
+      <div class="evs-submodal-backdrop" data-evs-submodal-close="1">
+        <div class="evs-modal glass evs-submodal evs-text-editor-modal" role="dialog" aria-modal="true">
+          <div class="evs-modal-head">
+            <div><h3>Text-Spiel bearbeiten</h3><p>Geheimsätze, Antwortvarianten, Punkte und Teiltreffer-Regeln für dieses Event.</p></div>
+            <button type="button" class="evs-icon-btn" data-evs-action="closeSubEditor">×</button>
+          </div>
+          <div class="evs-form" data-evs-text-editor>
+            <div class="evs-text-rule-note">
+              <strong>Regel:</strong> Ein Text-Spiel kann mehrere geheime Sätze enthalten. Pro Satz gewinnt der erste komplette Löser. Danach ist nur dieser Satz erledigt und kommt aus der Rotation.
+            </div>
+            <div class="evs-form-row-head">
+              <div>
+                <strong>Geheime Sätze</strong>
+                <small>Pflicht · jeder Satz ist einzeln lösbar und kann eigene Antwortvarianten/Punkte haben</small>
+              </div>
+              <button type="button" class="evs-btn evs-btn-secondary evs-btn-small" data-evs-action="addPhrase">+ Satz hinzufügen</button>
+            </div>
+            <div class="evs-phrase-list">
+              ${phrases.map((item, index) => renderPhraseEditor(item, index, phrases.length)).join('')}
+            </div>
+            <div class="evs-partial-hints-box">
+              <div class="evs-form-row-head">
+                <div>
+                  <strong>Teiltreffer & Wortpunkte</strong>
+                  <small>Optional · User können Hinweise oder Punkte bekommen, wenn sie neue Wörter aus einem Satz treffen</small>
+                </div>
+                <span class="evs-badge evs-badge-muted">Optional</span>
+              </div>
+              <div class="evs-two-cols evs-text-config-grid">
+                <label>Teiltreffer melden<select id="evsTextPartialHintVisibility"><option value="off" ${partialMode === 'off' ? 'selected' : ''}>Nicht melden</option><option value="general" ${partialMode === 'general' ? 'selected' : ''}>Allgemein melden</option><option value="with_sentence" ${partialMode === 'with_sentence' ? 'selected' : ''}>Mit Satznummer melden</option></select></label>
+                <label>Zusätzlicher Cooldown in Sekunden<input id="evsTextPartialHintCooldown" type="number" min="0" value="${esc(text.partialHintCooldownSeconds ?? text.hintCooldownSeconds ?? 0)}"></label>
+              </div>
+              <div class="evs-choice-row evs-choice-row-compact">
+                <label class="evs-check evs-check-compact"><input id="evsTextShowPartialCount" type="checkbox" ${showPartialCount ? 'checked' : ''}> Anzahl gefundener Wörter anzeigen</label>
+                <label class="evs-check evs-check-compact"><input id="evsTextWordPointsEnabled" type="checkbox" ${wordPointsEnabled ? 'checked' : ''}> Punkte für gefundene Wörter</label>
+              </div>
+              <div class="evs-two-cols evs-text-config-grid">
+                <label>Punkte pro neues Wort<input id="evsTextPointsPerWord" type="number" min="0" value="${esc(text.pointsPerNewWord ?? text.wordPointsPerNewWord ?? 1)}"></label>
+                <label>Max. Wortpunkte pro User/Satz<input id="evsTextMaxWordPoints" type="number" min="0" value="${esc(text.maxWordPointsPerUserPhrase ?? text.maxWordPointsPerUserAndPhrase ?? 5)}"></label>
+              </div>
+              <small class="evs-help">Ein Wort zählt pro Event, Satz und User nur einmal. Wortpunkte sind optional und werden später in der Chat-Runtime umgesetzt.</small>
+            </div>
+            <div class="evs-modal-actions">
+              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="closeSubEditor">Zurück</button>
+              <button type="button" class="evs-btn" data-evs-action="applyTextEditor">Übernehmen</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderModal(){
+    const event = ensureModalEventDefaults(modalEvent());
+    state.modal.event = event;
+    return `
+      ${renderMainEventModal(event)}
+      ${state.modal?.editor === 'sound' ? renderSoundEditorModal(event) : ''}
+      ${state.modal?.editor === 'text' ? renderTextEditorModal(event) : ''}
+    `;
+  }
+
+  function readSoundConfigFromDom(fallback = {}){
+    const answerEl = document.getElementById('evsSoundAnswerSeconds');
+    const policyEl = document.getElementById('evsSoundUnresolvedPolicy');
+    return {
+      ...(fallback || {}),
+      answerSeconds: Number(answerEl?.value || fallback.answerSeconds || fallback.defaultAnswerSeconds || 20),
       solvedPolicy: 'remove_from_rotation',
-      unresolvedPolicy: document.getElementById('evsSoundUnresolvedPolicy')?.value || 'requeue_later',
-      snippets: collectSoundSnippets(false)
+      unresolvedPolicy: policyEl?.value || fallback.unresolvedPolicy || 'requeue_later',
+      snippets: collectSoundSnippets(true, fallback.snippets || [])
     };
+  }
 
+  function readTextConfigFromDom(fallback = {}){
+    const basePhrases = Array.isArray(fallback.phrases) ? fallback.phrases : [];
     const phraseRows = Array.from(document.querySelectorAll('[data-evs-phrase-row]'));
-    const phrases = phraseRows.map(row => {
+    const phrases = phraseRows.length ? phraseRows.map(row => {
       const phraseText = row.querySelector('[data-evs-phrase-text]')?.value || '';
       const phraseAnswers = splitCsv(row.querySelector('[data-evs-phrase-answers]')?.value || '');
       const pointsFirst = Number(row.querySelector('[data-evs-phrase-points]')?.value || 40);
       return { phrase: phraseText, acceptedAnswers: phraseAnswers, pointsFirst, solvedPolicy: 'remove_from_rotation' };
-    }).filter(item => item.phrase || item.acceptedAnswers.length);
+    }).filter(item => item.phrase || item.acceptedAnswers.length) : basePhrases;
 
-    const partialHintVisibility = document.getElementById('evsTextPartialHintVisibility')?.value || 'off';
+    const partialHintVisibility = document.getElementById('evsTextPartialHintVisibility')?.value || fallback.partialHintVisibility || fallback.partialHintDisplayMode || 'off';
     const partialHintsEnabled = partialHintVisibility !== 'off';
-    payload.textConfig = {
+    return {
+      ...(fallback || {}),
       allowFollowupSolves: false,
       winnerMode: 'first_complete_solver',
       solvedPolicy: 'remove_from_rotation',
@@ -1526,21 +1655,49 @@ window.StreamEventsModule = (function(){
       partialHintsEnabled,
       partialHintMode: 'new_words_per_user',
       uniqueWordsPerUser: true,
-      showPartialCount: document.getElementById('evsTextShowPartialCount')?.checked === true,
-      wordPointsEnabled: document.getElementById('evsTextWordPointsEnabled')?.checked === true,
-      pointsPerNewWord: Number(document.getElementById('evsTextPointsPerWord')?.value || 0),
-      maxWordPointsPerUserPhrase: Number(document.getElementById('evsTextMaxWordPoints')?.value || 0),
-      partialHintCooldownSeconds: Number(document.getElementById('evsTextPartialHintCooldown')?.value || 0),
+      showPartialCount: document.getElementById('evsTextShowPartialCount')?.checked ?? fallback.showPartialCount === true,
+      wordPointsEnabled: document.getElementById('evsTextWordPointsEnabled')?.checked ?? fallback.wordPointsEnabled === true,
+      pointsPerNewWord: Number(document.getElementById('evsTextPointsPerWord')?.value || fallback.pointsPerNewWord || 0),
+      maxWordPointsPerUserPhrase: Number(document.getElementById('evsTextMaxWordPoints')?.value || fallback.maxWordPointsPerUserPhrase || 0),
+      partialHintCooldownSeconds: Number(document.getElementById('evsTextPartialHintCooldown')?.value || fallback.partialHintCooldownSeconds || 0),
       phrases
     };
+  }
 
-    return payload;
+  function syncVisibleEditorToState(){
+    if (!state.modal?.event) return;
+    syncModalBasicsFromDom();
+    const event = ensureModalEventDefaults(state.modal.event);
+    if (document.querySelector('[data-evs-sound-editor]')) {
+      event.soundConfig = readSoundConfigFromDom(event.soundConfig || {});
+    }
+    if (document.querySelector('[data-evs-text-editor]')) {
+      event.textConfig = readTextConfigFromDom(event.textConfig || {});
+    }
+    state.modal.event = event;
+  }
+
+  function readModalPayload(){
+    syncVisibleEditorToState();
+    const event = ensureModalEventDefaults(state.modal?.event || {});
+    return {
+      name: event.name || '',
+      description: event.description || '',
+      soundEnabled: event.soundEnabled === true,
+      textEnabled: event.textEnabled === true,
+      soundConfig: event.soundConfig || {},
+      textConfig: event.textConfig || {}
+    };
   }
 
   function splitCsv(value){ return String(value || '').split(',').map(v => v.trim()).filter(Boolean); }
 
-  function collectSoundSnippets(keepEmpty = false){
+  function collectSoundSnippets(keepEmpty = false, fallbackSnippets = []){
     const rows = Array.from(document.querySelectorAll('[data-evs-sound-snippet-row]'));
+    if (!rows.length) {
+      const fallback = Array.isArray(fallbackSnippets) ? fallbackSnippets : [];
+      return keepEmpty ? fallback : fallback.filter(item => item?.title || item?.mediaId || item?.mediaPath || item?.file || (Array.isArray(item?.acceptedAnswers) && item.acceptedAnswers.length) || item?.revealVideoMediaId);
+    }
     return rows.map(row => {
       const title = row.querySelector('[data-evs-snippet-title]')?.value || '';
       const mediaId = row.querySelector('[data-evs-snippet-media]')?.value || '';
@@ -1548,6 +1705,29 @@ window.StreamEventsModule = (function(){
       const revealVideoMediaId = row.querySelector('[data-evs-snippet-video]')?.value || '';
       return { title, mediaId, acceptedAnswers, revealVideoMediaId };
     }).filter(item => keepEmpty || item.title || item.mediaId || item.acceptedAnswers.length || item.revealVideoMediaId);
+  }
+
+  function reindexSoundSnippetRows(){
+    const rows = Array.from(document.querySelectorAll('[data-evs-sound-snippet-row]'));
+    rows.forEach((row, index) => {
+      row.dataset.index = String(index);
+      row.querySelectorAll('[data-index]').forEach(el => { el.dataset.index = String(index); });
+      const title = row.querySelector('.evs-sound-card-required .evs-sound-card-head strong');
+      if (title) title.textContent = `Audio-Schnipsel ${index + 1}`;
+    });
+    const removeButtons = Array.from(document.querySelectorAll('[data-evs-action="removeSoundSnippet"]'));
+    removeButtons.forEach(btn => { btn.disabled = rows.length <= 1; });
+  }
+
+  function appendSoundSnippetDom(){
+    const list = document.querySelector('[data-evs-sound-snippet-list]');
+    if (!list) return false;
+    const index = list.querySelectorAll('[data-evs-sound-snippet-row]').length;
+    list.insertAdjacentHTML('beforeend', renderSoundSnippetEditor({ title: '', mediaId: '', acceptedAnswers: [], revealVideoMediaId: '' }, index, index + 1));
+    const newRow = list.querySelector(`[data-evs-sound-snippet-row][data-index="${index}"]`);
+    attachMediaFields(newRow || list);
+    reindexSoundSnippetRows();
+    return true;
   }
 
   function readConfigPayload(){
@@ -2016,17 +2196,32 @@ window.StreamEventsModule = (function(){
       }
       if (action === 'edit') { const event = await loadEvent(uid); state.modal = { event }; render(); return; }
       if (action === 'closeModal') { state.modal = null; render(); return; }
+      if (action === 'openSoundEditor') { syncModalBasicsFromDom(); state.modal.editor = 'sound'; render(); return; }
+      if (action === 'openTextEditor') { syncModalBasicsFromDom(); state.modal.editor = 'text'; render(); return; }
+      if (action === 'closeSubEditor') { syncVisibleEditorToState(); state.modal.editor = null; render(); return; }
+      if (action === 'applySoundEditor') { syncVisibleEditorToState(); state.modal.editor = null; render(); return; }
+      if (action === 'applyTextEditor') { syncVisibleEditorToState(); state.modal.editor = null; render(); return; }
       if (action === 'addSoundSnippet') {
+        syncVisibleEditorToState();
+        if (appendSoundSnippetDom()) return;
         const payload = readModalPayload();
-        const snippets = collectSoundSnippets(true);
+        const snippets = collectSoundSnippets(true, payload.soundConfig?.snippets || []);
         snippets.push({ title: '', mediaId: '', acceptedAnswers: [], revealVideoMediaId: '' });
         state.modal.event = { ...(state.modal.event || {}), ...payload, soundConfig: { ...(payload.soundConfig || {}), snippets } };
         render();
         return;
       }
       if (action === 'removeSoundSnippet') {
+        const row = btn.closest('[data-evs-sound-snippet-row]');
+        const rows = Array.from(document.querySelectorAll('[data-evs-sound-snippet-row]'));
+        if (row && rows.length > 1) {
+          row.remove();
+          reindexSoundSnippetRows();
+          syncVisibleEditorToState();
+          return;
+        }
         const payload = readModalPayload();
-        const snippets = collectSoundSnippets(true);
+        const snippets = collectSoundSnippets(true, payload.soundConfig?.snippets || []);
         const index = Number(btn.dataset.index || -1);
         if (index >= 0 && snippets.length > 1) snippets.splice(index, 1);
         if (!snippets.length) snippets.push({ title: '', mediaId: '', acceptedAnswers: [], revealVideoMediaId: '' });
@@ -2085,6 +2280,11 @@ window.StreamEventsModule = (function(){
       }
       if (ev.target.dataset?.evsUserModalClose === '1') {
         closeUserStatsModal();
+      }
+      if (ev.target.dataset?.evsSubmodalClose === '1') {
+        syncVisibleEditorToState();
+        if (state.modal) state.modal.editor = null;
+        render();
       }
     });
 

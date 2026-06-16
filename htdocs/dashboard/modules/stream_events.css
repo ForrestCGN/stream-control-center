@@ -361,3 +361,19 @@
 .stream-events-admin .evs-sound-snippet>summary .evs-btn{flex:0 0 auto}
 .stream-events-admin .evs-sound-snippet .evs-sound-media-grid{padding:0 12px 12px;margin-top:0}
 @media(max-width:720px){.stream-events-admin .evs-sound-snippet>summary{display:grid}.stream-events-admin .evs-sound-snippet>summary .evs-btn{width:100%}}
+
+/* EVS-26B: getrennte Editor-Fenster für Sound-Schnipsel und Text-Spiel */
+.stream-events-admin .evs-event-main-modal{width:min(820px,calc(100vw - 28px))}
+.stream-events-admin .evs-editor-summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:2px}
+.stream-events-admin .evs-editor-summary-card{border:1px solid rgba(34,211,238,.18);background:rgba(255,255,255,.035);border-radius:16px;padding:13px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;min-width:0}
+.stream-events-admin .evs-editor-summary-card.is-enabled{border-color:rgba(34,211,238,.34);box-shadow:0 0 18px rgba(34,211,238,.06)}
+.stream-events-admin .evs-editor-summary-card.is-disabled{border-color:rgba(148,163,184,.18);opacity:.88}
+.stream-events-admin .evs-editor-summary-title{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:4px}
+.stream-events-admin .evs-editor-summary-title strong{color:#f8fafc;font-size:15px}
+.stream-events-admin .evs-editor-summary-card p{font-size:12px;line-height:1.35;margin:0 0 9px;color:var(--evs-muted)}
+.stream-events-admin .evs-editor-summary-badges{display:flex;flex-wrap:wrap;gap:6px}
+.stream-events-admin .evs-editor-summary-badges span{border:1px solid rgba(255,255,255,.10);background:rgba(2,6,23,.28);border-radius:999px;padding:4px 8px;color:#cbd5e1;font-size:11px;font-weight:800}
+.stream-events-admin .evs-submodal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.50);z-index:92;display:grid;place-items:center;padding:24px}
+.stream-events-admin .evs-submodal{width:min(1040px,calc(100vw - 28px));max-height:calc(100vh - 42px);overflow:auto;padding:18px;box-shadow:0 0 36px rgba(34,211,238,.13),0 0 80px rgba(0,0,0,.34)}
+.stream-events-admin .evs-sound-editor-modal .evs-sound-snippet-list,.stream-events-admin .evs-text-editor-modal .evs-phrase-list{max-height:none}
+@media(max-width:900px){.stream-events-admin .evs-editor-summary-grid{grid-template-columns:1fr}.stream-events-admin .evs-editor-summary-card{grid-template-columns:1fr}.stream-events-admin .evs-editor-summary-card .evs-btn{width:100%;justify-content:center}}
