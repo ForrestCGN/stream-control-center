@@ -3097,26 +3097,17 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
   function renderRaffleConfigCard(){
     const data = state.raffleConfig || {};
     const cfg = data.config || data.raffle?.config || {};
-    const runtime = data.runtime || data.raffle || {};
-    const textKeys = Array.isArray(data.textKeys) ? data.textKeys : [];
-    const winnerRule = Array.isArray(data.winnerRule) ? data.winnerRule : [];
     const error = data.ok === false ? `<div class="lg-warning">Raffle-Konfiguration konnte nicht geladen werden: ${esc(data.error || 'Unbekannter Fehler')}</div>` : '';
     return `
       <div class="lg-panel">
         <div class="lg-panel-head">
           <div>
             <h3>Raffle-Konfiguration</h3>
-            <p class="lg-muted">Dauerhafte Raffle-Einstellungen. Die Bedien-/Statusansicht bleibt im Tab „Mini-Spiele“.</p>
+            <p class="lg-muted">Dauerhafte Einstellungen für das Raffle. Status, Gewinnerregel und Textvarianten bleiben in Mini-Spiele bzw. Texte.</p>
           </div>
           <button class="lg-btn lg-btn-secondary" data-lg-raffle-reload type="button">Neu laden</button>
         </div>
         ${error}
-        <div class="lg-grid lg-grid-4 lg-mini-kpi-grid">
-          <article class="lg-kpi lg-mini-kpi"><span>Status</span><strong>${esc(statusLabel(runtime.status || 'idle'))}</strong><small>${runtime.active ? 'läuft' : 'inaktiv'}</small></article>
-          <article class="lg-kpi lg-mini-kpi"><span>Teilnehmer</span><strong>${fmtNumber(runtime.participantCount || 0)}</strong><small>aktueller/letzter Lauf</small></article>
-          <article class="lg-kpi lg-mini-kpi"><span>Raffle-Gewinn gesamt</span><strong>${fmtNumber(cfg.prizePoolAmount || runtime.prizePoolAmount || 0)}</strong><small>wird intern auf Gewinner aufgeteilt</small></article>
-          <article class="lg-kpi lg-mini-kpi"><span>Dauer</span><strong>${fmtNumber(cfg.durationSeconds || runtime.durationSeconds || 120)}s</strong><small>Standardlaufzeit</small></article>
-        </div>
         ${renderRaffleResultBox()}
         <form class="lg-form lg-gamble-form lg-raffle-form" data-lg-raffle-form>
           <div class="lg-grid lg-editor-grid">
@@ -3132,37 +3123,14 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
             <label class="lg-check-row"><span><strong>Teilnahmekosten aktiv</strong><br><small class="lg-muted">Aktuell vorbereitet; Standard bleibt kostenlos.</small></span><input type="checkbox" name="entryCostEnabled" ${cfg.entryCostEnabled ? 'checked' : ''}></label>
             <label><span>Teilnahmekosten</span><input type="number" name="entryCostAmount" min="0" step="1" value="${esc(cfg.entryCostAmount || 0)}"></label>
           </div>
-          <div class="lg-warning">Chat-Regel: Der Pool wird nie öffentlich angezeigt. Gewinner sehen nur Gewinnerliste und Gewinnbetrag.</div>
+          <div class="lg-warning">Chat-Regel: Der Pool wird nie öffentlich angezeigt.</div>
           <div class="lg-actions">
             <button class="lg-btn" type="button" data-lg-raffle-save ${state.saving ? 'disabled' : ''}>Raffle speichern</button>
-            <button class="lg-btn lg-btn-secondary" type="button" data-lg-open-text-section="raffle">Raffle-Texte bearbeiten</button>
           </div>
         </form>
-        <div class="lg-grid lg-editor-grid lg-raffle-detail-grid">
-          <div class="lg-note-card lg-raffle-rule-card">
-            <h4>Gewinnerregel</h4>
-            <p class="lg-muted">Die Anzahl der Gewinner wird automatisch aus der Teilnehmerzahl berechnet.</p>
-            <div class="lg-raffle-rule-list">
-              ${winnerRule.length ? winnerRule.map(rule => `
-                <div class="lg-raffle-rule-row">
-                  <span>${esc(rule.min)}${rule.max ? `–${esc(rule.max)}` : '+'} Teilnehmer</span>
-                  <strong>${esc(rule.winners || '-')}</strong>
-                </div>
-              `).join('') : '<div class="lg-raffle-rule-row"><span>Regel</span><strong>Standardregel aktiv</strong></div>'}
-            </div>
-          </div>
-          <div class="lg-note-card lg-raffle-textkey-card">
-            <h4>Textkeys</h4>
-            <p class="lg-muted">Die Varianten bleiben im zentralen Loyalty-Texte-Bereich.</p>
-            <div class="lg-raffle-key-list">
-              ${textKeys.length ? textKeys.map(key => `<code>${esc(key)}</code>`).join('') : '<span class="lg-muted">Keine Textkeys geladen.</span>'}
-            </div>
-          </div>
-        </div>
       </div>
     `;
   }
-
 
   function renderRaffleOverviewCard(){
     const data = state.raffleConfig || {};
