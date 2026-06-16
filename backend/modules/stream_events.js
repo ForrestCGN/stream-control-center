@@ -20,8 +20,8 @@ let streamStatusModule = null;
 try { streamStatusModule = require("./stream_status"); } catch (_) { streamStatusModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.23";
-const MODULE_BUILD = "STEP_SOUND_SAFE_1_SOUND_EXTENSION_PLAN";
+const MODULE_VERSION = "0.5.24";
+const MODULE_BUILD = "STEP_EVENT_RUNTIME_1_READONLY_OVERLAY_STATE";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -194,7 +194,9 @@ const DEFAULT_EVENT_CONFIG = {
   overlayDefaults: {
     showTop3: true,
     showCurrentRound: true,
-    showPartialHints: true
+    showPartialHints: true,
+    runtimeOverlayEnabled: true,
+    runtimeOverlayPollMs: 900
   },
   chatOutputDefaults: {
     dispatcherEnabled: false,
@@ -616,6 +618,8 @@ function normalizeEventConfig(input = {}) {
   cfg.overlayDefaults.showTop3 = boolValue(cfg.overlayDefaults.showTop3, true);
   cfg.overlayDefaults.showCurrentRound = boolValue(cfg.overlayDefaults.showCurrentRound, true);
   cfg.overlayDefaults.showPartialHints = boolValue(cfg.overlayDefaults.showPartialHints, true);
+  cfg.overlayDefaults.runtimeOverlayEnabled = boolValue(cfg.overlayDefaults.runtimeOverlayEnabled, true);
+  cfg.overlayDefaults.runtimeOverlayPollMs = clampNumber(cfg.overlayDefaults.runtimeOverlayPollMs, 300, 5000, 900);
 
   cfg.chatOutputDefaults = cfg.chatOutputDefaults && typeof cfg.chatOutputDefaults === "object" ? cfg.chatOutputDefaults : {};
   cfg.chatOutputDefaults.dispatcherEnabled = boolValue(cfg.chatOutputDefaults.dispatcherEnabled, false);
@@ -2361,6 +2365,202 @@ function buildSoundRuntimeSafetyPlan(eventUid = "") {
 }
 
 
+function publicRoundOverlaySummary(round, options = {}) {
+  if (!round) return null;
+  const reveal = options.reveal === true;
+  const config = round.config && typeof round.config === "object" ? round.config : {};
+  const snippet = config.snippet && typeof config.snippet === "object" ? config.snippet : {};
+  const resultData = round.resultData && typeof round.resultData === "object" ? round.resultData : {};
+  const answerSeconds = clampNumber(config.answerSeconds, 0, 3600, 0);
+  return {
+    roundUid: round.roundUid || "",
+    eventUid: round.eventUid || "",
+    gameType: round.gameType || "sound",
+    status: round.status || "",
+    startedAt: round.startedAt || "",
+    finishedAt: round.finishedAt || "",
+    answerSeconds,
+    itemVisible: reveal,
+    item: reveal ? {
+      title: cleanString(snippet.title || snippet.name || ""),
+      mediaId: cleanString(snippet.mediaId || snippet.media_id || ""),
+      points: clampNumber(snippet.points, 0, 10000, 0),
+      result: cleanString(round.result || resultData.result || "")
+    } : {
+      titleHidden: true,
+      mediaHidden: true,
+      reason: "active_answer_window_or_viewer_safe_state"
+    }
+  };
+}
+
+function buildRuntimeOverlayPhase(event, activeRound, latestRound) {
+  if (!event) {
+    return { key: "idle", label: "Kein aktives Event", visible: false, reason: "no_event" };
+  }
+  const status = normalizeStatus(event.status, event.status || STATUS.DRAFT);
+  if (status === STATUS.DRAFT || status === STATUS.READY) {
+    return { key: "event_ready", label: "Event bereit", visible: false, reason: `event_${status}` };
+  }
+  if (status === STATUS.CANCELLED) {
+    return { key: "cancelled", label: "Event abgebrochen", visible: true, reason: "event_cancelled" };
+  }
+  if (status === STATUS.ARCHIVED) {
+    return { key: "archived", label: "Event archiviert", visible: false, reason: "event_archived" };
+  }
+  if (status === STATUS.FINISHED) {
+    return { key: "finished", label: "Event beendet", visible: true, reason: "event_finished" };
+  }
+  if (status === STATUS.ACTIVE) {
+    if (event.soundEnabled && activeRound) {
+      return { key: "sound_answer_window", label: "Soundrunde aktiv", visible: true, reason: "active_sound_round" };
+    }
+    if (event.soundEnabled && latestRound && latestRound.status === "solved") {
+      return { key: "sound_solved", label: "Sound erkannt", visible: true, reason: "latest_sound_round_solved" };
+    }
+    if (event.soundEnabled && latestRound && latestRound.status === "unresolved") {
+      return { key: "sound_unresolved", label: "Sound nicht erkannt", visible: true, reason: "latest_sound_round_unresolved" };
+    }
+    if (event.soundEnabled) {
+      return { key: "sound_waiting", label: "Soundrunde wartet", visible: true, reason: "sound_enabled_no_active_round" };
+    }
+    if (event.textEnabled) {
+      return { key: "text_active", label: "Textevent aktiv", visible: true, reason: "text_event_active" };
+    }
+    return { key: "event_active", label: "Event aktiv", visible: true, reason: "event_active_without_runtime" };
+  }
+  return { key: "unknown", label: "Eventstatus unbekannt", visible: false, reason: `status_${status || "unknown"}` };
+}
+
+function buildRuntimeOverlayDisplay(event, phase, activeRound, latestRound, ranking) {
+  const eventName = event ? cleanString(event.name || "Event") : "Eventsystem";
+  const top3 = ranking && Array.isArray(ranking.top3) ? ranking.top3.map(row => ({
+    rank: row.rank,
+    userLogin: row.userLogin,
+    userDisplayName: row.userDisplayName,
+    points: row.points
+  })) : [];
+  let headline = "Eventsystem";
+  let subline = "Bereit";
+  if (phase.key === "idle") {
+    headline = "Eventsystem";
+    subline = "Kein aktives Event";
+  } else if (phase.key === "sound_answer_window") {
+    headline = "Soundrunde läuft";
+    subline = "Jetzt im Chat raten!";
+  } else if (phase.key === "sound_solved") {
+    headline = "Richtig erkannt";
+    subline = "Die Heimleitung notiert die Punkte.";
+  } else if (phase.key === "sound_unresolved") {
+    headline = "Nicht erkannt";
+    subline = "Der Schnipsel bleibt erstmal in der CGN-Schublade.";
+  } else if (phase.key === "sound_waiting") {
+    headline = eventName;
+    subline = "Nächste Soundrunde wird vorbereitet.";
+  } else if (phase.key === "text_active") {
+    headline = eventName;
+    subline = "Textrunde aktiv.";
+  } else if (phase.key === "finished") {
+    headline = `${eventName} beendet`;
+    subline = top3.length ? "Die Rentnerwertung ist ausgezählt." : "Die Heimleitung zählt nach.";
+  } else if (phase.key === "cancelled") {
+    headline = `${eventName} abgebrochen`;
+    subline = "Die Runde wurde gestoppt.";
+  } else {
+    headline = eventName;
+    subline = phase.label || "Event aktiv";
+  }
+  const roundForTimer = activeRound || latestRound || null;
+  const answerSeconds = roundForTimer && roundForTimer.config ? clampNumber(roundForTimer.config.answerSeconds, 0, 3600, 0) : 0;
+  return {
+    headline,
+    subline,
+    eventName,
+    phaseLabel: phase.label || "",
+    answerSeconds,
+    showCountdown: phase.key === "sound_answer_window" && answerSeconds > 0,
+    showTop3: top3.length > 0,
+    top3
+  };
+}
+
+function getRuntimeOverlayState(eventUid = "") {
+  ensureSchema();
+  const selectedEvent = cleanString(eventUid) ? getEventByUid(eventUid) : getActiveEvent();
+  const uid = selectedEvent ? selectedEvent.eventUid : cleanString(eventUid);
+  const activeEvent = getActiveEvent();
+  const activeRound = uid ? getActiveSoundRound(uid) : null;
+  const latestRound = uid ? (getSoundRounds(uid, 1)[0] || null) : null;
+  const runtimeConfig = selectedEvent ? getSoundRuntimeConfig(selectedEvent) : getSoundRuntimeConfig(null);
+  const phase = buildRuntimeOverlayPhase(selectedEvent, activeRound, latestRound);
+  const ranking = uid ? getRanking(uid) : { ok: true, eventUid: "", count: 0, rows: [], top3: [] };
+  const revealLatest = ["sound_solved", "sound_unresolved", "finished", "cancelled"].includes(phase.key);
+  const overlayConfig = (getEventConfig().config || DEFAULT_EVENT_CONFIG).overlayDefaults || DEFAULT_EVENT_CONFIG.overlayDefaults;
+
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    step: "EVENT-RUNTIME-1",
+    purpose: "Read-only State-Vertrag fuer das spaetere kombinierte Event-Runtime-Overlay.",
+    mode: {
+      readOnly: true,
+      overlayBuilt: false,
+      directPlayback: false,
+      soundSystemQueueTouched: false,
+      audioTouched: false,
+      databaseWrite: false,
+      viewerSafe: true
+    },
+    overlay: {
+      plannedFile: "htdocs/overlays/stream_events/event_runtime_overlay.html",
+      stateRoute: "/api/stream-events/runtime-overlay/state",
+      pollMs: clampNumber(overlayConfig.runtimeOverlayPollMs, 300, 5000, 900),
+      busHeartbeatScript: "/overlays/shared/overlay_bus_client.js",
+      refreshViaBusPlanned: true,
+      moduleName: MODULE_NAME
+    },
+    activeEvent: publicEventSummary(activeEvent),
+    event: publicEventSummary(selectedEvent),
+    eventUid: uid,
+    phase,
+    display: buildRuntimeOverlayDisplay(selectedEvent, phase, activeRound, latestRound, ranking),
+    sound: {
+      enabled: !!(selectedEvent && selectedEvent.soundEnabled),
+      activeRound: publicRoundOverlaySummary(activeRound, { reveal: false }),
+      latestRound: publicRoundOverlaySummary(latestRound, { reveal: revealLatest }),
+      snippetCount: selectedEvent ? getSoundSnippets(selectedEvent).length : 0,
+      runtimeConfig: {
+        answerSeconds: runtimeConfig.answerSeconds,
+        playbackMode: runtimeConfig.playbackMode,
+        preRollEnabled: runtimeConfig.preRollEnabled,
+        preRollSeconds: runtimeConfig.preRollSeconds,
+        countdownPreRollEnabled: runtimeConfig.countdownPreRollEnabled,
+        countdownPreRollSeconds: runtimeConfig.countdownPreRollSeconds
+      },
+      preRollPlan: buildSoundPreRollPlan(runtimeConfig)
+    },
+    text: {
+      enabled: !!(selectedEvent && selectedEvent.textEnabled)
+    },
+    ranking: {
+      count: ranking.count || 0,
+      top3: Array.isArray(ranking.top3) ? ranking.top3.map(row => ({ rank: row.rank, userLogin: row.userLogin, userDisplayName: row.userDisplayName, points: row.points })) : []
+    },
+    safetyRules: {
+      noAcceptedAnswersInOverlayState: true,
+      noFullSnippetListInOverlayState: true,
+      noSoundSystemOverlayChange: true,
+      noSoundSystemPlaybackChange: true,
+      countdownOverlayWillBeEventOwned: true,
+      resultOverlayWillUseSameCombinedOverlay: true
+    },
+    updatedAt: nowIso()
+  };
+}
+
+
 function rowToRound(row) {
   if (!row) return null;
   return {
@@ -3728,6 +3928,13 @@ function buildStatus() {
     runtime: {
       counters: runtimeState.counters
     },
+    runtimeOverlay: {
+      prepared: true,
+      built: false,
+      stateRoute: "/api/stream-events/runtime-overlay/state",
+      plannedFile: "htdocs/overlays/stream_events/event_runtime_overlay.html",
+      viewerSafe: true
+    },
     updatedAt: nowIso()
   };
 }
@@ -3778,6 +3985,7 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "GET", path: `${prefix}/sound-runtime/status`, description: "Sound-Spiel Runtime Status und aktive Runde" },
       { method: "GET", path: `${prefix}/sound-runtime/report`, description: "Sound-Spiel Runtime Report fuer aktives oder angegebenes Event" },
       { method: "GET", path: `${prefix}/sound-runtime/safety-plan`, description: "SOUND-SAFE-1: Read-only Plan fuer Sound-System-Erweiterungspunkt, PreRoll/Countdown und Tests" },
+      { method: "GET", path: `${prefix}/runtime-overlay/state`, description: "EVENT-RUNTIME-1: Viewer-sicherer Read-only State fuer das spaetere kombinierte Event-Runtime-Overlay" },
       { method: "GET", path: `${prefix}/statistics/users`, description: "Statistik-Userliste fuer Dropdown/Filter, optional eventUid" },
       { method: "GET", path: `${prefix}/statistics/user/:login`, description: "User-Detailstatistik fuer Text/Sound/Punkte, optional eventUid" },
       { method: "POST", path: `${prefix}/text-runtime/test-chat`, description: "Testet eine Chatnachricht gegen das aktive Text-Event" },
@@ -3815,6 +4023,7 @@ function publicRoutes(prefix = "/api/stream-events") {
     ],
     notes: [
       "SOUND-SAFE-1 legt nur den Erweiterungspunkt fuer EventSound-Playback + Countdown-PreRoll fest; kein direktes Sound-/Video-Playback und kein Queue-Touch.",
+      "EVENT-RUNTIME-1 liefert nur einen viewer-sicheren Overlay-State-Vertrag; das kombinierte Overlay wird noch nicht gebaut.",
       "Sound/Text-Konfiguration wird als DB-Snapshot am Event gespeichert.",
       "Nur ein aktives Event gleichzeitig."
     ]
@@ -3951,6 +4160,14 @@ module.exports.init = function init(ctx) {
   reg("get", `${prefix}/sound-runtime/safety-plan`, (req, res) => {
     try {
       sendJson(res, buildSoundRuntimeSafetyPlan(req.query.eventUid || req.query.event_uid || ""));
+    } catch (err) {
+      handleError(res, err);
+    }
+  });
+
+  reg("get", `${prefix}/runtime-overlay/state`, (req, res) => {
+    try {
+      sendJson(res, getRuntimeOverlayState(req.query.eventUid || req.query.event_uid || ""));
     } catch (err) {
       handleError(res, err);
     }
