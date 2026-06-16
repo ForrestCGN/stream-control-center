@@ -20,8 +20,8 @@ let streamStatusModule = null;
 try { streamStatusModule = require("./stream_status"); } catch (_) { streamStatusModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.22";
-const MODULE_BUILD = "STEP_EVS_27C_FIX2_EDITOR_REGRESSION_FIX";
+const MODULE_VERSION = "0.5.23";
+const MODULE_BUILD = "STEP_SOUND_SAFE_1_SOUND_EXTENSION_PLAN";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -174,6 +174,10 @@ const DEFAULT_EVENT_CONFIG = {
     minRepeatDistance: 3,
     revealVideoEnabled: true,
     revealVideoMode: "after_solved",
+    preRollEnabled: false,
+    preRollSeconds: 3,
+    countdownPreRollEnabled: false,
+    countdownPreRollSeconds: 3,
     manualTriggerEnabled: true
   },
   textDefaults: {
@@ -593,6 +597,10 @@ function normalizeEventConfig(input = {}) {
   cfg.soundDefaults.minRepeatDistance = clampNumber(cfg.soundDefaults.minRepeatDistance, 0, 100, 3);
   cfg.soundDefaults.revealVideoEnabled = boolValue(cfg.soundDefaults.revealVideoEnabled, true);
   cfg.soundDefaults.revealVideoMode = normalizePolicy(cfg.soundDefaults.revealVideoMode, ["after_solved", "manual", "disabled"], cfg.soundDefaults.revealVideoEnabled === false ? "disabled" : "after_solved");
+  cfg.soundDefaults.preRollEnabled = boolValue(cfg.soundDefaults.preRollEnabled, false);
+  cfg.soundDefaults.preRollSeconds = clampNumber(cfg.soundDefaults.preRollSeconds, 0, 30, 3);
+  cfg.soundDefaults.countdownPreRollEnabled = boolValue(cfg.soundDefaults.countdownPreRollEnabled, false);
+  cfg.soundDefaults.countdownPreRollSeconds = clampNumber(cfg.soundDefaults.countdownPreRollSeconds, 0, 30, 3);
   cfg.soundDefaults.manualTriggerEnabled = true;
 
   cfg.textDefaults.defaultPhrasePoints = clampNumber(cfg.textDefaults.defaultPhrasePoints, 0, 10000, 40);
@@ -1002,7 +1010,11 @@ function normalizeSoundEventSettings(config = {}, defaults = null) {
     avoidImmediateRepeat: raw.avoidImmediateRepeat !== undefined ? boolValue(raw.avoidImmediateRepeat) : boolValue(base.avoidImmediateRepeat, true),
     minRepeatDistance: clampNumber(raw.minRepeatDistance ?? base.minRepeatDistance, 0, 100, 3),
     revealVideoEnabled: raw.revealVideoEnabled !== undefined ? boolValue(raw.revealVideoEnabled) : boolValue(base.revealVideoEnabled, true),
-    revealVideoMode: normalizePolicy(raw.revealVideoMode ?? base.revealVideoMode, ["after_solved", "manual", "disabled"], raw.revealVideoEnabled === false ? "disabled" : "after_solved")
+    revealVideoMode: normalizePolicy(raw.revealVideoMode ?? base.revealVideoMode, ["after_solved", "manual", "disabled"], raw.revealVideoEnabled === false ? "disabled" : "after_solved"),
+    preRollEnabled: raw.preRollEnabled !== undefined ? boolValue(raw.preRollEnabled) : boolValue(base.preRollEnabled, false),
+    preRollSeconds: clampNumber(raw.preRollSeconds ?? base.preRollSeconds, 0, 30, 3),
+    countdownPreRollEnabled: raw.countdownPreRollEnabled !== undefined ? boolValue(raw.countdownPreRollEnabled) : boolValue(base.countdownPreRollEnabled, false),
+    countdownPreRollSeconds: clampNumber(raw.countdownPreRollSeconds ?? base.countdownPreRollSeconds, 0, 30, 3)
   };
 }
 
@@ -1058,6 +1070,10 @@ function validateSoundConfig(config = {}) {
       minRepeatDistance: raw.minRepeatDistance,
       revealVideoEnabled: raw.revealVideoEnabled,
       revealVideoMode: raw.revealVideoMode,
+      preRollEnabled: raw.preRollEnabled,
+      preRollSeconds: raw.preRollSeconds,
+      countdownPreRollEnabled: raw.countdownPreRollEnabled,
+      countdownPreRollSeconds: raw.countdownPreRollSeconds,
       manualTriggerEnabled: true
     }
   };
@@ -2252,6 +2268,99 @@ function buildSoundAcceptedAnswersDebug(snippet = {}) {
   };
 }
 
+function buildSoundPreRollPlan(runtimeConfig = {}) {
+  const configuredPreRoll = boolValue(runtimeConfig.preRollEnabled, false);
+  const configuredCountdown = boolValue(runtimeConfig.countdownPreRollEnabled, false);
+  const preRollSeconds = clampNumber(runtimeConfig.preRollSeconds, 0, 30, 3);
+  const countdownSeconds = clampNumber(runtimeConfig.countdownPreRollSeconds, 0, 30, preRollSeconds);
+
+  return {
+    planned: true,
+    mode: "planned_only",
+    extensionPoint: "stream_events.before_sound_system_play_request",
+    configuredPreRollEnabled: configuredPreRoll,
+    configuredCountdownEnabled: configuredCountdown,
+    effectivePreRollEnabled: false,
+    effectiveCountdownEnabled: false,
+    preRollSeconds,
+    countdownSeconds,
+    queueTouched: false,
+    audioTouched: false,
+    note: "SOUND-SAFE-1 legt nur den Erweiterungspunkt fest. PreRoll/Countdown werden noch nicht ausgefuehrt."
+  };
+}
+
+function buildSoundRuntimeSafetyPlan(eventUid = "") {
+  const status = getSoundRuntimeStatus(eventUid);
+  const runtimeConfig = status.runtimeConfig || getSoundRuntimeConfig(null);
+
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    step: "SOUND-SAFE-1",
+    purpose: "Sound-System-Pruefung und sicherer Erweiterungspunkt fuer EventSound-Playback + Countdown-PreRoll.",
+    currentMode: {
+      preparedOnly: true,
+      directPlayback: false,
+      soundSystemQueueTouched: false,
+      audioTouched: false
+    },
+    soundSystemEntryPoints: {
+      readOnlyContract: "/api/sound/eventbus/command/contract",
+      safeDryRun: "/api/sound/eventbus/command/dry-run",
+      explicitManualPlayTest: "/api/sound/eventbus/command/play-test",
+      legacyProductivePlay: "/api/sound/play",
+      status: "/api/sound/status",
+      queue: "/api/sound/queue"
+    },
+    selectedExtensionPoint: {
+      name: "before_sound_system_play_request",
+      ownerModule: MODULE_NAME,
+      location: "buildSoundPlaybackPayload(event, round, snippet, runtimeConfig)",
+      executionOrder: [
+        "create sound round",
+        "prepare playback payload",
+        "optional preRoll/countdown window",
+        "validate via sound-system dry-run",
+        "single explicit sound-system play request",
+        "answer window and solve/unresolved handling"
+      ],
+      reason: "Das Eventsystem bleibt Owner von Runde/Antwortzeit. Das Sound-System bleibt Owner von Queue/Playback.",
+      currentStepExecutesPlayback: false
+    },
+    preRollPlan: buildSoundPreRollPlan(runtimeConfig),
+    safetyRules: {
+      noSoundSystemCodeChangedInThisStep: true,
+      noQueueTouchInThisStep: true,
+      noAudioTouchInThisStep: true,
+      noOverlayPlaybackChangeInThisStep: true,
+      noDatabaseDataMigration: true,
+      dryRunBeforeFuturePlaybackRequired: true,
+      useExistingSoundSystemEntryPoints: true
+    },
+    nextImplementationGate: {
+      requiredBeforePlayback: [
+        "sound-system status ok pruefen",
+        "payload gegen /api/sound/eventbus/command/dry-run validieren",
+        "genau einen produktiven Entry-Point festlegen",
+        "Countdown/PreRoll darf Sound-System-Queue nicht mehrfach anfassen",
+        "Antwortfenster erst nach akzeptiertem Sound-Start starten"
+      ],
+      recommendedFirstPlaybackRoute: "/api/sound/eventbus/command/play-test fuer manuelle Tests, danach produktive Route separat freigeben"
+    },
+    activeRuntime: {
+      activeEvent: status.activeEvent || null,
+      activeRound: status.activeRound || null,
+      snippets: status.snippets || [],
+      counters: status.counters || {}
+    },
+    updatedAt: nowIso()
+  };
+}
+
+
 function rowToRound(row) {
   if (!row) return null;
   return {
@@ -2341,10 +2450,13 @@ function buildSoundPlaybackPayload(event, round, snippet, runtimeConfig) {
       priority: 70,
       outputTarget: "overlay"
     },
+    preRoll: buildSoundPreRollPlan(runtimeConfig),
     meta: {
       preparedAt: nowIso(),
       answerSeconds: runtimeConfig.answerSeconds,
-      note: "EVS-14 bereitet nur die Sound-System-Anforderung vor. Abspielen/Queue-Touch kommt in einem spaeteren Step."
+      soundSafeStep: "SOUND-SAFE-1",
+      extensionPoint: "stream_events.before_sound_system_play_request",
+      note: "SOUND-SAFE-1 bereitet nur die Sound-System-Anforderung und den PreRoll-Erweiterungspunkt vor. Abspielen/Queue-Touch kommt in einem spaeteren Step."
     }
   };
 }
@@ -2572,6 +2684,8 @@ function getSoundRuntimeStatus(eventUid = "") {
       preparedOnly: true,
       directPlayback: false,
       soundSystemQueueTouched: false,
+      preRollExtensionPointPrepared: true,
+      safetyPlanRoute: "/api/stream-events/sound-runtime/safety-plan",
       oneActiveSoundRoundPerEvent: true,
       solvedRoundsRemovedFromRotation: true,
       unresolvedPolicyPrepared: true
@@ -3663,6 +3777,7 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "GET", path: `${prefix}/text-runtime/report`, description: "Text-Spiel Runtime Report fuer aktives oder angegebenes Event" },
       { method: "GET", path: `${prefix}/sound-runtime/status`, description: "Sound-Spiel Runtime Status und aktive Runde" },
       { method: "GET", path: `${prefix}/sound-runtime/report`, description: "Sound-Spiel Runtime Report fuer aktives oder angegebenes Event" },
+      { method: "GET", path: `${prefix}/sound-runtime/safety-plan`, description: "SOUND-SAFE-1: Read-only Plan fuer Sound-System-Erweiterungspunkt, PreRoll/Countdown und Tests" },
       { method: "GET", path: `${prefix}/statistics/users`, description: "Statistik-Userliste fuer Dropdown/Filter, optional eventUid" },
       { method: "GET", path: `${prefix}/statistics/user/:login`, description: "User-Detailstatistik fuer Text/Sound/Punkte, optional eventUid" },
       { method: "POST", path: `${prefix}/text-runtime/test-chat`, description: "Testet eine Chatnachricht gegen das aktive Text-Event" },
@@ -3699,7 +3814,7 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "POST", path: `${prefix}/events/:eventUid/points`, description: "Manuelle/Modul-Punkte buchen (nur aktives Event)" }
     ],
     notes: [
-      "EVS-14 bereitet Sound-Runden und Sound-System-Payloads vor; kein direktes Sound-/Video-Playback und kein direkter Chat-Send.",
+      "SOUND-SAFE-1 legt nur den Erweiterungspunkt fuer EventSound-Playback + Countdown-PreRoll fest; kein direktes Sound-/Video-Playback und kein Queue-Touch.",
       "Sound/Text-Konfiguration wird als DB-Snapshot am Event gespeichert.",
       "Nur ein aktives Event gleichzeitig."
     ]
@@ -3828,6 +3943,14 @@ module.exports.init = function init(ctx) {
   reg("get", `${prefix}/sound-runtime/report`, (req, res) => {
     try {
       sendJson(res, getSoundRuntimeReport(req.query.eventUid || req.query.event_uid || ""));
+    } catch (err) {
+      handleError(res, err);
+    }
+  });
+
+  reg("get", `${prefix}/sound-runtime/safety-plan`, (req, res) => {
+    try {
+      sendJson(res, buildSoundRuntimeSafetyPlan(req.query.eventUid || req.query.event_uid || ""));
     } catch (err) {
       handleError(res, err);
     }
