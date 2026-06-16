@@ -2378,6 +2378,7 @@ function renderGiveawayDetails(giveaway){
       core: 'Core',
       wheel: 'Glücksrad',
       giveaways: 'Giveaways',
+      raffle: 'Raffle',
       gamble: 'Gamble',
       chat: 'Chat & Befehle',
       gifts: 'Geschenk-Abos / GiftBombs',
@@ -2393,6 +2394,7 @@ function renderGiveawayDetails(giveaway){
     const source = `${moduleName} ${category} ${key}`;
     if (source.includes('gift') || source.includes('subgift') || source.includes('giftbomb') || source.includes('geschenk')) return 'gifts';
     if (source.includes('wheel') || source.includes('rad') || source.includes('spin') || source.includes('gluecksrad') || source.includes('glücksrad')) return 'wheel';
+    if (source.includes('raffle') || source.includes('tombola')) return 'raffle';
     if (source.includes('giveaway')) return 'giveaways';
     if (source.includes('gamble')) return 'gamble';
     if (source.includes('command') || source.includes('chat') || source.includes('reply') || source.includes('antwort')) return 'chat';
@@ -2507,6 +2509,7 @@ function renderGiveawayDetails(giveaway){
       ['core', 'Core'],
       ['wheel', 'Glücksrad'],
       ['giveaways', 'Giveaways'],
+      ['raffle', 'Raffle'],
       ['gamble', 'Gamble'],
       ['chat', 'Chat & Befehle'],
       ['gifts', 'Geschenk-Abos / GiftBombs'],
@@ -3043,6 +3046,7 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
       ['wheel', 'Glücksrad'],
       ['presets', 'Presets'],
       ['giveaways', 'Giveaways'],
+      ['raffle', 'Raffle'],
       ['gamble', 'Gamble'],
       ['chat', 'Chat & Befehle']
     ];
@@ -3052,6 +3056,7 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
       wheel: renderWheelConfigPanel,
       presets: renderPresetsConfigPanel,
       giveaways: renderGiveawaysConfigPanel,
+      raffle: renderRaffleConfigCard,
       gamble: renderGambleConfigPanel,
       chat: renderChatConfigPanel
     };
@@ -3100,8 +3105,8 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
       <div class="lg-panel">
         <div class="lg-panel-head">
           <div>
-            <h3>Raffle</h3>
-            <p class="lg-muted">Chat-Tombola als Mini-Spiel. Der Gewinnpool ist im Dashboard sichtbar, wird im Chat aber nicht angezeigt.</p>
+            <h3>Raffle-Konfiguration</h3>
+            <p class="lg-muted">Dauerhafte Raffle-Einstellungen. Die Bedien-/Statusansicht bleibt im Tab „Mini-Spiele“.</p>
           </div>
           <button class="lg-btn lg-btn-secondary" data-lg-raffle-reload type="button">Neu laden</button>
         </div>
@@ -3130,7 +3135,7 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
           <div class="lg-warning">Chat-Regel: Der Pool wird nie öffentlich angezeigt. Gewinner sehen nur Gewinnerliste und Gewinnbetrag.</div>
           <div class="lg-actions">
             <button class="lg-btn" type="button" data-lg-raffle-save ${state.saving ? 'disabled' : ''}>Raffle speichern</button>
-            <button class="lg-btn lg-btn-secondary" type="button" data-lg-jump-tab="texts">Texte bearbeiten</button>
+            <button class="lg-btn lg-btn-secondary" type="button" data-lg-open-text-section="raffle">Raffle-Texte bearbeiten</button>
           </div>
         </form>
         <div class="lg-grid lg-editor-grid lg-raffle-detail-grid">
@@ -3158,6 +3163,59 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
     `;
   }
 
+
+  function renderRaffleOverviewCard(){
+    const data = state.raffleConfig || {};
+    const cfg = data.config || data.raffle?.config || {};
+    const runtime = data.runtime || data.raffle || {};
+    const textKeys = Array.isArray(data.textKeys) ? data.textKeys : [];
+    const winnerRule = Array.isArray(data.winnerRule) ? data.winnerRule : [];
+    const error = data.ok === false ? `<div class="lg-warning">Raffle-Status konnte nicht geladen werden: ${esc(data.error || 'Unbekannter Fehler')}</div>` : '';
+    return `
+      <div class="lg-panel">
+        <div class="lg-panel-head">
+          <div>
+            <h3>Raffle</h3>
+            <p class="lg-muted">Bedien- und Statusansicht. Dauerhafte Einstellungen liegen im Tab „Einstellungen“, Textvarianten im Tab „Texte“.</p>
+          </div>
+          <div class="lg-actions">
+            <button class="lg-btn" data-lg-open-config-section="raffle" type="button">Raffle konfigurieren</button>
+            <button class="lg-btn lg-btn-secondary" data-lg-open-text-section="raffle" type="button">Raffle-Texte bearbeiten</button>
+            <button class="lg-btn lg-btn-secondary" data-lg-raffle-reload type="button">Neu laden</button>
+          </div>
+        </div>
+        ${error}
+        <div class="lg-grid lg-grid-4 lg-mini-kpi-grid">
+          <article class="lg-kpi lg-mini-kpi"><span>Status</span><strong>${esc(statusLabel(runtime.status || 'idle'))}</strong><small>${runtime.active ? 'läuft' : 'inaktiv'}</small></article>
+          <article class="lg-kpi lg-mini-kpi"><span>Teilnehmer</span><strong>${fmtNumber(runtime.participantCount || 0)}</strong><small>aktueller/letzter Lauf</small></article>
+          <article class="lg-kpi lg-mini-kpi"><span>Raffle-Gewinn gesamt</span><strong>${fmtNumber(cfg.prizePoolAmount || runtime.prizePoolAmount || 0)}</strong><small>nur intern, nicht im Chat</small></article>
+          <article class="lg-kpi lg-mini-kpi"><span>Dauer</span><strong>${fmtNumber(cfg.durationSeconds || runtime.durationSeconds || 120)}s</strong><small>Standardlaufzeit</small></article>
+        </div>
+        <div class="lg-grid lg-editor-grid lg-raffle-detail-grid">
+          <div class="lg-note-card lg-raffle-rule-card">
+            <h4>Gewinnerregel</h4>
+            <p class="lg-muted">Die Anzahl der Gewinner wird automatisch aus der Teilnehmerzahl berechnet.</p>
+            <div class="lg-raffle-rule-list">
+              ${winnerRule.length ? winnerRule.map(rule => `
+                <div class="lg-raffle-rule-row">
+                  <span>${esc(rule.min)}${rule.max ? `–${esc(rule.max)}` : '+'} Teilnehmer</span>
+                  <strong>${esc(rule.winners || '-')}</strong>
+                </div>
+              `).join('') : '<div class="lg-raffle-rule-row"><span>Regel</span><strong>Standardregel aktiv</strong></div>'}
+            </div>
+          </div>
+          <div class="lg-note-card lg-raffle-textkey-card">
+            <h4>Textkeys</h4>
+            <p class="lg-muted">Die Varianten werden zentral unter „Texte → Raffle“ gepflegt.</p>
+            <div class="lg-raffle-key-list">
+              ${textKeys.length ? textKeys.map(key => `<code>${esc(key)}</code>`).join('') : '<span class="lg-muted">Keine Textkeys geladen.</span>'}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   function renderMinigames(){
     const gambleCfg = state.gambleConfig || {};
     const gambleSummary = currentGambleSummary(gambleCfg);
@@ -3170,14 +3228,14 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
           <div class="lg-panel-head">
             <div>
               <h3>Mini-Spiele</h3>
-              <p class="lg-muted">Schnelle Loyalty-Spiele für den Chat. Raffle und Gamble werden hier gemeinsam verwaltet.</p>
+              <p class="lg-muted">Schnelle Loyalty-Spiele für den Chat. Hier liegen Status, Kurzwerte und direkte Sprungpunkte zu Config und Texten.</p>
             </div>
           </div>
           <div class="lg-grid lg-grid-2">
             <button class="lg-module-card" data-lg-mini-scroll="raffle">
               <span class="lg-module-card-top"><span class="lg-module-icon">🎟️</span>${badge(raffleCfg.enabled !== false, 'aktiv', 'aus')}</span>
               <strong>Raffle</strong>
-              <small>${fmtNumber(raffleCfg.durationSeconds || 120)}s · Pool intern ${fmtNumber(raffleCfg.prizePoolAmount || 5000)}</small>
+              <small>${fmtNumber(raffleCfg.durationSeconds || 120)}s · Gewinn intern ${fmtNumber(raffleCfg.prizePoolAmount || 5000)}</small>
               <span class="lg-module-state">${esc(statusLabel(raffleRuntime.status || 'idle'))} · !${esc(raffleCfg.raffleCommand || 'raffle')} / !${esc(raffleCfg.joinCommand || 'join')}</span>
             </button>
             <button class="lg-module-card" data-lg-mini-scroll="gamble">
@@ -3208,7 +3266,7 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
         </article>
       </div>
       <div data-lg-mini-section="raffle">
-        ${renderRaffleConfigCard()}
+        ${renderRaffleOverviewCard()}
       </div>
       ${renderGambleModal()}
     `;
@@ -3690,6 +3748,14 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
     root.querySelector('[data-lg-gamble-save]')?.addEventListener('click', () => {
       const form = root.querySelector('[data-lg-gamble-form]');
       submitGambleWrite(form);
+    });
+
+    root.querySelectorAll('[data-lg-open-text-section]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.textSection = btn.dataset.lgOpenTextSection || 'all';
+        state.activeTab = 'texts';
+        render();
+      });
     });
 
     root.querySelectorAll('[data-lg-jump-tab]').forEach(btn => {
