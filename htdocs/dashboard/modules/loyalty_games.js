@@ -59,7 +59,7 @@ window.LoyaltyGamesModule = (function(){
     logStatus: 'all',
     logSearch: '',
     logDetailKey: '',
-    textSection: 'all',
+    textSection: 'raffle',
     textSearch: '',
     textEditKey: '',
     gameTexts: null,
@@ -2376,7 +2376,6 @@ function renderGiveawayDetails(giveaway){
 
   function textSectionLabel(section){
     const labels = {
-      all: 'Alle Textbereiche',
       core: 'Core',
       wheel: 'Glücksrad',
       giveaways: 'Giveaways',
@@ -2386,7 +2385,7 @@ function renderGiveawayDetails(giveaway){
       gifts: 'Geschenk-Abos / GiftBombs',
       notices: 'Hinweise / Fehlertexte'
     };
-    return labels[String(section || 'all')] || 'Alle Textbereiche';
+    return labels[String(section || 'raffle')] || 'Raffle';
   }
 
   function classifyTextSection(item){
@@ -2504,10 +2503,7 @@ function renderGiveawayDetails(giveaway){
     const textPayload = centralTextPayload();
     const categories = Array.isArray(textPayload.categories) ? textPayload.categories : [];
     const keys = Array.isArray(textPayload.keys) ? textPayload.keys : [];
-    const selectedSection = state.textSection || 'all';
-    const search = norm(state.textSearch || '');
     const sections = [
-      ['all', 'Alle Textbereiche'],
       ['core', 'Core'],
       ['wheel', 'Glücksrad'],
       ['giveaways', 'Giveaways'],
@@ -2517,10 +2513,14 @@ function renderGiveawayDetails(giveaway){
       ['gifts', 'Geschenk-Abos / GiftBombs'],
       ['notices', 'Hinweise / Fehlertexte']
     ];
+    const validSectionIds = new Set(sections.map(([id]) => id));
+    const selectedSection = validSectionIds.has(state.textSection) ? state.textSection : 'raffle';
+    if (state.textSection !== selectedSection) state.textSection = selectedSection;
+    const search = norm(state.textSearch || '');
     const preparedSections = ['core', 'gifts', 'notices'];
     const filteredKeys = keys.filter(item => {
       const section = classifyTextSection(item);
-      if (selectedSection !== 'all' && section !== selectedSection) return false;
+      if (section !== selectedSection) return false;
       if (!search) return true;
       const variantText = (item.variants || []).map(v => v.value || v.text || '').join(' ');
       return norm(`${item.key || ''} ${item.category || ''} ${variantText}`).includes(search);
@@ -3502,7 +3502,7 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
     });
 
     root.querySelector('[data-lg-text-section]')?.addEventListener('change', ev => {
-      state.textSection = ev.currentTarget.value || 'all';
+      state.textSection = ev.currentTarget.value || 'raffle';
       render();
     });
     root.querySelector('[data-lg-text-search]')?.addEventListener('input', ev => {
@@ -3684,7 +3684,7 @@ ${renderGambleResultBox('Letztes Speicher-Ergebnis')}
 
     root.querySelectorAll('[data-lg-open-text-section]').forEach(btn => {
       btn.addEventListener('click', () => {
-        state.textSection = btn.dataset.lgOpenTextSection || 'all';
+        state.textSection = btn.dataset.lgOpenTextSection || 'raffle';
         state.activeTab = 'texts';
         render();
       });
