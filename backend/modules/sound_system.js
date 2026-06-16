@@ -16,8 +16,8 @@ try {
 }
 
 const MODULE_NAME = "sound_system";
-const MODULE_VERSION = "0.1.23";
-const MODULE_BUILD = "STEP_EVENT_SOUND_2_PREROLL_GATE";
+const MODULE_VERSION = "0.1.24";
+const MODULE_BUILD = "STEP_EVENT_SOUND_3_PREROLL_TEST_FLOW";
 const SOUND_BUS_CAPABILITY = "sound.event_output";
 const SOUND_BUS_COMMAND_CAPABILITY = "sound.command_input";
 const SOUND_BUS_STATUS_API_VERSION = "1.0.0";
@@ -44,7 +44,7 @@ const MODULE_META = {
   deliveryClassification: SOUND_BUS_DELIVERY_CLASSIFICATION,
   commandDeliveryClassification: SOUND_BUS_COMMAND_DELIVERY_CLASSIFICATION,
   bus: { emits: true, registered: true, heartbeat: true, status: true },
-  note: "EVENT-SOUND-2: minimal additiver PreRoll-Gate fuer stream_events EventSounds; normale Sound-Flows bleiben unveraendert."
+  note: "EVENT-SOUND-3: kontrollierter Test-Flow fuer EventSound-Countdown vor Playback; normale Sound-Flows bleiben unveraendert."
 };
 
 const DEFAULT_OUTPUT = {
@@ -434,7 +434,9 @@ module.exports.init = function init(ctx) {
         { method: "GET", path: `${prefix}/eventbus/test`, description: "Emit a test-only sound.test EventBus event without playing audio or touching queue" },
         { method: "POST", path: `${prefix}/eventbus/test`, description: "Emit a test-only sound.test EventBus event without playing audio or touching queue" },
         { method: "GET", path: `${prefix}/eventbus/reset`, description: "Reset Sound-System EventBus counters only" },
-        { method: "GET", path: `${prefix}/event-preroll/status`, description: "EVENT-SOUND-2: Stream-Events Countdown/PreRoll-Gate Status ohne Soundstart" },
+        { method: "GET", path: `${prefix}/event-preroll/status`, description: "EVENT-SOUND-3: Stream-Events Countdown/PreRoll-Gate Status" },
+        { method: "GET", path: `${prefix}/event-preroll/test`, description: "EVENT-SOUND-3: kontrollierter Test fuer Countdown -> Playback mit generated beep; confirm=1 erforderlich" },
+        { method: "POST", path: `${prefix}/event-preroll/test`, description: "EVENT-SOUND-3: kontrollierter Test fuer Countdown -> Playback mit generated beep; confirm=1 erforderlich" },
         { method: "GET", path: `${prefix}/eventbus/command/status`, description: "Sound EventBus command dry-run consumer status without playing audio" },
         { method: "GET", path: `${prefix}/eventbus/command/test`, description: "Emit a test-only sound.command play request without touching audio or queue" },
         { method: "POST", path: `${prefix}/eventbus/command/test`, description: "Emit a test-only sound.command play request without touching audio or queue" },
@@ -3657,7 +3659,7 @@ function publicSoundBusQueueStatus() {
       module: MODULE_NAME,
       moduleVersion: MODULE_VERSION,
       moduleBuild: MODULE_BUILD,
-      step: "EVENT-SOUND-2",
+      step: "EVENT-SOUND-3",
       prepared: true,
       enabled: cfg.enabled !== false,
       gatePoint: "startItem(item) after reservation before item_starting/activateItemAudio",
@@ -3690,6 +3692,17 @@ function publicSoundBusQueueStatus() {
         runtimeOverlayDoesNotStartSound: true,
         soundSystemOverlayUnchanged: true,
         usesCommunicationBusTargetCapability: true
+      },
+      testRoute: `${(config.routes && config.routes.prefix) || "/api/sound"}/event-preroll/test`,
+      testFlow: {
+        enabled: true,
+        confirmRequired: true,
+        generatedBeepOnly: true,
+        countdownSecondsConfigurable: true,
+        countdownSecondsDefault: Number(cfg.fallbackSeconds || 3),
+        countdownSecondsMax: Number(cfg.maxSeconds || 10),
+        soundStartsAfterCountdown: true,
+        hideAfterAudioEndedOrFallback: true
       },
       updatedAt: core.nowIso()
     });
@@ -3849,6 +3862,107 @@ function publicSoundBusQueueStatus() {
     state.eventPreRoll.current = null;
     return emitRuntimeOverlayBus(action, item, preRoll, { reason });
   }
+
+
+  function runEventPreRollTest(input = {}, query = {}) {
+    const merged = { ...(query && isPlainObject(query) ? query : {}), ...(input && isPlainObject(input) ? input : {}) };
+    const confirm = String(merged.confirm || merged.confirmed || "").trim();
+    if (confirm !== "1" && confirm.toLowerCase() !== "true") {
+      return core.fail("confirm_required", {
+        module: MODULE_NAME,
+        moduleVersion: MODULE_VERSION,
+        moduleBuild: MODULE_BUILD,
+        step: "EVENT-SOUND-3",
+        hint: "POST /api/sound/event-preroll/test?confirm=1 oder GET /api/sound/event-preroll/test?confirm=1",
+        touchesQueue: false,
+        touchesAudio: false
+      });
+    }
+
+    const countdownSeconds = clampEventPreRollSeconds(merged.countdownSeconds ?? merged.seconds ?? merged.preRollSeconds, 3);
+    const eventUid = String(merged.eventUid || `evs_preroll_test_${Date.now()}`).trim();
+    const roundUid = String(merged.roundUid || `evs_preroll_round_${Date.now()}`).trim();
+    const durationMs = intInRange(merged.durationMs, 1200, 200, 8000);
+    const frequency = intInRange(merged.frequency, 880, 120, 1600);
+    const volume = Math.max(0.05, Math.min(1, Number(merged.volume || 0.35)));
+
+    const item = normalizePlayRequest({
+      type: "generated_beep",
+      label: String(merged.label || "EVENT-SOUND-3 PreRoll Test-Beep"),
+      category: "stream_event_sound_test",
+      source: "stream_events",
+      requestedBy: String(merged.requestedBy || "event_sound_test"),
+      target: "stream",
+      outputTarget: "overlay",
+      priority: intInRange(merged.priority, 75, 1, 1000),
+      durationMs,
+      frequency,
+      volume,
+      queueIfBusy: true,
+      dropIfBusy: false,
+      canInterrupt: false,
+      parallelAllowed: false,
+      clearQueue: false,
+      meta: {
+        module: "stream_events",
+        owner: "stream_events",
+        eventUid,
+        roundUid,
+        eventPreRoll: {
+          enabled: true,
+          countdownEnabled: true,
+          owner: "stream_events",
+          eventUid,
+          roundUid,
+          seconds: countdownSeconds,
+          countdownSeconds,
+          finalLabel: String(merged.finalLabel || "LOS!"),
+          caption: String(merged.caption || "Sound startet gleich"),
+          guessingLabel: String(merged.guessingLabel || "Jetzt raten!")
+        },
+        testOnly: true,
+        step: "EVENT-SOUND-3"
+      }
+    });
+
+    const result = enqueueOrStart(item);
+    return core.ok({
+      module: MODULE_NAME,
+      moduleVersion: MODULE_VERSION,
+      moduleBuild: MODULE_BUILD,
+      step: "EVENT-SOUND-3",
+      message: result.started ? "EventSound-PreRoll-Test gestartet." : (result.queued ? "EventSound-PreRoll-Test wurde gequeued." : "EventSound-PreRoll-Test wurde nicht gestartet."),
+      confirmRequired: true,
+      testOnly: true,
+      generatedBeepOnly: true,
+      countdownSeconds,
+      durationMs,
+      eventUid,
+      roundUid,
+      result: {
+        started: !!result.started,
+        queued: !!result.queued,
+        dropped: !!result.dropped,
+        parallel: !!result.parallel,
+        queuePosition: result.queuePosition,
+        reason: result.reason || "",
+        retryAfterMs: result.retryAfterMs || 0
+      },
+      item: publicItem(item),
+      eventPreRoll: publicEventPreRollStatus(),
+      safetyRules: {
+        explicitConfirmRequired: true,
+        generatedBeepOnly: true,
+        normalSoundsUnaffectedUnlessExplicitFlag: true,
+        soundSystemStaysPlaybackOwner: true,
+        runtimeOverlayDoesNotStartSound: true,
+        soundSystemOverlayUnchanged: true,
+        countdownSecondsConfigurable: true
+      },
+      status: publicState()
+    });
+  }
+
 
   function activateItemAfterEventPreRoll(item, parallel) {
     if (!itemStillActive(item, parallel)) return;
@@ -4185,6 +4299,14 @@ function publicSoundBusQueueStatus() {
 
   app.get(`${prefix}/status`, (req, res) => res.json(publicState()));
   app.get(`${prefix}/event-preroll/status`, (req, res) => res.json(publicEventPreRollStatus()));
+  app.get(`${prefix}/event-preroll/test`, (req, res) => {
+    const result = runEventPreRollTest({}, req.query || {});
+    res.status(result.ok ? 200 : 400).json(result);
+  });
+  app.post(`${prefix}/event-preroll/test`, (req, res) => {
+    const result = runEventPreRollTest(req.body || {}, req.query || {});
+    res.status(result.ok ? 200 : 400).json(result);
+  });
   app.get(`${prefix}/eventbus/status`, (req, res) => res.json(publicSoundBusStatus({ includeRecentEvents: true })));
   app.get(`${prefix}/eventbus/reset`, (req, res) => res.json({ ...resetSoundBusRuntime(), reset: true, resetAt: core.nowIso() }));
   app.get(`${prefix}/eventbus/test`, (req, res) => res.json(emitSoundBusTest(req.query || {})));

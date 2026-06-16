@@ -20,8 +20,8 @@ let streamStatusModule = null;
 try { streamStatusModule = require("./stream_status"); } catch (_) { streamStatusModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.28";
-const MODULE_BUILD = "STEP_EVENT_SOUND_2_PREROLL_GATE";
+const MODULE_VERSION = "0.5.29";
+const MODULE_BUILD = "STEP_EVENT_SOUND_3_PREROLL_TEST_FLOW";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -2392,7 +2392,7 @@ function buildEventSoundBusIntegrationPlan(eventUid = "") {
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
-    step: "EVENT-SOUND-2",
+    step: "EVENT-SOUND-3",
     purpose: "Sound-System-kompatibler PreRoll-Gate ist minimal additiv vorbereitet; produktiv nur fuer explizit markierte stream_events EventSound-Items.",
     currentMode: {
       readOnly: false,
@@ -2525,7 +2525,8 @@ function buildEventSoundBusIntegrationPlan(eventUid = "") {
       activeEvent: status.activeEvent || null,
       activeRound: status.activeRound || null,
       counters: status.counters || {},
-      preRollPlan: buildSoundPreRollPlan(runtimeConfig)
+      preRollPlan: buildSoundPreRollPlan(runtimeConfig),
+      controlledTestRoute: "/api/sound/event-preroll/test"
     },
     updatedAt: nowIso()
   };
@@ -2810,7 +2811,7 @@ function getRuntimeOverlayState(eventUid = "") {
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
-    step: "EVENT-SOUND-2",
+    step: "EVENT-SOUND-3",
     purpose: "Read-only State fuer das phasenbasierte Event-Runtime-Overlay: Countdown jetzt, Auswertung spaeter vorbereitet.",
     mode: {
       readOnly: true,
@@ -4280,7 +4281,7 @@ function buildStatus() {
     },
     eventSoundBusIntegration: {
       planned: true,
-      step: "EVENT-SOUND-2",
+      step: "EVENT-SOUND-3",
       planRoute: "/api/stream-events/sound-runtime/bus-integration-plan",
       soundSystemGatekeeper: true,
       communicationBusRequired: true,
@@ -4288,7 +4289,10 @@ function buildStatus() {
       soundOverlayCapability: "sound.event_output",
       playbackChanged: true,
       playbackChangeScope: "explicit_stream_events_preroll_items_only",
-      soundSystemPreRollGatePrepared: true
+      soundSystemPreRollGatePrepared: true,
+      controlledTestRoute: "/api/sound/event-preroll/test",
+      countdownSecondsConfigurable: true,
+      testFlowPrepared: true
     },
     updatedAt: nowIso()
   };
