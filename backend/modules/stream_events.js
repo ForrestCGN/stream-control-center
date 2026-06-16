@@ -21,7 +21,7 @@ try { streamStatusModule = require("./stream_status"); } catch (_) { streamStatu
 
 const MODULE_NAME = "stream_events";
 const MODULE_VERSION = "0.5.22";
-const MODULE_BUILD = "STEP_EVS_27A_SOUND_EVENT_SETTINGS_DEFAULTS";
+const MODULE_BUILD = "STEP_EVS_27C_EVENT_DUPLICATE";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -223,6 +223,7 @@ const MODULE_META = {
       "stream_events.event.cancelled",
       "stream_events.event.archived",
       "stream_events.event.deleted",
+      "stream_events.event.duplicated",
       "stream_events.points.added",
       "stream_events.ranking.updated",
       "stream_events.text.word_found",
@@ -1414,6 +1415,87 @@ function deleteEvent(eventUid, body = {}) {
     deletedEvent: summary,
     countsDeleted: countsBefore,
     rule: "delete_allowed_for_any_event_status_with_explicit_confirmation"
+  };
+}
+
+
+function duplicateEvent(eventUid, body = {}) {
+  ensureSchema();
+  const source = getEventByUid(eventUid);
+  if (!source) return { ok: false, error: "event_not_found", eventUid };
+
+  const now = nowIso();
+  const copyUid = newUid("evs_event");
+  const actor = cleanString(body.actor || body.updatedBy || body.user || "dashboard");
+  const requestedName = cleanString(body.name || body.newName || body.copyName || "");
+  const baseName = cleanString(source.name || "Unbenanntes Event");
+  const copyName = requestedName || `Kopie von ${baseName}`;
+
+  const metadata = safeJson(source.metadata, {});
+  delete metadata.startedAt;
+  delete metadata.finishedAt;
+  delete metadata.cancelledAt;
+  delete metadata.archivedAt;
+  delete metadata.activeRoundUid;
+  delete metadata.currentRoundUid;
+  metadata.duplicatedFromEventUid = source.eventUid;
+  metadata.duplicatedFromName = source.name || "";
+  metadata.duplicatedAt = now;
+  metadata.duplicatedBy = actor;
+
+  const copyInput = {
+    name: copyName,
+    description: source.description || "",
+    soundEnabled: source.soundEnabled === true,
+    textEnabled: source.textEnabled === true,
+    soundConfig: safeJson(source.soundConfig, {}),
+    textConfig: safeJson(source.textConfig, {}),
+    scoringConfig: safeJson(source.scoringConfig, defaultScoringConfig()),
+    settings: safeJson(source.settings, defaultEventSettings()),
+    metadata,
+    createdBy: actor
+  };
+  const validation = validateEventPayload(copyInput);
+  const status = validation.ok ? STATUS.READY : STATUS.DRAFT;
+
+  database.insert("stream_events_events", {
+    event_uid: copyUid,
+    name: copyInput.name,
+    description: copyInput.description,
+    status,
+    sound_enabled: copyInput.soundEnabled ? 1 : 0,
+    text_enabled: copyInput.textEnabled ? 1 : 0,
+    sound_config_json: jsonEncode(copyInput.soundConfig),
+    text_config_json: jsonEncode(copyInput.textConfig),
+    scoring_config_json: jsonEncode(copyInput.scoringConfig),
+    settings_json: jsonEncode(copyInput.settings),
+    validation_json: jsonEncode(validation),
+    created_by: copyInput.createdBy,
+    created_at: now,
+    updated_at: now,
+    started_at: "",
+    finished_at: "",
+    cancelled_at: "",
+    metadata_json: jsonEncode(copyInput.metadata)
+  });
+
+  runtimeState.counters.eventsCreated += 1;
+  markAction("duplicated", copyUid);
+  const copied = getEventByUid(copyUid);
+  emitBus("stream_events.event", "duplicated", { event: publicEventSummary(copied), sourceEvent: publicEventSummary(source), validation });
+  publishStatus("event.duplicated", { lastEventUid: copyUid, sourceEventUid: source.eventUid });
+  return {
+    ok: true,
+    event: copied,
+    sourceEvent: publicEventSummary(source),
+    validation,
+    countsCopied: {
+      scoreEntries: 0,
+      rounds: 0,
+      textWordHits: 0,
+      textPhraseSolves: 0
+    },
+    rule: "copies_event_configuration_without_runtime_data"
   };
 }
 
@@ -3582,6 +3664,7 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "POST", path: `${prefix}/events/:eventUid/cancel`, description: "Event abbrechen" },
       { method: "POST", path: `${prefix}/events/:eventUid/archive`, description: "EVS-21: Beendetes Event archivieren; nur status=finished" },
       { method: "POST", path: `${prefix}/events/:eventUid/delete`, description: "EVS-21: Event und zugehoerige Eventdaten mit confirm=DELETE loeschen" },
+      { method: "POST", path: `${prefix}/events/:eventUid/duplicate`, description: "EVS-27C: Event-Konfiguration als neue Kopie ohne Punkte/Runden duplizieren" },
       { method: "GET", path: `${prefix}/events/:eventUid/ranking`, description: "Event-Ranking lesen" },
       { method: "POST", path: `${prefix}/events/:eventUid/points`, description: "Manuelle/Modul-Punkte buchen (nur aktives Event)" }
     ],
@@ -4048,6 +4131,15 @@ module.exports.init = function init(ctx) {
     }
   });
 
+  reg("post", `${prefix}/events/:eventUid/duplicate`, (req, res) => {
+    try {
+      const result = duplicateEvent(req.params.eventUid, req.body || {});
+      sendJson(res, result, result.ok ? 201 : (result.error === "event_not_found" ? 404 : 400));
+    } catch (err) {
+      handleError(res, err, 400);
+    }
+  });
+
   reg("get", `${prefix}/events/:eventUid/ranking`, (req, res) => {
     try {
       const event = getEventByUid(req.params.eventUid);
@@ -4082,6 +4174,7 @@ module.exports._internal = {
   cancelEvent,
   archiveEvent,
   deleteEvent,
+  duplicateEvent,
   getEventLifecycleCounts,
   addPoints,
   getRanking,
