@@ -23,8 +23,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.34";
-const MODULE_BUILD = "STEP_EVENT_SOUND_4D_TEST_STATE_CLEANUP";
+const MODULE_VERSION = "0.5.35";
+const MODULE_BUILD = "STEP_EVENT_SOUND_5_REAL_MEDIA_SNIPPET_PLAYBACK";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -3158,9 +3158,9 @@ function buildSoundPlaybackPayload(event, round, snippet, runtimeConfig) {
     meta: {
       preparedAt: nowIso(),
       answerSeconds: runtimeConfig.answerSeconds,
-      soundSafeStep: "EVENT-SOUND-4C",
+      soundSafeStep: "EVENT-SOUND-5",
       extensionPoint: "stream_events.before_sound_system_play_request",
-      note: "EVENT-SOUND-4C: Payload wird mit eventPreRoll-Flag markiert und Sound-Media wird vor Sound-System-Uebergabe aufloesbar gemappt."
+      note: "EVENT-SOUND-5: Payload kann echte Media-Registry-Snippets verwenden; generated_beep bleibt nur Test-Fallback."
     }
   };
 }
@@ -3191,6 +3191,7 @@ function requestSoundSystemPlaybackForSoundRound(playback = {}, options = {}) {
       eventSound4: true,
       eventSound4B: true,
       eventSound4C: true,
+      eventSound5: true,
       eventPreRoll: {
         ...originalPreRoll,
         enabled: true,
@@ -3207,14 +3208,14 @@ function requestSoundSystemPlaybackForSoundRound(playback = {}, options = {}) {
     }
   };
   if (requestedItem.mediaResolutionError) {
-    return { ok: false, module: MODULE_NAME, step: "EVENT-SOUND-4C", playbackRequested: true, error: requestedItem.mediaResolutionError, mediaId: requestedItem.mediaId || "", mediaPath: requestedItem.mediaPath || "" };
+    return { ok: false, module: MODULE_NAME, step: "EVENT-SOUND-5", playbackRequested: true, error: requestedItem.mediaResolutionError, mediaId: requestedItem.mediaId || "", mediaPath: requestedItem.mediaPath || "" };
   }
   try {
     const result = soundSystemModule.playStreamEventPreRollItem(requestedItem);
     return {
       ok: !!(result && result.ok),
       module: MODULE_NAME,
-      step: "EVENT-SOUND-4C",
+      step: "EVENT-SOUND-5",
       playbackRequested: true,
       soundSystemResult: result || null,
       queueTouched: !!(result && result.result && (result.result.started || result.result.queued || result.result.parallel)),
@@ -3222,7 +3223,7 @@ function requestSoundSystemPlaybackForSoundRound(playback = {}, options = {}) {
       error: result && result.error ? result.error : ""
     };
   } catch (err) {
-    return { ok: false, module: MODULE_NAME, step: "EVENT-SOUND-4C", playbackRequested: true, error: err && err.message ? err.message : String(err) };
+    return { ok: false, module: MODULE_NAME, step: "EVENT-SOUND-5", playbackRequested: true, error: err && err.message ? err.message : String(err) };
   }
 }
 
@@ -4056,13 +4057,109 @@ function getStatisticsUser(login, eventUid = "") {
 }
 
 
+
+function getEventSoundTestMediaAssets(options = {}) {
+  ensureSchema();
+  const limit = clampNumber(options.limit, 1, 10, 3);
+  const preferredId = cleanString(options.mediaId || options.media_id || options.mediaAssetId || options.assetId || "");
+  const preferredPath = cleanString(options.mediaPath || options.mediaRelativePath || options.registryPath || "").replace(/\\/g, "/").replace(/^\/+/, "");
+  try {
+    let rows = [];
+    if (preferredId && /^\d+$/.test(preferredId)) {
+      rows = database.all(`
+        SELECT * FROM media_assets
+        WHERE id = :id AND status = 'active'
+        LIMIT 1
+      `, { id: Number(preferredId) });
+    } else if (preferredPath) {
+      rows = database.all(`
+        SELECT * FROM media_assets
+        WHERE relative_path = :path AND status = 'active'
+        LIMIT 1
+      `, { path: preferredPath });
+    } else {
+      rows = database.all(`
+        SELECT * FROM media_assets
+        WHERE status = 'active'
+          AND (
+            type = 'audio'
+            OR has_audio = 1
+            OR lower(relative_path) LIKE '%.mp3'
+            OR lower(relative_path) LIKE '%.wav'
+            OR lower(relative_path) LIKE '%.ogg'
+            OR lower(relative_path) LIKE '%.m4a'
+            OR lower(relative_path) LIKE '%.webm'
+          )
+          AND (
+            relative_path LIKE 'media/stream_events/%'
+            OR relative_path LIKE 'stream_events/%'
+            OR display_name LIKE '%sek%'
+            OR file_name LIKE '%sek%'
+          )
+        ORDER BY id ASC
+        LIMIT :limit
+      `, { limit });
+      if (!rows.length) {
+        rows = database.all(`
+          SELECT * FROM media_assets
+          WHERE status = 'active'
+            AND (
+              type = 'audio'
+              OR has_audio = 1
+              OR lower(relative_path) LIKE '%.mp3'
+              OR lower(relative_path) LIKE '%.wav'
+              OR lower(relative_path) LIKE '%.ogg'
+              OR lower(relative_path) LIKE '%.m4a'
+              OR lower(relative_path) LIKE '%.webm'
+            )
+          ORDER BY id ASC
+          LIMIT :limit
+        `, { limit });
+      }
+    }
+    return rows.map((row, index) => {
+      const id = String(row.id || "").trim();
+      const rel = cleanString(row.relative_path || row.relativePath || "").replace(/\\/g, "/").replace(/^\/+/, "");
+      const title = cleanString(row.display_name || row.displayName || row.file_name || row.fileName || row.original_name || row.originalName || (rel ? rel.split("/").pop() : `Media ${id}`), `Media ${id || index + 1}`);
+      return {
+        uid: `media_asset_${id || index + 1}`,
+        title,
+        mediaId: id,
+        mediaPath: rel,
+        acceptedAnswers: [title.toLowerCase(), cleanString(title).toLowerCase().replace(/\.[a-z0-9]+$/i, "")].filter(Boolean),
+        points: 25,
+        answerSeconds: 20,
+        active: true,
+        raw: {
+          mediaAssetId: id,
+          relativePath: rel,
+          realMediaTest: true
+        }
+      };
+    }).filter(item => item.mediaId || item.mediaPath);
+  } catch (err) {
+    return [];
+  }
+}
+
+function buildSoundRuntimeTestSnippets(body = {}) {
+  const useRealMedia = boolValue(body.useRealMedia ?? body.realMedia ?? body.mediaTest ?? body.useMediaRegistry, false);
+  if (Array.isArray(body.snippets) && body.snippets.length) return body.snippets;
+  if (useRealMedia) {
+    const real = getEventSoundTestMediaAssets(body);
+    if (real.length) return real;
+  }
+  return null;
+}
+
 function createSoundRuntimeTestEvent(body = {}) {
   ensureSchema();
   const name = cleanString(body.name, "EVS Sound-Runtime Test");
   const startImmediately = body.start !== undefined || body.startImmediately !== undefined ? boolValue(body.start ?? body.startImmediately) : true;
   const finishExistingTestActive = body.finishExistingTestActive !== undefined ? boolValue(body.finishExistingTestActive) : true;
   const preCleanup = finishExistingTestActive ? cleanupSoundRuntimeTestState({ includeCurrentActive: true }) : { ok: true, cleanedCount: 0, skipped: true };
-  const snippets = Array.isArray(body.snippets) && body.snippets.length ? body.snippets : [
+  const realOrCustomSnippets = buildSoundRuntimeTestSnippets(body);
+  const snippets = realOrCustomSnippets || [
     {
       uid: "test_sound_1",
       title: "Forrest Heimleitung Hymne",
@@ -4132,6 +4229,11 @@ function createSoundRuntimeTestEvent(body = {}) {
     started,
     activeEvent: publicEventSummary(active),
     preCleanup,
+    mediaTest: {
+      requested: boolValue(body.useRealMedia ?? body.realMedia ?? body.mediaTest ?? body.useMediaRegistry, false),
+      usedRealMedia: !!realOrCustomSnippets,
+      fallbackGeneratedBeep: !realOrCustomSnippets
+    },
     snippets: getSoundSnippets(getEventByUid(event.eventUid)).map(item => ({
       snippetUid: item.snippetUid,
       title: item.title,
@@ -4607,7 +4709,7 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "GET", path: `${prefix}/statistics/user/:login`, description: "User-Detailstatistik fuer Text/Sound/Punkte, optional eventUid" },
       { method: "POST", path: `${prefix}/text-runtime/test-chat`, description: "Testet eine Chatnachricht gegen das aktive Text-Event" },
       { method: "POST", path: `${prefix}/text-runtime/create-test-event`, description: "Legt mit confirm=1 ein sicheres Text-Runtime-Testevent an" },
-      { method: "POST", path: `${prefix}/sound-runtime/create-test-event`, description: "Legt mit confirm=1 ein sicheres Sound-Runtime-Testevent an; alte aktive Testevents werden vorher geschlossen" },
+      { method: "POST", path: `${prefix}/sound-runtime/create-test-event`, description: "Legt mit confirm=1 ein sicheres Sound-Runtime-Testevent an; mit useRealMedia=1 werden echte Media-Snippets genutzt" },
       { method: "POST", path: `${prefix}/sound-runtime/reset-test-state`, description: "EVENT-SOUND-4D: Raeumt haengende Sound-Testevents und aktive Testrunden mit confirm=1 auf" },
       { method: "POST", path: `${prefix}/sound-runtime/test-chat`, description: "Testet eine Chatantwort gegen die aktive Sound-Runde, ohne direkt in Twitch zu senden" },
       { method: "POST", path: `${prefix}/chat-runtime/test-chat`, description: "EVS-19: Testet eine Chatnachricht parallel gegen Sound und Text, ohne direkt zu senden" },
@@ -4824,7 +4926,7 @@ module.exports.init = function init(ctx) {
           hint: "POST /api/stream-events/sound-runtime/create-test-event?confirm=1 optional mit { start: true }"
         }, 400);
       }
-      sendJson(res, createSoundRuntimeTestEvent(req.body || {}));
+      sendJson(res, createSoundRuntimeTestEvent({ ...(req.query || {}), ...(req.body || {}) }));
     } catch (err) {
       handleError(res, err, 400);
     }
