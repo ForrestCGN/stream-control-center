@@ -23,8 +23,8 @@ const database = require("../core/database");
 const loyaltyCore = require("./loyalty");
 
 const MODULE_NAME = "loyalty_giveaways";
-const MODULE_VERSION = "0.1.11";
-const MODULE_BUILD = "STEP_LC_MINIGAMES_2B_FIX1_RAFFLE_CONFIG_RESPONSE_CLEANUP";
+const MODULE_VERSION = "0.1.12";
+const MODULE_BUILD = "STEP_LC_MINIGAMES_2B_FIX2_RAFFLE_TEXT_VARIANT_GUARD";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -5235,9 +5235,61 @@ function seedChatTextVariants() {
     textHelper.seedModuleTexts(TEXT_MODULE, CHAT_TEXT_DEFAULTS, {
       source: "seed"
     });
-    return { ok: true };
+    const cleanup = deactivateBundledRafflePublicTextVariants();
+    return { ok: true, cleanup };
   } catch (err) {
     return { ok: false, error: err && err.message ? err.message : String(err) };
+  }
+}
+
+function isRafflePublicTextKey(key) {
+  return /^raffle\.public\./.test(String(key || ""));
+}
+
+function splitRuntimeTextLines(value) {
+  return String(value || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .split("\n")
+    .map(line => line.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+}
+
+function pickFirstRuntimeTextLine(value) {
+  const lines = splitRuntimeTextLines(value);
+  if (lines.length > 1) return lines[0];
+  return String(value || "");
+}
+
+function deactivateBundledRafflePublicTextVariants() {
+  try {
+    const rows = database.all(`
+      SELECT id, text_key, text_value
+      FROM module_text_variants
+      WHERE module_name = :moduleName
+        AND text_key LIKE 'raffle.public.%'
+        AND enabled != 0
+    `, { moduleName: TEXT_MODULE });
+
+    const now = nowIso();
+    let disabled = 0;
+    for (const row of rows || []) {
+      if (!row || !isRafflePublicTextKey(row.text_key)) continue;
+      const lines = splitRuntimeTextLines(row.text_value);
+      if (lines.length <= 1) continue;
+      database.run(`
+        UPDATE module_text_variants
+        SET enabled = 0,
+            updated_at = :updatedAt
+        WHERE id = :id
+          AND module_name = :moduleName
+      `, { id: row.id, moduleName: TEXT_MODULE, updatedAt: now });
+      disabled += 1;
+    }
+
+    return { ok: true, disabled };
+  } catch (err) {
+    return { ok: false, disabled: 0, error: err && err.message ? err.message : String(err) };
   }
 }
 
@@ -5317,11 +5369,14 @@ function formatRaffleNumber(value) {
 
 function renderChatRuntimeText(key, context = {}, options = {}) {
   seedChatTextVariants();
-  const message = textHelper.renderModuleText(TEXT_MODULE, key, CHAT_TEXT_DEFAULTS, context, {
+  let message = textHelper.renderModuleText(TEXT_MODULE, key, CHAT_TEXT_DEFAULTS, context, {
     categories: CHAT_TEXT_CATEGORIES,
     categoryLabels: CHAT_TEXT_CATEGORY_LABELS,
     ...options
   });
+  if (isRafflePublicTextKey(key)) {
+    message = pickFirstRuntimeTextLine(message);
+  }
   return sanitizeRuntimeChatMessage(message, options.maxLength || options.max || 450);
 }
 
