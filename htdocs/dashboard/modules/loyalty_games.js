@@ -24,7 +24,7 @@ window.LoyaltyGamesModule = (function(){
     raffleConfig: '/api/loyalty/raffle/config',
     raffleLogs: '/api/loyalty/raffle/logs?limit=250',
     raffleStats: '/api/loyalty/raffle/stats',
-    commandLogs: '/api/commands/logs?limit=80',
+    commandLogs: '/api/commands/logs?limit=250',
     overlay: '/overlays/loyalty/wheel_overlay.html'
   };
 
@@ -55,6 +55,7 @@ window.LoyaltyGamesModule = (function(){
     raffleStats: null,
     raffleResult: '',
     gambleLogRows: [],
+    commandLogRows: [],
     gambleModal: '',
     gambleResult: '',
     configSection: 'core',
@@ -699,7 +700,7 @@ window.LoyaltyGamesModule = (function(){
         selectedGiveawayUid = giveawayRows[0]?.giveawayUid || '';
       }
 
-      state = { ...state, loading:false, error:'', coreStatus, coreSettings, coreHistory, status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, giveawayCommands, giveawayTexts, communicationStatus, gambleConfig, gambleAudit, raffleConfig, raffleLogs, raffleStats, gambleLogRows: normalizeGambleRows(commandLogs), gambleStats: buildGambleStats(normalizeGambleRows(commandLogs)), selectedPresetUid, selectedGiveawayUid };
+      state = { ...state, loading:false, error:'', coreStatus, coreSettings, coreHistory, status, config, routes, sessions, wheelStatus, wheelConfig, presets, spins, giveawaysStatus, giveaways, giveawayCommands, giveawayTexts, communicationStatus, gambleConfig, gambleAudit, raffleConfig, raffleLogs, raffleStats, commandLogRows: normalizeCommandLogs(commandLogs), gambleLogRows: normalizeGambleRows(commandLogs), gambleStats: buildGambleStats(normalizeGambleRows(commandLogs)), selectedPresetUid, selectedGiveawayUid };
       if (selectedPresetUid) await loadPreset(selectedPresetUid, false);
       if (selectedGiveawayUid) await loadGiveaway(selectedGiveawayUid, false);
     } catch (err) {
@@ -2012,8 +2013,89 @@ function renderGiveawayDetails(giveaway){
     });
   }
 
+  function raffleCommandWord(row){
+    const raw = String(row?.trigger || row?.command || row?.aliasTrigger || row?.commandName || row?.input || row?.message || row?.raw || '').trim().toLowerCase();
+    const clean = raw.replace(/^!+/, '').split(/\s+/)[0];
+    return clean;
+  }
+
+  function isRaffleCommandLogRow(row){
+    const cmd = raffleCommandWord(row);
+    return cmd === 'raffle' || cmd === 'join';
+  }
+
+  function raffleCommandLogUser(row){
+    const result = parseCommandResult(row);
+    const data = result?.data || {};
+    const login = String(row?.userLogin || row?.user_login || row?.login || row?.username || result?.userLogin || result?.login || data?.userLogin || data?.login || '').replace(/^@/, '').trim().toLowerCase();
+    const displayName = String(row?.userDisplayName || row?.user_display_name || row?.displayName || row?.display_name || row?.user || result?.userDisplayName || result?.displayName || data?.userDisplayName || data?.displayName || login || 'unbekannt').replace(/^@/, '').trim();
+    return { login: login || displayName.toLowerCase() || 'unbekannt', displayName: displayName || login || 'unbekannt' };
+  }
+
+  function raffleCommandLogTime(row){
+    return row?.created_at || row?.createdAt || row?.executedAt || row?.timestamp || row?.ts || row?.time || '';
+  }
+
+  function normalizeRaffleCommandLogRowsForLogs(existingKeys, existingRows){
+    const out = [];
+    (state.commandLogRows || []).filter(isRaffleCommandLogRow).forEach(row => {
+      if (row?.ignored === true || row?.success === false) return;
+      const cmd = raffleCommandWord(row);
+      const user = raffleCommandLogUser(row);
+      const result = parseCommandResult(row);
+      const data = result?.data || {};
+      const action = String(result?.action || data?.action || row?.action || '').toLowerCase();
+      let status = cmd === 'join' ? 'joined' : 'started';
+      let label = cmd === 'join' ? 'Raffle Teilnahme' : 'Raffle gestartet';
+      let details = cmd === 'join' ? `${user.displayName} hat an der Raffle teilgenommen.` : `${user.displayName} hat eine Raffle gestartet.`;
+      if (action.includes('cancel')) {
+        status = 'cancelled';
+        label = 'Raffle abgebrochen';
+        details = `${user.displayName} hat eine Raffle abgebrochen.`;
+      } else if (action.includes('status')) {
+        status = 'info';
+        label = 'Raffle Status';
+        details = `${user.displayName} hat den Raffle-Status abgefragt.`;
+      } else if (cmd === 'raffle' && result?.ok === false) {
+        status = 'info';
+        label = 'Raffle Hinweis';
+        details = result?.error ? `${user.displayName}: ${result.error}` : `${user.displayName} hat !raffle genutzt.`;
+      }
+      const at = raffleCommandLogTime(row);
+      const technicalId = row.uid || row.id || row.commandLogUid || '';
+      const key = ['cmd', status, at, technicalId, user.login].join('|');
+      if (existingKeys && existingKeys.has(key)) return;
+      if (Array.isArray(existingRows) && existingRows.some(existing => {
+        if (existing.status !== status) return false;
+        if (String(existing.actorLogin || existing.login || '').toLowerCase() !== String(user.login || '').toLowerCase()) return false;
+        const delta = Math.abs(Date.parse(existing.at || 0) - Date.parse(at || 0));
+        return Number.isFinite(delta) && delta <= 10000;
+      })) return;
+      out.push({
+        module: 'minigames',
+        moduleLabel: 'Mini-Spiele',
+        at,
+        eventType: 'raffle',
+        eventLabel: 'Raffle',
+        user: user.displayName || user.login || '-',
+        login: user.login || '',
+        actorLogin: user.login || '',
+        actorDisplayName: user.displayName || user.login || '',
+        targetLogin: cmd === 'join' ? user.login : '',
+        targetDisplayName: cmd === 'join' ? user.displayName : '',
+        status,
+        points: 0,
+        details,
+        technicalId,
+        transactionUid: '',
+        raw: row
+      });
+    });
+    return out;
+  }
+
   function normalizeRaffleLogRowsForLogs(){
-    return rows(state.raffleLogs).map(row => {
+    const baseRows = rows(state.raffleLogs).map(row => {
       const amount = Number(row.amount || 0) || 0;
       const actorLogin = row.actorLogin || row.actor_login || row.metadata?.actorLogin || row.metadata?.refundedBy || '';
       const actorDisplayName = row.actorDisplayName || row.actor_display_name || row.metadata?.actorDisplayName || actorLogin || '';
@@ -2038,9 +2120,48 @@ function renderGiveawayDetails(giveaway){
         details: row.details || row.label || 'Raffle',
         technicalId: row.transactionUid || row.uid || row.raffleUid || '',
         transactionUid: row.transactionUid || '',
+        raffleUid: row.raffleUid || row.raffle_uid || row.metadata?.raffleUid || '',
         raw: row
       };
     });
+
+    const keys = new Set(baseRows.map(row => ['cmd', row.status, row.at, row.technicalId, row.login].join('|')));
+    const syntheticFinished = [];
+    const winsByRaffle = new Map();
+    baseRows.filter(row => row.status === 'win').forEach(row => {
+      const key = row.raffleUid || `time:${row.at}`;
+      const item = winsByRaffle.get(key) || { at: row.at, raffleUid: row.raffleUid || '', winners: 0, total: 0, names: [] };
+      item.winners += 1;
+      item.total += Math.max(0, Number(row.points || 0));
+      if (row.user) item.names.push(row.user);
+      if (!item.at || Date.parse(row.at || 0) > Date.parse(item.at || 0)) item.at = row.at;
+      winsByRaffle.set(key, item);
+    });
+    winsByRaffle.forEach(item => {
+      if (baseRows.some(row => row.status === 'finished' && row.raffleUid && row.raffleUid === item.raffleUid)) return;
+      syntheticFinished.push({
+        module: 'minigames',
+        moduleLabel: 'Mini-Spiele',
+        at: item.at,
+        eventType: 'raffle',
+        eventLabel: 'Raffle',
+        user: 'Raffle/System',
+        login: 'system',
+        actorLogin: 'system',
+        actorDisplayName: 'Raffle/System',
+        targetLogin: '',
+        targetDisplayName: '',
+        status: 'finished',
+        points: item.total,
+        details: `Raffle beendet: ${fmtNumber(item.winners)} Gewinner, ${fmtNumber(item.total)} Kekskrümel ausgezahlt.${item.names.length ? ` Gewinner: ${item.names.slice(0, 5).join(', ')}${item.names.length > 5 ? ' …' : ''}` : ''}`,
+        technicalId: item.raffleUid || `raffle-finished-${item.at}`,
+        transactionUid: '',
+        raffleUid: item.raffleUid,
+        raw: { synthetic: true, source: 'raffle_win_group', ...item }
+      });
+    });
+
+    return baseRows.concat(syntheticFinished, normalizeRaffleCommandLogRowsForLogs(keys, baseRows));
   }
 
   function buildCentralLogRows(){
