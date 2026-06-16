@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.23";
-  const MODULE_BUILD = "STEP_EVS_26B_SPLIT_SOUND_TEXT_EDITORS";
+  const MODULE_VERSION = "0.5.24";
+  const MODULE_BUILD = "STEP_EVS_26B_FIX4_EVENT_DETAIL_REFRESH_AFTER_SAVE";
 
   const api = {
     status: '/api/stream-events/status',
@@ -55,7 +55,12 @@ window.StreamEventsModule = (function(){
   function norm(v){ return String(v || '').trim().toLowerCase(); }
   function fmtDate(v){ if (!v) return '-'; const d = new Date(v); return Number.isNaN(d.getTime()) ? esc(v) : esc(d.toLocaleString('de-DE')); }
   function rows(v){ return Array.isArray(v) ? v : (Array.isArray(v?.rows) ? v.rows : []); }
-  function selectedEvent(){ return state.selected || state.events.find(e => e.eventUid === state.selectedUid) || state.events[0] || null; }
+  function selectedEvent(){
+    const byUid = state.selectedUid ? state.events.find(e => e.eventUid === state.selectedUid) : null;
+    if (byUid) return byUid;
+    if (state.selected && (!state.selectedUid || state.selected.eventUid === state.selectedUid)) return state.selected;
+    return state.events[0] || null;
+  }
 
   function installIntoDashboard(){
     if (!window.CGN) return;
@@ -182,7 +187,7 @@ window.StreamEventsModule = (function(){
       <div class="evs-page">
         <div class="evs-header glass">
           <div>
-            <div class="evs-kicker">EVS-26B · getrennte Sound-/Text-Editoren</div>
+            <div class="evs-kicker">EVS-26B-FIX4 · Eventdetails aktualisieren nach Speichern</div>
             <h2>Event-System</h2>
             <p>Übersicht zeigt den aktuellen Event-Stand und die nächste sinnvolle Aktion.</p>
           </div>
@@ -2159,6 +2164,17 @@ window.StreamEventsModule = (function(){
     return result.event;
   }
 
+  async function refreshSelectedEventAfterSave(uid){
+    if (!uid) return;
+    const result = await window.CGN.api(`${api.events}/${encodeURIComponent(uid)}`);
+    const fresh = result.event || result;
+    state.selected = fresh;
+    state.selectedUid = fresh.eventUid || uid;
+    const index = state.events.findIndex(e => e.eventUid === state.selectedUid);
+    if (index >= 0) state.events[index] = { ...state.events[index], ...fresh };
+    else if (fresh.eventUid) state.events.unshift(fresh);
+  }
+
   async function saveEvent(){
     const current = state.modal?.event || {};
     const payload = readModalPayload();
@@ -2168,10 +2184,20 @@ window.StreamEventsModule = (function(){
       const result = current.eventUid
         ? await window.CGN.api(`${api.events}/${encodeURIComponent(current.eventUid)}`, { method: 'PUT', body: JSON.stringify(payload) })
         : await window.CGN.api(api.events, { method: 'POST', body: JSON.stringify(payload) });
+      const uid = result.event?.eventUid || current.eventUid || state.selectedUid;
       state.message = 'Event gespeichert.';
       state.modal = null;
-      state.selectedUid = result.event?.eventUid || state.selectedUid;
+      state.selectedUid = uid || state.selectedUid;
+      state.selected = null;
       await loadAll(true);
+      if (state.selectedUid) {
+        await refreshSelectedEventAfterSave(state.selectedUid);
+        await loadRanking(state.selectedUid, false);
+        await loadTextRuntimeReport(state.selectedUid, false);
+        await loadSoundRuntimeReport(state.selectedUid, false);
+        await loadStatisticsUsers(state.selectedUid, false);
+      }
+      render();
     } catch (err) {
       state.error = err.message || String(err);
       render();
