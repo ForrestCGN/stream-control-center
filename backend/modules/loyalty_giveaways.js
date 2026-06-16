@@ -23,8 +23,8 @@ const database = require("../core/database");
 const loyaltyCore = require("./loyalty");
 
 const MODULE_NAME = "loyalty_giveaways";
-const MODULE_VERSION = "0.1.9";
-const MODULE_BUILD = "STEP_LC_RAFFLE_2A_FIX1_CONFIG_ENDPOINT";
+const MODULE_VERSION = "0.1.10";
+const MODULE_BUILD = "STEP_LC_MINIGAMES_2B_RAFFLE_ENTRY_COSTS";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -305,6 +305,30 @@ const CHAT_TEXT_DEFAULTS = {
     "{user} ist dabei. Jetzt heißt es Daumen drücken.",
     "{user} hat sich einen Platz in der Lostrommel gesichert."
   ],
+  "raffle.public.joined_paid": [
+    "{user} ist im Lostopf. Die Heimleitung hat {cost} Kekskrümel kassiert.",
+    "{user} hat sein Los bezahlt: {cost} Kekskrümel wandern in die Rentnerkasse.",
+    "{user} ist dabei. Eintritt: {cost} Kekskrümel, Quittung liegt auf dem Klemmbrett.",
+    "{user} wurde eingetragen. Die Losgebühr von {cost} Kekskrümeln ist abgebucht.",
+    "{user} hat den Loszettel abgegeben und {cost} Kekskrümel dagelassen.",
+    "{user} ist im Lostopf. Die Heimleitung zählt {cost} Kekskrümel in die Kasse."
+  ],
+  "raffle.public.insufficient_balance": [
+    "{user}, die Loskasse sagt nein. Du brauchst {required} Kekskrümel, hast aber nur {balance}.",
+    "{user}, dafür reichen deine Kekskrümel nicht. Benötigt: {required}, vorhanden: {balance}.",
+    "{user}, die Rentnerkasse winkt ab: {required} Kekskrümel nötig, {balance} vorhanden.",
+    "{user}, dein Los bleibt liegen. Es fehlen {missing} Kekskrümel.",
+    "{user}, die Heimleitung zählt nach: {balance} da, {required} nötig.",
+    "{user}, heute gibt es leider kein Los auf Pump. Benötigt werden {required} Kekskrümel."
+  ],
+  "raffle.public.started_paid": [
+    "Kekskrümel-Tombola gestartet! Mit !join kommt ihr rein. Eintritt: {entryCostAmount} Kekskrümel. Zeitfenster: {duration}s.",
+    "Die kostenpflichtige Lostrommel läuft. !join kostet {entryCostAmount} Kekskrümel, Restzeit: {duration}s.",
+    "Die Heimleitung öffnet die Loskasse: !join für {entryCostAmount} Kekskrümel, {duration}s Zeit.",
+    "Raffle gestartet. Ein Los pro Nase, Eintritt {entryCostAmount} Kekskrümel. Mit !join rein.",
+    "Die Rentnergang verkauft Lose: {entryCostAmount} Kekskrümel pro Teilnahme, {duration}s Zeit.",
+    "Die Lostrommel klappert, die Kasse auch. !join kostet {entryCostAmount} Kekskrümel."
+  ],
   "raffle.public.already_joined": [
     "{user}, du bist schon im Lostopf.",
     "{user}, ein Los pro Nase. Die Heimleitung hat dich schon notiert.",
@@ -391,6 +415,9 @@ const CHAT_TEXT_CATEGORIES = {
   "raffle.public.started": "chat_raffle",
   "raffle.public.already_active": "chat_raffle",
   "raffle.public.joined": "chat_raffle",
+  "raffle.public.joined_paid": "chat_raffle",
+  "raffle.public.insufficient_balance": "chat_raffle",
+  "raffle.public.started_paid": "chat_raffle",
   "raffle.public.already_joined": "chat_raffle",
   "raffle.public.no_active": "chat_raffle",
   "raffle.public.status": "chat_raffle",
@@ -740,7 +767,7 @@ function normalizeRaffleConfig(input = {}, previous = RAFFLE_DEFAULT_CONFIG) {
   const base = previous && typeof previous === "object" ? previous : RAFFLE_DEFAULT_CONFIG;
   const durationSeconds = clampInt(source.durationSeconds ?? source.duration ?? base.durationSeconds, RAFFLE_DEFAULT_CONFIG.durationSeconds, 10, RAFFLE_MAX_DURATION_SECONDS);
   const prizePoolAmount = clampInt(source.prizePoolAmount ?? source.prizePool ?? base.prizePoolAmount, RAFFLE_DEFAULT_CONFIG.prizePoolAmount, 0, 100000000);
-  const entryCostAmount = clampInt(source.entryCostAmount ?? source.entryCost ?? base.entryCostAmount, 0, 0, 0);
+  const entryCostAmount = clampInt(source.entryCostAmount ?? source.entryCost ?? base.entryCostAmount, 0, 0, 100000000);
   const startPermissionRaw = String(source.startPermission ?? base.startPermission ?? "mod").trim().toLowerCase();
   const startPermission = ["mod", "moderator", "broadcaster", "owner"].includes(startPermissionRaw) ? (startPermissionRaw === "moderator" ? "mod" : startPermissionRaw) : "mod";
   const raffleCommand = String(source.raffleCommand ?? base.raffleCommand ?? "raffle").trim().replace(/^!+/, "") || "raffle";
@@ -751,7 +778,7 @@ function normalizeRaffleConfig(input = {}, previous = RAFFLE_DEFAULT_CONFIG) {
     maxDurationSeconds: RAFFLE_MAX_DURATION_SECONDS,
     prizePoolAmount,
     entryCostAmount,
-    entryCostEnabled: false,
+    entryCostEnabled: entryCostAmount > 0,
     liveOnly: normalizeBoolean(source.liveOnly, base.liveOnly === true),
     startPermission,
     raffleCommand,
@@ -5434,8 +5461,11 @@ function getRaffleSnapshot() {
     participants: Array.isArray(raffle.participants) ? raffle.participants.map(item => ({ ...item })) : [],
     winners: Array.isArray(raffle.winners) ? raffle.winners.map(item => ({ ...item })) : [],
     prizePoolAmount: Number(raffle.prizePoolAmount || config.prizePoolAmount || RAFFLE_PRIZE_POOL_AMOUNT),
+    entryCostAmount: Number(raffle.entryCostAmount ?? config.entryCostAmount ?? 0),
+    entryCostEnabled: Number(raffle.entryCostAmount ?? config.entryCostAmount ?? 0) > 0,
     prizeAmountPerWinner: Number(raffle.prizeAmountPerWinner || 0),
     payoutTransactions: Array.isArray(raffle.payoutTransactions) ? raffle.payoutTransactions.map(item => ({ ...item })) : [],
+    refundTransactions: Array.isArray(raffle.refundTransactions) ? raffle.refundTransactions.map(item => ({ ...item })) : [],
     finishedAt: raffle.finishedAt || "",
     lastError: raffle.lastError || "",
     counters: { ...(raffle.counters || {}) },
@@ -5512,10 +5542,170 @@ function resetRaffleRuntime(patch = {}) {
   state.raffle.participantsByLogin = {};
   state.raffle.winners = [];
   state.raffle.prizePoolAmount = patch.prizePoolAmount || config.prizePoolAmount || RAFFLE_PRIZE_POOL_AMOUNT;
+  state.raffle.entryCostAmount = patch.entryCostAmount ?? config.entryCostAmount ?? 0;
   state.raffle.prizeAmountPerWinner = 0;
   state.raffle.payoutTransactions = [];
+  state.raffle.refundTransactions = [];
   state.raffle.finishedAt = patch.finishedAt || "";
   state.raffle.lastError = "";
+}
+
+
+function getRaffleEntryCostAmount(config = getRaffleConfig()) {
+  const amount = Math.max(0, Number.parseInt(config && config.entryCostAmount, 10) || 0);
+  return amount;
+}
+
+function bookRaffleEntryCost(raffleUid, userLogin, userDisplayName, entryCostAmount) {
+  const costDue = Math.max(0, Number.parseInt(entryCostAmount, 10) || 0);
+  if (costDue <= 0) {
+    return { ok: true, booked: false, amount: 0, mode: getLoyaltyRuntimeMode(), transactionUid: "" };
+  }
+
+  const login = normalizeChatLogin(userLogin);
+  const displayName = String(userDisplayName || login).trim() || login;
+  if (!login) return { ok: false, error: "missing_user_login", statusCode: 400 };
+
+  const mode = getLoyaltyRuntimeMode();
+  const field = loyaltyBalanceField(mode);
+  const spentField = loyaltySpentField(mode);
+  const user = ensureLoyaltyUserForBooking(login, displayName);
+  const before = Number(user && user[field] || 0);
+  if (before < costDue) {
+    return {
+      ok: false,
+      error: "loyalty_insufficient_balance",
+      statusCode: 409,
+      login,
+      displayName,
+      balance: before,
+      required: costDue,
+      missing: costDue - before,
+      mode,
+      currencyKey: "loyalty_points"
+    };
+  }
+
+  const after = before - costDue;
+  const now = nowIso();
+  database.run(`
+    UPDATE loyalty_users
+    SET ${database.quoteIdentifier(field)} = :balanceAfter,
+        ${database.quoteIdentifier(spentField)} = ${database.quoteIdentifier(spentField)} + :amount,
+        user_display_name = :displayName,
+        last_seen_at = :lastSeenAt,
+        updated_at = :updatedAt
+    WHERE user_login = :login
+  `, {
+    login,
+    displayName,
+    balanceAfter: after,
+    amount: costDue,
+    lastSeenAt: now,
+    updatedAt: now
+  });
+
+  const transactionUid = insertLoyaltyBookingTransaction({
+    login,
+    displayName,
+    amount: -costDue,
+    balanceBefore: before,
+    balanceAfter: after,
+    mode,
+    type: "raffle_entry_cost",
+    sourceModule: MODULE_NAME,
+    sourceProvider: "raffle",
+    reason: "loyalty_raffle_entry_cost",
+    referenceType: "raffle",
+    referenceId: raffleUid,
+    metadata: {
+      raffleUid,
+      entryCostAmount: costDue,
+      costDue,
+      userLogin: login,
+      userDisplayName: displayName
+    }
+  });
+
+  return { ok: true, booked: true, amount: costDue, mode, balanceBefore: before, balanceAfter: after, transactionUid };
+}
+
+function refundRaffleEntryCost(raffleUid, participant, input = {}) {
+  const costBooked = Math.max(0, Number.parseInt(participant && participant.entryCostBooked, 10) || 0);
+  if (costBooked <= 0) return { ok: true, refunded: false, amount: 0, reason: "no_cost_booked" };
+  if (participant && participant.refundTransactionUid) {
+    return { ok: true, refunded: false, alreadyRefunded: true, amount: costBooked, transactionUid: participant.refundTransactionUid };
+  }
+
+  const login = normalizeChatLogin(participant && participant.login);
+  const displayName = String(participant && (participant.displayName || participant.login) || login).trim() || login;
+  if (!login) return { ok: false, error: "missing_user_login", amount: costBooked };
+
+  const mode = String(participant && participant.entryCostMode || getLoyaltyRuntimeMode()).toLowerCase() === "live" ? "live" : "shadow";
+  const field = loyaltyBalanceField(mode);
+  const spentField = loyaltySpentField(mode);
+  const user = ensureLoyaltyUserForBooking(login, displayName);
+  const before = Number(user && user[field] || 0);
+  const after = before + costBooked;
+  const now = nowIso();
+
+  database.run(`
+    UPDATE loyalty_users
+    SET ${database.quoteIdentifier(field)} = :balanceAfter,
+        ${database.quoteIdentifier(spentField)} = CASE WHEN ${database.quoteIdentifier(spentField)} - :amount < 0 THEN 0 ELSE ${database.quoteIdentifier(spentField)} - :amount END,
+        user_display_name = :displayName,
+        last_seen_at = :lastSeenAt,
+        updated_at = :updatedAt
+    WHERE user_login = :login
+  `, {
+    login,
+    displayName,
+    balanceAfter: after,
+    amount: costBooked,
+    lastSeenAt: now,
+    updatedAt: now
+  });
+
+  const transactionUid = insertLoyaltyBookingTransaction({
+    login,
+    displayName,
+    amount: costBooked,
+    balanceBefore: before,
+    balanceAfter: after,
+    mode,
+    type: "raffle_entry_refund",
+    sourceModule: MODULE_NAME,
+    sourceProvider: "raffle",
+    reason: input.reason || "loyalty_raffle_cancel_refund",
+    referenceType: "raffle",
+    referenceId: raffleUid,
+    metadata: {
+      raffleUid,
+      originalTransactionUid: participant.entryCostTransactionUid || "",
+      refundedCost: costBooked,
+      refundReason: input.reason || "loyalty_raffle_cancel_refund",
+      refundedBy: input.actor || "system"
+    }
+  });
+
+  participant.refundTransactionUid = transactionUid;
+  participant.refundAmount = costBooked;
+  participant.refundedAt = now;
+  return { ok: true, refunded: true, amount: costBooked, mode, balanceBefore: before, balanceAfter: after, transactionUid };
+}
+
+function refundRaffleEntryCosts(raffleUid, participants, input = {}) {
+  const rows = [];
+  for (const participant of Array.isArray(participants) ? participants : []) {
+    const refund = refundRaffleEntryCost(raffleUid, participant, input);
+    rows.push({ userLogin: participant.login || "", userDisplayName: participant.displayName || participant.login || "", ...refund });
+  }
+  return {
+    ok: true,
+    count: rows.length,
+    refundedAmount: rows.reduce((sum, row) => sum + Number(row.refunded ? row.amount || 0 : 0), 0),
+    rows
+  };
 }
 
 
@@ -5686,6 +5876,7 @@ function startRaffleRuntime(input = {}) {
   const userLogin = normalizeChatLogin(input.userLogin || input.login || input.username || input.user);
   const userDisplayName = normalizeChatDisplayName(input, userLogin);
   const durationSeconds = parseRaffleDuration(input);
+  const entryCostAmount = getRaffleEntryCostAmount(config);
   const startedAt = nowIso();
   const endsAt = new Date(Date.now() + durationSeconds * 1000).toISOString();
   const raffleUid = uid("raffle");
@@ -5694,6 +5885,7 @@ function startRaffleRuntime(input = {}) {
     uid: raffleUid,
     status: "open",
     durationSeconds,
+    entryCostAmount,
     startedAt,
     endsAt,
     startedBy: userLogin,
@@ -5708,6 +5900,7 @@ function startRaffleRuntime(input = {}) {
   emitEvent("loyalty.giveaway.raffle.started", {
     raffleUid,
     durationSeconds,
+    entryCostAmount,
     startedAt,
     endsAt,
     actorLogin: userLogin,
@@ -5717,8 +5910,8 @@ function startRaffleRuntime(input = {}) {
   return buildCommandRuntimeResponse(input, {
     ok: true,
     action: "raffle_start",
-    messageKey: "raffle.public.started",
-    context: { duration: durationSeconds, entries: 0, remaining: durationSeconds, prizePool: config.prizePoolAmount },
+    messageKey: entryCostAmount > 0 ? "raffle.public.started_paid" : "raffle.public.started",
+    context: { duration: durationSeconds, entries: 0, remaining: durationSeconds, prizePool: config.prizePoolAmount, entryCostAmount, cost: entryCostAmount },
     data: getRaffleSnapshot()
   });
 }
@@ -5744,13 +5937,21 @@ function cancelRaffleRuntime(input = {}) {
   }
 
   const snapshot = getRaffleSnapshot();
+  const participants = Array.isArray(state.raffle.participants) ? state.raffle.participants.map(item => ({ ...item })) : [];
+  const refunds = refundRaffleEntryCosts(snapshot.uid, participants, {
+    reason: "loyalty_raffle_cancel_refund",
+    actor: normalizeChatLogin(input.userLogin || input.login || input.username || input.user) || "system"
+  });
   resetRaffleRuntime({ status: "cancelled", finishedAt: nowIso() });
+  state.raffle.refundTransactions = refunds.rows || [];
   state.raffle.counters.cancelled += 1;
 
   emitEvent("loyalty.giveaway.raffle.cancelled", {
     raffleUid: snapshot.uid,
     actorLogin: normalizeChatLogin(input.userLogin || input.login || input.username || input.user),
     participantCount: snapshot.participantCount,
+    refundedAmount: refunds.refundedAmount || 0,
+    refundCount: refunds.count || 0,
     cancelledAt: nowIso()
   });
 
@@ -5758,7 +5959,8 @@ function cancelRaffleRuntime(input = {}) {
     ok: true,
     action: "raffle_cancel",
     messageKey: "raffle.public.cancelled",
-    data: snapshot
+    context: { refundedAmount: refunds.refundedAmount || 0, refundCount: refunds.count || 0 },
+    data: { ...snapshot, refunds }
   });
 }
 
@@ -5827,10 +6029,44 @@ function joinRaffleRuntime(input = {}) {
     });
   }
 
+  const entryCostAmount = getRaffleEntryCostAmount(config);
+  let booking = { ok: true, booked: false, amount: 0, mode: getLoyaltyRuntimeMode(), transactionUid: "" };
+  if (entryCostAmount > 0) {
+    try {
+      booking = bookRaffleEntryCost(state.raffle.uid, userLogin, userDisplayName || userLogin, entryCostAmount);
+    } catch (err) {
+      booking = { ok: false, error: err && err.message ? err.message : String(err), statusCode: 500 };
+    }
+    if (!booking || booking.ok !== true) {
+      return buildCommandRuntimeResponse(input, {
+        ok: false,
+        action: "raffle_join",
+        messageKey: booking && booking.error === "loyalty_insufficient_balance" ? "raffle.public.insufficient_balance" : "raffle.public.no_active",
+        error: booking && booking.error || "raffle_entry_cost_booking_failed",
+        context: {
+          entries: state.raffle.participants.length,
+          remaining: getRaffleSnapshot().remainingSeconds,
+          required: formatRaffleNumber(booking && booking.required || entryCostAmount),
+          balance: formatRaffleNumber(booking && booking.balance || 0),
+          missing: formatRaffleNumber(booking && booking.missing || entryCostAmount),
+          cost: formatRaffleNumber(entryCostAmount),
+          entryCostAmount: formatRaffleNumber(entryCostAmount)
+        },
+        data: { ...getRaffleSnapshot(), booking }
+      });
+    }
+  }
+
   const participant = {
     login: userLogin,
     displayName: userDisplayName || userLogin,
-    joinedAt: nowIso()
+    joinedAt: nowIso(),
+    entryCostAmount,
+    entryCostBooked: booking.booked ? Number(booking.amount || 0) : 0,
+    entryCostMode: booking.mode || getLoyaltyRuntimeMode(),
+    entryCostTransactionUid: booking.transactionUid || "",
+    balanceBefore: booking.balanceBefore ?? null,
+    balanceAfter: booking.balanceAfter ?? null
   };
   state.raffle.participants.push(participant);
   state.raffle.participantsByLogin[userLogin] = participant;
@@ -5841,14 +6077,23 @@ function joinRaffleRuntime(input = {}) {
     userLogin,
     userDisplayName: participant.displayName,
     participantCount: state.raffle.participants.length,
+    entryCostAmount,
+    entryCostBooked: participant.entryCostBooked || 0,
+    costTransactionUid: participant.entryCostTransactionUid || "",
     joinedAt: participant.joinedAt
   });
 
   return buildCommandRuntimeResponse(input, {
     ok: true,
     action: "raffle_join",
-    messageKey: "raffle.public.joined",
-    context: { entries: state.raffle.participants.length, remaining: getRaffleSnapshot().remainingSeconds },
+    messageKey: entryCostAmount > 0 ? "raffle.public.joined_paid" : "raffle.public.joined",
+    context: {
+      entries: state.raffle.participants.length,
+      remaining: getRaffleSnapshot().remainingSeconds,
+      cost: formatRaffleNumber(entryCostAmount),
+      entryCostAmount: formatRaffleNumber(entryCostAmount),
+      balanceAfter: booking.balanceAfter === undefined || booking.balanceAfter === null ? "" : formatRaffleNumber(booking.balanceAfter)
+    },
     data: getRaffleSnapshot()
   });
 }
