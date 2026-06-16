@@ -23,8 +23,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.31";
-const MODULE_BUILD = "STEP_EVENT_SOUND_4_ROUND_PLAYBACK_BINDING";
+const MODULE_VERSION = "0.5.32";
+const MODULE_BUILD = "STEP_EVENT_SOUND_4B_PREROLL_FLAG_FIX";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -3017,9 +3017,9 @@ function buildSoundPlaybackPayload(event, round, snippet, runtimeConfig) {
     meta: {
       preparedAt: nowIso(),
       answerSeconds: runtimeConfig.answerSeconds,
-      soundSafeStep: "EVENT-SOUND-4",
+      soundSafeStep: "EVENT-SOUND-4B",
       extensionPoint: "stream_events.before_sound_system_play_request",
-      note: "EVENT-SOUND-4: Payload kann mit explizitem confirm/play ueber das Sound-System gequeued/gestartet werden. Sound-System bleibt Playback-/Queue-Owner."
+      note: "EVENT-SOUND-4B: Payload wird beim kontrollierten Playback mit erforderlichem eventPreRoll-Flag markiert. Sound-System bleibt Playback-/Queue-Owner."
     }
   };
 }
@@ -3035,17 +3035,33 @@ function requestSoundSystemPlaybackForSoundRound(playback = {}, options = {}) {
   if (confirm !== "1" && confirm.toLowerCase() !== "true") {
     return { ok: false, error: "confirm_required", hint: "Setze play=1 und confirm=1 fuer kontrolliertes EventSound-Playback." };
   }
+  const originalMeta = item.meta && typeof item.meta === "object" && !Array.isArray(item.meta) ? item.meta : {};
+  const originalPreRoll = originalMeta.eventPreRoll && typeof originalMeta.eventPreRoll === "object" && !Array.isArray(originalMeta.eventPreRoll) ? originalMeta.eventPreRoll : {};
   const requestedItem = {
     ...item,
     sourceModule: MODULE_NAME,
     source: MODULE_NAME,
     requestedBy: MODULE_NAME,
     meta: {
-      ...(item.meta || {}),
+      ...originalMeta,
       module: MODULE_NAME,
       owner: MODULE_NAME,
       eventSoundRoundPlayback: true,
-      eventSound4: true
+      eventSound4: true,
+      eventSound4B: true,
+      eventPreRoll: {
+        ...originalPreRoll,
+        enabled: true,
+        countdownEnabled: true,
+        preRollEnabled: true,
+        owner: MODULE_NAME,
+        eventUid: originalPreRoll.eventUid || originalMeta.eventUid || item.eventUid || "",
+        roundUid: originalPreRoll.roundUid || originalMeta.roundUid || item.roundUid || "",
+        seconds: clampNumber(originalPreRoll.seconds ?? originalPreRoll.countdownSeconds ?? originalPreRoll.preRollSeconds, 1, 30, 3),
+        finalLabel: originalPreRoll.finalLabel || "LOS!",
+        caption: originalPreRoll.caption || "Sound startet gleich",
+        guessingLabel: originalPreRoll.guessingLabel || "Jetzt raten!"
+      }
     }
   };
   try {
@@ -3053,7 +3069,7 @@ function requestSoundSystemPlaybackForSoundRound(playback = {}, options = {}) {
     return {
       ok: !!(result && result.ok),
       module: MODULE_NAME,
-      step: "EVENT-SOUND-4",
+      step: "EVENT-SOUND-4B",
       playbackRequested: true,
       soundSystemResult: result || null,
       queueTouched: !!(result && result.result && (result.result.started || result.result.queued || result.result.parallel)),
@@ -3061,7 +3077,7 @@ function requestSoundSystemPlaybackForSoundRound(playback = {}, options = {}) {
       error: result && result.error ? result.error : ""
     };
   } catch (err) {
-    return { ok: false, module: MODULE_NAME, step: "EVENT-SOUND-4", playbackRequested: true, error: err && err.message ? err.message : String(err) };
+    return { ok: false, module: MODULE_NAME, step: "EVENT-SOUND-4B", playbackRequested: true, error: err && err.message ? err.message : String(err) };
   }
 }
 
