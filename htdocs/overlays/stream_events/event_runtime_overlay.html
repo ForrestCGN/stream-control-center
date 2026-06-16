@@ -46,7 +46,7 @@
       opacity: 0;
       transform: scale(.985);
       filter: blur(5px);
-      transition: opacity .22s ease, transform .32s cubic-bezier(.16, 1, .3, 1), filter .22s ease;
+      transition: opacity .34s ease, transform .42s cubic-bezier(.16, 1, .3, 1), filter .34s ease;
       isolation: isolate;
     }
 
@@ -90,7 +90,7 @@
       position: relative;
       z-index: 5;
       width: 380px;
-      height: 430px;
+      height: 438px;
       display: block;
       transform-origin: top center;
     }
@@ -173,11 +173,15 @@
     .count-number {
       position: relative;
       z-index: 5;
+      max-width: 250px;
       font-size: 182px;
       line-height: .82;
       font-weight: 950;
       letter-spacing: -6px;
       font-variant-numeric: tabular-nums;
+      color: var(--text);
+      text-align: center;
+      white-space: nowrap;
       color: var(--text);
       text-shadow:
         0 0 18px rgba(255,255,255,.28),
@@ -185,6 +189,19 @@
         0 0 48px rgba(168,85,247,.58),
         0 0 72px rgba(255,79,216,.22);
       animation: numberPulse .92s cubic-bezier(.18, .9, .2, 1) infinite;
+    }
+
+    .count-number.word-state {
+      max-width: 260px;
+      font-size: 78px;
+      line-height: .9;
+      letter-spacing: .8px;
+      animation: wordPulse 1.35s cubic-bezier(.16, 1, .3, 1) infinite;
+    }
+
+    @keyframes wordPulse {
+      0%, 100% { transform: scale(.98); opacity: .92; filter: blur(0); }
+      42% { transform: scale(1.035); opacity: 1; filter: blur(0); }
     }
 
     @keyframes numberPulse {
@@ -198,10 +215,10 @@
       position: absolute;
       z-index: 6;
       left: 50%;
-      top: 340px;
+      top: 348px;
       transform: translateX(-50%);
       min-width: 364px;
-      padding: 15px 24px 10px;
+      padding: 16px 24px 11px;
       border-radius: 999px;
       border: 1.5px solid rgba(57,230,255,.42);
       background: linear-gradient(135deg, rgba(5,7,24,.86), rgba(31,14,65,.84));
@@ -272,6 +289,14 @@
       line-height: 1.22;
       font-weight: 820;
       overflow-wrap: anywhere;
+    }
+
+    #stage.mode-guessing .ring-wrap {
+      display: block;
+    }
+
+    #stage.mode-guessing .flash {
+      animation-duration: 1.6s;
     }
 
     #stage.mode-result .ring-wrap,
@@ -352,6 +377,32 @@
   <pre id="debug"></pre>
 
   <script>
+    window.CGN_OVERLAY_BUS = {
+      clientId: "stream_events_runtime_overlay",
+      clientType: "overlay",
+      mode: "obs_overlay",
+      module: "stream_events",
+      name: "Stream Events Runtime Overlay",
+      version: "0.2.2",
+      heartbeatIntervalMs: 5000,
+      capabilities: [
+        "overlay.heartbeat",
+        "stream_events.runtime_display",
+        "stream_events.runtime.countdown",
+        "stream_events.runtime.guessing",
+        "stream_events.runtime.result",
+        "ack"
+      ],
+      meta: {
+        overlay: "event_runtime_overlay.html",
+        communication: "communication_bus",
+        owner: "stream_events",
+        playbackOwner: "sound_system"
+      }
+    };
+  </script>
+
+  <script>
     (function () {
       "use strict";
 
@@ -397,10 +448,11 @@
       function safeModeFromPhase(state) {
         const display = state && state.display ? state.display : {};
         const phase = state && state.phase ? state.phase : {};
-        const fromDisplay = cleanText(display.overlayMode, "");
+        const fromDisplay = cleanText(display.overlayMode, "").toLowerCase();
         if (fromDisplay) return fromDisplay;
-        const key = cleanText(phase.key, "");
-        if (key === "sound_preroll_countdown" || key === "countdown") return "countdown";
+        const key = cleanText(phase.key, "").toLowerCase();
+        if (key === "sound_preroll_countdown" || key === "countdown" || key === "preroll_countdown") return "countdown";
+        if (key === "sound_guessing" || key === "guessing" || key === "sound_playing" || key === "sound_started") return "guessing";
         if (key === "sound_solved" || key === "sound_unresolved") return "result";
         if (key === "finished") return "finished";
         if (key === "cancelled") return "cancelled";
@@ -423,6 +475,8 @@
 
       function forceNumberRestart(value) {
         const next = cleanText(value, "3");
+        const isWord = !/^\d+$/.test(next);
+        els.countNumber.classList.toggle("word-state", isWord);
         if (els.countNumber.textContent === next) return;
         els.countNumber.style.animation = "none";
         els.countNumber.offsetHeight;
@@ -434,6 +488,12 @@
         const value = countdownValue(state);
         forceNumberRestart(value > 0 ? String(value) : "LOS!");
         setText(els.caption, "Sound startet gleich", "Sound startet gleich");
+      }
+
+      function applyGuessing(state) {
+        const display = state && state.display ? state.display : {};
+        forceNumberRestart(cleanText(display.countdownFinalLabel, "LOS!"));
+        setText(els.caption, cleanText(display.guessingLabel, "Jetzt raten!"), "Jetzt raten!");
       }
 
       function latestSolutionText(state) {
@@ -487,6 +547,8 @@
 
         if (mode === "countdown") {
           applyCountdown(state);
+        } else if (mode === "guessing") {
+          applyGuessing(state);
         } else if (mode === "result" || mode === "finished" || mode === "cancelled") {
           applyResult(state, mode);
         }
@@ -513,20 +575,26 @@
       }
 
       function runCountdownDemo() {
-        const sequence = [3, 2, 1, "LOS!"];
+        const steps = [
+          { mode: "countdown", value: 3, caption: "Sound startet gleich", visible: true, ms: 900 },
+          { mode: "countdown", value: 2, caption: "Sound startet gleich", visible: true, ms: 900 },
+          { mode: "countdown", value: 1, caption: "Sound startet gleich", visible: true, ms: 900 },
+          { mode: "guessing", value: "LOS!", caption: "Jetzt raten!", visible: true, ms: 5000 },
+          { mode: "guessing", value: "LOS!", caption: "Jetzt raten!", visible: false, ms: 900 }
+        ];
         let index = 0;
         function tick() {
-          const value = sequence[index % sequence.length];
-          if (value !== lastDemoSecond) {
-            lastDemoSecond = value;
-            forceNumberRestart(value);
+          const step = steps[index % steps.length];
+          if (step.value !== lastDemoSecond) {
+            lastDemoSecond = step.value;
+            forceNumberRestart(step.value);
           }
-          setText(els.caption, value === "LOS!" ? "Jetzt raten!" : "Sound startet gleich", "Sound startet gleich");
-          applyClass("countdown", true);
+          setText(els.caption, step.caption, step.caption);
+          applyClass(step.mode, step.visible);
           index += 1;
+          demoTimer = window.setTimeout(tick, step.ms);
         }
         tick();
-        demoTimer = window.setInterval(tick, 900);
       }
 
       function runResultDemo() {
@@ -547,9 +615,16 @@
       function handleBusMessage(event) {
         const msg = event && event.detail ? event.detail : null;
         if (!msg || typeof msg !== "object" || demo) return;
-        const moduleName = String(msg.module || (msg.source && msg.source.module) || "");
-        const channel = String(msg.channel || msg.type || msg.op || "");
-        if (moduleName === "stream_events" || channel.indexOf("stream_events") >= 0 || channel.indexOf("stream-events") >= 0) {
+        const meta = msg.meta && typeof msg.meta === "object" ? msg.meta : {};
+        const target = msg.target && typeof msg.target === "object" ? msg.target : {};
+        const source = msg.source && typeof msg.source === "object" ? msg.source : {};
+        const moduleName = String(msg.module || source.module || meta.module || "").toLowerCase();
+        const channel = String(msg.channel || msg.type || msg.op || msg.action || "").toLowerCase();
+        const capability = String(meta.capability || target.capability || "").toLowerCase();
+        const isRuntimeTarget = capability === "stream_events.runtime_display" || capability.indexOf("stream_events.runtime") === 0;
+        const isStreamEvents = moduleName === "stream_events" || channel.indexOf("stream_events") >= 0 || channel.indexOf("stream-events") >= 0;
+        const isSoundLifecycle = moduleName === "sound_system" || channel === "sound" || channel.indexOf("sound.") >= 0;
+        if (isRuntimeTarget || isStreamEvents || isSoundLifecycle) {
           fetchState();
         }
       }
@@ -578,7 +653,7 @@
     data-mode="obs_overlay"
     data-module="stream_events"
     data-name="Stream Events Runtime Overlay"
-    data-version="0.2.1"
+    data-version="0.2.2"
     data-heartbeat-ms="5000"
   ></script>
 </body>
