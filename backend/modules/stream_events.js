@@ -24,8 +24,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.55";
-const MODULE_BUILD = "STEP_EVENT_RUNTIME_RECOVERY_REQUEUE_1";
+const MODULE_VERSION = "0.5.56";
+const MODULE_BUILD = "STEP_EVENT_RUNTIME_RECOVERY_LOAD_FIX_1";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -3493,7 +3493,7 @@ function upsertEventRuntimeState(eventUid = "", patch = {}) {
     updated_at: now,
     metadata_json: jsonEncode(metadata)
   };
-  database.exec(`
+  database.run(`
     INSERT INTO stream_events_runtime_state (
       event_uid, runtime_status, phase, active_round_uid, phase_started_at, phase_ends_at,
       next_auto_start_at, last_heartbeat_at, recovery_required, recovery_reason, recovery_note, updated_at, metadata_json
