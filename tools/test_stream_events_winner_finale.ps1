@@ -102,7 +102,7 @@ if ($CommandAuslosung) {
 if (-not $Finish -and -not $Finale -and -not $CommandFertig -and -not $CommandAuslosung) {
   Write-Host ""
   Write-Host "Read-only beendet. Beispiele:"
-  Write-Host "powershell -ExecutionPolicy Bypass -File \".\\tools\\test_stream_events_winner_finale.ps1\" -EventUid \"$EventUid\" -Finish"
-  Write-Host "powershell -ExecutionPolicy Bypass -File \".\\tools\\test_stream_events_winner_finale.ps1\" -EventUid \"$EventUid\" -Finale"
-  Write-Host "powershell -ExecutionPolicy Bypass -File \".\\tools\\test_stream_events_winner_finale.ps1\" -CommandAuslosung"
+  Write-Host "powershell -ExecutionPolicy Bypass -File `".\tools\test_stream_events_winner_finale.ps1`" -EventUid `"$EventUid`" -Finish"
+  Write-Host "powershell -ExecutionPolicy Bypass -File `".\tools\test_stream_events_winner_finale.ps1`" -EventUid `"$EventUid`" -Finale"
+  Write-Host "powershell -ExecutionPolicy Bypass -File `".\tools\test_stream_events_winner_finale.ps1`" -CommandAuslosung"
 }
