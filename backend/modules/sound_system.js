@@ -16,8 +16,8 @@ try {
 }
 
 const MODULE_NAME = "sound_system";
-const MODULE_VERSION = "0.1.29";
-const MODULE_BUILD = "STEP_SOUND_DASH_1_BACKEND_STATUS_CLEANUP";
+const MODULE_VERSION = "0.1.30";
+const MODULE_BUILD = "STEP_SOUND_GAP_2_PLAYBACK_LOG_AUDIO_END_AND_GAP_END";
 const SOUND_BUS_CAPABILITY = "sound.event_output";
 const SOUND_BUS_COMMAND_CAPABILITY = "sound.command_input";
 const SOUND_BUS_STATUS_API_VERSION = "1.0.0";
@@ -347,6 +347,8 @@ module.exports.init = function init(ctx) {
       maxItems: 100,
       items: [],
       lastStartedAt: "",
+      lastAudioEndedAt: "",
+      lastGapEndedAt: "",
       lastFinishedAt: "",
       lastErrorAt: "",
       lastStatus: ""
@@ -2517,6 +2519,8 @@ function publicSoundBusQueueStatus() {
         maxItems: playbackLogConfig().maxItems,
         stored: Array.isArray(state.playbackLog && state.playbackLog.items) ? state.playbackLog.items.length : 0,
         lastStartedAt: state.playbackLog.lastStartedAt || "",
+        lastAudioEndedAt: state.playbackLog.lastAudioEndedAt || "",
+        lastGapEndedAt: state.playbackLog.lastGapEndedAt || "",
         lastFinishedAt: state.playbackLog.lastFinishedAt || "",
         lastErrorAt: state.playbackLog.lastErrorAt || "",
         endpoint: `${(config.routes && config.routes.prefix) || "/api/sound"}/recent-playback`
@@ -2724,6 +2728,12 @@ function publicSoundBusQueueStatus() {
         reason: "",
         durationMs: 0,
         playbackMs: 0,
+        audioEndedAt: "",
+        audioEndedAtMs: 0,
+        gapStartedAt: "",
+        gapStartedAtMs: 0,
+        gapEndedAt: "",
+        gapEndedAtMs: 0,
         gapMs: 0,
         error: ""
       };
@@ -2740,6 +2750,12 @@ function publicSoundBusQueueStatus() {
       entry.startedAtMs = Number(item.startedAt || nowMs);
       entry.finishedAt = "";
       entry.finishedAtMs = 0;
+      entry.audioEndedAt = "";
+      entry.audioEndedAtMs = 0;
+      entry.gapStartedAt = "";
+      entry.gapStartedAtMs = 0;
+      entry.gapEndedAt = "";
+      entry.gapEndedAtMs = 0;
       entry.durationMs = Number(item.durationMs || 0);
       entry.playbackMs = 0;
       entry.gapMs = 0;
@@ -2747,14 +2763,29 @@ function publicSoundBusQueueStatus() {
       state.playbackLog.lastStartedAt = entry.startedAt;
     } else if (cleanStatus === "finished" || cleanStatus === "error" || cleanStatus === "skipped" || cleanStatus === "stopped") {
       const startedMs = Number(entry.startedAtMs || item.startedAt || 0);
-      const finishedMs = Number(data.finishedAtMs || nowMs);
+      const fallbackFinishedMs = Number(data.finishedAtMs || nowMs);
+      const audioEndedMs = Number(data.audioEndedAtMs || data.actualAudioEndedAtMs || fallbackFinishedMs);
+      const gapStartedMs = Number(data.gapStartedAtMs || audioEndedMs || fallbackFinishedMs);
+      const gapEndedMs = Number(data.gapEndedAtMs || fallbackFinishedMs);
+      const finishedMs = fallbackFinishedMs;
+      entry.audioEndedAtMs = Number.isFinite(audioEndedMs) && audioEndedMs > 0 ? audioEndedMs : finishedMs;
+      entry.audioEndedAt = playbackLogIso(entry.audioEndedAtMs) || "";
+      entry.gapStartedAtMs = Number.isFinite(gapStartedMs) && gapStartedMs > 0 ? gapStartedMs : entry.audioEndedAtMs;
+      entry.gapStartedAt = playbackLogIso(entry.gapStartedAtMs) || "";
+      entry.gapEndedAtMs = Number.isFinite(gapEndedMs) && gapEndedMs > 0 ? gapEndedMs : finishedMs;
+      entry.gapEndedAt = playbackLogIso(entry.gapEndedAtMs) || "";
       entry.finishedAtMs = finishedMs;
       entry.finishedAt = playbackLogIso(finishedMs) || nowIso;
-      entry.playbackMs = startedMs > 0 ? Math.max(0, finishedMs - startedMs) : 0;
+      entry.playbackMs = startedMs > 0 ? Math.max(0, entry.audioEndedAtMs - startedMs) : 0;
       entry.durationMs = Number(item.durationMs || entry.durationMs || 0);
-      entry.gapMs = Number(data.gapMs || (state.postPlaybackGap && state.postPlaybackGap.durationMs) || 0);
+      const explicitGapMs = Number(data.gapMs);
+      entry.gapMs = Number.isFinite(explicitGapMs) && explicitGapMs >= 0
+        ? explicitGapMs
+        : Math.max(0, entry.gapEndedAtMs - entry.gapStartedAtMs);
       entry.error = String(data.error || entry.error || "");
       if (cleanStatus === "error") state.playbackLog.lastErrorAt = entry.finishedAt;
+      state.playbackLog.lastAudioEndedAt = entry.audioEndedAt || state.playbackLog.lastAudioEndedAt || "";
+      state.playbackLog.lastGapEndedAt = entry.gapEndedAt || state.playbackLog.lastGapEndedAt || "";
       state.playbackLog.lastFinishedAt = entry.finishedAt;
     }
 
@@ -2804,6 +2835,8 @@ function publicSoundBusQueueStatus() {
       count: Math.min(items.length, limit),
       totalStored: Array.isArray(state.playbackLog && state.playbackLog.items) ? state.playbackLog.items.length : 0,
       lastStartedAt: state.playbackLog.lastStartedAt || "",
+      lastAudioEndedAt: state.playbackLog.lastAudioEndedAt || "",
+      lastGapEndedAt: state.playbackLog.lastGapEndedAt || "",
       lastFinishedAt: state.playbackLog.lastFinishedAt || "",
       lastErrorAt: state.playbackLog.lastErrorAt || "",
       lastStatus: state.playbackLog.lastStatus || "",
@@ -4248,6 +4281,12 @@ function publicSoundBusQueueStatus() {
       requestId: (state.postPlaybackGap && state.postPlaybackGap.requestId) || "",
       soundId: (state.postPlaybackGap && state.postPlaybackGap.soundId) || "",
       label: (state.postPlaybackGap && state.postPlaybackGap.label) || "",
+      audioEndedAt: (state.postPlaybackGap && state.postPlaybackGap.audioEndedAt) || "",
+      audioEndedAtMs: Number((state.postPlaybackGap && state.postPlaybackGap.audioEndedAtMs) || 0),
+      gapStartedAt: (state.postPlaybackGap && state.postPlaybackGap.gapStartedAt) || "",
+      gapStartedAtMs: Number((state.postPlaybackGap && state.postPlaybackGap.gapStartedAtMs) || 0),
+      gapEndedAt: (state.postPlaybackGap && state.postPlaybackGap.gapEndedAt) || "",
+      gapEndedAtMs: Number((state.postPlaybackGap && state.postPlaybackGap.gapEndedAtMs) || 0),
       holdEventRuntimeOverlay: !!(config.soundGap && config.soundGap.holdEventRuntimeOverlay !== false),
       blockQueueStart: !!(config.soundGap && config.soundGap.blockQueueStart !== false)
     };
@@ -4298,8 +4337,16 @@ function publicSoundBusQueueStatus() {
   }
 
   function finalizeFinishedItemAfterGap(finished, reason, parallel = false) {
+    const gapState = isPlainObject(state.postPlaybackGap) ? { ...state.postPlaybackGap } : {};
+    const gapEndedAtMs = Date.now();
     if (finished) clearEventPreRollRuntime(finished, "hide", reason || "finished");
-    if (finished) markPlaybackFinished(finished, reason || "finished", { gapMs: Number(state.postPlaybackGap && state.postPlaybackGap.durationMs || 0) });
+    if (finished) markPlaybackFinished(finished, reason || "finished", {
+      audioEndedAtMs: Number(gapState.audioEndedAtMs || (finished.lifecycle && finished.lifecycle.playbackLogAudioEndedAtMs) || gapEndedAtMs),
+      gapStartedAtMs: Number(gapState.gapStartedAtMs || (finished.lifecycle && finished.lifecycle.playbackLogGapStartedAtMs) || gapEndedAtMs),
+      gapEndedAtMs,
+      finishedAtMs: gapEndedAtMs,
+      gapMs: Math.max(0, gapEndedAtMs - Number(gapState.gapStartedAtMs || (finished.lifecycle && finished.lifecycle.playbackLogGapStartedAtMs) || gapEndedAtMs))
+    });
     emit(reason || (parallel ? "parallel_finished" : "finished"));
     if (finished) emitSoundBus("item_finished", { item: finished, kind: "item", extra: { reason: reason || "finished", parallel: !!parallel, postPlaybackGap: publicPostPlaybackGapStatus() } });
     if (!parallel && finished && finished.bundleId && state.activeBundleLock && state.activeBundleLock.bundleId === finished.bundleId) {
@@ -4322,16 +4369,29 @@ function publicSoundBusQueueStatus() {
     }
     clearPostPlaybackGap("rescheduled");
     const now = Date.now();
+    const gapEndsAtMs = now + gapMs;
+    if (finished) {
+      if (!isPlainObject(finished.lifecycle)) finished.lifecycle = {};
+      finished.lifecycle.playbackLogAudioEndedAtMs = now;
+      finished.lifecycle.playbackLogGapStartedAtMs = now;
+      finished.lifecycle.playbackLogExpectedGapEndedAtMs = gapEndsAtMs;
+    }
     state.postPlaybackGap = {
       active: true,
       startedAt: now,
-      untilMs: now + gapMs,
+      untilMs: gapEndsAtMs,
       durationMs: gapMs,
       reason: String(reason || "finished"),
       requestId: finished && finished.requestId ? String(finished.requestId) : "",
       soundId: finished && finished.soundId ? String(finished.soundId) : "",
       label: finished && finished.label ? String(finished.label) : "",
-      lastEndedAt: core.nowIso()
+      audioEndedAtMs: now,
+      audioEndedAt: playbackLogIso(now),
+      gapStartedAtMs: now,
+      gapStartedAt: playbackLogIso(now),
+      gapEndedAtMs: gapEndsAtMs,
+      gapEndedAt: playbackLogIso(gapEndsAtMs),
+      lastEndedAt: playbackLogIso(now)
     };
     emitSoundBus("post_playback_gap_started", { item: finished, kind: "item", extra: { reason: reason || "finished", parallel: !!parallel, gap: publicPostPlaybackGapStatus() } });
     postPlaybackGapTimer = setTimeout(() => finalizeFinishedItemAfterGap(finished, reason, parallel), gapMs);
