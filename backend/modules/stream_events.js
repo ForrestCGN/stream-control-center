@@ -23,8 +23,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.37";
-const MODULE_BUILD = "STEP_EVENT_SOUND_DASH_2B_DEFAULT_TARGET_BOTH";
+const MODULE_VERSION = "0.5.38";
+const MODULE_BUILD = "STEP_EVENT_SOUND_DASH_3B_PREROLL_COUNTDOWN_DEFAULT_ON";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -177,9 +177,9 @@ const DEFAULT_EVENT_CONFIG = {
     minRepeatDistance: 3,
     revealVideoEnabled: true,
     revealVideoMode: "after_solved",
-    preRollEnabled: false,
+    preRollEnabled: true,
     preRollSeconds: 3,
-    countdownPreRollEnabled: false,
+    countdownPreRollEnabled: true,
     countdownPreRollSeconds: 3,
     outputTarget: "default",
     target: "both",
@@ -616,9 +616,9 @@ function normalizeEventConfig(input = {}) {
   cfg.soundDefaults.minRepeatDistance = clampNumber(cfg.soundDefaults.minRepeatDistance, 0, 100, 3);
   cfg.soundDefaults.revealVideoEnabled = boolValue(cfg.soundDefaults.revealVideoEnabled, true);
   cfg.soundDefaults.revealVideoMode = normalizePolicy(cfg.soundDefaults.revealVideoMode, ["after_solved", "manual", "disabled"], cfg.soundDefaults.revealVideoEnabled === false ? "disabled" : "after_solved");
-  cfg.soundDefaults.preRollEnabled = boolValue(cfg.soundDefaults.preRollEnabled, false);
+  cfg.soundDefaults.preRollEnabled = boolValue(cfg.soundDefaults.preRollEnabled, true);
   cfg.soundDefaults.preRollSeconds = clampNumber(cfg.soundDefaults.preRollSeconds, 0, 30, 3);
-  cfg.soundDefaults.countdownPreRollEnabled = boolValue(cfg.soundDefaults.countdownPreRollEnabled, false);
+  cfg.soundDefaults.countdownPreRollEnabled = boolValue(cfg.soundDefaults.countdownPreRollEnabled, true);
   cfg.soundDefaults.countdownPreRollSeconds = clampNumber(cfg.soundDefaults.countdownPreRollSeconds, 0, 30, 3);
   cfg.soundDefaults.outputTarget = normalizePolicy(cfg.soundDefaults.outputTarget, ["default", "overlay", "device", "both"], "default");
   cfg.soundDefaults.target = normalizePolicy(cfg.soundDefaults.target, ["stream", "discord", "both"], "both");
@@ -1034,9 +1034,9 @@ function normalizeSoundEventSettings(config = {}, defaults = null) {
     minRepeatDistance: clampNumber(raw.minRepeatDistance ?? base.minRepeatDistance, 0, 100, 3),
     revealVideoEnabled: raw.revealVideoEnabled !== undefined ? boolValue(raw.revealVideoEnabled) : boolValue(base.revealVideoEnabled, true),
     revealVideoMode: normalizePolicy(raw.revealVideoMode ?? base.revealVideoMode, ["after_solved", "manual", "disabled"], raw.revealVideoEnabled === false ? "disabled" : "after_solved"),
-    preRollEnabled: raw.preRollEnabled !== undefined ? boolValue(raw.preRollEnabled) : boolValue(base.preRollEnabled, false),
+    preRollEnabled: raw.preRollEnabled !== undefined ? boolValue(raw.preRollEnabled) : boolValue(base.preRollEnabled, true),
     preRollSeconds: clampNumber(raw.preRollSeconds ?? base.preRollSeconds, 0, 30, 3),
-    countdownPreRollEnabled: raw.countdownPreRollEnabled !== undefined ? boolValue(raw.countdownPreRollEnabled) : boolValue(base.countdownPreRollEnabled, false),
+    countdownPreRollEnabled: raw.countdownPreRollEnabled !== undefined ? boolValue(raw.countdownPreRollEnabled) : boolValue(base.countdownPreRollEnabled, true),
     countdownPreRollSeconds: clampNumber(raw.countdownPreRollSeconds ?? base.countdownPreRollSeconds, 0, 30, 3),
     outputTarget: normalizePolicy(raw.outputTarget ?? raw.soundOutputTarget ?? base.outputTarget, ["default", "overlay", "device", "both"], "default"),
     target: normalizePolicy(raw.target ?? raw.soundTarget ?? base.target, ["stream", "discord", "both"], "both")

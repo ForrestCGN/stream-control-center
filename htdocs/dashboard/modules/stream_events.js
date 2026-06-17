@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.32";
-  const MODULE_BUILD = "STEP_EVENT_SOUND_DASH_3_SETTINGS_LAYOUT";
+  const MODULE_VERSION = "0.5.33";
+  const MODULE_BUILD = "STEP_EVENT_SOUND_DASH_3B_PREROLL_COUNTDOWN_DEFAULT_ON";
 
   const api = {
     status: '/api/stream-events/status',
