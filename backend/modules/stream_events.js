@@ -24,8 +24,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.48";
-const MODULE_BUILD = "STEP_EVENT_RUNTIME_OVERLAY_1";
+const MODULE_VERSION = "0.5.49";
+const MODULE_BUILD = "STEP_EVENT_RUNTIME_OVERLAY_1B";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -3881,22 +3881,29 @@ function requestSoundSystemPlaybackForSoundRound(playback = {}, options = {}) {
   }
   const originalMeta = item.meta && typeof item.meta === "object" && !Array.isArray(item.meta) ? item.meta : {};
   const originalPreRoll = originalMeta.eventPreRoll && typeof originalMeta.eventPreRoll === "object" && !Array.isArray(originalMeta.eventPreRoll) ? originalMeta.eventPreRoll : {};
-  const requestedItem = {
-    ...item,
-    sourceModule: MODULE_NAME,
-    source: MODULE_NAME,
-    requestedBy: MODULE_NAME,
-    meta: {
-      ...originalMeta,
-      module: MODULE_NAME,
-      owner: MODULE_NAME,
-      eventSoundRoundPlayback: true,
-      eventSound4: true,
-      eventSound4B: true,
-      eventSound4C: true,
-      eventSound5: true,
-      eventSound5B: true,
-      eventPreRoll: {
+  const isRevealPlayback = boolValue(originalMeta.eventSoundReveal, false)
+    || boolValue(originalMeta.revealVideo, false)
+    || boolValue(item.eventSoundReveal, false)
+    || boolValue(item.revealVideo, false)
+    || cleanString(item.category) === "stream_event_reveal_video";
+  const suppressRuntimePreRoll = isRevealPlayback
+    || boolValue(originalPreRoll.suppressRuntimeOverlay, false)
+    || boolValue(originalPreRoll.playbackOnly, false)
+    || (!!originalPreRoll.suppressedBy && originalPreRoll.enabled === false);
+  const eventPreRollPayload = suppressRuntimePreRoll
+    ? {
+        ...originalPreRoll,
+        enabled: false,
+        countdownEnabled: false,
+        preRollEnabled: false,
+        playbackOnly: true,
+        suppressRuntimeOverlay: true,
+        owner: MODULE_NAME,
+        eventUid: originalPreRoll.eventUid || originalMeta.eventUid || item.eventUid || "",
+        roundUid: originalPreRoll.roundUid || originalMeta.roundUid || item.roundUid || "",
+        reason: originalPreRoll.reason || "winner_card_announces_reveal"
+      }
+    : {
         ...originalPreRoll,
         enabled: true,
         countdownEnabled: true,
@@ -3908,7 +3915,25 @@ function requestSoundSystemPlaybackForSoundRound(playback = {}, options = {}) {
         finalLabel: originalPreRoll.finalLabel || "LOS!",
         caption: originalPreRoll.caption || "Sound startet gleich",
         guessingLabel: originalPreRoll.guessingLabel || "Jetzt raten!"
-      }
+      };
+  const requestedItem = {
+    ...item,
+    sourceModule: MODULE_NAME,
+    source: MODULE_NAME,
+    requestedBy: MODULE_NAME,
+    meta: {
+      ...originalMeta,
+      module: MODULE_NAME,
+      owner: MODULE_NAME,
+      eventSoundRoundPlayback: !suppressRuntimePreRoll,
+      eventSoundRevealPlayback: !!suppressRuntimePreRoll,
+      eventSound4: true,
+      eventSound4B: true,
+      eventSound4C: true,
+      eventSound5: true,
+      eventSound5B: true,
+      eventRuntimeOverlaySuppressed: !!suppressRuntimePreRoll,
+      eventPreRoll: eventPreRollPayload
     }
   };
   if (requestedItem.mediaResolutionError) {

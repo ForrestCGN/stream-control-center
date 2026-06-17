@@ -16,8 +16,8 @@ try {
 }
 
 const MODULE_NAME = "sound_system";
-const MODULE_VERSION = "0.1.30";
-const MODULE_BUILD = "STEP_SOUND_GAP_2_PLAYBACK_LOG_AUDIO_END_AND_GAP_END";
+const MODULE_VERSION = "0.1.31";
+const MODULE_BUILD = "STEP_EVENT_RUNTIME_OVERLAY_1B_REVEAL_PLAYBACK_ONLY";
 const SOUND_BUS_CAPABILITY = "sound.event_output";
 const SOUND_BUS_COMMAND_CAPABILITY = "sound.command_input";
 const SOUND_BUS_STATUS_API_VERSION = "1.0.0";
@@ -44,7 +44,7 @@ const MODULE_META = {
   deliveryClassification: SOUND_BUS_DELIVERY_CLASSIFICATION,
   commandDeliveryClassification: SOUND_BUS_COMMAND_DELIVERY_CLASSIFICATION,
   bus: { emits: true, registered: true, heartbeat: true, status: true },
-  note: "SOUND-DASH-1: Backend-Status bereinigt erledigte Dashboard-TODO-Flags fuer Sound-Gap und Recent Playback."
+  note: "EVENT-RUNTIME-OVERLAY-1B: StreamEvents-Reveal-Playback darf ohne Runtime-PreRoll ueber das Sound-System laufen."
 };
 
 const DEFAULT_OUTPUT = {
@@ -4799,7 +4799,8 @@ function publicSoundBusQueueStatus() {
     if (String(raw.sourceModule || meta.module || meta.owner || "") !== "stream_events") {
       throw new Error("stream_events_source_required");
     }
-    if (preRoll.enabled !== true) {
+    const playbackOnly = preRoll.playbackOnly === true || preRoll.suppressRuntimeOverlay === true;
+    if (preRoll.enabled !== true && playbackOnly !== true) {
       throw new Error("event_preroll_flag_required");
     }
     const item = normalizePlayRequest({
@@ -4830,6 +4831,7 @@ function publicSoundBusQueueStatus() {
       safetyRules: {
         streamEventsOnly: true,
         explicitEventPreRollFlagRequired: true,
+        playbackOnlyWithoutRuntimePreRollAccepted: playbackOnly === true,
         soundSystemStaysPlaybackOwner: true,
         runtimeOverlayDoesNotStartSound: true,
         normalSoundsUnaffectedUnlessExplicitFlag: true
