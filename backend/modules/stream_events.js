@@ -24,8 +24,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.53";
-const MODULE_BUILD = "STEP_EVENT_SOUND_SKIP_WAIT_PREPARED_FIX_1";
+const MODULE_VERSION = "0.5.54";
+const MODULE_BUILD = "STEP_EVENT_SOUND_ANSWER_SECONDS_EVENT_SETTINGS_1";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -2614,7 +2614,7 @@ function handleSoundPlaybackBusEnvelope(envelope = {}) {
 
   const snippet = round.config && round.config.snippet ? round.config.snippet : {};
   const runtimeConfig = round.config && round.config.runtimeConfig ? round.config.runtimeConfig : getSoundRuntimeConfig(getEventByUid(eventUid));
-  const answerSeconds = clampNumber(round.config && round.config.answerSeconds ? round.config.answerSeconds : (snippet.answerSeconds || runtimeConfig.answerSeconds), 5, 3600, 60);
+  const answerSeconds = getEffectiveSoundAnswerSeconds(runtimeConfig);
   const result = scheduleSoundAnswerTimer(eventUid, roundUid, answerSeconds, {
     reason: action === "client.audio_ended" ? "sound_audio_ended" : "sound_playback_finished",
     playbackAction: action,
@@ -2764,7 +2764,7 @@ function normalizeSoundSnippet(snippet = {}, index = 0) {
     revealVideoId: cleanString(raw.revealVideoId || raw.videoMediaId || raw.revealMediaId),
     acceptedAnswers: acceptedAnswers.map(cleanString).filter(Boolean),
     points: clampNumber(raw.points ?? raw.firstPoints ?? raw.score, 0, 10000, 10),
-    answerSeconds: clampNumber(raw.answerSeconds ?? raw.seconds, 5, 3600, 20),
+    answerSeconds: raw.answerSeconds !== undefined || raw.seconds !== undefined ? clampNumber(raw.answerSeconds ?? raw.seconds, 5, 3600, 60) : 0,
     raw: safeJson(raw, {})
   };
 }
@@ -2785,6 +2785,13 @@ function getSoundRuntimeConfig(event = {}) {
     directPlaybackEnabled: false,
     outputPreparedOnly: true
   };
+}
+
+function getEffectiveSoundAnswerSeconds(eventOrConfig = {}, fallbackSeconds = 60) {
+  const runtimeConfig = eventOrConfig && typeof eventOrConfig === "object" && Object.prototype.hasOwnProperty.call(eventOrConfig, "answerSeconds")
+    ? eventOrConfig
+    : getSoundRuntimeConfig(eventOrConfig || {});
+  return clampNumber(runtimeConfig && runtimeConfig.answerSeconds, 5, 3600, clampNumber(fallbackSeconds, 5, 3600, 60));
 }
 
 function buildSoundAcceptedAnswersDebug(snippet = {}) {
@@ -3253,7 +3260,8 @@ function buildRuntimeOverlayAnswerWindowState(activeRound = null) {
   if (state !== "open" || resultData.answerWindowClosedAt) return { active: false, seconds: 0, remainingSeconds: 0, startedAt: "", endsAt: "", roundUid: activeRound.roundUid || "", eventUid: activeRound.eventUid || "" };
   const startedAt = cleanString(resultData.answerWindowStartedAt || "");
   const endsAt = cleanString(resultData.answerWindowEndsAt || "");
-  const seconds = clampNumber(resultData.answerWindowSeconds || (activeRound.config && activeRound.config.answerSeconds), 5, 3600, 60);
+  const runtimeConfig = activeRound.config && activeRound.config.runtimeConfig ? activeRound.config.runtimeConfig : getSoundRuntimeConfig(getEventByUid(activeRound.eventUid));
+  const seconds = getEffectiveSoundAnswerSeconds(runtimeConfig);
   const endsAtMs = Date.parse(endsAt);
   const remainingSeconds = Number.isFinite(endsAtMs) && endsAtMs > 0 ? Math.max(0, Math.min(seconds, Math.ceil((endsAtMs - Date.now()) / 1000))) : 0;
   return {
@@ -3780,7 +3788,7 @@ function playPreparedActiveSoundRound(event, round, runtimeConfig = {}, options 
         ...(activeRound.resultData && typeof activeRound.resultData === "object" ? activeRound.resultData : {}),
         ...playbackResultData,
         answerWindowState: playbackResult && playbackResult.ok ? "waiting_for_sound_audio_end" : "playback_failed",
-        answerWindowSeconds: clampNumber(roundConfig.answerSeconds || effectiveRuntimeConfig.answerSeconds, 5, 3600, effectiveRuntimeConfig.answerSeconds || 60),
+        answerWindowSeconds: getEffectiveSoundAnswerSeconds(effectiveRuntimeConfig),
         answerWindowStartRule: "after_sound_audio_end",
         answerWindowPreparedAt: nowIso(),
         preparedOnly: false
@@ -4144,7 +4152,7 @@ function createSoundRound(options = {}) {
   const roundConfig = {
     snippet,
     runtimeConfig,
-    answerSeconds: clampNumber(snippet.answerSeconds || runtimeConfig.answerSeconds, 5, 3600, runtimeConfig.answerSeconds)
+    answerSeconds: getEffectiveSoundAnswerSeconds(runtimeConfig)
   };
   database.insert("stream_events_rounds", {
     round_uid: roundUid,
@@ -4451,7 +4459,7 @@ function buildSoundReportDerivedOutputs(event, rounds = []) {
         ...buildChatOutput("sound.round.started", {
           title: snippet.title || "Sound-Schnipsel",
           soundTitle: snippet.title || "Sound-Schnipsel",
-          answerSeconds: round.config && round.config.answerSeconds ? round.config.answerSeconds : runtimeConfig.answerSeconds,
+          answerSeconds: getEffectiveSoundAnswerSeconds(runtimeConfig),
           points: snippet.points || runtimeConfig.defaultPoints
         }, { reason: "sound_report_round_started" })
       });
