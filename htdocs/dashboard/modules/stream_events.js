@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.40";
-  const MODULE_BUILD = "STEP_EVENT_NEXT_SNIPPET_STATUS_AUTO_REFRESH_1";
+  const MODULE_VERSION = "0.5.41";
+  const MODULE_BUILD = "STEP_EVENT_WINNER_FINALE_FOUNDATION_DASH_1";
 
   const api = {
     status: '/api/stream-events/status',
@@ -18,7 +18,8 @@ window.StreamEventsModule = (function(){
     chatOutputReport: '/api/stream-events/chat-output/report',
     chatOutputTestDispatch: '/api/stream-events/chat-output/test-dispatch',
     runtimeGateStatus: '/api/stream-events/runtime-gate/status',
-    soundSkipWait: '/api/stream-events/sound-runtime/skip-wait'
+    soundSkipWait: '/api/stream-events/sound-runtime/skip-wait',
+    commandEventTest: '/api/stream-events/commands/event/test'
   };
 
   let root = null;
@@ -1492,8 +1493,9 @@ window.StreamEventsModule = (function(){
   function renderLifecycleSafetyPanel(event){
     const s = norm(event.status);
     const canArchive = s === 'finished';
-    const canFinish = s === 'active';
-    const canCancel = ['draft','ready','active'].includes(s);
+    const canFinish = ['active','paused'].includes(s);
+    const canFinale = s === 'finished';
+    const canCancel = ['draft','ready','active','paused'].includes(s);
     return `
       <section class="evs-card glass evs-tab-panel evs-lifecycle-panel">
         <div class="evs-card-head evs-stats-head">
@@ -1515,7 +1517,8 @@ window.StreamEventsModule = (function(){
           <div><b>Was bleibt erhalten?</b><span>Archivieren behält Punkte, Runden und Textdaten. Löschen entfernt das Event vollständig.</span></div>
         </div>
         <div class="evs-action-row evs-action-row-tight evs-lifecycle-actions">
-          <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="finish" data-uid="${esc(event.eventUid)}" ${canFinish ? '' : 'disabled'}>Beenden</button>
+          <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="finish" data-uid="${esc(event.eventUid)}" ${canFinish ? '' : 'disabled'}>Auf Finished setzen</button>
+          <button type="button" class="evs-btn evs-btn-primary" data-evs-action="winnerFinale" data-uid="${esc(event.eventUid)}" ${canFinale ? '' : 'disabled'}>Gewinner-Finale starten</button>
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="archive" data-uid="${esc(event.eventUid)}" ${canArchive ? '' : 'disabled'}>Archivieren</button>
           <button type="button" class="evs-btn evs-btn-danger" data-evs-action="cancel" data-uid="${esc(event.eventUid)}" ${canCancel ? '' : 'disabled'}>Abbrechen</button>
           <button type="button" class="evs-btn evs-btn-danger" data-evs-action="deleteEvent" data-uid="${esc(event.eventUid)}">Löschen…</button>
@@ -3207,9 +3210,9 @@ window.StreamEventsModule = (function(){
   async function eventAction(action, uid){
     if (!uid) return;
     if (action === 'start' && !confirm('Event wirklich starten? Es darf nur ein Event gleichzeitig laufen.')) return;
-    if ((action === 'finish' || action === 'cancel') && !confirm(`Event wirklich ${action === 'finish' ? 'beenden' : 'abbrechen'}?`)) return;
+    if ((action === 'finish' || action === 'cancel') && !confirm(`Event wirklich ${action === 'finish' ? 'auf Finished setzen und Auslosung freigeben' : 'abbrechen'}?`)) return;
     try {
-      const result = await window.CGN.api(`${api.events}/${encodeURIComponent(uid)}/${action}`, { method: 'POST', body: '{}' });
+      const result = await window.CGN.api(`${api.events}/${encodeURIComponent(uid)}/${action}`, { method: 'POST', body: JSON.stringify({ actor: 'dashboard', mode: action === 'finish' ? 'manual' : undefined }) });
       state.message = result.message || 'Aktion ausgeführt.';
       state.selectedUid = result.event?.eventUid || uid;
       await reloadDashboardAfterMutation(state.selectedUid, { keepTab: true });
@@ -3219,6 +3222,29 @@ window.StreamEventsModule = (function(){
     }
   }
 
+
+  async function startWinnerFinale(uid){
+    if (!uid) return;
+    const event = state.events.find(e => e.eventUid === uid) || state.selected;
+    if (norm(event?.status) !== 'finished') {
+      state.error = 'Die Gewinner-Auslosung darf erst gestartet werden, wenn das Event auf Finished/Beendet steht.';
+      render();
+      return;
+    }
+    if (!confirm('Gewinner-Finale jetzt starten? Die Auslosung wird vorbereitet und später vom Finale-Overlay angezeigt.')) return;
+    try {
+      const result = await window.CGN.api(`${api.events}/${encodeURIComponent(uid)}/finale/start?confirm=1`, {
+        method: 'POST',
+        body: JSON.stringify({ actor: 'dashboard' })
+      });
+      const winner = result?.finale?.winner?.userDisplayName || result?.finale?.winner?.userLogin || 'Gewinner';
+      state.message = result.alreadyDrawn ? `Gewinner-Finale ist bereits ausgelost: ${winner}.` : `Gewinner-Finale vorbereitet: ${winner}.`;
+      await reloadDashboardAfterMutation(uid, { keepTab: true });
+    } catch (err) {
+      state.error = err.message || String(err);
+      render();
+    }
+  }
 
   async function skipSoundWait(uid){
     if (!uid) return;
@@ -3493,6 +3519,7 @@ window.StreamEventsModule = (function(){
       if (action === 'validate') return eventAction('validate', uid);
       if (action === 'start') return eventAction('start', uid);
       if (action === 'finish') return eventAction('finish', uid);
+      if (action === 'winnerFinale') return startWinnerFinale(uid);
       if (action === 'cancel') return eventAction('cancel', uid);
       if (action === 'archive') return archiveSelectedEvent(uid);
       if (action === 'renameEvent') return openRenameDialog(uid);

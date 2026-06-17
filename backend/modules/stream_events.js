@@ -24,8 +24,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.58";
-const MODULE_BUILD = "STEP_EVENT_NEXT_SNIPPET_STATUS_1";
+const MODULE_VERSION = "0.5.59";
+const MODULE_BUILD = "STEP_EVENT_WINNER_FINALE_FOUNDATION_1";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -35,6 +35,8 @@ const STATUS = {
   READY: "ready",
   ACTIVE: "active",
   FINISHED: "finished",
+  FINALIZING: "finalizing",
+  COMPLETED: "completed",
   CANCELLED: "cancelled",
   ARCHIVED: "archived"
 };
@@ -312,7 +314,9 @@ let runtimeState = {
     soundWaitsSkipped: 0,
     eventsAutoFinished: 0,
     streamOfflinePauses: 0,
-    streamRuntimeResumes: 0
+    streamRuntimeResumes: 0,
+    eventFinalesStarted: 0,
+    eventCommandsHandled: 0
   },
   runtimeOverlayBus: {
     subscribed: false,
@@ -1102,7 +1106,7 @@ function rowToEvent(row) {
     metadata: safeJsonParse(row.metadata_json, {})
   };
   event.gameTypes = getEventTypes(event);
-  event.startable = event.validation && event.validation.ok === true && event.status !== STATUS.ACTIVE && event.status !== STATUS.FINISHED && event.status !== STATUS.CANCELLED && event.status !== STATUS.ARCHIVED;
+  event.startable = event.validation && event.validation.ok === true && event.status !== STATUS.ACTIVE && event.status !== STATUS.FINISHED && event.status !== STATUS.FINALIZING && event.status !== STATUS.COMPLETED && event.status !== STATUS.CANCELLED && event.status !== STATUS.ARCHIVED;
   return event;
 }
 
@@ -1584,7 +1588,7 @@ function startEvent(eventUid) {
   const event = getEventByUid(eventUid);
   if (!event) return { ok: false, error: "event_not_found", eventUid };
   if (event.status === STATUS.ACTIVE) return { ok: true, alreadyActive: true, event };
-  if ([STATUS.FINISHED, STATUS.CANCELLED, STATUS.ARCHIVED].includes(event.status)) return { ok: false, error: "event_already_final", eventUid, status: event.status };
+  if ([STATUS.FINISHED, STATUS.FINALIZING, STATUS.COMPLETED, STATUS.CANCELLED, STATUS.ARCHIVED].includes(event.status)) return { ok: false, error: "event_already_final", eventUid, status: event.status };
 
   const validation = validateEventPayload(event);
   if (!validation.ok) {
@@ -1954,29 +1958,67 @@ function maybeAutoFinishEventIfPartsCompleted(eventUid = "", reason = "parts_com
   return { ok: true, autoFinished: true, reason, parts, result };
 }
 
-function finalizeEvent(eventUid, status, action) {
+function finalizeEvent(eventUid, status, action, options = {}) {
   ensureSchema();
   const event = getEventByUid(eventUid);
   if (!event) return { ok: false, error: "event_not_found", eventUid };
-  if ([STATUS.FINISHED, STATUS.CANCELLED, STATUS.ARCHIVED].includes(event.status)) return { ok: true, alreadyFinal: true, event };
+  if ([STATUS.FINISHED, STATUS.FINALIZING, STATUS.COMPLETED, STATUS.CANCELLED, STATUS.ARCHIVED].includes(event.status)) {
+    return { ok: true, alreadyFinal: true, event, ranking: getRanking(eventUid).rows, winnerPreview: event.status === STATUS.FINISHED ? buildWinnerFinalePreview(eventUid) : null };
+  }
   clearSoundRuntimeTimersForEvent(eventUid);
   const now = nowIso();
+  const parts = getEventRuntimePartsStatus(event);
+  const previousMetadata = event.metadata && typeof event.metadata === "object" ? event.metadata : {};
+  const metadata = safeJson({ ...previousMetadata }, {});
+  if (status === STATUS.FINISHED) {
+    metadata.finishedMode = cleanString(options.mode || (parts.allConfiguredPartsCompleted ? "auto" : "manual"), "manual");
+    metadata.finishedReason = cleanString(options.reason || action || "finished", "finished");
+    metadata.finishedBy = cleanString(options.actor || options.createdBy || "system", "system");
+    metadata.finishedAt = now;
+    metadata.partsAtFinish = parts;
+    metadata.manualFinish = metadata.finishedMode === "manual";
+    metadata.openPartsAtManualFinish = parts.allConfiguredPartsCompleted ? [] : [
+      parts.sound && parts.sound.enabled && !parts.sound.completed ? { part: "sound", remaining: parts.sound.remaining || 0, activeRoundUid: parts.sound.activeRoundUid || "" } : null,
+      parts.text && parts.text.enabled && !parts.text.completed ? { part: "text", remaining: parts.text.remaining || 0 } : null
+    ].filter(Boolean);
+  }
+  if (status === STATUS.CANCELLED) {
+    metadata.cancelledReason = cleanString(options.reason || action || "cancelled", "cancelled");
+    metadata.cancelledBy = cleanString(options.actor || options.createdBy || "system", "system");
+    metadata.cancelledAt = now;
+  }
   const patch = {
     status,
-    updated_at: now
+    updated_at: now,
+    metadata_json: jsonEncode(metadata)
   };
   if (status === STATUS.FINISHED) patch.finished_at = now;
   if (status === STATUS.CANCELLED) patch.cancelled_at = now;
   database.updateByKey("stream_events_events", "event_uid", eventUid, patch);
   const activeRoundCleanup = closeActiveSoundRoundsForEvent(eventUid, status === STATUS.FINISHED ? "event_finished" : "event_cancelled");
+  upsertEventRuntimeState(eventUid, {
+    runtimeStatus: status === STATUS.FINISHED ? "finished" : "cancelled",
+    phase: status === STATUS.FINISHED ? "winner_ready" : "cancelled",
+    activeRoundUid: "",
+    phaseStartedAt: now,
+    phaseEndsAt: "",
+    nextAutoStartAt: "",
+    lastHeartbeatAt: now,
+    recoveryRequired: false,
+    recoveryReason: action,
+    recoveryNote: status === STATUS.FINISHED ? "Event ist beendet. Gewinner-Finale darf manuell gestartet werden." : "Event wurde abgebrochen.",
+    metadata: { moduleBuild: MODULE_BUILD, action, parts }
+  });
 
   if (status === STATUS.FINISHED) runtimeState.counters.eventsFinished += 1;
   if (status === STATUS.CANCELLED) runtimeState.counters.eventsCancelled += 1;
   markAction(action, eventUid);
   const updated = getEventByUid(eventUid);
-  emitBus("stream_events.event", action, { event: publicEventSummary(updated), ranking: getRanking(eventUid).rows });
+  const ranking = getRanking(eventUid);
+  const winnerPreview = status === STATUS.FINISHED ? buildWinnerFinalePreview(eventUid) : null;
+  emitBus("stream_events.event", action, { event: publicEventSummary(updated), ranking: ranking.rows, winnerPreview, manualFinish: metadata.manualFinish === true });
   publishStatus(`event.${action}`, { lastEventUid: eventUid });
-  return { ok: true, event: updated, activeRoundCleanup, ranking: getRanking(eventUid).rows };
+  return { ok: true, event: updated, activeRoundCleanup, ranking: ranking.rows, winnerPreview, parts, manualFinish: metadata.manualFinish === true };
 }
 
 function addPoints(eventUid, body = {}) {
@@ -2618,6 +2660,8 @@ function processParallelChatMessage(chat = {}, context = {}) {
 function handleTwitchChatEnvelope(envelope = {}) {
   const chat = extractChatPayload(envelope);
   runtimeState.counters.twitchChatMessages += 1;
+  const commandResult = processEventCommand(chat);
+  if (commandResult) return commandResult;
   return processParallelChatMessage(chat, { source: "bus:twitch.chat.message" });
 }
 
@@ -6180,6 +6224,192 @@ function getRanking(eventUid) {
   return { ok: true, eventUid: uid, count: rows.length, rows, top3: rows.slice(0, 3) };
 }
 
+
+function buildWinnerFinalePreview(eventUid, options = {}) {
+  ensureSchema();
+  const uid = cleanString(eventUid);
+  if (!uid) return { ok: false, error: "event_uid_required" };
+  const event = getEventByUid(uid);
+  if (!event) return { ok: false, error: "event_not_found", eventUid: uid };
+  const ranking = getRanking(uid);
+  const rows = Array.isArray(ranking.rows) ? ranking.rows : [];
+  const topScore = rows.length ? Number(rows[0].points || 0) : 0;
+  const topCandidates = rows.filter(row => Number(row.points || 0) === topScore && topScore > 0);
+  const existing = event.metadata && event.metadata.winnerFinale && typeof event.metadata.winnerFinale === "object" ? event.metadata.winnerFinale : null;
+  return {
+    ok: true,
+    event: publicEventSummary(event),
+    eventUid: uid,
+    status: event.status,
+    allowed: event.status === STATUS.FINISHED,
+    blockedReason: event.status !== STATUS.FINISHED ? "event_not_finished" : (rows.length ? "" : "ranking_empty"),
+    ranking,
+    top3: rows.slice(0, 3),
+    topScore,
+    topCandidates,
+    candidateCount: topCandidates.length,
+    hasTie: topCandidates.length > 1,
+    existingFinale: existing,
+    canStartFinale: event.status === STATUS.FINISHED && rows.length > 0,
+    rule: "winner_finale_allowed_only_when_event_status_finished"
+  };
+}
+
+function startWinnerFinale(eventUid, body = {}) {
+  ensureSchema();
+  const uid = cleanString(eventUid);
+  const event = getEventByUid(uid);
+  if (!event) return { ok: false, error: "event_not_found", eventUid: uid };
+  if (event.status !== STATUS.FINISHED) {
+    return { ok: false, error: "event_not_finished", eventUid: uid, status: event.status, rule: "winner_finale_allowed_only_when_event_status_finished", preview: buildWinnerFinalePreview(uid) };
+  }
+  const preview = buildWinnerFinalePreview(uid);
+  if (!preview.canStartFinale) return { ok: false, error: preview.blockedReason || "winner_finale_not_ready", eventUid: uid, preview };
+  const metadata = safeJson({ ...(event.metadata || {}) }, {});
+  const forceNew = boolValue(body.forceNewDraw || body.forceNew || false);
+  if (metadata.winnerFinale && !forceNew) {
+    const existing = metadata.winnerFinale;
+    emitBus("stream_events.winner_finale", "replay_requested", { eventUid: uid, eventName: event.name, finale: existing, preview });
+    return { ok: true, alreadyDrawn: true, replay: true, event: publicEventSummary(event), finale: existing, preview, rule: "existing_winner_finale_reused_unless_forceNewDraw" };
+  }
+
+  const candidates = preview.topCandidates || [];
+  const selectedIndex = candidates.length > 1 ? crypto.randomInt(0, candidates.length) : 0;
+  const winner = candidates[selectedIndex] || preview.ranking.rows[0] || null;
+  if (!winner) return { ok: false, error: "winner_missing", eventUid: uid, preview };
+  const now = nowIso();
+  const finale = {
+    finaleUid: newUid("evs_finale"),
+    eventUid: uid,
+    eventName: event.name,
+    startedAt: now,
+    startedBy: cleanString(body.actor || body.createdBy || "dashboard", "dashboard"),
+    mode: candidates.length > 1 ? "draw_among_tied_first_place" : "single_winner_presentation",
+    style: "cgn_altersheim_rentner",
+    winner,
+    topScore: preview.topScore,
+    candidates,
+    candidateCount: candidates.length,
+    top3: preview.top3,
+    rankingCount: preview.ranking.count || 0,
+    message: candidates.length > 1
+      ? "Punktgleichstand auf Platz 1: Die Heimleitung lost den Gewinner aus."
+      : "Eindeutiger Event-Gewinner: Die Heimleitung startet das Finale."
+  };
+  metadata.winnerFinale = finale;
+  metadata.winnerFinaleLastStartedAt = now;
+  database.updateByKey("stream_events_events", "event_uid", uid, {
+    metadata_json: jsonEncode(metadata),
+    updated_at: now
+  });
+  runtimeState.counters.eventFinalesStarted += 1;
+  markAction("winner_finale.started", uid);
+  const updated = getEventByUid(uid);
+  emitBus("stream_events.winner_finale", "started", { event: publicEventSummary(updated), finale, preview });
+  publishStatus("winner_finale.started", { lastEventUid: uid });
+  return { ok: true, event: updated, finale, preview, overlayReady: true, overlayStepPending: "EVS42_winner_overlay_animation" };
+}
+
+function isEventCommandModerator(chat = {}) {
+  const raw = chat.raw && typeof chat.raw === "object" ? chat.raw : {};
+  const badges = raw.badges || raw.badgeInfo || raw.badge_info || raw.userBadges || {};
+  const badgeText = Array.isArray(badges) ? badges.join(" ").toLowerCase() : JSON.stringify(badges || {}).toLowerCase();
+  return raw.isBroadcaster === true || raw.broadcaster === true || raw.isModerator === true || raw.mod === true || raw.isMod === true || badgeText.includes("broadcaster") || badgeText.includes("moderator");
+}
+
+function buildEventCommandMessage(key, context = {}) {
+  const eventName = cleanString(context.eventName || (context.event && context.event.name) || "Event", "Event");
+  const messages = {
+    no_event: "🧓 Die Heimleitung findet gerade kein Event auf dem Klemmbrett.",
+    status: `🧓 Aktuelles Event: ${eventName} · Status: ${cleanString(context.status || "unbekannt")}${context.nextLabel ? ` · ${context.nextLabel}` : ""}`,
+    points: `${cleanString(context.userDisplayName || context.userLogin || "Du")} hat aktuell ${Number(context.points || 0)} Eventpunkt(e).`,
+    top_empty: "🧓 Noch keine Eventpunkte im Heimleitungsordner.",
+    top: `🏆 Event-Top: ${(context.rows || []).slice(0,3).map(row => `${row.rank}. ${row.userDisplayName || row.userLogin} ${row.points}`).join(" · ")}`,
+    no_permission: "🧓 Das darf nur die Heimleitung oder ein Mod auslösen.",
+    finished: `🏁 ${eventName} wurde manuell beendet. Die Auslosung ist jetzt freigegeben.`,
+    finish_blocked: `🧓 ${eventName} konnte nicht beendet werden: ${cleanString(context.reason || "unbekannter Grund")}`,
+    finale_started: `🎉 Die Heimleitung öffnet den goldenen Umschlag! Gewinner-Finale für ${eventName} startet.`,
+    finale_blocked: "🧓 Die Auslosung darf erst starten, wenn das Event beendet ist.",
+    help: "🧓 Event-Befehle: !event, !event top, !event punkte, !event status, !event fertig, !event auslosung"
+  };
+  return messages[key] || "🧓 Die Heimleitung hat den Event-Befehl notiert.";
+}
+
+function processEventCommand(chat = {}) {
+  const message = cleanString(chat.message);
+  const parts = message.split(/\s+/).filter(Boolean);
+  const root = (parts[0] || "").toLowerCase();
+  if (root !== "!event") return null;
+  const sub = cleanString(parts[1] || "status").toLowerCase();
+  const active = getActiveEvent();
+  const latestFinished = !active ? rowToEvent(database.get("SELECT * FROM stream_events_events WHERE status = 'finished' ORDER BY finished_at DESC, updated_at DESC, id DESC LIMIT 1")) : null;
+  const event = active || latestFinished;
+  const modAllowed = isEventCommandModerator(chat);
+  let result = { ok: true, command: "event", subcommand: sub, handled: true, event: publicEventSummary(event), chatOutput: null };
+
+  if (["hilfe", "help"].includes(sub)) {
+    result.chatOutput = buildEventCommandMessage("help");
+  } else if (!event) {
+    result.chatOutput = buildEventCommandMessage("no_event");
+    result.skipped = true;
+    result.reason = "no_event";
+  } else if (["top", "ranking"].includes(sub)) {
+    const ranking = getRanking(event.eventUid);
+    result.ranking = ranking;
+    result.chatOutput = ranking.rows.length ? buildEventCommandMessage("top", { rows: ranking.rows }) : buildEventCommandMessage("top_empty");
+  } else if (["punkte", "points", "me"].includes(sub)) {
+    const ranking = getRanking(event.eventUid);
+    const row = (ranking.rows || []).find(item => cleanString(item.userLogin).toLowerCase() === chat.userLogin);
+    result.points = row ? row.points : 0;
+    result.chatOutput = buildEventCommandMessage("points", { userLogin: chat.userLogin, userDisplayName: chat.userDisplayName, points: result.points });
+  } else if (["fertig", "finished", "finish"].includes(sub)) {
+    if (!modAllowed) {
+      result.ok = false;
+      result.error = "permission_denied";
+      result.chatOutput = buildEventCommandMessage("no_permission");
+    } else if (!active) {
+      result.ok = false;
+      result.error = "no_active_event";
+      result.chatOutput = buildEventCommandMessage("no_event");
+    } else {
+      const finish = finalizeEvent(active.eventUid, STATUS.FINISHED, "finished", { mode: "manual", reason: "chat_command_event_finished", actor: chat.userLogin || "chat" });
+      result.finish = finish;
+      result.event = publicEventSummary(finish.event || active);
+      result.chatOutput = finish.ok ? buildEventCommandMessage("finished", { eventName: active.name }) : buildEventCommandMessage("finish_blocked", { eventName: active.name, reason: finish.error });
+    }
+  } else if (["auslosung", "finale", "gewinner", "winner"].includes(sub)) {
+    if (!modAllowed) {
+      result.ok = false;
+      result.error = "permission_denied";
+      result.chatOutput = buildEventCommandMessage("no_permission");
+    } else {
+      const target = latestFinished || (event && event.status === STATUS.FINISHED ? event : null);
+      if (!target) {
+        result.ok = false;
+        result.error = "event_not_finished";
+        result.chatOutput = buildEventCommandMessage("finale_blocked");
+      } else {
+        const finale = startWinnerFinale(target.eventUid, { actor: chat.userLogin || "chat_command" });
+        result.finale = finale;
+        result.event = publicEventSummary(finale.event || target);
+        result.chatOutput = finale.ok ? buildEventCommandMessage("finale_started", { eventName: target.name }) : buildEventCommandMessage("finale_blocked");
+      }
+    }
+  } else {
+    const ranking = getRanking(event.eventUid);
+    const nextSound = event.soundEnabled ? buildNextSoundRuntimeStatus(event) : null;
+    result.ranking = ranking;
+    result.nextSound = nextSound;
+    result.chatOutput = buildEventCommandMessage("status", { eventName: event.name, status: event.status, nextLabel: nextSound && nextSound.label ? nextSound.label : "" });
+  }
+
+  runtimeState.counters.eventCommandsHandled += 1;
+  runtimeState.lastEventCommand = { at: nowIso(), userLogin: chat.userLogin, subcommand: sub, ok: result.ok !== false, eventUid: result.event && result.event.eventUid ? result.event.eventUid : "", chatOutput: result.chatOutput || "" };
+  emitBus("stream_events.command", "handled", result);
+  publishStatus("command.handled", { lastEventUid: result.event && result.event.eventUid ? result.event.eventUid : "" });
+  return result;
+}
+
 function publicEventSummary(event) {
   if (!event) return null;
   return {
@@ -6193,7 +6423,8 @@ function publicEventSummary(event) {
     updatedAt: event.updatedAt,
     startedAt: event.startedAt,
     finishedAt: event.finishedAt,
-    cancelledAt: event.cancelledAt
+    cancelledAt: event.cancelledAt,
+    winnerFinale: event.metadata && event.metadata.winnerFinale ? event.metadata.winnerFinale : null
   };
 }
 
@@ -6384,13 +6615,16 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "POST", path: `${prefix}/events/:eventUid/rename`, description: "EVS-27C-FIX1: Eventname bearbeiten, ohne Konfiguration oder Verlauf zu ändern" },
       { method: "POST", path: `${prefix}/events/:eventUid/validate`, description: "Event validieren" },
       { method: "POST", path: `${prefix}/events/:eventUid/start`, description: "Event starten, wenn startbereit und kein anderes Event aktiv ist" },
-      { method: "POST", path: `${prefix}/events/:eventUid/finish`, description: "Event beenden und Ranking liefern" },
+      { method: "POST", path: `${prefix}/events/:eventUid/finish`, description: "Event manuell/fachlich beenden und Auslosung freigeben" },
+      { method: "GET", path: `${prefix}/events/:eventUid/finale`, description: "EVS41: Gewinner-/Auslosungsdaten lesen; erlaubt nur bei finished" },
+      { method: "POST", path: `${prefix}/events/:eventUid/finale/start`, description: "EVS41: Gewinner-Finale starten; nur bei status=finished" },
       { method: "POST", path: `${prefix}/events/:eventUid/cancel`, description: "Event abbrechen" },
       { method: "POST", path: `${prefix}/events/:eventUid/archive`, description: "EVS-21: Beendetes Event archivieren; nur status=finished" },
       { method: "POST", path: `${prefix}/events/:eventUid/delete`, description: "EVS-21: Event und zugehoerige Eventdaten mit confirm=DELETE loeschen" },
       { method: "POST", path: `${prefix}/events/:eventUid/duplicate`, description: "EVS-27C: Event-Konfiguration als neue Kopie ohne Punkte/Runden duplizieren" },
       { method: "GET", path: `${prefix}/events/:eventUid/ranking`, description: "Event-Ranking lesen" },
-      { method: "POST", path: `${prefix}/events/:eventUid/points`, description: "Manuelle/Modul-Punkte buchen (nur aktives Event)" }
+      { method: "POST", path: `${prefix}/events/:eventUid/points`, description: "Manuelle/Modul-Punkte buchen (nur aktives Event)" },
+      { method: "POST", path: `${prefix}/commands/event/test`, description: "EVS41: Testet !event Befehle im stream_events-Kontext" }
     ],
     notes: [
       "SOUND-SAFE-1 legt nur den Erweiterungspunkt fuer EventSound-Playback + Countdown-PreRoll fest; kein direktes Sound-/Video-Playback und kein Queue-Touch.",
@@ -7014,6 +7248,44 @@ module.exports.init = function init(ctx) {
       sendJson(res, getRanking(req.params.eventUid));
     } catch (err) {
       handleError(res, err);
+    }
+  });
+
+  reg("get", `${prefix}/events/:eventUid/finale`, (req, res) => {
+    try {
+      const result = buildWinnerFinalePreview(req.params.eventUid);
+      sendJson(res, result, result.ok ? 200 : (result.error === "event_not_found" ? 404 : 400));
+    } catch (err) {
+      handleError(res, err);
+    }
+  });
+
+  reg("post", `${prefix}/events/:eventUid/finale/start`, (req, res) => {
+    try {
+      const confirm = String((req.query && req.query.confirm) || (req.body && req.body.confirm) || "").toLowerCase();
+      if (!["1", "true", "yes", "ja", "confirm"].includes(confirm)) {
+        return sendJson(res, { ok: false, error: "confirm_required", message: "Gewinner-Finale startet nur mit confirm=1.", eventUid: req.params.eventUid }, 400);
+      }
+      const result = startWinnerFinale(req.params.eventUid, req.body || {});
+      sendJson(res, result, result.ok ? 200 : (result.error === "event_not_found" ? 404 : 400));
+    } catch (err) {
+      handleError(res, err, 400);
+    }
+  });
+
+  reg("post", `${prefix}/commands/event/test`, (req, res) => {
+    try {
+      const body = req.body || {};
+      const result = processEventCommand({
+        message: cleanString(body.message || "!event status"),
+        userLogin: cleanString(body.userLogin || body.login || "dashboard").toLowerCase(),
+        userDisplayName: cleanString(body.userDisplayName || body.displayName || body.userLogin || "Dashboard"),
+        messageId: cleanString(body.messageId || "cmd_test"),
+        raw: { isModerator: boolValue(body.isModerator, true), isBroadcaster: boolValue(body.isBroadcaster, false), badges: body.badges || { moderator: "1" } }
+      });
+      sendJson(res, result || { ok: false, error: "not_event_command" }, result && result.ok !== false ? 200 : 400);
+    } catch (err) {
+      handleError(res, err, 400);
     }
   });
 
