@@ -3,215 +3,149 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=1920,height=1080,initial-scale=1" />
-  <title>CGN Event Gewinner-Finale Parade to Podium EVS42.5.4 Demo Hold Final</title>
+  <title>CGN Event Gewinner-Finale EVS42.6 Fresh Rebuild</title>
   <style>
     :root{
       --w:1920px;--h:1080px;
-      --bg:#050718;--panel:rgba(8,10,33,.74);--panel2:rgba(20,10,52,.76);
-      --cyan:#35e7ff;--blue:#178dff;--violet:#a855f7;--purple:#7c3aed;--pink:#ff4fd8;
-      --gold:#ffe66d;--gold2:#ffbd38;--silver:#d6ecff;--bronze:#e0a05c;
-      --text:#f8fbff;--muted:rgba(248,251,255,.72);--dim:rgba(248,251,255,.45);
-      --ease:cubic-bezier(.16,1,.3,1);
+      --bg:#050716;--panel:rgba(8,10,32,.76);--panel2:rgba(13,9,45,.84);
+      --text:#f7fbff;--muted:rgba(247,251,255,.72);
+      --cyan:#36e7ff;--blue:#1d8cff;--violet:#a855f7;--purple:#7c3aed;--pink:#ff4fd8;
+      --gold:#ffe56b;--gold2:#ffb83d;--silver:#dbeeff;--bronze:#d79a5f;
+      --green:#74ffbd;--danger:#ff5f8b;
     }
     *{box-sizing:border-box}
-    html,body{margin:0;width:var(--w);height:var(--h);overflow:hidden;background:transparent;color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;pointer-events:none;font-weight:850}
-    #app{position:fixed;inset:0;width:var(--w);height:var(--h);opacity:0;filter:blur(8px);transform:scale(.985);transition:opacity .7s ease,filter .7s ease,transform .9s var(--ease);isolation:isolate}
-    #app.show{opacity:1;filter:blur(0);transform:scale(1)}
-    .bg{position:absolute;inset:-90px;z-index:0;background:
-      radial-gradient(circle at 18% 34%,rgba(168,85,247,.42),transparent 31%),
-      radial-gradient(circle at 83% 24%,rgba(53,231,255,.28),transparent 32%),
-      radial-gradient(circle at 54% 83%,rgba(255,79,216,.18),transparent 38%),
-      linear-gradient(135deg,rgba(3,5,18,.98),rgba(12,7,39,.96),rgba(3,14,45,.95));
-      animation:bgBreath 8s ease-in-out infinite alternate}
-    @keyframes bgBreath{to{filter:saturate(1.16) brightness(1.08);transform:scale(1.012)}}
-    .stars{position:absolute;inset:0;z-index:1;opacity:.54;background-image:
-      radial-gradient(circle,rgba(255,255,255,.75) 0 1px,transparent 1.8px),
-      radial-gradient(circle,rgba(53,231,255,.72) 0 1px,transparent 1.7px),
-      radial-gradient(circle,rgba(255,230,109,.62) 0 1px,transparent 1.8px);
-      background-size:145px 145px,245px 245px,360px 360px;background-position:18px 70px,110px 130px,250px 40px;animation:starDrift 48s linear infinite}
-    @keyframes starDrift{to{background-position:163px 215px,355px 375px,610px 400px}}
-
-    /* Fester CGN-Rahmen: kein rotierender Border-Effekt */
-    .frame{position:absolute;z-index:2;inset:24px 32px;border-radius:52px;border:1px solid rgba(143,244,255,.22);overflow:hidden;background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012));box-shadow:inset 0 0 84px rgba(53,231,255,.04),0 0 64px rgba(168,85,247,.24)}
-    .frame:before{content:"";position:absolute;inset:0;border-radius:52px;border:7px solid transparent;background:linear-gradient(90deg,rgba(168,85,247,.85),rgba(53,231,255,.78)) border-box;mask:linear-gradient(#000 0 0) padding-box,linear-gradient(#000 0 0);mask-composite:exclude;-webkit-mask:linear-gradient(#000 0 0) padding-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;opacity:.35}
-    .frame:after{content:"";position:absolute;inset:18px;border-radius:42px;border:1px solid rgba(255,255,255,.10);box-shadow:inset 0 0 58px rgba(53,231,255,.035)}
-    .runner{position:absolute;z-index:5;height:5px;border-radius:999px;filter:drop-shadow(0 0 16px currentColor);opacity:.95;animation:runnerPulse 2.8s ease-in-out infinite alternate}.rt{left:74px;top:46px;width:360px;color:var(--violet);background:linear-gradient(90deg,currentColor,transparent)}.rr{right:72px;top:46px;width:430px;color:var(--cyan);background:linear-gradient(270deg,currentColor,transparent)}.rb{right:100px;bottom:62px;width:450px;color:var(--cyan);background:linear-gradient(270deg,currentColor,transparent)}.rl{left:95px;bottom:62px;width:350px;color:var(--violet);background:linear-gradient(90deg,currentColor,transparent)}
-    @keyframes runnerPulse{to{opacity:.62;filter:drop-shadow(0 0 28px currentColor)}}
-    .cornerDot{position:absolute;z-index:6;width:14px;height:14px;border-radius:50%;background:var(--gold);box-shadow:0 0 16px var(--gold),0 0 36px rgba(255,230,109,.42)}.cd1{left:112px;top:99px}.cd2{right:112px;bottom:99px}
-    .main{position:absolute;z-index:4;left:64px;right:64px;top:54px;bottom:54px;border-radius:40px;overflow:hidden;background:linear-gradient(135deg,rgba(7,9,28,.76),rgba(18,9,50,.64));border:1px solid rgba(143,244,255,.12);box-shadow:inset 0 0 70px rgba(53,231,255,.035),0 0 44px rgba(168,85,247,.13)}
-    .main:before{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 0 20%,rgba(168,85,247,.10) 22%,transparent 25% 72%,rgba(53,231,255,.10) 75%,transparent 78%);opacity:.58}
-    .sweep{position:absolute;z-index:5;top:0;bottom:0;left:-40%;width:22%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.035),rgba(53,231,255,.07),rgba(255,79,216,.055),transparent);transform:skewX(-18deg);animation:sweep 8.5s linear infinite}@keyframes sweep{to{left:130%}}
-    .particles,.confetti{position:absolute;inset:0;z-index:7;overflow:hidden}.particles i{position:absolute;border-radius:50%;width:7px;height:7px;background:var(--cyan);box-shadow:0 0 16px currentColor;opacity:0;animation:floatUp 8s linear infinite}.particles i:nth-child(2n){background:var(--violet)}.particles i:nth-child(3n){background:var(--gold)}@keyframes floatUp{0%{transform:translateY(80px) scale(.35);opacity:0}18%{opacity:.72}100%{transform:translateY(-1150px) scale(1.1);opacity:0}}
-    .confetti i{position:absolute;top:-60px;width:9px;height:20px;border-radius:3px;background:var(--gold);box-shadow:0 0 12px currentColor;opacity:.9;animation:fall linear forwards}.confetti i:nth-child(3n){background:var(--cyan)}.confetti i:nth-child(4n){background:var(--violet)}.confetti i:nth-child(5n){background:var(--pink)}@keyframes fall{to{transform:translateY(1220px) rotate(720deg);opacity:0}}
-
-    .topbar{position:absolute;z-index:22;left:40px;right:40px;top:26px;height:86px;display:grid;grid-template-columns:430px 1fr 460px;align-items:start;gap:24px}.pill{display:inline-flex;align-items:center;gap:12px;justify-self:start;min-height:48px;padding:10px 22px;border-radius:999px;background:linear-gradient(135deg,rgba(53,231,255,.12),rgba(168,85,247,.18));border:1px solid rgba(143,244,255,.25);font-size:18px;font-weight:950;letter-spacing:.14em;text-transform:uppercase;box-shadow:0 0 26px rgba(168,85,247,.16)}.pill b{width:11px;height:11px;border-radius:50%;background:var(--gold);box-shadow:0 0 14px rgba(255,230,109,.9);animation:pulse 1.4s ease-in-out infinite}@keyframes pulse{50%{transform:scale(1.35);opacity:.6}}
-    .brand{justify-self:center;min-width:235px;text-align:center;padding:12px 24px;border-radius:0 0 24px 24px;background:linear-gradient(135deg,rgba(53,231,255,.15),rgba(168,85,247,.18));border:1px solid rgba(143,244,255,.22);font-size:31px;font-weight:950;letter-spacing:.18em;text-shadow:0 0 20px rgba(53,231,255,.45)}.event{justify-self:end;max-width:460px;padding-top:10px;color:rgba(247,251,255,.76);font-size:18px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 0 14px #000}
-    .title{position:absolute;z-index:18;left:210px;right:210px;top:132px;text-align:center}.title h1{margin:0;font-size:58px;line-height:.98;font-weight:950;letter-spacing:.035em;text-transform:uppercase;text-shadow:0 0 18px rgba(255,255,255,.22),0 0 48px rgba(53,231,255,.34),0 0 88px rgba(168,85,247,.32)}.title p{margin:12px auto 0;max-width:1080px;color:var(--muted);font-size:24px;line-height:1.25;text-shadow:0 0 16px #000}
-
-    .stage{position:absolute;z-index:14;left:88px;right:88px;top:235px;bottom:118px;perspective:1500px}
-    .spotlight{position:absolute;inset:-60px;z-index:0;opacity:.58;background:radial-gradient(ellipse at 50% 45%,rgba(53,231,255,.18),transparent 32%),radial-gradient(ellipse at 46% 52%,rgba(168,85,247,.22),transparent 37%);filter:blur(2px);animation:spot 3.8s ease-in-out infinite alternate}@keyframes spot{to{opacity:.82;transform:scale(1.025)}}
-    .intro{position:absolute;z-index:2;left:50%;top:50%;width:1040px;min-height:405px;transform:translate(-50%,-50%);display:grid;place-items:center;text-align:center;border-radius:46px;padding:54px;background:linear-gradient(135deg,rgba(8,11,34,.72),rgba(24,10,61,.64));border:1px solid rgba(143,244,255,.18);box-shadow:0 0 48px rgba(168,85,247,.24),0 0 110px rgba(53,231,255,.08);overflow:hidden;opacity:0;transition:opacity .55s ease,transform .75s var(--ease),filter .55s ease}.intro.active{opacity:1;transform:translate(-50%,-50%) scale(1);filter:blur(0)}.intro:not(.active){filter:blur(8px);transform:translate(-50%,calc(-50% + 28px)) scale(.97)}
-    .intro:before{content:"";position:absolute;inset:-40%;background:conic-gradient(from 0deg,transparent,rgba(53,231,255,.11),transparent,rgba(168,85,247,.16),transparent,rgba(255,230,109,.12),transparent);animation:slowSpin 10s linear infinite}@keyframes slowSpin{to{transform:rotate(360deg)}}.intro>*{position:relative}.intro h2{margin:0;color:var(--gold);font-size:72px;line-height:.95;text-transform:uppercase;text-shadow:0 0 34px rgba(255,230,109,.42),0 0 100px rgba(255,189,56,.16)}.intro p{margin:24px auto 0;max-width:840px;color:var(--muted);font-size:30px;line-height:1.35}.meter{margin:34px auto 0;width:440px;height:12px;border-radius:999px;border:1px solid rgba(143,244,255,.18);background:rgba(255,255,255,.06);overflow:hidden}.meter b{display:block;width:30%;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--violet),var(--cyan),var(--gold));box-shadow:0 0 20px rgba(53,231,255,.55);animation:meter 2.3s ease-in-out infinite}@keyframes meter{50%{transform:translateX(320px);width:16%}}
-
-    .focusCard{position:absolute;z-index:8;left:50%;top:50%;width:1120px;height:510px;transform:translate(-50%,-50%) translateY(46px) scale(.88) rotateX(8deg);opacity:0;filter:blur(10px);transition:opacity .48s ease,transform .9s var(--ease),filter .48s ease;border-radius:48px;padding:44px;background:linear-gradient(135deg,rgba(8,10,34,.84),rgba(23,10,64,.76));border:1px solid rgba(143,244,255,.20);box-shadow:0 0 46px rgba(168,85,247,.24),0 0 120px rgba(53,231,255,.08);overflow:hidden;display:grid;grid-template-columns:300px 230px 1fr;gap:34px;align-items:center}
-    .focusCard.active{opacity:1;filter:blur(0);transform:translate(-50%,-50%) scale(1) rotateX(0)}.focusCard.moving{transition:all 1.05s var(--ease);filter:blur(0)}
-    .focusCard:before{content:"";position:absolute;inset:-2px;border-radius:50px;background:linear-gradient(120deg,rgba(168,85,247,.72),transparent 21%,transparent 70%,rgba(53,231,255,.72));opacity:.18}.focusCard:after{content:"";position:absolute;inset:-140px;background:radial-gradient(circle at 22% 50%,rgba(168,85,247,.36),transparent 28%),radial-gradient(circle at 82% 44%,rgba(53,231,255,.18),transparent 34%);animation:breath 3.4s ease-in-out infinite alternate}@keyframes breath{to{opacity:.72;transform:scale(1.04)}}.focusCard>*{position:relative}.rankPanel{height:290px;border-radius:42px;display:grid;place-items:center;text-align:center;background:linear-gradient(135deg,rgba(168,85,247,.40),rgba(53,231,255,.09));border:1px solid rgba(218,182,255,.28);box-shadow:inset 0 0 52px rgba(168,85,247,.18),0 0 46px rgba(168,85,247,.18)}.rankPanel .label{font-size:28px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase}.rankPanel .num{display:block;margin-top:8px;font-size:115px;line-height:.9;font-weight:950;text-shadow:0 0 30px rgba(255,255,255,.26),0 0 58px rgba(168,85,247,.44)}
-    .avatarWrap{display:grid;place-items:center}.avatar{width:205px;height:205px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:radial-gradient(circle at 32% 20%,rgba(255,255,255,.28),rgba(168,85,247,.32) 28%,rgba(16,24,54,.92));border:5px solid rgba(143,244,255,.48);box-shadow:0 0 34px rgba(53,231,255,.30),0 0 70px rgba(168,85,247,.20);font-size:84px;font-weight:950;text-transform:uppercase;color:white;text-shadow:0 0 16px rgba(255,255,255,.35)}.avatar img{width:100%;height:100%;object-fit:cover;display:block}.avatar.gold{border-color:rgba(255,230,109,.76);box-shadow:0 0 38px rgba(255,230,109,.38),0 0 85px rgba(255,189,56,.22)}
-    .info .kicker{font-size:30px;line-height:1.18;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);text-shadow:0 0 18px rgba(255,230,109,.24)}.info .name{margin-top:18px;font-size:64px;line-height:.96;font-weight:950;text-shadow:0 0 22px rgba(255,255,255,.24),0 0 54px rgba(53,231,255,.20);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.info .points{margin-top:12px;font-size:46px;line-height:1;font-weight:950;color:#fff}.badgeReward{display:inline-flex;align-items:center;gap:12px;margin-top:24px;padding:12px 24px;border-radius:999px;background:linear-gradient(90deg,rgba(255,230,109,.13),rgba(53,231,255,.10));border:1px solid rgba(143,244,255,.24);font-size:24px;box-shadow:0 0 26px rgba(53,231,255,.10)}.comment{margin-top:22px;max-width:660px;color:var(--muted);font-size:24px;line-height:1.25}
-    .focusCard.rank1{background:linear-gradient(135deg,rgba(33,24,5,.90),rgba(45,23,8,.76),rgba(12,12,38,.74));border-color:rgba(255,230,109,.35);box-shadow:0 0 60px rgba(255,230,109,.24),0 0 140px rgba(255,189,56,.12)}.focusCard.rank1:before{background:linear-gradient(120deg,rgba(255,230,109,.88),transparent 24%,transparent 68%,rgba(255,189,56,.82));opacity:.26}.focusCard.rank1 .rankPanel{background:linear-gradient(135deg,rgba(255,230,109,.42),rgba(255,189,56,.16));border-color:rgba(255,230,109,.40)}.focusCard.rank1 .info .kicker,.focusCard.rank1 .info .points{color:var(--gold)}.focusCard.rank2{background:linear-gradient(135deg,rgba(10,22,48,.86),rgba(10,39,70,.74));box-shadow:0 0 50px rgba(53,231,255,.22)}.focusCard.rank2 .info .kicker{color:var(--silver)}.focusCard.rank2 .rankPanel{background:linear-gradient(135deg,rgba(53,231,255,.34),rgba(214,236,255,.12))}.focusCard.rank3 .info .kicker{color:#ffd09b}
-
-    .honorBoard{position:absolute;z-index:16;left:80px;right:80px;bottom:22px;height:118px;display:flex;align-items:flex-end;justify-content:center;gap:14px;opacity:.98}.miniCard{width:205px;height:94px;border-radius:20px;padding:12px 13px 10px 12px;display:grid;grid-template-columns:42px 1fr;grid-template-rows:26px 24px 22px;gap:3px 9px;background:linear-gradient(135deg,rgba(8,10,34,.82),rgba(24,10,61,.70));border:1px solid rgba(143,244,255,.18);box-shadow:0 0 18px rgba(168,85,247,.13);opacity:0;transform:translateY(22px) scale(.88);transition:opacity .45s ease,transform .65s var(--ease),box-shadow .35s ease}.miniCard.show{opacity:1;transform:translateY(0) scale(1)}.miniCard .miA{grid-row:1 / span 2;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:rgba(53,231,255,.13);border:2px solid rgba(143,244,255,.35);font-size:18px;font-weight:950}.miniCard .miA img{width:100%;height:100%;object-fit:cover}.miniCard .miR{font-size:19px;color:var(--gold);letter-spacing:.04em}.miniCard .miN{font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.miniCard .miP{grid-column:1 / span 2;color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.miniCard.top{height:108px;width:230px;border-color:rgba(255,230,109,.28);box-shadow:0 0 26px rgba(255,230,109,.16)}.miniCard.rank1{height:124px;width:260px;background:linear-gradient(135deg,rgba(34,24,4,.9),rgba(47,24,7,.74));border-color:rgba(255,230,109,.46)}
-
-    .podium{position:absolute;z-index:17;left:95px;right:95px;top:182px;bottom:145px;pointer-events:none}.podSlot{position:absolute;width:420px;height:455px;border-radius:38px;padding:26px;background:linear-gradient(135deg,rgba(8,10,34,.76),rgba(22,10,56,.70));border:1px solid rgba(143,244,255,.18);box-shadow:0 0 44px rgba(168,85,247,.18),inset 0 0 45px rgba(53,231,255,.035);opacity:0;transform:translateY(30px) scale(.92);transition:opacity .75s ease,transform .95s var(--ease)}.podSlot.show{opacity:1;transform:translateY(0) scale(1)}.podSlot.left{left:160px;bottom:10px}.podSlot.right{right:160px;bottom:10px}.podSlot.center{left:50%;bottom:48px;width:520px;height:515px;transform:translateX(-50%) translateY(30px) scale(.92);background:linear-gradient(135deg,rgba(34,24,4,.90),rgba(47,24,7,.76),rgba(8,10,34,.68));border-color:rgba(255,230,109,.42);box-shadow:0 0 68px rgba(255,230,109,.22),0 0 140px rgba(255,189,56,.09)}.podSlot.center.show{transform:translateX(-50%) translateY(0) scale(1)}.podRank{font-size:22px;letter-spacing:.13em;text-transform:uppercase;color:var(--gold)}.podNum{position:absolute;right:24px;top:18px;font-size:92px;line-height:.8;color:rgba(255,255,255,.16);font-weight:950}.podAvatar{margin:26px auto 16px;width:150px;height:150px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:radial-gradient(circle at 32% 20%,rgba(255,255,255,.28),rgba(168,85,247,.32) 28%,rgba(16,24,54,.92));border:4px solid rgba(143,244,255,.45);box-shadow:0 0 32px rgba(53,231,255,.26);font-size:60px}.podAvatar img{width:100%;height:100%;object-fit:cover}.center .podAvatar{width:178px;height:178px;border-color:rgba(255,230,109,.78);box-shadow:0 0 42px rgba(255,230,109,.35)}.podName{text-align:center;font-size:38px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.center .podName{font-size:46px}.podPoints{text-align:center;margin-top:9px;font-size:29px;color:#fff}.center .podPoints{font-size:36px;color:var(--gold)}.podGift{margin:18px auto 0;width:max-content;max-width:100%;padding:10px 16px;border-radius:999px;background:rgba(255,230,109,.12);border:1px solid rgba(255,230,109,.28);font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.podLine{text-align:center;margin-top:18px;color:var(--muted);font-size:18px;line-height:1.23}.winnerGlow{position:absolute;z-index:15;left:50%;bottom:98px;width:680px;height:310px;transform:translateX(-50%);background:radial-gradient(ellipse,rgba(255,230,109,.20),transparent 66%);filter:blur(8px);opacity:0;transition:opacity 1s ease}.winnerGlow.show{opacity:1;animation:glowPulse 1.9s ease-in-out infinite alternate}@keyframes glowPulse{to{opacity:.86;transform:translateX(-50%) scale(1.05)}}
-
-    .debug{position:absolute;z-index:80;left:24px;bottom:22px;width:940px;max-height:135px;overflow:auto;background:rgba(0,0,0,.72);border:1px solid rgba(255,255,255,.18);border-radius:10px;color:#d9f7ff;font:12px/1.35 ui-monospace,Consolas,monospace;padding:10px;display:none}body.debug .debug{display:block}
-
-    .bootFallback{position:absolute;z-index:999;left:44px;bottom:34px;max-width:720px;padding:16px 20px;border-radius:18px;background:rgba(6,8,28,.88);border:1px solid rgba(255,230,109,.42);box-shadow:0 0 28px rgba(255,230,109,.18);color:#fff;font:800 17px/1.35 "Segoe UI",Arial,sans-serif;display:none;white-space:pre-wrap}
-    .bootFallback.show{display:block}
+    html,body{margin:0;width:var(--w);height:var(--h);overflow:hidden;background:transparent;color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;pointer-events:none}
+    body.demo,body.debug{background:#050716}
+    #app{position:fixed;inset:0;width:var(--w);height:var(--h);display:block;opacity:1;visibility:visible;overflow:hidden;isolation:isolate}
+    body.live-wait #app{opacity:0;visibility:hidden}
+    .bg{position:absolute;inset:-60px;z-index:0;background:
+      radial-gradient(circle at 50% 18%,rgba(54,231,255,.16),transparent 34%),
+      radial-gradient(circle at 18% 52%,rgba(168,85,247,.18),transparent 32%),
+      radial-gradient(circle at 78% 62%,rgba(29,140,255,.14),transparent 34%),
+      radial-gradient(circle at 50% 95%,rgba(255,79,216,.10),transparent 30%),
+      linear-gradient(135deg,#050716 0%,#100a2e 45%,#071632 100%)}
+    .stars{position:absolute;inset:0;z-index:1;opacity:.34;background-image:
+      radial-gradient(circle,rgba(255,255,255,.85) 0 1px,transparent 1.6px),
+      radial-gradient(circle,rgba(54,231,255,.75) 0 1.3px,transparent 2px),
+      radial-gradient(circle,rgba(255,229,107,.65) 0 1.2px,transparent 2px),
+      radial-gradient(circle,rgba(168,85,247,.75) 0 1.3px,transparent 2px);
+      background-size:150px 150px,230px 230px,310px 310px,410px 410px;animation:stars 34s linear infinite}
+    @keyframes stars{to{background-position:150px 110px,230px 190px,310px 260px,410px 350px}}
+    .frame{position:absolute;inset:32px 42px;z-index:3;border-radius:46px;border:1px solid rgba(116,231,255,.22);box-shadow:inset 0 0 44px rgba(54,231,255,.06),0 0 58px rgba(168,85,247,.16),0 0 90px rgba(54,231,255,.09);overflow:hidden;background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.01))}
+    .frame:before{content:"";position:absolute;left:42px;right:42px;top:20px;height:5px;border-radius:9px;background:linear-gradient(90deg,var(--violet),rgba(168,85,247,.12),rgba(54,231,255,.14),var(--cyan));box-shadow:0 0 22px rgba(54,231,255,.45),0 0 22px rgba(168,85,247,.38)}
+    .frame:after{content:"";position:absolute;left:52px;right:52px;bottom:22px;height:3px;border-radius:6px;background:linear-gradient(90deg,rgba(168,85,247,.15),rgba(54,231,255,.45),rgba(168,85,247,.12));box-shadow:0 0 18px rgba(54,231,255,.28)}
+    .runner{position:absolute;z-index:4;height:4px;width:260px;border-radius:20px;background:linear-gradient(90deg,transparent,var(--cyan),#fff,var(--violet),transparent);filter:drop-shadow(0 0 12px var(--cyan));opacity:.75;animation:runnerTop 8s linear infinite}
+    .runner.r1{top:53px;left:80px}.runner.r2{bottom:54px;right:90px;animation-name:runnerBottom;animation-delay:-2.8s}.runner.r3{top:140px;right:42px;width:4px;height:210px;animation:runnerSide 7.5s linear infinite;opacity:.42}
+    @keyframes runnerTop{0%{transform:translateX(-280px)}100%{transform:translateX(1740px)}}
+    @keyframes runnerBottom{0%{transform:translateX(280px)}100%{transform:translateX(-1740px)}}
+    @keyframes runnerSide{0%{transform:translateY(-240px)}100%{transform:translateY(900px)}}
+    .content{position:absolute;z-index:6;inset:58px 72px 64px;display:grid;grid-template-rows:112px 1fr 150px;gap:16px}
+    .top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:28px}.pill{justify-self:start;display:inline-flex;align-items:center;gap:12px;padding:12px 24px;border-radius:999px;background:linear-gradient(135deg,rgba(54,231,255,.14),rgba(168,85,247,.22));border:1px solid rgba(192,234,255,.22);box-shadow:0 0 24px rgba(168,85,247,.20);font-size:22px;font-weight:900;text-transform:uppercase;letter-spacing:.16em}.pill i{width:12px;height:12px;border-radius:50%;background:var(--gold);box-shadow:0 0 16px var(--gold)}
+    .logo{justify-self:center;min-width:230px;padding:18px 44px;border-radius:0 0 22px 22px;background:linear-gradient(135deg,rgba(54,231,255,.16),rgba(168,85,247,.20));border:1px solid rgba(192,234,255,.24);box-shadow:0 0 30px rgba(54,231,255,.12);text-align:center;font-size:34px;font-weight:950;letter-spacing:.26em}.event{justify-self:end;max-width:540px;text-align:right;font-size:20px;font-weight:850;color:rgba(247,251,255,.82);text-shadow:0 0 12px rgba(54,231,255,.12);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .main{position:relative;min-height:0}.titleBlock{position:absolute;top:0;left:0;right:0;text-align:center;transition:opacity .45s ease,transform .55s ease}.titleBlock h1{margin:0;font-size:68px;line-height:.96;font-weight:950;text-transform:uppercase;letter-spacing:.04em;text-shadow:0 0 18px rgba(255,255,255,.22),0 0 34px rgba(54,231,255,.34),0 0 56px rgba(168,85,247,.34)}.titleBlock p{margin:12px auto 0;max-width:1040px;font-size:25px;line-height:1.25;font-weight:800;color:rgba(247,251,255,.74)}
+    .stage{position:absolute;left:50%;top:54%;width:1180px;height:560px;transform:translate(-50%,-50%);border-radius:42px;background:linear-gradient(135deg,rgba(9,12,38,.75),rgba(17,10,48,.72));border:1px solid rgba(160,224,255,.18);box-shadow:inset 0 0 60px rgba(54,231,255,.045),0 0 50px rgba(168,85,247,.14);overflow:hidden}.stage:before{content:"";position:absolute;inset:-30%;background:radial-gradient(circle at 50% 50%,rgba(54,231,255,.10),transparent 26%),radial-gradient(circle at 35% 48%,rgba(168,85,247,.13),transparent 28%),radial-gradient(circle at 68% 50%,rgba(255,229,107,.08),transparent 24%);animation:pulse 3.4s ease-in-out infinite}.stage:after{content:"";position:absolute;left:-38%;top:-15%;width:34%;height:135%;transform:skewX(-18deg);background:linear-gradient(90deg,transparent,rgba(54,231,255,.12),rgba(255,255,255,.08),rgba(255,79,216,.08),transparent);animation:scan 6s linear infinite}@keyframes scan{to{left:124%}}@keyframes pulse{50%{filter:brightness(1.25);opacity:.92}}
+    .current{position:absolute;inset:42px;display:grid;grid-template-columns:330px 250px 1fr;align-items:center;gap:38px;opacity:0;transform:translateY(24px) scale(.96);transition:opacity .62s ease,transform .74s cubic-bezier(.18,1,.22,1);z-index:3}.current.on{opacity:1;transform:translateY(0) scale(1)}.current.leaving{opacity:0;transform:translateY(-26px) scale(.90)}
+    .placeBox{height:310px;border-radius:36px;display:grid;place-items:center;background:linear-gradient(135deg,rgba(124,58,237,.60),rgba(20,10,52,.75));border:1px solid rgba(221,196,255,.20);box-shadow:inset 0 0 50px rgba(255,255,255,.04),0 0 42px rgba(168,85,247,.34);position:relative;overflow:hidden}.placeBox:before{content:"";position:absolute;inset:-20px;background:radial-gradient(circle at 50% 25%,rgba(255,255,255,.18),transparent 34%)}.placeBox .small{position:relative;z-index:2;font-size:28px;letter-spacing:.20em;text-transform:uppercase;font-weight:900;color:rgba(255,255,255,.68)}.placeBox .num{position:relative;z-index:2;font-size:128px;line-height:.9;font-weight:950;text-shadow:0 0 34px rgba(255,255,255,.30)}
+    .avatar{width:220px;height:220px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:linear-gradient(135deg,rgba(54,231,255,.22),rgba(168,85,247,.30));border:4px solid rgba(151,224,255,.42);box-shadow:0 0 34px rgba(54,231,255,.26),0 0 54px rgba(168,85,247,.20);font-size:86px;font-weight:950;text-shadow:0 0 24px rgba(255,255,255,.24)}.avatar img{width:100%;height:100%;object-fit:cover;display:block}.info{min-width:0}.rankline{font-size:30px;text-transform:uppercase;font-weight:950;letter-spacing:.16em;color:var(--gold);text-shadow:0 0 16px rgba(255,229,107,.24)}.name{margin-top:16px;font-size:62px;line-height:1;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 0 28px rgba(54,231,255,.22)}.points{margin-top:16px;font-size:46px;font-weight:950}.badgePrize{margin-top:22px;display:inline-flex;align-items:center;gap:12px;max-width:100%;padding:12px 22px;border-radius:999px;background:linear-gradient(135deg,rgba(255,229,107,.16),rgba(54,231,255,.12));border:1px solid rgba(255,229,107,.28);box-shadow:0 0 20px rgba(255,229,107,.12);font-size:24px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.note{margin-top:24px;max-width:700px;font-size:24px;line-height:1.32;font-weight:800;color:rgba(247,251,255,.72)}
+    .honorWall{position:absolute;left:10px;right:10px;bottom:0;height:150px;display:grid;grid-template-columns:repeat(7,1fr);gap:10px;align-items:end}.mini{height:112px;border-radius:18px;background:linear-gradient(135deg,rgba(12,12,42,.82),rgba(28,13,66,.72));border:1px solid rgba(168,85,247,.24);box-shadow:0 0 18px rgba(168,85,247,.14);padding:10px;display:grid;grid-template-columns:44px 42px 1fr;gap:9px;align-items:center;opacity:0;transform:translateY(36px) scale(.82);transition:opacity .65s ease,transform .75s cubic-bezier(.2,1,.22,1)}.mini.on{opacity:1;transform:translateY(0) scale(1)}.mini .mRank{font-size:25px;font-weight:950;color:var(--gold)}.mini .mAvatar{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:rgba(54,231,255,.16);border:1px solid rgba(116,231,255,.35);font-weight:900}.mini img{width:100%;height:100%;object-fit:cover}.mini .mName{font-size:17px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mini .mPts{font-size:14px;color:rgba(247,251,255,.66);font-weight:800}.mini .mPrize{font-size:12px;color:var(--gold);font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .podium{position:absolute;inset:178px 10px 10px;display:grid;grid-template-columns:1fr 1.22fr 1fr;gap:24px;align-items:end;opacity:0;transition:opacity .45s ease}.podium.on{opacity:1}.podCard{position:relative;min-height:378px;border-radius:34px;background:linear-gradient(135deg,rgba(11,14,45,.86),rgba(20,10,52,.80));border:1px solid rgba(178,229,255,.20);box-shadow:0 0 40px rgba(54,231,255,.13);padding:26px 24px;text-align:center;opacity:0;transform:translateY(55px) scale(.88);transition:opacity .75s ease,transform .9s cubic-bezier(.16,1,.22,1),filter .7s ease;overflow:hidden}.podCard.on{opacity:1;transform:translateY(0) scale(1)}.podCard.winner{min-height:450px;border-color:rgba(255,229,107,.50);box-shadow:0 0 60px rgba(255,184,61,.35),0 0 80px rgba(168,85,247,.18)}.podCard.third{border-color:rgba(215,154,95,.36)}.podCard.second{border-color:rgba(219,238,255,.42)}.podCard:before{content:"";position:absolute;inset:-40%;background:radial-gradient(circle at 50% 20%,rgba(255,255,255,.15),transparent 25%);animation:podLight 3s ease-in-out infinite}@keyframes podLight{50%{transform:scale(1.08);opacity:.72}}.podRank{position:relative;font-size:24px;font-weight:950;letter-spacing:.15em;text-transform:uppercase;color:var(--gold)}.podNum{position:relative;font-size:82px;line-height:.95;font-weight:950;margin:2px 0 8px}.podAvatar{position:relative;margin:8px auto 12px;width:140px;height:140px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:linear-gradient(135deg,rgba(54,231,255,.18),rgba(168,85,247,.24));border:4px solid rgba(155,226,255,.42);box-shadow:0 0 32px rgba(54,231,255,.22);font-size:58px;font-weight:950}.winner .podAvatar{width:178px;height:178px;border-color:rgba(255,229,107,.70);box-shadow:0 0 40px rgba(255,229,107,.38),0 0 70px rgba(255,184,61,.20)}.podAvatar img{width:100%;height:100%;object-fit:cover}.podName{position:relative;font-size:34px;line-height:1.05;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.winner .podName{font-size:44px}.podPts{position:relative;margin-top:8px;font-size:30px;font-weight:950}.winner .podPts{font-size:42px;color:var(--gold)}.podGift{position:relative;margin-top:14px;display:inline-flex;align-items:center;justify-content:center;padding:10px 18px;border-radius:999px;background:rgba(255,229,107,.11);border:1px solid rgba(255,229,107,.28);font-size:18px;font-weight:900;color:#fff}.finalTitle{position:absolute;top:110px;left:0;right:0;text-align:center;opacity:0;transform:translateY(-18px);transition:opacity .65s ease,transform .7s ease}.finalTitle.on{opacity:1;transform:translateY(0)}.finalTitle h2{margin:0;font-size:62px;font-weight:950;letter-spacing:.06em;text-transform:uppercase;color:var(--gold);text-shadow:0 0 25px rgba(255,229,107,.30),0 0 55px rgba(255,184,61,.18)}.finalTitle p{margin:8px 0 0;font-size:24px;font-weight:850;color:rgba(247,251,255,.76)}
+    .confetti{position:absolute;inset:0;pointer-events:none;z-index:20;overflow:hidden}.confetti i{position:absolute;width:9px;height:18px;border-radius:3px;background:var(--gold);opacity:0;animation:confetti 2.8s ease-in forwards}.confetti i:nth-child(3n){background:var(--cyan)}.confetti i:nth-child(3n+1){background:var(--violet)}@keyframes confetti{0%{opacity:1;transform:translateY(-20px) rotate(0)}100%{opacity:0;transform:translateY(900px) rotate(540deg)}}
+    .debugBox{position:absolute;z-index:50;left:18px;bottom:18px;max-width:980px;padding:9px 12px;border-radius:10px;background:rgba(0,0,0,.62);border:1px solid rgba(255,255,255,.14);font:13px Consolas,monospace;color:#c8ffdf;white-space:pre-wrap;display:none}body.debug .debugBox{display:block}.hidden{display:none!important}.dim .titleBlock{opacity:.18;transform:translateY(-20px) scale(.96)}
   </style>
 </head>
 <body>
-<div id="app" class="show">
-  <div class="bg"></div><div class="stars"></div><div class="frame"></div><div class="main"><div class="sweep"></div></div>
-  <div class="runner rt"></div><div class="runner rr"></div><div class="runner rb"></div><div class="runner rl"></div><div class="cornerDot cd1"></div><div class="cornerDot cd2"></div>
-  <div class="particles" id="particles"></div><div class="confetti" id="confetti"></div>
-  <div class="topbar"><div class="pill"><b></b><span id="badgeText">CGN Finale</span></div><div class="brand">CGN</div><div class="event" id="eventName">Event-Finale</div></div>
-  <div class="title"><h1 id="headline">Das große CGN-Finale</h1><p id="subline">Die Heimleitung zählt aus. Erst Ehrenrunde, dann Gutscheinplätze.</p></div>
-  <div class="stage">
-    <div class="spotlight"></div>
-    <div class="intro" id="intro"><div><h2 id="introTitle">Auszählung läuft</h2><p id="introText">Die Top 10 werden sortiert, die Ehrenkrümel bereitgestellt und die Gutscheine poliert.</p><div class="meter"><b></b></div></div></div>
-    <div class="focusCard" id="focusCard">
-      <div class="rankPanel"><div><div class="label">Platz</div><span class="num" id="fRank">10</span></div></div>
-      <div class="avatarWrap"><div class="avatar" id="fAvatar">?</div></div>
-      <div class="info"><div class="kicker" id="fKicker">Top-10 Ehrenrunde</div><div class="name" id="fName">Name</div><div class="points"><span id="fPoints">0</span> Punkte</div><div class="badgeReward" id="fReward">🍪 Ehrenkrümel</div><div class="comment" id="fComment">Die Heimleitung nickt anerkennend.</div></div>
+<div id="app">
+  <div class="bg"></div><div class="stars"></div><div class="frame"></div><div class="runner r1"></div><div class="runner r2"></div><div class="runner r3"></div>
+  <div class="content">
+    <div class="top"><div class="pill" id="phasePill"><i></i><span>CGN Finale</span></div><div class="logo">CGN</div><div class="event" id="eventName">Event Gewinner-Finale</div></div>
+    <div class="main" id="main">
+      <div class="titleBlock" id="titleBlock"><h1 id="headline">DAS GROSSE CGN-FINALE</h1><p id="subline">Die Heimleitung zählt aus. Alle Plätze bekommen ihren Moment.</p></div>
+      <div class="stage" id="stage"><div class="current" id="current"></div><div class="podium" id="podium"><div class="podCard third" id="pod3"></div><div class="podCard winner" id="pod1"></div><div class="podCard second" id="pod2"></div></div><div class="finalTitle" id="finalTitle"><h2>GEWINNER DES EVENTS</h2><p>Die Heimleitung gratuliert. Der Gold-Gutschein ist offiziell vergeben.</p></div></div>
     </div>
-    <div class="winnerGlow" id="winnerGlow"></div>
-    <div class="podium" id="podium">
-      <div class="podSlot left" id="pod3"></div>
-      <div class="podSlot center" id="pod1"></div>
-      <div class="podSlot right" id="pod2"></div>
-    </div>
+    <div class="honorWall" id="honorWall"></div>
   </div>
-  <div class="honorBoard" id="honorBoard"></div>
-  <pre class="debug" id="debug"></pre>
-  <div class="bootFallback" id="bootFallback"></div>
+  <div class="confetti" id="confetti"></div><div class="debugBox" id="debugBox"></div>
 </div>
-
+<script src="/overlays/shared/overlay_bus_client.js" data-overlay-id="stream_events_winner_overlay" data-client-type="overlay" data-mode="obs_overlay" data-module="stream_events" data-name="Stream Events Gewinner-Finale Overlay" data-version="0.6.0" data-heartbeat-ms="5000"></script>
 <script>
 (function(){
-  "use strict";
-  window.__EVS4254_BOOT_STARTED_AT = Date.now();
-  function qs(name){try{return new URLSearchParams(location.search).get(name)||"";}catch(_){return "";}}
-  const demo=(qs("demo")||"").toLowerCase();
-  const debug=qs("debug")==="1"||qs("debug")==="true";
-  if(demo||debug){
-    document.addEventListener("DOMContentLoaded",()=>{try{const app=document.getElementById("app"); if(app) app.classList.add("show");}catch(_){}});
-    setTimeout(function(){
-      const app=document.getElementById("app");
-      if(!app)return;
-      const isVisible=app.classList.contains("show") || getComputedStyle(app).opacity !== "0";
-      if(!isVisible){
-        app.classList.add("show");
-        const intro=document.getElementById("intro");
-        const title=document.getElementById("introTitle");
-        const text=document.getElementById("introText");
-        const fb=document.getElementById("bootFallback");
-        if(title)title.textContent="Demo-Fallback aktiv";
-        if(text)text.textContent="Das Overlay wurde sichtbar geschaltet, aber die Haupt-Demo hat nicht gestartet. Bitte Screenshot/Fehlertext schicken.";
-        if(intro)intro.classList.add("active");
-        if(fb){fb.classList.add("show");fb.textContent="EVS42.5.4 BOOT-FALLBACK\nURL: "+location.href+"\nHinweis: Haupt-Demo hat nach 1.2s nicht gestartet.";}
-      }
-    },1200);
-  }
-})();
-</script>
-<script>
-(function(){
-  "use strict";
+  'use strict';
+  const VERSION='EVS42.6 Fresh Rebuild';
   const qs=new URLSearchParams(location.search);
-  let demo=(qs.get("demo")||"").toLowerCase();
-  if(demo==="1"||demo==="true"||demo==="yes")demo="single";
-  const speed=(qs.get("speed")||"show").toLowerCase();
-  const debug=qs.get("debug")==="1"||qs.get("debug")==="true";
-  const eventUid=qs.get("eventUid")||qs.get("event")||"";
-  const finaleRoute=qs.get("route")||"";
-  // EVS42.5.3: Demo/Debug ist sofort sichtbar. Live/OBS ohne Event-Daten wird direkt wieder versteckt und wartet auf Bus-Event.
-  if(!demo && !debug && !eventUid && !finaleRoute){ setTimeout(()=>{ try{ hide(); }catch(_){} }, 80); }
-  if(debug)document.body.classList.add("debug");
-  const SPEEDS={
-    fast:{intro:1200,honorHold:1700,move:900,bridge:1200,heroIntro:1200,heroHold:2300,heroMove:1050,finalHold:5000},
-    normal:{intro:6500,honorHold:7500,move:1200,bridge:6500,heroIntro:3500,heroHold:10500,heroMove:1300,finalHold:24000},
-    slow:{intro:12000,honorHold:12000,move:1400,bridge:10000,heroIntro:5500,heroHold:17000,heroMove:1500,finalHold:38000},
-    show:{intro:18000,honorHold:16000,move:1600,bridge:14000,heroIntro:7000,heroHold:24000,heroMove:1700,finalHold:60000}
-  };
-  const T=SPEEDS[speed]||SPEEDS.show;
-  const els={app:gid("app"),badgeText:gid("badgeText"),eventName:gid("eventName"),headline:gid("headline"),subline:gid("subline"),intro:gid("intro"),introTitle:gid("introTitle"),introText:gid("introText"),focus:gid("focusCard"),fRank:gid("fRank"),fAvatar:gid("fAvatar"),fKicker:gid("fKicker"),fName:gid("fName"),fPoints:gid("fPoints"),fReward:gid("fReward"),fComment:gid("fComment"),board:gid("honorBoard"),podium:gid("podium"),pod1:gid("pod1"),pod2:gid("pod2"),pod3:gid("pod3"),winnerGlow:gid("winnerGlow"),particles:gid("particles"),confetti:gid("confetti"),debug:gid("debug")};
-  let timers=[],currentUid="",miniIndex=0;
-  function bootFail(err){try{show();if(els&&els.debug){els.debug.style.display="block";els.debug.textContent="BOOT ERROR: "+(err&&err.stack?err.stack:(err&&err.message?err.message:String(err)));} if(els&&els.intro){els.introTitle.textContent="Demo konnte nicht starten";els.introText.textContent="Bitte URL und Browser-Konsole prüfen. Der Fehler steht unten links im Debug-Feld.";els.intro.classList.add("active");} const fb=gid("bootFallback"); if(fb){fb.classList.add("show");fb.textContent="EVS42.5.4 BOOT ERROR\n"+(err&&err.stack?err.stack:(err&&err.message?err.message:String(err)));}}catch(_){}}
-  window.addEventListener("error",e=>bootFail(e.error||e.message));
-  window.addEventListener("unhandledrejection",e=>bootFail(e.reason||"unhandled rejection"));
-  function gid(id){return document.getElementById(id)}
-  function clean(v){return (v==null?"":String(v)).trim()}
-  function num(n){return new Intl.NumberFormat("de-DE").format(Number(n||0))}
-  function log(v){if(!debug)return;els.debug.textContent=(typeof v==="string"?v:JSON.stringify(v,null,2))+"\n"+els.debug.textContent.slice(0,7000)}
-  function later(ms,fn){const t=setTimeout(fn,ms);timers.push(t);return t}
-  function clearTimers(){timers.forEach(clearTimeout);timers=[]}
-  function show(){els.app.classList.add("show")}
-  function hide(){els.app.classList.remove("show")}
-  function initial(name){const s=clean(name);return (s[0]||"?").toUpperCase()}
-  function avatarUrl(row){return clean(row.userAvatarUrl||row.avatarUrl||row.avatar||row.profileImageUrl||row.profile_image_url||"")}
-  function setAvatar(el,row,gold=false){el.classList.toggle("gold",!!gold);el.innerHTML="";const url=avatarUrl(row);if(url){const img=document.createElement("img");img.src=url;img.alt="";img.referrerPolicy="no-referrer";img.onerror=()=>{el.textContent=initial(row.userDisplayName||row.userLogin)};el.appendChild(img)}else{el.textContent=initial(row.userDisplayName||row.userLogin)}}
-  function normalize(raw){raw=raw||{};const finale=raw.finale||raw.existingFinale||raw.preview||raw;const event=raw.event||finale.event||{};let ranking=Array.isArray(finale.ranking)?finale.ranking:(Array.isArray(raw.ranking)?raw.ranking:[]);ranking=ranking.map((r,i)=>({rank:Number(r.rank||r.place||i+1),userLogin:clean(r.userLogin||r.login||r.username||r.userDisplayName),userDisplayName:clean(r.userDisplayName||r.displayName||r.username||r.userLogin||`Platz ${i+1}`),points:Number(r.points||r.score||0),userAvatarUrl:avatarUrl(r)})).filter(r=>r.rank>0).sort((a,b)=>a.rank-b.rank);
-    let winner=finale.winner||ranking.find(r=>r.rank===1)||ranking[0]||{};winner={rank:Number(winner.rank||winner.place||1),userLogin:clean(winner.userLogin||winner.login||winner.username||winner.userDisplayName),userDisplayName:clean(winner.userDisplayName||winner.displayName||winner.username||winner.userLogin||"Gewinner"),points:Number(winner.points||winner.score||finale.topScore||0),userAvatarUrl:avatarUrl(winner)};if(!ranking.length)ranking=[winner];
-    return{finaleUid:clean(finale.finaleUid||finale.uid||raw.finaleUid||`finale_${Date.now()}`),eventName:clean(finale.eventName||event.name||raw.eventName||"CGN Event-Finale"),winner,ranking,topScore:Number(finale.topScore||winner.points||0),hasTie:Boolean(finale.hasTie||Number(finale.candidateCount||0)>1),candidates:Array.isArray(finale.candidates)?finale.candidates:[]}
+  const demo=qs.get('demo');
+  const debug=qs.get('debug')==='1'||qs.get('debug')==='true';
+  const speed=(qs.get('speed')||'show').toLowerCase();
+  if(demo) document.body.classList.add('demo');
+  if(debug) document.body.classList.add('debug');
+  if(!demo) document.body.classList.add('live-wait');
+  const $=id=>document.getElementById(id);
+  const els={app:$('app'),main:$('main'),stage:$('stage'),current:$('current'),wall:$('honorWall'),podium:$('podium'),pod1:$('pod1'),pod2:$('pod2'),pod3:$('pod3'),finalTitle:$('finalTitle'),headline:$('headline'),subline:$('subline'),eventName:$('eventName'),phasePill:$('phasePill'),debug:$('debugBox'),confetti:$('confetti')};
+  const times={fast:{intro:900,hold:1600,move:650,between:350,topHold:2400,final:6500},normal:{intro:4200,hold:6500,move:1000,between:900,topHold:9000,final:18000},slow:{intro:9000,hold:12500,move:1300,between:1300,topHold:16000,final:30000},show:{intro:15000,hold:19000,move:1500,between:1800,topHold:26000,final:60000}}[speed]||{intro:15000,hold:19000,move:1500,between:1800,topHold:26000,final:60000};
+  let running=false; let timers=[];
+  function log(msg){console.log('[winner_overlay '+VERSION+'] '+msg); if(debug&&els.debug){els.debug.textContent=VERSION+'\n'+msg+'\nURL: '+location.href+'\nspeed='+speed+' demo='+demo;}}
+  function sleep(ms){return new Promise(r=>{const t=setTimeout(r,ms);timers.push(t);});}
+  function clearTimers(){timers.forEach(clearTimeout);timers=[];}
+  function safeText(v,f=''){return String(v??f??'').trim();}
+  function initials(name){const n=safeText(name,'?'); return n.split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase()||'?';}
+  function imgOrInitial(url,name,cls){const u=safeText(url); if(u) return '<div class="'+cls+'"><img src="'+escapeHtml(u)+'" onerror="this.remove();this.parentNode.textContent=\''+initials(name)+'\';"></div>'; return '<div class="'+cls+'">'+initials(name)+'</div>';}
+  function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+  function fmt(n){const x=Number(n||0);return Number.isFinite(x)?x.toLocaleString('de-DE'):String(n||0);}
+  function prize(p){if(p===1)return '🎟️ Gold-Gutschein der Heimleitung'; if(p===2)return '🎟️ Silber-Gutschein der Heimleitung'; if(p===3)return '🎟️ Bronze-Gutschein der Heimleitung'; if(p===4)return '🍪 Ehrenkeks kurz vorm Treppchen'; return '🍪 '+Math.max(1,11-p)+' Ehrenkrümel';}
+  function note(p){if(p===1)return 'Der goldene Platz in der Mitte. Die Heimleitung steht kurz auf, setzt sich aber sofort wieder hin.'; if(p===2)return 'Silber mit Würde. Der Gutschein wurde glatt gestrichen und ordentlich übergeben.'; if(p===3)return 'Bronze, aber mit Applaus. Der erste Gutscheinplatz ist offiziell geehrt.'; if(p===4)return 'Fast auf dem Treppchen. Die Heimleitung hebt respektvoll die Kaffeetasse.'; return 'Top 10 erreicht. Keine Verabschiedung, sondern eine Ehrenrunde mit Krümelbonus.';}
+  function normalize(input){
+    const p=input&&typeof input==='object'?input:{};
+    const raw=p.ranking||p.top||p.top10||p.players||p.entries||p.items||[];
+    let arr=Array.isArray(raw)?raw.slice():[];
+    arr=arr.map((x,i)=>({
+      place:Number(x.place||x.rank||x.position||i+1),
+      userDisplayName:safeText(x.userDisplayName||x.displayName||x.name||x.userLogin||('Platz'+(i+1))),
+      userLogin:safeText(x.userLogin||x.login||x.userDisplayName||x.displayName||x.name||''),
+      userAvatarUrl:safeText(x.userAvatarUrl||x.avatarUrl||x.avatar||x.profileImageUrl||''),
+      points:Number(x.points||x.score||x.totalPoints||0)
+    })).sort((a,b)=>a.place-b.place);
+    if(!arr.length) arr=demoData(false).ranking;
+    for(let i=1;i<=10;i++){if(!arr.some(x=>x.place===i)){arr.push({place:i,userDisplayName:'Platz '+i,userLogin:'platz'+i,userAvatarUrl:'',points:Math.max(5,110-i*7)});}}
+    arr=arr.sort((a,b)=>a.place-b.place).slice(0,10);
+    return {eventName:safeText(p.eventName||p.name||p.event?.name||'Event Gewinner-Finale'),ranking:arr};
   }
-  function honorReward(rank){return({10:"🍪 1 Ehrenkrümel",9:"🍪 2 Ehrenkrümel",8:"🍪 3 Ehrenkrümel",7:"🍪 4 Ehrenkrümel",6:"🍪 5 Ehrenkrümel",5:"🍪 Keksorden der Community",4:"🍪 Ehrenkeks kurz vorm Treppchen"})[rank]||"🍪 Ehrenkrümel"}
-  function honorLine(rank){return({10:"Top 10 erreicht. Die Heimleitung hebt respektvoll die Kaffeetasse.",9:"Stark mitgespielt. Dieser Krümel wurde offiziell abgestaubt.",8:"Die Community nickt. Der Krümelorden sitzt gerade.",7:"Solide Leistung, ordentlich Neon und kein Gemecker aus Zimmer 3.",6:"Die Heimleitung notiert: gefährlich nah am Treppchen.",5:"Fast Gutscheinluft geschnuppert. Dafür gibt es den guten Keksorden.",4:"Direkt vorm Treppchen. Das ist kein Trost, das ist Ehrenrunde Deluxe."})[rank]||"Die Heimleitung nickt anerkennend."}
-  function voucher(rank){return({3:"🎟️ Bronze-Gutschein der Heimleitung",2:"🎟️ Silber-Gutschein der Heimleitung",1:"🎟️ Gold-Gutschein der Heimleitung"})[rank]||"🎟️ Gutschein"}
-  function topLine(rank){return({3:"Der erste Gutscheinplatz ist offiziell. Bronze, Neon und Heimleitungswürde.",2:"Silber glänzt im CGN-Licht. Jetzt wird es richtig eng auf dem Treppchen.",1:"Der Gold-Gutschein ist vergeben. Bitte Applaus, Konfetti und keine Diskussion mit der Heimleitung."})[rank]||"Die Heimleitung überreicht den Gutschein."}
-  function prepareFocus(row,mode){
-    els.focus.className=`focusCard ${row.rank<=3?`rank${row.rank}`:""}`;els.fRank.textContent=row.rank;setAvatar(els.fAvatar,row,row.rank===1);els.fName.textContent=row.userDisplayName;els.fPoints.textContent=num(row.points);
-    if(mode==="top"){els.fKicker.textContent=`Platz ${row.rank} · Gutscheinplatz`;els.fReward.textContent=voucher(row.rank);els.fComment.textContent=topLine(row.rank)}
-    else{els.fKicker.textContent=`Platz ${row.rank} · Top-10 Ehrenrunde`;els.fReward.textContent=honorReward(row.rank);els.fComment.textContent=honorLine(row.rank)}
+  function demoData(tie){
+    const names=['ForrestCGN','EngelCGN','RoxxyFoxxy','AkiGhosty','NoctyraxCGN','Tadesso','Rollimann','KeksKalle','MiezMampf','PflegePunk'];
+    const pts=tie?[120,120,96,82,74,68,60,52,45,38]:[146,124,96,82,74,68,60,52,45,38];
+    return {eventName:'1 Jahr Twitch · Sound-Schnipsel Finale',ranking:names.map((n,i)=>({place:i+1,userDisplayName:n,userLogin:n.toLowerCase(),userAvatarUrl:'',points:pts[i]}))};
   }
-  function showFocus(row,mode){prepareFocus(row,mode);els.focus.classList.add("active");}
-  function hideFocus(){els.focus.classList.remove("active","moving");els.focus.removeAttribute("style")}
-  function makeMini(row,top=false){const d=document.createElement("div");d.className=`miniCard ${top?"top":""} ${row.rank===1?"rank1":""}`;d.innerHTML=`<div class="miA"></div><div class="miR">#${row.rank}</div><div class="miN"></div><div class="miP">${num(row.points)} Punkte · ${row.rank<=3?"Gutscheinplatz":"Ehrenrunde"}</div>`;d.querySelector(".miN").textContent=row.userDisplayName;setAvatar(d.querySelector(".miA"),row,row.rank===1);return d}
-  function addMini(row,top=false){const d=makeMini(row,top);els.board.appendChild(d);requestAnimationFrame(()=>d.classList.add("show"));return d}
-  function flyToMini(row){els.focus.classList.add("moving");els.focus.style.opacity="0";els.focus.style.transform=`translate(-50%,-50%) translateY(210px) scale(.36)`;els.focus.style.filter="blur(1px)";later(Math.max(320,T.move*.45),()=>addMini(row,false));later(T.move,hideFocus)}
-  function podHtml(row){const cls=row.rank===1?"gold":"";return `<div class="podRank">${row.rank===1?"Gewinner des Events":`Platz ${row.rank}`}</div><div class="podNum">${row.rank}</div><div class="podAvatar ${cls}"></div><div class="podName"></div><div class="podPoints">${num(row.points)} Punkte</div><div class="podGift">${voucher(row.rank)}</div><div class="podLine">${topLine(row.rank)}</div>`}
-  function setPod(row){const el=row.rank===1?els.pod1:(row.rank===2?els.pod2:els.pod3);el.innerHTML=podHtml(row);el.querySelector(".podName").textContent=row.userDisplayName;setAvatar(el.querySelector(".podAvatar"),row,row.rank===1);requestAnimationFrame(()=>el.classList.add("show"));if(row.rank===1){els.winnerGlow.classList.add("show");confetti(180)}}
-  function revealHonor(row){els.badgeText.textContent="Top-10 Ehrenrunde";els.headline.textContent="CGN-Ehrenrunde";els.subline.textContent="Jeder Platz bekommt seinen Moment. Danach wandert die Karte in die Ehrenwand.";showFocus(row,"honor");later(T.honorHold,()=>flyToMini(row))}
-  function revealTop(row){els.badgeText.textContent=`Platz ${row.rank}`;els.headline.textContent=row.rank===3?"Das Treppchen beginnt":row.rank===2?"Silber im Neonlicht":"Der Gold-Gutschein";els.subline.textContent="Die Gutscheinplätze werden einzeln vorgestellt und bauen am Ende das Siegerpodium.";showFocus(row,"top");if(row.rank===1)later(600,()=>confetti(90));later(T.heroHold,()=>{setPod(row);els.focus.classList.add("moving");const x=row.rank===3?"-520px":(row.rank===2?"520px":"0px");const s=row.rank===1?.50:.44;els.focus.style.opacity="0";els.focus.style.transform=`translate(calc(-50% + ${x}),-50%) translateY(${row.rank===1?"40px":"95px"}) scale(${s})`;els.focus.style.filter="blur(1px)";later(T.heroMove,hideFocus)})}
-  function intro(title,text,headline,subline,badge){els.badgeText.textContent=badge||"CGN Finale";els.headline.textContent=headline||"Das große CGN-Finale";els.subline.textContent=subline||"Erst Ehrenrunde, dann Gutscheinplätze.";els.introTitle.textContent=title;els.introText.textContent=text;els.intro.classList.add("active")}
-  function hideIntro(){els.intro.classList.remove("active")}
-  function reset(){clearTimers();clearConfetti();hideFocus();hideIntro();els.board.innerHTML="";els.pod1.innerHTML="";els.pod2.innerHTML="";els.pod3.innerHTML="";els.pod1.classList.remove("show");els.pod2.classList.remove("show");els.pod3.classList.remove("show");els.winnerGlow.classList.remove("show")}
-  function play(raw,opts={}){window.__EVS4254_PLAY_CALLED=true;const fb=gid("bootFallback");if(fb)fb.classList.remove("show");const finale=normalize(raw);if(!opts.force&&currentUid===finale.finaleUid)return;currentUid=finale.finaleUid;reset();els.eventName.textContent=finale.eventName;show();log({speed,T,finale});
-    const ranking=finale.ranking.slice().sort((a,b)=>(a.rank-b.rank)||(b.points-a.points));
-    const honor=ranking.filter(r=>r.rank>=4&&r.rank<=10).sort((a,b)=>b.rank-a.rank); // 10 -> 4
-    const top=ranking.filter(r=>r.rank>=1&&r.rank<=3).sort((a,b)=>b.rank-a.rank); // 3 -> 1
-    intro("Auszählung läuft","Die Heimleitung sortiert die Top 10. Gleich bekommt jeder Platz seinen eigenen Moment.","Das große CGN-Finale","Die Karten werden vorgestellt, kleiner und wandern danach in die Ehrenwand.","CGN Finale");
-    let t=T.intro;later(t,hideIntro);
-    honor.forEach(row=>{later(t,()=>revealHonor(row));t+=T.honorHold+T.move+420});
-    later(t,()=>intro("Die Ehrenwand steht","Plätze 10 bis 4 sind gefeiert. Jetzt werden die Gutscheine aus der guten Schublade geholt.","Jetzt kommen die Gutscheinplätze","Platz 3 links, Platz 2 rechts und Platz 1 am Ende groß in der Mitte.","Gutscheinrunde"));t+=T.bridge;later(t,hideIntro);
-    top.forEach(row=>{later(t,()=>revealTop(row));t+=T.heroHold+T.heroMove+720});
-    later(t,()=>{els.badgeText.textContent="Finalbild";els.headline.textContent="Gewinner des Events";els.subline.textContent=finale.hasTie?"Gleichstand sauber geprüft. Der Gutschein ist vergeben.":"Das Podium steht. Die Heimleitung gratuliert.";confetti(220)});t+=T.finalHold;if(!(demo||debug)){later(t,hide)}else{later(t,()=>{show();log("EVS42.5.4: Demo/Debug bleibt im Finalbild sichtbar. Kein Auto-Hide.")})}
+  function renderCurrent(item,mode){
+    const p=item.place; const isTop=p<=3;
+    els.current.className='current';
+    els.current.innerHTML='<div class="placeBox"><div><div class="small">Platz</div><div class="num">'+p+'</div></div></div>'+imgOrInitial(item.userAvatarUrl,item.userDisplayName,'avatar')+'<div class="info"><div class="rankline">'+(isTop?'Gutscheinplatz':'Top-10 Ehrenrunde')+' · Platz '+p+'</div><div class="name">'+escapeHtml(item.userDisplayName)+'</div><div class="points">'+fmt(item.points)+' Punkte</div><div class="badgePrize">'+escapeHtml(prize(p))+'</div><div class="note">'+escapeHtml(note(p))+'</div></div>';
+    requestAnimationFrame(()=>els.current.classList.add('on'));
   }
-  function demoData(kind){const tie=kind==="tie"||kind==="draw";const rows=[
-    {rank:1,userDisplayName:tie?"OpaRollator":"ForrestCGN",points:tie?120:145},{rank:2,userDisplayName:tie?"RentnerRambo":"EngelCGN",points:tie?120:118},{rank:3,userDisplayName:tie?"KeksKönig":"RoxxyFoxxy",points:tie?120:96},
-    {rank:4,userDisplayName:"AkiGhosty",points:82},{rank:5,userDisplayName:"NoctyraxCGN",points:74},{rank:6,userDisplayName:"Tadesso",points:68},{rank:7,userDisplayName:"Rollimann",points:60},{rank:8,userDisplayName:"KeksKontrolleur",points:52},{rank:9,userDisplayName:"SeniorenSonic",points:44},{rank:10,userDisplayName:"PflegePunk",points:38}
-  ];return{finale:{finaleUid:`demo_${kind||"single"}_${speed}_${Date.now()}`,eventName:tie?"1 Jahr Twitch · Gleichstand":"1 Jahr Twitch · Sound-Schnipsel Finale",winner:tie?rows[1]:rows[0],topScore:rows[0].points,candidateCount:tie?3:1,hasTie:tie,candidates:tie?rows.slice(0,3):[rows[0]],ranking:rows}}}
-  async function loadFinale(){let route=finaleRoute;if(!route&&eventUid)route=`/api/stream-events/events/${encodeURIComponent(eventUid)}/finale`;if(!route)return;try{const r=await fetch(route,{cache:"no-store"});if(!r.ok)throw new Error(`HTTP ${r.status}`);const d=await r.json();if(d&&d.existingFinale)play({finale:d.existingFinale,preview:d,event:d.event},{force:true});else if(d&&d.finale)play(d,{force:true});log(d)}catch(e){log({error:e.message||String(e),route})}}
-  function handleBus(ev){if(demo)return;const msg=ev&&ev.detail&&typeof ev.detail==="object"?ev.detail:{};const payload=msg.payload&&typeof msg.payload==="object"?msg.payload:msg;const channel=String(msg.channel||payload.channel||"").toLowerCase();const action=String(msg.action||payload.action||"").toLowerCase();const isFinale=channel.includes("stream_events.winner_finale")||action.includes("winner_finale")||action==="started"||action==="replay_requested";const hasData=payload&&(payload.finale||payload.preview||payload.eventUid||payload.event);if(isFinale&&hasData){play(payload.finale?payload:{finale:payload,preview:payload.preview,event:payload.event},{force:action==="replay_requested"})}}
-  function seedParticles(){for(let i=0;i<54;i++){const p=document.createElement("i");p.style.left=`${Math.random()*100}%`;p.style.bottom=`${-90-Math.random()*340}px`;p.style.animationDelay=`${Math.random()*8}s`;p.style.animationDuration=`${6+Math.random()*8}s`;els.particles.appendChild(p)}}
-  function clearConfetti(){els.confetti.innerHTML=""}
-  function confetti(count){clearConfetti();for(let i=0;i<count;i++){const p=document.createElement("i");p.style.left=`${Math.random()*100}%`;p.style.animationDuration=`${4+Math.random()*5.5}s`;p.style.animationDelay=`${Math.random()*1.8}s`;p.style.transform=`translateY(-90px) rotate(${Math.random()*360}deg)`;els.confetti.appendChild(p)}}
-  seedParticles();
-  function startDemoNow(){try{play(demoData(demo),{force:true})}catch(e){bootFail(e)}}
-  if(demo){setTimeout(startDemoNow,120);setTimeout(()=>{if(!window.__EVS4254_PLAY_CALLED)startDemoNow()},800)}else{loadFinale()}
-  window.addEventListener("cgn:overlay-bus-message",handleBus);window.addEventListener("focus",loadFinale);window.addEventListener("beforeunload",()=>{clearTimers();clearConfetti()});
+  function addMini(item){
+    const d=document.createElement('div');d.className='mini';d.innerHTML='<div class="mRank">#'+item.place+'</div>'+imgOrInitial(item.userAvatarUrl,item.userDisplayName,'mAvatar')+'<div><div class="mName">'+escapeHtml(item.userDisplayName)+'</div><div class="mPts">'+fmt(item.points)+' Punkte</div><div class="mPrize">'+escapeHtml(prize(item.place))+'</div></div>';els.wall.appendChild(d);requestAnimationFrame(()=>d.classList.add('on'));
+  }
+  function podHtml(item){return '<div class="podRank">Platz</div><div class="podNum">'+item.place+'</div>'+imgOrInitial(item.userAvatarUrl,item.userDisplayName,'podAvatar')+'<div class="podName">'+escapeHtml(item.userDisplayName)+'</div><div class="podPts">'+fmt(item.points)+' Punkte</div><div class="podGift">'+escapeHtml(prize(item.place))+'</div>';}
+  function setPhase(label,head,sub){els.phasePill.querySelector('span').textContent=label;els.headline.textContent=head;els.subline.textContent=sub;}
+  function confetti(count){els.confetti.innerHTML='';for(let i=0;i<count;i++){const c=document.createElement('i');c.style.left=(Math.random()*100)+'%';c.style.top=(-40-Math.random()*120)+'px';c.style.animationDelay=(Math.random()*1.2)+'s';c.style.transform='rotate('+(Math.random()*180)+'deg)';els.confetti.appendChild(c);} }
+  async function play(payload){
+    if(running)return; running=true; clearTimers(); document.body.classList.remove('live-wait'); els.wall.innerHTML=''; els.podium.classList.remove('on'); els.finalTitle.classList.remove('on'); [els.pod1,els.pod2,els.pod3].forEach(e=>{e.classList.remove('on');e.innerHTML='';});
+    const data=normalize(payload); els.eventName.textContent=data.eventName; log('Show startet: '+data.eventName);
+    setPhase('Top-10 Ehrenrunde','CGN-EHRENRUNDE','Plätze 10 bis 4 bekommen ihren eigenen Moment und wandern danach in die Ehrenwand.');
+    await sleep(times.intro);
+    const byPlace=Object.fromEntries(data.ranking.map(x=>[x.place,x]));
+    for(let p=10;p>=4;p--){const item=byPlace[p]; if(!item) continue; setPhase('Platz '+p,'TOP-10 EHRENRUNDE','Platz '+p+' wird geehrt und zieht danach in die Ehrenwand.'); renderCurrent(item,'honor'); await sleep(times.hold); els.current.classList.add('leaving'); await sleep(times.move); addMini(item); els.current.className='current'; els.current.innerHTML=''; await sleep(times.between);}
+    setPhase('Gutscheinplätze','DAS TREPPCHEN BEGINNT','Die Ehrenrunde steht. Jetzt baut sich das Podium auf: Platz 3 links, Platz 2 rechts, Platz 1 in der Mitte.'); await sleep(times.intro*.75);
+    els.podium.classList.add('on');
+    for(const p of [3,2,1]){const item=byPlace[p]; if(!item) continue; setPhase('Platz '+p,(p===1?'DER GOLD-GUTSCHEIN':'GUTSCHEINPLATZ '+p),p===1?'Jetzt kommt der Gewinner des Events.':'Der nächste Gutscheinplatz wird aufgebaut.'); renderCurrent(item,'top'); await sleep(times.topHold*.55); els.current.classList.add('leaving'); await sleep(times.move); const target=p===1?els.pod1:(p===2?els.pod2:els.pod3); target.innerHTML=podHtml(item); target.classList.add('on'); els.current.className='current'; els.current.innerHTML=''; if(p===1){confetti(90);els.finalTitle.classList.add('on');} await sleep(times.between+(p===1?times.topHold*.35:times.topHold*.15));}
+    setPhase('Finalbild','GEWINNER DES EVENTS','Top 10 geehrt. Top 3 auf dem Podium. Die Heimleitung gratuliert.');
+    log('Finalbild sichtbar. Demo/Debug bleibt stehen.');
+    if(!demo&&!debug){await sleep(times.final); document.body.classList.add('live-wait');}
+    running=false;
+  }
+  window.CGNWinnerOverlay={play,version:VERSION,demo:()=>play(demoData(false)),tie:()=>play(demoData(true))};
+  window.addEventListener('cgn:overlay-bus-message',ev=>{const d=ev.detail||{};const t=String(d.type||d.topic||d.event||'');if(t.includes('stream_events.winner_finale')||t.includes('winner_finale')||t.includes('event.winner')){play(d.payload||d.data||d.state||d);}});
+  window.addEventListener('error',e=>log('ERROR: '+(e.error&&e.error.stack?e.error.stack:e.message)));
+  window.addEventListener('unhandledrejection',e=>log('PROMISE ERROR: '+(e.reason&&e.reason.stack?e.reason.stack:e.reason)));
+  document.addEventListener('DOMContentLoaded',()=>{log('DOM ready. '+VERSION); if(demo){play(demoData(demo==='tie'));} else {log('Live-Wartezustand. Bus-Event startet Show.');}});
 })();
 </script>
-<script src="/overlays/shared/overlay_bus_client.js" data-overlay-id="stream_events_winner_overlay" data-client-type="overlay" data-mode="obs_overlay" data-module="stream_events" data-name="Stream Events Gewinner-Finale Overlay" data-version="0.5.0" data-heartbeat-ms="5000"></script>
 </body>
 </html>
