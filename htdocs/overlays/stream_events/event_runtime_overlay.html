@@ -40,9 +40,7 @@
       inset: 0;
       width: var(--w);
       height: var(--h);
-      display: grid;
-      place-items: start center;
-      padding-top: 86px;
+      display: block;
       opacity: 0;
       transform: scale(.985);
       filter: blur(5px);
@@ -87,11 +85,14 @@
     }
 
     .ring-wrap {
-      position: relative;
+      position: absolute;
       z-index: 5;
+      left: 50%;
+      top: 86px;
       width: 380px;
       height: 438px;
       display: block;
+      transform: translateX(-50%);
       transform-origin: top center;
     }
 
@@ -267,58 +268,177 @@
     }
 
     .result-card {
-      position: relative;
-      z-index: 5;
-      width: 980px;
-      min-height: 360px;
+      position: absolute;
+      right: 56px;
+      bottom: 56px;
+      z-index: 6;
+      width: 560px;
+      min-height: 114px;
       display: none;
-      place-items: center;
-      gap: 20px;
-      padding: 48px 58px;
-      border-radius: 36px;
-      border: 3px solid transparent;
+      grid-template-columns: 90px 3px 1fr;
+      column-gap: 14px;
+      align-items: center;
+      padding: 12px 18px;
+      border-radius: 22px;
+      border: 2px solid transparent;
       background:
-        radial-gradient(circle at 13% 7%, rgba(57,230,255,.15), transparent 38%) padding-box,
-        radial-gradient(circle at 92% 92%, rgba(255,79,216,.16), transparent 42%) padding-box,
-        linear-gradient(135deg, rgba(5,7,24,.95), rgba(19,9,45,.96)) padding-box,
+        radial-gradient(circle at 12% 28%, rgba(120,90,220,0.72) 0%, rgba(72,46,150,0.76) 32%, rgba(28,18,56,0.94) 100%) padding-box,
         linear-gradient(135deg, rgba(57,230,255,.94), rgba(168,85,247,.92), rgba(255,79,216,.82)) border-box;
-      box-shadow: 0 0 42px rgba(168,85,247,.48), 0 30px 90px rgba(0,0,0,.58);
-      text-align: center;
-      animation: resultIn .46s cubic-bezier(.16,1,.3,1) both;
+      box-shadow:
+        0 8px 18px rgba(0,0,0,0.58),
+        0 0 22px rgba(168,85,247,.28),
+        inset 0 0 20px rgba(120,90,220,0.06);
+      text-align: left;
+      overflow: hidden;
+      animation: resultSlideIn .46s cubic-bezier(.18,.84,.28,1) both;
     }
 
-    @keyframes resultIn {
-      from { opacity: 0; transform: translateY(32px) scale(.94); filter: blur(8px); }
-      to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+    @keyframes resultSlideIn {
+      from { opacity: 1; transform: translateX(calc(560px + 140px)); }
+      to { opacity: 1; transform: translateX(0); }
     }
 
     .result-kicker {
       color: var(--cyan);
-      font-size: 20px;
-      font-weight: 950;
-      letter-spacing: 3px;
+      font-size: 15px;
+      line-height: 1.02;
+      font-weight: 900;
+      letter-spacing: 2.4px;
       text-transform: uppercase;
+      text-shadow: 0 0 10px rgba(57,230,255,.28);
     }
 
     .result-title {
-      max-width: 880px;
       margin: 0;
       color: var(--text);
-      font-size: 72px;
-      line-height: .98;
-      font-weight: 950;
-      text-shadow: 0 0 28px rgba(168,85,247,.66), 0 0 44px rgba(57,230,255,.20);
-      overflow-wrap: anywhere;
+      font-size: 34px;
+      line-height: 1.02;
+      font-weight: 900;
+      text-shadow:
+        0 0 8px rgba(85,196,255,0.22),
+        0 0 12px rgba(165,128,252,0.18),
+        0 0 18px rgba(165,128,252,0.08);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 390px;
     }
 
     .result-subline {
-      max-width: 860px;
       margin: 0;
-      color: var(--muted);
-      font-size: 30px;
-      line-height: 1.22;
-      font-weight: 820;
+      color: #e8e7ff;
+      font-size: 18px;
+      line-height: 1.14;
+      font-weight: 700;
+      text-shadow:
+        0 0 6px rgba(165,128,252,0.16),
+        0 0 6px rgba(85,196,255,0.10);
       overflow-wrap: anywhere;
+      max-width: 390px;
+    }
+
+    .result-left {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .result-avatar-wrap {
+      position: relative;
+      width: 90px;
+      height: 90px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .result-avatar-ring {
+      position: absolute;
+      inset: 0;
+      width: 90px;
+      height: 90px;
+      filter:
+        drop-shadow(0 0 4px rgba(85,196,255,0.28))
+        drop-shadow(0 0 8px rgba(165,128,252,0.20));
+      animation: spinRing 3.2s linear infinite;
+      z-index: 1;
+      pointer-events: none;
+      overflow: visible;
+      opacity: 0.72;
+    }
+
+    .result-avatar-inner {
+      position: relative;
+      width: 78px;
+      height: 78px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: #120822;
+      border: 2px solid rgba(18, 8, 38, 0.96);
+      z-index: 2;
+      box-shadow: inset 0 0 8px rgba(0,0,0,0.28);
+    }
+
+    .result-avatar-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      border-radius: inherit;
+    }
+
+    .result-avatar-fallback {
+      width: 100%;
+      height: 100%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: 800;
+      color: #f7f2ff;
+      background: radial-gradient(circle at 30% 30%, #6e50c9, #261544);
+      border-radius: inherit;
+      text-transform: uppercase;
+    }
+
+    .result-divider {
+      width: 3px;
+      height: 64px;
+      align-self: center;
+      border-radius: 99px;
+      background: linear-gradient(
+        180deg,
+        rgba(0,0,0,0) 0%,
+        rgba(85,196,255,0.95) 28%,
+        rgba(165,128,252,0.98) 64%,
+        rgba(0,0,0,0) 100%
+      );
+      box-shadow:
+        0 0 7px rgba(165,128,252,0.45),
+        0 0 4px rgba(85,196,255,0.34);
+    }
+
+    .result-right {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .result-card.no-avatar {
+      grid-template-columns: 1fr;
+      width: 600px;
+    }
+
+    .result-card.no-avatar .result-left,
+    .result-card.no-avatar .result-divider {
+      display: none;
+    }
+
+    .result-card.no-avatar .result-title,
+    .result-card.no-avatar .result-subline {
+      max-width: 520px;
     }
 
     #stage.mode-guessing .ring-wrap {
@@ -397,10 +517,31 @@
       <div id="caption" class="caption">Sound startet gleich</div>
     </section>
 
-    <section class="result-card" aria-label="Event-Auswertung">
-      <div id="resultKicker" class="result-kicker">Auswertung</div>
-      <h1 id="resultTitle" class="result-title">Runde beendet</h1>
-      <p id="resultSubline" class="result-subline">Die Heimleitung zählt nach.</p>
+    <section id="resultCard" class="result-card no-avatar" aria-label="Event-Auswertung">
+      <div class="result-left">
+        <div id="resultAvatarWrap" class="result-avatar-wrap" aria-hidden="true">
+          <svg class="result-avatar-ring" viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="resultAvatarGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#55c4ff" />
+                <stop offset="55%" stop-color="#a580fc" />
+                <stop offset="100%" stop-color="#ff4fd8" />
+              </linearGradient>
+            </defs>
+            <circle cx="45" cy="45" r="41" fill="none" stroke="url(#resultAvatarGradient)" stroke-width="2.8" stroke-linecap="round" stroke-dasharray="148 58" />
+          </svg>
+          <div class="result-avatar-inner">
+            <img id="resultAvatarImg" class="result-avatar-img" alt="" />
+            <div id="resultAvatarFallback" class="result-avatar-fallback">CGN</div>
+          </div>
+        </div>
+      </div>
+      <div class="result-divider"></div>
+      <div class="result-right">
+        <div id="resultKicker" class="result-kicker">Auswertung</div>
+        <h1 id="resultTitle" class="result-title">Runde beendet</h1>
+        <p id="resultSubline" class="result-subline">Die Heimleitung zählt nach.</p>
+      </div>
     </section>
   </div>
 
@@ -413,7 +554,7 @@
       mode: "obs_overlay",
       module: "stream_events",
       name: "Stream Events Runtime Overlay",
-      version: "0.2.6",
+      version: "0.2.8",
       heartbeatIntervalMs: 5000,
       capabilities: [
         "overlay.heartbeat",
@@ -447,6 +588,10 @@
         stage: document.getElementById("stage"),
         countNumber: document.getElementById("countNumber"),
         caption: document.getElementById("caption"),
+        resultCard: document.getElementById("resultCard"),
+        resultAvatarWrap: document.getElementById("resultAvatarWrap"),
+        resultAvatarImg: document.getElementById("resultAvatarImg"),
+        resultAvatarFallback: document.getElementById("resultAvatarFallback"),
         resultKicker: document.getElementById("resultKicker"),
         resultTitle: document.getElementById("resultTitle"),
         resultSubline: document.getElementById("resultSubline"),
@@ -462,6 +607,7 @@
       let lastRuntimeMode = "";
       let activeCountdownPhaseKey = "";
       let countdownTimers = [];
+      let resultHideTimer = null;
       let lastDisplayedCountdownValue = "";
 
       if (DEBUG) document.body.classList.add("debug");
@@ -516,6 +662,25 @@
       function clearCountdownTimers() {
         for (const timer of countdownTimers) window.clearTimeout(timer);
         countdownTimers = [];
+      }
+
+      function clearResultHideTimer() {
+        if (resultHideTimer) window.clearTimeout(resultHideTimer);
+        resultHideTimer = null;
+      }
+
+      function scheduleResultHide(state) {
+        clearResultHideTimer();
+        const result = state && state.result ? state.result : {};
+        const visibleMs = Math.max(0, number(result.visibleMs, 0));
+        const elapsedMs = Math.max(0, number(result.elapsedMs, 0));
+        const remainingMs = visibleMs > 0 ? Math.max(400, visibleMs - elapsedMs) : 0;
+        if (!remainingMs) return;
+        resultHideTimer = window.setTimeout(function () {
+          applyClass("hidden", false);
+          lastRuntimeMode = "hidden";
+          fetchState();
+        }, remainingMs);
       }
 
       function forceNumberRestart(value) {
@@ -613,9 +778,50 @@
         const status = cleanText(latest && latest.status, "");
         if (status === "unresolved") return "";
         const item = latest && latest.itemVisible && latest.item ? latest.item : null;
-        const result = cleanText(item && item.result, "");
-        if (!result || result === "unresolved") return "";
-        return item ? cleanText(result || item.title || "", "") : "";
+        return item ? cleanText(item.title || "", "") : "";
+      }
+
+      function resultItem(state) {
+        const latest = state && state.sound ? state.sound.latestRound : null;
+        return latest && latest.itemVisible && latest.item ? latest.item : null;
+      }
+
+      function resultInitials(name) {
+        const cleaned = cleanText(name, "CGN");
+        if (!cleaned) return "CGN";
+        const parts = cleaned.split(/\s+/).filter(Boolean).slice(0, 2);
+        const initials = parts.map(part => part.charAt(0).toUpperCase()).join("");
+        return initials || cleaned.slice(0, 2).toUpperCase();
+      }
+
+      function setResultAvatar(url, name, visible) {
+        const show = !!visible;
+        if (els.resultCard) els.resultCard.classList.toggle("no-avatar", !show);
+        if (!els.resultAvatarWrap || !els.resultAvatarImg || !els.resultAvatarFallback) return;
+        if (!show) {
+          els.resultAvatarImg.removeAttribute("src");
+          els.resultAvatarImg.style.display = "none";
+          els.resultAvatarFallback.style.display = "none";
+          return;
+        }
+        const avatarUrl = cleanText(url, "");
+        const fallback = resultInitials(name || "CGN");
+        els.resultAvatarFallback.textContent = fallback;
+        if (avatarUrl) {
+          els.resultAvatarImg.style.display = "block";
+          els.resultAvatarImg.src = avatarUrl;
+          els.resultAvatarImg.alt = cleanText(name || "Gewinner", "Gewinner");
+          els.resultAvatarFallback.style.display = "none";
+          els.resultAvatarImg.onerror = function () {
+            els.resultAvatarImg.removeAttribute("src");
+            els.resultAvatarImg.style.display = "none";
+            els.resultAvatarFallback.style.display = "flex";
+          };
+        } else {
+          els.resultAvatarImg.removeAttribute("src");
+          els.resultAvatarImg.style.display = "none";
+          els.resultAvatarFallback.style.display = "flex";
+        }
       }
 
       function isoToMs(value) {
@@ -725,17 +931,28 @@
       function applyResult(state, mode) {
         const phase = state && state.phase ? state.phase : {};
         const display = state && state.display ? state.display : {};
+        const item = resultItem(state);
         const solution = latestSolutionText(state);
         const key = cleanText(phase.key, "");
 
         let kicker = "Auswertung";
         let title = cleanText(display.headline, "Runde beendet");
         let subline = cleanText(display.subline, "Die Heimleitung zählt nach.");
+        let showAvatar = false;
+        let avatarUrl = "";
+        let avatarName = "";
 
         if (key === "sound_solved") {
+          const winnerName = cleanText(item && (item.solvedByDisplayName || item.solvedByLogin), "Jemand aus dem Chat");
+          const snippetTitle = cleanText(solution || (item && item.title), "den Sound");
+          const points = Math.max(0, Math.round(number(item && item.awardedPoints, number(item && item.points, 0))));
           kicker = "Richtig erkannt";
-          title = "Treffer!";
-          subline = solution ? `Lösung: ${solution}` : "Der Sound wurde erkannt.";
+          title = winnerName;
+          subline = 'hat "' + snippetTitle + '" erkannt';
+          if (points > 0) subline += ' · +' + points + ' Punkte';
+          showAvatar = true;
+          avatarUrl = cleanText(item && item.solvedByAvatarUrl, "");
+          avatarName = winnerName;
         } else if (key === "sound_unresolved") {
           kicker = "Nicht erkannt";
           title = "Keiner hat es erkannt";
@@ -746,6 +963,7 @@
           kicker = "Abgebrochen";
         }
 
+        setResultAvatar(avatarUrl, avatarName, showAvatar);
         setText(els.resultKicker, kicker, "Auswertung");
         setText(els.resultTitle, title, "Runde beendet");
         setText(els.resultSubline, subline, "Die Heimleitung zählt nach.");
@@ -766,16 +984,20 @@
         pollMs = Math.max(300, Math.min(5000, number(state.overlay && state.overlay.pollMs, pollMs)));
 
         if (mode === "countdown") {
+          clearResultHideTimer();
           applyCountdown(state);
         } else if (mode === "guessing") {
+          clearResultHideTimer();
           applyGuessing(state);
         } else if (mode === "result" || mode === "finished" || mode === "cancelled") {
           clearCountdownTimers();
           activeCountdownPhaseKey = "";
           lastRuntimeMode = mode;
           applyResult(state, mode);
+          scheduleResultHide(state);
         } else if (mode === "hidden") {
           clearCountdownTimers();
+          clearResultHideTimer();
           activeCountdownPhaseKey = "";
           lastRuntimeMode = "hidden";
         }
@@ -844,8 +1066,8 @@
         applyState({
           ok: true,
           phase: { key: "sound_solved", visible: true },
-          display: { overlayMode: "result", headline: "Treffer!", subline: "Auswertung wird später final gebaut." },
-          sound: { latestRound: { itemVisible: true, item: { result: "Demo-Lösung" } } },
+          display: { overlayMode: "result", headline: "Richtig erkannt", subline: "Demo" },
+          sound: { latestRound: { itemVisible: true, item: { title: "Demo-Sound", solvedByDisplayName: "ForrestCGN", solvedByAvatarUrl: "", awardedPoints: 25, result: "solved" } } },
           overlay: { pollMs: 900 }
         });
       }
@@ -886,6 +1108,7 @@
         if (pollTimer) window.clearInterval(pollTimer);
         if (demoTimer) window.clearTimeout(demoTimer);
         clearCountdownTimers();
+        clearResultHideTimer();
       });
     })();
   </script>
@@ -897,7 +1120,7 @@
     data-mode="obs_overlay"
     data-module="stream_events"
     data-name="Stream Events Runtime Overlay"
-    data-version="0.2.6"
+    data-version="0.2.8"
     data-heartbeat-ms="5000"
   ></script>
 </body>
