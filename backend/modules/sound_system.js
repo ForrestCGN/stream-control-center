@@ -16,8 +16,8 @@ try {
 }
 
 const MODULE_NAME = "sound_system";
-const MODULE_VERSION = "0.1.28";
-const MODULE_BUILD = "STEP_SOUND_LOG_1_RECENT_PLAYBACK_LOG";
+const MODULE_VERSION = "0.1.29";
+const MODULE_BUILD = "STEP_SOUND_DASH_1_BACKEND_STATUS_CLEANUP";
 const SOUND_BUS_CAPABILITY = "sound.event_output";
 const SOUND_BUS_COMMAND_CAPABILITY = "sound.command_input";
 const SOUND_BUS_STATUS_API_VERSION = "1.0.0";
@@ -44,7 +44,7 @@ const MODULE_META = {
   deliveryClassification: SOUND_BUS_DELIVERY_CLASSIFICATION,
   commandDeliveryClassification: SOUND_BUS_COMMAND_DELIVERY_CLASSIFICATION,
   bus: { emits: true, registered: true, heartbeat: true, status: true },
-  note: "SOUND-LOG-1: Recent Playback Log fuer zuletzt gespielte Sounds als API-/Dashboard-Basis."
+  note: "SOUND-DASH-1: Backend-Status bereinigt erledigte Dashboard-TODO-Flags fuer Sound-Gap und Recent Playback."
 };
 
 const DEFAULT_OUTPUT = {
@@ -119,13 +119,11 @@ const DEFAULT_CONFIG = {
     minMs: 0,
     maxMs: 10000,
     blockQueueStart: true,
-    holdEventRuntimeOverlay: true,
-    dashboardTodo: true
+    holdEventRuntimeOverlay: true
   },
   playbackLog: {
     enabled: true,
-    maxItems: 100,
-    dashboardTodo: true
+    maxItems: 100
   },
   soundBusCommand: {
     enabled: true,
@@ -347,7 +345,6 @@ module.exports.init = function init(ctx) {
     playbackLog: {
       enabled: true,
       maxItems: 100,
-      dashboardTodo: true,
       items: [],
       lastStartedAt: "",
       lastFinishedAt: "",
@@ -2489,6 +2486,12 @@ function publicSoundBusQueueStatus() {
     };
   }
 
+  function publicConfigBlock(block) {
+    const out = isPlainObject(block) ? { ...block } : {};
+    delete out.dashboardTodo;
+    return out;
+  }
+
   function publicState() {
     const routeInfo = publicSoundRoutes((config.routes && config.routes.prefix) || "/api/sound");
     return {
@@ -2512,7 +2515,6 @@ function publicSoundBusQueueStatus() {
         prepared: true,
         enabled: playbackLogConfig().enabled,
         maxItems: playbackLogConfig().maxItems,
-        dashboardTodo: true,
         stored: Array.isArray(state.playbackLog && state.playbackLog.items) ? state.playbackLog.items.length : 0,
         lastStartedAt: state.playbackLog.lastStartedAt || "",
         lastFinishedAt: state.playbackLog.lastFinishedAt || "",
@@ -2549,8 +2551,8 @@ function publicSoundBusQueueStatus() {
         websocket: config.websocket || {},
         soundBus: config.soundBus || {},
         eventPreRoll: config.eventPreRoll || {},
-        soundGap: config.soundGap || {},
-        playbackLog: config.playbackLog || {},
+        soundGap: publicConfigBlock(config.soundGap),
+        playbackLog: publicConfigBlock(config.playbackLog),
         soundBusCommand: config.soundBusCommand || {},
         overlay: config.overlay || {},
         output: config.output || {},
@@ -2646,7 +2648,6 @@ function publicSoundBusQueueStatus() {
     return {
       enabled: block.enabled !== false,
       maxItems: max,
-      dashboardTodo: block.dashboardTodo !== false
     };
   }
 
@@ -2701,7 +2702,6 @@ function publicSoundBusQueueStatus() {
     const cfgLog = playbackLogConfig();
     state.playbackLog.enabled = cfgLog.enabled;
     state.playbackLog.maxItems = cfgLog.maxItems;
-    state.playbackLog.dashboardTodo = cfgLog.dashboardTodo;
     if (cfgLog.enabled === false || !item) return null;
     if (!Array.isArray(state.playbackLog.items)) state.playbackLog.items = [];
 
@@ -2799,7 +2799,6 @@ function publicSoundBusQueueStatus() {
       moduleBuild: MODULE_BUILD,
       step: "SOUND-LOG-1",
       prepared: true,
-      dashboardTodo: true,
       enabled: playbackLogConfig().enabled,
       maxItems: playbackLogConfig().maxItems,
       count: Math.min(items.length, limit),
@@ -4250,8 +4249,7 @@ function publicSoundBusQueueStatus() {
       soundId: (state.postPlaybackGap && state.postPlaybackGap.soundId) || "",
       label: (state.postPlaybackGap && state.postPlaybackGap.label) || "",
       holdEventRuntimeOverlay: !!(config.soundGap && config.soundGap.holdEventRuntimeOverlay !== false),
-      blockQueueStart: !!(config.soundGap && config.soundGap.blockQueueStart !== false),
-      dashboardTodo: true
+      blockQueueStart: !!(config.soundGap && config.soundGap.blockQueueStart !== false)
     };
   }
 
