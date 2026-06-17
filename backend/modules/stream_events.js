@@ -23,8 +23,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.40";
-const MODULE_BUILD = "STEP_EVENT_RUNTIME_PARTS_1B_AUDIO_ONLY_REVEAL_FIX";
+const MODULE_VERSION = "0.5.41";
+const MODULE_BUILD = "STEP_EVENT_RUNTIME_PARTS_1C_ANSWER_AFTER_SOUND_END";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -313,6 +313,14 @@ let runtimeState = {
     lastAt: "",
     lastError: "",
     state: null
+  },
+  soundPlaybackBus: {
+    subscribed: false,
+    lastAction: "",
+    lastEventId: "",
+    lastAt: "",
+    lastError: "",
+    lastRoundUid: ""
   }
 };
 
@@ -2432,6 +2440,62 @@ function registerTextChatSubscription() {
   return result;
 }
 
+function handleSoundPlaybackBusEnvelope(envelope = {}) {
+  const payload = envelope && envelope.payload && typeof envelope.payload === "object" ? envelope.payload : {};
+  const item = payload.item && typeof payload.item === "object" ? payload.item : {};
+  const meta = item.meta && typeof item.meta === "object" ? item.meta : {};
+  const action = cleanString(envelope.action || payload.action || "");
+  const eventUid = cleanString(meta.eventUid || meta.streamEventUid || payload.eventUid || "");
+  const roundUid = cleanString(meta.roundUid || meta.streamEventRoundUid || payload.roundUid || "");
+  const category = cleanString(item.category || "");
+  const isReveal = meta.revealVideo === true || category === "stream_event_reveal_video";
+  if (!eventUid || !roundUid) return { ok: true, skipped: true, reason: "not_stream_event_round_playback" };
+  if (isReveal) return { ok: true, skipped: true, reason: "reveal_video_does_not_open_answer_window", eventUid, roundUid };
+  if (category && category !== "stream_event_sound_snippet") return { ok: true, skipped: true, reason: "not_sound_snippet_category", category, eventUid, roundUid };
+
+  const round = rowToRound(database.get("SELECT * FROM stream_events_rounds WHERE round_uid = :roundUid LIMIT 1", { roundUid }));
+  if (!round || round.eventUid !== eventUid) return { ok: true, skipped: true, reason: "round_missing_or_event_mismatch", eventUid, roundUid };
+  if (round.status !== "active") return { ok: true, skipped: true, reason: "round_not_active", status: round.status, eventUid, roundUid };
+  if (isSoundAnswerWindowOpen(round) || soundAnswerTimers.has(roundUid)) return { ok: true, skipped: true, reason: "answer_window_already_started", eventUid, roundUid };
+
+  const snippet = round.config && round.config.snippet ? round.config.snippet : {};
+  const runtimeConfig = round.config && round.config.runtimeConfig ? round.config.runtimeConfig : getSoundRuntimeConfig(getEventByUid(eventUid));
+  const answerSeconds = clampNumber(round.config && round.config.answerSeconds ? round.config.answerSeconds : (snippet.answerSeconds || runtimeConfig.answerSeconds), 5, 300, 60);
+  const result = scheduleSoundAnswerTimer(eventUid, roundUid, answerSeconds, {
+    reason: action === "client.audio_ended" ? "sound_audio_ended" : "sound_playback_finished",
+    playbackAction: action,
+    requestId: cleanString(item.requestId || "")
+  });
+  runtimeState.soundPlaybackBus.lastAction = action;
+  runtimeState.soundPlaybackBus.lastEventId = cleanString(envelope.id || envelope.eventId || "");
+  runtimeState.soundPlaybackBus.lastAt = nowIso();
+  runtimeState.soundPlaybackBus.lastError = result && result.ok === false ? cleanString(result.error) : "";
+  runtimeState.soundPlaybackBus.lastRoundUid = roundUid;
+  return result;
+}
+
+function registerSoundPlaybackBusSubscription() {
+  const bus = getBus();
+  if (!bus || typeof bus.subscribe !== "function") return { ok: false, reason: "communication_bus_subscribe_unavailable" };
+  const actions = ["client.audio_ended", "finished"];
+  const results = [];
+  for (const action of actions) {
+    const result = bus.subscribe({
+      id: `${MODULE_NAME}:sound_playback:${action}`,
+      module: MODULE_NAME,
+      channel: "sound",
+      action,
+      meta: { step: MODULE_BUILD, purpose: "start_sound_answer_window_after_sound_audio_end" }
+    }, (envelope) => handleSoundPlaybackBusEnvelope(envelope));
+    results.push(result);
+  }
+  const ok = results.every(result => result && result.ok === true);
+  runtimeState.soundPlaybackBus.subscribed = ok;
+  runtimeState.soundPlaybackBus.lastError = ok ? "" : "sound_playback_subscription_failed";
+  if (ok) publishStatus("sound.playback.subscription.ready", { soundPlaybackBusSubscription: true, actionCount: actions.length });
+  return { ok, results };
+}
+
 function normalizeRuntimeOverlayBusPayload(envelope = {}) {
   const payload = envelope && envelope.payload && typeof envelope.payload === "object" ? envelope.payload : {};
   const action = cleanString(envelope.action || payload.action || "");
@@ -3250,22 +3314,71 @@ function requestRevealVideoForSolvedSoundRound(event, round, snippet, runtimeCon
   return { ok: !!(result && result.ok), revealVideoId, playbackRequested: true, result, playback };
 }
 
+function mergeRoundResultData(round, patch = {}) {
+  const rid = round && round.roundUid ? cleanString(round.roundUid) : cleanString(round);
+  if (!rid) return { ok: false, error: "round_uid_missing" };
+  const current = typeof round === "object" && round && round.resultData ? round : rowToRound(database.get("SELECT * FROM stream_events_rounds WHERE round_uid = :roundUid LIMIT 1", { roundUid: rid }));
+  const existing = current && current.resultData && typeof current.resultData === "object" ? current.resultData : {};
+  const merged = { ...existing, ...(patch && typeof patch === "object" ? patch : {}) };
+  database.updateByKey("stream_events_rounds", "round_uid", rid, {
+    result_json: jsonEncode(merged),
+    updated_at: nowIso()
+  });
+  return { ok: true, roundUid: rid, resultData: merged };
+}
+
+function isSoundAnswerWindowOpen(round = null) {
+  const item = round && round.resultData && typeof round.resultData === "object" ? round.resultData : {};
+  return item.answerWindowState === "open" && !!item.answerWindowStartedAt && !item.answerWindowClosedAt;
+}
+
+function markSoundAnswerWindowClosed(roundUid = "", reason = "closed") {
+  const rid = cleanString(roundUid);
+  if (!rid) return { ok: false, error: "round_uid_missing" };
+  const round = rowToRound(database.get("SELECT * FROM stream_events_rounds WHERE round_uid = :roundUid LIMIT 1", { roundUid: rid }));
+  if (!round) return { ok: true, skipped: true, reason: "round_missing" };
+  const existing = round.resultData && typeof round.resultData === "object" ? round.resultData : {};
+  if (existing.answerWindowClosedAt) return { ok: true, skipped: true, reason: "answer_window_already_closed", roundUid: rid };
+  return mergeRoundResultData(round, {
+    answerWindowState: "closed",
+    answerWindowClosedAt: nowIso(),
+    answerWindowCloseReason: cleanString(reason, "closed")
+  });
+}
+
 function cancelSoundAnswerTimer(roundUid = "") {
   clearTimerMapEntry(soundAnswerTimers, cleanString(roundUid));
 }
 
-function scheduleSoundAnswerTimer(eventUid = "", roundUid = "", answerSeconds = 60) {
+function scheduleSoundAnswerTimer(eventUid = "", roundUid = "", answerSeconds = 60, options = {}) {
   const uid = cleanString(eventUid);
   const rid = cleanString(roundUid);
   if (!uid || !rid) return { ok: false, error: "event_or_round_missing" };
+  const round = rowToRound(database.get("SELECT * FROM stream_events_rounds WHERE round_uid = :roundUid LIMIT 1", { roundUid: rid }));
+  if (!round || round.eventUid !== uid) return { ok: true, skipped: true, reason: "round_missing_or_event_mismatch", eventUid: uid, roundUid: rid };
+  if (round.status !== "active") return { ok: true, skipped: true, reason: "round_not_active", status: round.status, eventUid: uid, roundUid: rid };
+  if (isSoundAnswerWindowOpen(round) && soundAnswerTimers.has(rid)) return { ok: true, skipped: true, reason: "answer_window_already_open", eventUid: uid, roundUid: rid };
   cancelSoundAnswerTimer(rid);
   const seconds = clampNumber(answerSeconds, 5, 300, 60);
+  const now = nowIso();
+  const endsAt = new Date(Date.now() + seconds * 1000).toISOString();
+  mergeRoundResultData(round, {
+    answerWindowState: "open",
+    answerWindowStartedAt: now,
+    answerWindowEndsAt: endsAt,
+    answerWindowSeconds: seconds,
+    answerWindowStartReason: cleanString(options.reason || "sound_audio_ended"),
+    answerWindowPlaybackAction: cleanString(options.playbackAction || ""),
+    answerWindowPlaybackRequestId: cleanString(options.requestId || "")
+  });
   const timer = setTimeout(() => {
     try { handleSoundAnswerWindowExpired(uid, rid); } catch (err) { runtimeState.lastError = err && err.message ? err.message : String(err); }
   }, seconds * 1000);
   if (typeof timer.unref === "function") timer.unref();
-  soundAnswerTimers.set(rid, { timer, eventUid: uid, roundUid: rid, answerSeconds: seconds, scheduledAt: nowIso() });
-  return { ok: true, eventUid: uid, roundUid: rid, answerSeconds: seconds };
+  soundAnswerTimers.set(rid, { timer, eventUid: uid, roundUid: rid, answerSeconds: seconds, scheduledAt: now, startsAfter: "sound_audio_ended" });
+  emitBus("stream_events.sound", "answer_window_started", { eventUid: uid, roundUid: rid, answerSeconds: seconds, startedAt: now, endsAt, reason: cleanString(options.reason || "sound_audio_ended") });
+  publishStatus("sound.answer_window_started", { lastEventUid: uid, roundUid: rid, answerSeconds: seconds });
+  return { ok: true, eventUid: uid, roundUid: rid, answerSeconds: seconds, startedAt: now, endsAt, startsAfter: "sound_audio_ended" };
 }
 
 function scheduleNextSoundRound(eventUid = "", reason = "auto_advance") {
@@ -3560,8 +3673,16 @@ function createSoundRound(options = {}) {
   } catch (_) {}
   const activeAfterPlayback = getActiveSoundRound(event.eventUid);
   const answerTimer = activeAfterPlayback && activeAfterPlayback.roundUid === round.roundUid
-    ? scheduleSoundAnswerTimer(event.eventUid, round.roundUid, roundConfig.answerSeconds)
+    ? { ok: true, skipped: true, reason: shouldPlay ? "waiting_for_sound_audio_end" : "playback_not_started_prepared_only", startsAfter: "sound_audio_ended", answerSeconds: roundConfig.answerSeconds }
     : { ok: true, skipped: true, reason: "round_not_active_after_playback" };
+  if (activeAfterPlayback && activeAfterPlayback.roundUid === round.roundUid) {
+    mergeRoundResultData(activeAfterPlayback, {
+      answerWindowState: shouldPlay ? "waiting_for_sound_audio_end" : "prepared_only",
+      answerWindowSeconds: roundConfig.answerSeconds,
+      answerWindowStartRule: "after_sound_audio_end",
+      answerWindowPreparedAt: nowIso()
+    });
+  }
 
   const chatOutput = buildChatOutput("sound.round.started", {
     title: snippet.title,
@@ -3613,6 +3734,7 @@ function resolveSoundRound(body = {}) {
     result_json: jsonEncode(resultData)
   });
   cancelSoundAnswerTimer(round.roundUid);
+  markSoundAnswerWindowClosed(round.roundUid, "solved");
 
   const pointsResult = points > 0 ? addPoints(event.eventUid, {
     userLogin,
@@ -3663,6 +3785,10 @@ function processSoundChatMessage(chat = {}, options = {}) {
   if (!round) {
     runtimeState.counters.soundRuntimeSkipped += 1;
     return { ok: true, skipped: true, reason: "no_active_sound_round", eventUid: event.eventUid };
+  }
+  if (!isSoundAnswerWindowOpen(round)) {
+    runtimeState.counters.soundRuntimeSkipped += 1;
+    return { ok: true, skipped: true, reason: "sound_answer_window_not_open", eventUid: event.eventUid, roundUid: round.roundUid, answerWindowState: round.resultData && round.resultData.answerWindowState ? round.resultData.answerWindowState : "not_started" };
   }
   const snippet = round.config && round.config.snippet ? round.config.snippet : {};
   const answer = cleanString(chat.message);
@@ -3736,12 +3862,14 @@ function markSoundRoundUnresolved(body = {}) {
   const requestedRoundUid = cleanString(body.roundUid || body.round_uid);
   if (requestedRoundUid && requestedRoundUid !== round.roundUid) return { ok: true, skipped: true, reason: "active_round_uid_mismatch", activeRoundUid: round.roundUid, requestedRoundUid };
   cancelSoundAnswerTimer(round.roundUid);
+  markSoundAnswerWindowClosed(round.roundUid, cleanString(body.reason || "unresolved"));
   const event = getEventByUid(round.eventUid);
   const snippet = round.config && round.config.snippet ? round.config.snippet : {};
   const runtimeConfig = getSoundRuntimeConfig(event);
   const now = nowIso();
   const policy = cleanString(body.policy || runtimeConfig.unresolvedPolicy, "requeue_later");
-  const resultData = { solved: false, policy, reason: cleanString(body.reason || "manual_unresolved"), unresolvedAt: now };
+  const existingResultData = round.resultData && typeof round.resultData === "object" ? round.resultData : {};
+  const resultData = { ...existingResultData, solved: false, policy, reason: cleanString(body.reason || "manual_unresolved"), unresolvedAt: now, answerWindowState: "closed", answerWindowClosedAt: now, answerWindowCloseReason: cleanString(body.reason || "unresolved") };
   database.updateByKey("stream_events_rounds", "round_uid", round.roundUid, {
     status: "unresolved",
     result: "unresolved",
@@ -5198,6 +5326,8 @@ module.exports.init = function init(ctx) {
   if (textChatSubscription && textChatSubscription.ok !== true) runtimeState.lastError = textChatSubscription.reason || textChatSubscription.error || runtimeState.lastError;
   const runtimeOverlaySubscription = registerRuntimeOverlayBusSubscription();
   if (runtimeOverlaySubscription && runtimeOverlaySubscription.ok !== true) runtimeState.lastError = runtimeOverlaySubscription.reason || runtimeOverlaySubscription.error || runtimeState.lastError;
+  const soundPlaybackSubscription = registerSoundPlaybackBusSubscription();
+  if (soundPlaybackSubscription && soundPlaybackSubscription.ok !== true) runtimeState.lastError = soundPlaybackSubscription.reason || soundPlaybackSubscription.error || runtimeState.lastError;
 
   const prefix = "/api/stream-events";
   const registeredRoutes = [];

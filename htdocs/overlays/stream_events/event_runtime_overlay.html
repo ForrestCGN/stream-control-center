@@ -610,8 +610,12 @@
 
       function latestSolutionText(state) {
         const latest = state && state.sound ? state.sound.latestRound : null;
+        const status = cleanText(latest && latest.status, "");
+        if (status === "unresolved") return "";
         const item = latest && latest.itemVisible && latest.item ? latest.item : null;
-        return item ? cleanText(item.result || item.title || "", "") : "";
+        const result = cleanText(item && item.result, "");
+        if (!result || result === "unresolved") return "";
+        return item ? cleanText(result || item.title || "", "") : "";
       }
 
       function isoToMs(value) {
@@ -734,8 +738,8 @@
           subline = solution ? `Lösung: ${solution}` : "Der Sound wurde erkannt.";
         } else if (key === "sound_unresolved") {
           kicker = "Nicht erkannt";
-          title = "Knapp vorbei";
-          subline = solution ? `Lösung: ${solution}` : "Der Schnipsel bleibt erstmal in der CGN-Schublade.";
+          title = "Keiner hat es erkannt";
+          subline = "Der Schnipsel bleibt offen und kommt je nach Einstellung später nochmal.";
         } else if (mode === "finished") {
           kicker = "Event beendet";
         } else if (mode === "cancelled") {
