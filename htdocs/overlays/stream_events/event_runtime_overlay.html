@@ -458,11 +458,11 @@
     .result-card.unresolved-card {
       left: 50%;
       right: auto;
-      top: 74px;
-      width: 640px;
-      min-height: 132px;
+      top: 96px;
+      width: 540px;
+      min-height: 148px;
       grid-template-columns: 1fr;
-      padding: 18px 26px 17px;
+      padding: 20px 30px 18px;
       text-align: center;
       transform: translateX(-50%);
       background:
@@ -485,7 +485,7 @@
 
     .result-card.unresolved-card .result-right {
       align-items: center;
-      gap: 7px;
+      gap: 9px;
     }
 
     .result-card.unresolved-card .result-kicker,
@@ -493,7 +493,9 @@
     .result-card.unresolved-card .result-subline,
     .result-card.unresolved-card .result-extra {
       text-align: center;
-      max-width: 580px;
+      max-width: 430px;
+      margin-left: auto;
+      margin-right: auto;
     }
 
     .result-card.unresolved-card .result-kicker {
@@ -506,16 +508,18 @@
     }
 
     .result-card.unresolved-card .result-title {
-      font-size: 24px;
-      line-height: 1.08;
+      font-size: 23px;
+      line-height: 1.18;
       white-space: normal;
+      max-width: 360px;
     }
 
     .result-card.unresolved-card .result-subline,
     .result-card.unresolved-card .result-extra {
       display: block;
-      font-size: 16px;
-      line-height: 1.14;
+      font-size: 15px;
+      line-height: 1.22;
+      max-width: 390px;
     }
 
     #stage.mode-guessing .ring-wrap {
@@ -685,7 +689,7 @@
       mode: "obs_overlay",
       module: "stream_events",
       name: "Stream Events Runtime Overlay",
-      version: "0.3.2",
+      version: "0.3.3",
       heartbeatIntervalMs: 5000,
       capabilities: [
         "overlay.heartbeat",
@@ -834,18 +838,30 @@
         return Math.max(0, Math.min(maxSeconds, Math.ceil(number(answerWindow.remainingSeconds, 0))));
       }
 
+      function scheduleAnswerCounterTick() {
+        if (answerCounterTimer || !answerCounterLocalStartMs) return;
+        const elapsedMs = Math.max(0, Date.now() - answerCounterLocalStartMs);
+        const delay = Math.max(120, 1000 - (elapsedMs % 1000));
+        answerCounterTimer = window.setTimeout(function () {
+          answerCounterTimer = null;
+          updateAnswerCounter(lastState);
+        }, delay);
+      }
+
       function updateAnswerCounter(state) {
         const answerWindow = state && state.answerWindow ? state.answerWindow : {};
         if (!answerWindow.active || !els.answerCounter) {
           hideAnswerCounter();
           return;
         }
+
         const key = cleanText(answerWindow.roundUid || answerWindow.eventUid || "answer", "answer");
         const serverRemaining = answerWindowRemainingSeconds(state);
         if (serverRemaining <= 0) {
           hideAnswerCounter();
           return;
         }
+
         if (lastAnswerCounterKey !== key) {
           lastAnswerCounterKey = key;
           answerCounterLocalStartMs = Date.now();
@@ -855,8 +871,7 @@
         }
 
         const elapsedSeconds = Math.max(0, Math.floor((Date.now() - answerCounterLocalStartMs) / 1000));
-        const localRemaining = Math.max(0, answerCounterInitialSeconds - elapsedSeconds);
-        const remaining = Math.max(0, Math.min(localRemaining, serverRemaining + 1));
+        const remaining = Math.max(0, answerCounterInitialSeconds - elapsedSeconds);
         if (remaining <= 0) {
           hideAnswerCounter();
           return;
@@ -867,10 +882,10 @@
           answerCounterShownValue = nextValue;
           els.answerCounter.textContent = nextValue;
         }
+
         els.answerCounter.classList.toggle("urgent", remaining <= 10);
         els.answerCounter.classList.add("visible");
-        clearAnswerCounterTimer();
-        answerCounterTimer = window.setTimeout(function () { updateAnswerCounter(lastState); }, 1000);
+        scheduleAnswerCounterTick();
       }
 
       function scheduleResultHide(state) {
@@ -1161,7 +1176,7 @@
           avatarName = winnerName;
         } else if (key === "sound_unresolved") {
           kicker = "KEINE LÖSUNG";
-          title = "Die Heimleitung hat nichts Verwertbares gelesen.";
+          title = "Die Heimleitung fand keine richtige Antwort.";
           subline = "Der Schnipsel bleibt im Archiv.";
           extra = "";
         } else if (mode === "finished") {
@@ -1334,7 +1349,7 @@
     data-mode="obs_overlay"
     data-module="stream_events"
     data-name="Stream Events Runtime Overlay"
-    data-version="0.3.2"
+    data-version="0.3.3"
     data-heartbeat-ms="5000"
   ></script>
 </body>
