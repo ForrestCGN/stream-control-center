@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.35";
-  const MODULE_BUILD = "STEP_EVENT_CONFIG_READY_UX_1";
+  const MODULE_VERSION = "0.5.36";
+  const MODULE_BUILD = "STEP_EVENT_SOUND_SKIP_WAIT_DASH_1";
 
   const api = {
     status: '/api/stream-events/status',
@@ -18,7 +18,7 @@ window.StreamEventsModule = (function(){
     chatOutputReport: '/api/stream-events/chat-output/report',
     chatOutputTestDispatch: '/api/stream-events/chat-output/test-dispatch',
     runtimeGateStatus: '/api/stream-events/runtime-gate/status',
-    soundNextRound: '/api/stream-events/sound-runtime/next-round'
+    soundSkipWait: '/api/stream-events/sound-runtime/skip-wait'
   };
 
   let root = null;
@@ -467,9 +467,9 @@ window.StreamEventsModule = (function(){
           <span>${roundLabel}</span>
         </div>
         <div class="evs-action-row evs-action-row-tight">
-          <button type="button" class="evs-btn" data-evs-action="soundNextRound" data-uid="${esc(event.eventUid)}">Nächsten Schnipsel vorbereiten</button>
+          <button type="button" class="evs-btn" data-evs-action="soundSkipWait" data-uid="${esc(event.eventUid)}">Wartezeit überspringen</button>
         </div>
-        <small class="evs-muted">Manuelle Vorbereitung für Tests und moderierte Events. Echtes Playback kommt im nächsten Runtime-Step.</small>
+        <small class="evs-muted">Überspringt die aktuelle Pause und startet den nächsten Schnipsel über den normalen Event-Ablauf. Danach läuft die automatische Wartezeit wieder normal weiter.</small>
       </div>
     `;
   }
@@ -935,7 +935,7 @@ window.StreamEventsModule = (function(){
 
           <div class="evs-live-toolbar">
             <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="refreshLiveStatusModal" data-uid="${esc(uid || '')}">Jetzt aktualisieren</button>
-            <button type="button" class="evs-btn" data-evs-action="soundNextRound" data-uid="${esc(uid || '')}" ${isActive && event?.soundEnabled ? '' : 'disabled'}>Nächsten Schnipsel vorbereiten</button>
+            <button type="button" class="evs-btn" data-evs-action="soundSkipWait" data-uid="${esc(uid || '')}" ${isActive && event?.soundEnabled ? '' : 'disabled'}>Wartezeit überspringen</button>
             <button type="button" class="evs-btn evs-btn-secondary ${auto ? 'is-active' : ''}" data-evs-action="toggleLiveStatusAuto">AutoReload: ${auto ? 'An' : 'Aus'}</button>
             <small>Dieses Fenster ist für Live-Blick und Punkte. Konfiguration bleibt in den Event-Editoren.</small>
           </div>
@@ -1584,7 +1584,7 @@ window.StreamEventsModule = (function(){
         <div class="evs-runtime-box-head">
           <div>
             <h4>Sound-Steuerung</h4>
-            <small>Manuelle Vorbereitung fuer Tests und moderierte Events. Noch kein echtes Playback.</small>
+            <small>Manuelle Steuerung für laufende Events. Playback läuft über den normalen Sound-System-Flow.</small>
           </div>
           <button type="button" class="evs-btn evs-btn-secondary evs-btn-small" data-evs-action="soundRuntimeReport" data-uid="${esc(event.eventUid)}">Status neu laden</button>
         </div>
@@ -1593,10 +1593,10 @@ window.StreamEventsModule = (function(){
           <span>${roundLabel}</span>
         </div>
         <div class="evs-action-row evs-action-row-tight">
-          <button type="button" class="evs-btn" data-evs-action="soundNextRound" data-uid="${esc(event.eventUid)}">Nächsten Schnipsel vorbereiten</button>
+          <button type="button" class="evs-btn" data-evs-action="soundSkipWait" data-uid="${esc(event.eventUid)}">Wartezeit überspringen</button>
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="openLiveStatus" data-uid="${esc(event.eventUid)}">Status & Punkte öffnen</button>
         </div>
-        <small class="evs-muted">Dieser Schritt erstellt nur die nächste Sound-Runde und den vorbereiteten Sound-Payload. Abspielen über Sound-/Media-System kommt im nächsten Runtime-Step.</small>
+        <small class="evs-muted">Überspringt die aktuelle Pause und startet den nächsten Schnipsel über den normalen Event-Ablauf. Danach läuft die automatische Wartezeit wieder normal weiter.</small>
       </section>
     `;
   }
@@ -3077,11 +3077,11 @@ window.StreamEventsModule = (function(){
   }
 
 
-  async function prepareNextSoundRound(uid){
+  async function skipSoundWait(uid){
     if (!uid) return;
     const event = state.events.find(e => e.eventUid === uid) || state.selected;
     if (norm(event?.status) !== 'active') {
-      state.error = 'Sound-Runden können erst vorbereitet werden, wenn das Event läuft.';
+      state.error = 'Die Wartezeit kann erst übersprungen werden, wenn das Event läuft.';
       render();
       return;
     }
@@ -3091,12 +3091,12 @@ window.StreamEventsModule = (function(){
       return;
     }
     try {
-      const result = await window.CGN.api(api.soundNextRound, {
+      const result = await window.CGN.api(api.soundSkipWait, {
         method: 'POST',
         body: JSON.stringify({ eventUid: uid, actor: 'dashboard', allowReuse: false })
       });
-      const snippetTitle = result?.snippet?.title || result?.round?.itemUid || 'Sound-Schnipsel';
-      state.message = `${snippetTitle} wurde als nächste Sound-Runde vorbereitet. Es wurde noch nichts abgespielt.`;
+      const snippetTitle = result?.snippet?.title || result?.round?.itemUid || result?.nextRound?.snippet?.title || 'Sound-Schnipsel';
+      state.message = `${snippetTitle}: Wartezeit übersprungen, nächster Schnipsel wurde über den normalen Event-Ablauf gestartet.`;
       await reloadDashboardAfterMutation(uid, { keepTab: true });
     } catch (err) {
       state.error = err.message || String(err);
@@ -3375,7 +3375,7 @@ window.StreamEventsModule = (function(){
       if (action === 'ranking') return loadRanking(uid, true);
       if (action === 'runtimeReport') return loadTextRuntimeReport(uid, true);
       if (action === 'soundRuntimeReport') return loadSoundRuntimeReport(uid, true);
-      if (action === 'soundNextRound') return prepareNextSoundRound(uid);
+      if (action === 'soundSkipWait') return skipSoundWait(uid);
       if (action === 'statsUsers') return loadStatisticsUsers(uid, true);
       if (action === 'statsUser') return loadUserStatistics(btn.dataset.userLogin || state.selectedStatsUser, uid, true);
       if (action === 'openUserStats') return openUserStatsModal(btn.dataset.userLogin || state.selectedStatsUser, uid);

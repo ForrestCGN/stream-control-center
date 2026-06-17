@@ -24,8 +24,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.51";
-const MODULE_BUILD = "STEP_EVENT_RUNTIME_UNRESOLVED_CARD_1";
+const MODULE_VERSION = "0.5.52";
+const MODULE_BUILD = "STEP_EVENT_SOUND_SKIP_WAIT_1";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -305,6 +305,7 @@ let runtimeState = {
     soundRevealVideosRequested: 0,
     soundAutoAdvancesScheduled: 0,
     soundAutoAdvancesStarted: 0,
+    soundWaitsSkipped: 0,
     eventsAutoFinished: 0
   },
   runtimeOverlayBus: {
@@ -3752,6 +3753,75 @@ function scheduleNextSoundRound(eventUid = "", reason = "auto_advance") {
   return { ok: true, scheduled: true, eventUid: event.eventUid, delaySeconds, dueAt, reason, schedulePlan, parts };
 }
 
+function skipSoundRoundWait(body = {}) {
+  ensureSchema();
+  const event = cleanString(body.eventUid || body.event_uid) ? getEventByUid(body.eventUid || body.event_uid) : getActiveEvent();
+  if (!event) return { ok: false, error: "active_event_missing", message: "Kein aktives Event gefunden." };
+  if (event.status !== STATUS.ACTIVE) return { ok: false, error: "event_not_active", eventUid: event.eventUid, status: event.status, message: "Das Event läuft nicht." };
+  if (!event.soundEnabled) return { ok: false, error: "sound_not_enabled", eventUid: event.eventUid, message: "Dieses Event hat kein Sound-Spiel aktiviert." };
+
+  const runtimeConfig = getSoundRuntimeConfig(event);
+  if (!boolValue(runtimeConfig.autoAdvanceRounds, true)) {
+    return { ok: false, error: "auto_advance_disabled", eventUid: event.eventUid, message: "Automatischer Schnipsel-Ablauf ist für dieses Event deaktiviert." };
+  }
+
+  const parts = getEventRuntimePartsStatus(event);
+  if (parts.sound && parts.sound.completed) {
+    return { ok: false, error: "sound_completed", eventUid: event.eventUid, parts, message: "Der Sound-Teil ist bereits abgeschlossen." };
+  }
+  if (parts.sound && parts.sound.activeRoundUid) {
+    return { ok: false, error: "active_round_exists", eventUid: event.eventUid, parts, message: "Es läuft bereits ein Schnipsel oder ein Antwortfenster." };
+  }
+
+  const timerInfo = soundAutoAdvanceTimers.get(event.eventUid) || null;
+  const result = createSoundRound({
+    eventUid: event.eventUid,
+    play: true,
+    confirm: "1",
+    allowReuse: boolValue(body.allowReuse, false)
+  });
+
+  if (result && result.ok) {
+    clearTimerMapEntry(soundAutoAdvanceTimers, event.eventUid);
+    runtimeState.counters.soundWaitsSkipped += 1;
+    markAction("sound.wait.skipped", event.eventUid);
+    emitBus("stream_events.sound", "wait_skipped", {
+      eventUid: event.eventUid,
+      hadScheduledWait: !!timerInfo,
+      cancelledWait: timerInfo ? {
+        reason: timerInfo.reason || "",
+        delaySeconds: timerInfo.delaySeconds || 0,
+        scheduledAt: timerInfo.scheduledAt || "",
+        dueAt: timerInfo.dueAt || "",
+        schedulePlan: timerInfo.schedulePlan || null
+      } : null,
+      result
+    });
+    publishStatus("sound.wait_skipped", { lastEventUid: event.eventUid, roundUid: result.round && result.round.roundUid ? result.round.roundUid : "" });
+  }
+
+  return {
+    ok: !!(result && result.ok),
+    eventUid: event.eventUid,
+    skippedWait: !!(result && result.ok),
+    hadScheduledWait: !!timerInfo,
+    cancelledWait: result && result.ok && timerInfo ? {
+      reason: timerInfo.reason || "",
+      delaySeconds: timerInfo.delaySeconds || 0,
+      scheduledAt: timerInfo.scheduledAt || "",
+      dueAt: timerInfo.dueAt || "",
+      schedulePlan: timerInfo.schedulePlan || null
+    } : null,
+    nextRound: result || null,
+    round: result && result.round ? result.round : null,
+    snippet: result && result.snippet ? result.snippet : null,
+    playbackResult: result && result.playbackResult ? result.playbackResult : null,
+    message: result && result.ok
+      ? "Aktuelle Wartezeit übersprungen. Der nächste Schnipsel wurde über den normalen Event-Ablauf gestartet."
+      : (result && (result.message || result.error)) || "Nächster Schnipsel konnte nicht gestartet werden."
+  };
+}
+
 function handleSoundAnswerWindowExpired(eventUid = "", roundUid = "") {
   cancelSoundAnswerTimer(roundUid);
   const round = database.get("SELECT * FROM stream_events_rounds WHERE round_uid = :roundUid LIMIT 1", { roundUid: cleanString(roundUid) });
@@ -5645,6 +5715,7 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "GET", path: `${prefix}/chat-output/report`, description: "EVS-20: Vorbereitete ChatOutputs aus Sound/Text mit Dispatch-Preview, dry-run only" },
       { method: "POST", path: `${prefix}/chat-output/test-dispatch`, description: "EVS-20: Testet ChatOutput-Dispatch-Regeln ohne Twitch-Ausgabe" },
       { method: "POST", path: `${prefix}/sound-runtime/next-round`, description: "Bereitet die naechste Sound-Runde vor; mit play=1&confirm=1 kontrolliert ueber Sound-System-PreRoll abspielen" },
+      { method: "POST", path: `${prefix}/sound-runtime/skip-wait`, description: "Ueberspringt die aktuelle automatische Sound-Wartezeit und startet den naechsten Schnipsel ueber den normalen Sound-System-Flow" },
       { method: "POST", path: `${prefix}/sound-runtime/resolve`, description: "Wertet die aktive Sound-Runde als geloest, wenn die Antwort passt" },
       { method: "POST", path: `${prefix}/sound-runtime/unresolved`, description: "Markiert die aktive Sound-Runde als nicht geloest" },
       { method: "GET", path: `${prefix}/routes`, description: "Route-Selbstdokumentation" },
@@ -5872,6 +5943,19 @@ module.exports.init = function init(ctx) {
   reg("post", `${prefix}/sound-runtime/next-round`, (req, res) => {
     try {
       const result = createSoundRound({ ...(req.body || {}), eventUid: (req.body && (req.body.eventUid || req.body.event_uid)) || req.query.eventUid || req.query.event_uid || "", allowReuse: boolValue((req.body && req.body.allowReuse) ?? req.query.allowReuse), forceReset: (req.body && (req.body.forceReset || req.body.forceResetTestState || req.body.resetTestState)) ?? req.query.forceReset ?? req.query.forceResetTestState ?? req.query.resetTestState, play: (req.body && (req.body.play || req.body.playback || req.body.startPlayback || req.body.withPlayback)) ?? req.query.play ?? req.query.playback ?? req.query.startPlayback ?? req.query.withPlayback, confirm: (req.body && (req.body.confirm || req.body.confirmed)) ?? req.query.confirm ?? req.query.confirmed });
+      sendJson(res, result, result.ok ? 200 : 400);
+    } catch (err) {
+      handleError(res, err, 400);
+    }
+  });
+
+  reg("post", `${prefix}/sound-runtime/skip-wait`, (req, res) => {
+    try {
+      const result = skipSoundRoundWait({
+        ...(req.body || {}),
+        eventUid: (req.body && (req.body.eventUid || req.body.event_uid)) || req.query.eventUid || req.query.event_uid || "",
+        allowReuse: (req.body && req.body.allowReuse) ?? req.query.allowReuse
+      });
       sendJson(res, result, result.ok ? 200 : 400);
     } catch (err) {
       handleError(res, err, 400);
