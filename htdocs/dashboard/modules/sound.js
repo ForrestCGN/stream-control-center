@@ -259,7 +259,7 @@ window.SoundSystemModule = (function(){
     if (!el) return;
     const log = recentPlayback || {};
     const items = Array.isArray(log.items) ? log.items : [];
-    const statusText = log.enabled === false ? 'Aus' : 'Aktiv';
+    const statusText = log.enabled === false ? 'Aus' : 'Verlauf aktiv';
     const last = log.lastFinishedAt || log.lastStartedAt || '';
     const header = `
       <div class="sound-recent-head">
