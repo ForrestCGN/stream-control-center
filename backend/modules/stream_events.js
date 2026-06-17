@@ -15,6 +15,7 @@ const core = require("./helpers/helper_core");
 const routes = require("./helpers/helper_routes");
 const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
+const http = require("http");
 
 let streamStatusModule = null;
 try { streamStatusModule = require("./stream_status"); } catch (_) { streamStatusModule = null; }
@@ -23,8 +24,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.42";
-const MODULE_BUILD = "STEP_EVENT_RUNTIME_PARTS_1D_REVEAL_MEDIA_REGISTRY_RESOLVE";
+const MODULE_VERSION = "0.5.44";
+const MODULE_BUILD = "STEP_EVENT_RUNTIME_RESULT_2_USER_AVATAR_RESOLVE";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -535,6 +536,149 @@ function intValue(value, fallback = 0) {
 function cleanString(value, fallback = "") {
   const clean = String(value ?? "").trim();
   return clean || fallback;
+}
+
+function firstObjectLikeUserInfo(value) {
+  if (!value) return null;
+  if (Array.isArray(value)) return value.map(firstObjectLikeUserInfo).find(Boolean) || null;
+  if (typeof value === "object") {
+    if (value.login || value.userLogin || value.user_login || value.display_name || value.displayName || value.profile_image_url || value.profileImageUrl || value.avatarUrl || value.avatar_url) return value;
+    for (const key of ["data", "user", "userInfo", "userinfo", "result", "payload"]) {
+      const found = firstObjectLikeUserInfo(value[key]);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function normalizeTwitchUserInfoObject(input, fallbackLogin = "") {
+  const obj = firstObjectLikeUserInfo(input) || {};
+  const login = cleanString(obj.login || obj.user_login || obj.userLogin || obj.name || fallbackLogin).replace(/^@/, "").toLowerCase();
+  const displayName = cleanString(obj.display_name || obj.displayName || obj.user_display_name || obj.userDisplayName || obj.name || login, login);
+  const avatarUrl = cleanString(obj.profile_image_url || obj.profileImageUrl || obj.avatar_url || obj.avatarUrl || obj.profileImage || "");
+  return { login, displayName, avatarUrl, raw: obj };
+}
+
+function internalJsonRequest(method, pathName, payload = {}) {
+  const body = JSON.stringify(payload || {});
+  return new Promise((resolve) => {
+    const req = http.request({
+      hostname: "127.0.0.1",
+      port: Number(process.env.PORT || 8080) || 8080,
+      path: pathName,
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        "Content-Length": Buffer.byteLength(body)
+      }
+    }, res => {
+      let data = "";
+      res.setEncoding("utf8");
+      res.on("data", chunk => { data += chunk; });
+      res.on("end", () => {
+        let parsed = {};
+        try { parsed = data ? JSON.parse(data) : {}; } catch (_) { parsed = { raw: data }; }
+        resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, statusCode: res.statusCode, data: parsed });
+      });
+    });
+    req.on("error", err => resolve({ ok: false, error: err && err.message ? err.message : String(err) }));
+    req.write(body);
+    req.end();
+  });
+}
+
+function resolveUserFromLocalTables(login = "") {
+  const userLogin = cleanString(login).replace(/^@/, "").toLowerCase();
+  if (!userLogin) return { ok: false, login: "", displayName: "", avatarUrl: "", source: "", error: "login_missing" };
+  const candidates = [
+    {
+      table: "birthday_show_profiles",
+      sql: "SELECT user_login AS login, display_name_override AS displayName, avatar_url AS avatarUrl FROM birthday_show_profiles WHERE user_login = :login"
+    },
+    {
+      table: "birthday_users",
+      sql: "SELECT user_login AS login, user_display_name AS displayName, avatar_url AS avatarUrl FROM birthday_users WHERE user_login = :login"
+    },
+    {
+      table: "twitch_presence_activity",
+      sql: "SELECT user_login AS login, user_display_name AS displayName, '' AS avatarUrl FROM twitch_presence_activity WHERE user_login = :login"
+    }
+  ];
+  for (const candidate of candidates) {
+    try {
+      const cols = typeof database.tableColumns === "function" ? new Set(database.tableColumns(candidate.table)) : null;
+      if (cols && cols.size === 0) continue;
+      const row = database.get(candidate.sql, { login: userLogin });
+      if (!row) continue;
+      const info = normalizeTwitchUserInfoObject(row, userLogin);
+      if (info.login || info.displayName || info.avatarUrl) return { ok: true, source: `db:${candidate.table}`, ...info };
+    } catch (_) {}
+  }
+  return { ok: false, login: userLogin, displayName: userLogin, avatarUrl: "", source: "", error: "local_user_not_found" };
+}
+
+async function resolveTwitchUserInfoSmall(login = "") {
+  const userLogin = cleanString(login).replace(/^@/, "").toLowerCase();
+  if (!userLogin) return { ok: false, login: "", displayName: "", avatarUrl: "", source: "", error: "login_missing" };
+
+  const local = resolveUserFromLocalTables(userLogin);
+  if (local.ok && (local.avatarUrl || local.displayName)) return local;
+
+  const endpoints = [
+    `/userinfo?login=${encodeURIComponent(userLogin)}`,
+    `/api/twitch/userinfo?login=${encodeURIComponent(userLogin)}`,
+    `/api/twitch/user?login=${encodeURIComponent(userLogin)}`
+  ];
+  for (const endpoint of endpoints) {
+    const result = await internalJsonRequest("GET", endpoint, {});
+    if (!result.ok) continue;
+    const info = normalizeTwitchUserInfoObject(result.data, userLogin);
+    if (info.login || info.displayName || info.avatarUrl) return { ok: true, source: endpoint, ...info };
+  }
+
+  return local.ok ? local : { ok: false, login: userLogin, displayName: userLogin, avatarUrl: "", source: "", error: "userinfo_unavailable" };
+}
+
+function mergeRoundResultData(roundUid = "", patch = {}) {
+  const uid = cleanString(roundUid);
+  if (!uid) return { ok: false, error: "round_uid_missing" };
+  const row = database.get("SELECT * FROM stream_events_rounds WHERE round_uid = :roundUid", { roundUid: uid });
+  if (!row) return { ok: false, error: "round_not_found", roundUid: uid };
+  const round = rowToRound(row);
+  const existing = round && round.resultData && typeof round.resultData === "object" ? round.resultData : {};
+  const next = { ...existing, ...patch };
+  database.updateByKey("stream_events_rounds", "round_uid", uid, {
+    result_json: jsonEncode(next),
+    updated_at: nowIso()
+  });
+  return { ok: true, roundUid: uid, resultData: next };
+}
+
+function scheduleSolvedUserAvatarResolve(roundUid = "", userLogin = "", fallbackDisplayName = "", fallbackAvatarUrl = "") {
+  const uid = cleanString(roundUid);
+  const login = cleanString(userLogin).replace(/^@/, "").toLowerCase();
+  if (!uid || !login) return { ok: false, skipped: true, reason: "round_or_login_missing" };
+  if (cleanString(fallbackAvatarUrl)) return { ok: true, skipped: true, reason: "avatar_already_available" };
+  setTimeout(() => {
+    resolveTwitchUserInfoSmall(login)
+      .then(info => {
+        const displayName = cleanString(info.displayName || fallbackDisplayName || login, login);
+        const avatarUrl = cleanString(info.avatarUrl || fallbackAvatarUrl || "");
+        if (!displayName && !avatarUrl) return;
+        mergeRoundResultData(uid, {
+          userDisplayName: displayName,
+          userAvatarUrl: avatarUrl,
+          userResolvedAt: nowIso(),
+          userResolveSource: cleanString(info.source || "unknown"),
+          userResolveOk: info.ok === true
+        });
+        publishStatus("sound.user_resolved", { roundUid: uid, userLogin: login, userDisplayName: displayName, avatarResolved: !!avatarUrl });
+      })
+      .catch(err => {
+        runtimeState.lastError = `[sound_user_resolve] ${err && err.message ? err.message : String(err)}`;
+      });
+  }, 250).unref?.();
+  return { ok: true, scheduled: true, roundUid: uid, userLogin: login };
 }
 
 function normalizeTextValue(value) {
@@ -2105,8 +2249,13 @@ function extractChatPayload(envelope = {}) {
   const message = cleanString(twitch.message || twitch.text || payload.message || payload.text);
   const userLogin = cleanString(user.login || twitch.userLogin || twitch.login || payload.userLogin || payload.login).replace(/^@/, "").toLowerCase();
   const userDisplayName = cleanString(user.displayName || twitch.userDisplayName || twitch.displayName || payload.userDisplayName || payload.displayName, userLogin);
+  const userAvatarUrl = cleanString(
+    user.profile_image_url || user.profileImageUrl || user.avatarUrl || user.avatar_url ||
+    twitch.profile_image_url || twitch.profileImageUrl || twitch.avatarUrl || twitch.avatar_url ||
+    payload.profile_image_url || payload.profileImageUrl || payload.avatarUrl || payload.avatar_url
+  );
   const messageId = cleanString(twitch.messageId || twitch.message_id || payload.messageId || payload.message_id || envelope.id);
-  return { message, userLogin, userDisplayName, messageId, raw: twitch };
+  return { message, userLogin, userDisplayName, userAvatarUrl, messageId, raw: twitch };
 }
 
 function messageSolvesPhrase(message, phrase = {}) {
@@ -2908,7 +3057,12 @@ function publicRoundOverlaySummary(round, options = {}) {
       title: cleanString(snippet.title || snippet.name || ""),
       mediaId: cleanString(snippet.mediaId || snippet.media_id || ""),
       points: clampNumber(snippet.points, 0, 10000, 0),
-      result: cleanString(round.result || resultData.result || "")
+      result: cleanString(round.result || resultData.result || ""),
+      answer: cleanString(resultData.answer || ""),
+      solvedByLogin: cleanString(resultData.userLogin || ""),
+      solvedByDisplayName: cleanString(resultData.userDisplayName || resultData.userLogin || ""),
+      solvedByAvatarUrl: cleanString(resultData.userAvatarUrl || resultData.avatarUrl || ""),
+      awardedPoints: clampNumber(resultData.points, 0, 10000, clampNumber(snippet.points, 0, 10000, 0))
     } : {
       titleHidden: true,
       mediaHidden: true,
@@ -3739,6 +3893,7 @@ function resolveSoundRound(body = {}) {
   const snippet = round.config && round.config.snippet ? round.config.snippet : {};
   const userLogin = cleanString(body.userLogin || body.login || body.user).replace(/^@/, "").toLowerCase();
   const userDisplayName = cleanString(body.userDisplayName || body.displayName || body.user, userLogin);
+  const userAvatarUrl = cleanString(body.userAvatarUrl || body.avatarUrl || body.avatar_url || body.profileImageUrl || body.profile_image_url);
   const answer = cleanString(body.answer || body.message || body.text);
   if (!userLogin) return { ok: false, error: "user_login_required" };
   if (!answer) return { ok: false, error: "answer_required" };
@@ -3747,7 +3902,7 @@ function resolveSoundRound(body = {}) {
   const runtimeConfig = getSoundRuntimeConfig(event);
   const points = clampNumber(body.points ?? snippet.points ?? runtimeConfig.defaultPoints, 0, 10000, 10);
   const now = nowIso();
-  const resultData = { solved: true, userLogin, userDisplayName, answer, points, solvedAt: now, chatMessageId: cleanString(body.messageId || body.chatMessageId || body.message_id) };
+  const resultData = { solved: true, userLogin, userDisplayName, userAvatarUrl, answer, points, solvedAt: now, chatMessageId: cleanString(body.messageId || body.chatMessageId || body.message_id) };
   database.updateByKey("stream_events_rounds", "round_uid", round.roundUid, {
     status: "solved",
     result: "solved",
@@ -3786,9 +3941,10 @@ function resolveSoundRound(body = {}) {
     });
   } catch (_) {}
   const finalRound = rowToRound(database.get("SELECT * FROM stream_events_rounds WHERE round_uid = :roundUid", { roundUid: round.roundUid })) || updatedRoundPublic;
-  emitBus("stream_events.sound", "solved", { eventUid: event.eventUid, round: finalRound, userLogin, userDisplayName, answer, points, chatOutput, ranking: pointsResult.ranking || [], revealVideo: revealVideoResult, partStatus: partStatusAfterSolve, nextSoundRound, autoFinish });
-  publishStatus("sound.solved", { lastEventUid: event.eventUid, roundUid: round.roundUid });
-  return { ok: true, solved: true, eventUid: event.eventUid, roundUid: round.roundUid, points, chatOutput, pointsResult, revealVideo: revealVideoResult, partStatus: partStatusAfterSolve, nextSoundRound, autoFinish };
+  const userResolve = scheduleSolvedUserAvatarResolve(round.roundUid, userLogin, userDisplayName, userAvatarUrl);
+  emitBus("stream_events.sound", "solved", { eventUid: event.eventUid, round: finalRound, userLogin, userDisplayName, userAvatarUrl, answer, points, chatOutput, ranking: pointsResult.ranking || [], revealVideo: revealVideoResult, partStatus: partStatusAfterSolve, nextSoundRound, autoFinish, userResolve });
+  publishStatus("sound.solved", { lastEventUid: event.eventUid, roundUid: round.roundUid, userResolve });
+  return { ok: true, solved: true, eventUid: event.eventUid, roundUid: round.roundUid, points, chatOutput, pointsResult, revealVideo: revealVideoResult, partStatus: partStatusAfterSolve, nextSoundRound, autoFinish, userResolve };
 }
 
 
@@ -3827,6 +3983,7 @@ function processSoundChatMessage(chat = {}, options = {}) {
       snippetUid: snippet.snippetUid || round.itemUid,
       userLogin,
       userDisplayName,
+      userAvatarUrl: cleanString(chat.userAvatarUrl || chat.avatarUrl || ""),
       answer,
       messageId: cleanString(chat.messageId),
       preparedOnly: true,
@@ -5562,9 +5719,19 @@ module.exports.init = function init(ctx) {
         message: body.message || body.answer || body.text || req.query.message || req.query.answer || req.query.text,
         userLogin: body.userLogin || body.login || body.user || req.query.user || "soundtester",
         userDisplayName: body.userDisplayName || body.displayName || body.user || req.query.displayName || req.query.user || "SoundTester",
+        userAvatarUrl: body.userAvatarUrl || body.avatarUrl || body.avatar_url || body.profileImageUrl || req.query.avatarUrl || req.query.avatar_url || "",
         messageId: body.messageId || req.query.messageId || newUid("test_sound_chat")
       }, { source: "api:sound-test-chat" });
       sendJson(res, result, result.ok ? 200 : 400);
+    } catch (err) {
+      handleError(res, err, 400);
+    }
+  });
+
+  reg("get", `${prefix}/sound-runtime/resolve-user`, async (req, res) => {
+    try {
+      const result = await resolveTwitchUserInfoSmall(req.query.login || req.query.user || "");
+      sendJson(res, result, result.ok ? 200 : 404);
     } catch (err) {
       handleError(res, err, 400);
     }
