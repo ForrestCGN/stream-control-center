@@ -23,8 +23,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.41";
-const MODULE_BUILD = "STEP_EVENT_RUNTIME_PARTS_1C_ANSWER_AFTER_SOUND_END";
+const MODULE_VERSION = "0.5.42";
+const MODULE_BUILD = "STEP_EVENT_RUNTIME_PARTS_1D_REVEAL_MEDIA_REGISTRY_RESOLVE";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -3240,11 +3240,26 @@ function getRevealVideoMediaRef(snippet = {}) {
 function buildRevealVideoPlaybackPayload(event, round, snippet, runtimeConfig = {}) {
   const revealVideoId = getRevealVideoMediaRef(snippet);
   const title = cleanString(snippet.title || "Sound-Aufloesung");
-  const mediaFields = buildSoundSystemMediaFieldsForSnippet({
-    mediaId: revealVideoId,
-    mediaPath: revealVideoId,
-    title: `Aufloesung: ${title}`
-  });
+  const resolvedReveal = resolveMediaAssetForPlaybackRef({ mediaId: revealVideoId }, { requireVideo: true });
+  const mediaFields = resolvedReveal.ok
+    ? {
+        ok: true,
+        mediaId: resolvedReveal.mediaId,
+        mediaAssetId: resolvedReveal.mediaAssetId,
+        assetId: resolvedReveal.assetId,
+        mediaPath: resolvedReveal.mediaPath,
+        mediaRelativePath: resolvedReveal.mediaRelativePath,
+        registryPath: resolvedReveal.registryPath,
+        webPath: resolvedReveal.webPath,
+        mediaType: "video",
+        type: "video",
+        label: `Aufloesung: ${title}`,
+        durationMs: resolvedReveal.durationMs || 0,
+        hasAudio: resolvedReveal.hasAudio,
+        hasVideo: true
+      }
+    : { ok: false, error: resolvedReveal.error || "reveal_media_resolve_failed", mediaId: revealVideoId, label: `Aufloesung: ${title}` };
+
   return {
     prepared: true,
     revealVideoId,
@@ -3256,7 +3271,11 @@ function buildRevealVideoPlaybackPayload(event, round, snippet, runtimeConfig = 
       roundUid: round.roundUid,
       snippetUid: snippet.snippetUid,
       mediaId: mediaFields.ok ? (mediaFields.mediaId || "") : revealVideoId,
-      mediaPath: mediaFields.ok ? (mediaFields.mediaPath || "") : revealVideoId,
+      mediaAssetId: mediaFields.ok ? (mediaFields.mediaAssetId || mediaFields.mediaId || "") : revealVideoId,
+      assetId: mediaFields.ok ? (mediaFields.assetId || mediaFields.mediaId || "") : revealVideoId,
+      mediaPath: mediaFields.ok ? (mediaFields.mediaPath || "") : "",
+      mediaRelativePath: mediaFields.ok ? (mediaFields.mediaRelativePath || mediaFields.mediaPath || "") : "",
+      registryPath: mediaFields.ok ? (mediaFields.registryPath || mediaFields.mediaPath || "") : "",
       mediaResolutionError: mediaFields.ok ? "" : mediaFields.error,
       label: `Aufloesung: ${title}`,
       ...(mediaFields.ok ? mediaFields : {}),
@@ -3275,6 +3294,9 @@ function buildRevealVideoPlaybackPayload(event, round, snippet, runtimeConfig = 
         roundUid: round.roundUid,
         snippetUid: snippet.snippetUid,
         revealVideo: true,
+        revealVideoId,
+        revealMediaResolved: !!(mediaFields && mediaFields.ok),
+        eventSoundReveal: true,
         eventPreRoll: {
           enabled: true,
           countdownEnabled: false,
@@ -4515,6 +4537,64 @@ function isVideoMediaAssetRow(row = {}) {
   const rel = cleanString(row.relative_path || row.relativePath || row.file_name || row.fileName || "").toLowerCase();
   if (type === "video") return true;
   return /\.(mp4|mov|mkv|avi|wmv|m4v|webm)$/i.test(rel);
+}
+
+function resolveMediaAssetForPlaybackRef(ref = {}, options = {}) {
+  ensureSchema();
+  const raw = ref && typeof ref === "object" && !Array.isArray(ref) ? ref : { mediaId: ref };
+  const preferredId = cleanString(raw.mediaId || raw.media_id || raw.mediaAssetId || raw.assetId || raw.id || "");
+  const preferredPath = cleanString(raw.mediaPath || raw.mediaRelativePath || raw.registryPath || raw.relativePath || raw.path || "").replace(/\\/g, "/").replace(/^\/+/, "");
+  const requireVideo = options.requireVideo === true;
+  const requireAudio = options.requireAudio === true;
+
+  let row = null;
+  try {
+    if (preferredId && /^\d+$/.test(preferredId)) {
+      row = database.get("SELECT * FROM media_assets WHERE id = :id AND status = 'active' LIMIT 1", { id: Number(preferredId) }) || null;
+    }
+    if (!row && preferredPath) {
+      row = database.get("SELECT * FROM media_assets WHERE relative_path = :path AND status = 'active' LIMIT 1", { path: preferredPath }) || null;
+    }
+  } catch (err) {
+    return { ok: false, error: err && err.message ? err.message : String(err), mediaId: preferredId, mediaPath: preferredPath };
+  }
+
+  if (!row) {
+    return { ok: false, error: `media_asset_not_found:${preferredId || preferredPath}`, mediaId: preferredId, mediaPath: preferredPath };
+  }
+
+  if (requireVideo && !isVideoMediaAssetRow(row)) {
+    return { ok: false, error: "media_asset_is_not_video", mediaId: String(row.id || preferredId || ""), mediaPath: preferredPath };
+  }
+  if (requireAudio && !isAudioMediaAssetRow(row)) {
+    return { ok: false, error: "media_asset_is_not_audio", mediaId: String(row.id || preferredId || ""), mediaPath: preferredPath };
+  }
+
+  const id = String(row.id || preferredId || "").trim();
+  const rel = cleanString(row.relative_path || row.relativePath || preferredPath).replace(/\\/g, "/").replace(/^\/+/, "");
+  const webPath = cleanString(row.web_path || row.webPath || (rel ? `/assets/${rel}` : "")).replace(/\\/g, "/");
+  const label = cleanString(row.display_name || row.displayName || row.file_name || row.fileName || row.original_name || row.originalName || (rel ? rel.split("/").pop() : `Media ${id}`), `Media ${id || ""}`);
+  const type = isVideoMediaAssetRow(row) ? "video" : (isAudioMediaAssetRow(row) ? "audio" : cleanString(row.type || row.media_type || row.mediaType || "media"));
+
+  return {
+    ok: true,
+    id,
+    mediaId: id,
+    mediaAssetId: id,
+    assetId: id,
+    mediaPath: rel,
+    mediaRelativePath: rel,
+    registryPath: rel,
+    webPath,
+    label,
+    title: label,
+    mediaType: type,
+    type,
+    durationMs: Number(row.duration_ms || row.durationMs || 0) || 0,
+    hasAudio: row.has_audio === 1 || row.hasAudio === true,
+    hasVideo: row.has_video === 1 || row.hasVideo === true || type === "video",
+    row
+  };
 }
 
 function findRevealVideoForTestAudio(audioRow = {}, options = {}) {
