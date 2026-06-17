@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=1920,height=1080,initial-scale=1" />
-  <title>CGN Event Gewinner-Finale Parade to Podium</title>
+  <title>CGN Event Gewinner-Finale Parade to Podium EVS42.5.2</title>
   <style>
     :root{
       --w:1920px;--h:1080px;
@@ -65,6 +65,9 @@
     .podium{position:absolute;z-index:17;left:95px;right:95px;top:182px;bottom:145px;pointer-events:none}.podSlot{position:absolute;width:420px;height:455px;border-radius:38px;padding:26px;background:linear-gradient(135deg,rgba(8,10,34,.76),rgba(22,10,56,.70));border:1px solid rgba(143,244,255,.18);box-shadow:0 0 44px rgba(168,85,247,.18),inset 0 0 45px rgba(53,231,255,.035);opacity:0;transform:translateY(30px) scale(.92);transition:opacity .75s ease,transform .95s var(--ease)}.podSlot.show{opacity:1;transform:translateY(0) scale(1)}.podSlot.left{left:160px;bottom:10px}.podSlot.right{right:160px;bottom:10px}.podSlot.center{left:50%;bottom:48px;width:520px;height:515px;transform:translateX(-50%) translateY(30px) scale(.92);background:linear-gradient(135deg,rgba(34,24,4,.90),rgba(47,24,7,.76),rgba(8,10,34,.68));border-color:rgba(255,230,109,.42);box-shadow:0 0 68px rgba(255,230,109,.22),0 0 140px rgba(255,189,56,.09)}.podSlot.center.show{transform:translateX(-50%) translateY(0) scale(1)}.podRank{font-size:22px;letter-spacing:.13em;text-transform:uppercase;color:var(--gold)}.podNum{position:absolute;right:24px;top:18px;font-size:92px;line-height:.8;color:rgba(255,255,255,.16);font-weight:950}.podAvatar{margin:26px auto 16px;width:150px;height:150px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:radial-gradient(circle at 32% 20%,rgba(255,255,255,.28),rgba(168,85,247,.32) 28%,rgba(16,24,54,.92));border:4px solid rgba(143,244,255,.45);box-shadow:0 0 32px rgba(53,231,255,.26);font-size:60px}.podAvatar img{width:100%;height:100%;object-fit:cover}.center .podAvatar{width:178px;height:178px;border-color:rgba(255,230,109,.78);box-shadow:0 0 42px rgba(255,230,109,.35)}.podName{text-align:center;font-size:38px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.center .podName{font-size:46px}.podPoints{text-align:center;margin-top:9px;font-size:29px;color:#fff}.center .podPoints{font-size:36px;color:var(--gold)}.podGift{margin:18px auto 0;width:max-content;max-width:100%;padding:10px 16px;border-radius:999px;background:rgba(255,230,109,.12);border:1px solid rgba(255,230,109,.28);font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.podLine{text-align:center;margin-top:18px;color:var(--muted);font-size:18px;line-height:1.23}.winnerGlow{position:absolute;z-index:15;left:50%;bottom:98px;width:680px;height:310px;transform:translateX(-50%);background:radial-gradient(ellipse,rgba(255,230,109,.20),transparent 66%);filter:blur(8px);opacity:0;transition:opacity 1s ease}.winnerGlow.show{opacity:1;animation:glowPulse 1.9s ease-in-out infinite alternate}@keyframes glowPulse{to{opacity:.86;transform:translateX(-50%) scale(1.05)}}
 
     .debug{position:absolute;z-index:80;left:24px;bottom:22px;width:940px;max-height:135px;overflow:auto;background:rgba(0,0,0,.72);border:1px solid rgba(255,255,255,.18);border-radius:10px;color:#d9f7ff;font:12px/1.35 ui-monospace,Consolas,monospace;padding:10px;display:none}body.debug .debug{display:block}
+
+    .bootFallback{position:absolute;z-index:999;left:44px;bottom:34px;max-width:720px;padding:16px 20px;border-radius:18px;background:rgba(6,8,28,.88);border:1px solid rgba(255,230,109,.42);box-shadow:0 0 28px rgba(255,230,109,.18);color:#fff;font:800 17px/1.35 "Segoe UI",Arial,sans-serif;display:none;white-space:pre-wrap}
+    .bootFallback.show{display:block}
   </style>
 </head>
 <body>
@@ -91,7 +94,36 @@
   </div>
   <div class="honorBoard" id="honorBoard"></div>
   <pre class="debug" id="debug"></pre>
+  <div class="bootFallback" id="bootFallback"></div>
 </div>
+
+<script>
+(function(){
+  "use strict";
+  window.__EVS4252_BOOT_STARTED_AT = Date.now();
+  function qs(name){try{return new URLSearchParams(location.search).get(name)||"";}catch(_){return "";}}
+  const demo=(qs("demo")||"").toLowerCase();
+  const debug=qs("debug")==="1"||qs("debug")==="true";
+  if(demo||debug){
+    setTimeout(function(){
+      const app=document.getElementById("app");
+      if(!app)return;
+      const isVisible=app.classList.contains("show") || getComputedStyle(app).opacity !== "0";
+      if(!isVisible){
+        app.classList.add("show");
+        const intro=document.getElementById("intro");
+        const title=document.getElementById("introTitle");
+        const text=document.getElementById("introText");
+        const fb=document.getElementById("bootFallback");
+        if(title)title.textContent="Demo-Fallback aktiv";
+        if(text)text.textContent="Das Overlay wurde sichtbar geschaltet, aber die Haupt-Demo hat nicht gestartet. Bitte Screenshot/Fehlertext schicken.";
+        if(intro)intro.classList.add("active");
+        if(fb){fb.classList.add("show");fb.textContent="EVS42.5.2 BOOT-FALLBACK\nURL: "+location.href+"\nHinweis: Haupt-Demo hat nach 1.2s nicht gestartet.";}
+      }
+    },1200);
+  }
+})();
+</script>
 <script>
 (function(){
   "use strict";
@@ -112,7 +144,7 @@
   const T=SPEEDS[speed]||SPEEDS.show;
   const els={app:gid("app"),badgeText:gid("badgeText"),eventName:gid("eventName"),headline:gid("headline"),subline:gid("subline"),intro:gid("intro"),introTitle:gid("introTitle"),introText:gid("introText"),focus:gid("focusCard"),fRank:gid("fRank"),fAvatar:gid("fAvatar"),fKicker:gid("fKicker"),fName:gid("fName"),fPoints:gid("fPoints"),fReward:gid("fReward"),fComment:gid("fComment"),board:gid("honorBoard"),podium:gid("podium"),pod1:gid("pod1"),pod2:gid("pod2"),pod3:gid("pod3"),winnerGlow:gid("winnerGlow"),particles:gid("particles"),confetti:gid("confetti"),debug:gid("debug")};
   let timers=[],currentUid="",miniIndex=0;
-  function bootFail(err){try{show();if(els&&els.debug){els.debug.style.display="block";els.debug.textContent="BOOT ERROR: "+(err&&err.stack?err.stack:(err&&err.message?err.message:String(err)));} if(els&&els.intro){els.introTitle.textContent="Demo konnte nicht starten";els.introText.textContent="Bitte URL und Browser-Konsole prüfen. Der Fehler steht unten links im Debug-Feld.";els.intro.classList.add("active");}}catch(_){}}
+  function bootFail(err){try{show();if(els&&els.debug){els.debug.style.display="block";els.debug.textContent="BOOT ERROR: "+(err&&err.stack?err.stack:(err&&err.message?err.message:String(err)));} if(els&&els.intro){els.introTitle.textContent="Demo konnte nicht starten";els.introText.textContent="Bitte URL und Browser-Konsole prüfen. Der Fehler steht unten links im Debug-Feld.";els.intro.classList.add("active");} const fb=gid("bootFallback"); if(fb){fb.classList.add("show");fb.textContent="EVS42.5.2 BOOT ERROR\n"+(err&&err.stack?err.stack:(err&&err.message?err.message:String(err)));}}catch(_){}}
   window.addEventListener("error",e=>bootFail(e.error||e.message));
   window.addEventListener("unhandledrejection",e=>bootFail(e.reason||"unhandled rejection"));
   function gid(id){return document.getElementById(id)}
@@ -151,7 +183,7 @@
   function intro(title,text,headline,subline,badge){els.badgeText.textContent=badge||"CGN Finale";els.headline.textContent=headline||"Das große CGN-Finale";els.subline.textContent=subline||"Erst Ehrenrunde, dann Gutscheinplätze.";els.introTitle.textContent=title;els.introText.textContent=text;els.intro.classList.add("active")}
   function hideIntro(){els.intro.classList.remove("active")}
   function reset(){clearTimers();clearConfetti();hideFocus();hideIntro();els.board.innerHTML="";els.pod1.innerHTML="";els.pod2.innerHTML="";els.pod3.innerHTML="";els.pod1.classList.remove("show");els.pod2.classList.remove("show");els.pod3.classList.remove("show");els.winnerGlow.classList.remove("show")}
-  function play(raw,opts={}){const finale=normalize(raw);if(!opts.force&&currentUid===finale.finaleUid)return;currentUid=finale.finaleUid;reset();els.eventName.textContent=finale.eventName;show();log({speed,T,finale});
+  function play(raw,opts={}){window.__EVS4252_PLAY_CALLED=true;const fb=gid("bootFallback");if(fb)fb.classList.remove("show");const finale=normalize(raw);if(!opts.force&&currentUid===finale.finaleUid)return;currentUid=finale.finaleUid;reset();els.eventName.textContent=finale.eventName;show();log({speed,T,finale});
     const ranking=finale.ranking.slice().sort((a,b)=>(a.rank-b.rank)||(b.points-a.points));
     const honor=ranking.filter(r=>r.rank>=4&&r.rank<=10).sort((a,b)=>b.rank-a.rank); // 10 -> 4
     const top=ranking.filter(r=>r.rank>=1&&r.rank<=3).sort((a,b)=>b.rank-a.rank); // 3 -> 1
@@ -172,7 +204,8 @@
   function clearConfetti(){els.confetti.innerHTML=""}
   function confetti(count){clearConfetti();for(let i=0;i<count;i++){const p=document.createElement("i");p.style.left=`${Math.random()*100}%`;p.style.animationDuration=`${4+Math.random()*5.5}s`;p.style.animationDelay=`${Math.random()*1.8}s`;p.style.transform=`translateY(-90px) rotate(${Math.random()*360}deg)`;els.confetti.appendChild(p)}}
   seedParticles();
-  if(demo){setTimeout(()=>{try{play(demoData(demo),{force:true})}catch(e){bootFail(e)}},300)}else{loadFinale()}
+  function startDemoNow(){try{play(demoData(demo),{force:true})}catch(e){bootFail(e)}}
+  if(demo){setTimeout(startDemoNow,120);setTimeout(()=>{if(!window.__EVS4252_PLAY_CALLED)startDemoNow()},800)}else{loadFinale()}
   window.addEventListener("cgn:overlay-bus-message",handleBus);window.addEventListener("focus",loadFinale);window.addEventListener("beforeunload",()=>{clearTimers();clearConfetti()});
 })();
 </script>
