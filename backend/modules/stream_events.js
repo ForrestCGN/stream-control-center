@@ -24,8 +24,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.45";
-const MODULE_BUILD = "STEP_EVENT_RUNTIME_RESULT_2B_RESULT_TIMEOUT_HIDE";
+const MODULE_VERSION = "0.5.46";
+const MODULE_BUILD = "STEP_EVENT_SOUND_AUTO_SCHEDULE_1_INTERVAL_JITTER";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -3589,6 +3589,46 @@ function scheduleSoundAnswerTimer(eventUid = "", roundUid = "", answerSeconds = 
   return { ok: true, eventUid: uid, roundUid: rid, answerSeconds: seconds, startedAt: now, endsAt, startsAfter: "sound_audio_ended" };
 }
 
+
+function computeNextSoundRoundDelaySeconds(runtimeConfig = {}, reason = "auto_advance") {
+  const playbackMode = cleanString(runtimeConfig.playbackMode || "random_auto").toLowerCase();
+  const roundDelaySeconds = clampNumber(runtimeConfig.roundDelaySeconds, 0, 3600, 5);
+
+  if (playbackMode === "random_auto" || playbackMode === "sequence_auto") {
+    const intervalMinutes = clampNumber(runtimeConfig.intervalMinutes, 1, 240, 5);
+    const jitterMinutes = clampNumber(runtimeConfig.intervalJitterMinutes, 0, 120, 0);
+    const minMinutes = Math.max(0, intervalMinutes - jitterMinutes);
+    const maxMinutes = Math.max(minMinutes, intervalMinutes + jitterMinutes);
+    const randomMinutes = maxMinutes > minMinutes
+      ? minMinutes + (Math.random() * (maxMinutes - minMinutes))
+      : minMinutes;
+    const intervalSeconds = Math.round(randomMinutes * 60);
+    return {
+      delaySeconds: Math.max(roundDelaySeconds, intervalSeconds),
+      source: "auto_interval_jitter",
+      playbackMode,
+      intervalMinutes,
+      jitterMinutes,
+      minSeconds: Math.round(minMinutes * 60),
+      maxSeconds: Math.round(maxMinutes * 60),
+      floorSeconds: roundDelaySeconds,
+      reason: `${reason}_auto_interval`
+    };
+  }
+
+  return {
+    delaySeconds: roundDelaySeconds,
+    source: "round_delay_seconds",
+    playbackMode,
+    intervalMinutes: clampNumber(runtimeConfig.intervalMinutes, 1, 240, 5),
+    jitterMinutes: clampNumber(runtimeConfig.intervalJitterMinutes, 0, 120, 0),
+    minSeconds: roundDelaySeconds,
+    maxSeconds: roundDelaySeconds,
+    floorSeconds: roundDelaySeconds,
+    reason
+  };
+}
+
 function scheduleNextSoundRound(eventUid = "", reason = "auto_advance") {
   const event = getEventByUid(eventUid);
   if (!event || event.status !== STATUS.ACTIVE || !event.soundEnabled) return { ok: true, skipped: true, reason: "event_not_active_sound" };
@@ -3598,7 +3638,10 @@ function scheduleNextSoundRound(eventUid = "", reason = "auto_advance") {
   if (parts.sound.completed) return maybeAutoFinishEventIfPartsCompleted(event.eventUid, reason);
   if (parts.sound.activeRoundUid) return { ok: true, skipped: true, reason: "active_round_exists", parts };
   clearTimerMapEntry(soundAutoAdvanceTimers, event.eventUid);
-  const delaySeconds = clampNumber(runtimeConfig.roundDelaySeconds, 0, 120, 5);
+
+  const schedulePlan = computeNextSoundRoundDelaySeconds(runtimeConfig, reason);
+  const delaySeconds = clampNumber(schedulePlan.delaySeconds, 0, 24 * 60 * 60, 5);
+
   const timer = setTimeout(() => {
     try {
       const activeEvent = getEventByUid(event.eventUid);
@@ -3611,7 +3654,7 @@ function scheduleNextSoundRound(eventUid = "", reason = "auto_advance") {
       if (currentParts.sound.activeRoundUid) return;
       const result = createSoundRound({ eventUid: activeEvent.eventUid, play: true, confirm: "1" });
       runtimeState.counters.soundAutoAdvancesStarted += 1;
-      emitBus("stream_events.sound", "auto_advance_started", { eventUid: activeEvent.eventUid, reason, result });
+      emitBus("stream_events.sound", "auto_advance_started", { eventUid: activeEvent.eventUid, reason, schedulePlan, result });
       publishStatus("sound.auto_advance_started", { lastEventUid: activeEvent.eventUid });
     } catch (err) {
       runtimeState.lastError = err && err.message ? err.message : String(err);
@@ -3620,9 +3663,20 @@ function scheduleNextSoundRound(eventUid = "", reason = "auto_advance") {
     }
   }, delaySeconds * 1000);
   if (typeof timer.unref === "function") timer.unref();
-  soundAutoAdvanceTimers.set(event.eventUid, { timer, eventUid: event.eventUid, reason, delaySeconds, scheduledAt: nowIso() });
+
+  const scheduledAt = nowIso();
+  const dueAt = new Date(Date.now() + (delaySeconds * 1000)).toISOString();
+  soundAutoAdvanceTimers.set(event.eventUid, {
+    timer,
+    eventUid: event.eventUid,
+    reason,
+    delaySeconds,
+    scheduledAt,
+    dueAt,
+    schedulePlan
+  });
   runtimeState.counters.soundAutoAdvancesScheduled += 1;
-  return { ok: true, scheduled: true, eventUid: event.eventUid, delaySeconds, reason, parts };
+  return { ok: true, scheduled: true, eventUid: event.eventUid, delaySeconds, dueAt, reason, schedulePlan, parts };
 }
 
 function handleSoundAnswerWindowExpired(eventUid = "", roundUid = "") {
