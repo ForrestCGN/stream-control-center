@@ -748,7 +748,7 @@
       mode: "obs_overlay",
       module: "stream_events",
       name: "Stream Events Runtime Overlay",
-      version: "0.3.6",
+      version: "0.3.7",
       heartbeatIntervalMs: 5000,
       capabilities: [
         "overlay.heartbeat",
@@ -1384,6 +1384,29 @@
         });
       }
 
+      function runResultLongDemo() {
+        applyState({
+          ok: true,
+          phase: { key: "sound_solved", visible: true },
+          display: { overlayMode: "result", headline: "Richtig erkannt", subline: "Demo langer Gewinner" },
+          sound: {
+            latestRound: {
+              itemVisible: true,
+              status: "solved",
+              item: {
+                title: "Alf und die Heimleitung pruefen den viel zu langen Schnipsel-Titel im Altersheimarchiv",
+                solvedByDisplayName: "ForrestCGN123456789012345",
+                solvedByLogin: "forrestcgn123456789012345",
+                solvedByAvatarUrl: "",
+                awardedPoints: 25,
+                result: "solved"
+              }
+            }
+          },
+          overlay: { pollMs: 900 }
+        });
+      }
+
       function schedulePoll() {
         if (pollTimer) window.clearInterval(pollTimer);
         if (!demo) pollTimer = window.setInterval(fetchState, pollMs);
@@ -1410,6 +1433,8 @@
         runCountdownDemo();
       } else if (demo === "result") {
         runResultDemo();
+      } else if (demo === "result-long") {
+        runResultLongDemo();
       } else {
         fetchState().then(schedulePoll);
       }
@@ -1433,7 +1458,7 @@
     data-mode="obs_overlay"
     data-module="stream_events"
     data-name="Stream Events Runtime Overlay"
-    data-version="0.3.6"
+    data-version="0.3.7"
     data-heartbeat-ms="5000"
   ></script>
 </body>
