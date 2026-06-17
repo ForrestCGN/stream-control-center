@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.28";
-  const MODULE_BUILD = "STEP_EVS_27D_MANUAL_SOUND_ROUND_CONTROL";
+  const MODULE_VERSION = "0.5.29";
+  const MODULE_BUILD = "STEP_EVENT_SOUND_DASH_1_CONFIG_FIELDS";
 
   const api = {
     status: '/api/stream-events/status',
@@ -537,10 +537,34 @@ window.StreamEventsModule = (function(){
               <label><span>Pause nach Runde in Sekunden</span><input id="evsCfgSoundRoundDelay" type="number" min="0" max="3600" value="${esc(soundDefaults.roundDelaySeconds ?? 5)}"></label>
               <label><span>Mindestabstand Wiederholung</span><input id="evsCfgSoundRepeatDistance" type="number" min="0" max="100" value="${esc(soundDefaults.minRepeatDistance ?? 3)}"></label>
             </div>
+            <div class="evs-two-cols evs-config-inline-grid">
+              <label><span>Ausgabeziel</span><select id="evsCfgSoundOutputTarget">
+                <option value="default" ${(soundDefaults.outputTarget || 'default') === 'default' ? 'selected' : ''}>Sound-System Standard</option>
+                <option value="overlay" ${soundDefaults.outputTarget === 'overlay' ? 'selected' : ''}>Overlay</option>
+                <option value="device" ${soundDefaults.outputTarget === 'device' ? 'selected' : ''}>Gerät</option>
+                <option value="both" ${soundDefaults.outputTarget === 'both' ? 'selected' : ''}>Beides</option>
+              </select></label>
+              <label><span>Ziel</span><select id="evsCfgSoundTarget">
+                <option value="stream" ${(soundDefaults.target || 'stream') === 'stream' ? 'selected' : ''}>Stream</option>
+                <option value="discord" ${soundDefaults.target === 'discord' ? 'selected' : ''}>Discord</option>
+                <option value="both" ${soundDefaults.target === 'both' ? 'selected' : ''}>Beides</option>
+              </select></label>
+            </div>
+            <div class="evs-two-cols evs-config-inline-grid">
+              <label><span>PreRoll Sekunden</span><input id="evsCfgSoundPreRollSeconds" type="number" min="0" max="30" value="${esc(soundDefaults.preRollSeconds ?? 3)}"></label>
+              <label><span>Countdown Sekunden</span><input id="evsCfgSoundCountdownPreRollSeconds" type="number" min="0" max="30" value="${esc(soundDefaults.countdownPreRollSeconds ?? 3)}"></label>
+            </div>
+            <label><span>Auflösungs-Video Modus</span><select id="evsCfgRevealVideoMode">
+              <option value="after_solved" ${(soundDefaults.revealVideoMode || 'after_solved') === 'after_solved' ? 'selected' : ''}>Nach richtiger Antwort automatisch</option>
+              <option value="manual" ${soundDefaults.revealVideoMode === 'manual' ? 'selected' : ''}>Nur manuell</option>
+              <option value="disabled" ${soundDefaults.revealVideoMode === 'disabled' ? 'selected' : ''}>Aus</option>
+            </select></label>
             <label class="evs-check"><input id="evsCfgSoundAutoStart" type="checkbox" ${soundDefaults.autoStartFirstRound !== false ? 'checked' : ''}> Erste Runde automatisch beim Eventstart</label>
             <label class="evs-check"><input id="evsCfgSoundAutoAdvance" type="checkbox" ${soundDefaults.autoAdvanceRounds !== false ? 'checked' : ''}> Nach einer Runde automatisch weitermachen</label>
             <label class="evs-check"><input id="evsCfgSoundAvoidRepeat" type="checkbox" ${soundDefaults.avoidImmediateRepeat !== false ? 'checked' : ''}> Direkte Wiederholung vermeiden</label>
-            <label class="evs-check"><input id="evsCfgRevealVideo" type="checkbox" ${soundDefaults.revealVideoEnabled !== false ? 'checked' : ''}> Auflösungs-Video nach Lösung erlauben</label>
+            <label class="evs-check"><input id="evsCfgSoundPreRollEnabled" type="checkbox" ${soundDefaults.preRollEnabled === true ? 'checked' : ''}> PreRoll vor Sound erlauben</label>
+            <label class="evs-check"><input id="evsCfgSoundCountdownPreRollEnabled" type="checkbox" ${soundDefaults.countdownPreRollEnabled === true ? 'checked' : ''}> Countdown vor Sound anzeigen</label>
+            <label class="evs-check"><input id="evsCfgRevealVideo" type="checkbox" ${soundDefaults.revealVideoEnabled !== false ? 'checked' : ''}> Auflösungs-Video erlauben</label>
           </div>
 
           <div class="evs-config-card">
@@ -1795,7 +1819,13 @@ window.StreamEventsModule = (function(){
       avoidImmediateRepeat: sound.avoidImmediateRepeat !== undefined ? sound.avoidImmediateRepeat !== false : defaults.avoidImmediateRepeat !== false,
       minRepeatDistance: Number(sound.minRepeatDistance ?? defaults.minRepeatDistance ?? 3),
       revealVideoEnabled,
-      revealVideoMode: revealVideoEnabled ? (sound.revealVideoMode || defaults.revealVideoMode || 'after_solved') : 'disabled'
+      revealVideoMode: revealVideoEnabled ? (sound.revealVideoMode || defaults.revealVideoMode || 'after_solved') : 'disabled',
+      preRollEnabled: sound.preRollEnabled !== undefined ? sound.preRollEnabled === true : defaults.preRollEnabled === true,
+      preRollSeconds: Number(sound.preRollSeconds ?? defaults.preRollSeconds ?? 3),
+      countdownPreRollEnabled: sound.countdownPreRollEnabled !== undefined ? sound.countdownPreRollEnabled === true : defaults.countdownPreRollEnabled === true,
+      countdownPreRollSeconds: Number(sound.countdownPreRollSeconds ?? defaults.countdownPreRollSeconds ?? 3),
+      outputTarget: sound.outputTarget || sound.soundOutputTarget || defaults.outputTarget || 'default',
+      target: sound.target || sound.soundTarget || defaults.target || 'stream'
     };
   }
 
@@ -1810,7 +1840,9 @@ window.StreamEventsModule = (function(){
         `${settings.answerSeconds} Sek. Antwortzeit`,
         soundOrderModeLabel(settings.orderMode),
         `Wiederholabstand ${settings.minRepeatDistance}`,
-        soundRevealModeLabel(settings.revealVideoMode, settings.revealVideoEnabled)
+        soundRevealModeLabel(settings.revealVideoMode, settings.revealVideoEnabled),
+        settings.outputTarget === 'default' ? 'Sound-System Standard' : `Ausgabe: ${settings.outputTarget}`,
+        settings.countdownPreRollEnabled ? `Countdown ${settings.countdownPreRollSeconds}s` : 'Countdown aus'
       ]
     };
   }
@@ -2188,6 +2220,12 @@ window.StreamEventsModule = (function(){
       minRepeatDistance: Number(document.getElementById('evsSoundRepeatDistance')?.value ?? current.minRepeatDistance ?? 3),
       revealVideoEnabled: revealEnabled,
       revealVideoMode: revealEnabled ? (document.getElementById('evsSoundRevealVideoMode')?.value || current.revealVideoMode || 'after_solved') : 'disabled',
+      preRollEnabled: current.preRollEnabled === true,
+      preRollSeconds: current.preRollSeconds ?? 3,
+      countdownPreRollEnabled: current.countdownPreRollEnabled === true,
+      countdownPreRollSeconds: current.countdownPreRollSeconds ?? 3,
+      outputTarget: current.outputTarget || 'default',
+      target: current.target || 'stream',
       snippets: Array.isArray(fallback.snippets) ? fallback.snippets : []
     };
   }
@@ -2383,7 +2421,13 @@ window.StreamEventsModule = (function(){
           avoidImmediateRepeat: document.getElementById('evsCfgSoundAvoidRepeat')?.checked !== false,
           minRepeatDistance: Number(document.getElementById('evsCfgSoundRepeatDistance')?.value || 3),
           revealVideoEnabled: document.getElementById('evsCfgRevealVideo')?.checked !== false,
-          revealVideoMode: document.getElementById('evsCfgRevealVideo')?.checked !== false ? 'after_solved' : 'disabled',
+          revealVideoMode: document.getElementById('evsCfgRevealVideo')?.checked !== false ? (document.getElementById('evsCfgRevealVideoMode')?.value || 'after_solved') : 'disabled',
+          preRollEnabled: document.getElementById('evsCfgSoundPreRollEnabled')?.checked === true,
+          preRollSeconds: Number(document.getElementById('evsCfgSoundPreRollSeconds')?.value || 3),
+          countdownPreRollEnabled: document.getElementById('evsCfgSoundCountdownPreRollEnabled')?.checked === true,
+          countdownPreRollSeconds: Number(document.getElementById('evsCfgSoundCountdownPreRollSeconds')?.value || 3),
+          outputTarget: document.getElementById('evsCfgSoundOutputTarget')?.value || 'default',
+          target: document.getElementById('evsCfgSoundTarget')?.value || 'stream',
           manualTriggerEnabled: true
         },
         textDefaults: {
