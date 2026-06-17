@@ -24,8 +24,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.57";
-const MODULE_BUILD = "STEP_EVENT_STREAM_OFFLINE_PAUSE_1";
+const MODULE_VERSION = "0.5.58";
+const MODULE_BUILD = "STEP_EVENT_NEXT_SNIPPET_STATUS_1";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -4000,6 +4000,18 @@ function scheduleSoundAnswerTimer(eventUid = "", roundUid = "", answerSeconds = 
   }, seconds * 1000);
   if (typeof timer.unref === "function") timer.unref();
   soundAnswerTimers.set(rid, { timer, eventUid: uid, roundUid: rid, answerSeconds: seconds, scheduledAt: now, startsAfter: "sound_audio_ended" });
+  upsertEventRuntimeState(uid, {
+    runtimeStatus: "active",
+    phase: "answer_window",
+    activeRoundUid: rid,
+    phaseStartedAt: now,
+    phaseEndsAt: endsAt,
+    nextAutoStartAt: "",
+    recoveryRequired: false,
+    recoveryReason: cleanString(options.reason || "sound_audio_ended"),
+    recoveryNote: "Antwortfenster läuft.",
+    metadata: { source: "scheduleSoundAnswerTimer", roundUid: rid, answerSeconds: seconds, endsAt }
+  });
   emitBus("stream_events.sound", "answer_window_started", { eventUid: uid, roundUid: rid, answerSeconds: seconds, startedAt: now, endsAt, reason: cleanString(options.reason || "sound_audio_ended") });
   publishStatus("sound.answer_window_started", { lastEventUid: uid, roundUid: rid, answerSeconds: seconds });
   return { ok: true, eventUid: uid, roundUid: rid, answerSeconds: seconds, startedAt: now, endsAt, startsAfter: "sound_audio_ended" };
@@ -4093,6 +4105,18 @@ function scheduleNextSoundRound(eventUid = "", reason = "auto_advance") {
     dueAt,
     schedulePlan
   });
+  upsertEventRuntimeState(event.eventUid, {
+    runtimeStatus: "active",
+    phase: "waiting",
+    activeRoundUid: "",
+    phaseStartedAt: scheduledAt,
+    phaseEndsAt: dueAt,
+    nextAutoStartAt: dueAt,
+    recoveryRequired: false,
+    recoveryReason: cleanString(reason || "auto_advance"),
+    recoveryNote: "Nächster Sound-Schnipsel ist geplant.",
+    metadata: { source: "scheduleNextSoundRound", reason, delaySeconds, dueAt, schedulePlan }
+  });
   runtimeState.counters.soundAutoAdvancesScheduled += 1;
   return { ok: true, scheduled: true, eventUid: event.eventUid, delaySeconds, dueAt, reason, schedulePlan, parts };
 }
@@ -4138,6 +4162,21 @@ function playPreparedActiveSoundRound(event, round, runtimeConfig = {}, options 
     }
     database.updateByKey("stream_events_rounds", "round_uid", activeRound.roundUid, update);
   } catch (_) {}
+
+  if (playbackResult && playbackResult.ok) {
+    upsertEventRuntimeState(event.eventUid, {
+      runtimeStatus: "active",
+      phase: "sound_playing",
+      activeRoundUid: activeRound.roundUid,
+      phaseStartedAt: nowIso(),
+      phaseEndsAt: "",
+      nextAutoStartAt: "",
+      recoveryRequired: false,
+      recoveryReason: "prepared_round_started",
+      recoveryNote: "Vorbereitete Sound-Runde wurde gestartet.",
+      metadata: { source: "playPreparedActiveSoundRound", roundUid: activeRound.roundUid, snippetUid: snippet.snippetUid, title: snippet.title }
+    });
+  }
 
   return {
     ok: !!(playbackResult && playbackResult.ok),
@@ -4529,11 +4568,24 @@ function createSoundRound(options = {}) {
     ? { ok: true, skipped: true, reason: shouldPlay ? "waiting_for_sound_audio_end" : "playback_not_started_prepared_only", startsAfter: "sound_audio_ended", answerSeconds: roundConfig.answerSeconds }
     : { ok: true, skipped: true, reason: "round_not_active_after_playback" };
   if (activeAfterPlayback && activeAfterPlayback.roundUid === round.roundUid) {
+    const preparedAt = nowIso();
     mergeRoundResultData(activeAfterPlayback, {
       answerWindowState: shouldPlay ? "waiting_for_sound_audio_end" : "prepared_only",
       answerWindowSeconds: roundConfig.answerSeconds,
       answerWindowStartRule: "after_sound_audio_end",
-      answerWindowPreparedAt: nowIso()
+      answerWindowPreparedAt: preparedAt
+    });
+    upsertEventRuntimeState(event.eventUid, {
+      runtimeStatus: "active",
+      phase: shouldPlay ? "sound_playing" : "sound_prepared",
+      activeRoundUid: round.roundUid,
+      phaseStartedAt: preparedAt,
+      phaseEndsAt: "",
+      nextAutoStartAt: "",
+      recoveryRequired: false,
+      recoveryReason: shouldPlay ? "sound_round_started" : "sound_round_prepared",
+      recoveryNote: shouldPlay ? "Sound-Schnipsel wurde gestartet." : "Sound-Schnipsel wurde vorbereitet.",
+      metadata: { source: "createSoundRound", roundUid: round.roundUid, snippetUid: snippet.snippetUid, title: snippet.title, playbackRequested: shouldPlay }
     });
   }
 
@@ -4844,6 +4896,178 @@ function buildSoundReportDerivedOutputs(event, rounds = []) {
   return { chatOutputs, playbackPayloads };
 }
 
+
+function millisecondsUntilIso(iso = "") {
+  const ts = Date.parse(cleanString(iso));
+  if (!Number.isFinite(ts)) return 0;
+  return Math.max(0, ts - Date.now());
+}
+
+function secondsUntilIso(iso = "") {
+  return Math.ceil(millisecondsUntilIso(iso) / 1000);
+}
+
+function publicSoundTimerInfo(eventUid = "") {
+  const uid = cleanString(eventUid);
+  const timerInfo = uid ? soundAutoAdvanceTimers.get(uid) : null;
+  if (!timerInfo) return null;
+  const dueAt = cleanString(timerInfo.dueAt || "");
+  return {
+    active: true,
+    eventUid: uid,
+    reason: cleanString(timerInfo.reason || ""),
+    delaySeconds: Number(timerInfo.delaySeconds || 0),
+    scheduledAt: cleanString(timerInfo.scheduledAt || ""),
+    dueAt,
+    remainingMs: millisecondsUntilIso(dueAt),
+    remainingSeconds: secondsUntilIso(dueAt),
+    schedulePlan: timerInfo.schedulePlan || null
+  };
+}
+
+function buildNextSoundRuntimeStatus(event = null) {
+  if (!event || !event.eventUid) {
+    return { ok: true, enabled: false, status: "no_event", label: "Kein aktives Event", updatedAt: nowIso() };
+  }
+  if (!event.soundEnabled) {
+    return { ok: true, enabled: false, eventUid: event.eventUid, status: "sound_disabled", label: "Sound-Spiel nicht aktiv", updatedAt: nowIso() };
+  }
+
+  const state = getEventRuntimeState(event.eventUid);
+  const activeRound = getActiveSoundRound(event.eventUid);
+  const timerInfo = publicSoundTimerInfo(event.eventUid);
+  const parts = getEventRuntimePartsStatus(event);
+  const runtimeStatus = cleanString(state && state.runtimeStatus || "active").toLowerCase();
+  const phase = cleanString(state && state.phase || "").toLowerCase();
+
+  if (runtimeStatus === "paused" || phase === "stream_offline_paused" || phase === "paused") {
+    return {
+      ok: true,
+      enabled: true,
+      eventUid: event.eventUid,
+      status: "paused",
+      runtimeStatus: state ? state.runtimeStatus : "paused",
+      phase: state ? state.phase : "paused",
+      label: "Pausiert · Fortsetzen erforderlich",
+      detail: state && state.recoveryNote ? state.recoveryNote : "Event ist pausiert.",
+      nextAutoStartAt: "",
+      remainingSeconds: 0,
+      activeRound: null,
+      timer: null,
+      runtimeState: state,
+      parts,
+      updatedAt: nowIso()
+    };
+  }
+
+  if (activeRound) {
+    const rd = activeRound.resultData && typeof activeRound.resultData === "object" ? activeRound.resultData : {};
+    const answerState = cleanString(rd.answerWindowState || "").toLowerCase();
+    const snippet = activeRound.config && activeRound.config.snippet ? activeRound.config.snippet : {};
+    const title = cleanString(snippet.title || snippet.name || activeRound.itemUid || activeRound.roundUid);
+    const answerEndsAt = cleanString(rd.answerWindowEndsAt || "");
+    let status = "round_active";
+    let label = title ? `${title} · aktiv` : "Schnipsel aktiv";
+    let detail = "Aktive Sound-Runde läuft.";
+    let remainingSeconds = 0;
+    let dueAt = "";
+
+    if (answerState === "open") {
+      status = "answer_window";
+      dueAt = answerEndsAt;
+      remainingSeconds = secondsUntilIso(answerEndsAt);
+      label = `Antwortfenster · noch ${remainingSeconds}s`;
+      detail = title ? `${title} · Antwortfenster läuft.` : "Antwortfenster läuft.";
+    } else if (answerState === "waiting_for_sound_audio_end") {
+      status = "sound_playing";
+      label = title ? `${title} · Sound läuft` : "Sound läuft";
+      detail = "Antwortfenster startet nach Sound-Ende.";
+    } else if (answerState === "prepared_only") {
+      status = "prepared";
+      label = title ? `${title} · vorbereitet` : "Schnipsel vorbereitet";
+      detail = "Schnipsel ist vorbereitet, aber noch nicht gestartet.";
+    }
+
+    return {
+      ok: true,
+      enabled: true,
+      eventUid: event.eventUid,
+      status,
+      runtimeStatus: state ? state.runtimeStatus : "active",
+      phase: state ? state.phase : status,
+      label,
+      detail,
+      nextAutoStartAt: dueAt,
+      remainingSeconds,
+      activeRound,
+      activeSnippet: snippet,
+      timer: null,
+      runtimeState: state,
+      parts,
+      updatedAt: nowIso()
+    };
+  }
+
+  if (timerInfo) {
+    const minutes = Math.floor(timerInfo.remainingSeconds / 60);
+    const seconds = timerInfo.remainingSeconds % 60;
+    return {
+      ok: true,
+      enabled: true,
+      eventUid: event.eventUid,
+      status: "waiting",
+      runtimeStatus: state ? state.runtimeStatus : "active",
+      phase: state ? state.phase : "waiting",
+      label: `Nächster Schnipsel in ${minutes}:${String(seconds).padStart(2, "0")} Min.`,
+      detail: timerInfo.dueAt ? `Geplant um ${timerInfo.dueAt}` : "Wartezeit läuft.",
+      nextAutoStartAt: timerInfo.dueAt,
+      remainingSeconds: timerInfo.remainingSeconds,
+      timer: timerInfo,
+      runtimeState: state,
+      parts,
+      updatedAt: nowIso()
+    };
+  }
+
+  const persistedDueAt = cleanString(state && state.nextAutoStartAt || "");
+  if (persistedDueAt) {
+    const remainingSeconds = secondsUntilIso(persistedDueAt);
+    return {
+      ok: true,
+      enabled: true,
+      eventUid: event.eventUid,
+      status: remainingSeconds > 0 ? "waiting_persisted" : "waiting_due",
+      runtimeStatus: state ? state.runtimeStatus : "active",
+      phase: state ? state.phase : "waiting",
+      label: remainingSeconds > 0 ? `Nächster Schnipsel in ${Math.floor(remainingSeconds / 60)}:${String(remainingSeconds % 60).padStart(2, "0")} Min.` : "Nächster Schnipsel fällig",
+      detail: remainingSeconds > 0 ? `Geplant um ${persistedDueAt}` : "Geplante Startzeit ist erreicht. Status neu laden oder Wartezeit überspringen.",
+      nextAutoStartAt: persistedDueAt,
+      remainingSeconds,
+      timer: null,
+      runtimeState: state,
+      parts,
+      updatedAt: nowIso()
+    };
+  }
+
+  return {
+    ok: true,
+    enabled: true,
+    eventUid: event.eventUid,
+    status: parts && parts.sound && parts.sound.completed ? "completed" : "waiting_unscheduled",
+    runtimeStatus: state ? state.runtimeStatus : "active",
+    phase: state ? state.phase : "waiting",
+    label: parts && parts.sound && parts.sound.completed ? "Sound-Teil abgeschlossen" : "Keine Wartezeit geplant",
+    detail: parts && parts.sound && parts.sound.completed ? "Alle Sound-Schnipsel sind erledigt." : "Aktuell ist kein Timer gespeichert. Status neu laden oder Wartezeit überspringen.",
+    nextAutoStartAt: "",
+    remainingSeconds: 0,
+    timer: null,
+    runtimeState: state,
+    parts,
+    updatedAt: nowIso()
+  };
+}
+
 function getSoundRuntimeReport(eventUid = "") {
   ensureSchema();
   const event = cleanString(eventUid) ? getEventByUid(eventUid) : getActiveEvent();
@@ -4869,6 +5093,8 @@ function getSoundRuntimeReport(eventUid = "") {
     metadata: safeJsonParse(row.metadata_json, {})
   }));
   const derived = buildSoundReportDerivedOutputs(eventRow || {}, rounds);
+  const eventRuntimeState = eventRow ? getEventRuntimeState(eventRow.eventUid) : null;
+  const nextSound = eventRow ? buildNextSoundRuntimeStatus(eventRow) : null;
   return {
     ok: true,
     module: MODULE_NAME,
@@ -4877,6 +5103,8 @@ function getSoundRuntimeReport(eventUid = "") {
     activeEvent: publicEventSummary(getActiveEvent()),
     event: publicEventSummary(eventRow),
     eventUid: uid,
+    runtimeState: eventRuntimeState,
+    nextSound,
     counts: {
       rounds: rounds.length,
       active: rounds.filter(row => row.status === "active").length,
@@ -6316,6 +6544,7 @@ module.exports.init = function init(ctx) {
         event: publicEventSummary(event),
         runtimeState: getEventRuntimeState(event.eventUid),
         activeRound: event.soundEnabled ? getActiveSoundRound(event.eventUid) : null,
+        nextSound: buildNextSoundRuntimeStatus(event),
         parts: getEventRuntimePartsStatus(event)
       }));
       sendJson(res, { ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, count: rows.length, rows, lastRecovery: runtimeState.lastRecovery || null, updatedAt: nowIso() });

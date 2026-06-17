@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.36";
-  const MODULE_BUILD = "STEP_EVENT_SOUND_SKIP_WAIT_DASH_1";
+  const MODULE_VERSION = "0.5.39";
+  const MODULE_BUILD = "STEP_EVENT_NEXT_SNIPPET_STATUS_DASH_1";
 
   const api = {
     status: '/api/stream-events/status',
@@ -455,17 +455,9 @@ window.StreamEventsModule = (function(){
 
   function renderOverviewSoundControl(event){
     const report = soundRuntimeReportFor(event);
-    const activeRound = activeSoundRoundFromReport(report);
-    const snippet = activeRound?.config?.snippet || {};
-    const roundLabel = activeRound
-      ? `${esc(snippet.title || snippet.name || activeRound.itemUid || activeRound.roundUid)} · ${esc(soundRoundStatusLabel(activeRound.status || activeRound.result))}`
-      : 'Keine aktive Sound-Runde geladen.';
     return `
       <div class="evs-overview-live-row">
-        <div class="evs-live-control-current">
-          <strong>Sound-Runde</strong>
-          <span>${roundLabel}</span>
-        </div>
+        ${soundControlRows(event, report)}
         <div class="evs-action-row evs-action-row-tight">
           <button type="button" class="evs-btn" data-evs-action="soundSkipWait" data-uid="${esc(event.eventUid)}">Wartezeit überspringen</button>
         </div>
@@ -894,7 +886,78 @@ window.StreamEventsModule = (function(){
 
   function activeSoundRoundFromReport(report){
     const rounds = Array.isArray(report?.rounds) ? report.rounds : [];
-    return rounds.find(round => norm(round.status || round.result) === 'active') || rounds[0] || null;
+    return rounds.find(round => norm(round.status || round.result) === 'active') || null;
+  }
+
+  function latestSoundRoundFromReport(report){
+    const rounds = Array.isArray(report?.rounds) ? report.rounds : [];
+    return rounds[0] || null;
+  }
+
+  function fmtClock(v){
+    if (!v) return '-';
+    const d = new Date(v);
+    return Number.isNaN(d.getTime()) ? esc(v) : esc(d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+  }
+
+  function fmtDurationSeconds(value){
+    const raw = Number(value || 0);
+    if (!Number.isFinite(raw) || raw <= 0) return 'jetzt';
+    const total = Math.max(0, Math.round(raw));
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')} Std.`;
+    return `${m}:${String(s).padStart(2, '0')} Min.`;
+  }
+
+  function nextSoundStatusFromReport(report){
+    return report && report.nextSound && typeof report.nextSound === 'object' ? report.nextSound : null;
+  }
+
+  function nextSoundDisplay(next){
+    if (!next) return { label: 'Noch kein Status geladen', detail: 'Status neu laden, um die nächste Planung zu sehen.', cls: 'is-unknown' };
+    const status = norm(next.status);
+    if (status === 'paused') return { label: 'Pausiert', detail: next.detail || 'Fortsetzen erforderlich.', cls: 'is-paused' };
+    if (status === 'answer_window') return { label: `Antwortfenster · noch ${fmtDurationSeconds(next.remainingSeconds)}`, detail: next.detail || 'Antwortzeit läuft.', cls: 'is-active' };
+    if (status === 'sound_playing') return { label: next.label || 'Sound läuft', detail: next.detail || 'Antwortfenster startet nach Sound-Ende.', cls: 'is-active' };
+    if (status === 'prepared') return { label: next.label || 'Schnipsel vorbereitet', detail: next.detail || 'Noch nicht gestartet.', cls: 'is-warn' };
+    if (status === 'waiting' || status === 'waiting_persisted') {
+      const due = next.nextAutoStartAt ? ` · geplant um ${fmtClock(next.nextAutoStartAt)}` : '';
+      return { label: `in ${fmtDurationSeconds(next.remainingSeconds)}`, detail: `Nächster Schnipsel${due}`, cls: 'is-waiting' };
+    }
+    if (status === 'waiting_due') return { label: 'fällig', detail: next.detail || 'Geplante Startzeit ist erreicht.', cls: 'is-warn' };
+    if (status === 'completed') return { label: 'Sound-Teil abgeschlossen', detail: next.detail || '', cls: 'is-done' };
+    if (status === 'waiting_unscheduled') return { label: 'Keine Wartezeit geplant', detail: next.detail || 'Status neu laden oder Wartezeit überspringen.', cls: 'is-unknown' };
+    return { label: next.label || '-', detail: next.detail || status || '-', cls: 'is-unknown' };
+  }
+
+  function soundControlRows(event, report){
+    const activeRound = activeSoundRoundFromReport(report);
+    const latestRound = latestSoundRoundFromReport(report);
+    const snippet = activeRound?.config?.snippet || {};
+    const latestSnippet = latestRound?.config?.snippet || {};
+    const next = nextSoundStatusFromReport(report);
+    const nextDisplay = nextSoundDisplay(next);
+    const currentLabel = activeRound
+      ? `${esc(snippet.title || activeRound.itemUid || activeRound.roundUid)} · ${esc(soundRoundStatusLabel(activeRound.status || activeRound.result))}`
+      : 'Keine aktive Runde';
+    const latestLabel = !activeRound && latestRound && norm(latestRound.status || latestRound.result) === 'interrupted'
+      ? `<div class="evs-live-control-current evs-live-control-secondary"><strong>Letzte Runde</strong><span>${esc(latestSnippet.title || latestRound.itemUid || latestRound.roundUid)} · nach Unterbrechung wieder eingereiht</span></div>`
+      : '';
+    return `
+      <div class="evs-live-control-stack">
+        <div class="evs-live-control-current">
+          <strong>Aktuelle Runde</strong>
+          <span>${currentLabel}</span>
+        </div>
+        ${latestLabel}
+        <div class="evs-live-control-current evs-next-snippet-row ${esc(nextDisplay.cls)}">
+          <strong>Nächster Schnipsel</strong>
+          <span><b>${esc(nextDisplay.label)}</b><small>${esc(nextDisplay.detail)}</small></span>
+        </div>
+      </div>
+    `;
   }
 
   function soundRotationSummary(event, report){
@@ -951,6 +1014,8 @@ window.StreamEventsModule = (function(){
               <div><strong>${esc(reportCount(textReport, 'wordHits'))}</strong><span>Worttreffer</span></div>
               <div><strong>${esc(reportCount(textReport, 'phraseSolves'))}</strong><span>Satzlösungen</span></div>
             </div>
+
+            ${event?.soundEnabled ? `<section class="evs-runtime-box evs-live-next-sound">${soundControlRows(event, soundReport)}</section>` : ''}
 
             <div class="evs-live-grid">
               <section class="evs-runtime-box evs-live-current-round">
@@ -1099,7 +1164,7 @@ window.StreamEventsModule = (function(){
 
   function soundRoundStatusLabel(status){
     const s = norm(status);
-    const map = { active: 'Aktiv', solved: 'Gelöst', unresolved: 'Ungelöst', skipped: 'Übersprungen', finished: 'Beendet' };
+    const map = { active: 'Aktiv', solved: 'Gelöst', unresolved: 'Ungelöst', skipped: 'Übersprungen', finished: 'Beendet', interrupted: 'Unterbrochen', interrupted_requeued: 'Wieder eingereiht' };
     return map[s] || status || '-';
   }
 
@@ -1574,11 +1639,6 @@ window.StreamEventsModule = (function(){
   function renderSoundLiveControls(event){
     if (!event?.soundEnabled || norm(event.status) !== 'active') return '';
     const report = soundRuntimeReportFor(event);
-    const activeRound = activeSoundRoundFromReport(report);
-    const snippet = activeRound?.config?.snippet || {};
-    const roundLabel = activeRound
-      ? `${esc(snippet.title || activeRound.itemUid || activeRound.roundUid)} · ${esc(soundRoundStatusLabel(activeRound.status || activeRound.result))}`
-      : 'Keine aktive Sound-Runde geladen.';
     return `
       <section class="evs-sound-live-control evs-runtime-box">
         <div class="evs-runtime-box-head">
@@ -1588,10 +1648,7 @@ window.StreamEventsModule = (function(){
           </div>
           <button type="button" class="evs-btn evs-btn-secondary evs-btn-small" data-evs-action="soundRuntimeReport" data-uid="${esc(event.eventUid)}">Status neu laden</button>
         </div>
-        <div class="evs-live-control-current">
-          <strong>Aktuelle Runde</strong>
-          <span>${roundLabel}</span>
-        </div>
+        ${soundControlRows(event, report)}
         <div class="evs-action-row evs-action-row-tight">
           <button type="button" class="evs-btn" data-evs-action="soundSkipWait" data-uid="${esc(event.eventUid)}">Wartezeit überspringen</button>
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="openLiveStatus" data-uid="${esc(event.eventUid)}">Status & Punkte öffnen</button>
