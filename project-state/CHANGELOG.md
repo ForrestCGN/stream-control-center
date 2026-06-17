@@ -1,5 +1,29 @@
 # CHANGELOG – stream-control-center
 
+## 2026-06-17 – EventSound / Sound-System / Sound-Dashboard
+
+### Added
+
+- Sound-Dashboard-Bereich für globale Sound-Pause.
+- Sound-Dashboard-Bereich `Zuletzt gespielt` / Recent Playback.
+- Recent Playback Anzeige mit Audio-Ende, Gap-Ende, Audio-Dauer und Gap-Dauer.
+- Neues Handoff: `docs/current/CURRENT_CHAT_HANDOFF_EVENT_SOUND_RUNTIME_2026-06-17.md`.
+- Neuer Next-Chat-Prompt: `docs/current/NEXT_CHAT_PROMPT_EVENT_SOUND_RUNTIME_2026-06-17.md`.
+
+### Changed
+
+- `sound_system` auf `0.1.30` / `STEP_SOUND_GAP_2_PLAYBACK_LOG_AUDIO_END_AND_GAP_END`.
+- Sound-Dashboard-Badge bei Recent Playback von `Aktiv` auf `Verlauf aktiv` geändert.
+
+### Confirmed
+
+- 2s Sound-Gap im Mischtest bestätigt.
+- Queue startet nach `gapEndedAt`, nicht direkt nach Audio-Ende.
+
+---
+
+# CHANGELOG – stream-control-center
+
 ## 2026-06-15 – Loyalty Go-Live / Punkteimport / Raffle / Mini-Spiele
 
 ### Added

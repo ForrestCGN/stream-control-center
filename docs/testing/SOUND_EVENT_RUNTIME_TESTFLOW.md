@@ -1,6 +1,6 @@
 # Testflow – EventSound Runtime und Sound-System
 
-Stand: 2026-06-16
+Stand: 2026-06-17
 
 ## 1. Versionen prüfen
 
@@ -18,7 +18,7 @@ Erwartung:
 
 ```text
 stream_events 0.5.36 / STEP_EVENT_SOUND_5B_OUTPUT_TARGET_CONFIG
-sound_system 0.1.28 / STEP_SOUND_LOG_1_RECENT_PLAYBACK_LOG
+sound_system 0.1.30 / STEP_SOUND_GAP_2_PLAYBACK_LOG_AUDIO_END_AND_GAP_END
 postPlaybackGap.durationMs = 2000
 playbackLog.prepared = true
 ```
@@ -42,7 +42,6 @@ $ev.snippets | Select-Object snippetUid,title,mediaId,mediaPath
 ```powershell
 $r = Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/stream-events/sound-runtime/next-round?play=1&confirm=1"
 $r | Select-Object ok,eventUid,soundSystemPlaybackRequested
-$r.playbackResult.soundSystemResult.item | Select-Object soundId,label,file,audioUrl,mediaUrl,durationMs,hasAudio,target,outputTarget
 ```
 
 Erwartung:
@@ -58,15 +57,43 @@ Queue startet erst nach der Pause weiter
 
 ```powershell
 $log = Invoke-RestMethod "http://127.0.0.1:8080/api/sound/recent-playback?limit=20"
-$log.items | Format-Table startedAt,finishedAt,status,soundId,label,source,category,playbackMs,gapMs -AutoSize
+$log.items | Select-Object startedAt,audioEndedAt,gapStartedAt,gapEndedAt,finishedAt,status,soundId,label,source,category,playbackMs,gapMs | Format-Table -AutoSize
 ```
 
-## 6. EventBus Diagnose bei Bedarf
+Erwartung:
 
-```powershell
-$bus = Invoke-RestMethod "http://127.0.0.1:8080/api/sound/eventbus/status"
-$bus.recentEvents |
-  Where-Object { $_.action -in @("started","finished","client.error") } |
-  Select-Object at,action,reason,@{n="soundId";e={$_.context.soundId}},@{n="label";e={$_.context.label}},@{n="file";e={$_.context.file}} |
-  Format-Table -AutoSize
+```text
+audioEndedAt liegt vor gapEndedAt
+gapMs liegt ca. bei 2000
+nächster startedAt liegt nach vorherigem gapEndedAt
+```
+
+## 6. Dashboard prüfen
+
+```text
+Dashboard -> System -> Sound-System
+```
+
+Sichtbar:
+
+```text
+Globale Sound-Pause
+Zuletzt gespielt
+```
+
+## 7. Gemischter Test
+
+```text
+2 Alerts
+2 Channelpoint-/UserSounds
+1 EventSound / Runtime-Overlay
+```
+
+Bestätigt am 2026-06-17:
+
+```text
+GifSub 1-4      Audio 19,3 s   Gap 2 s
+100-249 Bits    Audio 15,4 s    Gap 2 s
+Mädchen         Audio 9,4 s     Gap 2 s
+Husten          Audio 2,4 s     Gap 2 s
 ```

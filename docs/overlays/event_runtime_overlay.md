@@ -44,3 +44,25 @@ http://127.0.0.1:8080/overlays/stream_events/event_runtime_overlay.html
 - Overlay-Design bleibt CGN-Stil: kompakt, oben mittig, nicht zu dominant.
 - Ergebnis-/Auswertungsanimation später ergänzen.
 - Dashboard-Konfiguration für Texte/Position/Countdown nur vorsichtig und streamerfreundlich planen.
+
+## Update 2026-06-17
+
+Bestätigt im EventSound-Test:
+
+- Overlay-URL funktioniert: `http://127.0.0.1:8080/overlays/stream_events/event_runtime_overlay.html`
+- Countdown/Runtime-Overlay wird bei EventSound sichtbar.
+- Overlay bleibt während der Sound-System-Gap sichtbar, wenn `holdEventRuntimeOverlay=true` ist.
+- Das Overlay bleibt Anzeige-Komponente und startet kein Audio.
+
+Sound-System-Status dazu:
+
+```text
+postPlaybackGap.holdEventRuntimeOverlay = true
+postPlaybackGap.blockQueueStart = true
+postPlaybackGap.durationMs = 2000
+```
+
+Offen bleibt:
+
+- Ergebnis-/Auswertungsphase ausbauen.
+- Overlay-Capability/Bus-Zustellung später robuster prüfen; Fallback über `/api/sound/event-preroll/status` bleibt wichtig.

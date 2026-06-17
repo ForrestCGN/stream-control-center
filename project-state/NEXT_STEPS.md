@@ -1,5 +1,21 @@
 # NEXT_STEPS – stream-control-center
 
+Stand: 2026-06-17 06:55
+
+## Direkt nächster sinnvoller Schritt – EventSound
+
+```text
+EVENT-SOUND-DASH-1
+```
+
+Ziel: EventSound im bestehenden Dashboard/Stream-Events-Bereich konfigurierbar machen. Sound-Snippets über vorhandenes Media-System auswählen. Countdown, Antwortzeit, Rotation und Ergebnisverhalten streamerfreundlich konfigurieren. Sound-System bleibt Playback-/Queue-Owner.
+
+Danach: `SOUND-DASH-3` für Recent Playback Filter/Details und editierbare Pause.
+
+---
+
+# NEXT_STEPS – stream-control-center
+
 Stand: 2026-06-15 19:55
 
 ## Direkt nächster sinnvoller Schritt

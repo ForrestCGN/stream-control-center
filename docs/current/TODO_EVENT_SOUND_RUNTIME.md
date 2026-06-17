@@ -1,68 +1,37 @@
 # TODO – EventSound Runtime / Sound-System
 
-Stand: 2026-06-16
+Stand: 2026-06-17
 
-## Dashboard-Pflichtpunkte
+## Erledigt seit 2026-06-16
 
-### Sound-System: Pause zwischen Sounds
+- Sound-System Dashboard zeigt globale Sound-Pause sichtbar an.
+- Sound-System Dashboard zeigt Recent Playback / „Zuletzt gespielt“ sichtbar an.
+- Recent Playback trennt echte Audiozeit und Gap: `audioEndedAt`, `gapStartedAt`, `gapEndedAt`, `playbackMs`, `gapMs`.
+- Backend-Status wurde bereinigt; `dashboardTodo` ist aus öffentlichem Sound-Status entfernt.
+- Gemischter Test mit Alerts, Channelpoints/UserSounds und EventSound bestätigt: Queue startet erst nach 2s Gap weiter.
 
-Muss später ins Dashboard:
+## Noch offen
 
-- Einstellung: Pause nach Sound-Ende
-- aktueller interner Standard: `2000ms`
-- streamerfreundlicher Name: „Pause zwischen Sounds“
-- mögliche Werte z. B. 0–10000ms
-- Erklärung: verhindert, dass mehrere Sounds direkt aneinanderkleben
-- Statusanzeige: aktiv/inaktiv, Restzeit falls gerade Pause läuft
+### Sound-System
 
-Aktueller Code-Stand:
+- Pause zwischen Sounds im Dashboard editierbar machen.
+- Recent Playback um Filter erweitern: alle, Alerts, Channelpoints/UserSounds, EventSound, Fehler.
+- Optional Detail-Modal pro Playback-Eintrag.
+- Optional Persistenz nach Neustart prüfen.
 
-```text
-sound_system.postPlaybackGap.durationMs = 2000
-blockQueueStart = true
-holdEventRuntimeOverlay = true
-```
+### EventSound
 
-### Sound-System: Verlauf / Zuletzt gespielt
+- EventSound-Konfiguration ins Dashboard bringen.
+- Sound-Snippet-Auswahl aus Media-System.
+- Countdown-Sekunden, Antwortzeit, Rotation und Verhalten nach erkannter/nicht erkannter Runde konfigurierbar machen.
+- Ausgabeziel weiterhin vom Sound-System steuern lassen, nicht hart im Eventsystem.
 
-Muss später ins Dashboard:
+### Runtime-Overlay
 
-- Bereich: Sound-System -> Verlauf / Zuletzt gespielt
-- Route: `GET /api/sound/recent-playback`
-- anzeigen: Zeit, Soundname, Datei, Quelle, Kategorie, Ausgabeziel, Status, Dauer, Gap
-- Filter: alle, Alerts, UserSounds, EventSound, Fehler
-- für Debug/Test hilfreich: Reihenfolge und Fehler sichtbar machen
-
-### EventSound: Runtime-Konfiguration
-
-Muss später ins Dashboard:
-
-- Sound-Snippet-Auswahl aus Media-System
-- Countdown-Sekunden
-- Antwortzeit
-- Verhalten nach erkannter Runde:
-  - aus Rotation entfernen / als erkannt markieren
-  - später erneut einreihen
-  - trotz falsch/keine Antwort entfernen
-- Ausgabeziel soll weiterhin vom Sound-System gesteuert werden, nicht hart im Eventsystem.
-
-### EventSound: Overlay-Konfiguration
-
-Muss später ins Dashboard:
-
-- Countdown an/aus
-- Position/Design nur vorsichtig, CGN-Standard erhalten
-- Text für „Jetzt raten!“/„LOS!“ konfigurierbar
-- Hold nach Sound-Ende folgt aktuell der Sound-System-Pause
-
-## Technische offene Punkte
-
-- Direkte Bus-Zustellung zum Runtime-Overlay prüfen; aktuell gibt es den funktionalen PreRoll-Fallback über `/api/sound/event-preroll/status`.
-- EventSound später mit echtem Event-Editor verbinden statt Test-Route.
+- Ergebnis-/Auswertungsphase ausbauen.
+- Texte/Position/Countdown später vorsichtig und streamerfreundlich konfigurierbar machen.
 - Reveal-Video nach korrekter Lösung über vorhandenes Media-System planen.
-- Recent Playback Log ggf. später persistent machen, falls Verlauf nach Neustart erhalten bleiben soll.
-- Sound-System-Discord-Routing später für EventSound bewusst entscheiden, nicht nebenbei aktivieren.
 
 ## Nicht vergessen
 
-Die 2 Sekunden Pause zwischen Sounds ist aktuell fest/intern vorbereitet. Sie muss in einer späteren Dashboard-/Config-Runde sichtbar und editierbar werden.
+Eventsystem/Runtime-Overlay darf Sound nicht direkt starten. Sound-System bleibt Owner für Playback, Queue, Gating, Pause und Ausgabe.

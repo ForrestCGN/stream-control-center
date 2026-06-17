@@ -94,3 +94,29 @@ $r.playbackResult.soundSystemResult.item | Select-Object soundId,label,file,audi
 - Sound-/Text-Spieltypen sauber konfigurierbar machen.
 - Sound-Verhalten nach richtiger/falscher Antwort dashboardfähig machen.
 - Reveal-Video nach richtig erkanntem Sound über Media-System planen.
+
+## Update 2026-06-17 – Sound-System / Dashboard bestätigt
+
+Aktueller bestätigter Sound-System-Stand:
+
+```text
+sound_system 0.1.30 / STEP_SOUND_GAP_2_PLAYBACK_LOG_AUDIO_END_AND_GAP_END
+```
+
+EventSound-Testflow bestätigt:
+
+- Testevent mit echten Medien über `create-test-event?confirm=1&useRealMedia=1` angelegt.
+- Runde per `next-round?play=1&confirm=1` gestartet.
+- `Alf 5 sek` wurde als echtes Media-Snippet abgespielt.
+- Runtime-Overlay war sichtbar.
+- Sound-System blieb Playback-/Queue-Owner.
+- Recent Playback zeigt EventSound mit Quelle `stream_events` und Kategorie `stream_event_sound_snippet`.
+
+Wichtig für künftige Event-Dashboard-Arbeiten:
+
+- EventSound darf Sound nicht direkt starten.
+- Ausgabeziel bleibt beim Sound-System.
+- Event-Editor muss Sound/Text als Spieltypen konfigurieren können.
+- Ein Event ist nur startbar, wenn gewählte Spieltypen vollständig konfiguriert sind.
+- Media-Auswahl für Sound-Snippets soll vorhandenes Media-System nutzen.
+- Reveal-Video später ebenfalls über vorhandenes Media-System planen.

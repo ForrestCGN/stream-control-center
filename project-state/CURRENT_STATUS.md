@@ -1,5 +1,24 @@
 # CURRENT_STATUS – stream-control-center
 
+Stand: 2026-06-17 06:55
+
+## Aktueller Zusatzstand – EventSound / Sound-System / Runtime-Dashboard
+
+EventSound, globale Sound-Pause, Recent Playback und Sound-Dashboard sind bestätigt.
+
+```text
+stream_events = 0.5.36 / STEP_EVENT_SOUND_5B_OUTPUT_TARGET_CONFIG
+sound_system = 0.1.30 / STEP_SOUND_GAP_2_PLAYBACK_LOG_AUDIO_END_AND_GAP_END
+event_runtime_overlay.html = 0.2.6
+Dashboard Sound-System = SOUND-DASH-2B_RECENT_PLAYBACK_BADGE_UX
+```
+
+Wichtige offene Punkte: EventSound-Konfiguration ins Dashboard, Runtime-Overlay Result-Phase, Reveal-Video über Media-System, Recent Playback Filter/Details, Pause zwischen Sounds später editierbar.
+
+---
+
+# CURRENT_STATUS – stream-control-center
+
 Stand: 2026-06-15 19:55
 
 ## Aktueller bestätigter Stand

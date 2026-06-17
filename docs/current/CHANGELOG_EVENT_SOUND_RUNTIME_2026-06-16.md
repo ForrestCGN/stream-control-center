@@ -1,45 +1,57 @@
-# Changelog – EventSound Runtime / Sound-System – 2026-06-16
+# Changelog – EventSound Runtime / Sound-System
 
-## SOUND-SAFE-1 / 1B
+Stand: 2026-06-17
 
-- Sound-System-Erweiterungspunkt geplant.
-- Festgelegt: Sound-System bleibt Playback-/Queue-Owner.
-- Runtime-Overlay bleibt Anzeige, nicht Playback-Owner.
+## 2026-06-17
 
-## EVENT-RUNTIME-1 bis 2G
+### SOUND-DASH-1
 
-- Viewer-sicherer Runtime-Overlay-State ergänzt.
-- Kombiniertes Event Runtime Overlay aufgebaut.
-- Countdown-Design schrittweise auf CGN-Stil angepasst.
-- Overlay-Version zuletzt: `0.2.6` mit PreRoll-Fallback.
+- Sound-Dashboard unter `System -> Sound-System` erweitert.
+- Neue sichtbare Bereiche: Globale Sound-Pause und Zuletzt gespielt / Recent Playback.
+- Recent Playback liest `GET /api/sound/recent-playback?limit=20`.
+- Globale Sound-Pause liest aus `GET /api/sound/status`.
 
-## EVENT-SOUND-1 bis 4D
+### SOUND-DASH-1B
 
-- Bus-Kommunikationsplan erstellt.
-- PreRoll-Gate im Sound-System vorbereitet.
-- Kontrollierte Testflows ergänzt.
-- Countdown-Timing/Dedupe im Backend und Overlay gefixt.
-- Echte EventSound-Runde an Sound-System-Playback gebunden.
-- Test-State Cleanup ergänzt, damit hängende Test-Runden nicht dauerhaft blockieren.
+- `sound_system.js` auf `0.1.29` gesetzt.
+- Build: `STEP_SOUND_DASH_1_BACKEND_STATUS_CLEANUP`.
+- `dashboardTodo` aus öffentlichem Status entfernt.
+- Keine Queue-/Playback-Logik geändert.
 
-## EVENT-SOUND-5 / 5B / 5C
+### SOUND-GAP-2
 
-- Echte Media-Snippets statt generated beep vorbereitet.
-- Beispiel: `Alf 5 sek` wurde korrekt als echte MP3 aufgelöst.
+- `sound_system.js` auf `0.1.30` gesetzt.
+- Build: `STEP_SOUND_GAP_2_PLAYBACK_LOG_AUDIO_END_AND_GAP_END`.
+- Recent Playback trennt jetzt `startedAt`, `audioEndedAt`, `gapStartedAt`, `gapEndedAt`, `finishedAt`, `playbackMs`, `gapMs`.
+- Bestätigt: Queue-Gate war funktional korrekt; die alte Anzeige war nur missverständlich.
+
+### SOUND-DASH-2
+
+- Dashboard-Tabelle `Zuletzt gespielt` an neue Felder angepasst.
+- Globale Sound-Pause zeigt zusätzlich Audio-Ende und Gap-Ende.
+
+### SOUND-DASH-2B
+
+- UX-Badge im Recent Playback von `Aktiv` auf `Verlauf aktiv` geändert.
+- Keine Backend-Änderung.
+
+### Bestätigter Mischtest
+
+Gemischter Test mit Alerts, Channelpoints/UserSounds und EventSound bestätigt:
+
+```text
+GifSub 1-4      Audio 19,3 s   Gap 2 s
+100-249 Bits    Audio 15,4 s   Gap 2 s
+Mädchen         Audio 9,4 s    Gap 2 s
+Husten          Audio 2,4 s    Gap 2 s
+```
+
+Die Starts der Folgesounds lagen jeweils direkt nach `gapEndedAt`, nicht nach `audioEndedAt`. Damit ist die 2s Pause funktional bestätigt.
+
+## 2026-06-16
+
+- EventSound mit echten Media-Snippets vorbereitet.
 - EventSound-Ausgabeziel an Sound-System-Config gekoppelt.
-- Overlay-Autoplay-Problem umgangen, indem EventSound nicht mehr hart `overlay` erzwingt.
-- Runtime-Overlay PreRoll-Fallback ergänzt, weil direkte Bus-Zustellung ans Overlay zeitweise `deliveredCount: 0` hatte.
-
-## SOUND-GAP-1
-
+- Runtime-Overlay PreRoll-Fallback ergänzt.
 - Globale 2 Sekunden Pause zwischen Sounds ergänzt.
-- Queue startet erst nach Pause weiter.
-- EventSound-Overlay bleibt während dieser Pause sichtbar.
-- Dashboard-TODO für Konfigurierbarkeit ergänzt.
-
-## SOUND-LOG-1
-
 - Recent Playback Log im Sound-System ergänzt.
-- Neue Route: `GET /api/sound/recent-playback`.
-- Verlauf speichert Soundname, Datei, Quelle, Kategorie, Status, Dauer, Gap und IDs.
-- Dashboard-TODO für Verlauf/Zuletzt gespielt ergänzt.

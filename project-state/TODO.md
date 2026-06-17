@@ -1,5 +1,28 @@
 # TODO – stream-control-center
 
+Stand: 2026-06-17 06:55
+
+## Neu erledigt – EventSound / Sound-System
+
+- EventSound-Testflow mit echter Media-Datei bestätigt.
+- Globale 2s Sound-Pause bestätigt.
+- Recent Playback trennt Audio-Ende und Gap-Ende.
+- Sound-Dashboard zeigt globale Sound-Pause und Zuletzt gespielt.
+- Dashboard-Badge `Verlauf aktiv`.
+
+## Neu offen – EventSound / Sound-System
+
+- `EVENT-SOUND-DASH-1`: EventSound-Konfiguration ins Dashboard bringen.
+- Sound-Snippet-Auswahl über vorhandenes Media-System.
+- Runtime-Overlay Ergebnis-/Auswertungsphase ausbauen.
+- Reveal-Video nach erkanntem Sound über vorhandenes Media-System planen.
+- `SOUND-DASH-3`: Recent Playback Filter/Details ergänzen.
+- Pause zwischen Sounds später editierbar machen.
+
+---
+
+# TODO – stream-control-center
+
 Stand: 2026-06-15 19:55
 
 ## Erledigt

@@ -1,3 +1,15 @@
+# CHANGELOG – current docs
+
+## 2026-06-17 – EventSound / Sound-System / Sound-Dashboard
+
+- EventSound-/Runtime-/Sound-System-Dokumentation aktualisiert.
+- Sound-System Stand auf `0.1.30 / STEP_SOUND_GAP_2_PLAYBACK_LOG_AUDIO_END_AND_GAP_END` dokumentiert.
+- Sound-Dashboard Steps `SOUND-DASH-1`, `SOUND-DASH-1B`, `SOUND-DASH-2`, `SOUND-DASH-2B` dokumentiert.
+- Recent Playback trennt jetzt Audio-Ende und Gap-Ende.
+- Projektstand-Dateien `project-state/*` aktualisiert.
+
+---
+
 # CHANGELOG – stream-control-center
 
 Stand: 2026-06-16
