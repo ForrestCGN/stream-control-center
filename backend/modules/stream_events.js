@@ -23,8 +23,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.36";
-const MODULE_BUILD = "STEP_EVENT_SOUND_5B_OUTPUT_TARGET_CONFIG";
+const MODULE_VERSION = "0.5.37";
+const MODULE_BUILD = "STEP_EVENT_SOUND_DASH_2B_DEFAULT_TARGET_BOTH";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -182,7 +182,7 @@ const DEFAULT_EVENT_CONFIG = {
     countdownPreRollEnabled: false,
     countdownPreRollSeconds: 3,
     outputTarget: "default",
-    target: "stream",
+    target: "both",
     manualTriggerEnabled: true
   },
   textDefaults: {
@@ -621,7 +621,7 @@ function normalizeEventConfig(input = {}) {
   cfg.soundDefaults.countdownPreRollEnabled = boolValue(cfg.soundDefaults.countdownPreRollEnabled, false);
   cfg.soundDefaults.countdownPreRollSeconds = clampNumber(cfg.soundDefaults.countdownPreRollSeconds, 0, 30, 3);
   cfg.soundDefaults.outputTarget = normalizePolicy(cfg.soundDefaults.outputTarget, ["default", "overlay", "device", "both"], "default");
-  cfg.soundDefaults.target = normalizePolicy(cfg.soundDefaults.target, ["stream", "discord", "both"], "stream");
+  cfg.soundDefaults.target = normalizePolicy(cfg.soundDefaults.target, ["stream", "discord", "both"], "both");
   cfg.soundDefaults.manualTriggerEnabled = true;
 
   cfg.textDefaults.defaultPhrasePoints = clampNumber(cfg.textDefaults.defaultPhrasePoints, 0, 10000, 40);
@@ -1039,7 +1039,7 @@ function normalizeSoundEventSettings(config = {}, defaults = null) {
     countdownPreRollEnabled: raw.countdownPreRollEnabled !== undefined ? boolValue(raw.countdownPreRollEnabled) : boolValue(base.countdownPreRollEnabled, false),
     countdownPreRollSeconds: clampNumber(raw.countdownPreRollSeconds ?? base.countdownPreRollSeconds, 0, 30, 3),
     outputTarget: normalizePolicy(raw.outputTarget ?? raw.soundOutputTarget ?? base.outputTarget, ["default", "overlay", "device", "both"], "default"),
-    target: normalizePolicy(raw.target ?? raw.soundTarget ?? base.target, ["stream", "discord", "both"], "stream")
+    target: normalizePolicy(raw.target ?? raw.soundTarget ?? base.target, ["stream", "discord", "both"], "both")
   };
 }
 
@@ -3139,7 +3139,7 @@ function buildSoundPlaybackPayload(event, round, snippet, runtimeConfig) {
       category: "stream_event_sound_snippet",
       requestedBy: MODULE_NAME,
       priority: 70,
-      target: runtimeConfig.target || "stream",
+      target: runtimeConfig.target || "both",
       ...(runtimeConfig.outputTarget && runtimeConfig.outputTarget !== "default" ? { outputTarget: runtimeConfig.outputTarget } : {}),
       source: MODULE_NAME,
       meta: {

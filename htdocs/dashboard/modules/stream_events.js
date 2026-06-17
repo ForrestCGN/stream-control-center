@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.30";
-  const MODULE_BUILD = "STEP_EVENT_SOUND_DASH_2_EVENT_SOUND_SETTINGS";
+  const MODULE_VERSION = "0.5.31";
+  const MODULE_BUILD = "STEP_EVENT_SOUND_DASH_2B_DEFAULT_TARGET_BOTH";
 
   const api = {
     status: '/api/stream-events/status',
@@ -545,9 +545,9 @@ window.StreamEventsModule = (function(){
                 <option value="both" ${soundDefaults.outputTarget === 'both' ? 'selected' : ''}>Beides</option>
               </select></label>
               <label><span>Ziel</span><select id="evsCfgSoundTarget">
-                <option value="stream" ${(soundDefaults.target || 'stream') === 'stream' ? 'selected' : ''}>Stream</option>
+                <option value="stream" ${soundDefaults.target === 'stream' ? 'selected' : ''}>Stream</option>
                 <option value="discord" ${soundDefaults.target === 'discord' ? 'selected' : ''}>Discord</option>
-                <option value="both" ${soundDefaults.target === 'both' ? 'selected' : ''}>Beides</option>
+                <option value="both" ${(soundDefaults.target || 'both') === 'both' ? 'selected' : ''}>Beides</option>
               </select></label>
             </div>
             <div class="evs-two-cols evs-config-inline-grid">
@@ -1809,7 +1809,7 @@ window.StreamEventsModule = (function(){
 
   function soundTargetLabel(value){
     const map = { stream: 'Stream', discord: 'Discord', both: 'Beides' };
-    return map[String(value || 'stream')] || 'Stream';
+    return map[String(value || 'both')] || 'Beides';
   }
 
   function normalizeSoundSettings(sound = {}, defaults = {}){
@@ -1837,7 +1837,7 @@ window.StreamEventsModule = (function(){
       countdownPreRollEnabled: sound.countdownPreRollEnabled !== undefined ? sound.countdownPreRollEnabled === true : defaults.countdownPreRollEnabled === true,
       countdownPreRollSeconds: Number(sound.countdownPreRollSeconds ?? defaults.countdownPreRollSeconds ?? 3),
       outputTarget: sound.outputTarget || sound.soundOutputTarget || defaults.outputTarget || 'default',
-      target: sound.target || sound.soundTarget || defaults.target || 'stream'
+      target: sound.target || sound.soundTarget || defaults.target || 'both'
     };
   }
 
@@ -2260,7 +2260,7 @@ window.StreamEventsModule = (function(){
       countdownPreRollEnabled: document.getElementById('evsSoundCountdownPreRollEnabled')?.checked === true,
       countdownPreRollSeconds: Number(document.getElementById('evsSoundCountdownPreRollSeconds')?.value ?? current.countdownPreRollSeconds ?? 3),
       outputTarget: document.getElementById('evsSoundOutputTarget')?.value || current.outputTarget || 'default',
-      target: document.getElementById('evsSoundTarget')?.value || current.target || 'stream',
+      target: document.getElementById('evsSoundTarget')?.value || current.target || 'both',
       snippets: Array.isArray(fallback.snippets) ? fallback.snippets : []
     };
   }
@@ -2462,7 +2462,7 @@ window.StreamEventsModule = (function(){
           countdownPreRollEnabled: document.getElementById('evsCfgSoundCountdownPreRollEnabled')?.checked === true,
           countdownPreRollSeconds: Number(document.getElementById('evsCfgSoundCountdownPreRollSeconds')?.value || 3),
           outputTarget: document.getElementById('evsCfgSoundOutputTarget')?.value || 'default',
-          target: document.getElementById('evsCfgSoundTarget')?.value || 'stream',
+          target: document.getElementById('evsCfgSoundTarget')?.value || 'both',
           manualTriggerEnabled: true
         },
         textDefaults: {
