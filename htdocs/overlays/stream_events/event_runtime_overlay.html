@@ -350,6 +350,23 @@
       text-shadow: 0 0 8px rgba(168,85,247,.22);
     }
 
+    .result-card.winner-card .result-subline {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .result-card.winner-card .result-extra {
+      display: block;
+      max-width: 330px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: rgba(248, 251, 255, .84);
+      font-size: 14px;
+      line-height: 1.12;
+    }
+
     .result-left {
       display: flex;
       align-items: center;
@@ -689,7 +706,7 @@
       mode: "obs_overlay",
       module: "stream_events",
       name: "Stream Events Runtime Overlay",
-      version: "0.3.4",
+      version: "0.3.5",
       heartbeatIntervalMs: 5000,
       capabilities: [
         "overlay.heartbeat",
@@ -757,6 +774,14 @@
       function cleanText(value, fallback) {
         const text = String(value == null ? "" : value).replace(/[\r\n\t]+/g, " ").replace(/\s{2,}/g, " ").trim();
         return text || fallback || "";
+      }
+
+
+      function truncateText(value, maxLength) {
+        const text = cleanText(value, "");
+        const limit = Math.max(8, Number(maxLength) || 34);
+        if (text.length <= limit) return text;
+        return text.slice(0, Math.max(1, limit - 1)).trimEnd() + "…";
       }
 
       function number(value, fallback) {
@@ -1166,11 +1191,13 @@
         if (key === "sound_solved") {
           const winnerName = cleanText(item && (item.solvedByDisplayName || item.solvedByLogin), "Jemand aus dem Chat");
           const snippetTitle = cleanText(solution || (item && item.title), "den Sound");
+          const shortSnippetTitle = truncateText(snippetTitle, 36);
           const points = Math.max(0, Math.round(number(item && item.awardedPoints, number(item && item.points, 0))));
           kicker = "Richtig erkannt";
           title = winnerName;
-          subline = 'hat "' + snippetTitle + '" erkannt';
-          if (points > 0) subline += ' · +' + points + ' Punkte';
+          subline = "hat den Schnipsel erkannt";
+          if (points > 0) subline += " · +" + points + " Punkte";
+          extra = "„" + shortSnippetTitle + "“";
           showAvatar = true;
           avatarUrl = cleanText(item && item.solvedByAvatarUrl, "");
           avatarName = winnerName;
@@ -1187,6 +1214,7 @@
 
         if (els.resultCard) {
           els.resultCard.classList.toggle("unresolved-card", key === "sound_unresolved");
+          els.resultCard.classList.toggle("winner-card", key === "sound_solved");
         }
         setResultAvatar(avatarUrl, avatarName, showAvatar);
         setText(els.resultKicker, kicker, "Auswertung");
@@ -1349,7 +1377,7 @@
     data-mode="obs_overlay"
     data-module="stream_events"
     data-name="Stream Events Runtime Overlay"
-    data-version="0.3.4"
+    data-version="0.3.5"
     data-heartbeat-ms="5000"
   ></script>
 </body>
