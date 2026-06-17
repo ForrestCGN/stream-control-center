@@ -23,8 +23,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.38";
-const MODULE_BUILD = "STEP_EVENT_SOUND_DASH_3B_PREROLL_COUNTDOWN_DEFAULT_ON";
+const MODULE_VERSION = "0.5.39";
+const MODULE_BUILD = "STEP_EVENT_RUNTIME_PARTS_1_SOUND_TEXT_PARTS_REVEAL_AUTO_ADVANCE";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -300,7 +300,11 @@ let runtimeState = {
     runtimeGateSkipped: 0,
     runtimeGateStreamOffline: 0,
     runtimeGateNoActiveEvent: 0,
-    runtimeOverlayBusEvents: 0
+    runtimeOverlayBusEvents: 0,
+    soundRevealVideosRequested: 0,
+    soundAutoAdvancesScheduled: 0,
+    soundAutoAdvancesStarted: 0,
+    eventsAutoFinished: 0
   },
   runtimeOverlayBus: {
     subscribed: false,
@@ -311,6 +315,24 @@ let runtimeState = {
     state: null
   }
 };
+
+const soundAnswerTimers = new Map();
+const soundAutoAdvanceTimers = new Map();
+
+function clearTimerMapEntry(map, key) {
+  const timer = map.get(key);
+  if (timer) clearTimeout(timer);
+  map.delete(key);
+}
+
+function clearSoundRuntimeTimersForEvent(eventUid = "") {
+  const uid = cleanString(eventUid);
+  if (!uid) return;
+  for (const [roundUid, item] of Array.from(soundAnswerTimers.entries())) {
+    if (item && item.eventUid === uid) clearTimerMapEntry(soundAnswerTimers, roundUid);
+  }
+  clearTimerMapEntry(soundAutoAdvanceTimers, uid);
+}
 
 function createCommunicationBusHandle(meta, buildStatusFn) {
   const moduleName = meta && meta.name ? String(meta.name) : "unknown_module";
@@ -1634,11 +1656,106 @@ function cleanupSoundRuntimeTestState(options = {}) {
   return { ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, step: "EVENT-SOUND-4D", cleanedCount: cleaned.length, cleaned };
 }
 
+function getSolvedSoundSnippetUidSet(eventUid = "") {
+  ensureSchema();
+  const rows = database.all(`
+    SELECT DISTINCT item_uid
+    FROM stream_events_rounds
+    WHERE event_uid = :eventUid AND game_type = 'sound' AND status = 'solved'
+  `, { eventUid: cleanString(eventUid) });
+  return new Set(rows.map(row => cleanString(row.item_uid)).filter(Boolean));
+}
+
+function getEventRuntimePartsStatus(event = null) {
+  ensureSchema();
+  const selectedEvent = event && event.eventUid ? event : null;
+  if (!selectedEvent) {
+    return {
+      ok: true,
+      eventUid: "",
+      enabledParts: [],
+      allConfiguredPartsCompleted: false,
+      sound: { enabled: false, status: "disabled", completed: true },
+      text: { enabled: false, status: "disabled", completed: true }
+    };
+  }
+
+  const eventUid = selectedEvent.eventUid;
+  const snippets = getSoundSnippets(selectedEvent);
+  const soundRounds = getSoundRounds(eventUid, 500);
+  const solvedSoundUids = new Set(soundRounds.filter(row => row.status === "solved").map(row => cleanString(row.itemUid)).filter(Boolean));
+  const activeSoundRound = soundRounds.find(row => row.status === "active") || null;
+  const unresolvedSoundCount = soundRounds.filter(row => row.status === "unresolved").length;
+  const soundRemaining = snippets.filter(item => !solvedSoundUids.has(item.snippetUid));
+  const soundEnabled = selectedEvent.soundEnabled === true;
+  const soundCompleted = !soundEnabled || (snippets.length > 0 && soundRemaining.length === 0 && !activeSoundRound);
+
+  const phrases = getTextPhrases(selectedEvent);
+  const solvedPhraseRows = selectedEvent.textEnabled ? database.all(`
+    SELECT DISTINCT phrase_uid
+    FROM stream_events_text_phrase_solves
+    WHERE event_uid = :eventUid
+  `, { eventUid }) : [];
+  const solvedPhraseUids = new Set(solvedPhraseRows.map(row => cleanString(row.phrase_uid)).filter(Boolean));
+  const textRemaining = phrases.filter(item => !solvedPhraseUids.has(item.phraseUid));
+  const textEnabled = selectedEvent.textEnabled === true;
+  const textCompleted = !textEnabled || (phrases.length > 0 && textRemaining.length === 0);
+
+  const enabledParts = [];
+  if (soundEnabled) enabledParts.push("sound");
+  if (textEnabled) enabledParts.push("text");
+  const allConfiguredPartsCompleted = enabledParts.length > 0 && soundCompleted && textCompleted;
+
+  return {
+    ok: true,
+    eventUid,
+    enabledParts,
+    allConfiguredPartsCompleted,
+    canAutoFinish: selectedEvent.status === STATUS.ACTIVE && allConfiguredPartsCompleted,
+    sound: {
+      enabled: soundEnabled,
+      status: !soundEnabled ? "disabled" : (soundCompleted ? "completed" : (activeSoundRound ? "running" : "waiting")),
+      completed: soundCompleted,
+      total: snippets.length,
+      solved: solvedSoundUids.size,
+      remaining: soundRemaining.length,
+      unresolved: unresolvedSoundCount,
+      activeRoundUid: activeSoundRound ? activeSoundRound.roundUid : "",
+      note: "Nur geloeste Sound-Schnipsel zaehlen als abgeschlossen. Unresolved bleibt nicht abgeschlossen und kann spaeter erneut kommen."
+    },
+    text: {
+      enabled: textEnabled,
+      status: !textEnabled ? "disabled" : (textCompleted ? "completed" : "running"),
+      completed: textCompleted,
+      total: phrases.length,
+      solved: solvedPhraseUids.size,
+      remaining: textRemaining.length,
+      note: "Text/Saetze sind erst abgeschlossen, wenn alle konfigurierten Saetze geloest sind."
+    }
+  };
+}
+
+function maybeAutoFinishEventIfPartsCompleted(eventUid = "", reason = "parts_completed") {
+  ensureSchema();
+  const event = getEventByUid(eventUid);
+  if (!event || event.status !== STATUS.ACTIVE) return { ok: true, skipped: true, reason: "event_not_active", eventUid: cleanString(eventUid) };
+  const parts = getEventRuntimePartsStatus(event);
+  if (!parts.canAutoFinish) {
+    return { ok: true, skipped: true, reason: "parts_not_completed", eventUid: event.eventUid, parts };
+  }
+  runtimeState.counters.eventsAutoFinished += 1;
+  const result = finalizeEvent(event.eventUid, STATUS.FINISHED, "finished");
+  emitBus("stream_events.event", "auto_finished", { eventUid: event.eventUid, reason, parts, result: result && result.ok === true });
+  publishStatus("event.auto_finished", { lastEventUid: event.eventUid, reason });
+  return { ok: true, autoFinished: true, reason, parts, result };
+}
+
 function finalizeEvent(eventUid, status, action) {
   ensureSchema();
   const event = getEventByUid(eventUid);
   if (!event) return { ok: false, error: "event_not_found", eventUid };
   if ([STATUS.FINISHED, STATUS.CANCELLED, STATUS.ARCHIVED].includes(event.status)) return { ok: true, alreadyFinal: true, event };
+  clearSoundRuntimeTimersForEvent(eventUid);
   const now = nowIso();
   const patch = {
     status,
@@ -2008,6 +2125,7 @@ function insertPhraseSolve(event, phrase, phraseIndex, chat, points) {
     metadata_json: jsonEncode({ phrase: getPhraseText(phrase), acceptedAnswers: phrase.acceptedAnswers || [] })
   });
   runtimeState.counters.textPhraseSolves += 1;
+
   const pointsResult = points > 0 ? addPoints(event.eventUid, {
     userLogin: chat.userLogin,
     userDisplayName: chat.userDisplayName,
@@ -2204,8 +2322,10 @@ function processTextChatMessage(chat = {}, options = {}) {
   }
 
   if (solved.length > 0 || wordHits.length > 0) markAction("text.chat.processed", event.eventUid);
+  const partStatus = solved.length > 0 ? getEventRuntimePartsStatus(getEventByUid(event.eventUid)) : null;
+  const autoFinish = partStatus && partStatus.text && partStatus.text.completed ? maybeAutoFinishEventIfPartsCompleted(event.eventUid, "text_part_completed") : null;
   runtimeState.counters.textMessagesProcessed += 1;
-  return { ok: true, eventUid: event.eventUid, solved, wordHits, chatOutputs, solvedCount: solved.length, wordHitCount: wordHits.length, chatOutputCount: chatOutputs.length };
+  return { ok: true, eventUid: event.eventUid, solved, wordHits, chatOutputs, solvedCount: solved.length, wordHitCount: wordHits.length, chatOutputCount: chatOutputs.length, partStatus, autoFinish };
 }
 
 function processParallelChatMessage(chat = {}, context = {}) {
@@ -2958,6 +3078,7 @@ function getRuntimeOverlayState(eventUid = "") {
     text: {
       enabled: !!(selectedEvent && selectedEvent.textEnabled)
     },
+    parts: selectedEvent ? getEventRuntimePartsStatus(selectedEvent) : getEventRuntimePartsStatus(null),
     ranking: {
       count: ranking.count || 0,
       top3: Array.isArray(ranking.top3) ? ranking.top3.map(row => ({ rank: row.rank, userLogin: row.userLogin, userDisplayName: row.userDisplayName, points: row.points })) : []
@@ -3042,6 +3163,153 @@ function pickNextSoundSnippet(event, options = {}) {
   return { ok: true, snippet: selected, runtimeConfig, total: snippets.length, remaining: candidates.length };
 }
 
+
+function getRevealVideoMediaRef(snippet = {}) {
+  const raw = snippet && typeof snippet === "object" ? snippet : {};
+  return cleanString(raw.revealVideoId || raw.videoMediaId || raw.revealMediaId || (raw.raw && (raw.raw.revealVideoId || raw.raw.videoMediaId || raw.raw.revealMediaId)) || "");
+}
+
+function buildRevealVideoPlaybackPayload(event, round, snippet, runtimeConfig = {}) {
+  const revealVideoId = getRevealVideoMediaRef(snippet);
+  const title = cleanString(snippet.title || "Sound-Aufloesung");
+  const mediaFields = buildSoundSystemMediaFieldsForSnippet({
+    mediaId: revealVideoId,
+    mediaPath: revealVideoId,
+    title: `Aufloesung: ${title}`
+  });
+  return {
+    prepared: true,
+    revealVideoId,
+    mediaResolved: !!(mediaFields && mediaFields.ok),
+    mediaResolution: mediaFields,
+    item: {
+      sourceModule: MODULE_NAME,
+      eventUid: event.eventUid,
+      roundUid: round.roundUid,
+      snippetUid: snippet.snippetUid,
+      mediaId: mediaFields.ok ? (mediaFields.mediaId || "") : revealVideoId,
+      mediaPath: mediaFields.ok ? (mediaFields.mediaPath || "") : revealVideoId,
+      mediaResolutionError: mediaFields.ok ? "" : mediaFields.error,
+      label: `Aufloesung: ${title}`,
+      ...(mediaFields.ok ? mediaFields : {}),
+      mediaType: "video",
+      type: "video",
+      category: "stream_event_reveal_video",
+      requestedBy: MODULE_NAME,
+      priority: 75,
+      target: runtimeConfig.target || "both",
+      outputTarget: "overlay",
+      source: MODULE_NAME,
+      meta: {
+        module: MODULE_NAME,
+        owner: MODULE_NAME,
+        eventUid: event.eventUid,
+        roundUid: round.roundUid,
+        snippetUid: snippet.snippetUid,
+        revealVideo: true,
+        eventPreRoll: {
+          enabled: true,
+          countdownEnabled: false,
+          owner: MODULE_NAME,
+          eventUid: event.eventUid,
+          roundUid: round.roundUid,
+          seconds: 1,
+          finalLabel: "AUFLOESUNG",
+          caption: "Aufloesung startet",
+          guessingLabel: "Aufloesung laeuft"
+        }
+      }
+    }
+  };
+}
+
+function requestRevealVideoForSolvedSoundRound(event, round, snippet, runtimeConfig = {}) {
+  if (!event || !round || !snippet) return { ok: true, skipped: true, reason: "missing_context" };
+  if (!boolValue(runtimeConfig.revealVideoEnabled, true)) return { ok: true, skipped: true, reason: "reveal_video_disabled" };
+  if (cleanString(runtimeConfig.revealVideoMode, "after_solved") !== "after_solved") return { ok: true, skipped: true, reason: "reveal_video_mode_not_after_solved" };
+  const revealVideoId = getRevealVideoMediaRef(snippet);
+  if (!revealVideoId) return { ok: true, skipped: true, reason: "reveal_video_missing" };
+  const playback = buildRevealVideoPlaybackPayload(event, round, snippet, runtimeConfig);
+  if (playback.item && playback.item.mediaResolutionError) {
+    return { ok: false, skipped: false, revealVideoId, error: playback.item.mediaResolutionError, playback };
+  }
+  const result = requestSoundSystemPlaybackForSoundRound(playback, { confirm: "1" });
+  runtimeState.counters.soundRevealVideosRequested += 1;
+  emitBus("stream_events.sound", "reveal_video_requested", {
+    eventUid: event.eventUid,
+    roundUid: round.roundUid,
+    snippetUid: snippet.snippetUid,
+    revealVideoId,
+    result
+  });
+  publishStatus("sound.reveal_video_requested", { lastEventUid: event.eventUid, roundUid: round.roundUid });
+  return { ok: !!(result && result.ok), revealVideoId, playbackRequested: true, result, playback };
+}
+
+function cancelSoundAnswerTimer(roundUid = "") {
+  clearTimerMapEntry(soundAnswerTimers, cleanString(roundUid));
+}
+
+function scheduleSoundAnswerTimer(eventUid = "", roundUid = "", answerSeconds = 60) {
+  const uid = cleanString(eventUid);
+  const rid = cleanString(roundUid);
+  if (!uid || !rid) return { ok: false, error: "event_or_round_missing" };
+  cancelSoundAnswerTimer(rid);
+  const seconds = clampNumber(answerSeconds, 5, 300, 60);
+  const timer = setTimeout(() => {
+    try { handleSoundAnswerWindowExpired(uid, rid); } catch (err) { runtimeState.lastError = err && err.message ? err.message : String(err); }
+  }, seconds * 1000);
+  if (typeof timer.unref === "function") timer.unref();
+  soundAnswerTimers.set(rid, { timer, eventUid: uid, roundUid: rid, answerSeconds: seconds, scheduledAt: nowIso() });
+  return { ok: true, eventUid: uid, roundUid: rid, answerSeconds: seconds };
+}
+
+function scheduleNextSoundRound(eventUid = "", reason = "auto_advance") {
+  const event = getEventByUid(eventUid);
+  if (!event || event.status !== STATUS.ACTIVE || !event.soundEnabled) return { ok: true, skipped: true, reason: "event_not_active_sound" };
+  const runtimeConfig = getSoundRuntimeConfig(event);
+  if (!boolValue(runtimeConfig.autoAdvanceRounds, true)) return { ok: true, skipped: true, reason: "auto_advance_disabled" };
+  const parts = getEventRuntimePartsStatus(event);
+  if (parts.sound.completed) return maybeAutoFinishEventIfPartsCompleted(event.eventUid, reason);
+  if (parts.sound.activeRoundUid) return { ok: true, skipped: true, reason: "active_round_exists", parts };
+  clearTimerMapEntry(soundAutoAdvanceTimers, event.eventUid);
+  const delaySeconds = clampNumber(runtimeConfig.roundDelaySeconds, 0, 120, 5);
+  const timer = setTimeout(() => {
+    try {
+      const activeEvent = getEventByUid(event.eventUid);
+      if (!activeEvent || activeEvent.status !== STATUS.ACTIVE) return;
+      const currentParts = getEventRuntimePartsStatus(activeEvent);
+      if (currentParts.sound.completed) {
+        maybeAutoFinishEventIfPartsCompleted(activeEvent.eventUid, `${reason}:sound_completed`);
+        return;
+      }
+      if (currentParts.sound.activeRoundUid) return;
+      const result = createSoundRound({ eventUid: activeEvent.eventUid, play: true, confirm: "1" });
+      runtimeState.counters.soundAutoAdvancesStarted += 1;
+      emitBus("stream_events.sound", "auto_advance_started", { eventUid: activeEvent.eventUid, reason, result });
+      publishStatus("sound.auto_advance_started", { lastEventUid: activeEvent.eventUid });
+    } catch (err) {
+      runtimeState.lastError = err && err.message ? err.message : String(err);
+    } finally {
+      clearTimerMapEntry(soundAutoAdvanceTimers, event.eventUid);
+    }
+  }, delaySeconds * 1000);
+  if (typeof timer.unref === "function") timer.unref();
+  soundAutoAdvanceTimers.set(event.eventUid, { timer, eventUid: event.eventUid, reason, delaySeconds, scheduledAt: nowIso() });
+  runtimeState.counters.soundAutoAdvancesScheduled += 1;
+  return { ok: true, scheduled: true, eventUid: event.eventUid, delaySeconds, reason, parts };
+}
+
+function handleSoundAnswerWindowExpired(eventUid = "", roundUid = "") {
+  cancelSoundAnswerTimer(roundUid);
+  const round = database.get("SELECT * FROM stream_events_rounds WHERE round_uid = :roundUid LIMIT 1", { roundUid: cleanString(roundUid) });
+  const parsed = rowToRound(round);
+  if (!parsed || parsed.eventUid !== cleanString(eventUid)) return { ok: true, skipped: true, reason: "round_missing_or_event_mismatch" };
+  if (parsed.status !== "active") return { ok: true, skipped: true, reason: "round_not_active", status: parsed.status };
+  const unresolved = markSoundRoundUnresolved({ eventUid, roundUid, reason: "answer_window_timeout", policy: "requeue_later" });
+  const next = unresolved && unresolved.ok ? scheduleNextSoundRound(eventUid, "answer_window_timeout") : null;
+  return { ok: true, unresolved, next };
+}
 
 function buildSoundSystemMediaFieldsForSnippet(snippet = {}) {
   const mediaId = cleanString(snippet.mediaId || snippet.media_id || "");
@@ -3286,6 +3554,11 @@ function createSoundRound(options = {}) {
     }
     database.updateByKey("stream_events_rounds", "round_uid", round.roundUid, update);
   } catch (_) {}
+  const activeAfterPlayback = getActiveSoundRound(event.eventUid);
+  const answerTimer = activeAfterPlayback && activeAfterPlayback.roundUid === round.roundUid
+    ? scheduleSoundAnswerTimer(event.eventUid, round.roundUid, roundConfig.answerSeconds)
+    : { ok: true, skipped: true, reason: "round_not_active_after_playback" };
+
   const chatOutput = buildChatOutput("sound.round.started", {
     title: snippet.title,
     soundTitle: snippet.title,
@@ -3295,9 +3568,9 @@ function createSoundRound(options = {}) {
   runtimeState.counters.soundRoundsPrepared += 1;
   runtimeState.counters.soundRoundsStarted += 1;
   markAction("sound.round.started", event.eventUid);
-  emitBus("stream_events.sound", "round_started", { eventUid: event.eventUid, round, snippet: safeJson(snippet, {}), playback, chatOutput });
+  emitBus("stream_events.sound", "round_started", { eventUid: event.eventUid, round, snippet: safeJson(snippet, {}), playback, chatOutput, answerTimer });
   publishStatus("sound.round_started", { lastEventUid: event.eventUid, roundUid });
-  return { ok: true, eventUid: event.eventUid, preCleanup, round: getActiveSoundRound(event.eventUid) || round, snippet, acceptedAnswersDebug: buildSoundAcceptedAnswersDebug(snippet), playback, playbackResult, chatOutput, directPlayback: false, soundSystemPlaybackRequested: !!shouldPlay };
+  return { ok: true, eventUid: event.eventUid, preCleanup, round: getActiveSoundRound(event.eventUid) || round, snippet, acceptedAnswersDebug: buildSoundAcceptedAnswersDebug(snippet), playback, playbackResult, answerTimer, chatOutput, directPlayback: false, soundSystemPlaybackRequested: !!shouldPlay };
 }
 
 function answerMatchesSoundSnippet(answer, snippet = {}) {
@@ -3311,6 +3584,9 @@ function resolveSoundRound(body = {}) {
   ensureSchema();
   const round = getActiveSoundRound(body.eventUid || "");
   if (!round) return { ok: false, error: "active_sound_round_missing" };
+  const requestedRoundUid = cleanString(body.roundUid || body.round_uid);
+  if (requestedRoundUid && requestedRoundUid !== round.roundUid) return { ok: true, skipped: true, reason: "active_round_uid_mismatch", activeRoundUid: round.roundUid, requestedRoundUid };
+  cancelSoundAnswerTimer(round.roundUid);
   const event = getEventByUid(round.eventUid);
   if (!event || event.status !== STATUS.ACTIVE) return { ok: false, error: "event_not_active", eventUid: round.eventUid };
   const snippet = round.config && round.config.snippet ? round.config.snippet : {};
@@ -3321,7 +3597,8 @@ function resolveSoundRound(body = {}) {
   if (!answer) return { ok: false, error: "answer_required" };
   const correct = answerMatchesSoundSnippet(answer, snippet);
   if (!correct) return { ok: true, solved: false, reason: "answer_not_accepted", eventUid: event.eventUid, roundUid: round.roundUid };
-  const points = clampNumber(body.points ?? snippet.points ?? getSoundRuntimeConfig(event).defaultPoints, 0, 10000, 10);
+  const runtimeConfig = getSoundRuntimeConfig(event);
+  const points = clampNumber(body.points ?? snippet.points ?? runtimeConfig.defaultPoints, 0, 10000, 10);
   const now = nowIso();
   const resultData = { solved: true, userLogin, userDisplayName, answer, points, solvedAt: now, chatMessageId: cleanString(body.messageId || body.chatMessageId || body.message_id) };
   database.updateByKey("stream_events_rounds", "round_uid", round.roundUid, {
@@ -3331,6 +3608,8 @@ function resolveSoundRound(body = {}) {
     updated_at: now,
     result_json: jsonEncode(resultData)
   });
+  cancelSoundAnswerTimer(round.roundUid);
+
   const pointsResult = points > 0 ? addPoints(event.eventUid, {
     userLogin,
     userDisplayName,
@@ -3341,13 +3620,27 @@ function resolveSoundRound(body = {}) {
     createdBy: MODULE_NAME,
     metadata: { roundUid: round.roundUid, snippetUid: snippet.snippetUid, title: snippet.title, answer, chatMessageId: cleanString(body.messageId || body.chatMessageId || body.message_id) }
   }) : { ok: true, ranking: getRanking(event.eventUid).rows };
+  const revealVideoResult = requestRevealVideoForSolvedSoundRound(event, round, snippet, runtimeConfig);
+  const partStatusAfterSolve = getEventRuntimePartsStatus(getEventByUid(event.eventUid));
+  const nextSoundRound = !partStatusAfterSolve.sound.completed ? scheduleNextSoundRound(event.eventUid, "sound_solved") : null;
+  const autoFinish = partStatusAfterSolve.sound.completed ? maybeAutoFinishEventIfPartsCompleted(event.eventUid, "sound_part_completed") : null;
+
   const chatOutput = buildChatOutput("sound.solved", { user: userDisplayName, displayName: userDisplayName, title: snippet.title, soundTitle: snippet.title, points }, { reason: "sound_solved" });
   runtimeState.counters.soundRoundsSolved += 1;
   markAction("sound.round.solved", event.eventUid);
   const updatedRound = database.get("SELECT * FROM stream_events_rounds WHERE round_uid = :roundUid", { roundUid: round.roundUid });
-  emitBus("stream_events.sound", "solved", { eventUid: event.eventUid, round: rowToRound(updatedRound), userLogin, userDisplayName, answer, points, chatOutput, ranking: pointsResult.ranking || [] });
+  const updatedRoundPublic = rowToRound(updatedRound);
+  const mergedResultData = { ...(updatedRoundPublic && updatedRoundPublic.resultData ? updatedRoundPublic.resultData : resultData), revealVideo: revealVideoResult, partStatus: partStatusAfterSolve, nextSoundRound, autoFinish };
+  try {
+    database.updateByKey("stream_events_rounds", "round_uid", round.roundUid, {
+      result_json: jsonEncode(mergedResultData),
+      updated_at: nowIso()
+    });
+  } catch (_) {}
+  const finalRound = rowToRound(database.get("SELECT * FROM stream_events_rounds WHERE round_uid = :roundUid", { roundUid: round.roundUid })) || updatedRoundPublic;
+  emitBus("stream_events.sound", "solved", { eventUid: event.eventUid, round: finalRound, userLogin, userDisplayName, answer, points, chatOutput, ranking: pointsResult.ranking || [], revealVideo: revealVideoResult, partStatus: partStatusAfterSolve, nextSoundRound, autoFinish });
   publishStatus("sound.solved", { lastEventUid: event.eventUid, roundUid: round.roundUid });
-  return { ok: true, solved: true, eventUid: event.eventUid, roundUid: round.roundUid, points, chatOutput, pointsResult };
+  return { ok: true, solved: true, eventUid: event.eventUid, roundUid: round.roundUid, points, chatOutput, pointsResult, revealVideo: revealVideoResult, partStatus: partStatusAfterSolve, nextSoundRound, autoFinish };
 }
 
 
@@ -3436,6 +3729,9 @@ function markSoundRoundUnresolved(body = {}) {
   ensureSchema();
   const round = getActiveSoundRound(body.eventUid || "");
   if (!round) return { ok: false, error: "active_sound_round_missing" };
+  const requestedRoundUid = cleanString(body.roundUid || body.round_uid);
+  if (requestedRoundUid && requestedRoundUid !== round.roundUid) return { ok: true, skipped: true, reason: "active_round_uid_mismatch", activeRoundUid: round.roundUid, requestedRoundUid };
+  cancelSoundAnswerTimer(round.roundUid);
   const event = getEventByUid(round.eventUid);
   const snippet = round.config && round.config.snippet ? round.config.snippet : {};
   const runtimeConfig = getSoundRuntimeConfig(event);
@@ -3452,9 +3748,11 @@ function markSoundRoundUnresolved(body = {}) {
   const chatOutput = buildChatOutput("sound.unresolved", { title: snippet.title, soundTitle: snippet.title, policy }, { reason: "sound_unresolved" });
   runtimeState.counters.soundRoundsUnresolved += 1;
   markAction("sound.round.unresolved", round.eventUid);
-  emitBus("stream_events.sound", "unresolved", { eventUid: round.eventUid, roundUid: round.roundUid, policy, chatOutput });
+  const partStatus = getEventRuntimePartsStatus(getEventByUid(round.eventUid));
+  const nextSoundRound = scheduleNextSoundRound(round.eventUid, cleanString(body.reason || "sound_unresolved"));
+  emitBus("stream_events.sound", "unresolved", { eventUid: round.eventUid, roundUid: round.roundUid, policy, chatOutput, partStatus, nextSoundRound });
   publishStatus("sound.unresolved", { lastEventUid: round.eventUid, roundUid: round.roundUid });
-  return { ok: true, eventUid: round.eventUid, roundUid: round.roundUid, policy, chatOutput };
+  return { ok: true, eventUid: round.eventUid, roundUid: round.roundUid, policy, chatOutput, partStatus, nextSoundRound };
 }
 
 function getSoundRuntimeStatus(eventUid = "") {
@@ -3471,6 +3769,11 @@ function getSoundRuntimeStatus(eventUid = "") {
     activeRound,
     snippets: event ? getSoundSnippets(event).map(item => ({ snippetUid: item.snippetUid, title: item.title, mediaId: item.mediaId, acceptedAnswerCount: item.acceptedAnswers.length, acceptedAnswersDebug: buildSoundAcceptedAnswersDebug(item), points: item.points })) : [],
     runtimeConfig: event ? getSoundRuntimeConfig(event) : getSoundRuntimeConfig(null),
+    parts: event ? getEventRuntimePartsStatus(event) : getEventRuntimePartsStatus(null),
+    timers: {
+      answerTimers: soundAnswerTimers.size,
+      autoAdvanceTimers: soundAutoAdvanceTimers.size
+    },
     counters: safeJson(runtimeState.counters, {}),
     rules: {
       preparedOnly: false,
@@ -4713,6 +5016,7 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "GET", path: `${prefix}/sound-runtime/safety-plan`, description: "SOUND-SAFE-1: Read-only Plan fuer Sound-System-Erweiterungspunkt, PreRoll/Countdown und Tests" },
       { method: "GET", path: `${prefix}/sound-runtime/bus-integration-plan`, description: "EVENT-SOUND-2: Kommunikationsstatus fuer Countdown-before-Playback ueber Communication/EventBus und Sound-System-Gate" },
       { method: "GET", path: `${prefix}/runtime-overlay/state`, description: "EVENT-RUNTIME-2C: Viewer-sicherer Read-only State fuer Countdown-/Result-phasen des Event-Runtime-Overlays" },
+      { method: "GET", path: `${prefix}/runtime-parts/status`, description: "EVENT-RUNTIME-PARTS-1: Status der getrennten Teilspiele Sound/Text und Gesamtabschluss-Regel" },
       { method: "GET", path: `${prefix}/statistics/users`, description: "Statistik-Userliste fuer Dropdown/Filter, optional eventUid" },
       { method: "GET", path: `${prefix}/statistics/user/:login`, description: "User-Detailstatistik fuer Text/Sound/Punkte, optional eventUid" },
       { method: "POST", path: `${prefix}/text-runtime/test-chat`, description: "Testet eine Chatnachricht gegen das aktive Text-Event" },
@@ -4906,6 +5210,15 @@ module.exports.init = function init(ctx) {
   reg("get", `${prefix}/runtime-overlay/state`, (req, res) => {
     try {
       sendJson(res, getRuntimeOverlayState(req.query.eventUid || req.query.event_uid || ""));
+    } catch (err) {
+      handleError(res, err);
+    }
+  });
+
+  reg("get", `${prefix}/runtime-parts/status`, (req, res) => {
+    try {
+      const event = (req.query.eventUid || req.query.event_uid) ? getEventByUid(req.query.eventUid || req.query.event_uid) : getActiveEvent();
+      sendJson(res, { ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, event: publicEventSummary(event), parts: getEventRuntimePartsStatus(event) });
     } catch (err) {
       handleError(res, err);
     }
@@ -5315,6 +5628,7 @@ module.exports._internal = {
   buildBusStatus,
   processTextChatMessage,
   processSoundChatMessage,
+  getEventRuntimePartsStatus,
   getTextRuntimeStatus,
   getSoundRuntimeStatus,
   getSoundRuntimeReport,
