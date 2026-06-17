@@ -24,8 +24,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.49";
-const MODULE_BUILD = "STEP_EVENT_RUNTIME_OVERLAY_1B";
+const MODULE_VERSION = "0.5.50";
+const MODULE_BUILD = "STEP_EVENT_RUNTIME_ANSWER_COUNTDOWN_1";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -1199,7 +1199,7 @@ function normalizeSoundEventSettings(config = {}, defaults = null) {
   const base = defaults && typeof defaults === "object" ? defaults : ((getEventConfig().config || DEFAULT_EVENT_CONFIG).soundDefaults || DEFAULT_EVENT_CONFIG.soundDefaults);
   const playbackMode = normalizePolicy(raw.playbackMode ?? base.playbackMode, ["manual", "random_auto", "sequence_auto"], "random_auto");
   return {
-    answerSeconds: clampNumber(raw.answerSeconds ?? raw.defaultAnswerSeconds ?? base.defaultAnswerSeconds, 5, 300, 60),
+    answerSeconds: clampNumber(raw.answerSeconds ?? raw.defaultAnswerSeconds ?? base.defaultAnswerSeconds, 5, 3600, 60),
     defaultPoints: clampNumber(raw.defaultPoints ?? base.defaultPoints, 0, 10000, 10),
     playbackMode,
     manualTriggerEnabled: true,
@@ -2613,7 +2613,7 @@ function handleSoundPlaybackBusEnvelope(envelope = {}) {
 
   const snippet = round.config && round.config.snippet ? round.config.snippet : {};
   const runtimeConfig = round.config && round.config.runtimeConfig ? round.config.runtimeConfig : getSoundRuntimeConfig(getEventByUid(eventUid));
-  const answerSeconds = clampNumber(round.config && round.config.answerSeconds ? round.config.answerSeconds : (snippet.answerSeconds || runtimeConfig.answerSeconds), 5, 300, 60);
+  const answerSeconds = clampNumber(round.config && round.config.answerSeconds ? round.config.answerSeconds : (snippet.answerSeconds || runtimeConfig.answerSeconds), 5, 3600, 60);
   const result = scheduleSoundAnswerTimer(eventUid, roundUid, answerSeconds, {
     reason: action === "client.audio_ended" ? "sound_audio_ended" : "sound_playback_finished",
     playbackAction: action,
@@ -2763,7 +2763,7 @@ function normalizeSoundSnippet(snippet = {}, index = 0) {
     revealVideoId: cleanString(raw.revealVideoId || raw.videoMediaId || raw.revealMediaId),
     acceptedAnswers: acceptedAnswers.map(cleanString).filter(Boolean),
     points: clampNumber(raw.points ?? raw.firstPoints ?? raw.score, 0, 10000, 10),
-    answerSeconds: clampNumber(raw.answerSeconds ?? raw.seconds, 5, 300, 20),
+    answerSeconds: clampNumber(raw.answerSeconds ?? raw.seconds, 5, 3600, 20),
     raw: safeJson(raw, {})
   };
 }
@@ -2936,7 +2936,7 @@ function buildEventSoundBusIntegrationPlan(eventUid = "") {
         requestId: "<soundSystemRequestId>",
         countdownSeconds: runtimeConfig.countdownPreRollSeconds || 3,
         finalLabel: busOverlay ? cleanString(busOverlay.finalLabel, "LOS!") : "LOS!",
-        caption: "JETZT RATEN!"
+        caption: ""
       }
     },
     safetyRules: {
@@ -3121,7 +3121,7 @@ function buildRuntimeOverlayPhase(event, activeRound, latestRound) {
     const busOverlay = getActiveRuntimeOverlayBusState();
     if (event.soundEnabled && busOverlay) {
       if (busOverlay.mode === "countdown") return { key: "sound_preroll_countdown", label: "Sound startet gleich", visible: true, reason: "sound_system_runtime_bus_countdown", busOverlay };
-      if (busOverlay.mode === "guessing") return { key: "sound_guessing", label: "Jetzt raten", visible: true, reason: "sound_system_runtime_bus_guessing", busOverlay };
+      if (busOverlay.mode === "guessing") return { key: "sound_guessing", label: "Sound läuft", visible: false, reason: "sound_system_runtime_bus_guessing_hidden_until_answer_window", busOverlay };
     }
     if (event.soundEnabled && activeRound) {
       return { key: "sound_answer_window", label: "Soundrunde aktiv", visible: false, reason: "sound_playback_owned_by_sound_system" };
@@ -3163,7 +3163,7 @@ function buildRuntimeOverlayDisplay(event, phase, activeRound, latestRound, rank
     subline = "Gleich kommt der Schnipsel.";
   } else if (phase.key === "sound_guessing") {
     headline = "LOS!";
-    subline = "Jetzt raten!";
+    subline = "";
   } else if (phase.key === "sound_answer_window") {
     headline = "Soundrunde läuft";
     subline = "Jetzt im Chat raten!";
@@ -3201,7 +3201,7 @@ function buildRuntimeOverlayDisplay(event, phase, activeRound, latestRound, rank
     showCountdown: phase.key === "sound_preroll_countdown" || phase.key === "countdown",
     showTop3: ["sound_solved", "sound_unresolved", "finished"].includes(phase.key) && top3.length > 0,
     countdownFinalLabel: phase.busOverlay ? cleanString(phase.busOverlay.finalLabel, "LOS!") : "LOS!",
-    guessingLabel: phase.busOverlay ? cleanString(phase.busOverlay.guessingLabel, "Jetzt raten!") : "Jetzt raten!",
+    guessingLabel: phase.busOverlay ? cleanString(phase.busOverlay.guessingLabel, "") : "",
     top3
   };
 }
@@ -3242,6 +3242,29 @@ function buildRuntimeOverlayCountdownPlan(runtimeConfig = {}, phase = {}) {
     overlayStartsSound: false,
     soundSystemControlsPlayback: true,
     preRollPlan
+  };
+}
+
+function buildRuntimeOverlayAnswerWindowState(activeRound = null) {
+  if (!activeRound || activeRound.status !== "active") return { active: false, seconds: 0, remainingSeconds: 0, startedAt: "", endsAt: "", roundUid: "", eventUid: "" };
+  const resultData = activeRound.resultData && typeof activeRound.resultData === "object" ? activeRound.resultData : {};
+  const state = cleanString(resultData.answerWindowState || "").toLowerCase();
+  if (state !== "open" || resultData.answerWindowClosedAt) return { active: false, seconds: 0, remainingSeconds: 0, startedAt: "", endsAt: "", roundUid: activeRound.roundUid || "", eventUid: activeRound.eventUid || "" };
+  const startedAt = cleanString(resultData.answerWindowStartedAt || "");
+  const endsAt = cleanString(resultData.answerWindowEndsAt || "");
+  const seconds = clampNumber(resultData.answerWindowSeconds || (activeRound.config && activeRound.config.answerSeconds), 5, 3600, 60);
+  const endsAtMs = Date.parse(endsAt);
+  const remainingSeconds = Number.isFinite(endsAtMs) && endsAtMs > 0 ? Math.max(0, Math.min(seconds, Math.ceil((endsAtMs - Date.now()) / 1000))) : 0;
+  return {
+    active: remainingSeconds > 0,
+    seconds,
+    remainingSeconds,
+    startedAt,
+    endsAt,
+    startedAtMs: Date.parse(startedAt) || 0,
+    endsAtMs: Number.isFinite(endsAtMs) ? endsAtMs : 0,
+    roundUid: activeRound.roundUid || "",
+    eventUid: activeRound.eventUid || ""
   };
 }
 
@@ -3312,6 +3335,7 @@ function getRuntimeOverlayState(eventUid = "") {
     phase,
     display: buildRuntimeOverlayDisplay(selectedEvent, phase, activeRound, latestRound, ranking),
     countdown: buildRuntimeOverlayCountdownPlan(runtimeConfig, phase),
+    answerWindow: buildRuntimeOverlayAnswerWindowState(activeRound),
     result: {
       ...buildRuntimeOverlayResultPlan(phase, latestRound, ranking),
       visibleMs: runtimeResultVisibleMs(latestRound),
@@ -3616,7 +3640,7 @@ function scheduleSoundAnswerTimer(eventUid = "", roundUid = "", answerSeconds = 
   if (round.status !== "active") return { ok: true, skipped: true, reason: "round_not_active", status: round.status, eventUid: uid, roundUid: rid };
   if (isSoundAnswerWindowOpen(round) && soundAnswerTimers.has(rid)) return { ok: true, skipped: true, reason: "answer_window_already_open", eventUid: uid, roundUid: rid };
   cancelSoundAnswerTimer(rid);
-  const seconds = clampNumber(answerSeconds, 5, 300, 60);
+  const seconds = clampNumber(answerSeconds, 5, 3600, 60);
   const now = nowIso();
   const endsAt = new Date(Date.now() + seconds * 1000).toISOString();
   mergeRoundResultData(round, {
@@ -3853,7 +3877,7 @@ function buildSoundPlaybackPayload(event, round, snippet, runtimeConfig) {
           seconds: clampNumber(runtimeConfig.countdownPreRollSeconds ?? runtimeConfig.preRollSeconds, 1, 30, 3),
           finalLabel: "LOS!",
           caption: "Sound startet gleich",
-          guessingLabel: "Jetzt raten!"
+          guessingLabel: ""
         }
       }
     },
@@ -3914,7 +3938,7 @@ function requestSoundSystemPlaybackForSoundRound(playback = {}, options = {}) {
         seconds: clampNumber(originalPreRoll.seconds ?? originalPreRoll.countdownSeconds ?? originalPreRoll.preRollSeconds, 1, 30, 3),
         finalLabel: originalPreRoll.finalLabel || "LOS!",
         caption: originalPreRoll.caption || "Sound startet gleich",
-        guessingLabel: originalPreRoll.guessingLabel || "Jetzt raten!"
+        guessingLabel: originalPreRoll.guessingLabel || ""
       };
   const requestedItem = {
     ...item,
@@ -3973,7 +3997,7 @@ function createSoundRound(options = {}) {
   const roundConfig = {
     snippet,
     runtimeConfig,
-    answerSeconds: clampNumber(snippet.answerSeconds || runtimeConfig.answerSeconds, 5, 300, runtimeConfig.answerSeconds)
+    answerSeconds: clampNumber(snippet.answerSeconds || runtimeConfig.answerSeconds, 5, 3600, runtimeConfig.answerSeconds)
   };
   database.insert("stream_events_rounds", {
     round_uid: roundUid,
@@ -5098,7 +5122,7 @@ function createSoundRuntimeTestEvent(body = {}) {
     textEnabled: false,
     soundConfig: {
       snippets,
-      answerSeconds: clampNumber(body.answerSeconds, 5, 300, 60),
+      answerSeconds: clampNumber(body.answerSeconds, 5, 3600, 60),
       defaultPoints: clampNumber(body.defaultPoints, 0, 10000, 10),
       unresolvedPolicy: cleanString(body.unresolvedPolicy, "requeue_later"),
       solvedPolicy: cleanString(body.solvedPolicy, "remove_from_rotation"),
@@ -5302,7 +5326,7 @@ function createCombinedRuntimeStealthTestEvent(body = {}) {
     textEnabled: true,
     soundConfig: {
       snippets,
-      answerSeconds: clampNumber(body.answerSeconds, 5, 300, 60),
+      answerSeconds: clampNumber(body.answerSeconds, 5, 3600, 60),
       defaultPoints: clampNumber(body.defaultPoints, 0, 10000, 10),
       unresolvedPolicy: cleanString(body.unresolvedPolicy, "requeue_later"),
       solvedPolicy: cleanString(body.solvedPolicy, "remove_from_rotation"),
