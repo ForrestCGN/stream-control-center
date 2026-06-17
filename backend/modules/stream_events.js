@@ -23,8 +23,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.39";
-const MODULE_BUILD = "STEP_EVENT_RUNTIME_PARTS_1_SOUND_TEXT_PARTS_REVEAL_AUTO_ADVANCE";
+const MODULE_VERSION = "0.5.40";
+const MODULE_BUILD = "STEP_EVENT_RUNTIME_PARTS_1B_AUDIO_ONLY_REVEAL_FIX";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -320,8 +320,11 @@ const soundAnswerTimers = new Map();
 const soundAutoAdvanceTimers = new Map();
 
 function clearTimerMapEntry(map, key) {
-  const timer = map.get(key);
-  if (timer) clearTimeout(timer);
+  const item = map.get(key);
+  if (item) {
+    const timer = item && typeof item === "object" && item.timer ? item.timer : item;
+    if (timer) clearTimeout(timer);
+  }
   map.delete(key);
 }
 
@@ -1639,6 +1642,7 @@ function cleanupSoundRuntimeTestState(options = {}) {
   const cleaned = [];
   for (const row of rows) {
     const uid = row.event_uid || "";
+    clearSoundRuntimeTimersForEvent(uid);
     const roundCleanup = closeActiveSoundRoundsForEvent(uid, "test_state_cleanup");
     let eventCancelled = false;
     if (row.status === STATUS.ACTIVE || includeCurrentActive) {
@@ -3147,7 +3151,7 @@ function pickNextSoundSnippet(event, options = {}) {
   const snippets = getSoundSnippets(event);
   if (!snippets.length) return { ok: false, error: "sound_no_snippets" };
   const rounds = getSoundRounds(event.eventUid, 500);
-  const blockedStatuses = new Set(["active", "solved"]);
+  const blockedStatuses = new Set(["active", "solved", "unresolved"]);
   const used = new Set(rounds.filter(row => blockedStatuses.has(row.status)).map(row => row.itemUid).filter(Boolean));
   const active = rounds.find(row => row.status === "active");
   if (active) return { ok: false, error: "sound_round_already_active", activeRound: active };
@@ -4369,38 +4373,100 @@ function getStatisticsUser(login, eventUid = "") {
 
 
 
+function isAudioMediaAssetRow(row = {}) {
+  const type = cleanString(row.type || row.media_type || row.mediaType).toLowerCase();
+  const rel = cleanString(row.relative_path || row.relativePath || row.file_name || row.fileName || "").toLowerCase();
+  if (type === "video") return false;
+  if (/\.(mp4|mov|mkv|avi|wmv|m4v)$/i.test(rel)) return false;
+  if (type === "audio") return true;
+  return /\.(mp3|wav|ogg|m4a|flac|aac)$/i.test(rel);
+}
+
+function isVideoMediaAssetRow(row = {}) {
+  const type = cleanString(row.type || row.media_type || row.mediaType).toLowerCase();
+  const rel = cleanString(row.relative_path || row.relativePath || row.file_name || row.fileName || "").toLowerCase();
+  if (type === "video") return true;
+  return /\.(mp4|mov|mkv|avi|wmv|m4v|webm)$/i.test(rel);
+}
+
+function findRevealVideoForTestAudio(audioRow = {}, options = {}) {
+  ensureSchema();
+  const explicitRevealId = cleanString(options.revealVideoId || options.videoMediaId || options.revealMediaId || "");
+  if (explicitRevealId) return { id: explicitRevealId, explicit: true };
+
+  const audioRel = cleanString(audioRow.relative_path || audioRow.relativePath || "").replace(/\\/g, "/").replace(/^\/+/, "");
+  const dir = audioRel.includes("/") ? audioRel.split("/").slice(0, -1).join("/") : "";
+  const params = {};
+  const where = ["status = 'active'", "(type = 'video' OR lower(relative_path) LIKE '%.mp4' OR lower(relative_path) LIKE '%.mov' OR lower(relative_path) LIKE '%.m4v' OR lower(relative_path) LIKE '%.mkv' OR lower(relative_path) LIKE '%.webm')"];
+  if (dir) {
+    where.push("relative_path LIKE :dirPrefix");
+    params.dirPrefix = `${dir}/%`;
+  } else {
+    where.push("(relative_path LIKE 'media/stream_events/%' OR relative_path LIKE 'stream_events/%')");
+  }
+  try {
+    const rows = database.all(`
+      SELECT * FROM media_assets
+      WHERE ${where.join(" AND ")}
+      ORDER BY id ASC
+      LIMIT 10
+    `, params).filter(isVideoMediaAssetRow);
+    const row = rows[0] || null;
+    if (!row) return null;
+    return {
+      id: String(row.id || "").trim(),
+      mediaPath: cleanString(row.relative_path || row.relativePath || "").replace(/\\/g, "/").replace(/^\/+/, ""),
+      title: cleanString(row.display_name || row.displayName || row.file_name || row.fileName || row.original_name || row.originalName || "Reveal-Video")
+    };
+  } catch (_) {
+    return null;
+  }
+}
+
 function getEventSoundTestMediaAssets(options = {}) {
   ensureSchema();
   const limit = clampNumber(options.limit, 1, 10, 3);
   const preferredId = cleanString(options.mediaId || options.media_id || options.mediaAssetId || options.assetId || "");
   const preferredPath = cleanString(options.mediaPath || options.mediaRelativePath || options.registryPath || "").replace(/\\/g, "/").replace(/^\/+/, "");
+  const audioWhere = `
+    status = 'active'
+    AND (
+      type = 'audio'
+      OR lower(relative_path) LIKE '%.mp3'
+      OR lower(relative_path) LIKE '%.wav'
+      OR lower(relative_path) LIKE '%.ogg'
+      OR lower(relative_path) LIKE '%.m4a'
+      OR lower(relative_path) LIKE '%.flac'
+      OR lower(relative_path) LIKE '%.aac'
+    )
+    AND NOT (
+      type = 'video'
+      OR lower(relative_path) LIKE '%.mp4'
+      OR lower(relative_path) LIKE '%.mov'
+      OR lower(relative_path) LIKE '%.mkv'
+      OR lower(relative_path) LIKE '%.avi'
+      OR lower(relative_path) LIKE '%.wmv'
+      OR lower(relative_path) LIKE '%.m4v'
+    )
+  `;
   try {
     let rows = [];
     if (preferredId && /^\d+$/.test(preferredId)) {
       rows = database.all(`
         SELECT * FROM media_assets
-        WHERE id = :id AND status = 'active'
+        WHERE id = :id AND ${audioWhere}
         LIMIT 1
       `, { id: Number(preferredId) });
     } else if (preferredPath) {
       rows = database.all(`
         SELECT * FROM media_assets
-        WHERE relative_path = :path AND status = 'active'
+        WHERE relative_path = :path AND ${audioWhere}
         LIMIT 1
       `, { path: preferredPath });
     } else {
       rows = database.all(`
         SELECT * FROM media_assets
-        WHERE status = 'active'
-          AND (
-            type = 'audio'
-            OR has_audio = 1
-            OR lower(relative_path) LIKE '%.mp3'
-            OR lower(relative_path) LIKE '%.wav'
-            OR lower(relative_path) LIKE '%.ogg'
-            OR lower(relative_path) LIKE '%.m4a'
-            OR lower(relative_path) LIKE '%.webm'
-          )
+        WHERE ${audioWhere}
           AND (
             relative_path LIKE 'media/stream_events/%'
             OR relative_path LIKE 'stream_events/%'
@@ -4413,38 +4479,35 @@ function getEventSoundTestMediaAssets(options = {}) {
       if (!rows.length) {
         rows = database.all(`
           SELECT * FROM media_assets
-          WHERE status = 'active'
-            AND (
-              type = 'audio'
-              OR has_audio = 1
-              OR lower(relative_path) LIKE '%.mp3'
-              OR lower(relative_path) LIKE '%.wav'
-              OR lower(relative_path) LIKE '%.ogg'
-              OR lower(relative_path) LIKE '%.m4a'
-              OR lower(relative_path) LIKE '%.webm'
-            )
+          WHERE ${audioWhere}
           ORDER BY id ASC
           LIMIT :limit
         `, { limit });
       }
     }
+
+    rows = rows.filter(isAudioMediaAssetRow);
     return rows.map((row, index) => {
       const id = String(row.id || "").trim();
       const rel = cleanString(row.relative_path || row.relativePath || "").replace(/\\/g, "/").replace(/^\/+/, "");
       const title = cleanString(row.display_name || row.displayName || row.file_name || row.fileName || row.original_name || row.originalName || (rel ? rel.split("/").pop() : `Media ${id}`), `Media ${id || index + 1}`);
+      const reveal = findRevealVideoForTestAudio(row, options);
       return {
         uid: `media_asset_${id || index + 1}`,
         title,
         mediaId: id,
         mediaPath: rel,
+        revealVideoId: reveal && reveal.id ? reveal.id : "",
         acceptedAnswers: [title.toLowerCase(), cleanString(title).toLowerCase().replace(/\.[a-z0-9]+$/i, "")].filter(Boolean),
         points: 25,
-        answerSeconds: 20,
+        answerSeconds: 60,
         active: true,
         raw: {
           mediaAssetId: id,
           relativePath: rel,
-          realMediaTest: true
+          realMediaTest: true,
+          audioOnlySnippet: true,
+          revealVideo: reveal || null
         }
       };
     }).filter(item => item.mediaId || item.mediaPath);
@@ -4549,6 +4612,8 @@ function createSoundRuntimeTestEvent(body = {}) {
       snippetUid: item.snippetUid,
       title: item.title,
       mediaId: item.mediaId,
+      mediaPath: item.mediaPath,
+      revealVideoId: item.revealVideoId,
       acceptedAnswers: item.acceptedAnswers,
       points: item.points,
       answerSeconds: item.answerSeconds
