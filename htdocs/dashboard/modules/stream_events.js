@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.41";
-  const MODULE_BUILD = "STEP_EVENT_WINNER_FINALE_FOUNDATION_DASH_1";
+  const MODULE_VERSION = "0.5.44";
+  const MODULE_BUILD = "STEP_EVENT_STREAM_OFFLINE_AUTO_WAIT_DASH_1";
 
   const api = {
     status: '/api/stream-events/status',
@@ -458,13 +458,14 @@ window.StreamEventsModule = (function(){
 
   function renderOverviewSoundControl(event){
     const report = soundRuntimeReportFor(event);
+    const canSkip = canShowSoundSkipWait(event, report);
     return `
       <div class="evs-overview-live-row">
         ${soundControlRows(event, report)}
-        <div class="evs-action-row evs-action-row-tight">
+        ${canSkip ? `<div class="evs-action-row evs-action-row-tight">
           <button type="button" class="evs-btn" data-evs-action="soundSkipWait" data-uid="${esc(event.eventUid)}">Wartezeit überspringen</button>
         </div>
-        <small class="evs-muted">Überspringt die aktuelle Pause und startet den nächsten Schnipsel über den normalen Event-Ablauf. Danach läuft die automatische Wartezeit wieder normal weiter.</small>
+        <small class="evs-muted">Überspringt die aktuelle Wartezeit und startet den nächsten Schnipsel über den normalen Event-Ablauf. Danach läuft die automatische Wartezeit wieder normal weiter.</small>` : `<small class="evs-muted">Wartezeit überspringen ist nur sichtbar, wenn das Event aktiv wartet und der Stream online ist.</small>`}
       </div>
     `;
   }
@@ -933,7 +934,8 @@ window.StreamEventsModule = (function(){
   function nextSoundDisplay(next){
     if (!next) return { label: 'Noch kein Status geladen', detail: 'Status neu laden, um die nächste Planung zu sehen.', cls: 'is-unknown' };
     const status = norm(next.status);
-    if (status === 'paused') return { label: 'Pausiert', detail: next.detail || 'Fortsetzen erforderlich.', cls: 'is-paused' };
+    if (status === 'offline_waiting') return { label: 'Stream offline – wartet', detail: next.detail || 'Event wartet automatisch und läuft weiter, sobald der Stream wieder online ist.', cls: 'is-offline' };
+    if (status === 'paused') return { label: 'Manuell pausiert', detail: next.detail || 'Fortsetzen erforderlich.', cls: 'is-paused' };
     if (status === 'answer_window') return { label: `Antwortfenster · noch ${fmtDurationSeconds(next.remainingSeconds)}`, detail: next.detail || 'Antwortzeit läuft.', cls: 'is-active' };
     if (status === 'sound_playing') return { label: next.label || 'Sound läuft', detail: next.detail || 'Antwortfenster startet nach Sound-Ende.', cls: 'is-active' };
     if (status === 'prepared') return { label: next.label || 'Schnipsel vorbereitet', detail: next.detail || 'Noch nicht gestartet.', cls: 'is-warn' };
@@ -947,6 +949,17 @@ window.StreamEventsModule = (function(){
     if (status === 'completed') return { label: 'Sound-Teil abgeschlossen', detail: next.detail || '', cls: 'is-done' };
     if (status === 'waiting_unscheduled') return { label: 'Keine Wartezeit geplant', detail: next.detail || 'Status neu laden oder Wartezeit überspringen.', cls: 'is-unknown' };
     return { label: next.label || '-', detail: next.detail || status || '-', cls: 'is-unknown' };
+  }
+
+  function canShowSoundSkipWait(event, report){
+    if (!event || norm(event.status) !== 'active' || !event.soundEnabled) return false;
+    const activeRound = activeSoundRoundFromReport(report);
+    if (activeRound) return false;
+    const next = nextSoundStatusFromReport(report);
+    const status = norm(next?.status || '');
+    if (!status) return false;
+    if (['paused','offline_waiting','sound_playing','answer_window','round_active','completed','sound_disabled','no_event'].includes(status)) return false;
+    return ['waiting','waiting_persisted','waiting_due','waiting_unscheduled','prepared'].includes(status);
   }
 
   function soundControlRows(event, report){
@@ -1002,6 +1015,7 @@ window.StreamEventsModule = (function(){
     const rotation = soundRotationSummary(event, soundReport);
     const auto = modal.autoRefresh !== false;
     const isActive = norm(event?.status) === 'active';
+    const canSkipWait = canShowSoundSkipWait(event, soundReport);
     return `
       <div class="evs-modal-backdrop evs-live-modal-backdrop" data-evs-live-modal-close="1">
         <div class="evs-modal glass evs-live-modal" role="dialog" aria-modal="true" aria-label="Event Live-Status">
@@ -1015,7 +1029,7 @@ window.StreamEventsModule = (function(){
 
           <div class="evs-live-toolbar">
             <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="refreshLiveStatusModal" data-uid="${esc(uid || '')}">Jetzt aktualisieren</button>
-            <button type="button" class="evs-btn" data-evs-action="soundSkipWait" data-uid="${esc(uid || '')}" ${isActive && event?.soundEnabled ? '' : 'disabled'}>Wartezeit überspringen</button>
+            ${canSkipWait ? `<button type="button" class="evs-btn" data-evs-action="soundSkipWait" data-uid="${esc(uid || '')}">Wartezeit überspringen</button>` : ''}
             <button type="button" class="evs-btn evs-btn-secondary ${auto ? 'is-active' : ''}" data-evs-action="toggleLiveStatusAuto">AutoReload: ${auto ? 'An' : 'Aus'}</button>
             <small>Dieses Fenster ist für Live-Blick und Punkte. Konfiguration bleibt in den Event-Editoren.</small>
           </div>
@@ -1658,6 +1672,7 @@ window.StreamEventsModule = (function(){
   function renderSoundLiveControls(event){
     if (!event?.soundEnabled || norm(event.status) !== 'active') return '';
     const report = soundRuntimeReportFor(event);
+    const canSkip = canShowSoundSkipWait(event, report);
     return `
       <section class="evs-sound-live-control evs-runtime-box">
         <div class="evs-runtime-box-head">
@@ -1669,10 +1684,10 @@ window.StreamEventsModule = (function(){
         </div>
         ${soundControlRows(event, report)}
         <div class="evs-action-row evs-action-row-tight">
-          <button type="button" class="evs-btn" data-evs-action="soundSkipWait" data-uid="${esc(event.eventUid)}">Wartezeit überspringen</button>
+          ${canSkip ? `<button type="button" class="evs-btn" data-evs-action="soundSkipWait" data-uid="${esc(event.eventUid)}">Wartezeit überspringen</button>` : ''}
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="openLiveStatus" data-uid="${esc(event.eventUid)}">Status & Punkte öffnen</button>
         </div>
-        <small class="evs-muted">Überspringt die aktuelle Pause und startet den nächsten Schnipsel über den normalen Event-Ablauf. Danach läuft die automatische Wartezeit wieder normal weiter.</small>
+        <small class="evs-muted">${canSkip ? 'Überspringt die aktuelle Wartezeit und startet den nächsten Schnipsel über den normalen Event-Ablauf. Danach läuft die automatische Wartezeit wieder normal weiter.' : 'Wartezeit überspringen ist nur sichtbar, wenn das Event aktiv wartet und der Stream online ist.'}</small>
       </section>
     `;
   }

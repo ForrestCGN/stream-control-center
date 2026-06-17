@@ -27,8 +27,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.60";
-const MODULE_BUILD = "STEP_EVENT_RUNTIME_GATE_TWITCH_EVENTS_STREAM_STATE_1";
+const MODULE_VERSION = "0.5.61";
+const MODULE_BUILD = "STEP_EVENT_STREAM_OFFLINE_AUTO_WAIT_1";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -317,7 +317,9 @@ let runtimeState = {
     soundWaitsSkipped: 0,
     eventsAutoFinished: 0,
     streamOfflinePauses: 0,
+    streamOfflineAutoWaits: 0,
     streamRuntimeResumes: 0,
+    streamOfflineAutoResumes: 0,
     eventFinalesStarted: 0,
     eventCommandsHandled: 0
   },
@@ -1238,8 +1240,14 @@ function getRuntimeGateStatus(options = {}) {
   let reason = "no_active_event";
   let label = "Kein Event läuft";
 
-  const eventRuntimeState = activeEvent ? getEventRuntimeState(activeEvent.eventUid) : null;
+  let eventRuntimeState = activeEvent ? getEventRuntimeState(activeEvent.eventUid) : null;
+  const offlineWaiting = activeEvent ? isEventRuntimeOfflineWaiting(activeEvent.eventUid, eventRuntimeState) : false;
+  if (activeEvent && offlineWaiting && stream.online) {
+    resumeStreamOfflineWaitingEvents("runtime_gate_stream_online", { source: "getRuntimeGateStatus" });
+    eventRuntimeState = getEventRuntimeState(activeEvent.eventUid);
+  }
   const runtimePaused = isEventRuntimePaused(activeEvent ? activeEvent.eventUid : "", eventRuntimeState);
+  const runtimeOfflineWaiting = activeEvent ? isEventRuntimeOfflineWaiting(activeEvent.eventUid, eventRuntimeState) : false;
 
   if (!hasActiveEvent) {
     reason = "no_active_event";
@@ -1247,6 +1255,9 @@ function getRuntimeGateStatus(options = {}) {
   } else if (runtimePaused) {
     reason = eventRuntimeState && eventRuntimeState.recoveryReason ? eventRuntimeState.recoveryReason : "event_runtime_paused";
     label = "Event pausiert";
+  } else if (runtimeOfflineWaiting) {
+    reason = stream.online ? "stream_online_auto_resume_pending" : (stream.reason || "stream_offline_waiting");
+    label = stream.online ? "Stream online – Event wird fortgesetzt" : "Stream offline – Event wartet automatisch";
   } else if (!hasChatRuntime) {
     reason = "active_event_without_chat_runtime";
     label = "Aktives Event ohne Sound/Text-Chatspiel";
@@ -1274,6 +1285,7 @@ function getRuntimeGateStatus(options = {}) {
     chatOutputLiveSend: false,
     stream,
     runtimePaused,
+    runtimeOfflineWaiting,
     eventRuntimeState,
     rules: {
       streamOfflineDisablesRuntime: true,
@@ -2902,10 +2914,10 @@ function handleStreamStateBusEnvelope(envelope = {}) {
   runtimeState.streamStateBus.lastError = "";
   try {
     const result = parsed.live
-      ? { ok: true, skipped: true, reason: "stream_online_manual_resume_required", eventKey: parsed.eventKey, action: parsed.action, note: "Events werden nach Stream-Online nicht automatisch fortgesetzt." }
-      : pauseActiveStreamEventsForStreamOffline(parsed.reason || "stream_offline", { source: parsed.sourceModule, eventKey: parsed.eventKey, busEventId: parsed.busEventId });
+      ? resumeStreamOfflineWaitingEvents(parsed.reason || "stream_online", { source: parsed.sourceModule, eventKey: parsed.eventKey, busEventId: parsed.busEventId })
+      : putActiveStreamEventsIntoStreamOfflineWait(parsed.reason || "stream_offline", { source: parsed.sourceModule, eventKey: parsed.eventKey, busEventId: parsed.busEventId });
     runtimeState.streamStateBus.lastResult = result;
-    publishStatus(parsed.live ? "stream.online.received" : "stream.offline.pause_processed", { eventKey: parsed.eventKey, result });
+    publishStatus(parsed.live ? "stream.online.auto_resume_processed" : "stream.offline.auto_wait_processed", { eventKey: parsed.eventKey, result });
     return result;
   } catch (err) {
     const error = err && err.message ? err.message : String(err);
@@ -2923,11 +2935,11 @@ function registerStreamStateSubscription() {
     module: MODULE_NAME,
     channel: "twitch.stream",
     action: "",
-    meta: { step: MODULE_BUILD, purpose: "stream_events_pause_on_stream_offline", consumes: ["twitch.stream.online", "twitch.stream.offline"] }
+    meta: { step: MODULE_BUILD, purpose: "stream_events_auto_wait_on_stream_offline", consumes: ["twitch.stream.online", "twitch.stream.offline"] }
   }, (envelope) => handleStreamStateBusEnvelope(envelope));
   runtimeState.streamStateBus.subscribed = !!(result && result.ok === true);
   runtimeState.streamStateBus.lastError = runtimeState.streamStateBus.subscribed ? "" : cleanString(result && (result.reason || result.error) || "stream_state_subscription_failed");
-  if (runtimeState.streamStateBus.subscribed) publishStatus("stream_state.subscription.ready", { streamOfflinePause: true, manualResumeRequired: true });
+  if (runtimeState.streamStateBus.subscribed) publishStatus("stream_state.subscription.ready", { streamOfflineAutoWait: true, manualResumeRequired: false });
   return result;
 }
 
@@ -3722,13 +3734,20 @@ function isEventRuntimePaused(eventUid = "", stateRow = null) {
   if (!state) return false;
   const runtimeStatus = cleanString(state.runtimeStatus || "").toLowerCase();
   const phase = cleanString(state.phase || "").toLowerCase();
-  return runtimeStatus === "paused" || phase === "stream_offline_paused" || phase === "paused";
+  return runtimeStatus === "paused" || phase === "manual_paused" || phase === "paused";
 }
 
-function pauseActiveStreamEventsForStreamOffline(reason = "stream_offline", meta = {}) {
+function isEventRuntimeOfflineWaiting(eventUid = "", stateRow = null) {
+  const state = stateRow || getEventRuntimeState(eventUid);
+  if (!state) return false;
+  const phase = cleanString(state.phase || "").toLowerCase();
+  return phase === "stream_offline_waiting" || phase === "stream_offline_auto_wait" || phase === "offline_waiting";
+}
+
+function putActiveStreamEventsIntoStreamOfflineWait(reason = "stream_offline", meta = {}) {
   ensureSchema();
   const activeEvents = listEvents({ status: STATUS.ACTIVE, limit: 100 }).rows || [];
-  const paused = [];
+  const waited = [];
   const now = nowIso();
   for (const event of activeEvents) {
     if (!event || !event.eventUid) continue;
@@ -3740,8 +3759,8 @@ function pauseActiveStreamEventsForStreamOffline(reason = "stream_offline", meta
       requeue = requeueInterruptedActiveSoundRound(activeRound, reason || "stream_offline");
     }
     const state = upsertEventRuntimeState(event.eventUid, {
-      runtimeStatus: "paused",
-      phase: "stream_offline_paused",
+      runtimeStatus: "active",
+      phase: "stream_offline_waiting",
       activeRoundUid: "",
       phaseStartedAt: now,
       phaseEndsAt: "",
@@ -3750,17 +3769,63 @@ function pauseActiveStreamEventsForStreamOffline(reason = "stream_offline", meta
       recoveryRequired: false,
       recoveryReason: cleanString(reason, "stream_offline"),
       recoveryNote: activeRound
-        ? "Stream ging offline. Aktive Sound-Runde wurde nicht gewertet und wieder in die Rotation gelegt. Event wartet auf manuelles Fortsetzen."
-        : "Stream ging offline. Event pausiert und wartet auf manuelles Fortsetzen.",
-      metadata: { moduleBuild: MODULE_BUILD, pausedAt: now, beforePhase: beforeState ? beforeState.phase : "", hadActiveRound: !!activeRound, meta }
+        ? "Stream ging offline. Aktive Sound-Runde wurde nicht gewertet und wieder in die Rotation gelegt. Event wartet automatisch bis der Stream wieder online ist."
+        : "Stream ging offline. Event wartet automatisch bis der Stream wieder online ist.",
+      metadata: { moduleBuild: MODULE_BUILD, autoWait: true, offlineAt: now, beforePhase: beforeState ? beforeState.phase : "", hadActiveRound: !!activeRound, meta }
     });
-    paused.push({ eventUid: event.eventUid, eventName: event.name, hadActiveRound: !!activeRound, requeue, state: state.state });
-    emitBus("stream_events.runtime", "paused", { eventUid: event.eventUid, eventName: event.name, reason, hadActiveRound: !!activeRound, requeue, manualResumeRequired: true });
+    waited.push({ eventUid: event.eventUid, eventName: event.name, hadActiveRound: !!activeRound, requeue, state: state.state });
+    emitBus("stream_events.runtime", "stream_offline_waiting", { eventUid: event.eventUid, eventName: event.name, reason, hadActiveRound: !!activeRound, requeue, manualResumeRequired: false });
   }
-  runtimeState.counters.streamOfflinePauses += paused.length;
-  const result = { ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, reason: cleanString(reason, "stream_offline"), activeEvents: activeEvents.length, pausedCount: paused.length, paused, manualResumeRequired: true, updatedAt: nowIso() };
+  runtimeState.counters.streamOfflinePauses += waited.length;
+  runtimeState.counters.streamOfflineAutoWaits += waited.length;
+  const result = { ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, reason: cleanString(reason, "stream_offline"), activeEvents: activeEvents.length, waitingCount: waited.length, pausedCount: 0, waited, manualResumeRequired: false, autoResumeOnStreamOnline: true, updatedAt: nowIso() };
   runtimeState.lastStreamOfflinePause = result;
-  publishStatus("stream.offline.pause_completed", { activeEvents: activeEvents.length, pausedCount: paused.length });
+  publishStatus("stream.offline.auto_wait_completed", { activeEvents: activeEvents.length, waitingCount: waited.length });
+  return result;
+}
+
+function pauseActiveStreamEventsForStreamOffline(reason = "stream_offline", meta = {}) {
+  // EVS44: stream-offline is no longer a sticky manual pause. Keep this public helper as
+  // compatibility wrapper for existing routes/calls, but move events into auto-wait instead.
+  return putActiveStreamEventsIntoStreamOfflineWait(reason, meta);
+}
+
+function resumeStreamOfflineWaitingEvents(reason = "stream_online", meta = {}) {
+  ensureSchema();
+  const activeEvents = listEvents({ status: STATUS.ACTIVE, limit: 100 }).rows || [];
+  const resumed = [];
+  const skipped = [];
+  const now = nowIso();
+  for (const event of activeEvents) {
+    if (!event || !event.eventUid) continue;
+    const state = getEventRuntimeState(event.eventUid);
+    if (!isEventRuntimeOfflineWaiting(event.eventUid, state)) {
+      skipped.push({ eventUid: event.eventUid, eventName: event.name, reason: "not_stream_offline_waiting", phase: state ? state.phase : "" });
+      continue;
+    }
+    upsertEventRuntimeState(event.eventUid, {
+      runtimeStatus: "active",
+      phase: "waiting",
+      activeRoundUid: "",
+      phaseStartedAt: now,
+      phaseEndsAt: "",
+      nextAutoStartAt: "",
+      lastHeartbeatAt: now,
+      recoveryRequired: false,
+      recoveryReason: cleanString(reason, "stream_online"),
+      recoveryNote: "Stream ist wieder online. Event wurde automatisch fortgesetzt; nächste Auto-Wartezeit wird geplant.",
+      metadata: { moduleBuild: MODULE_BUILD, autoResumedAt: now, previousPhase: state ? state.phase : "", meta }
+    });
+    let plan = null;
+    if (event.soundEnabled) plan = scheduleNextSoundRound(event.eventUid, "stream_online_auto_resume");
+    resumed.push({ eventUid: event.eventUid, eventName: event.name, plan });
+    emitBus("stream_events.runtime", "auto_resumed", { eventUid: event.eventUid, eventName: event.name, reason, plan, manualResumeRequired: false });
+  }
+  runtimeState.counters.streamRuntimeResumes += resumed.length;
+  runtimeState.counters.streamOfflineAutoResumes += resumed.length;
+  const result = { ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, reason: cleanString(reason, "stream_online"), activeEvents: activeEvents.length, resumedCount: resumed.length, resumed, skipped, manualResumeRequired: false, updatedAt: nowIso() };
+  runtimeState.lastStreamRuntimeResume = result;
+  publishStatus("stream.online.auto_resume_completed", { activeEvents: activeEvents.length, resumedCount: resumed.length });
   return result;
 }
 
@@ -3770,7 +3835,7 @@ function resumeEventRuntimeAfterPause(eventUid = "", reason = "manual_resume") {
   if (!event) return { ok: false, error: "active_event_missing" };
   if (event.status !== STATUS.ACTIVE) return { ok: false, error: "event_not_active", eventUid: event.eventUid, status: event.status };
   const state = getEventRuntimeState(event.eventUid);
-  if (!isEventRuntimePaused(event.eventUid, state)) return { ok: true, skipped: true, reason: "event_not_paused", eventUid: event.eventUid, runtimeState: state };
+  if (!isEventRuntimePaused(event.eventUid, state) && !isEventRuntimeOfflineWaiting(event.eventUid, state)) return { ok: true, skipped: true, reason: "event_not_paused_or_offline_waiting", eventUid: event.eventUid, runtimeState: state };
   const now = nowIso();
   const update = upsertEventRuntimeState(event.eventUid, {
     runtimeStatus: "active",
@@ -3782,11 +3847,11 @@ function resumeEventRuntimeAfterPause(eventUid = "", reason = "manual_resume") {
     lastHeartbeatAt: now,
     recoveryRequired: false,
     recoveryReason: cleanString(reason, "manual_resume"),
-    recoveryNote: "Event wurde nach Stream-Offline-Pause manuell fortgesetzt. Neue Auto-Wartezeit wird geplant.",
+    recoveryNote: "Event wurde fortgesetzt. Neue Auto-Wartezeit wird geplant.",
     metadata: { moduleBuild: MODULE_BUILD, resumedAt: now, previousPhase: state ? state.phase : "" }
   });
   let plan = null;
-  if (event.soundEnabled) plan = scheduleNextSoundRound(event.eventUid, "manual_resume_after_stream_offline");
+  if (event.soundEnabled) plan = scheduleNextSoundRound(event.eventUid, "manual_resume_after_pause_or_offline_wait");
   runtimeState.counters.streamRuntimeResumes += 1;
   const result = { ok: true, eventUid: event.eventUid, eventName: event.name, resumed: true, state: update.state, plan, updatedAt: nowIso() };
   runtimeState.lastStreamRuntimeResume = result;
@@ -3807,15 +3872,35 @@ function recoverActiveStreamEvents(reason = "node_start") {
     if (isEventRuntimePaused(event.eventUid, existingRuntimeState)) {
       upsertEventRuntimeState(event.eventUid, {
         runtimeStatus: "paused",
-        phase: "stream_offline_paused",
+        phase: "manual_paused",
         activeRoundUid: "",
         lastHeartbeatAt: now,
         recoveryRequired: false,
         recoveryReason: cleanString(reason, "node_start"),
-        recoveryNote: "Aktives Event war pausiert und bleibt nach Neustart pausiert. Manuelles Fortsetzen erforderlich.",
+        recoveryNote: "Aktives Event war manuell pausiert und bleibt nach Neustart pausiert. Manuelles Fortsetzen erforderlich.",
         metadata: { moduleBuild: MODULE_BUILD, checkedAt: now, keptPaused: true, previousPhase: existingRuntimeState ? existingRuntimeState.phase : "" }
       });
-      scheduled.push({ eventUid: event.eventUid, eventName: event.name, plan: { ok: true, skipped: true, reason: "event_runtime_paused_manual_resume_required" } });
+      scheduled.push({ eventUid: event.eventUid, eventName: event.name, plan: { ok: true, skipped: true, reason: "event_runtime_manual_paused_resume_required" } });
+      continue;
+    }
+    if (isEventRuntimeOfflineWaiting(event.eventUid, existingRuntimeState)) {
+      const stream = getStreamStatusSnapshot();
+      if (stream.online) {
+        const resume = resumeStreamOfflineWaitingEvents("node_start_stream_online", { source: "recoverActiveStreamEvents" });
+        scheduled.push({ eventUid: event.eventUid, eventName: event.name, plan: { ok: true, reason: "stream_online_auto_resume_after_node_start", resume } });
+      } else {
+        upsertEventRuntimeState(event.eventUid, {
+          runtimeStatus: "active",
+          phase: "stream_offline_waiting",
+          activeRoundUid: "",
+          lastHeartbeatAt: now,
+          recoveryRequired: false,
+          recoveryReason: cleanString(reason, "node_start"),
+          recoveryNote: "Aktives Event wartet nach Neustart weiter automatisch auf Stream online.",
+          metadata: { moduleBuild: MODULE_BUILD, checkedAt: now, keptOfflineWaiting: true, previousPhase: existingRuntimeState ? existingRuntimeState.phase : "" }
+        });
+        scheduled.push({ eventUid: event.eventUid, eventName: event.name, plan: { ok: true, skipped: true, reason: "stream_offline_auto_waiting" } });
+      }
       continue;
     }
     const activeRound = event.soundEnabled ? getActiveSoundRound(event.eventUid) : null;
@@ -4154,6 +4239,15 @@ function scheduleNextSoundRound(eventUid = "", reason = "auto_advance") {
   const event = getEventByUid(eventUid);
   if (!event || event.status !== STATUS.ACTIVE || !event.soundEnabled) return { ok: true, skipped: true, reason: "event_not_active_sound" };
   if (isEventRuntimePaused(event.eventUid)) return { ok: true, skipped: true, reason: "event_runtime_paused", eventUid: event.eventUid };
+  if (isEventRuntimeOfflineWaiting(event.eventUid)) return { ok: true, skipped: true, reason: "stream_offline_auto_waiting", eventUid: event.eventUid };
+  const runtimeGateForSchedule = getRuntimeGateStatus({ eventUid: event.eventUid });
+  if (!runtimeGateForSchedule.active) {
+    if (runtimeGateForSchedule.stream && runtimeGateForSchedule.stream.online === false) {
+      putActiveStreamEventsIntoStreamOfflineWait(runtimeGateForSchedule.reason || "stream_offline", { source: "scheduleNextSoundRound" });
+      return { ok: true, skipped: true, reason: "stream_offline_auto_waiting", eventUid: event.eventUid, runtimeGate: runtimeGateForSchedule };
+    }
+    return { ok: true, skipped: true, reason: runtimeGateForSchedule.reason || "runtime_gate_inactive", eventUid: event.eventUid, runtimeGate: runtimeGateForSchedule };
+  }
   const runtimeConfig = getSoundRuntimeConfig(event);
   if (!boolValue(runtimeConfig.autoAdvanceRounds, true)) return { ok: true, skipped: true, reason: "auto_advance_disabled" };
   const parts = getEventRuntimePartsStatus(event);
@@ -4174,7 +4268,12 @@ function scheduleNextSoundRound(eventUid = "", reason = "auto_advance") {
         return;
       }
       if (currentParts.sound.activeRoundUid) return;
-      if (isEventRuntimePaused(activeEvent.eventUid)) return;
+      if (isEventRuntimePaused(activeEvent.eventUid) || isEventRuntimeOfflineWaiting(activeEvent.eventUid)) return;
+      const timerGate = getRuntimeGateStatus({ eventUid: activeEvent.eventUid });
+      if (!timerGate.active) {
+        if (timerGate.stream && timerGate.stream.online === false) putActiveStreamEventsIntoStreamOfflineWait(timerGate.reason || "stream_offline", { source: "sound_auto_advance_timer" });
+        return;
+      }
       const result = createSoundRound({ eventUid: activeEvent.eventUid, play: true, confirm: "1" });
       runtimeState.counters.soundAutoAdvancesStarted += 1;
       emitBus("stream_events.sound", "auto_advance_started", { eventUid: activeEvent.eventUid, reason, schedulePlan, result });
@@ -4307,7 +4406,13 @@ function skipSoundRoundWait(body = {}) {
   if (!event) return { ok: false, error: "active_event_missing", message: "Kein aktives Event gefunden." };
   if (event.status !== STATUS.ACTIVE) return { ok: false, error: "event_not_active", eventUid: event.eventUid, status: event.status, message: "Das Event läuft nicht." };
   if (!event.soundEnabled) return { ok: false, error: "sound_not_enabled", eventUid: event.eventUid, message: "Dieses Event hat kein Sound-Spiel aktiviert." };
-  if (isEventRuntimePaused(event.eventUid)) return { ok: false, error: "event_runtime_paused", eventUid: event.eventUid, message: "Das Event ist pausiert. Erst im Dashboard/Backend fortsetzen." };
+  if (isEventRuntimePaused(event.eventUid)) return { ok: false, error: "event_runtime_paused", eventUid: event.eventUid, message: "Das Event ist manuell pausiert. Erst im Dashboard/Backend fortsetzen." };
+  if (isEventRuntimeOfflineWaiting(event.eventUid)) return { ok: false, error: "stream_offline_auto_waiting", eventUid: event.eventUid, message: "Stream ist offline. Das Event wartet automatisch und startet keinen Schnipsel." };
+  const runtimeGateForSkip = getRuntimeGateStatus({ eventUid: event.eventUid });
+  if (!runtimeGateForSkip.active) {
+    if (runtimeGateForSkip.stream && runtimeGateForSkip.stream.online === false) putActiveStreamEventsIntoStreamOfflineWait(runtimeGateForSkip.reason || "stream_offline", { source: "skipSoundRoundWait" });
+    return { ok: false, error: runtimeGateForSkip.reason || "runtime_gate_inactive", eventUid: event.eventUid, message: runtimeGateForSkip.label || "Wartezeit kann gerade nicht übersprungen werden.", runtimeGate: runtimeGateForSkip };
+  }
 
   const runtimeConfig = getSoundRuntimeConfig(event);
   if (!boolValue(runtimeConfig.autoAdvanceRounds, true)) {
@@ -4613,6 +4718,12 @@ function createSoundRound(options = {}) {
   if (event.status !== STATUS.ACTIVE) return { ok: false, error: "event_not_active", eventUid: event.eventUid, status: event.status };
   if (!event.soundEnabled) return { ok: false, error: "sound_not_enabled", eventUid: event.eventUid };
   if (isEventRuntimePaused(event.eventUid)) return { ok: false, error: "event_runtime_paused", eventUid: event.eventUid };
+  if (isEventRuntimeOfflineWaiting(event.eventUid)) return { ok: false, error: "stream_offline_auto_waiting", eventUid: event.eventUid, message: "Stream ist offline. Event wartet automatisch bis der Stream wieder online ist." };
+  const runtimeGateForRound = getRuntimeGateStatus({ eventUid: event.eventUid });
+  if (!runtimeGateForRound.active) {
+    if (runtimeGateForRound.stream && runtimeGateForRound.stream.online === false) putActiveStreamEventsIntoStreamOfflineWait(runtimeGateForRound.reason || "stream_offline", { source: "createSoundRound" });
+    return { ok: false, error: runtimeGateForRound.reason || "runtime_gate_inactive", eventUid: event.eventUid, message: runtimeGateForRound.label || "Event-Runtime ist nicht aktiv.", runtimeGate: runtimeGateForRound };
+  }
   const picked = pickNextSoundSnippet(event, options);
   if (!picked.ok) return { ok: false, eventUid: event.eventUid, preCleanup, ...picked };
   const snippet = picked.snippet;
@@ -5033,7 +5144,27 @@ function buildNextSoundRuntimeStatus(event = null) {
   const runtimeStatus = cleanString(state && state.runtimeStatus || "active").toLowerCase();
   const phase = cleanString(state && state.phase || "").toLowerCase();
 
-  if (runtimeStatus === "paused" || phase === "stream_offline_paused" || phase === "paused") {
+  if (phase === "stream_offline_waiting" || phase === "stream_offline_auto_wait" || phase === "offline_waiting") {
+    return {
+      ok: true,
+      enabled: true,
+      eventUid: event.eventUid,
+      status: "offline_waiting",
+      runtimeStatus: state ? state.runtimeStatus : "active",
+      phase: state ? state.phase : "stream_offline_waiting",
+      label: "Stream offline – Event wartet",
+      detail: state && state.recoveryNote ? state.recoveryNote : "Event wartet automatisch und läuft weiter, sobald der Stream wieder online ist.",
+      nextAutoStartAt: "",
+      remainingSeconds: 0,
+      activeRound: null,
+      timer: null,
+      runtimeState: state,
+      parts,
+      updatedAt: nowIso()
+    };
+  }
+
+  if (runtimeStatus === "paused" || phase === "manual_paused" || phase === "paused") {
     return {
       ok: true,
       enabled: true,
@@ -5041,8 +5172,8 @@ function buildNextSoundRuntimeStatus(event = null) {
       status: "paused",
       runtimeStatus: state ? state.runtimeStatus : "paused",
       phase: state ? state.phase : "paused",
-      label: "Pausiert · Fortsetzen erforderlich",
-      detail: state && state.recoveryNote ? state.recoveryNote : "Event ist pausiert.",
+      label: "Manuell pausiert · Fortsetzen erforderlich",
+      detail: state && state.recoveryNote ? state.recoveryNote : "Event ist manuell pausiert.",
       nextAutoStartAt: "",
       remainingSeconds: 0,
       activeRound: null,
@@ -6855,7 +6986,7 @@ module.exports.init = function init(ctx) {
       if (confirm !== "1") {
         return sendJson(res, { ok: false, error: "confirm_required", hint: "POST /api/stream-events/runtime/pause-stream-offline?confirm=1" }, 400);
       }
-      const result = pauseActiveStreamEventsForStreamOffline(cleanString((req.body && req.body.reason) || req.query.reason || "manual_stream_offline_pause"), { source: "manual_route" });
+      const result = pauseActiveStreamEventsForStreamOffline(cleanString((req.body && req.body.reason) || req.query.reason || "manual_stream_offline_auto_wait"), { source: "manual_route" });
       sendJson(res, result, result.ok ? 200 : 400);
     } catch (err) {
       handleError(res, err, 400);

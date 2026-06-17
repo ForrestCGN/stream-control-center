@@ -669,3 +669,12 @@
     grid-template-columns: 1fr;
   }
 }
+
+.evs-next-snippet-row.is-offline {
+  border-color: rgba(250, 204, 21, 0.42);
+  background: rgba(49, 28, 24, 0.22);
+}
+
+.evs-next-snippet-row.is-offline b {
+  color: rgba(254, 240, 138, 0.96);
+}
