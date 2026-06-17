@@ -10,7 +10,8 @@ Write-Host "Demo:   $Demo"
 Write-Host "Speed:  $Speed"
 Write-Host ""
 
-$url = "$BaseUrl/overlays/stream_events/event_winner_overlay.html?demo=$Demo&speed=$Speed&debug=1"
+$cacheBust = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+$url = "$BaseUrl/overlays/stream_events/event_winner_overlay.html?demo=$Demo&speed=$Speed&debug=1&v=$cacheBust"
 Write-Host "URL:" -ForegroundColor Yellow
 Write-Host $url
 Write-Host ""

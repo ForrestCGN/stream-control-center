@@ -96,20 +96,25 @@
 (function(){
   "use strict";
   const qs=new URLSearchParams(location.search);
-  const demo=(qs.get("demo")||"").toLowerCase();
+  let demo=(qs.get("demo")||"").toLowerCase();
+  if(demo==="1"||demo==="true"||demo==="yes")demo="single";
   const speed=(qs.get("speed")||"show").toLowerCase();
   const debug=qs.get("debug")==="1"||qs.get("debug")==="true";
   const eventUid=qs.get("eventUid")||qs.get("event")||"";
   const finaleRoute=qs.get("route")||"";
   if(debug)document.body.classList.add("debug");
-  const T={
+  const SPEEDS={
     fast:{intro:1200,honorHold:1700,move:900,bridge:1200,heroIntro:1200,heroHold:2300,heroMove:1050,finalHold:5000},
     normal:{intro:6500,honorHold:7500,move:1200,bridge:6500,heroIntro:3500,heroHold:10500,heroMove:1300,finalHold:24000},
     slow:{intro:12000,honorHold:12000,move:1400,bridge:10000,heroIntro:5500,heroHold:17000,heroMove:1500,finalHold:38000},
     show:{intro:18000,honorHold:16000,move:1600,bridge:14000,heroIntro:7000,heroHold:24000,heroMove:1700,finalHold:60000}
-  }[speed]||T.show;
+  };
+  const T=SPEEDS[speed]||SPEEDS.show;
   const els={app:gid("app"),badgeText:gid("badgeText"),eventName:gid("eventName"),headline:gid("headline"),subline:gid("subline"),intro:gid("intro"),introTitle:gid("introTitle"),introText:gid("introText"),focus:gid("focusCard"),fRank:gid("fRank"),fAvatar:gid("fAvatar"),fKicker:gid("fKicker"),fName:gid("fName"),fPoints:gid("fPoints"),fReward:gid("fReward"),fComment:gid("fComment"),board:gid("honorBoard"),podium:gid("podium"),pod1:gid("pod1"),pod2:gid("pod2"),pod3:gid("pod3"),winnerGlow:gid("winnerGlow"),particles:gid("particles"),confetti:gid("confetti"),debug:gid("debug")};
   let timers=[],currentUid="",miniIndex=0;
+  function bootFail(err){try{show();if(els&&els.debug){els.debug.style.display="block";els.debug.textContent="BOOT ERROR: "+(err&&err.stack?err.stack:(err&&err.message?err.message:String(err)));} if(els&&els.intro){els.introTitle.textContent="Demo konnte nicht starten";els.introText.textContent="Bitte URL und Browser-Konsole prüfen. Der Fehler steht unten links im Debug-Feld.";els.intro.classList.add("active");}}catch(_){}}
+  window.addEventListener("error",e=>bootFail(e.error||e.message));
+  window.addEventListener("unhandledrejection",e=>bootFail(e.reason||"unhandled rejection"));
   function gid(id){return document.getElementById(id)}
   function clean(v){return (v==null?"":String(v)).trim()}
   function num(n){return new Intl.NumberFormat("de-DE").format(Number(n||0))}
@@ -167,7 +172,7 @@
   function clearConfetti(){els.confetti.innerHTML=""}
   function confetti(count){clearConfetti();for(let i=0;i<count;i++){const p=document.createElement("i");p.style.left=`${Math.random()*100}%`;p.style.animationDuration=`${4+Math.random()*5.5}s`;p.style.animationDelay=`${Math.random()*1.8}s`;p.style.transform=`translateY(-90px) rotate(${Math.random()*360}deg)`;els.confetti.appendChild(p)}}
   seedParticles();
-  if(demo){setTimeout(()=>play(demoData(demo),{force:true}),300)}else{loadFinale()}
+  if(demo){setTimeout(()=>{try{play(demoData(demo),{force:true})}catch(e){bootFail(e)}},300)}else{loadFinale()}
   window.addEventListener("cgn:overlay-bus-message",handleBus);window.addEventListener("focus",loadFinale);window.addEventListener("beforeunload",()=>{clearTimers();clearConfetti()});
 })();
 </script>
