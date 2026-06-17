@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.31";
-  const MODULE_BUILD = "STEP_EVENT_SOUND_DASH_2B_DEFAULT_TARGET_BOTH";
+  const MODULE_VERSION = "0.5.32";
+  const MODULE_BUILD = "STEP_EVENT_SOUND_DASH_3_SETTINGS_LAYOUT";
 
   const api = {
     status: '/api/stream-events/status',
@@ -1465,14 +1465,14 @@ window.StreamEventsModule = (function(){
         </div>
         <div class="evs-mini-grid evs-mini-grid-compact evs-event-config-grid">
           ${event.soundEnabled ? `
-            <div><strong>${esc(soundPlaybackModeLabel(sound.playbackMode))}</strong><span>Sound-Ablauf</span></div>
-            <div><strong>${esc(sound.intervalMinutes)} ± ${esc(sound.intervalJitterMinutes)} Min.</strong><span>Intervall</span></div>
-            <div><strong>${esc(sound.answerSeconds)} Sek.</strong><span>Antwortzeit</span></div>
-            <div><strong>${esc(soundSolvedPolicyLabel(sound.solvedPolicy))}</strong><span>Wenn erkannt</span></div>
-            <div><strong>${esc(soundUnresolvedPolicyLabel(sound.unresolvedPolicy))}</strong><span>Wenn nicht erkannt</span></div>
-            <div><strong>${esc(soundRevealModeLabel(sound.revealVideoMode, sound.revealVideoEnabled))}</strong><span>Auflösung</span></div>
-            <div><strong>${esc(soundOutputTargetLabel(sound.outputTarget))}</strong><span>Ausgabe</span></div>
+            <div><strong>${esc(soundPlaybackModeLabel(sound.playbackMode))}</strong><span>Ablauf</span></div>
+            <div><strong>${esc(sound.answerSeconds)} Sek. · ${esc(sound.defaultPoints)} Punkte</strong><span>Antwort</span></div>
+            <div><strong>${esc(sound.intervalMinutes)} ± ${esc(sound.intervalJitterMinutes)} Min. · Pause ${esc(sound.roundDelaySeconds)}s</strong><span>Automatik</span></div>
+            <div><strong>${esc(soundOutputTargetLabel(sound.outputTarget))} · ${esc(soundTargetLabel(sound.target))}</strong><span>Ausgabe</span></div>
             <div><strong>${esc(sound.preRollEnabled ? `PreRoll ${sound.preRollSeconds}s` : 'PreRoll aus')} · ${esc(sound.countdownPreRollEnabled ? `Countdown ${sound.countdownPreRollSeconds}s` : 'Countdown aus')}</strong><span>Vorbereitung</span></div>
+            <div><strong>${esc(soundOrderModeLabel(sound.orderMode))} · Abstand ${esc(sound.minRepeatDistance)}</strong><span>Rotation</span></div>
+            <div><strong>${esc(soundSolvedPolicyLabel(sound.solvedPolicy))} / ${esc(soundUnresolvedPolicyLabel(sound.unresolvedPolicy))}</strong><span>Rundenende</span></div>
+            <div><strong>${esc(soundRevealModeLabel(sound.revealVideoMode, sound.revealVideoEnabled))}</strong><span>Auflösung</span></div>
           ` : '<div><strong>Sound aus</strong><span>Kein Sound-Spiel aktiv</span></div>'}
           ${event.textEnabled ? `<div><strong>${esc(text.defaultPhrasePoints || text.pointsFirst || 40)} Punkte</strong><span>Text-Lösung</span></div>` : ''}
         </div>
@@ -2008,7 +2008,7 @@ window.StreamEventsModule = (function(){
           <div class="evs-form" data-evs-event-settings-editor>
             <div class="evs-text-rule-note">Manuelle Auslösung bleibt immer möglich. Automatik und echtes Playback werden in den nächsten Runtime-Steps angebunden.</div>
             <section class="evs-settings-section">
-              <div class="evs-config-card-head"><strong>Sound · Ablauf & Timing</strong><small>Wann und wie Schnipsel gestartet werden</small></div>
+              <div class="evs-config-card-head"><strong>1. Ablauf</strong><small>Grundregeln für Runde, Antwortzeit und Punkte</small></div>
               <div class="evs-two-cols evs-text-config-grid">
                 <label>Abspielmodus<select id="evsSoundPlaybackMode">
                   <option value="manual" ${sound.playbackMode === 'manual' ? 'selected' : ''}>Manuell</option>
@@ -2018,18 +2018,25 @@ window.StreamEventsModule = (function(){
                 <label>Antwortzeit in Sekunden<input id="evsSoundAnswerSeconds" type="number" min="5" max="300" value="${esc(sound.answerSeconds)}"></label>
               </div>
               <div class="evs-two-cols evs-text-config-grid">
-                <label>Alle X Minuten<input id="evsSoundIntervalMinutes" type="number" min="1" max="240" value="${esc(sound.intervalMinutes)}"></label>
-                <label>Zufallsabweichung ± Minuten<input id="evsSoundIntervalJitter" type="number" min="0" max="120" value="${esc(sound.intervalJitterMinutes)}"></label>
-              </div>
-              <div class="evs-two-cols evs-text-config-grid">
-                <label>Pause nach Runde in Sekunden<input id="evsSoundRoundDelay" type="number" min="0" max="3600" value="${esc(sound.roundDelaySeconds)}"></label>
                 <label>Punkte pro Soundlösung<input id="evsSoundDefaultPoints" type="number" min="0" max="10000" value="${esc(sound.defaultPoints)}"></label>
+                <div class="evs-form-placeholder"></div>
               </div>
               <label class="evs-check"><input id="evsSoundAutoStart" type="checkbox" ${sound.autoStartFirstRound !== false ? 'checked' : ''}> Erste Runde automatisch beim Eventstart starten</label>
               <label class="evs-check"><input id="evsSoundAutoAdvance" type="checkbox" ${sound.autoAdvanceRounds !== false ? 'checked' : ''}> Nach einer Runde automatisch weitermachen</label>
             </section>
             <section class="evs-settings-section">
-              <div class="evs-config-card-head"><strong>Sound · Ausgabe & Vorbereitung</strong><small>Ausgabeziel, PreRoll und Countdown für dieses Event</small></div>
+              <div class="evs-config-card-head"><strong>2. Automatik</strong><small>Intervall und Pause zwischen Runden</small></div>
+              <div class="evs-two-cols evs-text-config-grid">
+                <label>Alle X Minuten<input id="evsSoundIntervalMinutes" type="number" min="1" max="240" value="${esc(sound.intervalMinutes)}"></label>
+                <label>Zufallsabweichung ± Minuten<input id="evsSoundIntervalJitter" type="number" min="0" max="120" value="${esc(sound.intervalJitterMinutes)}"></label>
+              </div>
+              <div class="evs-two-cols evs-text-config-grid">
+                <label>Pause nach Runde in Sekunden<input id="evsSoundRoundDelay" type="number" min="0" max="3600" value="${esc(sound.roundDelaySeconds)}"></label>
+                <div class="evs-form-placeholder"></div>
+              </div>
+            </section>
+            <section class="evs-settings-section">
+              <div class="evs-config-card-head"><strong>3. Ausgabe</strong><small>Wohin Sound und Vorbereitung gehen sollen</small></div>
               <div class="evs-two-cols evs-text-config-grid">
                 <label>Ausgabeziel<select id="evsSoundOutputTarget">
                   <option value="default" ${sound.outputTarget === 'default' ? 'selected' : ''}>Sound-System Standard</option>
@@ -2051,7 +2058,7 @@ window.StreamEventsModule = (function(){
               <label class="evs-check"><input id="evsSoundCountdownPreRollEnabled" type="checkbox" ${sound.countdownPreRollEnabled === true ? 'checked' : ''}> Countdown vor Sound anzeigen</label>
             </section>
             <section class="evs-settings-section">
-              <div class="evs-config-card-head"><strong>Sound · Rotation</strong><small>Zufall, Wiederholschutz und Verhalten nach Runden</small></div>
+              <div class="evs-config-card-head"><strong>4. Rotation</strong><small>Reihenfolge, Wiederholschutz und Verhalten nach Runden</small></div>
               <div class="evs-two-cols evs-text-config-grid">
                 <label>Reihenfolge<select id="evsSoundOrderMode">
                   <option value="random" ${sound.orderMode === 'random' ? 'selected' : ''}>Zufällig</option>
@@ -2074,7 +2081,7 @@ window.StreamEventsModule = (function(){
               <label class="evs-check"><input id="evsSoundAvoidRepeat" type="checkbox" ${sound.avoidImmediateRepeat !== false ? 'checked' : ''}> Direkte Wiederholung vermeiden</label>
             </section>
             <section class="evs-settings-section">
-              <div class="evs-config-card-head"><strong>Sound · Auflösung</strong><small>Was nach richtiger Antwort passieren soll</small></div>
+              <div class="evs-config-card-head"><strong>5. Auflösung</strong><small>Optionales Video nach richtiger Antwort</small></div>
               <label class="evs-check"><input id="evsSoundRevealVideo" type="checkbox" ${sound.revealVideoEnabled !== false ? 'checked' : ''}> Auflösungs-Video abspielen, wenn vorhanden</label>
               <label>Video-Modus<select id="evsSoundRevealVideoMode">
                 <option value="after_solved" ${sound.revealVideoMode === 'after_solved' ? 'selected' : ''}>Nach richtiger Antwort automatisch</option>
