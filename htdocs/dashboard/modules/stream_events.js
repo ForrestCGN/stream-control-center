@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.34";
-  const MODULE_BUILD = "STEP_EVENT_CURRENT_INFO_DASH_1";
+  const MODULE_VERSION = "0.5.35";
+  const MODULE_BUILD = "STEP_EVENT_CONFIG_READY_UX_1";
 
   const api = {
     status: '/api/stream-events/status',
@@ -143,6 +143,67 @@ window.StreamEventsModule = (function(){
     if (key.includes('.points_not_set')) return 'Beim Text-Rätsel sind keine Punkte gesetzt.';
     if (key === 'text.word_points_enabled_but_zero_points') return 'Wortpunkte sind aktiv, aber Punkte pro Wort stehen auf 0.';
     return key;
+  }
+
+  function validateLocalEventDraft(event){
+    const ev = event || {};
+    const issues = [];
+    const warnings = [];
+    const selected = [];
+    if (!String(ev.name || '').trim()) issues.push('event.name_missing');
+    if (ev.soundEnabled) selected.push('sound');
+    if (ev.textEnabled) selected.push('text');
+    if (!selected.length) issues.push('event.no_game_type_selected');
+
+    if (ev.soundEnabled) {
+      const sound = ev.soundConfig || {};
+      const snippets = Array.isArray(sound.snippets) ? sound.snippets : [];
+      if (!snippets.length) issues.push('sound.no_snippets');
+      snippets.forEach((snippet, index) => {
+        const nr = index + 1;
+        if (!String(snippet?.title || snippet?.name || '').trim()) issues.push(`sound.snippet.${nr}.title_missing`);
+        if (!String(snippet?.mediaId || snippet?.mediaPath || snippet?.file || snippet?.snippetMediaId || '').trim()) issues.push(`sound.snippet.${nr}.media_missing`);
+        const rawAnswers = Array.isArray(snippet?.acceptedAnswers) ? snippet.acceptedAnswers : (Array.isArray(snippet?.answers) ? snippet.answers : []);
+        if (!rawAnswers.map(value => String(value || '').trim()).filter(Boolean).length) issues.push(`sound.snippet.${nr}.answers_missing`);
+      });
+      const answerSeconds = Number(sound.answerSeconds ?? sound.defaultAnswerSeconds ?? 60);
+      if (Number.isFinite(answerSeconds) && answerSeconds < 10) warnings.push('sound.answer_seconds_very_short');
+    }
+
+    if (ev.textEnabled) {
+      const text = ev.textConfig || {};
+      const phrases = Array.isArray(text.phrases) ? text.phrases : [];
+      if (!phrases.length) issues.push('text.no_phrases');
+      phrases.forEach((phrase, index) => {
+        const nr = index + 1;
+        if (!String(phrase?.phrase || phrase?.text || phrase?.solution || '').trim()) issues.push(`text.phrase.${nr}.phrase_missing`);
+        const answers = Array.isArray(phrase?.acceptedAnswers) ? phrase.acceptedAnswers : [];
+        if (!answers.map(value => String(value || '').trim()).filter(Boolean).length) warnings.push(`text.phrase.${nr}.answers_empty_uses_phrase`);
+        const points = Number(phrase?.pointsFirst ?? phrase?.points ?? 0);
+        if (!Number.isFinite(points) || points <= 0) warnings.push(`text.phrase.${nr}.points_not_set`);
+      });
+      if (text.wordPointsEnabled === true && Number(text.pointsPerNewWord ?? text.wordPointsPerNewWord ?? 0) <= 0) warnings.push('text.word_points_enabled_but_zero_points');
+    }
+
+    return {
+      ok: issues.length === 0,
+      startable: issues.length === 0,
+      issues,
+      warnings,
+      selectedGameTypes: selected
+    };
+  }
+
+  function renderDraftValidation(validation, sourceLabel = 'Entwurf'){
+    const issues = Array.isArray(validation?.issues) ? validation.issues : [];
+    const warnings = Array.isArray(validation?.warnings) ? validation.warnings : [];
+    if (!issues.length && !warnings.length) return `<div class="evs-valid-ok">✅ ${esc(sourceLabel)} ist startbereit.</div>`;
+    return `
+      <div class="evs-validation">
+        ${issues.length ? `<div class="evs-validation-block"><strong>Noch nötig:</strong>${issues.map(i => `<div>• ${esc(issueLabel(i))}</div>`).join('')}</div>` : ''}
+        ${warnings.length ? `<div class="evs-validation-block evs-validation-warn"><strong>Hinweise:</strong>${warnings.map(i => `<div>• ${esc(warnLabel(i))}</div>`).join('')}</div>` : ''}
+      </div>
+    `;
   }
 
   function renderValidation(event){
@@ -2075,6 +2136,14 @@ window.StreamEventsModule = (function(){
               ], 'Text-Spiel bearbeiten')}
             </div>
 
+            <section class="evs-editor-settings-card evs-editor-ready-card">
+              <div>
+                <strong>Startprüfung</strong>
+                <p>Ein Event kann gespeichert werden, startet aber erst, wenn alle aktivierten Spieltypen vollständig konfiguriert sind.</p>
+              </div>
+              ${renderDraftValidation(validateLocalEventDraft(event), 'Dieses Event')}
+            </section>
+
             <div class="evs-modal-actions">
               <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="closeModal">Abbrechen</button>
               <button type="button" class="evs-btn" data-evs-action="saveEvent">Speichern</button>
@@ -2862,7 +2931,10 @@ window.StreamEventsModule = (function(){
         ? await window.CGN.api(`${api.events}/${encodeURIComponent(current.eventUid)}`, { method: 'PUT', body: JSON.stringify(payload) })
         : await window.CGN.api(api.events, { method: 'POST', body: JSON.stringify(payload) });
       const uid = result.event?.eventUid || current.eventUid || state.selectedUid;
-      state.message = 'Event gespeichert.';
+      const validation = result.event?.validation || {};
+      state.message = validation.startable === false || (Array.isArray(validation.issues) && validation.issues.length)
+        ? 'Event gespeichert. Es ist noch nicht startbereit.'
+        : 'Event gespeichert und startbereit.';
       state.modal = null;
       state.selectedUid = uid || state.selectedUid;
       state.selected = null;

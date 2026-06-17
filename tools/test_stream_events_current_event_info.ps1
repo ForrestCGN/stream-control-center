@@ -27,9 +27,12 @@ Write-Host "Modulstatus:" -ForegroundColor Yellow
 $status | Select-Object ok,module,moduleVersion,version,enabled,lastError | Format-List
 
 $list = Get-Json $listUrl
-$events = @($list.items)
+$events = @()
+if ($list.rows) { $events = @($list.rows) }
+elseif ($list.items) { $events = @($list.items) }
+elseif ($list.events) { $events = @($list.events) }
 if (-not $events -or $events.Count -eq 0) {
-  Write-Host "Keine Events gefunden." -ForegroundColor Yellow
+  Write-Host "Keine Events gefunden. Hinweis: Die Events-Route wurde erreicht, aber es kamen keine rows/items/events zurück." -ForegroundColor Yellow
   exit 0
 }
 
