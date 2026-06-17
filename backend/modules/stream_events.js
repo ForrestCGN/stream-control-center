@@ -24,8 +24,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.54";
-const MODULE_BUILD = "STEP_EVENT_SOUND_ANSWER_SECONDS_EVENT_SETTINGS_1";
+const MODULE_VERSION = "0.5.55";
+const MODULE_BUILD = "STEP_EVENT_RUNTIME_RECOVERY_REQUEUE_1";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -1015,6 +1015,27 @@ function ensureSchema() {
     `);
     database.exec(`CREATE INDEX IF NOT EXISTS idx_stream_events_text_solves_event ON stream_events_text_phrase_solves(event_uid);`);
     database.exec(`CREATE INDEX IF NOT EXISTS idx_stream_events_text_solves_user ON stream_events_text_phrase_solves(event_uid, user_login);`);
+
+    database.exec(`
+      CREATE TABLE IF NOT EXISTS stream_events_runtime_state (
+        id ${database.primaryKeyAutoIncrementSql()},
+        event_uid TEXT NOT NULL UNIQUE,
+        runtime_status TEXT NOT NULL DEFAULT 'active',
+        phase TEXT NOT NULL DEFAULT 'unknown',
+        active_round_uid TEXT NOT NULL DEFAULT '',
+        phase_started_at ${database.dateTimeTypeSql()} NOT NULL DEFAULT '',
+        phase_ends_at ${database.dateTimeTypeSql()} NOT NULL DEFAULT '',
+        next_auto_start_at ${database.dateTimeTypeSql()} NOT NULL DEFAULT '',
+        last_heartbeat_at ${database.dateTimeTypeSql()} NOT NULL DEFAULT '',
+        recovery_required ${database.boolTypeSql()} NOT NULL DEFAULT 0,
+        recovery_reason TEXT NOT NULL DEFAULT '',
+        recovery_note TEXT NOT NULL DEFAULT '',
+        updated_at ${database.dateTimeTypeSql()} NOT NULL,
+        metadata_json ${database.jsonTypeSql()} NOT NULL
+      );
+    `);
+    database.exec(`CREATE INDEX IF NOT EXISTS idx_stream_events_runtime_state_event ON stream_events_runtime_state(event_uid);`);
+    database.exec(`CREATE INDEX IF NOT EXISTS idx_stream_events_runtime_state_status ON stream_events_runtime_state(runtime_status);`);
 
     ensureConfigTable();
     runtimeState.schemaReady = true;
@@ -3424,6 +3445,149 @@ function getActiveSoundRound(eventUid = "") {
   return rowToRound(row);
 }
 
+function rowToRuntimeState(row) {
+  if (!row) return null;
+  return {
+    eventUid: row.event_uid || "",
+    runtimeStatus: row.runtime_status || "",
+    phase: row.phase || "",
+    activeRoundUid: row.active_round_uid || "",
+    phaseStartedAt: row.phase_started_at || "",
+    phaseEndsAt: row.phase_ends_at || "",
+    nextAutoStartAt: row.next_auto_start_at || "",
+    lastHeartbeatAt: row.last_heartbeat_at || "",
+    recoveryRequired: boolValue(row.recovery_required),
+    recoveryReason: row.recovery_reason || "",
+    recoveryNote: row.recovery_note || "",
+    updatedAt: row.updated_at || "",
+    metadata: safeJsonParse(row.metadata_json, {})
+  };
+}
+
+function getEventRuntimeState(eventUid = "") {
+  ensureSchema();
+  const uid = cleanString(eventUid);
+  if (!uid) return null;
+  return rowToRuntimeState(database.get("SELECT * FROM stream_events_runtime_state WHERE event_uid = :eventUid LIMIT 1", { eventUid: uid }));
+}
+
+function upsertEventRuntimeState(eventUid = "", patch = {}) {
+  ensureSchema();
+  const uid = cleanString(eventUid);
+  if (!uid) return { ok: false, error: "event_uid_missing" };
+  const now = nowIso();
+  const existing = getEventRuntimeState(uid);
+  const metadata = patch.metadata && typeof patch.metadata === "object" ? patch.metadata : (existing && existing.metadata ? existing.metadata : {});
+  const row = {
+    event_uid: uid,
+    runtime_status: cleanString(patch.runtimeStatus || patch.runtime_status || (existing && existing.runtimeStatus) || "active"),
+    phase: cleanString(patch.phase || (existing && existing.phase) || "unknown"),
+    active_round_uid: cleanString(patch.activeRoundUid || patch.active_round_uid || ""),
+    phase_started_at: cleanString(patch.phaseStartedAt || patch.phase_started_at || ""),
+    phase_ends_at: cleanString(patch.phaseEndsAt || patch.phase_ends_at || ""),
+    next_auto_start_at: cleanString(patch.nextAutoStartAt || patch.next_auto_start_at || ""),
+    last_heartbeat_at: cleanString(patch.lastHeartbeatAt || patch.last_heartbeat_at || now),
+    recovery_required: boolValue(patch.recoveryRequired ?? patch.recovery_required, false) ? 1 : 0,
+    recovery_reason: cleanString(patch.recoveryReason || patch.recovery_reason || ""),
+    recovery_note: cleanString(patch.recoveryNote || patch.recovery_note || ""),
+    updated_at: now,
+    metadata_json: jsonEncode(metadata)
+  };
+  database.exec(`
+    INSERT INTO stream_events_runtime_state (
+      event_uid, runtime_status, phase, active_round_uid, phase_started_at, phase_ends_at,
+      next_auto_start_at, last_heartbeat_at, recovery_required, recovery_reason, recovery_note, updated_at, metadata_json
+    ) VALUES (
+      :event_uid, :runtime_status, :phase, :active_round_uid, :phase_started_at, :phase_ends_at,
+      :next_auto_start_at, :last_heartbeat_at, :recovery_required, :recovery_reason, :recovery_note, :updated_at, :metadata_json
+    )
+    ON CONFLICT(event_uid) DO UPDATE SET
+      runtime_status = excluded.runtime_status,
+      phase = excluded.phase,
+      active_round_uid = excluded.active_round_uid,
+      phase_started_at = excluded.phase_started_at,
+      phase_ends_at = excluded.phase_ends_at,
+      next_auto_start_at = excluded.next_auto_start_at,
+      last_heartbeat_at = excluded.last_heartbeat_at,
+      recovery_required = excluded.recovery_required,
+      recovery_reason = excluded.recovery_reason,
+      recovery_note = excluded.recovery_note,
+      updated_at = excluded.updated_at,
+      metadata_json = excluded.metadata_json
+  `, row);
+  return { ok: true, state: getEventRuntimeState(uid) };
+}
+
+function requeueInterruptedActiveSoundRound(round, reason = "runtime_recovery") {
+  const activeRound = round && round.roundUid ? round : null;
+  if (!activeRound || activeRound.status !== "active") return { ok: true, skipped: true, reason: "round_not_active" };
+  const now = nowIso();
+  cancelSoundAnswerTimer(activeRound.roundUid);
+  clearTimerMapEntry(soundRevealTimers, activeRound.roundUid);
+  const existingResultData = activeRound.resultData && typeof activeRound.resultData === "object" ? activeRound.resultData : {};
+  const resultData = {
+    ...existingResultData,
+    solved: false,
+    interrupted: true,
+    requeuedAfterRecovery: true,
+    recoveryReason: cleanString(reason, "runtime_recovery"),
+    recoveredAt: now,
+    answerWindowState: "closed",
+    answerWindowClosedAt: now,
+    answerWindowCloseReason: "recovery_requeued",
+    note: "Runde wurde nach Neustart/Unterbrechung nicht gewertet und wieder in die Rotation gelegt."
+  };
+  database.updateByKey("stream_events_rounds", "round_uid", activeRound.roundUid, {
+    status: "interrupted",
+    result: "interrupted_requeued",
+    finished_at: now,
+    updated_at: now,
+    result_json: jsonEncode(resultData)
+  });
+  return { ok: true, eventUid: activeRound.eventUid, roundUid: activeRound.roundUid, itemUid: activeRound.itemUid, status: "interrupted", result: "interrupted_requeued", requeued: true };
+}
+
+function recoverActiveStreamEvents(reason = "node_start") {
+  ensureSchema();
+  const activeEvents = listEvents({ status: STATUS.ACTIVE, limit: 100 }).rows || [];
+  const recovered = [];
+  const scheduled = [];
+  const now = nowIso();
+  for (const event of activeEvents) {
+    if (!event || !event.eventUid) continue;
+    const activeRound = event.soundEnabled ? getActiveSoundRound(event.eventUid) : null;
+    let recovery = null;
+    if (activeRound) {
+      recovery = requeueInterruptedActiveSoundRound(activeRound, reason);
+      recovered.push({ eventUid: event.eventUid, eventName: event.name, round: recovery });
+      emitBus("stream_events.recovery", "sound_round_requeued", { eventUid: event.eventUid, eventName: event.name, round: recovery, reason });
+    }
+    upsertEventRuntimeState(event.eventUid, {
+      runtimeStatus: "active",
+      phase: activeRound ? "recovered_waiting" : "waiting",
+      activeRoundUid: "",
+      phaseStartedAt: now,
+      phaseEndsAt: "",
+      nextAutoStartAt: "",
+      lastHeartbeatAt: now,
+      recoveryRequired: false,
+      recoveryReason: cleanString(reason, "node_start"),
+      recoveryNote: activeRound
+        ? "Aktive Sound-Runde wurde wegen Neustart/Unterbrechung zurueck in die Rotation gelegt. Punkte bleiben erhalten."
+        : "Aktives Event wurde nach Neustart erkannt; Auto-Wartezeit wird neu geplant.",
+      metadata: { moduleBuild: MODULE_BUILD, recoveredAt: now, hadActiveRound: !!activeRound }
+    });
+    if (event.soundEnabled) {
+      const plan = scheduleNextSoundRound(event.eventUid, activeRound ? "recovery_requeued_active_round" : "recovery_reschedule_wait");
+      scheduled.push({ eventUid: event.eventUid, eventName: event.name, plan });
+    }
+  }
+  const result = { ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, reason, activeEvents: activeEvents.length, recoveredCount: recovered.length, recovered, scheduled, updatedAt: nowIso() };
+  runtimeState.lastRecovery = result;
+  publishStatus("recovery.completed", { activeEvents: activeEvents.length, recoveredCount: recovered.length });
+  return result;
+}
+
 function getSoundRounds(eventUid, limit = 100) {
   ensureSchema();
   return database.all(`
@@ -4419,6 +4583,7 @@ function getSoundRuntimeStatus(eventUid = "") {
     activeRound,
     snippets: event ? getSoundSnippets(event).map(item => ({ snippetUid: item.snippetUid, title: item.title, mediaId: item.mediaId, acceptedAnswerCount: item.acceptedAnswers.length, acceptedAnswersDebug: buildSoundAcceptedAnswersDebug(item), points: item.points })) : [],
     runtimeConfig: event ? getSoundRuntimeConfig(event) : getSoundRuntimeConfig(null),
+    runtimeState: event ? getEventRuntimeState(event.eventUid) : null,
     parts: event ? getEventRuntimePartsStatus(event) : getEventRuntimePartsStatus(null),
     timers: {
       answerTimers: soundAnswerTimers.size,
@@ -5801,6 +5966,8 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "POST", path: `${prefix}/chat-output/test-dispatch`, description: "EVS-20: Testet ChatOutput-Dispatch-Regeln ohne Twitch-Ausgabe" },
       { method: "POST", path: `${prefix}/sound-runtime/next-round`, description: "Bereitet die naechste Sound-Runde vor; mit play=1&confirm=1 kontrolliert ueber Sound-System-PreRoll abspielen" },
       { method: "POST", path: `${prefix}/sound-runtime/skip-wait`, description: "Ueberspringt die aktuelle automatische Sound-Wartezeit und startet den naechsten Schnipsel ueber den normalen Sound-System-Flow" },
+      { method: "GET", path: `${prefix}/sound-runtime/recovery-status`, description: "EVS37: Zeigt gespeicherten Runtime-/Recovery-Status aktiver Events" },
+      { method: "POST", path: `${prefix}/sound-runtime/recover`, description: "EVS37: Fuehrt sichere Recovery aus: aktive Sound-Runde wird unterbrochen und zurueck in Rotation gelegt" },
       { method: "POST", path: `${prefix}/sound-runtime/resolve`, description: "Wertet die aktive Sound-Runde als geloest, wenn die Antwort passt" },
       { method: "POST", path: `${prefix}/sound-runtime/unresolved`, description: "Markiert die aktive Sound-Runde als nicht geloest" },
       { method: "GET", path: `${prefix}/routes`, description: "Route-Selbstdokumentation" },
@@ -5906,6 +6073,9 @@ module.exports.init = function init(ctx) {
   const soundPlaybackSubscription = registerSoundPlaybackBusSubscription();
   if (soundPlaybackSubscription && soundPlaybackSubscription.ok !== true) runtimeState.lastError = soundPlaybackSubscription.reason || soundPlaybackSubscription.error || runtimeState.lastError;
 
+  const startupRecovery = recoverActiveStreamEvents("node_start");
+  if (startupRecovery && startupRecovery.ok !== true) runtimeState.lastError = startupRecovery.error || runtimeState.lastError;
+
   const prefix = "/api/stream-events";
   const registeredRoutes = [];
 
@@ -5960,6 +6130,34 @@ module.exports.init = function init(ctx) {
       sendJson(res, getSoundRuntimeReport(req.query.eventUid || req.query.event_uid || ""));
     } catch (err) {
       handleError(res, err);
+    }
+  });
+
+  reg("get", `${prefix}/sound-runtime/recovery-status`, (req, res) => {
+    try {
+      const events = listEvents({ status: STATUS.ACTIVE, limit: 100 }).rows || [];
+      const rows = events.map(event => ({
+        event: publicEventSummary(event),
+        runtimeState: getEventRuntimeState(event.eventUid),
+        activeRound: event.soundEnabled ? getActiveSoundRound(event.eventUid) : null,
+        parts: getEventRuntimePartsStatus(event)
+      }));
+      sendJson(res, { ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, count: rows.length, rows, lastRecovery: runtimeState.lastRecovery || null, updatedAt: nowIso() });
+    } catch (err) {
+      handleError(res, err);
+    }
+  });
+
+  reg("post", `${prefix}/sound-runtime/recover`, (req, res) => {
+    try {
+      const confirm = String(req.query.confirm || (req.body && req.body.confirm) || "").trim();
+      if (confirm !== "1") {
+        return sendJson(res, { ok: false, error: "confirm_required", hint: "POST /api/stream-events/sound-runtime/recover?confirm=1" }, 400);
+      }
+      const result = recoverActiveStreamEvents(cleanString((req.body && req.body.reason) || req.query.reason || "manual_recovery"));
+      sendJson(res, result, result.ok ? 200 : 400);
+    } catch (err) {
+      handleError(res, err, 400);
     }
   });
 
