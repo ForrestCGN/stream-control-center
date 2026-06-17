@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.29";
-  const MODULE_BUILD = "STEP_EVENT_SOUND_DASH_1_CONFIG_FIELDS";
+  const MODULE_VERSION = "0.5.30";
+  const MODULE_BUILD = "STEP_EVENT_SOUND_DASH_2_EVENT_SOUND_SETTINGS";
 
   const api = {
     status: '/api/stream-events/status',
@@ -1471,6 +1471,8 @@ window.StreamEventsModule = (function(){
             <div><strong>${esc(soundSolvedPolicyLabel(sound.solvedPolicy))}</strong><span>Wenn erkannt</span></div>
             <div><strong>${esc(soundUnresolvedPolicyLabel(sound.unresolvedPolicy))}</strong><span>Wenn nicht erkannt</span></div>
             <div><strong>${esc(soundRevealModeLabel(sound.revealVideoMode, sound.revealVideoEnabled))}</strong><span>Auflösung</span></div>
+            <div><strong>${esc(soundOutputTargetLabel(sound.outputTarget))}</strong><span>Ausgabe</span></div>
+            <div><strong>${esc(sound.preRollEnabled ? `PreRoll ${sound.preRollSeconds}s` : 'PreRoll aus')} · ${esc(sound.countdownPreRollEnabled ? `Countdown ${sound.countdownPreRollSeconds}s` : 'Countdown aus')}</strong><span>Vorbereitung</span></div>
           ` : '<div><strong>Sound aus</strong><span>Kein Sound-Spiel aktiv</span></div>'}
           ${event.textEnabled ? `<div><strong>${esc(text.defaultPhrasePoints || text.pointsFirst || 40)} Punkte</strong><span>Text-Lösung</span></div>` : ''}
         </div>
@@ -1800,6 +1802,16 @@ window.StreamEventsModule = (function(){
     return 'Video nach Lösung';
   }
 
+  function soundOutputTargetLabel(value){
+    const map = { default: 'Sound-System Standard', overlay: 'Overlay', device: 'Gerät', both: 'Beides' };
+    return map[String(value || 'default')] || 'Sound-System Standard';
+  }
+
+  function soundTargetLabel(value){
+    const map = { stream: 'Stream', discord: 'Discord', both: 'Beides' };
+    return map[String(value || 'stream')] || 'Stream';
+  }
+
   function normalizeSoundSettings(sound = {}, defaults = {}){
     const playbackMode = sound.playbackMode || defaults.playbackMode || 'random_auto';
     const revealVideoEnabled = sound.revealVideoEnabled !== undefined ? sound.revealVideoEnabled !== false : defaults.revealVideoEnabled !== false;
@@ -1841,7 +1853,8 @@ window.StreamEventsModule = (function(){
         soundOrderModeLabel(settings.orderMode),
         `Wiederholabstand ${settings.minRepeatDistance}`,
         soundRevealModeLabel(settings.revealVideoMode, settings.revealVideoEnabled),
-        settings.outputTarget === 'default' ? 'Sound-System Standard' : `Ausgabe: ${settings.outputTarget}`,
+        soundOutputTargetLabel(settings.outputTarget),
+        settings.preRollEnabled ? `PreRoll ${settings.preRollSeconds}s` : 'PreRoll aus',
         settings.countdownPreRollEnabled ? `Countdown ${settings.countdownPreRollSeconds}s` : 'Countdown aus'
       ]
     };
@@ -2014,6 +2027,28 @@ window.StreamEventsModule = (function(){
               </div>
               <label class="evs-check"><input id="evsSoundAutoStart" type="checkbox" ${sound.autoStartFirstRound !== false ? 'checked' : ''}> Erste Runde automatisch beim Eventstart starten</label>
               <label class="evs-check"><input id="evsSoundAutoAdvance" type="checkbox" ${sound.autoAdvanceRounds !== false ? 'checked' : ''}> Nach einer Runde automatisch weitermachen</label>
+            </section>
+            <section class="evs-settings-section">
+              <div class="evs-config-card-head"><strong>Sound · Ausgabe & Vorbereitung</strong><small>Ausgabeziel, PreRoll und Countdown für dieses Event</small></div>
+              <div class="evs-two-cols evs-text-config-grid">
+                <label>Ausgabeziel<select id="evsSoundOutputTarget">
+                  <option value="default" ${sound.outputTarget === 'default' ? 'selected' : ''}>Sound-System Standard</option>
+                  <option value="overlay" ${sound.outputTarget === 'overlay' ? 'selected' : ''}>Overlay</option>
+                  <option value="device" ${sound.outputTarget === 'device' ? 'selected' : ''}>Gerät</option>
+                  <option value="both" ${sound.outputTarget === 'both' ? 'selected' : ''}>Beides</option>
+                </select></label>
+                <label>Ziel<select id="evsSoundTarget">
+                  <option value="stream" ${sound.target === 'stream' ? 'selected' : ''}>Stream</option>
+                  <option value="discord" ${sound.target === 'discord' ? 'selected' : ''}>Discord</option>
+                  <option value="both" ${sound.target === 'both' ? 'selected' : ''}>Beides</option>
+                </select></label>
+              </div>
+              <div class="evs-two-cols evs-text-config-grid">
+                <label>PreRoll Sekunden<input id="evsSoundPreRollSeconds" type="number" min="0" max="30" value="${esc(sound.preRollSeconds)}"></label>
+                <label>Countdown Sekunden<input id="evsSoundCountdownPreRollSeconds" type="number" min="0" max="30" value="${esc(sound.countdownPreRollSeconds)}"></label>
+              </div>
+              <label class="evs-check"><input id="evsSoundPreRollEnabled" type="checkbox" ${sound.preRollEnabled === true ? 'checked' : ''}> PreRoll vor Sound erlauben</label>
+              <label class="evs-check"><input id="evsSoundCountdownPreRollEnabled" type="checkbox" ${sound.countdownPreRollEnabled === true ? 'checked' : ''}> Countdown vor Sound anzeigen</label>
             </section>
             <section class="evs-settings-section">
               <div class="evs-config-card-head"><strong>Sound · Rotation</strong><small>Zufall, Wiederholschutz und Verhalten nach Runden</small></div>
@@ -2220,12 +2255,12 @@ window.StreamEventsModule = (function(){
       minRepeatDistance: Number(document.getElementById('evsSoundRepeatDistance')?.value ?? current.minRepeatDistance ?? 3),
       revealVideoEnabled: revealEnabled,
       revealVideoMode: revealEnabled ? (document.getElementById('evsSoundRevealVideoMode')?.value || current.revealVideoMode || 'after_solved') : 'disabled',
-      preRollEnabled: current.preRollEnabled === true,
-      preRollSeconds: current.preRollSeconds ?? 3,
-      countdownPreRollEnabled: current.countdownPreRollEnabled === true,
-      countdownPreRollSeconds: current.countdownPreRollSeconds ?? 3,
-      outputTarget: current.outputTarget || 'default',
-      target: current.target || 'stream',
+      preRollEnabled: document.getElementById('evsSoundPreRollEnabled')?.checked === true,
+      preRollSeconds: Number(document.getElementById('evsSoundPreRollSeconds')?.value ?? current.preRollSeconds ?? 3),
+      countdownPreRollEnabled: document.getElementById('evsSoundCountdownPreRollEnabled')?.checked === true,
+      countdownPreRollSeconds: Number(document.getElementById('evsSoundCountdownPreRollSeconds')?.value ?? current.countdownPreRollSeconds ?? 3),
+      outputTarget: document.getElementById('evsSoundOutputTarget')?.value || current.outputTarget || 'default',
+      target: document.getElementById('evsSoundTarget')?.value || current.target || 'stream',
       snippets: Array.isArray(fallback.snippets) ? fallback.snippets : []
     };
   }
