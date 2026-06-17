@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.33";
-  const MODULE_BUILD = "STEP_EVENT_SOUND_DASH_3B_PREROLL_COUNTDOWN_DEFAULT_ON";
+  const MODULE_VERSION = "0.5.34";
+  const MODULE_BUILD = "STEP_EVENT_CURRENT_INFO_DASH_1";
 
   const api = {
     status: '/api/stream-events/status',
@@ -177,6 +177,14 @@ window.StreamEventsModule = (function(){
   function soundRuntimeReport(){ return state.soundRuntimeReport || null; }
   function soundRuntimeReportFor(event){ const report = soundRuntimeReport(); return event && report && report.eventUid === event.eventUid ? report : null; }
   function statisticsUsers(){ return Array.isArray(state.statisticsUsers?.users) ? state.statisticsUsers.users : []; }
+  function statisticsUsersForEvent(event){
+    if (!event || !state.statisticsUsers || state.statisticsUsers.eventUid !== event.eventUid) return [];
+    return Array.isArray(state.statisticsUsers.users) ? state.statisticsUsers.users : [];
+  }
+  function rankingRowsForEvent(event){
+    if (!event || !state.ranking || state.ranking.eventUid !== event.eventUid) return [];
+    return rows(state.ranking.rows);
+  }
   function userStatistics(){ return state.userStatistics || null; }
   function reportCount(report, key){ return Number(report?.counts?.[key] || 0); }
   function chatOutputText(output){ return output?.text || output?.chatText || ''; }
@@ -223,6 +231,7 @@ window.StreamEventsModule = (function(){
   function tabs(){
     return [
       { id: 'overview', label: 'Übersicht', icon: '📋' },
+      { id: 'current', label: 'Aktuelles Event', icon: '📊' },
       { id: 'events', label: 'Events', icon: '🎲' },
       { id: 'texts', label: 'Texte', icon: '💬' },
       { id: 'config', label: 'Config', icon: '⚙️' },
@@ -245,6 +254,7 @@ window.StreamEventsModule = (function(){
 
   function renderActiveTab(event){
     const tab = state.activeTab || 'overview';
+    if (tab === 'current') return renderCurrentEventTab(event);
     if (tab === 'events') return renderEventsTab(event);
     if (tab === 'texts') return renderTextsTab();
     if (tab === 'config') return renderConfigTab();
@@ -404,7 +414,7 @@ window.StreamEventsModule = (function(){
   }
 
   function renderOverviewTopPlayersCard(event){
-    const rankingRows = rows(state.ranking?.rows);
+    const rankingRows = rankingRowsForEvent(event);
     return `
       <section class="evs-card glass evs-tab-panel evs-overview-ranking-card">
         <div class="evs-card-head">
@@ -418,6 +428,85 @@ window.StreamEventsModule = (function(){
           ${rankingRows.length ? rankingRows.slice(0, 5).map(row => `<div class="evs-rank-row"><strong>#${esc(row.rank)}</strong><span>${esc(row.userDisplayName || row.userLogin)}</span><b>${esc(row.points)} Punkte</b></div>`).join('') : '<div class="evs-empty">Noch keine Punkte.</div>'}
         </div>
       </section>
+    `;
+  }
+
+
+  function currentEventCandidate(fallback){
+    return state.events.find(event => norm(event.status) === 'active') || fallback || selectedEvent();
+  }
+
+  function renderCurrentEventTab(fallbackEvent){
+    const event = currentEventCandidate(fallbackEvent);
+    if (!event) {
+      return `
+        <section class="evs-card glass evs-tab-panel evs-current-event-card">
+          <div class="evs-card-head">
+            <div><h3>Aktuelles Event</h3><span>Live-Punkte und sortierte Rangliste.</span></div>
+            <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="reload">Aktualisieren</button>
+          </div>
+          <div class="evs-empty">Noch kein Event vorhanden.</div>
+        </section>
+      `;
+    }
+    const isActive = norm(event.status) === 'active';
+    const rankingRows = rankingRowsForEvent(event);
+    const users = statisticsUsersForEvent(event);
+    const totalPoints = users.reduce((sum, user) => sum + Number(user.totalPoints || 0), 0);
+    const soundPoints = users.reduce((sum, user) => sum + Number(user.soundPoints || 0), 0);
+    const textPoints = users.reduce((sum, user) => sum + Number(user.wordPoints || 0) + Number(user.phrasePoints || 0), 0);
+    const manualPoints = users.reduce((sum, user) => sum + Number(user.manualPoints || 0), 0);
+    const sortedUsers = users.length ? users : rankingRows.map(row => ({
+      userLogin: row.userLogin,
+      userDisplayName: row.userDisplayName,
+      totalPoints: row.points,
+      soundPoints: 0,
+      wordPoints: 0,
+      phrasePoints: 0,
+      manualPoints: 0,
+      scoreEntries: row.entries,
+      lastActivityAt: row.lastPointsAt
+    }));
+    return `
+      <div class="evs-current-event-main">
+        <section class="evs-card glass evs-tab-panel evs-current-event-card">
+          <div class="evs-card-head evs-stats-head">
+            <div>
+              <h3>Aktuelles Event</h3>
+              <span>${esc(event.name || event.eventUid)} · ${esc(eventTypes(event))}</span>
+            </div>
+            <div class="evs-action-row evs-action-row-tight">
+              ${statusBadge(event.status)}
+              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="refreshCurrentEventInfo" data-uid="${esc(event.eventUid)}">Aktualisieren</button>
+              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="openLiveStatus" data-uid="${esc(event.eventUid)}" ${isActive ? '' : 'disabled'}>Live-Status</button>
+            </div>
+          </div>
+          <div class="evs-mini-grid evs-mini-grid-compact evs-current-score-summary">
+            <div><strong>${esc(sortedUsers.length)}</strong><span>Spieler mit Punkten</span></div>
+            <div><strong>${esc(totalPoints || rankingRows.reduce((sum, row) => sum + Number(row.points || 0), 0))}</strong><span>Gesamtpunkte</span></div>
+            <div><strong>${esc(soundPoints)}</strong><span>Sound-Punkte</span></div>
+            <div><strong>${esc(textPoints)}</strong><span>Satz-/Text-Punkte</span></div>
+          </div>
+          ${manualPoints ? `<div class="evs-tab-help">Zusätzlich vorhanden: ${esc(manualPoints)} manuelle/sonstige Punkte.</div>` : ''}
+          <div class="evs-current-ranking-head">
+            <h4>Rangliste</h4>
+            <span>Sortiert nach Gesamtpunkten in genau diesem Event. Loyalty-Punkte bleiben getrennt.</span>
+          </div>
+          <div class="evs-current-ranking-table">
+            ${sortedUsers.length ? sortedUsers.map((user, index) => {
+              const rank = Number(user.rank || index + 1);
+              const textUserPoints = Number(user.wordPoints || 0) + Number(user.phrasePoints || 0);
+              return `<div class="evs-current-player-row">
+                <strong>#${esc(rank)}</strong>
+                <span class="evs-current-player-name">${esc(user.userDisplayName || user.userLogin)}</span>
+                <b>${esc(user.totalPoints ?? user.points ?? 0)} Punkte</b>
+                <small>Sound: ${esc(user.soundPoints || 0)} · Text: ${esc(textUserPoints)} · Treffer: ${esc(user.scoreEntries || user.entries || 0)}</small>
+              </div>`;
+            }).join('') : '<div class="evs-empty">Noch keine Punkte in diesem Event.</div>'}
+          </div>
+          <div class="evs-tab-help">Diese Ansicht liest nur Event-Punkte aus stream_events. Es wird nichts ins Loyalty-Konto geschrieben.</div>
+        </section>
+      </div>
     `;
   }
 
@@ -730,7 +819,7 @@ window.StreamEventsModule = (function(){
   }
 
   function renderStatsRankingPanel(event){
-    const rankingRows = rows(state.ranking?.rows);
+    const rankingRows = rankingRowsForEvent(event);
     return `
       <div class="evs-stats-section">
         <div class="evs-runtime-box-head evs-stats-section-head"><h4>Ranking</h4><button type="button" class="evs-btn evs-btn-secondary" data-evs-action="ranking" data-uid="${esc(event.eventUid)}">Ranking aktualisieren</button></div>
@@ -1481,7 +1570,7 @@ window.StreamEventsModule = (function(){
   }
 
   function renderEventDetail(event){
-    const rankingRows = rows(state.ranking?.rows);
+    const rankingRows = rankingRowsForEvent(event);
     return `
       <div class="evs-detail">
         <div class="evs-detail-title">
@@ -2526,11 +2615,13 @@ window.StreamEventsModule = (function(){
       state.runtimeGateStatus = runtimeGateStatus;
       if (!state.selectedUid && state.events[0]) state.selectedUid = state.events[0].eventUid;
       const ev = selectedEvent();
-      if (ev) {
-        await loadRanking(ev.eventUid, false);
-        await loadTextRuntimeReport(ev.eventUid, false);
-        await loadSoundRuntimeReport(ev.eventUid, false);
-        await loadStatisticsUsers(ev.eventUid, false);
+      const activeEvent = state.events.find(event => norm(event.status) === 'active');
+      const dataEvent = activeEvent || ev;
+      if (dataEvent) {
+        await loadRanking(dataEvent.eventUid, false);
+        await loadTextRuntimeReport(dataEvent.eventUid, false);
+        await loadSoundRuntimeReport(dataEvent.eventUid, false);
+        await loadStatisticsUsers(dataEvent.eventUid, false);
       }
     } catch (err) {
       state.error = err.message || String(err);
@@ -3062,6 +3153,15 @@ window.StreamEventsModule = (function(){
           await loadRuntimeGateStatus(false);
           if (state.selectedUid) await loadChatOutputSafety(state.selectedUid, false);
         }
+        if (state.activeTab === 'current') {
+          const ev = currentEventCandidate(selectedEvent());
+          if (ev) {
+            await loadRanking(ev.eventUid, false);
+            await loadTextRuntimeReport(ev.eventUid, false);
+            await loadSoundRuntimeReport(ev.eventUid, false);
+            await loadStatisticsUsers(ev.eventUid, false);
+          }
+        }
         render();
         return;
       }
@@ -3189,6 +3289,17 @@ window.StreamEventsModule = (function(){
       if (action === 'chatOutputSafety') { await loadRuntimeGateStatus(false); return loadChatOutputSafety(uid, true); }
       if (action === 'statsSubTab') return switchStatsSubTab(btn.dataset.tab || 'overview', uid);
       if (action === 'refreshStatsCurrent') return refreshCurrentStatsSection(uid);
+      if (action === 'refreshCurrentEventInfo') {
+        await Promise.all([
+          loadRanking(uid, false),
+          loadTextRuntimeReport(uid, false),
+          loadSoundRuntimeReport(uid, false),
+          loadStatisticsUsers(uid, false),
+          loadRuntimeGateStatus(false)
+        ]);
+        render();
+        return;
+      }
       if (action === 'ranking') return loadRanking(uid, true);
       if (action === 'runtimeReport') return loadTextRuntimeReport(uid, true);
       if (action === 'soundRuntimeReport') return loadSoundRuntimeReport(uid, true);

@@ -592,3 +592,19 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* EVS-34: Aktuelles Event Info-Seite */
+.stream-events-admin .evs-current-event-main{display:grid;gap:16px}
+.stream-events-admin .evs-current-event-card{min-width:0}
+.stream-events-admin .evs-current-score-summary{margin-top:8px}
+.stream-events-admin .evs-current-ranking-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-end;margin:16px 0 8px}
+.stream-events-admin .evs-current-ranking-head h4{margin:0;color:#f8fafc;font-size:16px}
+.stream-events-admin .evs-current-ranking-head span{color:var(--evs-muted);font-size:12px;text-align:right}
+.stream-events-admin .evs-current-ranking-table{display:grid;gap:8px;margin-top:8px}
+.stream-events-admin .evs-current-player-row{display:grid;grid-template-columns:54px minmax(160px,1fr) minmax(110px,auto) minmax(220px,auto);gap:10px;align-items:center;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.035);border-radius:14px;padding:10px 12px;color:var(--evs-text)}
+.stream-events-admin .evs-current-player-row strong{color:#a5f3fc;font-weight:900}
+.stream-events-admin .evs-current-player-row b{justify-self:end;color:#fff}
+.stream-events-admin .evs-current-player-row small{color:var(--evs-muted);justify-self:end}
+.stream-events-admin .evs-current-player-name{font-weight:900;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:840px){.stream-events-admin .evs-current-ranking-head{display:grid}.stream-events-admin .evs-current-ranking-head span{text-align:left}.stream-events-admin .evs-current-player-row{grid-template-columns:44px 1fr;align-items:start}.stream-events-admin .evs-current-player-row b,.stream-events-admin .evs-current-player-row small{justify-self:start;grid-column:2}}
