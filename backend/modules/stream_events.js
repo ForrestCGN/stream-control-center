@@ -20,12 +20,15 @@ const http = require("http");
 let streamStatusModule = null;
 try { streamStatusModule = require("./stream_status"); } catch (_) { streamStatusModule = null; }
 
+let twitchEventsModule = null;
+try { twitchEventsModule = require("./twitch_events"); } catch (_) { twitchEventsModule = null; }
+
 let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.59";
-const MODULE_BUILD = "STEP_EVENT_WINNER_FINALE_FOUNDATION_1";
+const MODULE_VERSION = "0.5.60";
+const MODULE_BUILD = "STEP_EVENT_RUNTIME_GATE_TWITCH_EVENTS_STREAM_STATE_1";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -1145,8 +1148,52 @@ function getActiveEvent() {
   return rowToEvent(row);
 }
 function getStreamStatusSnapshot() {
+  // EVS43: RuntimeGate must use twitch_events as the effective stream-state owner.
+  // This respects manual overrides and avoids falling back to raw Twitch API while the
+  // dashboard clearly shows ONLINE (Override). stream_status remains diagnostic only.
+  if (twitchEventsModule && typeof twitchEventsModule.getStreamState === "function") {
+    try {
+      const state = twitchEventsModule.getStreamState() || {};
+      const manualOverride = state.manualOverride && typeof state.manualOverride === "object" ? state.manualOverride : {};
+      const manualOverrideActive = manualOverride.active === true;
+      const online = state.live === true || String(state.status || "").toLowerCase() === "live" || String(state.status || "").toLowerCase() === "online";
+      const known = state.known !== false && !state.lastError;
+      const stale = state.stale === true;
+      let reason = online ? "stream_online" : "stream_offline";
+      if (manualOverrideActive && online) reason = "manual_override_online";
+      if (!known && !manualOverrideActive) reason = "stream_state_unknown";
+      if (stale && !manualOverrideActive) reason = "stream_state_stale";
+      return {
+        ok: true,
+        available: true,
+        online,
+        live: online,
+        statusKnown: known || manualOverrideActive,
+        stale: manualOverrideActive ? false : stale,
+        reason,
+        label: online ? (manualOverrideActive ? "Stream online (Override)" : "Stream online") : (known ? "Stream offline" : "Stream-Status unbekannt"),
+        source: cleanString(state.source || (manualOverrideActive ? "manual_override" : "twitch_events")),
+        effectiveSource: "twitch_events_stream_state",
+        manualOverrideActive,
+        confidence: cleanString(state.confidence || ""),
+        streamId: cleanString(state.streamId || ""),
+        title: cleanString(state.title || ""),
+        gameName: cleanString(state.gameName || ""),
+        startedAt: cleanString(state.startedAt || ""),
+        streamSessionId: cleanString(state.streamSessionId || ""),
+        streamDayId: cleanString(state.streamDayId || ""),
+        lastCheckedAt: cleanString(state.lastCheckedAt || state.lastChangedAt || state.lastPublishedAt || ""),
+        lastError: cleanString(state.lastError || ""),
+        sources: state.sources && typeof state.sources === "object" ? state.sources : {},
+        manualOverride
+      };
+    } catch (err) {
+      return { ok: false, available: true, online: false, live: false, statusKnown: false, stale: true, reason: "twitch_events_stream_state_error", label: "Stream-State Fehler", source: "twitch_events", effectiveSource: "twitch_events_stream_state", lastError: err && err.message ? err.message : String(err) };
+    }
+  }
+
   if (!streamStatusModule || typeof streamStatusModule.getCurrentStatus !== "function") {
-    return { ok: false, available: false, online: false, live: false, statusKnown: false, stale: true, reason: "stream_status_unavailable", label: "Stream-Status nicht verfügbar" };
+    return { ok: false, available: false, online: false, live: false, statusKnown: false, stale: true, reason: "stream_status_unavailable", label: "Stream-Status nicht verfügbar", source: "stream_status_fallback" };
   }
   try {
     const status = streamStatusModule.getCurrentStatus({ refresh: false }) || {};
@@ -1166,6 +1213,8 @@ function getStreamStatusSnapshot() {
       reason,
       label: online ? "Stream online" : (known ? "Stream offline" : "Stream-Status unbekannt"),
       source: cleanString(status.source || "stream_status"),
+      effectiveSource: "stream_status_fallback",
+      manualOverrideActive: false,
       streamId: cleanString(status.streamId || status.stream_id || ""),
       title: cleanString(status.title || ""),
       gameName: cleanString(status.gameName || status.game_name || ""),
@@ -1174,7 +1223,7 @@ function getStreamStatusSnapshot() {
       lastError: cleanString(status.lastError || "")
     };
   } catch (err) {
-    return { ok: false, available: true, online: false, live: false, statusKnown: false, stale: true, reason: "stream_status_error", label: "Stream-Status Fehler", lastError: err && err.message ? err.message : String(err) };
+    return { ok: false, available: true, online: false, live: false, statusKnown: false, stale: true, reason: "stream_status_error", label: "Stream-Status Fehler", source: "stream_status_fallback", effectiveSource: "stream_status_fallback", manualOverrideActive: false, lastError: err && err.message ? err.message : String(err) };
   }
 }
 
