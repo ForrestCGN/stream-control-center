@@ -482,8 +482,9 @@
 
     .answer-counter {
       position: fixed;
-      left: 34px;
-      top: 34px;
+      left: auto;
+      right: 38px;
+      top: 42px;
       z-index: 20;
       width: 92px;
       height: 92px;
@@ -608,7 +609,7 @@
       mode: "obs_overlay",
       module: "stream_events",
       name: "Stream Events Runtime Overlay",
-      version: "0.3.0",
+      version: "0.3.1",
       heartbeatIntervalMs: 5000,
       capabilities: [
         "overlay.heartbeat",
@@ -666,6 +667,9 @@
       let answerCounterTimer = null;
       let lastDisplayedCountdownValue = "";
       let lastAnswerCounterKey = "";
+      let answerCounterLocalStartMs = 0;
+      let answerCounterInitialSeconds = 0;
+      let answerCounterShownValue = "";
 
       if (DEBUG) document.body.classList.add("debug");
 
@@ -734,6 +738,9 @@
       function hideAnswerCounter() {
         clearAnswerCounterTimer();
         lastAnswerCounterKey = "";
+        answerCounterLocalStartMs = 0;
+        answerCounterInitialSeconds = 0;
+        answerCounterShownValue = "";
         if (els.answerCounter) {
           els.answerCounter.classList.remove("visible", "urgent");
         }
@@ -757,20 +764,36 @@
           return;
         }
         const key = cleanText(answerWindow.roundUid || answerWindow.eventUid || "answer", "answer");
-        const remaining = answerWindowRemainingSeconds(state);
-        if (remaining <= 0) {
+        const serverRemaining = answerWindowRemainingSeconds(state);
+        if (serverRemaining <= 0) {
           hideAnswerCounter();
           return;
         }
         if (lastAnswerCounterKey !== key) {
           lastAnswerCounterKey = key;
+          answerCounterLocalStartMs = Date.now();
+          answerCounterInitialSeconds = serverRemaining;
+          answerCounterShownValue = "";
           clearAnswerCounterTimer();
         }
-        els.answerCounter.textContent = String(remaining);
+
+        const elapsedSeconds = Math.max(0, Math.floor((Date.now() - answerCounterLocalStartMs) / 1000));
+        const localRemaining = Math.max(0, answerCounterInitialSeconds - elapsedSeconds);
+        const remaining = Math.max(0, Math.min(localRemaining, serverRemaining + 1));
+        if (remaining <= 0) {
+          hideAnswerCounter();
+          return;
+        }
+
+        const nextValue = String(remaining);
+        if (answerCounterShownValue !== nextValue) {
+          answerCounterShownValue = nextValue;
+          els.answerCounter.textContent = nextValue;
+        }
         els.answerCounter.classList.toggle("urgent", remaining <= 10);
         els.answerCounter.classList.add("visible");
         clearAnswerCounterTimer();
-        answerCounterTimer = window.setTimeout(function () { updateAnswerCounter(lastState); }, 250);
+        answerCounterTimer = window.setTimeout(function () { updateAnswerCounter(lastState); }, 1000);
       }
 
       function scheduleResultHide(state) {
@@ -1228,7 +1251,7 @@
     data-mode="obs_overlay"
     data-module="stream_events"
     data-name="Stream Events Runtime Overlay"
-    data-version="0.3.0"
+    data-version="0.3.1"
     data-heartbeat-ms="5000"
   ></script>
 </body>
