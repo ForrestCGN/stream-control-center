@@ -8,6 +8,7 @@ window.SoundSystemModule = (function(){
   let settings = null;
   let integrationCheck = null;
   let routesInfo = null;
+  let recentPlayback = null;
   let devices = [];
   let loading = false;
   let lastSaveInfo = null;
@@ -25,6 +26,41 @@ window.SoundSystemModule = (function(){
     if (!value) return '-';
     try { return new Date(value).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
     catch (_) { return String(value); }
+  }
+
+  function formatLocalDateTime(value){
+    if (!value) return '-';
+    try { return new Date(value).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
+    catch (_) { return String(value); }
+  }
+
+  function formatMs(value){
+    const n = Number(value || 0);
+    if (!Number.isFinite(n) || n <= 0) return '0 ms';
+    if (n < 1000) return Math.round(n) + ' ms';
+    const sec = n / 1000;
+    if (sec < 60) return (Math.round(sec * 10) / 10).toLocaleString('de-DE') + ' s';
+    const min = Math.floor(sec / 60);
+    const rest = Math.round(sec % 60);
+    return min + ':' + String(rest).padStart(2, '0') + ' min';
+  }
+
+  function playbackStatusLabel(value){
+    const key = String(value || '').toLowerCase();
+    if (key === 'started') return 'Läuft';
+    if (key === 'finished') return 'Fertig';
+    if (key === 'error') return 'Fehler';
+    if (key === 'skipped') return 'Übersprungen';
+    if (key === 'stopped') return 'Gestoppt';
+    if (key === 'prepared') return 'Vorbereitet';
+    return value || '-';
+  }
+
+  function playbackStatusClass(value){
+    const key = String(value || '').toLowerCase();
+    if (key === 'finished') return 'success';
+    if (key === 'error' || key === 'stopped') return 'danger';
+    return '';
   }
 
   function renderShell(){
@@ -57,6 +93,8 @@ window.SoundSystemModule = (function(){
       <div class="sound-grid">
         <div class="sound-card" id="soundStatusCard" data-sound-section="overview"></div>
         <div class="sound-card" id="soundCurrentCard" data-sound-section="overview"></div>
+        <div class="sound-card" id="soundGapCard" data-sound-section="overview queue"></div>
+        <div class="sound-card sound-recent-playback-card" id="soundRecentPlaybackCard" data-sound-section="overview queue diagnose"></div>
         <div class="sound-card" id="soundPolicyCard" data-sound-section="overview queue"></div>
         <div class="sound-card sound-control-center-card" id="soundControlCenterCard" data-sound-section="queue overview"></div>
         <div class="sound-card" id="soundOutputCard" data-sound-section="output"></div>
@@ -84,6 +122,8 @@ window.SoundSystemModule = (function(){
     renderStatus();
     renderOutput();
     renderCurrent();
+    renderPostPlaybackGap();
+    renderRecentPlayback();
     renderPolicy();
     renderControlCenter();
     renderSettings();
@@ -185,6 +225,77 @@ window.SoundSystemModule = (function(){
       <div class="sound-current-row"><span>Lautstärke</span><span>${esc(cur.volume)}%</span></div>
       <div class="sound-current-row"><span>Unterbrechbar</span><span>${flags.canBeInterrupted ? 'Ja' : 'Nein'}</span></div>
       <div class="sound-current-row"><span>Datei</span><span class="sound-muted">${esc(cur.file)}</span></div>
+    `;
+  }
+
+  function renderPostPlaybackGap(){
+    const el = document.getElementById('soundGapCard');
+    if (!el) return;
+    const gap = status?.postPlaybackGap || {};
+    const cfg = status?.config?.soundGap || {};
+    const active = gap.active === true;
+    const enabled = gap.enabled !== false && cfg.enabled !== false;
+    const label = gap.label || gap.soundId || '-';
+    const statusClass = active ? 'success' : (enabled ? '' : 'danger');
+    el.innerHTML = `
+      <h3>Globale Sound-Pause</h3>
+      <div class="sound-gap-kpis">
+        <div class="sound-gap-kpi"><span>Status</span><strong class="sound-pill ${statusClass}">${enabled ? (active ? 'Aktiv' : 'Bereit') : 'Aus'}</strong></div>
+        <div class="sound-gap-kpi"><span>Restzeit</span><strong>${esc(formatMs(gap.remainingMs || 0))}</strong></div>
+        <div class="sound-gap-kpi"><span>Dauer</span><strong>${esc(formatMs(gap.durationMs || cfg.postPlaybackGapMs || 0))}</strong></div>
+      </div>
+      <div class="sound-status-row"><span>Sound</span><span>${esc(label)}</span></div>
+      <div class="sound-status-row"><span>Grund</span><span>${esc(gap.reason || '-')}</span></div>
+      <div class="sound-status-row"><span>Audio-Ende</span><span>${esc(formatLocalDateTime(gap.audioEndedAt || ''))}</span></div>
+      <div class="sound-status-row"><span>Gap-Ende</span><span>${esc(formatLocalDateTime(gap.gapEndedAt || ''))}</span></div>
+      <div class="sound-status-row"><span>Queue-Start blockieren</span><span>${gap.blockQueueStart === false ? 'Nein' : 'Ja'}</span></div>
+      <div class="sound-status-row"><span>Runtime-Overlay halten</span><span>${gap.holdEventRuntimeOverlay === false ? 'Nein' : 'Ja'}</span></div>
+      <div class="sound-note">Kommt aus <code>/api/sound/status</code>. Das Sound-System bleibt Owner für Gating, Queue und Ausgabe.</div>
+    `;
+  }
+
+  function renderRecentPlayback(){
+    const el = document.getElementById('soundRecentPlaybackCard');
+    if (!el) return;
+    const log = recentPlayback || {};
+    const items = Array.isArray(log.items) ? log.items : [];
+    const statusText = log.enabled === false ? 'Aus' : 'Aktiv';
+    const last = log.lastFinishedAt || log.lastStartedAt || '';
+    const header = `
+      <div class="sound-recent-head">
+        <div>
+          <h3>Zuletzt gespielt</h3>
+          <div class="sound-note">Recent Playback Log aus <code>/api/sound/recent-playback?limit=20</code>.</div>
+        </div>
+        <div class="sound-recent-meta">
+          <span class="sound-pill ${log.enabled === false ? 'danger' : 'success'}">${esc(statusText)}</span>
+          <span>${esc(items.length)} / ${esc(log.totalStored ?? items.length)}</span>
+          <span>Letztes Ende: ${esc(formatLocalDateTime(last))}</span>
+        </div>
+      </div>
+    `;
+    if (!items.length) {
+      el.innerHTML = header + `<div class="sound-empty">Noch kein Playback-Eintrag vorhanden.</div>`;
+      return;
+    }
+    el.innerHTML = header + `
+      <div class="sound-recent-table" role="table" aria-label="Zuletzt gespielte Sounds">
+        <div class="sound-recent-row sound-recent-row-head" role="row">
+          <span>Start</span><span>Audio-Ende</span><span>Gap-Ende</span><span>Status</span><span>Sound</span><span>Quelle</span><span>Audio</span><span>Gap</span>
+        </div>
+        ${items.map(item => `
+          <div class="sound-recent-row" role="row">
+            <span>${esc(formatLocalDateTime(item.startedAt))}</span>
+            <span>${esc(formatLocalDateTime(item.audioEndedAt || item.finishedAt))}</span>
+            <span>${esc(formatLocalDateTime(item.gapEndedAt || item.finishedAt))}</span>
+            <span><strong class="sound-pill ${playbackStatusClass(item.status)}">${esc(playbackStatusLabel(item.status))}</strong></span>
+            <span class="sound-recent-title" title="${esc(item.soundId || '')}">${esc(item.label || item.soundId || '-')}</span>
+            <span class="sound-muted">${esc([item.source || item.sourceModule || '-', item.category || '-'].filter(Boolean).join(' · '))}</span>
+            <span>${esc(formatMs(item.playbackMs || item.durationMs || 0))}</span>
+            <span>${esc(formatMs(item.gapMs || 0))}</span>
+          </div>
+        `).join('')}
+      </div>
     `;
   }
 
@@ -994,8 +1105,11 @@ window.SoundSystemModule = (function(){
     busMonitorRefreshing = true;
     try {
       const state = await api('/status');
+      let playback = recentPlayback;
+      try { playback = await api('/recent-playback?limit=20'); } catch (_) {}
       const currentSounds = Array.isArray(status?.sounds) ? status.sounds : [];
       status = { ...state, sounds: currentSounds };
+      recentPlayback = playback;
       output = { output: state?.config?.output || {} };
       lastBusMonitorRefreshAt = new Date().toISOString();
       render();
@@ -1056,6 +1170,8 @@ window.SoundSystemModule = (function(){
       const list = await api('/list');
       const dev = await api('/devices');
       const set = await api('/settings');
+      let playback = null;
+      try { playback = await api('/recent-playback?limit=20'); } catch (_) { playback = { ok: false, enabled: false, items: [] }; }
       let check = null;
       let routes = null;
       try { check = await api('/integration-check'); } catch (_) { check = { ok: false, healthy: false, warnings: ['integration_check_unavailable'], errors: [] }; }
@@ -1066,6 +1182,7 @@ window.SoundSystemModule = (function(){
       settings = set;
       integrationCheck = check;
       routesInfo = routes;
+      recentPlayback = playback;
       lastBusMonitorRefreshAt = new Date().toISOString();
       render();
     } catch (err) {

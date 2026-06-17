@@ -1123,3 +1123,130 @@ html[data-theme=dark] .sound-source-item {
   .sound-bus-correlation-row { grid-template-columns: 1fr; }
   .sound-bus-correlation-row > div:last-child { text-align: left; }
 }
+
+/* SOUND-DASH-1: Recent Playback und globale Sound-Pause */
+#soundGapCard,
+#soundRecentPlaybackCard {
+  grid-column: span 6;
+}
+
+.sound-recent-playback-card {
+  grid-column: span 12 !important;
+}
+
+.sound-gap-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 12px 0 8px;
+}
+
+.sound-gap-kpi {
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 16px;
+  background: rgba(15,23,42,.34);
+}
+
+.sound-gap-kpi span,
+.sound-recent-meta span:not(.sound-pill) {
+  display: block;
+  color: var(--muted, #a8b3cf);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.sound-gap-kpi strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.sound-recent-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.sound-recent-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  text-align: right;
+}
+
+.sound-recent-table {
+  display: grid;
+  gap: 7px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.sound-recent-row {
+  display: grid;
+  grid-template-columns: 110px 110px 110px 110px minmax(170px, 1.3fr) minmax(150px, 1fr) 90px 80px;
+  gap: 10px;
+  align-items: center;
+  min-width: 1080px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 14px;
+  background: rgba(2,6,23,.28);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.sound-recent-row-head {
+  background: rgba(56,189,248,.08);
+  border-color: rgba(56,189,248,.16);
+  color: #dff7ff;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: .035em;
+}
+
+.sound-recent-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #f8fafc;
+  font-weight: 950;
+}
+
+html[data-theme=dark] .sound-gap-kpi,
+html[data-theme=dark] .sound-recent-row {
+  background: #202020;
+  border-color: #343434;
+}
+
+html[data-theme=dark] .sound-recent-row-head {
+  background: #262626;
+  border-color: #3a3a3a;
+  color: #f2f2f2;
+}
+
+@media(max-width: 1280px) {
+  #soundGapCard,
+  #soundRecentPlaybackCard {
+    grid-column: span 12;
+  }
+}
+
+@media(max-width: 760px) {
+  .sound-gap-kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .sound-recent-head {
+    display: grid;
+  }
+
+  .sound-recent-meta {
+    justify-content: flex-start;
+    text-align: left;
+  }
+}
