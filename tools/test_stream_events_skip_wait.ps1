@@ -56,6 +56,10 @@ try {
   if ($runtime.timers) {
     $runtime.timers | Format-List
   }
+  if ($runtime.activeRound -and $runtime.activeRound.resultData) {
+    Write-Host "Aktive Runde / Antwortfenster-Status:"
+    $runtime.activeRound.resultData | Select-Object preparedOnly,playbackRequested,answerWindowState,answerWindowSeconds | Format-List
+  }
 
   if (-not $Execute) {
     Write-Host ""
@@ -68,7 +72,7 @@ try {
   Write-Host "Sende Skip-Wait..."
   $result = Invoke-Json POST "$BaseUrl/api/stream-events/sound-runtime/skip-wait" @{ eventUid = $EventUid; actor = "test_script"; allowReuse = $false }
   Write-Host "Ergebnis:"
-  $result | Select-Object ok,eventUid,skippedWait,hadScheduledWait,message | Format-List
+  $result | Select-Object ok,eventUid,skippedWait,reusedPreparedRound,hadScheduledWait,message,error | Format-List
   if ($result.snippet) {
     $result.snippet | Select-Object snippetUid,title,mediaId,points | Format-List
   }

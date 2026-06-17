@@ -24,8 +24,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.52";
-const MODULE_BUILD = "STEP_EVENT_SOUND_SKIP_WAIT_1";
+const MODULE_VERSION = "0.5.53";
+const MODULE_BUILD = "STEP_EVENT_SOUND_SKIP_WAIT_PREPARED_FIX_1";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -3753,6 +3753,78 @@ function scheduleNextSoundRound(eventUid = "", reason = "auto_advance") {
   return { ok: true, scheduled: true, eventUid: event.eventUid, delaySeconds, dueAt, reason, schedulePlan, parts };
 }
 
+
+function playPreparedActiveSoundRound(event, round, runtimeConfig = {}, options = {}) {
+  const activeRound = round || getActiveSoundRound(event && event.eventUid ? event.eventUid : "");
+  if (!event || !activeRound || activeRound.status !== "active") {
+    return { ok: false, error: "prepared_round_missing", eventUid: event && event.eventUid ? event.eventUid : "" };
+  }
+
+  const roundConfig = activeRound.config && typeof activeRound.config === "object" ? activeRound.config : {};
+  const snippet = roundConfig.snippet && typeof roundConfig.snippet === "object" ? roundConfig.snippet : null;
+  const effectiveRuntimeConfig = runtimeConfig && typeof runtimeConfig === "object" && Object.keys(runtimeConfig).length
+    ? runtimeConfig
+    : (roundConfig.runtimeConfig && typeof roundConfig.runtimeConfig === "object" ? roundConfig.runtimeConfig : getSoundRuntimeConfig(event));
+
+  if (!snippet || !cleanString(snippet.snippetUid || activeRound.itemUid)) {
+    return { ok: false, error: "prepared_round_snippet_missing", eventUid: event.eventUid, roundUid: activeRound.roundUid };
+  }
+
+  const playback = buildSoundPlaybackPayload(event, activeRound, snippet, effectiveRuntimeConfig);
+  const playbackResult = requestSoundSystemPlaybackForSoundRound(playback, { confirm: options.confirm || options.confirmed || "1" });
+  const playbackResultData = { preparedOnly: false, playbackRequested: true, playbackResult, startedFromPreparedRound: true, startedBy: cleanString(options.actor || "skip_wait") };
+
+  try {
+    const update = {
+      result_json: jsonEncode({
+        ...(activeRound.resultData && typeof activeRound.resultData === "object" ? activeRound.resultData : {}),
+        ...playbackResultData,
+        answerWindowState: playbackResult && playbackResult.ok ? "waiting_for_sound_audio_end" : "playback_failed",
+        answerWindowSeconds: clampNumber(roundConfig.answerSeconds || effectiveRuntimeConfig.answerSeconds, 5, 3600, effectiveRuntimeConfig.answerSeconds || 60),
+        answerWindowStartRule: "after_sound_audio_end",
+        answerWindowPreparedAt: nowIso(),
+        preparedOnly: false
+      }),
+      updated_at: nowIso()
+    };
+    if (!(playbackResult && playbackResult.ok)) {
+      update.status = "failed";
+      update.result = "playback_failed";
+      update.finished_at = nowIso();
+    }
+    database.updateByKey("stream_events_rounds", "round_uid", activeRound.roundUid, update);
+  } catch (_) {}
+
+  return {
+    ok: !!(playbackResult && playbackResult.ok),
+    eventUid: event.eventUid,
+    roundUid: activeRound.roundUid,
+    reusedPreparedRound: true,
+    snippet,
+    round: getActiveSoundRound(event.eventUid) || activeRound,
+    playbackRequested: true,
+    playbackResult,
+    error: playbackResult && playbackResult.error ? playbackResult.error : ""
+  };
+}
+
+function isPreparedOnlyActiveSoundRound(round) {
+  if (!round || round.status !== "active") return false;
+  const resultData = round.resultData && typeof round.resultData === "object" ? round.resultData : {};
+  const state = cleanString(resultData.answerWindowState || "").toLowerCase();
+  const playbackRequested = boolValue(resultData.playbackRequested, false);
+  const playbackResult = resultData.playbackResult && typeof resultData.playbackResult === "object" ? resultData.playbackResult : null;
+  const preparedOnly = boolValue(resultData.preparedOnly, false) || state === "prepared_only";
+  const waitingForAudioEnd = state === "waiting_for_sound_audio_end";
+  const answerOpen = state === "open" && !resultData.answerWindowClosedAt;
+  const hasAnswerTimer = soundAnswerTimers.has(round.roundUid);
+
+  if (answerOpen || hasAnswerTimer || waitingForAudioEnd) return false;
+  if (preparedOnly) return true;
+  if (!playbackRequested && (!playbackResult || boolValue(playbackResult.preparedOnly, false))) return true;
+  return false;
+}
+
 function skipSoundRoundWait(body = {}) {
   ensureSchema();
   const event = cleanString(body.eventUid || body.event_uid) ? getEventByUid(body.eventUid || body.event_uid) : getActiveEvent();
@@ -3769,17 +3841,21 @@ function skipSoundRoundWait(body = {}) {
   if (parts.sound && parts.sound.completed) {
     return { ok: false, error: "sound_completed", eventUid: event.eventUid, parts, message: "Der Sound-Teil ist bereits abgeschlossen." };
   }
-  if (parts.sound && parts.sound.activeRoundUid) {
+  const activeRound = getActiveSoundRound(event.eventUid);
+  const hasActivePreparedRound = activeRound && parts.sound && parts.sound.activeRoundUid && isPreparedOnlyActiveSoundRound(activeRound);
+  if (parts.sound && parts.sound.activeRoundUid && !hasActivePreparedRound) {
     return { ok: false, error: "active_round_exists", eventUid: event.eventUid, parts, message: "Es läuft bereits ein Schnipsel oder ein Antwortfenster." };
   }
 
   const timerInfo = soundAutoAdvanceTimers.get(event.eventUid) || null;
-  const result = createSoundRound({
-    eventUid: event.eventUid,
-    play: true,
-    confirm: "1",
-    allowReuse: boolValue(body.allowReuse, false)
-  });
+  const result = hasActivePreparedRound
+    ? playPreparedActiveSoundRound(event, activeRound, runtimeConfig, { confirm: "1", actor: cleanString(body.actor || "skip_wait") })
+    : createSoundRound({
+        eventUid: event.eventUid,
+        play: true,
+        confirm: "1",
+        allowReuse: boolValue(body.allowReuse, false)
+      });
 
   if (result && result.ok) {
     clearTimerMapEntry(soundAutoAdvanceTimers, event.eventUid);
@@ -3804,6 +3880,7 @@ function skipSoundRoundWait(body = {}) {
     ok: !!(result && result.ok),
     eventUid: event.eventUid,
     skippedWait: !!(result && result.ok),
+    reusedPreparedRound: !!(result && result.reusedPreparedRound),
     hadScheduledWait: !!timerInfo,
     cancelledWait: result && result.ok && timerInfo ? {
       reason: timerInfo.reason || "",
