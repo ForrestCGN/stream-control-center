@@ -24,8 +24,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.46";
-const MODULE_BUILD = "STEP_EVENT_SOUND_AUTO_SCHEDULE_1_INTERVAL_JITTER";
+const MODULE_VERSION = "0.5.47";
+const MODULE_BUILD = "STEP_EVENT_RUNTIME_RESULT_2C_REVEAL_AFTER_RESULT_CARD";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -327,6 +327,7 @@ let runtimeState = {
 
 const soundAnswerTimers = new Map();
 const soundAutoAdvanceTimers = new Map();
+const soundRevealTimers = new Map();
 
 function clearTimerMapEntry(map, key) {
   const item = map.get(key);
@@ -342,6 +343,9 @@ function clearSoundRuntimeTimersForEvent(eventUid = "") {
   if (!uid) return;
   for (const [roundUid, item] of Array.from(soundAnswerTimers.entries())) {
     if (item && item.eventUid === uid) clearTimerMapEntry(soundAnswerTimers, roundUid);
+  }
+  for (const [roundUid, item] of Array.from(soundRevealTimers.entries())) {
+    if (item && item.eventUid === uid) clearTimerMapEntry(soundRevealTimers, roundUid);
   }
   clearTimerMapEntry(soundAutoAdvanceTimers, uid);
 }
@@ -3522,6 +3526,56 @@ function requestRevealVideoForSolvedSoundRound(event, round, snippet, runtimeCon
   return { ok: !!(result && result.ok), revealVideoId, playbackRequested: true, result, playback };
 }
 
+function scheduleRevealVideoForSolvedSoundRound(event, round, snippet, runtimeConfig = {}) {
+  if (!event || !round || !snippet) return { ok: true, skipped: true, reason: "missing_context" };
+  const revealVideoId = getRevealVideoMediaRef(snippet);
+  if (!boolValue(runtimeConfig.revealVideoEnabled, true)) return { ok: true, skipped: true, reason: "reveal_video_disabled" };
+  if (cleanString(runtimeConfig.revealVideoMode, "after_solved") !== "after_solved") return { ok: true, skipped: true, reason: "reveal_video_mode_not_after_solved" };
+  if (!revealVideoId) return { ok: true, skipped: true, reason: "reveal_video_missing" };
+
+  const delaySeconds = 8;
+  const roundUid = cleanString(round.roundUid);
+  clearTimerMapEntry(soundRevealTimers, roundUid);
+
+  const scheduledAt = nowIso();
+  const dueAt = new Date(Date.now() + delaySeconds * 1000).toISOString();
+  const timer = setTimeout(() => {
+    try {
+      const currentRound = rowToRound(database.get("SELECT * FROM stream_events_rounds WHERE round_uid = :roundUid LIMIT 1", { roundUid }));
+      if (!currentRound || currentRound.status !== "solved") return;
+      const currentEvent = getEventByUid(currentRound.eventUid);
+      if (!currentEvent || currentEvent.status === STATUS.CANCELLED || currentEvent.status === STATUS.ARCHIVED) return;
+      const currentSnippet = currentRound.config && currentRound.config.snippet ? currentRound.config.snippet : snippet;
+      const currentRuntimeConfig = getSoundRuntimeConfig(currentEvent);
+      const result = requestRevealVideoForSolvedSoundRound(currentEvent, currentRound, currentSnippet, currentRuntimeConfig);
+      mergeRoundResultData(currentRound, {
+        revealVideo: {
+          ...(currentRound.resultData && currentRound.resultData.revealVideo && typeof currentRound.resultData.revealVideo === "object" ? currentRound.resultData.revealVideo : {}),
+          ...result,
+          delayed: true,
+          requestedAt: nowIso()
+        }
+      });
+      emitBus("stream_events.sound", "delayed_reveal_video_requested", {
+        eventUid: currentRound.eventUid,
+        roundUid,
+        revealVideoId,
+        delaySeconds,
+        result
+      });
+      publishStatus("sound.delayed_reveal_video_requested", { lastEventUid: currentRound.eventUid, roundUid });
+    } catch (err) {
+      runtimeState.lastError = err && err.message ? err.message : String(err);
+    } finally {
+      clearTimerMapEntry(soundRevealTimers, roundUid);
+    }
+  }, delaySeconds * 1000);
+  if (typeof timer.unref === "function") timer.unref();
+
+  soundRevealTimers.set(roundUid, { timer, eventUid: event.eventUid, roundUid, reason: "sound_solved_reveal_after_result_card", delaySeconds, scheduledAt, dueAt, revealVideoId });
+  return { ok: true, scheduled: true, delayed: true, eventUid: event.eventUid, roundUid, revealVideoId, delaySeconds, scheduledAt, dueAt, reason: "reveal_after_result_card" };
+}
+
 function mergeRoundResultData(round, patch = {}) {
   const rid = round && round.roundUid ? cleanString(round.roundUid) : cleanString(round);
   if (!rid) return { ok: false, error: "round_uid_missing" };
@@ -4009,7 +4063,7 @@ function resolveSoundRound(body = {}) {
     createdBy: MODULE_NAME,
     metadata: { roundUid: round.roundUid, snippetUid: snippet.snippetUid, title: snippet.title, answer, chatMessageId: cleanString(body.messageId || body.chatMessageId || body.message_id) }
   }) : { ok: true, ranking: getRanking(event.eventUid).rows };
-  const revealVideoResult = requestRevealVideoForSolvedSoundRound(event, round, snippet, runtimeConfig);
+  const revealVideoResult = scheduleRevealVideoForSolvedSoundRound(event, round, snippet, runtimeConfig);
   const partStatusAfterSolve = getEventRuntimePartsStatus(getEventByUid(event.eventUid));
   const nextSoundRound = !partStatusAfterSolve.sound.completed ? scheduleNextSoundRound(event.eventUid, "sound_solved") : null;
   const autoFinish = partStatusAfterSolve.sound.completed ? maybeAutoFinishEventIfPartsCompleted(event.eventUid, "sound_part_completed") : null;
