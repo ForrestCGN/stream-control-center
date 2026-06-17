@@ -24,8 +24,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.47";
-const MODULE_BUILD = "STEP_EVENT_RUNTIME_RESULT_2C_REVEAL_AFTER_RESULT_CARD";
+const MODULE_VERSION = "0.5.48";
+const MODULE_BUILD = "STEP_EVENT_RUNTIME_OVERLAY_1";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -3084,7 +3084,7 @@ function msSinceIso(value) {
 function runtimeResultVisibleMs(latestRound) {
   if (!latestRound) return 0;
   const status = cleanString(latestRound.status || "").toLowerCase();
-  if (status === "solved") return 8000;
+  if (status === "solved") return 10000;
   if (status === "unresolved") return 6000;
   return 0;
 }
@@ -3429,7 +3429,7 @@ function getRevealVideoMediaRef(snippet = {}) {
 
 function buildRevealVideoPlaybackPayload(event, round, snippet, runtimeConfig = {}) {
   const revealVideoId = getRevealVideoMediaRef(snippet);
-  const title = cleanString(snippet.title || "Sound-Aufloesung");
+  const title = cleanString(snippet.title || "Sound-Reveal");
   const resolvedReveal = resolveMediaAssetForPlaybackRef({ mediaId: revealVideoId }, { requireVideo: true });
   const mediaFields = resolvedReveal.ok
     ? {
@@ -3443,12 +3443,12 @@ function buildRevealVideoPlaybackPayload(event, round, snippet, runtimeConfig = 
         webPath: resolvedReveal.webPath,
         mediaType: "video",
         type: "video",
-        label: `Aufloesung: ${title}`,
+        label: `Reveal: ${title}`,
         durationMs: resolvedReveal.durationMs || 0,
         hasAudio: resolvedReveal.hasAudio,
         hasVideo: true
       }
-    : { ok: false, error: resolvedReveal.error || "reveal_media_resolve_failed", mediaId: revealVideoId, label: `Aufloesung: ${title}` };
+    : { ok: false, error: resolvedReveal.error || "reveal_media_resolve_failed", mediaId: revealVideoId, label: `Reveal: ${title}` };
 
   return {
     prepared: true,
@@ -3467,7 +3467,7 @@ function buildRevealVideoPlaybackPayload(event, round, snippet, runtimeConfig = 
       mediaRelativePath: mediaFields.ok ? (mediaFields.mediaRelativePath || mediaFields.mediaPath || "") : "",
       registryPath: mediaFields.ok ? (mediaFields.registryPath || mediaFields.mediaPath || "") : "",
       mediaResolutionError: mediaFields.ok ? "" : mediaFields.error,
-      label: `Aufloesung: ${title}`,
+      label: `Reveal: ${title}`,
       ...(mediaFields.ok ? mediaFields : {}),
       mediaType: "video",
       type: "video",
@@ -3488,15 +3488,10 @@ function buildRevealVideoPlaybackPayload(event, round, snippet, runtimeConfig = 
         revealMediaResolved: !!(mediaFields && mediaFields.ok),
         eventSoundReveal: true,
         eventPreRoll: {
-          enabled: true,
+          enabled: false,
           countdownEnabled: false,
-          owner: MODULE_NAME,
-          eventUid: event.eventUid,
-          roundUid: round.roundUid,
-          seconds: 1,
-          finalLabel: "AUFLOESUNG",
-          caption: "Aufloesung startet",
-          guessingLabel: "Aufloesung laeuft"
+          suppressedBy: MODULE_BUILD,
+          reason: "winner_card_announces_reveal"
         }
       }
     }
@@ -3533,7 +3528,7 @@ function scheduleRevealVideoForSolvedSoundRound(event, round, snippet, runtimeCo
   if (cleanString(runtimeConfig.revealVideoMode, "after_solved") !== "after_solved") return { ok: true, skipped: true, reason: "reveal_video_mode_not_after_solved" };
   if (!revealVideoId) return { ok: true, skipped: true, reason: "reveal_video_missing" };
 
-  const delaySeconds = 8;
+  const delaySeconds = 10;
   const roundUid = cleanString(round.roundUid);
   clearTimerMapEntry(soundRevealTimers, roundUid);
 
