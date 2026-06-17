@@ -24,8 +24,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.44";
-const MODULE_BUILD = "STEP_EVENT_RUNTIME_RESULT_2_USER_AVATAR_RESOLVE";
+const MODULE_VERSION = "0.5.45";
+const MODULE_BUILD = "STEP_EVENT_RUNTIME_RESULT_2B_RESULT_TIMEOUT_HIDE";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -3071,6 +3071,31 @@ function publicRoundOverlaySummary(round, options = {}) {
   };
 }
 
+function msSinceIso(value) {
+  const ms = Date.parse(String(value || ""));
+  if (!Number.isFinite(ms) || ms <= 0) return Number.POSITIVE_INFINITY;
+  return Date.now() - ms;
+}
+
+function runtimeResultVisibleMs(latestRound) {
+  if (!latestRound) return 0;
+  const status = cleanString(latestRound.status || "").toLowerCase();
+  if (status === "solved") return 8000;
+  if (status === "unresolved") return 6000;
+  return 0;
+}
+
+function isRuntimeResultStillVisible(latestRound) {
+  const maxMs = runtimeResultVisibleMs(latestRound);
+  if (!latestRound || maxMs <= 0) return false;
+  const finishedAt = cleanString(latestRound.finishedAt || latestRound.finished_at || "");
+  return msSinceIso(finishedAt) <= maxMs;
+}
+
+function hiddenRuntimeOverlayPhase(reason = "result_timeout_elapsed") {
+  return { key: "hidden", label: "", visible: false, reason };
+}
+
 function buildRuntimeOverlayPhase(event, activeRound, latestRound) {
   if (!event) {
     return { key: "idle", label: "Kein aktives Event", visible: false, reason: "no_event" };
@@ -3098,9 +3123,11 @@ function buildRuntimeOverlayPhase(event, activeRound, latestRound) {
       return { key: "sound_answer_window", label: "Soundrunde aktiv", visible: false, reason: "sound_playback_owned_by_sound_system" };
     }
     if (event.soundEnabled && latestRound && latestRound.status === "solved") {
+      if (!isRuntimeResultStillVisible(latestRound)) return hiddenRuntimeOverlayPhase("sound_solved_result_timeout_elapsed");
       return { key: "sound_solved", label: "Sound erkannt", visible: true, reason: "latest_sound_round_solved" };
     }
     if (event.soundEnabled && latestRound && latestRound.status === "unresolved") {
+      if (!isRuntimeResultStillVisible(latestRound)) return hiddenRuntimeOverlayPhase("sound_unresolved_result_timeout_elapsed");
       return { key: "sound_unresolved", label: "Sound nicht erkannt", visible: true, reason: "latest_sound_round_unresolved" };
     }
     if (event.soundEnabled) {
@@ -3281,7 +3308,12 @@ function getRuntimeOverlayState(eventUid = "") {
     phase,
     display: buildRuntimeOverlayDisplay(selectedEvent, phase, activeRound, latestRound, ranking),
     countdown: buildRuntimeOverlayCountdownPlan(runtimeConfig, phase),
-    result: buildRuntimeOverlayResultPlan(phase, latestRound, ranking),
+    result: {
+      ...buildRuntimeOverlayResultPlan(phase, latestRound, ranking),
+      visibleMs: runtimeResultVisibleMs(latestRound),
+      elapsedMs: latestRound && latestRound.finishedAt ? Math.max(0, Math.round(msSinceIso(latestRound.finishedAt))) : 0,
+      timeoutActive: latestRound ? isRuntimeResultStillVisible(latestRound) : false
+    },
     sound: {
       enabled: !!(selectedEvent && selectedEvent.soundEnabled),
       activeRound: publicRoundOverlaySummary(activeRound, { reveal: false }),
