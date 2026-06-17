@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.39";
-  const MODULE_BUILD = "STEP_EVENT_NEXT_SNIPPET_STATUS_DASH_1";
+  const MODULE_VERSION = "0.5.40";
+  const MODULE_BUILD = "STEP_EVENT_NEXT_SNIPPET_STATUS_AUTO_REFRESH_1";
 
   const api = {
     status: '/api/stream-events/status',
@@ -45,6 +45,7 @@ window.StreamEventsModule = (function(){
     userStatistics: null,
     userStatsModal: { open: false, login: '', eventUid: '', autoRefresh: true, intervalMs: 5000, lastScrollTop: 0, lastRefreshAt: '' },
     liveStatusModal: { open: false, eventUid: '', autoRefresh: true, intervalMs: 5000, lastRefreshAt: '' },
+    soundControlAuto: { enabled: true, statusIntervalMs: 10000, lastRefreshAt: '' },
     nameDialog: null,
     configSaving: false,
     textSaving: false,
@@ -287,6 +288,7 @@ window.StreamEventsModule = (function(){
       </div>
     `;
     attachMediaFields(root);
+    startSoundControlAutoRefresh();
   }
 
   function tabs(){
@@ -915,6 +917,18 @@ window.StreamEventsModule = (function(){
     return report && report.nextSound && typeof report.nextSound === 'object' ? report.nextSound : null;
   }
 
+
+  function nextSoundDueAt(next){
+    return next?.nextAutoStartAt || next?.nextSnippetDueAt || next?.dueAt || next?.plannedAt || '';
+  }
+
+  function computeRemainingSecondsFromDueAt(dueAt){
+    if (!dueAt) return null;
+    const d = new Date(dueAt);
+    if (Number.isNaN(d.getTime())) return null;
+    return Math.max(0, Math.ceil((d.getTime() - Date.now()) / 1000));
+  }
+
   function nextSoundDisplay(next){
     if (!next) return { label: 'Noch kein Status geladen', detail: 'Status neu laden, um die nächste Planung zu sehen.', cls: 'is-unknown' };
     const status = norm(next.status);
@@ -923,8 +937,10 @@ window.StreamEventsModule = (function(){
     if (status === 'sound_playing') return { label: next.label || 'Sound läuft', detail: next.detail || 'Antwortfenster startet nach Sound-Ende.', cls: 'is-active' };
     if (status === 'prepared') return { label: next.label || 'Schnipsel vorbereitet', detail: next.detail || 'Noch nicht gestartet.', cls: 'is-warn' };
     if (status === 'waiting' || status === 'waiting_persisted') {
-      const due = next.nextAutoStartAt ? ` · geplant um ${fmtClock(next.nextAutoStartAt)}` : '';
-      return { label: `in ${fmtDurationSeconds(next.remainingSeconds)}`, detail: `Nächster Schnipsel${due}`, cls: 'is-waiting' };
+      const dueAt = nextSoundDueAt(next);
+      const remaining = dueAt ? computeRemainingSecondsFromDueAt(dueAt) : Number(next.remainingSeconds || 0);
+      const due = dueAt ? ` · geplant um ${fmtClock(dueAt)}` : '';
+      return { label: `in ${fmtDurationSeconds(remaining)}`, detail: `Nächster Schnipsel${due}`, cls: 'is-waiting' };
     }
     if (status === 'waiting_due') return { label: 'fällig', detail: next.detail || 'Geplante Startzeit ist erreicht.', cls: 'is-warn' };
     if (status === 'completed') return { label: 'Sound-Teil abgeschlossen', detail: next.detail || '', cls: 'is-done' };
@@ -952,9 +968,9 @@ window.StreamEventsModule = (function(){
           <span>${currentLabel}</span>
         </div>
         ${latestLabel}
-        <div class="evs-live-control-current evs-next-snippet-row ${esc(nextDisplay.cls)}">
+        <div class="evs-live-control-current evs-next-snippet-row ${esc(nextDisplay.cls)}" data-evs-next-snippet="1" data-status="${esc(next?.status || '')}" data-due-at="${esc(nextSoundDueAt(next))}" data-detail-base="Nächster Schnipsel">
           <strong>Nächster Schnipsel</strong>
-          <span><b>${esc(nextDisplay.label)}</b><small>${esc(nextDisplay.detail)}</small></span>
+          <span><b data-evs-next-snippet-label>${esc(nextDisplay.label)}</b><small data-evs-next-snippet-detail>${esc(nextDisplay.detail)}</small></span>
         </div>
       </div>
     `;
@@ -3005,6 +3021,76 @@ window.StreamEventsModule = (function(){
   }
 
 
+  let soundControlTickTimer = null;
+  let soundControlStatusTimer = null;
+  let soundControlRefreshRunning = false;
+
+  function selectedSoundControlEvent(){
+    const ev = selectedEvent();
+    if (ev && ev.soundEnabled && norm(ev.status) === 'active') return ev;
+    return null;
+  }
+
+  function shouldRunSoundControlAutoRefresh(){
+    if (!root || !document.body.contains(root)) return false;
+    if (state.soundControlAuto?.enabled === false) return false;
+    const event = selectedSoundControlEvent();
+    if (!event) return false;
+    return true;
+  }
+
+  function updateNextSnippetCountdownDom(){
+    if (!root) return;
+    const rows = root.querySelectorAll('[data-evs-next-snippet="1"]');
+    rows.forEach(row => {
+      const status = norm(row.dataset.status || '');
+      const dueAt = row.dataset.dueAt || '';
+      if (!['waiting', 'waiting_persisted', 'waiting_due'].includes(status) || !dueAt) return;
+      const remaining = computeRemainingSecondsFromDueAt(dueAt);
+      if (remaining === null) return;
+      const label = row.querySelector('[data-evs-next-snippet-label]');
+      const detail = row.querySelector('[data-evs-next-snippet-detail]');
+      if (label) label.textContent = remaining <= 0 ? 'fällig' : `in ${fmtDurationSeconds(remaining)}`;
+      if (detail) detail.textContent = `Nächster Schnipsel · geplant um ${fmtClock(dueAt)}`;
+      row.classList.toggle('is-warn', remaining <= 0);
+      row.classList.toggle('is-waiting', remaining > 0);
+    });
+  }
+
+  async function refreshSoundControlStatusAuto(){
+    if (soundControlRefreshRunning || !shouldRunSoundControlAutoRefresh()) return;
+    const event = selectedSoundControlEvent();
+    if (!event?.eventUid) return;
+    soundControlRefreshRunning = true;
+    try {
+      await loadSoundRuntimeReport(event.eventUid, false);
+      if (state.soundControlAuto) state.soundControlAuto.lastRefreshAt = new Date().toISOString();
+      render();
+    } catch (err) {
+      state.error = err.message || String(err);
+      render();
+    } finally {
+      soundControlRefreshRunning = false;
+    }
+  }
+
+  function stopSoundControlAutoRefresh(){
+    if (soundControlTickTimer) clearInterval(soundControlTickTimer);
+    if (soundControlStatusTimer) clearInterval(soundControlStatusTimer);
+    soundControlTickTimer = null;
+    soundControlStatusTimer = null;
+  }
+
+  function startSoundControlAutoRefresh(){
+    stopSoundControlAutoRefresh();
+    if (!shouldRunSoundControlAutoRefresh()) return;
+    updateNextSnippetCountdownDom();
+    soundControlTickTimer = setInterval(updateNextSnippetCountdownDom, 1000);
+    const intervalMs = Math.max(5000, Number(state.soundControlAuto?.statusIntervalMs || 10000));
+    soundControlStatusTimer = setInterval(refreshSoundControlStatusAuto, intervalMs);
+  }
+
+
   let liveStatusAutoTimer = null;
 
   function stopLiveStatusAutoRefresh(){
@@ -3524,6 +3610,12 @@ window.StreamEventsModule = (function(){
 
     window.addEventListener('cgn:module-show', ev => {
       if (ev.detail?.module === 'stream_events') loadAll(false);
+    });
+
+    window.addEventListener('beforeunload', () => {
+      stopSoundControlAutoRefresh();
+      stopLiveStatusAutoRefresh();
+      stopUserStatsAutoRefresh();
     });
   }
 
