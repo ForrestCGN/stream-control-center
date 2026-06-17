@@ -338,6 +338,18 @@
       max-width: 330px;
     }
 
+    .result-extra {
+      display: none;
+      margin: 0;
+      color: rgba(248, 251, 255, .82);
+      font-size: 14px;
+      line-height: 1.16;
+      font-weight: 700;
+      overflow-wrap: anywhere;
+      max-width: 330px;
+      text-shadow: 0 0 8px rgba(168,85,247,.22);
+    }
+
     .result-left {
       display: flex;
       align-items: center;
@@ -438,8 +450,72 @@
     }
 
     .result-card.no-avatar .result-title,
-    .result-card.no-avatar .result-subline {
+    .result-card.no-avatar .result-subline,
+    .result-card.no-avatar .result-extra {
       max-width: 400px;
+    }
+
+    .result-card.unresolved-card {
+      left: 50%;
+      right: auto;
+      top: 74px;
+      width: 640px;
+      min-height: 132px;
+      grid-template-columns: 1fr;
+      padding: 18px 26px 17px;
+      text-align: center;
+      transform: translateX(-50%);
+      background:
+        radial-gradient(circle at 50% 5%, rgba(255,107,143,.20), transparent 42%) padding-box,
+        radial-gradient(circle at 50% 100%, rgba(168,85,247,.24), transparent 56%) padding-box,
+        linear-gradient(135deg, rgba(9,10,28,.98), rgba(34,13,52,.98), rgba(13,11,32,.98)) padding-box,
+        linear-gradient(135deg, rgba(255,107,143,.84), rgba(168,85,247,.88), rgba(57,230,255,.54)) border-box;
+      box-shadow:
+        0 10px 22px rgba(0,0,0,0.56),
+        0 0 18px rgba(255,107,143,.18),
+        0 0 26px rgba(168,85,247,.20),
+        inset 0 0 18px rgba(255,107,143,.07);
+      animation: unresolvedDropIn .38s cubic-bezier(.18,.84,.28,1) both;
+    }
+
+    @keyframes unresolvedDropIn {
+      from { opacity: 0; transform: translate(-50%, -26px) scale(.98); }
+      to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+    }
+
+    .result-card.unresolved-card .result-right {
+      align-items: center;
+      gap: 7px;
+    }
+
+    .result-card.unresolved-card .result-kicker,
+    .result-card.unresolved-card .result-title,
+    .result-card.unresolved-card .result-subline,
+    .result-card.unresolved-card .result-extra {
+      text-align: center;
+      max-width: 580px;
+    }
+
+    .result-card.unresolved-card .result-kicker {
+      color: var(--danger);
+      font-size: 15px;
+      letter-spacing: 2.2px;
+      text-shadow:
+        0 0 10px rgba(255,107,143,.38),
+        0 0 18px rgba(168,85,247,.22);
+    }
+
+    .result-card.unresolved-card .result-title {
+      font-size: 24px;
+      line-height: 1.08;
+      white-space: normal;
+    }
+
+    .result-card.unresolved-card .result-subline,
+    .result-card.unresolved-card .result-extra {
+      display: block;
+      font-size: 16px;
+      line-height: 1.14;
     }
 
     #stage.mode-guessing .ring-wrap {
@@ -492,11 +568,10 @@
       align-items: center;
       justify-content: center;
       border-radius: 999px;
-      border: 2px solid rgba(57,230,255,.72);
+      border: 2px solid #39e6ff;
       background:
-        radial-gradient(circle at 50% 38%, rgba(57,230,255,.18), transparent 40%),
-        radial-gradient(circle at 50% 70%, rgba(168,85,247,.22), transparent 44%),
-        linear-gradient(135deg, rgba(5,7,24,.90), rgba(22,10,52,.90));
+        radial-gradient(circle at 50% 35%, #16435b 0%, #111827 43%, #160a34 100%),
+        linear-gradient(135deg, #050718, #160a34);
       box-shadow:
         0 0 14px rgba(57,230,255,.24),
         0 0 22px rgba(168,85,247,.24),
@@ -594,6 +669,7 @@
         <div id="resultKicker" class="result-kicker">Auswertung</div>
         <h1 id="resultTitle" class="result-title">Runde beendet</h1>
         <p id="resultSubline" class="result-subline">Die Heimleitung zählt nach.</p>
+        <p id="resultExtra" class="result-extra"></p>
       </div>
     </section>
   </div>
@@ -609,7 +685,7 @@
       mode: "obs_overlay",
       module: "stream_events",
       name: "Stream Events Runtime Overlay",
-      version: "0.3.1",
+      version: "0.3.2",
       heartbeatIntervalMs: 5000,
       capabilities: [
         "overlay.heartbeat",
@@ -650,6 +726,7 @@
         resultKicker: document.getElementById("resultKicker"),
         resultTitle: document.getElementById("resultTitle"),
         resultSubline: document.getElementById("resultSubline"),
+        resultExtra: document.getElementById("resultExtra"),
         answerCounter: document.getElementById("answerCounter"),
         debug: document.getElementById("debug")
       };
@@ -1066,6 +1143,7 @@
         let kicker = "Auswertung";
         let title = cleanText(display.headline, "Runde beendet");
         let subline = cleanText(display.subline, "Die Heimleitung zählt nach.");
+        let extra = "";
         let showAvatar = false;
         let avatarUrl = "";
         let avatarName = "";
@@ -1082,19 +1160,24 @@
           avatarUrl = cleanText(item && item.solvedByAvatarUrl, "");
           avatarName = winnerName;
         } else if (key === "sound_unresolved") {
-          kicker = "Nicht erkannt";
-          title = "Keiner hat es erkannt";
-          subline = "Der Schnipsel bleibt offen und kommt je nach Einstellung später nochmal.";
+          kicker = "KEINE LÖSUNG";
+          title = "Die Heimleitung hat nichts Verwertbares gelesen.";
+          subline = "Der Schnipsel bleibt im Archiv.";
+          extra = "";
         } else if (mode === "finished") {
           kicker = "Event beendet";
         } else if (mode === "cancelled") {
           kicker = "Abgebrochen";
         }
 
+        if (els.resultCard) {
+          els.resultCard.classList.toggle("unresolved-card", key === "sound_unresolved");
+        }
         setResultAvatar(avatarUrl, avatarName, showAvatar);
         setText(els.resultKicker, kicker, "Auswertung");
         setText(els.resultTitle, title, "Runde beendet");
         setText(els.resultSubline, subline, "Die Heimleitung zählt nach.");
+        setText(els.resultExtra, extra, "");
       }
 
       function applyState(data) {
@@ -1251,7 +1334,7 @@
     data-mode="obs_overlay"
     data-module="stream_events"
     data-name="Stream Events Runtime Overlay"
-    data-version="0.3.1"
+    data-version="0.3.2"
     data-heartbeat-ms="5000"
   ></script>
 </body>

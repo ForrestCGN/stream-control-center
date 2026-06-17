@@ -24,8 +24,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.50";
-const MODULE_BUILD = "STEP_EVENT_RUNTIME_ANSWER_COUNTDOWN_1";
+const MODULE_VERSION = "0.5.51";
+const MODULE_BUILD = "STEP_EVENT_RUNTIME_UNRESOLVED_CARD_1";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -3085,7 +3085,7 @@ function runtimeResultVisibleMs(latestRound) {
   if (!latestRound) return 0;
   const status = cleanString(latestRound.status || "").toLowerCase();
   if (status === "solved") return 10000;
-  if (status === "unresolved") return 6000;
+  if (status === "unresolved") return 10000;
   return 0;
 }
 
@@ -3171,8 +3171,8 @@ function buildRuntimeOverlayDisplay(event, phase, activeRound, latestRound, rank
     headline = "Richtig erkannt";
     subline = "Die Heimleitung notiert die Punkte.";
   } else if (phase.key === "sound_unresolved") {
-    headline = "Nicht erkannt";
-    subline = "Der Schnipsel bleibt erstmal in der CGN-Schublade.";
+    headline = "KEINE LÖSUNG";
+    subline = "Die Heimleitung hat nichts Verwertbares gelesen.";
   } else if (phase.key === "sound_waiting") {
     headline = eventName;
     subline = "Nächste Soundrunde wird vorbereitet.";
