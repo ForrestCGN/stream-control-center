@@ -1,99 +1,124 @@
-# Testflow – EventSound Runtime und Sound-System
+# Testflow – EventSound Runtime
 
 Stand: 2026-06-17
 
-## 1. Versionen prüfen
+## Voraussetzung
+
+```text
+ZIP nach D:\Git\stream-control-center entpacken, wenn Repo-Pfade-ZIP.
+Deploy/Live aktualisieren.
+StepDone ausführen.
+Backend neu starten, falls Node nicht automatisch neu lädt.
+OBS-Browserquellen refreshen.
+```
+
+## Version prüfen
 
 ```powershell
-$e = Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/status"
-$e | Select-Object ok,module,moduleVersion,moduleBuild
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/status"
+$s | Select-Object moduleVersion,moduleBuild | Format-List
+```
 
-$s = Invoke-RestMethod "http://127.0.0.1:8080/api/sound/status"
-$s | Select-Object ok,module,moduleVersion,moduleBuild
-$s.postPlaybackGap
-$s.playbackLog
+## Test 1 – mit Lösung / 30s Counter
+
+Script:
+
+```powershell
+cd D:\Git\stream-control-center
+powershell -ExecutionPolicy Bypass -File "$env:USERPROFILE\Downloads\EVENT_RUNTIME_DIAG_DELAYED_ANSWER_30S.ps1"
 ```
 
 Erwartung:
 
 ```text
-stream_events 0.5.36 / STEP_EVENT_SOUND_5B_OUTPUT_TARGET_CONFIG
-sound_system 0.1.30 / STEP_SOUND_GAP_2_PLAYBACK_LOG_AUDIO_END_AND_GAP_END
-postPlaybackGap.durationMs = 2000
-playbackLog.prepared = true
+3 / 2 / 1 / LOS
+Sound läuft ohne JETZT RATEN
+Counter oben rechts startet nach Sound-Ende
+Script wartet ca. 30 Sekunden
+Script sendet richtige Antwort
+Counter verschwindet
+Gewinner-Card erscheint
+Reveal startet danach über Sound-System-Overlay
 ```
 
-## 2. Test-State aufräumen
+## Test 2 – ohne Lösung / Timeout
+
+Script:
 
 ```powershell
-Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/stream-events/sound-runtime/reset-test-state?confirm=1"
-```
-
-## 3. Testevent mit echten Medien anlegen
-
-```powershell
-$ev = Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/stream-events/sound-runtime/create-test-event?confirm=1&useRealMedia=1"
-$ev.mediaTest
-$ev.snippets | Select-Object snippetUid,title,mediaId,mediaPath
-```
-
-## 4. Runde mit Playback starten
-
-```powershell
-$r = Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/stream-events/sound-runtime/next-round?play=1&confirm=1"
-$r | Select-Object ok,eventUid,soundSystemPlaybackRequested
+cd D:\Git\stream-control-center
+powershell -ExecutionPolicy Bypass -File ".\tools\test_event_runtime_unresolved_card.ps1"
 ```
 
 Erwartung:
 
 ```text
-Countdown sichtbar
-Sound hörbar
-Overlay bleibt nach Sound-Ende ca. 2 Sekunden sichtbar
-Queue startet erst nach der Pause weiter
+3 / 2 / 1 / LOS
+Sound läuft ohne JETZT RATEN
+Counter oben rechts startet nach Sound-Ende
+Keine Antwort wird gesendet
+Counter läuft bis 0
+Keine-Lösung-Kachel oben mittig ca. 10 Sekunden
+kein Reveal
 ```
 
-## 5. Recent Playback Log prüfen
+## Test 3 – Gewinner-Layout langer Name/Titel
+
+Kein Sound-Test nötig. Direkt öffnen:
+
+```text
+http://127.0.0.1:8080/overlays/stream_events/event_runtime_overlay.html?demo=result-long&v=test
+```
+
+Prüfen:
+
+```text
+- langer Name lesbar
+- Punkte sichtbar
+- Titel zweizeilig sauber begrenzt
+- Card bricht nicht aus
+```
+
+## Diagnose bei Problemen
+
+### Counter fehlt
 
 ```powershell
-$log = Invoke-RestMethod "http://127.0.0.1:8080/api/sound/recent-playback?limit=20"
-$log.items | Select-Object startedAt,audioEndedAt,gapStartedAt,gapEndedAt,finishedAt,status,soundId,label,source,category,playbackMs,gapMs | Format-Table -AutoSize
+Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/runtime-overlay/state" | ConvertTo-Json -Depth 12
 ```
 
-Erwartung:
+Prüfen:
 
 ```text
-audioEndedAt liegt vor gapEndedAt
-gapMs liegt ca. bei 2000
-nächster startedAt liegt nach vorherigem gapEndedAt
+answerWindow.active muss true sein.
+Wenn false: Backend-State/Antwortfenster prüfen, nicht Overlay-Design.
 ```
 
-## 6. Dashboard prüfen
+### Reveal unsichtbar
 
-```text
-Dashboard -> System -> Sound-System
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/recent-playback?limit=10" | ConvertTo-Json -Depth 12
 ```
 
-Sichtbar:
+Prüfen:
 
 ```text
-Globale Sound-Pause
-Zuletzt gespielt
+status
+mediaType=video
+hasVideo=true
+outputTarget=overlay
+file/audioUrl/videoUrl
 ```
 
-## 7. Gemischter Test
+OBS-Quelle prüfen:
 
 ```text
-2 Alerts
-2 Channelpoint-/UserSounds
-1 EventSound / Runtime-Overlay
+http://127.0.0.1:8080/overlays/sound_system_overlay.html
 ```
 
-Bestätigt am 2026-06-17:
+### Alte Anzeige sichtbar
 
-```text
-GifSub 1-4      Audio 19,3 s   Gap 2 s
-100-249 Bits    Audio 15,4 s    Gap 2 s
-Mädchen         Audio 9,4 s     Gap 2 s
-Husten          Audio 2,4 s     Gap 2 s
+```powershell
+Select-String -Path "D:\Git\stream-control-center\htdocs\overlays\stream_events\event_runtime_overlay.html" -Pattern "version|0.3.7|result-long|answer-counter|KEINE LÖSUNG"
+Select-String -Path "D:\Streaming\stramAssets\htdocs\overlays\stream_events\event_runtime_overlay.html" -Pattern "version|0.3.7|result-long|answer-counter|KEINE LÖSUNG"
 ```

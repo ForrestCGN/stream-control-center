@@ -1,118 +1,90 @@
-# FILES – stream-control-center
+# FILES – relevante Dateien
 
-Stand: 2026-06-16
+Stand: 2026-06-17 16:20
 
-## Aktueller Arbeitsstand
-
-```text
-EVENTSYS-27D-FIX2 – Live-Bedienung in der Übersicht
-```
-
-## Für diesen Doku-Stand relevante Dateien
+## EventSound / Runtime / Sound-System
 
 ```text
 backend/modules/stream_events.js
+backend/modules/sound_system.js
+htdocs/overlays/stream_events/event_runtime_overlay.html
+htdocs/overlays/sound_system_overlay.html
 htdocs/dashboard/modules/stream_events.js
 htdocs/dashboard/modules/stream_events.css
+htdocs/dashboard/modules/sound.js
+htdocs/dashboard/modules/sound.css
+```
+
+## Testtools
+
+```text
+tools/test_event_runtime_unresolved_card.ps1
+```
+
+Zusätzlich in Downloads/Arbeitsdateien genutzt:
+
+```text
+EVENT_RUNTIME_DIAG_DELAYED_ANSWER_30S.ps1
+EVENT_RUNTIME_TEST_LONG_WINNER_CARD_2.ps1
+```
+
+Hinweis: Long-Winner-Layout besser über Demo-URL testen:
+
+```text
+http://127.0.0.1:8080/overlays/stream_events/event_runtime_overlay.html?demo=result-long&v=test
+```
+
+## Doku
+
+```text
 docs/current/CURRENT_STATUS.md
 docs/current/NEXT_STEPS.md
 docs/current/TODO.md
-docs/current/FILES.md
 docs/current/CHANGELOG.md
-docs/current/CURRENT_CHAT_HANDOFF_EVENTSYS_27D_SOUND_SAFE.md
+docs/current/FILES.md
+docs/current/CURRENT_CHAT_HANDOFF_EVENT_RUNTIME_2026-06-17.md
+docs/current/NEXT_CHAT_PROMPT_EVENT_RUNTIME_2026-06-17.md
 docs/modules/stream_events.md
-docs/modules/sound_system_event_preroll_plan.md
-project-state/CURRENT_STATUS_EVENTSYS_27D.md
-project-state/NEXT_CHAT_PROMPT_EVENTSYS_27D_SOUND_SAFE.txt
+docs/overlays/event_runtime_overlay.md
+docs/testing/SOUND_EVENT_RUNTIME_TESTFLOW.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/CHANGELOG.md
+project-state/FILES.md
 ```
 
-## Backend
+## Wichtige URLs
 
 ```text
-backend/modules/stream_events.js
+Dashboard:
+http://127.0.0.1:8080/dashboard
+
+Runtime Overlay:
+http://127.0.0.1:8080/overlays/stream_events/event_runtime_overlay.html
+
+Runtime Overlay Debug:
+http://127.0.0.1:8080/overlays/stream_events/event_runtime_overlay.html?debug=1&v=test
+
+Long Winner Demo:
+http://127.0.0.1:8080/overlays/stream_events/event_runtime_overlay.html?demo=result-long&v=test
+
+Sound-System Overlay:
+http://127.0.0.1:8080/overlays/sound_system_overlay.html
 ```
 
-Aktueller Modulstand laut Runtime zuletzt:
+## Relevante STEP-ZIPs aus diesem Chatblock
 
 ```text
-module = stream_events
-moduleVersion = 0.5.22
-moduleBuild = STEP_EVS_25A_EMPTY_OVERVIEW_ACTION_CLEANUP
-enabled = true
-schemaReady = true
-bus.registered = true
-```
-
-Wichtig:
-
-```text
-- Backend wurde in den letzten Eventsystem-Schritten für Validierung, Duplicate/Rename und Event-Settings erweitert.
-- Echtes Sound-Playback ist noch nicht angebunden.
-- Sound-Runden können vorbereitet werden.
-- ChatOutput bleibt prepared-only.
-```
-
-## Dashboard
-
-```text
-htdocs/dashboard/modules/stream_events.js
-htdocs/dashboard/modules/stream_events.css
-```
-
-Enthält aktuell:
-
-```text
-- getrennte Editor-Fenster:
-  - Einstellungen bearbeiten
-  - Sound-Schnipsel bearbeiten
-  - Text-Spiel bearbeiten
-
-- Sound-Schnipsel:
-  - mehrere Schnipsel
-  - MediaPicker-State wird erhalten
-  - konkrete Pflichtfeldprüfung pro Schnipsel
-  - Live-Refresh im Editor
-
-- Event-Verwaltung:
-  - Umbenennen
-  - Kopieren mit Namen-Dialog
-  - Speichern/Prüfen/Starten/Beenden/Abbrechen/Archivieren/Löschen
-  - Reload nach mutierenden Buttons
-
-- Übersicht:
-  - EVENT LÄUFT Anzeige
-  - Live-Bedienung
-  - Nächsten Schnipsel vorbereiten
-  - Status & Punkte öffnen
-```
-
-## Sound-System – nächster Prüfbereich
-
-Vor weiteren Runtime-Arbeiten gezielt prüfen:
-
-```text
-backend/modules/sound_system.js
-htdocs/overlays/sound_system_overlay.html
-```
-
-Falls Overlay-Dateiname im Repo anders ist, echten vorhandenen Namen nutzen. Nicht raten.
-
-Prüfziel:
-
-```text
-- bestehendes Playback nicht brechen
-- Queue bleibt Owner
-- optionalen Countdown-PreRoll sauber andocken
-```
-
-## Nicht anfassen ohne separate Planung
-
-```text
-Produktive SQLite:
-D:\Streaming\stramAssets\data\sqlite\app.sqlite
-
-Alte Sound-/Alert-/UserSound-Flows
-Sound-System-Routenverhalten
-Twitch-Events-Bus-Struktur
-ChatOutput-Live-Schalter
+STEP_EVENT_RUNTIME_OVERLAY_1.zip
+STEP_EVENT_RUNTIME_OVERLAY_1B.zip
+STEP_EVENT_RUNTIME_ANSWER_COUNTDOWN_1.zip
+STEP_EVENT_RUNTIME_ANSWER_COUNTDOWN_1B.zip
+STEP_EVENT_RUNTIME_UNRESOLVED_CARD_1.zip
+STEP_EVENT_RUNTIME_POLISH_1.zip
+STEP_EVENT_RUNTIME_POLISH_1B_TEXT.zip
+STEP_EVENT_RUNTIME_WINNER_CARD_TEXT_1.zip
+STEP_EVENT_RUNTIME_WINNER_CARD_LAYOUT_1.zip
+STEP_EVENT_RUNTIME_WINNER_CARD_DEMO_1.zip
+DOCS_EVENT_RUNTIME_2026-06-17.zip
 ```

@@ -1,76 +1,66 @@
 # CHANGELOG – stream-control-center
 
-## 2026-06-17 – EventSound / Sound-System / Sound-Dashboard
+## 2026-06-17 – EventSound Runtime Overlay / Counter / Result Cards
 
 ### Added
 
-- Sound-Dashboard-Bereich für globale Sound-Pause.
-- Sound-Dashboard-Bereich `Zuletzt gespielt` / Recent Playback.
-- Recent Playback Anzeige mit Audio-Ende, Gap-Ende, Audio-Dauer und Gap-Dauer.
-- Neues Handoff: `docs/current/CURRENT_CHAT_HANDOFF_EVENT_SOUND_RUNTIME_2026-06-17.md`.
-- Neuer Next-Chat-Prompt: `docs/current/NEXT_CHAT_PROMPT_EVENT_SOUND_RUNTIME_2026-06-17.md`.
+- Antwortzeit-Counter für EventSound-Antwortfenster.
+- Counter oben rechts, deckender Hintergrund, nur während `answerWindow.active`.
+- Keine-Lösung-Kachel nach Timeout.
+- Long-Winner-Demo-URL:
+  - `/overlays/stream_events/event_runtime_overlay.html?demo=result-long&v=test`
+- Testscript für Timeout/Keine-Lösung:
+  - `tools/test_event_runtime_unresolved_card.ps1`
 
 ### Changed
 
-- `sound_system` auf `0.1.30` / `STEP_SOUND_GAP_2_PLAYBACK_LOG_AUDIO_END_AND_GAP_END`.
-- Sound-Dashboard-Badge bei Recent Playback von `Aktiv` auf `Verlauf aktiv` geändert.
+- Runtime-Overlay bis zuletzt auf Overlay-Stand `0.3.7` erweitert.
+- Gewinner-Card robuster gemacht:
+  - Username eigene Zeile.
+  - Punkte/Erkennung eigene Zeile.
+  - Schnipsel-Titel eigene zweizeilige Box.
+  - lange Titel werden per Layout begrenzt statt hart auf 36 Zeichen gekürzt.
+- Keine-Lösung-Kachel optisch/inhaltlich angepasst:
 
-### Confirmed
+```text
+KEINE LÖSUNG
+Die Heimleitung hat im Chat
+keine richtige Antwort erkannt.
+Der Schnipsel bleibt im Archiv.
+```
 
-- 2s Sound-Gap im Mischtest bestätigt.
-- Queue startet nach `gapEndedAt`, nicht direkt nach Audio-Ende.
-
----
-
-# CHANGELOG – stream-control-center
-
-## 2026-06-15 – Loyalty Go-Live / Punkteimport / Raffle / Mini-Spiele
-
-### Added
-
-- `!raffle` und `!join` im bestehenden `loyalty_giveaways`-Modul.
-- Raffle-Loyalty-Auszahlung mit internem 5000er Gewinnpool.
-- Raffle-Transaktionen vom Typ `raffle_win`.
-- Öffentliche Raffle-Textkeys `raffle.public.*`.
-- StreamElements-Import-Tool und Importdateien für Top-489-Import.
-- Raffle-API-Routen:
-  - `GET /api/loyalty/raffle/status`
-  - `GET /api/loyalty/raffle/config`
-  - `POST /api/loyalty/raffle/config`
-- Dashboard-Tab `Mini-Spiele`.
-- Raffle-Bereich im Mini-Spiele-Dashboard.
-- Gamble-Bereich im Mini-Spiele-Dashboard.
-
-### Changed
-
-- Loyalty-Modus von `shadow` auf `live` gesetzt.
-- Watch-Punkte produktiv aktiv.
-- Event-Boni produktiv über `twitch_events` verarbeitet.
-- Raffle-Chattexte bereinigt: Pool wird öffentlich nicht mehr angezeigt.
-- Loyalty-Navigation: `Gamble` als Haupttab wurde durch `Mini-Spiele` ersetzt.
-- Raffle-Dashboard-Begriff `Gewinnpool intern` wurde in `Raffle-Gewinn gesamt` verbessert.
-- Mini-Spiele Dashboard-Layout bereinigt.
+- Reveal-Video-Playback läuft weiter über Sound-System, aber ohne Runtime-PreRoll-Kreis.
+- `JETZT RATEN` während Soundlauf entfernt, da Antworten erst nach Sound-Ende gültig sind.
+- Auto-Schedule korrigiert: `intervalMinutes ± intervalJitterMinutes`, `roundDelaySeconds` nur Floor.
 
 ### Fixed
 
-- Raffle Config Endpoint: `CHAT_TEXT_VARIANTS is not defined` korrigiert.
-- Dashboard-Live-Pfad-Problem erkannt: Repo-ZIPs mit `dashboard/modules` landen nicht automatisch in `htdocs/dashboard/modules`, wenn direkt nach `D:\Streaming\stramAssets` entpackt wird.
-- FULLPATH-ZIPs für direkten Live-Deploy erstellt.
-- Raffle-Gewinnerregel und Textkeys im Dashboard gegen zusammenklebende Darstellung bereinigt.
+- Falscher Overlay-ZIP-Pfad aus früherem Step als bekannter Fehler festgehalten. Korrekt:
+
+```text
+htdocs/overlays/stream_events/event_runtime_overlay.html
+```
+
+- `AUFLOESUNG / AUFLOESUNG LAEUFT` beim Reveal entfernt.
+- `LOS / JETZT RATEN` beim Reveal entfernt.
+- Counter-Position von links nach rechts verschoben.
+- Counter-Hintergrund ohne Transparenz gesetzt.
 
 ### Confirmed
 
-- StreamElements-Import erfolgreich: 479 User / 1.832.557 Punkte.
-- Twitch-Event-Boni produktiv verarbeitet.
-- Watch-Punkte gebucht.
-- Raffle-Gewinne gebucht.
-- Raffle-Config lädt und speichert.
-- `showPoolInChat=false` bleibt nach Dashboard-Speichern erhalten.
-- Alerts weiterhin Shadow.
+- 30s-Test mit Lösung: Counter läuft, Antwort wird nach Delay gesendet, Result wird erkannt.
+- Normale Gewinner-Card sieht brauchbar aus.
+- Keine-Lösung-Kachel ist gewünscht und bleibt.
+- Long-Winner-Layout wird künftig bevorzugt über Demo-URL geprüft, nicht über unzuverlässige Custom-Testevent-Route.
 
 ### Known Issues / Follow-up
 
-- Config und Texte strukturell aus Mini-Spiele heraus sauber nach Einstellungen/Texte verschieben.
-- Subscriber-Tier-Erkennung prüfen.
-- GiftSub-Receiver-Konfig/Buchung abgleichen.
-- Alert-Shadow weiter über mehrere Streams beobachten.
+- Reveal-Video-Sichtbarkeit hängt an `sound_system_overlay.html`/OBS-Quelle, nicht am Runtime-Overlay.
+- Overlay-Texte sind teilweise noch hart gesetzt und sollen später in DB/Textvarianten.
+- Auto-Rotation nach Reveal/Timeout über mehrere echte Runden prüfen.
+
+---
+
+# Ältere Einträge
+
+Die vorherigen Einträge bleiben in älteren Archiv-/Step-Dateien erhalten. Dieser Stand konsolidiert den aktuellen EventSound-Runtime-Block.

@@ -1,133 +1,149 @@
 # NEXT_STEPS – stream-control-center
 
-Stand: 2026-06-16
+Stand: 2026-06-17 16:20
 
 ## Neuer Chat / nächster Startpunkt
 
 ```text
-SOUND-SAFE-1 – Sound-System prüfen und sicheren Erweiterungspunkt für EventSound + Countdown-PreRoll festlegen
+EVENT-RUNTIME-STABILIZE-2 – EventSound Runtime im Live-/OBS-Setup prüfen und danach Dashboard-/Config-Anbindung fortführen
 ```
 
-## Ausgangslage
+## Sofort zuerst prüfen
 
-```text
-EVENTSYS-27D-FIX2 ist der aktuelle Arbeitsstand.
-Live-Bedienung ist in der Übersicht sichtbar.
-Sound-Runden können vorbereitet werden.
-Echtes Playback ist noch nicht angebunden.
-Countdown-Overlay ist gewünscht, muss aber über das Sound-System laufen.
-Das alte Sound-System darf nicht kaputtgehen.
+```powershell
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/status"
+$s | Select-Object moduleVersion,moduleBuild | Format-List
 ```
 
-## Wichtigste Regel für den nächsten Block
+Erwartung aus letztem Arbeitsstand:
 
 ```text
-Keine direkte Eventsystem-Audioausgabe bauen.
-Keinen Countdown am Sound-System vorbei triggern.
-Keine zweite Queue bauen.
-Keine bestehende Sound-System-Route in ihrem Verhalten brechen.
-Neue Felder müssen optional sein.
-Fehlen neue Felder, läuft alles wie bisher.
+stream_events mindestens 0.5.51 / STEP_EVENT_RUNTIME_UNRESOLVED_CARD_1
+Runtime-Overlay im Browser/Live mindestens 0.3.7, wenn Demo-Step eingespielt wurde
 ```
 
-## Schritt 1 – Sound-System wirklich prüfen
+## Test-Reihenfolge
 
-Benötigte Dateien aus aktuellem Stand prüfen:
+### 1. Demo Gewinner-Card langer Name/Titel
 
 ```text
-backend/modules/sound_system.js
+http://127.0.0.1:8080/overlays/stream_events/event_runtime_overlay.html?demo=result-long&v=test
+```
+
+Sichtprüfung:
+
+```text
+- langer Name lesbar
+- Punkte sichtbar
+- langer Titel zweizeilig sauber begrenzt
+- Card bricht nicht aus
+```
+
+### 2. Test mit Lösung und 30 Sekunden Counter-Laufzeit
+
+```powershell
+cd D:\Git\stream-control-center
+powershell -ExecutionPolicy Bypass -File "$env:USERPROFILE\Downloads\EVENT_RUNTIME_DIAG_DELAYED_ANSWER_30S.ps1"
+```
+
+Erwartung:
+
+```text
+3 / 2 / 1 / LOS
+Sound läuft ohne JETZT RATEN
+Sound endet
+Counter oben rechts läuft ca. 30 Sekunden
+Antwort wird gesendet
+Gewinner-Card erscheint
+Reveal-Video startet danach über Sound-System-Overlay
+```
+
+### 3. Timeout-Test ohne Antwort
+
+```powershell
+cd D:\Git\stream-control-center
+powershell -ExecutionPolicy Bypass -File ".	ools	est_event_runtime_unresolved_card.ps1"
+```
+
+Erwartung:
+
+```text
+Counter läuft bis 0
+Counter verschwindet
+Keine-Lösung-Kachel oben mittig ca. 10 Sekunden
+kein Reveal
+kein Punkt
+```
+
+## Offen / nächste technische Themen
+
+### A. Reveal-Video-Sichtbarkeit prüfen, falls nochmal unsichtbar
+
+Reveal läuft über:
+
+```text
 htdocs/overlays/sound_system_overlay.html
-ggf. htdocs/overlays/js/ws-client.js
-backend/modules/media*.js
-backend/modules/stream_events.js
 ```
 
-Ziel:
+Nicht über:
 
 ```text
-- vorhandene Queue-Logik verstehen
-- vorhandene /api/sound/play Payload verstehen
-- vorhandene Overlay-Ausgabe verstehen
-- prüfen, ob Media-IDs direkt abgespielt werden
-- prüfen, welche Status-/Callback-/Bus-Signale existieren
+htdocs/overlays/stream_events/event_runtime_overlay.html
 ```
 
-## Schritt 2 – Kompatiblen EventSound-Job planen
-
-Geplante additive Payload, nur wenn vom vorhandenen Sound-System sauber unterstützt oder gefahrlos ergänzt:
-
-```json
-{
-  "mediaId": "...",
-  "source": "stream_events",
-  "category": "event_sound",
-  "priority": 55,
-  "preRoll": {
-    "type": "countdown",
-    "enabled": true,
-    "seconds": 3,
-    "style": "cgn"
-  },
-  "meta": {
-    "eventUid": "...",
-    "roundUid": "...",
-    "snippetUid": "..."
-  }
-}
-```
-
-Kompatibilitätsregel:
+Wenn Reveal nicht sichtbar ist:
 
 ```text
-preRoll fehlt -> altes Verhalten
-preRoll.enabled !== true -> altes Verhalten
-source/category/meta fehlen -> altes Verhalten
+- OBS-Browserquelle für sound_system_overlay.html prüfen.
+- /api/sound/recent-playback?limit=10 prüfen.
+- outputTarget=overlay / hasVideo / status started prüfen.
+- sound_system_overlay.html als echte Datei anfordern und prüfen.
 ```
 
-## Schritt 3 – Erst danach bauen
-
-Empfohlene Reihenfolge:
+### B. EventSound Dashboard-/Config-Integration
 
 ```text
-SOUND-SAFE-1
-Sound-System prüfen und Erweiterungspunkt dokumentieren.
-
-SOUND-SAFE-2
-Optionalen Countdown-PreRoll im Sound-System additiv einbauen.
-Altes Verhalten muss unverändert bleiben.
-
-EVENTSYS-27E
-stream_events nutzt Sound-System-Queue für Event-Sounds.
-Button wird von „Nächsten Schnipsel vorbereiten“ zu „Nächsten Schnipsel abspielen“.
-
-EVENTSYS-27F
-Antwortphase/Timer starten, nachdem Sound-System den Soundstart meldet oder der Job erfolgreich gestartet wurde.
-
-EVENTSYS-27G
-Chat-Antworten über twitch.chat.message prüfen und Punkte buchen.
-
-EVENTSYS-27H
-Chat-Ausgaben über helper_texts/helper_messages mit CGN-Heimleitung-Rentner-Textvarianten.
-
-EVENTSYS-27I
-Auflösungs-Video nach richtiger Antwort über Media-/Sound-System.
-
-EVENTSYS-27J
-Auto-Rotation: zufällig alle X ± Y Minuten.
-
-EVENTSYS-DOCS-2
-Doku nach Sound-System-Anbindung aktualisieren.
+- Sound- und Text-Spieltypen weiterhin getrennt konfigurieren.
+- Event nur startbar, wenn gewählte Spieltypen vollständig konfiguriert sind.
+- Runtime-/Antwort-/Reveal-Konfiguration streamer-/modfreundlich im Dashboard abbilden.
+- Texte später in zentrale Textvarianten bringen, nicht hart im Code lassen.
 ```
 
-## Nicht tun
+### C. Auto-Rotation weiter prüfen
+
+Bestätigte Regel:
 
 ```text
-Keine direkte Audioausgabe aus stream_events.
-Kein Countdown-Overlay separat am Sound-System vorbei.
-Keine neue Sound-Queue.
-Keine bestehenden Sound-Routen brechen.
-Keine alten Alert-/Sound-/UserSound-Flows verändern.
-Kein Auto-Timer, bevor manuelles Playback stabil ist.
-Kein Chat-Live-Send.
-Keine produktive DB ersetzen.
+random_auto / sequence_auto: nächste automatische Runde nach intervalMinutes ± intervalJitterMinutes.
+roundDelaySeconds ist nur Mindestpause/Floor.
+Manuelle next-round API darf weiter sofort auslösen.
+```
+
+Noch prüfen:
+
+```text
+- nach gelöstem Reveal kein direkter Schnipsel nach 60 Sekunden
+- nach Timeout normaler Auto-Intervall
+- Schnipsel je nach Config aus Rotation entfernen oder später wiederholen
+```
+
+### D. Später: Textsystem/Dashboardtexte
+
+Aktuell sind einzelne Overlay-Texte noch im Code/Overlay hart gesetzt. Langfristig sollen Texte dashboardfähig über Textvarianten laufen:
+
+```text
+KEINE LÖSUNG
+Die Heimleitung hat im Chat
+keine richtige Antwort erkannt.
+Der Schnipsel bleibt im Archiv.
+```
+
+## Nicht als nächstes tun
+
+```text
+- Kein neues Parallel-Sound-System bauen.
+- Keine direkte Audio-/Videoausgabe aus stream_events am Sound-System vorbei.
+- Keine DB ersetzen/überschreiben.
+- Keine Regex-/Patch-/Apply-Scripte.
+- Keine weiteren Layoutänderungen ohne Sichtproblem.
 ```

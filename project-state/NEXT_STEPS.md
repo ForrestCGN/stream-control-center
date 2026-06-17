@@ -1,84 +1,149 @@
 # NEXT_STEPS – stream-control-center
 
-Stand: 2026-06-17 06:55
+Stand: 2026-06-17 16:20
 
-## Direkt nächster sinnvoller Schritt – EventSound
+## Neuer Chat / nächster Startpunkt
 
 ```text
-EVENT-SOUND-DASH-1
+EVENT-RUNTIME-STABILIZE-2 – EventSound Runtime im Live-/OBS-Setup prüfen und danach Dashboard-/Config-Anbindung fortführen
 ```
 
-Ziel: EventSound im bestehenden Dashboard/Stream-Events-Bereich konfigurierbar machen. Sound-Snippets über vorhandenes Media-System auswählen. Countdown, Antwortzeit, Rotation und Ergebnisverhalten streamerfreundlich konfigurieren. Sound-System bleibt Playback-/Queue-Owner.
+## Sofort zuerst prüfen
 
-Danach: `SOUND-DASH-3` für Recent Playback Filter/Details und editierbare Pause.
-
----
-
-# NEXT_STEPS – stream-control-center
-
-Stand: 2026-06-15 19:55
-
-## Direkt nächster sinnvoller Schritt
-
-```text
-LC-MINIGAMES-2A Struktur-Cleanup
+```powershell
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/status"
+$s | Select-Object moduleVersion,moduleBuild | Format-List
 ```
 
-Ziel:
+Erwartung aus letztem Arbeitsstand:
 
 ```text
-Mini-Spiele bleibt Übersicht/Bedienung/Status.
-Raffle-Config wird in Loyalty -> Einstellungen -> Bereich Raffle/Mini-Spiele-Raffle verschoben.
-Raffle-Texte werden über Loyalty -> Texte -> Bereich Raffle gepflegt.
-Commands/Rechte/Cooldowns langfristig über Loyalty -> Chat & Befehle.
+stream_events mindestens 0.5.51 / STEP_EVENT_RUNTIME_UNRESOLVED_CARD_1
+Runtime-Overlay im Browser/Live mindestens 0.3.7, wenn Demo-Step eingespielt wurde
 ```
 
-## Vor LC-MINIGAMES-2A prüfen
+## Test-Reihenfolge
+
+### 1. Demo Gewinner-Card langer Name/Titel
 
 ```text
-Aktuelle Dateien aus Repo/Live als Source of Truth nehmen.
-Keine Funktionalität entfernen.
-Bestehende Raffle-Config und API nicht brechen.
-Bestehende Gamble-Config nicht umbauen.
+http://127.0.0.1:8080/overlays/stream_events/event_runtime_overlay.html?demo=result-long&v=test
 ```
 
-## Danach priorisiert
-
-### A. Raffle-Texte im Textbereich verbessern
+Sichtprüfung:
 
 ```text
-Bereichsfilter Raffle sichtbar/komfortabel machen.
-Raffle-Keys schnell auffindbar machen.
-Varianten löschen/deaktivieren bleibt möglich.
+- langer Name lesbar
+- Punkte sichtbar
+- langer Titel zweizeilig sauber begrenzt
+- Card bricht nicht aus
 ```
 
-### B. Raffle-Laufzeit-Test im Chat
+### 2. Test mit Lösung und 30 Sekunden Counter-Laufzeit
 
-```text
-!raffle
-!join
-Gewinnermeldung prüfen
-Punktebuchung als raffle_win prüfen
-Pool darf nicht öffentlich im Chat stehen
+```powershell
+cd D:\Git\stream-control-center
+powershell -ExecutionPolicy Bypass -File "$env:USERPROFILE\Downloads\EVENT_RUNTIME_DIAG_DELAYED_ANSWER_30S.ps1"
 ```
 
-### C. Subscriber-Tier-Erkennung prüfen
+Erwartung:
 
 ```text
-Viele Watch-Buchungen nutzen subscriber_multiplier_fallback.
-Tier-2/Tier-3-Erkennung später testen.
+3 / 2 / 1 / LOS
+Sound läuft ohne JETZT RATEN
+Sound endet
+Counter oben rechts läuft ca. 30 Sekunden
+Antwort wird gesendet
+Gewinner-Card erscheint
+Reveal-Video startet danach über Sound-System-Overlay
 ```
 
-### D. GiftSub-Receiver-Konfig/Buchung abgleichen
+### 3. Timeout-Test ohne Antwort
 
-```text
-Dashboard-Konfig small_bonus/tierAmounts vs reale event_bonus-Buchungen prüfen.
+```powershell
+cd D:\Git\stream-control-center
+powershell -ExecutionPolicy Bypass -File ".	ools	est_event_runtime_unresolved_card.ps1"
 ```
 
-### E. Alert Shadow weiter beobachten
+Erwartung:
 
 ```text
-Keine Produktivumschaltung.
-Mehrere Streams Shadow prüfen.
-Später alte direkte Alert-Route ablösen, wenn stabil.
+Counter läuft bis 0
+Counter verschwindet
+Keine-Lösung-Kachel oben mittig ca. 10 Sekunden
+kein Reveal
+kein Punkt
+```
+
+## Offen / nächste technische Themen
+
+### A. Reveal-Video-Sichtbarkeit prüfen, falls nochmal unsichtbar
+
+Reveal läuft über:
+
+```text
+htdocs/overlays/sound_system_overlay.html
+```
+
+Nicht über:
+
+```text
+htdocs/overlays/stream_events/event_runtime_overlay.html
+```
+
+Wenn Reveal nicht sichtbar ist:
+
+```text
+- OBS-Browserquelle für sound_system_overlay.html prüfen.
+- /api/sound/recent-playback?limit=10 prüfen.
+- outputTarget=overlay / hasVideo / status started prüfen.
+- sound_system_overlay.html als echte Datei anfordern und prüfen.
+```
+
+### B. EventSound Dashboard-/Config-Integration
+
+```text
+- Sound- und Text-Spieltypen weiterhin getrennt konfigurieren.
+- Event nur startbar, wenn gewählte Spieltypen vollständig konfiguriert sind.
+- Runtime-/Antwort-/Reveal-Konfiguration streamer-/modfreundlich im Dashboard abbilden.
+- Texte später in zentrale Textvarianten bringen, nicht hart im Code lassen.
+```
+
+### C. Auto-Rotation weiter prüfen
+
+Bestätigte Regel:
+
+```text
+random_auto / sequence_auto: nächste automatische Runde nach intervalMinutes ± intervalJitterMinutes.
+roundDelaySeconds ist nur Mindestpause/Floor.
+Manuelle next-round API darf weiter sofort auslösen.
+```
+
+Noch prüfen:
+
+```text
+- nach gelöstem Reveal kein direkter Schnipsel nach 60 Sekunden
+- nach Timeout normaler Auto-Intervall
+- Schnipsel je nach Config aus Rotation entfernen oder später wiederholen
+```
+
+### D. Später: Textsystem/Dashboardtexte
+
+Aktuell sind einzelne Overlay-Texte noch im Code/Overlay hart gesetzt. Langfristig sollen Texte dashboardfähig über Textvarianten laufen:
+
+```text
+KEINE LÖSUNG
+Die Heimleitung hat im Chat
+keine richtige Antwort erkannt.
+Der Schnipsel bleibt im Archiv.
+```
+
+## Nicht als nächstes tun
+
+```text
+- Kein neues Parallel-Sound-System bauen.
+- Keine direkte Audio-/Videoausgabe aus stream_events am Sound-System vorbei.
+- Keine DB ersetzen/überschreiben.
+- Keine Regex-/Patch-/Apply-Scripte.
+- Keine weiteren Layoutänderungen ohne Sichtproblem.
 ```

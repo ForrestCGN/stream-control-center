@@ -1,68 +1,117 @@
 # Overlay-Doku – Event Runtime Overlay
 
 Datei: `htdocs/overlays/stream_events/event_runtime_overlay.html`  
-Stand: `0.2.6`  
-Zuletzt aktualisiert: 2026-06-16
+Stand: Overlay bis `0.3.7`  
+Zuletzt aktualisiert: 2026-06-17
 
 ## Aufgabe
 
-Das Event Runtime Overlay zeigt für EventSound und spätere Eventphasen sichtbare Zustände an:
-
-- Countdown `3 / 2 / 1`
-- `LOS!` / „Jetzt raten!“
-- Guessing-/Antwortphase
-- später Ergebnis/Auswertung
-
-## Aktueller Ablauf bei EventSound
+Das Event Runtime Overlay zeigt sichtbare Runtime-Zustände für EventSound:
 
 ```text
-countdown.start -> 3 / 2 / 1
-sound start -> Guessing sichtbar
-sound end -> 2s Hold durch Sound-System Gap
-hide -> Overlay blendet aus
+- Countdown 3 / 2 / 1 / LOS
+- Antwort-Counter
+- Gewinner-Card
+- Keine-Lösung-Kachel
 ```
 
-## Bus/Fallback
+Das Overlay startet kein Audio und kein Video. Playback läuft über das Sound-System.
 
-Das Overlay versucht weiterhin, über den bestehenden Overlay-/Communication-Bus zu arbeiten. Da direkte Zustellung zeitweise `deliveredCount: 0` hatte, besitzt das Overlay zusätzlich einen Fallback über:
+## Aktueller Ablauf
 
 ```text
-GET /api/sound/event-preroll/status
+Countdown: sichtbar oben mittig als Kreis
+Sound läuft: Runtime-Kreis verschwindet, kein JETZT RATEN
+Antwortfenster: Counter oben rechts
+Richtig gelöst: Gewinner-Card Mitte rechts
+Timeout: Keine-Lösung-Kachel oben mittig
+Reveal: über sound_system_overlay.html, nicht über Runtime-Overlay
 ```
 
-Dadurch kann es Countdown-/Guessing-/Hide-Status auch ohne direkte Browser-Bus-Zustellung anzeigen.
+## Counter
 
-## URL
+```text
+Position: oben rechts
+Hintergrund: deckend, keine Transparenz
+Inhalt: nur Zahl
+Sichtbar: nur während answerWindow.active=true
+```
+
+Der Counter wird nicht während Countdown oder Soundlauf angezeigt.
+
+## Gewinner-Card
+
+```text
+Position: Mitte rechts
+Avatar/Initialen: ja
+Username: eigene Zeile
+Punkte: eigene Zeile
+Titel: eigene Titelbox, maximal zwei Zeilen
+```
+
+Für lange Namen/Titel wurde das Layout robuster gemacht. Es soll nicht endlos breiter werden.
+
+## Keine-Lösung-Kachel
+
+```text
+Position: oben mittig
+Dauer: ca. 10 Sekunden
+Ausrichtung: komplett zentriert
+```
+
+Text:
+
+```text
+KEINE LÖSUNG
+Die Heimleitung hat im Chat
+keine richtige Antwort erkannt.
+Der Schnipsel bleibt im Archiv.
+```
+
+## Demo-URLs
+
+Normales Overlay:
 
 ```text
 http://127.0.0.1:8080/overlays/stream_events/event_runtime_overlay.html
 ```
 
-## Offene Punkte
-
-- Direkte Bus-Registrierung/Capability später prüfen und robuster machen.
-- Overlay-Design bleibt CGN-Stil: kompakt, oben mittig, nicht zu dominant.
-- Ergebnis-/Auswertungsanimation später ergänzen.
-- Dashboard-Konfiguration für Texte/Position/Countdown nur vorsichtig und streamerfreundlich planen.
-
-## Update 2026-06-17
-
-Bestätigt im EventSound-Test:
-
-- Overlay-URL funktioniert: `http://127.0.0.1:8080/overlays/stream_events/event_runtime_overlay.html`
-- Countdown/Runtime-Overlay wird bei EventSound sichtbar.
-- Overlay bleibt während der Sound-System-Gap sichtbar, wenn `holdEventRuntimeOverlay=true` ist.
-- Das Overlay bleibt Anzeige-Komponente und startet kein Audio.
-
-Sound-System-Status dazu:
+Debug:
 
 ```text
-postPlaybackGap.holdEventRuntimeOverlay = true
-postPlaybackGap.blockQueueStart = true
-postPlaybackGap.durationMs = 2000
+http://127.0.0.1:8080/overlays/stream_events/event_runtime_overlay.html?debug=1&v=test
 ```
 
-Offen bleibt:
+Lange Gewinner-Card prüfen:
 
-- Ergebnis-/Auswertungsphase ausbauen.
-- Overlay-Capability/Bus-Zustellung später robuster prüfen; Fallback über `/api/sound/event-preroll/status` bleibt wichtig.
+```text
+http://127.0.0.1:8080/overlays/stream_events/event_runtime_overlay.html?demo=result-long&v=test
+```
+
+## Fallback
+
+Das Overlay nutzt weiterhin den Fallback über:
+
+```text
+GET /api/sound/event-preroll/status
+```
+
+Dieser Fallback darf die Antwortphase nicht überschreiben. `sound_guessing` wird nach `LOS` versteckt, damit während Soundlauf kein falsches „Jetzt raten“ erscheint.
+
+## Wichtig
+
+Wenn alte Anzeige sichtbar ist:
+
+```text
+1. Repo-Datei prüfen.
+2. Live-Datei prüfen.
+3. OBS-Browserquelle refreshen.
+4. Cache-Buster an URL hängen.
+5. Backend-Version prüfen.
+```
+
+Korrekte Datei im ZIP/Repo:
+
+```text
+htdocs/overlays/stream_events/event_runtime_overlay.html
+```

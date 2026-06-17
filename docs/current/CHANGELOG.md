@@ -1,134 +1,66 @@
-# CHANGELOG – current docs
+# CHANGELOG – stream-control-center
 
-## 2026-06-17 – EventSound / Sound-System / Sound-Dashboard
+## 2026-06-17 – EventSound Runtime Overlay / Counter / Result Cards
 
-- EventSound-/Runtime-/Sound-System-Dokumentation aktualisiert.
-- Sound-System Stand auf `0.1.30 / STEP_SOUND_GAP_2_PLAYBACK_LOG_AUDIO_END_AND_GAP_END` dokumentiert.
-- Sound-Dashboard Steps `SOUND-DASH-1`, `SOUND-DASH-1B`, `SOUND-DASH-2`, `SOUND-DASH-2B` dokumentiert.
-- Recent Playback trennt jetzt Audio-Ende und Gap-Ende.
-- Projektstand-Dateien `project-state/*` aktualisiert.
+### Added
+
+- Antwortzeit-Counter für EventSound-Antwortfenster.
+- Counter oben rechts, deckender Hintergrund, nur während `answerWindow.active`.
+- Keine-Lösung-Kachel nach Timeout.
+- Long-Winner-Demo-URL:
+  - `/overlays/stream_events/event_runtime_overlay.html?demo=result-long&v=test`
+- Testscript für Timeout/Keine-Lösung:
+  - `tools/test_event_runtime_unresolved_card.ps1`
+
+### Changed
+
+- Runtime-Overlay bis zuletzt auf Overlay-Stand `0.3.7` erweitert.
+- Gewinner-Card robuster gemacht:
+  - Username eigene Zeile.
+  - Punkte/Erkennung eigene Zeile.
+  - Schnipsel-Titel eigene zweizeilige Box.
+  - lange Titel werden per Layout begrenzt statt hart auf 36 Zeichen gekürzt.
+- Keine-Lösung-Kachel optisch/inhaltlich angepasst:
+
+```text
+KEINE LÖSUNG
+Die Heimleitung hat im Chat
+keine richtige Antwort erkannt.
+Der Schnipsel bleibt im Archiv.
+```
+
+- Reveal-Video-Playback läuft weiter über Sound-System, aber ohne Runtime-PreRoll-Kreis.
+- `JETZT RATEN` während Soundlauf entfernt, da Antworten erst nach Sound-Ende gültig sind.
+- Auto-Schedule korrigiert: `intervalMinutes ± intervalJitterMinutes`, `roundDelaySeconds` nur Floor.
+
+### Fixed
+
+- Falscher Overlay-ZIP-Pfad aus früherem Step als bekannter Fehler festgehalten. Korrekt:
+
+```text
+htdocs/overlays/stream_events/event_runtime_overlay.html
+```
+
+- `AUFLOESUNG / AUFLOESUNG LAEUFT` beim Reveal entfernt.
+- `LOS / JETZT RATEN` beim Reveal entfernt.
+- Counter-Position von links nach rechts verschoben.
+- Counter-Hintergrund ohne Transparenz gesetzt.
+
+### Confirmed
+
+- 30s-Test mit Lösung: Counter läuft, Antwort wird nach Delay gesendet, Result wird erkannt.
+- Normale Gewinner-Card sieht brauchbar aus.
+- Keine-Lösung-Kachel ist gewünscht und bleibt.
+- Long-Winner-Layout wird künftig bevorzugt über Demo-URL geprüft, nicht über unzuverlässige Custom-Testevent-Route.
+
+### Known Issues / Follow-up
+
+- Reveal-Video-Sichtbarkeit hängt an `sound_system_overlay.html`/OBS-Quelle, nicht am Runtime-Overlay.
+- Overlay-Texte sind teilweise noch hart gesetzt und sollen später in DB/Textvarianten.
+- Auto-Rotation nach Reveal/Timeout über mehrere echte Runden prüfen.
 
 ---
 
-# CHANGELOG – stream-control-center
+# Ältere Einträge
 
-Stand: 2026-06-16
-
-## 2026-06-16 – EVENTSYS-27D-FIX2 Live-Bedienung in der Übersicht
-
-### Ergebnis
-
-```text
-Die Live-Bedienung für laufende Events wurde in die Übersicht verschoben. Bei laufendem Event sind die wichtigsten Bedienaktionen direkt im Live-Bereich sichtbar.
-```
-
-### Enthält
-
-```text
-- Live-Bedienung in der Übersicht.
-- Nächsten Schnipsel vorbereiten.
-- Status & Punkte öffnen.
-- Event verwalten.
-- Event beenden.
-```
-
-### Nicht enthalten
-
-```text
-Kein echtes Sound-Playback.
-Kein Timer-Worker.
-Keine Auto-Rotation.
-Kein Countdown-PreRoll.
-Kein Auflösungs-Video.
-Kein Chat-Live-Send.
-```
-
-## 2026-06-16 – EVENTSYS-27D-FIX1 Reload nach mutierenden Buttons
-
-```text
-Nach mutierenden Aktionen werden Eventliste, ausgewähltes Event, Übersicht, Runtime-Gate und relevante Reports neu geladen.
-```
-
-Betroffene Aktionen:
-
-```text
-Starten
-Beenden
-Abbrechen
-Prüfen
-Speichern
-Umbenennen
-Kopieren
-Löschen
-Archivieren
-Config speichern
-Nächsten Schnipsel vorbereiten
-```
-
-## 2026-06-16 – EVENTSYS-27D Manuelle Sound-Rundensteuerung vorbereitet
-
-```text
-Bei laufenden Sound-Events wurde ein Bereich Sound-Steuerung ergänzt. Die vorhandene Route /api/stream-events/sound-runtime/next-round kann aus dem Dashboard ausgelöst werden. Dies bereitet nur die Runde vor und spielt noch nichts ab.
-```
-
-## 2026-06-16 – EVENTSYS-27C-FIX2 Editor-Regressionsfix
-
-```text
-Der alte Inline-Soundbereich wurde nach einer Regression wieder entfernt. Getrennte Editor-Fenster, MediaPicker-State, Umbenennen, Kopieren und Live-Statusfenster wurden zusammengeführt.
-```
-
-## 2026-06-16 – EVENTSYS-27C-FIX1 Eventnamen bearbeiten und Kopie benennen
-
-```text
-Events können umbenannt werden. Beim Kopieren öffnet sich ein Dialog, in dem der Name der Kopie gesetzt werden kann.
-```
-
-## 2026-06-16 – EVENTSYS-27C Events kopieren
-
-```text
-Events können als Entwurf dupliziert werden. Konfiguration, Sound-Schnipsel, Textdaten und Media-Referenzen werden kopiert. Punkte, Runden, Ranking und Laufzeitdaten werden nicht kopiert.
-```
-
-## 2026-06-16 – EVENTSYS-27B Live-Statusfenster
-
-```text
-Für laufende Events wurde ein Statusfenster mit Punkten/Rangliste/Rundenübersicht vorbereitet. Vollständiger Funktionstest folgt erst nach echter Runtime/Playback-Anbindung.
-```
-
-## 2026-06-16 – EVENTSYS-DOCS-1 Eventsystem 27A dokumentiert
-
-```text
-Doku wurde vom alten Loyalty/Raffle-Stand auf den Eventsystem-Stand bis 27A aktualisiert.
-```
-
-## 2026-06-16 – EVENTSYS-27A Event-Einstellungen und Sound-Defaults
-
-```text
-Globale Sound-Defaults wurden erweitert. Pro Event gibt es ein eigenes Fenster Einstellungen bearbeiten. Neue Events übernehmen Defaults aus Config/DB; bestehende Events erhalten sichere Fallbacks.
-```
-
-Bestätigte Standardwerte:
-
-```text
-Antwortzeit 60 Sekunden
-Zufällig automatisch
-Intervall 15 Minuten
-Zufallsabweichung ± 5 Minuten
-Wiederholschutz aktiv
-Mindestabstand 3
-Erkannte Schnipsel aus Rotation entfernen
-Nicht erkannte später erneut versuchen
-Auflösungs-Video nach Lösung automatisch, wenn vorhanden
-```
-
-## 2026-06-16 – EVENTSYS-26B Fix-Serie
-
-```text
-Getrennte Editor-Fenster, MediaPicker-State, Live-Summary, konkrete Sound-Schnipsel-Validierung und Refresh nach Speichern wurden eingebaut.
-```
-
-## Nächster Changelog-Block
-
-```text
-SOUND-SAFE-1 – Sound-System prüfen und sicheren Erweiterungspunkt für Countdown-PreRoll/EventSound festlegen.
-```
+Die vorherigen Einträge bleiben in älteren Archiv-/Step-Dateien erhalten. Dieser Stand konsolidiert den aktuellen EventSound-Runtime-Block.

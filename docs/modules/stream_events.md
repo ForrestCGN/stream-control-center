@@ -1,29 +1,74 @@
 # Modul-Doku – Stream Events / EventSound Runtime
 
 Datei: `backend/modules/stream_events.js`  
-Stand: `0.5.36` / `STEP_EVENT_SOUND_5B_OUTPUT_TARGET_CONFIG`  
-Zuletzt aktualisiert: 2026-06-16
+Stand: mindestens `0.5.51` / `STEP_EVENT_RUNTIME_UNRESOLVED_CARD_1`  
+Zuletzt aktualisiert: 2026-06-17
 
 ## Aufgabe
 
-`stream_events` verwaltet Event-Runden wie Sound-Snippet-Spiele und Text-/Chat-basierte Eventlogik. Für EventSound bereitet das Modul Runden vor, löst aber das Audio nicht selbst aus. Playback läuft kontrolliert über das Sound-System.
+`stream_events` verwaltet Event-Runden wie Sound-Snippet-Spiele und Text-/Chat-basierte Eventlogik. Für EventSound bereitet das Modul Runden vor, verarbeitet Antwortfenster/Resultate/Punkte und delegiert Audio-/Video-Playback an das Sound-System.
+
+Wichtig:
+
+```text
+stream_events ist nicht Playback-Owner.
+sound_system bleibt Playback-/Queue-Owner.
+Runtime-Overlay zeigt nur Status/Counter/Result-Cards.
+```
 
 ## EventSound Runtime – aktueller Ablauf
 
-1. Test-/Event wird angelegt.
-2. Sound-Runde wird vorbereitet.
-3. Optional echte Media-Snippets werden aus der Media-Registry genutzt.
-4. Bei `play=1&confirm=1` wird eine kontrollierte Playback-Anfrage ans Sound-System gesendet.
-5. Sound-System macht Countdown/PreRoll, startet Audio und blockt Queue.
-6. Runtime-Overlay zeigt Countdown/Guessing/Hide.
+```text
+1. Runde wird gestartet.
+2. Sound-System bekommt Playback-Job mit EventSound-PreRoll.
+3. Runtime-Overlay zeigt 3 / 2 / 1 / LOS.
+4. Sound-Schnipsel läuft.
+5. Während Countdown/Sound sind Antworten ungültig.
+6. Nach Sound-Ende öffnet stream_events das Antwortfenster.
+7. Runtime-State liefert answerWindow.active=true.
+8. Overlay zeigt Counter oben rechts.
+9a. Richtige Antwort:
+    - Antwort wird erkannt.
+    - Punkte werden vergeben.
+    - Gewinner-Card wird angezeigt.
+    - Reveal-Video wird nach Card über Sound-System geplant.
+9b. Timeout:
+    - keine Punkte.
+    - keine Reveal-Auflösung.
+    - Keine-Lösung-Kachel wird angezeigt.
+    - Schnipsel bleibt je nach Config später wiederholbar.
+```
+
+## Wichtige Runtime-State-Felder
+
+```json
+{
+  "phase": {
+    "key": "sound_answer_window",
+    "visible": false
+  },
+  "display": {
+    "overlayMode": "hidden"
+  },
+  "answerWindow": {
+    "active": true,
+    "seconds": 60,
+    "remainingSeconds": 42,
+    "startedAt": "...",
+    "endsAt": "...",
+    "roundUid": "..."
+  }
+}
+```
+
+`answerWindow.active=true` ist entscheidend für den Counter. Wenn der Counter nicht erscheint, zuerst diesen State prüfen.
 
 ## Wichtige Routen
 
 ```text
+GET  /api/stream-events/status
 GET  /api/stream-events/sound-runtime/status
 GET  /api/stream-events/sound-runtime/report
-GET  /api/stream-events/sound-runtime/safety-plan
-GET  /api/stream-events/sound-runtime/bus-integration-plan
 GET  /api/stream-events/runtime-overlay/state
 POST /api/stream-events/sound-runtime/reset-test-state?confirm=1
 POST /api/stream-events/sound-runtime/create-test-event?confirm=1&useRealMedia=1
@@ -33,90 +78,111 @@ POST /api/stream-events/sound-runtime/unresolved
 POST /api/stream-events/sound-runtime/test-chat
 ```
 
-## Test-State Cleanup
+## Ergebnis-Anzeigen
 
-Route:
+### Gewinner-Card
 
-```text
-POST /api/stream-events/sound-runtime/reset-test-state?confirm=1
-```
-
-Räumt hängende Sound-Testevents und aktive Testrunden auf. Das war wichtig, weil vorbereitete Runden sonst weitere Tests blockieren konnten.
-
-## Echte Media-Snippets
-
-Route:
+Position: Mitte rechts.  
+Inhalt:
 
 ```text
-POST /api/stream-events/sound-runtime/create-test-event?confirm=1&useRealMedia=1
+Username
+hat den Schnipsel erkannt · +X Punkte
+Titel des Schnipsels
 ```
 
-Verwendet echte Audio-Media-Assets aus der Media-Registry, wenn vorhanden. Fallback bleibt generated beep.
-
-Beispiel aus Test:
+Layout-Regeln:
 
 ```text
-soundId: alf_5_sek
-label: Alf 5 sek
-file: media/stream_events/1-jahres-event/Alf_5_sek.mp3
-audioUrl: /assets/media/stream_events/1-jahres-event/Alf_5_sek.mp3
-durationMs: 5808
-hasAudio: true
+- Username eigene Zeile.
+- Username möglichst vollständig sichtbar.
+- Punkte immer sichtbar.
+- Titel eigene Titelbox, maximal zwei Zeilen.
+- Card nicht endlos verbreitern.
 ```
 
-## Ausgabeziel
+### Keine-Lösung-Kachel
 
-EventSound setzt nicht mehr hart `outputTarget=overlay`. Stattdessen wird `default` genutzt, sodass das Sound-System seine Default-/Config-Ausgabe verwendet.
-
-Grund: Overlay-Autoplay hat beim Test mit Fehler reagiert:
+Position: oben mittig.  
+Dauer: ca. 10 Sekunden.  
+Text:
 
 ```text
-The play method is not allowed by the user agent or the platform in the current context...
+KEINE LÖSUNG
+Die Heimleitung hat im Chat
+keine richtige Antwort erkannt.
+Der Schnipsel bleibt im Archiv.
 ```
 
-## Diagnose-Befehle
+Regeln:
+
+```text
+- Lösung nicht spoilern.
+- Kein Avatar.
+- Kein Username.
+- Keine Punkte.
+- Kein Reveal-Video.
+```
+
+## Reveal-Video
+
+Reveal wird bei richtiger Antwort über das Sound-System geplant. Das Reveal darf kein EventRuntime-PreRoll auslösen.
+
+Nicht mehr gewünscht:
+
+```text
+AUFLOESUNG
+AUFLOESUNG LAEUFT
+LOS!
+JETZT RATEN!
+```
+
+Wichtig: Sichtbares Reveal-Video läuft über:
+
+```text
+htdocs/overlays/sound_system_overlay.html
+```
+
+Nicht über:
+
+```text
+htdocs/overlays/stream_events/event_runtime_overlay.html
+```
+
+## Auto-Schedule
+
+Regel:
+
+```text
+random_auto / sequence_auto: nächste automatische Runde nach intervalMinutes ± intervalJitterMinutes.
+roundDelaySeconds ist nur Mindestpause/Floor.
+Manuelle next-round API darf weiterhin sofort auslösen.
+```
+
+Beispiel:
+
+```text
+Alle X Minuten = 15
+Zufallsabweichung = 5
+Erwartung = 600 bis 1200 Sekunden
+```
+
+## Diagnose
 
 ```powershell
-$e = Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/status"
-$e | Select-Object ok,module,moduleVersion,moduleBuild
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/status"
+$s | Select-Object moduleVersion,moduleBuild | Format-List
+
+Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/runtime-overlay/state" | ConvertTo-Json -Depth 12
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/recent-playback?limit=10" | ConvertTo-Json -Depth 12
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/event-preroll/status" | ConvertTo-Json -Depth 12
 ```
 
-```powershell
-Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/stream-events/sound-runtime/reset-test-state?confirm=1"
-$ev = Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/stream-events/sound-runtime/create-test-event?confirm=1&useRealMedia=1"
-$r = Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/stream-events/sound-runtime/next-round?play=1&confirm=1"
-$r.playbackResult.soundSystemResult.item | Select-Object soundId,label,file,audioUrl,mediaUrl,durationMs,hasAudio,target,outputTarget
-```
-
-## Offene Punkte
-
-- EventSound-Testflow in echten Dashboard-Editor überführen.
-- Sound-/Text-Spieltypen sauber konfigurierbar machen.
-- Sound-Verhalten nach richtiger/falscher Antwort dashboardfähig machen.
-- Reveal-Video nach richtig erkanntem Sound über Media-System planen.
-
-## Update 2026-06-17 – Sound-System / Dashboard bestätigt
-
-Aktueller bestätigter Sound-System-Stand:
+## Bekannte Testhinweise
 
 ```text
-sound_system 0.1.30 / STEP_SOUND_GAP_2_PLAYBACK_LOG_AUDIO_END_AND_GAP_END
+- Normales 30s-Testscript ist zuverlässig für Counter/Gewinner-Card.
+- Long-Winner-Custom-Testevent war unzuverlässig für Sichtprüfung.
+- Lange Gewinnertexte lieber per Demo-URL prüfen:
+  /overlays/stream_events/event_runtime_overlay.html?demo=result-long&v=test
 ```
-
-EventSound-Testflow bestätigt:
-
-- Testevent mit echten Medien über `create-test-event?confirm=1&useRealMedia=1` angelegt.
-- Runde per `next-round?play=1&confirm=1` gestartet.
-- `Alf 5 sek` wurde als echtes Media-Snippet abgespielt.
-- Runtime-Overlay war sichtbar.
-- Sound-System blieb Playback-/Queue-Owner.
-- Recent Playback zeigt EventSound mit Quelle `stream_events` und Kategorie `stream_event_sound_snippet`.
-
-Wichtig für künftige Event-Dashboard-Arbeiten:
-
-- EventSound darf Sound nicht direkt starten.
-- Ausgabeziel bleibt beim Sound-System.
-- Event-Editor muss Sound/Text als Spieltypen konfigurieren können.
-- Ein Event ist nur startbar, wenn gewählte Spieltypen vollständig konfiguriert sind.
-- Media-Auswahl für Sound-Snippets soll vorhandenes Media-System nutzen.
-- Reveal-Video später ebenfalls über vorhandenes Media-System planen.
