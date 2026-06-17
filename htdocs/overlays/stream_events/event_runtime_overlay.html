@@ -510,8 +510,8 @@
     .result-card.unresolved-card .result-title {
       font-size: 23px;
       line-height: 1.18;
-      white-space: normal;
-      max-width: 360px;
+      white-space: pre-line;
+      max-width: 390px;
     }
 
     .result-card.unresolved-card .result-subline,
@@ -689,7 +689,7 @@
       mode: "obs_overlay",
       module: "stream_events",
       name: "Stream Events Runtime Overlay",
-      version: "0.3.3",
+      version: "0.3.4",
       heartbeatIntervalMs: 5000,
       capabilities: [
         "overlay.heartbeat",
@@ -1176,7 +1176,7 @@
           avatarName = winnerName;
         } else if (key === "sound_unresolved") {
           kicker = "KEINE LÖSUNG";
-          title = "Die Heimleitung fand keine richtige Antwort.";
+          title = "Die Heimleitung hat im Chat\nkeine richtige Antwort erkannt.";
           subline = "Der Schnipsel bleibt im Archiv.";
           extra = "";
         } else if (mode === "finished") {
@@ -1349,7 +1349,7 @@
     data-mode="obs_overlay"
     data-module="stream_events"
     data-name="Stream Events Runtime Overlay"
-    data-version="0.3.3"
+    data-version="0.3.4"
     data-heartbeat-ms="5000"
   ></script>
 </body>
