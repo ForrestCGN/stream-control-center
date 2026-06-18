@@ -27,8 +27,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.68";
-const MODULE_BUILD = "STEP_EVS51_2_TEXT_CHECK_WRONG_FIX";
+const MODULE_VERSION = "0.5.69";
+const MODULE_BUILD = "STEP_EVS51_4_TEXT_RUNTIME_FLOW";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -7226,6 +7226,30 @@ async function runEventTextDuplicateAnswers(eventUid = "") {
   return { ok: solvedCount === 0, action: "text-duplicate", eventUid: uid, before, after, solvedCount, results, ...buildTextCheckCoreResult(uid) };
 }
 
+async function runEventTextSoundCorrect(eventUid = "", body = {}) {
+  const target = getEventTestTarget(eventUid);
+  if (!target.ok) return target;
+  const uid = target.event.eventUid;
+  const before = buildTextCheckCoreResult(uid);
+  const sound = await runEventTestSoundCorrect(uid, {
+    userLogin: cleanString(body.userLogin || "forrestcgn", "forrestcgn"),
+    userDisplayName: cleanString(body.userDisplayName || "ForrestCGN", "ForrestCGN"),
+    answer: cleanString(body.answer || "heimleitung", "heimleitung"),
+    allowReuse: body.allowReuse !== undefined ? boolValue(body.allowReuse, true) : true
+  });
+  const after = buildTextCheckCoreResult(uid);
+  const event = getEventByUid(uid);
+  return {
+    ok: !!(sound && sound.ok),
+    action: "text-sound",
+    eventUid: uid,
+    before,
+    sound,
+    afterSound: { event: publicEventSummary(event), parts: getEventRuntimePartsStatus(event) },
+    ...after
+  };
+}
+
 async function runEventTestTextCheck(body = {}) {
   const created = createDashboardTextCheckEvent(body);
   const uid = created.eventUid;
@@ -7474,6 +7498,7 @@ async function runDashboardEventTestStep(step = "", body = {}) {
   if (action === "text-word") return runEventTextWordHit(eventUid);
   if (action === "text-correct") return runEventTextCorrectAnswers(eventUid);
   if (action === "text-duplicate") return runEventTextDuplicateAnswers(eventUid);
+  if (action === "text-sound") return runEventTextSoundCorrect(eventUid, body);
   if (action === "text-report") {
     const target = getEventTestTarget(eventUid);
     if (!target.ok) return target;

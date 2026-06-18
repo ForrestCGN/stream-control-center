@@ -411,3 +411,18 @@ Zusätzlich werden angezeigt:
 - klickbare Ranking-Zeilen für die Punkte-Historie des Testevents
 
 Die produktive Punktelogik wurde in EVS51.3 nicht verändert. Backend bleibt auf EVS51.2 / 0.5.68.
+
+## EVS51.4 – Satz-System Einzeltest-/Runtime-Flow
+
+- Dashboard-Testbereich für Satz-System-Einzeltests erweitert.
+- Einzelbuttons nutzen jetzt das zuletzt erzeugte Satz-Testevent gezielt weiter, statt versehentlich ein anderes aktives Event zu verwenden.
+- Neuer Einzelbutton: `Sound lösen / Abschluss` (`text-sound`) prüft nach gelösten Sätzen den Sound-/Gesamtabschluss.
+- Die Satz-Testanzeige unterscheidet Komplettcheck und Einzeltest klarer:
+  - aktuelles Satz-Testevent
+  - letzter Schritt
+  - Worttreffer
+  - Satzlösungen
+  - Text-/Sound-/Gesamtstatus
+  - Event-Finish
+  - Ranking und User-Historie
+- Produktive Events bleiben unverändert geschützt; Testevents dürfen das echte aktive Event nicht verdrängen.

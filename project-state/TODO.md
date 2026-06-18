@@ -1,3 +1,9 @@
+## EVS51.4 erledigt / Nächster Block
+
+- [x] Satz-Einzelbuttons gegen dasselbe Testevent führen.
+- [x] Sound-/Gesamtabschluss aus Satz-Testbereich prüfen.
+- [ ] EVS51.5 Runtime-Overlay für Satzstatus prüfen/verbessern.
+
 # TODO – stream-control-center
 
 Stand: 2026-06-18 – EVS51.3

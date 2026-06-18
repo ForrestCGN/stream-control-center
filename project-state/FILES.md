@@ -1,3 +1,11 @@
+## EVS51.4 Dateien
+
+- backend/modules/stream_events.js
+- htdocs/dashboard/modules/stream_events.js
+- htdocs/dashboard/modules/stream_events.css
+- docs/modules/stream_events.md
+- docs/current/CURRENT_CHAT_HANDOFF_EVS51_4_TEXT_RUNTIME_FLOW.md
+
 # FILES – relevante Dateien
 
 Stand: 2026-06-18 – EVS51.3

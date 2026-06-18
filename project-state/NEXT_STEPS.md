@@ -1,3 +1,12 @@
+## Nächster Schritt nach EVS51.4
+
+EVS51.5 – Runtime-Overlay für Satzstatus prüfen/verbessern.
+
+- aktueller Satzstatus im Overlay
+- gelöste/offene Sätze
+- Antwortfenster/Hinweise
+- Kombi-Anzeige Sound + Text
+
 # NEXT_STEPS – stream-control-center
 
 Stand: 2026-06-18 – nach EVS51.3

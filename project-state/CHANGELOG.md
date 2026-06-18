@@ -1,3 +1,9 @@
+## 2026-06-18 – EVS51.4
+
+- Satz-System Einzeltest-/Runtime-Flow im Dashboard erweitert.
+- Neuer Teststep `text-sound` für Sound-/Gesamtabschluss nach Satzlösung.
+- Dashboard merkt gezieltes Satz-Testevent für Einzelbuttons.
+
 # CHANGELOG – stream-control-center
 
 ## 2026-06-18 – EVS51.3 Satz-Testbereich UI-Cleanup

@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.50";
-  const MODULE_BUILD = "STEP_EVS51_3_TEXT_TEST_UI_CLEANUP";
+  const MODULE_VERSION = "0.5.51";
+  const MODULE_BUILD = "STEP_EVS51_4_TEXT_RUNTIME_FLOW";
 
   const api = {
     status: '/api/stream-events/status',
@@ -1550,7 +1550,7 @@ window.StreamEventsModule = (function(){
 
   function renderTestPointSummary(result){
     if (!result) return '';
-    if (['text-check','text-create','text-wrong','text-word','text-correct','text-duplicate','text-report'].includes(result.action || '')) return '';
+    if (['text-check','text-create','text-wrong','text-word','text-correct','text-duplicate','text-sound','text-report'].includes(result.action || '')) return '';
     const user = result.userStats?.user || result.sound?.userStats?.user || result.finale?.userStats?.user || null;
     const rankingRows = rows(result.ranking?.rows || result.ranking);
     const parts = result.parts || result.sound?.parts || null;
@@ -1605,16 +1605,20 @@ window.StreamEventsModule = (function(){
   }
 
   function renderTextCheckSummary(result){
-    if (!result || !['text-check','text-create','text-wrong','text-word','text-correct','text-duplicate','text-report'].includes(result.action || '')) return '';
+    const textActions = ['text-check','text-create','text-wrong','text-word','text-correct','text-duplicate','text-sound','text-report'];
+    if (!result || !textActions.includes(result.action || '')) return '';
+    const action = result.action || '';
     const checks = result.checks || {};
-    const report = result.reportText || result.textReport || null;
-    const parts = result.afterAll?.parts || result.parts || null;
+    const report = result.reportText || result.textReport || result.after?.reportText || null;
+    const parts = result.afterAll?.parts || result.afterSound?.parts || result.parts || null;
     const afterTextParts = result.afterText?.parts || null;
     const rankingRows = rows(result.ranking?.rows || result.ranking).slice(0, 8);
     const phraseSolves = rows(report?.phraseSolves).slice(0, 8);
     const wordHits = rows(report?.wordHits).slice(0, 8);
     const eventUid = result.eventUid || report?.eventUid || '';
-    const isFullCheck = (result.action || '') === 'text-check';
+    const eventName = result.event?.name || report?.event?.name || result.created?.event?.name || '';
+    const eventStatus = result.event?.status || report?.event?.status || result.afterSound?.event?.status || '';
+    const isFullCheck = action === 'text-check';
     const users = [
       { login: 'forrestcgn', label: 'ForrestCGN' },
       { login: 'engelcgn', label: 'EngelCGN' },
@@ -1633,49 +1637,59 @@ window.StreamEventsModule = (function(){
       ['totalCompletedAfterSound', 'Gesamt-Abschluss', 'alle Teile fertig'],
       ['eventFinishedAfterSound', 'Event-Finish', 'automatisch beendet']
     ];
-    const summaryLine = isFullCheck
-      ? `${checks.passed ? 'Satz-System-Prüfung bestanden.' : 'Satz-System-Prüfung hat offene Punkte.'}`
-      : `Letzter Satz-Test: ${esc(result.action || 'unbekannt')}`;
     const actionHints = {
-      'text-create': 'Testevent wurde erstellt und gestartet.',
-      'text-wrong': 'Falsche Antworten wurden gegen das Testevent geschickt.',
-      'text-word': 'Ein gezielter Worttreffer wurde simuliert.',
-      'text-correct': 'Richtige Satzantworten wurden simuliert.',
-      'text-duplicate': 'Eine doppelte Lösung wurde geprüft.',
-      'text-report': 'Der aktuelle Satz-Report wurde geladen.'
+      'text-create': 'Testevent wurde erstellt und gestartet. Jetzt die Einzelbuttons von oben nach unten testen.',
+      'text-wrong': 'Falsche Antworten wurden gegen dieses Satz-Testevent geschickt.',
+      'text-word': 'Ein gezielter Worttreffer wurde simuliert und muss im Verlauf sichtbar sein.',
+      'text-correct': 'Richtige Satzantworten wurden simuliert. Text sollte fertig sein, Sound/Gesamt aber noch offen.',
+      'text-duplicate': 'Doppelte Lösungen wurden geprüft. Es dürfen keine neuen Satzpunkte entstehen.',
+      'text-sound': 'Sound wurde für dieses Satz-Testevent gelöst. Danach muss das Kombi-Event fertig sein.',
+      'text-report': 'Der aktuelle Satz-Report wurde geladen.',
+      'text-check': checks.passed ? 'Satz-System-Prüfung bestanden.' : 'Satz-System-Prüfung hat offene Punkte.'
     };
+    const flowCards = isFullCheck ? checksList.map(([key,label,sub]) => checkBadge(Boolean(checks[key]), label, sub)) : [
+      checkBadge(Boolean(eventUid), 'Testevent', eventName || 'bereit'),
+      checkBadge(action === 'text-wrong' ? rankingRows.length === 0 && phraseSolves.length === 0 && wordHits.length === 0 : true, 'Letzter Schritt', compactTextActionLabel(action)),
+      checkBadge(wordHits.length > 0, 'Worttreffer', `${wordHits.length} Treffer`),
+      checkBadge(phraseSolves.length > 0, 'Satzlösungen', `${phraseSolves.length} gelöst`),
+      checkBadge(Boolean(parts?.text?.completed), 'Text-Teil', parts?.text?.completed ? 'fertig' : 'offen'),
+      checkBadge(Boolean(parts?.sound?.completed), 'Sound-Teil', parts?.sound?.completed ? 'fertig' : 'offen'),
+      checkBadge(Boolean(parts?.allConfiguredPartsCompleted), 'Gesamt', parts?.allConfiguredPartsCompleted ? 'fertig' : 'offen'),
+      checkBadge(eventStatus === 'finished', 'Event-Finish', eventStatus ? statusText(eventStatus) : 'läuft/offen')
+    ];
     return `
-      <div class="evs-text-check-summary ${checks.passed ? 'is-passed' : ''}">
+      <div class="evs-text-check-summary ${(isFullCheck ? checks.passed : result.ok) ? 'is-passed' : ''}">
         <div class="evs-test-section-head">
           <div>
-            <h4>Satz-System Prüfung</h4>
-            <p>${esc(actionHints[result.action] || summaryLine)}</p>
+            <h4>${isFullCheck ? 'Satz-System Prüfung' : 'Satz-System Einzeltest'}</h4>
+            <p>${esc(actionHints[action] || `Letzter Satz-Test: ${action}`)}</p>
           </div>
-          ${checks.passed != null ? `<span class="evs-pill ${checks.passed ? 'is-ok' : 'is-warn'}">${checks.passed ? 'BESTANDEN' : 'PRÜFEN'}</span>` : ''}
+          ${isFullCheck ? `<span class="evs-pill ${checks.passed ? 'is-ok' : 'is-warn'}">${checks.passed ? 'BESTANDEN' : 'PRÜFEN'}</span>` : `<span class="evs-pill ${result.ok ? 'is-ok' : 'is-warn'}">${result.ok ? 'OK' : 'PRÜFEN'}</span>`}
         </div>
 
+        ${eventUid ? `<div class="evs-text-flow-current"><b>Testevent:</b><span>${esc(eventName || eventUid)}</span><small>${esc(eventUid)}${eventStatus ? ` · ${esc(statusText(eventStatus))}` : ''}</small></div>` : ''}
         ${checks.note ? `<p class="evs-muted evs-text-check-note">${esc(checks.note)}</p>` : ''}
 
         <div class="evs-text-check-cards evs-text-check-cards-clean">
-          ${checksList.map(([key,label,sub]) => checkBadge(Boolean(checks[key]), label, sub)).join('')}
+          ${flowCards.join('')}
         </div>
 
         <div class="evs-text-check-status-grid">
           <div class="evs-text-status-card">
-            <h5>Nach Textlösung</h5>
-            ${afterTextParts ? `
-              <div class="evs-status-line"><span>Text</span><b class="${afterTextParts.text?.completed ? 'is-ok' : 'is-warn'}">${afterTextParts.text?.completed ? 'fertig' : 'offen'}</b></div>
-              <div class="evs-status-line"><span>Sound</span><b class="${afterTextParts.sound?.completed ? 'is-ok' : 'is-warn'}">${afterTextParts.sound?.completed ? 'fertig' : 'offen'}</b></div>
-              <div class="evs-status-line"><span>Gesamt</span><b class="${afterTextParts.allConfiguredPartsCompleted ? 'is-ok' : 'is-warn'}">${afterTextParts.allConfiguredPartsCompleted ? 'fertig' : 'offen'}</b></div>
+            <h5>${isFullCheck ? 'Nach Textlösung' : 'Aktueller Teilspielstatus'}</h5>
+            ${(afterTextParts || parts) ? `
+              <div class="evs-status-line"><span>Text</span><b class="${(afterTextParts || parts).text?.completed ? 'is-ok' : 'is-warn'}">${(afterTextParts || parts).text?.completed ? 'fertig' : 'offen'}</b></div>
+              <div class="evs-status-line"><span>Sound</span><b class="${(afterTextParts || parts).sound?.completed ? 'is-ok' : 'is-warn'}">${(afterTextParts || parts).sound?.completed ? 'fertig' : 'offen'}</b></div>
+              <div class="evs-status-line"><span>Gesamt</span><b class="${(afterTextParts || parts).allConfiguredPartsCompleted ? 'is-ok' : 'is-warn'}">${(afterTextParts || parts).allConfiguredPartsCompleted ? 'fertig' : 'offen'}</b></div>
             ` : '<p class="evs-muted">Noch kein Zwischenstatus.</p>'}
           </div>
           <div class="evs-text-status-card">
-            <h5>Nach Soundlösung</h5>
-            ${parts ? `
+            <h5>${isFullCheck ? 'Nach Soundlösung' : 'Nächste sinnvolle Aktion'}</h5>
+            ${isFullCheck && parts ? `
               <div class="evs-status-line"><span>Text</span><b class="${parts.text?.completed ? 'is-ok' : 'is-warn'}">${parts.text?.completed ? 'fertig' : 'offen'}</b></div>
               <div class="evs-status-line"><span>Sound</span><b class="${parts.sound?.completed ? 'is-ok' : 'is-warn'}">${parts.sound?.completed ? 'fertig' : 'offen'}</b></div>
               <div class="evs-status-line"><span>Gesamt</span><b class="${parts.allConfiguredPartsCompleted ? 'is-ok' : 'is-warn'}">${parts.allConfiguredPartsCompleted ? 'fertig' : 'offen'}</b></div>
-            ` : '<p class="evs-muted">Noch kein Abschlussstatus.</p>'}
+            ` : `<p class="evs-muted">${esc(nextTextFlowHint(action, parts, phraseSolves, wordHits))}</p>`}
           </div>
         </div>
 
@@ -1700,6 +1714,31 @@ window.StreamEventsModule = (function(){
         </div>` : ''}
       </div>
     `;
+  }
+
+  function compactTextActionLabel(action){
+    const map = {
+      'text-create': 'erstellt',
+      'text-wrong': 'falsche Antwort',
+      'text-word': 'Worttreffer',
+      'text-correct': 'richtige Antworten',
+      'text-duplicate': 'Duplikat-Schutz',
+      'text-sound': 'Sound gelöst',
+      'text-report': 'Report geladen',
+      'text-check': 'Komplettcheck'
+    };
+    return map[action] || action || 'unbekannt';
+  }
+
+  function nextTextFlowHint(action, parts, phraseSolves, wordHits){
+    if (action === 'text-create') return 'Als Nächstes: falsche Satzantwort, danach Worttreffer.';
+    if (action === 'text-wrong') return 'Als Nächstes: Worttreffer testen.';
+    if (action === 'text-word') return 'Als Nächstes: richtige Satzantworten testen.';
+    if (action === 'text-correct') return 'Als Nächstes: doppelte Lösung testen, danach Sound lösen.';
+    if (action === 'text-duplicate') return 'Als Nächstes: Sound lösen / Gesamtabschluss prüfen.';
+    if (action === 'text-sound') return parts?.allConfiguredPartsCompleted ? 'Gesamtabschluss ist erreicht.' : 'Noch ist mindestens ein Teilspiel offen.';
+    if (action === 'text-report') return phraseSolves.length || wordHits.length ? 'Report zeigt vorhandene Satzdaten.' : 'Report ist leer. Erst Testevent erstellen und Antworten senden.';
+    return 'Einzelbuttons von oben nach unten ausführen.';
   }
 
   function renderTestTab(event){
@@ -1797,6 +1836,7 @@ window.StreamEventsModule = (function(){
               <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="runEventTestStep" data-step="text-word" ${t.loading ? 'disabled' : ''}>Worttreffer</button>
               <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="runEventTestStep" data-step="text-correct" ${t.loading ? 'disabled' : ''}>Richtige Satzantworten</button>
               <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="runEventTestStep" data-step="text-duplicate" ${t.loading ? 'disabled' : ''}>Doppelte Lösung</button>
+              <button type="button" class="evs-btn evs-btn-primary" data-evs-action="runEventTestStep" data-step="text-sound" ${t.loading ? 'disabled' : ''}>Sound lösen / Abschluss</button>
             </div>
           </div>
 
@@ -3589,11 +3629,18 @@ window.StreamEventsModule = (function(){
     state.testPanel.message = '';
     render();
     try {
+      const body = { step, ...payload };
+      const isTextStep = String(step || '').startsWith('text-');
+      const createsOwnTextEvent = step === 'text-create' || step === 'text-check';
+      if (isTextStep && !createsOwnTextEvent && state.testPanel.textEventUid && !body.eventUid) {
+        body.eventUid = state.testPanel.textEventUid;
+      }
       const result = await window.CGN.api(`/api/stream-events/test/run?confirm=1&step=${encodeURIComponent(step)}`, {
         method: 'POST',
-        body: JSON.stringify({ step, ...payload })
+        body: JSON.stringify(body)
       });
       state.testPanel.result = result;
+      if (isTextStep && result?.eventUid) state.testPanel.textEventUid = result.eventUid;
       state.testPanel.message = `Test ausgeführt: ${step}${result?.eventUid ? ` · ${result.eventUid}` : ''}`;
       state.message = state.testPanel.message;
       if (result?.eventUid) state.selectedUid = result.eventUid;

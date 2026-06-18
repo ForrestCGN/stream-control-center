@@ -1149,3 +1149,22 @@
   .evs-text-result-row strong,
   .evs-text-ranking-row span { text-align: left; }
 }
+
+
+/* EVS51.4 - Satz-Einzeltest Flow */
+.evs-text-flow-current {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 10px 0 14px;
+  padding: 10px 12px;
+  border: 1px solid rgba(34, 211, 238, 0.24);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.48);
+}
+.evs-text-flow-current b { color: #fff; }
+.evs-text-flow-current span { color: #dbeafe; }
+.evs-text-flow-current small { color: #93c5fd; }
+.evs-text-check-summary .evs-text-check-card.is-warn strong { color: #fde68a; }
+.evs-text-check-summary .evs-text-check-card.is-warn { border-color: rgba(250, 204, 21, 0.32); background: rgba(113, 63, 18, 0.12); }
