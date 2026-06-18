@@ -1203,3 +1203,61 @@
   max-width: 720px;
   line-height: 1.35;
 }
+
+
+/* STEP EVS52.23 / Shot-Alarm visible event module picker */
+.evs-event-module-selector {
+  display: flex;
+  align-items: end;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.evs-event-module-selector label {
+  min-width: 280px;
+}
+.evs-event-module-selector select {
+  min-width: 280px;
+}
+.evs-module-picker-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 2px;
+}
+.evs-event-module-selector small {
+  flex: 1 1 420px;
+  min-width: 320px;
+}
+
+/* STEP_EVS52_24_SHOT_ALARM_EVENT_TAB_CONFIG_DROPDOWN */
+.evs-config-module-select {
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: end;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.evs-config-module-select label {
+  display: grid;
+  gap: 7px;
+  min-width: 260px;
+}
+.evs-config-module-select small {
+  color: var(--muted, #b7c5dc);
+  padding-bottom: 8px;
+}
+.evs-shot-tab .evs-card-actions,
+.evs-shot-tab .evs-action-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.evs-shot-kpis {
+  margin: 14px 0;
+}
+.evs-shot-admin-grid {
+  gap: 14px;
+  margin-top: 14px;
+}

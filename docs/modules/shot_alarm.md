@@ -155,3 +155,19 @@ Shot-Alarm wird im Dashboard nicht als eigener Hauptbereich geführt. Der Einsti
 `Community → Event-System`
 
 Innerhalb des Event-Systems sind die Tabs `Texte` und `Config` modulbasiert. Über das Modul-Dropdown kann zwischen `Event-System` und `Shot-Alarm` gewechselt werden. Shot-Alarm nutzt dort seine eigenen DB-basierten Textvarianten und DB-Config.
+
+
+## STEP SHOT-ALARM-2B.4 Dashboard sichtbarer Event-Modul-Picker
+- Event-System bleibt unter Community.
+- In Texte/Config gibt es weiterhin den Modul-Dropdown.
+- Zusätzlich sind Event-System und Shot-Alarm als sichtbare Schnellwahl-Buttons vorhanden, damit Shot-Alarm nicht versteckt/fehlend wirkt.
+- Keine Backend-/Regeländerung.
+
+
+## STEP SHOT-ALARM-2B.5 Event-System Shot Tab + Config Dropdown
+
+- Korrigiert die Dashboard-Einordnung: Shot-Alarm ist jetzt ein eigener Tab innerhalb `Community → Event-System`.
+- Texte bleiben im bestehenden Event-System-Texte-Tab und werden über die vorhandenen Textbereich-Dropdowns als `Shot-Alarm Chat` und `Shot-Alarm Overlay` ausgewählt.
+- Config bleibt im bestehenden Event-System-Config-Tab; dort wurde ein Config-Bereich-Dropdown ergänzt (`Event-System` / `Shot-Alarm`).
+- Backend, DB-Schema, Shot-Regeln, Auslosung, Overlay, Sound und History wurden nicht geändert.
+

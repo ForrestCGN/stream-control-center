@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.57";
-  const MODULE_BUILD = "STEP_EVS52_22_SHOT_ALARM_MODULE_DROPDOWNS";
+  const MODULE_VERSION = "0.5.59";
+  const MODULE_BUILD = "STEP_EVS52_24_SHOT_ALARM_EVENT_TAB_CONFIG_DROPDOWN";
 
   const api = {
     status: '/api/stream-events/status',
@@ -23,7 +23,10 @@ window.StreamEventsModule = (function(){
     shotAlarmStatus: '/api/shot-alarm/status',
     shotAlarmConfig: '/api/shot-alarm/config',
     shotAlarmTexts: '/api/shot-alarm/texts',
-    shotAlarmStats: '/api/shot-alarm/stats'
+    shotAlarmStats: '/api/shot-alarm/stats',
+    shotAlarmTest: '/api/shot-alarm/test',
+    shotAlarmShotDone: '/api/shot-alarm/shot-done',
+    shotAlarmResolvePending: '/api/shot-alarm/resolve-pending'
   };
 
   let root = null;
@@ -80,15 +83,20 @@ window.StreamEventsModule = (function(){
   function renderEventModuleSelector(context){
     const key = context === 'texts' ? 'textSourceModule' : 'configModuleFilter';
     const selected = state[key] || 'stream_events';
+    const attr = context === 'texts' ? 'data-evs-text-source-module' : 'data-evs-config-module-filter';
+    const options = eventModuleOptions();
     return `
-      <div class="evs-module-select-row glass">
+      <div class="evs-module-select-row glass evs-event-module-selector" data-evs-event-module-selector="${esc(context)}">
         <label>
-          <span>Modul</span>
-          <select ${context === 'texts' ? 'data-evs-text-source-module' : 'data-evs-config-module-filter'}>
-            ${eventModuleOptions().map(opt => `<option value="${esc(opt.id)}" ${selected === opt.id ? 'selected' : ''}>${esc(opt.label)}</option>`).join('')}
+          <span>Event-Modul auswählen</span>
+          <select ${attr}>
+            ${options.map(opt => `<option value="${esc(opt.id)}" ${selected === opt.id ? 'selected' : ''}>${esc(opt.label)}</option>`).join('')}
           </select>
         </label>
-        <small>Texte und Config bleiben im Event-System-Bereich, werden aber je Modul getrennt verwaltet.</small>
+        <div class="evs-module-picker-buttons" aria-label="Event-Modul Schnellwahl">
+          ${options.map(opt => `<button type="button" class="evs-btn evs-btn-small ${selected === opt.id ? '' : 'evs-btn-secondary'}" data-evs-action="selectEventModule" data-context="${esc(context)}" data-module-id="${esc(opt.id)}">${esc(opt.label)}</button>`).join('')}
+        </div>
+        <small>Jedes Event-Modul hat eigene Texte und eigene Config. Wähle hier <b>Shot-Alarm</b>, um die Shot-Texte oder Shot-Regeln zu bearbeiten.</small>
       </div>
     `;
   }
@@ -330,6 +338,7 @@ window.StreamEventsModule = (function(){
       { id: 'config', label: 'Config', icon: '⚙️' },
       { id: 'stats', label: 'Statistik', icon: '🏆' },
       { id: 'overlay', label: 'Overlay', icon: '🖥️' },
+      { id: 'shot_alarm', label: 'Shot-Alarm', icon: '🥃' },
       { id: 'test', label: 'Test', icon: '🧪' }
     ];
   }
@@ -355,8 +364,76 @@ window.StreamEventsModule = (function(){
     if (tab === 'stats') return renderStatsTab(event);
     if (tab === 'safety') return renderOverviewTab(event);
     if (tab === 'overlay') return renderOverlayTab(event);
+    if (tab === 'shot_alarm') return renderShotAlarmEventTab();
     if (tab === 'test') return renderTestTab(event);
     return renderOverviewTab(event);
+  }
+
+  function renderShotAlarmEventTab(){
+    scheduleShotAlarmLoad();
+    const box = state.shotAlarm || {};
+    const st = box.status || {};
+    const stats = box.stats || {};
+    const last = st.lastResult || st.lastDraw || null;
+    const c = box.config || {};
+    return `
+      <section class="evs-card glass evs-tab-panel evs-shot-tab">
+        <div class="evs-card-head">
+          <div>
+            <h3>Shot-Alarm</h3>
+            <span>Auslosungen, offene Shots, Tests und Bedienung für Engel & Roxxy.</span>
+          </div>
+          <div class="evs-card-actions">
+            <button type="button" class="evs-btn evs-btn-small evs-btn-secondary" data-evs-action="reloadShotAlarmData">Aktualisieren</button>
+            <a class="evs-btn evs-btn-small evs-btn-secondary" href="/overlays/shot_alarm/shot_alarm_overlay.html" target="_blank" rel="noopener">Overlay öffnen</a>
+          </div>
+        </div>
+        ${box.error ? `<div class="evs-error">${esc(box.error)}</div>` : ''}
+        ${box.loading ? '<div class="evs-empty">Shot-Alarm wird geladen...</div>' : ''}
+        <div class="evs-kpi-grid evs-shot-kpis">
+          <div><strong>${esc(st.shotsOpen ?? stats.shotsOpen ?? 0)}</strong><span>Noch offen</span></div>
+          <div><strong>${esc(st.shotsDrunk ?? stats.shotsDrunk ?? 0)}</strong><span>Getrunken</span></div>
+          <div><strong>${esc(st.shotsAddedTotal ?? stats.shotsAddedTotal ?? 0)}</strong><span>Gesamt hinzugefügt</span></div>
+          <div><strong>${esc(st.counts?.pending ?? 0)}</strong><span>Auslosungen offen</span></div>
+        </div>
+        <div class="evs-two-cols evs-shot-admin-grid">
+          <div class="evs-config-card">
+            <div class="evs-config-card-head"><strong>Bedienung</strong><small>Für Stream/Mods. Chat-Befehl kommt später.</small></div>
+            <div class="evs-action-row">
+              <button type="button" class="evs-btn" data-evs-action="shotAlarmDoneOne">1 Shot getrunken</button>
+              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="shotAlarmResolvePending">Offene Auslosungen auflösen</button>
+            </div>
+          </div>
+          <div class="evs-config-card">
+            <div class="evs-config-card-head"><strong>Test-Auslosung</strong><small>25.000 Bits mit forceRoll=0 ergibt 7 Shots.</small></div>
+            <div class="evs-action-row">
+              <button type="button" class="evs-btn" data-evs-action="shotAlarmTestBitsImmediate">Test sofort</button>
+              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="shotAlarmTestBitsDraw">Test mit 10s Auslosung</button>
+            </div>
+          </div>
+        </div>
+        <div class="evs-two-cols evs-shot-admin-grid">
+          <div class="evs-config-card">
+            <div class="evs-config-card-head"><strong>Letztes Ergebnis</strong><small>${last ? esc(last.phase || '-') : 'Noch kein Ergebnis'}</small></div>
+            ${last ? `<div class="evs-status-grid">
+              <div><strong>${esc(last.eventLabel || '-')}</strong><span>Event</span></div>
+              <div><strong>${esc(last.amountLabel || '-')}</strong><span>Menge</span></div>
+              <div><strong>${esc(last.chanceSummary || '-')}</strong><span>Auslosung</span></div>
+              <div><strong>${esc(last.shotsAdded ?? 0)}</strong><span>Shots</span></div>
+            </div>` : '<div class="evs-empty">Noch keine Shot-Auslosung vorhanden.</div>'}
+          </div>
+          <div class="evs-config-card">
+            <div class="evs-config-card-head"><strong>Kurz-Config</strong><small>Vollständig unter Config → Shot-Alarm.</small></div>
+            <div class="evs-status-grid">
+              <div><strong>${esc(c.draw?.delayMs ?? 10000)} ms</strong><span>Auslosung</span></div>
+              <div><strong>${esc(c.overlay?.resultHoldMs ?? 10000)} ms</strong><span>Ergebnis sichtbar</span></div>
+              <div><strong>${esc(c.targetLabel || 'Engel & Roxxy')}</strong><span>Ziel</span></div>
+              <div><strong>${c.enabled !== false ? 'Aktiv' : 'Inaktiv'}</strong><span>Status</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    `;
   }
 
   function renderOverviewTab(ev){
@@ -854,6 +931,48 @@ window.StreamEventsModule = (function(){
       </section>
     `;
   }
+
+  function renderShotAlarmTextsInEventTextTab(){
+    scheduleShotAlarmLoad();
+    const selectedFilter = String(state.textModuleFilter || 'shot_alarm_chat');
+    const selectedCategory = selectedFilter === 'shot_alarm_overlay' ? 'overlay' : 'chat';
+    const keys = shotTextKeysForCategory(selectedCategory);
+    const box = state.shotAlarm || {};
+    return `
+      <section class="evs-card glass evs-text-config-panel evs-tab-panel">
+        <div class="evs-card-head">
+          <div>
+            <h3>Text-Config / Multi-Texte</h3>
+            <span>Chat- und Overlay-Texte für Eventmodule. Shot-Alarm ist ein eigener Textbereich im bestehenden Event-System.</span>
+          </div>
+          <button type="button" class="evs-btn evs-btn-small evs-btn-secondary" data-evs-action="reloadShotAlarmData">Texte neu laden</button>
+        </div>
+        ${box.error ? `<div class="evs-error">${esc(box.error)}</div>` : ''}
+        <div class="evs-text-config-help">
+          <strong>Shot-Alarm aktiv:</strong> Altersheim-/Heimleitungs-/Rentner-Texte. Platzhalter wie <code>{user}</code>, <code>{amountLabel}</code>, <code>{shotsAdded}</code>, <code>{shotsOpen}</code> und <code>{chanceSummary}</code> bleiben erhalten.
+        </div>
+        <div class="evs-text-filter-bar">
+          <label>
+            <span>Textbereich</span>
+            <select data-evs-text-module-filter>
+              ${textModuleOptions().map(opt => `<option value="${esc(opt.id)}" ${selectedFilter === opt.id ? 'selected' : ''}>${esc(opt.label)} (${esc(countTextKeysForModule(opt.id))})</option>`).join('')}
+            </select>
+          </label>
+          <button type="button" class="evs-btn evs-btn-small evs-btn-secondary" data-evs-action="clearTextFilters">Filter zurücksetzen</button>
+        </div>
+        <div class="evs-text-filter-hint">${esc((textModuleOptions().find(opt => opt.id === selectedFilter) || textModuleOptions()[0]).hint)}</div>
+        ${box.loading ? '<div class="evs-empty">Shot-Alarm Texte werden geladen...</div>' : ''}
+        <div class="evs-text-category-list">
+          <details class="evs-text-category" open>
+            <summary><strong>${selectedCategory === 'overlay' ? 'Shot-Alarm Overlay' : 'Shot-Alarm Chat'}</strong><small>${esc(keys.length)} sichtbare Text-Key(s)</small></summary>
+            <div class="evs-text-category-body">
+              ${keys.map(renderShotTextKeyEditor).join('') || '<div class="evs-empty">Keine Shot-Alarm Texte für diesen Bereich gefunden.</div>'}
+            </div>
+          </details>
+        </div>
+      </section>
+    `;
+  }
   function renderShotTextKeyEditor(keyItem){
     const variants = Array.isArray(keyItem.variants) ? keyItem.variants : [];
     return `
@@ -911,16 +1030,32 @@ window.StreamEventsModule = (function(){
     } catch (err) { state.error = err.message || String(err); render(); }
   }
 
+  function renderConfigModuleSelect(){
+    const selected = state.configModuleFilter || 'stream_events';
+    return `
+      <div class="evs-config-module-select glass">
+        <label>
+          <span>Config-Bereich</span>
+          <select data-evs-config-module-filter>
+            <option value="stream_events" ${selected === 'stream_events' ? 'selected' : ''}>Event-System</option>
+            <option value="shot_alarm" ${selected === 'shot_alarm' ? 'selected' : ''}>Shot-Alarm</option>
+          </select>
+        </label>
+        <small>Event-System-Config und Shot-Alarm-Config bleiben getrennt. Shot-Alarm ist ein Event-Untermodul.</small>
+      </div>
+    `;
+  }
+
   function renderConfigTab(){
     if ((state.configModuleFilter || 'stream_events') === 'shot_alarm') {
-      return renderEventModuleSelector('config') + renderShotAlarmConfigTab();
+      return renderConfigModuleSelect() + renderShotAlarmConfigTab();
     }
     const cfg = state.config?.config || {};
     const eventDefaults = cfg.eventDefaults || {};
     const soundDefaults = cfg.soundDefaults || {};
     const textDefaults = cfg.textDefaults || {};
     const overlayDefaults = cfg.overlayDefaults || {};
-    return `
+    return renderConfigModuleSelect() + `
       <section class="evs-card glass evs-tab-panel evs-config-panel">
         <div class="evs-card-head">
           <div>
@@ -1086,10 +1221,10 @@ window.StreamEventsModule = (function(){
   }
 
   function renderTextsTab(){
-    if ((state.textSourceModule || 'stream_events') === 'shot_alarm') {
-      return renderEventModuleSelector('texts') + renderShotAlarmTextsTab();
+    if (String(state.textModuleFilter || '') === 'shot_alarm_chat' || String(state.textModuleFilter || '') === 'shot_alarm_overlay') {
+      return renderShotAlarmTextsInEventTextTab();
     }
-    return renderEventModuleSelector('texts') + renderTextConfigPanel(true);
+    return renderTextConfigPanel(true);
   }
 
   function renderStatsTab(event){
@@ -2467,6 +2602,8 @@ window.StreamEventsModule = (function(){
       { id: 'text', label: 'Text-Spiel', hint: 'Worttreffer, Satzlösung, Text-Runtime' },
       { id: 'sound', label: 'Sound-Spiel', hint: 'Soundrunde, erkannt, ungelöst' },
       { id: 'points', label: 'Punkte & Ranking', hint: 'Punkte, Rangliste, Top 3' },
+      { id: 'shot_alarm_chat', label: 'Shot-Alarm Chat', hint: 'Chattexte für Auslosung, Ergebnis und getrunkene Shots' },
+      { id: 'shot_alarm_overlay', label: 'Shot-Alarm Overlay', hint: 'Overlaytexte für Auslosung, Ergebnis und Counter' },
       { id: 'system', label: 'System / Sonstiges', hint: 'Alles, was nicht eindeutig zugeordnet ist' }
     ];
   }
@@ -2500,6 +2637,8 @@ window.StreamEventsModule = (function(){
   }
 
   function countTextKeysForModule(moduleId){
+    if (moduleId === 'shot_alarm_chat') return shotTextKeysForCategory('chat').length;
+    if (moduleId === 'shot_alarm_overlay') return shotTextKeysForCategory('overlay').length;
     const keys = Array.isArray(state.texts?.keys) ? state.texts.keys : [];
     if (moduleId === 'all') return keys.length;
     return keys.filter(item => textModuleForKey(item) === moduleId).length;
@@ -4301,6 +4440,36 @@ window.StreamEventsModule = (function(){
         render();
         return;
       }
+      if (action === 'selectEventModule') {
+        const context = btn.dataset.context || (state.activeTab === 'config' ? 'config' : 'texts');
+        const moduleId = btn.dataset.moduleId || 'stream_events';
+        if (context === 'config') state.configModuleFilter = moduleId;
+        else state.textSourceModule = moduleId;
+        if (moduleId === 'shot_alarm') await loadShotAlarmData(false).catch(() => null);
+        render();
+        return;
+      }
+      if (action === 'shotAlarmDoneOne') {
+        await window.CGN.api(api.shotAlarmShotDone, { method: 'POST', body: JSON.stringify({ count: 1, user: 'Dashboard' }) });
+        await loadShotAlarmData(false);
+        state.message = 'Shot-Alarm: 1 Shot abgehakt.';
+        render();
+        return;
+      }
+      if (action === 'shotAlarmResolvePending') {
+        await window.CGN.api(api.shotAlarmResolvePending, { method: 'POST', body: JSON.stringify({ actor: 'dashboard' }) }).catch(() => null);
+        await loadShotAlarmData(false);
+        render();
+        return;
+      }
+      if (action === 'shotAlarmTestBitsImmediate' || action === 'shotAlarmTestBitsDraw') {
+        const payload = { type: 'bits', user: 'BitRentner', bits: 25000, forceRoll: 0, immediate: action === 'shotAlarmTestBitsImmediate' };
+        await window.CGN.api(api.shotAlarmTest, { method: 'POST', body: JSON.stringify(payload) });
+        await loadShotAlarmData(false);
+        state.message = action === 'shotAlarmTestBitsImmediate' ? 'Shot-Alarm Test sofort ausgelöst.' : 'Shot-Alarm Test-Auslosung gestartet.';
+        render();
+        return;
+      }
       if (action === 'reload') return loadAll(true);
       if (action === 'reloadTexts') return loadTexts(true);
       if (action === 'reloadShotAlarmData') return loadShotAlarmData(true);
@@ -4511,7 +4680,8 @@ window.StreamEventsModule = (function(){
       const textModuleSelect = ev.target.closest('[data-evs-text-module-filter]');
       if (textModuleSelect) {
         state.textModuleFilter = textModuleSelect.value || 'all';
-        render();
+        if (String(state.textModuleFilter).startsWith('shot_alarm_')) loadShotAlarmData(false).then(() => render()).catch(() => render());
+        else render();
         return;
       }
       const select = ev.target.closest('[data-evs-user-stat-select]');
