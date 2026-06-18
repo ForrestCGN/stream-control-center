@@ -1,8 +1,11 @@
-# FILES – EVS52.16c
+# FILES – EVS52.18
+
+## Geändert
 
 ```text
-htdocs/dashboard/modules/stream_events.css
-docs/current/CURRENT_CHAT_HANDOFF_EVS52_16C_DASHBOARD_CSS_RESTORE.md
+backend/modules/stream_events.js
+htdocs/overlays/stream_events/event_winner_overlay.html
+docs/current/CURRENT_CHAT_HANDOFF_EVS52_18_WINNER_OVERLAY_REPLAY_STATE.md
 project-state/CHANGELOG.md
 project-state/TODO.md
 project-state/NEXT_STEPS.md

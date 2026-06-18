@@ -1,13 +1,14 @@
 # NEXT_STEPS – stream-control-center
 
-## Sofort
+## Direkt testen
 
-1. EVS52.16c einspielen.
-2. Dashboard hart neu laden.
-3. Layout prüfen.
-4. Auswertungsbutton erneut prüfen.
+1. Backend/Overlay EVS52.18 einspielen.
+2. StepDone ausführen.
+3. Backend neu starten und OBS-Source aktualisieren.
+4. Finale erneut starten/replayen.
+5. Prüfen, ob Winner-Overlay erscheint.
 
 ## Danach
 
-- Falls Button sichtbar: Finale starten und Winner-Overlay testen.
-- Falls Button fehlt: Dashboard-JS gezielt prüfen, ohne CSS erneut anzufassen.
+- Falls Replay funktioniert: Dashboard-Button „Auswertung erneut anzeigen“ planen.
+- Falls Overlay weiter leer bleibt: Overlay-Bus-Verbindung in OBS prüfen.

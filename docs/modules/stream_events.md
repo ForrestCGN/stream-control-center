@@ -845,19 +845,9 @@ Wenn die Auswertung nicht moeglich ist, bleibt der Button unsichtbar. Die Sicher
 
 Keine Aenderung an Chatquelle, Sound-/Satzlogik, Punktevergabe oder Bot-/Self-Filter.
 
+## EVS52.18 – Winner Overlay Replay State
 
-## EVS52.16b – Dashboard-Auswertungsbutton sichtbar platziert
-
-Der Button `Auswertung starten` wird im Dashboard direkt im sichtbaren Event-Verwalten-Buttonblock gerendert, wenn die Finale-Preview fuer das gewaehlte Event `finaleEligibility.canStart=true` liefert. Die Backend-Finale-Logik aus EVS52.16 bleibt unveraendert.
-
-Regel:
-
-```text
-Event finished + Ranking vorhanden + kein existierendes Finale => Button sichtbar
-```
-
-Klick ruft weiterhin auf:
-
-```text
-POST /api/stream-events/events/:eventUid/finale/start?confirm=1
-```
+- Finale-Replay ohne Stream-Online-Zwang.
+- Neuer Endpoint: `GET /api/stream-events/winner-finale/latest?maxAgeMs=600000`.
+- Normales Winner-Overlay pollt nach frischem Finale und bleibt sonst idle unsichtbar.
+- Bestehendes Finale kann per Start-Route erneut angezeigt werden; es wird nicht neu ausgelost, solange `forceNewDraw` nicht gesetzt wird.

@@ -33,8 +33,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.87";
-const MODULE_BUILD = "STEP_EVS52_16_DASHBOARD_FINALE_BUTTON";
+const MODULE_VERSION = "0.5.88";
+const MODULE_BUILD = "STEP_EVS52_18_WINNER_OVERLAY_REPLAY_STATE";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -7137,6 +7137,71 @@ async function withWinnerFinaleRowsAsync(finale = {}, preview = {}) {
   };
 }
 
+function finaleFreshnessMs(finale = {}, metadata = {}) {
+  const candidates = [
+    metadata.winnerFinaleLastShownAt,
+    metadata.winnerFinaleLastReplayAt,
+    finale.lastReplayAt,
+    finale.replayAt,
+    finale.startedAt,
+    metadata.winnerFinaleLastStartedAt
+  ].map(cleanString).filter(Boolean);
+  for (const value of candidates) {
+    const ts = Date.parse(value);
+    if (Number.isFinite(ts)) return Date.now() - ts;
+  }
+  return Number.POSITIVE_INFINITY;
+}
+
+async function getLatestWinnerFinale(options = {}) {
+  ensureSchema();
+  const maxAgeMs = Math.max(1000, Math.min(Number(options.maxAgeMs || 300000) || 300000, 3600000));
+  const includeStale = boolValue(options.includeStale || false);
+  const rows = database.all(`
+    SELECT *
+    FROM stream_events_events
+    WHERE status = 'finished'
+    ORDER BY updated_at DESC, finished_at DESC, id DESC
+    LIMIT 50
+  `).map(rowToEvent).filter(Boolean);
+
+  let best = null;
+  for (const event of rows) {
+    const metadata = safeJson({ ...(event.metadata || {}) }, {});
+    const finale = metadata.winnerFinale && typeof metadata.winnerFinale === "object" ? metadata.winnerFinale : null;
+    if (!finale) continue;
+    const ageMs = finaleFreshnessMs(finale, metadata);
+    if (!best || ageMs < best.ageMs) best = { event, metadata, finale, ageMs };
+  }
+
+  if (!best) return { ok: false, error: "winner_finale_missing", maxAgeMs, includeStale, rule: "latest_winner_finale_by_replay_or_started_at" };
+  if (!includeStale && best.ageMs > maxAgeMs) {
+    return {
+      ok: false,
+      error: "winner_finale_stale",
+      eventUid: best.event.eventUid,
+      ageMs: best.ageMs,
+      maxAgeMs,
+      includeStale,
+      rule: "latest_winner_finale_only_recent_by_default"
+    };
+  }
+
+  const preview = buildWinnerFinalePreview(best.event.eventUid);
+  const finale = await withWinnerFinaleRowsAsync(best.finale, preview);
+  return {
+    ok: true,
+    event: publicEventSummary(best.event),
+    eventUid: best.event.eventUid,
+    finale,
+    preview,
+    ageMs: best.ageMs,
+    maxAgeMs,
+    includeStale,
+    rule: "latest_winner_finale_by_replay_or_started_at"
+  };
+}
+
 function buildWinnerFinalePreview(eventUid, options = {}) {
   ensureSchema();
   const uid = cleanString(eventUid);
@@ -7199,20 +7264,32 @@ async function startWinnerFinale(eventUid, body = {}) {
   const metadata = safeJson({ ...(event.metadata || {}) }, {});
   const forceNew = boolValue(body.forceNewDraw || body.forceNew || false);
   if (metadata.winnerFinale && !forceNew) {
+    const replayAt = nowIso();
     const existingBase = await withWinnerFinaleRowsAsync(metadata.winnerFinale, preview);
     const existingGate = await preloadTop3WinnerAvatars(existingBase.ranking || existingBase.podiumRows || [], { timeoutMs: Number(body.top3AvatarTimeoutMs || 4000) || 4000 });
     const existingRanking = Array.isArray(existingBase.ranking) && existingBase.ranking.length ? existingBase.ranking.slice() : (existingBase.podiumRows || []).concat(existingBase.honorRows || []);
     const gatedRanking = existingRanking.map((row, index) => index < 3 ? existingGate.rows[index] || row : row);
     const existing = {
       ...existingBase,
+      replayAt,
+      lastReplayAt: replayAt,
       ranking: gatedRanking,
       podiumRows: gatedRanking.slice(0, 3),
       honorRows: gatedRanking.slice(3, 10),
       avatarPreload: existingGate,
       overlayReadyGate: existingGate
     };
-    emitBus("stream_events.winner_finale", "replay_requested", { eventUid: uid, eventName: event.name, finale: existing, preview, avatarPreload: existingGate });
-    return { ok: true, alreadyDrawn: true, replay: true, event: publicEventSummary(event), finale: existing, preview, avatarPreload: existingGate, rule: "existing_winner_finale_reused_unless_forceNewDraw" };
+    metadata.winnerFinale = existing;
+    metadata.winnerFinaleLastReplayAt = replayAt;
+    metadata.winnerFinaleLastShownAt = replayAt;
+    database.updateByKey("stream_events_events", "event_uid", uid, {
+      metadata_json: jsonEncode(metadata),
+      updated_at: replayAt
+    });
+    const replayPreview = buildWinnerFinalePreview(uid);
+    emitBus("stream_events.winner_finale", "replay_requested", { eventUid: uid, eventName: event.name, finale: existing, preview: replayPreview, avatarPreload: existingGate, replayAt });
+    publishStatus("winner_finale.replay_requested", { lastEventUid: uid, winnerFinaleLastReplayAt: replayAt });
+    return { ok: true, alreadyDrawn: true, replay: true, event: publicEventSummary(getEventByUid(uid) || event), finale: existing, preview: replayPreview, avatarPreload: existingGate, rule: "existing_winner_finale_reused_unless_forceNewDraw" };
   }
 
   const finaleRows = await buildWinnerFinaleRowsFromPreviewWithTop3Gate(preview, { top3AvatarTimeoutMs: Number(body.top3AvatarTimeoutMs || 4000) || 4000 });
@@ -9106,6 +9183,18 @@ module.exports.init = function init(ctx) {
       }
       const result = await startWinnerFinale(req.params.eventUid, req.body || {});
       sendJson(res, result, result.ok ? 200 : (result.error === "event_not_found" ? 404 : 400));
+    } catch (err) {
+      handleError(res, err, 400);
+    }
+  });
+
+  reg("get", `${prefix}/winner-finale/latest`, async (req, res) => {
+    try {
+      const result = await getLatestWinnerFinale({
+        maxAgeMs: req.query.maxAgeMs || req.query.max_age_ms || 300000,
+        includeStale: req.query.includeStale || req.query.include_stale || req.query.stale || false
+      });
+      sendJson(res, result, result.ok ? 200 : 404);
     } catch (err) {
       handleError(res, err, 400);
     }
