@@ -769,3 +769,116 @@ Stand: 2026-06-18
 - Neuer Text-Key fuer neutrale Teiltreffer: `text.word_hit.neutral.chat` mit mehreren CGN-/Heimleitungs-Zufallstexten.
 - ToDo bleibt: Teiltreffer-Textvarianten und Bot-Blockliste spaeter dashboardfaehig in den Einstellungen pflegen.
 
+
+---
+
+# Nachtrag – EVS52.14 getestet/stabil
+
+Stand: 2026-06-18
+
+## Aktiver Stand
+
+```text
+backend/modules/stream_events.js
+moduleVersion : 0.5.85
+moduleBuild   : STEP_EVS52_14_NEUTRAL_UNIQUE_TEXT_HINTS
+```
+
+## Chat-Architektur ab EVS52.14
+
+Zentrale Verarbeitung:
+
+```text
+Twitch-Chat
+→ twitch_events / Communication-Bus
+→ twitch.chat.message
+→ stream_events
+→ processParallelChatMessage()
+→ Sound-Teilspiel + Satz-/Text-Teilspiel
+→ gemeinsame Punkte/Ranking/ChatOutputs
+```
+
+Alte Diagnose-/Fallback-Wege aus EVS52.6–EVS52.8 sind nicht mehr produktiver Runtime-Pfad:
+
+- keine Direct-Bridge von `stream_events` in `twitch_events.handleIrcEvent`
+- keine direkte `twitch_presence → stream_events` Runtime-Bridge
+- kein Wildcard-Bus-Fallback als produktive Chatquelle
+
+## Runtime-Schutz
+
+- Dashboard-/Test-Start nutzt wieder den normalen `startEvent()`-Pfad.
+- Mehrere aktive Events werden im Testpfad verhindert.
+- `skip-wait` verlangt eindeutig genau ein aktives Event, wenn keine `eventUid` übergeben wurde.
+
+Statusfeld:
+
+```text
+runtime.activeEventGuard.activeCount
+runtime.activeEventGuard.singleActiveRequiredForSkipWait
+runtime.activeEventGuard.dashboardTestStartUsesStartEvent
+```
+
+## Bot-/Self-Filter
+
+Aktuell ignorierte Logins:
+
+```text
+heimaufsichtcgn
+kofistreambot
+streamstickers
+streamelements
+```
+
+Wichtig:
+
+- Moderatoren werden nicht pauschal ignoriert.
+- `engelcgn`, `roxxyfoxxycgn`, `tronic6`, `forrestcgn` bleiben spielberechtigt.
+
+Statusfelder:
+
+```text
+runtime.chatSource.selfSkipped
+runtime.chatSource.ignoredLogins
+runtime.counters.twitchChatSelfSkipped
+```
+
+## Teiltreffer-Chatmeldungen
+
+Ab EVS52.14:
+
+- keine Satznummer im Chat
+- keine Satz-Zuordnung im Chat
+- maximal eine Teiltreffer-Meldung pro User-Chatnachricht
+- sichtbare Anzahl zählt eindeutige gefundene Wörter/Teile aus der Usernachricht
+- dasselbe Wort in mehreren Sätzen zählt sichtbar nur als ein Teil
+- interne Treffer pro Satz bleiben erhalten
+
+Text-Key:
+
+```text
+text.word_hit.neutral.chat
+```
+
+## Letzter Live-Test
+
+```text
+twitchChatMessages               : 54
+twitchChatSelfSkipped            : 14
+textMessagesProcessed            : 18
+soundChatMessagesProcessed       : 2
+soundAnswerMatches               : 2
+soundAnswerMisses                : 0
+textWordHits                     : 14
+textPhraseSolves                 : 1
+chatOutputsLiveRequested         : 12
+chatOutputsLiveSent              : 12
+soundWaitsSkipped                : 2
+```
+
+## Offene Modul-Punkte
+
+- `textWordHitChatOutputsBundled` Diagnosezähler prüfen.
+- `phraseSolves.points` im Report prüfen.
+- Bot-/Ignore-Liste dashboardfähig machen.
+- Neutrale Teiltreffer-Texte im Dashboard pflegbar machen.
+- Satzlösungs-Overlay-Layout nachziehen.

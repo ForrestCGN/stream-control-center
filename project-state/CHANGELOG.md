@@ -1,12 +1,65 @@
 # CHANGELOG – stream-control-center
 
+## 2026-06-18 – EVS52.14 Abschluss/Doku: Chat + Sound + Satz stabil getestet
+
+### Getesteter Stand
+
+- `stream_events` läuft mit `moduleVersion=0.5.85` und `moduleBuild=STEP_EVS52_14_NEUTRAL_UNIQUE_TEXT_HINTS`.
+- EVS52.9 bis EVS52.14 wurden live konsolidiert getestet.
+- Twitch-Chat läuft zentral über `twitch_events`/Communication-Bus nach `stream_events`.
+- Sound- und Satz-/Text-Teilspiel nutzen dieselbe normalisierte Chatmessage.
+- Alte Direct-/Wildcard-Fallback-Wege aus EVS52.6–EVS52.8 sind aus dem produktiven Runtime-Pfad entfernt.
+
+### Live bestätigt
+
+- Chatquelle aktiv: `twitch.chat.message` kommt bei `stream_events` an.
+- Bot-/Systemaccount-Filter greift: `heimaufsichtcgn`, `kofistreambot`, `streamstickers`, `streamelements` werden ignoriert.
+- Moderatoren/echte Spieler wie `engelcgn`, `roxxyfoxxycgn`, `tronic6` und `forrestcgn` bleiben spielberechtigt.
+- Soundantworten funktionieren: `soundAnswerMatches=2`, `soundAnswerMisses=0` im letzten Teststand.
+- Satz-Teiltreffer funktionieren und senden neutrale Chatmeldungen ohne Satznummer/Satzzuordnung.
+- Satzlösung funktioniert inklusive Chatmeldung, Punkte und Satzlösungs-Overlay.
+- Duplicate wurde erkannt und nicht erneut gewertet.
+- Wartezeit überspringen funktioniert und ist gegen mehrere aktive Events abgesichert.
+- Active-Event-Guard meldete `activeCount=1`.
+- Ranking/Punkte wurden geprüft: EngelCGN hatte 50 Punkte aus Sound/Satz-Kombination.
+
+### Letzte bekannte Testwerte
+
+```text
+moduleVersion                    : 0.5.85
+moduleBuild                      : STEP_EVS52_14_NEUTRAL_UNIQUE_TEXT_HINTS
+chatSource.delivered             : 22
+chatSource.selfSkipped           : 14
+runtime.activeEventGuard.activeCount : 1
+twitchChatMessages               : 54
+twitchChatSelfSkipped            : 14
+textMessagesProcessed            : 18
+soundChatMessagesProcessed       : 2
+soundAnswerMatches               : 2
+soundAnswerMisses                : 0
+textWordHits                     : 14
+textPhraseSolves                 : 1
+chatOutputsLiveRequested         : 12
+chatOutputsLiveSent              : 12
+soundWaitsSkipped                : 2
+```
+
+### Offen / nicht kritisch
+
+- `textWordHitChatOutputsBundled` blieb im letzten Status `0`, obwohl die sichtbaren Teiltreffer-Meldungen neutralisiert wurden. Diagnosezähler später prüfen.
+- `phraseSolves.points` im Report war leer, obwohl Chat/Ranking Punkte korrekt zeigten. Report-Feld später prüfen.
+- Satzlösungs-Overlay optisch später nachziehen: Text rechts etwas knapp/abgeschnitten.
+- Bot-/Ignore-Liste später aus hartem Code in Dashboard-Einstellungen verschieben.
+- Textvarianten `text.word_hit.neutral.chat` später im Dashboard pflegen.
+
 ## 2026-06-18 – EVS52.14 Neutrale eindeutige Teiltreffer-Meldungen
 
 - `stream_events` auf Version `0.5.85` / Build `STEP_EVS52_14_NEUTRAL_UNIQUE_TEXT_HINTS` gesetzt.
 - Teiltreffer-Chatmeldungen nennen keine Satznummer und keine Satz-Zuordnung mehr.
-- Sichtbare Anzahl zaehlt eindeutige gefundene Woerter/Teile aus der Usernachricht, nicht Satz-Treffer.
-- Neue neutrale Textvariante `text.word_hit.neutral.chat` mit mehreren CGN-/Heimleitungs-Zufallstexten ergaenzt.
-- Interne Treffer, Bus-Events, Punkte, Ranking, Sound, Satzloesung und Duplicate unveraendert gelassen.
+- Sichtbare Anzahl zählt eindeutige gefundene Wörter/Teile aus der Usernachricht, nicht Satz-Treffer.
+- Gleiches Wort in mehreren Sätzen wird im Chat nur als ein Teil gemeldet.
+- Neue neutrale Textvariante `text.word_hit.neutral.chat` mit mehreren CGN-/Heimleitungs-Zufallstexten ergänzt.
+- Interne Treffer, Bus-Events, Punkte, Ranking, Sound, Satzlösung und Duplicate unverändert gelassen.
 
 ## 2026-06-18 – EVS52.13 Teiltreffer-Chatmeldungen bündeln
 
@@ -16,141 +69,32 @@
 - Interne Treffer, Punkte, Ranking und Bus-Events bleiben erhalten.
 - Sound-, Satzlösungs-, Duplicate- und Bot-Filter-Logik nicht umgebaut.
 
-# CHANGELOG – stream-control-center
-
 ## 2026-06-18 – EVS52.12 Bot-/Self-Message-Filter
 
-### Geaendert
-
-- `stream_events` auf `0.5.83 / STEP_EVS52_12_BOT_SELF_MESSAGE_FILTER` erhoeht.
+- `stream_events` auf `0.5.83 / STEP_EVS52_12_BOT_SELF_MESSAGE_FILTER` erhöht.
 - Bekannte Bot-/Systemaccounts werden vor der Sound-/Satz-Runtime ignoriert.
 - Ignoriert: `heimaufsichtcgn`, `kofistreambot`, `streamstickers`, `streamelements`.
-- Moderatoren werden nicht pauschal gesperrt; EngelCGN, RoxxyFoxxyCGN und Tronic6 duerfen weiter mitspielen.
-- Status-Zaehler ergaenzt: `twitchChatSelfSkipped` und `chatSource.selfSkipped`.
-
-### Nicht geaendert
-
-- Keine DB-Aenderung.
-- Keine Punktelogik geaendert.
-- Keine Sound-/Satzlogik geaendert.
-- Keine Chatquelle geaendert.
-
-### ToDo
-
-- Bot-/Self-Message-Blockliste spaeter in Dashboard-Einstellungen verschieben.
+- Moderatoren werden nicht pauschal gesperrt.
+- Status-Zähler ergänzt: `twitchChatSelfSkipped`, `chatSource.selfSkipped`, `chatSource.ignoredLogins`.
 
 ## 2026-06-18 – EVS52.11 Chat-Command Await-Fix
 
-### Geaendert
-
-- `stream_events` auf `0.5.82 / STEP_EVS52_11_CHAT_COMMAND_AWAIT_FIX` erhoeht.
-- Fehler im Twitch-Chat-Handler behoben: `processEventCommand()` ist async und wurde ohne `await` ausgewertet. Dadurch wurden normale Chatnachrichten faelschlich als Event-Command behandelt.
-- Normale Chatnachrichten werden jetzt nur dann an `processEventCommand()` gegeben, wenn sie wirklich mit `!event` beginnen.
-- Alle anderen Twitch-Chatnachrichten laufen wieder direkt in `processParallelChatMessage()` und damit in Sound + Satz/Text.
-- Fehlerbehandlung fuer den async Bus-Callback ergaenzt, damit Chat-Handler-Fehler im Status sichtbar werden.
-
-### Nicht geaendert
-
-- Keine DB-Aenderung.
-- Keine Punktelogik geaendert.
-- Keine Sound-Rundenlogik geaendert.
-- Keine Satz-/Text-Punktelogik geaendert.
-- Keine neue Chatquelle.
-- Keine alten Direct-/Wildcard-Hooks wieder eingebaut.
-
-### Lokale Syntax-Checks
-
-- `node -c backend/modules/stream_events.js` bestanden.
-
-## 2026-06-18 – EVS52.9 Twitch-Events Chatquelle aufgeraeumt
-
-### Geaendert
-
-- `stream_events` auf `0.5.80 / STEP_EVS52_9_TWITCH_EVENTS_CHAT_SUBSCRIBER` erhoeht.
-- `stream_events` verarbeitet Twitch-Chat fuer Sound+Satz nur noch ueber den zentralen Bus-Subscriber `twitch.chat.message`.
-- `twitch_presence` auf `0.1.6 / EVS52_9_TWITCH_EVENTS_CHAT_SOURCE` erhoeht.
-- `twitch_presence` ruft `stream_events` nicht mehr direkt auf, sondern gibt IRC-PRIVMSG nur an `twitch_events.handleIrcEvent()` weiter.
-
-### Aufgeraeumt
-
-- EVS52.6 Direct-Bridge-Patch auf `twitch_events.handleIrcEvent` aus `stream_events` entfernt.
-- EVS52.7 Direct-Bridge aus `twitch_presence` nach `stream_events` entfernt.
-- EVS52.8 Wildcard-Bus-Fallback in `stream_events` entfernt.
-
-### Nicht geaendert
-
-- Keine DB-Aenderung.
-- Keine Punktelogik geaendert.
-- Keine Sound-Rundenlogik geaendert.
-- Keine Satz-/Text-Punktelogik geaendert.
-
-### Lokale Syntax-Checks
-
-- `node -c backend/modules/stream_events.js` bestanden.
-- `node -c backend/modules/twitch_events.js` bestanden.
-- `node -c backend/modules/twitch_presence.js` bestanden.
-- `node -c htdocs/dashboard/modules/stream_events.js` bestanden.
-
-## 2026-06-18 – EVS52.9 Doku/Handoff: Chatquelle stoppen und sauber neu ansetzen
-
-### Dokumentiert
-
-- Diagnoseauswertung von `/api/communication/status` und `/api/twitch/events/status`.
-- Festgehalten: spezifische `twitch.chat/message` Subscriber hatten `delivered=0`.
-- Festgehalten: `twitch_events.eventSubChat` war aktiv, aber `notifications=0` und `chatMessagesEmitted=0`.
-- Festgehalten: EVS52.6–EVS52.8 waren Diagnose-/Fallback-Versuche und dürfen nicht weiter blind ausgebaut werden.
-- Zielarchitektur dokumentiert: eine zentrale normalisierte Chatquelle für Sound- und Satz-Teilspiel.
-- Neuer Chat-Prompt für EVS52.9 erstellt.
-
-### Keine Codeänderung
-
-- Keine produktive Logik geändert.
-- Keine DB-Änderung.
-- Keine weiteren Hooks ergänzt.
-- Sound-Spiel und Satz-Spiel wurden in diesem Doku-Step nicht angefasst.
-
-## 2026-06-18 – EVS52.8 Twitch-Chat Bus-Fallback
-
-- `stream_events` um Wildcard-Bus-Fallback fuer `twitch.chat.message` erweitert.
-- Diagnose `text-runtime/live-debug` um `twitchChatBusFallback` erweitert.
-- Testscript `EVS52_8_TWITCH_CHAT_BUS_FALLBACK_CHECK.ps1` ergänzt.
-- Nach Diagnose nicht als fertige Lösung bestätigt.
-
-## 2026-06-18 – EVS52.7 Twitch-Presence Chat-Bridge
-
-- Twitch-Presence-Direct-Bridge für Satz-/Text-System ergänzt.
-- Nach Diagnose nicht als fertige Lösung bestätigt.
-
-## 2026-06-18 – EVS52.6 Live-Chat Direct-Bridge
-
-- Direct-Bridge-Fallback über `twitch_events.handleIrcEvent()` ergänzt.
-- Nach Diagnose nicht als fertige Lösung bestätigt.
-
-## 2026-06-18 – EVS52.5 Text Live Flow Fix
-
-- Satz-/Text-Runtime akzeptiert Dashboard-Aliase.
-- Teiltreffer werden auch bei `wordPointsEnabled=false` erkannt.
-- Testscript `EVS52_5_TEXT_LIVE_FLOW_CHECK.ps1` bestanden.
-
-## 2026-06-18 – EVS52.4 Text-Chat-Ausgaben aktiv
-
-- Satz-Spiel-Textvarianten vorbereitet.
-- `helper_texts` und `helper_chat_output` vorgesehen.
-
-## 2026-06-18 – EVS52.3 Satzlösung-Celebration Overlay
-
-- 15s Celebration-Overlay bei kompletter Satzlösung vorbereitet.
-
-## 2026-06-18 – EVS51.x / EVS50.x
-
-- Punkte-Historie, Punktecheck, Satz-Testbereich, Duplikat-Schutz und kombinierter Sound/Text-Abschluss bestätigt.
+- `stream_events` auf `0.5.82 / STEP_EVS52_11_CHAT_COMMAND_AWAIT_FIX` erhöht.
+- Fehler im Twitch-Chat-Handler behoben: `processEventCommand()` ist async und wurde ohne `await` ausgewertet.
+- Normale Chatnachrichten werden nur noch an `processEventCommand()` gegeben, wenn sie wirklich mit `!event` beginnen.
+- Alle anderen Twitch-Chatnachrichten laufen in `processParallelChatMessage()` und damit in Sound + Satz/Text.
 
 ## 2026-06-18 – EVS52.10 Chatquelle/Active-Event-Hotfix
 
-- `stream_events` auf 0.5.81 / `STEP_EVS52_10_CHAT_ACTIVE_EVENT_HOTFIX` aktualisiert.
+- `stream_events` auf `0.5.81 / STEP_EVS52_10_CHAT_ACTIVE_EVENT_HOTFIX` aktualisiert.
 - Dashboard-/Test-Start nutzt wieder `startEvent()` und damit denselben Schutz gegen mehrere aktive Events wie der normale Startpfad.
 - `sound-runtime/skip-wait` blockiert ohne eindeutige `eventUid`, wenn mehrere aktive Events gefunden werden.
 - Statusdiagnose um `runtime.activeEventGuard` ergänzt.
-- `twitch_presence` auf 0.1.7 aktualisiert und startet die IRC-Presence standardmäßig automatisch (`TWITCH_PRESENCE_AUTOSTART`, Default true), damit Chat via `twitch_events.handleIrcEvent()` in den Bus kommt.
-- `twitch_presence.chatBus` zeigt jetzt Subscriber-Delivery und Payload-Vorschau.
-- `twitch_events` auf 0.1.13 aktualisiert und IRC-Chat-Zähler ergänzt.
+- `twitch_presence` auf `0.1.7` aktualisiert und startet IRC-Presence standardmäßig automatisch.
+- `twitch_events` auf `0.1.13` aktualisiert und IRC-Chat-Zähler ergänzt.
+
+## 2026-06-18 – EVS52.9 Twitch-Events Chatquelle aufgeräumt
+
+- `stream_events` auf `0.5.80 / STEP_EVS52_9_TWITCH_EVENTS_CHAT_SUBSCRIBER` erhöht.
+- `stream_events` verarbeitet Twitch-Chat für Sound+Satz über den zentralen Bus-Subscriber `twitch.chat.message`.
+- EVS52.6 Direct-Bridge, EVS52.7 Presence-Direct-Bridge und EVS52.8 Wildcard-Bus-Fallback aus dem produktiven Runtime-Pfad entfernt.

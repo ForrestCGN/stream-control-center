@@ -1,0 +1,110 @@
+Du arbeitest mit ForrestCGN am Projekt `stream-control-center`.
+Sprache: Deutsch. Arbeitsstil: direkt, ruhig, pragmatisch, Schritt für Schritt.
+
+WICHTIGE REGELN:
+
+- Nicht raten.
+- Vor jeder Codeänderung echte Dateien prüfen.
+- Wenn Dateien fehlen: exakt nach benötigter Datei fragen.
+- Keine Apply-Scripte, keine Patch-Scripte, keine Regex-/Set-Content-Patches.
+- Geänderte Dateien vollständig liefern.
+- ZIPs immer mit echten Zielpfaden ab Repo-Root liefern.
+- Keine produktive SQLite ersetzen/löschen/neu bauen.
+- Vor Umsetzung immer schreiben:
+  Ziel:
+  Dateien:
+  Änderung:
+  Nicht geändert:
+  Tests:
+  Dann auf Forrests ausdrückliches `go` warten.
+- Bei Datei-/ZIP-Steps: Forrest entpackt, führt `stepdone.cmd` aus, danach erst testen.
+
+Projektbasis:
+
+Repo: https://github.com/ForrestCGN/stream-control-center
+Branch: dev
+Lokales Repo: D:\Git\stream-control-center
+Live-System: D:\Streaming\stramAssets
+Server: http://127.0.0.1:8080
+Dashboard: http://127.0.0.1:8080/dashboard
+
+Aktueller stabiler Stand:
+
+`stream_events` ist live getestet mit:
+
+moduleVersion: 0.5.85
+moduleBuild: STEP_EVS52_14_NEUTRAL_UNIQUE_TEXT_HINTS
+
+EVS52.9 bis EVS52.14 wurden umgesetzt und getestet:
+
+- Twitch-Chat läuft zentral über `twitch_events` / Communication-Bus nach `stream_events`.
+- Sound- und Satz-/Text-Teilspiel nutzen dieselbe normalisierte Chatmessage.
+- Alte Direct-/Wildcard-Fallback-Wege aus EVS52.6–EVS52.8 sind aus dem produktiven Runtime-Pfad entfernt.
+- Active-Event-Guard funktioniert; Dashboard-Test-Start nutzt wieder normalen Startpfad.
+- `skip-wait` funktioniert und ist gegen mehrere aktive Events abgesichert.
+- Async-Command-Bug behoben: normale Chatnachrichten werden nicht mehr fälschlich als `!event` behandelt.
+- Bot-/Self-Filter funktioniert: `heimaufsichtcgn`, `kofistreambot`, `streamstickers`, `streamelements` werden ignoriert.
+- EngelCGN, RoxxyFoxxyCGN, Tronic6 und ForrestCGN bleiben spielberechtigt.
+- Soundantworten funktionieren.
+- Satz-Teiltreffer funktionieren.
+- Satzlösung + Overlay + Punkte funktionieren.
+- Duplicate funktioniert.
+- Teiltreffer-Chatmeldungen sind neutral: keine Satznummer, keine Satz-Zuordnung.
+- Sichtbare Anzahl zählt eindeutige gefundene Wörter/Teile aus der Usernachricht, nicht Satz-Treffer.
+
+Letzter Live-Test zeigte:
+
+twitchChatMessages: 54
+twitchChatSelfSkipped: 14
+textMessagesProcessed: 18
+soundChatMessagesProcessed: 2
+soundAnswerMatches: 2
+soundAnswerMisses: 0
+textWordHits: 14
+textPhraseSolves: 1
+chatOutputsLiveRequested: 12
+chatOutputsLiveSent: 12
+soundWaitsSkipped: 2
+activeEventGuard.activeCount: 1
+
+Ranking-Test:
+EngelCGN hatte 50 Punkte aus 2 Einträgen.
+
+Wichtige Dateien zuerst prüfen:
+
+backend/modules/stream_events.js
+backend/modules/twitch_events.js
+backend/modules/twitch_presence.js
+backend/modules/communication_bus.js
+backend/modules/helpers/helper_communication.js
+backend/modules/helpers/helper_chat_output.js
+backend/modules/helpers/helper_texts.js
+htdocs/dashboard/modules/stream_events.js
+htdocs/dashboard/modules/stream_events.css
+
+Relevante Doku:
+
+docs/current/CURRENT_CHAT_HANDOFF_EVS52_14_TESTED_STABLE.md
+docs/current/TEST_REPORT_EVS52_14_TESTED_STABLE.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/FILES.md
+project-state/CHANGELOG.md
+
+Nächste sinnvolle Aufgaben:
+
+1. Diagnosezähler `textWordHitChatOutputsBundled` prüfen, da er im letzten Status 0 blieb.
+2. `phraseSolves.points` im Report prüfen, da Punkte im Chat/Ranking korrekt waren, aber im Report leer angezeigt wurden.
+3. Bot-/Ignore-Liste später in Dashboard-Einstellungen verschieben.
+4. Textvarianten `text.word_hit.neutral.chat` im Dashboard pflegbar machen.
+5. Satzlösungs-Overlay optisch verbessern, weil Text rechts etwas knapp wirkt.
+
+Nicht direkt tun:
+
+- Chatquelle nicht erneut umbauen.
+- Keine Direct-/Wildcard-Hooks zurückholen.
+- Keine Sound-/Satz-Punktelogik ändern, solange kein konkreter Fehler bewiesen ist.
+- Keine Botliste groß umbauen, bevor Dashboard-Konzept klar ist.
+
+Wenn Forrest kein konkretes Ziel nennt, zuerst die oben genannten Dokus lesen, dann kurz den aktuellen Stand zusammenfassen und einen nächsten Step vorschlagen. Vor Umsetzung auf `go` warten.
