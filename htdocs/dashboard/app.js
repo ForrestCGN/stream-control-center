@@ -47,6 +47,14 @@ window.CGN = {
       overlayLabel: '',
       reload() { return window.TwitchEventsModule?.loadAll?.(true); }
     },
+    shot_alarm: {
+      title: 'Shot-Alarm',
+      panelId: 'shotAlarmModule',
+      group: 'control',
+      overlayLink: '/overlays/shot_alarm/shot_alarm_overlay.html',
+      overlayLabel: 'Shot-Overlay öffnen',
+      reload() { return window.ShotAlarmModule?.loadAll?.(true); }
+    },
     obs: {
       title: 'OBS Control Center',
       panelId: 'obsModule',
@@ -177,7 +185,7 @@ window.CGN = {
     control: {
       label: 'Control', icon: '🧭', role: 'streamer/local_admin/owner',
       description: 'Alerts, OBS, Overlays und Stream-Steuerung.',
-      items: ['controlhome', 'alerts', 'twitch_events', 'obs', 'overlays', 'stream_control']
+      items: ['controlhome', 'alerts', 'twitch_events', 'shot_alarm', 'obs', 'overlays', 'stream_control']
     },
     loyalty: {
       label: 'Loyalty', icon: '🎟️', role: 'mod/supermod/streamer',
@@ -213,6 +221,7 @@ window.CGN = {
     controlhome: { label: 'Übersicht', icon: '🏠', enabled: true, description: 'Control-Center Übersicht.' },
     alerts: { label: 'Alerts V2', icon: '⚡', enabled: true, description: 'Alerts, Regeln, Texte, Sounds und Testcenter.' },
     twitch_events: { label: 'Twitch Events', icon: '🧪', enabled: true, description: 'Twitch-EventSub-Events lokal simulieren und Alert-Mapping prüfen.' },
+    shot_alarm: { label: 'Shot-Alarm', icon: '🥃', enabled: true, description: 'Support-Events würfeln Shots für Engel & Roxxy: Subs, Resubs, GiftSubs, Bomben, Bits und später Ko-fi/Tipeee.' },
     obs: { label: 'OBS Details', icon: '🎮', enabled: true, description: 'OBS-Szenen, Quellen und Statusdetails.' },
     overlays: { label: 'Overlays', icon: '🖼', enabled: true, description: 'Overlay-Status, Heartbeats und Monitor-Readiness anzeigen.' },
     stream_control: { label: 'Stream-Steuerung', icon: '📺', enabled: false, description: 'Stream-Aktionen und Schaltungen vorbereitet.' },

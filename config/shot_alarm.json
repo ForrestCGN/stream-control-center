@@ -1,0 +1,79 @@
+{
+  "enabled": true,
+  "overlayEnabled": true,
+  "soundEnabled": true,
+  "dashboardCategory": "events",
+  "targetMode": "engel_roxxy_together",
+  "targetLabel": "Engel & Roxxy",
+  "display": {
+    "title": "SHOT-ALARM",
+    "holdMs": 12000,
+    "showChance": true,
+    "showRoll": false
+  },
+  "rules": {
+    "singleSubChancePercent": 20,
+    "resubChancePercent": 20,
+    "singleGiftSubChancePercent": 20,
+    "giftBombFiveChancePercent": 50,
+    "giftBombTenBlockShots": 1,
+    "bits": [
+      {
+        "minBits": 1000,
+        "chancePercent": 50,
+        "shots": 1,
+        "enabled": true,
+        "label": "1000+ Bits"
+      },
+      {
+        "minBits": 10000,
+        "chancePercent": 100,
+        "shots": 1,
+        "enabled": true,
+        "label": "10000+ Bits"
+      }
+    ],
+    "payments": {
+      "enabled": true,
+      "providers": {
+        "kofi": {
+          "enabled": true,
+          "eurPerShot": 10,
+          "chancePercent": 50
+        },
+        "tipeee": {
+          "enabled": true,
+          "eurPerShot": 10,
+          "chancePercent": 50
+        }
+      }
+    },
+    "singleSupportFiveChancePercent": 50,
+    "singleSupportTenChancePercent": 100,
+    "finalRulesVersion": "2026-06-18-final-payment-50-50"
+  },
+  "dedupe": {
+    "subscribeResubBufferEnabled": true,
+    "subscribeResubBufferMs": 60000
+  },
+  "sound": {
+    "endpoint": "http://127.0.0.1:8080/api/sound/play",
+    "category": "fun",
+    "source": "shot_alarm",
+    "target": "stream",
+    "outputTarget": "overlay",
+    "queueIfBusy": true,
+    "dropIfBusy": false,
+    "priority": 80,
+    "sounds": [
+      {
+        "type": "generated_beep",
+        "label": "Shot-Alarm Test-Beep",
+        "durationMs": 900,
+        "frequency": 880,
+        "volume": 0.35
+      }
+    ]
+  },
+  "historyLimit": 200
+}

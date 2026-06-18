@@ -1,0 +1,115 @@
+Du bist im Projekt `stream-control-center` / ForrestCGN Eventsystem. Bitte arbeite auf Deutsch, pragmatisch und sehr dateisicher.
+
+WICHTIGSTE ARBEITSREGELN
+
+- Nicht raten.
+- Fehlende Dateien exakt anfordern.
+- Immer echte aktuelle Dateien als Single Source of Truth nutzen.
+- Vor Änderungen zuerst relevante Dateien prüfen.
+- Vor Umsetzung Plan schreiben und auf mein `go` warten.
+- Keine Apply-/Patch-Scripte.
+- Keine halben Teil-Dateien.
+- ZIPs immer mit echten Zielpfaden ab Repo-Root liefern, z. B. `backend/modules/...`, `htdocs/dashboard/modules/...`, `config/...`.
+- Keine produktive SQLite-DB ersetzen oder überschreiben.
+- DB-Änderungen nur sanft per Migration/`CREATE TABLE IF NOT EXISTS`.
+- Nach Einspielen wird bei mir `stepdone.cmd` ausgeführt, danach wird getestet.
+- Bestehende Funktionalität nicht entfernen.
+- Vor neuen Strukturen immer vorhandene Helper/EventBus/Text-/Config-/Dashboard-/DB-Patterns prüfen und verwenden.
+
+AKTUELLER STABILER EVENTSYSTEM-STAND
+
+Das Eventsystem ist bis EVS52.21 stabilisiert.
+
+Aktuelle wichtige Steps:
+
+- EVS52.19 – Winner Finale Manual End
+- EVS52.20 – Winner Finale No Restart Loop
+- EVS52.21 – Winner Finale Replay Button
+
+Aktuelle Versionsstände:
+
+```text
+backend/modules/stream_events.js
+  moduleVersion: 0.5.89
+  moduleBuild: STEP_EVS52_19_WINNER_FINALE_MANUAL_END
+
+htdocs/dashboard/modules/stream_events.js
+  moduleVersion: 0.5.56
+  moduleBuild: STEP_EVS52_21_WINNER_FINALE_REPLAY_BUTTON
+
+htdocs/overlays/stream_events/event_winner_overlay.html
+  MODULE_VERSION: 0.5.41
+  STEP: EVS52.20
+```
+
+Eventsystem-Funktionen, die funktionieren und nicht ohne konkreten Grund angefasst werden sollen:
+
+- Twitch-Chatquelle zentral über Twitch-Events/Communication-Bus.
+- Sound- und Satz-/Textspiel nutzen dieselbe normalisierte Chatmessage.
+- Soundantworten funktionieren.
+- Satz-Teiltreffer funktionieren.
+- Neutrale gebündelte Teiltreffer-Chatmeldungen funktionieren.
+- Satzlösung funktioniert inklusive Punkte/Ranking/Duplicate.
+- Bot-/Self-Filter ist aktiv für:
+  - `heimaufsichtcgn`
+  - `kofistreambot`
+  - `streamstickers`
+  - `streamelements`
+- Gewinner-Finale funktioniert manuell:
+  - `🏆 Auswertung starten`
+  - `⏹ Finale beenden`
+  - `🔁 Auswertung erneut abspielen`
+
+Winner-Overlay-Link für OBS:
+
+```text
+http://127.0.0.1:8080/overlays/stream_events/event_winner_overlay.html
+```
+
+Finale-Regeln:
+
+- Overlay ist im Idle unsichtbar.
+- Finale bleibt sichtbar, bis ich es manuell beende.
+- Replay spielt dieselbe vorhandene Auswertung erneut ab und lost nicht neu aus.
+- Dasselbe aktive Finale darf nicht ständig neu gerendert werden.
+
+Offene Eventsystem-Punkte für später, aber NICHT direkt anfangen, wenn wir ein neues Modul machen:
+
+- `!event status` prüfen/fixen.
+- Bot-/Ignore-Liste dashboardfähig machen.
+- Teiltreffer-/Satztextvarianten dashboardfähig machen.
+- Finale-Overlay nach echtem Streamtest ggf. optisch nachjustieren.
+
+AUFTRAG FÜR DIESEN NEUEN CHAT
+
+Wir wollen jetzt mit einem neuen Modul im `stream-control-center` weitermachen.
+
+Bitte nicht sofort coden.
+
+Zuerst:
+
+1. Frage mich, welches neue Modul wir beginnen sollen, falls ich es noch nicht klar genannt habe.
+2. Sammle die Anforderungen streamer-/modfreundlich.
+3. Prüfe den echten aktuellen Dateistand, den ich hochlade oder der im Repo/ZIP enthalten ist.
+4. Prüfe vorhandene Systeme, die genutzt werden sollen:
+   - EventBus / Communication-Bus
+   - Twitch-Events
+   - Sound-System
+   - Media-System
+   - Text-/Message-Helper und Variantenlogik
+   - Config-/Dashboard-Patterns
+   - DB-/Migration-Helper
+   - Audit-/Logging-Struktur
+   - vorhandene Dashboard-Navigation und Modulstruktur
+5. Schreibe einen Plan mit Ziel, Dateien, Routen, DB/Config, Dashboard-UX, Tests und Risiken.
+6. Warte auf mein `go`.
+
+Für neue Module gilt:
+
+- Alles, was sinnvoll konfigurierbar ist, soll in Config/DB/Dashboard, nicht hart in Code.
+- Texte sollen langfristig variantenfähig und dashboardfähig sein.
+- Dashboard soll streamer- und modfreundlich sein, nicht technisch überladen.
+- Wenn unklar ist, wie etwas bedient werden soll, zuerst fragen.
+- Vorhandene Systeme nutzen statt Parallelstrukturen bauen.
+
+Bitte beginne im neuen Chat mit einer kurzen Bestandsaufnahme und frage dann nach dem neuen Modul bzw. bestätige das Modul, wenn ich es direkt nenne.

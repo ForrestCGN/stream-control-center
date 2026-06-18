@@ -1,0 +1,859 @@
+"use strict";
+
+/**
+ * Shot-Alarm
+ *
+ * STEP SHOT-ALARM-1:
+ * - Neues eigenständiges Modul für Support-Shot-Regeln.
+ * - Konsumiert Twitch-Support-Events über den vorhandenen Communication Bus.
+ * - Keine direkte Twitch-Abfrage, keine Änderung an Alerts/Loyalty/Ko-fi/Tipeee.
+ */
+
+const cfg = require("./helpers/helper_config");
+const communicationBus = require("./communication_bus");
+
+const MODULE_NAME = "shot_alarm";
+const MODULE_VERSION = "0.1.2";
+const MODULE_BUILD = "STEP_SHOT_ALARM_1_PAYMENT_50_50";
+const CONFIG_FILE = "shot_alarm.json";
+const HISTORY_LIMIT = 200;
+
+const MODULE_META = {
+  name: MODULE_NAME,
+  version: MODULE_VERSION,
+  build: MODULE_BUILD,
+  type: "runtime",
+  category: "events",
+  legacy: false,
+  routesPrefix: ["/api/shot-alarm"],
+  bus: {
+    consumes: [
+      "twitch.sub.received",
+      "twitch.resub.received",
+      "twitch.subgift.received",
+      "twitch.giftbomb.received",
+      "twitch.cheer.received",
+      "payment.kofi.received",
+      "payment.tipeee.received"
+    ],
+    publishes: [
+      "shot_alarm.status.updated",
+      "shot_alarm.event.received",
+      "shot_alarm.roll.done",
+      "shot_alarm.triggered",
+      "shot_alarm.overlay.show"
+    ]
+  },
+  description: "Shot-Alarm fuer Twitch-Support-Events, Bits und spaetere Payment-Events mit finalen Shot-Regeln."
+};
+
+const DEFAULT_CONFIG = {
+  enabled: true,
+  overlayEnabled: true,
+  soundEnabled: true,
+  dashboardCategory: "events",
+  targetMode: "engel_roxxy_together",
+  targetLabel: "Engel & Roxxy",
+  display: {
+    title: "SHOT-ALARM",
+    holdMs: 12000,
+    showChance: true,
+    showRoll: false
+  },
+  rules: {
+    finalRulesVersion: "2026-06-18-final-payment-50-50",
+    singleSubChancePercent: 20,
+    resubChancePercent: 20,
+    singleGiftSubChancePercent: 20,
+    singleSupportFiveChancePercent: 50,
+    singleSupportTenChancePercent: 100,
+    giftBombFiveChancePercent: 50,
+    giftBombTenBlockShots: 1,
+    bits: [
+      { minBits: 1000, chancePercent: 50, shots: 1, enabled: true, label: "1000+ Bits" },
+      { minBits: 10000, chancePercent: 100, shots: 1, enabled: true, label: "10000+ Bits" }
+    ],
+    payments: {
+      enabled: true,
+      providers: {
+        kofi: { enabled: true, eurPerShot: 10, chancePercent: 50 },
+        tipeee: { enabled: true, eurPerShot: 10, chancePercent: 50 }
+      }
+    }
+  },
+  dedupe: {
+    subscribeResubBufferEnabled: true,
+    subscribeResubBufferMs: 60000
+  },
+  sound: {
+    endpoint: "http://127.0.0.1:8080/api/sound/play",
+    category: "fun",
+    source: "shot_alarm",
+    target: "stream",
+    outputTarget: "overlay",
+    queueIfBusy: true,
+    dropIfBusy: false,
+    priority: 80,
+    sounds: [
+      {
+        type: "generated_beep",
+        label: "Shot-Alarm Test-Beep",
+        durationMs: 900,
+        frequency: 880,
+        volume: 0.35
+      }
+    ]
+  },
+  historyLimit: HISTORY_LIMIT
+};
+
+const state = {
+  initialized: false,
+  enabled: true,
+  busAvailable: false,
+  registeredOnBus: false,
+  subscriptions: [],
+  routeCount: 0,
+  configPath: "",
+  startedAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  lastError: "",
+  lastWarning: "",
+  lastEvent: null,
+  lastShot: null,
+  lastOverlay: null,
+  lastSound: null,
+  singleSupportCounter: 0,
+  counts: {
+    received: 0,
+    processed: 0,
+    skipped: 0,
+    pending: 0,
+    rolls: 0,
+    hits: 0,
+    misses: 0,
+    shots: 0,
+    overlayShows: 0,
+    soundRequests: 0,
+    soundErrors: 0,
+    singleSupportCounter: 0,
+    byType: {},
+    bySource: {}
+  },
+  pendingSubTimers: new Map(),
+  pendingSubEvents: new Map(),
+  history: []
+};
+
+let config = clone(DEFAULT_CONFIG);
+let bus = null;
+let broadcastWS = null;
+let heartbeatTimer = null;
+
+function clone(value) {
+  return JSON.parse(JSON.stringify(value ?? null));
+}
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function cleanString(value, fallback = "") {
+  const clean = String(value ?? "").trim();
+  return clean || fallback;
+}
+
+function asNumber(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function clampPercent(value, fallback = 0) {
+  return Math.max(0, Math.min(100, asNumber(value, fallback)));
+}
+
+function safeJson(value) {
+  try { return JSON.parse(JSON.stringify(value ?? null)); } catch (_) { return null; }
+}
+
+function deepMerge(base, override) {
+  const out = Array.isArray(base) ? [...base] : { ...(base || {}) };
+  if (!override || typeof override !== "object" || Array.isArray(override)) return clone(out);
+  for (const [key, value] of Object.entries(override)) {
+    if (value && typeof value === "object" && !Array.isArray(value) && out[key] && typeof out[key] === "object" && !Array.isArray(out[key])) {
+      out[key] = deepMerge(out[key], value);
+    } else {
+      out[key] = clone(value);
+    }
+  }
+  return out;
+}
+
+function increment(map, key, amount = 1) {
+  const clean = cleanString(key, "unknown");
+  map[clean] = Number(map[clean] || 0) + amount;
+}
+
+function applyFinalRuleDefaults() {
+  config.rules = config.rules || {};
+  if (config.rules.finalRulesVersion === DEFAULT_CONFIG.rules.finalRulesVersion) return false;
+
+  config.rules.finalRulesVersion = DEFAULT_CONFIG.rules.finalRulesVersion;
+  config.rules.singleSubChancePercent = 20;
+  config.rules.resubChancePercent = 20;
+  config.rules.singleGiftSubChancePercent = 20;
+  config.rules.singleSupportFiveChancePercent = 50;
+  config.rules.singleSupportTenChancePercent = 100;
+  config.rules.giftBombFiveChancePercent = 50;
+  config.rules.giftBombTenBlockShots = 1;
+  config.rules.bits = clone(DEFAULT_CONFIG.rules.bits);
+  config.rules.payments = clone(DEFAULT_CONFIG.rules.payments);
+  return true;
+}
+
+function loadConfig() {
+  const loaded = cfg.loadConfig(CONFIG_FILE, DEFAULT_CONFIG, { createIfMissing: true, spaces: 2 });
+  config = deepMerge(DEFAULT_CONFIG, loaded && loaded.data ? loaded.data : {});
+  const migrated = applyFinalRuleDefaults();
+  config.enabled = config.enabled !== false;
+  state.enabled = config.enabled;
+  state.configPath = loaded && loaded.path ? loaded.path : cfg.resolveConfigFile(CONFIG_FILE);
+  if (migrated) {
+    try { cfg.writeJsonFile(state.configPath, config, { spaces: 2 }); } catch (err) { state.lastWarning = `config_migration_save_failed: ${err && err.message ? err.message : String(err)}`; }
+  }
+  state.updatedAt = nowIso();
+  return config;
+}
+
+function saveConfig(nextConfig) {
+  const merged = deepMerge(DEFAULT_CONFIG, nextConfig || {});
+  cfg.writeJsonFile(cfg.resolveConfigFile(CONFIG_FILE), merged, { spaces: 2 });
+  config = merged;
+  state.enabled = config.enabled !== false;
+  state.updatedAt = nowIso();
+  publishStatus("config_saved");
+  return config;
+}
+
+function publicHistoryItem(item) {
+  return safeJson(item) || {};
+}
+
+function addHistory(item) {
+  const entry = {
+    id: `shot_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+    at: nowIso(),
+    ...safeJson(item)
+  };
+  state.history.unshift(entry);
+  const limit = Math.max(20, Math.min(1000, Number(config.historyLimit || HISTORY_LIMIT)));
+  state.history = state.history.slice(0, limit);
+  return entry;
+}
+
+function publicStatus() {
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    enabled: config.enabled !== false,
+    overlayEnabled: config.overlayEnabled !== false,
+    soundEnabled: config.soundEnabled !== false,
+    targetMode: config.targetMode,
+    targetLabel: config.targetLabel,
+    busAvailable: state.busAvailable,
+    registeredOnBus: state.registeredOnBus,
+    subscriptions: state.subscriptions,
+    routeCount: state.routeCount,
+    configPath: state.configPath,
+    startedAt: state.startedAt,
+    updatedAt: state.updatedAt,
+    lastError: state.lastError,
+    lastWarning: state.lastWarning,
+    lastEvent: state.lastEvent,
+    lastShot: state.lastShot,
+    lastOverlay: state.lastOverlay,
+    lastSound: state.lastSound,
+    counts: {
+      ...state.counts,
+      pending: state.pendingSubEvents.size
+    },
+    rules: {
+      singleSubChancePercent: config.rules.singleSubChancePercent,
+      resubChancePercent: config.rules.resubChancePercent,
+      singleGiftSubChancePercent: config.rules.singleGiftSubChancePercent,
+      singleSupportFiveChancePercent: config.rules.singleSupportFiveChancePercent,
+      singleSupportTenChancePercent: config.rules.singleSupportTenChancePercent,
+      giftBombFiveChancePercent: config.rules.giftBombFiveChancePercent,
+      giftBombTenBlockShots: config.rules.giftBombTenBlockShots,
+      bits: config.rules.bits,
+      payments: config.rules.payments,
+      subscribeResubBufferMs: config.dedupe.subscribeResubBufferMs,
+      subscribeResubBufferEnabled: config.dedupe.subscribeResubBufferEnabled !== false
+    },
+    overlayUrl: "/overlays/shot_alarm/shot_alarm_overlay.html"
+  };
+}
+
+function publishStatus(trigger = "manual") {
+  if (!bus || typeof bus.publishModuleStatus !== "function") return { ok: false, reason: "bus_unavailable" };
+  try {
+    return bus.publishModuleStatus(MODULE_NAME, { ...publicStatus(), trigger }, { ttlMs: 30000 });
+  } catch (err) {
+    state.lastError = err && err.message ? err.message : String(err);
+    return { ok: false, reason: "publish_failed", error: state.lastError };
+  }
+}
+
+function emitBus(action, payload = {}, meta = {}) {
+  if (!bus || typeof bus.emit !== "function") return { ok: false, reason: "bus_unavailable" };
+  try {
+    return bus.emit({
+      type: "event",
+      channel: "shot_alarm",
+      action,
+      source: { type: "module", id: `module:${MODULE_NAME}`, module: MODULE_NAME },
+      target: { type: "all", id: "*" },
+      payload,
+      meta: { requireAck: false, replayable: action === "overlay.show", ttlMs: action === "overlay.show" ? 30000 : 15000, ...meta }
+    });
+  } catch (err) {
+    state.lastError = err && err.message ? err.message : String(err);
+    return { ok: false, reason: "emit_failed", error: state.lastError };
+  }
+}
+
+function normalizeUser(payload = {}) {
+  const user = payload.user && typeof payload.user === "object" ? payload.user : {};
+  const gifter = payload.gifter && typeof payload.gifter === "object" ? payload.gifter : {};
+  const from = payload.fromBroadcaster && typeof payload.fromBroadcaster === "object" ? payload.fromBroadcaster : {};
+  const candidate = user.login || user.displayName || gifter.login || gifter.displayName || from.login || from.displayName || payload.userLogin || payload.userName || payload.displayName || payload.login || "";
+  return {
+    login: cleanString(user.login || gifter.login || from.login || payload.userLogin || payload.login || candidate).toLowerCase(),
+    displayName: cleanString(user.displayName || gifter.displayName || from.displayName || payload.userDisplayName || payload.displayName || payload.userName || candidate, "Unbekannt")
+  };
+}
+
+function subscriptionDedupeKey(payload = {}) {
+  const user = normalizeUser(payload);
+  const tier = cleanString(payload.tier || "unknown").toLowerCase();
+  return `${user.login || user.displayName.toLowerCase()}:${tier}`;
+}
+
+function pickSound() {
+  const sounds = Array.isArray(config.sound && config.sound.sounds) ? config.sound.sounds.filter(Boolean) : [];
+  if (!sounds.length) return null;
+  return clone(sounds[Math.floor(Math.random() * sounds.length)]);
+}
+
+async function requestSound(sound, context) {
+  if (config.soundEnabled === false || !sound) return { ok: false, skipped: true, reason: "sound_disabled_or_missing" };
+  const endpoint = cleanString(config.sound.endpoint, "http://127.0.0.1:8080/api/sound/play");
+  const body = {
+    ...sound,
+    label: sound.label || `Shot-Alarm ${context.eventLabel || ""}`.trim(),
+    category: sound.category || config.sound.category || "fun",
+    source: config.sound.source || MODULE_NAME,
+    requestedBy: MODULE_NAME,
+    target: sound.target || config.sound.target || "stream",
+    outputTarget: sound.outputTarget || config.sound.outputTarget || "overlay",
+    queueIfBusy: config.sound.queueIfBusy !== false,
+    dropIfBusy: config.sound.dropIfBusy === true,
+    priority: Number(config.sound.priority || 80),
+    meta: {
+      ...(sound.meta || {}),
+      module: MODULE_NAME,
+      shotAlarm: true,
+      triggerId: context.triggerId || "",
+      eventType: context.eventType || ""
+    }
+  };
+
+  state.counts.soundRequests += 1;
+  try {
+    if (typeof fetch !== "function") {
+      state.lastSound = { ok: false, skipped: true, reason: "fetch_unavailable", at: nowIso(), sound: body };
+      return state.lastSound;
+    }
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    const data = await response.json().catch(() => ({}));
+    state.lastSound = { ok: response.ok, status: response.status, at: nowIso(), sound: body, response: data };
+    if (!response.ok) state.counts.soundErrors += 1;
+    return state.lastSound;
+  } catch (err) {
+    state.counts.soundErrors += 1;
+    state.lastSound = { ok: false, at: nowIso(), error: err && err.message ? err.message : String(err), sound: body };
+    state.lastError = state.lastSound.error;
+    return state.lastSound;
+  }
+}
+
+function sendOverlay(trigger) {
+  if (config.overlayEnabled === false) return { ok: false, skipped: true, reason: "overlay_disabled" };
+  const payload = {
+    type: "shot_alarm.show",
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    at: nowIso(),
+    title: cleanString(config.display.title, "SHOT-ALARM"),
+    holdMs: Number(config.display.holdMs || 12000),
+    targetLabel: cleanString(config.targetLabel, "Engel & Roxxy"),
+    trigger
+  };
+  state.lastOverlay = payload;
+  state.counts.overlayShows += 1;
+  if (typeof broadcastWS === "function") {
+    try { broadcastWS(payload); } catch (err) { state.lastError = err && err.message ? err.message : String(err); }
+  }
+  emitBus("overlay.show", payload);
+  return { ok: true, payload };
+}
+
+function rollChance(chancePercent, options = {}) {
+  const chance = clampPercent(chancePercent, 0);
+  const roll = Number.isFinite(Number(options.forceRoll)) ? Math.max(0, Math.min(100, Number(options.forceRoll))) : Math.random() * 100;
+  return { chancePercent: chance, rollValue: Number(roll.toFixed(4)), hit: chance >= 100 || roll < chance };
+}
+
+function buildRollsForInput(input = {}, options = {}) {
+  const eventType = cleanString(input.eventType || input.type || "unknown");
+  const total = Math.max(1, Math.floor(asNumber(input.total ?? input.amount ?? 1, 1)));
+  const bits = Math.max(0, Math.floor(asNumber(input.bits, 0)));
+  const amountEur = Math.max(0, asNumber(input.amountEur ?? input.amount_eur ?? input.amount, 0));
+  const provider = cleanString(input.provider || input.source || "").toLowerCase();
+
+  if (eventType === "sub") {
+    return [buildSingleSupportRoll("single_sub", "Sub", config.rules.singleSubChancePercent, options)];
+  }
+
+  if (eventType === "resub") {
+    return [buildSingleSupportRoll("resub", "Resub", config.rules.resubChancePercent, options)];
+  }
+
+  if (eventType === "gift_sub" || eventType === "subgift") {
+    if (total >= 5) return buildGiftBombRolls(total, options);
+    return [buildSingleSupportRoll("single_gift_sub", "GiftSub", config.rules.singleGiftSubChancePercent, options)];
+  }
+
+  if (eventType === "gift_bomb" || eventType === "giftbomb") {
+    return buildGiftBombRolls(total, options);
+  }
+
+  if (eventType === "cheer" || eventType === "bits") {
+    const rule = selectBitsRule(bits);
+    if (!rule) return [{ kind: "bits", eventType, eventLabel: `${bits} Bits`, shots: 0, chancePercent: 0, rollValue: 0, hit: false, skippedReason: "no_bits_rule" }];
+    return [{ kind: "bits", eventType, eventLabel: rule.label || `${bits} Bits`, bits, shots: Math.max(1, Math.floor(asNumber(rule.shots, 1))), ...rollChance(rule.chancePercent, options) }];
+  }
+
+  if (eventType === "payment" || eventType === "kofi" || eventType === "tipeee") {
+    const paymentProvider = provider || eventType;
+    const providerConfig = config.rules.payments && config.rules.payments.providers ? config.rules.payments.providers[paymentProvider] : null;
+    if (!providerConfig || providerConfig.enabled === false || config.rules.payments.enabled === false) {
+      return [{ kind: "payment", eventType, eventLabel: paymentProvider, shots: 0, chancePercent: 0, rollValue: 0, hit: false, skippedReason: "payment_provider_disabled" }];
+    }
+    const eurPerShot = Math.max(1, asNumber(providerConfig.eurPerShot, 10));
+    const fullBlocks = Math.floor(amountEur / eurPerShot);
+    if (fullBlocks <= 0) {
+      return [{ kind: "payment", eventType, eventLabel: `${paymentProvider.toUpperCase()} ${amountEur.toFixed(2)} EUR`, amountEur, shots: 0, chancePercent: 0, rollValue: 0, hit: false, skippedReason: "below_payment_threshold" }];
+    }
+    const chancePercent = clampPercent(providerConfig.chancePercent, 50);
+    const rolls = [];
+    for (let i = 1; i <= fullBlocks; i += 1) {
+      rolls.push({
+        kind: "payment_10eur_block",
+        eventType,
+        eventLabel: `${paymentProvider.toUpperCase()} ${amountEur.toFixed(2)} EUR - 10EUR Block ${i}/${fullBlocks}`,
+        amountEur,
+        paymentBlock: i,
+        paymentBlocks: fullBlocks,
+        shots: 1,
+        ...rollChance(chancePercent, options)
+      });
+    }
+    return rolls;
+  }
+
+  return [{ kind: "unknown", eventType, eventLabel: eventType, shots: 0, chancePercent: 0, rollValue: 0, hit: false, skippedReason: "unsupported_event_type" }];
+}
+
+function buildSingleSupportRoll(kind, label, normalChancePercent, options = {}) {
+  const counter = Math.max(0, Math.floor(asNumber(options.singleSupportCounterOverride, state.singleSupportCounter + 1)));
+  if (!Number.isFinite(Number(options.singleSupportCounterOverride))) {
+    state.singleSupportCounter = counter;
+    state.counts.singleSupportCounter = counter;
+  }
+
+  if (counter > 0 && counter % 10 === 0) {
+    return {
+      kind,
+      eventType: kind === "resub" ? "resub" : kind === "single_gift_sub" ? "gift_sub" : "sub",
+      eventLabel: `${counter}. ${label} - 10er-Schwelle`,
+      singleSupportCounter: counter,
+      shots: 1,
+      chancePercent: clampPercent(config.rules.singleSupportTenChancePercent, 100),
+      rollValue: 0,
+      hit: true
+    };
+  }
+
+  if (counter > 0 && counter % 5 === 0) {
+    return {
+      kind,
+      eventType: kind === "resub" ? "resub" : kind === "single_gift_sub" ? "gift_sub" : "sub",
+      eventLabel: `${counter}. ${label} - 5er-Schwelle`,
+      singleSupportCounter: counter,
+      shots: 1,
+      ...rollChance(config.rules.singleSupportFiveChancePercent, options)
+    };
+  }
+
+  return {
+    kind,
+    eventType: kind === "resub" ? "resub" : kind === "single_gift_sub" ? "gift_sub" : "sub",
+    eventLabel: `${counter}. ${label}`,
+    singleSupportCounter: counter,
+    shots: 1,
+    ...rollChance(normalChancePercent, options)
+  };
+}
+
+function buildGiftBombRolls(total, options = {}) {
+  const safeTotal = Math.max(1, Math.floor(asNumber(total, 1)));
+  const guaranteedBlocks = Math.floor(safeTotal / 10);
+  const rest = safeTotal % 10;
+  const rolls = [];
+  if (guaranteedBlocks > 0) {
+    rolls.push({ kind: "gift_bomb_10_block", eventType: "gift_bomb", eventLabel: `${safeTotal}er Sub-Bombe`, total: safeTotal, shots: guaranteedBlocks * Math.max(1, Math.floor(asNumber(config.rules.giftBombTenBlockShots, 1))), chancePercent: 100, rollValue: 0, hit: true });
+  }
+  if (rest >= 5 || (safeTotal >= 5 && safeTotal < 10)) {
+    const isPureFiveBomb = guaranteedBlocks === 0;
+    rolls.push({
+      kind: isPureFiveBomb ? "gift_bomb_5" : "gift_bomb_5_rest",
+      eventType: "gift_bomb",
+      eventLabel: isPureFiveBomb ? `${safeTotal}er Sub-Bombe` : `${safeTotal}er Sub-Bombe Rest-5er`,
+      total: safeTotal,
+      shots: 1,
+      ...rollChance(config.rules.giftBombFiveChancePercent, options)
+    });
+  }
+  if (!rolls.length) {
+    rolls.push({ kind: "gift_bomb_below_5", eventType: "gift_bomb", eventLabel: `${safeTotal}er GiftSub`, total: safeTotal, shots: 0, chancePercent: 0, rollValue: 0, hit: false, skippedReason: "gift_bomb_below_5" });
+  }
+  return rolls;
+}
+
+function selectBitsRule(bits) {
+  const rules = Array.isArray(config.rules.bits) ? config.rules.bits.filter(rule => rule && rule.enabled !== false) : [];
+  return rules
+    .filter(rule => bits >= Math.max(0, Number(rule.minBits || 0)))
+    .sort((a, b) => Number(b.minBits || 0) - Number(a.minBits || 0))[0] || null;
+}
+
+function normalizeEnvelope(envelope = {}) {
+  const channel = cleanString(envelope.channel || "");
+  const action = cleanString(envelope.action || "");
+  const payload = envelope.payload && typeof envelope.payload === "object" ? envelope.payload : {};
+  const eventKey = `${channel}.${action}`;
+  let eventType = "unknown";
+  if (eventKey === "twitch.sub.received") eventType = "sub";
+  if (eventKey === "twitch.resub.received") eventType = "resub";
+  if (eventKey === "twitch.subgift.received") eventType = Number(payload.total || 1) >= 5 ? "gift_bomb" : "gift_sub";
+  if (eventKey === "twitch.giftbomb.received") eventType = "gift_bomb";
+  if (eventKey === "twitch.cheer.received") eventType = "cheer";
+  if (eventKey === "payment.kofi.received") eventType = "kofi";
+  if (eventKey === "payment.tipeee.received") eventType = "tipeee";
+  return { eventKey, channel, action, payload, eventType };
+}
+
+function processEnvelope(envelope, options = {}) {
+  if (config.enabled === false && options.force !== true) {
+    state.counts.skipped += 1;
+    return { ok: false, reason: "module_disabled" };
+  }
+  const normalized = normalizeEnvelope(envelope);
+  const input = {
+    ...normalized.payload,
+    eventType: normalized.eventType,
+    provider: normalized.eventType === "kofi" || normalized.eventType === "tipeee" ? normalized.eventType : ""
+  };
+  return processInput(input, { ...options, eventKey: normalized.eventKey, busEventId: envelope.id || "" });
+}
+
+function processInput(input = {}, options = {}) {
+  state.counts.received += options.countReceived === false ? 0 : 1;
+  state.counts.processed += 1;
+  state.updatedAt = nowIso();
+  const user = normalizeUser(input);
+  const eventType = cleanString(input.eventType || input.type || "unknown");
+  increment(state.counts.byType, eventType);
+  increment(state.counts.bySource, cleanString(options.eventKey || input.source || "manual"));
+
+  const rolls = buildRollsForInput(input, options);
+  const triggerBase = {
+    triggerId: `trigger_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+    eventKey: options.eventKey || "manual.test",
+    busEventId: options.busEventId || "",
+    eventType,
+    user,
+    targetMode: config.targetMode,
+    targetLabel: cleanString(config.targetLabel, "Engel & Roxxy"),
+    raw: options.includeRaw === true ? safeJson(input) : undefined
+  };
+
+  const entries = [];
+  for (const roll of rolls) {
+    state.counts.rolls += 1;
+    const shots = roll.hit ? Math.max(0, Math.floor(asNumber(roll.shots, 0))) : 0;
+    if (roll.hit && shots > 0) {
+      state.counts.hits += 1;
+      state.counts.shots += shots;
+    } else {
+      state.counts.misses += 1;
+    }
+    const trigger = {
+      ...triggerBase,
+      kind: roll.kind,
+      eventLabel: roll.eventLabel,
+      chancePercent: roll.chancePercent,
+      rollValue: roll.rollValue,
+      hit: !!roll.hit,
+      shots,
+      total: roll.total || input.total || 0,
+      bits: roll.bits || input.bits || 0,
+      amountEur: roll.amountEur || input.amountEur || 0,
+      singleSupportCounter: roll.singleSupportCounter || 0,
+      skippedReason: roll.skippedReason || ""
+    };
+    const entry = addHistory(trigger);
+    entries.push(entry);
+    state.lastEvent = entry;
+    emitBus("roll.done", entry);
+
+    if (trigger.hit && trigger.shots > 0) {
+      state.lastShot = entry;
+      emitBus("triggered", entry);
+      sendOverlay(trigger);
+      const sound = pickSound();
+      requestSound(sound, trigger).catch(() => {});
+    }
+  }
+
+  publishStatus("event_processed");
+  return { ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, result: entries, status: publicStatus() };
+}
+
+function receiveBusEvent(envelope) {
+  const normalized = normalizeEnvelope(envelope);
+  if (normalized.eventType === "unknown") {
+    state.counts.skipped += 1;
+    return { ok: false, reason: "unsupported_event", eventKey: normalized.eventKey };
+  }
+
+  if (normalized.eventType === "sub" && config.dedupe.subscribeResubBufferEnabled !== false) {
+    const key = subscriptionDedupeKey(normalized.payload);
+    const delay = Math.max(0, Number(config.dedupe.subscribeResubBufferMs || 60000));
+    clearPendingSub(key, "replace_pending_sub");
+    const timer = setTimeout(() => {
+      state.pendingSubTimers.delete(key);
+      const pending = state.pendingSubEvents.get(key);
+      state.pendingSubEvents.delete(key);
+      if (pending) processEnvelope(pending.envelope, { eventKey: pending.eventKey, busEventId: pending.envelope.id || "", countReceived: true });
+    }, delay);
+    state.pendingSubTimers.set(key, timer);
+    state.pendingSubEvents.set(key, { envelope, eventKey: normalized.eventKey, at: nowIso() });
+    state.counts.pending = state.pendingSubEvents.size;
+    state.lastEvent = { at: nowIso(), eventKey: normalized.eventKey, pending: true, dedupeKey: key, delayMs: delay };
+    publishStatus("sub_pending");
+    return { ok: true, pending: true, dedupeKey: key, delayMs: delay };
+  }
+
+  if (normalized.eventType === "resub" && config.dedupe.subscribeResubBufferEnabled !== false) {
+    const key = subscriptionDedupeKey(normalized.payload);
+    clearPendingSub(key, "resub_won_collision");
+  }
+
+  return processEnvelope(envelope, { eventKey: normalized.eventKey, busEventId: envelope.id || "" });
+}
+
+function clearPendingSub(key, reason = "cleared") {
+  const clean = cleanString(key);
+  if (!clean) return false;
+  const timer = state.pendingSubTimers.get(clean);
+  if (timer) clearTimeout(timer);
+  const existed = state.pendingSubEvents.has(clean);
+  state.pendingSubTimers.delete(clean);
+  state.pendingSubEvents.delete(clean);
+  state.counts.pending = state.pendingSubEvents.size;
+  if (existed) addHistory({ eventType: "dedupe", kind: "pending_sub_cleared", dedupeKey: clean, reason, hit: false, shots: 0 });
+  return existed;
+}
+
+function flushPending() {
+  const pending = [...state.pendingSubEvents.entries()];
+  for (const [key, item] of pending) {
+    clearPendingSub(key, "manual_flush");
+    if (item && item.envelope) processEnvelope(item.envelope, { eventKey: item.eventKey, busEventId: item.envelope.id || "", countReceived: true });
+  }
+  return pending.length;
+}
+
+function resetState() {
+  for (const key of [...state.pendingSubTimers.keys()]) clearPendingSub(key, "reset_state");
+  state.history = [];
+  state.singleSupportCounter = 0;
+  state.lastEvent = null;
+  state.lastShot = null;
+  state.lastOverlay = null;
+  state.lastSound = null;
+  state.lastError = "";
+  state.lastWarning = "";
+  state.counts = {
+    received: 0,
+    processed: 0,
+    skipped: 0,
+    pending: 0,
+    rolls: 0,
+    hits: 0,
+    misses: 0,
+    shots: 0,
+    overlayShows: 0,
+    soundRequests: 0,
+    soundErrors: 0,
+    singleSupportCounter: 0,
+    byType: {},
+    bySource: {}
+  };
+  state.updatedAt = nowIso();
+  publishStatus("reset_state");
+}
+
+function subscribeBus(channel) {
+  if (!bus || typeof bus.subscribe !== "function") return null;
+  const result = bus.subscribe({ id: `${MODULE_NAME}:${channel}:received`, module: MODULE_NAME, channel, action: "received" }, receiveBusEvent);
+  if (result && result.ok && result.subscription) state.subscriptions.push(result.subscription);
+  return result;
+}
+
+function registerBus() {
+  try {
+    bus = communicationBus.getBus();
+    state.busAvailable = !!bus;
+    if (!bus) return;
+    if (typeof bus.registerModule === "function") {
+      const result = bus.registerModule({
+        id: `module:${MODULE_NAME}`,
+        module: MODULE_NAME,
+        name: "Shot-Alarm",
+        version: MODULE_VERSION,
+        capabilities: [...MODULE_META.bus.consumes, ...MODULE_META.bus.publishes],
+        meta: { build: MODULE_BUILD, role: "support-shot-runtime" }
+      });
+      state.registeredOnBus = result && result.ok === true;
+    }
+    ["twitch.sub", "twitch.resub", "twitch.subgift", "twitch.giftbomb", "twitch.cheer", "payment.kofi", "payment.tipeee"].forEach(subscribeBus);
+    if (typeof bus.heartbeatModule === "function") bus.heartbeatModule(MODULE_NAME, { module: MODULE_NAME, version: MODULE_VERSION, build: MODULE_BUILD });
+    publishStatus("init");
+    heartbeatTimer = setInterval(() => {
+      if (bus && typeof bus.heartbeatModule === "function") bus.heartbeatModule(MODULE_NAME, { module: MODULE_NAME, version: MODULE_VERSION, build: MODULE_BUILD, counts: state.counts });
+      publishStatus("heartbeat");
+    }, 30000);
+    if (heartbeatTimer && typeof heartbeatTimer.unref === "function") heartbeatTimer.unref();
+  } catch (err) {
+    state.busAvailable = false;
+    state.lastError = err && err.message ? err.message : String(err);
+  }
+}
+
+function init(ctx = {}) {
+  const app = ctx.app;
+  broadcastWS = typeof ctx.broadcastWS === "function" ? ctx.broadcastWS : null;
+  loadConfig();
+  registerBus();
+  state.initialized = true;
+  state.updatedAt = nowIso();
+
+  if (!app) return;
+  const routes = [];
+  const get = (path, handler) => { app.get(path, handler); routes.push(`GET ${path}`); };
+  const post = (path, handler) => { app.post(path, handler); routes.push(`POST ${path}`); };
+
+  get("/api/shot-alarm/status", (req, res) => res.json(publicStatus()));
+  get("/api/shot-alarm/config", (req, res) => res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, config, path: state.configPath }));
+  post("/api/shot-alarm/config", (req, res) => {
+    try {
+      const next = saveConfig(req.body && typeof req.body === "object" ? req.body : {});
+      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, config: next, status: publicStatus() });
+    } catch (err) {
+      res.status(500).json({ ok: false, module: MODULE_NAME, error: err && err.message ? err.message : String(err) });
+    }
+  });
+  get("/api/shot-alarm/history", (req, res) => res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, items: state.history.map(publicHistoryItem), pending: [...state.pendingSubEvents.values()].map(item => ({ at: item.at, eventKey: item.eventKey })) }));
+  post("/api/shot-alarm/test", (req, res) => {
+    try {
+      const body = req.body && typeof req.body === "object" ? req.body : {};
+      const result = processInput({ ...body, eventType: cleanString(body.eventType || body.type || "sub") }, { force: true, forceRoll: body.forceRoll, includeRaw: true, eventKey: "manual.test", countReceived: true });
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ ok: false, module: MODULE_NAME, error: err && err.message ? err.message : String(err) });
+    }
+  });
+  post("/api/shot-alarm/manual-trigger", (req, res) => {
+    try {
+      const body = req.body && typeof req.body === "object" ? req.body : {};
+      const shots = Math.max(1, Math.floor(asNumber(body.shots, 1)));
+      const trigger = {
+        triggerId: `manual_${Date.now().toString(36)}`,
+        eventKey: "manual.trigger",
+        eventType: "manual",
+        kind: "manual",
+        eventLabel: cleanString(body.reason || body.label, "Manueller Shot-Alarm"),
+        user: { login: "manual", displayName: cleanString(body.user || body.displayName, "Dashboard") },
+        targetMode: config.targetMode,
+        targetLabel: config.targetLabel,
+        chancePercent: 100,
+        rollValue: 0,
+        hit: true,
+        shots
+      };
+      const entry = addHistory(trigger);
+      state.counts.hits += 1;
+      state.counts.shots += shots;
+      state.lastShot = entry;
+      sendOverlay(trigger);
+      requestSound(pickSound(), trigger).catch(() => {});
+      emitBus("triggered", entry);
+      publishStatus("manual_trigger");
+      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, trigger: entry, status: publicStatus() });
+    } catch (err) {
+      res.status(500).json({ ok: false, module: MODULE_NAME, error: err && err.message ? err.message : String(err) });
+    }
+  });
+  post("/api/shot-alarm/flush-pending", (req, res) => res.json({ ok: true, module: MODULE_NAME, flushed: flushPending(), status: publicStatus() }));
+  post("/api/shot-alarm/reset-state", (req, res) => { resetState(); res.json({ ok: true, module: MODULE_NAME, status: publicStatus() }); });
+
+  state.routeCount = routes.length;
+  console.log(`[${MODULE_NAME}] loaded v${MODULE_VERSION} build=${MODULE_BUILD} routes=${state.routeCount}`);
+}
+
+module.exports = {
+  MODULE_META,
+  MODULE_VERSION,
+  version: MODULE_VERSION,
+  init,
+  _private: {
+    DEFAULT_CONFIG,
+    buildGiftBombRolls,
+    buildSingleSupportRoll,
+    buildRollsForInput,
+    selectBitsRule,
+    normalizeEnvelope,
+    processInput,
+    resetState
+  }
+};

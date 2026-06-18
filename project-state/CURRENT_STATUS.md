@@ -1,60 +1,39 @@
-# CURRENT_STATUS – stream-control-center
+# CURRENT_STATUS – Shot-Alarm STEP 1
 
-Stand: 2026-06-18 – EVS52.14 getestet/stabil
+Stand: 2026-06-18
 
-## Kurzstatus
+## Status
 
-Das kombinierte Event-System Sound + Satz/Text ist nach EVS52.14 live getestet und funktionsfähig.
+`Shot-Alarm` wurde als neues Events-Modul vorbereitet.
 
-Aktiver Stand:
+Technisch:
 
-```text
-stream_events moduleVersion : 0.5.85
-stream_events moduleBuild   : STEP_EVS52_14_NEUTRAL_UNIQUE_TEXT_HINTS
-```
+- Modul: `shot_alarm`
+- Backend-Version: `0.1.1`
+- Build: `STEP_SHOT_ALARM_1_PAYMENT_50_50`
+- Dashboard-Kategorie: `Control` / Events-nahe Steuerung
+- Overlay: `/overlays/shot_alarm/shot_alarm_overlay.html`
 
-## Bestätigter Live-Test
+## Enthalten
 
-Letzte geprüfte Werte:
+- Backend-Modul mit Bus-Subscription auf Twitch-Support-Events
+- Config-Datei mit Default-Regeln
+- Dashboard-Seite mit Status, Config, Tests und Verlauf
+- Overlay im CGN-Neonstil
+- Sound-System-Aufruf über `/api/sound/play` mit generiertem Beep als Default
+- Resub-Dedupe-Puffer für normale Sub-Events
 
-```text
-chatSource.delivered             : 22
-chatSource.selfSkipped           : 14
-activeEventGuard.activeCount     : 1
-twitchChatMessages               : 54
-twitchChatSelfSkipped            : 14
-textMessagesProcessed            : 18
-soundChatMessagesProcessed       : 2
-soundAnswerMatches               : 2
-soundAnswerMisses                : 0
-textWordHits                     : 14
-textPhraseSolves                 : 1
-chatOutputsLiveRequested         : 12
-chatOutputsLiveSent              : 12
-soundWaitsSkipped                : 2
-```
+## Nicht geändert
 
-Ranking-Test:
+- `twitch_events.js`
+- `twitch.js`
+- `loyalty.js`
+- `alert_system.js`
+- `kofi.js`
+- `tipeee.js`
+- `sound_system.js`
+- produktive SQLite-Datenbank
 
-```text
-rank 1: EngelCGN – 50 Punkte – 2 Einträge
-```
+## Achtung
 
-## Ergebnis
-
-- Twitch-Chat kommt zentral an.
-- Soundantworten funktionieren.
-- Satz-Teiltreffer funktionieren.
-- Satzlösung funktioniert inklusive Overlay und Punkten.
-- Duplicate funktioniert.
-- Bot-/Systemaccount-Self-Loop ist behoben.
-- Wartezeit überspringen funktioniert.
-- Active-Event-Guard verhindert Mehrfach-Event-Probleme im Testpfad.
-
-## Offene Punkte
-
-- `textWordHitChatOutputsBundled` Diagnosezähler prüfen.
-- `phraseSolves.points` im Report prüfen.
-- Bot-/Ignore-Liste später ins Dashboard verschieben.
-- Textvarianten für neutrale Teiltreffer im Dashboard pflegen.
-- Satzlösungs-Overlay optisch verbessern.
+Ko-fi/Tipeee-Regel ist vorbereitet, produktiv aber erst sauber nutzbar, wenn die Payment-Module neutrale Payment-Bus-Events senden oder gezielt angebunden werden.
