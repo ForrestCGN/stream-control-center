@@ -1,14 +1,17 @@
-# TODO – stream-control-center
+# TODO – Eventsystem
 
-## EVS52.18 erledigt
+## Nach EVS52.19 testen
 
-- [x] Winner-Overlay darf gestartetes Finale nicht verpassen.
-- [x] Replay eines bestehenden Finales möglich.
-- [x] Normaler OBS-Link bleibt idle unsichtbar.
-- [x] Kein Stream-Online-Zwang für Auswertung.
+- EVS52.19 einspielen und StepDone ausführen.
+- Backend neu starten und Version prüfen: `0.5.89 / STEP_EVS52_19_WINNER_FINALE_MANUAL_END`.
+- Beendetes Testevent auswählen.
+- `🏆 Auswertung starten` klicken.
+- Prüfen: Winner-Overlay bleibt sichtbar.
+- Danach `⏹ Finale beenden` klicken.
+- Prüfen: Winner-Overlay blendet aus.
 
-## Offen
+## Offen später
 
-- [ ] Dashboard optional um Button „Auswertung erneut anzeigen“ erweitern, wenn `finale_already_started`.
-- [ ] Finale-Overlay visuell final testen.
-- [ ] Dokumentation nach erfolgreichem Live-Test finalisieren.
+- `!event status` reparieren/prüfen.
+- Bot-/Ignore-Liste dashboardfähig machen.
+- Textvarianten für Satz-Teiltreffer dashboardfähig machen.

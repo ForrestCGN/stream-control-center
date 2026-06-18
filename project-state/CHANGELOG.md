@@ -1,11 +1,12 @@
-# CHANGELOG – stream-control-center
+# CHANGELOG – STEP EVS52.19
 
-## 2026-06-18 – EVS52.18 Winner Overlay Replay State
+## EVS52.19 – Winner Finale Manual End
 
-- `stream_events` auf `0.5.88 / STEP_EVS52_18_WINNER_OVERLAY_REPLAY_STATE` erhöht.
-- Bestehendes Gewinner-Finale kann erneut angezeigt werden, ohne neu auszulosen.
-- Replay aktualisiert `winnerFinaleLastReplayAt` / `winnerFinaleLastShownAt`.
-- Neuer Endpoint `GET /api/stream-events/winner-finale/latest` ergänzt.
-- Winner-Overlay auf `0.5.39 / EVS52.18` erhöht.
-- Overlay bleibt idle unsichtbar, pollt aber automatisch nach frischem Finale und zeigt es an, falls der Bus-Event verpasst wurde.
-- Kein Stream-Online-Zwang für Auswertung/Replay.
+- Gewinner-Finale ist jetzt ein manueller Zustand, kein Timer-/Poll-gesteuertes Overlay mehr.
+- Backend setzt `winnerFinale.active=true` beim Start/Replay und `active=false` erst beim manuellen Beenden.
+- Neuer Endpoint: `POST /api/stream-events/events/:eventUid/finale/end?confirm=1`.
+- Dashboard zeigt nach Finale-Start den Button `⏹ Finale beenden`.
+- Winner-Overlay bleibt sichtbar, bis ein explizites Hide-/Ende-Event vom Backend kommt.
+- Latest-/Polling-Checks dürfen ein laufendes Finale nicht mehr ausblenden.
+
+Nicht geändert: Punkte, Ranking, Sound-/Satzlogik, Chatquelle, Botfilter, Datenbank-Schema.

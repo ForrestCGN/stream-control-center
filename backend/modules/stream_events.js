@@ -33,8 +33,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.88";
-const MODULE_BUILD = "STEP_EVS52_18_WINNER_OVERLAY_REPLAY_STATE";
+const MODULE_VERSION = "0.5.89";
+const MODULE_BUILD = "STEP_EVS52_19_WINNER_FINALE_MANUAL_END";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -7153,6 +7153,26 @@ function finaleFreshnessMs(finale = {}, metadata = {}) {
   return Number.POSITIVE_INFINITY;
 }
 
+function isWinnerFinaleActive(finale = {}, metadata = {}) {
+  if (!finale || typeof finale !== "object") return false;
+  if (finale.active === false) return false;
+  if (metadata && metadata.winnerFinaleActive === false) return false;
+  if (cleanString(finale.endedAt || finale.hiddenAt || metadata.winnerFinaleEndedAt || metadata.winnerFinaleHiddenAt)) return false;
+  return true;
+}
+
+function winnerFinaleActivitySummary(finale = {}, metadata = {}) {
+  const active = isWinnerFinaleActive(finale, metadata);
+  return {
+    active,
+    startedAt: cleanString(finale.startedAt || metadata.winnerFinaleLastStartedAt || ""),
+    lastReplayAt: cleanString(finale.lastReplayAt || finale.replayAt || metadata.winnerFinaleLastReplayAt || ""),
+    endedAt: cleanString(finale.endedAt || metadata.winnerFinaleEndedAt || ""),
+    hiddenAt: cleanString(finale.hiddenAt || metadata.winnerFinaleHiddenAt || ""),
+    rule: "winner_finale_visible_until_manual_end"
+  };
+}
+
 async function getLatestWinnerFinale(options = {}) {
   ensureSchema();
   const maxAgeMs = Math.max(1000, Math.min(Number(options.maxAgeMs || 300000) || 300000, 3600000));
@@ -7170,8 +7190,10 @@ async function getLatestWinnerFinale(options = {}) {
     const metadata = safeJson({ ...(event.metadata || {}) }, {});
     const finale = metadata.winnerFinale && typeof metadata.winnerFinale === "object" ? metadata.winnerFinale : null;
     if (!finale) continue;
+    const activity = winnerFinaleActivitySummary(finale, metadata);
+    if (!activity.active && !includeStale) continue;
     const ageMs = finaleFreshnessMs(finale, metadata);
-    if (!best || ageMs < best.ageMs) best = { event, metadata, finale, ageMs };
+    if (!best || ageMs < best.ageMs) best = { event, metadata, finale, ageMs, activity };
   }
 
   if (!best) return { ok: false, error: "winner_finale_missing", maxAgeMs, includeStale, rule: "latest_winner_finale_by_replay_or_started_at" };
@@ -7193,8 +7215,9 @@ async function getLatestWinnerFinale(options = {}) {
     ok: true,
     event: publicEventSummary(best.event),
     eventUid: best.event.eventUid,
-    finale,
+    finale: { ...finale, active: best.activity ? best.activity.active : isWinnerFinaleActive(finale, best.metadata), activity: best.activity || winnerFinaleActivitySummary(finale, best.metadata) },
     preview,
+    activity: best.activity || winnerFinaleActivitySummary(finale, best.metadata),
     ageMs: best.ageMs,
     maxAgeMs,
     includeStale,
@@ -7212,13 +7235,17 @@ function buildWinnerFinalePreview(eventUid, options = {}) {
   const rows = Array.isArray(ranking.rows) ? ranking.rows : [];
   const topScore = rows.length ? Number(rows[0].points || 0) : 0;
   const topCandidates = rows.filter(row => Number(row.points || 0) === topScore && topScore > 0);
-  const existing = event.metadata && event.metadata.winnerFinale && typeof event.metadata.winnerFinale === "object" ? event.metadata.winnerFinale : null;
+  const metadata = safeJson({ ...(event.metadata || {}) }, {});
+  const existing = metadata.winnerFinale && typeof metadata.winnerFinale === "object" ? metadata.winnerFinale : null;
   const finaleStarted = Boolean(existing);
+  const finaleActivity = winnerFinaleActivitySummary(existing, metadata);
+  const finaleActive = Boolean(finaleStarted && finaleActivity.active);
   const routeCanStartOrReplay = event.status === STATUS.FINISHED && rows.length > 0;
   const dashboardCanStartFinale = routeCanStartOrReplay && !finaleStarted;
+  const dashboardCanEndFinale = finaleActive;
   const dashboardBlockedReason = event.status !== STATUS.FINISHED
     ? "event_not_finished"
-    : (!rows.length ? "ranking_empty" : (finaleStarted ? "finale_already_started" : ""));
+    : (!rows.length ? "ranking_empty" : (finaleActive ? "finale_active" : (finaleStarted ? "finale_already_started" : "")));
   return {
     ok: true,
     event: publicEventSummary(event),
@@ -7235,6 +7262,9 @@ function buildWinnerFinalePreview(eventUid, options = {}) {
     hasTie: topCandidates.length > 1,
     existingFinale: existing,
     finaleStarted,
+    finaleActive,
+    dashboardCanEndFinale,
+    finaleActivity,
     canStartFinale: routeCanStartOrReplay,
     dashboardCanStartFinale,
     finaleEligibility: {
@@ -7244,8 +7274,10 @@ function buildWinnerFinalePreview(eventUid, options = {}) {
       status: event.status,
       rankingCount: rows.length,
       finaleStarted,
+      finaleActive,
+      canEnd: dashboardCanEndFinale,
       existingFinaleUid: existing && existing.finaleUid ? existing.finaleUid : "",
-      rule: "dashboard_button_visible_only_when_finished_with_ranking_and_no_existing_finale"
+      rule: "dashboard_start_only_before_finale_end_button_only_while_active"
     },
     rule: "winner_finale_allowed_only_when_event_status_finished"
   };
@@ -7271,6 +7303,10 @@ async function startWinnerFinale(eventUid, body = {}) {
     const gatedRanking = existingRanking.map((row, index) => index < 3 ? existingGate.rows[index] || row : row);
     const existing = {
       ...existingBase,
+      active: true,
+      state: "active",
+      endedAt: "",
+      hiddenAt: "",
       replayAt,
       lastReplayAt: replayAt,
       ranking: gatedRanking,
@@ -7280,6 +7316,9 @@ async function startWinnerFinale(eventUid, body = {}) {
       overlayReadyGate: existingGate
     };
     metadata.winnerFinale = existing;
+    metadata.winnerFinaleActive = true;
+    metadata.winnerFinaleEndedAt = "";
+    metadata.winnerFinaleHiddenAt = "";
     metadata.winnerFinaleLastReplayAt = replayAt;
     metadata.winnerFinaleLastShownAt = replayAt;
     database.updateByKey("stream_events_events", "event_uid", uid, {
@@ -7304,6 +7343,10 @@ async function startWinnerFinale(eventUid, body = {}) {
     eventName: event.name,
     startedAt: now,
     startedBy: cleanString(body.actor || body.createdBy || "dashboard", "dashboard"),
+    active: true,
+    state: "active",
+    endedAt: "",
+    hiddenAt: "",
     mode: candidates.length > 1 ? "draw_among_tied_first_place" : "single_winner_presentation",
     style: "cgn_altersheim_rentner",
     winner,
@@ -7322,6 +7365,9 @@ async function startWinnerFinale(eventUid, body = {}) {
       : "Eindeutiger Event-Gewinner: Die Heimleitung startet das Finale."
   };
   metadata.winnerFinale = finale;
+  metadata.winnerFinaleActive = true;
+  metadata.winnerFinaleEndedAt = "";
+  metadata.winnerFinaleHiddenAt = "";
   metadata.winnerFinaleLastStartedAt = now;
   database.updateByKey("stream_events_events", "event_uid", uid, {
     metadata_json: jsonEncode(metadata),
@@ -7333,6 +7379,38 @@ async function startWinnerFinale(eventUid, body = {}) {
   emitBus("stream_events.winner_finale", "started", { event: publicEventSummary(updated), finale, preview, avatarPreload: finaleRows.avatarPreload });
   publishStatus("winner_finale.started", { lastEventUid: uid, top3AvatarPreload: finaleRows.avatarPreload });
   return { ok: true, event: updated, finale, preview, avatarPreload: finaleRows.avatarPreload, overlayReady: true, overlayStepPending: "EVS42_winner_overlay_animation" };
+}
+
+function endWinnerFinale(eventUid, body = {}) {
+  ensureSchema();
+  const uid = cleanString(eventUid);
+  const event = getEventByUid(uid);
+  if (!event) return { ok: false, error: "event_not_found", eventUid: uid };
+  const metadata = safeJson({ ...(event.metadata || {}) }, {});
+  const existing = metadata.winnerFinale && typeof metadata.winnerFinale === "object" ? metadata.winnerFinale : null;
+  if (!existing) return { ok: false, error: "winner_finale_missing", eventUid: uid, preview: buildWinnerFinalePreview(uid) };
+  const now = nowIso();
+  const ended = {
+    ...existing,
+    active: false,
+    state: "ended",
+    endedAt: now,
+    hiddenAt: now,
+    endedBy: cleanString(body.actor || body.endedBy || "dashboard", "dashboard")
+  };
+  metadata.winnerFinale = ended;
+  metadata.winnerFinaleActive = false;
+  metadata.winnerFinaleEndedAt = now;
+  metadata.winnerFinaleHiddenAt = now;
+  database.updateByKey("stream_events_events", "event_uid", uid, {
+    metadata_json: jsonEncode(metadata),
+    updated_at: now
+  });
+  const updated = getEventByUid(uid) || event;
+  const preview = buildWinnerFinalePreview(uid);
+  emitBus("stream_events.winner_finale", "hide", { eventUid: uid, event: publicEventSummary(updated), finale: ended, preview, endedAt: now, hiddenAt: now, reason: "manual_end" });
+  publishStatus("winner_finale.ended", { lastEventUid: uid, winnerFinaleEndedAt: now });
+  return { ok: true, event: publicEventSummary(updated), finale: ended, preview, endedAt: now, hiddenAt: now, rule: "winner_finale_hidden_only_by_manual_end" };
 }
 
 function isEventCommandModerator(chat = {}) {
@@ -8510,6 +8588,7 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "POST", path: `${prefix}/events/:eventUid/finish`, description: "Event manuell/fachlich beenden und Auslosung freigeben" },
       { method: "GET", path: `${prefix}/events/:eventUid/finale`, description: "EVS41: Gewinner-/Auslosungsdaten lesen; erlaubt nur bei finished" },
       { method: "POST", path: `${prefix}/events/:eventUid/finale/start`, description: "EVS41: Gewinner-Finale starten; nur bei status=finished" },
+      { method: "POST", path: `${prefix}/events/:eventUid/finale/end`, description: "EVS52.19: Gewinner-Finale manuell beenden und Overlay ausblenden" },
       { method: "POST", path: `${prefix}/events/:eventUid/cancel`, description: "Event abbrechen" },
       { method: "POST", path: `${prefix}/events/:eventUid/archive`, description: "EVS-21: Beendetes Event archivieren; nur status=finished" },
       { method: "POST", path: `${prefix}/events/:eventUid/delete`, description: "EVS-21: Event und zugehoerige Eventdaten mit confirm=DELETE loeschen" },
@@ -9182,6 +9261,19 @@ module.exports.init = function init(ctx) {
         return sendJson(res, { ok: false, error: "confirm_required", message: "Gewinner-Finale startet nur mit confirm=1.", eventUid: req.params.eventUid }, 400);
       }
       const result = await startWinnerFinale(req.params.eventUid, req.body || {});
+      sendJson(res, result, result.ok ? 200 : (result.error === "event_not_found" ? 404 : 400));
+    } catch (err) {
+      handleError(res, err, 400);
+    }
+  });
+
+  reg("post", `${prefix}/events/:eventUid/finale/end`, (req, res) => {
+    try {
+      const confirm = String((req.query && req.query.confirm) || (req.body && req.body.confirm) || "").toLowerCase();
+      if (!["1", "true", "yes", "ja", "confirm"].includes(confirm)) {
+        return sendJson(res, { ok: false, error: "confirm_required", message: "Gewinner-Finale wird nur mit confirm=1 beendet.", eventUid: req.params.eventUid }, 400);
+      }
+      const result = endWinnerFinale(req.params.eventUid, req.body || {});
       sendJson(res, result, result.ok ? 200 : (result.error === "event_not_found" ? 404 : 400));
     } catch (err) {
       handleError(res, err, 400);

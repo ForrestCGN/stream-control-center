@@ -265,7 +265,7 @@ window.StreamEventsModule = (function(){
       <div class="evs-page">
         <div class="evs-header glass">
           <div>
-            <div class="evs-kicker">EVS52.16b · Auswertungsbutton sichtbar</div>
+            <div class="evs-kicker">EVS52.19 · Finale manuell beenden</div>
             <h2>Event-System</h2>
             <p>Übersicht zeigt den aktuellen Event-Stand und die nächste sinnvolle Aktion.</p>
           </div>
@@ -1513,6 +1513,7 @@ window.StreamEventsModule = (function(){
       event_not_finished: 'Event ist noch nicht beendet.',
       ranking_empty: 'Es gibt noch keine Punkte/Rangliste.',
       finale_already_started: 'Die Auswertung wurde bereits gestartet.',
+      finale_active: 'Das Finale läuft bereits und kann manuell beendet werden.',
       event_not_found: 'Event wurde nicht gefunden.'
     };
     return map[norm(reason)] || (reason ? String(reason) : 'Auswertung ist aktuell nicht möglich.');
@@ -1526,6 +1527,10 @@ window.StreamEventsModule = (function(){
     if (!event) return '';
     const preview = finalePreviewForEvent(event);
     const eligibility = preview?.finaleEligibility || null;
+    const finaleActive = Boolean(eligibility?.finaleActive || eligibility?.canEnd || preview?.finaleActive || preview?.dashboardCanEndFinale);
+    if (finaleActive) {
+      return `<button type="button" class="evs-btn evs-btn-danger evs-btn-finale" data-evs-action="endWinnerFinale" data-uid="${esc(event.eventUid)}">⏹ Finale beenden</button>`;
+    }
     const canFinale = Boolean(eligibility?.canStart || preview?.dashboardCanStartFinale);
     if (!canFinale) return '';
     return `<button type="button" class="evs-btn evs-btn-primary evs-btn-finale" data-evs-action="winnerFinale" data-uid="${esc(event.eventUid)}">🏆 Auswertung starten</button>`;
@@ -1538,6 +1543,7 @@ window.StreamEventsModule = (function(){
     const preview = finalePreviewForEvent(event);
     const eligibility = preview?.finaleEligibility || null;
     const canFinale = Boolean(eligibility?.canStart || preview?.dashboardCanStartFinale);
+    const finaleActive = Boolean(eligibility?.finaleActive || eligibility?.canEnd || preview?.finaleActive || preview?.dashboardCanEndFinale);
     const finaleReason = eligibility?.reason || preview?.dashboardBlockedReason || (s !== 'finished' ? 'event_not_finished' : 'ranking_empty');
     const rankingCount = Number(eligibility?.rankingCount ?? preview?.ranking?.count ?? 0) || 0;
     const finaleStarted = Boolean(eligibility?.finaleStarted || preview?.finaleStarted || preview?.existingFinale);
@@ -1559,7 +1565,7 @@ window.StreamEventsModule = (function(){
         </div>
         <div class="evs-safety-rule-list">
           <div class="${canArchive ? 'is-ok' : 'is-blocked'}"><b>Archivieren</b><span>${canArchive ? 'Dieses Event ist beendet und kann archiviert werden.' : 'Archivieren ist erst möglich, wenn das Event beendet wurde.'}</span></div>
-          <div class="${canFinale ? 'is-ok' : 'is-blocked'}"><b>Auswertung</b><span>${canFinale ? `Auswertung ist möglich. ${rankingCount} Ranglisten-Eintrag(e) vorhanden.` : finaleBlockedReasonLabel(finaleReason)}</span></div>
+          <div class="${(canFinale || finaleActive) ? 'is-ok' : 'is-blocked'}"><b>Auswertung</b><span>${finaleActive ? 'Finale läuft und bleibt sichtbar, bis du es manuell beendest.' : (canFinale ? `Auswertung ist möglich. ${rankingCount} Ranglisten-Eintrag(e) vorhanden.` : finaleBlockedReasonLabel(finaleReason))}</span></div>
           <div><b>Löschen</b><span>Löschen fragt einmal nach und entfernt dieses Event dauerhaft.</span></div>
           <div><b>Was bleibt erhalten?</b><span>Archivieren behält Punkte, Runden und Textdaten. Löschen entfernt das Event vollständig.</span></div>
         </div>
@@ -3746,6 +3752,22 @@ window.StreamEventsModule = (function(){
     }
   }
 
+  async function endWinnerFinale(uid){
+    if (!uid) return;
+    if (!confirm('Finale jetzt beenden? Das Gewinner-Overlay wird ausgeblendet.')) return;
+    try {
+      await window.CGN.api(`${api.events}/${encodeURIComponent(uid)}/finale/end?confirm=1`, {
+        method: 'POST',
+        body: JSON.stringify({ actor: 'dashboard' })
+      });
+      state.message = 'Finale beendet. Das Gewinner-Overlay wird ausgeblendet.';
+      await reloadDashboardAfterMutation(uid, { keepTab: true });
+    } catch (err) {
+      state.error = err.message || String(err);
+      render();
+    }
+  }
+
   async function skipSoundWait(uid){
     if (!uid) return;
     const event = state.events.find(e => e.eventUid === uid) || state.selected;
@@ -4060,6 +4082,7 @@ window.StreamEventsModule = (function(){
       if (action === 'start') return eventAction('start', uid);
       if (action === 'finish') return eventAction('finish', uid);
       if (action === 'winnerFinale') return startWinnerFinale(uid);
+      if (action === 'endWinnerFinale') return endWinnerFinale(uid);
       if (action === 'cancel') return eventAction('cancel', uid);
       if (action === 'archive') return archiveSelectedEvent(uid);
       if (action === 'renameEvent') return openRenameDialog(uid);

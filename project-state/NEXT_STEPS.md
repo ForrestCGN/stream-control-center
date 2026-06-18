@@ -1,14 +1,14 @@
-# NEXT_STEPS – stream-control-center
+# NEXT STEPS – EVS52.19
 
-## Direkt testen
+1. ZIP in `D:\Git\stream-control-center` entpacken.
+2. `stepdone.cmd` ausführen.
+3. Backend neu starten.
+4. Dashboard hart neu laden.
+5. Finale starten und danach manuell beenden.
 
-1. Backend/Overlay EVS52.18 einspielen.
-2. StepDone ausführen.
-3. Backend neu starten und OBS-Source aktualisieren.
-4. Finale erneut starten/replayen.
-5. Prüfen, ob Winner-Overlay erscheint.
+PowerShell-Prüfung:
 
-## Danach
-
-- Falls Replay funktioniert: Dashboard-Button „Auswertung erneut anzeigen“ planen.
-- Falls Overlay weiter leer bleibt: Overlay-Bus-Verbindung in OBS prüfen.
+```powershell
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/status"
+$s | Select-Object moduleVersion,moduleBuild | Format-List
+```

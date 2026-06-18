@@ -322,8 +322,8 @@
   (() => {
     "use strict";
 
-    const MODULE_VERSION = "0.5.39";
-    const STEP = "EVS52.18";
+    const MODULE_VERSION = "0.5.40";
+    const STEP = "EVS52.19";
 
     const INLINE_LAYOUT = {"version": "EVS49.37", "canvas": {"w": 1920, "h": 1080}, "background": "/assets/stream_events/winner_finale_bg_1920x1080.png", "boxes": [{"id": "header.area", "label": "HEADER AREA", "group": "header", "role": "area", "shape": "rect", "x": 465, "y": 105, "w": 980, "h": 150}, {"id": "header.title", "label": "HEADER TITLE", "group": "header", "role": "title", "shape": "rect", "x": 560, "y": 135, "w": 800, "h": 46}, {"id": "header.subtitle", "label": "HEADER SUBTITLE", "group": "header", "role": "subtitle", "shape": "rect", "x": 620, "y": 190, "w": 680, "h": 38}, {"id": "slot1.area", "label": "SLOT 1 AREA", "group": "slot1", "role": "area", "shape": "rect", "x": 690, "y": 365, "w": 540, "h": 360}, {"id": "slot1.avatar", "label": "SLOT 1 AVATAR", "group": "slot1", "role": "avatar", "shape": "circle", "x": 890, "y": 400, "w": 130, "h": 130}, {"id": "slot1.name", "label": "SLOT 1 NAME", "group": "slot1", "role": "name", "shape": "rect", "x": 755, "y": 540, "w": 410, "h": 54}, {"id": "slot1.points", "label": "SLOT 1 POINTS", "group": "slot1", "role": "points", "shape": "rect", "x": 825, "y": 600, "w": 270, "h": 44}, {"id": "slot1.reward", "label": "SLOT 1 REWARD", "group": "slot1", "role": "reward", "shape": "rect", "x": 825, "y": 660, "w": 270, "h": 44}, {"id": "slot2.area", "label": "SLOT 2 AREA", "group": "slot2", "role": "area", "shape": "rect", "x": 120, "y": 405, "w": 475, "h": 315}, {"id": "slot2.avatar", "label": "SLOT 2 AVATAR", "group": "slot2", "role": "avatar", "shape": "circle", "x": 295, "y": 420, "w": 120, "h": 120}, {"id": "slot2.name", "label": "SLOT 2 NAME", "group": "slot2", "role": "name", "shape": "rect", "x": 185, "y": 550, "w": 340, "h": 50}, {"id": "slot2.points", "label": "SLOT 2 POINTS", "group": "slot2", "role": "points", "shape": "rect", "x": 235, "y": 610, "w": 240, "h": 42}, {"id": "slot2.reward", "label": "SLOT 2 REWARD", "group": "slot2", "role": "reward", "shape": "rect", "x": 235, "y": 655, "w": 240, "h": 42}, {"id": "slot3.area", "label": "SLOT 3 AREA", "group": "slot3", "role": "area", "shape": "rect", "x": 1325, "y": 405, "w": 475, "h": 315}, {"id": "slot3.avatar", "label": "SLOT 3 AVATAR", "group": "slot3", "role": "avatar", "shape": "circle", "x": 1500, "y": 420, "w": 120, "h": 120}, {"id": "slot3.name", "label": "SLOT 3 NAME", "group": "slot3", "role": "name", "shape": "rect", "x": 1390, "y": 550, "w": 340, "h": 50}, {"id": "slot3.points", "label": "SLOT 3 POINTS", "group": "slot3", "role": "points", "shape": "rect", "x": 1440, "y": 610, "w": 240, "h": 42}, {"id": "slot3.reward", "label": "SLOT 3 REWARD", "group": "slot3", "role": "reward", "shape": "rect", "x": 1440, "y": 660, "w": 240, "h": 42}, {"id": "honor4.area", "label": "HONOR 4 AREA", "group": "honor4", "role": "area", "shape": "rect", "x": 55, "y": 820, "w": 185, "h": 130}, {"id": "honor4.name", "label": "HONOR 4 NAME", "group": "honor4", "role": "name", "shape": "rect", "x": 70, "y": 835, "w": 155, "h": 42}, {"id": "honor4.reward", "label": "HONOR 4 REWARD", "group": "honor4", "role": "reward", "shape": "rect", "x": 70, "y": 895, "w": 155, "h": 42}, {"id": "honor5.area", "label": "HONOR 5 AREA", "group": "honor5", "role": "area", "shape": "rect", "x": 325, "y": 820, "w": 185, "h": 130}, {"id": "honor5.name", "label": "HONOR 5 NAME", "group": "honor5", "role": "name", "shape": "rect", "x": 340, "y": 835, "w": 155, "h": 42}, {"id": "honor5.reward", "label": "HONOR 5 REWARD", "group": "honor5", "role": "reward", "shape": "rect", "x": 340, "y": 895, "w": 155, "h": 42}, {"id": "honor6.area", "label": "HONOR 6 AREA", "group": "honor6", "role": "area", "shape": "rect", "x": 595, "y": 820, "w": 185, "h": 130}, {"id": "honor6.name", "label": "HONOR 6 NAME", "group": "honor6", "role": "name", "shape": "rect", "x": 610, "y": 835, "w": 155, "h": 42}, {"id": "honor6.reward", "label": "HONOR 6 REWARD", "group": "honor6", "role": "reward", "shape": "rect", "x": 610, "y": 895, "w": 155, "h": 42}, {"id": "honor7.area", "label": "HONOR 7 AREA", "group": "honor7", "role": "area", "shape": "rect", "x": 865, "y": 820, "w": 185, "h": 130}, {"id": "honor7.name", "label": "HONOR 7 NAME", "group": "honor7", "role": "name", "shape": "rect", "x": 880, "y": 835, "w": 155, "h": 42}, {"id": "honor7.reward", "label": "HONOR 7 REWARD", "group": "honor7", "role": "reward", "shape": "rect", "x": 880, "y": 895, "w": 155, "h": 42}, {"id": "honor8.area", "label": "HONOR 8 AREA", "group": "honor8", "role": "area", "shape": "rect", "x": 1135, "y": 820, "w": 185, "h": 130}, {"id": "honor8.name", "label": "HONOR 8 NAME", "group": "honor8", "role": "name", "shape": "rect", "x": 1150, "y": 835, "w": 155, "h": 42}, {"id": "honor8.reward", "label": "HONOR 8 REWARD", "group": "honor8", "role": "reward", "shape": "rect", "x": 1150, "y": 895, "w": 155, "h": 42}, {"id": "honor9.area", "label": "HONOR 9 AREA", "group": "honor9", "role": "area", "shape": "rect", "x": 1405, "y": 820, "w": 185, "h": 130}, {"id": "honor9.name", "label": "HONOR 9 NAME", "group": "honor9", "role": "name", "shape": "rect", "x": 1420, "y": 835, "w": 155, "h": 42}, {"id": "honor9.reward", "label": "HONOR 9 REWARD", "group": "honor9", "role": "reward", "shape": "rect", "x": 1420, "y": 895, "w": 155, "h": 42}, {"id": "honor10.area", "label": "HONOR 10 AREA", "group": "honor10", "role": "area", "shape": "rect", "x": 1675, "y": 820, "w": 185, "h": 130}, {"id": "honor10.name", "label": "HONOR 10 NAME", "group": "honor10", "role": "name", "shape": "rect", "x": 1690, "y": 835, "w": 155, "h": 42}, {"id": "honor10.reward", "label": "HONOR 10 REWARD", "group": "honor10", "role": "reward", "shape": "rect", "x": 1690, "y": 895, "w": 155, "h": 42}]};
 
@@ -345,6 +345,7 @@
     const latestPollMs = Math.max(1000, Math.min(Number(qs.get("pollMs") || qs.get("poll_ms") || "2500") || 2500, 30000));
     let latestPollTimer = null;
     let renderedFinaleKey = "";
+    let finaleVisible = false;
 
     const els = {
       liveLayer: document.getElementById("liveLayer"),
@@ -370,11 +371,17 @@
       document.body.classList.add("overlay-visible");
     }
 
-    function hideStage(reason = "idle") {
+    function hideStage(reason = "idle", force = false) {
       if (BOX_DEBUG || GRID_DEBUG || demo || PREVIEW_MODE) return;
+      const reasonText = String(reason || "idle");
+      if (!force && finaleVisible && reasonText.startsWith("latest_")) {
+        log({ step: STEP, moduleVersion: MODULE_VERSION, mode: "keep_visible", reason: reasonText, rule: "winner_finale_hidden_only_by_manual_end" });
+        return;
+      }
+      if (force) finaleVisible = false;
       document.body.classList.remove("overlay-visible");
       els.liveLayer.innerHTML = "";
-      log({ step: STEP, moduleVersion: MODULE_VERSION, mode: "hidden", reason });
+      log({ step: STEP, moduleVersion: MODULE_VERSION, mode: "hidden", reason: reasonText });
     }
 
     function normalizeLayout(raw) {
@@ -735,6 +742,7 @@
       const finale = normalizeFinale(raw);
       const finaleKey = cleanText(finale.finaleUid || "") + ":" + cleanText(finale.replayAt || finale.lastReplayAt || finale.startedAt || "");
       renderedFinaleKey = finaleKey || (`rendered:${Date.now()}`);
+      finaleVisible = true;
       showStage();
       els.liveLayer.innerHTML = "";
       const first = (finale.podiumRows || []).find((row) => row.rank === 1);
@@ -865,9 +873,13 @@
         const res = await fetch(`/api/stream-events/events/${encodeURIComponent(eventUid)}/finale`, { cache: "no-store" });
         if (!res.ok) throw new Error("HTTP " + res.status);
         const data = await res.json();
-        if (data && data.existingFinale) renderFinale({ finale: data.existingFinale, preview: data, event: data.event });
-        else if (data && data.finale) renderFinale({ finale: data.finale, preview: data.preview || data, event: data.event });
-        else renderFinale({ finale: data, preview: data, event: data.event });
+        const finale = data && (data.existingFinale || data.finale || (data.preview && data.preview.existingFinale) || null);
+        const active = Boolean(data && (data.finaleActive || data.dashboardCanEndFinale || (data.finaleActivity && data.finaleActivity.active)));
+        if (finale && (active || (finale.active !== false && !finale.endedAt && !finale.hiddenAt))) {
+          renderFinale({ finale, preview: data.preview || data, event: data.event });
+        } else {
+          hideStage("event_uid_no_active_finale", true);
+        }
       } catch (err) {
         log({ error: err.message || String(err), eventUid });
       }
@@ -879,16 +891,21 @@
         const url = `/api/stream-events/winner-finale/latest?maxAgeMs=${encodeURIComponent(String(latestMaxAgeMs))}`;
         const res = await fetch(url, { cache: "no-store" });
         if (!res.ok) {
-          hideStage(`latest_${reason}_empty`);
+          log({ step: STEP, moduleVersion: MODULE_VERSION, mode: "latest_empty", reason, rule: "do_not_hide_running_finale" });
           return;
         }
         const data = await res.json();
         const finale = data && data.finale ? data.finale : null;
         if (!data || data.ok !== true || !finale) {
-          hideStage(`latest_${reason}_missing`);
+          log({ step: STEP, moduleVersion: MODULE_VERSION, mode: "latest_missing", reason, rule: "do_not_hide_running_finale" });
           return;
         }
+        const activity = data.activity || finale.activity || {};
         const finaleKey = cleanText(finale.finaleUid || "") + ":" + cleanText(finale.replayAt || finale.lastReplayAt || finale.startedAt || "");
+        if (activity.active === false || finale.active === false || finale.endedAt || finale.hiddenAt) {
+          if (renderedFinaleKey && finaleKey && renderedFinaleKey.indexOf(cleanText(finale.finaleUid || "")) === 0) hideStage("latest_manual_ended", true);
+          return;
+        }
         if (finaleKey && finaleKey === renderedFinaleKey) return;
         renderFinale({ finale, preview: data.preview || data, event: data.event });
       } catch (err) {
@@ -919,7 +936,7 @@
       if (!isFinale || !hasFinale) return;
       const status = String(payload.status || payload.phase || payload.state || payload.finaleStatus || "").toLowerCase();
       if (status === "finished" || status === "ended" || status === "hidden" || action === "finished" || action === "ended" || action === "hide") {
-        hideStage("bus_finale_finished");
+        hideStage("bus_finale_finished", true);
         return;
       }
       const finale = payload.finale ? payload : { finale: payload, preview: payload.preview, event: payload.event };
@@ -952,6 +969,6 @@
   })();
   </script>
 
-  <script src="/overlays/shared/overlay_bus_client.js" data-overlay-id="stream_events_winner_overlay" data-client-type="overlay" data-mode="obs_overlay" data-module="stream_events" data-name="Stream Events Gewinner-Finale Overlay" data-version="0.5.39" data-heartbeat-ms="5000"></script>
+  <script src="/overlays/shared/overlay_bus_client.js" data-overlay-id="stream_events_winner_overlay" data-client-type="overlay" data-mode="obs_overlay" data-module="stream_events" data-name="Stream Events Gewinner-Finale Overlay" data-version="0.5.40" data-heartbeat-ms="5000"></script>
 </body>
 </html>
