@@ -1,5 +1,26 @@
 # CHANGELOG – stream-control-center
 
+## 2026-06-18 – EVS52.12 Bot-/Self-Message-Filter
+
+### Geaendert
+
+- `stream_events` auf `0.5.83 / STEP_EVS52_12_BOT_SELF_MESSAGE_FILTER` erhoeht.
+- Bekannte Bot-/Systemaccounts werden vor der Sound-/Satz-Runtime ignoriert.
+- Ignoriert: `heimaufsichtcgn`, `kofistreambot`, `streamstickers`, `streamelements`.
+- Moderatoren werden nicht pauschal gesperrt; EngelCGN, RoxxyFoxxyCGN und Tronic6 duerfen weiter mitspielen.
+- Status-Zaehler ergaenzt: `twitchChatSelfSkipped` und `chatSource.selfSkipped`.
+
+### Nicht geaendert
+
+- Keine DB-Aenderung.
+- Keine Punktelogik geaendert.
+- Keine Sound-/Satzlogik geaendert.
+- Keine Chatquelle geaendert.
+
+### ToDo
+
+- Bot-/Self-Message-Blockliste spaeter in Dashboard-Einstellungen verschieben.
+
 ## 2026-06-18 – EVS52.11 Chat-Command Await-Fix
 
 ### Geaendert

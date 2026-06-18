@@ -114,3 +114,16 @@ docs/current/CURRENT_CHAT_HANDOFF_EVS52_11_CHAT_COMMAND_AWAIT_FIX.md
 ```
 
 EVS52.11 aendert nur `stream_events.js` im Code. `twitch_events.js` und `twitch_presence.js` bleiben aus EVS52.10 unveraendert.
+
+
+## EVS52.12 geaenderte Dateien
+
+```text
+backend/modules/stream_events.js
+docs/modules/stream_events.md
+docs/current/CURRENT_CHAT_HANDOFF_EVS52_12_BOT_SELF_MESSAGE_FILTER.md
+project-state/CHANGELOG.md
+project-state/TODO.md
+project-state/NEXT_STEPS.md
+project-state/FILES.md
+```

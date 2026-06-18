@@ -11,6 +11,7 @@
  * - Chat input is subscribed centrally via twitch_events -> communication_bus -> twitch.chat.message.
  * - Sound and Satz/Text runtime share processParallelChatMessage().
  * - EVS52.11 fixes async !event command handling so normal chat reaches Sound/Text runtime.
+ * - EVS52.12 filters known bot/system accounts before Sound/Text runtime to prevent feedback loops.
  */
 
 const crypto = require("crypto");
@@ -32,11 +33,30 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.82";
-const MODULE_BUILD = "STEP_EVS52_11_CHAT_COMMAND_AWAIT_FIX";
+const MODULE_VERSION = "0.5.83";
+const MODULE_BUILD = "STEP_EVS52_12_BOT_SELF_MESSAGE_FILTER";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
+
+// EVS52.12 hotfix: only known bot/system logins are ignored. Moderators are not blocked by role.
+// TODO: move this list into dashboard/module settings after the live fix is stable.
+const CHAT_RUNTIME_IGNORED_LOGINS = new Set([
+  "heimaufsichtcgn",
+  "kofistreambot",
+  "streamstickers",
+  "streamelements"
+]);
+
+function normalizeLoginForRuntime(value = "") {
+  return String(value || "").trim().replace(/^@+/, "").toLowerCase();
+}
+
+function isIgnoredRuntimeChatLogin(userLogin = "") {
+  const login = normalizeLoginForRuntime(userLogin);
+  return !!login && CHAT_RUNTIME_IGNORED_LOGINS.has(login);
+}
+
 
 const STATUS = {
   DRAFT: "draft",
@@ -323,6 +343,7 @@ let runtimeState = {
     eventsCancelled: 0,
     pointsAdded: 0,
     twitchChatMessages: 0,
+    twitchChatSelfSkipped: 0,
     textMessagesProcessed: 0,
     textWordHits: 0,
     textPhraseSolves: 0,
@@ -387,6 +408,7 @@ let runtimeState = {
     subscribed: false,
     delivered: 0,
     skipped: 0,
+    selfSkipped: 0,
     errors: 0,
     lastAt: "",
     lastReason: "not_subscribed",
@@ -398,7 +420,8 @@ let runtimeState = {
     lastMessagePreview: "",
     lastError: "",
     legacyDirectBridgeRemoved: true,
-    legacyWildcardFallbackRemoved: true
+    legacyWildcardFallbackRemoved: true,
+    ignoredLogins: Array.from(CHAT_RUNTIME_IGNORED_LOGINS)
   },
   lastTextChatRuntime: null
 };
@@ -3031,6 +3054,25 @@ async function handleTwitchChatEnvelope(envelope = {}) {
       state.lastError = "";
       return commandResult;
     }
+  }
+
+  if (isIgnoredRuntimeChatLogin(chat.userLogin)) {
+    runtimeState.counters.twitchChatSelfSkipped += 1;
+    state.selfSkipped += 1;
+    state.lastAt = nowIso();
+    state.lastReason = "ignored_runtime_bot_login";
+    state.lastError = "";
+    runtimeState.lastTextChatRuntime = {
+      at: nowIso(),
+      source: "bus:twitch.chat.message",
+      skipped: true,
+      reason: "ignored_runtime_bot_login",
+      userLogin: chat.userLogin,
+      userDisplayName: chat.userDisplayName,
+      messagePreview: (chat.message || "").slice(0, 120),
+      ignoredLogins: Array.from(CHAT_RUNTIME_IGNORED_LOGINS)
+    };
+    return { ok: true, skipped: true, reason: "ignored_runtime_bot_login", userLogin: chat.userLogin };
   }
 
   const result = processParallelChatMessage(chat, { source: "bus:twitch.chat.message" });

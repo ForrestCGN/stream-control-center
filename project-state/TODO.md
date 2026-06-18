@@ -108,3 +108,20 @@ Stand: 2026-06-18 – EVS52.9 Doku/Handoff
 - [ ] Komplette Satzloesung live testen.
 - [ ] `!event status` live testen.
 - [ ] Ranking/User-Historie pruefen.
+
+
+## EVS52.12 Bot-/Self-Message-Filter
+
+- [x] Bekannte Bot-/Systemaccounts vor Sound-/Satz-Runtime filtern.
+- [x] HeimaufsichtCGN als Runtime-Eingabe ignorieren.
+- [x] KofiStreamBot, StreamStickers und StreamElements ignorieren.
+- [x] Moderatoren nicht pauschal aussperren.
+- [x] EngelCGN, RoxxyFoxxyCGN und Tronic6 bleiben spielberechtigt.
+- [ ] Nach Deploy StepDone ausfuehren.
+- [ ] Bot-/Self-Message-Filter live testen.
+- [ ] Soundantwort live testen.
+- [ ] Satz-Teilwort live testen.
+- [ ] Komplette Satzloesung live testen.
+- [ ] Duplicate testen.
+- [ ] Spaeter: Bot-/Self-Message-Blockliste in Dashboard-Einstellungen verschieben.
+- [ ] Spaeter: Teiltreffer-Chatmeldungen zusammenfassen/limitieren.

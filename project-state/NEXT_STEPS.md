@@ -1,10 +1,10 @@
 # NEXT_STEPS – stream-control-center
 
-Stand: 2026-06-18 – EVS52.11
+Stand: 2026-06-18 – EVS52.12
 
 ## Jetzt testen
 
-EVS52.11 behebt den Fehler, dass normale Twitch-Chatnachrichten durch den async `processEventCommand()`-Aufruf faelschlich als `!event`-Command behandelt wurden.
+EVS52.12 filtert bekannte Bot-/Systemaccounts, damit Heimaufsicht-/Bot-Ausgaben nicht wieder als Spieleingabe verarbeitet werden.
 
 ### Nach Deploy
 
@@ -12,31 +12,31 @@ EVS52.11 behebt den Fehler, dass normale Twitch-Chatnachrichten durch den async 
 $s = Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/status"
 $s | Select-Object moduleVersion,moduleBuild | Format-List
 $s.runtime.chatSource | Format-List
-$s.runtime.counters | Select-Object twitchChatMessages,textMessagesProcessed,soundChatMessagesProcessed,soundAnswerMatches,soundAnswerMisses,textWordHits,textPhraseSolves,eventCommandsHandled | Format-List
+$s.runtime.counters | Select-Object twitchChatMessages,twitchChatSelfSkipped,textMessagesProcessed,soundChatMessagesProcessed,soundAnswerMatches,soundAnswerMisses,textWordHits,textPhraseSolves,chatOutputsLiveSent | Format-List
 ```
 
 Erwartung:
 
 ```text
-moduleVersion : 0.5.82
-moduleBuild   : STEP_EVS52_11_CHAT_COMMAND_AWAIT_FIX
+moduleVersion : 0.5.83
+moduleBuild   : STEP_EVS52_12_BOT_SELF_MESSAGE_FILTER
 ```
 
 ### Live-Test-Reihenfolge
 
 1. Genau ein aktives Event sicherstellen.
-2. Sound-Antwort im Twitch-Chat schreiben, waehrend Antwortfenster laeuft.
-3. Erwartung: `soundChatMessagesProcessed` steigt, bei richtiger Antwort `soundAnswerMatches` steigt.
-4. Teilwort aus offenem Satz schreiben.
-5. Erwartung: `textMessagesProcessed` steigt, bei Treffer `textWordHits` steigt, keine Wortpunkte wenn `wordPointsEnabled=false`.
-6. Kompletten Satz schreiben.
-7. Erwartung: `textPhraseSolves` steigt, Punkte + Chatmeldung + 15s Overlay.
-8. `!event status` testen.
-9. Erwartung: `eventCommandsHandled` steigt nur bei echtem `!event`-Command.
-10. Ranking/User-Historie pruefen.
+2. Forrest/Engel/Roxxy/Tronic mit Teilwort testen.
+3. Erwartung: Satz/Text wird verarbeitet.
+4. Heimaufsicht-Antwort abwarten.
+5. Erwartung: `twitchChatSelfSkipped` oder `chatSource.selfSkipped` steigt, aber keine neue Kettenreaktion.
+6. Soundantwort testen.
+7. Komplette Satzloesung testen.
+8. Duplicate testen.
+9. `!event status` testen.
 
 ## Danach
 
-- Falls Sound/Satz live funktionieren: EVS52.11 dokumentieren und als stabilen Chat-Fix markieren.
-- Falls Chat verarbeitet wird, aber Antwort nicht matched: naechster Fix nur in Answer-Matching/Normalisierung, nicht in der Chatquelle.
-- Alte Diagnose-Hinweise EVS52.6–EVS52.8 danach aus TODO/NEXT_STEPS bereinigen.
+- Wenn stabil: EVS52.12 dokumentieren und als Hotfix bestaetigen.
+- Bot-/Self-Message-Blockliste spaeter dashboardfaehig machen.
+- Teiltreffer-Chatmeldungen zusammenfassen/limitieren, damit eine Usernachricht nicht mehrere Chatmeldungen erzeugt.
+- Ranking/User-Historie pruefen.

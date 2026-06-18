@@ -718,3 +718,27 @@ twitch.chat.message
 → processParallelChatMessage
 → processSoundChatMessage + processTextChatMessage
 ```
+
+
+## EVS52.12 Bot-/Self-Message-Filter
+
+Bekannte Bot-/Systemaccounts werden vor der Sound-/Satz-Runtime ignoriert, damit Chat-Ausgaben nicht wieder als Spieleingabe verarbeitet werden.
+
+Aktuelle Hotfix-Blockliste:
+
+```text
+heimaufsichtcgn
+kofistreambot
+streamstickers
+streamelements
+```
+
+Moderatoren werden nicht pauschal blockiert. EngelCGN, RoxxyFoxxyCGN und Tronic6 bleiben spielberechtigt.
+
+Status/Diagnose:
+
+- `runtime.counters.twitchChatSelfSkipped`
+- `runtime.chatSource.selfSkipped`
+- `runtime.chatSource.ignoredLogins`
+
+ToDo: Blockliste in Dashboard-Einstellungen verschieben.
