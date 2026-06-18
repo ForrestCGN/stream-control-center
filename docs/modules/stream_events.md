@@ -371,3 +371,12 @@ Versionen:
 
 - Backend `0.5.67 / STEP_EVS51_1_TEXT_RUNTIME_TEST_CHECK`
 - Dashboard `0.5.49 / STEP_EVS51_1_TEXT_RUNTIME_TEST_CHECK`
+
+
+## EVS51.2 – Satz-Check Wrong-Fix
+
+Der komplette Satz-System-Test (`step=text-check`) nutzte in einer falschen Testnachricht versehentlich das Wort `ich`. Da `ich` Bestandteil von Satz 2 ist, wurden korrekt Wortpunkte vergeben und der Check `wrongNoPoints` schlug fehl.
+
+Korrigiert: Die falsche Testnachricht enthält jetzt keine Wörter aus den konfigurierten Testsätzen.
+
+Backend: `0.5.68 / STEP_EVS51_2_TEXT_CHECK_WRONG_FIX`

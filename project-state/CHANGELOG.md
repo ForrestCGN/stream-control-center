@@ -81,3 +81,9 @@
 - Korrektur: `text-runtime/test-chat` akzeptiert `eventUid`/`event_uid`.
 - Backend-Version `0.5.67 / STEP_EVS51_1_TEXT_RUNTIME_TEST_CHECK`.
 - Dashboard-Version `0.5.49 / STEP_EVS51_1_TEXT_RUNTIME_TEST_CHECK`.
+
+
+## 2026-06-18 – EVS51.2
+
+- Satz-Check korrigiert: falsche Testantwort enthält keine Wörter aus den Testsätzen mehr.
+- Backend-Version auf 0.5.68 / STEP_EVS51_2_TEXT_CHECK_WRONG_FIX erhöht.

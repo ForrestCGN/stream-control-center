@@ -78,3 +78,9 @@ Stand: 2026-06-18 – EVS50.2
 - [x] Kombi-Abschluss Sound + Text prüfbar.
 - [ ] Nach Live-Test ggf. Runtime-Overlay für Satzstatus verbessern.
 - [ ] Nach Live-Test ggf. Satz-Rotation/Anzeige im laufenden Event optisch verbessern.
+
+
+## EVS51.2
+
+- [x] Falsche Satz-Testantwort ohne unbeabsichtigte Wortpunkte korrigiert.
+- [ ] EVS51.2 Backend-Test `text-check` erneut ausführen.

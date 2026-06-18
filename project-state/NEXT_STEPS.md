@@ -98,3 +98,9 @@ Nächster sinnvoller Schritt: Satz-System Testbereich finalisieren. Geplant sind
 3. Dashboard-Test `Event-System → Test → Satz-Check komplett` prüfen.
 4. Wenn bestanden: Runtime-Overlay Satzstatus planen/verbessern.
 5. Danach Kombination Sound + Text im echten Eventflow prüfen.
+
+
+## Nach EVS51.2
+
+- Satz-Check erneut testen.
+- Wenn bestanden: Dashboard-Darstellung des Satz-Checks prüfen und danach Runtime-/Overlay-Status für Text-Runden weiter verbessern.

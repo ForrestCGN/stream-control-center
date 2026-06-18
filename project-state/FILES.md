@@ -98,3 +98,9 @@ project-state/FILES.md
 - `project-state/TODO.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/FILES.md`
+
+
+## EVS51.2
+
+- `backend/modules/stream_events.js` – falsche Satz-Testantwort korrigiert, Version 0.5.68.
+- `docs/current/CURRENT_CHAT_HANDOFF_EVS51_2_TEXT_CHECK_WRONG_FIX.md` – Übergabe zum Fix.

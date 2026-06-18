@@ -27,8 +27,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.67";
-const MODULE_BUILD = "STEP_EVS51_1_TEXT_RUNTIME_TEST_CHECK";
+const MODULE_VERSION = "0.5.68";
+const MODULE_BUILD = "STEP_EVS51_2_TEXT_CHECK_WRONG_FIX";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -7176,7 +7176,7 @@ async function runEventTextWrongAnswers(eventUid = "") {
   if (target.event.status !== STATUS.ACTIVE) startDashboardEventTestEvent(uid);
   const messages = [
     buildEventTestChat("satzfalsch01", "SatzFalsch01", "banane rollator komplett daneben"),
-    buildEventTestChat("satzfalsch02", "SatzFalsch02", "ich weiss gar nichts"),
+    buildEventTestChat("satzfalsch02", "SatzFalsch02", "banane rollator oma bingo"),
     buildEventTestChat("satzfalsch03", "SatzFalsch03", "full house aber kein satz")
   ];
   const results = [];
