@@ -59,3 +59,9 @@
 - `createSoundRound()` erlaubt Runtime-Gate-Bypass nur fuer Dashboard-Testevents.
 - `runEventTestSoundCorrect()` nutzt den kontrollierten Testmodus.
 - `points-check` meldet nur noch Erfolg, wenn Sound- und Satzpunkte wirklich geschrieben wurden.
+
+## 2026-06-18 – EVS50.5
+
+- Points-Check Active-Event-Fix: Alte aktive Dashboard-Testevents werden vor einem neuen Punktecheck sicher beendet.
+- Produktive aktive Events werden nicht angerührt.
+- `points-check` Response enthält `event`, `preCleanup` und `activeEvent`, damit Dashboard-/Status-Verwechslungen prüfbar sind.

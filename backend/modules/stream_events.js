@@ -27,8 +27,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.65";
-const MODULE_BUILD = "STEP_EVS50_4_POINTS_CHECK_SOUND_FIX";
+const MODULE_VERSION = "0.5.66";
+const MODULE_BUILD = "STEP_EVS50_5_POINTS_CHECK_ACTIVE_EVENT_FIX";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -7027,6 +7027,43 @@ function seedEventTestRanking(eventUid, count = 10) {
   return { ok: true, eventUid, count: users.length, results, ranking: getRanking(eventUid) };
 }
 
+
+function isDashboardEventTest(event) {
+  if (!event) return false;
+  const metadata = event.metadata && typeof event.metadata === "object" ? event.metadata : {};
+  if (metadata.dashboardTest === true || metadata.testEvent === true) return true;
+  if (event.validation && event.validation.dashboardTest === true) return true;
+  const name = cleanString(event.name || "").toUpperCase();
+  return name.startsWith("EVS PUNKTE CHECK") || name.startsWith("EVS DASHBOARD TEST") || name.startsWith("EVS TEXT TEST") || name.startsWith("EVS SOUND TEST");
+}
+
+function finishActiveDashboardTestEvents(options = {}) {
+  ensureSchema();
+  const exceptEventUid = cleanString(options.exceptEventUid || "");
+  const reason = cleanString(options.reason || "dashboard_test_cleanup", "dashboard_test_cleanup");
+  const activeEvents = listEvents({ status: STATUS.ACTIVE, limit: 100 }).rows || [];
+  const finished = [];
+  const skipped = [];
+  for (const event of activeEvents) {
+    if (!event || !event.eventUid) continue;
+    if (exceptEventUid && event.eventUid === exceptEventUid) {
+      skipped.push({ eventUid: event.eventUid, name: event.name || "", reason: "except_current" });
+      continue;
+    }
+    if (!isDashboardEventTest(event)) {
+      skipped.push({ eventUid: event.eventUid, name: event.name || "", reason: "not_dashboard_test" });
+      continue;
+    }
+    const result = finalizeEvent(event.eventUid, STATUS.FINISHED, reason, {
+      mode: "test_cleanup",
+      reason,
+      actor: "dashboard_event_test"
+    });
+    finished.push({ eventUid: event.eventUid, name: event.name || "", ok: !!(result && result.ok), status: result && result.event ? result.event.status : "" });
+  }
+  return { ok: true, finishedCount: finished.length, skippedCount: skipped.length, finished, skipped };
+}
+
 async function runEventTestWrongAnswers(eventUid = "") {
   const target = getEventTestTarget(eventUid);
   if (!target.ok) return target;
@@ -7105,6 +7142,7 @@ async function runEventTestSoundCorrect(eventUid = "", body = {}) {
 }
 
 async function runEventTestPointsCheck(body = {}) {
+  const preCleanup = finishActiveDashboardTestEvents({ reason: "dashboard_points_check_pre_cleanup" });
   const created = createDashboardEventTestEvent({
     name: `EVS PUNKTE CHECK · ${new Date().toLocaleString("de-DE")}`
   });
@@ -7143,8 +7181,11 @@ async function runEventTestPointsCheck(body = {}) {
     ok: passed,
     action: "points-check",
     eventUid: created.eventUid,
+    event: created.event,
     created,
     started,
+    preCleanup,
+    activeEvent: publicEventSummary(getActiveEvent()),
     wrong,
     sound,
     text,

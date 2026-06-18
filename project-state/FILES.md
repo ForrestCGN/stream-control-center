@@ -74,3 +74,8 @@ project-state/NEXT_STEPS.md
 project-state/CHANGELOG.md
 project-state/FILES.md
 ```
+
+## EVS50.5
+
+- `backend/modules/stream_events.js` – Points-Check beendet alte aktive Dashboard-Testevents sicher vor neuem Testlauf.
+- `docs/current/CURRENT_CHAT_HANDOFF_EVS50_5_POINTS_CHECK_ACTIVE_EVENT_FIX.md` – Handoff und Testanleitung.

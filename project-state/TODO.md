@@ -52,3 +52,10 @@ Stand: 2026-06-18 – EVS50.2
 - [x] Sound-Punkte im Punktecheck gegen Runtime-Gate-Blockade abgesichert.
 - [x] Punktecheck prueft Soundpunkte, Satzpunkte und Gesamtsumme explizit.
 - [x] Produktive Sound-Runtime bleibt unveraendert durch Runtime-Gate geschuetzt.
+
+## EVS50.5 Folgeprüfung
+
+- [ ] Points-Check erneut ausführen.
+- [ ] Prüfen, ob `/api/stream-events/status`.activeEvent auf den neuesten Punktecheck zeigt.
+- [ ] Dashboard → Aktuelles Event → User-Modal mit 50 Punkten prüfen.
+- [ ] Danach Satz-Testbereich finalisieren.

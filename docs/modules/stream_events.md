@@ -276,3 +276,16 @@ Nach einem Test zeigt der Testbereich eine Punkte-Prüfung mit:
 - Dashboard-Testevents duerfen beim kontrollierten Testlauf das Runtime-Gate umgehen.
 - Produktive Soundrunden bleiben unveraendert durch das Runtime-Gate geschuetzt.
 - `points-check` gibt nur noch `ok: true` zurueck, wenn Sound-Punkte, Satz-/Text-Punkte und Gesamtsumme die Mindestwerte erreichen.
+
+## EVS50.5 – Points-Check Active-Event-Fix
+
+Der Punktecheck beendet vor dem Erstellen eines neuen kontrollierten Testevents alte aktive Dashboard-Testevents. Dadurch zeigt `Aktuelles Event` nicht mehr versehentlich einen alten EVS-Punktecheck mit unvollständigen Soundpunkten.
+
+Sicherheitsregel: Nur Dashboard-/Testevents werden beendet. Produktive aktive Events bleiben unverändert.
+
+Neue interne Helfer:
+
+- `isDashboardEventTest(event)`
+- `finishActiveDashboardTestEvents(options)`
+
+`points-check` gibt zusätzlich `event`, `preCleanup` und `activeEvent` zurück.

@@ -76,3 +76,12 @@ $r.ranking.rows | Select-Object rank,userLogin,points | Format-Table -AutoSize
 Erwartung: `soundPoints >= 20`, `phrasePoints >= 30`, `totalPoints >= 50`, `$r.ok = True`.
 
 Naechster Block nach erfolgreichem Test: EVS50.5 Satz-System Einzeltests im Dashboard.
+
+## EVS50.5 nächster Schritt
+
+Nach erfolgreichem Active-Event-Fix:
+
+1. Dashboard → Test → Punkte-Check ausführen.
+2. Dashboard → Aktuelles Event prüfen.
+3. User in Rangliste anklicken.
+4. Wenn 50 Punkte inklusive Sound sichtbar sind: EVS50.6 Satz-Testbereich finalisieren.
