@@ -108,3 +108,9 @@ stream_events_sound_rounds
 - `backend/modules/twitch_presence.js`
 - `tools/tests/EVS52_7_TWITCH_PRESENCE_CHAT_BRIDGE_CHECK.ps1`
 - `docs/current/CURRENT_CHAT_HANDOFF_EVS52_7_TWITCH_PRESENCE_CHAT_BRIDGE.md`
+
+## EVS52.8
+
+- backend/modules/stream_events.js
+- tools/tests/EVS52_8_TWITCH_CHAT_BUS_FALLBACK_CHECK.ps1
+- docs/current/CURRENT_CHAT_HANDOFF_EVS52_8_TWITCH_CHAT_BUS_FALLBACK.md

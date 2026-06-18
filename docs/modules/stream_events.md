@@ -545,3 +545,33 @@ Neue Diagnose im Live-Debug:
 Echte Twitch-IRC-PRIVMSG-Nachrichten werden nach dem bestehenden `twitch_events.handleIrcEvent()` zusätzlich an `stream_events.handleTwitchPresenceIrcChat()` übergeben. Dadurch nutzt das Satz-/Text-System dieselbe echte Chatquelle wie das Sound-Spiel. Die Verarbeitung läuft weiter über `processParallelChatMessage()`, damit Sound und Text parallel ausgewertet werden.
 
 Doppelte Verarbeitung wird durch Vergleich mit `lastTextChatRuntime` vermieden, falls der Bus-Pfad die Nachricht bereits verarbeitet hat.
+
+## EVS52.8 – Twitch-Chat Bus-Fallback fuer Satz-System
+
+EVS52.8 ergänzt im Backend `stream_events` einen Wildcard-Bus-Fallback fuer Twitch-Chatnachrichten. Grund: EVS52.7 zeigte, dass der RuntimeGate aktiv war und `chatOutputLiveSend=true`, aber die `twitch_presence` Direct-Bridge nicht von echten Chatmessages erreicht wurde. Da das Sound-Spiel über den Twitch-Events-/Communication-Bus arbeitet, wird nun zusätzlich ein breit gefasster Subscriber registriert, der nur `twitch.chat.message` intern filtert.
+
+Schutz:
+
+- Der spezifische Subscriber bleibt erhalten.
+- Der Fallback verarbeitet nur `twitch.chat.message`.
+- Wenn die Nachricht bereits durch den primären Pfad verarbeitet wurde, wird sie übersprungen.
+- Dashboard-Tests bleiben dry-run.
+- Live-Send bleibt an RuntimeGate + echte Chatquelle gebunden.
+
+Diagnose:
+
+```text
+GET /api/stream-events/text-runtime/live-debug
+```
+
+enthält nun zusätzlich:
+
+```text
+twitchChatBusFallback
+```
+
+Testscript:
+
+```text
+tools/tests/EVS52_8_TWITCH_CHAT_BUS_FALLBACK_CHECK.ps1
+```

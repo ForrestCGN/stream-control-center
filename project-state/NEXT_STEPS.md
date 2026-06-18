@@ -139,3 +139,7 @@ Invoke-RestMethod "http://127.0.0.1:8080/api/chat-output/status" | ConvertTo-Jso
 2. Prüfen, ob `directChatBridge.delivered` steigt.
 3. Prüfen, ob Worttreffer/ChatOutput und Bot-Chatmeldung erscheinen.
 4. Danach Satzlösung testen: Punkte + Overlay + Chatmeldung.
+
+## Nach EVS52.8
+
+Wenn echter Twitch-Chat weiterhin nicht im Satz-System ankommt, muss als nächstes der tatsächlich emittierte `twitch.chat.message` Bus-Event aus `twitch_events`/Communication-Bus mit Raw-Diagnose sichtbar gemacht werden. Nicht weiter an Presence-Hooks raten.

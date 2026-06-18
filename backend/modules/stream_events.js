@@ -7,7 +7,7 @@
  * - Keeps EVS-12 Text-Runtime dashboard report.
  * - Adds user statistics list/detail endpoints for dropdown filtering.
  * - Prepares text and future sound statistics in one user-focused report.
- * - EVS52.7 keeps Sound-Chat intact and adds a direct twitch_presence bridge so the Satz/Text runtime uses the same IRC chat source as the sound game.
+ * - EVS52.8 keeps Sound-Chat intact and adds a wildcard bus fallback subscriber for twitch.chat.message so the Satz/Text runtime uses the real Twitch-Events bus path.
  */
 
 const crypto = require("crypto");
@@ -29,8 +29,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.78";
-const MODULE_BUILD = "STEP_EVS52_7_TWITCH_PRESENCE_CHAT_BRIDGE";
+const MODULE_VERSION = "0.5.79";
+const MODULE_BUILD = "STEP_EVS52_8_TWITCH_CHAT_BUS_FALLBACK";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -387,6 +387,21 @@ let runtimeState = {
     lastAt: "",
     lastReason: "",
     lastMessageId: "",
+    lastLogin: "",
+    lastMessagePreview: "",
+    lastError: ""
+  },
+  twitchChatBusFallback: {
+    subscribed: false,
+    delivered: 0,
+    skipped: 0,
+    errors: 0,
+    lastAt: "",
+    lastReason: "not_subscribed",
+    lastEventId: "",
+    lastChannel: "",
+    lastAction: "",
+    lastEventKey: "",
     lastLogin: "",
     lastMessagePreview: "",
     lastError: ""
@@ -3020,6 +3035,23 @@ function getLastTextChatRuntimeAt() {
 function handleTwitchChatEnvelope(envelope = {}) {
   const chat = extractChatPayload(envelope);
   runtimeState.counters.twitchChatMessages += 1;
+  if (!chat.message || !chat.userLogin) {
+    runtimeState.counters.textRuntimeSkipped += 1;
+    runtimeState.lastTextChatRuntime = {
+      at: nowIso(),
+      source: "bus:twitch.chat.message",
+      skipped: true,
+      reason: "invalid_bus_chat_payload",
+      envelope: {
+        id: cleanString(envelope.id || envelope.eventId || ""),
+        channel: cleanString(envelope.channel || ""),
+        action: cleanString(envelope.action || ""),
+        eventKey: getTwitchChatEventKeyFromEnvelope(envelope)
+      }
+    };
+    return { ok: true, skipped: true, reason: "invalid_bus_chat_payload" };
+  }
+  if (didBusPathHandleChat("", chat)) return { ok: true, skipped: true, reason: "chat_already_handled_by_stream_events" };
   const commandResult = processEventCommand(chat);
   if (commandResult) return commandResult;
   return processParallelChatMessage(chat, { source: "bus:twitch.chat.message" });
@@ -3099,12 +3131,85 @@ function registerTextChatSubscription() {
     channel: "twitch.chat",
     action: "message",
     capability: "twitch.chat.message",
-    meta: { step: MODULE_BUILD, purpose: "stream_events_chat_runtime", acceptedSources: ["twitch_presence", "twitch_events"], directBridgeFallback: true }
+    meta: { step: MODULE_BUILD, purpose: "stream_events_chat_runtime", acceptedSources: ["twitch_presence", "twitch_events"], directBridgeFallback: true, wildcardFallback: true }
   }, (envelope) => handleTwitchChatEnvelope(envelope));
   if (result && result.ok === true) {
     publishStatus("chat.subscription.ready", { twitchChatSubscription: true, streamEventsChatRuntime: true });
   }
   return result;
+}
+
+function getTwitchChatEventKeyFromEnvelope(envelope = {}) {
+  const payload = envelope && envelope.payload && typeof envelope.payload === "object" ? envelope.payload : {};
+  const meta = envelope && envelope.meta && typeof envelope.meta === "object" ? envelope.meta : {};
+  const twitch = payload.twitch && typeof payload.twitch === "object" ? payload.twitch : {};
+  return cleanString(meta.eventKey || payload.eventKey || twitch.eventKey || "");
+}
+
+function isTwitchChatBusEnvelope(envelope = {}) {
+  const channel = cleanString(envelope && envelope.channel || "");
+  const action = cleanString(envelope && envelope.action || "");
+  const eventKey = getTwitchChatEventKeyFromEnvelope(envelope);
+  if (eventKey === "twitch.chat.message") return true;
+  return channel === "twitch.chat" && action === "message";
+}
+
+function registerTwitchChatWildcardBusFallback() {
+  const state = runtimeState.twitchChatBusFallback;
+  const bus = getBus();
+  if (!bus || typeof bus.subscribe !== "function") {
+    state.subscribed = false;
+    state.lastReason = "communication_bus_subscribe_unavailable";
+    return { ok: false, reason: state.lastReason };
+  }
+  const result = bus.subscribe({
+    id: `${MODULE_NAME}:twitch.chat.message.fallback`,
+    module: MODULE_NAME,
+    meta: { step: MODULE_BUILD, purpose: "stream_events_wildcard_twitch_chat_fallback", reason: "catch_twitch_chat_when_channel_action_filter_misses" }
+  }, (envelope) => handleTwitchChatWildcardEnvelope(envelope));
+  state.subscribed = !!(result && result.ok === true);
+  state.lastReason = state.subscribed ? "subscribed" : cleanString(result && (result.reason || result.error) || "subscribe_failed");
+  return result || { ok: false, reason: state.lastReason };
+}
+
+function handleTwitchChatWildcardEnvelope(envelope = {}) {
+  const state = runtimeState.twitchChatBusFallback;
+  try {
+    if (!isTwitchChatBusEnvelope(envelope)) {
+      state.skipped += 1;
+      state.lastReason = "not_twitch_chat_message";
+      return { ok: true, skipped: true, reason: state.lastReason };
+    }
+    const chat = extractChatPayload(envelope);
+    state.lastEventId = cleanString(envelope.id || envelope.eventId || "");
+    state.lastChannel = cleanString(envelope.channel || "");
+    state.lastAction = cleanString(envelope.action || "");
+    state.lastEventKey = getTwitchChatEventKeyFromEnvelope(envelope);
+    state.lastLogin = chat.userLogin || "";
+    state.lastMessagePreview = (chat.message || "").slice(0, 120);
+    if (!chat.message || !chat.userLogin) {
+      state.skipped += 1;
+      state.lastReason = "invalid_twitch_chat_payload";
+      return { ok: true, skipped: true, reason: state.lastReason };
+    }
+    if (didBusPathHandleChat("", chat)) {
+      state.skipped += 1;
+      state.lastReason = "already_handled_by_primary_subscription";
+      return { ok: true, skipped: true, reason: state.lastReason };
+    }
+    const result = processParallelChatMessage(chat, { source: "bus:twitch.chat.message.fallback" });
+    state.delivered += 1;
+    state.lastAt = nowIso();
+    state.lastReason = cleanString(result && (result.reason || result.reasonCode) || "fallback_processed");
+    state.lastError = "";
+    return { ok: true, fallback: true, result };
+  } catch (err) {
+    state.errors += 1;
+    state.lastAt = nowIso();
+    state.lastReason = "fallback_error";
+    state.lastError = err && err.message ? err.message : String(err);
+    return { ok: false, reason: state.lastReason, error: state.lastError };
+  }
 }
 
 function handleSoundPlaybackBusEnvelope(envelope = {}) {
@@ -8213,7 +8318,8 @@ function buildStatus() {
     runtime: {
       counters: runtimeState.counters,
       lastTextChatRuntime: runtimeState.lastTextChatRuntime || null,
-      directChatBridge: safeJson(runtimeState.directChatBridge, {})
+      directChatBridge: safeJson(runtimeState.directChatBridge, {}),
+      twitchChatBusFallback: safeJson(runtimeState.twitchChatBusFallback, {})
     },
     runtimeOverlay: {
       prepared: true,
@@ -8298,7 +8404,7 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "GET", path: `${prefix}/status`, description: "Stream-Events Backendstatus" },
       { method: "GET", path: `${prefix}/bus-status`, description: "Stream-Events Communication-Bus Registrierung, Heartbeat und letzte Bus-Events" },
       { method: "GET", path: `${prefix}/text-runtime/status`, description: "Text-Spiel Chat-Runtime Status" },
-      { method: "GET", path: `${prefix}/text-runtime/live-debug`, description: "EVS52.6: Diagnose echter Chatfluss inkl. Direct-Bridge fuer Satz-System" },
+      { method: "GET", path: `${prefix}/text-runtime/live-debug`, description: "EVS52.8: Diagnose echter Chatfluss inkl. Bus-Fallback fuer Satz-System" },
       { method: "GET", path: `${prefix}/text-runtime/report`, description: "Text-Spiel Runtime Report fuer aktives oder angegebenes Event" },
       { method: "GET", path: `${prefix}/sound-runtime/status`, description: "Sound-Spiel Runtime Status und aktive Runde" },
       { method: "GET", path: `${prefix}/sound-runtime/report`, description: "Sound-Spiel Runtime Report fuer aktives oder angegebenes Event" },
@@ -8426,6 +8532,8 @@ module.exports.init = function init(ctx) {
   moduleBusHandle.start();
   const textChatSubscription = registerTextChatSubscription();
   if (textChatSubscription && textChatSubscription.ok !== true) runtimeState.lastError = textChatSubscription.reason || textChatSubscription.error || runtimeState.lastError;
+  const twitchChatFallbackSubscription = registerTwitchChatWildcardBusFallback();
+  if (twitchChatFallbackSubscription && twitchChatFallbackSubscription.ok !== true) runtimeState.lastError = twitchChatFallbackSubscription.reason || twitchChatFallbackSubscription.error || runtimeState.lastError;
   const directChatBridge = registerTwitchEventsDirectChatBridge();
   if (directChatBridge && directChatBridge.ok !== true) runtimeState.lastError = directChatBridge.reason || directChatBridge.error || runtimeState.lastError;
   const runtimeOverlaySubscription = registerRuntimeOverlayBusSubscription();
@@ -8486,6 +8594,7 @@ module.exports.init = function init(ctx) {
         runtimeConfig: event ? getTextRuntimeConfig(event) : null,
         lastTextChatRuntime: runtimeState.lastTextChatRuntime || null,
         directChatBridge: safeJson(runtimeState.directChatBridge, {}),
+        twitchChatBusFallback: safeJson(runtimeState.twitchChatBusFallback, {}),
         report: event ? getTextRuntimeReport(event.eventUid) : null,
         updatedAt: nowIso()
       });

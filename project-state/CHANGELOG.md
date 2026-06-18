@@ -121,3 +121,10 @@
 - Sound-Chatflow bleibt erhalten; Satz-System verarbeitet dieselben IRC-PRIVMSG-Nachrichten parallel.
 - Doppelte Verarbeitung wird verhindert, wenn Bus-Pfad bereits verarbeitet hat.
 - Testscript `tools/tests/EVS52_7_TWITCH_PRESENCE_CHAT_BRIDGE_CHECK.ps1` ergänzt.
+
+## 2026-06-18 – EVS52.8
+
+- `stream_events` um Wildcard-Bus-Fallback fuer `twitch.chat.message` erweitert.
+- Satz-/Text-System kann Twitch-Chat nun auch dann erreichen, wenn der spezifische Bus-Filter nicht greift.
+- Diagnose `text-runtime/live-debug` um `twitchChatBusFallback` erweitert.
+- Testscript `EVS52_8_TWITCH_CHAT_BUS_FALLBACK_CHECK.ps1` ergänzt.

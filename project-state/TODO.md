@@ -91,3 +91,10 @@ Stand: 2026-06-18 – EVS51.5
 - [ ] Live-Chat Satzlösung testen.
 - [ ] ChatOutput-Helper `stats.sent` prüfen.
 - [ ] Doppelverarbeitung mit Sound-Antworten beobachten.
+
+## EVS52.8 – Nachtest
+
+- [ ] Echtes Twitch-Chatwort aus offenem Satz senden.
+- [ ] Prüfen, ob `twitchChatBusFallback.delivered` oder primärer Buspfad liefert.
+- [ ] Prüfen, ob Worttreffer und ChatOutput im Live-Report steigen.
+- [ ] Prüfen, ob `chat-output.stats.sent` steigt.
