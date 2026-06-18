@@ -6405,6 +6405,51 @@ function getRanking(eventUid) {
 }
 
 
+
+function enrichWinnerFinaleRow(row = {}) {
+  const login = cleanString(row.userLogin || row.user_login || row.login || "").replace(/^@/, "").toLowerCase();
+  const local = login ? resolveUserFromLocalTables(login) : { ok: false };
+  const displayName = cleanString(
+    row.userDisplayName || row.user_display_name || row.displayName || row.display_name ||
+    (local && local.displayName) || login,
+    login
+  );
+  const avatarUrl = cleanString(
+    row.avatarUrl || row.avatar_url || row.userAvatarUrl || row.user_avatar_url ||
+    row.profileImageUrl || row.profile_image_url ||
+    (local && local.avatarUrl) || ""
+  );
+  return {
+    ...row,
+    userLogin: login || cleanString(row.userLogin || row.login || ""),
+    userDisplayName: displayName,
+    displayName,
+    avatarUrl,
+    userAvatarUrl: avatarUrl
+  };
+}
+
+function buildWinnerFinaleRowsFromPreview(preview = {}) {
+  const rankingRows = preview && preview.ranking && Array.isArray(preview.ranking.rows) ? preview.ranking.rows : [];
+  const ranking = rankingRows.map(enrichWinnerFinaleRow);
+  return {
+    ranking,
+    podiumRows: ranking.slice(0, 3),
+    honorRows: ranking.slice(3, 10)
+  };
+}
+
+function withWinnerFinaleRows(finale = {}, preview = {}) {
+  const rows = buildWinnerFinaleRowsFromPreview(preview);
+  return {
+    ...finale,
+    ranking: Array.isArray(finale.ranking) && finale.ranking.length ? finale.ranking.map(enrichWinnerFinaleRow) : rows.ranking,
+    podiumRows: Array.isArray(finale.podiumRows) && finale.podiumRows.length ? finale.podiumRows.map(enrichWinnerFinaleRow) : rows.podiumRows,
+    honorRows: Array.isArray(finale.honorRows) && finale.honorRows.length ? finale.honorRows.map(enrichWinnerFinaleRow) : rows.honorRows,
+    top3: Array.isArray(finale.top3) && finale.top3.length ? finale.top3.map(enrichWinnerFinaleRow) : rows.podiumRows
+  };
+}
+
 function buildWinnerFinalePreview(eventUid, options = {}) {
   ensureSchema();
   const uid = cleanString(eventUid);
@@ -6448,14 +6493,15 @@ function startWinnerFinale(eventUid, body = {}) {
   const metadata = safeJson({ ...(event.metadata || {}) }, {});
   const forceNew = boolValue(body.forceNewDraw || body.forceNew || false);
   if (metadata.winnerFinale && !forceNew) {
-    const existing = metadata.winnerFinale;
+    const existing = withWinnerFinaleRows(metadata.winnerFinale, preview);
     emitBus("stream_events.winner_finale", "replay_requested", { eventUid: uid, eventName: event.name, finale: existing, preview });
     return { ok: true, alreadyDrawn: true, replay: true, event: publicEventSummary(event), finale: existing, preview, rule: "existing_winner_finale_reused_unless_forceNewDraw" };
   }
 
-  const candidates = preview.topCandidates || [];
+  const finaleRows = buildWinnerFinaleRowsFromPreview(preview);
+  const candidates = (preview.topCandidates || []).map(enrichWinnerFinaleRow);
   const selectedIndex = candidates.length > 1 ? crypto.randomInt(0, candidates.length) : 0;
-  const winner = candidates[selectedIndex] || preview.ranking.rows[0] || null;
+  const winner = candidates[selectedIndex] || finaleRows.podiumRows[0] || null;
   if (!winner) return { ok: false, error: "winner_missing", eventUid: uid, preview };
   const now = nowIso();
   const finale = {
@@ -6470,7 +6516,10 @@ function startWinnerFinale(eventUid, body = {}) {
     topScore: preview.topScore,
     candidates,
     candidateCount: candidates.length,
-    top3: preview.top3,
+    ranking: finaleRows.ranking,
+    podiumRows: finaleRows.podiumRows,
+    honorRows: finaleRows.honorRows,
+    top3: finaleRows.podiumRows,
     rankingCount: preview.ranking.count || 0,
     message: candidates.length > 1
       ? "Punktgleichstand auf Platz 1: Die Heimleitung lost den Gewinner aus."
@@ -6510,7 +6559,7 @@ function buildEventCommandMessage(key, context = {}) {
     finish_blocked: `🧓 ${eventName} konnte nicht beendet werden: ${cleanString(context.reason || "unbekannter Grund")}`,
     finale_started: `🎉 Die Heimleitung öffnet den goldenen Umschlag! Gewinner-Finale für ${eventName} startet.`,
     finale_blocked: "🧓 Die Auslosung darf erst starten, wenn das Event beendet ist.",
-    help: "🧓 Event-Befehle: !event, !event top, !event punkte, !event status, !event fertig, !event auslosung"
+    help: "🧓 Event-Befehle: !event, !event top, !event punkte, !event status, !event fertig, !event auswertung"
   };
   return messages[key] || "🧓 Die Heimleitung hat den Event-Befehl notiert.";
 }
@@ -6557,7 +6606,7 @@ function processEventCommand(chat = {}) {
       result.event = publicEventSummary(finish.event || active);
       result.chatOutput = finish.ok ? buildEventCommandMessage("finished", { eventName: active.name }) : buildEventCommandMessage("finish_blocked", { eventName: active.name, reason: finish.error });
     }
-  } else if (["auslosung", "finale", "gewinner", "winner"].includes(sub)) {
+  } else if (["auswertung", "auswerten", "auslosung", "finale", "gewinner", "winner"].includes(sub)) {
     if (!modAllowed) {
       result.ok = false;
       result.error = "permission_denied";

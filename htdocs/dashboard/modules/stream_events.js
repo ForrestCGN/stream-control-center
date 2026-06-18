@@ -1532,7 +1532,7 @@ window.StreamEventsModule = (function(){
         </div>
         <div class="evs-action-row evs-action-row-tight evs-lifecycle-actions">
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="finish" data-uid="${esc(event.eventUid)}" ${canFinish ? '' : 'disabled'}>Auf Finished setzen</button>
-          <button type="button" class="evs-btn evs-btn-primary" data-evs-action="winnerFinale" data-uid="${esc(event.eventUid)}" ${canFinale ? '' : 'disabled'}>Gewinner-Finale starten</button>
+          <button type="button" class="evs-btn evs-btn-primary" data-evs-action="winnerFinale" data-uid="${esc(event.eventUid)}" ${canFinale ? '' : 'disabled'}>Auswertung starten</button>
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="archive" data-uid="${esc(event.eventUid)}" ${canArchive ? '' : 'disabled'}>Archivieren</button>
           <button type="button" class="evs-btn evs-btn-danger" data-evs-action="cancel" data-uid="${esc(event.eventUid)}" ${canCancel ? '' : 'disabled'}>Abbrechen</button>
           <button type="button" class="evs-btn evs-btn-danger" data-evs-action="deleteEvent" data-uid="${esc(event.eventUid)}">Löschen…</button>
@@ -3246,14 +3246,14 @@ window.StreamEventsModule = (function(){
       render();
       return;
     }
-    if (!confirm('Gewinner-Finale jetzt starten? Die Auslosung wird vorbereitet und später vom Finale-Overlay angezeigt.')) return;
+    if (!confirm('Auswertung jetzt starten? Das Gewinner-Finale wird ans Overlay gesendet und direkt eingeblendet.')) return;
     try {
       const result = await window.CGN.api(`${api.events}/${encodeURIComponent(uid)}/finale/start?confirm=1`, {
         method: 'POST',
         body: JSON.stringify({ actor: 'dashboard' })
       });
       const winner = result?.finale?.winner?.userDisplayName || result?.finale?.winner?.userLogin || 'Gewinner';
-      state.message = result.alreadyDrawn ? `Gewinner-Finale ist bereits ausgelost: ${winner}.` : `Gewinner-Finale vorbereitet: ${winner}.`;
+      state.message = result.alreadyDrawn ? `Auswertung ist bereits vorbereitet: ${winner}.` : `Auswertung vorbereitet: ${winner}.`;
       await reloadDashboardAfterMutation(uid, { keepTab: true });
     } catch (err) {
       state.error = err.message || String(err);
