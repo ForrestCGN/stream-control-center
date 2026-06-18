@@ -1,38 +1,766 @@
+.stream-events-admin{--evs-border:rgba(139,92,246,.28);--evs-bg:rgba(15,23,42,.56);--evs-bg-soft:rgba(255,255,255,.055);--evs-muted:#9fb0c8;--evs-text:#f8fafc;--evs-accent:#a855f7;--evs-cyan:#22d3ee;--evs-danger:#ef4444;--evs-ok:#22c55e;--evs-warn:#f59e0b}
+.stream-events-admin .evs-page{display:grid;gap:16px}
+.stream-events-admin .glass{border:1px solid var(--evs-border);background:linear-gradient(135deg,rgba(17,24,39,.82),rgba(11,17,28,.92));box-shadow:0 0 26px rgba(168,85,247,.12);border-radius:18px}
+.stream-events-admin .evs-header{display:flex;justify-content:space-between;gap:16px;padding:18px;align-items:flex-start}
+.stream-events-admin .evs-kicker{font-size:12px;color:var(--evs-cyan);font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+.stream-events-admin h2,.stream-events-admin h3{margin:0;color:var(--evs-text)}
+.stream-events-admin p{margin:6px 0 0;color:var(--evs-muted)}
+.stream-events-admin .evs-header-actions,.stream-events-admin .evs-action-row,.stream-events-admin .evs-modal-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.stream-events-admin .evs-btn{border:1px solid rgba(168,85,247,.55);background:linear-gradient(135deg,rgba(168,85,247,.95),rgba(34,211,238,.72));color:white;border-radius:12px;padding:10px 13px;font-weight:900;cursor:pointer}
+.stream-events-admin .evs-btn:disabled{opacity:.42;cursor:not-allowed;filter:grayscale(.4)}
+.stream-events-admin .evs-btn-secondary{background:rgba(255,255,255,.065);border-color:rgba(255,255,255,.14);color:var(--evs-text)}
+.stream-events-admin .evs-btn-danger{background:rgba(239,68,68,.18);border-color:rgba(239,68,68,.45);color:#fecaca}
+.stream-events-admin .evs-btn-small{padding:6px 9px;font-size:12px}
+.stream-events-admin .evs-grid{display:grid;grid-template-columns:minmax(280px,420px) 1fr;gap:16px}
+.stream-events-admin .evs-card{padding:16px;min-width:0}
+.stream-events-admin .evs-card-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:12px}
+.stream-events-admin .evs-card-head span{color:var(--evs-muted);font-size:12px}
+.stream-events-admin .evs-card-head-inner{margin-top:18px}
+.stream-events-admin .evs-list{display:grid;gap:10px}
+.stream-events-admin .evs-event-row{width:100%;display:flex;justify-content:space-between;gap:12px;align-items:center;text-align:left;border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.045);border-radius:14px;padding:12px;cursor:pointer;color:var(--evs-text)}
+.stream-events-admin .evs-event-row.is-active{border-color:rgba(34,211,238,.65);box-shadow:0 0 18px rgba(34,211,238,.10)}
+.stream-events-admin .evs-event-row strong{display:block}.stream-events-admin .evs-event-row small{display:block;color:var(--evs-muted);margin-top:4px}
+.stream-events-admin .evs-badge{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:900;border:1px solid rgba(255,255,255,.14);white-space:nowrap}
+.stream-events-admin .evs-badge-ok{background:rgba(34,197,94,.16);border-color:rgba(34,197,94,.45);color:#bbf7d0}.stream-events-admin .evs-badge-good{background:rgba(34,211,238,.14);border-color:rgba(34,211,238,.42);color:#a5f3fc}.stream-events-admin .evs-badge-warn{background:rgba(245,158,11,.15);border-color:rgba(245,158,11,.44);color:#fde68a}.stream-events-admin .evs-badge-info{background:rgba(99,102,241,.15);border-color:rgba(99,102,241,.42);color:#c7d2fe}.stream-events-admin .evs-badge-off,.stream-events-admin .evs-badge-muted{background:rgba(148,163,184,.10);border-color:rgba(148,163,184,.25);color:#cbd5e1}
+.stream-events-admin .evs-detail-title{display:flex;justify-content:space-between;gap:14px;margin-bottom:14px}
+.stream-events-admin .evs-mini-grid{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:10px;margin:14px 0}.stream-events-admin .evs-mini-grid div{border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);border-radius:12px;padding:10px}.stream-events-admin .evs-mini-grid strong{display:block;color:#e5e7eb;font-size:12px}.stream-events-admin .evs-mini-grid span{display:block;color:var(--evs-muted);font-size:12px;margin-top:5px}
+.stream-events-admin .evs-valid-ok,.stream-events-admin .evs-validation{border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.045);border-radius:14px;padding:12px;margin:14px 0}.stream-events-admin .evs-valid-ok{border-color:rgba(34,197,94,.35);color:#bbf7d0}.stream-events-admin .evs-validation-block{color:#fecaca}.stream-events-admin .evs-validation-warn{color:#fde68a;margin-top:8px}
+.stream-events-admin .evs-empty{color:var(--evs-muted);border:1px dashed rgba(255,255,255,.14);border-radius:14px;padding:14px;background:rgba(255,255,255,.03)}
+.stream-events-admin .evs-alert{border-radius:14px;padding:12px 14px;font-weight:800}.stream-events-admin .evs-alert-error{background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.42);color:#fecaca}.stream-events-admin .evs-alert-ok{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.35);color:#bbf7d0}
+.stream-events-admin .evs-rank-row{display:grid;grid-template-columns:50px 1fr auto;gap:10px;align-items:center;border-bottom:1px solid rgba(255,255,255,.08);padding:9px 0;color:var(--evs-text)}
+.stream-events-admin .evs-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.58);z-index:80;display:grid;place-items:center;padding:24px}.stream-events-admin .evs-modal{width:min(920px,calc(100vw - 28px));max-height:calc(100vh - 42px);overflow:auto;padding:18px}.stream-events-admin .evs-modal-head{display:flex;justify-content:space-between;gap:12px;margin-bottom:12px}.stream-events-admin .evs-icon-btn{width:34px;height:34px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.08);color:#fff;font-size:22px;cursor:pointer}
+.stream-events-admin .evs-form{display:grid;gap:12px}.stream-events-admin label{display:grid;gap:6px;color:#e5e7eb;font-weight:800;font-size:13px}.stream-events-admin input,.stream-events-admin textarea,.stream-events-admin select{border:1px solid rgba(255,255,255,.14);background:rgba(2,6,23,.46);color:#fff;border-radius:12px;padding:10px;font:inherit}.stream-events-admin .evs-choice-row{display:flex;flex-wrap:wrap;gap:10px}.stream-events-admin .evs-check{display:flex;grid-template-columns:auto 1fr;align-items:center;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:10px 12px;background:rgba(255,255,255,.04)}.stream-events-admin .evs-check input{width:auto}.stream-events-admin .evs-two-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}.stream-events-admin .evs-config-box{border:1px solid rgba(34,211,238,.18);border-radius:14px;padding:12px;background:rgba(255,255,255,.035)}.stream-events-admin .evs-config-box summary{cursor:pointer;font-weight:900;color:#a5f3fc;margin-bottom:10px}
+@media(max-width:1100px){.stream-events-admin .evs-grid{grid-template-columns:1fr}.stream-events-admin .evs-mini-grid{grid-template-columns:1fr 1fr}.stream-events-admin .evs-two-cols{grid-template-columns:1fr}.stream-events-admin .evs-header{display:grid}}
+@media(max-width:640px){.stream-events-admin .evs-mini-grid{grid-template-columns:1fr}.stream-events-admin .evs-event-row{display:grid}.stream-events-admin .evs-rank-row{grid-template-columns:40px 1fr}}
 
 
-/* EVS49.33A Winner-Test im vorhandenen Overlay-Tab */
-.evs-winner-test-box {
+/* EVS-4 Media-System Picker Vorbereitung */
+.evs-field-block{display:flex;flex-direction:column;gap:8px;min-width:0}
+.evs-label{font-size:12px;font-weight:800;color:var(--muted,#b8c0cc);letter-spacing:.01em}
+.evs-help{display:block;color:var(--muted,#9aa4b2);font-size:12px;line-height:1.35}
+.evs-media-field{border:1px solid rgba(77,225,255,.25);background:rgba(255,255,255,.035);border-radius:14px;padding:10px;display:grid;gap:8px}
+.evs-media-field [data-media-field-open],
+.evs-media-field [data-media-field-clear]{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.07);color:inherit;border-radius:10px;padding:9px 12px;font-weight:800;cursor:pointer;margin-right:8px}
+.evs-media-field [data-media-field-open]{background:linear-gradient(135deg,rgba(158,87,255,.95),rgba(0,196,255,.75));border-color:rgba(255,255,255,.24);color:#fff}
+.evs-media-field .media-field-preview{border:1px dashed rgba(255,255,255,.14);border-radius:12px;padding:10px;min-height:48px;background:rgba(0,0,0,.12)}
+.evs-media-field .mf-preview-player audio,
+.evs-media-field .mf-preview-player video{width:100%;max-height:180px}
+.evs-media-field .mf-preview-player img{max-width:100%;max-height:160px;border-radius:10px}
+.evs-media-field .mf-preview-meta{display:grid;gap:2px;margin-top:7px}
+.evs-media-field .mf-preview-meta small,
+.evs-media-field .mf-muted{color:var(--muted,#9aa4b2)}
+.evs-media-field code{font-size:11px;opacity:.85}
+
+/* EVS-4b Sound-Konfiguration: Audio/Video klar und responsive */
+.stream-events-admin .evs-sound-rule-grid{margin-bottom:12px}
+.stream-events-admin .evs-sound-media-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(280px,.85fr);gap:12px;align-items:stretch;margin-top:12px}
+.stream-events-admin .evs-sound-card{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.035);border-radius:16px;padding:12px;display:grid;gap:10px;align-content:start;min-width:0}
+.stream-events-admin .evs-sound-card-required{border-color:rgba(34,211,238,.30);box-shadow:0 0 18px rgba(34,211,238,.06)}
+.stream-events-admin .evs-sound-card-optional{border-color:rgba(148,163,184,.22);background:rgba(255,255,255,.026)}
+.stream-events-admin .evs-sound-card-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.stream-events-admin .evs-sound-card-head strong{display:block;color:#f8fafc;font-size:15px}
+.stream-events-admin .evs-sound-card-head small{display:block;color:var(--evs-muted);font-size:12px;line-height:1.35;margin-top:2px}
+.stream-events-admin .evs-media-field{grid-template-columns:minmax(0,1fr) auto;align-items:start}
+.stream-events-admin .evs-media-field [data-media-field-open],
+.stream-events-admin .evs-media-field [data-media-field-clear]{margin:0;min-height:40px;white-space:nowrap}
+.stream-events-admin .evs-media-field [data-media-field-clear]{min-width:96px}
+.stream-events-admin .evs-media-field .media-field-preview{grid-column:1/-1;min-height:42px}
+.stream-events-admin .evs-media-field [data-media-field-value]{display:none}
+@media(max-width:980px){.stream-events-admin .evs-sound-media-grid{grid-template-columns:1fr}.stream-events-admin .evs-media-field{grid-template-columns:1fr}.stream-events-admin .evs-media-field [data-media-field-clear]{width:100%}}
+
+/* EVS-5: Text-Spiel Konfiguration klarer strukturieren */
+.stream-events-admin .evs-text-game-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(280px,.95fr);gap:12px;align-items:start;margin-top:12px}
+.stream-events-admin .evs-text-card{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.035);border-radius:16px;padding:12px;display:grid;gap:10px;align-content:start;min-width:0}
+.stream-events-admin .evs-text-card-required{border-color:rgba(34,211,238,.30);box-shadow:0 0 18px rgba(34,211,238,.055)}
+.stream-events-admin .evs-text-card-optional{border-color:rgba(148,163,184,.22);background:rgba(255,255,255,.026)}
+.stream-events-admin .evs-text-card-points{grid-column:1/-1;border-color:rgba(168,85,247,.20);background:rgba(255,255,255,.028)}
+.stream-events-admin .evs-text-card textarea{min-height:88px;resize:vertical}
+@media(max-width:980px){.stream-events-admin .evs-text-game-grid{grid-template-columns:1fr}.stream-events-admin .evs-text-card-points{grid-column:auto}}
+
+/* EVS-5b: Text-Spiel Regeln vereinfachen und Teiltreffer sauber vorbereiten */
+.stream-events-admin .evs-text-simple{display:grid;gap:12px;margin-top:10px}
+.stream-events-admin .evs-text-rule-note{border:1px solid rgba(34,211,238,.20);background:rgba(34,211,238,.065);border-radius:14px;padding:10px 12px;color:#c7f9ff;font-size:13px;line-height:1.35}
+.stream-events-admin .evs-form-row-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.stream-events-admin .evs-form-row-head strong{display:block;color:#f8fafc;font-size:15px}
+.stream-events-admin .evs-form-row-head small{display:block;color:var(--evs-muted);font-size:12px;line-height:1.35;margin-top:2px}
+.stream-events-admin .evs-inline-optional{display:inline-flex;margin-left:6px;border:1px solid rgba(148,163,184,.25);border-radius:999px;padding:2px 7px;font-size:11px;color:#cbd5e1;background:rgba(148,163,184,.10)}
+.stream-events-admin .evs-text-answers-points{align-items:end}
+.stream-events-admin .evs-partial-hints-box{border:1px solid rgba(148,163,184,.18);background:rgba(255,255,255,.026);border-radius:14px;padding:12px;display:grid;gap:10px}
+.stream-events-admin .evs-check-compact{display:flex;align-items:center;gap:8px;justify-content:flex-start;width:max-content;max-width:100%;padding:8px 10px}
+.stream-events-admin .evs-check-compact input{width:auto;margin:0}
+.stream-events-admin .evs-text-simple textarea{min-height:86px;resize:vertical}
+@media(max-width:760px){.stream-events-admin .evs-form-row-head{display:grid}.stream-events-admin .evs-check-compact{width:100%}}
+
+/* EVS-6 · Text-Multi-Sätze */
+.stream-events-admin .evs-btn-small{padding:8px 11px;font-size:12px;border-radius:11px}
+.stream-events-admin .evs-phrase-list{display:grid;gap:10px}
+.stream-events-admin .evs-phrase-row{border:1px solid rgba(34,211,238,.18);background:rgba(255,255,255,.032);border-radius:15px;padding:11px;display:grid;gap:10px}
+.stream-events-admin .evs-phrase-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.stream-events-admin .evs-phrase-head strong{display:block;color:#f8fafc}
+.stream-events-admin .evs-phrase-head small{display:block;color:var(--evs-muted);font-size:12px;margin-top:2px;font-weight:600;line-height:1.3}
+.stream-events-admin .evs-icon-btn-danger{color:#fecaca;border-color:rgba(239,68,68,.25);background:rgba(239,68,68,.08)}
+.stream-events-admin .evs-icon-btn:disabled{opacity:.42;cursor:not-allowed}
+.stream-events-admin .evs-text-config-grid{align-items:end}
+.stream-events-admin .evs-choice-row-compact{gap:8px;margin-top:2px}
+.stream-events-admin .evs-choice-row-compact .evs-check{padding:8px 10px;font-size:12px}
+@media(max-width:760px){.stream-events-admin .evs-phrase-head{align-items:center}.stream-events-admin .evs-form-row-head{align-items:flex-start;flex-direction:column}.stream-events-admin .evs-form-row-head .evs-btn-small{width:100%;justify-content:center}}
+
+/* EVS-7 · Text-Config / Multi-Texte Vorbereitung */
+.stream-events-admin .evs-text-config-panel{margin-top:16px}
+.stream-events-admin .evs-text-config-help{border:1px solid rgba(34,211,238,.18);background:rgba(34,211,238,.055);border-radius:14px;padding:11px 12px;color:#d7fbff;font-size:13px;line-height:1.45;margin-bottom:12px}
+.stream-events-admin .evs-text-config-help code{border:1px solid rgba(255,255,255,.12);background:rgba(2,6,23,.35);border-radius:7px;padding:1px 5px;color:#f8fafc}
+.stream-events-admin .evs-text-category-list{display:grid;gap:10px}
+.stream-events-admin .evs-text-category{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.028);border-radius:15px;padding:10px}
+.stream-events-admin .evs-text-category>summary{cursor:pointer;display:flex;justify-content:space-between;gap:12px;align-items:center;color:#a5f3fc;font-weight:900}
+.stream-events-admin .evs-text-category>summary small{color:var(--evs-muted);font-weight:700}
+.stream-events-admin .evs-text-category-body{display:grid;gap:10px;margin-top:10px}
+.stream-events-admin .evs-text-key{border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.024);border-radius:14px;padding:9px}
+.stream-events-admin .evs-text-key>summary{cursor:pointer;display:flex;justify-content:space-between;gap:10px;color:#f8fafc}
+.stream-events-admin .evs-text-key>summary span{display:flex;flex-direction:column;gap:2px}
+.stream-events-admin .evs-text-key>summary small{color:var(--evs-muted);font-size:12px;font-weight:700}
+.stream-events-admin .evs-text-key-body{display:grid;gap:9px;margin-top:9px}
+.stream-events-admin .evs-text-variant{border:1px solid rgba(255,255,255,.10);background:rgba(2,6,23,.22);border-radius:13px;padding:9px;display:grid;gap:8px}
+.stream-events-admin .evs-text-variant-new{border-color:rgba(34,211,238,.20);background:rgba(34,211,238,.035)}
+.stream-events-admin .evs-text-variant textarea{min-height:54px;resize:vertical}
+.stream-events-admin .evs-text-variant-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-end}
+.stream-events-admin .evs-mini-label{display:flex;align-items:center;gap:7px;color:#cbd5e1;font-size:12px;font-weight:800}
+.stream-events-admin .evs-mini-label input{width:72px;padding:7px 8px;border-radius:9px}
+@media(max-width:760px){.stream-events-admin .evs-text-variant-actions{justify-content:flex-start}.stream-events-admin .evs-text-variant-actions .evs-btn{width:100%}.stream-events-admin .evs-mini-label{width:100%;justify-content:space-between}.stream-events-admin .evs-mini-label input{width:110px}}
+
+/* EVS-7b · Dashboard Tabs Layout Split */
+.stream-events-admin .evs-tabs{display:flex;flex-wrap:wrap;gap:8px;padding:10px;align-items:center}
+.stream-events-admin .evs-tab{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.045);color:var(--evs-text);border-radius:13px;padding:10px 12px;display:inline-flex;gap:8px;align-items:center;font-weight:900;cursor:pointer;min-height:42px}
+.stream-events-admin .evs-tab:hover{border-color:rgba(34,211,238,.38);background:rgba(34,211,238,.07)}
+.stream-events-admin .evs-tab.is-active{border-color:rgba(34,211,238,.68);background:linear-gradient(135deg,rgba(168,85,247,.32),rgba(34,211,238,.18));box-shadow:0 0 18px rgba(34,211,238,.10)}
+.stream-events-admin .evs-tab span{font-size:15px;line-height:1}
+.stream-events-admin .evs-tab-panel{margin-top:0}
+.stream-events-admin .evs-tab-help{border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.035);border-radius:13px;padding:10px 12px;margin-top:12px;color:var(--evs-muted);font-size:13px;line-height:1.45}
+.stream-events-admin .evs-mini-grid-compact{grid-template-columns:repeat(4,minmax(120px,1fr))}
+.stream-events-admin .evs-tab-list{margin-top:12px}
+.stream-events-admin .evs-info-row{display:grid;gap:4px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.035);border-radius:13px;padding:10px 12px}
+.stream-events-admin .evs-info-row strong{color:#f8fafc}
+.stream-events-admin .evs-info-row span{color:var(--evs-muted);font-size:13px;line-height:1.35}
+@media(max-width:920px){.stream-events-admin .evs-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.stream-events-admin .evs-tab{justify-content:center}.stream-events-admin .evs-mini-grid-compact{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.stream-events-admin .evs-tabs{grid-template-columns:1fr}.stream-events-admin .evs-mini-grid-compact{grid-template-columns:1fr}}
+
+/* EVS-7c: Events are the main object. Overview only shows running events; all configured events live in Events tab. */
+.stream-events-admin .evs-event-card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.stream-events-admin .evs-running-card{border:1px solid rgba(34,211,238,.22);background:linear-gradient(145deg,rgba(34,211,238,.08),rgba(168,85,247,.06));border-radius:18px;padding:14px;box-shadow:0 0 18px rgba(34,211,238,.06)}
+.stream-events-admin .evs-running-card-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:8px}
+.stream-events-admin .evs-running-card h3{margin:0;color:#f8fafc;font-size:17px}
+.stream-events-admin .evs-running-card span{color:var(--evs-muted);font-size:13px}
+.stream-events-admin .evs-running-card p{color:#cbd5e1;font-size:13px;line-height:1.45;margin:8px 0 0}
+.stream-events-admin .evs-running-card .evs-mini-grid{grid-template-columns:repeat(2,minmax(120px,1fr))}
+@media(max-width:640px){.stream-events-admin .evs-running-card-head{display:grid}.stream-events-admin .evs-running-card .evs-mini-grid{grid-template-columns:1fr}}
+
+/* EVS-8 · Config-Dashboard Vorbereitung */
+.stream-events-admin .evs-config-panel{display:grid;gap:12px}
+.stream-events-admin .evs-config-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;align-items:start}
+.stream-events-admin .evs-config-card{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);border-radius:16px;padding:12px;display:grid;gap:10px;min-width:0}
+.stream-events-admin .evs-config-card-head{display:grid;gap:2px;margin-bottom:2px}
+.stream-events-admin .evs-config-card-head strong{color:#f8fafc;font-size:15px}
+.stream-events-admin .evs-config-card-head small{color:var(--evs-muted);font-size:12px;line-height:1.35}
+.stream-events-admin .evs-config-card label:not(.evs-check){display:grid;gap:6px;color:#cbd5e1;font-size:12px;font-weight:800}
+.stream-events-admin .evs-config-card input[type="number"],
+.stream-events-admin .evs-config-card select{width:100%;border:1px solid rgba(255,255,255,.14);background:rgba(2,6,23,.45);color:#f8fafc;border-radius:12px;padding:10px 11px;font-weight:800;min-height:40px}
+.stream-events-admin .evs-config-card .evs-check{justify-content:flex-start;width:100%;padding:9px 10px}
+.stream-events-admin .evs-config-card .evs-check input{width:auto;margin:0}
+@media(max-width:720px){.stream-events-admin .evs-config-grid{grid-template-columns:1fr}}
+
+/* EVS-12 Text-Runtime Dashboard Report */
+.evs-action-row-tight{gap:8px; flex-wrap:wrap; justify-content:flex-end;}
+.evs-runtime-report{margin-top:16px; display:grid; gap:14px;}
+.evs-runtime-report.is-compact{margin-top:18px;}
+.evs-runtime-report-empty{align-items:flex-start;}
+.evs-runtime-counters{display:grid; grid-template-columns:repeat(4,minmax(120px,1fr)); gap:10px;}
+.evs-runtime-counters>div{border:1px solid rgba(125,92,255,.28); background:rgba(10,16,35,.58); border-radius:14px; padding:12px 14px; box-shadow:0 0 18px rgba(92,72,255,.12) inset;}
+.evs-runtime-counters strong{display:block; font-size:24px; line-height:1; color:#f7f3ff; text-shadow:0 0 12px rgba(183,110,255,.45);}
+.evs-runtime-counters span{display:block; margin-top:6px; color:#b7c5e6; font-size:12px;}
+.evs-runtime-columns{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px;}
+.evs-runtime-box{border:1px solid rgba(92,220,255,.20); background:rgba(7,12,29,.50); border-radius:16px; padding:13px; min-width:0;}
+.evs-runtime-box h4{margin:0 0 10px; color:#ffffff; font-size:14px; letter-spacing:.02em;}
+.evs-runtime-box-head{display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:10px;}
+.evs-runtime-box-head h4{margin:0;}
+.evs-runtime-box-head small{color:#8fa7d7; font-size:11px;}
+.evs-runtime-row{display:grid; gap:3px; padding:9px 0; border-top:1px solid rgba(255,255,255,.07);}
+.evs-runtime-row:first-of-type{border-top:0; padding-top:0;}
+.evs-runtime-row strong{color:#f4edff; font-size:13px;}
+.evs-runtime-row span{color:#c9d5f3; font-size:12px;}
+.evs-runtime-row small{color:#8ea1c8; font-size:11px;}
+.evs-runtime-chatoutputs{display:grid; gap:8px;}
+.evs-chat-output-row{border:1px solid rgba(185,100,255,.22); background:linear-gradient(135deg,rgba(86,31,161,.22),rgba(20,52,110,.18)); border-radius:14px; padding:10px 12px;}
+.evs-chat-output-row>span{display:inline-flex; font-size:11px; color:#e8d8ff; border:1px solid rgba(200,132,255,.28); border-radius:999px; padding:3px 8px; margin-bottom:7px; background:rgba(106,64,190,.22);}
+.evs-chat-output-row p{margin:0; color:#fff; font-size:13px; line-height:1.35;}
+.evs-chat-output-row small{display:block; margin-top:6px; color:#98aad0; font-size:11px;}
+@media (max-width: 1100px){
+  .evs-runtime-counters{grid-template-columns:repeat(2,minmax(120px,1fr));}
+  .evs-runtime-columns{grid-template-columns:1fr;}
+}
+@media (max-width: 620px){
+  .evs-runtime-counters{grid-template-columns:1fr;}
+}
+
+/* EVS-13 User Statistics Filter / User Detail Report */
+.stream-events-admin .evs-user-filter{display:grid;grid-template-columns:minmax(260px,1fr) auto auto;gap:10px;align-items:end;margin:14px 0;padding:12px;border:1px solid rgba(34,211,238,.18);background:rgba(10,16,35,.42);border-radius:16px}
+.stream-events-admin .evs-user-filter label{display:grid;gap:6px;color:#cbd5e1;font-size:12px;font-weight:900}
+.stream-events-admin .evs-user-filter select{width:100%;border:1px solid rgba(255,255,255,.14);background:rgba(2,6,23,.55);color:#f8fafc;border-radius:12px;padding:10px 11px;font-weight:800;min-height:40px}
+.stream-events-admin .evs-user-filter small{grid-column:1/-1;color:#93a4c7;font-size:12px}
+.stream-events-admin .evs-user-detail{display:grid;gap:14px;margin-top:14px;border:1px solid rgba(168,85,247,.20);background:linear-gradient(145deg,rgba(88,28,135,.15),rgba(14,116,144,.08));border-radius:18px;padding:14px}
+.stream-events-admin .evs-user-counters{grid-template-columns:repeat(4,minmax(120px,1fr))}
+.stream-events-admin .evs-user-columns{grid-template-columns:repeat(3,minmax(0,1fr))}
+.stream-events-admin .evs-user-timeline{display:grid;gap:8px}
+.stream-events-admin .evs-user-timeline-row{display:grid;grid-template-columns:90px minmax(160px,1.2fr) minmax(220px,2fr) 100px 150px;gap:8px;align-items:center;border-top:1px solid rgba(255,255,255,.07);padding:9px 0;color:#cbd5e1;font-size:12px}
+.stream-events-admin .evs-user-timeline-row:first-of-type{border-top:0}
+.stream-events-admin .evs-user-timeline-row b{color:#f4edff}
+.stream-events-admin .evs-user-timeline-row em{font-style:normal;color:#d8e6ff;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stream-events-admin .evs-user-timeline-row strong{color:#fff;text-align:right}
+.stream-events-admin .evs-user-timeline-row small{color:#8fa7d7;text-align:right}
+@media(max-width:1050px){.stream-events-admin .evs-user-filter{grid-template-columns:1fr}.stream-events-admin .evs-user-columns{grid-template-columns:1fr}.stream-events-admin .evs-user-counters{grid-template-columns:repeat(2,minmax(120px,1fr))}.stream-events-admin .evs-user-timeline-row{grid-template-columns:1fr;gap:3px}.stream-events-admin .evs-user-timeline-row strong,.stream-events-admin .evs-user-timeline-row small{text-align:left}.stream-events-admin .evs-user-timeline-row em{white-space:normal}}
+@media(max-width:620px){.stream-events-admin .evs-user-counters{grid-template-columns:1fr}}
+
+/* EVS-13b User Statistics Detail Modal + AutoReload */
+.stream-events-admin .evs-user-modal{width:min(1180px,calc(100vw - 28px));max-height:calc(100vh - 38px);overflow:hidden;display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;padding:0}
+.stream-events-admin .evs-user-modal-head{padding:16px 18px 10px;margin-bottom:0;border-bottom:1px solid rgba(255,255,255,.08)}
+.stream-events-admin .evs-user-modal-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 18px;border-bottom:1px solid rgba(255,255,255,.08);background:rgba(2,6,23,.24)}
+.stream-events-admin .evs-user-modal-toolbar small{color:#93a4c7;font-size:12px;line-height:1.35}
+.stream-events-admin .evs-user-modal-toolbar .evs-btn.is-active{border-color:rgba(34,211,238,.55);box-shadow:0 0 15px rgba(34,211,238,.14)}
+.stream-events-admin .evs-user-modal-body{min-height:0;overflow:auto;padding:16px 18px;display:grid;gap:14px;scrollbar-color:rgba(34,211,238,.45) rgba(2,6,23,.35)}
+.stream-events-admin .evs-user-modal-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start}
+.stream-events-admin .evs-user-modal-grid .evs-runtime-box{max-height:360px;overflow:auto}
+.stream-events-admin .evs-user-modal-timeline{max-height:420px;overflow:auto}
+.stream-events-admin .evs-user-modal-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 18px;border-top:1px solid rgba(255,255,255,.08);background:rgba(2,6,23,.28)}
+.stream-events-admin .evs-user-modal-footer span{color:#93a4c7;font-size:12px;line-height:1.35}
+@media(max-width:1050px){.stream-events-admin .evs-user-modal-grid{grid-template-columns:1fr}.stream-events-admin .evs-user-modal-grid .evs-runtime-box{max-height:300px}.stream-events-admin .evs-user-modal-footer{display:grid}}
+@media(max-width:620px){.stream-events-admin .evs-user-modal-toolbar .evs-btn,.stream-events-admin .evs-user-modal-footer .evs-btn{width:100%}}
+
+/* EVS-16 Sound-Runtime Dashboard Report */
+.stream-events-admin .evs-sound-report{border:1px solid rgba(34,211,238,.18);background:linear-gradient(145deg,rgba(8,47,73,.18),rgba(88,28,135,.10));border-radius:18px;padding:14px;margin-top:16px}
+.stream-events-admin .evs-sound-report-head{border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:8px;margin-bottom:12px}
+.stream-events-admin .evs-sound-report .evs-runtime-counters{grid-template-columns:repeat(6,minmax(100px,1fr))}
+.stream-events-admin .evs-sound-report .evs-runtime-box{min-height:0;max-height:420px;overflow:auto;scrollbar-color:rgba(34,211,238,.45) rgba(2,6,23,.35)}
+.stream-events-admin .evs-sound-report .evs-chat-output-row p{word-break:break-word}
+@media(max-width:1280px){.stream-events-admin .evs-sound-report .evs-runtime-counters{grid-template-columns:repeat(3,minmax(110px,1fr))}}
+@media(max-width:720px){.stream-events-admin .evs-sound-report .evs-runtime-counters{grid-template-columns:repeat(2,minmax(110px,1fr))}}
+@media(max-width:520px){.stream-events-admin .evs-sound-report .evs-runtime-counters{grid-template-columns:1fr}}
+
+/* EVS-16b Statistik Tab Layout Cleanup */
+.stream-events-admin .evs-stats-shell{overflow:hidden}
+.stream-events-admin .evs-stats-head{align-items:flex-start;gap:14px}
+.stream-events-admin .evs-stats-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 16px;padding:8px;border:1px solid rgba(34,211,238,.14);background:rgba(2,6,23,.28);border-radius:18px}
+.stream-events-admin .evs-stats-tab{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#dbeafe;border-radius:14px;padding:10px 14px;font-weight:900;cursor:pointer;transition:.16s ease;min-height:40px}
+.stream-events-admin .evs-stats-tab:hover{border-color:rgba(34,211,238,.34);background:rgba(34,211,238,.10);transform:translateY(-1px)}
+.stream-events-admin .evs-stats-tab.is-active{border-color:rgba(168,85,247,.72);background:linear-gradient(135deg,rgba(168,85,247,.28),rgba(34,211,238,.16));box-shadow:0 0 18px rgba(168,85,247,.18),inset 0 0 0 1px rgba(255,255,255,.06);color:#fff}
+.stream-events-admin .evs-stats-content{display:grid;gap:14px;min-height:160px}
+.stream-events-admin .evs-stats-overview{display:grid;gap:14px}
+.stream-events-admin .evs-stats-overview-grid{margin-bottom:0}
+.stream-events-admin .evs-stats-section{display:grid;gap:14px}
+.stream-events-admin .evs-stats-section-head{margin-bottom:4px}
+.stream-events-admin .evs-ranking-standalone{margin-top:0;max-height:520px;overflow:auto;padding-right:4px}
+.stream-events-admin .evs-stats-local-actions{justify-content:flex-start;margin-top:12px}
+.stream-events-admin .evs-stats-user-section .evs-user-filter{margin-top:0}
+@media(max-width:760px){.stream-events-admin .evs-stats-tabs{display:grid;grid-template-columns:1fr 1fr}.stream-events-admin .evs-stats-tab{width:100%}.stream-events-admin .evs-stats-head{display:grid}.stream-events-admin .evs-stats-head .evs-btn{width:100%}}
+
+.stream-events-admin .evs-text-filter-bar{
+  display:grid;
+  grid-template-columns:minmax(220px,320px) minmax(220px,1fr) auto;
+  gap:10px;
+  align-items:end;
+  margin:12px 0 8px;
+  padding:12px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:16px;
+  background:rgba(2,6,23,.26);
+}
+.stream-events-admin .evs-text-filter-bar label{
+  display:grid;
+  gap:6px;
+  color:var(--evs-muted);
+  font-size:12px;
+  font-weight:800;
+}
+.stream-events-admin .evs-text-filter-bar select,
+.stream-events-admin .evs-text-filter-bar input{
+  min-height:36px;
+}
+.stream-events-admin .evs-text-filter-hint{
+  color:var(--evs-muted);
+  font-size:12px;
+  margin:0 0 10px;
+}
+@media (max-width: 860px){
+  .stream-events-admin .evs-text-filter-bar{grid-template-columns:1fr}
+}
+
+
+/* EVS-22 Dashboard Safety View */
+.stream-events-admin .evs-safety-grid{grid-template-columns:minmax(420px,1.2fr) minmax(320px,.8fr)}
+.stream-events-admin .evs-safety-panel,.stream-events-admin .evs-lifecycle-panel{display:grid;gap:14px;align-content:start}
+.stream-events-admin .evs-safety-banner{display:grid;gap:4px;border-radius:16px;padding:13px 14px;border:1px solid rgba(255,255,255,.14)}
+.stream-events-admin .evs-safety-banner strong{font-size:15px;color:#fff}.stream-events-admin .evs-safety-banner span{color:#cbd5e1;font-size:12px}
+.stream-events-admin .evs-safety-banner.is-safe{border-color:rgba(34,197,94,.34);background:linear-gradient(135deg,rgba(22,101,52,.20),rgba(8,47,73,.12))}
+.stream-events-admin .evs-safety-banner.is-live{border-color:rgba(239,68,68,.48);background:linear-gradient(135deg,rgba(127,29,29,.28),rgba(88,28,135,.15));box-shadow:0 0 20px rgba(239,68,68,.12)}
+.stream-events-admin .evs-safety-banner.is-warning{border-color:rgba(245,158,11,.42);background:linear-gradient(135deg,rgba(120,53,15,.22),rgba(8,47,73,.14));box-shadow:0 0 18px rgba(245,158,11,.10)}
+.stream-events-admin .evs-valid-ok.is-live{border-color:rgba(34,197,94,.45);background:linear-gradient(135deg,rgba(22,101,52,.22),rgba(8,47,73,.12));color:#bbf7d0}
+.stream-events-admin .evs-safety-counters{margin:0}.stream-events-admin .evs-safety-counters div strong{font-size:22px;color:#fff}
+.stream-events-admin .evs-safety-switches{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.stream-events-admin .evs-safety-switches>div{border:1px solid rgba(255,255,255,.10);background:rgba(2,6,23,.28);border-radius:14px;padding:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;color:#dbeafe;font-size:12px}
+.stream-events-admin .evs-safety-pill{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:900;border:1px solid rgba(255,255,255,.14);white-space:nowrap}
+.stream-events-admin .evs-safety-pill.is-ok{background:rgba(34,197,94,.14);border-color:rgba(34,197,94,.42);color:#bbf7d0}.stream-events-admin .evs-safety-pill.is-off{background:rgba(148,163,184,.10);border-color:rgba(148,163,184,.24);color:#cbd5e1}
+.stream-events-admin .evs-safety-reasons,.stream-events-admin .evs-safety-output-preview{max-height:420px;overflow:auto}
+.stream-events-admin .evs-safety-rule-list{display:grid;gap:8px}.stream-events-admin .evs-safety-rule-list>div{border:1px solid rgba(255,255,255,.10);background:rgba(2,6,23,.28);border-radius:14px;padding:11px 12px;display:grid;gap:4px}.stream-events-admin .evs-safety-rule-list b{color:#fff}.stream-events-admin .evs-safety-rule-list span{color:#cbd5e1;font-size:12px}.stream-events-admin .evs-safety-rule-list .is-ok{border-color:rgba(34,197,94,.34)}.stream-events-admin .evs-safety-rule-list .is-blocked{border-color:rgba(245,158,11,.32)}
+.stream-events-admin .evs-lifecycle-actions{margin-top:2px}
+@media(max-width:1100px){.stream-events-admin .evs-safety-grid{grid-template-columns:1fr}.stream-events-admin .evs-safety-switches{grid-template-columns:1fr}}
+
+.stream-events-admin .evs-live-switch-panel{margin-top:16px;display:grid;gap:14px}
+.stream-events-admin .evs-live-switch-grid{display:grid;grid-template-columns:minmax(320px,1fr) minmax(320px,1fr);gap:14px}
+.stream-events-admin .evs-live-step{border:1px solid rgba(255,255,255,.10);background:rgba(2,6,23,.28);border-radius:14px;padding:11px 12px;display:grid;gap:4px;margin-top:8px}
+.stream-events-admin .evs-live-step b{color:#fff}.stream-events-admin .evs-live-step span{color:#cbd5e1;font-size:12px}.stream-events-admin .evs-live-step.is-ok{border-color:rgba(34,197,94,.34)}
+.stream-events-admin .evs-live-switch-row{display:flex;align-items:flex-start;gap:10px;border:1px solid rgba(255,255,255,.10);background:rgba(2,6,23,.28);border-radius:14px;padding:10px 12px;margin-top:8px;color:#dbeafe}
+.stream-events-admin .evs-live-switch-row input{margin-top:3px;accent-color:#22c55e}.stream-events-admin .evs-live-switch-row b{display:block;color:#fff}.stream-events-admin .evs-live-switch-row em{display:block;color:#94a3b8;font-size:12px;font-style:normal;margin-top:2px}
+.stream-events-admin .evs-safety-pill.is-warn{background:rgba(245,158,11,.14);border-color:rgba(245,158,11,.42);color:#fde68a}
+@media(max-width:1100px){.stream-events-admin .evs-live-switch-grid{grid-template-columns:1fr}}
+
+/* EVS-24 Simple Active Event Runtime Gate */
+.stream-events-admin .evs-runtime-gate-panel{display:grid;gap:14px;align-content:start}
+.stream-events-admin .evs-runtime-gate-panel .evs-safety-banner.is-live{border-color:rgba(34,197,94,.44);background:linear-gradient(135deg,rgba(22,101,52,.24),rgba(8,47,73,.16));box-shadow:0 0 20px rgba(34,197,94,.10)}
+
+/* EVS-25: Übersicht als normale Event-Statusseite */
+.evs-overview-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+.evs-overview-status-card,
+.evs-overview-progress-card,
+.evs-overview-ranking-card {
+  min-width: 0;
+}
+
+.evs-overview-task-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.evs-overview-ranking-card .evs-ranking-standalone {
+  margin-top: 4px;
+}
+
+/* EVS-25a: Leere Übersicht als klare Aktion */
+.evs-overview-empty-action .evs-empty-action-text {
+  text-align: left;
+}
+
+/* EVS-26A Sound-Event: mehrere Sound-Schnipsel im Dashboard */
+.stream-events-admin .evs-sound-snippet-list-head{margin-top:12px;margin-bottom:10px}
+.stream-events-admin .evs-sound-snippet-list{display:grid;gap:12px;margin-top:10px}
+.stream-events-admin .evs-sound-snippet{border:1px solid rgba(34,211,238,.18);background:rgba(255,255,255,.028);border-radius:16px;padding:0;overflow:hidden}
+.stream-events-admin .evs-sound-snippet[open]{border-color:rgba(34,211,238,.34);box-shadow:0 0 18px rgba(34,211,238,.07)}
+.stream-events-admin .evs-sound-snippet>summary{display:flex;justify-content:space-between;gap:12px;align-items:center;cursor:pointer;padding:12px 14px;list-style:none}
+.stream-events-admin .evs-sound-snippet>summary::-webkit-details-marker{display:none}
+.stream-events-admin .evs-sound-snippet>summary span{display:grid;gap:3px;min-width:0}
+.stream-events-admin .evs-sound-snippet>summary strong{color:#f8fafc;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stream-events-admin .evs-sound-snippet>summary small{color:var(--evs-muted);font-size:12px;line-height:1.35}
+.stream-events-admin .evs-sound-snippet>summary .evs-btn{flex:0 0 auto}
+.stream-events-admin .evs-sound-snippet .evs-sound-media-grid{padding:0 12px 12px;margin-top:0}
+@media(max-width:720px){.stream-events-admin .evs-sound-snippet>summary{display:grid}.stream-events-admin .evs-sound-snippet>summary .evs-btn{width:100%}}
+
+/* EVS-26B: getrennte Editor-Fenster für Sound-Schnipsel und Text-Spiel */
+.stream-events-admin .evs-event-main-modal{width:min(820px,calc(100vw - 28px))}
+.stream-events-admin .evs-editor-summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:2px}
+.stream-events-admin .evs-editor-summary-card{border:1px solid rgba(34,211,238,.18);background:rgba(255,255,255,.035);border-radius:16px;padding:13px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;min-width:0}
+.stream-events-admin .evs-editor-summary-card.is-enabled{border-color:rgba(34,211,238,.34);box-shadow:0 0 18px rgba(34,211,238,.06)}
+.stream-events-admin .evs-editor-summary-card.is-disabled{border-color:rgba(148,163,184,.18);opacity:.88}
+.stream-events-admin .evs-editor-summary-title{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:4px}
+.stream-events-admin .evs-editor-summary-title strong{color:#f8fafc;font-size:15px}
+.stream-events-admin .evs-editor-summary-card p{font-size:12px;line-height:1.35;margin:0 0 9px;color:var(--evs-muted)}
+.stream-events-admin .evs-editor-summary-badges{display:flex;flex-wrap:wrap;gap:6px}
+.stream-events-admin .evs-editor-summary-badges span{border:1px solid rgba(255,255,255,.10);background:rgba(2,6,23,.28);border-radius:999px;padding:4px 8px;color:#cbd5e1;font-size:11px;font-weight:800}
+.stream-events-admin .evs-submodal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.50);z-index:92;display:grid;place-items:center;padding:24px}
+.stream-events-admin .evs-submodal{width:min(1040px,calc(100vw - 28px));max-height:calc(100vh - 42px);overflow:auto;padding:18px;box-shadow:0 0 36px rgba(34,211,238,.13),0 0 80px rgba(0,0,0,.34)}
+.stream-events-admin .evs-sound-editor-modal .evs-sound-snippet-list,.stream-events-admin .evs-text-editor-modal .evs-phrase-list{max-height:none}
+@media(max-width:900px){.stream-events-admin .evs-editor-summary-grid{grid-template-columns:1fr}.stream-events-admin .evs-editor-summary-card{grid-template-columns:1fr}.stream-events-admin .evs-editor-summary-card .evs-btn{width:100%;justify-content:center}}
+
+/* EVS-26B-FIX3: konkrete Pflichtfeldanzeige pro Sound-Schnipsel */
+.stream-events-admin .evs-sound-snippet.has-missing-required{
+  border-color:rgba(245,158,11,.42);
+  box-shadow:0 0 18px rgba(245,158,11,.07);
+}
+.stream-events-admin .evs-snippet-missing{
+  color:#fde68a!important;
+  font-weight:900;
+}
+.stream-events-admin .evs-snippet-missing.is-empty{
+  display:none;
+}
+
+/* EVENTSYS-27A – Event-Einstellungen / Sound-Defaults */
+.evs-config-card-wide {
+  grid-column: span 1;
+}
+
+.evs-config-inline-grid {
+  gap: 12px;
+}
+
+.evs-editor-settings-card,
+.evs-event-config-summary,
+.evs-settings-section {
+  border: 1px solid rgba(57, 213, 255, 0.32);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.045);
+  padding: 14px;
+}
+
+.evs-editor-settings-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 8px 0 14px;
+}
+
+.evs-editor-settings-card p,
+.evs-event-config-summary small,
+.evs-settings-section small {
+  color: var(--evs-muted, #b8c7dd);
+  margin: 4px 0 0;
+}
+
+.evs-event-config-summary {
+  margin: 14px 0;
+}
+
+.evs-event-config-grid {
+  margin-top: 12px;
+}
+
+.evs-settings-editor-modal {
+  max-width: 980px;
+}
+
+.evs-settings-section {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.evs-settings-section .evs-config-card-head {
+  margin-bottom: 2px;
+}
+
+@media (max-width: 900px) {
+  .evs-editor-settings-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+/* EVS-27B Live-Statusfenster */
+.evs-live-modal{
+  width:min(1180px, calc(100vw - 48px));
+  max-height:calc(100vh - 54px);
+  overflow:auto;
+}
+.evs-live-modal-head p{color:#bfd1ee;margin:.25rem 0 0;}
+.evs-live-toolbar{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+  margin:0 0 14px;
+}
+.evs-live-toolbar small{color:#9fb0c8;}
+.evs-live-status-pill{
+  border:1px solid rgba(148,163,184,.28);
+  background:rgba(15,23,42,.55);
+  color:#dbeafe;
+  padding:10px 12px;
+  border-radius:14px;
+  margin-bottom:14px;
+  font-weight:800;
+}
+.evs-live-status-pill.is-live{
+  border-color:rgba(34,197,94,.55);
+  background:rgba(22,101,52,.20);
+  color:#bbf7d0;
+}
+.evs-live-status-pill.is-idle{
+  border-color:rgba(245,158,11,.45);
+  background:rgba(120,53,15,.18);
+  color:#fde68a;
+}
+.evs-live-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+  margin-top:14px;
+}
+.evs-live-history-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+.evs-live-current-title{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:flex-start;
+  padding:10px 0 12px;
+  border-bottom:1px solid rgba(148,163,184,.18);
+  margin-bottom:10px;
+}
+.evs-live-current-title strong{font-size:1.05rem;color:#fff;}
+.evs-live-current-title span{color:#9fb0c8;font-size:.9rem;}
+.evs-live-rotation-mini{grid-template-columns:repeat(2,minmax(0,1fr));}
+.evs-live-footer-note{
+  margin-top:14px;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid rgba(34,211,238,.30);
+  background:rgba(8,47,73,.20);
+  color:#d9f7ff;
+}
+@media (max-width: 980px){
+  .evs-live-grid,.evs-live-history-grid{grid-template-columns:1fr;}
+}
+
+
+.evs-name-dialog {
+  max-width: 560px;
+}
+
+.evs-name-dialog-form {
+  display: grid;
+  gap: 14px;
+}
+
+.evs-name-dialog input[data-evs-name-dialog-input] {
+  width: 100%;
+}
+
+/* EVENTSYS-27D: manuelle Sound-Rundensteuerung */
+.evs-sound-live-control {
+  margin: 14px 0;
+  border-color: rgba(34, 211, 238, 0.45);
+}
+
+.evs-live-control-current {
+  display: grid;
+  grid-template-columns: 170px 1fr;
+  gap: 10px;
+  align-items: center;
+  margin: 10px 0 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.evs-live-control-current strong {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.evs-live-control-current span,
+.evs-muted {
+  color: rgba(203, 213, 225, 0.86);
+}
+
+.evs-action-row-tight {
+  gap: 10px;
+  margin: 10px 0;
+}
+
+/* EVENTSYS-27D-FIX2: Live-Bedienung direkt in der Übersicht */
+.evs-overview-live-control {
+  margin: 14px 0 4px;
+  border-color: rgba(250, 204, 21, 0.35);
+  background: rgba(20, 16, 8, 0.34);
+}
+
+.evs-overview-live-row {
+  display: grid;
+  gap: 8px;
+}
+
+.evs-overview-live-control .evs-live-control-current {
+  margin: 0;
+}
+
+.evs-overview-live-control .evs-action-row {
+  justify-content: flex-start;
+}
+
+@media (max-width: 820px) {
+  .evs-overview-live-control .evs-action-row {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* EVS-34: Aktuelles Event Info-Seite */
+.stream-events-admin .evs-current-event-main{display:grid;gap:16px}
+.stream-events-admin .evs-current-event-card{min-width:0}
+.stream-events-admin .evs-current-score-summary{margin-top:8px}
+.stream-events-admin .evs-current-ranking-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-end;margin:16px 0 8px}
+.stream-events-admin .evs-current-ranking-head h4{margin:0;color:#f8fafc;font-size:16px}
+.stream-events-admin .evs-current-ranking-head span{color:var(--evs-muted);font-size:12px;text-align:right}
+.stream-events-admin .evs-current-ranking-table{display:grid;gap:8px;margin-top:8px}
+.stream-events-admin .evs-current-player-row{display:grid;grid-template-columns:54px minmax(160px,1fr) minmax(110px,auto) minmax(220px,auto);gap:10px;align-items:center;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.035);border-radius:14px;padding:10px 12px;color:var(--evs-text)}
+.stream-events-admin .evs-current-player-row strong{color:#a5f3fc;font-weight:900}
+.stream-events-admin .evs-current-player-row b{justify-self:end;color:#fff}
+.stream-events-admin .evs-current-player-row small{color:var(--evs-muted);justify-self:end}
+.stream-events-admin .evs-current-player-name{font-weight:900;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:840px){.stream-events-admin .evs-current-ranking-head{display:grid}.stream-events-admin .evs-current-ranking-head span{text-align:left}.stream-events-admin .evs-current-player-row{grid-template-columns:44px 1fr;align-items:start}.stream-events-admin .evs-current-player-row b,.stream-events-admin .evs-current-player-row small{justify-self:start;grid-column:2}}
+
+/* EVS39: Nächster Schnipsel / Runtime-Status in Sound-Steuerung */
+.evs-live-control-stack {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 12px;
+}
+
+.evs-live-control-stack .evs-live-control-current {
+  margin: 0;
+}
+
+.evs-live-control-secondary {
+  opacity: 0.86;
+}
+
+.evs-next-snippet-row {
+  border-color: rgba(34, 211, 238, 0.28);
+  background: rgba(8, 47, 73, 0.18);
+}
+
+.evs-next-snippet-row span {
+  display: grid;
+  gap: 2px;
+}
+
+.evs-next-snippet-row b {
+  color: rgba(255, 255, 255, 0.94);
+  font-weight: 800;
+}
+
+.evs-next-snippet-row small {
+  color: rgba(186, 230, 253, 0.82);
+  font-size: 12px;
+}
+
+.evs-next-snippet-row.is-paused {
+  border-color: rgba(250, 204, 21, 0.42);
+  background: rgba(113, 63, 18, 0.18);
+}
+
+.evs-next-snippet-row.is-active {
+  border-color: rgba(34, 197, 94, 0.42);
+  background: rgba(20, 83, 45, 0.18);
+}
+
+.evs-next-snippet-row.is-warn {
+  border-color: rgba(251, 146, 60, 0.42);
+  background: rgba(124, 45, 18, 0.16);
+}
+
+.evs-next-snippet-row.is-done {
+  border-color: rgba(129, 140, 248, 0.36);
+  background: rgba(49, 46, 129, 0.16);
+}
+
+@media (max-width: 760px) {
+  .evs-live-control-current {
+    grid-template-columns: 1fr;
+  }
+}
+
+.evs-next-snippet-row.is-offline {
+  border-color: rgba(250, 204, 21, 0.42);
+  background: rgba(49, 28, 24, 0.22);
+}
+
+.evs-next-snippet-row.is-offline b {
+  color: rgba(254, 240, 138, 0.96);
+}
+
+
+/* EVS49.34 Event-System Test-Tab */
+.evs-test-tab .evs-test-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
   margin-top: 14px;
+}
+
+.evs-test-panel,
+.evs-test-result {
   border: 1px solid rgba(120, 220, 255, .18);
   background: rgba(8, 13, 31, .58);
   border-radius: 16px;
   padding: 14px;
+  box-shadow: inset 0 0 18px rgba(90, 80, 255, .08);
 }
 
-.evs-winner-test-box h4 {
-  margin: 0 0 10px;
+.evs-test-panel h4,
+.evs-test-result h4 {
+  margin: 0 0 8px;
   font-size: 15px;
   color: #f8fbff;
 }
 
-.evs-winner-test-actions {
+.evs-test-button-row {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  margin: 8px 0;
 }
 
-.evs-winner-test-modal {
-  max-width: 760px;
-}
-
-.evs-winner-test-table {
+.evs-test-table {
   width: 100%;
   border-collapse: collapse;
+  margin-top: 10px;
+  overflow: hidden;
+  border-radius: 12px;
 }
 
-.evs-winner-test-table th,
-.evs-winner-test-table td {
-  padding: 8px 10px;
+.evs-test-table th,
+.evs-test-table td {
+  padding: 9px 10px;
   border-bottom: 1px solid rgba(255,255,255,.08);
   text-align: left;
+  vertical-align: middle;
+}
+
+.evs-test-table th {
+  color: rgba(240,248,255,.78);
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(255,255,255,.04);
+}
+
+.evs-test-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.evs-test-user img,
+.evs-test-user span {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  object-fit: cover;
+  background: rgba(70, 90, 160, .32);
+  border: 1px solid rgba(120, 220, 255, .24);
+  box-shadow: 0 0 10px rgba(90, 180, 255, .12);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.evs-test-note {
+  margin-top: 14px;
+}
+
+@media (max-width: 1100px) {
+  .evs-test-tab .evs-test-grid {
+    grid-template-columns: 1fr;
+  }
 }
