@@ -3,7 +3,7 @@
 Stand: 2026-06-18  
 STEP: `SHOT-ALARM-1`  
 Backend-Version: `0.1.1`  
-Build: `STEP_SHOT_ALARM_1_PAYMENT_50_50`
+Build: `STEP_SHOT_ALARM_1_BITS_BLOCKS`
 
 ## Zweck
 

@@ -10,7 +10,7 @@ Technisch:
 
 - Modul: `shot_alarm`
 - Backend-Version: `0.1.1`
-- Build: `STEP_SHOT_ALARM_1_PAYMENT_50_50`
+- Build: `STEP_SHOT_ALARM_1_BITS_BLOCKS`
 - Dashboard-Kategorie: `Control` / Events-nahe Steuerung
 - Overlay: `/overlays/shot_alarm/shot_alarm_overlay.html`
 

@@ -17,5 +17,5 @@ Stand: 2026-06-18
 - Neues Modul `shot_alarm` angelegt.
 - Twitch-Events via Communication Bus konsumiert.
 - Sub/Resub-Puffer eingebaut.
-- Finale Default-Regeln umgesetzt, Payment-Regel korrigiert: Einzel-Zähler 20/50/100, Bomben 5er/10er, Bits 1000/10000, Payment je 10 EUR mit 50/50 Chance.
+- Finale Default-Regeln umgesetzt, Payment-Regel korrigiert: Einzel-Zähler 20/50/100, Bomben 5er/10er, Bits-Blocklogik je 1000/je 10000, Payment je 10 EUR mit 50/50 Chance.
 - Dashboard und Overlay ergänzt.

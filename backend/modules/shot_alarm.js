@@ -13,8 +13,8 @@ const cfg = require("./helpers/helper_config");
 const communicationBus = require("./communication_bus");
 
 const MODULE_NAME = "shot_alarm";
-const MODULE_VERSION = "0.1.2";
-const MODULE_BUILD = "STEP_SHOT_ALARM_1_PAYMENT_50_50";
+const MODULE_VERSION = "0.1.3";
+const MODULE_BUILD = "STEP_SHOT_ALARM_1_BITS_BLOCKS";
 const CONFIG_FILE = "shot_alarm.json";
 const HISTORY_LIMIT = 200;
 
@@ -44,7 +44,7 @@ const MODULE_META = {
       "shot_alarm.overlay.show"
     ]
   },
-  description: "Shot-Alarm fuer Twitch-Support-Events, Bits und spaetere Payment-Events mit finalen Shot-Regeln."
+  description: "Shot-Alarm fuer Twitch-Support-Events, Bits-Blockregeln und spaetere Payment-Events mit finalen Shot-Regeln."
 };
 
 const DEFAULT_CONFIG = {
@@ -61,7 +61,7 @@ const DEFAULT_CONFIG = {
     showRoll: false
   },
   rules: {
-    finalRulesVersion: "2026-06-18-final-payment-50-50",
+    finalRulesVersion: "2026-06-18-final-bits-blocks",
     singleSubChancePercent: 20,
     resubChancePercent: 20,
     singleGiftSubChancePercent: 20,
@@ -69,10 +69,14 @@ const DEFAULT_CONFIG = {
     singleSupportTenChancePercent: 100,
     giftBombFiveChancePercent: 50,
     giftBombTenBlockShots: 1,
-    bits: [
-      { minBits: 1000, chancePercent: 50, shots: 1, enabled: true, label: "1000+ Bits" },
-      { minBits: 10000, chancePercent: 100, shots: 1, enabled: true, label: "10000+ Bits" }
-    ],
+    bits: {
+      enabled: true,
+      perThousandBits: 1000,
+      thousandChancePercent: 50,
+      perTenThousandBits: 10000,
+      tenThousandChancePercent: 100,
+      tenThousandShots: 1
+    },
     payments: {
       enabled: true,
       providers: {
@@ -446,9 +450,7 @@ function buildRollsForInput(input = {}, options = {}) {
   }
 
   if (eventType === "cheer" || eventType === "bits") {
-    const rule = selectBitsRule(bits);
-    if (!rule) return [{ kind: "bits", eventType, eventLabel: `${bits} Bits`, shots: 0, chancePercent: 0, rollValue: 0, hit: false, skippedReason: "no_bits_rule" }];
-    return [{ kind: "bits", eventType, eventLabel: rule.label || `${bits} Bits`, bits, shots: Math.max(1, Math.floor(asNumber(rule.shots, 1))), ...rollChance(rule.chancePercent, options) }];
+    return buildBitsRolls(bits, options);
   }
 
   if (eventType === "payment" || eventType === "kofi" || eventType === "tipeee") {
@@ -548,11 +550,56 @@ function buildGiftBombRolls(total, options = {}) {
   return rolls;
 }
 
-function selectBitsRule(bits) {
-  const rules = Array.isArray(config.rules.bits) ? config.rules.bits.filter(rule => rule && rule.enabled !== false) : [];
-  return rules
-    .filter(rule => bits >= Math.max(0, Number(rule.minBits || 0)))
-    .sort((a, b) => Number(b.minBits || 0) - Number(a.minBits || 0))[0] || null;
+function buildBitsRolls(bits, options = {}) {
+  const safeBits = Math.max(0, Math.floor(asNumber(bits, 0)));
+  const bitsConfig = config.rules && config.rules.bits && typeof config.rules.bits === "object" && !Array.isArray(config.rules.bits)
+    ? config.rules.bits
+    : DEFAULT_CONFIG.rules.bits;
+
+  if (bitsConfig.enabled === false) {
+    return [{ kind: "bits", eventType: "cheer", eventLabel: `${safeBits} Bits`, bits: safeBits, shots: 0, chancePercent: 0, rollValue: 0, hit: false, skippedReason: "bits_disabled" }];
+  }
+
+  const tenThousandSize = Math.max(1, Math.floor(asNumber(bitsConfig.perTenThousandBits, 10000)));
+  const thousandSize = Math.max(1, Math.floor(asNumber(bitsConfig.perThousandBits, 1000)));
+  const tenThousandBlocks = Math.floor(safeBits / tenThousandSize);
+  const restBits = safeBits % tenThousandSize;
+  const thousandBlocks = Math.floor(restBits / thousandSize);
+  const rolls = [];
+
+  if (tenThousandBlocks > 0) {
+    rolls.push({
+      kind: "bits_10000_block",
+      eventType: "cheer",
+      eventLabel: `${safeBits} Bits - ${tenThousandBlocks}x 10000er-Block`,
+      bits: safeBits,
+      bitsBlock: 10000,
+      bitsBlocks: tenThousandBlocks,
+      shots: tenThousandBlocks * Math.max(1, Math.floor(asNumber(bitsConfig.tenThousandShots, 1))),
+      chancePercent: clampPercent(bitsConfig.tenThousandChancePercent, 100),
+      rollValue: 0,
+      hit: true
+    });
+  }
+
+  for (let i = 1; i <= thousandBlocks; i += 1) {
+    rolls.push({
+      kind: "bits_1000_block",
+      eventType: "cheer",
+      eventLabel: `${safeBits} Bits - 1000er 50/50 Block ${i}/${thousandBlocks}`,
+      bits: safeBits,
+      bitsBlock: 1000,
+      bitsBlocks: thousandBlocks,
+      shots: 1,
+      ...rollChance(bitsConfig.thousandChancePercent, options)
+    });
+  }
+
+  if (!rolls.length) {
+    return [{ kind: "bits", eventType: "cheer", eventLabel: `${safeBits} Bits`, bits: safeBits, shots: 0, chancePercent: 0, rollValue: 0, hit: false, skippedReason: "no_bits_rule" }];
+  }
+
+  return rolls;
 }
 
 function normalizeEnvelope(envelope = {}) {
@@ -851,7 +898,7 @@ module.exports = {
     buildGiftBombRolls,
     buildSingleSupportRoll,
     buildRollsForInput,
-    selectBitsRule,
+    buildBitsRolls,
     normalizeEnvelope,
     processInput,
     resetState

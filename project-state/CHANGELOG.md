@@ -21,3 +21,5 @@ Changed:
 Unchanged:
 
 - Twitch-Events, Loyalty, Alerts, Ko-fi, Tipeee, Sound-System und produktive DB bleiben unverändert.
+
+- STEP_SHOT_ALARM_1_BITS_BLOCKS: Bits-Regel korrigiert: je volle 1000 Bits ein 50/50-Wurf; je volle 10000 Bits ein sicherer Shot; Rest-1000er bleiben 50/50.

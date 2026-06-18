@@ -17,22 +17,14 @@
     "singleGiftSubChancePercent": 20,
     "giftBombFiveChancePercent": 50,
     "giftBombTenBlockShots": 1,
-    "bits": [
-      {
-        "minBits": 1000,
-        "chancePercent": 50,
-        "shots": 1,
-        "enabled": true,
-        "label": "1000+ Bits"
-      },
-      {
-        "minBits": 10000,
-        "chancePercent": 100,
-        "shots": 1,
-        "enabled": true,
-        "label": "10000+ Bits"
-      }
-    ],
+    "bits": {
+      "enabled": true,
+      "perThousandBits": 1000,
+      "thousandChancePercent": 50,
+      "perTenThousandBits": 10000,
+      "tenThousandChancePercent": 100,
+      "tenThousandShots": 1
+    },
     "payments": {
       "enabled": true,
       "providers": {
@@ -50,7 +42,7 @@
     },
     "singleSupportFiveChancePercent": 50,
     "singleSupportTenChancePercent": 100,
-    "finalRulesVersion": "2026-06-18-final-payment-50-50"
+    "finalRulesVersion": "2026-06-18-final-bits-blocks"
   },
   "dedupe": {
     "subscribeResubBufferEnabled": true,

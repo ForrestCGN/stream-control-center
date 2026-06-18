@@ -225,7 +225,7 @@ window.ShotAlarmModule = (function(){
           ${inputField('tipeeeEurPerShot', 'Tipeee EUR je Shot', payments.tipeee?.eurPerShot || 10, 'number')}
         </div>
         <p class="shot-muted">Die Payment-Module senden aktuell noch keine neutralen Payment-Bus-Events. Die Regel ist vorbereitet: je volle 10 EUR = 50/50 auf 1 Shot.</p>
-        <p class="shot-muted">Bits: 1000 Bits = 50/50, 10000 Bits = 100 %.</p>
+        <p class="shot-muted">Bits: je 1000 Bits = 50/50, je 10000 Bits = 100 %.</p>
       </div>
       <div class="shot-actions"><button data-shot-action="save">Speichern</button></div>
     `;
@@ -263,7 +263,9 @@ window.ShotAlarmModule = (function(){
           <button data-shot-test="gift_bomb" data-total="10">10er Bombe</button>
           <button data-shot-test="gift_bomb" data-total="100">100er Bombe</button>
           <button data-shot-test="bits" data-bits="1000" data-force-roll="0">1000 Bits 50/50 Treffer</button>
-          <button data-shot-test="bits" data-bits="10000">10000 Bits 100%</button>
+          <button data-shot-test="bits" data-bits="9000" data-force-roll="0">9000 Bits = 9x 50/50</button>
+          <button data-shot-test="bits" data-bits="10000">10000 Bits = 1x 100%</button>
+          <button data-shot-test="bits" data-bits="25000" data-force-roll="0">25000 Bits = 2x 100% + 5x 50/50</button>
           <button data-shot-test="kofi" data-amount-eur="25">Ko-fi 25 EUR</button>
           <button data-shot-test="tipeee" data-amount-eur="50">Tipeee 50 EUR</button>
         </div>
