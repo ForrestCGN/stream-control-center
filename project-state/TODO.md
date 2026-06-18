@@ -57,3 +57,14 @@ Stand: 2026-06-18 – EVS51.5
 - [ ] Text-Key `text.phrase.solved.overlay` im Dashboard-Texte-Bereich prüfen.
 - [ ] Später optional Overlay-Dauer dashboardfähig machen.
 - [ ] Später optional eigene Animation/Confetti für Satzlösung verfeinern.
+
+
+## EVS52.4 – erledigt / zu testen
+
+- [x] Satz-Spiel-Textvarianten für Worttreffer, Satzlösung, Duplicate und Overlay vorbereitet.
+- [x] Worttreffer-Chatmeldung aktiv: nur bei neuen Wörtern, kein Overlay.
+- [x] Satzlösung: Chatmeldung + 15s Celebration-Overlay.
+- [x] Doppelte Satzlösung: Chatmeldung ohne Punkte/Overlay.
+- [x] Helper genutzt: `helper_texts` und `helper_chat_output`.
+- [ ] Live im Twitch-Chat testen: Teilwort, komplette Lösung, doppelte Lösung.
+- [ ] `/api/chat-output/status` prüfen, falls keine Chatmeldung gesendet wird.

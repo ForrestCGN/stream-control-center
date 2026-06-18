@@ -99,3 +99,22 @@ EVS51.4 – Satz-Rotation / Runtime-Overlay:
 2. Runtime-Overlay prüfen: 15 Sekunden Celebration mit User, Satz, Punkte.
 3. Prüfen, dass Worttreffer kein Overlay auslösen.
 4. Textvarianten im Event-System-Texte-Bereich prüfen.
+
+
+## Nach EVS52.4
+
+1. `stepdone.cmd` ausführen und Server neu starten/reloaden.
+2. `Event-System → Texte` öffnen und neue Keys prüfen:
+   - `text.word_hit.chat`
+   - `text.phrase.solved`
+   - `text.phrase.duplicate.chat`
+   - `text.phrase.solved.overlay`
+3. Live im Chat testen:
+   - Teilwort aus offenem Satz → eine Chatmeldung.
+   - kompletter Satz → Chatmeldung + 15s Overlay.
+   - derselbe Satz erneut → Duplicate-Meldung, keine Punkte.
+4. Falls nichts im Chat kommt:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/chat-output/status" | ConvertTo-Json -Depth 8
+```

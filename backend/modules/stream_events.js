@@ -7,7 +7,7 @@
  * - Keeps EVS-12 Text-Runtime dashboard report.
  * - Adds user statistics list/detail endpoints for dropdown filtering.
  * - Prepares text and future sound statistics in one user-focused report.
- * - Still does not send directly into Twitch chat.
+ * - EVS52.4 sends selected runtime chat outputs through helper_chat_output for live bus chat.
  */
 
 const crypto = require("crypto");
@@ -16,6 +16,8 @@ const routes = require("./helpers/helper_routes");
 const textHelper = require("./helpers/helper_texts");
 const database = require("../core/database");
 const http = require("http");
+let chatOutputHelper = null;
+try { chatOutputHelper = require("./helpers/helper_chat_output"); } catch (_) { chatOutputHelper = null; }
 
 let streamStatusModule = null;
 try { streamStatusModule = require("./stream_status"); } catch (_) { streamStatusModule = null; }
@@ -27,8 +29,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.74";
-const MODULE_BUILD = "STEP_EVS52_3_TEXT_SOLVED_CELEBRATION_OVERLAY";
+const MODULE_VERSION = "0.5.75";
+const MODULE_BUILD = "STEP_EVS52_4_TEXT_CHAT_OUTPUTS_ACTIVE";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -108,6 +110,13 @@ const EVENT_TEXT_DEFAULTS = {
     "💜 CGN-Hinweis: {user} hat bei Satz {phraseNumber} schon {wordCount} Wort/Wörter gefunden.",
     "🔎 Satz {phraseNumber} knistert: {user} liegt mit {wordCount} Wort/Wörter(n) richtig."
   ],
+  "text.word_hit.chat": [
+    "🧓 Die Heimleitung horcht auf: {user} hat {wordCount} Teil(e) von Satz {phraseNumber} gefunden!",
+    "📋 Satz {phraseNumber} raschelt im Aktenordner: {user} hat {wordCount} Wort/Wörter erwischt.",
+    "🔎 CGN-Fundbüro meldet: {user} liegt bei Satz {phraseNumber} mit {wordCount} Teil(en) richtig.",
+    "💜 Die Rentner nicken anerkennend: {user} hat {wordCount} Hinweis(e) zu Satz {phraseNumber} gefunden.",
+    "🛎️ Heimleitung informiert: {user} hat Satz {phraseNumber} ein Stück weiter entschlüsselt."
+  ],
   "text.word_points.added": [
     "⭐ {user} bekommt {points} Punkt(e) für neue Worttreffer.",
     "📋 Die Heimleitung schreibt {user} {points} Wortpunkt(e) gut.",
@@ -116,18 +125,25 @@ const EVENT_TEXT_DEFAULTS = {
     "🏠 Wortfund im Altersheim! {user} sammelt +{points} Punkt(e)."
   ],
   "text.phrase.solved": [
-    "🎉 {user} hat Satz {phraseNumber} gelöst und bekommt {points} Punkt(e)!",
-    "🏆 Satz {phraseNumber} ist geknackt! {user} bekommt {points} Punkt(e) von der Heimleitung.",
-    "💜 {user} hat den geheimen Satz {phraseNumber} gefunden. +{points} Punkt(e) fürs CGN-Konto!",
-    "🧓 Rollator-Speed! {user} löst Satz {phraseNumber} und kassiert {points} Punkt(e).",
-    "📋 Die Heimleitung bestätigt: {user} hat Satz {phraseNumber} gelöst. {points} Punkt(e)!"
+    "🎉 Die Heimleitung ist völlig aus dem Häuschen: {user} hat Satz {phraseNumber} gelöst und bekommt {points} Punkte!",
+    "🧓 Rollator geparkt, Gehirn gezündet: {user} hat Satz {phraseNumber} geknackt. +{points} Punkte!",
+    "📋 Akte geschlossen: {user} hat Satz {phraseNumber} vollständig gelöst. Die Rentner applaudieren!",
+    "💜 CGN-Jubel im Aufenthaltsraum: {user} löst Satz {phraseNumber} und sammelt {points} Punkte ein!",
+    "🛎️ Die Heimleitung bestätigt: {user} hat Satz {phraseNumber} gefunden. {points} Punkte gehen aufs Konto!"
+  ],
+  "text.phrase.duplicate.chat": [
+    "🧓 {user}, der Satz liegt schon auf dem Heimleitungs-Schreibtisch.",
+    "📋 Satz {phraseNumber} ist bereits gelöst. Die Akte ist schon zu.",
+    "🔎 Gute Spur, {user}, aber Satz {phraseNumber} wurde schon gefunden.",
+    "💜 Die Rentner wissen das schon, {user}. Satz {phraseNumber} ist erledigt.",
+    "🛎️ Heimleitung sagt: zu spät, {user}. Der Satz wurde bereits gelöst."
   ],
   "text.phrase.solved.overlay": [
-    "Die Heimleitung ist völlig aus dem Häuschen: {user} hat Satz {phraseNumber} gelöst!",
-    "Rollator geparkt, Gehirn gestartet: {user} hat Satz {phraseNumber} geknackt!",
-    "Im CGN-Altersheim wird gejubelt: {user} hat den geheimen Satz gefunden!",
+    "Die Heimleitung jubelt: {user} hat Satz {phraseNumber} gelöst!",
+    "CGN-Altersheim in Feierlaune: {user} hat den geheimen Satz gefunden!",
     "Die Rentner klatschen mit den Tablettenboxen: {user} löst Satz {phraseNumber}!",
-    "Akte gefunden, Satz gelöst: {user} bringt Ordnung in die Heimleitung!"
+    "Akte gefunden, Satz gelöst: {user} bringt Ordnung in die Heimleitung!",
+    "Rollatorbremse rein, Applaus raus: {user} hat Satz {phraseNumber} geknackt!"
   ],
   "points.added": [
     "{user} bekommt {points} Punkt(e). Die Heimleitung hat es notiert.",
@@ -155,8 +171,10 @@ const EVENT_TEXT_CATEGORIES = {
   "sound.unresolved": "sound_game",
   "text.partial.general": "text_game",
   "text.partial.with_sentence": "text_game",
+  "text.word_hit.chat": "text_game",
   "text.word_points.added": "text_game",
   "text.phrase.solved": "text_game",
+  "text.phrase.duplicate.chat": "text_game",
   "text.phrase.solved.overlay": "overlay",
   "points.added": "scoring",
   "ranking.updated": "scoring"
@@ -235,7 +253,7 @@ const MODULE_META = {
   build: MODULE_BUILD,
   type: "runtime",
   category: "events",
-  description: "Zentrales Event-System Backend: Entwürfe, Validierung, Punkte, Ranking, Bus-Status, Text-Multi-Satz-Config, Textvarianten, globale Config, Communication-Bus Heartbeat, Text- und Sound-Chat-Runtime ueber Twitch-Chat-Bus-Events sowie vorbereiteter ChatOutput-Dispatcher ohne Live-Send und geschuetzter Event-Archiv-/Delete-Lifecycle sowie einfache Active-Event-Runtime-Gate-Logik: Stream offline oder kein aktives Event bedeutet keine Event-Chat-Auswertung; weiterhin ohne Live-Send.",
+  description: "Zentrales Event-System Backend: Entwürfe, Validierung, Punkte, Ranking, Bus-Status, Text-Multi-Satz-Config, Textvarianten, globale Config, Communication-Bus Heartbeat, Text- und Sound-Chat-Runtime ueber Twitch-Chat-Bus-Events sowie vorbereiteter ChatOutput-Dispatcher ohne Live-Send und geschuetzter Event-Archiv-/Delete-Lifecycle sowie einfache Active-Event-Runtime-Gate-Logik: Stream offline oder kein aktives Event bedeutet keine Event-Chat-Auswertung; mit livefaehiger Chat-Ausgabe fuer Satzspiel-Texte ueber helper_chat_output.",
   routesPrefix: ["/api/stream-events"],
   bus: {
     registered: true,
@@ -253,6 +271,7 @@ const MODULE_META = {
       "stream_events.points.added",
       "stream_events.ranking.updated",
       "stream_events.text.word_found",
+      "stream_events.text.phrase_duplicate",
       "stream_events.text.phrase_solved",
       "stream_events.overlay.text_phrase_solved",
       "stream_events.sound.round_prepared",
@@ -331,7 +350,10 @@ let runtimeState = {
     streamRuntimeResumes: 0,
     streamOfflineAutoResumes: 0,
     eventFinalesStarted: 0,
-    eventCommandsHandled: 0
+    eventCommandsHandled: 0,
+    chatOutputsLiveRequested: 0,
+    chatOutputsLiveSent: 0,
+    chatOutputsLiveFailed: 0
   },
   runtimeOverlayBus: {
     subscribed: false,
@@ -2251,6 +2273,59 @@ function buildChatOutput(textKey, context = {}, options = {}) {
   };
 }
 
+function dispatchRuntimeChatOutput(output = {}, event = null, options = {}) {
+  const normalized = normalizeChatOutputForDispatch(output, 0, cleanString(options.source || "runtime_chat_output"));
+  if (!normalized.prepared || !normalized.text || normalized.target !== "twitch_chat") {
+    return { ok: false, skipped: true, reason: "chat_output_not_dispatchable", output: normalized };
+  }
+  if (!chatOutputHelper || typeof chatOutputHelper.sendChatMessage !== "function") {
+    runtimeState.counters.chatOutputsLiveFailed += 1;
+    return { ok: false, skipped: true, reason: "helper_chat_output_unavailable", output: normalized };
+  }
+  runtimeState.counters.chatOutputsLiveRequested += 1;
+  Promise.resolve(chatOutputHelper.sendChatMessage(normalized.text, {
+    source: MODULE_NAME,
+    reason: cleanString(normalized.meta && normalized.meta.reason || options.reason || normalized.kind || "stream_events_chat_output"),
+    prefer: "bot",
+    fallbackToStreamer: true,
+    fallbackToStreamerbot: true,
+    directSendEnabled: true
+  })).then((result) => {
+    if (result && result.ok && result.sent !== false) runtimeState.counters.chatOutputsLiveSent += 1;
+    else runtimeState.counters.chatOutputsLiveFailed += 1;
+    emitBus("stream_events.chat_output", result && result.ok && result.sent !== false ? "sent" : "not_sent", {
+      eventUid: event && event.eventUid || cleanString(options.eventUid || ""),
+      textKey: normalized.textKey,
+      kind: normalized.kind,
+      text: normalized.text,
+      result: safeJson(result, {})
+    }, { replayable: false, ttlMs: 15000 });
+  }).catch((err) => {
+    runtimeState.counters.chatOutputsLiveFailed += 1;
+    runtimeState.lastError = err && err.message ? err.message : String(err);
+    emitBus("stream_events.chat_output", "failed", {
+      eventUid: event && event.eventUid || cleanString(options.eventUid || ""),
+      textKey: normalized.textKey,
+      kind: normalized.kind,
+      error: runtimeState.lastError
+    }, { replayable: false, ttlMs: 15000 });
+  });
+  return { ok: true, queued: true, textKey: normalized.textKey, kind: normalized.kind };
+}
+
+function dispatchRuntimeChatOutputs(outputs = [], event = null, options = {}) {
+  const list = Array.isArray(outputs) ? outputs : [];
+  const results = [];
+  const seen = new Set();
+  for (const output of list) {
+    const key = `${cleanString(output && output.kind || "")}|${cleanString(output && output.textKey || "")}|${cleanString(output && output.text || "")}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    results.push(dispatchRuntimeChatOutput(output, event, options));
+  }
+  return { ok: true, count: results.length, results };
+}
+
 function getChatOutputDispatcherConfig(event = null) {
   const globalConfig = getEventConfig().config || DEFAULT_EVENT_CONFIG;
   const defaults = globalConfig.chatOutputDefaults || DEFAULT_EVENT_CONFIG.chatOutputDefaults;
@@ -2604,9 +2679,38 @@ function processTextChatMessage(chat = {}, options = {}) {
     const phraseText = getPhraseText(phrase);
     if (!phraseText) return;
     const phraseUid = getPhraseUid(phrase, index);
-    if (phraseIsSolved(event.eventUid, phraseUid)) return;
+    const alreadySolved = phraseIsSolved(event.eventUid, phraseUid);
     const solvePoints = clampNumber(phrase.pointsFirst ?? phrase.points ?? event.textConfig.defaultPhrasePoints ?? getEventConfig().config.textDefaults.defaultPhrasePoints, 0, 10000, 40);
     if (messageSolvesPhrase(chat.message, phrase)) {
+      if (alreadySolved) {
+        const duplicateOutput = buildChatOutput("text.phrase.duplicate.chat", {
+          user: chat.userDisplayName,
+          displayName: chat.userDisplayName,
+          phraseNumber: index + 1,
+          points: 0,
+          phraseText,
+          eventName: event.name || ""
+        }, { reason: "text_phrase_duplicate" });
+        if (duplicateOutput && duplicateOutput.prepared) {
+          chatOutputs.push({
+            kind: "phrase_duplicate",
+            phraseUid,
+            phraseNumber: index + 1,
+            points: 0,
+            ...duplicateOutput
+          });
+          emitBus("stream_events.text", "phrase_duplicate", {
+            eventUid: event.eventUid,
+            phraseUid,
+            phraseNumber: index + 1,
+            userLogin: chat.userLogin,
+            userDisplayName: chat.userDisplayName,
+            chatText: duplicateOutput.text,
+            chatOutput: duplicateOutput
+          });
+        }
+        return;
+      }
       const result = insertPhraseSolve(event, phrase, index, chat, solvePoints);
       if (result.ok) {
         solved.push(result);
@@ -2641,16 +2745,16 @@ function processTextChatMessage(chat = {}, options = {}) {
     }
     for (const item of byPhrase.values()) {
       const totalKnown = getExistingWordHits(event.eventUid, item.phraseUid, chat.userLogin).size;
-      const textKey = runtimeConfig.partialHintVisibility === "with_sentence" ? "text.partial.with_sentence" : "text.partial.general";
       const chatContext = {
         user: chat.userDisplayName,
         displayName: chat.userDisplayName,
         wordCount: runtimeConfig.showPartialWordCount ? totalKnown : item.hits.length,
+        newWordCount: item.hits.length,
         phraseNumber: item.phraseNumber,
-        points: item.points
+        points: item.points,
+        eventName: event.name || ""
       };
-      const chatOutput = runtimeConfig.partialHintsEnabled ? buildChatOutput(textKey, chatContext, { reason: "text_word_found" }) : null;
-      const wordPointsChatOutput = item.points > 0 ? buildChatOutput("text.word_points.added", chatContext, { reason: "text_word_points_added" }) : null;
+      const chatOutput = runtimeConfig.partialHintsEnabled ? buildChatOutput("text.word_hit.chat", chatContext, { reason: "text_word_found" }) : null;
       if (chatOutput) {
         chatOutputs.push({
           kind: "word_found",
@@ -2662,17 +2766,7 @@ function processTextChatMessage(chat = {}, options = {}) {
           ...chatOutput
         });
       }
-      if (wordPointsChatOutput) {
-        chatOutputs.push({
-          kind: "word_points_added",
-          phraseUid: item.phraseUid,
-          phraseNumber: item.phraseNumber,
-          points: item.points,
-          newWordCount: item.hits.length,
-          totalKnownWords: totalKnown,
-          ...wordPointsChatOutput
-        });
-      }
+      const wordPointsChatOutput = null;
       emitBus("stream_events.text", "word_found", {
         eventUid: event.eventUid,
         phraseUid: item.phraseUid,
@@ -2773,6 +2867,15 @@ function processParallelChatMessage(chat = {}, context = {}) {
 
   result.solved = result.soundSolved || result.textSolved;
   result.chatOutputCount = result.chatOutputs.length;
+  if (busChat && runtimeGate.active && result.chatOutputs.length > 0) {
+    result.liveChatDispatch = dispatchRuntimeChatOutputs(result.chatOutputs, event, {
+      source,
+      eventUid: event.eventUid,
+      reason: "stream_events_runtime_chat_output"
+    });
+  } else if (result.chatOutputs.length > 0) {
+    result.liveChatDispatch = { ok: true, skipped: true, reason: busChat ? "runtime_gate_inactive" : "not_bus_chat", outputCount: result.chatOutputs.length };
+  }
   result.reason = result.handled ? "parallel_chat_runtime_processed" : "chat_runtime_not_handled";
   return result;
 }

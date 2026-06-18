@@ -77,3 +77,15 @@ stream_events_sound_rounds
 - `backend/modules/stream_events.js` – Overlay-State, Text-Key, Satzlösungs-Celebration.
 - `htdocs/overlays/stream_events/event_runtime_overlay.html` – Darstellung der Satzlösungs-Karte.
 - `docs/current/CURRENT_CHAT_HANDOFF_EVS52_3_TEXT_SOLVED_CELEBRATION_OVERLAY.md` – Handoff.
+
+
+## EVS52.4 geänderte Dateien
+
+- `backend/modules/stream_events.js` – Textkeys, Live-Chat-Ausgabe über Helper, Duplicate-Meldung.
+- `htdocs/dashboard/modules/stream_events.js` – Texte-Tab-Hinweis/Build aktualisiert.
+- `docs/modules/stream_events.md` – Modul-Doku aktualisiert.
+- `docs/current/CURRENT_CHAT_HANDOFF_EVS52_4_TEXT_CHAT_OUTPUTS_ACTIVE.md` – Handoff.
+- `project-state/CHANGELOG.md`
+- `project-state/TODO.md`
+- `project-state/NEXT_STEPS.md`
+- `project-state/FILES.md`

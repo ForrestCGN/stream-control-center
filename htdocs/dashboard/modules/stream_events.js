@@ -2,7 +2,7 @@ window.StreamEventsModule = (function(){
   'use strict';
 
   const MODULE_VERSION = "0.5.52";
-  const MODULE_BUILD = "STEP_EVS51_5_TEXT_ANSWERS_OPTIONAL_FIX";
+  const MODULE_BUILD = "STEP_EVS52_4_TEXT_CHAT_OUTPUTS_ACTIVE";
 
   const api = {
     status: '/api/stream-events/status',
@@ -2230,12 +2230,12 @@ window.StreamEventsModule = (function(){
         <div class="evs-card-head">
           <div>
             <h3>Text-Config / Multi-Texte</h3>
-            <span>Chat- und Systemtexte für Eventmeldungen. Varianten können später zufällig genutzt werden.</span>
+            <span>Chat- und Systemtexte für Eventmeldungen. Varianten werden zufällig für Chat-/Overlay-Ausgaben genutzt.</span>
           </div>
           <button type="button" class="evs-btn evs-btn-small evs-btn-secondary" data-evs-action="reloadTexts">Texte neu laden</button>
         </div>
         <div class="evs-text-config-help">
-          <strong>Vorbereitung:</strong> Diese Texte sind dashboardfähig und werden später von der Chat-Runtime genutzt. Platzhalter wie <code>{user}</code>, <code>{points}</code>, <code>{eventName}</code>, <code>{phraseNumber}</code> und <code>{wordCount}</code> bleiben im Text stehen.
+          <strong>Aktiv:</strong> Diese Texte sind dashboardfähig und werden zufällig von der Chat-/Overlay-Runtime genutzt. Platzhalter wie <code>{user}</code>, <code>{points}</code>, <code>{eventName}</code>, <code>{phraseNumber}</code> und <code>{wordCount}</code> bleiben im Text stehen.
         </div>
         <div class="evs-text-filter-bar">
           <label>

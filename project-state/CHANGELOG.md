@@ -1,5 +1,23 @@
 # CHANGELOG – stream-control-center
 
+## 2026-06-18 – EVS52.4 Text-Chat-Ausgaben aktiv
+
+### Added
+
+- Neue Satz-Spiel-Textkeys mit je 5 CGN-/Altersheim-/Rentner-Varianten:
+  - `text.word_hit.chat`
+  - `text.phrase.duplicate.chat`
+- Worttreffer senden im Live-Chat jetzt genau eine zufällige Meldung, wenn neue Wörter gefunden wurden.
+- Satzlösungen senden eine zufällige Chatmeldung und behalten das 15s-Celebration-Overlay.
+- Doppelte Satzlösungen senden optional eine zufällige Chatmeldung, vergeben aber keine Punkte und triggern kein Overlay.
+- Live-Chat-Ausgabe nutzt `helper_chat_output`; Textvarianten laufen weiter über `helper_texts`/Dashboard.
+
+### Safety
+
+- Dashboard-/Backend-Tests senden nicht live in Twitch.
+- Live-Senden nur bei echten `bus:twitch.chat.message`-Events und aktivem Runtime-Gate.
+- Keine zweite Wortpunkte-Meldung pro Worttreffer, damit der Chat nicht zugespammt wird.
+
 ## 2026-06-18 – EVS51.5 Text-Antwortvarianten optional
 
 ### Fixed

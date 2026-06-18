@@ -469,3 +469,28 @@ text.phrase.solved.overlay
 ```
 
 Enthalten sind fünf Fallback-Varianten im CGN-/Altersheim-/Rentner-Stil. Über den bestehenden Event-System-Texte-Bereich können Varianten später bearbeitet, deaktiviert oder ergänzt werden. Der dauerhafte Satzstatus bleibt vorbereitet, aber nicht sichtbar.
+
+
+## EVS52.4 – Satz-Spiel Chat-Ausgaben
+
+Satz-Spiel-Ausgaben sind aktiv in das vorhandene Text-/Chat-System eingebunden.
+
+### Textkeys
+
+- `text.word_hit.chat` – eine Chatmeldung bei neuen Worttreffern.
+- `text.phrase.solved` – Chatmeldung bei vollständiger Satzlösung.
+- `text.phrase.duplicate.chat` – Chatmeldung bei bereits gelöstem Satz ohne Punkte.
+- `text.phrase.solved.overlay` – 15s Celebration-Overlay bei vollständiger Satzlösung.
+
+Alle Keys haben 5 Fallback-Varianten im CGN-/Altersheim-/Rentner-Stil und werden über `helper_texts`/Dashboard-Texteditor gepflegt.
+
+### Live-Senden
+
+Live-Ausgabe nutzt `helper_chat_output`. Gesendet wird nur bei echten Twitch-Chat-Bus-Events (`bus:twitch.chat.message`) und aktivem Runtime-Gate. Dashboard-/Backend-Tests bereiten Outputs vor, senden aber nicht live in Twitch.
+
+### Spam-Schutz
+
+- Worttreffer senden nur bei neuen Wörtern.
+- Pro Chatnachricht wird pro Satz nur eine Worttreffer-Meldung gesendet.
+- `text.word_points.added` bleibt als vorhandener Textkey erhalten, wird aber nicht zusätzlich live pro Worttreffer gesendet.
+- Doppelte Satzlösung gibt keine Punkte und kein Overlay.
