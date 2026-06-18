@@ -11,21 +11,28 @@
 
 const cfg = require("./helpers/helper_config");
 const communicationBus = require("./communication_bus");
+const textHelper = require("./helpers/helper_texts");
+const settingsHelper = require("./helpers/helper_settings");
+const database = require("../core/database");
 let chatOutputHelper = null;
 try { chatOutputHelper = require("./helpers/helper_chat_output"); } catch (_) { chatOutputHelper = null; }
 
 const MODULE_NAME = "shot_alarm";
-const MODULE_VERSION = "0.2.0";
-const MODULE_BUILD = "STEP_SHOT_ALARM_2A_AGGREGATED_DRAW_OVERLAY_COUNTER";
+const MODULE_VERSION = "0.2.1";
+const MODULE_BUILD = "STEP_SHOT_ALARM_2B_DB_TEXTS_CONFIG_HELPERS";
 const CONFIG_FILE = "shot_alarm.json";
 const HISTORY_LIMIT = 200;
+const TEXT_MODULE = "shot_alarm";
+const SETTINGS_TABLE = settingsHelper.DEFAULT_SETTINGS_TABLE || "module_settings";
+const SETTINGS_KEY_CONFIG = "shot_alarm.config";
+const HISTORY_TABLE = "shot_alarm_history";
 
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
   build: MODULE_BUILD,
   type: "runtime",
-  category: "events",
+  category: "community_events",
   legacy: false,
   routesPrefix: ["/api/shot-alarm"],
   bus: {
@@ -48,14 +55,14 @@ const MODULE_META = {
       "shot_alarm.status_bar.update"
     ]
   },
-  description: "Shot-Alarm fuer Twitch-Support-Events mit gebuendelter Auslosung, Counter, Overlay-Statusleiste und Altersheim-/Heimleitungs-Texten."
+  description: "Shot-Alarm fuer Twitch-Support-Events mit gebuendelter Auslosung, Counter, Overlay-Statusleiste sowie DB-basierten Altersheim-/Heimleitungs-Texten und DB-Config."
 };
 
 const DEFAULT_CONFIG = {
   enabled: true,
   overlayEnabled: true,
   soundEnabled: true,
-  dashboardCategory: "events",
+  dashboardCategory: "community_events",
   targetMode: "engel_roxxy_together",
   targetLabel: "Engel & Roxxy",
   display: {
@@ -148,6 +155,67 @@ const DEFAULT_CONFIG = {
   historyLimit: HISTORY_LIMIT
 };
 
+
+const DEFAULT_TEXT_VARIANTS = {
+  drawStart: [
+    "🚨 Heimleitung meldet: {user} hat {amountLabel} in den Rentner-Automaten geworfen. Die Shot-Auslosung läuft...",
+    "🎲 Altersheim-Prüfung gestartet: {amountLabel} von {user}. Engel & Roxxy warten auf das Urteil der Heimleitung...",
+    "🧓 Die Heimleitung sortiert die Gebisse und würfelt aus: {amountLabel} von {user}. Ergebnis folgt gleich..."
+  ],
+  resultHit: [
+    "🥃 Ergebnis der Heimleitungs-Auslosung: {amountLabel} von {user} ergibt {shotsAdded} Shot(s) für Engel & Roxxy. Offen: {shotsOpen}.",
+    "🍻 Pflegeprotokoll aktualisiert: {user} hat mit {amountLabel} {shotsAdded} Shot(s) ausgelöst. Noch offen: {shotsOpen}.",
+    "🚨 Rentner-Alarm: {amountLabel} von {user} hat {shotsAdded} Shot(s) aus dem Automaten gespuckt. Engel & Roxxy, antreten! Offen: {shotsOpen}."
+  ],
+  resultMiss: [
+    "😇 Ergebnis der Heimleitungs-Auslosung: {amountLabel} von {user} – die Rentner-Leber wurde verschont. Kein Shot.",
+    "🧓 Die Heimleitung hat gewürfelt: {amountLabel} von {user}, aber Engel & Roxxy sind diesmal davongekommen.",
+    "📋 Pflegebericht: {amountLabel} von {user} geprüft, keine Trinkpflicht. Die Rentner dürfen weiter atmen."
+  ],
+  shotDone: [
+    "✅ Pflegeprotokoll aktualisiert: {user} meldet einen getrunkenen Shot. Noch offen: {shotsOpen}.",
+    "🥃 Heimleitung bestätigt: Ein Shot wurde abgehakt. Noch offen für Engel & Roxxy: {shotsOpen}.",
+    "🧓 Rentnerdienst erledigt: {user} hat einen Shot gemeldet. Offene Pflichtportionen: {shotsOpen}."
+  ],
+  shotDoneEmpty: [
+    "📋 Die Heimleitung hat nachgezählt: Aktuell stehen keine Shots offen. Noch.",
+    "😇 Kein offener Shot im Pflegeplan. Engel & Roxxy sind gerade offiziell unschuldig.",
+    "🧓 Der Medikamentenwagen ist leer: keine offenen Shots vorhanden."
+  ],
+  overlayDrawTitle: ["SHOT-ALARM", "HEIMLEITUNG PRÜFT", "RENTNER-LOTTERIE"],
+  overlayDrawText: ["Die Heimleitung lost aus...", "Der Rentner-Automat rattert...", "Engel & Roxxy warten auf das Urteil..."],
+  overlayResultHitTitle: ["SHOT-ALARM", "PFLEGEPROTOKOLL", "RENTNER-ALARM"],
+  overlayResultMissTitle: ["SHOT-ALARM", "ENTWARNUNG", "HEIMLEITUNG MELDET"],
+  overlayResultHitText: ["Engel & Roxxy müssen ran!", "Der Pflegewagen bringt Nachschub!", "Pflichtportion für Engel & Roxxy!"],
+  overlayResultMissText: ["Die Rentner-Leber wurde verschont.", "Heute nochmal davongekommen.", "Kein Shot im Pflegeplan."]
+};
+
+const TEXT_CATEGORIES = {
+  drawStart: "chat",
+  resultHit: "chat",
+  resultMiss: "chat",
+  shotDone: "chat",
+  shotDoneEmpty: "chat",
+  overlayDrawTitle: "overlay",
+  overlayDrawText: "overlay",
+  overlayResultHitTitle: "overlay",
+  overlayResultMissTitle: "overlay",
+  overlayResultHitText: "overlay",
+  overlayResultMissText: "overlay"
+};
+
+const TEXT_CATEGORY_LABELS = {
+  chat: "Chat-Texte",
+  overlay: "Overlay-Texte"
+};
+
+const TEXT_OPTIONS = {
+  defaultCategory: "chat",
+  categories: TEXT_CATEGORIES,
+  categoryLabels: TEXT_CATEGORY_LABELS,
+  source: "shot_alarm_seed"
+};
+
 const state = {
   initialized: false,
   enabled: true,
@@ -196,7 +264,12 @@ const state = {
   },
   pendingSubTimers: new Map(),
   pendingSubEvents: new Map(),
-  history: []
+  history: [],
+  storageReady: false,
+  storageError: "",
+  textVariantsReady: false,
+  textVariantsError: "",
+  configSource: "json"
 };
 
 let config = clone(DEFAULT_CONFIG);
@@ -259,12 +332,27 @@ function buildText(key, summary = {}) {
     shotsTotal: state.shotsAddedTotal || 0,
     chanceSummary: summary.chanceSummary || ""
   };
-  const fallback = key === "drawStart"
+  const legacyFallback = config.texts && config.texts[key] ? randomFrom(config.texts[key], "") : "";
+  const hardFallback = key === "drawStart"
     ? "🚨 Heimleitung meldet: {user} hat {amountLabel} in den Rentner-Automaten geworfen. Die Shot-Auslosung läuft..."
     : key === "resultMiss"
       ? "😇 Ergebnis der Heimleitungs-Auslosung: {amountLabel} von {user} – kein Shot."
-      : "🥃 Ergebnis der Heimleitungs-Auslosung: {amountLabel} von {user} ergibt {shotsAdded} Shot(s). Offen: {shotsOpen}.";
-  return replaceTokens(randomFrom(config.texts && config.texts[key], fallback), values);
+      : key === "shotDone"
+        ? "✅ Pflegeprotokoll aktualisiert: {user} meldet einen getrunkenen Shot. Noch offen: {shotsOpen}."
+        : key === "shotDoneEmpty"
+          ? "📋 Die Heimleitung hat nachgezählt: Aktuell stehen keine Shots offen. Noch."
+          : "🥃 Ergebnis der Heimleitungs-Auslosung: {amountLabel} von {user} ergibt {shotsAdded} Shot(s). Offen: {shotsOpen}.";
+  try {
+    const rendered = textHelper.renderModuleText(TEXT_MODULE, key, DEFAULT_TEXT_VARIANTS, values, TEXT_OPTIONS);
+    if (String(rendered || "").trim()) return rendered;
+  } catch (err) {
+    state.textVariantsError = err && err.message ? err.message : String(err);
+  }
+  return replaceTokens(legacyFallback || hardFallback, values);
+}
+
+function pickOverlayText(key, summary = {}) {
+  return buildText(key, summary);
 }
 
 async function sendChatText(key, summary = {}, options = {}) {
@@ -324,30 +412,191 @@ function applyFinalRuleDefaults() {
   return true;
 }
 
+
+function ensureTextVariants() {
+  try {
+    const seeded = textHelper.seedModuleTextVariants(TEXT_MODULE, DEFAULT_TEXT_VARIANTS, TEXT_OPTIONS);
+    state.textVariantsReady = true;
+    state.textVariantsError = "";
+    return seeded;
+  } catch (err) {
+    state.textVariantsReady = false;
+    state.textVariantsError = err && err.message ? err.message : String(err);
+    state.lastWarning = `text_variants_unavailable: ${state.textVariantsError}`;
+    return { ok: false, error: state.textVariantsError };
+  }
+}
+
+function ensureStorage() {
+  try {
+    database.ensureReady();
+    const qTable = database.quoteIdentifier(HISTORY_TABLE);
+    database.exec(`
+      CREATE TABLE IF NOT EXISTS ${qTable} (
+        id TEXT PRIMARY KEY,
+        created_at TEXT NOT NULL,
+        phase TEXT NOT NULL DEFAULT '',
+        event_type TEXT NOT NULL DEFAULT '',
+        event_label TEXT NOT NULL DEFAULT '',
+        user_login TEXT NOT NULL DEFAULT '',
+        user_display_name TEXT NOT NULL DEFAULT '',
+        amount_label TEXT NOT NULL DEFAULT '',
+        chance_summary TEXT NOT NULL DEFAULT '',
+        shots_added INTEGER NOT NULL DEFAULT 0,
+        shots_open_after INTEGER NOT NULL DEFAULT 0,
+        shots_drunk_after INTEGER NOT NULL DEFAULT 0,
+        payload_json TEXT NOT NULL DEFAULT '{}'
+      );
+    `);
+    try { database.exec(`CREATE INDEX IF NOT EXISTS idx_${HISTORY_TABLE}_created_at ON ${qTable} (created_at);`); } catch (_) {}
+    try { database.exec(`CREATE INDEX IF NOT EXISTS idx_${HISTORY_TABLE}_event_type ON ${qTable} (event_type);`); } catch (_) {}
+    settingsHelper.ensureSettingsTable(SETTINGS_TABLE);
+    state.storageReady = true;
+    state.storageError = "";
+    return { ok: true, table: HISTORY_TABLE, settingsTable: SETTINGS_TABLE };
+  } catch (err) {
+    state.storageReady = false;
+    state.storageError = err && err.message ? err.message : String(err);
+    state.lastWarning = `storage_unavailable: ${state.storageError}`;
+    return { ok: false, error: state.storageError };
+  }
+}
+
+function persistHistory(entry) {
+  if (!state.storageReady) return { ok: false, skipped: true, reason: "storage_not_ready" };
+  try {
+    database.insert(HISTORY_TABLE, {
+      id: String(entry.id || `shot_${Date.now().toString(36)}`),
+      created_at: String(entry.at || nowIso()),
+      phase: String(entry.phase || entry.kind || ""),
+      event_type: String(entry.eventType || entry.event_type || ""),
+      event_label: String(entry.eventLabel || entry.event_label || ""),
+      user_login: String(entry.user?.login || ""),
+      user_display_name: String(entry.user?.displayName || ""),
+      amount_label: String(entry.amountLabel || ""),
+      chance_summary: String(entry.chanceSummary || ""),
+      shots_added: Math.max(0, Math.floor(asNumber(entry.shotsAdded ?? entry.shots, 0))),
+      shots_open_after: Math.max(0, Math.floor(asNumber(entry.shotsOpenAfter ?? entry.shotsOpen, state.shotsOpen))),
+      shots_drunk_after: Math.max(0, Math.floor(asNumber(entry.shotsDrunk ?? state.shotsDrunk, 0))),
+      payload_json: database.jsonEncode(entry)
+    });
+    return { ok: true };
+  } catch (err) {
+    state.storageError = err && err.message ? err.message : String(err);
+    state.lastWarning = `history_persist_failed: ${state.storageError}`;
+    return { ok: false, error: state.storageError };
+  }
+}
+
+function listStoredHistory(limit = 200) {
+  if (!state.storageReady) return [];
+  try {
+    const rows = database.all(`
+      SELECT payload_json
+      FROM ${database.quoteIdentifier(HISTORY_TABLE)}
+      ORDER BY created_at DESC
+      LIMIT :limit
+    `, { limit: Math.max(1, Math.min(1000, Number(limit || 200))) });
+    return rows.map(row => database.jsonDecode(row.payload_json, null)).filter(Boolean);
+  } catch (err) {
+    state.storageError = err && err.message ? err.message : String(err);
+    return [];
+  }
+}
+
+function buildStats() {
+  const base = {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    shotsOpen: state.shotsOpen,
+    shotsDrunk: state.shotsDrunk,
+    shotsAddedTotal: state.shotsAddedTotal,
+    runtime: clone(state.counts),
+    database: { ready: state.storageReady, table: HISTORY_TABLE, error: state.storageError },
+    byEventType: [],
+    topUsers: []
+  };
+  if (!state.storageReady) return base;
+  try {
+    base.byEventType = database.all(`
+      SELECT event_type AS eventType, COUNT(*) AS events, SUM(shots_added) AS shots
+      FROM ${database.quoteIdentifier(HISTORY_TABLE)}
+      GROUP BY event_type
+      ORDER BY shots DESC, events DESC
+      LIMIT 20
+    `).map(row => ({ eventType: row.eventType || "unknown", events: Number(row.events || 0), shots: Number(row.shots || 0) }));
+    base.topUsers = database.all(`
+      SELECT user_display_name AS displayName, COUNT(*) AS events, SUM(shots_added) AS shots
+      FROM ${database.quoteIdentifier(HISTORY_TABLE)}
+      WHERE user_display_name <> ''
+      GROUP BY user_display_name
+      ORDER BY shots DESC, events DESC
+      LIMIT 20
+    `).map(row => ({ displayName: row.displayName || "Unbekannt", events: Number(row.events || 0), shots: Number(row.shots || 0) }));
+  } catch (err) {
+    base.database.error = err && err.message ? err.message : String(err);
+  }
+  return base;
+}
+
 function loadConfig() {
+  ensureStorage();
+  ensureTextVariants();
   const loaded = cfg.loadConfig(CONFIG_FILE, DEFAULT_CONFIG, { createIfMissing: true, spaces: 2 });
-  config = deepMerge(DEFAULT_CONFIG, loaded && loaded.data ? loaded.data : {});
+  const fileConfig = loaded && loaded.data ? loaded.data : clone(DEFAULT_CONFIG);
+  let sourceConfig = fileConfig;
+  state.configSource = "json";
+  try {
+    const setting = settingsHelper.getSettingWithFallback(SETTINGS_TABLE, SETTINGS_KEY_CONFIG, fileConfig, {
+      valueType: "json",
+      configFile: CONFIG_FILE,
+      configDefaults: DEFAULT_CONFIG,
+      createIfMissing: true
+    });
+    if (setting && setting.value && typeof setting.value === "object") {
+      sourceConfig = setting.value;
+      state.configSource = setting.source || (setting.found ? "database" : "default");
+      if (setting.source !== "database") {
+        settingsHelper.setSetting(SETTINGS_TABLE, SETTINGS_KEY_CONFIG, sourceConfig, {
+          valueType: "json",
+          description: "Shot-Alarm Dashboard-Config als DB-Quelle; JSON bleibt Mirror/Fallback."
+        });
+        state.configSource = "database_seeded_from_config";
+      }
+    }
+  } catch (err) {
+    state.lastWarning = `settings_fallback_json: ${err && err.message ? err.message : String(err)}`;
+  }
+  config = deepMerge(DEFAULT_CONFIG, sourceConfig || {});
   const migrated = applyFinalRuleDefaults();
   config.enabled = config.enabled !== false;
   state.enabled = config.enabled;
   state.configPath = loaded && loaded.path ? loaded.path : cfg.resolveConfigFile(CONFIG_FILE);
   if (migrated) {
-    try { cfg.writeJsonFile(state.configPath, config, { spaces: 2 }); } catch (err) { state.lastWarning = `config_migration_save_failed: ${err && err.message ? err.message : String(err)}`; }
+    try {
+      settingsHelper.setSetting(SETTINGS_TABLE, SETTINGS_KEY_CONFIG, config, { valueType: "json", description: "Shot-Alarm Dashboard-Config" });
+      cfg.writeJsonFile(state.configPath, config, { spaces: 2 });
+    } catch (err) { state.lastWarning = `config_migration_save_failed: ${err && err.message ? err.message : String(err)}`; }
   }
   state.updatedAt = nowIso();
   return config;
 }
-
 function saveConfig(nextConfig) {
   const merged = deepMerge(DEFAULT_CONFIG, nextConfig || {});
+  settingsHelper.setSetting(SETTINGS_TABLE, SETTINGS_KEY_CONFIG, merged, {
+    valueType: "json",
+    description: "Shot-Alarm Dashboard-Config als DB-Quelle; JSON bleibt Mirror/Fallback."
+  });
   cfg.writeJsonFile(cfg.resolveConfigFile(CONFIG_FILE), merged, { spaces: 2 });
   config = merged;
+  state.configSource = "database";
   state.enabled = config.enabled !== false;
   state.updatedAt = nowIso();
   publishStatus("config_saved");
   return config;
 }
-
 function publicHistoryItem(item) {
   return safeJson(item) || {};
 }
@@ -361,6 +610,7 @@ function addHistory(item) {
   state.history.unshift(entry);
   const limit = Math.max(20, Math.min(1000, Number(config.historyLimit || HISTORY_LIMIT)));
   state.history = state.history.slice(0, limit);
+  persistHistory(entry);
   return entry;
 }
 
@@ -380,6 +630,9 @@ function publicStatus() {
     subscriptions: state.subscriptions,
     routeCount: state.routeCount,
     configPath: state.configPath,
+    configSource: state.configSource,
+    database: { adapter: database.getAdapter ? database.getAdapter() : "sqlite", dialect: database.getDialect ? database.getDialect() : "sqlite", storageReady: state.storageReady, historyTable: HISTORY_TABLE, settingsTable: SETTINGS_TABLE, settingsKey: SETTINGS_KEY_CONFIG, error: state.storageError },
+    texts: { module: TEXT_MODULE, variantsReady: state.textVariantsReady, variantsTable: textHelper.DEFAULT_MODULE_TEXT_VARIANTS_TABLE || "module_text_variants", error: state.textVariantsError },
     startedAt: state.startedAt,
     updatedAt: state.updatedAt,
     lastError: state.lastError,
@@ -554,8 +807,8 @@ function sendOverlay(phase, summary) {
     moduleBuild: MODULE_BUILD,
     at: nowIso(),
     phase,
-    title: randomFrom(config.texts && config.texts[titleKey], cleanString(config.display.title, "SHOT-ALARM")),
-    message: randomFrom(config.texts && config.texts[textKey], isDraw ? "Die Heimleitung lost aus..." : isHit ? "Engel & Roxxy müssen ran!" : "Die Rentner-Leber wurde verschont."),
+    title: pickOverlayText(titleKey, summary) || cleanString(config.display.title, "SHOT-ALARM"),
+    message: pickOverlayText(textKey, summary) || (isDraw ? "Die Heimleitung lost aus..." : isHit ? "Engel & Roxxy müssen ran!" : "Die Rentner-Leber wurde verschont."),
     holdMs: isDraw ? Number(config.display.drawHoldMs || config.display.drawDelayMs || 10000) : Number(config.display.resultHoldMs || config.display.holdMs || 10000),
     targetLabel: cleanString(config.targetLabel, "Engel & Roxxy"),
     summary: safeJson(summary),
@@ -1079,7 +1332,30 @@ function init(ctx = {}) {
       res.status(500).json({ ok: false, module: MODULE_NAME, error: err && err.message ? err.message : String(err) });
     }
   });
-  get("/api/shot-alarm/history", (req, res) => res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, items: state.history.map(publicHistoryItem), pending: [...state.pendingSubEvents.values()].map(item => ({ at: item.at, eventKey: item.eventKey })) }));
+  get("/api/shot-alarm/history", (req, res) => {
+    const limit = Number(req.query && req.query.limit || config.historyLimit || HISTORY_LIMIT);
+    const stored = listStoredHistory(limit);
+    const items = stored.length ? stored : state.history.map(publicHistoryItem);
+    res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, items, source: stored.length ? "database" : "runtime", pending: [...state.pendingSubEvents.values()].map(item => ({ at: item.at, eventKey: item.eventKey })) });
+  });
+  get("/api/shot-alarm/stats", (req, res) => res.json(buildStats()));
+  get("/api/shot-alarm/texts", (req, res) => {
+    try {
+      ensureTextVariants();
+      res.json(textHelper.listModuleTextEditor(TEXT_MODULE, DEFAULT_TEXT_VARIANTS, TEXT_OPTIONS));
+    } catch (err) {
+      res.status(500).json({ ok: false, module: MODULE_NAME, error: err && err.message ? err.message : String(err) });
+    }
+  });
+  post("/api/shot-alarm/texts", (req, res) => {
+    try {
+      ensureTextVariants();
+      const result = textHelper.handleModuleTextEditorPayload(TEXT_MODULE, req.body || {}, TEXT_OPTIONS);
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ ok: false, module: MODULE_NAME, error: err && err.message ? err.message : String(err) });
+    }
+  });
   post("/api/shot-alarm/test", (req, res) => {
     try {
       const body = req.body && typeof req.body === "object" ? req.body : {};
@@ -1146,10 +1422,12 @@ function init(ctx = {}) {
       state.counts.shotsDrunk = state.shotsDrunk;
       const entry = addHistory({ eventType: "shot_done", kind: "shot_done", done, shotsOpen: state.shotsOpen, shotsDrunk: state.shotsDrunk, user: { login: cleanString(body.user || "manual"), displayName: cleanString(body.user || body.displayName, "Dashboard") } });
       state.lastEvent = entry;
+      sendChatText("shotDone", { ...entry, shotsOpen: state.shotsOpen, shotsDrunk: state.shotsDrunk, user: entry.user }).catch(() => {});
       sendStatusBar();
       publishStatus("shot_done");
       return res.json({ ok: true, module: MODULE_NAME, done, shotsOpen: state.shotsOpen, shotsDrunk: state.shotsDrunk, status: publicStatus() });
     }
+    sendChatText("shotDoneEmpty", { user: { login: cleanString(body.user || "manual"), displayName: cleanString(body.user || body.displayName, "Dashboard") }, shotsOpen: state.shotsOpen, shotsDrunk: state.shotsDrunk }).catch(() => {});
     sendStatusBar();
     return res.json({ ok: true, module: MODULE_NAME, done: 0, shotsOpen: state.shotsOpen, shotsDrunk: state.shotsDrunk, skippedReason: "no_open_shots", status: publicStatus() });
   });

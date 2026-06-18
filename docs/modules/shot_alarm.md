@@ -1,155 +1,134 @@
-# Shot-Alarm
-
-Stand: SHOT-ALARM-2A_AGGREGATED_DRAW_OVERLAY_COUNTER  
-Backend: `backend/modules/shot_alarm.js`  
-Dashboard: `htdocs/dashboard/modules/shot_alarm.js`  
-Overlay: `htdocs/overlays/shot_alarm/shot_alarm_overlay.html`
+# Modul: Shot-Alarm
 
 ## Zweck
 
-Shot-Alarm verarbeitet Support-Events und lost daraus Shots für Engel & Roxxy aus. Die Auslosung läuft im Backend im Hintergrund. Pro Support-Event wird das Ergebnis gebündelt: keine Einzel-Overlay-/Sound-Flut pro internem Würfelblock.
+Der Shot-Alarm ist ein Community-/Event-Modul für ForrestCGN. Twitch-Support-Events lösen nach konfigurierbaren Regeln eine Shot-Auslosung für Engel & Roxxy aus.
 
-Stil: Altersheim / Heimleitung / Rentner / CGN.
+Stil: CGN / Altersheim / Heimleitung / Rentner.
 
-## Quellen
+## Aktueller Stand
 
-Aktiv über Communication Bus:
-
-- `twitch.sub.received`
-- `twitch.resub.received`
-- `twitch.subgift.received`
-- `twitch.giftbomb.received`
-- `twitch.cheer.received`
-
-Vorbereitet für später:
-
-- `payment.kofi.received`
-- `payment.tipeee.received`
-
-Ko-fi/Tipeee-Module werden in STEP 2A noch nicht verändert.
+- Modul: `shot_alarm`
+- Version: `0.2.1`
+- Build: `STEP_SHOT_ALARM_2B_DB_TEXTS_CONFIG_HELPERS`
+- Dashboard: `Community / Events / Shot-Alarm`
+- Overlay: `/overlays/shot_alarm/shot_alarm_overlay.html`
 
 ## Regeln
 
-### Einzelne Subs / Resubs / GiftSubs
+### Einzelne Subs
 
-Nur einzelne Support-Events erhöhen den Einzelzähler.
-
-- 1 Sub / Resub / GiftSub: 20 % auf 1 Shot
-- jeder 5. einzelne Sub / Resub / GiftSub: 50/50 auf 1 Shot
-- jeder 10. einzelne Sub / Resub / GiftSub: 100 % auf 1 Shot
-
-Sub-Bomben zählen nicht in diesen Einzelzähler.
+- 1 Sub / Resub / GiftSub: 20 %
+- jeder 5. einzelne Sub/Resub/GiftSub: 50/50
+- jeder 10. einzelne Sub/Resub/GiftSub: 100 %
 
 ### Sub-Bomben
 
-- 5er Bombe: 50/50 auf 1 Shot
-- je 10er Block: 100 % auf 1 Shot
+- 5er Bombe: 50/50
+- je 10 Subs in einer Bombe: 1 sicherer Shot
 - 100er Bombe: 10 sichere Shots
 
 ### Bits
 
-- unter 1.000 Bits: kein Shot
-- je volle 1.000 Bits im Restbereich: 50/50 auf 1 Shot
-- je volle 10.000 Bits: 100 % auf 1 Shot
+- je 1.000 Bits: 50/50
+- je 10.000 Bits: 100 %
 
-Beispiele:
+Beispiel: 25.000 Bits = 2 sichere Shots + 5x 50/50.
 
-- 9.000 Bits: 9x 50/50
-- 10.000 Bits: 1 sicherer Shot
-- 11.000 Bits: 1 sicherer Shot + 1x 50/50
-- 25.000 Bits: 2 sichere Shots + 5x 50/50
+### Ko-fi/Tipeee
 
-### Ko-fi / Tipeee vorbereitet
+Vorbereitet, aber noch nicht produktiv angebunden:
 
-- je volle 10 EUR: 50/50 auf 1 Shot
+- je 10 € Ko-fi: 50/50
+- je 10 € Tipeee: 50/50
 
-Produktive Anbindung erfolgt später über Payment-Bus-Events aus `kofi.js` und `tipeee.js`.
+## Ablauf
 
-## Ablauf STEP 2A
-
-1. Support-Event kommt rein.
-2. Backend berechnet intern alle Würfe.
-3. Overlay zeigt `Auslosung läuft`.
-4. Optionaler Chattext im Heimleitungsstil wird gesendet.
-5. Nach `display.drawDelayMs` (Default 10 Sekunden) wird das Ergebnis aufgelöst.
+1. Support-Event kommt über Twitch-Events/Communication-Bus.
+2. Backend berechnet alle Würfe im Hintergrund.
+3. Overlay/Chat meldet: Auslosung läuft.
+4. Nach Standard 10 Sekunden wird das Ergebnis angezeigt.
+5. Nur das Gesamtergebnis wird als Chat/Overlay/Sound ausgegeben.
 6. Offene Shots werden erst beim Ergebnis erhöht.
-7. Ergebnis wird als eine gebündelte Chatnachricht ausgegeben.
-8. Ergebnis-Overlay wird einmal angezeigt.
-9. Ein zufälliger Sound aus dem Shot-Alarm-Pool wird nur bei Treffer angefordert.
-10. Verlauf speichert Zusammenfassung inklusive Roll-Details.
-
-## Overlay
-
-Overlay-Datei:
-
-`/overlays/shot_alarm/shot_alarm_overlay.html`
-
-Layout:
-
-- kleine Ergebnis-/Auslosungskarte in der oberen Bildschirmhälfte
-- dauerhaft dezente Statusleiste unten am Rand
-- Statusleiste zeigt: offene Shots, getrunkene Shots, Gesamt-Shots
-
-OBS-Link:
-
-`http://127.0.0.1:8080/overlays/shot_alarm/shot_alarm_overlay.html`
-
-Debug-Link:
-
-`http://127.0.0.1:8080/overlays/shot_alarm/shot_alarm_overlay.html?debug=1`
-
-## Routen
-
-- `GET /api/shot-alarm/status`
-- `GET /api/shot-alarm/config`
-- `POST /api/shot-alarm/config`
-- `GET /api/shot-alarm/history`
-- `GET /api/shot-alarm/status-bar`
-- `POST /api/shot-alarm/test`
-- `POST /api/shot-alarm/manual-trigger`
-- `POST /api/shot-alarm/resolve-pending`
-- `POST /api/shot-alarm/shot-done`
-- `POST /api/shot-alarm/flush-pending`
-- `POST /api/shot-alarm/reset-state`
 
 ## Counter
-
-Runtime-State:
 
 - `shotsOpen`
 - `shotsDrunk`
 - `shotsAddedTotal`
 
-`POST /api/shot-alarm/shot-done` reduziert offene Shots und erhöht getrunkene Shots. Der Chatbefehl dafür ist in STEP 2A noch nicht produktiv an `commands.js` angebunden.
+`POST /api/shot-alarm/shot-done` zieht offene Shots ab und erhöht den Getrunken-Counter.
 
-## Textsystem
+## DB / Config / Texte
 
-STEP 2A nutzt Config-Textpools als Fallback:
+### Config
 
-- `texts.drawStart`
-- `texts.resultHit`
-- `texts.resultMiss`
-- Overlay-Textpools
+Config wird über `helper_settings` in `module_settings` gespeichert:
 
-Ziel für Folge-Step: Texte in vorhandene DB-/Textvarianten-Helper überführen und dashboardfähig machen.
+- Key: `shot_alarm.config`
+- Type: JSON
 
-## Nicht geändert in STEP 2A
+`config/shot_alarm.json` bleibt Mirror/Fallback.
+
+### Textvarianten
+
+Texte laufen über `helper_texts` und `module_text_variants`.
+
+Kategorien:
+
+- `chat` = Chat-Texte
+- `overlay` = Overlay-Texte
+
+Keys:
+
+- `drawStart`
+- `resultHit`
+- `resultMiss`
+- `shotDone`
+- `shotDoneEmpty`
+- `overlayDrawTitle`
+- `overlayDrawText`
+- `overlayResultHitTitle`
+- `overlayResultMissTitle`
+- `overlayResultHitText`
+- `overlayResultMissText`
+
+### History
+
+Zusätzliche Tabelle:
+
+- `shot_alarm_history`
+
+Speichert Zeitpunkt, Phase, Eventtyp, User, Menge, Regel, Shots und Payload JSON.
+
+## Wichtige Routen
+
+- `GET /api/shot-alarm/status`
+- `GET /api/shot-alarm/config`
+- `POST /api/shot-alarm/config`
+- `GET /api/shot-alarm/texts`
+- `POST /api/shot-alarm/texts`
+- `GET /api/shot-alarm/stats`
+- `GET /api/shot-alarm/history`
+- `POST /api/shot-alarm/test`
+- `POST /api/shot-alarm/manual-trigger`
+- `POST /api/shot-alarm/shot-done`
+- `POST /api/shot-alarm/resolve-pending`
+- `POST /api/shot-alarm/reset-state`
+
+## Nicht geändert
 
 - `twitch_events.js`
-- `twitch.js`
 - `loyalty.js`
 - `alert_system.js`
 - `kofi.js`
 - `tipeee.js`
 - `sound_system.js`
-- `commands.js`
-- produktive SQLite-DB
 
-## Offene Folgepunkte
+## Nächste Schritte
 
-- Chatbefehl für Engel/Roxxy: z. B. `!shotdone`
-- Rechteprüfung für Engel/Roxxy/Broadcaster/Mods
-- DB-basierte Textvarianten im bestehenden Textsystem
-- Dashboard-Editor für Texte/Sounds/Statistik
-- Ko-fi/Tipeee Payment-Bus-Anbindung
-- persistente Statistik in DB statt nur Runtime-History
+1. Chatbefehl `!shotdone` über bestehendes Commands-/Chat-System anbinden.
+2. Ko-fi/Tipeee Payment-Bus ergänzen.
+3. Soundpool dashboardfähig mit Sound-/Media-System verbinden.
+4. Rechte/Audit für produktive Dashboard-Aktionen ergänzen.
+5. Counter nach Neustart ggf. persistent wiederherstellen.

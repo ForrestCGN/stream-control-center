@@ -9,3 +9,4 @@
 5. Dashboard-Editor für Shot-Alarm Texte, Sounds, Regeln und Statistik ausbauen.
 6. Ko-fi/Tipeee-Module sauber über Payment-Bus-Events an Shot-Alarm anbinden.
 7. Persistente Statistik in DB planen/umsetzen.
+\n\n## SHOT-ALARM-2B – 2026-06-18\n- Shot-Alarm auf Version 0.2.1 / STEP_SHOT_ALARM_2B_DB_TEXTS_CONFIG_HELPERS aktualisiert.\n- DB-Config via module_settings, DB-Textvarianten via module_text_variants, History-Tabelle shot_alarm_history.\n- Dashboard jetzt unter Community / Events / Shot-Alarm mit Tabs Übersicht, Config, Texte, Tests, Statistik/Verlauf.
