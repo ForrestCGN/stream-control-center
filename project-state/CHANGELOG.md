@@ -1,5 +1,28 @@
 # CHANGELOG – stream-control-center
 
+## 2026-06-18 – EVS52.11 Chat-Command Await-Fix
+
+### Geaendert
+
+- `stream_events` auf `0.5.82 / STEP_EVS52_11_CHAT_COMMAND_AWAIT_FIX` erhoeht.
+- Fehler im Twitch-Chat-Handler behoben: `processEventCommand()` ist async und wurde ohne `await` ausgewertet. Dadurch wurden normale Chatnachrichten faelschlich als Event-Command behandelt.
+- Normale Chatnachrichten werden jetzt nur dann an `processEventCommand()` gegeben, wenn sie wirklich mit `!event` beginnen.
+- Alle anderen Twitch-Chatnachrichten laufen wieder direkt in `processParallelChatMessage()` und damit in Sound + Satz/Text.
+- Fehlerbehandlung fuer den async Bus-Callback ergaenzt, damit Chat-Handler-Fehler im Status sichtbar werden.
+
+### Nicht geaendert
+
+- Keine DB-Aenderung.
+- Keine Punktelogik geaendert.
+- Keine Sound-Rundenlogik geaendert.
+- Keine Satz-/Text-Punktelogik geaendert.
+- Keine neue Chatquelle.
+- Keine alten Direct-/Wildcard-Hooks wieder eingebaut.
+
+### Lokale Syntax-Checks
+
+- `node -c backend/modules/stream_events.js` bestanden.
+
 ## 2026-06-18 – EVS52.9 Twitch-Events Chatquelle aufgeraeumt
 
 ### Geaendert

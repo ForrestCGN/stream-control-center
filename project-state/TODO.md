@@ -94,3 +94,17 @@ Stand: 2026-06-18 – EVS52.9 Doku/Handoff
 - [ ] Satz-Teilwort live testen.
 - [ ] Satzlösung live testen.
 - [ ] Wartezeit überspringen mit genau einem aktiven Event testen.
+
+
+## EVS52.11 erledigt / jetzt live testen
+
+- [x] Async-Fehler im Chat-Command-Pfad behoben.
+- [x] Normale Twitch-Chatnachrichten werden nicht mehr als `!event`-Command behandelt.
+- [x] Normale Chatnachrichten laufen wieder in `processParallelChatMessage()`.
+- [x] Sound + Satz/Text bleiben an derselben zentralen Chatmessage.
+- [ ] Nach Einspielen StepDone ausfuehren.
+- [ ] Soundantwort live testen.
+- [ ] Satz-Teilwort live testen.
+- [ ] Komplette Satzloesung live testen.
+- [ ] `!event status` live testen.
+- [ ] Ranking/User-Historie pruefen.

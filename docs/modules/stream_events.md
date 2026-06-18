@@ -695,3 +695,26 @@ stream_events 0.5.80 / STEP_EVS52_9_TWITCH_EVENTS_CHAT_SUBSCRIBER
 - `sound-runtime/skip-wait` blockiert ohne eindeutige `eventUid`, wenn mehrere aktive Events existieren.
 - Statusdiagnose: `runtime.activeEventGuard`.
 - Chatquelle bleibt `twitch_events -> communication_bus -> twitch.chat.message`.
+
+
+## EVS52.11 – Chat-Command Await-Fix
+
+Problem:
+
+`processEventCommand(chat)` ist async. In EVS52.10 wurde das Ergebnis ohne `await` geprueft. Dadurch war `commandResult` bei jeder Chatnachricht ein Promise und damit truthy. Normale Chatnachrichten wie Soundantworten oder Satzwoerter wurden deshalb als Event-Command verarbeitet und erreichten `processParallelChatMessage()` nicht.
+
+Fix:
+
+- `handleTwitchChatEnvelope()` ist async.
+- `processEventCommand(chat)` wird nur aufgerufen, wenn das erste Wort wirklich `!event` ist.
+- Normale Twitch-Chatnachrichten gehen direkt an `processParallelChatMessage(chat, { source: "bus:twitch.chat.message" })`.
+- Der Bus-Callback faengt async Fehler ab und schreibt sie in `runtime.chatSource`.
+
+Zielpfad bleibt:
+
+```text
+twitch.chat.message
+→ stream_events handleTwitchChatEnvelope
+→ processParallelChatMessage
+→ processSoundChatMessage + processTextChatMessage
+```

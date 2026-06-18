@@ -10,6 +10,7 @@
  * - EVS52.9 cleans up duplicate chat bridges.
  * - Chat input is subscribed centrally via twitch_events -> communication_bus -> twitch.chat.message.
  * - Sound and Satz/Text runtime share processParallelChatMessage().
+ * - EVS52.11 fixes async !event command handling so normal chat reaches Sound/Text runtime.
  */
 
 const crypto = require("crypto");
@@ -31,8 +32,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.81";
-const MODULE_BUILD = "STEP_EVS52_10_CHAT_ACTIVE_EVENT_HOTFIX";
+const MODULE_VERSION = "0.5.82";
+const MODULE_BUILD = "STEP_EVS52_11_CHAT_COMMAND_AWAIT_FIX";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -2986,7 +2987,7 @@ function getTwitchChatEventKeyFromEnvelope(envelope = {}) {
   return cleanString(meta.eventKey || payload.eventKey || twitch.eventKey || "");
 }
 
-function handleTwitchChatEnvelope(envelope = {}) {
+async function handleTwitchChatEnvelope(envelope = {}) {
   const state = runtimeState.chatSource;
   const chat = extractChatPayload(envelope);
   runtimeState.counters.twitchChatMessages += 1;
@@ -3019,13 +3020,17 @@ function handleTwitchChatEnvelope(envelope = {}) {
     return { ok: true, skipped: true, reason: "invalid_bus_chat_payload" };
   }
 
-  const commandResult = processEventCommand(chat);
-  if (commandResult) {
-    state.delivered += 1;
-    state.lastAt = nowIso();
-    state.lastReason = commandResult.reason || "event_command_processed";
-    state.lastError = "";
-    return commandResult;
+  const chatMessage = cleanString(chat.message);
+  const rootToken = (chatMessage.split(/\s+/).filter(Boolean)[0] || "").toLowerCase();
+  if (rootToken === "!event") {
+    const commandResult = await processEventCommand(chat);
+    if (commandResult) {
+      state.delivered += 1;
+      state.lastAt = nowIso();
+      state.lastReason = commandResult.reason || "event_command_processed";
+      state.lastError = "";
+      return commandResult;
+    }
   }
 
   const result = processParallelChatMessage(chat, { source: "bus:twitch.chat.message" });
@@ -3058,7 +3063,14 @@ function registerTextChatSubscription() {
       directBridgeFallback: false,
       wildcardFallback: false
     }
-  }, (envelope) => handleTwitchChatEnvelope(envelope));
+  }, (envelope) => handleTwitchChatEnvelope(envelope).catch((error) => {
+    state.errors += 1;
+    state.lastAt = nowIso();
+    state.lastReason = "chat_handler_error";
+    state.lastError = error && error.message ? error.message : String(error || "chat_handler_error");
+    runtimeState.counters.busErrors += 1;
+    return { ok: false, error: state.lastError, reason: "chat_handler_error" };
+  }));
 
   state.subscribed = !!(result && result.ok === true);
   state.lastReason = state.subscribed ? "subscribed_to_twitch_events_bus" : cleanString(result && (result.reason || result.error) || "subscribe_failed");
