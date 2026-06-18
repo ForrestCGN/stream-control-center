@@ -1,3 +1,12 @@
+# CHANGELOG – stream-control-center
+
+## 2026-06-18 – EVS52.14 Neutrale eindeutige Teiltreffer-Meldungen
+
+- `stream_events` auf Version `0.5.85` / Build `STEP_EVS52_14_NEUTRAL_UNIQUE_TEXT_HINTS` gesetzt.
+- Teiltreffer-Chatmeldungen nennen keine Satznummer und keine Satz-Zuordnung mehr.
+- Sichtbare Anzahl zaehlt eindeutige gefundene Woerter/Teile aus der Usernachricht, nicht Satz-Treffer.
+- Neue neutrale Textvariante `text.word_hit.neutral.chat` mit mehreren CGN-/Heimleitungs-Zufallstexten ergaenzt.
+- Interne Treffer, Bus-Events, Punkte, Ranking, Sound, Satzloesung und Duplicate unveraendert gelassen.
 
 ## 2026-06-18 – EVS52.13 Teiltreffer-Chatmeldungen bündeln
 

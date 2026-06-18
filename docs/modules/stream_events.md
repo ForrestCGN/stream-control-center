@@ -756,3 +756,16 @@ Stand: 2026-06-18
 - Bot-/Systemaccount-Filter aus EVS52.12 bleibt aktiv: `heimaufsichtcgn`, `kofistreambot`, `streamstickers`, `streamelements`.
 - ToDo bleibt: Bot-Blockliste später in Dashboard-Einstellungen verschieben.
 
+## EVS52.14 – Neutrale eindeutige Teiltreffer-Meldungen
+
+Stand: 2026-06-18
+
+- `stream_events` Version `0.5.85`, Build `STEP_EVS52_14_NEUTRAL_UNIQUE_TEXT_HINTS`.
+- Teiltreffer-Chatmeldungen nennen keine Satznummer und keine Satz-Zuordnung mehr.
+- Sichtbare Anzahl entspricht eindeutigen gefundenen Woertern/Teilen aus der User-Chatnachricht.
+- Wenn dasselbe Wort in mehreren offenen Saetzen vorkommt, wird im Chat nur `1 Teil` gemeldet.
+- Wenn mehrere unterschiedliche Woerter gefunden werden, wird die Anzahl dieser eindeutigen Woerter gemeldet.
+- Interne Treffer bleiben pro Satz erhalten; Bus-Events, Punkte, Ranking, Satzloesung, Duplicate und Sound bleiben unveraendert.
+- Neuer Text-Key fuer neutrale Teiltreffer: `text.word_hit.neutral.chat` mit mehreren CGN-/Heimleitungs-Zufallstexten.
+- ToDo bleibt: Teiltreffer-Textvarianten und Bot-Blockliste spaeter dashboardfaehig in den Einstellungen pflegen.
+

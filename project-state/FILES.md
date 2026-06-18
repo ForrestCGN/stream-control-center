@@ -140,3 +140,16 @@ project-state/TODO.md
 project-state/NEXT_STEPS.md
 project-state/FILES.md
 ```
+
+## EVS52.14 Dateien
+
+```text
+backend/modules/stream_events.js
+docs/modules/stream_events.md
+docs/current/CURRENT_CHAT_HANDOFF_EVS52_14_NEUTRAL_UNIQUE_TEXT_HINTS.md
+project-state/CHANGELOG.md
+project-state/TODO.md
+project-state/NEXT_STEPS.md
+project-state/FILES.md
+```
+

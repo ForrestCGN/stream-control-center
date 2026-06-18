@@ -54,7 +54,7 @@ Stand: 2026-06-18 – EVS52.9 Doku/Handoff
 
 - [ ] Dashboard-Textvarianten für Satz-Spiel prüfen/bearbeiten.
 - [ ] Bot-/Systemaccount-Blockliste später in Dashboard-Einstellungen verschieben.
-- [ ] Neue Textvariante `text.word_hit.summary.chat` im Dashboard prüfen/ggf. anpassen.
+- [ ] Textvarianten `text.word_hit.neutral.chat` im Dashboard prüfen/ggf. anpassen.
 - [ ] Satzlösungs-Overlay visuell finalisieren.
 - [ ] Optional Overlay-Dauer dashboardfähig machen.
 - [ ] Optional Satzstatus kurzzeitig nach Lösung/auf Button anzeigen, nicht dauerhaft.
@@ -132,4 +132,20 @@ Stand: 2026-06-18 – EVS52.9 Doku/Handoff
 - [x] Teiltreffer-Chatmeldungen pro Usernachricht gebündelt.
 - [x] Treffer in mehreren Sätzen erzeugen nur noch eine Live-Chatmeldung.
 - [x] Sound-/Satz-/Punkte-Logik unverändert gelassen.
+## EVS52.14 erledigt
+
+- [x] Teiltreffer-Chatmeldungen nennen keine Satznummer mehr.
+- [x] Teiltreffer-Chatmeldungen nennen keine Satz-Zuordnung mehr.
+- [x] Sichtbare Anzahl zaehlt eindeutige gefundene Woerter/Teile aus der Usernachricht.
+- [x] Gleiches Wort in mehreren Saetzen wird im Chat nur als ein Teil gemeldet.
+- [x] Mehrere Zufallstexte fuer neutrale Teiltreffer ergaenzt.
+- [x] Interne Satz-Treffer bleiben vollstaendig gespeichert.
+
+## EVS52.14 offen / testen
+
+- [ ] Live-Test: einzelnes Teilwort ohne Satznummer.
+- [ ] Live-Test: ein Wort in mehreren Saetzen zaehlt sichtbar nur als ein Teil.
+- [ ] Live-Test: mehrere unterschiedliche Woerter zeigen passende Anzahl.
+- [ ] Soundantwort nach EVS52.14 testen.
+- [ ] Satzloesung und Duplicate nach EVS52.14 testen.
 
