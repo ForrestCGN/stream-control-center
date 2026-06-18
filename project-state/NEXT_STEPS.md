@@ -1,45 +1,31 @@
 # NEXT_STEPS – stream-control-center
 
-Stand: 2026-06-18 – EVS52.16
+Stand: 2026-06-18 – EVS52.17
 
-## Sofort nach Deploy testen
+## Direkt testen
 
-### EVS52.16 Dashboard-Auswertungsbutton
-
-1. Backend/Dashboard-Version pruefen:
-
-```powershell
-$s = Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/status"
-$s | Select-Object moduleVersion,moduleBuild | Format-List
-```
-
-Erwartung Backend:
+1. OBS-Quelle normal laden:
 
 ```text
-moduleVersion : 0.5.87
-moduleBuild   : STEP_EVS52_16_DASHBOARD_FINALE_BUTTON
+http://127.0.0.1:8080/overlays/stream_events/event_winner_overlay.html
 ```
 
-2. Dashboard neu laden, Bereich `Event verwalten` oeffnen.
-3. Bei laufendem Event darf `Auswertung starten` nicht sichtbar sein.
-4. Bei beendetem Event ohne Ranking darf `Auswertung starten` nicht sichtbar sein.
-5. Bei beendetem Event mit Ranking und ohne bestehendes Finale muss `Auswertung starten` sichtbar sein.
-6. Klick auf `Auswertung starten` muss bestehende Finale-Route starten.
-7. Nach gestarteter Auswertung darf der Button nicht weiter sichtbar bleiben.
+Erwartung: unsichtbar.
 
-## Danach sinnvoll
+2. Preview bewusst testen:
 
-- `!event status` Chat-Command pruefen/fixen.
-- Bot-/Ignore-Liste in Dashboard-Einstellungen verschieben.
-- Textvarianten fuer Teiltreffer/Satzloesung dashboardfaehig bearbeiten/pruefen.
-- Satzloesungs-Overlay optisch verbessern.
-- Nach stabilem Teststand Doku/Handoff aktualisieren.
+```text
+http://127.0.0.1:8080/overlays/stream_events/event_winner_overlay.html?preview=1
+```
 
-## Dauerhafte Regeln
+Erwartung: Demo-Finale sichtbar.
 
-- Nicht raten; echte Dateien pruefen.
-- Fehlende Dateien exakt anfordern.
-- Keine Apply-/Patch-Scripte.
-- ZIPs mit echten Zielpfaden ab Repo-Root.
-- StepDone nach Einspielen, danach testen.
-- Keine produktive DB ersetzen oder blind migrieren.
+3. Event beenden und Dashboard-Auswertungsbutton testen.
+
+4. Echte Auswertung starten und prüfen, ob das Overlay sichtbar wird.
+
+## Danach
+
+- `!event status` reparieren.
+- Bot-/Ignore-Liste dashboardfähig machen.
+- Finale-/Winner-Overlay visuell feinjustieren.

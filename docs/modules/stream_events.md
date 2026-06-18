@@ -844,3 +844,26 @@ canStart = true nur wenn:
 Wenn die Auswertung nicht moeglich ist, bleibt der Button unsichtbar. Die Sicherheitsliste zeigt stattdessen den Grund, z. B. `Event ist noch nicht beendet`, `Es gibt noch keine Punkte/Rangliste` oder `Die Auswertung wurde bereits gestartet`.
 
 Keine Aenderung an Chatquelle, Sound-/Satzlogik, Punktevergabe oder Bot-/Self-Filter.
+
+## EVS52.17 – Winner-Overlay Idle-Hide
+
+Das Gewinner-/Finale-Overlay `htdocs/overlays/stream_events/event_winner_overlay.html` ist im normalen OBS-Link jetzt im Idle-Zustand komplett unsichtbar.
+
+Produktivlink:
+
+```text
+http://127.0.0.1:8080/overlays/stream_events/event_winner_overlay.html
+```
+
+Preview-Link:
+
+```text
+http://127.0.0.1:8080/overlays/stream_events/event_winner_overlay.html?preview=1
+```
+
+Verhalten:
+
+- Ohne laufende Auswertung: transparent/hidden.
+- Bei Finale-/Winner-Event: sichtbar.
+- Debug-/Box-/Grid-Modi bleiben sichtbar.
+- `?preview=1` zeigt bewusst eine Demo an.

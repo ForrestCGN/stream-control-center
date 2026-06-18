@@ -1,52 +1,32 @@
-# FILES – EVS52.16 relevante Dateien
+# FILES – EVS52.17
 
-Stand: 2026-06-18
-
-## Geaenderte Dateien in diesem Step
+## Geändert
 
 ```text
-backend/modules/stream_events.js
-htdocs/dashboard/modules/stream_events.js
-docs/modules/stream_events.md
-docs/current/CURRENT_CHAT_HANDOFF_EVS52_16_DASHBOARD_FINALE_BUTTON.md
+htdocs/overlays/stream_events/event_winner_overlay.html
+```
+
+## Dokumentation
+
+```text
+docs/current/CURRENT_CHAT_HANDOFF_EVS52_17_WINNER_OVERLAY_IDLE_HIDE.md
 project-state/CHANGELOG.md
 project-state/TODO.md
 project-state/NEXT_STEPS.md
 project-state/FILES.md
+docs/modules/stream_events.md
 ```
 
-## Relevante Routen
+## Relevante Links
+
+Produktiv/OBS:
 
 ```text
-GET  /api/stream-events/status
-GET  /api/stream-events/events/:eventUid/finale
-POST /api/stream-events/events/:eventUid/finale/start?confirm=1
-GET  /api/stream-events/events/:eventUid/ranking
+http://127.0.0.1:8080/overlays/stream_events/event_winner_overlay.html
 ```
 
-## Dashboard-Bereich
+Preview:
 
 ```text
-Eventsystem -> Event verwalten
-Button: Auswertung starten
-```
-
-Button-Regel EVS52.16:
-
-```text
-sichtbar nur wenn:
-- Event status=finished
-- Ranking hat mindestens einen Eintrag
-- Winner-Finale wurde noch nicht gestartet
-```
-
-Nicht geaendert:
-
-```text
-Chatquelle
-Soundlogik
-Satzlogik
-Punktevergabe
-Bot-/Self-Filter
-Datenbankstruktur
+http://127.0.0.1:8080/overlays/stream_events/event_winner_overlay.html?preview=1
 ```
