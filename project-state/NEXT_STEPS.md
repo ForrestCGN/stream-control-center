@@ -1,3 +1,11 @@
+
+## Nächster Schritt nach EVS52.13
+
+1. EVS52.13 einspielen und `stepdone.cmd` ausführen.
+2. Backend neu starten.
+3. Live testen: Teiltreffer in einem Satz, Teiltreffer in mehreren Sätzen, Soundantwort, Satzlösung, Duplicate.
+4. Danach entscheiden: Doku-Abschluss oder Dashboard-Config für Bot-/Systemaccount-Blockliste.
+
 # NEXT_STEPS – stream-control-center
 
 Stand: 2026-06-18 – EVS52.12

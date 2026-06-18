@@ -33,8 +33,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.83";
-const MODULE_BUILD = "STEP_EVS52_12_BOT_SELF_MESSAGE_FILTER";
+const MODULE_VERSION = "0.5.84";
+const MODULE_BUILD = "STEP_EVS52_13_TEXT_HINT_CHAT_BUNDLE";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -140,6 +140,13 @@ const EVENT_TEXT_DEFAULTS = {
     "💜 Die Rentner nicken anerkennend: {user} hat {wordCount} Hinweis(e) zu Satz {phraseNumber} gefunden.",
     "🛎️ Heimleitung informiert: {user} hat Satz {phraseNumber} ein Stück weiter entschlüsselt."
   ],
+  "text.word_hit.summary.chat": [
+    "📋 Die Heimleitung notiert: {user} hat {newWordCount} neue Hinweis(e) in {phraseCount} Satz/Sätzen gefunden ({phraseNumbers}).",
+    "🔎 CGN-Fundbüro sammelt: {user} trifft {newWordCount} Teil(e) verteilt auf {phraseCount} Satz/Sätze ({phraseNumbers}).",
+    "💜 Die Rentner nicken: {user} hat {newWordCount} neue Spur(en) in {phraseCount} Satz/Sätzen gefunden ({phraseNumbers}).",
+    "🧓 Klemmbrett-Update: {user} liegt mit {newWordCount} neuen Hinweis(en) bei {phraseCount} Satz/Sätzen richtig ({phraseNumbers}).",
+    "🛎️ Heimleitung kurz und knapp: {user} findet {newWordCount} neue Teil(e) in {phraseCount} Satz/Sätzen ({phraseNumbers})."
+  ],
   "text.word_points.added": [
     "⭐ {user} bekommt {points} Punkt(e) für neue Worttreffer.",
     "📋 Die Heimleitung schreibt {user} {points} Wortpunkt(e) gut.",
@@ -195,6 +202,7 @@ const EVENT_TEXT_CATEGORIES = {
   "text.partial.general": "text_game",
   "text.partial.with_sentence": "text_game",
   "text.word_hit.chat": "text_game",
+  "text.word_hit.summary.chat": "text_game",
   "text.word_points.added": "text_game",
   "text.phrase.solved": "text_game",
   "text.phrase.duplicate.chat": "text_game",
@@ -346,6 +354,7 @@ let runtimeState = {
     twitchChatSelfSkipped: 0,
     textMessagesProcessed: 0,
     textWordHits: 0,
+    textWordHitChatOutputsBundled: 0,
     textPhraseSolves: 0,
     textRuntimeSkipped: 0,
     busEmitted: 0,
@@ -2827,34 +2836,80 @@ function processTextChatMessage(chat = {}, options = {}) {
   if (wordHits.length > 0) {
     const byPhrase = new Map();
     for (const hit of wordHits) {
-      const item = byPhrase.get(hit.phraseUid) || { phraseUid: hit.phraseUid, phraseNumber: hit.phraseNumber, hits: [], points: 0 };
+      const item = byPhrase.get(hit.phraseUid) || { phraseUid: hit.phraseUid, phraseNumber: hit.phraseNumber, hits: [], points: 0, totalKnownWords: 0 };
       item.hits.push(hit.wordKey);
       item.points += Number(hit.points || 0);
       byPhrase.set(hit.phraseUid, item);
     }
-    for (const item of byPhrase.values()) {
+
+    const phraseItems = Array.from(byPhrase.values()).map((item) => {
       const totalKnown = getExistingWordHits(event.eventUid, item.phraseUid, chat.userLogin).size;
-      const chatContext = {
-        user: chat.userDisplayName,
-        displayName: chat.userDisplayName,
-        wordCount: runtimeConfig.showPartialWordCount ? totalKnown : item.hits.length,
-        newWordCount: item.hits.length,
-        phraseNumber: item.phraseNumber,
-        points: item.points,
-        eventName: event.name || ""
-      };
-      const chatOutput = runtimeConfig.partialHintsEnabled ? buildChatOutput("text.word_hit.chat", chatContext, { reason: "text_word_found" }) : null;
-      if (chatOutput) {
-        chatOutputs.push({
+      return { ...item, totalKnownWords: totalKnown };
+    });
+
+    let bundledChatOutput = null;
+    if (runtimeConfig.partialHintsEnabled && phraseItems.length > 0) {
+      const totalNewWords = phraseItems.reduce((sum, item) => sum + item.hits.length, 0);
+      const totalPoints = phraseItems.reduce((sum, item) => sum + Number(item.points || 0), 0);
+      if (phraseItems.length === 1) {
+        const item = phraseItems[0];
+        const chatContext = {
+          user: chat.userDisplayName,
+          displayName: chat.userDisplayName,
+          wordCount: runtimeConfig.showPartialWordCount ? item.totalKnownWords : item.hits.length,
+          newWordCount: item.hits.length,
+          phraseNumber: item.phraseNumber,
+          phraseNumbers: `Satz ${item.phraseNumber}`,
+          phraseCount: 1,
+          points: item.points,
+          eventName: event.name || ""
+        };
+        bundledChatOutput = {
           kind: "word_found",
           phraseUid: item.phraseUid,
           phraseNumber: item.phraseNumber,
+          phraseNumbers: [item.phraseNumber],
+          phraseCount: 1,
           points: item.points,
           newWordCount: item.hits.length,
-          totalKnownWords: totalKnown,
-          ...chatOutput
-        });
+          totalKnownWords: item.totalKnownWords,
+          bundled: true,
+          ...buildChatOutput("text.word_hit.chat", chatContext, { reason: "text_word_found_bundled" })
+        };
+      } else {
+        const phraseNumbers = phraseItems.map(item => item.phraseNumber).sort((a, b) => a - b);
+        const phraseNumberText = phraseNumbers.map(num => `Satz ${num}`).join(", ");
+        const chatContext = {
+          user: chat.userDisplayName,
+          displayName: chat.userDisplayName,
+          wordCount: totalNewWords,
+          newWordCount: totalNewWords,
+          phraseCount: phraseItems.length,
+          phraseNumber: phraseNumbers[0],
+          phraseNumbers: phraseNumberText,
+          points: totalPoints,
+          eventName: event.name || ""
+        };
+        bundledChatOutput = {
+          kind: "word_found_summary",
+          phraseUid: "",
+          phraseNumber: phraseNumbers[0],
+          phraseNumbers,
+          phraseCount: phraseItems.length,
+          points: totalPoints,
+          newWordCount: totalNewWords,
+          totalKnownWords: phraseItems.reduce((sum, item) => sum + Number(item.totalKnownWords || 0), 0),
+          bundled: true,
+          ...buildChatOutput("text.word_hit.summary.chat", chatContext, { reason: "text_word_found_summary_bundled" })
+        };
       }
+      if (bundledChatOutput && bundledChatOutput.prepared) {
+        chatOutputs.push(bundledChatOutput);
+        if (phraseItems.length > 1) runtimeState.counters.textWordHitChatOutputsBundled += 1;
+      }
+    }
+
+    for (const item of phraseItems) {
       const wordPointsChatOutput = null;
       emitBus("stream_events.text", "word_found", {
         eventUid: event.eventUid,
@@ -2864,15 +2919,16 @@ function processTextChatMessage(chat = {}, options = {}) {
         userDisplayName: chat.userDisplayName,
         newWords: item.hits,
         newWordCount: item.hits.length,
-        totalKnownWords: totalKnown,
+        totalKnownWords: item.totalKnownWords,
         points: item.points,
-        chatText: chatOutput ? chatOutput.text : "",
-        chatOutput,
+        chatText: bundledChatOutput ? bundledChatOutput.text : "",
+        chatOutput: bundledChatOutput,
+        bundledChatOutput: true,
         wordPointsChatText: wordPointsChatOutput ? wordPointsChatOutput.text : "",
         wordPointsChatOutput
       });
     }
-    publishStatus("text.word_found", { lastEventUid: event.eventUid, wordHitCount: wordHits.length });
+    publishStatus("text.word_found", { lastEventUid: event.eventUid, wordHitCount: wordHits.length, chatOutputCount: bundledChatOutput && bundledChatOutput.prepared ? 1 : 0 });
   }
 
   if (solved.length > 0 || wordHits.length > 0) markAction("text.chat.processed", event.eventUid);

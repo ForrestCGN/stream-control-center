@@ -742,3 +742,17 @@ Status/Diagnose:
 - `runtime.chatSource.ignoredLogins`
 
 ToDo: Blockliste in Dashboard-Einstellungen verschieben.
+
+## EVS52.13 – Teiltreffer-Chatmeldungen bündeln
+
+Stand: 2026-06-18
+
+- `stream_events` Version `0.5.84`, Build `STEP_EVS52_13_TEXT_HINT_CHAT_BUNDLE`.
+- Satz-/Text-Teiltreffer werden weiterhin vollständig gespeichert und pro Satz als Bus-Event `stream_events.text/word_found` veröffentlicht.
+- Live-Chat-Ausgaben für Teiltreffer werden gebündelt: Eine Twitch-Chatnachricht erzeugt maximal eine Teiltreffer-Chatmeldung.
+- Bei Treffern in nur einem Satz bleibt die bestehende Meldung `text.word_hit.chat` erhalten.
+- Bei Treffern in mehreren Sätzen wird die neue Textvariante `text.word_hit.summary.chat` genutzt.
+- Punkte-, Ranking-, Sound- und Satzlösungslogik bleiben unverändert.
+- Bot-/Systemaccount-Filter aus EVS52.12 bleibt aktiv: `heimaufsichtcgn`, `kofistreambot`, `streamstickers`, `streamelements`.
+- ToDo bleibt: Bot-Blockliste später in Dashboard-Einstellungen verschieben.
+

@@ -1,3 +1,12 @@
+
+## 2026-06-18 – EVS52.13 Teiltreffer-Chatmeldungen bündeln
+
+- `stream_events` auf Version `0.5.84` / Build `STEP_EVS52_13_TEXT_HINT_CHAT_BUNDLE` gesetzt.
+- Live-Chat-Ausgaben für Satz-Teiltreffer werden pro eingehender User-Chatnachricht gebündelt.
+- Bei mehreren Satztreffern wird die neue Textvariante `text.word_hit.summary.chat` genutzt.
+- Interne Treffer, Punkte, Ranking und Bus-Events bleiben erhalten.
+- Sound-, Satzlösungs-, Duplicate- und Bot-Filter-Logik nicht umgebaut.
+
 # CHANGELOG – stream-control-center
 
 ## 2026-06-18 – EVS52.12 Bot-/Self-Message-Filter

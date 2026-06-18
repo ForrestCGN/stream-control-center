@@ -30,7 +30,7 @@ Stand: 2026-06-18 – EVS52.9 Doku/Handoff
 - [ ] EVS52.8 Wildcard-Bus-Fallback prüfen und entfernen/deaktivieren, wenn nicht gebraucht.
 - [ ] Nach Fix zwingend Sound-Spiel live testen.
 - [ ] Nach Fix zwingend Satz-Spiel live testen.
-- [ ] Nach Fix Punkte/Ranking/User-Historie prüfen.
+- [x] Nach Fix Punkte/Ranking/User-Historie prüfen.
 
 ## EVS52.9 nächster Schritt
 
@@ -53,6 +53,8 @@ Stand: 2026-06-18 – EVS52.9 Doku/Handoff
 ## Später / nach Chat-Fix
 
 - [ ] Dashboard-Textvarianten für Satz-Spiel prüfen/bearbeiten.
+- [ ] Bot-/Systemaccount-Blockliste später in Dashboard-Einstellungen verschieben.
+- [ ] Neue Textvariante `text.word_hit.summary.chat` im Dashboard prüfen/ggf. anpassen.
 - [ ] Satzlösungs-Overlay visuell finalisieren.
 - [ ] Optional Overlay-Dauer dashboardfähig machen.
 - [ ] Optional Satzstatus kurzzeitig nach Lösung/auf Button anzeigen, nicht dauerhaft.
@@ -125,3 +127,9 @@ Stand: 2026-06-18 – EVS52.9 Doku/Handoff
 - [ ] Duplicate testen.
 - [ ] Spaeter: Bot-/Self-Message-Blockliste in Dashboard-Einstellungen verschieben.
 - [ ] Spaeter: Teiltreffer-Chatmeldungen zusammenfassen/limitieren.
+## EVS52.13 erledigt
+
+- [x] Teiltreffer-Chatmeldungen pro Usernachricht gebündelt.
+- [x] Treffer in mehreren Sätzen erzeugen nur noch eine Live-Chatmeldung.
+- [x] Sound-/Satz-/Punkte-Logik unverändert gelassen.
+

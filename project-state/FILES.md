@@ -127,3 +127,16 @@ project-state/TODO.md
 project-state/NEXT_STEPS.md
 project-state/FILES.md
 ```
+
+
+## EVS52.13 Dateien
+
+```text
+backend/modules/stream_events.js
+docs/modules/stream_events.md
+docs/current/CURRENT_CHAT_HANDOFF_EVS52_13_TEXT_HINT_CHAT_BUNDLE.md
+project-state/CHANGELOG.md
+project-state/TODO.md
+project-state/NEXT_STEPS.md
+project-state/FILES.md
+```
