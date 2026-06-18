@@ -6480,6 +6480,82 @@ async function enrichWinnerFinaleRowAsync(row = {}) {
   }
 }
 
+
+function withTimeoutPromise(promise, timeoutMs = 4000, fallbackValue = null) {
+  let timer = null;
+  const timeout = new Promise(resolve => {
+    timer = setTimeout(() => resolve(fallbackValue), Math.max(250, Number(timeoutMs) || 4000));
+  });
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
+
+async function preloadTop3WinnerAvatars(rows = [], options = {}) {
+  const timeoutMs = Math.max(500, Math.min(Number(options.timeoutMs || 4000) || 4000, 10000));
+  const list = Array.isArray(rows) ? rows.slice() : [];
+  const top3 = list.slice(0, 3);
+  if (!top3.length) {
+    return {
+      rows: list,
+      ok: true,
+      attempted: 0,
+      resolved: 0,
+      withAvatar: 0,
+      timeoutMs,
+      note: "no_top3_rows"
+    };
+  }
+
+  const startedAt = nowIso();
+  const resolvedTop3 = await withTimeoutPromise(
+    Promise.all(top3.map(row => enrichWinnerFinaleRowAsync(row))),
+    timeoutMs,
+    null
+  );
+
+  let usedTimeoutFallback = false;
+  const nextTop3 = Array.isArray(resolvedTop3) ? resolvedTop3 : top3.map(enrichWinnerFinaleRow);
+  if (!Array.isArray(resolvedTop3)) usedTimeoutFallback = true;
+
+  const merged = list.map((row, index) => index < 3 ? nextTop3[index] : row);
+  const withAvatar = nextTop3.filter(row => cleanString(row && (row.avatarUrl || row.userAvatarUrl))).length;
+  const resolved = nextTop3.filter(row => row && row.userResolveOk === true).length;
+
+  return {
+    rows: merged,
+    ok: true,
+    attempted: top3.length,
+    resolved,
+    withAvatar,
+    timeout: usedTimeoutFallback,
+    timeoutMs,
+    startedAt,
+    finishedAt: nowIso(),
+    rule: "winner_finale_top3_avatar_preload_before_bus_emit"
+  };
+}
+
+async function buildWinnerFinaleRowsFromPreviewWithTop3Gate(preview = {}, options = {}) {
+  const syncRows = buildWinnerFinaleRowsFromPreview(preview);
+  const gate = await preloadTop3WinnerAvatars(syncRows.ranking || [], {
+    timeoutMs: options.top3AvatarTimeoutMs || options.timeoutMs || 4000
+  });
+
+  const top3Logins = new Set((gate.rows || []).slice(0, 3).map(row => cleanString(row.userLogin || row.login).toLowerCase()).filter(Boolean));
+  const restInput = (syncRows.ranking || []).slice(3);
+  const rest = await Promise.all(restInput.map(enrichWinnerFinaleRowAsync));
+  const ranking = (gate.rows || []).slice(0, 3).concat(rest).map((row, index) => ({ ...row, rank: index + 1 }));
+
+  return {
+    ranking,
+    podiumRows: ranking.slice(0, 3),
+    honorRows: ranking.slice(3, 10),
+    avatarPreload: gate
+  };
+}
+
+
 async function buildWinnerFinaleRowsFromPreviewAsync(preview = {}) {
   const rows = buildWinnerFinaleRowsFromPreview(preview);
   const ranking = await Promise.all((rows.ranking || []).map(enrichWinnerFinaleRowAsync));
@@ -6544,12 +6620,23 @@ async function startWinnerFinale(eventUid, body = {}) {
   const metadata = safeJson({ ...(event.metadata || {}) }, {});
   const forceNew = boolValue(body.forceNewDraw || body.forceNew || false);
   if (metadata.winnerFinale && !forceNew) {
-    const existing = await withWinnerFinaleRowsAsync(metadata.winnerFinale, preview);
-    emitBus("stream_events.winner_finale", "replay_requested", { eventUid: uid, eventName: event.name, finale: existing, preview });
-    return { ok: true, alreadyDrawn: true, replay: true, event: publicEventSummary(event), finale: existing, preview, rule: "existing_winner_finale_reused_unless_forceNewDraw" };
+    const existingBase = await withWinnerFinaleRowsAsync(metadata.winnerFinale, preview);
+    const existingGate = await preloadTop3WinnerAvatars(existingBase.ranking || existingBase.podiumRows || [], { timeoutMs: Number(body.top3AvatarTimeoutMs || 4000) || 4000 });
+    const existingRanking = Array.isArray(existingBase.ranking) && existingBase.ranking.length ? existingBase.ranking.slice() : (existingBase.podiumRows || []).concat(existingBase.honorRows || []);
+    const gatedRanking = existingRanking.map((row, index) => index < 3 ? existingGate.rows[index] || row : row);
+    const existing = {
+      ...existingBase,
+      ranking: gatedRanking,
+      podiumRows: gatedRanking.slice(0, 3),
+      honorRows: gatedRanking.slice(3, 10),
+      avatarPreload: existingGate,
+      overlayReadyGate: existingGate
+    };
+    emitBus("stream_events.winner_finale", "replay_requested", { eventUid: uid, eventName: event.name, finale: existing, preview, avatarPreload: existingGate });
+    return { ok: true, alreadyDrawn: true, replay: true, event: publicEventSummary(event), finale: existing, preview, avatarPreload: existingGate, rule: "existing_winner_finale_reused_unless_forceNewDraw" };
   }
 
-  const finaleRows = await buildWinnerFinaleRowsFromPreviewAsync(preview);
+  const finaleRows = await buildWinnerFinaleRowsFromPreviewWithTop3Gate(preview, { top3AvatarTimeoutMs: Number(body.top3AvatarTimeoutMs || 4000) || 4000 });
   const candidates = await Promise.all((preview.topCandidates || []).map(enrichWinnerFinaleRowAsync));
   const selectedIndex = candidates.length > 1 ? crypto.randomInt(0, candidates.length) : 0;
   const winner = candidates[selectedIndex] || finaleRows.podiumRows[0] || null;
@@ -6571,6 +6658,8 @@ async function startWinnerFinale(eventUid, body = {}) {
     podiumRows: finaleRows.podiumRows,
     honorRows: finaleRows.honorRows,
     top3: finaleRows.podiumRows,
+    avatarPreload: finaleRows.avatarPreload,
+    overlayReadyGate: finaleRows.avatarPreload,
     rankingCount: preview.ranking.count || 0,
     message: candidates.length > 1
       ? "Punktgleichstand auf Platz 1: Die Heimleitung lost den Gewinner aus."
@@ -6585,9 +6674,9 @@ async function startWinnerFinale(eventUid, body = {}) {
   runtimeState.counters.eventFinalesStarted += 1;
   markAction("winner_finale.started", uid);
   const updated = getEventByUid(uid);
-  emitBus("stream_events.winner_finale", "started", { event: publicEventSummary(updated), finale, preview });
-  publishStatus("winner_finale.started", { lastEventUid: uid });
-  return { ok: true, event: updated, finale, preview, overlayReady: true, overlayStepPending: "EVS42_winner_overlay_animation" };
+  emitBus("stream_events.winner_finale", "started", { event: publicEventSummary(updated), finale, preview, avatarPreload: finaleRows.avatarPreload });
+  publishStatus("winner_finale.started", { lastEventUid: uid, top3AvatarPreload: finaleRows.avatarPreload });
+  return { ok: true, event: updated, finale, preview, avatarPreload: finaleRows.avatarPreload, overlayReady: true, overlayStepPending: "EVS42_winner_overlay_animation" };
 }
 
 function isEventCommandModerator(chat = {}) {
