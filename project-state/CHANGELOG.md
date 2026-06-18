@@ -71,3 +71,11 @@
 - Runtime-Overlay-State um sicheren Satz-/Textstatus erweitert.
 - Event-Runtime-Overlay zeigt Satzstatus zwischen Soundrunden an.
 - Sound-Anzeigen bleiben vorrangig; keine Playback-/Punkte-Änderung.
+
+## 2026-06-18 – EVS52.3
+
+- Satzlösung-Celebration im Runtime-Overlay ergänzt.
+- Nur vollständige Satzlösungen triggern das Overlay; Worttreffer nicht.
+- Anzeigezeit 15 Sekunden.
+- Overlay-Text über Text-Key `text.phrase.solved.overlay` mit 5 Fallback-Varianten im CGN-/Altersheim-/Rentner-Stil.
+- Dauerhafter Satzstatus bleibt versteckt/vorbereitet.

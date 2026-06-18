@@ -27,8 +27,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.72";
-const MODULE_BUILD = "STEP_EVS52_1_RUNTIME_TEXT_STATUS_OVERLAY";
+const MODULE_VERSION = "0.5.74";
+const MODULE_BUILD = "STEP_EVS52_3_TEXT_SOLVED_CELEBRATION_OVERLAY";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -122,6 +122,13 @@ const EVENT_TEXT_DEFAULTS = {
     "🧓 Rollator-Speed! {user} löst Satz {phraseNumber} und kassiert {points} Punkt(e).",
     "📋 Die Heimleitung bestätigt: {user} hat Satz {phraseNumber} gelöst. {points} Punkt(e)!"
   ],
+  "text.phrase.solved.overlay": [
+    "Die Heimleitung ist völlig aus dem Häuschen: {user} hat Satz {phraseNumber} gelöst!",
+    "Rollator geparkt, Gehirn gestartet: {user} hat Satz {phraseNumber} geknackt!",
+    "Im CGN-Altersheim wird gejubelt: {user} hat den geheimen Satz gefunden!",
+    "Die Rentner klatschen mit den Tablettenboxen: {user} löst Satz {phraseNumber}!",
+    "Akte gefunden, Satz gelöst: {user} bringt Ordnung in die Heimleitung!"
+  ],
   "points.added": [
     "{user} bekommt {points} Punkt(e). Die Heimleitung hat es notiert.",
     "📋 +{points} Punkt(e) für {user}. Der CGN-Stempel sitzt.",
@@ -150,6 +157,7 @@ const EVENT_TEXT_CATEGORIES = {
   "text.partial.with_sentence": "text_game",
   "text.word_points.added": "text_game",
   "text.phrase.solved": "text_game",
+  "text.phrase.solved.overlay": "overlay",
   "points.added": "scoring",
   "ranking.updated": "scoring"
 };
@@ -158,6 +166,7 @@ const EVENT_TEXT_CATEGORY_LABELS = {
   event_status: "Event · Status",
   sound_game: "Sound-Spiel",
   text_game: "Text-Spiel",
+  overlay: "Overlay · Satzlösung",
   scoring: "Event · Punkte"
 };
 
@@ -245,6 +254,7 @@ const MODULE_META = {
       "stream_events.ranking.updated",
       "stream_events.text.word_found",
       "stream_events.text.phrase_solved",
+      "stream_events.overlay.text_phrase_solved",
       "stream_events.sound.round_prepared",
       "stream_events.sound.round_started",
       "stream_events.sound.solved",
@@ -2463,7 +2473,7 @@ function insertPhraseSolve(event, phrase, phraseIndex, chat, points) {
     chat_message_id: chat.messageId,
     chat_message: chat.message.slice(0, 500),
     created_at: now,
-    metadata_json: jsonEncode({ phrase: getPhraseText(phrase), acceptedAnswers: phrase.acceptedAnswers || [] })
+    metadata_json: jsonEncode({ phrase: getPhraseText(phrase), acceptedAnswers: phrase.acceptedAnswers || [], userAvatarUrl: chat.userAvatarUrl || "" })
   });
   runtimeState.counters.textPhraseSolves += 1;
 
@@ -2477,12 +2487,23 @@ function insertPhraseSolve(event, phrase, phraseIndex, chat, points) {
     createdBy: MODULE_NAME,
     metadata: { phraseUid, phraseIndex, phraseNumber: phraseIndex + 1 }
   }) : { ok: true, ranking: getRanking(event.eventUid).rows };
+  const phraseText = getPhraseText(phrase);
   const chatOutput = buildChatOutput("text.phrase.solved", {
     user: chat.userDisplayName,
     displayName: chat.userDisplayName,
     phraseNumber: phraseIndex + 1,
-    points
+    points,
+    phraseText,
+    eventName: event.name || ""
   }, { reason: "text_phrase_solved" });
+  const overlayText = renderEventText("text.phrase.solved.overlay", {
+    user: chat.userDisplayName,
+    displayName: chat.userDisplayName,
+    phraseNumber: phraseIndex + 1,
+    points,
+    phraseText,
+    eventName: event.name || ""
+  });
   const chatText = chatOutput.text;
   emitBus("stream_events.text", "phrase_solved", {
     eventUid: event.eventUid,
@@ -2493,8 +2514,17 @@ function insertPhraseSolve(event, phrase, phraseIndex, chat, points) {
     userDisplayName: chat.userDisplayName,
     points,
     message: chat.message,
+    phraseText,
+    avatarUrl: chat.userAvatarUrl || "",
     chatText,
     chatOutput,
+    overlay: {
+      visibleMs: 15000,
+      textKey: "text.phrase.solved.overlay",
+      text: overlayText,
+      phraseText,
+      userAvatarUrl: chat.userAvatarUrl || ""
+    },
     ranking: pointsResult.ranking || []
   });
   publishStatus("text.phrase_solved", { lastEventUid: event.eventUid, phraseNumber: phraseIndex + 1 });
@@ -3069,7 +3099,7 @@ function buildEventSoundBusIntegrationPlan(eventUid = "") {
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
-    step: "EVENT-SOUND-3B",
+    step: "EVS52.3",
     purpose: "Sound-System-kompatibler PreRoll-Gate ist minimal additiv vorbereitet; produktiv nur fuer explizit markierte stream_events EventSound-Items.",
     currentMode: {
       readOnly: false,
@@ -3363,6 +3393,10 @@ function buildRuntimeOverlayPhase(event, activeRound, latestRound) {
       if (busOverlay.mode === "countdown") return { key: "sound_preroll_countdown", label: "Sound startet gleich", visible: true, reason: "sound_system_runtime_bus_countdown", busOverlay };
       if (busOverlay.mode === "guessing") return { key: "sound_guessing", label: "Sound läuft", visible: false, reason: "sound_system_runtime_bus_guessing_hidden_until_answer_window", busOverlay };
     }
+    const phraseSolvedOverlay = getRecentPhraseSolvedOverlay(event, 15000);
+    if (phraseSolvedOverlay) {
+      return { key: "text_phrase_solved", label: "Satz gelöst", visible: true, reason: "recent_text_phrase_solved", phraseSolvedOverlay };
+    }
     if (event.soundEnabled && activeRound) {
       return { key: "sound_answer_window", label: "Soundrunde aktiv", visible: false, reason: "sound_playback_owned_by_sound_system" };
     }
@@ -3378,7 +3412,7 @@ function buildRuntimeOverlayPhase(event, activeRound, latestRound) {
       return {
         key: "text_status",
         label: event.soundEnabled ? "Text aktiv · Sound wartet" : "Textevent aktiv",
-        visible: true,
+        visible: false,
         reason: event.soundEnabled ? "combined_text_status_between_sound_rounds" : "text_event_active"
       };
     }
@@ -3421,6 +3455,10 @@ function buildRuntimeOverlayDisplay(event, phase, activeRound, latestRound, rank
   } else if (phase.key === "sound_waiting") {
     headline = eventName;
     subline = "Nächste Soundrunde wird vorbereitet.";
+  } else if (phase.key === "text_phrase_solved") {
+    const solve = phase.phraseSolvedOverlay || {};
+    headline = cleanString(solve.userDisplayName || "Jemand");
+    subline = cleanString(solve.overlayText || `hat Satz ${solve.phraseNumber || "?"} gelöst`);
   } else if (phase.key === "text_status" || phase.key === "text_active") {
     headline = eventName;
     subline = event && event.soundEnabled ? "Sätze aktiv · Sound wartet." : "Textrunde aktiv.";
@@ -3455,7 +3493,7 @@ function runtimeOverlayModeForPhase(phase = {}) {
   const key = String(phase.key || "");
   if (key === "sound_preroll_countdown" || key === "countdown") return "countdown";
   if (key === "sound_guessing") return "guessing";
-  if (key === "sound_solved" || key === "sound_unresolved") return "result";
+  if (key === "sound_solved" || key === "sound_unresolved" || key === "text_phrase_solved") return "result";
   if (key === "text_status" || key === "text_active") return "text";
   if (key === "finished") return "finished";
   if (key === "cancelled") return "cancelled";
@@ -3517,7 +3555,7 @@ function buildRuntimeOverlayAnswerWindowState(activeRound = null) {
 
 function buildRuntimeOverlayResultPlan(phase = {}, latestRound = null, ranking = null) {
   const key = String(phase.key || "");
-  const visible = ["sound_solved", "sound_unresolved", "finished", "cancelled"].includes(key);
+  const visible = ["sound_solved", "sound_unresolved", "text_phrase_solved", "finished", "cancelled"].includes(key);
   const top3 = ranking && Array.isArray(ranking.top3) ? ranking.top3.slice(0, 3).map(row => ({
     rank: row.rank,
     userLogin: row.userLogin,
@@ -3579,6 +3617,59 @@ function getRuntimeOverlayTextStatus(event = null) {
   };
 }
 
+
+function getRecentPhraseSolvedOverlay(event = null, visibleMs = 15000) {
+  ensureSchema();
+  if (!event || !event.eventUid || event.textEnabled !== true) return null;
+  const row = database.get(`
+    SELECT solve_uid, event_uid, phrase_uid, phrase_number, user_login, user_display_name, points_awarded, created_at, metadata_json
+    FROM stream_events_text_phrase_solves
+    WHERE event_uid = :eventUid
+    ORDER BY created_at DESC, id DESC
+    LIMIT 1
+  `, { eventUid: event.eventUid });
+  if (!row) return null;
+  const createdAt = cleanString(row.created_at || "");
+  const elapsedMs = Math.max(0, Math.round(msSinceIso(createdAt)));
+  const maxVisibleMs = clampNumber(visibleMs, 1000, 60000, 15000);
+  if (!createdAt || elapsedMs > maxVisibleMs) return null;
+  const metadata = safeJsonParse(row.metadata_json, {});
+  const phraseNumber = Number(row.phrase_number || 0);
+  const points = Number(row.points_awarded || 0);
+  const userDisplayName = cleanString(row.user_display_name || row.user_login || "Jemand");
+  const phraseText = cleanString(metadata.phrase || "");
+  const overlayText = renderEventText("text.phrase.solved.overlay", {
+    user: userDisplayName,
+    displayName: userDisplayName,
+    phraseNumber,
+    points,
+    phraseText,
+    eventName: event.name || ""
+  });
+  return {
+    visible: true,
+    visibleMs: maxVisibleMs,
+    elapsedMs,
+    remainingMs: Math.max(0, maxVisibleMs - elapsedMs),
+    solveUid: cleanString(row.solve_uid || ""),
+    eventUid: event.eventUid,
+    eventName: event.name || "",
+    phraseUid: cleanString(row.phrase_uid || ""),
+    phraseNumber,
+    phraseText,
+    userLogin: cleanString(row.user_login || ""),
+    userDisplayName,
+    userAvatarUrl: cleanString(metadata.userAvatarUrl || metadata.avatarUrl || ""),
+    points,
+    createdAt,
+    overlayText,
+    textKey: "text.phrase.solved.overlay",
+    durationSeconds: Math.round(maxVisibleMs / 1000),
+    trigger: "phrase_solved_only",
+    noWordHitOverlay: true
+  };
+}
+
 function getRuntimeOverlayState(eventUid = "") {
   ensureSchema();
   const selectedEvent = cleanString(eventUid) ? getEventByUid(eventUid) : getActiveEvent();
@@ -3590,6 +3681,7 @@ function getRuntimeOverlayState(eventUid = "") {
   const phase = buildRuntimeOverlayPhase(selectedEvent, activeRound, latestRound);
   const ranking = uid ? getRanking(uid) : { ok: true, eventUid: "", count: 0, rows: [], top3: [] };
   const revealLatest = ["sound_solved", "sound_unresolved", "finished", "cancelled"].includes(phase.key);
+  const textCelebration = phase.key === "text_phrase_solved" ? (phase.phraseSolvedOverlay || null) : getRecentPhraseSolvedOverlay(selectedEvent, 15000);
   const overlayConfig = (getEventConfig().config || DEFAULT_EVENT_CONFIG).overlayDefaults || DEFAULT_EVENT_CONFIG.overlayDefaults;
 
   return {
@@ -3597,8 +3689,8 @@ function getRuntimeOverlayState(eventUid = "") {
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
-    step: "EVENT-SOUND-3B",
-    purpose: "Read-only State fuer das phasenbasierte Event-Runtime-Overlay: Countdown jetzt, Auswertung spaeter vorbereitet.",
+    step: "EVS52.3",
+    purpose: "Read-only State fuer das phasenbasierte Event-Runtime-Overlay inklusive kurzer Satzloesungs-Celebration ohne Dauer-Textstatus.",
     mode: {
       readOnly: true,
       overlayBuilt: true,
@@ -3628,9 +3720,9 @@ function getRuntimeOverlayState(eventUid = "") {
     answerWindow: buildRuntimeOverlayAnswerWindowState(activeRound),
     result: {
       ...buildRuntimeOverlayResultPlan(phase, latestRound, ranking),
-      visibleMs: runtimeResultVisibleMs(latestRound),
-      elapsedMs: latestRound && latestRound.finishedAt ? Math.max(0, Math.round(msSinceIso(latestRound.finishedAt))) : 0,
-      timeoutActive: latestRound ? isRuntimeResultStillVisible(latestRound) : false
+      visibleMs: textCelebration && phase.key === "text_phrase_solved" ? textCelebration.visibleMs : runtimeResultVisibleMs(latestRound),
+      elapsedMs: textCelebration && phase.key === "text_phrase_solved" ? textCelebration.elapsedMs : (latestRound && latestRound.finishedAt ? Math.max(0, Math.round(msSinceIso(latestRound.finishedAt))) : 0),
+      timeoutActive: textCelebration && phase.key === "text_phrase_solved" ? textCelebration.remainingMs > 0 : (latestRound ? isRuntimeResultStillVisible(latestRound) : false)
     },
     sound: {
       enabled: !!(selectedEvent && selectedEvent.soundEnabled),
@@ -3648,6 +3740,7 @@ function getRuntimeOverlayState(eventUid = "") {
       preRollPlan: buildSoundPreRollPlan(runtimeConfig)
     },
     text: getRuntimeOverlayTextStatus(selectedEvent),
+    textCelebration,
     parts: selectedEvent ? getEventRuntimePartsStatus(selectedEvent) : getEventRuntimePartsStatus(null),
     ranking: {
       count: ranking.count || 0,

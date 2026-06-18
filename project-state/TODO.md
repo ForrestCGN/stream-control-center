@@ -50,3 +50,10 @@ Stand: 2026-06-18 – EVS51.5
 - [x] Erste Sound-Automatik beim Eventstart planen.
 - [x] Keine manuelle Wartezeit-Überspringung als Pflicht für den ersten Schnipsel.
 - [ ] Live prüfen: Event starten → Sound-Steuerung zeigt geplanten nächsten Schnipsel oder Offline-Warten.
+
+## EVS52.3 Folgepunkte
+
+- [ ] Satzlösung-Celebration im OBS-Overlay visuell testen.
+- [ ] Text-Key `text.phrase.solved.overlay` im Dashboard-Texte-Bereich prüfen.
+- [ ] Später optional Overlay-Dauer dashboardfähig machen.
+- [ ] Später optional eigene Animation/Confetti für Satzlösung verfeinern.

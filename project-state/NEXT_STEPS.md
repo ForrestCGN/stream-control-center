@@ -92,3 +92,10 @@ EVS51.4 – Satz-Rotation / Runtime-Overlay:
 1. Laufendes Event starten oder Sound-Status neu laden.
 2. Prüfen, ob Sound-Steuerung automatisch einen nächsten Schnipsel plant.
 3. Danach Runtime-Overlay für Satz-/Soundstatus verbessern.
+
+## Nach EVS52.3
+
+1. Satz im laufenden Event lösen.
+2. Runtime-Overlay prüfen: 15 Sekunden Celebration mit User, Satz, Punkte.
+3. Prüfen, dass Worttreffer kein Overlay auslösen.
+4. Textvarianten im Event-System-Texte-Bereich prüfen.

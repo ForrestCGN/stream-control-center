@@ -603,6 +603,18 @@
 
     #stage.mode-cancelled .result-kicker { color: var(--danger); }
     #stage.mode-finished .result-kicker { color: var(--gold); }
+    .result-card.text-solved-card {
+      border-color: rgba(168,85,247,.42);
+      box-shadow:
+        0 0 22px rgba(168,85,247,.22),
+        0 0 34px rgba(57,230,255,.12),
+        inset 0 0 18px rgba(255,255,255,.04);
+    }
+
+    .result-card.text-solved-card .result-kicker {
+      color: var(--cyan);
+    }
+
 
 
     .text-status-card {
@@ -884,7 +896,7 @@
       mode: "obs_overlay",
       module: "stream_events",
       name: "Stream Events Runtime Overlay",
-      version: "0.3.8",
+      version: "0.4.0",
       heartbeatIntervalMs: 5000,
       capabilities: [
         "overlay.heartbeat",
@@ -893,6 +905,7 @@
         "stream_events.runtime.guessing",
         "stream_events.runtime.result",
         "stream_events.runtime.text_status",
+        "stream_events.runtime.text_phrase_solved",
         "ack"
       ],
       meta: {
@@ -1429,6 +1442,20 @@
           showAvatar = true;
           avatarUrl = cleanText(item && item.solvedByAvatarUrl, "");
           avatarName = winnerName;
+        } else if (key === "text_phrase_solved") {
+          const celebration = state && state.textCelebration ? state.textCelebration : {};
+          const winnerName = cleanText(celebration.userDisplayName || celebration.userLogin, "Jemand aus dem Chat");
+          const phraseNumber = Math.max(0, Math.round(number(celebration.phraseNumber, 0)));
+          const points = Math.max(0, Math.round(number(celebration.points, 0)));
+          const phraseText = cleanText(celebration.phraseText, "Satz gelöst");
+          kicker = "Satz gelöst";
+          title = winnerName;
+          subline = cleanText(celebration.overlayText, `${winnerName} hat Satz ${phraseNumber || "?"} gelöst!`);
+          if (points > 0) subline += ` · +${points} Punkte`;
+          extra = `„${phraseText}“`;
+          showAvatar = true;
+          avatarUrl = cleanText(celebration.userAvatarUrl, "");
+          avatarName = winnerName;
         } else if (key === "sound_unresolved") {
           kicker = "KEINE LÖSUNG";
           title = "Die Heimleitung hat im Chat\nkeine richtige Antwort erkannt.";
@@ -1442,11 +1469,12 @@
 
         if (els.resultCard) {
           els.resultCard.classList.toggle("unresolved-card", key === "sound_unresolved");
-          els.resultCard.classList.toggle("winner-card", key === "sound_solved");
+          els.resultCard.classList.toggle("winner-card", key === "sound_solved" || key === "text_phrase_solved");
+          els.resultCard.classList.toggle("text-solved-card", key === "text_phrase_solved");
         }
         if (els.resultTitle) {
           els.resultTitle.classList.remove("name-long", "name-very-long");
-          if (key === "sound_solved") {
+          if (key === "sound_solved" || key === "text_phrase_solved") {
             const nameClass = winnerNameSizeClass(title);
             if (nameClass) els.resultTitle.classList.add(nameClass);
           }

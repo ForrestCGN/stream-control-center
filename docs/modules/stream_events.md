@@ -457,3 +457,15 @@ Die vorherige Warnung `text.phrase.X.answers_empty_uses_phrase` wurde aus Backen
 - AcceptedAnswers und vollständige Satztexte werden nicht an das Overlay ausgegeben.
 - Bei laufenden kombinierten Sound+Text-Events zeigt das Runtime-Overlay zwischen Soundrunden eine kleine Satzstatus-Karte.
 - Sound-Countdown, Sound-Antwortfenster und Sound-Ergebnis bleiben weiterhin vorrangig.
+
+## EVS52.3 – Satzlösung-Celebration-Overlay
+
+Bei einer vollständigen Satzlösung zeigt das Runtime-Overlay jetzt eine kurze Celebration-Karte für 15 Sekunden. Die Karte enthält User/Fallback-Avatar, Satznummer, gelösten Satz und Punkte. Worttreffer lösen bewusst kein Overlay aus.
+
+Der Overlay-Text wird über das vorhandene Textsystem gerendert. Neuer Text-Key:
+
+```text
+text.phrase.solved.overlay
+```
+
+Enthalten sind fünf Fallback-Varianten im CGN-/Altersheim-/Rentner-Stil. Über den bestehenden Event-System-Texte-Bereich können Varianten später bearbeitet, deaktiviert oder ergänzt werden. Der dauerhafte Satzstatus bleibt vorbereitet, aber nicht sichtbar.

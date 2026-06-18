@@ -71,3 +71,9 @@ stream_events_sound_rounds
 - `docs/modules/stream_events.md` – EVS51.6 dokumentiert.
 - `docs/current/CURRENT_CHAT_HANDOFF_EVS51_6_START_AUTO_SOUND_PLAN.md` – Handoff.
 - `project-state/*` – Projektstand aktualisiert.
+
+## EVS52.3 relevante Dateien
+
+- `backend/modules/stream_events.js` – Overlay-State, Text-Key, Satzlösungs-Celebration.
+- `htdocs/overlays/stream_events/event_runtime_overlay.html` – Darstellung der Satzlösungs-Karte.
+- `docs/current/CURRENT_CHAT_HANDOFF_EVS52_3_TEXT_SOLVED_CELEBRATION_OVERLAY.md` – Handoff.
