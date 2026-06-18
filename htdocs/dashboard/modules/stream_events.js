@@ -1,7 +1,7 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.44";
+  const MODULE_VERSION = "0.5.45";
   const MODULE_BUILD = "STEP_EVENT_STREAM_OFFLINE_AUTO_WAIT_DASH_1";
 
   const api = {
@@ -959,7 +959,7 @@ window.StreamEventsModule = (function(){
     const status = norm(next?.status || '');
     if (!status) return false;
     if (['paused','offline_waiting','sound_playing','answer_window','round_active','completed','sound_disabled','no_event'].includes(status)) return false;
-    return ['waiting','waiting_persisted','waiting_due','waiting_unscheduled','prepared'].includes(status);
+    return ['waiting','waiting_persisted','waiting_due','waiting_unscheduled'].includes(status);
   }
 
   function soundControlRows(event, report){
