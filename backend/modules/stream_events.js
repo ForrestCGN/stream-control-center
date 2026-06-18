@@ -6450,6 +6450,57 @@ function withWinnerFinaleRows(finale = {}, preview = {}) {
   };
 }
 
+
+async function enrichWinnerFinaleRowAsync(row = {}) {
+  const base = enrichWinnerFinaleRow(row);
+  if (cleanString(base.avatarUrl || base.userAvatarUrl)) return base;
+  const login = cleanString(base.userLogin || row.userLogin || row.login || "").replace(/^@/, "").toLowerCase();
+  if (!login) return base;
+  try {
+    const info = await resolveTwitchUserInfoSmall(login);
+    const avatarUrl = cleanString(info && info.avatarUrl || "");
+    const displayName = cleanString(info && info.displayName || base.userDisplayName || login, base.userDisplayName || login);
+    return {
+      ...base,
+      userLogin: login,
+      userDisplayName: displayName,
+      displayName,
+      avatarUrl,
+      userAvatarUrl: avatarUrl,
+      userResolveSource: cleanString(info && info.source || ""),
+      userResolveOk: info && info.ok === true
+    };
+  } catch (err) {
+    return {
+      ...base,
+      userResolveSource: "resolveTwitchUserInfoSmall:error",
+      userResolveOk: false,
+      userResolveError: err && err.message ? err.message : String(err)
+    };
+  }
+}
+
+async function buildWinnerFinaleRowsFromPreviewAsync(preview = {}) {
+  const rows = buildWinnerFinaleRowsFromPreview(preview);
+  const ranking = await Promise.all((rows.ranking || []).map(enrichWinnerFinaleRowAsync));
+  return {
+    ranking,
+    podiumRows: ranking.slice(0, 3),
+    honorRows: ranking.slice(3, 10)
+  };
+}
+
+async function withWinnerFinaleRowsAsync(finale = {}, preview = {}) {
+  const rows = await buildWinnerFinaleRowsFromPreviewAsync(preview);
+  return {
+    ...finale,
+    ranking: Array.isArray(finale.ranking) && finale.ranking.length ? await Promise.all(finale.ranking.map(enrichWinnerFinaleRowAsync)) : rows.ranking,
+    podiumRows: Array.isArray(finale.podiumRows) && finale.podiumRows.length ? await Promise.all(finale.podiumRows.map(enrichWinnerFinaleRowAsync)) : rows.podiumRows,
+    honorRows: Array.isArray(finale.honorRows) && finale.honorRows.length ? await Promise.all(finale.honorRows.map(enrichWinnerFinaleRowAsync)) : rows.honorRows,
+    top3: Array.isArray(finale.top3) && finale.top3.length ? await Promise.all(finale.top3.map(enrichWinnerFinaleRowAsync)) : rows.podiumRows
+  };
+}
+
 function buildWinnerFinalePreview(eventUid, options = {}) {
   ensureSchema();
   const uid = cleanString(eventUid);
@@ -6480,7 +6531,7 @@ function buildWinnerFinalePreview(eventUid, options = {}) {
   };
 }
 
-function startWinnerFinale(eventUid, body = {}) {
+async function startWinnerFinale(eventUid, body = {}) {
   ensureSchema();
   const uid = cleanString(eventUid);
   const event = getEventByUid(uid);
@@ -6493,13 +6544,13 @@ function startWinnerFinale(eventUid, body = {}) {
   const metadata = safeJson({ ...(event.metadata || {}) }, {});
   const forceNew = boolValue(body.forceNewDraw || body.forceNew || false);
   if (metadata.winnerFinale && !forceNew) {
-    const existing = withWinnerFinaleRows(metadata.winnerFinale, preview);
+    const existing = await withWinnerFinaleRowsAsync(metadata.winnerFinale, preview);
     emitBus("stream_events.winner_finale", "replay_requested", { eventUid: uid, eventName: event.name, finale: existing, preview });
     return { ok: true, alreadyDrawn: true, replay: true, event: publicEventSummary(event), finale: existing, preview, rule: "existing_winner_finale_reused_unless_forceNewDraw" };
   }
 
-  const finaleRows = buildWinnerFinaleRowsFromPreview(preview);
-  const candidates = (preview.topCandidates || []).map(enrichWinnerFinaleRow);
+  const finaleRows = await buildWinnerFinaleRowsFromPreviewAsync(preview);
+  const candidates = await Promise.all((preview.topCandidates || []).map(enrichWinnerFinaleRowAsync));
   const selectedIndex = candidates.length > 1 ? crypto.randomInt(0, candidates.length) : 0;
   const winner = candidates[selectedIndex] || finaleRows.podiumRows[0] || null;
   if (!winner) return { ok: false, error: "winner_missing", eventUid: uid, preview };
@@ -6564,7 +6615,7 @@ function buildEventCommandMessage(key, context = {}) {
   return messages[key] || "🧓 Die Heimleitung hat den Event-Befehl notiert.";
 }
 
-function processEventCommand(chat = {}) {
+async function processEventCommand(chat = {}) {
   const message = cleanString(chat.message);
   const parts = message.split(/\s+/).filter(Boolean);
   const root = (parts[0] || "").toLowerCase();
@@ -6618,7 +6669,7 @@ function processEventCommand(chat = {}) {
         result.error = "event_not_finished";
         result.chatOutput = buildEventCommandMessage("finale_blocked");
       } else {
-        const finale = startWinnerFinale(target.eventUid, { actor: chat.userLogin || "chat_command" });
+        const finale = await startWinnerFinale(target.eventUid, { actor: chat.userLogin || "chat_command" });
         result.finale = finale;
         result.event = publicEventSummary(finale.event || target);
         result.chatOutput = finale.ok ? buildEventCommandMessage("finale_started", { eventName: target.name }) : buildEventCommandMessage("finale_blocked");
@@ -7489,23 +7540,23 @@ module.exports.init = function init(ctx) {
     }
   });
 
-  reg("post", `${prefix}/events/:eventUid/finale/start`, (req, res) => {
+  reg("post", `${prefix}/events/:eventUid/finale/start`, async (req, res) => {
     try {
       const confirm = String((req.query && req.query.confirm) || (req.body && req.body.confirm) || "").toLowerCase();
       if (!["1", "true", "yes", "ja", "confirm"].includes(confirm)) {
         return sendJson(res, { ok: false, error: "confirm_required", message: "Gewinner-Finale startet nur mit confirm=1.", eventUid: req.params.eventUid }, 400);
       }
-      const result = startWinnerFinale(req.params.eventUid, req.body || {});
+      const result = await startWinnerFinale(req.params.eventUid, req.body || {});
       sendJson(res, result, result.ok ? 200 : (result.error === "event_not_found" ? 404 : 400));
     } catch (err) {
       handleError(res, err, 400);
     }
   });
 
-  reg("post", `${prefix}/commands/event/test`, (req, res) => {
+  reg("post", `${prefix}/commands/event/test`, async (req, res) => {
     try {
       const body = req.body || {};
-      const result = processEventCommand({
+      const result = await processEventCommand({
         message: cleanString(body.message || "!event status"),
         userLogin: cleanString(body.userLogin || body.login || "dashboard").toLowerCase(),
         userDisplayName: cleanString(body.userDisplayName || body.displayName || body.userLogin || "Dashboard"),
