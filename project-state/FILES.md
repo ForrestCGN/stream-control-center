@@ -86,3 +86,15 @@ project-state/FILES.md
 - `htdocs/dashboard/modules/stream_events.js` – Punktecheck-Detailbutton im Testbereich.
 - `htdocs/dashboard/modules/stream_events.css` – kleine Button-Zeile im Punktecheck-Summary.
 - `docs/current/CURRENT_CHAT_HANDOFF_EVS50_6_POINTS_CHECK_DETAIL_BUTTON.md`
+
+## EVS51.1 geänderte Dateien
+
+- `backend/modules/stream_events.js`
+- `htdocs/dashboard/modules/stream_events.js`
+- `htdocs/dashboard/modules/stream_events.css`
+- `docs/modules/stream_events.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_EVS51_1_TEXT_RUNTIME_TEST_CHECK.md`
+- `project-state/CHANGELOG.md`
+- `project-state/TODO.md`
+- `project-state/NEXT_STEPS.md`
+- `project-state/FILES.md`

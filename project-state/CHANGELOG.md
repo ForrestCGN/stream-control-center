@@ -70,3 +70,14 @@
 
 - Dashboard-Testbereich erweitert: Nach Punkte-Check kann die Punkte-Historie des exakten Testlaufs direkt geöffnet werden.
 - Produktives aktives Event bleibt unverändert sichtbar und wird nicht durch Testevents ersetzt.
+
+## 2026-06-18 – EVS51.1
+
+- Satz-System Testbereich ergänzt.
+- Neuer Backend-Teststep `text-check` für kompletten Satz-Testlauf.
+- Weitere Teststeps: `text-create`, `text-wrong`, `text-word`, `text-correct`, `text-duplicate`, `text-report`.
+- Dashboard-Bereich `Satz-System gezielt testen` hinzugefügt.
+- Korrektur: Dashboard-Teststeps `wrong` und `correct` nutzen jetzt die konkrete Test-`eventUid`.
+- Korrektur: `text-runtime/test-chat` akzeptiert `eventUid`/`event_uid`.
+- Backend-Version `0.5.67 / STEP_EVS51_1_TEXT_RUNTIME_TEST_CHECK`.
+- Dashboard-Version `0.5.49 / STEP_EVS51_1_TEXT_RUNTIME_TEST_CHECK`.

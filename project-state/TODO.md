@@ -66,3 +66,15 @@ Stand: 2026-06-18 – EVS50.2
 - [x] Punktecheck-Historie direkt aus Testbereich öffnen.
 - [x] Produktives aktives Event nicht verdrängen.
 - [ ] Als nächstes Satz-Testbereich weiter ausbauen: falsche Antwort, richtige Antwort, Report, Runtime-Parts.
+
+## EVS51.1 erledigt / danach prüfen
+
+- [x] Satz-Testevent im Dashboard-Testbereich erstellbar.
+- [x] Falsche Satzantwort testbar.
+- [x] Worttreffer testbar.
+- [x] Richtige Satzantworten testbar.
+- [x] Doppelte Satzlösung testbar.
+- [x] Text-Teilspielabschluss prüfbar.
+- [x] Kombi-Abschluss Sound + Text prüfbar.
+- [ ] Nach Live-Test ggf. Runtime-Overlay für Satzstatus verbessern.
+- [ ] Nach Live-Test ggf. Satz-Rotation/Anzeige im laufenden Event optisch verbessern.

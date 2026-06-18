@@ -90,3 +90,11 @@ Nach erfolgreichem Active-Event-Fix:
 ## Nach EVS50.6
 
 Nächster sinnvoller Schritt: Satz-System Testbereich finalisieren. Geplant sind Buttons und lesbare Ausgaben für Satz-Testevent, falsche Antwort, richtige Antwort, Text-Report, Runtime-Parts und Abschlussstatus.
+
+## Nach EVS51.1
+
+1. EVS51.1 einspielen und `stepdone.cmd` ausführen.
+2. Backend-Test `text-check` ausführen.
+3. Dashboard-Test `Event-System → Test → Satz-Check komplett` prüfen.
+4. Wenn bestanden: Runtime-Overlay Satzstatus planen/verbessern.
+5. Danach Kombination Sound + Text im echten Eventflow prüfen.

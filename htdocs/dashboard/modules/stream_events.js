@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.48";
-  const MODULE_BUILD = "STEP_EVS50_6_POINTS_CHECK_DETAIL_BUTTON";
+  const MODULE_VERSION = "0.5.49";
+  const MODULE_BUILD = "STEP_EVS51_1_TEXT_RUNTIME_TEST_CHECK";
 
   const api = {
     status: '/api/stream-events/status',
@@ -1550,6 +1550,7 @@ window.StreamEventsModule = (function(){
 
   function renderTestPointSummary(result){
     if (!result) return '';
+    if (['text-check','text-create','text-wrong','text-word','text-correct','text-duplicate','text-report'].includes(result.action || '')) return '';
     const user = result.userStats?.user || result.sound?.userStats?.user || result.finale?.userStats?.user || null;
     const rankingRows = rows(result.ranking?.rows || result.ranking);
     const parts = result.parts || result.sound?.parts || null;
@@ -1576,6 +1577,58 @@ window.StreamEventsModule = (function(){
             <small>Öffnet exakt den letzten Punktecheck-Testlauf. Das echte aktive Event bleibt unverändert.</small>
           </div>
         ` : ''}
+      </div>
+    `;
+  }
+
+
+  function yesNo(ok){ return ok ? 'OK' : 'FEHLT'; }
+
+  function renderTextCheckSummary(result){
+    if (!result || !['text-check','text-create','text-wrong','text-word','text-correct','text-duplicate','text-report'].includes(result.action || '')) return '';
+    const checks = result.checks || {};
+    const report = result.reportText || result.textReport || null;
+    const parts = result.afterAll?.parts || result.parts || null;
+    const afterTextParts = result.afterText?.parts || null;
+    const rankingRows = rows(result.ranking?.rows || result.ranking).slice(0, 8);
+    const phraseSolves = rows(report?.phraseSolves).slice(0, 8);
+    const wordHits = rows(report?.wordHits).slice(0, 8);
+    const eventUid = result.eventUid || report?.eventUid || '';
+    const users = [
+      { login: 'forrestcgn', label: 'ForrestCGN' },
+      { login: 'engelcgn', label: 'EngelCGN' },
+      { login: 'satzpartial', label: 'SatzPartial' }
+    ];
+    return `
+      <div class="evs-text-check-summary">
+        <h4>Satz-System Prüfung</h4>
+        ${checks.note ? `<p class="evs-muted">${esc(checks.note)}</p>` : ''}
+        <div class="evs-text-check-cards">
+          <div class="${checks.wrongNoPoints ? 'is-ok' : 'is-warn'}"><strong>${yesNo(checks.wrongNoPoints)}</strong><span>Falsche Antworten ohne Punkte</span></div>
+          <div class="${checks.wordHitWritten ? 'is-ok' : 'is-warn'}"><strong>${yesNo(checks.wordHitWritten)}</strong><span>Worttreffer geschrieben</span></div>
+          <div class="${checks.phraseSolvesWritten ? 'is-ok' : 'is-warn'}"><strong>${yesNo(checks.phraseSolvesWritten)}</strong><span>2 Sätze gelöst</span></div>
+          <div class="${checks.duplicatesBlocked ? 'is-ok' : 'is-warn'}"><strong>${yesNo(checks.duplicatesBlocked)}</strong><span>Doppelte Lösung blockiert</span></div>
+          <div class="${checks.textCompletedAfterText ? 'is-ok' : 'is-warn'}"><strong>${yesNo(checks.textCompletedAfterText)}</strong><span>Text-Teil fertig</span></div>
+          <div class="${checks.totalStillOpenAfterText ? 'is-ok' : 'is-warn'}"><strong>${yesNo(checks.totalStillOpenAfterText)}</strong><span>Gesamt nach Text offen</span></div>
+          <div class="${checks.eventFinishedAfterSound ? 'is-ok' : 'is-warn'}"><strong>${yesNo(checks.eventFinishedAfterSound)}</strong><span>Gesamt nach Sound fertig</span></div>
+        </div>
+        ${afterTextParts ? `<div class="evs-test-mini-line"><b>Nach Text:</b> Sound ${afterTextParts.sound?.completed ? 'fertig' : 'offen'} · Text ${afterTextParts.text?.completed ? 'fertig' : 'offen'} · Gesamt ${afterTextParts.allConfiguredPartsCompleted ? 'fertig' : 'offen'}</div>` : ''}
+        ${parts ? `<div class="evs-test-mini-line"><b>Nach Sound:</b> Sound ${parts.sound?.completed ? 'fertig' : 'offen'} · Text ${parts.text?.completed ? 'fertig' : 'offen'} · Gesamt ${parts.allConfiguredPartsCompleted ? 'fertig' : 'offen'}</div>` : ''}
+        <div class="evs-text-check-columns">
+          <div>
+            <h5>Gelöste Sätze</h5>
+            ${phraseSolves.length ? phraseSolves.map(item => `<p><b>Satz ${esc(item.phraseNumber || '-')}</b> · ${esc(item.userDisplayName || item.userLogin || '-')} · +${esc(item.pointsAwarded || 0)} · <small>${fmtDate(item.createdAt)}</small></p>`).join('') : '<p class="evs-muted">Keine Satzlösungen.</p>'}
+          </div>
+          <div>
+            <h5>Worttreffer</h5>
+            ${wordHits.length ? wordHits.map(item => `<p><b>${esc(item.wordOriginal || item.wordKey || '-')}</b> · ${esc(item.userDisplayName || item.userLogin || '-')} · +${esc(item.pointsAwarded || 0)} · <small>${fmtDate(item.createdAt)}</small></p>`).join('') : '<p class="evs-muted">Keine Worttreffer.</p>'}
+          </div>
+          <div>
+            <h5>Ranking</h5>
+            ${rankingRows.length ? rankingRows.map(item => `<p><b>#${esc(item.rank || '-')} ${esc(item.userDisplayName || item.userLogin || '-')}</b> · ${esc(item.points || 0)} Punkte</p>`).join('') : '<p class="evs-muted">Noch kein Ranking.</p>'}
+          </div>
+        </div>
+        ${eventUid ? `<div class="evs-test-point-actions">${users.map(user => `<button type="button" class="evs-btn evs-btn-secondary" data-evs-action="openPointsCheckUserStats" data-user-login="${esc(user.login)}" data-uid="${esc(eventUid)}">${esc(user.label)} Historie</button>`).join('')}<small>Öffnet die User-Historie für genau dieses Satz-Testevent.</small></div>` : ''}
       </div>
     `;
   }
@@ -1663,6 +1716,22 @@ window.StreamEventsModule = (function(){
           </div>
 
           <div class="evs-test-panel">
+            <h4>Satz-System gezielt testen</h4>
+            <p class="evs-muted">Prüft Satzantworten, Worttreffer, doppelte Lösungen und den Abschlussstatus. Keine echte Twitch-Ausgabe.</p>
+            <div class="evs-test-button-row">
+              <button type="button" class="evs-btn evs-btn-primary" data-evs-action="runEventTestStep" data-step="text-check" ${t.loading ? 'disabled' : ''}>Satz-Check komplett</button>
+              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="runEventTestStep" data-step="text-create" ${t.loading ? 'disabled' : ''}>Satz-Testevent erstellen</button>
+              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="runEventTestStep" data-step="text-report" ${t.loading ? 'disabled' : ''}>Satz-Report</button>
+            </div>
+            <div class="evs-test-button-row">
+              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="runEventTestStep" data-step="text-wrong" ${t.loading ? 'disabled' : ''}>Falsche Satzantwort</button>
+              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="runEventTestStep" data-step="text-word" ${t.loading ? 'disabled' : ''}>Worttreffer</button>
+              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="runEventTestStep" data-step="text-correct" ${t.loading ? 'disabled' : ''}>Richtige Satzantworten</button>
+              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="runEventTestStep" data-step="text-duplicate" ${t.loading ? 'disabled' : ''}>Doppelte Lösung</button>
+            </div>
+          </div>
+
+          <div class="evs-test-panel">
             <h4>Backend-Testdaten prüfen</h4>
             <p class="evs-muted">Ruft Random-Testdaten ab und zeigt Quelle sowie Avatar-Status.</p>
             <div class="evs-test-button-row">
@@ -1677,6 +1746,7 @@ window.StreamEventsModule = (function(){
         </div>
 
         ${renderTestPointSummary(t.result)}
+        ${renderTextCheckSummary(t.result)}
 
         <div class="evs-test-result evs-test-panel">
           <h4>Letzte Random-Testdaten</h4>

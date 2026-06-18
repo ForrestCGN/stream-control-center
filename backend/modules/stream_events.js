@@ -27,8 +27,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.66";
-const MODULE_BUILD = "STEP_EVS50_5_POINTS_CHECK_ACTIVE_EVENT_FIX";
+const MODULE_VERSION = "0.5.67";
+const MODULE_BUILD = "STEP_EVS51_1_TEXT_RUNTIME_TEST_CHECK";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -6965,7 +6965,7 @@ function findLatestEventTestEvent() {
   const row = database.get(`
     SELECT *
     FROM stream_events_events
-    WHERE name LIKE 'EVS DASHBOARD TEST%' OR name LIKE 'EVS FULL FLOW TEST%' OR name LIKE 'EVS TEST SCRIPT%'
+    WHERE name LIKE 'EVS DASHBOARD TEST%' OR name LIKE 'EVS FULL FLOW TEST%' OR name LIKE 'EVS TEST SCRIPT%' OR name LIKE 'EVS PUNKTE CHECK%' OR name LIKE 'EVS SATZ CHECK%' OR name LIKE 'EVS TEXT TEST%'
     ORDER BY id DESC
     LIMIT 1
   `);
@@ -7034,7 +7034,7 @@ function isDashboardEventTest(event) {
   if (metadata.dashboardTest === true || metadata.testEvent === true) return true;
   if (event.validation && event.validation.dashboardTest === true) return true;
   const name = cleanString(event.name || "").toUpperCase();
-  return name.startsWith("EVS PUNKTE CHECK") || name.startsWith("EVS DASHBOARD TEST") || name.startsWith("EVS TEXT TEST") || name.startsWith("EVS SOUND TEST");
+  return name.startsWith("EVS PUNKTE CHECK") || name.startsWith("EVS SATZ CHECK") || name.startsWith("EVS DASHBOARD TEST") || name.startsWith("EVS TEXT TEST") || name.startsWith("EVS SOUND TEST");
 }
 
 function finishActiveDashboardTestEvents(options = {}) {
@@ -7075,7 +7075,7 @@ async function runEventTestWrongAnswers(eventUid = "") {
   ];
   const results = [];
   for (const chat of messages) {
-    results.push(await processParallelChatMessage(chat, { source: "dashboard_event_test_wrong_answer" }));
+    results.push(await processParallelChatMessage(chat, { source: "dashboard_event_test_wrong_answer", eventUid: uid }));
   }
   return { ok: true, eventUid: uid, action: "wrong_answers", count: results.length, results };
 }
@@ -7091,7 +7091,7 @@ async function runEventTestCorrectAnswers(eventUid = "") {
   ];
   const results = [];
   for (const chat of messages) {
-    results.push(await processParallelChatMessage(chat, { source: "dashboard_event_test_correct_answer" }));
+    results.push(await processParallelChatMessage(chat, { source: "dashboard_event_test_correct_answer", eventUid: uid }));
   }
   return { ok: true, eventUid: uid, action: "correct_answers", count: results.length, results, ranking: getRanking(uid) };
 }
@@ -7138,6 +7138,171 @@ async function runEventTestSoundCorrect(eventUid = "", body = {}) {
     ranking: getRanking(event.eventUid),
     userStats: getStatisticsUser(userLogin, event.eventUid),
     parts: getEventRuntimePartsStatus(getEventByUid(event.eventUid))
+  };
+}
+
+
+function buildTextCheckCoreResult(eventUid = "") {
+  const event = getEventByUid(eventUid);
+  return {
+    eventUid: cleanString(eventUid),
+    event: publicEventSummary(event),
+    parts: getEventRuntimePartsStatus(event),
+    reportText: getTextRuntimeReport(eventUid),
+    reportSound: getSoundRuntimeReport(eventUid),
+    ranking: getRanking(eventUid),
+    users: getStatisticsUsers(eventUid)
+  };
+}
+
+function createDashboardTextCheckEvent(body = {}) {
+  const preCleanup = finishActiveDashboardTestEvents({ reason: "dashboard_text_check_pre_cleanup" });
+  const created = createDashboardEventTestEvent({
+    name: cleanString(body.name || `EVS SATZ CHECK · ${new Date().toLocaleString("de-DE")}`),
+    textWordPointsEnabled: true,
+    pointsPerNewWord: 1,
+    maxWordPointsPerUserPhrase: 5,
+    partialHintsEnabled: true,
+    partialHintVisibility: "with_sentence"
+  });
+  const started = startDashboardEventTestEvent(created.eventUid);
+  return { ok: true, action: "text-create", eventUid: created.eventUid, preCleanup, created, started, ...buildTextCheckCoreResult(created.eventUid) };
+}
+
+async function runEventTextWrongAnswers(eventUid = "") {
+  const target = getEventTestTarget(eventUid);
+  if (!target.ok) return target;
+  const uid = target.event.eventUid;
+  if (target.event.status !== STATUS.ACTIVE) startDashboardEventTestEvent(uid);
+  const messages = [
+    buildEventTestChat("satzfalsch01", "SatzFalsch01", "banane rollator komplett daneben"),
+    buildEventTestChat("satzfalsch02", "SatzFalsch02", "ich weiss gar nichts"),
+    buildEventTestChat("satzfalsch03", "SatzFalsch03", "full house aber kein satz")
+  ];
+  const results = [];
+  for (const chat of messages) results.push(await processParallelChatMessage(chat, { source: "dashboard_text_test_wrong", eventUid: uid }));
+  return { ok: true, action: "text-wrong", eventUid: uid, count: results.length, results, ...buildTextCheckCoreResult(uid) };
+}
+
+async function runEventTextWordHit(eventUid = "") {
+  const target = getEventTestTarget(eventUid);
+  if (!target.ok) return target;
+  const uid = target.event.eventUid;
+  if (target.event.status !== STATUS.ACTIVE) startDashboardEventTestEvent(uid);
+  const result = await processParallelChatMessage(
+    buildEventTestChat("satzpartial", "SatzPartial", "heimleitung schluessel"),
+    { source: "dashboard_text_test_word_hit", eventUid: uid }
+  );
+  return { ok: true, action: "text-word", eventUid: uid, result, userStats: getStatisticsUser("satzpartial", uid), ...buildTextCheckCoreResult(uid) };
+}
+
+async function runEventTextCorrectAnswers(eventUid = "") {
+  const target = getEventTestTarget(eventUid);
+  if (!target.ok) return target;
+  const uid = target.event.eventUid;
+  if (target.event.status !== STATUS.ACTIVE) startDashboardEventTestEvent(uid);
+  const messages = [
+    buildEventTestChat("forrestcgn", "ForrestCGN", "die heimleitung sucht den schluessel"),
+    buildEventTestChat("engelcgn", "EngelCGN", "ich geh kurz kaffee holen")
+  ];
+  const results = [];
+  for (const chat of messages) results.push(await processParallelChatMessage(chat, { source: "dashboard_text_test_correct", eventUid: uid }));
+  return { ok: true, action: "text-correct", eventUid: uid, results, userStats: getStatisticsUser("forrestcgn", uid), ...buildTextCheckCoreResult(uid) };
+}
+
+async function runEventTextDuplicateAnswers(eventUid = "") {
+  const target = getEventTestTarget(eventUid);
+  if (!target.ok) return target;
+  const uid = target.event.eventUid;
+  const before = getRanking(uid);
+  const results = [];
+  const messages = [
+    buildEventTestChat("doppel01", "Doppel01", "heimleitung sucht schluessel"),
+    buildEventTestChat("doppel02", "Doppel02", "kaffee holen")
+  ];
+  for (const chat of messages) results.push(await processParallelChatMessage(chat, { source: "dashboard_text_test_duplicate", eventUid: uid }));
+  const after = getRanking(uid);
+  const solvedCount = results.reduce((sum, item) => sum + Number(item && item.text && item.text.solvedCount || 0), 0);
+  return { ok: solvedCount === 0, action: "text-duplicate", eventUid: uid, before, after, solvedCount, results, ...buildTextCheckCoreResult(uid) };
+}
+
+async function runEventTestTextCheck(body = {}) {
+  const created = createDashboardTextCheckEvent(body);
+  const uid = created.eventUid;
+  const wrong = await runEventTextWrongAnswers(uid);
+  const word = await runEventTextWordHit(uid);
+  const solve1 = await processParallelChatMessage(
+    buildEventTestChat("forrestcgn", "ForrestCGN", "die heimleitung sucht den schluessel"),
+    { source: "dashboard_text_check_solve_1", eventUid: uid }
+  );
+  const duplicate1 = await processParallelChatMessage(
+    buildEventTestChat("doppel01", "Doppel01", "heimleitung sucht schluessel"),
+    { source: "dashboard_text_check_duplicate_1", eventUid: uid }
+  );
+  const solve2 = await processParallelChatMessage(
+    buildEventTestChat("engelcgn", "EngelCGN", "ich geh kurz kaffee holen"),
+    { source: "dashboard_text_check_solve_2", eventUid: uid }
+  );
+  const duplicate2 = await processParallelChatMessage(
+    buildEventTestChat("doppel02", "Doppel02", "kaffee holen"),
+    { source: "dashboard_text_check_duplicate_2", eventUid: uid }
+  );
+  const afterTextParts = getEventRuntimePartsStatus(getEventByUid(uid));
+  const afterTextEvent = publicEventSummary(getEventByUid(uid));
+  const sound = await runEventTestSoundCorrect(uid, {
+    userLogin: "forrestcgn",
+    userDisplayName: "ForrestCGN",
+    answer: "heimleitung",
+    allowReuse: true
+  });
+  const afterAllParts = getEventRuntimePartsStatus(getEventByUid(uid));
+  const afterAllEvent = publicEventSummary(getEventByUid(uid));
+  const reportText = getTextRuntimeReport(uid);
+  const ranking = getRanking(uid);
+  const users = getStatisticsUsers(uid);
+  const forrestStats = getStatisticsUser("forrestcgn", uid);
+  const engelStats = getStatisticsUser("engelcgn", uid);
+  const partialStats = getStatisticsUser("satzpartial", uid);
+  const wrongSolvedCount = (wrong.results || []).reduce((sum, item) => sum + Number(item && item.text && item.text.solvedCount || 0), 0);
+  const wrongWordHitCount = (wrong.results || []).reduce((sum, item) => sum + Number(item && item.text && item.text.wordHitCount || 0), 0);
+  const wordHitCount = Number(word && word.result && word.result.text && word.result.text.wordHitCount || 0);
+  const solveCount = Number(solve1 && solve1.text && solve1.text.solvedCount || 0) + Number(solve2 && solve2.text && solve2.text.solvedCount || 0);
+  const duplicateSolvedCount = Number(duplicate1 && duplicate1.text && duplicate1.text.solvedCount || 0) + Number(duplicate2 && duplicate2.text && duplicate2.text.solvedCount || 0);
+  const checks = {
+    passed: false,
+    wrongNoPoints: wrongSolvedCount === 0 && wrongWordHitCount === 0,
+    wordHitWritten: wordHitCount > 0,
+    phraseSolvesWritten: solveCount === 2,
+    duplicatesBlocked: duplicateSolvedCount === 0,
+    textCompletedAfterText: !!(afterTextParts && afterTextParts.text && afterTextParts.text.completed === true),
+    totalStillOpenAfterText: !!(afterTextEvent && afterTextEvent.status === STATUS.ACTIVE && afterTextParts && afterTextParts.allConfiguredPartsCompleted === false),
+    soundCompletedAfterSound: !!(afterAllParts && afterAllParts.sound && afterAllParts.sound.completed === true),
+    totalCompletedAfterSound: !!(afterAllParts && afterAllParts.allConfiguredPartsCompleted === true),
+    eventFinishedAfterSound: !!(afterAllEvent && afterAllEvent.status === STATUS.FINISHED),
+    note: "Satz-Test prueft falsche Antwort, Worttreffer, zwei Satzloesungen, doppelte Loesung und kombinierten Abschluss mit Sound."
+  };
+  checks.passed = checks.wrongNoPoints && checks.wordHitWritten && checks.phraseSolvesWritten && checks.duplicatesBlocked && checks.textCompletedAfterText && checks.totalStillOpenAfterText && checks.soundCompletedAfterSound && checks.totalCompletedAfterSound && checks.eventFinishedAfterSound;
+  return {
+    ok: checks.passed,
+    action: "text-check",
+    eventUid: uid,
+    created,
+    wrong,
+    word,
+    solve1,
+    duplicate1,
+    solve2,
+    duplicate2,
+    sound,
+    afterText: { event: afterTextEvent, parts: afterTextParts },
+    afterAll: { event: afterAllEvent, parts: afterAllParts },
+    reportText,
+    ranking,
+    users,
+    userStats: forrestStats,
+    userStatsAll: { forrest: forrestStats, engel: engelStats, partial: partialStats },
+    parts: afterAllParts,
+    checks
   };
 }
 
@@ -7240,7 +7405,14 @@ function createDashboardEventTestEvent(body = {}) {
           points: 15
         }
       ],
-      winnerMode: "first_complete_solver"
+      winnerMode: "first_complete_solver",
+      partialHintsEnabled: body.partialHintsEnabled !== undefined ? boolValue(body.partialHintsEnabled) : true,
+      partialHintVisibility: cleanString(body.partialHintVisibility || "with_sentence"),
+      showPartialWordCount: body.showPartialWordCount !== undefined ? boolValue(body.showPartialWordCount) : true,
+      wordPointsEnabled: body.textWordPointsEnabled !== undefined ? boolValue(body.textWordPointsEnabled) : false,
+      pointsPerNewWord: clampNumber(body.pointsPerNewWord, 0, 1000, 1),
+      maxWordPointsPerUserPhrase: clampNumber(body.maxWordPointsPerUserPhrase, 0, 10000, 5),
+      tokenMinLength: clampNumber(body.tokenMinLength, 1, 20, 3)
     },
     dashboardTest: true,
     testEvent: true
@@ -7297,6 +7469,17 @@ async function runDashboardEventTestStep(step = "", body = {}) {
   if (action === "wrong") return runEventTestWrongAnswers(eventUid);
   if (action === "correct") return runEventTestCorrectAnswers(eventUid);
   if (action === "sound-correct") return runEventTestSoundCorrect(eventUid, body);
+  if (action === "text-create") return createDashboardTextCheckEvent(body);
+  if (action === "text-wrong") return runEventTextWrongAnswers(eventUid);
+  if (action === "text-word") return runEventTextWordHit(eventUid);
+  if (action === "text-correct") return runEventTextCorrectAnswers(eventUid);
+  if (action === "text-duplicate") return runEventTextDuplicateAnswers(eventUid);
+  if (action === "text-report") {
+    const target = getEventTestTarget(eventUid);
+    if (!target.ok) return target;
+    return { ok: true, action: "text-report", eventUid: target.event.eventUid, ...buildTextCheckCoreResult(target.event.eventUid) };
+  }
+  if (action === "text-check") return runEventTestTextCheck(body);
   if (action === "points-check") return runEventTestPointsCheck(body);
   if (action === "seed-ranking") {
     const target = getEventTestTarget(eventUid);
@@ -7999,7 +8182,7 @@ module.exports.init = function init(ctx) {
         userLogin: body.userLogin || body.login || body.user || req.query.user || "testuser",
         userDisplayName: body.userDisplayName || body.displayName || body.user || req.query.displayName || req.query.user || "TestUser",
         messageId: body.messageId || req.query.messageId || newUid("test_chat")
-      }, { source: "api:test-chat" });
+      }, { source: "api:test-chat", eventUid: body.eventUid || body.event_uid || req.query.eventUid || req.query.event_uid || "" });
       sendJson(res, result, result.ok ? 200 : 400);
     } catch (err) {
       handleError(res, err, 400);

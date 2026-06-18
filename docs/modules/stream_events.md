@@ -310,3 +310,64 @@ Testablauf:
 3. Ergebnis muss Sound + Satz addiert anzeigen.
 4. `Punkte-Historie dieses Tests öffnen`
 5. Popup muss den Punktecheck-Lauf zeigen, auch wenn parallel ein echtes Event aktiv ist.
+
+## EVS51.1 – Satz-System Testbereich
+
+Der Dashboard-Testbereich wurde um gezielte Satz-/Text-Tests erweitert.
+
+Neue Backend-Teststeps über:
+
+```text
+POST /api/stream-events/test/run?confirm=1&step=text-check
+POST /api/stream-events/test/run?confirm=1&step=text-create
+POST /api/stream-events/test/run?confirm=1&step=text-wrong
+POST /api/stream-events/test/run?confirm=1&step=text-word
+POST /api/stream-events/test/run?confirm=1&step=text-correct
+POST /api/stream-events/test/run?confirm=1&step=text-duplicate
+POST /api/stream-events/test/run?confirm=1&step=text-report
+```
+
+`text-check` führt einen kompletten kontrollierten Satz-Testlauf aus:
+
+1. altes aktives Dashboard-Testevent sicher beenden
+2. neues kombiniertes Testevent `EVS SATZ CHECK` erstellen
+3. falsche Antworten senden
+4. Worttreffer senden
+5. Satz 1 lösen
+6. doppelte Lösung für Satz 1 testen
+7. Satz 2 lösen
+8. doppelte Lösung für Satz 2 testen
+9. prüfen, ob der Text-Teil abgeschlossen ist
+10. prüfen, ob das Gesamt-Event nach Text noch offen bleibt, solange Sound offen ist
+11. Sound lösen
+12. prüfen, ob das Gesamt-Event danach fertig ist
+
+Wichtig:
+
+- Die Teststeps arbeiten mit der konkreten `eventUid` des Testevents.
+- Produktive aktive Events werden nicht beendet.
+- `text-runtime/test-chat` akzeptiert jetzt ebenfalls `eventUid`, damit Tests nicht versehentlich auf das falsche aktive Event laufen.
+- `wrong` und `correct` im Dashboard-Testsystem wurden korrigiert, damit sie nicht mehr blind das aktive Event verwenden, sondern das Testevent.
+
+Dashboard:
+
+```text
+Event-System → Test → Satz-System gezielt testen
+```
+
+Neue Buttons:
+
+- Satz-Check komplett
+- Satz-Testevent erstellen
+- Satz-Report
+- Falsche Satzantwort
+- Worttreffer
+- Richtige Satzantworten
+- Doppelte Lösung
+
+Der Testbereich zeigt eine Satz-System-Prüfung mit Statuskarten, Satzlösungen, Worttreffern, Ranking und direkten User-Historie-Buttons.
+
+Versionen:
+
+- Backend `0.5.67 / STEP_EVS51_1_TEXT_RUNTIME_TEST_CHECK`
+- Dashboard `0.5.49 / STEP_EVS51_1_TEXT_RUNTIME_TEST_CHECK`
