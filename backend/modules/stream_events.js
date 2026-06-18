@@ -6945,6 +6945,222 @@ async function buildWinnerRandomDemoFinale(options = {}) {
 }
 
 
+
+function findLatestEventTestEvent() {
+  ensureSchema();
+  const row = database.get(`
+    SELECT *
+    FROM stream_events_events
+    WHERE name LIKE 'EVS DASHBOARD TEST%' OR name LIKE 'EVS FULL FLOW TEST%' OR name LIKE 'EVS TEST SCRIPT%'
+    ORDER BY id DESC
+    LIMIT 1
+  `);
+  return rowToEvent(row);
+}
+
+function getEventTestTarget(eventUid = "") {
+  const uid = cleanString(eventUid || "");
+  if (uid) {
+    const event = getEventByUid(uid);
+    if (!event) return { ok: false, error: "event_not_found", eventUid: uid };
+    return { ok: true, event };
+  }
+  const event = findLatestEventTestEvent();
+  if (!event) return { ok: false, error: "test_event_missing" };
+  return { ok: true, event };
+}
+
+function buildEventTestChat(userLogin = "testuser", displayName = "", message = "") {
+  const login = cleanString(userLogin || "testuser").replace(/^@/, "").toLowerCase();
+  return {
+    message: cleanString(message || ""),
+    userLogin: login,
+    userDisplayName: cleanString(displayName || userLogin || login, login),
+    userAvatarUrl: "",
+    messageId: newUid("evs_dash_test_msg"),
+    raw: { isModerator: true, isBroadcaster: false, badges: { moderator: "1" } }
+  };
+}
+
+function addEventTestPoints(eventUid, userLogin, displayName, points, reason = "dashboard_event_test") {
+  return addPoints(eventUid, {
+    userLogin: cleanString(userLogin).replace(/^@/, "").toLowerCase(),
+    userDisplayName: cleanString(displayName || userLogin),
+    points: Number(points || 0),
+    sourceType: "dashboard_test",
+    sourceUid: `dashboard_test_${cleanString(userLogin).replace(/^@/, "").toLowerCase()}_${Date.now()}`,
+    reason,
+    createdBy: "dashboard_event_test",
+    metadata: { testEvent: true, dashboardTest: true }
+  });
+}
+
+function seedEventTestRanking(eventUid, count = 10) {
+  const max = Math.max(1, Math.min(Number(count || 10) || 10, 10));
+  const users = [
+    { login: "urlug", display: "Urlug", points: 120 },
+    { login: "roxxyfoxyycgn", display: "RoxxyFoxxyCGN", points: 108 },
+    { login: "udowb", display: "UdoWB", points: 96 },
+    { login: "engelcgn", display: "EngelCGN", points: 84 },
+    { login: "adoredpenny", display: "AdoredPenny", points: 72 },
+    { login: "ampersandhd", display: "AmpersandHD", points: 60 },
+    { login: "araglor", display: "Araglor", points: 48 },
+    { login: "tiegerpranke01", display: "Tiegerpranke01", points: 36 },
+    { login: "forrestcgn", display: "ForrestCGN", points: 24 },
+    { login: "heimleitung", display: "Heimleitung", points: 12 }
+  ].slice(0, max);
+  const results = users.map(user => addEventTestPoints(eventUid, user.login, user.display, user.points, "dashboard_event_test_seed_ranking"));
+  return { ok: true, eventUid, count: users.length, results, ranking: getRanking(eventUid) };
+}
+
+async function runEventTestWrongAnswers(eventUid = "") {
+  const target = getEventTestTarget(eventUid);
+  if (!target.ok) return target;
+  const uid = target.event.eventUid;
+  const messages = [
+    buildEventTestChat("falschuser01", "FalschUser01", "banane rollator falsch"),
+    buildEventTestChat("falschuser02", "FalschUser02", "ich weiss es nicht"),
+    buildEventTestChat("falschuser03", "FalschUser03", "kaffee aber komplett falsch")
+  ];
+  const results = [];
+  for (const chat of messages) {
+    results.push(await processParallelChatMessage(chat, { source: "dashboard_event_test_wrong_answer" }));
+  }
+  return { ok: true, eventUid: uid, action: "wrong_answers", count: results.length, results };
+}
+
+async function runEventTestCorrectAnswers(eventUid = "") {
+  const target = getEventTestTarget(eventUid);
+  if (!target.ok) return target;
+  const uid = target.event.eventUid;
+  const messages = [
+    buildEventTestChat("urlug", "Urlug", "die heimleitung sucht den schluessel"),
+    buildEventTestChat("roxxyfoxyycgn", "RoxxyFoxxyCGN", "ich geh kurz kaffee holen"),
+    buildEventTestChat("udowb", "UdoWB", "heimleitung")
+  ];
+  const results = [];
+  for (const chat of messages) {
+    results.push(await processParallelChatMessage(chat, { source: "dashboard_event_test_correct_answer" }));
+  }
+  return { ok: true, eventUid: uid, action: "correct_answers", count: results.length, results, ranking: getRanking(uid) };
+}
+
+function createDashboardEventTestEvent(body = {}) {
+  ensureSchema();
+  const now = nowIso();
+  const name = cleanString(body.name || `EVS DASHBOARD TEST · ${new Date().toLocaleString("de-DE")}`, "EVS DASHBOARD TEST");
+  const eventUid = newUid("evs_event");
+  const config = {
+    sound: {
+      enabled: true,
+      snippets: [
+        {
+          snippetUid: newUid("evs_sound_snippet"),
+          title: "Dashboard Test Sound",
+          acceptedAnswers: ["heimleitung", "die heimleitung", "rentnerheim"],
+          points: 20,
+          answerSeconds: 20
+        }
+      ],
+      runtime: { answerSeconds: 20, defaultPoints: 20 }
+    },
+    text: {
+      enabled: true,
+      phrases: [
+        {
+          phraseUid: newUid("evs_phrase"),
+          text: "die heimleitung sucht den schluessel",
+          acceptedAnswers: ["die heimleitung sucht den schluessel", "heimleitung sucht schluessel"],
+          points: 15
+        },
+        {
+          phraseUid: newUid("evs_phrase"),
+          text: "ich geh kurz kaffee holen",
+          acceptedAnswers: ["ich geh kurz kaffee holen", "kaffee holen"],
+          points: 15
+        }
+      ],
+      winnerMode: "first_complete_solver"
+    },
+    dashboardTest: true,
+    testEvent: true
+  };
+
+  const insert = {
+    event_uid: eventUid,
+    name,
+    status: STATUS.READY,
+    sound_enabled: 1,
+    text_enabled: 1,
+    sound_config_json: jsonEncode(config.sound),
+    text_config_json: jsonEncode(config.text),
+    validation_json: jsonEncode({ ok: true, warnings: [], errors: [], dashboardTest: true }),
+    metadata_json: jsonEncode({ testEvent: true, dashboardTest: true, createdBy: "dashboard_event_test", config }),
+    created_at: now,
+    updated_at: now
+  };
+
+  database.insert("stream_events_events", insert);
+  const event = getEventByUid(eventUid);
+  markAction("dashboard_test.event_created", eventUid);
+  emitBus("stream_events.test", "event_created", { event: publicEventSummary(event) });
+  return { ok: true, eventUid, event: publicEventSummary(event), config };
+}
+
+function startDashboardEventTestEvent(eventUid = "") {
+  const target = getEventTestTarget(eventUid);
+  if (!target.ok) return target;
+  const event = target.event;
+  if (event.status === STATUS.ACTIVE) return { ok: true, alreadyActive: true, event: publicEventSummary(event) };
+  database.updateByKey("stream_events_events", "event_uid", event.eventUid, {
+    status: STATUS.ACTIVE,
+    started_at: event.startedAt || nowIso(),
+    updated_at: nowIso()
+  });
+  const updated = getEventByUid(event.eventUid);
+  markAction("dashboard_test.event_started", event.eventUid);
+  emitBus("stream_events.test", "event_started", { event: publicEventSummary(updated) });
+  return { ok: true, event: publicEventSummary(updated) };
+}
+
+async function runDashboardEventTestStep(step = "", body = {}) {
+  const action = cleanString(step || body.step || "").toLowerCase();
+  const eventUid = cleanString(body.eventUid || body.event_uid || "");
+  if (action === "create") return createDashboardEventTestEvent(body);
+  if (action === "start") return startDashboardEventTestEvent(eventUid);
+  if (action === "wrong") return runEventTestWrongAnswers(eventUid);
+  if (action === "correct") return runEventTestCorrectAnswers(eventUid);
+  if (action === "seed-ranking") {
+    const target = getEventTestTarget(eventUid);
+    if (!target.ok) return target;
+    return seedEventTestRanking(target.event.eventUid, body.count || 10);
+  }
+  if (action === "finish") {
+    const target = getEventTestTarget(eventUid);
+    if (!target.ok) return target;
+    const result = finalizeEvent(target.event.eventUid, STATUS.FINISHED, "finished", { mode: "dashboard_test", reason: "dashboard_event_test_finish", actor: "dashboard_event_test" });
+    return { ...result, eventUid: target.event.eventUid, action: "finish" };
+  }
+  if (action === "finale") {
+    const target = getEventTestTarget(eventUid);
+    if (!target.ok) return target;
+    const result = await startWinnerFinale(target.event.eventUid, { actor: "dashboard_event_test", top3AvatarTimeoutMs: 4000 });
+    return { ...result, eventUid: target.event.eventUid, action: "finale" };
+  }
+  if (action === "full-flow") {
+    const created = createDashboardEventTestEvent({ name: `EVS DASHBOARD TEST FULL FLOW · ${new Date().toLocaleString("de-DE")}` });
+    const started = startDashboardEventTestEvent(created.eventUid);
+    const wrong = await runEventTestWrongAnswers(created.eventUid);
+    const correct = await runEventTestCorrectAnswers(created.eventUid);
+    const seeded = seedEventTestRanking(created.eventUid, body.count || 10);
+    const finished = finalizeEvent(created.eventUid, STATUS.FINISHED, "finished", { mode: "dashboard_test_full_flow", reason: "dashboard_event_test_full_flow", actor: "dashboard_event_test" });
+    const finale = await startWinnerFinale(created.eventUid, { actor: "dashboard_event_test_full_flow", top3AvatarTimeoutMs: 4000 });
+    return { ok: true, action: "full-flow", eventUid: created.eventUid, created, started, wrong, correct, seeded, finished, finale };
+  }
+  return { ok: false, error: "unknown_test_step", step: action };
+}
+
+
 function publicEventSummary(event) {
   if (!event) return null;
   return {
@@ -7814,6 +8030,19 @@ module.exports.init = function init(ctx) {
         count: req.query.count || req.query.demoCount || req.query.demo_count || 10,
         actor: "overlay_demo"
       });
+      sendJson(res, result, result.ok ? 200 : 400);
+    } catch (err) {
+      handleError(res, err, 400);
+    }
+  });
+
+  reg("post", `${prefix}/test/run`, async (req, res) => {
+    try {
+      const confirm = String((req.query && req.query.confirm) || (req.body && req.body.confirm) || "").toLowerCase();
+      if (!["1", "true", "yes", "ja", "confirm"].includes(confirm)) {
+        return sendJson(res, { ok: false, error: "confirm_required", message: "Event-Test startet nur mit confirm=1." }, 400);
+      }
+      const result = await runDashboardEventTestStep(req.query.step || (req.body && req.body.step) || "", req.body || {});
       sendJson(res, result, result.ok ? 200 : 400);
     } catch (err) {
       handleError(res, err, 400);

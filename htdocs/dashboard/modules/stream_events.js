@@ -1602,6 +1602,25 @@ window.StreamEventsModule = (function(){
           </div>
 
           <div class="evs-test-panel">
+            <h4>Event-Testabläufe</h4>
+            <p class="evs-muted">Erstellt ein Testevent, simuliert falsche/richtige Antworten und geht bis zur Auswertung. Keine echte Twitch-Ausgabe.</p>
+            <div class="evs-test-button-row">
+              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="runEventTestStep" data-step="create" ${t.loading ? 'disabled' : ''}>Testevent erstellen</button>
+              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="runEventTestStep" data-step="start" ${t.loading ? 'disabled' : ''}>Testevent starten</button>
+              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="runEventTestStep" data-step="wrong" ${t.loading ? 'disabled' : ''}>Falsche Antworten</button>
+              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="runEventTestStep" data-step="correct" ${t.loading ? 'disabled' : ''}>Richtige Antworten</button>
+            </div>
+            <div class="evs-test-button-row">
+              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="runEventTestStep" data-step="seed-ranking" data-count="10" ${t.loading ? 'disabled' : ''}>Ranking 10 User</button>
+              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="runEventTestStep" data-step="finish" ${t.loading ? 'disabled' : ''}>Event beenden</button>
+              <button type="button" class="evs-btn evs-btn-primary" data-evs-action="runEventTestStep" data-step="finale" ${t.loading ? 'disabled' : ''}>Auswertung starten</button>
+            </div>
+            <div class="evs-test-button-row">
+              <button type="button" class="evs-btn evs-btn-primary" data-evs-action="runEventTestStep" data-step="full-flow" data-count="10" ${t.loading ? 'disabled' : ''}>Full-Flow komplett</button>
+            </div>
+          </div>
+
+          <div class="evs-test-panel">
             <h4>Backend-Testdaten prüfen</h4>
             <p class="evs-muted">Ruft Random-Testdaten ab und zeigt Quelle sowie Avatar-Status.</p>
             <div class="evs-test-button-row">
@@ -3379,6 +3398,32 @@ window.StreamEventsModule = (function(){
     }
   }
 
+
+  async function runEventDashboardTest(step, payload = {}) {
+    state.testPanel = state.testPanel || {};
+    state.testPanel.loading = true;
+    state.testPanel.error = '';
+    state.testPanel.message = '';
+    render();
+    try {
+      const result = await window.CGN.api(`/api/stream-events/test/run?confirm=1&step=${encodeURIComponent(step)}`, {
+        method: 'POST',
+        body: JSON.stringify({ step, ...payload })
+      });
+      state.testPanel.result = result;
+      state.testPanel.message = `Test ausgeführt: ${step}${result?.eventUid ? ` · ${result.eventUid}` : ''}`;
+      state.message = state.testPanel.message;
+      if (result?.eventUid) state.selectedUid = result.eventUid;
+      await reloadDashboardAfterMutation(result?.eventUid || state.selectedUid, { keepTab: true }).catch(() => null);
+    } catch (err) {
+      state.testPanel.error = err.message || String(err);
+      state.error = state.testPanel.error;
+    } finally {
+      state.testPanel.loading = false;
+      render();
+    }
+  }
+
   async function startWinnerFinale(uid){
     if (!uid) return;
     const event = state.events.find(e => e.eventUid === uid) || state.selected;
@@ -3577,6 +3622,10 @@ window.StreamEventsModule = (function(){
       }
       if (action === 'fetchWinnerRandomDemo') {
         fetchWinnerRandomDemo(Number(btn.dataset.count || 7));
+        return;
+      }
+      if (action === 'runEventTestStep') {
+        runEventDashboardTest(btn.dataset.step || 'full-flow', { count: Number(btn.dataset.count || 10) });
         return;
       }
       if (action === 'openWinnerDebug') {
