@@ -39,3 +39,10 @@ Stand: 2026-06-18 – EVS50.2
 - [ ] ZIPs mit echten Repo-Pfaden ab Root.
 - [ ] DB niemals überschreiben/löschen/neu bauen.
 - [ ] StepDone erst nach Entpacken + Deploy/Live-Aktualisierung, danach testen.
+
+## EVS50.3 – Points-Check Insert-Fix
+
+- `createDashboardEventTestEvent()` schreibt jetzt alle NOT-NULL-Pflichtfelder fuer `stream_events_events`.
+- Fix fuer `NOT NULL constraint failed: stream_events_events.scoring_config_json` beim `points-check`.
+- Keine DB-Daten ersetzt, keine Punkte-/Rankinglogik geaendert.
+

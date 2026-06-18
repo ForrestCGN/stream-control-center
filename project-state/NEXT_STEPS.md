@@ -55,3 +55,10 @@ EVS50.3 – Satz-System härten:
 - Doppelte Lösung prüfen.
 - Text-Teilspielabschluss gegen Runtime-Parts prüfen.
 - Runtime-Overlay Satzstatus verbessern.
+
+## EVS50.3 – Points-Check Insert-Fix
+
+- `createDashboardEventTestEvent()` schreibt jetzt alle NOT-NULL-Pflichtfelder fuer `stream_events_events`.
+- Fix fuer `NOT NULL constraint failed: stream_events_events.scoring_config_json` beim `points-check`.
+- Keine DB-Daten ersetzt, keine Punkte-/Rankinglogik geaendert.
+

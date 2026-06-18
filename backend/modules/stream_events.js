@@ -27,8 +27,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.63";
-const MODULE_BUILD = "STEP_EVS50_2_POINTS_CHECK_TESTS";
+const MODULE_VERSION = "0.5.64";
+const MODULE_BUILD = "STEP_EVS50_3_POINTS_CHECK_INSERT_FIX";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -7196,10 +7196,16 @@ function createDashboardEventTestEvent(body = {}) {
     text_enabled: 1,
     sound_config_json: jsonEncode(config.sound),
     text_config_json: jsonEncode(config.text),
+    scoring_config_json: jsonEncode(defaultScoringConfig()),
+    settings_json: jsonEncode(defaultEventSettings()),
     validation_json: jsonEncode({ ok: true, warnings: [], errors: [], dashboardTest: true }),
+    created_by: "dashboard_event_test",
     metadata_json: jsonEncode({ testEvent: true, dashboardTest: true, createdBy: "dashboard_event_test", config }),
     created_at: now,
-    updated_at: now
+    updated_at: now,
+    started_at: "",
+    finished_at: "",
+    cancelled_at: ""
   };
 
   database.insert("stream_events_events", insert);

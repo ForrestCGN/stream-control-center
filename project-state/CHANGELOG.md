@@ -45,3 +45,10 @@
 ## Vorherige Einträge
 
 Ältere Einträge bleiben in Archiv-/Step-Dateien erhalten.
+
+## EVS50.3 – Points-Check Insert-Fix
+
+- `createDashboardEventTestEvent()` schreibt jetzt alle NOT-NULL-Pflichtfelder fuer `stream_events_events`.
+- Fix fuer `NOT NULL constraint failed: stream_events_events.scoring_config_json` beim `points-check`.
+- Keine DB-Daten ersetzt, keine Punkte-/Rankinglogik geaendert.
+

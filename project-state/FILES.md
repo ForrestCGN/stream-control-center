@@ -53,3 +53,10 @@ stream_events_events
 - Ranking addiert alle Event-Punkte pro User/Event aus `stream_events_score_entries`.
 - Quelle/Teilspiel wird über `source_type` getrennt angezeigt.
 - `points-check` ist ein synthetischer Testflow und sendet nichts in Twitch.
+
+## EVS50.3 – Points-Check Insert-Fix
+
+- `createDashboardEventTestEvent()` schreibt jetzt alle NOT-NULL-Pflichtfelder fuer `stream_events_events`.
+- Fix fuer `NOT NULL constraint failed: stream_events_events.scoring_config_json` beim `points-check`.
+- Keine DB-Daten ersetzt, keine Punkte-/Rankinglogik geaendert.
+
