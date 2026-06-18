@@ -65,3 +65,8 @@
 - Points-Check Active-Event-Fix: Alte aktive Dashboard-Testevents werden vor einem neuen Punktecheck sicher beendet.
 - Produktive aktive Events werden nicht angerührt.
 - `points-check` Response enthält `event`, `preCleanup` und `activeEvent`, damit Dashboard-/Status-Verwechslungen prüfbar sind.
+
+## 2026-06-18 – EVS50.6
+
+- Dashboard-Testbereich erweitert: Nach Punkte-Check kann die Punkte-Historie des exakten Testlaufs direkt geöffnet werden.
+- Produktives aktives Event bleibt unverändert sichtbar und wird nicht durch Testevents ersetzt.

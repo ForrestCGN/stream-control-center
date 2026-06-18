@@ -85,3 +85,8 @@ Nach erfolgreichem Active-Event-Fix:
 2. Dashboard → Aktuelles Event prüfen.
 3. User in Rangliste anklicken.
 4. Wenn 50 Punkte inklusive Sound sichtbar sind: EVS50.6 Satz-Testbereich finalisieren.
+
+
+## Nach EVS50.6
+
+Nächster sinnvoller Schritt: Satz-System Testbereich finalisieren. Geplant sind Buttons und lesbare Ausgaben für Satz-Testevent, falsche Antwort, richtige Antwort, Text-Report, Runtime-Parts und Abschlussstatus.

@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.47";
-  const MODULE_BUILD = "STEP_EVS50_2_POINTS_CHECK_TESTS";
+  const MODULE_VERSION = "0.5.48";
+  const MODULE_BUILD = "STEP_EVS50_6_POINTS_CHECK_DETAIL_BUTTON";
 
   const api = {
     status: '/api/stream-events/status',
@@ -1570,6 +1570,12 @@ window.StreamEventsModule = (function(){
         ${result.checks?.note ? `<p class="evs-muted">${esc(result.checks.note)}</p>` : ''}
         ${parts ? `<div class="evs-test-mini-line"><b>Teilspiele:</b> Sound ${parts.sound?.completed ? 'fertig' : 'offen'} · Text ${parts.text?.completed ? 'fertig' : 'offen'} · Gesamt ${parts.completed ? 'fertig' : 'offen'}</div>` : ''}
         ${timeline.length ? `<div class="evs-test-timeline">${timeline.map(item => `<div><b>${esc(userTimelineLabel(item.kind))}</b><span>${esc(item.label || '')}</span><strong>+${esc(item.points || 0)}</strong><small>${fmtDate(item.createdAt)}</small></div>`).join('')}</div>` : ''}
+        ${user?.userLogin && result?.eventUid ? `
+          <div class="evs-test-point-actions">
+            <button type="button" class="evs-btn evs-btn-primary" data-evs-action="openPointsCheckUserStats" data-user-login="${esc(user.userLogin)}" data-uid="${esc(result.eventUid)}">Punkte-Historie dieses Tests öffnen</button>
+            <small>Öffnet exakt den letzten Punktecheck-Testlauf. Das echte aktive Event bleibt unverändert.</small>
+          </div>
+        ` : ''}
       </div>
     `;
   }
@@ -3688,6 +3694,10 @@ window.StreamEventsModule = (function(){
       }
       if (action === 'runEventTestStep') {
         runEventDashboardTest(btn.dataset.step || 'full-flow', { count: Number(btn.dataset.count || 10) });
+        return;
+      }
+      if (action === 'openPointsCheckUserStats') {
+        await openUserStatsModal(btn.dataset.userLogin || 'forrestcgn', btn.dataset.uid || '');
         return;
       }
       if (action === 'openWinnerDebug') {

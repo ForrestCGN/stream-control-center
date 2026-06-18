@@ -79,3 +79,10 @@ project-state/FILES.md
 
 - `backend/modules/stream_events.js` – Points-Check beendet alte aktive Dashboard-Testevents sicher vor neuem Testlauf.
 - `docs/current/CURRENT_CHAT_HANDOFF_EVS50_5_POINTS_CHECK_ACTIVE_EVENT_FIX.md` – Handoff und Testanleitung.
+
+
+## EVS50.6 betroffene Dateien
+
+- `htdocs/dashboard/modules/stream_events.js` – Punktecheck-Detailbutton im Testbereich.
+- `htdocs/dashboard/modules/stream_events.css` – kleine Button-Zeile im Punktecheck-Summary.
+- `docs/current/CURRENT_CHAT_HANDOFF_EVS50_6_POINTS_CHECK_DETAIL_BUTTON.md`

@@ -289,3 +289,24 @@ Neue interne Helfer:
 - `finishActiveDashboardTestEvents(options)`
 
 `points-check` gibt zusätzlich `event`, `preCleanup` und `activeEvent` zurück.
+
+## EVS50.6 – Punktecheck-Historie direkt aus dem Test-Tab
+
+Der Dashboard-Testbereich zeigt nach einem erfolgreichen `points-check` jetzt direkt eine Aktion **Punkte-Historie dieses Tests öffnen**. Der Button öffnet die bestehende User-Statistik für den im Test verwendeten User und für exakt die `eventUid` des Punktecheck-Testevents.
+
+Wichtig: Das echte aktive Event im Tab **Aktuelles Event** wird dadurch nicht ersetzt und nicht beendet. Der Button ist nur ein gezielter Einstieg in die Historie des letzten Punktecheck-Testlaufs.
+
+Geändert:
+
+- Dashboard-Version `0.5.48` / `STEP_EVS50_6_POINTS_CHECK_DETAIL_BUTTON`
+- Keine Änderung an Backend-Punktelogik
+- Keine Änderung an produktiver Event-Auswahl
+- Keine Änderung am DB-Schema
+
+Testablauf:
+
+1. `Event-System → Test`
+2. `Punkte-Check Sound + Satz`
+3. Ergebnis muss Sound + Satz addiert anzeigen.
+4. `Punkte-Historie dieses Tests öffnen`
+5. Popup muss den Punktecheck-Lauf zeigen, auch wenn parallel ein echtes Event aktiv ist.

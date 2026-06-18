@@ -59,3 +59,10 @@ Stand: 2026-06-18 – EVS50.2
 - [ ] Prüfen, ob `/api/stream-events/status`.activeEvent auf den neuesten Punktecheck zeigt.
 - [ ] Dashboard → Aktuelles Event → User-Modal mit 50 Punkten prüfen.
 - [ ] Danach Satz-Testbereich finalisieren.
+
+
+## EVS50.6 erledigt
+
+- [x] Punktecheck-Historie direkt aus Testbereich öffnen.
+- [x] Produktives aktives Event nicht verdrängen.
+- [ ] Als nächstes Satz-Testbereich weiter ausbauen: falsche Antwort, richtige Antwort, Report, Runtime-Parts.
