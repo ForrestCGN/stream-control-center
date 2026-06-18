@@ -575,3 +575,55 @@ Testscript:
 ```text
 tools/tests/EVS52_8_TWITCH_CHAT_BUS_FALLBACK_CHECK.ps1
 ```
+
+
+## EVS52.9 – Chatquelle / Sound + Satz vereinheitlichen (Doku-Handoff)
+
+### Status
+
+EVS52.9 ist ein Doku-/Handoff-Stand ohne Codeänderung.
+
+Die Diagnose aus `/api/communication/status` und `/api/twitch/events/status` zeigt:
+
+- `stream_events` ist am Communication-Bus registriert und deklariert `consumes:twitch.chat.message`.
+- `twitch_events` kennt `twitch.chat.message` und Event-Catalog definiert `channel=twitch.chat`, `action=message`.
+- Der spezifische Subscriber `stream_events:twitch.chat.message` hatte im Diagnosezeitraum `delivered=0`.
+- Andere spezifische Chat-Subscriber wie `commands`, `clip_shoutout` und `loyalty_giveaways` hatten ebenfalls `delivered=0`.
+- `twitch_events.eventSubChat` war aktiv, aber `notifications=0` und `chatMessagesEmitted=0`.
+- EVS52.8 Wildcard-Bus-Fallback erhielt Deliveries, aber diese waren allgemeine Bus-Events und kein Beweis für echte Chatmessages.
+
+### Entscheidung
+
+Der nächste Code-Step darf nicht weiter Hooks stapeln. Es muss zuerst die echte produktive Chatquelle gefunden werden, über die das Sound-Spiel aktuell Chatantworten erhält.
+
+Ziel ist eine zentrale normalisierte Chat-Verarbeitung für beide Teilspiele:
+
+```text
+Twitch-Chat normalisiert
+→ Dedupe
+→ RuntimeGate
+→ Sound-Auswertung
+→ Satz-/Text-Auswertung
+→ gemeinsame Punktewertung
+```
+
+### Zu bereinigen nach erfolgreichem Fix
+
+EVS52.6–EVS52.8 haben Diagnose-/Fallback-Pfade ergänzt:
+
+- Direct-Bridge über `twitch_events.handleIrcEvent`
+- Direct-Bridge über `twitch_presence`
+- Wildcard-Bus-Fallback
+
+Diese Pfade müssen nach der echten Lösung geprüft und nicht benötigte Altlasten gezielt entfernt/deaktiviert werden.
+
+### Nicht ändern ohne Freigabe
+
+- Sound-Punkte
+- Satz-Punkte
+- Ranking
+- User-Historie
+- Sound-Playback
+- Sound-Automatik
+- Dashboard-Tests
+- Produktive SQLite

@@ -1,130 +1,55 @@
 # CHANGELOG – stream-control-center
 
-## 2026-06-18 – EVS52.4 Text-Chat-Ausgaben aktiv
+## 2026-06-18 – EVS52.9 Doku/Handoff: Chatquelle stoppen und sauber neu ansetzen
 
-### Added
+### Dokumentiert
 
-- Neue Satz-Spiel-Textkeys mit je 5 CGN-/Altersheim-/Rentner-Varianten:
-  - `text.word_hit.chat`
-  - `text.phrase.duplicate.chat`
-- Worttreffer senden im Live-Chat jetzt genau eine zufällige Meldung, wenn neue Wörter gefunden wurden.
-- Satzlösungen senden eine zufällige Chatmeldung und behalten das 15s-Celebration-Overlay.
-- Doppelte Satzlösungen senden optional eine zufällige Chatmeldung, vergeben aber keine Punkte und triggern kein Overlay.
-- Live-Chat-Ausgabe nutzt `helper_chat_output`; Textvarianten laufen weiter über `helper_texts`/Dashboard.
+- Diagnoseauswertung von `/api/communication/status` und `/api/twitch/events/status`.
+- Festgehalten: spezifische `twitch.chat/message` Subscriber hatten `delivered=0`.
+- Festgehalten: `twitch_events.eventSubChat` war aktiv, aber `notifications=0` und `chatMessagesEmitted=0`.
+- Festgehalten: EVS52.6–EVS52.8 waren Diagnose-/Fallback-Versuche und dürfen nicht weiter blind ausgebaut werden.
+- Zielarchitektur dokumentiert: eine zentrale normalisierte Chatquelle für Sound- und Satz-Teilspiel.
+- Neuer Chat-Prompt für EVS52.9 erstellt.
 
-### Safety
+### Keine Codeänderung
 
-- Dashboard-/Backend-Tests senden nicht live in Twitch.
-- Live-Senden nur bei echten `bus:twitch.chat.message`-Events und aktivem Runtime-Gate.
-- Keine zweite Wortpunkte-Meldung pro Worttreffer, damit der Chat nicht zugespammt wird.
+- Keine produktive Logik geändert.
+- Keine DB-Änderung.
+- Keine weiteren Hooks ergänzt.
+- Sound-Spiel und Satz-Spiel wurden in diesem Doku-Step nicht angefasst.
 
-## 2026-06-18 – EVS51.5 Text-Antwortvarianten optional
-
-### Fixed
-
-- Fehlende Antwortvarianten im Satz-/Text-Spiel erzeugen keine Warnung mehr.
-- Satztext/Geheimsatz bleibt automatisch gültige Lösung.
-- Dashboard-Mapping für die alte Warnung entfernt.
-
-### Unchanged
-
-- Punktevergabe, Worttreffer, Satzlösung, Duplikat-Schutz und Kombi-Abschluss unverändert.
-- Keine DB-Schemaänderung.
-
-## 2026-06-18 – EVS51.4
-
-- Satz-System Einzeltest-/Runtime-Flow im Dashboard erweitert.
-- Neuer Teststep `text-sound` für Sound-/Gesamtabschluss nach Satzlösung.
-- Dashboard merkt gezieltes Satz-Testevent für Einzelbuttons.
-
-# CHANGELOG – stream-control-center
-
-## 2026-06-18 – EVS51.3 Satz-Testbereich UI-Cleanup
-
-### Changed
-
-- Dashboard-Testbereich für das Satz-/Text-System lesbarer gemacht.
-- `Satz-Check komplett` zeigt jetzt strukturierte Prüfkarten statt normaler Rohdatenansicht.
-- Ranking-Zeilen im Satz-Test sind klickbar und öffnen die User-Punkte-Historie für genau dieses Testevent.
-- User-Historie-Buttons für ForrestCGN, EngelCGN, SatzPartial und Testuser ergänzt.
-- Dashboard-Version auf `0.5.50 / STEP_EVS51_3_TEXT_TEST_UI_CLEANUP` erhöht.
-
-### Unchanged
-
-- Backend-Punktelogik unverändert aus EVS51.2.
-- Produktive Event-Auswahl unverändert.
-- Keine DB-Schemaänderung.
-- Keine Sound-/Runtime-Logik geändert.
-
-## 2026-06-18 – EVS51.2 Satz-Check Wrong-Fix
-
-### Fixed
-
-- Falsche Testantwort im Satz-Check war nicht eindeutig falsch und konnte durch das Wort `ich` einen Wortpunkt erzeugen.
-- Testantwort ersetzt durch eine eindeutige Nichtlösung ohne Wörter aus den Testsätzen.
-
-### Confirmed
-
-- `text-check` besteht vollständig.
-- Falsche Antwort gibt keine Punkte.
-- Worttreffer, Satzlösungen, Duplikat-Schutz, Textabschluss und kombinierter Sound/Text-Abschluss sind geprüft.
-
-## 2026-06-18 – EVS50.6 / EVS50.x Punkte-Historie und Punkte-Check
-
-### Confirmed
-
-- Sound- und Satz-/Text-Punkte werden gemeinsam im Ranking addiert.
-- Quellen bleiben getrennt sichtbar.
-- User-Historie zeigt Zeitpunkt, Quelle/Grund und Punkte.
-- Testevents können aus dem Testbereich gezielt geöffnet werden, ohne das echte aktive Event zu verdrängen.
-
-## 2026-06-18 – EVS51.6
-
-- Sound-Automatik wird beim Eventstart initial geplant.
-- Fehlende Auto-Planung bei laufendem Sound-Event kann beim Sound-Status sicher nachgezogen werden.
-- Start-Response enthält `soundAutoPlan`.
-
-## 2026-06-18 – EVS52.1
-
-- Runtime-Overlay-State um sicheren Satz-/Textstatus erweitert.
-- Event-Runtime-Overlay zeigt Satzstatus zwischen Soundrunden an.
-- Sound-Anzeigen bleiben vorrangig; keine Playback-/Punkte-Änderung.
-
-## 2026-06-18 – EVS52.3
-
-- Satzlösung-Celebration im Runtime-Overlay ergänzt.
-- Nur vollständige Satzlösungen triggern das Overlay; Worttreffer nicht.
-- Anzeigezeit 15 Sekunden.
-- Overlay-Text über Text-Key `text.phrase.solved.overlay` mit 5 Fallback-Varianten im CGN-/Altersheim-/Rentner-Stil.
-- Dauerhafter Satzstatus bleibt versteckt/vorbereitet.
-
-## 2026-06-18 – EVS52.5
-
-- Satz-/Text-Runtime akzeptiert jetzt die Dashboard-Aliase `hintTokensEnabled`, `showPartialCount` und `uniqueWordsPerUser`.
-- Teiltreffer werden damit auch erkannt, wenn Wortpunkte deaktiviert sind.
-- Wortpunkte bleiben optional: `wordPointsEnabled=false` bedeutet keine Wortpunkte, aber Teiltreffer-Erkennung und Chatmeldung bleiben aktiv.
-- Runtime-Gate meldet bei aktivem Online-Event `chatOutputLiveSend=true`.
-- Diagnose ergänzt: `GET /api/stream-events/text-runtime/live-debug`.
-- Teststep ergänzt: `step=text-live-flow-check`.
-- Testscript ergänzt: `tools/tests/EVS52_5_TEXT_LIVE_FLOW_CHECK.ps1`.
-
-## 2026-06-18 – EVS52.6
-
-- Live-Chat Direct-Bridge für `stream_events` ergänzt.
-- Echte IRC-/Twitch-Chatnachrichten werden als Fallback direkt aus `twitch_events.handleIrcEvent()` zusätzlich an das Satz-/Text-System gegeben, falls der Communication-Bus-Pfad nicht liefert.
-- Sound-Chat bleibt unverändert.
-- Dashboard-/Backend-Tests senden weiterhin nicht live in Twitch.
-
-## 2026-06-18 – EVS52.7
-
-- Echte Twitch-Chatquelle `twitch_presence` direkt an `stream_events` Satz-/Text-Runtime angebunden.
-- Sound-Chatflow bleibt erhalten; Satz-System verarbeitet dieselben IRC-PRIVMSG-Nachrichten parallel.
-- Doppelte Verarbeitung wird verhindert, wenn Bus-Pfad bereits verarbeitet hat.
-- Testscript `tools/tests/EVS52_7_TWITCH_PRESENCE_CHAT_BRIDGE_CHECK.ps1` ergänzt.
-
-## 2026-06-18 – EVS52.8
+## 2026-06-18 – EVS52.8 Twitch-Chat Bus-Fallback
 
 - `stream_events` um Wildcard-Bus-Fallback fuer `twitch.chat.message` erweitert.
-- Satz-/Text-System kann Twitch-Chat nun auch dann erreichen, wenn der spezifische Bus-Filter nicht greift.
 - Diagnose `text-runtime/live-debug` um `twitchChatBusFallback` erweitert.
 - Testscript `EVS52_8_TWITCH_CHAT_BUS_FALLBACK_CHECK.ps1` ergänzt.
+- Nach Diagnose nicht als fertige Lösung bestätigt.
+
+## 2026-06-18 – EVS52.7 Twitch-Presence Chat-Bridge
+
+- Twitch-Presence-Direct-Bridge für Satz-/Text-System ergänzt.
+- Nach Diagnose nicht als fertige Lösung bestätigt.
+
+## 2026-06-18 – EVS52.6 Live-Chat Direct-Bridge
+
+- Direct-Bridge-Fallback über `twitch_events.handleIrcEvent()` ergänzt.
+- Nach Diagnose nicht als fertige Lösung bestätigt.
+
+## 2026-06-18 – EVS52.5 Text Live Flow Fix
+
+- Satz-/Text-Runtime akzeptiert Dashboard-Aliase.
+- Teiltreffer werden auch bei `wordPointsEnabled=false` erkannt.
+- Testscript `EVS52_5_TEXT_LIVE_FLOW_CHECK.ps1` bestanden.
+
+## 2026-06-18 – EVS52.4 Text-Chat-Ausgaben aktiv
+
+- Satz-Spiel-Textvarianten vorbereitet.
+- `helper_texts` und `helper_chat_output` vorgesehen.
+
+## 2026-06-18 – EVS52.3 Satzlösung-Celebration Overlay
+
+- 15s Celebration-Overlay bei kompletter Satzlösung vorbereitet.
+
+## 2026-06-18 – EVS51.x / EVS50.x
+
+- Punkte-Historie, Punktecheck, Satz-Testbereich, Duplikat-Schutz und kombinierter Sound/Text-Abschluss bestätigt.

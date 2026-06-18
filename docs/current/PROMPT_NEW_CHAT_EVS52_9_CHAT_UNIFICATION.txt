@@ -1,0 +1,166 @@
+Du bist im neuen Chat für ForrestCGN im Projekt `stream-control-center`.
+
+Sprache: Deutsch. Arbeitsstil: direkt, ruhig, pragmatisch, Schritt für Schritt.
+
+WICHTIGSTE REGELN:
+
+- Nicht raten.
+- Vor jeder Codeänderung echte Dateien prüfen.
+- Wenn Dateien fehlen: exakt nach benötigter Datei fragen, nicht improvisieren.
+- Keine Apply-Scripte, keine Patch-Scripte, keine Regex-/Set-Content-Patches.
+- Geänderte Dateien vollständig liefern.
+- ZIPs immer mit echten Zielpfaden ab Repo-Root liefern.
+- Keine Funktionalität entfernen; ersetzte Diagnose-/Fallback-Altlasten aber nach erfolgreichem Test gezielt entfernen/deaktivieren.
+- Produktive SQLite niemals ersetzen/löschen/neu bauen.
+- Vor Umsetzung immer schreiben:
+  Ziel:
+  Dateien:
+  Änderung:
+  Nicht geändert:
+  Tests:
+  Dann auf Forrests ausdrückliches `go` warten.
+- Bei Datei-/ZIP-Steps: Forrest entpackt, führt `stepdone.cmd` aus, danach erst testen.
+
+Projektbasis:
+
+Repo:
+https://github.com/ForrestCGN/stream-control-center
+
+Branch:
+dev
+
+Lokales Repo:
+D:\Git\stream-control-center
+
+Live-System:
+D:\Streaming\stramAssets
+
+Server:
+http://127.0.0.1:8080
+
+Aktueller Stand:
+
+Wir arbeiten am Event-System / Sound+Satz-Spiel.
+Letzter geprüfter Stand war `stream_events 0.5.79 / STEP_EVS52_8_TWITCH_CHAT_BUS_FALLBACK`.
+
+Bisher stabil/bestätigt:
+
+- Punkte-Historie im aktuellen Event funktioniert.
+- Sound- und Satzpunkte werden gemeinsam addiert, aber getrennt sichtbar gemacht.
+- Satz-Testbereich im Dashboard funktioniert.
+- Falsche Antwort gibt keine Punkte.
+- Worttreffer können erkannt werden.
+- Wenn `wordPointsEnabled=false`, gibt es keine Wortpunkte, aber Teiltreffer sollen trotzdem gemeldet werden.
+- Satzlösung gibt Punkte.
+- Duplicate gibt keine Punkte.
+- Kombi-Abschluss Text+Sound funktioniert im Test.
+- Sound-Automatik plant beim Eventstart den ersten Schnipsel.
+- Dauerhaftes Satzstatus-Overlay wurde wieder versteckt.
+- Satzlösungs-Celebration-Overlay ist vorbereitet: nur bei kompletter Satzlösung, 15 Sekunden, Avatar/User/Satz/Punkte.
+- Satz-Spiel-Texte sind als Varianten/Fallbacks vorbereitet und sollen über vorhandene Helper/Textsysteme laufen.
+
+Kritischer offener Fehler:
+
+Echte Twitch-Chatmessages erreichen `stream_events` für das Satz-System noch nicht zuverlässig.
+
+Wichtig: Forrest hat zu Recht gesagt, Chat soll nicht doppelt gemoppelt werden. Es soll eine zentrale Chatquelle geben, die für beide Teilspiele genutzt wird:
+
+Twitch-Chat normalisiert
+→ Sound-Spiel prüft Antwort
+→ Satz-Spiel prüft Worttreffer/Satzlösung
+→ beide schreiben in dieselbe Event-Wertung
+
+Nicht weiter mehrere Direct-Hooks stapeln.
+
+Auswertung der letzten Diagnose:
+
+- `communication_bus` läuft.
+- `stream_events` ist registriert und meldet `consumes:twitch.chat.message`.
+- Event-Catalog kennt `twitch.chat.message` als `channel=twitch.chat`, `action=message`.
+- Spezifischer Subscriber `stream_events:twitch.chat.message` hatte `delivered=0`.
+- Andere spezifische Chat-Subscriber wie `commands`, `clip_shoutout`, `loyalty_giveaways` hatten ebenfalls `delivered=0`.
+- `twitch_events.eventSubChat` war aktiv und die Subscription enabled, aber `notifications=0`, `chatMessagesEmitted=0`.
+- Der Wildcard-Fallback bekam viele Deliveries, aber das waren allgemeine Bus-Events/Heartbeats/Status und kein Beweis für echte Chatmessages.
+
+Nächster Auftrag: EVS52.9 – echte produktive Chatquelle finden und Sound+Satz zentral anbinden.
+
+Zuerst prüfen, nicht coden:
+
+Dateien prüfen:
+
+backend/modules/stream_events.js
+backend/modules/twitch_events.js
+backend/modules/twitch_presence.js
+backend/modules/communication_bus.js
+backend/modules/helpers/helper_communication.js
+
+Falls Soundantworten in anderen Dateien laufen, diese echten Dateien suchen/anfordern.
+
+Im Code suchen nach:
+
+twitch.chat.message
+handleIrcEvent
+emitTwitchChatEvent
+processParallelChatMessage
+processSoundChatMessage
+sound answer / answer_checked / sound.solved
+bus.subscribe
+communicationBus.subscribe
+helper_communication.subscribe
+
+Zielarchitektur:
+
+Eine zentrale Funktion für eingehende Chatmessages, sinngemäß:
+
+handleNormalizedChatMessage(message)
+  -> Dedupe
+  -> RuntimeGate prüfen
+  -> Sound prüfen
+  -> Text/Satz prüfen
+  -> ChatOutputs live nur bei echter Chatquelle
+
+Wichtig:
+
+- Sound-Spiel darf nicht kaputtgehen.
+- Satz-Spiel muss live Teiltreffer und Satzlösungen erkennen.
+- Punkte müssen korrekt bleiben.
+- Dashboard-/Backend-Tests dürfen nicht live in Twitch senden.
+- Nur echte Chatquelle + aktives RuntimeGate darf live senden.
+- Nach Fix beide Spiele live testen.
+
+Zu prüfen/bereinigen:
+
+EVS52.6 Direct-Bridge über twitch_events.handleIrcEvent
+EVS52.7 Direct-Bridge über twitch_presence
+EVS52.8 Wildcard-Bus-Fallback
+
+Wenn die echte zentrale Chatquelle gefunden ist, nicht benötigte Diagnose-/Fallback-Pfade entfernen/deaktivieren, aber nur nach Test und mit Forrests Go.
+
+Pflichttests nach Fix:
+
+node -c .\backend\modules\stream_events.js
+node -c .\backend\modules\twitch_events.js
+node -c .\backend\modules\twitch_presence.js
+node -c .\htdocs\dashboard\modules\stream_events.js
+
+powershell -ExecutionPolicy Bypass -File .\tools\tests\EVS52_5_TEXT_LIVE_FLOW_CHECK.ps1
+
+Live-Test:
+
+1. Laufendes Sound+Text-Event starten.
+2. Echtes Teilwort aus offenem Satz in Twitch-Chat schreiben.
+3. Erwartung: Teiltreffer erkannt, eine Chatmeldung, keine Wortpunkte falls wordPointsEnabled=false.
+4. Kompletter Satz in Twitch-Chat.
+5. Erwartung: Satzpunkte, Satzlösungs-Chatmeldung, 15s Overlay.
+6. Duplicate nochmal.
+7. Erwartung: keine neuen Punkte, Duplicate-Meldung nur wenn gewollt/aktiv.
+8. Soundantwort testen.
+9. Erwartung: Soundspiel funktioniert weiter und Soundpunkte zählen.
+10. Ranking/User-Historie prüfen: Sound + Satz gemeinsam addiert, getrennt nachvollziehbar.
+
+Relevante Handoff-Dateien aus dem letzten Chat:
+
+docs/current/CURRENT_CHAT_HANDOFF_EVS52_9_CHAT_UNIFICATION.md
+docs/current/EVS52_9_CHAT_DIAGNOSTIC_ANALYSIS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
