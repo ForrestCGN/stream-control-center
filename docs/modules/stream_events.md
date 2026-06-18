@@ -494,3 +494,26 @@ Live-Ausgabe nutzt `helper_chat_output`. Gesendet wird nur bei echten Twitch-Cha
 - Pro Chatnachricht wird pro Satz nur eine Worttreffer-Meldung gesendet.
 - `text.word_points.added` bleibt als vorhandener Textkey erhalten, wird aber nicht zusätzlich live pro Worttreffer gesendet.
 - Doppelte Satzlösung gibt keine Punkte und kein Overlay.
+
+## EVS52.5 – Satz-System echter Chat-Flow / Alias-Fix
+
+- `getTextRuntimeConfig()` akzeptiert jetzt die UI-/Dashboard-Felder `hintTokensEnabled`, `showPartialCount` und `uniqueWordsPerUser` als Aliase fuer die interne Text-Runtime.
+- Dadurch werden Teiltreffer auch bei echten Events erkannt, wenn im Dashboard „Teiltreffer anzeigen“ aktiv ist, aber `wordPointsEnabled=false` gesetzt wurde.
+- Worttreffer werden weiterhin in `stream_events_text_word_hits` gespeichert. Punkte werden nur vergeben, wenn Wortpunkte aktiv sind.
+- Satzloesungen bleiben unveraendert: komplette Loesung gibt die konfigurierten Satzpunkte und erzeugt Satzloesungs-ChatOutput + Celebration-Overlay.
+- Duplicate-Loesungen bleiben ohne Punkte und ohne Overlay, erzeugen aber eine vorbereitete Chatmeldung.
+- Runtime-Gate-Status zeigt jetzt korrekt `chatOutputLiveSend=true`, wenn ein echtes aktives Event bei Online-Stream ausgewertet werden darf.
+- Neue Diagnose-Route: `GET /api/stream-events/text-runtime/live-debug`.
+- Neuer Teststep: `POST /api/stream-events/test/run?confirm=1&step=text-live-flow-check`.
+- Neues lokales Testscript: `tools/tests/EVS52_5_TEXT_LIVE_FLOW_CHECK.ps1`.
+
+### Testziel EVS52.5
+
+Der Test prueft bewusst ein Event mit Dashboard-Alias-Feldern und `wordPointsEnabled=false`:
+
+- Teilwort `Test` wird als Worttreffer erkannt.
+- Worttreffer erzeugt eine ChatOutput-Vorbereitung.
+- Worttreffer gibt keine Punkte, wenn Wortpunkte deaktiviert sind.
+- Kompletter Satz gibt Satzpunkte.
+- Doppelte Satzloesung gibt keine Punkte.
+- Ranking zaehlt nur die Satzpunkte.

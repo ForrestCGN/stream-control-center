@@ -7,7 +7,7 @@
  * - Keeps EVS-12 Text-Runtime dashboard report.
  * - Adds user statistics list/detail endpoints for dropdown filtering.
  * - Prepares text and future sound statistics in one user-focused report.
- * - EVS52.4 sends selected runtime chat outputs through helper_chat_output for live bus chat.
+ * - EVS52.5 keeps Sound-Chat intact, enables Text/Satz partial-hit detection for real chat aliases, and adds a focused live-flow test.
  */
 
 const crypto = require("crypto");
@@ -29,8 +29,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.75";
-const MODULE_BUILD = "STEP_EVS52_4_TEXT_CHAT_OUTPUTS_ACTIVE";
+const MODULE_VERSION = "0.5.76";
+const MODULE_BUILD = "STEP_EVS52_5_TEXT_LIVE_FLOW_FIX";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -378,7 +378,8 @@ let runtimeState = {
     lastAt: "",
     lastError: "",
     lastResult: null
-  }
+  },
+  lastTextChatRuntime: null
 };
 
 const soundAnswerTimers = new Map();
@@ -1314,7 +1315,7 @@ function getRuntimeGateStatus(options = {}) {
     soundEnabled: !!(activeEvent && activeEvent.soundEnabled),
     textEnabled: !!(activeEvent && activeEvent.textEnabled),
     chatEvaluationActive: active,
-    chatOutputLiveSend: false,
+    chatOutputLiveSend: active,
     stream,
     runtimePaused,
     runtimeOfflineWaiting,
@@ -1323,7 +1324,7 @@ function getRuntimeGateStatus(options = {}) {
       streamOfflineDisablesRuntime: true,
       noActiveEventDisablesRuntime: true,
       activeEventRequired: true,
-      liveSendStillDisabled: true
+      liveSendStillDisabled: false
     },
     updatedAt: nowIso()
   };
@@ -2184,16 +2185,30 @@ function getTextRuntimeConfig(event = null) {
   const globalConfig = getEventConfig().config || DEFAULT_EVENT_CONFIG;
   const textDefaults = globalConfig.textDefaults || DEFAULT_EVENT_CONFIG.textDefaults;
   const eventConfig = event && event.textConfig && typeof event.textConfig === "object" ? event.textConfig : {};
+  const partialHintsRaw = eventConfig.partialHintsEnabled !== undefined
+    ? eventConfig.partialHintsEnabled
+    : (eventConfig.hintTokensEnabled !== undefined ? eventConfig.hintTokensEnabled : textDefaults.partialHintsEnabled);
+  const showPartialRaw = eventConfig.showPartialWordCount !== undefined
+    ? eventConfig.showPartialWordCount
+    : (eventConfig.showPartialCount !== undefined ? eventConfig.showPartialCount : textDefaults.showPartialWordCount);
+  const uniqueRaw = eventConfig.uniqueWordPerUserPhrase !== undefined
+    ? eventConfig.uniqueWordPerUserPhrase
+    : (eventConfig.uniqueWordsPerUser !== undefined ? eventConfig.uniqueWordsPerUser : textDefaults.uniqueWordPerUserPhrase);
   return {
-    partialHintsEnabled: eventConfig.partialHintsEnabled !== undefined ? boolValue(eventConfig.partialHintsEnabled) : boolValue(textDefaults.partialHintsEnabled),
+    partialHintsEnabled: boolValue(partialHintsRaw),
     partialHintVisibility: cleanString(eventConfig.partialHintVisibility || eventConfig.partialHintDisplayMode || textDefaults.partialHintVisibility, "general"),
-    showPartialWordCount: eventConfig.showPartialWordCount !== undefined ? boolValue(eventConfig.showPartialWordCount) : boolValue(textDefaults.showPartialWordCount),
+    showPartialWordCount: boolValue(showPartialRaw),
     wordPointsEnabled: eventConfig.wordPointsEnabled !== undefined ? boolValue(eventConfig.wordPointsEnabled) : boolValue(textDefaults.wordPointsEnabled),
     pointsPerNewWord: clampNumber(eventConfig.pointsPerNewWord ?? eventConfig.wordPointsPerNewWord ?? textDefaults.pointsPerNewWord, 0, 1000, 1),
     maxWordPointsPerUserPhrase: clampNumber(eventConfig.maxWordPointsPerUserPhrase ?? eventConfig.maxWordPointsPerUserAndPhrase ?? textDefaults.maxWordPointsPerUserPhrase, 0, 10000, 5),
     partialHintCooldownSeconds: clampNumber(eventConfig.partialHintCooldownSeconds ?? eventConfig.hintCooldownSeconds ?? textDefaults.partialHintCooldownSeconds, 0, 3600, 0),
-    uniqueWordPerUserPhrase: eventConfig.uniqueWordPerUserPhrase !== undefined ? boolValue(eventConfig.uniqueWordPerUserPhrase) : boolValue(textDefaults.uniqueWordPerUserPhrase),
-    tokenMinLength: clampNumber(eventConfig.tokenMinLength ?? textDefaults.tokenMinLength, 1, 20, 3)
+    uniqueWordPerUserPhrase: boolValue(uniqueRaw),
+    tokenMinLength: clampNumber(eventConfig.tokenMinLength ?? textDefaults.tokenMinLength, 1, 20, 3),
+    aliases: {
+      hintTokensEnabled: eventConfig.hintTokensEnabled !== undefined,
+      showPartialCount: eventConfig.showPartialCount !== undefined,
+      uniqueWordsPerUser: eventConfig.uniqueWordsPerUser !== undefined
+    }
   };
 }
 
@@ -2877,6 +2892,32 @@ function processParallelChatMessage(chat = {}, context = {}) {
     result.liveChatDispatch = { ok: true, skipped: true, reason: busChat ? "runtime_gate_inactive" : "not_bus_chat", outputCount: result.chatOutputs.length };
   }
   result.reason = result.handled ? "parallel_chat_runtime_processed" : "chat_runtime_not_handled";
+  runtimeState.lastTextChatRuntime = {
+    at: nowIso(),
+    source,
+    eventUid: event.eventUid,
+    eventName: event.name || "",
+    userLogin: chat.userLogin,
+    userDisplayName: chat.userDisplayName,
+    message: chat.message,
+    busChat,
+    runtimeGateActive: !!(runtimeGate && runtimeGate.active),
+    soundEnabled: event.soundEnabled === true,
+    textEnabled: event.textEnabled === true,
+    soundSolved: result.soundSolved,
+    textSolved: result.textSolved,
+    textWordHitCount: result.textWordHitCount,
+    chatOutputCount: result.chatOutputCount,
+    liveChatDispatch: result.liveChatDispatch || null,
+    textRuntime: result.text ? {
+      ok: result.text.ok === true,
+      solvedCount: Number(result.text.solvedCount || 0),
+      wordHitCount: Number(result.text.wordHitCount || 0),
+      chatOutputCount: Number(result.text.chatOutputCount || 0),
+      skipped: result.text.skipped === true,
+      reason: result.text.reason || ""
+    } : null
+  };
   return result;
 }
 
@@ -7606,6 +7647,117 @@ async function runEventTestTextCheck(body = {}) {
   };
 }
 
+async function createDashboardTextLiveFlowEvent(body = {}) {
+  const preCleanup = finishActiveDashboardTestEvents({ reason: "dashboard_text_live_flow_pre_cleanup" });
+  const created = createDashboardEventTestEvent({
+    name: `EVS SATZ LIVE FLOW · ${new Date().toLocaleString("de-DE")}`,
+    partialHintsEnabled: false,
+    textWordPointsEnabled: false,
+    pointsPerNewWord: 1,
+    maxWordPointsPerUserPhrase: 5
+  });
+  const event = getEventByUid(created.eventUid);
+  const textConfig = event && event.textConfig && typeof event.textConfig === "object" ? event.textConfig : {};
+  const phrases = [
+    {
+      phraseUid: newUid("evs_phrase"),
+      text: cleanString(body.phraseText || "Die ist ein Satz Test", "Die ist ein Satz Test"),
+      acceptedAnswers: [],
+      points: clampNumber(body.phrasePoints, 0, 10000, 40)
+    }
+  ];
+  const patchedTextConfig = {
+    ...textConfig,
+    enabled: true,
+    phrases,
+    hintTokensEnabled: true,
+    partialHintVisibility: "general",
+    showPartialCount: true,
+    uniqueWordsPerUser: true,
+    wordPointsEnabled: false,
+    pointsPerNewWord: 1,
+    maxWordPointsPerUserPhrase: 5,
+    tokenMinLength: 3
+  };
+  delete patchedTextConfig.partialHintsEnabled;
+  delete patchedTextConfig.showPartialWordCount;
+  delete patchedTextConfig.uniqueWordPerUserPhrase;
+  database.updateByKey("stream_events_events", "event_uid", created.eventUid, {
+    text_config_json: jsonEncode(patchedTextConfig),
+    metadata_json: jsonEncode({ dashboardTest: true, testEvent: true, liveFlowCheck: true, note: "Uses UI alias fields hintTokensEnabled/showPartialCount/uniqueWordsPerUser and wordPointsEnabled=false." }),
+    updated_at: nowIso()
+  });
+  const started = startDashboardEventTestEvent(created.eventUid);
+  return { ok: true, action: "text-live-flow-create", eventUid: created.eventUid, preCleanup, created: { ...created, event: publicEventSummary(getEventByUid(created.eventUid)) }, started, config: { text: patchedTextConfig } };
+}
+
+async function runEventTestTextLiveFlowCheck(body = {}) {
+  const created = await createDashboardTextLiveFlowEvent(body);
+  const uid = created.eventUid;
+  const partial = await processParallelChatMessage(
+    buildEventTestChat("forrestcgn", "ForrestCGN", cleanString(body.partialMessage || "Test", "Test")),
+    { source: "dashboard_text_live_flow_partial", eventUid: uid }
+  );
+  const afterPartialReport = getTextRuntimeReport(uid);
+  const solve = await processParallelChatMessage(
+    buildEventTestChat("forrestcgn", "ForrestCGN", cleanString(body.solveMessage || "Die ist ein Satz Test", "Die ist ein Satz Test")),
+    { source: "dashboard_text_live_flow_solve", eventUid: uid }
+  );
+  const duplicate = await processParallelChatMessage(
+    buildEventTestChat("engelcgn", "EngelCGN", cleanString(body.solveMessage || "Die ist ein Satz Test", "Die ist ein Satz Test")),
+    { source: "dashboard_text_live_flow_duplicate", eventUid: uid }
+  );
+  const reportText = getTextRuntimeReport(uid);
+  const ranking = getRanking(uid);
+  const forrestStats = getStatisticsUser("forrestcgn", uid);
+  const engelStats = getStatisticsUser("engelcgn", uid);
+  const partialWordHits = Number(partial && partial.text && partial.text.wordHitCount || 0);
+  const partialChatOutputs = Number(partial && partial.text && partial.text.chatOutputCount || 0);
+  const partialPoints = (forrestStats && forrestStats.user) ? Number(forrestStats.user.wordPoints || 0) : 0;
+  const phrasePoints = (forrestStats && forrestStats.user) ? Number(forrestStats.user.phrasePoints || 0) : 0;
+  const totalPoints = (forrestStats && forrestStats.user) ? Number(forrestStats.user.totalPoints || 0) : 0;
+  const duplicateSolved = Number(duplicate && duplicate.text && duplicate.text.solvedCount || 0);
+  const duplicateOutputs = Number(duplicate && duplicate.text && duplicate.text.chatOutputCount || 0);
+  const checks = {
+    passed: false,
+    aliasPartialHintsEnabled: getTextRuntimeConfig(getEventByUid(uid)).partialHintsEnabled === true,
+    partialWordHitRecognized: partialWordHits > 0,
+    partialChatOutputPrepared: partialChatOutputs > 0,
+    partialNoPointsWhenWordPointsDisabled: partialPoints === 0,
+    phraseSolveRecognized: Number(solve && solve.text && solve.text.solvedCount || 0) === 1,
+    phrasePointsAdded: phrasePoints >= 40 && totalPoints >= 40,
+    duplicateBlocked: duplicateSolved === 0,
+    duplicateChatOutputPrepared: duplicateOutputs > 0,
+    rankingCountsPhraseOnly: ranking.rows.some(row => row.userLogin === "forrestcgn" && Number(row.points || 0) >= 40),
+    note: "Prueft UI-Alias-Felder, Teiltreffer ohne Wortpunkte, Satzpunkte, Duplicate-Meldung und Ranking. Dashboard-Test sendet nicht live in Twitch."
+  };
+  checks.passed = checks.aliasPartialHintsEnabled
+    && checks.partialWordHitRecognized
+    && checks.partialChatOutputPrepared
+    && checks.partialNoPointsWhenWordPointsDisabled
+    && checks.phraseSolveRecognized
+    && checks.phrasePointsAdded
+    && checks.duplicateBlocked
+    && checks.duplicateChatOutputPrepared
+    && checks.rankingCountsPhraseOnly;
+  return {
+    ok: checks.passed,
+    action: "text-live-flow-check",
+    eventUid: uid,
+    created,
+    partial,
+    afterPartialReport,
+    solve,
+    duplicate,
+    reportText,
+    ranking,
+    userStats: forrestStats,
+    duplicateUserStats: engelStats,
+    runtimeConfig: getTextRuntimeConfig(getEventByUid(uid)),
+    checks
+  };
+}
+
 async function runEventTestPointsCheck(body = {}) {
   const preCleanup = finishActiveDashboardTestEvents({ reason: "dashboard_points_check_pre_cleanup" });
   const created = createDashboardEventTestEvent({
@@ -7781,6 +7933,7 @@ async function runDashboardEventTestStep(step = "", body = {}) {
     return { ok: true, action: "text-report", eventUid: target.event.eventUid, ...buildTextCheckCoreResult(target.event.eventUid) };
   }
   if (action === "text-check") return runEventTestTextCheck(body);
+  if (action === "text-live-flow-check") return runEventTestTextLiveFlowCheck(body);
   if (action === "points-check") return runEventTestPointsCheck(body);
   if (action === "seed-ranking") {
     const target = getEventTestTarget(eventUid);
@@ -7896,7 +8049,8 @@ function buildStatus() {
       lastError: runtimeState.lastError || runtimeState.schemaError || ""
     },
     runtime: {
-      counters: runtimeState.counters
+      counters: runtimeState.counters,
+      lastTextChatRuntime: runtimeState.lastTextChatRuntime || null
     },
     runtimeOverlay: {
       prepared: true,
@@ -7981,6 +8135,7 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "GET", path: `${prefix}/status`, description: "Stream-Events Backendstatus" },
       { method: "GET", path: `${prefix}/bus-status`, description: "Stream-Events Communication-Bus Registrierung, Heartbeat und letzte Bus-Events" },
       { method: "GET", path: `${prefix}/text-runtime/status`, description: "Text-Spiel Chat-Runtime Status" },
+      { method: "GET", path: `${prefix}/text-runtime/live-debug`, description: "EVS52.5: Diagnose echter Chatfluss fuer Satz-System" },
       { method: "GET", path: `${prefix}/text-runtime/report`, description: "Text-Spiel Runtime Report fuer aktives oder angegebenes Event" },
       { method: "GET", path: `${prefix}/sound-runtime/status`, description: "Sound-Spiel Runtime Status und aktive Runde" },
       { method: "GET", path: `${prefix}/sound-runtime/report`, description: "Sound-Spiel Runtime Report fuer aktives oder angegebenes Event" },
@@ -8145,9 +8300,31 @@ module.exports.init = function init(ctx) {
 
   reg("get", `${prefix}/text-runtime/status`, (req, res) => {
     try {
-      sendJson(res, getTextRuntimeStatus());
+      const status = getTextRuntimeStatus();
+      sendJson(res, { ...status, lastTextChatRuntime: runtimeState.lastTextChatRuntime || null });
     } catch (err) {
       handleError(res, err);
+    }
+  });
+
+  reg("get", `${prefix}/text-runtime/live-debug`, (req, res) => {
+    try {
+      const uid = cleanString(req.query.eventUid || req.query.event_uid || "");
+      const event = uid ? getEventByUid(uid) : getActiveEvent();
+      sendJson(res, {
+        ok: true,
+        module: MODULE_NAME,
+        moduleVersion: MODULE_VERSION,
+        moduleBuild: MODULE_BUILD,
+        event: publicEventSummary(event),
+        runtimeGate: getRuntimeGateStatus({ eventUid: event ? event.eventUid : "" }),
+        runtimeConfig: event ? getTextRuntimeConfig(event) : null,
+        lastTextChatRuntime: runtimeState.lastTextChatRuntime || null,
+        report: event ? getTextRuntimeReport(event.eventUid) : null,
+        updatedAt: nowIso()
+      });
+    } catch (err) {
+      handleError(res, err, 400);
     }
   });
 

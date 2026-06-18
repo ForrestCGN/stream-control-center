@@ -68,3 +68,12 @@ Stand: 2026-06-18 – EVS51.5
 - [x] Helper genutzt: `helper_texts` und `helper_chat_output`.
 - [ ] Live im Twitch-Chat testen: Teilwort, komplette Lösung, doppelte Lösung.
 - [ ] `/api/chat-output/status` prüfen, falls keine Chatmeldung gesendet wird.
+
+## EVS52.5 – zu testen
+
+- [ ] `tools/tests/EVS52_5_TEXT_LIVE_FLOW_CHECK.ps1` ausführen.
+- [ ] Im echten Chat ein echtes Teilwort aus einem offenen Satz schreiben, z. B. `Test` bei Satz `Die ist ein Satz Test`.
+- [ ] Prüfen: `/api/stream-events/text-runtime/live-debug` zeigt `lastTextChatRuntime.textWordHitCount > 0`.
+- [ ] Prüfen: Twitch-Chat bekommt genau eine Worttreffer-Meldung.
+- [ ] Prüfen: Worttreffer gibt keine Punkte, wenn Wortpunkte deaktiviert sind.
+- [ ] Prüfen: komplette Satzloesung gibt Satzpunkte und 15s Overlay.

@@ -89,3 +89,9 @@ stream_events_sound_rounds
 - `project-state/TODO.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/FILES.md`
+
+## EVS52.5
+
+- `backend/modules/stream_events.js` – Alias-Fix fuer Satz-Runtime, Live-Debug, Teststep `text-live-flow-check`.
+- `tools/tests/EVS52_5_TEXT_LIVE_FLOW_CHECK.ps1` – lokales PowerShell-Testscript fuer Satz-Live-Flow ohne Twitch-Live-Send.
+- `docs/current/CURRENT_CHAT_HANDOFF_EVS52_5_TEXT_LIVE_FLOW_FIX.md` – Handoff.

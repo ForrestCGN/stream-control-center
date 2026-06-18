@@ -97,3 +97,13 @@
 - Anzeigezeit 15 Sekunden.
 - Overlay-Text über Text-Key `text.phrase.solved.overlay` mit 5 Fallback-Varianten im CGN-/Altersheim-/Rentner-Stil.
 - Dauerhafter Satzstatus bleibt versteckt/vorbereitet.
+
+## 2026-06-18 – EVS52.5
+
+- Satz-/Text-Runtime akzeptiert jetzt die Dashboard-Aliase `hintTokensEnabled`, `showPartialCount` und `uniqueWordsPerUser`.
+- Teiltreffer werden damit auch erkannt, wenn Wortpunkte deaktiviert sind.
+- Wortpunkte bleiben optional: `wordPointsEnabled=false` bedeutet keine Wortpunkte, aber Teiltreffer-Erkennung und Chatmeldung bleiben aktiv.
+- Runtime-Gate meldet bei aktivem Online-Event `chatOutputLiveSend=true`.
+- Diagnose ergänzt: `GET /api/stream-events/text-runtime/live-debug`.
+- Teststep ergänzt: `step=text-live-flow-check`.
+- Testscript ergänzt: `tools/tests/EVS52_5_TEXT_LIVE_FLOW_CHECK.ps1`.

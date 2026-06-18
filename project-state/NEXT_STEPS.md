@@ -118,3 +118,10 @@ EVS51.4 – Satz-Rotation / Runtime-Overlay:
 ```powershell
 Invoke-RestMethod "http://127.0.0.1:8080/api/chat-output/status" | ConvertTo-Json -Depth 8
 ```
+
+## Nach EVS52.5
+
+1. EVS52.5 im echten Chat testen: Teilwort, kompletter Satz, doppelte Loesung.
+2. Wenn Live-Chatmeldung nicht rausgeht: `GET /api/stream-events/text-runtime/live-debug` und `/api/chat-output/status` vergleichen.
+3. Danach Dashboard-Texte-Bereich pruefen: Satz-Spiel-Keys editierbar und zufaellige Varianten sichtbar.
+4. Danach optional: Satzloesungs-Overlay visuell verfeinern.
