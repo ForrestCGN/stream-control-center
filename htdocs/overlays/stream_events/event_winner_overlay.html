@@ -232,13 +232,48 @@
       font-size: 14px !important;
     }
 
+
+    body.fine-grid-debug #pixelGrid {
+      display: block !important;
+      z-index: 9999 !important;
+      opacity: 1 !important;
+      background-image:
+        linear-gradient(to right, rgba(0,255,255,.30) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0,255,255,.30) 1px, transparent 1px),
+        linear-gradient(to right, rgba(255,255,255,.45) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,.45) 1px, transparent 1px),
+        linear-gradient(to right, rgba(255,235,0,.95) 2px, transparent 2px),
+        linear-gradient(to bottom, rgba(255,235,0,.95) 2px, transparent 2px) !important;
+      background-size:
+        25px 25px,
+        25px 25px,
+        50px 50px,
+        50px 50px,
+        100px 100px,
+        100px 100px !important;
+      background-position: 0 0,0 0,0 0,0 0,0 0,0 0 !important;
+      mix-blend-mode: screen;
+    }
+    body.fine-grid-debug #pixelGrid .grid-label {
+      display: block !important;
+      z-index: 10000 !important;
+      font-size: 12px !important;
+      line-height: 1 !important;
+      background: rgba(0,0,0,.94) !important;
+    }
+    body.fine-grid-debug #pixelGrid .fine-label {
+      font-size: 10px !important;
+      opacity: .82;
+      color: #bff7ff !important;
+    }
+
     #debug{position:fixed;left:12px;bottom:12px;z-index:99;max-width:700px;max-height:220px;overflow:auto;display:none;padding:10px;background:rgba(0,0,0,.72);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:12px;white-space:pre-wrap;pointer-events:auto}body.debug #debug{display:block}
   </style>
 </head>
 <body>
   <div id="stage"><div id="canvas"><img class="bg" src="/assets/stream_events/winner_finale_bg_1920x1080.png" alt=""/><div class="shade"></div><div id="confetti" class="confetti"></div><div id="pixelGrid" class="pixel-grid"></div><div class="debug-cross-x"></div><div class="debug-cross-y"></div><header class="header" data-calibration-label="HEADER"><div><h1 id="phaseTitle" class="phase-title">CGN Event-Gewinner</h1><p id="phaseSubtitle" class="phase-subtitle">Die Finalplätze werden jetzt enthüllt.</p></div></header><section id="slot2" class="award-slot side silver" data-rank="2" data-calibration-label="SLOT 2"><div class="inner"></div></section><section id="slot1" class="award-slot center gold" data-rank="1" data-calibration-label="SLOT 1"><div class="inner"></div></section><section id="slot3" class="award-slot side bronze" data-rank="3" data-calibration-label="SLOT 3"><div class="inner"></div></section><section id="honor4" class="honor-slot" data-rank="4" data-calibration-label="HONOR 4"><div class="inner"></div></section><section id="honor5" class="honor-slot" data-rank="5" data-calibration-label="HONOR 5"><div class="inner"></div></section><section id="honor6" class="honor-slot" data-rank="6" data-calibration-label="HONOR 6"><div class="inner"></div></section><section id="honor7" class="honor-slot" data-rank="7" data-calibration-label="HONOR 7"><div class="inner"></div></section><section id="honor8" class="honor-slot" data-rank="8" data-calibration-label="HONOR 8"><div class="inner"></div></section><section id="honor9" class="honor-slot" data-rank="9" data-calibration-label="HONOR 9"><div class="inner"></div></section><section id="honor10" class="honor-slot" data-rank="10" data-calibration-label="HONOR 10"><div class="inner"></div></section></div></div>
   <pre id="debug"></pre>
-  <script>window.CGN_OVERLAY_BUS={clientId:"stream_events_winner_overlay",clientType:"overlay",mode:"obs_overlay",module:"stream_events",name:"Stream Events Gewinner-Finale Overlay",version:"0.5.8",heartbeatIntervalMs:5000,capabilities:["overlay.heartbeat","stream_events.winner_finale_display","stream_events.winner_finale","ack"],meta:{overlay:"event_winner_overlay.html",communication:"communication_bus",owner:"stream_events",step:"EVS49.8"}};</script>
+  <script>window.CGN_OVERLAY_BUS={clientId:"stream_events_winner_overlay",clientType:"overlay",mode:"obs_overlay",module:"stream_events",name:"Stream Events Gewinner-Finale Overlay",version:"0.5.9",heartbeatIntervalMs:5000,capabilities:["overlay.heartbeat","stream_events.winner_finale_display","stream_events.winner_finale","ack"],meta:{overlay:"event_winner_overlay.html",communication:"communication_bus",owner:"stream_events",step:"EVS49.9"}};</script>
   <script>
   (function(){"use strict";const qs=new URLSearchParams(window.location.search);const DEBUG=/[?&]debug=1\b/.test(window.location.search);const DEBUG_MODE=String(qs.get("debug")||"").trim().toLowerCase();const GRID_DEBUG=DEBUG_MODE==="grid"||DEBUG_MODE==="ruler"||qs.get("grid")==="1";const FINAL_STATE=String(qs.get("state")||"").trim().toLowerCase()==="final";const LAYOUT_DEBUG=String(qs.get("debug")||"").toLowerCase()==="layout"||qs.get("layout")==="1";const demo=String(qs.get("demo")||"").trim().toLowerCase();const speed=String(qs.get("speed")||"normal").trim().toLowerCase();const eventUid=String(qs.get("eventUid")||qs.get("event_uid")||"").trim();const finaleRoute=eventUid?`/api/stream-events/events/${encodeURIComponent(eventUid)}/finale`:"";const fastMode=speed==="fast"||speed==="test"||qs.get("fast")==="1";const timeline=fastMode?{intro:700,honor:1200,top:1700,gap:320,final:4200}:{intro:3500,honor:6500,top:9000,gap:900,final:42000};const autoHideMs=Math.max(12000,Math.min(360000,Number(qs.get("hideMs")||(fastMode?52000:220000))));const els={stage:document.getElementById("stage"),phaseTitle:document.getElementById("phaseTitle"),phaseSubtitle:document.getElementById("phaseSubtitle"),confetti:document.getElementById("confetti"),debug:document.getElementById("debug"),pixelGrid:document.getElementById("pixelGrid"),slots:{1:document.getElementById("slot1"),2:document.getElementById("slot2"),3:document.getElementById("slot3"),4:document.getElementById("honor4"),5:document.getElementById("honor5"),6:document.getElementById("honor6"),7:document.getElementById("honor7"),8:document.getElementById("honor8"),9:document.getElementById("honor9"),10:document.getElementById("honor10")}};let timers=[];let hideTimer=null;let currentFinaleUid="";if(DEBUG)document.body.classList.add("debug");if(LAYOUT_DEBUG){document.body.classList.add("layout-debug");}if(GRID_DEBUG){document.body.classList.add("grid-debug");buildPixelGrid();}function log(v){if(!DEBUG)return;try{els.debug.textContent=typeof v==="string"?v:JSON.stringify(v,null,2)}catch(err){els.debug.textContent=String(v)}}function defer(fn,ms){const t=window.setTimeout(fn,ms);timers.push(t);return t}function clearTimers(){timers.forEach((t)=>window.clearTimeout(t));timers=[];if(hideTimer)window.clearTimeout(hideTimer);hideTimer=null}function cleanText(v,f){const t=String(v==null?"":v).trim();return t||f||""}function cleanNumber(v,f){const n=Number(v);return Number.isFinite(n)?n:Number(f||0)}function formatInt(v){return cleanNumber(v,0).toLocaleString("de-DE")}function pointsLabel(p){const n=cleanNumber(p,0);return `${formatInt(n)} ${n===1?"Punkt":"Punkte"}`}function crumbsLabel(v){return `+${formatInt(v)} extra`}function firstExisting(r,keys,f){for(const k of keys){if(r&&r[k]!=null&&String(r[k]).trim()!=="")return r[k]}return f}function avatarUrl(r){return cleanText(firstExisting(r,["avatarUrl","avatar_url","profileImageUrl","profile_image_url","profileImage","profile_image","userAvatar","user_avatar","avatar"],""),"")}function initials(name){const text=cleanText(name,"CGN").replace(/[^\p{L}\p{N}\s_-]/gu,"").trim();const parts=text.split(/[\s_-]+/).filter(Boolean);if(parts.length>=2)return `${parts[0][0]}${parts[1][0]}`.toUpperCase();return text.slice(0,2).toUpperCase()||"CG"}function escapeHtml(v){return String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;")}function normalizeRow(row,index){const src=row&&typeof row==="object"?row:{};const rank=cleanNumber(firstExisting(src,["rank","place","position"],index+1),index+1);const login=cleanText(firstExisting(src,["userLogin","user_login","login","username","userName","user_name"],""),"");const display=cleanText(firstExisting(src,["userDisplayName","user_display_name","displayName","display_name","name"],login),login||`Platz ${rank}`);return{rank,userLogin:login,userDisplayName:display,points:cleanNumber(firstExisting(src,["points","total_points","score","totalScore","total_score"],0),0),entries:cleanNumber(firstExisting(src,["entries","entry_count","answerCount","answer_count","solved","solvedCount"],0),0),avatarUrl:avatarUrl(src),rewardLabel:cleanText(firstExisting(src,["rewardLabel","reward_label","prizeLabel","prize_label","prize"],""),""),rewardValue:cleanText(firstExisting(src,["rewardValue","reward_value","prizeValue","prize_value"],""),""),crumbBonus:cleanNumber(firstExisting(src,["crumbBonus","crumb_bonus","kekskruemel","cookieCrumbs","cookie_crumbs"],0),0)}}function rowKey(r){return String(r.userLogin||r.userDisplayName||"").trim().toLowerCase()}function uniqueRows(rows){const seen=new Set();return rows.filter((row)=>{const key=rowKey(row)||`rank_${row.rank}`;if(seen.has(key))return false;seen.add(key);return true})}function normalizeFinale(input){const root=input&&typeof input==="object"?input:{};const finale=root.finale&&typeof root.finale==="object"?root.finale:root;const preview=root.preview&&typeof root.preview==="object"?root.preview:{};const event=root.event||preview.event||finale.event||{};const rawWinner=finale.winner||preview.winner||{};const rankingSources=[finale.ranking,finale.top10,finale.topTen,finale.leaderboard,finale.results,finale.rows,preview.ranking,preview.top10,preview.topTen,preview.leaderboard,preview.topCandidates,preview.results];let ranking=[];for(const source of rankingSources){if(Array.isArray(source)&&source.length){ranking=source.map(normalizeRow);break}}const top3Source=Array.isArray(finale.top3)?finale.top3:(Array.isArray(preview.top3)?preview.top3:[]);const top3=top3Source.map(normalizeRow);const candidates=(Array.isArray(finale.candidates)?finale.candidates:(Array.isArray(preview.topCandidates)?preview.topCandidates:[])).map(normalizeRow);const winner=normalizeRow(rawWinner&&Object.keys(rawWinner).length?rawWinner:(top3[0]||ranking[0]||candidates[0]||{}),0);if(!ranking.length)ranking=uniqueRows([winner,...top3,...candidates]).filter((row)=>row.userDisplayName);ranking=uniqueRows(ranking).sort((a,b)=>a.rank!==b.rank?a.rank-b.rank:b.points-a.points);let podiumRows=ranking.filter((row)=>row.rank>=1&&row.rank<=3).slice(0,3);if(podiumRows.length<3&&top3.length)podiumRows=uniqueRows([...podiumRows,...top3]).sort((a,b)=>a.rank-b.rank).slice(0,3);const honorRows=ranking.filter((row)=>row.rank>=4&&row.rank<=10).sort((a,b)=>a.rank-b.rank);const eventName=cleanText(firstExisting(finale,["eventName","event_name","name"],firstExisting(event,["title","name"],"CGN Event-Finale")),"CGN Event-Finale");return{finaleUid:cleanText(firstExisting(finale,["finaleUid","uid","id"],firstExisting(preview,["finaleUid","uid"],eventUid||`finale_${Date.now()}`)),`finale_${Date.now()}`),eventUid:cleanText(firstExisting(finale,["eventUid","event_uid"],firstExisting(event,["uid","id"],eventUid)),eventUid||""),eventName,winner,podiumRows,honorRows}}function clearConfetti(){els.confetti.innerHTML=""}function makeConfetti(amount){clearConfetti();const count=Math.max(10,Math.min(120,amount||40));for(let i=0;i<count;i+=1){const p=document.createElement("i");p.style.left=`${Math.random()*100}%`;p.style.animationDuration=`${4.5+Math.random()*3.5}s`;p.style.animationDelay=`${Math.random()*.8}s`;p.style.transform=`translateY(-60px) rotate(${Math.random()*360}deg)`;els.confetti.appendChild(p)}}function setPhase(title,subtitle){els.phaseTitle.textContent=title;els.phaseSubtitle.textContent=subtitle||""}function renderAvatar(container,row){if(!container)return;container.innerHTML="";const url=cleanText(row&&row.avatarUrl,"");if(url){const img=document.createElement("img");img.alt="";img.decoding="async";img.referrerPolicy="no-referrer";img.src=url;img.onerror=()=>{container.textContent=initials(row&&row.userDisplayName)};container.appendChild(img);return}container.textContent=initials(row&&row.userDisplayName)}function fitOrMarquee(el,text,maxSize,minSize){if(!el)return;el.classList.remove("marquee","active");const slot=el.closest(".award-slot,.honor-slot");if(slot)slot.classList.remove("force-marquee");el.innerHTML="";el.style.display="block";el.style.width="100%";el.style.overflow="hidden";el.style.whiteSpace="nowrap";const raw=cleanText(text,"");const span=document.createElement("span");span.textContent=raw;span.style.display="inline-block";span.style.whiteSpace="nowrap";el.appendChild(span);let size=maxSize;el.style.fontSize=`${size}px`;while(size>minSize&&span.scrollWidth>el.clientWidth+1){size-=1;el.style.fontSize=`${size}px`}const stillOverflow=span.scrollWidth>el.clientWidth+1;const forceAward=el.classList.contains("award-name")&&raw.length>20;const forceHonor=el.classList.contains("honor-name")&&raw.length>22;if(stillOverflow||forceAward||forceHonor){if(slot)slot.classList.add("force-marquee");span.style.maxWidth="none";span.style.willChange="transform";el.classList.add("marquee","active");requestAnimationFrame(()=>{const shift=Math.max(18,span.scrollWidth-el.clientWidth+22);el.style.setProperty("--shift",`${shift}px`);el.style.setProperty("--dur",`${Math.min(16,Math.max(6,shift/18))}s`)})}}function renderAward(row){const slot=els.slots[row.rank];if(!slot)return;const reward=row.rewardValue?`${row.rewardLabel} · ${row.rewardValue}`:row.rewardLabel;slot.querySelector(".inner").innerHTML=`<div class="award-rank">Platz ${escapeHtml(row.rank)}</div><div class="avatar-wrap"><div class="avatar"></div></div><div class="name-box"><div class="award-name"></div></div><div class="award-points">${escapeHtml(pointsLabel(row.points))}</div><div class="award-reward">${escapeHtml(reward)}</div>`;renderAvatar(slot.querySelector(".avatar"),row);fitOrMarquee(slot.querySelector(".award-name"),row.userDisplayName,row.rank===1?30:25,row.rank===1?17:15);slot.classList.add("filled","active");defer(()=>slot.classList.remove("active"),1800)}function renderHonor(row){const slot=els.slots[row.rank];if(!slot)return;slot.querySelector(".inner").innerHTML=`<div class="honor-name-box"><div class="honor-name"></div></div><div class="honor-reward">${escapeHtml(crumbsLabel(row.crumbBonus))}</div>`;fitOrMarquee(slot.querySelector(".honor-name"),row.userDisplayName,17,11);slot.classList.add("filled","active");defer(()=>slot.classList.remove("active"),1500)}function resetView(){Object.values(els.slots).forEach((slot)=>{if(!slot)return;slot.classList.remove("filled","active");const inner=slot.querySelector(".inner");if(inner)inner.innerHTML=""});clearConfetti()}function playFinale(rawFinale,options){const finale=normalizeFinale(rawFinale);if(!finale.podiumRows.length&&!finale.honorRows.length)return;if(!(options&&options.force)&&currentFinaleUid&&currentFinaleUid===finale.finaleUid)return;currentFinaleUid=finale.finaleUid;clearTimers();resetView();log({speed,fastMode,timeline,finale});els.stage.classList.add("visible");let at=250;defer(()=>setPhase(finale.eventName||"CGN Event-Finale","Die Zusatzpreise und Gutschein-Plätze werden jetzt enthüllt."),at);at+=timeline.intro;const honorRevealOrder=[10,9,8,7,6,5,4];honorRevealOrder.forEach((rank)=>{const row=(finale.honorRows||[]).find((item)=>item.rank===rank);if(!row)return;defer(()=>{setPhase(`Platz ${row.rank}`,`${row.userDisplayName} bekommt ${crumbsLabel(row.crumbBonus)} extra Kekskrümel.`);renderHonor(row);makeConfetti(fastMode?10:16)},at);at+=timeline.honor+timeline.gap});defer(()=>setPhase("Finale Top 3","Jetzt werden die Gutschein-Plätze enthüllt."),at);at+=timeline.intro;const podiumOrder=[2,3,1];podiumOrder.forEach((rank)=>{const row=(finale.podiumRows||[]).find((item)=>item.rank===rank);if(!row)return;defer(()=>{setPhase(`Platz ${row.rank}`,`${row.userDisplayName} sichert sich den Gutschein-Platz.`);renderAward(row);makeConfetti(rank===1?(fastMode?50:90):(fastMode?20:32))},at);at+=timeline.top+timeline.gap});const winner=(finale.podiumRows||[]).find((item)=>item.rank===1)||finale.winner;defer(()=>{if(winner)setPhase("CGN Event-Gewinner",`${winner.userDisplayName} steht auf Platz 1.`);makeConfetti(fastMode?80:120)},at);at+=timeline.final;defer(()=>{els.stage.classList.remove("visible");clearConfetti()},Math.max(at+1500,Math.min(autoHideMs,at+2500)))}function buildPixelGrid(){if(!els.pixelGrid)return;els.pixelGrid.innerHTML="";for(let x=0;x<=1920;x+=100){const line=document.createElement("div");line.className="grid-line v"+(x===960?" grid-center-v":"");line.style.left=`${x}px`;els.pixelGrid.appendChild(line);const label=document.createElement("div");label.className="grid-label x";label.style.left=`${x}px`;label.textContent=`x:${x}`;els.pixelGrid.appendChild(label)}for(let y=0;y<=1080;y+=100){const line=document.createElement("div");line.className="grid-line h"+(y===540?" grid-center-h":"");line.style.top=`${y}px`;els.pixelGrid.appendChild(line);const label=document.createElement("div");label.className="grid-label y";label.style.top=`${y}px`;label.textContent=`y:${y}`;els.pixelGrid.appendChild(label)}const note=document.createElement("div");note.className="grid-note";note.textContent="Raster: dünn 50px · gelb 100px · Mitte x960/y540 · debug=layout zeigt Slotboxen";els.pixelGrid.appendChild(note)}
 function renderFinaleInstant(rawFinale){const finale=normalizeFinale(rawFinale);clearTimers();resetView();els.stage.classList.add("visible");setPhase("CGN Event-Gewinner",`${(finale.winner&&finale.winner.userDisplayName)||"Gewinner"} steht auf Platz 1.`);(finale.honorRows||[]).forEach(renderHonor);(finale.podiumRows||[]).forEach(renderAward);log({state:"final",finale})}
@@ -295,5 +330,73 @@ function demoFinale(kind){const long=kind==="long";const rows=[{rank:1,userDispl
     })();
   </script>
 
-  <script src="/overlays/shared/overlay_bus_client.js" data-overlay-id="stream_events_winner_overlay" data-client-type="overlay" data-mode="obs_overlay" data-module="stream_events" data-name="Stream Events Gewinner-Finale Overlay" data-version="0.5.8" data-heartbeat-ms="5000"></script>
+
+  <script>
+    (function () {
+      const qs = new URLSearchParams(window.location.search);
+      const debug = String(qs.get("debug") || "").toLowerCase();
+      const wantsGrid = debug === "finegrid" || debug === "fine" || qs.get("finegrid") === "1";
+      if (!wantsGrid) return;
+      document.body.classList.add("fine-grid-debug");
+      let grid = document.getElementById("pixelGrid");
+      const canvas = document.getElementById("canvas");
+      if (!grid && canvas) {
+        grid = document.createElement("div");
+        grid.id = "pixelGrid";
+        grid.className = "pixel-grid";
+        canvas.appendChild(grid);
+      }
+      if (!grid) return;
+      grid.innerHTML = "";
+      for (let x = 0; x <= 1920; x += 100) {
+        const v = document.createElement("div");
+        v.className = "grid-line v" + (x === 960 ? " grid-center-v" : "");
+        v.style.left = x + "px";
+        grid.appendChild(v);
+
+        const label = document.createElement("div");
+        label.className = "grid-label x";
+        label.style.left = x + "px";
+        label.style.top = "2px";
+        label.textContent = "x:" + x;
+        grid.appendChild(label);
+      }
+      for (let y = 0; y <= 1080; y += 100) {
+        const h = document.createElement("div");
+        h.className = "grid-line h" + (y === 540 ? " grid-center-h" : "");
+        h.style.top = y + "px";
+        grid.appendChild(h);
+
+        const label = document.createElement("div");
+        label.className = "grid-label y";
+        label.style.left = "2px";
+        label.style.top = y + "px";
+        label.textContent = "y:" + y;
+        grid.appendChild(label);
+      }
+      // zusätzliche 50er-Labels im Bildbereich, damit man schneller ablesen kann
+      for (let x = 50; x <= 1900; x += 100) {
+        const label = document.createElement("div");
+        label.className = "grid-label x fine-label";
+        label.style.left = x + "px";
+        label.style.top = "20px";
+        label.textContent = "x:" + x;
+        grid.appendChild(label);
+      }
+      for (let y = 50; y <= 1050; y += 100) {
+        const label = document.createElement("div");
+        label.className = "grid-label y fine-label";
+        label.style.left = "48px";
+        label.style.top = y + "px";
+        label.textContent = "y:" + y;
+        grid.appendChild(label);
+      }
+      const note = document.createElement("div");
+      note.className = "grid-note";
+      note.textContent = "Feinraster: cyan 25px · weiß 50px · gelb 100px · Mitte x960/y540";
+      grid.appendChild(note);
+    })();
+  </script>
+
+  <script src="/overlays/shared/overlay_bus_client.js" data-overlay-id="stream_events_winner_overlay" data-client-type="overlay" data-mode="obs_overlay" data-module="stream_events" data-name="Stream Events Gewinner-Finale Overlay" data-version="0.5.9" data-heartbeat-ms="5000"></script>
 </body></html>
