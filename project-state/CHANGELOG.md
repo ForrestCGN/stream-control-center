@@ -1,5 +1,6 @@
-# CHANGELOG – EVS52.20
+# CHANGELOG – EVS52.21
 
-- Winner-Finale-Overlay: Restart-Loop beim selben aktiven Finale verhindert.
-- Reveal-Timer werden vor einem echten neuen Rendern bereinigt.
-- Latest-Poll ignoriert denselben aktiven Finale-State, statt die Timeline neu zu starten.
+- Dashboard um Button `🔁 Auswertung erneut abspielen` erweitert.
+- Button erscheint nur, wenn bereits ein Finale existiert, aber nicht aktiv ist.
+- Replay nutzt dieselbe Finale-Struktur und lost nicht neu aus.
+- EVS52.20 Winner-Overlay-Datei mit No-Restart-Loop-Fix bleibt enthalten.

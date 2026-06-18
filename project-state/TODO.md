@@ -1,5 +1,5 @@
-# TODO – nach EVS52.20
+# TODO – Event-System
 
-- EVS52.20 einspielen und testen: Finale starten, prüfen dass Header/Texte nicht mehr wiederholt neu einblenden.
-- Danach Finale über Dashboard-Button beenden testen.
-- Später Replay-/Erneut-anzeigen-Button sauber planen, falls gewünscht.
+- EVS52.21 testen: Finale starten, Finale beenden, Auswertung erneut abspielen.
+- Danach Doku/Handoff final aktualisieren, wenn Dashboard-Replay bestätigt ist.
+- Später: `!event status` prüfen/fixen.

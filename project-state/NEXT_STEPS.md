@@ -1,7 +1,8 @@
-# NEXT STEPS – EVS52.20
+# NEXT STEPS – EVS52.21
 
-1. ZIP entpacken.
+1. ZIP einspielen.
 2. StepDone ausführen.
-3. Backend/OBS-Browserquelle neu laden.
-4. Finale starten/replayen und beobachten, ob die Timeline nur einmal läuft.
-5. Finale manuell beenden.
+3. Dashboard hart neu laden.
+4. Finale beenden.
+5. Prüfen, ob `🔁 Auswertung erneut abspielen` sichtbar ist.
+6. Replay starten und Overlay beobachten.

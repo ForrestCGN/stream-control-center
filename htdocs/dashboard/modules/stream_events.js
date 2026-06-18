@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.53";
-  const MODULE_BUILD = "STEP_EVS52_16_DASHBOARD_FINALE_BUTTON";
+  const MODULE_VERSION = "0.5.56";
+  const MODULE_BUILD = "STEP_EVS52_21_WINNER_FINALE_REPLAY_BUTTON";
 
   const api = {
     status: '/api/stream-events/status',
@@ -265,7 +265,7 @@ window.StreamEventsModule = (function(){
       <div class="evs-page">
         <div class="evs-header glass">
           <div>
-            <div class="evs-kicker">EVS52.19 · Finale manuell beenden</div>
+            <div class="evs-kicker">EVS52.21 · Finale erneut abspielen</div>
             <h2>Event-System</h2>
             <p>Übersicht zeigt den aktuellen Event-Stand und die nächste sinnvolle Aktion.</p>
           </div>
@@ -1528,8 +1528,12 @@ window.StreamEventsModule = (function(){
     const preview = finalePreviewForEvent(event);
     const eligibility = preview?.finaleEligibility || null;
     const finaleActive = Boolean(eligibility?.finaleActive || eligibility?.canEnd || preview?.finaleActive || preview?.dashboardCanEndFinale);
+    const existingFinale = Boolean(eligibility?.finaleStarted || preview?.finaleStarted || preview?.existingFinale || event?.winnerFinale);
     if (finaleActive) {
       return `<button type="button" class="evs-btn evs-btn-danger evs-btn-finale" data-evs-action="endWinnerFinale" data-uid="${esc(event.eventUid)}">⏹ Finale beenden</button>`;
+    }
+    if (existingFinale) {
+      return `<button type="button" class="evs-btn evs-btn-primary evs-btn-finale" data-evs-action="replayWinnerFinale" data-uid="${esc(event.eventUid)}">🔁 Auswertung erneut abspielen</button>`;
     }
     const canFinale = Boolean(eligibility?.canStart || preview?.dashboardCanStartFinale);
     if (!canFinale) return '';
@@ -1565,7 +1569,7 @@ window.StreamEventsModule = (function(){
         </div>
         <div class="evs-safety-rule-list">
           <div class="${canArchive ? 'is-ok' : 'is-blocked'}"><b>Archivieren</b><span>${canArchive ? 'Dieses Event ist beendet und kann archiviert werden.' : 'Archivieren ist erst möglich, wenn das Event beendet wurde.'}</span></div>
-          <div class="${(canFinale || finaleActive) ? 'is-ok' : 'is-blocked'}"><b>Auswertung</b><span>${finaleActive ? 'Finale läuft und bleibt sichtbar, bis du es manuell beendest.' : (canFinale ? `Auswertung ist möglich. ${rankingCount} Ranglisten-Eintrag(e) vorhanden.` : finaleBlockedReasonLabel(finaleReason))}</span></div>
+          <div class="${(canFinale || finaleActive || finaleStarted) ? 'is-ok' : 'is-blocked'}"><b>Auswertung</b><span>${finaleActive ? 'Finale läuft und bleibt sichtbar, bis du es manuell beendest.' : (finaleStarted ? 'Auswertung ist vorbereitet und kann erneut abgespielt werden.' : (canFinale ? `Auswertung ist möglich. ${rankingCount} Ranglisten-Eintrag(e) vorhanden.` : finaleBlockedReasonLabel(finaleReason)))}</span></div>
           <div><b>Löschen</b><span>Löschen fragt einmal nach und entfernt dieses Event dauerhaft.</span></div>
           <div><b>Was bleibt erhalten?</b><span>Archivieren behält Punkte, Runden und Textdaten. Löschen entfernt das Event vollständig.</span></div>
         </div>
@@ -3752,6 +3756,29 @@ window.StreamEventsModule = (function(){
     }
   }
 
+  async function replayWinnerFinale(uid){
+    if (!uid) return;
+    const event = state.events.find(e => e.eventUid === uid) || state.selected;
+    if (norm(event?.status) !== 'finished') {
+      state.error = 'Die Auswertung kann erst erneut abgespielt werden, wenn das Event beendet ist.';
+      render();
+      return;
+    }
+    if (!confirm('Auswertung erneut abspielen? Es wird nicht neu ausgelost, sondern dasselbe Finale nochmal im Overlay gestartet.')) return;
+    try {
+      const result = await window.CGN.api(`${api.events}/${encodeURIComponent(uid)}/finale/start?confirm=1`, {
+        method: 'POST',
+        body: JSON.stringify({ actor: 'dashboard', replay: true })
+      });
+      const winner = result?.finale?.winner?.userDisplayName || result?.finale?.winner?.userLogin || 'Gewinner';
+      state.message = `Auswertung wird erneut abgespielt: ${winner}.`;
+      await reloadDashboardAfterMutation(uid, { keepTab: true });
+    } catch (err) {
+      state.error = err.message || String(err);
+      render();
+    }
+  }
+
   async function endWinnerFinale(uid){
     if (!uid) return;
     if (!confirm('Finale jetzt beenden? Das Gewinner-Overlay wird ausgeblendet.')) return;
@@ -4082,6 +4109,7 @@ window.StreamEventsModule = (function(){
       if (action === 'start') return eventAction('start', uid);
       if (action === 'finish') return eventAction('finish', uid);
       if (action === 'winnerFinale') return startWinnerFinale(uid);
+      if (action === 'replayWinnerFinale') return replayWinnerFinale(uid);
       if (action === 'endWinnerFinale') return endWinnerFinale(uid);
       if (action === 'cancel') return eventAction('cancel', uid);
       if (action === 'archive') return archiveSelectedEvent(uid);

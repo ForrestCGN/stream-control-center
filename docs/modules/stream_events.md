@@ -1,7 +1,13 @@
-# Stream Events – EVS52.20 Winner Finale No Restart Loop
+# Stream Events – EVS52.21 Ergänzung
 
-EVS52.20 korrigiert nur das Winner-Finale-Overlay.
+EVS52.21 ergänzt die Dashboard-Bedienung für Gewinner-Finale/Replays.
 
-Das Overlay darf ein bereits sichtbares aktives Finale nicht erneut rendern, wenn derselbe Finale-State durch Poll oder Bus nochmal ankommt. Dadurch wird verhindert, dass die Reveal-Timeline immer wieder von vorne startet und Header wie „Glückwunsch“, „Platz 1“, „Platz 2“ wiederholt eingeblendet werden.
+## Finale-Buttons
 
-Manuelles Beenden aus EVS52.19 bleibt gültig: Das Finale bleibt sichtbar, bis der Ende-Button/Ende-Event es explizit ausblendet.
+Die Dashboard-Aktion wird je nach Finale-State angezeigt:
+
+- `🏆 Auswertung starten`: Event ist beendet, Ranking vorhanden, kein Finale existiert.
+- `⏹ Finale beenden`: Finale ist aktiv und Overlay bleibt sichtbar.
+- `🔁 Auswertung erneut abspielen`: Finale existiert bereits, ist aber nicht aktiv.
+
+Replay nutzt die vorhandene `finale/start?confirm=1` Route und erzeugt keine neue Auslosung.
