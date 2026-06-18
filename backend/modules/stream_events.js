@@ -7,7 +7,9 @@
  * - Keeps EVS-12 Text-Runtime dashboard report.
  * - Adds user statistics list/detail endpoints for dropdown filtering.
  * - Prepares text and future sound statistics in one user-focused report.
- * - EVS52.8 keeps Sound-Chat intact and adds a wildcard bus fallback subscriber for twitch.chat.message so the Satz/Text runtime uses the real Twitch-Events bus path.
+ * - EVS52.9 cleans up duplicate chat bridges.
+ * - Chat input is subscribed centrally via twitch_events -> communication_bus -> twitch.chat.message.
+ * - Sound and Satz/Text runtime share processParallelChatMessage().
  */
 
 const crypto = require("crypto");
@@ -29,8 +31,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.79";
-const MODULE_BUILD = "STEP_EVS52_8_TWITCH_CHAT_BUS_FALLBACK";
+const MODULE_VERSION = "0.5.80";
+const MODULE_BUILD = "STEP_EVS52_9_TWITCH_EVENTS_CHAT_SUBSCRIBER";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -379,19 +381,8 @@ let runtimeState = {
     lastError: "",
     lastResult: null
   },
-  directChatBridge: {
-    installed: false,
-    delivered: 0,
-    skipped: 0,
-    errors: 0,
-    lastAt: "",
-    lastReason: "",
-    lastMessageId: "",
-    lastLogin: "",
-    lastMessagePreview: "",
-    lastError: ""
-  },
-  twitchChatBusFallback: {
+  chatSource: {
+    mode: "twitch_events_bus_subscription",
     subscribed: false,
     delivered: 0,
     skipped: 0,
@@ -404,7 +395,9 @@ let runtimeState = {
     lastEventKey: "",
     lastLogin: "",
     lastMessagePreview: "",
-    lastError: ""
+    lastError: "",
+    legacyDirectBridgeRemoved: true,
+    legacyWildcardFallbackRemoved: true
   },
   lastTextChatRuntime: null
 };
@@ -2837,42 +2830,7 @@ function processTextChatMessage(chat = {}, options = {}) {
 
 function isLiveChatRuntimeSource(source = "") {
   const clean = cleanString(source);
-  return clean === "bus:twitch.chat.message" || clean.startsWith("bus:") || clean === "direct:twitch_events.handleIrcEvent" || clean.startsWith("direct:twitch_presence");
-}
-
-function extractChatPayloadFromIrcParsed(parsed = {}, context = {}) {
-  const raw = parsed && typeof parsed === "object" ? parsed : {};
-  const tags = raw.tags && typeof raw.tags === "object" ? raw.tags : {};
-  const badges = raw.badges && typeof raw.badges === "object" ? raw.badges : {};
-  const params = Array.isArray(raw.params) ? raw.params : [];
-  const message = cleanString(raw.message || raw.text || params[1] || params[params.length - 1] || "");
-  const login = cleanString(raw.login || tags.login || raw.userLogin || raw.username || "").replace(/^@/, "").toLowerCase();
-  const displayName = cleanString(raw.displayName || tags["display-name"] || raw.userDisplayName || raw.userName || login, login);
-  const messageId = cleanString(tags.id || tags["message-id"] || raw.messageId || raw.message_id || "");
-  const userAvatarUrl = cleanString(raw.userAvatarUrl || raw.avatarUrl || raw.profileImageUrl || raw.profile_image_url || "");
-  return {
-    message,
-    userLogin: login,
-    userDisplayName: displayName,
-    userAvatarUrl,
-    messageId,
-    raw: {
-      source: "irc_parsed",
-      command: cleanString(raw.command || ""),
-      channel: cleanString(context.channel || raw.channel || params[0] || "").replace(/^#/, "").toLowerCase(),
-      userId: cleanString(tags["user-id"] || raw.userId || ""),
-      badges: safeJson(badges, {})
-    }
-  };
-}
-
-function didBusPathHandleChat(beforeAt = "", chat = {}) {
-  const last = runtimeState.lastTextChatRuntime || null;
-  if (!last || !last.at || last.at === beforeAt) return false;
-  if (!String(last.source || "").startsWith("bus:")) return false;
-  const msgId = cleanString(chat.messageId || "");
-  if (msgId && cleanString(last.messageId || "") && cleanString(last.messageId || "") === msgId) return true;
-  return cleanString(last.userLogin || "") === cleanString(chat.userLogin || "") && cleanString(last.message || "") === cleanString(chat.message || "");
+  return clean === "bus:twitch.chat.message" || clean.startsWith("bus:twitch.chat.message");
 }
 
 function processParallelChatMessage(chat = {}, context = {}) {
@@ -2990,154 +2948,6 @@ function processParallelChatMessage(chat = {}, context = {}) {
 }
 
 
-function handleTwitchPresenceIrcChat(parsed = {}, context = {}, options = {}) {
-  const bridge = runtimeState.directChatBridge;
-  try {
-    const command = cleanString(parsed && parsed.command || "").toUpperCase();
-    if (command !== "PRIVMSG") {
-      bridge.skipped += 1;
-      bridge.lastReason = "presence_not_privmsg";
-      return { ok: true, skipped: true, reason: "not_privmsg" };
-    }
-    const chat = extractChatPayloadFromIrcParsed(parsed, context);
-    if (!chat.message || !chat.userLogin) {
-      bridge.skipped += 1;
-      bridge.lastReason = "presence_invalid_irc_chat_payload";
-      return { ok: false, skipped: true, reason: "invalid_irc_chat_payload" };
-    }
-    const beforeAt = cleanString(options.beforeAt || "");
-    if (didBusPathHandleChat(beforeAt, chat)) {
-      bridge.skipped += 1;
-      bridge.lastReason = "presence_bus_path_already_handled";
-      return { ok: true, skipped: true, reason: "bus_path_already_handled" };
-    }
-    const runtimeResult = processParallelChatMessage(chat, { source: "direct:twitch_presence.emitTwitchChatEvent" });
-    bridge.delivered += 1;
-    bridge.lastAt = nowIso();
-    bridge.lastReason = runtimeResult && (runtimeResult.reason || runtimeResult.reasonCode) ? (runtimeResult.reason || runtimeResult.reasonCode) : "presence_direct_bridge_processed";
-    bridge.lastMessageId = chat.messageId || "";
-    bridge.lastLogin = chat.userLogin || "";
-    bridge.lastMessagePreview = chat.message.slice(0, 120);
-    bridge.lastError = "";
-    return { ok: true, source: "direct:twitch_presence.emitTwitchChatEvent", chat, result: runtimeResult };
-  } catch (err) {
-    bridge.errors += 1;
-    bridge.lastError = err && err.message ? err.message : String(err);
-    bridge.lastReason = "presence_direct_bridge_error";
-    return { ok: false, reason: "presence_direct_bridge_error", error: bridge.lastError };
-  }
-}
-
-function getLastTextChatRuntimeAt() {
-  return runtimeState.lastTextChatRuntime && runtimeState.lastTextChatRuntime.at ? runtimeState.lastTextChatRuntime.at : "";
-}
-
-function handleTwitchChatEnvelope(envelope = {}) {
-  const chat = extractChatPayload(envelope);
-  runtimeState.counters.twitchChatMessages += 1;
-  if (!chat.message || !chat.userLogin) {
-    runtimeState.counters.textRuntimeSkipped += 1;
-    runtimeState.lastTextChatRuntime = {
-      at: nowIso(),
-      source: "bus:twitch.chat.message",
-      skipped: true,
-      reason: "invalid_bus_chat_payload",
-      envelope: {
-        id: cleanString(envelope.id || envelope.eventId || ""),
-        channel: cleanString(envelope.channel || ""),
-        action: cleanString(envelope.action || ""),
-        eventKey: getTwitchChatEventKeyFromEnvelope(envelope)
-      }
-    };
-    return { ok: true, skipped: true, reason: "invalid_bus_chat_payload" };
-  }
-  if (didBusPathHandleChat("", chat)) return { ok: true, skipped: true, reason: "chat_already_handled_by_stream_events" };
-  const commandResult = processEventCommand(chat);
-  if (commandResult) return commandResult;
-  return processParallelChatMessage(chat, { source: "bus:twitch.chat.message" });
-}
-
-function registerTwitchEventsDirectChatBridge() {
-  const bridge = runtimeState.directChatBridge;
-  try {
-    const twitchEvents = require("./twitch_events");
-    if (!twitchEvents || typeof twitchEvents.handleIrcEvent !== "function") {
-      bridge.installed = false;
-      bridge.lastReason = "twitch_events_handleIrcEvent_unavailable";
-      return { ok: false, reason: bridge.lastReason };
-    }
-    if (twitchEvents.__streamEventsDirectChatBridgeInstalled === true) {
-      bridge.installed = true;
-      bridge.lastReason = "already_installed";
-      return { ok: true, reason: "already_installed" };
-    }
-    const original = twitchEvents.handleIrcEvent;
-    twitchEvents.handleIrcEvent = function streamEventsPatchedHandleIrcEvent(parsed = {}, context = {}, options = {}) {
-      const beforeAt = runtimeState.lastTextChatRuntime && runtimeState.lastTextChatRuntime.at ? runtimeState.lastTextChatRuntime.at : "";
-      const result = original.call(this, parsed, context, options);
-      try {
-        const command = cleanString(parsed && parsed.command || "").toUpperCase();
-        if (command !== "PRIVMSG") {
-          bridge.skipped += 1;
-          bridge.lastReason = "not_privmsg";
-          return result;
-        }
-        const chat = extractChatPayloadFromIrcParsed(parsed, context);
-        if (!chat.message || !chat.userLogin) {
-          bridge.skipped += 1;
-          bridge.lastReason = "invalid_irc_chat_payload";
-          return result;
-        }
-        if (didBusPathHandleChat(beforeAt, chat)) {
-          bridge.skipped += 1;
-          bridge.lastReason = "bus_path_already_handled";
-          return result;
-        }
-        const runtimeResult = processParallelChatMessage(chat, { source: "direct:twitch_events.handleIrcEvent" });
-        bridge.delivered += 1;
-        bridge.lastAt = nowIso();
-        bridge.lastReason = runtimeResult && runtimeResult.reason ? runtimeResult.reason : "direct_bridge_processed";
-        bridge.lastMessageId = chat.messageId || "";
-        bridge.lastLogin = chat.userLogin || "";
-        bridge.lastMessagePreview = chat.message.slice(0, 120);
-        bridge.lastError = "";
-      } catch (err) {
-        bridge.errors += 1;
-        bridge.lastError = err && err.message ? err.message : String(err);
-        bridge.lastReason = "direct_bridge_error";
-      }
-      return result;
-    };
-    twitchEvents.__streamEventsDirectChatBridgeInstalled = true;
-    bridge.installed = true;
-    bridge.lastReason = "installed";
-    bridge.lastError = "";
-    return { ok: true, reason: "installed" };
-  } catch (err) {
-    bridge.installed = false;
-    bridge.errors += 1;
-    bridge.lastError = err && err.message ? err.message : String(err);
-    bridge.lastReason = "install_error";
-    return { ok: false, reason: "install_error", error: bridge.lastError };
-  }
-}
-
-function registerTextChatSubscription() {
-  const bus = getBus();
-  if (!bus || typeof bus.subscribe !== "function") return { ok: false, reason: "communication_bus_subscribe_unavailable" };
-  const result = bus.subscribe({
-    id: `${MODULE_NAME}:twitch.chat.message`,
-    module: MODULE_NAME,
-    channel: "twitch.chat",
-    action: "message",
-    capability: "twitch.chat.message",
-    meta: { step: MODULE_BUILD, purpose: "stream_events_chat_runtime", acceptedSources: ["twitch_presence", "twitch_events"], directBridgeFallback: true, wildcardFallback: true }
-  }, (envelope) => handleTwitchChatEnvelope(envelope));
-  if (result && result.ok === true) {
-    publishStatus("chat.subscription.ready", { twitchChatSubscription: true, streamEventsChatRuntime: true });
-  }
-  return result;
-}
 
 function getTwitchChatEventKeyFromEnvelope(envelope = {}) {
   const payload = envelope && envelope.payload && typeof envelope.payload === "object" ? envelope.payload : {};
@@ -3146,16 +2956,58 @@ function getTwitchChatEventKeyFromEnvelope(envelope = {}) {
   return cleanString(meta.eventKey || payload.eventKey || twitch.eventKey || "");
 }
 
-function isTwitchChatBusEnvelope(envelope = {}) {
-  const channel = cleanString(envelope && envelope.channel || "");
-  const action = cleanString(envelope && envelope.action || "");
-  const eventKey = getTwitchChatEventKeyFromEnvelope(envelope);
-  if (eventKey === "twitch.chat.message") return true;
-  return channel === "twitch.chat" && action === "message";
+function handleTwitchChatEnvelope(envelope = {}) {
+  const state = runtimeState.chatSource;
+  const chat = extractChatPayload(envelope);
+  runtimeState.counters.twitchChatMessages += 1;
+
+  state.lastEventId = cleanString(envelope.id || envelope.eventId || "");
+  state.lastChannel = cleanString(envelope.channel || "");
+  state.lastAction = cleanString(envelope.action || "");
+  state.lastEventKey = getTwitchChatEventKeyFromEnvelope(envelope);
+  state.lastLogin = chat.userLogin || "";
+  state.lastMessagePreview = (chat.message || "").slice(0, 120);
+
+  if (!chat.message || !chat.userLogin) {
+    runtimeState.counters.textRuntimeSkipped += 1;
+    state.skipped += 1;
+    state.lastAt = nowIso();
+    state.lastReason = "invalid_bus_chat_payload";
+    state.lastError = "";
+    runtimeState.lastTextChatRuntime = {
+      at: nowIso(),
+      source: "bus:twitch.chat.message",
+      skipped: true,
+      reason: "invalid_bus_chat_payload",
+      envelope: {
+        id: state.lastEventId,
+        channel: state.lastChannel,
+        action: state.lastAction,
+        eventKey: state.lastEventKey
+      }
+    };
+    return { ok: true, skipped: true, reason: "invalid_bus_chat_payload" };
+  }
+
+  const commandResult = processEventCommand(chat);
+  if (commandResult) {
+    state.delivered += 1;
+    state.lastAt = nowIso();
+    state.lastReason = commandResult.reason || "event_command_processed";
+    state.lastError = "";
+    return commandResult;
+  }
+
+  const result = processParallelChatMessage(chat, { source: "bus:twitch.chat.message" });
+  state.delivered += 1;
+  state.lastAt = nowIso();
+  state.lastReason = cleanString(result && (result.reason || result.reasonCode) || "chat_processed");
+  state.lastError = "";
+  return result;
 }
 
-function registerTwitchChatWildcardBusFallback() {
-  const state = runtimeState.twitchChatBusFallback;
+function registerTextChatSubscription() {
+  const state = runtimeState.chatSource;
   const bus = getBus();
   if (!bus || typeof bus.subscribe !== "function") {
     state.subscribed = false;
@@ -3163,53 +3015,35 @@ function registerTwitchChatWildcardBusFallback() {
     return { ok: false, reason: state.lastReason };
   }
   const result = bus.subscribe({
-    id: `${MODULE_NAME}:twitch.chat.message.fallback`,
+    id: `${MODULE_NAME}:twitch.chat.message`,
     module: MODULE_NAME,
-    meta: { step: MODULE_BUILD, purpose: "stream_events_wildcard_twitch_chat_fallback", reason: "catch_twitch_chat_when_channel_action_filter_misses" }
-  }, (envelope) => handleTwitchChatWildcardEnvelope(envelope));
-  state.subscribed = !!(result && result.ok === true);
-  state.lastReason = state.subscribed ? "subscribed" : cleanString(result && (result.reason || result.error) || "subscribe_failed");
-  return result || { ok: false, reason: state.lastReason };
-}
+    channel: "twitch.chat",
+    action: "message",
+    capability: "twitch.chat.message",
+    meta: {
+      step: MODULE_BUILD,
+      purpose: "stream_events_chat_runtime",
+      source: "twitch_events",
+      acceptedSources: ["twitch_events", "twitch_presence_via_twitch_events"],
+      directBridgeFallback: false,
+      wildcardFallback: false
+    }
+  }, (envelope) => handleTwitchChatEnvelope(envelope));
 
-function handleTwitchChatWildcardEnvelope(envelope = {}) {
-  const state = runtimeState.twitchChatBusFallback;
-  try {
-    if (!isTwitchChatBusEnvelope(envelope)) {
-      state.skipped += 1;
-      state.lastReason = "not_twitch_chat_message";
-      return { ok: true, skipped: true, reason: state.lastReason };
-    }
-    const chat = extractChatPayload(envelope);
-    state.lastEventId = cleanString(envelope.id || envelope.eventId || "");
-    state.lastChannel = cleanString(envelope.channel || "");
-    state.lastAction = cleanString(envelope.action || "");
-    state.lastEventKey = getTwitchChatEventKeyFromEnvelope(envelope);
-    state.lastLogin = chat.userLogin || "";
-    state.lastMessagePreview = (chat.message || "").slice(0, 120);
-    if (!chat.message || !chat.userLogin) {
-      state.skipped += 1;
-      state.lastReason = "invalid_twitch_chat_payload";
-      return { ok: true, skipped: true, reason: state.lastReason };
-    }
-    if (didBusPathHandleChat("", chat)) {
-      state.skipped += 1;
-      state.lastReason = "already_handled_by_primary_subscription";
-      return { ok: true, skipped: true, reason: state.lastReason };
-    }
-    const result = processParallelChatMessage(chat, { source: "bus:twitch.chat.message.fallback" });
-    state.delivered += 1;
-    state.lastAt = nowIso();
-    state.lastReason = cleanString(result && (result.reason || result.reasonCode) || "fallback_processed");
-    state.lastError = "";
-    return { ok: true, fallback: true, result };
-  } catch (err) {
-    state.errors += 1;
-    state.lastAt = nowIso();
-    state.lastReason = "fallback_error";
-    state.lastError = err && err.message ? err.message : String(err);
-    return { ok: false, reason: state.lastReason, error: state.lastError };
+  state.subscribed = !!(result && result.ok === true);
+  state.lastReason = state.subscribed ? "subscribed_to_twitch_events_bus" : cleanString(result && (result.reason || result.error) || "subscribe_failed");
+  state.lastError = state.subscribed ? "" : state.lastReason;
+
+  if (result && result.ok === true) {
+    publishStatus("chat.subscription.ready", {
+      twitchChatSubscription: true,
+      streamEventsChatRuntime: true,
+      chatSource: state.mode,
+      directBridgeFallback: false,
+      wildcardFallback: false
+    });
   }
+  return result || { ok: false, reason: state.lastReason };
 }
 
 function handleSoundPlaybackBusEnvelope(envelope = {}) {
@@ -8318,8 +8152,7 @@ function buildStatus() {
     runtime: {
       counters: runtimeState.counters,
       lastTextChatRuntime: runtimeState.lastTextChatRuntime || null,
-      directChatBridge: safeJson(runtimeState.directChatBridge, {}),
-      twitchChatBusFallback: safeJson(runtimeState.twitchChatBusFallback, {})
+      chatSource: safeJson(runtimeState.chatSource, {})
     },
     runtimeOverlay: {
       prepared: true,
@@ -8532,10 +8365,6 @@ module.exports.init = function init(ctx) {
   moduleBusHandle.start();
   const textChatSubscription = registerTextChatSubscription();
   if (textChatSubscription && textChatSubscription.ok !== true) runtimeState.lastError = textChatSubscription.reason || textChatSubscription.error || runtimeState.lastError;
-  const twitchChatFallbackSubscription = registerTwitchChatWildcardBusFallback();
-  if (twitchChatFallbackSubscription && twitchChatFallbackSubscription.ok !== true) runtimeState.lastError = twitchChatFallbackSubscription.reason || twitchChatFallbackSubscription.error || runtimeState.lastError;
-  const directChatBridge = registerTwitchEventsDirectChatBridge();
-  if (directChatBridge && directChatBridge.ok !== true) runtimeState.lastError = directChatBridge.reason || directChatBridge.error || runtimeState.lastError;
   const runtimeOverlaySubscription = registerRuntimeOverlayBusSubscription();
   if (runtimeOverlaySubscription && runtimeOverlaySubscription.ok !== true) runtimeState.lastError = runtimeOverlaySubscription.reason || runtimeOverlaySubscription.error || runtimeState.lastError;
   const streamStateSubscription = registerStreamStateSubscription();
@@ -8593,8 +8422,7 @@ module.exports.init = function init(ctx) {
         runtimeGate: getRuntimeGateStatus({ eventUid: event ? event.eventUid : "" }),
         runtimeConfig: event ? getTextRuntimeConfig(event) : null,
         lastTextChatRuntime: runtimeState.lastTextChatRuntime || null,
-        directChatBridge: safeJson(runtimeState.directChatBridge, {}),
-        twitchChatBusFallback: safeJson(runtimeState.twitchChatBusFallback, {}),
+        chatSource: safeJson(runtimeState.chatSource, {}),
         report: event ? getTextRuntimeReport(event.eventUid) : null,
         updatedAt: nowIso()
       });
@@ -9185,8 +9013,6 @@ module.exports.init = function init(ctx) {
   console.log(`[${MODULE_NAME}] v${MODULE_VERSION} ${MODULE_BUILD} routes=${runtimeState.routeCount}`);
 };
 
-module.exports.handleTwitchPresenceIrcChat = handleTwitchPresenceIrcChat;
-module.exports.getLastTextChatRuntimeAt = getLastTextChatRuntimeAt;
 
 module.exports._internal = {
   ensureSchema,
@@ -9210,7 +9036,6 @@ module.exports._internal = {
   processTextChatMessage,
   processSoundChatMessage,
   processParallelChatMessage,
-  handleTwitchPresenceIrcChat,
   getEventRuntimePartsStatus,
   getTextRuntimeStatus,
   getSoundRuntimeStatus,

@@ -61,3 +61,28 @@ tools/tests/EVS52_8_TWITCH_CHAT_BUS_FALLBACK_CHECK.ps1
 ```
 
 Hinweis: EVS52.6–EVS52.8 Tests sind Diagnose/Altlasten; im nächsten Chat prüfen, ob sie noch gebraucht werden oder nach sauberer Zentralarchitektur ersetzt werden.
+
+
+## EVS52.9 geaenderte Dateien
+
+```text
+backend/modules/stream_events.js
+backend/modules/twitch_presence.js
+docs/modules/stream_events.md
+docs/modules/twitch_presence.md
+project-state/CHANGELOG.md
+project-state/TODO.md
+project-state/NEXT_STEPS.md
+project-state/FILES.md
+docs/current/CURRENT_CHAT_HANDOFF_EVS52_9_TWITCH_EVENTS_CHAT_SOURCE.md
+```
+
+Nicht geaendert, aber relevant fuer Test/Status:
+
+```text
+backend/modules/twitch_events.js
+backend/modules/communication_bus.js
+backend/modules/helpers/helper_communication.js
+htdocs/dashboard/modules/stream_events.js
+htdocs/dashboard/modules/stream_events.css
+```

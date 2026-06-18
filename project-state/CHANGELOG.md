@@ -1,5 +1,34 @@
 # CHANGELOG – stream-control-center
 
+## 2026-06-18 – EVS52.9 Twitch-Events Chatquelle aufgeraeumt
+
+### Geaendert
+
+- `stream_events` auf `0.5.80 / STEP_EVS52_9_TWITCH_EVENTS_CHAT_SUBSCRIBER` erhoeht.
+- `stream_events` verarbeitet Twitch-Chat fuer Sound+Satz nur noch ueber den zentralen Bus-Subscriber `twitch.chat.message`.
+- `twitch_presence` auf `0.1.6 / EVS52_9_TWITCH_EVENTS_CHAT_SOURCE` erhoeht.
+- `twitch_presence` ruft `stream_events` nicht mehr direkt auf, sondern gibt IRC-PRIVMSG nur an `twitch_events.handleIrcEvent()` weiter.
+
+### Aufgeraeumt
+
+- EVS52.6 Direct-Bridge-Patch auf `twitch_events.handleIrcEvent` aus `stream_events` entfernt.
+- EVS52.7 Direct-Bridge aus `twitch_presence` nach `stream_events` entfernt.
+- EVS52.8 Wildcard-Bus-Fallback in `stream_events` entfernt.
+
+### Nicht geaendert
+
+- Keine DB-Aenderung.
+- Keine Punktelogik geaendert.
+- Keine Sound-Rundenlogik geaendert.
+- Keine Satz-/Text-Punktelogik geaendert.
+
+### Lokale Syntax-Checks
+
+- `node -c backend/modules/stream_events.js` bestanden.
+- `node -c backend/modules/twitch_events.js` bestanden.
+- `node -c backend/modules/twitch_presence.js` bestanden.
+- `node -c htdocs/dashboard/modules/stream_events.js` bestanden.
+
 ## 2026-06-18 – EVS52.9 Doku/Handoff: Chatquelle stoppen und sauber neu ansetzen
 
 ### Dokumentiert

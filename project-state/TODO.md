@@ -68,3 +68,17 @@ Stand: 2026-06-18 – EVS52.9 Doku/Handoff
 - [ ] ZIPs mit echten Zielpfaden ab Repo-Root.
 - [ ] StepDone nach Einspielen, danach erst testen.
 - [ ] Keine Funktionalität entfernen; ersetzte Diagnose-/Fallback-Altlasten nach Freigabe aber gezielt bereinigen.
+
+
+## EVS52.9 erledigt / jetzt testen
+
+- [x] Echte produktive Chatquelle als Zielpfad festgelegt: `twitch_presence → twitch_events → communication_bus → stream_events`.
+- [x] Sound- und Satz-System haengen wieder an einer zentralen normalisierten Chatmessage.
+- [x] EVS52.6 Direct-Bridge aus `stream_events` entfernt.
+- [x] EVS52.7 Presence-Direct-Bridge aus `twitch_presence` entfernt.
+- [x] EVS52.8 Wildcard-Bus-Fallback aus `stream_events` entfernt.
+- [ ] Nach Einspielen StepDone ausfuehren.
+- [ ] Danach Backend neu starten.
+- [ ] Danach `/api/stream-events/status` pruefen: `runtime.chatSource.subscribed=True`.
+- [ ] Danach Live-Test Sound + Satz durchfuehren.
+- [ ] Danach Punkte/Ranking/User-Historie pruefen.

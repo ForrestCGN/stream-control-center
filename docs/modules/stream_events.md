@@ -627,3 +627,62 @@ Diese Pfade müssen nach der echten Lösung geprüft und nicht benötigte Altlas
 - Sound-Automatik
 - Dashboard-Tests
 - Produktive SQLite
+
+---
+
+## Stand EVS52.9 – Chatquelle ueber twitch_events / Communication Bus
+
+Stand: 2026-06-18
+
+### Entscheidung
+
+Sound- und Satz-/Text-Teilspiel verwenden ab EVS52.9 dieselbe zentrale Chatquelle:
+
+```text
+twitch_presence IRC PRIVMSG
+→ twitch_events.handleIrcEvent()
+→ twitch_events publishTwitchEvent("twitch.chat.message")
+→ communication_bus channel=twitch.chat action=message
+→ stream_events Subscriber stream_events:twitch.chat.message
+→ processParallelChatMessage()
+→ processSoundChatMessage() + processTextChatMessage()
+```
+
+### Aufgeraeumt
+
+Entfernt/deaktiviert aus dem Runtime-Pfad:
+
+- EVS52.6 Direct-Bridge-Patch auf `twitch_events.handleIrcEvent`.
+- EVS52.7 Direktaufruf aus `twitch_presence` nach `stream_events.handleTwitchPresenceIrcChat`.
+- EVS52.8 Wildcard-Bus-Fallback `stream_events:twitch.chat.message.fallback`.
+
+### Beibehalten
+
+- Sound-Auswertung bleibt in `processSoundChatMessage()`.
+- Satz-/Text-Auswertung bleibt in `processTextChatMessage()`.
+- Gemeinsame Sound+Text-Verarbeitung bleibt in `processParallelChatMessage()`.
+- Live-Chat-Ausgaben laufen nur bei Runtime-Gate aktiv ueber `dispatchRuntimeChatOutputs()`.
+- Dashboard-/Backend-Testpfade bleiben Testpfade und werden nicht als Live-Twitch-Quelle behandelt.
+
+### Statusfelder
+
+`GET /api/stream-events/status` enthaelt unter `runtime.chatSource` den aktuellen zentralen Chatquellenstatus.
+
+Wichtige Felder:
+
+```text
+mode=twitch_events_bus_subscription
+subscribed=true/false
+delivered/skipped/errors
+lastEventKey
+lastLogin
+lastReason
+legacyDirectBridgeRemoved=true
+legacyWildcardFallbackRemoved=true
+```
+
+### Modulversion
+
+```text
+stream_events 0.5.80 / STEP_EVS52_9_TWITCH_EVENTS_CHAT_SUBSCRIBER
+```

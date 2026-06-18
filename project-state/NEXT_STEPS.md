@@ -79,3 +79,39 @@ EVS52.9 ist erst abgeschlossen, wenn:
 - Satzlösung Punkte + Chatmeldung + 15s Overlay auslöst.
 - Ranking Sound+Satz korrekt addiert.
 - Keine unnötigen doppelten Chatpfade aktiv bleiben.
+
+
+## EVS52.9 nach Einspielen
+
+1. ZIP nach `D:\Git\stream-control-center` entpacken.
+2. StepDone ausfuehren:
+
+```powershell
+.\stepdone.cmd "EVS52.9 Twitch-Events Chatquelle fuer Sound und Satz"
+```
+
+3. Backend neu starten.
+4. Syntax-/Smoke-Checks ausfuehren:
+
+```powershell
+node -c .\backend\modules\stream_events.js
+node -c .\backend\modules\twitch_events.js
+node -c .\backend\modules\twitch_presence.js
+node -c .\htdocs\dashboard\modules\stream_events.js
+
+$s = Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/status"
+$s | Select-Object moduleVersion,moduleBuild | Format-List
+$s.runtime.chatSource | Format-List
+
+$t = Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/status"
+$t.eventSubChat | Format-List
+
+powershell -ExecutionPolicy Bypass -File .\tools\tests\EVS52_5_TEXT_LIVE_FLOW_CHECK.ps1
+```
+
+5. Live-Test mit echtem Twitch-Chat:
+   - Teilwort aus offenem Satz.
+   - kompletter Satz.
+   - Duplicate.
+   - Soundantwort.
+   - Ranking/User-Historie.

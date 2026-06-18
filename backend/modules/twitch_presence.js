@@ -9,15 +9,15 @@ const commands = require('./commands');
 const twitchEvents = require('./twitch_events');
 
 const MODULE_NAME = 'twitch_presence';
-const MODULE_VERSION = '0.1.5';
-const MODULE_BUILD = 'EVS52_7_STREAM_EVENTS_CHAT_BRIDGE';
+const MODULE_VERSION = '0.1.6';
+const MODULE_BUILD = 'EVS52_9_TWITCH_EVENTS_CHAT_SOURCE';
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
   build: MODULE_BUILD,
   type: 'runtime',
   category: 'integration',
-  description: 'Twitch IRC Presence, Chat-Ausgabe und steuerbarer Chat-Command-Direktweg. Default ist EventSub/Bus als Command-Quelle; Direktweg bleibt als Fallback per Route aktivierbar.',
+  description: 'Twitch IRC Presence und Chat-Ausgabe. PRIVMSG wird zentral an twitch_events uebergeben und von dort als twitch.chat.message ueber den Communication Bus verteilt.',
   routesPrefix: ['/api/twitch/presence', '/twitch/presence'],
   bus: {
     registered: false,
@@ -578,14 +578,6 @@ module.exports.init = function init(ctx) {
         return { ok: false, reason: 'twitch_events_unavailable' };
       }
 
-      let streamEventsBeforeAt = '';
-      try {
-        const streamEvents = require('./stream_events');
-        if (streamEvents && typeof streamEvents.getLastTextChatRuntimeAt === 'function') {
-          streamEventsBeforeAt = streamEvents.getLastTextChatRuntimeAt();
-        }
-      } catch (_) {}
-
       const result = twitchEvents.handleIrcEvent(parsed, {
         source: 'twitch_presence',
         channel: BOT_CHANNEL,
@@ -599,20 +591,6 @@ module.exports.init = function init(ctx) {
         includeRaw: false,
         includeTags: false
       });
-
-      try {
-        const streamEvents = require('./stream_events');
-        if (streamEvents && typeof streamEvents.handleTwitchPresenceIrcChat === 'function') {
-          streamEvents.handleTwitchPresenceIrcChat(parsed, {
-            source: 'twitch_presence',
-            channel: BOT_CHANNEL,
-            receivedAt: core.nowIso()
-          }, {
-            beforeAt: streamEventsBeforeAt,
-            source: 'twitch_presence.emitTwitchChatEvent'
-          });
-        }
-      } catch (_) {}
 
       if (result && result.ok === true) {
         chatBusEmitCount += 1;
