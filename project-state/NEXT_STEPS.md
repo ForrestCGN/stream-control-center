@@ -1,51 +1,34 @@
 # NEXT_STEPS
 
-## Shot-Alarm nächste Schritte
+Stand: 2026-06-18
 
-1. STEP 2A einspielen, StepDone nach Deploy ausführen, Backend neu starten, testen.
-2. `!shotdone`/Shot-getrunken-Befehl über vorhandenes Command-/Chat-System anbinden.
-3. Rechteprüfung für Engel/Roxxy/Broadcaster/Mods klären und umsetzen.
-4. Textvarianten aus Config-Fallback in vorhandenes DB-/Textsystem überführen.
-5. Dashboard-Editor für Shot-Alarm Texte, Sounds, Regeln und Statistik ausbauen.
-6. Ko-fi/Tipeee-Module sauber über Payment-Bus-Events an Shot-Alarm anbinden.
-7. Persistente Statistik in DB planen/umsetzen.
-\n\n## SHOT-ALARM-2B – 2026-06-18\n- Shot-Alarm auf Version 0.2.1 / STEP_SHOT_ALARM_2B_DB_TEXTS_CONFIG_HELPERS aktualisiert.\n- DB-Config via module_settings, DB-Textvarianten via module_text_variants, History-Tabelle shot_alarm_history.\n- Dashboard jetzt unter Community / Community / Event-System / Shot-Alarm mit Tabs Übersicht, Config, Texte, Tests, Statistik/Verlauf.
+## Nächster empfohlener Schritt: SHOT-ALARM-2C Chatbefehl `!shotdone`
 
+Ziel:
 
-## Shot-Alarm nächste Schritte
-- Event-Bereich weiter vereinheitlichen: zentrale Dropdowns für Event-Module prüfen/ausbauen.
-- Shot-Alarm Chat-Command `!shotdone` über vorhandenes Command-/Chat-System planen.
-- Ko-fi/Tipeee Payment-Bus separat anbinden.
+- Engel/Roxxy können im Chat melden, dass ein Shot getrunken wurde.
+- Offene Shots werden reduziert.
+- Getrunkene Shots werden erhöht.
+- Chatmeldung kommt aus Shot-Alarm-Textvarianten.
+- Overlay-Statusleiste wird aktualisiert.
 
+Vor Umsetzung prüfen:
 
-## STEP SHOT-ALARM-2B.2 Dashboard Community Event-System Placement
+- `backend/modules/commands.js`
+- `backend/modules/chat_output.js`
+- Twitch-Chat-/Command-Verarbeitung
+- vorhandene Rollen-/Berechtigungsprüfung
+- Audit-/Logging-Muster
+- vorhandene Texthelper für `shotDone` / `shotDoneEmpty`
 
-- Separater linker Hauptnavigationspunkt `Events` entfernt.
-- `Event-System` liegt wieder als Karte im Bereich `Community`.
-- `Shot-Alarm` bleibt als Event-Untermodul vorhanden, aber nicht als eigener Hauptnavigationspunkt.
-- Texte/Config sollen im Event-System-Kontext über vorhandene Modul-/Bereichs-Dropdowns weitergeführt werden.
-- Backend, Regeln, DB-Texte, DB-Config, Overlay und Counter wurden nicht geändert.
+Keine neue parallele Command-Struktur bauen.
 
-## SHOT-ALARM-2B.3 Dashboard Event-System Modul-Dropdowns
-- Shot-Alarm bleibt unter Community → Event-System.
-- Texte/Config bekommen Modul-Auswahl Event-System / Shot-Alarm.
-- Backend/Regeln/Overlay unverändert.
+## Weitere nächste Schritte
 
-
-## STEP SHOT-ALARM-2B.4 Dashboard sichtbarer Event-Modul-Picker
-- Event-System bleibt unter Community.
-- In Texte/Config gibt es weiterhin den Modul-Dropdown.
-- Zusätzlich sind Event-System und Shot-Alarm als sichtbare Schnellwahl-Buttons vorhanden, damit Shot-Alarm nicht versteckt/fehlend wirkt.
-- Keine Backend-/Regeländerung.
-
-
-## STEP SHOT-ALARM-2B.5 Event-System Shot Tab + Config Dropdown
-
-- Korrigiert die Dashboard-Einordnung: Shot-Alarm ist jetzt ein eigener Tab innerhalb `Community → Event-System`.
-- Texte bleiben im bestehenden Event-System-Texte-Tab und werden über die vorhandenen Textbereich-Dropdowns als `Shot-Alarm Chat` und `Shot-Alarm Overlay` ausgewählt.
-- Config bleibt im bestehenden Event-System-Config-Tab; dort wurde ein Config-Bereich-Dropdown ergänzt (`Event-System` / `Shot-Alarm`).
-- Backend, DB-Schema, Shot-Regeln, Auslosung, Overlay, Sound und History wurden nicht geändert.
-
-
-
-- Shot-Alarm Dashboard prüfen: Community → Event-System → Config → Bereich Event-System/Shot-Alarm. Danach Shot-Tab/Overlay/Textbereich prüfen.
+1. Ko-fi/Tipeee Payment-Bus-Events ergänzen und Shot-Alarm anbinden.
+2. Shot-Alarm-Soundpool im Dashboard an vorhandenes Sound-/Media-System anbinden.
+3. Rechte/Audit für Dashboard-Aktionen prüfen.
+4. Statistik-/History-Ansicht im Dashboard erweitern.
+5. Persistente Counter nach Neustart planen/umsetzen.
+6. Overlay in OBS testen und optisch feinjustieren.
+7. Shot-Alarm Config im Dashboard weiter vollständiger machen, ohne Event-System-Config zu beeinflussen.

@@ -1,52 +1,33 @@
 # TODO
 
-## Shot-Alarm
+Stand: 2026-06-18
 
-- [ ] STEP 2A live testen.
-- [ ] Overlay in OBS prüfen: obere Karte nicht zu groß, Statusleiste unten unauffällig.
-- [ ] Chat-Ausgaben im Stream prüfen.
-- [ ] Soundpool durch echte Shot-Sounds ersetzen.
-- [ ] `!shotdone` Command anbinden.
-- [ ] Berechtigungen für Engel/Roxxy festlegen.
-- [ ] DB-basierte Textvarianten bauen.
-- [ ] Statistik persistieren.
+## Shot-Alarm erledigt
+
+- [x] Backend-Modul `shot_alarm` erstellt.
+- [x] Twitch-Support-Events über Communication Bus angebunden.
+- [x] Finale Regeln für Subs/Resubs/GiftSubs/Bomben/Bits umgesetzt.
+- [x] Bits-Blocklogik umgesetzt.
+- [x] 10-Sekunden-Auslosungsphase umgesetzt.
+- [x] Ergebnisaggregation statt Einzelwurf-Spam umgesetzt.
+- [x] Offene/getrunkene/gesamt Counter umgesetzt.
+- [x] Overlay-Statusleiste unten und kleine Ergebnis-Karte oben umgesetzt.
+- [x] DB-Config via `module_settings` umgesetzt.
+- [x] DB-Textvarianten via `module_text_variants` umgesetzt.
+- [x] History-Tabelle `shot_alarm_history` angelegt.
+- [x] Dashboard-Einordnung final korrigiert: `Community → Event-System → Shot-Alarm`.
+- [x] Shot-Alarm-Texte im bestehenden Event-System-Texte-Dropdown verfügbar.
+- [x] Shot-Alarm-Config im sicheren Config-Bereich-Dropdown verfügbar.
+- [x] Event-System-Config bleibt vollständig erhalten.
+
+## Shot-Alarm offen
+
+- [ ] `!shotdone` Command über bestehendes Command-/Chat-System anbinden.
+- [ ] Berechtigungen für Engel/Roxxy/Broadcaster/Mods festlegen und umsetzen.
 - [ ] Ko-fi/Tipeee Payment-Bus anbinden.
-\n\n## SHOT-ALARM-2B – 2026-06-18\n- Shot-Alarm auf Version 0.2.1 / STEP_SHOT_ALARM_2B_DB_TEXTS_CONFIG_HELPERS aktualisiert.\n- DB-Config via module_settings, DB-Textvarianten via module_text_variants, History-Tabelle shot_alarm_history.\n- Dashboard jetzt unter Community / Community / Event-System / Shot-Alarm mit Tabs Übersicht, Config, Texte, Tests, Statistik/Verlauf.
-
-
-## Shot-Alarm TODO
-- [x] Dashboard-Placement: Shot-Alarm unter Events statt Community.
-- [ ] Zentrale Event-Config-/Event-Texte-Dropdowns später bei Bedarf vereinheitlichen.
-
-
-## STEP SHOT-ALARM-2B.2 Dashboard Community Event-System Placement
-
-- Separater linker Hauptnavigationspunkt `Events` entfernt.
-- `Event-System` liegt wieder als Karte im Bereich `Community`.
-- `Shot-Alarm` bleibt als Event-Untermodul vorhanden, aber nicht als eigener Hauptnavigationspunkt.
-- Texte/Config sollen im Event-System-Kontext über vorhandene Modul-/Bereichs-Dropdowns weitergeführt werden.
-- Backend, Regeln, DB-Texte, DB-Config, Overlay und Counter wurden nicht geändert.
-
-## SHOT-ALARM-2B.3 Dashboard Event-System Modul-Dropdowns
-- Shot-Alarm bleibt unter Community → Event-System.
-- Texte/Config bekommen Modul-Auswahl Event-System / Shot-Alarm.
-- Backend/Regeln/Overlay unverändert.
-
-
-## STEP SHOT-ALARM-2B.4 Dashboard sichtbarer Event-Modul-Picker
-- Event-System bleibt unter Community.
-- In Texte/Config gibt es weiterhin den Modul-Dropdown.
-- Zusätzlich sind Event-System und Shot-Alarm als sichtbare Schnellwahl-Buttons vorhanden, damit Shot-Alarm nicht versteckt/fehlend wirkt.
-- Keine Backend-/Regeländerung.
-
-
-## STEP SHOT-ALARM-2B.5 Event-System Shot Tab + Config Dropdown
-
-- Korrigiert die Dashboard-Einordnung: Shot-Alarm ist jetzt ein eigener Tab innerhalb `Community → Event-System`.
-- Texte bleiben im bestehenden Event-System-Texte-Tab und werden über die vorhandenen Textbereich-Dropdowns als `Shot-Alarm Chat` und `Shot-Alarm Overlay` ausgewählt.
-- Config bleibt im bestehenden Event-System-Config-Tab; dort wurde ein Config-Bereich-Dropdown ergänzt (`Event-System` / `Shot-Alarm`).
-- Backend, DB-Schema, Shot-Regeln, Auslosung, Overlay, Sound und History wurden nicht geändert.
-
-
-
-- [ ] Shot-Alarm Config-Dropdown visuell prüfen: keine Event-System-Einstellungen verloren, Shot-Alarm auswählbar.
+- [ ] Soundpool-Auswahl im Dashboard anbinden.
+- [ ] Echte Shot-Sounds hinterlegen/testen.
+- [ ] Persistente Counter nach Neustart planen.
+- [ ] Statistik/History im Dashboard ausbauen.
+- [ ] Overlay im OBS-Livebild prüfen und feinjustieren.
+- [ ] Dashboard-Aktionen mit Rechte-/Audit-Konzept prüfen.
