@@ -27,8 +27,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.64";
-const MODULE_BUILD = "STEP_EVS50_3_POINTS_CHECK_INSERT_FIX";
+const MODULE_VERSION = "0.5.65";
+const MODULE_BUILD = "STEP_EVS50_4_POINTS_CHECK_SOUND_FIX";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -4720,7 +4720,9 @@ function createSoundRound(options = {}) {
   if (isEventRuntimePaused(event.eventUid)) return { ok: false, error: "event_runtime_paused", eventUid: event.eventUid };
   if (isEventRuntimeOfflineWaiting(event.eventUid)) return { ok: false, error: "stream_offline_auto_waiting", eventUid: event.eventUid, message: "Stream ist offline. Event wartet automatisch bis der Stream wieder online ist." };
   const runtimeGateForRound = getRuntimeGateStatus({ eventUid: event.eventUid });
-  if (!runtimeGateForRound.active) {
+  const isDashboardTestEvent = boolValue(event.metadata && (event.metadata.dashboardTest || event.metadata.testEvent), false);
+  const bypassRuntimeGateForTest = isDashboardTestEvent || boolValue(options.dashboardTest || options.testMode || options.allowOfflineTest || options.ignoreRuntimeGate, false);
+  if (!runtimeGateForRound.active && !bypassRuntimeGateForTest) {
     if (runtimeGateForRound.stream && runtimeGateForRound.stream.online === false) putActiveStreamEventsIntoStreamOfflineWait(runtimeGateForRound.reason || "stream_offline", { source: "createSoundRound" });
     return { ok: false, error: runtimeGateForRound.reason || "runtime_gate_inactive", eventUid: event.eventUid, message: runtimeGateForRound.label || "Event-Runtime ist nicht aktiv.", runtimeGate: runtimeGateForRound };
   }
@@ -7071,7 +7073,9 @@ async function runEventTestSoundCorrect(eventUid = "", body = {}) {
       play: false,
       confirm: "1",
       allowReuse: body.allowReuse !== undefined ? boolValue(body.allowReuse, true) : true,
-      forceReset: false
+      forceReset: false,
+      dashboardTest: true,
+      allowOfflineTest: true
     });
     if (!roundResult || roundResult.ok !== true) return { ok: false, eventUid: event.eventUid, action: "sound_correct", error: "sound_round_create_failed", roundResult };
     round = getActiveSoundRound(event.eventUid);
@@ -7125,8 +7129,18 @@ async function runEventTestPointsCheck(body = {}) {
   const reportText = getTextRuntimeReport(created.eventUid);
   const reportSound = getSoundRuntimeReport(created.eventUid);
   const parts = getEventRuntimePartsStatus(getEventByUid(created.eventUid));
+  const actualUser = userStats.user || null;
+  const actualSoundPoints = actualUser ? Number(actualUser.soundPoints || 0) : 0;
+  const actualPhrasePoints = actualUser ? Number(actualUser.phrasePoints || 0) : 0;
+  const actualTotalPoints = actualUser ? Number(actualUser.totalPoints || 0) : 0;
+  const expectedSoundPoints = 20;
+  const expectedPhrasePoints = 30;
+  const passed = !!(sound && sound.ok === true)
+    && actualSoundPoints >= expectedSoundPoints
+    && actualPhrasePoints >= expectedPhrasePoints
+    && actualTotalPoints >= (expectedSoundPoints + expectedPhrasePoints);
   return {
-    ok: true,
+    ok: passed,
     action: "points-check",
     eventUid: created.eventUid,
     created,
@@ -7139,8 +7153,11 @@ async function runEventTestPointsCheck(body = {}) {
     reports: { text: reportText, sound: reportSound },
     parts,
     checks: {
-      expectedAtLeast: { soundPoints: 20, phrasePoints: 30 },
-      actual: userStats.user || null,
+      passed,
+      expectedAtLeast: { soundPoints: expectedSoundPoints, phrasePoints: expectedPhrasePoints, totalPoints: expectedSoundPoints + expectedPhrasePoints },
+      actual: actualUser,
+      soundOk: !!(sound && sound.ok === true),
+      soundError: sound && sound.error ? sound.error : "",
       note: "Wortpunkte koennen je nach Text-Konfig zusaetzlich zu den Satzpunkten entstehen. Entscheidend: Sound- und Satz-/Text-Punkte landen gemeinsam im Ranking und sind in der User-Historie getrennt sichtbar."
     }
   };

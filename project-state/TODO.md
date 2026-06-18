@@ -46,3 +46,9 @@ Stand: 2026-06-18 – EVS50.2
 - Fix fuer `NOT NULL constraint failed: stream_events_events.scoring_config_json` beim `points-check`.
 - Keine DB-Daten ersetzt, keine Punkte-/Rankinglogik geaendert.
 
+
+## EVS50.4 – erledigt
+
+- [x] Sound-Punkte im Punktecheck gegen Runtime-Gate-Blockade abgesichert.
+- [x] Punktecheck prueft Soundpunkte, Satzpunkte und Gesamtsumme explizit.
+- [x] Produktive Sound-Runtime bleibt unveraendert durch Runtime-Gate geschuetzt.

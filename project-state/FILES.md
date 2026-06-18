@@ -60,3 +60,17 @@ stream_events_events
 - Fix fuer `NOT NULL constraint failed: stream_events_events.scoring_config_json` beim `points-check`.
 - Keine DB-Daten ersetzt, keine Punkte-/Rankinglogik geaendert.
 
+
+## EVS50.4
+
+Geaendert:
+
+```text
+backend/modules/stream_events.js
+docs/modules/stream_events.md
+docs/current/CURRENT_CHAT_HANDOFF_EVS50_4_POINTS_CHECK_SOUND_FIX.md
+project-state/TODO.md
+project-state/NEXT_STEPS.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+```

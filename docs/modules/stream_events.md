@@ -269,3 +269,10 @@ Nach einem Test zeigt der Testbereich eine Punkte-Prüfung mit:
 - Fix fuer `NOT NULL constraint failed: stream_events_events.scoring_config_json` beim `points-check`.
 - Keine DB-Daten ersetzt, keine Punkte-/Rankinglogik geaendert.
 
+
+## EVS50.4 – Points-Check Sound-Fix
+
+- Fix fuer den synthetischen `points-check`, wenn Soundpunkte wegen Runtime-Gate nicht geschrieben wurden.
+- Dashboard-Testevents duerfen beim kontrollierten Testlauf das Runtime-Gate umgehen.
+- Produktive Soundrunden bleiben unveraendert durch das Runtime-Gate geschuetzt.
+- `points-check` gibt nur noch `ok: true` zurueck, wenn Sound-Punkte, Satz-/Text-Punkte und Gesamtsumme die Mindestwerte erreichen.

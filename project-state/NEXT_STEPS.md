@@ -62,3 +62,17 @@ EVS50.3 – Satz-System härten:
 - Fix fuer `NOT NULL constraint failed: stream_events_events.scoring_config_json` beim `points-check`.
 - Keine DB-Daten ersetzt, keine Punkte-/Rankinglogik geaendert.
 
+
+## EVS50.4 – Test nach Einspielen
+
+```powershell
+$r = Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/test/run?confirm=1&step=points-check" -Method Post -Body (@{} | ConvertTo-Json) -ContentType "application/json"
+$r.ok
+$r.checks | ConvertTo-Json -Depth 6
+$r.userStats.user | Select-Object userLogin,totalPoints,soundPoints,phrasePoints,wordPoints | Format-List
+$r.ranking.rows | Select-Object rank,userLogin,points | Format-Table -AutoSize
+```
+
+Erwartung: `soundPoints >= 20`, `phrasePoints >= 30`, `totalPoints >= 50`, `$r.ok = True`.
+
+Naechster Block nach erfolgreichem Test: EVS50.5 Satz-System Einzeltests im Dashboard.

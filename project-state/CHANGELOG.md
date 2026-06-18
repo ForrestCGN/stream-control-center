@@ -52,3 +52,10 @@
 - Fix fuer `NOT NULL constraint failed: stream_events_events.scoring_config_json` beim `points-check`.
 - Keine DB-Daten ersetzt, keine Punkte-/Rankinglogik geaendert.
 
+
+## 2026-06-18 – EVS50.4 Points-Check Sound-Fix
+
+- Backend-Modulversion auf `0.5.65 / STEP_EVS50_4_POINTS_CHECK_SOUND_FIX` erhoeht.
+- `createSoundRound()` erlaubt Runtime-Gate-Bypass nur fuer Dashboard-Testevents.
+- `runEventTestSoundCorrect()` nutzt den kontrollierten Testmodus.
+- `points-check` meldet nur noch Erfolg, wenn Sound- und Satzpunkte wirklich geschrieben wurden.
