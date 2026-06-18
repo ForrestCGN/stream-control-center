@@ -43,3 +43,10 @@ Stand: 2026-06-18 – EVS51.5
 - [ ] Keine Funktionalität entfernen ohne Freigabe.
 - [ ] ZIPs mit echten Repo-Pfaden ab Root.
 - [ ] Produktive DB niemals ersetzen/löschen/neu bauen.
+
+
+## EVS51.6 – erledigt
+
+- [x] Erste Sound-Automatik beim Eventstart planen.
+- [x] Keine manuelle Wartezeit-Überspringung als Pflicht für den ersten Schnipsel.
+- [ ] Live prüfen: Event starten → Sound-Steuerung zeigt geplanten nächsten Schnipsel oder Offline-Warten.

@@ -63,3 +63,11 @@ stream_events_sound_rounds
 - `backend/modules/stream_events.js` – Validation-Warnung für leere Text-Antwortvarianten entfernt.
 - `htdocs/dashboard/modules/stream_events.js` – lokale Warnung/Mapping entfernt.
 - `docs/current/CURRENT_CHAT_HANDOFF_EVS51_5_TEXT_ANSWERS_OPTIONAL_FIX.md` – Übergabe.
+
+
+## EVS51.6 geänderte Dateien
+
+- `backend/modules/stream_events.js` – Start-Auto-Planung für Sound-Automatik.
+- `docs/modules/stream_events.md` – EVS51.6 dokumentiert.
+- `docs/current/CURRENT_CHAT_HANDOFF_EVS51_6_START_AUTO_SOUND_PLAN.md` – Handoff.
+- `project-state/*` – Projektstand aktualisiert.

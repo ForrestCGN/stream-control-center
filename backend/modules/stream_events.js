@@ -27,8 +27,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.70";
-const MODULE_BUILD = "STEP_EVS51_5_TEXT_ANSWERS_OPTIONAL_FIX";
+const MODULE_VERSION = "0.5.71";
+const MODULE_BUILD = "STEP_EVS51_6_START_AUTO_SOUND_PLAN";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -1642,11 +1642,41 @@ function validateStoredEvent(eventUid) {
   return updated;
 }
 
+function ensureInitialSoundAutoPlan(eventUid = "", reason = "event_started") {
+  ensureSchema();
+  const event = getEventByUid(eventUid);
+  if (!event || event.status !== STATUS.ACTIVE || !event.soundEnabled) return { ok: true, skipped: true, reason: "event_not_active_sound", eventUid: cleanString(eventUid) };
+
+  const runtimeConfig = getSoundRuntimeConfig(event);
+  if (!boolValue(runtimeConfig.autoAdvanceRounds, true)) return { ok: true, skipped: true, reason: "auto_advance_disabled", eventUid: event.eventUid };
+
+  const parts = getEventRuntimePartsStatus(event);
+  if (parts && parts.sound && parts.sound.completed) return { ok: true, skipped: true, reason: "sound_completed", eventUid: event.eventUid, parts };
+  if (parts && parts.sound && parts.sound.activeRoundUid) return { ok: true, skipped: true, reason: "active_round_exists", eventUid: event.eventUid, parts };
+
+  const timerInfo = publicSoundTimerInfo(event.eventUid);
+  if (timerInfo && timerInfo.active) return { ok: true, skipped: true, reason: "timer_already_scheduled", eventUid: event.eventUid, timer: timerInfo, parts };
+
+  const state = getEventRuntimeState(event.eventUid);
+  if (isEventRuntimePaused(event.eventUid, state)) return { ok: true, skipped: true, reason: "event_runtime_paused", eventUid: event.eventUid, runtimeState: state, parts };
+  if (isEventRuntimeOfflineWaiting(event.eventUid, state)) return { ok: true, skipped: true, reason: "stream_offline_auto_waiting", eventUid: event.eventUid, runtimeState: state, parts };
+
+  const persistedDueAt = cleanString(state && state.nextAutoStartAt || "");
+  if (persistedDueAt && secondsUntilIso(persistedDueAt) > 0) {
+    return { ok: true, skipped: true, reason: "persisted_wait_already_planned", eventUid: event.eventUid, nextAutoStartAt: persistedDueAt, runtimeState: state, parts };
+  }
+
+  return scheduleNextSoundRound(event.eventUid, cleanString(reason || "event_started_auto_plan"));
+}
+
 function startEvent(eventUid) {
   ensureSchema();
   const event = getEventByUid(eventUid);
   if (!event) return { ok: false, error: "event_not_found", eventUid };
-  if (event.status === STATUS.ACTIVE) return { ok: true, alreadyActive: true, event };
+  if (event.status === STATUS.ACTIVE) {
+    const soundAutoPlan = ensureInitialSoundAutoPlan(event.eventUid, "already_active_start_route_auto_plan");
+    return { ok: true, alreadyActive: true, event: getEventByUid(event.eventUid), soundAutoPlan };
+  }
   if ([STATUS.FINISHED, STATUS.FINALIZING, STATUS.COMPLETED, STATUS.CANCELLED, STATUS.ARCHIVED].includes(event.status)) return { ok: false, error: "event_already_final", eventUid, status: event.status };
 
   const validation = validateEventPayload(event);
@@ -1675,9 +1705,10 @@ function startEvent(eventUid) {
   runtimeState.counters.eventsStarted += 1;
   markAction("started", eventUid);
   const updated = getEventByUid(eventUid);
-  emitBus("stream_events.event", "started", { event: publicEventSummary(updated), validation });
-  publishStatus("event.started", { lastEventUid: eventUid });
-  return { ok: true, event: updated };
+  const soundAutoPlan = ensureInitialSoundAutoPlan(eventUid, "event_started_auto_plan");
+  emitBus("stream_events.event", "started", { event: publicEventSummary(updated), validation, soundAutoPlan });
+  publishStatus("event.started", { lastEventUid: eventUid, soundAutoPlan: soundAutoPlan && soundAutoPlan.scheduled ? true : false });
+  return { ok: true, event: getEventByUid(eventUid), soundAutoPlan };
 }
 
 function finishEvent(eventUid) {
@@ -5298,6 +5329,9 @@ function getSoundRuntimeReport(eventUid = "") {
   const uid = event ? event.eventUid : cleanString(eventUid);
   if (!uid) return { ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, event: null, rounds: [], chatOutputs: [], playbackPayloads: [], note: "Kein aktives Event und keine eventUid angegeben.", updatedAt: nowIso() };
   const eventRow = event || getEventByUid(uid);
+  const soundAutoPlan = eventRow && eventRow.status === STATUS.ACTIVE && eventRow.soundEnabled
+    ? ensureInitialSoundAutoPlan(eventRow.eventUid, "sound_status_auto_plan")
+    : { ok: true, skipped: true, reason: "event_not_active_sound", eventUid: uid };
   const rounds = getSoundRounds(uid, 200);
   const scoreRows = database.all(`
     SELECT * FROM stream_events_score_entries
@@ -5329,6 +5363,7 @@ function getSoundRuntimeReport(eventUid = "") {
     eventUid: uid,
     runtimeState: eventRuntimeState,
     nextSound,
+    soundAutoPlan,
     counts: {
       rounds: rounds.length,
       active: rounds.filter(row => row.status === "active").length,

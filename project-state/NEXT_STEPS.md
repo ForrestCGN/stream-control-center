@@ -85,3 +85,10 @@ EVS51.4 – Satz-Rotation / Runtime-Overlay:
 - offene Sätze bleiben offen/erneut spielbar
 - Text-Teilspielstatus im Runtime-Overlay verständlich anzeigen
 - Kombi-Status Sound/Text im Overlay prüfen
+
+
+## Nach EVS51.6
+
+1. Laufendes Event starten oder Sound-Status neu laden.
+2. Prüfen, ob Sound-Steuerung automatisch einen nächsten Schnipsel plant.
+3. Danach Runtime-Overlay für Satz-/Soundstatus verbessern.

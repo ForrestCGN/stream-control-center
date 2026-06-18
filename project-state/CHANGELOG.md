@@ -59,3 +59,9 @@
 - Quellen bleiben getrennt sichtbar.
 - User-Historie zeigt Zeitpunkt, Quelle/Grund und Punkte.
 - Testevents können aus dem Testbereich gezielt geöffnet werden, ohne das echte aktive Event zu verdrängen.
+
+## 2026-06-18 – EVS51.6
+
+- Sound-Automatik wird beim Eventstart initial geplant.
+- Fehlende Auto-Planung bei laufendem Sound-Event kann beim Sound-Status sicher nachgezogen werden.
+- Start-Response enthält `soundAutoPlan`.

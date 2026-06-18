@@ -439,3 +439,12 @@ Regel:
 - `acceptedAnswers` kann zusätzliche Schreibweisen oder Kurzformen enthalten.
 
 Die vorherige Warnung `text.phrase.X.answers_empty_uses_phrase` wurde aus Backend- und Dashboard-Validation entfernt.
+
+
+## EVS51.6 – Sound-Automatik beim Eventstart
+
+- Beim Start eines aktiven Events mit aktiviertem Sound-Spiel wird automatisch der erste Sound-Timer geplant.
+- `startEvent()` liefert jetzt `soundAutoPlan` zurück.
+- Falls ein Event bereits aktiv ist, versucht der Start-Endpunkt ebenfalls sicher eine fehlende Auto-Planung nachzuholen.
+- Der Sound-Runtime-Status kann eine fehlende Planung für ein laufendes Sound-Event sicher nachziehen, sofern keine aktive Runde, kein Timer und kein Offline-/Pause-Zustand existiert.
+- Punkte, Satz-System, Sound-Playback, Reveal-Video und Abschlusslogik bleiben unverändert.
