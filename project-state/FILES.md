@@ -1,11 +1,10 @@
-# FILES – STEP EVS52.19
+# FILES – EVS52.20
 
-Geänderte Dateien im ZIP:
-
-- `backend/modules/stream_events.js`
-- `htdocs/dashboard/modules/stream_events.js`
+Geändert:
 - `htdocs/overlays/stream_events/event_winner_overlay.html`
-- `docs/current/CURRENT_CHAT_HANDOFF_EVS52_19_WINNER_FINALE_MANUAL_END.md`
+
+Dokumentation:
+- `docs/current/CURRENT_CHAT_HANDOFF_EVS52_20_WINNER_FINALE_NO_RESTART_LOOP.md`
 - `docs/modules/stream_events.md`
 - `project-state/CHANGELOG.md`
 - `project-state/TODO.md`
