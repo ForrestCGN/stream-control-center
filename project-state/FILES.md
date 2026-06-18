@@ -101,3 +101,10 @@ stream_events_sound_rounds
 - `backend/modules/stream_events.js` – Live-Chat Direct-Bridge-Fallback für Satz-/Text-System.
 - `tools/tests/EVS52_6_LIVE_CHAT_DIRECT_BRIDGE_CHECK.ps1` – Diagnose-Script für RuntimeGate, Direct-Bridge und ChatOutput.
 - `docs/current/CURRENT_CHAT_HANDOFF_EVS52_6_LIVE_CHAT_DIRECT_BRIDGE.md` – Handoff.
+
+## EVS52.7 relevante Dateien
+
+- `backend/modules/stream_events.js`
+- `backend/modules/twitch_presence.js`
+- `tools/tests/EVS52_7_TWITCH_PRESENCE_CHAT_BRIDGE_CHECK.ps1`
+- `docs/current/CURRENT_CHAT_HANDOFF_EVS52_7_TWITCH_PRESENCE_CHAT_BRIDGE.md`

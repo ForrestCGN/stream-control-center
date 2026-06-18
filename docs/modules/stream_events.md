@@ -539,3 +539,9 @@ Neue Diagnose im Live-Debug:
 - `directChatBridge.delivered`
 - `directChatBridge.lastReason`
 - `lastTextChatRuntime.source`
+
+## EVS52.7 – Twitch-Presence Direct Bridge
+
+Echte Twitch-IRC-PRIVMSG-Nachrichten werden nach dem bestehenden `twitch_events.handleIrcEvent()` zusätzlich an `stream_events.handleTwitchPresenceIrcChat()` übergeben. Dadurch nutzt das Satz-/Text-System dieselbe echte Chatquelle wie das Sound-Spiel. Die Verarbeitung läuft weiter über `processParallelChatMessage()`, damit Sound und Text parallel ausgewertet werden.
+
+Doppelte Verarbeitung wird durch Vergleich mit `lastTextChatRuntime` vermieden, falls der Bus-Pfad die Nachricht bereits verarbeitet hat.

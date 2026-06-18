@@ -9,8 +9,8 @@ const commands = require('./commands');
 const twitchEvents = require('./twitch_events');
 
 const MODULE_NAME = 'twitch_presence';
-const MODULE_VERSION = '0.1.4';
-const MODULE_BUILD = 'BUS_TWITCH_9_COMMAND_SOURCE_DEFAULTS';
+const MODULE_VERSION = '0.1.5';
+const MODULE_BUILD = 'EVS52_7_STREAM_EVENTS_CHAT_BRIDGE';
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
@@ -578,6 +578,14 @@ module.exports.init = function init(ctx) {
         return { ok: false, reason: 'twitch_events_unavailable' };
       }
 
+      let streamEventsBeforeAt = '';
+      try {
+        const streamEvents = require('./stream_events');
+        if (streamEvents && typeof streamEvents.getLastTextChatRuntimeAt === 'function') {
+          streamEventsBeforeAt = streamEvents.getLastTextChatRuntimeAt();
+        }
+      } catch (_) {}
+
       const result = twitchEvents.handleIrcEvent(parsed, {
         source: 'twitch_presence',
         channel: BOT_CHANNEL,
@@ -591,6 +599,20 @@ module.exports.init = function init(ctx) {
         includeRaw: false,
         includeTags: false
       });
+
+      try {
+        const streamEvents = require('./stream_events');
+        if (streamEvents && typeof streamEvents.handleTwitchPresenceIrcChat === 'function') {
+          streamEvents.handleTwitchPresenceIrcChat(parsed, {
+            source: 'twitch_presence',
+            channel: BOT_CHANNEL,
+            receivedAt: core.nowIso()
+          }, {
+            beforeAt: streamEventsBeforeAt,
+            source: 'twitch_presence.emitTwitchChatEvent'
+          });
+        }
+      } catch (_) {}
 
       if (result && result.ok === true) {
         chatBusEmitCount += 1;

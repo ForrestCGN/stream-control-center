@@ -84,3 +84,10 @@ Stand: 2026-06-18 – EVS51.5
 - [x] Bus-Pfad bleibt bevorzugt; Direct-Bridge springt nur ein, wenn Bus nicht bereits verarbeitet hat.
 - [ ] Live-Test: echtes Satzwort im Twitch-Chat schreiben und prüfen, ob `lastTextChatRuntime.source` bus/direct zeigt.
 - [ ] Live-Test: prüfen, ob `chat-output.stats.sent` steigt.
+
+## EVS52.7
+
+- [ ] Live-Chat Teiltreffer testen.
+- [ ] Live-Chat Satzlösung testen.
+- [ ] ChatOutput-Helper `stats.sent` prüfen.
+- [ ] Doppelverarbeitung mit Sound-Antworten beobachten.

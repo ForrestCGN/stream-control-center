@@ -132,3 +132,10 @@ Invoke-RestMethod "http://127.0.0.1:8080/api/chat-output/status" | ConvertTo-Jso
 2. Prüfen: `/api/stream-events/text-runtime/live-debug` zeigt echte Chatverarbeitung.
 3. Prüfen: `/api/chat-output/status` zeigt gesendete Satz-Spiel-Meldung.
 4. Danach ggf. UI/Overlay-Feinschliff für Satzlösung-Celebration.
+
+## Nach EVS52.7
+
+1. Echten Twitch-Chat mit Teilwort aus offenem Satz testen.
+2. Prüfen, ob `directChatBridge.delivered` steigt.
+3. Prüfen, ob Worttreffer/ChatOutput und Bot-Chatmeldung erscheinen.
+4. Danach Satzlösung testen: Punkte + Overlay + Chatmeldung.

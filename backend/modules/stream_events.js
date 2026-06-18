@@ -7,7 +7,7 @@
  * - Keeps EVS-12 Text-Runtime dashboard report.
  * - Adds user statistics list/detail endpoints for dropdown filtering.
  * - Prepares text and future sound statistics in one user-focused report.
- * - EVS52.6 keeps Sound-Chat intact and adds a safe direct Twitch-Chat bridge fallback so live chat reaches the Satz/Text runtime when the bus subscriber path does not deliver.
+ * - EVS52.7 keeps Sound-Chat intact and adds a direct twitch_presence bridge so the Satz/Text runtime uses the same IRC chat source as the sound game.
  */
 
 const crypto = require("crypto");
@@ -29,8 +29,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.77";
-const MODULE_BUILD = "STEP_EVS52_6_LIVE_CHAT_DIRECT_BRIDGE";
+const MODULE_VERSION = "0.5.78";
+const MODULE_BUILD = "STEP_EVS52_7_TWITCH_PRESENCE_CHAT_BRIDGE";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -2822,7 +2822,7 @@ function processTextChatMessage(chat = {}, options = {}) {
 
 function isLiveChatRuntimeSource(source = "") {
   const clean = cleanString(source);
-  return clean === "bus:twitch.chat.message" || clean.startsWith("bus:") || clean === "direct:twitch_events.handleIrcEvent" || clean === "direct:twitch_presence.irc";
+  return clean === "bus:twitch.chat.message" || clean.startsWith("bus:") || clean === "direct:twitch_events.handleIrcEvent" || clean.startsWith("direct:twitch_presence");
 }
 
 function extractChatPayloadFromIrcParsed(parsed = {}, context = {}) {
@@ -2972,6 +2972,49 @@ function processParallelChatMessage(chat = {}, context = {}) {
     } : null
   };
   return result;
+}
+
+
+function handleTwitchPresenceIrcChat(parsed = {}, context = {}, options = {}) {
+  const bridge = runtimeState.directChatBridge;
+  try {
+    const command = cleanString(parsed && parsed.command || "").toUpperCase();
+    if (command !== "PRIVMSG") {
+      bridge.skipped += 1;
+      bridge.lastReason = "presence_not_privmsg";
+      return { ok: true, skipped: true, reason: "not_privmsg" };
+    }
+    const chat = extractChatPayloadFromIrcParsed(parsed, context);
+    if (!chat.message || !chat.userLogin) {
+      bridge.skipped += 1;
+      bridge.lastReason = "presence_invalid_irc_chat_payload";
+      return { ok: false, skipped: true, reason: "invalid_irc_chat_payload" };
+    }
+    const beforeAt = cleanString(options.beforeAt || "");
+    if (didBusPathHandleChat(beforeAt, chat)) {
+      bridge.skipped += 1;
+      bridge.lastReason = "presence_bus_path_already_handled";
+      return { ok: true, skipped: true, reason: "bus_path_already_handled" };
+    }
+    const runtimeResult = processParallelChatMessage(chat, { source: "direct:twitch_presence.emitTwitchChatEvent" });
+    bridge.delivered += 1;
+    bridge.lastAt = nowIso();
+    bridge.lastReason = runtimeResult && (runtimeResult.reason || runtimeResult.reasonCode) ? (runtimeResult.reason || runtimeResult.reasonCode) : "presence_direct_bridge_processed";
+    bridge.lastMessageId = chat.messageId || "";
+    bridge.lastLogin = chat.userLogin || "";
+    bridge.lastMessagePreview = chat.message.slice(0, 120);
+    bridge.lastError = "";
+    return { ok: true, source: "direct:twitch_presence.emitTwitchChatEvent", chat, result: runtimeResult };
+  } catch (err) {
+    bridge.errors += 1;
+    bridge.lastError = err && err.message ? err.message : String(err);
+    bridge.lastReason = "presence_direct_bridge_error";
+    return { ok: false, reason: "presence_direct_bridge_error", error: bridge.lastError };
+  }
+}
+
+function getLastTextChatRuntimeAt() {
+  return runtimeState.lastTextChatRuntime && runtimeState.lastTextChatRuntime.at ? runtimeState.lastTextChatRuntime.at : "";
 }
 
 function handleTwitchChatEnvelope(envelope = {}) {
@@ -9033,6 +9076,9 @@ module.exports.init = function init(ctx) {
   console.log(`[${MODULE_NAME}] v${MODULE_VERSION} ${MODULE_BUILD} routes=${runtimeState.routeCount}`);
 };
 
+module.exports.handleTwitchPresenceIrcChat = handleTwitchPresenceIrcChat;
+module.exports.getLastTextChatRuntimeAt = getLastTextChatRuntimeAt;
+
 module.exports._internal = {
   ensureSchema,
   validateEventPayload,
@@ -9054,6 +9100,8 @@ module.exports._internal = {
   buildBusStatus,
   processTextChatMessage,
   processSoundChatMessage,
+  processParallelChatMessage,
+  handleTwitchPresenceIrcChat,
   getEventRuntimePartsStatus,
   getTextRuntimeStatus,
   getSoundRuntimeStatus,
