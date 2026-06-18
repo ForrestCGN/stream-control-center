@@ -27,8 +27,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.61";
-const MODULE_BUILD = "STEP_EVENT_STREAM_OFFLINE_AUTO_WAIT_1";
+const MODULE_VERSION = "0.5.62";
+const MODULE_BUILD = "STEP_EVS50_1_POINT_HISTORY_DETAIL";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -5761,10 +5761,22 @@ function getStatisticsUser(login, eventUid = "") {
   for (const row of enrichedWordHits) eventAcc(row).wordHits += 1;
   for (const row of enrichedPhraseSolves) eventAcc(row).phraseSolves += 1;
 
+  const textScoreUids = new Set([
+    ...enrichedWordHits.map(row => cleanString(row.hitUid)),
+    ...enrichedPhraseSolves.map(row => cleanString(row.solveUid))
+  ].filter(Boolean));
+  const otherScoreEntries = enrichedScoreEntries.filter(row => {
+    const sourceType = cleanString(row.sourceType);
+    if (sourceType.startsWith("sound")) return false;
+    if (sourceType === "text_word_hit" || sourceType === "text_phrase_solve") return !textScoreUids.has(cleanString(row.sourceUid));
+    return true;
+  });
+
   const timeline = [
     ...enrichedWordHits.map(row => ({ kind: "word_hit", gameType: "text", label: `Wort gefunden: ${row.wordOriginal || row.wordKey}`, points: row.pointsAwarded, createdAt: row.createdAt, row })),
     ...enrichedPhraseSolves.map(row => ({ kind: "phrase_solved", gameType: "text", label: `Satz ${row.phraseNumber} gelöst`, points: row.pointsAwarded, createdAt: row.createdAt, row })),
-    ...soundEntries.map(row => ({ kind: "sound_score", gameType: "sound", label: row.reason || row.sourceType || "Sound-Punkte", points: row.points, createdAt: row.createdAt, row }))
+    ...soundEntries.map(row => ({ kind: "sound_score", gameType: "sound", label: row.metadata && row.metadata.title ? `Sound gelöst: ${row.metadata.title}` : (row.reason || row.sourceType || "Sound-Punkte"), points: row.points, createdAt: row.createdAt, row })),
+    ...otherScoreEntries.map(row => ({ kind: row.sourceType || "score_entry", gameType: row.sourceType && row.sourceType.startsWith("text") ? "text" : "points", label: row.reason || row.sourceType || "Punkte-Eintrag", points: row.points, createdAt: row.createdAt, row }))
   ].sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))).slice(0, 500);
 
   const summary = {
@@ -5799,7 +5811,7 @@ function getStatisticsUser(login, eventUid = "") {
     },
     sound: {
       available: soundEntries.length > 0,
-      note: soundEntries.length > 0 ? "Sound-bezogene Punkte aus score_entries." : "Sound-Snippet-Runtime ist noch nicht eingebaut; dieser Bereich ist vorbereitet.",
+      note: soundEntries.length > 0 ? "Sound-bezogene Punkte aus score_entries." : "Noch keine Sound-Punkte fuer diesen User im gewaehlten Event.",
       rows: soundEntries
     },
     scoreEntries: enrichedScoreEntries,

@@ -602,7 +602,7 @@
 .stream-events-admin .evs-current-ranking-head h4{margin:0;color:#f8fafc;font-size:16px}
 .stream-events-admin .evs-current-ranking-head span{color:var(--evs-muted);font-size:12px;text-align:right}
 .stream-events-admin .evs-current-ranking-table{display:grid;gap:8px;margin-top:8px}
-.stream-events-admin .evs-current-player-row{display:grid;grid-template-columns:54px minmax(160px,1fr) minmax(110px,auto) minmax(220px,auto);gap:10px;align-items:center;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.035);border-radius:14px;padding:10px 12px;color:var(--evs-text)}
+.stream-events-admin .evs-current-player-row{display:grid;grid-template-columns:54px minmax(160px,1fr) minmax(110px,auto) minmax(220px,auto);gap:10px;align-items:center;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.035);border-radius:14px;padding:10px 12px;color:var(--evs-text);width:100%;text-align:left;font:inherit}.stream-events-admin .evs-current-player-button{cursor:pointer}.stream-events-admin .evs-current-player-button:hover,.stream-events-admin .evs-current-player-button:focus-visible{border-color:rgba(34,211,238,.55);background:rgba(34,211,238,.08);box-shadow:0 0 18px rgba(34,211,238,.12);outline:none}.stream-events-admin .evs-current-player-name{text-decoration-thickness:1px}.stream-events-admin .evs-current-player-button:hover .evs-current-player-name,.stream-events-admin .evs-current-player-button:focus-visible .evs-current-player-name{text-decoration:underline}
 .stream-events-admin .evs-current-player-row strong{color:#a5f3fc;font-weight:900}
 .stream-events-admin .evs-current-player-row b{justify-self:end;color:#fff}
 .stream-events-admin .evs-current-player-row small{color:var(--evs-muted);justify-self:end}

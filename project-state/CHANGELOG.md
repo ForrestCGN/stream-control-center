@@ -1,66 +1,28 @@
 # CHANGELOG – stream-control-center
 
-## 2026-06-17 – EventSound Runtime Overlay / Counter / Result Cards
+## 2026-06-18 – EVS50.1 Aktuelles Event User-Punkte-Historie
 
 ### Added
 
-- Antwortzeit-Counter für EventSound-Antwortfenster.
-- Counter oben rechts, deckender Hintergrund, nur während `answerWindow.active`.
-- Keine-Lösung-Kachel nach Timeout.
-- Long-Winner-Demo-URL:
-  - `/overlays/stream_events/event_runtime_overlay.html?demo=result-long&v=test`
-- Testscript für Timeout/Keine-Lösung:
-  - `tools/test_event_runtime_unresolved_card.ps1`
+- Klickbare User-Zeilen im Dashboard-Tab `Event-System → Aktuelles Event`.
+- User-Detailpopup für genau das aktuelle Event direkt aus der Rangliste.
+- Punkte-Verlauf im Popup: Zeitpunkt, Quelle/Grund, Punkte.
+- Sound-/Text-Punkte im Popup getrennt sichtbar.
+- Sonstige/manuelle Punkte-Einträge werden in der User-Timeline ebenfalls sichtbar.
 
 ### Changed
 
-- Runtime-Overlay bis zuletzt auf Overlay-Stand `0.3.7` erweitert.
-- Gewinner-Card robuster gemacht:
-  - Username eigene Zeile.
-  - Punkte/Erkennung eigene Zeile.
-  - Schnipsel-Titel eigene zweizeilige Box.
-  - lange Titel werden per Layout begrenzt statt hart auf 36 Zeichen gekürzt.
-- Keine-Lösung-Kachel optisch/inhaltlich angepasst:
+- Dashboard-Modulversion auf `0.5.46 / STEP_EVS50_1_CURRENT_EVENT_USER_POINTS_MODAL` erhöht.
+- Backend-Modulversion auf `0.5.62 / STEP_EVS50_1_POINT_HISTORY_DETAIL` erhöht.
+- Popup-Zähler klarer auf Punkte-Historie ausgerichtet.
+- Sound-Bereich im Popup heißt jetzt `Sound-Punkte` statt `Sound-Spiel später`.
 
-```text
-KEINE LÖSUNG
-Die Heimleitung hat im Chat
-keine richtige Antwort erkannt.
-Der Schnipsel bleibt im Archiv.
-```
+### Confirmed by Code Review
 
-- Reveal-Video-Playback läuft weiter über Sound-System, aber ohne Runtime-PreRoll-Kreis.
-- `JETZT RATEN` während Soundlauf entfernt, da Antworten erst nach Sound-Ende gültig sind.
-- Auto-Schedule korrigiert: `intervalMinutes ± intervalJitterMinutes`, `roundDelaySeconds` nur Floor.
+- Sound-Punkte und Satz-/Text-Punkte landen weiterhin gemeinsam in `stream_events_score_entries`.
+- Ranking summiert weiterhin über `SUM(points)` pro User/Event.
+- Anzeige trennt die Quellen über `source_type`.
 
-### Fixed
+## Vorherige Einträge
 
-- Falscher Overlay-ZIP-Pfad aus früherem Step als bekannter Fehler festgehalten. Korrekt:
-
-```text
-htdocs/overlays/stream_events/event_runtime_overlay.html
-```
-
-- `AUFLOESUNG / AUFLOESUNG LAEUFT` beim Reveal entfernt.
-- `LOS / JETZT RATEN` beim Reveal entfernt.
-- Counter-Position von links nach rechts verschoben.
-- Counter-Hintergrund ohne Transparenz gesetzt.
-
-### Confirmed
-
-- 30s-Test mit Lösung: Counter läuft, Antwort wird nach Delay gesendet, Result wird erkannt.
-- Normale Gewinner-Card sieht brauchbar aus.
-- Keine-Lösung-Kachel ist gewünscht und bleibt.
-- Long-Winner-Layout wird künftig bevorzugt über Demo-URL geprüft, nicht über unzuverlässige Custom-Testevent-Route.
-
-### Known Issues / Follow-up
-
-- Reveal-Video-Sichtbarkeit hängt an `sound_system_overlay.html`/OBS-Quelle, nicht am Runtime-Overlay.
-- Overlay-Texte sind teilweise noch hart gesetzt und sollen später in DB/Textvarianten.
-- Auto-Rotation nach Reveal/Timeout über mehrere echte Runden prüfen.
-
----
-
-# Ältere Einträge
-
-Die vorherigen Einträge bleiben in älteren Archiv-/Step-Dateien erhalten. Dieser Stand konsolidiert den aktuellen EventSound-Runtime-Block.
+Ältere Einträge bleiben in Archiv-/Step-Dateien erhalten.

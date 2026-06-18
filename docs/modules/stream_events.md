@@ -1,188 +1,200 @@
-# Modul-Doku – Stream Events / EventSound Runtime
+# Modul-Doku: stream_events – Stand EVS49.38
 
-Datei: `backend/modules/stream_events.js`  
-Stand: mindestens `0.5.51` / `STEP_EVENT_RUNTIME_UNRESOLVED_CARD_1`  
-Zuletzt aktualisiert: 2026-06-17
+Stand: 2026-06-18
 
-## Aufgabe
-
-`stream_events` verwaltet Event-Runden wie Sound-Snippet-Spiele und Text-/Chat-basierte Eventlogik. Für EventSound bereitet das Modul Runden vor, verarbeitet Antwortfenster/Resultate/Punkte und delegiert Audio-/Video-Playback an das Sound-System.
-
-Wichtig:
+## Modul
 
 ```text
-stream_events ist nicht Playback-Owner.
-sound_system bleibt Playback-/Queue-Owner.
-Runtime-Overlay zeigt nur Status/Counter/Result-Cards.
+backend/modules/stream_events.js
+htdocs/dashboard/modules/stream_events.js
+htdocs/dashboard/modules/stream_events.css
 ```
 
-## EventSound Runtime – aktueller Ablauf
+## Kernbereiche
+
+Das Modul verwaltet aktuell:
+
+- Event-Entwürfe und Event-Lifecycle
+- Sound-Teilspiel
+- Text-/Satz-Teilspiel
+- Punkte / Ranking
+- Runtime-Overlay
+- Winner-Finale / Auswertung
+- Testfunktionen im Dashboard
+
+## Winner-Finale / Auswertung
+
+### Backend
+
+Relevante Funktionen/Routen:
 
 ```text
-1. Runde wird gestartet.
-2. Sound-System bekommt Playback-Job mit EventSound-PreRoll.
-3. Runtime-Overlay zeigt 3 / 2 / 1 / LOS.
-4. Sound-Schnipsel läuft.
-5. Während Countdown/Sound sind Antworten ungültig.
-6. Nach Sound-Ende öffnet stream_events das Antwortfenster.
-7. Runtime-State liefert answerWindow.active=true.
-8. Overlay zeigt Counter oben rechts.
-9a. Richtige Antwort:
-    - Antwort wird erkannt.
-    - Punkte werden vergeben.
-    - Gewinner-Card wird angezeigt.
-    - Reveal-Video wird nach Card über Sound-System geplant.
-9b. Timeout:
-    - keine Punkte.
-    - keine Reveal-Auflösung.
-    - Keine-Lösung-Kachel wird angezeigt.
-    - Schnipsel bleibt je nach Config später wiederholbar.
+GET  /api/stream-events/events/:eventUid/finale
+POST /api/stream-events/events/:eventUid/finale/start?confirm=1
+GET  /api/stream-events/winner-finale/demo-random?count=7
+POST /api/stream-events/test/run?confirm=1&step=...
 ```
 
-## Wichtige Runtime-State-Felder
-
-```json
-{
-  "phase": {
-    "key": "sound_answer_window",
-    "visible": false
-  },
-  "display": {
-    "overlayMode": "hidden"
-  },
-  "answerWindow": {
-    "active": true,
-    "seconds": 60,
-    "remainingSeconds": 42,
-    "startedAt": "...",
-    "endsAt": "...",
-    "roundUid": "..."
-  }
-}
-```
-
-`answerWindow.active=true` ist entscheidend für den Counter. Wenn der Counter nicht erscheint, zuerst diesen State prüfen.
-
-## Wichtige Routen
+Finale-Daten enthalten:
 
 ```text
-GET  /api/stream-events/status
-GET  /api/stream-events/sound-runtime/status
-GET  /api/stream-events/sound-runtime/report
-GET  /api/stream-events/runtime-overlay/state
-POST /api/stream-events/sound-runtime/reset-test-state?confirm=1
-POST /api/stream-events/sound-runtime/create-test-event?confirm=1&useRealMedia=1
-POST /api/stream-events/sound-runtime/next-round?play=1&confirm=1
-POST /api/stream-events/sound-runtime/resolve
-POST /api/stream-events/sound-runtime/unresolved
-POST /api/stream-events/sound-runtime/test-chat
+ranking
+podiumRows
+honorRows
+top3
+winner
+avatarPreload
+overlayReadyGate
 ```
 
-## Ergebnis-Anzeigen
+### Top-3 Avatar Preload
 
-### Gewinner-Card
+Vor dem Bus-Event wird Platz 1–3 über vorhandene Helper/Twitch-/Userinfo-Routen geprüft.
 
-Position: Mitte rechts.  
-Inhalt:
+Helper-Kette:
 
 ```text
-Username
-hat den Schnipsel erkannt · +X Punkte
-Titel des Schnipsels
+resolveTwitchUserInfoSmall(login)
+→ lokale Tabellen
+→ /userinfo?login=...
+→ /api/twitch/userinfo?login=...
+→ /api/twitch/user?login=...
 ```
 
-Layout-Regeln:
+Timeout:
 
 ```text
-- Username eigene Zeile.
-- Username möglichst vollständig sichtbar.
-- Punkte immer sichtbar.
-- Titel eigene Titelbox, maximal zwei Zeilen.
-- Card nicht endlos verbreitern.
+ca. 4 Sekunden
 ```
 
-### Keine-Lösung-Kachel
+### Bus
 
-Position: oben mittig.  
-Dauer: ca. 10 Sekunden.  
-Text:
+Backend sendet:
 
 ```text
-KEINE LÖSUNG
-Die Heimleitung hat im Chat
-keine richtige Antwort erkannt.
-Der Schnipsel bleibt im Archiv.
+stream_events.winner_finale / started
+stream_events.winner_finale / replay_requested
 ```
 
-Regeln:
+Overlay empfängt über:
 
 ```text
-- Lösung nicht spoilern.
-- Kein Avatar.
-- Kein Username.
-- Keine Punkte.
-- Kein Reveal-Video.
+overlay_bus_client.js
+cgn:overlay-bus-message
 ```
 
-## Reveal-Video
+## Winner-Overlay
 
-Reveal wird bei richtiger Antwort über das Sound-System geplant. Das Reveal darf kein EventRuntime-PreRoll auslösen.
-
-Nicht mehr gewünscht:
+Dateien:
 
 ```text
-AUFLOESUNG
-AUFLOESUNG LAEUFT
-LOS!
-JETZT RATEN!
+htdocs/overlays/stream_events/event_winner_overlay.html
+htdocs/overlays/stream_events/event_winner_overlay_layout.json
 ```
 
-Wichtig: Sichtbares Reveal-Video läuft über:
+Eigenschaften:
+
+- festes Design aus EVS49
+- absolute JSON-Koordinaten
+- keine alten `.award-slot` / `.honor-slot` Renderer
+- Reveal-Reihenfolge: Platz 10 → 4, dann Platz 3 → 2 → 1
+- Dauer:
+  - `duration=short`
+  - `duration=normal`
+  - `duration=long`
+- Sofortbild:
+  - `state=final`
+  - `instant=1`
+
+## Dashboard-Testbereich
+
+Pfad:
 
 ```text
-htdocs/overlays/sound_system_overlay.html
+Dashboard → Event-System → Test
 ```
 
-Nicht über:
+Buttons:
+
+- Overlay öffnen
+- Runtime-Overlay öffnen
+- URL kopieren
+- Random-Winner-Demos
+- Backend-Testdaten laden
+- Testevent erstellen/starten
+- falsche/richtige Antworten simulieren
+- Ranking auffüllen
+- Event beenden
+- Auswertung starten
+- Full-Flow komplett
+
+## Test-Route
 
 ```text
-htdocs/overlays/stream_events/event_runtime_overlay.html
+POST /api/stream-events/test/run?confirm=1&step=<step>
 ```
 
-## Auto-Schedule
-
-Regel:
+Steps:
 
 ```text
-random_auto / sequence_auto: nächste automatische Runde nach intervalMinutes ± intervalJitterMinutes.
-roundDelaySeconds ist nur Mindestpause/Floor.
-Manuelle next-round API darf weiterhin sofort auslösen.
+create
+start
+wrong
+correct
+seed-ranking
+finish
+finale
+full-flow
 ```
 
-Beispiel:
+## Sicherheit
+
+- Test-Routen brauchen `confirm=1`.
+- Tests sollen keine echte Twitch-Ausgabe senden.
+- Testevents werden durch Namen/Metadata als Dashboard-Test markiert.
+- Original-Events sollen nicht verändert werden.
+
+## Offene Punkte Satz-System
+
+Der nächste Block betrifft das Satz-/Text-System:
+
+- echte Testfälle für Satzrunden im Dashboard
+- falsche/richtige Satzantworten sichtbar nachvollziehen
+- Satz als gelöst markieren
+- Punkte nur bei korrekter Antwort
+- Mehrfachantworten/Followup-Regeln prüfen
+- Text-Teilspiel Abschlussstatus
+- Kombination Sound + Text: Gesamtabschluss erst, wenn beide Teilspiele fertig sind
+- Runtime-Overlay Status für Text/Sätze verbessern
+
+## EVS50.1 – Aktuelles Event: User-Punkte-Historie
+
+Im Tab `Aktuelles Event` sind Ranglisten-Zeilen anklickbar. Der Klick öffnet das User-Detailfenster für genau dieses Event.
+
+Verwendete Routen:
 
 ```text
-Alle X Minuten = 15
-Zufallsabweichung = 5
-Erwartung = 600 bis 1200 Sekunden
+GET /api/stream-events/statistics/users?eventUid=<eventUid>
+GET /api/stream-events/statistics/user/:login?eventUid=<eventUid>
 ```
 
-## Diagnose
+Das Popup zeigt:
 
-```powershell
-$s = Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/status"
-$s | Select-Object moduleVersion,moduleBuild | Format-List
+- Punkte gesamt
+- Sound-Punkte
+- Satz-/Text-Punkte
+- Punkte-Einträge
+- Worttreffer
+- Satzlösungen
+- Punkte-Verlauf mit Zeitpunkt, Quelle/Grund und Punkten
 
-Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/runtime-overlay/state" | ConvertTo-Json -Depth 12
-Invoke-RestMethod "http://127.0.0.1:8080/api/sound/recent-playback?limit=10" | ConvertTo-Json -Depth 12
-Invoke-RestMethod "http://127.0.0.1:8080/api/sound/event-preroll/status" | ConvertTo-Json -Depth 12
-```
+Punktequellen laufen weiterhin über `stream_events_score_entries`. Sound und Satz/Text werden addiert, aber per `source_type` getrennt angezeigt.
 
-## Bekannte Testhinweise
+Relevante `source_type` Werte:
 
 ```text
-- Normales 30s-Testscript ist zuverlässig für Counter/Gewinner-Card.
-- Long-Winner-Custom-Testevent war unzuverlässig für Sichtprüfung.
-- Lange Gewinnertexte lieber per Demo-URL prüfen:
-  /overlays/stream_events/event_runtime_overlay.html?demo=result-long&v=test
+sound_solved
+text_word_hit
+text_phrase_solve
+manual / sonstige
 ```

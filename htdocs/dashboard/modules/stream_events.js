@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.45";
-  const MODULE_BUILD = "STEP_EVENT_STREAM_OFFLINE_AUTO_WAIT_DASH_1";
+  const MODULE_VERSION = "0.5.46";
+  const MODULE_BUILD = "STEP_EVS50_1_CURRENT_EVENT_USER_POINTS_MODAL";
 
   const api = {
     status: '/api/stream-events/status',
@@ -556,12 +556,12 @@ window.StreamEventsModule = (function(){
             ${sortedUsers.length ? sortedUsers.map((user, index) => {
               const rank = Number(user.rank || index + 1);
               const textUserPoints = Number(user.wordPoints || 0) + Number(user.phrasePoints || 0);
-              return `<div class="evs-current-player-row">
+              return `<button type="button" class="evs-current-player-row evs-current-player-button" data-evs-action="openUserStats" data-user-login="${esc(user.userLogin)}" data-uid="${esc(event.eventUid)}" title="Punkte-Details für ${esc(user.userDisplayName || user.userLogin)} öffnen">
                 <strong>#${esc(rank)}</strong>
                 <span class="evs-current-player-name">${esc(user.userDisplayName || user.userLogin)}</span>
                 <b>${esc(user.totalPoints ?? user.points ?? 0)} Punkte</b>
-                <small>Sound: ${esc(user.soundPoints || 0)} · Text: ${esc(textUserPoints)} · Treffer: ${esc(user.scoreEntries || user.entries || 0)}</small>
-              </div>`;
+                <small>Sound: ${esc(user.soundPoints || 0)} · Text: ${esc(textUserPoints)} · Einträge: ${esc(user.scoreEntries || user.entries || 0)}</small>
+              </button>`;
             }).join('') : '<div class="evs-empty">Noch keine Punkte in diesem Event.</div>'}
           </div>
           <div class="evs-tab-help">Diese Ansicht liest nur Event-Punkte aus stream_events. Es wird nichts ins Loyalty-Konto geschrieben.</div>
@@ -1279,12 +1279,12 @@ window.StreamEventsModule = (function(){
             ${phraseSolves.length ? phraseSolves.slice(0, 20).map(solve => `<div class="evs-runtime-row"><strong>${esc(solve.eventName || solve.eventUid)}</strong><span>Satz ${esc(solve.phraseNumber)} · +${esc(solve.pointsAwarded || 0)} Punkte</span><small>${fmtDate(solve.createdAt)} · „${esc(solve.chatMessage || '')}“</small></div>`).join('') : '<div class="evs-empty">Keine Satzlösungen für diesen User.</div>'}
           </section>
           <section class="evs-runtime-box">
-            <h4>Sound-Spiel später</h4>
-            ${soundRows.length ? soundRows.slice(0, 20).map(row => `<div class="evs-runtime-row"><strong>${esc(row.eventName || row.eventUid)}</strong><span>${esc(row.reason || row.sourceType || 'Sound')} · +${esc(row.points || 0)}</span><small>${fmtDate(row.createdAt)}</small></div>`).join('') : `<div class="evs-empty">${esc(report.sound?.note || 'Sound-Statistik ist vorbereitet, aber noch ohne Runtime-Daten.')}</div>`}
+            <h4>Sound-Punkte</h4>
+            ${soundRows.length ? soundRows.slice(0, 20).map(row => `<div class="evs-runtime-row"><strong>${esc(row.eventName || row.eventUid)}</strong><span>${esc(row.reason || row.sourceType || 'Sound')} · +${esc(row.points || 0)}</span><small>${fmtDate(row.createdAt)}</small></div>`).join('') : `<div class="evs-empty">${esc(report.sound?.note || 'Noch keine Sound-Punkte für diesen User im aktuellen Event.')}</div>`}
           </section>
         </div>
         <section class="evs-runtime-box evs-user-timeline">
-          <h4>Aktivität / Wann, wie, wo</h4>
+          <h4>Punkte-Verlauf / Wann, wofür, wie viele</h4>
           ${timeline.length ? timeline.slice(0, 30).map(item => `<div class="evs-user-timeline-row"><b>${esc(userTimelineLabel(item.kind))}</b><span>${esc(item.row?.eventName || item.row?.eventUid || '')}</span><em>${esc(item.label || '')}</em><strong>${esc(item.points || 0)} Punkte</strong><small>${fmtDate(item.createdAt)}</small></div>`).join('') : '<div class="evs-empty">Keine Aktivität für diesen User.</div>'}
         </section>
       </section>
@@ -1333,9 +1333,11 @@ window.StreamEventsModule = (function(){
             ${hasReport ? `
               <div class="evs-runtime-counters evs-user-counters">
                 <div><strong>${esc(u.totalPoints || 0)}</strong><span>Punkte gesamt</span></div>
+                <div><strong>${esc(u.soundPoints || 0)}</strong><span>Sound-Punkte</span></div>
+                <div><strong>${esc((Number(u.wordPoints || 0) + Number(u.phrasePoints || 0)))}</strong><span>Satz-/Text-Punkte</span></div>
+                <div><strong>${esc(u.scoreEntries || 0)}</strong><span>Punkte-Einträge</span></div>
                 <div><strong>${esc(u.wordHits || 0)}</strong><span>Worttreffer</span></div>
                 <div><strong>${esc(u.phraseSolves || 0)}</strong><span>Satzlösungen</span></div>
-                <div><strong>${esc(u.eventCount || 0)}</strong><span>Events</span></div>
               </div>
 
               <div class="evs-user-modal-grid">
@@ -1348,13 +1350,13 @@ window.StreamEventsModule = (function(){
                   ${phraseSolves.length ? phraseSolves.map(solve => `<div class="evs-runtime-row"><strong>${esc(solve.eventName || solve.eventUid)}</strong><span>Satz ${esc(solve.phraseNumber)} · +${esc(solve.pointsAwarded || 0)} Punkte</span><small>${fmtDate(solve.createdAt)} · „${esc(solve.chatMessage || '')}“</small></div>`).join('') : '<div class="evs-empty">Keine Satzlösungen für diesen User.</div>'}
                 </section>
                 <section class="evs-runtime-box">
-                  <h4>Sound-Spiel später</h4>
-                  ${soundRows.length ? soundRows.map(row => `<div class="evs-runtime-row"><strong>${esc(row.eventName || row.eventUid)}</strong><span>${esc(row.reason || row.sourceType || 'Sound')} · +${esc(row.points || 0)}</span><small>${fmtDate(row.createdAt)}</small></div>`).join('') : `<div class="evs-empty">${esc(report.sound?.note || 'Sound-Statistik ist vorbereitet, aber noch ohne Runtime-Daten.')}</div>`}
+                  <h4>Sound-Punkte</h4>
+                  ${soundRows.length ? soundRows.map(row => `<div class="evs-runtime-row"><strong>${esc(row.eventName || row.eventUid)}</strong><span>${esc(row.reason || row.sourceType || 'Sound')} · +${esc(row.points || 0)}</span><small>${fmtDate(row.createdAt)}</small></div>`).join('') : `<div class="evs-empty">${esc(report.sound?.note || 'Noch keine Sound-Punkte für diesen User im aktuellen Event.')}</div>`}
                 </section>
               </div>
 
               <section class="evs-runtime-box evs-user-timeline evs-user-modal-timeline">
-                <h4>Aktivität / Wann, wie, wo</h4>
+                <h4>Punkte-Verlauf / Wann, wofür, wie viele</h4>
                 ${timeline.length ? timeline.map(item => `<div class="evs-user-timeline-row"><b>${esc(userTimelineLabel(item.kind))}</b><span>${esc(item.row?.eventName || item.row?.eventUid || '')}</span><em>${esc(item.label || '')}</em><strong>${esc(item.points || 0)} Punkte</strong><small>${fmtDate(item.createdAt)}</small></div>`).join('') : '<div class="evs-empty">Keine Aktivität für diesen User.</div>'}
               </section>
             ` : `<div class="evs-empty">User-Report für ${esc(login)} wird geladen oder enthält noch keine Daten im aktuellen Event.</div>`}
