@@ -186,27 +186,20 @@
     .header {
       position: absolute;
       z-index: 7;
-      left: 70px;
-      right: 70px;
-      top: 42px;
+      left: 82px;
+      right: 82px;
+      top: 48px;
       text-align: center;
     }
 
     .phase {
-      min-height: 26px;
-      color: var(--gold);
-      font-size: 20px;
-      line-height: 1;
-      font-weight: 950;
-      letter-spacing: .20em;
-      text-transform: uppercase;
-      text-shadow: 0 0 18px rgba(255,232,109,.24);
+      display: none;
     }
 
     .title {
-      margin-top: 14px;
-      font-size: 72px;
-      line-height: .96;
+      margin-top: 0;
+      font-size: 76px;
+      line-height: .94;
       font-weight: 950;
       letter-spacing: .035em;
       text-transform: uppercase;
@@ -217,7 +210,7 @@
     .lead {
       margin-top: 12px;
       color: rgba(247,251,255,.73);
-      font-size: 26px;
+      font-size: 25px;
       line-height: 1.15;
       font-weight: 800;
       text-shadow: 0 0 16px rgba(54,231,255,.10);
@@ -229,14 +222,14 @@
     .award-area {
       position: absolute;
       z-index: 6;
-      left: 76px;
-      right: 76px;
-      top: 250px;
-      height: 545px;
+      left: 96px;
+      right: 96px;
+      top: 205px;
+      height: 535px;
       border-radius: 34px;
-      background: linear-gradient(135deg, rgba(2,6,24,.34), rgba(20,9,47,.26));
-      border: 1px solid rgba(143,244,255,.12);
-      box-shadow: inset 0 0 45px rgba(54,231,255,.035);
+      background: linear-gradient(135deg, rgba(2,6,24,.30), rgba(20,9,47,.23));
+      border: 1px solid rgba(143,244,255,.09);
+      box-shadow: inset 0 0 45px rgba(54,231,255,.028), 0 0 34px rgba(168,85,247,.06);
       overflow: hidden;
     }
 
@@ -372,10 +365,10 @@
     .top3-grid {
       position: absolute;
       z-index: 7;
-      inset: 52px 54px 42px;
+      inset: 44px 58px 36px;
       display: grid;
       grid-template-columns: 1fr 1.18fr 1fr;
-      gap: 36px;
+      gap: 54px;
       align-items: end;
       opacity: 0;
       transform: translateY(18px);
@@ -390,8 +383,8 @@
     .award-card {
       position: relative;
       min-width: 0;
-      min-height: 360px;
-      padding: 30px 28px 26px;
+      min-height: 348px;
+      padding: 30px 30px 26px;
       border-radius: 34px;
       background:
         radial-gradient(circle at 50% 0%, rgba(255,255,255,.08), transparent 40%),
@@ -423,7 +416,7 @@
     @keyframes cardShine { to { transform: translateX(130%); } }
 
     .award-card.rank1 {
-      min-height: 438px;
+      min-height: 424px;
       border-color: rgba(255,232,109,.34);
       box-shadow: inset 0 0 42px rgba(255,232,109,.05), 0 0 46px rgba(255,232,109,.15), 0 0 78px rgba(168,85,247,.15);
     }
@@ -536,15 +529,15 @@
     .honor-rail {
       position: absolute;
       z-index: 8;
-      left: 112px;
-      right: 112px;
-      bottom: 42px;
-      min-height: 132px;
-      border-radius: 28px;
-      padding: 18px 18px 16px;
-      background: rgba(3,8,28,.48);
-      border: 1px solid rgba(143,244,255,.13);
-      box-shadow: inset 0 0 26px rgba(54,231,255,.032);
+      left: 128px;
+      right: 128px;
+      bottom: 44px;
+      min-height: 126px;
+      border-radius: 30px;
+      padding: 20px 22px;
+      background: rgba(3,8,28,.42);
+      border: 1px solid rgba(143,244,255,.10);
+      box-shadow: inset 0 0 24px rgba(54,231,255,.026), 0 0 28px rgba(168,85,247,.07);
       opacity: 0;
       transform: translateY(18px);
       transition: opacity .42s ease, transform .55s cubic-bezier(.16, 1, .3, 1);
@@ -556,26 +549,23 @@
     }
 
     .honor-title {
-      color: rgba(247,251,255,.66);
-      font-size: 17px;
-      font-weight: 950;
-      letter-spacing: .16em;
-      text-transform: uppercase;
-      margin-bottom: 12px;
+      display: none;
     }
 
     .honor-list {
       display: grid;
       grid-template-columns: repeat(7, minmax(0, 1fr));
-      gap: 10px;
+      gap: 16px;
+      height: 100%;
+      align-items: stretch;
     }
 
     .honor-chip {
-      min-height: 70px;
-      padding: 9px 10px 8px;
-      border-radius: 17px;
-      background: linear-gradient(135deg, rgba(255,209,147,.065), rgba(168,85,247,.075));
-      border: 1px solid rgba(255,209,147,.22);
+      min-height: 86px;
+      padding: 13px 14px 11px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, rgba(255,209,147,.070), rgba(168,85,247,.080));
+      border: 1px solid rgba(255,209,147,.20);
       opacity: 0;
       transform: translateY(12px) scale(.965);
       transition: opacity .36s ease, transform .48s cubic-bezier(.16, 1, .3, 1), box-shadow .35s ease;
@@ -590,15 +580,15 @@
 
     .chip-place {
       color: var(--cookie);
-      font-size: 15px;
+      font-size: 16px;
       font-weight: 950;
       letter-spacing: .04em;
     }
 
     .chip-name {
-      margin-top: 2px;
+      margin-top: 5px;
       color: #fff;
-      font-size: 17px;
+      font-size: 18px;
       font-weight: 900;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -606,7 +596,7 @@
     }
 
     .chip-reward {
-      margin-top: 4px;
+      margin-top: 8px;
       color: var(--gold);
       font-size: 14px;
       font-weight: 900;
@@ -616,22 +606,10 @@
     }
 
     .footer {
-      position: absolute;
-      z-index: 8;
-      left: 160px;
-      right: 160px;
-      bottom: 186px;
-      color: rgba(247,251,255,.56);
-      font-size: 19px;
-      line-height: 1.15;
-      font-weight: 800;
-      text-align: center;
-      opacity: 0;
-      transition: opacity .42s ease;
-      text-shadow: 0 0 14px rgba(0,0,0,.40);
+      display: none;
     }
 
-    .footer.visible { opacity: 1; }
+    .footer.visible { display: none; }
 
     .confetti {
       position: absolute;
@@ -746,7 +724,7 @@
       mode: "obs_overlay",
       module: "stream_events",
       name: "Stream Events Gewinner-Finale Overlay",
-      version: "0.2.6",
+      version: "0.2.7",
       heartbeatIntervalMs: 5000,
       capabilities: [
         "overlay.heartbeat",
@@ -758,7 +736,7 @@
         overlay: "event_winner_overlay.html",
         communication: "communication_bus",
         owner: "stream_events",
-        step: "EVS47.1"
+        step: "EVS47.2"
       }
     };
   </script>
@@ -1108,7 +1086,7 @@
         chip.innerHTML = `
           <div class="chip-place">Platz ${escapeHtml(row.rank)}</div>
           <div class="chip-name"></div>
-          <div class="chip-reward">🍪 ${escapeHtml(crumbsLabel(row.crumbBonus))}</div>
+          <div class="chip-reward">🍪 +${escapeHtml(formatInt(row.crumbBonus))} extra</div>
         `;
         chip.querySelector(".chip-name").textContent = row.userDisplayName;
         return chip;
@@ -1148,7 +1126,7 @@
         let at = 350;
         defer(() => {
           setHeader("Top-10 Ehrenrunde", "Plätze 10 bis 4", "Die extra Kekskrümel werden nacheinander vergeben.");
-          setFooter("Die Ehrenleiste füllt sich erst nach jeder Vorstellung.", true);
+          setFooter("", false);
         }, at);
 
         at += timeline.intro;
@@ -1185,8 +1163,8 @@
 
         defer(() => {
           hideFocus();
-          setHeader("Preisverleihung", "Finale Top 3", "Platz 3 links, Platz 1 in der Mitte, Platz 2 rechts.");
-          setFooter("Alle Finalplätze bleiben sichtbar. Keine Karte liegt über einer anderen.", true);
+          setHeader("Preisverleihung", "Finale Top 3", "Die drei besten Plätze werden jetzt enthüllt.");
+          setFooter("", false);
           renderAwardCard(els.card3, row3);
           renderAwardCard(els.card1, row1);
           renderAwardCard(els.card2, row2);
@@ -1213,7 +1191,7 @@
         defer(() => {
           const winner = row1 || finale.winner;
           setHeader("CGN Event-Gewinner", "Platz 1", winner ? `${winner.userDisplayName} gewinnt das Event-Finale.` : "Das Event-Finale ist entschieden.");
-          setFooter("Glückwunsch an alle Top-10-Plätze. Die Heimleitung hat gesprochen.", true);
+          setFooter("", false);
           [els.card1, els.card2, els.card3].forEach((slot) => slot.classList.remove("dimmed", "focused"));
           if (els.card1) els.card1.classList.add("focused");
           makeConfetti(fastMode ? 82 : 120);
@@ -1305,7 +1283,7 @@
     data-mode="obs_overlay"
     data-module="stream_events"
     data-name="Stream Events Gewinner-Finale Overlay"
-    data-version="0.2.6"
+    data-version="0.2.7"
     data-heartbeat-ms="5000"
   ></script>
 </body>
