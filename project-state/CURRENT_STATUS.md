@@ -29,3 +29,8 @@ Shot-Alarm ist als Event-Modul unter Events eingeordnet. Config und Texte bleibe
 - `Shot-Alarm` bleibt als Event-Untermodul vorhanden, aber nicht als eigener Hauptnavigationspunkt.
 - Texte/Config sollen im Event-System-Kontext über vorhandene Modul-/Bereichs-Dropdowns weitergeführt werden.
 - Backend, Regeln, DB-Texte, DB-Config, Overlay und Counter wurden nicht geändert.
+
+## SHOT-ALARM-2B.3 Dashboard Event-System Modul-Dropdowns
+- Shot-Alarm bleibt unter Community → Event-System.
+- Texte/Config bekommen Modul-Auswahl Event-System / Shot-Alarm.
+- Backend/Regeln/Overlay unverändert.

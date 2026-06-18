@@ -145,3 +145,13 @@ Shot-Alarm gehört im Dashboard in den Bereich Events. Die Tabs Config und Texte
 - `Shot-Alarm` bleibt als Event-Untermodul vorhanden, aber nicht als eigener Hauptnavigationspunkt.
 - Texte/Config sollen im Event-System-Kontext über vorhandene Modul-/Bereichs-Dropdowns weitergeführt werden.
 - Backend, Regeln, DB-Texte, DB-Config, Overlay und Counter wurden nicht geändert.
+
+---
+
+## Dashboard-Einordnung ab STEP 2B.3
+
+Shot-Alarm wird im Dashboard nicht als eigener Hauptbereich geführt. Der Einstieg bleibt:
+
+`Community → Event-System`
+
+Innerhalb des Event-Systems sind die Tabs `Texte` und `Config` modulbasiert. Über das Modul-Dropdown kann zwischen `Event-System` und `Shot-Alarm` gewechselt werden. Shot-Alarm nutzt dort seine eigenen DB-basierten Textvarianten und DB-Config.

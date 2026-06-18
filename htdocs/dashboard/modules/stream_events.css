@@ -1174,3 +1174,32 @@
 .evs-btn-finale {
   font-weight: 800;
 }
+
+/* STEP SHOT-ALARM-2B.3: module dropdowns inside Event-System tabs */
+.evs-module-select-row {
+  margin: 0 0 14px 0;
+  padding: 14px 16px;
+  border-radius: 18px;
+  display: flex;
+  align-items: end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.evs-module-select-row label {
+  display: grid;
+  gap: 6px;
+  min-width: 260px;
+}
+.evs-module-select-row label span {
+  font-size: 12px;
+  color: var(--muted, #a8b3c8);
+  font-weight: 700;
+}
+.evs-module-select-row select {
+  min-height: 42px;
+}
+.evs-module-select-row small {
+  color: var(--muted, #a8b3c8);
+  max-width: 720px;
+  line-height: 1.35;
+}

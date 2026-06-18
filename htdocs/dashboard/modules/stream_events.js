@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.56";
-  const MODULE_BUILD = "STEP_EVS52_21_WINNER_FINALE_REPLAY_BUTTON";
+  const MODULE_VERSION = "0.5.57";
+  const MODULE_BUILD = "STEP_EVS52_22_SHOT_ALARM_MODULE_DROPDOWNS";
 
   const api = {
     status: '/api/stream-events/status',
@@ -19,7 +19,11 @@ window.StreamEventsModule = (function(){
     chatOutputTestDispatch: '/api/stream-events/chat-output/test-dispatch',
     runtimeGateStatus: '/api/stream-events/runtime-gate/status',
     soundSkipWait: '/api/stream-events/sound-runtime/skip-wait',
-    commandEventTest: '/api/stream-events/commands/event/test'
+    commandEventTest: '/api/stream-events/commands/event/test',
+    shotAlarmStatus: '/api/shot-alarm/status',
+    shotAlarmConfig: '/api/shot-alarm/config',
+    shotAlarmTexts: '/api/shot-alarm/texts',
+    shotAlarmStats: '/api/shot-alarm/stats'
   };
 
   let root = null;
@@ -55,13 +59,39 @@ window.StreamEventsModule = (function(){
     textSearchFilter: '',
     modal: null,
     testPanel: { loading: false, result: null, error: '', message: '' },
-    activeTab: 'overview'
+    activeTab: 'overview',
+    configModuleFilter: 'stream_events',
+    textSourceModule: 'stream_events',
+    shotAlarm: { loading: false, error: '', status: null, config: null, texts: null, stats: null }
   };
 
   function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? '').replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c])); }
   function norm(v){ return String(v || '').trim().toLowerCase(); }
   function fmtDate(v){ if (!v) return '-'; const d = new Date(v); return Number.isNaN(d.getTime()) ? esc(v) : esc(d.toLocaleString('de-DE')); }
   function rows(v){ return Array.isArray(v) ? v : (Array.isArray(v?.rows) ? v.rows : []); }
+  function boolSelect(value){ return String(value) === 'true' || value === true; }
+  function shotAlarmAvailable(){ return !!state.shotAlarm?.status || !!state.shotAlarm?.config || !!state.shotAlarm?.texts; }
+  function eventModuleOptions(){
+    return [
+      { id: 'stream_events', label: 'Event-System' },
+      { id: 'shot_alarm', label: 'Shot-Alarm' }
+    ];
+  }
+  function renderEventModuleSelector(context){
+    const key = context === 'texts' ? 'textSourceModule' : 'configModuleFilter';
+    const selected = state[key] || 'stream_events';
+    return `
+      <div class="evs-module-select-row glass">
+        <label>
+          <span>Modul</span>
+          <select ${context === 'texts' ? 'data-evs-text-source-module' : 'data-evs-config-module-filter'}>
+            ${eventModuleOptions().map(opt => `<option value="${esc(opt.id)}" ${selected === opt.id ? 'selected' : ''}>${esc(opt.label)}</option>`).join('')}
+          </select>
+        </label>
+        <small>Texte und Config bleiben im Event-System-Bereich, werden aber je Modul getrennt verwaltet.</small>
+      </div>
+    `;
+  }
   function selectedEvent(){
     const byUid = state.selectedUid ? state.events.find(e => e.eventUid === state.selectedUid) : null;
     if (byUid) return byUid;
@@ -628,7 +658,263 @@ window.StreamEventsModule = (function(){
     `;
   }
 
+
+  async function loadShotAlarmData(rerender = true){
+    state.shotAlarm = state.shotAlarm || {};
+    if (state.shotAlarm.loading) return;
+    state.shotAlarm.loading = true;
+    state.shotAlarm.error = '';
+    if (rerender) render();
+    try {
+      const [status, config, texts, stats] = await Promise.all([
+        window.CGN.api(api.shotAlarmStatus).catch(err => ({ ok:false, error: err.message || String(err) })),
+        window.CGN.api(api.shotAlarmConfig).catch(err => ({ ok:false, error: err.message || String(err), config: null })),
+        window.CGN.api(api.shotAlarmTexts).catch(err => ({ ok:false, error: err.message || String(err), categories: [], keys: [] })),
+        window.CGN.api(api.shotAlarmStats).catch(() => null)
+      ]);
+      state.shotAlarm.status = status;
+      state.shotAlarm.config = config?.config || config;
+      state.shotAlarm.texts = texts;
+      state.shotAlarm.stats = stats;
+      state.shotAlarm.loading = false;
+      state.shotAlarm.error = status?.error || config?.error || texts?.error || '';
+    } catch (err) {
+      state.shotAlarm.loading = false;
+      state.shotAlarm.error = err.message || String(err);
+    }
+    if (rerender) render();
+  }
+
+  function scheduleShotAlarmLoad(){
+    if (!state.shotAlarm?.loading && !shotAlarmAvailable()) setTimeout(() => loadShotAlarmData(true), 0);
+  }
+
+  function renderShotBool(key, label, value){
+    return `<label><span>${esc(label)}</span><select data-shot-config="${esc(key)}"><option value="true" ${value ? 'selected' : ''}>Aktiv</option><option value="false" ${!value ? 'selected' : ''}>Inaktiv</option></select></label>`;
+  }
+  function renderShotNumber(key, label, value, min = 0, max = 999999){
+    return `<label><span>${esc(label)}</span><input data-shot-config="${esc(key)}" type="number" min="${esc(min)}" max="${esc(max)}" value="${esc(value)}"></label>`;
+  }
+  function renderShotText(key, label, value){
+    return `<label><span>${esc(label)}</span><input data-shot-config="${esc(key)}" type="text" value="${esc(value)}"></label>`;
+  }
+  function renderShotTarget(value){
+    const opts = [
+      ['engel_roxxy_together', 'Engel & Roxxy gemeinsam'],
+      ['engel_only', 'Nur Engel'],
+      ['roxxy_only', 'Nur Roxxy'],
+      ['random_engel_roxxy', 'Zufällig Engel/Roxxy']
+    ];
+    return `<label><span>Zielpersonen</span><select data-shot-config="targetMode">${opts.map(([id,label]) => `<option value="${esc(id)}" ${String(value || 'engel_roxxy_together') === id ? 'selected' : ''}>${esc(label)}</option>`).join('')}</select></label>`;
+  }
+
+  function renderShotAlarmConfigTab(){
+    scheduleShotAlarmLoad();
+    const box = state.shotAlarm || {};
+    const c = box.config || {};
+    const rules = c.rules || {};
+    const display = c.display || {};
+    const dedupe = c.dedupe || {};
+    const payments = rules.payments?.providers || {};
+    return `
+      ${renderEventModuleSelector('config')}
+      <section class="evs-card glass evs-tab-panel evs-config-panel">
+        <div class="evs-card-head">
+          <div>
+            <h3>Shot-Alarm Config</h3>
+            <span>Regeln, Auslosung, Overlay und Counter für Engel & Roxxy. Quelle: ${esc(box.status?.configSource || 'DB/Config')}</span>
+          </div>
+          <div class="evs-card-actions"><button type="button" class="evs-btn evs-btn-small evs-btn-secondary" data-evs-action="reloadShotAlarmData">Neu laden</button><button type="button" class="evs-btn" data-evs-action="saveShotAlarmConfig">Shot-Config speichern</button></div>
+        </div>
+        ${box.error ? `<div class="evs-error">${esc(box.error)}</div>` : ''}
+        ${box.loading ? '<div class="evs-empty">Shot-Alarm Config wird geladen...</div>' : ''}
+        <div class="evs-text-rule-note">Diese Einstellungen gehören zum Modul <b>Shot-Alarm</b> innerhalb des Event-Systems. Event-System-Defaults bleiben unverändert.</div>
+        <div class="evs-config-grid">
+          <div class="evs-config-card">
+            <div class="evs-config-card-head"><strong>Allgemein</strong><small>Modul, Overlay, Zielpersonen</small></div>
+            ${renderShotBool('enabled', 'Shot-Alarm aktiv', c.enabled !== false)}
+            ${renderShotBool('overlayEnabled', 'Overlay aktiv', c.overlayEnabled !== false)}
+            ${renderShotBool('soundEnabled', 'Sound aktiv', c.soundEnabled !== false)}
+            ${renderShotBool('showStatusBar', 'Statusleiste unten anzeigen', display.showStatusBar !== false)}
+            ${renderShotTarget(c.targetMode)}
+            ${renderShotText('targetLabel', 'Ziel-Text', c.targetLabel || 'Engel & Roxxy')}
+          </div>
+          <div class="evs-config-card">
+            <div class="evs-config-card-head"><strong>Auslosung & Anzeige</strong><small>Zweistufiger Ablauf</small></div>
+            ${renderShotNumber('drawDelayMs', 'Auslosungsdauer ms', display.drawDelayMs || 10000, 0, 120000)}
+            ${renderShotNumber('drawHoldMs', 'Auslosung anzeigen ms', display.drawHoldMs || display.drawDelayMs || 10000, 0, 120000)}
+            ${renderShotNumber('resultHoldMs', 'Ergebnis anzeigen ms', display.resultHoldMs || display.holdMs || 10000, 0, 120000)}
+          </div>
+          <div class="evs-config-card evs-config-card-wide">
+            <div class="evs-config-card-head"><strong>Twitch-Regeln</strong><small>Subs, Resubs, GiftSubs und Bomben</small></div>
+            ${renderShotNumber('singleSubChancePercent', 'Sub normal %', rules.singleSubChancePercent ?? 20, 0, 100)}
+            ${renderShotNumber('resubChancePercent', 'Resub normal %', rules.resubChancePercent ?? 20, 0, 100)}
+            ${renderShotNumber('singleGiftSubChancePercent', 'GiftSub normal %', rules.singleGiftSubChancePercent ?? 20, 0, 100)}
+            ${renderShotNumber('singleSupportFiveChancePercent', 'jeder 5. Einzel-Sub/Resub/GiftSub %', rules.singleSupportFiveChancePercent ?? 50, 0, 100)}
+            ${renderShotNumber('singleSupportTenChancePercent', 'jeder 10. Einzel-Sub/Resub/GiftSub %', rules.singleSupportTenChancePercent ?? 100, 0, 100)}
+            ${renderShotNumber('giftBombFiveChancePercent', '5er Sub-Bombe %', rules.giftBombFiveChancePercent ?? 50, 0, 100)}
+            ${renderShotBool('subscribeResubBufferEnabled', 'Sub/Resub Puffer aktiv', dedupe.subscribeResubBufferEnabled !== false)}
+            ${renderShotNumber('subscribeResubBufferMs', 'Sub/Resub Puffer ms', dedupe.subscribeResubBufferMs || 60000, 0, 300000)}
+            <small class="evs-help">Bits fest: je 1.000 Bits = 50/50, je 10.000 Bits = 100 %. Sub-Bomben zählen separat.</small>
+          </div>
+          <div class="evs-config-card">
+            <div class="evs-config-card-head"><strong>Ko-fi / Tipeee vorbereitet</strong><small>Payment-Bus kommt separat</small></div>
+            ${renderShotBool('kofiEnabled', 'Ko-fi aktiv', payments.kofi?.enabled !== false)}
+            ${renderShotNumber('kofiEurPerShot', 'Ko-fi EUR je Wurf', payments.kofi?.eurPerShot || 10, 1, 1000)}
+            ${renderShotNumber('kofiChancePercent', 'Ko-fi Chance % je Block', payments.kofi?.chancePercent ?? 50, 0, 100)}
+            ${renderShotBool('tipeeeEnabled', 'Tipeee aktiv', payments.tipeee?.enabled !== false)}
+            ${renderShotNumber('tipeeeEurPerShot', 'Tipeee EUR je Wurf', payments.tipeee?.eurPerShot || 10, 1, 1000)}
+            ${renderShotNumber('tipeeeChancePercent', 'Tipeee Chance % je Block', payments.tipeee?.chancePercent ?? 50, 0, 100)}
+          </div>
+        </div>
+      </section>
+    `;
+  }
+
+  function readShotAlarmConfigFromDom(){
+    const current = JSON.parse(JSON.stringify(state.shotAlarm?.config || {}));
+    const read = key => document.querySelector(`[data-shot-config="${key}"]`)?.value;
+    current.enabled = boolSelect(read('enabled'));
+    current.overlayEnabled = boolSelect(read('overlayEnabled'));
+    current.soundEnabled = boolSelect(read('soundEnabled'));
+    current.targetMode = read('targetMode') || 'engel_roxxy_together';
+    current.targetLabel = read('targetLabel') || 'Engel & Roxxy';
+    current.display = current.display || {};
+    current.display.showStatusBar = boolSelect(read('showStatusBar'));
+    current.display.drawDelayMs = Number(read('drawDelayMs') || 10000);
+    current.display.drawHoldMs = Number(read('drawHoldMs') || current.display.drawDelayMs || 10000);
+    current.display.resultHoldMs = Number(read('resultHoldMs') || 10000);
+    current.rules = current.rules || {};
+    current.rules.singleSubChancePercent = Number(read('singleSubChancePercent') || 20);
+    current.rules.resubChancePercent = Number(read('resubChancePercent') || 20);
+    current.rules.singleGiftSubChancePercent = Number(read('singleGiftSubChancePercent') || 20);
+    current.rules.singleSupportFiveChancePercent = Number(read('singleSupportFiveChancePercent') || 50);
+    current.rules.singleSupportTenChancePercent = Number(read('singleSupportTenChancePercent') || 100);
+    current.rules.giftBombFiveChancePercent = Number(read('giftBombFiveChancePercent') || 50);
+    current.dedupe = current.dedupe || {};
+    current.dedupe.subscribeResubBufferEnabled = boolSelect(read('subscribeResubBufferEnabled'));
+    current.dedupe.subscribeResubBufferMs = Number(read('subscribeResubBufferMs') || 60000);
+    current.rules.payments = current.rules.payments || { enabled: true, providers: {} };
+    current.rules.payments.providers = current.rules.payments.providers || {};
+    current.rules.payments.providers.kofi = current.rules.payments.providers.kofi || {};
+    current.rules.payments.providers.tipeee = current.rules.payments.providers.tipeee || {};
+    current.rules.payments.providers.kofi.enabled = boolSelect(read('kofiEnabled'));
+    current.rules.payments.providers.tipeee.enabled = boolSelect(read('tipeeeEnabled'));
+    current.rules.payments.providers.kofi.eurPerShot = Number(read('kofiEurPerShot') || 10);
+    current.rules.payments.providers.tipeee.eurPerShot = Number(read('tipeeeEurPerShot') || 10);
+    current.rules.payments.providers.kofi.chancePercent = Number(read('kofiChancePercent') || 50);
+    current.rules.payments.providers.tipeee.chancePercent = Number(read('tipeeeChancePercent') || 50);
+    return current;
+  }
+
+  async function saveShotAlarmConfig(){
+    try {
+      const payload = readShotAlarmConfigFromDom();
+      const result = await window.CGN.api(api.shotAlarmConfig, { method: 'POST', body: JSON.stringify(payload) });
+      state.shotAlarm.config = result.config || payload;
+      state.shotAlarm.status = result.status || state.shotAlarm.status;
+      state.message = 'Shot-Alarm Config gespeichert.';
+      await loadShotAlarmData(false);
+      render();
+    } catch (err) {
+      state.error = err.message || String(err);
+      render();
+    }
+  }
+
+  function shotTextCategories(){
+    const cats = Array.isArray(state.shotAlarm?.texts?.categories) ? state.shotAlarm.texts.categories : [];
+    return cats.length ? cats : [{ id: 'chat', label: 'Shot-Alarm Chat' }, { id: 'overlay', label: 'Shot-Alarm Overlay' }];
+  }
+  function shotTextKeysForCategory(category){
+    const keys = Array.isArray(state.shotAlarm?.texts?.keys) ? state.shotAlarm.texts.keys : [];
+    return keys.filter(item => String(item.category || 'chat') === String(category || 'chat'));
+  }
+  function renderShotAlarmTextsTab(){
+    scheduleShotAlarmLoad();
+    const box = state.shotAlarm || {};
+    const cats = shotTextCategories();
+    const selected = state.shotAlarmTextCategory || cats[0]?.id || 'chat';
+    const keys = shotTextKeysForCategory(selected);
+    return `
+      <section class="evs-card glass evs-text-config-panel evs-tab-panel">
+        <div class="evs-card-head">
+          <div><h3>Shot-Alarm Texte</h3><span>Altersheim-/Heimleitungs-/Rentner-Texte für Chat und Overlay. Zufällig und gewichtet aus DB-Varianten.</span></div>
+          <button type="button" class="evs-btn evs-btn-small evs-btn-secondary" data-evs-action="reloadShotAlarmData">Texte neu laden</button>
+        </div>
+        ${box.error ? `<div class="evs-error">${esc(box.error)}</div>` : ''}
+        <div class="evs-text-config-help"><strong>Aktiv:</strong> Diese Varianten gehören zum Modul <b>Shot-Alarm</b>. Platzhalter wie <code>{user}</code>, <code>{amountLabel}</code>, <code>{shotsAdded}</code>, <code>{shotsOpen}</code> und <code>{chanceSummary}</code> bleiben erhalten.</div>
+        <div class="evs-text-filter-bar">
+          <label><span>Textbereich</span><select data-evs-shot-text-category>${cats.map(cat => `<option value="${esc(cat.id)}" ${selected === cat.id ? 'selected' : ''}>${esc(cat.label || cat.id)} (${esc(cat.variantCount || 0)})</option>`).join('')}</select></label>
+        </div>
+        ${box.loading ? '<div class="evs-empty">Shot-Alarm Texte werden geladen...</div>' : ''}
+        <div class="evs-text-category-list">
+          ${keys.map(renderShotTextKeyEditor).join('') || '<div class="evs-empty">Keine Shot-Alarm Texte für diesen Bereich gefunden.</div>'}
+        </div>
+      </section>
+    `;
+  }
+  function renderShotTextKeyEditor(keyItem){
+    const variants = Array.isArray(keyItem.variants) ? keyItem.variants : [];
+    return `
+      <details class="evs-text-key" data-shot-text-key="${esc(keyItem.key)}" open>
+        <summary><span><strong>${esc(keyItem.label || keyItem.key)}</strong><small>${esc(keyItem.activeCount || 0)} aktiv / ${esc(keyItem.totalCount || variants.length)} Varianten</small></span></summary>
+        <div class="evs-text-key-body">
+          ${variants.map(v => renderShotTextVariant(v, keyItem)).join('') || '<div class="evs-empty">Noch keine Variante vorhanden.</div>'}
+          <div class="evs-text-variant evs-text-variant-new" data-shot-text-new data-text-key="${esc(keyItem.key)}" data-category="${esc(keyItem.category || 'chat')}">
+            <textarea rows="2" data-shot-text-value placeholder="Neue Altersheim-/Heimleitungs-Variante..."></textarea>
+            <div class="evs-text-variant-actions"><label class="evs-check evs-check-compact"><input type="checkbox" data-shot-text-enabled checked> Aktiv</label><label class="evs-mini-label">Gewichtung<input type="number" min="1" data-shot-text-weight value="1"></label><button type="button" class="evs-btn evs-btn-small evs-btn-secondary" data-evs-action="saveShotTextVariant">+ Variante speichern</button></div>
+          </div>
+        </div>
+      </details>
+    `;
+  }
+  function renderShotTextVariant(variant, keyItem){
+    return `
+      <div class="evs-text-variant" data-shot-text-variant data-variant-id="${esc(variant.id || '')}" data-text-key="${esc(keyItem.key)}" data-category="${esc(keyItem.category || 'chat')}">
+        <textarea rows="2" data-shot-text-value>${esc(variant.value || variant.text || '')}</textarea>
+        <div class="evs-text-variant-actions"><label class="evs-check evs-check-compact"><input type="checkbox" data-shot-text-enabled ${variant.enabled !== false ? 'checked' : ''}> Aktiv</label><label class="evs-mini-label">Gewichtung<input type="number" min="1" data-shot-text-weight value="${esc(variant.weight || 1)}"></label><button type="button" class="evs-btn evs-btn-small" data-evs-action="saveShotTextVariant">Speichern</button><button type="button" class="evs-btn evs-btn-small evs-btn-danger" data-evs-action="deleteShotTextVariant" ${variant.id ? '' : 'disabled'}>Löschen</button></div>
+      </div>
+    `;
+  }
+  function readShotTextVariantPayload(row){
+    if (!row) return null;
+    const id = Number(row.dataset.variantId || 0) || 0;
+    const key = row.dataset.textKey || '';
+    const category = row.dataset.category || 'chat';
+    const value = row.querySelector('[data-shot-text-value]')?.value || '';
+    const enabled = row.querySelector('[data-shot-text-enabled]')?.checked !== false;
+    const weight = Number(row.querySelector('[data-shot-text-weight]')?.value || 1);
+    if (!key) return null;
+    return { action: 'saveVariant', variant: { id, key, category, value, enabled, weight, description: 'Event-System Dashboard' } };
+  }
+  async function saveShotTextVariant(row){
+    const payload = readShotTextVariantPayload(row);
+    if (!payload || !String(payload.variant.value || '').trim()) { state.error = 'Shot-Alarm Textvariante darf nicht leer sein.'; render(); return; }
+    try {
+      const result = await window.CGN.api(api.shotAlarmTexts, { method: 'POST', body: JSON.stringify(payload) });
+      state.shotAlarm.texts = result.texts || result;
+      state.message = 'Shot-Alarm Textvariante gespeichert.';
+      render();
+    } catch (err) { state.error = err.message || String(err); render(); }
+  }
+  async function deleteShotTextVariant(row){
+    if (!row) return;
+    const id = Number(row.dataset.variantId || 0) || 0;
+    if (!id) return;
+    if (!confirm('Shot-Alarm Textvariante wirklich löschen?')) return;
+    try {
+      const result = await window.CGN.api(api.shotAlarmTexts, { method: 'POST', body: JSON.stringify({ action: 'deleteVariant', id }) });
+      state.shotAlarm.texts = result.texts || result;
+      state.message = 'Shot-Alarm Textvariante gelöscht.';
+      render();
+    } catch (err) { state.error = err.message || String(err); render(); }
+  }
+
   function renderConfigTab(){
+    if ((state.configModuleFilter || 'stream_events') === 'shot_alarm') {
+      return renderEventModuleSelector('config') + renderShotAlarmConfigTab();
+    }
     const cfg = state.config?.config || {};
     const eventDefaults = cfg.eventDefaults || {};
     const soundDefaults = cfg.soundDefaults || {};
@@ -800,7 +1086,10 @@ window.StreamEventsModule = (function(){
   }
 
   function renderTextsTab(){
-    return renderTextConfigPanel(true);
+    if ((state.textSourceModule || 'stream_events') === 'shot_alarm') {
+      return renderEventModuleSelector('texts') + renderShotAlarmTextsTab();
+    }
+    return renderEventModuleSelector('texts') + renderTextConfigPanel(true);
   }
 
   function renderStatsTab(event){
@@ -4014,7 +4303,9 @@ window.StreamEventsModule = (function(){
       }
       if (action === 'reload') return loadAll(true);
       if (action === 'reloadTexts') return loadTexts(true);
+      if (action === 'reloadShotAlarmData') return loadShotAlarmData(true);
       if (action === 'clearTextFilters') { state.textModuleFilter = 'all'; state.textSearchFilter = ''; render(); return; }
+      if (action === 'saveShotAlarmConfig') return saveShotAlarmConfig();
       if (action === 'saveConfig') return saveConfig();
       if (action === 'new') {
         const cfg = state.config?.config || {};
@@ -4104,6 +4395,8 @@ window.StreamEventsModule = (function(){
       }
       if (action === 'saveTextVariant') return saveTextVariant(btn.closest('[data-evs-text-variant], [data-evs-text-new]'));
       if (action === 'deleteTextVariant') return deleteTextVariant(btn.closest('[data-evs-text-variant]'));
+      if (action === 'saveShotTextVariant') return saveShotTextVariant(btn.closest('[data-shot-text-variant], [data-shot-text-new]'));
+      if (action === 'deleteShotTextVariant') return deleteShotTextVariant(btn.closest('[data-shot-text-variant]'));
       if (action === 'saveEvent') return saveEvent();
       if (action === 'validate') return eventAction('validate', uid);
       if (action === 'start') return eventAction('start', uid);
@@ -4193,6 +4486,26 @@ window.StreamEventsModule = (function(){
       if (soundToggle) {
         syncModalBasicsFromDom();
         refreshMainEditorSummaryFromState();
+        return;
+      }
+      const configModuleSelect = ev.target.closest('[data-evs-config-module-filter]');
+      if (configModuleSelect) {
+        state.configModuleFilter = configModuleSelect.value || 'stream_events';
+        if (state.configModuleFilter === 'shot_alarm') loadShotAlarmData(false).then(() => render()).catch(() => render());
+        else render();
+        return;
+      }
+      const textSourceSelect = ev.target.closest('[data-evs-text-source-module]');
+      if (textSourceSelect) {
+        state.textSourceModule = textSourceSelect.value || 'stream_events';
+        if (state.textSourceModule === 'shot_alarm') loadShotAlarmData(false).then(() => render()).catch(() => render());
+        else render();
+        return;
+      }
+      const shotTextCategorySelect = ev.target.closest('[data-evs-shot-text-category]');
+      if (shotTextCategorySelect) {
+        state.shotAlarmTextCategory = shotTextCategorySelect.value || 'chat';
+        render();
         return;
       }
       const textModuleSelect = ev.target.closest('[data-evs-text-module-filter]');
