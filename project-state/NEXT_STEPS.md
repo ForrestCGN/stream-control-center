@@ -1,6 +1,6 @@
 # NEXT_STEPS – stream-control-center
 
-Stand: 2026-06-18 – nach EVS50.1
+Stand: 2026-06-18 – nach EVS50.2
 
 ## Sofort nach Einspielen testen
 
@@ -16,37 +16,42 @@ $s | Select-Object moduleVersion,moduleBuild | Format-List
 Erwartung:
 
 ```text
-backend stream_events: 0.5.62 / STEP_EVS50_1_POINT_HISTORY_DETAIL
-Dashboard stream_events: 0.5.46 / STEP_EVS50_1_CURRENT_EVENT_USER_POINTS_MODAL
+backend stream_events: 0.5.63 / STEP_EVS50_2_POINTS_CHECK_TESTS
+Dashboard stream_events: 0.5.47 / STEP_EVS50_2_POINTS_CHECK_TESTS
+```
+
+## Backend Punkte-Check
+
+```powershell
+$r = Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/test/run?confirm=1&step=points-check" -Method Post -Body (@{} | ConvertTo-Json) -ContentType "application/json"
+$r.userStats.user | Select-Object userLogin,totalPoints,soundPoints,phrasePoints,wordPoints | Format-List
+$r.ranking.rows | Select-Object rank,userLogin,points | Format-Table -AutoSize
+$r.parts | ConvertTo-Json -Depth 8
 ```
 
 ## Dashboard-Test
 
 ```text
-Event-System → Aktuelles Event → User in Rangliste anklicken
+Event-System → Test → Punkte-Check Sound + Satz
+Event-System → Aktuelles Event → ForrestCGN in Rangliste anklicken
 ```
 
 Erwartung:
 
 ```text
-- Detailfenster öffnet sich.
-- Gesamtpunkte sichtbar.
-- Sound-Punkte sichtbar.
-- Satz-/Text-Punkte sichtbar.
-- Punkte-Verlauf zeigt Zeitpunkt, Grund/Quelle und Punkte.
+- Punkte-Prüfung erscheint im Testbereich.
+- Sound-Punkte sind sichtbar.
+- Satz-/Text-Punkte sind sichtbar.
+- Ranking addiert beides.
+- User-Popup zeigt den Punkteverlauf mit Zeit, Quelle und Punkten.
 ```
 
 ## Nächster Arbeitsblock
 
-EVS50.2 – Satz-System-Testbereich:
+EVS50.3 – Satz-System härten:
 
-- Satz-Testevent im Dashboard erstellen.
-- Falsche Satzantwort simulieren.
-- Teiltreffer/Worttreffer simulieren.
-- Richtige Satzantwort simulieren.
-- Punktevergabe prüfen.
-- Ranking prüfen.
-- Text-Report prüfen.
-- Runtime-Parts prüfen.
-- Abschluss Text-Teilspiel prüfen.
-- Kombination Sound + Text prüfen: Gesamt-Event erst fertig, wenn beide Teilspiele abgeschlossen sind.
+- Satz-Testbereich sauberer vom Winner-Test trennen.
+- Falsche Antwort, Worttreffer, Satzlösung einzeln testen.
+- Doppelte Lösung prüfen.
+- Text-Teilspielabschluss gegen Runtime-Parts prüfen.
+- Runtime-Overlay Satzstatus verbessern.

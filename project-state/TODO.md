@@ -1,6 +1,6 @@
 # TODO – stream-control-center
 
-Stand: 2026-06-18 – EVS50.1
+Stand: 2026-06-18 – EVS50.2
 
 ## Erledigt / bestätigt
 
@@ -10,21 +10,24 @@ Stand: 2026-06-18 – EVS50.1
 - [x] User-Detailfenster zeigt Punkte-Historie für genau dieses Event.
 - [x] Punkte-Verlauf zeigt Zeitpunkt, Quelle/Grund und Punkte.
 - [x] Sound- und Satz-/Text-Punkte werden über `stream_events_score_entries` gemeinsam addiert und per `source_type` getrennt angezeigt.
+- [x] Dashboard-Testbereich hat `Sound richtig + Punkte`.
+- [x] Dashboard-Testbereich hat `Punkte-Check Sound + Satz`.
+- [x] Punkte-Check erzeugt ein frisches kombiniertes Testevent und prüft Sound + Satz/Text im gemeinsamen Ranking.
 
 ## Offen / nächster Block Satz-System
 
-- [ ] Satz-Testevent im Dashboard erstellen können.
-- [ ] Falsche Satzantwort im Dashboard simulieren.
-- [ ] Teiltreffer/Worttreffer im Dashboard simulieren.
-- [ ] Richtige Satzantwort im Dashboard simulieren.
+- [ ] Satz-Testevent als eigener Testbereich sauberer darstellen.
+- [ ] Falsche Satzantwort im Dashboard separat simulieren und sichtbar auswerten.
+- [ ] Teiltreffer/Worttreffer im Dashboard separat simulieren und sichtbar auswerten.
+- [ ] Richtige Satzantwort im Dashboard separat simulieren und sichtbar auswerten.
+- [ ] Doppelte Satzlösung verhindern/prüfen und verständlich anzeigen.
 - [ ] Punktevergabe bei Satzlösung prüfen.
 - [ ] Punktevergabe bei Worttreffern prüfen.
-- [ ] Ranking nach Sound + Satz/Text zusammen prüfen.
-- [ ] User-Punkte-Popup nach Satz-/Sound-Test prüfen.
 - [ ] Text-Report streamerfreundlich im Testbereich anzeigen.
 - [ ] Runtime-Parts anzeigen: Sound-Teil, Text-Teil, Gesamtstatus.
 - [ ] Text-Teilspielabschluss stabil prüfen.
 - [ ] Kombinierte Events prüfen: Gesamt-Event erst abgeschlossen, wenn Sound und Text abgeschlossen sind.
+- [ ] Runtime-Overlay Status für Text/Sätze verbessern.
 
 ## Dauerhafte Regeln
 

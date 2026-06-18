@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.46";
-  const MODULE_BUILD = "STEP_EVS50_1_CURRENT_EVENT_USER_POINTS_MODAL";
+  const MODULE_VERSION = "0.5.47";
+  const MODULE_BUILD = "STEP_EVS50_2_POINTS_CHECK_TESTS";
 
   const api = {
     status: '/api/stream-events/status',
@@ -1548,6 +1548,32 @@ window.StreamEventsModule = (function(){
   }
 
 
+  function renderTestPointSummary(result){
+    if (!result) return '';
+    const user = result.userStats?.user || result.sound?.userStats?.user || result.finale?.userStats?.user || null;
+    const rankingRows = rows(result.ranking?.rows || result.ranking);
+    const parts = result.parts || result.sound?.parts || null;
+    const textReport = result.reports?.text || result.textReport || null;
+    const soundReport = result.reports?.sound || result.soundReport || null;
+    const timeline = rows(result.userStats?.timeline || result.sound?.userStats?.timeline).slice(0, 8);
+    const hasAny = user || rankingRows.length || parts || textReport || soundReport || timeline.length;
+    if (!hasAny) return '';
+    return `
+      <div class="evs-test-point-summary">
+        <h4>Punkte-Prüfung</h4>
+        <div class="evs-test-point-cards">
+          <div><strong>${esc(user?.totalPoints ?? '-')}</strong><span>Gesamt User</span></div>
+          <div><strong>${esc(user?.soundPoints ?? '-')}</strong><span>Sound</span></div>
+          <div><strong>${esc(((user?.phrasePoints || 0) + (user?.wordPoints || 0)) || '-')}</strong><span>Satz/Text</span></div>
+          <div><strong>${esc(rankingRows[0]?.points ?? '-')}</strong><span>Ranking Top</span></div>
+        </div>
+        ${result.checks?.note ? `<p class="evs-muted">${esc(result.checks.note)}</p>` : ''}
+        ${parts ? `<div class="evs-test-mini-line"><b>Teilspiele:</b> Sound ${parts.sound?.completed ? 'fertig' : 'offen'} · Text ${parts.text?.completed ? 'fertig' : 'offen'} · Gesamt ${parts.completed ? 'fertig' : 'offen'}</div>` : ''}
+        ${timeline.length ? `<div class="evs-test-timeline">${timeline.map(item => `<div><b>${esc(userTimelineLabel(item.kind))}</b><span>${esc(item.label || '')}</span><strong>+${esc(item.points || 0)}</strong><small>${fmtDate(item.createdAt)}</small></div>`).join('')}</div>` : ''}
+      </div>
+    `;
+  }
+
   function renderTestTab(event){
     const t = state.testPanel || {};
     const result = t.result || null;
@@ -1619,11 +1645,13 @@ window.StreamEventsModule = (function(){
               <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="runEventTestStep" data-step="correct" ${t.loading ? 'disabled' : ''}>Richtige Antworten</button>
             </div>
             <div class="evs-test-button-row">
+              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="runEventTestStep" data-step="sound-correct" ${t.loading ? 'disabled' : ''}>Sound richtig + Punkte</button>
               <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="runEventTestStep" data-step="seed-ranking" data-count="10" ${t.loading ? 'disabled' : ''}>Ranking 10 User</button>
               <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="runEventTestStep" data-step="finish" ${t.loading ? 'disabled' : ''}>Event beenden</button>
               <button type="button" class="evs-btn evs-btn-primary" data-evs-action="runEventTestStep" data-step="finale" ${t.loading ? 'disabled' : ''}>Auswertung starten</button>
             </div>
             <div class="evs-test-button-row">
+              <button type="button" class="evs-btn evs-btn-primary" data-evs-action="runEventTestStep" data-step="points-check" ${t.loading ? 'disabled' : ''}>Punkte-Check Sound + Satz</button>
               <button type="button" class="evs-btn evs-btn-primary" data-evs-action="runEventTestStep" data-step="full-flow" data-count="10" ${t.loading ? 'disabled' : ''}>Full-Flow komplett</button>
             </div>
           </div>
@@ -1641,6 +1669,8 @@ window.StreamEventsModule = (function(){
             ${t.message ? `<div class="evs-alert evs-alert-ok">${esc(t.message)}</div>` : ''}
           </div>
         </div>
+
+        ${renderTestPointSummary(t.result)}
 
         <div class="evs-test-result evs-test-panel">
           <h4>Letzte Random-Testdaten</h4>

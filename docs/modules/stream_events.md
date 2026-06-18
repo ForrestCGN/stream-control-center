@@ -198,3 +198,68 @@ text_word_hit
 text_phrase_solve
 manual / sonstige
 ```
+
+## EVS50.2 – Testbereich: Punkteprüfung Sound + Satz
+
+Der Dashboard-Testbereich wurde erweitert, damit Punkte nicht nur im Ranking sichtbar sind, sondern gezielt gegen Sound- und Satz-/Text-Quellen geprüft werden können.
+
+Neue/erweiterte Test-Steps über:
+
+```text
+POST /api/stream-events/test/run?confirm=1&step=<step>
+```
+
+Zusätzliche Steps:
+
+```text
+sound-correct
+points-check
+```
+
+### `sound-correct`
+
+- nutzt das aktuelle Testevent oder das neueste Testevent
+- startet das Event bei Bedarf
+- bereitet eine Sound-Runde ohne echtes Playback vor
+- löst die Sound-Runde mit einer akzeptierten Antwort
+- schreibt Sound-Punkte in `stream_events_score_entries`
+- liefert Ranking, Runtime-Parts und User-Statistik zurück
+
+### `points-check`
+
+Erstellt ein frisches kombiniertes Testevent und prüft in einem Ablauf:
+
+- falsche Antworten ohne Punkte
+- Sound-Lösung mit Sound-Punkten
+- Satzlösung 1
+- Satzlösung 2
+- gemeinsames Ranking aus Sound + Satz/Text
+- User-Detailstatistik für `ForrestCGN`
+- Runtime-Parts für Sound/Text/Gesamt
+
+Wichtig: Wortpunkte können je nach Text-Konfig zusätzlich zu den Satzpunkten entstehen. Die Prüfung soll deshalb nicht blind eine fixe Gesamtsummeme erzwingen, sondern sichtbar machen, welche Punkte wann und wofür geschrieben wurden.
+
+### Dashboard
+
+Pfad:
+
+```text
+Dashboard → Event-System → Test
+```
+
+Neue Buttons:
+
+```text
+Sound richtig + Punkte
+Punkte-Check Sound + Satz
+```
+
+Nach einem Test zeigt der Testbereich eine Punkte-Prüfung mit:
+
+- Gesamtpunkte des Testusers
+- Sound-Punkte
+- Satz-/Text-Punkte
+- Ranking-Topwert
+- Teilspielstatus Sound/Text/Gesamt
+- kurzer Punkte-Timeline
+

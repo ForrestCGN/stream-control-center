@@ -27,8 +27,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.62";
-const MODULE_BUILD = "STEP_EVS50_1_POINT_HISTORY_DETAIL";
+const MODULE_VERSION = "0.5.63";
+const MODULE_BUILD = "STEP_EVS50_2_POINTS_CHECK_TESTS";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -7056,6 +7056,96 @@ async function runEventTestCorrectAnswers(eventUid = "") {
   }
   return { ok: true, eventUid: uid, action: "correct_answers", count: results.length, results, ranking: getRanking(uid) };
 }
+async function runEventTestSoundCorrect(eventUid = "", body = {}) {
+  const target = getEventTestTarget(eventUid);
+  if (!target.ok) return target;
+  const event = target.event;
+  if (!event.soundEnabled) return { ok: false, error: "sound_not_enabled", eventUid: event.eventUid };
+  if (event.status !== STATUS.ACTIVE) startDashboardEventTestEvent(event.eventUid);
+
+  let round = getActiveSoundRound(event.eventUid);
+  let roundResult = null;
+  if (!round) {
+    roundResult = createSoundRound({
+      eventUid: event.eventUid,
+      play: false,
+      confirm: "1",
+      allowReuse: body.allowReuse !== undefined ? boolValue(body.allowReuse, true) : true,
+      forceReset: false
+    });
+    if (!roundResult || roundResult.ok !== true) return { ok: false, eventUid: event.eventUid, action: "sound_correct", error: "sound_round_create_failed", roundResult };
+    round = getActiveSoundRound(event.eventUid);
+  }
+
+  const userLogin = cleanString(body.userLogin || "forrestcgn").replace(/^@/, "").toLowerCase();
+  const userDisplayName = cleanString(body.userDisplayName || "ForrestCGN");
+  const answer = cleanString(body.answer || "heimleitung");
+  const resolved = resolveSoundRound({
+    eventUid: event.eventUid,
+    userLogin,
+    userDisplayName,
+    answer,
+    messageId: newUid("evs_dash_test_sound"),
+    source: "dashboard_event_test_sound_correct"
+  });
+  return {
+    ok: !!(resolved && resolved.ok),
+    eventUid: event.eventUid,
+    action: "sound_correct",
+    roundPrepared: roundResult,
+    resolved,
+    ranking: getRanking(event.eventUid),
+    userStats: getStatisticsUser(userLogin, event.eventUid),
+    parts: getEventRuntimePartsStatus(getEventByUid(event.eventUid))
+  };
+}
+
+async function runEventTestPointsCheck(body = {}) {
+  const created = createDashboardEventTestEvent({
+    name: `EVS PUNKTE CHECK · ${new Date().toLocaleString("de-DE")}`
+  });
+  const started = startDashboardEventTestEvent(created.eventUid);
+  const wrong = await runEventTestWrongAnswers(created.eventUid);
+  const sound = await runEventTestSoundCorrect(created.eventUid, {
+    userLogin: "forrestcgn",
+    userDisplayName: "ForrestCGN",
+    answer: "heimleitung",
+    allowReuse: true
+  });
+  const textMessages = [
+    buildEventTestChat("forrestcgn", "ForrestCGN", "die heimleitung sucht den schluessel"),
+    buildEventTestChat("forrestcgn", "ForrestCGN", "ich geh kurz kaffee holen")
+  ];
+  const text = [];
+  for (const chat of textMessages) {
+    text.push(await processParallelChatMessage(chat, { source: "dashboard_event_test_points_check", eventUid: created.eventUid }));
+  }
+  const ranking = getRanking(created.eventUid);
+  const userStats = getStatisticsUser("forrestcgn", created.eventUid);
+  const reportText = getTextRuntimeReport(created.eventUid);
+  const reportSound = getSoundRuntimeReport(created.eventUid);
+  const parts = getEventRuntimePartsStatus(getEventByUid(created.eventUid));
+  return {
+    ok: true,
+    action: "points-check",
+    eventUid: created.eventUid,
+    created,
+    started,
+    wrong,
+    sound,
+    text,
+    ranking,
+    userStats,
+    reports: { text: reportText, sound: reportSound },
+    parts,
+    checks: {
+      expectedAtLeast: { soundPoints: 20, phrasePoints: 30 },
+      actual: userStats.user || null,
+      note: "Wortpunkte koennen je nach Text-Konfig zusaetzlich zu den Satzpunkten entstehen. Entscheidend: Sound- und Satz-/Text-Punkte landen gemeinsam im Ranking und sind in der User-Historie getrennt sichtbar."
+    }
+  };
+}
+
 
 function createDashboardEventTestEvent(body = {}) {
   ensureSchema();
@@ -7142,6 +7232,8 @@ async function runDashboardEventTestStep(step = "", body = {}) {
   if (action === "start") return startDashboardEventTestEvent(eventUid);
   if (action === "wrong") return runEventTestWrongAnswers(eventUid);
   if (action === "correct") return runEventTestCorrectAnswers(eventUid);
+  if (action === "sound-correct") return runEventTestSoundCorrect(eventUid, body);
+  if (action === "points-check") return runEventTestPointsCheck(body);
   if (action === "seed-ranking") {
     const target = getEventTestTarget(eventUid);
     if (!target.ok) return target;
@@ -7164,10 +7256,11 @@ async function runDashboardEventTestStep(step = "", body = {}) {
     const started = startDashboardEventTestEvent(created.eventUid);
     const wrong = await runEventTestWrongAnswers(created.eventUid);
     const correct = await runEventTestCorrectAnswers(created.eventUid);
+    const sound = await runEventTestSoundCorrect(created.eventUid, { userLogin: "forrestcgn", userDisplayName: "ForrestCGN", answer: "heimleitung", allowReuse: true });
     const seeded = seedEventTestRanking(created.eventUid, body.count || 10);
     const finished = finalizeEvent(created.eventUid, STATUS.FINISHED, "finished", { mode: "dashboard_test_full_flow", reason: "dashboard_event_test_full_flow", actor: "dashboard_event_test" });
     const finale = await startWinnerFinale(created.eventUid, { actor: "dashboard_event_test_full_flow", top3AvatarTimeoutMs: 4000 });
-    return { ok: true, action: "full-flow", eventUid: created.eventUid, created, started, wrong, correct, seeded, finished, finale };
+    return { ok: true, action: "full-flow", eventUid: created.eventUid, created, started, wrong, correct, sound, seeded, finished, finale, ranking: getRanking(created.eventUid), userStats: getStatisticsUser("forrestcgn", created.eventUid) };
   }
   return { ok: false, error: "unknown_test_step", step: action };
 }

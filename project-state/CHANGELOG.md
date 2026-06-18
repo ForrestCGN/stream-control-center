@@ -1,5 +1,30 @@
 # CHANGELOG – stream-control-center
 
+## 2026-06-18 – EVS50.2 Punkte-Check Sound + Satz
+
+### Added
+
+- Neuer Backend-Teststep `sound-correct` für Sound-Punkte ohne echtes Playback.
+- Neuer Backend-Teststep `points-check` für kombiniertes Testevent mit Sound + Satz/Text.
+- Neue Dashboard-Buttons im Tab `Test`:
+  - `Sound richtig + Punkte`
+  - `Punkte-Check Sound + Satz`
+- Punkte-Prüfung im Testbereich mit Gesamtpunkten, Sound-Punkten, Satz-/Text-Punkten, Ranking-Topwert, Teilspielstatus und Timeline.
+
+### Changed
+
+- Backend-Modulversion auf `0.5.63 / STEP_EVS50_2_POINTS_CHECK_TESTS` erhöht.
+- Dashboard-Modulversion auf `0.5.47 / STEP_EVS50_2_POINTS_CHECK_TESTS` erhöht.
+- Full-Flow-Test prüft zusätzlich eine Sound-Lösung.
+
+### Confirmed by Code Review
+
+- Sound-Lösung schreibt `source_type = sound_solved`.
+- Satzlösung schreibt `source_type = text_phrase_solve`.
+- Worttreffer schreibt `source_type = text_word_hit`.
+- Ranking addiert alle Event-Punkte pro User/Event.
+- Userdetails trennen die Quellen, zeigen aber die gemeinsame Summe.
+
 ## 2026-06-18 – EVS50.1 Aktuelles Event User-Punkte-Historie
 
 ### Added
@@ -16,12 +41,6 @@
 - Backend-Modulversion auf `0.5.62 / STEP_EVS50_1_POINT_HISTORY_DETAIL` erhöht.
 - Popup-Zähler klarer auf Punkte-Historie ausgerichtet.
 - Sound-Bereich im Popup heißt jetzt `Sound-Punkte` statt `Sound-Spiel später`.
-
-### Confirmed by Code Review
-
-- Sound-Punkte und Satz-/Text-Punkte landen weiterhin gemeinsam in `stream_events_score_entries`.
-- Ranking summiert weiterhin über `SUM(points)` pro User/Event.
-- Anzeige trennt die Quellen über `source_type`.
 
 ## Vorherige Einträge
 
