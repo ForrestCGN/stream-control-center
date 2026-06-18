@@ -448,3 +448,12 @@ Die vorherige Warnung `text.phrase.X.answers_empty_uses_phrase` wurde aus Backen
 - Falls ein Event bereits aktiv ist, versucht der Start-Endpunkt ebenfalls sicher eine fehlende Auto-Planung nachzuholen.
 - Der Sound-Runtime-Status kann eine fehlende Planung für ein laufendes Sound-Event sicher nachziehen, sofern keine aktive Runde, kein Timer und kein Offline-/Pause-Zustand existiert.
 - Punkte, Satz-System, Sound-Playback, Reveal-Video und Abschlusslogik bleiben unverändert.
+
+
+## EVS52.1 – Runtime-Overlay Satzstatus
+
+- `backend/modules/stream_events.js` erweitert den Read-only-State von `/api/stream-events/runtime-overlay/state` um einen sicheren `text`-Block.
+- Der Text-Block enthält nur overlay-sichere Statusdaten: aktiviert, Status, Gesamtzahl, gelöst, offen, Worttreffer und letzte Satzlösungen.
+- AcceptedAnswers und vollständige Satztexte werden nicht an das Overlay ausgegeben.
+- Bei laufenden kombinierten Sound+Text-Events zeigt das Runtime-Overlay zwischen Soundrunden eine kleine Satzstatus-Karte.
+- Sound-Countdown, Sound-Antwortfenster und Sound-Ergebnis bleiben weiterhin vorrangig.

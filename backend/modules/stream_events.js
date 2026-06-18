@@ -27,8 +27,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.71";
-const MODULE_BUILD = "STEP_EVS51_6_START_AUTO_SOUND_PLAN";
+const MODULE_VERSION = "0.5.72";
+const MODULE_BUILD = "STEP_EVS52_1_RUNTIME_TEXT_STATUS_OVERLAY";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -3374,11 +3374,16 @@ function buildRuntimeOverlayPhase(event, activeRound, latestRound) {
       if (!isRuntimeResultStillVisible(latestRound)) return hiddenRuntimeOverlayPhase("sound_unresolved_result_timeout_elapsed");
       return { key: "sound_unresolved", label: "Sound nicht erkannt", visible: true, reason: "latest_sound_round_unresolved" };
     }
+    if (event.textEnabled) {
+      return {
+        key: "text_status",
+        label: event.soundEnabled ? "Text aktiv · Sound wartet" : "Textevent aktiv",
+        visible: true,
+        reason: event.soundEnabled ? "combined_text_status_between_sound_rounds" : "text_event_active"
+      };
+    }
     if (event.soundEnabled) {
       return { key: "sound_waiting", label: "Soundrunde wartet", visible: false, reason: "countdown_only_overlay_waiting_for_preroll" };
-    }
-    if (event.textEnabled) {
-      return { key: "text_active", label: "Textevent aktiv", visible: true, reason: "text_event_active" };
     }
     return { key: "event_active", label: "Event aktiv", visible: true, reason: "event_active_without_runtime" };
   }
@@ -3416,9 +3421,9 @@ function buildRuntimeOverlayDisplay(event, phase, activeRound, latestRound, rank
   } else if (phase.key === "sound_waiting") {
     headline = eventName;
     subline = "Nächste Soundrunde wird vorbereitet.";
-  } else if (phase.key === "text_active") {
+  } else if (phase.key === "text_status" || phase.key === "text_active") {
     headline = eventName;
-    subline = "Textrunde aktiv.";
+    subline = event && event.soundEnabled ? "Sätze aktiv · Sound wartet." : "Textrunde aktiv.";
   } else if (phase.key === "finished") {
     headline = `${eventName} beendet`;
     subline = top3.length ? "Die Rentnerwertung ist ausgezählt." : "Die Heimleitung zählt nach.";
@@ -3451,6 +3456,7 @@ function runtimeOverlayModeForPhase(phase = {}) {
   if (key === "sound_preroll_countdown" || key === "countdown") return "countdown";
   if (key === "sound_guessing") return "guessing";
   if (key === "sound_solved" || key === "sound_unresolved") return "result";
+  if (key === "text_status" || key === "text_active") return "text";
   if (key === "finished") return "finished";
   if (key === "cancelled") return "cancelled";
   return "hidden";
@@ -3530,6 +3536,49 @@ function buildRuntimeOverlayResultPlan(phase = {}, latestRound = null, ranking =
   };
 }
 
+function getRuntimeOverlayTextStatus(event = null) {
+  ensureSchema();
+  if (!event || !event.eventUid) {
+    return { enabled: false, status: "disabled", completed: true, total: 0, solved: 0, remaining: 0, wordHits: 0, recentSolves: [] };
+  }
+  const eventUid = event.eventUid;
+  const phrases = getTextPhrases(event);
+  const parts = getEventRuntimePartsStatus(event);
+  const textPart = parts && parts.text ? parts.text : {};
+  const wordHitRow = event.textEnabled ? (database.get(`
+    SELECT COUNT(*) AS count
+    FROM stream_events_text_word_hits
+    WHERE event_uid = :eventUid
+  `, { eventUid }) || {}) : {};
+  const recentSolves = event.textEnabled ? database.all(`
+    SELECT phrase_number, user_login, user_display_name, points_awarded, created_at
+    FROM stream_events_text_phrase_solves
+    WHERE event_uid = :eventUid
+    ORDER BY created_at DESC, id DESC
+    LIMIT 3
+  `, { eventUid }).map(row => ({
+    phraseNumber: Number(row.phrase_number || 0),
+    userLogin: row.user_login || "",
+    userDisplayName: row.user_display_name || row.user_login || "",
+    points: Number(row.points_awarded || 0),
+    createdAt: row.created_at || ""
+  })) : [];
+
+  return {
+    enabled: event.textEnabled === true,
+    status: cleanString(textPart.status || (event.textEnabled ? "running" : "disabled")),
+    completed: textPart.completed === true,
+    total: Number(textPart.total || phrases.length || 0),
+    solved: Number(textPart.solved || 0),
+    remaining: Number(textPart.remaining || 0),
+    wordHits: Number(wordHitRow.count || 0),
+    recentSolves,
+    safeForOverlay: true,
+    noAcceptedAnswersInOverlayState: true,
+    noPhraseTextsInOverlayState: true
+  };
+}
+
 function getRuntimeOverlayState(eventUid = "") {
   ensureSchema();
   const selectedEvent = cleanString(eventUid) ? getEventByUid(eventUid) : getActiveEvent();
@@ -3598,9 +3647,7 @@ function getRuntimeOverlayState(eventUid = "") {
       },
       preRollPlan: buildSoundPreRollPlan(runtimeConfig)
     },
-    text: {
-      enabled: !!(selectedEvent && selectedEvent.textEnabled)
-    },
+    text: getRuntimeOverlayTextStatus(selectedEvent),
     parts: selectedEvent ? getEventRuntimePartsStatus(selectedEvent) : getEventRuntimePartsStatus(null),
     ranking: {
       count: ranking.count || 0,

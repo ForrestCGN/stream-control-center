@@ -604,6 +604,120 @@
     #stage.mode-cancelled .result-kicker { color: var(--danger); }
     #stage.mode-finished .result-kicker { color: var(--gold); }
 
+
+    .text-status-card {
+      position: absolute;
+      left: 50%;
+      top: 78px;
+      z-index: 6;
+      width: 620px;
+      min-height: 178px;
+      display: none;
+      transform: translateX(-50%);
+      padding: 20px 24px 18px;
+      border-radius: 24px;
+      border: 2px solid transparent;
+      background:
+        radial-gradient(circle at 10% 15%, rgba(57,230,255,.16), transparent 42%) padding-box,
+        radial-gradient(circle at 92% 85%, rgba(168,85,247,.20), transparent 46%) padding-box,
+        linear-gradient(135deg, rgba(6,8,26,.94), rgba(16,12,43,.95), rgba(5,8,28,.94)) padding-box,
+        linear-gradient(135deg, rgba(57,230,255,.78), rgba(168,85,247,.78), rgba(255,79,216,.46)) border-box;
+      box-shadow:
+        0 10px 24px rgba(0,0,0,.54),
+        0 0 18px rgba(57,230,255,.14),
+        0 0 28px rgba(168,85,247,.18),
+        inset 0 0 18px rgba(57,230,255,.06);
+      text-align: left;
+      overflow: hidden;
+      animation: textStatusIn .38s cubic-bezier(.18,.84,.28,1) both;
+    }
+
+    @keyframes textStatusIn {
+      from { opacity: 0; transform: translate(-50%, -22px) scale(.985); }
+      to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+    }
+
+    .text-status-kicker {
+      color: var(--cyan);
+      font-size: 13px;
+      line-height: 1;
+      font-weight: 950;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-shadow: 0 0 10px rgba(57,230,255,.32);
+    }
+
+    .text-status-title {
+      margin: 7px 0 3px;
+      color: var(--text);
+      font-size: 31px;
+      line-height: 1.04;
+      font-weight: 950;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-shadow: 0 0 10px rgba(168,85,247,.28);
+    }
+
+    .text-status-subline {
+      color: rgba(226,237,255,.88);
+      font-size: 17px;
+      line-height: 1.2;
+      font-weight: 750;
+    }
+
+    .text-status-grid {
+      margin-top: 15px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .text-status-pill {
+      min-height: 58px;
+      border-radius: 16px;
+      padding: 10px 12px;
+      border: 1px solid rgba(57,230,255,.22);
+      background: rgba(255,255,255,.045);
+      box-shadow: inset 0 0 14px rgba(168,85,247,.06);
+    }
+
+    .text-status-value {
+      color: var(--text);
+      font-size: 25px;
+      line-height: 1;
+      font-weight: 950;
+      text-shadow: 0 0 9px rgba(57,230,255,.20);
+    }
+
+    .text-status-label {
+      margin-top: 5px;
+      color: rgba(202,219,255,.82);
+      font-size: 12px;
+      line-height: 1.05;
+      font-weight: 800;
+    }
+
+    .text-status-recent {
+      margin-top: 12px;
+      color: rgba(248,251,255,.82);
+      font-size: 14px;
+      line-height: 1.22;
+      font-weight: 750;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #stage.mode-text .ring-wrap,
+    #stage.mode-text .result-card {
+      display: none;
+    }
+
+    #stage.mode-text .text-status-card {
+      display: block;
+    }
+
     .flash {
       position: absolute;
       inset: 0;
@@ -735,6 +849,28 @@
         <p id="resultExtra" class="result-extra"></p>
       </div>
     </section>
+
+    <section id="textStatusCard" class="text-status-card" aria-label="Satzstatus">
+      <div id="textStatusKicker" class="text-status-kicker">Satz-System</div>
+      <h1 id="textStatusTitle" class="text-status-title">Textrunde aktiv</h1>
+      <div id="textStatusSubline" class="text-status-subline">Die Heimleitung wartet auf Lösungen.</div>
+      <div class="text-status-grid">
+        <div class="text-status-pill">
+          <div id="textStatusSolved" class="text-status-value">0/0</div>
+          <div class="text-status-label">Sätze gelöst</div>
+        </div>
+        <div class="text-status-pill">
+          <div id="textStatusRemaining" class="text-status-value">0</div>
+          <div class="text-status-label">noch offen</div>
+        </div>
+        <div class="text-status-pill">
+          <div id="textStatusWords" class="text-status-value">0</div>
+          <div class="text-status-label">Worttreffer</div>
+        </div>
+      </div>
+      <div id="textStatusRecent" class="text-status-recent">Noch keine Satzlösung.</div>
+    </section>
+
   </div>
 
   <div id="answerCounter" class="answer-counter" aria-label="Antwortzeit">60</div>
@@ -748,7 +884,7 @@
       mode: "obs_overlay",
       module: "stream_events",
       name: "Stream Events Runtime Overlay",
-      version: "0.3.7",
+      version: "0.3.8",
       heartbeatIntervalMs: 5000,
       capabilities: [
         "overlay.heartbeat",
@@ -756,6 +892,7 @@
         "stream_events.runtime.countdown",
         "stream_events.runtime.guessing",
         "stream_events.runtime.result",
+        "stream_events.runtime.text_status",
         "ack"
       ],
       meta: {
@@ -790,6 +927,14 @@
         resultTitle: document.getElementById("resultTitle"),
         resultSubline: document.getElementById("resultSubline"),
         resultExtra: document.getElementById("resultExtra"),
+        textStatusCard: document.getElementById("textStatusCard"),
+        textStatusKicker: document.getElementById("textStatusKicker"),
+        textStatusTitle: document.getElementById("textStatusTitle"),
+        textStatusSubline: document.getElementById("textStatusSubline"),
+        textStatusSolved: document.getElementById("textStatusSolved"),
+        textStatusRemaining: document.getElementById("textStatusRemaining"),
+        textStatusWords: document.getElementById("textStatusWords"),
+        textStatusRecent: document.getElementById("textStatusRecent"),
         answerCounter: document.getElementById("answerCounter"),
         debug: document.getElementById("debug")
       };
@@ -853,6 +998,7 @@
         if (key === "sound_preroll_countdown" || key === "countdown" || key === "preroll_countdown") return "countdown";
         if (key === "sound_guessing" || key === "guessing" || key === "sound_playing" || key === "sound_started") return "guessing";
         if (key === "sound_solved" || key === "sound_unresolved") return "result";
+        if (key === "text_status" || key === "text_active") return "text";
         if (key === "finished") return "finished";
         if (key === "cancelled") return "cancelled";
         return "hidden";
@@ -1223,6 +1369,39 @@
         return false;
       }
 
+      function applyTextStatus(state) {
+        const display = state && state.display ? state.display : {};
+        const text = state && state.text ? state.text : {};
+        const eventName = cleanText(display.eventName || (state && state.event && state.event.name), "Event läuft");
+        const total = Math.max(0, Math.round(number(text.total, 0)));
+        const solved = Math.max(0, Math.round(number(text.solved, 0)));
+        const remaining = Math.max(0, Math.round(number(text.remaining, Math.max(0, total - solved))));
+        const words = Math.max(0, Math.round(number(text.wordHits, 0)));
+        const completed = !!text.completed;
+        const soundEnabled = !!(state && state.sound && state.sound.enabled);
+        const recent = text && Array.isArray(text.recentSolves) ? text.recentSolves : [];
+
+        setText(els.textStatusKicker, completed ? "Satz-System fertig" : "Satz-System", "Satz-System");
+        setText(els.textStatusTitle, eventName, "Textrunde aktiv");
+        setText(els.textStatusSubline, completed
+          ? (soundEnabled ? "Alle Sätze gelöst · Sound-Teil läuft weiter." : "Alle Sätze gelöst.")
+          : (soundEnabled ? "Sätze aktiv · nächste Soundrunde wird vorbereitet." : "Die Heimleitung wartet auf Lösungen."),
+          "Die Heimleitung wartet auf Lösungen.");
+        setText(els.textStatusSolved, `${solved}/${total}`, "0/0");
+        setText(els.textStatusRemaining, String(remaining), "0");
+        setText(els.textStatusWords, String(words), "0");
+
+        if (recent.length) {
+          const latest = recent[0] || {};
+          const who = cleanText(latest.userDisplayName || latest.userLogin, "Jemand");
+          const phraseNumber = Math.max(0, Math.round(number(latest.phraseNumber, 0)));
+          const points = Math.max(0, Math.round(number(latest.points, 0)));
+          setText(els.textStatusRecent, `${who} hat Satz ${phraseNumber || "?"} gelöst${points ? ` · +${points} Punkte` : ""}.`, "Satz gelöst.");
+        } else {
+          setText(els.textStatusRecent, completed ? "Alle Sätze sind gelöst." : "Noch keine Satzlösung.", "Noch keine Satzlösung.");
+        }
+      }
+
       function applyResult(state, mode) {
         const phase = state && state.phase ? state.phase : {};
         const display = state && state.display ? state.display : {};
@@ -1302,6 +1481,13 @@
         } else if (mode === "guessing") {
           clearResultHideTimer();
           applyGuessing(state);
+        } else if (mode === "text") {
+          clearCountdownTimers();
+          clearResultHideTimer();
+          hideAnswerCounter();
+          activeCountdownPhaseKey = "";
+          lastRuntimeMode = "text";
+          applyTextStatus(state);
         } else if (mode === "result" || mode === "finished" || mode === "cancelled") {
           clearCountdownTimers();
           activeCountdownPhaseKey = "";

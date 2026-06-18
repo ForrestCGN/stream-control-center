@@ -65,3 +65,9 @@
 - Sound-Automatik wird beim Eventstart initial geplant.
 - Fehlende Auto-Planung bei laufendem Sound-Event kann beim Sound-Status sicher nachgezogen werden.
 - Start-Response enthält `soundAutoPlan`.
+
+## 2026-06-18 – EVS52.1
+
+- Runtime-Overlay-State um sicheren Satz-/Textstatus erweitert.
+- Event-Runtime-Overlay zeigt Satzstatus zwischen Soundrunden an.
+- Sound-Anzeigen bleiben vorrangig; keine Playback-/Punkte-Änderung.
