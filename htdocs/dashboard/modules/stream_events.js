@@ -1582,6 +1582,12 @@ window.StreamEventsModule = (function(){
             <p class="evs-muted">Öffnet das Finale-Overlay mit zufälligen Backend-Usern und Avatar-Auflösung.</p>
 
             <div class="evs-test-button-row">
+              <button type="button" class="evs-btn evs-btn-primary" data-evs-action="openWinnerOverlayLive">Winner-Overlay öffnen</button>
+              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="openRuntimeOverlayLive">Runtime-Overlay öffnen</button>
+              <button type="button" class="evs-btn evs-btn-ghost" data-evs-action="copyWinnerOverlayLive">Winner-URL kopieren</button>
+            </div>
+
+            <div class="evs-test-button-row">
               <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="openWinnerTest" data-count="5" data-mode="instant">Sofortbild 5</button>
               <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="openWinnerTest" data-count="7" data-mode="instant">Sofortbild 7</button>
               <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="openWinnerTest" data-count="10" data-mode="instant">Sofortbild 10</button>
@@ -3424,6 +3430,30 @@ window.StreamEventsModule = (function(){
     }
   }
 
+
+  function openWinnerOverlayLive() {
+    window.open('/overlays/stream_events/event_winner_overlay.html?v=4937', '_blank', 'noopener,noreferrer');
+    state.message = 'Winner-Overlay geöffnet.';
+    render();
+  }
+
+  function openRuntimeOverlayLive() {
+    window.open('/overlays/stream_events/event_runtime_overlay.html?v=4937', '_blank', 'noopener,noreferrer');
+    state.message = 'Runtime-Overlay geöffnet.';
+    render();
+  }
+
+  async function copyWinnerOverlayLiveUrl() {
+    const url = `${window.location.origin}/overlays/stream_events/event_winner_overlay.html?v=4937`;
+    try {
+      await navigator.clipboard.writeText(url);
+      state.message = 'Winner-Overlay-URL kopiert.';
+    } catch (_) {
+      state.message = url;
+    }
+    render();
+  }
+
   async function startWinnerFinale(uid){
     if (!uid) return;
     const event = state.events.find(e => e.eventUid === uid) || state.selected;
@@ -3629,9 +3659,23 @@ window.StreamEventsModule = (function(){
         return;
       }
       if (action === 'openWinnerDebug') {
-        window.open('/overlays/stream_events/event_winner_overlay.html?debug=boxes&grid=1&v=4934', '_blank', 'noopener,noreferrer');
+        window.open('/overlays/stream_events/event_winner_overlay.html?debug=boxes&grid=1&v=4937', '_blank', 'noopener,noreferrer');
         return;
       }
+
+      if (action === 'openWinnerOverlayLive') {
+        openWinnerOverlayLive();
+        return;
+      }
+      if (action === 'openRuntimeOverlayLive') {
+        openRuntimeOverlayLive();
+        return;
+      }
+      if (action === 'copyWinnerOverlayLive') {
+        copyWinnerOverlayLiveUrl();
+        return;
+      }
+
 
       if (action === 'selectEvent') {
         state.selectedUid = uid;
