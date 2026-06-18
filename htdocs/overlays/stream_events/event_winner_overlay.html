@@ -148,81 +148,109 @@
       text-shadow: 0 0 18px rgba(57,230,255,.42);
     }
     .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .award-slot.medal-bronze .avatar-wrap {
+      background: linear-gradient(135deg, #ffccae, #ff9466 45%, #8f3b1f 100%);
+      box-shadow: 0 0 20px rgba(255,157,108,.28), 0 0 42px rgba(255,157,108,.16);
+    }
+    .award-slot.medal-silver .avatar-wrap {
+      background: linear-gradient(135deg, #ffffff, #dbe8ff 42%, #8799ba 100%);
+      box-shadow: 0 0 20px rgba(219,232,255,.28), 0 0 42px rgba(219,232,255,.14);
+    }
+    .award-slot.medal-gold .avatar-wrap {
+      background: linear-gradient(135deg, #fff4a5, #ffd86a 40%, #b97616 100%);
+      box-shadow: 0 0 20px rgba(255,230,109,.34), 0 0 46px rgba(255,189,65,.18);
+    }
 
     /* Positions passend zum 1920x1080-Grafikrahmen */
     #slot3 { left: 214px; top: 355px; width: 395px; height: 360px; }
     #slot1 { left: 700px; top: 286px; width: 520px; height: 465px; }
     #slot2 { left: 1304px; top: 355px; width: 405px; height: 360px; }
 
-    .award-slot.side .inner {
-      padding: 26px 34px 24px;
-      grid-template-columns: 96px 1fr;
-      column-gap: 20px;
-      align-items: center;
-    }
-    .award-slot.side .avatar-wrap { width: 94px; height: 94px; grid-row: 1 / span 3; align-self: start; margin-top: 8px; }
-    .award-slot.side .avatar { font-size: 28px; }
+    .award-slot.side .inner,
     .award-slot.center .inner {
-      padding: 34px 48px 36px;
-      grid-template-columns: 130px 1fr;
-      column-gap: 26px;
+      padding: 24px 28px 22px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      text-align: center;
+    }
+    .award-slot.side .avatar-wrap { width: 82px; height: 82px; margin-top: 4px; }
+    .award-slot.side .avatar { font-size: 28px; }
+    .award-slot.center .inner { padding: 26px 36px 28px; }
+    .award-slot.center .avatar-wrap { width: 94px; height: 94px; margin-top: 8px; }
+    .award-slot.center .avatar { font-size: 30px; }
+    .award-slot .inner > div:nth-child(2) {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
       align-items: center;
     }
-    .award-slot.center .avatar-wrap { width: 128px; height: 128px; grid-row: 1 / span 3; align-self: start; margin-top: 24px; }
-    .award-slot.center .avatar { font-size: 38px; }
     .award-rank {
+      margin-top: 10px;
       color: var(--gold);
-      font-size: 24px;
+      font-size: 22px;
       line-height: 1;
       font-weight: 950;
       letter-spacing: .14em;
       text-transform: uppercase;
       text-shadow: 0 0 16px rgba(255,230,109,.32);
+      text-align: center;
+      width: 100%;
     }
+    .award-slot.center .award-rank { font-size: 22px; margin-top: 12px; }
     .award-name {
-      margin-top: 13px;
+      margin-top: 10px;
       color: #fff;
-      font-size: 44px;
-      line-height: .98;
+      font-size: 23px;
+      line-height: 1.02;
       font-weight: 950;
-      letter-spacing: -.035em;
+      letter-spacing: -.03em;
       text-shadow: 0 0 18px rgba(57,230,255,.28), 0 0 36px rgba(168,85,247,.30);
-      max-height: 92px;
+      width: 100%;
+      max-width: 100%;
       overflow: hidden;
-      overflow-wrap: anywhere;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      text-align: center;
+      padding: 0 10px;
+      display: block;
+      word-break: keep-all;
+      overflow-wrap: normal;
     }
-    .award-slot.center .award-name { font-size: 60px; max-height: 180px; }
-    .award-name.long { font-size: 34px; line-height: 1.02; max-height: 108px; }
-    .award-slot.center .award-name.long { font-size: 46px; line-height: 1.02; max-height: 190px; }
-    .award-name.very-long { font-size: 27px; line-height: 1.05; max-height: 110px; }
-    .award-slot.center .award-name.very-long { font-size: 36px; line-height: 1.03; max-height: 190px; }
+    .award-slot.center .award-name { font-size: 31px; margin-top: 12px; }
+    .award-name.long { font-size: 21px; }
+    .award-slot.center .award-name.long { font-size: 27px; }
+    .award-name.very-long { font-size: 18px; }
+    .award-slot.center .award-name.very-long { font-size: 23px; }
     .award-points {
-      margin-top: 13px;
-      color: rgba(248,251,255,.80);
-      font-size: 24px;
+      margin-top: 8px;
+      color: rgba(248,251,255,.82);
+      font-size: 19px;
       font-weight: 850;
+      text-align: center;
+      width: 100%;
     }
-    .award-slot.center .award-points { font-size: 28px; }
+    .award-slot.center .award-points { font-size: 22px; }
     .award-reward {
-      grid-column: 1 / -1;
-      margin-top: 20px;
-      align-self: end;
-      justify-self: stretch;
-      min-height: 52px;
+      margin-top: auto;
+      width: 88%;
+      min-height: 48px;
       display: grid;
       place-items: center;
-      padding: 8px 18px;
+      padding: 8px 16px;
       border-radius: 18px;
       background: rgba(255,230,109,.09);
       border: 1px solid rgba(255,230,109,.22);
       color: var(--gold);
-      font-size: 26px;
+      font-size: 22px;
       line-height: 1.1;
       font-weight: 950;
       text-align: center;
       text-shadow: 0 0 14px rgba(255,230,109,.25);
     }
-    .award-slot.side .award-reward { font-size: 22px; }
+    .award-slot.center .award-reward { font-size: 22px; min-height: 48px; }
+    .award-slot.side .award-reward { font-size: 18px; }
 
     .honor-slot { height: 154px; }
     #honor10 { left: 96px; top: 824px; width: 202px; }
@@ -230,8 +258,8 @@
     #honor8  { left: 558px; top: 824px; width: 202px; }
     #honor7  { left: 789px; top: 824px; width: 202px; }
     #honor6  { left: 1020px; top: 824px; width: 202px; }
-    #honor5  { left: 1251px; top: 824px; width: 202px; }
-    #honor4  { left: 1482px; top: 824px; width: 202px; }
+    #honor5  { left: 1258px; top: 824px; width: 202px; }
+    #honor4  { left: 1490px; top: 824px; width: 202px; }
     .honor-slot .inner { padding: 20px 17px 14px; justify-content: center; }
     .honor-rank { color: var(--cookie); font-size: 17px; font-weight: 950; letter-spacing: .08em; text-transform: uppercase; }
     .honor-name { margin-top: 8px; color: #fff; font-size: 24px; line-height: 1.02; font-weight: 950; text-shadow: 0 0 16px rgba(57,230,255,.18); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -339,10 +367,10 @@
       mode: "obs_overlay",
       module: "stream_events",
       name: "Stream Events Gewinner-Finale Overlay",
-      version: "0.3.0",
+      version: "0.3.2",
       heartbeatIntervalMs: 5000,
       capabilities: ["overlay.heartbeat", "stream_events.winner_finale_display", "stream_events.winner_finale", "ack"],
-      meta: { overlay: "event_winner_overlay.html", communication: "communication_bus", owner: "stream_events", step: "EVS47.3" }
+      meta: { overlay: "event_winner_overlay.html", communication: "communication_bus", owner: "stream_events", step: "EVS47.5" }
     };
   </script>
 
@@ -450,12 +478,33 @@
         container.textContent = initials(row && row.userDisplayName);
       }
       function nameClass(name) { const l = cleanText(name, "").length; return l > 32 ? "very-long" : (l > 20 ? "long" : ""); }
+      function fitAwardName(el, rank, name) {
+        if (!el) return;
+        el.textContent = cleanText(name, "");
+        const isCenter = rank === 1;
+        const len = cleanText(name, "").length;
+        let size = isCenter ? 31 : 23;
+        if (isCenter) {
+          if (len > 11) size = 27;
+          if (len > 14) size = 24;
+          if (len > 18) size = 21;
+        } else {
+          if (len > 10) size = 21;
+          if (len > 13) size = 19;
+          if (len > 17) size = 17;
+        }
+        el.style.fontSize = `${size}px`;
+      }
       function renderAward(row) {
         const slot = els.slots[row.rank]; if (!slot) return;
         const rankText = row.rank === 1 ? "Platz 1" : row.rank === 2 ? "Platz 2" : "Platz 3";
         const reward = row.rewardValue ? `${row.rewardLabel} · ${row.rewardValue}` : row.rewardLabel;
+        slot.classList.remove('medal-bronze','medal-silver','medal-gold');
+        if (row.rank === 1) slot.classList.add('medal-gold');
+        else if (row.rank === 2) slot.classList.add('medal-silver');
+        else slot.classList.add('medal-bronze');
         slot.querySelector(".inner").innerHTML = `<div class="avatar-wrap"><div class="avatar"></div></div><div><div class="award-rank">${escapeHtml(rankText)}</div><div class="award-name ${nameClass(row.userDisplayName)}"></div><div class="award-points">${escapeHtml(pointsLabel(row.points))}</div></div><div class="award-reward">${escapeHtml(reward)}</div>`;
-        slot.querySelector(".award-name").textContent = row.userDisplayName;
+        fitAwardName(slot.querySelector(".award-name"), row.rank, row.userDisplayName);
         renderAvatar(slot.querySelector(".avatar"), row);
         slot.classList.add("filled", "active");
         if (els.hints[row.rank]) els.hints[row.rank].classList.add("hidden");
@@ -479,7 +528,7 @@
         void els.phaseTitle.offsetWidth; els.phaseTitle.classList.add("pulse"); els.phaseSubtitle.classList.add("pulse");
       }
       function resetView() {
-        Object.values(els.slots).forEach((slot) => { if (!slot) return; slot.classList.remove("filled", "active"); const inner = slot.querySelector(".inner"); if (inner) inner.innerHTML = ""; });
+        Object.values(els.slots).forEach((slot) => { if (!slot) return; slot.classList.remove("filled", "active", "medal-bronze", "medal-silver", "medal-gold"); const inner = slot.querySelector(".inner"); if (inner) inner.innerHTML = ""; });
         Object.values(els.hints).forEach((hint) => hint && hint.classList.remove("hidden"));
         clearConfetti();
       }
