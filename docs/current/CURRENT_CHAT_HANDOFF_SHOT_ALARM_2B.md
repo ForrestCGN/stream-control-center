@@ -9,7 +9,7 @@ Shot-Alarm wurde nach STEP 2A erweitert:
 
 - Modulversion: `0.2.1`
 - Build: `STEP_SHOT_ALARM_2B_DB_TEXTS_CONFIG_HELPERS`
-- Dashboard-Pfad: `Community / Events / Shot-Alarm`
+- Dashboard-Pfad: `Community / Community / Event-System / Shot-Alarm`
 - Config wird über zentrale DB-Settings gespeichert (`module_settings`, Key `shot_alarm.config`).
 - JSON `config/shot_alarm.json` bleibt Mirror/Fallback.
 - Texte laufen über den vorhandenen `helper_texts` und `module_text_variants`.
@@ -59,3 +59,12 @@ Shot-Alarm wurde nach STEP 2A erweitert:
 
 ## Ergänzung: Dashboard-Placement
 Shot-Alarm wurde im Dashboard fachlich dem Bereich Events zugeordnet. Config und Texte werden im Shot-Alarm-Modul im Events-Kontext geführt. Die eigentliche Backend-Version bleibt 0.2.1.
+
+
+## STEP SHOT-ALARM-2B.2 Dashboard Community Event-System Placement
+
+- Separater linker Hauptnavigationspunkt `Events` entfernt.
+- `Event-System` liegt wieder als Karte im Bereich `Community`.
+- `Shot-Alarm` bleibt als Event-Untermodul vorhanden, aber nicht als eigener Hauptnavigationspunkt.
+- Texte/Config sollen im Event-System-Kontext über vorhandene Modul-/Bereichs-Dropdowns weitergeführt werden.
+- Backend, Regeln, DB-Texte, DB-Config, Overlay und Counter wurden nicht geändert.

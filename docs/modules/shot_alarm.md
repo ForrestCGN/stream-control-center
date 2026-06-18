@@ -11,7 +11,7 @@ Stil: CGN / Altersheim / Heimleitung / Rentner.
 - Modul: `shot_alarm`
 - Version: `0.2.1`
 - Build: `STEP_SHOT_ALARM_2B_DB_TEXTS_CONFIG_HELPERS`
-- Dashboard: `Community / Events / Shot-Alarm`
+- Dashboard: `Community / Community / Event-System / Shot-Alarm`
 - Overlay: `/overlays/shot_alarm/shot_alarm_overlay.html`
 
 ## Regeln
@@ -136,3 +136,12 @@ Speichert Zeitpunkt, Phase, Eventtyp, User, Menge, Regel, Shots und Payload JSON
 
 ## Dashboard-Einordnung
 Shot-Alarm gehört im Dashboard in den Bereich Events. Die Tabs Config und Texte sind Teil des Event-Moduls Shot-Alarm und sollen langfristig mit den bestehenden Event-Dropdown-Patterns für Module/Bereiche konsistent bleiben.
+
+
+## STEP SHOT-ALARM-2B.2 Dashboard Community Event-System Placement
+
+- Separater linker Hauptnavigationspunkt `Events` entfernt.
+- `Event-System` liegt wieder als Karte im Bereich `Community`.
+- `Shot-Alarm` bleibt als Event-Untermodul vorhanden, aber nicht als eigener Hauptnavigationspunkt.
+- Texte/Config sollen im Event-System-Kontext über vorhandene Modul-/Bereichs-Dropdowns weitergeführt werden.
+- Backend, Regeln, DB-Texte, DB-Config, Overlay und Counter wurden nicht geändert.

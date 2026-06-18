@@ -50,7 +50,7 @@ window.CGN = {
     stream_events: {
       title: 'Event-System',
       panelId: 'streamEventsModule',
-      group: 'events',
+      group: 'community',
       overlayLink: '/overlays/stream_events/event_winner_overlay.html',
       overlayLabel: 'Winner-Overlay öffnen',
       reload() { return window.StreamEventsModule?.loadAll?.(true); }
@@ -58,7 +58,7 @@ window.CGN = {
     shot_alarm: {
       title: 'Shot-Alarm',
       panelId: 'shotAlarmModule',
-      group: 'events',
+      group: 'community',
       overlayLink: '/overlays/shot_alarm/shot_alarm_overlay.html',
       overlayLabel: 'Shot-Overlay öffnen',
       reload() { return window.ShotAlarmModule?.loadAll?.(true); }
@@ -203,16 +203,10 @@ window.CGN = {
       defaultModule: 'loyalty',
       hideOverview: true
     },
-    events: {
-      label: 'Events', icon: '🎲', role: 'mod/supermod/streamer',
-      description: 'Stream-Events, Event-Texte, Event-Config, Shot-Alarm und spätere Event-Module.',
-      items: ['stream_events', 'shot_alarm'],
-      defaultModule: 'stream_events'
-    },
     community: {
       label: 'Community', icon: '👥', role: 'mod/supermod/streamer',
       description: 'Chat-, Viewer- und Interaktionssysteme.',
-      items: ['vip30', 'vip', 'hug', 'chat_overlay', 'deathcounter', 'challenges', 'tagebuch', 'todo', 'commands', 'community_stats']
+      items: ['vip30', 'vip', 'hug', 'stream_events', 'chat_overlay', 'deathcounter', 'challenges', 'tagebuch', 'todo', 'commands', 'community_stats']
     },
     system: {
       label: 'System', icon: '🧩', role: 'streamer/local_admin/owner',
@@ -235,8 +229,8 @@ window.CGN = {
     controlhome: { label: 'Übersicht', icon: '🏠', enabled: true, description: 'Control-Center Übersicht.' },
     alerts: { label: 'Alerts V2', icon: '⚡', enabled: true, description: 'Alerts, Regeln, Texte, Sounds und Testcenter.' },
     twitch_events: { label: 'Twitch Events', icon: '🧪', enabled: true, description: 'Twitch-EventSub-Events lokal simulieren und Alert-Mapping prüfen.' },
-    stream_events: { label: 'Event-System', icon: '🎲', enabled: true, description: 'Stream-Events mit Sound-/Text-Spielen, Event-Config, Text-Dropdowns, Statistik und Gewinner-Finale.' },
-    shot_alarm: { label: 'Shot-Alarm', icon: '🥃', enabled: true, description: 'Event-Modul mit Shot-Regeln, DB-Config, DB-Textvarianten, Statistik und Overlay für Engel & Roxxy.' },
+    stream_events: { label: 'Event-System', icon: '🎲', enabled: true, description: 'Stream-Events mit Sound-/Text-Spielen, Shot-Alarm, Texten, Config, Statistik und Gewinner-Finale.' },
+    shot_alarm: { label: 'Shot-Alarm', icon: '🥃', enabled: true, description: 'Untermodul im Event-System mit Shot-Regeln, DB-Config, DB-Textvarianten, Statistik und Overlay für Engel & Roxxy.' },
     obs: { label: 'OBS Details', icon: '🎮', enabled: true, description: 'OBS-Szenen, Quellen und Statusdetails.' },
     overlays: { label: 'Overlays', icon: '🖼', enabled: true, description: 'Overlay-Status, Heartbeats und Monitor-Readiness anzeigen.' },
     stream_control: { label: 'Stream-Steuerung', icon: '📺', enabled: false, description: 'Stream-Aktionen und Schaltungen vorbereitet.' },
@@ -272,7 +266,7 @@ window.CGN = {
     diagnostics: { label: 'Diagnose', icon: '🩺', enabled: false, description: 'Diagnosewerkzeuge vorbereitet.' }
   },
 
-  favorites: ['clips', 'alerts', 'stream_events', 'shot_alarm', 'vip30', 'loyalty_games', 'loyalty', 'loyalty_giveaways', 'vip', 'hug', 'tagebuch', 'todo', 'commands', 'obs', 'overlays', 'sound_system', 'bus_diagnostics', 'media', 'message_rotator'],
+  favorites: ['clips', 'alerts', 'stream_events', 'vip30', 'loyalty_games', 'loyalty', 'loyalty_giveaways', 'vip', 'hug', 'tagebuch', 'todo', 'commands', 'obs', 'overlays', 'sound_system', 'bus_diagnostics', 'media', 'message_rotator'],
 
   async api(path, options = {}) {
     const res = await fetch(path, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options });
