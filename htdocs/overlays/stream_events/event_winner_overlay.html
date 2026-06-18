@@ -3,149 +3,1300 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=1920,height=1080,initial-scale=1" />
-  <title>CGN Event Gewinner-Finale EVS42.6 Fresh Rebuild</title>
+  <title>ForrestCGN Event Gewinner-Finale</title>
   <style>
-    :root{
-      --w:1920px;--h:1080px;
-      --bg:#050716;--panel:rgba(8,10,32,.76);--panel2:rgba(13,9,45,.84);
-      --text:#f7fbff;--muted:rgba(247,251,255,.72);
-      --cyan:#36e7ff;--blue:#1d8cff;--violet:#a855f7;--purple:#7c3aed;--pink:#ff4fd8;
-      --gold:#ffe56b;--gold2:#ffb83d;--silver:#dbeeff;--bronze:#d79a5f;
-      --green:#74ffbd;--danger:#ff5f8b;
+    :root {
+      --w: 1920px;
+      --h: 1080px;
+      --bg: rgba(3, 6, 20, .86);
+      --panel: rgba(8, 11, 34, .78);
+      --panel2: rgba(16, 10, 48, .82);
+      --cyan: #39e6ff;
+      --cyan-soft: rgba(57, 230, 255, .28);
+      --violet: #a855f7;
+      --violet-soft: rgba(168, 85, 247, .34);
+      --pink: #ff4fd8;
+      --pink-soft: rgba(255, 79, 216, .22);
+      --gold: #ffe66d;
+      --gold2: #ffbf3f;
+      --gold-soft: rgba(255, 230, 109, .30);
+      --bronze: #d98b4b;
+      --silver: #d8e6ff;
+      --cookie: #ffd18a;
+      --text: #f8fbff;
+      --muted: rgba(248, 251, 255, .72);
+      --line: rgba(143, 244, 255, .20);
+      --shadow: 0 0 24px rgba(168, 85, 247, .34), 0 0 58px rgba(57, 230, 255, .14);
     }
-    *{box-sizing:border-box}
-    html,body{margin:0;width:var(--w);height:var(--h);overflow:hidden;background:transparent;color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;pointer-events:none}
-    body.demo,body.debug{background:#050716}
-    #app{position:fixed;inset:0;width:var(--w);height:var(--h);display:block;opacity:1;visibility:visible;overflow:hidden;isolation:isolate}
-    body.live-wait #app{opacity:0;visibility:hidden}
-    .bg{position:absolute;inset:-60px;z-index:0;background:
-      radial-gradient(circle at 50% 18%,rgba(54,231,255,.16),transparent 34%),
-      radial-gradient(circle at 18% 52%,rgba(168,85,247,.18),transparent 32%),
-      radial-gradient(circle at 78% 62%,rgba(29,140,255,.14),transparent 34%),
-      radial-gradient(circle at 50% 95%,rgba(255,79,216,.10),transparent 30%),
-      linear-gradient(135deg,#050716 0%,#100a2e 45%,#071632 100%)}
-    .stars{position:absolute;inset:0;z-index:1;opacity:.34;background-image:
-      radial-gradient(circle,rgba(255,255,255,.85) 0 1px,transparent 1.6px),
-      radial-gradient(circle,rgba(54,231,255,.75) 0 1.3px,transparent 2px),
-      radial-gradient(circle,rgba(255,229,107,.65) 0 1.2px,transparent 2px),
-      radial-gradient(circle,rgba(168,85,247,.75) 0 1.3px,transparent 2px);
-      background-size:150px 150px,230px 230px,310px 310px,410px 410px;animation:stars 34s linear infinite}
-    @keyframes stars{to{background-position:150px 110px,230px 190px,310px 260px,410px 350px}}
-    .frame{position:absolute;inset:32px 42px;z-index:3;border-radius:46px;border:1px solid rgba(116,231,255,.22);box-shadow:inset 0 0 44px rgba(54,231,255,.06),0 0 58px rgba(168,85,247,.16),0 0 90px rgba(54,231,255,.09);overflow:hidden;background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.01))}
-    .frame:before{content:"";position:absolute;left:42px;right:42px;top:20px;height:5px;border-radius:9px;background:linear-gradient(90deg,var(--violet),rgba(168,85,247,.12),rgba(54,231,255,.14),var(--cyan));box-shadow:0 0 22px rgba(54,231,255,.45),0 0 22px rgba(168,85,247,.38)}
-    .frame:after{content:"";position:absolute;left:52px;right:52px;bottom:22px;height:3px;border-radius:6px;background:linear-gradient(90deg,rgba(168,85,247,.15),rgba(54,231,255,.45),rgba(168,85,247,.12));box-shadow:0 0 18px rgba(54,231,255,.28)}
-    .runner{position:absolute;z-index:4;height:4px;width:260px;border-radius:20px;background:linear-gradient(90deg,transparent,var(--cyan),#fff,var(--violet),transparent);filter:drop-shadow(0 0 12px var(--cyan));opacity:.75;animation:runnerTop 8s linear infinite}
-    .runner.r1{top:53px;left:80px}.runner.r2{bottom:54px;right:90px;animation-name:runnerBottom;animation-delay:-2.8s}.runner.r3{top:140px;right:42px;width:4px;height:210px;animation:runnerSide 7.5s linear infinite;opacity:.42}
-    @keyframes runnerTop{0%{transform:translateX(-280px)}100%{transform:translateX(1740px)}}
-    @keyframes runnerBottom{0%{transform:translateX(280px)}100%{transform:translateX(-1740px)}}
-    @keyframes runnerSide{0%{transform:translateY(-240px)}100%{transform:translateY(900px)}}
-    .content{position:absolute;z-index:6;inset:58px 72px 64px;display:grid;grid-template-rows:112px 1fr 150px;gap:16px}
-    .top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:28px}.pill{justify-self:start;display:inline-flex;align-items:center;gap:12px;padding:12px 24px;border-radius:999px;background:linear-gradient(135deg,rgba(54,231,255,.14),rgba(168,85,247,.22));border:1px solid rgba(192,234,255,.22);box-shadow:0 0 24px rgba(168,85,247,.20);font-size:22px;font-weight:900;text-transform:uppercase;letter-spacing:.16em}.pill i{width:12px;height:12px;border-radius:50%;background:var(--gold);box-shadow:0 0 16px var(--gold)}
-    .logo{justify-self:center;min-width:230px;padding:18px 44px;border-radius:0 0 22px 22px;background:linear-gradient(135deg,rgba(54,231,255,.16),rgba(168,85,247,.20));border:1px solid rgba(192,234,255,.24);box-shadow:0 0 30px rgba(54,231,255,.12);text-align:center;font-size:34px;font-weight:950;letter-spacing:.26em}.event{justify-self:end;max-width:540px;text-align:right;font-size:20px;font-weight:850;color:rgba(247,251,255,.82);text-shadow:0 0 12px rgba(54,231,255,.12);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .main{position:relative;min-height:0}.titleBlock{position:absolute;top:0;left:0;right:0;text-align:center;transition:opacity .45s ease,transform .55s ease}.titleBlock h1{margin:0;font-size:68px;line-height:.96;font-weight:950;text-transform:uppercase;letter-spacing:.04em;text-shadow:0 0 18px rgba(255,255,255,.22),0 0 34px rgba(54,231,255,.34),0 0 56px rgba(168,85,247,.34)}.titleBlock p{margin:12px auto 0;max-width:1040px;font-size:25px;line-height:1.25;font-weight:800;color:rgba(247,251,255,.74)}
-    .stage{position:absolute;left:50%;top:54%;width:1180px;height:560px;transform:translate(-50%,-50%);border-radius:42px;background:linear-gradient(135deg,rgba(9,12,38,.75),rgba(17,10,48,.72));border:1px solid rgba(160,224,255,.18);box-shadow:inset 0 0 60px rgba(54,231,255,.045),0 0 50px rgba(168,85,247,.14);overflow:hidden}.stage:before{content:"";position:absolute;inset:-30%;background:radial-gradient(circle at 50% 50%,rgba(54,231,255,.10),transparent 26%),radial-gradient(circle at 35% 48%,rgba(168,85,247,.13),transparent 28%),radial-gradient(circle at 68% 50%,rgba(255,229,107,.08),transparent 24%);animation:pulse 3.4s ease-in-out infinite}.stage:after{content:"";position:absolute;left:-38%;top:-15%;width:34%;height:135%;transform:skewX(-18deg);background:linear-gradient(90deg,transparent,rgba(54,231,255,.12),rgba(255,255,255,.08),rgba(255,79,216,.08),transparent);animation:scan 6s linear infinite}@keyframes scan{to{left:124%}}@keyframes pulse{50%{filter:brightness(1.25);opacity:.92}}
-    .current{position:absolute;inset:42px;display:grid;grid-template-columns:330px 250px 1fr;align-items:center;gap:38px;opacity:0;transform:translateY(24px) scale(.96);transition:opacity .62s ease,transform .74s cubic-bezier(.18,1,.22,1);z-index:3}.current.on{opacity:1;transform:translateY(0) scale(1)}.current.leaving{opacity:0;transform:translateY(-26px) scale(.90)}
-    .placeBox{height:310px;border-radius:36px;display:grid;place-items:center;background:linear-gradient(135deg,rgba(124,58,237,.60),rgba(20,10,52,.75));border:1px solid rgba(221,196,255,.20);box-shadow:inset 0 0 50px rgba(255,255,255,.04),0 0 42px rgba(168,85,247,.34);position:relative;overflow:hidden}.placeBox:before{content:"";position:absolute;inset:-20px;background:radial-gradient(circle at 50% 25%,rgba(255,255,255,.18),transparent 34%)}.placeBox .small{position:relative;z-index:2;font-size:28px;letter-spacing:.20em;text-transform:uppercase;font-weight:900;color:rgba(255,255,255,.68)}.placeBox .num{position:relative;z-index:2;font-size:128px;line-height:.9;font-weight:950;text-shadow:0 0 34px rgba(255,255,255,.30)}
-    .avatar{width:220px;height:220px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:linear-gradient(135deg,rgba(54,231,255,.22),rgba(168,85,247,.30));border:4px solid rgba(151,224,255,.42);box-shadow:0 0 34px rgba(54,231,255,.26),0 0 54px rgba(168,85,247,.20);font-size:86px;font-weight:950;text-shadow:0 0 24px rgba(255,255,255,.24)}.avatar img{width:100%;height:100%;object-fit:cover;display:block}.info{min-width:0}.rankline{font-size:30px;text-transform:uppercase;font-weight:950;letter-spacing:.16em;color:var(--gold);text-shadow:0 0 16px rgba(255,229,107,.24)}.name{margin-top:16px;font-size:62px;line-height:1;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 0 28px rgba(54,231,255,.22)}.points{margin-top:16px;font-size:46px;font-weight:950}.badgePrize{margin-top:22px;display:inline-flex;align-items:center;gap:12px;max-width:100%;padding:12px 22px;border-radius:999px;background:linear-gradient(135deg,rgba(255,229,107,.16),rgba(54,231,255,.12));border:1px solid rgba(255,229,107,.28);box-shadow:0 0 20px rgba(255,229,107,.12);font-size:24px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.note{margin-top:24px;max-width:700px;font-size:24px;line-height:1.32;font-weight:800;color:rgba(247,251,255,.72)}
-    .honorWall{position:absolute;left:10px;right:10px;bottom:0;height:150px;display:grid;grid-template-columns:repeat(7,1fr);gap:10px;align-items:end}.mini{height:112px;border-radius:18px;background:linear-gradient(135deg,rgba(12,12,42,.82),rgba(28,13,66,.72));border:1px solid rgba(168,85,247,.24);box-shadow:0 0 18px rgba(168,85,247,.14);padding:10px;display:grid;grid-template-columns:44px 42px 1fr;gap:9px;align-items:center;opacity:0;transform:translateY(36px) scale(.82);transition:opacity .65s ease,transform .75s cubic-bezier(.2,1,.22,1)}.mini.on{opacity:1;transform:translateY(0) scale(1)}.mini .mRank{font-size:25px;font-weight:950;color:var(--gold)}.mini .mAvatar{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:rgba(54,231,255,.16);border:1px solid rgba(116,231,255,.35);font-weight:900}.mini img{width:100%;height:100%;object-fit:cover}.mini .mName{font-size:17px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mini .mPts{font-size:14px;color:rgba(247,251,255,.66);font-weight:800}.mini .mPrize{font-size:12px;color:var(--gold);font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .podium{position:absolute;inset:178px 10px 10px;display:grid;grid-template-columns:1fr 1.22fr 1fr;gap:24px;align-items:end;opacity:0;transition:opacity .45s ease}.podium.on{opacity:1}.podCard{position:relative;min-height:378px;border-radius:34px;background:linear-gradient(135deg,rgba(11,14,45,.86),rgba(20,10,52,.80));border:1px solid rgba(178,229,255,.20);box-shadow:0 0 40px rgba(54,231,255,.13);padding:26px 24px;text-align:center;opacity:0;transform:translateY(55px) scale(.88);transition:opacity .75s ease,transform .9s cubic-bezier(.16,1,.22,1),filter .7s ease;overflow:hidden}.podCard.on{opacity:1;transform:translateY(0) scale(1)}.podCard.winner{min-height:450px;border-color:rgba(255,229,107,.50);box-shadow:0 0 60px rgba(255,184,61,.35),0 0 80px rgba(168,85,247,.18)}.podCard.third{border-color:rgba(215,154,95,.36)}.podCard.second{border-color:rgba(219,238,255,.42)}.podCard:before{content:"";position:absolute;inset:-40%;background:radial-gradient(circle at 50% 20%,rgba(255,255,255,.15),transparent 25%);animation:podLight 3s ease-in-out infinite}@keyframes podLight{50%{transform:scale(1.08);opacity:.72}}.podRank{position:relative;font-size:24px;font-weight:950;letter-spacing:.15em;text-transform:uppercase;color:var(--gold)}.podNum{position:relative;font-size:82px;line-height:.95;font-weight:950;margin:2px 0 8px}.podAvatar{position:relative;margin:8px auto 12px;width:140px;height:140px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:linear-gradient(135deg,rgba(54,231,255,.18),rgba(168,85,247,.24));border:4px solid rgba(155,226,255,.42);box-shadow:0 0 32px rgba(54,231,255,.22);font-size:58px;font-weight:950}.winner .podAvatar{width:178px;height:178px;border-color:rgba(255,229,107,.70);box-shadow:0 0 40px rgba(255,229,107,.38),0 0 70px rgba(255,184,61,.20)}.podAvatar img{width:100%;height:100%;object-fit:cover}.podName{position:relative;font-size:34px;line-height:1.05;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.winner .podName{font-size:44px}.podPts{position:relative;margin-top:8px;font-size:30px;font-weight:950}.winner .podPts{font-size:42px;color:var(--gold)}.podGift{position:relative;margin-top:14px;display:inline-flex;align-items:center;justify-content:center;padding:10px 18px;border-radius:999px;background:rgba(255,229,107,.11);border:1px solid rgba(255,229,107,.28);font-size:18px;font-weight:900;color:#fff}.finalTitle{position:absolute;top:110px;left:0;right:0;text-align:center;opacity:0;transform:translateY(-18px);transition:opacity .65s ease,transform .7s ease}.finalTitle.on{opacity:1;transform:translateY(0)}.finalTitle h2{margin:0;font-size:62px;font-weight:950;letter-spacing:.06em;text-transform:uppercase;color:var(--gold);text-shadow:0 0 25px rgba(255,229,107,.30),0 0 55px rgba(255,184,61,.18)}.finalTitle p{margin:8px 0 0;font-size:24px;font-weight:850;color:rgba(247,251,255,.76)}
-    .confetti{position:absolute;inset:0;pointer-events:none;z-index:20;overflow:hidden}.confetti i{position:absolute;width:9px;height:18px;border-radius:3px;background:var(--gold);opacity:0;animation:confetti 2.8s ease-in forwards}.confetti i:nth-child(3n){background:var(--cyan)}.confetti i:nth-child(3n+1){background:var(--violet)}@keyframes confetti{0%{opacity:1;transform:translateY(-20px) rotate(0)}100%{opacity:0;transform:translateY(900px) rotate(540deg)}}
-    .debugBox{position:absolute;z-index:50;left:18px;bottom:18px;max-width:980px;padding:9px 12px;border-radius:10px;background:rgba(0,0,0,.62);border:1px solid rgba(255,255,255,.14);font:13px Consolas,monospace;color:#c8ffdf;white-space:pre-wrap;display:none}body.debug .debugBox{display:block}.hidden{display:none!important}.dim .titleBlock{opacity:.18;transform:translateY(-20px) scale(.96)}
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      width: var(--w);
+      height: var(--h);
+      overflow: hidden;
+      background: transparent;
+      color: var(--text);
+      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+      pointer-events: none;
+    }
+
+    #stage {
+      position: fixed;
+      inset: 0;
+      width: var(--w);
+      height: var(--h);
+      opacity: 0;
+      transform: scale(.985);
+      filter: blur(6px);
+      transition: opacity .45s ease, transform .55s cubic-bezier(.16, 1, .3, 1), filter .45s ease;
+      isolation: isolate;
+    }
+
+    #stage.visible {
+      opacity: 1;
+      transform: scale(1);
+      filter: blur(0);
+    }
+
+    #stage.hidden-hard { opacity: 0; }
+
+    .backdrop {
+      position: absolute;
+      inset: -80px;
+      z-index: 0;
+      background:
+        radial-gradient(circle at 50% 18%, rgba(57,230,255,.16), transparent 28%),
+        radial-gradient(circle at 22% 68%, rgba(168,85,247,.20), transparent 34%),
+        radial-gradient(circle at 77% 64%, rgba(255,79,216,.15), transparent 32%),
+        radial-gradient(circle at 50% 93%, rgba(255,230,109,.12), transparent 24%),
+        linear-gradient(135deg, rgba(4,6,20,.82), rgba(16,9,45,.88), rgba(4,10,32,.80));
+    }
+
+    .stars {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      opacity: .27;
+      background-image:
+        radial-gradient(circle, rgba(255,255,255,.84) 0 1px, transparent 1.5px),
+        radial-gradient(circle, rgba(57,230,255,.66) 0 1px, transparent 1.6px),
+        radial-gradient(circle, rgba(255,230,109,.56) 0 1px, transparent 1.6px),
+        radial-gradient(circle, rgba(196,92,255,.52) 0 1px, transparent 1.6px);
+      background-size: 170px 170px, 245px 245px, 315px 315px, 410px 410px;
+      background-position: 20px 48px, 88px 118px, 146px 32px, 218px 178px;
+      animation: starDrift 34s linear infinite;
+    }
+
+    @keyframes starDrift {
+      to { background-position: 190px 218px, 333px 363px, 461px 347px, 628px 588px; }
+    }
+
+    .frame {
+      position: absolute;
+      inset: 46px 74px;
+      z-index: 2;
+      border-radius: 42px;
+      border: 1px solid rgba(143,244,255,.18);
+      box-shadow:
+        inset 0 0 50px rgba(57,230,255,.045),
+        0 0 52px rgba(168,85,247,.16),
+        0 0 92px rgba(57,230,255,.08);
+      overflow: hidden;
+    }
+
+    .frame::before,
+    .frame::after {
+      content: "";
+      position: absolute;
+      border-radius: 999px;
+      pointer-events: none;
+      opacity: .85;
+      filter: blur(.2px);
+    }
+
+    .frame::before {
+      top: -2px;
+      left: 9%;
+      width: 360px;
+      height: 4px;
+      background: linear-gradient(90deg, transparent, rgba(57,230,255,.90), rgba(168,85,247,.78), transparent);
+      animation: runnerTop 7.8s ease-in-out infinite alternate;
+    }
+
+    .frame::after {
+      bottom: -2px;
+      right: 12%;
+      width: 430px;
+      height: 4px;
+      background: linear-gradient(90deg, transparent, rgba(255,79,216,.82), rgba(255,230,109,.84), transparent);
+      animation: runnerBottom 8.6s ease-in-out infinite alternate;
+    }
+
+    @keyframes runnerTop { to { left: 63%; } }
+    @keyframes runnerBottom { to { right: 59%; } }
+
+    .spotlight {
+      position: absolute;
+      z-index: 3;
+      top: -20px;
+      width: 520px;
+      height: 940px;
+      opacity: .20;
+      pointer-events: none;
+      background: linear-gradient(180deg, rgba(57,230,255,.32), rgba(57,230,255,.07) 42%, transparent 78%);
+      clip-path: polygon(48% 0, 58% 0, 100% 100%, 0 100%);
+      filter: blur(10px);
+      transform-origin: top center;
+    }
+
+    .spotlight.left { left: 310px; transform: rotate(15deg); }
+    .spotlight.right { right: 310px; transform: rotate(-15deg); background: linear-gradient(180deg, rgba(168,85,247,.36), rgba(168,85,247,.08) 44%, transparent 78%); }
+
+    .main {
+      position: absolute;
+      z-index: 5;
+      left: 50%;
+      top: 50%;
+      width: 1550px;
+      height: 850px;
+      transform: translate(-50%, -50%);
+      border-radius: 38px;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(57,230,255,.11), transparent 42%),
+        linear-gradient(135deg, rgba(7, 10, 30, .90), rgba(18, 10, 52, .88));
+      border: 1px solid rgba(143, 244, 255, .22);
+      box-shadow:
+        inset 0 0 44px rgba(57,230,255,.05),
+        inset 0 0 80px rgba(168,85,247,.055),
+        0 0 28px rgba(168,85,247,.32),
+        0 0 80px rgba(57,230,255,.13);
+      overflow: hidden;
+      padding: 38px 48px 34px;
+    }
+
+    .main::before {
+      content: "";
+      position: absolute;
+      left: -35%;
+      top: -22%;
+      width: 30%;
+      height: 150%;
+      background: linear-gradient(90deg, transparent, rgba(57,230,255,.09), rgba(255,255,255,.06), rgba(255,79,216,.07), transparent);
+      transform: skewX(-18deg);
+      animation: scan 6.6s linear infinite;
+    }
+
+    @keyframes scan { to { transform: translateX(600%) skewX(-18deg); } }
+
+    .topline {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 18px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 44px;
+      padding: 9px 18px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(57,230,255,.16), rgba(168,85,247,.17));
+      border: 1px solid rgba(143,244,255,.20);
+      box-shadow: 0 0 24px rgba(57,230,255,.09);
+      color: rgba(248,251,255,.91);
+      font-size: 19px;
+      font-weight: 850;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    .badge .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--gold);
+      box-shadow: 0 0 12px rgba(255,230,109,.9), 0 0 26px rgba(255,230,109,.28);
+      animation: dotPulse 1.2s ease-in-out infinite;
+    }
+
+    @keyframes dotPulse { 50% { transform: scale(1.35); opacity: .74; } }
+
+    .event-name {
+      flex: 1;
+      color: rgba(248,251,255,.80);
+      text-align: right;
+      font-size: 20px;
+      font-weight: 750;
+      letter-spacing: .04em;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .headline {
+      position: relative;
+      z-index: 2;
+      margin: 0;
+      text-align: center;
+      font-size: 68px;
+      line-height: .98;
+      font-weight: 950;
+      letter-spacing: .02em;
+      text-transform: uppercase;
+      text-shadow:
+        0 0 18px rgba(255,255,255,.20),
+        0 0 35px rgba(57,230,255,.48),
+        0 0 58px rgba(168,85,247,.42),
+        0 0 85px rgba(255,79,216,.17);
+    }
+
+    .subline {
+      position: relative;
+      z-index: 2;
+      margin: 12px auto 20px;
+      max-width: 1180px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 25px;
+      font-weight: 650;
+      letter-spacing: .02em;
+    }
+
+    .arena {
+      position: relative;
+      z-index: 2;
+      height: 560px;
+      border-radius: 30px;
+      background: linear-gradient(135deg, rgba(5,8,28,.57), rgba(18,10,52,.54));
+      border: 1px solid rgba(143,244,255,.15);
+      box-shadow: inset 0 0 32px rgba(57,230,255,.035), 0 0 32px rgba(168,85,247,.10);
+      overflow: hidden;
+    }
+
+    .center-card {
+      position: absolute;
+      left: 50%;
+      top: 48%;
+      z-index: 4;
+      width: 760px;
+      min-height: 325px;
+      transform: translate(-50%, -50%) scale(.92);
+      opacity: 0;
+      border-radius: 36px;
+      padding: 34px 38px;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(255,230,109,.14), transparent 46%),
+        linear-gradient(135deg, rgba(10,13,37,.95), rgba(29,14,64,.92));
+      border: 1px solid rgba(143,244,255,.24);
+      box-shadow:
+        0 0 34px rgba(57,230,255,.18),
+        0 0 68px rgba(168,85,247,.26),
+        inset 0 0 42px rgba(255,255,255,.035);
+      display: grid;
+      grid-template-columns: 172px 1fr;
+      gap: 26px;
+      align-items: center;
+      transition: opacity .42s ease, transform .58s cubic-bezier(.16, 1, .3, 1), left .58s cubic-bezier(.16, 1, .3, 1), top .58s cubic-bezier(.16, 1, .3, 1);
+    }
+
+    .center-card.visible {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .center-card.final-winner {
+      width: 920px;
+      min-height: 390px;
+      grid-template-columns: 205px 1fr;
+      border-color: rgba(255,230,109,.44);
+      box-shadow:
+        0 0 46px rgba(255,230,109,.22),
+        0 0 92px rgba(168,85,247,.30),
+        0 0 128px rgba(57,230,255,.14),
+        inset 0 0 50px rgba(255,230,109,.06);
+    }
+
+    .avatar-wrap {
+      width: 156px;
+      height: 156px;
+      border-radius: 50%;
+      padding: 7px;
+      background: conic-gradient(from 140deg, rgba(57,230,255,.95), rgba(168,85,247,.88), rgba(255,79,216,.78), rgba(255,230,109,.88), rgba(57,230,255,.95));
+      box-shadow: 0 0 28px rgba(57,230,255,.24), 0 0 58px rgba(168,85,247,.20);
+    }
+
+    .center-card.final-winner .avatar-wrap {
+      width: 190px;
+      height: 190px;
+      box-shadow: 0 0 35px rgba(255,230,109,.28), 0 0 78px rgba(168,85,247,.24);
+    }
+
+    .avatar {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 50% 35%, rgba(255,255,255,.16), transparent 38%),
+        linear-gradient(135deg, rgba(57,230,255,.18), rgba(168,85,247,.30));
+      border: 2px solid rgba(255,255,255,.16);
+      color: rgba(248,251,255,.92);
+      font-size: 44px;
+      font-weight: 950;
+      text-transform: uppercase;
+      text-shadow: 0 0 20px rgba(57,230,255,.40);
+    }
+
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .presentation-kicker {
+      color: var(--gold);
+      font-size: 24px;
+      font-weight: 950;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      text-shadow: 0 0 18px rgba(255,230,109,.28);
+    }
+
+    .presentation-name {
+      margin-top: 6px;
+      max-width: 505px;
+      font-size: 58px;
+      line-height: .98;
+      font-weight: 950;
+      letter-spacing: -.025em;
+      text-shadow: 0 0 26px rgba(57,230,255,.36), 0 0 46px rgba(168,85,247,.34);
+      overflow-wrap: anywhere;
+    }
+
+    .center-card.final-winner .presentation-name {
+      max-width: 610px;
+      font-size: 76px;
+      text-shadow: 0 0 30px rgba(255,230,109,.34), 0 0 58px rgba(168,85,247,.38), 0 0 82px rgba(57,230,255,.18);
+    }
+
+    .presentation-meta {
+      margin-top: 13px;
+      color: rgba(248,251,255,.76);
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .presentation-reward {
+      margin-top: 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 18px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(255,230,109,.18), rgba(57,230,255,.10));
+      border: 1px solid rgba(255,230,109,.24);
+      color: var(--gold);
+      font-size: 25px;
+      font-weight: 950;
+      text-shadow: 0 0 18px rgba(255,230,109,.25);
+    }
+
+    .honor-wall {
+      position: absolute;
+      z-index: 3;
+      left: 32px;
+      right: 32px;
+      bottom: 26px;
+      min-height: 148px;
+      padding: 18px 20px;
+      border-radius: 26px;
+      background: rgba(3, 8, 28, .58);
+      border: 1px solid rgba(143,244,255,.14);
+      box-shadow: inset 0 0 24px rgba(57,230,255,.035);
+    }
+
+    .wall-title {
+      color: rgba(248,251,255,.72);
+      font-size: 17px;
+      font-weight: 900;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .honor-list {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+    }
+
+    .honor-chip {
+      min-height: 86px;
+      padding: 10px 10px 9px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(255,255,255,.045), rgba(168,85,247,.07));
+      border: 1px solid rgba(143,244,255,.12);
+      opacity: .30;
+      transform: translateY(12px) scale(.96);
+      transition: opacity .44s ease, transform .55s cubic-bezier(.16, 1, .3, 1), border-color .44s ease, box-shadow .44s ease;
+      overflow: hidden;
+    }
+
+    .honor-chip.filled {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      border-color: rgba(255,209,138,.30);
+      box-shadow: 0 0 18px rgba(255,209,138,.10);
+    }
+
+    .chip-place {
+      color: var(--cookie);
+      font-size: 17px;
+      font-weight: 950;
+      letter-spacing: .05em;
+    }
+
+    .chip-name {
+      margin-top: 3px;
+      color: var(--text);
+      font-size: 20px;
+      font-weight: 900;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .chip-reward {
+      margin-top: 5px;
+      color: var(--gold);
+      font-size: 16px;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+
+    .podium {
+      position: absolute;
+      z-index: 2;
+      left: 44px;
+      right: 44px;
+      top: 54px;
+      height: 345px;
+      opacity: 0;
+      transition: opacity .55s ease;
+    }
+
+    .podium.visible { opacity: 1; }
+
+    .podium-slot {
+      position: absolute;
+      bottom: 0;
+      width: 375px;
+      min-height: 245px;
+      padding: 22px;
+      border-radius: 28px;
+      background: linear-gradient(135deg, rgba(8,11,34,.76), rgba(20,11,52,.70));
+      border: 1px solid rgba(143,244,255,.16);
+      box-shadow: inset 0 0 26px rgba(57,230,255,.04), 0 0 34px rgba(168,85,247,.12);
+      transform: translateY(34px);
+      opacity: 0;
+      transition: opacity .55s ease, transform .65s cubic-bezier(.16, 1, .3, 1), box-shadow .45s ease;
+    }
+
+    .podium-slot.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .podium-slot.place-3 { left: 86px; border-color: rgba(217,139,75,.28); }
+    .podium-slot.place-2 { right: 86px; border-color: rgba(216,230,255,.28); }
+    .podium-slot.place-1 {
+      left: 50%;
+      width: 455px;
+      min-height: 292px;
+      transform: translate(-50%, 34px);
+      border-color: rgba(255,230,109,.34);
+      box-shadow: inset 0 0 30px rgba(255,230,109,.045), 0 0 46px rgba(255,230,109,.16), 0 0 68px rgba(168,85,247,.14);
+    }
+
+    .podium-slot.place-1.visible { transform: translate(-50%, 0); }
+
+    .podium-head {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .small-avatar-wrap {
+      width: 74px;
+      height: 74px;
+      border-radius: 50%;
+      padding: 4px;
+      background: linear-gradient(135deg, rgba(57,230,255,.85), rgba(168,85,247,.72), rgba(255,230,109,.82));
+      box-shadow: 0 0 18px rgba(57,230,255,.18);
+      flex: 0 0 auto;
+    }
+
+    .small-avatar-wrap .avatar { font-size: 22px; border-width: 1px; }
+
+    .podium-place {
+      color: var(--gold);
+      font-size: 20px;
+      font-weight: 950;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+
+    .podium-name {
+      margin-top: 3px;
+      font-size: 30px;
+      line-height: 1;
+      font-weight: 950;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .podium-points {
+      color: rgba(248,251,255,.72);
+      font-size: 19px;
+      font-weight: 750;
+    }
+
+    .podium-reward {
+      margin-top: 14px;
+      padding: 10px 13px;
+      border-radius: 17px;
+      color: var(--gold);
+      font-size: 22px;
+      font-weight: 950;
+      background: rgba(255,230,109,.09);
+      border: 1px solid rgba(255,230,109,.18);
+      text-align: center;
+    }
+
+    .footer-line {
+      position: absolute;
+      z-index: 2;
+      left: 70px;
+      right: 70px;
+      bottom: 28px;
+      color: rgba(248,251,255,.58);
+      font-size: 20px;
+      font-weight: 680;
+      text-align: center;
+      opacity: 0;
+      transition: opacity .45s ease;
+    }
+
+    .footer-line.visible { opacity: 1; }
+
+    .confetti {
+      position: absolute;
+      inset: 0;
+      z-index: 9;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .confetti i {
+      position: absolute;
+      top: -40px;
+      width: 10px;
+      height: 18px;
+      border-radius: 3px;
+      opacity: .86;
+      background: var(--gold);
+      box-shadow: 0 0 14px rgba(255,230,109,.28);
+      animation: fall linear forwards;
+    }
+
+    .confetti i:nth-child(3n) { background: var(--cyan); box-shadow: 0 0 14px rgba(57,230,255,.28); }
+    .confetti i:nth-child(3n+1) { background: var(--pink); box-shadow: 0 0 14px rgba(255,79,216,.28); }
+
+    @keyframes fall {
+      to { transform: translateY(1180px) rotate(720deg); opacity: 0; }
+    }
+
+    #debug {
+      position: fixed;
+      z-index: 99;
+      left: 14px;
+      bottom: 14px;
+      max-width: 780px;
+      max-height: 270px;
+      overflow: auto;
+      display: none;
+      padding: 10px;
+      background: rgba(0,0,0,.72);
+      border: 1px solid rgba(255,255,255,.2);
+      color: #fff;
+      font-size: 12px;
+      white-space: pre-wrap;
+      pointer-events: auto;
+    }
+
+    body.debug #debug { display: block; }
+
+    @keyframes headlineIn {
+      from { transform: translateY(26px) scale(.96); opacity: 0; filter: blur(8px); }
+      to { transform: translateY(0) scale(1); opacity: 1; filter: blur(0); }
+    }
+
+    @keyframes fadeUp {
+      from { transform: translateY(18px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .headline.pulse { animation: headlineIn .75s cubic-bezier(.16, 1, .3, 1) both; }
+    .subline.pulse { animation: fadeUp .75s .08s cubic-bezier(.16, 1, .3, 1) both; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+    }
   </style>
 </head>
 <body>
-<div id="app">
-  <div class="bg"></div><div class="stars"></div><div class="frame"></div><div class="runner r1"></div><div class="runner r2"></div><div class="runner r3"></div>
-  <div class="content">
-    <div class="top"><div class="pill" id="phasePill"><i></i><span>CGN Finale</span></div><div class="logo">CGN</div><div class="event" id="eventName">Event Gewinner-Finale</div></div>
-    <div class="main" id="main">
-      <div class="titleBlock" id="titleBlock"><h1 id="headline">DAS GROSSE CGN-FINALE</h1><p id="subline">Die Heimleitung zählt aus. Alle Plätze bekommen ihren Moment.</p></div>
-      <div class="stage" id="stage"><div class="current" id="current"></div><div class="podium" id="podium"><div class="podCard third" id="pod3"></div><div class="podCard winner" id="pod1"></div><div class="podCard second" id="pod2"></div></div><div class="finalTitle" id="finalTitle"><h2>GEWINNER DES EVENTS</h2><p>Die Heimleitung gratuliert. Der Gold-Gutschein ist offiziell vergeben.</p></div></div>
-    </div>
-    <div class="honorWall" id="honorWall"></div>
+  <div id="stage" class="hidden-hard" aria-live="polite">
+    <div class="backdrop"></div>
+    <div class="stars"></div>
+    <div class="frame"></div>
+    <div class="spotlight left"></div>
+    <div class="spotlight right"></div>
+
+    <main id="main" class="main phase-idle">
+      <div class="topline">
+        <div class="badge"><span class="dot"></span><span id="badgeText">CGN Event-Finale</span></div>
+        <div id="eventName" class="event-name">Event</div>
+      </div>
+
+      <h1 id="headline" class="headline">Die Heimleitung zählt aus</h1>
+      <p id="subline" class="subline">Bitte nicht drängeln. Die Keksorden werden frisch sortiert.</p>
+
+      <section class="arena">
+        <div id="centerCard" class="center-card">
+          <div class="avatar-wrap"><div id="presentationAvatar" class="avatar"></div></div>
+          <div>
+            <div id="presentationKicker" class="presentation-kicker">Top-10 Ehrenrunde</div>
+            <div id="presentationName" class="presentation-name">ForrestCGN</div>
+            <div id="presentationMeta" class="presentation-meta">0 Punkte</div>
+            <div id="presentationReward" class="presentation-reward">🍪 +4.000 Kekskrümel</div>
+          </div>
+        </div>
+
+        <div id="podium" class="podium">
+          <div id="podium3" class="podium-slot place-3"></div>
+          <div id="podium2" class="podium-slot place-2"></div>
+          <div id="podium1" class="podium-slot place-1"></div>
+        </div>
+
+        <div id="honorWall" class="honor-wall">
+          <div class="wall-title">Top-10 Ehrenwand · Plätze 10 bis 4</div>
+          <div id="honorList" class="honor-list"></div>
+        </div>
+
+        <div id="footerLine" class="footer-line">Die Heimleitung bedankt sich bei allen Teilnehmenden.</div>
+        <div id="confetti" class="confetti"></div>
+      </section>
+    </main>
   </div>
-  <div class="confetti" id="confetti"></div><div class="debugBox" id="debugBox"></div>
-</div>
-<script src="/overlays/shared/overlay_bus_client.js" data-overlay-id="stream_events_winner_overlay" data-client-type="overlay" data-mode="obs_overlay" data-module="stream_events" data-name="Stream Events Gewinner-Finale Overlay" data-version="0.6.0" data-heartbeat-ms="5000"></script>
-<script>
-(function(){
-  'use strict';
-  const VERSION='EVS42.6 Fresh Rebuild';
-  const qs=new URLSearchParams(location.search);
-  const demo=qs.get('demo');
-  const debug=qs.get('debug')==='1'||qs.get('debug')==='true';
-  const speed=(qs.get('speed')||'show').toLowerCase();
-  if(demo) document.body.classList.add('demo');
-  if(debug) document.body.classList.add('debug');
-  if(!demo) document.body.classList.add('live-wait');
-  const $=id=>document.getElementById(id);
-  const els={app:$('app'),main:$('main'),stage:$('stage'),current:$('current'),wall:$('honorWall'),podium:$('podium'),pod1:$('pod1'),pod2:$('pod2'),pod3:$('pod3'),finalTitle:$('finalTitle'),headline:$('headline'),subline:$('subline'),eventName:$('eventName'),phasePill:$('phasePill'),debug:$('debugBox'),confetti:$('confetti')};
-  const times={fast:{intro:900,hold:1600,move:650,between:350,topHold:2400,final:6500},normal:{intro:4200,hold:6500,move:1000,between:900,topHold:9000,final:18000},slow:{intro:9000,hold:12500,move:1300,between:1300,topHold:16000,final:30000},show:{intro:15000,hold:19000,move:1500,between:1800,topHold:26000,final:60000}}[speed]||{intro:15000,hold:19000,move:1500,between:1800,topHold:26000,final:60000};
-  let running=false; let timers=[];
-  function log(msg){console.log('[winner_overlay '+VERSION+'] '+msg); if(debug&&els.debug){els.debug.textContent=VERSION+'\n'+msg+'\nURL: '+location.href+'\nspeed='+speed+' demo='+demo;}}
-  function sleep(ms){return new Promise(r=>{const t=setTimeout(r,ms);timers.push(t);});}
-  function clearTimers(){timers.forEach(clearTimeout);timers=[];}
-  function safeText(v,f=''){return String(v??f??'').trim();}
-  function initials(name){const n=safeText(name,'?'); return n.split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase()||'?';}
-  function imgOrInitial(url,name,cls){const u=safeText(url); if(u) return '<div class="'+cls+'"><img src="'+escapeHtml(u)+'" onerror="this.remove();this.parentNode.textContent=\''+initials(name)+'\';"></div>'; return '<div class="'+cls+'">'+initials(name)+'</div>';}
-  function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
-  function fmt(n){const x=Number(n||0);return Number.isFinite(x)?x.toLocaleString('de-DE'):String(n||0);}
-  function prize(p){if(p===1)return '🎟️ Gold-Gutschein der Heimleitung'; if(p===2)return '🎟️ Silber-Gutschein der Heimleitung'; if(p===3)return '🎟️ Bronze-Gutschein der Heimleitung'; if(p===4)return '🍪 Ehrenkeks kurz vorm Treppchen'; return '🍪 '+Math.max(1,11-p)+' Ehrenkrümel';}
-  function note(p){if(p===1)return 'Der goldene Platz in der Mitte. Die Heimleitung steht kurz auf, setzt sich aber sofort wieder hin.'; if(p===2)return 'Silber mit Würde. Der Gutschein wurde glatt gestrichen und ordentlich übergeben.'; if(p===3)return 'Bronze, aber mit Applaus. Der erste Gutscheinplatz ist offiziell geehrt.'; if(p===4)return 'Fast auf dem Treppchen. Die Heimleitung hebt respektvoll die Kaffeetasse.'; return 'Top 10 erreicht. Keine Verabschiedung, sondern eine Ehrenrunde mit Krümelbonus.';}
-  function normalize(input){
-    const p=input&&typeof input==='object'?input:{};
-    const raw=p.ranking||p.top||p.top10||p.players||p.entries||p.items||[];
-    let arr=Array.isArray(raw)?raw.slice():[];
-    arr=arr.map((x,i)=>({
-      place:Number(x.place||x.rank||x.position||i+1),
-      userDisplayName:safeText(x.userDisplayName||x.displayName||x.name||x.userLogin||('Platz'+(i+1))),
-      userLogin:safeText(x.userLogin||x.login||x.userDisplayName||x.displayName||x.name||''),
-      userAvatarUrl:safeText(x.userAvatarUrl||x.avatarUrl||x.avatar||x.profileImageUrl||''),
-      points:Number(x.points||x.score||x.totalPoints||0)
-    })).sort((a,b)=>a.place-b.place);
-    if(!arr.length) arr=demoData(false).ranking;
-    for(let i=1;i<=10;i++){if(!arr.some(x=>x.place===i)){arr.push({place:i,userDisplayName:'Platz '+i,userLogin:'platz'+i,userAvatarUrl:'',points:Math.max(5,110-i*7)});}}
-    arr=arr.sort((a,b)=>a.place-b.place).slice(0,10);
-    return {eventName:safeText(p.eventName||p.name||p.event?.name||'Event Gewinner-Finale'),ranking:arr};
-  }
-  function demoData(tie){
-    const names=['ForrestCGN','EngelCGN','RoxxyFoxxy','AkiGhosty','NoctyraxCGN','Tadesso','Rollimann','KeksKalle','MiezMampf','PflegePunk'];
-    const pts=tie?[120,120,96,82,74,68,60,52,45,38]:[146,124,96,82,74,68,60,52,45,38];
-    return {eventName:'1 Jahr Twitch · Sound-Schnipsel Finale',ranking:names.map((n,i)=>({place:i+1,userDisplayName:n,userLogin:n.toLowerCase(),userAvatarUrl:'',points:pts[i]}))};
-  }
-  function renderCurrent(item,mode){
-    const p=item.place; const isTop=p<=3;
-    els.current.className='current';
-    els.current.innerHTML='<div class="placeBox"><div><div class="small">Platz</div><div class="num">'+p+'</div></div></div>'+imgOrInitial(item.userAvatarUrl,item.userDisplayName,'avatar')+'<div class="info"><div class="rankline">'+(isTop?'Gutscheinplatz':'Top-10 Ehrenrunde')+' · Platz '+p+'</div><div class="name">'+escapeHtml(item.userDisplayName)+'</div><div class="points">'+fmt(item.points)+' Punkte</div><div class="badgePrize">'+escapeHtml(prize(p))+'</div><div class="note">'+escapeHtml(note(p))+'</div></div>';
-    requestAnimationFrame(()=>els.current.classList.add('on'));
-  }
-  function addMini(item){
-    const d=document.createElement('div');d.className='mini';d.innerHTML='<div class="mRank">#'+item.place+'</div>'+imgOrInitial(item.userAvatarUrl,item.userDisplayName,'mAvatar')+'<div><div class="mName">'+escapeHtml(item.userDisplayName)+'</div><div class="mPts">'+fmt(item.points)+' Punkte</div><div class="mPrize">'+escapeHtml(prize(item.place))+'</div></div>';els.wall.appendChild(d);requestAnimationFrame(()=>d.classList.add('on'));
-  }
-  function podHtml(item){return '<div class="podRank">Platz</div><div class="podNum">'+item.place+'</div>'+imgOrInitial(item.userAvatarUrl,item.userDisplayName,'podAvatar')+'<div class="podName">'+escapeHtml(item.userDisplayName)+'</div><div class="podPts">'+fmt(item.points)+' Punkte</div><div class="podGift">'+escapeHtml(prize(item.place))+'</div>';}
-  function setPhase(label,head,sub){els.phasePill.querySelector('span').textContent=label;els.headline.textContent=head;els.subline.textContent=sub;}
-  function confetti(count){els.confetti.innerHTML='';for(let i=0;i<count;i++){const c=document.createElement('i');c.style.left=(Math.random()*100)+'%';c.style.top=(-40-Math.random()*120)+'px';c.style.animationDelay=(Math.random()*1.2)+'s';c.style.transform='rotate('+(Math.random()*180)+'deg)';els.confetti.appendChild(c);} }
-  async function play(payload){
-    if(running)return; running=true; clearTimers(); document.body.classList.remove('live-wait'); els.wall.innerHTML=''; els.podium.classList.remove('on'); els.finalTitle.classList.remove('on'); [els.pod1,els.pod2,els.pod3].forEach(e=>{e.classList.remove('on');e.innerHTML='';});
-    const data=normalize(payload); els.eventName.textContent=data.eventName; log('Show startet: '+data.eventName);
-    setPhase('Top-10 Ehrenrunde','CGN-EHRENRUNDE','Plätze 10 bis 4 bekommen ihren eigenen Moment und wandern danach in die Ehrenwand.');
-    await sleep(times.intro);
-    const byPlace=Object.fromEntries(data.ranking.map(x=>[x.place,x]));
-    for(let p=10;p>=4;p--){const item=byPlace[p]; if(!item) continue; setPhase('Platz '+p,'TOP-10 EHRENRUNDE','Platz '+p+' wird geehrt und zieht danach in die Ehrenwand.'); renderCurrent(item,'honor'); await sleep(times.hold); els.current.classList.add('leaving'); await sleep(times.move); addMini(item); els.current.className='current'; els.current.innerHTML=''; await sleep(times.between);}
-    setPhase('Gutscheinplätze','DAS TREPPCHEN BEGINNT','Die Ehrenrunde steht. Jetzt baut sich das Podium auf: Platz 3 links, Platz 2 rechts, Platz 1 in der Mitte.'); await sleep(times.intro*.75);
-    els.podium.classList.add('on');
-    for(const p of [3,2,1]){const item=byPlace[p]; if(!item) continue; setPhase('Platz '+p,(p===1?'DER GOLD-GUTSCHEIN':'GUTSCHEINPLATZ '+p),p===1?'Jetzt kommt der Gewinner des Events.':'Der nächste Gutscheinplatz wird aufgebaut.'); renderCurrent(item,'top'); await sleep(times.topHold*.55); els.current.classList.add('leaving'); await sleep(times.move); const target=p===1?els.pod1:(p===2?els.pod2:els.pod3); target.innerHTML=podHtml(item); target.classList.add('on'); els.current.className='current'; els.current.innerHTML=''; if(p===1){confetti(90);els.finalTitle.classList.add('on');} await sleep(times.between+(p===1?times.topHold*.35:times.topHold*.15));}
-    setPhase('Finalbild','GEWINNER DES EVENTS','Top 10 geehrt. Top 3 auf dem Podium. Die Heimleitung gratuliert.');
-    log('Finalbild sichtbar. Demo/Debug bleibt stehen.');
-    if(!demo&&!debug){await sleep(times.final); document.body.classList.add('live-wait');}
-    running=false;
-  }
-  window.CGNWinnerOverlay={play,version:VERSION,demo:()=>play(demoData(false)),tie:()=>play(demoData(true))};
-  window.addEventListener('cgn:overlay-bus-message',ev=>{const d=ev.detail||{};const t=String(d.type||d.topic||d.event||'');if(t.includes('stream_events.winner_finale')||t.includes('winner_finale')||t.includes('event.winner')){play(d.payload||d.data||d.state||d);}});
-  window.addEventListener('error',e=>log('ERROR: '+(e.error&&e.error.stack?e.error.stack:e.message)));
-  window.addEventListener('unhandledrejection',e=>log('PROMISE ERROR: '+(e.reason&&e.reason.stack?e.reason.stack:e.reason)));
-  document.addEventListener('DOMContentLoaded',()=>{log('DOM ready. '+VERSION); if(demo){play(demoData(demo==='tie'));} else {log('Live-Wartezustand. Bus-Event startet Show.');}});
-})();
-</script>
+
+  <pre id="debug"></pre>
+
+  <script>
+    window.CGN_OVERLAY_BUS = {
+      clientId: "stream_events_winner_overlay",
+      clientType: "overlay",
+      mode: "obs_overlay",
+      module: "stream_events",
+      name: "Stream Events Gewinner-Finale Overlay",
+      version: "0.2.0",
+      heartbeatIntervalMs: 5000,
+      capabilities: [
+        "overlay.heartbeat",
+        "stream_events.winner_finale_display",
+        "stream_events.winner_finale",
+        "ack"
+      ],
+      meta: {
+        overlay: "event_winner_overlay.html",
+        communication: "communication_bus",
+        owner: "stream_events",
+        step: "EVS45.1"
+      }
+    };
+  </script>
+
+  <script>
+    (function () {
+      "use strict";
+
+      const qs = new URLSearchParams(window.location.search);
+      const DEBUG = /[?&]debug=1\b/.test(window.location.search);
+      const demo = String(qs.get("demo") || "").trim().toLowerCase();
+      const speed = String(qs.get("speed") || "normal").trim().toLowerCase();
+      const eventUid = String(qs.get("eventUid") || qs.get("event_uid") || "").trim();
+      const finaleRoute = eventUid ? `/api/stream-events/events/${encodeURIComponent(eventUid)}/finale` : "";
+      const fastMode = speed === "fast" || speed === "test" || qs.get("fast") === "1";
+      const timeline = fastMode
+        ? { intro: 1100, honor: 1150, honorPause: 180, top: 1500, final: 7000, emptyHonor: 700 }
+        : { intro: 5200, honor: 9800, honorPause: 900, top: 15000, final: 52000, emptyHonor: 2600 };
+      const autoHideMs = Math.max(8000, Math.min(360000, Number(qs.get("hideMs") || (fastMode ? 72000 : 285000))));
+
+      const els = {
+        stage: document.getElementById("stage"),
+        main: document.getElementById("main"),
+        badgeText: document.getElementById("badgeText"),
+        eventName: document.getElementById("eventName"),
+        headline: document.getElementById("headline"),
+        subline: document.getElementById("subline"),
+        centerCard: document.getElementById("centerCard"),
+        presentationAvatar: document.getElementById("presentationAvatar"),
+        presentationKicker: document.getElementById("presentationKicker"),
+        presentationName: document.getElementById("presentationName"),
+        presentationMeta: document.getElementById("presentationMeta"),
+        presentationReward: document.getElementById("presentationReward"),
+        honorList: document.getElementById("honorList"),
+        podium: document.getElementById("podium"),
+        podium1: document.getElementById("podium1"),
+        podium2: document.getElementById("podium2"),
+        podium3: document.getElementById("podium3"),
+        footerLine: document.getElementById("footerLine"),
+        confetti: document.getElementById("confetti"),
+        debug: document.getElementById("debug")
+      };
+
+      let timers = [];
+      let hideTimer = null;
+      let currentFinaleUid = "";
+
+      if (DEBUG) document.body.classList.add("debug");
+
+      function log(value) {
+        if (!DEBUG) return;
+        try {
+          els.debug.textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+        } catch (err) {
+          els.debug.textContent = String(value);
+        }
+      }
+
+      function defer(fn, ms) {
+        const timer = window.setTimeout(fn, ms);
+        timers.push(timer);
+        return timer;
+      }
+
+      function clearTimers() {
+        timers.forEach((timer) => window.clearTimeout(timer));
+        timers = [];
+        if (hideTimer) window.clearTimeout(hideTimer);
+        hideTimer = null;
+      }
+
+      function showStage() {
+        els.stage.classList.remove("hidden-hard");
+        window.requestAnimationFrame(() => els.stage.classList.add("visible"));
+      }
+
+      function hideStage() {
+        els.centerCard.classList.remove("visible");
+        els.stage.classList.remove("visible");
+        hideTimer = window.setTimeout(() => {
+          els.stage.classList.add("hidden-hard");
+          clearConfetti();
+        }, 700);
+      }
+
+      function cleanText(value, fallback) {
+        const text = String(value == null ? "" : value).trim();
+        return text || fallback || "";
+      }
+
+      function cleanNumber(value, fallback) {
+        const n = Number(value);
+        return Number.isFinite(n) ? n : Number(fallback || 0);
+      }
+
+      function formatInt(value) {
+        return cleanNumber(value, 0).toLocaleString("de-DE");
+      }
+
+      function pointsLabel(points) {
+        const n = cleanNumber(points, 0);
+        return `${formatInt(n)} ${n === 1 ? "Punkt" : "Punkte"}`;
+      }
+
+      function crumbsLabel(value) {
+        const n = cleanNumber(value, 0);
+        return `+${formatInt(n)} Kekskrümel`;
+      }
+
+      function firstExisting(row, keys, fallback) {
+        for (const key of keys) {
+          if (row && row[key] != null && String(row[key]).trim() !== "") return row[key];
+        }
+        return fallback;
+      }
+
+      function avatarUrl(row) {
+        return cleanText(firstExisting(row, [
+          "avatarUrl", "avatar_url", "profileImageUrl", "profile_image_url", "profileImage", "profile_image", "userAvatar", "user_avatar", "avatar"
+        ], ""), "");
+      }
+
+      function normalizeRow(row, index) {
+        const src = row && typeof row === "object" ? row : {};
+        const rank = cleanNumber(firstExisting(src, ["rank", "place", "position"], index + 1), index + 1);
+        const login = cleanText(firstExisting(src, ["userLogin", "user_login", "login", "username", "userName", "user_name"], ""), "");
+        const display = cleanText(firstExisting(src, ["userDisplayName", "user_display_name", "displayName", "display_name", "name"], login), login || `Platz ${rank}`);
+        return {
+          rank,
+          userLogin: login,
+          userDisplayName: display,
+          points: cleanNumber(firstExisting(src, ["points", "total_points", "score", "totalScore", "total_score"], 0), 0),
+          entries: cleanNumber(firstExisting(src, ["entries", "entry_count", "answerCount", "answer_count", "solved", "solvedCount"], 0), 0),
+          avatarUrl: avatarUrl(src),
+          rewardLabel: cleanText(firstExisting(src, ["rewardLabel", "reward_label", "prizeLabel", "prize_label", "prize"], ""), ""),
+          rewardValue: cleanText(firstExisting(src, ["rewardValue", "reward_value", "prizeValue", "prize_value"], ""), ""),
+          crumbBonus: cleanNumber(firstExisting(src, ["crumbBonus", "crumb_bonus", "kekskruemel", "cookieCrumbs", "cookie_crumbs"], 0), 0)
+        };
+      }
+
+      function rowKey(row) {
+        return String(row.userLogin || row.userDisplayName || "").trim().toLowerCase();
+      }
+
+      function uniqueRows(rows) {
+        const seen = new Set();
+        return rows.filter((row) => {
+          const key = rowKey(row) || `rank_${row.rank}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+      }
+
+      function normalizeFinale(input) {
+        const root = input && typeof input === "object" ? input : {};
+        const finale = root.finale && typeof root.finale === "object" ? root.finale : root;
+        const preview = root.preview && typeof root.preview === "object" ? root.preview : {};
+        const event = root.event || preview.event || finale.event || {};
+        const rawWinner = finale.winner || preview.winner || {};
+
+        const rankingSources = [
+          finale.ranking,
+          finale.top10,
+          finale.topTen,
+          finale.leaderboard,
+          finale.results,
+          finale.rows,
+          preview.ranking,
+          preview.top10,
+          preview.topTen,
+          preview.leaderboard,
+          preview.topCandidates,
+          preview.results
+        ];
+        let ranking = [];
+        for (const source of rankingSources) {
+          if (Array.isArray(source) && source.length) {
+            ranking = source.map(normalizeRow);
+            break;
+          }
+        }
+
+        const top3Source = Array.isArray(finale.top3) ? finale.top3 : (Array.isArray(preview.top3) ? preview.top3 : []);
+        const top3 = top3Source.map(normalizeRow);
+        const candidates = (Array.isArray(finale.candidates) ? finale.candidates : (Array.isArray(preview.topCandidates) ? preview.topCandidates : [])).map(normalizeRow);
+        const winner = normalizeRow(rawWinner && Object.keys(rawWinner).length ? rawWinner : (top3[0] || ranking[0] || candidates[0] || {}), 0);
+        if (!ranking.length) ranking = uniqueRows([winner, ...top3, ...candidates]).filter((row) => row.userDisplayName);
+
+        ranking = uniqueRows(ranking).sort((a, b) => {
+          if (a.rank !== b.rank) return a.rank - b.rank;
+          return b.points - a.points;
+        });
+
+        let podiumRows = ranking.filter((row) => row.rank >= 1 && row.rank <= 3).slice(0, 3);
+        if (podiumRows.length < 3 && top3.length) podiumRows = uniqueRows([...podiumRows, ...top3]).slice(0, 3);
+        if (podiumRows.length < 3) podiumRows = uniqueRows([winner, ...podiumRows, ...ranking]).slice(0, 3);
+        podiumRows = podiumRows.map((row, index) => ({ ...row, rank: cleanNumber(row.rank, index + 1) || index + 1 })).sort((a, b) => a.rank - b.rank).slice(0, 3);
+
+        const podiumKeys = new Set(podiumRows.map(rowKey));
+        let honorRows = ranking.filter((row) => row.rank >= 4 && row.rank <= 10 && !podiumKeys.has(rowKey(row)));
+        if (!honorRows.length && ranking.length > 3) honorRows = ranking.slice(3, 10);
+        honorRows = honorRows.map((row, index) => ({ ...row, rank: cleanNumber(row.rank, index + 4) || index + 4 })).sort((a, b) => b.rank - a.rank).slice(0, 7);
+
+        const crumbDefaults = { 10: 4000, 9: 5000, 8: 6000, 7: 7000, 6: 8000, 5: 9000, 4: 10000 };
+        honorRows = honorRows.map((row) => ({ ...row, crumbBonus: row.crumbBonus || crumbDefaults[row.rank] || 0, rewardLabel: row.rewardLabel || "Kekskrümel extra" }));
+
+        const defaultPrizeByRank = {
+          1: "Gold-Platz · Amazon-Gutschein",
+          2: "Silber-Platz · Amazon-Gutschein",
+          3: "Bronze-Platz · Amazon-Gutschein"
+        };
+        podiumRows = podiumRows.map((row) => ({ ...row, rewardLabel: row.rewardLabel || defaultPrizeByRank[row.rank] || "Amazon-Gutschein" }));
+
+        return {
+          finaleUid: cleanText(finale.finaleUid || finale.uid || preview.finaleUid, `demo_${Date.now()}`),
+          eventUid: cleanText(finale.eventUid || event.eventUid || event.uid || preview.eventUid, ""),
+          eventName: cleanText(finale.eventName || event.name || preview.eventName, "Event-Finale"),
+          message: cleanText(finale.message || preview.message, "Die Heimleitung zählt die letzten Kekskrümel."),
+          winner: podiumRows.find((row) => row.rank === 1) || winner,
+          honorRows,
+          podiumRows,
+          rankingCount: cleanNumber(finale.rankingCount || preview.rankingCount || ranking.length, ranking.length),
+          rawRankingCount: ranking.length
+        };
+      }
+
+      function renderAvatar(container, row) {
+        container.innerHTML = "";
+        const url = cleanText(row && row.avatarUrl, "");
+        if (url) {
+          const img = document.createElement("img");
+          img.alt = "";
+          img.decoding = "async";
+          img.referrerPolicy = "no-referrer";
+          img.src = url;
+          img.onerror = () => {
+            container.innerHTML = initials(row && row.userDisplayName);
+          };
+          container.appendChild(img);
+          return;
+        }
+        container.textContent = initials(row && row.userDisplayName);
+      }
+
+      function initials(name) {
+        const text = cleanText(name, "CGN").replace(/[^\p{L}\p{N}\s_-]/gu, "").trim();
+        const parts = text.split(/[\s_-]+/).filter(Boolean);
+        if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+        return text.slice(0, 2).toUpperCase() || "CG";
+      }
+
+      function pulseTitles() {
+        els.headline.classList.remove("pulse");
+        els.subline.classList.remove("pulse");
+        void els.headline.offsetWidth;
+        els.headline.classList.add("pulse");
+        els.subline.classList.add("pulse");
+      }
+
+      function setTitles(headline, subline, badge) {
+        els.headline.textContent = headline;
+        els.subline.textContent = subline;
+        if (badge) els.badgeText.textContent = badge;
+        pulseTitles();
+      }
+
+      function clearConfetti() {
+        els.confetti.innerHTML = "";
+      }
+
+      function makeConfetti(amount) {
+        clearConfetti();
+        const count = Math.max(28, Math.min(140, amount || 80));
+        for (let i = 0; i < count; i += 1) {
+          const piece = document.createElement("i");
+          piece.style.left = `${Math.random() * 100}%`;
+          piece.style.animationDuration = `${4.0 + Math.random() * 4.8}s`;
+          piece.style.animationDelay = `${Math.random() * 1.5}s`;
+          piece.style.transform = `translateY(-60px) rotate(${Math.random() * 360}deg)`;
+          piece.style.width = `${7 + Math.random() * 8}px`;
+          piece.style.height = `${12 + Math.random() * 16}px`;
+          els.confetti.appendChild(piece);
+        }
+      }
+
+      function showPresentation(row, opts) {
+        const options = opts || {};
+        els.centerCard.classList.toggle("final-winner", !!options.finalWinner);
+        els.presentationKicker.textContent = options.kicker || `Platz ${row.rank}`;
+        els.presentationName.textContent = row.userDisplayName;
+        els.presentationMeta.textContent = options.meta || pointsLabel(row.points);
+        els.presentationReward.textContent = options.reward || row.rewardLabel || "";
+        renderAvatar(els.presentationAvatar, row);
+        els.centerCard.classList.remove("visible");
+        void els.centerCard.offsetWidth;
+        els.centerCard.classList.add("visible");
+      }
+
+      function hidePresentation() {
+        els.centerCard.classList.remove("visible");
+      }
+
+      function initHonorWall(honorRows) {
+        els.honorList.innerHTML = "";
+        const byRank = new Map(honorRows.map((row) => [row.rank, row]));
+        for (let rank = 10; rank >= 4; rank -= 1) {
+          const row = byRank.get(rank);
+          const chip = document.createElement("div");
+          chip.className = "honor-chip";
+          chip.dataset.rank = String(rank);
+          chip.innerHTML = `
+            <div class="chip-place">Platz ${rank}</div>
+            <div class="chip-name">${row ? escapeHtml(row.userDisplayName) : "wartet..."}</div>
+            <div class="chip-reward">${row ? `🍪 ${escapeHtml(crumbsLabel(row.crumbBonus))}` : "Keksorden bereit"}</div>
+          `;
+          els.honorList.appendChild(chip);
+        }
+      }
+
+      function fillHonorChip(row) {
+        const chip = els.honorList.querySelector(`[data-rank="${row.rank}"]`);
+        if (!chip) return;
+        chip.querySelector(".chip-name").textContent = row.userDisplayName;
+        chip.querySelector(".chip-reward").textContent = `🍪 ${crumbsLabel(row.crumbBonus)}`;
+        chip.classList.add("filled");
+      }
+
+      function escapeHtml(value) {
+        return String(value == null ? "" : value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function podiumLabel(rank) {
+        if (rank === 1) return "Platz 1 · Gold";
+        if (rank === 2) return "Platz 2 · Silber";
+        if (rank === 3) return "Platz 3 · Bronze";
+        return `Platz ${rank}`;
+      }
+
+      function renderPodiumSlot(slot, row) {
+        if (!row) {
+          slot.innerHTML = "";
+          slot.classList.remove("visible");
+          return;
+        }
+        slot.innerHTML = `
+          <div class="podium-head">
+            <div class="small-avatar-wrap"><div class="avatar"></div></div>
+            <div style="min-width:0;">
+              <div class="podium-place">${escapeHtml(podiumLabel(row.rank))}</div>
+              <div class="podium-name"></div>
+            </div>
+          </div>
+          <div class="podium-points">${escapeHtml(pointsLabel(row.points))}</div>
+          <div class="podium-reward">${escapeHtml(row.rewardLabel)}${row.rewardValue ? ` · ${escapeHtml(row.rewardValue)}` : ""}</div>
+        `;
+        slot.querySelector(".podium-name").textContent = row.userDisplayName;
+        renderAvatar(slot.querySelector(".avatar"), row);
+      }
+
+      function setFooter(text, visible) {
+        els.footerLine.textContent = text;
+        els.footerLine.classList.toggle("visible", !!visible);
+      }
+
+      function resetView(finale) {
+        els.eventName.textContent = finale.eventName;
+        els.badgeText.textContent = "CGN Event-Finale";
+        setTitles("Die Heimleitung zählt aus", "Bitte nicht drängeln. Die Keksorden werden frisch sortiert.", "CGN Event-Finale");
+        hidePresentation();
+        els.podium.classList.remove("visible");
+        [els.podium1, els.podium2, els.podium3].forEach((slot) => {
+          slot.classList.remove("visible");
+          slot.innerHTML = "";
+        });
+        setFooter("Die Heimleitung bedankt sich bei allen Teilnehmenden.", false);
+        initHonorWall(finale.honorRows || []);
+        clearConfetti();
+      }
+
+      function playFinale(rawFinale, options) {
+        const finale = normalizeFinale(rawFinale);
+        if (!finale.podiumRows.length && !finale.honorRows.length) return;
+        if (!(options && options.force) && currentFinaleUid && currentFinaleUid === finale.finaleUid) return;
+        currentFinaleUid = finale.finaleUid;
+        clearTimers();
+        resetView(finale);
+        log({ speed, fastMode, timeline, finale });
+        showStage();
+
+        let at = 250;
+        defer(() => {
+          setTitles("Top-10 Ehrenrunde", "Plätze 10 bis 4 bekommen heute extra Kekskrümel und ihren Keksorden.", "Keksorden-Ausgabe");
+          setFooter("Keine Verlierer. Das ist die Ehrenwand vom Wohnbereich.", true);
+        }, at);
+
+        at += timeline.intro;
+        const honorRows = finale.honorRows || [];
+        if (honorRows.length) {
+          honorRows.forEach((row) => {
+            defer(() => {
+              setTitles(`Platz ${row.rank} · Ehrenrunde`, `${row.userDisplayName} bekommt den Keksorden und ${crumbsLabel(row.crumbBonus)}.`, "Top-10 Ehrenrunde");
+              showPresentation(row, {
+                kicker: `Platz ${row.rank} · Top-10 Ehrenrunde`,
+                meta: pointsLabel(row.points),
+                reward: `🍪 ${crumbsLabel(row.crumbBonus)}`
+              });
+              makeConfetti(fastMode ? 28 : 44);
+            }, at);
+            at += timeline.honor;
+            defer(() => {
+              fillHonorChip(row);
+              hidePresentation();
+            }, at);
+            at += timeline.honorPause;
+          });
+        } else {
+          defer(() => {
+            setTitles("Top-10 Ehrenrunde", "Für dieses Finale wurden keine Plätze 10 bis 4 geliefert. Die Preisverleihung startet direkt.", "Finale");
+          }, at);
+          at += timeline.emptyHonor;
+        }
+
+        defer(() => {
+          setTitles("Preisverleihung", "Jetzt kommen Bronze, Silber und Gold. Bitte die guten Rollatoren nach vorne.", "Amazon-Gutschein-Plätze");
+          hidePresentation();
+          els.podium.classList.add("visible");
+          setFooter("Platz 3 links, Platz 2 rechts, Platz 1 in der Mitte.", true);
+        }, at);
+        at += timeline.intro;
+
+        const podiumByRank = new Map((finale.podiumRows || []).map((row) => [row.rank, row]));
+        const order = [3, 2, 1];
+        order.forEach((rank) => {
+          const row = podiumByRank.get(rank) || (finale.podiumRows || []).find((item) => item.rank === rank);
+          if (!row) return;
+          defer(() => {
+            const kicker = rank === 1 ? "Platz 1 · Gold" : rank === 2 ? "Platz 2 · Silber" : "Platz 3 · Bronze";
+            setTitles(kicker, `${row.userDisplayName} sichert sich ${row.rewardLabel}.`, "Preisverleihung");
+            showPresentation(row, {
+              kicker,
+              meta: pointsLabel(row.points),
+              reward: row.rewardValue ? `${row.rewardLabel} · ${row.rewardValue}` : row.rewardLabel,
+              finalWinner: rank === 1
+            });
+            makeConfetti(rank === 1 ? (fastMode ? 70 : 120) : (fastMode ? 38 : 58));
+          }, at);
+          at += timeline.top;
+          defer(() => {
+            const slot = rank === 1 ? els.podium1 : rank === 2 ? els.podium2 : els.podium3;
+            renderPodiumSlot(slot, row);
+            slot.classList.add("visible");
+            if (rank !== 1) hidePresentation();
+          }, at);
+          at += timeline.honorPause;
+        });
+
+        const winner = podiumByRank.get(1) || finale.winner || finale.podiumRows[0];
+        defer(() => {
+          if (winner) {
+            setTitles("CGN Event-Gewinner", `${winner.userDisplayName} steht ganz oben auf dem Treppchen.`, "Gold-Platz");
+            showPresentation(winner, {
+              kicker: "Platz 1 · Gold",
+              meta: pointsLabel(winner.points),
+              reward: winner.rewardValue ? `${winner.rewardLabel} · ${winner.rewardValue}` : winner.rewardLabel,
+              finalWinner: true
+            });
+          }
+          setFooter("Glückwunsch an alle Top-10-Rentner. Die Heimleitung hat gesprochen.", true);
+          makeConfetti(fastMode ? 110 : 140);
+        }, at);
+        at += timeline.final;
+
+        const totalRun = Math.max(at + 1000, Math.min(autoHideMs, at + 3000));
+        defer(() => hideStage(), totalRun);
+      }
+
+      function demoFinale(kind) {
+        const long = kind === "long";
+        const rows = [
+          { rank: 1, userDisplayName: long ? "ForrestCGN_mit_dem_sehr_langen_Gewinnernamen" : "ForrestCGN", points: 120, entries: 12, rewardLabel: "Gold-Platz · Amazon-Gutschein" },
+          { rank: 2, userDisplayName: "EngelCGN", points: 108, entries: 11, rewardLabel: "Silber-Platz · Amazon-Gutschein" },
+          { rank: 3, userDisplayName: "HeimleitungHD", points: 96, entries: 9, rewardLabel: "Bronze-Platz · Amazon-Gutschein" },
+          { rank: 4, userDisplayName: "KaffeeKoenig", points: 88, entries: 8, crumbBonus: 10000 },
+          { rank: 5, userDisplayName: "OpaRollator", points: 82, entries: 8, crumbBonus: 9000 },
+          { rank: 6, userDisplayName: "RentnerRambo", points: 76, entries: 7, crumbBonus: 8000 },
+          { rank: 7, userDisplayName: "KeksKommando", points: 70, entries: 7, crumbBonus: 7000 },
+          { rank: 8, userDisplayName: "BingoBerta", points: 64, entries: 6, crumbBonus: 6000 },
+          { rank: 9, userDisplayName: "PuddingPanzer", points: 58, entries: 5, crumbBonus: 5000 },
+          { rank: 10, userDisplayName: "ZiviMitHerz", points: 52, entries: 5, crumbBonus: 4000 }
+        ];
+        return {
+          finale: {
+            finaleUid: `demo_${kind || "single"}_${Date.now()}`,
+            eventUid: "demo_event",
+            eventName: long ? "1 Jahr Twitch - Langer Namenstest im Wohnbereich" : "1 Jahr Twitch - Sound-Schnipsel Finale",
+            mode: "ranked_finale",
+            winner: rows[0],
+            top3: rows.slice(0, 3),
+            ranking: rows,
+            rankingCount: rows.length,
+            message: "Top-10 Finale mit Keksorden und Gutschein-Plätzen."
+          }
+        };
+      }
+
+      async function loadExistingFinale() {
+        if (!finaleRoute) return;
+        try {
+          const res = await fetch(finaleRoute, { cache: "no-store" });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          log(data);
+          if (data && data.existingFinale) {
+            playFinale({ finale: data.existingFinale, preview: data, event: data.event }, { force: true });
+          }
+        } catch (err) {
+          log({ error: err.message || String(err), route: finaleRoute });
+        }
+      }
+
+      function extractBusPayload(detail) {
+        const msg = detail && typeof detail === "object" ? detail : {};
+        const payload = msg.payload && typeof msg.payload === "object" ? msg.payload : msg;
+        return { msg, payload };
+      }
+
+      function handleBusMessage(event) {
+        if (demo) return;
+        const { msg, payload } = extractBusPayload(event && event.detail);
+        const channel = String(msg.channel || payload.channel || "").toLowerCase();
+        const action = String(msg.action || payload.action || "").toLowerCase();
+        const hasFinale = payload && (payload.finale || payload.preview || payload.eventUid || payload.event || payload.ranking || payload.top3 || payload.winner);
+        const isFinale = channel === "stream_events.winner_finale" || channel.indexOf("winner_finale") >= 0 || action.indexOf("winner_finale") >= 0 || action === "started" || action === "replay_requested";
+        if (!isFinale || !hasFinale) return;
+        const finale = payload.finale ? payload : { finale: payload, preview: payload.preview, event: payload.event };
+        playFinale(finale, { force: action === "replay_requested" });
+      }
+
+      if (demo) {
+        window.setTimeout(() => playFinale(demoFinale(demo), { force: true }), 350);
+      } else {
+        loadExistingFinale();
+      }
+
+      window.addEventListener("cgn:overlay-bus-message", handleBusMessage);
+      window.addEventListener("focus", loadExistingFinale);
+      window.addEventListener("beforeunload", clearTimers);
+    })();
+  </script>
+
+  <script
+    src="/overlays/shared/overlay_bus_client.js"
+    data-overlay-id="stream_events_winner_overlay"
+    data-client-type="overlay"
+    data-mode="obs_overlay"
+    data-module="stream_events"
+    data-name="Stream Events Gewinner-Finale Overlay"
+    data-version="0.2.0"
+    data-heartbeat-ms="5000"
+  ></script>
 </body>
 </html>
