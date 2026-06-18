@@ -6690,6 +6690,172 @@ async function processEventCommand(chat = {}) {
   return result;
 }
 
+
+function tableExistsSafe(tableName = "") {
+  const name = cleanString(tableName);
+  if (!name) return false;
+  try {
+    const row = database.get("SELECT name FROM sqlite_master WHERE type='table' AND name = :name LIMIT 1", { name });
+    return !!row;
+  } catch (_) {
+    return false;
+  }
+}
+
+function collectWinnerDemoUsersFromTable(tableName = "", loginColumn = "", displayColumn = "", avatarColumn = "", limit = 80) {
+  const table = cleanString(tableName);
+  const loginCol = cleanString(loginColumn);
+  const displayCol = cleanString(displayColumn);
+  const avatarCol = cleanString(avatarColumn);
+  if (!table || !loginCol || !tableExistsSafe(table)) return [];
+  try {
+    const cols = typeof database.tableColumns === "function" ? new Set(database.tableColumns(table)) : null;
+    if (cols && cols.size && !cols.has(loginCol)) return [];
+    const selectDisplay = displayCol && (!cols || cols.has(displayCol)) ? `${displayCol} AS userDisplayName` : `${loginCol} AS userDisplayName`;
+    const selectAvatar = avatarCol && (!cols || cols.has(avatarCol)) ? `${avatarCol} AS avatarUrl` : `'' AS avatarUrl`;
+    const rows = database.all(`
+      SELECT
+        ${loginCol} AS userLogin,
+        ${selectDisplay},
+        ${selectAvatar}
+      FROM ${table}
+      WHERE ${loginCol} IS NOT NULL AND TRIM(${loginCol}) <> ''
+      GROUP BY ${loginCol}
+      ORDER BY RANDOM()
+      LIMIT ${Math.max(1, Math.min(Number(limit) || 80, 200))}
+    `);
+    return (rows || []).map(row => ({
+      userLogin: cleanString(row.userLogin || "").replace(/^@/, "").toLowerCase(),
+      userDisplayName: cleanString(row.userDisplayName || row.userLogin || ""),
+      avatarUrl: cleanString(row.avatarUrl || ""),
+      source: `db:${table}`
+    })).filter(row => row.userLogin);
+  } catch (err) {
+    runtimeState.lastError = `[winner_demo_users:${table}] ${err && err.message ? err.message : String(err)}`;
+    return [];
+  }
+}
+
+function shuffleWinnerDemoUsers(rows = []) {
+  const list = Array.isArray(rows) ? rows.slice() : [];
+  for (let i = list.length - 1; i > 0; i -= 1) {
+    const j = crypto.randomInt(0, i + 1);
+    const tmp = list[i];
+    list[i] = list[j];
+    list[j] = tmp;
+  }
+  return list;
+}
+
+function collectWinnerRandomDemoUserCandidates(limit = 80) {
+  const sources = [
+    ["twitch_presence_activity", "user_login", "user_display_name", ""],
+    ["stream_events_score_entries", "user_login", "user_display_name", ""],
+    ["birthday_show_profiles", "user_login", "display_name_override", "avatar_url"],
+    ["birthday_users", "user_login", "user_display_name", "avatar_url"],
+    ["loyalty_users", "user_login", "user_display_name", "avatar_url"],
+    ["loyalty_points", "user_login", "user_display_name", "avatar_url"],
+    ["chat_users", "user_login", "user_display_name", "avatar_url"]
+  ];
+
+  const seen = new Set();
+  const out = [];
+  for (const [table, loginCol, displayCol, avatarCol] of sources) {
+    const rows = collectWinnerDemoUsersFromTable(table, loginCol, displayCol, avatarCol, limit);
+    for (const row of rows) {
+      if (!row.userLogin || seen.has(row.userLogin)) continue;
+      seen.add(row.userLogin);
+      out.push(row);
+    }
+  }
+
+  const fallback = [
+    "Urlug",
+    "RoxxyFoxxyCGN",
+    "UdoWB",
+    "EngelCGN",
+    "AdoredPenny",
+    "AmpersandHD",
+    "Araglor",
+    "Tiegerpranke01",
+    "ForrestCGN",
+    "Heimleitung"
+  ].map(name => ({
+    userLogin: name.toLowerCase(),
+    userDisplayName: name,
+    avatarUrl: "",
+    source: "fallback:cgn_demo_names"
+  }));
+
+  for (const row of fallback) {
+    if (!row.userLogin || seen.has(row.userLogin)) continue;
+    seen.add(row.userLogin);
+    out.push(row);
+  }
+
+  return shuffleWinnerDemoUsers(out).slice(0, Math.max(1, Math.min(Number(limit) || 80, 200)));
+}
+
+async function buildWinnerRandomDemoFinale(options = {}) {
+  const count = Math.max(1, Math.min(Number(options.count || options.demoCount || 10) || 10, 10));
+  const candidates = collectWinnerRandomDemoUserCandidates(Math.max(40, count * 8));
+  const picked = candidates.slice(0, count);
+  const resolved = await Promise.all(picked.map(async (row) => {
+    const base = enrichWinnerFinaleRow(row);
+    if (base.avatarUrl || base.userAvatarUrl) return { ...base, source: row.source || base.source || "" };
+    const info = await enrichWinnerFinaleRowAsync(base);
+    return { ...info, source: row.source || info.userResolveSource || "" };
+  }));
+
+  const rows = resolved.map((user, index) => {
+    const rank = index + 1;
+    const base = {
+      rank,
+      ...user,
+      points: Math.max(5, 130 - rank * 11)
+    };
+    if (rank <= 3) return { ...base, rewardLabel: "Amazon-Gutschein" };
+    return { ...base, crumbBonus: Math.max(1000, (11 - rank) * 1000) };
+  });
+
+  return {
+    ok: true,
+    demo: true,
+    source: "backend_random_demo_users",
+    requestedCount: count,
+    count: rows.length,
+    fallbackUsed: picked.some(row => String(row.source || "").startsWith("fallback:")),
+    finale: {
+      finaleUid: newUid("evs_demo_finale"),
+      eventUid: "demo_random",
+      eventName: "CGN Event-Gewinner",
+      subtitle: `Backend-Test mit ${rows.length} zufälligen Usern.`,
+      startedAt: nowIso(),
+      startedBy: cleanString(options.actor || "overlay_demo", "overlay_demo"),
+      mode: "backend_random_demo",
+      style: "cgn_altersheim_rentner",
+      ranking: rows,
+      podiumRows: rows.filter(row => row.rank <= 3),
+      honorRows: rows.filter(row => row.rank >= 4 && row.rank <= 10),
+      top3: rows.filter(row => row.rank <= 3),
+      rankingCount: rows.length,
+      message: "Backend-Testdaten: zufällige User aus vorhandenen Tabellen/Logs plus Avatar-Auflösung."
+    },
+    sourcesTried: [
+      "twitch_presence_activity",
+      "stream_events_score_entries",
+      "birthday_show_profiles",
+      "birthday_users",
+      "loyalty_users",
+      "loyalty_points",
+      "chat_users",
+      "fallback:cgn_demo_names"
+    ],
+    updatedAt: nowIso()
+  };
+}
+
+
 function publicEventSummary(event) {
   if (!event) return null;
   return {
@@ -7552,6 +7718,19 @@ module.exports.init = function init(ctx) {
       handleError(res, err, 400);
     }
   });
+
+  reg("get", `${prefix}/winner-finale/demo-random`, async (req, res) => {
+    try {
+      const result = await buildWinnerRandomDemoFinale({
+        count: req.query.count || req.query.demoCount || req.query.demo_count || 10,
+        actor: "overlay_demo"
+      });
+      sendJson(res, result, result.ok ? 200 : 400);
+    } catch (err) {
+      handleError(res, err, 400);
+    }
+  });
+
 
   reg("post", `${prefix}/commands/event/test`, async (req, res) => {
     try {
