@@ -8,7 +8,9 @@ window.ShotAlarmModule = (function(){
     test: '/api/shot-alarm/test',
     manual: '/api/shot-alarm/manual-trigger',
     reset: '/api/shot-alarm/reset-state',
-    flush: '/api/shot-alarm/flush-pending'
+    flush: '/api/shot-alarm/flush-pending',
+    resolve: '/api/shot-alarm/resolve-pending',
+    shotDone: '/api/shot-alarm/shot-done'
   };
 
   const state = {
@@ -97,7 +99,9 @@ window.ShotAlarmModule = (function(){
     current.targetMode = root.querySelector('[data-shot-setting="targetMode"]')?.value || 'engel_roxxy_together';
     current.targetLabel = root.querySelector('[data-shot-setting="targetLabel"]')?.value || 'Engel & Roxxy';
     current.display = current.display || {};
-    current.display.holdMs = Number(root.querySelector('[data-shot-setting="holdMs"]')?.value || 12000);
+    current.display.holdMs = Number(root.querySelector('[data-shot-setting="holdMs"]')?.value || 10000);
+    current.display.drawDelayMs = Number(root.querySelector('[data-shot-setting="drawDelayMs"]')?.value || 10000);
+    current.display.resultHoldMs = Number(root.querySelector('[data-shot-setting="resultHoldMs"]')?.value || 10000);
     current.rules = current.rules || {};
     current.rules.singleSubChancePercent = Number(root.querySelector('[data-shot-setting="singleSubChancePercent"]')?.value || 20);
     current.rules.resubChancePercent = Number(root.querySelector('[data-shot-setting="resubChancePercent"]')?.value || 20);
@@ -129,7 +133,7 @@ window.ShotAlarmModule = (function(){
   }
 
   async function runTest(type, extra = {}) {
-    const payload = { type, eventType: type, user: { login: 'testuser', displayName: 'TestUser' }, ...extra };
+    const payload = { type, eventType: type, user: { login: 'testuser', displayName: 'TestUser' }, immediate: extra.immediate === true, ...extra };
     const result = await window.CGN.api(api.test, { method: 'POST', body: JSON.stringify(payload) });
     state.status = result.status;
     state.notice = `Test ausgeführt: ${type}`;
@@ -160,6 +164,20 @@ window.ShotAlarmModule = (function(){
     await loadAll(true);
   }
 
+  async function resolvePending() {
+    const result = await window.CGN.api(api.resolve, { method: 'POST', body: '{}' });
+    state.status = result.status;
+    state.notice = `${result.resolved || 0} Auslosung(en) direkt aufgelöst.`;
+    await loadAll(true);
+  }
+
+  async function shotDone() {
+    const result = await window.CGN.api(api.shotDone, { method: 'POST', body: JSON.stringify({ count: 1, user: 'Dashboard' }) });
+    state.status = result.status;
+    state.notice = result.done > 0 ? `1 Shot abgehakt. Offen: ${result.shotsOpen}` : 'Keine offenen Shots vorhanden.';
+    await loadAll(true);
+  }
+
   function statusPill(label, value) {
     return `<div class="shot-kpi"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`;
   }
@@ -171,15 +189,18 @@ window.ShotAlarmModule = (function(){
       <div class="shot-grid shot-grid-kpi">
         ${statusPill('Modul', s.enabled ? 'Aktiv' : 'Inaktiv')}
         ${statusPill('Bus', s.busAvailable ? 'Verbunden' : 'Nicht verbunden')}
-        ${statusPill('Shots gesamt', c.shots || 0)}
+        ${statusPill('Shots offen', s.shotsOpen ?? c.shotsOpen ?? 0)}
+        ${statusPill('Getrunken', s.shotsDrunk ?? c.shotsDrunk ?? 0)}
+        ${statusPill('Shots gesamt', s.shotsAddedTotal ?? c.shotsAddedTotal ?? c.shots ?? 0)}
         ${statusPill('Treffer / Fehlwürfe', `${c.hits || 0} / ${c.misses || 0}`)}
+        ${statusPill('Auslosungen offen', c.drawPending || 0)}
         ${statusPill('Einzel-Zähler', c.singleSupportCounter || 0)}
         ${statusPill('Pending Subs', c.pending || 0)}
-        ${statusPill('Sound-Fehler', c.soundErrors || 0)}
+        ${statusPill('Chat/Sound Fehler', `${c.chatErrors || 0} / ${c.soundErrors || 0}`)}
       </div>
       <div class="shot-card">
         <h3>Letzter Shot</h3>
-        ${s.lastShot ? `<pre>${esc(JSON.stringify(s.lastShot, null, 2))}</pre>` : '<p class="shot-muted">Noch kein Shot ausgelöst.</p>'}
+        ${s.lastResult ? `<pre>${esc(JSON.stringify(s.lastResult, null, 2))}</pre>` : s.lastShot ? `<pre>${esc(JSON.stringify(s.lastShot, null, 2))}</pre>` : '<p class="shot-muted">Noch kein Ergebnis vorhanden.</p>'}
       </div>
     `;
   }
@@ -199,7 +220,8 @@ window.ShotAlarmModule = (function(){
           ${selectField('soundEnabled', 'Sound aktiv', c.soundEnabled !== false)}
           ${selectTarget('targetMode', 'Zielpersonen', c.targetMode || 'engel_roxxy_together')}
           ${inputField('targetLabel', 'Ziel-Text', c.targetLabel || 'Engel & Roxxy')}
-          ${inputField('holdMs', 'Overlay Dauer ms', display.holdMs || 12000, 'number')}
+          ${inputField('drawDelayMs', 'Auslosungsdauer ms', display.drawDelayMs || 10000, 'number')}
+          ${inputField('resultHoldMs', 'Ergebnisdauer ms', display.resultHoldMs || display.holdMs || 10000, 'number')}
         </div>
       </div>
       <div class="shot-card">
@@ -253,7 +275,7 @@ window.ShotAlarmModule = (function(){
     return `
       <div class="shot-card">
         <h3>Tests</h3>
-        <p class="shot-muted">Tests laufen über die Shot-Alarm-Regellogik. Bei Treffer wird Overlay + Sound ausgelöst.</p>
+        <p class="shot-muted">Tests laufen über die Shot-Alarm-Regellogik. Standard: Auslosung startet und Ergebnis kommt nach der eingestellten Dauer. Für schnelle Tests gibt es „offene Auslosungen jetzt auflösen“.</p>
         <div class="shot-test-grid">
           <button data-shot-test="sub" data-force-roll="0">Einzel-Sub Treffer</button>
           <button data-shot-test="resub" data-force-roll="0">Resub Treffer</button>
@@ -276,7 +298,7 @@ window.ShotAlarmModule = (function(){
           <label><span>Shots</span><input data-shot-manual="shots" type="number" value="1" min="1"></label>
           <label><span>Grund</span><input data-shot-manual="reason" type="text" value="Dashboard-Test"></label>
         </div>
-        <div class="shot-actions"><button data-shot-action="manual">Manuell auslösen</button><button class="ghost" data-shot-action="flush">Pending Subs jetzt verarbeiten</button><button class="danger" data-shot-action="reset">Runtime zurücksetzen</button></div>
+        <div class="shot-actions"><button data-shot-action="manual">Manuell auslösen</button><button class="ghost" data-shot-action="resolve">Offene Auslosungen jetzt auflösen</button><button class="ghost" data-shot-action="shotdone">1 Shot getrunken</button><button class="ghost" data-shot-action="flush">Pending Subs jetzt verarbeiten</button><button class="danger" data-shot-action="reset">Runtime zurücksetzen</button></div>
       </div>
     `;
   }
@@ -284,7 +306,7 @@ window.ShotAlarmModule = (function(){
   function renderHistory() {
     const items = Array.isArray(state.history?.items) ? state.history.items : [];
     if (!items.length) return '<div class="shot-card"><p class="shot-muted">Noch kein Verlauf vorhanden.</p></div>';
-    return `<div class="shot-card"><h3>Verlauf</h3><table class="shot-table"><thead><tr><th>Zeit</th><th>Typ</th><th>User</th><th>Chance</th><th>Roll</th><th>Shots</th><th>Grund</th></tr></thead><tbody>${items.slice(0, 30).map(item => `<tr><td>${esc(item.at)}</td><td>${esc(item.eventType || item.kind)}</td><td>${esc(item.user?.displayName || '-')}</td><td>${esc(item.chancePercent ?? '-')}</td><td>${esc(item.rollValue ?? '-')}</td><td>${esc(item.shots ?? 0)}</td><td>${esc(item.eventLabel || item.skippedReason || '')}</td></tr>`).join('')}</tbody></table></div>`;
+    return `<div class="shot-card"><h3>Verlauf</h3><table class="shot-table"><thead><tr><th>Zeit</th><th>Phase</th><th>Typ</th><th>User</th><th>Menge</th><th>Regel</th><th>Shots</th><th>Offen</th></tr></thead><tbody>${items.slice(0, 30).map(item => `<tr><td>${esc(item.at)}</td><td>${esc(item.phase || '-')}</td><td>${esc(item.eventType || item.kind)}</td><td>${esc(item.user?.displayName || '-')}</td><td>${esc(item.amountLabel || item.bits || item.total || '-')}</td><td>${esc(item.chanceSummary || item.eventLabel || item.skippedReason || '')}</td><td>${esc(item.shotsAdded ?? item.shots ?? 0)}</td><td>${esc(item.shotsOpenAfter ?? item.shotsOpen ?? '-')}</td></tr>`).join('')}</tbody></table></div>`;
   }
 
   function render() {
@@ -308,6 +330,8 @@ window.ShotAlarmModule = (function(){
     root.querySelector('[data-shot-action="manual"]')?.addEventListener('click', () => manualTrigger().catch(err => { state.error = err.message || String(err); render(); }));
     root.querySelector('[data-shot-action="reset"]')?.addEventListener('click', () => resetState().catch(err => { state.error = err.message || String(err); render(); }));
     root.querySelector('[data-shot-action="flush"]')?.addEventListener('click', () => flushPending().catch(err => { state.error = err.message || String(err); render(); }));
+    root.querySelector('[data-shot-action="resolve"]')?.addEventListener('click', () => resolvePending().catch(err => { state.error = err.message || String(err); render(); }));
+    root.querySelector('[data-shot-action="shotdone"]')?.addEventListener('click', () => shotDone().catch(err => { state.error = err.message || String(err); render(); }));
     root.querySelectorAll('[data-shot-test]').forEach(btn => {
       btn.addEventListener('click', () => {
         const type = btn.dataset.shotTest;

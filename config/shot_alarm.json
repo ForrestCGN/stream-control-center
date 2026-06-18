@@ -7,14 +7,22 @@
   "targetLabel": "Engel & Roxxy",
   "display": {
     "title": "SHOT-ALARM",
-    "holdMs": 12000,
+    "drawDelayMs": 10000,
+    "drawHoldMs": 10000,
+    "resultHoldMs": 10000,
+    "holdMs": 10000,
     "showChance": true,
-    "showRoll": false
+    "showRoll": false,
+    "showStatusBar": true,
+    "statusBarRefreshMs": 5000
   },
   "rules": {
+    "finalRulesVersion": "2026-06-18-step2a-aggregated-draw",
     "singleSubChancePercent": 20,
     "resubChancePercent": 20,
     "singleGiftSubChancePercent": 20,
+    "singleSupportFiveChancePercent": 50,
+    "singleSupportTenChancePercent": 100,
     "giftBombFiveChancePercent": 50,
     "giftBombTenBlockShots": 1,
     "bits": {
@@ -39,10 +47,7 @@
           "chancePercent": 50
         }
       }
-    },
-    "singleSupportFiveChancePercent": 50,
-    "singleSupportTenChancePercent": 100,
-    "finalRulesVersion": "2026-06-18-final-bits-blocks"
+    }
   },
   "dedupe": {
     "subscribeResubBufferEnabled": true,
@@ -66,6 +71,34 @@
         "volume": 0.35
       }
     ]
+  },
+  "chat": {
+    "enabled": true,
+    "sendDrawStart": true,
+    "sendResultHit": true,
+    "sendResultMiss": true,
+    "prefer": "bot",
+    "maxLength": 420
+  },
+  "texts": {
+    "drawStart": [
+      "🚨 Heimleitung meldet: {user} hat {amountLabel} in den Rentner-Automaten geworfen. Die Shot-Auslosung läuft...",
+      "🎲 Altersheim-Prüfung gestartet: {amountLabel} von {user}. Engel & Roxxy warten auf das Urteil der Heimleitung..."
+    ],
+    "resultHit": [
+      "🥃 Ergebnis der Heimleitungs-Auslosung: {amountLabel} von {user} ergibt {shotsAdded} Shot(s) für Engel & Roxxy. Offen: {shotsOpen}.",
+      "🍻 Pflegeprotokoll aktualisiert: {user} hat mit {amountLabel} {shotsAdded} Shot(s) ausgelöst. Noch offen: {shotsOpen}."
+    ],
+    "resultMiss": [
+      "😇 Ergebnis der Heimleitungs-Auslosung: {amountLabel} von {user} – die Rentner-Leber wurde verschont. Kein Shot.",
+      "🧓 Die Heimleitung hat gewürfelt: {amountLabel} von {user}, aber Engel & Roxxy sind diesmal davongekommen."
+    ],
+    "overlayDrawTitle": ["SHOT-ALARM"],
+    "overlayDrawText": ["Die Heimleitung lost aus..."],
+    "overlayResultHitTitle": ["SHOT-ALARM"],
+    "overlayResultMissTitle": ["SHOT-ALARM"],
+    "overlayResultHitText": ["Engel & Roxxy müssen ran!"],
+    "overlayResultMissText": ["Die Rentner-Leber wurde verschont."]
   },
   "historyLimit": 200
 }

@@ -10,6 +10,7 @@
       --neon-blue: #22d3ee;
       --white: #f8fafc;
       --muted: #cbd5e1;
+      --dark: rgba(8, 13, 29, 0.86);
     }
     html, body {
       margin: 0;
@@ -19,34 +20,33 @@
       background: transparent;
       font-family: Inter, Segoe UI, Arial, sans-serif;
     }
-    #wrap {
+    #eventWrap {
       position: fixed;
-      inset: 0;
-      display: grid;
-      place-items: center;
+      top: 12vh;
+      left: 50%;
+      transform: translateX(-50%) translateY(-8px) scale(0.98);
+      width: min(760px, 70vw);
       pointer-events: none;
       opacity: 0;
-      transform: scale(0.94);
-      transition: opacity 280ms ease, transform 280ms ease;
+      transition: opacity 240ms ease, transform 240ms ease;
+      z-index: 5;
     }
-    #wrap.show {
+    #eventWrap.show {
       opacity: 1;
-      transform: scale(1);
+      transform: translateX(-50%) translateY(0) scale(1);
     }
     .card {
-      min-width: 760px;
-      max-width: 980px;
-      padding: 34px 42px;
-      border-radius: 34px;
-      border: 2px solid rgba(168, 85, 247, 0.82);
+      padding: 22px 30px 24px;
+      border-radius: 26px;
+      border: 1px solid rgba(168, 85, 247, 0.78);
       background:
-        radial-gradient(circle at 12% 10%, rgba(34, 211, 238, 0.28), transparent 34%),
-        radial-gradient(circle at 88% 90%, rgba(168, 85, 247, 0.32), transparent 38%),
-        rgba(8, 13, 29, 0.91);
+        radial-gradient(circle at 12% 8%, rgba(34, 211, 238, 0.23), transparent 32%),
+        radial-gradient(circle at 86% 90%, rgba(168, 85, 247, 0.28), transparent 34%),
+        var(--dark);
       box-shadow:
-        0 0 32px rgba(168, 85, 247, 0.58),
-        0 0 72px rgba(34, 211, 238, 0.28),
-        inset 0 0 34px rgba(15, 23, 42, 0.72);
+        0 0 24px rgba(168, 85, 247, 0.45),
+        0 0 46px rgba(34, 211, 238, 0.18),
+        inset 0 0 22px rgba(15, 23, 42, 0.68);
       color: var(--white);
       text-align: center;
       position: relative;
@@ -56,95 +56,150 @@
     .card::after {
       content: '';
       position: absolute;
-      width: 14px;
-      height: 14px;
+      width: 10px;
+      height: 10px;
       border-radius: 50%;
       background: var(--neon-blue);
-      box-shadow: 0 0 18px var(--neon-blue), 0 0 38px var(--neon-blue);
+      box-shadow: 0 0 14px var(--neon-blue), 0 0 28px var(--neon-blue);
     }
-    .card::before { left: 26px; top: 22px; }
-    .card::after { right: 26px; bottom: 22px; background: var(--neon-purple); box-shadow: 0 0 18px var(--neon-purple), 0 0 38px var(--neon-purple); }
+    .card::before { left: 20px; top: 18px; }
+    .card::after { right: 20px; bottom: 18px; background: var(--neon-purple); box-shadow: 0 0 14px var(--neon-purple), 0 0 28px var(--neon-purple); }
     .title {
-      font-size: 68px;
+      font-size: clamp(34px, 4.2vw, 54px);
       line-height: 1;
       font-weight: 900;
       letter-spacing: 0.06em;
       text-transform: uppercase;
-      text-shadow: 0 0 18px rgba(168, 85, 247, 0.92), 0 0 32px rgba(34, 211, 238, 0.6);
-      margin-bottom: 18px;
+      text-shadow: 0 0 14px rgba(168, 85, 247, 0.9), 0 0 24px rgba(34, 211, 238, 0.45);
+      margin-bottom: 10px;
     }
-    .target {
-      font-size: 34px;
+    .message {
+      font-size: clamp(20px, 2.2vw, 28px);
       font-weight: 800;
-      margin-bottom: 14px;
+      margin-bottom: 8px;
     }
-    .target strong { color: #67e8f9; text-shadow: 0 0 18px rgba(34, 211, 238, 0.8); }
     .reason {
-      font-size: 24px;
+      font-size: clamp(16px, 1.6vw, 22px);
       color: var(--muted);
-      margin-bottom: 18px;
+      margin-bottom: 14px;
     }
     .shots {
       display: inline-flex;
       align-items: center;
-      gap: 12px;
-      padding: 12px 24px;
+      gap: 10px;
+      padding: 9px 18px;
       border-radius: 999px;
-      border: 1px solid rgba(34, 211, 238, 0.58);
+      border: 1px solid rgba(34, 211, 238, 0.55);
       background: rgba(15, 23, 42, 0.72);
-      box-shadow: 0 0 20px rgba(34, 211, 238, 0.22);
-      font-size: 28px;
+      box-shadow: 0 0 18px rgba(34, 211, 238, 0.22);
+      font-size: clamp(19px, 2vw, 26px);
       font-weight: 900;
     }
     .meta {
-      margin-top: 18px;
+      margin-top: 12px;
       color: #94a3b8;
-      font-size: 16px;
+      font-size: 14px;
     }
+    #statusBar {
+      position: fixed;
+      left: 50%;
+      bottom: 22px;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      min-width: 520px;
+      max-width: 84vw;
+      padding: 10px 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(168, 85, 247, 0.42);
+      background: rgba(8, 13, 29, 0.56);
+      color: rgba(248, 250, 252, 0.92);
+      box-shadow: 0 0 18px rgba(168, 85, 247, 0.22), inset 0 0 16px rgba(15, 23, 42, 0.56);
+      pointer-events: none;
+      opacity: 0.86;
+      z-index: 3;
+      backdrop-filter: blur(5px);
+    }
+    .status-title { font-weight: 900; letter-spacing: .06em; color: #e9d5ff; }
+    .status-item { font-size: 15px; color: #cbd5e1; white-space: nowrap; }
+    .status-item strong { color: #67e8f9; font-size: 18px; padding-left: 4px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--neon-blue); box-shadow: 0 0 12px var(--neon-blue); }
     @keyframes pulse {
       0%, 100% { filter: brightness(1); }
-      50% { filter: brightness(1.22); }
+      50% { filter: brightness(1.16); }
     }
-    #wrap.show .card { animation: pulse 1.2s ease-in-out infinite; }
+    #eventWrap.show .card { animation: pulse 1.4s ease-in-out infinite; }
   </style>
 </head>
 <body>
-  <div id="wrap">
+  <div id="eventWrap">
     <div class="card">
       <div class="title" id="title">SHOT-ALARM</div>
-      <div class="target"><strong id="target">Engel & Roxxy</strong> müssen trinken!</div>
+      <div class="message" id="message">Die Heimleitung lost aus...</div>
       <div class="reason" id="reason">Support-Event</div>
-      <div class="shots">🥃 <span id="shots">1 Shot</span></div>
+      <div class="shots">🥃 <span id="shots">Auslosung läuft</span></div>
       <div class="meta" id="meta"></div>
     </div>
   </div>
 
+  <div id="statusBar">
+    <span class="dot"></span>
+    <span class="status-title">SHOT-ALARM</span>
+    <span class="status-item">Engel & Roxxy</span>
+    <span class="status-item">Offen:<strong id="openShots">0</strong></span>
+    <span class="status-item">Getrunken:<strong id="drunkShots">0</strong></span>
+    <span class="status-item">Gesamt:<strong id="totalShots">0</strong></span>
+  </div>
+
   <script>
-    const wrap = document.getElementById('wrap');
+    const eventWrap = document.getElementById('eventWrap');
     const titleEl = document.getElementById('title');
-    const targetEl = document.getElementById('target');
+    const messageEl = document.getElementById('message');
     const reasonEl = document.getElementById('reason');
     const shotsEl = document.getElementById('shots');
     const metaEl = document.getElementById('meta');
+    const openShotsEl = document.getElementById('openShots');
+    const drunkShotsEl = document.getElementById('drunkShots');
+    const totalShotsEl = document.getElementById('totalShots');
     let hideTimer = null;
     let ws = null;
 
     function escText(value) { return String(value ?? ''); }
+    function fmt(n) { return Number(n || 0).toLocaleString('de-DE'); }
 
-    function showShot(payload) {
-      const trigger = payload && payload.trigger ? payload.trigger : payload;
-      const shots = Math.max(1, Number(trigger.shots || 1));
+    function applyStatus(status) {
+      if (!status) return;
+      openShotsEl.textContent = fmt(status.shotsOpen);
+      drunkShotsEl.textContent = fmt(status.shotsDrunk);
+      totalShotsEl.textContent = fmt(status.shotsAddedTotal);
+    }
+
+    async function fetchStatus() {
+      try {
+        const res = await fetch('/api/shot-alarm/status');
+        const data = await res.json();
+        applyStatus(data);
+      } catch (_) {}
+    }
+
+    function showPayload(payload) {
+      const summary = payload && payload.summary ? payload.summary : payload;
+      if (payload.status) applyStatus(payload.status);
+      const phase = payload.phase || summary.phase || 'result';
+      const shotsAdded = Math.max(0, Number(summary.shotsAdded || summary.shots || 0));
       titleEl.textContent = escText(payload.title || 'SHOT-ALARM');
-      targetEl.textContent = escText(trigger.targetLabel || payload.targetLabel || 'Engel & Roxxy');
-      const user = trigger.user && trigger.user.displayName ? trigger.user.displayName : '';
-      const reason = trigger.eventLabel || trigger.kind || 'Support-Event';
+      messageEl.textContent = escText(payload.message || (phase === 'draw' ? 'Die Heimleitung lost aus...' : shotsAdded > 0 ? 'Engel & Roxxy müssen ran!' : 'Die Rentner-Leber wurde verschont.'));
+      const user = summary.user && summary.user.displayName ? summary.user.displayName : '';
+      const reason = summary.amountLabel || summary.eventLabel || summary.kind || 'Support-Event';
       reasonEl.textContent = user ? `${reason} von ${user}` : reason;
-      shotsEl.textContent = shots === 1 ? '1 Shot' : `${shots} Shots`;
-      const chance = trigger.chancePercent !== undefined ? `${trigger.chancePercent}%` : '';
-      metaEl.textContent = chance ? `Regel: ${chance} Chance · Treffer` : 'Treffer';
-      wrap.classList.add('show');
+      if (phase === 'draw') shotsEl.textContent = 'Auslosung läuft';
+      else shotsEl.textContent = shotsAdded === 1 ? '+1 Shot' : `+${shotsAdded} Shots`;
+      if (phase === 'draw') metaEl.textContent = summary.chanceSummary ? `Regel: ${summary.chanceSummary}` : 'Die Heimleitung prüft den Fall...';
+      else metaEl.textContent = `Noch offen: ${fmt(summary.shotsOpen ?? payload.status?.shotsOpen)} · Getrunken: ${fmt(summary.shotsDrunk ?? payload.status?.shotsDrunk)}`;
+      eventWrap.classList.add('show');
       clearTimeout(hideTimer);
-      hideTimer = setTimeout(() => wrap.classList.remove('show'), Math.max(1500, Number(payload.holdMs || 12000)));
+      hideTimer = setTimeout(() => eventWrap.classList.remove('show'), Math.max(1500, Number(payload.holdMs || 10000)));
     }
 
     function connect() {
@@ -152,22 +207,28 @@
       ws = new WebSocket(`${proto}//${location.host}`);
       ws.addEventListener('open', () => {
         try { ws.send(JSON.stringify({ type: 'hello', module: 'shot_alarm_overlay', clientId: 'shot_alarm_overlay', clientType: 'overlay' })); } catch (_) {}
+        fetchStatus();
       });
       ws.addEventListener('message', ev => {
         let data = null;
         try { data = JSON.parse(ev.data); } catch (_) { return; }
         if (!data) return;
-        if (data.type === 'shot_alarm.show') showShot(data);
-        if (data.channel === 'shot_alarm' && data.action === 'overlay.show' && data.payload) showShot(data.payload);
+        if (data.type === 'shot_alarm.draw' || data.type === 'shot_alarm.result') showPayload(data);
+        if (data.type === 'shot_alarm.status_bar') applyStatus(data);
+        if (data.channel === 'shot_alarm' && data.action === 'overlay.show' && data.payload) showPayload(data.payload);
+        if (data.channel === 'shot_alarm' && data.action === 'status_bar.update' && data.payload) applyStatus(data.payload);
       });
       ws.addEventListener('close', () => setTimeout(connect, 1500));
     }
 
     const params = new URLSearchParams(location.search);
     if (params.get('test') === '1' || params.get('debug') === '1') {
-      showShot({ title: 'SHOT-ALARM', holdMs: 8000, trigger: { targetLabel: 'Engel & Roxxy', eventLabel: 'Overlay-Test', user: { displayName: 'ForrestCGN' }, shots: 1, chancePercent: 100 } });
+      showPayload({ phase: 'result', title: 'SHOT-ALARM', message: 'Engel & Roxxy müssen ran!', holdMs: 8000, status: { shotsOpen: 7, shotsDrunk: 3, shotsAddedTotal: 10 }, summary: { targetLabel: 'Engel & Roxxy', amountLabel: '25.000 Bits', user: { displayName: 'ForrestCGN' }, shotsAdded: 4, shotsOpen: 7, shotsDrunk: 3, chanceSummary: '2 sicher + 5x 50/50' } });
+      applyStatus({ shotsOpen: 7, shotsDrunk: 3, shotsAddedTotal: 10 });
     }
     connect();
+    fetchStatus();
+    setInterval(fetchStatus, 5000);
   </script>
 </body>
 </html>

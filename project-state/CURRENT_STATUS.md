@@ -1,39 +1,17 @@
-# CURRENT_STATUS – Shot-Alarm STEP 1
+# CURRENT_STATUS
 
-Stand: 2026-06-18
+## Shot-Alarm
 
-## Status
+Aktueller Stand: `SHOT-ALARM-2A Aggregated Draw Overlay Counter`
 
-`Shot-Alarm` wurde als neues Events-Modul vorbereitet.
+- Backend-Modul `shot_alarm` Version 0.2.0.
+- Communication-Bus-Consumer für Twitch-Support-Events aktiv.
+- Auslosung pro Support-Event wird gebündelt.
+- 10 Sekunden Auslosungsphase vor Ergebnis.
+- Ergebnis erhöht `shotsOpen` erst nach der Auslosung.
+- Overlay oben: kleine Ergebnis-/Auslosungskarte.
+- Overlay unten: dezente permanente Statusleiste mit offen/getrunken/gesamt.
+- Chat-Texte im Altersheim-/Heimleitungsstil über Config-Textpools.
+- Sound nur einmal pro Treffer-Ergebnis.
 
-Technisch:
-
-- Modul: `shot_alarm`
-- Backend-Version: `0.1.1`
-- Build: `STEP_SHOT_ALARM_1_BITS_BLOCKS`
-- Dashboard-Kategorie: `Control` / Events-nahe Steuerung
-- Overlay: `/overlays/shot_alarm/shot_alarm_overlay.html`
-
-## Enthalten
-
-- Backend-Modul mit Bus-Subscription auf Twitch-Support-Events
-- Config-Datei mit Default-Regeln
-- Dashboard-Seite mit Status, Config, Tests und Verlauf
-- Overlay im CGN-Neonstil
-- Sound-System-Aufruf über `/api/sound/play` mit generiertem Beep als Default
-- Resub-Dedupe-Puffer für normale Sub-Events
-
-## Nicht geändert
-
-- `twitch_events.js`
-- `twitch.js`
-- `loyalty.js`
-- `alert_system.js`
-- `kofi.js`
-- `tipeee.js`
-- `sound_system.js`
-- produktive SQLite-Datenbank
-
-## Achtung
-
-Ko-fi/Tipeee-Regel ist vorbereitet, produktiv aber erst sauber nutzbar, wenn die Payment-Module neutrale Payment-Bus-Events senden oder gezielt angebunden werden.
+Ko-fi/Tipeee sind vorbereitet, aber noch nicht produktiv über Payment-Bus angebunden.
