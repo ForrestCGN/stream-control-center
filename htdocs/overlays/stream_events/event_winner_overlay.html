@@ -3,32 +3,23 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=1920,height=1080,initial-scale=1" />
-  <title>ForrestCGN Event Finale</title>
+  <title>ForrestCGN Event Gewinner-Finale</title>
   <style>
     :root {
       --w: 1920px;
       --h: 1080px;
-      --bg0: #030516;
-      --bg1: #070b25;
-      --bg2: #14082d;
-      --cyan: #36e7ff;
-      --cyan-soft: rgba(54,231,255,.22);
+      --text: #f8fbff;
+      --muted: rgba(248,251,255,.76);
+      --dim: rgba(248,251,255,.54);
+      --gold: #ffe66d;
+      --gold2: #ffbd41;
+      --cyan: #39e6ff;
       --violet: #a855f7;
-      --violet-soft: rgba(168,85,247,.30);
-      --pink: #ff4fd8;
-      --gold: #ffe86d;
-      --gold-soft: rgba(255,232,109,.24);
-      --cookie: #ffd093;
-      --text: #f7fbff;
-      --muted: rgba(247,251,255,.68);
-      --line: rgba(143,244,255,.18);
-      --panel: rgba(9, 12, 36, .74);
-      --panel-strong: rgba(14, 11, 42, .88);
-      --glass: rgba(255,255,255,.055);
+      --bronze: #ff9d6c;
+      --silver: #dbe8ff;
+      --cookie: #ffd18a;
     }
-
     * { box-sizing: border-box; }
-
     html, body {
       margin: 0;
       width: var(--w);
@@ -39,612 +30,259 @@
       font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
       pointer-events: none;
     }
-
     #stage {
       position: fixed;
       inset: 0;
       width: var(--w);
       height: var(--h);
       opacity: 0;
-      transform: scale(.992);
-      filter: blur(5px);
-      transition: opacity .45s ease, transform .60s cubic-bezier(.16, 1, .3, 1), filter .45s ease;
+      transition: opacity .55s ease;
+      overflow: hidden;
       isolation: isolate;
     }
-
-    #stage.visible {
-      opacity: 1;
-      transform: scale(1);
-      filter: blur(0);
-    }
-
+    #stage.visible { opacity: 1; }
     #stage.hidden-hard { opacity: 0; }
-
-    .space-bg {
+    .bg {
       position: absolute;
-      inset: -80px;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
       z-index: 0;
-      background:
-        radial-gradient(circle at 50% 12%, rgba(54,231,255,.20), transparent 25%),
-        radial-gradient(circle at 14% 72%, rgba(168,85,247,.25), transparent 32%),
-        radial-gradient(circle at 86% 67%, rgba(255,79,216,.18), transparent 31%),
-        radial-gradient(circle at 50% 94%, rgba(255,232,109,.13), transparent 22%),
-        linear-gradient(135deg, var(--bg0), var(--bg1) 44%, var(--bg2));
     }
-
-    .grain {
+    .shade {
       position: absolute;
       inset: 0;
       z-index: 1;
-      opacity: .30;
-      background-image:
-        radial-gradient(circle, rgba(255,255,255,.75) 0 1px, transparent 1.5px),
-        radial-gradient(circle, rgba(54,231,255,.50) 0 1px, transparent 1.6px),
-        radial-gradient(circle, rgba(255,232,109,.40) 0 1px, transparent 1.6px);
-      background-size: 190px 190px, 310px 310px, 430px 430px;
-      background-position: 22px 55px, 130px 86px, 270px 160px;
-      animation: starMove 38s linear infinite;
-    }
-
-    @keyframes starMove {
-      to { background-position: 212px 245px, 440px 396px, 700px 590px; }
-    }
-
-    .neon-frame {
-      position: absolute;
-      inset: 42px 56px;
-      z-index: 2;
-      border-radius: 46px;
-      border: 1px solid rgba(143,244,255,.18);
-      box-shadow: inset 0 0 70px rgba(54,231,255,.045), 0 0 66px rgba(168,85,247,.20);
-      overflow: hidden;
-    }
-
-    .neon-frame::before,
-    .neon-frame::after {
-      content: "";
-      position: absolute;
-      height: 4px;
-      border-radius: 999px;
-      filter: blur(.2px);
-      opacity: .82;
-    }
-
-    .neon-frame::before {
-      top: -2px;
-      left: 24%;
-      width: 520px;
-      background: linear-gradient(90deg, transparent, rgba(54,231,255,.86), rgba(168,85,247,.78), transparent);
-      animation: runnerA 8.2s ease-in-out infinite alternate;
-    }
-
-    .neon-frame::after {
-      bottom: -2px;
-      right: 20%;
-      width: 620px;
-      background: linear-gradient(90deg, transparent, rgba(255,79,216,.76), rgba(255,232,109,.78), transparent);
-      animation: runnerB 9.4s ease-in-out infinite alternate;
-    }
-
-    @keyframes runnerA { to { left: 50%; } }
-    @keyframes runnerB { to { right: 48%; } }
-
-    .beam {
-      position: absolute;
-      z-index: 3;
-      top: -80px;
-      width: 440px;
-      height: 950px;
-      opacity: .16;
-      pointer-events: none;
-      filter: blur(12px);
-      transform-origin: top center;
-      background: linear-gradient(180deg, rgba(54,231,255,.46), rgba(54,231,255,.06) 52%, transparent 82%);
-      clip-path: polygon(45% 0, 56% 0, 100% 100%, 0 100%);
-      animation: beamDrift 7s ease-in-out infinite alternate;
-    }
-
-    .beam.b1 { left: 250px; transform: rotate(16deg); }
-    .beam.b2 { left: 740px; opacity: .20; background: linear-gradient(180deg, rgba(255,232,109,.38), rgba(255,232,109,.06), transparent 82%); }
-    .beam.b3 { right: 270px; transform: rotate(-16deg); background: linear-gradient(180deg, rgba(168,85,247,.44), rgba(168,85,247,.06), transparent 82%); animation-delay: -2.4s; }
-
-    @keyframes beamDrift {
-      to { opacity: .25; transform: translateX(24px) rotate(var(--rot, 0deg)); }
-    }
-
-    .shell {
-      position: absolute;
-      z-index: 5;
-      left: 76px;
-      right: 76px;
-      top: 72px;
-      bottom: 70px;
-      border-radius: 42px;
       background:
-        radial-gradient(circle at 50% 9%, rgba(54,231,255,.12), transparent 31%),
-        linear-gradient(145deg, rgba(5,8,28,.86), rgba(19,9,50,.84));
-      border: 1px solid rgba(143,244,255,.20);
-      box-shadow: inset 0 0 50px rgba(54,231,255,.045), 0 0 52px rgba(168,85,247,.17), 0 0 100px rgba(54,231,255,.07);
-      overflow: hidden;
+        radial-gradient(circle at 50% 21%, rgba(255,230,109,.08), transparent 28%),
+        linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.10) 52%, rgba(0,0,0,.12));
     }
-
-    .shell::before {
-      content: "";
-      position: absolute;
-      left: -32%;
-      top: -25%;
-      width: 24%;
-      height: 155%;
-      transform: skewX(-16deg);
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,.05), rgba(54,231,255,.09), transparent);
-      animation: scan 7.4s linear infinite;
-      opacity: .75;
-    }
-
-    @keyframes scan { to { transform: translateX(680%) skewX(-16deg); } }
-
     .header {
       position: absolute;
-      z-index: 7;
-      left: 82px;
-      right: 82px;
-      top: 48px;
+      z-index: 4;
+      left: 535px;
+      top: 54px;
+      width: 850px;
+      height: 112px;
+      display: grid;
+      place-items: center;
       text-align: center;
+      opacity: .98;
     }
-
-    .phase {
-      display: none;
-    }
-
-    .title {
-      margin-top: 0;
-      font-size: 76px;
-      line-height: .94;
+    .phase-title {
+      margin: 0;
+      max-width: 800px;
+      font-size: 48px;
+      line-height: .98;
       font-weight: 950;
-      letter-spacing: .035em;
+      letter-spacing: .055em;
       text-transform: uppercase;
-      text-shadow: 0 0 20px rgba(255,255,255,.22), 0 0 42px rgba(54,231,255,.42), 0 0 74px rgba(168,85,247,.36);
-      white-space: nowrap;
-    }
-
-    .lead {
-      margin-top: 12px;
-      color: rgba(247,251,255,.73);
-      font-size: 25px;
-      line-height: 1.15;
-      font-weight: 800;
-      text-shadow: 0 0 16px rgba(54,231,255,.10);
+      text-shadow: 0 0 20px rgba(57,230,255,.35), 0 0 44px rgba(168,85,247,.32);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    .phase-subtitle {
+      margin: 9px 0 0;
+      max-width: 850px;
+      color: rgba(248,251,255,.76);
+      font-size: 22px;
+      line-height: 1.12;
+      font-weight: 800;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-shadow: 0 0 16px rgba(0,0,0,.35);
+    }
+    .phase-title.pulse, .phase-subtitle.pulse { animation: titlePulse .62s cubic-bezier(.16,1,.3,1) both; }
+    @keyframes titlePulse { from { opacity:0; transform: translateY(14px) scale(.98); filter: blur(6px); } to { opacity:1; transform: translateY(0) scale(1); filter: blur(0); } }
 
-    .award-area {
+    .award-slot, .honor-slot {
       position: absolute;
-      z-index: 6;
-      left: 96px;
-      right: 96px;
-      top: 205px;
-      height: 535px;
-      border-radius: 34px;
-      background: linear-gradient(135deg, rgba(2,6,24,.30), rgba(20,9,47,.23));
-      border: 1px solid rgba(143,244,255,.09);
-      box-shadow: inset 0 0 45px rgba(54,231,255,.028), 0 0 34px rgba(168,85,247,.06);
+      z-index: 5;
+      opacity: 0;
+      transform: scale(.985);
+      transition: opacity .55s ease, transform .65s cubic-bezier(.16,1,.3,1), filter .5s ease;
+      filter: saturate(.9) brightness(.92);
+    }
+    .award-slot.filled, .honor-slot.filled {
+      opacity: 1;
+      transform: scale(1);
+      filter: saturate(1) brightness(1);
+    }
+    .award-slot.active, .honor-slot.active { animation: slotGlow 1.25s ease-in-out 2; }
+    @keyframes slotGlow {
+      0%,100% { filter: drop-shadow(0 0 0 rgba(255,255,255,0)); }
+      50% { filter: drop-shadow(0 0 24px rgba(255,230,109,.45)) drop-shadow(0 0 44px rgba(57,230,255,.18)); }
+    }
+    .award-slot .inner, .honor-slot .inner {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      align-content: center;
+      background: rgba(0,0,0,.01);
       overflow: hidden;
     }
-
-    .award-area::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background:
-        radial-gradient(circle at 50% 36%, rgba(255,232,109,.12), transparent 25%),
-        radial-gradient(circle at 20% 55%, rgba(54,231,255,.10), transparent 30%),
-        radial-gradient(circle at 80% 55%, rgba(168,85,247,.13), transparent 30%);
-      opacity: .9;
-    }
-
-    .focus-card {
-      position: absolute;
-      z-index: 9;
-      left: 50%;
-      top: 50%;
-      width: 920px;
-      min-height: 315px;
-      transform: translate(-50%, -50%) scale(.94);
-      opacity: 0;
-      display: grid;
-      grid-template-columns: 190px 1fr;
-      gap: 30px;
-      align-items: center;
-      padding: 32px 38px;
-      border-radius: 36px;
-      background:
-        radial-gradient(circle at 32% 14%, rgba(255,232,109,.14), transparent 34%),
-        linear-gradient(135deg, rgba(11,14,42,.95), rgba(34,14,70,.88));
-      border: 1px solid rgba(255,232,109,.27);
-      box-shadow: 0 0 42px rgba(54,231,255,.15), 0 0 72px rgba(168,85,247,.26), inset 0 0 50px rgba(255,255,255,.035);
-      transition: opacity .42s ease, transform .62s cubic-bezier(.16, 1, .3, 1), filter .35s ease;
-    }
-
-    .focus-card.visible {
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(1);
-    }
-
-    .focus-card.hide-soft {
-      opacity: 0;
-      transform: translate(-50%, -50%) scale(.985);
-      filter: blur(7px);
-    }
-
-    .avatar-ring {
-      width: 164px;
-      height: 164px;
+    .award-slot .avatar-wrap {
       border-radius: 50%;
-      padding: 7px;
-      background: conic-gradient(from 140deg, rgba(54,231,255,.98), rgba(168,85,247,.88), rgba(255,79,216,.78), rgba(255,232,109,.92), rgba(54,231,255,.98));
-      box-shadow: 0 0 30px rgba(54,231,255,.25), 0 0 70px rgba(168,85,247,.18);
+      padding: 6px;
+      background: conic-gradient(from 140deg, rgba(57,230,255,.95), rgba(168,85,247,.92), rgba(255,79,216,.78), rgba(255,230,109,.90), rgba(57,230,255,.95));
+      box-shadow: 0 0 24px rgba(57,230,255,.20), 0 0 52px rgba(168,85,247,.20);
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
     }
-
     .avatar {
       width: 100%;
       height: 100%;
       border-radius: 50%;
+      overflow: hidden;
       display: grid;
       place-items: center;
-      overflow: hidden;
-      background: radial-gradient(circle at 50% 32%, rgba(255,255,255,.18), transparent 38%), linear-gradient(135deg, rgba(54,231,255,.24), rgba(168,85,247,.32));
-      border: 2px solid rgba(255,255,255,.16);
+      background: radial-gradient(circle at 50% 35%, rgba(255,255,255,.17), transparent 36%), linear-gradient(135deg, rgba(57,230,255,.30), rgba(168,85,247,.42));
+      border: 2px solid rgba(255,255,255,.20);
       color: #fff;
-      font-size: 44px;
       font-weight: 950;
-      text-shadow: 0 0 18px rgba(54,231,255,.42);
-    }
-
-    .avatar img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-
-    .focus-kicker {
-      color: var(--gold);
-      font-size: 25px;
-      line-height: 1;
-      font-weight: 950;
-      letter-spacing: .16em;
       text-transform: uppercase;
+      text-shadow: 0 0 18px rgba(57,230,255,.42);
     }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-    .focus-name {
-      margin-top: 10px;
-      max-width: 630px;
-      color: #fff;
-      font-size: 62px;
-      line-height: .98;
-      font-weight: 950;
-      letter-spacing: -.025em;
-      text-shadow: 0 0 28px rgba(54,231,255,.32), 0 0 54px rgba(168,85,247,.30);
-      overflow-wrap: anywhere;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
+    /* Positions passend zum 1920x1080-Grafikrahmen */
+    #slot3 { left: 214px; top: 355px; width: 395px; height: 360px; }
+    #slot1 { left: 700px; top: 286px; width: 520px; height: 465px; }
+    #slot2 { left: 1304px; top: 355px; width: 405px; height: 360px; }
+
+    .award-slot.side .inner {
+      padding: 26px 34px 24px;
+      grid-template-columns: 96px 1fr;
+      column-gap: 20px;
+      align-items: center;
     }
-
-    .focus-name.long { font-size: 49px; }
-    .focus-name.xlong { font-size: 40px; line-height: 1.02; }
-
-    .focus-meta {
-      margin-top: 13px;
-      color: rgba(247,251,255,.72);
+    .award-slot.side .avatar-wrap { width: 94px; height: 94px; grid-row: 1 / span 3; align-self: start; margin-top: 8px; }
+    .award-slot.side .avatar { font-size: 28px; }
+    .award-slot.center .inner {
+      padding: 34px 48px 36px;
+      grid-template-columns: 130px 1fr;
+      column-gap: 26px;
+      align-items: center;
+    }
+    .award-slot.center .avatar-wrap { width: 128px; height: 128px; grid-row: 1 / span 3; align-self: start; margin-top: 24px; }
+    .award-slot.center .avatar { font-size: 38px; }
+    .award-rank {
+      color: var(--gold);
       font-size: 24px;
-      font-weight: 800;
-    }
-
-    .focus-reward {
-      margin-top: 17px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      max-width: 620px;
-      padding: 11px 20px;
-      border-radius: 18px;
-      background: linear-gradient(135deg, rgba(255,232,109,.15), rgba(54,231,255,.08));
-      border: 1px solid rgba(255,232,109,.22);
-      color: var(--gold);
-      font-size: 27px;
-      line-height: 1.12;
-      font-weight: 950;
-      text-align: center;
-      text-shadow: 0 0 16px rgba(255,232,109,.20);
-    }
-
-    .top3-grid {
-      position: absolute;
-      z-index: 7;
-      inset: 44px 58px 36px;
-      display: grid;
-      grid-template-columns: 1fr 1.18fr 1fr;
-      gap: 54px;
-      align-items: end;
-      opacity: 0;
-      transform: translateY(18px);
-      transition: opacity .55s ease, transform .65s cubic-bezier(.16, 1, .3, 1);
-    }
-
-    .top3-grid.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    .award-card {
-      position: relative;
-      min-width: 0;
-      min-height: 348px;
-      padding: 30px 30px 26px;
-      border-radius: 34px;
-      background:
-        radial-gradient(circle at 50% 0%, rgba(255,255,255,.08), transparent 40%),
-        linear-gradient(145deg, rgba(10,13,37,.86), rgba(30,12,62,.78));
-      border: 1px solid rgba(143,244,255,.14);
-      box-shadow: inset 0 0 34px rgba(54,231,255,.035), 0 0 30px rgba(168,85,247,.12);
-      overflow: hidden;
-      opacity: 0;
-      transform: translateY(28px) scale(.965);
-      transition: opacity .55s ease, transform .75s cubic-bezier(.16, 1, .3, 1), border-color .45s ease, box-shadow .45s ease, filter .45s ease;
-    }
-
-    .award-card::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(120deg, transparent 18%, rgba(255,255,255,.075) 38%, transparent 56%);
-      transform: translateX(-130%);
-      opacity: .65;
-      pointer-events: none;
-    }
-
-    .award-card.revealed {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-
-    .award-card.revealed::after { animation: cardShine 1.65s ease .25s both; }
-    @keyframes cardShine { to { transform: translateX(130%); } }
-
-    .award-card.rank1 {
-      min-height: 424px;
-      border-color: rgba(255,232,109,.34);
-      box-shadow: inset 0 0 42px rgba(255,232,109,.05), 0 0 46px rgba(255,232,109,.15), 0 0 78px rgba(168,85,247,.15);
-    }
-
-    .award-card.rank2 { border-color: rgba(54,231,255,.22); }
-    .award-card.rank3 { border-color: rgba(255,144,94,.24); }
-
-    .award-card.dimmed { filter: saturate(.86) brightness(.88); opacity: .68; }
-    .award-card.focused { transform: translateY(-10px) scale(1.025); filter: none; }
-
-    .card-head {
-      display: flex;
-      align-items: center;
-      gap: 18px;
-      min-width: 0;
-    }
-
-    .award-card.rank1 .card-head {
-      display: block;
-      text-align: center;
-    }
-
-    .card-avatar {
-      width: 104px;
-      height: 104px;
-      border-radius: 50%;
-      padding: 5px;
-      background: conic-gradient(from 140deg, rgba(54,231,255,.98), rgba(168,85,247,.88), rgba(255,79,216,.72), rgba(255,232,109,.92), rgba(54,231,255,.98));
-      box-shadow: 0 0 26px rgba(54,231,255,.22), 0 0 50px rgba(168,85,247,.14);
-      flex: 0 0 auto;
-    }
-
-    .rank1 .card-avatar {
-      width: 134px;
-      height: 134px;
-      margin: 0 auto 18px;
-      box-shadow: 0 0 34px rgba(255,232,109,.26), 0 0 74px rgba(168,85,247,.18);
-    }
-
-    .card-avatar .avatar { font-size: 30px; border-width: 1px; }
-    .rank1 .card-avatar .avatar { font-size: 38px; }
-
-    .rank-label {
-      color: var(--gold);
-      font-size: 25px;
-      line-height: 1.05;
+      line-height: 1;
       font-weight: 950;
       letter-spacing: .14em;
       text-transform: uppercase;
+      text-shadow: 0 0 16px rgba(255,230,109,.32);
     }
-
-    .rank1 .rank-label { font-size: 30px; }
-
-    .card-name {
-      margin-top: 18px;
+    .award-name {
+      margin-top: 13px;
       color: #fff;
-      font-size: 43px;
-      line-height: 1.02;
+      font-size: 44px;
+      line-height: .98;
       font-weight: 950;
-      letter-spacing: -.025em;
-      text-shadow: 0 0 24px rgba(54,231,255,.26), 0 0 46px rgba(168,85,247,.25);
-      overflow-wrap: anywhere;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
+      letter-spacing: -.035em;
+      text-shadow: 0 0 18px rgba(57,230,255,.28), 0 0 36px rgba(168,85,247,.30);
+      max-height: 92px;
       overflow: hidden;
+      overflow-wrap: anywhere;
     }
-
-    .rank1 .card-name {
-      margin-top: 8px;
-      text-align: center;
-      font-size: 58px;
-      -webkit-line-clamp: 3;
-    }
-
-    .card-name.long { font-size: 34px; }
-    .card-name.xlong { font-size: 29px; line-height: 1.05; }
-    .rank1 .card-name.long { font-size: 45px; }
-    .rank1 .card-name.xlong { font-size: 36px; line-height: 1.04; }
-
-    .card-points {
-      margin-top: 18px;
-      color: rgba(247,251,255,.74);
-      font-size: 22px;
+    .award-slot.center .award-name { font-size: 60px; max-height: 180px; }
+    .award-name.long { font-size: 34px; line-height: 1.02; max-height: 108px; }
+    .award-slot.center .award-name.long { font-size: 46px; line-height: 1.02; max-height: 190px; }
+    .award-name.very-long { font-size: 27px; line-height: 1.05; max-height: 110px; }
+    .award-slot.center .award-name.very-long { font-size: 36px; line-height: 1.03; max-height: 190px; }
+    .award-points {
+      margin-top: 13px;
+      color: rgba(248,251,255,.80);
+      font-size: 24px;
       font-weight: 850;
     }
-
-    .rank1 .card-points { text-align: center; font-size: 24px; }
-
-    .card-reward {
-      margin-top: 18px;
-      min-height: 58px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 10px 16px;
+    .award-slot.center .award-points { font-size: 28px; }
+    .award-reward {
+      grid-column: 1 / -1;
+      margin-top: 20px;
+      align-self: end;
+      justify-self: stretch;
+      min-height: 52px;
+      display: grid;
+      place-items: center;
+      padding: 8px 18px;
       border-radius: 18px;
+      background: rgba(255,230,109,.09);
+      border: 1px solid rgba(255,230,109,.22);
       color: var(--gold);
-      font-size: 24px;
-      line-height: 1.12;
+      font-size: 26px;
+      line-height: 1.1;
       font-weight: 950;
       text-align: center;
-      background: rgba(255,232,109,.09);
-      border: 1px solid rgba(255,232,109,.18);
-      text-shadow: 0 0 14px rgba(255,232,109,.16);
+      text-shadow: 0 0 14px rgba(255,230,109,.25);
     }
+    .award-slot.side .award-reward { font-size: 22px; }
 
-    .rank1 .card-reward { font-size: 28px; }
+    .honor-slot { height: 154px; }
+    #honor10 { left: 96px; top: 824px; width: 202px; }
+    #honor9  { left: 326px; top: 824px; width: 202px; }
+    #honor8  { left: 558px; top: 824px; width: 202px; }
+    #honor7  { left: 789px; top: 824px; width: 202px; }
+    #honor6  { left: 1020px; top: 824px; width: 202px; }
+    #honor5  { left: 1251px; top: 824px; width: 202px; }
+    #honor4  { left: 1482px; top: 824px; width: 202px; }
+    .honor-slot .inner { padding: 20px 17px 14px; justify-content: center; }
+    .honor-rank { color: var(--cookie); font-size: 17px; font-weight: 950; letter-spacing: .08em; text-transform: uppercase; }
+    .honor-name { margin-top: 8px; color: #fff; font-size: 24px; line-height: 1.02; font-weight: 950; text-shadow: 0 0 16px rgba(57,230,255,.18); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .honor-name.long { font-size: 19px; }
+    .honor-reward { margin-top: 12px; display: inline-flex; align-items: center; justify-content: center; width: 100%; min-height: 30px; padding: 4px 10px; border-radius: 999px; background: rgba(255,230,109,.08); border: 1px solid rgba(255,230,109,.16); color: var(--gold); font-size: 19px; font-weight: 950; white-space: nowrap; }
 
-    .honor-rail {
+    .empty-hint {
       position: absolute;
-      z-index: 8;
-      left: 128px;
-      right: 128px;
-      bottom: 44px;
-      min-height: 126px;
-      border-radius: 30px;
-      padding: 20px 22px;
-      background: rgba(3,8,28,.42);
-      border: 1px solid rgba(143,244,255,.10);
-      box-shadow: inset 0 0 24px rgba(54,231,255,.026), 0 0 28px rgba(168,85,247,.07);
-      opacity: 0;
-      transform: translateY(18px);
-      transition: opacity .42s ease, transform .55s cubic-bezier(.16, 1, .3, 1);
-    }
-
-    .honor-rail.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    .honor-title {
-      display: none;
-    }
-
-    .honor-list {
-      display: grid;
-      grid-template-columns: repeat(7, minmax(0, 1fr));
-      gap: 16px;
-      height: 100%;
-      align-items: stretch;
-    }
-
-    .honor-chip {
-      min-height: 86px;
-      padding: 13px 14px 11px;
-      border-radius: 20px;
-      background: linear-gradient(135deg, rgba(255,209,147,.070), rgba(168,85,247,.080));
-      border: 1px solid rgba(255,209,147,.20);
-      opacity: 0;
-      transform: translateY(12px) scale(.965);
-      transition: opacity .36s ease, transform .48s cubic-bezier(.16, 1, .3, 1), box-shadow .35s ease;
-      overflow: hidden;
-    }
-
-    .honor-chip.revealed {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-      box-shadow: 0 0 18px rgba(255,209,147,.09);
-    }
-
-    .chip-place {
-      color: var(--cookie);
-      font-size: 16px;
+      z-index: 3;
+      opacity: .18;
+      font-size: 28px;
+      letter-spacing: .22em;
       font-weight: 950;
-      letter-spacing: .04em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.70);
+      text-shadow: 0 0 20px rgba(57,230,255,.18);
+      transition: opacity .45s ease;
     }
-
-    .chip-name {
-      margin-top: 5px;
-      color: #fff;
-      font-size: 18px;
-      font-weight: 900;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .chip-reward {
-      margin-top: 8px;
-      color: var(--gold);
-      font-size: 14px;
-      font-weight: 900;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .footer {
-      display: none;
-    }
-
-    .footer.visible { display: none; }
+    .empty-hint.hidden { opacity: 0; }
+    #hint3 { left: 263px; top: 492px; }
+    #hint1 { left: 826px; top: 480px; color: rgba(255,230,109,.58); }
+    #hint2 { left: 1350px; top: 492px; color: rgba(216,230,255,.60); }
 
     .confetti {
       position: absolute;
       inset: 0;
-      z-index: 4;
+      z-index: 2;
       pointer-events: none;
       overflow: hidden;
     }
-
     .confetti i {
       position: absolute;
-      top: -50px;
-      width: 10px;
-      height: 18px;
+      top: -34px;
+      width: 9px;
+      height: 17px;
       border-radius: 3px;
-      opacity: .74;
+      opacity: .72;
       background: var(--gold);
-      box-shadow: 0 0 14px rgba(255,232,109,.22);
       animation: fall linear forwards;
     }
-
-    .confetti i:nth-child(3n) { background: var(--cyan); box-shadow: 0 0 14px rgba(54,231,255,.22); }
-    .confetti i:nth-child(3n+1) { background: var(--pink); box-shadow: 0 0 14px rgba(255,79,216,.20); }
-
-    @keyframes fall {
-      to { transform: translateY(1180px) rotate(720deg); opacity: 0; }
-    }
+    .confetti i:nth-child(3n) { background: var(--cyan); }
+    .confetti i:nth-child(3n+1) { background: #ff4fd8; }
+    @keyframes fall { to { transform: translateY(1160px) rotate(700deg); opacity: 0; } }
 
     #debug {
       position: fixed;
       z-index: 99;
       left: 14px;
       bottom: 14px;
-      max-width: 780px;
-      max-height: 270px;
+      max-width: 760px;
+      max-height: 250px;
       overflow: auto;
       display: none;
       padding: 10px;
@@ -655,15 +293,7 @@
       white-space: pre-wrap;
       pointer-events: auto;
     }
-
     body.debug #debug { display: block; }
-
-    .title.pulse,
-    .lead.pulse { animation: titleIn .72s cubic-bezier(.16, 1, .3, 1) both; }
-    @keyframes titleIn {
-      from { transform: translateY(18px); opacity: .1; filter: blur(8px); }
-      to { transform: translateY(0); opacity: 1; filter: blur(0); }
-    }
 
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
@@ -672,47 +302,32 @@
 </head>
 <body>
   <div id="stage" class="hidden-hard" aria-live="polite">
-    <div class="space-bg"></div>
-    <div class="grain"></div>
-    <div class="neon-frame"></div>
-    <div class="beam b1"></div>
-    <div class="beam b2"></div>
-    <div class="beam b3"></div>
+    <img class="bg" src="/assets/stream_events/winner_finale_cgn_stage.png" alt="" />
+    <div class="shade"></div>
+    <div id="confetti" class="confetti"></div>
 
-    <main class="shell">
-      <section class="header">
-        <div id="phaseText" class="phase">CGN Event-Finale</div>
-        <div id="mainTitle" class="title">Preisverleihung</div>
-        <div id="leadText" class="lead">Die Heimleitung sortiert die letzten Kekskrümel.</div>
-      </section>
+    <header class="header">
+      <div>
+        <h1 id="phaseTitle" class="phase-title">CGN Event-Finale</h1>
+        <p id="phaseSubtitle" class="phase-subtitle">Die Plätze werden gleich enthüllt.</p>
+      </div>
+    </header>
 
-      <section class="award-area">
-        <div id="confetti" class="confetti"></div>
+    <div id="hint3" class="empty-hint">Platz 3</div>
+    <div id="hint1" class="empty-hint">Platz 1</div>
+    <div id="hint2" class="empty-hint">Platz 2</div>
 
-        <article id="focusCard" class="focus-card">
-          <div class="avatar-ring"><div id="focusAvatar" class="avatar"></div></div>
-          <div>
-            <div id="focusKicker" class="focus-kicker">Top 10 · Platz 10</div>
-            <div id="focusName" class="focus-name">ForrestCGN</div>
-            <div id="focusMeta" class="focus-meta">0 Punkte</div>
-            <div id="focusReward" class="focus-reward">+4.000 Kekskrümel extra</div>
-          </div>
-        </article>
+    <section id="slot3" class="award-slot side" data-rank="3"><div class="inner"></div></section>
+    <section id="slot1" class="award-slot center" data-rank="1"><div class="inner"></div></section>
+    <section id="slot2" class="award-slot side" data-rank="2"><div class="inner"></div></section>
 
-        <section id="top3Grid" class="top3-grid">
-          <article id="card3" class="award-card rank3"></article>
-          <article id="card1" class="award-card rank1"></article>
-          <article id="card2" class="award-card rank2"></article>
-        </section>
-      </section>
-
-      <section id="honorRail" class="honor-rail">
-        <div class="honor-title">Top-10 Ehrenrunde · Plätze 10 bis 4</div>
-        <div id="honorList" class="honor-list"></div>
-      </section>
-
-      <div id="footer" class="footer">Alle Top-10-Plätze bleiben sichtbar. Keine Karte verdeckt die Bühne.</div>
-    </main>
+    <section id="honor10" class="honor-slot" data-rank="10"><div class="inner"></div></section>
+    <section id="honor9" class="honor-slot" data-rank="9"><div class="inner"></div></section>
+    <section id="honor8" class="honor-slot" data-rank="8"><div class="inner"></div></section>
+    <section id="honor7" class="honor-slot" data-rank="7"><div class="inner"></div></section>
+    <section id="honor6" class="honor-slot" data-rank="6"><div class="inner"></div></section>
+    <section id="honor5" class="honor-slot" data-rank="5"><div class="inner"></div></section>
+    <section id="honor4" class="honor-slot" data-rank="4"><div class="inner"></div></section>
   </div>
 
   <pre id="debug"></pre>
@@ -724,27 +339,16 @@
       mode: "obs_overlay",
       module: "stream_events",
       name: "Stream Events Gewinner-Finale Overlay",
-      version: "0.2.7",
+      version: "0.3.0",
       heartbeatIntervalMs: 5000,
-      capabilities: [
-        "overlay.heartbeat",
-        "stream_events.winner_finale_display",
-        "stream_events.winner_finale",
-        "ack"
-      ],
-      meta: {
-        overlay: "event_winner_overlay.html",
-        communication: "communication_bus",
-        owner: "stream_events",
-        step: "EVS47.2"
-      }
+      capabilities: ["overlay.heartbeat", "stream_events.winner_finale_display", "stream_events.winner_finale", "ack"],
+      meta: { overlay: "event_winner_overlay.html", communication: "communication_bus", owner: "stream_events", step: "EVS47.3" }
     };
   </script>
 
   <script>
     (function () {
       "use strict";
-
       const qs = new URLSearchParams(window.location.search);
       const DEBUG = /[?&]debug=1\b/.test(window.location.search);
       const demo = String(qs.get("demo") || "").trim().toLowerCase();
@@ -753,461 +357,167 @@
       const finaleRoute = eventUid ? `/api/stream-events/events/${encodeURIComponent(eventUid)}/finale` : "";
       const fastMode = speed === "fast" || speed === "test" || qs.get("fast") === "1";
       const timeline = fastMode
-        ? { intro: 1300, honor: 2700, honorGap: 420, top: 4300, final: 13500, emptyHonor: 900 }
-        : { intro: 5200, honor: 12500, honorGap: 1250, top: 24000, final: 80000, emptyHonor: 2600 };
-      const autoHideMs = Math.max(10000, Math.min(420000, Number(qs.get("hideMs") || (fastMode ? 90000 : 330000))));
+        ? { intro: 900, honor: 1850, top: 2600, gap: 450, final: 8500 }
+        : { intro: 4300, honor: 10500, top: 15000, gap: 1200, final: 62000 };
+      const autoHideMs = Math.max(8000, Math.min(360000, Number(qs.get("hideMs") || (fastMode ? 85000 : 285000))));
 
       const els = {
         stage: document.getElementById("stage"),
-        phaseText: document.getElementById("phaseText"),
-        mainTitle: document.getElementById("mainTitle"),
-        leadText: document.getElementById("leadText"),
-        focusCard: document.getElementById("focusCard"),
-        focusAvatar: document.getElementById("focusAvatar"),
-        focusKicker: document.getElementById("focusKicker"),
-        focusName: document.getElementById("focusName"),
-        focusMeta: document.getElementById("focusMeta"),
-        focusReward: document.getElementById("focusReward"),
-        top3Grid: document.getElementById("top3Grid"),
-        card1: document.getElementById("card1"),
-        card2: document.getElementById("card2"),
-        card3: document.getElementById("card3"),
-        honorRail: document.getElementById("honorRail"),
-        honorList: document.getElementById("honorList"),
-        footer: document.getElementById("footer"),
+        phaseTitle: document.getElementById("phaseTitle"),
+        phaseSubtitle: document.getElementById("phaseSubtitle"),
         confetti: document.getElementById("confetti"),
-        debug: document.getElementById("debug")
+        debug: document.getElementById("debug"),
+        slots: {
+          1: document.getElementById("slot1"),
+          2: document.getElementById("slot2"),
+          3: document.getElementById("slot3"),
+          4: document.getElementById("honor4"),
+          5: document.getElementById("honor5"),
+          6: document.getElementById("honor6"),
+          7: document.getElementById("honor7"),
+          8: document.getElementById("honor8"),
+          9: document.getElementById("honor9"),
+          10: document.getElementById("honor10")
+        },
+        hints: { 1: document.getElementById("hint1"), 2: document.getElementById("hint2"), 3: document.getElementById("hint3") }
       };
-
       let timers = [];
       let hideTimer = null;
       let currentFinaleUid = "";
-
       if (DEBUG) document.body.classList.add("debug");
 
       function log(value) {
         if (!DEBUG) return;
-        try {
-          els.debug.textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
-        } catch (err) {
-          els.debug.textContent = String(value);
-        }
+        try { els.debug.textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2); }
+        catch (err) { els.debug.textContent = String(value); }
       }
-
-      function defer(fn, ms) {
-        const timer = window.setTimeout(fn, ms);
-        timers.push(timer);
-        return timer;
-      }
-
-      function clearTimers() {
-        timers.forEach((timer) => window.clearTimeout(timer));
-        timers = [];
-        if (hideTimer) window.clearTimeout(hideTimer);
-        hideTimer = null;
-      }
-
-      function showStage() {
-        els.stage.classList.remove("hidden-hard");
-        window.requestAnimationFrame(() => els.stage.classList.add("visible"));
-      }
-
-      function hideStage() {
-        els.focusCard.classList.remove("visible");
-        els.stage.classList.remove("visible");
-        hideTimer = window.setTimeout(() => {
-          els.stage.classList.add("hidden-hard");
-          clearConfetti();
-        }, 700);
-      }
-
-      function cleanText(value, fallback) {
-        const text = String(value == null ? "" : value).trim();
-        return text || fallback || "";
-      }
-
-      function cleanNumber(value, fallback) {
-        const n = Number(value);
-        return Number.isFinite(n) ? n : Number(fallback || 0);
-      }
-
-      function formatInt(value) {
-        return cleanNumber(value, 0).toLocaleString("de-DE");
-      }
-
-      function pointsLabel(points) {
-        const n = cleanNumber(points, 0);
-        return `${formatInt(n)} ${n === 1 ? "Punkt" : "Punkte"}`;
-      }
-
-      function crumbsLabel(value) {
-        const n = cleanNumber(value, 0);
-        return `+${formatInt(n)} Kekskrümel extra`;
-      }
-
-      function firstExisting(row, keys, fallback) {
-        for (const key of keys) {
-          if (row && row[key] != null && String(row[key]).trim() !== "") return row[key];
-        }
-        return fallback;
-      }
-
-      function avatarUrl(row) {
-        return cleanText(firstExisting(row, [
-          "avatarUrl", "avatar_url", "profileImageUrl", "profile_image_url", "profileImage", "profile_image", "userAvatar", "user_avatar", "avatar"
-        ], ""), "");
-      }
-
+      function defer(fn, ms) { const t = window.setTimeout(fn, ms); timers.push(t); return t; }
+      function clearTimers() { timers.forEach((t) => window.clearTimeout(t)); timers = []; if (hideTimer) window.clearTimeout(hideTimer); hideTimer = null; }
+      function showStage() { els.stage.classList.remove("hidden-hard"); window.requestAnimationFrame(() => els.stage.classList.add("visible")); }
+      function hideStage() { els.stage.classList.remove("visible"); hideTimer = window.setTimeout(() => { els.stage.classList.add("hidden-hard"); clearConfetti(); }, 700); }
+      function cleanText(value, fallback) { const text = String(value == null ? "" : value).trim(); return text || fallback || ""; }
+      function cleanNumber(value, fallback) { const n = Number(value); return Number.isFinite(n) ? n : Number(fallback || 0); }
+      function formatInt(value) { return cleanNumber(value, 0).toLocaleString("de-DE"); }
+      function pointsLabel(points) { const n = cleanNumber(points, 0); return `${formatInt(n)} ${n === 1 ? "Punkt" : "Punkte"}`; }
+      function crumbsLabel(value) { return `+${formatInt(value)} extra`; }
+      function firstExisting(row, keys, fallback) { for (const k of keys) if (row && row[k] != null && String(row[k]).trim() !== "") return row[k]; return fallback; }
+      function avatarUrl(row) { return cleanText(firstExisting(row, ["avatarUrl", "avatar_url", "profileImageUrl", "profile_image_url", "profileImage", "profile_image", "userAvatar", "user_avatar", "avatar"], ""), ""); }
+      function initials(name) { const text = cleanText(name, "CGN").replace(/[^\p{L}\p{N}\s_-]/gu, "").trim(); const parts = text.split(/[\s_-]+/).filter(Boolean); if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase(); return text.slice(0, 2).toUpperCase() || "CG"; }
+      function escapeHtml(value) { return String(value == null ? "" : value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;"); }
       function normalizeRow(row, index) {
         const src = row && typeof row === "object" ? row : {};
         const rank = cleanNumber(firstExisting(src, ["rank", "place", "position"], index + 1), index + 1);
         const login = cleanText(firstExisting(src, ["userLogin", "user_login", "login", "username", "userName", "user_name"], ""), "");
         const display = cleanText(firstExisting(src, ["userDisplayName", "user_display_name", "displayName", "display_name", "name"], login), login || `Platz ${rank}`);
-        return {
-          rank,
-          userLogin: login,
-          userDisplayName: display,
-          points: cleanNumber(firstExisting(src, ["points", "total_points", "score", "totalScore", "total_score"], 0), 0),
-          entries: cleanNumber(firstExisting(src, ["entries", "entry_count", "answerCount", "answer_count", "solved", "solvedCount"], 0), 0),
-          avatarUrl: avatarUrl(src),
-          rewardLabel: cleanText(firstExisting(src, ["rewardLabel", "reward_label", "prizeLabel", "prize_label", "prize"], ""), ""),
-          rewardValue: cleanText(firstExisting(src, ["rewardValue", "reward_value", "prizeValue", "prize_value"], ""), ""),
-          crumbBonus: cleanNumber(firstExisting(src, ["crumbBonus", "crumb_bonus", "kekskruemel", "cookieCrumbs", "cookie_crumbs"], 0), 0)
-        };
+        return { rank, userLogin: login, userDisplayName: display, points: cleanNumber(firstExisting(src, ["points", "total_points", "score", "totalScore", "total_score"], 0), 0), entries: cleanNumber(firstExisting(src, ["entries", "entry_count", "answerCount", "answer_count", "solved", "solvedCount"], 0), 0), avatarUrl: avatarUrl(src), rewardLabel: cleanText(firstExisting(src, ["rewardLabel", "reward_label", "prizeLabel", "prize_label", "prize"], ""), ""), rewardValue: cleanText(firstExisting(src, ["rewardValue", "reward_value", "prizeValue", "prize_value"], ""), ""), crumbBonus: cleanNumber(firstExisting(src, ["crumbBonus", "crumb_bonus", "kekskruemel", "cookieCrumbs", "cookie_crumbs"], 0), 0) };
       }
-
-      function rowKey(row) {
-        return String(row.userLogin || row.userDisplayName || "").trim().toLowerCase();
-      }
-
-      function uniqueRows(rows) {
-        const seen = new Set();
-        return rows.filter((row) => {
-          const key = rowKey(row) || `rank_${row.rank}`;
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
-      }
-
+      function rowKey(row) { return String(row.userLogin || row.userDisplayName || "").trim().toLowerCase(); }
+      function uniqueRows(rows) { const seen = new Set(); return rows.filter((row) => { const key = rowKey(row) || `rank_${row.rank}`; if (seen.has(key)) return false; seen.add(key); return true; }); }
       function normalizeFinale(input) {
         const root = input && typeof input === "object" ? input : {};
         const finale = root.finale && typeof root.finale === "object" ? root.finale : root;
         const preview = root.preview && typeof root.preview === "object" ? root.preview : {};
         const event = root.event || preview.event || finale.event || {};
         const rawWinner = finale.winner || preview.winner || {};
-
-        const rankingSources = [
-          finale.ranking, finale.top10, finale.topTen, finale.leaderboard, finale.results, finale.rows,
-          preview.ranking, preview.top10, preview.topTen, preview.leaderboard, preview.topCandidates, preview.results
-        ];
+        const rankingSources = [finale.ranking, finale.top10, finale.topTen, finale.leaderboard, finale.results, finale.rows, preview.ranking, preview.top10, preview.topTen, preview.leaderboard, preview.topCandidates, preview.results];
         let ranking = [];
-        for (const source of rankingSources) {
-          if (Array.isArray(source) && source.length) {
-            ranking = source.map(normalizeRow);
-            break;
-          }
-        }
-
+        for (const source of rankingSources) if (Array.isArray(source) && source.length) { ranking = source.map(normalizeRow); break; }
         const top3Source = Array.isArray(finale.top3) ? finale.top3 : (Array.isArray(preview.top3) ? preview.top3 : []);
         const top3 = top3Source.map(normalizeRow);
         const candidates = (Array.isArray(finale.candidates) ? finale.candidates : (Array.isArray(preview.topCandidates) ? preview.topCandidates : [])).map(normalizeRow);
         const winner = normalizeRow(rawWinner && Object.keys(rawWinner).length ? rawWinner : (top3[0] || ranking[0] || candidates[0] || {}), 0);
         if (!ranking.length) ranking = uniqueRows([winner, ...top3, ...candidates]).filter((row) => row.userDisplayName);
-
-        ranking = uniqueRows(ranking).sort((a, b) => {
-          if (a.rank !== b.rank) return a.rank - b.rank;
-          return b.points - a.points;
-        });
-
+        ranking = uniqueRows(ranking).sort((a, b) => a.rank !== b.rank ? a.rank - b.rank : b.points - a.points);
         let podiumRows = ranking.filter((row) => row.rank >= 1 && row.rank <= 3).slice(0, 3);
         if (podiumRows.length < 3 && top3.length) podiumRows = uniqueRows([...podiumRows, ...top3]).slice(0, 3);
         if (podiumRows.length < 3) podiumRows = uniqueRows([winner, ...podiumRows, ...ranking]).slice(0, 3);
         podiumRows = podiumRows.map((row, index) => ({ ...row, rank: cleanNumber(row.rank, index + 1) || index + 1 })).sort((a, b) => a.rank - b.rank).slice(0, 3);
-
         const podiumKeys = new Set(podiumRows.map(rowKey));
         let honorRows = ranking.filter((row) => row.rank >= 4 && row.rank <= 10 && !podiumKeys.has(rowKey(row)));
         if (!honorRows.length && ranking.length > 3) honorRows = ranking.slice(3, 10);
         honorRows = honorRows.map((row, index) => ({ ...row, rank: cleanNumber(row.rank, index + 4) || index + 4 })).sort((a, b) => b.rank - a.rank).slice(0, 7);
-
         const crumbDefaults = { 10: 4000, 9: 5000, 8: 6000, 7: 7000, 6: 8000, 5: 9000, 4: 10000 };
-        honorRows = honorRows.map((row) => ({ ...row, crumbBonus: row.crumbBonus || crumbDefaults[row.rank] || 0, rewardLabel: row.rewardLabel || "Kekskrümel extra" }));
-
-        const defaultPrizeByRank = { 1: "Amazon-Gutschein", 2: "Amazon-Gutschein", 3: "Amazon-Gutschein" };
-        podiumRows = podiumRows.map((row) => ({ ...row, rewardLabel: row.rewardLabel || defaultPrizeByRank[row.rank] || "Amazon-Gutschein" }));
-
-        return {
-          finaleUid: cleanText(finale.finaleUid || finale.uid || preview.finaleUid, `demo_${Date.now()}`),
-          eventUid: cleanText(finale.eventUid || event.eventUid || event.uid || preview.eventUid, ""),
-          eventName: cleanText(finale.eventName || event.name || preview.eventName, "Event-Finale"),
-          message: cleanText(finale.message || preview.message, "Die Heimleitung zählt die letzten Kekskrümel."),
-          winner: podiumRows.find((row) => row.rank === 1) || winner,
-          honorRows,
-          podiumRows,
-          rankingCount: cleanNumber(finale.rankingCount || preview.rankingCount || ranking.length, ranking.length),
-          rawRankingCount: ranking.length
-        };
+        honorRows = honorRows.map((row) => ({ ...row, crumbBonus: row.crumbBonus || crumbDefaults[row.rank] || 0, rewardLabel: row.rewardLabel || "Kekskrümel" }));
+        podiumRows = podiumRows.map((row) => ({ ...row, rewardLabel: row.rewardLabel || "Amazon-Gutschein" }));
+        return { finaleUid: cleanText(finale.finaleUid || finale.uid || preview.finaleUid, `demo_${Date.now()}`), eventUid: cleanText(finale.eventUid || event.eventUid || event.uid || preview.eventUid, ""), eventName: cleanText(finale.eventName || event.name || preview.eventName, "Event-Finale"), winner: podiumRows.find((row) => row.rank === 1) || winner, honorRows, podiumRows, rankingCount: cleanNumber(finale.rankingCount || preview.rankingCount || ranking.length, ranking.length), rawRankingCount: ranking.length };
       }
-
-      function initials(name) {
-        const text = cleanText(name, "CGN").replace(/[^\p{L}\p{N}\s_-]/gu, "").trim();
-        const parts = text.split(/[\s_-]+/).filter(Boolean);
-        if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-        return text.slice(0, 2).toUpperCase() || "CG";
-      }
-
       function renderAvatar(container, row) {
         container.innerHTML = "";
         const url = cleanText(row && row.avatarUrl, "");
         if (url) {
-          const img = document.createElement("img");
-          img.alt = "";
-          img.decoding = "async";
-          img.referrerPolicy = "no-referrer";
-          img.src = url;
-          img.onerror = () => { container.textContent = initials(row && row.userDisplayName); };
-          container.appendChild(img);
-          return;
+          const img = document.createElement("img"); img.alt = ""; img.decoding = "async"; img.referrerPolicy = "no-referrer"; img.src = url; img.onerror = () => { container.innerHTML = initials(row && row.userDisplayName); }; container.appendChild(img); return;
         }
         container.textContent = initials(row && row.userDisplayName);
       }
-
-      function textSizeClass(text) {
-        const len = cleanText(text, "").length;
-        if (len > 30) return "xlong";
-        if (len > 20) return "long";
-        return "";
-      }
-
-      function pulseHeader() {
-        els.mainTitle.classList.remove("pulse");
-        els.leadText.classList.remove("pulse");
-        void els.mainTitle.offsetWidth;
-        els.mainTitle.classList.add("pulse");
-        els.leadText.classList.add("pulse");
-      }
-
-      function setHeader(phase, title, lead) {
-        els.phaseText.textContent = phase || "";
-        els.mainTitle.textContent = title || "";
-        els.leadText.textContent = lead || "";
-        pulseHeader();
-      }
-
-      function setFooter(text, visible) {
-        els.footer.textContent = text || "";
-        els.footer.classList.toggle("visible", !!visible);
-      }
-
-      function clearConfetti() { els.confetti.innerHTML = ""; }
-
-      function makeConfetti(amount) {
-        clearConfetti();
-        const count = Math.max(20, Math.min(110, amount || 60));
-        for (let i = 0; i < count; i += 1) {
-          const piece = document.createElement("i");
-          piece.style.left = `${Math.random() * 100}%`;
-          piece.style.animationDuration = `${4.3 + Math.random() * 4.9}s`;
-          piece.style.animationDelay = `${Math.random() * 1.4}s`;
-          piece.style.transform = `translateY(-70px) rotate(${Math.random() * 360}deg)`;
-          piece.style.width = `${7 + Math.random() * 7}px`;
-          piece.style.height = `${12 + Math.random() * 15}px`;
-          els.confetti.appendChild(piece);
-        }
-      }
-
-      function rewardText(row) {
-        if (!row) return "Amazon-Gutschein";
-        return row.rewardValue ? `${row.rewardLabel} · ${row.rewardValue}` : row.rewardLabel;
-      }
-
-      function showFocus(row, opts) {
-        const options = opts || {};
-        els.focusKicker.textContent = options.kicker || `Platz ${row.rank}`;
-        els.focusName.textContent = row.userDisplayName;
-        els.focusName.className = `focus-name ${textSizeClass(row.userDisplayName)}`.trim();
-        els.focusMeta.textContent = options.meta || pointsLabel(row.points);
-        els.focusReward.textContent = options.reward || rewardText(row);
-        renderAvatar(els.focusAvatar, row);
-        els.focusCard.classList.remove("visible", "hide-soft");
-        void els.focusCard.offsetWidth;
-        els.focusCard.classList.add("visible");
-      }
-
-      function hideFocus() {
-        els.focusCard.classList.add("hide-soft");
-        els.focusCard.classList.remove("visible");
-      }
-
-      function escapeHtml(value) {
-        return String(value == null ? "" : value)
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;");
-      }
-
-      function renderAwardCard(slot, row) {
-        if (!row) {
-          slot.innerHTML = "";
-          slot.classList.remove("revealed", "focused", "dimmed");
-          return;
-        }
-        const nameClass = textSizeClass(row.userDisplayName);
-        slot.innerHTML = `
-          <div class="card-head">
-            <div class="card-avatar"><div class="avatar"></div></div>
-            <div style="min-width:0;">
-              <div class="rank-label">Platz ${escapeHtml(row.rank)}</div>
-            </div>
-          </div>
-          <div class="card-name ${escapeHtml(nameClass)}"></div>
-          <div class="card-points">${escapeHtml(pointsLabel(row.points))}</div>
-          <div class="card-reward">${escapeHtml(rewardText(row))}</div>
-        `;
-        slot.querySelector(".card-name").textContent = row.userDisplayName;
+      function nameClass(name) { const l = cleanText(name, "").length; return l > 32 ? "very-long" : (l > 20 ? "long" : ""); }
+      function renderAward(row) {
+        const slot = els.slots[row.rank]; if (!slot) return;
+        const rankText = row.rank === 1 ? "Platz 1" : row.rank === 2 ? "Platz 2" : "Platz 3";
+        const reward = row.rewardValue ? `${row.rewardLabel} · ${row.rewardValue}` : row.rewardLabel;
+        slot.querySelector(".inner").innerHTML = `<div class="avatar-wrap"><div class="avatar"></div></div><div><div class="award-rank">${escapeHtml(rankText)}</div><div class="award-name ${nameClass(row.userDisplayName)}"></div><div class="award-points">${escapeHtml(pointsLabel(row.points))}</div></div><div class="award-reward">${escapeHtml(reward)}</div>`;
+        slot.querySelector(".award-name").textContent = row.userDisplayName;
         renderAvatar(slot.querySelector(".avatar"), row);
+        slot.classList.add("filled", "active");
+        if (els.hints[row.rank]) els.hints[row.rank].classList.add("hidden");
+        defer(() => slot.classList.remove("active"), 2600);
       }
-
-      function revealAwardCard(slot) {
-        slot.classList.add("revealed", "focused");
-        [els.card1, els.card2, els.card3].forEach((item) => {
-          if (item !== slot && item.classList.contains("revealed")) item.classList.add("dimmed");
-        });
-        defer(() => {
-          slot.classList.remove("focused");
-          [els.card1, els.card2, els.card3].forEach((item) => item.classList.remove("dimmed"));
-        }, fastMode ? 1200 : 2800);
+      function renderHonor(row) {
+        const slot = els.slots[row.rank]; if (!slot) return;
+        slot.querySelector(".inner").innerHTML = `<div class="honor-rank">Platz ${escapeHtml(row.rank)}</div><div class="honor-name ${nameClass(row.userDisplayName)}"></div><div class="honor-reward">🍪 ${escapeHtml(crumbsLabel(row.crumbBonus))}</div>`;
+        slot.querySelector(".honor-name").textContent = row.userDisplayName;
+        slot.classList.add("filled", "active");
+        defer(() => slot.classList.remove("active"), 1900);
       }
-
-      function buildHonorChip(row) {
-        const chip = document.createElement("div");
-        chip.className = "honor-chip";
-        chip.innerHTML = `
-          <div class="chip-place">Platz ${escapeHtml(row.rank)}</div>
-          <div class="chip-name"></div>
-          <div class="chip-reward">🍪 +${escapeHtml(formatInt(row.crumbBonus))} extra</div>
-        `;
-        chip.querySelector(".chip-name").textContent = row.userDisplayName;
-        return chip;
+      function clearConfetti() { els.confetti.innerHTML = ""; }
+      function makeConfetti(amount) {
+        clearConfetti(); const count = Math.max(12, Math.min(110, amount || 40));
+        for (let i = 0; i < count; i += 1) { const p = document.createElement("i"); p.style.left = `${Math.random()*100}%`; p.style.animationDuration = `${4.2 + Math.random()*4.6}s`; p.style.animationDelay = `${Math.random()*1.2}s`; p.style.transform = `translateY(-60px) rotate(${Math.random()*360}deg)`; els.confetti.appendChild(p); }
       }
-
-      function revealHonor(row) {
-        els.honorRail.classList.add("visible");
-        const chip = buildHonorChip(row);
-        els.honorList.appendChild(chip);
-        window.requestAnimationFrame(() => chip.classList.add("revealed"));
+      function setPhase(title, subtitle) {
+        els.phaseTitle.textContent = title; els.phaseSubtitle.textContent = subtitle || "";
+        els.phaseTitle.classList.remove("pulse"); els.phaseSubtitle.classList.remove("pulse");
+        void els.phaseTitle.offsetWidth; els.phaseTitle.classList.add("pulse"); els.phaseSubtitle.classList.add("pulse");
       }
-
-      function resetView(finale) {
-        setHeader("CGN Event-Finale", "Preisverleihung", finale.message || "Die Heimleitung sortiert die letzten Kekskrümel.");
-        els.focusCard.classList.remove("visible", "hide-soft");
-        els.top3Grid.classList.remove("visible");
-        [els.card1, els.card2, els.card3].forEach((slot) => {
-          slot.innerHTML = "";
-          slot.classList.remove("revealed", "focused", "dimmed");
-        });
-        els.honorRail.classList.remove("visible");
-        els.honorList.innerHTML = "";
-        setFooter("", false);
+      function resetView() {
+        Object.values(els.slots).forEach((slot) => { if (!slot) return; slot.classList.remove("filled", "active"); const inner = slot.querySelector(".inner"); if (inner) inner.innerHTML = ""; });
+        Object.values(els.hints).forEach((hint) => hint && hint.classList.remove("hidden"));
         clearConfetti();
       }
-
       function playFinale(rawFinale, options) {
         const finale = normalizeFinale(rawFinale);
         if (!finale.podiumRows.length && !finale.honorRows.length) return;
         if (!(options && options.force) && currentFinaleUid && currentFinaleUid === finale.finaleUid) return;
         currentFinaleUid = finale.finaleUid;
-        clearTimers();
-        resetView(finale);
-        log({ speed, fastMode, timeline, finale });
-        showStage();
-
-        let at = 350;
-        defer(() => {
-          setHeader("Top-10 Ehrenrunde", "Plätze 10 bis 4", "Die extra Kekskrümel werden nacheinander vergeben.");
-          setFooter("", false);
-        }, at);
-
+        clearTimers(); resetView(); log({ speed, fastMode, timeline, finale }); showStage();
+        let at = 250;
+        defer(() => setPhase("CGN Event-Finale", "Die Plätze werden jetzt nacheinander enthüllt."), at);
         at += timeline.intro;
         const honorRows = finale.honorRows || [];
-        if (honorRows.length) {
-          honorRows.forEach((row) => {
-            defer(() => {
-              setHeader("Top-10 Ehrenrunde", `Platz ${row.rank}`, `${row.userDisplayName} bekommt ${crumbsLabel(row.crumbBonus)}.`);
-              showFocus(row, {
-                kicker: `Top 10 · Platz ${row.rank}`,
-                meta: pointsLabel(row.points),
-                reward: crumbsLabel(row.crumbBonus)
-              });
-              makeConfetti(fastMode ? 20 : 34);
-            }, at);
-            at += timeline.honor;
-            defer(() => {
-              hideFocus();
-              revealHonor(row);
-            }, at);
-            at += timeline.honorGap;
-          });
-        } else {
-          defer(() => {
-            setHeader("Top-10 Ehrenrunde", "Keine Plätze 10 bis 4", "Die Preisverleihung startet direkt.");
-          }, at);
-          at += timeline.emptyHonor;
-        }
-
-        const podiumByRank = new Map((finale.podiumRows || []).map((row) => [row.rank, row]));
-        const row1 = podiumByRank.get(1) || finale.podiumRows[0];
-        const row2 = podiumByRank.get(2) || finale.podiumRows[1];
-        const row3 = podiumByRank.get(3) || finale.podiumRows[2];
-
-        defer(() => {
-          hideFocus();
-          setHeader("Preisverleihung", "Finale Top 3", "Die drei besten Plätze werden jetzt enthüllt.");
-          setFooter("", false);
-          renderAwardCard(els.card3, row3);
-          renderAwardCard(els.card1, row1);
-          renderAwardCard(els.card2, row2);
-          els.top3Grid.classList.add("visible");
-        }, at);
-        at += timeline.intro;
-
-        const revealOrder = [
-          { rank: 3, row: row3, slot: els.card3, title: "Platz 3" },
-          { rank: 2, row: row2, slot: els.card2, title: "Platz 2" },
-          { rank: 1, row: row1, slot: els.card1, title: "Platz 1" }
-        ];
-
-        revealOrder.forEach((item) => {
-          if (!item.row) return;
-          defer(() => {
-            setHeader("Preisverleihung", item.title, `${item.row.userDisplayName} sichert sich ${rewardText(item.row)}.`);
-            revealAwardCard(item.slot);
-            makeConfetti(item.rank === 1 ? (fastMode ? 56 : 96) : (fastMode ? 28 : 48));
-          }, at);
-          at += timeline.top;
+        honorRows.forEach((row) => {
+          defer(() => { setPhase(`Platz ${row.rank}`, `${row.userDisplayName} bekommt ${crumbsLabel(row.crumbBonus)} Kekskrümel.`); renderHonor(row); makeConfetti(fastMode ? 16 : 26); }, at);
+          at += timeline.honor + timeline.gap;
         });
-
-        defer(() => {
-          const winner = row1 || finale.winner;
-          setHeader("CGN Event-Gewinner", "Platz 1", winner ? `${winner.userDisplayName} gewinnt das Event-Finale.` : "Das Event-Finale ist entschieden.");
-          setFooter("", false);
-          [els.card1, els.card2, els.card3].forEach((slot) => slot.classList.remove("dimmed", "focused"));
-          if (els.card1) els.card1.classList.add("focused");
-          makeConfetti(fastMode ? 82 : 120);
-        }, at);
+        defer(() => setPhase("Finale Top 3", "Jetzt werden die Gutschein-Plätze enthüllt."), at);
+        at += timeline.intro;
+        const podiumByRank = new Map((finale.podiumRows || []).map((row) => [row.rank, row]));
+        [3, 2, 1].forEach((rank) => {
+          const row = podiumByRank.get(rank) || (finale.podiumRows || []).find((item) => item.rank === rank);
+          if (!row) return;
+          defer(() => { setPhase(`Platz ${rank}`, `${row.userDisplayName} sichert sich den Gutschein-Platz.`); renderAward(row); makeConfetti(rank === 1 ? (fastMode ? 55 : 95) : (fastMode ? 25 : 42)); }, at);
+          at += timeline.top + timeline.gap;
+        });
+        const winner = podiumByRank.get(1) || finale.winner || finale.podiumRows[0];
+        defer(() => { if (winner) setPhase("CGN Event-Gewinner", `${winner.userDisplayName} steht auf Platz 1.`); makeConfetti(fastMode ? 80 : 120); }, at);
         at += timeline.final;
-
         const totalRun = Math.max(at + 1000, Math.min(autoHideMs, at + 3000));
         defer(() => hideStage(), totalRun);
       }
-
       function demoFinale(kind) {
         const long = kind === "long";
         const rows = [
           { rank: 1, userDisplayName: long ? "ForrestCGN_mit_dem_sehr_langen_Gewinnernamen" : "ForrestCGN", points: 120, entries: 12, rewardLabel: "Amazon-Gutschein" },
           { rank: 2, userDisplayName: long ? "EngelCGN_Silbername_mit_Extra_Laenge" : "EngelCGN", points: 108, entries: 11, rewardLabel: "Amazon-Gutschein" },
-          { rank: 3, userDisplayName: long ? "HeimleitungHD" : "HeimleitungHD", points: 96, entries: 9, rewardLabel: "Amazon-Gutschein" },
+          { rank: 3, userDisplayName: long ? "HeimleitungHD_Langer_Bronze_Name" : "HeimleitungHD", points: 96, entries: 9, rewardLabel: "Amazon-Gutschein" },
           { rank: 4, userDisplayName: "KaffeeKoenig", points: 88, entries: 8, crumbBonus: 10000 },
           { rank: 5, userDisplayName: "OpaRollator", points: 82, entries: 8, crumbBonus: 9000 },
           { rank: 6, userDisplayName: "RentnerRambo", points: 76, entries: 7, crumbBonus: 8000 },
@@ -1216,42 +526,14 @@
           { rank: 9, userDisplayName: "PuddingPanzer", points: 58, entries: 5, crumbBonus: 5000 },
           { rank: 10, userDisplayName: "ZiviMitHerz", points: 52, entries: 5, crumbBonus: 4000 }
         ];
-        return {
-          finale: {
-            finaleUid: `demo_${kind || "single"}_${Date.now()}`,
-            eventUid: "demo_event",
-            eventName: long ? "1 Jahr Twitch - Langer Namenstest im Wohnbereich" : "1 Jahr Twitch - Sound-Schnipsel Finale",
-            mode: "ranked_finale",
-            winner: rows[0],
-            top3: rows.slice(0, 3),
-            ranking: rows,
-            rankingCount: rows.length,
-            message: "Top-10 Finale mit Kekskrümeln und Gutscheinplätzen."
-          }
-        };
+        return { finale: { finaleUid: `demo_${kind || "single"}_${Date.now()}`, eventUid: "demo_event", eventName: long ? "1 Jahr Twitch - Langer Namenstest" : "1 Jahr Twitch - Sound-Schnipsel Finale", mode: "ranked_finale", winner: rows[0], top3: rows.slice(0, 3), ranking: rows, rankingCount: rows.length } };
       }
-
       async function loadExistingFinale() {
         if (!finaleRoute) return;
-        try {
-          const res = await fetch(finaleRoute, { cache: "no-store" });
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const data = await res.json();
-          log(data);
-          if (data && data.existingFinale) {
-            playFinale({ finale: data.existingFinale, preview: data, event: data.event }, { force: true });
-          }
-        } catch (err) {
-          log({ error: err.message || String(err), route: finaleRoute });
-        }
+        try { const res = await fetch(finaleRoute, { cache: "no-store" }); if (!res.ok) throw new Error(`HTTP ${res.status}`); const data = await res.json(); log(data); if (data && data.existingFinale) playFinale({ finale: data.existingFinale, preview: data, event: data.event }, { force: true }); }
+        catch (err) { log({ error: err.message || String(err), route: finaleRoute }); }
       }
-
-      function extractBusPayload(detail) {
-        const msg = detail && typeof detail === "object" ? detail : {};
-        const payload = msg.payload && typeof msg.payload === "object" ? msg.payload : msg;
-        return { msg, payload };
-      }
-
+      function extractBusPayload(detail) { const msg = detail && typeof detail === "object" ? detail : {}; const payload = msg.payload && typeof msg.payload === "object" ? msg.payload : msg; return { msg, payload }; }
       function handleBusMessage(event) {
         if (demo) return;
         const { msg, payload } = extractBusPayload(event && event.detail);
@@ -1263,28 +545,12 @@
         const finale = payload.finale ? payload : { finale: payload, preview: payload.preview, event: payload.event };
         playFinale(finale, { force: action === "replay_requested" });
       }
-
-      if (demo) {
-        window.setTimeout(() => playFinale(demoFinale(demo), { force: true }), 350);
-      } else {
-        loadExistingFinale();
-      }
-
+      if (demo) window.setTimeout(() => playFinale(demoFinale(demo), { force: true }), 350); else loadExistingFinale();
       window.addEventListener("cgn:overlay-bus-message", handleBusMessage);
       window.addEventListener("focus", loadExistingFinale);
       window.addEventListener("beforeunload", clearTimers);
     })();
   </script>
-
-  <script
-    src="/overlays/shared/overlay_bus_client.js"
-    data-overlay-id="stream_events_winner_overlay"
-    data-client-type="overlay"
-    data-mode="obs_overlay"
-    data-module="stream_events"
-    data-name="Stream Events Gewinner-Finale Overlay"
-    data-version="0.2.7"
-    data-heartbeat-ms="5000"
-  ></script>
+  <script src="/overlays/shared/overlay_bus_client.js" data-overlay-id="stream_events_winner_overlay" data-client-type="overlay" data-mode="obs_overlay" data-module="stream_events" data-name="Stream Events Gewinner-Finale Overlay" data-version="0.3.0" data-heartbeat-ms="5000"></script>
 </body>
 </html>
