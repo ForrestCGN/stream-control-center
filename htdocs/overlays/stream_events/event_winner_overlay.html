@@ -5,1346 +5,588 @@
   <meta name="viewport" content="width=1920,height=1080,initial-scale=1" />
   <title>ForrestCGN Event Gewinner-Finale</title>
   <style>
-    :root { --w:1920px; --h:1080px; --text:#f8fbff; --muted:rgba(248,251,255,.82); --gold:#ffe16a; --silver:#edf3ff; --bronze:#ffb27a; }
-    *{box-sizing:border-box} html,body{margin:0;width:var(--w);height:var(--h);overflow:hidden;background:#050816;font-family:"Segoe UI",system-ui,-apple-system,BlinkMacSystemFont,Arial,sans-serif;color:var(--text);pointer-events:none}
-    #stage{position:fixed;inset:0;width:var(--w);height:var(--h);opacity:0;transition:opacity .45s ease}#stage.visible{opacity:1}
-    #canvas{position:absolute;inset:0;width:1920px;height:1080px;overflow:hidden}.bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.shade{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(0,0,0,.02),rgba(0,0,0,.06) 52%,rgba(0,0,0,.16))}
-    body.bg-missing #canvas::before{content:"";position:absolute;inset:0;z-index:0;background:
-      radial-gradient(circle at 50% 28%,rgba(117,72,255,.26),transparent 34%),
-      radial-gradient(circle at 22% 62%,rgba(0,215,255,.14),transparent 30%),
-      radial-gradient(circle at 78% 62%,rgba(206,108,255,.15),transparent 28%),
-      linear-gradient(135deg,#060817 0%,#101535 48%,#050816 100%)}
-    body.bg-missing .bg{display:none}
-    .header{position:absolute;left:390px;top:103px;width:1140px;height:78px;display:grid;place-items:center;text-align:center;z-index:5}
-    .phase-title{margin:0;max-width:1080px;font-size:36px;line-height:1;font-weight:950;letter-spacing:.02em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 0 18px rgba(114,174,255,.32),0 0 34px rgba(206,108,255,.28)}
-    .phase-subtitle{margin:5px 0 0;max-width:1060px;font-size:15px;line-height:1.1;font-weight:800;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 0 10px rgba(0,0,0,.35)}
-    .award-slot,.honor-slot{position:absolute;opacity:0;transform:translateY(8px) scale(.985);transition:opacity .35s ease,transform .55s cubic-bezier(.16,1,.3,1),filter .45s ease;filter:brightness(.95);z-index:5}.award-slot.filled,.honor-slot.filled{opacity:1;transform:none;filter:brightness(1)}.award-slot.active,.honor-slot.active{animation:glowPulse 1.2s ease-in-out 2}@keyframes glowPulse{50%{filter:drop-shadow(0 0 18px rgba(255,255,255,.12)) drop-shadow(0 0 28px rgba(79,199,255,.16))}}
-    #slot2{left:95px;top:392px;width:505px;height:300px}#slot1{left:675px;top:340px;width:570px;height:360px}#slot3{left:1310px;top:392px;width:505px;height:300px}
-    .award-slot .inner{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:38px 42px 22px;text-align:center}.award-slot.center .inner{padding:46px 68px 24px}.award-rank{display:none;margin-top:0;font-weight:950;text-transform:uppercase;letter-spacing:.08em;font-size:30px;line-height:1;color:var(--gold);text-shadow:0 0 18px rgba(255,225,106,.26)}.award-slot.silver .award-rank{color:var(--silver);text-shadow:0 0 18px rgba(237,243,255,.20)}.award-slot.bronze .award-rank{color:var(--bronze);text-shadow:0 0 18px rgba(255,178,122,.20)}
-    .avatar-wrap{margin-top:0;border-radius:50%;padding:5px;display:grid;place-items:center;background:linear-gradient(135deg,rgba(255,255,255,.95),rgba(182,182,182,.8));box-shadow:0 0 18px rgba(255,255,255,.12);flex:0 0 auto}.award-slot.center .avatar-wrap{width:120px;height:120px}.award-slot.side .avatar-wrap{width:96px;height:96px}.award-slot.gold .avatar-wrap{background:linear-gradient(135deg,#fff2a0,#ffd552 45%,#b56e14 100%);box-shadow:0 0 20px rgba(255,213,82,.22)}.award-slot.silver .avatar-wrap{background:linear-gradient(135deg,#ffffff,#e3ecff 42%,#8aa1c6 100%);box-shadow:0 0 20px rgba(227,236,255,.18)}.award-slot.bronze .avatar-wrap{background:linear-gradient(135deg,#ffd7bd,#ffab74 42%,#8d451f 100%);box-shadow:0 0 20px rgba(255,171,116,.18)}
-    .avatar{width:100%;height:100%;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:radial-gradient(circle at 50% 35%,rgba(255,255,255,.15),transparent 36%),linear-gradient(135deg,rgba(27,36,64,.92),rgba(6,9,22,.96));border:2px solid rgba(255,255,255,.24);color:#fff;font-weight:950;text-transform:uppercase;text-shadow:0 0 16px rgba(255,255,255,.35)}.award-slot.center .avatar{font-size:44px}.award-slot.side .avatar{font-size:34px}.avatar img{width:100%;height:100%;object-fit:cover;display:block}
-    .name-box,.honor-name-box{position:relative;width:100%;overflow:hidden}.award-name,.honor-name{display:inline-block;white-space:nowrap;max-width:100%;font-weight:950;letter-spacing:-.03em;text-shadow:0 0 14px rgba(79,199,255,.14),0 0 24px rgba(206,108,255,.12)}.award-name-box{margin-top:20px}.award-slot.center .award-name{font-size:30px}.award-slot.side .award-name{font-size:25px}.award-points{margin-top:10px;color:var(--muted);font-size:18px;font-weight:850}.award-slot.center .award-points{font-size:24px}.award-reward{margin-top:auto;width:62%;min-height:46px;display:grid;place-items:center;padding:8px 14px;background:rgba(4,8,24,.52);border:1px solid rgba(255,255,255,.18);border-radius:18px;font-size:18px;font-weight:900;text-align:center;text-shadow:0 0 12px rgba(0,0,0,.28)}.award-slot.center .award-reward{width:54%;min-height:50px;font-size:20px}.award-slot.gold .award-reward{border-color:rgba(255,213,82,.42);box-shadow:inset 0 0 14px rgba(255,213,82,.06),0 0 16px rgba(255,213,82,.08)}.award-slot.silver .award-reward{border-color:rgba(227,236,255,.34);box-shadow:inset 0 0 14px rgba(227,236,255,.05),0 0 16px rgba(227,236,255,.06)}.award-slot.bronze .award-reward{border-color:rgba(255,171,116,.34);box-shadow:inset 0 0 14px rgba(255,171,116,.05),0 0 16px rgba(255,171,116,.06)}
-
-    .award-slot .award-rank {
-      display: none !important;
+    :root {
+      --w: 1920px;
+      --h: 1080px;
+      --text: #f8fbff;
+      --muted: rgba(248,251,255,.84);
+      --yellow: #fff06a;
+      --cyan: #37f6ff;
     }
-    .award-slot .name-box,
-    .honor-slot .honor-name-box {
-      width: 100%;
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      width: var(--w);
+      height: var(--h);
       overflow: hidden;
+      background: #050816;
+      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+      color: var(--text);
     }
-    .award-slot .award-name,
-    .honor-slot .honor-name {
-      display: block !important;
-      width: 100% !important;
-      max-width: 100% !important;
-      overflow: hidden !important;
-      white-space: nowrap !important;
-      text-overflow: clip;
+    #stage {
+      position: fixed;
+      inset: 0;
+      width: var(--w);
+      height: var(--h);
+      opacity: 1;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 28%, rgba(117,72,255,.22), transparent 34%),
+        linear-gradient(135deg, #060817 0%, #101535 48%, #050816 100%);
     }
-
-
-    .award-slot.side .name-box { width: 76%; }
-    .award-slot.center .name-box { width: 72%; }
-    .honor-slot .honor-name-box { width: 82%; }
-    .award-slot.force-marquee .award-name,
-    .honor-slot.force-marquee .honor-name {
-      max-width: none !important;
-    }
-
-
-    .honor-slot .honor-rank {
-      display: none !important;
-    }
-    .honor-slot .inner {
-      justify-content: center !important;
-      padding: 22px 18px 18px !important;
-    }
-    .honor-slot .honor-name-box {
-      width: 92% !important;
-      margin-top: 0 !important;
-    }
-    .honor-slot .honor-name {
-      font-size: 18px;
-      text-align: center;
-    }
-    .honor-slot .honor-reward {
-      margin-top: 22px !important;
-      width: 76% !important;
-      min-height: 28px !important;
-    }
-
-    .marquee.active > span{animation:marqueeX var(--dur,8s) ease-in-out infinite alternate}@keyframes marqueeX{from{transform:translateX(0)}to{transform:translateX(calc(-1 * var(--shift,0px)))}}
-    .honor-slot{top:808px;width:226px;height:132px}#honor4{left:32px}#honor5{left:294px}#honor6{left:563px}#honor7{left:831px}#honor8{left:1101px}#honor9{left:1367px}#honor10{left:1634px}.honor-slot .inner{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:18px 16px 13px;text-align:center}.honor-rank{font-size:14px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:#fff}.honor-name-box{margin-top:10px}.honor-name{font-size:17px}.honor-reward{margin-top:auto;width:72%;min-height:26px;display:grid;place-items:center;padding:6px 10px;border-radius:999px;background:rgba(4,8,24,.50);border:1px solid rgba(164,120,255,.28);color:#f0d5ff;font-size:15px;font-weight:900}
-    .confetti{position:absolute;inset:0;overflow:hidden;z-index:3;pointer-events:none}.confetti i{position:absolute;top:-34px;width:9px;height:17px;border-radius:3px;opacity:.78;background:var(--gold);animation:fall linear forwards}.confetti i:nth-child(3n){background:#51d4ff}.confetti i:nth-child(3n+1){background:#ff70da}@keyframes fall{to{transform:translateY(1080px) rotate(720deg);opacity:0}}
-
-    body.layout-debug .header,
-    body.layout-debug .award-slot,
-    body.layout-debug .honor-slot {
-      opacity: 1 !important;
-      transform: none !important;
-      outline: 3px solid rgba(255, 255, 255, .85);
-      background: rgba(255, 0, 180, .10);
-      box-shadow: 0 0 0 2px rgba(0, 255, 255, .65) inset, 0 0 22px rgba(255, 0, 180, .28);
-    }
-    body.layout-debug .header::after,
-    body.layout-debug .award-slot::after,
-    body.layout-debug .honor-slot::after {
-      content: attr(data-calibration-label);
+    #winnerBg {
       position: absolute;
-      left: 6px;
-      top: 6px;
-      z-index: 99;
-      padding: 4px 7px;
-      border-radius: 6px;
-      background: rgba(0,0,0,.78);
-      border: 1px solid rgba(255,255,255,.45);
-      color: #fff;
-      font: 700 13px/1.1 Consolas, monospace;
-      text-shadow: none;
-      white-space: nowrap;
+      inset: 0;
+      width: 1920px;
+      height: 1080px;
+      object-fit: cover;
+      z-index: 0;
     }
-    body.layout-debug .header::before,
-    body.layout-debug .award-slot::before,
-    body.layout-debug .honor-slot::before {
-      content: "";
+    #shade {
       position: absolute;
-      left: 50%;
+      inset: 0;
+      z-index: 1;
+      background: linear-gradient(180deg, rgba(0,0,0,.01), rgba(0,0,0,.08) 70%, rgba(0,0,0,.16));
+      pointer-events: none;
+    }
+    #boxLayer, #liveLayer, #gridLayer {
+      position: absolute;
+      left: 0;
       top: 0;
-      bottom: 0;
-      width: 1px;
-      background: rgba(255,255,0,.85);
-      z-index: 98;
+      width: 1920px;
+      height: 1080px;
       pointer-events: none;
     }
-    body.layout-debug .debug-cross-x,
-    body.layout-debug .debug-cross-y {
-      display: block;
-    }
-    .debug-cross-x,
-    .debug-cross-y {
-      display: none;
-      position: absolute;
-      z-index: 98;
-      pointer-events: none;
-      background: rgba(255,255,0,.85);
-    }
-    .debug-cross-x { left: 0; right: 0; height: 1px; top: 50%; }
-    .debug-cross-y { top: 0; bottom: 0; width: 1px; left: 50%; }
-    body.layout-debug .award-slot .inner,
-    body.layout-debug .honor-slot .inner {
-      outline: 2px dashed rgba(255,255,0,.75);
-      background: rgba(0, 180, 255, .08);
-    }
+    #boxLayer { z-index: 30; display: none; }
+    #liveLayer { z-index: 20; }
+    #gridLayer { z-index: 50; display: none; }
+    body.box-debug #boxLayer { display: block; }
+    body.box-debug #liveLayer { display: none; }
+    body.grid-debug #gridLayer { display: block; }
 
-
-    .pixel-grid {
-      display: none;
+    .debug-box {
       position: absolute;
-      inset: 0;
-      z-index: 120;
-      pointer-events: none;
-      background-image:
-        linear-gradient(to right, rgba(255,255,255,.20) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255,255,255,.20) 1px, transparent 1px),
-        linear-gradient(to right, rgba(255,255,0,.55) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255,255,0,.55) 1px, transparent 1px);
-      background-size: 50px 50px, 50px 50px, 100px 100px, 100px 100px;
-    }
-    body.grid-debug .pixel-grid,
-    body.ruler-debug .pixel-grid {
-      display: block;
-    }
-    .pixel-grid .grid-label {
-      position: absolute;
-      padding: 2px 4px;
-      border-radius: 3px;
-      background: rgba(0,0,0,.78);
+      border: 2px dashed rgba(55,246,255,.96);
+      background: rgba(0,22,38,.24);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.14) inset, 0 0 16px rgba(0,230,255,.28);
       color: #fff;
-      border: 1px solid rgba(255,255,255,.35);
-      font: 700 11px/1 Consolas, monospace;
-      text-shadow: none;
-      white-space: nowrap;
-    }
-    .pixel-grid .grid-label.x { top: 2px; transform: translateX(2px); color: #ffe96a; }
-    .pixel-grid .grid-label.y { left: 2px; transform: translateY(2px); color: #76e7ff; }
-    .pixel-grid .grid-line {
-      position: absolute;
-      pointer-events: none;
-      background: rgba(255,255,0,.80);
-    }
-    .pixel-grid .grid-line.v { top: 0; bottom: 0; width: 1px; }
-    .pixel-grid .grid-line.h { left: 0; right: 0; height: 1px; }
-    .pixel-grid .grid-center-v { left: 960px; background: rgba(255,0,255,.95); width: 2px; }
-    .pixel-grid .grid-center-h { top: 540px; background: rgba(0,255,255,.95); height: 2px; }
-    .pixel-grid .grid-note {
-      position: absolute;
-      right: 14px;
-      bottom: 14px;
-      padding: 8px 10px;
-      border-radius: 8px;
-      background: rgba(0,0,0,.78);
-      border: 1px solid rgba(255,255,255,.35);
-      color: #fff;
-      font: 700 13px/1.25 Consolas, monospace;
-      text-shadow: none;
-      max-width: 420px;
-    }
-
-
-    body.grid-debug #pixelGrid {
-      display: block !important;
-      z-index: 9999 !important;
-      opacity: 1 !important;
-      background-image:
-        linear-gradient(to right, rgba(0,255,255,.55) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(0,255,255,.55) 1px, transparent 1px),
-        linear-gradient(to right, rgba(255,235,0,.95) 2px, transparent 2px),
-        linear-gradient(to bottom, rgba(255,235,0,.95) 2px, transparent 2px) !important;
-      background-size: 50px 50px, 50px 50px, 100px 100px, 100px 100px !important;
-      background-position: 0 0, 0 0, 0 0, 0 0 !important;
-      mix-blend-mode: screen;
-    }
-    body.grid-debug #pixelGrid .grid-label {
-      display: block !important;
-      z-index: 10000 !important;
-      font-size: 12px !important;
-      line-height: 1 !important;
-      background: rgba(0,0,0,.92) !important;
-    }
-
-
-    .honor-slot .honor-rank {
-      display: none !important;
-    }
-    .honor-slot .inner {
-      justify-content: center !important;
-      padding: 20px 18px 17px !important;
-    }
-    .honor-slot .honor-name-box {
-      width: 90% !important;
-      margin-top: 0 !important;
-      overflow: hidden !important;
-    }
-    .honor-slot .honor-name {
-      font-size: 17px !important;
-      line-height: 1.05 !important;
-      text-align: center !important;
-    }
-    .honor-slot .honor-reward {
-      margin-top: 24px !important;
-      width: 74% !important;
-      min-height: 28px !important;
-      font-size: 14px !important;
-    }
-
-
-    body.fine-grid-debug #pixelGrid {
-      display: block !important;
-      z-index: 9999 !important;
-      opacity: 1 !important;
-      background-image:
-        linear-gradient(to right, rgba(0,255,255,.30) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(0,255,255,.30) 1px, transparent 1px),
-        linear-gradient(to right, rgba(255,255,255,.45) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255,255,255,.45) 1px, transparent 1px),
-        linear-gradient(to right, rgba(255,235,0,.95) 2px, transparent 2px),
-        linear-gradient(to bottom, rgba(255,235,0,.95) 2px, transparent 2px) !important;
-      background-size:
-        25px 25px,
-        25px 25px,
-        50px 50px,
-        50px 50px,
-        100px 100px,
-        100px 100px !important;
-      background-position: 0 0,0 0,0 0,0 0,0 0,0 0 !important;
-      mix-blend-mode: screen;
-    }
-    body.fine-grid-debug #pixelGrid .grid-label {
-      display: block !important;
-      z-index: 10000 !important;
-      font-size: 12px !important;
-      line-height: 1 !important;
-      background: rgba(0,0,0,.94) !important;
-    }
-    body.fine-grid-debug #pixelGrid .fine-label {
-      font-size: 10px !important;
-      opacity: .82;
-      color: #bff7ff !important;
-    }
-
-
-    /* EVS49.10 final mapping overrides */
-    .award-slot .award-rank,
-    .honor-slot .honor-rank {
-      display: none !important;
-    }
-    .award-slot .inner {
-      justify-content: center !important;
-      padding: 20px 42px 22px !important;
-    }
-    .award-slot.center .inner {
-      padding: 24px 60px 24px !important;
-    }
-    .award-slot .avatar-wrap {
-      margin-top: 0 !important;
-    }
-    .award-slot.center .avatar-wrap {
-      width: 112px !important;
-      height: 112px !important;
-    }
-    .award-slot.side .avatar-wrap {
-      width: 92px !important;
-      height: 92px !important;
-    }
-    .award-slot.center .avatar { font-size: 40px !important; }
-    .award-slot.side .avatar { font-size: 32px !important; }
-    .award-slot.side .name-box {
-      width: 92% !important;
-      margin-top: 20px !important;
-    }
-    .award-slot.center .name-box {
-      width: 90% !important;
-      margin-top: 22px !important;
-    }
-    .award-slot .award-name {
-      text-align: center !important;
-      line-height: 1.05 !important;
-    }
-    .award-slot.center .award-name { font-size: 26px !important; }
-    .award-slot.side .award-name { font-size: 22px !important; }
-    .award-slot .award-points {
-      margin-top: 10px !important;
-      font-size: 17px !important;
-    }
-    .award-slot.center .award-points {
-      font-size: 20px !important;
-    }
-    .award-slot .award-reward {
-      margin-top: auto !important;
-      width: 58% !important;
-      min-height: 38px !important;
-      font-size: 15px !important;
-    }
-    .award-slot.center .award-reward {
-      width: 50% !important;
-      min-height: 40px !important;
-      font-size: 16px !important;
-    }
-    .honor-slot .inner {
-      justify-content: center !important;
-      padding: 16px 18px 16px !important;
-    }
-    .honor-slot .honor-name-box {
-      width: 94% !important;
-      margin-top: 0 !important;
-      overflow: hidden !important;
-    }
-    .honor-slot .honor-name {
-      text-align: center !important;
-      font-size: 16px !important;
-      line-height: 1.05 !important;
-    }
-    .honor-slot .honor-reward {
-      margin-top: 22px !important;
-      width: 68% !important;
-      min-height: 26px !important;
-      font-size: 13px !important;
-    }
-
-
-    body.boxes-debug .phase-title,
-    body.boxes-debug .phase-subtitle,
-    body.boxes-debug .award-name,
-    body.boxes-debug .award-points,
-    body.boxes-debug .award-reward,
-    body.boxes-debug .honor-name,
-    body.boxes-debug .honor-reward {
-      color: transparent !important;
-      text-shadow: none !important;
-      position: relative;
-      overflow: hidden !important;
-    }
-    body.boxes-debug .phase-title,
-    body.boxes-debug .phase-subtitle,
-    body.boxes-debug .award-name,
-    body.boxes-debug .award-points,
-    body.boxes-debug .award-reward,
-    body.boxes-debug .honor-name,
-    body.boxes-debug .honor-reward,
-    body.boxes-debug .avatar-wrap {
-      background: rgba(0, 12, 32, .42) !important;
-      outline: 2px dashed rgba(0, 255, 255, .88) !important;
-      box-shadow: 0 0 0 1px rgba(255,255,255,.32) inset, 0 0 16px rgba(0,255,255,.18) !important;
-    }
-    body.boxes-debug .phase-title {
-      min-height: 44px !important;
-      border-radius: 10px !important;
-      width: 82% !important;
-      margin: 0 auto !important;
-    }
-    body.boxes-debug .phase-subtitle {
-      min-height: 22px !important;
-      border-radius: 8px !important;
-      width: 66% !important;
-      margin: 7px auto 0 !important;
-    }
-    body.boxes-debug .award-slot .avatar-wrap,
-    body.boxes-debug .award-slot .avatar {
-      color: transparent !important;
-      text-shadow: none !important;
-    }
-    body.boxes-debug .award-slot.center .avatar-wrap {
-      width: 112px !important;
-      height: 112px !important;
-      margin: 0 auto 20px !important;
-    }
-    body.boxes-debug .award-slot.side .avatar-wrap {
-      width: 92px !important;
-      height: 92px !important;
-      margin: 0 auto 18px !important;
-    }
-    body.boxes-debug .award-name {
-      min-height: 34px !important;
-      border-radius: 10px !important;
-    }
-    body.boxes-debug .award-slot.center .award-name { min-height: 42px !important; }
-    body.boxes-debug .award-points {
-      min-height: 20px !important;
-      width: 46% !important;
-      margin: 12px auto 0 !important;
-      border-radius: 8px !important;
-    }
-    body.boxes-debug .award-reward {
-      min-height: 38px !important;
-      width: 58% !important;
-      margin: auto auto 0 !important;
-      border-radius: 999px !important;
-    }
-    body.boxes-debug .award-slot.center .award-reward { width: 50% !important; }
-    body.boxes-debug .honor-name {
-      min-height: 22px !important;
-      border-radius: 8px !important;
-    }
-    body.boxes-debug .honor-reward {
-      min-height: 26px !important;
-      width: 68% !important;
-      margin: 18px auto 0 !important;
-      border-radius: 999px !important;
-    }
-    body.boxes-debug .award-name::after,
-    body.boxes-debug .award-points::after,
-    body.boxes-debug .award-reward::after,
-    body.boxes-debug .honor-name::after,
-    body.boxes-debug .honor-reward::after,
-    body.boxes-debug .phase-title::after,
-    body.boxes-debug .phase-subtitle::after,
-    body.boxes-debug .avatar-wrap::after {
-      position: absolute;
-      inset: 0;
+      text-shadow: 0 0 8px rgba(0,0,0,.95);
+      font: 900 13px/1.05 "Segoe UI", Arial, sans-serif;
+      text-transform: uppercase;
+      letter-spacing: .03em;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #dffcff !important;
-      font: 800 12px/1.1 Inter, Arial, sans-serif;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      text-shadow: none !important;
+      text-align: center;
+      overflow: hidden;
+      border-radius: 14px;
+      padding: 0 4px;
+      white-space: normal;
+    }
+    .debug-box.role-area {
+      border-width: 3px;
+      background: rgba(0,22,38,.16);
+      border-radius: 18px;
+      align-items: flex-start;
+      justify-content: flex-start;
+      padding: 8px 10px;
+      font-size: 11px;
+    }
+    .debug-box.shape-circle { border-radius: 50%; }
+    .debug-box[data-id^="honor"][data-id$=".area"] {
+      color: transparent;
+      text-shadow: none;
+      border-width: 2px;
+      background: rgba(0,22,38,.10);
+    }
+
+    .live-box {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      overflow: hidden;
+      padding: 0 8px;
+      color: #fff;
+      text-shadow: 0 2px 0 rgba(0,0,0,.65), 0 0 12px rgba(0,0,0,.75);
+      font-weight: 950;
+      letter-spacing: .01em;
+      line-height: 1.05;
       white-space: nowrap;
-      pointer-events: none;
     }
-    body.boxes-debug .phase-title::after { content: "Header Titel Box"; }
-    body.boxes-debug .phase-subtitle::after { content: "Header Untertitel Box"; }
-    body.boxes-debug .avatar-wrap::after { content: "Avatar"; }
-    body.boxes-debug .award-name::after { content: "Name Box"; }
-    body.boxes-debug .award-points::after { content: "Punkte Box"; }
-    body.boxes-debug .award-reward::after { content: "Reward Box"; }
-    body.boxes-debug .honor-name::after { content: "Name Box"; }
-    body.boxes-debug .honor-reward::after { content: "Reward Box"; }
-    body.boxes-debug .marquee > span,
-    body.boxes-debug .marquee.active > span {
-      animation: none !important;
-      transform: none !important;
-      opacity: 0 !important;
+    .live-box.title {
+      font-size: 34px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
     }
-    body.boxes-debug .confetti { opacity: .2 !important; }
-
-    #debug{position:fixed;left:12px;bottom:12px;z-index:99;max-width:700px;max-height:220px;overflow:auto;display:none;padding:10px;background:rgba(0,0,0,.72);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:12px;white-space:pre-wrap;pointer-events:auto}body.debug #debug{display:block}
-  
-
-    /* EVS49.12 – strukturierte Slot-Schablonen */
-    .header { overflow: visible; }
-    .header-layout-template { position:absolute; inset:0; pointer-events:none; z-index:12; }
-    .header-title-box, .header-subtitle-box {
-      position:absolute; left:50%; transform:translateX(-50%);
-      display:grid; place-items:center;
-      border:2px dashed rgba(83,231,255,.90);
-      border-radius:14px;
-      color:#d9fbff; background:rgba(7,14,36,.22);
-      text-shadow:none; font:800 14px/1.1 "Segoe UI",Arial,sans-serif;
-      letter-spacing:.04em; text-transform:uppercase;
-      box-shadow:0 0 0 1px rgba(255,255,255,.12) inset, 0 0 18px rgba(80,214,255,.18);
+    .live-box.subtitle {
+      font-size: 18px;
+      color: #f3f8ff;
     }
-    .header-title-box { top:4px; width:510px; height:40px; }
-    .header-subtitle-box { top:48px; width:410px; height:22px; font-size:12px; }
-    body.layout-box-debug .header > div:first-child { opacity:0; }
-    body.layout-box-debug .award-slot,
-    body.layout-box-debug .honor-slot {
-      opacity:1 !important; transform:none !important; filter:brightness(1) !important;
+    .live-box.avatar {
+      padding: 0;
+      border-radius: 50%;
+      background: rgba(12,20,34,.78);
+      border: 4px solid rgba(255,255,255,.86);
+      box-shadow: 0 0 24px rgba(255,255,255,.12);
+      color: #fff;
+      font-size: 31px;
+      font-weight: 950;
+      text-transform: uppercase;
     }
-    body.layout-box-debug .header::after,
-    body.layout-box-debug .award-slot::after,
-    body.layout-box-debug .honor-slot::after {
-      content: attr(data-calibration-label);
-      position:absolute; left:6px; top:6px; z-index:99;
-      padding:4px 7px; border-radius:6px; background:rgba(0,0,0,.78);
-      border:1px solid rgba(255,255,255,.45); color:#fff;
-      font:700 13px/1.1 Consolas, monospace; text-shadow:none; white-space:nowrap;
+    .live-box.avatar.rank1 {
+      border-color: #ffd75f;
+      box-shadow: 0 0 24px rgba(255,215,95,.22);
     }
-    .award-layout, .honor-layout { position:relative; width:100%; height:100%; }
-    .slot-content-shell {
-      position:absolute; inset:22px 28px 20px; border-radius:22px;
-      border:1px dashed rgba(83,231,255,.55);
-      background:rgba(8,18,48,.08);
-      box-shadow:0 0 0 1px rgba(255,255,255,.05) inset;
-      pointer-events:none;
+    .live-box.avatar.rank2 {
+      border-color: #dfeaff;
+      box-shadow: 0 0 24px rgba(223,234,255,.18);
     }
-    #slot1 .slot-content-shell { inset:24px 36px 22px; }
-    .slot-zone { position:absolute; left:50%; transform:translateX(-50%); }
-    .avatar-zone { top:34px; width:120px; display:grid; place-items:center; }
-    #slot2 .avatar-zone, #slot3 .avatar-zone { width:96px; }
-    .name-zone { top:148px; width:74%; }
-    #slot1 .name-zone { top:176px; width:78%; }
-    .points-zone { top:210px; width:52%; }
-    #slot1 .points-zone { top:244px; width:50%; }
-    .reward-zone { bottom:24px; width:62%; }
-    #slot1 .reward-zone { bottom:26px; width:58%; }
-    .honor-name-zone { top:36px; width:80%; }
-    .honor-reward-zone { bottom:22px; width:66%; }
-    .template-layout .slot-zone { display:grid; place-items:center; }
-    .template-box {
-      width:100%; min-height:28px; border:2px dashed rgba(83,231,255,.95);
-      border-radius:14px; background:rgba(9,18,42,.24); color:#dbfcff;
-      display:grid; place-items:center; font:800 12px/1.1 "Segoe UI",Arial,sans-serif;
-      letter-spacing:.05em; text-transform:uppercase; text-shadow:none;
-      box-shadow:0 0 0 1px rgba(255,255,255,.10) inset, 0 0 16px rgba(0,225,255,.12);
+    .live-box.avatar.rank3 {
+      border-color: #ffb17c;
+      box-shadow: 0 0 24px rgba(255,177,124,.18);
     }
-    .template-box.slim { min-height:22px; }
-    .template-box.reward { min-height:32px; }
-    .template-box.small { min-height:28px; }
-    .template-avatar-circle {
-      width:100%; aspect-ratio:1/1; border-radius:50%;
-      border:2px dashed rgba(83,231,255,.95);
-      background:radial-gradient(circle at 50% 35%, rgba(255,255,255,.10), transparent 42%), rgba(8,17,42,.25);
-      box-shadow:0 0 0 1px rgba(255,255,255,.12) inset, 0 0 16px rgba(0,225,255,.14);
-    }
-    .award-layout .name-box, .honor-layout .honor-name-box {
-      width:100%; overflow:hidden;
-    }
-    .award-layout .award-name, .honor-layout .honor-name {
-      display:block; width:100%; max-width:100%; overflow:hidden; white-space:nowrap; text-overflow:clip;
-      font-weight:950; letter-spacing:-.03em; text-shadow:0 0 14px rgba(79,199,255,.14),0 0 24px rgba(206,108,255,.12);
-      text-align:center;
-    }
-    #slot1 .award-name { font-size:30px; }
-    #slot2 .award-name, #slot3 .award-name { font-size:24px; }
-    .honor-name { font-size:16px; }
-    .award-layout .award-points, .honor-layout .honor-reward {
-      display:grid; place-items:center; width:100%; text-align:center;
-    }
-    .award-points { color:var(--muted); font-size:18px; font-weight:850; }
-    #slot1 .award-points { font-size:24px; }
-    .award-reward, .honor-reward {
-      width:100%; min-height:46px; display:grid; place-items:center; padding:8px 14px;
-      background:rgba(4,8,24,.52); border:1px solid rgba(255,255,255,.18); border-radius:18px;
-      font-size:18px; font-weight:900; text-align:center; text-shadow:0 0 12px rgba(0,0,0,.28);
-    }
-    #slot1 .award-reward { min-height:50px; font-size:20px; }
-    .honor-reward { min-height:28px; font-size:16px; }
-    .award-slot.gold .award-reward{border-color:rgba(255,213,82,.42);box-shadow:inset 0 0 14px rgba(255,213,82,.06),0 0 16px rgba(255,213,82,.08)}
-    .award-slot.silver .award-reward{border-color:rgba(227,236,255,.34);box-shadow:inset 0 0 14px rgba(227,236,255,.05),0 0 16px rgba(227,236,255,.06)}
-    .award-slot.bronze .award-reward{border-color:rgba(255,171,116,.34);box-shadow:inset 0 0 14px rgba(255,171,116,.05),0 0 16px rgba(255,171,116,.06)}
-    .honor-reward { border-color:rgba(150,171,255,.28); box-shadow: inset 0 0 12px rgba(150,171,255,.04), 0 0 14px rgba(150,171,255,.05); }
-    body.layout-box-debug .award-layout:not(.template-layout) .slot-content-shell,
-    body.layout-box-debug .honor-layout:not(.template-layout) .slot-content-shell { border-color:rgba(255,212,0,.65); }
-
-
-    /* EVS49.15 – klare HTML-Kachel-Schablonen: komplette Areas zuerst, innere Content-Zonen danach */
-    body.layout-box-debug .header::after,
-    body.layout-box-debug .award-slot::after,
-    body.layout-box-debug .honor-slot::after {
-      display: none !important;
-    }
-
-    body.layout-box-debug .header,
-    body.layout-box-debug .award-slot,
-    body.layout-box-debug .honor-slot {
-      opacity: 1 !important;
-      transform: none !important;
-      filter: brightness(1) !important;
-    }
-
-    body.layout-box-debug .header > div:first-child {
-      opacity: 0 !important;
-    }
-
-    body.layout-box-debug .inner {
-      opacity: 1 !important;
-      transform: none !important;
-    }
-
-    .header-layout-template,
-    .award-layout.template-layout,
-    .honor-layout.template-layout,
-    .award-layout,
-    .honor-layout {
-      position: relative;
+    .live-box.avatar img {
       width: 100%;
       height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+      display: block;
+    }
+    .live-box.name {
+      font-size: 18px;
+      color: #fff;
+    }
+    .live-box.points {
+      font-size: 22px;
+      color: var(--yellow);
+      text-transform: uppercase;
+    }
+    .live-box.reward {
+      font-size: 22px;
+      color: #fff;
+      text-transform: uppercase;
+    }
+    .live-box.honor-name {
+      font-size: 17px;
+      color: #fff;
+    }
+    .live-box.honor-reward {
+      font-size: 16px;
+      color: var(--yellow);
+      text-transform: uppercase;
+    }
+    .fit-text {
+      display: inline-block;
+      max-width: none;
+      white-space: nowrap;
+    }
+    .marquee .fit-text {
+      animation: marquee var(--dur, 9s) ease-in-out infinite alternate;
+    }
+    @keyframes marquee {
+      from { transform: translateX(0); }
+      to { transform: translateX(calc(-1 * var(--shift, 40px))); }
     }
 
-    .header-layout-template {
-      position: absolute !important;
-      inset: 0 !important;
-      z-index: 20 !important;
-      pointer-events: none !important;
+    .grid-line { position: absolute; background: rgba(10,235,255,.45); }
+    .grid-line.v { top: 0; width: 1px; height: 1080px; }
+    .grid-line.h { left: 0; height: 1px; width: 1920px; }
+    .grid-line.major { background: rgba(255,238,0,.92); }
+    .grid-label {
+      position: absolute;
+      z-index: 51;
+      padding: 2px 5px;
+      border-radius: 3px;
+      background: rgba(0,0,0,.72);
+      color: #fff45f;
+      font: 800 12px/1 Consolas, monospace;
+      text-shadow: none;
     }
-
-    .header-content-shell,
-    .slot-content-shell {
-      position: absolute !important;
-      border: 3px dashed rgba(48, 240, 255, .98) !important;
-      background:
-        linear-gradient(135deg, rgba(0, 229, 255, .075), rgba(156, 75, 255, .045)) !important;
-      box-shadow:
-        0 0 0 1px rgba(255, 255, 255, .20) inset,
-        0 0 18px rgba(0, 229, 255, .34),
-        0 0 34px rgba(0, 229, 255, .13) !important;
-      pointer-events: none !important;
+    .grid-label.y { color: #39f7ff; }
+    #debug {
+      position: fixed;
+      left: 12px;
+      bottom: 12px;
+      z-index: 100;
+      max-width: 760px;
+      max-height: 360px;
+      overflow: auto;
+      padding: 10px 12px;
+      border: 1px solid rgba(255,255,255,.22);
+      border-radius: 10px;
+      background: rgba(0,0,0,.78);
+      color: #e9fbff;
+      font: 12px/1.35 Consolas, monospace;
+      display: none;
+      pointer-events: auto;
     }
-
-    .header-content-shell {
-      left: 54px !important;
-      top: -18px !important;
-      width: 1032px !important;
-      height: 104px !important;
-      transform: none !important;
-      border-radius: 24px !important;
-    }
-
-    #slot1 .slot-content-shell {
-      left: 74px !important;
-      top: 38px !important;
-      right: 74px !important;
-      bottom: 26px !important;
-      border-radius: 30px !important;
-    }
-
-    #slot2 .slot-content-shell,
-    #slot3 .slot-content-shell {
-      left: 56px !important;
-      top: 38px !important;
-      right: 56px !important;
-      bottom: 28px !important;
-      border-radius: 26px !important;
-    }
-
-    .honor-layout .slot-content-shell {
-      left: 18px !important;
-      top: 22px !important;
-      right: 18px !important;
-      bottom: 10px !important;
-      border-radius: 18px !important;
-      border-width: 3px !important;
-    }
-
-    .header-title-box,
-    .header-subtitle-box,
-    .template-box,
-    .template-avatar-circle {
-      border: 2px dashed rgba(48, 240, 255, .95) !important;
-      background: rgba(4, 14, 34, .32) !important;
-      box-shadow:
-        0 0 0 1px rgba(255, 255, 255, .14) inset,
-        0 0 14px rgba(0, 229, 255, .20) !important;
-      color: transparent !important;
-      font-size: 0 !important;
-      text-shadow: none !important;
-    }
-
-    .header-title-box {
-      top: 15px !important;
-      width: 650px !important;
-      height: 36px !important;
-      border-radius: 14px !important;
-    }
-
-    .header-subtitle-box {
-      top: 61px !important;
-      width: 500px !important;
-      height: 24px !important;
-      border-radius: 12px !important;
-    }
-
-    #slot1 .avatar-zone { top: 62px !important; width: 116px !important; }
-    #slot1 .name-zone { top: 190px !important; width: 62% !important; }
-    #slot1 .points-zone { top: 250px !important; width: 42% !important; }
-    #slot1 .reward-zone { top: 274px !important; bottom: auto !important; width: 44% !important; }
-
-    #slot2 .avatar-zone,
-    #slot3 .avatar-zone { top: 54px !important; width: 96px !important; }
-    #slot2 .name-zone,
-    #slot3 .name-zone { top: 156px !important; width: 60% !important; }
-    #slot2 .points-zone,
-    #slot3 .points-zone { top: 209px !important; width: 45% !important; }
-    #slot2 .reward-zone,
-    #slot3 .reward-zone { top: 230px !important; bottom: auto !important; width: 45% !important; }
-
-    .template-avatar-circle {
-      width: 100% !important;
-      aspect-ratio: 1 / 1 !important;
-      border-radius: 50% !important;
-    }
-
-    .template-box {
-      width: 100% !important;
-      min-height: 30px !important;
-      border-radius: 14px !important;
-    }
-
-    .template-box.slim { min-height: 22px !important; }
-    .template-box.reward { min-height: 30px !important; }
-
-    .honor-name-zone {
-      top: 44px !important;
-      width: 72% !important;
-    }
-
-    .honor-reward-zone {
-      top: 80px !important;
-      bottom: auto !important;
-      width: 68% !important;
-    }
-
-    .honor-layout .template-box {
-      min-height: 28px !important;
-      border-radius: 10px !important;
-    }
-
-    body.layout-box-debug .marquee > span,
-    body.layout-box-debug .marquee.active > span,
-    body.boxes-debug .marquee > span,
-    body.boxes-debug .marquee.active > span {
-      opacity: 0 !important;
-      animation: none !important;
-      transform: none !important;
-    }
-
-
-
-    /* EVS49.23 – Ziel-Schablone: echte HTML-Kacheln füllen die Grafikbereiche */
-    body.layout-box-debug .header {
-      left: 370px !important;
-      top: 96px !important;
-      width: 1180px !important;
-      height: 175px !important;
-      display: block !important;
-      opacity: 1 !important;
-      transform: none !important;
-      filter: brightness(1) !important;
-    }
-
-    body.layout-box-debug .header-content-shell {
-      left: 36px !important;
-      top: 18px !important;
-      width: 1108px !important;
-      height: 144px !important;
-      border-radius: 32px !important;
-      border-width: 3px !important;
-    }
-
-    body.layout-box-debug .header-title-box {
-      left: 50% !important;
-      top: 48px !important;
-      width: 760px !important;
-      height: 42px !important;
-      border-radius: 14px !important;
-      transform: translateX(-50%) !important;
-    }
-
-    body.layout-box-debug .header-subtitle-box {
-      left: 50% !important;
-      top: 102px !important;
-      width: 680px !important;
-      height: 34px !important;
-      border-radius: 13px !important;
-      transform: translateX(-50%) !important;
-    }
-
-    body.layout-box-debug #slot2 {
-      left: 96px !important;
-      top: 362px !important;
-      width: 505px !important;
-      height: 375px !important;
-    }
-
-    body.layout-box-debug #slot1 {
-      left: 675px !important;
-      top: 336px !important;
-      width: 570px !important;
-      height: 410px !important;
-    }
-
-    body.layout-box-debug #slot3 {
-      left: 1310px !important;
-      top: 362px !important;
-      width: 505px !important;
-      height: 375px !important;
-    }
-
-    body.layout-box-debug #slot1 .slot-content-shell {
-      left: 26px !important;
-      top: 36px !important;
-      right: 26px !important;
-      bottom: 24px !important;
-      border-radius: 32px !important;
-    }
-
-    body.layout-box-debug #slot2 .slot-content-shell,
-    body.layout-box-debug #slot3 .slot-content-shell {
-      left: 28px !important;
-      top: 36px !important;
-      right: 28px !important;
-      bottom: 24px !important;
-      border-radius: 30px !important;
-    }
-
-    body.layout-box-debug #slot1 .avatar-zone { top: 70px !important; width: 120px !important; }
-    body.layout-box-debug #slot1 .name-zone { top: 198px !important; width: 70% !important; }
-    body.layout-box-debug #slot1 .points-zone { top: 274px !important; width: 46% !important; }
-    body.layout-box-debug #slot1 .reward-zone { top: 326px !important; bottom: auto !important; width: 46% !important; }
-
-    body.layout-box-debug #slot2 .avatar-zone,
-    body.layout-box-debug #slot3 .avatar-zone { top: 68px !important; width: 108px !important; }
-    body.layout-box-debug #slot2 .name-zone,
-    body.layout-box-debug #slot3 .name-zone { top: 188px !important; width: 70% !important; }
-    body.layout-box-debug #slot2 .points-zone,
-    body.layout-box-debug #slot3 .points-zone { top: 254px !important; width: 48% !important; }
-    body.layout-box-debug #slot2 .reward-zone,
-    body.layout-box-debug #slot3 .reward-zone { top: 306px !important; bottom: auto !important; width: 48% !important; }
-
-    body.layout-box-debug .honor-slot {
-      top: 800px !important;
-      width: 230px !important;
-      height: 170px !important;
-      opacity: 1 !important;
-      transform: none !important;
-      filter: brightness(1) !important;
-    }
-
-    body.layout-box-debug #honor4 { left: 32px !important; }
-    body.layout-box-debug #honor5 { left: 294px !important; }
-    body.layout-box-debug #honor6 { left: 563px !important; }
-    body.layout-box-debug #honor7 { left: 831px !important; }
-    body.layout-box-debug #honor8 { left: 1101px !important; }
-    body.layout-box-debug #honor9 { left: 1367px !important; }
-    body.layout-box-debug #honor10 { left: 1634px !important; }
-
-    body.layout-box-debug .honor-layout .slot-content-shell {
-      left: 18px !important;
-      top: 20px !important;
-      right: 18px !important;
-      bottom: 16px !important;
-      border-radius: 20px !important;
-      border-width: 3px !important;
-    }
-
-    body.layout-box-debug .honor-name-zone {
-      top: 46px !important;
-      width: 80% !important;
-    }
-
-    body.layout-box-debug .honor-reward-zone {
-      top: 98px !important;
-      bottom: auto !important;
-      width: 76% !important;
-    }
-
-    body.layout-box-debug .header-content-shell,
-    body.layout-box-debug .slot-content-shell {
-      border-color: rgba(48, 240, 255, .98) !important;
-      background: rgba(3, 13, 33, .40) !important;
-      box-shadow:
-        0 0 0 1px rgba(255,255,255,.18) inset,
-        0 0 18px rgba(0,229,255,.34),
-        0 0 36px rgba(0,229,255,.14) !important;
-    }
-
-    body.layout-box-debug .header-title-box,
-    body.layout-box-debug .header-subtitle-box,
-    body.layout-box-debug .template-box,
-    body.layout-box-debug .template-avatar-circle,
-    body.layout-box-debug .avatar-wrap,
-    body.layout-box-debug .award-name,
-    body.layout-box-debug .award-points,
-    body.layout-box-debug .award-reward,
-    body.layout-box-debug .honor-name,
-    body.layout-box-debug .honor-reward {
-      border: 2px dashed rgba(48, 240, 255, .96) !important;
-      outline: none !important;
-      background: rgba(4, 14, 34, .34) !important;
-      box-shadow:
-        0 0 0 1px rgba(255,255,255,.12) inset,
-        0 0 14px rgba(0,229,255,.22) !important;
-      color: #f4feff !important;
-      text-shadow: 0 0 10px rgba(0,0,0,.6) !important;
-      font: 900 14px/1.1 "Segoe UI", Arial, sans-serif !important;
-      letter-spacing: .04em !important;
-      text-transform: uppercase !important;
-    }
-
-    body.layout-box-debug .template-avatar-circle,
-    body.layout-box-debug .avatar-wrap {
-      display: grid !important;
-      place-items: center !important;
-      border-radius: 50% !important;
-      color: #f4feff !important;
-      font-size: 13px !important;
-      text-align: center !important;
-    }
-
-    body.layout-box-debug .template-avatar-circle::after,
-    body.layout-box-debug .avatar-wrap::after { content: "AVATAR" !important; }
-    body.layout-box-debug .template-box { min-height: 44px !important; border-radius: 12px !important; display: grid !important; place-items: center !important; }
-    body.layout-box-debug .template-box.slim { min-height: 42px !important; }
-    body.layout-box-debug .template-box.reward { min-height: 42px !important; }
-    body.layout-box-debug .honor-layout .template-box { min-height: 42px !important; }
-
-    body.layout-box-debug .header-title-box,
-    body.layout-box-debug .header-subtitle-box {
-      display: grid !important;
-      place-items: center !important;
-      color: #f4feff !important;
-      font-size: 14px !important;
-    }
-
-    body.layout-box-debug .award-layout:not(.template-layout) .slot-content-shell,
-    body.layout-box-debug .honor-layout:not(.template-layout) .slot-content-shell {
-      border-color: rgba(48, 240, 255, .98) !important;
-    }
-
-    body.layout-box-debug .award-name::after { content: "NAME" !important; color:#f4feff !important; }
-    body.layout-box-debug .award-points::after { content: "POINTS" !important; color:#f4feff !important; }
-    body.layout-box-debug .award-reward::after { content: "REWARD" !important; color:#f4feff !important; }
-    body.layout-box-debug .honor-name::after { content: "NAME" !important; color:#f4feff !important; }
-    body.layout-box-debug .honor-reward::after { content: "REWARD" !important; color:#f4feff !important; }
-
-    body.layout-box-debug .award-name,
-    body.layout-box-debug .award-points,
-    body.layout-box-debug .award-reward,
-    body.layout-box-debug .honor-name,
-    body.layout-box-debug .honor-reward {
-      color: transparent !important;
-      position: relative !important;
-      overflow: hidden !important;
-    }
-
-    body.layout-box-debug .award-name::after,
-    body.layout-box-debug .award-points::after,
-    body.layout-box-debug .award-reward::after,
-    body.layout-box-debug .honor-name::after,
-    body.layout-box-debug .honor-reward::after {
-      position: absolute !important;
-      inset: 0 !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      font: 900 14px/1.1 "Segoe UI", Arial, sans-serif !important;
-      letter-spacing: .04em !important;
-      text-transform: uppercase !important;
-      text-shadow: 0 0 10px rgba(0,0,0,.6) !important;
-    }
-
-  
-    /* EVS49.23: harter Boxenmodus. Zeichnet gespeicherte JSON-Boxen direkt auf Canvas. */
-    #jsonLayoutLayer{
-      position:absolute;
-      left:0;top:0;width:1920px;height:1080px;
-      z-index:80;
-      pointer-events:none;
-      display:none;
-    }
-    body.layout-box-debug #jsonLayoutLayer{display:block;}
-    body.layout-box-debug .header,
-    body.layout-box-debug .award-slot,
-    body.layout-box-debug .honor-slot{
-      display:none !important;
-    }
-    .json-layout-box{
-      position:absolute;
-      box-sizing:border-box;
-      border:2px dashed #37f6ff;
-      background:rgba(0,22,38,.28);
-      color:#ffffff;
-      box-shadow:0 0 0 1px rgba(255,255,255,.18) inset,0 0 18px rgba(0,230,255,.35);
-      font:900 13px/1.1 "Segoe UI",Arial,sans-serif;
-      text-transform:uppercase;
-      letter-spacing:.04em;
-      text-align:center;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      overflow:hidden;
-      text-shadow:0 0 8px rgba(0,0,0,.95);
-      border-radius:14px;
-    }
-    .json-layout-box.role-area{
-      border-width:3px;
-      justify-content:flex-start;
-      align-items:flex-start;
-      padding:8px 10px;
-      font-size:11px;
-      background:rgba(0,22,38,.18);
-      border-radius:18px;
-    }
-    .json-layout-box.shape-circle{border-radius:50%;}
-
-  
-    /* EVS49.23: Live-Daten werden auf dieselben JSON-Canvasboxen gerendert wie der Boxenmodus. */
-    #jsonLiveLayer{
-      position:absolute;
-      left:0;top:0;width:1920px;height:1080px;
-      z-index:70;
-      pointer-events:none;
-      display:block;
-    }
-    body.layout-box-debug #jsonLiveLayer{display:none;}
-    body.json-live-render .header,
-    body.json-live-render .award-slot,
-    body.json-live-render .honor-slot{display:none !important;}
-    .json-live-field{
-      position:absolute;
-      box-sizing:border-box;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      text-align:center;
-      overflow:hidden;
-      color:#f8fbff;
-      text-shadow:0 0 10px rgba(0,0,0,.85),0 0 18px rgba(0,230,255,.22);
-      font-family:"Segoe UI",system-ui,-apple-system,BlinkMacSystemFont,Arial,sans-serif;
-      font-weight:950;
-      letter-spacing:.015em;
-      white-space:nowrap;
-    }
-    .json-live-title{font-size:34px;text-transform:uppercase;letter-spacing:.04em;}
-    .json-live-subtitle{font-size:18px;font-weight:850;color:rgba(235,248,255,.92);}
-    .json-live-name{font-size:28px;text-transform:none;}
-    .json-live-points{font-size:20px;color:#ffe889;text-transform:uppercase;letter-spacing:.04em;}
-    .json-live-reward{font-size:19px;color:#ffffff;text-transform:uppercase;letter-spacing:.035em;}
-    .json-live-honor-name{font-size:18px;text-transform:none;}
-    .json-live-honor-reward{font-size:15px;color:#ffe889;text-transform:uppercase;letter-spacing:.035em;}
-    .json-live-avatar{
-      border-radius:50%;
-      padding:4px;
-      background:linear-gradient(135deg,rgba(255,255,255,.96),rgba(136,214,255,.75));
-      box-shadow:0 0 22px rgba(0,230,255,.25),0 0 0 1px rgba(255,255,255,.35) inset;
-    }
-    .json-live-avatar.rank-1{background:linear-gradient(135deg,#fff4ad,#ffd34b 48%,#a85f10 100%);box-shadow:0 0 26px rgba(255,210,70,.38),0 0 0 1px rgba(255,255,255,.35) inset;}
-    .json-live-avatar.rank-2{background:linear-gradient(135deg,#ffffff,#dce9ff 48%,#7e95b7 100%);}
-    .json-live-avatar.rank-3{background:linear-gradient(135deg,#ffd8bd,#ff9f65 48%,#a54d21 100%);}
-    .json-live-avatar .avatar-inner{
-      width:100%;height:100%;border-radius:50%;overflow:hidden;
-      display:grid;place-items:center;background:rgba(5,10,24,.86);
-      color:#ffffff;font-weight:950;font-size:30px;
-    }
-    .json-live-avatar img{width:100%;height:100%;object-fit:cover;display:block;}
-    .json-live-field .marquee-track{display:inline-block;white-space:nowrap;animation:jsonLiveMarquee var(--dur,8s) ease-in-out infinite alternate;}
-    @keyframes jsonLiveMarquee{from{transform:translateX(0)}to{transform:translateX(calc(-1 * var(--shift,40px)))}}
-
-  
-    /* EVS49.23: Honor 4-10 exakt auf JSON-Boxen, ohne zusätzliche Innen-/CSS-Offsets. */
-    body.layout-box-debug .json-layout-box[data-id^="honor"][data-id$=".area"] {
-      color: transparent !important;
-      text-shadow: none !important;
-      background: rgba(0,22,38,.10) !important;
-      border-width: 2px !important;
-    }
-
-    body.layout-box-debug .json-layout-box[data-id^="honor"][data-id$=".name"],
-    body.layout-box-debug .json-layout-box[data-id^="honor"][data-id$=".reward"] {
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      padding: 0 !important;
-      margin: 0 !important;
-      line-height: 1.05 !important;
-      transform: none !important;
-      box-sizing: border-box !important;
-    }
-
-    .json-live-box[data-id^="honor"][data-id$=".name"],
-    .json-live-box[data-id^="honor"][data-id$=".reward"] {
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      padding: 0 4px !important;
-      margin: 0 !important;
-      transform: none !important;
-      box-sizing: border-box !important;
-      overflow: hidden !important;
-    }
-
+    body.debug #debug { display: block; }
   </style>
 </head>
 <body>
-  <div id="stage"><div id="canvas"><img id="winnerBg" class="bg" src="/assets/stream_events/winner_finale_bg_1920x1080.png" alt=""/><div class="shade"></div><div id="confetti" class="confetti"></div><div id="pixelGrid" class="pixel-grid"></div><div id="jsonLayoutLayer" aria-hidden="true"></div><div id="jsonLiveLayer" aria-hidden="true"></div><div class="debug-cross-x"></div><div class="debug-cross-y"></div><header class="header" data-calibration-label="HEADER"><div><h1 id="phaseTitle" class="phase-title">CGN Event-Gewinner</h1><p id="phaseSubtitle" class="phase-subtitle">Die Finalplätze werden jetzt enthüllt.</p></div></header><section id="slot2" class="award-slot side silver" data-rank="2" data-calibration-label="SLOT 2"><div class="inner"></div></section><section id="slot1" class="award-slot center gold" data-rank="1" data-calibration-label="SLOT 1"><div class="inner"></div></section><section id="slot3" class="award-slot side bronze" data-rank="3" data-calibration-label="SLOT 3"><div class="inner"></div></section><section id="honor4" class="honor-slot" data-rank="4" data-calibration-label="HONOR 4"><div class="inner"></div></section><section id="honor5" class="honor-slot" data-rank="5" data-calibration-label="HONOR 5"><div class="inner"></div></section><section id="honor6" class="honor-slot" data-rank="6" data-calibration-label="HONOR 6"><div class="inner"></div></section><section id="honor7" class="honor-slot" data-rank="7" data-calibration-label="HONOR 7"><div class="inner"></div></section><section id="honor8" class="honor-slot" data-rank="8" data-calibration-label="HONOR 8"><div class="inner"></div></section><section id="honor9" class="honor-slot" data-rank="9" data-calibration-label="HONOR 9"><div class="inner"></div></section><section id="honor10" class="honor-slot" data-rank="10" data-calibration-label="HONOR 10"><div class="inner"></div></section></div></div>
+  <div id="stage">
+    <img id="winnerBg" src="/assets/stream_events/winner_finale_bg_1920x1080.png" alt="" />
+    <div id="shade"></div>
+    <div id="liveLayer"></div>
+    <div id="boxLayer"></div>
+    <div id="gridLayer"></div>
+  </div>
   <pre id="debug"></pre>
-  <script>window.CGN_OVERLAY_BUS={clientId:"stream_events_winner_overlay",clientType:"overlay",mode:"obs_overlay",module:"stream_events",name:"Stream Events Gewinner-Finale Overlay",version:"0.5.23",heartbeatIntervalMs:5000,capabilities:["overlay.heartbeat","stream_events.winner_finale_display","stream_events.winner_finale","ack"],meta:{overlay:"event_winner_overlay.html",communication:"communication_bus",owner:"stream_events",step:"EVS49.23"}};</script>
-  <script>
-  (function(){"use strict";
-const INLINE_WINNER_LAYOUT = {"version": "EVS49.23", "canvas": {"w": 1920, "h": 1080}, "background": "/assets/stream_events/winner_finale_bg_1920x1080.png", "boxes": [{"id": "header.area", "label": "HEADER AREA", "group": "header", "role": "area", "shape": "rect", "x": 465, "y": 105, "w": 980, "h": 150}, {"id": "header.title", "label": "HEADER TITLE", "group": "header", "role": "title", "shape": "rect", "x": 560, "y": 140, "w": 800, "h": 46}, {"id": "header.subtitle", "label": "HEADER SUBTITLE", "group": "header", "role": "subtitle", "shape": "rect", "x": 620, "y": 200, "w": 680, "h": 38}, {"id": "slot1.area", "label": "SLOT 1 AREA", "group": "slot1", "role": "area", "shape": "rect", "x": 690, "y": 365, "w": 540, "h": 360}, {"id": "slot1.avatar", "label": "SLOT 1 AVATAR", "group": "slot1", "role": "avatar", "shape": "circle", "x": 890, "y": 400, "w": 130, "h": 130}, {"id": "slot1.name", "label": "SLOT 1 NAME", "group": "slot1", "role": "name", "shape": "rect", "x": 755, "y": 540, "w": 410, "h": 54}, {"id": "slot1.points", "label": "SLOT 1 POINTS", "group": "slot1", "role": "points", "shape": "rect", "x": 825, "y": 600, "w": 270, "h": 44}, {"id": "slot1.reward", "label": "SLOT 1 REWARD", "group": "slot1", "role": "reward", "shape": "rect", "x": 825, "y": 660, "w": 270, "h": 44}, {"id": "slot2.area", "label": "SLOT 2 AREA", "group": "slot2", "role": "area", "shape": "rect", "x": 120, "y": 405, "w": 475, "h": 315}, {"id": "slot2.avatar", "label": "SLOT 2 AVATAR", "group": "slot2", "role": "avatar", "shape": "circle", "x": 295, "y": 420, "w": 120, "h": 120}, {"id": "slot2.name", "label": "SLOT 2 NAME", "group": "slot2", "role": "name", "shape": "rect", "x": 185, "y": 550, "w": 340, "h": 50}, {"id": "slot2.points", "label": "SLOT 2 POINTS", "group": "slot2", "role": "points", "shape": "rect", "x": 235, "y": 610, "w": 240, "h": 42}, {"id": "slot2.reward", "label": "SLOT 2 REWARD", "group": "slot2", "role": "reward", "shape": "rect", "x": 235, "y": 655, "w": 240, "h": 42}, {"id": "slot3.area", "label": "SLOT 3 AREA", "group": "slot3", "role": "area", "shape": "rect", "x": 1325, "y": 405, "w": 475, "h": 315}, {"id": "slot3.avatar", "label": "SLOT 3 AVATAR", "group": "slot3", "role": "avatar", "shape": "circle", "x": 1500, "y": 420, "w": 120, "h": 120}, {"id": "slot3.name", "label": "SLOT 3 NAME", "group": "slot3", "role": "name", "shape": "rect", "x": 1390, "y": 550, "w": 340, "h": 50}, {"id": "slot3.points", "label": "SLOT 3 POINTS", "group": "slot3", "role": "points", "shape": "rect", "x": 1440, "y": 610, "w": 240, "h": 42}, {"id": "slot3.reward", "label": "SLOT 3 REWARD", "group": "slot3", "role": "reward", "shape": "rect", "x": 1440, "y": 660, "w": 240, "h": 42}, {"id": "honor4.area", "label": "HONOR 4 AREA", "group": "honor4", "role": "area", "shape": "rect", "x": 55, "y": 820, "w": 185, "h": 130}, {"id": "honor4.name", "label": "HONOR 4 NAME", "group": "honor4", "role": "name", "shape": "rect", "x": 70, "y": 855, "w": 155, "h": 42}, {"id": "honor4.reward", "label": "HONOR 4 REWARD", "group": "honor4", "role": "reward", "shape": "rect", "x": 70, "y": 905, "w": 155, "h": 42}, {"id": "honor5.area", "label": "HONOR 5 AREA", "group": "honor5", "role": "area", "shape": "rect", "x": 325, "y": 820, "w": 185, "h": 130}, {"id": "honor5.name", "label": "HONOR 5 NAME", "group": "honor5", "role": "name", "shape": "rect", "x": 340, "y": 855, "w": 155, "h": 42}, {"id": "honor5.reward", "label": "HONOR 5 REWARD", "group": "honor5", "role": "reward", "shape": "rect", "x": 340, "y": 905, "w": 155, "h": 42}, {"id": "honor6.area", "label": "HONOR 6 AREA", "group": "honor6", "role": "area", "shape": "rect", "x": 595, "y": 820, "w": 185, "h": 130}, {"id": "honor6.name", "label": "HONOR 6 NAME", "group": "honor6", "role": "name", "shape": "rect", "x": 610, "y": 855, "w": 155, "h": 42}, {"id": "honor6.reward", "label": "HONOR 6 REWARD", "group": "honor6", "role": "reward", "shape": "rect", "x": 610, "y": 905, "w": 155, "h": 42}, {"id": "honor7.area", "label": "HONOR 7 AREA", "group": "honor7", "role": "area", "shape": "rect", "x": 865, "y": 820, "w": 185, "h": 130}, {"id": "honor7.name", "label": "HONOR 7 NAME", "group": "honor7", "role": "name", "shape": "rect", "x": 880, "y": 855, "w": 155, "h": 42}, {"id": "honor7.reward", "label": "HONOR 7 REWARD", "group": "honor7", "role": "reward", "shape": "rect", "x": 880, "y": 905, "w": 155, "h": 42}, {"id": "honor8.area", "label": "HONOR 8 AREA", "group": "honor8", "role": "area", "shape": "rect", "x": 1135, "y": 820, "w": 185, "h": 130}, {"id": "honor8.name", "label": "HONOR 8 NAME", "group": "honor8", "role": "name", "shape": "rect", "x": 1150, "y": 855, "w": 155, "h": 42}, {"id": "honor8.reward", "label": "HONOR 8 REWARD", "group": "honor8", "role": "reward", "shape": "rect", "x": 1150, "y": 905, "w": 155, "h": 42}, {"id": "honor9.area", "label": "HONOR 9 AREA", "group": "honor9", "role": "area", "shape": "rect", "x": 1405, "y": 820, "w": 185, "h": 130}, {"id": "honor9.name", "label": "HONOR 9 NAME", "group": "honor9", "role": "name", "shape": "rect", "x": 1420, "y": 855, "w": 155, "h": 42}, {"id": "honor9.reward", "label": "HONOR 9 REWARD", "group": "honor9", "role": "reward", "shape": "rect", "x": 1420, "y": 905, "w": 155, "h": 42}, {"id": "honor10.area", "label": "HONOR 10 AREA", "group": "honor10", "role": "area", "shape": "rect", "x": 1675, "y": 820, "w": 185, "h": 130}, {"id": "honor10.name", "label": "HONOR 10 NAME", "group": "honor10", "role": "name", "shape": "rect", "x": 1690, "y": 855, "w": 155, "h": 42}, {"id": "honor10.reward", "label": "HONOR 10 REWARD", "group": "honor10", "role": "reward", "shape": "rect", "x": 1690, "y": 905, "w": 155, "h": 42}]};
-function renderInlineWinnerLayoutBoxes(){
-  const layer=document.getElementById("jsonLayoutLayer");
-  if(!layer)return;
-  layer.innerHTML="";
-  const boxes=Array.isArray(INLINE_WINNER_LAYOUT.boxes)?INLINE_WINNER_LAYOUT.boxes:[];
-  boxes.forEach((box)=>{
-    const el=document.createElement("div");
-    const role=String(box.role||"box").toLowerCase();
-    const shape=String(box.shape||"rect").toLowerCase();
-    el.dataset.id=box.id;el.className="json-layout-box role-"+role+" shape-"+shape;
-    el.dataset.id=String(box.id||"");
-    el.textContent=String(box.label||box.id||"");
-    el.style.left=Number(box.x||0)+"px";
-    el.style.top=Number(box.y||0)+"px";
-    el.style.width=Math.max(1,Number(box.w||1))+"px";
-    el.style.height=Math.max(1,Number(box.h||1))+"px";
-    layer.appendChild(el);
-  });
-}
-
-function getInlineLayoutBoxes(){return Array.isArray(INLINE_WINNER_LAYOUT&&INLINE_WINNER_LAYOUT.boxes)?INLINE_WINNER_LAYOUT.boxes:[];}
-function getInlineLayoutBox(id){return getInlineLayoutBoxes().find((box)=>String(box&&box.id)===String(id))||null;}
-function clearJsonLiveLayer(){const layer=document.getElementById("jsonLiveLayer");if(layer)layer.innerHTML="";}
-function createJsonLiveField(box,className,text){
-  const layer=document.getElementById("jsonLiveLayer");
-  if(!layer||!box)return null;
-  const el=document.createElement("div");
-  el.className="json-live-field "+(className||"");
-  el.dataset.boxId=String(box.id||"");
-  el.style.left=Number(box.x||0)+"px";
-  el.style.top=Number(box.y||0)+"px";
-  el.style.width=Math.max(1,Number(box.w||1))+"px";
-  el.style.height=Math.max(1,Number(box.h||1))+"px";
-  if(String(box.shape||"").toLowerCase()==="circle")el.style.borderRadius="50%";
-  if(text!=null)el.textContent=String(text);
-  layer.appendChild(el);
-  return el;
-}
-function fitJsonLiveText(el,maxSize,minSize){
-  if(!el)return;
-  let size=Number(maxSize||24);
-  const min=Number(minSize||10);
-  el.style.fontSize=size+"px";
-  el.style.whiteSpace="nowrap";
-  const raw=el.textContent||"";
-  while(size>min && el.scrollWidth>el.clientWidth+2){size-=1;el.style.fontSize=size+"px";}
-  if(el.scrollWidth>el.clientWidth+2){
-    const span=document.createElement("span");
-    span.className="marquee-track";
-    span.textContent=raw;
-    el.textContent="";
-    el.appendChild(span);
-    requestAnimationFrame(()=>{
-      const shift=Math.max(18,span.scrollWidth-el.clientWidth+28);
-      el.style.setProperty("--shift",shift+"px");
-      el.style.setProperty("--dur",Math.min(14,Math.max(6,shift/18))+"s");
-    });
-  }
-}
-function renderJsonTextBox(id,text,className,maxSize,minSize){
-  const box=getInlineLayoutBox(id);
-  const el=createJsonLiveField(box,className,text);
-  fitJsonLiveText(el,maxSize,minSize);
-  return el;
-}
-function renderJsonAvatarBox(id,row,rank){
-  const box=getInlineLayoutBox(id);
-  const outer=createJsonLiveField(box,"json-live-avatar rank-"+rank,"");
-  if(!outer)return;
-  const inner=document.createElement("div");
-  inner.className="avatar-inner";
-  outer.appendChild(inner);
-  const url=cleanText(row&&row.avatarUrl,"");
-  if(url){
-    const img=document.createElement("img");
-    img.alt="";
-    img.decoding="async";
-    img.referrerPolicy="no-referrer";
-    img.src=url;
-    img.onerror=()=>{inner.textContent=initials(row&&row.userDisplayName)};
-    inner.appendChild(img);
-  }else{
-    inner.textContent=initials(row&&row.userDisplayName);
-  }
-}
-function setJsonLiveHeader(title,subtitle){
-  renderJsonTextBox("header.title",title||"CGN Event-Gewinner","json-live-title",34,18);
-  renderJsonTextBox("header.subtitle",subtitle||"","json-live-subtitle",18,11);
-}
-function renderJsonAward(row){
-  const rank=Number(row&&row.rank);
-  if(!rank||rank<1||rank>3)return;
-  renderJsonAvatarBox("slot"+rank+".avatar",row,rank);
-  renderJsonTextBox("slot"+rank+".name",cleanText(row&&row.userDisplayName,"Unbekannt"),"json-live-name",rank===1?28:24,12);
-  renderJsonTextBox("slot"+rank+".points",pointsLabel(row&&row.points),"json-live-points",20,11);
-  const reward=(row&&row.rewardValue)?String(row.rewardLabel||"")+" · "+String(row.rewardValue):cleanText(row&&row.rewardLabel,"Reward");
-  renderJsonTextBox("slot"+rank+".reward",reward,"json-live-reward",19,10);
-}
-function renderJsonHonor(row){
-  const rank=Number(row&&row.rank);
-  if(!rank||rank<4||rank>10)return;
-  renderJsonTextBox("honor"+rank+".name",cleanText(row&&row.userDisplayName,"Unbekannt"),"json-live-honor-name",18,10);
-  renderJsonTextBox("honor"+rank+".reward",crumbsLabel(row&&row.crumbBonus),"json-live-honor-reward",15,9);
-}
-function renderJsonFinaleInstant(rawFinale){
-  const finale=normalizeFinale(rawFinale);
-  clearJsonLiveLayer();
-  setJsonLiveHeader("CGN Event-Gewinner",`${(finale.winner&&finale.winner.userDisplayName)||"Gewinner"} steht auf Platz 1.`);
-  (finale.honorRows||[]).forEach(renderJsonHonor);
-  (finale.podiumRows||[]).forEach(renderJsonAward);
-}
-const qs=new URLSearchParams(window.location.search);const DEBUG=/[?&]debug=1\b/.test(window.location.search);const DEBUG_MODE=String(qs.get("debug")||"").trim().toLowerCase();const GRID_DEBUG=DEBUG_MODE==="grid"||DEBUG_MODE==="ruler"||qs.get("grid")==="1";const FINAL_STATE=String(qs.get("state")||"").trim().toLowerCase()==="final";const LAYOUT_DEBUG=String(qs.get("debug")||"").toLowerCase()==="layout"||qs.get("layout")==="1";const BOX_DEBUG=DEBUG_MODE==="boxes"||DEBUG_MODE==="layoutboxes"||DEBUG_MODE==="templates"||qs.get("boxes")==="1";const demo=String(qs.get("demo")||"").trim().toLowerCase();const speed=String(qs.get("speed")||"normal").trim().toLowerCase();const eventUid=String(qs.get("eventUid")||qs.get("event_uid")||"").trim();const finaleRoute=eventUid?`/api/stream-events/events/${encodeURIComponent(eventUid)}/finale`:"";const fastMode=speed==="fast"||speed==="test"||qs.get("fast")==="1";const timeline=fastMode?{intro:700,honor:1200,top:1700,gap:320,final:4200}:{intro:3500,honor:6500,top:9000,gap:900,final:42000};const autoHideMs=Math.max(12000,Math.min(360000,Number(qs.get("hideMs")||(fastMode?52000:220000))));const els={stage:document.getElementById("stage"),header:document.querySelector(".header"),phaseTitle:document.getElementById("phaseTitle"),phaseSubtitle:document.getElementById("phaseSubtitle"),confetti:document.getElementById("confetti"),debug:document.getElementById("debug"),pixelGrid:document.getElementById("pixelGrid"),slots:{1:document.getElementById("slot1"),2:document.getElementById("slot2"),3:document.getElementById("slot3"),4:document.getElementById("honor4"),5:document.getElementById("honor5"),6:document.getElementById("honor6"),7:document.getElementById("honor7"),8:document.getElementById("honor8"),9:document.getElementById("honor9"),10:document.getElementById("honor10")}};const bgEl=document.getElementById("winnerBg");if(bgEl){bgEl.addEventListener("error",()=>{document.body.classList.add("bg-missing");log({warning:"winner_finale_bg_1920x1080.png konnte nicht geladen werden",src:bgEl.getAttribute("src")})},{once:true});if(bgEl.complete&&bgEl.naturalWidth===0){document.body.classList.add("bg-missing")}}let timers=[];let hideTimer=null;let currentFinaleUid="";if(DEBUG)document.body.classList.add("debug");document.body.classList.add("json-live-render");if(LAYOUT_DEBUG){document.body.classList.add("layout-debug");}if(BOX_DEBUG){document.body.classList.add("layout-box-debug");}if(GRID_DEBUG){document.body.classList.add("grid-debug");buildPixelGrid();}if(BOX_DEBUG){els.stage.classList.add("visible");requestAnimationFrame(renderInlineWinnerLayoutBoxes)}function log(v){if(!DEBUG)return;try{els.debug.textContent=typeof v==="string"?v:JSON.stringify(v,null,2)}catch(err){els.debug.textContent=String(v)}}function defer(fn,ms){const t=window.setTimeout(fn,ms);timers.push(t);return t}function clearTimers(){timers.forEach((t)=>window.clearTimeout(t));timers=[];if(hideTimer)window.clearTimeout(hideTimer);hideTimer=null}function cleanText(v,f){const t=String(v==null?"":v).trim();return t||f||""}function cleanNumber(v,f){const n=Number(v);return Number.isFinite(n)?n:Number(f||0)}function formatInt(v){return cleanNumber(v,0).toLocaleString("de-DE")}function pointsLabel(p){const n=cleanNumber(p,0);return `${formatInt(n)} ${n===1?"Punkt":"Punkte"}`}function crumbsLabel(v){return `+${formatInt(v)} extra`}function firstExisting(r,keys,f){for(const k of keys){if(r&&r[k]!=null&&String(r[k]).trim()!=="")return r[k]}return f}function avatarUrl(r){return cleanText(firstExisting(r,["avatarUrl","avatar_url","profileImageUrl","profile_image_url","profileImage","profile_image","userAvatar","user_avatar","avatar"],""),"")}function initials(name){const text=cleanText(name,"CGN").replace(/[^\p{L}\p{N}\s_-]/gu,"").trim();const parts=text.split(/[\s_-]+/).filter(Boolean);if(parts.length>=2)return `${parts[0][0]}${parts[1][0]}`.toUpperCase();return text.slice(0,2).toUpperCase()||"CG"}function escapeHtml(v){return String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;")}function normalizeRow(row,index){const src=row&&typeof row==="object"?row:{};const rank=cleanNumber(firstExisting(src,["rank","place","position"],index+1),index+1);const login=cleanText(firstExisting(src,["userLogin","user_login","login","username","userName","user_name"],""),"");const display=cleanText(firstExisting(src,["userDisplayName","user_display_name","displayName","display_name","name"],login),login||`Platz ${rank}`);return{rank,userLogin:login,userDisplayName:display,points:cleanNumber(firstExisting(src,["points","total_points","score","totalScore","total_score"],0),0),entries:cleanNumber(firstExisting(src,["entries","entry_count","answerCount","answer_count","solved","solvedCount"],0),0),avatarUrl:avatarUrl(src),rewardLabel:cleanText(firstExisting(src,["rewardLabel","reward_label","prizeLabel","prize_label","prize"],""),""),rewardValue:cleanText(firstExisting(src,["rewardValue","reward_value","prizeValue","prize_value"],""),""),crumbBonus:cleanNumber(firstExisting(src,["crumbBonus","crumb_bonus","kekskruemel","cookieCrumbs","cookie_crumbs"],0),0)}}function rowKey(r){return String(r.userLogin||r.userDisplayName||"").trim().toLowerCase()}function uniqueRows(rows){const seen=new Set();return rows.filter((row)=>{const key=rowKey(row)||`rank_${row.rank}`;if(seen.has(key))return false;seen.add(key);return true})}function normalizeFinale(input){const root=input&&typeof input==="object"?input:{};const finale=root.finale&&typeof root.finale==="object"?root.finale:root;const preview=root.preview&&typeof root.preview==="object"?root.preview:{};const event=root.event||preview.event||finale.event||{};const rawWinner=finale.winner||preview.winner||{};const rankingSources=[finale.ranking,finale.top10,finale.topTen,finale.leaderboard,finale.results,finale.rows,preview.ranking,preview.top10,preview.topTen,preview.leaderboard,preview.topCandidates,preview.results];let ranking=[];for(const source of rankingSources){if(Array.isArray(source)&&source.length){ranking=source.map(normalizeRow);break}}const top3Source=Array.isArray(finale.top3)?finale.top3:(Array.isArray(preview.top3)?preview.top3:[]);const top3=top3Source.map(normalizeRow);const candidates=(Array.isArray(finale.candidates)?finale.candidates:(Array.isArray(preview.topCandidates)?preview.topCandidates:[])).map(normalizeRow);const winner=normalizeRow(rawWinner&&Object.keys(rawWinner).length?rawWinner:(top3[0]||ranking[0]||candidates[0]||{}),0);if(!ranking.length)ranking=uniqueRows([winner,...top3,...candidates]).filter((row)=>row.userDisplayName);ranking=uniqueRows(ranking).sort((a,b)=>a.rank!==b.rank?a.rank-b.rank:b.points-a.points);let podiumRows=ranking.filter((row)=>row.rank>=1&&row.rank<=3).slice(0,3);if(podiumRows.length<3&&top3.length)podiumRows=uniqueRows([...podiumRows,...top3]).sort((a,b)=>a.rank-b.rank).slice(0,3);const honorRows=ranking.filter((row)=>row.rank>=4&&row.rank<=10).sort((a,b)=>a.rank-b.rank);const eventName=cleanText(firstExisting(finale,["eventName","event_name","name"],firstExisting(event,["title","name"],"CGN Event-Finale")),"CGN Event-Finale");return{finaleUid:cleanText(firstExisting(finale,["finaleUid","uid","id"],firstExisting(preview,["finaleUid","uid"],eventUid||`finale_${Date.now()}`)),`finale_${Date.now()}`),eventUid:cleanText(firstExisting(finale,["eventUid","event_uid"],firstExisting(event,["uid","id"],eventUid)),eventUid||""),eventName,winner,podiumRows,honorRows}}function clearConfetti(){els.confetti.innerHTML=""}function makeConfetti(amount){clearConfetti();const count=Math.max(10,Math.min(120,amount||40));for(let i=0;i<count;i+=1){const p=document.createElement("i");p.style.left=`${Math.random()*100}%`;p.style.animationDuration=`${4.5+Math.random()*3.5}s`;p.style.animationDelay=`${Math.random()*.8}s`;p.style.transform=`translateY(-60px) rotate(${Math.random()*360}deg)`;els.confetti.appendChild(p)}}function setPhase(title,subtitle){els.phaseTitle.textContent=title;els.phaseSubtitle.textContent=subtitle||"";setJsonLiveHeader(title,subtitle||"")}function renderAvatar(container,row){if(!container)return;container.innerHTML="";const url=cleanText(row&&row.avatarUrl,"");if(url){const img=document.createElement("img");img.alt="";img.decoding="async";img.referrerPolicy="no-referrer";img.src=url;img.onerror=()=>{container.textContent=initials(row&&row.userDisplayName)};container.appendChild(img);return}container.textContent=initials(row&&row.userDisplayName)}function fitOrMarquee(el,text,maxSize,minSize){if(!el)return;el.classList.remove("marquee","active");el.innerHTML="";el.style.display="block";el.style.width="100%";el.style.overflow="hidden";el.style.whiteSpace="nowrap";const raw=cleanText(text,"");const span=document.createElement("span");span.textContent=raw;span.style.display="inline-block";span.style.whiteSpace="nowrap";span.style.maxWidth="none";el.appendChild(span);let size=maxSize;el.style.fontSize=`${size}px`;while(size>minSize&&span.scrollWidth>el.clientWidth+1){size-=1;el.style.fontSize=`${size}px`}if(span.scrollWidth>el.clientWidth+1){el.classList.add("marquee","active");requestAnimationFrame(()=>{const shift=Math.max(18,span.scrollWidth-el.clientWidth+28);el.style.setProperty("--shift",`${shift}px`);el.style.setProperty("--dur",`${Math.min(14,Math.max(6,shift/18))}s`)})}}function headerTemplateHtml(){return `<div class="header-layout-template"><div class="header-title-box">HEADER TITEL BOX</div><div class="header-subtitle-box">HEADER UNTERTITEL BOX</div></div>`}function awardTemplateHtml(rank){return `<div class="award-layout template-layout"><div class="slot-content-shell"></div><div class="slot-zone avatar-zone"><div class="template-avatar-circle"></div></div><div class="slot-zone name-zone"><div class="template-box">NAME BOX</div></div><div class="slot-zone points-zone"><div class="template-box slim">PUNKTE BOX</div></div><div class="slot-zone reward-zone"><div class="template-box reward">REWARD BOX</div></div></div>`}function honorTemplateHtml(rank){return `<div class="honor-layout template-layout"><div class="slot-content-shell"></div><div class="slot-zone honor-name-zone"><div class="template-box">NAME BOX</div></div><div class="slot-zone honor-reward-zone"><div class="template-box reward small">REWARD BOX</div></div></div>`}function awardSlotHtml(row){const reward=row.rewardValue?`${row.rewardLabel} · ${row.rewardValue}`:row.rewardLabel;return `<div class="award-layout"><div class="slot-content-shell"></div><div class="slot-zone avatar-zone"><div class="avatar-wrap"><div class="avatar"></div></div></div><div class="slot-zone name-zone"><div class="name-box"><div class="award-name"></div></div></div><div class="slot-zone points-zone"><div class="award-points">${escapeHtml(pointsLabel(row.points))}</div></div><div class="slot-zone reward-zone"><div class="award-reward">${escapeHtml(reward)}</div></div></div>`}function honorSlotHtml(row){return `<div class="honor-layout"><div class="slot-content-shell"></div><div class="slot-zone honor-name-zone"><div class="honor-name-box"><div class="honor-name"></div></div></div><div class="slot-zone honor-reward-zone"><div class="honor-reward">${escapeHtml(crumbsLabel(row.crumbBonus))}</div></div></div>`}function renderLayoutBoxes(){renderInlineWinnerLayoutBoxes()}function renderAward(row){renderJsonAward(row)}function renderHonor(row){renderJsonHonor(row)}function resetView(){clearJsonLiveLayer();Object.values(els.slots).forEach((slot)=>{if(!slot)return;slot.classList.remove('filled','active');const inner=slot.querySelector('.inner');if(inner)inner.innerHTML='' });if(BOX_DEBUG){renderLayoutBoxes()}clearConfetti()}function playFinale(rawFinale,options){const finale=normalizeFinale(rawFinale);if(!finale.podiumRows.length&&!finale.honorRows.length)return;if(!(options&&options.force)&&currentFinaleUid&&currentFinaleUid===finale.finaleUid)return;currentFinaleUid=finale.finaleUid;clearTimers();resetView();log({speed,fastMode,timeline,finale});els.stage.classList.add("visible");let at=250;defer(()=>setPhase(finale.eventName||"CGN Event-Finale","Die Zusatzpreise und Gutschein-Plätze werden jetzt enthüllt."),at);at+=timeline.intro;const honorRevealOrder=[10,9,8,7,6,5,4];honorRevealOrder.forEach((rank)=>{const row=(finale.honorRows||[]).find((item)=>item.rank===rank);if(!row)return;defer(()=>{setPhase(`Platz ${row.rank}`,`${row.userDisplayName} bekommt ${crumbsLabel(row.crumbBonus)} extra Kekskrümel.`);renderHonor(row);makeConfetti(fastMode?10:16)},at);at+=timeline.honor+timeline.gap});defer(()=>setPhase("Finale Top 3","Jetzt werden die Gutschein-Plätze enthüllt."),at);at+=timeline.intro;const podiumOrder=[2,3,1];podiumOrder.forEach((rank)=>{const row=(finale.podiumRows||[]).find((item)=>item.rank===rank);if(!row)return;defer(()=>{setPhase(`Platz ${row.rank}`,`${row.userDisplayName} sichert sich den Gutschein-Platz.`);renderAward(row);makeConfetti(rank===1?(fastMode?50:90):(fastMode?20:32))},at);at+=timeline.top+timeline.gap});const winner=(finale.podiumRows||[]).find((item)=>item.rank===1)||finale.winner;defer(()=>{if(winner)setPhase("CGN Event-Gewinner",`${winner.userDisplayName} steht auf Platz 1.`);makeConfetti(fastMode?80:120)},at);at+=timeline.final;defer(()=>{els.stage.classList.remove("visible");clearConfetti()},Math.max(at+1500,Math.min(autoHideMs,at+2500)))}function buildPixelGrid(){if(!els.pixelGrid)return;els.pixelGrid.innerHTML="";for(let x=0;x<=1920;x+=100){const line=document.createElement("div");line.className="grid-line v"+(x===960?" grid-center-v":"");line.style.left=`${x}px`;els.pixelGrid.appendChild(line);const label=document.createElement("div");label.className="grid-label x";label.style.left=`${x}px`;label.textContent=`x:${x}`;els.pixelGrid.appendChild(label)}for(let y=0;y<=1080;y+=100){const line=document.createElement("div");line.className="grid-line h"+(y===540?" grid-center-h":"");line.style.top=`${y}px`;els.pixelGrid.appendChild(line);const label=document.createElement("div");label.className="grid-label y";label.style.top=`${y}px`;label.textContent=`y:${y}`;els.pixelGrid.appendChild(label)}const note=document.createElement("div");note.className="grid-note";note.textContent="Raster: dünn 50px · gelb 100px · Mitte x960/y540 · debug=layout zeigt Slotboxen";els.pixelGrid.appendChild(note)}
-function renderFinaleInstant(rawFinale){const finale=normalizeFinale(rawFinale);clearTimers();resetView();els.stage.classList.add("visible");setPhase("CGN Event-Gewinner",`${(finale.winner&&finale.winner.userDisplayName)||"Gewinner"} steht auf Platz 1.`);(finale.honorRows||[]).forEach(renderHonor);(finale.podiumRows||[]).forEach(renderAward);log({state:"final",finale})}function demoFinale(kind){const long=kind==="long";const rows=[{rank:1,userDisplayName:long?"ForrestCGN_mit_dem_sehr_langen_Gewinnernamen":"ForrestCGN",points:120,entries:12,rewardLabel:"Amazon-Gutschein"},{rank:2,userDisplayName:long?"EngelCGN_Silbername_mit_Extra_Laenge":"EngelCGN",points:108,entries:11,rewardLabel:"Amazon-Gutschein"},{rank:3,userDisplayName:long?"HeimleitungHD_Langer_Bronze_Name":"HeimleitungHD",points:96,entries:9,rewardLabel:"Amazon-Gutschein"},{rank:4,userDisplayName:"KaffeeKoenig",points:88,entries:8,crumbBonus:10000},{rank:5,userDisplayName:"OpaRollator",points:82,entries:8,crumbBonus:9000},{rank:6,userDisplayName:"RentnerRambo",points:76,entries:7,crumbBonus:8000},{rank:7,userDisplayName:"KeksKommando",points:70,entries:7,crumbBonus:7000},{rank:8,userDisplayName:"BingoBerta",points:64,entries:6,crumbBonus:6000},{rank:9,userDisplayName:"PuddingPanzer",points:58,entries:5,crumbBonus:5000},{rank:10,userDisplayName:"ZiviMitHerz",points:52,entries:5,crumbBonus:4000}];return{finale:{finaleUid:`demo_${kind||"single"}_${Date.now()}`,eventUid:"demo_event",eventName:long?"1 Jahr Twitch - Langer Namenstest":"1 Jahr Twitch - Sound-Schnipsel Finale",mode:"ranked_finale",winner:rows[0],top3:rows.slice(0,3),ranking:rows,rankingCount:rows.length}}}async function loadExistingFinale(){if(!finaleRoute)return;try{const res=await fetch(finaleRoute,{cache:"no-store"});if(!res.ok)throw new Error(`HTTP ${res.status}`);const data=await res.json();log(data);if(data&&data.existingFinale)playFinale({finale:data.existingFinale,preview:data,event:data.event},{force:true})}catch(err){log({error:err.message||String(err),route:finaleRoute})}}function extractBusPayload(detail){const msg=detail&&typeof detail==="object"?detail:{};const payload=msg.payload&&typeof msg.payload==="object"?msg.payload:msg;return{msg,payload}}function handleBusMessage(event){if(demo)return;const{msg,payload}=extractBusPayload(event&&event.detail);const channel=String(msg.channel||payload.channel||"").toLowerCase();const action=String(msg.action||payload.action||"").toLowerCase();const hasFinale=payload&&(payload.finale||payload.preview||payload.eventUid||payload.event||payload.ranking||payload.top3||payload.winner);const isFinale=channel==="stream_events.winner_finale"||channel.indexOf("winner_finale")>=0||action.indexOf("winner_finale")>=0||action==="started"||action==="replay_requested";if(!isFinale||!hasFinale)return;const finale=payload.finale?payload:{finale:payload,preview:payload.preview,event:payload.event};playFinale(finale,{force:action==="replay_requested"})}if(LAYOUT_DEBUG){els.stage.classList.add("visible");}if(demo)window.setTimeout(()=>{const d=demoFinale(demo);if(FINAL_STATE)renderFinaleInstant(d);else playFinale(d,{force:true});},250);else loadExistingFinale();window.addEventListener("cgn:overlay-bus-message",handleBusMessage);window.addEventListener("focus",loadExistingFinale);window.addEventListener("beforeunload",clearTimers)})();
-  </script>
 
   <script>
-    (function () {
-      const qs = new URLSearchParams(window.location.search);
-      const debug = String(qs.get("debug") || "").toLowerCase();
-      const wantsGrid = debug === "grid" || debug === "layout" || qs.get("grid") === "1";
-      if (!wantsGrid) return;
-      document.body.classList.add("grid-debug");
-      let grid = document.getElementById("pixelGrid");
-      const canvas = document.getElementById("canvas");
-      if (!grid && canvas) {
-        grid = document.createElement("div");
-        grid.id = "pixelGrid";
-        grid.className = "pixel-grid";
-        canvas.appendChild(grid);
-      }
-      if (!grid) return;
-      grid.innerHTML = "";
-      for (let x = 0; x <= 1920; x += 100) {
-        const v = document.createElement("div");
-        v.className = "grid-line v" + (x === 960 ? " grid-center-v" : "");
-        v.style.left = x + "px";
-        grid.appendChild(v);
+  (() => {
+    "use strict";
 
-        const label = document.createElement("div");
-        label.className = "grid-label x";
-        label.style.left = x + "px";
-        label.style.top = "2px";
-        label.textContent = "x:" + x;
-        grid.appendChild(label);
-      }
-      for (let y = 0; y <= 1080; y += 100) {
-        const h = document.createElement("div");
-        h.className = "grid-line h" + (y === 540 ? " grid-center-h" : "");
-        h.style.top = y + "px";
-        grid.appendChild(h);
+    const MODULE_VERSION = "0.5.24";
+    const STEP = "EVS49.24";
 
-        const label = document.createElement("div");
-        label.className = "grid-label y";
-        label.style.left = "2px";
-        label.style.top = y + "px";
-        label.textContent = "y:" + y;
-        grid.appendChild(label);
+    const INLINE_LAYOUT = {"version": "EVS49.24", "canvas": {"w": 1920, "h": 1080}, "background": "/assets/stream_events/winner_finale_bg_1920x1080.png", "boxes": [{"id": "header.area", "label": "HEADER AREA", "group": "header", "role": "area", "shape": "rect", "x": 465, "y": 105, "w": 980, "h": 150}, {"id": "header.title", "label": "HEADER TITLE", "group": "header", "role": "title", "shape": "rect", "x": 560, "y": 135, "w": 800, "h": 46}, {"id": "header.subtitle", "label": "HEADER SUBTITLE", "group": "header", "role": "subtitle", "shape": "rect", "x": 620, "y": 190, "w": 680, "h": 38}, {"id": "slot1.area", "label": "SLOT 1 AREA", "group": "slot1", "role": "area", "shape": "rect", "x": 690, "y": 365, "w": 540, "h": 360}, {"id": "slot1.avatar", "label": "SLOT 1 AVATAR", "group": "slot1", "role": "avatar", "shape": "circle", "x": 890, "y": 400, "w": 130, "h": 130}, {"id": "slot1.name", "label": "SLOT 1 NAME", "group": "slot1", "role": "name", "shape": "rect", "x": 755, "y": 540, "w": 410, "h": 54}, {"id": "slot1.points", "label": "SLOT 1 POINTS", "group": "slot1", "role": "points", "shape": "rect", "x": 825, "y": 600, "w": 270, "h": 44}, {"id": "slot1.reward", "label": "SLOT 1 REWARD", "group": "slot1", "role": "reward", "shape": "rect", "x": 825, "y": 660, "w": 270, "h": 44}, {"id": "slot2.area", "label": "SLOT 2 AREA", "group": "slot2", "role": "area", "shape": "rect", "x": 120, "y": 405, "w": 475, "h": 315}, {"id": "slot2.avatar", "label": "SLOT 2 AVATAR", "group": "slot2", "role": "avatar", "shape": "circle", "x": 295, "y": 420, "w": 120, "h": 120}, {"id": "slot2.name", "label": "SLOT 2 NAME", "group": "slot2", "role": "name", "shape": "rect", "x": 185, "y": 550, "w": 340, "h": 50}, {"id": "slot2.points", "label": "SLOT 2 POINTS", "group": "slot2", "role": "points", "shape": "rect", "x": 235, "y": 610, "w": 240, "h": 42}, {"id": "slot2.reward", "label": "SLOT 2 REWARD", "group": "slot2", "role": "reward", "shape": "rect", "x": 235, "y": 655, "w": 240, "h": 42}, {"id": "slot3.area", "label": "SLOT 3 AREA", "group": "slot3", "role": "area", "shape": "rect", "x": 1325, "y": 405, "w": 475, "h": 315}, {"id": "slot3.avatar", "label": "SLOT 3 AVATAR", "group": "slot3", "role": "avatar", "shape": "circle", "x": 1500, "y": 420, "w": 120, "h": 120}, {"id": "slot3.name", "label": "SLOT 3 NAME", "group": "slot3", "role": "name", "shape": "rect", "x": 1390, "y": 550, "w": 340, "h": 50}, {"id": "slot3.points", "label": "SLOT 3 POINTS", "group": "slot3", "role": "points", "shape": "rect", "x": 1440, "y": 610, "w": 240, "h": 42}, {"id": "slot3.reward", "label": "SLOT 3 REWARD", "group": "slot3", "role": "reward", "shape": "rect", "x": 1440, "y": 660, "w": 240, "h": 42}, {"id": "honor4.area", "label": "HONOR 4 AREA", "group": "honor4", "role": "area", "shape": "rect", "x": 55, "y": 820, "w": 185, "h": 130}, {"id": "honor4.name", "label": "HONOR 4 NAME", "group": "honor4", "role": "name", "shape": "rect", "x": 70, "y": 835, "w": 155, "h": 42}, {"id": "honor4.reward", "label": "HONOR 4 REWARD", "group": "honor4", "role": "reward", "shape": "rect", "x": 70, "y": 895, "w": 155, "h": 42}, {"id": "honor5.area", "label": "HONOR 5 AREA", "group": "honor5", "role": "area", "shape": "rect", "x": 325, "y": 820, "w": 185, "h": 130}, {"id": "honor5.name", "label": "HONOR 5 NAME", "group": "honor5", "role": "name", "shape": "rect", "x": 340, "y": 835, "w": 155, "h": 42}, {"id": "honor5.reward", "label": "HONOR 5 REWARD", "group": "honor5", "role": "reward", "shape": "rect", "x": 340, "y": 895, "w": 155, "h": 42}, {"id": "honor6.area", "label": "HONOR 6 AREA", "group": "honor6", "role": "area", "shape": "rect", "x": 595, "y": 820, "w": 185, "h": 130}, {"id": "honor6.name", "label": "HONOR 6 NAME", "group": "honor6", "role": "name", "shape": "rect", "x": 610, "y": 835, "w": 155, "h": 42}, {"id": "honor6.reward", "label": "HONOR 6 REWARD", "group": "honor6", "role": "reward", "shape": "rect", "x": 610, "y": 895, "w": 155, "h": 42}, {"id": "honor7.area", "label": "HONOR 7 AREA", "group": "honor7", "role": "area", "shape": "rect", "x": 865, "y": 820, "w": 185, "h": 130}, {"id": "honor7.name", "label": "HONOR 7 NAME", "group": "honor7", "role": "name", "shape": "rect", "x": 880, "y": 835, "w": 155, "h": 42}, {"id": "honor7.reward", "label": "HONOR 7 REWARD", "group": "honor7", "role": "reward", "shape": "rect", "x": 880, "y": 895, "w": 155, "h": 42}, {"id": "honor8.area", "label": "HONOR 8 AREA", "group": "honor8", "role": "area", "shape": "rect", "x": 1135, "y": 820, "w": 185, "h": 130}, {"id": "honor8.name", "label": "HONOR 8 NAME", "group": "honor8", "role": "name", "shape": "rect", "x": 1150, "y": 835, "w": 155, "h": 42}, {"id": "honor8.reward", "label": "HONOR 8 REWARD", "group": "honor8", "role": "reward", "shape": "rect", "x": 1150, "y": 895, "w": 155, "h": 42}, {"id": "honor9.area", "label": "HONOR 9 AREA", "group": "honor9", "role": "area", "shape": "rect", "x": 1405, "y": 820, "w": 185, "h": 130}, {"id": "honor9.name", "label": "HONOR 9 NAME", "group": "honor9", "role": "name", "shape": "rect", "x": 1420, "y": 835, "w": 155, "h": 42}, {"id": "honor9.reward", "label": "HONOR 9 REWARD", "group": "honor9", "role": "reward", "shape": "rect", "x": 1420, "y": 895, "w": 155, "h": 42}, {"id": "honor10.area", "label": "HONOR 10 AREA", "group": "honor10", "role": "area", "shape": "rect", "x": 1675, "y": 820, "w": 185, "h": 130}, {"id": "honor10.name", "label": "HONOR 10 NAME", "group": "honor10", "role": "name", "shape": "rect", "x": 1690, "y": 835, "w": 155, "h": 42}, {"id": "honor10.reward", "label": "HONOR 10 REWARD", "group": "honor10", "role": "reward", "shape": "rect", "x": 1690, "y": 895, "w": 155, "h": 42}]};
+
+    const qs = new URLSearchParams(window.location.search);
+    const debugMode = String(qs.get("debug") || "").toLowerCase();
+    const BOX_DEBUG = debugMode === "boxes" || qs.get("boxes") === "1";
+    const GRID_DEBUG = debugMode === "grid" || qs.get("grid") === "1";
+    const DEBUG = qs.get("debug") === "1" || qs.get("log") === "1";
+    const FINAL_STATE = String(qs.get("state") || "").toLowerCase() === "final";
+    const demo = String(qs.get("demo") || "").toLowerCase();
+    const eventUid = String(qs.get("eventUid") || qs.get("event_uid") || "").trim();
+
+    const els = {
+      liveLayer: document.getElementById("liveLayer"),
+      boxLayer: document.getElementById("boxLayer"),
+      gridLayer: document.getElementById("gridLayer"),
+      debug: document.getElementById("debug")
+    };
+
+    if (BOX_DEBUG) document.body.classList.add("box-debug");
+    if (GRID_DEBUG) document.body.classList.add("grid-debug");
+    if (DEBUG) document.body.classList.add("debug");
+
+    const layout = normalizeLayout(INLINE_LAYOUT);
+    const boxMap = new Map(layout.boxes.map((box) => [box.id, box]));
+
+    function log(value) {
+      if (!DEBUG) return;
+      try { els.debug.textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2); }
+      catch (err) { els.debug.textContent = String(value); }
+    }
+
+    function normalizeLayout(raw) {
+      const boxes = Array.isArray(raw && raw.boxes) ? raw.boxes : [];
+      return {
+        version: String(raw && raw.version || STEP),
+        canvas: raw && raw.canvas || { w: 1920, h: 1080 },
+        background: String(raw && raw.background || "/assets/stream_events/winner_finale_bg_1920x1080.png"),
+        boxes: boxes.map((box) => ({
+          id: String(box.id || ""),
+          label: String(box.label || box.id || ""),
+          group: String(box.group || ""),
+          role: String(box.role || ""),
+          shape: String(box.shape || "rect").toLowerCase() === "circle" ? "circle" : "rect",
+          x: Number(box.x || 0),
+          y: Number(box.y || 0),
+          w: Math.max(1, Number(box.w || 1)),
+          h: Math.max(1, Number(box.h || 1))
+        })).filter((box) => box.id)
+      };
+    }
+
+    function getBox(id) {
+      return boxMap.get(id) || null;
+    }
+
+    function makeEl(className, box) {
+      const el = document.createElement("div");
+      el.className = className;
+      el.dataset.id = box.id;
+      el.style.left = box.x + "px";
+      el.style.top = box.y + "px";
+      el.style.width = box.w + "px";
+      el.style.height = box.h + "px";
+      if (box.shape === "circle") el.style.borderRadius = "50%";
+      return el;
+    }
+
+    function renderBoxes() {
+      els.boxLayer.innerHTML = "";
+      for (const box of layout.boxes) {
+        const el = makeEl(`debug-box role-${box.role} shape-${box.shape}`, box);
+        el.textContent = box.label;
+        els.boxLayer.appendChild(el);
       }
-      const note = document.createElement("div");
-      note.className = "grid-note";
-      note.textContent = "Raster sichtbar: cyan 50px · gelb 100px · Mitte x960/y540";
-      grid.appendChild(note);
-    })();
+    }
+
+    function buildGrid() {
+      els.gridLayer.innerHTML = "";
+      for (let x = 0; x <= 1920; x += 50) {
+        const line = document.createElement("div");
+        line.className = "grid-line v" + (x % 100 === 0 ? " major" : "");
+        line.style.left = x + "px";
+        els.gridLayer.appendChild(line);
+        if (x % 100 === 0) {
+          const label = document.createElement("div");
+          label.className = "grid-label x";
+          label.style.left = (x + 3) + "px";
+          label.style.top = "3px";
+          label.textContent = "x:" + x;
+          els.gridLayer.appendChild(label);
+        }
+      }
+      for (let y = 0; y <= 1080; y += 50) {
+        const line = document.createElement("div");
+        line.className = "grid-line h" + (y % 100 === 0 ? " major" : "");
+        line.style.top = y + "px";
+        els.gridLayer.appendChild(line);
+        if (y % 100 === 0) {
+          const label = document.createElement("div");
+          label.className = "grid-label y";
+          label.style.left = "3px";
+          label.style.top = (y + 3) + "px";
+          label.textContent = "y:" + y;
+          els.gridLayer.appendChild(label);
+        }
+      }
+    }
+
+    function cleanText(value, fallback = "") {
+      const text = String(value == null ? "" : value).trim();
+      return text || fallback;
+    }
+
+    function cleanNumber(value, fallback = 0) {
+      const n = Number(value);
+      return Number.isFinite(n) ? n : Number(fallback || 0);
+    }
+
+    function formatInt(value) {
+      return cleanNumber(value, 0).toLocaleString("de-DE");
+    }
+
+    function pointsLabel(value) {
+      const n = cleanNumber(value, 0);
+      return `${formatInt(n)} ${n === 1 ? "Punkt" : "Punkte"}`;
+    }
+
+    function crumbsLabel(value) {
+      return `+${formatInt(value)} extra`;
+    }
+
+    function escapeText(value) {
+      return String(value == null ? "" : value);
+    }
+
+    function initials(name) {
+      const raw = cleanText(name, "?");
+      const parts = raw.replace(/[_-]+/g, " ").split(/\s+/).filter(Boolean);
+      if (!parts.length) return "?";
+      const first = parts[0][0] || "";
+      const second = (parts[1] && parts[1][0]) || (parts[0][1] || "");
+      return (first + second).toUpperCase();
+    }
+
+    function firstExisting(row, keys, fallback = "") {
+      for (const key of keys) {
+        if (row && row[key] != null && String(row[key]).trim() !== "") return row[key];
+      }
+      return fallback;
+    }
+
+    function avatarUrl(row) {
+      return cleanText(firstExisting(row, [
+        "avatarUrl", "avatar_url", "profileImageUrl", "profile_image_url",
+        "profileImage", "profile_image", "userAvatar", "user_avatar", "avatar"
+      ], ""), "");
+    }
+
+    function normalizeRow(row, rank) {
+      const userDisplayName = cleanText(firstExisting(row, [
+        "userDisplayName", "displayName", "display_name", "userName", "username", "login", "userLogin", "name"
+      ], `Platz ${rank}`), `Platz ${rank}`);
+      return {
+        rank,
+        userDisplayName,
+        avatarUrl: avatarUrl(row),
+        points: cleanNumber(firstExisting(row, ["points", "score", "totalPoints", "total_points"], 0), 0),
+        rewardLabel: cleanText(firstExisting(row, ["rewardLabel", "reward", "prize", "label"], rank <= 3 ? "Amazon-Gutschein" : "Extra"), rank <= 3 ? "Amazon-Gutschein" : "Extra"),
+        rewardValue: cleanText(firstExisting(row, ["rewardValue", "reward_value", "value"], ""), ""),
+        crumbBonus: cleanNumber(firstExisting(row, ["crumbBonus", "crumb_bonus", "bonus", "extra", "crumbs"], 0), 0)
+      };
+    }
+
+    function normalizeFinale(raw) {
+      const payload = raw && raw.finale ? raw.finale : raw || {};
+      const event = raw && raw.event ? raw.event : payload.event || {};
+      const eventName = cleanText(payload.eventName || payload.name || event.name || event.title || "CGN Event-Gewinner");
+      const allRows = []
+        .concat(Array.isArray(payload.ranking) ? payload.ranking : [])
+        .concat(Array.isArray(payload.rows) ? payload.rows : [])
+        .concat(Array.isArray(payload.winners) ? payload.winners : []);
+      let podiumRows = Array.isArray(payload.podiumRows) ? payload.podiumRows : [];
+      let honorRows = Array.isArray(payload.honorRows) ? payload.honorRows : [];
+      if (!podiumRows.length) podiumRows = allRows.filter((row) => cleanNumber(row.rank, 0) >= 1 && cleanNumber(row.rank, 0) <= 3);
+      if (!honorRows.length) honorRows = allRows.filter((row) => cleanNumber(row.rank, 0) >= 4 && cleanNumber(row.rank, 0) <= 10);
+      if (!podiumRows.length && payload.top3 && Array.isArray(payload.top3)) podiumRows = payload.top3;
+      return {
+        finaleUid: cleanText(payload.finaleUid || payload.uid || payload.id || eventUid || "demo"),
+        eventName,
+        subtitle: cleanText(payload.subtitle || payload.phaseSubtitle || "", ""),
+        podiumRows: podiumRows.map((row, index) => normalizeRow(row, cleanNumber(row.rank, index + 1))),
+        honorRows: honorRows.map((row, index) => normalizeRow(row, cleanNumber(row.rank, index + 4)))
+      };
+    }
+
+    function setTextBox(boxId, text, className, options = {}) {
+      const box = getBox(boxId);
+      if (!box) return null;
+      const el = makeEl("live-box " + className, box);
+      const span = document.createElement("span");
+      span.className = "fit-text";
+      span.textContent = escapeText(text);
+      el.appendChild(span);
+      els.liveLayer.appendChild(el);
+      fitText(el, span, options.max || 22, options.min || 10, options.marquee !== false);
+      return el;
+    }
+
+    function setAvatarBox(boxId, row, rank) {
+      const box = getBox(boxId);
+      if (!box) return null;
+      const el = makeEl(`live-box avatar rank${rank}`, box);
+      const url = cleanText(row && row.avatarUrl, "");
+      if (url) {
+        const img = document.createElement("img");
+        img.alt = "";
+        img.decoding = "async";
+        img.referrerPolicy = "no-referrer";
+        img.src = url;
+        img.onerror = () => {
+          el.innerHTML = "";
+          el.textContent = initials(row && row.userDisplayName);
+        };
+        el.appendChild(img);
+      } else {
+        el.textContent = initials(row && row.userDisplayName);
+      }
+      els.liveLayer.appendChild(el);
+      return el;
+    }
+
+    function fitText(container, span, maxSize, minSize, allowMarquee) {
+      if (!container || !span) return;
+      let size = maxSize;
+      container.style.fontSize = size + "px";
+      container.classList.remove("marquee");
+      span.style.transform = "none";
+      while (size > minSize && span.scrollWidth > container.clientWidth - 4) {
+        size -= 1;
+        container.style.fontSize = size + "px";
+      }
+      if (allowMarquee && span.scrollWidth > container.clientWidth - 4) {
+        const shift = Math.max(18, span.scrollWidth - container.clientWidth + 24);
+        container.style.setProperty("--shift", shift + "px");
+        container.style.setProperty("--dur", Math.min(14, Math.max(6, shift / 18)) + "s");
+        container.classList.add("marquee");
+      }
+    }
+
+    function renderHeader(title, subtitle) {
+      setTextBox("header.title", title || "CGN Event-Gewinner", "title", { max: 34, min: 20, marquee: false });
+      setTextBox("header.subtitle", subtitle || "", "subtitle", { max: 18, min: 11, marquee: true });
+    }
+
+    function renderAward(row) {
+      const rank = cleanNumber(row.rank, 0);
+      if (rank < 1 || rank > 3) return;
+      setAvatarBox(`slot${rank}.avatar`, row, rank);
+      setTextBox(`slot${rank}.name`, row.userDisplayName, "name", { max: rank === 1 ? 18 : 17, min: 10, marquee: true });
+      setTextBox(`slot${rank}.points`, pointsLabel(row.points), "points", { max: rank === 1 ? 22 : 20, min: 12, marquee: false });
+      const reward = row.rewardValue ? `${row.rewardLabel} · ${row.rewardValue}` : row.rewardLabel;
+      setTextBox(`slot${rank}.reward`, reward, "reward", { max: rank === 1 ? 22 : 20, min: 12, marquee: true });
+    }
+
+    function renderHonor(row) {
+      const rank = cleanNumber(row.rank, 0);
+      if (rank < 4 || rank > 10) return;
+      setTextBox(`honor${rank}.name`, row.userDisplayName, "honor-name", { max: 17, min: 9, marquee: true });
+      const reward = row.crumbBonus ? crumbsLabel(row.crumbBonus) : (row.rewardValue ? `${row.rewardLabel} · ${row.rewardValue}` : row.rewardLabel);
+      setTextBox(`honor${rank}.reward`, reward, "honor-reward", { max: 16, min: 9, marquee: true });
+    }
+
+    function renderFinale(raw) {
+      const finale = normalizeFinale(raw);
+      els.liveLayer.innerHTML = "";
+      const first = (finale.podiumRows || []).find((row) => row.rank === 1);
+      const subtitle = finale.subtitle || (first ? `${first.userDisplayName} steht auf Platz 1.` : "Die Gewinner stehen fest.");
+      renderHeader(finale.eventName, subtitle);
+      for (const row of (finale.podiumRows || [])) renderAward(row);
+      for (const row of (finale.honorRows || [])) renderHonor(row);
+      log({ step: STEP, moduleVersion: MODULE_VERSION, layoutVersion: layout.version, finale });
+    }
+
+    function demoFinale() {
+      return {
+        finaleUid: "demo",
+        eventName: "CGN Event-Gewinner",
+        podiumRows: [
+          { rank: 1, userDisplayName: "ForrestCGN_mit_dem_sehr_langen_Gewinnernamen", points: 120, rewardLabel: "Amazon-Gutschein" },
+          { rank: 2, userDisplayName: "EngelCGN_Silbername_mit_Extra_Laenge", points: 108, rewardLabel: "Amazon-Gutschein" },
+          { rank: 3, userDisplayName: "HeimleitungHD_Langer_Bronze_Name", points: 96, rewardLabel: "Amazon-Gutschein" }
+        ],
+        honorRows: [
+          { rank: 4, userDisplayName: "KaffeeKoenig", crumbBonus: 10000 },
+          { rank: 5, userDisplayName: "OpaRollator", crumbBonus: 9000 },
+          { rank: 6, userDisplayName: "RentnerRambo", crumbBonus: 8000 },
+          { rank: 7, userDisplayName: "KeksKommando", crumbBonus: 7000 },
+          { rank: 8, userDisplayName: "BingoBerta", crumbBonus: 6000 },
+          { rank: 9, userDisplayName: "PuddingPanzer", crumbBonus: 5000 },
+          { rank: 10, userDisplayName: "ZiviMitHerz", crumbBonus: 4000 }
+        ]
+      };
+    }
+
+    async function loadExistingFinale() {
+      if (!eventUid) return;
+      try {
+        const res = await fetch(`/api/stream-events/events/${encodeURIComponent(eventUid)}/finale`, { cache: "no-store" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        if (data && data.existingFinale) renderFinale({ finale: data.existingFinale, preview: data, event: data.event });
+        else renderFinale(data);
+      } catch (err) {
+        log({ error: err.message || String(err), eventUid });
+      }
+    }
+
+    function extractBusPayload(detail) {
+      const msg = detail && typeof detail === "object" ? detail : {};
+      const payload = msg.payload && typeof msg.payload === "object" ? msg.payload : msg;
+      return { msg, payload };
+    }
+
+    function handleBusMessage(event) {
+      if (demo) return;
+      const { msg, payload } = extractBusPayload(event && event.detail);
+      const channel = String(msg.channel || payload.channel || "").toLowerCase();
+      const action = String(msg.action || payload.action || "").toLowerCase();
+      const hasFinale = payload && (payload.finale || payload.preview || payload.eventUid || payload.event || payload.ranking || payload.top3 || payload.winner);
+      const isFinale = channel === "stream_events.winner_finale" || channel.includes("winner_finale") || action.includes("winner_finale") || action === "started" || action === "replay_requested";
+      if (!isFinale || !hasFinale) return;
+      const finale = payload.finale ? payload : { finale: payload, preview: payload.preview, event: payload.event };
+      renderFinale(finale);
+    }
+
+    renderBoxes();
+    if (GRID_DEBUG) buildGrid();
+
+    if (!BOX_DEBUG) {
+      if (demo) renderFinale(demoFinale());
+      else loadExistingFinale();
+      window.addEventListener("cgn:overlay-bus-message", handleBusMessage);
+      window.addEventListener("focus", loadExistingFinale);
+    }
+  })();
   </script>
-
-
-  <script>
-    (function () {
-      const qs = new URLSearchParams(window.location.search);
-      const debug = String(qs.get("debug") || "").toLowerCase();
-      const wantsGrid = debug === "finegrid" || debug === "fine" || debug === "boxesfine" || qs.get("finegrid") === "1";
-      if (!wantsGrid) return;
-      document.body.classList.add("fine-grid-debug");
-      let grid = document.getElementById("pixelGrid");
-      const canvas = document.getElementById("canvas");
-      if (!grid && canvas) {
-        grid = document.createElement("div");
-        grid.id = "pixelGrid";
-        grid.className = "pixel-grid";
-        canvas.appendChild(grid);
-      }
-      if (!grid) return;
-      grid.innerHTML = "";
-      for (let x = 0; x <= 1920; x += 100) {
-        const v = document.createElement("div");
-        v.className = "grid-line v" + (x === 960 ? " grid-center-v" : "");
-        v.style.left = x + "px";
-        grid.appendChild(v);
-
-        const label = document.createElement("div");
-        label.className = "grid-label x";
-        label.style.left = x + "px";
-        label.style.top = "2px";
-        label.textContent = "x:" + x;
-        grid.appendChild(label);
-      }
-      for (let y = 0; y <= 1080; y += 100) {
-        const h = document.createElement("div");
-        h.className = "grid-line h" + (y === 540 ? " grid-center-h" : "");
-        h.style.top = y + "px";
-        grid.appendChild(h);
-
-        const label = document.createElement("div");
-        label.className = "grid-label y";
-        label.style.left = "2px";
-        label.style.top = y + "px";
-        label.textContent = "y:" + y;
-        grid.appendChild(label);
-      }
-      // zusätzliche 50er-Labels im Bildbereich, damit man schneller ablesen kann
-      for (let x = 50; x <= 1900; x += 100) {
-        const label = document.createElement("div");
-        label.className = "grid-label x fine-label";
-        label.style.left = x + "px";
-        label.style.top = "20px";
-        label.textContent = "x:" + x;
-        grid.appendChild(label);
-      }
-      for (let y = 50; y <= 1050; y += 100) {
-        const label = document.createElement("div");
-        label.className = "grid-label y fine-label";
-        label.style.left = "48px";
-        label.style.top = y + "px";
-        label.textContent = "y:" + y;
-        grid.appendChild(label);
-      }
-      const note = document.createElement("div");
-      note.className = "grid-note";
-      note.textContent = "Feinraster: cyan 25px · weiß 50px · gelb 100px · Mitte x960/y540";
-      grid.appendChild(note);
-    })();
-  </script>
-
-  <script>
-    (function () {
-      const qs = new URLSearchParams(window.location.search);
-      const debug = String(qs.get("debug") || "").trim().toLowerCase();
-      if (debug === "boxes" || debug === "boxesfine") {
-        document.body.classList.add("boxes-debug");
-      }
-    })();
-  </script>
-  <script src="/overlays/shared/overlay_bus_client.js" data-overlay-id="stream_events_winner_overlay" data-client-type="overlay" data-mode="obs_overlay" data-module="stream_events" data-name="Stream Events Gewinner-Finale Overlay" data-version="0.5.23" data-heartbeat-ms="5000"></script>
-</body></html>
+</body>
+</html>
