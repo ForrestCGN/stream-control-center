@@ -1,3 +1,12 @@
+# NEXT STEPS – stream-control-center
+
+## Nach EVS51.5
+
+- Satz-Rotation im echten Runtime-Ablauf prüfen: gelöste Sätze raus, offene Sätze bleiben.
+- Runtime-Overlay für Satzstatus verbessern.
+- Kombinierte Events im Overlay prüfen: Sound fertig/Text offen und Text fertig/Sound offen.
+- Dashboard für Satz-Runtime weiter ausbauen: offene/gelöste Sätze, letzte Antworten, nächste Aktion.
+
 ## Nächster Schritt nach EVS51.4
 
 EVS51.5 – Runtime-Overlay für Satzstatus prüfen/verbessern.

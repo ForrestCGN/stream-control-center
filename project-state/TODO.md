@@ -6,7 +6,7 @@
 
 # TODO – stream-control-center
 
-Stand: 2026-06-18 – EVS51.3
+Stand: 2026-06-18 – EVS51.5
 
 ## Erledigt / bestätigt
 
@@ -24,6 +24,7 @@ Stand: 2026-06-18 – EVS51.3
 - [x] Gesamt-Event wird nach Soundabschluss beendet.
 - [x] Satz-Testbereich im Dashboard lesbarer dargestellt.
 - [x] Satz-Test-Ranking und User-Historie direkt aus dem Testbereich erreichbar.
+- [x] Text-Antwortvarianten sind optional; Satztext ist automatisch Lösung und erzeugt keine Warnung.
 
 ## Offen / nächste Schritte
 

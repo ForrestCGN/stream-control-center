@@ -27,8 +27,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.69";
-const MODULE_BUILD = "STEP_EVS51_4_TEXT_RUNTIME_FLOW";
+const MODULE_VERSION = "0.5.70";
+const MODULE_BUILD = "STEP_EVS51_5_TEXT_ANSWERS_OPTIONAL_FIX";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -1405,8 +1405,6 @@ function validateTextConfig(config = {}) {
   phrases.forEach((phrase, index) => {
     const label = `text.phrase.${index + 1}`;
     if (!cleanString(phrase && (phrase.phrase || phrase.text || phrase.solution))) issues.push(`${label}.phrase_missing`);
-    const answers = Array.isArray(phrase && phrase.acceptedAnswers) ? phrase.acceptedAnswers : [];
-    if (!answers.map(value => cleanString(value)).filter(Boolean).length) warnings.push(`${label}.answers_empty_uses_phrase`);
     const points = intValue(phrase && (phrase.pointsFirst ?? phrase.points), 0);
     if (points <= 0) warnings.push(`${label}.points_not_set`);
   });

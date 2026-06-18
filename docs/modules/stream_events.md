@@ -426,3 +426,16 @@ Die produktive Punktelogik wurde in EVS51.3 nicht verändert. Backend bleibt auf
   - Event-Finish
   - Ranking und User-Historie
 - Produktive Events bleiben unverändert geschützt; Testevents dürfen das echte aktive Event nicht verdrängen.
+
+
+## EVS51.5 – Text-Antwortvarianten optional
+
+Beim Satz-/Text-Spiel sind Antwortvarianten optional. Der Satz/Geheimsatz selbst ist automatisch eine gültige Lösung.
+
+Regel:
+
+- Satztext vorhanden = gültige Lösung vorhanden.
+- `acceptedAnswers` leer = OK, keine Warnung, keine Blockade.
+- `acceptedAnswers` kann zusätzliche Schreibweisen oder Kurzformen enthalten.
+
+Die vorherige Warnung `text.phrase.X.answers_empty_uses_phrase` wurde aus Backend- und Dashboard-Validation entfernt.

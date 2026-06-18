@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.51";
-  const MODULE_BUILD = "STEP_EVS51_4_TEXT_RUNTIME_FLOW";
+  const MODULE_VERSION = "0.5.52";
+  const MODULE_BUILD = "STEP_EVS51_5_TEXT_ANSWERS_OPTIONAL_FIX";
 
   const api = {
     status: '/api/stream-events/status',
@@ -142,7 +142,6 @@ window.StreamEventsModule = (function(){
   function warnLabel(warn){
     const key = String(warn || '');
     if (key === 'sound.answer_seconds_very_short') return 'Antwortzeit für Sound ist sehr kurz.';
-    if (key.includes('.answers_empty_uses_phrase')) return 'Beim Text-Rätsel fehlen Antwortvarianten; der Geheimsatz wird als Lösung genutzt.';
     if (key.includes('.points_not_set')) return 'Beim Text-Rätsel sind keine Punkte gesetzt.';
     if (key === 'text.word_points_enabled_but_zero_points') return 'Wortpunkte sind aktiv, aber Punkte pro Wort stehen auf 0.';
     return key;
@@ -180,8 +179,6 @@ window.StreamEventsModule = (function(){
       phrases.forEach((phrase, index) => {
         const nr = index + 1;
         if (!String(phrase?.phrase || phrase?.text || phrase?.solution || '').trim()) issues.push(`text.phrase.${nr}.phrase_missing`);
-        const answers = Array.isArray(phrase?.acceptedAnswers) ? phrase.acceptedAnswers : [];
-        if (!answers.map(value => String(value || '').trim()).filter(Boolean).length) warnings.push(`text.phrase.${nr}.answers_empty_uses_phrase`);
         const points = Number(phrase?.pointsFirst ?? phrase?.points ?? 0);
         if (!Number.isFinite(points) || points <= 0) warnings.push(`text.phrase.${nr}.points_not_set`);
       });

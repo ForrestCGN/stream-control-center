@@ -56,3 +56,10 @@ stream_events_text_word_hits
 stream_events_text_phrase_solves
 stream_events_sound_rounds
 ```
+
+
+## EVS51.5 – Text-Antwortvarianten optional
+
+- `backend/modules/stream_events.js` – Validation-Warnung für leere Text-Antwortvarianten entfernt.
+- `htdocs/dashboard/modules/stream_events.js` – lokale Warnung/Mapping entfernt.
+- `docs/current/CURRENT_CHAT_HANDOFF_EVS51_5_TEXT_ANSWERS_OPTIONAL_FIX.md` – Übergabe.

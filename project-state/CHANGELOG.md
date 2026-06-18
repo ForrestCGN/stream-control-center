@@ -1,3 +1,18 @@
+# CHANGELOG – stream-control-center
+
+## 2026-06-18 – EVS51.5 Text-Antwortvarianten optional
+
+### Fixed
+
+- Fehlende Antwortvarianten im Satz-/Text-Spiel erzeugen keine Warnung mehr.
+- Satztext/Geheimsatz bleibt automatisch gültige Lösung.
+- Dashboard-Mapping für die alte Warnung entfernt.
+
+### Unchanged
+
+- Punktevergabe, Worttreffer, Satzlösung, Duplikat-Schutz und Kombi-Abschluss unverändert.
+- Keine DB-Schemaänderung.
+
 ## 2026-06-18 – EVS51.4
 
 - Satz-System Einzeltest-/Runtime-Flow im Dashboard erweitert.
