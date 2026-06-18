@@ -303,12 +303,18 @@
       grid-template-columns: 172px 1fr;
       gap: 26px;
       align-items: center;
-      transition: opacity .42s ease, transform .58s cubic-bezier(.16, 1, .3, 1), left .58s cubic-bezier(.16, 1, .3, 1), top .58s cubic-bezier(.16, 1, .3, 1);
+      transition: opacity .42s ease, transform .58s cubic-bezier(.16, 1, .3, 1), left .86s cubic-bezier(.16, 1, .3, 1), top .86s cubic-bezier(.16, 1, .3, 1);
     }
 
     .center-card.visible {
       opacity: 1;
       transform: translate(-50%, -50%) scale(1);
+    }
+
+    .center-card.flying-honor {
+      opacity: .96;
+      transform: translate(-50%, -50%) scale(.22);
+      filter: drop-shadow(0 0 28px rgba(255,209,138,.32));
     }
 
     .center-card.final-winner {
@@ -444,19 +450,31 @@
       min-height: 86px;
       padding: 10px 10px 9px;
       border-radius: 18px;
-      background: linear-gradient(135deg, rgba(255,255,255,.045), rgba(168,85,247,.07));
-      border: 1px solid rgba(143,244,255,.12);
-      opacity: .30;
-      transform: translateY(12px) scale(.96);
-      transition: opacity .44s ease, transform .55s cubic-bezier(.16, 1, .3, 1), border-color .44s ease, box-shadow .44s ease;
+      background: linear-gradient(135deg, rgba(255,255,255,.035), rgba(168,85,247,.045));
+      border: 1px solid rgba(143,244,255,.10);
+      opacity: .42;
+      transform: translateY(7px) scale(.98);
+      transition: opacity .44s ease, transform .55s cubic-bezier(.16, 1, .3, 1), border-color .44s ease, box-shadow .44s ease, background .44s ease;
       overflow: hidden;
+    }
+
+    .honor-chip.pending .chip-name,
+    .honor-chip.pending .chip-reward {
+      color: rgba(248,251,255,.28);
+      text-shadow: none;
     }
 
     .honor-chip.filled {
       opacity: 1;
       transform: translateY(0) scale(1);
+      background: linear-gradient(135deg, rgba(255,209,138,.075), rgba(168,85,247,.10));
       border-color: rgba(255,209,138,.30);
       box-shadow: 0 0 18px rgba(255,209,138,.10);
+    }
+
+    .honor-chip.receiving {
+      border-color: rgba(255,209,138,.44);
+      box-shadow: 0 0 26px rgba(255,209,138,.18), 0 0 42px rgba(168,85,247,.13);
     }
 
     .chip-place {
@@ -720,7 +738,7 @@
       mode: "obs_overlay",
       module: "stream_events",
       name: "Stream Events Gewinner-Finale Overlay",
-      version: "0.2.0",
+      version: "0.2.1",
       heartbeatIntervalMs: 5000,
       capabilities: [
         "overlay.heartbeat",
@@ -732,7 +750,7 @@
         overlay: "event_winner_overlay.html",
         communication: "communication_bus",
         owner: "stream_events",
-        step: "EVS45.1"
+        step: "EVS45.2"
       }
     };
   </script>
@@ -749,8 +767,8 @@
       const finaleRoute = eventUid ? `/api/stream-events/events/${encodeURIComponent(eventUid)}/finale` : "";
       const fastMode = speed === "fast" || speed === "test" || qs.get("fast") === "1";
       const timeline = fastMode
-        ? { intro: 1100, honor: 1150, honorPause: 180, top: 1500, final: 7000, emptyHonor: 700 }
-        : { intro: 5200, honor: 9800, honorPause: 900, top: 15000, final: 52000, emptyHonor: 2600 };
+        ? { intro: 1100, honor: 1150, honorFly: 920, honorPause: 220, top: 1500, final: 7000, emptyHonor: 700 }
+        : { intro: 5200, honor: 9800, honorFly: 1350, honorPause: 900, top: 15000, final: 52000, emptyHonor: 2600 };
       const autoHideMs = Math.max(8000, Math.min(360000, Number(qs.get("hideMs") || (fastMode ? 72000 : 285000))));
 
       const els = {
@@ -1042,12 +1060,12 @@
         for (let rank = 10; rank >= 4; rank -= 1) {
           const row = byRank.get(rank);
           const chip = document.createElement("div");
-          chip.className = "honor-chip";
+          chip.className = "honor-chip pending";
           chip.dataset.rank = String(rank);
           chip.innerHTML = `
             <div class="chip-place">Platz ${rank}</div>
-            <div class="chip-name">${row ? escapeHtml(row.userDisplayName) : "wartet..."}</div>
-            <div class="chip-reward">${row ? `🍪 ${escapeHtml(crumbsLabel(row.crumbBonus))}` : "Keksorden bereit"}</div>
+            <div class="chip-name">wird gleich enthüllt</div>
+            <div class="chip-reward">Keksorden bereit</div>
           `;
           els.honorList.appendChild(chip);
         }
@@ -1058,7 +1076,39 @@
         if (!chip) return;
         chip.querySelector(".chip-name").textContent = row.userDisplayName;
         chip.querySelector(".chip-reward").textContent = `🍪 ${crumbsLabel(row.crumbBonus)}`;
+        chip.classList.remove("pending", "receiving");
         chip.classList.add("filled");
+      }
+
+      function animateHonorToSlot(row) {
+        const chip = els.honorList.querySelector(`[data-rank="${row.rank}"]`);
+        if (!chip) {
+          fillHonorChip(row);
+          hidePresentation();
+          return;
+        }
+
+        const arena = chip.closest(".arena");
+        const arenaRect = arena.getBoundingClientRect();
+        const chipRect = chip.getBoundingClientRect();
+        const x = chipRect.left - arenaRect.left + chipRect.width / 2;
+        const y = chipRect.top - arenaRect.top + chipRect.height / 2;
+
+        chip.classList.add("receiving");
+        els.centerCard.style.left = `${x}px`;
+        els.centerCard.style.top = `${y}px`;
+        els.centerCard.classList.add("flying-honor");
+
+        defer(() => {
+          fillHonorChip(row);
+          els.centerCard.classList.remove("visible");
+        }, timeline.honorFly);
+
+        defer(() => {
+          els.centerCard.classList.remove("flying-honor", "final-winner");
+          els.centerCard.style.left = "";
+          els.centerCard.style.top = "";
+        }, timeline.honorFly + 430);
       }
 
       function escapeHtml(value) {
@@ -1148,10 +1198,9 @@
             }, at);
             at += timeline.honor;
             defer(() => {
-              fillHonorChip(row);
-              hidePresentation();
+              animateHonorToSlot(row);
             }, at);
-            at += timeline.honorPause;
+            at += timeline.honorFly + timeline.honorPause;
           });
         } else {
           defer(() => {
@@ -1295,7 +1344,7 @@
     data-mode="obs_overlay"
     data-module="stream_events"
     data-name="Stream Events Gewinner-Finale Overlay"
-    data-version="0.2.0"
+    data-version="0.2.1"
     data-heartbeat-ms="5000"
   ></script>
 </body>
