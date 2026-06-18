@@ -845,25 +845,19 @@ Wenn die Auswertung nicht moeglich ist, bleibt der Button unsichtbar. Die Sicher
 
 Keine Aenderung an Chatquelle, Sound-/Satzlogik, Punktevergabe oder Bot-/Self-Filter.
 
-## EVS52.17 – Winner-Overlay Idle-Hide
 
-Das Gewinner-/Finale-Overlay `htdocs/overlays/stream_events/event_winner_overlay.html` ist im normalen OBS-Link jetzt im Idle-Zustand komplett unsichtbar.
+## EVS52.16b – Dashboard-Auswertungsbutton sichtbar platziert
 
-Produktivlink:
+Der Button `Auswertung starten` wird im Dashboard direkt im sichtbaren Event-Verwalten-Buttonblock gerendert, wenn die Finale-Preview fuer das gewaehlte Event `finaleEligibility.canStart=true` liefert. Die Backend-Finale-Logik aus EVS52.16 bleibt unveraendert.
 
-```text
-http://127.0.0.1:8080/overlays/stream_events/event_winner_overlay.html
-```
-
-Preview-Link:
+Regel:
 
 ```text
-http://127.0.0.1:8080/overlays/stream_events/event_winner_overlay.html?preview=1
+Event finished + Ranking vorhanden + kein existierendes Finale => Button sichtbar
 ```
 
-Verhalten:
+Klick ruft weiterhin auf:
 
-- Ohne laufende Auswertung: transparent/hidden.
-- Bei Finale-/Winner-Event: sichtbar.
-- Debug-/Box-/Grid-Modi bleiben sichtbar.
-- `?preview=1` zeigt bewusst eine Demo an.
+```text
+POST /api/stream-events/events/:eventUid/finale/start?confirm=1
+```

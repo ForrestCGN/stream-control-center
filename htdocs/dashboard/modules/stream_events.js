@@ -265,7 +265,7 @@ window.StreamEventsModule = (function(){
       <div class="evs-page">
         <div class="evs-header glass">
           <div>
-            <div class="evs-kicker">EVS-27D-FIX1 · Reload nach Statusaktionen</div>
+            <div class="evs-kicker">EVS52.16b · Auswertungsbutton sichtbar</div>
             <h2>Event-System</h2>
             <p>Übersicht zeigt den aktuellen Event-Stand und die nächste sinnvolle Aktion.</p>
           </div>
@@ -537,6 +537,7 @@ window.StreamEventsModule = (function(){
               ${statusBadge(event.status)}
               <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="refreshCurrentEventInfo" data-uid="${esc(event.eventUid)}">Aktualisieren</button>
               <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="openLiveStatus" data-uid="${esc(event.eventUid)}" ${isActive ? '' : 'disabled'}>Live-Status</button>
+              ${finaleActionButtonForEvent(event)}
             </div>
           </div>
           <div class="evs-mini-grid evs-mini-grid-compact evs-current-score-summary">
@@ -1521,6 +1522,15 @@ window.StreamEventsModule = (function(){
     return state.finalePreview && state.finalePreview.eventUid === event.eventUid ? state.finalePreview : null;
   }
 
+  function finaleActionButtonForEvent(event){
+    if (!event) return '';
+    const preview = finalePreviewForEvent(event);
+    const eligibility = preview?.finaleEligibility || null;
+    const canFinale = Boolean(eligibility?.canStart || preview?.dashboardCanStartFinale);
+    if (!canFinale) return '';
+    return `<button type="button" class="evs-btn evs-btn-primary evs-btn-finale" data-evs-action="winnerFinale" data-uid="${esc(event.eventUid)}">🏆 Auswertung starten</button>`;
+  }
+
   function renderLifecycleSafetyPanel(event){
     const s = norm(event.status);
     const canArchive = s === 'finished';
@@ -1555,7 +1565,7 @@ window.StreamEventsModule = (function(){
         </div>
         <div class="evs-action-row evs-action-row-tight evs-lifecycle-actions">
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="finish" data-uid="${esc(event.eventUid)}" ${canFinish ? '' : 'disabled'}>Auf Finished setzen</button>
-          ${canFinale ? `<button type="button" class="evs-btn evs-btn-primary" data-evs-action="winnerFinale" data-uid="${esc(event.eventUid)}">Auswertung starten</button>` : ''}
+          ${finaleActionButtonForEvent(event)}
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="archive" data-uid="${esc(event.eventUid)}" ${canArchive ? '' : 'disabled'}>Archivieren</button>
           <button type="button" class="evs-btn evs-btn-danger" data-evs-action="cancel" data-uid="${esc(event.eventUid)}" ${canCancel ? '' : 'disabled'}>Abbrechen</button>
           <button type="button" class="evs-btn evs-btn-danger" data-evs-action="deleteEvent" data-uid="${esc(event.eventUid)}">Löschen…</button>
@@ -2098,6 +2108,7 @@ window.StreamEventsModule = (function(){
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="edit" data-uid="${esc(event.eventUid)}">Bearbeiten</button>
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="editSettings" data-uid="${esc(event.eventUid)}">Einstellungen bearbeiten</button>
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="openLiveStatus" data-uid="${esc(event.eventUid)}" ${norm(event.status) === 'active' ? '' : 'disabled title="Status & Punkte wird relevant, sobald das Event läuft"'}>Status & Punkte</button>
+          ${finaleActionButtonForEvent(event)}
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="renameEvent" data-uid="${esc(event.eventUid)}">Umbenennen</button>
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="duplicateEvent" data-uid="${esc(event.eventUid)}">Kopieren</button>
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="validate" data-uid="${esc(event.eventUid)}">Prüfen</button>
