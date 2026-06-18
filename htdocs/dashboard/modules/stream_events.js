@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.52";
-  const MODULE_BUILD = "STEP_EVS52_4_TEXT_CHAT_OUTPUTS_ACTIVE";
+  const MODULE_VERSION = "0.5.53";
+  const MODULE_BUILD = "STEP_EVS52_16_DASHBOARD_FINALE_BUTTON";
 
   const api = {
     status: '/api/stream-events/status',
@@ -41,6 +41,7 @@ window.StreamEventsModule = (function(){
     chatOutputStatus: null,
     chatOutputReport: null,
     runtimeGateStatus: null,
+    finalePreview: null,
     statsSubTab: 'overview',
     selectedStatsUser: '',
     userStatistics: null,
@@ -1506,11 +1507,30 @@ window.StreamEventsModule = (function(){
     `;
   }
 
+  function finaleBlockedReasonLabel(reason){
+    const map = {
+      event_not_finished: 'Event ist noch nicht beendet.',
+      ranking_empty: 'Es gibt noch keine Punkte/Rangliste.',
+      finale_already_started: 'Die Auswertung wurde bereits gestartet.',
+      event_not_found: 'Event wurde nicht gefunden.'
+    };
+    return map[norm(reason)] || (reason ? String(reason) : 'Auswertung ist aktuell nicht möglich.');
+  }
+
+  function finalePreviewForEvent(event){
+    return state.finalePreview && state.finalePreview.eventUid === event.eventUid ? state.finalePreview : null;
+  }
+
   function renderLifecycleSafetyPanel(event){
     const s = norm(event.status);
     const canArchive = s === 'finished';
     const canFinish = ['active','paused'].includes(s);
-    const canFinale = s === 'finished';
+    const preview = finalePreviewForEvent(event);
+    const eligibility = preview?.finaleEligibility || null;
+    const canFinale = Boolean(eligibility?.canStart || preview?.dashboardCanStartFinale);
+    const finaleReason = eligibility?.reason || preview?.dashboardBlockedReason || (s !== 'finished' ? 'event_not_finished' : 'ranking_empty');
+    const rankingCount = Number(eligibility?.rankingCount ?? preview?.ranking?.count ?? 0) || 0;
+    const finaleStarted = Boolean(eligibility?.finaleStarted || preview?.finaleStarted || preview?.existingFinale);
     const canCancel = ['draft','ready','active','paused'].includes(s);
     return `
       <section class="evs-card glass evs-tab-panel evs-lifecycle-panel">
@@ -1529,12 +1549,13 @@ window.StreamEventsModule = (function(){
         </div>
         <div class="evs-safety-rule-list">
           <div class="${canArchive ? 'is-ok' : 'is-blocked'}"><b>Archivieren</b><span>${canArchive ? 'Dieses Event ist beendet und kann archiviert werden.' : 'Archivieren ist erst möglich, wenn das Event beendet wurde.'}</span></div>
+          <div class="${canFinale ? 'is-ok' : 'is-blocked'}"><b>Auswertung</b><span>${canFinale ? `Auswertung ist möglich. ${rankingCount} Ranglisten-Eintrag(e) vorhanden.` : finaleBlockedReasonLabel(finaleReason)}</span></div>
           <div><b>Löschen</b><span>Löschen fragt einmal nach und entfernt dieses Event dauerhaft.</span></div>
           <div><b>Was bleibt erhalten?</b><span>Archivieren behält Punkte, Runden und Textdaten. Löschen entfernt das Event vollständig.</span></div>
         </div>
         <div class="evs-action-row evs-action-row-tight evs-lifecycle-actions">
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="finish" data-uid="${esc(event.eventUid)}" ${canFinish ? '' : 'disabled'}>Auf Finished setzen</button>
-          <button type="button" class="evs-btn evs-btn-primary" data-evs-action="winnerFinale" data-uid="${esc(event.eventUid)}" ${canFinale ? '' : 'disabled'}>Auswertung starten</button>
+          ${canFinale ? `<button type="button" class="evs-btn evs-btn-primary" data-evs-action="winnerFinale" data-uid="${esc(event.eventUid)}">Auswertung starten</button>` : ''}
           <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="archive" data-uid="${esc(event.eventUid)}" ${canArchive ? '' : 'disabled'}>Archivieren</button>
           <button type="button" class="evs-btn evs-btn-danger" data-evs-action="cancel" data-uid="${esc(event.eventUid)}" ${canCancel ? '' : 'disabled'}>Abbrechen</button>
           <button type="button" class="evs-btn evs-btn-danger" data-evs-action="deleteEvent" data-uid="${esc(event.eventUid)}">Löschen…</button>
@@ -3107,6 +3128,8 @@ window.StreamEventsModule = (function(){
       const ev = selectedEvent();
       const activeEvent = state.events.find(event => norm(event.status) === 'active');
       const dataEvent = activeEvent || ev;
+      if (ev) await loadFinalePreview(ev.eventUid, false);
+      else state.finalePreview = null;
       if (dataEvent) {
         await loadRanking(dataEvent.eventUid, false);
         await loadTextRuntimeReport(dataEvent.eventUid, false);
@@ -3129,6 +3152,18 @@ window.StreamEventsModule = (function(){
       state.ranking = null;
     }
     if (rerender) render();
+  }
+
+  async function loadFinalePreview(uid, rerender = true){
+    if (!uid) { state.finalePreview = null; if (rerender) render(); return null; }
+    try {
+      const preview = await window.CGN.api(`${api.events}/${encodeURIComponent(uid)}/finale`);
+      state.finalePreview = preview && preview.eventUid === uid ? preview : null;
+    } catch (_) {
+      state.finalePreview = null;
+    }
+    if (rerender) render();
+    return state.finalePreview;
   }
 
 
@@ -3297,6 +3332,7 @@ window.StreamEventsModule = (function(){
     const result = await window.CGN.api(`${api.events}/${encodeURIComponent(uid)}`);
     state.selected = result.event;
     state.selectedUid = uid;
+    await loadFinalePreview(uid, false);
     return result.event;
   }
 
@@ -3309,6 +3345,7 @@ window.StreamEventsModule = (function(){
     const index = state.events.findIndex(e => e.eventUid === state.selectedUid);
     if (index >= 0) state.events[index] = { ...state.events[index], ...fresh };
     else if (fresh.eventUid) state.events.unshift(fresh);
+    await loadFinalePreview(state.selectedUid, false);
   }
 
   async function reloadDashboardAfterMutation(uid, options = {}){

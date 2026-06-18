@@ -809,3 +809,38 @@ $s.runtime.counters | Select-Object textWordHits,textWordHitChatOutputsBundled,t
 $r = Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/text-runtime/report"
 $r.phraseSolves | Select-Object userLogin,userDisplayName,phraseIndex,phraseNumber,points,pointsAwarded,createdAt | Format-Table -AutoSize
 ```
+
+## EVS52.16 – Dashboard-Auswertungsbutton
+
+Der Bereich `Event verwalten` zeigt den Button `Auswertung starten` nur noch, wenn die Auswertung wirklich gestartet werden kann.
+
+Backend-Preview:
+
+```text
+GET /api/stream-events/events/:eventUid/finale
+```
+
+liefert zusaetzlich fuer das Dashboard:
+
+```text
+finaleEligibility.canStart
+finaleEligibility.reason
+finaleEligibility.eventUid
+finaleEligibility.status
+finaleEligibility.rankingCount
+finaleEligibility.finaleStarted
+finaleEligibility.existingFinaleUid
+```
+
+Button-Regel:
+
+```text
+canStart = true nur wenn:
+- Event ist finished
+- Ranking ist nicht leer
+- Winner-Finale existiert noch nicht
+```
+
+Wenn die Auswertung nicht moeglich ist, bleibt der Button unsichtbar. Die Sicherheitsliste zeigt stattdessen den Grund, z. B. `Event ist noch nicht beendet`, `Es gibt noch keine Punkte/Rangliste` oder `Die Auswertung wurde bereits gestartet`.
+
+Keine Aenderung an Chatquelle, Sound-/Satzlogik, Punktevergabe oder Bot-/Self-Filter.

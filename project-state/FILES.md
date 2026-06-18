@@ -1,35 +1,52 @@
-# FILES – EVS52.15 Report-/Diagnose-Cleanup
+# FILES – EVS52.16 relevante Dateien
 
 Stand: 2026-06-18
 
-## Dateien in diesem Step
+## Geaenderte Dateien in diesem Step
 
 ```text
 backend/modules/stream_events.js
+htdocs/dashboard/modules/stream_events.js
 docs/modules/stream_events.md
-docs/current/CURRENT_CHAT_HANDOFF_EVS52_15_REPORT_DIAG_CLEANUP.md
+docs/current/CURRENT_CHAT_HANDOFF_EVS52_16_DASHBOARD_FINALE_BUTTON.md
 project-state/CHANGELOG.md
 project-state/TODO.md
 project-state/NEXT_STEPS.md
 project-state/FILES.md
 ```
 
-## Relevante Test-Routen
+## Relevante Routen
 
 ```text
-GET /api/stream-events/status
-GET /api/stream-events/text-runtime/report
-GET /api/stream-events/events?status=active&limit=20
+GET  /api/stream-events/status
+GET  /api/stream-events/events/:eventUid/finale
+POST /api/stream-events/events/:eventUid/finale/start?confirm=1
+GET  /api/stream-events/events/:eventUid/ranking
 ```
 
-## Wichtige Statusfelder
+## Dashboard-Bereich
 
 ```text
-moduleVersion
-moduleBuild
-runtime.counters.textWordHitChatOutputsBundled
-runtime.counters.textPhraseSolves
-runtime.counters.chatOutputsLiveSent
-text-runtime/report.phraseSolves[].points
-text-runtime/report.phraseSolves[].pointsAwarded
+Eventsystem -> Event verwalten
+Button: Auswertung starten
+```
+
+Button-Regel EVS52.16:
+
+```text
+sichtbar nur wenn:
+- Event status=finished
+- Ranking hat mindestens einen Eintrag
+- Winner-Finale wurde noch nicht gestartet
+```
+
+Nicht geaendert:
+
+```text
+Chatquelle
+Soundlogik
+Satzlogik
+Punktevergabe
+Bot-/Self-Filter
+Datenbankstruktur
 ```

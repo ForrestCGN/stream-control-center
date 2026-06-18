@@ -1,5 +1,14 @@
 # CHANGELOG – stream-control-center
 
+## 2026-06-18 – EVS52.16 Dashboard-Auswertungsbutton
+
+- `stream_events` auf 0.5.87 / `STEP_EVS52_16_DASHBOARD_FINALE_BUTTON` aktualisiert.
+- Dashboard-Modul auf 0.5.53 / `STEP_EVS52_16_DASHBOARD_FINALE_BUTTON` aktualisiert.
+- Backend-Finale-Preview liefert jetzt `finaleEligibility` fuer Dashboard-Entscheidungen.
+- Der Button `Auswertung starten` im Bereich `Event verwalten` wird nur noch sichtbar, wenn das Event wirklich auswertbar ist: Event beendet, Ranking vorhanden, Finale noch nicht gestartet.
+- Wenn die Auswertung nicht moeglich ist, zeigt die Sicherheitsliste den Grund, aber keinen aktiven/disabled Auswertungsbutton.
+- Keine Aenderung an Chatquelle, Soundlogik, Satzlogik, Punktevergabe oder Bot-/Self-Filter.
+
 ## 2026-06-18 – EVS52.15 Report-/Diagnose-Cleanup
 
 - `stream_events` auf Version `0.5.86` / Build `STEP_EVS52_15_REPORT_DIAG_CLEANUP` gesetzt.

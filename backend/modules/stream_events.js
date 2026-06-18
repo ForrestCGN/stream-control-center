@@ -33,8 +33,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.86";
-const MODULE_BUILD = "STEP_EVS52_15_REPORT_DIAG_CLEANUP";
+const MODULE_VERSION = "0.5.87";
+const MODULE_BUILD = "STEP_EVS52_16_DASHBOARD_FINALE_BUTTON";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -7148,6 +7148,12 @@ function buildWinnerFinalePreview(eventUid, options = {}) {
   const topScore = rows.length ? Number(rows[0].points || 0) : 0;
   const topCandidates = rows.filter(row => Number(row.points || 0) === topScore && topScore > 0);
   const existing = event.metadata && event.metadata.winnerFinale && typeof event.metadata.winnerFinale === "object" ? event.metadata.winnerFinale : null;
+  const finaleStarted = Boolean(existing);
+  const routeCanStartOrReplay = event.status === STATUS.FINISHED && rows.length > 0;
+  const dashboardCanStartFinale = routeCanStartOrReplay && !finaleStarted;
+  const dashboardBlockedReason = event.status !== STATUS.FINISHED
+    ? "event_not_finished"
+    : (!rows.length ? "ranking_empty" : (finaleStarted ? "finale_already_started" : ""));
   return {
     ok: true,
     event: publicEventSummary(event),
@@ -7155,6 +7161,7 @@ function buildWinnerFinalePreview(eventUid, options = {}) {
     status: event.status,
     allowed: event.status === STATUS.FINISHED,
     blockedReason: event.status !== STATUS.FINISHED ? "event_not_finished" : (rows.length ? "" : "ranking_empty"),
+    dashboardBlockedReason,
     ranking,
     top3: rows.slice(0, 3),
     topScore,
@@ -7162,7 +7169,19 @@ function buildWinnerFinalePreview(eventUid, options = {}) {
     candidateCount: topCandidates.length,
     hasTie: topCandidates.length > 1,
     existingFinale: existing,
-    canStartFinale: event.status === STATUS.FINISHED && rows.length > 0,
+    finaleStarted,
+    canStartFinale: routeCanStartOrReplay,
+    dashboardCanStartFinale,
+    finaleEligibility: {
+      canStart: dashboardCanStartFinale,
+      reason: dashboardBlockedReason,
+      eventUid: uid,
+      status: event.status,
+      rankingCount: rows.length,
+      finaleStarted,
+      existingFinaleUid: existing && existing.finaleUid ? existing.finaleUid : "",
+      rule: "dashboard_button_visible_only_when_finished_with_ranking_and_no_existing_finale"
+    },
     rule: "winner_finale_allowed_only_when_event_status_finished"
   };
 }

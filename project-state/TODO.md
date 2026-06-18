@@ -1,6 +1,6 @@
 # TODO – stream-control-center
 
-Stand: 2026-06-18 – EVS52.15
+Stand: 2026-06-18 – EVS52.16
 
 ## Bestaetigt / erledigt
 
@@ -16,10 +16,11 @@ Stand: 2026-06-18 – EVS52.15
 - [x] Teiltreffer-Chatmeldungen nennen keine Satznummer/Satz-Zuordnung.
 - [x] Satzloesung, Overlay und Duplicate funktionieren.
 - [x] EVS52.15 Report-/Diagnose-Cleanup: `textWordHitChatOutputsBundled` und `phraseSolves.points` korrigiert.
+- [x] EVS52.16 Dashboard-Auswertungsbutton: Button ist nur sichtbar, wenn Auswertung wirklich moeglich ist.
 
 ## Offen / spaeter
 
-- [ ] EVS52.15 nach Deploy testen.
+- [ ] EVS52.16 nach Deploy testen: beendetes Event mit Ranking zeigt Button, nicht auswertbare Events zeigen keinen Button.
 - [ ] Bot-/Ignore-Liste in Dashboard-Einstellungen verschieben.
 - [ ] Textvarianten fuer Teiltreffer/Satzloesung dashboardfaehig bearbeiten/pruefen.
 - [ ] Satzloesungs-Overlay optisch verbessern.
