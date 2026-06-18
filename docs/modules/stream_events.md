@@ -686,3 +686,12 @@ legacyWildcardFallbackRemoved=true
 ```text
 stream_events 0.5.80 / STEP_EVS52_9_TWITCH_EVENTS_CHAT_SUBSCRIBER
 ```
+
+## EVS52.10 Hotfix
+
+- Modulversion: 0.5.81
+- Build: `STEP_EVS52_10_CHAT_ACTIVE_EVENT_HOTFIX`
+- Dashboard-Test-Start nutzt wieder `startEvent()` und damit den normalen Active-Event-Schutz.
+- `sound-runtime/skip-wait` blockiert ohne eindeutige `eventUid`, wenn mehrere aktive Events existieren.
+- Statusdiagnose: `runtime.activeEventGuard`.
+- Chatquelle bleibt `twitch_events -> communication_bus -> twitch.chat.message`.

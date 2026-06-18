@@ -9,8 +9,8 @@ const commands = require('./commands');
 const twitchEvents = require('./twitch_events');
 
 const MODULE_NAME = 'twitch_presence';
-const MODULE_VERSION = '0.1.6';
-const MODULE_BUILD = 'EVS52_9_TWITCH_EVENTS_CHAT_SOURCE';
+const MODULE_VERSION = '0.1.7';
+const MODULE_BUILD = 'EVS52_10_TWITCH_EVENTS_CHAT_AUTOSTART';
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
@@ -67,6 +67,7 @@ module.exports.init = function init(ctx) {
   const BOT_CLIENT_SECRET = (env.TWITCH_BOT_CLIENT_SECRET || '').toString().trim();
   const SEND_JOIN_MESSAGE = /^(1|true|yes|on)$/i.test((env.TWITCH_BOT_SEND_JOIN_MESSAGE || '').toString().trim());
   const JOIN_MESSAGE = (env.TWITCH_BOT_JOIN_MESSAGE || '').toString();
+  const PRESENCE_AUTOSTART = /^(1|true|yes|on)$/i.test((env.TWITCH_PRESENCE_AUTOSTART ?? 'true').toString().trim());
 
   const ACTIVITY_PRESENT_MINUTES = Math.max(5, Number(env.TWITCH_PRESENCE_PRESENT_MINUTES || 30) || 30);
   const ACTIVITY_ACTIVE_MINUTES = Math.max(5, Number(env.TWITCH_PRESENCE_ACTIVE_MINUTES || 60) || 60);
@@ -129,6 +130,12 @@ module.exports.init = function init(ctx) {
   let lastChatBusResultReason = '';
   let lastChatBusEventId = '';
   let lastChatBusError = '';
+  let lastChatBusSubscriberDeliveredCount = 0;
+  let lastChatBusPayloadPreview = '';
+  let autostartAttempted = false;
+  let autostartResult = '';
+  let autostartAt = '';
+  let autostartError = '';
   let commandDirectHookEnabled = /^(1|true|yes|on)$/i.test((env.TWITCH_PRESENCE_COMMAND_DIRECT_HOOK_ENABLED ?? 'false').toString().trim());
   let commandDirectHookMode = commandDirectHookEnabled ? 'enabled' : 'disabled';
   let commandDirectHookHandledCount = 0;
@@ -595,7 +602,9 @@ module.exports.init = function init(ctx) {
       if (result && result.ok === true) {
         chatBusEmitCount += 1;
         lastChatBusEmitAt = core.nowIso();
-        lastChatBusResultReason = 'ok';
+        lastChatBusSubscriberDeliveredCount = Number(result.bus && result.bus.subscriberDeliveredCount || result.subscriberDeliveredCount || 0);
+        lastChatBusPayloadPreview = `${parsed.login || ''}: ${(parsed.params && parsed.params[parsed.params.length - 1] || '').toString().slice(0, 120)}`.trim();
+        lastChatBusResultReason = lastChatBusSubscriberDeliveredCount > 0 ? 'ok' : 'ok_no_bus_subscriber_delivery';
         lastChatBusEventId = result.busEventId || (result.bus && (result.bus.eventId || result.bus.event?.id)) || '';
         lastChatBusError = '';
       } else {
@@ -1205,6 +1214,8 @@ module.exports.init = function init(ctx) {
         lastEmitAt: lastChatBusEmitAt,
         lastResultReason: lastChatBusResultReason,
         lastBusEventId: lastChatBusEventId,
+        lastSubscriberDeliveredCount: lastChatBusSubscriberDeliveredCount,
+        lastPayloadPreview: lastChatBusPayloadPreview,
         lastError: lastChatBusError
       },
       commandDirectHook: getCommandDirectHookStatus(),
@@ -1647,8 +1658,30 @@ module.exports.init = function init(ctx) {
     sendChatMessage: sendChatMessageInternal,
     getStatus: buildPresenceStatus,
     getActiveUsers: listActiveUsers,
-    getActivityUsers: listActivityUsers
+    getActivityUsers: listActivityUsers,
+    start: startConnectionInternal,
+    stop: stopConnectionInternal
   };
+
+  if (PRESENCE_AUTOSTART) {
+    const autostartTimer = setTimeout(() => {
+      autostartAttempted = true;
+      autostartAt = core.nowIso();
+      autostartResult = 'starting';
+      startConnectionInternal('autostart')
+        .then((result) => {
+          autostartResult = result && result.ok ? 'started' : (result && (result.reason || result.error)) || 'not_started';
+          autostartError = '';
+        })
+        .catch((err) => {
+          autostartResult = 'failed';
+          autostartError = err?.message || String(err);
+          lastError = autostartError;
+          console.warn(`[twitch_presence] autostart failed: ${autostartError}`);
+        });
+    }, 1500);
+    if (autostartTimer && typeof autostartTimer.unref === 'function') autostartTimer.unref();
+  }
 
   console.log('[twitch_presence] routes active: /twitch/presence/start, /twitch/presence/stop, /twitch/presence/status, /twitch/presence/send, /api/twitch/presence/*, /api/twitch/presence/activity*');
 };

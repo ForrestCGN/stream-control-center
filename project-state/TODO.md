@@ -82,3 +82,15 @@ Stand: 2026-06-18 – EVS52.9 Doku/Handoff
 - [ ] Danach `/api/stream-events/status` pruefen: `runtime.chatSource.subscribed=True`.
 - [ ] Danach Live-Test Sound + Satz durchfuehren.
 - [ ] Danach Punkte/Ranking/User-Historie pruefen.
+
+## EVS52.10 Hotfix offen zu testen
+
+- [ ] Nach Deploy prüfen: maximal ein aktives Event.
+- [ ] `runtime.activeEventGuard` im Stream-Events-Status prüfen.
+- [ ] `twitch_presence.autostart` prüfen: connected/authenticated/joined müssen true werden.
+- [ ] Live-Chat prüfen: `twitch_presence.chatBus.emitCount` steigt.
+- [ ] Bus prüfen: `stream_events.runtime.chatSource.delivered` steigt.
+- [ ] Soundantwort live testen.
+- [ ] Satz-Teilwort live testen.
+- [ ] Satzlösung live testen.
+- [ ] Wartezeit überspringen mit genau einem aktiven Event testen.

@@ -82,3 +82,13 @@
 ## 2026-06-18 – EVS51.x / EVS50.x
 
 - Punkte-Historie, Punktecheck, Satz-Testbereich, Duplikat-Schutz und kombinierter Sound/Text-Abschluss bestätigt.
+
+## 2026-06-18 – EVS52.10 Chatquelle/Active-Event-Hotfix
+
+- `stream_events` auf 0.5.81 / `STEP_EVS52_10_CHAT_ACTIVE_EVENT_HOTFIX` aktualisiert.
+- Dashboard-/Test-Start nutzt wieder `startEvent()` und damit denselben Schutz gegen mehrere aktive Events wie der normale Startpfad.
+- `sound-runtime/skip-wait` blockiert ohne eindeutige `eventUid`, wenn mehrere aktive Events gefunden werden.
+- Statusdiagnose um `runtime.activeEventGuard` ergänzt.
+- `twitch_presence` auf 0.1.7 aktualisiert und startet die IRC-Presence standardmäßig automatisch (`TWITCH_PRESENCE_AUTOSTART`, Default true), damit Chat via `twitch_events.handleIrcEvent()` in den Bus kommt.
+- `twitch_presence.chatBus` zeigt jetzt Subscriber-Delivery und Payload-Vorschau.
+- `twitch_events` auf 0.1.13 aktualisiert und IRC-Chat-Zähler ergänzt.

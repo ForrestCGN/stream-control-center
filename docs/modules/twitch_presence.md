@@ -74,3 +74,11 @@ twitch_presence.emitTwitchChatEvent(parsed)
 Der EVS52.7-Direktaufruf nach `stream_events.handleTwitchPresenceIrcChat()` wurde entfernt. Dadurch gibt es keinen zweiten parallelen Chatpfad mehr fuer das Event-System.
 
 Der separate Command-Direct-Hook bleibt als bestehender Legacy-/Fallback-Mechanismus steuerbar, ist aber nicht Teil der Sound/Satz-Chatquelle.
+
+## EVS52.10 Hotfix
+
+- Modulversion: 0.1.7
+- Build: `EVS52_10_TWITCH_EVENTS_CHAT_AUTOSTART`
+- IRC-Presence startet standardmäßig automatisch über `TWITCH_PRESENCE_AUTOSTART` (Default true).
+- PRIVMSG wird weiterhin ausschließlich an `twitch_events.handleIrcEvent()` übergeben.
+- `chatBus`-Status zeigt jetzt Subscriber-Delivery und Payload-Vorschau.

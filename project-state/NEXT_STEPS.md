@@ -115,3 +115,14 @@ powershell -ExecutionPolicy Bypass -File .\tools\tests\EVS52_5_TEXT_LIVE_FLOW_CH
    - Duplicate.
    - Soundantwort.
    - Ranking/User-Historie.
+
+## EVS52.10 – direkt nach Einspielen
+
+1. Backend neu starten.
+2. `stepdone.cmd` ausführen.
+3. Prüfen, ob `twitch_presence` automatisch verbunden und dem Channel beigetreten ist.
+4. Eine echte Twitch-Chatnachricht senden.
+5. Prüfen, ob `twitch_presence.chatBus.emitCount` und `stream_events.runtime.chatSource.delivered` steigen.
+6. Danach erst Sound+Satz-Live-Test fortsetzen.
+
+Wenn `twitch_presence.autostart.result=failed`, zuerst den Fehler aus `twitch_presence.autostart.error` prüfen. Nicht wieder Direct-Hooks stapeln.

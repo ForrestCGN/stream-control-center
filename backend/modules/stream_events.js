@@ -31,8 +31,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.80";
-const MODULE_BUILD = "STEP_EVS52_9_TWITCH_EVENTS_CHAT_SUBSCRIBER";
+const MODULE_VERSION = "0.5.81";
+const MODULE_BUILD = "STEP_EVS52_10_CHAT_ACTIVE_EVENT_HOTFIX";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -1201,6 +1201,36 @@ function getActiveEvent() {
   ensureSchema();
   const row = database.get("SELECT * FROM stream_events_events WHERE status = 'active' ORDER BY started_at DESC, id DESC LIMIT 1");
   return rowToEvent(row);
+}
+
+function getActiveEvents(limit = 20) {
+  ensureSchema();
+  const rows = database.all("SELECT * FROM stream_events_events WHERE status = 'active' ORDER BY started_at DESC, id DESC LIMIT :limit", { limit: Math.max(1, Math.min(100, Number(limit || 20) || 20)) });
+  return rows.map(rowToEvent).filter(Boolean);
+}
+
+function resolveSingleActiveEventForRuntimeAction(action = "runtime_action", explicitEventUid = "") {
+  const uid = cleanString(explicitEventUid);
+  if (uid) {
+    const event = getEventByUid(uid);
+    if (!event) return { ok: false, error: "event_not_found", eventUid: uid, action, message: "Das angegebene Event wurde nicht gefunden." };
+    if (event.status !== STATUS.ACTIVE) return { ok: false, error: "event_not_active", eventUid: uid, status: event.status, action, message: "Das angegebene Event ist nicht aktiv." };
+    return { ok: true, event, explicit: true, activeCount: 1, action };
+  }
+
+  const activeEvents = getActiveEvents(20);
+  if (activeEvents.length === 0) return { ok: false, error: "active_event_missing", action, activeCount: 0, message: "Kein aktives Event gefunden." };
+  if (activeEvents.length > 1) {
+    return {
+      ok: false,
+      error: "multiple_active_events",
+      action,
+      activeCount: activeEvents.length,
+      activeEvents: activeEvents.map(publicEventSummary),
+      message: "Mehrere aktive Events gefunden. Aktion ohne eindeutige eventUid wird blockiert."
+    };
+  }
+  return { ok: true, event: activeEvents[0], explicit: false, activeCount: activeEvents.length, action };
 }
 function getStreamStatusSnapshot() {
   // EVS43: RuntimeGate must use twitch_events as the effective stream-state owner.
@@ -4816,9 +4846,9 @@ function isPreparedOnlyActiveSoundRound(round) {
 
 function skipSoundRoundWait(body = {}) {
   ensureSchema();
-  const event = cleanString(body.eventUid || body.event_uid) ? getEventByUid(body.eventUid || body.event_uid) : getActiveEvent();
-  if (!event) return { ok: false, error: "active_event_missing", message: "Kein aktives Event gefunden." };
-  if (event.status !== STATUS.ACTIVE) return { ok: false, error: "event_not_active", eventUid: event.eventUid, status: event.status, message: "Das Event läuft nicht." };
+  const resolved = resolveSingleActiveEventForRuntimeAction("sound_runtime_skip_wait", body.eventUid || body.event_uid || "");
+  if (!resolved.ok) return resolved;
+  const event = resolved.event;
   if (!event.soundEnabled) return { ok: false, error: "sound_not_enabled", eventUid: event.eventUid, message: "Dieses Event hat kein Sound-Spiel aktiviert." };
   if (isEventRuntimePaused(event.eventUid)) return { ok: false, error: "event_runtime_paused", eventUid: event.eventUid, message: "Das Event ist manuell pausiert. Erst im Dashboard/Backend fortsetzen." };
   if (isEventRuntimeOfflineWaiting(event.eventUid)) return { ok: false, error: "stream_offline_auto_waiting", eventUid: event.eventUid, message: "Stream ist offline. Das Event wartet automatisch und startet keinen Schnipsel." };
@@ -8002,16 +8032,14 @@ function startDashboardEventTestEvent(eventUid = "") {
   const target = getEventTestTarget(eventUid);
   if (!target.ok) return target;
   const event = target.event;
-  if (event.status === STATUS.ACTIVE) return { ok: true, alreadyActive: true, event: publicEventSummary(event) };
-  database.updateByKey("stream_events_events", "event_uid", event.eventUid, {
-    status: STATUS.ACTIVE,
-    started_at: event.startedAt || nowIso(),
-    updated_at: nowIso()
-  });
-  const updated = getEventByUid(event.eventUid);
-  markAction("dashboard_test.event_started", event.eventUid);
-  emitBus("stream_events.test", "event_started", { event: publicEventSummary(updated) });
-  return { ok: true, event: publicEventSummary(updated) };
+  const result = startEvent(event.eventUid);
+  if (result && result.ok) {
+    const updated = getEventByUid(event.eventUid);
+    markAction("dashboard_test.event_started", event.eventUid);
+    emitBus("stream_events.test", "event_started", { event: publicEventSummary(updated), startResult: result });
+    return { ...result, event: publicEventSummary(updated), via: "startEvent_active_guard" };
+  }
+  return { ...result, via: "startEvent_active_guard" };
 }
 
 async function runDashboardEventTestStep(step = "", body = {}) {
@@ -8054,6 +8082,10 @@ async function runDashboardEventTestStep(step = "", body = {}) {
     return { ...result, eventUid: target.event.eventUid, action: "finale" };
   }
   if (action === "full-flow") {
+    const existingActiveEvents = getActiveEvents(20);
+    if (existingActiveEvents.length > 0) {
+      return { ok: false, error: "another_event_active", action: "full-flow", activeCount: existingActiveEvents.length, activeEvents: existingActiveEvents.map(publicEventSummary), message: "Full-Flow-Test startet kein neues Event, solange bereits ein aktives Event läuft." };
+    }
     const created = createDashboardEventTestEvent({ name: `EVS DASHBOARD TEST FULL FLOW · ${new Date().toLocaleString("de-DE")}` });
     const started = startDashboardEventTestEvent(created.eventUid);
     const wrong = await runEventTestWrongAnswers(created.eventUid);
@@ -8152,7 +8184,12 @@ function buildStatus() {
     runtime: {
       counters: runtimeState.counters,
       lastTextChatRuntime: runtimeState.lastTextChatRuntime || null,
-      chatSource: safeJson(runtimeState.chatSource, {})
+      chatSource: safeJson(runtimeState.chatSource, {}),
+      activeEventGuard: {
+        activeCount: activeEvent ? getActiveEvents(20).length : 0,
+        singleActiveRequiredForSkipWait: true,
+        dashboardTestStartUsesStartEvent: true
+      }
     },
     runtimeOverlay: {
       prepared: true,

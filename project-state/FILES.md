@@ -86,3 +86,16 @@ backend/modules/helpers/helper_communication.js
 htdocs/dashboard/modules/stream_events.js
 htdocs/dashboard/modules/stream_events.css
 ```
+
+## EVS52.10 geänderte Dateien
+
+```text
+backend/modules/stream_events.js
+backend/modules/twitch_events.js
+backend/modules/twitch_presence.js
+project-state/CHANGELOG.md
+project-state/TODO.md
+project-state/NEXT_STEPS.md
+project-state/FILES.md
+docs/current/CURRENT_CHAT_HANDOFF_EVS52_10_CHAT_ACTIVE_EVENT_HOTFIX.md
+```

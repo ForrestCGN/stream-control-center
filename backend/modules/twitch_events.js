@@ -27,8 +27,8 @@ const axios = require('axios');
 const WebSocket = require('ws');
 
 const MODULE_NAME = 'twitch_events';
-const MODULE_VERSION = '0.1.12';
-const MODULE_BUILD = 'CAN44.41_MANUAL_OVERRIDE_LOCK';
+const MODULE_VERSION = '0.1.13';
+const MODULE_BUILD = 'EVS52_10_CHAT_SOURCE_DIAG';
 const MODULE_ID = `module:${MODULE_NAME}`;
 const MODULE_STARTED_AT = nowIso();
 
@@ -394,6 +394,9 @@ const state = {
       subscriptionFailed: 0,
       notifications: 0,
       chatMessagesEmitted: 0,
+      ircPrivmsgReceived: 0,
+      ircChatMessagesEmitted: 0,
+      ircChatMessagesSkipped: 0,
       duplicateSkipped: 0,
       websocketErrors: 0,
       reconnects: 0
@@ -2467,9 +2470,13 @@ function handleIrcEvent(parsed = {}, context = {}, options = {}) {
   if (!command) return { ok: false, reason: 'missing_command' };
 
   if (command === 'PRIVMSG') {
+    state.eventSubChat.counters.ircPrivmsgReceived += 1;
     const user = normalizeIrcUser(parsed);
     const message = messageFromParsed(parsed);
-    if (!user.login || !message) return { ok: false, reason: 'invalid_privmsg' };
+    if (!user.login || !message) {
+      state.eventSubChat.counters.ircChatMessagesSkipped += 1;
+      return { ok: false, reason: 'invalid_privmsg', userLogin: user.login || '', hasMessage: Boolean(message) };
+    }
     const payload = {
       source: 'irc',
       command,
@@ -2481,7 +2488,10 @@ function handleIrcEvent(parsed = {}, context = {}, options = {}) {
       tags: options.includeTags === true ? safeJson(tagsFromParsed(parsed), {}) : undefined,
       raw: options.includeRaw === true ? cleanString(parsed.raw || '') : undefined
     };
-    return publishTwitchEvent('twitch.chat.message', payload, { ...context, source: context.source || 'twitch_presence' }, options);
+    const result = publishTwitchEvent('twitch.chat.message', payload, { ...context, source: context.source || 'twitch_presence' }, options);
+    if (result && result.ok === true) state.eventSubChat.counters.ircChatMessagesEmitted += 1;
+    else state.eventSubChat.counters.ircChatMessagesSkipped += 1;
+    return result;
   }
 
   if (command === 'NOTICE') {
