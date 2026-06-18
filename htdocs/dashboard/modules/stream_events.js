@@ -53,7 +53,6 @@ window.StreamEventsModule = (function(){
     textModuleFilter: 'all',
     textSearchFilter: '',
     modal: null,
-    testPanel: { count: 7, duration: 'short', source: 'random', loading: false, result: null, error: '', message: '' },
     activeTab: 'overview'
   };
 
@@ -283,7 +282,7 @@ window.StreamEventsModule = (function(){
         ${renderTabs()}
         ${renderActiveTab(ev)}
 
-        ${state.modal ? renderModal() : ''}
+        ${state.modal?.type === 'winnerDemoResult' ? renderWinnerDemoResultModal() : (state.modal ? renderModal() : '')}
         ${state.userStatsModal?.open ? renderUserStatsModal() : ''}
         ${state.liveStatusModal?.open ? renderLiveStatusModal() : ''}
         ${state.nameDialog ? renderNameDialog() : ''}
@@ -1543,90 +1542,6 @@ window.StreamEventsModule = (function(){
     `;
   }
 
-
-  function renderTestTab(event){
-    const t = state.testPanel || {};
-    const result = t.result || null;
-    const finale = result && result.finale ? result.finale : null;
-    const ranking = finale && Array.isArray(finale.ranking) ? finale.ranking : [];
-    const rowsHtml = ranking.length ? ranking.map(row => `
-      <tr>
-        <td>${Number(row.rank || 0)}</td>
-        <td>
-          <div class="evs-test-user">
-            ${row.avatarUrl || row.userAvatarUrl ? `<img src="${esc(row.avatarUrl || row.userAvatarUrl)}" alt="">` : `<span>${esc(String(row.userDisplayName || row.userLogin || '?').slice(0,2).toUpperCase())}</span>`}
-            <strong>${esc(row.userDisplayName || row.userLogin || '-')}</strong>
-          </div>
-        </td>
-        <td>${esc(row.rewardLabel || (row.crumbBonus ? `+${Number(row.crumbBonus).toLocaleString('de-DE')} Extra` : '-'))}</td>
-        <td>${row.avatarUrl || row.userAvatarUrl ? 'ja' : 'nein'}</td>
-        <td>${esc(row.source || row.userResolveSource || '-')}</td>
-      </tr>
-    `).join('') : '<tr><td colspan="5" class="evs-muted">Noch keine Testdaten geladen.</td></tr>';
-
-    const counts = [5, 7, 10];
-    const quickButtons = counts.map(count => `
-      <div class="evs-test-button-row">
-        <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="openWinnerTest" data-count="${count}" data-mode="instant">Sofortbild ${count}</button>
-        <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="openWinnerTest" data-count="${count}" data-mode="timeline" data-duration="short">Timeline kurz ${count}</button>
-        <button type="button" class="evs-btn evs-btn-ghost" data-evs-action="copyWinnerTest" data-count="${count}" data-mode="timeline" data-duration="short">URL kopieren</button>
-      </div>
-    `).join('');
-
-    return `
-      <section class="evs-card glass evs-tab-panel evs-test-tab">
-        <div class="evs-card-head">
-          <div>
-            <h3>Test</h3>
-            <span>Winner-Finale und Backend-Testdaten prüfen, ohne echte Eventdaten zu verändern.</span>
-          </div>
-          ${event ? statusBadge(event.status) : ''}
-        </div>
-
-        <div class="evs-test-grid">
-          <div class="evs-test-panel">
-            <h4>Winner-Finale Overlay testen</h4>
-            <p class="evs-muted">Öffnet das Overlay mit zufälligen Backend-Usern und Avatar-Auflösung.</p>
-            ${quickButtons}
-            <div class="evs-test-button-row">
-              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="openWinnerTest" data-count="7" data-mode="timeline" data-duration="normal">Timeline normal 7</button>
-              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="openWinnerTest" data-count="7" data-mode="timeline" data-duration="long">Timeline lang 7</button>
-              <button type="button" class="evs-btn evs-btn-ghost" data-evs-action="openWinnerDebug">Debug-Boxen öffnen</button>
-            </div>
-          </div>
-
-          <div class="evs-test-panel">
-            <h4>Backend-Testdaten prüfen</h4>
-            <p class="evs-muted">Ruft Random-Testdaten ab und zeigt Quelle sowie Avatar-Status.</p>
-            <div class="evs-test-button-row">
-              <button type="button" class="evs-btn evs-btn-primary" data-evs-action="fetchWinnerRandomDemo" data-count="5" ${t.loading ? 'disabled' : ''}>5 User laden</button>
-              <button type="button" class="evs-btn evs-btn-primary" data-evs-action="fetchWinnerRandomDemo" data-count="7" ${t.loading ? 'disabled' : ''}>7 User laden</button>
-              <button type="button" class="evs-btn evs-btn-primary" data-evs-action="fetchWinnerRandomDemo" data-count="10" ${t.loading ? 'disabled' : ''}>10 User laden</button>
-            </div>
-            ${t.loading ? '<div class="evs-muted">Lade Testdaten...</div>' : ''}
-            ${t.error ? `<div class="evs-error">${esc(t.error)}</div>` : ''}
-            ${t.message ? `<div class="evs-ok">${esc(t.message)}</div>` : ''}
-          </div>
-        </div>
-
-        <div class="evs-test-result">
-          <h4>Letzte Random-Testdaten</h4>
-          <table class="evs-test-table">
-            <thead>
-              <tr><th>Platz</th><th>User</th><th>Gewinn</th><th>Avatar</th><th>Quelle</th></tr>
-            </thead>
-            <tbody>${rowsHtml}</tbody>
-          </table>
-        </div>
-
-        <div class="evs-test-panel evs-test-note">
-          <h4>Echte Auswertung</h4>
-          <p>Für ein echtes beendetes Event nutzt du weiterhin im Bereich <b>Event verwalten</b> den Button <b>Auswertung starten</b> oder im Chat <code>!event auswertung</code>.</p>
-        </div>
-      </section>
-    `;
-  }
-
   function renderOverlayTab(event){
     return `
       <section class="evs-card glass evs-tab-panel">
@@ -1634,7 +1549,18 @@ window.StreamEventsModule = (function(){
           <div><h3>Overlay</h3><span>Vorschau und Anzeigeoptionen werden später hier getrennt eingebaut.</span></div>
           ${event ? statusBadge(event.status) : ''}
         </div>
-        <div class="evs-empty">Overlay ist noch nicht Teil dieses Steps. Geplant: aktuelles Event, aktuelle Runde, Hinweise, Gewinner und Top 3.</div>
+        <div class="evs-empty">Overlay-Helfer und Winner-Finale-Tests. Diese Tests ändern keine echten Eventdaten.</div>
+        <div class="evs-winner-test-box">
+          <h4>Winner-Finale testen</h4>
+          <div class="evs-winner-test-actions">
+            <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="openWinnerTest" data-count="5" data-mode="instant">Sofortbild 5</button>
+            <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="openWinnerTest" data-count="7" data-mode="instant">Sofortbild 7</button>
+            <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="openWinnerTest" data-count="10" data-mode="instant">Sofortbild 10</button>
+            <button type="button" class="evs-btn evs-btn-primary" data-evs-action="openWinnerTest" data-count="7" data-mode="timeline" data-duration="short">Timeline kurz 7</button>
+            <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="fetchWinnerRandomDemo" data-count="7">Random-Daten prüfen</button>
+            <button type="button" class="evs-btn evs-btn-ghost" data-evs-action="openWinnerDebug">Debug-Boxen</button>
+          </div>
+        </div>
       </section>
     `;
   }
@@ -3324,61 +3250,63 @@ window.StreamEventsModule = (function(){
 
 
 
-  function winnerOverlayUrl(params = {}) {
+  function winnerOverlayTestUrl(count = 7, mode = 'instant', duration = 'short') {
     const search = new URLSearchParams();
-    const demo = params.demo || 'random';
-    search.set('demo', demo);
-    search.set('demoCount', String(params.count || state.testPanel?.count || 7));
-    if (params.instant) search.set('state', 'final');
-    else search.set('duration', params.duration || state.testPanel?.duration || 'short');
-    search.set('v', '4933');
+    search.set('demo', 'random');
+    search.set('demoCount', String(count || 7));
+    if (mode === 'instant') search.set('state', 'final');
+    else search.set('duration', duration || 'short');
+    search.set('v', '4933a');
     return `/overlays/stream_events/event_winner_overlay.html?${search.toString()}`;
   }
 
-  function openWinnerOverlayTest(count, mode, duration = 'short') {
-    const url = winnerOverlayUrl({
-      count,
-      instant: mode === 'instant',
-      duration
-    });
-    window.open(url, '_blank', 'noopener,noreferrer');
-    state.message = `Winner-Overlay-Test geöffnet: ${count} Teilnehmer · ${mode === 'instant' ? 'Sofortbild' : `Timeline ${duration}`}`;
-    render();
-  }
-
-  async function copyWinnerOverlayUrl(count, mode, duration = 'short') {
-    const url = window.location.origin + winnerOverlayUrl({
-      count,
-      instant: mode === 'instant',
-      duration
-    });
-    try {
-      await navigator.clipboard.writeText(url);
-      state.message = 'Overlay-URL kopiert.';
-    } catch (_) {
-      state.message = url;
-    }
+  function openWinnerOverlayTest(count = 7, mode = 'instant', duration = 'short') {
+    window.open(winnerOverlayTestUrl(count, mode, duration), '_blank', 'noopener,noreferrer');
+    state.message = `Winner-Test geöffnet: ${count} User · ${mode === 'instant' ? 'Sofortbild' : `Timeline ${duration}`}`;
     render();
   }
 
   async function fetchWinnerRandomDemo(count = 7) {
-    state.testPanel = state.testPanel || {};
-    state.testPanel.loading = true;
-    state.testPanel.error = '';
-    state.testPanel.message = '';
-    render();
     try {
-      const result = await window.CGN.api(`/api/stream-events/winner-finale/demo-random?count=${encodeURIComponent(String(count))}`);
-      state.testPanel.result = result;
-      state.testPanel.message = `Random-Testdaten geladen: ${result?.finale?.ranking?.length || result?.count || 0} User.`;
-      state.message = state.testPanel.message;
+      const result = await window.CGN.api(`/api/stream-events/winner-finale/demo-random?count=${encodeURIComponent(String(count || 7))}`);
+      const rows = result?.finale?.ranking || [];
+      state.modal = {
+        type: 'winnerDemoResult',
+        title: `Random-Testdaten (${rows.length} User)`,
+        result
+      };
+      render();
     } catch (err) {
-      state.testPanel.error = err.message || String(err);
-      state.error = state.testPanel.error;
-    } finally {
-      state.testPanel.loading = false;
+      state.error = err.message || String(err);
       render();
     }
+  }
+
+  function renderWinnerDemoResultModal(){
+    const result = state.modal?.result || {};
+    const rows = result?.finale?.ranking || [];
+    const body = rows.length ? rows.map(row => `
+      <tr>
+        <td>${Number(row.rank || 0)}</td>
+        <td>${esc(row.userDisplayName || row.userLogin || '-')}</td>
+        <td>${row.avatarUrl || row.userAvatarUrl ? 'ja' : 'nein'}</td>
+        <td>${esc(row.source || row.userResolveSource || '-')}</td>
+      </tr>
+    `).join('') : '<tr><td colspan="4">Keine Testdaten geladen.</td></tr>';
+    return `
+      <div class="evs-modal-backdrop" data-evs-action="closeModal">
+        <div class="evs-modal evs-winner-test-modal" onclick="event.stopPropagation()">
+          <div class="evs-modal-head">
+            <h3>${esc(state.modal?.title || 'Random-Testdaten')}</h3>
+            <button type="button" class="evs-btn evs-btn-ghost" data-evs-action="closeModal">Schließen</button>
+          </div>
+          <table class="evs-winner-test-table">
+            <thead><tr><th>Platz</th><th>User</th><th>Avatar</th><th>Quelle</th></tr></thead>
+            <tbody>${body}</tbody>
+          </table>
+        </div>
+      </div>
+    `;
   }
 
   async function startWinnerFinale(uid){
@@ -3568,6 +3496,20 @@ window.StreamEventsModule = (function(){
       if (!btn) return;
       const action = btn.dataset.evsAction;
       const uid = btn.dataset.uid || state.selectedUid;
+
+      if (action === 'openWinnerTest') {
+        openWinnerOverlayTest(Number(btn.dataset.count || 7), btn.dataset.mode || 'instant', btn.dataset.duration || 'short');
+        return;
+      }
+      if (action === 'fetchWinnerRandomDemo') {
+        fetchWinnerRandomDemo(Number(btn.dataset.count || 7));
+        return;
+      }
+      if (action === 'openWinnerDebug') {
+        window.open('/overlays/stream_events/event_winner_overlay.html?debug=boxes&grid=1&v=4933a', '_blank', 'noopener,noreferrer');
+        return;
+      }
+
       if (action === 'selectEvent') {
         state.selectedUid = uid;
         const targetTab = btn.dataset.targetTab || 'events';
