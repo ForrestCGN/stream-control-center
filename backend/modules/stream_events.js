@@ -7,7 +7,7 @@
  * - Keeps EVS-12 Text-Runtime dashboard report.
  * - Adds user statistics list/detail endpoints for dropdown filtering.
  * - Prepares text and future sound statistics in one user-focused report.
- * - EVS52.5 keeps Sound-Chat intact, enables Text/Satz partial-hit detection for real chat aliases, and adds a focused live-flow test.
+ * - EVS52.6 keeps Sound-Chat intact and adds a safe direct Twitch-Chat bridge fallback so live chat reaches the Satz/Text runtime when the bus subscriber path does not deliver.
  */
 
 const crypto = require("crypto");
@@ -29,8 +29,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.76";
-const MODULE_BUILD = "STEP_EVS52_5_TEXT_LIVE_FLOW_FIX";
+const MODULE_VERSION = "0.5.77";
+const MODULE_BUILD = "STEP_EVS52_6_LIVE_CHAT_DIRECT_BRIDGE";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -378,6 +378,18 @@ let runtimeState = {
     lastAt: "",
     lastError: "",
     lastResult: null
+  },
+  directChatBridge: {
+    installed: false,
+    delivered: 0,
+    skipped: 0,
+    errors: 0,
+    lastAt: "",
+    lastReason: "",
+    lastMessageId: "",
+    lastLogin: "",
+    lastMessagePreview: "",
+    lastError: ""
   },
   lastTextChatRuntime: null
 };
@@ -2808,9 +2820,49 @@ function processTextChatMessage(chat = {}, options = {}) {
   return { ok: true, eventUid: event.eventUid, solved, wordHits, chatOutputs, solvedCount: solved.length, wordHitCount: wordHits.length, chatOutputCount: chatOutputs.length, partStatus, autoFinish };
 }
 
+function isLiveChatRuntimeSource(source = "") {
+  const clean = cleanString(source);
+  return clean === "bus:twitch.chat.message" || clean.startsWith("bus:") || clean === "direct:twitch_events.handleIrcEvent" || clean === "direct:twitch_presence.irc";
+}
+
+function extractChatPayloadFromIrcParsed(parsed = {}, context = {}) {
+  const raw = parsed && typeof parsed === "object" ? parsed : {};
+  const tags = raw.tags && typeof raw.tags === "object" ? raw.tags : {};
+  const badges = raw.badges && typeof raw.badges === "object" ? raw.badges : {};
+  const params = Array.isArray(raw.params) ? raw.params : [];
+  const message = cleanString(raw.message || raw.text || params[1] || params[params.length - 1] || "");
+  const login = cleanString(raw.login || tags.login || raw.userLogin || raw.username || "").replace(/^@/, "").toLowerCase();
+  const displayName = cleanString(raw.displayName || tags["display-name"] || raw.userDisplayName || raw.userName || login, login);
+  const messageId = cleanString(tags.id || tags["message-id"] || raw.messageId || raw.message_id || "");
+  const userAvatarUrl = cleanString(raw.userAvatarUrl || raw.avatarUrl || raw.profileImageUrl || raw.profile_image_url || "");
+  return {
+    message,
+    userLogin: login,
+    userDisplayName: displayName,
+    userAvatarUrl,
+    messageId,
+    raw: {
+      source: "irc_parsed",
+      command: cleanString(raw.command || ""),
+      channel: cleanString(context.channel || raw.channel || params[0] || "").replace(/^#/, "").toLowerCase(),
+      userId: cleanString(tags["user-id"] || raw.userId || ""),
+      badges: safeJson(badges, {})
+    }
+  };
+}
+
+function didBusPathHandleChat(beforeAt = "", chat = {}) {
+  const last = runtimeState.lastTextChatRuntime || null;
+  if (!last || !last.at || last.at === beforeAt) return false;
+  if (!String(last.source || "").startsWith("bus:")) return false;
+  const msgId = cleanString(chat.messageId || "");
+  if (msgId && cleanString(last.messageId || "") && cleanString(last.messageId || "") === msgId) return true;
+  return cleanString(last.userLogin || "") === cleanString(chat.userLogin || "") && cleanString(last.message || "") === cleanString(chat.message || "");
+}
+
 function processParallelChatMessage(chat = {}, context = {}) {
   const source = cleanString(context.source, "api:parallel-test-chat");
-  const busChat = source === "bus:twitch.chat.message" || source.startsWith("bus:");
+  const busChat = isLiveChatRuntimeSource(source);
   const event = cleanString(context.eventUid) ? getEventByUid(context.eventUid) : getActiveEvent();
   const runtimeGate = getRuntimeGateStatus({ eventUid: event ? event.eventUid : "" });
   if (busChat && !runtimeGate.active) {
@@ -2900,6 +2952,7 @@ function processParallelChatMessage(chat = {}, context = {}) {
     userLogin: chat.userLogin,
     userDisplayName: chat.userDisplayName,
     message: chat.message,
+    messageId: cleanString(chat.messageId || ""),
     busChat,
     runtimeGateActive: !!(runtimeGate && runtimeGate.active),
     soundEnabled: event.soundEnabled === true,
@@ -2929,6 +2982,71 @@ function handleTwitchChatEnvelope(envelope = {}) {
   return processParallelChatMessage(chat, { source: "bus:twitch.chat.message" });
 }
 
+function registerTwitchEventsDirectChatBridge() {
+  const bridge = runtimeState.directChatBridge;
+  try {
+    const twitchEvents = require("./twitch_events");
+    if (!twitchEvents || typeof twitchEvents.handleIrcEvent !== "function") {
+      bridge.installed = false;
+      bridge.lastReason = "twitch_events_handleIrcEvent_unavailable";
+      return { ok: false, reason: bridge.lastReason };
+    }
+    if (twitchEvents.__streamEventsDirectChatBridgeInstalled === true) {
+      bridge.installed = true;
+      bridge.lastReason = "already_installed";
+      return { ok: true, reason: "already_installed" };
+    }
+    const original = twitchEvents.handleIrcEvent;
+    twitchEvents.handleIrcEvent = function streamEventsPatchedHandleIrcEvent(parsed = {}, context = {}, options = {}) {
+      const beforeAt = runtimeState.lastTextChatRuntime && runtimeState.lastTextChatRuntime.at ? runtimeState.lastTextChatRuntime.at : "";
+      const result = original.call(this, parsed, context, options);
+      try {
+        const command = cleanString(parsed && parsed.command || "").toUpperCase();
+        if (command !== "PRIVMSG") {
+          bridge.skipped += 1;
+          bridge.lastReason = "not_privmsg";
+          return result;
+        }
+        const chat = extractChatPayloadFromIrcParsed(parsed, context);
+        if (!chat.message || !chat.userLogin) {
+          bridge.skipped += 1;
+          bridge.lastReason = "invalid_irc_chat_payload";
+          return result;
+        }
+        if (didBusPathHandleChat(beforeAt, chat)) {
+          bridge.skipped += 1;
+          bridge.lastReason = "bus_path_already_handled";
+          return result;
+        }
+        const runtimeResult = processParallelChatMessage(chat, { source: "direct:twitch_events.handleIrcEvent" });
+        bridge.delivered += 1;
+        bridge.lastAt = nowIso();
+        bridge.lastReason = runtimeResult && runtimeResult.reason ? runtimeResult.reason : "direct_bridge_processed";
+        bridge.lastMessageId = chat.messageId || "";
+        bridge.lastLogin = chat.userLogin || "";
+        bridge.lastMessagePreview = chat.message.slice(0, 120);
+        bridge.lastError = "";
+      } catch (err) {
+        bridge.errors += 1;
+        bridge.lastError = err && err.message ? err.message : String(err);
+        bridge.lastReason = "direct_bridge_error";
+      }
+      return result;
+    };
+    twitchEvents.__streamEventsDirectChatBridgeInstalled = true;
+    bridge.installed = true;
+    bridge.lastReason = "installed";
+    bridge.lastError = "";
+    return { ok: true, reason: "installed" };
+  } catch (err) {
+    bridge.installed = false;
+    bridge.errors += 1;
+    bridge.lastError = err && err.message ? err.message : String(err);
+    bridge.lastReason = "install_error";
+    return { ok: false, reason: "install_error", error: bridge.lastError };
+  }
+}
+
 function registerTextChatSubscription() {
   const bus = getBus();
   if (!bus || typeof bus.subscribe !== "function") return { ok: false, reason: "communication_bus_subscribe_unavailable" };
@@ -2937,7 +3055,8 @@ function registerTextChatSubscription() {
     module: MODULE_NAME,
     channel: "twitch.chat",
     action: "message",
-    meta: { step: MODULE_BUILD, purpose: "stream_events_chat_runtime", acceptedSources: ["twitch_presence", "twitch_events"] }
+    capability: "twitch.chat.message",
+    meta: { step: MODULE_BUILD, purpose: "stream_events_chat_runtime", acceptedSources: ["twitch_presence", "twitch_events"], directBridgeFallback: true }
   }, (envelope) => handleTwitchChatEnvelope(envelope));
   if (result && result.ok === true) {
     publishStatus("chat.subscription.ready", { twitchChatSubscription: true, streamEventsChatRuntime: true });
@@ -8050,7 +8169,8 @@ function buildStatus() {
     },
     runtime: {
       counters: runtimeState.counters,
-      lastTextChatRuntime: runtimeState.lastTextChatRuntime || null
+      lastTextChatRuntime: runtimeState.lastTextChatRuntime || null,
+      directChatBridge: safeJson(runtimeState.directChatBridge, {})
     },
     runtimeOverlay: {
       prepared: true,
@@ -8135,7 +8255,7 @@ function publicRoutes(prefix = "/api/stream-events") {
       { method: "GET", path: `${prefix}/status`, description: "Stream-Events Backendstatus" },
       { method: "GET", path: `${prefix}/bus-status`, description: "Stream-Events Communication-Bus Registrierung, Heartbeat und letzte Bus-Events" },
       { method: "GET", path: `${prefix}/text-runtime/status`, description: "Text-Spiel Chat-Runtime Status" },
-      { method: "GET", path: `${prefix}/text-runtime/live-debug`, description: "EVS52.5: Diagnose echter Chatfluss fuer Satz-System" },
+      { method: "GET", path: `${prefix}/text-runtime/live-debug`, description: "EVS52.6: Diagnose echter Chatfluss inkl. Direct-Bridge fuer Satz-System" },
       { method: "GET", path: `${prefix}/text-runtime/report`, description: "Text-Spiel Runtime Report fuer aktives oder angegebenes Event" },
       { method: "GET", path: `${prefix}/sound-runtime/status`, description: "Sound-Spiel Runtime Status und aktive Runde" },
       { method: "GET", path: `${prefix}/sound-runtime/report`, description: "Sound-Spiel Runtime Report fuer aktives oder angegebenes Event" },
@@ -8263,6 +8383,8 @@ module.exports.init = function init(ctx) {
   moduleBusHandle.start();
   const textChatSubscription = registerTextChatSubscription();
   if (textChatSubscription && textChatSubscription.ok !== true) runtimeState.lastError = textChatSubscription.reason || textChatSubscription.error || runtimeState.lastError;
+  const directChatBridge = registerTwitchEventsDirectChatBridge();
+  if (directChatBridge && directChatBridge.ok !== true) runtimeState.lastError = directChatBridge.reason || directChatBridge.error || runtimeState.lastError;
   const runtimeOverlaySubscription = registerRuntimeOverlayBusSubscription();
   if (runtimeOverlaySubscription && runtimeOverlaySubscription.ok !== true) runtimeState.lastError = runtimeOverlaySubscription.reason || runtimeOverlaySubscription.error || runtimeState.lastError;
   const streamStateSubscription = registerStreamStateSubscription();
@@ -8320,6 +8442,7 @@ module.exports.init = function init(ctx) {
         runtimeGate: getRuntimeGateStatus({ eventUid: event ? event.eventUid : "" }),
         runtimeConfig: event ? getTextRuntimeConfig(event) : null,
         lastTextChatRuntime: runtimeState.lastTextChatRuntime || null,
+        directChatBridge: safeJson(runtimeState.directChatBridge, {}),
         report: event ? getTextRuntimeReport(event.eventUid) : null,
         updatedAt: nowIso()
       });

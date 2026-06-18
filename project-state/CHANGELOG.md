@@ -107,3 +107,10 @@
 - Diagnose ergänzt: `GET /api/stream-events/text-runtime/live-debug`.
 - Teststep ergänzt: `step=text-live-flow-check`.
 - Testscript ergänzt: `tools/tests/EVS52_5_TEXT_LIVE_FLOW_CHECK.ps1`.
+
+## 2026-06-18 – EVS52.6
+
+- Live-Chat Direct-Bridge für `stream_events` ergänzt.
+- Echte IRC-/Twitch-Chatnachrichten werden als Fallback direkt aus `twitch_events.handleIrcEvent()` zusätzlich an das Satz-/Text-System gegeben, falls der Communication-Bus-Pfad nicht liefert.
+- Sound-Chat bleibt unverändert.
+- Dashboard-/Backend-Tests senden weiterhin nicht live in Twitch.

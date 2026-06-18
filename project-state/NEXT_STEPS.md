@@ -125,3 +125,10 @@ Invoke-RestMethod "http://127.0.0.1:8080/api/chat-output/status" | ConvertTo-Jso
 2. Wenn Live-Chatmeldung nicht rausgeht: `GET /api/stream-events/text-runtime/live-debug` und `/api/chat-output/status` vergleichen.
 3. Danach Dashboard-Texte-Bereich pruefen: Satz-Spiel-Keys editierbar und zufaellige Varianten sichtbar.
 4. Danach optional: Satzloesungs-Overlay visuell verfeinern.
+
+## Nach EVS52.6
+
+1. Live-Test mit echtem Wort aus offenem Satz im Twitch-Chat.
+2. Prüfen: `/api/stream-events/text-runtime/live-debug` zeigt echte Chatverarbeitung.
+3. Prüfen: `/api/chat-output/status` zeigt gesendete Satz-Spiel-Meldung.
+4. Danach ggf. UI/Overlay-Feinschliff für Satzlösung-Celebration.

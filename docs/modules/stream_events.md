@@ -517,3 +517,25 @@ Der Test prueft bewusst ein Event mit Dashboard-Alias-Feldern und `wordPointsEna
 - Kompletter Satz gibt Satzpunkte.
 - Doppelte Satzloesung gibt keine Punkte.
 - Ranking zaehlt nur die Satzpunkte.
+
+## EVS52.6 – Live-Chat Direct-Bridge für Satz-System
+
+Da echte Sound-Antworten bereits über den Chat funktionieren, aber Satz-/Text-Treffer nicht sichtbar verarbeitet wurden, wurde ein zusätzlicher sicherer Direct-Bridge-Fallback eingebaut.
+
+Der normale Weg bleibt der Communication-Bus `twitch.chat/message`. Falls dieser Pfad eine konkrete IRC-/Twitch-Chatnachricht nicht an `stream_events` liefert, greift `stream_events` direkt nach `twitch_events.handleIrcEvent()` ein und führt dieselbe parallele Sound+Text-Runtime aus.
+
+Regeln:
+
+- Sound-Auswertung bleibt unverändert.
+- Text/Satz-Auswertung läuft zusätzlich.
+- Direct-Bridge verarbeitet nur `PRIVMSG`.
+- Wenn der Bus-Pfad bereits verarbeitet hat, wird die Direct-Bridge übersprungen.
+- Live-Ausgabe über `helper_chat_output` gibt es nur bei echter Chatquelle und aktivem Runtime-Gate.
+- Dashboard-/Backend-Tests senden nicht live.
+
+Neue Diagnose im Live-Debug:
+
+- `directChatBridge.installed`
+- `directChatBridge.delivered`
+- `directChatBridge.lastReason`
+- `lastTextChatRuntime.source`

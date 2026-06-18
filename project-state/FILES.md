@@ -95,3 +95,9 @@ stream_events_sound_rounds
 - `backend/modules/stream_events.js` – Alias-Fix fuer Satz-Runtime, Live-Debug, Teststep `text-live-flow-check`.
 - `tools/tests/EVS52_5_TEXT_LIVE_FLOW_CHECK.ps1` – lokales PowerShell-Testscript fuer Satz-Live-Flow ohne Twitch-Live-Send.
 - `docs/current/CURRENT_CHAT_HANDOFF_EVS52_5_TEXT_LIVE_FLOW_FIX.md` – Handoff.
+
+## EVS52.6
+
+- `backend/modules/stream_events.js` – Live-Chat Direct-Bridge-Fallback für Satz-/Text-System.
+- `tools/tests/EVS52_6_LIVE_CHAT_DIRECT_BRIDGE_CHECK.ps1` – Diagnose-Script für RuntimeGate, Direct-Bridge und ChatOutput.
+- `docs/current/CURRENT_CHAT_HANDOFF_EVS52_6_LIVE_CHAT_DIRECT_BRIDGE.md` – Handoff.

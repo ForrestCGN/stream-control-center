@@ -77,3 +77,10 @@ Stand: 2026-06-18 – EVS51.5
 - [ ] Prüfen: Twitch-Chat bekommt genau eine Worttreffer-Meldung.
 - [ ] Prüfen: Worttreffer gibt keine Punkte, wenn Wortpunkte deaktiviert sind.
 - [ ] Prüfen: komplette Satzloesung gibt Satzpunkte und 15s Overlay.
+
+## EVS52.6 – Live-Chat Direct-Bridge
+
+- [x] Direct-Bridge-Fallback für echte Twitch-Chatnachrichten vorbereitet.
+- [x] Bus-Pfad bleibt bevorzugt; Direct-Bridge springt nur ein, wenn Bus nicht bereits verarbeitet hat.
+- [ ] Live-Test: echtes Satzwort im Twitch-Chat schreiben und prüfen, ob `lastTextChatRuntime.source` bus/direct zeigt.
+- [ ] Live-Test: prüfen, ob `chat-output.stats.sent` steigt.
