@@ -8,26 +8,29 @@
     :root {
       --w: 1920px;
       --h: 1080px;
-      --cyan: #39e6ff;
-      --cyan-soft: rgba(57, 230, 255, .26);
+      --bg0: #030514;
+      --bg1: #080824;
+      --bg2: #160b3e;
+      --cyan: #35e7ff;
+      --cyan2: #78f4ff;
       --violet: #a855f7;
-      --violet-soft: rgba(168, 85, 247, .34);
+      --violet2: #7c3aed;
       --pink: #ff4fd8;
       --gold: #ffe66d;
       --gold2: #ffbf3f;
+      --silver: #d8e8ff;
       --bronze: #d98b4b;
-      --silver: #d8e6ff;
       --cookie: #ffd18a;
       --text: #f8fbff;
-      --muted: rgba(248, 251, 255, .70);
-      --line: rgba(143, 244, 255, .18);
-      --panel: rgba(8, 11, 34, .76);
-      --panel-strong: rgba(12, 10, 42, .90);
+      --muted: rgba(248,251,255,.68);
+      --soft: rgba(255,255,255,.08);
+      --line: rgba(132,236,255,.18);
     }
 
     * { box-sizing: border-box; }
 
-    html, body {
+    html,
+    body {
       margin: 0;
       width: var(--w);
       height: var(--h);
@@ -45,8 +48,8 @@
       height: var(--h);
       opacity: 0;
       transform: scale(.988);
-      filter: blur(5px);
-      transition: opacity .45s ease, transform .55s cubic-bezier(.16, 1, .3, 1), filter .45s ease;
+      filter: blur(6px);
+      transition: opacity .55s ease, transform .7s cubic-bezier(.16,1,.3,1), filter .55s ease;
       isolation: isolate;
     }
 
@@ -58,343 +61,420 @@
 
     #stage.hidden-hard { opacity: 0; }
 
-    .backdrop {
+    .universe {
       position: absolute;
-      inset: -90px;
+      inset: -70px;
       z-index: 0;
       background:
-        radial-gradient(circle at 50% 14%, rgba(57,230,255,.18), transparent 28%),
-        radial-gradient(circle at 18% 72%, rgba(168,85,247,.22), transparent 34%),
-        radial-gradient(circle at 83% 62%, rgba(255,79,216,.15), transparent 31%),
-        radial-gradient(circle at 52% 98%, rgba(255,230,109,.10), transparent 26%),
-        linear-gradient(135deg, rgba(4,6,20,.86), rgba(16,9,45,.91), rgba(4,10,32,.84));
+        radial-gradient(circle at 50% 0%, rgba(53,231,255,.22), transparent 33%),
+        radial-gradient(circle at 16% 72%, rgba(168,85,247,.22), transparent 30%),
+        radial-gradient(circle at 86% 66%, rgba(255,79,216,.16), transparent 28%),
+        radial-gradient(circle at 52% 92%, rgba(255,230,109,.13), transparent 24%),
+        linear-gradient(135deg, rgba(3,5,20,.96), rgba(9,8,36,.96) 38%, rgba(22,11,62,.96));
     }
 
-    .stars {
+    .starfield,
+    .nebula-lines,
+    .light-dust {
       position: absolute;
       inset: 0;
       z-index: 1;
-      opacity: .24;
+      pointer-events: none;
+    }
+
+    .starfield {
+      opacity: .35;
       background-image:
-        radial-gradient(circle, rgba(255,255,255,.82) 0 1px, transparent 1.5px),
-        radial-gradient(circle, rgba(57,230,255,.62) 0 1px, transparent 1.6px),
-        radial-gradient(circle, rgba(255,230,109,.52) 0 1px, transparent 1.6px),
-        radial-gradient(circle, rgba(196,92,255,.50) 0 1px, transparent 1.6px);
-      background-size: 170px 170px, 245px 245px, 315px 315px, 410px 410px;
-      background-position: 20px 48px, 88px 118px, 146px 32px, 218px 178px;
-      animation: starDrift 34s linear infinite;
+        radial-gradient(circle, rgba(255,255,255,.9) 0 1px, transparent 1.6px),
+        radial-gradient(circle, rgba(53,231,255,.75) 0 1px, transparent 1.6px),
+        radial-gradient(circle, rgba(255,230,109,.65) 0 1px, transparent 1.6px);
+      background-size: 180px 180px, 270px 270px, 390px 390px;
+      background-position: 20px 48px, 130px 104px, 200px 70px;
+      animation: starsMove 42s linear infinite;
     }
 
-    @keyframes starDrift {
-      to { background-position: 190px 218px, 333px 363px, 461px 347px, 628px 588px; }
+    @keyframes starsMove {
+      to { background-position: 380px 408px, 670px 644px, 980px 850px; }
     }
 
-    .frame {
+    .nebula-lines {
+      opacity: .62;
+      background:
+        linear-gradient(104deg, transparent 0 12%, rgba(53,231,255,.10) 12.5% 12.9%, transparent 13.5% 38%, rgba(168,85,247,.11) 38.5% 39%, transparent 39.8% 100%),
+        linear-gradient(78deg, transparent 0 67%, rgba(255,79,216,.10) 67.4% 67.9%, transparent 68.5% 100%);
+      filter: blur(.2px);
+      animation: nebulaSlide 18s ease-in-out infinite alternate;
+    }
+
+    @keyframes nebulaSlide {
+      from { transform: translateX(-28px) skewX(-2deg); }
+      to { transform: translateX(34px) skewX(2deg); }
+    }
+
+    .award-shell {
       position: absolute;
-      inset: 46px 74px;
-      z-index: 2;
-      border-radius: 42px;
-      border: 1px solid rgba(143,244,255,.20);
+      z-index: 5;
+      left: 70px;
+      top: 48px;
+      width: 1780px;
+      height: 984px;
+      border-radius: 46px;
+      padding: 36px 42px 34px;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(53,231,255,.14), transparent 35%),
+        radial-gradient(circle at 50% 100%, rgba(255,230,109,.08), transparent 28%),
+        linear-gradient(135deg, rgba(5,8,29,.88), rgba(16,10,51,.88));
+      border: 1px solid rgba(132,236,255,.20);
       box-shadow:
-        inset 0 0 52px rgba(57,230,255,.048),
-        0 0 58px rgba(168,85,247,.18),
-        0 0 100px rgba(57,230,255,.09);
+        inset 0 0 54px rgba(53,231,255,.055),
+        inset 0 0 110px rgba(168,85,247,.055),
+        0 0 42px rgba(168,85,247,.25),
+        0 0 90px rgba(53,231,255,.12);
       overflow: hidden;
     }
 
-    .frame::before,
-    .frame::after {
+    .award-shell::before,
+    .award-shell::after {
       content: "";
       position: absolute;
-      border-radius: 999px;
       pointer-events: none;
-      opacity: .86;
+      border-radius: 999px;
+      opacity: .95;
       filter: blur(.2px);
     }
 
-    .frame::before {
-      top: -2px;
-      left: 8%;
-      width: 360px;
-      height: 4px;
-      background: linear-gradient(90deg, transparent, rgba(57,230,255,.92), rgba(168,85,247,.78), transparent);
-      animation: runnerTop 7.8s ease-in-out infinite alternate;
-    }
-
-    .frame::after {
-      bottom: -2px;
-      right: 11%;
-      width: 430px;
-      height: 4px;
-      background: linear-gradient(90deg, transparent, rgba(255,79,216,.80), rgba(255,230,109,.82), transparent);
-      animation: runnerBottom 8.6s ease-in-out infinite alternate;
-    }
-
-    @keyframes runnerTop { to { left: 63%; } }
-    @keyframes runnerBottom { to { right: 59%; } }
-
-    .spotlight {
-      position: absolute;
-      z-index: 3;
-      top: -26px;
+    .award-shell::before {
+      top: 0;
+      left: 7%;
       width: 520px;
-      height: 940px;
-      opacity: .18;
-      pointer-events: none;
-      background: linear-gradient(180deg, rgba(57,230,255,.32), rgba(57,230,255,.07) 42%, transparent 78%);
-      clip-path: polygon(48% 0, 58% 0, 100% 100%, 0 100%);
-      filter: blur(10px);
-      transform-origin: top center;
+      height: 4px;
+      background: linear-gradient(90deg, transparent, rgba(53,231,255,.92), rgba(168,85,247,.85), transparent);
+      animation: runnerTop 8s ease-in-out infinite alternate;
     }
 
-    .spotlight.left { left: 300px; transform: rotate(15deg); }
-    .spotlight.right { right: 300px; transform: rotate(-15deg); background: linear-gradient(180deg, rgba(168,85,247,.36), rgba(168,85,247,.08) 44%, transparent 78%); }
-
-    .main {
-      position: absolute;
-      z-index: 5;
-      left: 50%;
-      top: 50%;
-      width: 1560px;
-      height: 875px;
-      transform: translate(-50%, -50%);
-      border-radius: 38px;
-      background:
-        radial-gradient(circle at 50% 0%, rgba(57,230,255,.11), transparent 42%),
-        linear-gradient(135deg, rgba(7, 10, 30, .91), rgba(18, 10, 52, .88));
-      border: 1px solid rgba(143,244,255,.23);
-      box-shadow:
-        inset 0 0 44px rgba(57,230,255,.05),
-        inset 0 0 84px rgba(168,85,247,.055),
-        0 0 32px rgba(168,85,247,.32),
-        0 0 84px rgba(57,230,255,.13);
-      overflow: hidden;
-      padding: 36px 48px 32px;
+    .award-shell::after {
+      bottom: 0;
+      right: 8%;
+      width: 540px;
+      height: 4px;
+      background: linear-gradient(90deg, transparent, rgba(255,79,216,.84), rgba(255,230,109,.88), transparent);
+      animation: runnerBottom 9.5s ease-in-out infinite alternate;
     }
 
-    .main::before {
-      content: "";
-      position: absolute;
-      left: -35%;
-      top: -22%;
-      width: 30%;
-      height: 150%;
-      background: linear-gradient(90deg, transparent, rgba(57,230,255,.085), rgba(255,255,255,.05), rgba(255,79,216,.07), transparent);
-      transform: skewX(-18deg);
-      animation: scan 7.2s linear infinite;
-    }
+    @keyframes runnerTop { to { left: 60%; } }
+    @keyframes runnerBottom { to { right: 58%; } }
 
-    @keyframes scan { to { transform: translateX(600%) skewX(-18deg); } }
-
-    .topline {
+    .topbar {
       position: relative;
-      z-index: 3;
+      z-index: 8;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 24px;
-      margin-bottom: 16px;
+      gap: 22px;
+      min-height: 54px;
     }
 
-    .badge {
+    .phase-pill {
       display: inline-flex;
       align-items: center;
       gap: 12px;
-      min-height: 44px;
-      padding: 9px 18px;
+      max-width: 690px;
+      min-height: 48px;
+      padding: 10px 20px;
       border-radius: 999px;
-      background: linear-gradient(135deg, rgba(57,230,255,.16), rgba(168,85,247,.17));
-      border: 1px solid rgba(143,244,255,.20);
-      box-shadow: 0 0 24px rgba(57,230,255,.09);
-      color: rgba(248,251,255,.91);
-      font-size: 19px;
-      font-weight: 850;
-      letter-spacing: .16em;
-      text-transform: uppercase;
-    }
-
-    .badge .dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: var(--gold);
-      box-shadow: 0 0 12px rgba(255,230,109,.9), 0 0 26px rgba(255,230,109,.28);
-      animation: dotPulse 1.2s ease-in-out infinite;
-    }
-
-    @keyframes dotPulse { 50% { transform: scale(1.35); opacity: .74; } }
-
-    .event-name {
-      flex: 1;
-      color: rgba(248,251,255,.82);
-      text-align: right;
+      background: linear-gradient(135deg, rgba(53,231,255,.16), rgba(168,85,247,.18));
+      border: 1px solid rgba(132,236,255,.23);
+      color: rgba(248,251,255,.94);
       font-size: 20px;
-      font-weight: 750;
-      letter-spacing: .04em;
+      font-weight: 950;
+      letter-spacing: .17em;
+      text-transform: uppercase;
+      box-shadow: 0 0 26px rgba(53,231,255,.10);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
-    .headline {
+    .phase-pill .phase-dot {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: var(--gold);
+      box-shadow: 0 0 14px rgba(255,230,109,.95), 0 0 30px rgba(255,230,109,.34);
+      animation: pulseDot 1.25s ease-in-out infinite;
+      flex: 0 0 auto;
+    }
+
+    @keyframes pulseDot { 50% { transform: scale(1.32); opacity: .76; } }
+
+    .event-name {
+      min-width: 0;
+      max-width: 820px;
+      color: rgba(248,251,255,.83);
+      text-align: right;
+      font-size: 23px;
+      font-weight: 850;
+      letter-spacing: .04em;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-shadow: 0 0 16px rgba(53,231,255,.12);
+    }
+
+    .title-area {
       position: relative;
-      z-index: 3;
-      margin: 0;
+      z-index: 8;
+      margin: 20px auto 10px;
       text-align: center;
-      font-size: 62px;
+    }
+
+    .headline {
+      margin: 0;
+      font-size: 74px;
       line-height: .98;
-      font-weight: 950;
-      letter-spacing: .02em;
+      font-weight: 1000;
+      letter-spacing: .04em;
       text-transform: uppercase;
       text-shadow:
-        0 0 18px rgba(255,255,255,.20),
-        0 0 35px rgba(57,230,255,.48),
-        0 0 58px rgba(168,85,247,.42),
-        0 0 85px rgba(255,79,216,.17);
+        0 0 18px rgba(255,255,255,.22),
+        0 0 36px rgba(53,231,255,.48),
+        0 0 66px rgba(168,85,247,.38);
     }
 
     .subline {
+      margin: 13px auto 0;
+      max-width: 1280px;
+      color: rgba(248,251,255,.72);
+      font-size: 27px;
+      line-height: 1.25;
+      font-weight: 750;
+    }
+
+    .award-arena {
       position: relative;
-      z-index: 3;
-      margin: 11px auto 18px;
-      max-width: 1210px;
-      color: var(--muted);
-      text-align: center;
-      font-size: 24px;
-      font-weight: 650;
-      letter-spacing: .02em;
-    }
-
-    .arena {
-      position: relative;
-      z-index: 3;
-      height: 615px;
-      border-radius: 30px;
-      background: linear-gradient(135deg, rgba(5,8,28,.58), rgba(18,10,52,.54));
-      border: 1px solid rgba(143,244,255,.15);
-      box-shadow: inset 0 0 34px rgba(57,230,255,.035), 0 0 32px rgba(168,85,247,.10);
-      overflow: hidden;
-    }
-
-    .arena::before {
-      content: "";
-      position: absolute;
-      left: 105px;
-      right: 105px;
-      bottom: 170px;
-      height: 2px;
-      opacity: .56;
-      background: linear-gradient(90deg, transparent, rgba(57,230,255,.40), rgba(255,230,109,.22), rgba(168,85,247,.34), transparent);
-      filter: blur(.2px);
-    }
-
-    .award-stage {
-      position: absolute;
-      z-index: 4;
-      left: 42px;
-      right: 42px;
-      top: 34px;
-      height: 392px;
-      display: grid;
-      grid-template-columns: 1fr 1.14fr 1fr;
-      gap: 26px;
-      align-items: end;
-      opacity: 0;
-      transform: translateY(18px);
-      transition: opacity .55s ease, transform .65s cubic-bezier(.16, 1, .3, 1);
-    }
-
-    .award-stage.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    .award-slot {
-      position: relative;
-      min-height: 252px;
-      padding: 22px 22px 20px;
-      border-radius: 30px;
+      z-index: 6;
+      height: 755px;
+      margin-top: 22px;
+      border-radius: 36px;
       background:
-        radial-gradient(circle at 50% 0%, rgba(57,230,255,.08), transparent 46%),
-        linear-gradient(135deg, rgba(8,11,34,.80), rgba(20,11,52,.76));
-      border: 1px solid rgba(143,244,255,.16);
-      box-shadow: inset 0 0 28px rgba(57,230,255,.04), 0 0 34px rgba(168,85,247,.13);
+        radial-gradient(circle at 50% 16%, rgba(53,231,255,.10), transparent 36%),
+        radial-gradient(circle at 50% 78%, rgba(255,230,109,.065), transparent 34%),
+        linear-gradient(180deg, rgba(3,7,26,.40), rgba(10,8,38,.62));
+      border: 1px solid rgba(132,236,255,.15);
+      box-shadow: inset 0 0 46px rgba(53,231,255,.035), 0 0 34px rgba(168,85,247,.11);
       overflow: hidden;
-      opacity: .78;
-      transform: scale(.985);
-      transition: opacity .55s ease, transform .65s cubic-bezier(.16, 1, .3, 1), box-shadow .45s ease, border-color .45s ease, filter .45s ease;
     }
 
-    .award-slot.waiting {
-      opacity: .34;
-      filter: saturate(.58);
-    }
-
-    .award-slot.filled {
-      opacity: 1;
-      transform: scale(1);
-    }
-
-    .award-slot.place-1 {
-      min-height: 330px;
-      padding: 28px 28px 26px;
-      border-color: rgba(255,230,109,.35);
-      box-shadow: inset 0 0 34px rgba(255,230,109,.045), 0 0 46px rgba(255,230,109,.16), 0 0 68px rgba(168,85,247,.14);
-    }
-
-    .award-slot.place-2 { border-color: rgba(216,230,255,.29); }
-    .award-slot.place-3 { border-color: rgba(217,139,75,.31); }
-
-    .award-slot.winner-glow {
-      border-color: rgba(255,230,109,.72);
-      box-shadow:
-        inset 0 0 42px rgba(255,230,109,.08),
-        0 0 46px rgba(255,230,109,.28),
-        0 0 92px rgba(168,85,247,.24),
-        0 0 130px rgba(57,230,255,.13);
-      animation: winnerPulse 1.8s ease-in-out infinite alternate;
-    }
-
-    @keyframes winnerPulse {
-      to { transform: scale(1.018); }
-    }
-
-    .award-placeholder {
+    .stage-lights {
       position: absolute;
       inset: 0;
-      display: grid;
-      place-items: center;
-      text-align: center;
-      color: rgba(248,251,255,.34);
-      font-weight: 950;
-      letter-spacing: .13em;
-      text-transform: uppercase;
-      font-size: 21px;
+      z-index: 1;
+      pointer-events: none;
+      overflow: hidden;
     }
 
-    .award-content { position: relative; z-index: 2; height: 100%; display: flex; flex-direction: column; justify-content: space-between; gap: 12px; }
+    .light-beam {
+      position: absolute;
+      top: -120px;
+      width: 460px;
+      height: 710px;
+      opacity: .12;
+      filter: blur(12px);
+      transform-origin: top center;
+      background: linear-gradient(180deg, rgba(53,231,255,.55), rgba(53,231,255,.09) 55%, transparent);
+      clip-path: polygon(44% 0, 56% 0, 100% 100%, 0 100%);
+      animation: beamMove 8s ease-in-out infinite alternate;
+    }
 
-    .award-head {
+    .beam-left { left: 140px; transform: rotate(17deg); }
+    .beam-mid { left: 50%; margin-left: -230px; opacity: .16; background: linear-gradient(180deg, rgba(255,230,109,.46), rgba(255,230,109,.07) 58%, transparent); animation-delay: -2s; }
+    .beam-right { right: 120px; transform: rotate(-17deg); background: linear-gradient(180deg, rgba(168,85,247,.58), rgba(168,85,247,.09) 56%, transparent); animation-delay: -4s; }
+
+    @keyframes beamMove {
+      from { opacity: .08; filter: blur(15px); }
+      to { opacity: .20; filter: blur(9px); }
+    }
+
+    .top3-stage {
+      position: absolute;
+      z-index: 4;
+      left: 60px;
+      right: 60px;
+      top: 32px;
+      height: 505px;
+      display: grid;
+      grid-template-columns: 1fr 1.18fr 1fr;
+      gap: 32px;
+      align-items: end;
+    }
+
+    .award-zone {
+      position: relative;
+      height: 450px;
+      border-radius: 34px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .award-zone.gold { height: 505px; }
+
+    .podest {
+      position: absolute;
+      left: 8%;
+      right: 8%;
+      bottom: 0;
+      height: 82px;
+      border-radius: 22px 22px 30px 30px;
+      opacity: .88;
+      background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.025));
+      border: 1px solid rgba(255,255,255,.08);
+      box-shadow: inset 0 0 22px rgba(255,255,255,.045), 0 0 28px rgba(0,0,0,.18);
+    }
+
+    .award-zone.gold .podest {
+      height: 112px;
+      left: 5%;
+      right: 5%;
+      border-color: rgba(255,230,109,.18);
+      box-shadow: inset 0 0 28px rgba(255,230,109,.055), 0 0 42px rgba(255,230,109,.10);
+    }
+
+    .awaiting {
+      position: absolute;
+      left: 50%;
+      top: 44%;
+      transform: translate(-50%, -50%);
+      color: rgba(248,251,255,.20);
+      font-size: 24px;
+      font-weight: 1000;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      transition: opacity .45s ease, transform .45s ease;
+      white-space: nowrap;
+    }
+
+    .award-zone.revealed .awaiting { opacity: 0; transform: translate(-50%, -50%) scale(.94); }
+
+    .award-card {
+      position: relative;
+      z-index: 4;
+      width: 100%;
+      min-height: 330px;
+      margin-bottom: 54px;
+      border-radius: 32px;
+      padding: 24px 26px 26px;
+      opacity: 0;
+      transform: translateY(42px) scale(.94) rotateX(8deg);
+      transform-origin: bottom center;
+      transition:
+        opacity .72s ease,
+        transform .85s cubic-bezier(.16,1,.3,1),
+        box-shadow .55s ease,
+        filter .55s ease;
+      overflow: hidden;
+    }
+
+    .award-card::before {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      opacity: .70;
+      pointer-events: none;
+    }
+
+    .award-card::after {
+      content: "";
+      position: absolute;
+      top: -60%;
+      left: -52%;
+      width: 42%;
+      height: 220%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.16), transparent);
+      transform: rotate(18deg);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .award-card.revealed {
+      opacity: 1;
+      transform: translateY(0) scale(1) rotateX(0);
+    }
+
+    .award-card.revealed::after { animation: cardShine 2.8s ease-in-out .25s both; }
+
+    @keyframes cardShine {
+      0% { left: -55%; opacity: 0; }
+      18% { opacity: .85; }
+      100% { left: 118%; opacity: 0; }
+    }
+
+    .award-card.focus {
+      filter: saturate(1.12) brightness(1.08);
+    }
+
+    .award-card.bronze {
+      background:
+        radial-gradient(circle at 22% 8%, rgba(217,139,75,.22), transparent 40%),
+        linear-gradient(145deg, rgba(17,13,42,.92), rgba(33,18,54,.88));
+      border: 1px solid rgba(217,139,75,.34);
+      box-shadow: 0 0 28px rgba(217,139,75,.12), 0 0 58px rgba(168,85,247,.12), inset 0 0 36px rgba(217,139,75,.035);
+    }
+
+    .award-card.silver {
+      background:
+        radial-gradient(circle at 78% 8%, rgba(216,232,255,.18), transparent 42%),
+        linear-gradient(145deg, rgba(13,18,45,.92), rgba(31,18,64,.88));
+      border: 1px solid rgba(216,232,255,.31);
+      box-shadow: 0 0 28px rgba(216,232,255,.10), 0 0 58px rgba(53,231,255,.11), inset 0 0 36px rgba(216,232,255,.03);
+    }
+
+    .award-card.gold {
+      min-height: 388px;
+      margin-bottom: 70px;
+      padding: 28px 32px 30px;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(255,230,109,.26), transparent 43%),
+        radial-gradient(circle at 50% 100%, rgba(53,231,255,.12), transparent 34%),
+        linear-gradient(145deg, rgba(21,16,44,.95), rgba(42,23,70,.92));
+      border: 1px solid rgba(255,230,109,.44);
+      box-shadow:
+        0 0 42px rgba(255,230,109,.18),
+        0 0 88px rgba(168,85,247,.18),
+        0 0 118px rgba(53,231,255,.08),
+        inset 0 0 48px rgba(255,230,109,.045);
+    }
+
+    .award-card.gold.revealed { animation: goldBreath 4.8s ease-in-out infinite; }
+
+    @keyframes goldBreath {
+      0%,100% { box-shadow: 0 0 42px rgba(255,230,109,.18), 0 0 88px rgba(168,85,247,.18), 0 0 118px rgba(53,231,255,.08), inset 0 0 48px rgba(255,230,109,.045); }
+      50% { box-shadow: 0 0 60px rgba(255,230,109,.30), 0 0 112px rgba(168,85,247,.24), 0 0 136px rgba(53,231,255,.12), inset 0 0 58px rgba(255,230,109,.07); }
+    }
+
+    .card-top {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 18px;
       min-width: 0;
     }
 
     .avatar-ring {
-      width: 94px;
-      height: 94px;
-      flex: 0 0 auto;
+      width: 106px;
+      height: 106px;
       border-radius: 50%;
       padding: 5px;
-      background: conic-gradient(from 135deg, rgba(57,230,255,.95), rgba(168,85,247,.88), rgba(255,79,216,.78), rgba(255,230,109,.88), rgba(57,230,255,.95));
-      box-shadow: 0 0 24px rgba(57,230,255,.20), 0 0 46px rgba(168,85,247,.16);
+      background: conic-gradient(from 130deg, var(--cyan), var(--violet), var(--pink), var(--gold), var(--cyan));
+      box-shadow: 0 0 24px rgba(53,231,255,.22), 0 0 52px rgba(168,85,247,.17);
+      flex: 0 0 auto;
     }
 
-    .place-1 .avatar-ring {
-      width: 124px;
-      height: 124px;
-      box-shadow: 0 0 30px rgba(255,230,109,.24), 0 0 64px rgba(168,85,247,.18);
+    .award-card.gold .avatar-ring {
+      width: 142px;
+      height: 142px;
+      padding: 7px;
+      box-shadow: 0 0 34px rgba(255,230,109,.28), 0 0 72px rgba(168,85,247,.22);
     }
 
     .avatar {
@@ -405,17 +485,18 @@
       display: grid;
       place-items: center;
       background:
-        radial-gradient(circle at 50% 35%, rgba(255,255,255,.16), transparent 38%),
-        linear-gradient(135deg, rgba(57,230,255,.18), rgba(168,85,247,.30));
-      border: 2px solid rgba(255,255,255,.15);
-      color: rgba(248,251,255,.92);
-      font-size: 27px;
-      font-weight: 950;
+        radial-gradient(circle at 50% 35%, rgba(255,255,255,.18), transparent 40%),
+        linear-gradient(135deg, rgba(53,231,255,.22), rgba(168,85,247,.34));
+      border: 2px solid rgba(255,255,255,.14);
+      color: rgba(248,251,255,.94);
+      font-size: 34px;
+      font-weight: 1000;
+      letter-spacing: .02em;
       text-transform: uppercase;
-      text-shadow: 0 0 20px rgba(57,230,255,.40);
+      text-shadow: 0 0 20px rgba(53,231,255,.40);
     }
 
-    .place-1 .avatar { font-size: 38px; }
+    .award-card.gold .avatar { font-size: 48px; }
 
     .avatar img {
       width: 100%;
@@ -424,254 +505,296 @@
       display: block;
     }
 
-    .award-place {
+    .rank-label {
       color: var(--gold);
-      font-size: 21px;
-      font-weight: 950;
-      letter-spacing: .13em;
+      font-size: 22px;
+      font-weight: 1000;
+      letter-spacing: .16em;
       text-transform: uppercase;
-      text-shadow: 0 0 16px rgba(255,230,109,.25);
+      text-shadow: 0 0 16px rgba(255,230,109,.22);
     }
 
     .award-name {
       margin-top: 4px;
-      font-size: 34px;
-      line-height: 1;
-      font-weight: 950;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      text-shadow: 0 0 22px rgba(57,230,255,.24), 0 0 36px rgba(168,85,247,.18);
-    }
-
-    .place-1 .award-name { font-size: 46px; }
-
-    .award-points {
-      color: rgba(248,251,255,.76);
-      font-size: 20px;
-      font-weight: 800;
-    }
-
-    .award-reward {
-      padding: 11px 14px;
-      border-radius: 18px;
-      color: var(--gold);
-      font-size: 22px;
-      font-weight: 950;
-      background: rgba(255,230,109,.09);
-      border: 1px solid rgba(255,230,109,.18);
-      text-align: center;
-      text-shadow: 0 0 16px rgba(255,230,109,.20);
-    }
-
-    .place-1 .award-reward { font-size: 25px; }
-
-    .reveal-card {
-      position: absolute;
-      z-index: 10;
-      left: 50%;
-      top: 43%;
-      width: 760px;
-      min-height: 290px;
-      transform: translate(-50%, -50%) scale(.92);
-      opacity: 0;
-      border-radius: 36px;
-      padding: 32px 36px;
-      background:
-        radial-gradient(circle at 50% 0%, rgba(255,230,109,.13), transparent 46%),
-        linear-gradient(135deg, rgba(10,13,37,.96), rgba(29,14,64,.93));
-      border: 1px solid rgba(143,244,255,.25);
-      box-shadow:
-        0 0 34px rgba(57,230,255,.18),
-        0 0 68px rgba(168,85,247,.26),
-        inset 0 0 42px rgba(255,255,255,.035);
-      display: grid;
-      grid-template-columns: 158px 1fr;
-      gap: 26px;
-      align-items: center;
-      transition: opacity .42s ease, transform .58s cubic-bezier(.16, 1, .3, 1), filter .4s ease;
-    }
-
-    .reveal-card.visible {
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(1);
-    }
-
-    .reveal-card.hidden-soft {
-      opacity: 0;
-      transform: translate(-50%, -50%) scale(.96);
-    }
-
-    .reveal-card.final-focus {
-      top: 40%;
-      border-color: rgba(255,230,109,.46);
-      box-shadow:
-        0 0 42px rgba(255,230,109,.22),
-        0 0 76px rgba(168,85,247,.28),
-        0 0 108px rgba(57,230,255,.12),
-        inset 0 0 46px rgba(255,230,109,.055);
-    }
-
-    .reveal-kicker {
-      color: var(--gold);
-      font-size: 23px;
-      font-weight: 950;
-      letter-spacing: .15em;
-      text-transform: uppercase;
-      text-shadow: 0 0 18px rgba(255,230,109,.28);
-    }
-
-    .reveal-name {
-      margin-top: 6px;
-      max-width: 515px;
-      font-size: 57px;
-      line-height: .98;
-      font-weight: 950;
+      max-width: 100%;
+      color: var(--text);
+      font-size: 42px;
+      line-height: 1.0;
+      font-weight: 1000;
       letter-spacing: -.025em;
-      text-shadow: 0 0 26px rgba(57,230,255,.36), 0 0 46px rgba(168,85,247,.34);
+      text-shadow: 0 0 20px rgba(53,231,255,.26), 0 0 38px rgba(168,85,247,.24);
       overflow-wrap: anywhere;
     }
 
-    .reveal-meta {
-      margin-top: 13px;
+    .award-card.gold .award-name { font-size: 62px; }
+
+    .award-meta {
+      margin-top: 18px;
       color: rgba(248,251,255,.76);
-      font-size: 24px;
-      font-weight: 700;
+      font-size: 22px;
+      font-weight: 850;
     }
 
-    .reveal-reward {
-      margin-top: 16px;
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 18px;
-      border-radius: 999px;
-      background: linear-gradient(135deg, rgba(255,230,109,.18), rgba(57,230,255,.10));
-      border: 1px solid rgba(255,230,109,.24);
+    .reward-box {
+      margin-top: 18px;
+      min-height: 58px;
+      padding: 12px 16px;
+      display: grid;
+      place-items: center;
+      border-radius: 18px;
+      background: rgba(255,230,109,.10);
+      border: 1px solid rgba(255,230,109,.20);
       color: var(--gold);
       font-size: 24px;
-      font-weight: 950;
-      text-shadow: 0 0 18px rgba(255,230,109,.25);
+      line-height: 1.14;
+      font-weight: 1000;
+      text-align: center;
+      text-shadow: 0 0 14px rgba(255,230,109,.18);
     }
 
-    .honor-wall {
+    .award-card.gold .reward-box { font-size: 29px; min-height: 66px; }
+
+    .focus-ring {
+      position: absolute;
+      inset: -8px;
+      border-radius: 40px;
+      border: 2px solid transparent;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .award-card.focus .focus-ring {
+      opacity: 1;
+      animation: focusPulse 1.8s ease-in-out infinite;
+    }
+
+    @keyframes focusPulse {
+      0%,100% { box-shadow: 0 0 0 rgba(255,230,109,0); border-color: rgba(255,230,109,.16); }
+      50% { box-shadow: 0 0 40px rgba(255,230,109,.24), 0 0 76px rgba(53,231,255,.12); border-color: rgba(255,230,109,.45); }
+    }
+
+    .honor-strip {
       position: absolute;
       z-index: 5;
-      left: 34px;
-      right: 34px;
+      left: 32px;
+      right: 32px;
       bottom: 24px;
-      min-height: 134px;
-      padding: 14px 18px;
-      border-radius: 25px;
-      background: rgba(3, 8, 28, .55);
-      border: 1px solid rgba(143,244,255,.14);
-      box-shadow: inset 0 0 24px rgba(57,230,255,.035);
-      transition: opacity .45s ease, filter .45s ease, background .45s ease, border-color .45s ease, box-shadow .45s ease;
+      min-height: 158px;
+      padding: 18px 20px 19px;
+      border-radius: 28px;
+      background: linear-gradient(135deg, rgba(5,8,28,.78), rgba(16,10,47,.68));
+      border: 1px solid rgba(132,236,255,.15);
+      box-shadow: inset 0 0 28px rgba(53,231,255,.035), 0 0 30px rgba(0,0,0,.17);
+      transition: opacity .55s ease, transform .55s ease, filter .55s ease;
     }
 
-    .honor-wall.empty {
-      background: transparent;
-      border-color: transparent;
-      box-shadow: none;
+    .honor-strip.dimmed {
+      opacity: .72;
+      filter: saturate(.85) brightness(.82);
+      transform: translateY(4px) scale(.992);
     }
 
-    .honor-wall.dimmed {
-      opacity: .68;
-      filter: saturate(.74) brightness(.82);
-    }
-
-    .wall-title {
-      color: rgba(248,251,255,.70);
-      font-size: 16px;
-      font-weight: 900;
-      letter-spacing: .15em;
+    .honor-title {
+      color: rgba(248,251,255,.78);
+      font-size: 18px;
+      line-height: 1;
+      font-weight: 1000;
+      letter-spacing: .18em;
       text-transform: uppercase;
-      margin-bottom: 10px;
-      opacity: 1;
-      transition: opacity .35s ease;
+      margin-bottom: 13px;
     }
 
-    .honor-wall.empty .wall-title { opacity: 0; }
-
-    .honor-list {
+    .honor-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      gap: 9px;
+      gap: 11px;
     }
 
     .honor-chip {
-      min-height: 78px;
-      padding: 9px 10px 8px;
-      border-radius: 17px;
-      background: linear-gradient(135deg, rgba(255,209,138,.075), rgba(168,85,247,.10));
-      border: 1px solid rgba(255,209,138,.30);
-      box-shadow: 0 0 18px rgba(255,209,138,.10);
-      overflow: hidden;
-      opacity: 1;
-      transform: translateY(0) scale(1);
-      transition: opacity .34s ease, transform .42s cubic-bezier(.16, 1, .3, 1), border-color .34s ease, box-shadow .34s ease;
-    }
-
-    .honor-chip.preparing {
-      visibility: hidden;
+      min-height: 92px;
+      padding: 10px 11px 9px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(255,209,138,.08), rgba(168,85,247,.08));
+      border: 1px solid rgba(255,209,138,.24);
+      box-shadow: 0 0 18px rgba(255,209,138,.08), inset 0 0 16px rgba(255,255,255,.025);
       opacity: 0;
-      transition: none;
+      transform: translateY(18px) scale(.96);
+      overflow: hidden;
     }
 
-    .honor-chip.pop-in {
-      animation: chipPop .48s cubic-bezier(.16, 1, .3, 1) both;
+    .honor-chip.revealed {
+      animation: honorReveal .64s cubic-bezier(.16,1,.3,1) forwards, honorGlow 2.8s ease-in-out .15s 1;
     }
 
-    @keyframes chipPop {
-      from { opacity: 0; transform: translateY(10px) scale(.94); }
+    @keyframes honorReveal {
       to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes honorGlow {
+      0%,100% { box-shadow: 0 0 18px rgba(255,209,138,.08), inset 0 0 16px rgba(255,255,255,.025); }
+      40% { box-shadow: 0 0 30px rgba(255,209,138,.22), 0 0 46px rgba(168,85,247,.12), inset 0 0 20px rgba(255,255,255,.035); }
     }
 
     .chip-place {
       color: var(--cookie);
-      font-size: 16px;
-      font-weight: 950;
+      font-size: 17px;
+      font-weight: 1000;
       letter-spacing: .05em;
     }
 
     .chip-name {
-      margin-top: 3px;
+      margin-top: 4px;
       color: var(--text);
-      font-size: 18px;
-      font-weight: 900;
+      font-size: 20px;
+      line-height: 1.05;
+      font-weight: 1000;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
     .chip-reward {
-      margin-top: 4px;
+      margin-top: 7px;
       color: var(--gold);
-      font-size: 15px;
-      font-weight: 850;
+      font-size: 16px;
+      line-height: 1.05;
+      font-weight: 950;
       white-space: nowrap;
     }
 
-    .footer-line {
+    .honor-presenter {
       position: absolute;
-      z-index: 6;
-      left: 70px;
-      right: 70px;
-      bottom: 166px;
-      color: rgba(248,251,255,.58);
-      font-size: 18px;
-      font-weight: 680;
-      text-align: center;
+      z-index: 12;
+      left: 50%;
+      top: 43%;
+      width: 760px;
+      min-height: 268px;
+      padding: 28px 32px;
+      border-radius: 36px;
+      display: grid;
+      grid-template-columns: 138px 1fr;
+      gap: 24px;
+      align-items: center;
+      transform: translate(-50%, -50%) scale(.92);
       opacity: 0;
-      transition: opacity .45s ease;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(255,230,109,.18), transparent 45%),
+        linear-gradient(135deg, rgba(9,12,36,.96), rgba(30,15,64,.94));
+      border: 1px solid rgba(255,209,138,.33);
+      box-shadow: 0 0 40px rgba(255,209,138,.14), 0 0 84px rgba(168,85,247,.20), inset 0 0 42px rgba(255,255,255,.035);
+      transition: opacity .45s ease, transform .62s cubic-bezier(.16,1,.3,1), filter .45s ease;
+      pointer-events: none;
     }
 
-    .footer-line.visible { opacity: 1; }
+    .honor-presenter.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .honor-presenter.hide-soft {
+      opacity: 0;
+      transform: translate(-50%, -48%) scale(.94);
+      filter: blur(4px);
+    }
+
+    .presenter-avatar-ring {
+      width: 132px;
+      height: 132px;
+      border-radius: 50%;
+      padding: 6px;
+      background: conic-gradient(from 130deg, var(--cookie), var(--gold), var(--violet), var(--cyan), var(--cookie));
+      box-shadow: 0 0 30px rgba(255,209,138,.24), 0 0 62px rgba(168,85,247,.17);
+    }
+
+    .presenter-avatar-ring .avatar { font-size: 42px; }
+
+    .presenter-kicker {
+      color: var(--gold);
+      font-size: 22px;
+      font-weight: 1000;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      text-shadow: 0 0 16px rgba(255,230,109,.22);
+    }
+
+    .presenter-name {
+      margin-top: 6px;
+      color: var(--text);
+      font-size: 54px;
+      line-height: .98;
+      font-weight: 1000;
+      letter-spacing: -.025em;
+      overflow-wrap: anywhere;
+      text-shadow: 0 0 24px rgba(53,231,255,.30), 0 0 46px rgba(168,85,247,.28);
+    }
+
+    .presenter-meta {
+      margin-top: 12px;
+      color: rgba(248,251,255,.74);
+      font-size: 23px;
+      font-weight: 850;
+    }
+
+    .presenter-reward {
+      margin-top: 14px;
+      display: inline-flex;
+      align-items: center;
+      padding: 9px 17px;
+      border-radius: 999px;
+      background: rgba(255,230,109,.11);
+      border: 1px solid rgba(255,230,109,.20);
+      color: var(--gold);
+      font-size: 24px;
+      font-weight: 1000;
+    }
+
+    .status-caption {
+      position: absolute;
+      z-index: 6;
+      left: 58px;
+      right: 58px;
+      top: 526px;
+      min-height: 32px;
+      color: rgba(248,251,255,.62);
+      font-size: 20px;
+      font-weight: 850;
+      text-align: center;
+      letter-spacing: .02em;
+      text-shadow: 0 0 16px rgba(0,0,0,.26);
+      opacity: .94;
+      transition: opacity .3s ease;
+    }
+
+    .final-ribbon {
+      position: absolute;
+      z-index: 11;
+      left: 50%;
+      top: 18px;
+      transform: translateX(-50%) translateY(-20px) scale(.96);
+      opacity: 0;
+      min-width: 760px;
+      padding: 13px 30px 15px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(255,230,109,.19), rgba(53,231,255,.11), rgba(168,85,247,.14));
+      border: 1px solid rgba(255,230,109,.28);
+      color: rgba(248,251,255,.94);
+      font-size: 27px;
+      font-weight: 1000;
+      text-align: center;
+      letter-spacing: .03em;
+      box-shadow: 0 0 34px rgba(255,230,109,.13), 0 0 64px rgba(168,85,247,.12);
+      transition: opacity .55s ease, transform .65s cubic-bezier(.16,1,.3,1);
+    }
+
+    .final-ribbon.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0) scale(1);
+    }
 
     .confetti {
       position: absolute;
       inset: 0;
-      z-index: 3;
+      z-index: 2;
       pointer-events: none;
       overflow: hidden;
     }
@@ -679,66 +802,47 @@
     .confetti i {
       position: absolute;
       top: -40px;
-      width: 10px;
-      height: 18px;
+      width: 9px;
+      height: 17px;
       border-radius: 3px;
-      opacity: .78;
+      opacity: .75;
       background: var(--gold);
-      box-shadow: 0 0 14px rgba(255,230,109,.28);
+      box-shadow: 0 0 12px rgba(255,230,109,.20);
       animation: fall linear forwards;
     }
 
-    .confetti i:nth-child(3n) { background: var(--cyan); box-shadow: 0 0 14px rgba(57,230,255,.28); }
-    .confetti i:nth-child(3n+1) { background: var(--pink); box-shadow: 0 0 14px rgba(255,79,216,.28); }
+    .confetti i:nth-child(3n) { background: var(--cyan); box-shadow: 0 0 12px rgba(53,231,255,.20); }
+    .confetti i:nth-child(3n+1) { background: var(--pink); box-shadow: 0 0 12px rgba(255,79,216,.18); }
 
     @keyframes fall {
-      to { transform: translateY(760px) rotate(720deg); opacity: 0; }
+      to { transform: translateY(1120px) rotate(660deg); opacity: 0; }
     }
 
-    .fly-proxy {
-      position: fixed !important;
-      z-index: 95 !important;
-      margin: 0 !important;
-      pointer-events: none !important;
-      transform: none !important;
-      opacity: .98 !important;
-      transition-property: left, top, width, height, opacity, border-radius, filter !important;
-      transition-timing-function: cubic-bezier(.16, 1, .3, 1) !important;
-      filter: drop-shadow(0 0 28px rgba(255,209,138,.34));
+    .headline.pulse { animation: headlinePulse .75s cubic-bezier(.16,1,.3,1) both; }
+    .subline.pulse { animation: sublinePulse .75s .07s cubic-bezier(.16,1,.3,1) both; }
+
+    @keyframes headlinePulse {
+      from { opacity: 0; transform: translateY(22px) scale(.97); filter: blur(8px); }
+      to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
     }
 
-    .fly-proxy.to-chip {
-      padding: 9px 10px !important;
-      gap: 8px !important;
-      grid-template-columns: 44px 1fr !important;
-      border-radius: 18px !important;
-      overflow: hidden !important;
+    @keyframes sublinePulse {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: translateY(0); }
     }
-
-    .fly-proxy.to-chip .avatar-ring {
-      width: 44px !important;
-      height: 44px !important;
-      padding: 3px !important;
-    }
-
-    .fly-proxy.to-chip .avatar { font-size: 14px !important; }
-    .fly-proxy.to-chip .reveal-kicker { font-size: 10px !important; letter-spacing: .08em !important; }
-    .fly-proxy.to-chip .reveal-name { font-size: 16px !important; max-width: 110px !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
-    .fly-proxy.to-chip .reveal-meta { display: none !important; }
-    .fly-proxy.to-chip .reveal-reward { margin-top: 4px !important; padding: 3px 8px !important; font-size: 10px !important; }
 
     #debug {
       position: fixed;
-      z-index: 120;
+      z-index: 99;
       left: 14px;
       bottom: 14px;
-      max-width: 780px;
+      max-width: 760px;
       max-height: 270px;
       overflow: auto;
       display: none;
       padding: 10px;
       background: rgba(0,0,0,.72);
-      border: 1px solid rgba(255,255,255,.2);
+      border: 1px solid rgba(255,255,255,.18);
       color: #fff;
       font-size: 12px;
       white-space: pre-wrap;
@@ -747,19 +851,6 @@
 
     body.debug #debug { display: block; }
 
-    @keyframes headlineIn {
-      from { transform: translateY(26px) scale(.96); opacity: 0; filter: blur(8px); }
-      to { transform: translateY(0) scale(1); opacity: 1; filter: blur(0); }
-    }
-
-    @keyframes fadeUp {
-      from { transform: translateY(18px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-
-    .headline.pulse { animation: headlineIn .75s cubic-bezier(.16, 1, .3, 1) both; }
-    .subline.pulse { animation: fadeUp .75s .08s cubic-bezier(.16, 1, .3, 1) both; }
-
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
     }
@@ -767,44 +858,100 @@
 </head>
 <body>
   <div id="stage" class="hidden-hard" aria-live="polite">
-    <div class="backdrop"></div>
-    <div class="stars"></div>
-    <div class="frame"></div>
-    <div class="spotlight left"></div>
-    <div class="spotlight right"></div>
+    <div class="universe"></div>
+    <div class="starfield"></div>
+    <div class="nebula-lines"></div>
 
-    <main id="main" class="main phase-idle">
-      <div class="topline">
-        <div class="badge"><span class="dot"></span><span id="badgeText">CGN Event-Finale</span></div>
-        <div id="eventName" class="event-name">Event</div>
+    <main class="award-shell">
+      <div class="topbar">
+        <div id="phasePill" class="phase-pill"><span class="phase-dot"></span><span id="phaseText">CGN Award Night</span></div>
+        <div id="eventName" class="event-name">Event-Finale</div>
       </div>
 
-      <h1 id="headline" class="headline">Die Heimleitung zählt aus</h1>
-      <p id="subline" class="subline">Bitte nicht drängeln. Die Keksorden werden frisch sortiert.</p>
+      <section class="title-area">
+        <h1 id="headline" class="headline">CGN Award Night</h1>
+        <p id="subline" class="subline">Die Heimleitung poliert die Pokale. Bitte Rollatoren geordnet parken.</p>
+      </section>
 
-      <section class="arena">
-        <div id="awardStage" class="award-stage">
-          <div id="podium3" class="award-slot place-3 waiting"><div class="award-placeholder">Bronze wartet</div></div>
-          <div id="podium1" class="award-slot place-1 waiting"><div class="award-placeholder">Gold wartet</div></div>
-          <div id="podium2" class="award-slot place-2 waiting"><div class="award-placeholder">Silber wartet</div></div>
+      <section class="award-arena">
+        <div class="stage-lights">
+          <div class="light-beam beam-left"></div>
+          <div class="light-beam beam-mid"></div>
+          <div class="light-beam beam-right"></div>
         </div>
 
-        <div id="revealCard" class="reveal-card">
-          <div class="avatar-ring"><div id="revealAvatar" class="avatar"></div></div>
-          <div>
-            <div id="revealKicker" class="reveal-kicker">Top-10 Ehrenrunde</div>
-            <div id="revealName" class="reveal-name">ForrestCGN</div>
-            <div id="revealMeta" class="reveal-meta">0 Punkte</div>
-            <div id="revealReward" class="reveal-reward">🍪 +4.000 Kekskrümel</div>
+        <div id="finalRibbon" class="final-ribbon">Glückwunsch an die Top 10!</div>
+
+        <div id="top3Stage" class="top3-stage">
+          <div id="zone3" class="award-zone bronze">
+            <div class="awaiting">Bronze wartet</div>
+            <article id="card3" class="award-card bronze">
+              <div class="focus-ring"></div>
+              <div class="card-top">
+                <div class="avatar-ring"><div class="avatar" data-avatar></div></div>
+                <div style="min-width:0;">
+                  <div class="rank-label" data-rank-label>Platz 3 · Bronze</div>
+                  <div class="award-name" data-name>—</div>
+                </div>
+              </div>
+              <div class="award-meta" data-meta>0 Punkte</div>
+              <div class="reward-box" data-reward>Bronze-Platz · Amazon-Gutschein</div>
+            </article>
+            <div class="podest"></div>
+          </div>
+
+          <div id="zone1" class="award-zone gold">
+            <div class="awaiting">Gold wartet</div>
+            <article id="card1" class="award-card gold">
+              <div class="focus-ring"></div>
+              <div class="card-top">
+                <div class="avatar-ring"><div class="avatar" data-avatar></div></div>
+                <div style="min-width:0;">
+                  <div class="rank-label" data-rank-label>Platz 1 · Gold</div>
+                  <div class="award-name" data-name>—</div>
+                </div>
+              </div>
+              <div class="award-meta" data-meta>0 Punkte</div>
+              <div class="reward-box" data-reward>Gold-Platz · Amazon-Gutschein</div>
+            </article>
+            <div class="podest"></div>
+          </div>
+
+          <div id="zone2" class="award-zone silver">
+            <div class="awaiting">Silber wartet</div>
+            <article id="card2" class="award-card silver">
+              <div class="focus-ring"></div>
+              <div class="card-top">
+                <div class="avatar-ring"><div class="avatar" data-avatar></div></div>
+                <div style="min-width:0;">
+                  <div class="rank-label" data-rank-label>Platz 2 · Silber</div>
+                  <div class="award-name" data-name>—</div>
+                </div>
+              </div>
+              <div class="award-meta" data-meta>0 Punkte</div>
+              <div class="reward-box" data-reward>Silber-Platz · Amazon-Gutschein</div>
+            </article>
+            <div class="podest"></div>
           </div>
         </div>
 
-        <div id="honorWall" class="honor-wall empty">
-          <div class="wall-title">Top-10 Ehrenwand · Plätze 10 bis 4</div>
-          <div id="honorList" class="honor-list"></div>
+        <div id="honorPresenter" class="honor-presenter">
+          <div class="presenter-avatar-ring"><div id="presenterAvatar" class="avatar"></div></div>
+          <div>
+            <div id="presenterKicker" class="presenter-kicker">Top-10 Ehrenrunde</div>
+            <div id="presenterName" class="presenter-name">—</div>
+            <div id="presenterMeta" class="presenter-meta">0 Punkte</div>
+            <div id="presenterReward" class="presenter-reward">🍪 +4.000 Kekskrümel</div>
+          </div>
         </div>
 
-        <div id="footerLine" class="footer-line">Die Heimleitung bedankt sich bei allen Teilnehmenden.</div>
+        <div id="statusCaption" class="status-caption">Platz 10 bis 4 werden nacheinander geehrt. Danach öffnet sich die große Preisverleihung.</div>
+
+        <section id="honorStrip" class="honor-strip">
+          <div class="honor-title">Top-10 Ehrenwand · Keksorden Plätze 10 bis 4</div>
+          <div id="honorGrid" class="honor-grid"></div>
+        </section>
+
         <div id="confetti" class="confetti"></div>
       </section>
     </main>
@@ -831,7 +978,7 @@
         overlay: "event_winner_overlay.html",
         communication: "communication_bus",
         owner: "stream_events",
-        step: "EVS46.0"
+        step: "EVS47.0"
       }
     };
   </script>
@@ -848,30 +995,33 @@
       const finaleRoute = eventUid ? `/api/stream-events/events/${encodeURIComponent(eventUid)}/finale` : "";
       const fastMode = speed === "fast" || speed === "test" || qs.get("fast") === "1";
       const timeline = fastMode
-        ? { intro: 1500, honor: 2600, honorFly: 900, honorPause: 650, awardIntro: 1500, award: 3500, awardFly: 900, awardPause: 900, final: 16000, emptyHonor: 1200 }
-        : { intro: 5200, honor: 9500, honorFly: 1400, honorPause: 900, awardIntro: 5200, award: 15000, awardFly: 1400, awardPause: 1000, final: 65000, emptyHonor: 2600 };
-      const autoHideMs = Math.max(12000, Math.min(420000, Number(qs.get("hideMs") || (fastMode ? 90000 : 320000))));
+        ? { intro: 2600, honorShow: 3600, honorReveal: 760, honorGap: 520, topReveal: 6200, finalHold: 26000 }
+        : { intro: 8200, honorShow: 11800, honorReveal: 1200, honorGap: 1500, topReveal: 18500, finalHold: 98000 };
+      const autoHideMs = Math.max(15000, Math.min(420000, Number(qs.get("hideMs") || (fastMode ? 90000 : 310000))));
 
       const els = {
         stage: document.getElementById("stage"),
-        main: document.getElementById("main"),
-        badgeText: document.getElementById("badgeText"),
+        phaseText: document.getElementById("phaseText"),
         eventName: document.getElementById("eventName"),
         headline: document.getElementById("headline"),
         subline: document.getElementById("subline"),
-        revealCard: document.getElementById("revealCard"),
-        revealAvatar: document.getElementById("revealAvatar"),
-        revealKicker: document.getElementById("revealKicker"),
-        revealName: document.getElementById("revealName"),
-        revealMeta: document.getElementById("revealMeta"),
-        revealReward: document.getElementById("revealReward"),
-        honorWall: document.getElementById("honorWall"),
-        honorList: document.getElementById("honorList"),
-        awardStage: document.getElementById("awardStage"),
-        podium1: document.getElementById("podium1"),
-        podium2: document.getElementById("podium2"),
-        podium3: document.getElementById("podium3"),
-        footerLine: document.getElementById("footerLine"),
+        honorPresenter: document.getElementById("honorPresenter"),
+        presenterAvatar: document.getElementById("presenterAvatar"),
+        presenterKicker: document.getElementById("presenterKicker"),
+        presenterName: document.getElementById("presenterName"),
+        presenterMeta: document.getElementById("presenterMeta"),
+        presenterReward: document.getElementById("presenterReward"),
+        honorStrip: document.getElementById("honorStrip"),
+        honorGrid: document.getElementById("honorGrid"),
+        top3Stage: document.getElementById("top3Stage"),
+        zone1: document.getElementById("zone1"),
+        zone2: document.getElementById("zone2"),
+        zone3: document.getElementById("zone3"),
+        card1: document.getElementById("card1"),
+        card2: document.getElementById("card2"),
+        card3: document.getElementById("card3"),
+        statusCaption: document.getElementById("statusCaption"),
+        finalRibbon: document.getElementById("finalRibbon"),
         confetti: document.getElementById("confetti"),
         debug: document.getElementById("debug")
       };
@@ -910,12 +1060,11 @@
       }
 
       function hideStage() {
-        hideReveal();
         els.stage.classList.remove("visible");
         hideTimer = window.setTimeout(() => {
           els.stage.classList.add("hidden-hard");
           clearConfetti();
-        }, 700);
+        }, 850);
       }
 
       function cleanText(value, fallback) {
@@ -1060,6 +1209,13 @@
         };
       }
 
+      function initials(name) {
+        const text = cleanText(name, "CGN").replace(/[^A-Za-z0-9ÄÖÜäöüß\s_-]/g, "").trim();
+        const parts = text.split(/[\s_-]+/).filter(Boolean);
+        if (parts.length >= 2) return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
+        return text.slice(0, 2).toUpperCase() || "CG";
+      }
+
       function renderAvatar(container, row) {
         container.innerHTML = "";
         const url = cleanText(row && row.avatarUrl, "");
@@ -1070,19 +1226,13 @@
           img.referrerPolicy = "no-referrer";
           img.src = url;
           img.onerror = () => {
-            container.innerHTML = initials(row && row.userDisplayName);
+            container.innerHTML = "";
+            container.textContent = initials(row && row.userDisplayName);
           };
           container.appendChild(img);
           return;
         }
         container.textContent = initials(row && row.userDisplayName);
-      }
-
-      function initials(name) {
-        const text = cleanText(name, "CGN").replace(/[^\p{L}\p{N}\s_-]/gu, "").trim();
-        const parts = text.split(/[\s_-]+/).filter(Boolean);
-        if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-        return text.slice(0, 2).toUpperCase() || "CG";
       }
 
       function escapeHtml(value) {
@@ -1101,10 +1251,10 @@
         els.subline.classList.add("pulse");
       }
 
-      function setTitles(headline, subline, badge) {
+      function setTitles(headline, subline, phase) {
         els.headline.textContent = headline;
         els.subline.textContent = subline;
-        if (badge) els.badgeText.textContent = badge;
+        if (phase) els.phaseText.textContent = phase;
         pulseTitles();
       }
 
@@ -1112,178 +1262,83 @@
         els.confetti.innerHTML = "";
       }
 
-      function makeConfetti(amount) {
-        clearConfetti();
-        const count = Math.max(18, Math.min(100, amount || 55));
+      function makeConfetti(amount, intensity) {
+        const count = Math.max(18, Math.min(150, amount || 60));
+        if (intensity === "clear") clearConfetti();
         for (let i = 0; i < count; i += 1) {
           const piece = document.createElement("i");
-          const sideBias = Math.random();
-          const left = sideBias < .32 ? Math.random() * 26 : sideBias > .68 ? 74 + Math.random() * 26 : 28 + Math.random() * 44;
-          piece.style.left = `${left}%`;
-          piece.style.animationDuration = `${4.2 + Math.random() * 4.8}s`;
-          piece.style.animationDelay = `${Math.random() * 1.5}s`;
-          piece.style.transform = `translateY(-60px) rotate(${Math.random() * 360}deg)`;
+          piece.style.left = `${Math.random() * 100}%`;
+          piece.style.animationDuration = `${4.8 + Math.random() * 5.2}s`;
+          piece.style.animationDelay = `${Math.random() * 1.2}s`;
           piece.style.width = `${7 + Math.random() * 8}px`;
-          piece.style.height = `${12 + Math.random() * 16}px`;
+          piece.style.height = `${12 + Math.random() * 15}px`;
+          piece.style.transform = `translateY(-60px) rotate(${Math.random() * 360}deg)`;
           els.confetti.appendChild(piece);
         }
+        defer(() => {
+          while (els.confetti.children.length > 170) els.confetti.removeChild(els.confetti.firstChild);
+        }, 4000);
       }
 
-      function showReveal(row, opts) {
-        const options = opts || {};
-        els.revealCard.classList.toggle("final-focus", !!options.finalFocus);
-        els.revealKicker.textContent = options.kicker || `Platz ${row.rank}`;
-        els.revealName.textContent = row.userDisplayName;
-        els.revealMeta.textContent = options.meta || pointsLabel(row.points);
-        els.revealReward.textContent = options.reward || row.rewardLabel || "";
-        renderAvatar(els.revealAvatar, row);
-        els.revealCard.classList.remove("visible", "hidden-soft");
-        void els.revealCard.offsetWidth;
-        els.revealCard.classList.add("visible");
+      function fillCard(card, row) {
+        const rankLabel = row.rank === 1 ? "Platz 1 · Gold" : row.rank === 2 ? "Platz 2 · Silber" : "Platz 3 · Bronze";
+        card.querySelector("[data-rank-label]").textContent = rankLabel;
+        card.querySelector("[data-name]").textContent = row.userDisplayName;
+        card.querySelector("[data-meta]").textContent = pointsLabel(row.points);
+        card.querySelector("[data-reward]").textContent = row.rewardValue ? `${row.rewardLabel} · ${row.rewardValue}` : row.rewardLabel;
+        renderAvatar(card.querySelector("[data-avatar]"), row);
       }
 
-      function hideReveal() {
-        els.revealCard.classList.remove("visible");
-        els.revealCard.classList.add("hidden-soft");
+      function revealCard(rank, row) {
+        const zone = rank === 1 ? els.zone1 : rank === 2 ? els.zone2 : els.zone3;
+        const card = rank === 1 ? els.card1 : rank === 2 ? els.card2 : els.card3;
+        fillCard(card, row);
+        zone.classList.add("revealed");
+        card.classList.add("revealed", "focus");
+        defer(() => card.classList.remove("focus"), Math.min(4200, timeline.topReveal - 400));
       }
 
-      function setFooter(text, visible) {
-        els.footerLine.textContent = text;
-        els.footerLine.classList.toggle("visible", !!visible);
+      function showHonorPresenter(row) {
+        els.presenterKicker.textContent = `Platz ${row.rank} · Top-10 Ehrenrunde`;
+        els.presenterName.textContent = row.userDisplayName;
+        els.presenterMeta.textContent = pointsLabel(row.points);
+        els.presenterReward.textContent = `🍪 ${crumbsLabel(row.crumbBonus)}`;
+        renderAvatar(els.presenterAvatar, row);
+        els.honorPresenter.classList.remove("hide-soft");
+        void els.honorPresenter.offsetWidth;
+        els.honorPresenter.classList.add("show");
       }
 
-      function initHonorWall() {
-        els.honorList.innerHTML = "";
-        els.honorWall.classList.add("empty");
-        els.honorWall.classList.remove("dimmed");
+      function hideHonorPresenter() {
+        els.honorPresenter.classList.remove("show");
+        els.honorPresenter.classList.add("hide-soft");
       }
 
-      function buildHonorChip(row, preparing) {
+      function addHonorChip(row) {
         const chip = document.createElement("div");
-        chip.className = `honor-chip${preparing ? " preparing" : " pop-in"}`;
-        chip.dataset.rank = String(row.rank);
+        chip.className = "honor-chip";
         chip.innerHTML = `
           <div class="chip-place">Platz ${escapeHtml(row.rank)}</div>
           <div class="chip-name"></div>
-          <div class="chip-reward"></div>
+          <div class="chip-reward">🍪 ${escapeHtml(crumbsLabel(row.crumbBonus))}</div>
         `;
         chip.querySelector(".chip-name").textContent = row.userDisplayName;
-        chip.querySelector(".chip-reward").textContent = `🍪 ${crumbsLabel(row.crumbBonus)}`;
-        return chip;
-      }
-
-      function revealHonorChip(chip) {
-        if (!chip) return;
-        els.honorWall.classList.remove("empty");
-        chip.classList.remove("preparing");
-        chip.classList.add("pop-in");
-        chip.style.visibility = "";
-      }
-
-      function podiumLabel(rank) {
-        if (rank === 1) return "Platz 1 · Gold";
-        if (rank === 2) return "Platz 2 · Silber";
-        if (rank === 3) return "Platz 3 · Bronze";
-        return `Platz ${rank}`;
-      }
-
-      function emptyAwardSlots() {
-        const placeholders = {
-          1: "Gold wartet",
-          2: "Silber wartet",
-          3: "Bronze wartet"
-        };
-        [els.podium1, els.podium2, els.podium3].forEach((slot) => {
-          const rank = Number(slot.id.replace("podium", ""));
-          slot.className = `award-slot place-${rank} waiting`;
-          slot.innerHTML = `<div class="award-placeholder">${escapeHtml(placeholders[rank] || "wartet")}</div>`;
-        });
-      }
-
-      function renderAwardSlot(slot, row) {
-        if (!slot || !row) return;
-        slot.className = `award-slot place-${row.rank} filled`;
-        slot.innerHTML = `
-          <div class="award-content">
-            <div class="award-head">
-              <div class="avatar-ring"><div class="avatar"></div></div>
-              <div style="min-width:0;">
-                <div class="award-place">${escapeHtml(podiumLabel(row.rank))}</div>
-                <div class="award-name"></div>
-              </div>
-            </div>
-            <div class="award-points">${escapeHtml(pointsLabel(row.points))}</div>
-            <div class="award-reward">${escapeHtml(row.rewardLabel)}${row.rewardValue ? ` · ${escapeHtml(row.rewardValue)}` : ""}</div>
-          </div>
-        `;
-        slot.querySelector(".award-name").textContent = row.userDisplayName;
-        renderAvatar(slot.querySelector(".avatar"), row);
-      }
-
-      function animateRevealToTarget(target, options, after) {
-        if (!target) {
-          hideReveal();
-          if (after) after();
-          return;
-        }
-        const mode = options && options.mode === "chip" ? "chip" : "award";
-        const startRect = els.revealCard.getBoundingClientRect();
-        const targetRect = target.getBoundingClientRect();
-        const clone = els.revealCard.cloneNode(true);
-        clone.id = "flyProxy";
-        clone.classList.add("fly-proxy");
-        if (mode === "chip") clone.classList.add("to-chip");
-        clone.style.left = `${startRect.left}px`;
-        clone.style.top = `${startRect.top}px`;
-        clone.style.width = `${startRect.width}px`;
-        clone.style.height = `${startRect.height}px`;
-        clone.style.transitionDuration = `${timeline.honorFly}ms`;
-        document.body.appendChild(clone);
-        els.revealCard.classList.remove("visible");
-        els.revealCard.classList.add("hidden-soft");
-
-        window.requestAnimationFrame(() => {
-          clone.style.left = `${targetRect.left}px`;
-          clone.style.top = `${targetRect.top}px`;
-          clone.style.width = `${targetRect.width}px`;
-          clone.style.height = `${targetRect.height}px`;
-          clone.style.opacity = ".92";
-          clone.style.borderRadius = mode === "chip" ? "17px" : "30px";
-        });
-
-        defer(() => {
-          if (after) after();
-          clone.style.opacity = "0";
-        }, timeline.honorFly);
-
-        defer(() => {
-          clone.remove();
-        }, timeline.honorFly + 280);
-      }
-
-      function animateHonorToSlot(row) {
-        let chip = els.honorList.querySelector(`[data-rank="${row.rank}"]`);
-        if (!chip) {
-          chip = buildHonorChip(row, true);
-          els.honorList.appendChild(chip);
-        }
-        animateRevealToTarget(chip, { mode: "chip" }, () => revealHonorChip(chip));
-      }
-
-      function awardSlotForRank(rank) {
-        if (rank === 1) return els.podium1;
-        if (rank === 2) return els.podium2;
-        return els.podium3;
+        els.honorGrid.appendChild(chip);
+        void chip.offsetWidth;
+        chip.classList.add("revealed");
       }
 
       function resetView(finale) {
         els.eventName.textContent = finale.eventName;
-        setTitles("Die Heimleitung zählt aus", "Bitte nicht drängeln. Die Keksorden werden frisch sortiert.", "CGN Event-Finale");
-        hideReveal();
-        els.awardStage.classList.remove("visible");
-        emptyAwardSlots();
-        setFooter("Die Heimleitung bedankt sich bei allen Teilnehmenden.", false);
-        initHonorWall();
+        els.phaseText.textContent = "CGN Award Night";
+        setTitles("CGN Award Night", "Die Heimleitung poliert die Pokale. Bitte Rollatoren geordnet parken.", "CGN Award Night");
+        els.honorGrid.innerHTML = "";
+        els.honorStrip.classList.remove("dimmed");
+        hideHonorPresenter();
+        [els.card1, els.card2, els.card3].forEach((card) => card.classList.remove("revealed", "focus"));
+        [els.zone1, els.zone2, els.zone3].forEach((zone) => zone.classList.remove("revealed"));
+        els.finalRibbon.classList.remove("show");
+        els.statusCaption.textContent = "Platz 10 bis 4 werden nacheinander geehrt. Danach öffnet sich die große Preisverleihung.";
         clearConfetti();
       }
 
@@ -1297,10 +1352,10 @@
         log({ speed, fastMode, timeline, finale });
         showStage();
 
-        let at = 250;
+        let at = 350;
         defer(() => {
-          setTitles("Top-10 Ehrenrunde", "Plätze 10 bis 4 bekommen extra Kekskrümel und ihren Keksorden.", "Keksorden-Ausgabe");
-          setFooter("Keine Verlierer. Die Ehrenwand füllt sich erst nach jeder Ehrung.", true);
+          setTitles("Top-10 Ehrenrunde", "Die Keksorden werden einzeln vergeben. Niemand wird vorher gespoilert.", "Keksorden-Ausgabe");
+          els.statusCaption.textContent = "Jeder Platz erscheint erst, wenn die Heimleitung ihn aufruft.";
         }, at);
 
         at += timeline.intro;
@@ -1308,77 +1363,59 @@
         if (honorRows.length) {
           honorRows.forEach((row) => {
             defer(() => {
-              els.awardStage.classList.remove("visible");
-              els.honorWall.classList.remove("dimmed");
-              setTitles(`Platz ${row.rank} · Ehrenrunde`, `${row.userDisplayName} bekommt den Keksorden und ${crumbsLabel(row.crumbBonus)}.`, "Top-10 Ehrenrunde");
-              showReveal(row, {
-                kicker: `Platz ${row.rank} · Top-10 Ehrenrunde`,
-                meta: pointsLabel(row.points),
-                reward: `🍪 ${crumbsLabel(row.crumbBonus)}`
-              });
-              makeConfetti(fastMode ? 18 : 34);
+              setTitles(`Platz ${row.rank} · Keksorden`, `${row.userDisplayName} bekommt ${crumbsLabel(row.crumbBonus)} extra.`, "Top-10 Ehrenrunde");
+              els.statusCaption.textContent = `Platz ${row.rank} wird geehrt und danach in die Ehrenwand aufgenommen.`;
+              showHonorPresenter(row);
+              makeConfetti(fastMode ? 16 : 26);
             }, at);
-            at += timeline.honor;
+            at += timeline.honorShow;
             defer(() => {
-              animateHonorToSlot(row);
+              hideHonorPresenter();
+              addHonorChip(row);
             }, at);
-            at += timeline.honorFly + timeline.honorPause;
+            at += timeline.honorReveal + timeline.honorGap;
           });
         } else {
           defer(() => {
-            setTitles("Top-10 Ehrenrunde", "Für dieses Finale wurden keine Plätze 10 bis 4 geliefert. Die Preisverleihung startet direkt.", "Finale");
+            setTitles("Preisverleihung", "Für dieses Finale wurden keine Plätze 10 bis 4 geliefert.", "Finale");
           }, at);
-          at += timeline.emptyHonor;
+          at += timeline.intro;
         }
 
         defer(() => {
-          setTitles("Preisverleihung", "Bronze, Silber und Gold werden jetzt nacheinander auf die Bühne geholt.", "Amazon-Gutschein-Plätze");
-          hideReveal();
-          els.awardStage.classList.add("visible");
-          els.honorWall.classList.add("dimmed");
-          setFooter("Platz 3 links, Platz 1 in der Mitte, Platz 2 rechts. Keine Karte verdeckt das Podium.", true);
+          els.honorStrip.classList.add("dimmed");
+          setTitles("Preisverleihung", "Jetzt öffnen sich Bronze, Silber und Gold auf der CGN-Bühne.", "Amazon-Gutschein-Plätze");
+          els.statusCaption.textContent = "Feste Bühne: Platz 3 links, Platz 1 in der Mitte, Platz 2 rechts.";
+          makeConfetti(fastMode ? 28 : 42, "clear");
         }, at);
-        at += timeline.awardIntro;
+        at += timeline.intro;
 
         const podiumByRank = new Map((finale.podiumRows || []).map((row) => [row.rank, row]));
-        const order = [3, 2, 1];
-        order.forEach((rank) => {
+        const revealOrder = [3, 2, 1];
+        revealOrder.forEach((rank) => {
           const row = podiumByRank.get(rank) || (finale.podiumRows || []).find((item) => item.rank === rank);
           if (!row) return;
           defer(() => {
-            const kicker = rank === 1 ? "Platz 1 · Gold" : rank === 2 ? "Platz 2 · Silber" : "Platz 3 · Bronze";
-            setTitles(kicker, `${row.userDisplayName} sichert sich ${row.rewardLabel}.`, "Preisverleihung");
-            showReveal(row, {
-              kicker,
-              meta: pointsLabel(row.points),
-              reward: row.rewardValue ? `${row.rewardLabel} · ${row.rewardValue}` : row.rewardLabel,
-              finalFocus: rank === 1
-            });
-            makeConfetti(rank === 1 ? (fastMode ? 46 : 82) : (fastMode ? 22 : 42));
+            const title = rank === 1 ? "Gold-Platz" : rank === 2 ? "Silber-Platz" : "Bronze-Platz";
+            setTitles(title, `${row.userDisplayName} sichert sich ${row.rewardLabel}.`, "Preisverleihung");
+            els.statusCaption.textContent = rank === 1 ? "Gold betritt die Mitte. Jetzt wird es offiziell." : `${title} wird auf der Bühne sichtbar.`;
+            revealCard(rank, row);
+            makeConfetti(rank === 1 ? (fastMode ? 52 : 90) : (fastMode ? 24 : 38));
           }, at);
-          at += timeline.award;
-          defer(() => {
-            const slot = awardSlotForRank(rank);
-            animateRevealToTarget(slot, { mode: "award" }, () => {
-              renderAwardSlot(slot, row);
-              if (rank === 1) slot.classList.add("winner-glow");
-            });
-          }, at);
-          at += timeline.awardFly + timeline.awardPause;
+          at += timeline.topReveal;
         });
 
         const winner = podiumByRank.get(1) || finale.winner || finale.podiumRows[0];
         defer(() => {
           if (winner) {
             setTitles("CGN Event-Gewinner", `${winner.userDisplayName} steht ganz oben auf dem Treppchen.`, "Gold-Platz");
+            els.finalRibbon.textContent = `🏆 ${winner.userDisplayName} gewinnt das CGN Event-Finale`;
+            els.finalRibbon.classList.add("show");
           }
-          hideReveal();
-          els.awardStage.classList.add("visible");
-          els.honorWall.classList.add("dimmed");
-          setFooter("Glückwunsch an alle Top-10-Rentner. Die Heimleitung hat gesprochen.", true);
-          makeConfetti(fastMode ? 70 : 105);
+          els.statusCaption.textContent = "Alle Top-10-Plätze sind sichtbar. Die Heimleitung hat gesprochen.";
+          makeConfetti(fastMode ? 90 : 140, "clear");
         }, at);
-        at += timeline.final;
+        at += timeline.finalHold;
 
         const totalRun = Math.max(at + 1000, Math.min(autoHideMs, at + 3000));
         defer(() => hideStage(), totalRun);
@@ -1388,7 +1425,7 @@
         const long = kind === "long";
         const rows = [
           { rank: 1, userDisplayName: long ? "ForrestCGN_mit_dem_sehr_langen_Gewinnernamen" : "ForrestCGN", points: 120, entries: 12, rewardLabel: "Gold-Platz · Amazon-Gutschein" },
-          { rank: 2, userDisplayName: "EngelCGN", points: 108, entries: 11, rewardLabel: "Silber-Platz · Amazon-Gutschein" },
+          { rank: 2, userDisplayName: long ? "EngelCGN_Silbername_mit_Extra_Laenge" : "EngelCGN", points: 108, entries: 11, rewardLabel: "Silber-Platz · Amazon-Gutschein" },
           { rank: 3, userDisplayName: "HeimleitungHD", points: 96, entries: 9, rewardLabel: "Bronze-Platz · Amazon-Gutschein" },
           { rank: 4, userDisplayName: "KaffeeKoenig", points: 88, entries: 8, crumbBonus: 10000 },
           { rank: 5, userDisplayName: "OpaRollator", points: 82, entries: 8, crumbBonus: 9000 },
@@ -1447,7 +1484,7 @@
       }
 
       if (demo) {
-        window.setTimeout(() => playFinale(demoFinale(demo), { force: true }), 350);
+        window.setTimeout(() => playFinale(demoFinale(demo), { force: true }), 450);
       } else {
         loadExistingFinale();
       }
