@@ -33,7 +33,7 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.84";
+const MODULE_VERSION = "0.5.85";
 const MODULE_BUILD = "STEP_EVS52_14_NEUTRAL_UNIQUE_TEXT_HINTS";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
