@@ -33,8 +33,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.85";
-const MODULE_BUILD = "STEP_EVS52_14_NEUTRAL_UNIQUE_TEXT_HINTS";
+const MODULE_VERSION = "0.5.86";
+const MODULE_BUILD = "STEP_EVS52_15_REPORT_DIAG_CLEANUP";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -2889,7 +2889,7 @@ function processTextChatMessage(chat = {}, options = {}) {
       };
       if (bundledChatOutput && bundledChatOutput.prepared) {
         chatOutputs.push(bundledChatOutput);
-        if (phraseItems.length > 1 || uniqueNewWordCount !== wordHits.length) runtimeState.counters.textWordHitChatOutputsBundled += 1;
+        runtimeState.counters.textWordHitChatOutputsBundled += 1;
       }
     }
 
@@ -5931,6 +5931,7 @@ function getTextRuntimeReport(eventUid = "") {
     userLogin: row.user_login || "",
     userDisplayName: row.user_display_name || row.user_login || "",
     pointsAwarded: Number(row.points_awarded || 0),
+    points: Number(row.points_awarded || 0),
     chatMessageId: row.chat_message_id || "",
     chatMessage: row.chat_message || "",
     createdAt: row.created_at || ""
@@ -5952,6 +5953,7 @@ function getTextRuntimeReport(eventUid = "") {
     userLogin: row.user_login || "",
     userDisplayName: row.user_display_name || row.user_login || "",
     pointsAwarded: Number(row.points_awarded || 0),
+    points: Number(row.points_awarded || 0),
     chatMessageId: row.chat_message_id || "",
     chatMessage: row.chat_message || "",
     createdAt: row.created_at || ""
@@ -6250,6 +6252,7 @@ function getStatisticsUser(login, eventUid = "") {
     userLogin: row.user_login,
     userDisplayName: row.user_display_name || row.user_login,
     pointsAwarded: Number(row.points_awarded || 0),
+    points: Number(row.points_awarded || 0),
     chatMessageId: row.chat_message_id || "",
     chatMessage: row.chat_message || "",
     createdAt: row.created_at || "",
@@ -6272,6 +6275,7 @@ function getStatisticsUser(login, eventUid = "") {
     userLogin: row.user_login,
     userDisplayName: row.user_display_name || row.user_login,
     pointsAwarded: Number(row.points_awarded || 0),
+    points: Number(row.points_awarded || 0),
     chatMessageId: row.chat_message_id || "",
     chatMessage: row.chat_message || "",
     createdAt: row.created_at || "",
