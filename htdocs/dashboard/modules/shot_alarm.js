@@ -53,22 +53,29 @@ window.ShotAlarmModule = (function(){
     window.CGN.modules.shot_alarm = {
       title: 'Shot-Alarm',
       panelId: 'shotAlarmModule',
-      group: 'community',
+      group: 'events',
       overlayLink: '/overlays/shot_alarm/shot_alarm_overlay.html',
       overlayLabel: 'Shot-Overlay öffnen',
       reload() { return window.ShotAlarmModule?.loadAll?.(true); }
     };
     window.CGN.moduleCatalog.shot_alarm = {
-      label: 'Events: Shot-Alarm',
+      label: 'Shot-Alarm',
       icon: '🥃',
       enabled: true,
-      description: 'Community-Event: Shot-Regeln, Texte, Config, Statistik und Overlay für Engel & Roxxy.'
+      description: 'Event-Modul: Shot-Regeln, Texte, Config, Statistik und Overlay für Engel & Roxxy.'
     };
+    window.CGN.sections.events = window.CGN.sections.events || {
+      label: 'Events', icon: '🎲', role: 'mod/supermod/streamer',
+      description: 'Stream-Events, Event-Texte, Event-Config, Shot-Alarm und spätere Event-Module.',
+      items: ['stream_events', 'shot_alarm'],
+      defaultModule: 'stream_events'
+    };
+    const eventItems = window.CGN.sections.events.items;
+    if (Array.isArray(eventItems) && !eventItems.includes('shot_alarm')) eventItems.push('shot_alarm');
     const communityItems = window.CGN.sections?.community?.items;
-    if (Array.isArray(communityItems) && !communityItems.includes('shot_alarm')) {
-      const commandsIndex = communityItems.indexOf('commands');
-      if (commandsIndex >= 0) communityItems.splice(commandsIndex + 1, 0, 'shot_alarm');
-      else communityItems.push('shot_alarm');
+    if (Array.isArray(communityItems)) {
+      const index = communityItems.indexOf('shot_alarm');
+      if (index >= 0) communityItems.splice(index, 1);
     }
     const controlItems = window.CGN.sections?.control?.items;
     if (Array.isArray(controlItems)) {
@@ -272,7 +279,7 @@ window.ShotAlarmModule = (function(){
     const payments = rules.payments?.providers || {};
     return `
       <div class="shot-card">
-        <h3>Community / Events / Shot-Alarm / Config</h3>
+        <h3>Events / Shot-Alarm / Config</h3>
         <p class="shot-muted">Config wird über die zentrale DB-Settings-Struktur gespeichert. JSON bleibt Mirror/Fallback.</p>
         <div class="shot-form-grid">
           ${selectField('enabled', 'Modul aktiv', c.enabled !== false)}
@@ -342,7 +349,7 @@ window.ShotAlarmModule = (function(){
     const shown = keys.filter(item => (item.category || 'general') === selected);
     return `
       <div class="shot-card">
-        <h3>Community / Events / Shot-Alarm / Texte</h3>
+        <h3>Events / Shot-Alarm / Texte</h3>
         <p class="shot-muted">Texte laufen über <code>module_text_variants</code>, sind kategorisiert, variantenfähig und werden zufällig/gewichtet gewählt.</p>
         <div class="shot-tabs shot-small-tabs">
           ${categories.map(cat => `<button data-shot-text-category="${esc(cat.id)}" class="${cat.id === selected ? 'active' : ''}">${esc(cat.label)} (${esc(cat.variantCount || 0)})</button>`).join('')}
@@ -452,7 +459,7 @@ window.ShotAlarmModule = (function(){
     if (!root) return;
     root.innerHTML = `
       <div class="shot-header">
-        <div><p class="eyebrow">Community / Events</p><h2>🥃 Shot-Alarm</h2><p>Support-Events, Auslosung, Texte, Config und Statistik für Engel & Roxxy.</p></div>
+        <div><p class="eyebrow">Events</p><h2>🥃 Shot-Alarm</h2><p>Event-Modul für Support-Shots, Auslosung, Texte, Config und Statistik für Engel & Roxxy.</p></div>
         <div class="shot-actions"><a class="ghost-link" href="/overlays/shot_alarm/shot_alarm_overlay.html" target="_blank">Overlay öffnen</a><button data-shot-action="reload">Aktualisieren</button></div>
       </div>
       ${state.error ? `<div class="shot-alert error">${esc(state.error)}</div>` : ''}

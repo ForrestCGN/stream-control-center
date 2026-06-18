@@ -55,3 +55,7 @@ Shot-Alarm wurde nach STEP 2A erweitert:
 - Soundpool-Auswahl im Dashboard an vorhandene Media/Sound-Systeme anbinden.
 - Persistente Counter ggf. aus DB nach Neustart wiederherstellen.
 - Rechte/Audit für produktive Dashboard-Aktionen prüfen.
+
+
+## Ergänzung: Dashboard-Placement
+Shot-Alarm wurde im Dashboard fachlich dem Bereich Events zugeordnet. Config und Texte werden im Shot-Alarm-Modul im Events-Kontext geführt. Die eigentliche Backend-Version bleibt 0.2.1.

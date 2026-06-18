@@ -132,3 +132,7 @@ Speichert Zeitpunkt, Phase, Eventtyp, User, Menge, Regel, Shots und Payload JSON
 3. Soundpool dashboardfähig mit Sound-/Media-System verbinden.
 4. Rechte/Audit für produktive Dashboard-Aktionen ergänzen.
 5. Counter nach Neustart ggf. persistent wiederherstellen.
+
+
+## Dashboard-Einordnung
+Shot-Alarm gehört im Dashboard in den Bereich Events. Die Tabs Config und Texte sind Teil des Event-Moduls Shot-Alarm und sollen langfristig mit den bestehenden Event-Dropdown-Patterns für Module/Bereiche konsistent bleiben.
