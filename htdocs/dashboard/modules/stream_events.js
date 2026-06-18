@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.49";
-  const MODULE_BUILD = "STEP_EVS51_1_TEXT_RUNTIME_TEST_CHECK";
+  const MODULE_VERSION = "0.5.50";
+  const MODULE_BUILD = "STEP_EVS51_3_TEXT_TEST_UI_CLEANUP";
 
   const api = {
     status: '/api/stream-events/status',
@@ -1584,6 +1584,26 @@ window.StreamEventsModule = (function(){
 
   function yesNo(ok){ return ok ? 'OK' : 'FEHLT'; }
 
+  function checkBadge(ok, label, sub){
+    const stateClass = ok ? 'is-ok' : 'is-warn';
+    return `<div class="evs-text-check-card ${stateClass}"><strong>${ok ? 'OK' : 'FEHLT'}</strong><span>${esc(label)}</span>${sub ? `<small>${esc(sub)}</small>` : ''}</div>`;
+  }
+
+  function compactTestStepLabel(key){
+    const map = {
+      wrongNoPoints: 'Falsch ohne Punkte',
+      wordHitWritten: 'Worttreffer zählt',
+      phraseSolvesWritten: 'Sätze gelöst',
+      duplicatesBlocked: 'Doppelte Lösung blockiert',
+      textCompletedAfterText: 'Text-Teil fertig',
+      totalStillOpenAfterText: 'Gesamt bleibt offen',
+      soundCompletedAfterSound: 'Sound fertig',
+      totalCompletedAfterSound: 'Gesamt fertig',
+      eventFinishedAfterSound: 'Event beendet'
+    };
+    return map[key] || key;
+  }
+
   function renderTextCheckSummary(result){
     if (!result || !['text-check','text-create','text-wrong','text-word','text-correct','text-duplicate','text-report'].includes(result.action || '')) return '';
     const checks = result.checks || {};
@@ -1594,41 +1614,90 @@ window.StreamEventsModule = (function(){
     const phraseSolves = rows(report?.phraseSolves).slice(0, 8);
     const wordHits = rows(report?.wordHits).slice(0, 8);
     const eventUid = result.eventUid || report?.eventUid || '';
+    const isFullCheck = (result.action || '') === 'text-check';
     const users = [
       { login: 'forrestcgn', label: 'ForrestCGN' },
       { login: 'engelcgn', label: 'EngelCGN' },
-      { login: 'satzpartial', label: 'SatzPartial' }
+      { login: 'satzpartial', label: 'SatzPartial' },
+      { login: 'satzfalsch01', label: 'SatzFalsch01' },
+      { login: 'satzfalsch02', label: 'SatzFalsch02' }
     ];
+    const checksList = [
+      ['wrongNoPoints', 'Falsche Antwort', 'keine Punkte'],
+      ['wordHitWritten', 'Worttreffer', 'Punkte geschrieben'],
+      ['phraseSolvesWritten', 'Satzlösung', '2 Sätze gelöst'],
+      ['duplicatesBlocked', 'Duplikat-Schutz', 'zweite Lösung blockiert'],
+      ['textCompletedAfterText', 'Text-Abschluss', 'alle Sätze fertig'],
+      ['totalStillOpenAfterText', 'Kombi-Regel', 'Sound hält offen'],
+      ['soundCompletedAfterSound', 'Sound-Abschluss', 'Sound gelöst'],
+      ['totalCompletedAfterSound', 'Gesamt-Abschluss', 'alle Teile fertig'],
+      ['eventFinishedAfterSound', 'Event-Finish', 'automatisch beendet']
+    ];
+    const summaryLine = isFullCheck
+      ? `${checks.passed ? 'Satz-System-Prüfung bestanden.' : 'Satz-System-Prüfung hat offene Punkte.'}`
+      : `Letzter Satz-Test: ${esc(result.action || 'unbekannt')}`;
+    const actionHints = {
+      'text-create': 'Testevent wurde erstellt und gestartet.',
+      'text-wrong': 'Falsche Antworten wurden gegen das Testevent geschickt.',
+      'text-word': 'Ein gezielter Worttreffer wurde simuliert.',
+      'text-correct': 'Richtige Satzantworten wurden simuliert.',
+      'text-duplicate': 'Eine doppelte Lösung wurde geprüft.',
+      'text-report': 'Der aktuelle Satz-Report wurde geladen.'
+    };
     return `
-      <div class="evs-text-check-summary">
-        <h4>Satz-System Prüfung</h4>
-        ${checks.note ? `<p class="evs-muted">${esc(checks.note)}</p>` : ''}
-        <div class="evs-text-check-cards">
-          <div class="${checks.wrongNoPoints ? 'is-ok' : 'is-warn'}"><strong>${yesNo(checks.wrongNoPoints)}</strong><span>Falsche Antworten ohne Punkte</span></div>
-          <div class="${checks.wordHitWritten ? 'is-ok' : 'is-warn'}"><strong>${yesNo(checks.wordHitWritten)}</strong><span>Worttreffer geschrieben</span></div>
-          <div class="${checks.phraseSolvesWritten ? 'is-ok' : 'is-warn'}"><strong>${yesNo(checks.phraseSolvesWritten)}</strong><span>2 Sätze gelöst</span></div>
-          <div class="${checks.duplicatesBlocked ? 'is-ok' : 'is-warn'}"><strong>${yesNo(checks.duplicatesBlocked)}</strong><span>Doppelte Lösung blockiert</span></div>
-          <div class="${checks.textCompletedAfterText ? 'is-ok' : 'is-warn'}"><strong>${yesNo(checks.textCompletedAfterText)}</strong><span>Text-Teil fertig</span></div>
-          <div class="${checks.totalStillOpenAfterText ? 'is-ok' : 'is-warn'}"><strong>${yesNo(checks.totalStillOpenAfterText)}</strong><span>Gesamt nach Text offen</span></div>
-          <div class="${checks.eventFinishedAfterSound ? 'is-ok' : 'is-warn'}"><strong>${yesNo(checks.eventFinishedAfterSound)}</strong><span>Gesamt nach Sound fertig</span></div>
+      <div class="evs-text-check-summary ${checks.passed ? 'is-passed' : ''}">
+        <div class="evs-test-section-head">
+          <div>
+            <h4>Satz-System Prüfung</h4>
+            <p>${esc(actionHints[result.action] || summaryLine)}</p>
+          </div>
+          ${checks.passed != null ? `<span class="evs-pill ${checks.passed ? 'is-ok' : 'is-warn'}">${checks.passed ? 'BESTANDEN' : 'PRÜFEN'}</span>` : ''}
         </div>
-        ${afterTextParts ? `<div class="evs-test-mini-line"><b>Nach Text:</b> Sound ${afterTextParts.sound?.completed ? 'fertig' : 'offen'} · Text ${afterTextParts.text?.completed ? 'fertig' : 'offen'} · Gesamt ${afterTextParts.allConfiguredPartsCompleted ? 'fertig' : 'offen'}</div>` : ''}
-        ${parts ? `<div class="evs-test-mini-line"><b>Nach Sound:</b> Sound ${parts.sound?.completed ? 'fertig' : 'offen'} · Text ${parts.text?.completed ? 'fertig' : 'offen'} · Gesamt ${parts.allConfiguredPartsCompleted ? 'fertig' : 'offen'}</div>` : ''}
-        <div class="evs-text-check-columns">
+
+        ${checks.note ? `<p class="evs-muted evs-text-check-note">${esc(checks.note)}</p>` : ''}
+
+        <div class="evs-text-check-cards evs-text-check-cards-clean">
+          ${checksList.map(([key,label,sub]) => checkBadge(Boolean(checks[key]), label, sub)).join('')}
+        </div>
+
+        <div class="evs-text-check-status-grid">
+          <div class="evs-text-status-card">
+            <h5>Nach Textlösung</h5>
+            ${afterTextParts ? `
+              <div class="evs-status-line"><span>Text</span><b class="${afterTextParts.text?.completed ? 'is-ok' : 'is-warn'}">${afterTextParts.text?.completed ? 'fertig' : 'offen'}</b></div>
+              <div class="evs-status-line"><span>Sound</span><b class="${afterTextParts.sound?.completed ? 'is-ok' : 'is-warn'}">${afterTextParts.sound?.completed ? 'fertig' : 'offen'}</b></div>
+              <div class="evs-status-line"><span>Gesamt</span><b class="${afterTextParts.allConfiguredPartsCompleted ? 'is-ok' : 'is-warn'}">${afterTextParts.allConfiguredPartsCompleted ? 'fertig' : 'offen'}</b></div>
+            ` : '<p class="evs-muted">Noch kein Zwischenstatus.</p>'}
+          </div>
+          <div class="evs-text-status-card">
+            <h5>Nach Soundlösung</h5>
+            ${parts ? `
+              <div class="evs-status-line"><span>Text</span><b class="${parts.text?.completed ? 'is-ok' : 'is-warn'}">${parts.text?.completed ? 'fertig' : 'offen'}</b></div>
+              <div class="evs-status-line"><span>Sound</span><b class="${parts.sound?.completed ? 'is-ok' : 'is-warn'}">${parts.sound?.completed ? 'fertig' : 'offen'}</b></div>
+              <div class="evs-status-line"><span>Gesamt</span><b class="${parts.allConfiguredPartsCompleted ? 'is-ok' : 'is-warn'}">${parts.allConfiguredPartsCompleted ? 'fertig' : 'offen'}</b></div>
+            ` : '<p class="evs-muted">Noch kein Abschlussstatus.</p>'}
+          </div>
+        </div>
+
+        <div class="evs-text-check-columns evs-text-check-columns-clean">
           <div>
             <h5>Gelöste Sätze</h5>
-            ${phraseSolves.length ? phraseSolves.map(item => `<p><b>Satz ${esc(item.phraseNumber || '-')}</b> · ${esc(item.userDisplayName || item.userLogin || '-')} · +${esc(item.pointsAwarded || 0)} · <small>${fmtDate(item.createdAt)}</small></p>`).join('') : '<p class="evs-muted">Keine Satzlösungen.</p>'}
+            ${phraseSolves.length ? phraseSolves.map(item => `<div class="evs-text-result-row"><b>Satz ${esc(item.phraseNumber || '-')}</b><span>${esc(item.userDisplayName || item.userLogin || '-')}</span><strong>+${esc(item.pointsAwarded || 0)}</strong><small>${fmtDate(item.createdAt)}</small></div>`).join('') : '<p class="evs-muted">Keine Satzlösungen.</p>'}
           </div>
           <div>
             <h5>Worttreffer</h5>
-            ${wordHits.length ? wordHits.map(item => `<p><b>${esc(item.wordOriginal || item.wordKey || '-')}</b> · ${esc(item.userDisplayName || item.userLogin || '-')} · +${esc(item.pointsAwarded || 0)} · <small>${fmtDate(item.createdAt)}</small></p>`).join('') : '<p class="evs-muted">Keine Worttreffer.</p>'}
+            ${wordHits.length ? wordHits.map(item => `<div class="evs-text-result-row"><b>${esc(item.wordOriginal || item.wordKey || '-')}</b><span>${esc(item.userDisplayName || item.userLogin || '-')}</span><strong>+${esc(item.pointsAwarded || 0)}</strong><small>Satz ${esc(item.phraseNumber || '-')} · ${fmtDate(item.createdAt)}</small></div>`).join('') : '<p class="evs-muted">Keine Worttreffer.</p>'}
           </div>
           <div>
             <h5>Ranking</h5>
-            ${rankingRows.length ? rankingRows.map(item => `<p><b>#${esc(item.rank || '-')} ${esc(item.userDisplayName || item.userLogin || '-')}</b> · ${esc(item.points || 0)} Punkte</p>`).join('') : '<p class="evs-muted">Noch kein Ranking.</p>'}
+            ${rankingRows.length ? rankingRows.map(item => `<button type="button" class="evs-text-ranking-row" data-evs-action="openPointsCheckUserStats" data-user-login="${esc(item.userLogin || '')}" data-uid="${esc(eventUid)}"><b>#${esc(item.rank || '-')} ${esc(item.userDisplayName || item.userLogin || '-')}</b><span>${esc(item.points || 0)} Punkte</span><small>${esc(item.entries || 0)} Eintrag(e)</small></button>`).join('') : '<p class="evs-muted">Noch kein Ranking.</p>'}
           </div>
         </div>
-        ${eventUid ? `<div class="evs-test-point-actions">${users.map(user => `<button type="button" class="evs-btn evs-btn-secondary" data-evs-action="openPointsCheckUserStats" data-user-login="${esc(user.login)}" data-uid="${esc(eventUid)}">${esc(user.label)} Historie</button>`).join('')}<small>Öffnet die User-Historie für genau dieses Satz-Testevent.</small></div>` : ''}
+
+        ${eventUid ? `<div class="evs-test-point-actions evs-text-history-actions">
+          ${users.map(user => `<button type="button" class="evs-btn evs-btn-secondary" data-evs-action="openPointsCheckUserStats" data-user-login="${esc(user.login)}" data-uid="${esc(eventUid)}">${esc(user.label)} Historie</button>`).join('')}
+          <small>Öffnet die User-Historie für genau dieses Satz-Testevent. Das echte aktive Event bleibt unangetastet.</small>
+        </div>` : ''}
       </div>
     `;
   }

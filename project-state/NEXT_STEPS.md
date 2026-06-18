@@ -1,6 +1,6 @@
 # NEXT_STEPS – stream-control-center
 
-Stand: 2026-06-18 – nach EVS50.2
+Stand: 2026-06-18 – nach EVS51.3
 
 ## Sofort nach Einspielen testen
 
@@ -13,94 +13,57 @@ $s = Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/status"
 $s | Select-Object moduleVersion,moduleBuild | Format-List
 ```
 
+Erwartung Backend:
+
+```text
+moduleVersion : 0.5.68
+moduleBuild   : STEP_EVS51_2_TEXT_CHECK_WRONG_FIX
+```
+
+Dashboard-Version im Browser/Testbereich:
+
+```text
+0.5.50 / STEP_EVS51_3_TEXT_TEST_UI_CLEANUP
+```
+
+## Backend-Test
+
+```powershell
+Remove-Variable r -ErrorAction SilentlyContinue
+$r = Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/test/run?confirm=1&step=text-check" -Method Post -Body (@{} | ConvertTo-Json) -ContentType "application/json"
+$r.ok
+$r.checks | ConvertTo-Json -Depth 6
+$r.ranking.rows | Select-Object rank,userLogin,userDisplayName,points,entries | Format-Table -AutoSize
+```
+
 Erwartung:
 
 ```text
-backend stream_events: 0.5.63 / STEP_EVS50_2_POINTS_CHECK_TESTS
-Dashboard stream_events: 0.5.47 / STEP_EVS50_2_POINTS_CHECK_TESTS
-```
-
-## Backend Punkte-Check
-
-```powershell
-$r = Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/test/run?confirm=1&step=points-check" -Method Post -Body (@{} | ConvertTo-Json) -ContentType "application/json"
-$r.userStats.user | Select-Object userLogin,totalPoints,soundPoints,phrasePoints,wordPoints | Format-List
-$r.ranking.rows | Select-Object rank,userLogin,points | Format-Table -AutoSize
-$r.parts | ConvertTo-Json -Depth 8
+$r.ok = True
+passed = True
+ForrestCGN 35 Punkte
+EngelCGN 15 Punkte
+SatzPartial 2 Punkte
 ```
 
 ## Dashboard-Test
 
 ```text
-Event-System → Test → Punkte-Check Sound + Satz
-Event-System → Aktuelles Event → ForrestCGN in Rangliste anklicken
+Event-System → Test → Satz-Check komplett
 ```
 
 Erwartung:
 
-```text
-- Punkte-Prüfung erscheint im Testbereich.
-- Sound-Punkte sind sichtbar.
-- Satz-/Text-Punkte sind sichtbar.
-- Ranking addiert beides.
-- User-Popup zeigt den Punkteverlauf mit Zeit, Quelle und Punkten.
-```
+- strukturierte Satz-System-Prüfung
+- keine normale Rohdatenwüste
+- Ranking sichtbar
+- User-Historie per Ranking oder Button öffnet korrekt
 
-## Nächster Arbeitsblock
+## Nächster technischer Block
 
-EVS50.3 – Satz-System härten:
+EVS51.4 – Satz-Rotation / Runtime-Overlay:
 
-- Satz-Testbereich sauberer vom Winner-Test trennen.
-- Falsche Antwort, Worttreffer, Satzlösung einzeln testen.
-- Doppelte Lösung prüfen.
-- Text-Teilspielabschluss gegen Runtime-Parts prüfen.
-- Runtime-Overlay Satzstatus verbessern.
-
-## EVS50.3 – Points-Check Insert-Fix
-
-- `createDashboardEventTestEvent()` schreibt jetzt alle NOT-NULL-Pflichtfelder fuer `stream_events_events`.
-- Fix fuer `NOT NULL constraint failed: stream_events_events.scoring_config_json` beim `points-check`.
-- Keine DB-Daten ersetzt, keine Punkte-/Rankinglogik geaendert.
-
-
-## EVS50.4 – Test nach Einspielen
-
-```powershell
-$r = Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/test/run?confirm=1&step=points-check" -Method Post -Body (@{} | ConvertTo-Json) -ContentType "application/json"
-$r.ok
-$r.checks | ConvertTo-Json -Depth 6
-$r.userStats.user | Select-Object userLogin,totalPoints,soundPoints,phrasePoints,wordPoints | Format-List
-$r.ranking.rows | Select-Object rank,userLogin,points | Format-Table -AutoSize
-```
-
-Erwartung: `soundPoints >= 20`, `phrasePoints >= 30`, `totalPoints >= 50`, `$r.ok = True`.
-
-Naechster Block nach erfolgreichem Test: EVS50.5 Satz-System Einzeltests im Dashboard.
-
-## EVS50.5 nächster Schritt
-
-Nach erfolgreichem Active-Event-Fix:
-
-1. Dashboard → Test → Punkte-Check ausführen.
-2. Dashboard → Aktuelles Event prüfen.
-3. User in Rangliste anklicken.
-4. Wenn 50 Punkte inklusive Sound sichtbar sind: EVS50.6 Satz-Testbereich finalisieren.
-
-
-## Nach EVS50.6
-
-Nächster sinnvoller Schritt: Satz-System Testbereich finalisieren. Geplant sind Buttons und lesbare Ausgaben für Satz-Testevent, falsche Antwort, richtige Antwort, Text-Report, Runtime-Parts und Abschlussstatus.
-
-## Nach EVS51.1
-
-1. EVS51.1 einspielen und `stepdone.cmd` ausführen.
-2. Backend-Test `text-check` ausführen.
-3. Dashboard-Test `Event-System → Test → Satz-Check komplett` prüfen.
-4. Wenn bestanden: Runtime-Overlay Satzstatus planen/verbessern.
-5. Danach Kombination Sound + Text im echten Eventflow prüfen.
-
-
-## Nach EVS51.2
-
-- Satz-Check erneut testen.
-- Wenn bestanden: Dashboard-Darstellung des Satz-Checks prüfen und danach Runtime-/Overlay-Status für Text-Runden weiter verbessern.
+- prüfen, ob gelöste Sätze aus der Rotation entfernt bleiben
+- offene Sätze bleiben offen/erneut spielbar
+- Text-Teilspielstatus im Runtime-Overlay verständlich anzeigen
+- Kombi-Status Sound/Text im Overlay prüfen

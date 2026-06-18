@@ -1,15 +1,15 @@
 # FILES – relevante Dateien
 
-Stand: 2026-06-18 – EVS50.2
+Stand: 2026-06-18 – EVS51.3
 
-## Event-System / Punkte-Check
+## Event-System / Satz-Testbereich
 
 ```text
 backend/modules/stream_events.js
 htdocs/dashboard/modules/stream_events.js
 htdocs/dashboard/modules/stream_events.css
 docs/modules/stream_events.md
-docs/current/CURRENT_CHAT_HANDOFF_EVS50_2_POINTS_CHECK.md
+docs/current/CURRENT_CHAT_HANDOFF_EVS51_3_TEXT_TEST_UI_CLEANUP.md
 project-state/TODO.md
 project-state/NEXT_STEPS.md
 project-state/CHANGELOG.md
@@ -19,88 +19,32 @@ project-state/FILES.md
 ## Relevante Routen
 
 ```text
-GET  /api/stream-events/events/:eventUid/ranking
-GET  /api/stream-events/statistics/users?eventUid=<eventUid>
-GET  /api/stream-events/statistics/user/:login?eventUid=<eventUid>
+POST /api/stream-events/test/run?confirm=1&step=text-check
+POST /api/stream-events/test/run?confirm=1&step=text-create
+POST /api/stream-events/test/run?confirm=1&step=text-wrong
+POST /api/stream-events/test/run?confirm=1&step=text-word
+POST /api/stream-events/test/run?confirm=1&step=text-correct
+POST /api/stream-events/test/run?confirm=1&step=text-duplicate
+POST /api/stream-events/test/run?confirm=1&step=text-report
 GET  /api/stream-events/text-runtime/report?eventUid=<eventUid>
-GET  /api/stream-events/sound-runtime/report?eventUid=<eventUid>
 GET  /api/stream-events/runtime-parts/status?eventUid=<eventUid>
-POST /api/stream-events/test/run?confirm=1&step=sound-correct
-POST /api/stream-events/test/run?confirm=1&step=points-check
+GET  /api/stream-events/events/:eventUid/ranking
+GET  /api/stream-events/statistics/user/:login?eventUid=<eventUid>
 ```
 
 ## Dashboard
 
 ```text
 http://127.0.0.1:8080/dashboard
-Event-System → Test
-Event-System → Aktuelles Event
+Event-System → Test → Satz-System gezielt testen
 ```
 
 ## Wichtige Datenbanktabellen
 
 ```text
+stream_events_events
 stream_events_score_entries
 stream_events_text_word_hits
 stream_events_text_phrase_solves
-stream_events_rounds
-stream_events_events
+stream_events_sound_rounds
 ```
-
-## Hinweise
-
-- Event-Punkte bleiben getrennt von Loyalty-Punkten.
-- Ranking addiert alle Event-Punkte pro User/Event aus `stream_events_score_entries`.
-- Quelle/Teilspiel wird über `source_type` getrennt angezeigt.
-- `points-check` ist ein synthetischer Testflow und sendet nichts in Twitch.
-
-## EVS50.3 – Points-Check Insert-Fix
-
-- `createDashboardEventTestEvent()` schreibt jetzt alle NOT-NULL-Pflichtfelder fuer `stream_events_events`.
-- Fix fuer `NOT NULL constraint failed: stream_events_events.scoring_config_json` beim `points-check`.
-- Keine DB-Daten ersetzt, keine Punkte-/Rankinglogik geaendert.
-
-
-## EVS50.4
-
-Geaendert:
-
-```text
-backend/modules/stream_events.js
-docs/modules/stream_events.md
-docs/current/CURRENT_CHAT_HANDOFF_EVS50_4_POINTS_CHECK_SOUND_FIX.md
-project-state/TODO.md
-project-state/NEXT_STEPS.md
-project-state/CHANGELOG.md
-project-state/FILES.md
-```
-
-## EVS50.5
-
-- `backend/modules/stream_events.js` – Points-Check beendet alte aktive Dashboard-Testevents sicher vor neuem Testlauf.
-- `docs/current/CURRENT_CHAT_HANDOFF_EVS50_5_POINTS_CHECK_ACTIVE_EVENT_FIX.md` – Handoff und Testanleitung.
-
-
-## EVS50.6 betroffene Dateien
-
-- `htdocs/dashboard/modules/stream_events.js` – Punktecheck-Detailbutton im Testbereich.
-- `htdocs/dashboard/modules/stream_events.css` – kleine Button-Zeile im Punktecheck-Summary.
-- `docs/current/CURRENT_CHAT_HANDOFF_EVS50_6_POINTS_CHECK_DETAIL_BUTTON.md`
-
-## EVS51.1 geänderte Dateien
-
-- `backend/modules/stream_events.js`
-- `htdocs/dashboard/modules/stream_events.js`
-- `htdocs/dashboard/modules/stream_events.css`
-- `docs/modules/stream_events.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_EVS51_1_TEXT_RUNTIME_TEST_CHECK.md`
-- `project-state/CHANGELOG.md`
-- `project-state/TODO.md`
-- `project-state/NEXT_STEPS.md`
-- `project-state/FILES.md`
-
-
-## EVS51.2
-
-- `backend/modules/stream_events.js` – falsche Satz-Testantwort korrigiert, Version 0.5.68.
-- `docs/current/CURRENT_CHAT_HANDOFF_EVS51_2_TEXT_CHECK_WRONG_FIX.md` – Übergabe zum Fix.

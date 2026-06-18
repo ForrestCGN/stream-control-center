@@ -380,3 +380,34 @@ Der komplette Satz-System-Test (`step=text-check`) nutzte in einer falschen Test
 Korrigiert: Die falsche Testnachricht enthält jetzt keine Wörter aus den konfigurierten Testsätzen.
 
 Backend: `0.5.68 / STEP_EVS51_2_TEXT_CHECK_WRONG_FIX`
+
+## EVS51.3 – Satz-Testbereich UI-Cleanup
+
+Der Dashboard-Testbereich für das Satz-/Text-System wurde lesbarer gemacht.
+
+Bereich:
+
+```text
+Event-System → Test → Satz-System gezielt testen
+```
+
+Nach dem Button `Satz-Check komplett` zeigt das Dashboard keine normale Rohdatenwüste mehr, sondern eine strukturierte Prüfung:
+
+- falsche Antwort ohne Punkte
+- Worttreffer geschrieben
+- Satzlösungen geschrieben
+- doppelte Lösung blockiert
+- Text-Teil abgeschlossen
+- Gesamt-Event bleibt nach Text offen, solange Sound noch offen ist
+- Sound-Abschluss
+- Gesamt-Abschluss / Event-Finish
+
+Zusätzlich werden angezeigt:
+
+- gelöste Sätze
+- Worttreffer
+- Ranking
+- User-Historie-Buttons
+- klickbare Ranking-Zeilen für die Punkte-Historie des Testevents
+
+Die produktive Punktelogik wurde in EVS51.3 nicht verändert. Backend bleibt auf EVS51.2 / 0.5.68.

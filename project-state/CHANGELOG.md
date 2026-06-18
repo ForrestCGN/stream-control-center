@@ -1,89 +1,40 @@
 # CHANGELOG – stream-control-center
 
-## 2026-06-18 – EVS50.2 Punkte-Check Sound + Satz
-
-### Added
-
-- Neuer Backend-Teststep `sound-correct` für Sound-Punkte ohne echtes Playback.
-- Neuer Backend-Teststep `points-check` für kombiniertes Testevent mit Sound + Satz/Text.
-- Neue Dashboard-Buttons im Tab `Test`:
-  - `Sound richtig + Punkte`
-  - `Punkte-Check Sound + Satz`
-- Punkte-Prüfung im Testbereich mit Gesamtpunkten, Sound-Punkten, Satz-/Text-Punkten, Ranking-Topwert, Teilspielstatus und Timeline.
+## 2026-06-18 – EVS51.3 Satz-Testbereich UI-Cleanup
 
 ### Changed
 
-- Backend-Modulversion auf `0.5.63 / STEP_EVS50_2_POINTS_CHECK_TESTS` erhöht.
-- Dashboard-Modulversion auf `0.5.47 / STEP_EVS50_2_POINTS_CHECK_TESTS` erhöht.
-- Full-Flow-Test prüft zusätzlich eine Sound-Lösung.
+- Dashboard-Testbereich für das Satz-/Text-System lesbarer gemacht.
+- `Satz-Check komplett` zeigt jetzt strukturierte Prüfkarten statt normaler Rohdatenansicht.
+- Ranking-Zeilen im Satz-Test sind klickbar und öffnen die User-Punkte-Historie für genau dieses Testevent.
+- User-Historie-Buttons für ForrestCGN, EngelCGN, SatzPartial und Testuser ergänzt.
+- Dashboard-Version auf `0.5.50 / STEP_EVS51_3_TEXT_TEST_UI_CLEANUP` erhöht.
 
-### Confirmed by Code Review
+### Unchanged
 
-- Sound-Lösung schreibt `source_type = sound_solved`.
-- Satzlösung schreibt `source_type = text_phrase_solve`.
-- Worttreffer schreibt `source_type = text_word_hit`.
-- Ranking addiert alle Event-Punkte pro User/Event.
-- Userdetails trennen die Quellen, zeigen aber die gemeinsame Summe.
+- Backend-Punktelogik unverändert aus EVS51.2.
+- Produktive Event-Auswahl unverändert.
+- Keine DB-Schemaänderung.
+- Keine Sound-/Runtime-Logik geändert.
 
-## 2026-06-18 – EVS50.1 Aktuelles Event User-Punkte-Historie
+## 2026-06-18 – EVS51.2 Satz-Check Wrong-Fix
 
-### Added
+### Fixed
 
-- Klickbare User-Zeilen im Dashboard-Tab `Event-System → Aktuelles Event`.
-- User-Detailpopup für genau das aktuelle Event direkt aus der Rangliste.
-- Punkte-Verlauf im Popup: Zeitpunkt, Quelle/Grund, Punkte.
-- Sound-/Text-Punkte im Popup getrennt sichtbar.
-- Sonstige/manuelle Punkte-Einträge werden in der User-Timeline ebenfalls sichtbar.
+- Falsche Testantwort im Satz-Check war nicht eindeutig falsch und konnte durch das Wort `ich` einen Wortpunkt erzeugen.
+- Testantwort ersetzt durch eine eindeutige Nichtlösung ohne Wörter aus den Testsätzen.
 
-### Changed
+### Confirmed
 
-- Dashboard-Modulversion auf `0.5.46 / STEP_EVS50_1_CURRENT_EVENT_USER_POINTS_MODAL` erhöht.
-- Backend-Modulversion auf `0.5.62 / STEP_EVS50_1_POINT_HISTORY_DETAIL` erhöht.
-- Popup-Zähler klarer auf Punkte-Historie ausgerichtet.
-- Sound-Bereich im Popup heißt jetzt `Sound-Punkte` statt `Sound-Spiel später`.
+- `text-check` besteht vollständig.
+- Falsche Antwort gibt keine Punkte.
+- Worttreffer, Satzlösungen, Duplikat-Schutz, Textabschluss und kombinierter Sound/Text-Abschluss sind geprüft.
 
-## Vorherige Einträge
+## 2026-06-18 – EVS50.6 / EVS50.x Punkte-Historie und Punkte-Check
 
-Ältere Einträge bleiben in Archiv-/Step-Dateien erhalten.
+### Confirmed
 
-## EVS50.3 – Points-Check Insert-Fix
-
-- `createDashboardEventTestEvent()` schreibt jetzt alle NOT-NULL-Pflichtfelder fuer `stream_events_events`.
-- Fix fuer `NOT NULL constraint failed: stream_events_events.scoring_config_json` beim `points-check`.
-- Keine DB-Daten ersetzt, keine Punkte-/Rankinglogik geaendert.
-
-
-## 2026-06-18 – EVS50.4 Points-Check Sound-Fix
-
-- Backend-Modulversion auf `0.5.65 / STEP_EVS50_4_POINTS_CHECK_SOUND_FIX` erhoeht.
-- `createSoundRound()` erlaubt Runtime-Gate-Bypass nur fuer Dashboard-Testevents.
-- `runEventTestSoundCorrect()` nutzt den kontrollierten Testmodus.
-- `points-check` meldet nur noch Erfolg, wenn Sound- und Satzpunkte wirklich geschrieben wurden.
-
-## 2026-06-18 – EVS50.5
-
-- Points-Check Active-Event-Fix: Alte aktive Dashboard-Testevents werden vor einem neuen Punktecheck sicher beendet.
-- Produktive aktive Events werden nicht angerührt.
-- `points-check` Response enthält `event`, `preCleanup` und `activeEvent`, damit Dashboard-/Status-Verwechslungen prüfbar sind.
-
-## 2026-06-18 – EVS50.6
-
-- Dashboard-Testbereich erweitert: Nach Punkte-Check kann die Punkte-Historie des exakten Testlaufs direkt geöffnet werden.
-- Produktives aktives Event bleibt unverändert sichtbar und wird nicht durch Testevents ersetzt.
-
-## 2026-06-18 – EVS51.1
-
-- Satz-System Testbereich ergänzt.
-- Neuer Backend-Teststep `text-check` für kompletten Satz-Testlauf.
-- Weitere Teststeps: `text-create`, `text-wrong`, `text-word`, `text-correct`, `text-duplicate`, `text-report`.
-- Dashboard-Bereich `Satz-System gezielt testen` hinzugefügt.
-- Korrektur: Dashboard-Teststeps `wrong` und `correct` nutzen jetzt die konkrete Test-`eventUid`.
-- Korrektur: `text-runtime/test-chat` akzeptiert `eventUid`/`event_uid`.
-- Backend-Version `0.5.67 / STEP_EVS51_1_TEXT_RUNTIME_TEST_CHECK`.
-- Dashboard-Version `0.5.49 / STEP_EVS51_1_TEXT_RUNTIME_TEST_CHECK`.
-
-
-## 2026-06-18 – EVS51.2
-
-- Satz-Check korrigiert: falsche Testantwort enthält keine Wörter aus den Testsätzen mehr.
-- Backend-Version auf 0.5.68 / STEP_EVS51_2_TEXT_CHECK_WRONG_FIX erhöht.
+- Sound- und Satz-/Text-Punkte werden gemeinsam im Ranking addiert.
+- Quellen bleiben getrennt sichtbar.
+- User-Historie zeigt Zeitpunkt, Quelle/Grund und Punkte.
+- Testevents können aus dem Testbereich gezielt geöffnet werden, ohne das echte aktive Event zu verdrängen.
