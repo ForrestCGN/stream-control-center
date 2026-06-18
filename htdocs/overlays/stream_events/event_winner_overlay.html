@@ -429,6 +429,15 @@
       background: rgba(3, 8, 28, .58);
       border: 1px solid rgba(143,244,255,.14);
       box-shadow: inset 0 0 24px rgba(57,230,255,.035);
+      opacity: 1;
+      transition: opacity .34s ease, background-color .34s ease, border-color .34s ease, box-shadow .34s ease;
+    }
+
+    .honor-wall.empty {
+      opacity: 0;
+      background: transparent;
+      border-color: transparent;
+      box-shadow: none;
     }
 
     .wall-title {
@@ -482,6 +491,25 @@
     .honor-chip.receiving {
       border-color: rgba(255,209,138,.44);
       box-shadow: 0 0 26px rgba(255,209,138,.18), 0 0 42px rgba(168,85,247,.13);
+    }
+
+    .honor-flight-chip {
+      position: absolute;
+      z-index: 8;
+      pointer-events: none;
+      will-change: transform, opacity;
+      transform-origin: center center;
+      opacity: 1;
+      box-shadow: 0 0 34px rgba(255,209,138,.24), 0 0 62px rgba(168,85,247,.18);
+      transition: transform var(--honor-fly-ms, 920ms) cubic-bezier(.16, 1, .3, 1), opacity .24s ease;
+    }
+
+    .honor-flight-chip.land {
+      transform: translate(0, 0) scale(1) !important;
+    }
+
+    .honor-flight-chip.done {
+      opacity: 0;
     }
 
     .chip-place {
@@ -615,7 +643,7 @@
       z-index: 2;
       left: 70px;
       right: 70px;
-      bottom: 28px;
+      bottom: 188px;
       color: rgba(248,251,255,.58);
       font-size: 20px;
       font-weight: 680;
@@ -745,7 +773,7 @@
       mode: "obs_overlay",
       module: "stream_events",
       name: "Stream Events Gewinner-Finale Overlay",
-      version: "0.2.2",
+      version: "0.2.4",
       heartbeatIntervalMs: 5000,
       capabilities: [
         "overlay.heartbeat",
@@ -757,7 +785,7 @@
         overlay: "event_winner_overlay.html",
         communication: "communication_bus",
         owner: "stream_events",
-        step: "EVS45.3"
+        step: "EVS45.4"
       }
     };
   </script>
@@ -791,6 +819,7 @@
         presentationName: document.getElementById("presentationName"),
         presentationMeta: document.getElementById("presentationMeta"),
         presentationReward: document.getElementById("presentationReward"),
+        honorWall: document.getElementById("honorWall"),
         honorList: document.getElementById("honorList"),
         podium: document.getElementById("podium"),
         podium1: document.getElementById("podium1"),
@@ -1061,9 +1090,14 @@
         els.centerCard.classList.remove("visible");
       }
 
+      function removeHonorFlightChips() {
+        document.querySelectorAll(".honor-flight-chip").forEach((node) => node.remove());
+      }
+
       function initHonorWall() {
-        els.honorList.innerHTML = "";
-        els.honorWall.classList.add("empty");
+        removeHonorFlightChips();
+        if (els.honorList) els.honorList.innerHTML = "";
+        if (els.honorWall) els.honorWall.classList.add("empty");
       }
 
       function buildHonorChip(row, preparing) {
@@ -1085,10 +1119,12 @@
         chip.classList.remove("preparing", "receiving");
         chip.classList.add("filled");
         chip.style.visibility = "";
-        els.honorWall.classList.remove("empty");
+        if (els.honorWall) els.honorWall.classList.remove("empty");
       }
 
       function animateHonorToSlot(row) {
+        if (!row || !els.honorList) return;
+
         let chip = els.honorList.querySelector(`[data-rank="${row.rank}"]`);
         if (!chip) {
           chip = buildHonorChip(row, true);
@@ -1096,32 +1132,59 @@
         }
 
         const arena = chip.closest(".arena");
+        if (!arena) {
+          revealHonorChip(chip);
+          hidePresentation();
+          return;
+        }
+
         const arenaRect = arena.getBoundingClientRect();
         const chipRect = chip.getBoundingClientRect();
         const cardRect = els.centerCard.getBoundingClientRect();
-        const x = chipRect.left - arenaRect.left + chipRect.width / 2;
-        const y = chipRect.top - arenaRect.top + chipRect.height / 2;
-        const scaleByWidth = chipRect.width / Math.max(1, cardRect.width);
-        const scaleByHeight = chipRect.height / Math.max(1, cardRect.height);
-        const targetScale = Math.max(.18, Math.min(.42, Math.min(scaleByWidth, scaleByHeight)));
+
+        if (!chipRect.width || !chipRect.height || !cardRect.width || !cardRect.height) {
+          revealHonorChip(chip);
+          hidePresentation();
+          return;
+        }
+
+        const targetLeft = chipRect.left - arenaRect.left;
+        const targetTop = chipRect.top - arenaRect.top;
+        const targetCenterX = targetLeft + chipRect.width / 2;
+        const targetCenterY = targetTop + chipRect.height / 2;
+        const startCenterX = cardRect.left - arenaRect.left + cardRect.width / 2;
+        const startCenterY = cardRect.top - arenaRect.top + cardRect.height / 2;
+        const dx = startCenterX - targetCenterX;
+        const dy = startCenterY - targetCenterY;
+        const startScaleByWidth = Math.max(1, (cardRect.width * 0.78) / chipRect.width);
+        const startScaleByHeight = Math.max(1, (cardRect.height * 0.64) / chipRect.height);
+        const startScale = Math.max(2.3, Math.min(4.4, Math.min(startScaleByWidth, startScaleByHeight)));
+
+        const flightChip = buildHonorChip(row, false);
+        flightChip.classList.add("honor-flight-chip");
+        flightChip.style.width = `${chipRect.width}px`;
+        flightChip.style.height = `${chipRect.height}px`;
+        flightChip.style.left = `${targetLeft}px`;
+        flightChip.style.top = `${targetTop}px`;
+        flightChip.style.setProperty("--honor-fly-ms", `${timeline.honorFly}ms`);
+        flightChip.style.transform = `translate(${dx}px, ${dy}px) scale(${startScale})`;
+        arena.appendChild(flightChip);
 
         chip.classList.add("receiving");
-        els.centerCard.style.setProperty("--honor-fly-scale", String(targetScale));
-        els.centerCard.style.left = `${x}px`;
-        els.centerCard.style.top = `${y}px`;
-        els.centerCard.classList.add("flying-honor");
+
+        defer(() => {
+          hidePresentation();
+          flightChip.classList.add("land");
+        }, 80);
 
         defer(() => {
           revealHonorChip(chip);
-          els.centerCard.classList.remove("visible");
-        }, timeline.honorFly);
+          flightChip.classList.add("done");
+        }, timeline.honorFly + 70);
 
         defer(() => {
-          els.centerCard.classList.remove("flying-honor", "final-winner");
-          els.centerCard.style.left = "";
-          els.centerCard.style.top = "";
-          els.centerCard.style.removeProperty("--honor-fly-scale");
-        }, timeline.honorFly + 260);
+          flightChip.remove();
+        }, timeline.honorFly + 360);
       }
 
       function escapeHtml(value) {
@@ -1357,7 +1420,7 @@
     data-mode="obs_overlay"
     data-module="stream_events"
     data-name="Stream Events Gewinner-Finale Overlay"
-    data-version="0.2.2"
+    data-version="0.2.4"
     data-heartbeat-ms="5000"
   ></script>
 </body>
