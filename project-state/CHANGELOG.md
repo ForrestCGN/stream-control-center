@@ -48,3 +48,11 @@
 - Config bleibt im bestehenden Event-System-Config-Tab; dort wurde ein Config-Bereich-Dropdown ergänzt (`Event-System` / `Shot-Alarm`).
 - Backend, DB-Schema, Shot-Regeln, Auslosung, Overlay, Sound und History wurden nicht geändert.
 
+
+
+## SHOT-ALARM-2B.6 Safe Config Dropdown No Settings Lost
+
+- Dashboard-Fix für Event-System Config.
+- Bestehende Event-System-Config bleibt vollständig.
+- Shot-Alarm Config ist zusätzlich getrennt auswählbar.
+- Keine Backend-/DB-/Regeländerung.

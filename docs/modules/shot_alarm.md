@@ -171,3 +171,8 @@ Innerhalb des Event-Systems sind die Tabs `Texte` und `Config` modulbasiert. Üb
 - Config bleibt im bestehenden Event-System-Config-Tab; dort wurde ein Config-Bereich-Dropdown ergänzt (`Event-System` / `Shot-Alarm`).
 - Backend, DB-Schema, Shot-Regeln, Auslosung, Overlay, Sound und History wurden nicht geändert.
 
+
+
+## STEP 2B.6 – Safe Config Dropdown
+
+Dashboard-Fix: Unter Community → Event-System → Config gibt es jetzt einen sicheren Config-Bereich-Dropdown mit `Event-System` und `Shot-Alarm`. Die bestehende Event-System-Config bleibt vollständig erhalten und wird nicht durch Shot-Alarm-Felder ersetzt. Shot-Alarm-Config ist zusätzlich getrennt auswählbar und speichert nur Shot-Alarm-Felder.

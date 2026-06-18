@@ -46,3 +46,6 @@
 - Config bleibt im bestehenden Event-System-Config-Tab; dort wurde ein Config-Bereich-Dropdown ergänzt (`Event-System` / `Shot-Alarm`).
 - Backend, DB-Schema, Shot-Regeln, Auslosung, Overlay, Sound und History wurden nicht geändert.
 
+
+
+- Shot-Alarm Dashboard prüfen: Community → Event-System → Config → Bereich Event-System/Shot-Alarm. Danach Shot-Tab/Overlay/Textbereich prüfen.

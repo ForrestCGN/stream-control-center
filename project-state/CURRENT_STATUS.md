@@ -50,3 +50,6 @@ Shot-Alarm ist als Event-Modul unter Events eingeordnet. Config und Texte bleibe
 - Config bleibt im bestehenden Event-System-Config-Tab; dort wurde ein Config-Bereich-Dropdown ergänzt (`Event-System` / `Shot-Alarm`).
 - Backend, DB-Schema, Shot-Regeln, Auslosung, Overlay, Sound und History wurden nicht geändert.
 
+
+
+- SHOT-ALARM-2B.6: Dashboard Config-Dropdown sicher getrennt; Event-System-Config bleibt vollständig, Shot-Alarm zusätzlich auswählbar.

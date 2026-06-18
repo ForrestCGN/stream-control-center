@@ -794,8 +794,7 @@ window.StreamEventsModule = (function(){
     const dedupe = c.dedupe || {};
     const payments = rules.payments?.providers || {};
     return `
-      ${renderEventModuleSelector('config')}
-      <section class="evs-card glass evs-tab-panel evs-config-panel">
+      <section class="evs-card glass evs-tab-panel evs-config-panel evs-shot-config-panel">
         <div class="evs-card-head">
           <div>
             <h3>Shot-Alarm Config</h3>
@@ -1033,21 +1032,30 @@ window.StreamEventsModule = (function(){
   function renderConfigModuleSelect(){
     const selected = state.configModuleFilter || 'stream_events';
     return `
-      <div class="evs-config-module-select glass">
-        <label>
-          <span>Config-Bereich</span>
+      <section class="evs-card glass evs-config-module-select evs-config-safe-switch">
+        <div class="evs-card-head evs-card-head-compact">
+          <div>
+            <h3>Config-Bereich</h3>
+            <span>Die bestehende Event-System-Config bleibt vollständig erhalten. Shot-Alarm ist zusätzlich getrennt auswählbar.</span>
+          </div>
+        </div>
+        <label class="evs-config-module-dropdown">
+          <span>Bereich auswählen</span>
           <select data-evs-config-module-filter>
             <option value="stream_events" ${selected === 'stream_events' ? 'selected' : ''}>Event-System</option>
             <option value="shot_alarm" ${selected === 'shot_alarm' ? 'selected' : ''}>Shot-Alarm</option>
           </select>
         </label>
-        <small>Event-System-Config und Shot-Alarm-Config bleiben getrennt. Shot-Alarm ist ein Event-Untermodul.</small>
-      </div>
+        <div class="evs-text-rule-note evs-config-safe-note">
+          <strong>Sicherheitsregel:</strong> Beim Wechsel wird nichts gelöscht. Event-System speichert nur die Event-System-Felder, Shot-Alarm speichert nur die Shot-Alarm-Felder.
+        </div>
+      </section>
     `;
   }
 
   function renderConfigTab(){
     if ((state.configModuleFilter || 'stream_events') === 'shot_alarm') {
+      scheduleShotAlarmLoad();
       return renderConfigModuleSelect() + renderShotAlarmConfigTab();
     }
     const cfg = state.config?.config || {};

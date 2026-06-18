@@ -46,3 +46,9 @@
 - Config bleibt im bestehenden Event-System-Config-Tab; dort wurde ein Config-Bereich-Dropdown ergänzt (`Event-System` / `Shot-Alarm`).
 - Backend, DB-Schema, Shot-Regeln, Auslosung, Overlay, Sound und History wurden nicht geändert.
 
+
+
+## SHOT-ALARM-2B.6
+
+- `htdocs/dashboard/modules/stream_events.js` – sicherer Config-Dropdown Event-System/Shot-Alarm.
+- `htdocs/dashboard/modules/stream_events.css` – kleine Styles für Config-Auswahl.

@@ -1261,3 +1261,26 @@
   gap: 14px;
   margin-top: 14px;
 }
+
+/* SHOT-ALARM-2B.6: safe config dropdown without losing Event-System settings */
+.evs-config-safe-switch {
+  margin-bottom: 16px;
+}
+.evs-card-head-compact {
+  margin-bottom: 12px;
+}
+.evs-config-module-dropdown {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 360px;
+}
+.evs-config-module-dropdown select {
+  width: 100%;
+}
+.evs-config-safe-note {
+  margin-top: 12px;
+}
+.evs-shot-config-panel {
+  border-color: rgba(34, 211, 238, 0.22);
+}
