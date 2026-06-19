@@ -277,6 +277,7 @@
     const current = ht.current || null;
     const recent = Array.isArray(ht.recent) ? ht.recent : [];
     const records = Array.isArray(ht.recordBrokenEvents) ? ht.recordBrokenEvents : [];
+    const selectedMediaId = num(state.hypetrainRecordMediaId || recordSound.mediaId || 0, 0);
 
     return `
       <div class="twitch-events-page hype-page">

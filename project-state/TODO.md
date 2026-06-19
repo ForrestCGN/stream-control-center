@@ -76,3 +76,9 @@ Stand: 2026-06-15 19:55
 - [ ] Danach synthetischen Rekord-Test mit gesetztem Sound ausfuehren.
 - [ ] `soundQueued` und Sound-System-Playback pruefen.
 - [ ] Echten Hype-Train im Stream beobachten.
+
+
+## Hype-Train Rekord-System
+- [ ] Nach FIX3 testen, ob Dashboard vollständig lädt.
+- [ ] Media-Auswahl speichern und `recordSound.mediaId` prüfen.
+- [ ] Rekord-Sound-Queue über Sound-System testen.

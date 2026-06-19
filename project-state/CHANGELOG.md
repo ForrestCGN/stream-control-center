@@ -91,3 +91,8 @@
 - Dashboard `twitch_events`: Hype-Train-Rekord-Sound-Auswahl wird jetzt nach `media-field:change` sofort im Modul-State gespeichert.
 - Speichern liest die Media-ID robuster aus Hidden-Input, MediaField-Dataset oder Modul-State.
 - MediaField bekommt `data-hype-media-field` und `data-media-id`, damit die Auswahl beim Render/Save nicht verloren geht.
+
+
+## STEP_HT1_FIX3_HYPETRAIN_DASHBOARD_RENDER_FIX
+- Fix: Twitch-Events-Dashboard blieb bei `Lade Twitch-Events...`, weil `selectedMediaId` im Hype-Train-Renderpfad nicht definiert war.
+- Keine Backend-/DB-/Sound-System-Änderung.

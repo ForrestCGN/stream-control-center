@@ -436,3 +436,9 @@ docs/system-inspection/EVENTBUS_CAN4_0_OVERLAY_ACK_VISUAL_DELIVERY_PLAN.md
 Status: gebaut / einzuspielen.
 
 Fix fuer Hype-Train-Rekord-Dashboard: Media-Auswahl wird beim `media-field:change` sofort im Modul-State gespiegelt und beim Speichern aus Hidden-Input, MediaField-Dataset oder State gelesen. Ziel ist, dass `recordSound.mediaId` nach dem Speichern stabil in `config/twitch_events.json` landet.
+
+
+## STEP_HT1_FIX3_HYPETRAIN_DASHBOARD_RENDER_FIX
+- Twitch-Events-Dashboard-Renderfehler im Hype-Train-Rekord-Tab behoben.
+- Ursache: `selectedMediaId` wurde im Template genutzt, aber im Render-Scope nicht gesetzt.
+- Backend-Status HT1 bleibt unverändert.

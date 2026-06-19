@@ -145,3 +145,7 @@ project-state/TODO.md
 project-state/CHANGELOG.md
 project-state/FILES.md
 ```
+
+
+## STEP_HT1_FIX3_HYPETRAIN_DASHBOARD_RENDER_FIX
+- `htdocs/dashboard/modules/twitch_events.js` - Renderfix für Hype-Train-Rekord-Tab.

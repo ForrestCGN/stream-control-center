@@ -309,3 +309,11 @@ Keine Recovery-Automatik
 4. Hype-Train-Rekord-Sound erneut auswaehlen und speichern.
 5. `/api/twitch/events/hypetrain/status` pruefen: `config.recordSound.mediaId` muss groesser 0 sein.
 6. Synthetischen Hype-Train-Test mit neuer ID ausfuehren und Sound-Queue pruefen.
+
+
+## Nach STEP_HT1_FIX3
+1. Dashboard hart neu laden (STRG+F5).
+2. Twitch Events -> Hype-Train Rekord öffnen.
+3. Sound erneut auswählen und speichern.
+4. `/api/twitch/events/hypetrain/status` prüfen: `recordSound.mediaId` muss > 0 sein.
+5. Danach synthetischen Hype-Train-Test mit neuer ID ausführen.
