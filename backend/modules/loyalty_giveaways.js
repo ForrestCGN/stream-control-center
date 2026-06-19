@@ -44,8 +44,8 @@ const database = require("../core/database");
 const loyaltyCore = require("./loyalty");
 
 const MODULE_NAME = "loyalty_giveaways";
-const MODULE_VERSION = "0.1.17";
-const MODULE_BUILD = "LWG_CHAT_OUTPUT_1";
+const MODULE_VERSION = "0.1.18";
+const MODULE_BUILD = "LWG_CHAT_OUTPUT_1B";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 const GIVEAWAY_EXCLUSIONS_CONFIG_PATH = path.resolve(__dirname, "../../config/loyalty_giveaway_exclusions.json");
@@ -6005,6 +6005,12 @@ function pickFirstRuntimeTextLine(value) {
   return String(value || "");
 }
 
+function pickRandomRuntimeTextLine(value) {
+  const lines = splitRuntimeTextLines(value);
+  if (lines.length > 1) return lines[Math.floor(Math.random() * lines.length)];
+  return String(value || "");
+}
+
 function deactivateBundledRafflePublicTextVariants() {
   try {
     const rows = database.all(`
@@ -6120,6 +6126,8 @@ function renderChatRuntimeText(key, context = {}, options = {}) {
   });
   if (isRafflePublicTextKey(key)) {
     message = pickFirstRuntimeTextLine(message);
+  } else if (/^(ticket|wheel)\./.test(String(key || ""))) {
+    message = pickRandomRuntimeTextLine(message);
   }
   return sanitizeRuntimeChatMessage(message, options.maxLength || options.max || 450);
 }
