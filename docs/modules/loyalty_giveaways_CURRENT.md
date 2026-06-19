@@ -9,8 +9,8 @@ Stand: 2026-06-19
 ## Aktueller Modulstand
 
 ```text
-Version: 0.1.17
-Build:   LWG_CHAT_OUTPUT_1
+Version: 0.1.18
+Build:   LWG_CHAT_OUTPUT_1B
 ```
 
 ## Chat-Commands
@@ -31,9 +31,11 @@ Die Commands laufen über das zentrale Command-System auf:
 POST /api/loyalty/giveaways/runtime/chat-command
 ```
 
-## Chat-Ausgabe ab LWG_CHAT_OUTPUT_1
+## Chat-Ausgabe
 
-`buildCommandRuntimeResponse()` leitet jetzt nicht nur `raffle.*`, sondern auch `ticket.*` und `wheel.*` an die direkte Chat-Ausgabe weiter.
+### Ab LWG_CHAT_OUTPUT_1
+
+`buildCommandRuntimeResponse()` leitet nicht nur `raffle.*`, sondern auch `ticket.*` und `wheel.*` an die direkte Chat-Ausgabe weiter.
 
 Wichtig:
 
@@ -41,6 +43,17 @@ Wichtig:
 Keine neuen Texte im Code.
 Vorhandene DB-/Textvarianten und Helper bleiben Quelle.
 ```
+
+### Ab LWG_CHAT_OUTPUT_1B
+
+Legacy-/DB-Textblöcke können mehrere Varianten als Mehrzeiler enthalten. Damit dadurch nicht mehrere Sätze in einer Twitch-Chatnachricht landen, wird nach der Textauflösung und vor dem Chat-Senden abgesichert:
+
+```text
+Wenn der gewählte Text mehrere nicht-leere Zeilen enthält,
+wird zufällig genau eine Zeile ausgewählt und nur diese gesendet.
+```
+
+Damit bleibt Zufall erhalten, aber jede Command-Antwort sendet nur eine Einzelvariante.
 
 Verwendete Textbereiche:
 
@@ -125,7 +138,8 @@ giveawayExclusions.lastError
 
 ## Offene Punkte
 
-- `LWG_CHAT_OUTPUT_1` live testen: `!ticket` und `!wheel`/`!rad` müssen Chatantworten senden.
+- `LWG_CHAT_OUTPUT_1B` live testen: `!ticket` und `!wheel`/`!rad` müssen genau eine Chatantwort senden.
+- Testscript 1.3 sauber mit SUCCESS prüfen.
 - Exclusions im Dashboard editierbar machen.
 - Exclusions DB-basiert speichern.
 - Twitch-User-ID langfristig als primären Schlüssel nutzen.

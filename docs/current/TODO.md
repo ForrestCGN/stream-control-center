@@ -17,21 +17,25 @@ Stand: 2026-06-19
 - [x] Interaktiver Komplett-Test mit `!ticket`, Sperrliste, 3 Gewinnern und Wheel-Claims fachlich bestanden.
 - [x] Testscript 1.3 für finalen Summary-Fix erstellt.
 - [x] `LWG_CHAT_OUTPUT_1` gebaut: Chat-Ausgabe für `ticket.*` und `wheel.*` über vorhandene Helper/Textvarianten.
+- [x] `LWG_CHAT_OUTPUT_1` grundsätzlich live bestätigt: Chatmeldungen erscheinen bei `!ticket` und `!wheel`/`!rad`.
+- [x] Doppel-/Mehrsatz-Problem analysiert: Legacy-/DB-Mehrzeiler können als eine Variante gewählt werden.
+- [x] `LWG_CHAT_OUTPUT_1B` gebaut: Mehrzeilen-Textblöcke werden vor Chat-Ausgabe auf genau eine zufällige Einzelzeile reduziert.
 
 ## Aktueller Stand
 
 ```text
-loyalty_giveaways: 0.1.17 / LWG_CHAT_OUTPUT_1
+loyalty_giveaways: 0.1.18 / LWG_CHAT_OUTPUT_1B
 loyalty_games:     0.2.8  / LWG_BOUND_WHEEL_FIELD_COUNT_1
 ```
 
 ## Noch zu testen
 
-- [ ] `LWG_CHAT_OUTPUT_1` live testen:
+- [ ] `LWG_CHAT_OUTPUT_1B` live testen:
   - [ ] `!ticket` erstellt Entry.
-  - [ ] `!ticket` sendet eine Chat-Bestätigung aus vorhandenen `ticket.*` Textvarianten.
+  - [ ] `!ticket` sendet genau eine Chat-Bestätigung aus vorhandenen `ticket.*` Textvarianten.
   - [ ] `!wheel`/`!rad` löst Wheel-Claim aus.
-  - [ ] `!wheel`/`!rad` sendet eine Chat-Bestätigung aus vorhandenen `wheel.*` Textvarianten.
+  - [ ] `!wheel`/`!rad` sendet genau eine Chat-Bestätigung aus vorhandenen `wheel.*` Textvarianten.
+  - [ ] Keine zusammengesetzten Doppeltexte mehr in einer Chatnachricht.
 - [ ] Testscript 1.3 mit frischem Test-Giveaway bis zum sauberen `PASS/SUCCESS`-Abschluss laufen lassen.
 
 ## Gewinn-Sperrliste / Exclusions – später

@@ -2,22 +2,20 @@
 
 Stand: 2026-06-19
 
-## Aktueller bestätigter Bereich
+## Aktueller Arbeitsstand
 
-Aktueller Arbeitsstand nach dem Chat-Command-/Chat-Output-Umbau:
+Aktueller Stand nach Chat-Command-/Chat-Output-Fix:
 
 ```text
-loyalty_giveaways: 0.1.17 / LWG_CHAT_OUTPUT_1
+loyalty_giveaways: 0.1.18 / LWG_CHAT_OUTPUT_1B
 loyalty_games:     0.2.8  / LWG_BOUND_WHEEL_FIELD_COUNT_1
 ```
 
-## Zuletzt umgesetzt
+## Zuletzt bestätigt
 
 ### LWG_CHAT_COMMANDS_1 – bestätigt
 
-`!ticket`, `!wheel` und `!rad` wurden für die normale Giveaway-/Wheel-Runtime aktiviert.
-
-Bestätigt:
+`!ticket`, `!wheel` und `!rad` sind für die normale Giveaway-/Wheel-Runtime aktiv.
 
 ```text
 !ticket      → normales Giveaway / Entry-Erstellung
@@ -27,7 +25,7 @@ Bestätigt:
 !raffle      → bleibt Raffle-Command
 ```
 
-Die zentralen Commands zeigen:
+Die zentralen Commands waren bestätigt:
 
 ```text
 available=true
@@ -74,7 +72,9 @@ Bound-Wheel-Feldverbrauch funktioniert.
 Mehrere Gewinner werden nacheinander gezogen und drehen jeweils selbst per !wheel/!rad.
 ```
 
-### LWG_CHAT_OUTPUT_1 – umgesetzt, Test offen
+## Chat-Ausgabe
+
+### LWG_CHAT_OUTPUT_1 – gebaut und live grundsätzlich bestätigt
 
 Problem nach `LWG_CHAT_COMMANDS_1`:
 
@@ -94,25 +94,68 @@ Umsetzung in `LWG_CHAT_OUTPUT_1`:
 Direkte Chat-Ausgaben werden jetzt auch für ticket.* und wheel.* über vorhandene Helper/Textvarianten gesendet.
 ```
 
+Live-Beobachtung danach:
+
+```text
+!ticket sendet Chat-Bestätigung.
+!wheel / !rad sendet Chat-Bestätigung.
+```
+
+### LWG_CHAT_OUTPUT_1B – gebaut, Test offen
+
+Nach `LWG_CHAT_OUTPUT_1` wurde festgestellt:
+
+```text
+Einige Chatmeldungen enthielten zwei Sätze/Varianten in einer Nachricht.
+```
+
+Beispiel:
+
+```text
+ForrestCGN, dein Ticket wurde von der Heimleitung abgestempelt. Du bist mit 1 Ticket(s) im Lostopf. ForrestCGN, die Rentnergang hat 1 Ticket(s) für dich in die Lostrommel geworfen.
+```
+
+Ursache:
+
+```text
+Legacy-/DB-Textblöcke können mehrere Varianten als Mehrzeiler enthalten.
+Der Textpicker kann so einen Mehrzeiler als eine Variante wählen.
+helper_chat_output sendet daraus eine einzeilige Chatnachricht mit mehreren Sätzen.
+```
+
+Umsetzung in `LWG_CHAT_OUTPUT_1B`:
+
+```text
+Nach der Textauflösung und vor dem Chat-Senden wird geprüft:
+Wenn der gewählte Text mehrere nicht-leere Zeilen enthält,
+wird zufällig genau eine Zeile ausgewählt und nur diese gesendet.
+```
+
 Wichtig:
 
 ```text
-Keine neuen Texte wurden hartcodiert.
-Vorhandene Textkeys/Varianten bleiben Quelle:
-- ticket.success
-- ticket.no_active
-- ticket.invalid_amount
-- ticket.max_reached
-- ticket.insufficient_balance
-- wheel.no_permission
-- wheel.success
+Keine neuen Texte hartcodiert.
+Keine DB-Handarbeit.
+Vorhandene Helper/Textvarianten bleiben Quelle.
 ```
 
 Teststatus:
 
 ```text
-LWG_CHAT_OUTPUT_1 ist vorbereitet/eingespielt als ZIP.
-Live-Test steht noch aus.
+LWG_CHAT_OUTPUT_1B ist gebaut.
+Live-Test steht noch aus: !ticket und !wheel/!rad dürfen nur noch eine Einzelvariante senden.
+```
+
+## Verwendete Textkeys
+
+```text
+ticket.success
+ticket.no_active
+ticket.invalid_amount
+ticket.max_reached
+ticket.insufficient_balance
+wheel.no_permission
+wheel.success
 ```
 
 ## Bestätigte Wheel-Funktion
@@ -154,8 +197,9 @@ lastError =
 
 ## Später wieder anfassen
 
-- `LWG_CHAT_OUTPUT_1` live testen: `!ticket` muss Entry erstellen und Chat-Bestätigung senden.
-- `!wheel`/`!rad` live testen: Wheel-Claim muss Chat-Bestätigung senden.
+- `LWG_CHAT_OUTPUT_1B` live testen: `!ticket` darf nur noch eine Chat-Variante senden.
+- `!wheel`/`!rad` live testen: nur eine Chat-Variante senden.
+- Testscript 1.3 mit frischem Test-Giveaway bis sauberem `PASS/SUCCESS` laufen lassen.
 - Dashboard-Editor für Gewinn-Sperrliste bauen.
 - Exclusions DB-basiert speichern.
 - Twitch-User-ID als primären Schlüssel nutzen.

@@ -1,5 +1,41 @@
 # Changelog – Loyalty-Giveaways / CGN-Glücksrad
 
+## 2026-06-19 – LWG_CHAT_OUTPUT_1B
+
+### Changed
+
+- `loyalty_giveaways` auf Version `0.1.18`, Build `LWG_CHAT_OUTPUT_1B` erhöht.
+- Chat-Ausgabe für `ticket.*` und `wheel.*` gegen Legacy-/DB-Mehrzeiler abgesichert.
+- Nach der Textauflösung wird vor dem Chat-Senden geprüft, ob der gewählte Text mehrere nicht-leere Zeilen enthält.
+- Falls mehrere Zeilen enthalten sind, wird zufällig genau eine Einzelzeile ausgewählt und nur diese gesendet.
+
+### Reason
+
+- Nach `LWG_CHAT_OUTPUT_1` sendeten `!ticket` und `!wheel`/`!rad` grundsätzlich Chatmeldungen.
+- Einige Meldungen enthielten jedoch zwei Varianten/Sätze in einer Nachricht, z. B. weil alte Legacy-Texte mehrere Varianten als einen Mehrzeilen-Textblock gespeichert hatten.
+
+### Important
+
+- Keine neuen Texte hartcodiert.
+- Keine DB-Handarbeit.
+- Vorhandene Helper/Textvarianten bleiben Quelle:
+  - `helper_texts`,
+  - `helper_chat_output`,
+  - bestehende `messageKey`/`context`-Struktur.
+
+### Compatibility
+
+- Keine Änderung an `!join` / `!raffle`.
+- Keine Änderung an Draw-/Exclusion-/Wheel-Logik.
+- Keine Änderung am DB-Schema.
+- Kein Dashboard-Change.
+- Kein Overlay-Change.
+
+### Test Status
+
+- Noch offen: Live-Test, ob `!ticket` und `!wheel`/`!rad` nach `1B` nur noch jeweils eine Einzelvariante senden.
+
+
 ## 2026-06-19 – LWG_CHAT_OUTPUT_1
 
 ### Changed
