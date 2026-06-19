@@ -1,41 +1,42 @@
 # Changelog – Loyalty-Giveaways / CGN-Glücksrad
 
+## 2026-06-19 – LWG_GIVEAWAY_EXCLUSIONS_1
+
+### Added
+
+- Datei `config/loyalty_giveaway_exclusions.json` als Sofort-Fix für Gewinn-Sperrliste ergänzt.
+- Draw-Eligibility filtert gesperrte User aus der Gewinnziehung.
+- Draw-Metadata/Fairness enthält `exclusionInfo` mit Roh-/Eligible-/Excluded-Informationen.
+- Modulstatus enthält `giveawayExclusions` mit Pfad, Count und Ladefehler.
+
+### Changed
+
+- `loyalty_giveaways` auf Version `0.1.14`, Build `LWG_GIVEAWAY_EXCLUSIONS_1` erhöht.
+- Gesperrte User bleiben als Entry sichtbar, können aber nicht gewinnen.
+
+### Known Follow-up
+
+- Sperrliste später ins Dashboard und in die Datenbank überführen.
+- Twitch-User-ID als primärer Schlüssel, Login nur als Fallback.
+- Draw-/Log-Tab soll später anzeigen, wie viele Entries durch Sperrliste ausgeschlossen wurden.
+
 ## 2026-06-19 – LWG_BOUND_WHEEL_FIELD_COUNT_1
 
 ### Added
 
-- Feste Runtime-Regel für Giveaway-bound Wheels vorbereitet:
+- Harte Runtime-Regel für Giveaway-bound Wheels:
   - 2+ verfügbare Gewinne → normaler Spin mit exakt diesen Feldern.
-  - 1 verfügbarer Gewinn → Direktvergabe im Backend ohne normalen Wheel-Spin.
-  - 0 verfügbare Gewinne → Claim/Spin blockieren.
-- Doku-/TODO-Hinweis ergänzt, dass diese feste Regel später dashboardfähig konfigurierbar gemacht werden muss.
-- Backup-Hinweis vor Live-Deploy ergänzt.
+  - 1 verfügbarer Gewinn → Direktvergabe ohne normalen Wheel-Spin.
+  - 0 verfügbare Gewinne → Claim/Spin blockiert.
 
-### Changed
+### Tested
 
-- `backend/modules/loyalty_games/wheel.js`:
-  - Giveaway-bound Wheel nutzt keine visuelle Auffüllung auf 12 Slots mehr.
-  - Metadata enthält `visualMinVisibleSlots` und `giveawayBoundWheelExactFields`.
-- `backend/modules/loyalty_giveaways.js`:
-  - Bound-Wheel-Kontext setzt `minVisibleSlots` auf die echte verfügbare Feldanzahl.
-  - Claim-Flow behandelt 0/1/2+ verfügbare Felder getrennt.
-- `backend/modules/loyalty_games.js`:
-  - Modulversion auf `0.2.8`, Build `LWG_BOUND_WHEEL_FIELD_COUNT_1`.
-- `backend/modules/loyalty_giveaways.js`:
-  - Modulversion auf `0.1.13`, Build `LWG_BOUND_WHEEL_FIELD_COUNT_1`.
+- Live-Test mit `urlug` gewann `Valheim`.
+- Spin-Metadata bestätigte `fieldsCount=7`, `visualFieldsCount=7`, `visualMinVisibleSlots=7`.
+- Bound-Wheel-Feld `Valheim` wurde danach auf `quantityRemaining=0` reduziert.
+- Restbestand nach Test: 6 verfügbare Felder.
 
-### Tested before handoff
+### Known Follow-up
 
-```text
-node -c backend/modules/loyalty_games/wheel.js
-node -c backend/modules/loyalty_games.js
-node -c backend/modules/loyalty_giveaways.js
-```
-
-Alle drei Syntax-Checks waren erfolgreich.
-
-### Follow-up
-
-- Verhalten bei 1 verbleibendem Gewinn später per Dashboard-Config steuerbar machen.
-- Optionales Letzter-Gewinn-Overlay später planen.
-- Erschöpfte Bound-Wheels streamerfreundlich im Dashboard anzeigen.
+- 1-Gewinn-Direktvergabe später gezielt testen.
+- Wheel-Verhalten später dashboardfähig konfigurierbar machen.

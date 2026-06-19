@@ -2,39 +2,54 @@
 
 Stand: 2026-06-19
 
-## Aktueller Step
+## Bestätigt / erledigt
 
-- [x] `LWG_BOUND_WHEEL_FIELD_COUNT_1` als Datei-/ZIP-Stand vorbereitet.
+- [x] `LWG_BOUND_WHEEL_FIELD_COUNT_1` live getestet.
 - [x] Giveaway-bound Wheel füllt nicht mehr visuell auf 12 Felder auf.
 - [x] Bound-Wheel-Spin nutzt bei 2+ verfügbaren Gewinnen exakt die verfügbaren Felder.
+- [x] Live-Test: `fieldsCount=7`, `visualFieldsCount=7`, `visualMinVisibleSlots=7`.
+- [x] Gewinn `Valheim` wurde korrekt reduziert; Restbestand danach `6`.
 - [x] Single-Remaining-Regel im Backend vorbereitet: 1 verbleibender Gewinn wird direkt vergeben.
 - [x] 0 verfügbare Gewinne werden backendseitig blockiert.
-- [x] Syntax-Check für geänderte JS-Dateien erfolgreich.
+- [x] Bug erkannt: `una_solala` wurde im alten Draw gezogen, obwohl User nicht gewinnen darf.
 
-## Vor Live-Deploy
+## Aktueller Sofort-Step
 
-- [ ] Sicherheitskopie der aktuell laufenden Dateien erstellen:
-  - `backend/modules/loyalty_giveaways.js`
-  - `backend/modules/loyalty_games.js`
-  - `backend/modules/loyalty_games/wheel.js`
-  - `config/loyalty_games.json`
-  - `htdocs/overlays/loyalty/wheel_overlay.html`
-- [ ] ZIP nach Repo-/Live-Struktur einspielen.
-- [ ] StepDone nach dem Einspielen/Deployen ausführen.
-- [ ] Danach erst testen.
+- [ ] `LWG_GIVEAWAY_EXCLUSIONS_1` einspielen.
+- [ ] Datei `config/loyalty_giveaway_exclusions.json` ins Repo/Live-System übernehmen.
+- [ ] `loyalty_giveaways` Status grün prüfen: Version `0.1.14`, Build `LWG_GIVEAWAY_EXCLUSIONS_1`.
+- [ ] Draw-Test mit Sperrliste durchführen:
+  - gesperrte User bleiben als Entry sichtbar,
+  - gesperrte User sind beim Draw nicht eligible,
+  - Draw-Metadata enthält `exclusionInfo`,
+  - gesperrte User können nicht gewinnen.
 
-## Direkt nach Deploy testen
+## Gewinn-Sperrliste / Exclusions
 
-- [ ] `loyalty_giveaways` Status grün, Version `0.1.13`, Build `LWG_BOUND_WHEEL_FIELD_COUNT_1`.
-- [ ] `loyalty_games` Status grün, Version `0.2.8`, Build `LWG_BOUND_WHEEL_FIELD_COUNT_1`.
-- [ ] Bound-Wheel mit 2+ verfügbaren Feldern startet normalen Spin.
-- [ ] Spin-Metadata prüfen: `fieldsCount` und `visualFieldsCount` müssen bei Giveaway-bound Wheels identisch sein.
-- [ ] Bound-Wheel mit 1 verfügbarem Feld vergibt direkt, ohne normalen Spin/Overlay-Dreh.
-- [ ] Bound-Wheel mit 0 verfügbaren Feldern blockiert Claim/Spin sauber.
+Dateibasierter Sofort-Fix:
 
-## Später wieder anfassen – Dashboard-Config
+```text
+config/loyalty_giveaway_exclusions.json
+```
 
-Diese Runtime-Regel ist heute bewusst fest eingebaut, damit der Stream funktioniert.
+Regel:
+
+```text
+User dürfen teilnehmen/sichtbar bleiben, können aber nicht gewinnen.
+```
+
+Offen für später:
+
+- [ ] Dashboard-Editor für gesperrte User bauen.
+- [ ] DB-basierte Verwaltung statt reiner JSON-Datei.
+- [ ] Twitch-User-ID als primärer Schlüssel.
+- [ ] Login/DisplayName als Anzeige/Fallback.
+- [ ] Anzeige im Draw-/Log-Tab: `rawEntries`, `excludedEntries`, `eligibleEntries`.
+- [ ] Optional pro Giveaway eigene zusätzliche Sperrliste.
+
+## Später wieder anfassen – Dashboard-Config Wheel
+
+Die Runtime-Wheel-Regel ist heute bewusst fest eingebaut, damit der Stream funktioniert.
 
 Später muss das als streamerfreundliche Dashboard-Konfiguration umgesetzt werden:
 
@@ -51,6 +66,5 @@ Später muss das als streamerfreundliche Dashboard-Konfiguration umgesetzt werde
 ## Weitere offene Punkte
 
 - [ ] Direkten Reset-/Hide-Test sauber möglich machen.
-- [ ] Ausschlussliste/Exclusions dashboardfähig integrieren.
 - [ ] Test-Giveaway nach Abschluss löschen oder eindeutig als Test markieren.
 - [ ] Gamble-Alias-Bug separat prüfen: `aliases` zeigt `[object`, `object]`.

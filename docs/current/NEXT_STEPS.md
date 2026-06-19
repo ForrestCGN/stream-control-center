@@ -1,67 +1,57 @@
-# Next Steps – LWG Bound-Wheel Field Count 1
+# Next Steps – LWG Giveaway Exclusions
 
 Stand: 2026-06-19
 
-## Nächster Schritt nach ZIP-Einspielen
+## Aktueller Stand
 
-1. Sicherheitskopie der aktuell laufenden Dateien erstellen.
-2. ZIP in `D:\Git\stream-control-center` bzw. Live-Struktur einspielen.
-3. Deploy/Einspielen nach eurer üblichen Arbeitsweise ausführen.
-4. Danach StepDone ausführen.
-5. Erst danach Runtime-Tests starten.
-
-## StepDone
-
-```powershell
-.\stepdone.cmd "LWG_BOUND_WHEEL_FIELD_COUNT_1 - Bound-Wheel Feldanzahl und letzter Gewinn"
-```
-
-## Pflicht-Tests
-
-### Syntax
-
-```powershell
-node -c .\backend\modules\loyalty_games\wheel.js
-node -c .\backend\modules\loyalty_games.js
-node -c .\backend\modules\loyalty_giveaways.js
-```
-
-### Status
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/games/status" |
-  Select-Object ok,module,moduleVersion,moduleBuild,enabled,lastError
-
-Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/giveaways/status" |
-  Select-Object ok,module,moduleVersion,moduleBuild,enabled,lastError
-```
-
-Erwartet:
+`LWG_BOUND_WHEEL_FIELD_COUNT_1` ist live bestätigt:
 
 ```text
-loyalty_games     moduleVersion=0.2.8  moduleBuild=LWG_BOUND_WHEEL_FIELD_COUNT_1
-loyalty_giveaways moduleVersion=0.1.13 moduleBuild=LWG_BOUND_WHEEL_FIELD_COUNT_1
+fieldsCount=7
+visualFieldsCount=7
+visualMinVisibleSlots=7
+Restbestand nach Valheim: 6 verfügbare Felder
 ```
 
-### Fachliche Tests
+## Nächster technischer Schritt
 
-- 2+ verfügbare Bound-Wheel-Felder:
-  - normaler Spin startet.
-  - `fieldsCount` entspricht `visualFieldsCount`.
-  - Overlay zeigt exakt verfügbare Felder.
-- 1 verfügbares Bound-Wheel-Feld:
-  - kein normaler Wheel-Spin.
-  - Direktvergabe im Backend.
-  - Winner wird `wheel_completed`.
-  - Permission wird `used`.
-- 0 verfügbare Bound-Wheel-Felder:
-  - Claim/Spin blockiert mit `bound_wheel_no_usable_fields`.
+### LWG_GIVEAWAY_EXCLUSIONS_1
 
-## Danach / spätere Planung
+Ziel:
 
-Nicht heute zwingend umsetzen, aber dokumentiert offen lassen:
+- Gesperrte Bot-/Mehrfachaccounts dürfen nicht gewinnen.
+- Entries bleiben sichtbar.
+- Draw filtert gesperrte User aus der eligible-Liste.
+- Sperrliste liegt als Sofort-Fix unter `config/loyalty_giveaway_exclusions.json`.
 
-- Dashboard-Konfiguration für Verhalten bei 1 verbleibendem Gewinn.
-- Optionales Letzter-Gewinn-Overlay.
-- Dashboard-Anzeige für erschöpfte Bound-Wheels.
-- Saubere UI-Trennung zwischen Giveaway-bound Wheel und Standalone-/Preset-Wheel-Konfiguration.
+Betroffene Dateien:
+
+```text
+backend/modules/loyalty_giveaways.js
+config/loyalty_giveaway_exclusions.json
+docs/current/CURRENT_STATUS.md
+docs/current/TODO.md
+docs/current/NEXT_STEPS.md
+docs/current/CHANGELOG.md
+docs/current/FILES.md
+docs/current/CURRENT_CHAT_HANDOFF_LWG_GIVEAWAY_EXCLUSIONS_1.md
+docs/modules/loyalty_giveaways_CURRENT.md
+project-state/CURRENT_STATUS_LWG_GIVEAWAY_EXCLUSIONS_1.md
+```
+
+## Danach testen
+
+1. Status prüfen: `loyalty_giveaways` Version `0.1.14`, Build `LWG_GIVEAWAY_EXCLUSIONS_1`.
+2. Test-Giveaway mit einem gesperrten User und mindestens einem erlaubten User erstellen/verwenden.
+3. Draw ausführen.
+4. Prüfen:
+   - gesperrter User ist nicht Gewinner,
+   - `eligibleEntriesCount` reduziert sich,
+   - Metadata/Fairness enthält `exclusionInfo`.
+
+## Danach / später
+
+- Dashboard-Editor für Sperrliste planen.
+- DB-basierte Exclusions statt JSON-Datei.
+- Pro-Giveaway Exclusions.
+- Wheel-1-Gewinn-Direktvergabe später gezielt testen, ohne produktive Gewinne unnötig zu verbrauchen.

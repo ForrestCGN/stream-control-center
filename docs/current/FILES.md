@@ -1,49 +1,55 @@
-# Files – LWG_BOUND_WHEEL_FIELD_COUNT_1
+# Files – Loyalty-Giveaways / CGN-Glücksrad aktueller Arbeitsstand
 
 Stand: 2026-06-19
 
-## ZIP-Datei
-
-```text
-LWG_BOUND_WHEEL_FIELD_COUNT_1.zip
-```
-
-## Geänderte Runtime-Dateien
+## Aktuell relevante Runtime-Dateien
 
 ```text
 backend/modules/loyalty_giveaways.js
 backend/modules/loyalty_games.js
 backend/modules/loyalty_games/wheel.js
-```
-
-## Unverändert gelassen
-
-```text
 config/loyalty_games.json
+config/loyalty_giveaway_exclusions.json
 htdocs/overlays/loyalty/wheel_overlay.html
 ```
 
-Diese Dateien wurden nicht verändert, sollen aber vor dem Live-Deploy optional mitgesichert werden, damit ein vollständiger Rückweg möglich ist.
-
-## Aktualisierte Doku-Dateien
+## Aktueller ZIP-/Step-Stand
 
 ```text
+LWG_GIVEAWAY_EXCLUSIONS_1.zip
+```
+
+## Geänderte Dateien in diesem Step
+
+```text
+backend/modules/loyalty_giveaways.js
+config/loyalty_giveaway_exclusions.json
 docs/current/CURRENT_STATUS.md
 docs/current/TODO.md
 docs/current/NEXT_STEPS.md
 docs/current/CHANGELOG.md
 docs/current/FILES.md
-docs/current/CURRENT_CHAT_HANDOFF_LWG_BOUND_WHEEL_FIELD_COUNT_1.md
+docs/current/CURRENT_CHAT_HANDOFF_LWG_GIVEAWAY_EXCLUSIONS_1.md
 docs/modules/loyalty_giveaways_CURRENT.md
-project-state/CURRENT_STATUS_LWG_BOUND_WHEEL_FIELD_COUNT_1.md
+project-state/CURRENT_STATUS_LWG_GIVEAWAY_EXCLUSIONS_1.md
 ```
 
-## Backup vor Deploy empfohlen
+## Nicht in diesem Step geändert
 
 ```text
-backend/modules/loyalty_giveaways.js
 backend/modules/loyalty_games.js
 backend/modules/loyalty_games/wheel.js
 config/loyalty_games.json
 htdocs/overlays/loyalty/wheel_overlay.html
+```
+
+## Test-Giveaway IDs aus dem bestätigten Wheel-Test
+
+```text
+Giveaway:          giveaway_1781856708568_9653eba68a211017
+Bound-Wheel:       giveawaywheel_1781856708568_839fb2b118fc40a3
+Winner 1:          una_solala / Roadside Research (alter Draw, hätte nicht gewinnen dürfen)
+Winner 2:          urlug / Valheim
+Spin 2:            spin_1781863565409_d640d8c100226f77
+Rest verfügbar:    6
 ```

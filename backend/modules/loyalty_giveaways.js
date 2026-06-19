@@ -17,9 +17,15 @@
  * - Giveaway-bound Wheels nutzen exakt verfügbare Gewinnfelder.
  * - Bei 1 verfügbarem Gewinn wird direkt vergeben, ohne normalen Wheel-Spin.
  * - Bei 0 verfügbaren Gewinnen wird Claim/Spin blockiert.
+ *
+ * LWG_GIVEAWAY_EXCLUSIONS_1:
+ * - Gewinn-Sperrliste aus config/loyalty_giveaway_exclusions.json wird beim Draw berücksichtigt.
+ * - Gesperrte User bleiben als Entry sichtbar, sind aber nicht eligible und können nicht gewinnen.
  */
 
 const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
 const core = require("./helpers/helper_core");
 const routes = require("./helpers/helper_routes");
 const textHelper = require("./helpers/helper_texts");
@@ -28,10 +34,11 @@ const database = require("../core/database");
 const loyaltyCore = require("./loyalty");
 
 const MODULE_NAME = "loyalty_giveaways";
-const MODULE_VERSION = "0.1.13";
-const MODULE_BUILD = "LWG_BOUND_WHEEL_FIELD_COUNT_1";
+const MODULE_VERSION = "0.1.14";
+const MODULE_BUILD = "LWG_GIVEAWAY_EXCLUSIONS_1";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
+const GIVEAWAY_EXCLUSIONS_CONFIG_PATH = path.resolve(__dirname, "../../config/loyalty_giveaway_exclusions.json");
 
 const CHAT_COMMANDS_ACTIVE = false;
 const TEXT_MODULE = "loyalty_giveaways";
@@ -743,7 +750,14 @@ let state = {
       noEntries: 0
     }
   },
-  raffleConfig: { ...RAFFLE_DEFAULT_CONFIG }
+  raffleConfig: { ...RAFFLE_DEFAULT_CONFIG },
+  giveawayExclusions: {
+    loaded: false,
+    mtimeMs: -1,
+    path: GIVEAWAY_EXCLUSIONS_CONFIG_PATH,
+    config: { enabled: false, version: 1, items: [] },
+    lastError: ""
+  }
 };
 
 function uid(prefix = "uid") {
@@ -765,6 +779,137 @@ function normalizeBoolean(value, fallback = false) {
   if (["1", "true", "yes", "ja", "on", "enabled"].includes(text)) return true;
   if (["0", "false", "no", "nein", "off", "disabled"].includes(text)) return false;
   return fallback;
+}
+
+function normalizeExclusionLogin(value) {
+  return String(value || "").trim().replace(/^@+/, "").toLowerCase();
+}
+
+function normalizeExclusionTwitchUserId(value) {
+  return String(value || "").trim();
+}
+
+function normalizeGiveawayExclusionsConfig(raw = {}) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  const rawItems = Array.isArray(source.items) ? source.items : (Array.isArray(source.users) ? source.users : []);
+  const items = [];
+  const loginSet = new Set();
+  const twitchUserIdSet = new Set();
+
+  for (const item of rawItems) {
+    if (!item || typeof item !== "object") continue;
+    if (item.active === false || item.disabled === true) continue;
+    if (item.ok === false && !item.login && !item.input && !item.twitchUserId && !item.twitch_user_id) continue;
+
+    const login = normalizeExclusionLogin(item.login || item.userLogin || item.input || item.name);
+    const twitchUserId = normalizeExclusionTwitchUserId(item.twitchUserId || item.twitch_user_id || item.userId || item.user_id);
+    if (!login && !twitchUserId) continue;
+
+    if (login) loginSet.add(login);
+    if (twitchUserId) twitchUserIdSet.add(twitchUserId);
+
+    items.push({
+      login,
+      displayName: String(item.displayName || item.userDisplayName || item.input || login || twitchUserId).trim(),
+      twitchUserId,
+      reason: String(item.reason || source.note || "Gewinn-Sperrliste").trim(),
+      active: true
+    });
+  }
+
+  return {
+    enabled: source.enabled === false ? false : items.length > 0,
+    version: Number.parseInt(source.version, 10) || 1,
+    generatedAt: source.generatedAt || source.updatedAt || "",
+    note: source.note || "Diese Liste dient als Gewinn-Sperrliste. User duerfen teilnehmen, sollen aber beim Ziehen nicht gewinnen.",
+    items,
+    loginSet,
+    twitchUserIdSet
+  };
+}
+
+function loadGiveawayExclusionsConfig() {
+  try {
+    if (!fs.existsSync(GIVEAWAY_EXCLUSIONS_CONFIG_PATH)) {
+      state.giveawayExclusions.loaded = true;
+      state.giveawayExclusions.mtimeMs = -1;
+      state.giveawayExclusions.config = normalizeGiveawayExclusionsConfig({ enabled: false, items: [] });
+      state.giveawayExclusions.lastError = "";
+      return state.giveawayExclusions.config;
+    }
+
+    const stat = fs.statSync(GIVEAWAY_EXCLUSIONS_CONFIG_PATH);
+    if (state.giveawayExclusions.loaded && state.giveawayExclusions.mtimeMs === stat.mtimeMs) {
+      return state.giveawayExclusions.config;
+    }
+
+    const rawText = fs.readFileSync(GIVEAWAY_EXCLUSIONS_CONFIG_PATH, "utf8");
+    const raw = parseJson(rawText, { enabled: false, items: [] });
+    const config = normalizeGiveawayExclusionsConfig(raw);
+    state.giveawayExclusions.loaded = true;
+    state.giveawayExclusions.mtimeMs = stat.mtimeMs;
+    state.giveawayExclusions.config = config;
+    state.giveawayExclusions.lastError = "";
+    return config;
+  } catch (err) {
+    state.giveawayExclusions.loaded = true;
+    state.giveawayExclusions.lastError = err && err.message ? err.message : String(err);
+    return normalizeGiveawayExclusionsConfig({ enabled: false, items: [] });
+  }
+}
+
+function getEntryTwitchUserId(entry) {
+  if (!entry || typeof entry !== "object") return "";
+  const direct = entry.twitch_user_id || entry.twitchUserId || entry.user_id || entry.userId || "";
+  if (direct) return normalizeExclusionTwitchUserId(direct);
+  const metadata = parseJson(entry.metadata_json, {});
+  return normalizeExclusionTwitchUserId(metadata.twitchUserId || metadata.twitch_user_id || metadata.userId || metadata.user_id || "");
+}
+
+function filterDrawEntriesByExclusions(entries = []) {
+  const config = loadGiveawayExclusionsConfig();
+  if (!config.enabled) {
+    return {
+      entries: Array.isArray(entries) ? entries : [],
+      excluded: [],
+      config
+    };
+  }
+
+  const allowed = [];
+  const excluded = [];
+  for (const entry of Array.isArray(entries) ? entries : []) {
+    const login = normalizeExclusionLogin(entry.user_login || entry.userLogin || "");
+    const twitchUserId = getEntryTwitchUserId(entry);
+    const blockedByLogin = login && config.loginSet && config.loginSet.has(login);
+    const blockedByTwitchUserId = twitchUserId && config.twitchUserIdSet && config.twitchUserIdSet.has(twitchUserId);
+
+    if (blockedByLogin || blockedByTwitchUserId) {
+      excluded.push({
+        entryUid: entry.entry_uid || entry.entryUid || "",
+        userLogin: login,
+        userDisplayName: entry.user_display_name || entry.userDisplayName || login,
+        twitchUserId,
+        reason: blockedByTwitchUserId ? "twitchUserId" : "login"
+      });
+      continue;
+    }
+
+    allowed.push(entry);
+  }
+
+  return { entries: allowed, excluded, config };
+}
+
+function getGiveawayExclusionsStatus() {
+  const config = loadGiveawayExclusionsConfig();
+  return {
+    enabled: !!config.enabled,
+    path: GIVEAWAY_EXCLUSIONS_CONFIG_PATH,
+    count: Array.isArray(config.items) ? config.items.length : 0,
+    generatedAt: config.generatedAt || "",
+    lastError: state.giveawayExclusions.lastError || ""
+  };
 }
 
 function normalizeRaffleConfig(input = {}, previous = RAFFLE_DEFAULT_CONFIG) {
@@ -4212,7 +4357,7 @@ function shouldFinishWheelGiveawayAfterClaim(giveawayUid) {
 
 function eligibleEntriesForDraw(giveawayUid) {
   ensureSchema();
-  return database.all(`
+  const rawEntries = database.all(`
     SELECT e.*
     FROM loyalty_giveaway_entries e
     WHERE e.giveaway_uid = :giveawayUid
@@ -4227,6 +4372,19 @@ function eligibleEntriesForDraw(giveawayUid) {
       )
     ORDER BY e.id ASC
   `, { giveawayUid });
+
+  const filtered = filterDrawEntriesByExclusions(rawEntries);
+  Object.defineProperty(filtered.entries, "exclusionInfo", {
+    value: {
+      enabled: filtered.config.enabled === true,
+      configuredCount: Array.isArray(filtered.config.items) ? filtered.config.items.length : 0,
+      rawEntriesCount: rawEntries.length,
+      excludedEntriesCount: filtered.excluded.length,
+      excluded: filtered.excluded
+    },
+    enumerable: false
+  });
+  return filtered.entries;
 }
 
 function pickWeightedEntry(entries) {
@@ -4449,9 +4607,17 @@ function drawWinner(giveawayUid, input = {}) {
   if (!isWheelGiveaway && !prize) return { ok: false, error: "giveaway_no_prizes_available", statusCode: 409 };
 
   const entries = eligibleEntriesForDraw(giveawayUid);
+  const exclusionInfo = entries.exclusionInfo || { enabled: false, configuredCount: 0, rawEntriesCount: entries.length, excludedEntriesCount: 0, excluded: [] };
   const pick = pickWeightedEntry(entries);
   if (!pick.ok) {
-    return { ok: false, error: pick.error || "giveaway_no_eligible_entries", statusCode: 409, eligibleEntriesCount: entries.length, totalTicketWeight: pick.totalWeight || 0 };
+    return {
+      ok: false,
+      error: pick.error || "giveaway_no_eligible_entries",
+      statusCode: 409,
+      eligibleEntriesCount: entries.length,
+      totalTicketWeight: pick.totalWeight || 0,
+      exclusionInfo
+    };
   }
 
   const now = nowIso();
@@ -4500,7 +4666,8 @@ function drawWinner(giveawayUid, input = {}) {
         algorithm: "crypto.randomInt",
         eligibleEntriesCount: entries.length,
         totalTicketWeight: pick.totalWeight,
-        ticketPosition: pick.ticketPosition
+        ticketPosition: pick.ticketPosition,
+        exclusionInfo
       }
     })
   });
@@ -4618,6 +4785,7 @@ function drawWinner(giveawayUid, input = {}) {
       eligibleEntriesCount: entries.length,
       totalTicketWeight: pick.totalWeight,
       ticketPosition: pick.ticketPosition,
+      exclusionInfo,
       prizeUid: prize ? prize.prizeUid : "",
       boundWheelUid: boundWheelContext && boundWheelContext.boundWheel ? boundWheelContext.boundWheel.boundWheelUid : "",
       sourcePresetUid: boundWheelContext ? boundWheelContext.sourcePresetUid : "",
@@ -4647,7 +4815,8 @@ function drawWinner(giveawayUid, input = {}) {
     algorithm: "crypto.randomInt",
     eligibleEntriesCount: entries.length,
     totalTicketWeight: pick.totalWeight,
-    ticketPosition: pick.ticketPosition
+    ticketPosition: pick.ticketPosition,
+    exclusionInfo
   });
 
   return { ok: true, winner, wheelPermission, claimWindow, chatClaimRequired: drawRequiresChatClaim, giveaway: getGiveaway(giveawayUid, true) };
@@ -6878,6 +7047,7 @@ function buildStatus() {
     routeCount: state.routeCount,
     loadedAt: state.loadedAt,
     lastError: state.lastError,
+    giveawayExclusions: getGiveawayExclusionsStatus(),
     diagnostics: {
       ok: !state.lastError,
       health: state.lastError ? "error" : "ok",
@@ -6890,6 +7060,7 @@ function buildStatus() {
       counts: state.schemaReady ? counts() : {},
       centralCommands: state.schemaReady ? listCentralCommandDefinitions() : { ok: false, available: false },
       database: databaseStatus(),
+      giveawayExclusions: getGiveawayExclusionsStatus(),
       eventBus: {
         ready: !!state.eventBusReady,
         mode: state.eventBusReady ? "existing_communication_bus_direct" : "broadcast_only",

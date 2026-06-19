@@ -1,0 +1,98 @@
+﻿{
+    "ok":  true,
+    "generatedAt":  "2026-06-19T07:36:45.8868490Z",
+    "count":  10,
+    "items":  [
+                  {
+                      "login":  "una_solala",
+                      "displayName":  "una_solala",
+                      "twitchUserId":  "1378301445",
+                      "input":  "una_solala",
+                      "ok":  true,
+                      "resolvedAt":  "2026-06-19T07:36:44.3408269Z",
+                      "error":  ""
+                  },
+                  {
+                      "login":  "crazy_gamming_network",
+                      "displayName":  "Crazy_Gamming_Network",
+                      "twitchUserId":  "1394201017",
+                      "input":  "crazy_gamming_network",
+                      "ok":  true,
+                      "resolvedAt":  "2026-06-19T07:36:44.5160719Z",
+                      "error":  ""
+                  },
+                  {
+                      "login":  "profi_dieb_muerte",
+                      "displayName":  "Profi_Dieb_muerte",
+                      "twitchUserId":  "1403784411",
+                      "input":  "profi_dieb_muerte",
+                      "ok":  true,
+                      "resolvedAt":  "2026-06-19T07:36:44.6876224Z",
+                      "error":  ""
+                  },
+                  {
+                      "login":  "feuerstern_56",
+                      "displayName":  "feuerstern_56",
+                      "twitchUserId":  "1451717528",
+                      "input":  "feuerstern_56",
+                      "ok":  true,
+                      "resolvedAt":  "2026-06-19T07:36:44.8553947Z",
+                      "error":  ""
+                  },
+                  {
+                      "login":  "ninety8nine",
+                      "displayName":  "ninety8nine",
+                      "twitchUserId":  "1451738757",
+                      "input":  "ninety8nine",
+                      "ok":  true,
+                      "resolvedAt":  "2026-06-19T07:36:45.0308658Z",
+                      "error":  ""
+                  },
+                  {
+                      "login":  "ursulaaaaaana",
+                      "displayName":  "ursulaaaaaana",
+                      "twitchUserId":  "1477501931",
+                      "input":  "ursulaaaaaana",
+                      "ok":  true,
+                      "resolvedAt":  "2026-06-19T07:36:45.2018458Z",
+                      "error":  ""
+                  },
+                  {
+                      "login":  "fresche_gedanken",
+                      "displayName":  "fresche_gedanken",
+                      "twitchUserId":  "1477503739",
+                      "input":  "fresche_gedanken",
+                      "ok":  true,
+                      "resolvedAt":  "2026-06-19T07:36:45.3767764Z",
+                      "error":  ""
+                  },
+                  {
+                      "login":  "scavliwei",
+                      "displayName":  "ScavLiwei",
+                      "twitchUserId":  "1343730683",
+                      "input":  "scavliwei",
+                      "ok":  true,
+                      "resolvedAt":  "2026-06-19T07:36:45.5462522Z",
+                      "error":  ""
+                  },
+                  {
+                      "login":  "psychologin_ttv",
+                      "displayName":  "psychologin_ttv",
+                      "twitchUserId":  "1510034092",
+                      "input":  "psychologin_ttv",
+                      "ok":  true,
+                      "resolvedAt":  "2026-06-19T07:36:45.7159089Z",
+                      "error":  ""
+                  },
+                  {
+                      "login":  "sangre_roja_que_fluye",
+                      "displayName":  "sangre_roja_que_fluye",
+                      "twitchUserId":  "1328863732",
+                      "input":  "sangre_roja_que_fluye",
+                      "ok":  true,
+                      "resolvedAt":  "2026-06-19T07:36:45.8868490Z",
+                      "error":  ""
+                  }
+              ],
+    "note":  "Diese Liste dient als Gewinn-Ausschlussliste. User duerfen teilnehmen, sollen aber beim Ziehen nicht gewinnen."
+}
