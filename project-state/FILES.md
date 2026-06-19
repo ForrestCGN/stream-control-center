@@ -132,3 +132,16 @@ project-state/CHANGELOG.md
 project-state/FILES.md
 NEXT_CHAT_PROMPT_LC_MINIGAMES_RAFFLE_DASHBOARD_2026-06-15.md
 ```
+
+## STEP_HT1_FIX2_HYPETRAIN_MEDIA_STATE_SAVE
+
+Geaendert:
+
+```text
+htdocs/dashboard/modules/twitch_events.js
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+```

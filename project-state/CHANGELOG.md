@@ -83,3 +83,11 @@
 - Subscriber-Tier-Erkennung prüfen.
 - GiftSub-Receiver-Konfig/Buchung abgleichen.
 - Alert-Shadow weiter über mehrere Streams beobachten.
+
+## STEP_HT1_FIX2_HYPETRAIN_MEDIA_STATE_SAVE
+
+### Fixed
+
+- Dashboard `twitch_events`: Hype-Train-Rekord-Sound-Auswahl wird jetzt nach `media-field:change` sofort im Modul-State gespeichert.
+- Speichern liest die Media-ID robuster aus Hidden-Input, MediaField-Dataset oder Modul-State.
+- MediaField bekommt `data-hype-media-field` und `data-media-id`, damit die Auswahl beim Render/Save nicht verloren geht.

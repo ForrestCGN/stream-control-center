@@ -30,6 +30,7 @@
     hypetrainConfig: null,
     hypetrainBusy: false,
     hypetrainTestResult: null,
+    hypetrainRecordMediaId: 0,
     result: null,
     busy: false
   };
@@ -116,6 +117,8 @@
     const data = await window.CGN.api('/api/twitch/events/hypetrain/config');
     state.hypetrainConfig = data.config || data.hypetrain?.config || {};
     state.hypetrain = data.hypetrain || null;
+    const mediaId = Number(state.hypetrainConfig?.recordSound?.mediaId || 0);
+    state.hypetrainRecordMediaId = Number.isFinite(mediaId) && mediaId > 0 ? mediaId : 0;
   }
 
   async function loadAll(force = false) {
@@ -160,7 +163,12 @@
     cfg.recordDetection.triggerOnlyOncePerTrain = !!get('triggerOnlyOncePerTrain')?.checked;
     cfg.recordSound = cfg.recordSound || {};
     cfg.recordSound.enabled = !!get('recordSoundEnabled')?.checked;
-    cfg.recordSound.mediaId = num(get('recordSoundMediaId')?.value, 0);
+    const mediaFieldRoot = root.querySelector('[data-hype-media-field]');
+    const mediaInputValue = get('recordSoundMediaId')?.value || '';
+    const mediaDatasetValue = mediaFieldRoot?.dataset?.mediaId || '';
+    const mediaStateValue = state.hypetrainRecordMediaId || 0;
+    cfg.recordSound.mediaId = num(mediaInputValue || mediaDatasetValue || mediaStateValue || cfg.recordSound.mediaId, 0);
+    state.hypetrainRecordMediaId = cfg.recordSound.mediaId;
     cfg.recordSound.label = get('recordSoundLabel')?.value || 'Hype-Train Rekord';
     cfg.recordSound.priority = num(get('recordSoundPriority')?.value, 1000);
     cfg.recordSound.volume = Math.max(0, Math.min(1, num(get('recordSoundVolume')?.value, 1)));
@@ -310,8 +318,8 @@
             <label class="hype-check"><input data-hype-field="recordSoundParallelAllowed" type="checkbox" ${recordSound.parallelAllowed === true ? 'checked' : ''}> Parallel erlauben</label>
           </div>
 
-          <div class="hype-media-field" data-media-field data-module-key="${esc(media.moduleKey || 'twitch_events')}" data-category-key="${esc(media.categoryKey || 'hypetrain-record')}" data-allowed-types="audio" data-title="Hype-Train Rekord-Sound auswählen">
-            <input type="hidden" data-media-field-value data-hype-field="recordSoundMediaId" value="${esc(recordSound.mediaId || '')}">
+          <div class="hype-media-field" data-hype-media-field data-media-field data-media-id="${esc(selectedMediaId || '')}" data-module-key="${esc(media.moduleKey || 'twitch_events')}" data-category-key="${esc(media.categoryKey || 'hypetrain-record')}" data-allowed-types="audio" data-title="Hype-Train Rekord-Sound auswählen">
+            <input type="hidden" data-media-field-value data-hype-field="recordSoundMediaId" value="${esc(selectedMediaId || '')}">
           </div>
 
           <h4>Tagebuch</h4>
@@ -409,6 +417,13 @@
       root.querySelector('#hypeSaveBtn')?.addEventListener('click', saveHypetrainConfig);
       root.querySelector('#hypeTestBtn')?.addEventListener('click', runHypetrainTest);
       if (window.MediaField?.initAll) window.MediaField.initAll(root);
+      root.querySelector('[data-hype-media-field]')?.addEventListener('media-field:change', event => {
+        const mediaId = num(event.detail?.mediaId || event.target?.dataset?.mediaId || root.querySelector('[data-hype-field="recordSoundMediaId"]')?.value, 0);
+        state.hypetrainRecordMediaId = mediaId;
+        state.hypetrainConfig = state.hypetrainConfig || {};
+        state.hypetrainConfig.recordSound = state.hypetrainConfig.recordSound || {};
+        state.hypetrainConfig.recordSound.mediaId = mediaId;
+      });
       return;
     }
 

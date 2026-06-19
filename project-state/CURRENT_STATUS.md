@@ -430,3 +430,9 @@ Dokument:
 ```text
 docs/system-inspection/EVENTBUS_CAN4_0_OVERLAY_ACK_VISUAL_DELIVERY_PLAN.md
 ```
+
+## STEP_HT1_FIX2_HYPETRAIN_MEDIA_STATE_SAVE
+
+Status: gebaut / einzuspielen.
+
+Fix fuer Hype-Train-Rekord-Dashboard: Media-Auswahl wird beim `media-field:change` sofort im Modul-State gespiegelt und beim Speichern aus Hidden-Input, MediaField-Dataset oder State gelesen. Ziel ist, dass `recordSound.mediaId` nach dem Speichern stabil in `config/twitch_events.json` landet.

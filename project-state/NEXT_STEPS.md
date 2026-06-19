@@ -300,3 +300,12 @@ Keine Sound-Playback-Logik
 Keine Overlay-Ausgabe
 Keine Recovery-Automatik
 ```
+
+## Nach STEP_HT1_FIX2_HYPETRAIN_MEDIA_STATE_SAVE
+
+1. ZIP einspielen/deployen.
+2. `stepdone.cmd` ausfuehren.
+3. Dashboard hart neu laden.
+4. Hype-Train-Rekord-Sound erneut auswaehlen und speichern.
+5. `/api/twitch/events/hypetrain/status` pruefen: `config.recordSound.mediaId` muss groesser 0 sein.
+6. Synthetischen Hype-Train-Test mit neuer ID ausfuehren und Sound-Queue pruefen.

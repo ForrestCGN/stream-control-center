@@ -69,3 +69,10 @@ Stand: 2026-06-15 19:55
 - Raffle als neues Parallelmodul bauen.
 - Bestehende Giveaway-/Wheel-/Gamble-Logik umbauen.
 - Funktionalität entfernen.
+
+## Hype-Train Rekord
+
+- [ ] STEP_HT1_FIX2 einspielen und Media-Speichern im Dashboard erneut testen.
+- [ ] Danach synthetischen Rekord-Test mit gesetztem Sound ausfuehren.
+- [ ] `soundQueued` und Sound-System-Playback pruefen.
+- [ ] Echten Hype-Train im Stream beobachten.
