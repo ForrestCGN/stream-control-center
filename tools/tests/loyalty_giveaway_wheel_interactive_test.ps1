@@ -1,11 +1,11 @@
 <# 
   Loyalty Giveaway Wheel Interactive Test
-  STEP: LWG TESTSCRIPT 1.1 - Interactive Giveaway Wheel Systemtest
+  STEP: LWG TESTSCRIPT 1.2 - Interactive Giveaway Wheel Systemtest
 
   Zweck:
   - Testet ein kopiertes Giveaway von Anfang bis Ende.
   - 1 gesperrter User wird per API hinzugefügt.
-  - 3 erlaubte User treten per Chat mit !join bei.
+  - 3 erlaubte User treten per Chat mit !ticket bei.
   - Es wird so lange ausgelost, bis kein eligible User mehr vorhanden ist.
   - Jeder Gewinner muss selbst im Chat !wheel oder !rad ausführen.
   - Das Script führt KEINEN automatischen Wheel-Claim-Fallback per API aus.
@@ -164,6 +164,18 @@ function Invoke-SccJson {
       method = $Method
     }
 
+    if ($_.ErrorDetails -and $_.ErrorDetails.Message) {
+      $payload.raw = [string]$_.ErrorDetails.Message
+      try {
+        $parsedDetails = ([string]$_.ErrorDetails.Message) | ConvertFrom-Json
+        $payload.parsed = $parsedDetails
+        if ($parsedDetails.error) { $payload.error = $parsedDetails.error }
+        if ($parsedDetails.message) { $payload.message = $parsedDetails.message }
+      } catch {
+        $payload.errorDetailsParseError = $_.Exception.Message
+      }
+    }
+
     $resp = $_.Exception.Response
     if ($resp) {
       try {
@@ -190,6 +202,24 @@ function Invoke-SccJson {
     Write-Log "API_ERROR" "Fehlerantwort gespeichert: $file" $obj
     return $obj
   }
+}
+
+function Get-ApiError {
+  param([object]$Response)
+  if ($null -eq $Response) { return "" }
+  if ($Response.error) { return "$($Response.error)" }
+  if ($Response.parsed -and $Response.parsed.error) { return "$($Response.parsed.error)" }
+  if ($Response.raw) {
+    try {
+      $parsedRaw = "$($Response.raw)" | ConvertFrom-Json
+      if ($parsedRaw.error) { return "$($parsedRaw.error)" }
+    } catch { }
+    if ("$($Response.raw)" -match 'giveaway_draw_requires_closed_entries') { return "giveaway_draw_requires_closed_entries" }
+    if ("$($Response.raw)" -match 'no_weighted_entries') { return "no_weighted_entries" }
+    if ("$($Response.raw)" -match 'giveaway_no_eligible_entries') { return "giveaway_no_eligible_entries" }
+  }
+  if ($Response.exception -and "$($Response.exception)" -match 'giveaway_draw_requires_closed_entries') { return "giveaway_draw_requires_closed_entries" }
+  return ""
 }
 
 function Prompt-Continue {
@@ -399,7 +429,8 @@ function Write-FinalFiles {
   $summary.Add("") | Out-Null
   $summary.Add("Warnings:") | Out-Null
   if ($Script:Warnings.Count -eq 0) { $summary.Add("- keine") | Out-Null } else { foreach ($w in $Script:Warnings) { $summary.Add("- $w") | Out-Null } }
-  $summary -join [Environment]::NewLine | Set-Content -Path $SummaryFile -Encoding UTF8
+  $newline = [System.Environment]::NewLine
+  ($summary -join $newline) | Set-Content -Path $SummaryFile -Encoding UTF8
 
   $run = [ordered]@{
     result = $Script:Result
@@ -435,7 +466,7 @@ try {
   Write-Host "============================================================"
   Write-Host "Giveaway: $GiveawayUid"
   Write-Host "Gesperrter API-Entry: $BlockedUser"
-  Write-Host "Chat-Teilnehmer per !join: $ExpectedChatUsers"
+  Write-Host "Chat-Teilnehmer per !ticket: $ExpectedChatUsers"
   Write-Host "Dreh-Befehl fuer Gewinner: !wheel oder !rad"
   Write-Host "Log: $LogFile"
   Write-Host "============================================================"
@@ -539,9 +570,9 @@ try {
     }
   }
 
-  Prompt-Continue "Jetzt bitte $ExpectedChatUsers erlaubte Testuser im Chat !join schreiben lassen. Danach hier bestaetigen."
+  Prompt-Continue "Jetzt bitte $ExpectedChatUsers erlaubte Testuser im Chat !ticket schreiben lassen. Danach hier bestaetigen."
 
-  $entriesAfterJoin = Get-Entries "entries_after_chat_join"
+  $entriesAfterJoin = Get-Entries "entries_after_chat_ticket"
   $activeEntries = Get-ActiveEntries $entriesAfterJoin
   $blockedEntries = @($activeEntries | Where-Object {
     (Normalize-Login "$($_.userLogin)") -eq $blockedLogin -or (Normalize-Login "$($_.user_login)") -eq $blockedLogin
@@ -571,7 +602,7 @@ try {
   if (-not $SkipOpenDrawBlockTest) {
     if (Prompt-YesNo "Optionalen Test ausfuehren: Draw aus OPEN muss blockiert werden?" $true) {
       $drawOpen = Invoke-SccJson -Method POST -Url "/api/loyalty/giveaways/$GiveawayUid/draw" -Body @{ actor = "interactive_test"; reason = "open_block_test" } -ApiName "draw_open_block_test"
-      $err = if ($drawOpen.error) { "$($drawOpen.error)" } elseif ($drawOpen.parsed -and $drawOpen.parsed.error) { "$($drawOpen.parsed.error)" } else { "" }
+      $err = Get-ApiError $drawOpen
       if ($err -ne "giveaway_draw_requires_closed_entries") {
         Fail "draw_open_block" "Draw aus OPEN wurde nicht wie erwartet blockiert." $drawOpen -Stop
       } else {
@@ -611,7 +642,7 @@ try {
     $draw = Invoke-SccJson -Method POST -Url "/api/loyalty/giveaways/$GiveawayUid/draw" -Body @{ actor = "interactive_test"; reason = "interactive_round_$roundIndex" } -ApiName "round_${roundIndex}_draw"
 
     if ($draw.ok -eq $false) {
-      $err = if ($draw.error) { "$($draw.error)" } elseif ($draw.parsed -and $draw.parsed.error) { "$($draw.parsed.error)" } else { "" }
+      $err = Get-ApiError $draw
       if ($roundIndex -gt $ExpectedChatUsers -and ($err -eq "no_weighted_entries" -or $err -eq "giveaway_no_eligible_entries")) {
         Pass "final_no_eligible" "Kein eligible User mehr vorhanden. Erwartetes Ende." $draw
         break
