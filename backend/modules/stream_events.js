@@ -33,8 +33,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.89";
-const MODULE_BUILD = "STEP_EVS52_19_WINNER_FINALE_MANUAL_END";
+const MODULE_VERSION = "0.5.90";
+const MODULE_BUILD = "STEP_EVS52_22_REVEAL_VIDEO_MEDIA_ID_FIX";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -3392,7 +3392,7 @@ function normalizeSoundSnippet(snippet = {}, index = 0) {
     title,
     mediaId,
     mediaPath: cleanString(raw.mediaPath || raw.file || raw.path),
-    revealVideoId: cleanString(raw.revealVideoId || raw.videoMediaId || raw.revealMediaId),
+    revealVideoId: cleanString(raw.revealVideoId || raw.revealVideoMediaId || raw.videoMediaId || raw.revealMediaId || raw.reveal_video_media_id || raw.reveal_video_id),
     acceptedAnswers: acceptedAnswers.map(cleanString).filter(Boolean),
     points: clampNumber(raw.points ?? raw.firstPoints ?? raw.score, 0, 10000, 10),
     answerSeconds: raw.answerSeconds !== undefined || raw.seconds !== undefined ? clampNumber(raw.answerSeconds ?? raw.seconds, 5, 3600, 60) : 0,
@@ -4507,7 +4507,7 @@ function pickNextSoundSnippet(event, options = {}) {
 
 function getRevealVideoMediaRef(snippet = {}) {
   const raw = snippet && typeof snippet === "object" ? snippet : {};
-  return cleanString(raw.revealVideoId || raw.videoMediaId || raw.revealMediaId || (raw.raw && (raw.raw.revealVideoId || raw.raw.videoMediaId || raw.raw.revealMediaId)) || "");
+  return cleanString(raw.revealVideoId || raw.revealVideoMediaId || raw.videoMediaId || raw.revealMediaId || raw.reveal_video_media_id || raw.reveal_video_id || (raw.raw && (raw.raw.revealVideoId || raw.raw.revealVideoMediaId || raw.raw.videoMediaId || raw.raw.revealMediaId || raw.raw.reveal_video_media_id || raw.raw.reveal_video_id)) || "");
 }
 
 function buildRevealVideoPlaybackPayload(event, round, snippet, runtimeConfig = {}) {
@@ -6446,7 +6446,7 @@ function resolveMediaAssetForPlaybackRef(ref = {}, options = {}) {
 
 function findRevealVideoForTestAudio(audioRow = {}, options = {}) {
   ensureSchema();
-  const explicitRevealId = cleanString(options.revealVideoId || options.videoMediaId || options.revealMediaId || "");
+  const explicitRevealId = cleanString(options.revealVideoId || options.revealVideoMediaId || options.videoMediaId || options.revealMediaId || options.reveal_video_media_id || options.reveal_video_id || "");
   if (explicitRevealId) return { id: explicitRevealId, explicit: true };
 
   const audioRel = cleanString(audioRow.relative_path || audioRow.relativePath || "").replace(/\\/g, "/").replace(/^\/+/, "");
