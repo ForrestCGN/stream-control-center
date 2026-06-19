@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.60";
-  const MODULE_BUILD = "STEP_SHOT_ALARM_2H_ACTIVE_STATE_STREAM_DROPDOWN";
+  const MODULE_VERSION = "0.5.61";
+  const MODULE_BUILD = "STEP_SHOT_ALARM_2H2_DASHBOARD_OVERLAY_TEST_BUTTON";
 
   const api = {
     status: '/api/stream-events/status',
@@ -400,6 +400,7 @@ window.StreamEventsModule = (function(){
           <div class="evs-card-actions">
             <button type="button" class="evs-btn evs-btn-small evs-btn-secondary" data-evs-action="reloadShotAlarmData">Aktualisieren</button>
             <a class="evs-btn evs-btn-small evs-btn-secondary" href="/overlays/shot_alarm/shot_alarm_overlay.html" target="_blank" rel="noopener">Overlay öffnen</a>
+            <a class="evs-btn evs-btn-small" href="/overlays/shot_alarm/shot_alarm_overlay.html?force=1" target="_blank" rel="noopener">Overlay testen</a>
           </div>
         </div>
         ${box.error ? `<div class="evs-error">${esc(box.error)}</div>` : ''}
@@ -443,7 +444,9 @@ window.StreamEventsModule = (function(){
             <div class="evs-action-row">
               <button type="button" class="evs-btn" data-evs-action="shotAlarmTestBitsImmediate">Test sofort</button>
               <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="shotAlarmTestBitsDraw">Test mit 10s Auslosung</button>
+              <a class="evs-btn evs-btn-secondary" href="/overlays/shot_alarm/shot_alarm_overlay.html?force=1" target="_blank" rel="noopener">Overlay-Testfenster</a>
             </div>
+            <div class="evs-tab-help">Das Testfenster nutzt <code>?force=1</code>, damit Start/Stop auch offline sichtbar geprüft werden kann. Die normale OBS-URL bleibt ohne <code>?force=1</code> und zeigt offline nichts an.</div>
           </div>
         </div>
         <div class="evs-two-cols evs-shot-admin-grid">
