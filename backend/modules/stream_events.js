@@ -12,6 +12,7 @@
  * - Sound and Satz/Text runtime share processParallelChatMessage().
  * - EVS52.11 fixes async !event command handling so normal chat reaches Sound/Text runtime.
  * - EVS52.12 filters known bot/system accounts before Sound/Text runtime to prevent feedback loops.
+ * - EVS52.25 fixes revealVideoMediaId and real random sound rotation/requeue delay.
  */
 
 const crypto = require("crypto");
@@ -33,8 +34,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.89";
-const MODULE_BUILD = "STEP_EVS52_19_WINNER_FINALE_MANUAL_END";
+const MODULE_VERSION = "0.5.91";
+const MODULE_BUILD = "STEP_EVS52_25_SOUND_REVEAL_RANDOM_FIX";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -3385,6 +3386,16 @@ function normalizeSoundSnippet(snippet = {}, index = 0) {
   const snippetUid = cleanString(raw.uid || raw.snippetUid || raw.id || raw.key || mediaId, `sound_snippet_${index + 1}`);
   const title = cleanString(raw.title || raw.name || raw.label || `Sound-Schnipsel ${index + 1}`);
   const acceptedAnswers = Array.isArray(raw.acceptedAnswers) ? raw.acceptedAnswers : (Array.isArray(raw.answers) ? raw.answers : []);
+  const revealVideoId = cleanString(
+    raw.revealVideoId ||
+    raw.revealVideoMediaId ||
+    raw.reveal_video_id ||
+    raw.reveal_video_media_id ||
+    raw.videoMediaId ||
+    raw.video_media_id ||
+    raw.revealMediaId ||
+    raw.reveal_media_id
+  );
   return {
     snippetUid,
     index,
@@ -3392,7 +3403,8 @@ function normalizeSoundSnippet(snippet = {}, index = 0) {
     title,
     mediaId,
     mediaPath: cleanString(raw.mediaPath || raw.file || raw.path),
-    revealVideoId: cleanString(raw.revealVideoId || raw.videoMediaId || raw.revealMediaId),
+    revealVideoId,
+    revealVideoMediaId: revealVideoId,
     acceptedAnswers: acceptedAnswers.map(cleanString).filter(Boolean),
     points: clampNumber(raw.points ?? raw.firstPoints ?? raw.score, 0, 10000, 10),
     answerSeconds: raw.answerSeconds !== undefined || raw.seconds !== undefined ? clampNumber(raw.answerSeconds ?? raw.seconds, 5, 3600, 60) : 0,
@@ -4484,30 +4496,96 @@ function getSoundRounds(eventUid, limit = 100) {
   `, { eventUid, limit: clampNumber(limit, 1, 500, 100) }).map(rowToRound);
 }
 
+function pickRandomArrayItem(items = []) {
+  const list = Array.isArray(items) ? items : [];
+  if (!list.length) return null;
+  try {
+    if (crypto && typeof crypto.randomInt === "function") return list[crypto.randomInt(0, list.length)];
+  } catch (_) {}
+  return list[Math.floor(Math.random() * list.length)];
+}
+
 function pickNextSoundSnippet(event, options = {}) {
   const snippets = getSoundSnippets(event);
   if (!snippets.length) return { ok: false, error: "sound_no_snippets" };
   const rounds = getSoundRounds(event.eventUid, 500);
-  const blockedStatuses = new Set(["active", "solved", "unresolved"]);
-  const used = new Set(rounds.filter(row => blockedStatuses.has(row.status)).map(row => row.itemUid).filter(Boolean));
   const active = rounds.find(row => row.status === "active");
   if (active) return { ok: false, error: "sound_round_already_active", activeRound: active };
-  let candidates = snippets.filter(item => !used.has(item.snippetUid));
-  if (!candidates.length && options.allowReuse === true) candidates = snippets.slice();
-  if (!candidates.length) return { ok: false, error: "sound_no_unused_snippet", used: used.size, total: snippets.length };
+
   const runtimeConfig = getSoundRuntimeConfig(event);
-  if (runtimeConfig.avoidImmediateRepeat && candidates.length > 1) {
-    const last = rounds[0] ? rounds[0].itemUid : "";
-    candidates = candidates.filter(item => item.snippetUid !== last);
+  const solved = new Set(rounds.filter(row => row.status === "solved").map(row => row.itemUid).filter(Boolean));
+  const baseCandidates = snippets.filter(item => !solved.has(item.snippetUid));
+  if (!baseCandidates.length && options.allowReuse !== true) {
+    return { ok: false, error: "sound_no_unsolved_snippet", solved: solved.size, total: snippets.length };
   }
-  const selected = candidates[0];
-  return { ok: true, snippet: selected, runtimeConfig, total: snippets.length, remaining: candidates.length };
+
+  let candidates = baseCandidates.length ? baseCandidates.slice() : snippets.slice();
+
+  // Unresolved Schnipsel bleiben in der Rotation, duerfen aber nicht direkt wieder als naechstes kommen.
+  // Deshalb werden die letzten N Runden temporaer gesperrt. Wenn dadurch nichts uebrig bleibt,
+  // wird nur der allerletzte Schnipsel gesperrt, sofern es Alternativen gibt.
+  const minRepeatDistance = clampNumber(runtimeConfig.minRepeatDistance, 0, 100, 0);
+  const recentLimit = runtimeConfig.avoidImmediateRepeat ? Math.max(1, minRepeatDistance) : minRepeatDistance;
+  const recentIds = rounds
+    .map(row => cleanString(row.itemUid))
+    .filter(Boolean)
+    .slice(0, recentLimit);
+  const recent = new Set(recentIds);
+
+  if (recent.size && candidates.length > 1) {
+    const filtered = candidates.filter(item => !recent.has(item.snippetUid));
+    if (filtered.length) candidates = filtered;
+    else {
+      const last = recentIds[0] || "";
+      const withoutLast = candidates.filter(item => item.snippetUid !== last);
+      if (withoutLast.length) candidates = withoutLast;
+    }
+  }
+
+  if (!candidates.length) return { ok: false, error: "sound_no_candidate_after_repeat_guard", solved: solved.size, total: snippets.length, recent: recentIds };
+
+  const orderMode = cleanString(runtimeConfig.orderMode || "", "random").toLowerCase();
+  const playbackMode = cleanString(runtimeConfig.playbackMode || "", "random_auto").toLowerCase();
+  const useRandom = orderMode !== "list" && playbackMode !== "sequence_auto";
+  const selected = useRandom ? pickRandomArrayItem(candidates) : candidates[0];
+
+  return {
+    ok: true,
+    snippet: selected,
+    runtimeConfig,
+    total: snippets.length,
+    remaining: candidates.length,
+    solved: solved.size,
+    recent: recentIds,
+    orderMode,
+    playbackMode,
+    random: useRandom
+  };
 }
 
 
 function getRevealVideoMediaRef(snippet = {}) {
   const raw = snippet && typeof snippet === "object" ? snippet : {};
-  return cleanString(raw.revealVideoId || raw.videoMediaId || raw.revealMediaId || (raw.raw && (raw.raw.revealVideoId || raw.raw.videoMediaId || raw.raw.revealMediaId)) || "");
+  const nested = raw.raw && typeof raw.raw === "object" ? raw.raw : {};
+  return cleanString(
+    raw.revealVideoId ||
+    raw.revealVideoMediaId ||
+    raw.reveal_video_id ||
+    raw.reveal_video_media_id ||
+    raw.videoMediaId ||
+    raw.video_media_id ||
+    raw.revealMediaId ||
+    raw.reveal_media_id ||
+    nested.revealVideoId ||
+    nested.revealVideoMediaId ||
+    nested.reveal_video_id ||
+    nested.reveal_video_media_id ||
+    nested.videoMediaId ||
+    nested.video_media_id ||
+    nested.revealMediaId ||
+    nested.reveal_media_id ||
+    ""
+  );
 }
 
 function buildRevealVideoPlaybackPayload(event, round, snippet, runtimeConfig = {}) {
