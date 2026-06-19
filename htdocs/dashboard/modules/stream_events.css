@@ -1174,3 +1174,333 @@
 .evs-btn-finale {
   font-weight: 800;
 }
+
+/* STEP SHOT-ALARM-2B.3: module dropdowns inside Event-System tabs */
+.evs-module-select-row {
+  margin: 0 0 14px 0;
+  padding: 14px 16px;
+  border-radius: 18px;
+  display: flex;
+  align-items: end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.evs-module-select-row label {
+  display: grid;
+  gap: 6px;
+  min-width: 260px;
+}
+.evs-module-select-row label span {
+  font-size: 12px;
+  color: var(--muted, #a8b3c8);
+  font-weight: 700;
+}
+.evs-module-select-row select {
+  min-height: 42px;
+}
+.evs-module-select-row small {
+  color: var(--muted, #a8b3c8);
+  max-width: 720px;
+  line-height: 1.35;
+}
+
+
+/* STEP EVS52.23 / Shot-Alarm visible event module picker */
+.evs-event-module-selector {
+  display: flex;
+  align-items: end;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.evs-event-module-selector label {
+  min-width: 280px;
+}
+.evs-event-module-selector select {
+  min-width: 280px;
+}
+.evs-module-picker-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 2px;
+}
+.evs-event-module-selector small {
+  flex: 1 1 420px;
+  min-width: 320px;
+}
+
+/* STEP_EVS52_24_SHOT_ALARM_EVENT_TAB_CONFIG_DROPDOWN */
+.evs-config-module-select {
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: end;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.evs-config-module-select label {
+  display: grid;
+  gap: 7px;
+  min-width: 260px;
+}
+.evs-config-module-select small {
+  color: var(--muted, #b7c5dc);
+  padding-bottom: 8px;
+}
+.evs-shot-tab .evs-card-actions,
+.evs-shot-tab .evs-action-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.evs-shot-kpis {
+  margin: 14px 0;
+}
+.evs-shot-admin-grid {
+  gap: 14px;
+  margin-top: 14px;
+}
+
+/* SHOT-ALARM-2B.6: safe config dropdown without losing Event-System settings */
+.evs-config-safe-switch {
+  margin-bottom: 16px;
+}
+.evs-card-head-compact {
+  margin-bottom: 12px;
+}
+.evs-config-module-dropdown {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 360px;
+}
+.evs-config-module-dropdown select {
+  width: 100%;
+}
+.evs-config-safe-note {
+  margin-top: 12px;
+}
+.evs-shot-config-panel {
+  border-color: rgba(34, 211, 238, 0.22);
+}
+
+
+/* SHOT-ALARM-2D Dashboard Audit/Safety */
+.stream-events-admin .evs-shot-safety-box{margin-top:14px;border-color:rgba(34,211,238,.24);background:rgba(8,47,73,.12)}
+.stream-events-admin .evs-shot-audit-list{display:grid;gap:8px;margin-top:10px;max-height:220px;overflow:auto}
+.stream-events-admin .evs-shot-audit-list>div{display:grid;gap:3px;border:1px solid rgba(255,255,255,.10);background:rgba(2,6,23,.30);border-radius:12px;padding:9px 10px}
+.stream-events-admin .evs-shot-audit-list b{color:#f8fafc;font-size:12px}
+.stream-events-admin .evs-shot-audit-list span{color:#cbd5e1;font-size:12px}
+.stream-events-admin .evs-shot-audit-list small{color:#94a3b8;font-size:11px}
+
+
+/* SHOT-ALARM-2H Active-State + Stream-Statistik */
+.stream-events-admin .evs-shot-runtime-card{
+  margin:0 0 14px;
+  padding:13px 14px;
+  border:1px solid rgba(148,163,184,.20);
+  background:rgba(2,6,23,.30);
+  border-radius:16px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+}
+.stream-events-admin .evs-shot-runtime-card strong{
+  display:block;
+  color:#f8fafc;
+  font-size:15px;
+}
+.stream-events-admin .evs-shot-runtime-card span{
+  display:block;
+  color:#cbd5e1;
+  font-size:12px;
+  margin-top:3px;
+}
+.stream-events-admin .evs-shot-runtime-card small{
+  display:block;
+  color:#94a3b8;
+  font-size:11px;
+  margin-top:3px;
+}
+.stream-events-admin .evs-shot-runtime-card.is-active{
+  border-color:rgba(34,197,94,.40);
+  background:linear-gradient(135deg,rgba(22,101,52,.22),rgba(8,47,73,.12));
+  box-shadow:0 0 18px rgba(34,197,94,.08);
+}
+.stream-events-admin .evs-shot-runtime-card.is-inactive{
+  border-color:rgba(245,158,11,.34);
+  background:linear-gradient(135deg,rgba(120,53,15,.16),rgba(15,23,42,.30));
+}
+.stream-events-admin .evs-shot-stream-select{
+  margin:0 0 14px;
+  padding:12px 14px;
+  border:1px solid rgba(34,211,238,.18);
+  background:rgba(8,47,73,.10);
+  border-radius:16px;
+  display:flex;
+  align-items:end;
+  gap:14px;
+  flex-wrap:wrap;
+}
+.stream-events-admin .evs-shot-stream-select label{
+  min-width:280px;
+  display:grid;
+  gap:6px;
+}
+.stream-events-admin .evs-shot-stream-select label span{
+  color:#cbd5e1;
+  font-size:12px;
+  font-weight:900;
+}
+.stream-events-admin .evs-shot-stream-select small{
+  color:#94a3b8;
+  font-size:12px;
+  padding-bottom:8px;
+}
+@media(max-width:760px){
+  .stream-events-admin .evs-shot-runtime-card{display:grid;}
+  .stream-events-admin .evs-shot-runtime-card .evs-btn{width:100%;}
+  .stream-events-admin .evs-shot-stream-select{display:grid;}
+}
+
+/* SHOT-ALARM-2H.3 Dashboard State/Log Cleanup */
+.stream-events-admin .evs-shot-runtime-card.is-waiting{
+  border-color:rgba(34,211,238,.36);
+  background:linear-gradient(135deg,rgba(8,47,73,.22),rgba(88,28,135,.10));
+  box-shadow:0 0 18px rgba(34,211,238,.08);
+}
+.stream-events-admin .evs-kpi-grid,
+.stream-events-admin .evs-status-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:10px;
+  margin:14px 0;
+}
+.stream-events-admin .evs-kpi-grid>div,
+.stream-events-admin .evs-status-grid>div{
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(2,6,23,.30);
+  border-radius:14px;
+  padding:11px 12px;
+  min-width:0;
+}
+.stream-events-admin .evs-kpi-grid strong,
+.stream-events-admin .evs-status-grid strong{
+  display:block;
+  color:#f8fafc;
+  font-size:22px;
+  line-height:1.05;
+  word-break:break-word;
+}
+.stream-events-admin .evs-status-grid strong{font-size:15px;}
+.stream-events-admin .evs-kpi-grid span,
+.stream-events-admin .evs-status-grid span{
+  display:block;
+  color:#94a3b8;
+  font-size:12px;
+  margin-top:5px;
+}
+.stream-events-admin .evs-shot-log-box{
+  margin-top:14px;
+  border-color:rgba(34,211,238,.24);
+  background:linear-gradient(135deg,rgba(8,47,73,.12),rgba(15,23,42,.30));
+}
+.stream-events-admin .evs-shot-log-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.35fr) minmax(280px,.65fr);
+  gap:14px;
+  align-items:start;
+}
+.stream-events-admin .evs-shot-log-grid h4{
+  margin:0 0 9px;
+  color:#f8fafc;
+  font-size:14px;
+}
+.stream-events-admin .evs-shot-log-subhead{margin-top:14px!important;}
+.stream-events-admin .evs-shot-log-list,
+.stream-events-admin .evs-shot-mini-list{
+  display:grid;
+  gap:8px;
+  max-height:360px;
+  overflow:auto;
+  padding-right:4px;
+}
+.stream-events-admin .evs-shot-log-row{
+  display:grid;
+  grid-template-columns:minmax(160px,.85fr) minmax(220px,1.4fr) auto;
+  gap:10px;
+  align-items:center;
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(2,6,23,.28);
+  border-radius:13px;
+  padding:10px 11px;
+}
+.stream-events-admin .evs-shot-log-main,
+.stream-events-admin .evs-shot-log-meta{display:grid;gap:3px;min-width:0;}
+.stream-events-admin .evs-shot-log-main b{color:#f8fafc;font-size:13px;}
+.stream-events-admin .evs-shot-log-main span,
+.stream-events-admin .evs-shot-log-meta span{color:#cbd5e1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.stream-events-admin .evs-shot-log-meta small{color:#94a3b8;font-size:11px;}
+.stream-events-admin .evs-shot-log-row>strong{color:#a5f3fc;font-size:18px;text-align:right;min-width:36px;}
+.stream-events-admin .evs-shot-mini-list>div{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(2,6,23,.24);
+  border-radius:12px;
+  padding:9px 10px;
+}
+.stream-events-admin .evs-shot-mini-list b{color:#f8fafc;font-size:12px;}
+.stream-events-admin .evs-shot-mini-list span{color:#94a3b8;font-size:12px;text-align:right;}
+@media(max-width:980px){
+  .stream-events-admin .evs-shot-log-grid{grid-template-columns:1fr;}
+  .stream-events-admin .evs-shot-log-row{grid-template-columns:1fr;align-items:start;}
+  .stream-events-admin .evs-shot-log-main span,
+  .stream-events-admin .evs-shot-log-meta span{white-space:normal;}
+  .stream-events-admin .evs-shot-log-row>strong{text-align:left;}
+}
+
+
+/* SHOT-ALARM-2I: Unter-Tabs + Log/Statistik/Overlay/Sounds Struktur */
+.stream-events-admin .evs-shot-head{align-items:flex-start}
+.stream-events-admin .evs-shot-subtabs{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 16px;padding:8px;border:1px solid rgba(34,211,238,.14);background:rgba(2,6,23,.26);border-radius:18px}
+.stream-events-admin .evs-shot-subtab{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.055);color:#dbeafe;border-radius:14px;padding:10px 13px;font-weight:900;cursor:pointer;min-height:40px;display:inline-flex;gap:8px;align-items:center}
+.stream-events-admin .evs-shot-subtab:hover{border-color:rgba(34,211,238,.38);background:rgba(34,211,238,.09)}
+.stream-events-admin .evs-shot-subtab.is-active{border-color:rgba(34,211,238,.70);background:linear-gradient(135deg,rgba(168,85,247,.32),rgba(34,211,238,.18));box-shadow:0 0 18px rgba(34,211,238,.12);color:#fff}
+.stream-events-admin .evs-shot-subtab-body{display:grid;gap:14px}
+.stream-events-admin .evs-shot-runtime-card{margin:12px 0 12px;border:1px solid rgba(255,255,255,.12);background:rgba(2,6,23,.28);border-radius:16px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.stream-events-admin .evs-shot-runtime-card strong{display:block;color:#fff;font-size:16px}.stream-events-admin .evs-shot-runtime-card span{display:block;color:#cbd5e1;font-size:13px;margin-top:4px}.stream-events-admin .evs-shot-runtime-card small{display:block;color:#94a3b8;font-size:12px;margin-top:4px}
+.stream-events-admin .evs-shot-runtime-card.is-active{border-color:rgba(34,197,94,.42);background:linear-gradient(135deg,rgba(22,101,52,.18),rgba(8,47,73,.10))}.stream-events-admin .evs-shot-runtime-card.is-waiting{border-color:rgba(245,158,11,.42);background:linear-gradient(135deg,rgba(120,53,15,.16),rgba(8,47,73,.10))}.stream-events-admin .evs-shot-runtime-card.is-inactive{border-color:rgba(148,163,184,.22)}
+.stream-events-admin .evs-shot-stream-select{display:flex;align-items:end;gap:14px;flex-wrap:wrap;border:1px solid rgba(34,211,238,.18);background:rgba(8,47,73,.10);border-radius:16px;padding:12px 14px}.stream-events-admin .evs-shot-stream-select label{min-width:280px}.stream-events-admin .evs-shot-stream-select small{color:#b7c5dc;padding-bottom:8px}
+.stream-events-admin .evs-shot-log-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(260px,.75fr);gap:14px;align-items:start}.stream-events-admin .evs-shot-log-grid h4{margin:0 0 9px;color:#f8fafc;font-size:14px}.stream-events-admin .evs-shot-log-subhead{margin-top:14px!important}
+.stream-events-admin .evs-shot-log-list{display:grid;gap:8px;max-height:520px;overflow:auto;padding-right:4px}.stream-events-admin .evs-shot-log-row{display:grid;grid-template-columns:minmax(170px,.75fr) minmax(220px,1.25fr) auto;gap:10px;align-items:center;border:1px solid rgba(255,255,255,.10);background:rgba(2,6,23,.28);border-radius:13px;padding:10px 12px}.stream-events-admin .evs-shot-log-main{display:grid;gap:3px}.stream-events-admin .evs-shot-log-main b{color:#fff}.stream-events-admin .evs-shot-log-main span,.stream-events-admin .evs-shot-log-meta span{color:#cbd5e1;font-size:12px}.stream-events-admin .evs-shot-log-meta{display:grid;gap:3px}.stream-events-admin .evs-shot-log-meta small{color:#94a3b8;font-size:11px}.stream-events-admin .evs-shot-log-row>strong{color:#a5f3fc;font-size:18px;text-align:right}
+.stream-events-admin .evs-shot-mini-list{display:grid;gap:8px}.stream-events-admin .evs-shot-mini-list>div{border:1px solid rgba(255,255,255,.10);background:rgba(2,6,23,.26);border-radius:12px;padding:9px 10px;display:grid;gap:2px}.stream-events-admin .evs-shot-mini-list b{color:#fff}.stream-events-admin .evs-shot-mini-list span{color:#cbd5e1;font-size:12px}
+.stream-events-admin .evs-shot-sound-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}.stream-events-admin .evs-shot-sound-slot{border:1px solid rgba(34,211,238,.18);background:rgba(2,6,23,.28);border-radius:14px;padding:11px 12px;display:grid;gap:4px}.stream-events-admin .evs-shot-sound-slot b{color:#fff}.stream-events-admin .evs-shot-sound-slot span{color:#cbd5e1}.stream-events-admin .evs-shot-sound-slot small{color:#94a3b8;font-size:11px}
+@media(max-width:900px){.stream-events-admin .evs-shot-runtime-card{display:grid}.stream-events-admin .evs-shot-runtime-card .evs-btn{width:100%}.stream-events-admin .evs-shot-log-grid{grid-template-columns:1fr}.stream-events-admin .evs-shot-log-row{grid-template-columns:1fr}.stream-events-admin .evs-shot-log-row>strong{text-align:left}.stream-events-admin .evs-shot-subtabs{display:grid;grid-template-columns:1fr 1fr}.stream-events-admin .evs-shot-subtab{justify-content:center}}
+@media(max-width:560px){.stream-events-admin .evs-shot-subtabs{grid-template-columns:1fr}}
+
+
+/* SHOT-ALARM-2I.1: Sounds-Tab nur ein Overlay-Sound */
+.stream-events-admin .evs-shot-sound-grid-single{grid-template-columns:minmax(280px,520px);}
+.stream-events-admin .evs-shot-sound-slot-main{min-height:118px;}
+.stream-events-admin .evs-shot-sound-slot-main b{font-size:16px;}
+
+/* SHOT-ALARM-2J: Overlay-Sound via Media-System + Sound-System Queue */
+.stream-events-admin .evs-shot-sound-editor{display:grid;gap:14px;max-width:920px}
+.stream-events-admin .evs-shot-overlay-sound-media{max-width:760px}
+.stream-events-admin .evs-shot-sound-label-row{max-width:520px}
+.stream-events-admin .evs-shot-sound-label-row input{min-height:40px}
+.stream-events-admin .evs-shot-sound-routing{margin-top:0}
+
+/* SHOT-ALARM-2J.1: Mehrere zufällige Overlay-Sounds über Media-System/Sound-Queue */
+.stream-events-admin .evs-shot-random-list{display:grid;gap:10px;margin:8px 0 14px}
+.stream-events-admin .evs-shot-random-row{display:grid;grid-template-columns:92px minmax(180px,1.2fr) minmax(180px,1fr) 130px auto;gap:10px;align-items:center;border:1px solid rgba(34,211,238,.18);background:rgba(2,6,23,.30);border-radius:15px;padding:10px 12px}
+.stream-events-admin .evs-shot-random-row b{color:#fff;font-size:13px}.stream-events-admin .evs-shot-random-row small{color:#94a3b8;font-size:11px}.stream-events-admin .evs-shot-random-main{display:grid;gap:3px;min-width:0}.stream-events-admin .evs-shot-random-main b,.stream-events-admin .evs-shot-random-main small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stream-events-admin .evs-shot-random-enable{padding:8px 9px;justify-content:center}.stream-events-admin .evs-shot-random-enable input{width:auto;margin:0}
+.stream-events-admin .evs-shot-random-label,.stream-events-admin .evs-shot-random-volume{gap:4px}.stream-events-admin .evs-shot-random-label input,.stream-events-admin .evs-shot-random-volume input{min-height:36px;padding:8px 9px}
+.stream-events-admin .evs-shot-random-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.stream-events-admin .evs-shot-sound-add-box{margin-top:14px;border:1px solid rgba(168,85,247,.18);background:rgba(88,28,135,.09);border-radius:16px;padding:12px;display:grid;gap:10px}
+@media(max-width:1100px){.stream-events-admin .evs-shot-random-row{grid-template-columns:1fr 1fr}.stream-events-admin .evs-shot-random-main{grid-column:1/-1}.stream-events-admin .evs-shot-random-actions{justify-content:flex-start}}
+@media(max-width:640px){.stream-events-admin .evs-shot-random-row{grid-template-columns:1fr}.stream-events-admin .evs-shot-random-actions .evs-btn{width:100%}}

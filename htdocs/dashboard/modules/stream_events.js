@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.56";
-  const MODULE_BUILD = "STEP_EVS52_21_WINNER_FINALE_REPLAY_BUTTON";
+  const MODULE_VERSION = "0.5.67";
+  const MODULE_BUILD = "STEP_SHOT_ALARM_2K1_FRESH_STREAM_SESSION";
 
   const api = {
     status: '/api/stream-events/status',
@@ -19,7 +19,21 @@ window.StreamEventsModule = (function(){
     chatOutputTestDispatch: '/api/stream-events/chat-output/test-dispatch',
     runtimeGateStatus: '/api/stream-events/runtime-gate/status',
     soundSkipWait: '/api/stream-events/sound-runtime/skip-wait',
-    commandEventTest: '/api/stream-events/commands/event/test'
+    commandEventTest: '/api/stream-events/commands/event/test',
+    shotAlarmStatus: '/api/shot-alarm/status',
+    shotAlarmConfig: '/api/shot-alarm/config',
+    shotAlarmTexts: '/api/shot-alarm/texts',
+    shotAlarmStats: '/api/shot-alarm/stats',
+    shotAlarmTest: '/api/shot-alarm/test',
+    shotAlarmShotDone: '/api/shot-alarm/shot-done',
+    shotAlarmResolvePending: '/api/shot-alarm/resolve-pending',
+    shotAlarmStart: '/api/shot-alarm/start',
+    shotAlarmStop: '/api/shot-alarm/stop',
+    shotAlarmNewSession: '/api/shot-alarm/new-session',
+    shotAlarmStreams: '/api/shot-alarm/streams',
+    shotAlarmHistory: '/api/shot-alarm/history',
+    shotAlarmAudit: '/api/shot-alarm/dashboard-audit',
+    soundPlayMedia: '/api/sound/play-media'
   };
 
   let root = null;
@@ -55,13 +69,46 @@ window.StreamEventsModule = (function(){
     textSearchFilter: '',
     modal: null,
     testPanel: { loading: false, result: null, error: '', message: '' },
-    activeTab: 'overview'
+    activeTab: 'overview',
+    configModuleFilter: 'stream_events',
+    textSourceModule: 'stream_events',
+    shotAlarm: { loading: false, error: '', status: null, config: null, texts: null, stats: null, streams: null, selectedStreamSessionId: 'current', activeSubTab: 'status', audit: null }
   };
 
   function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? '').replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c])); }
   function norm(v){ return String(v || '').trim().toLowerCase(); }
   function fmtDate(v){ if (!v) return '-'; const d = new Date(v); return Number.isNaN(d.getTime()) ? esc(v) : esc(d.toLocaleString('de-DE')); }
   function rows(v){ return Array.isArray(v) ? v : (Array.isArray(v?.rows) ? v.rows : []); }
+  function boolSelect(value){ return String(value) === 'true' || value === true; }
+  function dashboardActorPayload(){ return { actor: { type: 'dashboard', id: 'dashboard', name: 'Dashboard', roles: ['dashboard_user'] } }; }
+  function confirmShotWrite(message){ return confirm(message || 'Shot-Alarm Aktion wirklich ausführen?'); }
+  function shotAlarmAvailable(){ return !!state.shotAlarm?.status || !!state.shotAlarm?.config || !!state.shotAlarm?.texts; }
+  function eventModuleOptions(){
+    return [
+      { id: 'stream_events', label: 'Event-System' },
+      { id: 'shot_alarm', label: 'Shot-Alarm' }
+    ];
+  }
+  function renderEventModuleSelector(context){
+    const key = context === 'texts' ? 'textSourceModule' : 'configModuleFilter';
+    const selected = state[key] || 'stream_events';
+    const attr = context === 'texts' ? 'data-evs-text-source-module' : 'data-evs-config-module-filter';
+    const options = eventModuleOptions();
+    return `
+      <div class="evs-module-select-row glass evs-event-module-selector" data-evs-event-module-selector="${esc(context)}">
+        <label>
+          <span>Event-Modul auswählen</span>
+          <select ${attr}>
+            ${options.map(opt => `<option value="${esc(opt.id)}" ${selected === opt.id ? 'selected' : ''}>${esc(opt.label)}</option>`).join('')}
+          </select>
+        </label>
+        <div class="evs-module-picker-buttons" aria-label="Event-Modul Schnellwahl">
+          ${options.map(opt => `<button type="button" class="evs-btn evs-btn-small ${selected === opt.id ? '' : 'evs-btn-secondary'}" data-evs-action="selectEventModule" data-context="${esc(context)}" data-module-id="${esc(opt.id)}">${esc(opt.label)}</button>`).join('')}
+        </div>
+        <small>Jedes Event-Modul hat eigene Texte und eigene Config. Wähle hier <b>Shot-Alarm</b>, um die Shot-Texte oder Shot-Regeln zu bearbeiten.</small>
+      </div>
+    `;
+  }
   function selectedEvent(){
     const byUid = state.selectedUid ? state.events.find(e => e.eventUid === state.selectedUid) : null;
     if (byUid) return byUid;
@@ -300,6 +347,7 @@ window.StreamEventsModule = (function(){
       { id: 'config', label: 'Config', icon: '⚙️' },
       { id: 'stats', label: 'Statistik', icon: '🏆' },
       { id: 'overlay', label: 'Overlay', icon: '🖥️' },
+      { id: 'shot_alarm', label: 'Shot-Alarm', icon: '🥃' },
       { id: 'test', label: 'Test', icon: '🧪' }
     ];
   }
@@ -325,8 +373,576 @@ window.StreamEventsModule = (function(){
     if (tab === 'stats') return renderStatsTab(event);
     if (tab === 'safety') return renderOverviewTab(event);
     if (tab === 'overlay') return renderOverlayTab(event);
+    if (tab === 'shot_alarm') return renderShotAlarmEventTab();
     if (tab === 'test') return renderTestTab(event);
     return renderOverviewTab(event);
+  }
+
+  function shotAlarmViewModel(){
+    const box = state.shotAlarm || {};
+    const st = box.status || {};
+    const stats = box.stats || {};
+    const c = box.config || {};
+    const runtime = st.runtime || {};
+    const overlayState = st.overlayState || {};
+    const effectiveActive = runtime.effectiveActive === true || overlayState.effectiveActive === true;
+    const desiredActive = runtime.desiredActive === true || overlayState.desiredActive === true;
+    const dashboardRunning = desiredActive === true;
+    const streamLive = runtime.streamLive === true || overlayState.streamLive === true;
+    const streamLabel = runtime.streamDateLabel || overlayState.streamDateLabel || 'Kein aktiver Stream';
+    const streams = Array.isArray(box.streams?.streams) ? box.streams.streams : (Array.isArray(stats.streams) ? stats.streams : []);
+    const selectedStream = box.selectedStreamSessionId || 'current';
+    const last = st.lastResult || st.lastDraw || null;
+    return { box, st, stats, c, runtime, overlayState, effectiveActive, desiredActive, dashboardRunning, streamLive, streamLabel, streams, selectedStream, last };
+  }
+
+  function renderShotAlarmHeader(vm){
+    const { box, dashboardRunning, effectiveActive, streamLive, streamLabel, desiredActive } = vm;
+    return `
+      <div class="evs-card-head evs-shot-head">
+        <div>
+          <h3>Shot-Alarm</h3>
+          <span>Auslosungen, offene Shots, Tests, Overlay, Sounds, Logs und Bedienung für Engel & Roxxy.</span>
+        </div>
+        <div class="evs-card-actions">
+          <button type="button" class="evs-btn evs-btn-small evs-btn-secondary" data-evs-action="reloadShotAlarmData">Aktualisieren</button>
+          <a class="evs-btn evs-btn-small evs-btn-secondary" href="/overlays/shot_alarm/shot_alarm_overlay.html" target="_blank" rel="noopener">Overlay öffnen</a>
+          <a class="evs-btn evs-btn-small" href="/overlays/shot_alarm/shot_alarm_overlay.html?force=1" target="_blank" rel="noopener">Overlay testen</a>
+        </div>
+      </div>
+      ${box.error ? `<div class="evs-error">${esc(box.error)}</div>` : ''}
+      ${box.loading ? '<div class="evs-empty">Shot-Alarm wird geladen...</div>' : ''}
+      <div class="evs-shot-runtime-card ${dashboardRunning ? (effectiveActive ? 'is-active' : 'is-waiting') : 'is-inactive'}">
+        <div>
+          <strong>${dashboardRunning ? (effectiveActive ? 'Shot-Alarm läuft' : 'Shot-Alarm ist aktiviert') : 'Shot-Alarm ist gestoppt'}</strong>
+          <span>${dashboardRunning ? (streamLive ? `Aktueller Stream: ${esc(streamLabel)}` : 'Stream ist aktuell nicht online. Aktivierung ist vorgemerkt, produktives OBS-Overlay bleibt bis Online aus.') : 'Shot-System ist deaktiviert. Es werden keine neuen Shots gezählt.'}</span>
+          <small>Gewünscht: ${desiredActive ? 'aktiv' : 'inaktiv'} · Effektiv: ${effectiveActive ? 'aktiv' : 'inaktiv'} · Stream: ${streamLive ? 'online' : 'offline'} · Session: ${esc(vm.runtime?.currentStreamSessionId || '-')}</small>
+        </div>
+        <div class="evs-action-row">
+          ${dashboardRunning ? `<button type="button" class="evs-btn evs-btn-danger" data-evs-action="shotAlarmStop">Stop / Deaktivieren</button>` : `<button type="button" class="evs-btn" data-evs-action="shotAlarmStart">Start / Aktivieren</button>`}
+          <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="shotAlarmNewSession">Neue Shot-Session starten</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderShotAlarmSubTabs(active){
+    const tabs = [
+      { id: 'status', label: 'Status', icon: '🥃' },
+      { id: 'logs', label: 'Logs', icon: '📋' },
+      { id: 'stats', label: 'Statistik', icon: '🏆' },
+      { id: 'overlay', label: 'Overlay', icon: '🖥️' },
+      { id: 'sounds', label: 'Sounds', icon: '🔊' }
+    ];
+    return `<nav class="evs-shot-subtabs" aria-label="Shot-Alarm Bereiche">${tabs.map(tab => `<button type="button" class="evs-shot-subtab ${active === tab.id ? 'is-active' : ''}" data-evs-action="shotAlarmSubTab" data-subtab="${esc(tab.id)}"><span>${esc(tab.icon)}</span>${esc(tab.label)}</button>`).join('')}</nav>`;
+  }
+
+  function renderShotAlarmStreamSelector(vm){
+    const { streams, selectedStream } = vm;
+    return `
+      <div class="evs-shot-stream-select">
+        <label>
+          <span>Statistik-Stream</span>
+          <select data-evs-shot-stream-select>
+            <option value="current" ${selectedStream === 'current' ? 'selected' : ''}>Aktueller Stream</option>
+            ${streams.map(item => `<option value="${esc(item.streamSessionId)}" ${selectedStream === item.streamSessionId ? 'selected' : ''}>${esc(item.current ? 'Aktueller Stream' : item.streamDateLabel || item.streamSessionId)}${item.events ? ` · ${esc(item.events)} Einträge` : ''}</option>`).join('')}
+          </select>
+        </label>
+        <small>Logs und Statistiken sind streambezogen. Der aktuelle Stream ist vorausgewählt.</small>
+      </div>
+    `;
+  }
+
+  function renderShotAlarmStatusSubTab(vm){
+    const { st, stats, c, last, dashboardRunning, effectiveActive } = vm;
+    return `
+      <div class="evs-kpi-grid evs-shot-kpis">
+        <div><strong>${esc(st.shotsOpen ?? stats.shotsOpen ?? 0)}</strong><span>Noch offen</span></div>
+        <div><strong>${esc(st.shotsDrunk ?? stats.shotsDrunk ?? 0)}</strong><span>Getrunken</span></div>
+        <div><strong>${esc(st.shotsAddedTotal ?? stats.shotsAddedTotal ?? 0)}</strong><span>Gesamt hinzugefügt</span></div>
+        <div><strong>${esc(st.counts?.pending ?? 0)}</strong><span>Auslosungen offen</span></div>
+      </div>
+      <div class="evs-two-cols evs-shot-admin-grid">
+        <div class="evs-config-card">
+          <div class="evs-config-card-head"><strong>Bedienung</strong><small>Für Stream/Mods. Chat-Befehl !shotdone ist aktiv.</small></div>
+          <div class="evs-action-row">
+            <button type="button" class="evs-btn" data-evs-action="shotAlarmDoneOne">1 Shot getrunken</button>
+            <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="shotAlarmResolvePending">Offene Auslosungen auflösen</button>
+          </div>
+        </div>
+        <div class="evs-config-card">
+          <div class="evs-config-card-head"><strong>Test-Auslosung</strong><small>25.000 Bits mit forceRoll=0 ergibt 7 Shots.</small></div>
+          <div class="evs-action-row">
+            <button type="button" class="evs-btn" data-evs-action="shotAlarmTestBitsImmediate">Test sofort</button>
+            <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="shotAlarmTestBitsDraw">Test mit 10s Auslosung</button>
+            <a class="evs-btn evs-btn-secondary" href="/overlays/shot_alarm/shot_alarm_overlay.html?force=1" target="_blank" rel="noopener">Overlay-Testfenster</a>
+          </div>
+          <div class="evs-tab-help">Das Testfenster nutzt <code>?force=1</code>, damit Start/Stop auch offline sichtbar geprüft werden kann. Die normale OBS-URL bleibt ohne <code>?force=1</code> und zeigt offline nichts an.</div>
+        </div>
+      </div>
+      <div class="evs-two-cols evs-shot-admin-grid">
+        <div class="evs-config-card">
+          <div class="evs-config-card-head"><strong>Letztes Ergebnis</strong><small>${last ? esc(last.phase || '-') : 'Noch kein Ergebnis'}</small></div>
+          ${last ? `<div class="evs-status-grid">
+            <div><strong>${esc(last.eventLabel || '-')}</strong><span>Event</span></div>
+            <div><strong>${esc(last.amountLabel || '-')}</strong><span>Menge</span></div>
+            <div><strong>${esc(last.chanceSummary || '-')}</strong><span>Auslosung</span></div>
+            <div><strong>${esc(last.shotsAdded ?? 0)}</strong><span>Shots</span></div>
+          </div>` : '<div class="evs-empty">Noch keine Shot-Auslosung vorhanden.</div>'}
+        </div>
+        <div class="evs-config-card">
+          <div class="evs-config-card-head"><strong>Kurz-Config</strong><small>Vollständig unter Config → Shot-Alarm.</small></div>
+          <div class="evs-status-grid">
+            <div><strong>${esc(c.draw?.delayMs ?? 10000)} ms</strong><span>Auslosung</span></div>
+            <div><strong>${esc(c.overlay?.resultHoldMs ?? 10000)} ms</strong><span>Ergebnis sichtbar</span></div>
+            <div><strong>${esc(c.targetLabel || 'Engel & Roxxy')}</strong><span>Ziel</span></div>
+            <div><strong>${dashboardRunning ? (effectiveActive ? 'Läuft' : 'Vorgemerkt') : 'Gestoppt'}</strong><span>Status</span></div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderShotAlarmLogsSubTab(vm){
+    return `${renderShotAlarmStreamSelector(vm)}${renderShotAlarmLogBox(true)}`;
+  }
+
+  function renderShotAlarmStatsSubTab(vm){
+    const box = state.shotAlarm || {};
+    const stats = box.stats || {};
+    const byEventType = Array.isArray(stats.byEventType) ? stats.byEventType : [];
+    const topUsers = Array.isArray(stats.topUsers) ? stats.topUsers : [];
+    const selected = box.selectedStreamSessionId || 'current';
+    const totalEvents = stats.events ?? stats.totalEvents ?? 0;
+    const hits = stats.hits ?? stats.shotHits ?? 0;
+    const misses = stats.misses ?? 0;
+    const shots = stats.shots ?? stats.shotsAddedTotal ?? 0;
+    return `
+      ${renderShotAlarmStreamSelector(vm)}
+      <div class="evs-config-card evs-shot-stats-box">
+        <div class="evs-config-card-head"><strong>Shot-Statistik</strong><small>Auswertung für: ${esc(selected === 'current' ? 'Aktueller Stream' : selected)}.</small></div>
+        <div class="evs-kpi-grid evs-shot-kpis">
+          <div><strong>${esc(totalEvents)}</strong><span>Events</span></div>
+          <div><strong>${esc(shots)}</strong><span>Shots</span></div>
+          <div><strong>${esc(hits)}</strong><span>Treffer</span></div>
+          <div><strong>${esc(misses)}</strong><span>Nieten</span></div>
+        </div>
+        <div class="evs-shot-log-grid">
+          <section>
+            <h4>Top-Auslöser</h4>
+            ${topUsers.length ? `<div class="evs-shot-mini-list">${topUsers.slice(0, 12).map(user => `<div><b>${esc(user.displayName || user.userDisplayName || 'Unbekannt')}</b><span>${esc(user.events || 0)} Events · ${esc(user.shots || 0)} Shots</span></div>`).join('')}</div>` : '<div class="evs-empty">Noch keine User-Statistik für diesen Stream.</div>'}
+          </section>
+          <section>
+            <h4>Nach Event-Typ</h4>
+            ${byEventType.length ? `<div class="evs-shot-mini-list">${byEventType.slice(0, 12).map(row => `<div><b>${esc(row.eventType || row.type || 'unknown')}</b><span>${esc(row.events || 0)} Events · ${esc(row.shots || 0)} Shots</span></div>`).join('')}</div>` : '<div class="evs-empty">Noch keine Typ-Statistik für diesen Stream.</div>'}
+          </section>
+        </div>
+        <div class="evs-tab-help">Nächster Ausbau: Detailfilter nach User, Quelle, Treffer/Niete und Zeitraum. Die Datenbasis bleibt streambezogen.</div>
+      </div>
+    `;
+  }
+
+  function renderShotAlarmOverlaySubTab(vm){
+    const { st, overlayState, effectiveActive, desiredActive, streamLive } = vm;
+    const url = '/overlays/shot_alarm/shot_alarm_overlay.html';
+    const testUrl = '/overlays/shot_alarm/shot_alarm_overlay.html?force=1';
+    return `
+      <div class="evs-two-cols evs-shot-admin-grid">
+        <div class="evs-config-card evs-shot-overlay-box">
+          <div class="evs-config-card-head"><strong>Overlay-Steuerung</strong><small>OBS nutzt die normale URL. Offline-Tests laufen über force=1.</small></div>
+          <div class="evs-status-grid">
+            <div><strong>${desiredActive ? 'Aktiviert' : 'Gestoppt'}</strong><span>Gewünschter Zustand</span></div>
+            <div><strong>${effectiveActive ? 'Sichtbar' : 'Unsichtbar'}</strong><span>Effektiv</span></div>
+            <div><strong>${streamLive ? 'Online' : 'Offline'}</strong><span>Stream</span></div>
+            <div><strong>${esc(overlayState.reason || st.runtime?.lastReason || '-')}</strong><span>Letzter Grund</span></div>
+          </div>
+          <div class="evs-action-row">
+            <a class="evs-btn evs-btn-secondary" href="${url}" target="_blank" rel="noopener">OBS-URL öffnen</a>
+            <a class="evs-btn" href="${testUrl}" target="_blank" rel="noopener">Offline-Test öffnen</a>
+          </div>
+          <div class="evs-tab-help"><b>Produktiv:</b> ${esc(url)}<br><b>Test:</b> ${esc(testUrl)}</div>
+        </div>
+        <div class="evs-config-card evs-shot-overlay-box">
+          <div class="evs-config-card-head"><strong>Overlay-Bus / Heartbeat</strong><small>Das Overlay hängt am Overlay-Bus und bekommt Active-State über Bus-Events.</small></div>
+          <div class="evs-status-grid">
+            <div><strong>${st.busAvailable ? 'Ja' : 'Nein'}</strong><span>Bus verfügbar</span></div>
+            <div><strong>${st.registeredOnBus ? 'Ja' : 'Nein'}</strong><span>Modul registriert</span></div>
+            <div><strong>${esc(overlayState.type || 'shot_alarm.overlay.state')}</strong><span>State-Event</span></div>
+            <div><strong>${fmtDate(overlayState.at)}</strong><span>Letzter State</span></div>
+          </div>
+          <div class="evs-tab-help">Später kann hier der echte Overlay-Client-Status angezeigt werden: verbunden, letzter Heartbeat, OBS-Browserquelle online/offline.</div>
+        </div>
+      </div>
+      ${renderShotAlarmSafetyBox()}
+    `;
+  }
+
+  function shotOverlaySoundListFromConfig(){
+    const c = state.shotAlarm?.config || {};
+    const sound = c.sound || c.sounds || {};
+    const overlaySound = sound.overlayShot || sound.overlay || sound.hit || {};
+    const list = Array.isArray(overlaySound.sounds) ? overlaySound.sounds : [];
+    const normalized = list
+      .filter(item => item && typeof item === 'object')
+      .map((item, index) => ({
+        enabled: item.enabled !== false,
+        mediaId: String(item.mediaId || item.mediaAssetId || item.assetId || '').trim(),
+        mediaLabel: String(item.mediaLabel || item.label || '').trim(),
+        label: String(item.label || item.mediaLabel || `Shot-Overlay-Sound ${index + 1}`).trim(),
+        volume: Number(item.volume || 0) || ''
+      }))
+      .filter(item => !!item.mediaId);
+    const singleMediaId = String(overlaySound.mediaId || overlaySound.mediaAssetId || overlaySound.assetId || '').trim();
+    if (singleMediaId && !normalized.some(item => item.mediaId === singleMediaId)) {
+      normalized.push({
+        enabled: overlaySound.enabled !== false,
+        mediaId: singleMediaId,
+        mediaLabel: String(overlaySound.mediaLabel || overlaySound.label || '').trim(),
+        label: String(overlaySound.label || overlaySound.mediaLabel || 'Shot-Alarm Overlay-Einblendung').trim(),
+        volume: ''
+      });
+    }
+    return normalized;
+  }
+
+  function renderShotAlarmSoundsSubTab(vm){
+    const c = vm.c || {};
+    const sound = c.sound || c.sounds || {};
+    const sounds = shotOverlaySoundListFromConfig();
+    const inputId = 'shotAlarmOverlaySoundAddMediaId';
+    return `
+      <div class="evs-config-card evs-shot-sounds-box">
+        <div class="evs-card-head evs-card-head-compact">
+          <div>
+            <strong>Shot-Sounds</strong>
+            <span>Mehrere Sounds für die eigentliche Shot-Einblendung. Beim ausgelosten Shot wird zufällig ein Sound gewählt und über die Sound-System-Warteschlange abgespielt.</span>
+          </div>
+          <div class="evs-card-actions">
+            <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="shotAlarmTestRandomOverlaySound">Zufall testen</button>
+            <button type="button" class="evs-btn" data-evs-action="shotAlarmSaveOverlaySound">Sounds speichern</button>
+          </div>
+        </div>
+
+        <div class="evs-shot-sound-editor">
+          <div class="evs-shot-random-list" data-shot-overlay-sound-list>
+            ${sounds.length ? sounds.map((item, index) => `
+              <div class="evs-shot-random-row" data-shot-overlay-sound-row data-index="${index}">
+                <label class="evs-check evs-shot-random-enable">
+                  <input type="checkbox" data-shot-sound-enabled ${item.enabled ? 'checked' : ''}>
+                  Aktiv
+                </label>
+                <div class="evs-shot-random-main">
+                  <b>${esc(item.label || item.mediaLabel || `Sound ${index + 1}`)}</b>
+                  <small>${esc(item.mediaLabel || item.mediaId)}</small>
+                  <input type="hidden" data-shot-sound-media-id value="${esc(item.mediaId)}">
+                  <input type="hidden" data-shot-sound-media-label value="${esc(item.mediaLabel || '')}">
+                </div>
+                <label class="evs-field-block evs-shot-random-label">
+                  <span class="evs-label">Queue-Label</span>
+                  <input type="text" data-shot-sound-label value="${esc(item.label || item.mediaLabel || `Shot-Overlay-Sound ${index + 1}`)}">
+                </label>
+                <label class="evs-field-block evs-shot-random-volume">
+                  <span class="evs-label">Lautstärke optional</span>
+                  <input type="number" min="1" max="100" step="1" data-shot-sound-volume value="${esc(item.volume || '')}" placeholder="global">
+                </label>
+                <div class="evs-shot-random-actions">
+                  <button type="button" class="evs-btn evs-btn-secondary evs-btn-small" data-evs-action="shotAlarmTestOverlaySound" data-index="${index}">Testen</button>
+                  <button type="button" class="evs-btn evs-btn-danger evs-btn-small" data-evs-action="shotAlarmRemoveOverlaySound" data-index="${index}">Entfernen</button>
+                </div>
+              </div>`).join('') : '<div class="evs-empty">Noch keine Sounds in der Zufallsliste. Unten über das Media-System auswählen oder hochladen und dann hinzufügen.</div>'}
+          </div>
+
+          <div class="evs-shot-sound-add-box">
+            <div class="evs-config-card-head">
+              <strong>Sound hinzufügen</strong>
+              <small>Öffnet das Upload-/Auswahlfenster des Media-Systems. Nach der Auswahl den Sound zur Zufallsliste hinzufügen und speichern.</small>
+            </div>
+            <label class="evs-field-block">
+              <span class="evs-label">Sound aus Media-System auswählen oder hochladen</span>
+              <div class="evs-media-field evs-media-field-audio evs-shot-overlay-sound-media" data-media-field data-module-key="shot_alarm" data-category-key="overlay_sounds" data-allowed-types="audio" data-title="Shot-Overlay-Sound auswählen oder hochladen" data-open-label="Sound auswählen/hochladen" data-clear-label="Auswahl leeren" data-value-input="#${esc(inputId)}">
+                <input id="${esc(inputId)}" type="hidden" data-media-field-value data-shot-overlay-sound-add-media value="">
+                <button type="button" data-media-field-open>Sound auswählen/hochladen</button>
+                <button type="button" data-media-field-clear>Auswahl leeren</button>
+                <div class="media-field-preview" data-media-field-preview></div>
+              </div>
+              <small class="evs-help">Keine harten Dateipfade. Media-System speichert die Datei/ID, Sound-System übernimmt Queue und Wiedergabe.</small>
+            </label>
+            <label class="evs-field-block evs-shot-sound-label-row">
+              <span class="evs-label">Name für die Liste / Queue</span>
+              <input type="text" data-shot-overlay-sound-add-label value="" placeholder="z. B. Shot-Alarm Hupe">
+            </label>
+            <div class="evs-action-row">
+              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="shotAlarmAddOverlaySound">Zur Zufallsliste hinzufügen</button>
+            </div>
+          </div>
+
+          <div class="evs-status-grid evs-shot-sound-routing">
+            <div><strong>${esc(sounds.length)}</strong><span>Sounds in Zufallsliste</span></div>
+            <div><strong>Sound-System</strong><span>Playback-Owner</span></div>
+            <div><strong>Warteschlange</strong><span>queueIfBusy aktiv</span></div>
+            <div><strong>${esc(sound.endpoint || '/api/sound/play-media')}</strong><span>Media-Bridge</span></div>
+          </div>
+        </div>
+        <div class="evs-tab-help">
+          Produktiv: Bei einer Shot-Einblendung wählt das Backend zufällig einen aktiven Sound aus dieser Liste und sendet ihn an <b>/api/sound/play-media</b>. Das Sound-System bleibt Owner für Warteschlange, Busy-Handling, Device-Ausgabe und Discord-Routing.
+        </div>
+      </div>
+    `;
+  }
+
+  function readShotOverlaySoundsFromDom(){
+    const current = JSON.parse(JSON.stringify(state.shotAlarm?.config || {}));
+    const rows = Array.from(document.querySelectorAll('[data-shot-overlay-sound-row]'));
+    const sounds = rows.map((row, index) => {
+      const mediaId = String(row.querySelector('[data-shot-sound-media-id]')?.value || '').trim();
+      const mediaLabel = String(row.querySelector('[data-shot-sound-media-label]')?.value || '').trim();
+      const label = String(row.querySelector('[data-shot-sound-label]')?.value || mediaLabel || `Shot-Overlay-Sound ${index + 1}`).trim();
+      const volumeRaw = String(row.querySelector('[data-shot-sound-volume]')?.value || '').trim();
+      const volume = volumeRaw ? Math.max(1, Math.min(100, Number(volumeRaw) || 85)) : undefined;
+      return {
+        enabled: row.querySelector('[data-shot-sound-enabled]')?.checked !== false,
+        mediaId,
+        mediaLabel,
+        label,
+        ...(volume ? { volume } : {})
+      };
+    }).filter(item => !!item.mediaId);
+    current.sound = current.sound || {};
+    current.sound.endpoint = '/api/sound/play-media';
+    current.sound.category = current.sound.category || 'alert';
+    current.sound.source = 'shot_alarm';
+    current.sound.target = 'both';
+    current.sound.outputTarget = 'device';
+    current.sound.queueIfBusy = true;
+    current.sound.dropIfBusy = false;
+    current.sound.priority = Number(current.sound.priority || 80);
+    current.sound.volume = Number(current.sound.volume || 85);
+    current.sound.overlayShot = current.sound.overlayShot || {};
+    current.sound.overlayShot.enabled = true;
+    current.sound.overlayShot.random = true;
+    current.sound.overlayShot.sounds = sounds;
+    current.sound.overlayShot.mediaId = sounds[0]?.mediaId || '';
+    current.sound.overlayShot.mediaLabel = sounds[0]?.mediaLabel || '';
+    current.sound.overlayShot.label = 'Shot-Alarm Overlay-Einblendung';
+    return { config: current, sounds };
+  }
+
+  function addShotOverlaySoundToList(){
+    const mediaId = String(document.querySelector('[data-shot-overlay-sound-add-media]')?.value || '').trim();
+    if (!mediaId) {
+      state.error = 'Bitte zuerst im Media-System einen Sound auswählen oder hochladen.';
+      render();
+      return;
+    }
+    const current = JSON.parse(JSON.stringify(state.shotAlarm?.config || {}));
+    current.sound = current.sound || {};
+    current.sound.overlayShot = current.sound.overlayShot || {};
+    const list = shotOverlaySoundListFromConfig();
+    if (list.some(item => item.mediaId === mediaId)) {
+      state.error = 'Dieser Sound ist bereits in der Zufallsliste.';
+      render();
+      return;
+    }
+    const label = String(document.querySelector('[data-shot-overlay-sound-add-label]')?.value || '').trim() || `Shot-Overlay-Sound ${list.length + 1}`;
+    list.push({ enabled: true, mediaId, mediaLabel: label, label });
+    current.sound.overlayShot.sounds = list;
+    current.sound.overlayShot.random = true;
+    current.sound.overlayShot.enabled = true;
+    state.shotAlarm.config = current;
+    state.message = 'Sound zur Zufallsliste hinzugefügt. Bitte danach speichern.';
+    render();
+  }
+
+  function removeShotOverlaySoundFromList(index){
+    const current = JSON.parse(JSON.stringify(state.shotAlarm?.config || {}));
+    const list = shotOverlaySoundListFromConfig();
+    list.splice(Number(index), 1);
+    current.sound = current.sound || {};
+    current.sound.overlayShot = current.sound.overlayShot || {};
+    current.sound.overlayShot.sounds = list;
+    current.sound.overlayShot.mediaId = list[0]?.mediaId || '';
+    current.sound.overlayShot.mediaLabel = list[0]?.mediaLabel || '';
+    state.shotAlarm.config = current;
+    state.message = 'Sound aus der Zufallsliste entfernt. Bitte danach speichern.';
+    render();
+  }
+
+  async function saveShotOverlaySound(){
+    try {
+      const { config, sounds } = readShotOverlaySoundsFromDom();
+      if (!sounds.length) {
+        state.error = 'Bitte zuerst mindestens einen Sound über das Media-System hinzufügen.';
+        render();
+        return;
+      }
+      const payload = { ...config, ...dashboardActorPayload() };
+      const result = await window.CGN.api(api.shotAlarmConfig, { method: 'POST', body: JSON.stringify(payload) });
+      state.shotAlarm.config = result.config || payload;
+      state.shotAlarm.status = result.status || state.shotAlarm.status;
+      state.message = `${sounds.length} Shot-Overlay-Sound(s) gespeichert.`;
+      await loadShotAlarmData(false);
+      render();
+    } catch (err) {
+      state.error = err.message || String(err);
+      render();
+    }
+  }
+
+  async function queueShotOverlaySound(sound, dashboardTestLabel){
+    if (!sound || !sound.mediaId) throw new Error('Kein Sound ausgewählt.');
+    await window.CGN.api(api.soundPlayMedia, {
+      method: 'POST',
+      body: JSON.stringify({
+        mediaId: sound.mediaId,
+        label: dashboardTestLabel || sound.label || sound.mediaLabel || 'Shot-Alarm Overlay-Einblendung',
+        category: 'alert',
+        source: 'shot_alarm_dashboard_test',
+        target: 'both',
+        outputTarget: 'device',
+        queueIfBusy: true,
+        dropIfBusy: false,
+        priority: 80,
+        volume: Number(sound.volume || 85),
+        requestedBy: 'dashboard',
+        meta: { module: 'shot_alarm', shotAlarm: true, dashboardTest: true, soundRole: 'overlay_shot_result', randomPoolSize: shotOverlaySoundListFromConfig().length }
+      })
+    });
+  }
+
+  async function testShotOverlaySound(index = null){
+    try {
+      const { sounds } = readShotOverlaySoundsFromDom();
+      const sound = sounds[Number(index)];
+      if (!sound) {
+        state.error = 'Dieser Sound ist nicht mehr in der Liste.';
+        render();
+        return;
+      }
+      await queueShotOverlaySound(sound, sound.label || 'Shot-Alarm Overlay-Einblendung');
+      state.message = 'Shot-Sound wurde an die Sound-System-Warteschlange für Device + Discord gesendet.';
+      render();
+    } catch (err) {
+      state.error = err.message || String(err);
+      render();
+    }
+  }
+
+  async function testRandomShotOverlaySound(){
+    try {
+      const { sounds } = readShotOverlaySoundsFromDom();
+      const activeSounds = sounds.filter(item => item.enabled !== false && item.mediaId);
+      if (!activeSounds.length) {
+        state.error = 'Bitte zuerst mindestens einen aktiven Sound hinzufügen.';
+        render();
+        return;
+      }
+      const selected = activeSounds[Math.floor(Math.random() * activeSounds.length)];
+      await queueShotOverlaySound(selected, selected.label || selected.mediaLabel || 'Shot-Alarm Overlay-Einblendung');
+      state.message = `Zufalls-Sound gesendet: ${selected.label || selected.mediaLabel || selected.mediaId}`;
+      render();
+    } catch (err) {
+      state.error = err.message || String(err);
+      render();
+    }
+  }
+
+  function renderShotAlarmEventTab(){
+    scheduleShotAlarmLoad();
+    const vm = shotAlarmViewModel();
+    const active = state.shotAlarm?.activeSubTab || 'status';
+    const body = active === 'logs' ? renderShotAlarmLogsSubTab(vm)
+      : active === 'stats' ? renderShotAlarmStatsSubTab(vm)
+      : active === 'overlay' ? renderShotAlarmOverlaySubTab(vm)
+      : active === 'sounds' ? renderShotAlarmSoundsSubTab(vm)
+      : renderShotAlarmStatusSubTab(vm);
+    return `
+      <section class="evs-card glass evs-tab-panel evs-shot-tab">
+        ${renderShotAlarmHeader(vm)}
+        ${renderShotAlarmSubTabs(active)}
+        <div class="evs-shot-subtab-body">${body}</div>
+      </section>
+    `;
+  }
+
+  function shotHistoryLabel(item){
+    const phase = String(item?.phase || item?.kind || '').toLowerCase();
+    if (phase === 'shot_done' || phase === 'done') return 'Getrunken gemeldet';
+    if (phase === 'result') return Number(item?.shotsAdded || 0) > 0 ? 'Treffer' : 'Niete';
+    if (phase === 'draw') return 'Auslosung gestartet';
+    return item?.eventLabel || item?.eventType || phase || 'Eintrag';
+  }
+
+  function shotHistoryUser(item){
+    return item?.user?.displayName || item?.user_display_name || item?.actor?.name || item?.actorName || item?.user || '-';
+  }
+
+  function shotHistoryWhy(item){
+    const parts = [];
+    if (item?.amountLabel) parts.push(item.amountLabel);
+    if (item?.chanceSummary) parts.push(item.chanceSummary);
+    if (item?.reason) parts.push(item.reason);
+    if (item?.source) parts.push(item.source);
+    return parts.filter(Boolean).join(' · ') || item?.eventLabel || item?.eventType || '-';
+  }
+
+  function renderShotAlarmLogBox(full = false){
+    const box = state.shotAlarm || {};
+    const history = box.history || {};
+    const items = Array.isArray(history.items) ? history.items : [];
+    const stats = box.stats || {};
+    const byEventType = Array.isArray(stats.byEventType) ? stats.byEventType : [];
+    const topUsers = Array.isArray(stats.topUsers) ? stats.topUsers : [];
+    const selected = box.selectedStreamSessionId || 'current';
+    return `
+      <div class="evs-config-card evs-shot-log-box">
+        <div class="evs-config-card-head">
+          <strong>${full ? 'Shot-Log' : 'Shot-Log & Statistik'}</strong>
+          <small>Streambezogen: wer, wann, wodurch, warum und wie viele Shots entstanden sind. Auswahl: ${esc(selected === 'current' ? 'Aktueller Stream' : selected)}.</small>
+        </div>
+        <div class="evs-shot-log-grid">
+          <div>
+            <h4>Shot-Ereignisse</h4>
+            ${items.length ? `<div class="evs-shot-log-list">${items.slice(0, 12).map(item => `
+              <div class="evs-shot-log-row">
+                <div class="evs-shot-log-main">
+                  <b>${esc(shotHistoryLabel(item))}</b>
+                  <span>${esc(shotHistoryUser(item))}</span>
+                </div>
+                <div class="evs-shot-log-meta">
+                  <span>${esc(shotHistoryWhy(item))}</span>
+                  <small>${fmtDate(item.at || item.createdAt || item.created_at)}${item.streamDateLabel ? ` · ${esc(item.streamDateLabel)}` : ''}</small>
+                </div>
+                <strong>${Number(item.shotsAdded || item.shots || 0) > 0 ? `+${esc(item.shotsAdded || item.shots)}` : esc(item.shotsOpenAfter ?? item.shotsOpen ?? '')}</strong>
+              </div>`).join('')}</div>` : '<div class="evs-empty">Für diesen Stream sind noch keine Shot-Ereignisse vorhanden.</div>'}
+          </div>
+          <div>
+            <h4>Top-Auslöser</h4>
+            ${topUsers.length ? `<div class="evs-shot-mini-list">${topUsers.slice(0, 8).map(user => `<div><b>${esc(user.displayName || 'Unbekannt')}</b><span>${esc(user.events || 0)} Events · ${esc(user.shots || 0)} Shots</span></div>`).join('')}</div>` : '<div class="evs-empty">Noch keine User-Statistik.</div>'}
+            <h4 class="evs-shot-log-subhead">Nach Event-Typ</h4>
+            ${byEventType.length ? `<div class="evs-shot-mini-list">${byEventType.slice(0, 8).map(row => `<div><b>${esc(row.eventType || 'unknown')}</b><span>${esc(row.events || 0)} Events · ${esc(row.shots || 0)} Shots</span></div>`).join('')}</div>` : '<div class="evs-empty">Noch keine Typ-Statistik.</div>'}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderShotAlarmSafetyBox(){
+    const box = state.shotAlarm || {};
+    const audit = box.audit || {};
+    const entries = Array.isArray(audit.entries) ? audit.entries : [];
+    const safety = box.status?.safety || {};
+    return `
+      <div class="evs-config-card evs-shot-safety-box">
+        <div class="evs-config-card-head"><strong>Safety / Audit</strong><small>Produktive Schreibaktionen werden auditiert. Kritische Aktionen brauchen Bestätigung.</small></div>
+        <div class="evs-status-grid">
+          <div><strong>${esc(audit.audit?.memoryEntries ?? box.status?.audit?.memoryEntries ?? 0)}</strong><span>Audit-Einträge</span></div>
+          <div><strong>${esc(box.status?.audit?.denied ?? 0)}</strong><span>Geblockt</span></div>
+          <div><strong>${safety.confirmWriteRequired ? 'Aktiv' : 'Aus'}</strong><span>Confirm-Schutz</span></div>
+          <div><strong>${esc(box.status?.moduleBuild || '-')}</strong><span>Backend-Build</span></div>
+        </div>
+        ${entries.length ? `<div class="evs-shot-audit-list">${entries.slice(0, 5).map(e => `<div><b>${esc(e.action || '-')}</b><span>${esc(e.result || '-')} · ${esc(e.actor?.name || e.actor?.id || '-')}</span><small>${esc(e.at || '')}</small></div>`).join('')}</div>` : '<div class="evs-empty">Noch keine Audit-Einträge geladen.</div>'}
+      </div>
+    `;
   }
 
   function renderOverviewTab(ev){
@@ -628,13 +1244,344 @@ window.StreamEventsModule = (function(){
     `;
   }
 
+
+  async function loadShotAlarmData(rerender = true){
+    state.shotAlarm = state.shotAlarm || {};
+    if (state.shotAlarm.loading) return;
+    state.shotAlarm.loading = true;
+    state.shotAlarm.error = '';
+    if (rerender) render();
+    try {
+      const selectedStream = state.shotAlarm.selectedStreamSessionId || 'current';
+      const statsUrl = `${api.shotAlarmStats}?streamSessionId=${encodeURIComponent(selectedStream)}`;
+      const historyUrl = `${api.shotAlarmHistory}?streamSessionId=${encodeURIComponent(selectedStream)}&limit=80`;
+      const [status, config, texts, streams, stats, history, audit] = await Promise.all([
+        window.CGN.api(api.shotAlarmStatus).catch(err => ({ ok:false, error: err.message || String(err) })),
+        window.CGN.api(api.shotAlarmConfig).catch(err => ({ ok:false, error: err.message || String(err), config: null })),
+        window.CGN.api(api.shotAlarmTexts).catch(err => ({ ok:false, error: err.message || String(err), categories: [], keys: [] })),
+        window.CGN.api(api.shotAlarmStreams).catch(() => null),
+        window.CGN.api(statsUrl).catch(() => null),
+        window.CGN.api(historyUrl).catch(() => null),
+        window.CGN.api(api.shotAlarmAudit + '?limit=8').catch(() => null)
+      ]);
+      state.shotAlarm.status = status;
+      state.shotAlarm.config = config?.config || config;
+      state.shotAlarm.texts = texts;
+      state.shotAlarm.streams = streams;
+      state.shotAlarm.stats = stats;
+      state.shotAlarm.history = history;
+      state.shotAlarm.audit = audit;
+      state.shotAlarm.loading = false;
+      state.shotAlarm.error = status?.error || config?.error || texts?.error || '';
+    } catch (err) {
+      state.shotAlarm.loading = false;
+      state.shotAlarm.error = err.message || String(err);
+    }
+    if (rerender) render();
+  }
+
+  function scheduleShotAlarmLoad(){
+    if (!state.shotAlarm?.loading && !shotAlarmAvailable()) setTimeout(() => loadShotAlarmData(true), 0);
+  }
+
+  function renderShotBool(key, label, value){
+    return `<label><span>${esc(label)}</span><select data-shot-config="${esc(key)}"><option value="true" ${value ? 'selected' : ''}>Aktiv</option><option value="false" ${!value ? 'selected' : ''}>Inaktiv</option></select></label>`;
+  }
+  function renderShotNumber(key, label, value, min = 0, max = 999999){
+    return `<label><span>${esc(label)}</span><input data-shot-config="${esc(key)}" type="number" min="${esc(min)}" max="${esc(max)}" value="${esc(value)}"></label>`;
+  }
+  function renderShotText(key, label, value){
+    return `<label><span>${esc(label)}</span><input data-shot-config="${esc(key)}" type="text" value="${esc(value)}"></label>`;
+  }
+  function renderShotTarget(value){
+    const opts = [
+      ['engel_roxxy_together', 'Engel & Roxxy gemeinsam'],
+      ['engel_only', 'Nur Engel'],
+      ['roxxy_only', 'Nur Roxxy'],
+      ['random_engel_roxxy', 'Zufällig Engel/Roxxy']
+    ];
+    return `<label><span>Zielpersonen</span><select data-shot-config="targetMode">${opts.map(([id,label]) => `<option value="${esc(id)}" ${String(value || 'engel_roxxy_together') === id ? 'selected' : ''}>${esc(label)}</option>`).join('')}</select></label>`;
+  }
+
+  function renderShotAlarmConfigTab(){
+    scheduleShotAlarmLoad();
+    const box = state.shotAlarm || {};
+    const c = box.config || {};
+    const rules = c.rules || {};
+    const display = c.display || {};
+    const dedupe = c.dedupe || {};
+    const payments = rules.payments?.providers || {};
+    return `
+      <section class="evs-card glass evs-tab-panel evs-config-panel evs-shot-config-panel">
+        <div class="evs-card-head">
+          <div>
+            <h3>Shot-Alarm Config</h3>
+            <span>Regeln, Auslosung, Overlay und Counter für Engel & Roxxy. Quelle: ${esc(box.status?.configSource || 'DB/Config')}</span>
+          </div>
+          <div class="evs-card-actions"><button type="button" class="evs-btn evs-btn-small evs-btn-secondary" data-evs-action="reloadShotAlarmData">Neu laden</button><button type="button" class="evs-btn" data-evs-action="saveShotAlarmConfig">Shot-Config speichern</button></div>
+        </div>
+        ${box.error ? `<div class="evs-error">${esc(box.error)}</div>` : ''}
+        ${box.loading ? '<div class="evs-empty">Shot-Alarm Config wird geladen...</div>' : ''}
+        <div class="evs-text-rule-note">Diese Einstellungen gehören zum Modul <b>Shot-Alarm</b> innerhalb des Event-Systems. Event-System-Defaults bleiben unverändert.</div>
+        <div class="evs-config-grid">
+          <div class="evs-config-card">
+            <div class="evs-config-card-head"><strong>Allgemein</strong><small>Modul, Overlay, Zielpersonen</small></div>
+            ${renderShotBool('enabled', 'Shot-Alarm aktiv', c.enabled !== false)}
+            ${renderShotBool('overlayEnabled', 'Overlay aktiv', c.overlayEnabled !== false)}
+            ${renderShotBool('soundEnabled', 'Sound aktiv', c.soundEnabled !== false)}
+            ${renderShotBool('showStatusBar', 'Statusleiste unten anzeigen', display.showStatusBar !== false)}
+            ${renderShotTarget(c.targetMode)}
+            ${renderShotText('targetLabel', 'Ziel-Text', c.targetLabel || 'Engel & Roxxy')}
+          </div>
+          <div class="evs-config-card">
+            <div class="evs-config-card-head"><strong>Auslosung & Anzeige</strong><small>Zweistufiger Ablauf</small></div>
+            ${renderShotNumber('drawDelayMs', 'Auslosungsdauer ms', display.drawDelayMs || 10000, 0, 120000)}
+            ${renderShotNumber('drawHoldMs', 'Auslosung anzeigen ms', display.drawHoldMs || display.drawDelayMs || 10000, 0, 120000)}
+            ${renderShotNumber('resultHoldMs', 'Ergebnis anzeigen ms', display.resultHoldMs || display.holdMs || 10000, 0, 120000)}
+          </div>
+          <div class="evs-config-card evs-config-card-wide">
+            <div class="evs-config-card-head"><strong>Twitch-Regeln</strong><small>Subs, Resubs, GiftSubs und Bomben</small></div>
+            ${renderShotNumber('singleSubChancePercent', 'Sub normal %', rules.singleSubChancePercent ?? 20, 0, 100)}
+            ${renderShotNumber('resubChancePercent', 'Resub normal %', rules.resubChancePercent ?? 20, 0, 100)}
+            ${renderShotNumber('singleGiftSubChancePercent', 'GiftSub normal %', rules.singleGiftSubChancePercent ?? 20, 0, 100)}
+            ${renderShotNumber('singleSupportFiveChancePercent', 'jeder 5. Einzel-Sub/Resub/GiftSub %', rules.singleSupportFiveChancePercent ?? 50, 0, 100)}
+            ${renderShotNumber('singleSupportTenChancePercent', 'jeder 10. Einzel-Sub/Resub/GiftSub %', rules.singleSupportTenChancePercent ?? 100, 0, 100)}
+            ${renderShotNumber('giftBombFiveChancePercent', '5er Sub-Bombe %', rules.giftBombFiveChancePercent ?? 50, 0, 100)}
+            ${renderShotBool('subscribeResubBufferEnabled', 'Sub/Resub Puffer aktiv', dedupe.subscribeResubBufferEnabled !== false)}
+            ${renderShotNumber('subscribeResubBufferMs', 'Sub/Resub Puffer ms', dedupe.subscribeResubBufferMs || 60000, 0, 300000)}
+            <small class="evs-help">Bits fest: je 1.000 Bits = 50/50, je 10.000 Bits = 100 %. Sub-Bomben zählen separat.</small>
+          </div>
+          <div class="evs-config-card">
+            <div class="evs-config-card-head"><strong>Ko-fi / Tipeee vorbereitet</strong><small>Payment-Bus kommt separat</small></div>
+            ${renderShotBool('kofiEnabled', 'Ko-fi aktiv', payments.kofi?.enabled !== false)}
+            ${renderShotNumber('kofiEurPerShot', 'Ko-fi EUR je Wurf', payments.kofi?.eurPerShot || 10, 1, 1000)}
+            ${renderShotNumber('kofiChancePercent', 'Ko-fi Chance % je Block', payments.kofi?.chancePercent ?? 50, 0, 100)}
+            ${renderShotBool('tipeeeEnabled', 'Tipeee aktiv', payments.tipeee?.enabled !== false)}
+            ${renderShotNumber('tipeeeEurPerShot', 'Tipeee EUR je Wurf', payments.tipeee?.eurPerShot || 10, 1, 1000)}
+            ${renderShotNumber('tipeeeChancePercent', 'Tipeee Chance % je Block', payments.tipeee?.chancePercent ?? 50, 0, 100)}
+          </div>
+        </div>
+      </section>
+    `;
+  }
+
+  function readShotAlarmConfigFromDom(){
+    const current = JSON.parse(JSON.stringify(state.shotAlarm?.config || {}));
+    const read = key => document.querySelector(`[data-shot-config="${key}"]`)?.value;
+    current.enabled = boolSelect(read('enabled'));
+    current.overlayEnabled = boolSelect(read('overlayEnabled'));
+    current.soundEnabled = boolSelect(read('soundEnabled'));
+    current.targetMode = read('targetMode') || 'engel_roxxy_together';
+    current.targetLabel = read('targetLabel') || 'Engel & Roxxy';
+    current.display = current.display || {};
+    current.display.showStatusBar = boolSelect(read('showStatusBar'));
+    current.display.drawDelayMs = Number(read('drawDelayMs') || 10000);
+    current.display.drawHoldMs = Number(read('drawHoldMs') || current.display.drawDelayMs || 10000);
+    current.display.resultHoldMs = Number(read('resultHoldMs') || 10000);
+    current.rules = current.rules || {};
+    current.rules.singleSubChancePercent = Number(read('singleSubChancePercent') || 20);
+    current.rules.resubChancePercent = Number(read('resubChancePercent') || 20);
+    current.rules.singleGiftSubChancePercent = Number(read('singleGiftSubChancePercent') || 20);
+    current.rules.singleSupportFiveChancePercent = Number(read('singleSupportFiveChancePercent') || 50);
+    current.rules.singleSupportTenChancePercent = Number(read('singleSupportTenChancePercent') || 100);
+    current.rules.giftBombFiveChancePercent = Number(read('giftBombFiveChancePercent') || 50);
+    current.dedupe = current.dedupe || {};
+    current.dedupe.subscribeResubBufferEnabled = boolSelect(read('subscribeResubBufferEnabled'));
+    current.dedupe.subscribeResubBufferMs = Number(read('subscribeResubBufferMs') || 60000);
+    current.rules.payments = current.rules.payments || { enabled: true, providers: {} };
+    current.rules.payments.providers = current.rules.payments.providers || {};
+    current.rules.payments.providers.kofi = current.rules.payments.providers.kofi || {};
+    current.rules.payments.providers.tipeee = current.rules.payments.providers.tipeee || {};
+    current.rules.payments.providers.kofi.enabled = boolSelect(read('kofiEnabled'));
+    current.rules.payments.providers.tipeee.enabled = boolSelect(read('tipeeeEnabled'));
+    current.rules.payments.providers.kofi.eurPerShot = Number(read('kofiEurPerShot') || 10);
+    current.rules.payments.providers.tipeee.eurPerShot = Number(read('tipeeeEurPerShot') || 10);
+    current.rules.payments.providers.kofi.chancePercent = Number(read('kofiChancePercent') || 50);
+    current.rules.payments.providers.tipeee.chancePercent = Number(read('tipeeeChancePercent') || 50);
+    return current;
+  }
+
+  async function saveShotAlarmConfig(){
+    try {
+      const payload = { ...readShotAlarmConfigFromDom(), ...dashboardActorPayload() };
+      const result = await window.CGN.api(api.shotAlarmConfig, { method: 'POST', body: JSON.stringify(payload) });
+      state.shotAlarm.config = result.config || payload;
+      state.shotAlarm.status = result.status || state.shotAlarm.status;
+      state.message = 'Shot-Alarm Config gespeichert.';
+      await loadShotAlarmData(false);
+      render();
+    } catch (err) {
+      state.error = err.message || String(err);
+      render();
+    }
+  }
+
+  function shotTextCategories(){
+    const cats = Array.isArray(state.shotAlarm?.texts?.categories) ? state.shotAlarm.texts.categories : [];
+    return cats.length ? cats : [{ id: 'chat', label: 'Shot-Alarm Chat' }, { id: 'overlay', label: 'Shot-Alarm Overlay' }];
+  }
+  function shotTextKeysForCategory(category){
+    const keys = Array.isArray(state.shotAlarm?.texts?.keys) ? state.shotAlarm.texts.keys : [];
+    return keys.filter(item => String(item.category || 'chat') === String(category || 'chat'));
+  }
+  function renderShotAlarmTextsTab(){
+    scheduleShotAlarmLoad();
+    const box = state.shotAlarm || {};
+    const cats = shotTextCategories();
+    const selected = state.shotAlarmTextCategory || cats[0]?.id || 'chat';
+    const keys = shotTextKeysForCategory(selected);
+    return `
+      <section class="evs-card glass evs-text-config-panel evs-tab-panel">
+        <div class="evs-card-head">
+          <div><h3>Shot-Alarm Texte</h3><span>Altersheim-/Heimleitungs-/Rentner-Texte für Chat und Overlay. Zufällig und gewichtet aus DB-Varianten.</span></div>
+          <button type="button" class="evs-btn evs-btn-small evs-btn-secondary" data-evs-action="reloadShotAlarmData">Texte neu laden</button>
+        </div>
+        ${box.error ? `<div class="evs-error">${esc(box.error)}</div>` : ''}
+        <div class="evs-text-config-help"><strong>Aktiv:</strong> Diese Varianten gehören zum Modul <b>Shot-Alarm</b>. Platzhalter wie <code>{user}</code>, <code>{amountLabel}</code>, <code>{shotsAdded}</code>, <code>{shotsOpen}</code> und <code>{chanceSummary}</code> bleiben erhalten.</div>
+        <div class="evs-text-filter-bar">
+          <label><span>Textbereich</span><select data-evs-shot-text-category>${cats.map(cat => `<option value="${esc(cat.id)}" ${selected === cat.id ? 'selected' : ''}>${esc(cat.label || cat.id)} (${esc(cat.variantCount || 0)})</option>`).join('')}</select></label>
+        </div>
+        ${box.loading ? '<div class="evs-empty">Shot-Alarm Texte werden geladen...</div>' : ''}
+        <div class="evs-text-category-list">
+          ${keys.map(renderShotTextKeyEditor).join('') || '<div class="evs-empty">Keine Shot-Alarm Texte für diesen Bereich gefunden.</div>'}
+        </div>
+      </section>
+    `;
+  }
+
+  function renderShotAlarmTextsInEventTextTab(){
+    scheduleShotAlarmLoad();
+    const selectedFilter = String(state.textModuleFilter || 'shot_alarm_chat');
+    const selectedCategory = selectedFilter === 'shot_alarm_overlay' ? 'overlay' : 'chat';
+    const keys = shotTextKeysForCategory(selectedCategory);
+    const box = state.shotAlarm || {};
+    return `
+      <section class="evs-card glass evs-text-config-panel evs-tab-panel">
+        <div class="evs-card-head">
+          <div>
+            <h3>Text-Config / Multi-Texte</h3>
+            <span>Chat- und Overlay-Texte für Eventmodule. Shot-Alarm ist ein eigener Textbereich im bestehenden Event-System.</span>
+          </div>
+          <button type="button" class="evs-btn evs-btn-small evs-btn-secondary" data-evs-action="reloadShotAlarmData">Texte neu laden</button>
+        </div>
+        ${box.error ? `<div class="evs-error">${esc(box.error)}</div>` : ''}
+        <div class="evs-text-config-help">
+          <strong>Shot-Alarm aktiv:</strong> Altersheim-/Heimleitungs-/Rentner-Texte. Platzhalter wie <code>{user}</code>, <code>{amountLabel}</code>, <code>{shotsAdded}</code>, <code>{shotsOpen}</code> und <code>{chanceSummary}</code> bleiben erhalten.
+        </div>
+        <div class="evs-text-filter-bar">
+          <label>
+            <span>Textbereich</span>
+            <select data-evs-text-module-filter>
+              ${textModuleOptions().map(opt => `<option value="${esc(opt.id)}" ${selectedFilter === opt.id ? 'selected' : ''}>${esc(opt.label)} (${esc(countTextKeysForModule(opt.id))})</option>`).join('')}
+            </select>
+          </label>
+          <button type="button" class="evs-btn evs-btn-small evs-btn-secondary" data-evs-action="clearTextFilters">Filter zurücksetzen</button>
+        </div>
+        <div class="evs-text-filter-hint">${esc((textModuleOptions().find(opt => opt.id === selectedFilter) || textModuleOptions()[0]).hint)}</div>
+        ${box.loading ? '<div class="evs-empty">Shot-Alarm Texte werden geladen...</div>' : ''}
+        <div class="evs-text-category-list">
+          <details class="evs-text-category" open>
+            <summary><strong>${selectedCategory === 'overlay' ? 'Shot-Alarm Overlay' : 'Shot-Alarm Chat'}</strong><small>${esc(keys.length)} sichtbare Text-Key(s)</small></summary>
+            <div class="evs-text-category-body">
+              ${keys.map(renderShotTextKeyEditor).join('') || '<div class="evs-empty">Keine Shot-Alarm Texte für diesen Bereich gefunden.</div>'}
+            </div>
+          </details>
+        </div>
+      </section>
+    `;
+  }
+  function renderShotTextKeyEditor(keyItem){
+    const variants = Array.isArray(keyItem.variants) ? keyItem.variants : [];
+    return `
+      <details class="evs-text-key" data-shot-text-key="${esc(keyItem.key)}" open>
+        <summary><span><strong>${esc(keyItem.label || keyItem.key)}</strong><small>${esc(keyItem.activeCount || 0)} aktiv / ${esc(keyItem.totalCount || variants.length)} Varianten</small></span></summary>
+        <div class="evs-text-key-body">
+          ${variants.map(v => renderShotTextVariant(v, keyItem)).join('') || '<div class="evs-empty">Noch keine Variante vorhanden.</div>'}
+          <div class="evs-text-variant evs-text-variant-new" data-shot-text-new data-text-key="${esc(keyItem.key)}" data-category="${esc(keyItem.category || 'chat')}">
+            <textarea rows="2" data-shot-text-value placeholder="Neue Altersheim-/Heimleitungs-Variante..."></textarea>
+            <div class="evs-text-variant-actions"><label class="evs-check evs-check-compact"><input type="checkbox" data-shot-text-enabled checked> Aktiv</label><label class="evs-mini-label">Gewichtung<input type="number" min="1" data-shot-text-weight value="1"></label><button type="button" class="evs-btn evs-btn-small evs-btn-secondary" data-evs-action="saveShotTextVariant">+ Variante speichern</button></div>
+          </div>
+        </div>
+      </details>
+    `;
+  }
+  function renderShotTextVariant(variant, keyItem){
+    return `
+      <div class="evs-text-variant" data-shot-text-variant data-variant-id="${esc(variant.id || '')}" data-text-key="${esc(keyItem.key)}" data-category="${esc(keyItem.category || 'chat')}">
+        <textarea rows="2" data-shot-text-value>${esc(variant.value || variant.text || '')}</textarea>
+        <div class="evs-text-variant-actions"><label class="evs-check evs-check-compact"><input type="checkbox" data-shot-text-enabled ${variant.enabled !== false ? 'checked' : ''}> Aktiv</label><label class="evs-mini-label">Gewichtung<input type="number" min="1" data-shot-text-weight value="${esc(variant.weight || 1)}"></label><button type="button" class="evs-btn evs-btn-small" data-evs-action="saveShotTextVariant">Speichern</button><button type="button" class="evs-btn evs-btn-small evs-btn-danger" data-evs-action="deleteShotTextVariant" ${variant.id ? '' : 'disabled'}>Löschen</button></div>
+      </div>
+    `;
+  }
+  function readShotTextVariantPayload(row){
+    if (!row) return null;
+    const id = Number(row.dataset.variantId || 0) || 0;
+    const key = row.dataset.textKey || '';
+    const category = row.dataset.category || 'chat';
+    const value = row.querySelector('[data-shot-text-value]')?.value || '';
+    const enabled = row.querySelector('[data-shot-text-enabled]')?.checked !== false;
+    const weight = Number(row.querySelector('[data-shot-text-weight]')?.value || 1);
+    if (!key) return null;
+    return { action: 'saveVariant', variant: { id, key, category, value, enabled, weight, description: 'Event-System Dashboard' }, ...dashboardActorPayload() };
+  }
+  async function saveShotTextVariant(row){
+    const payload = readShotTextVariantPayload(row);
+    if (!payload || !String(payload.variant.value || '').trim()) { state.error = 'Shot-Alarm Textvariante darf nicht leer sein.'; render(); return; }
+    try {
+      const result = await window.CGN.api(api.shotAlarmTexts, { method: 'POST', body: JSON.stringify(payload) });
+      state.shotAlarm.texts = result.texts || result;
+      state.message = 'Shot-Alarm Textvariante gespeichert.';
+      render();
+    } catch (err) { state.error = err.message || String(err); render(); }
+  }
+  async function deleteShotTextVariant(row){
+    if (!row) return;
+    const id = Number(row.dataset.variantId || 0) || 0;
+    if (!id) return;
+    if (!confirm('Shot-Alarm Textvariante wirklich löschen?')) return;
+    try {
+      const result = await window.CGN.api(api.shotAlarmTexts, { method: 'POST', body: JSON.stringify({ action: 'deleteVariant', id, ...dashboardActorPayload() }) });
+      state.shotAlarm.texts = result.texts || result;
+      state.message = 'Shot-Alarm Textvariante gelöscht.';
+      render();
+    } catch (err) { state.error = err.message || String(err); render(); }
+  }
+
+  function renderConfigModuleSelect(){
+    const selected = state.configModuleFilter || 'stream_events';
+    return `
+      <section class="evs-card glass evs-config-module-select evs-config-safe-switch">
+        <div class="evs-card-head evs-card-head-compact">
+          <div>
+            <h3>Config-Bereich</h3>
+            <span>Die bestehende Event-System-Config bleibt vollständig erhalten. Shot-Alarm ist zusätzlich getrennt auswählbar.</span>
+          </div>
+        </div>
+        <label class="evs-config-module-dropdown">
+          <span>Bereich auswählen</span>
+          <select data-evs-config-module-filter>
+            <option value="stream_events" ${selected === 'stream_events' ? 'selected' : ''}>Event-System</option>
+            <option value="shot_alarm" ${selected === 'shot_alarm' ? 'selected' : ''}>Shot-Alarm</option>
+          </select>
+        </label>
+        <div class="evs-text-rule-note evs-config-safe-note">
+          <strong>Sicherheitsregel:</strong> Beim Wechsel wird nichts gelöscht. Event-System speichert nur die Event-System-Felder, Shot-Alarm speichert nur die Shot-Alarm-Felder.
+        </div>
+      </section>
+    `;
+  }
+
   function renderConfigTab(){
+    if ((state.configModuleFilter || 'stream_events') === 'shot_alarm') {
+      scheduleShotAlarmLoad();
+      return renderConfigModuleSelect() + renderShotAlarmConfigTab();
+    }
     const cfg = state.config?.config || {};
     const eventDefaults = cfg.eventDefaults || {};
     const soundDefaults = cfg.soundDefaults || {};
     const textDefaults = cfg.textDefaults || {};
     const overlayDefaults = cfg.overlayDefaults || {};
-    return `
+    return renderConfigModuleSelect() + `
       <section class="evs-card glass evs-tab-panel evs-config-panel">
         <div class="evs-card-head">
           <div>
@@ -800,6 +1747,9 @@ window.StreamEventsModule = (function(){
   }
 
   function renderTextsTab(){
+    if (String(state.textModuleFilter || '') === 'shot_alarm_chat' || String(state.textModuleFilter || '') === 'shot_alarm_overlay') {
+      return renderShotAlarmTextsInEventTextTab();
+    }
     return renderTextConfigPanel(true);
   }
 
@@ -2178,6 +3128,8 @@ window.StreamEventsModule = (function(){
       { id: 'text', label: 'Text-Spiel', hint: 'Worttreffer, Satzlösung, Text-Runtime' },
       { id: 'sound', label: 'Sound-Spiel', hint: 'Soundrunde, erkannt, ungelöst' },
       { id: 'points', label: 'Punkte & Ranking', hint: 'Punkte, Rangliste, Top 3' },
+      { id: 'shot_alarm_chat', label: 'Shot-Alarm Chat', hint: 'Chattexte für Auslosung, Ergebnis und getrunkene Shots' },
+      { id: 'shot_alarm_overlay', label: 'Shot-Alarm Overlay', hint: 'Overlaytexte für Auslosung, Ergebnis und Counter' },
       { id: 'system', label: 'System / Sonstiges', hint: 'Alles, was nicht eindeutig zugeordnet ist' }
     ];
   }
@@ -2211,6 +3163,8 @@ window.StreamEventsModule = (function(){
   }
 
   function countTextKeysForModule(moduleId){
+    if (moduleId === 'shot_alarm_chat') return shotTextKeysForCategory('chat').length;
+    if (moduleId === 'shot_alarm_overlay') return shotTextKeysForCategory('overlay').length;
     const keys = Array.isArray(state.texts?.keys) ? state.texts.keys : [];
     if (moduleId === 'all') return keys.length;
     return keys.filter(item => textModuleForKey(item) === moduleId).length;
@@ -3600,7 +4554,7 @@ window.StreamEventsModule = (function(){
     if (!id) return;
     if (!confirm('Textvariante wirklich löschen?')) return;
     try {
-      const result = await window.CGN.api(api.texts, { method: 'POST', body: JSON.stringify({ action: 'deleteVariant', id }) });
+      const result = await window.CGN.api(api.texts, { method: 'POST', body: JSON.stringify({ action: 'deleteVariant', id, ...dashboardActorPayload() }) });
       state.texts = result.texts || result;
       state.message = 'Textvariante gelöscht.';
       render();
@@ -4012,9 +4966,70 @@ window.StreamEventsModule = (function(){
         render();
         return;
       }
+      if (action === 'selectEventModule') {
+        const context = btn.dataset.context || (state.activeTab === 'config' ? 'config' : 'texts');
+        const moduleId = btn.dataset.moduleId || 'stream_events';
+        if (context === 'config') state.configModuleFilter = moduleId;
+        else state.textSourceModule = moduleId;
+        if (moduleId === 'shot_alarm') await loadShotAlarmData(false).catch(() => null);
+        render();
+        return;
+      }
+      if (action === 'shotAlarmSubTab') {
+        state.shotAlarm = state.shotAlarm || {};
+        state.shotAlarm.activeSubTab = btn.dataset.subtab || 'status';
+        render();
+        return;
+      }
+      if (action === 'shotAlarmStart' || action === 'shotAlarmStop') {
+        const endpoint = action === 'shotAlarmStart' ? api.shotAlarmStart : api.shotAlarmStop;
+        await window.CGN.api(endpoint, { method: 'POST', body: JSON.stringify(dashboardActorPayload()) });
+        await loadShotAlarmData(false);
+        state.message = action === 'shotAlarmStart' ? 'Shot-Alarm wurde aktiviert.' : 'Shot-Alarm wurde deaktiviert.';
+        render();
+        return;
+      }
+      if (action === 'shotAlarmNewSession') {
+        if (!confirm('Neue Shot-Session starten? Offene Test-Shots werden für die neue Session zurückgesetzt. History und Logs bleiben erhalten.')) return;
+        const result = await window.CGN.api(api.shotAlarmNewSession, { method: 'POST', body: JSON.stringify({ confirmWrite: true, ...dashboardActorPayload() }) });
+        await loadShotAlarmData(false);
+        const newId = result?.newStreamSessionId || result?.status?.runtime?.currentStreamSessionId || 'neue Session';
+        state.message = `Neue Shot-Session gestartet: ${newId}`;
+        render();
+        return;
+      }
+      if (action === 'shotAlarmDoneOne') {
+        await window.CGN.api(api.shotAlarmShotDone, { method: 'POST', body: JSON.stringify({ count: 1, user: 'Dashboard', ...dashboardActorPayload() }) });
+        await loadShotAlarmData(false);
+        state.message = 'Shot-Alarm: 1 Shot abgehakt.';
+        render();
+        return;
+      }
+      if (action === 'shotAlarmResolvePending') {
+        if (!confirmShotWrite('Offene Shot-Alarm-Auslosungen wirklich sofort auflösen?')) return;
+        await window.CGN.api(api.shotAlarmResolvePending, { method: 'POST', body: JSON.stringify({ confirmWrite: true, ...dashboardActorPayload() }) });
+        await loadShotAlarmData(false);
+        render();
+        return;
+      }
+      if (action === 'shotAlarmTestBitsImmediate' || action === 'shotAlarmTestBitsDraw') {
+        const payload = { type: 'bits', user: 'BitRentner', bits: 25000, forceRoll: 0, immediate: action === 'shotAlarmTestBitsImmediate', ...dashboardActorPayload() };
+        await window.CGN.api(api.shotAlarmTest, { method: 'POST', body: JSON.stringify(payload) });
+        await loadShotAlarmData(false);
+        state.message = action === 'shotAlarmTestBitsImmediate' ? 'Shot-Alarm Test sofort ausgelöst.' : 'Shot-Alarm Test-Auslosung gestartet.';
+        render();
+        return;
+      }
+      if (action === 'shotAlarmSaveOverlaySound') return saveShotOverlaySound();
+      if (action === 'shotAlarmAddOverlaySound') return addShotOverlaySoundToList();
+      if (action === 'shotAlarmRemoveOverlaySound') return removeShotOverlaySoundFromList(btn.dataset.index);
+      if (action === 'shotAlarmTestOverlaySound') return testShotOverlaySound(btn.dataset.index);
+      if (action === 'shotAlarmTestRandomOverlaySound') return testRandomShotOverlaySound();
       if (action === 'reload') return loadAll(true);
       if (action === 'reloadTexts') return loadTexts(true);
+      if (action === 'reloadShotAlarmData') return loadShotAlarmData(true);
       if (action === 'clearTextFilters') { state.textModuleFilter = 'all'; state.textSearchFilter = ''; render(); return; }
+      if (action === 'saveShotAlarmConfig') return saveShotAlarmConfig();
       if (action === 'saveConfig') return saveConfig();
       if (action === 'new') {
         const cfg = state.config?.config || {};
@@ -4104,6 +5119,8 @@ window.StreamEventsModule = (function(){
       }
       if (action === 'saveTextVariant') return saveTextVariant(btn.closest('[data-evs-text-variant], [data-evs-text-new]'));
       if (action === 'deleteTextVariant') return deleteTextVariant(btn.closest('[data-evs-text-variant]'));
+      if (action === 'saveShotTextVariant') return saveShotTextVariant(btn.closest('[data-shot-text-variant], [data-shot-text-new]'));
+      if (action === 'deleteShotTextVariant') return deleteShotTextVariant(btn.closest('[data-shot-text-variant]'));
       if (action === 'saveEvent') return saveEvent();
       if (action === 'validate') return eventAction('validate', uid);
       if (action === 'start') return eventAction('start', uid);
@@ -4195,10 +5212,38 @@ window.StreamEventsModule = (function(){
         refreshMainEditorSummaryFromState();
         return;
       }
+      const configModuleSelect = ev.target.closest('[data-evs-config-module-filter]');
+      if (configModuleSelect) {
+        state.configModuleFilter = configModuleSelect.value || 'stream_events';
+        if (state.configModuleFilter === 'shot_alarm') loadShotAlarmData(false).then(() => render()).catch(() => render());
+        else render();
+        return;
+      }
+      const textSourceSelect = ev.target.closest('[data-evs-text-source-module]');
+      if (textSourceSelect) {
+        state.textSourceModule = textSourceSelect.value || 'stream_events';
+        if (state.textSourceModule === 'shot_alarm') loadShotAlarmData(false).then(() => render()).catch(() => render());
+        else render();
+        return;
+      }
+      const shotStreamSelect = ev.target.closest('[data-evs-shot-stream-select]');
+      if (shotStreamSelect) {
+        state.shotAlarm.selectedStreamSessionId = shotStreamSelect.value || 'current';
+        await loadShotAlarmData(false);
+        render();
+        return;
+      }
+      const shotTextCategorySelect = ev.target.closest('[data-evs-shot-text-category]');
+      if (shotTextCategorySelect) {
+        state.shotAlarmTextCategory = shotTextCategorySelect.value || 'chat';
+        render();
+        return;
+      }
       const textModuleSelect = ev.target.closest('[data-evs-text-module-filter]');
       if (textModuleSelect) {
         state.textModuleFilter = textModuleSelect.value || 'all';
-        render();
+        if (String(state.textModuleFilter).startsWith('shot_alarm_')) loadShotAlarmData(false).then(() => render()).catch(() => render());
+        else render();
         return;
       }
       const select = ev.target.closest('[data-evs-user-stat-select]');
