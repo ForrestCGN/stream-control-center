@@ -5,12 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Shot-Alarm Overlay</title>
   <style>
+    * { box-sizing: border-box; }
     :root {
-      --neon-purple: #a855f7;
-      --neon-blue: #22d3ee;
+      --top-offset: 6px;
+      --bar-height: 52px;
+      --bar-radius: 24px;
+      --bar-border: 3px;
+      --bar-padding-x: 14px;
+      --slot-gap: 8px;
+      --neon-purple: #c45cff;
+      --neon-blue: #8ff4ff;
       --white: #f8fafc;
       --muted: #cbd5e1;
-      --dark: rgba(8, 13, 29, 0.86);
+      --fg-main: #f4f7ff;
+      --fg-count-a: #8ff4ff;
+      --fg-count-b: #c45cff;
+      --bg-a: rgba(7, 9, 24, 0.96);
+      --bg-b: rgba(5, 7, 22, 0.96);
+      --count-bg: rgba(8, 10, 31, 0.62);
+      --dark: rgba(8, 13, 29, 0.90);
     }
     html, body {
       margin: 0;
@@ -18,14 +31,15 @@
       height: 100%;
       overflow: hidden;
       background: transparent;
-      font-family: Inter, Segoe UI, Arial, sans-serif;
+      font-family: "Montserrat", "Segoe UI", Arial, sans-serif;
+      pointer-events: none;
     }
     #eventWrap {
       position: fixed;
-      top: 12vh;
+      top: 72px;
       left: 50%;
-      transform: translateX(-50%) translateY(-8px) scale(0.98);
-      width: min(760px, 70vw);
+      transform: translateX(-50%) translateY(-10px) scale(0.98);
+      width: min(640px, 58vw);
       pointer-events: none;
       opacity: 0;
       transition: opacity 240ms ease, transform 240ms ease;
@@ -36,21 +50,22 @@
       transform: translateX(-50%) translateY(0) scale(1);
     }
     .card {
-      padding: 22px 30px 24px;
-      border-radius: 26px;
-      border: 1px solid rgba(168, 85, 247, 0.78);
+      padding: 16px 22px 18px;
+      border-radius: 22px;
+      border: 3px solid transparent;
       background:
-        radial-gradient(circle at 12% 8%, rgba(34, 211, 238, 0.23), transparent 32%),
-        radial-gradient(circle at 86% 90%, rgba(168, 85, 247, 0.28), transparent 34%),
-        var(--dark);
+        radial-gradient(circle at 50% 0%, rgba(57, 230, 255, 0.12), transparent 38%) padding-box,
+        linear-gradient(135deg, var(--bg-a) 0%, rgba(11, 16, 35, 0.97) 50%, var(--bg-b) 100%) padding-box,
+        linear-gradient(180deg, #8ff4ff 0%, #c45cff 34%, #c45cff 100%) border-box;
       box-shadow:
-        0 0 24px rgba(168, 85, 247, 0.45),
-        0 0 46px rgba(34, 211, 238, 0.18),
-        inset 0 0 22px rgba(15, 23, 42, 0.68);
+        0 0 22px rgba(196, 92, 255, 0.54),
+        0 0 48px rgba(57, 230, 255, 0.12),
+        inset 0 0 24px rgba(57, 230, 255, 0.055);
       color: var(--white);
       text-align: center;
       position: relative;
       overflow: hidden;
+      isolation: isolate;
     }
     .card::before,
     .card::after {
@@ -65,7 +80,7 @@
     .card::before { left: 20px; top: 18px; }
     .card::after { right: 20px; bottom: 18px; background: var(--neon-purple); box-shadow: 0 0 14px var(--neon-purple), 0 0 28px var(--neon-purple); }
     .title {
-      font-size: clamp(34px, 4.2vw, 54px);
+      font-size: clamp(24px, 2.8vw, 36px);
       line-height: 1;
       font-weight: 900;
       letter-spacing: 0.06em;
@@ -74,12 +89,12 @@
       margin-bottom: 10px;
     }
     .message {
-      font-size: clamp(20px, 2.2vw, 28px);
+      font-size: clamp(16px, 1.8vw, 22px);
       font-weight: 800;
       margin-bottom: 8px;
     }
     .reason {
-      font-size: clamp(16px, 1.6vw, 22px);
+      font-size: clamp(13px, 1.25vw, 17px);
       color: var(--muted);
       margin-bottom: 14px;
     }
@@ -92,7 +107,7 @@
       border: 1px solid rgba(34, 211, 238, 0.55);
       background: rgba(15, 23, 42, 0.72);
       box-shadow: 0 0 18px rgba(34, 211, 238, 0.22);
-      font-size: clamp(19px, 2vw, 26px);
+      font-size: clamp(16px, 1.6vw, 21px);
       font-weight: 900;
     }
     .meta {
@@ -102,29 +117,133 @@
     }
     #statusBar {
       position: fixed;
+      top: var(--top-offset);
       left: 50%;
-      bottom: 22px;
+      bottom: auto;
       transform: translateX(-50%);
-      display: flex;
+      min-height: var(--bar-height);
+      display: inline-flex;
       align-items: center;
-      gap: 18px;
-      min-width: 520px;
-      max-width: 84vw;
-      padding: 10px 18px;
-      border-radius: 999px;
-      border: 1px solid rgba(168, 85, 247, 0.42);
-      background: rgba(8, 13, 29, 0.56);
-      color: rgba(248, 250, 252, 0.92);
-      box-shadow: 0 0 18px rgba(168, 85, 247, 0.22), inset 0 0 16px rgba(15, 23, 42, 0.56);
+      justify-content: center;
+      gap: var(--slot-gap);
+      width: auto;
+      min-width: 0;
+      max-width: 94vw;
+      padding: 0 var(--bar-padding-x);
+      border-radius: var(--bar-radius);
+      border: var(--bar-border) solid transparent;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(57, 230, 255, 0.12), transparent 38%) padding-box,
+        linear-gradient(135deg, var(--bg-a) 0%, rgba(11, 16, 35, 0.97) 50%, var(--bg-b) 100%) padding-box,
+        linear-gradient(180deg, #8ff4ff 0%, #c45cff 34%, #c45cff 100%) border-box;
+      color: var(--fg-main);
+      box-shadow:
+        0 0 22px rgba(196, 92, 255, 0.54),
+        0 0 48px rgba(57, 230, 255, 0.12),
+        inset 0 0 24px rgba(57, 230, 255, 0.055);
       pointer-events: none;
-      opacity: 0.86;
-      z-index: 3;
-      backdrop-filter: blur(5px);
+      opacity: 1;
+      z-index: 10;
+      overflow: hidden;
+      isolation: isolate;
     }
-    .status-title { font-weight: 900; letter-spacing: .06em; color: #e9d5ff; }
-    .status-item { font-size: 15px; color: #cbd5e1; white-space: nowrap; }
-    .status-item strong { color: #67e8f9; font-size: 18px; padding-left: 4px; }
-    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--neon-blue); box-shadow: 0 0 12px var(--neon-blue); }
+    #statusBar::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background: linear-gradient(90deg, transparent 0%, rgba(57, 230, 255, .12) 28%, rgba(255, 255, 255, .08) 47%, rgba(196, 92, 255, .16) 62%, transparent 82%);
+      opacity: .34;
+      transform: translateX(-130%);
+      animation: shotAlarmFrameRunner 4.8s linear infinite;
+    }
+    @keyframes shotAlarmFrameRunner {
+      to { transform: translateX(130%); }
+    }
+    .status-slot {
+      position: relative;
+      z-index: 2;
+      min-width: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+    }
+    .status-title {
+      font-size: 17px;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: var(--fg-main);
+      text-shadow:
+        0 0 10px rgba(196, 92, 255, 0.64),
+        0 0 18px rgba(57, 230, 255, 0.18);
+      padding: 0 8px 0 2px;
+    }
+    .status-target {
+      font-size: 15px;
+      font-weight: 700;
+      color: rgba(244, 247, 255, 0.92);
+      text-shadow: 0 0 10px rgba(196, 92, 255, 0.42);
+      padding: 0 4px;
+    }
+    .status-item {
+      height: 40px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 10px;
+      border-radius: 14px;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(57, 230, 255, 0.10), transparent 48%),
+        var(--count-bg);
+      box-shadow:
+        0 0 12px rgba(196, 92, 255, 0.22),
+        inset 0 0 14px rgba(57, 230, 255, 0.045);
+      font-size: 12px;
+      font-weight: 800;
+      color: #dbeafe;
+    }
+    .status-item strong {
+      min-width: 24px;
+      text-align: center;
+      font-size: 22px;
+      line-height: 1;
+      font-weight: 900;
+      background: linear-gradient(90deg, var(--fg-count-a) 40%, var(--fg-count-b) 92%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow:
+        0 2px 7px rgba(5, 7, 22, 0.70),
+        0 0 10px rgba(57, 230, 255, 0.18);
+    }
+    .dot {
+      position: relative;
+      z-index: 2;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex: 0 0 auto;
+      background: var(--neon-blue);
+      box-shadow: 0 0 12px var(--neon-blue), 0 0 22px rgba(57, 230, 255, 0.42);
+      margin: 0 4px 0 2px;
+    }
+    .sep {
+      position: relative;
+      z-index: 2;
+      width: 1px;
+      height: 28px;
+      margin: 0 2px;
+      background: linear-gradient(180deg, transparent, rgba(143,244,255,.58), rgba(196,92,255,.46), transparent);
+      box-shadow: 0 0 10px rgba(143,244,255,.24);
+      opacity: .82;
+    }
+    @media (max-width: 760px) {
+      #statusBar { transform: translateX(-50%) scale(.86); transform-origin: top center; }
+      .status-target { display: none; }
+    }
     @keyframes pulse {
       0%, 100% { filter: brightness(1); }
       50% { filter: brightness(1.16); }
@@ -145,11 +264,12 @@
 
   <div id="statusBar">
     <span class="dot"></span>
-    <span class="status-title">SHOT-ALARM</span>
-    <span class="status-item">Engel & Roxxy</span>
-    <span class="status-item">Offen:<strong id="openShots">0</strong></span>
-    <span class="status-item">Getrunken:<strong id="drunkShots">0</strong></span>
-    <span class="status-item">Gesamt:<strong id="totalShots">0</strong></span>
+    <span class="status-slot status-title">SHOT-ALARM</span>
+    <span class="sep"></span>
+    <span class="status-slot status-target">Engel &amp; Roxxy</span>
+    <span class="status-slot status-item">OFFEN <strong id="openShots">0</strong></span>
+    <span class="status-slot status-item">GETRUNKEN <strong id="drunkShots">0</strong></span>
+    <span class="status-slot status-item">GESAMT <strong id="totalShots">0</strong></span>
   </div>
 
   <script>
