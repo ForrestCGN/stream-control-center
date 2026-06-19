@@ -1,50 +1,58 @@
-# TODO
+# TODO – Loyalty-Giveaways / Glücksrad
 
 Stand: 2026-06-19
 
-## Shot-Alarm erledigt
+## Sofort / nächster Chat
 
-- [x] Backend-Modul `shot_alarm` erstellt.
-- [x] Twitch-Support-Events über Communication Bus angebunden.
-- [x] Regeln für Subs/Resubs/GiftSubs/Bomben/Bits umgesetzt.
-- [x] Ko-fi/Tipeee Payment-Bus an Shot-Alarm angebunden.
-- [x] 10-Sekunden-Auslosungsphase umgesetzt.
-- [x] Ergebnisaggregation statt Einzelwurf-Spam umgesetzt.
-- [x] Offene/getrunkene/gesamt Counter umgesetzt.
-- [x] `!shotdone` / `!shotgetrunken` Command angebunden.
-- [x] Dashboard-Audit/Safety für kritische Schreibaktionen ergänzt.
-- [x] History-ID-Konflikt behoben.
-- [x] Audit-Action-Namen bereinigt.
-- [x] Dashboard-Einordnung korrigiert: `Community → Event-System → Shot-Alarm`.
-- [x] Shot-Alarm-Texte im bestehenden Event-System-Texte-Dropdown verfügbar.
-- [x] Shot-Alarm-Config getrennt und sicher verfügbar.
-- [x] Dashboard-Subtabs Status/Logs/Statistik/Overlay/Sounds ergänzt.
-- [x] Shot-Log/Statistik aus Safety/Audit getrennt.
-- [x] Overlay auf Topbar/DeathCounter-Stil umgebaut.
-- [x] Overlay blendet produktiv nur bei aktivem Shot-Alarm und Live-Status ein.
-- [x] Offline-Testfenster per `?force=1` ergänzt.
-- [x] Overlay-Heartbeat für Monitor ergänzt.
-- [x] Sounds über Media-System/Sound-System eingebunden.
-- [x] Zufällige Soundliste für Shot-Ergebnis-Sounds umgesetzt.
-- [x] Sound-System-Queue wird genutzt.
-- [x] Shot-Sounds laufen mit `target=both`, `outputTarget=device`, `category=alert`.
-- [x] Overlay-Hold bis Sounddauer + Puffer umgesetzt.
-- [x] Test-Auslösung resolved wieder sauber und bleibt nicht bei `draw_started` hängen.
-- [x] Frische Shot-Session als manueller Fallback ergänzt.
-- [x] Automatische Anbindung an zentrale Twitch-Stream-Session-Events ergänzt.
-- [x] Override-Test bestätigt: Shot-Alarm übernimmt zentrale Session-ID.
+- [ ] `LWG_WHEEL_OVERLAY_RUNTIME_1` einspielen/StepDone bestätigen, falls noch nicht erledigt.
+- [ ] Wheel-Overlay-Quelle refreshen.
+- [ ] Prüfen, ob Wheel-Overlay initial unsichtbar ist.
+- [ ] Direkten Spin-Test mit Giveaway-Bound-Wheel-Feldern ausführen.
+- [ ] Prüfen, ob Overlay über Bus/WS einblendet.
+- [ ] Prüfen, ob Overlay nach Ergebnis automatisch ausblendet.
+- [ ] Prüfen, ob `loyalty.wheel.reset` sauber ausblendet.
+- [ ] Textlayout bei langen Feldern bewerten.
+- [ ] Falls nötig: Segmenttext vertikal/zweizeilig neu bauen.
 
-## Shot-Alarm offen / nächste Prüfungen
+## Giveaway Copy / Bound-Wheel
 
-- [ ] Echte Twitch-Stream-ID beim Abendstream prüfen.
-- [ ] Nach Live-Start prüfen, ob Shot-Alarm automatisch die neue echte `streamSessionId` übernimmt.
-- [ ] Prüfen, dass alte Test-Shots nicht in die neue Live-Session laufen.
-- [ ] Shot-Alarm im Livebetrieb starten und ein kontrolliertes Test-Event prüfen.
-- [ ] Event-/Overlay-Queue für mehrere schnelle Support-Events prüfen/absichern.
-- [ ] Statistik/History weiter streamerfreundlich ausbauen.
-- [ ] Dashboard-Rechte/Rollen langfristig an Benutzerverwaltung anbinden.
-- [ ] Falls nötig: `ending`-Status zusätzlich hart blockieren, falls dieser je wieder als live sichtbar bleibt.
+- [x] Kopieren-Button bei Drafts wieder sichtbar machen.
+- [x] Bound-Wheel beim Kopieren auf Kopie übertragen.
+- [x] Felder beim Kopieren übernehmen.
+- [x] Kopierte Testinstanz auf Startbereitschaft prüfen.
+- [ ] Backend-seitigen Copy-Fix langfristig prüfen/ggf. aus Dashboard-Fallback in Backend verschieben, damit Copy-Route immer vollständig ist.
 
-## Nicht vergessen
+## Backend-Flow
 
-Bei weiteren Steps immer aktuelle echte Dateien/ZIPs als Source of Truth verwenden. Keine parallelen Strukturen und keine Funktionalität entfernen.
+- [x] Open testen.
+- [x] Test-Entries anlegen.
+- [x] Close testen.
+- [x] Draw testen.
+- [x] Wheel-Permission-Erzeugung testen.
+- [x] Wheel-Claim testen.
+- [x] Winner-Status `wheel_completed` testen.
+- [x] Ergebnisfeld am Winner speichern.
+- [x] Bound-Wheel-Feld `quantityRemaining` reduzieren.
+
+## Ausschlussliste / Exclusions
+
+- [ ] Dashboard-Config für Gewinn-Ausschlussliste planen.
+- [ ] Globale Ausschlussliste unter Loyalty/Giveaways oder Loyalty/Core einordnen.
+- [ ] Pro-Giveaway zusätzliche Ausschlüsse ermöglichen.
+- [ ] Twitch User-ID speichern, Login/DisplayName als Anzeige/Fallback.
+- [ ] Draw-Filter um Exclusions erweitern.
+- [ ] Dashboard-Anzeige: ausgeschlossene User bleiben sichtbar, aber nicht gewinnberechtigt.
+- [ ] Script-Workaround durch UI/Backend-Funktion ersetzen.
+
+## Overlay / Runtime State
+
+- [ ] Einheitliche Overlay-State-Regel dokumentieren: Overlays sollen nicht dauerhaft sichtbar bleiben, außer bewusst gewollt.
+- [ ] Wheel-Overlay per Bus wie Shot-Overlay steuern.
+- [ ] Bei Node-Neustart letzten gewünschten Overlay-Zustand prüfen.
+- [ ] `event_winner_overlay.html` separat prüfen, warum es unerwartet sichtbar war.
+
+## Aufräumen
+
+- [ ] Test-Giveaway `giveaway_1781856708568_9653eba68a211017` nach Abschluss löschen oder eindeutig als Test markieren.
+- [ ] Test-Entries/Winner nicht produktiv verwenden.
+- [ ] Dokumentation nach finalem Overlay-Test erneut aktualisieren.

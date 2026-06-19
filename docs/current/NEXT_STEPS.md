@@ -1,65 +1,69 @@
-# NEXT_STEPS
+# Next Steps – LWG Wheel Overlay Runtime
 
 Stand: 2026-06-19
 
-## Direkt vor oder nach dem Abendstream prüfen
+## Nächster Chat – Startreihenfolge
 
-1. Sicherstellen, dass kein manueller Override aktiv ist:
+1. Bestätigen, ob `LWG_WHEEL_OVERLAY_RUNTIME_1.zip` entpackt wurde.
+2. Falls nicht, ZIP einspielen und StepDone ausführen:
 
 ```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/stream-state" |
-  Select-Object -ExpandProperty streamState |
-  Select-Object live,status,provider,streamId,streamSessionId,manualOverride |
-  ConvertTo-Json -Depth 6
+cd D:\Git\stream-control-center
+.\stepdone.cmd "LWG-WHEEL-OVERLAY-RUNTIME-1 Overlay show-hide und Textlayout"
 ```
 
-2. Nach echtem Live-Start Twitch-Session prüfen:
+3. Wheel-Overlay in OBS/Browsertab refreshen:
+
+```text
+http://127.0.0.1:8080/overlays/loyalty/wheel_overlay.html
+```
+
+4. Prüfen: Overlay ist initial unsichtbar.
+5. Direkten Spin-Test mit den Feldern der Test-Kopie ausführen.
+6. Ergebnis beobachten:
+   - Overlay blendet ein.
+   - Rad dreht.
+   - Gewinnertext erscheint.
+   - Overlay blendet nach Hold-Zeit aus.
+
+## Direkter Spin-Test
 
 ```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/stream-session" |
+$uid = "giveaway_1781856708568_9653eba68a211017"
+
+$fields = Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/giveaways/$uid/wheel/bound/fields"
+
+Invoke-RestMethod `
+  -Method Post `
+  -Uri "http://127.0.0.1:8080/api/loyalty/games/wheel/spin" `
+  -ContentType "application/json" `
+  -Body (@{
+    source = "overlay_direct_test"
+    sourceRefUid = $uid
+    login = "overlay_test"
+    displayName = "Overlay Test"
+    durationMs = 7000
+    fields = $fields.fields
+    metadata = @{
+      giveawayUid = $uid
+      reason = "wheel_overlay_runtime_1_test"
+    }
+  } | ConvertTo-Json -Depth 10) |
   ConvertTo-Json -Depth 10
 ```
 
-3. Shot-Alarm Runtime prüfen:
+## Falls Overlay sichtbar bleibt
 
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/shot-alarm/status" |
-  Select-Object -ExpandProperty runtime |
-  ConvertTo-Json -Depth 8
-```
+- Prüfen, ob wirklich `wheel_overlay.html` sichtbar ist und nicht `event_winner_overlay.html`.
+- OBS-Quelle URL prüfen.
+- Browsercache/OBS-Refresh durchführen.
+- JS-Konsole öffnen.
+- Nicht direkt an mehreren Overlays gleichzeitig debuggen.
 
-Erwartung:
+## Danach
 
-- `twitch_events.streamSession.streamSessionId` ist gefüllt.
-- `shot_alarm.runtime.currentStreamSessionId` passt dazu.
-- `streamLive` ist bei echtem Live-Stream `true`.
-- `effectiveActive` wird erst true, wenn Shot-Alarm zusätzlich gestartet wurde.
+Wenn Runtime funktioniert:
 
-## Bei Problemen
-
-Wenn die neue echte Twitch-Session nicht automatisch übernommen wird:
-
-- aktuellen Status aus `twitch_events` und `shot_alarm` sichern.
-- keine Blindänderung machen.
-- `backend/modules/twitch_events.js` und `backend/modules/shot_alarm.js` erneut prüfen.
-- Manuellen Fallback-Button „Neue Shot-Session starten“ nur nutzen, wenn der Livebetrieb sonst gefährdet wäre.
-
-## Empfohlener nächster Entwicklungsstep nach Live-Check
-
-`SHOT-ALARM-2L Event-/Overlay-Queue absichern`
-
-Ziel:
-
-- Mehrere Support-Events kurz hintereinander werden zuverlässig nacheinander angezeigt.
-- Pro Event/User eigene Chat-/Overlay-/Sound-Meldung.
-- Keine Overlay-Meldung wird überschrieben.
-- Sound-System bleibt Playback-/Queue-Owner.
-- Offene Shots werden weiterhin in einem Gesamtzähler addiert.
-
-## Weitere spätere Punkte
-
-- Statistik-/History-Auswertung schöner machen.
-- Filter nach Stream/Event im Dashboard weiter verbessern.
-- Texte/Varianten weiter im zentralen Texte-System pflegen.
-- Sound-Konfiguration weiter dashboardfähig halten.
-- Benutzer-/Rollenrechte später zentral anbinden.
+- Segmenttextlayout final verbessern.
+- Exclusion-Dashboard planen/umsetzen.
+- Test-Giveaways aufräumen.

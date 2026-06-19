@@ -1,52 +1,49 @@
-# FILES
+# Files – Loyalty-Giveaways / Glücksrad aktueller Arbeitsstand
 
 Stand: 2026-06-19
 
-## Shot-Alarm Backend
+## Relevante Runtime-Dateien
 
-- `backend/modules/shot_alarm.js` – Regeln, Bus-Consumer, Runtime, Stream-Session-Anbindung, Counter, Chat/Sound/Overlay-Ausgabe.
-- `config/shot_alarm.json` – Fallback/Mirror für Regeln, Zeiten, Soundpool und Anzeigeoptionen. Primär liegen viele Einstellungen in DB/Settings.
+```text
+backend/modules/loyalty_giveaways.js
+backend/modules/loyalty_games.js
+backend/modules/loyalty_games/wheel.js
+htdocs/dashboard/modules/loyalty_giveaways.js
+htdocs/dashboard/modules/loyalty_giveaways.css
+htdocs/dashboard/modules/loyalty_games.js
+htdocs/dashboard/modules/loyalty_games.css
+htdocs/overlays/loyalty/wheel_overlay.html
+```
 
-## Dashboard
+## Relevante Test-/Tool-Dateien aus aktuellen ZIPs
 
-- `htdocs/dashboard/modules/stream_events.js` – Event-System Dashboard inkl. Shot-Alarm-Tab/Subtabs, Status, Logs, Statistik, Overlay, Sounds.
-- `htdocs/dashboard/modules/stream_events.css` – Styles für Event-System und Shot-Alarm-Bereiche.
-- `htdocs/dashboard/modules/shot_alarm.js` – älterer/ergänzender Shot-Alarm-Dashboard-Modulbestand; nicht ohne Prüfung entfernen.
-- `htdocs/dashboard/modules/shot_alarm.css` – Shot-Alarm Styles.
+```text
+tools/lwg_evening_full_flow_test.ps1
+tools/lwg_overlay_bus_spin_test.ps1
+tools/lwg_resolve_excluded_winners.ps1
+tools/lwg_apply_winner_exclusion_to_entries.js
+```
 
-## Overlay
+## Aktuelle Doku-Dateien in diesem Update
 
-- `htdocs/overlays/shot_alarm/shot_alarm_overlay.html` – OBS Shot-Alarm Overlay mit Topbar, Ergebnis-Card, Force/Debug-Modus und Heartbeat.
-- `htdocs/overlays/shared/overlay_bus_client.js` – vorhandener Overlay-Bus-Client; eingebunden im Shot-Overlay.
+```text
+docs/current/CURRENT_STATUS.md
+docs/current/CURRENT_CHAT_HANDOFF_LWG_WHEEL_OVERLAY_RUNTIME_1.md
+docs/current/TODO.md
+docs/current/NEXT_STEPS.md
+docs/current/CHANGELOG.md
+docs/current/FILES.md
+docs/modules/loyalty_giveaways_CURRENT.md
+project-state/CURRENT_STATUS_LWG_WHEEL_OVERLAY_RUNTIME_1.md
+project-state/NEXT_CHAT_PROMPT_LWG_WHEEL_OVERLAY_RUNTIME_1.txt
+```
 
-## Verwandte Backend-Module
+## Test-Giveaway IDs
 
-- `backend/modules/twitch_events.js` – zentrale Stream-State-/Stream-Session-Quelle.
-- `backend/modules/twitch_presence.js` – Twitch-/Presence-Umfeld.
-- `backend/modules/communication_bus.js` – zentraler Communication/EventBus.
-- `backend/modules/helper_communication.js` – Helper für Communication-Bus.
-- `backend/modules/media.js` – Media-System/Registry.
-- `backend/modules/sound_system.js` – zentrales Sound-/Queue-System.
-- `backend/modules/sound_media_bridge.js` – Media → Sound-System Bridge.
-- `backend/modules/sound_output_config.js` – Sound-Ausgabeziele.
-- `backend/modules/kofi.js` – Ko-fi Event/Alert/Payment-Anbindung.
-- `backend/modules/tipeee.js` – Tipeee Event/Alert/Payment-Anbindung.
-- `backend/modules/commands.js` – Command-Katalog inkl. `!shotdone` / `!shotgetrunken`.
-
-## Doku / Projektstand
-
-- `docs/modules/shot_alarm.md`
-- `docs/current/CURRENT_CHAT_HANDOFF_SHOT_ALARM_2K2_READY.md`
-- `project-state/CURRENT_STATUS.md`
-- `project-state/NEXT_STEPS.md`
-- `project-state/TODO.md`
-- `project-state/CHANGELOG.md`
-- `project-state/FILES.md`
-
-## Heute erzeugte relevante Step-ZIPs
-
-- `SHOT_ALARM_2J5_test_resolve_overlay_sound_fix.zip`
-- `SHOT_ALARM_2K_overlay_heartbeat_fix.zip`
-- `SHOT_ALARM_2K1_fresh_stream_session.zip`
-- `SHOT_ALARM_2K2_auto_stream_session_binding.zip`
-- `SHOT_ALARM_2K2_docs_projectstate.zip`
+```text
+Giveaway:      giveaway_1781856708568_9653eba68a211017
+Bound-Wheel:   giveawaywheel_1781856708568_839fb2b118fc40a3
+Winner:        winner_1781857541326_7414ce0176034b92
+Permission:    wheelperm_1781857541331_8b32049906e5064d
+Spin:          spin_1781857621153_3d98fd8542116333
+```
