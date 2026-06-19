@@ -292,7 +292,14 @@
     let ws = null;
     const params = new URLSearchParams(location.search);
     const debugMode = params.get('test') === '1' || params.get('debug') === '1';
-    const overlayState = { active: false, desiredActive: false, streamLive: false };
+    const forceMode = params.get('force') === '1' || params.get('offline') === '1' || params.get('offlineTest') === '1';
+    const overlayState = { active: false, desiredActive: false, streamLive: false, forceMode };
+
+    function boolValue(value, fallback = false) {
+      if (value === true || value === 'true' || value === 1 || value === '1') return true;
+      if (value === false || value === 'false' || value === 0 || value === '0') return false;
+      return fallback;
+    }
 
     function escText(value) { return String(value ?? ''); }
     function fmt(n) { return Number(n || 0).toLocaleString('de-DE'); }
@@ -300,10 +307,14 @@
     function setOverlayActive(payload) {
       const p = payload && payload.overlayState ? payload.overlayState : payload;
       if (!p || typeof p !== 'object') return;
-      const active = debugMode || p.active === true || p.visible === true || p.effectiveActive === true;
+      const enabled = boolValue(p.enabled, true);
+      const overlayEnabled = boolValue(p.overlayEnabled, true);
+      const desiredActive = boolValue(p.desiredActive, false);
+      const effectiveActive = boolValue(p.effectiveActive, false) || boolValue(p.active, false) || boolValue(p.visible, false);
+      const active = debugMode || (forceMode ? (enabled && overlayEnabled && desiredActive) : effectiveActive);
       overlayState.active = !!active;
-      overlayState.desiredActive = p.desiredActive === true;
-      overlayState.streamLive = p.streamLive === true;
+      overlayState.desiredActive = desiredActive;
+      overlayState.streamLive = boolValue(p.streamLive, false);
       const statusBar = document.getElementById('statusBar');
       if (statusBar) statusBar.classList.toggle('hidden', !overlayState.active);
       if (!overlayState.active) {
@@ -330,7 +341,8 @@
     }
 
     function showPayload(payload) {
-      if (!overlayState.active && !debugMode) return;
+      if (!overlayState.active && !debugMode && !forceMode) return;
+      if (!overlayState.active && forceMode) return;
       const summary = payload && payload.summary ? payload.summary : payload;
       if (payload.status) applyStatus(payload.status);
       const phase = payload.phase || summary.phase || 'result';
@@ -386,7 +398,7 @@
     mode: "obs_overlay",
     module: "shot_alarm",
     name: "Shot-Alarm Overlay",
-    version: "STEP_SHOT_ALARM_2H",
+    version: "STEP_SHOT_ALARM_2H1",
     heartbeatIntervalMs: 5000,
     capabilities: [
       "overlay.heartbeat",
@@ -399,7 +411,7 @@
     meta: {
       role: "persistent_status_overlay",
       overlayFile: "/overlays/shot_alarm/shot_alarm_overlay.html",
-      standard: "STEP_SHOT_ALARM_2H",
+      standard: "STEP_SHOT_ALARM_2H1",
       expectedHost: "OBS Browser Source"
     }
   });
