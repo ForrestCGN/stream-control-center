@@ -20,8 +20,8 @@ let chatOutputHelper = null;
 try { chatOutputHelper = require("./helpers/helper_chat_output"); } catch (_) { chatOutputHelper = null; }
 
 const MODULE_NAME = "shot_alarm";
-const MODULE_VERSION = "0.2.2";
-const MODULE_BUILD = "STEP_SHOT_ALARM_2D_DASHBOARD_AUDIT_SAFETY";
+const MODULE_VERSION = "0.2.3";
+const MODULE_BUILD = "STEP_SHOT_ALARM_2E_PAYMENT_HISTORY_ID_FIX";
 const CONFIG_FILE = "shot_alarm.json";
 const HISTORY_LIMIT = 200;
 const TEXT_MODULE = "shot_alarm";
@@ -599,7 +599,7 @@ function persistHistory(entry) {
   if (!state.storageReady) return { ok: false, skipped: true, reason: "storage_not_ready" };
   try {
     database.insert(HISTORY_TABLE, {
-      id: String(entry.id || `shot_${Date.now().toString(36)}`),
+      id: String(entry.historyId || entry.storageId || entry.id || `shot_${Date.now().toString(36)}`),
       created_at: String(entry.at || nowIso()),
       phase: String(entry.phase || entry.kind || ""),
       event_type: String(entry.eventType || entry.event_type || ""),
@@ -735,10 +735,17 @@ function publicHistoryItem(item) {
 }
 
 function addHistory(item) {
+  const source = safeJson(item);
+  const sourceId = cleanString(source.id || "");
+  const historyId = `hist_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
   const entry = {
-    id: `shot_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
-    at: nowIso(),
-    ...safeJson(item)
+    ...source,
+    id: sourceId || historyId,
+    historyId,
+    storageId: historyId,
+    sourceId,
+    drawId: cleanString(source.drawId || (sourceId.startsWith("draw_") ? sourceId : "")),
+    at: source.at || nowIso()
   };
   state.history.unshift(entry);
   const limit = Math.max(20, Math.min(1000, Number(config.historyLimit || HISTORY_LIMIT)));
