@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.66";
-  const MODULE_BUILD = "STEP_SHOT_ALARM_2J1_RANDOM_OVERLAY_SOUNDS_MEDIA_QUEUE";
+  const MODULE_VERSION = "0.5.67";
+  const MODULE_BUILD = "STEP_SHOT_ALARM_2J2_RANDOM_SOUNDS_DEVICE_DISCORD_QUEUE";
 
   const api = {
     status: '/api/stream-events/status',
@@ -682,7 +682,7 @@ window.StreamEventsModule = (function(){
           </div>
         </div>
         <div class="evs-tab-help">
-          Produktiv: Bei einer Shot-Einblendung wählt das Backend zufällig einen aktiven Sound aus dieser Liste und sendet ihn an <b>/api/sound/play-media</b>. Das Sound-System bleibt Owner für Warteschlange, Busy-Handling und Sound-Overlay in OBS.
+          Produktiv: Bei einer Shot-Einblendung wählt das Backend zufällig einen aktiven Sound aus dieser Liste und sendet ihn an <b>/api/sound/play-media</b>. Das Sound-System bleibt Owner für Warteschlange, Busy-Handling, Device-Ausgabe und Discord-Routing.
         </div>
       </div>
     `;
@@ -709,8 +709,8 @@ window.StreamEventsModule = (function(){
     current.sound.endpoint = '/api/sound/play-media';
     current.sound.category = current.sound.category || 'alert';
     current.sound.source = 'shot_alarm';
-    current.sound.target = current.sound.target || 'stream';
-    current.sound.outputTarget = 'overlay';
+    current.sound.target = 'both';
+    current.sound.outputTarget = 'device';
     current.sound.queueIfBusy = true;
     current.sound.dropIfBusy = false;
     current.sound.priority = Number(current.sound.priority || 80);
@@ -795,8 +795,8 @@ window.StreamEventsModule = (function(){
         label: dashboardTestLabel || sound.label || sound.mediaLabel || 'Shot-Alarm Overlay-Einblendung',
         category: 'alert',
         source: 'shot_alarm_dashboard_test',
-        target: 'stream',
-        outputTarget: 'overlay',
+        target: 'both',
+        outputTarget: 'device',
         queueIfBusy: true,
         dropIfBusy: false,
         priority: 80,
@@ -817,7 +817,7 @@ window.StreamEventsModule = (function(){
         return;
       }
       await queueShotOverlaySound(sound, sound.label || 'Shot-Alarm Overlay-Einblendung');
-      state.message = 'Shot-Overlay-Sound wurde an die Sound-System-Warteschlange gesendet.';
+      state.message = 'Shot-Sound wurde an die Sound-System-Warteschlange für Device + Discord gesendet.';
       render();
     } catch (err) {
       state.error = err.message || String(err);

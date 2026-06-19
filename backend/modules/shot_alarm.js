@@ -20,8 +20,8 @@ let chatOutputHelper = null;
 try { chatOutputHelper = require("./helpers/helper_chat_output"); } catch (_) { chatOutputHelper = null; }
 
 const MODULE_NAME = "shot_alarm";
-const MODULE_VERSION = "0.2.7";
-const MODULE_BUILD = "STEP_SHOT_ALARM_2J1_RANDOM_OVERLAY_SOUNDS_MEDIA_QUEUE";
+const MODULE_VERSION = "0.2.8";
+const MODULE_BUILD = "STEP_SHOT_ALARM_2J2_RANDOM_SOUNDS_DEVICE_DISCORD_QUEUE";
 const CONFIG_FILE = "shot_alarm.json";
 const HISTORY_LIMIT = 200;
 const TEXT_MODULE = "shot_alarm";
@@ -116,8 +116,8 @@ const DEFAULT_CONFIG = {
     endpoint: "http://127.0.0.1:8080/api/sound/play-media",
     category: "alert",
     source: "shot_alarm",
-    target: "stream",
-    outputTarget: "overlay",
+    target: "both",
+    outputTarget: "device",
     queueIfBusy: true,
     dropIfBusy: false,
     priority: 80,
@@ -624,8 +624,13 @@ function applySoundMediaDefaults() {
   }
   if (!cleanString(config.sound.category)) { config.sound.category = DEFAULT_CONFIG.sound.category; changed = true; }
   if (!cleanString(config.sound.source)) { config.sound.source = DEFAULT_CONFIG.sound.source; changed = true; }
-  if (!cleanString(config.sound.target)) { config.sound.target = DEFAULT_CONFIG.sound.target; changed = true; }
-  if (!cleanString(config.sound.outputTarget)) { config.sound.outputTarget = DEFAULT_CONFIG.sound.outputTarget; changed = true; }
+  // SHOT-ALARM-2J.2: Shot-MP3s sollen standardmäßig über Device + Discord laufen.
+  // Alte Overlay-Defaults werden bewusst migriert, damit gespeicherte 2J/2J.1-Configs nicht stumm wirken,
+  // wenn das Sound-System-Overlay in OBS nicht in der aktiven Szene liegt.
+  const normalizedTarget = cleanString(config.sound.target);
+  if (!normalizedTarget || normalizedTarget === "stream") { config.sound.target = DEFAULT_CONFIG.sound.target; changed = true; }
+  const normalizedOutputTarget = cleanString(config.sound.outputTarget);
+  if (!normalizedOutputTarget || normalizedOutputTarget === "overlay") { config.sound.outputTarget = DEFAULT_CONFIG.sound.outputTarget; changed = true; }
   if (!Number.isFinite(Number(config.sound.priority))) { config.sound.priority = DEFAULT_CONFIG.sound.priority; changed = true; }
   if (!Number.isFinite(Number(config.sound.volume))) { config.sound.volume = DEFAULT_CONFIG.sound.volume; changed = true; }
   return changed;
@@ -1355,8 +1360,8 @@ async function requestSound(sound, context) {
     category: sound.category || config.sound.category || "alert",
     source: config.sound.source || MODULE_NAME,
     requestedBy: MODULE_NAME,
-    target: sound.target || config.sound.target || "stream",
-    outputTarget: sound.outputTarget || config.sound.outputTarget || "overlay",
+    target: sound.target || config.sound.target || "both",
+    outputTarget: sound.outputTarget || config.sound.outputTarget || "device",
     queueIfBusy: config.sound.queueIfBusy !== false,
     dropIfBusy: config.sound.dropIfBusy === true,
     priority: Number(config.sound.priority || 80),
