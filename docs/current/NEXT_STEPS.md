@@ -1,69 +1,72 @@
-# Next Steps – LWG Wheel Overlay Runtime
+# Next Steps – LWG Giveaway-bound Wheel
 
 Stand: 2026-06-19
 
-## Nächster Chat – Startreihenfolge
+## Aktueller bestätigter Stand
 
-1. Bestätigen, ob `LWG_WHEEL_OVERLAY_RUNTIME_1.zip` entpackt wurde.
-2. Falls nicht, ZIP einspielen und StepDone ausführen:
-
-```powershell
-cd D:\Git\stream-control-center
-.\stepdone.cmd "LWG-WHEEL-OVERLAY-RUNTIME-1 Overlay show-hide und Textlayout"
-```
-
-3. Wheel-Overlay in OBS/Browsertab refreshen:
+Letzter bestätigter Overlay-/Regression-Stand:
 
 ```text
-http://127.0.0.1:8080/overlays/loyalty/wheel_overlay.html
+LWG-WHEEL-TEXT-RADIAL-5
 ```
 
-4. Prüfen: Overlay ist initial unsichtbar.
-5. Direkten Spin-Test mit den Feldern der Test-Kopie ausführen.
-6. Ergebnis beobachten:
-   - Overlay blendet ein.
-   - Rad dreht.
-   - Gewinnertext erscheint.
-   - Overlay blendet nach Hold-Zeit aus.
+Bestätigt:
 
-## Direkter Spin-Test
+- `loyalty_giveaways` grün.
+- `loyalty_games` grün.
+- Bound-Wheel-Felder abrufbar.
+- Wheel-Overlay initial unsichtbar.
+- Wheel-Spin blendet Overlay ein.
+- Ergebnis wird angezeigt.
+- Overlay blendet wieder aus.
+- Winner-/Finale-Overlay bleibt aus.
+- Letzter Regression-Spin mit echten Bound-Wheel-Feldern gewann `Valheim`.
 
-```powershell
-$uid = "giveaway_1781856708568_9653eba68a211017"
+## Nächster technischer Schritt
 
-$fields = Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/giveaways/$uid/wheel/bound/fields"
+### LWG Bound-Wheel Field Count Rule
 
-Invoke-RestMethod `
-  -Method Post `
-  -Uri "http://127.0.0.1:8080/api/loyalty/games/wheel/spin" `
-  -ContentType "application/json" `
-  -Body (@{
-    source = "overlay_direct_test"
-    sourceRefUid = $uid
-    login = "overlay_test"
-    displayName = "Overlay Test"
-    durationMs = 7000
-    fields = $fields.fields
-    metadata = @{
-      giveawayUid = $uid
-      reason = "wheel_overlay_runtime_1_test"
-    }
-  } | ConvertTo-Json -Depth 10) |
-  ConvertTo-Json -Depth 10
+Ziel:
+
+- Giveaway-bound Wheel soll nur noch verfügbare echte Gewinnfelder anzeigen.
+- Keine Auffüllung auf 12 sichtbare Felder.
+- Aktuelle Beobachtung:
+
+```text
+Bound-Wheel count/fieldCount = 8
+Davon quantityRemaining > 0 = 7
+Spin-Metadata: fieldsCount = 7
+Spin-Metadata: visualFieldsCount = 12
 ```
 
-## Falls Overlay sichtbar bleibt
+Gewünschte Regel:
 
-- Prüfen, ob wirklich `wheel_overlay.html` sichtbar ist und nicht `event_winner_overlay.html`.
-- OBS-Quelle URL prüfen.
-- Browsercache/OBS-Refresh durchführen.
-- JS-Konsole öffnen.
-- Nicht direkt an mehreren Overlays gleichzeitig debuggen.
+```text
+2+ verfügbare Gewinne  → normaler Spin mit exakt diesen Feldern
+1 verfügbarer Gewinn   → kein normaler Spin, letzter Gewinn direkt vergeben / separates Letzter-Gewinn-Overlay
+0 verfügbare Gewinne   → Claim/Spin blockieren
+```
+
+Betroffene Dateien vor Umsetzung prüfen:
+
+```text
+backend/modules/loyalty_games.js
+backend/modules/loyalty_games/wheel.js
+backend/modules/loyalty_giveaways.js
+config/loyalty_games.json
+```
+
+Wichtig:
+
+- Die hochgeladene Live-`loyalty_games.json` enthält aktuell kein `minVisibleSlots`.
+- Der Wert 12 kommt vermutlich aus Backend-Default/Fallback.
+- Nicht blind in JSON herumprobieren.
+- Erst echte Dateien prüfen, dann Plan, dann auf `go` warten.
 
 ## Danach
 
-Wenn Runtime funktioniert:
-
-- Segmenttextlayout final verbessern.
-- Exclusion-Dashboard planen/umsetzen.
-- Test-Giveaways aufräumen.
+1. Single-Remaining-Gewinn-Regel implementieren/testen.
+2. Reset-/Hide-Testmöglichkeit für Wheel-Overlay sauber dokumentieren oder als geschützte Diagnosefunktion bauen.
+3. Exclusion/Ausschlussliste ins Dashboard/Backend planen.
+4. Test-Giveaway aufräumen oder als Test markieren.
+5. Gamble-Alias-Bug separat prüfen.

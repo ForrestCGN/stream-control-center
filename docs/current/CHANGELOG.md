@@ -1,33 +1,45 @@
-# Changelog – Loyalty-Giveaways / Glücksrad
+# Changelog – Loyalty-Giveaways / CGN-Glücksrad
 
-## 2026-06-19 – LWG Wheel Copy + Runtime Tests
+## 2026-06-19 – LWG Wheel Overlay Runtime + Radial Text Regression
 
 ### Added
 
-- Test-/Diagnose-Dokumentation für Giveaway-bound Wheel Flow.
-- Handoff für nächsten Chat: `CURRENT_CHAT_HANDOFF_LWG_WHEEL_OVERLAY_RUNTIME_1.md`.
-- Overlay-Runtime-Ziel für Wheel-Overlay dokumentiert.
+- Dokumentation für bestätigten Overlay-/Regression-Stand `LWG-WHEEL-TEXT-RADIAL-5`.
+- Entscheidung zur Feldanzahl-Regel für Giveaway-bound Wheels dokumentiert.
+- Entscheidung zur letzten Gewinnregel dokumentiert:
+  - 2+ Gewinne → Spin.
+  - 1 Gewinn → Direktvergabe / separates Letzter-Gewinn-Overlay.
+  - 0 Gewinne → blockieren.
 
 ### Changed
 
-- Dashboard-Copy-Fix getestet: Kopierte Giveaways behalten ein eigenes gebundenes Wheel mit Feldern.
-- Wheel-Overlay soll künftig initial unsichtbar sein und nur über Bus/WS eingeblendet werden.
-- Feldtextlayout soll zweizeilig/kompakter werden.
+- Wheel-Overlay mehrfach verbessert bis `LWG-WHEEL-TEXT-RADIAL-5`:
+  - Initial unsichtbar.
+  - Einblenden bei Spin.
+  - Auto-Hide nach Ergebnis.
+  - Winner-/Finale-Overlay isoliert.
+  - Statuspanel links entfernt.
+  - Segmenttexte radial mit Segmentrichtung.
+  - `€`-Darstellung korrigiert.
+  - Gewinnerbanner ohne Subtext.
+  - Gewinnerbanner für lange Namen verkleinert.
 
 ### Tested
 
-- Giveaway-Kopie startbereit mit 8 Feldern.
-- Open/Entry/Close/Draw.
-- Wheel-Permission.
-- Wheel-Claim.
-- Spin-Ergebnis `Roadside Research`.
-- Winner-Status `wheel_completed`.
-- Permission-Status `used`.
-- Bound-Wheel-Feld `quantityRemaining` wurde reduziert.
+- `loyalty_giveaways` Status: ok/enabled/kein lastError.
+- `loyalty_games` Status: ok/enabled/kein lastError.
+- Bound-Wheel-Felder: 8 Felder vorhanden.
+- Ein Feld (`Roadside Research`) ist nach echtem Test gewonnen und hat `quantityRemaining=0`.
+- Regression-Spin mit echten Bound-Wheel-Feldern gestartet.
+- Letzter Regression-Spin: `Valheim`.
+- Wheel nach Spin: `running=false`, `activeSession=null`, `lastError=`.
+- Winner-/Finale-Overlay blieb beim Wheel aus.
 
-### Known Issues
+### Known Issues / Follow-up
 
-- Ausschlussliste war im Test nicht aktiv, weil der Platzhalter-Dateiname genutzt wurde.
-- Exclusion muss dauerhaft ins Dashboard/Backend.
-- Wheel-Overlay-Textlayout muss nach Runtime-Fix erneut geprüft werden.
-- `event_winner_overlay.html` war unerwartet sichtbar und muss separat geprüft werden.
+- Giveaway-bound Wheel füllt optisch noch auf 12 sichtbare Felder auf (`visualFieldsCount=12`), obwohl fachlich nur verfügbare Felder gezogen werden (`fieldsCount=7`).
+- Für Giveaway-bound Wheels soll nicht auf 12 aufgefüllt werden.
+- Direkte REST-Test-Route `/api/communication-bus/publish` existiert nicht; Reset-/Hide-Test braucht echte Route oder Diagnosefunktion.
+- `!gamble` Alias-Bug: Status zeigt `aliases: ["[object", "object]"]`.
+- Ausschlussliste/Exclusions noch dashboardfähig umzusetzen.
+- Test-Giveaway später löschen oder eindeutig als Test markieren.
