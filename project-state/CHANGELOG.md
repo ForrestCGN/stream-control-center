@@ -2,6 +2,49 @@
 
 Stand: 2026-06-19
 
+## SHOT-ALARM-2D Dashboard Audit Safety
+
+- `shot_alarm` Version auf `0.2.2` erhöht.
+- Build gesetzt auf `STEP_SHOT_ALARM_2D_DASHBOARD_AUDIT_SAFETY`.
+- Neue Route ergänzt: `GET /api/shot-alarm/dashboard-audit`.
+- Status um `safety` und `audit` erweitert.
+- Schreibende Shot-Alarm-Aktionen werden auditiert:
+  - Config speichern
+  - Texte speichern/löschen
+  - Test auslösen
+  - manueller Trigger
+  - offene Auslosungen auflösen
+  - Shot getrunken
+  - Pending flush
+  - Runtime reset
+- Kritische Aktionen brauchen `confirmWrite:true`:
+  - `manual-trigger`
+  - `resolve-pending`
+  - `flush-pending`
+  - `reset-state`
+- Dashboard sendet `confirmWrite:true` bei kritischen Aktionen.
+- Event-System-Shot-Tab zeigt Safety-/Audit-Infos.
+- Text `Chat-Befehl kommt später` wurde auf `!shotdone ist aktiv` korrigiert.
+- Keine Änderung an Shot-Regeln.
+- Keine DB-Datei ersetzt.
+- Keine Event-System-Hauptlogik entfernt.
+- Keine Ko-fi/Tipeee-Anbindung umgesetzt.
+
+Tests:
+
+- `node -c backend/modules/shot_alarm.js` erfolgreich.
+- `node -c htdocs/dashboard/modules/stream_events.js` erfolgreich.
+- `node -c htdocs/dashboard/modules/shot_alarm.js` erfolgreich.
+- `/api/shot-alarm/status` zeigt `moduleVersion=0.2.2` und Build `STEP_SHOT_ALARM_2D_DASHBOARD_AUDIT_SAFETY`.
+- `/api/shot-alarm/dashboard-audit?limit=10` funktioniert.
+- `POST /api/shot-alarm/resolve-pending` ohne `confirmWrite` wird mit `confirm_write_required` blockiert.
+- `POST /api/shot-alarm/resolve-pending` mit `confirmWrite:true` läuft erfolgreich durch.
+- Audit enthält erlaubte und verweigerte Aktion.
+
+Hinweis:
+
+- Kleiner Cleanup-Punkt: Audit-Action-Namen vereinheitlichen (`shot_alarm.resolve_pending` statt Mischung aus `_` und `-`).
+
 ## SHOT-ALARM-2C shotdone command
 
 - `!shotdone` über das bestehende Command-System angebunden.

@@ -1,7 +1,7 @@
 'use strict';
 
-// STEP180 — TipeeeStream Socket Provider for ForrestCGN Alert-System
-// TipeeeStream Socket.io -> Node Provider -> Alert-System V2 -> Overlay
+// STEP SHOT-ALARM-2E — TipeeeStream Payment-Bus Mirror
+// TipeeeStream Socket.io/Webhook -> Alert-System V2 + Communication Bus payment.tipeee.received
 // Donation-only default seed; non-donation Tipeee alert rules are disabled defensively.
 // No Streamer.bot required.
 
@@ -10,6 +10,8 @@ const https = require('https');
 
 const database = require('../core/database');
 const routes = require('./helpers/helper_routes');
+let communicationBus = null;
+try { communicationBus = require('./communication_bus'); } catch (_) { communicationBus = null; }
 
 let ioClient = null;
 try {
@@ -20,17 +22,17 @@ try {
 }
 
 const MODULE = 'tipeee';
-const MODULE_VERSION = '0.1.0';
+const MODULE_VERSION = '0.1.1';
 const MODULE_META = {
   name: MODULE,
   version: MODULE_VERSION,
   type: 'runtime',
   category: 'payment',
   legacy: false,
-  description: 'TipeeeStream socket/webhook provider for the alert system.',
+  description: 'TipeeeStream socket/webhook provider for alerts and payment bus events.',
   routesPrefix: ['/api/alerts/tipeee'],
   bus: {
-    publishes: false,
+    publishes: ['payment.tipeee.received'],
     subscribes: false,
     heartbeat: false
   }
@@ -102,6 +104,18 @@ const state = {
     socketDisconnects: 0,
     lastEventAt: null,
     lastForwardAt: null,
+    lastError: ''
+  },
+  paymentBus: {
+    enabled: true,
+    channel: 'payment.tipeee',
+    action: 'received',
+    attempted: 0,
+    emitted: 0,
+    failed: 0,
+    skipped: 0,
+    lastEventId: '',
+    lastAt: '',
     lastError: ''
   }
 };
@@ -506,6 +520,7 @@ function buildStatus(req) {
     databasePath: database.getDbPath(),
     schemaVersion: database.getSchemaVersion(MODULE),
     stats: { ...state.stats },
+    paymentBus: { ...state.paymentBus },
     recentEventsCount: state.recentEvents.length,
     requestIp: req ? getIp(req) : '',
     requestHost: req ? getHost(req) : '',
@@ -832,6 +847,7 @@ async function handleTipeeeEvent(event, options = {}) {
   }
 
   const forwardedEventUid = forward.body && forward.body.eventUid ? String(forward.body.eventUid) : '';
+  const paymentBusResult = publishPaymentBusEvent(event, { localTest: !!options.isLocalTest, socketEvent: !!options.isSocketEvent, forwardedEventUid });
   updateProviderEvent(event, 'forwarded', forwardedEventUid);
 
   if (!options.isLocalTest) state.stats.accepted += 1;
@@ -852,8 +868,100 @@ async function handleTipeeeEvent(event, options = {}) {
     currency: event.currency,
     user: event.user_display,
     forwardedEventUid,
+    paymentBus: paymentBusResult,
     alertResult: forward.body
   };
+}
+
+
+function publishPaymentBusEvent(event, options = {}) {
+  if (!state.paymentBus.enabled) {
+    state.paymentBus.skipped += 1;
+    state.paymentBus.lastError = 'payment_bus_disabled';
+    return { ok: false, skipped: true, reason: 'payment_bus_disabled' };
+  }
+  if (!communicationBus || typeof communicationBus.getBus !== 'function') {
+    state.paymentBus.failed += 1;
+    state.paymentBus.lastError = 'communication_bus_unavailable';
+    return { ok: false, reason: 'communication_bus_unavailable' };
+  }
+
+  state.paymentBus.attempted += 1;
+
+  try {
+    const bus = communicationBus.getBus();
+    if (!bus || typeof bus.emit !== 'function') {
+      state.paymentBus.failed += 1;
+      state.paymentBus.lastError = 'communication_bus_emit_unavailable';
+      return { ok: false, reason: 'communication_bus_emit_unavailable' };
+    }
+
+    const payload = buildPaymentBusPayload(event, options);
+    const result = bus.emit({
+      type: 'event',
+      channel: state.paymentBus.channel,
+      action: state.paymentBus.action,
+      source: { type: 'module', id: `module:${MODULE}`, module: MODULE },
+      target: { type: 'all', id: '*' },
+      payload,
+      meta: {
+        requireAck: false,
+        replayable: false,
+        ttlMs: 30000,
+        provider: 'tipeee',
+        providerEventId: event.providerEventId || ''
+      }
+    });
+
+    if (result && result.ok) {
+      state.paymentBus.emitted += 1;
+      state.paymentBus.lastEventId = result.eventId || '';
+      state.paymentBus.lastAt = nowIso();
+      state.paymentBus.lastError = '';
+      return { ok: true, eventId: result.eventId || '', subscriberDeliveredCount: result.subscriberDeliveredCount || 0 };
+    }
+
+    state.paymentBus.failed += 1;
+    state.paymentBus.lastError = result && result.reason ? result.reason : 'communication_bus_emit_failed';
+    return { ok: false, reason: state.paymentBus.lastError, result };
+  } catch (err) {
+    state.paymentBus.failed += 1;
+    state.paymentBus.lastError = errorMessage(err);
+    return { ok: false, reason: 'payment_bus_publish_failed', error: state.paymentBus.lastError };
+  }
+}
+
+function buildPaymentBusPayload(event, options = {}) {
+  return {
+    provider: 'tipeee',
+    source: 'tipeee',
+    type: event.type_key || 'donation',
+    eventType: event.type_key || 'donation',
+    user: event.user_display || '',
+    userName: event.user_display || '',
+    userDisplayName: event.user_display || '',
+    displayName: event.user_display || '',
+    userLogin: event.user_login || '',
+    login: event.user_login || '',
+    amount: Number(event.amount || 0),
+    amountEur: normalizeAmountEur(event.amount, event.currency),
+    currency: event.currency || state.settings.currencyDefault || 'EUR',
+    message: event.message || '',
+    title: event.title || '',
+    avatarUrl: event.avatar_url || '',
+    avatar_url: event.avatar_url || '',
+    providerEventId: event.providerEventId || '',
+    localTest: options.localTest === true,
+    socketEvent: options.socketEvent === true,
+    forwardedEventUid: options.forwardedEventUid || '',
+    raw: state.settings.includeRawEvent ? (event.raw || {}) : { providerEventId: event.providerEventId || '', currency: event.currency || '' }
+  };
+}
+
+function normalizeAmountEur(amount, currency) {
+  const value = toNumber(amount, 0);
+  const code = String(currency || state.settings.currencyDefault || 'EUR').trim().toUpperCase();
+  return code === 'EUR' ? value : value;
 }
 
 function rememberProviderEvent(event, status, forwardedEventUid) {
