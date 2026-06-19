@@ -1,77 +1,71 @@
-# TODO – stream-control-center
+## TODO – Hype-Train Rekord nach STEP_HT1_FIX1_HYPETRAIN_MEDIA_SAVE
 
-Stand: 2026-06-17 16:20
-
-## Erledigt / bestätigt – EventSound Runtime
-
-- [x] Sound-Schnipsel wird über Sound-System abgespielt.
-- [x] Sound-System bleibt Playback-/Queue-Owner.
-- [x] Eventsystem startet Sound/Reveal nicht am Sound-System vorbei.
-- [x] 3-Sekunden-Countdown/PreRoll vor Sound.
-- [x] Während Countdown/Sound keine gültigen Antworten.
-- [x] Antwortfenster startet erst nach Sound-Ende.
-- [x] Kleiner Antwort-Counter während Antwortfenster.
-- [x] Counter oben rechts.
-- [x] Counter-Hintergrund ohne Transparenz.
-- [x] `JETZT RATEN` während Soundlauf entfernt.
-- [x] Richtige Antwort wird erkannt.
-- [x] Punkte werden vergeben.
-- [x] Gewinner-Card Mitte rechts.
-- [x] Gewinner-Card für längere Namen/Titel robuster gemacht.
-- [x] Long-Winner-Demo-URL ergänzt.
-- [x] Reveal wird nach Gewinner-Card geplant.
-- [x] Reveal-PreRoll-Kreis `AUFLOESUNG/LOS/JETZT RATEN` entfernt.
-- [x] Timeout-/Keine-Lösung-Kachel oben mittig ergänzt.
-- [x] Keine-Lösung-Text zentriert und im Heimleitungsstil formuliert.
-- [x] Auto-Schedule-Logik korrigiert: Intervall ± Jitter statt roundDelaySeconds als Hauptintervall.
-
-## Offen / prüfen
-
-- [ ] Live-/OBS-Test: Gewinner-Card + Reveal komplett im echten Setup prüfen.
-- [ ] Falls Reveal unsichtbar: `sound_system_overlay.html` und OBS-Browserquelle prüfen.
-- [ ] Timeout-Test ohne Antwort nach aktuellem Overlay nochmal sauber laufen lassen.
-- [ ] Counter-Takt im Live-Bild weiter beobachten; nur nach echtem Problem weiter polieren.
-- [ ] Gewinner-Card-Layout so lassen, solange Demo/Live optisch passt.
-- [ ] EventSound Dashboard-/Config-Integration fortführen.
-- [ ] Overlay-Texte später ins zentrale Textvarianten-System bringen.
-- [ ] Auto-Rotation nach gelöst/timeout über mehrere Runden prüfen.
-- [ ] Statistiken für Sound-Snippets später dashboardfähig ergänzen.
-
-## Relevante Testtools / Scripts
-
-```text
-tools/test_event_runtime_unresolved_card.ps1
-Downloads/EVENT_RUNTIME_DIAG_DELAYED_ANSWER_30S.ps1
-Downloads/EVENT_RUNTIME_TEST_LONG_WINNER_CARD_2.ps1  # nur noch bedingt nutzen; Demo-URL ist zuverlässiger
-```
-
-## Dauerhafte Regeln
-
-- [ ] Vor Codeänderung echte Dateien prüfen.
-- [ ] Ziel/Dateien/Änderung/Nicht geändert/Tests nennen.
-- [ ] Auf Forrests `go` warten.
-- [ ] Keine Funktionalität entfernen ohne Freigabe.
-- [ ] Keine Apply-/Patch-/Regex-Scripte.
-- [ ] ZIPs mit echten Repo-Pfaden ab Root.
-- [ ] DB niemals überschreiben/löschen/neu bauen.
-- [ ] StepDone erst nach Entpacken + Deploy/Live-Aktualisierung, danach testen.
+- [ ] Dashboard-Speichern mit Media-Auswahl erneut testen.
+- [ ] Prüfen, dass `recordSound.mediaId` nach Speichern erhalten bleibt.
+- [ ] Rekord-Test mit Sound-System-Queue prüfen.
+- [ ] Echten Twitch-Hype-Train-Flow im Stream beobachten.
+- [ ] Danach ggf. Texte in DB-/Textvarianten-System überführen.
 
 ---
 
-## Hype-Train Rekord-System
+# TODO – stream-control-center
 
-- [x] Hype-Train EventSub begin/progress/end nach twitch_events weiterleiten.
-- [x] Payload um allTimeHighLevel/allTimeHighTotal erweitern.
-- [x] Internes Event `twitch.hypetrain.record_broken` ergänzen.
-- [x] Rekord-Sound pro Hype-Train nur einmal triggern.
-- [x] Sound über bestehendes Sound-System per mediaId einreihen.
-- [x] Standard-Priorität für Rekord-Sound auf 1000 setzen.
-- [x] Dashboard-Tab für Hype-Train-Rekord ergänzen.
-- [x] Media-Picker/Upload im Dashboard anbinden.
-- [x] Media-System-Kategorie `twitch_events/hypetrain-record` ergänzen.
-- [x] Tagebuch-Eintrag bei Hype-Train-Ende vorbereiten.
-- [ ] Nach Deploy Dashboard-Upload testen.
-- [ ] Synthetischen Hype-Train-Test mit gesetzter mediaId ausführen.
-- [ ] Im echten Stream prüfen, ob Twitch begin/progress/end vollständig ankommen.
-- [ ] Prüfen, ob Tagebuch bei offline/requireActiveStream korrekt reagiert.
-- [ ] Texte später in zentrale Textvarianten/DB übertragen, falls gewünscht.
+Stand: 2026-06-17 06:55
+
+## Neu erledigt – EventSound / Sound-System
+
+- EventSound-Testflow mit echter Media-Datei bestätigt.
+- Globale 2s Sound-Pause bestätigt.
+- Recent Playback trennt Audio-Ende und Gap-Ende.
+- Sound-Dashboard zeigt globale Sound-Pause und Zuletzt gespielt.
+- Dashboard-Badge `Verlauf aktiv`.
+
+## Neu offen – EventSound / Sound-System
+
+- `EVENT-SOUND-DASH-1`: EventSound-Konfiguration ins Dashboard bringen.
+- Sound-Snippet-Auswahl über vorhandenes Media-System.
+- Runtime-Overlay Ergebnis-/Auswertungsphase ausbauen.
+- Reveal-Video nach erkanntem Sound über vorhandenes Media-System planen.
+- `SOUND-DASH-3`: Recent Playback Filter/Details ergänzen.
+- Pause zwischen Sounds später editierbar machen.
+
+---
+
+# TODO – stream-control-center
+
+Stand: 2026-06-15 19:55
+
+## Erledigt
+
+- Loyalty Core live geschaltet.
+- StreamElements-Punkte additiv importiert.
+- Watch-Punkte im Stream produktiv gebucht.
+- Twitch-Event-Boni über `twitch_events` verarbeitet und gebucht.
+- Alerts weiterhin Shadow gehalten.
+- `!raffle` / `!join` im bestehenden `loyalty_giveaways` integriert.
+- Raffle bucht Gewinnerpunkte als `raffle_win`.
+- Raffle-Config-Routen ergänzt: `/api/loyalty/raffle/status`, `/api/loyalty/raffle/config`.
+- Config-Endpoint-Fix: `loyalty_giveaways` Version 0.1.9.
+- Dashboard-Tab `Mini-Spiele` ergänzt.
+- Gamble aus Hauptnavigation in Mini-Spiele-Struktur überführt.
+- Raffle im Dashboard sichtbar und speicherbar.
+- Mini-Spiele Layout bereinigt.
+- Raffle-Gewinnerregel und Textkeys optisch sauber dargestellt.
+
+## Offen
+
+- `LC-MINIGAMES-2A`: Struktur-Cleanup, Config/Texte/Commands sauber trennen.
+- Raffle-Chattexte im nächsten Live-/Chat-Test final prüfen.
+- Raffle-Texte im zentralen Texte-Bereich komfortabler filtern/anzeigen.
+- Subscriber-Tier-Erkennung prüfen.
+- GiftSub-Receiver-Konfig/Buchung abgleichen.
+- Alert-Twitch-Events weiter im Shadow-Modus beobachten.
+- Status-Warnings in `loyalty_giveaways` bei Gelegenheit auf aktuelle STEP-Stände aktualisieren, falls dort noch alte Hinweise stehen.
+
+## Nicht tun ohne explizite Freigabe
+
+- Alerts produktiv auf Twitch-Events/Bus umschalten.
+- Produktive DB ersetzen oder überschreiben.
+- Raffle als neues Parallelmodul bauen.
+- Bestehende Giveaway-/Wheel-/Gamble-Logik umbauen.
+- Funktionalität entfernen.

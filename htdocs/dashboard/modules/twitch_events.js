@@ -179,12 +179,12 @@
   }
 
   async function saveHypetrainConfig() {
+    const cfg = readHypetrainConfigFromDom();
     state.hypetrainBusy = true;
     state.error = '';
     state.notice = '';
     render();
     try {
-      const cfg = readHypetrainConfigFromDom();
       const data = await window.CGN.api('/api/twitch/events/hypetrain/config', { method: 'POST', body: JSON.stringify({ hypetrain: cfg }) });
       state.hypetrainConfig = data.config || cfg;
       state.hypetrain = data.hypetrain || state.hypetrain;

@@ -1,114 +1,134 @@
+## Dateien – STEP_HT1_FIX1_HYPETRAIN_MEDIA_SAVE
+
+Geändert:
+
+- `htdocs/dashboard/modules/twitch_events.js`
+  - Fix: Hype-Train-Rekord-Config wird vor dem Re-Rendern gelesen, damit die MediaField-Auswahl (`recordSound.mediaId`) gespeichert wird.
+
+Projektstand aktualisiert:
+
+- `project-state/CURRENT_STATUS.md`
+- `project-state/NEXT_STEPS.md`
+- `project-state/TODO.md`
+- `project-state/CHANGELOG.md`
+- `project-state/FILES.md`
+
+Nicht geändert:
+
+- Backend
+- Datenbank
+- Sound-System
+- Media-System
+- Tagebuch
+
+---
+
 # FILES – relevante Dateien
 
-Stand: 2026-06-17 16:20
+Stand: 2026-06-17 06:55
 
-## EventSound / Runtime / Sound-System
+## EventSound / Sound-System / Runtime-Dashboard
 
 ```text
-backend/modules/stream_events.js
 backend/modules/sound_system.js
-htdocs/overlays/stream_events/event_runtime_overlay.html
-htdocs/overlays/sound_system_overlay.html
-htdocs/dashboard/modules/stream_events.js
-htdocs/dashboard/modules/stream_events.css
+backend/modules/stream_events.js
 htdocs/dashboard/modules/sound.js
 htdocs/dashboard/modules/sound.css
-```
-
-## Testtools
-
-```text
-tools/test_event_runtime_unresolved_card.ps1
-```
-
-Zusätzlich in Downloads/Arbeitsdateien genutzt:
-
-```text
-EVENT_RUNTIME_DIAG_DELAYED_ANSWER_30S.ps1
-EVENT_RUNTIME_TEST_LONG_WINNER_CARD_2.ps1
-```
-
-Hinweis: Long-Winner-Layout besser über Demo-URL testen:
-
-```text
-http://127.0.0.1:8080/overlays/stream_events/event_runtime_overlay.html?demo=result-long&v=test
-```
-
-## Doku
-
-```text
-docs/current/CURRENT_STATUS.md
-docs/current/NEXT_STEPS.md
-docs/current/TODO.md
-docs/current/CHANGELOG.md
-docs/current/FILES.md
-docs/current/CURRENT_CHAT_HANDOFF_EVENT_RUNTIME_2026-06-17.md
-docs/current/NEXT_CHAT_PROMPT_EVENT_RUNTIME_2026-06-17.md
+htdocs/dashboard/modules/stream_events.js
+htdocs/dashboard/modules/stream_events.css
+htdocs/overlays/stream_events/event_runtime_overlay.html
+docs/current/CURRENT_CHAT_HANDOFF_EVENT_SOUND_RUNTIME_2026-06-17.md
+docs/current/NEXT_CHAT_PROMPT_EVENT_SOUND_RUNTIME_2026-06-17.md
+docs/modules/SOUND_SYSTEM.md
 docs/modules/stream_events.md
 docs/overlays/event_runtime_overlay.md
 docs/testing/SOUND_EVENT_RUNTIME_TESTFLOW.md
+```
+
+STEP-ZIPs:
+
+```text
+SOUND-DASH-1_RECENT_PLAYBACK_AND_GAP_STATUS.zip
+SOUND-DASH-1B_BACKEND_STATUS_CLEANUP.zip
+SOUND-GAP-2_PLAYBACK_LOG_AUDIO_END_AND_GAP_END.zip
+SOUND-DASH-2_RECENT_PLAYBACK_AUDIO_GAP_COLUMNS.zip
+SOUND-DASH-2B_RECENT_PLAYBACK_BADGE_UX.zip
+DOCS-EVENT-SOUND-RUNTIME-2026-06-17.zip
+```
+
+---
+
+# FILES – relevante Dateien
+
+Stand: 2026-06-15 19:55
+
+## Backend
+
+```text
+backend/modules/loyalty.js
+backend/modules/loyalty_giveaways.js
+backend/modules/twitch_events.js
+backend/modules/alerts_twitch_events.js
+backend/modules/helpers/helper_texts.js
+backend/modules/helpers/helper_chat_output.js
+```
+
+## Dashboard Repo-Pfade
+
+```text
+dashboard/modules/loyalty.js
+dashboard/modules/loyalty_games.js
+dashboard/modules/loyalty_games.css
+```
+
+## Dashboard Live-Pfade
+
+```text
+htdocs/dashboard/modules/loyalty.js
+htdocs/dashboard/modules/loyalty_games.js
+htdocs/dashboard/modules/loyalty_games.css
+```
+
+## Imports / Tools
+
+```text
+tools/loyalty_import_streamelements_points.js
+data/imports/streamelements_points_top489_2026-06-15.csv
+data/imports/streamelements_points_top489_excluded_2026-06-15.csv
+data/imports/streamelements_points_raw_top489_2026-06-15.tsv
+data/imports/README_streamelements_points_import_2026-06-15.md
+```
+
+## Relevante STEP-ZIPs aus diesem Arbeitsstand
+
+```text
+STEP_LC_POINTS_IMPORT_STREAMELEMENTS_2026-06-15.zip
+STEP_LC_RAFFLE_1_SIMPLE_RAFFLE_2026-06-15.zip
+STEP_LC_RAFFLE_1B_CHAT_MESSAGES_2026-06-15.zip
+STEP_LC_RAFFLE_1C_LOYALTY_PAYOUT_2026-06-15.zip
+STEP_LC_RAFFLE_1D_CHAT_TEXT_CLEANUP_2026-06-15.zip
+STEP_LC_RAFFLE_1E_JOIN_TEXT_CLEANUP_2026-06-15.zip
+STEP_LC_RAFFLE_1F_PUBLIC_TEXT_KEYS_2026-06-15.zip
+STEP_LC_RAFFLE_2A_CONFIG_ROUTES_2026-06-15.zip
+STEP_LC_RAFFLE_2A_FIX1_CONFIG_ENDPOINT_2026-06-15.zip
+STEP_LC_MINIGAMES_1B_DASHBOARD_TAB_2026-06-15.zip
+STEP_LC_MINIGAMES_1C_DASHBOARD_LAYOUT_CLEANUP_2026-06-15.zip
+STEP_LC_MINIGAMES_1C_DASHBOARD_LAYOUT_CLEANUP_FULLPATH_2026-06-15.zip
+STEP_LC_MINIGAMES_1D_RAFFLE_DETAIL_LAYOUT_2026-06-15.zip
+STEP_LC_MINIGAMES_1D_RAFFLE_DETAIL_LAYOUT_FULLPATH_2026-06-15.zip
+```
+
+## Doku / Übergabe
+
+```text
+docs/current/CURRENT_CHAT_HANDOFF_LC_MINIGAMES_RAFFLE_DASHBOARD_2026-06-15.md
+docs/modules/loyalty.md
+docs/modules/loyalty_giveaways.md
+docs/modules/loyalty_games_dashboard.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/CHANGELOG.md
 project-state/FILES.md
-```
-
-## Wichtige URLs
-
-```text
-Dashboard:
-http://127.0.0.1:8080/dashboard
-
-Runtime Overlay:
-http://127.0.0.1:8080/overlays/stream_events/event_runtime_overlay.html
-
-Runtime Overlay Debug:
-http://127.0.0.1:8080/overlays/stream_events/event_runtime_overlay.html?debug=1&v=test
-
-Long Winner Demo:
-http://127.0.0.1:8080/overlays/stream_events/event_runtime_overlay.html?demo=result-long&v=test
-
-Sound-System Overlay:
-http://127.0.0.1:8080/overlays/sound_system_overlay.html
-```
-
-## Relevante STEP-ZIPs aus diesem Chatblock
-
-```text
-STEP_EVENT_RUNTIME_OVERLAY_1.zip
-STEP_EVENT_RUNTIME_OVERLAY_1B.zip
-STEP_EVENT_RUNTIME_ANSWER_COUNTDOWN_1.zip
-STEP_EVENT_RUNTIME_ANSWER_COUNTDOWN_1B.zip
-STEP_EVENT_RUNTIME_UNRESOLVED_CARD_1.zip
-STEP_EVENT_RUNTIME_POLISH_1.zip
-STEP_EVENT_RUNTIME_POLISH_1B_TEXT.zip
-STEP_EVENT_RUNTIME_WINNER_CARD_TEXT_1.zip
-STEP_EVENT_RUNTIME_WINNER_CARD_LAYOUT_1.zip
-STEP_EVENT_RUNTIME_WINNER_CARD_DEMO_1.zip
-DOCS_EVENT_RUNTIME_2026-06-17.zip
-```
-
----
-
-## Hype-Train Rekord-System – STEP_HT1
-
-```text
-backend/modules/twitch.js
-backend/modules/twitch_events.js
-backend/modules/media.js
-htdocs/dashboard/modules/twitch_events.js
-htdocs/dashboard/modules/twitch_events.css
-htdocs/dashboard/app.js
-config/twitch_events.json
-```
-
-Neue/ergänzte Routen:
-
-```text
-GET  /api/twitch/events/hypetrain/status
-GET  /api/twitch/events/hypetrain/config
-POST /api/twitch/events/hypetrain/config
-GET  /api/twitch/events/hypetrain/test?confirm=1
-POST /api/twitch/events/hypetrain/test?confirm=1
+NEXT_CHAT_PROMPT_LC_MINIGAMES_RAFFLE_DASHBOARD_2026-06-15.md
 ```

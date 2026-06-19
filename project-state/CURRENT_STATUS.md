@@ -1,183 +1,432 @@
-# CURRENT_STATUS – stream-control-center
+## STEP_HT1_FIX1_HYPETRAIN_MEDIA_SAVE
 
-Stand: 2026-06-17 16:20
+Stand: 2026-06-19
 
-## Aktueller Arbeitsstand
+Bestätigt aus Testlog:
+- Hype-Train-Rekord-Erkennung funktioniert.
+- Total- und Level-Rekord werden erkannt.
+- Tagebuch-Eintrag bei Hype-Train-Ende funktioniert.
 
-```text
-EventSound / Runtime-Overlay / Sound-System ist der aktuelle Arbeitsblock.
-Der Grundablauf Sound-Schnipsel → Antwortfenster → Gewinner-/Keine-Lösung-Anzeige ist grundsätzlich stabil.
-```
+Fix:
+- Dashboard-Save-Bug bei `recordSound.mediaId` behoben.
+- Ursache: Beim Speichern wurde zuerst gerendert; dadurch ging die aktuell im MediaField gesetzte Hidden-Input-Auswahl verloren.
+- Lösung: Config wird jetzt vor dem Busy-Render aus dem DOM gelesen.
 
-## Bestätigt funktionierend
-
-```text
-- Sound-Schnipsel läuft hörbar über das Sound-System.
-- Sound-System bleibt Playback-/Queue-Owner.
-- Eventsystem/Runtime-Overlay startet Sound/Video nicht direkt am Sound-System vorbei.
-- 3 Sekunden Countdown/PreRoll vor dem Sound funktioniert.
-- Während Countdown und Sound werden Antworten nicht akzeptiert.
-- Das Antwortfenster startet erst nach Sound-Ende.
-- Kleiner runder Antwort-Counter wird während der Antwortphase angezeigt.
-- Counter sitzt oben rechts und hat deckenden Hintergrund.
-- Richtige Antwort wird erkannt.
-- Punkte werden vergeben.
-- Gewinner-Card erscheint Mitte rechts.
-- Reveal-Video kann grundsätzlich über Sound-System-Overlay abgespielt werden.
-- Bei Timeout erscheint eine eigene Keine-Lösung-Kachel oben mittig.
-- Keine-Lösung-Kachel spoilert die Lösung nicht.
-- Kein AUFLOESUNG-/LOS-/JETZT-RATEN-Kreis mehr beim Reveal.
-- Auto-Schedule wurde korrigiert: random_auto/sequence_auto nutzt intervalMinutes ± intervalJitterMinutes; roundDelaySeconds ist nur Mindestpause/Floor.
-```
-
-## Aktuelle Versionen / Builds aus diesem Arbeitsstand
-
-```text
-stream_events: zuletzt dokumentierter Zielstand 0.5.51 / STEP_EVENT_RUNTIME_UNRESOLVED_CARD_1
-sound_system: Reveal-Playback-only Fix aus STEP_EVENT_RUNTIME_OVERLAY_1B berücksichtigt
-Runtime-Overlay: zuletzt über Overlay-Steps bis 0.3.7 erweitert
-```
-
-Hinweis: Bei Tests immer zuerst echte API-Version prüfen:
-
-```powershell
-$s = Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/status"
-$s | Select-Object moduleVersion,moduleBuild | Format-List
-```
-
-## Relevante zuletzt gebaute Steps
-
-```text
-EVENT-RUNTIME-OVERLAY-1
-- Gewinner-Card Mitte rechts.
-- Reveal nach Gewinner-Card verzögert.
-- AUFLOESUNG-Payload entfernt.
-
-EVENT-RUNTIME-OVERLAY-1B
-- Reveal-Playback über Sound-System ohne Runtime-PreRoll-Kreis.
-- Kein LOS/JETZT RATEN/AUFLOESUNG beim Reveal.
-
-EVENT-RUNTIME-ANSWER-COUNTDOWN-1
-- Antwortzeit-Counter eingeführt.
-- answerSeconds bis 3600 Sekunden vorbereitet.
-- Counter nur während answerWindow.active.
-- JETZT RATEN während Soundlauf entfernt.
-
-EVENT-RUNTIME-ANSWER-COUNTDOWN-1B
-- Counter nach oben rechts verschoben.
-- Counter-Anzeige ruhiger gemacht.
-
-EVENT-RUNTIME-UNRESOLVED-CARD-1
-- Keine-Lösung-Kachel nach Timeout.
-- Counter ohne Transparenz.
-- Timeout-Result sichtbar 10 Sekunden.
-
-EVENT-RUNTIME-POLISH-1 / 1B
-- Keine-Lösung-Kachel optisch verbessert.
-- Text aktualisiert:
-  KEINE LÖSUNG
-  Die Heimleitung hat im Chat
-  keine richtige Antwort erkannt.
-  Der Schnipsel bleibt im Archiv.
-
-EVENT-RUNTIME-WINNER-CARD-LAYOUT-1
-- Gewinner-Card robuster für lange Namen/Titel.
-- Username eigene Zeile.
-- Punkte eigene Zeile.
-- Titel eigene zweizeilige Titelbox.
-
-EVENT-RUNTIME-WINNER-CARD-DEMO-1
-- Demo-URL für langen Namen/Titel ergänzt:
-  /overlays/stream_events/event_runtime_overlay.html?demo=result-long&v=test
-```
-
-## Aktueller gewünschter Runtime-Ablauf Sound-Schnipsel
-
-```text
-1. Event/Auto-Intervall löst nächste Soundrunde aus.
-2. Runtime-Overlay zeigt 3 / 2 / 1 / LOS.
-3. Sound-System spielt den Schnipsel.
-4. Während Sound: keine Antwortannahme, kein Jetzt-raten-Text.
-5. Nach Sound-Ende startet answerWindow.
-6. Counter oben rechts läuft.
-7a. Richtige Antwort:
-    - Counter weg.
-    - Gewinner-Card Mitte rechts ca. 10 Sekunden.
-    - danach Reveal-Video über Sound-System-Overlay.
-    - danach weiter nach Auto-Intervall.
-7b. Timeout / keine richtige Antwort:
-    - Counter weg.
-    - Keine-Lösung-Kachel oben mittig ca. 10 Sekunden.
-    - kein Reveal.
-    - keine Punkte.
-    - Schnipsel bleibt ungelöst und kann je nach Config später wieder in Rotation.
-```
-
-## Bekannte Stolperfallen
-
-```text
-- Wenn Counter nicht erscheint: zuerst prüfen, ob answerWindow.active im Runtime-State true wird.
-- Wenn alte Texte/Layouts sichtbar sind: Backend-Version, Live-Deploy und OBS-Browserquellen-Cache prüfen.
-- Wenn Reveal-Video nicht sichtbar ist: Reveal läuft nicht über event_runtime_overlay.html, sondern über sound_system_overlay.html.
-- Der falsche ZIP-Pfad aus einem früheren Step war ein bekannter Fehler. Korrekt ist:
-  htdocs/overlays/stream_events/event_runtime_overlay.html
-- Long-Winner-Test über Custom-Testevent war unzuverlässig; Layoutprüfung für lange Namen/Titel lieber über Demo-URL machen.
-```
-
-## Wichtige URLs / Testbefehle
-
-```text
-Runtime Overlay:
-http://127.0.0.1:8080/overlays/stream_events/event_runtime_overlay.html
-
-Long Winner Demo:
-http://127.0.0.1:8080/overlays/stream_events/event_runtime_overlay.html?demo=result-long&v=test
-
-Sound-System Overlay für Reveal-Videos:
-http://127.0.0.1:8080/overlays/sound_system_overlay.html
-```
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/runtime-overlay/state" | ConvertTo-Json -Depth 12
-Invoke-RestMethod "http://127.0.0.1:8080/api/sound/recent-playback?limit=10" | ConvertTo-Json -Depth 12
-Invoke-RestMethod "http://127.0.0.1:8080/api/sound/event-preroll/status" | ConvertTo-Json -Depth 12
-```
-
-## Nächster sinnvoller Arbeitsblock
-
-```text
-1. Nicht weiter am Gewinner-/Keine-Lösung-Layout schrauben, solange es im Live-/Demo-Test ok aussieht.
-2. Reveal-Video-Sichtbarkeit bei Bedarf separat über sound_system_overlay.html prüfen.
-3. Danach EventSound Dashboard-/Config-Integration sauber weiterführen.
-4. Doku/Projektstand nach jedem stabilen Test aktualisieren.
-```
+Nächster Test:
+- Sound im Dashboard auswählen, speichern, Status prüfen: `recordSound.mediaId` muss > 0 sein.
+- Danach synthetischen Hype-Train-Rekord mit neuer ID testen.
 
 ---
 
-## STEP_HT1_HYPETRAIN_RECORD_SOUND_DASHBOARD – 2026-06-19
+## STEP CAN-5.8 Recovery-Diagnose Dashboard-Plan
+
+Stand: 2026-06-01
+Marker: STEP_CAN5_8_RECOVERY_DASHBOARD_PLAN
+
+CAN-5.8 plant die spätere read-only Anzeige der Recovery-Diagnose im bestehenden Bus-Diagnostics-Dashboard.
+
+~~~text
+Nur read-only anzeigen
+Keine Simulation per Dashboard auslösen
+Keine automatische Recovery
+Kein Auto-Retry
+Kein Alert-Replay
+Kein Sound-Replay
+Keine produktive Flow-Änderung
+~~~
+
+Geplante Anzeige:
+
+~~~text
+recoveryStrategyState.mode
+recoveryStrategyState.state
+recoveryStrategyState.severity
+recoveryStrategyState.nextAction
+recoveryStrategyState.reasons
+recoveryStrategyState.blockedActions
+automationEnabled
+productiveActions
+flowTouched / queueTouched / soundSystemTouched / alertSystemTouched / overlayTouched
+~~~
+
+Details: `docs/system-inspection/EVENTBUS_CAN5_8_RECOVERY_DASHBOARD_PLAN.md`
+
+## STEP CAN-5.7 Simulation-Harness Live-Test stabil bestätigt
+
+Stand: 2026-06-01
+Marker: STEP_CAN5_7_SIMULATION_HARNESS_LIVE_TEST_STABLE
+
+CAN-5.6 wurde live mit dem CAN-5.5 read-only Recovery-Simulation-Harness geprüft.
+
+~~~text
+bus_diagnostics: 1.2.4
+feature: recovery_simulation_harness
+simulationVersion: CAN-5.5
+readOnly: true
+automationEnabled: false
+productiveActions: false
+flowTouched: false
+queueTouched: false
+soundSystemTouched: false
+alertSystemTouched: false
+overlayTouched: false
+~~~
+
+Geprüfte Szenarien:
+
+~~~text
+missingAck -> blocked_missing_visual_ack
+noClient   -> blocked_no_overlay_client
+unmatched  -> blocked_unmatched_alert_sound
+~~~
+
+Bestätigung:
+
+~~~text
+Simulationen sind synthetisch.
+Keine echten Alerts wurden ausgelöst.
+Keine Sounds wurden gestartet.
+Keine Overlays wurden gesteuert.
+Keine Recovery-Automatik wurde aktiviert.
+~~~
+
+Details: `docs/system-inspection/EVENTBUS_CAN5_7_SIMULATION_HARNESS_LIVE_TEST_STABLE.md`
+
+## STEP CAN-5.5 Read-only Recovery Simulation Harness
+
+Stand: 2026-06-01
+Marker: STEP_CAN5_5_READONLY_RECOVERY_SIMULATION_HARNESS
+
+CAN-5.5 ergänzt isolierte Recovery-Simulationen in bus_diagnostics.
+
+~~~text
+bus_diagnostics: 1.2.4
+/api/bus-diagnostics/recovery-simulation/status
+/api/bus-diagnostics/recovery-simulation/test?scenario=missingAck
+readOnly: true
+automationEnabled: false
+productiveActions: false
+~~~
+
+Keine echten Alerts/Sounds/Overlays werden ausgelöst.
+
+
+## STEP CAN-5.4 Fehler-/Timeout-Simulation geplant
+
+Stand: 2026-06-01
+Marker: STEP_CAN5_4_ERROR_TIMEOUT_SIMULATION_PLAN
+
+CAN-5.4 definiert die geplanten read-only Fehler- und Timeout-Simulationen.
+
+~~~text
+missingAck
+noClient
+unmatched
+waiting_too_long
+sound_fetch_failed
+bundle_wait_timeout
+overlay_watchdog_issue
+~~~
+
+Regel bleibt:
+
+~~~text
+Recovery bleibt read-only
+automationEnabled bleibt false
+keine produktive Wiederholung
+keine Flow-Änderung
+~~~
+
+## STEP CAN-5.3 Recovery read-only stabil bestätigt
+
+Stand: 2026-06-01
+Marker: STEP_CAN5_3_RECOVERY_READONLY_STABLE
+
+CAN-5.2 wurde live mit einem Test-Alert erfolgreich geprüft.
 
 ```text
-Hype-Train-Rekord-System wurde vorbereitet:
-Twitch EventSub begin/progress/end wird von twitch.js nach twitch_events weitergeleitet.
-twitch_events erkennt Rekorde intern, feuert twitch.hypetrain.record_broken, reiht optional einen Media-Sound mit Priorität 1000 ins Sound-System ein und schreibt bei Hype-Train-Ende einen Systemeintrag ins Tagebuch.
+bus_diagnostics: 1.2.3
+summary.status: ok
+handshakeState: matched
+correlationMatched: 2
+correlationUnmatched: 0
+recoveryStrategyMode: read_only
+recoveryStrategyState: ok_no_recovery_needed
+automationEnabled: false
+warnings: []
+errors: []
+flowTouched: false
 ```
 
-## Betroffene Dateien
+Bestätigt:
 
 ```text
-backend/modules/twitch.js
-backend/modules/twitch_events.js
-backend/modules/media.js
-htdocs/dashboard/modules/twitch_events.js
-htdocs/dashboard/modules/twitch_events.css
-htdocs/dashboard/app.js
-config/twitch_events.json
+Alert erfolgreich
+Sound erfolgreich
+Visual ACK erfolgreich
+Recovery bleibt read-only
+keine Automatik ausgelöst
 ```
 
-## Wichtig
+Keine produktive Flow-Änderung in diesem Dokumentations-Step.
+
+## STEP CAN-5.1 Recovery Strategy State read-only
+
+Stand: 2026-06-01
+Marker: STEP_CAN5_1_RECOVERY_STRATEGY_STATE
+
+Bus-Diagnostics zeigt jetzt zusätzlich einen read-only Recovery-Strategy-Status.
 
 ```text
-Rekord-Sound ist konfigurierbar über Dashboard -> Twitch Events -> Hype-Train Rekord.
-Upload/Auswahl läuft über das bestehende Media-System mit Kategorie twitch_events/hypetrain-record.
-Sound wird nicht als Sonderlogik abgespielt, sondern über /api/sound/play mit mediaId und hoher Priorität eingereiht.
+bus_diagnostics: 1.2.3
+recoveryStrategyState.mode: read_only
+automationEnabled: false
+flowTouched: false
+blockedActions: auto_replay_alert, auto_replay_sound, auto_retry_overlay, auto_recovery
+```
+
+Keine produktive Recovery-Automatik wurde aktiviert.
+
+## STEP CAN-5.0 Recovery-/Timeout-Strategie geplant
+
+Stand: 2026-06-01
+Marker: STEP_CAN5_0_RECOVERY_TIMEOUT_PLAN
+
+CAN-5.0 dokumentiert nur die Strategie für spätere Recovery-/Timeout-Behandlung.
+
+```text
+Status: Plan / read-only
+Keine Recovery-Automatik
+Keine Backend-Modul-Code-Änderung
+Keine Flow-Änderung
+```
+
+Wichtigste Regel:
+
+```text
+Keine doppelte Alert- oder Sound-Auslösung durch Recovery.
+```
+
+## STEP CAN-4.3 Overlay ACK stabil dokumentiert
+
+Stand: 2026-06-01
+Marker: STEP_CAN4_3_OVERLAY_ACK_STABLE
+
+CAN-4.2 wurde live erfolgreich geprüft.
+
+```text
+alert_system: 3.1.9
+handshakeState: matched
+visualDeliveryState: matched_and_visual_acknowledged
+overlayRows: 1
+acknowledged: 1
+waiting: 0
+missingAck: 0
+noClient: 0
+warnings: []
+ackEvent: finished
+ackReason: finished
+ackLatencyMs: 25867
+```
+
+Bestätigte Kette:
+
+```text
+Alert -> Sound -> Visual Overlay -> Finish-ACK
+```
+
+Keine produktive Flow-Änderung in diesem Dokumentations-Step.
+
+# CURRENT SYSTEM STATUS – STEP278 Vorbereitung
+
+<!-- CAN-3.7-STABLE-STATUS:START -->
+## CAN-3.7 stabiler Zwischenstand
+
+Stand: 2026-06-01
+
+### Ergebnis
+
+CAN-3 ist bis einschließlich CAN-3.6 erfolgreich geprüft.
+
+```text
+alert_system: 3.1.8
+sound_system: 0.1.20
+bus_diagnostics: 1.2.2
+handshakeState: matched
+matched: 2
+unmatched: 0
+warnings: []
+```
+
+### Bestätigte Kette
+
+```text
+Alert -> Bundle -> Sound-System -> Matching -> Handshake-State
+```
+
+### Wichtig
+
+Dieser Stand ist ein Diagnose-/Stabilitätsstand. Es wurden keine produktiven Flow-Umbauten an Queue, Sound-Playback, Overlay, TTS, DB oder Config vorgenommen.
+
+Details: `docs/system-inspection/EVENTBUS_CAN3_7_STABLE_STATUS.md`
+<!-- CAN-3.7-STABLE-STATUS:END -->
+
+
+Stand: 2026-05-31 08:14 UTC
+
+## Kontext
+
+Projekt: `stream-control-center`  
+Repo: `https://github.com/ForrestCGN/stream-control-center`  
+Branch: `dev`  
+Live-System: `D:\Streaming\stramAssets`  
+Lokales Repo: `D:\Git\stream-control-center`
+
+## Aktueller Arbeitsstand
+
+Heute wurde kein Script-Umbau durchgeführt. Es wurde nur die Konfiguration für einen Live-Test angepasst.
+
+### Clip-/Shoutout-System
+
+Datei: `D:\Streaming\stramAssets\config\clip_system.json`
+
+Unter `clipShoutout.officialShoutout` wurde für den heutigen Test gesetzt:
+
+```json
+"officialShoutout": {
+  "enabled": true,
+  "liveGateEnabled": false
+}
+```
+
+Ziel: Die interne Live-Sperre des Clip-Shoutout-Moduls testweise deaktivieren, damit geprüft werden kann, ob wartende offizielle Twitch-Shoutouts während des Streams korrekt abgearbeitet werden.
+
+Der Status nach der Änderung zeigte:
+
+```json
+"officialShoutout": {
+  "liveGateEnabled": false,
+  "globalCooldownMs": 120000,
+  "targetCooldownMs": 3600000
+}
+```
+
+und:
+
+```json
+"officialQueue": {
+  "liveGate": {
+    "enabled": false,
+    "live": false
+  },
+  "pending": 10
+}
+```
+
+Damit ist die Live-Gate-Sperre aktuell aus. Die alten Queue-Einträge enthalten teilweise weiterhin `last_error: waiting_stream_live_offline`, das ist aber der gespeicherte alte Fehlertext am jeweiligen Eintrag.
+
+### Weiterhin aktive Sperren
+
+Auch mit deaktiviertem Live-Gate sind weiterhin aktiv:
+
+```json
+"globalCooldownMs": 120000
+```
+
+= 2 Minuten Abstand zwischen offiziellen Twitch-Shoutouts insgesamt.
+
+```json
+"targetCooldownMs": 3600000
+```
+
+= 1 Stunde Sperre pro Zielkanal.
+
+Der Status zeigte außerdem:
+
+```json
+"lastBusEvent": {
+  "action": "shoutout.official.waiting_cooldown"
+}
+```
+
+Das bedeutet: Nach Deaktivierung des Live-Gates wartet die Official-Queue nicht mehr auf „Stream live“, sondern auf den Cooldown.
+
+## Beobachtung für heutigen Stream
+
+Gestern funktionierten die offiziellen Shoutouts grundsätzlich. Heute soll beobachtet werden, ob sie mit deaktiviertem Live-Gate wieder zuverlässig gesendet werden.
+
+Beim Stream beobachten:
+
+- Kommt `!so` / `!vso` rein?
+- Wird der Video-/Clip-Shoutout über Sound-System/Overlay abgespielt?
+- Wird danach der offizielle Twitch-Shoutout gesendet?
+- Wenn mehrere Shoutouts kommen: warten sie sauber in der Queue?
+- Werden die offiziellen Shoutouts alle 2 Minuten gesendet?
+- Wird derselbe Zielkanal innerhalb 1 Stunde korrekt blockiert?
+
+## Bekannte Auffälligkeiten
+
+Der Status zeigte weiterhin:
+
+```text
+registeredCommand: false
+```
+
+und:
+
+```text
+Unknown named parameter 'trigger'
+```
+
+Das ist nicht direkt der Live-Gate-Blocker, muss aber später geprüft werden.
+
+## Alert-System / Overlay-Kommunikation
+
+Es trat wiederholt ein Problem auf:
+
+- Sound/TTS wurde abgespielt.
+- Visuelles Alert-Overlay wurde nicht angezeigt.
+- Nach `/api/alerts/clear` und Aktualisieren der OBS-Browserquelle lief es wieder.
+
+Aus dem Status war auffällig:
+
+```json
+"queueLength": 2,
+"current": null,
+"currentEventId": null
+```
+
+sowie `active_bundle_lock` und ein `waitForStart`-Timeout von 300 Sekunden.
+
+Interpretation: Wahrscheinlich Kommunikations-/Timingproblem zwischen Alert-System, Sound-System und Overlay. Kein OBS-Designproblem und kein Benutzerfehler.
+
+## Geplanter nächster großer Schritt
+
+`STEP278_COMMUNICATION_AND_QUEUE_RESILIENCE`
+
+Ziel:
+
+- Kommunikation zwischen Backend-Modulen, Sound-System und Overlays prüfen.
+- Einheitlichen Ablauf für Start, Queue, Running, Finished, Failed definieren.
+- Verhindern, dass Sound/TTS läuft, aber Overlay kein klares Play-Signal bekommt.
+- Verhindern, dass Queues in Zwischenzuständen hängen.
+- Live-/Offline-Status robuster und transparenter machen.
+- Dashboard-Status verbessern.
+
+## CAN-4.0 Plan erstellt
+
+Stand: 2026-06-01
+
+CAN-3 ist stabil dokumentiert. CAN-4 beginnt als reiner Plan-/Diagnoseabschnitt.
+
+```text
+CAN-4.0: Overlay ACK / Visual Delivery Diagnose konsolidieren
+```
+
+Ziel ist, den naechsten Fehlerbereich sichtbar zu machen: Alert/Sound kann sauber gematcht sein, waehrend das visuelle Overlay eventuell kein Finish/ACK liefert.
+
+Dokument:
+
+```text
+docs/system-inspection/EVENTBUS_CAN4_0_OVERLAY_ACK_VISUAL_DELIVERY_PLAN.md
 ```
