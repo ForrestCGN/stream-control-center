@@ -127,11 +127,11 @@
 
     .winner-text {
       position: absolute;
-      left: 560px;
-      top: 825px;
+      left: 600px;
+      top: 830px;
       z-index: 7;
-      width: 800px;
-      height: 145px;
+      width: 720px;
+      height: 112px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -139,13 +139,13 @@
       color: rgba(255,255,255,.94);
       font-weight: 900;
       text-transform: uppercase;
-      letter-spacing: .055em;
-      font-size: clamp(22px, 1.85vw, 34px);
-      line-height: .98;
+      letter-spacing: .045em;
+      font-size: clamp(20px, 1.55vw, 30px);
+      line-height: .92;
       text-shadow: 0 0 10px rgba(208,60,255,.85), 0 0 18px rgba(24,216,255,.65);
       pointer-events: none;
       overflow: hidden;
-      padding: 0 28px;
+      padding: 0 22px;
       box-sizing: border-box;
     }
 
@@ -166,15 +166,21 @@
     }
 
     .winner-text.is-long {
-      font-size: clamp(20px, 1.55vw, 29px);
-      letter-spacing: .04em;
-      line-height: .96;
+      font-size: clamp(18px, 1.25vw, 24px);
+      letter-spacing: .035em;
+      line-height: .90;
     }
 
     .winner-text.is-very-long {
-      font-size: clamp(18px, 1.35vw, 25px);
-      letter-spacing: .032em;
-      line-height: .94;
+      font-size: clamp(15px, 1.02vw, 20px);
+      letter-spacing: .025em;
+      line-height: .88;
+    }
+
+    .winner-text.is-ultra-long {
+      font-size: clamp(13px, .88vw, 17px);
+      letter-spacing: .018em;
+      line-height: .86;
     }
 
     .winner-text .sub {
@@ -283,7 +289,7 @@
 
   <script>
     (() => {
-      const OVERLAY_BUILD = "LWG-WHEEL-TEXT-RADIAL-4";
+      const OVERLAY_BUILD = "LWG-WHEEL-TEXT-RADIAL-5";
       const RESULT_HOLD_MS = 11000;
       const RESET_HIDE_MS = 300;
 
@@ -529,17 +535,19 @@
       function buildWinnerLines(label) {
         const raw = fixTextEncoding(label || "").replace(/\s+/g, " ").trim();
         if (!raw) return [""];
-        const maxLines = raw.length > 28 || raw.includes(":") ? 3 : 2;
-        const maxChars = raw.length > 34 ? 18 : 22;
+        const longColonTitle = raw.includes(":") && raw.length > 28;
+        const maxLines = longColonTitle || raw.length > 38 ? 3 : 2;
+        const maxChars = maxLines >= 3 ? 17 : 19;
         return splitLabel(raw, maxLines, maxChars);
       }
 
       function setWinnerText(field, fallbackLabel = "Bereit") {
         const label = field && field.label ? fixTextEncoding(field.label) : fixTextEncoding(fallbackLabel);
         const lines = buildWinnerLines(label);
-        winnerText.classList.remove("is-long", "is-very-long");
-        if (lines.length >= 3 || label.length > 34) winnerText.classList.add("is-very-long");
-        else if (lines.length >= 2 || label.length > 22) winnerText.classList.add("is-long");
+        winnerText.classList.remove("is-long", "is-very-long", "is-ultra-long");
+        if (lines.length >= 3 && label.length > 44) winnerText.classList.add("is-ultra-long");
+        else if (lines.length >= 3 || label.length > 30) winnerText.classList.add("is-very-long");
+        else if (lines.length >= 2 || label.length > 18) winnerText.classList.add("is-long");
         const main = lines.map(line => `<span class="winner-line">${esc(line)}</span>`).join("");
         winnerText.innerHTML = `<span class="wrap"><span class="main">${main}</span></span>`;
       }
@@ -567,7 +575,7 @@
         statusSub.textContent = data.user && data.user.displayName
           ? `Spin für ${data.user.displayName}`
           : "Spin läuft";
-        winnerText.classList.remove("is-long", "is-very-long");
+        winnerText.classList.remove("is-long", "is-very-long", "is-ultra-long");
         winnerText.innerHTML = `<span class="wrap"><span class="main"><span class="winner-line">Dreht...</span></span></span>`;
 
         const targetNormalized = normalizeDeg(-selectedIndex * step);
@@ -601,7 +609,7 @@
         clearTimeout(finishFallbackTimer);
         running = false;
         statusSub.textContent = "Zurückgesetzt";
-        winnerText.classList.remove("is-long", "is-very-long");
+        winnerText.classList.remove("is-long", "is-very-long", "is-ultra-long");
         winnerText.innerHTML = `<span class="wrap"><span class="main"><span class="winner-line">Bereit</span></span></span>`;
         rotor.style.transition = "transform 800ms ease";
         rotor.style.transform = `rotate(${currentRotation}deg)`;
