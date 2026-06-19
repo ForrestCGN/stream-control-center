@@ -5,23 +5,39 @@
 ### Changed
 
 - `loyalty_giveaways` auf Version `0.1.15`, Build `LWG_GIVEAWAY_EXCLUSIONS_1B` erhöht.
-- Exclusion-Config-Loader robuster gemacht:
-  - akzeptiert Exportformat `ok: true` + `items[]`,
-  - akzeptiert Configformat `enabled: true` + `items[]`,
-  - akzeptiert alternativ `users[]` und `exclusions[]`,
+- Exclusion-Loader robuster gemacht:
+  - akzeptiert Exportformat `ok:true` + `items[]`,
+  - akzeptiert Configformat `enabled:true` + `items[]`,
+  - akzeptiert zusätzlich `users[]` und `exclusions[]`,
   - entfernt UTF-8-BOM vor JSON-Parsing,
   - ignoriert kaputte/null-Einträge.
-- Statusausgabe `giveawayExclusions` um Diagnosewerte erweitert:
+- Modulstatus `giveawayExclusions` um Diagnosefelder erweitert:
   - `rawItemsCount`,
   - `ignoredInvalidCount`,
   - `loaded`,
   - `mtimeMs`.
 
-### Not changed
+### Tested
 
-- Keine Änderung an der bestätigten Draw-Eligibility-Regel.
-- Keine Änderung am Wheel-Claim-Flow.
-- Keine Änderung am Bound-Wheel-Feldverbrauch.
+- Live-Status bestätigt:
+
+```text
+moduleVersion = 0.1.15
+moduleBuild = LWG_GIVEAWAY_EXCLUSIONS_1B
+enabled = true
+count = 10
+rawItemsCount = 10
+ignoredInvalidCount = 0
+loaded = true
+lastError =
+```
+
+### Compatibility
+
+- Keine Änderung an Draw-Eligibility-Regel.
+- Keine Änderung an Wheel-Claim-Flow.
+- Keine Änderung an Bound-Wheel-Feldverbrauch.
+- Kein Overlay-Change.
 
 ## 2026-06-19 – LWG_GIVEAWAY_EXCLUSIONS_1
 
@@ -32,15 +48,19 @@
 - Draw-Metadata/Fairness enthält `exclusionInfo` mit Roh-/Eligible-/Excluded-Informationen.
 - Modulstatus enthält `giveawayExclusions` mit Pfad, Count und Ladefehler.
 
+### Changed
+
+- `loyalty_giveaways` auf Version `0.1.14`, Build `LWG_GIVEAWAY_EXCLUSIONS_1` erhöht.
+- Gesperrte User bleiben als Entry sichtbar, können aber nicht gewinnen.
+
 ### Tested
 
-- Frisches Test-Giveaway `giveaway_1781865117837_a56d3fcb009a15a2`.
-- Entries: `una_solala`, `udowb`, `engelcgn`.
-- `una_solala` wurde als Entry sichtbar gelassen, aber beim Draw ausgeschlossen.
-- Draw-Gewinner: `udowb`.
-- `exclusionInfo.excludedEntriesCount=1` und `excluded[0].userLogin=una_solala`.
+- Frisches Test-Giveaway mit `una_solala`, `udowb`, `engelcgn`.
+- `una_solala` blieb als Entry sichtbar, wurde aber beim Draw ausgeschlossen.
+- Gewinner war `udowb`.
+- `exclusionInfo.excludedEntriesCount=1`, `excluded[0].userLogin=una_solala`.
 - Wheel-Claim für `udowb` erfolgreich.
-- Gewinn `Roadside Research` wurde vergeben und auf `quantityRemaining=0` reduziert.
+- Gewinn `Roadside Research` wurde vergeben und Feldbestand reduziert.
 
 ### Known Follow-up
 

@@ -2,69 +2,140 @@
 
 Stand: 2026-06-19
 
-## Aktueller bestätigter Stand
+## Aktueller bestätigter Bereich
 
-`LWG_GIVEAWAY_EXCLUSIONS_1` ist fachlich live bestätigt.
+Step `LWG_GIVEAWAY_EXCLUSIONS_1B` wurde live getestet und bestätigt.
 
-Bestätigter Test mit Giveaway `giveaway_1781865117837_a56d3fcb009a15a2`:
-
-```text
-Entries roh: 3
-- una_solala   (gesperrt)
-- udowb        (erlaubt)
-- engelcgn     (erlaubt)
-
-Draw-Gewinner: udowb
-eligibleEntriesCount: 2
-exclusionInfo.enabled: true
-exclusionInfo.configuredCount: 10
-exclusionInfo.rawEntriesCount: 3
-exclusionInfo.excludedEntriesCount: 1
-exclusionInfo.excluded[0].userLogin: una_solala
-exclusionInfo.excluded[0].reason: login
-```
-
-Danach wurde der Wheel-Claim für `udowb` erfolgreich getestet:
-
-```text
-Permission: wheelperm_1781865357312_f86f36711269e3e3
-Spin:       spin_1781865515072_d11827bafa8cd593
-Gewinn:     Roadside Research
-Status:     wheel_completed
-Feld:       Roadside Research quantityRemaining 1 -> 0
-```
-
-Damit ist bestätigt:
-
-- gesperrte User dürfen teilnehmen und bleiben als Entry sichtbar,
-- gesperrte User werden beim Draw aus der eligible-Liste entfernt,
-- Draw-Metadata/Fairness enthält `exclusionInfo`,
-- Gewinner kann danach normal das Giveaway-bound Wheel drehen,
-- Bound-Wheel-Felder werden weiter exakt und korrekt reduziert.
-
-## Neuer Sicherheits-Step
-
-`LWG_GIVEAWAY_EXCLUSIONS_1B` ist ein robuster Loader-/Diagnose-Step ohne Funktionsänderung am bestätigten Draw-Verhalten.
-
-Ziel:
-
-- Exportformat mit `ok: true` + `items[]` akzeptieren.
-- Configformat mit `enabled: true` + `items[]` oder `users[]` akzeptieren.
-- UTF-8-BOM vor JSON-Parsing entfernen.
-- kaputte/null-Einträge ignorieren statt die Sperrliste unklar zu machen.
-- Status-Diagnose um `rawItemsCount`, `ignoredInvalidCount`, `loaded`, `mtimeMs` erweitern.
-
-## Modulversionen nach `LWG_GIVEAWAY_EXCLUSIONS_1B`
+Bestätigt:
 
 ```text
 loyalty_giveaways: 0.1.15 / LWG_GIVEAWAY_EXCLUSIONS_1B
 loyalty_games:     0.2.8  / LWG_BOUND_WHEEL_FIELD_COUNT_1
 ```
 
-## Noch offen / später
+## Bestätigte Wheel-Funktion
 
-- Exclusions im Dashboard editierbar machen.
-- Exclusions DB-basiert speichern.
-- Twitch-User-ID langfristig als primären Schlüssel nutzen.
-- Pro-Giveaway zusätzliche Sperren planen.
-- 1-Gewinn-Direktvergabe später gezielt testen.
+Step `LWG_BOUND_WHEEL_FIELD_COUNT_1` bleibt bestätigt:
+
+```text
+2+ verfügbare Gewinne  → normaler Glücksrad-Spin mit exakt diesen verfügbaren Feldern
+1 verfügbarer Gewinn   → Codepfad vorbereitet: Direktvergabe ohne normalen Wheel-Spin
+0 verfügbare Gewinne   → Codepfad vorbereitet: Claim/Spin blockiert
+```
+
+Live-Test mit Giveaway `giveaway_1781856708568_9653eba68a211017`:
+
+```text
+Vor Test: 8 Bound-Wheel-Felder, davon 7 verfügbar
+Claim für urlug → Gewinn Valheim
+Spin-Metadata: fieldsCount=7, visualFieldsCount=7, visualMinVisibleSlots=7
+Nach Test: Roadside Research=0, Valheim=0, verfügbar=6
+```
+
+Damit ist bestätigt: Giveaway-bound Wheels werden nicht mehr optisch auf 12 Felder aufgefüllt.
+
+## Gewinn-Sperrliste / Exclusions
+
+Die dateibasierte Gewinn-Sperrliste ist aktiv:
+
+```text
+config/loyalty_giveaway_exclusions.json
+```
+
+Fachliche Regel:
+
+```text
+User dürfen als Entry sichtbar bleiben, sind aber beim Draw nicht eligible und können dadurch nicht gewinnen.
+```
+
+Live-Status nach `LWG_GIVEAWAY_EXCLUSIONS_1B`:
+
+```text
+moduleVersion = 0.1.15
+moduleBuild   = LWG_GIVEAWAY_EXCLUSIONS_1B
+giveawayExclusions.enabled = True
+giveawayExclusions.count = 10
+giveawayExclusions.rawItemsCount = 10
+giveawayExclusions.ignoredInvalidCount = 0
+giveawayExclusions.loaded = True
+lastError =
+```
+
+## Bestätigter Exclusion-Test
+
+Frisches Test-Giveaway:
+
+```text
+Giveaway:     giveaway_1781865117837_a56d3fcb009a15a2
+Titel:        Test
+Bound-Wheel:  giveawaywheel_1781865117837_3d9cfcef7469aef2
+```
+
+Test-Entries:
+
+```text
+una_solala   active  → gesperrt
+udowb        active  → erlaubt
+engelcgn     active  → erlaubt
+```
+
+Draw-Ergebnis:
+
+```text
+Winner: udowb
+eligibleEntriesCount: 2
+rawEntriesCount: 3
+excludedEntriesCount: 1
+excluded[0].userLogin: una_solala
+excluded[0].reason: login
+```
+
+Claim-/Wheel-Ergebnis:
+
+```text
+Permission: wheelperm_1781865357312_f86f36711269e3e3
+Spin:       spin_1781865515072_d11827bafa8cd593
+Gewinn:     Roadside Research
+Status:     wheel_completed
+Feldverbrauch: Roadside Research quantityRemaining 1 → 0
+fieldsCount=8, visualFieldsCount=8, giveawayBoundWheelExactFields=true
+```
+
+Damit ist bestätigt:
+
+```text
+una_solala durfte teilnehmen und blieb sichtbar,
+wurde aber beim Draw ausgeschlossen und konnte nicht gewinnen.
+Der erlaubte User udowb konnte danach normal das Giveaway-Rad drehen.
+```
+
+## 1B-Sicherheitsfix
+
+`LWG_GIVEAWAY_EXCLUSIONS_1B` macht den Loader robuster, ohne die bestätigte Draw-/Wheel-Logik zu verändern:
+
+```text
+- Exportformat ok:true + items[] wird akzeptiert.
+- Configformat enabled:true + items[] wird akzeptiert.
+- users[] und exclusions[] werden ebenfalls akzeptiert.
+- UTF-8-BOM wird entfernt.
+- kaputte/null-Einträge werden ignoriert.
+- Status zeigt rawItemsCount, ignoredInvalidCount, loaded, mtimeMs.
+```
+
+## Später wieder anfassen – Dashboard-Config
+
+Die Gewinn-Sperrliste ist aktuell bewusst dateibasiert, damit der Stream sicher läuft.
+
+Später muss daraus eine dashboardfähige Verwaltung werden:
+
+- User hinzufügen/entfernen/aktivieren/deaktivieren.
+- Twitch-User-ID primär speichern und nutzen.
+- Login/DisplayName als Anzeige und Fallback behalten.
+- Sichtbar machen, wie viele Entries beim Draw durch Sperrliste ausgeschlossen wurden.
+- Optional pro Giveaway zusätzliche Sperren erlauben.
+
+Auch die harte Wheel-Regel muss später dashboardfähig konfigurierbar werden:
+
+- Verhalten bei 1 verbleibendem Gewinn.
+- Verhalten bei 0 verbleibenden Gewinnen.
+- Exakte Feldanzahl vs. Mindestfeldanzahl getrennt für Bound-Wheels und Standalone-/Preset-Wheels.

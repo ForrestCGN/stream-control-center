@@ -21,10 +21,11 @@ Build:   LWG_GIVEAWAY_EXCLUSIONS_1B
 - Bei 2+ verfügbaren Gewinnen wird exakt mit den verfügbaren Feldern gedreht.
 - Live-Test: `fieldsCount=7`, `visualFieldsCount=7`, `visualMinVisibleSlots=7`.
 - `urlug` gewann `Valheim`; das Feld wurde danach auf `quantityRemaining=0` reduziert.
+- Restbestand: 6 verfügbare Felder.
 
-## Bestätigte Gewinn-Sperrliste / Exclusions
+## Gewinn-Sperrliste / Exclusions
 
-Config:
+Dateibasierte Config:
 
 ```text
 config/loyalty_giveaway_exclusions.json
@@ -36,30 +37,56 @@ Regel:
 User dürfen als Entry sichtbar bleiben, werden aber beim Draw aus der eligible-Liste entfernt und können dadurch nicht gewinnen.
 ```
 
-Bestätigter Test:
+Die Sperrliste verarbeitet:
+
+- `login`
+- `displayName`
+- `twitchUserId`
+
+Aktuell greift der Draw-Filter sicher über `login`. Falls Entries künftig Twitch-User-IDs in direktem Feld oder Metadata enthalten, wird zusätzlich über `twitchUserId` gefiltert.
+
+## Loader-Formate ab 1B
+
+Der Loader akzeptiert robust:
 
 ```text
-Entries: una_solala, udowb, engelcgn
-Sperre: una_solala
-Winner: udowb
-excludedEntriesCount: 1
-excluded[0].userLogin: una_solala
+Exportformat: ok:true + items[]
+Configformat: enabled:true + items[]
+Alternativ: users[] oder exclusions[]
 ```
 
-## Loader-Robustheit ab 1B
+Außerdem:
 
-Der Loader akzeptiert:
+- UTF-8-BOM wird entfernt.
+- Kaputte/null-Einträge werden ignoriert.
+- Status gibt Diagnosefelder aus.
 
-- Exportformat `ok: true` + `items[]`,
-- Configformat `enabled: true` + `items[]`,
-- alternativ `users[]`,
-- alternativ `exclusions[]`.
+## Status-Diagnose
 
-Zusätzlich:
+`/api/loyalty/giveaways/status` enthält:
 
-- UTF-8-BOM wird vor JSON-Parsing entfernt,
-- kaputte/null-Einträge werden ignoriert,
-- Statusdiagnose enthält `rawItemsCount`, `ignoredInvalidCount`, `loaded`, `mtimeMs`.
+```text
+giveawayExclusions.enabled
+giveawayExclusions.path
+giveawayExclusions.count
+giveawayExclusions.rawItemsCount
+giveawayExclusions.ignoredInvalidCount
+giveawayExclusions.generatedAt
+giveawayExclusions.loaded
+giveawayExclusions.mtimeMs
+giveawayExclusions.lastError
+```
+
+Bestätigter Live-Wert nach 1B:
+
+```text
+enabled=True
+count=10
+rawItemsCount=10
+ignoredInvalidCount=0
+loaded=True
+lastError=
+```
 
 ## Draw-Metadata
 
@@ -73,7 +100,32 @@ excludedEntriesCount
 excluded[]
 ```
 
+Bestätigter Test:
+
+```text
+rawEntriesCount=3
+excludedEntriesCount=1
+excluded[0].userLogin=una_solala
+excluded[0].reason=login
+eligibleEntriesCount=2
+winner=udowb
+```
+
 Damit kann später im Dashboard/Log nachvollzogen werden, wie viele Entries durch die Gewinn-Sperrliste ausgeschlossen wurden.
+
+## Bestätigter Claim-/Wheel-Flow nach Exclusion-Draw
+
+```text
+Permission: wheelperm_1781865357312_f86f36711269e3e3
+Spin: spin_1781865515072_d11827bafa8cd593
+Gewinn: Roadside Research
+Winner status: wheel_completed
+Permission status: used
+Roadside Research quantityRemaining: 0
+fieldsCount=8
+visualFieldsCount=8
+giveawayBoundWheelExactFields=true
+```
 
 ## Offene Punkte
 
@@ -83,3 +135,4 @@ Damit kann später im Dashboard/Log nachvollzogen werden, wie viele Entries durc
 - Login/DisplayName als Anzeige und Fallback behalten.
 - Pro-Giveaway zusätzliche Sperren planen.
 - 1-Gewinn-Direktvergabe später gezielt testen.
+- 0-Gewinne-Blockpfad später gezielt testen.
