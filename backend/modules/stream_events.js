@@ -34,8 +34,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.92";
-const MODULE_BUILD = "STEP_EVS52_26_WINNER_FINALE_NULLSAFE_PREVIEW";
+const MODULE_VERSION = "0.5.93";
+const MODULE_BUILD = "STEP_EVS52_27_WINNER_TOP3_TWITCH_AVATARS_NO_AUTOREPLAY";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -667,7 +667,7 @@ function firstObjectLikeUserInfo(value) {
   if (!value) return null;
   if (Array.isArray(value)) return value.map(firstObjectLikeUserInfo).find(Boolean) || null;
   if (typeof value === "object") {
-    if (value.login || value.userLogin || value.user_login || value.display_name || value.displayName || value.profile_image_url || value.profileImageUrl || value.avatarUrl || value.avatar_url) return value;
+    if (value.login || value.userLogin || value.user_login || value.display_name || value.displayName || value.profile_image_url || value.profileImageUrl || value.avatarUrl || value.avatar_url || value.userAvatarUrl || value.user_avatar_url) return value;
     for (const key of ["data", "user", "userInfo", "userinfo", "result", "payload"]) {
       const found = firstObjectLikeUserInfo(value[key]);
       if (found) return found;
@@ -680,7 +680,7 @@ function normalizeTwitchUserInfoObject(input, fallbackLogin = "") {
   const obj = firstObjectLikeUserInfo(input) || {};
   const login = cleanString(obj.login || obj.user_login || obj.userLogin || obj.name || fallbackLogin).replace(/^@/, "").toLowerCase();
   const displayName = cleanString(obj.display_name || obj.displayName || obj.user_display_name || obj.userDisplayName || obj.name || login, login);
-  const avatarUrl = cleanString(obj.profile_image_url || obj.profileImageUrl || obj.avatar_url || obj.avatarUrl || obj.profileImage || "");
+  const avatarUrl = cleanString(obj.profile_image_url || obj.profileImageUrl || obj.avatar_url || obj.avatarUrl || obj.userAvatarUrl || obj.user_avatar_url || obj.profileImage || obj.userAvatar || obj.user_avatar || "");
   return { login, displayName, avatarUrl, raw: obj };
 }
 
@@ -742,12 +742,13 @@ function resolveUserFromLocalTables(login = "") {
   return { ok: false, login: userLogin, displayName: userLogin, avatarUrl: "", source: "", error: "local_user_not_found" };
 }
 
-async function resolveTwitchUserInfoSmall(login = "") {
+async function resolveTwitchUserInfoSmall(login = "", options = {}) {
   const userLogin = cleanString(login).replace(/^@/, "").toLowerCase();
   if (!userLogin) return { ok: false, login: "", displayName: "", avatarUrl: "", source: "", error: "login_missing" };
 
+  const forceRemote = options && options.forceRemote === true;
   const local = resolveUserFromLocalTables(userLogin);
-  if (local.ok && (local.avatarUrl || local.displayName)) return local;
+  if (!forceRemote && local.ok && local.avatarUrl) return local;
 
   const endpoints = [
     `/userinfo?login=${encodeURIComponent(userLogin)}`,
@@ -758,7 +759,19 @@ async function resolveTwitchUserInfoSmall(login = "") {
     const result = await internalJsonRequest("GET", endpoint, {});
     if (!result.ok) continue;
     const info = normalizeTwitchUserInfoObject(result.data, userLogin);
-    if (info.login || info.displayName || info.avatarUrl) return { ok: true, source: endpoint, ...info };
+    if (info.login || info.displayName || info.avatarUrl) {
+      const avatarUrl = cleanString(info.avatarUrl || (local && local.avatarUrl) || "");
+      const displayName = cleanString(info.displayName || (local && local.displayName) || userLogin, userLogin);
+      return {
+        ok: true,
+        source: endpoint,
+        ...info,
+        login: cleanString(info.login || userLogin, userLogin),
+        displayName,
+        avatarUrl,
+        localSource: cleanString(local && local.source || "")
+      };
+    }
   }
 
   return local.ok ? local : { ok: false, login: userLogin, displayName: userLogin, avatarUrl: "", source: "", error: "userinfo_unavailable" };
@@ -7096,7 +7109,7 @@ async function enrichWinnerFinaleRowAsync(row = {}) {
   if (!login) return base;
   try {
     const info = await resolveTwitchUserInfoSmall(login);
-    const avatarUrl = cleanString(info && info.avatarUrl || "");
+    const avatarUrl = cleanString(info && info.avatarUrl || base.avatarUrl || base.userAvatarUrl || "");
     const displayName = cleanString(info && info.displayName || base.userDisplayName || login, base.userDisplayName || login);
     return {
       ...base,
@@ -7113,6 +7126,36 @@ async function enrichWinnerFinaleRowAsync(row = {}) {
       ...base,
       userResolveSource: "resolveTwitchUserInfoSmall:error",
       userResolveOk: false,
+      userResolveError: err && err.message ? err.message : String(err)
+    };
+  }
+}
+
+async function enrichWinnerFinaleTop3RowAsync(row = {}) {
+  const base = enrichWinnerFinaleRow(row);
+  const login = cleanString(base.userLogin || row.userLogin || row.login || "").replace(/^@/, "").toLowerCase();
+  if (!login) return base;
+  try {
+    const info = await resolveTwitchUserInfoSmall(login, { forceRemote: true });
+    const avatarUrl = cleanString(info && info.avatarUrl || base.avatarUrl || base.userAvatarUrl || "");
+    const displayName = cleanString(info && info.displayName || base.userDisplayName || login, base.userDisplayName || login);
+    return {
+      ...base,
+      userLogin: login,
+      userDisplayName: displayName,
+      displayName,
+      avatarUrl,
+      userAvatarUrl: avatarUrl,
+      userResolveSource: cleanString(info && info.source || ""),
+      userResolveOk: info && info.ok === true,
+      userResolveForcedRemote: true
+    };
+  } catch (err) {
+    return {
+      ...base,
+      userResolveSource: "resolveTwitchUserInfoSmall:forceRemote:error",
+      userResolveOk: false,
+      userResolveForcedRemote: true,
       userResolveError: err && err.message ? err.message : String(err)
     };
   }
@@ -7147,7 +7190,7 @@ async function preloadTop3WinnerAvatars(rows = [], options = {}) {
 
   const startedAt = nowIso();
   const resolvedTop3 = await withTimeoutPromise(
-    Promise.all(top3.map(row => enrichWinnerFinaleRowAsync(row))),
+    Promise.all(top3.map(row => enrichWinnerFinaleTop3RowAsync(row))),
     timeoutMs,
     null
   );
@@ -7170,7 +7213,7 @@ async function preloadTop3WinnerAvatars(rows = [], options = {}) {
     timeoutMs,
     startedAt,
     finishedAt: nowIso(),
-    rule: "winner_finale_top3_avatar_preload_before_bus_emit"
+    rule: "winner_finale_top3_force_twitch_avatar_preload_before_bus_emit"
   };
 }
 
