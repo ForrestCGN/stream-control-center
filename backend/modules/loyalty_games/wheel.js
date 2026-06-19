@@ -210,7 +210,9 @@ function createWheelGame(options = {}) {
       }
 
       const selected = fields[selectedNormalizedIndex];
-      const visualFields = shared.expandFieldsForVisual(fields, fieldsResult.minVisibleSlots || config.minVisibleSlots || 12);
+      const isGiveawayBoundWheel = source === "giveaway_bound_wheel";
+      const visualMinVisibleSlots = isGiveawayBoundWheel ? fields.length : (fieldsResult.minVisibleSlots || config.minVisibleSlots || 12);
+      const visualFields = shared.expandFieldsForVisual(fields, visualMinVisibleSlots);
       const selectedVisualIndex = Math.max(0, visualFields.findIndex(field => (field.fieldUid || field.id) === (selected.fieldUid || selected.id)));
       const durationMs = shared.parseDuration(input, config.spin);
       const extraTurns = shared.parseExtraTurns(config.spin);
@@ -235,11 +237,13 @@ function createWheelGame(options = {}) {
         selectedOriginalIndex: selected.index,
         fieldsCount: fields.length,
         visualFieldsCount: visualFields.length,
+        visualMinVisibleSlots,
+        giveawayBoundWheelExactFields: isGiveawayBoundWheel,
         totalWeight,
         extraTurns,
         presetUid,
         note: source === "giveaway_bound_wheel"
-          ? "STEP LWG-4N.7 uses giveaway bound-wheel fields for runtime spin and does not book points or execute rewards yet."
+          ? "STEP LWG-BOUND-WHEEL-FIELD-COUNT-1 keeps Giveaway-bound Wheel visuals on exact available fields."
           : "STEP LWG-4B records preset spins and does not book points or execute rewards yet."
       };
 

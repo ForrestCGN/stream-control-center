@@ -12,6 +12,11 @@
  * STEP LWG-4Q.1:
  * - Kostenpflichtige Tickets buchen Loyalty-Punkte beim Entry-Erstellen.
  * - Entry-Cancel/Giveaway-Cancel erstatten gebuchte Ticketkosten idempotent.
+ *
+ * LWG_BOUND_WHEEL_FIELD_COUNT_1:
+ * - Giveaway-bound Wheels nutzen exakt verfügbare Gewinnfelder.
+ * - Bei 1 verfügbarem Gewinn wird direkt vergeben, ohne normalen Wheel-Spin.
+ * - Bei 0 verfügbaren Gewinnen wird Claim/Spin blockiert.
  */
 
 const crypto = require("crypto");
@@ -23,8 +28,8 @@ const database = require("../core/database");
 const loyaltyCore = require("./loyalty");
 
 const MODULE_NAME = "loyalty_giveaways";
-const MODULE_VERSION = "0.1.12";
-const MODULE_BUILD = "STEP_LC_MINIGAMES_2B_FIX2_RAFFLE_TEXT_VARIANT_GUARD";
+const MODULE_VERSION = "0.1.13";
+const MODULE_BUILD = "LWG_BOUND_WHEEL_FIELD_COUNT_1";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 
@@ -2849,8 +2854,8 @@ function getUsableBoundWheelForGiveaway(giveaway, options = {}) {
   }
 
   const boundWheel = rowToBoundWheel(row);
-  const meta = boundWheel && boundWheel.metadata && typeof boundWheel.metadata === "object" ? boundWheel.metadata : {};
-  const minVisibleSlots = clampInt(meta.minVisibleSlots || meta.min_visible_slots || 12, 12, 1, 96);
+  const configuredMinVisibleSlots = clampInt(boundWheel?.metadata?.minVisibleSlots || boundWheel?.metadata?.min_visible_slots || 12, 12, 1, 96);
+  const minVisibleSlots = spinFieldsResult.fields.length;
 
   return {
     ok: true,
@@ -2858,6 +2863,7 @@ function getUsableBoundWheelForGiveaway(giveaway, options = {}) {
     boundWheelUid: row.bound_wheel_uid,
     sourcePresetUid,
     minVisibleSlots,
+    configuredMinVisibleSlots,
     fields: spinFieldsResult.fields,
     fieldCount: spinFieldsResult.fields.length,
     status
@@ -4647,6 +4653,197 @@ function drawWinner(giveawayUid, input = {}) {
   return { ok: true, winner, wheelPermission, claimWindow, chatClaimRequired: drawRequiresChatClaim, giveaway: getGiveaway(giveawayUid, true) };
 }
 
+
+function claimSingleRemainingWheelPrize(giveaway, permission, boundWheelContext, input = {}) {
+  ensureSchema();
+  const fields = Array.isArray(boundWheelContext.fields) ? boundWheelContext.fields : [];
+  const field = fields[0] || null;
+  if (!field) return { ok: false, error: "bound_wheel_no_usable_fields", statusCode: 409 };
+
+  const userLogin = String(input.userLogin || permission.userLogin || "").trim().replace(/^@/, "").toLowerCase();
+  const userDisplayName = String(input.userDisplayName || permission.userDisplayName || userLogin).trim() || userLogin;
+  const now = nowIso();
+  const directSpinUid = uid("directwheel");
+  const selectedFieldId = String(field.id || field.fieldUid || "").trim();
+  const selectedFieldUid = String(field.fieldUid || field.id || "").trim();
+  const selectedFieldLabel = String(field.label || "Rad-Ergebnis").trim() || "Rad-Ergebnis";
+
+  const decrementResult = decrementBoundWheelFieldAfterSpin(giveaway.giveawayUid, selectedFieldUid || selectedFieldId, {
+    spinUid: directSpinUid,
+    sessionUid: "",
+    winnerUid: permission.winnerUid || "",
+    permissionUid: permission.permissionUid || "",
+    directAssigned: true,
+    singleRemaining: true
+  });
+  if (decrementResult && decrementResult.ok === false) return decrementResult;
+
+  database.run(`
+    UPDATE loyalty_giveaway_wheel_permissions
+    SET status = 'used',
+        used_at = :usedAt,
+        updated_at = :updatedAt,
+        spin_uid = :spinUid,
+        metadata_json = :metadataJson
+    WHERE permission_uid = :permissionUid
+  `, {
+    permissionUid: permission.permissionUid,
+    usedAt: now,
+    updatedAt: now,
+    spinUid: directSpinUid,
+    metadataJson: json({
+      ...permission.metadata,
+      resultFieldId: selectedFieldId,
+      resultFieldUid: selectedFieldUid || selectedFieldId,
+      resultLabel: selectedFieldLabel,
+      boundWheelUid: boundWheelContext.boundWheel.boundWheelUid,
+      sourcePresetUid: boundWheelContext.sourcePresetUid,
+      wheelSnapshotUid: giveaway.wheelSnapshotUid,
+      wheelScope: "giveaway",
+      wheelContext: "giveaway_bound_wheel",
+      directAssigned: true,
+      singleRemaining: true
+    })
+  });
+
+  const existingWinnerRow = database.get("SELECT * FROM loyalty_giveaway_winners WHERE winner_uid = :winnerUid", { winnerUid: permission.winnerUid });
+  const existingWinnerMeta = existingWinnerRow ? parseJson(existingWinnerRow.metadata_json, {}) : {};
+  database.run(`
+    UPDATE loyalty_giveaway_winners
+    SET wheel_spin_uid = :spinUid,
+        prize_label = :prizeLabel,
+        status = 'wheel_completed',
+        metadata_json = :metadataJson
+    WHERE winner_uid = :winnerUid
+  `, {
+    winnerUid: permission.winnerUid,
+    spinUid: directSpinUid,
+    prizeLabel: selectedFieldLabel,
+    metadataJson: json({
+      ...existingWinnerMeta,
+      wheelResult: {
+        spinUid: directSpinUid,
+        sessionUid: "",
+        selectedFieldId,
+        selectedFieldUid: selectedFieldUid || selectedFieldId,
+        selectedFieldLabel,
+        selectedFieldIndex: 0,
+        boundWheelUid: boundWheelContext.boundWheel.boundWheelUid,
+        sourcePresetUid: boundWheelContext.sourcePresetUid,
+        wheelSnapshotUid: giveaway.wheelSnapshotUid,
+        wheelScope: "giveaway",
+        directAssigned: true,
+        singleRemaining: true
+      }
+    })
+  });
+
+  const pendingPermissionRow = database.get(`
+    SELECT COUNT(*) AS count
+    FROM loyalty_giveaway_wheel_permissions
+    WHERE giveaway_uid = :giveawayUid
+      AND status = 'pending'
+  `, { giveawayUid: giveaway.giveawayUid });
+  const pendingPermissionCount = Number(pendingPermissionRow && pendingPermissionRow.count || 0);
+  const noUsableWheelFieldsLeft = !hasUsableBoundWheelFields(giveaway.giveawayUid);
+  const nextGiveawayStatus = pendingPermissionCount > 0
+    ? STATUS.WAITING_FOR_WHEEL
+    : (noUsableWheelFieldsLeft ? STATUS.FINISHED : STATUS.CLOSED_FOR_ENTRIES);
+
+  database.run(`
+    UPDATE loyalty_giveaways
+    SET status = :status,
+        finished_at = :finishedAt,
+        updated_at = :updatedAt
+    WHERE giveaway_uid = :giveawayUid
+  `, {
+    giveawayUid: giveaway.giveawayUid,
+    status: nextGiveawayStatus,
+    finishedAt: nextGiveawayStatus === STATUS.FINISHED ? now : '',
+    updatedAt: now
+  });
+
+  createEvent({
+    giveawayUid: giveaway.giveawayUid,
+    roundUid: permission.roundUid || "",
+    spinUid: directSpinUid,
+    eventType: "loyalty.giveaway.wheel_claimed",
+    actorType: "user",
+    actorLogin: userLogin,
+    oldStatus: "pending",
+    newStatus: "used",
+    message: `${userDisplayName} hat den letzten Glücksrad-Gewinn direkt erhalten: ${selectedFieldLabel}`,
+    metadata: {
+      permissionUid: permission.permissionUid,
+      winnerUid: permission.winnerUid,
+      spinUid: directSpinUid,
+      sessionUid: "",
+      selectedFieldId,
+      selectedFieldUid: selectedFieldUid || selectedFieldId,
+      selectedFieldLabel,
+      boundWheelUid: boundWheelContext.boundWheel.boundWheelUid,
+      sourcePresetUid: boundWheelContext.sourcePresetUid,
+      wheelSnapshotUid: giveaway.wheelSnapshotUid,
+      wheelScope: "giveaway",
+      directAssigned: true,
+      singleRemaining: true
+    }
+  });
+
+  emitEvent("loyalty.giveaway.wheel_claimed", {
+    giveawayUid: giveaway.giveawayUid,
+    permissionUid: permission.permissionUid,
+    winnerUid: permission.winnerUid,
+    userLogin,
+    userDisplayName,
+    spinUid: directSpinUid,
+    sessionUid: "",
+    selectedFieldId,
+    selectedFieldUid: selectedFieldUid || selectedFieldId,
+    selectedFieldLabel,
+    boundWheelUid: boundWheelContext.boundWheel.boundWheelUid,
+    sourcePresetUid: boundWheelContext.sourcePresetUid,
+    wheelSnapshotUid: giveaway.wheelSnapshotUid,
+    wheelScope: "giveaway",
+    directAssigned: true,
+    singleRemaining: true
+  });
+
+  const permissionRow = database.get("SELECT * FROM loyalty_giveaway_wheel_permissions WHERE permission_uid = :permissionUid", { permissionUid: permission.permissionUid });
+  const winnerRow = database.get("SELECT * FROM loyalty_giveaway_winners WHERE winner_uid = :winnerUid", { winnerUid: permission.winnerUid });
+  const spin = {
+    ok: true,
+    game: "wheel",
+    source: "giveaway_bound_wheel",
+    sourceRefUid: boundWheelContext.boundWheel.boundWheelUid,
+    spinUid: directSpinUid,
+    sessionUid: "",
+    selectedFieldId,
+    selectedFieldUid: selectedFieldUid || selectedFieldId,
+    selectedFieldLabel,
+    selectedFieldIndex: 0,
+    boundWheelUid: boundWheelContext.boundWheel.boundWheelUid,
+    sourcePresetUid: boundWheelContext.sourcePresetUid,
+    wheelSnapshotUid: giveaway.wheelSnapshotUid,
+    wheelScope: "giveaway",
+    directAssigned: true,
+    singleRemaining: true,
+    fieldsCount: 1,
+    visualFieldsCount: 1
+  };
+
+  return {
+    ok: true,
+    directAssigned: true,
+    singleRemaining: true,
+    permission: rowToWheelPermission(permissionRow),
+    winner: winnerRow ? rowToWinner(winnerRow) : null,
+    spin,
+    boundWheel: boundWheelContext.boundWheel,
+    giveaway: getGiveaway(giveaway.giveawayUid, true)
+  };
+}
+
 function claimWheelSpin(giveawayUid, input = {}) {
   ensureSchema();
   const giveaway = getGiveaway(giveawayUid, false);
@@ -4674,6 +4871,17 @@ function claimWheelSpin(giveawayUid, input = {}) {
   }
 
   const userDisplayName = String(input.userDisplayName || input.displayName || permission.userDisplayName || userLogin).trim() || userLogin;
+  const availableFieldCount = Array.isArray(boundWheelContext.fields) ? boundWheelContext.fields.length : 0;
+  if (availableFieldCount <= 0) {
+    return { ok: false, error: "bound_wheel_no_usable_fields", statusCode: 409, boundWheel: boundWheelContext.boundWheel || null };
+  }
+  if (availableFieldCount === 1) {
+    return claimSingleRemainingWheelPrize(giveaway, permission, boundWheelContext, {
+      userLogin,
+      userDisplayName,
+      source: input.source || ""
+    });
+  }
 
   let loyaltyGames = null;
   try {

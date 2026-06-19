@@ -2,124 +2,83 @@
 
 Stand: 2026-06-19
 
-## Aktueller bestätigter Bereich
+## Aktueller Arbeitsstand
 
-Loyalty-Giveaways mit gebundenem Giveaway-Glücksrad sind funktional im Backend getestet. Zusätzlich ist das Wheel-Overlay nach mehreren Layout-/Runtime-Fixes auf dem aktuellen Stand `LWG-WHEEL-TEXT-RADIAL-5` fachlich bestätigt.
+Step `LWG_BOUND_WHEEL_FIELD_COUNT_1` wurde als Datei-/ZIP-Stand vorbereitet.
 
-Bestätigt:
-
-- Giveaway-Kopien können erstellt werden.
-- Bei Kopie wird ein eigenes Bound-Wheel erzeugt.
-- Bound-Wheel-Felder werden kopiert.
-- Test-Kopie war startbereit mit 8 Feldern.
-- Open/Entry/Close/Draw funktioniert.
-- Draw erzeugt bei Wheel-Giveaway eine pending Wheel-Permission.
-- Wheel-Claim startet einen Wheel-Spin über `loyalty_games`.
-- Spin speichert Ergebnis am Winner.
-- Wheel-Permission wird auf `used` gesetzt.
-- Winner wird auf `wheel_completed` gesetzt.
-- Das gewonnene Bound-Wheel-Feld wird reduziert.
-- WS/Broadcast kommt grundsätzlich im Wheel-Overlay an.
-- Wheel-Overlay ist initial unsichtbar.
-- `loyalty.wheel.spin` blendet das Wheel-Overlay ein.
-- Wheel dreht, zeigt Ergebnis und blendet danach automatisch aus.
-- Winner-/Finale-Overlay bleibt beim Wheel-Spin aus.
-- Segmenttexte laufen radial mit dem Segment.
-- Lange Titel wie `Kingdom Come: Deliverance Royal Edition` sind akzeptabel lesbar.
-- `€` wird korrekt dargestellt.
-- Gewinnerbanner zeigt nur den Hauptgewinn, nicht `Steam Key`/`Guthaben`.
-- Statuspanel links im Wheel-Overlay wurde entfernt.
-
-## Zuletzt getestete IDs
+Ziel dieses Steps ist die harte Runtime-Regel für Giveaway-bound Wheels, damit das System heute im Stream wie gewünscht läuft:
 
 ```text
-Giveaway:          giveaway_1781856708568_9653eba68a211017
-Bound-Wheel:       giveawaywheel_1781856708568_839fb2b118fc40a3
-Winner:            winner_1781857541326_7414ce0176034b92
-Permission:        wheelperm_1781857541331_8b32049906e5064d
-Echter Spin:       spin_1781857621153_3d98fd8542116333
-Echter Gewinn:     Roadside Research
-Regression Spin:   wheel_1781861576417_d4d3504840212e5e
-Regression Gewinn: Valheim
+2+ verfügbare Gewinne  → normaler Glücksrad-Spin mit exakt diesen verfügbaren Feldern
+1 verfügbarer Gewinn   → kein normales Rad mehr, letzter Gewinn wird direkt im Backend vergeben
+0 verfügbare Gewinne   → Claim/Spin blockieren
 ```
 
-## Neuester Overlay-Stand
+## Umgesetzte technische Regel
 
-Letzter bestätigter Overlay-Step:
+### `backend/modules/loyalty_games/wheel.js`
+
+- Giveaway-bound Wheels werden anhand `source === "giveaway_bound_wheel"` erkannt.
+- Für diese Quelle wird die visuelle Mindestfeldanzahl auf die echte verfügbare Feldanzahl gesetzt.
+- Dadurch werden Giveaway-bound Wheels nicht mehr optisch auf 12 Felder aufgefüllt.
+- Standalone-/Preset-Wheels behalten die bisherige `minVisibleSlots`-/Default-12-Logik.
+
+### `backend/modules/loyalty_giveaways.js`
+
+- Bound-Wheel-Kontext liefert `minVisibleSlots` nun passend zur echten verfügbaren Feldanzahl.
+- Claim-Flow prüft die Anzahl verfügbarer Bound-Wheel-Felder:
+  - `<= 0`: Block mit `bound_wheel_no_usable_fields`.
+  - `1`: Direktvergabe ohne normalen Wheel-Spin.
+  - `>= 2`: normaler Spin über `loyalty_games`.
+- Direktvergabe setzt Permission auf `used`, Winner auf `wheel_completed`, schreibt `prize_label`, reduziert das Bound-Wheel-Feld und protokolliert das Ergebnis in Metadata.
+
+### Modulversionen
 
 ```text
-LWG-WHEEL-TEXT-RADIAL-5
+loyalty_giveaways: 0.1.13 / LWG_BOUND_WHEEL_FIELD_COUNT_1
+loyalty_games:     0.2.8  / LWG_BOUND_WHEEL_FIELD_COUNT_1
 ```
 
-Betroffene Datei:
+## Vor dem Deploy empfohlen
+
+Vor dem Einspielen im Live-System soll eine Sicherheitskopie der aktuell laufenden Dateien erstellt werden, damit notfalls sofort zurückkopiert werden kann.
+
+Empfohlene Backup-Dateien:
 
 ```text
+backend/modules/loyalty_giveaways.js
+backend/modules/loyalty_games.js
+backend/modules/loyalty_games/wheel.js
+config/loyalty_games.json
 htdocs/overlays/loyalty/wheel_overlay.html
 ```
 
-Bestätigtes Verhalten:
+## Wichtiges Follow-up / spätere Dashboard-Config
 
-- Overlay initial unsichtbar.
-- Einblendung über `loyalty.wheel.spin`.
-- Ergebnis wird im Gewinnerbanner angezeigt.
-- Auto-Hide nach Ergebnis.
-- Statuspanel entfernt.
-- Segmenttexte radial mit Segmentrichtung.
-- Lange Segmenttexte akzeptabel.
-- Gewinnerbanner bei langen Namen kleiner.
-- Gewinnerbanner ohne Subtext.
-- `€` korrekt.
+Diese heutige Lösung ist bewusst eine feste Runtime-Regel, damit das System im Stream sicher funktioniert.
 
-## Letzter Modulstatus
+Später muss dieses Verhalten dashboardfähig konfigurierbar gemacht werden:
 
-`loyalty_giveaways`:
+- Verhalten bei `1` verbleibendem Gewinn konfigurierbar machen:
+  - direkt vergeben,
+  - separates Letzter-Gewinn-Overlay,
+  - optional trotzdem Spin erlauben.
+- Verhalten bei `0` verbleibenden Gewinnen streamerfreundlich anzeigen/blockieren.
+- Exakte Feldanzahl für Giveaway-bound Wheels sauber von Standalone-/Preset-Wheels trennen.
+- `minVisibleSlots` später als Dashboard-Option nur dort anbieten, wo sie fachlich sinnvoll ist.
 
-```text
-ok=true
-module=loyalty_giveaways
-moduleVersion=0.1.12
-enabled=true
-lastError=
-```
-
-`loyalty_games`:
+## Nach Deploy zu testen
 
 ```text
-ok=true
-module=loyalty_games
-moduleVersion=0.2.7
-enabled=true
-lastError=
+node -c backend/modules/loyalty_games/wheel.js
+node -c backend/modules/loyalty_games.js
+node -c backend/modules/loyalty_giveaways.js
 ```
 
-Wheel:
+Runtime-Tests:
 
 ```text
-ok=true
-enabled=true
-running=false
-lastError=
-lastResult.selectedFieldLabel=Valheim
-lastResult.finishedAt=2026-06-19T09:33:03.432Z
+2+ verfügbare Felder → Spin startet, visualFieldsCount entspricht fieldsCount
+1 verfügbares Feld  → Direktvergabe, kein Wheel-Overlay-Spin
+0 verfügbare Felder → Claim/Spin wird blockiert
 ```
-
-## Fachliche Entscheidung Feldanzahl / letzte Gewinne
-
-Für Giveaway-bound Wheels gilt künftig als gewünschte Regel:
-
-```text
-2+ verfügbare Gewinne  → normales Glücksrad mit exakt diesen verfügbaren Feldern
-1 verfügbarer Gewinn   → kein normales Rad mehr, letzter Gewinn wird direkt vergeben / separat angezeigt
-0 verfügbare Gewinne   → Claim/Spin blockieren, Wheel ist erschöpft
-```
-
-Wichtig: Das Wheel darf bei Giveaway-bound Wheels nicht mehr optisch auf 12 Felder auffüllen. Die bisher beobachtete Differenz `fieldsCount=7` und `visualFieldsCount=12` muss im Backend/Wheel-Modul bereinigt oder für Bound-Wheels anders behandelt werden.
-
-## Offene Hauptpunkte
-
-- Backend-/Wheel-Regel: Giveaway-bound Wheels sollen exakt verfügbare Felder anzeigen, nicht `minVisibleSlots=12` auffüllen.
-- Single-Remaining-Gewinn-Regel umsetzen: Bei nur 1 verfügbarem Gewinn keinen normalen Spin mehr starten.
-- Direkter REST-/Dashboard-Test für `loyalty.wheel.reset`/Hide fehlt; Route `/api/communication-bus/publish` existiert nicht.
-- Exclusion/Ausschlussliste sauber ins Dashboard integrieren.
-- Gamble-Alias-Bug separat prüfen: `aliases` zeigt `[object`, `object]`.
-- Test-Giveaway nach Tests löschen oder eindeutig als Test markieren.

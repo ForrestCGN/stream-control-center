@@ -2,85 +2,55 @@
 
 Stand: 2026-06-19
 
-## Bestätigt / erledigt
+## Aktueller Step
 
-- [x] `LWG_WHEEL_OVERLAY_RUNTIME_1` getestet.
-- [x] Wheel-Overlay-Quelle refresh/getestet.
-- [x] Wheel-Overlay initial unsichtbar.
-- [x] Direkter Spin-Test mit Giveaway-Bound-Wheel-Feldern ausgeführt.
-- [x] Overlay blendet bei Spin ein.
-- [x] Overlay blendet nach Ergebnis automatisch aus.
-- [x] Winner-/Finale-Overlay bleibt beim Wheel-Spin aus.
-- [x] Segmenttexte radial mit Segmentrichtung umgesetzt.
-- [x] Lange Titel akzeptabel dargestellt.
-- [x] `€` korrekt dargestellt.
-- [x] Statuspanel links entfernt.
-- [x] Gewinnerbanner ohne Subtext.
-- [x] Gewinnerbanner für lange Namen kleiner.
-- [x] `loyalty_giveaways` Status grün.
-- [x] `loyalty_games` Status grün.
-- [x] Bound-Wheel-Felder geprüft: 8 Felder vorhanden, Bound-Wheel aktiv.
-- [x] Regression-Spin mit echten Bound-Wheel-Feldern: Ergebnis `Valheim`.
+- [x] `LWG_BOUND_WHEEL_FIELD_COUNT_1` als Datei-/ZIP-Stand vorbereitet.
+- [x] Giveaway-bound Wheel füllt nicht mehr visuell auf 12 Felder auf.
+- [x] Bound-Wheel-Spin nutzt bei 2+ verfügbaren Gewinnen exakt die verfügbaren Felder.
+- [x] Single-Remaining-Regel im Backend vorbereitet: 1 verbleibender Gewinn wird direkt vergeben.
+- [x] 0 verfügbare Gewinne werden backendseitig blockiert.
+- [x] Syntax-Check für geänderte JS-Dateien erfolgreich.
 
-## Sofort / nächster technischer Schritt
+## Vor Live-Deploy
 
-- [ ] Backend/Wheel-Feldanzahl für Giveaway-bound Wheels korrigieren:
-  - Bound-Wheel soll exakt verfügbare Gewinne anzeigen.
-  - Kein optisches Auffüllen auf 12 Felder bei Giveaway-bound Wheels.
-  - Aktuelle Beobachtung: Bound-Wheel liefert 8 Felder, davon 7 verfügbar; Spin-Metadata zeigte `fieldsCount=7`, aber `visualFieldsCount=12`.
-- [ ] Single-Remaining-Gewinn-Regel umsetzen:
-  - 2+ verfügbare Gewinne → normaler Spin mit exakt diesen Feldern.
-  - 1 verfügbarer Gewinn → kein normaler Spin, letzten Gewinn direkt vergeben oder separates "Letzter Gewinn"-Overlay anzeigen.
-  - 0 verfügbare Gewinne → Claim/Spin blockieren.
-- [ ] `minVisibleSlots`/Default 12 prüfen:
-  - In der hochgeladenen `loyalty_games.json` steht kein `minVisibleSlots`.
-  - Der Wert kommt vermutlich aus Backend-Default/Fallback.
-  - Für Giveaway-bound Wheels muss diese Auffülllogik ignoriert oder begrenzt werden.
+- [ ] Sicherheitskopie der aktuell laufenden Dateien erstellen:
+  - `backend/modules/loyalty_giveaways.js`
+  - `backend/modules/loyalty_games.js`
+  - `backend/modules/loyalty_games/wheel.js`
+  - `config/loyalty_games.json`
+  - `htdocs/overlays/loyalty/wheel_overlay.html`
+- [ ] ZIP nach Repo-/Live-Struktur einspielen.
+- [ ] StepDone nach dem Einspielen/Deployen ausführen.
+- [ ] Danach erst testen.
 
-## Overlay / Runtime State
+## Direkt nach Deploy testen
 
-- [x] Wheel-Overlay initial unsichtbar.
-- [x] Show bei `loyalty.wheel.spin`.
-- [x] Auto-Hide nach Ergebnis.
-- [x] Winner-/Finale-Overlay isoliert und bleibt beim Wheel aus.
-- [ ] Direkten Reset-/Hide-Test sauber möglich machen:
-  - Route `/api/communication-bus/publish` existiert nicht.
-  - Entweder vorhandene echte Bus-Test-/Diagnose-Route dokumentieren oder eine geschützte Dashboard-/Diagnose-Testfunktion ergänzen.
-- [ ] Einheitliche Overlay-State-Regel dokumentieren: Overlays sollen nicht dauerhaft sichtbar bleiben, außer bewusst gewollt.
-- [ ] Bei Node-Neustart letzten gewünschten Overlay-Zustand prüfen.
+- [ ] `loyalty_giveaways` Status grün, Version `0.1.13`, Build `LWG_BOUND_WHEEL_FIELD_COUNT_1`.
+- [ ] `loyalty_games` Status grün, Version `0.2.8`, Build `LWG_BOUND_WHEEL_FIELD_COUNT_1`.
+- [ ] Bound-Wheel mit 2+ verfügbaren Feldern startet normalen Spin.
+- [ ] Spin-Metadata prüfen: `fieldsCount` und `visualFieldsCount` müssen bei Giveaway-bound Wheels identisch sein.
+- [ ] Bound-Wheel mit 1 verfügbarem Feld vergibt direkt, ohne normalen Spin/Overlay-Dreh.
+- [ ] Bound-Wheel mit 0 verfügbaren Feldern blockiert Claim/Spin sauber.
 
-## Giveaway Copy / Bound-Wheel
+## Später wieder anfassen – Dashboard-Config
 
-- [x] Kopieren-Button bei Drafts wieder sichtbar machen.
-- [x] Bound-Wheel beim Kopieren auf Kopie übertragen.
-- [x] Felder beim Kopieren übernehmen.
-- [x] Kopierte Testinstanz auf Startbereitschaft prüfen.
-- [ ] Backend-seitigen Copy-Fix langfristig prüfen/ggf. aus Dashboard-Fallback in Backend verschieben, damit Copy-Route immer vollständig ist.
+Diese Runtime-Regel ist heute bewusst fest eingebaut, damit der Stream funktioniert.
 
-## Backend-Flow
+Später muss das als streamerfreundliche Dashboard-Konfiguration umgesetzt werden:
 
-- [x] Open testen.
-- [x] Test-Entries anlegen.
-- [x] Close testen.
-- [x] Draw testen.
-- [x] Wheel-Permission-Erzeugung testen.
-- [x] Wheel-Claim testen.
-- [x] Winner-Status `wheel_completed` testen.
-- [x] Ergebnisfeld am Winner speichern.
-- [x] Bound-Wheel-Feld `quantityRemaining` reduzieren.
+- [ ] Verhalten bei 1 verbleibendem Gewinn konfigurierbar machen:
+  - Direktvergabe,
+  - separates Letzter-Gewinn-Overlay,
+  - optional normaler Spin trotz 1 Feld.
+- [ ] Verhalten bei 0 verfügbaren Gewinnen im Dashboard sichtbar machen.
+- [ ] Exakte Feldanzahl vs. Mindestfeldanzahl getrennt konfigurieren:
+  - Giveaway-bound Wheels: Standard exakt verfügbare Felder.
+  - Standalone-/Preset-Wheels: `minVisibleSlots` weiter möglich.
+- [ ] Späteres Letzter-Gewinn-Overlay planen, aber nicht heute erzwingen.
 
-## Ausschlussliste / Exclusions
+## Weitere offene Punkte
 
-- [ ] Dashboard-Config für Gewinn-Ausschlussliste planen.
-- [ ] Globale Ausschlussliste unter Loyalty/Giveaways oder Loyalty/Core einordnen.
-- [ ] Pro-Giveaway zusätzliche Ausschlüsse ermöglichen.
-- [ ] Twitch User-ID speichern, Login/DisplayName als Anzeige/Fallback.
-- [ ] Draw-Filter um Exclusions erweitern.
-- [ ] Dashboard-Anzeige: ausgeschlossene User bleiben sichtbar, aber nicht gewinnberechtigt.
-- [ ] Script-Workaround durch UI/Backend-Funktion ersetzen.
-
-## Weitere Auffälligkeiten
-
-- [ ] `!gamble` Alias-Bug separat prüfen: Status zeigt `aliases: ["[object", "object]"]`.
-- [ ] Test-Giveaway `giveaway_1781856708568_9653eba68a211017` nach Abschluss löschen oder eindeutig als Test markieren.
-- [ ] Test-Entries/Winner nicht produktiv verwenden.
+- [ ] Direkten Reset-/Hide-Test sauber möglich machen.
+- [ ] Ausschlussliste/Exclusions dashboardfähig integrieren.
+- [ ] Test-Giveaway nach Abschluss löschen oder eindeutig als Test markieren.
+- [ ] Gamble-Alias-Bug separat prüfen: `aliases` zeigt `[object`, `object]`.

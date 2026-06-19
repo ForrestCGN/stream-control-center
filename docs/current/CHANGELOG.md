@@ -1,45 +1,41 @@
 # Changelog – Loyalty-Giveaways / CGN-Glücksrad
 
-## 2026-06-19 – LWG Wheel Overlay Runtime + Radial Text Regression
+## 2026-06-19 – LWG_BOUND_WHEEL_FIELD_COUNT_1
 
 ### Added
 
-- Dokumentation für bestätigten Overlay-/Regression-Stand `LWG-WHEEL-TEXT-RADIAL-5`.
-- Entscheidung zur Feldanzahl-Regel für Giveaway-bound Wheels dokumentiert.
-- Entscheidung zur letzten Gewinnregel dokumentiert:
-  - 2+ Gewinne → Spin.
-  - 1 Gewinn → Direktvergabe / separates Letzter-Gewinn-Overlay.
-  - 0 Gewinne → blockieren.
+- Feste Runtime-Regel für Giveaway-bound Wheels vorbereitet:
+  - 2+ verfügbare Gewinne → normaler Spin mit exakt diesen Feldern.
+  - 1 verfügbarer Gewinn → Direktvergabe im Backend ohne normalen Wheel-Spin.
+  - 0 verfügbare Gewinne → Claim/Spin blockieren.
+- Doku-/TODO-Hinweis ergänzt, dass diese feste Regel später dashboardfähig konfigurierbar gemacht werden muss.
+- Backup-Hinweis vor Live-Deploy ergänzt.
 
 ### Changed
 
-- Wheel-Overlay mehrfach verbessert bis `LWG-WHEEL-TEXT-RADIAL-5`:
-  - Initial unsichtbar.
-  - Einblenden bei Spin.
-  - Auto-Hide nach Ergebnis.
-  - Winner-/Finale-Overlay isoliert.
-  - Statuspanel links entfernt.
-  - Segmenttexte radial mit Segmentrichtung.
-  - `€`-Darstellung korrigiert.
-  - Gewinnerbanner ohne Subtext.
-  - Gewinnerbanner für lange Namen verkleinert.
+- `backend/modules/loyalty_games/wheel.js`:
+  - Giveaway-bound Wheel nutzt keine visuelle Auffüllung auf 12 Slots mehr.
+  - Metadata enthält `visualMinVisibleSlots` und `giveawayBoundWheelExactFields`.
+- `backend/modules/loyalty_giveaways.js`:
+  - Bound-Wheel-Kontext setzt `minVisibleSlots` auf die echte verfügbare Feldanzahl.
+  - Claim-Flow behandelt 0/1/2+ verfügbare Felder getrennt.
+- `backend/modules/loyalty_games.js`:
+  - Modulversion auf `0.2.8`, Build `LWG_BOUND_WHEEL_FIELD_COUNT_1`.
+- `backend/modules/loyalty_giveaways.js`:
+  - Modulversion auf `0.1.13`, Build `LWG_BOUND_WHEEL_FIELD_COUNT_1`.
 
-### Tested
+### Tested before handoff
 
-- `loyalty_giveaways` Status: ok/enabled/kein lastError.
-- `loyalty_games` Status: ok/enabled/kein lastError.
-- Bound-Wheel-Felder: 8 Felder vorhanden.
-- Ein Feld (`Roadside Research`) ist nach echtem Test gewonnen und hat `quantityRemaining=0`.
-- Regression-Spin mit echten Bound-Wheel-Feldern gestartet.
-- Letzter Regression-Spin: `Valheim`.
-- Wheel nach Spin: `running=false`, `activeSession=null`, `lastError=`.
-- Winner-/Finale-Overlay blieb beim Wheel aus.
+```text
+node -c backend/modules/loyalty_games/wheel.js
+node -c backend/modules/loyalty_games.js
+node -c backend/modules/loyalty_giveaways.js
+```
 
-### Known Issues / Follow-up
+Alle drei Syntax-Checks waren erfolgreich.
 
-- Giveaway-bound Wheel füllt optisch noch auf 12 sichtbare Felder auf (`visualFieldsCount=12`), obwohl fachlich nur verfügbare Felder gezogen werden (`fieldsCount=7`).
-- Für Giveaway-bound Wheels soll nicht auf 12 aufgefüllt werden.
-- Direkte REST-Test-Route `/api/communication-bus/publish` existiert nicht; Reset-/Hide-Test braucht echte Route oder Diagnosefunktion.
-- `!gamble` Alias-Bug: Status zeigt `aliases: ["[object", "object]"]`.
-- Ausschlussliste/Exclusions noch dashboardfähig umzusetzen.
-- Test-Giveaway später löschen oder eindeutig als Test markieren.
+### Follow-up
+
+- Verhalten bei 1 verbleibendem Gewinn später per Dashboard-Config steuerbar machen.
+- Optionales Letzter-Gewinn-Overlay später planen.
+- Erschöpfte Bound-Wheels streamerfreundlich im Dashboard anzeigen.

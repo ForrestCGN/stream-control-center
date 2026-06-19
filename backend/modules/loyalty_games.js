@@ -52,8 +52,8 @@ const presetFactory = require("./loyalty_games/presets");
 const loyaltyCore = require("./loyalty");
 
 const MODULE_NAME = "loyalty_games";
-const MODULE_VERSION = "0.2.7";
-const MODULE_BUILD = "STEP_LWG_6_9_GAMBLE_DASHBOARD_WRITE_API";
+const MODULE_VERSION = "0.2.8";
+const MODULE_BUILD = "LWG_BOUND_WHEEL_FIELD_COUNT_1";
 const CONFIG_FILE = "loyalty_games.json";
 const SCHEMA_MODULE = "loyalty_games";
 const SCHEMA_VERSION = 4;
