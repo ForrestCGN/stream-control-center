@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.64";
-  const MODULE_BUILD = "STEP_SHOT_ALARM_2I1_SHOT_SOUNDS_SINGLE_OVERLAY_SOUND";
+  const MODULE_VERSION = "0.5.65";
+  const MODULE_BUILD = "STEP_SHOT_ALARM_2J_OVERLAY_SOUND_MEDIA_SYSTEM_QUEUE";
 
   const api = {
     status: '/api/stream-events/status',
@@ -31,7 +31,8 @@ window.StreamEventsModule = (function(){
     shotAlarmStop: '/api/shot-alarm/stop',
     shotAlarmStreams: '/api/shot-alarm/streams',
     shotAlarmHistory: '/api/shot-alarm/history',
-    shotAlarmAudit: '/api/shot-alarm/dashboard-audit'
+    shotAlarmAudit: '/api/shot-alarm/dashboard-audit',
+    soundPlayMedia: '/api/sound/play-media'
   };
 
   let root = null;
@@ -578,26 +579,129 @@ window.StreamEventsModule = (function(){
     const c = vm.c || {};
     const sound = c.sound || c.sounds || {};
     const overlaySound = sound.overlayShot || sound.overlay || sound.hit || {};
+    const mediaId = overlaySound.mediaId || overlaySound.mediaAssetId || overlaySound.assetId || '';
+    const label = overlaySound.label || overlaySound.mediaLabel || 'Shot-Alarm Overlay-Einblendung';
+    const inputId = 'shotAlarmOverlaySoundMediaId';
     return `
       <div class="evs-config-card evs-shot-sounds-box">
-        <div class="evs-config-card-head"><strong>Shot-Sounds</strong><small>Nur der Sound für die eigentliche Shot-Einblendung im Overlay. Keine harten Dateipfade.</small></div>
-        <div class="evs-shot-sound-grid evs-shot-sound-grid-single">
+        <div class="evs-card-head evs-card-head-compact">
+          <div>
+            <strong>Shot-Sound</strong>
+            <span>Nur der Sound für die eigentliche Shot-Einblendung im Overlay. Upload/Auswahl über Media-System, Playback über Sound-System-Warteschlange.</span>
+          </div>
+          <div class="evs-card-actions">
+            <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="shotAlarmTestOverlaySound">Sound testen</button>
+            <button type="button" class="evs-btn" data-evs-action="shotAlarmSaveOverlaySound">Sound speichern</button>
+          </div>
+        </div>
+        <div class="evs-shot-sound-editor">
           <div class="evs-shot-sound-slot evs-shot-sound-slot-main">
             <b>Overlay-Einblendung / ausgeloster Shot</b>
-            <span>${esc(overlaySound.mediaLabel || overlaySound.mediaId || 'Noch nicht verbunden')}</span>
-            <small>Wird abgespielt, wenn das Shot-Overlay eine ausgeloste Shot-Meldung zeigt. Media-System Upload/Pick folgt im nächsten Sound-Step.</small>
+            <span>${esc(mediaId ? (overlaySound.mediaLabel || `Media-ID ${mediaId}`) : 'Noch nicht verbunden')}</span>
+            <small>Wird abgespielt, wenn das Shot-Overlay eine ausgeloste Shot-Meldung zeigt.</small>
+          </div>
+          <label class="evs-field-block">
+            <span class="evs-label">Sound aus Media-System</span>
+            <div class="evs-media-field evs-media-field-audio evs-shot-overlay-sound-media" data-media-field data-module-key="shot_alarm" data-category-key="overlay_sounds" data-allowed-types="audio" data-title="Shot-Overlay-Sound auswählen oder hochladen" data-open-label="Sound auswählen" data-clear-label="Entfernen" data-value-input="#${esc(inputId)}">
+              <input id="${esc(inputId)}" type="hidden" data-media-field-value data-shot-overlay-sound-media value="${esc(mediaId)}">
+              <button type="button" data-media-field-open>Sound auswählen</button>
+              <button type="button" data-media-field-clear>Entfernen</button>
+              <div class="media-field-preview" data-media-field-preview></div>
+            </div>
+            <small class="evs-help">Keine harten Dateipfade. Das Media-System speichert die Datei/ID, das Sound-System übernimmt Queue und Wiedergabe.</small>
+          </label>
+          <label class="evs-field-block evs-shot-sound-label-row">
+            <span class="evs-label">Anzeigename / Queue-Label</span>
+            <input type="text" data-shot-overlay-sound-label value="${esc(label)}" placeholder="Shot-Alarm Overlay-Einblendung">
+          </label>
+          <div class="evs-status-grid evs-shot-sound-routing">
+            <div><strong>Sound-System</strong><span>Playback-Owner</span></div>
+            <div><strong>Warteschlange</strong><span>queueIfBusy aktiv</span></div>
+            <div><strong>Overlay</strong><span>outputTarget overlay</span></div>
+            <div><strong>${esc(sound.endpoint || '/api/sound/play-media')}</strong><span>Media-Bridge</span></div>
           </div>
         </div>
         <div class="evs-tab-help">
-          Ziel: Genau dieser eine Sound wird später über das bestehende Media-System ausgewählt und über das Sound-System abgespielt. Shot-Alarm startet keine Audiodateien direkt, sondern sendet einen Playback-Auftrag an das vorhandene Sound-/Media-System.
+          Produktiv: Shot-Alarm spielt keine Audiodatei direkt ab. Beim ausgelosten Shot sendet das Backend einen Auftrag an <b>/api/sound/play-media</b>; dort wird das Media-Asset aufgelöst und über die normale Sound-System-Warteschlange abgespielt. Dafür muss das Sound-System-Overlay in OBS vorhanden/aktiv sein.
         </div>
       </div>
-      <div class="evs-config-card evs-shot-sounds-box">
-        <div class="evs-config-card-head"><strong>Nächster Schritt</strong><small>SHOT-ALARM-2J Overlay-Sound über Media-System.</small></div>
-        <div class="evs-info-row"><strong>Benötigte Anbindung</strong><span>Media-Picker für diesen einen Overlay-Sound, Sound-Config speichern, Backend-Playback über Sound-System, Priorität/Queue respektieren.</span></div>
-        <div class="evs-info-row"><strong>Wichtig</strong><span>Kein Direkt-Audio im Overlay. Overlay bleibt Anzeige; Sound-System bleibt Playback-Owner.</span></div>
-      </div>
     `;
+  }
+
+  function readShotOverlaySoundFromDom(){
+    const current = JSON.parse(JSON.stringify(state.shotAlarm?.config || {}));
+    const mediaId = String(document.querySelector('[data-shot-overlay-sound-media]')?.value || '').trim();
+    const label = String(document.querySelector('[data-shot-overlay-sound-label]')?.value || 'Shot-Alarm Overlay-Einblendung').trim() || 'Shot-Alarm Overlay-Einblendung';
+    current.sound = current.sound || {};
+    current.sound.endpoint = '/api/sound/play-media';
+    current.sound.category = current.sound.category || 'alert';
+    current.sound.source = 'shot_alarm';
+    current.sound.target = current.sound.target || 'stream';
+    current.sound.outputTarget = 'overlay';
+    current.sound.queueIfBusy = true;
+    current.sound.dropIfBusy = false;
+    current.sound.priority = Number(current.sound.priority || 80);
+    current.sound.volume = Number(current.sound.volume || 85);
+    current.sound.overlayShot = current.sound.overlayShot || {};
+    current.sound.overlayShot.enabled = true;
+    current.sound.overlayShot.mediaId = mediaId;
+    current.sound.overlayShot.mediaLabel = label;
+    current.sound.overlayShot.label = label;
+    return { config: current, mediaId, label };
+  }
+
+  async function saveShotOverlaySound(){
+    try {
+      const { config, mediaId } = readShotOverlaySoundFromDom();
+      if (!mediaId) {
+        state.error = 'Bitte zuerst einen Sound aus dem Media-System auswählen.';
+        render();
+        return;
+      }
+      const payload = { ...config, ...dashboardActorPayload() };
+      const result = await window.CGN.api(api.shotAlarmConfig, { method: 'POST', body: JSON.stringify(payload) });
+      state.shotAlarm.config = result.config || payload;
+      state.shotAlarm.status = result.status || state.shotAlarm.status;
+      state.message = 'Shot-Overlay-Sound gespeichert.';
+      await loadShotAlarmData(false);
+      render();
+    } catch (err) {
+      state.error = err.message || String(err);
+      render();
+    }
+  }
+
+  async function testShotOverlaySound(){
+    try {
+      const { mediaId, label } = readShotOverlaySoundFromDom();
+      if (!mediaId) {
+        state.error = 'Bitte zuerst einen Sound aus dem Media-System auswählen.';
+        render();
+        return;
+      }
+      await window.CGN.api(api.soundPlayMedia, {
+        method: 'POST',
+        body: JSON.stringify({
+          mediaId,
+          label,
+          category: 'alert',
+          source: 'shot_alarm_dashboard_test',
+          target: 'stream',
+          outputTarget: 'overlay',
+          queueIfBusy: true,
+          dropIfBusy: false,
+          priority: 80,
+          volume: 85,
+          requestedBy: 'dashboard',
+          meta: { module: 'shot_alarm', shotAlarm: true, dashboardTest: true, soundRole: 'overlay_shot_result' }
+        })
+      });
+      state.message = 'Shot-Overlay-Sound wurde an die Sound-System-Warteschlange gesendet.';
+      render();
+    } catch (err) {
+      state.error = err.message || String(err);
+      render();
+    }
   }
 
   function renderShotAlarmEventTab(){
@@ -4765,6 +4869,8 @@ window.StreamEventsModule = (function(){
         render();
         return;
       }
+      if (action === 'shotAlarmSaveOverlaySound') return saveShotOverlaySound();
+      if (action === 'shotAlarmTestOverlaySound') return testShotOverlaySound();
       if (action === 'reload') return loadAll(true);
       if (action === 'reloadTexts') return loadTexts(true);
       if (action === 'reloadShotAlarmData') return loadShotAlarmData(true);

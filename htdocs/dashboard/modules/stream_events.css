@@ -1487,3 +1487,10 @@
 .stream-events-admin .evs-shot-sound-grid-single{grid-template-columns:minmax(280px,520px);}
 .stream-events-admin .evs-shot-sound-slot-main{min-height:118px;}
 .stream-events-admin .evs-shot-sound-slot-main b{font-size:16px;}
+
+/* SHOT-ALARM-2J: Overlay-Sound via Media-System + Sound-System Queue */
+.stream-events-admin .evs-shot-sound-editor{display:grid;gap:14px;max-width:920px}
+.stream-events-admin .evs-shot-overlay-sound-media{max-width:760px}
+.stream-events-admin .evs-shot-sound-label-row{max-width:520px}
+.stream-events-admin .evs-shot-sound-label-row input{min-height:40px}
+.stream-events-admin .evs-shot-sound-routing{margin-top:0}

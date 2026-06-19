@@ -20,8 +20,8 @@ let chatOutputHelper = null;
 try { chatOutputHelper = require("./helpers/helper_chat_output"); } catch (_) { chatOutputHelper = null; }
 
 const MODULE_NAME = "shot_alarm";
-const MODULE_VERSION = "0.2.5";
-const MODULE_BUILD = "STEP_SHOT_ALARM_2H_ACTIVE_STATE_STREAM_SESSION_OVERLAY_BUS";
+const MODULE_VERSION = "0.2.6";
+const MODULE_BUILD = "STEP_SHOT_ALARM_2J_OVERLAY_SOUND_MEDIA_SYSTEM_QUEUE";
 const CONFIG_FILE = "shot_alarm.json";
 const HISTORY_LIMIT = 200;
 const TEXT_MODULE = "shot_alarm";
@@ -113,23 +113,22 @@ const DEFAULT_CONFIG = {
     subscribeResubBufferMs: 60000
   },
   sound: {
-    endpoint: "http://127.0.0.1:8080/api/sound/play",
-    category: "fun",
+    endpoint: "http://127.0.0.1:8080/api/sound/play-media",
+    category: "alert",
     source: "shot_alarm",
     target: "stream",
     outputTarget: "overlay",
     queueIfBusy: true,
     dropIfBusy: false,
     priority: 80,
-    sounds: [
-      {
-        type: "generated_beep",
-        label: "Shot-Alarm Test-Beep",
-        durationMs: 900,
-        frequency: 880,
-        volume: 0.35
-      }
-    ]
+    volume: 85,
+    overlayShot: {
+      enabled: true,
+      mediaId: "",
+      mediaLabel: "",
+      label: "Shot-Alarm Overlay-Einblendung"
+    },
+    sounds: []
   },
   chat: {
     enabled: true,
@@ -574,6 +573,30 @@ function applyFinalRuleDefaults() {
   return true;
 }
 
+
+function applySoundMediaDefaults() {
+  if (!config.sound || typeof config.sound !== "object") config.sound = {};
+  let changed = false;
+  if (!config.sound.overlayShot || typeof config.sound.overlayShot !== "object") {
+    config.sound.overlayShot = clone(DEFAULT_CONFIG.sound.overlayShot);
+    changed = true;
+  }
+  if (config.sound.overlayShot.enabled !== false) config.sound.overlayShot.enabled = true;
+  if (!Object.prototype.hasOwnProperty.call(config.sound.overlayShot, "mediaId")) { config.sound.overlayShot.mediaId = ""; changed = true; }
+  if (!Object.prototype.hasOwnProperty.call(config.sound.overlayShot, "mediaLabel")) { config.sound.overlayShot.mediaLabel = ""; changed = true; }
+  if (!cleanString(config.sound.overlayShot.label)) { config.sound.overlayShot.label = DEFAULT_CONFIG.sound.overlayShot.label; changed = true; }
+  if (!cleanString(config.sound.endpoint) || String(config.sound.endpoint).includes("/api/sound/play")) {
+    if (config.sound.endpoint !== DEFAULT_CONFIG.sound.endpoint) changed = true;
+    config.sound.endpoint = DEFAULT_CONFIG.sound.endpoint;
+  }
+  if (!cleanString(config.sound.category)) { config.sound.category = DEFAULT_CONFIG.sound.category; changed = true; }
+  if (!cleanString(config.sound.source)) { config.sound.source = DEFAULT_CONFIG.sound.source; changed = true; }
+  if (!cleanString(config.sound.target)) { config.sound.target = DEFAULT_CONFIG.sound.target; changed = true; }
+  if (!cleanString(config.sound.outputTarget)) { config.sound.outputTarget = DEFAULT_CONFIG.sound.outputTarget; changed = true; }
+  if (!Number.isFinite(Number(config.sound.priority))) { config.sound.priority = DEFAULT_CONFIG.sound.priority; changed = true; }
+  if (!Number.isFinite(Number(config.sound.volume))) { config.sound.volume = DEFAULT_CONFIG.sound.volume; changed = true; }
+  return changed;
+}
 
 function ensureTextVariants() {
   try {
@@ -1078,10 +1101,11 @@ function loadConfig() {
   }
   config = deepMerge(DEFAULT_CONFIG, sourceConfig || {});
   const migrated = applyFinalRuleDefaults();
+  const soundMigrated = applySoundMediaDefaults();
   config.enabled = config.enabled !== false;
   state.enabled = config.enabled;
   state.configPath = loaded && loaded.path ? loaded.path : cfg.resolveConfigFile(CONFIG_FILE);
-  if (migrated) {
+  if (migrated || soundMigrated) {
     try {
       settingsHelper.setSetting(SETTINGS_TABLE, SETTINGS_KEY_CONFIG, config, { valueType: "json", description: "Shot-Alarm Dashboard-Config" });
       cfg.writeJsonFile(state.configPath, config, { spaces: 2 });
@@ -1254,18 +1278,28 @@ function subscriptionDedupeKey(payload = {}) {
 }
 
 function pickSound() {
-  const sounds = Array.isArray(config.sound && config.sound.sounds) ? config.sound.sounds.filter(Boolean) : [];
-  if (!sounds.length) return null;
-  return clone(sounds[Math.floor(Math.random() * sounds.length)]);
+  const overlayShot = config.sound && typeof config.sound.overlayShot === "object" ? config.sound.overlayShot : {};
+  const mediaId = cleanString(overlayShot.mediaId || overlayShot.mediaAssetId || overlayShot.assetId || "");
+  if (config.soundEnabled === false || overlayShot.enabled === false || !mediaId) return null;
+  return clone({
+    ...overlayShot,
+    mediaId,
+    label: overlayShot.label || "Shot-Alarm Overlay-Einblendung"
+  });
 }
 
 async function requestSound(sound, context) {
   if (config.soundEnabled === false || !sound) return { ok: false, skipped: true, reason: "sound_disabled_or_missing" };
-  const endpoint = cleanString(config.sound.endpoint, "http://127.0.0.1:8080/api/sound/play");
+  const mediaId = cleanString(sound.mediaId || sound.mediaAssetId || sound.assetId || "");
+  if (!mediaId) {
+    state.lastSound = { ok: false, skipped: true, reason: "sound_media_not_configured", at: nowIso() };
+    return state.lastSound;
+  }
+  const endpoint = cleanString(config.sound.endpoint, "http://127.0.0.1:8080/api/sound/play-media");
   const body = {
-    ...sound,
-    label: sound.label || `Shot-Alarm ${context.eventLabel || ""}`.trim(),
-    category: sound.category || config.sound.category || "fun",
+    mediaId,
+    label: sound.label || `Shot-Alarm ${context.eventLabel || ""}`.trim() || "Shot-Alarm Overlay-Einblendung",
+    category: sound.category || config.sound.category || "alert",
     source: config.sound.source || MODULE_NAME,
     requestedBy: MODULE_NAME,
     target: sound.target || config.sound.target || "stream",
@@ -1273,12 +1307,21 @@ async function requestSound(sound, context) {
     queueIfBusy: config.sound.queueIfBusy !== false,
     dropIfBusy: config.sound.dropIfBusy === true,
     priority: Number(config.sound.priority || 80),
+    volume: Number(sound.volume || config.sound.volume || 85),
     meta: {
       ...(sound.meta || {}),
       module: MODULE_NAME,
       shotAlarm: true,
+      mediaId,
+      mediaLabel: cleanString(sound.mediaLabel || ""),
+      soundRole: "overlay_shot_result",
+      soundSystemQueue: true,
       triggerId: context.triggerId || "",
-      eventType: context.eventType || ""
+      drawId: context.drawId || "",
+      historyId: context.historyId || "",
+      eventType: context.eventType || "",
+      user: context.user && context.user.displayName ? context.user.displayName : "",
+      shotsAdded: Number(context.shotsAdded || 0)
     }
   };
 
@@ -1294,12 +1337,12 @@ async function requestSound(sound, context) {
       body: JSON.stringify(body)
     });
     const data = await response.json().catch(() => ({}));
-    state.lastSound = { ok: response.ok, status: response.status, at: nowIso(), sound: body, response: data };
+    state.lastSound = { ok: response.ok, status: response.status, at: nowIso(), endpoint, sound: body, response: data };
     if (!response.ok) state.counts.soundErrors += 1;
     return state.lastSound;
   } catch (err) {
     state.counts.soundErrors += 1;
-    state.lastSound = { ok: false, at: nowIso(), error: err && err.message ? err.message : String(err), sound: body };
+    state.lastSound = { ok: false, at: nowIso(), endpoint, error: err && err.message ? err.message : String(err), sound: body };
     state.lastError = state.lastSound.error;
     return state.lastSound;
   }
