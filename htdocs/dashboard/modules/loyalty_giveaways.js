@@ -321,6 +321,19 @@ window.LoyaltyGiveawaysModule = (function(){
 
   function selectedGiveaway(){ return state.selected || null; }
 
+  function giveawayByUid(uid){
+    const clean = String(uid || '');
+    if (!clean) return null;
+    if (state.selected && state.selected.giveawayUid === clean) return state.selected;
+    return rows(state.giveaways).find(item => item && item.giveawayUid === clean) || null;
+  }
+
+  function copyButton(uid, sizeClass = ''){
+    const cleanUid = esc(uid || '');
+    const size = String(sizeClass || '').trim();
+    return `<button class="lgw-btn ${size} lgw-btn-secondary" data-lgw-action="copy" data-uid="${cleanUid}">Kopieren</button>`;
+  }
+
   function isControlModalFor(uid){
     return state.modal?.type === 'control' && (!uid || state.modal.uid === uid || state.selectedUid === uid);
   }
@@ -929,7 +942,7 @@ window.LoyaltyGiveawaysModule = (function(){
     if (!uid) return;
     const encoded = encodeURIComponent(uid);
     const map = {
-      copy: { path: `${api.detailBase}/${encoded}/copy`, confirm: '', body: () => ({ title: `Kopie von ${selectedGiveaway()?.title || 'Giveaway'}`, actor: 'dashboard' }) },
+      copy: { path: `${api.detailBase}/${encoded}/copy`, confirm: '', body: () => ({ title: `Kopie von ${(giveawayByUid(uid)?.title || selectedGiveaway()?.title || 'Giveaway')}`, actor: 'dashboard' }) },
       open: { path: `${api.detailBase}/${encoded}/open`, confirm: '', body: () => ({ actor: 'dashboard' }), control: true },
       close: { path: `${api.detailBase}/${encoded}/close-entries`, confirm: '', body: () => ({ actor: 'dashboard' }), control: true },
       draw: { path: `${api.detailBase}/${encoded}/draw`, confirm: 'Jetzt fair backendseitig einen Gewinner ziehen?', body: () => ({ actor: 'dashboard' }), control: true },
@@ -1103,6 +1116,7 @@ window.LoyaltyGiveawaysModule = (function(){
     const wheel = isWheelGiveaway(g);
     const actions = [];
     if (editable) actions.push(`<button class="lgw-btn lgw-btn-small lgw-btn-secondary" data-lgw-edit="${uid}">Bearbeiten</button>`);
+    if (!['deleted'].includes(s)) actions.push(copyButton(uid, 'lgw-btn-small'));
     if (wheel) {
       actions.push(`<button class="lgw-btn lgw-btn-small lgw-btn-secondary" data-lgw-open-wheel-editor="${uid}">${wheelEditorButtonLabel(g)}</button>`);
     }
@@ -1253,6 +1267,7 @@ window.LoyaltyGiveawaysModule = (function(){
                 <div class="lgw-row-actions lgw-giveaway-actions">
                   <button class="lgw-btn lgw-btn-small" data-lgw-open-details="${esc(g.giveawayUid)}">Anzeigen</button>
                   ${editable ? `<button class="lgw-btn lgw-btn-small lgw-btn-secondary" data-lgw-edit="${esc(g.giveawayUid)}">Bearbeiten</button>` : ''}
+                  ${copyButton(g.giveawayUid, 'lgw-btn-small')}
                   ${canStartGiveaway(g) ? `<button class="lgw-btn lgw-btn-small" data-lgw-action="open" data-uid="${esc(g.giveawayUid)}">Starten</button>` : ''}
                   ${isWheelGiveaway(g) ? `<button class="lgw-btn lgw-btn-small lgw-btn-secondary" data-lgw-open-wheel-editor="${esc(g.giveawayUid)}">${wheelEditorButtonLabel(g)}</button>` : ''}
                   ${isActiveGiveaway(g) ? `<button class="lgw-btn lgw-btn-small" data-lgw-open-control="${esc(g.giveawayUid)}">Steuern</button>` : ''}
@@ -1283,7 +1298,8 @@ window.LoyaltyGiveawaysModule = (function(){
             <p class="lgw-muted">${esc(g.description || '')}</p>
           </div>
           <div class="lgw-actions">
-            ${editable ? `<button class="lgw-btn" data-lgw-edit="${esc(g.giveawayUid)}">Bearbeiten</button>` : `<button class="lgw-btn lgw-btn-secondary" data-lgw-action="copy" data-uid="${esc(g.giveawayUid)}">Kopieren</button>`}
+            ${editable ? `<button class="lgw-btn" data-lgw-edit="${esc(g.giveawayUid)}">Bearbeiten</button>` : ''}
+            ${copyButton(g.giveawayUid)}
             ${norm(g.status) === 'draft' ? `<button class="lgw-btn" data-lgw-action="open" data-uid="${esc(g.giveawayUid)}">Starten</button>` : ''}
             ${isActiveGiveaway(g) ? `<button class="lgw-btn" data-lgw-open-control="${esc(g.giveawayUid)}">Steuerfenster öffnen</button>` : ''}
             ${renderArchiveDeleteActions(g, '')}
