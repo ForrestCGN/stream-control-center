@@ -22,8 +22,8 @@ let chatOutputHelper = null;
 try { chatOutputHelper = require("./helpers/helper_chat_output"); } catch (_) { chatOutputHelper = null; }
 
 const MODULE_NAME = "shot_alarm";
-const MODULE_VERSION = "0.2.10";
-const MODULE_BUILD = "STEP_SHOT_ALARM_2J4_OVERLAY_HOLD_UNTIL_SOUND_END";
+const MODULE_VERSION = "0.2.11";
+const MODULE_BUILD = "STEP_SHOT_ALARM_2J5_TEST_RESOLVE_OVERLAY_SOUND_FIX";
 const CONFIG_FILE = "shot_alarm.json";
 const HISTORY_LIMIT = 200;
 const TEXT_MODULE = "shot_alarm";
@@ -627,7 +627,7 @@ function applySoundMediaDefaults() {
     if (config.sound.endpoint !== DEFAULT_CONFIG.sound.endpoint) changed = true;
     config.sound.endpoint = DEFAULT_CONFIG.sound.endpoint;
   }
-  if (!cleanString(config.sound.category)) { config.sound.category = DEFAULT_CONFIG.sound.category; changed = true; }
+  if (cleanString(config.sound.category) !== DEFAULT_CONFIG.sound.category) { config.sound.category = DEFAULT_CONFIG.sound.category; changed = true; }
   if (!cleanString(config.sound.source)) { config.sound.source = DEFAULT_CONFIG.sound.source; changed = true; }
   // SHOT-ALARM-2J.2: Shot-MP3s sollen standardmäßig über Device + Discord laufen.
   // Alte Overlay-Defaults werden bewusst migriert, damit gespeicherte 2J/2J.1-Configs nicht stumm wirken,
@@ -1393,7 +1393,7 @@ async function requestSound(sound, context) {
   const body = {
     mediaId,
     label: sound.label || `Shot-Alarm ${context.eventLabel || ""}`.trim() || "Shot-Alarm Overlay-Einblendung",
-    category: sound.category || config.sound.category || "alert",
+    category: config.sound.category || "alert",
     source: config.sound.source || MODULE_NAME,
     requestedBy: MODULE_NAME,
     target: sound.target || config.sound.target || "both",
@@ -1478,7 +1478,7 @@ function sendStatusBar() {
   return payload;
 }
 
-function sendOverlay(phase, summary) {
+function sendOverlay(phase, summary, options = {}) {
   if (config.overlayEnabled === false) return { ok: false, skipped: true, reason: "overlay_disabled" };
   if (!isRuntimeEffective()) {
     sendOverlayState("overlay_suppressed_inactive");
