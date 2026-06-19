@@ -1,66 +1,87 @@
-# CHANGELOG – stream-control-center
+# CHANGELOG
 
-## 2026-06-17 – EventSound Runtime Overlay / Counter / Result Cards
+Stand: 2026-06-19
 
-### Added
+## SHOT-ALARM-2K2 Auto Stream Session Binding
 
-- Antwortzeit-Counter für EventSound-Antwortfenster.
-- Counter oben rechts, deckender Hintergrund, nur während `answerWindow.active`.
-- Keine-Lösung-Kachel nach Timeout.
-- Long-Winner-Demo-URL:
-  - `/overlays/stream_events/event_runtime_overlay.html?demo=result-long&v=test`
-- Testscript für Timeout/Keine-Lösung:
-  - `tools/test_event_runtime_unresolved_card.ps1`
+- Shot-Alarm auf Backend-Version `0.2.13` aktualisiert.
+- Build: `STEP_SHOT_ALARM_2K2_AUTO_STREAM_SESSION_BINDING`.
+- Shot-Alarm abonniert zentrale Twitch-Stream-Session-Events:
+  - `twitch.stream.session.started`
+  - `twitch.stream.session.confirmed`
+  - `twitch.stream.session.resumed`
+  - `twitch.stream.session.ended`
+- Override-Test bestätigt: Shot-Alarm übernimmt die von `twitch_events` erzeugte `streamSessionId`.
+- Nach Clear Override geht die zentrale Session wieder offline und Shot-Alarm wird produktiv unsichtbar.
 
-### Changed
+## SHOT-ALARM-2K1 Fresh Stream Session
 
-- Runtime-Overlay bis zuletzt auf Overlay-Stand `0.3.7` erweitert.
-- Gewinner-Card robuster gemacht:
-  - Username eigene Zeile.
-  - Punkte/Erkennung eigene Zeile.
-  - Schnipsel-Titel eigene zweizeilige Box.
-  - lange Titel werden per Layout begrenzt statt hart auf 36 Zeichen gekürzt.
-- Keine-Lösung-Kachel optisch/inhaltlich angepasst:
+- Backend auf `0.2.12` aktualisiert.
+- Neuer Endpunkt `POST /api/shot-alarm/new-session`.
+- Dashboard-Button „Neue Shot-Session starten“ ergänzt.
+- Runtime kann für einen frischen Stream manuell zurückgesetzt werden.
+- History/Logs werden dabei nicht gelöscht.
+- Button bleibt Fallback, nicht Hauptlogik.
 
-```text
-KEINE LÖSUNG
-Die Heimleitung hat im Chat
-keine richtige Antwort erkannt.
-Der Schnipsel bleibt im Archiv.
-```
+## SHOT-ALARM-2K Overlay Heartbeat Fix
 
-- Reveal-Video-Playback läuft weiter über Sound-System, aber ohne Runtime-PreRoll-Kreis.
-- `JETZT RATEN` während Soundlauf entfernt, da Antworten erst nach Sound-Ende gültig sind.
-- Auto-Schedule korrigiert: `intervalMinutes ± intervalJitterMinutes`, `roundDelaySeconds` nur Floor.
+- Shot-Overlay sendet jetzt echten direkten WebSocket-Heartbeat.
+- Monitor-Warnung „nur angemeldet, aber ohne echten Heartbeat“ behoben.
+- Overlay-Bus-Einbindung bleibt erhalten.
 
-### Fixed
+## SHOT-ALARM-2J5 Test Resolve Overlay Sound Fix
 
-- Falscher Overlay-ZIP-Pfad aus früherem Step als bekannter Fehler festgehalten. Korrekt:
+- Backend auf `0.2.11` aktualisiert.
+- Test-Auslösung bleibt nicht mehr bei `draw_started` hängen.
+- `Test sofort` resolved wieder sauber.
+- `Test mit 10s Auslosung` resolved nach Ablauf zuverlässig.
+- Ergebnis-Overlay und Ergebnis-Sound laufen wieder.
+- Produktive Shot-Sounds werden als `category=alert` gesendet.
 
-```text
-htdocs/overlays/stream_events/event_runtime_overlay.html
-```
+## SHOT-ALARM-2J4 Overlay Hold Until Sound End
 
-- `AUFLOESUNG / AUFLOESUNG LAEUFT` beim Reveal entfernt.
-- `LOS / JETZT RATEN` beim Reveal entfernt.
-- Counter-Position von links nach rechts verschoben.
-- Counter-Hintergrund ohne Transparenz gesetzt.
+- Backend auf `0.2.10` aktualisiert.
+- Overlay-Hold wird anhand Sounddauer + Puffer berechnet.
+- Ergebnis-Overlay bleibt bei langen Shot-Sounds sichtbar.
 
-### Confirmed
+## SHOT-ALARM-2J3 Stream Session ID Crash Fix
 
-- 30s-Test mit Lösung: Counter läuft, Antwort wird nach Delay gesendet, Result wird erkannt.
-- Normale Gewinner-Card sieht brauchbar aus.
-- Keine-Lösung-Kachel ist gewünscht und bleibt.
-- Long-Winner-Layout wird künftig bevorzugt über Demo-URL geprüft, nicht über unzuverlässige Custom-Testevent-Route.
+- Backend auf `0.2.9` aktualisiert.
+- Crash durch undefinierte Variable bei Stream-Session-Wechsel behoben.
 
-### Known Issues / Follow-up
+## SHOT-ALARM-2J2 Random Sounds Device Discord Queue
 
-- Reveal-Video-Sichtbarkeit hängt an `sound_system_overlay.html`/OBS-Quelle, nicht am Runtime-Overlay.
-- Overlay-Texte sind teilweise noch hart gesetzt und sollen später in DB/Textvarianten.
-- Auto-Rotation nach Reveal/Timeout über mehrere echte Runden prüfen.
+- Backend auf `0.2.8` aktualisiert.
+- Shot-Sounds laufen über Sound-System mit `target=both` und `outputTarget=device`.
+- Device und Discord werden über Sound-System genutzt.
 
----
+## SHOT-ALARM-2J1 Random Overlay Sounds Media Queue
 
-# Ältere Einträge
+- Mehrere zufällige Shot-Sounds über Media-System konfigurierbar.
+- Sound-System-Queue wird genutzt.
 
-Die vorherigen Einträge bleiben in älteren Archiv-/Step-Dateien erhalten. Dieser Stand konsolidiert den aktuellen EventSound-Runtime-Block.
+## SHOT-ALARM-2J Overlay Sound Media System Queue
+
+- Shot-Alarm-Sounds an Media-System/Sound-System angebunden.
+- Shot-Overlay selbst spielt keinen Sound direkt ab.
+
+## SHOT-ALARM-2I / 2I1 Dashboard Subtabs & Sounds
+
+- Shot-Alarm-Subtabs für Status, Logs, Statistik, Overlay und Sounds ergänzt.
+- Sounds-Tab auf die relevante Overlay-/Ergebnis-Soundliste reduziert.
+
+## SHOT-ALARM-2H bis 2H3 Runtime/Overlay/Dashboard
+
+- Persistenter Runtime-/Aktivzustand ergänzt.
+- Start/Stop im Dashboard ergänzt.
+- Overlay wird produktiv nur bei aktivem Shot-Alarm und Live-Status gezeigt.
+- Offline-Testfenster per `?force=1` ergänzt.
+- Dashboard-Zustand/Logs/Statistik bereinigt.
+
+## SHOT-ALARM-2C bis 2F Basis-Fixes
+
+- `!shotdone` / `!shotgetrunken` angebunden.
+- Dashboard-Audit/Safety ergänzt.
+- Ko-fi/Tipeee Payment-Bus ergänzt.
+- History-ID-Konflikt behoben.
+- Audit-Action-Namen bereinigt.

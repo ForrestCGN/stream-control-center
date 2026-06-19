@@ -2,41 +2,64 @@
 
 Stand: 2026-06-19
 
-## Nächster empfohlener Schritt: SHOT-ALARM-2F Cleanup / Feinschliff
+## Direkt vor oder nach dem Abendstream prüfen
+
+1. Sicherstellen, dass kein manueller Override aktiv ist:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/stream-state" |
+  Select-Object -ExpandProperty streamState |
+  Select-Object live,status,provider,streamId,streamSessionId,manualOverride |
+  ConvertTo-Json -Depth 6
+```
+
+2. Nach echtem Live-Start Twitch-Session prüfen:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/stream-session" |
+  ConvertTo-Json -Depth 10
+```
+
+3. Shot-Alarm Runtime prüfen:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/shot-alarm/status" |
+  Select-Object -ExpandProperty runtime |
+  ConvertTo-Json -Depth 8
+```
+
+Erwartung:
+
+- `twitch_events.streamSession.streamSessionId` ist gefüllt.
+- `shot_alarm.runtime.currentStreamSessionId` passt dazu.
+- `streamLive` ist bei echtem Live-Stream `true`.
+- `effectiveActive` wird erst true, wenn Shot-Alarm zusätzlich gestartet wurde.
+
+## Bei Problemen
+
+Wenn die neue echte Twitch-Session nicht automatisch übernommen wird:
+
+- aktuellen Status aus `twitch_events` und `shot_alarm` sichern.
+- keine Blindänderung machen.
+- `backend/modules/twitch_events.js` und `backend/modules/shot_alarm.js` erneut prüfen.
+- Manuellen Fallback-Button „Neue Shot-Session starten“ nur nutzen, wenn der Livebetrieb sonst gefährdet wäre.
+
+## Empfohlener nächster Entwicklungsstep nach Live-Check
+
+`SHOT-ALARM-2L Event-/Overlay-Queue absichern`
 
 Ziel:
 
-- Kleine Inkonsistenzen und Live-Feinschliff bereinigen, ohne neue Hauptlogik zu bauen.
+- Mehrere Support-Events kurz hintereinander werden zuverlässig nacheinander angezeigt.
+- Pro Event/User eigene Chat-/Overlay-/Sound-Meldung.
+- Keine Overlay-Meldung wird überschrieben.
+- Sound-System bleibt Playback-/Queue-Owner.
+- Offene Shots werden weiterhin in einem Gesamtzähler addiert.
 
-Vor Umsetzung prüfen:
+## Weitere spätere Punkte
 
-- `backend/modules/shot_alarm.js`
-- `htdocs/dashboard/modules/stream_events.js`
-- `htdocs/dashboard/modules/shot_alarm.js`
-- `docs/modules/shot_alarm.md`
-
-Konkrete Punkte:
-
-1. Audit-Action-Namen vereinheitlichen:
-   - Ziel: `shot_alarm.resolve_pending`
-   - aktuell im Test einmal mit `_`, einmal mit `-` gesehen.
-2. Dashboard-Audit-Anzeige prüfen/ggf. im Shot-Alarm-Tab sichtbarer machen.
-3. OBS-Overlay im echten Livebild prüfen und optisch feinjustieren.
-4. Echte Chat-Tests mit `!shotdone` und `!shotgetrunken`.
-5. Echte Ko-fi/Tipeee-Testevents über Anbieter-Dashboard gegen Webhook prüfen, sofern Webhooks aktiv eingerichtet sind.
-
-## Danach sinnvolle Schritte
-
-1. Shot-Alarm-Soundpool im Dashboard an vorhandenes Sound-/Media-System anbinden.
-2. Persistente Counter nach Neustart planen/umsetzen.
-3. Statistik-/History-Ansicht im Dashboard erweitern.
-4. Dashboard-Aktionen später an zentrales Audit-/Rechtesystem anbinden, wenn dieses final freigegeben ist.
-5. Optional: Payment-Bus-Events in zentraler Diagnose/Bus-Ansicht sichtbarer machen.
-
-## Aktuell abgeschlossen
-
-- SHOT-ALARM-2C `!shotdone` Command.
-- SHOT-ALARM-2D Dashboard Audit Safety.
-- SHOT-ALARM-2E Ko-fi/Tipeee Payment-Bus Integration.
-- SHOT-ALARM-2E Payment History ID Fix.
-- End-to-End-Test Payment → Shot-Alarm → `!shotdone`.
+- Statistik-/History-Auswertung schöner machen.
+- Filter nach Stream/Event im Dashboard weiter verbessern.
+- Texte/Varianten weiter im zentralen Texte-System pflegen.
+- Sound-Konfiguration weiter dashboardfähig halten.
+- Benutzer-/Rollenrechte später zentral anbinden.

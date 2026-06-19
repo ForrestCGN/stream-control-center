@@ -6,38 +6,45 @@ Stand: 2026-06-19
 
 - [x] Backend-Modul `shot_alarm` erstellt.
 - [x] Twitch-Support-Events über Communication Bus angebunden.
-- [x] Finale Regeln für Subs/Resubs/GiftSubs/Bomben/Bits umgesetzt.
-- [x] Bits-Blocklogik umgesetzt.
+- [x] Regeln für Subs/Resubs/GiftSubs/Bomben/Bits umgesetzt.
+- [x] Ko-fi/Tipeee Payment-Bus an Shot-Alarm angebunden.
 - [x] 10-Sekunden-Auslosungsphase umgesetzt.
 - [x] Ergebnisaggregation statt Einzelwurf-Spam umgesetzt.
 - [x] Offene/getrunkene/gesamt Counter umgesetzt.
-- [x] Overlay-Statusleiste unten und kleine Ergebnis-Karte oben umgesetzt.
-- [x] DB-Config via `module_settings` umgesetzt.
-- [x] DB-Textvarianten via `module_text_variants` umgesetzt.
-- [x] History-Tabelle `shot_alarm_history` angelegt.
-- [x] Dashboard-Einordnung final korrigiert: `Community → Event-System → Shot-Alarm`.
+- [x] `!shotdone` / `!shotgetrunken` Command angebunden.
+- [x] Dashboard-Audit/Safety für kritische Schreibaktionen ergänzt.
+- [x] History-ID-Konflikt behoben.
+- [x] Audit-Action-Namen bereinigt.
+- [x] Dashboard-Einordnung korrigiert: `Community → Event-System → Shot-Alarm`.
 - [x] Shot-Alarm-Texte im bestehenden Event-System-Texte-Dropdown verfügbar.
-- [x] Shot-Alarm-Config im sicheren Config-Bereich-Dropdown verfügbar.
-- [x] Event-System-Config bleibt vollständig erhalten.
-- [x] `!shotdone` Command über bestehendes Command-/Chat-System angebunden.
-- [x] Alias `!shotgetrunken` ergänzt.
-- [x] Berechtigungen für Engel/Roxxy/Broadcaster/Mods umgesetzt.
-- [x] Dashboard-/API-Audit für Shot-Alarm-Aktionen ergänzt.
-- [x] Confirm-Schutz für kritische Aktionen ergänzt.
-- [x] Ko-fi Payment-Bus-Event `payment.kofi.received` angebunden.
-- [x] Tipeee Payment-Bus-Event `payment.tipeee.received` angebunden.
-- [x] Ko-fi/Tipeee Testevents erreichen Shot-Alarm über den Bus.
-- [x] History-ID-Fix gegen doppelte `shot_alarm_history.id` umgesetzt.
-- [x] End-to-End-Test Payment → Shot-Alarm → `!shotdone` erfolgreich.
+- [x] Shot-Alarm-Config getrennt und sicher verfügbar.
+- [x] Dashboard-Subtabs Status/Logs/Statistik/Overlay/Sounds ergänzt.
+- [x] Shot-Log/Statistik aus Safety/Audit getrennt.
+- [x] Overlay auf Topbar/DeathCounter-Stil umgebaut.
+- [x] Overlay blendet produktiv nur bei aktivem Shot-Alarm und Live-Status ein.
+- [x] Offline-Testfenster per `?force=1` ergänzt.
+- [x] Overlay-Heartbeat für Monitor ergänzt.
+- [x] Sounds über Media-System/Sound-System eingebunden.
+- [x] Zufällige Soundliste für Shot-Ergebnis-Sounds umgesetzt.
+- [x] Sound-System-Queue wird genutzt.
+- [x] Shot-Sounds laufen mit `target=both`, `outputTarget=device`, `category=alert`.
+- [x] Overlay-Hold bis Sounddauer + Puffer umgesetzt.
+- [x] Test-Auslösung resolved wieder sauber und bleibt nicht bei `draw_started` hängen.
+- [x] Frische Shot-Session als manueller Fallback ergänzt.
+- [x] Automatische Anbindung an zentrale Twitch-Stream-Session-Events ergänzt.
+- [x] Override-Test bestätigt: Shot-Alarm übernimmt zentrale Session-ID.
 
-## Shot-Alarm offen
+## Shot-Alarm offen / nächste Prüfungen
 
-- [ ] Audit-Action-Namen vereinheitlichen: `shot_alarm.resolve_pending`.
-- [ ] Echte Anbieter-Testevents über Ko-fi/Tipeee-Dashboard/Webhook prüfen, falls Webhooks aktiv sind.
-- [ ] Echte Twitch-Chat-Tests mit `!shotdone` und `!shotgetrunken`.
-- [ ] Soundpool-Auswahl im Dashboard an vorhandenes Sound-/Media-System anbinden.
-- [ ] Echte Shot-Sounds hinterlegen/testen.
-- [ ] Persistente Counter nach Neustart planen.
-- [ ] Statistik/History im Dashboard ausbauen.
-- [ ] Overlay im OBS-Livebild prüfen und feinjustieren.
-- [ ] Dashboard-Aktionen später an zentrales Rechte-/Audit-Konzept anbinden, wenn final freigegeben.
+- [ ] Echte Twitch-Stream-ID beim Abendstream prüfen.
+- [ ] Nach Live-Start prüfen, ob Shot-Alarm automatisch die neue echte `streamSessionId` übernimmt.
+- [ ] Prüfen, dass alte Test-Shots nicht in die neue Live-Session laufen.
+- [ ] Shot-Alarm im Livebetrieb starten und ein kontrolliertes Test-Event prüfen.
+- [ ] Event-/Overlay-Queue für mehrere schnelle Support-Events prüfen/absichern.
+- [ ] Statistik/History weiter streamerfreundlich ausbauen.
+- [ ] Dashboard-Rechte/Rollen langfristig an Benutzerverwaltung anbinden.
+- [ ] Falls nötig: `ending`-Status zusätzlich hart blockieren, falls dieser je wieder als live sichtbar bleibt.
+
+## Nicht vergessen
+
+Bei weiteren Steps immer aktuelle echte Dateien/ZIPs als Source of Truth verwenden. Keine parallelen Strukturen und keine Funktionalität entfernen.

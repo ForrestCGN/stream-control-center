@@ -2,76 +2,86 @@
 
 Stand: 2026-06-19
 
-## SHOT-ALARM-2E Payment History ID Fix
+## SHOT-ALARM-2K2 Auto Stream Session Binding
 
-- `shot_alarm` auf Version `0.2.3` aktualisiert.
-- Build auf `STEP_SHOT_ALARM_2E_PAYMENT_HISTORY_ID_FIX` gesetzt.
-- Fehler behoben: `history_persist_failed: UNIQUE constraint failed: shot_alarm_history.id`.
-- History-Einträge bekommen jetzt eigene eindeutige `historyId` / `storageId`.
-- ursprüngliche Draw-ID bleibt als `id/sourceId/drawId` im Payload erhalten.
-- Ko-fi/Tipeee-End-to-End-Test danach erfolgreich ohne `lastError`/`lastWarning`.
-- Keine Shot-Regeln, Dashboard-Dateien oder DB-Dateien geändert.
+- Shot-Alarm auf Backend-Version `0.2.13` aktualisiert.
+- Build: `STEP_SHOT_ALARM_2K2_AUTO_STREAM_SESSION_BINDING`.
+- Shot-Alarm abonniert zentrale Twitch-Stream-Session-Events:
+  - `twitch.stream.session.started`
+  - `twitch.stream.session.confirmed`
+  - `twitch.stream.session.resumed`
+  - `twitch.stream.session.ended`
+- Override-Test bestätigt: Shot-Alarm übernimmt die von `twitch_events` erzeugte `streamSessionId`.
+- Nach Clear Override geht die zentrale Session wieder offline und Shot-Alarm wird produktiv unsichtbar.
 
-## SHOT-ALARM-2E Ko-fi/Tipeee Payment-Bus Integration
+## SHOT-ALARM-2K1 Fresh Stream Session
 
-- `backend/modules/kofi.js` auf Version `0.1.1` aktualisiert.
-- `backend/modules/tipeee.js` auf Version `0.1.1` aktualisiert.
-- Ko-fi veröffentlicht zusätzlich zum Alert-Forwarding auf den Communication Bus:
-  - `payment.kofi.received`
-- Tipeee veröffentlicht zusätzlich zum Alert-Forwarding auf den Communication Bus:
-  - `payment.tipeee.received`
-- Status der beiden Module enthält `paymentBus`.
-- Alert-Flow bleibt erhalten.
-- Shot-Alarm verarbeitet Payment-Bus-Events ohne direkte Provider-Kopplung.
+- Backend auf `0.2.12` aktualisiert.
+- Neuer Endpunkt `POST /api/shot-alarm/new-session`.
+- Dashboard-Button „Neue Shot-Session starten“ ergänzt.
+- Runtime kann für einen frischen Stream manuell zurückgesetzt werden.
+- History/Logs werden dabei nicht gelöscht.
+- Button bleibt Fallback, nicht Hauptlogik.
 
-## SHOT-ALARM-2D Dashboard Audit Safety
+## SHOT-ALARM-2K Overlay Heartbeat Fix
 
-- `shot_alarm` auf Version `0.2.2` aktualisiert.
-- Neue Route `GET /api/shot-alarm/dashboard-audit` ergänzt.
-- Status um `safety` und `audit` erweitert.
-- Schreibende Shot-Alarm-Aktionen werden auditiert.
-- Kritische Aktionen brauchen `confirmWrite:true`.
-- Dashboard sendet Bestätigung bei kritischen Aktionen.
-- Text „Chat-Befehl kommt später“ korrigiert auf aktiven `!shotdone`-Hinweis.
+- Shot-Overlay sendet jetzt echten direkten WebSocket-Heartbeat.
+- Monitor-Warnung „nur angemeldet, aber ohne echten Heartbeat“ behoben.
+- Overlay-Bus-Einbindung bleibt erhalten.
 
-## SHOT-ALARM-2C shotdone command
+## SHOT-ALARM-2J5 Test Resolve Overlay Sound Fix
 
-- `commands` auf Version `0.2.4` aktualisiert.
-- Build `STEP_SHOT_ALARM_2C_SHOTDONE_COMMAND`.
-- Command `!shotdone` ergänzt.
-- Alias `!shotgetrunken` ergänzt.
-- Zielroute `POST /api/shot-alarm/shot-done`.
-- Rechte über `allowedLogins`, `allowMods`, `allowBroadcaster`.
+- Backend auf `0.2.11` aktualisiert.
+- Test-Auslösung bleibt nicht mehr bei `draw_started` hängen.
+- `Test sofort` resolved wieder sauber.
+- `Test mit 10s Auslosung` resolved nach Ablauf zuverlässig.
+- Ergebnis-Overlay und Ergebnis-Sound laufen wieder.
+- Produktive Shot-Sounds werden als `category=alert` gesendet.
 
-## SHOT-ALARM-2B.6 Safe Config Dropdown No Settings Lost
+## SHOT-ALARM-2J4 Overlay Hold Until Sound End
 
-- Dashboard-Fix für `Community → Event-System → Config`.
-- Config-Bereich-Dropdown ergänzt: `Event-System` / `Shot-Alarm`.
-- Event-System-Config bleibt vollständig erhalten.
-- Shot-Alarm-Config ist zusätzlich getrennt auswählbar.
-- Wechsel im Dropdown löscht keine Einstellungen.
-- Keine Backend-/DB-/Regeländerung.
+- Backend auf `0.2.10` aktualisiert.
+- Overlay-Hold wird anhand Sounddauer + Puffer berechnet.
+- Ergebnis-Overlay bleibt bei langen Shot-Sounds sichtbar.
 
-## SHOT-ALARM-2B.5 Event-System Shot Tab + Config Dropdown
+## SHOT-ALARM-2J3 Stream Session ID Crash Fix
 
-- Shot-Alarm als eigener Tab innerhalb `Community → Event-System` ergänzt.
-- Texte bleiben im bestehenden Event-System-Texte-Tab.
-- Textbereich-Dropdown um `Shot-Alarm Chat` und `Shot-Alarm Overlay` erweitert.
-- Config-Bereich-Dropdown vorbereitet.
-- Keine Backend-/DB-/Regeländerung.
+- Backend auf `0.2.9` aktualisiert.
+- Crash durch undefinierte Variable bei Stream-Session-Wechsel behoben.
 
-## SHOT-ALARM-2B DB Texts Config Helpers
+## SHOT-ALARM-2J2 Random Sounds Device Discord Queue
 
-- Shot-Alarm auf Version `0.2.1` aktualisiert.
-- DB-Config über `module_settings` / `helper_settings`.
-- DB-Textvarianten über `module_text_variants` / `helper_texts`.
-- `shot_alarm_history` ergänzt.
-- Statistikroute ergänzt.
+- Backend auf `0.2.8` aktualisiert.
+- Shot-Sounds laufen über Sound-System mit `target=both` und `outputTarget=device`.
+- Device und Discord werden über Sound-System genutzt.
 
-## SHOT-ALARM-2A Aggregated Draw Overlay Counter
+## SHOT-ALARM-2J1 Random Overlay Sounds Media Queue
 
-- Auslosung pro Support-Event gebündelt.
-- 10-Sekunden-Auslosungsphase ergänzt.
-- Ergebnisphase mit einem Overlay, einem Sound und einer gebündelten Chatnachricht.
-- Runtime-Counter `shotsOpen`, `shotsDrunk`, `shotsAddedTotal` ergänzt.
-- Overlay-Statusleiste unten ergänzt.
+- Mehrere zufällige Shot-Sounds über Media-System konfigurierbar.
+- Sound-System-Queue wird genutzt.
+
+## SHOT-ALARM-2J Overlay Sound Media System Queue
+
+- Shot-Alarm-Sounds an Media-System/Sound-System angebunden.
+- Shot-Overlay selbst spielt keinen Sound direkt ab.
+
+## SHOT-ALARM-2I / 2I1 Dashboard Subtabs & Sounds
+
+- Shot-Alarm-Subtabs für Status, Logs, Statistik, Overlay und Sounds ergänzt.
+- Sounds-Tab auf die relevante Overlay-/Ergebnis-Soundliste reduziert.
+
+## SHOT-ALARM-2H bis 2H3 Runtime/Overlay/Dashboard
+
+- Persistenter Runtime-/Aktivzustand ergänzt.
+- Start/Stop im Dashboard ergänzt.
+- Overlay wird produktiv nur bei aktivem Shot-Alarm und Live-Status gezeigt.
+- Offline-Testfenster per `?force=1` ergänzt.
+- Dashboard-Zustand/Logs/Statistik bereinigt.
+
+## SHOT-ALARM-2C bis 2F Basis-Fixes
+
+- `!shotdone` / `!shotgetrunken` angebunden.
+- Dashboard-Audit/Safety ergänzt.
+- Ko-fi/Tipeee Payment-Bus ergänzt.
+- History-ID-Konflikt behoben.
+- Audit-Action-Namen bereinigt.

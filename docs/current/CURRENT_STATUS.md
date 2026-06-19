@@ -1,153 +1,128 @@
-# CURRENT_STATUS – stream-control-center
+# CURRENT_STATUS
 
-Stand: 2026-06-17 16:20
+Stand: 2026-06-19
 
-## Aktueller Arbeitsstand
+## Projektbereich
 
-```text
-EventSound / Runtime-Overlay / Sound-System ist der aktuelle Arbeitsblock.
-Der Grundablauf Sound-Schnipsel → Antwortfenster → Gewinner-/Keine-Lösung-Anzeige ist grundsätzlich stabil.
-```
+`stream-control-center` / `Community → Event-System → Shot-Alarm`
 
-## Bestätigt funktionierend
+Aktueller geprüfter Stand nach den heutigen Steps:
 
-```text
-- Sound-Schnipsel läuft hörbar über das Sound-System.
-- Sound-System bleibt Playback-/Queue-Owner.
-- Eventsystem/Runtime-Overlay startet Sound/Video nicht direkt am Sound-System vorbei.
-- 3 Sekunden Countdown/PreRoll vor dem Sound funktioniert.
-- Während Countdown und Sound werden Antworten nicht akzeptiert.
-- Das Antwortfenster startet erst nach Sound-Ende.
-- Kleiner runder Antwort-Counter wird während der Antwortphase angezeigt.
-- Counter sitzt oben rechts und hat deckenden Hintergrund.
-- Richtige Antwort wird erkannt.
-- Punkte werden vergeben.
-- Gewinner-Card erscheint Mitte rechts.
-- Reveal-Video kann grundsätzlich über Sound-System-Overlay abgespielt werden.
-- Bei Timeout erscheint eine eigene Keine-Lösung-Kachel oben mittig.
-- Keine-Lösung-Kachel spoilert die Lösung nicht.
-- Kein AUFLOESUNG-/LOS-/JETZT-RATEN-Kreis mehr beim Reveal.
-- Auto-Schedule wurde korrigiert: random_auto/sequence_auto nutzt intervalMinutes ± intervalJitterMinutes; roundDelaySeconds ist nur Mindestpause/Floor.
-```
+- Backend `shot_alarm`: **0.2.13**
+- Build: **STEP_SHOT_ALARM_2K2_AUTO_STREAM_SESSION_BINDING**
+- Dashboard-Stand aus den letzten Shot-Alarm-Steps: Subtabs, Logs, Statistik, Overlay und Sounds vorhanden.
+- Overlay-Stand: **SHOT-ALARM-2K Overlay Heartbeat Fix**
 
-## Aktuelle Versionen / Builds aus diesem Arbeitsstand
+## Aktueller Funktionsstand
 
-```text
-stream_events: zuletzt dokumentierter Zielstand 0.5.51 / STEP_EVENT_RUNTIME_UNRESOLVED_CARD_1
-sound_system: Reveal-Playback-only Fix aus STEP_EVENT_RUNTIME_OVERLAY_1B berücksichtigt
-Runtime-Overlay: zuletzt über Overlay-Steps bis 0.3.7 erweitert
-```
+Der Shot-Alarm ist als eigenes Untermodul im Event-System eingebunden:
 
-Hinweis: Bei Tests immer zuerst echte API-Version prüfen:
+`Community → Event-System → Shot-Alarm`
+
+Dort gibt es die Bereiche:
+
+- Status
+- Logs
+- Statistik
+- Overlay
+- Sounds
+
+Zusätzlich sind die Shot-Alarm-Texte weiterhin im bestehenden Event-System-Textebereich eingebunden und die Shot-Alarm-Konfiguration bleibt getrennt von der normalen Event-System-Konfiguration.
+
+## Heute abgeschlossene/freigegebene Themen
+
+- `!shotdone` / `!shotgetrunken` über das bestehende Command-System angebunden.
+- Berechtigungen für Broadcaster, Mods, Engel/Roxxy berücksichtigt.
+- Dashboard-Audit/Safety für kritische Schreibaktionen ergänzt.
+- Ko-fi/Tipeee senden Payment-Bus-Events, die vom Shot-Alarm verarbeitet werden können.
+- History-ID-Konflikt behoben.
+- Audit-Action-Namen bereinigt.
+- Overlay optisch auf Topbar/DeathCounter-Stil umgebaut.
+- Overlay zeigt Statusbar nur, wenn Shot-Alarm aktiv und produktiv sichtbar sein darf.
+- Offline-Test über `?force=1` möglich.
+- Shot-Alarm nutzt Overlay-/Communication-Bus und direkten Heartbeat.
+- Dashboard zeigt Start/Stop, Logs, Statistik, Overlay-Status und Sound-Konfiguration.
+- Sounds werden über Media-System/Sound-System eingebunden.
+- Mehrere zufällige Shot-Sounds möglich.
+- Shot-Sounds laufen über Sound-System mit Queue, `target=both`, `outputTarget=device`, `category=alert`.
+- Overlay bleibt beim Ergebnis mindestens Sounddauer + Puffer sichtbar.
+- Test-Auslösung hängt nicht mehr bei `draw_started`, sondern resolved wieder sauber.
+- Frische Shot-Session kann manuell als Fallback gestartet werden.
+- Shot-Alarm hört jetzt auf zentrale Twitch-Stream-Session-Events.
+
+## Stream-Session-Stand
+
+Die zentrale Quelle ist `backend/modules/twitch_events.js`.
+
+Relevante Endpunkte:
+
+- `GET /api/twitch/events/stream-state`
+- `GET /api/twitch/events/stream-session`
+
+Der Shot-Alarm liest den Stream-State und ist zusätzlich an diese Session-Events angebunden:
+
+- `twitch.stream.session.started`
+- `twitch.stream.session.confirmed`
+- `twitch.stream.session.resumed`
+- `twitch.stream.session.ended`
+
+Getestet wurde per manuellem Stream-Override:
+
+- `twitch_events` erzeugte eine aktive Session.
+- Shot-Alarm übernahm dieselbe `streamSessionId`.
+- Nach Clear Override ging `twitch_events` wieder auf offline.
+- Shot-Alarm ging ebenfalls auf `streamLive: false`, `effectiveActive: false`, `visible: false`.
+
+## Zielverhalten Shots
+
+Mehrere Support-Events kurz hintereinander werden **nicht** zu einer Sammelmeldung verschmolzen.
+
+Gewünschtes Verhalten:
+
+- Pro User/Event eine eigene Chat-/Overlay-/Sound-Meldung.
+- Shots werden in einen gemeinsamen offenen Gesamtzähler addiert.
+- Beispiel: User A 100er Bombe, User B 50er Bombe, User C Ko-fi 50 € → drei einzelne Einblendungen, aber ein gemeinsamer offener Shot-Zähler.
+
+## Aktuelle wichtige URLs
+
+Produktives Overlay:
+
+`http://127.0.0.1:8080/overlays/shot_alarm/shot_alarm_overlay.html`
+
+Offline-/Dashboard-Testfenster:
+
+`http://127.0.0.1:8080/overlays/shot_alarm/shot_alarm_overlay.html?force=1`
+
+Debug-Demo:
+
+`http://127.0.0.1:8080/overlays/shot_alarm/shot_alarm_overlay.html?debug=1`
+
+## Wichtig für den Abendstream
+
+Vor dem echten Stream sollte kein manueller Twitch-Override aktiv sein.
+
+Nach dem echten Streamstart prüfen:
 
 ```powershell
-$s = Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/status"
-$s | Select-Object moduleVersion,moduleBuild | Format-List
-```
-
-## Relevante zuletzt gebaute Steps
-
-```text
-EVENT-RUNTIME-OVERLAY-1
-- Gewinner-Card Mitte rechts.
-- Reveal nach Gewinner-Card verzögert.
-- AUFLOESUNG-Payload entfernt.
-
-EVENT-RUNTIME-OVERLAY-1B
-- Reveal-Playback über Sound-System ohne Runtime-PreRoll-Kreis.
-- Kein LOS/JETZT RATEN/AUFLOESUNG beim Reveal.
-
-EVENT-RUNTIME-ANSWER-COUNTDOWN-1
-- Antwortzeit-Counter eingeführt.
-- answerSeconds bis 3600 Sekunden vorbereitet.
-- Counter nur während answerWindow.active.
-- JETZT RATEN während Soundlauf entfernt.
-
-EVENT-RUNTIME-ANSWER-COUNTDOWN-1B
-- Counter nach oben rechts verschoben.
-- Counter-Anzeige ruhiger gemacht.
-
-EVENT-RUNTIME-UNRESOLVED-CARD-1
-- Keine-Lösung-Kachel nach Timeout.
-- Counter ohne Transparenz.
-- Timeout-Result sichtbar 10 Sekunden.
-
-EVENT-RUNTIME-POLISH-1 / 1B
-- Keine-Lösung-Kachel optisch verbessert.
-- Text aktualisiert:
-  KEINE LÖSUNG
-  Die Heimleitung hat im Chat
-  keine richtige Antwort erkannt.
-  Der Schnipsel bleibt im Archiv.
-
-EVENT-RUNTIME-WINNER-CARD-LAYOUT-1
-- Gewinner-Card robuster für lange Namen/Titel.
-- Username eigene Zeile.
-- Punkte eigene Zeile.
-- Titel eigene zweizeilige Titelbox.
-
-EVENT-RUNTIME-WINNER-CARD-DEMO-1
-- Demo-URL für langen Namen/Titel ergänzt:
-  /overlays/stream_events/event_runtime_overlay.html?demo=result-long&v=test
-```
-
-## Aktueller gewünschter Runtime-Ablauf Sound-Schnipsel
-
-```text
-1. Event/Auto-Intervall löst nächste Soundrunde aus.
-2. Runtime-Overlay zeigt 3 / 2 / 1 / LOS.
-3. Sound-System spielt den Schnipsel.
-4. Während Sound: keine Antwortannahme, kein Jetzt-raten-Text.
-5. Nach Sound-Ende startet answerWindow.
-6. Counter oben rechts läuft.
-7a. Richtige Antwort:
-    - Counter weg.
-    - Gewinner-Card Mitte rechts ca. 10 Sekunden.
-    - danach Reveal-Video über Sound-System-Overlay.
-    - danach weiter nach Auto-Intervall.
-7b. Timeout / keine richtige Antwort:
-    - Counter weg.
-    - Keine-Lösung-Kachel oben mittig ca. 10 Sekunden.
-    - kein Reveal.
-    - keine Punkte.
-    - Schnipsel bleibt ungelöst und kann je nach Config später wieder in Rotation.
-```
-
-## Bekannte Stolperfallen
-
-```text
-- Wenn Counter nicht erscheint: zuerst prüfen, ob answerWindow.active im Runtime-State true wird.
-- Wenn alte Texte/Layouts sichtbar sind: Backend-Version, Live-Deploy und OBS-Browserquellen-Cache prüfen.
-- Wenn Reveal-Video nicht sichtbar ist: Reveal läuft nicht über event_runtime_overlay.html, sondern über sound_system_overlay.html.
-- Der falsche ZIP-Pfad aus einem früheren Step war ein bekannter Fehler. Korrekt ist:
-  htdocs/overlays/stream_events/event_runtime_overlay.html
-- Long-Winner-Test über Custom-Testevent war unzuverlässig; Layoutprüfung für lange Namen/Titel lieber über Demo-URL machen.
-```
-
-## Wichtige URLs / Testbefehle
-
-```text
-Runtime Overlay:
-http://127.0.0.1:8080/overlays/stream_events/event_runtime_overlay.html
-
-Long Winner Demo:
-http://127.0.0.1:8080/overlays/stream_events/event_runtime_overlay.html?demo=result-long&v=test
-
-Sound-System Overlay für Reveal-Videos:
-http://127.0.0.1:8080/overlays/sound_system_overlay.html
+Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/stream-session" |
+  ConvertTo-Json -Depth 10
 ```
 
 ```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/runtime-overlay/state" | ConvertTo-Json -Depth 12
-Invoke-RestMethod "http://127.0.0.1:8080/api/sound/recent-playback?limit=10" | ConvertTo-Json -Depth 12
-Invoke-RestMethod "http://127.0.0.1:8080/api/sound/event-preroll/status" | ConvertTo-Json -Depth 12
+Invoke-RestMethod "http://127.0.0.1:8080/api/shot-alarm/status" |
+  Select-Object -ExpandProperty runtime |
+  ConvertTo-Json -Depth 8
 ```
 
-## Nächster sinnvoller Arbeitsblock
+Erwartung:
 
-```text
-1. Nicht weiter am Gewinner-/Keine-Lösung-Layout schrauben, solange es im Live-/Demo-Test ok aussieht.
-2. Reveal-Video-Sichtbarkeit bei Bedarf separat über sound_system_overlay.html prüfen.
-3. Danach EventSound Dashboard-/Config-Integration sauber weiterführen.
-4. Doku/Projektstand nach jedem stabilen Test aktualisieren.
-```
+- `twitch_events.streamSession.streamSessionId` ist gefüllt.
+- `shot_alarm.runtime.currentStreamSessionId` passt dazu.
+- `streamLive: true` nach echter Live-Erkennung.
+- Alte Test-Shots laufen nicht in die neue Session weiter.
+
+## Statusbewertung
+
+Der aktuelle Entwicklungsstand ist für den nächsten Live-Test vorbereitet.
+
+Noch nicht final durch echten Abendstream bestätigt ist nur die reale Twitch-Stream-ID-Übernahme unter Live-Bedingungen. Der manuelle Override-Test hat die 2K2-Anbindung aber grundsätzlich bestätigt.

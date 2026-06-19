@@ -2,183 +2,127 @@
 
 Stand: 2026-06-19
 
-## Shot-Alarm
+## Projektbereich
 
-Aktueller geprüfter Stand: **SHOT-ALARM-2E Ko-fi/Tipeee Payment-Bus Integration + History-ID-Fix + End-to-End-Test**
+`stream-control-center` / `Community → Event-System → Shot-Alarm`
 
-Backend Shot-Alarm:
+Aktueller geprüfter Stand nach den heutigen Steps:
 
-- `backend/modules/shot_alarm.js`
-- Modulversion: `0.2.3`
-- Build: `STEP_SHOT_ALARM_2E_PAYMENT_HISTORY_ID_FIX`
+- Backend `shot_alarm`: **0.2.13**
+- Build: **STEP_SHOT_ALARM_2K2_AUTO_STREAM_SESSION_BINDING**
+- Dashboard-Stand aus den letzten Shot-Alarm-Steps: Subtabs, Logs, Statistik, Overlay und Sounds vorhanden.
+- Overlay-Stand: **SHOT-ALARM-2K Overlay Heartbeat Fix**
 
-Command-System:
+## Aktueller Funktionsstand
 
-- `backend/modules/commands.js`
-- Modulversion: `0.2.4`
-- Build: `STEP_SHOT_ALARM_2C_SHOTDONE_COMMAND`
-
-Payment-/Alert-Provider:
-
-- `backend/modules/kofi.js`
-  - Modulversion: `0.1.1`
-  - veröffentlicht `payment.kofi.received` auf den Communication Bus
-- `backend/modules/tipeee.js`
-  - Modulversion: `0.1.1`
-  - veröffentlicht `payment.tipeee.received` auf den Communication Bus
-
-Dashboard-Fix-/Safety-Stand:
-
-- `SHOT-ALARM-2B.6 Safe Config Dropdown No Settings Lost`
-- `SHOT-ALARM-2D Dashboard Audit Safety`
-
-## Funktionsstand
-
-Shot-Alarm ist als Event-Untermodul im Event-System eingebunden:
+Der Shot-Alarm ist als eigenes Untermodul im Event-System eingebunden:
 
 `Community → Event-System → Shot-Alarm`
 
-Zusätzlich:
+Dort gibt es die Bereiche:
 
-- Texte unter `Community → Event-System → Texte`
-  - Textbereiche `Shot-Alarm Chat` und `Shot-Alarm Overlay`
-- Config unter `Community → Event-System → Config`
-  - Config-Bereich-Dropdown `Event-System` / `Shot-Alarm`
-  - Event-System-Config bleibt vollständig erhalten.
-  - Shot-Alarm-Config ist separat auswählbar.
+- Status
+- Logs
+- Statistik
+- Overlay
+- Sounds
 
-## STEP 2C – Command `!shotdone`
+Zusätzlich sind die Shot-Alarm-Texte weiterhin im bestehenden Event-System-Textebereich eingebunden und die Shot-Alarm-Konfiguration bleibt getrennt von der normalen Event-System-Konfiguration.
 
-`!shotdone` ist über das bestehende Command-System angebunden.
+## Heute abgeschlossene/freigegebene Themen
 
-Command:
+- `!shotdone` / `!shotgetrunken` über das bestehende Command-System angebunden.
+- Berechtigungen für Broadcaster, Mods, Engel/Roxxy berücksichtigt.
+- Dashboard-Audit/Safety für kritische Schreibaktionen ergänzt.
+- Ko-fi/Tipeee senden Payment-Bus-Events, die vom Shot-Alarm verarbeitet werden können.
+- History-ID-Konflikt behoben.
+- Audit-Action-Namen bereinigt.
+- Overlay optisch auf Topbar/DeathCounter-Stil umgebaut.
+- Overlay zeigt Statusbar nur, wenn Shot-Alarm aktiv und produktiv sichtbar sein darf.
+- Offline-Test über `?force=1` möglich.
+- Shot-Alarm nutzt Overlay-/Communication-Bus und direkten Heartbeat.
+- Dashboard zeigt Start/Stop, Logs, Statistik, Overlay-Status und Sound-Konfiguration.
+- Sounds werden über Media-System/Sound-System eingebunden.
+- Mehrere zufällige Shot-Sounds möglich.
+- Shot-Sounds laufen über Sound-System mit Queue, `target=both`, `outputTarget=device`, `category=alert`.
+- Overlay bleibt beim Ergebnis mindestens Sounddauer + Puffer sichtbar.
+- Test-Auslösung hängt nicht mehr bei `draw_started`, sondern resolved wieder sauber.
+- Frische Shot-Session kann manuell als Fallback gestartet werden.
+- Shot-Alarm hört jetzt auf zentrale Twitch-Stream-Session-Events.
 
-- Trigger: `!shotdone`
-- Alias: `!shotgetrunken`
-- Modul: `shot_alarm`
-- Zielroute: `POST /api/shot-alarm/shot-done`
-- ResponseMode: `module`
-- Standardrechte:
-  - `engelcgn`
-  - `roxxyfoxxy`
-  - Broadcaster
-  - Mods
+## Stream-Session-Stand
 
-Wichtig:
+Die zentrale Quelle ist `backend/modules/twitch_events.js`.
 
-- Das Command-System sendet keine eigene zusätzliche Antwort.
-- Die Chatmeldung kommt vom Modul `shot_alarm` über dessen Textvarianten `shotDone` / `shotDoneEmpty`.
+Relevante Endpunkte:
 
-## STEP 2D – Dashboard Audit Safety
+- `GET /api/twitch/events/stream-state`
+- `GET /api/twitch/events/stream-session`
 
-Dashboard-/API-Safety wurde ergänzt, ohne die bestehenden Dashboard-Flows zu ersetzen.
+Der Shot-Alarm liest den Stream-State und ist zusätzlich an diese Session-Events angebunden:
 
-Neue Route:
+- `twitch.stream.session.started`
+- `twitch.stream.session.confirmed`
+- `twitch.stream.session.resumed`
+- `twitch.stream.session.ended`
 
-- `GET /api/shot-alarm/dashboard-audit`
+Getestet wurde per manuellem Stream-Override:
 
-Status erweitert um:
+- `twitch_events` erzeugte eine aktive Session.
+- Shot-Alarm übernahm dieselbe `streamSessionId`.
+- Nach Clear Override ging `twitch_events` wieder auf offline.
+- Shot-Alarm ging ebenfalls auf `streamLive: false`, `effectiveActive: false`, `visible: false`.
 
-- `safety`
-- `audit`
+## Zielverhalten Shots
 
-Schreibende Aktionen werden auditiert:
+Mehrere Support-Events kurz hintereinander werden **nicht** zu einer Sammelmeldung verschmolzen.
 
-- Config speichern
-- Texte speichern/löschen
-- Test auslösen
-- manueller Trigger
-- offene Auslosungen auflösen
-- Shot getrunken
-- Pending flush
-- Runtime reset
+Gewünschtes Verhalten:
 
-Kritische Aktionen brauchen `confirmWrite:true`:
+- Pro User/Event eine eigene Chat-/Overlay-/Sound-Meldung.
+- Shots werden in einen gemeinsamen offenen Gesamtzähler addiert.
+- Beispiel: User A 100er Bombe, User B 50er Bombe, User C Ko-fi 50 € → drei einzelne Einblendungen, aber ein gemeinsamer offener Shot-Zähler.
 
-- `manual-trigger`
-- `resolve-pending`
-- `flush-pending`
-- `reset-state`
+## Aktuelle wichtige URLs
 
-Dashboard sendet die Bestätigung bei kritischen Aktionen.
+Produktives Overlay:
 
-## STEP 2E – Ko-fi/Tipeee Payment-Bus
+`http://127.0.0.1:8080/overlays/shot_alarm/shot_alarm_overlay.html`
 
-Ko-fi und Tipeee veröffentlichen Test-/Webhook-Payments zusätzlich zum Alert-Flow auf den Communication Bus.
+Offline-/Dashboard-Testfenster:
 
-Events:
+`http://127.0.0.1:8080/overlays/shot_alarm/shot_alarm_overlay.html?force=1`
 
-- `payment.kofi.received`
-- `payment.tipeee.received`
+Debug-Demo:
 
-Shot-Alarm hat diese Events bereits abonniert und verarbeitet sie nach den vorhandenen Payment-Regeln.
+`http://127.0.0.1:8080/overlays/shot_alarm/shot_alarm_overlay.html?debug=1`
 
-Payment-Regeln:
+## Wichtig für den Abendstream
 
-- Ko-fi: je volle 10 € = 50/50
-- Tipeee: je volle 10 € = 50/50
+Vor dem echten Stream sollte kein manueller Twitch-Override aktiv sein.
 
-Wichtig:
+Nach dem echten Streamstart prüfen:
 
-- Ko-fi/Tipeee sprechen Shot-Alarm nicht direkt an.
-- Die Anbindung läuft sauber über den vorhandenen Communication Bus.
-- Alert-Forwarding bleibt erhalten.
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/stream-session" |
+  ConvertTo-Json -Depth 10
+```
 
-## STEP 2E History-ID-Fix
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/shot-alarm/status" |
+  Select-Object -ExpandProperty runtime |
+  ConvertTo-Json -Depth 8
+```
 
-Beim ersten Payment-Bus-Test wurde gefunden:
+Erwartung:
 
-- `history_persist_failed: UNIQUE constraint failed: shot_alarm_history.id`
+- `twitch_events.streamSession.streamSessionId` ist gefüllt.
+- `shot_alarm.runtime.currentStreamSessionId` passt dazu.
+- `streamLive: true` nach echter Live-Erkennung.
+- Alte Test-Shots laufen nicht in die neue Session weiter.
 
-Ursache:
+## Statusbewertung
 
-- Draw-Start und Draw-Result konnten dieselbe Draw-ID als History-Primary-Key verwenden.
+Der aktuelle Entwicklungsstand ist für den nächsten Live-Test vorbereitet.
 
-Fix in `shot_alarm` 0.2.3:
-
-- History-Einträge bekommen eigene eindeutige `historyId` / `storageId`.
-- ursprüngliche Draw-ID bleibt als `id/sourceId/drawId` im Payload erhalten.
-- Shot-Regeln und Dashboard wurden dabei nicht geändert.
-
-## Geprüfte Regeln
-
-- Einzel-Sub/Resub/GiftSub: 20 %
-- jeder 5. einzelne Sub/Resub/GiftSub: 50/50
-- jeder 10. einzelne Sub/Resub/GiftSub: 100 %
-- 5er Bombe: 50/50
-- je 10 Subs in Bombe: 1 sicherer Shot
-- 100er Bombe: 10 Shots
-- je 1.000 Bits: 50/50
-- je 10.000 Bits: 100 %
-- Ko-fi/Tipeee: je 10 € = 50/50
-
-## Geprüfte Runtime / Tests
-
-- Communication-Bus-Registrierung aktiv.
-- 10-Sekunden-Auslosungsphase funktioniert.
-- Ergebnis wird danach resolved.
-- `shotsOpen` wird erst beim Ergebnis erhöht.
-- `shot-done` Route funktioniert.
-- `!shotdone` wurde trocken und per Execute getestet.
-- STEP 2D Statusroute zeigt `moduleVersion=0.2.2` und Build `STEP_SHOT_ALARM_2D_DASHBOARD_AUDIT_SAFETY`.
-- `/api/shot-alarm/dashboard-audit` funktioniert.
-- Confirm-Schutz greift ohne `confirmWrite` mit `confirm_write_required`.
-- Mit `confirmWrite:true` läuft `resolve-pending` sauber durch.
-- Audit loggt erlaubte und verweigerte Aktionen.
-- Ko-fi-Testevent: `paymentBus.ok=true`, `subscriberDeliveredCount=1`.
-- Tipeee-Testevent: `paymentBus.ok=true`, `subscriberDeliveredCount=1`.
-- Shot-Alarm verarbeitet Payment-Bus-Events.
-- History-ID-Fix bestätigt: `lastError` leer, `lastWarning` leer.
-- End-to-End-Test bestätigt:
-  - Payment-Testevent erzeugte offenen Shot
-  - `!shotdone` reduzierte `shotsOpen` von 1 auf 0
-  - `shotsDrunk` wurde von 0 auf 1 erhöht
-  - `shotsAddedTotal` blieb 1
-
-## Wichtig
-
-Dashboard-Config-Dropdown darf bestehende Event-System-Einstellungen nie löschen oder ersetzen. Event-System und Shot-Alarm speichern getrennt.
-
-Offener kleiner Cleanup-Punkt:
-
-- Audit-Action-Namen vereinheitlichen: aktuell gab es im Test einmal `shot_alarm.resolve_pending` und einmal `shot_alarm.resolve-pending`. Ziel: einheitlich `shot_alarm.resolve_pending`.
+Noch nicht final durch echten Abendstream bestätigt ist nur die reale Twitch-Stream-ID-Übernahme unter Live-Bedingungen. Der manuelle Override-Test hat die 2K2-Anbindung aber grundsätzlich bestätigt.

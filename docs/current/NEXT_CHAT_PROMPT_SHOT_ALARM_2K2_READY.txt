@@ -1,0 +1,69 @@
+Wir machen im Projekt `stream-control-center` für ForrestCGN weiter, Bereich `Community → Event-System → Shot-Alarm`.
+
+Bitte auf Deutsch arbeiten, ruhig, direkt und strikt schrittweise.
+
+Wichtig:
+
+- Erst prüfen, dann planen, dann auf mein ausdrückliches `go` warten.
+- Keine Umsetzung ohne `go`.
+- Aktuelle echte Dateien/ZIPs sind Source of Truth.
+- Nicht raten. Fehlende Dateien exakt anfordern.
+- Keine Funktionalität entfernen.
+- Bestehende Systeme nutzen: Communication/EventBus, Twitch-Events, Sound-System, Media-System, Overlay-Bus/Monitor, DB-/Text-/Config-Helper, Dashboard-Struktur.
+- ZIPs immer mit echten Zielpfaden liefern.
+- Nach ZIP-Einspielen wird `stepdone.cmd` ausgeführt und erst danach getestet.
+
+Aktueller Stand:
+
+- Shot-Alarm Backend: `backend/modules/shot_alarm.js`
+- Version: `0.2.13`
+- Build: `STEP_SHOT_ALARM_2K2_AUTO_STREAM_SESSION_BINDING`
+- Letzte relevante ZIPs:
+  - `SHOT_ALARM_2J5_test_resolve_overlay_sound_fix.zip`
+  - `SHOT_ALARM_2K_overlay_heartbeat_fix.zip`
+  - `SHOT_ALARM_2K1_fresh_stream_session.zip`
+  - `SHOT_ALARM_2K2_auto_stream_session_binding.zip`
+
+Funktioniert aktuell:
+
+- `!shotdone` / `!shotgetrunken`.
+- Ko-fi/Tipeee Payment-Bus.
+- Dashboard-Audit/Safety.
+- Dashboard Subtabs Status/Logs/Statistik/Overlay/Sounds.
+- Mehrere zufällige Shot-Sounds über Media-System/Sound-System.
+- Sound-System Queue mit `target=both`, `outputTarget=device`, `category=alert`.
+- Test-Auslösung resolved wieder sauber.
+- Ergebnis-Overlay bleibt Sounddauer + Puffer sichtbar.
+- Overlay sendet Heartbeat.
+- Shot-Alarm ist an zentrale Twitch-Stream-Session-Events angebunden.
+
+Wichtiges Zielverhalten:
+
+- Pro Support-Event/User eigene Chat-/Overlay-/Sound-Meldung.
+- Shots werden in einem gemeinsamen offenen Gesamtzähler addiert.
+- Mehrere schnelle Events dürfen später nicht überschrieben werden.
+
+Noch zu prüfen:
+
+- Beim echten Abendstream muss `twitch_events` eine echte Twitch-Stream-ID/Session erzeugen.
+- Shot-Alarm muss dieselbe `streamSessionId` übernehmen.
+- Alte Test-Shots dürfen nicht in die neue Live-Session laufen.
+
+Prüfbefehle:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/stream-session" |
+  ConvertTo-Json -Depth 10
+```
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/shot-alarm/status" |
+  Select-Object -ExpandProperty runtime |
+  ConvertTo-Json -Depth 8
+```
+
+Empfohlener nächster Step nach Live-Check:
+
+`SHOT-ALARM-2L Event-/Overlay-Queue absichern`
+
+Ziel: mehrere Support-Events kurz hintereinander zuverlässig nacheinander anzeigen, ohne Overlay-Überschreibung, während Sound-System Playback-/Queue-Owner bleibt.
