@@ -261,7 +261,7 @@
 
   <script>
     (() => {
-      const OVERLAY_BUILD = "LWG-WHEEL-TEXT-RADIAL-1";
+      const OVERLAY_BUILD = "LWG-WHEEL-TEXT-RADIAL-2";
       const RESULT_HOLD_MS = 11000;
       const RESET_HIDE_MS = 300;
 
@@ -371,13 +371,12 @@
         return raw.slice(0, Math.max(1, max - 1)) + "…";
       }
 
-      function splitLabel(label, maxLines = 2, maxChars = 15) {
-        const raw = fixTextEncoding(label || "").replace(/\s+/g, " ").trim();
-        if (!raw) return [""];
-        const words = raw.split(" ").map(word => shortenWord(word, maxChars));
-        const lines = [];
+      function pushWrappedWords(lines, text, maxLines, maxChars) {
+        const words = fixTextEncoding(text || "").replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
         let current = "";
-        for (const word of words) {
+        for (const wordRaw of words) {
+          if (lines.length >= maxLines) break;
+          const word = shortenWord(wordRaw, Math.max(6, maxChars));
           const next = current ? `${current} ${word}` : word;
           if (next.length <= maxChars || !current) {
             current = next;
@@ -385,20 +384,38 @@
             lines.push(current);
             current = word;
           }
-          if (lines.length >= maxLines) break;
         }
         if (current && lines.length < maxLines) lines.push(current);
-        const consumed = lines.join(" ").replace(/…/g, "").length;
-        if (raw.length > consumed + 2 && lines.length) {
-          lines[lines.length - 1] = shortenWord(lines[lines.length - 1], Math.max(5, maxChars));
-          if (!lines[lines.length - 1].endsWith("…")) lines[lines.length - 1] = shortenWord(lines[lines.length - 1] + "…", maxChars);
-        }
-        return lines.slice(0, maxLines);
       }
 
-      function radialTextRotation(angle) {
-        const normalized = normalizeDeg(angle);
-        return normalized > 90 && normalized < 270 ? angle + 180 : angle;
+      function splitLabel(label, maxLines = 3, maxChars = 15) {
+        const raw = fixTextEncoding(label || "").replace(/\s+/g, " ").trim();
+        if (!raw) return [""];
+        const lines = [];
+
+        if (raw.includes(":")) {
+          const parts = raw.split(":");
+          const head = `${parts.shift().trim()}:`;
+          const rest = parts.join(":").trim();
+          if (head.length <= maxChars + 2) {
+            lines.push(head);
+            pushWrappedWords(lines, rest, maxLines, maxChars);
+          } else {
+            pushWrappedWords(lines, head, maxLines, maxChars);
+            pushWrappedWords(lines, rest, maxLines, maxChars);
+          }
+        } else {
+          pushWrappedWords(lines, raw, maxLines, maxChars);
+        }
+
+        if (!lines.length) return [shortenWord(raw, maxChars)];
+        const joined = lines.join(" ").replace(/…/g, "");
+        if (raw.length > joined.length + 2 && lines.length >= maxLines) {
+          const last = lines.length - 1;
+          lines[last] = shortenWord(lines[last], Math.max(6, maxChars));
+          if (!lines[last].endsWith("…")) lines[last] = shortenWord(`${lines[last]}…`, maxChars);
+        }
+        return lines.slice(0, maxLines);
       }
 
       function buildSegmentsSvg(fields) {
@@ -411,9 +428,10 @@
         const rText = n <= 8 ? 252 : n <= 12 ? 258 : 266;
         const step = 360 / n;
         const startBoundary = -90 - step / 2;
-        const maxChars = n <= 8 ? 14 : n <= 12 ? 12 : 10;
-        const fontSize = n <= 8 ? 22 : n <= 12 ? 18 : 15;
-        const subSize = n <= 8 ? 12 : n <= 12 ? 10 : 9;
+        const maxChars = n <= 8 ? 15 : n <= 12 ? 14 : 11;
+        const maxLines = n <= 12 ? 3 : 2;
+        const fontSize = n <= 8 ? 19 : n <= 12 ? 16 : 14;
+        const subSize = n <= 8 ? 11 : n <= 12 ? 9 : 8;
 
         let svg = `
 <svg class="segments-svg" viewBox="0 0 800 800" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -458,11 +476,11 @@
         list.forEach((field, i) => {
           const a = startBoundary + i * step + step / 2;
           const [tx, ty] = polar(cx, cy, rText, a);
-          const rotate = radialTextRotation(a);
-          const lines = splitLabel(field.label, 2, maxChars);
+          const rotate = a;
+          const lines = splitLabel(field.label, maxLines, maxChars);
           const sub = shortenWord(field.sub || "", Math.max(9, maxChars));
           const totalLines = lines.length + (sub ? 1 : 0);
-          const lineHeight = fontSize * .96;
+          const lineHeight = fontSize * .94;
           const startY = -((totalLines - 1) * lineHeight) / 2;
           svg += `<g transform="translate(${tx.toFixed(2)} ${ty.toFixed(2)}) rotate(${rotate.toFixed(2)})">`;
           lines.forEach((line, idx) => {
