@@ -20,8 +20,8 @@ let chatOutputHelper = null;
 try { chatOutputHelper = require("./helpers/helper_chat_output"); } catch (_) { chatOutputHelper = null; }
 
 const MODULE_NAME = "shot_alarm";
-const MODULE_VERSION = "0.2.8";
-const MODULE_BUILD = "STEP_SHOT_ALARM_2J2_RANDOM_SOUNDS_DEVICE_DISCORD_QUEUE";
+const MODULE_VERSION = "0.2.9";
+const MODULE_BUILD = "STEP_SHOT_ALARM_2J3_STREAM_SESSION_ID_CRASH_FIX";
 const CONFIG_FILE = "shot_alarm.json";
 const HISTORY_LIMIT = 200;
 const TEXT_MODULE = "shot_alarm";
@@ -1034,7 +1034,7 @@ function ensureCurrentStreamRuntime(reason = "runtime_check", options = {}) {
 
   if (streamChanged || (firstOnlineSession && (state.shotsOpen > 0 || state.shotsDrunk > 0 || state.shotsAddedTotal > 0))) {
     clearRuntimeCounters("stream_session_changed");
-    emitBus("runtime.stream_changed", { oldStreamSessionId: oldSessionId, newStreamSessionId, streamDayId: ctx.streamDayId, at: nowIso() }, { replayable: true, ttlMs: 60000 });
+    emitBus("runtime.stream_changed", { oldStreamSessionId: oldSessionId, newStreamSessionId: newSessionId, streamDayId: ctx.streamDayId, at: nowIso() }, { replayable: true, ttlMs: 60000 });
   }
 
   if (ctx.live === true && newSessionId) {
