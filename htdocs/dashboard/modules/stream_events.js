@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.56";
-  const MODULE_BUILD = "STEP_EVS52_21_WINNER_FINALE_REPLAY_BUTTON";
+  const MODULE_VERSION = "0.5.57";
+  const MODULE_BUILD = "STEP_EVS52_21S_DASHBOARD_EVENT_LIST_SAFE_LOAD";
 
   const api = {
     status: '/api/stream-events/status',
@@ -265,7 +265,7 @@ window.StreamEventsModule = (function(){
       <div class="evs-page">
         <div class="evs-header glass">
           <div>
-            <div class="evs-kicker">EVS52.21 · Finale erneut abspielen</div>
+            <div class="evs-kicker">EVS52.21S · Eventliste stabil geladen</div>
             <h2>Event-System</h2>
             <p>Übersicht zeigt den aktuellen Event-Stand und die nächste sinnvolle Aktion.</p>
           </div>
@@ -3132,30 +3132,58 @@ window.StreamEventsModule = (function(){
     if (state.loading && !force) return;
     state.loading = true;
     state.error = '';
+
+    const softErrors = [];
+    const softLoad = async (label, fn, fallback = null) => {
+      try { return await fn(); }
+      catch (err) {
+        softErrors.push(`${label}: ${err && err.message ? err.message : String(err)}`);
+        return fallback;
+      }
+    };
+
     try {
-      const [status, list, texts, config, runtimeGateStatus] = await Promise.all([
-        window.CGN.api(api.status),
-        window.CGN.api(api.list),
-        window.CGN.api(api.texts),
-        window.CGN.api(api.config),
-        window.CGN.api(api.runtimeGateStatus)
-      ]);
-      state.status = status;
+      // EVS52.21S: Eventliste zuerst und unabhängig laden.
+      // Wenn Texte/Config/RuntimeGate/Finale/Rangliste kurz fehlschlagen, darf die Eventliste nicht leer gerendert werden.
+      const list = await window.CGN.api(api.list);
       state.events = rows(list);
+
+      if (!state.selectedUid && state.events[0]) state.selectedUid = state.events[0].eventUid;
+      if (state.selectedUid && !state.events.some(event => event.eventUid === state.selectedUid)) {
+        state.selectedUid = state.events[0]?.eventUid || '';
+      }
+      state.selected = selectedEvent();
+
+      const [status, texts, config, runtimeGateStatus] = await Promise.all([
+        softLoad('status', () => window.CGN.api(api.status), state.status),
+        softLoad('texts', () => window.CGN.api(api.texts), state.texts),
+        softLoad('config', () => window.CGN.api(api.config), state.config),
+        softLoad('runtimeGateStatus', () => window.CGN.api(api.runtimeGateStatus), state.runtimeGateStatus)
+      ]);
+
+      state.status = status;
       state.texts = texts;
       state.config = config;
       state.runtimeGateStatus = runtimeGateStatus;
-      if (!state.selectedUid && state.events[0]) state.selectedUid = state.events[0].eventUid;
+
       const ev = selectedEvent();
       const activeEvent = state.events.find(event => norm(event.status) === 'active');
       const dataEvent = activeEvent || ev;
-      if (ev) await loadFinalePreview(ev.eventUid, false);
+
+      if (ev) await softLoad('finalePreview', () => loadFinalePreview(ev.eventUid, false), null);
       else state.finalePreview = null;
+
       if (dataEvent) {
-        await loadRanking(dataEvent.eventUid, false);
-        await loadTextRuntimeReport(dataEvent.eventUid, false);
-        await loadSoundRuntimeReport(dataEvent.eventUid, false);
-        await loadStatisticsUsers(dataEvent.eventUid, false);
+        await Promise.all([
+          softLoad('ranking', () => loadRanking(dataEvent.eventUid, false), null),
+          softLoad('textRuntimeReport', () => loadTextRuntimeReport(dataEvent.eventUid, false), null),
+          softLoad('soundRuntimeReport', () => loadSoundRuntimeReport(dataEvent.eventUid, false), null),
+          softLoad('statisticsUsers', () => loadStatisticsUsers(dataEvent.eventUid, false), null)
+        ]);
+      }
+
+      if (softErrors.length) {
+        state.error = `Eventliste geladen (${state.events.length}). Nebenstatus teilweise nicht geladen: ${softErrors.slice(0, 3).join(' | ')}`;
       }
     } catch (err) {
       state.error = err.message || String(err);
