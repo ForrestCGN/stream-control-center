@@ -22,8 +22,8 @@ let chatOutputHelper = null;
 try { chatOutputHelper = require("./helpers/helper_chat_output"); } catch (_) { chatOutputHelper = null; }
 
 const MODULE_NAME = "shot_alarm";
-const MODULE_VERSION = "0.2.12";
-const MODULE_BUILD = "STEP_SHOT_ALARM_2K1_FRESH_STREAM_SESSION";
+const MODULE_VERSION = "0.2.13";
+const MODULE_BUILD = "STEP_SHOT_ALARM_2K2_AUTO_STREAM_SESSION_BINDING";
 const CONFIG_FILE = "shot_alarm.json";
 const HISTORY_LIMIT = 200;
 const TEXT_MODULE = "shot_alarm";
@@ -48,7 +48,14 @@ const MODULE_META = {
       "twitch.giftbomb.received",
       "twitch.cheer.received",
       "payment.kofi.received",
-      "payment.tipeee.received"
+      "payment.tipeee.received",
+      "twitch.stream.online",
+      "twitch.stream.offline",
+      "twitch.stream.updated",
+      "twitch.stream.session.started",
+      "twitch.stream.session.confirmed",
+      "twitch.stream.session.resumed",
+      "twitch.stream.session.ended"
     ],
     publishes: [
       "shot_alarm.status.updated",
@@ -64,7 +71,7 @@ const MODULE_META = {
       "shot_alarm.runtime.stream_changed"
     ]
   },
-  description: "Shot-Alarm fuer Twitch-Support-Events mit gebuendelter Auslosung, Counter, Overlay-Statusleiste, DB-basierten Texten/Config sowie Dashboard-Audit/Safety fuer produktive Aktionen."
+  description: "Shot-Alarm fuer Twitch-Support-Events mit gebuendelter Auslosung, Counter, Overlay-Statusleiste, DB-basierten Texten/Config, Dashboard-Audit/Safety und automatischer Twitch-Stream-Session-Anbindung."
 };
 
 const DEFAULT_CONFIG = {
@@ -2078,6 +2085,29 @@ function subscribeBus(channel) {
   return result;
 }
 
+function handleStreamStateEvent(reason = "twitch_stream_updated") {
+  const ctx = ensureCurrentStreamRuntime(reason);
+  const overlay = sendOverlayState(reason);
+  publishStatus(reason);
+  return { ok: true, reason, streamSessionId: ctx.streamSessionId || state.runtime.currentStreamSessionId || "", streamDayId: ctx.streamDayId || state.runtime.currentStreamDayId || "", streamLive: ctx.live === true, effectiveActive: ctx.effectiveActive === true, overlayState: overlay };
+}
+
+function subscribeStreamEvent(channel, action, reasonPrefix = "twitch_stream") {
+  if (!bus || typeof bus.subscribe !== "function") return null;
+  const result = bus.subscribe({ id: `${MODULE_NAME}:${channel}:${action}`, module: MODULE_NAME, channel, action }, (envelope) => {
+    const payload = envelope && envelope.payload && typeof envelope.payload === "object" ? envelope.payload : {};
+    const sessionId = cleanString(payload.streamSessionId || payload.streamSession?.streamSessionId || "");
+    const previousSessionId = cleanString(state.runtime.currentStreamSessionId || "");
+    const result = handleStreamStateEvent(`${reasonPrefix}_${action}`);
+    if (sessionId && previousSessionId && sessionId !== previousSessionId) {
+      state.runtime.lastReason = `${reasonPrefix}_${action}_session_event`;
+    }
+    return { ...result, busStreamSessionId: sessionId, previousStreamSessionId: previousSessionId };
+  });
+  if (result && result.ok && result.subscription) state.subscriptions.push(result.subscription);
+  return result;
+}
+
 function registerBus() {
   try {
     bus = communicationBus.getBus();
@@ -2095,14 +2125,8 @@ function registerBus() {
       state.registeredOnBus = result && result.ok === true;
     }
     ["twitch.sub", "twitch.resub", "twitch.subgift", "twitch.giftbomb", "twitch.cheer", "payment.kofi", "payment.tipeee"].forEach(subscribeBus);
-    ["online", "offline", "updated"].forEach(action => {
-      const result = bus.subscribe({ id: `${MODULE_NAME}:twitch.stream:${action}`, module: MODULE_NAME, channel: "twitch.stream", action }, () => {
-        ensureCurrentStreamRuntime(`twitch_stream_${action}`);
-        sendOverlayState(`twitch_stream_${action}`);
-        return { ok: true };
-      });
-      if (result && result.ok && result.subscription) state.subscriptions.push(result.subscription);
-    });
+    ["online", "offline", "updated"].forEach(action => subscribeStreamEvent("twitch.stream", action, "twitch_stream"));
+    ["started", "confirmed", "resumed", "ended"].forEach(action => subscribeStreamEvent("twitch.stream.session", action, "twitch_stream_session"));
     if (typeof bus.heartbeatModule === "function") bus.heartbeatModule(MODULE_NAME, { module: MODULE_NAME, version: MODULE_VERSION, build: MODULE_BUILD, runtime: buildOverlayStatePayload("heartbeat") });
     publishStatus("init");
     heartbeatTimer = setInterval(() => {
