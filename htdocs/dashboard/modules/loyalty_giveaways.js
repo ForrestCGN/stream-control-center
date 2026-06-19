@@ -503,6 +503,89 @@ window.LoyaltyGiveawaysModule = (function(){
     return createGiveawayBoundWheel(giveawayUid);
   }
 
+
+  function fieldValue(field, camel, snake, fallback = ''){
+    if (!field || typeof field !== 'object') return fallback;
+    if (field[camel] !== undefined && field[camel] !== null) return field[camel];
+    if (snake && field[snake] !== undefined && field[snake] !== null) return field[snake];
+    return fallback;
+  }
+
+  async function fetchGiveawayDetails(uid){
+    if (!uid) return null;
+    const result = await window.CGN.api(apiUrl(uid));
+    return result.giveaway || result.row || result.data?.giveaway || null;
+  }
+
+  async function fetchGiveawayBoundFields(uid){
+    if (!uid) return [];
+    const details = await fetchGiveawayDetails(uid).catch(() => null);
+    const detailFields = boundWheelFields(details);
+    if (detailFields.length) return detailFields;
+    const result = await window.CGN.api(`${api.detailBase}/${encodeURIComponent(uid)}/wheel/bound/fields?limit=500`).catch(() => null);
+    return rows(result?.fields || result?.rows || []);
+  }
+
+  function buildCopiedBoundWheelFieldPayload(field, index){
+    const reward = field && typeof field.reward === 'object' ? field.reward : {};
+    const quantityTotal = Number(fieldValue(field, 'quantityTotal', 'quantity_total', 1));
+    const quantityRemainingRaw = fieldValue(field, 'quantityRemaining', 'quantity_remaining', quantityTotal);
+    const quantityRemaining = Number(quantityRemainingRaw === undefined || quantityRemainingRaw === null || quantityRemainingRaw === '' ? quantityTotal : quantityRemainingRaw);
+    return {
+      label: String(fieldValue(field, 'label', 'label', 'Gewinn') || 'Gewinn'),
+      subLabel: String(fieldValue(field, 'subLabel', 'sub_label', fieldValue(field, 'sub', 'sub', '')) || ''),
+      weight: Number(fieldValue(field, 'weight', 'weight', 1)) || 1,
+      quantityTotal: Number.isFinite(quantityTotal) ? quantityTotal : 1,
+      quantityRemaining: Number.isFinite(quantityRemaining) ? quantityRemaining : (Number.isFinite(quantityTotal) ? quantityTotal : 1),
+      removeAfterWin: fieldValue(field, 'removeAfterWin', 'remove_after_win', false) === true || fieldValue(field, 'removeAfterWin', 'remove_after_win', false) === 1,
+      rewardType: String(fieldValue(field, 'rewardType', 'reward_type', reward.type || 'none') || 'none'),
+      rewardValue: String(fieldValue(field, 'rewardValue', 'reward_value', reward.value ?? reward.amount ?? '') || ''),
+      colorA: String(fieldValue(field, 'colorA', 'color_a', '') || ''),
+      colorB: String(fieldValue(field, 'colorB', 'color_b', '') || ''),
+      enabled: fieldValue(field, 'enabled', 'enabled', true) !== false,
+      sortOrder: Number(fieldValue(field, 'sortOrder', 'sort_order', index + 1)) || (index + 1),
+      sourcePresetUid: String(fieldValue(field, 'sourcePresetUid', 'source_preset_uid', '') || ''),
+      sourceFieldUid: String(fieldValue(field, 'fieldUid', 'field_uid', fieldValue(field, 'sourceFieldUid', 'source_field_uid', '')) || ''),
+      actor: 'dashboard_copy',
+      metadata: {
+        source: 'dashboard_copy_bound_wheel_field',
+        copiedFromFieldUid: String(fieldValue(field, 'fieldUid', 'field_uid', '') || ''),
+        copiedFromSourceFieldUid: String(fieldValue(field, 'sourceFieldUid', 'source_field_uid', '') || ''),
+        copiedAt: new Date().toISOString()
+      }
+    };
+  }
+
+  async function copyBoundWheelFieldsForCopiedGiveaway(sourceUid, targetUid){
+    if (!sourceUid || !targetUid || sourceUid === targetUid) return { ok: true, skipped: true, reason: 'invalid_copy_uids', copied: 0 };
+    const sourceDetails = await fetchGiveawayDetails(sourceUid).catch(() => null);
+    const targetDetailsBefore = await fetchGiveawayDetails(targetUid).catch(() => null);
+    if (!isWheelGiveaway(sourceDetails) && !hasGiveawayWheel(sourceDetails)) return { ok: true, skipped: true, reason: 'source_not_wheel_giveaway', copied: 0 };
+
+    await ensureGiveawayBoundWheel(targetUid);
+
+    const sourceFields = await fetchGiveawayBoundFields(sourceUid);
+    const targetFields = await fetchGiveawayBoundFields(targetUid);
+    if (!sourceFields.length) return { ok: false, warning: 'source_bound_wheel_has_no_fields', copied: 0 };
+    if (targetFields.length) return { ok: true, skipped: true, reason: 'target_already_has_fields', copied: 0, targetFieldCount: targetFields.length };
+
+    let copied = 0;
+    for (let index = 0; index < sourceFields.length; index += 1) {
+      await apiPost(`${api.detailBase}/${encodeURIComponent(targetUid)}/wheel/bound/fields`, buildCopiedBoundWheelFieldPayload(sourceFields[index], index));
+      copied += 1;
+    }
+    await refreshGiveaways(targetUid, false);
+    const targetDetailsAfter = await fetchGiveawayDetails(targetUid).catch(() => null);
+    return {
+      ok: true,
+      copied,
+      sourceFieldCount: sourceFields.length,
+      targetFieldCount: boundWheelFields(targetDetailsAfter).length,
+      sourceBoundWheelUid: sourceDetails?.boundWheel?.boundWheelUid || sourceDetails?.wheelSnapshotUid || '',
+      targetBoundWheelUid: targetDetailsAfter?.boundWheel?.boundWheelUid || targetDetailsBefore?.boundWheel?.boundWheelUid || targetDetailsAfter?.wheelSnapshotUid || ''
+    };
+  }
+
   function giveawayWheelFieldPayload(form){
     const data = new FormData(form);
     return {
@@ -872,8 +955,12 @@ window.LoyaltyGiveawaysModule = (function(){
     if (!controlOpen) render();
     try {
       const result = await apiPost(cfg.path, cfg.body());
+      let copyWheelResult = null;
       const removesFromCurrentView = action === 'archive' || action === 'hardDelete';
       const nextUid = removesFromCurrentView ? '' : (result.giveaway?.giveawayUid || uid);
+      if (action === 'copy' && nextUid && nextUid !== uid) {
+        copyWheelResult = await copyBoundWheelFieldsForCopiedGiveaway(uid, nextUid);
+      }
       if (removesFromCurrentView) {
         state.modal = null;
         stopControlRefresh();
@@ -890,7 +977,9 @@ window.LoyaltyGiveawaysModule = (function(){
           ? 'Giveaway wurde archiviert und aus der normalen Übersicht ausgeblendet.'
           : (action === 'hardDelete'
             ? 'Giveaway wurde dauerhaft gelöscht.'
-            : (action === 'draw' ? `Gewinner gezogen: ${result.winner?.userDisplayName || result.winner?.userLogin || 'unbekannt'}` : (action === 'replaceLast' ? `Letzter Gewinner ersetzt. Neuer Gewinner: ${result.winner?.userDisplayName || result.winner?.userLogin || 'unbekannt'}` : 'Giveaway wurde aktualisiert.')));
+            : (action === 'copy'
+              ? `Giveaway wurde kopiert.${copyWheelResult && copyWheelResult.copied ? ` Glücksrad-Felder: ${copyWheelResult.copied}` : (copyWheelResult && copyWheelResult.warning ? ` Hinweis: ${copyWheelResult.warning}` : '')}`
+              : (action === 'draw' ? `Gewinner gezogen: ${result.winner?.userDisplayName || result.winner?.userLogin || 'unbekannt'}` : (action === 'replaceLast' ? `Letzter Gewinner ersetzt. Neuer Gewinner: ${result.winner?.userDisplayName || result.winner?.userLogin || 'unbekannt'}` : 'Giveaway wurde aktualisiert.'))));
         setMessage(msg);
       }
     } catch (err) {
@@ -1014,7 +1103,6 @@ window.LoyaltyGiveawaysModule = (function(){
     const wheel = isWheelGiveaway(g);
     const actions = [];
     if (editable) actions.push(`<button class="lgw-btn lgw-btn-small lgw-btn-secondary" data-lgw-edit="${uid}">Bearbeiten</button>`);
-    if (g && g.giveawayUid) actions.push(`<button class="lgw-btn lgw-btn-small lgw-btn-secondary" data-lgw-action="copy" data-uid="${uid}">Kopieren</button>`);
     if (wheel) {
       actions.push(`<button class="lgw-btn lgw-btn-small lgw-btn-secondary" data-lgw-open-wheel-editor="${uid}">${wheelEditorButtonLabel(g)}</button>`);
     }
@@ -1165,7 +1253,6 @@ window.LoyaltyGiveawaysModule = (function(){
                 <div class="lgw-row-actions lgw-giveaway-actions">
                   <button class="lgw-btn lgw-btn-small" data-lgw-open-details="${esc(g.giveawayUid)}">Anzeigen</button>
                   ${editable ? `<button class="lgw-btn lgw-btn-small lgw-btn-secondary" data-lgw-edit="${esc(g.giveawayUid)}">Bearbeiten</button>` : ''}
-                  <button class="lgw-btn lgw-btn-small lgw-btn-secondary" data-lgw-action="copy" data-uid="${esc(g.giveawayUid)}">Kopieren</button>
                   ${canStartGiveaway(g) ? `<button class="lgw-btn lgw-btn-small" data-lgw-action="open" data-uid="${esc(g.giveawayUid)}">Starten</button>` : ''}
                   ${isWheelGiveaway(g) ? `<button class="lgw-btn lgw-btn-small lgw-btn-secondary" data-lgw-open-wheel-editor="${esc(g.giveawayUid)}">${wheelEditorButtonLabel(g)}</button>` : ''}
                   ${isActiveGiveaway(g) ? `<button class="lgw-btn lgw-btn-small" data-lgw-open-control="${esc(g.giveawayUid)}">Steuern</button>` : ''}
@@ -1196,8 +1283,7 @@ window.LoyaltyGiveawaysModule = (function(){
             <p class="lgw-muted">${esc(g.description || '')}</p>
           </div>
           <div class="lgw-actions">
-            ${editable ? `<button class="lgw-btn" data-lgw-edit="${esc(g.giveawayUid)}">Bearbeiten</button>` : ''}
-            <button class="lgw-btn lgw-btn-secondary" data-lgw-action="copy" data-uid="${esc(g.giveawayUid)}">Kopieren</button>
+            ${editable ? `<button class="lgw-btn" data-lgw-edit="${esc(g.giveawayUid)}">Bearbeiten</button>` : `<button class="lgw-btn lgw-btn-secondary" data-lgw-action="copy" data-uid="${esc(g.giveawayUid)}">Kopieren</button>`}
             ${norm(g.status) === 'draft' ? `<button class="lgw-btn" data-lgw-action="open" data-uid="${esc(g.giveawayUid)}">Starten</button>` : ''}
             ${isActiveGiveaway(g) ? `<button class="lgw-btn" data-lgw-open-control="${esc(g.giveawayUid)}">Steuerfenster öffnen</button>` : ''}
             ${renderArchiveDeleteActions(g, '')}
