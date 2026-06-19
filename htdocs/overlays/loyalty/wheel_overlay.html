@@ -283,7 +283,7 @@
 
   <script>
     (() => {
-      const OVERLAY_BUILD = "LWG-WHEEL-TEXT-RADIAL-3";
+      const OVERLAY_BUILD = "LWG-WHEEL-TEXT-RADIAL-4";
       const RESULT_HOLD_MS = 11000;
       const RESET_HIDE_MS = 300;
 
@@ -536,14 +536,12 @@
 
       function setWinnerText(field, fallbackLabel = "Bereit") {
         const label = field && field.label ? fixTextEncoding(field.label) : fixTextEncoding(fallbackLabel);
-        const subValue = field && field.sub ? fixTextEncoding(field.sub) : "";
         const lines = buildWinnerLines(label);
         winnerText.classList.remove("is-long", "is-very-long");
         if (lines.length >= 3 || label.length > 34) winnerText.classList.add("is-very-long");
         else if (lines.length >= 2 || label.length > 22) winnerText.classList.add("is-long");
         const main = lines.map(line => `<span class="winner-line">${esc(line)}</span>`).join("");
-        const sub = subValue ? `<span class="sub">${esc(subValue)}</span>` : "";
-        winnerText.innerHTML = `<span class="wrap"><span class="main">${main}</span>${sub}</span>`;
+        winnerText.innerHTML = `<span class="wrap"><span class="main">${main}</span></span>`;
       }
 
       function finishSpin(selected, data = {}) {
