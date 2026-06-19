@@ -12,19 +12,40 @@ Stand: 2026-06-19
 - [x] Single-Remaining-Regel im Backend vorbereitet: 1 verbleibender Gewinn wird direkt vergeben.
 - [x] 0 verfügbare Gewinne werden backendseitig blockiert.
 - [x] Bug erkannt: `una_solala` wurde im alten Draw gezogen, obwohl User nicht gewinnen darf.
+- [x] `LWG_GIVEAWAY_EXCLUSIONS_1` eingespielt.
+- [x] Datei `config/loyalty_giveaway_exclusions.json` ins Live-System übernommen und korrigiert.
+- [x] `loyalty_giveaways` Status grün geprüft: Version `0.1.14`, Build `LWG_GIVEAWAY_EXCLUSIONS_1`.
+- [x] Gewinn-Sperrliste aktiv: `enabled=true`, `count=10`.
+- [x] Draw-Test mit Sperrliste durchgeführt.
+- [x] Gesperrte User bleiben als Entry sichtbar.
+- [x] Gesperrte User sind beim Draw nicht eligible.
+- [x] Draw-Metadata enthält `exclusionInfo`.
+- [x] Gesperrte User können nicht gewinnen.
+- [x] Claim-/Wheel-Flow nach Exclusion-Draw erfolgreich getestet.
+- [x] Bound-Wheel-Feldverbrauch nach Claim erfolgreich getestet.
 
-## Aktueller Sofort-Step
+## Bestätigter Exclusion-Test
 
-- [ ] `LWG_GIVEAWAY_EXCLUSIONS_1` einspielen.
-- [ ] Datei `config/loyalty_giveaway_exclusions.json` ins Repo/Live-System übernehmen.
-- [ ] `loyalty_giveaways` Status grün prüfen: Version `0.1.14`, Build `LWG_GIVEAWAY_EXCLUSIONS_1`.
-- [ ] Draw-Test mit Sperrliste durchführen:
-  - gesperrte User bleiben als Entry sichtbar,
-  - gesperrte User sind beim Draw nicht eligible,
-  - Draw-Metadata enthält `exclusionInfo`,
-  - gesperrte User können nicht gewinnen.
+```text
+Giveaway: giveaway_1781865117837_a56d3fcb009a15a2
+Entries:  una_solala, udowb, engelcgn
+Excluded: una_solala
+Winner:   udowb
+Prize:    Roadside Research
+Spin:     spin_1781865515072_d11827bafa8cd593
+```
 
-## Gewinn-Sperrliste / Exclusions
+Fairness-/Exclusion-Info:
+
+```text
+rawEntriesCount=3
+excludedEntriesCount=1
+eligibleEntriesCount=2
+excluded[0].userLogin=una_solala
+excluded[0].reason=login
+```
+
+## Gewinn-Sperrliste / Exclusions – später
 
 Dateibasierter Sofort-Fix:
 
@@ -46,6 +67,12 @@ Offen für später:
 - [ ] Login/DisplayName als Anzeige/Fallback.
 - [ ] Anzeige im Draw-/Log-Tab: `rawEntries`, `excludedEntries`, `eligibleEntries`.
 - [ ] Optional pro Giveaway eigene zusätzliche Sperrliste.
+- [ ] Loader-Robustheit als `LWG_GIVEAWAY_EXCLUSIONS_1B` planen:
+  - Exportformat `ok/items` akzeptieren,
+  - Configformat `enabled/items` oder `enabled/users` akzeptieren,
+  - BOM entfernen,
+  - null-/kaputte Einträge ignorieren und im Status melden,
+  - Debugfelder für `rawItemCount`, `validItemCount`, `invalidItemCount` ergänzen.
 
 ## Später wieder anfassen – Dashboard-Config Wheel
 

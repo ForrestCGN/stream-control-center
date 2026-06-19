@@ -1,57 +1,80 @@
-# Next Steps – LWG Giveaway Exclusions
+# Next Steps – Loyalty-Giveaways / CGN-Glücksrad
 
 Stand: 2026-06-19
 
-## Aktueller Stand
+## Aktueller bestätigter Stand
 
-`LWG_BOUND_WHEEL_FIELD_COUNT_1` ist live bestätigt:
+`LWG_GIVEAWAY_EXCLUSIONS_1` ist live bestätigt.
+
+Bestätigt:
 
 ```text
-fieldsCount=7
-visualFieldsCount=7
-visualMinVisibleSlots=7
-Restbestand nach Valheim: 6 verfügbare Felder
+loyalty_giveaways: 0.1.14 / LWG_GIVEAWAY_EXCLUSIONS_1
+loyalty_games:     0.2.8  / LWG_BOUND_WHEEL_FIELD_COUNT_1
 ```
 
-## Nächster technischer Schritt
+Live-Test Exclusions:
 
-### LWG_GIVEAWAY_EXCLUSIONS_1
+```text
+Giveaway: giveaway_1781865117837_a56d3fcb009a15a2
+Entries:  una_solala, udowb, engelcgn
+Draw:     udowb gewann, una_solala wurde ausgeschlossen
+Claim:    udowb drehte das gebundene Giveaway-Rad
+Prize:    Roadside Research
+Spin:     spin_1781865515072_d11827bafa8cd593
+```
+
+Damit sind bestätigt:
+
+- Sperrliste wird geladen: `enabled=true`, `count=10`.
+- Gesperrte User bleiben sichtbar als Entry.
+- Gesperrte User werden beim Draw aus der eligible-Liste entfernt.
+- `exclusionInfo` wird in Fairness-/Event-Metadata geschrieben.
+- Wheel-Permission, Claim, Spin und Bound-Wheel-Feldverbrauch funktionieren danach weiter.
+
+## Nächster sinnvoller Schritt
+
+### LWG_GIVEAWAY_EXCLUSIONS_1B – Loader-Robustheit planen
+
+Kein Notfall, aber sinnvoll vor Live-Nutzung über längere Zeit.
 
 Ziel:
 
-- Gesperrte Bot-/Mehrfachaccounts dürfen nicht gewinnen.
-- Entries bleiben sichtbar.
-- Draw filtert gesperrte User aus der eligible-Liste.
-- Sperrliste liegt als Sofort-Fix unter `config/loyalty_giveaway_exclusions.json`.
+- Config-Loader robust gegen verschiedene Dateiformate machen.
+- Exportformat und Configformat sauber akzeptieren.
+- Kaputte/null-Einträge ignorieren statt komplette Sperrliste wirkungslos zu machen.
+- Statusdiagnose verbessern.
 
-Betroffene Dateien:
+Geplante Akzeptanzkriterien:
 
 ```text
-backend/modules/loyalty_giveaways.js
-config/loyalty_giveaway_exclusions.json
-docs/current/CURRENT_STATUS.md
-docs/current/TODO.md
-docs/current/NEXT_STEPS.md
-docs/current/CHANGELOG.md
-docs/current/FILES.md
-docs/current/CURRENT_CHAT_HANDOFF_LWG_GIVEAWAY_EXCLUSIONS_1.md
-docs/modules/loyalty_giveaways_CURRENT.md
-project-state/CURRENT_STATUS_LWG_GIVEAWAY_EXCLUSIONS_1.md
+Exportformat:
+{ ok: true, items: [...] }
+
+Configformat:
+{ enabled: true, items: [...] }
+{ enabled: true, users: [...] }
 ```
 
-## Danach testen
+Status sollte später zusätzlich anzeigen:
 
-1. Status prüfen: `loyalty_giveaways` Version `0.1.14`, Build `LWG_GIVEAWAY_EXCLUSIONS_1`.
-2. Test-Giveaway mit einem gesperrten User und mindestens einem erlaubten User erstellen/verwenden.
-3. Draw ausführen.
-4. Prüfen:
-   - gesperrter User ist nicht Gewinner,
-   - `eligibleEntriesCount` reduziert sich,
-   - Metadata/Fairness enthält `exclusionInfo`.
+```text
+exists
+enabled
+rawItemCount
+validItemCount
+invalidItemCount
+lastError
+path
+generatedAt
+updatedAt
+```
 
 ## Danach / später
 
 - Dashboard-Editor für Sperrliste planen.
 - DB-basierte Exclusions statt JSON-Datei.
 - Pro-Giveaway Exclusions.
+- Twitch-User-ID langfristig als primären Schlüssel in Entries speichern/nutzen.
 - Wheel-1-Gewinn-Direktvergabe später gezielt testen, ohne produktive Gewinne unnötig zu verbrauchen.
+- Wheel-Verhalten später dashboardfähig konfigurierbar machen.

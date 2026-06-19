@@ -16,13 +16,12 @@ htdocs/overlays/loyalty/wheel_overlay.html
 ## Aktueller ZIP-/Step-Stand
 
 ```text
-LWG_GIVEAWAY_EXCLUSIONS_1.zip
+LWG_GIVEAWAY_EXCLUSIONS_1_CONFIRMED_DOCS.zip
 ```
 
-## Geänderte Dateien in diesem Step
+## Geänderte Dateien in diesem Doku-/Config-Stand
 
 ```text
-backend/modules/loyalty_giveaways.js
 config/loyalty_giveaway_exclusions.json
 docs/current/CURRENT_STATUS.md
 docs/current/TODO.md
@@ -34,16 +33,29 @@ docs/modules/loyalty_giveaways_CURRENT.md
 project-state/CURRENT_STATUS_LWG_GIVEAWAY_EXCLUSIONS_1.md
 ```
 
-## Nicht in diesem Step geändert
+## Nicht in diesem Doku-/Config-Stand geändert
 
 ```text
+backend/modules/loyalty_giveaways.js
 backend/modules/loyalty_games.js
 backend/modules/loyalty_games/wheel.js
 config/loyalty_games.json
 htdocs/overlays/loyalty/wheel_overlay.html
 ```
 
-## Test-Giveaway IDs aus dem bestätigten Wheel-Test
+## Test-Giveaway IDs aus dem bestätigten Exclusion-Test
+
+```text
+Giveaway:          giveaway_1781865117837_a56d3fcb009a15a2
+Bound-Wheel:       giveawaywheel_1781865117837_3d9cfcef7469aef2
+Winner:            udowb
+Excluded Entry:    una_solala
+Wheel-Permission:  wheelperm_1781865357312_f86f36711269e3e3
+Spin:              spin_1781865515072_d11827bafa8cd593
+Prize:             Roadside Research
+```
+
+## Testdaten aus vorherigem Wheel-Test
 
 ```text
 Giveaway:          giveaway_1781856708568_9653eba68a211017
