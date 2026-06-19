@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.62";
-  const MODULE_BUILD = "STEP_SHOT_ALARM_2H3_DASHBOARD_STATE_LOG_CLEANUP";
+  const MODULE_VERSION = "0.5.63";
+  const MODULE_BUILD = "STEP_SHOT_ALARM_2I_SHOT_TABS_LOGS_OVERLAY_SOUNDS";
 
   const api = {
     status: '/api/stream-events/status',
@@ -70,7 +70,7 @@ window.StreamEventsModule = (function(){
     activeTab: 'overview',
     configModuleFilter: 'stream_events',
     textSourceModule: 'stream_events',
-    shotAlarm: { loading: false, error: '', status: null, config: null, texts: null, stats: null, streams: null, selectedStreamSessionId: 'current', audit: null }
+    shotAlarm: { loading: false, error: '', status: null, config: null, texts: null, stats: null, streams: null, selectedStreamSessionId: 'current', activeSubTab: 'status', audit: null }
   };
 
   function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? '').replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c])); }
@@ -376,12 +376,10 @@ window.StreamEventsModule = (function(){
     return renderOverviewTab(event);
   }
 
-  function renderShotAlarmEventTab(){
-    scheduleShotAlarmLoad();
+  function shotAlarmViewModel(){
     const box = state.shotAlarm || {};
     const st = box.status || {};
     const stats = box.stats || {};
-    const last = st.lastResult || st.lastDraw || null;
     const c = box.config || {};
     const runtime = st.runtime || {};
     const overlayState = st.overlayState || {};
@@ -392,91 +390,235 @@ window.StreamEventsModule = (function(){
     const streamLabel = runtime.streamDateLabel || overlayState.streamDateLabel || 'Kein aktiver Stream';
     const streams = Array.isArray(box.streams?.streams) ? box.streams.streams : (Array.isArray(stats.streams) ? stats.streams : []);
     const selectedStream = box.selectedStreamSessionId || 'current';
+    const last = st.lastResult || st.lastDraw || null;
+    return { box, st, stats, c, runtime, overlayState, effectiveActive, desiredActive, dashboardRunning, streamLive, streamLabel, streams, selectedStream, last };
+  }
+
+  function renderShotAlarmHeader(vm){
+    const { box, dashboardRunning, effectiveActive, streamLive, streamLabel, desiredActive } = vm;
     return `
-      <section class="evs-card glass evs-tab-panel evs-shot-tab">
-        <div class="evs-card-head">
-          <div>
-            <h3>Shot-Alarm</h3>
-            <span>Auslosungen, offene Shots, Tests und Bedienung für Engel & Roxxy.</span>
-          </div>
-          <div class="evs-card-actions">
-            <button type="button" class="evs-btn evs-btn-small evs-btn-secondary" data-evs-action="reloadShotAlarmData">Aktualisieren</button>
-            <a class="evs-btn evs-btn-small evs-btn-secondary" href="/overlays/shot_alarm/shot_alarm_overlay.html" target="_blank" rel="noopener">Overlay öffnen</a>
-            <a class="evs-btn evs-btn-small" href="/overlays/shot_alarm/shot_alarm_overlay.html?force=1" target="_blank" rel="noopener">Overlay testen</a>
-          </div>
+      <div class="evs-card-head evs-shot-head">
+        <div>
+          <h3>Shot-Alarm</h3>
+          <span>Auslosungen, offene Shots, Tests, Overlay, Sounds, Logs und Bedienung für Engel & Roxxy.</span>
         </div>
-        ${box.error ? `<div class="evs-error">${esc(box.error)}</div>` : ''}
-        ${box.loading ? '<div class="evs-empty">Shot-Alarm wird geladen...</div>' : ''}
-        <div class="evs-shot-runtime-card ${dashboardRunning ? (effectiveActive ? 'is-active' : 'is-waiting') : 'is-inactive'}">
-          <div>
-            <strong>${dashboardRunning ? (effectiveActive ? 'Shot-Alarm läuft' : 'Shot-Alarm ist aktiviert') : 'Shot-Alarm ist gestoppt'}</strong>
-            <span>${dashboardRunning ? (streamLive ? `Aktueller Stream: ${esc(streamLabel)}` : 'Stream ist aktuell nicht online. Aktivierung ist vorgemerkt, produktives OBS-Overlay bleibt bis Online aus.') : 'Shot-System ist deaktiviert. Es werden keine neuen Shots gezählt.'}</span>
-            <small>Gewünscht: ${desiredActive ? 'aktiv' : 'inaktiv'} · Effektiv: ${effectiveActive ? 'aktiv' : 'inaktiv'} · Stream: ${streamLive ? 'online' : 'offline'}</small>
-          </div>
-          <div class="evs-action-row">
-            ${dashboardRunning ? `<button type="button" class="evs-btn evs-btn-danger" data-evs-action="shotAlarmStop">Stop / Deaktivieren</button>` : `<button type="button" class="evs-btn" data-evs-action="shotAlarmStart">Start / Aktivieren</button>`}
-          </div>
+        <div class="evs-card-actions">
+          <button type="button" class="evs-btn evs-btn-small evs-btn-secondary" data-evs-action="reloadShotAlarmData">Aktualisieren</button>
+          <a class="evs-btn evs-btn-small evs-btn-secondary" href="/overlays/shot_alarm/shot_alarm_overlay.html" target="_blank" rel="noopener">Overlay öffnen</a>
+          <a class="evs-btn evs-btn-small" href="/overlays/shot_alarm/shot_alarm_overlay.html?force=1" target="_blank" rel="noopener">Overlay testen</a>
         </div>
-        <div class="evs-shot-stream-select">
-          <label>
-            <span>Statistik-Stream</span>
-            <select data-evs-shot-stream-select>
-              <option value="current" ${selectedStream === 'current' ? 'selected' : ''}>Aktueller Stream</option>
-              ${streams.map(item => `<option value="${esc(item.streamSessionId)}" ${selectedStream === item.streamSessionId ? 'selected' : ''}>${esc(item.current ? 'Aktueller Stream' : item.streamDateLabel || item.streamSessionId)}${item.events ? ` · ${esc(item.events)} Einträge` : ''}</option>`).join('')}
-            </select>
-          </label>
-          <small>Statistiken und Logs werden streambezogen gespeichert. Der aktuelle Stream ist vorausgewählt.</small>
+      </div>
+      ${box.error ? `<div class="evs-error">${esc(box.error)}</div>` : ''}
+      ${box.loading ? '<div class="evs-empty">Shot-Alarm wird geladen...</div>' : ''}
+      <div class="evs-shot-runtime-card ${dashboardRunning ? (effectiveActive ? 'is-active' : 'is-waiting') : 'is-inactive'}">
+        <div>
+          <strong>${dashboardRunning ? (effectiveActive ? 'Shot-Alarm läuft' : 'Shot-Alarm ist aktiviert') : 'Shot-Alarm ist gestoppt'}</strong>
+          <span>${dashboardRunning ? (streamLive ? `Aktueller Stream: ${esc(streamLabel)}` : 'Stream ist aktuell nicht online. Aktivierung ist vorgemerkt, produktives OBS-Overlay bleibt bis Online aus.') : 'Shot-System ist deaktiviert. Es werden keine neuen Shots gezählt.'}</span>
+          <small>Gewünscht: ${desiredActive ? 'aktiv' : 'inaktiv'} · Effektiv: ${effectiveActive ? 'aktiv' : 'inaktiv'} · Stream: ${streamLive ? 'online' : 'offline'}</small>
         </div>
-        <div class="evs-kpi-grid evs-shot-kpis">
-          <div><strong>${esc(st.shotsOpen ?? stats.shotsOpen ?? 0)}</strong><span>Noch offen</span></div>
-          <div><strong>${esc(st.shotsDrunk ?? stats.shotsDrunk ?? 0)}</strong><span>Getrunken</span></div>
-          <div><strong>${esc(st.shotsAddedTotal ?? stats.shotsAddedTotal ?? 0)}</strong><span>Gesamt hinzugefügt</span></div>
-          <div><strong>${esc(st.counts?.pending ?? 0)}</strong><span>Auslosungen offen</span></div>
+        <div class="evs-action-row">
+          ${dashboardRunning ? `<button type="button" class="evs-btn evs-btn-danger" data-evs-action="shotAlarmStop">Stop / Deaktivieren</button>` : `<button type="button" class="evs-btn" data-evs-action="shotAlarmStart">Start / Aktivieren</button>`}
         </div>
-        <div class="evs-two-cols evs-shot-admin-grid">
-          <div class="evs-config-card">
-            <div class="evs-config-card-head"><strong>Bedienung</strong><small>Für Stream/Mods. Chat-Befehl !shotdone ist aktiv.</small></div>
-            <div class="evs-action-row">
-              <button type="button" class="evs-btn" data-evs-action="shotAlarmDoneOne">1 Shot getrunken</button>
-              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="shotAlarmResolvePending">Offene Auslosungen auflösen</button>
-            </div>
-          </div>
-          <div class="evs-config-card">
-            <div class="evs-config-card-head"><strong>Test-Auslosung</strong><small>25.000 Bits mit forceRoll=0 ergibt 7 Shots.</small></div>
-            <div class="evs-action-row">
-              <button type="button" class="evs-btn" data-evs-action="shotAlarmTestBitsImmediate">Test sofort</button>
-              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="shotAlarmTestBitsDraw">Test mit 10s Auslosung</button>
-              <a class="evs-btn evs-btn-secondary" href="/overlays/shot_alarm/shot_alarm_overlay.html?force=1" target="_blank" rel="noopener">Overlay-Testfenster</a>
-            </div>
-            <div class="evs-tab-help">Das Testfenster nutzt <code>?force=1</code>, damit Start/Stop auch offline sichtbar geprüft werden kann. Die normale OBS-URL bleibt ohne <code>?force=1</code> und zeigt offline nichts an.</div>
-          </div>
-        </div>
-        <div class="evs-two-cols evs-shot-admin-grid">
-          <div class="evs-config-card">
-            <div class="evs-config-card-head"><strong>Letztes Ergebnis</strong><small>${last ? esc(last.phase || '-') : 'Noch kein Ergebnis'}</small></div>
-            ${last ? `<div class="evs-status-grid">
-              <div><strong>${esc(last.eventLabel || '-')}</strong><span>Event</span></div>
-              <div><strong>${esc(last.amountLabel || '-')}</strong><span>Menge</span></div>
-              <div><strong>${esc(last.chanceSummary || '-')}</strong><span>Auslosung</span></div>
-              <div><strong>${esc(last.shotsAdded ?? 0)}</strong><span>Shots</span></div>
-            </div>` : '<div class="evs-empty">Noch keine Shot-Auslosung vorhanden.</div>'}
-          </div>
-          <div class="evs-config-card">
-            <div class="evs-config-card-head"><strong>Kurz-Config</strong><small>Vollständig unter Config → Shot-Alarm.</small></div>
-            <div class="evs-status-grid">
-              <div><strong>${esc(c.draw?.delayMs ?? 10000)} ms</strong><span>Auslosung</span></div>
-              <div><strong>${esc(c.overlay?.resultHoldMs ?? 10000)} ms</strong><span>Ergebnis sichtbar</span></div>
-              <div><strong>${esc(c.targetLabel || 'Engel & Roxxy')}</strong><span>Ziel</span></div>
-              <div><strong>${dashboardRunning ? (effectiveActive ? 'Läuft' : 'Vorgemerkt') : 'Gestoppt'}</strong><span>Status</span></div>
-            </div>
-          </div>
-        </div>
-        ${renderShotAlarmLogBox()}
-        ${renderShotAlarmSafetyBox()}
-      </section>
+      </div>
     `;
   }
 
+  function renderShotAlarmSubTabs(active){
+    const tabs = [
+      { id: 'status', label: 'Status', icon: '🥃' },
+      { id: 'logs', label: 'Logs', icon: '📋' },
+      { id: 'stats', label: 'Statistik', icon: '🏆' },
+      { id: 'overlay', label: 'Overlay', icon: '🖥️' },
+      { id: 'sounds', label: 'Sounds', icon: '🔊' }
+    ];
+    return `<nav class="evs-shot-subtabs" aria-label="Shot-Alarm Bereiche">${tabs.map(tab => `<button type="button" class="evs-shot-subtab ${active === tab.id ? 'is-active' : ''}" data-evs-action="shotAlarmSubTab" data-subtab="${esc(tab.id)}"><span>${esc(tab.icon)}</span>${esc(tab.label)}</button>`).join('')}</nav>`;
+  }
+
+  function renderShotAlarmStreamSelector(vm){
+    const { streams, selectedStream } = vm;
+    return `
+      <div class="evs-shot-stream-select">
+        <label>
+          <span>Statistik-Stream</span>
+          <select data-evs-shot-stream-select>
+            <option value="current" ${selectedStream === 'current' ? 'selected' : ''}>Aktueller Stream</option>
+            ${streams.map(item => `<option value="${esc(item.streamSessionId)}" ${selectedStream === item.streamSessionId ? 'selected' : ''}>${esc(item.current ? 'Aktueller Stream' : item.streamDateLabel || item.streamSessionId)}${item.events ? ` · ${esc(item.events)} Einträge` : ''}</option>`).join('')}
+          </select>
+        </label>
+        <small>Logs und Statistiken sind streambezogen. Der aktuelle Stream ist vorausgewählt.</small>
+      </div>
+    `;
+  }
+
+  function renderShotAlarmStatusSubTab(vm){
+    const { st, stats, c, last, dashboardRunning, effectiveActive } = vm;
+    return `
+      <div class="evs-kpi-grid evs-shot-kpis">
+        <div><strong>${esc(st.shotsOpen ?? stats.shotsOpen ?? 0)}</strong><span>Noch offen</span></div>
+        <div><strong>${esc(st.shotsDrunk ?? stats.shotsDrunk ?? 0)}</strong><span>Getrunken</span></div>
+        <div><strong>${esc(st.shotsAddedTotal ?? stats.shotsAddedTotal ?? 0)}</strong><span>Gesamt hinzugefügt</span></div>
+        <div><strong>${esc(st.counts?.pending ?? 0)}</strong><span>Auslosungen offen</span></div>
+      </div>
+      <div class="evs-two-cols evs-shot-admin-grid">
+        <div class="evs-config-card">
+          <div class="evs-config-card-head"><strong>Bedienung</strong><small>Für Stream/Mods. Chat-Befehl !shotdone ist aktiv.</small></div>
+          <div class="evs-action-row">
+            <button type="button" class="evs-btn" data-evs-action="shotAlarmDoneOne">1 Shot getrunken</button>
+            <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="shotAlarmResolvePending">Offene Auslosungen auflösen</button>
+          </div>
+        </div>
+        <div class="evs-config-card">
+          <div class="evs-config-card-head"><strong>Test-Auslosung</strong><small>25.000 Bits mit forceRoll=0 ergibt 7 Shots.</small></div>
+          <div class="evs-action-row">
+            <button type="button" class="evs-btn" data-evs-action="shotAlarmTestBitsImmediate">Test sofort</button>
+            <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="shotAlarmTestBitsDraw">Test mit 10s Auslosung</button>
+            <a class="evs-btn evs-btn-secondary" href="/overlays/shot_alarm/shot_alarm_overlay.html?force=1" target="_blank" rel="noopener">Overlay-Testfenster</a>
+          </div>
+          <div class="evs-tab-help">Das Testfenster nutzt <code>?force=1</code>, damit Start/Stop auch offline sichtbar geprüft werden kann. Die normale OBS-URL bleibt ohne <code>?force=1</code> und zeigt offline nichts an.</div>
+        </div>
+      </div>
+      <div class="evs-two-cols evs-shot-admin-grid">
+        <div class="evs-config-card">
+          <div class="evs-config-card-head"><strong>Letztes Ergebnis</strong><small>${last ? esc(last.phase || '-') : 'Noch kein Ergebnis'}</small></div>
+          ${last ? `<div class="evs-status-grid">
+            <div><strong>${esc(last.eventLabel || '-')}</strong><span>Event</span></div>
+            <div><strong>${esc(last.amountLabel || '-')}</strong><span>Menge</span></div>
+            <div><strong>${esc(last.chanceSummary || '-')}</strong><span>Auslosung</span></div>
+            <div><strong>${esc(last.shotsAdded ?? 0)}</strong><span>Shots</span></div>
+          </div>` : '<div class="evs-empty">Noch keine Shot-Auslosung vorhanden.</div>'}
+        </div>
+        <div class="evs-config-card">
+          <div class="evs-config-card-head"><strong>Kurz-Config</strong><small>Vollständig unter Config → Shot-Alarm.</small></div>
+          <div class="evs-status-grid">
+            <div><strong>${esc(c.draw?.delayMs ?? 10000)} ms</strong><span>Auslosung</span></div>
+            <div><strong>${esc(c.overlay?.resultHoldMs ?? 10000)} ms</strong><span>Ergebnis sichtbar</span></div>
+            <div><strong>${esc(c.targetLabel || 'Engel & Roxxy')}</strong><span>Ziel</span></div>
+            <div><strong>${dashboardRunning ? (effectiveActive ? 'Läuft' : 'Vorgemerkt') : 'Gestoppt'}</strong><span>Status</span></div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderShotAlarmLogsSubTab(vm){
+    return `${renderShotAlarmStreamSelector(vm)}${renderShotAlarmLogBox(true)}`;
+  }
+
+  function renderShotAlarmStatsSubTab(vm){
+    const box = state.shotAlarm || {};
+    const stats = box.stats || {};
+    const byEventType = Array.isArray(stats.byEventType) ? stats.byEventType : [];
+    const topUsers = Array.isArray(stats.topUsers) ? stats.topUsers : [];
+    const selected = box.selectedStreamSessionId || 'current';
+    const totalEvents = stats.events ?? stats.totalEvents ?? 0;
+    const hits = stats.hits ?? stats.shotHits ?? 0;
+    const misses = stats.misses ?? 0;
+    const shots = stats.shots ?? stats.shotsAddedTotal ?? 0;
+    return `
+      ${renderShotAlarmStreamSelector(vm)}
+      <div class="evs-config-card evs-shot-stats-box">
+        <div class="evs-config-card-head"><strong>Shot-Statistik</strong><small>Auswertung für: ${esc(selected === 'current' ? 'Aktueller Stream' : selected)}.</small></div>
+        <div class="evs-kpi-grid evs-shot-kpis">
+          <div><strong>${esc(totalEvents)}</strong><span>Events</span></div>
+          <div><strong>${esc(shots)}</strong><span>Shots</span></div>
+          <div><strong>${esc(hits)}</strong><span>Treffer</span></div>
+          <div><strong>${esc(misses)}</strong><span>Nieten</span></div>
+        </div>
+        <div class="evs-shot-log-grid">
+          <section>
+            <h4>Top-Auslöser</h4>
+            ${topUsers.length ? `<div class="evs-shot-mini-list">${topUsers.slice(0, 12).map(user => `<div><b>${esc(user.displayName || user.userDisplayName || 'Unbekannt')}</b><span>${esc(user.events || 0)} Events · ${esc(user.shots || 0)} Shots</span></div>`).join('')}</div>` : '<div class="evs-empty">Noch keine User-Statistik für diesen Stream.</div>'}
+          </section>
+          <section>
+            <h4>Nach Event-Typ</h4>
+            ${byEventType.length ? `<div class="evs-shot-mini-list">${byEventType.slice(0, 12).map(row => `<div><b>${esc(row.eventType || row.type || 'unknown')}</b><span>${esc(row.events || 0)} Events · ${esc(row.shots || 0)} Shots</span></div>`).join('')}</div>` : '<div class="evs-empty">Noch keine Typ-Statistik für diesen Stream.</div>'}
+          </section>
+        </div>
+        <div class="evs-tab-help">Nächster Ausbau: Detailfilter nach User, Quelle, Treffer/Niete und Zeitraum. Die Datenbasis bleibt streambezogen.</div>
+      </div>
+    `;
+  }
+
+  function renderShotAlarmOverlaySubTab(vm){
+    const { st, overlayState, effectiveActive, desiredActive, streamLive } = vm;
+    const url = '/overlays/shot_alarm/shot_alarm_overlay.html';
+    const testUrl = '/overlays/shot_alarm/shot_alarm_overlay.html?force=1';
+    return `
+      <div class="evs-two-cols evs-shot-admin-grid">
+        <div class="evs-config-card evs-shot-overlay-box">
+          <div class="evs-config-card-head"><strong>Overlay-Steuerung</strong><small>OBS nutzt die normale URL. Offline-Tests laufen über force=1.</small></div>
+          <div class="evs-status-grid">
+            <div><strong>${desiredActive ? 'Aktiviert' : 'Gestoppt'}</strong><span>Gewünschter Zustand</span></div>
+            <div><strong>${effectiveActive ? 'Sichtbar' : 'Unsichtbar'}</strong><span>Effektiv</span></div>
+            <div><strong>${streamLive ? 'Online' : 'Offline'}</strong><span>Stream</span></div>
+            <div><strong>${esc(overlayState.reason || st.runtime?.lastReason || '-')}</strong><span>Letzter Grund</span></div>
+          </div>
+          <div class="evs-action-row">
+            <a class="evs-btn evs-btn-secondary" href="${url}" target="_blank" rel="noopener">OBS-URL öffnen</a>
+            <a class="evs-btn" href="${testUrl}" target="_blank" rel="noopener">Offline-Test öffnen</a>
+          </div>
+          <div class="evs-tab-help"><b>Produktiv:</b> ${esc(url)}<br><b>Test:</b> ${esc(testUrl)}</div>
+        </div>
+        <div class="evs-config-card evs-shot-overlay-box">
+          <div class="evs-config-card-head"><strong>Overlay-Bus / Heartbeat</strong><small>Das Overlay hängt am Overlay-Bus und bekommt Active-State über Bus-Events.</small></div>
+          <div class="evs-status-grid">
+            <div><strong>${st.busAvailable ? 'Ja' : 'Nein'}</strong><span>Bus verfügbar</span></div>
+            <div><strong>${st.registeredOnBus ? 'Ja' : 'Nein'}</strong><span>Modul registriert</span></div>
+            <div><strong>${esc(overlayState.type || 'shot_alarm.overlay.state')}</strong><span>State-Event</span></div>
+            <div><strong>${fmtDate(overlayState.at)}</strong><span>Letzter State</span></div>
+          </div>
+          <div class="evs-tab-help">Später kann hier der echte Overlay-Client-Status angezeigt werden: verbunden, letzter Heartbeat, OBS-Browserquelle online/offline.</div>
+        </div>
+      </div>
+      ${renderShotAlarmSafetyBox()}
+    `;
+  }
+
+  function renderShotAlarmSoundsSubTab(vm){
+    const c = vm.c || {};
+    const sound = c.sound || c.sounds || {};
+    return `
+      <div class="evs-config-card evs-shot-sounds-box">
+        <div class="evs-config-card-head"><strong>Shot-Sounds</strong><small>Vorbereitung für Media-System + Sound-System. Keine harten Dateipfade.</small></div>
+        <div class="evs-shot-sound-grid">
+          ${[
+            ['draw', 'Auslosung startet'],
+            ['hit', 'Treffer / Shot ausgelöst'],
+            ['miss', 'Niete / verschont'],
+            ['secure', 'Sicherer Shot'],
+            ['shotDone', 'Shot getrunken'],
+            ['startStop', 'Start/Stop optional']
+          ].map(([key, label]) => `<div class="evs-shot-sound-slot"><b>${esc(label)}</b><span>${esc(sound[key]?.mediaLabel || sound[key]?.mediaId || 'Noch nicht verbunden')}</span><small>Media-System Upload/Pick folgt im nächsten Sound-Step.</small></div>`).join('')}
+        </div>
+        <div class="evs-tab-help">
+          Ziel: Sounds werden über das bestehende Media-System ausgewählt und über das Sound-System abgespielt. Shot-Alarm startet keine Audiodateien direkt, sondern sendet Playback-Aufträge an das vorhandene Sound-/Media-System.
+        </div>
+      </div>
+      <div class="evs-config-card evs-shot-sounds-box">
+        <div class="evs-config-card-head"><strong>Nächster Schritt</strong><small>SHOT-ALARM-2J Sounds über Media-System.</small></div>
+        <div class="evs-info-row"><strong>Benötigte Anbindung</strong><span>Media-Picker im Dashboard, Sound-Config speichern, Backend-Playback über Sound-System, Priorität/Queue respektieren.</span></div>
+        <div class="evs-info-row"><strong>Wichtig</strong><span>Kein Direkt-Audio im Overlay. Overlay bleibt Anzeige; Sound-System bleibt Playback-Owner.</span></div>
+      </div>
+    `;
+  }
+
+  function renderShotAlarmEventTab(){
+    scheduleShotAlarmLoad();
+    const vm = shotAlarmViewModel();
+    const active = state.shotAlarm?.activeSubTab || 'status';
+    const body = active === 'logs' ? renderShotAlarmLogsSubTab(vm)
+      : active === 'stats' ? renderShotAlarmStatsSubTab(vm)
+      : active === 'overlay' ? renderShotAlarmOverlaySubTab(vm)
+      : active === 'sounds' ? renderShotAlarmSoundsSubTab(vm)
+      : renderShotAlarmStatusSubTab(vm);
+    return `
+      <section class="evs-card glass evs-tab-panel evs-shot-tab">
+        ${renderShotAlarmHeader(vm)}
+        ${renderShotAlarmSubTabs(active)}
+        <div class="evs-shot-subtab-body">${body}</div>
+      </section>
+    `;
+  }
 
   function shotHistoryLabel(item){
     const phase = String(item?.phase || item?.kind || '').toLowerCase();
@@ -499,7 +641,7 @@ window.StreamEventsModule = (function(){
     return parts.filter(Boolean).join(' · ') || item?.eventLabel || item?.eventType || '-';
   }
 
-  function renderShotAlarmLogBox(){
+  function renderShotAlarmLogBox(full = false){
     const box = state.shotAlarm || {};
     const history = box.history || {};
     const items = Array.isArray(history.items) ? history.items : [];
@@ -510,12 +652,12 @@ window.StreamEventsModule = (function(){
     return `
       <div class="evs-config-card evs-shot-log-box">
         <div class="evs-config-card-head">
-          <strong>Shot-Log & Statistik</strong>
+          <strong>${full ? 'Shot-Log' : 'Shot-Log & Statistik'}</strong>
           <small>Streambezogen: wer, wann, wodurch, warum und wie viele Shots entstanden sind. Auswahl: ${esc(selected === 'current' ? 'Aktueller Stream' : selected)}.</small>
         </div>
         <div class="evs-shot-log-grid">
           <div>
-            <h4>Letzte Shot-Ereignisse</h4>
+            <h4>Shot-Ereignisse</h4>
             ${items.length ? `<div class="evs-shot-log-list">${items.slice(0, 12).map(item => `
               <div class="evs-shot-log-row">
                 <div class="evs-shot-log-main">
@@ -4586,6 +4728,12 @@ window.StreamEventsModule = (function(){
         if (context === 'config') state.configModuleFilter = moduleId;
         else state.textSourceModule = moduleId;
         if (moduleId === 'shot_alarm') await loadShotAlarmData(false).catch(() => null);
+        render();
+        return;
+      }
+      if (action === 'shotAlarmSubTab') {
+        state.shotAlarm = state.shotAlarm || {};
+        state.shotAlarm.activeSubTab = btn.dataset.subtab || 'status';
         render();
         return;
       }
