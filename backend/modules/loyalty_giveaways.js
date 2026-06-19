@@ -26,6 +26,11 @@
  * - Exclusion-Config-Loader akzeptiert Exportformat und Configformat robuster.
  * - UTF-8-BOM und kaputte/null-Einträge werden sauber abgefangen.
  * - Status zeigt Lade-/Rohdaten-Zähler zur Diagnose.
+ *
+ * LWG_CHAT_COMMANDS_1:
+ * - !ticket wird fuer offene normale Giveaways aktiviert.
+ * - !wheel / !rad werden fuer Gewinner mit offener Wheel-Permission aktiviert.
+ * - !join / !raffle bleiben unveraendert bei der Raffle-Runtime.
  */
 
 const crypto = require("crypto");
@@ -39,13 +44,13 @@ const database = require("../core/database");
 const loyaltyCore = require("./loyalty");
 
 const MODULE_NAME = "loyalty_giveaways";
-const MODULE_VERSION = "0.1.15";
-const MODULE_BUILD = "LWG_GIVEAWAY_EXCLUSIONS_1B";
+const MODULE_VERSION = "0.1.16";
+const MODULE_BUILD = "LWG_CHAT_COMMANDS_1";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 const GIVEAWAY_EXCLUSIONS_CONFIG_PATH = path.resolve(__dirname, "../../config/loyalty_giveaway_exclusions.json");
 
-const CHAT_COMMANDS_ACTIVE = false;
+const CHAT_COMMANDS_ACTIVE = true;
 const TEXT_MODULE = "loyalty_giveaways";
 const RAFFLE_DEFAULT_DURATION_SECONDS = 120;
 const RAFFLE_MAX_DURATION_SECONDS = 3600;
@@ -73,18 +78,18 @@ const CHAT_COMMAND_DEFINITIONS = [
     command: "ticket",
     aliases: [],
     action: "giveaway_ticket",
-    enabled: false,
-    active: false,
-    description: "!ticket oder !ticket <anzahl> – Teilnahme am aktuell offenen Giveaway. Noch nicht aktiv.",
+    enabled: true,
+    active: true,
+    description: "!ticket oder !ticket <anzahl> – Teilnahme am aktuell offenen Giveaway.",
     usage: "!ticket [anzahl]"
   },
   {
     command: "wheel",
     aliases: ["rad"],
     action: "giveaway_wheel_claim",
-    enabled: false,
-    active: false,
-    description: "!wheel / !rad – Rad-Claim nur fuer Gewinner mit offener Permission. Noch nicht aktiv.",
+    enabled: true,
+    active: true,
+    description: "!wheel / !rad – Rad-Claim nur fuer Gewinner mit offener Permission.",
     usage: "!wheel"
   },
   {
@@ -115,18 +120,18 @@ const CENTRAL_COMMAND_DEFINITIONS = [
     actionKey: "chat_command_runtime",
     targetMethod: "POST",
     targetUrl: "/api/loyalty/giveaways/runtime/chat-command",
-    enabled: false,
+    enabled: true,
     permissionLevel: "everyone",
     cooldownGlobalMs: 1000,
     cooldownUserMs: 3000,
     liveOnly: false,
     responseMode: "module",
     config: {
-      seededBy: "STEP_LWG_4L_5",
+      seededBy: "LWG_CHAT_COMMANDS_1",
       actionType: "module_command",
       moduleCommand: "ticket",
       rawInputMode: true,
-      activationState: "prepared_disabled"
+      activationState: "enabled"
     }
   },
   {
@@ -136,18 +141,18 @@ const CENTRAL_COMMAND_DEFINITIONS = [
     actionKey: "chat_command_runtime",
     targetMethod: "POST",
     targetUrl: "/api/loyalty/giveaways/runtime/chat-command",
-    enabled: false,
+    enabled: true,
     permissionLevel: "everyone",
     cooldownGlobalMs: 1000,
     cooldownUserMs: 3000,
     liveOnly: false,
     responseMode: "module",
     config: {
-      seededBy: "STEP_LWG_4L_5",
+      seededBy: "LWG_CHAT_COMMANDS_1",
       actionType: "module_command",
       moduleCommand: "wheel",
       rawInputMode: true,
-      activationState: "prepared_disabled"
+      activationState: "enabled"
     }
   },
   {
@@ -5763,9 +5768,34 @@ function seedChatCommandDefinitions() {
       usage: definition.usage || "",
       created_at: now,
       updated_at: now,
-      metadata_json: json({ source: "seed", note: "registered_inactive" })
+      metadata_json: json({ source: "seed", note: definition.enabled ? "registered_active" : "registered_inactive" })
     });
     inserted += Number(result?.changes || 0);
+
+    if (["ticket", "wheel"].includes(String(definition.command || "").trim().toLowerCase())) {
+      database.run(`
+        UPDATE loyalty_giveaway_command_definitions
+        SET aliases_json = :aliasesJson,
+            action = :action,
+            enabled = :enabled,
+            active = :active,
+            description = :description,
+            usage = :usage,
+            updated_at = :updatedAt,
+            metadata_json = :metadataJson
+        WHERE command_name = :commandName
+      `, {
+        commandName: definition.command,
+        aliasesJson: json(definition.aliases || []),
+        action: definition.action || "",
+        enabled: definition.enabled ? 1 : 0,
+        active: definition.active ? 1 : 0,
+        description: definition.description || "",
+        usage: definition.usage || "",
+        updatedAt: now,
+        metadataJson: json({ source: "seed", note: "enabled_by_LWG_CHAT_COMMANDS_1" })
+      });
+    }
   }
 
   return { ok: true, inserted };
@@ -5831,6 +5861,40 @@ function seedCentralCommandDefinitions() {
     const current = database.get("SELECT id FROM command_definitions WHERE trigger = :trigger", { trigger: definition.trigger });
     if (current && current.id) {
       existing += 1;
+      if (["ticket", "wheel"].includes(String(definition.trigger || "").trim().toLowerCase())) {
+        database.run(`
+          UPDATE command_definitions
+          SET aliases_json = :aliasesJson,
+              module_key = :moduleKey,
+              action_key = :actionKey,
+              target_method = :targetMethod,
+              target_url = :targetUrl,
+              enabled = :enabled,
+              permission_level = :permissionLevel,
+              cooldown_global_ms = :cooldownGlobalMs,
+              cooldown_user_ms = :cooldownUserMs,
+              live_only = :liveOnly,
+              response_mode = :responseMode,
+              config_json = :configJson,
+              updated_at = :updatedAt
+          WHERE trigger = :trigger
+        `, {
+          trigger: definition.trigger,
+          aliasesJson: json(definition.aliases || []),
+          moduleKey: definition.moduleKey || MODULE_NAME,
+          actionKey: definition.actionKey || "chat_command_runtime",
+          targetMethod: definition.targetMethod || "POST",
+          targetUrl: definition.targetUrl || "/api/loyalty/giveaways/runtime/chat-command",
+          enabled: definition.enabled ? 1 : 0,
+          permissionLevel: definition.permissionLevel || "everyone",
+          cooldownGlobalMs: Math.max(0, Number(definition.cooldownGlobalMs || 0)),
+          cooldownUserMs: Math.max(0, Number(definition.cooldownUserMs || 0)),
+          liveOnly: definition.liveOnly ? 1 : 0,
+          responseMode: definition.responseMode || "module",
+          configJson: json(definition.config || {}),
+          updatedAt: now
+        });
+      }
       continue;
     }
 
@@ -6004,7 +6068,7 @@ function listChatCommandDefinitions() {
     active: CHAT_COMMANDS_ACTIVE,
     count: rows.length,
     rows,
-    note: "Commands sind eingetragen, aber bewusst nicht aktiv. Keine Twitch-Command-Ausfuehrung in diesem Step."
+    note: "!ticket sowie !wheel/!rad sind fuer normale Giveaway-/Wheel-Runtime aktiv. !join und !raffle bleiben Raffle-Commands."
   };
 }
 
