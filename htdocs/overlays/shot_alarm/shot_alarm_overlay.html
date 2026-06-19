@@ -36,18 +36,18 @@
     }
     #eventWrap {
       position: fixed;
-      top: 72px;
+      top: 50%;
       left: 50%;
-      transform: translateX(-50%) translateY(-10px) scale(0.98);
-      width: min(640px, 58vw);
+      transform: translate(-50%, calc(-50% + 22px)) scale(0.98);
+      width: min(720px, 62vw);
       pointer-events: none;
       opacity: 0;
       transition: opacity 240ms ease, transform 240ms ease;
-      z-index: 5;
+      z-index: 8;
     }
     #eventWrap.show {
       opacity: 1;
-      transform: translateX(-50%) translateY(0) scale(1);
+      transform: translate(-50%, -50%) scale(1);
     }
     .card {
       padding: 16px 22px 18px;
@@ -241,6 +241,7 @@
       opacity: .82;
     }
     @media (max-width: 760px) {
+      #eventWrap { width: min(680px, 88vw); }
       #statusBar { transform: translateX(-50%) scale(.86); transform-origin: top center; }
       .status-target { display: none; }
     }
