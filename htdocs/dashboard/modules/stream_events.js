@@ -2,11 +2,11 @@ window.StreamEventsModule = (function(){
   'use strict';
 
   const MODULE_VERSION = "0.5.57";
-  const MODULE_BUILD = "STEP_EVS52_21S_DASHBOARD_EVENT_LIST_SAFE_LOAD";
+  const MODULE_BUILD = "STEP_EVS52_21T_DASHBOARD_EVENTS_NOQUERY_FALLBACK";
 
   const api = {
     status: '/api/stream-events/status',
-    list: '/api/stream-events/events?limit=250',
+    list: '/api/stream-events/events',
     events: '/api/stream-events/events',
     texts: '/api/stream-events/texts',
     config: '/api/stream-events/config',
@@ -62,6 +62,14 @@ window.StreamEventsModule = (function(){
   function norm(v){ return String(v || '').trim().toLowerCase(); }
   function fmtDate(v){ if (!v) return '-'; const d = new Date(v); return Number.isNaN(d.getTime()) ? esc(v) : esc(d.toLocaleString('de-DE')); }
   function rows(v){ return Array.isArray(v) ? v : (Array.isArray(v?.rows) ? v.rows : []); }
+  function eventRows(v){
+    if (Array.isArray(v)) return v;
+    if (Array.isArray(v?.rows)) return v.rows;
+    if (Array.isArray(v?.events)) return v.events;
+    if (Array.isArray(v?.items)) return v.items;
+    if (Array.isArray(v?.data?.rows)) return v.data.rows;
+    return [];
+  }
   function selectedEvent(){
     const byUid = state.selectedUid ? state.events.find(e => e.eventUid === state.selectedUid) : null;
     if (byUid) return byUid;
@@ -265,7 +273,7 @@ window.StreamEventsModule = (function(){
       <div class="evs-page">
         <div class="evs-header glass">
           <div>
-            <div class="evs-kicker">EVS52.21S · Eventliste stabil geladen</div>
+            <div class="evs-kicker">EVS52.21T · Eventliste stabil geladen</div>
             <h2>Event-System</h2>
             <p>Übersicht zeigt den aktuellen Event-Stand und die nächste sinnvolle Aktion.</p>
           </div>
@@ -3143,10 +3151,18 @@ window.StreamEventsModule = (function(){
     };
 
     try {
-      // EVS52.21S: Eventliste zuerst und unabhängig laden.
-      // Wenn Texte/Config/RuntimeGate/Finale/Rangliste kurz fehlschlagen, darf die Eventliste nicht leer gerendert werden.
-      const list = await window.CGN.api(api.list);
-      state.events = rows(list);
+      // EVS52.21T: Eventliste absolut getrennt laden.
+      // Bewusst zuerst /api/stream-events/events ohne Query nutzen, weil dieser Endpoint nachweislich rows/count liefert.
+      let list = await softLoad('events', () => window.CGN.api('/api/stream-events/events'), null);
+      let loadedEvents = eventRows(list);
+
+      // Fallback für alte/andere Dashboard-Stände, falls die Hauptantwort anders verpackt oder leer ist.
+      if (!loadedEvents.length) {
+        const fallbackList = await softLoad('eventsFallback', () => window.CGN.api(api.list), null);
+        loadedEvents = eventRows(fallbackList);
+      }
+
+      state.events = loadedEvents;
 
       if (!state.selectedUid && state.events[0]) state.selectedUid = state.events[0].eventUid;
       if (state.selectedUid && !state.events.some(event => event.eventUid === state.selectedUid)) {
