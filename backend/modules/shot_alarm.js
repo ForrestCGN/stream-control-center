@@ -14,14 +14,16 @@ const communicationBus = require("./communication_bus");
 const textHelper = require("./helpers/helper_texts");
 const settingsHelper = require("./helpers/helper_settings");
 const database = require("../core/database");
+let mediaRegistry = null;
+try { mediaRegistry = require("./media"); } catch (_) { mediaRegistry = null; }
 const auditHelper = require("./helpers/helper_audit_log");
 const securityContext = require("./helpers/helper_security_context");
 let chatOutputHelper = null;
 try { chatOutputHelper = require("./helpers/helper_chat_output"); } catch (_) { chatOutputHelper = null; }
 
 const MODULE_NAME = "shot_alarm";
-const MODULE_VERSION = "0.2.9";
-const MODULE_BUILD = "STEP_SHOT_ALARM_2J3_STREAM_SESSION_ID_CRASH_FIX";
+const MODULE_VERSION = "0.2.10";
+const MODULE_BUILD = "STEP_SHOT_ALARM_2J4_OVERLAY_HOLD_UNTIL_SOUND_END";
 const CONFIG_FILE = "shot_alarm.json";
 const HISTORY_LIMIT = 200;
 const TEXT_MODULE = "shot_alarm";
@@ -128,6 +130,7 @@ const DEFAULT_CONFIG = {
       mediaLabel: "",
       label: "Shot-Alarm Overlay-Einblendung",
       random: true,
+      holdBufferMs: 2000,
       sounds: []
     },
     sounds: []
@@ -587,6 +590,7 @@ function applySoundMediaDefaults() {
   if (!Object.prototype.hasOwnProperty.call(config.sound.overlayShot, "mediaId")) { config.sound.overlayShot.mediaId = ""; changed = true; }
   if (!Object.prototype.hasOwnProperty.call(config.sound.overlayShot, "mediaLabel")) { config.sound.overlayShot.mediaLabel = ""; changed = true; }
   if (!Object.prototype.hasOwnProperty.call(config.sound.overlayShot, "random")) { config.sound.overlayShot.random = true; changed = true; }
+  if (!Number.isFinite(Number(config.sound.overlayShot.holdBufferMs))) { config.sound.overlayShot.holdBufferMs = 2000; changed = true; }
   if (!Array.isArray(config.sound.overlayShot.sounds)) { config.sound.overlayShot.sounds = []; changed = true; }
   const existingSingleMediaId = cleanString(config.sound.overlayShot.mediaId || config.sound.overlayShot.mediaAssetId || config.sound.overlayShot.assetId || "");
   if (existingSingleMediaId && !config.sound.overlayShot.sounds.some(item => cleanString(item && (item.mediaId || item.mediaAssetId || item.assetId)) === existingSingleMediaId)) {
@@ -610,7 +614,8 @@ function applySoundMediaDefaults() {
       mediaId,
       mediaLabel: cleanString(item.mediaLabel || item.label || ""),
       label: cleanString(item.label || item.mediaLabel || DEFAULT_CONFIG.sound.overlayShot.label),
-      volume: Number.isFinite(Number(item.volume)) ? Number(item.volume) : undefined
+      volume: Number.isFinite(Number(item.volume)) ? Number(item.volume) : undefined,
+      durationMs: Number.isFinite(Number(item.durationMs || item.configuredDurationMs)) ? Math.max(0, Number(item.durationMs || item.configuredDurationMs)) : undefined
     });
   }
   if (JSON.stringify(normalizedSounds) !== JSON.stringify(config.sound.overlayShot.sounds)) {
@@ -1346,6 +1351,37 @@ function pickSound() {
   });
 }
 
+function resolveOverlayShotSoundDurationMs(sound) {
+  if (!sound || typeof sound !== "object") return 0;
+  const direct = Number(sound.durationMs || sound.configuredDurationMs || sound.mediaDurationMs || 0);
+  if (Number.isFinite(direct) && direct > 0) return Math.floor(direct);
+  const mediaId = cleanString(sound.mediaId || sound.mediaAssetId || sound.assetId || "");
+  if (!mediaId || !mediaRegistry || typeof mediaRegistry.resolveAssetForUse !== "function") return 0;
+  try {
+    const resolved = mediaRegistry.resolveAssetForUse(mediaId, { useCase: "sound_system" });
+    const duration = Number(
+      resolved?.asset?.durationMs ||
+      resolved?.overlay?.durationMs ||
+      resolved?.durationMs ||
+      0
+    );
+    return Number.isFinite(duration) && duration > 0 ? Math.floor(duration) : 0;
+  } catch (err) {
+    state.lastWarning = `sound_duration_resolve_failed: ${err && err.message ? err.message : String(err)}`;
+    return 0;
+  }
+}
+
+function resultOverlayHoldMs(sound) {
+  const base = Math.max(1500, Number(config.display.resultHoldMs || config.display.holdMs || 10000));
+  const durationMs = resolveOverlayShotSoundDurationMs(sound);
+  const overlayShot = config.sound && typeof config.sound.overlayShot === "object" ? config.sound.overlayShot : {};
+  const bufferMs = Math.max(0, Number(overlayShot.holdBufferMs || 2000));
+  if (!durationMs) return { holdMs: base, soundDurationMs: 0, soundHoldBufferMs: bufferMs, extended: false };
+  const holdMs = Math.max(base, durationMs + bufferMs);
+  return { holdMs, soundDurationMs: durationMs, soundHoldBufferMs: bufferMs, extended: holdMs > base };
+}
+
 async function requestSound(sound, context) {
   if (config.soundEnabled === false || !sound) return { ok: false, skipped: true, reason: "sound_disabled_or_missing" };
   const mediaId = cleanString(sound.mediaId || sound.mediaAssetId || sound.assetId || "");
@@ -1461,7 +1497,9 @@ function sendOverlay(phase, summary) {
     phase,
     title: pickOverlayText(titleKey, summary) || cleanString(config.display.title, "SHOT-ALARM"),
     message: pickOverlayText(textKey, summary) || (isDraw ? "Die Heimleitung lost aus..." : isHit ? "Engel & Roxxy müssen ran!" : "Die Rentner-Leber wurde verschont."),
-    holdMs: isDraw ? Number(config.display.drawHoldMs || config.display.drawDelayMs || 10000) : Number(config.display.resultHoldMs || config.display.holdMs || 10000),
+    holdMs: Math.max(1500, Number(options.holdMs || (isDraw ? Number(config.display.drawHoldMs || config.display.drawDelayMs || 10000) : Number(config.display.resultHoldMs || config.display.holdMs || 10000)))),
+    soundDurationMs: Math.max(0, Number(options.soundDurationMs || 0)),
+    soundHoldBufferMs: Math.max(0, Number(options.soundHoldBufferMs || 0)),
     targetLabel: cleanString(config.targetLabel, "Engel & Roxxy"),
     summary: safeJson(summary),
     status: buildStatusPayload()
@@ -1809,8 +1847,10 @@ async function resolveDraw(drawId, options = {}) {
   if (shotsAdded > 0) emitBus("triggered", entry);
   if (shotsAdded > 0 && config.chat && config.chat.sendResultHit !== false) sendChatText("resultHit", resultSummary).catch(() => {});
   if (shotsAdded <= 0 && config.chat && config.chat.sendResultMiss !== false) sendChatText("resultMiss", resultSummary).catch(() => {});
-  sendOverlay("result", resultSummary);
-  if (shotsAdded > 0) requestSound(pickSound(), resultSummary).catch(() => {});
+  const selectedSound = shotsAdded > 0 ? pickSound() : null;
+  const holdInfo = shotsAdded > 0 ? resultOverlayHoldMs(selectedSound) : { holdMs: Number(config.display.resultHoldMs || config.display.holdMs || 10000), soundDurationMs: 0, soundHoldBufferMs: 0 };
+  sendOverlay("result", resultSummary, holdInfo);
+  if (shotsAdded > 0) requestSound(selectedSound, resultSummary).catch(() => {});
   saveRuntimeState("draw_resolved");
   publishStatus("draw_resolved");
   return { ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, result: [entry], summary: entry, status: publicStatus() };
