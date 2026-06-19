@@ -21,6 +21,11 @@
  * LWG_GIVEAWAY_EXCLUSIONS_1:
  * - Gewinn-Sperrliste aus config/loyalty_giveaway_exclusions.json wird beim Draw berücksichtigt.
  * - Gesperrte User bleiben als Entry sichtbar, sind aber nicht eligible und können nicht gewinnen.
+ *
+ * LWG_GIVEAWAY_EXCLUSIONS_1B:
+ * - Exclusion-Config-Loader akzeptiert Exportformat und Configformat robuster.
+ * - UTF-8-BOM und kaputte/null-Einträge werden sauber abgefangen.
+ * - Status zeigt Lade-/Rohdaten-Zähler zur Diagnose.
  */
 
 const crypto = require("crypto");
@@ -34,8 +39,8 @@ const database = require("../core/database");
 const loyaltyCore = require("./loyalty");
 
 const MODULE_NAME = "loyalty_giveaways";
-const MODULE_VERSION = "0.1.14";
-const MODULE_BUILD = "LWG_GIVEAWAY_EXCLUSIONS_1";
+const MODULE_VERSION = "0.1.15";
+const MODULE_BUILD = "LWG_GIVEAWAY_EXCLUSIONS_1B";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 const GIVEAWAY_EXCLUSIONS_CONFIG_PATH = path.resolve(__dirname, "../../config/loyalty_giveaway_exclusions.json");
@@ -770,7 +775,8 @@ function json(value) {
 }
 
 function parseJson(value, fallback = {}) {
-  return core.safeJsonParse(value, fallback);
+  const text = typeof value === "string" ? value.replace(/^\uFEFF/, "") : value;
+  return core.safeJsonParse(text, fallback);
 }
 function normalizeBoolean(value, fallback = false) {
   if (value === true || value === 1) return true;
@@ -791,19 +797,34 @@ function normalizeExclusionTwitchUserId(value) {
 
 function normalizeGiveawayExclusionsConfig(raw = {}) {
   const source = raw && typeof raw === "object" ? raw : {};
-  const rawItems = Array.isArray(source.items) ? source.items : (Array.isArray(source.users) ? source.users : []);
+  const rawItems = Array.isArray(source.items)
+    ? source.items
+    : (Array.isArray(source.users) ? source.users : (Array.isArray(source.exclusions) ? source.exclusions : []));
   const items = [];
   const loginSet = new Set();
   const twitchUserIdSet = new Set();
+  let ignoredInvalidCount = 0;
 
   for (const item of rawItems) {
-    if (!item || typeof item !== "object") continue;
-    if (item.active === false || item.disabled === true) continue;
-    if (item.ok === false && !item.login && !item.input && !item.twitchUserId && !item.twitch_user_id) continue;
+    if (!item || typeof item !== "object") {
+      ignoredInvalidCount += 1;
+      continue;
+    }
+
+    const active = normalizeBoolean(item.active, true);
+    const disabled = normalizeBoolean(item.disabled, false);
+    if (!active || disabled) continue;
+    if (item.ok === false && !item.login && !item.userLogin && !item.input && !item.name && !item.twitchUserId && !item.twitch_user_id && !item.userId && !item.user_id) {
+      ignoredInvalidCount += 1;
+      continue;
+    }
 
     const login = normalizeExclusionLogin(item.login || item.userLogin || item.input || item.name);
     const twitchUserId = normalizeExclusionTwitchUserId(item.twitchUserId || item.twitch_user_id || item.userId || item.user_id);
-    if (!login && !twitchUserId) continue;
+    if (!login && !twitchUserId) {
+      ignoredInvalidCount += 1;
+      continue;
+    }
 
     if (login) loginSet.add(login);
     if (twitchUserId) twitchUserIdSet.add(twitchUserId);
@@ -817,11 +838,19 @@ function normalizeGiveawayExclusionsConfig(raw = {}) {
     });
   }
 
+  const hasExplicitEnabled = Object.prototype.hasOwnProperty.call(source, "enabled");
+  const hasExportOk = Object.prototype.hasOwnProperty.call(source, "ok");
+  const enabledByConfig = hasExplicitEnabled
+    ? normalizeBoolean(source.enabled, false)
+    : (hasExportOk ? normalizeBoolean(source.ok, items.length > 0) : items.length > 0);
+
   return {
-    enabled: source.enabled === false ? false : items.length > 0,
+    enabled: enabledByConfig && items.length > 0,
     version: Number.parseInt(source.version, 10) || 1,
     generatedAt: source.generatedAt || source.updatedAt || "",
     note: source.note || "Diese Liste dient als Gewinn-Sperrliste. User duerfen teilnehmen, sollen aber beim Ziehen nicht gewinnen.",
+    rawItemsCount: rawItems.length,
+    ignoredInvalidCount,
     items,
     loginSet,
     twitchUserIdSet
@@ -843,7 +872,7 @@ function loadGiveawayExclusionsConfig() {
       return state.giveawayExclusions.config;
     }
 
-    const rawText = fs.readFileSync(GIVEAWAY_EXCLUSIONS_CONFIG_PATH, "utf8");
+    const rawText = fs.readFileSync(GIVEAWAY_EXCLUSIONS_CONFIG_PATH, "utf8").replace(/^\uFEFF/, "");
     const raw = parseJson(rawText, { enabled: false, items: [] });
     const config = normalizeGiveawayExclusionsConfig(raw);
     state.giveawayExclusions.loaded = true;
@@ -907,7 +936,11 @@ function getGiveawayExclusionsStatus() {
     enabled: !!config.enabled,
     path: GIVEAWAY_EXCLUSIONS_CONFIG_PATH,
     count: Array.isArray(config.items) ? config.items.length : 0,
+    rawItemsCount: Number.parseInt(config.rawItemsCount, 10) || 0,
+    ignoredInvalidCount: Number.parseInt(config.ignoredInvalidCount, 10) || 0,
     generatedAt: config.generatedAt || "",
+    loaded: !!state.giveawayExclusions.loaded,
+    mtimeMs: Number.isFinite(state.giveawayExclusions.mtimeMs) ? state.giveawayExclusions.mtimeMs : -1,
     lastError: state.giveawayExclusions.lastError || ""
   };
 }

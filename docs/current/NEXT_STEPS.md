@@ -1,73 +1,67 @@
-# Next Steps – Loyalty-Giveaways / CGN-Glücksrad
+# Next Steps – LWG Giveaway Exclusions 1B
 
 Stand: 2026-06-19
 
-## Aktueller bestätigter Stand
+## Aktueller Stand
 
 `LWG_GIVEAWAY_EXCLUSIONS_1` ist live bestätigt.
 
 Bestätigt:
 
 ```text
-loyalty_giveaways: 0.1.14 / LWG_GIVEAWAY_EXCLUSIONS_1
-loyalty_games:     0.2.8  / LWG_BOUND_WHEEL_FIELD_COUNT_1
+una_solala durfte teilnehmen, wurde beim Draw ausgeschlossen.
+udowb wurde gezogen, konnte das Rad drehen und gewann Roadside Research.
+Roadside Research wurde auf quantityRemaining=0 reduziert.
 ```
 
-Live-Test Exclusions:
+## Jetzt einspielen
 
-```text
-Giveaway: giveaway_1781865117837_a56d3fcb009a15a2
-Entries:  una_solala, udowb, engelcgn
-Draw:     udowb gewann, una_solala wurde ausgeschlossen
-Claim:    udowb drehte das gebundene Giveaway-Rad
-Prize:    Roadside Research
-Spin:     spin_1781865515072_d11827bafa8cd593
-```
-
-Damit sind bestätigt:
-
-- Sperrliste wird geladen: `enabled=true`, `count=10`.
-- Gesperrte User bleiben sichtbar als Entry.
-- Gesperrte User werden beim Draw aus der eligible-Liste entfernt.
-- `exclusionInfo` wird in Fairness-/Event-Metadata geschrieben.
-- Wheel-Permission, Claim, Spin und Bound-Wheel-Feldverbrauch funktionieren danach weiter.
-
-## Nächster sinnvoller Schritt
-
-### LWG_GIVEAWAY_EXCLUSIONS_1B – Loader-Robustheit planen
-
-Kein Notfall, aber sinnvoll vor Live-Nutzung über längere Zeit.
+### LWG_GIVEAWAY_EXCLUSIONS_1B
 
 Ziel:
 
-- Config-Loader robust gegen verschiedene Dateiformate machen.
-- Exportformat und Configformat sauber akzeptieren.
-- Kaputte/null-Einträge ignorieren statt komplette Sperrliste wirkungslos zu machen.
-- Statusdiagnose verbessern.
+- Loader robuster machen.
+- Exportformat und Configformat akzeptieren.
+- UTF-8-BOM vor JSON-Parsing entfernen.
+- Null-/kaputte Einträge ignorieren.
+- Statusdiagnose erweitern.
 
-Geplante Akzeptanzkriterien:
+Betroffene Dateien:
 
 ```text
-Exportformat:
-{ ok: true, items: [...] }
-
-Configformat:
-{ enabled: true, items: [...] }
-{ enabled: true, users: [...] }
+backend/modules/loyalty_giveaways.js
+config/loyalty_giveaway_exclusions.json
+docs/current/CURRENT_STATUS.md
+docs/current/TODO.md
+docs/current/NEXT_STEPS.md
+docs/current/CHANGELOG.md
+docs/current/FILES.md
+docs/current/CURRENT_CHAT_HANDOFF_LWG_GIVEAWAY_EXCLUSIONS_1B.md
+docs/modules/loyalty_giveaways_CURRENT.md
+project-state/CURRENT_STATUS_LWG_GIVEAWAY_EXCLUSIONS_1B.md
 ```
 
-Status sollte später zusätzlich anzeigen:
+## Nach Deploy testen
+
+1. Node neu starten.
+2. Status prüfen:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/loyalty/giveaways/status" |
+  Select-Object ok,module,moduleVersion,moduleBuild,enabled,lastError,giveawayExclusions |
+  Format-List
+```
+
+Erwartet:
 
 ```text
-exists
-enabled
-rawItemCount
-validItemCount
-invalidItemCount
-lastError
-path
-generatedAt
-updatedAt
+moduleVersion=0.1.15
+moduleBuild=LWG_GIVEAWAY_EXCLUSIONS_1B
+giveawayExclusions.enabled=True
+giveawayExclusions.count=10
+giveawayExclusions.rawItemsCount=10
+giveawayExclusions.ignoredInvalidCount=0
+lastError=
 ```
 
 ## Danach / später
@@ -75,6 +69,4 @@ updatedAt
 - Dashboard-Editor für Sperrliste planen.
 - DB-basierte Exclusions statt JSON-Datei.
 - Pro-Giveaway Exclusions.
-- Twitch-User-ID langfristig als primären Schlüssel in Entries speichern/nutzen.
-- Wheel-1-Gewinn-Direktvergabe später gezielt testen, ohne produktive Gewinne unnötig zu verbrauchen.
-- Wheel-Verhalten später dashboardfähig konfigurierbar machen.
+- 1-Gewinn-Direktvergabe später gezielt testen.

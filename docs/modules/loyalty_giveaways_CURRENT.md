@@ -9,8 +9,8 @@ Stand: 2026-06-19
 ## Aktueller Modulstand
 
 ```text
-Version: 0.1.14
-Build:   LWG_GIVEAWAY_EXCLUSIONS_1
+Version: 0.1.15
+Build:   LWG_GIVEAWAY_EXCLUSIONS_1B
 ```
 
 ## Bestätigte Wheel-Funktion
@@ -21,11 +21,10 @@ Build:   LWG_GIVEAWAY_EXCLUSIONS_1
 - Bei 2+ verfügbaren Gewinnen wird exakt mit den verfügbaren Feldern gedreht.
 - Live-Test: `fieldsCount=7`, `visualFieldsCount=7`, `visualMinVisibleSlots=7`.
 - `urlug` gewann `Valheim`; das Feld wurde danach auf `quantityRemaining=0` reduziert.
-- Restbestand: 6 verfügbare Felder.
 
-## Gewinn-Sperrliste / Exclusions
+## Bestätigte Gewinn-Sperrliste / Exclusions
 
-Sofort-Fix:
+Config:
 
 ```text
 config/loyalty_giveaway_exclusions.json
@@ -37,46 +36,30 @@ Regel:
 User dürfen als Entry sichtbar bleiben, werden aber beim Draw aus der eligible-Liste entfernt und können dadurch nicht gewinnen.
 ```
 
-Die Sperrliste verarbeitet:
-
-- `login`
-- `displayName`
-- `twitchUserId`
-- `active`
-
-Aktuell greift der Draw-Filter sicher über `login`. Falls Entries künftig Twitch-User-IDs in direktem Feld oder Metadata enthalten, wird zusätzlich über `twitchUserId` gefiltert.
-
-## Bestätigter Exclusion-Test
+Bestätigter Test:
 
 ```text
-Giveaway: giveaway_1781865117837_a56d3fcb009a15a2
-Entries:  una_solala, udowb, engelcgn
-Excluded: una_solala
-Winner:   udowb
-Prize:    Roadside Research
-Spin:     spin_1781865515072_d11827bafa8cd593
+Entries: una_solala, udowb, engelcgn
+Sperre: una_solala
+Winner: udowb
+excludedEntriesCount: 1
+excluded[0].userLogin: una_solala
 ```
 
-Draw-Fairness:
+## Loader-Robustheit ab 1B
 
-```text
-rawEntriesCount=3
-excludedEntriesCount=1
-eligibleEntriesCount=2
-excluded[0].userLogin=una_solala
-excluded[0].reason=login
-```
+Der Loader akzeptiert:
 
-Claim-/Wheel-Folge:
+- Exportformat `ok: true` + `items[]`,
+- Configformat `enabled: true` + `items[]`,
+- alternativ `users[]`,
+- alternativ `exclusions[]`.
 
-```text
-permission.status=used
-winner.status=wheel_completed
-Roadside Research quantityRemaining=0
-fieldsCount=8
-visualFieldsCount=8
-giveawayBoundWheelExactFields=true
-```
+Zusätzlich:
+
+- UTF-8-BOM wird vor JSON-Parsing entfernt,
+- kaputte/null-Einträge werden ignoriert,
+- Statusdiagnose enthält `rawItemsCount`, `ignoredInvalidCount`, `loaded`, `mtimeMs`.
 
 ## Draw-Metadata
 
@@ -94,7 +77,6 @@ Damit kann später im Dashboard/Log nachvollzogen werden, wie viele Entries durc
 
 ## Offene Punkte
 
-- Exclusions-Loader robuster machen: Exportformat, Configformat, BOM, null-/kaputte Einträge.
 - Exclusions im Dashboard editierbar machen.
 - Exclusions DB-basiert speichern.
 - Twitch-User-ID langfristig als primären Schlüssel nutzen.
