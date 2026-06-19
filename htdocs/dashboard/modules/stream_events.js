@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.57";
-  const MODULE_BUILD = "STEP_EVS52_21T_DASHBOARD_EVENTS_NOQUERY_FALLBACK";
+  const MODULE_VERSION = "0.5.58";
+  const MODULE_BUILD = "STEP_EVS52_21U_DASHBOARD_INITIAL_LOAD_FIX";
 
   const api = {
     status: '/api/stream-events/status',
@@ -273,7 +273,7 @@ window.StreamEventsModule = (function(){
       <div class="evs-page">
         <div class="evs-header glass">
           <div>
-            <div class="evs-kicker">EVS52.21T · Eventliste stabil geladen</div>
+            <div class="evs-kicker">EVS52.21U · Eventliste Initial Load Fix</div>
             <h2>Event-System</h2>
             <p>Übersicht zeigt den aktuellen Event-Stand und die nächste sinnvolle Aktion.</p>
           </div>
@@ -4284,7 +4284,13 @@ window.StreamEventsModule = (function(){
   function init(){
     installIntoDashboard();
     root = document.getElementById('streamEventsModule');
-    if (root) render();
+    if (root) {
+      render();
+      loadAll(true).catch(err => {
+        state.error = err && err.message ? err.message : String(err);
+        render();
+      });
+    }
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
