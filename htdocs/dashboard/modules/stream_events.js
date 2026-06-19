@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.63";
-  const MODULE_BUILD = "STEP_SHOT_ALARM_2I_SHOT_TABS_LOGS_OVERLAY_SOUNDS";
+  const MODULE_VERSION = "0.5.64";
+  const MODULE_BUILD = "STEP_SHOT_ALARM_2I1_SHOT_SOUNDS_SINGLE_OVERLAY_SOUND";
 
   const api = {
     status: '/api/stream-events/status',
@@ -577,26 +577,24 @@ window.StreamEventsModule = (function(){
   function renderShotAlarmSoundsSubTab(vm){
     const c = vm.c || {};
     const sound = c.sound || c.sounds || {};
+    const overlaySound = sound.overlayShot || sound.overlay || sound.hit || {};
     return `
       <div class="evs-config-card evs-shot-sounds-box">
-        <div class="evs-config-card-head"><strong>Shot-Sounds</strong><small>Vorbereitung für Media-System + Sound-System. Keine harten Dateipfade.</small></div>
-        <div class="evs-shot-sound-grid">
-          ${[
-            ['draw', 'Auslosung startet'],
-            ['hit', 'Treffer / Shot ausgelöst'],
-            ['miss', 'Niete / verschont'],
-            ['secure', 'Sicherer Shot'],
-            ['shotDone', 'Shot getrunken'],
-            ['startStop', 'Start/Stop optional']
-          ].map(([key, label]) => `<div class="evs-shot-sound-slot"><b>${esc(label)}</b><span>${esc(sound[key]?.mediaLabel || sound[key]?.mediaId || 'Noch nicht verbunden')}</span><small>Media-System Upload/Pick folgt im nächsten Sound-Step.</small></div>`).join('')}
+        <div class="evs-config-card-head"><strong>Shot-Sounds</strong><small>Nur der Sound für die eigentliche Shot-Einblendung im Overlay. Keine harten Dateipfade.</small></div>
+        <div class="evs-shot-sound-grid evs-shot-sound-grid-single">
+          <div class="evs-shot-sound-slot evs-shot-sound-slot-main">
+            <b>Overlay-Einblendung / ausgeloster Shot</b>
+            <span>${esc(overlaySound.mediaLabel || overlaySound.mediaId || 'Noch nicht verbunden')}</span>
+            <small>Wird abgespielt, wenn das Shot-Overlay eine ausgeloste Shot-Meldung zeigt. Media-System Upload/Pick folgt im nächsten Sound-Step.</small>
+          </div>
         </div>
         <div class="evs-tab-help">
-          Ziel: Sounds werden über das bestehende Media-System ausgewählt und über das Sound-System abgespielt. Shot-Alarm startet keine Audiodateien direkt, sondern sendet Playback-Aufträge an das vorhandene Sound-/Media-System.
+          Ziel: Genau dieser eine Sound wird später über das bestehende Media-System ausgewählt und über das Sound-System abgespielt. Shot-Alarm startet keine Audiodateien direkt, sondern sendet einen Playback-Auftrag an das vorhandene Sound-/Media-System.
         </div>
       </div>
       <div class="evs-config-card evs-shot-sounds-box">
-        <div class="evs-config-card-head"><strong>Nächster Schritt</strong><small>SHOT-ALARM-2J Sounds über Media-System.</small></div>
-        <div class="evs-info-row"><strong>Benötigte Anbindung</strong><span>Media-Picker im Dashboard, Sound-Config speichern, Backend-Playback über Sound-System, Priorität/Queue respektieren.</span></div>
+        <div class="evs-config-card-head"><strong>Nächster Schritt</strong><small>SHOT-ALARM-2J Overlay-Sound über Media-System.</small></div>
+        <div class="evs-info-row"><strong>Benötigte Anbindung</strong><span>Media-Picker für diesen einen Overlay-Sound, Sound-Config speichern, Backend-Playback über Sound-System, Priorität/Queue respektieren.</span></div>
         <div class="evs-info-row"><strong>Wichtig</strong><span>Kein Direkt-Audio im Overlay. Overlay bleibt Anzeige; Sound-System bleibt Playback-Owner.</span></div>
       </div>
     `;

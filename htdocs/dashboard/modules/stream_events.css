@@ -1481,3 +1481,9 @@
 .stream-events-admin .evs-shot-sound-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}.stream-events-admin .evs-shot-sound-slot{border:1px solid rgba(34,211,238,.18);background:rgba(2,6,23,.28);border-radius:14px;padding:11px 12px;display:grid;gap:4px}.stream-events-admin .evs-shot-sound-slot b{color:#fff}.stream-events-admin .evs-shot-sound-slot span{color:#cbd5e1}.stream-events-admin .evs-shot-sound-slot small{color:#94a3b8;font-size:11px}
 @media(max-width:900px){.stream-events-admin .evs-shot-runtime-card{display:grid}.stream-events-admin .evs-shot-runtime-card .evs-btn{width:100%}.stream-events-admin .evs-shot-log-grid{grid-template-columns:1fr}.stream-events-admin .evs-shot-log-row{grid-template-columns:1fr}.stream-events-admin .evs-shot-log-row>strong{text-align:left}.stream-events-admin .evs-shot-subtabs{display:grid;grid-template-columns:1fr 1fr}.stream-events-admin .evs-shot-subtab{justify-content:center}}
 @media(max-width:560px){.stream-events-admin .evs-shot-subtabs{grid-template-columns:1fr}}
+
+
+/* SHOT-ALARM-2I.1: Sounds-Tab nur ein Overlay-Sound */
+.stream-events-admin .evs-shot-sound-grid-single{grid-template-columns:minmax(280px,520px);}
+.stream-events-admin .evs-shot-sound-slot-main{min-height:118px;}
+.stream-events-admin .evs-shot-sound-slot-main b{font-size:16px;}
