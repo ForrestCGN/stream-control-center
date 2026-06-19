@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.58";
-  const MODULE_BUILD = "STEP_EVS52_21U_DASHBOARD_INITIAL_LOAD_FIX";
+  const MODULE_VERSION = "0.5.59";
+  const MODULE_BUILD = "STEP_EVS52_28_DASHBOARD_EDITOR_AUTOREFRESH_GUARD";
 
   const api = {
     status: '/api/stream-events/status',
@@ -75,6 +75,10 @@ window.StreamEventsModule = (function(){
     if (byUid) return byUid;
     if (state.selected && (!state.selectedUid || state.selected.eventUid === state.selectedUid)) return state.selected;
     return state.events[0] || null;
+  }
+
+  function isEventSubEditorOpen(){
+    return !!(state.modal && ['settings', 'sound', 'text'].includes(state.modal.editor));
   }
 
   function installIntoDashboard(){
@@ -273,7 +277,7 @@ window.StreamEventsModule = (function(){
       <div class="evs-page">
         <div class="evs-header glass">
           <div>
-            <div class="evs-kicker">EVS52.21U · Eventliste Initial Load Fix</div>
+            <div class="evs-kicker">EVS52.28 · Editor Auto-Refresh Schutz</div>
             <h2>Event-System</h2>
             <p>Übersicht zeigt den aktuellen Event-Stand und die nächste sinnvolle Aktion.</p>
           </div>
@@ -3205,7 +3209,7 @@ window.StreamEventsModule = (function(){
       state.error = err.message || String(err);
     } finally {
       state.loading = false;
-      if (rerender !== false) render();
+      if (rerender !== false && !isEventSubEditorOpen()) render();
     }
   }
 
@@ -3484,6 +3488,7 @@ window.StreamEventsModule = (function(){
   function shouldRunSoundControlAutoRefresh(){
     if (!root || !document.body.contains(root)) return false;
     if (state.soundControlAuto?.enabled === false) return false;
+    if (isEventSubEditorOpen()) return false;
     const event = selectedSoundControlEvent();
     if (!event) return false;
     return true;
@@ -3515,10 +3520,10 @@ window.StreamEventsModule = (function(){
     try {
       await loadSoundRuntimeReport(event.eventUid, false);
       if (state.soundControlAuto) state.soundControlAuto.lastRefreshAt = new Date().toISOString();
-      render();
+      if (!isEventSubEditorOpen()) render();
     } catch (err) {
       state.error = err.message || String(err);
-      render();
+      if (!isEventSubEditorOpen()) render();
     } finally {
       soundControlRefreshRunning = false;
     }
@@ -3588,8 +3593,7 @@ window.StreamEventsModule = (function(){
     } catch (err) {
       state.error = err.message || String(err);
     }
-    if (rerender !== false) render();
-    else render();
+    if (!isEventSubEditorOpen()) render();
   }
 
 
