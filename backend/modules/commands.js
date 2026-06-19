@@ -6,8 +6,8 @@ const core = require('./helpers/helper_core');
 const communicationBus = require('./communication_bus');
 
 const MODULE_NAME = 'commands';
-const MODULE_VERSION = '0.2.3';
-const MODULE_BUILD = 'LWG_6_5_GAMBLE_RESULT_LOG_CLEANUP';
+const MODULE_VERSION = '0.2.4';
+const MODULE_BUILD = 'STEP_SHOT_ALARM_2C_SHOTDONE_COMMAND';
 const SCHEMA_MODULE = 'command_system';
 const SCHEMA_VERSION = 2;
 const API_PREFIX = '/api/commands';
@@ -53,6 +53,9 @@ const COMMAND_CATALOG = [
   ] },
   { id: 'vip30', label: '30 Tage VIP', icon: '🎖️', description: 'VIP30 Status-/Restlaufzeit-Command ueber das Node-Command-System.', actions: [
     { id: 'vip30.status', icon: '🎖️', label: 'VIP30 Status anzeigen', description: 'Zeigt freie VIP30-Slots, naechsten Ablauf oder die eigene Restlaufzeit.', moduleKey: 'vip30', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/vip30/command', defaultTrigger: 'vip30', defaultAliases: ['vipstatus', 'vipplatz'], permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 5000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'vip30', rawInputMode: true, seededBy: 'STEP8.19.43' }, examples: ['!vip30', '!vip30 me', '!vip30 slots'] }
+  ] },
+  { id: 'shot_alarm', label: 'Shot-Alarm', icon: '🥃', description: 'Shot-Alarm Commands fuer offene/getrunkene Shots im Event-System.', actions: [
+    { id: 'shot_alarm.shotdone', icon: '✅', label: 'Shot getrunken melden', description: 'Meldet einen getrunkenen Shot und aktualisiert Shot-Alarm Counter, Chat und Overlay-Statusleiste.', moduleKey: 'shot_alarm', actionKey: 'shot_done', targetMethod: 'POST', targetUrl: '/api/shot-alarm/shot-done', defaultTrigger: 'shotdone', defaultAliases: ['shotgetrunken'], permissionLevel: 'mod', cooldownGlobalMs: 1000, cooldownUserMs: 3000, responseMode: 'module', config: { actionType: 'module_command', moduleCommand: 'shotdone', rawInputMode: true, allowedLogins: ['engelcgn', 'roxxyfoxxy'], allowMods: true, allowBroadcaster: true, seededBy: 'STEP_SHOT_ALARM_2C' }, examples: ['!shotdone'] }
   ] },
   { id: 'clips', label: 'Clips / Content', icon: '✂️', description: 'Clip- und Content-nahe Commands.', actions: [
     { id: 'clips.clip.prepared', icon: '✂️', label: 'Clip erstellen vorbereiten', description: 'Vorbereitet fuer Clip-Command.', moduleKey: 'clips', actionKey: 'command', targetMethod: 'POST', targetUrl: '', defaultTrigger: 'clip', defaultAliases: [], permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 10000, responseMode: 'module', config: { actionType: 'module_command', catalogStatus: 'prepared' }, examples: ['!clip'] }
@@ -250,7 +253,8 @@ function seedDefaultCommands() {
       { trigger: 'tode', aliases: ['deaths'], moduleKey: 'deathcounter_v2', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/deathcounter/v2/command', permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 3000, liveOnly: false, responseMode: 'module', config: { seededBy: 'STEP273A', rawInputMode: true } },
       { trigger: 'dcount', aliases: ['deathcount', 'deathcounter'], moduleKey: 'deathcounter_v2', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/deathcounter/v2/command', permissionLevel: 'mod', cooldownGlobalMs: 1000, cooldownUserMs: 2500, liveOnly: false, responseMode: 'module', config: { seededBy: 'STEP273A', rawInputMode: true } },
       { trigger: 'vip', aliases: ['vipsound'], moduleKey: 'vip_sound_overlay', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/vip-sound/command', permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 3000, liveOnly: false, responseMode: 'module', config: { seededBy: 'STEP452', actionType: 'module_command', moduleCommand: 'vip', rawInputMode: true } },
-      { trigger: 'vip30', aliases: ['vipstatus', 'vipplatz'], moduleKey: 'vip30', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/vip30/command', permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 5000, liveOnly: false, responseMode: 'module', config: { seededBy: 'STEP8.19.43', actionType: 'module_command', moduleCommand: 'vip30', rawInputMode: true } }
+      { trigger: 'vip30', aliases: ['vipstatus', 'vipplatz'], moduleKey: 'vip30', actionKey: 'command', targetMethod: 'POST', targetUrl: '/api/vip30/command', permissionLevel: 'everyone', cooldownGlobalMs: 1000, cooldownUserMs: 5000, liveOnly: false, responseMode: 'module', config: { seededBy: 'STEP8.19.43', actionType: 'module_command', moduleCommand: 'vip30', rawInputMode: true } },
+      { trigger: 'shotdone', aliases: ['shotgetrunken'], moduleKey: 'shot_alarm', actionKey: 'shot_done', targetMethod: 'POST', targetUrl: '/api/shot-alarm/shot-done', permissionLevel: 'mod', cooldownGlobalMs: 1000, cooldownUserMs: 3000, liveOnly: false, responseMode: 'module', config: { seededBy: 'STEP_SHOT_ALARM_2C', actionType: 'module_command', moduleCommand: 'shotdone', rawInputMode: true, allowedLogins: ['engelcgn', 'roxxyfoxxy'], allowMods: true, allowBroadcaster: true } }
     ];
     for (const item of defaults) {
       const existing = database.get('SELECT id FROM command_definitions WHERE trigger = :trigger', { trigger: item.trigger });
@@ -455,8 +459,20 @@ function userFromParsed(parsed = {}, override = {}) {
   const displayName = cleanText(override.userDisplayName || override.displayName || parsed.displayName || tags['display-name'] || login);
   return { login, displayName: displayName || login, userId: cleanText(tags['user-id'] || override.userId || ''), badges, isBroadcaster: !!badges.broadcaster, isMod: !!badges.moderator || tags.mod === '1', isVip: !!badges.vip, isSubscriber: !!badges.subscriber || !!badges.founder || tags.subscriber === '1' };
 }
-function hasPermission(command, user) {
+function hasPermission(command, user = {}) {
   const level = String(command.permissionLevel || 'everyone').trim().toLowerCase();
+  const config = command.config && typeof command.config === 'object' ? command.config : {};
+  const login = cleanLogin(user.login || user.userLogin || user.name || '');
+  const allowedLogins = Array.isArray(config.allowedLogins || config.allowedUsers)
+    ? (config.allowedLogins || config.allowedUsers).map(cleanLogin).filter(Boolean)
+    : [];
+
+  if (login && allowedLogins.includes(login)) return true;
+  if (config.allowBroadcaster === true && user.isBroadcaster) return true;
+  if (config.allowMods === true && (user.isMod || user.isBroadcaster)) return true;
+  if (config.allowVips === true && (user.isVip || user.isMod || user.isBroadcaster)) return true;
+  if (config.allowSubscribers === true && (user.isSubscriber || user.isVip || user.isMod || user.isBroadcaster)) return true;
+
   if (!level || level === 'everyone' || level === 'all') return true;
   if (level === 'subscriber' || level === 'sub') return user.isSubscriber || user.isVip || user.isMod || user.isBroadcaster;
   if (level === 'vip') return user.isVip || user.isMod || user.isBroadcaster;
