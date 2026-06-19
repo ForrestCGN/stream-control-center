@@ -40,7 +40,7 @@ window.CGN = {
       reload() { return window.AlertsModule?.loadAll?.(true); }
     },
     twitch_events: {
-      title: 'Twitch Event Simulator',
+      title: 'Twitch Events',
       panelId: 'twitchEventsModule',
       group: 'control',
       overlayLink: '',

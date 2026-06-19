@@ -1,0 +1,47 @@
+{
+  "hypetrain": {
+    "enabled": true,
+    "recordDetection": {
+      "enabled": true,
+      "totalRecordEnabled": true,
+      "levelRecordEnabled": true,
+      "triggerOnlyOncePerTrain": true
+    },
+    "recordSound": {
+      "enabled": true,
+      "mediaId": 0,
+      "label": "Hype-Train Rekord",
+      "priority": 1000,
+      "queueIfBusy": true,
+      "dropIfBusy": false,
+      "canInterrupt": false,
+      "canBeInterrupted": false,
+      "parallelAllowed": false,
+      "target": "stream",
+      "outputTarget": "overlay",
+      "volume": 1
+    },
+    "diary": {
+      "enabled": true,
+      "systemUsername": "CGN-HypeTrain",
+      "writeOnEnd": true,
+      "includeRecordInfo": true
+    },
+    "media": {
+      "moduleKey": "twitch_events",
+      "categoryKey": "hypetrain-record",
+      "allowedTypes": [
+        "audio"
+      ]
+    },
+    "endpoints": {
+      "soundPlayUrl": "http://127.0.0.1:8080/api/sound/play",
+      "tagebuchEntryUrl": "http://127.0.0.1:8080/api/tagebuch/entry"
+    },
+    "texts": {
+      "recordBroken": "🚂💜 Hype-Train-Rekord! Die Rentner haben den Zug entgleisen lassen: Level {level}, Gesamt {total}. Alter Rekord: Level {oldLevel}, Gesamt {oldTotal}.",
+      "trainEnded": "🚂 Hype-Train beendet: Level {level}, Gesamt {total}, Ziel {goal}. {recordText}",
+      "recordShort": "Neuer Rekord: {recordTypes}."
+    }
+  }
+}

@@ -1,62 +1,114 @@
-# FILES – Event-System EVS52.27
+# FILES – relevante Dateien
 
-Stand: 2026-06-19
+Stand: 2026-06-17 16:20
 
-## In STEP_EVS52_27 geändert
+## EventSound / Runtime / Sound-System
 
 ```text
 backend/modules/stream_events.js
-htdocs/overlays/stream_events/event_winner_overlay.html
+backend/modules/sound_system.js
+htdocs/overlays/stream_events/event_runtime_overlay.html
+htdocs/overlays/sound_system_overlay.html
+htdocs/dashboard/modules/stream_events.js
+htdocs/dashboard/modules/stream_events.css
+htdocs/dashboard/modules/sound.js
+htdocs/dashboard/modules/sound.css
 ```
 
-## In dieser Doku-Aktualisierung geändert
+## Testtools
 
 ```text
+tools/test_event_runtime_unresolved_card.ps1
+```
+
+Zusätzlich in Downloads/Arbeitsdateien genutzt:
+
+```text
+EVENT_RUNTIME_DIAG_DELAYED_ANSWER_30S.ps1
+EVENT_RUNTIME_TEST_LONG_WINNER_CARD_2.ps1
+```
+
+Hinweis: Long-Winner-Layout besser über Demo-URL testen:
+
+```text
+http://127.0.0.1:8080/overlays/stream_events/event_runtime_overlay.html?demo=result-long&v=test
+```
+
+## Doku
+
+```text
+docs/current/CURRENT_STATUS.md
+docs/current/NEXT_STEPS.md
+docs/current/TODO.md
+docs/current/CHANGELOG.md
+docs/current/FILES.md
+docs/current/CURRENT_CHAT_HANDOFF_EVENT_RUNTIME_2026-06-17.md
+docs/current/NEXT_CHAT_PROMPT_EVENT_RUNTIME_2026-06-17.md
+docs/modules/stream_events.md
+docs/overlays/event_runtime_overlay.md
+docs/testing/SOUND_EVENT_RUNTIME_TESTFLOW.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
 project-state/CHANGELOG.md
 project-state/FILES.md
-docs/modules/stream_events.md
-docs/current/CURRENT_CHAT_HANDOFF_EVS52_27_WINNER_TOP3_TWITCH_AVATARS_NO_AUTOREPLAY.md
-docs/current/TEST_REPORT_EVS52_27_WINNER_TOP3_TWITCH_AVATARS_NO_AUTOREPLAY.md
-docs/current/NEXT_CHAT_PROMPT_EVS52_27.md
 ```
 
-## Relevante Dateien für Tests
-
-Winner-Finale / Avatare / Auto-Replay:
+## Wichtige URLs
 
 ```text
-backend/modules/stream_events.js
-htdocs/overlays/stream_events/event_winner_overlay.html
-htdocs/dashboard/modules/stream_events.js
+Dashboard:
+http://127.0.0.1:8080/dashboard
+
+Runtime Overlay:
+http://127.0.0.1:8080/overlays/stream_events/event_runtime_overlay.html
+
+Runtime Overlay Debug:
+http://127.0.0.1:8080/overlays/stream_events/event_runtime_overlay.html?debug=1&v=test
+
+Long Winner Demo:
+http://127.0.0.1:8080/overlays/stream_events/event_runtime_overlay.html?demo=result-long&v=test
+
+Sound-System Overlay:
+http://127.0.0.1:8080/overlays/sound_system_overlay.html
 ```
 
-Glücksrad-Kollision prüfen, falls weiterhin sichtbar:
+## Relevante STEP-ZIPs aus diesem Chatblock
 
 ```text
-OBS-Szene / Browserquellen-URL prüfen
-htdocs/overlays/stream_events/event_winner_overlay.html
+STEP_EVENT_RUNTIME_OVERLAY_1.zip
+STEP_EVENT_RUNTIME_OVERLAY_1B.zip
+STEP_EVENT_RUNTIME_ANSWER_COUNTDOWN_1.zip
+STEP_EVENT_RUNTIME_ANSWER_COUNTDOWN_1B.zip
+STEP_EVENT_RUNTIME_UNRESOLVED_CARD_1.zip
+STEP_EVENT_RUNTIME_POLISH_1.zip
+STEP_EVENT_RUNTIME_POLISH_1B_TEXT.zip
+STEP_EVENT_RUNTIME_WINNER_CARD_TEXT_1.zip
+STEP_EVENT_RUNTIME_WINNER_CARD_LAYOUT_1.zip
+STEP_EVENT_RUNTIME_WINNER_CARD_DEMO_1.zip
+DOCS_EVENT_RUNTIME_2026-06-17.zip
 ```
 
-Reveal-Video / Sound-Queue-Safety:
+---
+
+## Hype-Train Rekord-System – STEP_HT1
 
 ```text
-backend/modules/stream_events.js
-backend/modules/sound_system.js
-htdocs/overlays/sound_system_overlay.html
-htdocs/overlays/event_runtime_overlay.html
+backend/modules/twitch.js
+backend/modules/twitch_events.js
+backend/modules/media.js
+htdocs/dashboard/modules/twitch_events.js
+htdocs/dashboard/modules/twitch_events.css
+htdocs/dashboard/app.js
+config/twitch_events.json
 ```
 
-## Nicht in EVS52.27 geändert
+Neue/ergänzte Routen:
 
 ```text
-htdocs/dashboard/modules/stream_events.js
-htdocs/dashboard/modules/stream_events.css
-backend/modules/sound_system.js
-htdocs/overlays/sound_system_overlay.html
-htdocs/overlays/event_runtime_overlay.html
-Glücksrad-/Loyalty-Dateien
-DB-Dateien
+GET  /api/twitch/events/hypetrain/status
+GET  /api/twitch/events/hypetrain/config
+POST /api/twitch/events/hypetrain/config
+GET  /api/twitch/events/hypetrain/test?confirm=1
+POST /api/twitch/events/hypetrain/test?confirm=1
 ```

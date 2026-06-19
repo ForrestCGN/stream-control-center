@@ -1,136 +1,200 @@
-# NEXT_STEPS – EVS52.27
+# NEXT_STEPS – stream-control-center
 
-Stand: 2026-06-19
+Stand: 2026-06-17 16:20
 
-## Direkt nach Einspielen testen
+## Neuer Chat / nächster Startpunkt
 
-Nach dem Entpacken nach `D:\Git\stream-control-center`:
-
-```powershell
-.\stepdone.cmd "STEP_EVS52_27_WINNER_TOP3_TWITCH_AVATARS_NO_AUTOREPLAY"
+```text
+EVENT-RUNTIME-STABILIZE-2 – EventSound Runtime im Live-/OBS-Setup prüfen und danach Dashboard-/Config-Anbindung fortführen
 ```
 
-Dann Status prüfen:
+## Sofort zuerst prüfen
 
 ```powershell
 $s = Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/status"
 $s | Select-Object moduleVersion,moduleBuild | Format-List
 ```
 
+Erwartung aus letztem Arbeitsstand:
+
+```text
+stream_events mindestens 0.5.51 / STEP_EVENT_RUNTIME_UNRESOLVED_CARD_1
+Runtime-Overlay im Browser/Live mindestens 0.3.7, wenn Demo-Step eingespielt wurde
+```
+
+## Test-Reihenfolge
+
+### 1. Demo Gewinner-Card langer Name/Titel
+
+```text
+http://127.0.0.1:8080/overlays/stream_events/event_runtime_overlay.html?demo=result-long&v=test
+```
+
+Sichtprüfung:
+
+```text
+- langer Name lesbar
+- Punkte sichtbar
+- langer Titel zweizeilig sauber begrenzt
+- Card bricht nicht aus
+```
+
+### 2. Test mit Lösung und 30 Sekunden Counter-Laufzeit
+
+```powershell
+cd D:\Git\stream-control-center
+powershell -ExecutionPolicy Bypass -File "$env:USERPROFILE\Downloads\EVENT_RUNTIME_DIAG_DELAYED_ANSWER_30S.ps1"
+```
+
 Erwartung:
 
 ```text
-moduleVersion : 0.5.93
-moduleBuild   : STEP_EVS52_27_WINNER_TOP3_TWITCH_AVATARS_NO_AUTOREPLAY
+3 / 2 / 1 / LOS
+Sound läuft ohne JETZT RATEN
+Sound endet
+Counter oben rechts läuft ca. 30 Sekunden
+Antwort wird gesendet
+Gewinner-Card erscheint
+Reveal-Video startet danach über Sound-System-Overlay
 ```
 
-## Test 1 – Winner-Overlay darf nicht automatisch starten
+### 3. Timeout-Test ohne Antwort
 
-URL normal öffnen:
+```powershell
+cd D:\Git\stream-control-center
+powershell -ExecutionPolicy Bypass -File ".	ools	est_event_runtime_unresolved_card.ps1"
+```
+
+Erwartung:
 
 ```text
-http://127.0.0.1:8080/overlays/stream_events/event_winner_overlay.html
+Counter läuft bis 0
+Counter verschwindet
+Keine-Lösung-Kachel oben mittig ca. 10 Sekunden
+kein Reveal
+kein Punkt
 ```
 
-Erwartung:
+## Offen / nächste technische Themen
 
-- Overlay bleibt leer/versteckt.
-- Kein altes Finale wird automatisch geladen.
-- Kein Auto-Replay ohne explizites `?autoReplay=1`.
+### A. Reveal-Video-Sichtbarkeit prüfen, falls nochmal unsichtbar
 
-## Test 2 – Glücksrad darf Auswertung nicht mit einblenden
+Reveal läuft über:
 
-Glücksrad im Dashboard/OBS wie üblich starten oder anzeigen.
-
-Erwartung:
-
-- Glücksrad wird angezeigt.
-- Gewinner-/Auswertungs-Overlay bleibt aus.
-- Kein teilweises Einblenden des Winner-Overlays.
-
-Wenn es trotzdem sichtbar wird:
-
-- OBS-Szenenstruktur prüfen: Liegt die Winner-Overlay-Browserquelle in derselben gemeinsamen Overlay-Szene wie das Glücksrad?
-- Browserquelle manuell neu laden und prüfen, ob sie weiterhin leer bleibt.
-- Danach Bus-/Payload-Logs prüfen.
-
-## Test 3 – Finale/Auswertung starten oder erneut abspielen
-
-Für das fertige Testevent:
-
-```powershell
-$eventUid = "evs_event_mqkyu4hp_27b0cb030fad"
-Invoke-RestMethod "http://127.0.0.1:8080/api/stream-events/events/$eventUid/finale" | ConvertTo-Json -Depth 8
+```text
+htdocs/overlays/sound_system_overlay.html
 ```
 
-Erwartung:
+Nicht über:
 
-- `ok:true`
-- `dashboardCanStartFinale:true` oder bei bereits gestartetem Finale passende Replay-/Ende-Logik
-- Ranking vorhanden
+```text
+htdocs/overlays/stream_events/event_runtime_overlay.html
+```
 
-Dann über Dashboard starten oder per API:
+Wenn Reveal nicht sichtbar ist:
+
+```text
+- OBS-Browserquelle für sound_system_overlay.html prüfen.
+- /api/sound/recent-playback?limit=10 prüfen.
+- outputTarget=overlay / hasVideo / status started prüfen.
+- sound_system_overlay.html als echte Datei anfordern und prüfen.
+```
+
+### B. EventSound Dashboard-/Config-Integration
+
+```text
+- Sound- und Text-Spieltypen weiterhin getrennt konfigurieren.
+- Event nur startbar, wenn gewählte Spieltypen vollständig konfiguriert sind.
+- Runtime-/Antwort-/Reveal-Konfiguration streamer-/modfreundlich im Dashboard abbilden.
+- Texte später in zentrale Textvarianten bringen, nicht hart im Code lassen.
+```
+
+### C. Auto-Rotation weiter prüfen
+
+Bestätigte Regel:
+
+```text
+random_auto / sequence_auto: nächste automatische Runde nach intervalMinutes ± intervalJitterMinutes.
+roundDelaySeconds ist nur Mindestpause/Floor.
+Manuelle next-round API darf weiter sofort auslösen.
+```
+
+Noch prüfen:
+
+```text
+- nach gelöstem Reveal kein direkter Schnipsel nach 60 Sekunden
+- nach Timeout normaler Auto-Intervall
+- Schnipsel je nach Config aus Rotation entfernen oder später wiederholen
+```
+
+### D. Später: Textsystem/Dashboardtexte
+
+Aktuell sind einzelne Overlay-Texte noch im Code/Overlay hart gesetzt. Langfristig sollen Texte dashboardfähig über Textvarianten laufen:
+
+```text
+KEINE LÖSUNG
+Die Heimleitung hat im Chat
+keine richtige Antwort erkannt.
+Der Schnipsel bleibt im Archiv.
+```
+
+## Nicht als nächstes tun
+
+```text
+- Kein neues Parallel-Sound-System bauen.
+- Keine direkte Audio-/Videoausgabe aus stream_events am Sound-System vorbei.
+- Keine DB ersetzen/überschreiben.
+- Keine Regex-/Patch-/Apply-Scripte.
+- Keine weiteren Layoutänderungen ohne Sichtproblem.
+```
+
+---
+
+## STEP_HT1_HYPETRAIN_RECORD_SOUND_DASHBOARD – nächste Tests
+
+### 1. Syntax prüfen
 
 ```powershell
-Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/stream-events/events/$eventUid/finale/start?confirm=1" `
+node -c .\backend\modules\twitch.js
+node -c .\backend\modules\twitch_events.js
+node -c .\backend\modules\media.js
+node -c .\htdocs\dashboard\modules\twitch_events.js
+```
+
+### 2. StepDone nach Einspielen/Deploy
+
+```powershell
+.\stepdone.cmd "STEP_HT1_HYPETRAIN_RECORD_SOUND_DASHBOARD"
+```
+
+### 3. Status prüfen
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/twitch/events/hypetrain/status" | ConvertTo-Json -Depth 8
+```
+
+### 4. Dashboard prüfen
+
+```text
+Dashboard -> Twitch Events -> Hype-Train Rekord
+Sound über Media-Picker hochladen/auswählen.
+Speichern.
+```
+
+### 5. Synthetischen Test ausführen
+
+```powershell
+Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/twitch/events/hypetrain/test?confirm=1" `
   -ContentType "application/json" `
-  -Body '{"actor":"dashboard"}' | ConvertTo-Json -Depth 8
+  -Body '{"id":"test_ht_record_1","allTimeHighLevel":5,"allTimeHighTotal":1000,"level":6,"total":1500,"goal":2000}' |
+  ConvertTo-Json -Depth 10
 ```
 
 Erwartung:
 
-- `ok:true`
-- Finale wird sichtbar.
-- Top-3-Daten enthalten Avatar-Felder.
-
-## Test 4 – RoxxyFoxxyCGN Avatar
-
-Ein Finale/Test erzeugen oder erneut abspielen, bei dem `RoxxyFoxxyCGN` in den Top 3 ist.
-
-Erwartung:
-
-- Vor Anzeige wird der Top-3-Avatar über Twitch/Userinfo aufgelöst.
-- RoxxyFoxxyCGN zeigt Avatar, sofern Twitch/Userinfo Avatar liefert.
-- Nur wenn Twitch/Userinfo und lokale Fallbacks nichts liefern, werden Initialen/Fallback angezeigt.
-
-## Test 5 – Finale-Ende und Replay
-
-Nach sichtbarer Auswertung:
-
-- Finale manuell beenden.
-- Prüfen, ob Overlay verschwindet.
-- Prüfen, ob Dashboard danach `Auswertung erneut abspielen` anbietet.
-- Replay starten.
-- Prüfen, ob dieselbe Auswertung erneut abgespielt wird und nicht neu ausgelost wird.
-
-## Danach: Reveal-Video / Sound-Queue-Safety
-
-Noch offen aus dem Notfallstand:
-
-- Richtige Sound-Antwort wurde erkannt.
-- Reveal-Video startete.
-- Einmal blieb das Sound-System bei `Sound läuft` hängen.
-- Kanalpunkte-Sounds liefen nach `/api/sound/skip` wieder weiter.
-
-Zu prüfen:
-
-- Was sendet `backend/modules/stream_events.js` beim Reveal-Video ans Sound-System?
-- Kommen `mediaType=video`, `durationMs`, `eventUid`, `roundUid`, `requestId` sauber an?
-- Gibt das Sound-System nach Video-Ende zuverlässig die Queue frei?
-- Greift ein Fallback, falls `video-ended`/`audio-ended` ausbleibt?
-
-Notfallbefehl bleibt vorerst:
-
-```powershell
-Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/sound/skip"
+```text
+- begin/progress/end werden über twitch_events verarbeitet.
+- record_broken wird intern erzeugt.
+- Wenn mediaId gesetzt ist, wird der Sound ins Sound-System eingereiht.
+- Bei Ende wird ein Tagebuch-Eintrag versucht.
 ```
-
-## Danach: Soundrotation / Zufall
-
-Zu prüfen:
-
-- offene Schnipsel werden zufällig gewählt
-- gelöste Schnipsel werden entfernt/markiert
-- ungelöste Schnipsel werden später neu eingereiht
-- ungelöste Schnipsel kommen nicht direkt als nächstes, wenn Alternativen vorhanden sind
-- `avoidImmediateRepeat` und `minRepeatDistance: 3` wirken korrekt

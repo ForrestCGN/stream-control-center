@@ -20,15 +20,18 @@
  * This module keeps old paths available but makes EventSub chat restart-safe for the new bus command default.
  */
 
+const fs = require('fs');
+const path = require('path');
 const core = require('./helpers/helper_core');
 const routes = require('./helpers/helper_routes');
+const configHelper = require('./helpers/helper_config');
 const communicationBus = require('./communication_bus');
 const axios = require('axios');
 const WebSocket = require('ws');
 
 const MODULE_NAME = 'twitch_events';
-const MODULE_VERSION = '0.1.13';
-const MODULE_BUILD = 'EVS52_10_CHAT_SOURCE_DIAG';
+const MODULE_VERSION = '0.1.14';
+const MODULE_BUILD = 'STEP_HT1_HYPETRAIN_RECORD_SOUND_DASHBOARD';
 const MODULE_ID = `module:${MODULE_NAME}`;
 const MODULE_STARTED_AT = nowIso();
 
@@ -89,6 +92,7 @@ const MODULE_META = {
       'twitch.hypetrain.started',
       'twitch.hypetrain.progress',
       'twitch.hypetrain.ended',
+      'twitch.hypetrain.record_broken',
       'twitch.shoutout.created',
       'twitch.shoutout.received'
     ],
@@ -176,6 +180,7 @@ const EVENT_CATALOG = [
   eventDef('twitch.hypetrain.started', 'twitch.hypetrain', 'started', 'hypetrain', 'Hype-Train hat begonnen.', IMPORTANT_POLICY),
   eventDef('twitch.hypetrain.progress', 'twitch.hypetrain', 'progress', 'hypetrain', 'Hype-Train Fortschritt.', RUNTIME_POLICY),
   eventDef('twitch.hypetrain.ended', 'twitch.hypetrain', 'ended', 'hypetrain', 'Hype-Train wurde beendet.', IMPORTANT_POLICY),
+  eventDef('twitch.hypetrain.record_broken', 'twitch.hypetrain', 'record_broken', 'hypetrain', 'Hype-Train Rekord wurde gebrochen.', IMPORTANT_POLICY),
 
   eventDef('twitch.shoutout.created', 'twitch.shoutout', 'created', 'shoutout', 'Twitch-Shoutout wurde erstellt.', IMPORTANT_POLICY),
   eventDef('twitch.shoutout.received', 'twitch.shoutout', 'received', 'shoutout', 'Twitch-Shoutout wurde empfangen.', IMPORTANT_POLICY)
@@ -209,6 +214,54 @@ const DEFAULT_TARGET = {
   module: '',
   capability: ''
 };
+
+
+const DEFAULT_HYPETRAIN_CONFIG = {
+  enabled: true,
+  recordDetection: {
+    enabled: true,
+    totalRecordEnabled: true,
+    levelRecordEnabled: true,
+    triggerOnlyOncePerTrain: true
+  },
+  recordSound: {
+    enabled: true,
+    mediaId: 0,
+    label: 'Hype-Train Rekord',
+    priority: 1000,
+    queueIfBusy: true,
+    dropIfBusy: false,
+    canInterrupt: false,
+    canBeInterrupted: false,
+    parallelAllowed: false,
+    target: 'stream',
+    outputTarget: 'overlay',
+    volume: 1
+  },
+  diary: {
+    enabled: true,
+    systemUsername: 'CGN-HypeTrain',
+    writeOnEnd: true,
+    includeRecordInfo: true
+  },
+  media: {
+    moduleKey: 'twitch_events',
+    categoryKey: 'hypetrain-record',
+    allowedTypes: ['audio']
+  },
+  endpoints: {
+    soundPlayUrl: 'http://127.0.0.1:8080/api/sound/play',
+    tagebuchEntryUrl: 'http://127.0.0.1:8080/api/tagebuch/entry'
+  },
+  texts: {
+    recordBroken: '🚂💜 Hype-Train-Rekord! Die Rentner haben den Zug entgleisen lassen: Level {level}, Gesamt {total}. Alter Rekord: Level {oldLevel}, Gesamt {oldTotal}.',
+    trainEnded: '🚂 Hype-Train beendet: Level {level}, Gesamt {total}, Ziel {goal}. {recordText}',
+    recordShort: 'Neuer Rekord: {recordTypes}.'
+  }
+};
+
+let runtimeConfig = null;
+let runtimeConfigPath = '';
 
 
 const EVENTSUB_CHAT_READINESS = {
@@ -357,6 +410,32 @@ const state = {
     byEvent: {},
     byCategory: {},
     bySource: {}
+  },
+
+  hypeTrain: {
+    current: null,
+    byId: {},
+    recent: [],
+    recordBrokenEvents: [],
+    lastRecordBrokenAt: '',
+    lastEndedAt: '',
+    lastSoundResult: null,
+    lastDiaryResult: null,
+    lastError: '',
+    counters: {
+      started: 0,
+      progress: 0,
+      ended: 0,
+      recordBroken: 0,
+      totalRecordBroken: 0,
+      levelRecordBroken: 0,
+      soundQueued: 0,
+      soundSkipped: 0,
+      soundFailed: 0,
+      diaryWritten: 0,
+      diarySkipped: 0,
+      diaryFailed: 0
+    }
   },
   eventSubChat: {
     enabled: false,
@@ -536,12 +615,15 @@ module.exports.handleEventSubLifecycle = handleEventSubLifecycle;
 module.exports.handleRedemptionLifecycleEvent = handleRedemptionLifecycleEvent;
 module.exports.getStreamState = getStreamState;
 module.exports.refreshStreamState = refreshStreamState;
+module.exports.getHypeTrainRuntimeStatus = getHypeTrainRuntimeStatus;
+module.exports.getHypeTrainConfig = getHypeTrainConfig;
 
 module.exports.init = function init(ctx = {}) {
   const app = ctx.app;
   state.env = ctx.env || process.env || {};
   state.initialized = true;
   state.updatedAt = nowIso();
+  ensureHypeTrainConfigLoaded();
 
   try {
     bus = communicationBus.getBus();
@@ -574,6 +656,35 @@ module.exports.init = function init(ctx = {}) {
     const registered = [];
     registered.push(...routes.registerGet(app, ['/api/twitch/events/status', '/twitch/events/status'], (req, res) => {
       res.json(getStatus());
+    }));
+
+    registered.push(...routes.registerGet(app, ['/api/twitch/events/hypetrain/status', '/twitch/events/hypetrain/status'], (req, res) => {
+      res.json(getHypeTrainRuntimeStatus());
+    }));
+
+    registered.push(...routes.registerGet(app, ['/api/twitch/events/hypetrain/config', '/twitch/events/hypetrain/config'], (req, res) => {
+      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, configPath: runtimeConfigPath || resolveHypeTrainConfigPath(), config: publicHypeTrainConfig(), hypetrain: getHypeTrainRuntimeStatus() });
+    }));
+
+    registered.push(...routes.registerPost(app, ['/api/twitch/events/hypetrain/config', '/twitch/events/hypetrain/config'], (req, res) => {
+      try {
+        const body = req.body || {};
+        const current = ensureHypeTrainConfigLoaded();
+        const nextHypeTrain = deepMergeLocal(current.hypetrain || DEFAULT_HYPETRAIN_CONFIG, body.hypetrain || body.config || body || {});
+        const saved = saveHypeTrainConfig({ ...current, hypetrain: nextHypeTrain });
+        res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, configPath: runtimeConfigPath, config: cloneJson(saved.hypetrain, {}), hypetrain: getHypeTrainRuntimeStatus() });
+      } catch (err) {
+        res.status(500).json({ ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: err && err.message ? err.message : String(err) });
+      }
+    }));
+
+    registered.push(...routes.registerPost(app, ['/api/twitch/events/hypetrain/test', '/twitch/events/hypetrain/test'], (req, res) => {
+      const result = runHypeTrainSyntheticTest(req.body || {}, req.query || {});
+      res.status(result.ok ? 200 : 400).json(result);
+    }));
+    registered.push(...routes.registerGet(app, ['/api/twitch/events/hypetrain/test', '/twitch/events/hypetrain/test'], (req, res) => {
+      const result = runHypeTrainSyntheticTest({}, req.query || {});
+      res.status(result.ok ? 200 : 400).json(result);
     }));
 
     const streamStateRoute = async (req, res) => {
@@ -753,6 +864,420 @@ module.exports.init = function init(ctx = {}) {
   return getStatus();
 };
 
+
+
+function cloneJson(value, fallback = null) {
+  try { return JSON.parse(JSON.stringify(value ?? fallback)); }
+  catch (_) { return fallback; }
+}
+
+function isPlainObjectLocal(value) {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function deepMergeLocal(base, extra) {
+  const out = cloneJson(base || {}, {});
+  if (!isPlainObjectLocal(extra)) return out;
+  for (const [key, value] of Object.entries(extra)) {
+    if (isPlainObjectLocal(value) && isPlainObjectLocal(out[key])) out[key] = deepMergeLocal(out[key], value);
+    else out[key] = cloneJson(value, value);
+  }
+  return out;
+}
+
+function resolveHypeTrainConfigPath() {
+  try { return configHelper.resolveConfigFile('twitch_events.json'); }
+  catch (_) { return path.resolve(process.cwd(), 'config', 'twitch_events.json'); }
+}
+
+function ensureHypeTrainConfigLoaded() {
+  if (runtimeConfig) return runtimeConfig;
+  runtimeConfigPath = resolveHypeTrainConfigPath();
+  let loaded = {};
+  try {
+    if (fs.existsSync(runtimeConfigPath)) loaded = JSON.parse(fs.readFileSync(runtimeConfigPath, 'utf8')) || {};
+  } catch (err) {
+    state.lastWarning = `hypetrain_config_load_failed:${err && err.message ? err.message : String(err)}`;
+    loaded = {};
+  }
+  runtimeConfig = deepMergeLocal({ hypetrain: DEFAULT_HYPETRAIN_CONFIG }, loaded || {});
+  if (!runtimeConfig.hypetrain) runtimeConfig.hypetrain = cloneJson(DEFAULT_HYPETRAIN_CONFIG, {});
+  return runtimeConfig;
+}
+
+function saveHypeTrainConfig(nextConfig) {
+  runtimeConfigPath = resolveHypeTrainConfigPath();
+  const merged = deepMergeLocal({ hypetrain: DEFAULT_HYPETRAIN_CONFIG }, nextConfig || {});
+  configHelper.writeJsonFile(runtimeConfigPath, merged, { spaces: 2 });
+  runtimeConfig = merged;
+  state.updatedAt = nowIso();
+  return runtimeConfig;
+}
+
+function getHypeTrainConfig() {
+  const cfg = ensureHypeTrainConfigLoaded();
+  return deepMergeLocal({ hypetrain: DEFAULT_HYPETRAIN_CONFIG }, cfg || {}).hypetrain;
+}
+
+function publicHypeTrainConfig() {
+  return cloneJson(getHypeTrainConfig(), {});
+}
+
+function numberOrZero(value) {
+  const n = Number(value || 0);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function boolFromConfig(value, fallback = false) {
+  if (typeof value === 'boolean') return value;
+  if (value === undefined || value === null || value === '') return fallback;
+  const text = String(value).trim().toLowerCase();
+  if (['1', 'true', 'yes', 'ja', 'on'].includes(text)) return true;
+  if (['0', 'false', 'no', 'nein', 'off'].includes(text)) return false;
+  return fallback;
+}
+
+function replaceTextVars(template, vars = {}) {
+  return String(template || '').replace(/\{([a-zA-Z0-9_]+)\}/g, (_, key) => String(vars[key] ?? ''));
+}
+
+function normalizeHypeTrain(input = {}) {
+  const hypeTrain = isPlainObjectLocal(input.hypeTrain) ? input.hypeTrain : input;
+  const id = cleanString(firstValue(hypeTrain.id, input.id, `hypetrain_${Date.now()}`));
+  return {
+    id,
+    level: numberOrZero(firstValue(hypeTrain.level, input.level)),
+    total: numberOrZero(firstValue(hypeTrain.total, input.total)),
+    progress: numberOrZero(firstValue(hypeTrain.progress, input.progress)),
+    goal: numberOrZero(firstValue(hypeTrain.goal, input.goal)),
+    allTimeHighLevel: numberOrZero(firstValue(hypeTrain.allTimeHighLevel, hypeTrain.all_time_high_level, input.allTimeHighLevel, input.all_time_high_level)),
+    allTimeHighTotal: numberOrZero(firstValue(hypeTrain.allTimeHighTotal, hypeTrain.all_time_high_total, input.allTimeHighTotal, input.all_time_high_total)),
+    startedAt: cleanString(firstValue(hypeTrain.startedAt, hypeTrain.started_at, input.startedAt, input.started_at)),
+    expiresAt: cleanString(firstValue(hypeTrain.expiresAt, hypeTrain.expires_at, input.expiresAt, input.expires_at)),
+    endedAt: cleanString(firstValue(hypeTrain.endedAt, hypeTrain.ended_at, input.endedAt, input.ended_at)),
+    cooldownEndsAt: cleanString(firstValue(hypeTrain.cooldownEndsAt, hypeTrain.cooldown_ends_at, input.cooldownEndsAt, input.cooldown_ends_at)),
+    type: cleanString(firstValue(hypeTrain.type, input.type)),
+    isSharedTrain: hypeTrain.isSharedTrain === true || hypeTrain.is_shared_train === true || input.isSharedTrain === true || input.is_shared_train === true,
+    topContributions: Array.isArray(hypeTrain.topContributions) ? hypeTrain.topContributions : (Array.isArray(hypeTrain.top_contributions) ? hypeTrain.top_contributions : (Array.isArray(input.top_contributions) ? input.top_contributions : []))
+  };
+}
+
+function rememberHypeTrainRecent(kind, data) {
+  const entry = { at: nowIso(), kind, hypeTrain: cloneJson(data, {}) };
+  state.hypeTrain.recent.unshift(entry);
+  state.hypeTrain.recent = state.hypeTrain.recent.slice(0, 20);
+}
+
+function getHypeTrainMemory(id) {
+  const cleanId = cleanString(id || `hypetrain_${Date.now()}`);
+  if (!state.hypeTrain.byId[cleanId]) {
+    state.hypeTrain.byId[cleanId] = {
+      id: cleanId,
+      startedAt: '',
+      lastProgressAt: '',
+      endedAt: '',
+      baselineAllTimeHighLevel: 0,
+      baselineAllTimeHighTotal: 0,
+      maxLevel: 0,
+      maxTotal: 0,
+      totalRecordBroken: false,
+      levelRecordBroken: false,
+      recordBroken: false,
+      recordTypes: [],
+      soundTriggered: false,
+      diaryWritten: false,
+      lastPayload: null
+    };
+  }
+  return state.hypeTrain.byId[cleanId];
+}
+
+function pruneHypeTrainMemory() {
+  const keys = Object.keys(state.hypeTrain.byId || {});
+  if (keys.length <= 25) return;
+  const sorted = keys.sort((a, b) => String(state.hypeTrain.byId[b].endedAt || state.hypeTrain.byId[b].lastProgressAt || '').localeCompare(String(state.hypeTrain.byId[a].endedAt || state.hypeTrain.byId[a].lastProgressAt || '')));
+  for (const key of sorted.slice(25)) delete state.hypeTrain.byId[key];
+}
+
+function detectHypeTrainRecord(memory, hypeTrain, cfg) {
+  const detection = cfg.recordDetection || {};
+  if (cfg.enabled === false || detection.enabled === false) return { broken: false, types: [] };
+  const once = detection.triggerOnlyOncePerTrain !== false;
+  const types = [];
+  const baselineTotal = numberOrZero(memory.baselineAllTimeHighTotal || hypeTrain.allTimeHighTotal || 0);
+  const baselineLevel = numberOrZero(memory.baselineAllTimeHighLevel || hypeTrain.allTimeHighLevel || 0);
+
+  if (detection.totalRecordEnabled !== false && !memory.totalRecordBroken && baselineTotal > 0 && hypeTrain.total > baselineTotal) {
+    types.push('total');
+  }
+  if (detection.levelRecordEnabled !== false && !memory.levelRecordBroken && baselineLevel > 0 && hypeTrain.level > baselineLevel) {
+    types.push('level');
+  }
+  if (!types.length) return { broken: false, types: [] };
+  if (once && memory.recordBroken) return { broken: false, types: [] };
+  return { broken: true, types };
+}
+
+async function triggerHypeTrainRecordSound(recordPayload, cfg) {
+  const soundCfg = cfg.recordSound || {};
+  if (soundCfg.enabled === false) {
+    state.hypeTrain.counters.soundSkipped += 1;
+    state.hypeTrain.lastSoundResult = { ok: true, skipped: true, reason: 'record_sound_disabled', at: nowIso() };
+    return state.hypeTrain.lastSoundResult;
+  }
+  const mediaId = Number(soundCfg.mediaId || soundCfg.media_id || 0) || 0;
+  if (!mediaId) {
+    state.hypeTrain.counters.soundSkipped += 1;
+    state.hypeTrain.lastSoundResult = { ok: true, skipped: true, reason: 'record_sound_media_missing', at: nowIso() };
+    return state.hypeTrain.lastSoundResult;
+  }
+
+  const request = {
+    mediaId,
+    mediaAssetId: mediaId,
+    label: cleanString(soundCfg.label || 'Hype-Train Rekord'),
+    category: 'hypetrain_record',
+    source: MODULE_NAME,
+    requestedBy: 'twitch_events_hypetrain_record',
+    target: cleanString(soundCfg.target || 'stream'),
+    outputTarget: cleanString(soundCfg.outputTarget || 'overlay'),
+    priority: Number(soundCfg.priority || 1000),
+    volume: Number(soundCfg.volume || 1),
+    queueIfBusy: soundCfg.queueIfBusy !== false,
+    dropIfBusy: soundCfg.dropIfBusy === true,
+    canInterrupt: soundCfg.canInterrupt === true,
+    canBeInterrupted: soundCfg.canBeInterrupted !== false,
+    parallelAllowed: soundCfg.parallelAllowed === true,
+    meta: {
+      module: MODULE_NAME,
+      owner: MODULE_NAME,
+      purpose: 'hypetrain_record_sound',
+      hypeTrainRecord: true,
+      hypeTrain: recordPayload.hypeTrain,
+      recordTypes: recordPayload.recordTypes || []
+    }
+  };
+
+  try {
+    const url = cleanString(cfg.endpoints && cfg.endpoints.soundPlayUrl || 'http://127.0.0.1:8080/api/sound/play');
+    const response = await axios.post(url, request, { timeout: 5000 });
+    const data = response && response.data ? response.data : {};
+    const queued = data.result && data.result.queued === true;
+    const started = data.result && data.result.started === true;
+    if (queued || started) state.hypeTrain.counters.soundQueued += 1;
+    state.hypeTrain.lastSoundResult = { ok: true, at: nowIso(), queued, started, mediaId, result: data.result || {}, item: data.item || null };
+    return state.hypeTrain.lastSoundResult;
+  } catch (err) {
+    state.hypeTrain.counters.soundFailed += 1;
+    state.hypeTrain.lastSoundResult = { ok: false, at: nowIso(), mediaId, error: err && err.message ? err.message : String(err) };
+    state.hypeTrain.lastError = state.hypeTrain.lastSoundResult.error;
+    return state.hypeTrain.lastSoundResult;
+  }
+}
+
+async function writeHypeTrainDiaryEntry(hypeTrain, memory, cfg) {
+  const diaryCfg = cfg.diary || {};
+  if (diaryCfg.enabled === false || diaryCfg.writeOnEnd === false) {
+    state.hypeTrain.counters.diarySkipped += 1;
+    state.hypeTrain.lastDiaryResult = { ok: true, skipped: true, reason: 'diary_disabled', at: nowIso() };
+    return state.hypeTrain.lastDiaryResult;
+  }
+  if (memory.diaryWritten) {
+    state.hypeTrain.counters.diarySkipped += 1;
+    state.hypeTrain.lastDiaryResult = { ok: true, skipped: true, reason: 'already_written_for_train', at: nowIso() };
+    return state.hypeTrain.lastDiaryResult;
+  }
+  const recordTypes = Array.isArray(memory.recordTypes) ? memory.recordTypes : [];
+  const recordText = recordTypes.length
+    ? replaceTextVars((cfg.texts || {}).recordShort || DEFAULT_HYPETRAIN_CONFIG.texts.recordShort, { recordTypes: recordTypes.join(', ') })
+    : 'Kein neuer Rekord.';
+  const message = replaceTextVars((cfg.texts || {}).trainEnded || DEFAULT_HYPETRAIN_CONFIG.texts.trainEnded, {
+    level: hypeTrain.level,
+    total: hypeTrain.total,
+    progress: hypeTrain.progress,
+    goal: hypeTrain.goal,
+    oldLevel: memory.baselineAllTimeHighLevel || hypeTrain.allTimeHighLevel || 0,
+    oldTotal: memory.baselineAllTimeHighTotal || hypeTrain.allTimeHighTotal || 0,
+    recordText
+  });
+  try {
+    const url = cleanString(cfg.endpoints && cfg.endpoints.tagebuchEntryUrl || 'http://127.0.0.1:8080/api/tagebuch/entry');
+    const response = await axios.post(url, {
+      message,
+      system: true,
+      systemUsername: cleanString(diaryCfg.systemUsername || 'CGN-HypeTrain'),
+      authorDisplay: cleanString(diaryCfg.systemUsername || 'CGN-HypeTrain'),
+      authorLogin: 'system'
+    }, { timeout: 5000 });
+    memory.diaryWritten = true;
+    state.hypeTrain.counters.diaryWritten += 1;
+    state.hypeTrain.lastDiaryResult = { ok: true, at: nowIso(), response: response && response.data ? response.data : {} };
+    return state.hypeTrain.lastDiaryResult;
+  } catch (err) {
+    state.hypeTrain.counters.diaryFailed += 1;
+    state.hypeTrain.lastDiaryResult = { ok: false, at: nowIso(), error: err && err.message ? err.message : String(err) };
+    state.hypeTrain.lastError = state.hypeTrain.lastDiaryResult.error;
+    return state.hypeTrain.lastDiaryResult;
+  }
+}
+
+function buildHypeTrainRecordPayload(hypeTrain, memory, recordTypes) {
+  return {
+    source: 'internal',
+    eventSubType: 'internal.hypetrain.record_broken',
+    broadcaster: cloneJson(memory.lastPayload && memory.lastPayload.broadcaster || {}, {}),
+    hypeTrain: cloneJson(hypeTrain, {}),
+    recordTypes: recordTypes.slice(),
+    oldRecord: {
+      level: numberOrZero(memory.baselineAllTimeHighLevel || hypeTrain.allTimeHighLevel || 0),
+      total: numberOrZero(memory.baselineAllTimeHighTotal || hypeTrain.allTimeHighTotal || 0)
+    },
+    newRecord: {
+      level: numberOrZero(hypeTrain.level || 0),
+      total: numberOrZero(hypeTrain.total || 0)
+    },
+    brokenAt: nowIso()
+  };
+}
+
+function processHypeTrainEvent(eventKey, payload = {}) {
+  if (!String(eventKey || '').startsWith('twitch.hypetrain.')) return { ok: true, skipped: true, reason: 'not_hypetrain' };
+  const cfg = getHypeTrainConfig();
+  const hypeTrain = normalizeHypeTrain(payload.hypeTrain || payload);
+  const memory = getHypeTrainMemory(hypeTrain.id);
+  memory.lastPayload = cloneJson(payload, {});
+  memory.maxLevel = Math.max(numberOrZero(memory.maxLevel), hypeTrain.level);
+  memory.maxTotal = Math.max(numberOrZero(memory.maxTotal), hypeTrain.total);
+
+  if (eventKey === 'twitch.hypetrain.started') {
+    state.hypeTrain.counters.started += 1;
+    memory.startedAt = hypeTrain.startedAt || nowIso();
+    memory.baselineAllTimeHighLevel = hypeTrain.allTimeHighLevel || memory.baselineAllTimeHighLevel || 0;
+    memory.baselineAllTimeHighTotal = hypeTrain.allTimeHighTotal || memory.baselineAllTimeHighTotal || 0;
+    state.hypeTrain.current = cloneJson(hypeTrain, {});
+    rememberHypeTrainRecent('started', hypeTrain);
+    pruneHypeTrainMemory();
+    return { ok: true, action: 'started', hypeTrainId: hypeTrain.id };
+  }
+
+  if (!memory.baselineAllTimeHighLevel && hypeTrain.allTimeHighLevel) memory.baselineAllTimeHighLevel = hypeTrain.allTimeHighLevel;
+  if (!memory.baselineAllTimeHighTotal && hypeTrain.allTimeHighTotal) memory.baselineAllTimeHighTotal = hypeTrain.allTimeHighTotal;
+
+  if (eventKey === 'twitch.hypetrain.progress') {
+    state.hypeTrain.counters.progress += 1;
+    memory.lastProgressAt = nowIso();
+    state.hypeTrain.current = cloneJson(hypeTrain, {});
+    rememberHypeTrainRecent('progress', hypeTrain);
+    const detected = detectHypeTrainRecord(memory, hypeTrain, cfg);
+    if (detected.broken) {
+      if (detected.types.includes('total')) {
+        memory.totalRecordBroken = true;
+        state.hypeTrain.counters.totalRecordBroken += 1;
+      }
+      if (detected.types.includes('level')) {
+        memory.levelRecordBroken = true;
+        state.hypeTrain.counters.levelRecordBroken += 1;
+      }
+      memory.recordBroken = true;
+      memory.recordTypes = Array.from(new Set([...(memory.recordTypes || []), ...detected.types]));
+      state.hypeTrain.counters.recordBroken += 1;
+      state.hypeTrain.lastRecordBrokenAt = nowIso();
+      const recordPayload = buildHypeTrainRecordPayload(hypeTrain, memory, detected.types);
+      state.hypeTrain.recordBrokenEvents.unshift({ at: recordPayload.brokenAt, recordTypes: detected.types, hypeTrain: cloneJson(hypeTrain, {}) });
+      state.hypeTrain.recordBrokenEvents = state.hypeTrain.recordBrokenEvents.slice(0, 20);
+      publishTwitchEvent('twitch.hypetrain.record_broken', recordPayload, { source: 'twitch_events', originModule: MODULE_NAME }, { priority: 'P1', target: DEFAULT_TARGET });
+      if (!memory.soundTriggered) {
+        memory.soundTriggered = true;
+        triggerHypeTrainRecordSound(recordPayload, cfg).catch(err => {
+          state.hypeTrain.counters.soundFailed += 1;
+          state.hypeTrain.lastError = err && err.message ? err.message : String(err);
+        });
+      }
+      return { ok: true, action: 'record_broken', hypeTrainId: hypeTrain.id, recordTypes: detected.types };
+    }
+    return { ok: true, action: 'progress', hypeTrainId: hypeTrain.id };
+  }
+
+  if (eventKey === 'twitch.hypetrain.ended') {
+    state.hypeTrain.counters.ended += 1;
+    state.hypeTrain.lastEndedAt = nowIso();
+    memory.endedAt = hypeTrain.endedAt || nowIso();
+    state.hypeTrain.current = null;
+    rememberHypeTrainRecent('ended', hypeTrain);
+    writeHypeTrainDiaryEntry(hypeTrain, memory, cfg).catch(err => {
+      state.hypeTrain.counters.diaryFailed += 1;
+      state.hypeTrain.lastError = err && err.message ? err.message : String(err);
+    });
+    pruneHypeTrainMemory();
+    return { ok: true, action: 'ended', hypeTrainId: hypeTrain.id };
+  }
+
+  return { ok: true, skipped: true, reason: 'unsupported_hypetrain_action', eventKey };
+}
+
+function getHypeTrainRuntimeStatus() {
+  return {
+    ok: !state.hypeTrain.lastError,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    configPath: runtimeConfigPath || resolveHypeTrainConfigPath(),
+    config: publicHypeTrainConfig(),
+    current: cloneJson(state.hypeTrain.current, null),
+    recent: cloneJson(state.hypeTrain.recent, []),
+    recordBrokenEvents: cloneJson(state.hypeTrain.recordBrokenEvents, []),
+    counters: cloneJson(state.hypeTrain.counters, {}),
+    lastRecordBrokenAt: state.hypeTrain.lastRecordBrokenAt,
+    lastEndedAt: state.hypeTrain.lastEndedAt,
+    lastSoundResult: cloneJson(state.hypeTrain.lastSoundResult, null),
+    lastDiaryResult: cloneJson(state.hypeTrain.lastDiaryResult, null),
+    lastError: state.hypeTrain.lastError,
+    updatedAt: nowIso()
+  };
+}
+
+function buildSyntheticHypeTrainEvent(type, body = {}) {
+  const now = nowIso();
+  const id = cleanString(firstValue(body.id, body.hypeTrainId, `test_hypetrain_${Date.now()}`));
+  const level = Number(firstValue(body.level, type === 'channel.hype_train.begin' ? 1 : 6)) || 1;
+  const total = Number(firstValue(body.total, type === 'channel.hype_train.begin' ? 100 : 1500)) || 0;
+  const allTimeHighLevel = Number(firstValue(body.allTimeHighLevel, body.all_time_high_level, 5)) || 0;
+  const allTimeHighTotal = Number(firstValue(body.allTimeHighTotal, body.all_time_high_total, 1000)) || 0;
+  return {
+    metadata: { message_id: `synthetic_${Date.now()}`, message_timestamp: now, message_type: 'notification' },
+    subscription: { id: `synthetic_${type}`, type, version: '1', condition: {} },
+    event: {
+      id,
+      broadcaster_user_id: cleanString(body.broadcasterUserId || 'synthetic_broadcaster'),
+      broadcaster_user_login: cleanString(body.broadcasterLogin || 'forrestcgn'),
+      broadcaster_user_name: cleanString(body.broadcasterName || 'ForrestCGN'),
+      level,
+      total,
+      progress: Number(firstValue(body.progress, total)) || 0,
+      goal: Number(firstValue(body.goal, 2000)) || 0,
+      all_time_high_level: allTimeHighLevel,
+      all_time_high_total: allTimeHighTotal,
+      started_at: cleanString(body.startedAt || now),
+      expires_at: cleanString(body.expiresAt || new Date(Date.now() + 300000).toISOString()),
+      ended_at: type === 'channel.hype_train.end' ? cleanString(body.endedAt || now) : undefined,
+      cooldown_ends_at: type === 'channel.hype_train.end' ? cleanString(body.cooldownEndsAt || new Date(Date.now() + 3600000).toISOString()) : undefined,
+      top_contributions: Array.isArray(body.topContributions) ? body.topContributions : []
+    }
+  };
+}
+
+function runHypeTrainSyntheticTest(body = {}, query = {}) {
+  const merged = { ...(query && isPlainObjectLocal(query) ? query : {}), ...(body && isPlainObjectLocal(body) ? body : {}) };
+  const confirm = cleanString(firstValue(merged.confirm, merged.confirmed, ''));
+  if (confirm !== '1' && confirm.toLowerCase() !== 'true') {
+    return { ok: false, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, error: 'confirm_required', hint: 'POST /api/twitch/events/hypetrain/test?confirm=1' };
+  }
+  const trainId = cleanString(firstValue(merged.id, merged.hypeTrainId, `test_hypetrain_${Date.now()}`));
+  const begin = handleEventSubNotification({ payload: buildSyntheticHypeTrainEvent('channel.hype_train.begin', { ...merged, id: trainId, level: Number(merged.oldLevel || merged.allTimeHighLevel || 5), total: Number(merged.oldTotal || merged.allTimeHighTotal || 1000) }) }, { source: 'synthetic_hypetrain_test' }, { target: DEFAULT_TARGET });
+  const progress = handleEventSubNotification({ payload: buildSyntheticHypeTrainEvent('channel.hype_train.progress', { ...merged, id: trainId }) }, { source: 'synthetic_hypetrain_test' }, { target: DEFAULT_TARGET });
+  const end = handleEventSubNotification({ payload: buildSyntheticHypeTrainEvent('channel.hype_train.end', { ...merged, id: trainId }) }, { source: 'synthetic_hypetrain_test' }, { target: DEFAULT_TARGET });
+  return { ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, test: { begin, progress, end }, hypetrain: getHypeTrainRuntimeStatus() };
+}
 
 
 function boolEnv(name, fallback = false) {
@@ -2213,6 +2738,7 @@ function getStatusPayload(trigger = 'status') {
     eventSubOwnership: safeJson(EVENTSUB_OWNERSHIP, {}),
     eventSubChatReadiness: safeJson(EVENTSUB_CHAT_READINESS, {}),
     eventSubChat: getEventSubChatStatus(),
+    hypeTrain: getHypeTrainRuntimeStatus(),
     streamState: getStreamState(),
     bus: {
       registered: state.registeredOnBus,
@@ -2271,6 +2797,7 @@ function getStatus() {
       eventSubOwnership: safeJson(EVENTSUB_OWNERSHIP, {}),
       eventSubChatReadiness: safeJson(EVENTSUB_CHAT_READINESS, {}),
       eventSubChat: getEventSubChatStatus(),
+      hypeTrain: getHypeTrainRuntimeStatus(),
       streamState: getStreamState(),
       runtime: {
         loadedAt: state.loadedAt,
@@ -2305,8 +2832,8 @@ function getStatus() {
     migration: {
       mode: 'eventsub-ownership-prep',
       rule: 'twitch_events wird als zukuenftiger EventSub-Besitzer vorbereitet. twitch.js bleibt aktuell produktiver EventSub-Besitzer. Alte Direktlogik wird erst entfernt, wenn ein Modul erfolgreich abonniert, getestet und dokumentiert ist.',
-      currentStep: 'BUS-TWITCH.6',
-      nextStep: 'BUS-TWITCH.7 – Commands als Subscriber vorbereiten, Direkt-Hook bleibt bis Test aktiv'
+      currentStep: 'STEP_HT1_HYPETRAIN_RECORD_SOUND_DASHBOARD',
+      nextStep: 'Hype-Train im echten Stream testen: begin/progress/end, Rekord-Sound, Tagebuch-Eintrag.'
     },
     updatedAt: nowIso()
   };
@@ -2736,10 +3263,15 @@ function normalizeEventSubPayload(eventKey, type, event = {}, subscription = {},
         total: Number(event.total || 0),
         progress: Number(event.progress || 0),
         goal: Number(event.goal || 0),
+        allTimeHighLevel: Number(firstValue(event.all_time_high_level, event.allTimeHighLevel, 0)) || 0,
+        allTimeHighTotal: Number(firstValue(event.all_time_high_total, event.allTimeHighTotal, 0)) || 0,
         startedAt: cleanString(firstValue(event.started_at, event.startedAt)),
         expiresAt: cleanString(firstValue(event.expires_at, event.expiresAt)),
         endedAt: cleanString(firstValue(event.ended_at, event.endedAt)),
-        cooldownEndsAt: cleanString(firstValue(event.cooldown_ends_at, event.cooldownEndsAt))
+        cooldownEndsAt: cleanString(firstValue(event.cooldown_ends_at, event.cooldownEndsAt)),
+        type: cleanString(firstValue(event.type, event.hype_train_type, event.hypeTrainType)),
+        isSharedTrain: event.is_shared_train === true || event.isSharedTrain === true,
+        topContributions: Array.isArray(event.top_contributions) ? safeJson(event.top_contributions, []) : (Array.isArray(event.topContributions) ? safeJson(event.topContributions, []) : [])
       }
     };
   }
@@ -2783,6 +3315,17 @@ function handleEventSubNotification(notification = {}, context = {}, options = {
       eventKey,
       eventSubMessageId: cleanString(envelope.metadata.message_id || envelope.metadata.messageId || '')
     }, { ...context, source: context.source || 'twitch' }, { ...options, target: DEFAULT_TARGET });
+
+    if (eventKey.startsWith('twitch.hypetrain.')) {
+      try {
+        const hypeTrainResult = processHypeTrainEvent(eventKey, payload);
+        result.hypeTrain = hypeTrainResult;
+      } catch (err) {
+        state.hypeTrain.counters.errors = Number(state.hypeTrain.counters.errors || 0) + 1;
+        state.hypeTrain.lastError = err && err.message ? err.message : String(err);
+        result.hypeTrain = { ok: false, error: state.hypeTrain.lastError };
+      }
+    }
   }
 
   return result;

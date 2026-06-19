@@ -1,56 +1,107 @@
-# CHANGELOG – Event-System EVS52.27
+# CHANGELOG – stream-control-center
 
-Stand: 2026-06-19
+## 2026-06-17 – EventSound Runtime Overlay / Counter / Result Cards
 
-## STEP_EVS52_27_WINNER_TOP3_TWITCH_AVATARS_NO_AUTOREPLAY
+### Added
 
-Geändert:
+- Antwortzeit-Counter für EventSound-Antwortfenster.
+- Counter oben rechts, deckender Hintergrund, nur während `answerWindow.active`.
+- Keine-Lösung-Kachel nach Timeout.
+- Long-Winner-Demo-URL:
+  - `/overlays/stream_events/event_runtime_overlay.html?demo=result-long&v=test`
+- Testscript für Timeout/Keine-Lösung:
+  - `tools/test_event_runtime_unresolved_card.ps1`
 
-```text
-backend/modules/stream_events.js
-htdocs/overlays/stream_events/event_winner_overlay.html
-```
+### Changed
 
-### Backend
-
-- `stream_events.js` von `0.5.92` auf `0.5.93` erhöht.
-- `moduleBuild` gesetzt auf `STEP_EVS52_27_WINNER_TOP3_TWITCH_AVATARS_NO_AUTOREPLAY`.
-- Top-3-Gewinner werden vor dem Finale per Twitch/Userinfo forced remote aufgelöst.
-- Lokaler DisplayName ohne Avatar stoppt die Avatar-Auflösung nicht mehr.
-- Avatar-Felder `userAvatarUrl` und `user_avatar_url` werden zusätzlich normalisiert/erkannt.
-- Vorhandene lokale Avatare bleiben Fallback, falls Twitch/Userinfo keinen Avatar liefert oder fehlschlägt.
-
-### Winner-Overlay
-
-- `event_winner_overlay.html` von `0.5.41 / EVS52.20` auf `0.5.42 / EVS52.27` erhöht.
-- Avatar-Key-Liste erweitert um `userAvatarUrl` und `user_avatar_url`.
-- Auto-Replay ist standardmäßig AUS.
-- Auto-Replay läuft nur noch explizit mit `?autoReplay=1` oder `?auto_replay=1`.
-- Generisches `action === "started"` triggert das Winner-Overlay nicht mehr.
-
-## Behobene/Adressierte Probleme
-
-- RoxxyFoxxyCGN hatte im Gewinner-Finale keinen Avatar, obwohl definitiv ein Twitch-Avatar vorhanden ist.
-- Ursache/Adressierung: Top-3-Finale darf nicht von unvollständigen lokalen Daten abhängig sein; Twitch/Userinfo wird für die Top 3 erzwungen.
-- Auswertungs-Overlay wurde teilweise eingeblendet, wenn das Glücksrad angesprochen wurde.
-- Ursache/Adressierung: Winner-Overlay war durch Auto-Replay und breite Bus-Trigger zu aggressiv.
-
-## Nicht geändert
+- Runtime-Overlay bis zuletzt auf Overlay-Stand `0.3.7` erweitert.
+- Gewinner-Card robuster gemacht:
+  - Username eigene Zeile.
+  - Punkte/Erkennung eigene Zeile.
+  - Schnipsel-Titel eigene zweizeilige Box.
+  - lange Titel werden per Layout begrenzt statt hart auf 36 Zeichen gekürzt.
+- Keine-Lösung-Kachel optisch/inhaltlich angepasst:
 
 ```text
-Keine DB
-Kein Dashboard
-Kein Sound-System
-Kein Glücksrad-Code
-Keine Ranking-/Punkte-Logik
-Keine Reveal-Video-Queue
-Keine Random-Rotation
-Keine Funktionalität entfernt
+KEINE LÖSUNG
+Die Heimleitung hat im Chat
+keine richtige Antwort erkannt.
+Der Schnipsel bleibt im Archiv.
 ```
 
-## Vorheriger bestätigter STEP
+- Reveal-Video-Playback läuft weiter über Sound-System, aber ohne Runtime-PreRoll-Kreis.
+- `JETZT RATEN` während Soundlauf entfernt, da Antworten erst nach Sound-Ende gültig sind.
+- Auto-Schedule korrigiert: `intervalMinutes ± intervalJitterMinutes`, `roundDelaySeconds` nur Floor.
 
-EVS52.26:
+### Fixed
 
-- Finale-Preview crasht nicht mehr bei frisch beendetem Event ohne vorhandenes `winnerFinale`.
-- API liefert `ok:true` und `dashboardCanStartFinale:true` für `evs_event_mqkyu4hp_27b0cb030fad`.
+- Falscher Overlay-ZIP-Pfad aus früherem Step als bekannter Fehler festgehalten. Korrekt:
+
+```text
+htdocs/overlays/stream_events/event_runtime_overlay.html
+```
+
+- `AUFLOESUNG / AUFLOESUNG LAEUFT` beim Reveal entfernt.
+- `LOS / JETZT RATEN` beim Reveal entfernt.
+- Counter-Position von links nach rechts verschoben.
+- Counter-Hintergrund ohne Transparenz gesetzt.
+
+### Confirmed
+
+- 30s-Test mit Lösung: Counter läuft, Antwort wird nach Delay gesendet, Result wird erkannt.
+- Normale Gewinner-Card sieht brauchbar aus.
+- Keine-Lösung-Kachel ist gewünscht und bleibt.
+- Long-Winner-Layout wird künftig bevorzugt über Demo-URL geprüft, nicht über unzuverlässige Custom-Testevent-Route.
+
+### Known Issues / Follow-up
+
+- Reveal-Video-Sichtbarkeit hängt an `sound_system_overlay.html`/OBS-Quelle, nicht am Runtime-Overlay.
+- Overlay-Texte sind teilweise noch hart gesetzt und sollen später in DB/Textvarianten.
+- Auto-Rotation nach Reveal/Timeout über mehrere echte Runden prüfen.
+
+---
+
+# Ältere Einträge
+
+Die vorherigen Einträge bleiben in älteren Archiv-/Step-Dateien erhalten. Dieser Stand konsolidiert den aktuellen EventSound-Runtime-Block.
+
+## 2026-06-19 – STEP_HT1_HYPETRAIN_RECORD_SOUND_DASHBOARD
+
+### Added
+
+- Hype-Train EventSub-Weiterleitung von `twitch.js` nach `twitch_events` für:
+  - `channel.hype_train.begin`
+  - `channel.hype_train.progress`
+  - `channel.hype_train.end`
+- Interne Rekord-Erkennung in `twitch_events`:
+  - `twitch.hypetrain.record_broken`
+  - Gesamt-Rekord über `all_time_high_total`
+  - Level-Rekord über `all_time_high_level`
+  - nur ein Rekord-Sound pro Hype-Train.
+- Hype-Train-Konfiguration:
+  - `config/twitch_events.json`
+  - Sound über `mediaId`
+  - Priorität standardmäßig `1000`
+  - Queue statt Interrupt als Standard.
+- Dashboard-Erweiterung im Modul `Twitch Events`:
+  - Tab `Hype-Train Rekord`
+  - Media-Picker/Upload für Rekord-Sound
+  - Runtime-Status
+  - synthetischer Hype-Train-Test.
+- Media-System-Kategorie:
+  - `twitch_events / hypetrain-record`
+- Tagebuch-Eintrag bei Hype-Train-Ende über bestehende `/api/tagebuch/entry` Route.
+
+### Changed
+
+- `twitch_events` Build auf `STEP_HT1_HYPETRAIN_RECORD_SOUND_DASHBOARD` erhöht.
+- `twitch` Build auf `STEP_HT1_HYPETRAIN_FORWARD_TO_TWITCH_EVENTS` erhöht.
+- Dashboard-Titel von `Twitch Event Simulator` auf `Twitch Events` geändert.
+
+### Not changed
+
+- Keine DB ersetzt.
+- Kein Streamer.bot eingebunden.
+- Kein Sound-System umgebaut.
+- Keine bestehende Hype-Train-Cooldown-Cache-Logik entfernt.
+- Keine Alert-Bridge verändert.

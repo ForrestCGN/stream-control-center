@@ -21,8 +21,8 @@ const config = require('./helpers/helper_config');
 const mediaHelper = require('./helpers/helper_media');
 
 const MODULE_NAME = 'media';
-const MODULE_VERSION = '0.1.1';
-const MODULE_BUILD = 'diagnostics-standard';
+const MODULE_VERSION = '0.1.2';
+const MODULE_BUILD = 'STEP_HT1_HYPETRAIN_MEDIA_CATEGORY';
 const SCHEMA_VERSION = 2;
 const API_PREFIX = '/api/media';
 const MEDIA_STEP = 'STEP524';
@@ -94,7 +94,8 @@ const DEFAULT_MEDIA_CATEGORIES = [
   { moduleKey: 'vip', categoryKey: 'general', label: 'VIP / Allgemein', allowedTypes: ['audio', 'video', 'image', 'animation'], isSystem: true },
   { moduleKey: 'rewards', categoryKey: 'general', label: 'Rewards / Allgemein', allowedTypes: ['audio', 'video', 'image', 'animation'], isSystem: true },
   { moduleKey: 'tts', categoryKey: 'general', label: 'TTS / Allgemein', allowedTypes: ['audio'], isSystem: true },
-  { moduleKey: 'system', categoryKey: 'general', label: 'System / Allgemein', allowedTypes: ['audio', 'video', 'image', 'animation'], isSystem: true }
+  { moduleKey: 'system', categoryKey: 'general', label: 'System / Allgemein', allowedTypes: ['audio', 'video', 'image', 'animation'], isSystem: true },
+  { moduleKey: 'twitch_events', categoryKey: 'hypetrain-record', label: 'Twitch Events / Hype-Train Rekord-Sound', allowedTypes: ['audio'], isSystem: true }
 ];
 
 const state = {

@@ -11,8 +11,8 @@ const database = require('../core/database');
 const communicationBus = require('./communication_bus');
 
 const MODULE_NAME = 'twitch';
-const MODULE_VERSION = '0.1.10';
-const MODULE_BUILD = 'LC_CORE_POINTS_3E_SKIP_DISABLED_LEGACY_LOYALTY_DIRECT_CALL';
+const MODULE_VERSION = '0.1.11';
+const MODULE_BUILD = 'STEP_HT1_HYPETRAIN_FORWARD_TO_TWITCH_EVENTS';
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
@@ -217,6 +217,37 @@ module.exports.init = function init(ctx) {
     maxSeenMessages: 1000
   };
 
+  const HYPETRAIN_EVENTSUB_TYPES_FOR_TWITCH_EVENTS = new Set([
+    'channel.hype_train.begin',
+    'channel.hype_train.progress',
+    'channel.hype_train.end'
+  ]);
+
+  const hypeTrainTwitchEventsParallelState = {
+    enabled: env.TWITCH_EVENTSUB_TWITCH_EVENTS_HYPETRAIN_PARALLEL !== 'false',
+    mode: 'parallel-tap-reliable',
+    source: 'twitch.js EventSub notification handler',
+    targetModule: 'twitch_events',
+    eventSubTypes: Array.from(HYPETRAIN_EVENTSUB_TYPES_FOR_TWITCH_EVENTS),
+    busEvents: [
+      'twitch.hypetrain.started',
+      'twitch.hypetrain.progress',
+      'twitch.hypetrain.ended',
+      'twitch.hypetrain.record_broken'
+    ],
+    forwarded: 0,
+    skipped: 0,
+    failed: 0,
+    byType: {},
+    lastForwardedAt: '',
+    lastSkippedAt: '',
+    lastResultReason: '',
+    lastBusEventId: '',
+    lastEventSubType: '',
+    lastHypeTrainId: '',
+    lastError: ''
+  };
+
 
   const legacyLoyaltyDirectForwardState = {
     enabled: env.TWITCH_EVENTSUB_LOYALTY_DIRECT_FORWARD === 'true',
@@ -275,6 +306,76 @@ module.exports.init = function init(ctx) {
     };
   }
 
+
+  function getHypeTrainTwitchEventsParallelStatus() {
+    return { ...hypeTrainTwitchEventsParallelState };
+  }
+
+  function isHypeTrainEventSubTypeForTwitchEvents(subscriptionType) {
+    return HYPETRAIN_EVENTSUB_TYPES_FOR_TWITCH_EVENTS.has(String(subscriptionType || '').trim());
+  }
+
+  function forwardHypeTrainEventSubToTwitchEvents(subscriptionType, event = {}, meta = {}, subscription = {}, source = 'notification') {
+    const type = String(subscriptionType || '').trim();
+    if (!isHypeTrainEventSubTypeForTwitchEvents(type)) return { ok: true, skipped: true, reason: 'not_hypetrain_eventsub' };
+    if (hypeTrainTwitchEventsParallelState.enabled !== true) {
+      hypeTrainTwitchEventsParallelState.skipped += 1;
+      hypeTrainTwitchEventsParallelState.lastSkippedAt = core.nowIso();
+      hypeTrainTwitchEventsParallelState.lastResultReason = 'disabled';
+      hypeTrainTwitchEventsParallelState.lastEventSubType = type;
+      return { ok: true, skipped: true, reason: 'disabled' };
+    }
+
+    const target = getTwitchEventsModule();
+    if (!target || typeof target.handleEventSubNotification !== 'function') {
+      hypeTrainTwitchEventsParallelState.failed += 1;
+      hypeTrainTwitchEventsParallelState.lastError = 'twitch_events_handleEventSubNotification_unavailable';
+      hypeTrainTwitchEventsParallelState.lastResultReason = 'target_unavailable';
+      hypeTrainTwitchEventsParallelState.lastEventSubType = type;
+      rememberEventSubState({ action: 'hypetrain_twitch_events_parallel_failed', type, reason: hypeTrainTwitchEventsParallelState.lastError, source });
+      return { ok: false, reason: hypeTrainTwitchEventsParallelState.lastError };
+    }
+
+    try {
+      const result = target.handleEventSubNotification({
+        payload: {
+          metadata: meta || {},
+          subscription: subscription || {},
+          event: event || {}
+        }
+      }, {
+        source: `twitch_eventsub_hypetrain_parallel_${source || 'unknown'}`,
+        originModule: MODULE_NAME,
+        migrationStep: 'STEP_HT1_HYPETRAIN_FORWARD_TO_TWITCH_EVENTS'
+      });
+
+      hypeTrainTwitchEventsParallelState.byType[type] = Number(hypeTrainTwitchEventsParallelState.byType[type] || 0) + 1;
+      hypeTrainTwitchEventsParallelState.lastEventSubType = type;
+      hypeTrainTwitchEventsParallelState.lastHypeTrainId = String(event && event.id || '').trim();
+
+      if (result && result.ok === true) {
+        hypeTrainTwitchEventsParallelState.forwarded += 1;
+        hypeTrainTwitchEventsParallelState.lastForwardedAt = core.nowIso();
+        hypeTrainTwitchEventsParallelState.lastResultReason = 'ok';
+        hypeTrainTwitchEventsParallelState.lastBusEventId = result.busEventId || result.eventId || result.id || '';
+        hypeTrainTwitchEventsParallelState.lastError = '';
+        rememberEventSubState({ action: 'hypetrain_twitch_events_parallel_forwarded', type, eventId: hypeTrainTwitchEventsParallelState.lastBusEventId || null, hypeTrainId: hypeTrainTwitchEventsParallelState.lastHypeTrainId, source });
+      } else {
+        hypeTrainTwitchEventsParallelState.skipped += 1;
+        hypeTrainTwitchEventsParallelState.lastSkippedAt = core.nowIso();
+        hypeTrainTwitchEventsParallelState.lastResultReason = result && result.reason ? result.reason : 'not_forwarded';
+        rememberEventSubState({ action: 'hypetrain_twitch_events_parallel_skipped', type, reason: hypeTrainTwitchEventsParallelState.lastResultReason, source });
+      }
+      return result || { ok: false, reason: 'no_result' };
+    } catch (err) {
+      hypeTrainTwitchEventsParallelState.failed += 1;
+      hypeTrainTwitchEventsParallelState.lastError = err && err.message ? err.message : String(err);
+      hypeTrainTwitchEventsParallelState.lastResultReason = 'failed';
+      hypeTrainTwitchEventsParallelState.lastEventSubType = type;
+      rememberEventSubState({ action: 'hypetrain_twitch_events_parallel_failed', type, error: hypeTrainTwitchEventsParallelState.lastError, source });
+      return { ok: false, reason: 'failed', error: hypeTrainTwitchEventsParallelState.lastError };
+    }
+  }
 
   function getLegacyLoyaltyDirectForwardStatus() {
     const cfg = twitchAlertBridgeState.config || DEFAULT_TWITCH_ALERT_CONFIG;
@@ -2717,7 +2818,8 @@ module.exports.init = function init(ctx) {
       state: { ...eventSubState, recent: eventSubState.recent.slice(0, 30) },
       twitchEventsParallel: {
         channelpoints: getChannelpointsTwitchEventsParallelStatus(),
-        supportEvents: getSupportEventsTwitchEventsParallelStatus()
+        supportEvents: getSupportEventsTwitchEventsParallelStatus(),
+        hypeTrain: getHypeTrainTwitchEventsParallelStatus()
       },
       legacyLoyaltyDirectForward: getLegacyLoyaltyDirectForwardStatus(),
       shoutoutReadiness: buildShoutoutEventSubReadinessSnapshot(),
@@ -3763,6 +3865,16 @@ function buildFakeTwitchAlertEvent(kind, query) {
         } catch (e) {
           rememberEventSubState({ action: 'support_twitch_events_parallel_handler_failed', type: sub.type || '', error: e?.message || String(e) });
           console.warn('[eventsub-support-twitch-events] handler failed:', e?.message || e);
+        }
+
+        try {
+          const hypeTrainParallelResult = forwardHypeTrainEventSubToTwitchEvents(sub.type, event, meta, sub, 'notification');
+          if (hypeTrainParallelResult && hypeTrainParallelResult.ok === false) {
+            console.warn('[eventsub-hypetrain-twitch-events] forward skipped/failed:', hypeTrainParallelResult.reason || hypeTrainParallelResult.error || 'unknown');
+          }
+        } catch (e) {
+          rememberEventSubState({ action: 'hypetrain_twitch_events_parallel_handler_failed', type: sub.type || '', error: e?.message || String(e) });
+          console.warn('[eventsub-hypetrain-twitch-events] handler failed:', e?.message || e);
         }
 
         try {

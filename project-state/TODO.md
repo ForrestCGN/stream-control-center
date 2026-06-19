@@ -1,45 +1,77 @@
-# TODO – Event-System EVS52.27
+# TODO – stream-control-center
 
-Stand: 2026-06-19
+Stand: 2026-06-17 16:20
 
-## Heute / streamkritisch testen
+## Erledigt / bestätigt – EventSound Runtime
 
-- [ ] ZIP `STEP_EVS52_27_WINNER_TOP3_TWITCH_AVATARS_NO_AUTOREPLAY.zip` einspielen.
-- [ ] `stepdone.cmd` ausführen.
-- [ ] Statusroute prüfen: `stream_events` muss `0.5.93 / STEP_EVS52_27_WINNER_TOP3_TWITCH_AVATARS_NO_AUTOREPLAY` zeigen.
-- [ ] Winner-Overlay direkt ohne Parameter öffnen und prüfen, dass es leer bleibt.
-- [ ] Glücksrad starten/anzeigen und prüfen, dass das Auswertungs-Overlay nicht teilweise eingeblendet wird.
-- [ ] Finale/Auswertung starten oder erneut abspielen.
-- [ ] Prüfen, ob Top-3-Avatare angezeigt werden.
-- [ ] Speziell RoxxyFoxxyCGN in Top 3 testen, weil dort der Avatar fehlte.
-- [ ] Finale manuell beenden.
-- [ ] Replay/`Auswertung erneut abspielen` prüfen.
+- [x] Sound-Schnipsel wird über Sound-System abgespielt.
+- [x] Sound-System bleibt Playback-/Queue-Owner.
+- [x] Eventsystem startet Sound/Reveal nicht am Sound-System vorbei.
+- [x] 3-Sekunden-Countdown/PreRoll vor Sound.
+- [x] Während Countdown/Sound keine gültigen Antworten.
+- [x] Antwortfenster startet erst nach Sound-Ende.
+- [x] Kleiner Antwort-Counter während Antwortfenster.
+- [x] Counter oben rechts.
+- [x] Counter-Hintergrund ohne Transparenz.
+- [x] `JETZT RATEN` während Soundlauf entfernt.
+- [x] Richtige Antwort wird erkannt.
+- [x] Punkte werden vergeben.
+- [x] Gewinner-Card Mitte rechts.
+- [x] Gewinner-Card für längere Namen/Titel robuster gemacht.
+- [x] Long-Winner-Demo-URL ergänzt.
+- [x] Reveal wird nach Gewinner-Card geplant.
+- [x] Reveal-PreRoll-Kreis `AUFLOESUNG/LOS/JETZT RATEN` entfernt.
+- [x] Timeout-/Keine-Lösung-Kachel oben mittig ergänzt.
+- [x] Keine-Lösung-Text zentriert und im Heimleitungsstil formuliert.
+- [x] Auto-Schedule-Logik korrigiert: Intervall ± Jitter statt roundDelaySeconds als Hauptintervall.
 
-## Wenn RoxxyFoxxyCGN weiter keinen Avatar zeigt
+## Offen / prüfen
 
-- [ ] Finale-Start/API-Antwort prüfen: Enthält der Top-3-Datensatz `avatarUrl` oder `userAvatarUrl`?
-- [ ] Backend-Route/Userinfo-Test für Roxxy prüfen, falls vorhanden.
-- [ ] Twitch/Login-Schreibweise prüfen: `RoxxyFoxxyCGN` vs. ähnliche Schreibweisen.
-- [ ] Erst danach weitere Backend-Analyse, keine DB-Änderung ohne Freigabe.
+- [ ] Live-/OBS-Test: Gewinner-Card + Reveal komplett im echten Setup prüfen.
+- [ ] Falls Reveal unsichtbar: `sound_system_overlay.html` und OBS-Browserquelle prüfen.
+- [ ] Timeout-Test ohne Antwort nach aktuellem Overlay nochmal sauber laufen lassen.
+- [ ] Counter-Takt im Live-Bild weiter beobachten; nur nach echtem Problem weiter polieren.
+- [ ] Gewinner-Card-Layout so lassen, solange Demo/Live optisch passt.
+- [ ] EventSound Dashboard-/Config-Integration fortführen.
+- [ ] Overlay-Texte später ins zentrale Textvarianten-System bringen.
+- [ ] Auto-Rotation nach gelöst/timeout über mehrere Runden prüfen.
+- [ ] Statistiken für Sound-Snippets später dashboardfähig ergänzen.
 
-## Wenn Auswertung beim Glücksrad weiter einblendet
+## Relevante Testtools / Scripts
 
-- [ ] OBS prüfen: Ist `event_winner_overlay.html` in einer gemeinsamen Overlay-Szene aktiv, die mit dem Glücksrad eingeblendet wird?
-- [ ] Browserquelle ohne Parameter öffnen: bleibt sie leer?
-- [ ] Prüfen, ob URL versehentlich `?autoReplay=1` enthält.
-- [ ] Bus-/Overlay-Logs prüfen, ob ein fremdes Event noch Winner-Overlay-Render auslöst.
+```text
+tools/test_event_runtime_unresolved_card.ps1
+Downloads/EVENT_RUNTIME_DIAG_DELAYED_ANSWER_30S.ps1
+Downloads/EVENT_RUNTIME_TEST_LONG_WINNER_CARD_2.ps1  # nur noch bedingt nutzen; Demo-URL ist zuverlässiger
+```
 
-## Danach / nächste technische Prüfung
+## Dauerhafte Regeln
 
-- [ ] Reveal-Video/Sound-Queue-Safety prüfen.
-- [ ] Prüfen, ob Video-Items `durationMs`, `mediaType`, `eventUid`, `roundUid`, `requestId` sauber tragen.
-- [ ] Prüfen, ob Sound-System nach Video-Ende zuverlässig freigibt.
-- [ ] Random-Rotation und `minRepeatDistance` testen.
-- [ ] ungelöste Schnipsel-Requeue prüfen.
+- [ ] Vor Codeänderung echte Dateien prüfen.
+- [ ] Ziel/Dateien/Änderung/Nicht geändert/Tests nennen.
+- [ ] Auf Forrests `go` warten.
+- [ ] Keine Funktionalität entfernen ohne Freigabe.
+- [ ] Keine Apply-/Patch-/Regex-Scripte.
+- [ ] ZIPs mit echten Repo-Pfaden ab Root.
+- [ ] DB niemals überschreiben/löschen/neu bauen.
+- [ ] StepDone erst nach Entpacken + Deploy/Live-Aktualisierung, danach testen.
 
-## Nach dem Stream / nicht sofort anfassen
+---
 
-- [ ] `finaleActivity.active:true` bei `finaleStarted:false` fachlich bereinigen.
-- [ ] Bot-/Ignore-Liste dashboardfähig machen.
-- [ ] Satz-/Teiltreffer-Textvarianten dashboardfähig machen.
-- [ ] Finale-/Winner-Overlay-Diagnose optional im Dashboard sichtbar machen.
+## Hype-Train Rekord-System
+
+- [x] Hype-Train EventSub begin/progress/end nach twitch_events weiterleiten.
+- [x] Payload um allTimeHighLevel/allTimeHighTotal erweitern.
+- [x] Internes Event `twitch.hypetrain.record_broken` ergänzen.
+- [x] Rekord-Sound pro Hype-Train nur einmal triggern.
+- [x] Sound über bestehendes Sound-System per mediaId einreihen.
+- [x] Standard-Priorität für Rekord-Sound auf 1000 setzen.
+- [x] Dashboard-Tab für Hype-Train-Rekord ergänzen.
+- [x] Media-Picker/Upload im Dashboard anbinden.
+- [x] Media-System-Kategorie `twitch_events/hypetrain-record` ergänzen.
+- [x] Tagebuch-Eintrag bei Hype-Train-Ende vorbereiten.
+- [ ] Nach Deploy Dashboard-Upload testen.
+- [ ] Synthetischen Hype-Train-Test mit gesetzter mediaId ausführen.
+- [ ] Im echten Stream prüfen, ob Twitch begin/progress/end vollständig ankommen.
+- [ ] Prüfen, ob Tagebuch bei offline/requireActiveStream korrekt reagiert.
+- [ ] Texte später in zentrale Textvarianten/DB übertragen, falls gewünscht.
