@@ -2,7 +2,7 @@ window.StreamEventsModule = (function(){
   'use strict';
 
   const MODULE_VERSION = "0.5.67";
-  const MODULE_BUILD = "STEP_SHOT_ALARM_2J2_RANDOM_SOUNDS_DEVICE_DISCORD_QUEUE";
+  const MODULE_BUILD = "STEP_SHOT_ALARM_2K1_FRESH_STREAM_SESSION";
 
   const api = {
     status: '/api/stream-events/status',
@@ -29,6 +29,7 @@ window.StreamEventsModule = (function(){
     shotAlarmResolvePending: '/api/shot-alarm/resolve-pending',
     shotAlarmStart: '/api/shot-alarm/start',
     shotAlarmStop: '/api/shot-alarm/stop',
+    shotAlarmNewSession: '/api/shot-alarm/new-session',
     shotAlarmStreams: '/api/shot-alarm/streams',
     shotAlarmHistory: '/api/shot-alarm/history',
     shotAlarmAudit: '/api/shot-alarm/dashboard-audit',
@@ -415,10 +416,11 @@ window.StreamEventsModule = (function(){
         <div>
           <strong>${dashboardRunning ? (effectiveActive ? 'Shot-Alarm läuft' : 'Shot-Alarm ist aktiviert') : 'Shot-Alarm ist gestoppt'}</strong>
           <span>${dashboardRunning ? (streamLive ? `Aktueller Stream: ${esc(streamLabel)}` : 'Stream ist aktuell nicht online. Aktivierung ist vorgemerkt, produktives OBS-Overlay bleibt bis Online aus.') : 'Shot-System ist deaktiviert. Es werden keine neuen Shots gezählt.'}</span>
-          <small>Gewünscht: ${desiredActive ? 'aktiv' : 'inaktiv'} · Effektiv: ${effectiveActive ? 'aktiv' : 'inaktiv'} · Stream: ${streamLive ? 'online' : 'offline'}</small>
+          <small>Gewünscht: ${desiredActive ? 'aktiv' : 'inaktiv'} · Effektiv: ${effectiveActive ? 'aktiv' : 'inaktiv'} · Stream: ${streamLive ? 'online' : 'offline'} · Session: ${esc(vm.runtime?.currentStreamSessionId || '-')}</small>
         </div>
         <div class="evs-action-row">
           ${dashboardRunning ? `<button type="button" class="evs-btn evs-btn-danger" data-evs-action="shotAlarmStop">Stop / Deaktivieren</button>` : `<button type="button" class="evs-btn" data-evs-action="shotAlarmStart">Start / Aktivieren</button>`}
+          <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="shotAlarmNewSession">Neue Shot-Session starten</button>
         </div>
       </div>
     `;
@@ -4984,6 +4986,15 @@ window.StreamEventsModule = (function(){
         await window.CGN.api(endpoint, { method: 'POST', body: JSON.stringify(dashboardActorPayload()) });
         await loadShotAlarmData(false);
         state.message = action === 'shotAlarmStart' ? 'Shot-Alarm wurde aktiviert.' : 'Shot-Alarm wurde deaktiviert.';
+        render();
+        return;
+      }
+      if (action === 'shotAlarmNewSession') {
+        if (!confirm('Neue Shot-Session starten? Offene Test-Shots werden für die neue Session zurückgesetzt. History und Logs bleiben erhalten.')) return;
+        const result = await window.CGN.api(api.shotAlarmNewSession, { method: 'POST', body: JSON.stringify({ confirmWrite: true, ...dashboardActorPayload() }) });
+        await loadShotAlarmData(false);
+        const newId = result?.newStreamSessionId || result?.status?.runtime?.currentStreamSessionId || 'neue Session';
+        state.message = `Neue Shot-Session gestartet: ${newId}`;
         render();
         return;
       }

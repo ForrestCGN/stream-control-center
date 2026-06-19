@@ -22,8 +22,8 @@ let chatOutputHelper = null;
 try { chatOutputHelper = require("./helpers/helper_chat_output"); } catch (_) { chatOutputHelper = null; }
 
 const MODULE_NAME = "shot_alarm";
-const MODULE_VERSION = "0.2.11";
-const MODULE_BUILD = "STEP_SHOT_ALARM_2J5_TEST_RESOLVE_OVERLAY_SOUND_FIX";
+const MODULE_VERSION = "0.2.12";
+const MODULE_BUILD = "STEP_SHOT_ALARM_2K1_FRESH_STREAM_SESSION";
 const CONFIG_FILE = "shot_alarm.json";
 const HISTORY_LIMIT = 200;
 const TEXT_MODULE = "shot_alarm";
@@ -262,7 +262,12 @@ const state = {
     stoppedAt: "",
     lastChangedAt: "",
     lastReason: "init",
-    restoredAt: ""
+    restoredAt: "",
+    manualStreamSessionId: "",
+    manualStreamBaseId: "",
+    manualStreamDayId: "",
+    manualStreamDateLabel: "",
+    manualStreamCreatedAt: ""
   },
   drawsPending: new Map(),
   counts: {
@@ -329,7 +334,8 @@ const CONFIRM_WRITE_ACTIONS = [
   "manual-trigger",
   "resolve-pending",
   "flush-pending",
-  "reset-state"
+  "reset-state",
+  "new-session"
 ];
 
 function clone(value) {
@@ -828,6 +834,9 @@ function buildStats(options = {}) {
     currentStreamSessionId: state.runtime.currentStreamSessionId,
     currentStreamDayId: state.runtime.currentStreamDayId,
     streamDateLabel: state.runtime.streamDateLabel,
+    manualStreamSessionId: state.runtime.manualStreamSessionId || "",
+    manualStreamBaseId: state.runtime.manualStreamBaseId || "",
+    manualStreamCreatedAt: state.runtime.manualStreamCreatedAt || "",
     shotsOpen: state.shotsOpen,
     shotsDrunk: state.shotsDrunk,
     shotsAddedTotal: state.shotsAddedTotal,
@@ -975,6 +984,11 @@ function saveRuntimeState(reason = "runtime_save") {
       stoppedAt: cleanString(state.runtime.stoppedAt || ""),
       lastChangedAt: cleanString(state.runtime.lastChangedAt || ""),
       lastReason: cleanString(reason || state.runtime.lastReason || ""),
+      manualStreamSessionId: cleanString(state.runtime.manualStreamSessionId || ""),
+      manualStreamBaseId: cleanString(state.runtime.manualStreamBaseId || ""),
+      manualStreamDayId: cleanString(state.runtime.manualStreamDayId || ""),
+      manualStreamDateLabel: cleanString(state.runtime.manualStreamDateLabel || ""),
+      manualStreamCreatedAt: cleanString(state.runtime.manualStreamCreatedAt || ""),
       counters: runtimeCounterSnapshot()
     };
     settingsHelper.setSetting(SETTINGS_TABLE, SETTINGS_KEY_RUNTIME, payload, { valueType: "json", description: "Shot-Alarm Runtime-State je StreamSession inklusive gewünschtem Aktiv-Zustand." });
@@ -1030,8 +1044,84 @@ function clearRuntimeCounters(reason = "runtime_reset") {
   state.runtime.lastChangedAt = nowIso();
 }
 
+
+function safeSessionToken(value) {
+  return cleanString(value || "manual")
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 120) || "manual";
+}
+
+function applyManualStreamSessionOverride(ctx = {}) {
+  const overrideId = cleanString(state.runtime.manualStreamSessionId || "");
+  if (!overrideId || ctx.live !== true) return ctx;
+  const baseId = cleanString(state.runtime.manualStreamBaseId || "");
+  const realSessionId = cleanString(ctx.streamSessionId || "");
+  if (baseId && realSessionId && realSessionId !== baseId && realSessionId !== overrideId) {
+    state.runtime.manualStreamSessionId = "";
+    state.runtime.manualStreamBaseId = "";
+    state.runtime.manualStreamDayId = "";
+    state.runtime.manualStreamDateLabel = "";
+    state.runtime.manualStreamCreatedAt = "";
+    state.runtime.lastChangedAt = nowIso();
+    state.runtime.lastReason = "manual_stream_session_override_cleared_new_real_stream";
+    return ctx;
+  }
+  return {
+    ...ctx,
+    streamSessionId: overrideId,
+    streamDayId: cleanString(state.runtime.manualStreamDayId || `stream_${overrideId}`),
+    streamDateLabel: cleanString(state.runtime.manualStreamDateLabel || ctx.streamDateLabel || new Date().toISOString().slice(0, 10)),
+    source: `${cleanString(ctx.source || "stream_context")}:manual_override`,
+    manualOverrideActive: true,
+    manualOverrideBaseId: baseId,
+    manualOverrideCreatedAt: cleanString(state.runtime.manualStreamCreatedAt || "")
+  };
+}
+
+function startFreshStreamSession(actor = {}, reason = "dashboard_new_session") {
+  const rawCtx = getStreamContext();
+  const createdAt = nowIso();
+  const token = createdAt.replace(/[-:.]/g, "").toLowerCase();
+  const baseId = cleanString(rawCtx.streamSessionId || state.runtime.currentStreamSessionId || `manual_${token}`);
+  const newSessionId = `${safeSessionToken(baseId)}_manual_${token}`;
+  const newDayId = `stream_${newSessionId}`;
+  const streamDateLabel = cleanString(rawCtx.streamDateLabel || new Date().toISOString().slice(0, 10));
+  const oldSessionId = cleanString(state.runtime.currentStreamSessionId || "");
+
+  clearRuntimeCounters("manual_stream_session_reset");
+  state.runtime.manualStreamSessionId = newSessionId;
+  state.runtime.manualStreamBaseId = baseId;
+  state.runtime.manualStreamDayId = newDayId;
+  state.runtime.manualStreamDateLabel = streamDateLabel;
+  state.runtime.manualStreamCreatedAt = createdAt;
+  state.runtime.currentStreamSessionId = newSessionId;
+  state.runtime.currentStreamDayId = newDayId;
+  state.runtime.streamDateLabel = streamDateLabel;
+  state.runtime.streamStatus = cleanString(rawCtx.status || (rawCtx.live ? "online" : "offline"));
+  state.runtime.streamLive = rawCtx.live === true;
+  state.runtime.lastChangedAt = createdAt;
+  state.runtime.lastReason = reason;
+  state.runtime.effectiveActive = config.enabled !== false && config.overlayEnabled !== false && state.runtime.desiredActive === true && rawCtx.live === true;
+  state.runtime.visible = state.runtime.effectiveActive === true;
+  saveRuntimeState(reason);
+  emitBus("runtime.stream_changed", {
+    oldStreamSessionId: oldSessionId,
+    newStreamSessionId: newSessionId,
+    streamDayId: newDayId,
+    streamDateLabel,
+    manual: true,
+    baseStreamSessionId: baseId,
+    at: createdAt,
+    actor
+  }, { replayable: true, ttlMs: 60000 });
+  const overlay = sendOverlayState(reason);
+  return { ok: true, oldStreamSessionId: oldSessionId, newStreamSessionId: newSessionId, streamDayId: newDayId, streamDateLabel, baseStreamSessionId: baseId, runtime: { ...state.runtime }, overlayState: overlay };
+}
+
 function ensureCurrentStreamRuntime(reason = "runtime_check", options = {}) {
-  const ctx = getStreamContext();
+  const ctx = applyManualStreamSessionOverride(getStreamContext());
   const oldSessionId = cleanString(state.runtime.currentStreamSessionId || "");
   const newSessionId = cleanString(ctx.streamSessionId || "");
   const streamChanged = ctx.live === true && newSessionId && oldSessionId && oldSessionId !== newSessionId;
@@ -1075,6 +1165,9 @@ function buildOverlayStatePayload(reason = "state") {
     streamSessionId: state.runtime.currentStreamSessionId,
     streamDayId: state.runtime.currentStreamDayId,
     streamDateLabel: state.runtime.streamDateLabel,
+    manualStreamSessionId: state.runtime.manualStreamSessionId || "",
+    manualStreamBaseId: state.runtime.manualStreamBaseId || "",
+    manualStreamCreatedAt: state.runtime.manualStreamCreatedAt || "",
     shotsOpen: state.shotsOpen,
     shotsDrunk: state.shotsDrunk,
     shotsAddedTotal: state.shotsAddedTotal,
@@ -1233,7 +1326,12 @@ function publicStatus() {
       activeSince: state.runtime.activeSince,
       stoppedAt: state.runtime.stoppedAt,
       lastChangedAt: state.runtime.lastChangedAt,
-      lastReason: state.runtime.lastReason
+      lastReason: state.runtime.lastReason,
+      manualStreamSessionId: state.runtime.manualStreamSessionId || "",
+      manualStreamBaseId: state.runtime.manualStreamBaseId || "",
+      manualStreamDayId: state.runtime.manualStreamDayId || "",
+      manualStreamDateLabel: state.runtime.manualStreamDateLabel || "",
+      manualStreamCreatedAt: state.runtime.manualStreamCreatedAt || ""
     },
     overlayState: buildOverlayStatePayload("status"),
     startedAt: state.startedAt,
@@ -2046,6 +2144,19 @@ function init(ctx = {}) {
     const payload = setRuntimeActive(false, body.actor || {}, "dashboard_stop");
     logDashboardAction(req, { action: "shot_alarm.stop", result: "ok", message: "Shot-Alarm deactivated", details: { desiredActive: false, effectiveActive: payload.effectiveActive, streamSessionId: payload.streamSessionId } });
     res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, runtime: payload, status: publicStatus() });
+  });
+  post("/api/shot-alarm/new-session", (req, res) => {
+    const confirm = requireConfirmWrite(req, "new-session");
+    if (!confirm.ok) return res.status(confirm.status).json(confirm.payload);
+    try {
+      const body = req.body && typeof req.body === "object" ? req.body : {};
+      const result = startFreshStreamSession(body.actor || body, "dashboard_new_session");
+      logDashboardAction(req, { action: "shot_alarm.new_session", result: "ok", message: "Fresh Shot-Alarm stream session started", details: { oldStreamSessionId: result.oldStreamSessionId, newStreamSessionId: result.newStreamSessionId, baseStreamSessionId: result.baseStreamSessionId, streamDateLabel: result.streamDateLabel } });
+      res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, ...result, status: publicStatus() });
+    } catch (err) {
+      logDashboardAction(req, { action: "shot_alarm.new_session", result: "failed", level: "error", message: "Fresh Shot-Alarm stream session failed", details: { error: err && err.message ? err.message : String(err) } });
+      res.status(500).json({ ok: false, module: MODULE_NAME, error: err && err.message ? err.message : String(err) });
+    }
   });
   get("/api/shot-alarm/dashboard-audit", (req, res) => {
     const limit = Math.max(0, Math.min(Number(req.query && req.query.limit || 50), 200));
