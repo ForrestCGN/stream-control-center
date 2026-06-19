@@ -290,6 +290,10 @@
     const totalShotsEl = document.getElementById('totalShots');
     let hideTimer = null;
     let ws = null;
+    let heartbeatTimer = null;
+    let lastEventAt = '';
+    const OVERLAY_CLIENT_ID = 'shot_alarm_overlay';
+    const OVERLAY_VERSION = 'STEP_SHOT_ALARM_2K_HEARTBEAT_FIX';
     const params = new URLSearchParams(location.search);
     const debugMode = params.get('test') === '1' || params.get('debug') === '1';
     const forceMode = params.get('force') === '1' || params.get('offline') === '1' || params.get('offlineTest') === '1';
@@ -303,10 +307,72 @@
 
     function escText(value) { return String(value ?? ''); }
     function fmt(n) { return Number(n || 0).toLocaleString('de-DE'); }
+    function nowIso() { return new Date().toISOString(); }
+    function touchEvent() { lastEventAt = nowIso(); }
+
+    function isVisibleNow() {
+      return overlayState.active || eventWrap.classList.contains('show') || !document.getElementById('statusBar').classList.contains('hidden');
+    }
+
+    function buildClientPayload(type) {
+      return {
+        type,
+        clientId: OVERLAY_CLIENT_ID,
+        id: OVERLAY_CLIENT_ID,
+        clientType: 'overlay',
+        module: 'shot_alarm_overlay',
+        name: 'Shot-Alarm Overlay',
+        mode: 'obs_overlay',
+        version: OVERLAY_VERSION,
+        capabilities: [
+          'overlay.client',
+          'overlay.heartbeat',
+          'shot_alarm.overlay.ready',
+          'shot_alarm.overlay.state',
+          'shot_alarm.status_bar.update',
+          'shot_alarm.overlay.show',
+          'ack'
+        ],
+        meta: {
+          role: 'persistent_status_overlay',
+          overlayFile: '/overlays/shot_alarm/shot_alarm_overlay.html',
+          active: overlayState.active === true,
+          visible: isVisibleNow(),
+          desiredActive: overlayState.desiredActive === true,
+          streamLive: overlayState.streamLive === true,
+          forceMode: forceMode === true,
+          debugMode: debugMode === true,
+          lastEventAt,
+          href: location.href,
+          userAgent: navigator.userAgent
+        }
+      };
+    }
+
+    function sendWs(payload) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return false;
+      try { ws.send(JSON.stringify(payload)); return true; } catch (_) { return false; }
+    }
+
+    function sendHeartbeat() {
+      sendWs(buildClientPayload('heartbeat'));
+    }
+
+    function startHeartbeat() {
+      stopHeartbeat();
+      sendHeartbeat();
+      heartbeatTimer = setInterval(sendHeartbeat, 5000);
+    }
+
+    function stopHeartbeat() {
+      if (heartbeatTimer) clearInterval(heartbeatTimer);
+      heartbeatTimer = null;
+    }
 
     function setOverlayActive(payload) {
       const p = payload && payload.overlayState ? payload.overlayState : payload;
       if (!p || typeof p !== 'object') return;
+      touchEvent();
       const enabled = boolValue(p.enabled, true);
       const overlayEnabled = boolValue(p.overlayEnabled, true);
       const desiredActive = boolValue(p.desiredActive, false);
@@ -341,6 +407,7 @@
     }
 
     function showPayload(payload) {
+      touchEvent();
       if (!overlayState.active && !debugMode && !forceMode) return;
       if (!overlayState.active && forceMode) return;
       const summary = payload && payload.summary ? payload.summary : payload;
@@ -365,13 +432,15 @@
       const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
       ws = new WebSocket(`${proto}//${location.host}`);
       ws.addEventListener('open', () => {
-        try { ws.send(JSON.stringify({ type: 'hello', module: 'shot_alarm_overlay', clientId: 'shot_alarm_overlay', clientType: 'overlay' })); } catch (_) {}
+        sendWs(buildClientPayload('hello'));
+        startHeartbeat();
         fetchStatus();
       });
       ws.addEventListener('message', ev => {
         let data = null;
         try { data = JSON.parse(ev.data); } catch (_) { return; }
         if (!data) return;
+        if (data.type !== 'heartbeat_ack') touchEvent();
         if (data.type === 'shot_alarm.overlay.state') setOverlayActive(data);
         if (data.channel === 'shot_alarm' && data.action === 'overlay.state' && data.payload) setOverlayActive(data.payload);
         if (data.type === 'shot_alarm.draw' || data.type === 'shot_alarm.result') showPayload(data);
@@ -379,7 +448,7 @@
         if (data.channel === 'shot_alarm' && data.action === 'overlay.show' && data.payload) showPayload(data.payload);
         if (data.channel === 'shot_alarm' && data.action === 'status_bar.update' && data.payload) applyStatus(data.payload);
       });
-      ws.addEventListener('close', () => setTimeout(connect, 1500));
+      ws.addEventListener('close', () => { stopHeartbeat(); setTimeout(connect, 1500); });
     }
 
     if (debugMode) {
@@ -398,7 +467,7 @@
     mode: "obs_overlay",
     module: "shot_alarm",
     name: "Shot-Alarm Overlay",
-    version: "STEP_SHOT_ALARM_2H1",
+    version: "STEP_SHOT_ALARM_2K_HEARTBEAT_FIX",
     heartbeatIntervalMs: 5000,
     capabilities: [
       "overlay.heartbeat",
@@ -411,7 +480,7 @@
     meta: {
       role: "persistent_status_overlay",
       overlayFile: "/overlays/shot_alarm/shot_alarm_overlay.html",
-      standard: "STEP_SHOT_ALARM_2H1",
+      standard: "STEP_SHOT_ALARM_2K_HEARTBEAT_FIX",
       expectedHost: "OBS Browser Source"
     }
   });
