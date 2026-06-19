@@ -128,10 +128,10 @@
     .winner-text {
       position: absolute;
       left: 560px;
-      top: 848px;
+      top: 825px;
       z-index: 7;
       width: 800px;
-      height: 105px;
+      height: 145px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -139,13 +139,13 @@
       color: rgba(255,255,255,.94);
       font-weight: 900;
       text-transform: uppercase;
-      letter-spacing: .075em;
-      font-size: clamp(24px, 2.15vw, 38px);
-      line-height: 1.04;
+      letter-spacing: .055em;
+      font-size: clamp(22px, 1.85vw, 34px);
+      line-height: .98;
       text-shadow: 0 0 10px rgba(208,60,255,.85), 0 0 18px rgba(24,216,255,.65);
       pointer-events: none;
       overflow: hidden;
-      padding: 0 24px;
+      padding: 0 28px;
       box-sizing: border-box;
     }
 
@@ -155,18 +155,34 @@
     }
 
     .winner-text .main {
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
+      display: block;
       overflow: hidden;
       overflow-wrap: anywhere;
     }
 
+    .winner-text .winner-line {
+      display: block;
+      white-space: nowrap;
+    }
+
+    .winner-text.is-long {
+      font-size: clamp(20px, 1.55vw, 29px);
+      letter-spacing: .04em;
+      line-height: .96;
+    }
+
+    .winner-text.is-very-long {
+      font-size: clamp(18px, 1.35vw, 25px);
+      letter-spacing: .032em;
+      line-height: .94;
+    }
+
     .winner-text .sub {
       display: block;
-      margin-top: 7px;
-      font-size: 16px;
-      letter-spacing: .16em;
+      margin-top: 6px;
+      font-size: 14px;
+      line-height: 1;
+      letter-spacing: .14em;
       color: rgba(255,255,255,.72);
       font-weight: 800;
       white-space: nowrap;
@@ -174,7 +190,13 @@
       text-overflow: ellipsis;
     }
 
+    .winner-text.is-very-long .sub {
+      margin-top: 5px;
+      font-size: 12px;
+    }
+
     .status-panel {
+      display: none;
       position: absolute;
       left: 80px;
       top: 75px;
@@ -256,12 +278,12 @@
 
     <div class="asset pointer"></div>
     <div class="asset winner-banner"></div>
-    <div class="winner-text" id="winnerText"><span class="wrap"><span class="main">Bereit</span></span></div>
+    <div class="winner-text" id="winnerText"><span class="wrap"><span class="main"><span class="winner-line">Bereit</span></span></span></div>
   </div>
 
   <script>
     (() => {
-      const OVERLAY_BUILD = "LWG-WHEEL-TEXT-RADIAL-2";
+      const OVERLAY_BUILD = "LWG-WHEEL-TEXT-RADIAL-3";
       const RESULT_HOLD_MS = 11000;
       const RESET_HIDE_MS = 300;
 
@@ -504,10 +526,24 @@
         segmentsLayer.innerHTML = buildSegmentsSvg(currentFields);
       }
 
+      function buildWinnerLines(label) {
+        const raw = fixTextEncoding(label || "").replace(/\s+/g, " ").trim();
+        if (!raw) return [""];
+        const maxLines = raw.length > 28 || raw.includes(":") ? 3 : 2;
+        const maxChars = raw.length > 34 ? 18 : 22;
+        return splitLabel(raw, maxLines, maxChars);
+      }
+
       function setWinnerText(field, fallbackLabel = "Bereit") {
-        const label = field && field.label ? fixTextEncoding(field.label) : fallbackLabel;
-        const sub = field && field.sub ? `<span class="sub">${esc(fixTextEncoding(field.sub))}</span>` : "";
-        winnerText.innerHTML = `<span class="wrap"><span class="main">${esc(label)}</span>${sub}</span>`;
+        const label = field && field.label ? fixTextEncoding(field.label) : fixTextEncoding(fallbackLabel);
+        const subValue = field && field.sub ? fixTextEncoding(field.sub) : "";
+        const lines = buildWinnerLines(label);
+        winnerText.classList.remove("is-long", "is-very-long");
+        if (lines.length >= 3 || label.length > 34) winnerText.classList.add("is-very-long");
+        else if (lines.length >= 2 || label.length > 22) winnerText.classList.add("is-long");
+        const main = lines.map(line => `<span class="winner-line">${esc(line)}</span>`).join("");
+        const sub = subValue ? `<span class="sub">${esc(subValue)}</span>` : "";
+        winnerText.innerHTML = `<span class="wrap"><span class="main">${main}</span>${sub}</span>`;
       }
 
       function finishSpin(selected, data = {}) {
@@ -533,7 +569,8 @@
         statusSub.textContent = data.user && data.user.displayName
           ? `Spin für ${data.user.displayName}`
           : "Spin läuft";
-        winnerText.innerHTML = `<span class="wrap"><span class="main">Dreht...</span></span>`;
+        winnerText.classList.remove("is-long", "is-very-long");
+        winnerText.innerHTML = `<span class="wrap"><span class="main"><span class="winner-line">Dreht...</span></span></span>`;
 
         const targetNormalized = normalizeDeg(-selectedIndex * step);
         const currentNormalized = normalizeDeg(currentRotation);
@@ -566,7 +603,8 @@
         clearTimeout(finishFallbackTimer);
         running = false;
         statusSub.textContent = "Zurückgesetzt";
-        winnerText.innerHTML = `<span class="wrap"><span class="main">Bereit</span></span>`;
+        winnerText.classList.remove("is-long", "is-very-long");
+        winnerText.innerHTML = `<span class="wrap"><span class="main"><span class="winner-line">Bereit</span></span></span>`;
         rotor.style.transition = "transform 800ms ease";
         rotor.style.transform = `rotate(${currentRotation}deg)`;
         hideOverlay(RESET_HIDE_MS);
