@@ -20,8 +20,8 @@ let chatOutputHelper = null;
 try { chatOutputHelper = require("./helpers/helper_chat_output"); } catch (_) { chatOutputHelper = null; }
 
 const MODULE_NAME = "shot_alarm";
-const MODULE_VERSION = "0.2.6";
-const MODULE_BUILD = "STEP_SHOT_ALARM_2J_OVERLAY_SOUND_MEDIA_SYSTEM_QUEUE";
+const MODULE_VERSION = "0.2.7";
+const MODULE_BUILD = "STEP_SHOT_ALARM_2J1_RANDOM_OVERLAY_SOUNDS_MEDIA_QUEUE";
 const CONFIG_FILE = "shot_alarm.json";
 const HISTORY_LIMIT = 200;
 const TEXT_MODULE = "shot_alarm";
@@ -126,7 +126,9 @@ const DEFAULT_CONFIG = {
       enabled: true,
       mediaId: "",
       mediaLabel: "",
-      label: "Shot-Alarm Overlay-Einblendung"
+      label: "Shot-Alarm Overlay-Einblendung",
+      random: true,
+      sounds: []
     },
     sounds: []
   },
@@ -584,6 +586,37 @@ function applySoundMediaDefaults() {
   if (config.sound.overlayShot.enabled !== false) config.sound.overlayShot.enabled = true;
   if (!Object.prototype.hasOwnProperty.call(config.sound.overlayShot, "mediaId")) { config.sound.overlayShot.mediaId = ""; changed = true; }
   if (!Object.prototype.hasOwnProperty.call(config.sound.overlayShot, "mediaLabel")) { config.sound.overlayShot.mediaLabel = ""; changed = true; }
+  if (!Object.prototype.hasOwnProperty.call(config.sound.overlayShot, "random")) { config.sound.overlayShot.random = true; changed = true; }
+  if (!Array.isArray(config.sound.overlayShot.sounds)) { config.sound.overlayShot.sounds = []; changed = true; }
+  const existingSingleMediaId = cleanString(config.sound.overlayShot.mediaId || config.sound.overlayShot.mediaAssetId || config.sound.overlayShot.assetId || "");
+  if (existingSingleMediaId && !config.sound.overlayShot.sounds.some(item => cleanString(item && (item.mediaId || item.mediaAssetId || item.assetId)) === existingSingleMediaId)) {
+    config.sound.overlayShot.sounds.push({
+      enabled: true,
+      mediaId: existingSingleMediaId,
+      mediaLabel: cleanString(config.sound.overlayShot.mediaLabel || ""),
+      label: cleanString(config.sound.overlayShot.label || DEFAULT_CONFIG.sound.overlayShot.label)
+    });
+    changed = true;
+  }
+  const normalizedSounds = [];
+  const seenSounds = new Set();
+  for (const item of config.sound.overlayShot.sounds) {
+    if (!item || typeof item !== "object") { changed = true; continue; }
+    const mediaId = cleanString(item.mediaId || item.mediaAssetId || item.assetId || "");
+    if (!mediaId || seenSounds.has(mediaId)) { changed = true; continue; }
+    seenSounds.add(mediaId);
+    normalizedSounds.push({
+      enabled: item.enabled !== false,
+      mediaId,
+      mediaLabel: cleanString(item.mediaLabel || item.label || ""),
+      label: cleanString(item.label || item.mediaLabel || DEFAULT_CONFIG.sound.overlayShot.label),
+      volume: Number.isFinite(Number(item.volume)) ? Number(item.volume) : undefined
+    });
+  }
+  if (JSON.stringify(normalizedSounds) !== JSON.stringify(config.sound.overlayShot.sounds)) {
+    config.sound.overlayShot.sounds = normalizedSounds;
+    changed = true;
+  }
   if (!cleanString(config.sound.overlayShot.label)) { config.sound.overlayShot.label = DEFAULT_CONFIG.sound.overlayShot.label; changed = true; }
   if (!cleanString(config.sound.endpoint) || String(config.sound.endpoint).includes("/api/sound/play")) {
     if (config.sound.endpoint !== DEFAULT_CONFIG.sound.endpoint) changed = true;
@@ -1279,12 +1312,32 @@ function subscriptionDedupeKey(payload = {}) {
 
 function pickSound() {
   const overlayShot = config.sound && typeof config.sound.overlayShot === "object" ? config.sound.overlayShot : {};
+  if (config.soundEnabled === false || overlayShot.enabled === false) return null;
+  const soundList = Array.isArray(overlayShot.sounds)
+    ? overlayShot.sounds
+        .filter(item => item && typeof item === "object" && item.enabled !== false)
+        .map(item => ({ ...item, mediaId: cleanString(item.mediaId || item.mediaAssetId || item.assetId || "") }))
+        .filter(item => !!item.mediaId)
+    : [];
+  if (soundList.length > 0) {
+    const selected = soundList[Math.floor(Math.random() * soundList.length)];
+    return clone({
+      ...overlayShot,
+      ...selected,
+      mediaId: selected.mediaId,
+      mediaLabel: selected.mediaLabel || selected.label || "",
+      label: selected.label || selected.mediaLabel || overlayShot.label || "Shot-Alarm Overlay-Einblendung",
+      randomPoolSize: soundList.length
+    });
+  }
   const mediaId = cleanString(overlayShot.mediaId || overlayShot.mediaAssetId || overlayShot.assetId || "");
-  if (config.soundEnabled === false || overlayShot.enabled === false || !mediaId) return null;
+  if (!mediaId) return null;
   return clone({
     ...overlayShot,
     mediaId,
-    label: overlayShot.label || "Shot-Alarm Overlay-Einblendung"
+    mediaLabel: cleanString(overlayShot.mediaLabel || ""),
+    label: overlayShot.label || overlayShot.mediaLabel || "Shot-Alarm Overlay-Einblendung",
+    randomPoolSize: 1
   });
 }
 
@@ -1314,6 +1367,7 @@ async function requestSound(sound, context) {
       shotAlarm: true,
       mediaId,
       mediaLabel: cleanString(sound.mediaLabel || ""),
+      randomPoolSize: Number(sound.randomPoolSize || 0),
       soundRole: "overlay_shot_result",
       soundSystemQueue: true,
       triggerId: context.triggerId || "",

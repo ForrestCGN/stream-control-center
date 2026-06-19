@@ -1494,3 +1494,13 @@
 .stream-events-admin .evs-shot-sound-label-row{max-width:520px}
 .stream-events-admin .evs-shot-sound-label-row input{min-height:40px}
 .stream-events-admin .evs-shot-sound-routing{margin-top:0}
+
+/* SHOT-ALARM-2J.1: Mehrere zufällige Overlay-Sounds über Media-System/Sound-Queue */
+.stream-events-admin .evs-shot-random-list{display:grid;gap:10px;margin:8px 0 14px}
+.stream-events-admin .evs-shot-random-row{display:grid;grid-template-columns:92px minmax(180px,1.2fr) minmax(180px,1fr) 130px auto;gap:10px;align-items:center;border:1px solid rgba(34,211,238,.18);background:rgba(2,6,23,.30);border-radius:15px;padding:10px 12px}
+.stream-events-admin .evs-shot-random-row b{color:#fff;font-size:13px}.stream-events-admin .evs-shot-random-row small{color:#94a3b8;font-size:11px}.stream-events-admin .evs-shot-random-main{display:grid;gap:3px;min-width:0}.stream-events-admin .evs-shot-random-main b,.stream-events-admin .evs-shot-random-main small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stream-events-admin .evs-shot-random-enable{padding:8px 9px;justify-content:center}.stream-events-admin .evs-shot-random-enable input{width:auto;margin:0}
+.stream-events-admin .evs-shot-random-label,.stream-events-admin .evs-shot-random-volume{gap:4px}.stream-events-admin .evs-shot-random-label input,.stream-events-admin .evs-shot-random-volume input{min-height:36px;padding:8px 9px}
+.stream-events-admin .evs-shot-random-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.stream-events-admin .evs-shot-sound-add-box{margin-top:14px;border:1px solid rgba(168,85,247,.18);background:rgba(88,28,135,.09);border-radius:16px;padding:12px;display:grid;gap:10px}
+@media(max-width:1100px){.stream-events-admin .evs-shot-random-row{grid-template-columns:1fr 1fr}.stream-events-admin .evs-shot-random-main{grid-column:1/-1}.stream-events-admin .evs-shot-random-actions{justify-content:flex-start}}
+@media(max-width:640px){.stream-events-admin .evs-shot-random-row{grid-template-columns:1fr}.stream-events-admin .evs-shot-random-actions .evs-btn{width:100%}}

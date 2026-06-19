@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.65";
-  const MODULE_BUILD = "STEP_SHOT_ALARM_2J_OVERLAY_SOUND_MEDIA_SYSTEM_QUEUE";
+  const MODULE_VERSION = "0.5.66";
+  const MODULE_BUILD = "STEP_SHOT_ALARM_2J1_RANDOM_OVERLAY_SOUNDS_MEDIA_QUEUE";
 
   const api = {
     status: '/api/stream-events/status',
@@ -575,63 +575,136 @@ window.StreamEventsModule = (function(){
     `;
   }
 
+  function shotOverlaySoundListFromConfig(){
+    const c = state.shotAlarm?.config || {};
+    const sound = c.sound || c.sounds || {};
+    const overlaySound = sound.overlayShot || sound.overlay || sound.hit || {};
+    const list = Array.isArray(overlaySound.sounds) ? overlaySound.sounds : [];
+    const normalized = list
+      .filter(item => item && typeof item === 'object')
+      .map((item, index) => ({
+        enabled: item.enabled !== false,
+        mediaId: String(item.mediaId || item.mediaAssetId || item.assetId || '').trim(),
+        mediaLabel: String(item.mediaLabel || item.label || '').trim(),
+        label: String(item.label || item.mediaLabel || `Shot-Overlay-Sound ${index + 1}`).trim(),
+        volume: Number(item.volume || 0) || ''
+      }))
+      .filter(item => !!item.mediaId);
+    const singleMediaId = String(overlaySound.mediaId || overlaySound.mediaAssetId || overlaySound.assetId || '').trim();
+    if (singleMediaId && !normalized.some(item => item.mediaId === singleMediaId)) {
+      normalized.push({
+        enabled: overlaySound.enabled !== false,
+        mediaId: singleMediaId,
+        mediaLabel: String(overlaySound.mediaLabel || overlaySound.label || '').trim(),
+        label: String(overlaySound.label || overlaySound.mediaLabel || 'Shot-Alarm Overlay-Einblendung').trim(),
+        volume: ''
+      });
+    }
+    return normalized;
+  }
+
   function renderShotAlarmSoundsSubTab(vm){
     const c = vm.c || {};
     const sound = c.sound || c.sounds || {};
-    const overlaySound = sound.overlayShot || sound.overlay || sound.hit || {};
-    const mediaId = overlaySound.mediaId || overlaySound.mediaAssetId || overlaySound.assetId || '';
-    const label = overlaySound.label || overlaySound.mediaLabel || 'Shot-Alarm Overlay-Einblendung';
-    const inputId = 'shotAlarmOverlaySoundMediaId';
+    const sounds = shotOverlaySoundListFromConfig();
+    const inputId = 'shotAlarmOverlaySoundAddMediaId';
     return `
       <div class="evs-config-card evs-shot-sounds-box">
         <div class="evs-card-head evs-card-head-compact">
           <div>
-            <strong>Shot-Sound</strong>
-            <span>Nur der Sound für die eigentliche Shot-Einblendung im Overlay. Upload/Auswahl über Media-System, Playback über Sound-System-Warteschlange.</span>
+            <strong>Shot-Sounds</strong>
+            <span>Mehrere Sounds für die eigentliche Shot-Einblendung. Beim ausgelosten Shot wird zufällig ein Sound gewählt und über die Sound-System-Warteschlange abgespielt.</span>
           </div>
           <div class="evs-card-actions">
-            <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="shotAlarmTestOverlaySound">Sound testen</button>
-            <button type="button" class="evs-btn" data-evs-action="shotAlarmSaveOverlaySound">Sound speichern</button>
+            <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="shotAlarmTestRandomOverlaySound">Zufall testen</button>
+            <button type="button" class="evs-btn" data-evs-action="shotAlarmSaveOverlaySound">Sounds speichern</button>
           </div>
         </div>
+
         <div class="evs-shot-sound-editor">
-          <div class="evs-shot-sound-slot evs-shot-sound-slot-main">
-            <b>Overlay-Einblendung / ausgeloster Shot</b>
-            <span>${esc(mediaId ? (overlaySound.mediaLabel || `Media-ID ${mediaId}`) : 'Noch nicht verbunden')}</span>
-            <small>Wird abgespielt, wenn das Shot-Overlay eine ausgeloste Shot-Meldung zeigt.</small>
+          <div class="evs-shot-random-list" data-shot-overlay-sound-list>
+            ${sounds.length ? sounds.map((item, index) => `
+              <div class="evs-shot-random-row" data-shot-overlay-sound-row data-index="${index}">
+                <label class="evs-check evs-shot-random-enable">
+                  <input type="checkbox" data-shot-sound-enabled ${item.enabled ? 'checked' : ''}>
+                  Aktiv
+                </label>
+                <div class="evs-shot-random-main">
+                  <b>${esc(item.label || item.mediaLabel || `Sound ${index + 1}`)}</b>
+                  <small>${esc(item.mediaLabel || item.mediaId)}</small>
+                  <input type="hidden" data-shot-sound-media-id value="${esc(item.mediaId)}">
+                  <input type="hidden" data-shot-sound-media-label value="${esc(item.mediaLabel || '')}">
+                </div>
+                <label class="evs-field-block evs-shot-random-label">
+                  <span class="evs-label">Queue-Label</span>
+                  <input type="text" data-shot-sound-label value="${esc(item.label || item.mediaLabel || `Shot-Overlay-Sound ${index + 1}`)}">
+                </label>
+                <label class="evs-field-block evs-shot-random-volume">
+                  <span class="evs-label">Lautstärke optional</span>
+                  <input type="number" min="1" max="100" step="1" data-shot-sound-volume value="${esc(item.volume || '')}" placeholder="global">
+                </label>
+                <div class="evs-shot-random-actions">
+                  <button type="button" class="evs-btn evs-btn-secondary evs-btn-small" data-evs-action="shotAlarmTestOverlaySound" data-index="${index}">Testen</button>
+                  <button type="button" class="evs-btn evs-btn-danger evs-btn-small" data-evs-action="shotAlarmRemoveOverlaySound" data-index="${index}">Entfernen</button>
+                </div>
+              </div>`).join('') : '<div class="evs-empty">Noch keine Sounds in der Zufallsliste. Unten über das Media-System auswählen oder hochladen und dann hinzufügen.</div>'}
           </div>
-          <label class="evs-field-block">
-            <span class="evs-label">Sound aus Media-System</span>
-            <div class="evs-media-field evs-media-field-audio evs-shot-overlay-sound-media" data-media-field data-module-key="shot_alarm" data-category-key="overlay_sounds" data-allowed-types="audio" data-title="Shot-Overlay-Sound auswählen oder hochladen" data-open-label="Sound auswählen" data-clear-label="Entfernen" data-value-input="#${esc(inputId)}">
-              <input id="${esc(inputId)}" type="hidden" data-media-field-value data-shot-overlay-sound-media value="${esc(mediaId)}">
-              <button type="button" data-media-field-open>Sound auswählen</button>
-              <button type="button" data-media-field-clear>Entfernen</button>
-              <div class="media-field-preview" data-media-field-preview></div>
+
+          <div class="evs-shot-sound-add-box">
+            <div class="evs-config-card-head">
+              <strong>Sound hinzufügen</strong>
+              <small>Öffnet das Upload-/Auswahlfenster des Media-Systems. Nach der Auswahl den Sound zur Zufallsliste hinzufügen und speichern.</small>
             </div>
-            <small class="evs-help">Keine harten Dateipfade. Das Media-System speichert die Datei/ID, das Sound-System übernimmt Queue und Wiedergabe.</small>
-          </label>
-          <label class="evs-field-block evs-shot-sound-label-row">
-            <span class="evs-label">Anzeigename / Queue-Label</span>
-            <input type="text" data-shot-overlay-sound-label value="${esc(label)}" placeholder="Shot-Alarm Overlay-Einblendung">
-          </label>
+            <label class="evs-field-block">
+              <span class="evs-label">Sound aus Media-System auswählen oder hochladen</span>
+              <div class="evs-media-field evs-media-field-audio evs-shot-overlay-sound-media" data-media-field data-module-key="shot_alarm" data-category-key="overlay_sounds" data-allowed-types="audio" data-title="Shot-Overlay-Sound auswählen oder hochladen" data-open-label="Sound auswählen/hochladen" data-clear-label="Auswahl leeren" data-value-input="#${esc(inputId)}">
+                <input id="${esc(inputId)}" type="hidden" data-media-field-value data-shot-overlay-sound-add-media value="">
+                <button type="button" data-media-field-open>Sound auswählen/hochladen</button>
+                <button type="button" data-media-field-clear>Auswahl leeren</button>
+                <div class="media-field-preview" data-media-field-preview></div>
+              </div>
+              <small class="evs-help">Keine harten Dateipfade. Media-System speichert die Datei/ID, Sound-System übernimmt Queue und Wiedergabe.</small>
+            </label>
+            <label class="evs-field-block evs-shot-sound-label-row">
+              <span class="evs-label">Name für die Liste / Queue</span>
+              <input type="text" data-shot-overlay-sound-add-label value="" placeholder="z. B. Shot-Alarm Hupe">
+            </label>
+            <div class="evs-action-row">
+              <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="shotAlarmAddOverlaySound">Zur Zufallsliste hinzufügen</button>
+            </div>
+          </div>
+
           <div class="evs-status-grid evs-shot-sound-routing">
+            <div><strong>${esc(sounds.length)}</strong><span>Sounds in Zufallsliste</span></div>
             <div><strong>Sound-System</strong><span>Playback-Owner</span></div>
             <div><strong>Warteschlange</strong><span>queueIfBusy aktiv</span></div>
-            <div><strong>Overlay</strong><span>outputTarget overlay</span></div>
             <div><strong>${esc(sound.endpoint || '/api/sound/play-media')}</strong><span>Media-Bridge</span></div>
           </div>
         </div>
         <div class="evs-tab-help">
-          Produktiv: Shot-Alarm spielt keine Audiodatei direkt ab. Beim ausgelosten Shot sendet das Backend einen Auftrag an <b>/api/sound/play-media</b>; dort wird das Media-Asset aufgelöst und über die normale Sound-System-Warteschlange abgespielt. Dafür muss das Sound-System-Overlay in OBS vorhanden/aktiv sein.
+          Produktiv: Bei einer Shot-Einblendung wählt das Backend zufällig einen aktiven Sound aus dieser Liste und sendet ihn an <b>/api/sound/play-media</b>. Das Sound-System bleibt Owner für Warteschlange, Busy-Handling und Sound-Overlay in OBS.
         </div>
       </div>
     `;
   }
 
-  function readShotOverlaySoundFromDom(){
+  function readShotOverlaySoundsFromDom(){
     const current = JSON.parse(JSON.stringify(state.shotAlarm?.config || {}));
-    const mediaId = String(document.querySelector('[data-shot-overlay-sound-media]')?.value || '').trim();
-    const label = String(document.querySelector('[data-shot-overlay-sound-label]')?.value || 'Shot-Alarm Overlay-Einblendung').trim() || 'Shot-Alarm Overlay-Einblendung';
+    const rows = Array.from(document.querySelectorAll('[data-shot-overlay-sound-row]'));
+    const sounds = rows.map((row, index) => {
+      const mediaId = String(row.querySelector('[data-shot-sound-media-id]')?.value || '').trim();
+      const mediaLabel = String(row.querySelector('[data-shot-sound-media-label]')?.value || '').trim();
+      const label = String(row.querySelector('[data-shot-sound-label]')?.value || mediaLabel || `Shot-Overlay-Sound ${index + 1}`).trim();
+      const volumeRaw = String(row.querySelector('[data-shot-sound-volume]')?.value || '').trim();
+      const volume = volumeRaw ? Math.max(1, Math.min(100, Number(volumeRaw) || 85)) : undefined;
+      return {
+        enabled: row.querySelector('[data-shot-sound-enabled]')?.checked !== false,
+        mediaId,
+        mediaLabel,
+        label,
+        ...(volume ? { volume } : {})
+      };
+    }).filter(item => !!item.mediaId);
     current.sound = current.sound || {};
     current.sound.endpoint = '/api/sound/play-media';
     current.sound.category = current.sound.category || 'alert';
@@ -644,17 +717,59 @@ window.StreamEventsModule = (function(){
     current.sound.volume = Number(current.sound.volume || 85);
     current.sound.overlayShot = current.sound.overlayShot || {};
     current.sound.overlayShot.enabled = true;
-    current.sound.overlayShot.mediaId = mediaId;
-    current.sound.overlayShot.mediaLabel = label;
-    current.sound.overlayShot.label = label;
-    return { config: current, mediaId, label };
+    current.sound.overlayShot.random = true;
+    current.sound.overlayShot.sounds = sounds;
+    current.sound.overlayShot.mediaId = sounds[0]?.mediaId || '';
+    current.sound.overlayShot.mediaLabel = sounds[0]?.mediaLabel || '';
+    current.sound.overlayShot.label = 'Shot-Alarm Overlay-Einblendung';
+    return { config: current, sounds };
+  }
+
+  function addShotOverlaySoundToList(){
+    const mediaId = String(document.querySelector('[data-shot-overlay-sound-add-media]')?.value || '').trim();
+    if (!mediaId) {
+      state.error = 'Bitte zuerst im Media-System einen Sound auswählen oder hochladen.';
+      render();
+      return;
+    }
+    const current = JSON.parse(JSON.stringify(state.shotAlarm?.config || {}));
+    current.sound = current.sound || {};
+    current.sound.overlayShot = current.sound.overlayShot || {};
+    const list = shotOverlaySoundListFromConfig();
+    if (list.some(item => item.mediaId === mediaId)) {
+      state.error = 'Dieser Sound ist bereits in der Zufallsliste.';
+      render();
+      return;
+    }
+    const label = String(document.querySelector('[data-shot-overlay-sound-add-label]')?.value || '').trim() || `Shot-Overlay-Sound ${list.length + 1}`;
+    list.push({ enabled: true, mediaId, mediaLabel: label, label });
+    current.sound.overlayShot.sounds = list;
+    current.sound.overlayShot.random = true;
+    current.sound.overlayShot.enabled = true;
+    state.shotAlarm.config = current;
+    state.message = 'Sound zur Zufallsliste hinzugefügt. Bitte danach speichern.';
+    render();
+  }
+
+  function removeShotOverlaySoundFromList(index){
+    const current = JSON.parse(JSON.stringify(state.shotAlarm?.config || {}));
+    const list = shotOverlaySoundListFromConfig();
+    list.splice(Number(index), 1);
+    current.sound = current.sound || {};
+    current.sound.overlayShot = current.sound.overlayShot || {};
+    current.sound.overlayShot.sounds = list;
+    current.sound.overlayShot.mediaId = list[0]?.mediaId || '';
+    current.sound.overlayShot.mediaLabel = list[0]?.mediaLabel || '';
+    state.shotAlarm.config = current;
+    state.message = 'Sound aus der Zufallsliste entfernt. Bitte danach speichern.';
+    render();
   }
 
   async function saveShotOverlaySound(){
     try {
-      const { config, mediaId } = readShotOverlaySoundFromDom();
-      if (!mediaId) {
-        state.error = 'Bitte zuerst einen Sound aus dem Media-System auswählen.';
+      const { config, sounds } = readShotOverlaySoundsFromDom();
+      if (!sounds.length) {
+        state.error = 'Bitte zuerst mindestens einen Sound über das Media-System hinzufügen.';
         render();
         return;
       }
@@ -662,7 +777,7 @@ window.StreamEventsModule = (function(){
       const result = await window.CGN.api(api.shotAlarmConfig, { method: 'POST', body: JSON.stringify(payload) });
       state.shotAlarm.config = result.config || payload;
       state.shotAlarm.status = result.status || state.shotAlarm.status;
-      state.message = 'Shot-Overlay-Sound gespeichert.';
+      state.message = `${sounds.length} Shot-Overlay-Sound(s) gespeichert.`;
       await loadShotAlarmData(false);
       render();
     } catch (err) {
@@ -671,32 +786,57 @@ window.StreamEventsModule = (function(){
     }
   }
 
-  async function testShotOverlaySound(){
+  async function queueShotOverlaySound(sound, dashboardTestLabel){
+    if (!sound || !sound.mediaId) throw new Error('Kein Sound ausgewählt.');
+    await window.CGN.api(api.soundPlayMedia, {
+      method: 'POST',
+      body: JSON.stringify({
+        mediaId: sound.mediaId,
+        label: dashboardTestLabel || sound.label || sound.mediaLabel || 'Shot-Alarm Overlay-Einblendung',
+        category: 'alert',
+        source: 'shot_alarm_dashboard_test',
+        target: 'stream',
+        outputTarget: 'overlay',
+        queueIfBusy: true,
+        dropIfBusy: false,
+        priority: 80,
+        volume: Number(sound.volume || 85),
+        requestedBy: 'dashboard',
+        meta: { module: 'shot_alarm', shotAlarm: true, dashboardTest: true, soundRole: 'overlay_shot_result', randomPoolSize: shotOverlaySoundListFromConfig().length }
+      })
+    });
+  }
+
+  async function testShotOverlaySound(index = null){
     try {
-      const { mediaId, label } = readShotOverlaySoundFromDom();
-      if (!mediaId) {
-        state.error = 'Bitte zuerst einen Sound aus dem Media-System auswählen.';
+      const { sounds } = readShotOverlaySoundsFromDom();
+      const sound = sounds[Number(index)];
+      if (!sound) {
+        state.error = 'Dieser Sound ist nicht mehr in der Liste.';
         render();
         return;
       }
-      await window.CGN.api(api.soundPlayMedia, {
-        method: 'POST',
-        body: JSON.stringify({
-          mediaId,
-          label,
-          category: 'alert',
-          source: 'shot_alarm_dashboard_test',
-          target: 'stream',
-          outputTarget: 'overlay',
-          queueIfBusy: true,
-          dropIfBusy: false,
-          priority: 80,
-          volume: 85,
-          requestedBy: 'dashboard',
-          meta: { module: 'shot_alarm', shotAlarm: true, dashboardTest: true, soundRole: 'overlay_shot_result' }
-        })
-      });
+      await queueShotOverlaySound(sound, sound.label || 'Shot-Alarm Overlay-Einblendung');
       state.message = 'Shot-Overlay-Sound wurde an die Sound-System-Warteschlange gesendet.';
+      render();
+    } catch (err) {
+      state.error = err.message || String(err);
+      render();
+    }
+  }
+
+  async function testRandomShotOverlaySound(){
+    try {
+      const { sounds } = readShotOverlaySoundsFromDom();
+      const activeSounds = sounds.filter(item => item.enabled !== false && item.mediaId);
+      if (!activeSounds.length) {
+        state.error = 'Bitte zuerst mindestens einen aktiven Sound hinzufügen.';
+        render();
+        return;
+      }
+      const selected = activeSounds[Math.floor(Math.random() * activeSounds.length)];
+      await queueShotOverlaySound(selected, selected.label || selected.mediaLabel || 'Shot-Alarm Overlay-Einblendung');
+      state.message = `Zufalls-Sound gesendet: ${selected.label || selected.mediaLabel || selected.mediaId}`;
       render();
     } catch (err) {
       state.error = err.message || String(err);
@@ -4870,7 +5010,10 @@ window.StreamEventsModule = (function(){
         return;
       }
       if (action === 'shotAlarmSaveOverlaySound') return saveShotOverlaySound();
-      if (action === 'shotAlarmTestOverlaySound') return testShotOverlaySound();
+      if (action === 'shotAlarmAddOverlaySound') return addShotOverlaySoundToList();
+      if (action === 'shotAlarmRemoveOverlaySound') return removeShotOverlaySoundFromList(btn.dataset.index);
+      if (action === 'shotAlarmTestOverlaySound') return testShotOverlaySound(btn.dataset.index);
+      if (action === 'shotAlarmTestRandomOverlaySound') return testRandomShotOverlaySound();
       if (action === 'reload') return loadAll(true);
       if (action === 'reloadTexts') return loadTexts(true);
       if (action === 'reloadShotAlarmData') return loadShotAlarmData(true);
