@@ -7,74 +7,34 @@ Stand: 2026-06-19
 - [x] `LWG_BOUND_WHEEL_FIELD_COUNT_1` live getestet.
 - [x] Giveaway-bound Wheel füllt nicht mehr visuell auf 12 Felder auf.
 - [x] Bound-Wheel-Spin nutzt bei 2+ verfügbaren Gewinnen exakt die verfügbaren Felder.
-- [x] Live-Test: `fieldsCount=7`, `visualFieldsCount=7`, `visualMinVisibleSlots=7`.
-- [x] Gewinn `Valheim` wurde korrekt reduziert; Restbestand danach `6`.
-- [x] Single-Remaining-Regel im Backend vorbereitet: 1 verbleibender Gewinn wird direkt vergeben.
-- [x] 0 verfügbare Gewinne werden backendseitig blockiert.
-- [x] Bug erkannt: `una_solala` wurde im alten Draw gezogen, obwohl User nicht gewinnen darf.
-- [x] `LWG_GIVEAWAY_EXCLUSIONS_1` eingespielt und live bestätigt.
-- [x] Datei `config/loyalty_giveaway_exclusions.json` ins Repo/Live-System übernommen.
-- [x] Draw-Test mit Sperrliste durchgeführt:
-  - gesperrte User bleiben als Entry sichtbar,
-  - gesperrte User sind beim Draw nicht eligible,
-  - Draw-Metadata enthält `exclusionInfo`,
-  - gesperrte User können nicht gewinnen.
-- [x] Wheel-Claim nach Exclusion-Draw getestet.
-- [x] Bound-Wheel-Feldverbrauch nach Claim bestätigt.
+- [x] Gewinn-Sperrliste / Exclusions umgesetzt und bestätigt.
 - [x] `LWG_GIVEAWAY_EXCLUSIONS_1B` eingespielt und live bestätigt.
 - [x] Robuster Exclusion-Loader lädt 10 Einträge: `rawItemsCount=10`, `ignoredInvalidCount=0`, `loaded=True`.
-- [x] `LWG_CHAT_COMMANDS_1` eingespielt und live bestätigt.
-- [x] `!ticket` für normale Giveaway-Entries aktiviert.
-- [x] `!wheel` und Alias `!rad` für Wheel-Claims aktiviert.
-- [x] `!join` und `!raffle` unverändert als Raffle-Commands bestätigt.
-- [x] Zentrale Command-Registry bestätigt:
-  - `ticket.enabled=true`
-  - `wheel.enabled=true`
-  - `targetUrl=/api/loyalty/giveaways/runtime/chat-command`
-- [x] Interaktiver Komplett-Test mit `!ticket` + `!wheel/!rad` erfolgreich:
-  - 4 Entries,
-  - 1 gesperrter sichtbarer Entry,
-  - 3 erlaubte Gewinner,
-  - 3 Chat-Wheel-Claims,
-  - kein weiterer eligible User,
-  - Felder `8 -> 5`,
-  - alle erwarteten Gewinner `wheel_completed`.
+- [x] `LWG_CHAT_COMMANDS_1` umgesetzt und live bestätigt.
+- [x] `!ticket` ist für normale Giveaways aktiv.
+- [x] `!wheel` und Alias `!rad` sind für Gewinner-Wheel-Claims aktiv.
+- [x] `!join` und `!raffle` bleiben Raffle-Commands.
+- [x] Interaktiver Komplett-Test mit `!ticket`, Sperrliste, 3 Gewinnern und Wheel-Claims fachlich bestanden.
+- [x] Testscript 1.3 für finalen Summary-Fix erstellt.
+- [x] `LWG_CHAT_OUTPUT_1` gebaut: Chat-Ausgabe für `ticket.*` und `wheel.*` über vorhandene Helper/Textvarianten.
 
-## Aktueller bestätigter Stand
+## Aktueller Stand
 
 ```text
-loyalty_giveaways: 0.1.16 / LWG_CHAT_COMMANDS_1
+loyalty_giveaways: 0.1.17 / LWG_CHAT_OUTPUT_1
 loyalty_games:     0.2.8  / LWG_BOUND_WHEEL_FIELD_COUNT_1
 ```
 
-## Bestätigter kompletter Testlauf
+## Noch zu testen
 
-```text
-Giveaway: giveaway_1781869724371_2cdf71cc66cc312a
-Blocked:  una_solala
-Entries:  una_solala + RoxxyFoxxyCGN + EngelCGN + ForrestCGN
-Draw 1:   RoxxyFoxxyCGN → Wheel-Claim erkannt
-Draw 2:   EngelCGN      → Wheel-Claim erkannt
-Draw 3:   ForrestCGN    → Wheel-Claim erkannt
-Final:    keine eligible User mehr
-Fields:   8 -> 5
-```
+- [ ] `LWG_CHAT_OUTPUT_1` live testen:
+  - [ ] `!ticket` erstellt Entry.
+  - [ ] `!ticket` sendet eine Chat-Bestätigung aus vorhandenen `ticket.*` Textvarianten.
+  - [ ] `!wheel`/`!rad` löst Wheel-Claim aus.
+  - [ ] `!wheel`/`!rad` sendet eine Chat-Bestätigung aus vorhandenen `wheel.*` Textvarianten.
+- [ ] Testscript 1.3 mit frischem Test-Giveaway bis zum sauberen `PASS/SUCCESS`-Abschluss laufen lassen.
 
-## Gewinn-Sperrliste / Exclusions
-
-Dateibasierter Sofort-Fix:
-
-```text
-config/loyalty_giveaway_exclusions.json
-```
-
-Regel:
-
-```text
-User dürfen teilnehmen/sichtbar bleiben, können aber nicht gewinnen.
-```
-
-Offen für später:
+## Gewinn-Sperrliste / Exclusions – später
 
 - [ ] Dashboard-Editor für gesperrte User bauen.
 - [ ] DB-basierte Verwaltung statt reiner JSON-Datei.
@@ -83,29 +43,14 @@ Offen für später:
 - [ ] Anzeige im Draw-/Log-Tab: `rawEntries`, `excludedEntries`, `eligibleEntries`.
 - [ ] Optional pro Giveaway eigene zusätzliche Sperrliste.
 
-## Später wieder anfassen – Dashboard-Config Wheel
+## Wheel-Config – später
 
-Die Runtime-Wheel-Regel ist heute bewusst fest eingebaut, damit der Stream funktioniert.
-
-Später muss das als streamerfreundliche Dashboard-Konfiguration umgesetzt werden:
-
-- [ ] Verhalten bei 1 verbleibendem Gewinn konfigurierbar machen:
-  - Direktvergabe,
-  - separates Letzter-Gewinn-Overlay,
-  - optional normaler Spin trotz 1 Feld.
+- [ ] Verhalten bei 1 verbleibendem Gewinn konfigurierbar machen.
 - [ ] Verhalten bei 0 verfügbaren Gewinnen im Dashboard sichtbar machen.
-- [ ] Exakte Feldanzahl vs. Mindestfeldanzahl getrennt konfigurieren:
-  - Giveaway-bound Wheels: Standard exakt verfügbare Felder.
-  - Standalone-/Preset-Wheels: `minVisibleSlots` weiter möglich.
-- [ ] Späteres Letzter-Gewinn-Overlay planen, aber nicht heute erzwingen.
+- [ ] Exakte Feldanzahl vs. Mindestfeldanzahl getrennt konfigurieren.
+- [ ] Späteres Letzter-Gewinn-Overlay planen.
 
 ## Weitere offene Punkte
 
-- [ ] Testscript 1.3 mit frischem Test-Giveaway einmal nur auf sauberen `SUCCESS`-Abschluss prüfen.
 - [ ] Test-Giveaways nach Abschluss löschen oder eindeutig als Test markieren.
-- [ ] Giveaway-/Wheel-Dashboard-UX für Live-Draw später streamerfreundlich bauen:
-  - Button „Gewinner ziehen“,
-  - Anzeige Gewinner + Bitte `!rad`,
-  - Status „wartet auf Rad-Dreh“,
-  - Button „Nächsten Gewinner ziehen“ erst nach abgeschlossenem Wheel-Claim.
 - [ ] Gamble-Alias-Bug separat prüfen: `aliases` zeigt `[object`, `object]`.

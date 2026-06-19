@@ -4,112 +4,120 @@ Stand: 2026-06-19
 
 ## Aktueller bestätigter Bereich
 
-Step `LWG_CHAT_COMMANDS_1` wurde live eingespielt und bestätigt.
+Aktueller Arbeitsstand nach dem Chat-Command-/Chat-Output-Umbau:
+
+```text
+loyalty_giveaways: 0.1.17 / LWG_CHAT_OUTPUT_1
+loyalty_games:     0.2.8  / LWG_BOUND_WHEEL_FIELD_COUNT_1
+```
+
+## Zuletzt umgesetzt
+
+### LWG_CHAT_COMMANDS_1 – bestätigt
+
+`!ticket`, `!wheel` und `!rad` wurden für die normale Giveaway-/Wheel-Runtime aktiviert.
 
 Bestätigt:
 
 ```text
-loyalty_giveaways: 0.1.16 / LWG_CHAT_COMMANDS_1
-loyalty_games:     0.2.8  / LWG_BOUND_WHEEL_FIELD_COUNT_1
+!ticket      → normales Giveaway / Entry-Erstellung
+!wheel       → Gewinner mit offener Wheel-Permission löst Rad-Claim aus
+!rad         → Alias von !wheel
+!join        → bleibt Raffle-Command
+!raffle      → bleibt Raffle-Command
 ```
 
-Zusätzlich bleibt der vorherige Exclusion-Stand fachlich bestätigt:
+Die zentralen Commands zeigen:
 
 ```text
-LWG_GIVEAWAY_EXCLUSIONS_1B
+available=true
+active=true
+commandsActive=true
+ticket.enabled=true
+wheel.enabled=true
+wheel.aliases=[rad]
+targetUrl=/api/loyalty/giveaways/runtime/chat-command
 ```
 
-## Aktivierte Chat-Commands
-
-`!ticket`, `!wheel` und `!rad` sind jetzt für die normale Giveaway-/Wheel-Runtime aktiv.
-
-Bestätigte Command-Zuordnung:
-
-```text
-!ticket       → normales Giveaway, erstellt Entry im aktuell offenen Giveaway
-!wheel / !rad → Gewinner mit offener Wheel-Permission dreht das gebundene Giveaway-Rad
-!join         → bleibt Raffle-Command
-!raffle       → bleibt Raffle-Command
-```
-
-Live bestätigt über:
-
-```text
-GET /api/loyalty/giveaways/commands
-GET /api/loyalty/giveaways/central-commands
-```
-
-Erwarteter/ bestätigter Stand:
-
-```text
-commands.active = true
-centralCommands.available = true
-centralCommands.active = true
-centralCommands.commandsActive = true
-
-ticket.enabled = true
-wheel.enabled = true
-wheel.aliases = [rad]
-join.enabled = true
-raffle.enabled = true
-```
-
-`ticket` und `wheel` wurden über `LWG_CHAT_COMMANDS_1` aktiviert. `join` und `raffle` bleiben unverändert Raffle-Commands.
-
-## Bestätigter interaktiver Komplett-Test
+### Interaktiver Komplett-Test – fachlich bestanden
 
 Test-Giveaway:
 
 ```text
-Giveaway: giveaway_1781869724371_2cdf71cc66cc312a
-Titel:    Test
-Mode:     wheel_single
+giveaway_1781869724371_2cdf71cc66cc312a
+Titel: Test
+Modus: wheel_single
 ```
 
-Ablauf:
+Bestätigt im Testlauf:
 
 ```text
-1. Giveaway aus draft geöffnet.
-2. Gesperrter User una_solala wurde per API als Entry hinzugefügt.
-3. 3 erlaubte Testuser sind per !ticket beigetreten.
-4. Draw aus open wurde korrekt blockiert.
-5. Giveaway wurde auf closed_for_entries gesetzt.
-6. Draw-Runde 1: RoxxyFoxxyCGN gewann und drehte per !wheel/!rad.
-7. Draw-Runde 2: EngelCGN gewann und drehte per !wheel/!rad.
-8. Draw-Runde 3: ForrestCGN gewann und drehte per !wheel/!rad.
-9. Danach war kein eligible User mehr vorhanden.
+- Giveaway wurde geöffnet.
+- una_solala wurde per API als gesperrter Entry hinzugefügt.
+- 3 erlaubte User kamen per !ticket in das Giveaway.
+- Draw aus open wurde korrekt blockiert.
+- Giveaway wurde auf closed_for_entries gesetzt.
+- Runde 1 Gewinner: RoxxyFoxxyCGN → Wheel-Claim per Chat erkannt.
+- Runde 2 Gewinner: EngelCGN → Wheel-Claim per Chat erkannt.
+- Runde 3 Gewinner: ForrestCGN → Wheel-Claim per Chat erkannt.
+- Danach war kein eligible User mehr vorhanden.
+- Verfügbare Felder wurden korrekt von 8 auf 5 reduziert.
+- Alle erwarteten Gewinner waren wheel_completed.
 ```
 
-Bestätigte PASS-Punkte:
+Damit sind bestätigt:
 
 ```text
-Aktive Entries korrekt: 4
-Gesperrter User ist sichtbar unter den Entries
-Draw aus OPEN korrekt blockiert
-ExclusionInfo in Runde 1 korrekt
-Pending Wheel-Permission fuer Gewinner vorhanden
-Wheel-Claim durch Chat erkannt: RoxxyFoxxyCGN
-Wheel-Claim durch Chat erkannt: EngelCGN
-Wheel-Claim durch Chat erkannt: ForrestCGN
-Nach 3 Gewinnern ist kein eligible User mehr vorhanden
-Finale verfügbare Felder korrekt: 8 -> 5
-Alle erwarteten Gewinner sind wheel_completed
+Chat-Commands funktionieren fachlich.
+Sperrliste/Exclusion-Fairness funktioniert.
+Bound-Wheel-Feldverbrauch funktioniert.
+Mehrere Gewinner werden nacheinander gezogen und drehen jeweils selbst per !wheel/!rad.
 ```
 
-Damit ist bestätigt:
+### LWG_CHAT_OUTPUT_1 – umgesetzt, Test offen
+
+Problem nach `LWG_CHAT_COMMANDS_1`:
 
 ```text
-- !ticket erreicht die Giveaway-Runtime.
-- !wheel / !rad erreicht die Wheel-Claim-Runtime.
-- Gesperrte User bleiben sichtbar, gewinnen aber nicht.
-- Pro Draw bekommt nur der gezogene Gewinner eine Wheel-Permission.
-- Jeder Chat-Wheel-Claim wird erkannt und abgeschlossen.
-- Der Feldbestand sinkt pro erfolgreichem Wheel-Claim korrekt.
+!ticket erstellt den Entry korrekt, aber es kommt keine Chat-Bestätigung.
+```
+
+Ursache:
+
+```text
+Die direkte Chat-Ausgabe in buildCommandRuntimeResponse() griff bisher nur für raffle.*.
+```
+
+Umsetzung in `LWG_CHAT_OUTPUT_1`:
+
+```text
+Direkte Chat-Ausgaben werden jetzt auch für ticket.* und wheel.* über vorhandene Helper/Textvarianten gesendet.
+```
+
+Wichtig:
+
+```text
+Keine neuen Texte wurden hartcodiert.
+Vorhandene Textkeys/Varianten bleiben Quelle:
+- ticket.success
+- ticket.no_active
+- ticket.invalid_amount
+- ticket.max_reached
+- ticket.insufficient_balance
+- wheel.no_permission
+- wheel.success
+```
+
+Teststatus:
+
+```text
+LWG_CHAT_OUTPUT_1 ist vorbereitet/eingespielt als ZIP.
+Live-Test steht noch aus.
 ```
 
 ## Bestätigte Wheel-Funktion
 
-Step `LWG_BOUND_WHEEL_FIELD_COUNT_1` bleibt bestätigt:
+`LWG_BOUND_WHEEL_FIELD_COUNT_1` bleibt bestätigt:
 
 ```text
 2+ verfügbare Gewinne  → normaler Glücksrad-Spin mit exakt diesen verfügbaren Feldern
@@ -117,16 +125,7 @@ Step `LWG_BOUND_WHEEL_FIELD_COUNT_1` bleibt bestätigt:
 0 verfügbare Gewinne   → Codepfad vorbereitet: Claim/Spin blockiert
 ```
 
-Live-Test mit Giveaway `giveaway_1781856708568_9653eba68a211017`:
-
-```text
-Vor Test: 8 Bound-Wheel-Felder, davon 7 verfügbar
-Claim für urlug → Gewinn Valheim
-Spin-Metadata: fieldsCount=7, visualFieldsCount=7, visualMinVisibleSlots=7
-Nach Test: Roadside Research=0, Valheim=0, verfügbar=6
-```
-
-Damit ist bestätigt: Giveaway-bound Wheels werden nicht mehr optisch auf 12 Felder aufgefüllt.
+Giveaway-bound Wheels werden nicht mehr optisch auf 12 Felder aufgefüllt.
 
 ## Gewinn-Sperrliste / Exclusions
 
@@ -153,76 +152,12 @@ giveawayExclusions.loaded = True
 lastError =
 ```
 
-## Bestätigter Exclusion-Test vor LWG_CHAT_COMMANDS_1
+## Später wieder anfassen
 
-Frisches Test-Giveaway:
-
-```text
-Giveaway:     giveaway_1781865117837_a56d3fcb009a15a2
-Titel:        Test
-Bound-Wheel:  giveawaywheel_1781865117837_3d9cfcef7469aef2
-```
-
-Test-Entries:
-
-```text
-una_solala   active  → gesperrt
-udowb        active  → erlaubt
-engelcgn     active  → erlaubt
-```
-
-Draw-Ergebnis:
-
-```text
-Winner: udowb
-eligibleEntriesCount: 2
-rawEntriesCount: 3
-excludedEntriesCount: 1
-excluded[0].userLogin: una_solala
-excluded[0].reason: login
-```
-
-Claim-/Wheel-Ergebnis:
-
-```text
-Permission: wheelperm_1781865357312_f86f36711269e3e3
-Spin:       spin_1781865515072_d11827bafa8cd593
-Gewinn:     Roadside Research
-Status:     wheel_completed
-Feldverbrauch: Roadside Research quantityRemaining 1 → 0
-fieldsCount=8, visualFieldsCount=8, giveawayBoundWheelExactFields=true
-```
-
-## Aktueller Testscript-Stand
-
-Aktuell erzeugter Testscript-Step:
-
-```text
-LWG_TESTSCRIPT_1_3_interactive_giveaway_wheel_summary_fix.zip
-```
-
-Ziel:
-
-```text
-tools/tests/loyalty_giveaway_wheel_interactive_test.ps1
-```
-
-Fachlicher Test mit Script 1.2 war bereits bestanden; Script 1.3 behebt nur den finalen Summary-/Argumenttypen-Abbruch nach den PASS-Zeilen.
-
-## Später wieder anfassen – Dashboard-Config
-
-Die Gewinn-Sperrliste ist aktuell bewusst dateibasiert, damit der Stream sicher läuft.
-
-Später muss daraus eine dashboardfähige Verwaltung werden:
-
-- User hinzufügen/entfernen/aktivieren/deaktivieren.
-- Twitch-User-ID primär speichern und nutzen.
-- Login/DisplayName als Anzeige und Fallback behalten.
-- Sichtbar machen, wie viele Entries beim Draw durch Sperrliste ausgeschlossen wurden.
-- Optional pro Giveaway zusätzliche Sperren erlauben.
-
-Auch die harte Wheel-Regel muss später dashboardfähig konfigurierbar werden:
-
-- Verhalten bei 1 verbleibendem Gewinn.
-- Verhalten bei 0 verbleibenden Gewinnen.
-- Exakte Feldanzahl vs. Mindestfeldanzahl getrennt für Bound-Wheels und Standalone-/Preset-Wheels.
+- `LWG_CHAT_OUTPUT_1` live testen: `!ticket` muss Entry erstellen und Chat-Bestätigung senden.
+- `!wheel`/`!rad` live testen: Wheel-Claim muss Chat-Bestätigung senden.
+- Dashboard-Editor für Gewinn-Sperrliste bauen.
+- Exclusions DB-basiert speichern.
+- Twitch-User-ID als primären Schlüssel nutzen.
+- Draw-/Log-Tab mit Exclusion-Details erweitern.
+- Verhalten bei 1/0 verbleibenden Gewinnen gezielt testen.
