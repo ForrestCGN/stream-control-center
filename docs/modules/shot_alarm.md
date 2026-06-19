@@ -1,7 +1,7 @@
 # Modul-Dokumentation: Shot-Alarm
 
 Stand: 2026-06-19  
-Aktueller Stand: **SHOT-ALARM-2D Dashboard Audit Safety**
+Aktueller Stand: **SHOT-ALARM-2E Ko-fi/Tipeee Payment-Bus Integration + History-ID-Fix**
 
 ## Zweck
 
@@ -16,8 +16,8 @@ Dateien:
 
 Aktueller Backend-Stand:
 
-- Modulversion: `0.2.2`
-- Build: `STEP_SHOT_ALARM_2D_DASHBOARD_AUDIT_SAFETY`
+- Modulversion: `0.2.3`
+- Build: `STEP_SHOT_ALARM_2E_PAYMENT_HISTORY_ID_FIX`
 
 Genutzte Systeme:
 
@@ -59,6 +59,45 @@ Berechtigungen:
 Hinweis:
 
 Das Command-System erzeugt bei `responseMode=module` keine eigene Chatantwort. Die Chatmeldung kommt aus dem Shot-Alarm-Modul über die Textkeys `shotDone` oder `shotDoneEmpty`.
+
+## Payment-Bus-Anbindung
+
+Dateien:
+
+- `backend/modules/kofi.js`
+- `backend/modules/tipeee.js`
+
+Aktueller Stand:
+
+- Ko-fi Version: `0.1.1`
+- Tipeee Version: `0.1.1`
+
+Ko-fi/Tipeee veröffentlichen zusätzlich zum bestehenden Alert-Forwarding Payment-Events auf den Communication Bus.
+
+Events:
+
+- `payment.kofi.received`
+- `payment.tipeee.received`
+
+Payload enthält u. a.:
+
+- `provider`
+- `type` / `eventType`
+- `user`
+- `userDisplayName` / `userLogin`
+- `amount` / `amountEur`
+- `currency`
+- `message`
+- `title`
+- `providerEventId`
+- `localTest`
+- `forwardedEventUid`
+
+Wichtig:
+
+- Shot-Alarm wird nicht direkt von Ko-fi/Tipeee aufgerufen.
+- Die Kopplung läuft über den vorhandenen Communication Bus.
+- Der bestehende Alert-Flow bleibt erhalten.
 
 ## Dashboard-Einordnung
 
@@ -128,18 +167,12 @@ Beispiele:
 
 ### Ko-fi / Tipeee
 
-Noch nicht produktiv angebunden.
-
-Geplante Regel:
-
 - je volle 10 € Ko-fi: 50/50
 - je volle 10 € Tipeee: 50/50
 
-Ko-fi/Tipeee-Module existieren bereits als Alert-Provider. Für Shot-Alarm fehlt noch die saubere Payment-Bus-Publisher-Anbindung.
-
 ## Ablauf
 
-- Event kommt über Twitch-Events / Communication Bus.
+- Event kommt über Twitch-Events / Communication Bus / Payment-Bus.
 - Backend würfelt im Hintergrund.
 - Ergebnis wird gebündelt.
 - Keine Einzelwurf-Spam-Ausgabe.
@@ -151,7 +184,7 @@ Ko-fi/Tipeee-Module existieren bereits als Alert-Provider. Für Shot-Alarm fehlt
 
 ## Safety / Audit
 
-Neu seit STEP 2D:
+Seit STEP 2D:
 
 - Route: `GET /api/shot-alarm/dashboard-audit`
 - Status enthält `safety` und `audit`.
@@ -176,6 +209,14 @@ Audit speichert im Speicher:
 
 Der aktuelle Audit-Speicher ist ein lokaler Memory-Audit mit Retention-Hinweisen. Später kann eine Anbindung an ein zentrales Audit-System geprüft werden.
 
+## History-ID-Fix
+
+Seit STEP 2E Fix:
+
+- `shot_alarm` nutzt eindeutige History-Speicher-IDs für Einträge.
+- Die ursprüngliche Draw-ID bleibt als fachliche ID im Payload erhalten.
+- Behobener Fehler: `UNIQUE constraint failed: shot_alarm_history.id`.
+
 ## Routen
 
 - `GET /api/shot-alarm/status`
@@ -193,6 +234,15 @@ Der aktuelle Audit-Speicher ist ein lokaler Memory-Audit mit Retention-Hinweisen
 - `POST /api/shot-alarm/flush-pending`
 - `POST /api/shot-alarm/reset-state`
 
+Payment-/Provider-Routen:
+
+- `GET /api/alerts/kofi/status`
+- `GET /api/alerts/kofi/test`
+- `POST /api/alerts/kofi/webhook`
+- `GET /api/alerts/tipeee/status`
+- `GET /api/alerts/tipeee/test`
+- `POST /api/alerts/tipeee/webhook`
+
 ## Erfolgreich getestete Punkte
 
 - Backend registriert am Communication Bus.
@@ -205,11 +255,16 @@ Der aktuelle Audit-Speicher ist ein lokaler Memory-Audit mit Retention-Hinweisen
 - Dashboard-Screenshots bestätigten richtige Tab-/Dropdown-Einordnung.
 - `!shotdone` funktioniert über das bestehende Command-System.
 - STEP 2D Confirm-Schutz und Audit funktionieren.
+- Ko-fi-Testevent lieferte `paymentBus.ok=true` und `subscriberDeliveredCount=1`.
+- Tipeee-Testevent lieferte `paymentBus.ok=true` und `subscriberDeliveredCount=1`.
+- Payment-Bus-End-to-End-Test erfolgreich.
+- History-ID-Fix erfolgreich: `lastError` und `lastWarning` leer.
+- `!shotdone` nach Payment-Shot erfolgreich: `shotsOpen=0`, `shotsDrunk=1`, `shotsAddedTotal=1`.
 
 ## Offene Punkte
 
 - Audit-Action-Namen vereinheitlichen: Ziel `shot_alarm.resolve_pending`.
-- Ko-fi/Tipeee Payment-Bus anbinden.
+- Echte Anbieter-Testevents über Ko-fi/Tipeee-Dashboard/Webhook prüfen, falls Webhooks aktiv sind.
 - Soundpool im Dashboard an vorhandenes Sound-/Media-System anbinden.
 - Statistik/History im Dashboard ausbauen.
 - Persistente Counter nach Neustart planen/umsetzen.

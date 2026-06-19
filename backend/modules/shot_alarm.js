@@ -20,8 +20,8 @@ let chatOutputHelper = null;
 try { chatOutputHelper = require("./helpers/helper_chat_output"); } catch (_) { chatOutputHelper = null; }
 
 const MODULE_NAME = "shot_alarm";
-const MODULE_VERSION = "0.2.3";
-const MODULE_BUILD = "STEP_SHOT_ALARM_2E_PAYMENT_HISTORY_ID_FIX";
+const MODULE_VERSION = "0.2.4";
+const MODULE_BUILD = "STEP_SHOT_ALARM_2F_AUDIT_ACTION_NAME_CLEANUP";
 const CONFIG_FILE = "shot_alarm.json";
 const HISTORY_LIMIT = 200;
 const TEXT_MODULE = "shot_alarm";
@@ -397,15 +397,24 @@ function confirmWriteAccepted(req) {
     || cleanString(query.confirm).toUpperCase() === "SHOT_ALARM_WRITE";
 }
 
+function normalizeAuditActionSegment(action) {
+  return cleanString(action).replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "").toLowerCase();
+}
+
+function shotAlarmAuditAction(action) {
+  const segment = normalizeAuditActionSegment(action) || "dashboard_action";
+  return `shot_alarm.${segment}`;
+}
+
 function requireConfirmWrite(req, action) {
   if (confirmWriteAccepted(req)) return { ok: true };
   state.safetyDenied += 1;
   logDashboardAction(req, {
     level: "warn",
     result: "denied",
-    action: `shot_alarm.${action}`,
+    action: shotAlarmAuditAction(action),
     message: `Shot-Alarm write action denied: confirmWrite missing`,
-    details: { action, required: "confirmWrite=true" }
+    details: { action, normalizedAction: shotAlarmAuditAction(action), required: "confirmWrite=true" }
   });
   return {
     ok: false,

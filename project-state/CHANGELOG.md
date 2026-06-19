@@ -2,71 +2,46 @@
 
 Stand: 2026-06-19
 
+## SHOT-ALARM-2E Payment History ID Fix
+
+- `shot_alarm` auf Version `0.2.3` aktualisiert.
+- Build auf `STEP_SHOT_ALARM_2E_PAYMENT_HISTORY_ID_FIX` gesetzt.
+- Fehler behoben: `history_persist_failed: UNIQUE constraint failed: shot_alarm_history.id`.
+- History-Einträge bekommen jetzt eigene eindeutige `historyId` / `storageId`.
+- ursprüngliche Draw-ID bleibt als `id/sourceId/drawId` im Payload erhalten.
+- Ko-fi/Tipeee-End-to-End-Test danach erfolgreich ohne `lastError`/`lastWarning`.
+- Keine Shot-Regeln, Dashboard-Dateien oder DB-Dateien geändert.
+
+## SHOT-ALARM-2E Ko-fi/Tipeee Payment-Bus Integration
+
+- `backend/modules/kofi.js` auf Version `0.1.1` aktualisiert.
+- `backend/modules/tipeee.js` auf Version `0.1.1` aktualisiert.
+- Ko-fi veröffentlicht zusätzlich zum Alert-Forwarding auf den Communication Bus:
+  - `payment.kofi.received`
+- Tipeee veröffentlicht zusätzlich zum Alert-Forwarding auf den Communication Bus:
+  - `payment.tipeee.received`
+- Status der beiden Module enthält `paymentBus`.
+- Alert-Flow bleibt erhalten.
+- Shot-Alarm verarbeitet Payment-Bus-Events ohne direkte Provider-Kopplung.
+
 ## SHOT-ALARM-2D Dashboard Audit Safety
 
-- `shot_alarm` Version auf `0.2.2` erhöht.
-- Build gesetzt auf `STEP_SHOT_ALARM_2D_DASHBOARD_AUDIT_SAFETY`.
-- Neue Route ergänzt: `GET /api/shot-alarm/dashboard-audit`.
+- `shot_alarm` auf Version `0.2.2` aktualisiert.
+- Neue Route `GET /api/shot-alarm/dashboard-audit` ergänzt.
 - Status um `safety` und `audit` erweitert.
-- Schreibende Shot-Alarm-Aktionen werden auditiert:
-  - Config speichern
-  - Texte speichern/löschen
-  - Test auslösen
-  - manueller Trigger
-  - offene Auslosungen auflösen
-  - Shot getrunken
-  - Pending flush
-  - Runtime reset
-- Kritische Aktionen brauchen `confirmWrite:true`:
-  - `manual-trigger`
-  - `resolve-pending`
-  - `flush-pending`
-  - `reset-state`
-- Dashboard sendet `confirmWrite:true` bei kritischen Aktionen.
-- Event-System-Shot-Tab zeigt Safety-/Audit-Infos.
-- Text `Chat-Befehl kommt später` wurde auf `!shotdone ist aktiv` korrigiert.
-- Keine Änderung an Shot-Regeln.
-- Keine DB-Datei ersetzt.
-- Keine Event-System-Hauptlogik entfernt.
-- Keine Ko-fi/Tipeee-Anbindung umgesetzt.
-
-Tests:
-
-- `node -c backend/modules/shot_alarm.js` erfolgreich.
-- `node -c htdocs/dashboard/modules/stream_events.js` erfolgreich.
-- `node -c htdocs/dashboard/modules/shot_alarm.js` erfolgreich.
-- `/api/shot-alarm/status` zeigt `moduleVersion=0.2.2` und Build `STEP_SHOT_ALARM_2D_DASHBOARD_AUDIT_SAFETY`.
-- `/api/shot-alarm/dashboard-audit?limit=10` funktioniert.
-- `POST /api/shot-alarm/resolve-pending` ohne `confirmWrite` wird mit `confirm_write_required` blockiert.
-- `POST /api/shot-alarm/resolve-pending` mit `confirmWrite:true` läuft erfolgreich durch.
-- Audit enthält erlaubte und verweigerte Aktion.
-
-Hinweis:
-
-- Kleiner Cleanup-Punkt: Audit-Action-Namen vereinheitlichen (`shot_alarm.resolve_pending` statt Mischung aus `_` und `-`).
+- Schreibende Shot-Alarm-Aktionen werden auditiert.
+- Kritische Aktionen brauchen `confirmWrite:true`.
+- Dashboard sendet Bestätigung bei kritischen Aktionen.
+- Text „Chat-Befehl kommt später“ korrigiert auf aktiven `!shotdone`-Hinweis.
 
 ## SHOT-ALARM-2C shotdone command
 
-- `!shotdone` über das bestehende Command-System angebunden.
+- `commands` auf Version `0.2.4` aktualisiert.
+- Build `STEP_SHOT_ALARM_2C_SHOTDONE_COMMAND`.
+- Command `!shotdone` ergänzt.
 - Alias `!shotgetrunken` ergänzt.
-- Command-System Version auf `0.2.4` erhöht.
-- Build gesetzt auf `STEP_SHOT_ALARM_2C_SHOTDONE_COMMAND`.
-- Command-Catalog um `Shot-Alarm → Shot getrunken melden` ergänzt.
-- Seed-Command für `shotdone` ergänzt.
-- Zielroute: `POST /api/shot-alarm/shot-done`.
-- Permission-Logik erweitert für explizite `allowedLogins`.
-- Standard erlaubt: `engelcgn`, `roxxyfoxxy`, Broadcaster, Mods.
-- Keine Änderung an `shot_alarm.js`.
-- Keine Änderung an Shot-Regeln, Dashboard, DB, Event-System-Config oder Overlay.
-
-Tests:
-
-- `node -c backend/modules/commands.js` erfolgreich.
-- `/api/commands/status` zeigt `moduleVersion=0.2.4` und Build `STEP_SHOT_ALARM_2C_SHOTDONE_COMMAND`.
-- `/api/commands/test?message=!shotdone&user=EngelCGN&role=vip` erkennt Command korrekt und erlaubt EngelCGN über `allowedLogins`.
-- `/api/commands/execute?message=!shotdone&user=EngelCGN&role=vip` führt erfolgreich gegen `shot_alarm` aus.
-- Testevent `10.000 Bits` erzeugt 1 sicheren Shot.
-- Danach wurde `!shotdone` erfolgreich ausgeführt.
+- Zielroute `POST /api/shot-alarm/shot-done`.
+- Rechte über `allowedLogins`, `allowMods`, `allowBroadcaster`.
 
 ## SHOT-ALARM-2B.6 Safe Config Dropdown No Settings Lost
 
