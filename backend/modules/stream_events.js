@@ -34,8 +34,8 @@ let soundSystemModule = null;
 try { soundSystemModule = require("./sound_system"); } catch (_) { soundSystemModule = null; }
 
 const MODULE_NAME = "stream_events";
-const MODULE_VERSION = "0.5.91";
-const MODULE_BUILD = "STEP_EVS52_25_SOUND_REVEAL_RANDOM_FIX";
+const MODULE_VERSION = "0.5.92";
+const MODULE_BUILD = "STEP_EVS52_26_WINNER_FINALE_NULLSAFE_PREVIEW";
 const SCHEMA_MODULE = "stream_events";
 const SCHEMA_VERSION = 1;
 const TEXT_MODULE = "stream_events";
@@ -7240,13 +7240,15 @@ function isWinnerFinaleActive(finale = {}, metadata = {}) {
 }
 
 function winnerFinaleActivitySummary(finale = {}, metadata = {}) {
-  const active = isWinnerFinaleActive(finale, metadata);
+  const safeFinale = finale && typeof finale === "object" ? finale : {};
+  const safeMetadata = metadata && typeof metadata === "object" ? metadata : {};
+  const active = isWinnerFinaleActive(safeFinale, safeMetadata);
   return {
     active,
-    startedAt: cleanString(finale.startedAt || metadata.winnerFinaleLastStartedAt || ""),
-    lastReplayAt: cleanString(finale.lastReplayAt || finale.replayAt || metadata.winnerFinaleLastReplayAt || ""),
-    endedAt: cleanString(finale.endedAt || metadata.winnerFinaleEndedAt || ""),
-    hiddenAt: cleanString(finale.hiddenAt || metadata.winnerFinaleHiddenAt || ""),
+    startedAt: cleanString(safeFinale.startedAt || safeMetadata.winnerFinaleLastStartedAt || ""),
+    lastReplayAt: cleanString(safeFinale.lastReplayAt || safeFinale.replayAt || safeMetadata.winnerFinaleLastReplayAt || ""),
+    endedAt: cleanString(safeFinale.endedAt || safeMetadata.winnerFinaleEndedAt || ""),
+    hiddenAt: cleanString(safeFinale.hiddenAt || safeMetadata.winnerFinaleHiddenAt || ""),
     rule: "winner_finale_visible_until_manual_end"
   };
 }
