@@ -1,8 +1,8 @@
 window.StreamEventsModule = (function(){
   'use strict';
 
-  const MODULE_VERSION = "0.5.59";
-  const MODULE_BUILD = "STEP_EVS52_24_SHOT_ALARM_EVENT_TAB_CONFIG_DROPDOWN";
+  const MODULE_VERSION = "0.5.60";
+  const MODULE_BUILD = "STEP_SHOT_ALARM_2H_ACTIVE_STATE_STREAM_DROPDOWN";
 
   const api = {
     status: '/api/stream-events/status',
@@ -27,6 +27,9 @@ window.StreamEventsModule = (function(){
     shotAlarmTest: '/api/shot-alarm/test',
     shotAlarmShotDone: '/api/shot-alarm/shot-done',
     shotAlarmResolvePending: '/api/shot-alarm/resolve-pending',
+    shotAlarmStart: '/api/shot-alarm/start',
+    shotAlarmStop: '/api/shot-alarm/stop',
+    shotAlarmStreams: '/api/shot-alarm/streams',
     shotAlarmAudit: '/api/shot-alarm/dashboard-audit'
   };
 
@@ -66,7 +69,7 @@ window.StreamEventsModule = (function(){
     activeTab: 'overview',
     configModuleFilter: 'stream_events',
     textSourceModule: 'stream_events',
-    shotAlarm: { loading: false, error: '', status: null, config: null, texts: null, stats: null, audit: null }
+    shotAlarm: { loading: false, error: '', status: null, config: null, texts: null, stats: null, streams: null, selectedStreamSessionId: 'current', audit: null }
   };
 
   function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? '').replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c])); }
@@ -379,6 +382,14 @@ window.StreamEventsModule = (function(){
     const stats = box.stats || {};
     const last = st.lastResult || st.lastDraw || null;
     const c = box.config || {};
+    const runtime = st.runtime || {};
+    const overlayState = st.overlayState || {};
+    const isActive = runtime.effectiveActive === true || overlayState.effectiveActive === true;
+    const desiredActive = runtime.desiredActive === true || overlayState.desiredActive === true;
+    const streamLive = runtime.streamLive === true || overlayState.streamLive === true;
+    const streamLabel = runtime.streamDateLabel || overlayState.streamDateLabel || 'Kein aktiver Stream';
+    const streams = Array.isArray(box.streams?.streams) ? box.streams.streams : (Array.isArray(stats.streams) ? stats.streams : []);
+    const selectedStream = box.selectedStreamSessionId || 'current';
     return `
       <section class="evs-card glass evs-tab-panel evs-shot-tab">
         <div class="evs-card-head">
@@ -393,6 +404,26 @@ window.StreamEventsModule = (function(){
         </div>
         ${box.error ? `<div class="evs-error">${esc(box.error)}</div>` : ''}
         ${box.loading ? '<div class="evs-empty">Shot-Alarm wird geladen...</div>' : ''}
+        <div class="evs-shot-runtime-card ${isActive ? 'is-active' : 'is-inactive'}">
+          <div>
+            <strong>${isActive ? 'Shot-Alarm läuft' : 'Shot-Alarm ist gestoppt'}</strong>
+            <span>${streamLive ? `Aktueller Stream: ${esc(streamLabel)}` : 'Stream ist aktuell nicht online. Start wird gemerkt, Overlay bleibt bis Online aus.'}</span>
+            <small>Gewünscht: ${desiredActive ? 'aktiv' : 'inaktiv'} · Effektiv: ${isActive ? 'aktiv' : 'inaktiv'}</small>
+          </div>
+          <div class="evs-action-row">
+            ${isActive ? `<button type="button" class="evs-btn evs-btn-danger" data-evs-action="shotAlarmStop">Stop / Deaktivieren</button>` : `<button type="button" class="evs-btn" data-evs-action="shotAlarmStart">Start / Aktivieren</button>`}
+          </div>
+        </div>
+        <div class="evs-shot-stream-select">
+          <label>
+            <span>Statistik-Stream</span>
+            <select data-evs-shot-stream-select>
+              <option value="current" ${selectedStream === 'current' ? 'selected' : ''}>Aktueller Stream</option>
+              ${streams.map(item => `<option value="${esc(item.streamSessionId)}" ${selectedStream === item.streamSessionId ? 'selected' : ''}>${esc(item.current ? 'Aktueller Stream' : item.streamDateLabel || item.streamSessionId)}${item.events ? ` · ${esc(item.events)} Einträge` : ''}</option>`).join('')}
+            </select>
+          </label>
+          <small>Statistiken und Logs werden streambezogen gespeichert. Der aktuelle Stream ist vorausgewählt.</small>
+        </div>
         <div class="evs-kpi-grid evs-shot-kpis">
           <div><strong>${esc(st.shotsOpen ?? stats.shotsOpen ?? 0)}</strong><span>Noch offen</span></div>
           <div><strong>${esc(st.shotsDrunk ?? stats.shotsDrunk ?? 0)}</strong><span>Getrunken</span></div>
@@ -431,7 +462,7 @@ window.StreamEventsModule = (function(){
               <div><strong>${esc(c.draw?.delayMs ?? 10000)} ms</strong><span>Auslosung</span></div>
               <div><strong>${esc(c.overlay?.resultHoldMs ?? 10000)} ms</strong><span>Ergebnis sichtbar</span></div>
               <div><strong>${esc(c.targetLabel || 'Engel & Roxxy')}</strong><span>Ziel</span></div>
-              <div><strong>${c.enabled !== false ? 'Aktiv' : 'Inaktiv'}</strong><span>Status</span></div>
+              <div><strong>${isActive ? 'Läuft' : 'Gestoppt'}</strong><span>Status</span></div>
             </div>
           </div>
         </div>
@@ -766,16 +797,20 @@ window.StreamEventsModule = (function(){
     state.shotAlarm.error = '';
     if (rerender) render();
     try {
-      const [status, config, texts, stats, audit] = await Promise.all([
+      const selectedStream = state.shotAlarm.selectedStreamSessionId || 'current';
+      const statsUrl = `${api.shotAlarmStats}?streamSessionId=${encodeURIComponent(selectedStream)}`;
+      const [status, config, texts, streams, stats, audit] = await Promise.all([
         window.CGN.api(api.shotAlarmStatus).catch(err => ({ ok:false, error: err.message || String(err) })),
         window.CGN.api(api.shotAlarmConfig).catch(err => ({ ok:false, error: err.message || String(err), config: null })),
         window.CGN.api(api.shotAlarmTexts).catch(err => ({ ok:false, error: err.message || String(err), categories: [], keys: [] })),
-        window.CGN.api(api.shotAlarmStats).catch(() => null),
+        window.CGN.api(api.shotAlarmStreams).catch(() => null),
+        window.CGN.api(statsUrl).catch(() => null),
         window.CGN.api(api.shotAlarmAudit + '?limit=8').catch(() => null)
       ]);
       state.shotAlarm.status = status;
       state.shotAlarm.config = config?.config || config;
       state.shotAlarm.texts = texts;
+      state.shotAlarm.streams = streams;
       state.shotAlarm.stats = stats;
       state.shotAlarm.audit = audit;
       state.shotAlarm.loading = false;
@@ -4482,6 +4517,14 @@ window.StreamEventsModule = (function(){
         render();
         return;
       }
+      if (action === 'shotAlarmStart' || action === 'shotAlarmStop') {
+        const endpoint = action === 'shotAlarmStart' ? api.shotAlarmStart : api.shotAlarmStop;
+        await window.CGN.api(endpoint, { method: 'POST', body: JSON.stringify(dashboardActorPayload()) });
+        await loadShotAlarmData(false);
+        state.message = action === 'shotAlarmStart' ? 'Shot-Alarm wurde aktiviert.' : 'Shot-Alarm wurde deaktiviert.';
+        render();
+        return;
+      }
       if (action === 'shotAlarmDoneOne') {
         await window.CGN.api(api.shotAlarmShotDone, { method: 'POST', body: JSON.stringify({ count: 1, user: 'Dashboard', ...dashboardActorPayload() }) });
         await loadShotAlarmData(false);
@@ -4703,6 +4746,13 @@ window.StreamEventsModule = (function(){
         state.textSourceModule = textSourceSelect.value || 'stream_events';
         if (state.textSourceModule === 'shot_alarm') loadShotAlarmData(false).then(() => render()).catch(() => render());
         else render();
+        return;
+      }
+      const shotStreamSelect = ev.target.closest('[data-evs-shot-stream-select]');
+      if (shotStreamSelect) {
+        state.shotAlarm.selectedStreamSessionId = shotStreamSelect.value || 'current';
+        await loadShotAlarmData(false);
+        render();
         return;
       }
       const shotTextCategorySelect = ev.target.closest('[data-evs-shot-text-category]');

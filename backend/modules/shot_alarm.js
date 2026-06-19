@@ -20,13 +20,14 @@ let chatOutputHelper = null;
 try { chatOutputHelper = require("./helpers/helper_chat_output"); } catch (_) { chatOutputHelper = null; }
 
 const MODULE_NAME = "shot_alarm";
-const MODULE_VERSION = "0.2.4";
-const MODULE_BUILD = "STEP_SHOT_ALARM_2F_AUDIT_ACTION_NAME_CLEANUP";
+const MODULE_VERSION = "0.2.5";
+const MODULE_BUILD = "STEP_SHOT_ALARM_2H_ACTIVE_STATE_STREAM_SESSION_OVERLAY_BUS";
 const CONFIG_FILE = "shot_alarm.json";
 const HISTORY_LIMIT = 200;
 const TEXT_MODULE = "shot_alarm";
 const SETTINGS_TABLE = settingsHelper.DEFAULT_SETTINGS_TABLE || "module_settings";
 const SETTINGS_KEY_CONFIG = "shot_alarm.config";
+const SETTINGS_KEY_RUNTIME = "shot_alarm.runtime";
 const HISTORY_TABLE = "shot_alarm_history";
 
 const MODULE_META = {
@@ -54,7 +55,11 @@ const MODULE_META = {
       "shot_alarm.draw.resolved",
       "shot_alarm.triggered",
       "shot_alarm.overlay.show",
-      "shot_alarm.status_bar.update"
+      "shot_alarm.overlay.state",
+      "shot_alarm.status_bar.update",
+      "shot_alarm.runtime.started",
+      "shot_alarm.runtime.stopped",
+      "shot_alarm.runtime.stream_changed"
     ]
   },
   description: "Shot-Alarm fuer Twitch-Support-Events mit gebuendelter Auslosung, Counter, Overlay-Statusleiste, DB-basierten Texten/Config sowie Dashboard-Audit/Safety fuer produktive Aktionen."
@@ -240,6 +245,21 @@ const state = {
   shotsOpen: 0,
   shotsDrunk: 0,
   shotsAddedTotal: 0,
+  runtime: {
+    desiredActive: false,
+    effectiveActive: false,
+    visible: false,
+    currentStreamSessionId: "",
+    currentStreamDayId: "",
+    streamDateLabel: "",
+    streamStatus: "offline",
+    streamLive: false,
+    activeSince: "",
+    stoppedAt: "",
+    lastChangedAt: "",
+    lastReason: "init",
+    restoredAt: ""
+  },
   drawsPending: new Map(),
   counts: {
     received: 0,
@@ -587,11 +607,19 @@ function ensureStorage() {
         shots_added INTEGER NOT NULL DEFAULT 0,
         shots_open_after INTEGER NOT NULL DEFAULT 0,
         shots_drunk_after INTEGER NOT NULL DEFAULT 0,
+        stream_session_id TEXT NOT NULL DEFAULT '',
+        stream_day_id TEXT NOT NULL DEFAULT '',
+        stream_date_label TEXT NOT NULL DEFAULT '',
         payload_json TEXT NOT NULL DEFAULT '{}'
       );
     `);
+    try { database.ensureColumn(HISTORY_TABLE, "stream_session_id", "TEXT NOT NULL DEFAULT ''"); } catch (_) {}
+    try { database.ensureColumn(HISTORY_TABLE, "stream_day_id", "TEXT NOT NULL DEFAULT ''"); } catch (_) {}
+    try { database.ensureColumn(HISTORY_TABLE, "stream_date_label", "TEXT NOT NULL DEFAULT ''"); } catch (_) {}
     try { database.exec(`CREATE INDEX IF NOT EXISTS idx_${HISTORY_TABLE}_created_at ON ${qTable} (created_at);`); } catch (_) {}
     try { database.exec(`CREATE INDEX IF NOT EXISTS idx_${HISTORY_TABLE}_event_type ON ${qTable} (event_type);`); } catch (_) {}
+    try { database.exec(`CREATE INDEX IF NOT EXISTS idx_${HISTORY_TABLE}_stream_session ON ${qTable} (stream_session_id);`); } catch (_) {}
+    try { database.exec(`CREATE INDEX IF NOT EXISTS idx_${HISTORY_TABLE}_stream_day ON ${qTable} (stream_day_id);`); } catch (_) {}
     settingsHelper.ensureSettingsTable(SETTINGS_TABLE);
     state.storageReady = true;
     state.storageError = "";
@@ -620,6 +648,9 @@ function persistHistory(entry) {
       shots_added: Math.max(0, Math.floor(asNumber(entry.shotsAdded ?? entry.shots, 0))),
       shots_open_after: Math.max(0, Math.floor(asNumber(entry.shotsOpenAfter ?? entry.shotsOpen, state.shotsOpen))),
       shots_drunk_after: Math.max(0, Math.floor(asNumber(entry.shotsDrunk ?? state.shotsDrunk, 0))),
+      stream_session_id: String(entry.streamSessionId || entry.stream_session_id || state.runtime.currentStreamSessionId || ""),
+      stream_day_id: String(entry.streamDayId || entry.stream_day_id || state.runtime.currentStreamDayId || ""),
+      stream_date_label: String(entry.streamDateLabel || entry.stream_date_label || state.runtime.streamDateLabel || ""),
       payload_json: database.jsonEncode(entry)
     });
     return { ok: true };
@@ -630,15 +661,29 @@ function persistHistory(entry) {
   }
 }
 
-function listStoredHistory(limit = 200) {
+
+function streamFilterWhere(streamSessionId = "") {
+  const clean = cleanString(streamSessionId || "");
+  if (!clean || clean === "current") {
+    const current = cleanString(state.runtime.currentStreamSessionId || "");
+    return current ? { where: "WHERE stream_session_id = :streamSessionId", params: { streamSessionId: current }, selected: current } : { where: "", params: {}, selected: "" };
+  }
+  if (clean === "all") return { where: "", params: {}, selected: "all" };
+  return { where: "WHERE stream_session_id = :streamSessionId", params: { streamSessionId: clean }, selected: clean };
+}
+
+function listStoredHistory(limit = 200, options = {}) {
   if (!state.storageReady) return [];
   try {
+    const filter = streamFilterWhere(options.streamSessionId || "");
+    const params = { ...filter.params, limit: Math.max(1, Math.min(1000, Number(limit || 200))) };
     const rows = database.all(`
       SELECT payload_json
       FROM ${database.quoteIdentifier(HISTORY_TABLE)}
+      ${filter.where}
       ORDER BY created_at DESC
       LIMIT :limit
-    `, { limit: Math.max(1, Math.min(1000, Number(limit || 200))) });
+    `, params);
     return rows.map(row => database.jsonDecode(row.payload_json, null)).filter(Boolean);
   } catch (err) {
     state.storageError = err && err.message ? err.message : String(err);
@@ -646,42 +691,362 @@ function listStoredHistory(limit = 200) {
   }
 }
 
-function buildStats() {
+function listStreamSessions() {
+  const current = getStreamContext();
+  const currentId = cleanString(current.streamSessionId || state.runtime.currentStreamSessionId || "");
+  const rows = [];
+  if (currentId) {
+    rows.push({
+      streamSessionId: currentId,
+      streamDayId: cleanString(current.streamDayId || state.runtime.currentStreamDayId || ""),
+      streamDateLabel: cleanString(current.streamDateLabel || state.runtime.streamDateLabel || "Aktueller Stream"),
+      status: "current",
+      current: true,
+      events: 0,
+      shots: 0,
+      startedAt: cleanString(current.startedAt || "")
+    });
+  }
+  if (state.storageReady) {
+    try {
+      const stored = database.all(`
+        SELECT
+          stream_session_id AS streamSessionId,
+          stream_day_id AS streamDayId,
+          stream_date_label AS streamDateLabel,
+          MIN(created_at) AS firstAt,
+          MAX(created_at) AS lastAt,
+          COUNT(*) AS events,
+          SUM(shots_added) AS shots
+        FROM ${database.quoteIdentifier(HISTORY_TABLE)}
+        WHERE stream_session_id <> ''
+        GROUP BY stream_session_id, stream_day_id, stream_date_label
+        ORDER BY MAX(created_at) DESC
+        LIMIT 100
+      `);
+      for (const row of stored) {
+        const id = cleanString(row.streamSessionId || "");
+        if (!id) continue;
+        const existing = rows.find(item => item.streamSessionId === id);
+        const item = {
+          streamSessionId: id,
+          streamDayId: cleanString(row.streamDayId || ""),
+          streamDateLabel: cleanString(row.streamDateLabel || id),
+          status: id === currentId ? "current" : "stored",
+          current: id === currentId,
+          events: Number(row.events || 0),
+          shots: Number(row.shots || 0),
+          firstAt: cleanString(row.firstAt || ""),
+          lastAt: cleanString(row.lastAt || "")
+        };
+        if (existing) Object.assign(existing, item, { current: true, status: "current" });
+        else rows.push(item);
+      }
+    } catch (err) {
+      state.storageError = err && err.message ? err.message : String(err);
+    }
+  }
+  rows.push({ streamSessionId: "all", streamDayId: "", streamDateLabel: "Alle Streams", status: "all", current: false, events: 0, shots: 0 });
+  return rows;
+}
+
+function buildStats(options = {}) {
+  ensureCurrentStreamRuntime("stats");
+  const filter = streamFilterWhere(options.streamSessionId || "current");
   const base = {
     ok: true,
     module: MODULE_NAME,
     moduleVersion: MODULE_VERSION,
     moduleBuild: MODULE_BUILD,
+    selectedStreamSessionId: filter.selected,
+    currentStreamSessionId: state.runtime.currentStreamSessionId,
+    currentStreamDayId: state.runtime.currentStreamDayId,
+    streamDateLabel: state.runtime.streamDateLabel,
     shotsOpen: state.shotsOpen,
     shotsDrunk: state.shotsDrunk,
     shotsAddedTotal: state.shotsAddedTotal,
     runtime: clone(state.counts),
     database: { ready: state.storageReady, table: HISTORY_TABLE, error: state.storageError },
+    streams: listStreamSessions(),
     byEventType: [],
     topUsers: []
   };
   if (!state.storageReady) return base;
   try {
+    const where = filter.where;
+    const params = filter.params;
     base.byEventType = database.all(`
       SELECT event_type AS eventType, COUNT(*) AS events, SUM(shots_added) AS shots
       FROM ${database.quoteIdentifier(HISTORY_TABLE)}
+      ${where}
       GROUP BY event_type
       ORDER BY shots DESC, events DESC
       LIMIT 20
-    `).map(row => ({ eventType: row.eventType || "unknown", events: Number(row.events || 0), shots: Number(row.shots || 0) }));
+    `, params).map(row => ({ eventType: row.eventType || "unknown", events: Number(row.events || 0), shots: Number(row.shots || 0) }));
     base.topUsers = database.all(`
       SELECT user_display_name AS displayName, COUNT(*) AS events, SUM(shots_added) AS shots
       FROM ${database.quoteIdentifier(HISTORY_TABLE)}
-      WHERE user_display_name <> ''
+      ${where ? `${where} AND user_display_name <> ''` : "WHERE user_display_name <> ''"}
       GROUP BY user_display_name
       ORDER BY shots DESC, events DESC
       LIMIT 20
-    `).map(row => ({ displayName: row.displayName || "Unbekannt", events: Number(row.events || 0), shots: Number(row.shots || 0) }));
+    `, params).map(row => ({ displayName: row.displayName || "Unbekannt", events: Number(row.events || 0), shots: Number(row.shots || 0) }));
   } catch (err) {
     base.database.error = err && err.message ? err.message : String(err);
   }
   return base;
 }
+
+
+function getTwitchEventsModule() {
+  try { return require("./twitch_events"); } catch (_) { return null; }
+}
+
+function getStreamContext() {
+  const fallbackDay = new Date().toISOString().slice(0, 10);
+  try {
+    const twitchEvents = getTwitchEventsModule();
+    const streamState = twitchEvents && typeof twitchEvents.getStreamState === "function" ? twitchEvents.getStreamState() : null;
+    const session = streamState && typeof streamState === "object" ? (streamState.streamSession || {}) : {};
+    const live = streamState?.live === true || session.active === true || session.status === "online" || session.status === "confirmed";
+    const sessionId = cleanString(session.streamSessionId || streamState?.streamSessionId || "");
+    const dayId = cleanString(session.streamDayId || streamState?.streamDayId || "");
+    return {
+      ok: true,
+      live,
+      status: cleanString(session.status || streamState?.status || (live ? "online" : "offline")),
+      streamSessionId: live ? sessionId : "",
+      streamDayId: live ? dayId : "",
+      streamDateLabel: cleanString(session.streamDateLabel || streamState?.streamDateLabel || dayId || fallbackDay),
+      startedAt: cleanString(session.startedAt || streamState?.startedAt || ""),
+      source: cleanString(streamState?.source || session.source || "twitch_events"),
+      rawLive: streamState?.live === true
+    };
+  } catch (err) {
+    return { ok: false, live: false, status: "unknown", streamSessionId: "", streamDayId: "", streamDateLabel: fallbackDay, startedAt: "", source: "fallback", error: err && err.message ? err.message : String(err) };
+  }
+}
+
+function runtimeCounterSnapshot() {
+  return {
+    shotsOpen: state.shotsOpen,
+    shotsDrunk: state.shotsDrunk,
+    shotsAddedTotal: state.shotsAddedTotal,
+    counts: {
+      received: state.counts.received,
+      processed: state.counts.processed,
+      skipped: state.counts.skipped,
+      rolls: state.counts.rolls,
+      hits: state.counts.hits,
+      misses: state.counts.misses,
+      shots: state.counts.shots,
+      drawsStarted: state.counts.drawsStarted,
+      drawsResolved: state.counts.drawsResolved,
+      byType: state.counts.byType,
+      bySource: state.counts.bySource
+    }
+  };
+}
+
+function applyRuntimeCounters(snapshot = {}) {
+  state.shotsOpen = Math.max(0, Math.floor(asNumber(snapshot.shotsOpen, 0)));
+  state.shotsDrunk = Math.max(0, Math.floor(asNumber(snapshot.shotsDrunk, 0)));
+  state.shotsAddedTotal = Math.max(0, Math.floor(asNumber(snapshot.shotsAddedTotal, 0)));
+  state.counts.shotsOpen = state.shotsOpen;
+  state.counts.shotsDrunk = state.shotsDrunk;
+  state.counts.shotsAddedTotal = state.shotsAddedTotal;
+  if (snapshot.counts && typeof snapshot.counts === "object") {
+    for (const key of ["received", "processed", "skipped", "rolls", "hits", "misses", "shots", "drawsStarted", "drawsResolved"]) {
+      if (key in snapshot.counts) state.counts[key] = Math.max(0, Math.floor(asNumber(snapshot.counts[key], state.counts[key] || 0)));
+    }
+    if (snapshot.counts.byType && typeof snapshot.counts.byType === "object") state.counts.byType = clone(snapshot.counts.byType) || {};
+    if (snapshot.counts.bySource && typeof snapshot.counts.bySource === "object") state.counts.bySource = clone(snapshot.counts.bySource) || {};
+  }
+}
+
+function loadRuntimeState() {
+  try {
+    const fallback = {
+      desiredActive: false,
+      currentStreamSessionId: "",
+      currentStreamDayId: "",
+      streamDateLabel: "",
+      streamStatus: "offline",
+      streamLive: false,
+      activeSince: "",
+      stoppedAt: "",
+      lastChangedAt: "",
+      lastReason: "init",
+      restoredAt: nowIso(),
+      counters: runtimeCounterSnapshot()
+    };
+    const setting = settingsHelper.getSetting(SETTINGS_TABLE, SETTINGS_KEY_RUNTIME, fallback, { valueType: "json" });
+    const value = setting && setting.value && typeof setting.value === "object" ? setting.value : fallback;
+    state.runtime = { ...state.runtime, ...value, restoredAt: nowIso() };
+    if (value.counters && typeof value.counters === "object") applyRuntimeCounters(value.counters);
+    state.counts.shotsOpen = state.shotsOpen;
+    state.counts.shotsDrunk = state.shotsDrunk;
+    state.counts.shotsAddedTotal = state.shotsAddedTotal;
+    ensureCurrentStreamRuntime("runtime_loaded", { save: false });
+    saveRuntimeState("runtime_loaded");
+  } catch (err) {
+    state.lastWarning = `runtime_load_failed: ${err && err.message ? err.message : String(err)}`;
+  }
+}
+
+function saveRuntimeState(reason = "runtime_save") {
+  try {
+    const payload = {
+      desiredActive: state.runtime.desiredActive === true,
+      effectiveActive: state.runtime.effectiveActive === true,
+      visible: state.runtime.visible === true,
+      currentStreamSessionId: cleanString(state.runtime.currentStreamSessionId || ""),
+      currentStreamDayId: cleanString(state.runtime.currentStreamDayId || ""),
+      streamDateLabel: cleanString(state.runtime.streamDateLabel || ""),
+      streamStatus: cleanString(state.runtime.streamStatus || "offline"),
+      streamLive: state.runtime.streamLive === true,
+      activeSince: cleanString(state.runtime.activeSince || ""),
+      stoppedAt: cleanString(state.runtime.stoppedAt || ""),
+      lastChangedAt: cleanString(state.runtime.lastChangedAt || ""),
+      lastReason: cleanString(reason || state.runtime.lastReason || ""),
+      counters: runtimeCounterSnapshot()
+    };
+    settingsHelper.setSetting(SETTINGS_TABLE, SETTINGS_KEY_RUNTIME, payload, { valueType: "json", description: "Shot-Alarm Runtime-State je StreamSession inklusive gewünschtem Aktiv-Zustand." });
+    return { ok: true, runtime: payload };
+  } catch (err) {
+    state.lastWarning = `runtime_save_failed: ${err && err.message ? err.message : String(err)}`;
+    return { ok: false, error: state.lastWarning };
+  }
+}
+
+function clearRuntimeCounters(reason = "runtime_reset") {
+  state.singleSupportCounter = 0;
+  state.shotsOpen = 0;
+  state.shotsDrunk = 0;
+  state.shotsAddedTotal = 0;
+  state.drawsPending.clear();
+  state.pendingSubEvents.clear();
+  for (const timer of state.pendingSubTimers.values()) {
+    try { clearTimeout(timer); } catch (_) {}
+  }
+  state.pendingSubTimers.clear();
+  state.counts = {
+    ...state.counts,
+    received: 0,
+    processed: 0,
+    skipped: 0,
+    pending: 0,
+    rolls: 0,
+    hits: 0,
+    misses: 0,
+    shots: 0,
+    overlayShows: 0,
+    soundRequests: 0,
+    soundErrors: 0,
+    chatMessages: 0,
+    chatErrors: 0,
+    drawsStarted: 0,
+    drawsResolved: 0,
+    shotsOpen: 0,
+    shotsDrunk: 0,
+    shotsAddedTotal: 0,
+    singleSupportCounter: 0,
+    byType: {},
+    bySource: {}
+  };
+  state.lastEvent = null;
+  state.lastShot = null;
+  state.lastDraw = null;
+  state.lastResult = null;
+  state.lastOverlay = null;
+  state.lastSound = null;
+  state.runtime.lastReason = reason;
+  state.runtime.lastChangedAt = nowIso();
+}
+
+function ensureCurrentStreamRuntime(reason = "runtime_check", options = {}) {
+  const ctx = getStreamContext();
+  const oldSessionId = cleanString(state.runtime.currentStreamSessionId || "");
+  const newSessionId = cleanString(ctx.streamSessionId || "");
+  const streamChanged = ctx.live === true && newSessionId && oldSessionId && oldSessionId !== newSessionId;
+  const firstOnlineSession = ctx.live === true && newSessionId && !oldSessionId;
+
+  if (streamChanged || (firstOnlineSession && (state.shotsOpen > 0 || state.shotsDrunk > 0 || state.shotsAddedTotal > 0))) {
+    clearRuntimeCounters("stream_session_changed");
+    emitBus("runtime.stream_changed", { oldStreamSessionId: oldSessionId, newStreamSessionId, streamDayId: ctx.streamDayId, at: nowIso() }, { replayable: true, ttlMs: 60000 });
+  }
+
+  if (ctx.live === true && newSessionId) {
+    state.runtime.currentStreamSessionId = newSessionId;
+    state.runtime.currentStreamDayId = cleanString(ctx.streamDayId || "");
+    state.runtime.streamDateLabel = cleanString(ctx.streamDateLabel || "");
+  }
+  state.runtime.streamStatus = cleanString(ctx.status || (ctx.live ? "online" : "offline"));
+  state.runtime.streamLive = ctx.live === true;
+  state.runtime.effectiveActive = config.enabled !== false && config.overlayEnabled !== false && state.runtime.desiredActive === true && ctx.live === true;
+  state.runtime.visible = state.runtime.effectiveActive === true;
+  if (options.save !== false) saveRuntimeState(reason);
+  return { ...ctx, desiredActive: state.runtime.desiredActive === true, effectiveActive: state.runtime.effectiveActive === true, visible: state.runtime.visible === true };
+}
+
+function buildOverlayStatePayload(reason = "state") {
+  const ctx = ensureCurrentStreamRuntime(reason, { save: false });
+  return {
+    type: "shot_alarm.overlay.state",
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    at: nowIso(),
+    reason,
+    active: ctx.effectiveActive === true,
+    visible: ctx.visible === true,
+    desiredActive: state.runtime.desiredActive === true,
+    effectiveActive: ctx.effectiveActive === true,
+    enabled: config.enabled !== false,
+    overlayEnabled: config.overlayEnabled !== false,
+    streamLive: ctx.live === true,
+    streamStatus: ctx.status,
+    streamSessionId: state.runtime.currentStreamSessionId,
+    streamDayId: state.runtime.currentStreamDayId,
+    streamDateLabel: state.runtime.streamDateLabel,
+    shotsOpen: state.shotsOpen,
+    shotsDrunk: state.shotsDrunk,
+    shotsAddedTotal: state.shotsAddedTotal,
+    pendingDraws: state.drawsPending.size
+  };
+}
+
+function sendOverlayState(reason = "state") {
+  const payload = buildOverlayStatePayload(reason);
+  if (typeof broadcastWS === "function") {
+    try { broadcastWS(payload); } catch (err) { state.lastError = err && err.message ? err.message : String(err); }
+  }
+  emitBus("overlay.state", payload, { replayable: true, ttlMs: 60000 });
+  publishStatus(reason);
+  return payload;
+}
+
+function setRuntimeActive(active, actor = {}, reason = "dashboard") {
+  ensureCurrentStreamRuntime(reason);
+  const next = active === true;
+  state.runtime.desiredActive = next;
+  state.runtime.lastChangedAt = nowIso();
+  state.runtime.lastReason = reason;
+  if (next && !state.runtime.activeSince) state.runtime.activeSince = nowIso();
+  if (!next) state.runtime.stoppedAt = nowIso();
+  ensureCurrentStreamRuntime(next ? "start" : "stop");
+  saveRuntimeState(next ? "start" : "stop");
+  const payload = sendOverlayState(next ? "start" : "stop");
+  emitBus(next ? "runtime.started" : "runtime.stopped", { ...payload, actor: safeJson(actor || {}) }, { replayable: true, ttlMs: 60000 });
+  return payload;
+}
+
+function isRuntimeEffective(options = {}) {
+  if (options.force === true) return true;
+  ensureCurrentStreamRuntime("runtime_gate", { save: false });
+  return state.runtime.effectiveActive === true;
+}
+
 
 function loadConfig() {
   ensureStorage();
@@ -744,6 +1109,7 @@ function publicHistoryItem(item) {
 }
 
 function addHistory(item) {
+  ensureCurrentStreamRuntime("history", { save: false });
   const source = safeJson(item);
   const sourceId = cleanString(source.id || "");
   const historyId = `hist_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -754,6 +1120,9 @@ function addHistory(item) {
     storageId: historyId,
     sourceId,
     drawId: cleanString(source.drawId || (sourceId.startsWith("draw_") ? sourceId : "")),
+    streamSessionId: cleanString(source.streamSessionId || state.runtime.currentStreamSessionId || ""),
+    streamDayId: cleanString(source.streamDayId || state.runtime.currentStreamDayId || ""),
+    streamDateLabel: cleanString(source.streamDateLabel || state.runtime.streamDateLabel || ""),
     at: source.at || nowIso()
   };
   state.history.unshift(entry);
@@ -764,6 +1133,7 @@ function addHistory(item) {
 }
 
 function publicStatus() {
+  ensureCurrentStreamRuntime("status", { save: false });
   return {
     ok: true,
     module: MODULE_NAME,
@@ -784,6 +1154,21 @@ function publicStatus() {
     texts: { module: TEXT_MODULE, variantsReady: state.textVariantsReady, variantsTable: textHelper.DEFAULT_MODULE_TEXT_VARIANTS_TABLE || "module_text_variants", error: state.textVariantsError },
     safety: { dashboardAuditEnabled: true, confirmWriteRequired: true, confirmWriteActions: CONFIRM_WRITE_ACTIONS, dashboardAuditEndpoint: "/api/shot-alarm/dashboard-audit" },
     audit: publicAuditStatus(),
+    runtime: {
+      desiredActive: state.runtime.desiredActive === true,
+      effectiveActive: state.runtime.effectiveActive === true,
+      visible: state.runtime.visible === true,
+      streamLive: state.runtime.streamLive === true,
+      streamStatus: state.runtime.streamStatus,
+      currentStreamSessionId: state.runtime.currentStreamSessionId,
+      currentStreamDayId: state.runtime.currentStreamDayId,
+      streamDateLabel: state.runtime.streamDateLabel,
+      activeSince: state.runtime.activeSince,
+      stoppedAt: state.runtime.stoppedAt,
+      lastChangedAt: state.runtime.lastChangedAt,
+      lastReason: state.runtime.lastReason
+    },
+    overlayState: buildOverlayStatePayload("status"),
     startedAt: state.startedAt,
     updatedAt: state.updatedAt,
     lastError: state.lastError,
@@ -932,7 +1317,16 @@ function buildStatusPayload() {
     shotsDrunk: state.shotsDrunk,
     shotsAddedTotal: state.shotsAddedTotal,
     pendingDraws: state.drawsPending.size,
-    enabled: config.enabled !== false
+    enabled: config.enabled !== false,
+    overlayEnabled: config.overlayEnabled !== false,
+    desiredActive: state.runtime.desiredActive === true,
+    effectiveActive: state.runtime.effectiveActive === true,
+    active: state.runtime.effectiveActive === true,
+    visible: state.runtime.visible === true,
+    streamLive: state.runtime.streamLive === true,
+    streamSessionId: state.runtime.currentStreamSessionId,
+    streamDayId: state.runtime.currentStreamDayId,
+    streamDateLabel: state.runtime.streamDateLabel
   };
 }
 
@@ -942,11 +1336,16 @@ function sendStatusBar() {
     try { broadcastWS(payload); } catch (err) { state.lastError = err && err.message ? err.message : String(err); }
   }
   emitBus("status_bar.update", payload);
+  emitBus("overlay.state", buildOverlayStatePayload("status_bar"), { replayable: true, ttlMs: 60000 });
   return payload;
 }
 
 function sendOverlay(phase, summary) {
   if (config.overlayEnabled === false) return { ok: false, skipped: true, reason: "overlay_disabled" };
+  if (!isRuntimeEffective()) {
+    sendOverlayState("overlay_suppressed_inactive");
+    return { ok: false, skipped: true, reason: "shot_alarm_inactive" };
+  }
   const isDraw = phase === "draw";
   const isHit = Number(summary.shotsAdded || 0) > 0;
   const titleKey = isDraw ? "overlayDrawTitle" : isHit ? "overlayResultHitTitle" : "overlayResultMissTitle";
@@ -1175,9 +1574,15 @@ function normalizeEnvelope(envelope = {}) {
 }
 
 function processEnvelope(envelope, options = {}) {
+  ensureCurrentStreamRuntime("event_received");
   if (config.enabled === false && options.force !== true) {
     state.counts.skipped += 1;
     return { ok: false, reason: "module_disabled" };
+  }
+  if (!isRuntimeEffective(options)) {
+    state.counts.skipped += 1;
+    publishStatus("event_skipped_inactive");
+    return { ok: false, reason: "shot_alarm_inactive", runtime: buildOverlayStatePayload("event_skipped_inactive") };
   }
   const normalized = normalizeEnvelope(envelope);
   const input = {
@@ -1304,11 +1709,13 @@ async function resolveDraw(drawId, options = {}) {
   if (shotsAdded <= 0 && config.chat && config.chat.sendResultMiss !== false) sendChatText("resultMiss", resultSummary).catch(() => {});
   sendOverlay("result", resultSummary);
   if (shotsAdded > 0) requestSound(pickSound(), resultSummary).catch(() => {});
+  saveRuntimeState("draw_resolved");
   publishStatus("draw_resolved");
   return { ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, result: [entry], summary: entry, status: publicStatus() };
 }
 
 function processInput(input = {}, options = {}) {
+  ensureCurrentStreamRuntime("process_input");
   state.counts.received += options.countReceived === false ? 0 : 1;
   state.counts.processed += 1;
   state.updatedAt = nowIso();
@@ -1320,6 +1727,7 @@ function processInput(input = {}, options = {}) {
   const summary = summarizeRolls(input, rolls, options);
   rememberRollStats(rolls, summary.shotsAdded);
   const result = startDraw(summary, { ...options, summary, immediate: options.immediate === true });
+  saveRuntimeState("event_processed");
   publishStatus("event_processed");
   return { ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, result: result.result || result.draw ? [result.result || result.draw].filter(Boolean) : [], summary: result.summary || summary, pending: !!result.pending, status: publicStatus() };
 }
@@ -1447,11 +1855,20 @@ function registerBus() {
       state.registeredOnBus = result && result.ok === true;
     }
     ["twitch.sub", "twitch.resub", "twitch.subgift", "twitch.giftbomb", "twitch.cheer", "payment.kofi", "payment.tipeee"].forEach(subscribeBus);
-    if (typeof bus.heartbeatModule === "function") bus.heartbeatModule(MODULE_NAME, { module: MODULE_NAME, version: MODULE_VERSION, build: MODULE_BUILD });
+    ["online", "offline", "updated"].forEach(action => {
+      const result = bus.subscribe({ id: `${MODULE_NAME}:twitch.stream:${action}`, module: MODULE_NAME, channel: "twitch.stream", action }, () => {
+        ensureCurrentStreamRuntime(`twitch_stream_${action}`);
+        sendOverlayState(`twitch_stream_${action}`);
+        return { ok: true };
+      });
+      if (result && result.ok && result.subscription) state.subscriptions.push(result.subscription);
+    });
+    if (typeof bus.heartbeatModule === "function") bus.heartbeatModule(MODULE_NAME, { module: MODULE_NAME, version: MODULE_VERSION, build: MODULE_BUILD, runtime: buildOverlayStatePayload("heartbeat") });
     publishStatus("init");
     heartbeatTimer = setInterval(() => {
-      if (bus && typeof bus.heartbeatModule === "function") bus.heartbeatModule(MODULE_NAME, { module: MODULE_NAME, version: MODULE_VERSION, build: MODULE_BUILD, counts: state.counts });
+      if (bus && typeof bus.heartbeatModule === "function") bus.heartbeatModule(MODULE_NAME, { module: MODULE_NAME, version: MODULE_VERSION, build: MODULE_BUILD, counts: state.counts, runtime: buildOverlayStatePayload("heartbeat") });
       publishStatus("heartbeat");
+      sendOverlayState("heartbeat");
     }, 30000);
     if (heartbeatTimer && typeof heartbeatTimer.unref === "function") heartbeatTimer.unref();
   } catch (err) {
@@ -1464,6 +1881,7 @@ function init(ctx = {}) {
   const app = ctx.app;
   broadcastWS = typeof ctx.broadcastWS === "function" ? ctx.broadcastWS : null;
   loadConfig();
+  loadRuntimeState();
   registerBus();
   state.initialized = true;
   state.updatedAt = nowIso();
@@ -1474,6 +1892,19 @@ function init(ctx = {}) {
   const post = (path, handler) => { app.post(path, handler); routes.push(`POST ${path}`); };
 
   get("/api/shot-alarm/status", (req, res) => res.json(publicStatus()));
+  get("/api/shot-alarm/streams", (req, res) => res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, currentStreamSessionId: state.runtime.currentStreamSessionId, streams: listStreamSessions() }));
+  post("/api/shot-alarm/start", (req, res) => {
+    const body = req.body && typeof req.body === "object" ? req.body : {};
+    const payload = setRuntimeActive(true, body.actor || {}, "dashboard_start");
+    logDashboardAction(req, { action: "shot_alarm.start", result: "ok", message: "Shot-Alarm activated", details: { desiredActive: true, effectiveActive: payload.effectiveActive, streamSessionId: payload.streamSessionId } });
+    res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, runtime: payload, status: publicStatus() });
+  });
+  post("/api/shot-alarm/stop", (req, res) => {
+    const body = req.body && typeof req.body === "object" ? req.body : {};
+    const payload = setRuntimeActive(false, body.actor || {}, "dashboard_stop");
+    logDashboardAction(req, { action: "shot_alarm.stop", result: "ok", message: "Shot-Alarm deactivated", details: { desiredActive: false, effectiveActive: payload.effectiveActive, streamSessionId: payload.streamSessionId } });
+    res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, runtime: payload, status: publicStatus() });
+  });
   get("/api/shot-alarm/dashboard-audit", (req, res) => {
     const limit = Math.max(0, Math.min(Number(req.query && req.query.limit || 50), 200));
     res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, audit: publicAuditStatus(), entries: auditLogger.getRecent(limit, { module: MODULE_NAME }) });
@@ -1492,11 +1923,12 @@ function init(ctx = {}) {
   });
   get("/api/shot-alarm/history", (req, res) => {
     const limit = Number(req.query && req.query.limit || config.historyLimit || HISTORY_LIMIT);
-    const stored = listStoredHistory(limit);
+    const streamSessionId = cleanString(req.query && req.query.streamSessionId || "current");
+    const stored = listStoredHistory(limit, { streamSessionId });
     const items = stored.length ? stored : state.history.map(publicHistoryItem);
-    res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, items, source: stored.length ? "database" : "runtime", pending: [...state.pendingSubEvents.values()].map(item => ({ at: item.at, eventKey: item.eventKey })) });
+    res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, streamSessionId, items, source: stored.length ? "database" : "runtime", pending: [...state.pendingSubEvents.values()].map(item => ({ at: item.at, eventKey: item.eventKey })) });
   });
-  get("/api/shot-alarm/stats", (req, res) => res.json(buildStats()));
+  get("/api/shot-alarm/stats", (req, res) => res.json(buildStats({ streamSessionId: cleanString(req.query && req.query.streamSessionId || "current") })));
   get("/api/shot-alarm/texts", (req, res) => {
     try {
       ensureTextVariants();
@@ -1559,6 +1991,7 @@ function init(ctx = {}) {
       sendOverlay("result", { ...trigger, shotsAdded: shots, shotsOpen: state.shotsOpen, amountLabel: trigger.eventLabel, user: trigger.user });
       requestSound(pickSound(), trigger).catch(() => {});
       emitBus("triggered", entry);
+      saveRuntimeState("manual_trigger");
       publishStatus("manual_trigger");
       logDashboardAction(req, { action: "shot_alarm.manual_trigger", result: "ok", message: "Manual Shot-Alarm triggered", details: { shots, reason: trigger.eventLabel, shotsOpen: state.shotsOpen } });
       res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, trigger: entry, status: publicStatus() });
@@ -1595,6 +2028,7 @@ function init(ctx = {}) {
       state.lastEvent = entry;
       sendChatText("shotDone", { ...entry, shotsOpen: state.shotsOpen, shotsDrunk: state.shotsDrunk, user: entry.user }).catch(() => {});
       sendStatusBar();
+      saveRuntimeState("shot_done");
       publishStatus("shot_done");
       logDashboardAction(req, { action: "shot_alarm.shot_done", result: "ok", message: "Shot marked as done", details: { requested: count, done, shotsOpen: state.shotsOpen, shotsDrunk: state.shotsDrunk, user: entry.user.displayName } });
       return res.json({ ok: true, module: MODULE_NAME, done, shotsOpen: state.shotsOpen, shotsDrunk: state.shotsDrunk, status: publicStatus() });
@@ -1615,7 +2049,9 @@ function init(ctx = {}) {
     const confirm = requireConfirmWrite(req, "reset-state");
     if (!confirm.ok) return res.status(confirm.status).json(confirm.payload);
     resetState();
+    saveRuntimeState("reset_state");
     sendStatusBar();
+    sendOverlayState("reset_state");
     logDashboardAction(req, { action: "shot_alarm.reset_state", level: "warn", result: "ok", message: "Shot-Alarm runtime state reset", details: { reset: true } });
     res.json({ ok: true, module: MODULE_NAME, status: publicStatus() });
   });

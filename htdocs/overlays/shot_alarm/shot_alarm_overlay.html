@@ -147,6 +147,11 @@
       overflow: hidden;
       isolation: isolate;
     }
+    #statusBar.hidden {
+      opacity: 0;
+      transform: translateX(-50%) translateY(calc(-1 * (var(--bar-height) + var(--top-offset) + 24px)));
+      filter: blur(3px);
+    }
     #statusBar::after {
       content: "";
       position: absolute;
@@ -263,7 +268,7 @@
     </div>
   </div>
 
-  <div id="statusBar">
+  <div id="statusBar" class="hidden">
     <span class="dot"></span>
     <span class="status-slot status-title">SHOT-ALARM</span>
     <span class="sep"></span>
@@ -285,12 +290,31 @@
     const totalShotsEl = document.getElementById('totalShots');
     let hideTimer = null;
     let ws = null;
+    const params = new URLSearchParams(location.search);
+    const debugMode = params.get('test') === '1' || params.get('debug') === '1';
+    const overlayState = { active: false, desiredActive: false, streamLive: false };
 
     function escText(value) { return String(value ?? ''); }
     function fmt(n) { return Number(n || 0).toLocaleString('de-DE'); }
 
+    function setOverlayActive(payload) {
+      const p = payload && payload.overlayState ? payload.overlayState : payload;
+      if (!p || typeof p !== 'object') return;
+      const active = debugMode || p.active === true || p.visible === true || p.effectiveActive === true;
+      overlayState.active = !!active;
+      overlayState.desiredActive = p.desiredActive === true;
+      overlayState.streamLive = p.streamLive === true;
+      const statusBar = document.getElementById('statusBar');
+      if (statusBar) statusBar.classList.toggle('hidden', !overlayState.active);
+      if (!overlayState.active) {
+        clearTimeout(hideTimer);
+        eventWrap.classList.remove('show');
+      }
+    }
+
     function applyStatus(status) {
       if (!status) return;
+      if ('active' in status || 'visible' in status || 'effectiveActive' in status || status.overlayState) setOverlayActive(status);
       openShotsEl.textContent = fmt(status.shotsOpen);
       drunkShotsEl.textContent = fmt(status.shotsDrunk);
       totalShotsEl.textContent = fmt(status.shotsAddedTotal);
@@ -300,11 +324,13 @@
       try {
         const res = await fetch('/api/shot-alarm/status');
         const data = await res.json();
+        setOverlayActive(data.overlayState || data);
         applyStatus(data);
       } catch (_) {}
     }
 
     function showPayload(payload) {
+      if (!overlayState.active && !debugMode) return;
       const summary = payload && payload.summary ? payload.summary : payload;
       if (payload.status) applyStatus(payload.status);
       const phase = payload.phase || summary.phase || 'result';
@@ -334,6 +360,8 @@
         let data = null;
         try { data = JSON.parse(ev.data); } catch (_) { return; }
         if (!data) return;
+        if (data.type === 'shot_alarm.overlay.state') setOverlayActive(data);
+        if (data.channel === 'shot_alarm' && data.action === 'overlay.state' && data.payload) setOverlayActive(data.payload);
         if (data.type === 'shot_alarm.draw' || data.type === 'shot_alarm.result') showPayload(data);
         if (data.type === 'shot_alarm.status_bar') applyStatus(data);
         if (data.channel === 'shot_alarm' && data.action === 'overlay.show' && data.payload) showPayload(data.payload);
@@ -342,8 +370,8 @@
       ws.addEventListener('close', () => setTimeout(connect, 1500));
     }
 
-    const params = new URLSearchParams(location.search);
-    if (params.get('test') === '1' || params.get('debug') === '1') {
+    if (debugMode) {
+      setOverlayActive({ active: true, visible: true, desiredActive: true, streamLive: true });
       showPayload({ phase: 'result', title: 'SHOT-ALARM', message: 'Engel & Roxxy müssen ran!', holdMs: 8000, status: { shotsOpen: 7, shotsDrunk: 3, shotsAddedTotal: 10 }, summary: { targetLabel: 'Engel & Roxxy', amountLabel: '25.000 Bits', user: { displayName: 'ForrestCGN' }, shotsAdded: 4, shotsOpen: 7, shotsDrunk: 3, chanceSummary: '2 sicher + 5x 50/50' } });
       applyStatus({ shotsOpen: 7, shotsDrunk: 3, shotsAddedTotal: 10 });
     }
@@ -351,5 +379,31 @@
     fetchStatus();
     setInterval(fetchStatus, 5000);
   </script>
+<script>
+  window.CGN_OVERLAY_BUS = Object.assign({}, window.CGN_OVERLAY_BUS || {}, {
+    clientId: "overlay:shot_alarm",
+    clientType: "overlay",
+    mode: "obs_overlay",
+    module: "shot_alarm",
+    name: "Shot-Alarm Overlay",
+    version: "STEP_SHOT_ALARM_2H",
+    heartbeatIntervalMs: 5000,
+    capabilities: [
+      "overlay.heartbeat",
+      "shot_alarm.overlay.ready",
+      "shot_alarm.overlay.state",
+      "shot_alarm.status_bar.update",
+      "shot_alarm.overlay.show",
+      "ack"
+    ],
+    meta: {
+      role: "persistent_status_overlay",
+      overlayFile: "/overlays/shot_alarm/shot_alarm_overlay.html",
+      standard: "STEP_SHOT_ALARM_2H",
+      expectedHost: "OBS Browser Source"
+    }
+  });
+</script>
+<script src="/overlays/shared/overlay_bus_client.js"></script>
 </body>
 </html>

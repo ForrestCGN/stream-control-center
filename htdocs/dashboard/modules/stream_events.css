@@ -1293,3 +1293,74 @@
 .stream-events-admin .evs-shot-audit-list b{color:#f8fafc;font-size:12px}
 .stream-events-admin .evs-shot-audit-list span{color:#cbd5e1;font-size:12px}
 .stream-events-admin .evs-shot-audit-list small{color:#94a3b8;font-size:11px}
+
+
+/* SHOT-ALARM-2H Active-State + Stream-Statistik */
+.stream-events-admin .evs-shot-runtime-card{
+  margin:0 0 14px;
+  padding:13px 14px;
+  border:1px solid rgba(148,163,184,.20);
+  background:rgba(2,6,23,.30);
+  border-radius:16px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+}
+.stream-events-admin .evs-shot-runtime-card strong{
+  display:block;
+  color:#f8fafc;
+  font-size:15px;
+}
+.stream-events-admin .evs-shot-runtime-card span{
+  display:block;
+  color:#cbd5e1;
+  font-size:12px;
+  margin-top:3px;
+}
+.stream-events-admin .evs-shot-runtime-card small{
+  display:block;
+  color:#94a3b8;
+  font-size:11px;
+  margin-top:3px;
+}
+.stream-events-admin .evs-shot-runtime-card.is-active{
+  border-color:rgba(34,197,94,.40);
+  background:linear-gradient(135deg,rgba(22,101,52,.22),rgba(8,47,73,.12));
+  box-shadow:0 0 18px rgba(34,197,94,.08);
+}
+.stream-events-admin .evs-shot-runtime-card.is-inactive{
+  border-color:rgba(245,158,11,.34);
+  background:linear-gradient(135deg,rgba(120,53,15,.16),rgba(15,23,42,.30));
+}
+.stream-events-admin .evs-shot-stream-select{
+  margin:0 0 14px;
+  padding:12px 14px;
+  border:1px solid rgba(34,211,238,.18);
+  background:rgba(8,47,73,.10);
+  border-radius:16px;
+  display:flex;
+  align-items:end;
+  gap:14px;
+  flex-wrap:wrap;
+}
+.stream-events-admin .evs-shot-stream-select label{
+  min-width:280px;
+  display:grid;
+  gap:6px;
+}
+.stream-events-admin .evs-shot-stream-select label span{
+  color:#cbd5e1;
+  font-size:12px;
+  font-weight:900;
+}
+.stream-events-admin .evs-shot-stream-select small{
+  color:#94a3b8;
+  font-size:12px;
+  padding-bottom:8px;
+}
+@media(max-width:760px){
+  .stream-events-admin .evs-shot-runtime-card{display:grid;}
+  .stream-events-admin .evs-shot-runtime-card .evs-btn{width:100%;}
+  .stream-events-admin .evs-shot-stream-select{display:grid;}
+}
