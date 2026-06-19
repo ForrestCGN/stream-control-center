@@ -1,6 +1,6 @@
 # Modul-Doku – Stream Events / Eventsystem
 
-Stand: 2026-06-19 – EVS52.26
+Stand: 2026-06-19 – EVS52.27
 
 ## Aufgabe des Moduls
 
@@ -8,22 +8,87 @@ Das Modul `stream_events` verwaltet Events mit Sound- und Satz-/Text-Teilspielen
 
 ## Aktueller Stand
 
-Der aktuelle Backend-Notfallstand ist:
+Aktueller Backendstand:
 
 ```text
 Datei: backend/modules/stream_events.js
-moduleVersion: 0.5.92
-moduleBuild: STEP_EVS52_26_WINNER_FINALE_NULLSAFE_PREVIEW
+moduleVersion: 0.5.93
+moduleBuild: STEP_EVS52_27_WINNER_TOP3_TWITCH_AVATARS_NO_AUTOREPLAY
 ```
 
-EVS52.26 ist ein minimaler Backend-Fix auf Basis des echten Live-Stands EVS52.25.
+Aktueller Winner-Overlay-Stand:
 
-Behoben wurde ein Crash in der Finale-Preview, wenn ein Event fertig ist, Ranking vorhanden ist, aber noch kein `winnerFinale` existiert.
+```text
+Datei: htdocs/overlays/stream_events/event_winner_overlay.html
+moduleVersion: 0.5.42
+STEP: EVS52.27
+```
 
-Fehler vor dem Fix:
+## EVS52.26 – Finale-Preview Nullsafe
+
+EVS52.26 behob den Crash:
 
 ```text
 Cannot read properties of null (reading 'startedAt')
+```
+
+Ursache war `winnerFinaleActivitySummary(null, metadata)` bei fertig beendetem Event ohne vorhandenes `winnerFinale`.
+
+Bestätigt:
+
+- `GET /api/stream-events/events/:eventUid/finale` liefert wieder `ok:true`.
+- `dashboardCanStartFinale:true` wird geliefert.
+
+## EVS52.27 – Top-3 Twitch Avatare und No Auto-Replay
+
+EVS52.27 adressiert:
+
+1. Top-3-Avatare im Finale sollen vor der Anzeige über Twitch/Userinfo aufgelöst werden.
+2. Das Winner-Overlay darf sich nicht ungefragt durch Auto-Replay oder generische Bus-Events einblenden.
+
+### Avatar-Regel Finale
+
+Für die Top 3 gilt:
+
+```text
+Top 3 ermitteln
+→ Twitch/Userinfo remote erzwingen
+→ Avatar + DisplayName übernehmen
+→ Finale-Payload erst danach bauen/senden
+→ lokale Avatare nur als Fallback
+→ Initialen/Fallback nur, wenn wirklich kein Avatar gefunden wurde
+```
+
+Zusätzlich werden `userAvatarUrl` und `user_avatar_url` backend- und overlayseitig erkannt.
+
+### Overlay-Regel Auto-Replay
+
+Auto-Replay ist nicht mehr Standard.
+
+Nur diese URLs dürfen das letzte Finale automatisch laden:
+
+```text
+event_winner_overlay.html?autoReplay=1
+event_winner_overlay.html?auto_replay=1
+```
+
+Die normale URL bleibt leer:
+
+```text
+event_winner_overlay.html
+```
+
+### Bus-Trigger-Regel
+
+Das Winner-Overlay darf nicht mehr auf ein generisches `action === "started"` reagieren. Dadurch soll verhindert werden, dass Glücksrad-/andere Modul-Events versehentlich das Winner-Overlay rendern.
+
+## Wichtige Routen Finale
+
+```text
+GET  /api/stream-events/events/:eventUid/finale
+POST /api/stream-events/events/:eventUid/finale/start?confirm=1
+POST /api/stream-events/events/:eventUid/finale/end?confirm=1
+GET  /api/stream-events/winner-finale/latest
 ```
 
 ## Wichtige Dateien
@@ -42,118 +107,23 @@ htdocs/overlays/sound_system_overlay.html
 htdocs/overlays/event_runtime_overlay.html
 ```
 
-## Chat-Verarbeitung
-
-Die produktive Chatverarbeitung läuft zentral über Twitch-Events/Communication-Bus. Sound- und Satz-/Textteilspiel nutzen dieselbe normalisierte Chatmessage.
-
-Wichtig:
-
-- keine doppelten Direct-Hooks blind ergänzen
-- keine neue Parallel-Chatquelle bauen
-- Bot-/Self-Filter beachten
-
-Ignorierte Bot-/Systemlogins aktuell:
+## Nicht geändert durch EVS52.27
 
 ```text
-heimaufsichtcgn
-kofistreambot
-streamstickers
-streamelements
+Keine DB-Änderung
+Keine Dashboard-Änderung
+Keine Sound-System-Änderung
+Keine Glücksrad-Code-Änderung
+Keine Ranking-/Punkte-Änderung
+Keine Random-Rotation-Änderung
 ```
 
-## Finale-Routen
+## Offene Prüfungen
+
+Siehe:
 
 ```text
-GET  /api/stream-events/events/:eventUid/finale
-POST /api/stream-events/events/:eventUid/finale/start?confirm=1
-POST /api/stream-events/events/:eventUid/finale/end?confirm=1
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+docs/current/TEST_REPORT_EVS52_27_WINNER_TOP3_TWITCH_AVATARS_NO_AUTOREPLAY.md
 ```
-
-`GET /finale` baut die Preview für das Dashboard.
-
-`start` erzeugt ein Finale oder spielt ein vorhandenes Finale erneut ab. Es soll nicht neu auslosen, wenn bereits ein Finale existiert.
-
-`end` beendet/versteckt das aktive Finale.
-
-## Dashboard-Finale-Buttons
-
-```text
-🏆 Auswertung starten
-⏹ Finale beenden
-🔁 Auswertung erneut abspielen
-```
-
-Regeln:
-
-- Start nur bei beendetem Event mit Ranking und ohne vorhandenes Finale.
-- Ende nur bei aktivem Finale.
-- Replay nur bei vorhandenem, aber nicht aktivem Finale.
-
-EVS52.26 bestätigt:
-
-```text
-winnerFinale: null
-finaleStarted: false
-ranking.count: 2
-canStartFinale: true
-dashboardCanStartFinale: true
-```
-
-## Winner-Overlay
-
-OBS-Link:
-
-```text
-http://127.0.0.1:8080/overlays/stream_events/event_winner_overlay.html
-```
-
-Regeln:
-
-- Im Idle unsichtbar.
-- Bei Finale-Start sichtbar.
-- Während aktiver Auswertung nicht durch Poll/fehlenden Latest-State verstecken.
-- Dasselbe aktive Finale nicht erneut rendern.
-- Nur durch manuelles Finale-Ende ausblenden.
-
-## Sound-/Reveal-Video-Schnittstelle
-
-Nach einer richtigen Sound-Antwort kann ein Reveal-Video über das Sound-/Media-System abgespielt werden.
-
-Aktuell zu prüfen:
-
-- Video-Item muss sauber mit `mediaType=video` laufen.
-- `durationMs` muss gesetzt bzw. vom Sound-System zuverlässig ermittelbar sein.
-- `eventUid`, `roundUid` und `requestId` sollen zur Diagnose vorhanden sein.
-- Nach Video-Ende muss die Sound-Queue automatisch freigegeben werden.
-- Kanalpunkte-Sounds dürfen nicht dauerhaft blockieren.
-
-Notfallbefehl bei blockierter Sound-Queue:
-
-```powershell
-Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/sound/skip"
-```
-
-## Bekannte offene Punkte
-
-Streamkritisch:
-
-- Finale-Start nach EVS52.26 noch live/API testen.
-- Reveal-Video/Sound-Queue-Safety prüfen.
-- Soundrotation/Zufall prüfen.
-
-Nicht sofort streamkritisch:
-
-- `finaleActivity.active:true` bei `finaleStarted:false` bereinigen.
-- `!event status` prüfen/fixen.
-- Bot-/Ignore-Liste dashboardfähig machen.
-- Satz-/Teiltreffer-Textvarianten dashboardfähig machen.
-
-## Nicht wieder anfassen ohne konkreten reproduzierbaren Fehler
-
-- zentrale Chatquelle Sound/Satz
-- Punktevergabe
-- Ranking
-- Satzlösung/Duplicate-Logik
-- Soundantworten
-- Finale-Auslosungslogik
-- Winner-Overlay-State-Maschine

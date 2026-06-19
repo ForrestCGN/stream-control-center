@@ -1,57 +1,56 @@
-# CHANGELOG – Event-System EVS52.26
+# CHANGELOG – Event-System EVS52.27
 
 Stand: 2026-06-19
 
-## STEP_EVS52_26_WINNER_FINALE_NULLSAFE_PREVIEW
+## STEP_EVS52_27_WINNER_TOP3_TWITCH_AVATARS_NO_AUTOREPLAY
 
 Geändert:
 
-- `backend/modules/stream_events.js`
-- Modulversion erhöht auf `0.5.92`
-- Modulbuild gesetzt auf `STEP_EVS52_26_WINNER_FINALE_NULLSAFE_PREVIEW`
-- `winnerFinaleActivitySummary()` null-safe gemacht
-
-Behoben:
-
-- Finale-Preview crashte bei frisch beendetem Event ohne vorhandenes `winnerFinale`.
-- Fehler war:
-
 ```text
-Cannot read properties of null (reading 'startedAt')
+backend/modules/stream_events.js
+htdocs/overlays/stream_events/event_winner_overlay.html
 ```
 
-Auswirkung vor dem Fix:
+### Backend
 
-- `GET /api/stream-events/events/:eventUid/finale` crashte.
-- `POST /api/stream-events/events/:eventUid/finale/start?confirm=1` crashte.
-- Dashboard bekam keine Finale-Preview.
-- Button `Auswertung starten` wurde nicht angezeigt.
+- `stream_events.js` von `0.5.92` auf `0.5.93` erhöht.
+- `moduleBuild` gesetzt auf `STEP_EVS52_27_WINNER_TOP3_TWITCH_AVATARS_NO_AUTOREPLAY`.
+- Top-3-Gewinner werden vor dem Finale per Twitch/Userinfo forced remote aufgelöst.
+- Lokaler DisplayName ohne Avatar stoppt die Avatar-Auflösung nicht mehr.
+- Avatar-Felder `userAvatarUrl` und `user_avatar_url` werden zusätzlich normalisiert/erkannt.
+- Vorhandene lokale Avatare bleiben Fallback, falls Twitch/Userinfo keinen Avatar liefert oder fehlschlägt.
 
-Bestätigt nach Fix:
+### Winner-Overlay
 
-- `GET /api/stream-events/events/evs_event_mqkyu4hp_27b0cb030fad/finale` liefert `ok:true`.
-- Ranking wird geliefert.
-- `canStartFinale:true`.
-- `dashboardCanStartFinale:true`.
+- `event_winner_overlay.html` von `0.5.41 / EVS52.20` auf `0.5.42 / EVS52.27` erhöht.
+- Avatar-Key-Liste erweitert um `userAvatarUrl` und `user_avatar_url`.
+- Auto-Replay ist standardmäßig AUS.
+- Auto-Replay läuft nur noch explizit mit `?autoReplay=1` oder `?auto_replay=1`.
+- Generisches `action === "started"` triggert das Winner-Overlay nicht mehr.
 
-Nicht geändert:
+## Behobene/Adressierte Probleme
 
-- keine DB
-- kein Dashboard
-- kein Overlay
-- kein Sound-System
-- keine Reveal-Video-Queue-Logik
-- keine Random-Rotation
-- kein Ranking
-- kein Replay-Flow
+- RoxxyFoxxyCGN hatte im Gewinner-Finale keinen Avatar, obwohl definitiv ein Twitch-Avatar vorhanden ist.
+- Ursache/Adressierung: Top-3-Finale darf nicht von unvollständigen lokalen Daten abhängig sein; Twitch/Userinfo wird für die Top 3 erzwungen.
+- Auswertungs-Overlay wurde teilweise eingeblendet, wenn das Glücksrad angesprochen wurde.
+- Ursache/Adressierung: Winner-Overlay war durch Auto-Replay und breite Bus-Trigger zu aggressiv.
 
-## Kontext zu EVS52.21/EVS52.22/EVS52.25
-
-Die Doku enthielt widersprüchliche Restore-Hinweise zwischen EVS52.21/EVS52.19 und EVS52.22B. Der aktuelle echte Backendstand war vor EVS52.26 bereits:
+## Nicht geändert
 
 ```text
-moduleVersion: 0.5.91
-moduleBuild: STEP_EVS52_25_SOUND_REVEAL_RANDOM_FIX
+Keine DB
+Kein Dashboard
+Kein Sound-System
+Kein Glücksrad-Code
+Keine Ranking-/Punkte-Logik
+Keine Reveal-Video-Queue
+Keine Random-Rotation
+Keine Funktionalität entfernt
 ```
 
-Deshalb wurde nicht zurückgerollt. EVS52.26 ist ein minimaler Fix auf Basis des echten Live-Backends.
+## Vorheriger bestätigter STEP
+
+EVS52.26:
+
+- Finale-Preview crasht nicht mehr bei frisch beendetem Event ohne vorhandenes `winnerFinale`.
+- API liefert `ok:true` und `dashboardCanStartFinale:true` für `evs_event_mqkyu4hp_27b0cb030fad`.
