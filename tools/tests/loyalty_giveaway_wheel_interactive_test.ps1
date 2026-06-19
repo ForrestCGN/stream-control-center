@@ -1,6 +1,6 @@
 <# 
   Loyalty Giveaway Wheel Interactive Test
-  STEP: LWG TESTSCRIPT 1.2 - Interactive Giveaway Wheel Systemtest
+  STEP: LWG TESTSCRIPT 1.3 - Interactive Giveaway Wheel Systemtest
 
   Zweck:
   - Testet ein kopiertes Giveaway von Anfang bis Ende.
@@ -417,37 +417,79 @@ function Get-ExclusionInfo {
 function Write-FinalFiles {
   param([object]$FinalState = $null)
 
-  $summary = New-Object System.Collections.Generic.List[string]
-  $summary.Add("TEST RESULT: $Script:Result") | Out-Null
-  $summary.Add("GiveawayUid: $GiveawayUid") | Out-Null
-  $summary.Add("BlockedUser: $BlockedUser") | Out-Null
-  $summary.Add("ExpectedChatUsers: $ExpectedChatUsers") | Out-Null
-  $summary.Add("Started log folder: $LogRoot") | Out-Null
-  $summary.Add("") | Out-Null
-  $summary.Add("Failures:") | Out-Null
-  if ($Script:Failures.Count -eq 0) { $summary.Add("- keine") | Out-Null } else { foreach ($f in $Script:Failures) { $summary.Add("- $f") | Out-Null } }
-  $summary.Add("") | Out-Null
-  $summary.Add("Warnings:") | Out-Null
-  if ($Script:Warnings.Count -eq 0) { $summary.Add("- keine") | Out-Null } else { foreach ($w in $Script:Warnings) { $summary.Add("- $w") | Out-Null } }
-  $newline = [System.Environment]::NewLine
-  ($summary -join $newline) | Set-Content -Path $SummaryFile -Encoding UTF8
+  try {
+    $summaryLines = @(
+      "TEST RESULT: $Script:Result",
+      "GiveawayUid: $GiveawayUid",
+      "BlockedUser: $BlockedUser",
+      "ExpectedChatUsers: $ExpectedChatUsers",
+      "Started log folder: $LogRoot",
+      "",
+      "Failures:"
+    )
 
-  $run = [ordered]@{
-    result = $Script:Result
-    giveawayUid = $GiveawayUid
-    blockedUser = $BlockedUser
-    expectedChatUsers = $ExpectedChatUsers
-    baseUrl = $BaseUrl
-    logRoot = $LogRoot
-    startedAt = $Script:StartedAt
-    finishedAt = (Get-Date).ToUniversalTime().ToString("o")
-    steps = @($Script:Steps)
-    rounds = @($Script:Rounds)
-    failures = @($Script:Failures)
-    warnings = @($Script:Warnings)
-    finalState = $FinalState
+    if ($Script:Failures.Count -eq 0) {
+      $summaryLines += "- keine"
+    } else {
+      foreach ($f in @($Script:Failures)) { $summaryLines += "- $([string]$f)" }
+    }
+
+    $summaryLines += ""
+    $summaryLines += "Warnings:"
+    if ($Script:Warnings.Count -eq 0) {
+      $summaryLines += "- keine"
+    } else {
+      foreach ($w in @($Script:Warnings)) { $summaryLines += "- $([string]$w)" }
+    }
+
+    $summaryLines += ""
+    $summaryLines += "Rounds:"
+    if ($Script:Rounds.Count -eq 0) {
+      $summaryLines += "- keine"
+    } else {
+      foreach ($r in @($Script:Rounds)) {
+        $summaryLines += ("- Runde {0}: {1} ({2})" -f $r.round, $r.winnerDisplayName, $r.winnerLogin)
+      }
+    }
+
+    $summaryText = [string]::Join([System.Environment]::NewLine, [string[]]$summaryLines)
+    Set-Content -Path $SummaryFile -Value $summaryText -Encoding UTF8
+  } catch {
+    Write-Log "WARN" "Summary-Datei konnte nicht vollstaendig geschrieben werden: $($_.Exception.Message)"
+    try {
+      Set-Content -Path $SummaryFile -Value "TEST RESULT: $Script:Result`nSummaryError: $($_.Exception.Message)" -Encoding UTF8
+    } catch { }
   }
-  ConvertTo-JsonSafe ([pscustomobject]$run) 100 | Set-Content -Path $JsonFile -Encoding UTF8
+
+  try {
+    $run = [pscustomobject]@{
+      result = [string]$Script:Result
+      giveawayUid = [string]$GiveawayUid
+      blockedUser = [string]$BlockedUser
+      expectedChatUsers = [int]$ExpectedChatUsers
+      baseUrl = [string]$BaseUrl
+      logRoot = [string]$LogRoot
+      startedAt = [string]$Script:StartedAt
+      finishedAt = [string](Get-Date).ToUniversalTime().ToString("o")
+      steps = @($Script:Steps)
+      rounds = @($Script:Rounds)
+      failures = @($Script:Failures | ForEach-Object { [string]$_ })
+      warnings = @($Script:Warnings | ForEach-Object { [string]$_ })
+      finalState = $FinalState
+    }
+    ConvertTo-JsonSafe -Value $run -Depth 100 | Set-Content -Path $JsonFile -Encoding UTF8
+  } catch {
+    Write-Log "WARN" "JSON-Run-Datei konnte nicht vollstaendig geschrieben werden: $($_.Exception.Message)"
+    try {
+      $fallback = [pscustomobject]@{
+        result = [string]$Script:Result
+        giveawayUid = [string]$GiveawayUid
+        error = [string]$_.Exception.Message
+        finishedAt = [string](Get-Date).ToUniversalTime().ToString("o")
+      }
+      ConvertTo-JsonSafe -Value $fallback -Depth 20 | Set-Content -Path $JsonFile -Encoding UTF8
+    } catch { }
+  }
 }
 
 $Script:StartedAt = (Get-Date).ToUniversalTime().ToString("o")
