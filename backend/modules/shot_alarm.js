@@ -14,12 +14,14 @@ const communicationBus = require("./communication_bus");
 const textHelper = require("./helpers/helper_texts");
 const settingsHelper = require("./helpers/helper_settings");
 const database = require("../core/database");
+const auditHelper = require("./helpers/helper_audit_log");
+const securityContext = require("./helpers/helper_security_context");
 let chatOutputHelper = null;
 try { chatOutputHelper = require("./helpers/helper_chat_output"); } catch (_) { chatOutputHelper = null; }
 
 const MODULE_NAME = "shot_alarm";
-const MODULE_VERSION = "0.2.1";
-const MODULE_BUILD = "STEP_SHOT_ALARM_2B_DB_TEXTS_CONFIG_HELPERS";
+const MODULE_VERSION = "0.2.2";
+const MODULE_BUILD = "STEP_SHOT_ALARM_2D_DASHBOARD_AUDIT_SAFETY";
 const CONFIG_FILE = "shot_alarm.json";
 const HISTORY_LIMIT = 200;
 const TEXT_MODULE = "shot_alarm";
@@ -55,7 +57,7 @@ const MODULE_META = {
       "shot_alarm.status_bar.update"
     ]
   },
-  description: "Shot-Alarm fuer Twitch-Support-Events mit gebuendelter Auslosung, Counter, Overlay-Statusleiste sowie DB-basierten Altersheim-/Heimleitungs-Texten und DB-Config."
+  description: "Shot-Alarm fuer Twitch-Support-Events mit gebuendelter Auslosung, Counter, Overlay-Statusleiste, DB-basierten Texten/Config sowie Dashboard-Audit/Safety fuer produktive Aktionen."
 };
 
 const DEFAULT_CONFIG = {
@@ -269,13 +271,42 @@ const state = {
   storageError: "",
   textVariantsReady: false,
   textVariantsError: "",
-  configSource: "json"
+  configSource: "json",
+  auditReady: true,
+  auditEntriesWritten: 0,
+  auditLastEntryAt: "",
+  auditLastError: "",
+  safetyDenied: 0
 };
 
 let config = clone(DEFAULT_CONFIG);
 let bus = null;
 let broadcastWS = null;
 let heartbeatTimer = null;
+
+const auditLogger = auditHelper.createAuditLogger({
+  config: {
+    enabled: true,
+    maxMemoryEntries: 300,
+    retentionDays: 30,
+    allowedCategories: [
+      "system", "security", "api", "dashboard", "communication", "overlay", "alert",
+      "sound", "tts", "vip", "streamerbot", "obs", "discord", "twitch",
+      "database", "config", "error", "shot_alarm"
+    ],
+    allowedResults: [
+      "ok", "failed", "denied", "ignored", "skipped", "queued", "started",
+      "finished", "timeout", "warning"
+    ]
+  }
+});
+
+const CONFIRM_WRITE_ACTIONS = [
+  "manual-trigger",
+  "resolve-pending",
+  "flush-pending",
+  "reset-state"
+];
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value ?? null));
@@ -301,6 +332,108 @@ function clampPercent(value, fallback = 0) {
 
 function safeJson(value) {
   try { return JSON.parse(JSON.stringify(value ?? null)); } catch (_) { return null; }
+}
+
+
+function boolLike(value, fallback = false) {
+  if (value === undefined || value === null || value === "") return fallback;
+  if (typeof value === "boolean") return value;
+  const clean = cleanString(value).toLowerCase();
+  if (["1", "true", "yes", "ja", "on", "y"].includes(clean)) return true;
+  if (["0", "false", "no", "nein", "off", "n"].includes(clean)) return false;
+  return fallback;
+}
+
+function parseRoles(value) {
+  if (Array.isArray(value)) return value.map(v => cleanString(v)).filter(Boolean);
+  return cleanString(value).split(/[;,\s]+/).map(v => cleanString(v)).filter(Boolean);
+}
+
+function actorFromRequest(req) {
+  const body = req && req.body && typeof req.body === "object" ? req.body : {};
+  const headers = req && req.headers ? req.headers : {};
+  const actor = body.actor && typeof body.actor === "object" ? body.actor : {};
+  const id = cleanString(actor.id || body.actorId || body.actorLogin || headers["x-cgn-actor-id"] || headers["x-cgn-actor-login"] || "dashboard");
+  const name = cleanString(actor.name || body.actorName || body.actorDisplayName || headers["x-cgn-actor-name"] || id || "Dashboard");
+  const roles = parseRoles(actor.roles || body.actorRoles || body.actorRole || headers["x-cgn-actor-roles"] || ["dashboard_user"]);
+  return { type: "dashboard", id, name, roles: roles.length ? roles : ["dashboard_user"] };
+}
+
+function auditContextFromRequest(req) {
+  return securityContext.contextFromExpressRequest(req, MODULE_NAME, { actor: actorFromRequest(req), mayLogPayload: false });
+}
+
+function logDashboardAction(req, options = {}) {
+  try {
+    const logged = auditLogger.log({
+      context: auditContextFromRequest(req),
+      level: options.level || "info",
+      category: options.category || "shot_alarm",
+      action: options.action || "shot_alarm.dashboard_action",
+      result: options.result || "ok",
+      message: options.message || "Shot-Alarm dashboard action",
+      details: options.details || {},
+      payload: options.payload || undefined,
+      mayLogPayload: options.mayLogPayload === true
+    });
+    if (logged && logged.ok) {
+      state.auditEntriesWritten += 1;
+      state.auditLastEntryAt = logged.entry && logged.entry.at ? logged.entry.at : nowIso();
+      state.auditLastError = "";
+    }
+    return logged;
+  } catch (err) {
+    state.auditLastError = err && err.message ? err.message : String(err);
+    return { ok: false, error: state.auditLastError };
+  }
+}
+
+function confirmWriteAccepted(req) {
+  const body = req && req.body && typeof req.body === "object" ? req.body : {};
+  const query = req && req.query && typeof req.query === "object" ? req.query : {};
+  return boolLike(body.confirmWrite, false)
+    || boolLike(query.confirmWrite, false)
+    || cleanString(body.confirm).toUpperCase() === "SHOT_ALARM_WRITE"
+    || cleanString(query.confirm).toUpperCase() === "SHOT_ALARM_WRITE";
+}
+
+function requireConfirmWrite(req, action) {
+  if (confirmWriteAccepted(req)) return { ok: true };
+  state.safetyDenied += 1;
+  logDashboardAction(req, {
+    level: "warn",
+    result: "denied",
+    action: `shot_alarm.${action}`,
+    message: `Shot-Alarm write action denied: confirmWrite missing`,
+    details: { action, required: "confirmWrite=true" }
+  });
+  return {
+    ok: false,
+    status: 400,
+    payload: {
+      ok: false,
+      module: MODULE_NAME,
+      moduleVersion: MODULE_VERSION,
+      moduleBuild: MODULE_BUILD,
+      error: "confirm_write_required",
+      action,
+      hint: "Diese produktive Shot-Alarm-Aktion braucht confirmWrite=true."
+    }
+  };
+}
+
+function publicAuditStatus() {
+  const status = auditLogger.getStatus();
+  return {
+    enabled: status.enabled,
+    memoryEntries: status.memory.entries,
+    maxMemoryEntries: status.memory.maxEntries,
+    retentionDays: status.memory.retentionDays,
+    written: state.auditEntriesWritten,
+    lastEntryAt: state.auditLastEntryAt,
+    lastError: state.auditLastError,
+    denied: state.safetyDenied
+  };
 }
 
 function randomFrom(list, fallback = "") {
@@ -633,6 +766,8 @@ function publicStatus() {
     configSource: state.configSource,
     database: { adapter: database.getAdapter ? database.getAdapter() : "sqlite", dialect: database.getDialect ? database.getDialect() : "sqlite", storageReady: state.storageReady, historyTable: HISTORY_TABLE, settingsTable: SETTINGS_TABLE, settingsKey: SETTINGS_KEY_CONFIG, error: state.storageError },
     texts: { module: TEXT_MODULE, variantsReady: state.textVariantsReady, variantsTable: textHelper.DEFAULT_MODULE_TEXT_VARIANTS_TABLE || "module_text_variants", error: state.textVariantsError },
+    safety: { dashboardAuditEnabled: true, confirmWriteRequired: true, confirmWriteActions: CONFIRM_WRITE_ACTIONS, dashboardAuditEndpoint: "/api/shot-alarm/dashboard-audit" },
+    audit: publicAuditStatus(),
     startedAt: state.startedAt,
     updatedAt: state.updatedAt,
     lastError: state.lastError,
@@ -1323,12 +1458,19 @@ function init(ctx = {}) {
   const post = (path, handler) => { app.post(path, handler); routes.push(`POST ${path}`); };
 
   get("/api/shot-alarm/status", (req, res) => res.json(publicStatus()));
+  get("/api/shot-alarm/dashboard-audit", (req, res) => {
+    const limit = Math.max(0, Math.min(Number(req.query && req.query.limit || 50), 200));
+    res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, audit: publicAuditStatus(), entries: auditLogger.getRecent(limit, { module: MODULE_NAME }) });
+  });
   get("/api/shot-alarm/config", (req, res) => res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, config, path: state.configPath }));
   post("/api/shot-alarm/config", (req, res) => {
     try {
-      const next = saveConfig(req.body && typeof req.body === "object" ? req.body : {});
+      const body = req.body && typeof req.body === "object" ? req.body : {};
+      const next = saveConfig(body);
+      logDashboardAction(req, { action: "shot_alarm.config.save", category: "config", result: "ok", message: "Shot-Alarm config saved", details: { changedKeys: Object.keys(body).filter(k => !["actor", "actorId", "actorName", "actorRoles"].includes(k)), configSource: state.configSource } });
       res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, config: next, status: publicStatus() });
     } catch (err) {
+      logDashboardAction(req, { action: "shot_alarm.config.save", category: "config", result: "failed", level: "error", message: "Shot-Alarm config save failed", details: { error: err && err.message ? err.message : String(err) } });
       res.status(500).json({ ok: false, module: MODULE_NAME, error: err && err.message ? err.message : String(err) });
     }
   });
@@ -1350,9 +1492,12 @@ function init(ctx = {}) {
   post("/api/shot-alarm/texts", (req, res) => {
     try {
       ensureTextVariants();
-      const result = textHelper.handleModuleTextEditorPayload(TEXT_MODULE, req.body || {}, TEXT_OPTIONS);
+      const body = req.body || {};
+      const result = textHelper.handleModuleTextEditorPayload(TEXT_MODULE, body, TEXT_OPTIONS);
+      logDashboardAction(req, { action: `shot_alarm.texts.${cleanString(body.action, "update")}`, category: "config", result: "ok", message: "Shot-Alarm text variants changed", details: { textAction: cleanString(body.action, "update"), key: body.variant && body.variant.key ? body.variant.key : "", id: body.id || body.variant?.id || 0 } });
       res.json(result);
     } catch (err) {
+      logDashboardAction(req, { action: "shot_alarm.texts.update", category: "config", result: "failed", level: "error", message: "Shot-Alarm text update failed", details: { error: err && err.message ? err.message : String(err) } });
       res.status(500).json({ ok: false, module: MODULE_NAME, error: err && err.message ? err.message : String(err) });
     }
   });
@@ -1360,12 +1505,16 @@ function init(ctx = {}) {
     try {
       const body = req.body && typeof req.body === "object" ? req.body : {};
       const result = processInput({ ...body, eventType: cleanString(body.eventType || body.type || "sub") }, { force: true, forceRoll: body.forceRoll, immediate: body.immediate === true, includeRaw: true, eventKey: "manual.test", countReceived: true });
+      logDashboardAction(req, { action: "shot_alarm.test", result: "ok", message: "Shot-Alarm synthetic test triggered", details: { type: cleanString(body.type || body.eventType || "sub"), bits: asNumber(body.bits, 0), amountEur: asNumber(body.amountEur, 0), immediate: body.immediate === true } });
       res.json(result);
     } catch (err) {
+      logDashboardAction(req, { action: "shot_alarm.test", result: "failed", level: "error", message: "Shot-Alarm synthetic test failed", details: { error: err && err.message ? err.message : String(err) } });
       res.status(500).json({ ok: false, module: MODULE_NAME, error: err && err.message ? err.message : String(err) });
     }
   });
   post("/api/shot-alarm/manual-trigger", (req, res) => {
+    const confirm = requireConfirmWrite(req, "manual-trigger");
+    if (!confirm.ok) return res.status(confirm.status).json(confirm.payload);
     try {
       const body = req.body && typeof req.body === "object" ? req.body : {};
       const shots = Math.max(1, Math.floor(asNumber(body.shots, 1)));
@@ -1395,19 +1544,25 @@ function init(ctx = {}) {
       requestSound(pickSound(), trigger).catch(() => {});
       emitBus("triggered", entry);
       publishStatus("manual_trigger");
+      logDashboardAction(req, { action: "shot_alarm.manual_trigger", result: "ok", message: "Manual Shot-Alarm triggered", details: { shots, reason: trigger.eventLabel, shotsOpen: state.shotsOpen } });
       res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, trigger: entry, status: publicStatus() });
     } catch (err) {
+      logDashboardAction(req, { action: "shot_alarm.manual_trigger", result: "failed", level: "error", message: "Manual Shot-Alarm trigger failed", details: { error: err && err.message ? err.message : String(err) } });
       res.status(500).json({ ok: false, module: MODULE_NAME, error: err && err.message ? err.message : String(err) });
     }
   });
   get("/api/shot-alarm/status-bar", (req, res) => res.json({ ok: true, module: MODULE_NAME, statusBar: buildStatusPayload() }));
   post("/api/shot-alarm/resolve-pending", async (req, res) => {
+    const confirm = requireConfirmWrite(req, "resolve-pending");
+    if (!confirm.ok) return res.status(confirm.status).json(confirm.payload);
     try {
       const ids = [...state.drawsPending.keys()];
       const results = [];
       for (const id of ids) results.push(await resolveDraw(id, {}));
+      logDashboardAction(req, { action: "shot_alarm.resolve_pending", result: "ok", message: "Pending Shot-Alarm draws resolved", details: { resolved: results.length } });
       res.json({ ok: true, module: MODULE_NAME, resolved: results.length, results, status: publicStatus() });
     } catch (err) {
+      logDashboardAction(req, { action: "shot_alarm.resolve_pending", result: "failed", level: "error", message: "Pending Shot-Alarm resolve failed", details: { error: err && err.message ? err.message : String(err) } });
       res.status(500).json({ ok: false, module: MODULE_NAME, error: err && err.message ? err.message : String(err) });
     }
   });
@@ -1425,14 +1580,29 @@ function init(ctx = {}) {
       sendChatText("shotDone", { ...entry, shotsOpen: state.shotsOpen, shotsDrunk: state.shotsDrunk, user: entry.user }).catch(() => {});
       sendStatusBar();
       publishStatus("shot_done");
+      logDashboardAction(req, { action: "shot_alarm.shot_done", result: "ok", message: "Shot marked as done", details: { requested: count, done, shotsOpen: state.shotsOpen, shotsDrunk: state.shotsDrunk, user: entry.user.displayName } });
       return res.json({ ok: true, module: MODULE_NAME, done, shotsOpen: state.shotsOpen, shotsDrunk: state.shotsDrunk, status: publicStatus() });
     }
     sendChatText("shotDoneEmpty", { user: { login: cleanString(body.user || "manual"), displayName: cleanString(body.user || body.displayName, "Dashboard") }, shotsOpen: state.shotsOpen, shotsDrunk: state.shotsDrunk }).catch(() => {});
     sendStatusBar();
+    logDashboardAction(req, { action: "shot_alarm.shot_done", result: "skipped", message: "Shot done skipped, no open shots", details: { requested: count, shotsOpen: state.shotsOpen, shotsDrunk: state.shotsDrunk } });
     return res.json({ ok: true, module: MODULE_NAME, done: 0, shotsOpen: state.shotsOpen, shotsDrunk: state.shotsDrunk, skippedReason: "no_open_shots", status: publicStatus() });
   });
-  post("/api/shot-alarm/flush-pending", (req, res) => res.json({ ok: true, module: MODULE_NAME, flushed: flushPending(), status: publicStatus() }));
-  post("/api/shot-alarm/reset-state", (req, res) => { resetState(); sendStatusBar(); res.json({ ok: true, module: MODULE_NAME, status: publicStatus() }); });
+  post("/api/shot-alarm/flush-pending", (req, res) => {
+    const confirm = requireConfirmWrite(req, "flush-pending");
+    if (!confirm.ok) return res.status(confirm.status).json(confirm.payload);
+    const flushed = flushPending();
+    logDashboardAction(req, { action: "shot_alarm.flush_pending", result: "ok", message: "Pending Shot-Alarm support buffer flushed", details: { flushed } });
+    res.json({ ok: true, module: MODULE_NAME, flushed, status: publicStatus() });
+  });
+  post("/api/shot-alarm/reset-state", (req, res) => {
+    const confirm = requireConfirmWrite(req, "reset-state");
+    if (!confirm.ok) return res.status(confirm.status).json(confirm.payload);
+    resetState();
+    sendStatusBar();
+    logDashboardAction(req, { action: "shot_alarm.reset_state", level: "warn", result: "ok", message: "Shot-Alarm runtime state reset", details: { reset: true } });
+    res.json({ ok: true, module: MODULE_NAME, status: publicStatus() });
+  });
 
   state.routeCount = routes.length;
   console.log(`[${MODULE_NAME}] loaded v${MODULE_VERSION} build=${MODULE_BUILD} routes=${state.routeCount}`);

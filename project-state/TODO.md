@@ -1,6 +1,6 @@
 # TODO
 
-Stand: 2026-06-18
+Stand: 2026-06-19
 
 ## Shot-Alarm erledigt
 
@@ -19,11 +19,15 @@ Stand: 2026-06-18
 - [x] Shot-Alarm-Texte im bestehenden Event-System-Texte-Dropdown verfügbar.
 - [x] Shot-Alarm-Config im sicheren Config-Bereich-Dropdown verfügbar.
 - [x] Event-System-Config bleibt vollständig erhalten.
+- [x] `!shotdone` Command über bestehendes Command-/Chat-System angebunden.
+- [x] Berechtigungen für Engel/Roxxy/Broadcaster/Mods technisch umgesetzt.
+- [x] `!shotdone` Dry-Run und Execute erfolgreich getestet.
 
 ## Shot-Alarm offen
 
-- [ ] `!shotdone` Command über bestehendes Command-/Chat-System anbinden.
-- [ ] Berechtigungen für Engel/Roxxy/Broadcaster/Mods festlegen und umsetzen.
+- [ ] Finalen Post-Command-Countercheck nach `!shotdone` im Live-System noch einmal ausführen: `shotsOpen`, `shotsDrunk`, `shotsAddedTotal`, `lastError`.
+- [ ] `!shotdone` im echten Twitch-Chat testen.
+- [ ] Rechte in der Praxis prüfen: Engel/Roxxy, Broadcaster, Mod, nicht erlaubter User.
 - [ ] Ko-fi/Tipeee Payment-Bus anbinden.
 - [ ] Soundpool-Auswahl im Dashboard anbinden.
 - [ ] Echte Shot-Sounds hinterlegen/testen.

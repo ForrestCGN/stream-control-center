@@ -103,3 +103,7 @@
 .shot-check { flex-direction: row !important; align-items: center; min-width: auto !important; }
 .shot-check input { width: auto; }
 .shot-card code { color: #67e8f9; }
+
+
+/* SHOT-ALARM-2D Dashboard Audit/Safety compatibility */
+.shot-audit-note{border:1px solid rgba(34,211,238,.24);background:rgba(8,47,73,.14);border-radius:14px;padding:10px 12px;color:#cbd5e1;font-size:13px}

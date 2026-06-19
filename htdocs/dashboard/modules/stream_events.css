@@ -1284,3 +1284,12 @@
 .evs-shot-config-panel {
   border-color: rgba(34, 211, 238, 0.22);
 }
+
+
+/* SHOT-ALARM-2D Dashboard Audit/Safety */
+.stream-events-admin .evs-shot-safety-box{margin-top:14px;border-color:rgba(34,211,238,.24);background:rgba(8,47,73,.12)}
+.stream-events-admin .evs-shot-audit-list{display:grid;gap:8px;margin-top:10px;max-height:220px;overflow:auto}
+.stream-events-admin .evs-shot-audit-list>div{display:grid;gap:3px;border:1px solid rgba(255,255,255,.10);background:rgba(2,6,23,.30);border-radius:12px;padding:9px 10px}
+.stream-events-admin .evs-shot-audit-list b{color:#f8fafc;font-size:12px}
+.stream-events-admin .evs-shot-audit-list span{color:#cbd5e1;font-size:12px}
+.stream-events-admin .evs-shot-audit-list small{color:#94a3b8;font-size:11px}

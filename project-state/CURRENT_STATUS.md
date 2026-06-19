@@ -1,18 +1,24 @@
 # CURRENT_STATUS
 
-Stand: 2026-06-18
+Stand: 2026-06-19
 
 ## Shot-Alarm
 
-Aktueller geprüfter Stand: **SHOT-ALARM-2B.6 Safe Config Dropdown No Settings Lost**
+Aktueller geprüfter Stand: **SHOT-ALARM-2C shotdone command**
 
-Backend:
+Backend Shot-Alarm:
 
 - `backend/modules/shot_alarm.js`
 - Modulversion: `0.2.1`
 - Build: `STEP_SHOT_ALARM_2B_DB_TEXTS_CONFIG_HELPERS`
 
-Dashboard-Fix:
+Command-System:
+
+- `backend/modules/commands.js`
+- Modulversion: `0.2.4`
+- Build: `STEP_SHOT_ALARM_2C_SHOTDONE_COMMAND`
+
+Dashboard-Fix-Stand:
 
 - `SHOT-ALARM-2B.6 Safe Config Dropdown No Settings Lost`
 
@@ -30,6 +36,28 @@ Zusätzlich:
   - Config-Bereich-Dropdown `Event-System` / `Shot-Alarm`
   - Event-System-Config bleibt vollständig erhalten.
   - Shot-Alarm-Config ist separat auswählbar.
+
+## Neu in STEP 2C
+
+`!shotdone` ist über das bestehende Command-System angebunden.
+
+Command:
+
+- Trigger: `!shotdone`
+- Alias: `!shotgetrunken`
+- Modul: `shot_alarm`
+- Zielroute: `POST /api/shot-alarm/shot-done`
+- ResponseMode: `module`
+- Standardrechte:
+  - `engelcgn`
+  - `roxxyfoxxy`
+  - Broadcaster
+  - Mods
+
+Wichtig:
+
+- Das Command-System sendet keine eigene zusätzliche Antwort.
+- Die Chatmeldung kommt vom Modul `shot_alarm` über dessen Textvarianten `shotDone` / `shotDoneEmpty`.
 
 ## Geprüfte Regeln
 
@@ -49,10 +77,44 @@ Zusätzlich:
 - 10-Sekunden-Auslosungsphase funktioniert.
 - Ergebnis wird danach resolved.
 - `shotsOpen` wird erst beim Ergebnis erhöht.
-- `shot-done` funktioniert.
+- `shot-done` Route funktioniert.
+- `!shotdone` wird vom Command-System erkannt und erfolgreich an `shot_alarm` weitergeleitet.
 - Overlay-Statusleiste und Ergebnis-Overlay vorhanden.
 - DB-Texte und DB-Config über vorhandene Helper eingebunden.
+
+## Erfolgreich geprüfte Tests
+
+Command-System Status:
+
+- `ok=true`
+- `moduleVersion=0.2.4`
+- `moduleBuild=STEP_SHOT_ALARM_2C_SHOTDONE_COMMAND`
+- `schemaOk=true`
+- `busChatSubscriber.active=true`
+
+Dry-Run:
+
+- `!shotdone` wird korrekt erkannt.
+- User `EngelCGN` wird über `allowedLogins` erlaubt.
+- Zielroute ist `POST /api/shot-alarm/shot-done`.
+
+Execute:
+
+- `!shotdone` wird korrekt ausgeführt.
+- Ergebnis: `ok=true`, `statusCode=200`, `dataOk=true`, `module=shot_alarm`.
+
+Shot-Test:
+
+- Testevent `10.000 Bits` erzeugt korrekt 1 sicheren Shot.
+- Nach Auslosung: `shotsOpen=1`, `shotsDrunk=0`, `shotsAddedTotal=1`.
+- Danach wurde `!shotdone` erfolgreich ausgeführt.
+
+Hinweis:
+
+- Die finale Nachprüfung der Counter direkt nach `!shotdone` sollte im Live-System noch einmal mit `GET /api/shot-alarm/status` gemacht werden.
 
 ## Wichtig
 
 Dashboard-Config-Dropdown darf bestehende Event-System-Einstellungen nie löschen oder ersetzen. Event-System und Shot-Alarm speichern getrennt.
+
+Keine neue parallele Command-Struktur bauen. Shot-Alarm nutzt die vorhandene Command-Verarbeitung.

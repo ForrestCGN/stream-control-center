@@ -34,6 +34,8 @@ window.ShotAlarmModule = (function(){
     return window.CGN?.esc ? window.CGN.esc(value) : String(value ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
   }
 
+  function dashboardActorPayload(){ return { actor: { type: 'dashboard', id: 'dashboard', name: 'Dashboard', roles: ['dashboard_user'] } }; }
+
   function ensurePanel() {
     root = document.getElementById('shotAlarmModule');
     if (root) return root;
@@ -150,7 +152,7 @@ window.ShotAlarmModule = (function(){
 
   async function saveConfig() {
     const next = readConfigFromInputs();
-    const saved = await window.CGN.api(api.config, { method: 'POST', body: JSON.stringify(next) });
+    const saved = await window.CGN.api(api.config, { method: 'POST', body: JSON.stringify({ ...next, ...dashboardActorPayload() }) });
     state.config = saved.config;
     state.status = saved.status;
     state.notice = 'Shot-Alarm Config gespeichert. Quelle: DB, JSON bleibt Mirror/Fallback.';
@@ -158,8 +160,8 @@ window.ShotAlarmModule = (function(){
   }
 
   async function runTest(type, extra = {}) {
-    const payload = { type, eventType: type, user: { login: 'testuser', displayName: 'TestUser' }, immediate: extra.immediate === true, ...extra };
-    const result = await window.CGN.api(api.test, { method: 'POST', body: JSON.stringify(payload) });
+    const payload = { type, eventType: type, user: { login: 'testuser', displayName: 'TestUser' }, immediate: extra.immediate === true, ...extra, ...dashboardActorPayload() };
+    const result = await window.CGN.api(api.test, { method: 'POST', body: JSON.stringify({ ...payload, ...dashboardActorPayload() }) });
     state.status = result.status;
     state.notice = `Test ausgeführt: ${type}`;
     await loadAll(true);
@@ -168,7 +170,8 @@ window.ShotAlarmModule = (function(){
   async function manualTrigger() {
     const shots = Number(root.querySelector('[data-shot-manual="shots"]')?.value || 1);
     const reason = root.querySelector('[data-shot-manual="reason"]')?.value || 'Dashboard-Test';
-    const result = await window.CGN.api(api.manual, { method: 'POST', body: JSON.stringify({ shots, reason }) });
+    if (!confirm('Manuellen Shot-Alarm wirklich auslösen?')) return;
+    const result = await window.CGN.api(api.manual, { method: 'POST', body: JSON.stringify({ shots, reason, confirmWrite: true, ...dashboardActorPayload() }) });
     state.status = result.status;
     state.notice = 'Manueller Shot-Alarm ausgelöst.';
     await loadAll(true);
@@ -176,28 +179,30 @@ window.ShotAlarmModule = (function(){
 
   async function resetState() {
     if (!confirm('Shot-Alarm Runtime-Verlauf wirklich zurücksetzen? Config und DB-Texte bleiben erhalten.')) return;
-    const result = await window.CGN.api(api.reset, { method: 'POST', body: '{}' });
+    const result = await window.CGN.api(api.reset, { method: 'POST', body: JSON.stringify({ confirmWrite: true, ...dashboardActorPayload() }) });
     state.status = result.status;
     state.notice = 'Runtime-State zurückgesetzt.';
     await loadAll(true);
   }
 
   async function flushPending() {
-    const result = await window.CGN.api(api.flush, { method: 'POST', body: '{}' });
+    if (!confirm('Pending-Sub-Puffer wirklich jetzt verarbeiten?')) return;
+    const result = await window.CGN.api(api.flush, { method: 'POST', body: JSON.stringify({ confirmWrite: true, ...dashboardActorPayload() }) });
     state.status = result.status;
     state.notice = `${result.flushed || 0} Pending-Sub(s) verarbeitet.`;
     await loadAll(true);
   }
 
   async function resolvePending() {
-    const result = await window.CGN.api(api.resolve, { method: 'POST', body: '{}' });
+    if (!confirm('Offene Shot-Auslosungen wirklich sofort auflösen?')) return;
+    const result = await window.CGN.api(api.resolve, { method: 'POST', body: JSON.stringify({ confirmWrite: true, ...dashboardActorPayload() }) });
     state.status = result.status;
     state.notice = `${result.resolved || 0} Auslosung(en) direkt aufgelöst.`;
     await loadAll(true);
   }
 
   async function shotDone() {
-    const result = await window.CGN.api(api.shotDone, { method: 'POST', body: JSON.stringify({ count: 1, user: 'Dashboard' }) });
+    const result = await window.CGN.api(api.shotDone, { method: 'POST', body: JSON.stringify({ count: 1, user: 'Dashboard', ...dashboardActorPayload() }) });
     state.status = result.status;
     state.notice = result.done > 0 ? `1 Shot abgehakt. Offen: ${result.shotsOpen}` : 'Keine offenen Shots vorhanden.';
     await loadAll(true);
@@ -217,14 +222,14 @@ window.ShotAlarmModule = (function(){
         description: form.querySelector('[name="description"]')?.value || ''
       }
     };
-    await window.CGN.api(api.texts, { method: 'POST', body: JSON.stringify(payload) });
+    await window.CGN.api(api.texts, { method: 'POST', body: JSON.stringify({ ...payload, ...dashboardActorPayload() }) });
     state.notice = 'Textvariante gespeichert.';
     await loadAll(true);
   }
 
   async function deleteVariant(id) {
     if (!confirm('Diese Textvariante wirklich löschen?')) return;
-    await window.CGN.api(api.texts, { method: 'POST', body: JSON.stringify({ action: 'deleteVariant', id }) });
+    await window.CGN.api(api.texts, { method: 'POST', body: JSON.stringify({ action: 'deleteVariant', id, ...dashboardActorPayload() }) });
     state.notice = 'Textvariante gelöscht.';
     await loadAll(true);
   }

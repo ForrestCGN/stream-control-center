@@ -1,6 +1,29 @@
 # CHANGELOG
 
-Stand: 2026-06-18
+Stand: 2026-06-19
+
+## SHOT-ALARM-2C shotdone command
+
+- `!shotdone` über das bestehende Command-System angebunden.
+- Alias `!shotgetrunken` ergänzt.
+- Command-System Version auf `0.2.4` erhöht.
+- Build gesetzt auf `STEP_SHOT_ALARM_2C_SHOTDONE_COMMAND`.
+- Command-Catalog um `Shot-Alarm → Shot getrunken melden` ergänzt.
+- Seed-Command für `shotdone` ergänzt.
+- Zielroute: `POST /api/shot-alarm/shot-done`.
+- Permission-Logik erweitert für explizite `allowedLogins`.
+- Standard erlaubt: `engelcgn`, `roxxyfoxxy`, Broadcaster, Mods.
+- Keine Änderung an `shot_alarm.js`.
+- Keine Änderung an Shot-Regeln, Dashboard, DB, Event-System-Config oder Overlay.
+
+Tests:
+
+- `node -c backend/modules/commands.js` erfolgreich.
+- `/api/commands/status` zeigt `moduleVersion=0.2.4` und Build `STEP_SHOT_ALARM_2C_SHOTDONE_COMMAND`.
+- `/api/commands/test?message=!shotdone&user=EngelCGN&role=vip` erkennt Command korrekt und erlaubt EngelCGN über `allowedLogins`.
+- `/api/commands/execute?message=!shotdone&user=EngelCGN&role=vip` führt erfolgreich gegen `shot_alarm` aus.
+- Testevent `10.000 Bits` erzeugt 1 sicheren Shot.
+- Danach wurde `!shotdone` erfolgreich ausgeführt.
 
 ## SHOT-ALARM-2B.6 Safe Config Dropdown No Settings Lost
 

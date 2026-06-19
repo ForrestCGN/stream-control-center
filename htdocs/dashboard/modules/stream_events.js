@@ -26,7 +26,8 @@ window.StreamEventsModule = (function(){
     shotAlarmStats: '/api/shot-alarm/stats',
     shotAlarmTest: '/api/shot-alarm/test',
     shotAlarmShotDone: '/api/shot-alarm/shot-done',
-    shotAlarmResolvePending: '/api/shot-alarm/resolve-pending'
+    shotAlarmResolvePending: '/api/shot-alarm/resolve-pending',
+    shotAlarmAudit: '/api/shot-alarm/dashboard-audit'
   };
 
   let root = null;
@@ -65,7 +66,7 @@ window.StreamEventsModule = (function(){
     activeTab: 'overview',
     configModuleFilter: 'stream_events',
     textSourceModule: 'stream_events',
-    shotAlarm: { loading: false, error: '', status: null, config: null, texts: null, stats: null }
+    shotAlarm: { loading: false, error: '', status: null, config: null, texts: null, stats: null, audit: null }
   };
 
   function esc(v){ return window.CGN?.esc ? window.CGN.esc(v) : String(v ?? '').replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c])); }
@@ -73,6 +74,8 @@ window.StreamEventsModule = (function(){
   function fmtDate(v){ if (!v) return '-'; const d = new Date(v); return Number.isNaN(d.getTime()) ? esc(v) : esc(d.toLocaleString('de-DE')); }
   function rows(v){ return Array.isArray(v) ? v : (Array.isArray(v?.rows) ? v.rows : []); }
   function boolSelect(value){ return String(value) === 'true' || value === true; }
+  function dashboardActorPayload(){ return { actor: { type: 'dashboard', id: 'dashboard', name: 'Dashboard', roles: ['dashboard_user'] } }; }
+  function confirmShotWrite(message){ return confirm(message || 'Shot-Alarm Aktion wirklich ausführen?'); }
   function shotAlarmAvailable(){ return !!state.shotAlarm?.status || !!state.shotAlarm?.config || !!state.shotAlarm?.texts; }
   function eventModuleOptions(){
     return [
@@ -398,7 +401,7 @@ window.StreamEventsModule = (function(){
         </div>
         <div class="evs-two-cols evs-shot-admin-grid">
           <div class="evs-config-card">
-            <div class="evs-config-card-head"><strong>Bedienung</strong><small>Für Stream/Mods. Chat-Befehl kommt später.</small></div>
+            <div class="evs-config-card-head"><strong>Bedienung</strong><small>Für Stream/Mods. Chat-Befehl !shotdone ist aktiv.</small></div>
             <div class="evs-action-row">
               <button type="button" class="evs-btn" data-evs-action="shotAlarmDoneOne">1 Shot getrunken</button>
               <button type="button" class="evs-btn evs-btn-secondary" data-evs-action="shotAlarmResolvePending">Offene Auslosungen auflösen</button>
@@ -432,7 +435,27 @@ window.StreamEventsModule = (function(){
             </div>
           </div>
         </div>
+        ${renderShotAlarmSafetyBox()}
       </section>
+    `;
+  }
+
+  function renderShotAlarmSafetyBox(){
+    const box = state.shotAlarm || {};
+    const audit = box.audit || {};
+    const entries = Array.isArray(audit.entries) ? audit.entries : [];
+    const safety = box.status?.safety || {};
+    return `
+      <div class="evs-config-card evs-shot-safety-box">
+        <div class="evs-config-card-head"><strong>Safety / Audit</strong><small>Produktive Schreibaktionen werden auditiert. Kritische Aktionen brauchen Bestätigung.</small></div>
+        <div class="evs-status-grid">
+          <div><strong>${esc(audit.audit?.memoryEntries ?? box.status?.audit?.memoryEntries ?? 0)}</strong><span>Audit-Einträge</span></div>
+          <div><strong>${esc(box.status?.audit?.denied ?? 0)}</strong><span>Geblockt</span></div>
+          <div><strong>${safety.confirmWriteRequired ? 'Aktiv' : 'Aus'}</strong><span>Confirm-Schutz</span></div>
+          <div><strong>${esc(box.status?.moduleBuild || '-')}</strong><span>Backend-Build</span></div>
+        </div>
+        ${entries.length ? `<div class="evs-shot-audit-list">${entries.slice(0, 5).map(e => `<div><b>${esc(e.action || '-')}</b><span>${esc(e.result || '-')} · ${esc(e.actor?.name || e.actor?.id || '-')}</span><small>${esc(e.at || '')}</small></div>`).join('')}</div>` : '<div class="evs-empty">Noch keine Audit-Einträge geladen.</div>'}
+      </div>
     `;
   }
 
@@ -743,16 +766,18 @@ window.StreamEventsModule = (function(){
     state.shotAlarm.error = '';
     if (rerender) render();
     try {
-      const [status, config, texts, stats] = await Promise.all([
+      const [status, config, texts, stats, audit] = await Promise.all([
         window.CGN.api(api.shotAlarmStatus).catch(err => ({ ok:false, error: err.message || String(err) })),
         window.CGN.api(api.shotAlarmConfig).catch(err => ({ ok:false, error: err.message || String(err), config: null })),
         window.CGN.api(api.shotAlarmTexts).catch(err => ({ ok:false, error: err.message || String(err), categories: [], keys: [] })),
-        window.CGN.api(api.shotAlarmStats).catch(() => null)
+        window.CGN.api(api.shotAlarmStats).catch(() => null),
+        window.CGN.api(api.shotAlarmAudit + '?limit=8').catch(() => null)
       ]);
       state.shotAlarm.status = status;
       state.shotAlarm.config = config?.config || config;
       state.shotAlarm.texts = texts;
       state.shotAlarm.stats = stats;
+      state.shotAlarm.audit = audit;
       state.shotAlarm.loading = false;
       state.shotAlarm.error = status?.error || config?.error || texts?.error || '';
     } catch (err) {
@@ -885,7 +910,7 @@ window.StreamEventsModule = (function(){
 
   async function saveShotAlarmConfig(){
     try {
-      const payload = readShotAlarmConfigFromDom();
+      const payload = { ...readShotAlarmConfigFromDom(), ...dashboardActorPayload() };
       const result = await window.CGN.api(api.shotAlarmConfig, { method: 'POST', body: JSON.stringify(payload) });
       state.shotAlarm.config = result.config || payload;
       state.shotAlarm.status = result.status || state.shotAlarm.status;
@@ -1004,7 +1029,7 @@ window.StreamEventsModule = (function(){
     const enabled = row.querySelector('[data-shot-text-enabled]')?.checked !== false;
     const weight = Number(row.querySelector('[data-shot-text-weight]')?.value || 1);
     if (!key) return null;
-    return { action: 'saveVariant', variant: { id, key, category, value, enabled, weight, description: 'Event-System Dashboard' } };
+    return { action: 'saveVariant', variant: { id, key, category, value, enabled, weight, description: 'Event-System Dashboard' }, ...dashboardActorPayload() };
   }
   async function saveShotTextVariant(row){
     const payload = readShotTextVariantPayload(row);
@@ -1022,7 +1047,7 @@ window.StreamEventsModule = (function(){
     if (!id) return;
     if (!confirm('Shot-Alarm Textvariante wirklich löschen?')) return;
     try {
-      const result = await window.CGN.api(api.shotAlarmTexts, { method: 'POST', body: JSON.stringify({ action: 'deleteVariant', id }) });
+      const result = await window.CGN.api(api.shotAlarmTexts, { method: 'POST', body: JSON.stringify({ action: 'deleteVariant', id, ...dashboardActorPayload() }) });
       state.shotAlarm.texts = result.texts || result;
       state.message = 'Shot-Alarm Textvariante gelöscht.';
       render();
@@ -4036,7 +4061,7 @@ window.StreamEventsModule = (function(){
     if (!id) return;
     if (!confirm('Textvariante wirklich löschen?')) return;
     try {
-      const result = await window.CGN.api(api.texts, { method: 'POST', body: JSON.stringify({ action: 'deleteVariant', id }) });
+      const result = await window.CGN.api(api.texts, { method: 'POST', body: JSON.stringify({ action: 'deleteVariant', id, ...dashboardActorPayload() }) });
       state.texts = result.texts || result;
       state.message = 'Textvariante gelöscht.';
       render();
@@ -4458,20 +4483,21 @@ window.StreamEventsModule = (function(){
         return;
       }
       if (action === 'shotAlarmDoneOne') {
-        await window.CGN.api(api.shotAlarmShotDone, { method: 'POST', body: JSON.stringify({ count: 1, user: 'Dashboard' }) });
+        await window.CGN.api(api.shotAlarmShotDone, { method: 'POST', body: JSON.stringify({ count: 1, user: 'Dashboard', ...dashboardActorPayload() }) });
         await loadShotAlarmData(false);
         state.message = 'Shot-Alarm: 1 Shot abgehakt.';
         render();
         return;
       }
       if (action === 'shotAlarmResolvePending') {
-        await window.CGN.api(api.shotAlarmResolvePending, { method: 'POST', body: JSON.stringify({ actor: 'dashboard' }) }).catch(() => null);
+        if (!confirmShotWrite('Offene Shot-Alarm-Auslosungen wirklich sofort auflösen?')) return;
+        await window.CGN.api(api.shotAlarmResolvePending, { method: 'POST', body: JSON.stringify({ confirmWrite: true, ...dashboardActorPayload() }) });
         await loadShotAlarmData(false);
         render();
         return;
       }
       if (action === 'shotAlarmTestBitsImmediate' || action === 'shotAlarmTestBitsDraw') {
-        const payload = { type: 'bits', user: 'BitRentner', bits: 25000, forceRoll: 0, immediate: action === 'shotAlarmTestBitsImmediate' };
+        const payload = { type: 'bits', user: 'BitRentner', bits: 25000, forceRoll: 0, immediate: action === 'shotAlarmTestBitsImmediate', ...dashboardActorPayload() };
         await window.CGN.api(api.shotAlarmTest, { method: 'POST', body: JSON.stringify(payload) });
         await loadShotAlarmData(false);
         state.message = action === 'shotAlarmTestBitsImmediate' ? 'Shot-Alarm Test sofort ausgelöst.' : 'Shot-Alarm Test-Auslosung gestartet.';
