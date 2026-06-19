@@ -11,37 +11,53 @@ backend/modules/loyalty_games/wheel.js
 config/loyalty_games.json
 config/loyalty_giveaway_exclusions.json
 htdocs/overlays/loyalty/wheel_overlay.html
+tools/tests/loyalty_giveaway_wheel_interactive_test.ps1
 ```
 
 ## Aktueller ZIP-/Step-Stand
 
 ```text
-LWG_GIVEAWAY_EXCLUSIONS_1B.zip
-LWG_GIVEAWAY_EXCLUSIONS_1B_CONFIRMED_DOCS.zip
+LWG_CHAT_COMMANDS_1.zip
+LWG_TESTSCRIPT_1_3_interactive_giveaway_wheel_summary_fix.zip
+LWG_CHAT_COMMANDS_1_CONFIRMED_DOCS.zip
 ```
 
-## Geänderte Dateien in `LWG_GIVEAWAY_EXCLUSIONS_1B`
+## Geänderte Dateien in `LWG_CHAT_COMMANDS_1`
 
 ```text
 backend/modules/loyalty_giveaways.js
-config/loyalty_giveaway_exclusions.json
+docs/steps/LWG_CHAT_COMMANDS_1_README.md
+```
+
+## Geänderte Dateien in `LWG_TESTSCRIPT_1_3`
+
+```text
+tools/tests/loyalty_giveaway_wheel_interactive_test.ps1
+tools/tests/README_LWG_TESTSCRIPT_1_3.md
+```
+
+## Geänderte Dateien in `LWG_CHAT_COMMANDS_1_CONFIRMED_DOCS`
+
+```text
 docs/current/CURRENT_STATUS.md
 docs/current/TODO.md
 docs/current/NEXT_STEPS.md
 docs/current/CHANGELOG.md
 docs/current/FILES.md
-docs/current/CURRENT_CHAT_HANDOFF_LWG_GIVEAWAY_EXCLUSIONS_1B.md
+docs/current/CURRENT_CHAT_HANDOFF_LWG_CHAT_COMMANDS_1_CONFIRMED.md
 docs/modules/loyalty_giveaways_CURRENT.md
-project-state/CURRENT_STATUS_LWG_GIVEAWAY_EXCLUSIONS_1B.md
-README_LWG_GIVEAWAY_EXCLUSIONS_1B.md
+project-state/CURRENT_STATUS_LWG_CHAT_COMMANDS_1_CONFIRMED.md
+README_LWG_CHAT_COMMANDS_1_CONFIRMED_DOCS.md
 ```
 
-## Nicht in diesem Step geändert
+## Nicht in diesem Doku-Step geändert
 
 ```text
+backend/modules/loyalty_giveaways.js
 backend/modules/loyalty_games.js
 backend/modules/loyalty_games/wheel.js
 config/loyalty_games.json
+config/loyalty_giveaway_exclusions.json
 htdocs/overlays/loyalty/wheel_overlay.html
 ```
 
@@ -72,4 +88,31 @@ Permission:        wheelperm_1781865357312_f86f36711269e3e3
 Spin:              spin_1781865515072_d11827bafa8cd593
 Gewinn:            Roadside Research
 Feldverbrauch:     Roadside Research quantityRemaining 1 → 0
+```
+
+### Interaktiver Komplett-Test mit aktiven Chat-Commands
+
+```text
+Giveaway:          giveaway_1781869724371_2cdf71cc66cc312a
+Titel:             Test
+Mode:              wheel_single
+Blocked Entry:     una_solala
+Chat Entries:      RoxxyFoxxyCGN, EngelCGN, ForrestCGN per !ticket
+Draw Open:         korrekt blockiert
+Winner 1:          RoxxyFoxxyCGN → Wheel-Claim durch Chat erkannt
+Winner 2:          EngelCGN      → Wheel-Claim durch Chat erkannt
+Winner 3:          ForrestCGN    → Wheel-Claim durch Chat erkannt
+Final:             kein eligible User mehr vorhanden
+Felder:            8 → 5
+Status:            alle erwarteten Gewinner wheel_completed
+```
+
+### Aktuell angelegtes frisches Test-Giveaway für Script-1.3-Endtest
+
+```text
+Giveaway:          giveaway_1781870456108_bc3cb113232e9e76
+Titel:             Test
+Status:            draft
+Mode:              wheel_single
+CanOpen:           true
 ```

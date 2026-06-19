@@ -4,13 +4,107 @@ Stand: 2026-06-19
 
 ## Aktueller bestätigter Bereich
 
-Step `LWG_GIVEAWAY_EXCLUSIONS_1B` wurde live getestet und bestätigt.
+Step `LWG_CHAT_COMMANDS_1` wurde live eingespielt und bestätigt.
 
 Bestätigt:
 
 ```text
-loyalty_giveaways: 0.1.15 / LWG_GIVEAWAY_EXCLUSIONS_1B
+loyalty_giveaways: 0.1.16 / LWG_CHAT_COMMANDS_1
 loyalty_games:     0.2.8  / LWG_BOUND_WHEEL_FIELD_COUNT_1
+```
+
+Zusätzlich bleibt der vorherige Exclusion-Stand fachlich bestätigt:
+
+```text
+LWG_GIVEAWAY_EXCLUSIONS_1B
+```
+
+## Aktivierte Chat-Commands
+
+`!ticket`, `!wheel` und `!rad` sind jetzt für die normale Giveaway-/Wheel-Runtime aktiv.
+
+Bestätigte Command-Zuordnung:
+
+```text
+!ticket       → normales Giveaway, erstellt Entry im aktuell offenen Giveaway
+!wheel / !rad → Gewinner mit offener Wheel-Permission dreht das gebundene Giveaway-Rad
+!join         → bleibt Raffle-Command
+!raffle       → bleibt Raffle-Command
+```
+
+Live bestätigt über:
+
+```text
+GET /api/loyalty/giveaways/commands
+GET /api/loyalty/giveaways/central-commands
+```
+
+Erwarteter/ bestätigter Stand:
+
+```text
+commands.active = true
+centralCommands.available = true
+centralCommands.active = true
+centralCommands.commandsActive = true
+
+ticket.enabled = true
+wheel.enabled = true
+wheel.aliases = [rad]
+join.enabled = true
+raffle.enabled = true
+```
+
+`ticket` und `wheel` wurden über `LWG_CHAT_COMMANDS_1` aktiviert. `join` und `raffle` bleiben unverändert Raffle-Commands.
+
+## Bestätigter interaktiver Komplett-Test
+
+Test-Giveaway:
+
+```text
+Giveaway: giveaway_1781869724371_2cdf71cc66cc312a
+Titel:    Test
+Mode:     wheel_single
+```
+
+Ablauf:
+
+```text
+1. Giveaway aus draft geöffnet.
+2. Gesperrter User una_solala wurde per API als Entry hinzugefügt.
+3. 3 erlaubte Testuser sind per !ticket beigetreten.
+4. Draw aus open wurde korrekt blockiert.
+5. Giveaway wurde auf closed_for_entries gesetzt.
+6. Draw-Runde 1: RoxxyFoxxyCGN gewann und drehte per !wheel/!rad.
+7. Draw-Runde 2: EngelCGN gewann und drehte per !wheel/!rad.
+8. Draw-Runde 3: ForrestCGN gewann und drehte per !wheel/!rad.
+9. Danach war kein eligible User mehr vorhanden.
+```
+
+Bestätigte PASS-Punkte:
+
+```text
+Aktive Entries korrekt: 4
+Gesperrter User ist sichtbar unter den Entries
+Draw aus OPEN korrekt blockiert
+ExclusionInfo in Runde 1 korrekt
+Pending Wheel-Permission fuer Gewinner vorhanden
+Wheel-Claim durch Chat erkannt: RoxxyFoxxyCGN
+Wheel-Claim durch Chat erkannt: EngelCGN
+Wheel-Claim durch Chat erkannt: ForrestCGN
+Nach 3 Gewinnern ist kein eligible User mehr vorhanden
+Finale verfügbare Felder korrekt: 8 -> 5
+Alle erwarteten Gewinner sind wheel_completed
+```
+
+Damit ist bestätigt:
+
+```text
+- !ticket erreicht die Giveaway-Runtime.
+- !wheel / !rad erreicht die Wheel-Claim-Runtime.
+- Gesperrte User bleiben sichtbar, gewinnen aber nicht.
+- Pro Draw bekommt nur der gezogene Gewinner eine Wheel-Permission.
+- Jeder Chat-Wheel-Claim wird erkannt und abgeschlossen.
+- Der Feldbestand sinkt pro erfolgreichem Wheel-Claim korrekt.
 ```
 
 ## Bestätigte Wheel-Funktion
@@ -51,8 +145,6 @@ User dürfen als Entry sichtbar bleiben, sind aber beim Draw nicht eligible und 
 Live-Status nach `LWG_GIVEAWAY_EXCLUSIONS_1B`:
 
 ```text
-moduleVersion = 0.1.15
-moduleBuild   = LWG_GIVEAWAY_EXCLUSIONS_1B
 giveawayExclusions.enabled = True
 giveawayExclusions.count = 10
 giveawayExclusions.rawItemsCount = 10
@@ -61,7 +153,7 @@ giveawayExclusions.loaded = True
 lastError =
 ```
 
-## Bestätigter Exclusion-Test
+## Bestätigter Exclusion-Test vor LWG_CHAT_COMMANDS_1
 
 Frisches Test-Giveaway:
 
@@ -101,26 +193,21 @@ Feldverbrauch: Roadside Research quantityRemaining 1 → 0
 fieldsCount=8, visualFieldsCount=8, giveawayBoundWheelExactFields=true
 ```
 
-Damit ist bestätigt:
+## Aktueller Testscript-Stand
+
+Aktuell erzeugter Testscript-Step:
 
 ```text
-una_solala durfte teilnehmen und blieb sichtbar,
-wurde aber beim Draw ausgeschlossen und konnte nicht gewinnen.
-Der erlaubte User udowb konnte danach normal das Giveaway-Rad drehen.
+LWG_TESTSCRIPT_1_3_interactive_giveaway_wheel_summary_fix.zip
 ```
 
-## 1B-Sicherheitsfix
-
-`LWG_GIVEAWAY_EXCLUSIONS_1B` macht den Loader robuster, ohne die bestätigte Draw-/Wheel-Logik zu verändern:
+Ziel:
 
 ```text
-- Exportformat ok:true + items[] wird akzeptiert.
-- Configformat enabled:true + items[] wird akzeptiert.
-- users[] und exclusions[] werden ebenfalls akzeptiert.
-- UTF-8-BOM wird entfernt.
-- kaputte/null-Einträge werden ignoriert.
-- Status zeigt rawItemsCount, ignoredInvalidCount, loaded, mtimeMs.
+tools/tests/loyalty_giveaway_wheel_interactive_test.ps1
 ```
+
+Fachlicher Test mit Script 1.2 war bereits bestanden; Script 1.3 behebt nur den finalen Summary-/Argumenttypen-Abbruch nach den PASS-Zeilen.
 
 ## Später wieder anfassen – Dashboard-Config
 

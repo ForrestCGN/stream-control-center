@@ -1,86 +1,86 @@
-# Next Steps – LWG Giveaway Exclusions bestätigt
+# Next Steps – LWG Chat Commands + interaktiver Wheel-Test bestätigt
 
 Stand: 2026-06-19
 
 ## Aktueller Stand
 
-`LWG_GIVEAWAY_EXCLUSIONS_1B` ist live bestätigt:
+`LWG_CHAT_COMMANDS_1` ist live bestätigt:
 
 ```text
-moduleVersion = 0.1.15
-moduleBuild   = LWG_GIVEAWAY_EXCLUSIONS_1B
-giveawayExclusions.enabled = True
-giveawayExclusions.count = 10
-giveawayExclusions.rawItemsCount = 10
-giveawayExclusions.ignoredInvalidCount = 0
-giveawayExclusions.loaded = True
-lastError =
+loyalty_giveaways = 0.1.16 / LWG_CHAT_COMMANDS_1
+loyalty_games     = 0.2.8  / LWG_BOUND_WHEEL_FIELD_COUNT_1
 ```
 
-Zusätzlich bleibt `LWG_BOUND_WHEEL_FIELD_COUNT_1` bestätigt:
+Bestätigte Commands:
 
 ```text
-Giveaway-bound Wheels nutzen exakt verfügbare Felder.
-Bound-Wheel-Felder werden nicht mehr auf 12 sichtbare Felder aufgefüllt.
+!ticket       → Giveaway Entry
+!wheel / !rad → Wheel Claim für gezogenen Gewinner
+!join         → Raffle Join, unverändert
+!raffle       → Raffle Control, unverändert
+```
+
+Die zentralen Commands zeigen:
+
+```text
+available = true
+active = true
+commandsActive = true
+ticket.enabled = true
+wheel.enabled = true
 ```
 
 ## Was wurde fachlich bestätigt?
 
-Frisches Test-Giveaway:
+Interaktiver Komplett-Test:
 
 ```text
-Giveaway: giveaway_1781865117837_a56d3fcb009a15a2
-Bound-Wheel: giveawaywheel_1781865117837_3d9cfcef7469aef2
+Giveaway: giveaway_1781869724371_2cdf71cc66cc312a
+Blocked: una_solala
+Chat-Teilnehmer: 3 per !ticket
+Dreh-Befehl: !wheel / !rad
 ```
 
-Test:
+Bestätigt:
 
 ```text
-una_solala   → Entry sichtbar, aber gesperrt
-udowb        → Entry sichtbar, erlaubt
-engelcgn     → Entry sichtbar, erlaubt
+Draw aus open wird blockiert.
+Giveaway kann auf closed_for_entries gesetzt werden.
+Gesperrter User bleibt Entry, wird aber ausgeschlossen.
+Runde 1: RoxxyFoxxyCGN gewann und Wheel-Claim wurde erkannt.
+Runde 2: EngelCGN gewann und Wheel-Claim wurde erkannt.
+Runde 3: ForrestCGN gewann und Wheel-Claim wurde erkannt.
+Danach gibt es keinen eligible User mehr.
+Feldbestand sinkt korrekt von 8 auf 5.
+Alle erwarteten Gewinner sind wheel_completed.
 ```
 
-Draw:
+## Nächster sinnvoller Schritt
 
-```text
-winner.userLogin = udowb
-eligibleEntriesCount = 2
-exclusionInfo.enabled = true
-exclusionInfo.configuredCount = 10
-exclusionInfo.rawEntriesCount = 3
-exclusionInfo.excludedEntriesCount = 1
-exclusionInfo.excluded[0].userLogin = una_solala
-exclusionInfo.excluded[0].reason = login
-```
+Aktuell ist kein Muss-Fix am bestätigten Giveaway-/Wheel-Flow offen.
 
-Claim/Spin:
+Sinnvolle nächste Schritte:
 
-```text
-permissionUid = wheelperm_1781865357312_f86f36711269e3e3
-spinUid = spin_1781865515072_d11827bafa8cd593
-selectedFieldLabel = Roadside Research
-winner.status = wheel_completed
-Roadside Research quantityRemaining = 0
-fieldsCount = 8
-visualFieldsCount = 8
-giveawayBoundWheelExactFields = true
-```
-
-## Nächster sinnvoller technischer Schritt
-
-Aktuell kein Muss-Fix am Exclusion-Flow offen.
-
-Sinnvolle spätere Schritte:
-
-1. Dashboard-Editor für Gewinn-Sperrliste planen.
-2. Exclusions DB-basiert speichern.
-3. Twitch-User-ID als primären Schlüssel in Entries ergänzen/nutzen.
-4. Draw-/Log-Tab um Exclusion-Details erweitern.
-5. 1-Gewinn-Direktvergabe gezielt in einem separaten Test-Giveaway testen.
-6. 0-Gewinne-Blockpfad gezielt in einem separaten Test-Giveaway testen.
+1. Testscript 1.3 mit neuem Test-Giveaway einmal nur auf sauberen `SUCCESS`-Abschluss prüfen.
+2. Danach Dokumentation final bestätigen.
+3. Test-Giveaways löschen oder eindeutig als Test markieren.
+4. Dashboard-/UX-Planung für echten Live-Ablauf:
+   - Event öffnen,
+   - Tickets anzeigen,
+   - Gewinner ziehen,
+   - Wheel-Permission anzeigen,
+   - „wartet auf !rad“ anzeigen,
+   - nächster Gewinner erst nach abgeschlossenem Wheel-Claim.
+5. Dashboard-Editor für Gewinn-Sperrliste planen.
+6. Exclusions DB-basiert speichern.
+7. Twitch-User-ID als primären Schlüssel in Entries ergänzen/nutzen.
+8. Draw-/Log-Tab um Exclusion-Details erweitern.
+9. 1-Gewinn-Direktvergabe gezielt in einem separaten Test-Giveaway testen.
+10. 0-Gewinne-Blockpfad gezielt in einem separaten Test-Giveaway testen.
 
 ## Nicht vergessen
 
-- Test-Giveaways später löschen oder als Test markieren.
-- Config `config/loyalty_giveaway_exclusions.json` nicht durch altes Exportformat ersetzen, außer `1B` ist eingespielt: der neue Loader kann Exportformat robust lesen.
+- Config `config/loyalty_giveaway_exclusions.json` nicht durch altes Exportformat ersetzen, außer `1B` oder neuer ist eingespielt.
+- `!join` nicht für normale Giveaways verwenden; `!join` bleibt Raffle.
+- `!ticket` ist der richtige Chat-Befehl für normale Giveaway-Teilnahme.
+- `!wheel`/`!rad` nur für Gewinner mit offener Wheel-Permission.

@@ -1,4 +1,4 @@
-# Module Current – loyalty_giveaways / Giveaway-bound Wheel + Exclusions
+# Module Current – loyalty_giveaways / Giveaway-bound Wheel + Exclusions + Chat-Commands
 
 Stand: 2026-06-19
 
@@ -9,8 +9,37 @@ Stand: 2026-06-19
 ## Aktueller Modulstand
 
 ```text
-Version: 0.1.15
-Build:   LWG_GIVEAWAY_EXCLUSIONS_1B
+Version: 0.1.16
+Build:   LWG_CHAT_COMMANDS_1
+```
+
+## Aktive Chat-Commands
+
+Normale Giveaway-Runtime:
+
+```text
+!ticket       → Teilnahme am aktuell offenen Giveaway
+!wheel / !rad → Rad-Claim für gezogenen Gewinner mit offener Wheel-Permission
+```
+
+Raffle-Runtime, unverändert:
+
+```text
+!join   → Teilnahme an aktueller Raffle
+!raffle → Raffle starten/status/cancel
+```
+
+Wichtig:
+
+```text
+!join ist kein normaler Giveaway-Join.
+Für normale Giveaways wird !ticket genutzt.
+```
+
+Die zentrale Command-Registry leitet `ticket` und `wheel` an folgende Route:
+
+```text
+POST /api/loyalty/giveaways/runtime/chat-command
 ```
 
 ## Bestätigte Wheel-Funktion
@@ -100,7 +129,7 @@ excludedEntriesCount
 excluded[]
 ```
 
-Bestätigter Test:
+Bestätigter Exclusion-Test:
 
 ```text
 rawEntriesCount=3
@@ -127,8 +156,70 @@ visualFieldsCount=8
 giveawayBoundWheelExactFields=true
 ```
 
+## Bestätigter kompletter Chat-Command-/Wheel-Test
+
+Test-Giveaway:
+
+```text
+giveaway_1781869724371_2cdf71cc66cc312a
+```
+
+Ablauf:
+
+```text
+- una_solala per API als gesperrter Entry
+- RoxxyFoxxyCGN, EngelCGN, ForrestCGN per !ticket
+- Draw aus open korrekt blockiert
+- Giveaway geschlossen
+- Draw 1: RoxxyFoxxyCGN
+- Draw 2: EngelCGN
+- Draw 3: ForrestCGN
+- jeder Gewinner löste Wheel-Claim per !wheel/!rad aus
+```
+
+Bestätigtes Ergebnis:
+
+```text
+entries=4
+excludedEntries=1
+eligibleWinners=3
+wheelClaims=3
+remainingFields=5
+allExpectedWinners=wheel_completed
+finalNoEligibleDraw=blocked
+```
+
+## Testscript
+
+Aktueller Stand:
+
+```text
+tools/tests/loyalty_giveaway_wheel_interactive_test.ps1
+```
+
+Step:
+
+```text
+LWG_TESTSCRIPT_1_3
+```
+
+Zweck:
+
+```text
+Interaktiver Komplett-Test:
+- open
+- blocked API entry
+- 3x !ticket
+- draw aus open blockieren
+- close
+- 3 Draw-/Wheel-Runden
+- final no eligible
+- Summary
+```
+
 ## Offene Punkte
 
+- Testscript 1.3 mit frischem Test-Giveaway einmal auf sauberen finalen `SUCCESS`-Abschluss prüfen.
 - Exclusions im Dashboard editierbar machen.
 - Exclusions DB-basiert speichern.
 - Twitch-User-ID langfristig als primären Schlüssel nutzen.
@@ -136,3 +227,4 @@ giveawayBoundWheelExactFields=true
 - Pro-Giveaway zusätzliche Sperren planen.
 - 1-Gewinn-Direktvergabe später gezielt testen.
 - 0-Gewinne-Blockpfad später gezielt testen.
+- Live-Dashboard-Flow für sequenziellen Draw + Wheel-Claim bauen.

@@ -44,8 +44,8 @@ const database = require("../core/database");
 const loyaltyCore = require("./loyalty");
 
 const MODULE_NAME = "loyalty_giveaways";
-const MODULE_VERSION = "0.1.16";
-const MODULE_BUILD = "LWG_CHAT_COMMANDS_1";
+const MODULE_VERSION = "0.1.17";
+const MODULE_BUILD = "LWG_CHAT_OUTPUT_1";
 const SCHEMA_MODULE = "loyalty_giveaways";
 const SCHEMA_VERSION = 1;
 const GIVEAWAY_EXCLUSIONS_CONFIG_PATH = path.resolve(__dirname, "../../config/loyalty_giveaway_exclusions.json");
@@ -6193,19 +6193,22 @@ function buildCommandRuntimeResponse(input = {}, patch = {}) {
   };
   const messageKey = patch.messageKey || "";
   const message = patch.message || (messageKey ? renderChatRuntimeText(messageKey, context, patch.options || {}) : "");
-  const isRaffleMessage = String(messageKey || "").startsWith("raffle.");
-  const shouldDirectSend = isRaffleMessage && Boolean(message) && patch.directChat !== false && shouldSendChatForRequest(input);
+  const directChatPrefixes = ["raffle.", "ticket.", "wheel."];
+  const directChatPrefix = directChatPrefixes.find(prefix => String(messageKey || "").startsWith(prefix)) || "";
+  const shouldDirectSend = Boolean(directChatPrefix) && Boolean(message) && patch.directChat !== false && shouldSendChatForRequest(input);
 
   if (shouldDirectSend) {
     setTimeout(() => {
       chatOutputHelper.sendChatMessage(message, {
         source: MODULE_NAME,
-        reason: `raffle_${messageKey}`,
+        reason: `${directChatPrefix.replace(/\.$/, "")}_${messageKey}`,
         directSendEnabled: true,
         fallbackToStreamerbot: true,
         maxLength: 450
       }).catch(err => {
-        if (state.raffle) state.raffle.lastError = err && err.message ? err.message : String(err);
+        const errorMessage = err && err.message ? err.message : String(err);
+        state.lastError = errorMessage;
+        if (state.raffle && directChatPrefix === "raffle.") state.raffle.lastError = errorMessage;
       });
     }, 0);
   }
@@ -6226,7 +6229,7 @@ function buildCommandRuntimeResponse(input = {}, patch = {}) {
     directChatAttempted: shouldDirectSend,
     error: patch.error || "",
     data: patch.data || {},
-    note: patch.note || "Runtime verarbeitet fachliche Regeln. Raffle-Chatmeldungen werden direkt ueber helper_chat_output gesendet; der interne Gewinnpool wird nicht im Chat angezeigt."
+    note: patch.note || "Runtime verarbeitet fachliche Regeln. Raffle-, Ticket- und Wheel-Chatmeldungen werden direkt ueber helper_chat_output gesendet; der interne Gewinnpool wird nicht im Chat angezeigt."
   };
 }
 

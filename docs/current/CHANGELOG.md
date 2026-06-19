@@ -1,5 +1,72 @@
 # Changelog – Loyalty-Giveaways / CGN-Glücksrad
 
+## 2026-06-19 – LWG_CHAT_COMMANDS_1
+
+### Changed
+
+- `loyalty_giveaways` auf Version `0.1.16`, Build `LWG_CHAT_COMMANDS_1` erhöht.
+- `!ticket` für normale Giveaway-Entries aktiviert.
+- `!wheel` und Alias `!rad` für Wheel-Claims aktiviert.
+- Bestehende deaktivierte Command-DB-Einträge für `ticket` und `wheel` werden durch die Seed-Logik gezielt aktiviert.
+- Beschreibungen für `!ticket` und `!wheel` von „Noch nicht aktiv“ auf aktiven Runtime-Status angepasst.
+
+### Unchanged
+
+- `!join` bleibt Raffle-Command.
+- `!raffle` bleibt Raffle-Command.
+- Raffle-Logik unverändert.
+- Draw-/Exclusion-Logik unverändert.
+- Wheel-/Bound-Wheel-Logik unverändert.
+- Dashboard unverändert.
+- DB-Schema unverändert.
+
+### Tested
+
+- `GET /api/loyalty/giveaways/commands` bestätigt:
+  - `active=true`
+  - `ticket.enabled=true`
+  - `wheel.enabled=true`
+  - `join.enabled=true`
+  - `raffle.enabled=true`
+- `GET /api/loyalty/giveaways/central-commands` bestätigt:
+  - `available=true`
+  - `active=true`
+  - `commandsActive=true`
+  - `ticket.targetUrl=/api/loyalty/giveaways/runtime/chat-command`
+  - `wheel.targetUrl=/api/loyalty/giveaways/runtime/chat-command`
+- Interaktiver Komplett-Test mit Giveaway `giveaway_1781869724371_2cdf71cc66cc312a`:
+  - `una_solala` per API als gesperrter sichtbarer Entry,
+  - 3 erlaubte User per `!ticket`,
+  - Draw aus `open` korrekt blockiert,
+  - 3 Draw-Runden,
+  - 3 Wheel-Claims per Chat,
+  - Feldbestand `8 -> 5`,
+  - alle erwarteten Gewinner `wheel_completed`,
+  - danach kein eligible User mehr vorhanden.
+
+### Known Follow-up
+
+- Testscript 1.3 einmal mit frischem Giveaway nur auf sauberen finalen `SUCCESS`-Abschluss prüfen.
+- Dashboard-/UX-Flow für echten Live-Draw bauen.
+- Sperrliste später dashboard- und DB-fähig machen.
+
+## 2026-06-19 – LWG_TESTSCRIPT_1_3
+
+### Changed
+
+- Interaktives Testscript robuster gemacht:
+  - `!ticket` statt `!join` im Testhinweis,
+  - Draw-aus-open-Block wird als erwarteter PASS erkannt,
+  - finaler Summary-/JSON-Bereich robuster,
+  - erfolgreicher fachlicher Test soll nicht mehr durch Argumenttypen-Fehler im finalen Reporting abbrechen.
+
+### Unchanged
+
+- Kein Backend-Change.
+- Kein Dashboard-Change.
+- Kein DB-Change.
+- Keine Änderung an Draw-/Wheel-/Exclusion-Logik.
+
 ## 2026-06-19 – LWG_GIVEAWAY_EXCLUSIONS_1B
 
 ### Changed
