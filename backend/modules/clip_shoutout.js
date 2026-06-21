@@ -19,7 +19,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.49";
+const MODULE_VERSION = "0.2.50";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -444,7 +444,10 @@ const state = {
     busErrors: 0,
     autoBusReceived: 0,
     autoBusDelivered: 0,
-    autoBusErrors: 0
+    autoBusErrors: 0,
+    soundBusReceived: 0,
+    soundBusHandled: 0,
+    soundBusErrors: 0
   },
   displayQueue: {
     workerStarted: false,
@@ -453,7 +456,23 @@ const state = {
     lastStartedAt: "",
     lastFinishedAt: "",
     lastError: "",
-    lastBusEvent: null
+    lastBusEvent: null,
+    soundSync: {
+      installed: false,
+      subscriptionId: "",
+      channel: "sound",
+      delivered: 0,
+      handled: 0,
+      errors: 0,
+      lastReceivedAt: "",
+      lastHandledAt: "",
+      lastAction: "",
+      lastReason: "",
+      lastBundleId: "",
+      lastDisplayQueueId: 0,
+      lastResultReason: "",
+      lastError: ""
+    }
   },
   officialShoutout: {
     workerStarted: false,
@@ -1607,6 +1626,263 @@ function markDisplayQueueFailed(row, error, cfg) {
   database.run(`UPDATE clip_shoutout_display_queue SET status='failed', attempts=attempts+1, updated_at=:now, last_error=:error WHERE id=:id`, { id: row.id, now, error: String(error || '') });
   state.displayQueue.lastError = String(error || '');
   emitShoutoutBus('shoutout.display.failed', { queueId: row.id, targetLogin: row.target_login, error: String(error || '') }, cfg);
+}
+
+function displayQueueMeta(row) {
+  return safeJsonParse(row && row.meta_json, {});
+}
+
+function updateDisplayQueueMeta(rowId, patch = {}) {
+  ensureDisplayQueueSchema();
+  const id = Number(rowId || 0);
+  if (!id) return { ok: false, reason: 'display_queue_id_missing' };
+  const row = database.get(`SELECT id,meta_json FROM clip_shoutout_display_queue WHERE id=:id`, { id });
+  if (!row) return { ok: false, reason: 'display_queue_row_not_found' };
+  const current = displayQueueMeta(row);
+  const next = mergePlain(current, patch || {});
+  database.run(`UPDATE clip_shoutout_display_queue SET meta_json=:metaJson, updated_at=:now WHERE id=:id`, {
+    id,
+    metaJson: JSON.stringify(next),
+    now: nowIso()
+  });
+  return { ok: true, id, meta: next };
+}
+
+function officialAlreadyHandledForDisplayQueue(displayQueueId) {
+  ensureOfficialShoutoutSchema();
+  const id = Number(displayQueueId || 0);
+  if (!id) return false;
+  const queued = database.get(`SELECT id,status FROM clip_shoutout_official_queue WHERE display_queue_id=:id AND status IN ('queued','waiting','sent') ORDER BY id DESC LIMIT 1`, { id });
+  if (queued) return true;
+  const sent = database.get(`SELECT id,result FROM clip_shoutout_official_history WHERE display_queue_id=:id AND result='sent' ORDER BY id DESC LIMIT 1`, { id });
+  return !!sent;
+}
+
+function activeDisplayQueueRowForSoundBundle(bundleId) {
+  const wanted = String(bundleId || '').trim();
+  if (!wanted) return null;
+  ensureDisplayQueueSchema();
+  const rows = database.all(`SELECT * FROM clip_shoutout_display_queue WHERE status='active' ORDER BY id ASC LIMIT 25`) || [];
+  for (const row of rows) {
+    const meta = displayQueueMeta(row);
+    const sync = isPlainObject(meta.soundSystemSync) ? meta.soundSystemSync : {};
+    if (String(sync.bundleId || meta.bundleId || '').trim() === wanted) return row;
+  }
+  return null;
+}
+
+function soundBusClipShoutoutInfo(envelope = {}) {
+  const payload = isPlainObject(envelope.payload) ? envelope.payload : {};
+  const item = isPlainObject(payload.item) ? payload.item : {};
+  const context = isPlainObject(payload.context) ? payload.context : {};
+  const extra = isPlainObject(payload.extra) ? payload.extra : {};
+  const meta = isPlainObject(item.meta) ? item.meta : {};
+  const visual = isPlainObject(item.visual) ? item.visual : {};
+  const bundle = isPlainObject(item.bundle) ? item.bundle : {};
+  const bundleId = String(context.bundleId || bundle.bundleId || meta.bundleId || visual.bundleId || extra.bundleId || '').trim();
+  const bundleType = String(context.bundleType || bundle.bundleType || meta.bundleType || visual.bundleType || extra.bundleType || '').trim().toLowerCase();
+  const bundleRole = String(context.bundleRole || bundle.bundleRole || meta.bundleRole || visual.bundleRole || '').trim().toLowerCase();
+  const requestId = String(context.requestId || item.requestId || extra.requestId || '').trim();
+  const reason = String(payload.reason || context.reason || envelope.action || '').trim();
+  const action = String(envelope.action || '').trim();
+  const clipShoutout = meta.clipShoutout === true || visual.module === MODULE_NAME || bundleType === 'clip_shoutout';
+  const isClipItem = bundleRole === 'clip' || meta.clipShoutout === true || item.mediaType === 'twitch_clip' || item.type === 'twitch_clip';
+  return { payload, item, context, extra, meta, visual, bundle, bundleId, bundleType, bundleRole, requestId, reason, action, clipShoutout, isClipItem };
+}
+
+function shouldTreatSoundEventAsFinished(info) {
+  const action = String(info && info.action || '').toLowerCase();
+  const reason = String(info && info.reason || '').toLowerCase();
+  return action === 'finished'
+    || reason === 'client_audio_ended'
+    || reason === 'item_finished'
+    || reason === 'auto_finished'
+    || reason === 'overlay_fallback_finished'
+    || reason === 'finished';
+}
+
+function shouldTreatSoundEventAsFailed(info) {
+  const action = String(info && info.action || '').toLowerCase();
+  const reason = String(info && info.reason || '').toLowerCase();
+  return action === 'failed'
+    || action === 'stopped'
+    || action === 'skipped'
+    || reason.includes('error')
+    || reason.includes('failed')
+    || reason === 'manual_stop'
+    || reason === 'manual_skip';
+}
+
+async function finalizeDisplayQueueAfterRealClipEnd(row, info, env, cfg) {
+  const currentCfg = cfg || shoutoutConfig();
+  const id = Number(row && row.id || 0);
+  if (!id) return { ok: false, reason: 'display_queue_row_missing' };
+  const fresh = database.get(`SELECT * FROM clip_shoutout_display_queue WHERE id=:id`, { id });
+  if (!fresh || fresh.status !== 'active') return { ok: true, skipped: true, reason: 'display_queue_not_active', status: fresh ? fresh.status : 'missing' };
+  const meta = displayQueueMeta(fresh);
+  const officialJob = isPlainObject(meta.officialJob) ? meta.officialJob : {};
+  const officialEnabled = meta.officialShoutoutEnabled === true || (isPlainObject(meta.soundSystemSync) && meta.soundSystemSync.officialEnabled === true);
+
+  markDisplayQueueDone(fresh, currentCfg);
+  updateDisplayQueueMeta(id, {
+    soundSystemSync: {
+      finishedBySoundSystem: true,
+      finishedAt: nowIso(),
+      finishReason: info.reason || info.action || 'sound_finished',
+      requestId: info.requestId || '',
+      bundleId: info.bundleId || '',
+      officialQueuedAfterRealClipEnd: officialEnabled === true
+    }
+  });
+  emitShoutoutBus('shoutout.display.finished', {
+    queueId: id,
+    targetLogin: fresh.target_login,
+    targetDisplay: fresh.target_display,
+    bundleId: info.bundleId || '',
+    requestId: info.requestId || '',
+    reason: info.reason || info.action || 'sound_finished',
+    source: 'sound_system_real_clip_end'
+  }, currentCfg);
+
+  if (officialEnabled && !officialAlreadyHandledForDisplayQueue(id)) {
+    const queueResult = enqueueOfficialShoutout({
+      targetLogin: officialJob.targetLogin || fresh.target_login,
+      targetDisplay: officialJob.targetDisplay || fresh.target_display,
+      targetUserId: officialJob.targetUserId || '',
+      requestedByLogin: officialJob.requestedByLogin || fresh.requested_by_login || '',
+      requestedByDisplay: officialJob.requestedByDisplay || fresh.requested_by_display || '',
+      clipId: officialJob.clipId || meta.clipId || '',
+      clipUrl: officialJob.clipUrl || meta.clipUrl || '',
+      bundleId: officialJob.bundleId || info.bundleId || '',
+      displayQueueId: id,
+      availableAt: nowIso(),
+      meta: {
+        ...(isPlainObject(officialJob.meta) ? officialJob.meta : {}),
+        source: MODULE_NAME,
+        displayQueueId: id,
+        trigger: 'sound_system_real_clip_end',
+        soundReason: info.reason || info.action || '',
+        requestId: info.requestId || ''
+      }
+    }, currentCfg);
+
+    const manualOfficialChat = meta.manualOfficialChat === true;
+    if (queueResult && queueResult.ok && queueResult.row) {
+      await processOfficialShoutoutQueueRow(env, queueResult.row, shoutoutConfig(), {
+        manualAttempt: true,
+        notifyChat: manualOfficialChat
+      });
+    }
+  }
+
+  processDisplayQueue(env, shoutoutConfig()).catch(err => { state.displayQueue.lastError = err && err.message ? err.message : String(err); });
+  return { ok: true, displayQueueId: id, officialQueued: officialEnabled === true };
+}
+
+async function handleShoutoutSoundBusEvent(envelope, env = process.env) {
+  const sync = state.displayQueue.soundSync;
+  sync.delivered += 1;
+  sync.lastReceivedAt = nowIso();
+  sync.lastAction = String(envelope && envelope.action || '');
+  state.stats.soundBusReceived += 1;
+
+  const info = soundBusClipShoutoutInfo(envelope || {});
+  sync.lastReason = info.reason || '';
+  sync.lastBundleId = info.bundleId || '';
+
+  if (!info.clipShoutout || !info.isClipItem || !info.bundleId) {
+    sync.lastResultReason = 'ignored_non_clip_shoutout_item';
+    return { ok: true, ignored: true, reason: sync.lastResultReason };
+  }
+
+  const row = activeDisplayQueueRowForSoundBundle(info.bundleId);
+  if (!row) {
+    sync.lastResultReason = 'no_active_display_queue_for_bundle';
+    return { ok: true, ignored: true, reason: sync.lastResultReason, bundleId: info.bundleId };
+  }
+
+  sync.lastDisplayQueueId = Number(row.id || 0);
+
+  try {
+    if (shouldTreatSoundEventAsFinished(info)) {
+      const result = await finalizeDisplayQueueAfterRealClipEnd(row, info, env, shoutoutConfig());
+      sync.handled += 1;
+      sync.lastHandledAt = nowIso();
+      sync.lastResultReason = 'finished_handled';
+      sync.lastError = '';
+      state.stats.soundBusHandled += 1;
+      return result;
+    }
+
+    if (shouldTreatSoundEventAsFailed(info)) {
+      markDisplayQueueFailed(row, `sound_system_${info.reason || info.action || 'failed'}`, shoutoutConfig());
+      updateDisplayQueueMeta(row.id, {
+        soundSystemSync: {
+          failedBySoundSystem: true,
+          failedAt: nowIso(),
+          failReason: info.reason || info.action || 'sound_failed',
+          requestId: info.requestId || '',
+          bundleId: info.bundleId || ''
+        }
+      });
+      sync.handled += 1;
+      sync.lastHandledAt = nowIso();
+      sync.lastResultReason = 'failed_handled';
+      sync.lastError = '';
+      state.stats.soundBusHandled += 1;
+      processDisplayQueue(env, shoutoutConfig()).catch(() => {});
+      return { ok: true, failed: true, displayQueueId: row.id };
+    }
+
+    sync.lastResultReason = 'ignored_action';
+    return { ok: true, ignored: true, reason: sync.lastResultReason };
+  } catch (err) {
+    const error = err && err.message ? err.message : String(err);
+    sync.errors += 1;
+    sync.lastError = error;
+    sync.lastResultReason = 'error';
+    state.stats.soundBusErrors += 1;
+    emitShoutoutBus('shoutout.display.sound_sync_failed', { error, bundleId: info.bundleId, displayQueueId: row.id }, shoutoutConfig());
+    return { ok: false, error };
+  }
+}
+
+function installShoutoutSoundBusSubscriber(env = process.env) {
+  const sync = state.displayQueue.soundSync;
+  if (sync.installed === true) return { ok: true, installed: true, alreadyInstalled: true, subscriptionId: sync.subscriptionId };
+  const bus = getCommunicationBus();
+  if (!bus || typeof bus.subscribe !== 'function') {
+    sync.installed = false;
+    sync.lastError = 'communication_bus_subscribe_unavailable';
+    return { ok: false, installed: false, reason: sync.lastError };
+  }
+
+  const result = bus.subscribe({
+    id: 'clip_shoutout:sound:clip_end_sync',
+    module: MODULE_NAME,
+    channel: 'sound',
+    action: '',
+    capability: 'sound.playback.consumer',
+    meta: {
+      step: 'STEP_SO_SYNC_OFFICIAL_AFTER_REAL_CLIP_END',
+      purpose: 'official_shoutout_after_real_clip_end',
+      sourceModule: 'sound_system',
+      consumes: ['sound.finished', 'sound.stopped', 'sound.skipped', 'sound.failed']
+    }
+  }, (envelope) => handleShoutoutSoundBusEvent(envelope, env));
+
+  if (!result || result.ok !== true) {
+    sync.installed = false;
+    sync.lastError = String(result && (result.reason || result.error) || 'subscription_failed');
+    return { ok: false, installed: false, reason: sync.lastError };
+  }
+
+  sync.installed = true;
+  sync.subscriptionId = result.subscription && result.subscription.id ? String(result.subscription.id) : 'clip_shoutout:sound:clip_end_sync';
+  sync.lastError = '';
+  sync.lastResultReason = 'installed';
+  emitShoutoutBus('shoutout.display.sound_sync_subscriber.installed', { subscriptionId: sync.subscriptionId, channel: sync.channel }, shoutoutConfig());
+  return { ok: true, installed: true, subscriptionId: sync.subscriptionId };
 }
 
 function displayQueueStatus(cfg) {
@@ -4267,43 +4543,48 @@ async function runDisplayJob(row, env, cfg) {
 
   const displayDurationMs = bundlePayload.items.reduce((sum, item) => sum + Math.max(0, Number(item.durationMs || 0)), 0) + Math.max(0, Number(officialConfig(cfg).displayFinishPaddingMs || 1500));
   const officialEnabled = officialConfig(cfg).enabled !== false && boolParam(input.officialShoutout ?? input.official ?? input.twitchShoutout, true);
+  const manualOfficialChat = input.autoShoutout !== true
+    && input.__debugSuppressChat !== true
+    && input.debugSuppressChat !== true;
+  const clipRequestId = String(
+    (soundResult && soundResult.bundle && Array.isArray(soundResult.bundle.items)
+      ? ((soundResult.bundle.items.find(item => item && item.bundle && item.bundle.bundleRole === 'clip') || soundResult.bundle.items[0] || {}).requestId)
+      : '')
+    || (soundResult && Array.isArray(soundResult.results)
+      ? ((soundResult.results.find(result => result && result.item && result.item.bundle && result.item.bundle.bundleRole === 'clip') || soundResult.results[0] || {}).item || {}).requestId
+      : '')
+    || ''
+  );
 
-  if (officialEnabled) {
-    setTimeout(async () => {
-      try {
-        emitShoutoutBus('shoutout.display.finished', { queueId: row.id, target: targetUser, clip: publicClipInfo(clip), bundleId: bundlePayload.bundleId }, cfg);
-        const queueResult = enqueueOfficialShoutout({
-          targetLogin: targetUser.login,
-          targetDisplay: targetUser.displayName,
-          targetUserId: targetUser.userId,
-          requestedByLogin: vars.requestedByLogin,
-          requestedByDisplay: vars.requestedByDisplay,
-          clipId: clip.id,
-          clipUrl: clip.url || '',
-          bundleId: bundlePayload.bundleId,
-          displayQueueId: row.id,
-          availableAt: nowIso(),
-          meta: { source: MODULE_NAME, displayQueueId: row.id, clipTitle: clip.title || '' }
-        }, cfg);
-        const manualOfficialChat = input.autoShoutout !== true
-          && input.__debugSuppressChat !== true
-          && input.debugSuppressChat !== true;
-        if (queueResult && queueResult.ok && queueResult.row) {
-          await processOfficialShoutoutQueueRow(env, queueResult.row, shoutoutConfig(), {
-            manualAttempt: true,
-            notifyChat: manualOfficialChat
-          });
-        }
-      } catch (err) {
-        state.officialShoutout.lastError = err && err.message ? err.message : String(err);
-        emitShoutoutBus('shoutout.official.failed', { targetLogin: targetUser.login, error: state.officialShoutout.lastError }, cfg);
-      }
-    }, displayDurationMs).unref?.();
-  } else {
-    setTimeout(() => {
-      emitShoutoutBus('shoutout.display.finished', { queueId: row.id, target: targetUser, clip: publicClipInfo(clip), bundleId: bundlePayload.bundleId }, cfg);
-    }, displayDurationMs).unref?.();
-  }
+  updateDisplayQueueMeta(row.id, {
+    bundleId: bundlePayload.bundleId,
+    clipId: clip.id || '',
+    clipUrl: clip.url || '',
+    officialShoutoutEnabled: officialEnabled,
+    manualOfficialChat,
+    soundSystemSync: {
+      enabled: true,
+      mode: 'official_after_real_clip_end',
+      bundleId: bundlePayload.bundleId,
+      clipRequestId,
+      officialEnabled,
+      displayDurationMs,
+      queuedAt: nowIso(),
+      waitingForSoundFinished: true
+    },
+    officialJob: {
+      targetLogin: targetUser.login,
+      targetDisplay: targetUser.displayName,
+      targetUserId: targetUser.userId,
+      requestedByLogin: vars.requestedByLogin,
+      requestedByDisplay: vars.requestedByDisplay,
+      clipId: clip.id,
+      clipUrl: clip.url || '',
+      bundleId: bundlePayload.bundleId,
+      displayQueueId: row.id,
+      meta: { source: MODULE_NAME, displayQueueId: row.id, clipTitle: clip.title || '' }
+    }
+  });
 
   emitShoutoutBus('shoutout.accepted', { queueId: row.id, target: targetUser, clip: publicClipInfo(clip), bundleId: bundlePayload.bundleId, officialShoutout: officialEnabled }, cfg);
   state.stats.queued += 1;
@@ -4357,16 +4638,15 @@ async function processDisplayQueue(env, cfg, options = {}) {
 
   try {
     const result = await runDisplayJob(activeRow, env, cfg);
-    const finishDelayMs = Math.max(1000, Number(result.displayDurationMs || 1000));
-    setTimeout(() => {
-      try {
-        markDisplayQueueDone(activeRow, shoutoutConfig());
-        processDisplayQueue(env, shoutoutConfig()).catch(err => { state.displayQueue.lastError = err && err.message ? err.message : String(err); });
-      } catch (err) {
-        state.displayQueue.lastError = err && err.message ? err.message : String(err);
-      }
-    }, finishDelayMs).unref?.();
-    return { ok: true, started: true, queueId: activeRow.id, displayDurationMs: finishDelayMs };
+    const estimatedDisplayDurationMs = Math.max(1000, Number(result.displayDurationMs || 1000));
+    return {
+      ok: true,
+      started: true,
+      queueId: activeRow.id,
+      displayDurationMs: estimatedDisplayDurationMs,
+      waitForSoundSystemEnd: true,
+      bundleId: result && result.bundlePayload ? result.bundlePayload.bundleId : ''
+    };
   } catch (err) {
     const error = err && err.message ? err.message : String(err);
     markDisplayQueueFailed(activeRow, error, cfg);
@@ -6841,6 +7121,7 @@ module.exports.init = function init(ctx) {
   installDirectChatCommandBypass(env);
   installAutoShoutoutBusSubscriber(env);
   installAutoShoutoutStreamBusSubscriber(env);
+  installShoutoutSoundBusSubscriber(env);
   startDisplayQueueWorker(env, cfg);
   startOfficialShoutoutWorker(env, cfg);
 
