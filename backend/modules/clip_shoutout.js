@@ -19,7 +19,7 @@ let getSharedObs = null;
 try { ({ getSharedObs } = require("./obs_shared")); } catch (_) { getSharedObs = null; }
 
 const MODULE_NAME = "clip_shoutout";
-const MODULE_VERSION = "0.2.50";
+const MODULE_VERSION = "0.2.51";
 const SHOUTOUT_BUS_CHANNEL = "shoutout.system";
 const CONFIG_FILE = "clip_system.json";
 const API_PREFIX = "/api/clip-shoutout";
@@ -1862,12 +1862,16 @@ function installShoutoutSoundBusSubscriber(env = process.env) {
     module: MODULE_NAME,
     channel: 'sound',
     action: '',
-    capability: 'sound.playback.consumer',
+    // Wichtig: keine capability setzen. Der Communication-Bus matcht subscription.capability
+    // exakt gegen "<channel>.<action>". Bei capability='sound.playback.consumer'
+    // wurden sound.finished / sound.bundle.lock_finished nicht an diesen Listener geliefert.
+    capability: '',
     meta: {
-      step: 'STEP_SO_SYNC_OFFICIAL_AFTER_REAL_CLIP_END',
+      step: 'STEP_SO_SYNC_FINISH_EVENT_LISTENER_FIX',
+      previousStep: 'STEP_SO_SYNC_OFFICIAL_AFTER_REAL_CLIP_END',
       purpose: 'official_shoutout_after_real_clip_end',
       sourceModule: 'sound_system',
-      consumes: ['sound.finished', 'sound.stopped', 'sound.skipped', 'sound.failed']
+      consumes: ['sound.finished', 'sound.bundle.lock_finished', 'sound.stopped', 'sound.skipped', 'sound.failed']
     }
   }, (envelope) => handleShoutoutSoundBusEvent(envelope, env));
 
@@ -1908,7 +1912,23 @@ function displayQueueStatus(cfg) {
     nextDisplayAllowedAt: active ? "" : (nextAllowedMs > 0 ? isoFromMs(nextAllowedMs) : ""),
     lastStartedAt: state.displayQueue.lastStartedAt,
     lastFinishedAt: state.displayQueue.lastFinishedAt,
-    lastError: state.displayQueue.lastError
+    lastError: state.displayQueue.lastError,
+    soundSync: {
+      installed: state.displayQueue.soundSync.installed === true,
+      subscriptionId: state.displayQueue.soundSync.subscriptionId || "",
+      channel: state.displayQueue.soundSync.channel || "sound",
+      delivered: Number(state.displayQueue.soundSync.delivered || 0),
+      handled: Number(state.displayQueue.soundSync.handled || 0),
+      errors: Number(state.displayQueue.soundSync.errors || 0),
+      lastReceivedAt: state.displayQueue.soundSync.lastReceivedAt || "",
+      lastHandledAt: state.displayQueue.soundSync.lastHandledAt || "",
+      lastAction: state.displayQueue.soundSync.lastAction || "",
+      lastReason: state.displayQueue.soundSync.lastReason || "",
+      lastBundleId: state.displayQueue.soundSync.lastBundleId || "",
+      lastDisplayQueueId: Number(state.displayQueue.soundSync.lastDisplayQueueId || 0),
+      lastResultReason: state.displayQueue.soundSync.lastResultReason || "",
+      lastError: state.displayQueue.soundSync.lastError || ""
+    }
   };
 }
 
