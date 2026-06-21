@@ -1,3 +1,28 @@
+## 2026-06-21 – STEP_SO_SYNC_FINISH_EVENT_LISTENER_FIX_VERIFIED
+
+### Fixed
+
+- `clip_shoutout`: Offizielle Twitch-Shoutouts werden nicht mehr vor dem echten Clip-Ende vorbereitet.
+- SoundSync-Listener verarbeitet Sound-System-/Overlay-Ende (`client_audio_ended`, `finished`, `bundle.lock_finished`) korrekt.
+- DisplayQueue wird nach echtem Clip-Ende auf `done` gesetzt.
+- OfficialQueue wird erst danach befüllt (`trigger=sound_system_real_clip_end`).
+
+### Confirmed
+
+- Finaler Test `so_sync_final_test_20260621_124845.txt` bestätigt:
+  - Clip-Shoutout läuft über Sound-System/Overlay.
+  - Sound-System meldet `client_audio_ended`.
+  - DisplayQueue-ID `236` wurde beendet.
+  - OfficialQueue-ID `177` wurde nach Clip-Ende erstellt.
+  - Kein zu frühes offizielles Twitch-SO mehr.
+
+### Follow-up
+
+- Echten Live-Test noch durchführen, um `officialStatus=sent` / Twitch-204 nach Cooldown final zu bestätigen.
+- Test lief im Offline-/Grace-Zustand; Sync-Reihenfolge ist bestätigt, Twitch-Sendebestätigung noch nicht.
+
+---
+
 ## 2026-06-19 – STEP_HT1_FIX1_HYPETRAIN_MEDIA_SAVE
 
 ### Fixed

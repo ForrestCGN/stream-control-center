@@ -1,3 +1,69 @@
+## STEP_SO_SYNC_FINISH_EVENT_LISTENER_FIX_VERIFIED
+
+Stand: 2026-06-21
+Marker: `STEP_SO_SYNC_FINISH_EVENT_LISTENER_FIX_VERIFIED`
+Modul: `clip_shoutout`
+Version: `0.2.51`
+
+### Bestätigt
+
+- `clip_shoutout` Version `0.2.51` ist aktiv.
+- Der SoundSync-Listener ist installiert und empfängt Sound-Bus-Events.
+- Der finale Test `so_sync_final_test_20260621_124845.txt` bestätigt den gewünschten Ablauf:
+  - Clip-Shoutout läuft über Sound-System/Overlay.
+  - Sound-System meldet `client_audio_ended`.
+  - DisplayQueue wird auf `done` gesetzt.
+  - OfficialQueue wird erst nach Clip-Ende befüllt.
+  - Kein zu frühes offizielles Twitch-Shoutout mehr.
+
+### Testbefund
+
+DisplayQueue-ID `236`:
+
+```text
+status = done
+displayStartedAt = 2026-06-21T10:49:47.028Z
+displayFinishedAt = 2026-06-21T10:49:57.524Z
+officialQueueId = 177
+officialQueuedAt = 2026-06-21T10:49:57.527Z
+officialStatus = waiting
+officialError = waiting_official_cooldown
+```
+
+Sound-System Recent Playback:
+
+```text
+label = Video-Shoutout @together_not_alone
+mediaType = twitch_clip
+sourceModule = clip_shoutout
+startedAt = 2026-06-21T10:49:47.763Z
+audioEndedAt = 2026-06-21T10:49:57.530Z
+finishedAt = 2026-06-21T10:49:59.540Z
+reason = client_audio_ended
+```
+
+### Ergebnis
+
+```text
+✅ Clip läuft über Sound-System/Overlay
+✅ Clip-Ende wird erkannt
+✅ DisplayQueue wird auf done gesetzt
+✅ OfficialQueue wird erst nach Clip-Ende befüllt
+✅ Kein zu frühes offizielles SO mehr
+⚠️ Finale Twitch-Sendebestätigung nur sauber im echten Livebetrieb möglich
+```
+
+### Einschränkung
+
+Der Test lief im Offline-/Grace-Zustand. Der Sync ist bestätigt, aber ein finaler `officialStatus=sent` / Twitch-204 muss im nächsten echten Livebetrieb geprüft werden.
+
+Details:
+
+- `docs/current/STEP_SO_SYNC_FINAL_VERIFIED_2026-06-21.md`
+- `docs/current/CURRENT_CHAT_HANDOFF_SO_SYNC_2026-06-21.md`
+
+---
+
 ## STEP_HT1_FIX1_HYPETRAIN_MEDIA_SAVE
 
 Stand: 2026-06-19

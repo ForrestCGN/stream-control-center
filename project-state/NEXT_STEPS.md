@@ -1,3 +1,38 @@
+## Nächste Schritte nach STEP_SO_SYNC_FINISH_EVENT_LISTENER_FIX_VERIFIED
+
+1. Beim nächsten echten Live-Stream einen finalen SO-Sync-Test durchführen.
+2. Einen laufenden Sound/Video im Sound-System haben oder die Queue bewusst beschäftigen.
+3. `!so @user --force` auslösen.
+4. Prüfen:
+   - Clip läuft über Sound-System/Overlay.
+   - OfficialQueue wird erst nach Clip-Ende befüllt.
+   - Nach Twitch-Cooldown wird `officialStatus=sent` / `officialResult=sent` erreicht.
+5. Danach nur dokumentieren, wenn der Live-Send bestätigt ist.
+
+Nicht zurückbauen:
+
+```text
+Keine Rückkehr zur alten Timer-Freigabe.
+Sound-System bleibt Playback-/Queue-Owner.
+OfficialQueue bleibt an echtes Clip-Ende gekoppelt.
+Keine Funktionalität entfernen.
+```
+
+Prüfkommandos:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/clip-shoutout/status" |
+  Select-Object moduleVersion,moduleBuild
+
+Invoke-RestMethod "http://127.0.0.1:8080/api/clip-shoutout/queue" |
+  ConvertTo-Json -Depth 12
+
+Invoke-RestMethod "http://127.0.0.1:8080/api/sound/recent-playback?limit=10" |
+  ConvertTo-Json -Depth 12
+```
+
+---
+
 ## Nächste Schritte nach STEP_HT1_FIX1_HYPETRAIN_MEDIA_SAVE
 
 1. ZIP einspielen/deployen.

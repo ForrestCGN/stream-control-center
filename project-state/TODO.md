@@ -1,3 +1,24 @@
+## TODO – Clip-Shoutout / SO Sync nach STEP_SO_SYNC_FINISH_EVENT_LISTENER_FIX_VERIFIED
+
+- [x] Problem analysiert: offizieller Twitch-SO konnte vor echtem Clip-Ende ausgelöst werden, wenn Sound-System/Overlay noch beschäftigt war.
+- [x] `clip_shoutout` auf echtes Sound-System-/Overlay-Ende gekoppelt.
+- [x] SoundSync-Listener korrigiert und aktiv bestätigt.
+- [x] Finaler Offline-/Grace-Test bestätigt:
+  - DisplayQueue wird nach `client_audio_ended` auf `done` gesetzt.
+  - OfficialQueue wird erst nach Clip-Ende befüllt.
+  - Kein zu frühes offizielles SO mehr.
+- [ ] Beim nächsten echten Live-Stream final prüfen, ob `officialStatus=sent` / Twitch-204 nach Cooldown sauber erreicht wird.
+- [ ] Danach ggf. diesen Live-Send als final bestätigt dokumentieren.
+
+Nicht tun:
+
+- [ ] Keine Timer-Freigabe zurückbauen.
+- [ ] Keine Sound-System-Owner-Logik umgehen.
+- [ ] Keine produktive DB ersetzen oder überschreiben.
+- [ ] Keine Funktionalität entfernen.
+
+---
+
 ## TODO – Hype-Train Rekord nach STEP_HT1_FIX1_HYPETRAIN_MEDIA_SAVE
 
 - [ ] Dashboard-Speichern mit Media-Auswahl erneut testen.
