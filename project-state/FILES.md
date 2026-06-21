@@ -1,3 +1,28 @@
+## Dateien – STEP_DOC_MEDIA_SYSTEM_UPLOAD_MODAL_RULE
+
+Geändert:
+
+```text
+docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+```
+
+Nicht geändert:
+
+```text
+Backend-Code
+Dashboard-Code
+Datenbank
+Config-Dateien
+Overlays
+```
+
+---
+
 ## Dateien – STEP_DOC_MASTER_PROMPT_STEPDONE_DESCRIPTION_RULE
 
 Geändert:

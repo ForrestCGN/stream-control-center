@@ -515,6 +515,14 @@ Dieser Refactor wird nicht nebenbei gemacht, sondern separat geplant, dokumentie
 TODO-Pflicht:
 - Eigenen Dashboard-Cleanup-/Refactor-Step planen: Dashboard vereinheitlichen, Modul-Logik aufräumen, UI/Config/Texte/Logs konsistent machen.
 
+
+Media-System-Regel:
+Wenn ein Modul Sounds, Videos, Bilder, Grafiken oder sonstige Medien auswählbar oder hochladbar machen soll, muss dafür das vorhandene Media-System genutzt werden.
+Dashboard-Module sollen keine eigenen Upload-/Dateiauswahl-Insellösungen bauen.
+Medienauswahl und Uploads sollen bevorzugt in einem eigenen Media-System-Fenster/Modal erfolgen, damit Upload, Suche, Vorschau, Media-ID, Pfade, Kategorien und spätere Rechte-/Audit-Regeln zentral bleiben.
+Fachmodule speichern nach Möglichkeit nur Media-IDs bzw. referenzierte Media-Einträge und starten Wiedergabe/Anzeige über die zuständigen vorhandenen Systeme.
+
+
 ================================================================================
 13. Textsystem / Chat-/Discord-/Overlay-Texte
 ================================================================================

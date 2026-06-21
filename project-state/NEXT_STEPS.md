@@ -1,3 +1,21 @@
+## Nächste Schritte nach STEP_DOC_MEDIA_SYSTEM_UPLOAD_MODAL_RULE
+
+1. ZIP einspielen.
+2. Kein Node-Neustart nötig.
+3. Master-Prompt auf neue Media-System-Regel prüfen.
+4. TODO auf HypeTrain Alert-/Media-Erweiterung prüfen.
+5. Danach bei erfolgreicher Kontrolle `stepdone.cmd` ausführen.
+
+Für spätere HypeTrain-Umsetzung beachten:
+
+```text
+Start-/Ende-/Level-Up-Alerts nur vorbereiten, nicht nebenbei produktiv aktivieren.
+Medienauswahl/Upload über vorhandenes Media-System-Fenster/Modal.
+Playback über Sound-System / Media-System, nicht direkt aus HypeTrain.
+```
+
+---
+
 ## Nach STEP_DOC_MASTER_PROMPT_STEPDONE_DESCRIPTION_RULE
 
 1. ZIP einspielen.

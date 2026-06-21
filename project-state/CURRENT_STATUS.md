@@ -1,3 +1,19 @@
+## STEP_DOC_MEDIA_SYSTEM_UPLOAD_MODAL_RULE
+
+Stand: 2026-06-21
+Marker: `STEP_DOC_MEDIA_SYSTEM_UPLOAD_MODAL_RULE`
+
+Dokumentations-/TODO-Step:
+
+- Master-Prompt erweitert: Medienauswahl und Uploads für Sounds, Videos, Bilder/Grafiken und sonstige Medien sollen über das vorhandene Media-System laufen.
+- Dashboard-Module sollen keine eigenen Upload-/Dateiauswahl-Insellösungen bauen.
+- Medienauswahl/Upload bevorzugt über ein eigenes Media-System-Fenster/Modal.
+- HypeTrain-TODO ergänzt: spätere Alerts beim Start, Ende und Level-Up mit optionalem Sound/Video/Grafik vorbereiten.
+
+Keine Code-, Dashboard-, DB- oder Runtime-Änderung.
+
+---
+
 ## STEP_DOC_MASTER_PROMPT_STEPDONE_DESCRIPTION_RULE
 
 Stand: 2026-06-21

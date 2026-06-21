@@ -1,3 +1,28 @@
+
+---
+
+## TODO – HypeTrain Alert-/Media-Erweiterung
+
+- [ ] HypeTrain-Alerts später vorbereiten:
+  - Alert beim Start eines HypeTrains
+  - Alert beim Ende eines HypeTrains
+  - Alert bei neuer HypeTrain-Stufe / Level-Up
+- [ ] Pro Alert-Typ optional Sound, Video und/oder Grafik unterstützen.
+- [ ] Medienauswahl und Uploads ausschließlich über das bestehende Media-System umsetzen.
+- [ ] Upload/Medienauswahl im Dashboard nicht inline als Insellösung bauen, sondern über ein eigenes Media-System-Fenster/Modal öffnen.
+- [ ] Dashboard-Config vorbereiten:
+  - Start-Alert aktiv/inaktiv
+  - Level-Up-Alert aktiv/inaktiv
+  - Ende-Alert aktiv/inaktiv
+  - jeweilige Media-ID / Sound / Video / Grafik
+  - Queue-/Prioritätsregeln über Sound-System
+- [ ] Produktive Wiedergabe ausschließlich über bestehendes Sound-/Media-System, nicht direkt aus dem HypeTrain-Modul.
+- [ ] Alert-/Discord-/Tagebuch-Texte später über DB-/Textvarianten-System pflegen.
+
+## TODO – Master-Prompt / Media-System-Regel
+
+- [x] Dauerhafte Regel ergänzen: Sounds, Videos, Grafiken und sonstige Medien-Uploads/-Auswahlen in Dashboard-Modulen über das vorhandene Media-System und bevorzugt in eigenem Media-System-Fenster/Modal umsetzen.
+
 ## TODO / Regel – ZIP-Step Abschlussblock
 
 - [x] Master-Prompt-Regel ergänzen: Jeder ZIP-Step muss künftig `installstep.cmd`, Neustart-Hinweis, Testbefehle, erwartete Status-/Versionswerte, konkrete `stepdone.cmd`-Beschreibung und `stepundo.cmd`-Hinweis enthalten.
