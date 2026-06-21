@@ -1,3 +1,26 @@
+## STEP_DOC_MASTER_PROMPT_STEPDONE_DESCRIPTION_RULE
+
+Stand: 2026-06-21
+
+Bestätigt / ergänzt:
+
+- Master-Prompt wurde um die verbindliche Regel ergänzt, dass jeder ZIP-Step künftig einen vollständigen Abschlussblock enthalten muss.
+- Pflicht je ZIP-Step: `installstep.cmd`, Neustart-Hinweis, Testbefehle, erwartete Version/Build-Werte, konkreter `stepdone.cmd`-Befehl mit Beschreibung und `stepundo.cmd`-Hinweis.
+- Hintergrund: Beim HypeTrain-FIX1 fehlte die `stepdone.cmd`-Beschreibung in der ZIP-Antwort; das wurde als dauerhafte Arbeitsregel aufgenommen.
+
+Nicht geändert:
+
+```text
+Backend-Code
+Dashboard
+Datenbank
+HypeTrain-Runtime
+Sound-System
+Twitch-Events
+```
+
+---
+
 ## STEP_HT2_1_FIX1_HYPETRAIN_PREVIEW_LINEBREAK
 
 Stand: 2026-06-21

@@ -1,3 +1,16 @@
+## 2026-06-21 – STEP_DOC_MASTER_PROMPT_STEPDONE_DESCRIPTION_RULE
+
+### Changed
+
+- Master-Prompt ergänzt: Jede ZIP-Step-Lieferung muss künftig `installstep.cmd`, Node-/Neustart-Hinweis, Testbefehle, erwartete Status-/Versionswerte, konkreten `stepdone.cmd`-Befehl mit Beschreibung und `stepundo.cmd`-Hinweis enthalten.
+- Ziel: STEP-Abschlüsse bleiben nachvollziehbar und `stepdone.cmd` wird nicht mehr ohne passende Beschreibung vergessen.
+
+### Not changed
+
+- Keine Code-, Dashboard-, Datenbank-, HypeTrain- oder Runtime-Änderung.
+
+---
+
 ## 2026-06-21 – STEP_HT2_1_FIX1_HYPETRAIN_PREVIEW_LINEBREAK
 
 ### Fixed

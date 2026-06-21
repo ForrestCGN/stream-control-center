@@ -1,3 +1,23 @@
+## Nach STEP_DOC_MASTER_PROMPT_STEPDONE_DESCRIPTION_RULE
+
+1. ZIP einspielen.
+2. `stepdone.cmd` mit der unten gelieferten Beschreibung ausführen, wenn die Doku-Dateien korrekt übernommen wurden.
+3. Ab dem nächsten Code-/Doku-ZIP prüfen, dass die Antwort immer enthält:
+   - `installstep.cmd`
+   - Node-/Neustart-Hinweis
+   - Testbefehle
+   - erwartete Versions-/Build-Werte
+   - konkrete `stepdone.cmd`-Beschreibung
+   - `stepundo.cmd`-Hinweis
+
+Nächster fachlicher Schritt bleibt danach:
+
+```text
+HT2.2: HypeTrain Dashboard-Modul mit Übersicht, Config, Texte, Statistik und Tests planen/bauen.
+```
+
+---
+
 ## Nächste Schritte nach STEP_HT2_1_FIX1_HYPETRAIN_PREVIEW_LINEBREAK
 
 1. ZIP einspielen/deployen.

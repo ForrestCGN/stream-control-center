@@ -219,6 +219,18 @@ Wenn ein Workflow-Script fehlschlaegt:
 - nicht blind Umwege bauen
 - bei unklaren Dateien exakt die benoetigte Datei anfordern
 
+Pflichtinhalt jeder ZIP-Lieferung durch den Assistant:
+
+Wenn der Assistant einen ZIP-Step liefert, muss die Antwort immer direkt enthalten:
+1. `installstep.cmd`-Befehl mit exaktem ZIP-Dateinamen und sinnvoller deutscher Beschreibung.
+2. Hinweis, ob Node/Backend-Neustart nötig ist.
+3. konkrete Testbefehle.
+4. erwartete Status-/Versionswerte, z. B. `moduleVersion` und `moduleBuild`.
+5. `stepdone.cmd`-Befehl mit konkreter deutscher Beschreibung für den bestätigten Stand.
+6. `stepundo.cmd`-Hinweis für den Fehlerfall.
+
+Die `stepdone.cmd`-Beschreibung darf nicht fehlen. Sie soll kurz festhalten, was getestet und bestätigt wurde und ob produktive Aktionen ausgelöst wurden oder bewusst nicht.
+
 ================================================================================
 5. TODO-Pflicht / Aufgeschobene Punkte
 ================================================================================
@@ -803,6 +815,9 @@ Nach Datei-/ZIP-Einspielung gilt der sichere Workflow:
 4. Live testen.
 5. Erst wenn der Test erfolgreich ist: `stepdone.cmd` ausführen.
 6. Wenn der Test fehlerhaft ist: `stepundo.cmd` nutzen oder lokalen Stand bewusst prüfen/zurücksetzen.
+
+Bei erfolgreichem Test muss der Assistant eine passende `stepdone.cmd`-Beschreibung liefern.
+Diese Beschreibung gehört direkt zur Antwort des ZIP-/Fix-Steps und muss so konkret sein, dass der Stand später im Git-/Projektverlauf verständlich bleibt.
 
 Nicht nach GitHub/dev pushen, bevor der Live-Test erfolgreich war.
 

@@ -1,3 +1,29 @@
+## Dateien – STEP_DOC_MASTER_PROMPT_STEPDONE_DESCRIPTION_RULE
+
+Geändert:
+
+```text
+docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+```
+
+Nicht geändert:
+
+```text
+backend/modules/hypetrain.js
+htdocs/dashboard/*
+Datenbank
+Config-Dateien
+Sound-System
+Twitch-Events
+```
+
+---
+
 ## Dateien – STEP_HT2_1_FIX1_HYPETRAIN_PREVIEW_LINEBREAK
 
 Geändert:

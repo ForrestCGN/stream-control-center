@@ -1,3 +1,10 @@
+## TODO / Regel – ZIP-Step Abschlussblock
+
+- [x] Master-Prompt-Regel ergänzen: Jeder ZIP-Step muss künftig `installstep.cmd`, Neustart-Hinweis, Testbefehle, erwartete Status-/Versionswerte, konkrete `stepdone.cmd`-Beschreibung und `stepundo.cmd`-Hinweis enthalten.
+- [ ] Bei künftigen ZIP-/Fix-Antworten aktiv prüfen, dass die `stepdone.cmd`-Beschreibung nicht fehlt.
+
+---
+
 ## TODO – HypeTrain HT2 nach STEP_HT2_1_FIX1_HYPETRAIN_PREVIEW_LINEBREAK
 
 - [x] HT2.1 Backend-Modul installiert und Statusroute bestätigt.
