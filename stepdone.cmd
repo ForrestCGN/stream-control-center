@@ -1,16 +1,36 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
-
 cd /d "%~dp0"
 
 set "COMMIT_MSG=%~1"
+set "DO_DEPLOY=0"
+set "TMP_CHANGED=%TEMP%\scc_stepdone_changed_%RANDOM%.txt"
+set "TMP_STAGED=%TEMP%\scc_stepdone_staged_%RANDOM%.txt"
+set "TMP_JS=%TEMP%\scc_stepdone_js_%RANDOM%.txt"
+
+if /I "%COMMIT_MSG%"=="--deploy" (
+  set "COMMIT_MSG="
+  set "DO_DEPLOY=1"
+)
+
+if /I "%~2"=="--deploy" set "DO_DEPLOY=1"
 
 echo.
 echo ============================================================
-echo [stepdone] Repo pruefen
+echo [stepdone] Getesteten Stand finalisieren - Commit + Push
 echo ============================================================
-git status --short --untracked-files=all
-if errorlevel 1 goto fail
+echo.
+
+if not exist ".git" (
+  echo [error] Kein Git-Repo gefunden. Bitte im Repo-Root ausfuehren.
+  exit /b 1
+)
+
+for /f "usebackq delims=" %%B in (`git branch --show-current`) do set "BRANCH=%%B"
+if /I not "%BRANCH%"=="dev" (
+  echo [error] Aktueller Branch ist '%BRANCH%', erwartet: dev
+  exit /b 1
+)
 
 if "%COMMIT_MSG%"=="" (
   echo.
@@ -22,46 +42,36 @@ if "%COMMIT_MSG%"=="" (
   exit /b 1
 )
 
+echo [stepdone] Git-Status vor Commit:
+git status --short --untracked-files=all
+if errorlevel 1 goto fail
+
+(
+  git diff --name-only
+  git ls-files --others --exclude-standard
+) > "%TMP_CHANGED%"
+
 echo.
 echo ============================================================
-echo [stepdone] JS-Syntax pruefen
+echo [stepdone] JS-Syntaxcheck geaenderter Dateien
 echo ============================================================
-
-if exist "backend\modules\hug.js" (
-  echo ^> node -c backend\modules\hug.js
-  node -c "backend\modules\hug.js"
-  if errorlevel 1 goto fail
-)
-
-if exist "htdocs\dashboard\modules\hug.js" (
-  echo ^> node -c htdocs\dashboard\modules\hug.js
-  node -c "htdocs\dashboard\modules\hug.js"
-  if errorlevel 1 goto fail
-)
-
-if exist "htdocs\dashboard\modules\tagebuch.js" (
-  echo ^> node -c htdocs\dashboard\modules\tagebuch.js
-  node -c "htdocs\dashboard\modules\tagebuch.js"
-  if errorlevel 1 goto fail
-)
-
-if exist "htdocs\dashboard\modules\todo.js" (
-  echo ^> node -c htdocs\dashboard\modules\todo.js
-  node -c "htdocs\dashboard\modules\todo.js"
-  if errorlevel 1 goto fail
-)
-
-if exist "htdocs\dashboard\modules\vip.js" (
-  echo ^> node -c htdocs\dashboard\modules\vip.js
-  node -c "htdocs\dashboard\modules\vip.js"
-  if errorlevel 1 goto fail
+findstr /I /R "^backend/.*\.js$ ^htdocs/.*\.js$" "%TMP_CHANGED%" > "%TMP_JS%" 2>nul
+if errorlevel 1 (
+  echo [info] Keine geaenderten JS-Dateien in backend/ oder htdocs/ gefunden.
+) else (
+  for /f "usebackq delims=" %%F in ("%TMP_JS%") do (
+    if exist "%%F" (
+      echo ^> node -c %%F
+      node -c "%%F"
+      if errorlevel 1 goto fail
+    )
+  )
 )
 
 echo.
 echo ============================================================
-echo [stepdone] Dateien vormerken
+echo [stepdone] Erlaubte Projektbereiche vormerken
 echo ============================================================
-
 if exist "backend" git add backend
 if exist "htdocs" git add htdocs
 if exist "config" git add config
@@ -75,45 +85,44 @@ if exist "deploy.cmd" git add deploy.cmd
 if exist "pull.cmd" git add pull.cmd
 if exist "restore.cmd" git add restore.cmd
 if exist "status.cmd" git add status.cmd
+if exist "installstep.cmd" git add installstep.cmd
+if exist "testdeploy.cmd" git add testdeploy.cmd
 if exist "stepdone.cmd" git add stepdone.cmd
+if exist "stepundo.cmd" git add stepundo.cmd
+if exist "stepstatus.cmd" git add stepstatus.cmd
 
 echo.
 echo ============================================================
 echo [stepdone] Sicherheitscheck staged Dateien
 echo ============================================================
+git diff --cached --name-only > "%TMP_STAGED%"
 
-git diff --cached --name-only > "%TEMP%\stepdone_staged.txt"
-findstr /I /R "\.env$ \.sqlite$ \.sqlite3$ \.db$ \.zip$ \.7z$ \.bak$ \.old$ \.tmp$ \.temp$ token secret password credential" "%TEMP%\stepdone_staged.txt" >nul
+findstr /I /R "\.env$ \.sqlite$ \.sqlite3$ \.db$ \.zip$ \.7z$ \.bak$ \.old$ \.tmp$ \.temp$ token secret password credential" "%TMP_STAGED%" >nul
 if not errorlevel 1 (
   echo [error] Blockierte Datei erkannt:
-  findstr /I /R "\.env$ \.sqlite$ \.sqlite3$ \.db$ \.zip$ \.7z$ \.bak$ \.old$ \.tmp$ \.temp$ token secret password credential" "%TEMP%\stepdone_staged.txt"
+  findstr /I /R "\.env$ \.sqlite$ \.sqlite3$ \.db$ \.zip$ \.7z$ \.bak$ \.old$ \.tmp$ \.temp$ token secret password credential" "%TMP_STAGED%"
   git reset
-  del "%TEMP%\stepdone_staged.txt" >nul 2>nul
-  exit /b 1
+  goto fail
 )
 
-findstr /I /R "data/sqlite data\\sqlite secrets/ secrets\\" "%TEMP%\stepdone_staged.txt" >nul
+findstr /I /R "data/sqlite data\\sqlite secrets/ secrets\\" "%TMP_STAGED%" >nul
 if not errorlevel 1 (
   echo [error] Blockierter Pfad erkannt:
-  findstr /I /R "data/sqlite data\\sqlite secrets/ secrets\\" "%TEMP%\stepdone_staged.txt"
+  findstr /I /R "data/sqlite data\\sqlite secrets/ secrets\\" "%TMP_STAGED%"
   git reset
-  del "%TEMP%\stepdone_staged.txt" >nul 2>nul
-  exit /b 1
+  goto fail
 )
 
-del "%TEMP%\stepdone_staged.txt" >nul 2>nul
-
 echo [ok] Sicherheitscheck bestanden.
-
-echo.
-echo ============================================================
-echo [stepdone] Commit und Push
-echo ============================================================
 
 git diff --cached --quiet
 if not errorlevel 1 (
   echo [warn] Keine staged Changes gefunden. Commit/Push wird uebersprungen.
 ) else (
+  echo.
+  echo ============================================================
+  echo [stepdone] Commit und Push nach GitHub/dev
+  echo ============================================================
   git status --short
   git commit -m "%COMMIT_MSG%"
   if errorlevel 1 goto fail
@@ -122,18 +131,18 @@ if not errorlevel 1 (
   if errorlevel 1 goto fail
 )
 
-echo.
-echo ============================================================
-echo [stepdone] Live aus GitHub/dev aktualisieren
-echo ============================================================
-
-if not exist "tools\easy\01_LIVE_AKTUALISIEREN_VON_GITHUB.cmd" (
-  echo [error] Deploy-Script nicht gefunden: tools\easy\01_LIVE_AKTUALISIEREN_VON_GITHUB.cmd
-  exit /b 1
+if "%DO_DEPLOY%"=="1" (
+  echo.
+  echo ============================================================
+  echo [stepdone] Optionaler Deploy nach Live
+  echo ============================================================
+  powershell -NoProfile -ExecutionPolicy Bypass -File "%CD%\tools\deploy_repo_to_streamassets.ps1"
+  if errorlevel 1 goto fail
+) else (
+  echo.
+  echo [hinweis] Kein Live-Deploy im stepdone-Standard.
+  echo [hinweis] Live wurde vorher mit testdeploy.cmd getestet.
 )
-
-call "tools\easy\01_LIVE_AKTUALISIEREN_VON_GITHUB.cmd"
-if errorlevel 1 goto fail
 
 echo.
 echo ============================================================
@@ -143,11 +152,16 @@ git status --short --untracked-files=all
 if errorlevel 1 goto fail
 
 echo.
-echo [ok] Fertig.
-echo [hinweis] Wenn Backend-Dateien geaendert wurden und Node nicht automatisch neu startet: Backend jetzt neu starten.
+echo [ok] Fertig. GitHub/dev enthaelt jetzt den getesteten Stand.
+del "%TMP_CHANGED%" >nul 2>nul
+del "%TMP_STAGED%" >nul 2>nul
+del "%TMP_JS%" >nul 2>nul
 exit /b 0
 
 :fail
 echo.
 echo [error] stepdone ist fehlgeschlagen.
+del "%TMP_CHANGED%" >nul 2>nul
+del "%TMP_STAGED%" >nul 2>nul
+del "%TMP_JS%" >nul 2>nul
 exit /b 1

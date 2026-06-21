@@ -95,6 +95,13 @@ Keine parallelen Systeme bauen, wenn vorhandene Helper/Module/Bus-Strukturen zus
 Bei Unsicherheit:
 Nicht weiterbauen. Nachfragen oder konkrete Datei anfordern.
 
+Wenn eine benötigte Datei nicht vollständig, nicht zuverlässig oder nur gekürzt lesbar ist:
+- nicht rekonstruieren
+- nicht aus alten Chatständen nachbauen
+- nicht aus Tool-Ausschnitten zusammenkopieren
+- nicht aus Erinnerung arbeiten
+- sofort exakt die benötigte Datei aus `D:\Git\stream-control-center` anfordern.
+
 ================================================================================
 3. Dateiänderungen / ZIP-Regeln
 ================================================================================
@@ -143,34 +150,74 @@ Bei reinen Doku-Steps:
 - keine losen Textblöcke, außer Forrest verlangt ausdrücklich nur Text
 
 ================================================================================
-4. Abschlussroutine / stepdone.cmd
+4. Sicherer ZIP-/Test-/GitHub-Workflow
 ================================================================================
 
-Nach dem Einspielen/Deploy eines Datei-ZIPs wird `stepdone.cmd` ausgeführt.
+GitHub/dev soll der letzte getestete stabile Stand bleiben.
+Ungetestete ZIP-/Arbeitsstaende werden nicht automatisch nach GitHub/dev gepusht.
 
-Ablauf:
-1. ZIP nach `D:\Git\stream-control-center` entpacken.
-2. Repo-/Live-Deploy durchführen, falls für den Stand nötig.
-3. Danach `stepdone.cmd` ausführen.
-4. Erst danach live testen.
-5. Nach erfolgreichem Test kein zweites StepDone.
+Neuer Standardablauf, wenn der Assistant ein ZIP liefert:
 
-StepDone-Befehl:
-.\stepdone.cmd "PASSENDE DEUTSCHE BESCHREIBUNG"
+1. ZIP herunterladen.
+2. Im Repo ausfuehren:
+   .\installstep.cmd "%USERPROFILE%\Downloads\<ZIP-NAME>.zip" "Beschreibung"
+3. `installstep.cmd` entpackt das ZIP nach `D:\Git\stream-control-center` und startet danach `testdeploy.cmd`.
+4. `testdeploy.cmd` prueft den lokalen Stand und deployed nach `D:\Streaming\stramAssets`.
+5. Es wird dabei NICHT committed und NICHT nach GitHub gepusht.
+6. Wenn Backend-Dateien geaendert wurden: Node neu starten.
+7. Live testen.
+8. Wenn Test erfolgreich:
+   .\stepdone.cmd "PASSENDE DEUTSCHE BESCHREIBUNG"
+9. Wenn Test fehlerhaft:
+   .\stepundo.cmd
 
-Beispiele:
-.\stepdone.cmd "SO Sync v0.2.4 - Offizieller Shoutout nach echtem Clip-Ende"
-.\stepdone.cmd "Shot Alarm v0.3.1 - StreamSession-Bindung ergänzt"
+Bedeutung der Workflow-Scripte:
 
-Nicht nötig:
-- technische Monster-Namen
-- künstliche STEP-Codes
-- Versionsnummern im Beschreibungstext ohne Nutzen
+- `installstep.cmd`
+  - ZIP pruefen
+  - ZIP nach `D:\Git\stream-control-center` entpacken
+  - danach Test-Deploy starten
+  - kein Commit
+  - kein Push
 
-Wenn `stepdone.cmd` fehlschlägt:
-- Fehlerausgabe prüfen
+- `testdeploy.cmd`
+  - lokalen Repo-Stand pruefen
+  - JS-Syntaxcheck fuer geaenderte JS-Dateien
+  - Sicherheitscheck gegen Secrets/DB/Archive
+  - Live-Backup erstellen
+  - nach `D:\Streaming\stramAssets` deployen
+  - kein Commit
+  - kein Push
+
+- `stepdone.cmd`
+  - nur nach erfolgreichem Live-Test verwenden
+  - finalen Stand committen
+  - nach GitHub/dev pushen
+  - im Standard kein Live-Deploy mehr
+  - optional mit `--deploy`, wenn bewusst nochmal live deployed werden soll
+
+- `stepundo.cmd`
+  - letztes Live-Backup wiederherstellen
+  - lokale Repo-Aenderungen nicht automatisch loeschen
+  - kein automatisches `git reset --hard`
+  - kein automatisches `git clean`
+
+- `stepstatus.cmd`
+  - Repo-/Branch-/Backup-/Aenderungsstatus anzeigen
+
+Wichtige Regel:
+
+Nicht mehr:
+ZIP entpacken -> stepdone -> danach testen.
+
+Sondern:
+ZIP installieren/Test-Deploy -> Node ggf. neu starten -> live testen -> erst bei Erfolg stepdone.
+
+Wenn ein Workflow-Script fehlschlaegt:
+- Fehlerausgabe pruefen
 - gezielt reparieren
 - nicht blind Umwege bauen
+- bei unklaren Dateien exakt die benoetigte Datei anfordern
 
 ================================================================================
 5. TODO-Pflicht / Aufgeschobene Punkte
@@ -749,13 +796,15 @@ Tests sollen praktisch und gezielt sein:
 - Live-/Overlay-Verhalten prüfen, wenn betroffen
 - keine unnötig großen Dumps erzeugen
 
-Nach Datei-/ZIP-Einspielung gilt:
-1. ZIP entpacken
-2. Deploy/Live-Aktualisierung durchführen, falls nötig
-3. `stepdone.cmd` ausführen
-4. erst danach testen
+Nach Datei-/ZIP-Einspielung gilt der sichere Workflow:
+1. ZIP mit `installstep.cmd` installieren oder Dateien bewusst ins Repo legen.
+2. `testdeploy.cmd` ausführen, um den lokalen Stand nach Live zu kopieren.
+3. Falls `backend/` geändert wurde: Node neu starten.
+4. Live testen.
+5. Erst wenn der Test erfolgreich ist: `stepdone.cmd` ausführen.
+6. Wenn der Test fehlerhaft ist: `stepundo.cmd` nutzen oder lokalen Stand bewusst prüfen/zurücksetzen.
 
-Nicht vorher live testen, wenn der Stand noch nicht deployed ist.
+Nicht nach GitHub/dev pushen, bevor der Live-Test erfolgreich war.
 
 Bei Fehlern nicht raten.
 
@@ -928,7 +977,8 @@ Test-Doku, falls betroffen:
 
 Ein Arbeitsstand ist erst sauber abgeschlossen, wenn:
 - Code/Dateien geliefert wurden
-- `stepdone.cmd` nach Einspielen/Deploy ausgeführt wurde
+- `testdeploy.cmd` vor dem Live-Test ausgeführt wurde
+- `stepdone.cmd` erst nach erfolgreichem Live-Test ausgeführt wurde
 - relevante Tests durchgeführt wurden
 - Testergebnisse dokumentiert wurden
 - offene Punkte in TODO stehen
@@ -949,6 +999,7 @@ Grundregeln:
 - nicht raten
 - keine erfundenen Dateien, Pfade, Routen oder Funktionen nennen
 - keine alten Stände mit neuen mischen
+- wenn Dateien nicht vollständig/zuverlässig lesbar sind: sofort exakt nach der Datei fragen
 
 Immer fragen, wenn:
 - benötigte Dateien fehlen
@@ -1062,15 +1113,14 @@ Nicht dauerhaft in den Master-Prompt gehören:
 Beim Start eines neuen Chats im Projekt `stream-control-center` nicht blind loslegen.
 
 Standard-Reihenfolge:
-1. Wenn vorhanden: `docs/current/START_HERE_FOR_NEW_CHAT.md` lesen.
-2. `docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt` lesen.
-3. `project-state/CURRENT_STATUS.md` lesen.
-4. `project-state/NEXT_STEPS.md` lesen.
-5. `project-state/TODO.md` lesen.
-6. `project-state/FILES.md` prüfen, wenn Dateien/Pfade unklar sind.
-7. Relevante `docs/current/*.md` lesen.
-8. Relevante `docs/modules/*.md` lesen.
-9. Falls benötigte Dateien fehlen: exakt diese Dateien von Forrest anfordern.
+1. Master-Prompt lesen.
+2. `project-state/CURRENT_STATUS.md` lesen.
+3. `project-state/NEXT_STEPS.md` lesen.
+4. `project-state/TODO.md` lesen.
+5. `project-state/FILES.md` prüfen, wenn Dateien/Pfade unklar sind.
+6. Relevante `docs/current/*.md` lesen.
+7. Relevante `docs/modules/*.md` lesen.
+8. Falls benötigte Dateien fehlen: exakt diese Dateien von Forrest anfordern.
 
 Nicht nur aus Erinnerung arbeiten.
 Nicht alte Chatstände mit aktuellen Dateien mischen.
