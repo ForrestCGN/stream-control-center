@@ -1,3 +1,56 @@
+## TODO – HypeTrain HT2 nach STEP_HT2_1_FIX1_HYPETRAIN_PREVIEW_LINEBREAK
+
+- [x] HT2.1 Backend-Modul installiert und Statusroute bestätigt.
+- [x] DB-Schema, Settings-Tabelle und Textvarianten-Modul bestätigt.
+- [x] Preview-Routen bestätigt.
+- [x] Synthetischer DB-Test bestätigt.
+- [x] Preview-Zeilenumbruch zwischen Beitragsübersicht und HypeTrain-Punkten korrigiert.
+- [ ] Fix1 einspielen und Preview erneut prüfen.
+- [ ] Danach `stepdone.cmd` ausführen.
+- [ ] HT2.2 Dashboard-Tabs planen/bauen: Übersicht, Config, Texte, Statistik, Tests.
+- [ ] Später produktive Discord-/Tagebuch-Ausgabe erst nach Dashboard-/Config-Freigabe aktivieren.
+- [ ] Config-Zentralisierung als eigener späterer Step: zentraler Modul-Config-Helper/Config-Service mit DB-Settings, JSON-Fallback, Code-Defaults, Kategorien, Labels, Tooltips, sensitive Werte und Dashboard-Payloads.
+
+Nicht tun:
+
+- [ ] Keine Top-Unterstützer-Namen standardmäßig posten.
+- [ ] Keine produktive DB ersetzen oder überschreiben.
+- [ ] Keine Funktionalität entfernen.
+
+---
+
+## TODO – HypeTrain HT2 nach STEP_HT2_1_HYPETRAIN_BACKEND_DB_STATUS_PREVIEW
+
+- [x] Neues Backend-Fachmodul `hypetrain` geplant.
+- [x] Config-Zentralisierung als spaeteres eigenes Thema aufgenommen.
+- [x] DB-Config fuer HypeTrain ueber vorhandenen `helper_settings` vorbereitet.
+- [x] Textvarianten fuer HypeTrain ueber vorhandenen `helper_texts` vorbereitet.
+- [x] Tabellen fuer Runs, Contributions und Runtime-Events vorbereitet.
+- [x] Discord-/Tagebuch-Vorschau ohne produktives Senden vorbereitet.
+- [x] Top-Unterstuetzer/Namen standardmaessig deaktiviert.
+- [ ] HT2.1 einspielen und Node neu starten.
+- [ ] `/api/hypetrain/status` pruefen.
+- [ ] `/api/hypetrain/preview` fuer normal/raid und rekord/kein rekord testen.
+- [ ] Synthetischen DB-Test mit `confirm=1` pruefen.
+- [ ] Echten HypeTrain im Stream beobachten, ob Bus-Events erfasst werden.
+- [ ] Danach HT2.2 Dashboard-Tabs bauen: Übersicht, Config, Texte, Statistik, Tests.
+
+### Spaeteres eigenes Thema: Config-Zentralisierung
+
+- [ ] Zentralen Modul-Config-Helper bzw. Config-Service planen.
+- [ ] Ziel: DB-Settings, JSON-Fallback, Code-Defaults, Kategorien, Labels, Tooltips, sensitive Werte und Dashboard-Payloads einheitlich verwalten.
+- [ ] Optional spaeter: `module_settings_v2` mit `module_name`, damit weniger eigene Settings-Logik pro Modul noetig ist.
+- [ ] Bestehende Module nur schrittweise migrieren, keine Big-Bang-Umstellung.
+
+Nicht tun:
+
+- [ ] Keine produktive DB ersetzen oder ueberschreiben.
+- [ ] Keine alte HypeTrain-Logik entfernen, bevor HT2 live getestet ist.
+- [ ] Keine Supporter-Namen/Top-Unterstuetzer standardmaessig posten.
+- [ ] Keine Funktionalitaet entfernen.
+
+---
+
 ## TODO – Clip-Shoutout / SO Sync nach STEP_SO_SYNC_FINISH_EVENT_LISTENER_FIX_VERIFIED
 
 - [x] Problem analysiert: offizieller Twitch-SO konnte vor echtem Clip-Ende ausgelöst werden, wenn Sound-System/Overlay noch beschäftigt war.

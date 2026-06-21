@@ -1,3 +1,43 @@
+## 2026-06-21 – STEP_HT2_1_FIX1_HYPETRAIN_PREVIEW_LINEBREAK
+
+### Fixed
+
+- `hypetrain` Preview-Nachrichten setzen jetzt zuverlässig einen Zeilenumbruch zwischen Beitragsübersicht und HypeTrain-Punkte-Zeile.
+- Betrifft nur Formatierung der Discord-/Preview-Message.
+- Keine produktiven Discord-/Tagebuch-Aktionen aktiviert.
+- Keine Änderung an `twitch_events`, Sound-System, Discord-Core oder produktiver DB-Logik.
+
+---
+
+## 2026-06-21 – STEP_HT2_1_HYPETRAIN_BACKEND_DB_STATUS_PREVIEW
+
+### Added
+
+- Neues Backend-Fachmodul `backend/modules/hypetrain.js`.
+- DB-Schema fuer HypeTrain-Runs, Contributions und Runtime-Events.
+- DB-Settings ueber `hypetrain_settings` mit vorhandenem `helper_settings`.
+- Textvarianten-Vorbereitung ueber `module_text_variants` / Modul `hypetrain`.
+- Bus-Subscriber fuer bestehende Twitch-/HypeTrain-/Support-Events.
+- Status-, Config-, Texte-, Statistik- und Preview-Routen.
+- Synthetischer Preview-/DB-Test ohne produktives Discord-/Tagebuch-Senden.
+
+### Changed
+
+- Projektplanung ergaenzt: Config-Zentralisierung als eigenes spaeteres Thema aufnehmen.
+- HypeTrain-Architektur vorbereitet: `twitch_events` bleibt EventSub-Quelle, `hypetrain` wird Fachmodul.
+
+### Not changed
+
+- Keine produktive DB ersetzt.
+- Kein Dashboard eingebaut.
+- Kein Discord-Core umgebaut.
+- Kein Tagebuch-System umgebaut.
+- Kein Sound-System umgebaut.
+- Keine alte HypeTrain-Logik entfernt.
+- Keine Funktionalitaet entfernt.
+
+---
+
 ## 2026-06-21 – STEP_SO_SYNC_FINISH_EVENT_LISTENER_FIX_VERIFIED
 
 ### Fixed

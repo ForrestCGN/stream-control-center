@@ -1,3 +1,69 @@
+## STEP_HT2_1_FIX1_HYPETRAIN_PREVIEW_LINEBREAK
+
+Stand: 2026-06-21
+Marker: `STEP_HT2_1_FIX1_HYPETRAIN_PREVIEW_LINEBREAK`
+Modul: `hypetrain`
+Version: `0.1.1`
+
+### Status
+
+- HT2.1 Backend-Modul ist installiert und lauffähig.
+- Statusroute, DB-Schema, Settings, Texte, Bus-Subscriptions, Preview und synthetischer DB-Test wurden bestätigt.
+- Fix1 korrigiert nur die Preview-/Discord-Formatierung: Zwischen `GiftSubs` und `HypeTrain-Punkte` steht jetzt zuverlässig ein Zeilenumbruch.
+
+### Nicht geändert
+
+```text
+Keine produktive Discord-Ausgabe aktiviert
+Keine produktive Tagebuch-Ausgabe aktiviert
+Keine Dashboard-Tabs ergänzt
+Kein Umbau von twitch_events
+Kein Umbau von sound_system
+Keine Funktionalität entfernt
+```
+
+---
+
+## STEP_HT2_1_HYPETRAIN_BACKEND_DB_STATUS_PREVIEW
+
+Stand: 2026-06-21  
+Modul: `hypetrain`  
+Version: `0.1.0`
+
+### Neu
+
+- Neues HypeTrain-Fachmodul als Backend-Basis erstellt.
+- Das Modul abonniert vorhandene Bus-Events aus `twitch_events` und baut kein eigenes EventSub-System.
+- DB-Tabellen vorbereitet:
+  - `hypetrain_runs`
+  - `hypetrain_contributions`
+  - `hypetrain_runtime_events`
+- Settings werden ueber `hypetrain_settings` vorbereitet.
+- Multi-Texte/Textvarianten werden ueber das vorhandene `module_text_variants`-System vorbereitet.
+- Discord-/Tagebuch-Ausgaben sind in HT2.1 nur Vorschau, nicht produktiv sendend.
+- Top-Unterstuetzer und Namen sind standardmaessig deaktiviert.
+
+### Status-Routen
+
+```text
+GET  /api/hypetrain/status
+GET  /api/hypetrain/config
+POST /api/hypetrain/config
+GET  /api/hypetrain/texts
+POST /api/hypetrain/texts
+GET  /api/hypetrain/stats
+GET  /api/hypetrain/preview
+POST /api/hypetrain/preview
+POST /api/hypetrain/test/synthetic?confirm=1
+GET  /api/hypetrain/routes
+```
+
+### Wichtig
+
+`twitch_events` bleibt in diesem Step unveraendert und weiterhin EventSub-/Event-Besitzer. Das neue Modul hoert nur zu und speichert/previewt.
+
+---
+
 ## STEP_SO_SYNC_FINISH_EVENT_LISTENER_FIX_VERIFIED
 
 Stand: 2026-06-21

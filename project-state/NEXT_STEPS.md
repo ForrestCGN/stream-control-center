@@ -1,3 +1,86 @@
+## Nächste Schritte nach STEP_HT2_1_FIX1_HYPETRAIN_PREVIEW_LINEBREAK
+
+1. ZIP einspielen/deployen.
+2. Backend/Node neu starten.
+3. Preview ohne Rekord testen.
+4. Preview Raid + Rekord testen.
+5. Prüfen, dass zwischen `GiftSubs` und `HypeTrain-Punkte` ein sauberer Zeilenumbruch steht.
+6. Danach `stepdone.cmd` ausführen, wenn alles passt.
+
+Prüfkommandos:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/hypetrain/status" |
+  Select-Object moduleVersion,moduleBuild
+
+Invoke-RestMethod "http://127.0.0.1:8080/api/hypetrain/preview?level=2&points=2500&bits=1500&subs=1&resubs=1&giftSubs=1" |
+  ConvertTo-Json -Depth 8
+
+Invoke-RestMethod "http://127.0.0.1:8080/api/hypetrain/preview?raid=1&record=1&level=5&points=9600&bits=3500&subs=3&giftSubs=4" |
+  ConvertTo-Json -Depth 8
+```
+
+Danach nächster sinnvoller Step:
+
+```text
+STEP_HT2_2_HYPETRAIN_DASHBOARD_OVERVIEW_CONFIG
+```
+
+---
+
+## Naechste Schritte nach STEP_HT2_1_HYPETRAIN_BACKEND_DB_STATUS_PREVIEW
+
+1. ZIP einspielen/deployen.
+2. Backend/Node neu starten.
+3. Status pruefen:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/hypetrain/status" |
+  ConvertTo-Json -Depth 10
+```
+
+4. Preview ohne produktives Senden pruefen:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/hypetrain/preview?level=2&points=2500&bits=1500&subs=1&resubs=1&giftSubs=1" |
+  ConvertTo-Json -Depth 8
+```
+
+5. Raid+Rekord-Preview pruefen:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/hypetrain/preview?raid=1&record=1&level=5&points=9600&bits=3500&subs=3&giftSubs=4" |
+  ConvertTo-Json -Depth 8
+```
+
+6. Optional synthetischen DB-Test ohne produktives Senden ausfuehren:
+
+```powershell
+Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/hypetrain/test/synthetic?confirm=1" `
+  -ContentType "application/json" `
+  -Body '{"raid":true,"record":true,"level":5,"points":9600,"bits":3500,"subs":3,"giftSubs":4}' |
+  ConvertTo-Json -Depth 10
+```
+
+7. Wenn Status/Preview/DB-Test passt: `stepdone.cmd` ausfuehren.
+8. Danach naechster Step:
+
+```text
+STEP_HT2_2_HYPETRAIN_DASHBOARD_TABS
+```
+
+Nicht tun:
+
+```text
+Keine alte HypeTrain-Logik aus twitch_events entfernen.
+Kein produktives Discord-/Tagebuch-Senden aktivieren.
+Kein Sound-System umbauen.
+Keine produktive DB ersetzen.
+Keine Funktionalitaet entfernen.
+```
+
+---
+
 ## Nächste Schritte nach STEP_SO_SYNC_FINISH_EVENT_LISTENER_FIX_VERIFIED
 
 1. Beim nächsten echten Live-Stream einen finalen SO-Sync-Test durchführen.

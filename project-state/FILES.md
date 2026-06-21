@@ -1,3 +1,72 @@
+## Dateien – STEP_HT2_1_FIX1_HYPETRAIN_PREVIEW_LINEBREAK
+
+Geändert:
+
+```text
+backend/modules/hypetrain.js
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+```
+
+Nicht geändert:
+
+```text
+backend/modules/twitch_events.js
+backend/modules/sound_system.js
+backend/modules/discord.js
+backend/modules/tagebuch.js
+htdocs/dashboard/index.html
+htdocs/dashboard/app.js
+Datenbankdatei
+```
+
+---
+
+## Dateien – STEP_HT2_1_HYPETRAIN_BACKEND_DB_STATUS_PREVIEW
+
+Stand: 2026-06-21
+
+### Neu / geaendert
+
+```text
+backend/modules/hypetrain.js
+docs/modules/hypetrain.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+```
+
+### Bewusst nicht geaendert
+
+```text
+backend/modules/twitch_events.js
+backend/modules/discord.js
+backend/modules/tagebuch.js
+backend/modules/sound_system.js
+htdocs/dashboard/index.html
+htdocs/dashboard/app.js
+htdocs/dashboard/modules/*
+config/twitch_events.json
+Datenbankdatei app.sqlite
+```
+
+### Neue DB-Tabellen bei Runtime/Migration
+
+```text
+hypetrain_runs
+hypetrain_contributions
+hypetrain_runtime_events
+hypetrain_settings
+module_text_variants (module_name = hypetrain)
+```
+
+---
+
 ## Dateien – STEP_SO_SYNC_FINISH_EVENT_LISTENER_FIX_VERIFIED
 
 Stand: 2026-06-21
