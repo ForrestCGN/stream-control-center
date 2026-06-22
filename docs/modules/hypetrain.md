@@ -27,7 +27,7 @@ Im HypeTrain-Modul gibt es jetzt getrennte Tabs:
 - Statistik
 - Tests
 
-Der Tab `Event-Actions` enthält Start, Stufenaufstieg, Ende und Rekord mit Sound-/Overlay-Schaltern, Media-Auswahl und Dry-Run.
+Der Tab `Event-Actions` enthält Start, Stufenaufstieg, Ende und Rekord mit Sound-/Overlay-Schaltern und Media-Auswahl. Test-/Diagnosefunktionen liegen getrennt im Tests-Tab.
 
 ## Wichtig
 
@@ -51,3 +51,22 @@ htdocs/dashboard/modules/hypetrain.css
 ```
 
 `index.html` lädt keine separaten HypeTrain-Event-Actions-Dateien mehr. Der Tab `Event-Actions` ist ein echter Tab innerhalb von `hypetrain.js`.
+
+
+## HT3.5 Event-Actions UX Cleanup
+
+- Event-Actions sind weiterhin im normalen HypeTrain-Dashboardmodul integriert.
+- Der Event-Actions-Tab enthält nur Konfiguration und Status.
+- Test-/Diagnosefunktionen liegen im Tests-Tab.
+- In den Event-Actions-Karten werden keine Dry-Run-/Debug-Buttons mehr angezeigt.
+- Backend bleibt unverändert bei 0.2.3 / STEP_HT3_2_1_HYPETRAIN_EVENT_SOUND_HAS_MEDIA_HOTFIX.
+
+
+## HT3.5.2 Overlay-Architektur-Wording
+
+- Finale HypeTrain-Anzeige: ja.
+- Aber nicht als eigenes paralleles Overlay-System.
+- HypeTrain sendet bei aktivierter Overlay-Option Bus-Events an das zentrale Overlay-System.
+- Das zentrale Stream-/Event-Overlay rendert daraus später die HypeTrain-Anzeige als Template/Modus für Start, Stufenaufstieg, Ende und Rekord.
+- Die bisherige HypeTrain-Overlay-Datei bleibt nur technische Basis/Diagnose für Anmeldung, Heartbeat und Bus-Empfang.
+- Dashboard-Wording wurde auf „Zentrales Overlay / Bus“ korrigiert.

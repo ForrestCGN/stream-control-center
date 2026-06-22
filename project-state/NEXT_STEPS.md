@@ -1,10 +1,6 @@
-# Next Steps – HT3.4
+# Next Steps – HT3.5.2
 
-1. ZIP einspielen.
-2. Dashboard mit Cachebuster öffnen.
-3. Prüfen: `index.html` enthält keine `hypetrain_event_actions`-Einbindung mehr.
-4. HypeTrain öffnen: Tab `Event-Actions` sichtbar.
-5. Übersicht prüfen: sauber und ohne angehängte Event-Actions.
-6. Event-Actions prüfen: eigener Tab innerhalb vom HypeTrain-Modul.
-7. Alte Dateien `hypetrain_event_actions.js/css` aus dem Dashboard-Ordner löschen.
-8. Danach StepDone.
+1. Dashboard mit Cachebuster öffnen.
+2. Event-Actions-Tab prüfen: Wording muss klar sagen, dass Bus-Events an ein zentrales Overlay-System gehen.
+3. Prüfen, dass kein eigenes paralleles finales HypeTrain-Overlay-System suggeriert wird.
+4. Später zentrales Stream-/Event-Overlay planen, das HypeTrain als Template/Modus anzeigen kann.

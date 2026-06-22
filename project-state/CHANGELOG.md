@@ -1,14 +1,11 @@
 # Changelog
 
-## HT3.4
+## HT3.5.2
 
-- Cleanup: Event-Actions-Code in `htdocs/dashboard/modules/hypetrain.js` integriert.
-- Cleanup: Event-Actions-Styles in `htdocs/dashboard/modules/hypetrain.css` integriert.
-- `index.html` lädt keine separaten `hypetrain_event_actions.*` Dateien mehr.
-- Event-Actions bleibt als eigener Tab innerhalb des HypeTrain-Moduls erhalten.
-- Keine Backend-Änderung.
-- Keine DB-Änderung.
+- Wording korrigiert: finale HypeTrain-Anzeige ist geplant, aber als Template/Modus im zentralen Overlay-System.
+- Keine Formulierung mehr, die ein eigenes paralleles finales HypeTrain-Overlay-System als Ziel suggeriert.
+- Backend, DB und Sound-System unverändert.
 
-## HT3.3.3
+## HT3.5.1
 
-- Fix: Event-Actions wurden nicht mehr unten an die Übersicht angehängt.
+- Dashboard-Wording korrigiert: Overlay-Optionen senden Bus-Events an ein zentrales Overlay-System.

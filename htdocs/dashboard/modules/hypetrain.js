@@ -99,6 +99,8 @@
     const cfg = s.config || {};
     const runtime = s.runtime || {};
     const stats = s.stats || state.stats?.totals || {};
+    const eaSummary = eventActionsSummary();
+    const overlay = s.overlay || {};
     return `
       ${renderHero()}
       <div class="ht-grid two">
@@ -123,15 +125,23 @@
             ${miniStat('GiftSubs', stats.giftSubs)}
           </div>
         </section>
-        ${renderEndActionSummary()}
-        ${renderActivationProfiles()}
-        <section class="ht-card glass wide">
-          <h3>Runtime</h3>
+        <section class="ht-card glass">
+          <h3>Event-Actions</h3>
           <dl class="ht-dl compact">
+            <dt>Aktive Aktionen</dt><dd>${esc(eaSummary.activeActions)} von ${esc(eaSummary.totalActions)}</dd>
+            <dt>Sound bereit</dt><dd>${esc(eaSummary.readySounds)} Sound-Konfiguration(en)</dd>
+            <dt>Zentrales Overlay</dt><dd>${esc(eaSummary.activeOverlays)} Bus-Event(s)</dd>
+            <dt>Status</dt><dd>${eaSummary.activeActions ? 'vorbereitet' : 'alles aus'}</dd>
+          </dl>
+          <div class="ht-note">Details liegen im Tab <strong>Event-Actions</strong>. Die Übersicht bleibt nur Zusammenfassung.</div>
+        </section>
+        <section class="ht-card glass">
+          <h3>Zentrales Overlay & Runtime</h3>
+          <dl class="ht-dl compact">
+            <dt>Overlay-Basis</dt><dd>${overlay.connected ? 'verbunden' : 'nicht verbunden / nicht offen'}</dd>
+            <dt>Clients</dt><dd>${esc(overlay.connectedCount ?? overlay.clientCount ?? 0)}</dd>
             <dt>Aktueller Train</dt><dd>${esc(runtime.currentTrainId || '-')}</dd>
             <dt>Letzter Fehler</dt><dd>${esc(runtime.lastError || '-')}</dd>
-            <dt>Letzter Raid</dt><dd>${runtime.lastRaid ? `<pre>${esc(JSON.stringify(runtime.lastRaid, null, 2))}</pre>` : '-'}</dd>
-            <dt>Letzte Preview</dt><dd>${runtime.lastPreview?.message ? `<pre>${esc(runtime.lastPreview.message)}</pre>` : '-'}</dd>
           </dl>
         </section>
       </div>
@@ -322,6 +332,35 @@
     return state.eventActions?.actions?.[key] || { sound: {}, overlay: {} };
   }
 
+
+  function eventActionReadyState(key){
+    const cfg = eventActionConfig(key);
+    const sound = cfg.sound || {};
+    const overlay = cfg.overlay || {};
+    const soundActive = bool(sound.enabled);
+    const hasMedia = !!sound.hasMedia || numberValue(sound.mediaId) > 0 || String(sound.soundId || '').trim().length > 0;
+    const overlayActive = bool(overlay.enabled);
+    const ready = (!soundActive || hasMedia) && (!overlayActive || String(overlay.event || '').trim().length > 0);
+    let label = 'aus';
+    let cls = 'warn';
+    if (soundActive || overlayActive) {
+      label = ready ? 'bereit' : 'unvollständig';
+      cls = ready ? 'ok' : 'warn';
+    }
+    return { cfg, sound, overlay, soundActive, hasMedia, overlayActive, ready, label, cls };
+  }
+
+  function eventActionsSummary(){
+    const actions = eventActionDefs.map(def => eventActionReadyState(def.key));
+    return {
+      totalActions: eventActionDefs.length,
+      activeActions: actions.filter(item => item.soundActive || item.overlayActive).length,
+      readySounds: actions.filter(item => item.soundActive && item.hasMedia).length,
+      activeOverlays: actions.filter(item => item.overlayActive).length,
+      incomplete: actions.filter(item => (item.soundActive || item.overlayActive) && !item.ready).length
+    };
+  }
+
   function eventActionFieldId(action, part){
     return `ht3ea_${action}_${part}`.replace(/[^a-zA-Z0-9_]/g, '_');
   }
@@ -335,10 +374,10 @@
   }
 
   function renderEventActionCard(action){
-    const cfg = eventActionConfig(action.key);
-    const sound = cfg.sound || {};
-    const overlay = cfg.overlay || {};
-    const disabled = !sound.enabled;
+    const stateInfo = eventActionReadyState(action.key);
+    const cfg = stateInfo.cfg || {};
+    const sound = stateInfo.sound || {};
+    const overlay = stateInfo.overlay || {};
     return `
       <article class="ht-ea-action" data-ht-ea-action-key="${esc(action.key)}">
         <div class="ht-ea-action-head">
@@ -346,41 +385,49 @@
             <h4>${esc(action.label)}</h4>
             <p>${esc(action.hint)}</p>
           </div>
-          <span class="ht-badge ${disabled ? 'warn' : 'ok'}">${disabled ? 'Sound aus' : 'Sound aktiv'}</span>
+          <span class="ht-badge ${stateInfo.cls}">${esc(stateInfo.label)}</span>
+        </div>
+
+        <div class="ht-ea-readiness">
+          <span>${stateInfo.soundActive ? (stateInfo.hasMedia ? 'Sound bereit' : 'Sound aktiv, Medium fehlt') : 'Sound aus'}</span>
+          <span>${stateInfo.overlayActive ? 'Bus-Overlay aktiv' : 'Bus-Overlay aus'}</span>
         </div>
 
         <div class="ht-ea-columns">
           <section class="ht-ea-subcard">
-            <h5>SoundSystem</h5>
+            <h5>Sound</h5>
             <label class="ht-ea-check"><input type="checkbox" data-ht-ea-field="sound.enabled" ${bool(sound.enabled) ? 'checked' : ''}> Sound aktiv</label>
-            <label>Media-ID<input id="${esc(eventActionFieldId(action.key, 'mediaId'))}" type="number" min="0" step="1" data-ht-ea-field="sound.mediaId" value="${esc(sound.mediaId || 0)}"></label>
+            <label>Medium<input id="${esc(eventActionFieldId(action.key, 'mediaId'))}" type="number" min="0" step="1" data-ht-ea-field="sound.mediaId" value="${esc(sound.mediaId || 0)}"></label>
             <div class="ht-ea-media" data-media-field data-module-key="hypetrain" data-category-key="hypetrain_${esc(action.key)}" data-allowed-types="audio" data-title="${esc(action.label)} Sound auswählen" data-value-input="#${esc(eventActionFieldId(action.key, 'mediaId'))}"></div>
-            <label>Sound-ID<input type="text" data-ht-ea-field="sound.soundId" value="${esc(sound.soundId || '')}" placeholder="optional"></label>
-            <label>Label<input type="text" data-ht-ea-field="sound.label" value="${esc(sound.label || action.label)}"></label>
-            <div class="ht-ea-row two">
-              <label>Priorität<input type="number" data-ht-ea-field="sound.priority" value="${esc(sound.priority ?? 500)}"></label>
-              <label>Lautstärke<input type="number" min="0" max="100" data-ht-ea-field="sound.volume" value="${esc(sound.volume ?? 85)}"></label>
-            </div>
-            <div class="ht-ea-row two">
-              <label>Ziel<select data-ht-ea-field="sound.target">${eventActionOptionList(['stream','discord','both'], sound.target || 'stream')}</select></label>
-              <label>Output<select data-ht-ea-field="sound.outputTarget">${eventActionOptionList(['overlay','device','both'], sound.outputTarget || 'overlay')}</select></label>
-            </div>
-            <div class="ht-ea-flags">
-              ${eventActionFlag('sound.queueIfBusy', 'Queue wenn busy', sound.queueIfBusy !== false)}
-              ${eventActionFlag('sound.dropIfBusy', 'Verwerfen wenn busy', sound.dropIfBusy === true)}
-              ${eventActionFlag('sound.canInterrupt', 'Darf unterbrechen', sound.canInterrupt === true)}
-              ${eventActionFlag('sound.canBeInterrupted', 'Darf unterbrochen werden', sound.canBeInterrupted !== false)}
-              ${eventActionFlag('sound.parallelAllowed', 'Parallel erlaubt', sound.parallelAllowed === true)}
-            </div>
+            <label>Bezeichnung<input type="text" data-ht-ea-field="sound.label" value="${esc(sound.label || action.label)}"></label>
+            <details class="ht-ea-advanced">
+              <summary>Erweiterte Sound-Einstellungen</summary>
+              <label>Sound-ID<input type="text" data-ht-ea-field="sound.soundId" value="${esc(sound.soundId || '')}" placeholder="optional"></label>
+              <div class="ht-ea-row two">
+                <label>Priorität<input type="number" data-ht-ea-field="sound.priority" value="${esc(sound.priority ?? 500)}"></label>
+                <label>Lautstärke<input type="number" min="0" max="100" data-ht-ea-field="sound.volume" value="${esc(sound.volume ?? 85)}"></label>
+              </div>
+              <div class="ht-ea-row two">
+                <label>Ziel<select data-ht-ea-field="sound.target">${eventActionOptionList(['stream','discord','both'], sound.target || 'stream')}</select></label>
+                <label>Ausgabe<select data-ht-ea-field="sound.outputTarget">${eventActionOptionList(['overlay','device','both'], sound.outputTarget || 'overlay')}</select></label>
+              </div>
+              <div class="ht-ea-flags">
+                ${eventActionFlag('sound.queueIfBusy', 'Queue wenn busy', sound.queueIfBusy !== false)}
+                ${eventActionFlag('sound.dropIfBusy', 'Verwerfen wenn busy', sound.dropIfBusy === true)}
+                ${eventActionFlag('sound.canInterrupt', 'Darf unterbrechen', sound.canInterrupt === true)}
+                ${eventActionFlag('sound.canBeInterrupted', 'Darf unterbrochen werden', sound.canBeInterrupted !== false)}
+                ${eventActionFlag('sound.parallelAllowed', 'Parallel erlaubt', sound.parallelAllowed === true)}
+              </div>
+            </details>
           </section>
 
           <section class="ht-ea-subcard">
-            <h5>Overlay-Event</h5>
-            <label class="ht-ea-check"><input type="checkbox" data-ht-ea-field="overlay.enabled" ${bool(overlay.enabled) ? 'checked' : ''}> Overlay-Event aktiv</label>
-            <label>Event<input type="text" data-ht-ea-field="overlay.event" value="${esc(overlay.event || `hypetrain.overlay.${action.key}`)}"></label>
-            <label>TTL ms<input type="number" min="1000" step="1000" data-ht-ea-field="overlay.ttlMs" value="${esc(overlay.ttlMs || 30000)}"></label>
+            <h5>Zentrales Overlay / Bus</h5>
+            <label class="ht-ea-check"><input type="checkbox" data-ht-ea-field="overlay.enabled" ${bool(overlay.enabled) ? 'checked' : ''}> Overlay-Event senden</label>
+            <label>Bus-Event<input type="text" data-ht-ea-field="overlay.event" value="${esc(overlay.event || `hypetrain.overlay.${action.key}`)}"></label>
+            <label>Gewünschte Anzeigedauer ms<input type="number" min="1000" step="1000" data-ht-ea-field="overlay.ttlMs" value="${esc(overlay.ttlMs || 30000)}"></label>
             ${action.key === 'levelUp' ? `<label class="ht-ea-check"><input type="checkbox" data-ht-ea-field="onlyOncePerLevel" ${cfg.onlyOncePerLevel !== false ? 'checked' : ''}> Stufe nur einmal pro Level auslösen</label>` : ''}
-            <button type="button" data-ht-ea-test="${esc(action.api)}">Dry-Run testen</button>
+            <div class="ht-note">Speichern ändert nur die Konfiguration. HypeTrain sendet später nur ein Bus-Event; die Darstellung übernimmt das zentrale Overlay-System.</div>
           </section>
         </div>
       </article>`;
@@ -388,12 +435,13 @@
 
   function renderEventActions(){
     const soundSystem = state.eventActions?.soundSystem || {};
+    const summary = eventActionsSummary();
     return `
       <section class="ht-card glass wide ht-ea-card">
         <div class="ht-card-head">
           <div>
-            <h3>Event-Aktionen: Sound & Overlay</h3>
-            <p>Start, Stufenaufstieg, Ende und Rekord können vorbereitet werden. Sounds laufen ausschließlich über das bestehende <strong>sound_system</strong>; Medien kommen aus dem Media-System.</p>
+            <h3>Event-Actions</h3>
+            <p>Start, Stufenaufstieg, Ende und Rekord konfigurieren. Sounds laufen über das bestehende <strong>sound_system</strong>; visuelle Einblendungen gehen als Bus-Event an das zentrale Overlay-System, das später die HypeTrain-Anzeige als Template/Modus rendert.</p>
           </div>
           <div class="ht-ea-actions">
             <button type="button" data-ht-ea-action="reload">Neu laden</button>
@@ -401,17 +449,17 @@
           </div>
         </div>
         <div class="ht-status-row ht-ea-status">
-          <span class="ht-badge">HT3.4</span>
+          <span class="ht-badge">HT3.5.1</span>
           <span class="ht-badge">Owner: ${esc(soundSystem.owner || 'sound_system')}</span>
-          <span class="ht-badge">Endpoint: ${esc(soundSystem.endpoint || '/api/sound/play')}</span>
+          <span class="ht-badge">Aktiv: ${esc(summary.activeActions)} von ${esc(summary.totalActions)}</span>
+          <span class="ht-badge ${summary.incomplete ? 'warn' : 'ok'}">${summary.incomplete ? `${esc(summary.incomplete)} unvollständig` : 'Konfig sauber'}</span>
           <span class="ht-badge warn">Standard: alles aus</span>
         </div>
         ${state.eventActionsLoading && !state.eventActions ? '<p>Lade HypeTrain Event-Actions...</p>' : ''}
         ${state.eventActionsError ? `<div class="ht-error">${esc(state.eventActionsError)}</div>` : ''}
         ${state.eventActionsLastSavedAt ? `<div class="ht-success">Event-Actions gespeichert: ${esc(state.eventActionsLastSavedAt)}</div>` : ''}
-        ${state.eventActionsLastTest ? `<details class="ht-details" open><summary>Letzter Dry-Run</summary><pre>${esc(JSON.stringify(state.eventActionsLastTest, null, 2))}</pre></details>` : ''}
         <div class="ht-ea-grid">${eventActionDefs.map(renderEventActionCard).join('')}</div>
-        <div class="ht-note">Hinweis: Aktivieren löst noch nichts direkt aus. Es speichert nur die Config. Ein echter HypeTrain-Event oder ein Test ruft danach das Sound-System beziehungsweise das Overlay-Event auf.</div>
+        <div class="ht-note">Dieser Tab ist nur für Konfiguration. HypeTrain sendet Bus-Events an das zentrale Overlay-System. Die finale HypeTrain-Anzeige entsteht später dort als Template/Modus, nicht als parallele Overlay-Insel. Tests und Diagnose liegen getrennt im Tab <strong>Tests</strong>.</div>
       </section>
     `;
   }
@@ -484,9 +532,6 @@
         if (action === 'save') return saveEventActions();
       });
     });
-    root.querySelectorAll('[data-ht-ea-test]').forEach(btn => {
-      btn.addEventListener('click', () => testEventAction(btn.dataset.htEaTest || 'start'));
-    });
     try { window.MediaField?.initAll(root); } catch (_) {}
   }
 
@@ -556,24 +601,29 @@
     const preview = state.preview || state.status?.runtime?.lastPreview || null;
     return `
       <div class="ht-card glass">
-        <h3>Tests</h3>
-        <p>Alle Dashboard-Tests sind Preview-/Dry-Run-Tests. Produktive Tagebuch-/Direkt-Discord-/Sound-Aktionen werden hier nicht ohne separaten Produktiv-Confirm ausgelöst.</p>
+        <h3>Tests & Diagnose</h3>
+        <p>Hier liegen technische Prüfungen getrennt von der normalen Konfiguration. Produktive Aktionen werden nicht ohne separaten Confirm ausgelöst.</p>
         <div class="ht-test-grid">
           <button type="button" data-ht-action="preview-normal">Normale Preview</button>
           <button type="button" data-ht-action="preview-raid-record">Raid + Rekord Preview</button>
-          <button type="button" data-ht-action="end-actions-dry-run">End-Actions Dry-Run</button>
+          <button type="button" data-ht-action="end-actions-dry-run">End-Actions prüfen</button>
+          <button type="button" data-ht-action="event-action-test" data-ht-event-action="start">Start prüfen</button>
+          <button type="button" data-ht-action="event-action-test" data-ht-event-action="level_up">Stufenaufstieg prüfen</button>
+          <button type="button" data-ht-action="event-action-test" data-ht-event-action="end">Ende prüfen</button>
+          <button type="button" data-ht-action="event-action-test" data-ht-event-action="record">Rekord prüfen</button>
           <button type="button" data-ht-action="live-readiness">Live-Readiness prüfen</button>
           <button type="button" data-ht-action="load-activation-profiles">Aktivierungsprofile laden</button>
           <button type="button" data-ht-action="synthetic-test">Synthetischen DB-Test schreiben</button>
           <button type="button" data-ht-action="open-media">Media-System öffnen</button>
           <button type="button" data-ht-action="reload">Status neu laden</button>
         </div>
-        <div class="ht-note">Produktive Tests bleiben absichtlich nicht als Ein-Klick-Button im Dashboard. Aktivierungsprofile ändern nur Config-Schalter; echte End-Actions brauchen weiterhin den zusätzlichen Confirm <code>HYPETRAIN_PRODUCTIVE_ACTIONS</code>. Standard bleibt: Tagebuch/Discord über Tagebuch.</div>
+        <div class="ht-note">Tests sind Diagnosewerkzeuge. Die normale Bedienung bleibt in Config und Event-Actions.</div>
         <div class="ht-preview-box">
           <h4>Letzte Preview</h4>
           ${preview?.message ? `<pre>${esc(preview.message)}</pre>` : '<p>Noch keine Preview in diesem Dashboardlauf.</p>'}
         </div>
-        ${endActionResult() ? `<div class="ht-preview-box"><h4>Letzter End-Actions Dry-Run</h4><pre>${esc(JSON.stringify(endActionResult(), null, 2))}</pre></div>` : ''}
+        ${state.eventActionsLastTest ? `<details class="ht-details"><summary>Letzter Event-Action-Test</summary><pre>${esc(JSON.stringify(state.eventActionsLastTest, null, 2))}</pre></details>` : ''}
+        ${endActionResult() ? `<details class="ht-details"><summary>Letzte End-Actions-Prüfung</summary><pre>${esc(JSON.stringify(endActionResult(), null, 2))}</pre></details>` : ''}
         ${state.liveReadiness ? `<div class="ht-preview-box"><h4>Live-Readiness</h4>${renderReadinessSummary(state.liveReadiness)}<pre>${esc(JSON.stringify(state.liveReadiness, null, 2))}</pre></div>` : ''}
         ${renderActivationProfiles()}
       </div>
@@ -797,6 +847,7 @@
     if (action === 'preview-normal') return makePreview({ level:2, points:2500, bits:1500, subs:1, resubs:1, giftSubs:1 });
     if (action === 'preview-raid-record') return makePreview({ raid:1, record:1, level:5, points:9600, bits:3500, subs:3, giftSubs:4 });
     if (action === 'synthetic-test') return syntheticTest();
+    if (action === 'event-action-test') return testEventAction(btn?.dataset?.htEventAction || 'start');
   }
 
   window.HypeTrainModule = { loadAll, render };

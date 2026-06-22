@@ -1,6 +1,7 @@
 # TODO – HypeTrain
 
-- [ ] HT3.4 Dashboard Merge/Cleanup testen.
-- [ ] Alte Dateien `hypetrain_event_actions.js/css` nach erfolgreichem Test löschen.
-- [ ] Danach HypeTrain Event-Actions Design/UX weiter verfeinern.
+- [ ] HT3.5.2 Wording prüfen.
+- [ ] Event-Actions-Tab Bedienbarkeit prüfen.
+- [ ] Später zentrales Stream-/Event-Overlay planen.
+- [ ] HypeTrain-Anzeige dort als Template/Modus umsetzen.
 - [ ] Später echte Media-Auswahl/Produktivtest-Regeln finalisieren.
