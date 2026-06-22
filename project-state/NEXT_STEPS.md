@@ -1,20 +1,39 @@
-# Next Steps – HT3.8
+# NEXT STEPS
 
-1. HT3.8 einspielen.
-2. Dashboard mit Cachebuster öffnen.
-3. HypeTrain → Übersicht prüfen:
-   - Start = Sound bereit.
-   - Rekord = Sound bereit.
-   - Stufenaufstieg = geplant/offen.
-   - Ende = geplant/offen.
-4. HypeTrain → Event-Actions prüfen:
-   - Start/Rekord bleiben aktiv.
-   - Level-Up/Ende bleiben aus.
-5. Danach StepDone.
+Stand: HT4.3 / Central Event Overlay
+Datum: 2026-06-22
 
-Später:
+## Nächster sinnvoller Schritt
 
-- Level-Up-Sound ergänzen, sobald Sound vorhanden ist.
-- Ende-Sound ergänzen, sobald Sound vorhanden ist.
-- Zentrales Stream-/Event-Overlay mit HypeTrain-Template/Modus bauen.
-- Live-Test mit echtem HypeTrain.
+HT4.4 / echte HypeTrain-Live-Payloads prüfen
+
+Ziel:
+
+- Bei einem echten HypeTrain prüfen, welche Payload-Felder HypeTrain tatsächlich über den Bus liefert.
+- Prüfen, ob die HT4.2-Payload-Anzeige alle relevanten Felder sauber darstellt.
+- Keine blinde Erweiterung anhand erfundener Payload-Felder.
+
+## Danach sinnvoll
+
+HT4.5 / Template- und Mode-Struktur planen
+
+Ziel:
+
+- zentrale Template-/Mode-Struktur für mehrere Eventtypen planen
+- HypeTrain als erster Modus
+- später Shot-Alarm, Loyalty-Hinweise und Event-Hinweise möglich
+- keine parallelen Overlay-Systeme bauen
+
+## Noch offen im HypeTrain-Modul
+
+- Level-Up-Sound auswählen/aktivieren, sobald Medium vorhanden ist
+- Ende-Sound auswählen/aktivieren, sobald Medium vorhanden ist
+- echte HypeTrain-Live-Events end-to-end prüfen
+
+## Nicht als nächstes nebenbei machen
+
+- kein Dashboard-Refactor
+- keine OBS-Quellen automatisch ändern
+- keine DB-Änderung
+- keine Sound-System-Änderung
+- kein eigenes HypeTrain-Overlay-System
