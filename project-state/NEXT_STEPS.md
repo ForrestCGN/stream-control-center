@@ -2,9 +2,9 @@
 
 Stand: 2026-06-22
 
-## Nächster sinnvoller Schritt nach HT2.8
+## Nächster sinnvoller Schritt nach HT2.9
 
-HT2.8 ist als bestätigter Tagebuch-Stream-State-Stand dokumentiert.
+HT2.9 ist als bestätigter HypeTrain-/Tagebuch-PosterName-Stand dokumentiert.
 
 Nächster technischer Schritt:
 
@@ -18,27 +18,33 @@ Prüfen beim nächsten echten HypeTrain:
 Invoke-RestMethod "http://127.0.0.1:8080/api/hypetrain/status" |
   Select-Object moduleVersion,moduleBuild
 
-$r = Invoke-RestMethod "http://127.0.0.1:8080/api/tagebuch/status"
-$r.state | Select-Object effectiveActiveStreamForEntries,entryStreamSource
+Invoke-RestMethod "http://127.0.0.1:8080/api/tagebuch/status" |
+  Select-Object moduleVersion,moduleBuild
+
+$h = Invoke-RestMethod "http://127.0.0.1:8080/api/hypetrain/status"
+$h.runtime.lastEndActions | ConvertTo-Json -Depth 5
 ```
 
 Erwartung:
 
 ```text
-hypetrain moduleVersion = 0.1.5
-hypetrain moduleBuild   = STEP_HT2_7_HYPETRAIN_DIARY_DISCORD_CLARITY
+hypetrain moduleVersion = 0.1.6
+hypetrain moduleBuild   = STEP_HT2_9_HYPETRAIN_TAGEBUCH_POSTER_NAME
 
-tagebuch moduleVersion = 0.1.1
-build/stand = STEP_HT2_8_TAGEBUCH_STREAM_STATE_ENTRIES
+tagebuch moduleVersion = 0.1.2
+tagebuch moduleBuild   = STEP_HT2_9_TAGEBUCH_SYSTEM_WEBHOOK_NAME
 
-effectiveActiveStreamForEntries = true, wenn Stream-State/Override live ist
-entryStreamSource = twitch_events_stream_state
+Discord sichtbar = CGN Posty
+discord.skipped = true
+diary.ok = true
+recordSound.skipped = true
 ```
 
 Wichtig:
 
 - HypeTrain-Ende soll ins Tagebuch schreiben.
 - Discord soll nur über das bestehende Tagebuch-System laufen.
+- Der sichtbare Discord-Name soll der normale Tagebuch-Webhook-Name sein, nicht `CGN-HypeTrain`.
 - Direkt-Discord bleibt aus.
 - Rekord-Sound bleibt aus, bis Media-/Sound-Konfiguration bewusst getestet wurde.
 
@@ -54,6 +60,7 @@ Dafür vorher prüfen:
 - Sound-System ist aktiv.
 - Queue-/Prioritätsregeln sind passend.
 - `recordSoundEndEnabled` wird nur bewusst aktiviert.
+- Kein Sound am Sound-System vorbei.
 
 ## Nicht als nächstes tun
 
@@ -68,6 +75,13 @@ Keine Funktionalität entfernen.
 ---
 
 ## Ältere nächste Schritte / Historie
+
+### Nach HT2.8
+
+- HypeTrain-Ende soll ins Tagebuch schreiben.
+- Discord soll nur über das bestehende Tagebuch-System laufen.
+- Direkt-Discord bleibt aus.
+- Rekord-Sound bleibt aus, bis Media-/Sound-Konfiguration bewusst getestet wurde.
 
 ### Nach STEP_HT2_7_HYPETRAIN_DIARY_DISCORD_CLARITY
 
@@ -91,9 +105,3 @@ Keine Funktionalität entfernen.
 - Tagebuch nur produktiv aktivieren, wenn Streamstatus/Regeln passen.
 - Rekord-Sound nur aktivieren, wenn Media-ID/Sound-ID vom Sound-System-Katalog gefunden wird.
 - Produktiven manuellen Test erst nach Readiness ohne relevante Warnungen durchführen.
-
-### Nach STEP_SO_SYNC_FINISH_EVENT_LISTENER_FIX_VERIFIED
-
-- Beim nächsten echten Live-Stream final prüfen, ob `officialStatus=sent` / Twitch-204 nach Cooldown sauber erreicht wird.
-- Keine Rückkehr zur alten Timer-Freigabe.
-- Sound-System bleibt Playback-/Queue-Owner.

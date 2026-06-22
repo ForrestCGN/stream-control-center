@@ -2,8 +2,8 @@
 
 Stand: 2026-06-22  
 Modul: `hypetrain`  
-Version: `0.1.5`  
-Build: `STEP_HT2_7_HYPETRAIN_DIARY_DISCORD_CLARITY`
+Version: `0.1.6`  
+Build: `STEP_HT2_9_HYPETRAIN_TAGEBUCH_POSTER_NAME`
 
 ## Ziel
 
@@ -11,7 +11,7 @@ Das Modul `hypetrain` ist das Fachmodul fuer HypeTrain-Status, DB-Config, Textva
 
 `twitch_events` bleibt weiterhin die einzige Twitch-EventSub-Quelle. `hypetrain` abonniert vorhandene Events ueber den Communication-Bus und baut kein eigenes EventSub-System.
 
-## Aktueller Standard nach HT2.7/HT2.8
+## Aktueller Standard nach HT2.9
 
 ```text
 diaryEndEnabled = true
@@ -23,22 +23,39 @@ Bedeutung:
 
 - HypeTrain-Ende schreibt ins Tagebuch.
 - Discord läuft dabei über das bestehende Tagebuch-System.
+- Der sichtbare Discord-Name kommt vom Tagebuch-Webhook, bestätigt als `CGN Posty`.
 - Kein separater Direkt-Discord-Post vom HypeTrain-Modul.
 - Kein Rekord-Sound aktuell aktiv.
 
+## HT2.9 – Tagebuch-Webhook-Name
+
+Wenn `hypetrain` über `/api/tagebuch/entry` schreibt, sendet es keinen eigenen `authorDisplay` und keinen eigenen `systemUsername` mehr an das Tagebuch.
+
+Das Tagebuch setzt bei Systemeinträgen ohne expliziten `systemUsername` keinen eigenen Webhook-`username` mehr. Dadurch nutzt Discord den normalen Webhook-Namen des Tagebuch-Webhooks.
+
+Bestätigt:
+
+```text
+productiveActions = True
+dryRun = False
+trigger = manual_productive_test
+Discord sichtbar = CGN Posty
+discord.skipped = true
+diary.ok = true / status 200
+recordSound.skipped = true
+```
+
+`posterName=hypetrain` im API-Ergebnis ist nur der interne Actor/Login und nicht der sichtbare Discord-Webhook-Name.
+
+## HT2.8 – Tagebuch Stream-State
+
 HT2.8 ergänzt auf Tagebuch-Seite, dass Tagebuch-Einträge den zentralen Stream-State / Override aus `twitch_events` nutzen können. Dadurch blockiert das Tagebuch nicht mehr mit `stream_inactive`, wenn der zentrale Stream-State live meldet.
 
-## Aktueller bestätigter Test
+Bestätigt:
 
 ```text
 effectiveActiveStreamForEntries = true
 entryStreamSource = twitch_events_stream_state
-HypeTrain produktiver Tagebuch-Test wurde gespeichert
-Tagebuch-Webhook hat gepostet
-diary ok
-Direkt-Discord skipped
-Rekord-Sound skipped
-errors leer
 ```
 
 ## Bus-Events
@@ -126,6 +143,8 @@ diary.systemUsername
 diary.apiUrl
 ```
 
+Hinweis: `diary.systemUsername` bleibt als Legacy-/Diagnose-/Optionalwert vorhanden. Im Standard-Tagebuch-Flow soll `hypetrain` den sichtbaren Tagebuch-Webhook-Namen nicht überschreiben.
+
 Direkt-Discord:
 
 ```text
@@ -190,70 +209,77 @@ Invoke-RestMethod "http://127.0.0.1:8080/api/hypetrain/status" |
 Erwartung:
 
 ```text
-moduleVersion = 0.1.5
-moduleBuild   = STEP_HT2_7_HYPETRAIN_DIARY_DISCORD_CLARITY
+moduleVersion = 0.1.6
+moduleBuild   = STEP_HT2_9_HYPETRAIN_TAGEBUCH_POSTER_NAME
 ```
 
 Tagebuch-Status:
 
 ```powershell
-$r = Invoke-RestMethod "http://127.0.0.1:8080/api/tagebuch/status"
-$r.state | Select-Object effectiveActiveStreamForEntries,entryStreamSource
+Invoke-RestMethod "http://127.0.0.1:8080/api/tagebuch/status" |
+  Select-Object moduleVersion,moduleBuild
 ```
 
-Erwartung bei aktivem Stream-State/Override:
+Erwartung:
 
 ```text
-effectiveActiveStreamForEntries = true
-entryStreamSource = twitch_events_stream_state
+moduleVersion = 0.1.2
+moduleBuild   = STEP_HT2_9_TAGEBUCH_SYSTEM_WEBHOOK_NAME
 ```
 
-Live-Readiness:
+Produktiver EndAction-Test nur bewusst:
 
 ```powershell
-Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/hypetrain/live-readiness" `
+$r = Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/hypetrain/test/end-actions?confirm=1" `
   -ContentType "application/json" `
-  -Body '{"raid":true,"record":true,"level":5,"points":9600,"bits":3500,"subs":3,"resubs":1,"giftSubs":4}' |
-  Select-Object ok,module,moduleVersion,moduleBuild
+  -Body '{"productive":true,"confirmProductive":"HYPETRAIN_PRODUCTIVE_ACTIONS","raid":true,"record":true,"level":5,"points":9600,"bits":3500,"subs":3,"resubs":1,"giftSubs":4}'
+
+$r | Select-Object ok,productiveActions
+$r.result | Select-Object moduleVersion,moduleBuild,dryRun,trigger
+$r.result.actions.discord | Select-Object ok,skipped,reason
+$r.result.actions.diary | Select-Object ok,status
+$r.result.actions.recordSound | Select-Object ok,skipped,reason
+$r.result.actions.diary.result | Select-Object posterName
+```
+
+Erwartung:
+
+```text
+productiveActions = True
+dryRun = False
+trigger = manual_productive_test
+discord.skipped = true
+diary.ok = true / status 200
+recordSound.skipped = true
+Discord sichtbarer Name = CGN Posty
 ```
 
 ## Aktivierungsprofile
 
-Verfügbare Profile:
+Wichtige Profile:
 
 ```text
-all_off – Discord, Tagebuch und Rekord-Sound aus
-diary_only – nur Tagebuch-Endeintrag aktiv
-discord_only – nur Direkt-Discord aktiv
-record_sound_only – nur Rekord-Sound aktiv; erfordert konfigurierte sound.mediaId oder sound.soundId
-```
+all_off
+  Alles aus.
 
-Zum Anwenden eines Profils ist zusätzlich erforderlich:
+diary_only
+  Nur Tagebuch. Gewünschter Standard.
+  Discord läuft über Tagebuch-Webhook.
+  Direkt-Discord und Rekord-Sound bleiben aus.
 
-```powershell
-confirmApply = "HYPETRAIN_ACTIVATION_PROFILE"
-```
+discord_only
+  Nur separater Direkt-Discord. Nicht Standard.
 
-Ein echter produktiver End-Actions-Test bleibt separat geschützt und benötigt weiterhin:
-
-```powershell
-confirmProductive = "HYPETRAIN_PRODUCTIVE_ACTIONS"
+record_sound_only
+  Nur Rekord-Sound. Erst nach Media-/Sound-System-Test aktivieren.
 ```
 
 ## Schutzregeln
 
-- Keine direkte Twitch/EventSub-Anbindung im `hypetrain`-Modul.
-- Keine direkte Sound-/Video-Wiedergabe am Sound-System vorbei.
-- Keine eigene Media-Upload-Lösung im HypeTrain-Dashboard.
-- Medienauswahl/Uploads später über zentrales Media-System-Fenster/Modal.
-- Direkt-Discord bleibt aus, außer Forrest aktiviert ihn bewusst als separaten Zusatzweg.
-- Rekord-Sound bleibt aus, bis Media-/Sound-System bewusst geprüft wurde.
-- Top-Unterstützer-Namen bleiben standardmäßig aus.
+- Keine eigene Twitch/EventSub-Anbindung im `hypetrain`-Modul.
+- Kein Sound am Sound-System vorbei.
+- Keine eigene Media-Upload-Lösung.
+- Direkt-Discord bleibt vorerst aus und ist nicht Standard.
+- Rekord-Sound bleibt aus, bis Media-/Sound-Konfiguration bewusst getestet wurde.
+- Produktive DB nicht ersetzen, löschen oder überschreiben.
 - Keine Funktionalität entfernen.
-
-## Offene Punkte
-
-- Beim nächsten echten Twitch-HypeTrain beobachten, ob Ende automatisch sauber ins Tagebuch schreibt.
-- Rekord-Sound später separat über Media-/Sound-System konfigurieren und testen.
-- Direkt-Discord später nur bewusst als Zusatzweg testen.
-- HT3 später: Start-/Ende-/Level-Up-Alerts mit Sound/Video/Grafik über Media-System-Fenster/Modal planen.

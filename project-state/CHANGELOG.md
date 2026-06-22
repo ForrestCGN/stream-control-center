@@ -1,5 +1,32 @@
 # CHANGELOG – stream-control-center
 
+## 2026-06-22 – HT2.9 HypeTrain/Tagebuch Poster-Name bestätigt
+
+### Fixed
+
+- `hypetrain` Backend auf `0.1.6 / STEP_HT2_9_HYPETRAIN_TAGEBUCH_POSTER_NAME` dokumentiert.
+- `tagebuch` Backend auf `0.1.2 / STEP_HT2_9_TAGEBUCH_SYSTEM_WEBHOOK_NAME` dokumentiert.
+- HypeTrain-Tagebucheinträge überschreiben den sichtbaren Discord-/Webhook-Namen nicht mehr.
+- Tagebuch-Systemeinträge ohne expliziten `systemUsername` setzen keinen eigenen Webhook-`username` mehr.
+- Dadurch nutzt Discord wieder den normalen Tagebuch-Webhook-Namen, bestätigt als `CGN Posty`.
+
+### Confirmed
+
+- Produktiver HypeTrain-EndAction-Test mit `productiveActions=True` und `dryRun=False` bestätigt.
+- `discord.skipped=true` bestätigt.
+- `diary.ok=true`, `status=200` bestätigt.
+- `recordSound.skipped=true` bestätigt.
+- Discord sichtbarer Name: `CGN Posty`.
+
+### Not changed
+
+- Keine DB ersetzt, gelöscht oder gedroppt.
+- Keine Direkt-Discord-Ausgabe aktiviert.
+- Kein Rekord-Sound aktiviert.
+- Kein Dashboard-Umbau.
+- Keine Twitch/EventSub-Logik im `hypetrain`-Modul ergänzt.
+- Keine Funktionalität entfernt.
+
 ## 2026-06-22 – HT2.8 Tagebuch Stream-State für HypeTrain-Einträge bestätigt
 
 ### Fixed

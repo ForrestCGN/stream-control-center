@@ -2,6 +2,19 @@
 
 Stand: 2026-06-22
 
+## HypeTrain / Tagebuch – HT2.9 bestätigt
+
+- [x] HT2.9 installiert und getestet.
+- [x] `hypetrain` zeigt `0.1.6 / STEP_HT2_9_HYPETRAIN_TAGEBUCH_POSTER_NAME`.
+- [x] `tagebuch` zeigt `0.1.2 / STEP_HT2_9_TAGEBUCH_SYSTEM_WEBHOOK_NAME`.
+- [x] Produktiver HypeTrain-EndAction-Test mit `productive=true` bestätigt.
+- [x] Discord sichtbarer Name ist wieder der normale Tagebuch-Webhook-Name `CGN Posty`.
+- [x] Direkt-Discord bleibt skipped/deaktiviert.
+- [x] Rekord-Sound bleibt skipped/deaktiviert.
+- [x] Tagebuch-Post bleibt `ok/status=200`.
+- [ ] Beim nächsten echten Twitch-HypeTrain beobachten, ob Ende automatisch sauber ins Tagebuch schreibt und sichtbar als `CGN Posty` postet.
+- [ ] Danach Live-Ergebnis in `CURRENT_STATUS`, `CHANGELOG` und Modul-Dokus ergänzen.
+
 ## HypeTrain / Tagebuch – nach HT2.8
 
 - [x] HT2.8 Tagebuch Stream-State-Freigabe getestet.
@@ -10,7 +23,7 @@ Stand: 2026-06-22
 - [x] Produktiver HypeTrain-Tagebuch-Test wurde gespeichert.
 - [x] Tagebuch-Webhook hat gepostet.
 - [x] HypeTrain-End-Actions-Ergebnis bestätigt: `diary ok`, Direkt-Discord skipped, Rekord-Sound skipped, errors leer.
-- [ ] Beim nächsten echten Twitch-HypeTrain beobachten, ob Ende automatisch sauber ins Tagebuch schreibt.
+- [ ] Beim nächsten echten Twitch-HypeTrain beobachten, ob Ende automatisch sauber ins Tagebuch schreibt und sichtbar als `CGN Posty` postet.
 - [ ] Danach Live-Ergebnis in `project-state/CURRENT_STATUS.md`, `CHANGELOG.md` und `docs/modules/hypetrain.md` ergänzen.
 
 ## HypeTrain – aktueller Standard nach HT2.7/HT2.8
@@ -120,3 +133,5 @@ Nicht tun:
 - [x] Live-Readiness-Prüfung vorbereitet.
 - [x] Sichere Aktivierungsprofile vorbereitet.
 - [x] HT2.7 Klartext zwischen Tagebuch/Discord und Direkt-Discord umgesetzt.
+- [x] HT2.8 Tagebuch Stream-State-Freigabe bestätigt.
+- [x] HT2.9 HypeTrain/Tagebuch PosterName-Fix bestätigt.

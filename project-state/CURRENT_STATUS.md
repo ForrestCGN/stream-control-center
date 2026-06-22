@@ -2,9 +2,60 @@
 
 Stand: 2026-06-22
 
+## HT2.9 – HypeTrain/Tagebuch Poster-Name bestätigt
+
+Aktueller bestätigter Stand:
+
+```text
+HypeTrain Backend: 0.1.6
+Build: STEP_HT2_9_HYPETRAIN_TAGEBUCH_POSTER_NAME
+
+Tagebuch Backend: 0.1.2
+Build: STEP_HT2_9_TAGEBUCH_SYSTEM_WEBHOOK_NAME
+```
+
+Zweck von HT2.9:
+
+- Wenn `hypetrain` einen Eintrag über `/api/tagebuch/entry` schreibt, überschreibt es den sichtbaren Discord-/Webhook-Namen nicht mehr.
+- Systemeinträge ohne expliziten `systemUsername` setzen im Tagebuch keinen eigenen Webhook-`username` mehr.
+- Dadurch nutzt Discord wieder den normalen Tagebuch-Webhook-Namen, aktuell sichtbar: `CGN Posty`.
+- Direkt-Discord bleibt deaktiviert.
+- Rekord-Sound bleibt deaktiviert.
+
+Bestätigter produktiver Test:
+
+```text
+productiveActions = True
+dryRun = False
+trigger = manual_productive_test
+Discord sichtbarer Name = CGN Posty
+discord.skipped = true / disabled_or_not_applicable
+diary.ok = true / status 200
+recordSound.skipped = true / disabled_or_not_applicable
+posterName intern = hypetrain
+```
+
+Wichtig: `posterName=hypetrain` ist nur der interne Actor/Login des Tagebuch-Eintrags. Der sichtbare Discord-Name kommt vom Tagebuch-Webhook und wurde als `CGN Posty` bestätigt.
+
+## Aktueller HypeTrain-Standard
+
+```text
+diaryEndEnabled = true
+directDiscordEndEnabled = false
+recordSoundEndEnabled = false
+```
+
+Bedeutung:
+
+- HypeTrain-Ende schreibt ins Tagebuch.
+- Discord läuft über das bestehende Tagebuch-System.
+- Kein separater Direkt-Discord-Post vom HypeTrain-Modul.
+- Kein Rekord-Sound aktuell aktiv.
+- Sichtbarer Discord-Name bei Tagebuch-Posts kommt vom Tagebuch-Webhook.
+
 ## HT2.8 – Tagebuch Stream-State bestätigt
 
-Aktueller bestätigter Stand laut Handoff/Test:
+Bestätigter Stand:
 
 ```text
 Tagebuch Backend: 0.1.1
@@ -30,32 +81,7 @@ Rekord-Sound skipped
 errors leer
 ```
 
-## HT2.7 – HypeTrain Tagebuch/Discord-Klartext aktiv
-
-Aktueller HypeTrain-Backendstand:
-
-```text
-Modul: hypetrain
-Version: 0.1.5
-Build: STEP_HT2_7_HYPETRAIN_DIARY_DISCORD_CLARITY
-```
-
-Aktueller Standard:
-
-```text
-diaryEndEnabled = true
-directDiscordEndEnabled = false
-recordSoundEndEnabled = false
-```
-
-Bedeutung:
-
-- HypeTrain-Ende schreibt ins Tagebuch.
-- Discord läuft dabei über das bestehende Tagebuch-System.
-- Kein separater Direkt-Discord-Post vom HypeTrain-Modul.
-- Kein Rekord-Sound aktuell aktiv.
-
-Schutzregeln bleiben unverändert:
+## Schutzregeln bleiben unverändert
 
 ```text
 Keine eigene Twitch/EventSub-Anbindung im hypetrain-Modul.
@@ -63,15 +89,17 @@ Kein Sound am Sound-System vorbei.
 Keine eigene Media-Upload-Lösung.
 Direkt-Discord bleibt vorerst aus und ist nicht Standard.
 Rekord-Sound bleibt aus, bis Media-/Sound-Konfiguration bewusst getestet wird.
+Keine produktive DB ersetzen, löschen, droppen oder überschreiben.
 Keine Funktionalität entfernen.
 ```
 
 ## Nächster sinnvoller technischer Stand
 
-1. HypeTrain-Live-Event-Verhalten mit echtem Twitch-HypeTrain beobachten.
-2. Prüfen, ob HypeTrain-Ende weiterhin sauber ins Tagebuch schreibt.
-3. Optional später Rekord-Sound über Media-/Sound-System konfigurieren und separat testen.
-4. Direkt-Discord bleibt aus, außer Forrest schaltet ihn bewusst als separaten Zusatzweg frei.
+1. Echten HypeTrain im Stream beobachten.
+2. Prüfen, ob HypeTrain-Ende automatisch ins Tagebuch schreibt.
+3. Prüfen, ob Discord weiterhin sichtbar als `CGN Posty` postet.
+4. Optional später Rekord-Sound über Media-/Sound-System konfigurieren und separat testen.
+5. Direkt-Discord bleibt aus, außer Forrest schaltet ihn bewusst als separaten Zusatzweg frei.
 
 ---
 
@@ -176,3 +204,4 @@ Bestätigt:
   - Kein zu frühes offizielles Twitch-Shoutout mehr.
 
 Offen bleibt der echte Live-Stream-Test bis `officialStatus=sent` / Twitch-204 bestätigt wurde.
+
