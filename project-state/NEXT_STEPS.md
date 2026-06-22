@@ -1,3 +1,43 @@
+## Nächste Schritte nach STEP_HT2_3_HYPETRAIN_PRODUCTIVE_END_ACTIONS
+
+1. ZIP installieren und `testdeploy.cmd` automatisch laufen lassen.
+2. Node/Backend neu starten, weil `backend/modules/hypetrain.js` geaendert wurde.
+3. Status pruefen: `moduleVersion=0.1.2`, `moduleBuild=STEP_HT2_3_HYPETRAIN_PRODUCTIVE_END_ACTIONS`.
+4. Preview normal testen.
+5. End-Actions-Dry-Run testen: `POST /api/hypetrain/test/end-actions?confirm=1`.
+6. Dashboard `Control -> HypeTrain` oeffnen und Config/Status pruefen.
+7. Produktive Configs erst aktivieren, wenn Discord/Tagebuch/Sound bewusst geprueft sind.
+
+Danach sinnvoll:
+
+```text
+HT2.4: Live-End-to-End-Test mit echtem HypeTrain bzw. gezielt simuliertem Bus-Event.
+HT2.5: Dashboard-UX fuer produktive End-Aktionen verbessern, inklusive klaren Warn-/Statusboxen.
+HT3: Start-/Ende-/Level-Up-Alerts mit Media-System-Fenster/Modal planen.
+```
+
+---
+
+## Nächste Schritte nach STEP_HT2_2_HYPETRAIN_DASHBOARD_TABS
+
+1. ZIP installieren und testdeploy laufen lassen.
+2. Backend/Node ist nicht zwingend nötig, da nur Dashboard/Doku geändert wurde; Reload im Browser reicht normalerweise.
+3. Dashboard hart neu laden.
+4. `Control -> HypeTrain` öffnen.
+5. Tabs prüfen: Übersicht, Config, Texte, Statistik, Tests.
+6. Config speichern und danach `/api/hypetrain/config` prüfen.
+7. Preview-Buttons testen.
+8. Synthetischen DB-Test im Dashboard nur bewusst auslösen.
+
+Danach sinnvoll:
+
+```text
+HT2.3: HypeTrain Dashboard Media-Felder vorbereiten, aber Upload/Auswahl über zentrales Media-System-Modal.
+HT2.4: Produktive Discord-/Tagebuch-Ausgabe separat planen und absichern.
+```
+
+---
+
 ## Nächste Schritte nach STEP_DOC_MEDIA_SYSTEM_UPLOAD_MODAL_RULE
 
 1. ZIP einspielen.

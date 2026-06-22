@@ -1,30 +1,40 @@
 # HypeTrain-Modul
 
 Stand: 2026-06-21  
-Marker: `STEP_HT2_1_HYPETRAIN_BACKEND_DB_STATUS_PREVIEW`  
+Marker: `STEP_HT2_3_HYPETRAIN_PRODUCTIVE_END_ACTIONS`  
 Modul: `hypetrain`  
-Version: `0.1.0`
+Version: `0.1.2`
 
 ## Ziel
 
-Dieses Modul ist der erste saubere Backend-Step fuer das neue HypeTrain-System im `stream-control-center`.
+Das Modul `hypetrain` ist das neue Fachmodul fuer HypeTrain-Status, DB-Config, Textvarianten, Statistik und sichere End-Aktionen.
 
-Es ersetzt in HT2.1 noch keine produktive HypeTrain-Logik aus `twitch_events`, sondern ergaenzt ein eigenes Fachmodul fuer:
+`twitch_events` bleibt weiterhin die einzige Twitch-EventSub-Quelle. `hypetrain` abonniert vorhandene Events ueber den Communication-Bus und baut kein eigenes EventSub-System.
 
-- DB-basierte Config-Vorbereitung
-- DB-basierte HypeTrain-Runs
-- DB-basierte Beitrags-/Runtime-Erfassung
-- Status-/Statistik-Routen
-- Discord-/Tagebuch-Textvorschau
-- Textvarianten-Vorbereitung
-- spaetere Dashboard-Tabs
+## Aktueller Stand
 
-## Wichtige Regel
+HT2.3 ergaenzt sichere, konfigurierbare End-Aktionen:
 
-`twitch_events` bleibt EventSub-Quelle.  
-`hypetrain` baut kein eigenes EventSub-System.
+```text
+HypeTrain-Ende -> optional Discord-Nachricht
+HypeTrain-Ende -> optional Tagebuch-Systemeintrag
+HypeTrain-Rekord am Ende -> optional Rekord-Sound ueber Sound-System
+```
 
-Die Eventdaten kommen ueber den bestehenden Communication-Bus:
+Wichtig:
+
+```text
+Alle produktiven Aktionen sind standardmaessig AUS.
+Aktionen laufen nur, wenn die jeweilige Config explizit aktiviert ist.
+Sound laeuft ausschliesslich ueber /api/sound/play und bleibt damit beim Sound-System.
+Tagebuch laeuft ueber /api/tagebuch/entry und bleibt damit beim Tagebuch-Modul.
+Discord laeuft ueber die vorhandene Discord-Bridge.
+Keine Top-Unterstuetzer-Namen standardmaessig.
+```
+
+## Bus-Events
+
+Das Modul hoert auf:
 
 ```text
 twitch.hypetrain.started
@@ -39,18 +49,26 @@ twitch.giftbomb.received
 twitch.raid.received
 ```
 
+Das Modul veroeffentlicht Status/Diagnose ueber:
+
+```text
+hypetrain.status.updated
+hypetrain.preview.generated
+hypetrain.end_actions.executed
+```
+
 ## Datenschutz / Top-Unterstuetzer
 
 Standard:
 
 ```text
-includeTopContributors = false
-includeContributorNames = false
+privacy.includeTopContributors = false
+privacy.includeContributorNames = false
 ```
 
-Discord-/Tagebuch-Vorschauen zeigen standardmaessig keine Namen und keine Top-Unterstuetzer-Ranglisten.
+Discord-/Tagebuch-Ausgaben zeigen standardmaessig keine Namen und keine Top-Unterstuetzer-Ranglisten.
 
-Stattdessen werden nur aggregierte Werte genutzt:
+Stattdessen werden aggregierte Werte genutzt:
 
 ```text
 Bits
@@ -66,8 +84,6 @@ Dauer
 
 ## DB-Schema
 
-Das Modul nutzt die zentrale DB-Schicht `backend/core/database.js` und deren Dialekt-Helper, damit die Tabellen spaeter besser fuer SQLite, MySQL und MariaDB migrierbar bleiben.
-
 Tabellen:
 
 ```text
@@ -76,17 +92,58 @@ hypetrain_contributions
 hypetrain_runtime_events
 ```
 
-Settings laufen ueber:
+Settings:
 
 ```text
 hypetrain_settings
 ```
 
-Textvarianten laufen ueber das vorhandene System:
+Textvarianten:
 
 ```text
 module_text_variants
 module_name = hypetrain
+```
+
+## Relevante Config-Keys
+
+Discord:
+
+```text
+discord.enabled
+discord.writeOnEnd
+discord.mode
+discord.webhookUrlEnv
+discord.channelId
+discord.username
+discord.avatarUrl
+```
+
+Tagebuch:
+
+```text
+diary.enabled
+diary.writeOnEnd
+diary.systemUsername
+diary.apiUrl
+```
+
+Rekord-Sound:
+
+```text
+sound.recordSoundEnabled
+sound.mediaId
+sound.soundId
+sound.label
+sound.priority
+sound.volume
+sound.target
+sound.outputTarget
+sound.queueIfBusy
+sound.dropIfBusy
+sound.canInterrupt
+sound.canBeInterrupted
+sound.parallelAllowed
 ```
 
 ## API-Routen
@@ -101,56 +158,57 @@ GET  /api/hypetrain/stats
 GET  /api/hypetrain/preview
 POST /api/hypetrain/preview
 POST /api/hypetrain/test/synthetic?confirm=1
+POST /api/hypetrain/test/end-actions?confirm=1
 GET  /api/hypetrain/routes
 ```
 
-## Preview-Beispiele
+## Testbefehle
 
-Normal ohne Rekord:
+Status:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8080/api/hypetrain/status" |
+  Select-Object moduleVersion,moduleBuild
+```
+
+Erwartung fuer HT2.3:
+
+```text
+moduleVersion = 0.1.2
+moduleBuild   = STEP_HT2_3_HYPETRAIN_PRODUCTIVE_END_ACTIONS
+```
+
+Preview normal:
 
 ```powershell
 Invoke-RestMethod "http://127.0.0.1:8080/api/hypetrain/preview?level=2&points=2500&bits=1500&subs=1&resubs=1&giftSubs=1" |
   ConvertTo-Json -Depth 8
 ```
 
-Raid + Rekord:
+End-Actions Dry-Run:
 
 ```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/hypetrain/preview?raid=1&record=1&level=5&points=9600&bits=3500&subs=3&giftSubs=4" |
-  ConvertTo-Json -Depth 8
-```
-
-Synthetischer DB-Test ohne produktives Senden:
-
-```powershell
-Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/hypetrain/test/synthetic?confirm=1" `
+Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/hypetrain/test/end-actions?confirm=1" `
   -ContentType "application/json" `
   -Body '{"raid":true,"record":true,"level":5,"points":9600,"bits":3500,"subs":3,"giftSubs":4}' |
   ConvertTo-Json -Depth 10
 ```
 
-## Was HT2.1 nicht macht
+Der Dry-Run darf keine produktive Discord-/Tagebuch-/Sound-Aktion ausloesen.
+
+Produktiver manueller Test ist absichtlich zusaetzlich geschuetzt:
 
 ```text
-Kein produktives Discord-Posting
-Kein produktives Tagebuch-Posting
-Kein Rekord-Sound-Umbau
-Kein Dashboard-Tab
-Kein Entfernen alter HypeTrain-Logik aus twitch_events
-Kein neues EventSub-System
-Keine produktive DB ersetzen
-Keine Funktionalität entfernen
+confirmProductive=HYPETRAIN_PRODUCTIVE_ACTIONS
 ```
 
-## Naechster sinnvoller Step
+Diese Option nur bewusst und nach Config-Pruefung verwenden.
 
-```text
-STEP_HT2_2_HYPETRAIN_DASHBOARD_TABS
-```
+## Schutzregeln
 
-Ziel:
-
-```text
-Dashboard-Modul mit Tabs:
-Übersicht | Config | Texte | Statistik | Tests
-```
+- Keine direkte Twitch/EventSub-Anbindung im `hypetrain`-Modul.
+- Keine direkte Sound-/Video-Wiedergabe am Sound-System vorbei.
+- Keine eigene Media-Upload-Loesung im HypeTrain-Dashboard.
+- Medienauswahl/Uploads spaeter ueber zentrales Media-System-Fenster/Modal.
+- Produktive Discord-/Tagebuch-/Sound-Aktionen bleiben standardmaessig aus.
+- Top-Unterstuetzer-Namen bleiben standardmaessig aus.

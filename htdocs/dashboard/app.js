@@ -47,6 +47,14 @@ window.CGN = {
       overlayLabel: '',
       reload() { return window.TwitchEventsModule?.loadAll?.(true); }
     },
+    hypetrain: {
+      title: 'HypeTrain',
+      panelId: 'hypetrainModule',
+      group: 'control',
+      overlayLink: '',
+      overlayLabel: '',
+      reload() { return window.HypeTrainModule?.loadAll?.(true); }
+    },
     stream_events: {
       title: 'Event-System',
       panelId: 'streamEventsModule',
@@ -193,7 +201,7 @@ window.CGN = {
     control: {
       label: 'Control', icon: '🧭', role: 'streamer/local_admin/owner',
       description: 'Alerts, OBS, Overlays und Stream-Steuerung.',
-      items: ['controlhome', 'alerts', 'twitch_events', 'obs', 'overlays', 'stream_control']
+      items: ['controlhome', 'alerts', 'twitch_events', 'hypetrain', 'obs', 'overlays', 'stream_control']
     },
     loyalty: {
       label: 'Loyalty', icon: '🎟️', role: 'mod/supermod/streamer',
@@ -229,6 +237,7 @@ window.CGN = {
     controlhome: { label: 'Übersicht', icon: '🏠', enabled: true, description: 'Control-Center Übersicht.' },
     alerts: { label: 'Alerts V2', icon: '⚡', enabled: true, description: 'Alerts, Regeln, Texte, Sounds und Testcenter.' },
     twitch_events: { label: 'Twitch Events', icon: '🧪', enabled: true, description: 'Twitch-EventSub-Events lokal simulieren und Alert-Mapping prüfen.' },
+    hypetrain: { label: 'HypeTrain', icon: '🚂', enabled: true, description: 'HypeTrain-Status, DB-Config, Texte, Statistik und Preview-Tests.' },
     stream_events: { label: 'Event-System', icon: '🎲', enabled: true, description: 'Stream-Events mit Sound-/Text-Spielen, Shot-Alarm, Texten, Config, Statistik und Gewinner-Finale.' },
     shot_alarm: { label: 'Shot-Alarm', icon: '🥃', enabled: true, description: 'Untermodul im Event-System mit Shot-Regeln, DB-Config, DB-Textvarianten, Statistik und Overlay für Engel & Roxxy.' },
     obs: { label: 'OBS Details', icon: '🎮', enabled: true, description: 'OBS-Szenen, Quellen und Statusdetails.' },
@@ -266,7 +275,7 @@ window.CGN = {
     diagnostics: { label: 'Diagnose', icon: '🩺', enabled: false, description: 'Diagnosewerkzeuge vorbereitet.' }
   },
 
-  favorites: ['clips', 'alerts', 'stream_events', 'vip30', 'loyalty_games', 'loyalty', 'loyalty_giveaways', 'vip', 'hug', 'tagebuch', 'todo', 'commands', 'obs', 'overlays', 'sound_system', 'bus_diagnostics', 'media', 'message_rotator'],
+  favorites: ['clips', 'alerts', 'hypetrain', 'stream_events', 'vip30', 'loyalty_games', 'loyalty', 'loyalty_giveaways', 'vip', 'hug', 'tagebuch', 'todo', 'commands', 'obs', 'overlays', 'sound_system', 'bus_diagnostics', 'media', 'message_rotator'],
 
   async api(path, options = {}) {
     const res = await fetch(path, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options });

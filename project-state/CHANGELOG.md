@@ -1,3 +1,44 @@
+## 2026-06-21 – STEP_HT2_3_HYPETRAIN_PRODUCTIVE_END_ACTIONS
+
+### Added
+
+- `hypetrain` Modul auf `0.1.2` erweitert.
+- Sichere End-Aktionen vorbereitet:
+  - Discord-Nachricht bei HypeTrain-Ende, wenn `discord.enabled` und `discord.writeOnEnd` aktiv sind.
+  - Tagebuch-Systemeintrag bei HypeTrain-Ende, wenn `diary.enabled` und `diary.writeOnEnd` aktiv sind.
+  - Rekord-Sound bei HypeTrain-Ende, wenn ein Rekord erkannt wurde und `sound.recordSoundEnabled` aktiv ist.
+- Sound-Aufruf nutzt `/api/sound/play` mit `mediaId`/`soundId`.
+- Tagebuch-Aufruf nutzt `/api/tagebuch/entry`.
+- Discord-Aufruf nutzt vorhandene Discord-Bridge.
+- Neue Testroute: `POST /api/hypetrain/test/end-actions?confirm=1`.
+- Status ergaenzt um `lastEndActions` und End-Action-Counter.
+
+### Safety
+
+- Produktive Aktionen bleiben standardmaessig AUS.
+- Dry-Run-Test ist Standard.
+- Manueller produktiver Test braucht `confirmProductive=HYPETRAIN_PRODUCTIVE_ACTIONS`.
+- Keine Namen/Top-Unterstuetzer standardmaessig.
+- Kein Sound am Sound-System vorbei.
+
+---
+
+## 2026-06-21 – STEP_HT2_2_HYPETRAIN_DASHBOARD_TABS
+
+### Added
+
+- Neues Dashboard-Modul `hypetrain` mit Tabs: Übersicht, Config, Texte, Statistik und Tests.
+- Dashboard-Einbindung in `htdocs/dashboard/index.html` und `htdocs/dashboard/app.js`.
+- HypeTrain-Dashboard nutzt die vorhandenen `/api/hypetrain/*` Routen.
+
+### Wichtig
+
+- Keine produktiven Discord-/Tagebuch-Sends aktiviert.
+- Keine eigene Upload-Lösung gebaut. Medienauswahl/Uploads bleiben beim zentralen Media-System-Fenster/Modal.
+- `twitch_events` bleibt EventSub-Owner.
+
+---
+
 ## 2026-06-21 – STEP_DOC_MEDIA_SYSTEM_UPLOAD_MODAL_RULE
 
 ### Added

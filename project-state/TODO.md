@@ -1,3 +1,31 @@
+## TODO – HypeTrain nach HT2.3
+
+- [ ] HT2.3 live einspielen und Backend neu starten.
+- [ ] `/api/hypetrain/status` auf `0.1.2` / `STEP_HT2_3_HYPETRAIN_PRODUCTIVE_END_ACTIONS` pruefen.
+- [ ] End-Actions-Dry-Run testen.
+- [ ] Dashboard-Config pruefen: Discord, Tagebuch und Sound bleiben standardmaessig AUS.
+- [ ] Vor produktiver Aktivierung pruefen:
+  - Discord Webhook/Channel vorhanden
+  - Tagebuch aktiv und Streamstatus passend
+  - Sound-System aktiv
+  - Media-ID oder Sound-ID fuer Rekord-Sound vorhanden
+- [ ] Echten HypeTrain-Ende-Flow spaeter live pruefen.
+- [ ] HT2.5 Dashboard-Warnboxen/UX fuer produktive Aktionen vorbereiten.
+
+---
+
+## TODO – HypeTrain Dashboard nach HT2.2
+
+- [ ] HypeTrain-Dashboard live prüfen: Navigation `Control -> HypeTrain`.
+- [ ] Alle Tabs prüfen: Übersicht, Config, Texte, Statistik, Tests.
+- [ ] Config-Speichern im Dashboard prüfen.
+- [ ] Preview-Buttons im Dashboard prüfen.
+- [ ] Synthetischen DB-Test im Dashboard prüfen, wenn gewünscht.
+- [ ] Später HT2.3 planen: Start-/Ende-/Level-Up-Alert-Config mit Media-System-Fenster/Modal vorbereiten.
+- [ ] Produktive Discord-/Tagebuch-Ausgabe weiterhin separat planen; nicht nebenbei aktivieren.
+
+---
+
 
 ---
 

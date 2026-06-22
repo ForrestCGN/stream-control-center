@@ -1,3 +1,62 @@
+## Dateien – STEP_HT2_3_HYPETRAIN_PRODUCTIVE_END_ACTIONS
+
+Geaendert:
+
+```text
+backend/modules/hypetrain.js
+docs/modules/hypetrain.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+```
+
+Nicht geaendert:
+
+```text
+backend/modules/twitch_events.js
+backend/modules/sound_system.js
+backend/modules/tagebuch.js
+backend/modules/discord.js
+htdocs/dashboard/*
+Datenbank-Schema
+Media-System
+```
+
+---
+
+## Dateien – STEP_HT2_2_HYPETRAIN_DASHBOARD_TABS
+
+Geändert/ergänzt:
+
+```text
+htdocs/dashboard/index.html
+htdocs/dashboard/app.js
+htdocs/dashboard/modules/hypetrain.js
+htdocs/dashboard/modules/hypetrain.css
+docs/modules/hypetrain.md
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/CHANGELOG.md
+project-state/FILES.md
+```
+
+Nicht geändert:
+
+```text
+backend/modules/hypetrain.js
+backend/modules/twitch_events.js
+Datenbank
+Sound-System
+Media-System
+Tagebuch
+Discord-Modul
+```
+
+---
+
 ## Dateien – STEP_DOC_MEDIA_SYSTEM_UPLOAD_MODAL_RULE
 
 Geändert:

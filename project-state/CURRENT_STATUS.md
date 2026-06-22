@@ -1,3 +1,57 @@
+## STEP_HT2_3_HYPETRAIN_PRODUCTIVE_END_ACTIONS
+
+Stand: 2026-06-21
+
+HypeTrain-Backend erweitert:
+
+```text
+Modul: hypetrain
+Version: 0.1.2
+Build: STEP_HT2_3_HYPETRAIN_PRODUCTIVE_END_ACTIONS
+```
+
+Neu vorbereitet/umgesetzt:
+
+- HypeTrain-Ende kann optional eine Discord-Nachricht senden.
+- HypeTrain-Ende kann optional einen Tagebuch-Systemeintrag schreiben.
+- HypeTrain-Rekord am Ende kann optional einen Rekord-Sound ueber das Sound-System ausloesen.
+- Alle produktiven Aktionen sind standardmaessig AUS und laufen nur bei expliziter Config-Aktivierung.
+- Neue Dry-Run-Testroute: `POST /api/hypetrain/test/end-actions?confirm=1`.
+- Status enthaelt `runtime.lastEndActions` und neue Counter fuer End-Aktionen.
+
+Wichtig:
+
+```text
+Keine eigene Twitch/EventSub-Anbindung.
+Kein Sound am Sound-System vorbei.
+Kein eigenes Media-Upload-System.
+Keine Namen/Top-Unterstuetzer standardmaessig.
+```
+
+---
+
+## STEP_HT2_2_HYPETRAIN_DASHBOARD_TABS
+
+Stand: 2026-06-21
+
+HypeTrain-Dashboard vorbereitet:
+
+```text
+Modul: hypetrain
+Dashboard-Tabs: Übersicht | Config | Texte | Statistik | Tests
+Backend-Basis: /api/hypetrain/status, config, texts, stats, preview, test/synthetic
+```
+
+Wichtig:
+
+```text
+Keine produktiven Discord-/Tagebuch-Sends aktiviert.
+Keine eigene Media-Upload-Lösung gebaut.
+Medienauswahl/Uploads später über zentrales Media-System-Fenster/Modal.
+```
+
+---
+
 ## STEP_DOC_MEDIA_SYSTEM_UPLOAD_MODAL_RULE
 
 Stand: 2026-06-21

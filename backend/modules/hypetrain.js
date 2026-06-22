@@ -1,18 +1,18 @@
 "use strict";
 
 /**
- * HypeTrain Fachmodul HT2.1
+ * HypeTrain Fachmodul HT2.3
  *
  * Zweck:
  * - vorhandene Twitch-Events aus dem Communication-Bus abonnieren
  * - HypeTrain-Runs, Beiträge und Runtime-Events DB-basiert speichern
  * - Status, Statistik, Config und Textvarianten für ein späteres Dashboard bereitstellen
- * - Discord-/Tagebuch-Nachrichten zunächst nur als Vorschau bauen
+ * - Discord-/Tagebuch-Nachrichten und Rekord-Sound sicher konfigurierbar produktiv ausführen
  *
  * Wichtig:
  * - Kein eigenes EventSub-System.
  * - Kein Umbau von twitch_events.
- * - Kein produktives Discord-/Tagebuch-Posting in HT2.1.
+ * - Produktive Aktionen bleiben standardmäßig AUS und laufen nur bei expliziter Config-Aktivierung.
  * - Keine Top-Unterstützer-Namen standardmäßig.
  */
 
@@ -24,8 +24,8 @@ const texts = require("./helpers/helper_texts");
 const communicationBus = require("./communication_bus");
 
 const MODULE_NAME = "hypetrain";
-const MODULE_VERSION = "0.1.1";
-const MODULE_BUILD = "STEP_HT2_1_FIX1_HYPETRAIN_PREVIEW_LINEBREAK";
+const MODULE_VERSION = "0.1.2";
+const MODULE_BUILD = "STEP_HT2_3_HYPETRAIN_PRODUCTIVE_END_ACTIONS";
 const MODULE_ID = `module:${MODULE_NAME}`;
 const SCHEMA_VERSION = 1;
 const SETTINGS_TABLE = "hypetrain_settings";
@@ -37,12 +37,12 @@ const MODULE_META = {
   build: MODULE_BUILD,
   type: "runtime",
   category: "community",
-  description: "HypeTrain Fachmodul mit DB-Config, Status, Statistik, Textvarianten und Discord-Preview.",
+  description: "HypeTrain Fachmodul mit DB-Config, Status, Statistik, Textvarianten und sicher schaltbaren Discord-/Tagebuch-/Sound-Endaktionen.",
   routesPrefix: ["/api/hypetrain"],
   bus: {
     registered: false,
     heartbeat: false,
-    emits: ["hypetrain.status.updated", "hypetrain.preview.generated"],
+    emits: ["hypetrain.status.updated", "hypetrain.preview.generated", "hypetrain.end_actions.executed"],
     listens: [
       "twitch.hypetrain.started",
       "twitch.hypetrain.progress",
@@ -99,11 +99,13 @@ const DEFAULT_CONFIG = {
   diary: {
     enabled: false,
     writeOnEnd: false,
-    systemUsername: "CGN-HypeTrain"
+    systemUsername: "CGN-HypeTrain",
+    apiUrl: "http://127.0.0.1:8080/api/tagebuch/entry"
   },
   sound: {
     recordSoundEnabled: false,
     mediaId: 0,
+    soundId: "",
     label: "Hype-Train Rekord",
     priority: 1000,
     queueIfBusy: true,
@@ -111,7 +113,9 @@ const DEFAULT_CONFIG = {
     canInterrupt: false,
     canBeInterrupted: true,
     parallelAllowed: false,
-    volume: 1
+    volume: 85,
+    target: "stream",
+    outputTarget: "overlay"
   },
   tests: {
     previewOnlyDefault: true,
@@ -149,14 +153,20 @@ const SETTING_DEFINITIONS = [
   { key: "discord.webhookUrlEnv", value: "DISCORD_WEBHOOK_HYPETRAIN", valueType: "string", category: "Discord", label: "Webhook ENV-Key", description: "ENV-Key für den Discord-Webhook; Secret selbst nicht in der DB speichern." },
   { key: "discord.channelId", value: "", valueType: "string", category: "Discord", label: "Channel-ID", description: "Optionaler Discord-Channel für Bot-Posting." },
   { key: "discord.username", value: "CGN-HypeTrain", valueType: "string", category: "Discord", label: "Webhook-Name", description: "Anzeigename für Webhook-Posting." },
+  { key: "discord.avatarUrl", value: "", valueType: "string", category: "Discord", label: "Webhook-Avatar", description: "Optionaler Avatar für den HypeTrain-Webhook." },
 
   { key: "diary.enabled", value: false, valueType: "boolean", category: "Tagebuch", label: "Tagebuch aktiv", description: "Tagebuch-Ausgabe vorbereitet. In HT2.1 nicht produktiv umgestellt." },
   { key: "diary.writeOnEnd", value: false, valueType: "boolean", category: "Tagebuch", label: "Bei Ende schreiben", description: "Später: HypeTrain-Ende ins Tagebuch schreiben." },
   { key: "diary.systemUsername", value: "CGN-HypeTrain", valueType: "string", category: "Tagebuch", label: "Systemname", description: "Name für spätere Systemeinträge." },
+  { key: "diary.apiUrl", value: "http://127.0.0.1:8080/api/tagebuch/entry", valueType: "string", category: "Tagebuch", label: "Tagebuch API-URL", description: "Interne lokale API-Route für spätere Tagebuch-Systemeinträge." },
 
-  { key: "sound.recordSoundEnabled", value: false, valueType: "boolean", category: "Sound", label: "Rekord-Sound aktiv", description: "In HT2.1 nur vorbereitet. Aktiver Sound läuft weiterhin über twitch_events HT1." },
-  { key: "sound.mediaId", value: 0, valueType: "number", category: "Sound", label: "Media-ID", description: "Media-ID für späteren Rekord-Sound." },
-  { key: "sound.priority", value: 1000, valueType: "number", category: "Sound", label: "Priorität", description: "Priorität für späteren Sound-System-Aufruf." },
+  { key: "sound.recordSoundEnabled", value: false, valueType: "boolean", category: "Sound", label: "Rekord-Sound aktiv", description: "Spielt bei Rekord-Ende einen Sound über das bestehende Sound-System ab. Standard AUS." },
+  { key: "sound.mediaId", value: 0, valueType: "number", category: "Sound", label: "Media-ID", description: "Media-ID für Rekord-Sound aus dem Media-System." },
+  { key: "sound.soundId", value: "", valueType: "string", category: "Sound", label: "Sound-ID", description: "Optionaler Sound-System-Preset-Key, falls keine Media-ID genutzt wird." },
+  { key: "sound.priority", value: 1000, valueType: "number", category: "Sound", label: "Priorität", description: "Priorität für Sound-System-Aufruf." },
+  { key: "sound.volume", value: 85, valueType: "number", category: "Sound", label: "Lautstärke", description: "Lautstärke für Rekord-Sound." },
+  { key: "sound.target", value: "stream", valueType: "string", category: "Sound", label: "Ziel", description: "Sound-System Ziel: stream, discord oder both." },
+  { key: "sound.outputTarget", value: "overlay", valueType: "string", category: "Sound", label: "Ausgabeziel", description: "Sound-System Ausgabeziel: overlay, device oder both." },
 
   { key: "tests.previewOnlyDefault", value: true, valueType: "boolean", category: "Tests", label: "Tests standardmäßig Vorschau", description: "Tests lösen standardmäßig keine produktiven Ausgaben aus." },
   { key: "tests.productiveSendRequiresConfirm", value: true, valueType: "boolean", category: "Tests", label: "Produktives Senden bestätigen", description: "Produktive Tests nur mit ausdrücklicher Bestätigung erlauben." }
@@ -235,6 +245,7 @@ const state = {
   lastRaid: null,
   lastEndedRun: null,
   lastPreview: null,
+  lastEndActions: null,
   lastError: "",
   counters: {
     started: 0,
@@ -247,7 +258,12 @@ const state = {
     previewsGenerated: 0,
     dbWrites: 0,
     dbErrors: 0,
-    subscriberErrors: 0
+    subscriberErrors: 0,
+    endActionsPlanned: 0,
+    discordPosted: 0,
+    diaryPosted: 0,
+    recordSoundRequested: 0,
+    endActionErrors: 0
   },
   active: {}
 };
@@ -741,6 +757,13 @@ function processHypeTrainBusEvent(envelope, eventKey, twitch) {
     upsertRun(memory, hypeTrain, { previewMessage: preview.message });
     state.lastEndedRun = jsonClone(memory, {});
     state.lastPreview = preview;
+    executeEndActions(memory, hypeTrain, preview, { dryRun: false, trigger: "hypetrain.ended" }).catch(err => {
+      state.counters.endActionErrors += 1;
+      state.lastError = err && err.message ? err.message : String(err);
+      state.lastEndActions = { ok: false, trigger: "hypetrain.ended", error: state.lastError, at: nowIso() };
+      logRuntimeEvent("end_actions_error", eventKey, hypeTrain.id, state.lastEndActions);
+      publishStatus("end_actions_error");
+    });
     if (state.currentTrainId === hypeTrain.id) state.currentTrainId = "";
     logRuntimeEvent("ended", eventKey, hypeTrain.id, { ...twitch, preview });
     publishStatus("ended");
@@ -883,6 +906,206 @@ function buildPreviewFromMemory(memory, hypeTrain = {}, target = "discord") {
     vars,
     generatedAt: nowIso()
   };
+}
+
+
+function publicActionResult(result = {}) {
+  const clean = jsonClone(result, {});
+  if (clean && clean.discord && clean.discord.webhookUrl) clean.discord.webhookUrl = "***";
+  return clean;
+}
+
+function buildEndActionPlan(memory, hypeTrain = {}, preview = null) {
+  const cfg = getConfig();
+  const recordReached = !!(memory && memory.recordReached);
+  const message = safeString(preview && preview.message);
+  const hasSoundMedia = numberValue(cfg.sound?.mediaId, 0) > 0 || !!safeString(cfg.sound?.soundId);
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    trainId: safeString(memory?.trainId || hypeTrain.id),
+    recordReached,
+    dryRunAvailable: true,
+    actions: {
+      discord: {
+        enabled: cfg.discord?.enabled === true && cfg.discord?.writeOnEnd === true,
+        configuredEnabled: cfg.discord?.enabled === true,
+        writeOnEnd: cfg.discord?.writeOnEnd === true,
+        mode: safeString(cfg.discord?.mode, "webhook"),
+        channelIdConfigured: !!safeString(cfg.discord?.channelId),
+        webhookEnv: safeString(cfg.discord?.webhookUrlEnv, "DISCORD_WEBHOOK_HYPETRAIN"),
+        webhookConfigured: !!process.env[safeString(cfg.discord?.webhookUrlEnv, "DISCORD_WEBHOOK_HYPETRAIN")],
+        messageLength: message.length
+      },
+      diary: {
+        enabled: cfg.diary?.enabled === true && cfg.diary?.writeOnEnd === true,
+        configuredEnabled: cfg.diary?.enabled === true,
+        writeOnEnd: cfg.diary?.writeOnEnd === true,
+        systemUsername: safeString(cfg.diary?.systemUsername, "CGN-HypeTrain"),
+        apiUrl: safeString(cfg.diary?.apiUrl, "http://127.0.0.1:8080/api/tagebuch/entry")
+      },
+      recordSound: {
+        enabled: recordReached && cfg.sound?.recordSoundEnabled === true && hasSoundMedia,
+        configuredEnabled: cfg.sound?.recordSoundEnabled === true,
+        mediaId: numberValue(cfg.sound?.mediaId, 0),
+        soundId: safeString(cfg.sound?.soundId),
+        label: safeString(cfg.sound?.label, "Hype-Train Rekord"),
+        priority: numberValue(cfg.sound?.priority, 1000),
+        target: safeString(cfg.sound?.target, "stream"),
+        outputTarget: safeString(cfg.sound?.outputTarget, "overlay"),
+        reason: recordReached ? (hasSoundMedia ? "record_reached" : "missing_media_or_sound_id") : "no_record"
+      }
+    },
+    generatedAt: nowIso()
+  };
+}
+
+function getDiscordBridge() {
+  if (appRef && appRef.locals && appRef.locals.discordBridge) return appRef.locals.discordBridge;
+  try {
+    const discord = require("./discord");
+    if (discord && typeof discord.postMessage === "function") return discord;
+  } catch (_) {}
+  return null;
+}
+
+async function runDiscordEndAction(message, memory, hypeTrain, preview) {
+  const cfg = getConfig();
+  const bridge = getDiscordBridge();
+  if (!bridge || typeof bridge.postMessage !== "function") throw new Error("discord_bridge_unavailable");
+  const mode = safeString(cfg.discord?.mode, "webhook").toLowerCase() === "channel" ? "channel" : "webhook";
+  const webhookEnv = safeString(cfg.discord?.webhookUrlEnv, "DISCORD_WEBHOOK_HYPETRAIN");
+  const payload = {
+    mode,
+    channelId: safeString(cfg.discord?.channelId),
+    webhookUrl: mode === "webhook" ? safeString(process.env[webhookEnv]) : "",
+    username: safeString(cfg.discord?.username, "CGN-HypeTrain"),
+    avatarUrl: safeString(cfg.discord?.avatarUrl),
+    content: message,
+    allowedMentions: { parse: [] }
+  };
+  if (mode === "webhook" && !payload.webhookUrl) throw new Error(`${webhookEnv} fehlt`);
+  if (mode === "channel" && !payload.channelId) throw new Error("discord.channelId fehlt");
+  const result = await bridge.postMessage(payload);
+  state.counters.discordPosted += 1;
+  return { ok: true, mode, result };
+}
+
+async function runDiaryEndAction(message, memory, hypeTrain, preview) {
+  const cfg = getConfig();
+  const apiUrl = safeString(cfg.diary?.apiUrl, "http://127.0.0.1:8080/api/tagebuch/entry");
+  if (!apiUrl) throw new Error("diary.apiUrl fehlt");
+  if (typeof fetch !== "function") throw new Error("fetch_unavailable");
+  const response = await fetch(apiUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      authorLogin: "hypetrain",
+      authorDisplay: safeString(cfg.diary?.systemUsername, "CGN-HypeTrain"),
+      message,
+      system: true,
+      systemUsername: safeString(cfg.diary?.systemUsername, "CGN-HypeTrain")
+    })
+  });
+  const text = await response.text().catch(() => "");
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch (_) { data = { raw: text }; }
+  if (!response.ok || (data && data.ok === false)) throw new Error((data && (data.error || data.message)) || `tagebuch_http_${response.status}`);
+  state.counters.diaryPosted += 1;
+  return { ok: true, status: response.status, result: data };
+}
+
+async function runRecordSoundAction(memory, hypeTrain, preview) {
+  const cfg = getConfig();
+  if (typeof fetch !== "function") throw new Error("fetch_unavailable");
+  const mediaId = numberValue(cfg.sound?.mediaId, 0);
+  const soundId = safeString(cfg.sound?.soundId);
+  if (!mediaId && !soundId) throw new Error("record_sound_media_missing");
+  const body = {
+    label: safeString(cfg.sound?.label, "Hype-Train Rekord"),
+    category: "alert_critical",
+    source: MODULE_NAME,
+    requestedBy: MODULE_NAME,
+    priority: numberValue(cfg.sound?.priority, 1000),
+    volume: numberValue(cfg.sound?.volume, 85),
+    target: safeString(cfg.sound?.target, "stream"),
+    outputTarget: safeString(cfg.sound?.outputTarget, "overlay"),
+    queueIfBusy: cfg.sound?.queueIfBusy !== false,
+    dropIfBusy: cfg.sound?.dropIfBusy === true,
+    canInterrupt: cfg.sound?.canInterrupt === true,
+    canBeInterrupted: cfg.sound?.canBeInterrupted !== false,
+    parallelAllowed: cfg.sound?.parallelAllowed === true,
+    meta: {
+      module: MODULE_NAME,
+      trainId: safeString(memory?.trainId || hypeTrain.id),
+      recordReached: true,
+      recordTypes: jsonClone(memory?.recordTypes || [], [])
+    }
+  };
+  if (mediaId > 0) body.mediaId = mediaId;
+  if (soundId) body.soundId = soundId;
+  const response = await fetch("http://127.0.0.1:8080/api/sound/play", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  const text = await response.text().catch(() => "");
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch (_) { data = { raw: text }; }
+  if (!response.ok || (data && data.ok === false)) throw new Error((data && (data.error || data.message)) || `sound_http_${response.status}`);
+  state.counters.recordSoundRequested += 1;
+  return { ok: true, status: response.status, result: data };
+}
+
+async function executeEndActions(memory, hypeTrain = {}, preview = null, options = {}) {
+  const dryRun = options.dryRun === true;
+  const plan = buildEndActionPlan(memory, hypeTrain, preview);
+  const message = safeString(preview && preview.message);
+  const result = {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    trainId: plan.trainId,
+    trigger: safeString(options.trigger, "manual"),
+    dryRun,
+    plan,
+    actions: {},
+    errors: [],
+    executedAt: nowIso()
+  };
+  state.counters.endActionsPlanned += 1;
+
+  const runOne = async (name, enabled, fn) => {
+    if (!enabled) {
+      result.actions[name] = { ok: true, skipped: true, reason: "disabled_or_not_applicable" };
+      return;
+    }
+    if (dryRun) {
+      result.actions[name] = { ok: true, dryRun: true, wouldRun: true };
+      return;
+    }
+    try {
+      result.actions[name] = await fn();
+    } catch (err) {
+      const message = err && err.message ? err.message : String(err);
+      result.actions[name] = { ok: false, error: message };
+      result.errors.push(`${name}: ${message}`);
+      state.counters.endActionErrors += 1;
+    }
+  };
+
+  await runOne("discord", plan.actions.discord.enabled, () => runDiscordEndAction(message, memory, hypeTrain, preview));
+  await runOne("diary", plan.actions.diary.enabled, () => runDiaryEndAction(message, memory, hypeTrain, preview));
+  await runOne("recordSound", plan.actions.recordSound.enabled, () => runRecordSoundAction(memory, hypeTrain, preview));
+
+  result.ok = result.errors.length === 0;
+  state.lastEndActions = publicActionResult(result);
+  logRuntimeEvent("end_actions", "hypetrain.end_actions", plan.trainId, state.lastEndActions);
+  publishStatus("end_actions");
+  return result;
 }
 
 function buildSyntheticMemory(input = {}) {
@@ -1078,6 +1301,7 @@ function buildStatus() {
       lastRaid: state.lastRaid,
       lastEndedRun: state.lastEndedRun,
       lastPreview: state.lastPreview,
+      lastEndActions: state.lastEndActions,
       counters: state.counters,
       lastError: state.lastError
     },
@@ -1212,6 +1436,29 @@ function registerRoutes(app) {
     }
   });
 
+
+  post(["/api/hypetrain/test/end-actions", "/hypetrain/test/end-actions"], async (req, res) => {
+    try {
+      const input = { ...(req.query || {}), ...(req.body || {}) };
+      if (safeString(input.confirm) !== "1") {
+        res.status(400).json({ ok: false, module: MODULE_NAME, error: "confirm_required", hint: "POST /api/hypetrain/test/end-actions?confirm=1", productiveActions: false });
+        return;
+      }
+      const productive = boolValue(input.productive, false) || boolValue(input.dryRun, true) === false;
+      if (productive && safeString(input.confirmProductive) !== "HYPETRAIN_PRODUCTIVE_ACTIONS") {
+        res.status(400).json({ ok: false, module: MODULE_NAME, error: "confirm_productive_required", hint: "Set confirmProductive=HYPETRAIN_PRODUCTIVE_ACTIONS to run real Discord/Tagebuch/Sound actions.", productiveActions: false });
+        return;
+      }
+      const memory = buildSyntheticMemory(input);
+      const hypeTrain = { id: memory.trainId, level: memory.level, total: memory.pointsTotal, startedAt: memory.startedAt, endedAt: memory.endedAt, cooldownEndsAt: memory.cooldownEndsAt, type: memory.hypeType };
+      const preview = buildPreviewFromMemory(memory, hypeTrain, input.target || "discord");
+      const result = await executeEndActions(memory, hypeTrain, preview, { dryRun: !productive, trigger: productive ? "manual_productive_test" : "manual_dry_run_test" });
+      res.status(result.ok ? 200 : 500).json({ ok: result.ok, module: MODULE_NAME, productiveActions: productive, preview, result, status: buildStatus() });
+    } catch (err) {
+      res.status(500).json({ ok: false, module: MODULE_NAME, error: err && err.message ? err.message : String(err) });
+    }
+  });
+
   get(["/api/hypetrain/routes", "/hypetrain/routes"], (_req, res) => {
     res.json({
       ok: true,
@@ -1225,6 +1472,7 @@ function registerRoutes(app) {
         "GET /api/hypetrain/stats",
         "GET|POST /api/hypetrain/preview",
         "POST /api/hypetrain/test/synthetic?confirm=1",
+        "POST /api/hypetrain/test/end-actions?confirm=1",
         "GET /api/hypetrain/routes"
       ],
       registered
