@@ -1,5 +1,33 @@
 # CHANGELOG
 
+## RDAP1 / Remote Dashboard Agent Plan – 2026-06-22
+
+- Neue Plan-Datei ergänzt:
+  - `docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md`
+- Neue Rollen-/Rechte-Plan-Datei ergänzt:
+  - `docs/current/DASHBOARD_ROLES_PERMISSIONS_MATRIX.md`
+- Projektstatus auf Dashboard-v2/Webserver-Agent-Planung aktualisiert:
+  - `project-state/CURRENT_STATUS.md`
+  - `project-state/NEXT_STEPS.md`
+  - `project-state/TODO.md`
+  - `project-state/FILES.md`
+- Festgehalten:
+  - Dashboard-v2 startet nicht mit Design/Bootstrap.
+  - Priorität ist sichere Webserver↔Stream-PC-Anbindung.
+  - Stream-PC verbindet sich später aktiv per WSS/WebSocket zum Webserver.
+  - Keine Portfreigabe am Stream-PC.
+  - Keine freien Shell-/Datei-/Prozessbefehle.
+  - Remote-Actions nur über Allowlist.
+  - Rechteprüfung, requestId, expiresAt, Ergebnisantwort und Audit sind Pflicht.
+  - Multi-User und Bearbeitungs-Locks sind Pflichtbestandteil der Planung.
+  - Twitch-Rollen helfen nur bei der Erkennung; lokale Dashboard-Rechte entscheiden konkret.
+  - Spezialrolle `Sound-Profi` und optionale Rolle `Media-Manager` sind geplant.
+- Kein Backend geändert.
+- Kein Dashboard geändert.
+- Keine DB geändert.
+- Keine Config geändert.
+- Keine Runtime-Datei geändert.
+
 ## HT4.3 / Central Event Overlay CGN Base Style – 2026-06-22
 
 - `htdocs/overlays/central_event_overlay.html` auf Version `0.1.3` / Step `HT4.3` gebracht.

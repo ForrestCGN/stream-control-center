@@ -1,13 +1,13 @@
 # CURRENT STATUS
 
-Stand: HT4.3 / Central Event Overlay CGN Base Style
+Stand: RDAP1 / Remote Dashboard Agent Plan
 Datum: 2026-06-22
 
-## Aktueller bestätigter Stand
+## Aktueller bestätigter Runtime-Stand
 
 Das Projekt `stream-control-center` hat für HypeTrain die zentrale Overlay-Basis vorbereitet.
 
-Bestätigt:
+Bestätigt aus dem vorherigen Stand HT4.3:
 
 - HypeTrain Backend bleibt auf `0.2.3 / STEP_HT3_2_1_HYPETRAIN_EVENT_SOUND_HAS_MEDIA_HOTFIX`.
 - Start-Sound ist aktiv: `mediaId 1618`, `hasMedia true`.
@@ -19,7 +19,7 @@ Bestätigt:
 
 ## Central Event Overlay
 
-Neue zentrale Overlay-Datei:
+Neue zentrale Overlay-Datei aus HT4.x:
 
 - `htdocs/overlays/central_event_overlay.html`
 
@@ -41,29 +41,49 @@ Bestätigt:
 - Payload-Anzeige ist robust vorbereitet.
 - Erste CGN-Basisoptik ist eingebaut.
 
-## Getestete HypeTrain-Overlay-Channels
+## Neuer Planungsstand RDAP1
 
-- `hypetrain.overlay.start`
-- `hypetrain.overlay.level_up`
-- `hypetrain.overlay.end`
-- `hypetrain.overlay.record`
+Neu geplant und dokumentiert:
 
-## Nicht geändert durch HT4.0 bis HT4.3
+- `docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md`
+- `docs/current/DASHBOARD_ROLES_PERMISSIONS_MATRIX.md`
 
-- kein Backend-Umbau
-- keine Dashboard-Änderung
+RDAP1 ist ein reiner Planungs-/Doku-Step für Dashboard-v2 und die spätere sichere Webserver↔Stream-PC-Anbindung.
+
+Festgelegt:
+
+- Dashboard-v2 startet nicht mit Design oder Bootstrap.
+- Priorität ist sichere Webserver↔Stream-PC-Anbindung.
+- Webserver wird öffentliche Zentrale.
+- Stream-PC wird lokaler Agent/Ausführer.
+- Verbindung läuft später aktiv vom Stream-PC zum Webserver per WSS/WebSocket.
+- Keine Portfreigabe am Stream-PC.
+- Keine freien Shell-/Datei-/Prozessbefehle.
+- Remote-Actions nur über Allowlist.
+- Jede Remote-Aktion braucht Rechteprüfung, requestId, expiresAt, Ergebnisantwort und Audit.
+- Multi-User und Bearbeitungs-Locks werden von Anfang an eingeplant.
+- Twitch-Rollen werden berücksichtigt, lokale Dashboard-Rechte entscheiden aber konkret.
+- Spezialrolle `Sound-Profi` ist geplant.
+- Optionale Rolle `Media-Manager` ist vorgemerkt.
+
+## Nicht geändert durch RDAP1
+
+- kein Backend-Code
+- kein Dashboard-Code
 - keine DB-Änderung
-- keine OBS-Quellenänderung
-- keine HypeTrain-Config-Änderung
-- keine Sound-System-Änderung
-- keine bestehenden Overlays gelöscht
+- keine Config-Änderung
+- keine OBS-Änderung
+- kein Agent-Code
+- kein Auth-/Permission-Code
+- keine Runtime-Datei
+- kein Bootstrap-/Design-Entscheid
 
 ## Dokumentation
 
 Neu/aktualisiert:
 
-- `docs/overlays/central_event_overlay.md`
-- `docs/modules/hypetrain.md`
+- `docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md`
+- `docs/current/DASHBOARD_ROLES_PERMISSIONS_MATRIX.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
