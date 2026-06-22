@@ -99,8 +99,8 @@
         <section class="ht-card glass">
           <h3>Aktuelle Konfiguration</h3>
           <dl class="ht-dl">
-            <dt>Discord</dt><dd>${cfg.discordEnabled ? 'aktiv' : 'aus / vorbereitet'}</dd>
-            <dt>Tagebuch</dt><dd>${cfg.diaryEnabled ? 'aktiv' : 'aus / vorbereitet'}</dd>
+            <dt>Direkt-Discord</dt><dd>${cfg.discordEnabled ? 'aktiv' : 'aus / vorbereitet'}</dd>
+            <dt>Tagebuch/Discord</dt><dd>${cfg.diaryEnabled ? 'aktiv' : 'aus / vorbereitet'}</dd>
             <dt>Rekord-Sound</dt><dd>${cfg.recordSoundEnabled ? 'aktiv' : 'aus / vorbereitet'}</dd>
             <dt>HypeTrain-Punkte</dt><dd>${cfg.includeHypeTrainPoints ? 'werden angezeigt' : 'ausgeblendet'}</dd>
             <dt>Namen</dt><dd>${cfg.includeContributorNames ? 'aktiv' : 'aus Datenschutzgründen aus'}</dd>
@@ -160,21 +160,21 @@
         <div class="ht-card-head">
           <div>
             <h3>Produktive End-Aktionen</h3>
-            <p>Discord, Tagebuch und Rekord-Sound sind sicher schaltbar. Standard bleibt AUS.</p>
+            <p>Tagebuch/Discord ist der Standardweg. Direkt-Discord ist ein separater Zusatzweg und bleibt normalerweise aus.</p>
           </div>
           <button type="button" data-ht-action="end-actions-dry-run">End-Actions Dry-Run</button>
           <button type="button" data-ht-action="live-readiness">Live-Readiness prüfen</button>
         </div>
         <div class="ht-action-grid">
-          <div class="ht-action-card"><span>Discord am Ende</span><strong>${cfgText('discord')}</strong>${actionState(actions.discord)}</div>
-          <div class="ht-action-card"><span>Tagebuch am Ende</span><strong>${cfgText('diary')}</strong>${actionState(actions.diary)}</div>
+          <div class="ht-action-card"><span>Direkt-Discord am Ende</span><strong>${cfgText('discord')}</strong>${actionState(actions.discord)}</div>
+          <div class="ht-action-card"><span>Tagebuch/Discord am Ende</span><strong>${cfgText('diary')}</strong>${actionState(actions.diary)}</div>
           <div class="ht-action-card"><span>Rekord-Sound</span><strong>${cfgText('recordSound')}</strong>${actionState(actions.recordSound)}</div>
         </div>
         <dl class="ht-dl compact">
           <dt>Letzter Test</dt><dd>${result ? esc(result.trigger || (result.dryRun ? 'dry-run' : 'produktiver Lauf')) : '-'}</dd>
           <dt>Dry-Run</dt><dd>${result ? (result.dryRun ? 'ja' : 'nein') : '-'}</dd>
           <dt>Planungen</dt><dd>${esc(counters.endActionsPlanned || 0)}</dd>
-          <dt>Ausgeführt</dt><dd>Discord ${esc(counters.discordPosted || 0)} · Tagebuch ${esc(counters.diaryPosted || 0)} · Rekord-Sound ${esc(counters.recordSoundRequested || 0)}</dd>
+          <dt>Ausgeführt</dt><dd>Direkt-Discord ${esc(counters.discordPosted || 0)} · Tagebuch/Discord ${esc(counters.diaryPosted || 0)} · Rekord-Sound ${esc(counters.recordSoundRequested || 0)}</dd>
           <dt>Fehler</dt><dd>${esc(counters.endActionErrors || 0)}</dd>
         </dl>
         ${result ? `<details class="ht-details"><summary>Letztes End-Actions-Ergebnis anzeigen</summary><pre>${esc(JSON.stringify(result, null, 2))}</pre></details>` : ''}
@@ -216,7 +216,7 @@
           <button type="button" data-ht-action="open-media">Media-System im eigenen Fenster öffnen</button>
         </div>
         <div class="ht-safety-box">
-          <strong>Aktivierungslogik:</strong> Discord sendet nur bei <code>discord.enabled=true</code> und <code>discord.writeOnEnd=true</code>. Tagebuch schreibt nur bei <code>diary.enabled=true</code> und <code>diary.writeOnEnd=true</code>. Rekord-Sound läuft nur bei <code>sound.recordSoundEnabled=true</code> und gültiger Media-ID/Sound-ID. Namen/Top-Unterstützer bleiben standardmäßig aus.
+          <strong>Aktivierungslogik:</strong> Tagebuch/Discord läuft über <code>diary.enabled=true</code> und <code>diary.writeOnEnd=true</code>. Direkt-Discord ist ein separater Zusatzweg über <code>discord.enabled=true</code> und <code>discord.writeOnEnd=true</code>. Rekord-Sound läuft nur bei <code>sound.recordSoundEnabled=true</code> und gültiger Media-ID/Sound-ID. Namen/Top-Unterstützer bleiben standardmäßig aus.
         </div>
         ${renderActivationProfiles()}
         <div class="ht-config-grid">
@@ -273,13 +273,13 @@
         <div class="ht-card-head">
           <div>
             <h3>Sichere Aktivierungsprofile</h3>
-            <p>Für den Live-Test immer nur eine produktive Aktion aktivieren: erst Tagebuch, dann Discord, dann Rekord-Sound.</p>
+            <p>Für den Live-Test immer nur eine produktive Aktion aktivieren. Aktueller Standard: nur Tagebuch/Discord über das bestehende Tagebuch-System.</p>
           </div>
           <button type="button" data-ht-action="load-activation-profiles">Profile neu laden</button>
         </div>
         <div class="ht-action-grid">
-          <div class="ht-action-card"><span>Aktuell Tagebuch</span><strong>${current.diaryEndEnabled ? 'aktiv' : 'aus'}</strong></div>
-          <div class="ht-action-card"><span>Aktuell Discord</span><strong>${current.discordEndEnabled ? 'aktiv' : 'aus'}</strong></div>
+          <div class="ht-action-card"><span>Aktuell Tagebuch/Discord</span><strong>${current.diaryEndEnabled ? 'aktiv' : 'aus'}</strong></div>
+          <div class="ht-action-card"><span>Aktuell Direkt-Discord</span><strong>${(current.directDiscordEndEnabled ?? current.discordEndEnabled) ? 'aktiv' : 'aus'}</strong></div>
           <div class="ht-action-card"><span>Aktuell Rekord-Sound</span><strong>${current.recordSoundEnabled ? 'aktiv' : 'aus'}</strong><small>Media ${esc(current.mediaId || 0)} · ${esc(current.soundId || '-')}</small></div>
         </div>
         <div class="ht-profile-grid">
@@ -292,7 +292,7 @@
             </article>
           `).join('') || '<p>Aktivierungsprofile noch nicht geladen.</p>'}
         </div>
-        <div class="ht-note">Profile speichern nur Config-Schalter. Sie lösen keine Discord-, Tagebuch- oder Sound-Aktion aus. Ein produktiver End-Actions-Test braucht weiterhin den separaten Confirm.</div>
+        <div class="ht-note">Profile speichern nur Config-Schalter. Tagebuch/Discord nutzt das bestehende Tagebuch-System. Direkt-Discord ist ein separater Zusatzweg. Profilwechsel lösen keine produktive Aktion aus.</div>
         ${state.activationResult ? `<details class="ht-details" open><summary>Letztes Aktivierungsprofil-Ergebnis</summary><pre>${esc(JSON.stringify(state.activationResult, null, 2))}</pre></details>` : ''}
       </section>
     `;
@@ -365,7 +365,7 @@
     return `
       <div class="ht-card glass">
         <h3>Tests</h3>
-        <p>Alle Dashboard-Tests sind Preview-/Dry-Run-Tests. Produktive Discord-/Tagebuch-/Sound-Aktionen werden hier nicht ohne separaten Produktiv-Confirm ausgelöst.</p>
+        <p>Alle Dashboard-Tests sind Preview-/Dry-Run-Tests. Produktive Tagebuch-/Direkt-Discord-/Sound-Aktionen werden hier nicht ohne separaten Produktiv-Confirm ausgelöst.</p>
         <div class="ht-test-grid">
           <button type="button" data-ht-action="preview-normal">Normale Preview</button>
           <button type="button" data-ht-action="preview-raid-record">Raid + Rekord Preview</button>
@@ -376,7 +376,7 @@
           <button type="button" data-ht-action="open-media">Media-System öffnen</button>
           <button type="button" data-ht-action="reload">Status neu laden</button>
         </div>
-        <div class="ht-note">Produktive Tests bleiben absichtlich nicht als Ein-Klick-Button im Dashboard. Aktivierungsprofile ändern nur Config-Schalter; echte End-Actions brauchen weiterhin den zusätzlichen Confirm <code>HYPETRAIN_PRODUCTIVE_ACTIONS</code>.</div>
+        <div class="ht-note">Produktive Tests bleiben absichtlich nicht als Ein-Klick-Button im Dashboard. Aktivierungsprofile ändern nur Config-Schalter; echte End-Actions brauchen weiterhin den zusätzlichen Confirm <code>HYPETRAIN_PRODUCTIVE_ACTIONS</code>. Standard bleibt: Tagebuch/Discord über Tagebuch.</div>
         <div class="ht-preview-box">
           <h4>Letzte Preview</h4>
           ${preview?.message ? `<pre>${esc(preview.message)}</pre>` : '<p>Noch keine Preview in diesem Dashboardlauf.</p>'}
@@ -396,7 +396,7 @@
       const items = Array.isArray(list) ? list : [];
       const warnings = items.filter(item => item.severity === 'warning').length;
       const errors = items.filter(item => item.severity === 'error' || item.ok === false && item.severity !== 'info').length;
-      const label = area === 'recordSound' ? 'Rekord-Sound' : (area === 'diary' ? 'Tagebuch' : 'Discord');
+      const label = area === 'recordSound' ? 'Rekord-Sound' : (area === 'diary' ? 'Tagebuch/Discord' : 'Direkt-Discord');
       return `<div class="ht-mini"><span>${esc(label)}</span><strong>${errors ? 'Fehler' : (warnings ? 'Warnung' : 'OK')}</strong><small>${esc(errors)} Fehler · ${esc(warnings)} Warnungen</small></div>`;
     }).join('');
     return `<div class="ht-note ${ready ? 'ok' : 'warn'}">${ready ? 'Bereit für manuellen Produktiv-Test.' : 'Noch nicht ohne Warnungen bereit. Erst Hinweise prüfen.'}</div><div class="ht-hero-grid">${rows}</div>`;
@@ -565,7 +565,7 @@
   async function applyActivationProfile(profile){
     const clean = String(profile || '').trim();
     if (!clean) return;
-    const labels = { all_off: 'Alles aus', diary_only: 'Nur Tagebuch', discord_only: 'Nur Discord', record_sound_only: 'Nur Rekord-Sound' };
+    const labels = { all_off: 'Alles aus', diary_only: 'Nur Tagebuch/Discord', discord_only: 'Nur Direkt-Discord', record_sound_only: 'Nur Rekord-Sound' };
     const label = labels[clean] || clean;
     const ok = window.confirm(`Aktivierungsprofil speichern: ${label}?\n\nEs werden nur Config-Schalter geändert. Es wird keine produktive Aktion ausgelöst.`);
     if (!ok) return;

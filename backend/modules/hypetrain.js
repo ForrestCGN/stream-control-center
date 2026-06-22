@@ -24,8 +24,8 @@ const texts = require("./helpers/helper_texts");
 const communicationBus = require("./communication_bus");
 
 const MODULE_NAME = "hypetrain";
-const MODULE_VERSION = "0.1.4";
-const MODULE_BUILD = "STEP_HT2_6_HYPETRAIN_ACTIVATION_PROFILES";
+const MODULE_VERSION = "0.1.5";
+const MODULE_BUILD = "STEP_HT2_7_HYPETRAIN_DIARY_DISCORD_CLARITY";
 const MODULE_ID = `module:${MODULE_NAME}`;
 const SCHEMA_VERSION = 1;
 const SETTINGS_TABLE = "hypetrain_settings";
@@ -177,7 +177,7 @@ const ACTIVATION_PROFILES = {
   all_off: {
     id: "all_off",
     label: "Alles aus",
-    description: "Schaltet Discord, Tagebuch und Rekord-Sound für HypeTrain-End-Aktionen aus.",
+    description: "Schaltet direkten Discord-Post, Tagebuch und Rekord-Sound für HypeTrain-End-Aktionen aus.",
     productiveRisk: false,
     settings: {
       "discord.enabled": false,
@@ -190,7 +190,7 @@ const ACTIVATION_PROFILES = {
   diary_only: {
     id: "diary_only",
     label: "Nur Tagebuch",
-    description: "Aktiviert nur den Tagebuch-Systemeintrag beim HypeTrain-Ende. Discord und Rekord-Sound bleiben aus.",
+    description: "Aktiviert nur den Tagebuch-Systemeintrag beim HypeTrain-Ende. Der Discord-Post läuft dabei über das bestehende Tagebuch-System; direkter Discord-Post und Rekord-Sound bleiben aus.",
     productiveRisk: true,
     settings: {
       "discord.enabled": false,
@@ -202,8 +202,8 @@ const ACTIVATION_PROFILES = {
   },
   discord_only: {
     id: "discord_only",
-    label: "Nur Discord",
-    description: "Aktiviert nur die Discord-Nachricht beim HypeTrain-Ende. Tagebuch und Rekord-Sound bleiben aus.",
+    label: "Nur Direkt-Discord",
+    description: "Aktiviert nur den separaten direkten Discord-Post des HypeTrain-Moduls. Das Tagebuch bleibt dabei aus; dieser Weg ist zusätzlich zum normalen Tagebuch-Discord.",
     productiveRisk: true,
     settings: {
       "discord.enabled": true,
@@ -216,7 +216,7 @@ const ACTIVATION_PROFILES = {
   record_sound_only: {
     id: "record_sound_only",
     label: "Nur Rekord-Sound",
-    description: "Aktiviert nur den Rekord-Sound beim HypeTrain-Rekord. Discord und Tagebuch bleiben aus.",
+    description: "Aktiviert nur den Rekord-Sound beim HypeTrain-Rekord. Direkter Discord-Post und Tagebuch bleiben aus.",
     productiveRisk: true,
     requiresMedia: true,
     settings: {
@@ -1343,8 +1343,11 @@ function publicActivationProfile(profile) {
 function buildActivationProfileStatus() {
   const cfg = getConfig();
   const current = {
+    directDiscordEndEnabled: cfg.discord?.enabled === true && cfg.discord?.writeOnEnd === true,
     discordEndEnabled: cfg.discord?.enabled === true && cfg.discord?.writeOnEnd === true,
     diaryEndEnabled: cfg.diary?.enabled === true && cfg.diary?.writeOnEnd === true,
+    diaryDiscordViaDiary: cfg.diary?.enabled === true && cfg.diary?.writeOnEnd === true,
+    recordSoundEndEnabled: cfg.sound?.recordSoundEnabled === true,
     recordSoundEnabled: cfg.sound?.recordSoundEnabled === true,
     mediaId: numberValue(cfg.sound?.mediaId, 0),
     soundId: safeString(cfg.sound?.soundId),
@@ -1362,6 +1365,12 @@ function buildActivationProfileStatus() {
     confirmApply: ACTIVATION_PROFILE_CONFIRM,
     current,
     recommendedOrder: ["diary_only", "discord_only", "record_sound_only"],
+    wording: {
+      diaryEndEnabled: "Tagebuch-Eintrag aktiv; Discord läuft über das bestehende Tagebuch-System.",
+      directDiscordEndEnabled: "Separater direkter Discord-Post des HypeTrain-Moduls.",
+      discordEndEnabled: "Altname für directDiscordEndEnabled, bleibt aus Kompatibilitätsgründen enthalten.",
+      recordSoundEndEnabled: "Rekord-Sound beim HypeTrain-Rekord."
+    },
     profiles: Object.values(ACTIVATION_PROFILES).map(publicActivationProfile),
     safetyRules: {
       oneActionAtATime: true,

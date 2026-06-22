@@ -245,3 +245,12 @@ Stand: 2026-06-15 19:55
 - [ ] Danach `record_sound_only` mit Media-ID/Sound-ID aus Media-System prüfen.
 - [ ] Nach jedem Test Status, Logs und End-Actions-Counter prüfen.
 - [ ] Dashboard später um geführten Assistenten für diese Reihenfolge erweitern.
+
+## HT2.7 HypeTrain Tagebuch/Discord-Klartext
+
+- Backend `hypetrain` auf Version `0.1.5` / `STEP_HT2_7_HYPETRAIN_DIARY_DISCORD_CLARITY` aktualisiert.
+- Dashboard- und Profiltexte unterscheiden jetzt klar zwischen `Tagebuch/Discord` und `Direkt-Discord`.
+- `diary_only` bleibt der gewünschte Standard: HypeTrain-Ende schreibt ins Tagebuch; Discord läuft über das bestehende Tagebuch-System.
+- `discord_only` ist nur noch als separater Zusatzweg benannt: `Nur Direkt-Discord`.
+- Keine produktive Aktion wird durch diese Änderung ausgelöst.
+

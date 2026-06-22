@@ -539,3 +539,12 @@ Keine Recovery-Automatik
 5. Erst nach erfolgreicher Prüfung einen bewusst bestätigten produktiven Einzeltest planen.
 6. Danach separat `discord_only`, anschließend `record_sound_only` testen.
 7. Nach jedem produktiven Einzeltest Logs/Status prüfen und ggf. wieder `all_off` setzen.
+
+## HT2.7 HypeTrain Tagebuch/Discord-Klartext
+
+- Backend `hypetrain` auf Version `0.1.5` / `STEP_HT2_7_HYPETRAIN_DIARY_DISCORD_CLARITY` aktualisiert.
+- Dashboard- und Profiltexte unterscheiden jetzt klar zwischen `Tagebuch/Discord` und `Direkt-Discord`.
+- `diary_only` bleibt der gewünschte Standard: HypeTrain-Ende schreibt ins Tagebuch; Discord läuft über das bestehende Tagebuch-System.
+- `discord_only` ist nur noch als separater Zusatzweg benannt: `Nur Direkt-Discord`.
+- Keine produktive Aktion wird durch diese Änderung ausgelöst.
+

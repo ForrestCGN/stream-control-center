@@ -325,3 +325,12 @@ Empfohlene Test-Reihenfolge:
 5. Danach `discord_only`
 6. Danach `record_sound_only`
 7. Zum Schluss wieder `all_off`, falls der Test abgeschlossen ist
+
+## HT2.7 HypeTrain Tagebuch/Discord-Klartext
+
+- Backend `hypetrain` auf Version `0.1.5` / `STEP_HT2_7_HYPETRAIN_DIARY_DISCORD_CLARITY` aktualisiert.
+- Dashboard- und Profiltexte unterscheiden jetzt klar zwischen `Tagebuch/Discord` und `Direkt-Discord`.
+- `diary_only` bleibt der gewünschte Standard: HypeTrain-Ende schreibt ins Tagebuch; Discord läuft über das bestehende Tagebuch-System.
+- `discord_only` ist nur noch als separater Zusatzweg benannt: `Nur Direkt-Discord`.
+- Keine produktive Aktion wird durch diese Änderung ausgelöst.
+
