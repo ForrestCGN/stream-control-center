@@ -1,40 +1,49 @@
 # HypeTrain-Modul
 
-Stand: 2026-06-21  
-Marker: `STEP_HT2_5_HYPETRAIN_LIVE_READINESS`  
+Stand: 2026-06-22  
 Modul: `hypetrain`  
-Version: `0.1.3`
+Version: `0.1.5`  
+Build: `STEP_HT2_7_HYPETRAIN_DIARY_DISCORD_CLARITY`
 
 ## Ziel
 
-Das Modul `hypetrain` ist das neue Fachmodul fuer HypeTrain-Status, DB-Config, Textvarianten, Statistik und sichere End-Aktionen.
+Das Modul `hypetrain` ist das Fachmodul fuer HypeTrain-Status, DB-Config, Textvarianten, Statistik und sichere End-Aktionen.
 
 `twitch_events` bleibt weiterhin die einzige Twitch-EventSub-Quelle. `hypetrain` abonniert vorhandene Events ueber den Communication-Bus und baut kein eigenes EventSub-System.
 
-## Aktueller Stand
-
-HT2.5 ergaenzt eine sichere Live-Readiness-Pruefung fuer produktive End-Aktionen. HT2.3 hat die sicheren, konfigurierbaren End-Aktionen ergaenzt:
+## Aktueller Standard nach HT2.7/HT2.8
 
 ```text
-HypeTrain-Ende -> optional Discord-Nachricht
-HypeTrain-Ende -> optional Tagebuch-Systemeintrag
-HypeTrain-Rekord am Ende -> optional Rekord-Sound ueber Sound-System
+diaryEndEnabled = true
+directDiscordEndEnabled = false
+recordSoundEndEnabled = false
 ```
 
-Wichtig:
+Bedeutung:
+
+- HypeTrain-Ende schreibt ins Tagebuch.
+- Discord läuft dabei über das bestehende Tagebuch-System.
+- Kein separater Direkt-Discord-Post vom HypeTrain-Modul.
+- Kein Rekord-Sound aktuell aktiv.
+
+HT2.8 ergänzt auf Tagebuch-Seite, dass Tagebuch-Einträge den zentralen Stream-State / Override aus `twitch_events` nutzen können. Dadurch blockiert das Tagebuch nicht mehr mit `stream_inactive`, wenn der zentrale Stream-State live meldet.
+
+## Aktueller bestätigter Test
 
 ```text
-Alle produktiven Aktionen sind standardmaessig AUS.
-Aktionen laufen nur, wenn die jeweilige Config explizit aktiviert ist.
-Sound laeuft ausschliesslich ueber /api/sound/play und bleibt damit beim Sound-System.
-Tagebuch laeuft ueber /api/tagebuch/entry und bleibt damit beim Tagebuch-Modul.
-Discord laeuft ueber die vorhandene Discord-Bridge.
-Keine Top-Unterstuetzer-Namen standardmaessig.
+effectiveActiveStreamForEntries = true
+entryStreamSource = twitch_events_stream_state
+HypeTrain produktiver Tagebuch-Test wurde gespeichert
+Tagebuch-Webhook hat gepostet
+diary ok
+Direkt-Discord skipped
+Rekord-Sound skipped
+errors leer
 ```
 
 ## Bus-Events
 
-Das Modul hoert auf:
+Das Modul hört auf:
 
 ```text
 twitch.hypetrain.started
@@ -49,7 +58,7 @@ twitch.giftbomb.received
 twitch.raid.received
 ```
 
-Das Modul veroeffentlicht Status/Diagnose ueber:
+Das Modul veröffentlicht Status/Diagnose über:
 
 ```text
 hypetrain.status.updated
@@ -58,7 +67,7 @@ hypetrain.live_readiness.checked
 hypetrain.end_actions.executed
 ```
 
-## Datenschutz / Top-Unterstuetzer
+## Datenschutz / Top-Unterstützer
 
 Standard:
 
@@ -67,7 +76,7 @@ privacy.includeTopContributors = false
 privacy.includeContributorNames = false
 ```
 
-Discord-/Tagebuch-Ausgaben zeigen standardmaessig keine Namen und keine Top-Unterstuetzer-Ranglisten.
+Discord-/Tagebuch-Ausgaben zeigen standardmäßig keine Namen und keine Top-Unterstützer-Ranglisten.
 
 Stattdessen werden aggregierte Werte genutzt:
 
@@ -108,7 +117,16 @@ module_name = hypetrain
 
 ## Relevante Config-Keys
 
-Discord:
+Tagebuch:
+
+```text
+diary.enabled
+diary.writeOnEnd
+diary.systemUsername
+diary.apiUrl
+```
+
+Direkt-Discord:
 
 ```text
 discord.enabled
@@ -120,14 +138,7 @@ discord.username
 discord.avatarUrl
 ```
 
-Tagebuch:
-
-```text
-diary.enabled
-diary.writeOnEnd
-diary.systemUsername
-diary.apiUrl
-```
+Wichtig: Direkt-Discord ist nicht Standard. Für den aktuellen gewünschten Flow läuft Discord über das bestehende Tagebuch-System.
 
 Rekord-Sound:
 
@@ -162,6 +173,8 @@ POST /api/hypetrain/test/synthetic?confirm=1
 POST /api/hypetrain/test/end-actions?confirm=1
 GET  /api/hypetrain/live-readiness
 POST /api/hypetrain/live-readiness
+GET  /api/hypetrain/activation-profiles
+POST /api/hypetrain/activation-profiles?confirm=1
 GET  /api/hypetrain/routes
 ```
 
@@ -174,135 +187,46 @@ Invoke-RestMethod "http://127.0.0.1:8080/api/hypetrain/status" |
   Select-Object moduleVersion,moduleBuild
 ```
 
-Erwartung fuer HT2.5:
+Erwartung:
 
 ```text
-moduleVersion = 0.1.3
-moduleBuild   = STEP_HT2_5_HYPETRAIN_LIVE_READINESS
+moduleVersion = 0.1.5
+moduleBuild   = STEP_HT2_7_HYPETRAIN_DIARY_DISCORD_CLARITY
 ```
 
-Preview normal:
+Tagebuch-Status:
 
 ```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/hypetrain/preview?level=2&points=2500&bits=1500&subs=1&resubs=1&giftSubs=1" |
-  ConvertTo-Json -Depth 8
+$r = Invoke-RestMethod "http://127.0.0.1:8080/api/tagebuch/status"
+$r.state | Select-Object effectiveActiveStreamForEntries,entryStreamSource
 ```
 
-End-Actions Dry-Run:
-
-```powershell
-Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/hypetrain/test/end-actions?confirm=1" `
-  -ContentType "application/json" `
-  -Body '{"raid":true,"record":true,"level":5,"points":9600,"bits":3500,"subs":3,"giftSubs":4}' |
-  ConvertTo-Json -Depth 10
-```
-
-Der Dry-Run darf keine produktive Discord-/Tagebuch-/Sound-Aktion ausloesen.
-
-Produktiver manueller Test ist absichtlich zusaetzlich geschuetzt:
+Erwartung bei aktivem Stream-State/Override:
 
 ```text
-confirmProductive=HYPETRAIN_PRODUCTIVE_ACTIONS
+effectiveActiveStreamForEntries = true
+entryStreamSource = twitch_events_stream_state
 ```
 
-Diese Option nur bewusst und nach Config-Pruefung verwenden.
-
-## Schutzregeln
-
-- Keine direkte Twitch/EventSub-Anbindung im `hypetrain`-Modul.
-- Keine direkte Sound-/Video-Wiedergabe am Sound-System vorbei.
-- Keine eigene Media-Upload-Loesung im HypeTrain-Dashboard.
-- Medienauswahl/Uploads spaeter ueber zentrales Media-System-Fenster/Modal.
-- Produktive Discord-/Tagebuch-/Sound-Aktionen bleiben standardmaessig aus.
-- Top-Unterstuetzer-Namen bleiben standardmaessig aus.
-
-## HT2.4 Dashboard Config-/End-Actions-Schalter
-
-Stand: `STEP_HT2_4_HYPETRAIN_DASHBOARD_END_ACTION_CONTROLS`
-
-HT2.4 erweitert ausschließlich das HypeTrain-Dashboard. Der Backend-Stand `0.1.2 / STEP_HT2_3_HYPETRAIN_PRODUCTIVE_END_ACTIONS` bleibt unverändert.
-
-Neu im Dashboard:
-
-- Übersicht zeigt einen eigenen Block **Produktive End-Aktionen**.
-- Discord, Tagebuch und Rekord-Sound werden dort mit aktuellem Aktivierungsstatus angezeigt.
-- Der letzte End-Actions-Plan beziehungsweise Dry-Run kann aufgeklappt werden.
-- Tests-Tab enthält einen sicheren **End-Actions Dry-Run**.
-- Config-Tab erklärt die Aktivierungslogik direkt im Dashboard.
-- Media-System kann aus dem HypeTrain-Dashboard in einem eigenen Fenster geöffnet werden.
-
-Sicherheitsregeln:
-
-- Es gibt keinen Ein-Klick-Produktivtest im Dashboard.
-- Produktive Discord-/Tagebuch-/Sound-Aktionen bleiben Backend-seitig weiterhin durch Config und Produktiv-Confirm geschützt.
-- Medienauswahl/Uploads werden nicht im HypeTrain-Modul gebaut, sondern bleiben beim zentralen Media-System.
-- Datenschutz-Defaults bleiben unverändert: keine Namen und keine Top-Unterstützer standardmäßig.
-
-
-## HT2.5 Live-Readiness
-
-Stand: `STEP_HT2_5_HYPETRAIN_LIVE_READINESS`
-Backend: `0.1.3`
-
-HT2.5 fuegt eine Read-only-Pruefung hinzu, bevor produktive HypeTrain-Endaktionen getestet oder scharf geschaltet werden. Die Pruefung fuehrt keine produktiven Aktionen aus.
-
-Geprueft werden:
-
-```text
-Discord-Bridge / Webhook-ENV oder Channel-ID
-Tagebuch-API und Stream-Aktiv-Status
-Rekord-Sound Media-ID oder Sound-ID ueber Sound-System-Katalog
-Nachrichtenlaenge und End-Actions-Plan
-```
-
-Neue Route:
-
-```text
-GET/POST /api/hypetrain/live-readiness
-```
-
-Dashboard:
-
-```text
-Control -> HypeTrain -> Tests -> Live-Readiness pruefen
-```
-
-PowerShell-Test:
+Live-Readiness:
 
 ```powershell
 Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/hypetrain/live-readiness" `
   -ContentType "application/json" `
   -Body '{"raid":true,"record":true,"level":5,"points":9600,"bits":3500,"subs":3,"resubs":1,"giftSubs":4}' |
-  ConvertTo-Json -Depth 10
+  Select-Object ok,module,moduleVersion,moduleBuild
 ```
 
-Erwartung:
-
-```text
-productiveActionsExecuted = false
-summary.safeToDryRun = true
-summary.readyForProductiveTest zeigt, ob alle aktivierten Bereiche ohne Warnungen bereit sind
-```
-
-Schutzregel bleibt: Es gibt weiterhin keinen Ein-Klick-Produktivtest im Dashboard. Produktive Tests brauchen weiterhin `confirmProductive=HYPETRAIN_PRODUCTIVE_ACTIONS`.
-
-## HT2.6 – Sichere Aktivierungsprofile
-
-HT2.6 ergänzt eine sichere Vorbereitungsstufe für produktive HypeTrain-End-Aktionen.
-
-Neue Backend-Routen:
-
-- `GET /api/hypetrain/activation-profiles`
-- `POST /api/hypetrain/activation-profiles?confirm=1`
-
-Die Profile ändern nur Config-Schalter und lösen keine produktiven Discord-, Tagebuch- oder Sound-Aktionen aus.
+## Aktivierungsprofile
 
 Verfügbare Profile:
 
-- `all_off` – Discord, Tagebuch und Rekord-Sound aus
-- `diary_only` – nur Tagebuch-Endeintrag aktiv
-- `discord_only` – nur Discord-Endnachricht aktiv
-- `record_sound_only` – nur Rekord-Sound aktiv; erfordert konfigurierte `sound.mediaId` oder `sound.soundId`
+```text
+all_off – Discord, Tagebuch und Rekord-Sound aus
+diary_only – nur Tagebuch-Endeintrag aktiv
+discord_only – nur Direkt-Discord aktiv
+record_sound_only – nur Rekord-Sound aktiv; erfordert konfigurierte sound.mediaId oder sound.soundId
+```
 
 Zum Anwenden eines Profils ist zusätzlich erforderlich:
 
@@ -310,27 +234,26 @@ Zum Anwenden eines Profils ist zusätzlich erforderlich:
 confirmApply = "HYPETRAIN_ACTIVATION_PROFILE"
 ```
 
-Ein echter produktiver End-Actions-Test bleibt weiterhin separat geschützt und benötigt weiterhin:
+Ein echter produktiver End-Actions-Test bleibt separat geschützt und benötigt weiterhin:
 
 ```powershell
 confirmProductive = "HYPETRAIN_PRODUCTIVE_ACTIONS"
 ```
 
-Empfohlene Test-Reihenfolge:
+## Schutzregeln
 
-1. `diary_only` speichern
-2. Live-Readiness prüfen
-3. End-Actions Dry-Run prüfen
-4. Optional produktiven manuellen Einzeltest nur nach bewusster Bestätigung
-5. Danach `discord_only`
-6. Danach `record_sound_only`
-7. Zum Schluss wieder `all_off`, falls der Test abgeschlossen ist
+- Keine direkte Twitch/EventSub-Anbindung im `hypetrain`-Modul.
+- Keine direkte Sound-/Video-Wiedergabe am Sound-System vorbei.
+- Keine eigene Media-Upload-Lösung im HypeTrain-Dashboard.
+- Medienauswahl/Uploads später über zentrales Media-System-Fenster/Modal.
+- Direkt-Discord bleibt aus, außer Forrest aktiviert ihn bewusst als separaten Zusatzweg.
+- Rekord-Sound bleibt aus, bis Media-/Sound-System bewusst geprüft wurde.
+- Top-Unterstützer-Namen bleiben standardmäßig aus.
+- Keine Funktionalität entfernen.
 
-## HT2.7 HypeTrain Tagebuch/Discord-Klartext
+## Offene Punkte
 
-- Backend `hypetrain` auf Version `0.1.5` / `STEP_HT2_7_HYPETRAIN_DIARY_DISCORD_CLARITY` aktualisiert.
-- Dashboard- und Profiltexte unterscheiden jetzt klar zwischen `Tagebuch/Discord` und `Direkt-Discord`.
-- `diary_only` bleibt der gewünschte Standard: HypeTrain-Ende schreibt ins Tagebuch; Discord läuft über das bestehende Tagebuch-System.
-- `discord_only` ist nur noch als separater Zusatzweg benannt: `Nur Direkt-Discord`.
-- Keine produktive Aktion wird durch diese Änderung ausgelöst.
-
+- Beim nächsten echten Twitch-HypeTrain beobachten, ob Ende automatisch sauber ins Tagebuch schreibt.
+- Rekord-Sound später separat über Media-/Sound-System konfigurieren und testen.
+- Direkt-Discord später nur bewusst als Zusatzweg testen.
+- HT3 später: Start-/Ende-/Level-Up-Alerts mit Sound/Video/Grafik über Media-System-Fenster/Modal planen.
