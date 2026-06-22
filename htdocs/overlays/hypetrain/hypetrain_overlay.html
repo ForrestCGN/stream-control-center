@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CGN HypeTrain Overlay Base HT3.1</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --panel-bg: rgba(8, 10, 24, 0.78);
+      --panel-border: rgba(168, 85, 247, 0.75);
+      --text: #f8fbff;
+      --muted: #b8c0d9;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    #debugPanel {
+      display: none;
+      position: fixed;
+      left: 24px;
+      bottom: 24px;
+      width: 520px;
+      max-width: calc(100vw - 48px);
+      padding: 14px 16px;
+      border: 1px solid var(--panel-border);
+      border-radius: 18px;
+      background: var(--panel-bg);
+      color: var(--text);
+      box-shadow: 0 0 24px rgba(168, 85, 247, 0.35), inset 0 0 20px rgba(34, 211, 238, 0.08);
+      backdrop-filter: blur(8px);
+    }
+    body.debug #debugPanel { display: block; }
+    .title {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 10px;
+      margin: 3px 0;
+      font-size: 13px;
+    }
+    .key { color: var(--muted); }
+    .value { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #raw {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 11px;
+      max-height: 120px;
+      overflow: hidden;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+  </style>
+</head>
+<body>
+  <div id="debugPanel">
+    <div class="title">CGN HypeTrain Overlay Base</div>
+    <div class="row"><div class="key">Status</div><div class="value" id="status">startet...</div></div>
+    <div class="row"><div class="key">Quelle</div><div class="value" id="source">-</div></div>
+    <div class="row"><div class="key">Client</div><div class="value" id="client">-</div></div>
+    <div class="row"><div class="key">Heartbeat</div><div class="value" id="heartbeat">-</div></div>
+    <div class="row"><div class="key">Letztes Event</div><div class="value" id="event">-</div></div>
+    <div class="row"><div class="key">Train</div><div class="value" id="train">-</div></div>
+    <div class="row"><div class="key">Level/Punkte</div><div class="value" id="level">-</div></div>
+    <div id="raw"></div>
+  </div>
+
+  <script>
+    (() => {
+      const params = new URLSearchParams(location.search);
+      const debug = params.get('debug') === '1' || params.get('debug') === 'true';
+      if (debug) document.body.classList.add('debug');
+
+      const state = {
+        lastEventKey: '',
+        lastEventAt: 0,
+        ws: null,
+        wsUrl: '',
+        polling: false,
+        clientId: '',
+        registered: false,
+        lastHeartbeatAt: ''
+      };
+
+      const ids = {
+        status: document.getElementById('status'),
+        source: document.getElementById('source'),
+        client: document.getElementById('client'),
+        heartbeat: document.getElementById('heartbeat'),
+        event: document.getElementById('event'),
+        train: document.getElementById('train'),
+        level: document.getElementById('level'),
+        raw: document.getElementById('raw')
+      };
+
+      function setText(id, value) {
+        if (ids[id]) ids[id].textContent = value == null || value === '' ? '-' : String(value);
+      }
+
+      function makeClientId() {
+        try {
+          const key = 'cgn_hypetrain_overlay_client_id';
+          const existing = localStorage.getItem(key);
+          if (existing) return existing;
+          const created = `hypetrain_overlay_${Math.random().toString(36).slice(2, 10)}_${Date.now().toString(36)}`;
+          localStorage.setItem(key, created);
+          return created;
+        } catch (_) {
+          return `hypetrain_overlay_${Math.random().toString(36).slice(2, 10)}_${Date.now().toString(36)}`;
+        }
+      }
+
+      async function postOverlayApi(path, body) {
+        const res = await fetch(path, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body || {})
+        });
+        const text = await res.text().catch(() => '');
+        let json = null;
+        try { json = text ? JSON.parse(text) : null; } catch (_) { json = { raw: text }; }
+        if (!res.ok || (json && json.ok === false)) throw new Error(json?.error || json?.message || `${path}_${res.status}`);
+        return json;
+      }
+
+      async function registerOverlay() {
+        try {
+          state.clientId = state.clientId || makeClientId();
+          const result = await postOverlayApi('/api/hypetrain/overlay/register', {
+            clientId: state.clientId,
+            debug,
+            url: location.href,
+            userAgent: navigator.userAgent
+          });
+          state.registered = true;
+          setText('client', result.clientId || state.clientId);
+          setText('heartbeat', 'registriert');
+          return result;
+        } catch (err) {
+          state.registered = false;
+          setText('heartbeat', `register fehler: ${err.message || err}`);
+          return null;
+        }
+      }
+
+      async function sendHeartbeat() {
+        try {
+          if (!state.clientId) state.clientId = makeClientId();
+          const result = await postOverlayApi('/api/hypetrain/overlay/heartbeat', {
+            clientId: state.clientId,
+            debug,
+            url: location.href
+          });
+          state.lastHeartbeatAt = new Date().toLocaleTimeString('de-DE');
+          setText('client', result.clientId || state.clientId);
+          setText('heartbeat', state.lastHeartbeatAt);
+          return result;
+        } catch (err) {
+          setText('heartbeat', `heartbeat fehler: ${err.message || err}`);
+          return null;
+        }
+      }
+
+      function eventKeyFrom(data) {
+        return data?.channel || data?.event || data?.action || data?.payload?.actionType || data?.payload?.event || '';
+      }
+
+      function normalizeEvent(data, source) {
+        const payload = data?.payload || data?.result?.payload || data || {};
+        return {
+          source,
+          channel: data?.channel || payload.channel || '',
+          actionType: payload.actionType || data?.action || data?.event || '',
+          trainId: payload.trainId || data?.trainId || '',
+          level: payload.level ?? data?.level ?? '',
+          points: payload.points ?? data?.points ?? '',
+          recordReached: payload.recordReached === true || data?.recordReached === true,
+          raw: data
+        };
+      }
+
+      function shouldHandle(data) {
+        const key = eventKeyFrom(data);
+        if (typeof key === 'string' && key.startsWith('hypetrain.overlay.')) return true;
+        const payload = data?.payload || data?.result?.payload || data || {};
+        return ['start', 'levelUp', 'end', 'record'].includes(payload.actionType);
+      }
+
+      function renderEvent(evt) {
+        const unique = `${evt.channel}|${evt.actionType}|${evt.trainId}|${evt.level}|${evt.points}`;
+        if (unique === state.lastEventKey && Date.now() - state.lastEventAt < 750) return;
+        state.lastEventKey = unique;
+        state.lastEventAt = Date.now();
+        setText('status', 'Event empfangen');
+        setText('source', evt.source);
+        setText('event', evt.channel || evt.actionType);
+        setText('train', evt.trainId);
+        setText('level', `${evt.level || '-'} / ${evt.points || '-'}${evt.recordReached ? ' · Rekord' : ''}`);
+        ids.raw.textContent = debug ? JSON.stringify(evt.raw, null, 2).slice(0, 1200) : '';
+        window.__CGN_HYPETRAIN_LAST_EVENT__ = evt;
+      }
+
+      function handleMessage(data, source) {
+        if (!data || typeof data !== 'object') return;
+        if (!shouldHandle(data)) return;
+        renderEvent(normalizeEvent(data, source));
+      }
+
+      window.addEventListener('message', (event) => {
+        handleMessage(event.data, 'postMessage');
+      });
+
+      async function pollStatus() {
+        try {
+          state.polling = true;
+          const res = await fetch('/api/hypetrain/status', { cache: 'no-store' });
+          if (!res.ok) throw new Error(`status_${res.status}`);
+          const json = await res.json();
+          if (json?.overlay?.lastClientId) setText('client', json.overlay.lastClientId);
+          const last = json?.runtime?.lastEventActions;
+          if (last && last.payload) handleMessage(last, 'status-poll');
+          if (!state.ws || state.ws.readyState !== WebSocket.OPEN) setText('status', 'polling aktiv');
+        } catch (err) {
+          if (!state.ws || state.ws.readyState !== WebSocket.OPEN) setText('status', `polling fehler: ${err.message || err}`);
+        }
+      }
+
+      function websocketCandidates() {
+        const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = location.host || '127.0.0.1:8080';
+        const explicit = params.get('ws');
+        const list = [];
+        if (explicit) list.push(explicit);
+        list.push(`${proto}//${host}/ws`);
+        list.push(`${proto}//${host}/ws/communication`);
+        list.push(`${proto}//${host}/communication-bus`);
+        list.push(`${proto}//${host}/api/communication/ws`);
+        return Array.from(new Set(list));
+      }
+
+      function connectWs(index = 0) {
+        const urls = websocketCandidates();
+        if (index >= urls.length) {
+          setText('status', 'WebSocket nicht gefunden, Polling aktiv');
+          return;
+        }
+        const url = urls[index];
+        try {
+          const ws = new WebSocket(url);
+          state.ws = ws;
+          state.wsUrl = url;
+          ws.onopen = () => {
+            setText('status', 'WebSocket verbunden');
+            setText('source', url);
+            try {
+              ws.send(JSON.stringify({ type: 'subscribe', channels: ['hypetrain.overlay.start', 'hypetrain.overlay.level_up', 'hypetrain.overlay.end', 'hypetrain.overlay.record', 'hypetrain.status'] }));
+            } catch (_) {}
+          };
+          ws.onmessage = (msg) => {
+            try { handleMessage(JSON.parse(msg.data), 'websocket'); }
+            catch (_) {}
+          };
+          ws.onerror = () => {};
+          ws.onclose = () => {
+            setTimeout(() => connectWs(index + 1), 1200);
+          };
+        } catch (_) {
+          setTimeout(() => connectWs(index + 1), 250);
+        }
+      }
+
+      setText('status', debug ? 'Debug bereit' : 'bereit');
+      state.clientId = makeClientId();
+      setText('client', state.clientId);
+      registerOverlay().then(() => sendHeartbeat());
+      setInterval(sendHeartbeat, Number(params.get('heartbeatMs') || 5000));
+      connectWs(0);
+      pollStatus();
+      setInterval(pollStatus, Number(params.get('pollMs') || 1500));
+    })();
+  </script>
+</body>
+</html>

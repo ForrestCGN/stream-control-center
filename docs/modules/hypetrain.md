@@ -1,5 +1,135 @@
 # HypeTrain-Modul
 
+Version: `0.2.1`
+Build: `STEP_HT3_1_HYPETRAIN_OVERLAY_REGISTER_HEARTBEAT`
+
+## HT3.1 – Overlay-Anmeldung und Heartbeat
+
+HT3.1 erweitert die HT3.0-Basis um eine echte technische Overlay-Anmeldung und Heartbeat-Überwachung. Das HypeTrain-Overlay bleibt weiterhin ein leeres/transparentes Grundgerüst mit optionaler Debug-Anzeige, meldet sich aber beim Backend an und sendet regelmäßig Heartbeats.
+
+Neue/erweiterte Routen:
+
+```text
+POST /api/hypetrain/overlay/register
+POST /api/hypetrain/overlay/heartbeat
+GET  /api/hypetrain/overlay/status
+```
+
+Statusfelder:
+
+```text
+overlay.registered
+overlay.connected
+overlay.clientCount
+overlay.connectedCount
+overlay.lastRegisteredAt
+overlay.lastHeartbeatAt
+overlay.lastClientId
+overlay.lastEvent
+```
+
+Wichtig:
+
+```text
+- Sounds laufen weiterhin ausschließlich über sound_system.
+- Das Overlay spielt keine Sounds selbst.
+- Neue Event-Sounds und Overlay-Events bleiben standardmäßig aus.
+- HT2.9 bleibt gültig: HypeTrain-Tagebuchposts nutzen sichtbar den Tagebuch-Webhook-Namen CGN Posty.
+```
+
+## HT3.0 – Event-Actions und Overlay-Basis
+
+
+HT3.0 erweitert das HypeTrain-Modul um vorbereitete Aktionen für:
+
+- Start
+- Stufenaufstieg / Level-Up
+- Ende
+- Rekord-Event
+
+### Sound
+
+Sounds werden nicht im Overlay und nicht direkt im Modul abgespielt. Das HypeTrain-Modul sendet bei aktivierter Config nur Aufträge an das bestehende `sound_system` über `/api/sound/play`.
+
+Neue Config-Bereiche:
+
+```text
+eventActions.start.sound.enabled
+eventActions.start.sound.mediaId
+eventActions.start.sound.soundId
+
+eventActions.levelUp.sound.enabled
+eventActions.levelUp.sound.mediaId
+eventActions.levelUp.sound.soundId
+eventActions.levelUp.onlyOncePerLevel
+
+eventActions.end.sound.enabled
+eventActions.end.sound.mediaId
+eventActions.end.sound.soundId
+
+eventActions.record.sound.enabled
+eventActions.record.sound.mediaId
+eventActions.record.sound.soundId
+```
+
+Alle neuen Sounds sind standardmäßig AUS.
+
+### Overlay
+
+HT3.0 legt ein leeres Overlay-Grundgerüst an:
+
+```text
+htdocs/overlays/hypetrain/hypetrain_overlay.html
+```
+
+Das Overlay ist transparent und zeigt nur mit `?debug=1` eine kleine Diagnosebox. Es ist noch kein fertiges Design und keine Animation.
+
+Vorbereitete Events:
+
+```text
+hypetrain.overlay.start
+hypetrain.overlay.level_up
+hypetrain.overlay.end
+hypetrain.overlay.record
+```
+
+Neue Config-Bereiche:
+
+```text
+eventActions.start.overlay.enabled
+eventActions.levelUp.overlay.enabled
+eventActions.end.overlay.enabled
+eventActions.record.overlay.enabled
+```
+
+Alle neuen Overlay-Events sind standardmäßig AUS.
+
+### Testroute
+
+```text
+POST /api/hypetrain/test/event-actions?confirm=1
+```
+
+Dry-Run bleibt Standard. Produktiv nur mit:
+
+```json
+{
+  "productive": true,
+  "confirmProductive": "HYPETRAIN_PRODUCTIVE_ACTIONS"
+}
+```
+
+### Unverändert aus HT2.9
+
+- HypeTrain-Ende schreibt über das Tagebuch.
+- Sichtbarer Discord-Name kommt vom Tagebuch-Webhook (`CGN Posty`).
+- Direkt-Discord bleibt deaktiviert, solange die Config nicht geändert wird.
+- Bestehender Rekord-Sound-EndAction-Bereich bleibt separat und standardmäßig deaktiviert.
+
+---
+
+# HypeTrain-Modul
+
 Stand: 2026-06-22  
 Modul: `hypetrain`  
 Version: `0.1.6`  

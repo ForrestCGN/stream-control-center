@@ -24,8 +24,8 @@ const texts = require("./helpers/helper_texts");
 const communicationBus = require("./communication_bus");
 
 const MODULE_NAME = "hypetrain";
-const MODULE_VERSION = "0.1.6";
-const MODULE_BUILD = "STEP_HT2_9_HYPETRAIN_TAGEBUCH_POSTER_NAME";
+const MODULE_VERSION = "0.2.1";
+const MODULE_BUILD = "STEP_HT3_1_HYPETRAIN_OVERLAY_REGISTER_HEARTBEAT";
 const MODULE_ID = `module:${MODULE_NAME}`;
 const SCHEMA_VERSION = 1;
 const SETTINGS_TABLE = "hypetrain_settings";
@@ -42,7 +42,18 @@ const MODULE_META = {
   bus: {
     registered: false,
     heartbeat: false,
-    emits: ["hypetrain.status.updated", "hypetrain.preview.generated", "hypetrain.end_actions.executed"],
+    emits: [
+      "hypetrain.status.updated",
+      "hypetrain.preview.generated",
+      "hypetrain.end_actions.executed",
+      "hypetrain.event_actions.executed",
+      "hypetrain.overlay.start",
+      "hypetrain.overlay.level_up",
+      "hypetrain.overlay.end",
+      "hypetrain.overlay.record",
+      "hypetrain.overlay.registered",
+      "hypetrain.overlay.heartbeat"
+    ],
     listens: [
       "twitch.hypetrain.started",
       "twitch.hypetrain.progress",
@@ -117,6 +128,25 @@ const DEFAULT_CONFIG = {
     target: "stream",
     outputTarget: "overlay"
   },
+  eventActions: {
+    start: {
+      sound: { enabled: false, mediaId: 0, soundId: "", label: "HypeTrain Start", priority: 900, volume: 85, target: "stream", outputTarget: "overlay", queueIfBusy: true, dropIfBusy: false, canInterrupt: false, canBeInterrupted: true, parallelAllowed: false },
+      overlay: { enabled: false, event: "hypetrain.overlay.start" }
+    },
+    levelUp: {
+      onlyOncePerLevel: true,
+      sound: { enabled: false, mediaId: 0, soundId: "", label: "HypeTrain Stufenaufstieg", priority: 920, volume: 85, target: "stream", outputTarget: "overlay", queueIfBusy: true, dropIfBusy: false, canInterrupt: false, canBeInterrupted: true, parallelAllowed: false },
+      overlay: { enabled: false, event: "hypetrain.overlay.level_up" }
+    },
+    end: {
+      sound: { enabled: false, mediaId: 0, soundId: "", label: "HypeTrain Ende", priority: 880, volume: 85, target: "stream", outputTarget: "overlay", queueIfBusy: true, dropIfBusy: false, canInterrupt: false, canBeInterrupted: true, parallelAllowed: false },
+      overlay: { enabled: false, event: "hypetrain.overlay.end" }
+    },
+    record: {
+      sound: { enabled: false, mediaId: 0, soundId: "", label: "HypeTrain Rekord Event", priority: 1000, volume: 85, target: "stream", outputTarget: "overlay", queueIfBusy: true, dropIfBusy: false, canInterrupt: false, canBeInterrupted: true, parallelAllowed: false },
+      overlay: { enabled: false, event: "hypetrain.overlay.record" }
+    }
+  },
   tests: {
     previewOnlyDefault: true,
     productiveSendRequiresConfirm: true
@@ -167,6 +197,27 @@ const SETTING_DEFINITIONS = [
   { key: "sound.volume", value: 85, valueType: "number", category: "Sound", label: "Lautstärke", description: "Lautstärke für Rekord-Sound." },
   { key: "sound.target", value: "stream", valueType: "string", category: "Sound", label: "Ziel", description: "Sound-System Ziel: stream, discord oder both." },
   { key: "sound.outputTarget", value: "overlay", valueType: "string", category: "Sound", label: "Ausgabeziel", description: "Sound-System Ausgabeziel: overlay, device oder both." },
+
+  { key: "eventActions.start.sound.enabled", value: false, valueType: "boolean", category: "Event-Sounds Start", label: "Start-Sound aktiv", description: "Spielt beim HypeTrain-Start optional einen Sound über das bestehende Sound-System. Standard AUS." },
+  { key: "eventActions.start.sound.mediaId", value: 0, valueType: "number", category: "Event-Sounds Start", label: "Start Media-ID", description: "Media-ID aus dem Media-System für den HypeTrain-Start." },
+  { key: "eventActions.start.sound.soundId", value: "", valueType: "string", category: "Event-Sounds Start", label: "Start Sound-ID", description: "Optionaler Sound-System-Preset-Key für den HypeTrain-Start." },
+  { key: "eventActions.start.overlay.enabled", value: false, valueType: "boolean", category: "Event-Overlay Start", label: "Start Overlay-Event aktiv", description: "Sendet beim HypeTrain-Start ein vorbereitetes Overlay-Event über den Communication-Bus. Standard AUS." },
+
+  { key: "eventActions.levelUp.onlyOncePerLevel", value: true, valueType: "boolean", category: "Event-Sounds Stufen", label: "Stufen nur einmal auslösen", description: "Verhindert doppelte Stufenaufstieg-Aktionen für dasselbe Level im selben HypeTrain." },
+  { key: "eventActions.levelUp.sound.enabled", value: false, valueType: "boolean", category: "Event-Sounds Stufen", label: "Stufen-Sound aktiv", description: "Spielt bei einem HypeTrain-Stufenaufstieg optional einen Sound über das bestehende Sound-System. Standard AUS." },
+  { key: "eventActions.levelUp.sound.mediaId", value: 0, valueType: "number", category: "Event-Sounds Stufen", label: "Stufen Media-ID", description: "Media-ID aus dem Media-System für HypeTrain-Stufenaufstiege." },
+  { key: "eventActions.levelUp.sound.soundId", value: "", valueType: "string", category: "Event-Sounds Stufen", label: "Stufen Sound-ID", description: "Optionaler Sound-System-Preset-Key für HypeTrain-Stufenaufstiege." },
+  { key: "eventActions.levelUp.overlay.enabled", value: false, valueType: "boolean", category: "Event-Overlay Stufen", label: "Stufen Overlay-Event aktiv", description: "Sendet bei einem HypeTrain-Stufenaufstieg ein vorbereitetes Overlay-Event über den Communication-Bus. Standard AUS." },
+
+  { key: "eventActions.end.sound.enabled", value: false, valueType: "boolean", category: "Event-Sounds Ende", label: "Ende-Sound aktiv", description: "Spielt beim HypeTrain-Ende optional einen normalen Ende-Sound über das bestehende Sound-System. Standard AUS." },
+  { key: "eventActions.end.sound.mediaId", value: 0, valueType: "number", category: "Event-Sounds Ende", label: "Ende Media-ID", description: "Media-ID aus dem Media-System für das HypeTrain-Ende." },
+  { key: "eventActions.end.sound.soundId", value: "", valueType: "string", category: "Event-Sounds Ende", label: "Ende Sound-ID", description: "Optionaler Sound-System-Preset-Key für das HypeTrain-Ende." },
+  { key: "eventActions.end.overlay.enabled", value: false, valueType: "boolean", category: "Event-Overlay Ende", label: "Ende Overlay-Event aktiv", description: "Sendet beim HypeTrain-Ende ein vorbereitetes Overlay-Event über den Communication-Bus. Standard AUS." },
+
+  { key: "eventActions.record.sound.enabled", value: false, valueType: "boolean", category: "Event-Sounds Rekord", label: "Rekord-Event-Sound aktiv", description: "Spielt bei einem HypeTrain-Rekord-Event optional einen Sound über das bestehende Sound-System. Standard AUS." },
+  { key: "eventActions.record.sound.mediaId", value: 0, valueType: "number", category: "Event-Sounds Rekord", label: "Rekord Event Media-ID", description: "Media-ID aus dem Media-System für HypeTrain-Rekord-Events." },
+  { key: "eventActions.record.sound.soundId", value: "", valueType: "string", category: "Event-Sounds Rekord", label: "Rekord Event Sound-ID", description: "Optionaler Sound-System-Preset-Key für HypeTrain-Rekord-Events." },
+  { key: "eventActions.record.overlay.enabled", value: false, valueType: "boolean", category: "Event-Overlay Rekord", label: "Rekord Overlay-Event aktiv", description: "Sendet bei einem HypeTrain-Rekord ein vorbereitetes Overlay-Event über den Communication-Bus. Standard AUS." },
 
   { key: "tests.previewOnlyDefault", value: true, valueType: "boolean", category: "Tests", label: "Tests standardmäßig Vorschau", description: "Tests lösen standardmäßig keine produktiven Ausgaben aus." },
   { key: "tests.productiveSendRequiresConfirm", value: true, valueType: "boolean", category: "Tests", label: "Produktives Senden bestätigen", description: "Produktive Tests nur mit ausdrücklicher Bestätigung erlauben." }
@@ -303,7 +354,21 @@ const state = {
   lastEndedRun: null,
   lastPreview: null,
   lastEndActions: null,
+  lastEventActions: null,
   lastError: "",
+  overlay: {
+    clients: {},
+    clientCount: 0,
+    connectedCount: 0,
+    lastRegisteredAt: "",
+    lastHeartbeatAt: "",
+    lastClientId: "",
+    lastDebug: false,
+    lastUrl: "",
+    lastUserAgent: "",
+    heartbeatTimeoutMs: 15000,
+    lastEvent: null
+  },
   counters: {
     started: 0,
     progress: 0,
@@ -320,6 +385,12 @@ const state = {
     discordPosted: 0,
     diaryPosted: 0,
     recordSoundRequested: 0,
+    eventSoundRequested: 0,
+    overlayEventsEmitted: 0,
+    overlayRegisters: 0,
+    overlayHeartbeats: 0,
+    eventActionsPlanned: 0,
+    eventActionErrors: 0,
     endActionErrors: 0
   },
   active: {}
@@ -619,6 +690,7 @@ function getMemory(trainId) {
       recordLevel: false,
       recordPoints: false,
       recordTypes: [],
+      actionLevelsFired: [],
       contributions: initialContributionTotals(),
       lastPayload: null,
       createdAt: nowIso(),
@@ -768,6 +840,7 @@ function detectRecordFromHypeTrain(memory, hypeTrain) {
 function processHypeTrainBusEvent(envelope, eventKey, twitch) {
   const hypeTrain = normalizeHypeTrain(twitch.hypeTrain || twitch);
   const memory = getMemory(hypeTrain.id);
+  const previousLevel = numberValue(memory.level, 0);
   memory.lastPayload = { hypeTrain: jsonClone(hypeTrain, {}), twitch: jsonClone(twitch, {}) };
   memory.level = Math.max(numberValue(memory.level, 0), hypeTrain.level);
   memory.pointsTotal = Math.max(numberValue(memory.pointsTotal, 0), hypeTrain.total);
@@ -783,6 +856,7 @@ function processHypeTrainBusEvent(envelope, eventKey, twitch) {
     if (raidIsInWindow(memory.startedAt)) memory.contextType = "raid";
     upsertRun(memory, hypeTrain);
     logRuntimeEvent("started", eventKey, hypeTrain.id, twitch);
+    fireEventActions("start", memory, hypeTrain, { eventKey }, "hypetrain.started");
     publishStatus("started");
     return { ok: true, action: "started", trainId: hypeTrain.id };
   }
@@ -792,6 +866,16 @@ function processHypeTrainBusEvent(envelope, eventKey, twitch) {
     detectRecordFromHypeTrain(memory, hypeTrain);
     upsertRun(memory, hypeTrain);
     logRuntimeEvent("progress", eventKey, hypeTrain.id, twitch);
+    if (hypeTrain.level > previousLevel && previousLevel > 0) {
+      const fired = Array.isArray(memory.actionLevelsFired) ? memory.actionLevelsFired : [];
+      const onlyOnce = getEventActionConfig("levelUp").onlyOncePerLevel !== false;
+      const levelKey = String(hypeTrain.level);
+      if (!onlyOnce || !fired.includes(levelKey)) {
+        fired.push(levelKey);
+        memory.actionLevelsFired = Array.from(new Set(fired));
+        fireEventActions("levelUp", memory, hypeTrain, { eventKey, previousLevel, level: hypeTrain.level }, "hypetrain.level_up");
+      }
+    }
     publishStatus("progress");
     return { ok: true, action: "progress", trainId: hypeTrain.id };
   }
@@ -802,6 +886,7 @@ function processHypeTrainBusEvent(envelope, eventKey, twitch) {
     markRecord(memory, types);
     upsertRun(memory, hypeTrain);
     logRuntimeEvent("record_broken", eventKey, hypeTrain.id, twitch);
+    fireEventActions("record", memory, hypeTrain, { eventKey, recordTypes: memory.recordTypes }, "hypetrain.record_broken");
     publishStatus("record_broken");
     return { ok: true, action: "record_broken", trainId: hypeTrain.id, recordTypes: memory.recordTypes };
   }
@@ -814,6 +899,7 @@ function processHypeTrainBusEvent(envelope, eventKey, twitch) {
     upsertRun(memory, hypeTrain, { previewMessage: preview.message });
     state.lastEndedRun = jsonClone(memory, {});
     state.lastPreview = preview;
+    fireEventActions("end", memory, hypeTrain, { eventKey }, "hypetrain.ended");
     executeEndActions(memory, hypeTrain, preview, { dryRun: false, trigger: "hypetrain.ended" }).catch(err => {
       state.counters.endActionErrors += 1;
       state.lastError = err && err.message ? err.message : String(err);
@@ -1028,6 +1114,288 @@ function getDiscordBridge() {
     if (discord && typeof discord.postMessage === "function") return discord;
   } catch (_) {}
   return null;
+}
+
+
+function publicHypeTrainEventPayload(actionType, memory = {}, hypeTrain = {}, extra = {}) {
+  const level = numberValue(extra.level ?? hypeTrain.level ?? memory.level, 0);
+  const points = numberValue(extra.points ?? hypeTrain.total ?? memory.pointsTotal, 0);
+  const trainId = safeString(memory.trainId || hypeTrain.id || extra.trainId);
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    actionType: safeString(actionType),
+    trainId,
+    level,
+    points,
+    recordReached: memory.recordReached === true,
+    recordTypes: jsonClone(memory.recordTypes || [], []),
+    contextType: safeString(memory.contextType || "normal"),
+    startedAt: safeString(memory.startedAt || hypeTrain.startedAt),
+    endedAt: safeString(memory.endedAt || hypeTrain.endedAt),
+    cooldownEndsAt: safeString(memory.cooldownEndsAt || hypeTrain.cooldownEndsAt),
+    contributions: contributionSummaryVars(memory),
+    extra: jsonClone(extra, {}),
+    ts: nowIso()
+  };
+}
+
+function getEventActionConfig(actionType) {
+  const cfg = getConfig();
+  const key = safeString(actionType);
+  const configured = cfg.eventActions && cfg.eventActions[key] ? cfg.eventActions[key] : {};
+  const fallback = DEFAULT_CONFIG.eventActions && DEFAULT_CONFIG.eventActions[key] ? DEFAULT_CONFIG.eventActions[key] : {};
+  return deepMerge(fallback, configured);
+}
+
+function eventSoundHasMedia(soundCfg = {}) {
+  return numberValue(soundCfg.mediaId, 0) > 0 || !!safeString(soundCfg.soundId);
+}
+
+
+function overlayNowMs() {
+  return Date.now();
+}
+
+function normalizeOverlayClientId(value = "") {
+  const raw = safeString(value);
+  if (raw && /^[a-zA-Z0-9_.:-]{3,80}$/.test(raw)) return raw;
+  return `hypetrain_overlay_${Math.random().toString(36).slice(2, 10)}_${Date.now().toString(36)}`;
+}
+
+function overlayClientPublic(client = {}, nowMs = overlayNowMs()) {
+  const lastSeenMs = numberValue(client.lastSeenMs, 0);
+  const timeoutMs = Math.max(5000, numberValue(state.overlay.heartbeatTimeoutMs, 15000));
+  const connected = lastSeenMs > 0 && nowMs - lastSeenMs <= timeoutMs;
+  return {
+    clientId: safeString(client.clientId),
+    connected,
+    registeredAt: safeString(client.registeredAt),
+    lastSeenAt: safeString(client.lastSeenAt),
+    ageMs: lastSeenMs > 0 ? Math.max(0, nowMs - lastSeenMs) : null,
+    debug: client.debug === true,
+    url: safeString(client.url),
+    userAgent: safeString(client.userAgent)
+  };
+}
+
+function refreshOverlaySummary() {
+  const nowMs = overlayNowMs();
+  const clients = Object.values(state.overlay.clients || {}).map(client => overlayClientPublic(client, nowMs));
+  state.overlay.clientCount = clients.length;
+  state.overlay.connectedCount = clients.filter(client => client.connected).length;
+  return clients;
+}
+
+function publicOverlayStatus() {
+  const clients = refreshOverlaySummary();
+  return {
+    registered: clients.length > 0,
+    connected: clients.some(client => client.connected),
+    clientCount: state.overlay.clientCount,
+    connectedCount: state.overlay.connectedCount,
+    lastRegisteredAt: safeString(state.overlay.lastRegisteredAt),
+    lastHeartbeatAt: safeString(state.overlay.lastHeartbeatAt),
+    lastClientId: safeString(state.overlay.lastClientId),
+    lastDebug: state.overlay.lastDebug === true,
+    lastUrl: safeString(state.overlay.lastUrl),
+    heartbeatTimeoutMs: numberValue(state.overlay.heartbeatTimeoutMs, 15000),
+    lastEvent: state.overlay.lastEvent,
+    clients
+  };
+}
+
+function markOverlaySeen(input = {}, req = null, type = "heartbeat") {
+  const now = nowIso();
+  const nowMs = overlayNowMs();
+  const clientId = normalizeOverlayClientId(input.clientId || input.overlayId || input.id);
+  const existing = state.overlay.clients[clientId] || {};
+  const client = {
+    ...existing,
+    clientId,
+    registeredAt: existing.registeredAt || now,
+    lastSeenAt: now,
+    lastSeenMs: nowMs,
+    debug: boolValue(input.debug, existing.debug === true),
+    url: safeString(input.url || input.href || existing.url),
+    userAgent: safeString(input.userAgent || req?.headers?.["user-agent"] || existing.userAgent)
+  };
+  state.overlay.clients[clientId] = client;
+  state.overlay.lastClientId = clientId;
+  state.overlay.lastDebug = client.debug === true;
+  state.overlay.lastUrl = client.url;
+  state.overlay.lastUserAgent = client.userAgent;
+  if (type === "register") {
+    state.overlay.lastRegisteredAt = now;
+    state.counters.overlayRegisters += 1;
+  } else {
+    state.overlay.lastHeartbeatAt = now;
+    state.counters.overlayHeartbeats += 1;
+  }
+  refreshOverlaySummary();
+  return { ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, type, clientId, overlay: publicOverlayStatus(), at: now };
+}
+
+function publishOverlayLifecycle(type, payload = {}) {
+  try {
+    if (!busRef || typeof busRef.emit !== "function") return { ok: false, reason: "bus_unavailable" };
+    return busRef.emit({
+      channel: type === "register" ? "hypetrain.overlay.registered" : "hypetrain.overlay.heartbeat",
+      action: type,
+      source: { type: "overlay", id: safeString(payload.clientId, "hypetrain"), module: MODULE_NAME },
+      target: { type: "module", id: MODULE_NAME, module: MODULE_NAME },
+      payload,
+      meta: { module: MODULE_NAME, moduleVersion: MODULE_VERSION, replayable: false, requireAck: false, ttlMs: 15000 }
+    });
+  } catch (_) {
+    return { ok: false, reason: "publish_failed" };
+  }
+}
+
+async function runEventSoundAction(actionType, memory, hypeTrain, payload, actionCfg) {
+  if (typeof fetch !== "function") throw new Error("fetch_unavailable");
+  const soundCfg = actionCfg.sound || {};
+  const mediaId = numberValue(soundCfg.mediaId, 0);
+  const soundId = safeString(soundCfg.soundId);
+  if (!mediaId && !soundId) throw new Error("event_sound_media_missing");
+  const body = {
+    label: safeString(soundCfg.label, `HypeTrain ${actionType}`),
+    category: "hypetrain",
+    source: MODULE_NAME,
+    requestedBy: MODULE_NAME,
+    priority: numberValue(soundCfg.priority, 900),
+    volume: numberValue(soundCfg.volume, 85),
+    target: safeString(soundCfg.target, "stream"),
+    outputTarget: safeString(soundCfg.outputTarget, "overlay"),
+    queueIfBusy: soundCfg.queueIfBusy !== false,
+    dropIfBusy: soundCfg.dropIfBusy === true,
+    canInterrupt: soundCfg.canInterrupt === true,
+    canBeInterrupted: soundCfg.canBeInterrupted !== false,
+    parallelAllowed: soundCfg.parallelAllowed === true,
+    meta: {
+      module: MODULE_NAME,
+      moduleVersion: MODULE_VERSION,
+      actionType,
+      trainId: payload.trainId,
+      level: payload.level,
+      recordReached: payload.recordReached,
+      recordTypes: payload.recordTypes
+    }
+  };
+  if (mediaId > 0) body.mediaId = mediaId;
+  if (soundId) body.soundId = soundId;
+  const response = await fetch("http://127.0.0.1:8080/api/sound/play", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  const text = await response.text().catch(() => "");
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch (_) { data = { raw: text }; }
+  if (!response.ok || (data && data.ok === false)) throw new Error((data && (data.error || data.message)) || `sound_http_${response.status}`);
+  state.counters.eventSoundRequested += 1;
+  return { ok: true, status: response.status, result: data };
+}
+
+function emitOverlayEventAction(actionType, memory, hypeTrain, payload, actionCfg) {
+  const overlayCfg = actionCfg.overlay || {};
+  const channel = safeString(overlayCfg.event, `hypetrain.overlay.${actionType}`);
+  if (!busRef || typeof busRef.emit !== "function") return { ok: false, skipped: true, reason: "bus_unavailable", channel };
+  const envelope = {
+    channel,
+    action: safeString(actionType),
+    source: { type: "module", id: MODULE_NAME, module: MODULE_NAME },
+    target: { type: "overlay", id: "hypetrain", module: MODULE_NAME },
+    payload,
+    meta: { module: MODULE_NAME, moduleVersion: MODULE_VERSION, replayable: true, requireAck: false, ttlMs: numberValue(overlayCfg.ttlMs, 30000) }
+  };
+  const result = busRef.emit(envelope);
+  state.overlay.lastEvent = { channel, actionType, trainId: payload.trainId, level: payload.level, points: payload.points, recordReached: payload.recordReached === true, at: nowIso() };
+  state.counters.overlayEventsEmitted += 1;
+  return { ok: true, channel, result };
+}
+
+async function executeEventActions(actionType, memory, hypeTrain = {}, extra = {}, options = {}) {
+  const dryRun = options.dryRun === true;
+  const actionCfg = getEventActionConfig(actionType);
+  const payload = publicHypeTrainEventPayload(actionType, memory, hypeTrain, extra);
+  const soundEnabled = actionCfg.sound?.enabled === true && eventSoundHasMedia(actionCfg.sound || {});
+  const overlayEnabled = actionCfg.overlay?.enabled === true;
+  const result = {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    actionType,
+    trigger: safeString(options.trigger, actionType),
+    dryRun,
+    payload,
+    plan: {
+      sound: {
+        enabled: soundEnabled,
+        configuredEnabled: actionCfg.sound?.enabled === true,
+        mediaId: numberValue(actionCfg.sound?.mediaId, 0),
+        soundId: safeString(actionCfg.sound?.soundId),
+        label: safeString(actionCfg.sound?.label, `HypeTrain ${actionType}`),
+        reason: actionCfg.sound?.enabled === true ? (eventSoundHasMedia(actionCfg.sound || {}) ? "configured" : "missing_media_or_sound_id") : "disabled"
+      },
+      overlay: {
+        enabled: overlayEnabled,
+        configuredEnabled: actionCfg.overlay?.enabled === true,
+        event: safeString(actionCfg.overlay?.event, `hypetrain.overlay.${actionType}`)
+      }
+    },
+    actions: {},
+    errors: [],
+    executedAt: nowIso()
+  };
+  state.counters.eventActionsPlanned += 1;
+
+  if (!soundEnabled) {
+    result.actions.sound = { ok: true, skipped: true, reason: result.plan.sound.reason };
+  } else if (dryRun) {
+    result.actions.sound = { ok: true, dryRun: true, wouldRun: true };
+  } else {
+    try { result.actions.sound = await runEventSoundAction(actionType, memory, hypeTrain, payload, actionCfg); }
+    catch (err) {
+      const message = err && err.message ? err.message : String(err);
+      result.actions.sound = { ok: false, error: message };
+      result.errors.push(`sound: ${message}`);
+      state.counters.eventActionErrors += 1;
+    }
+  }
+
+  if (!overlayEnabled) {
+    result.actions.overlay = { ok: true, skipped: true, reason: "disabled" };
+  } else if (dryRun) {
+    result.actions.overlay = { ok: true, dryRun: true, wouldRun: true, channel: result.plan.overlay.event };
+  } else {
+    try { result.actions.overlay = emitOverlayEventAction(actionType, memory, hypeTrain, payload, actionCfg); }
+    catch (err) {
+      const message = err && err.message ? err.message : String(err);
+      result.actions.overlay = { ok: false, error: message };
+      result.errors.push(`overlay: ${message}`);
+      state.counters.eventActionErrors += 1;
+    }
+  }
+
+  result.ok = result.errors.length === 0;
+  state.lastEventActions = publicActionResult(result);
+  logRuntimeEvent("event_actions", `hypetrain.event_actions.${actionType}`, payload.trainId, state.lastEventActions);
+  publishStatus(`event_actions_${actionType}`);
+  return result;
+}
+
+function fireEventActions(actionType, memory, hypeTrain = {}, extra = {}, trigger = actionType) {
+  executeEventActions(actionType, memory, hypeTrain, extra, { dryRun: false, trigger }).catch(err => {
+    state.counters.eventActionErrors += 1;
+    state.lastError = err && err.message ? err.message : String(err);
+    state.lastEventActions = { ok: false, actionType, trigger, error: state.lastError, at: nowIso() };
+    logRuntimeEvent("event_actions_error", `hypetrain.event_actions.${actionType}`, safeString(memory?.trainId || hypeTrain.id), state.lastEventActions);
+    publishStatus(`event_actions_${actionType}_error`);
+  });
 }
 
 async function runDiscordEndAction(message, memory, hypeTrain, preview) {
@@ -1649,6 +2017,16 @@ function buildStatus() {
       discordEnabled: cfg.discord?.enabled === true,
       diaryEnabled: cfg.diary?.enabled === true,
       recordSoundEnabled: cfg.sound?.recordSoundEnabled === true,
+      eventActions: {
+        startSound: cfg.eventActions?.start?.sound?.enabled === true,
+        startOverlay: cfg.eventActions?.start?.overlay?.enabled === true,
+        levelUpSound: cfg.eventActions?.levelUp?.sound?.enabled === true,
+        levelUpOverlay: cfg.eventActions?.levelUp?.overlay?.enabled === true,
+        endSound: cfg.eventActions?.end?.sound?.enabled === true,
+        endOverlay: cfg.eventActions?.end?.overlay?.enabled === true,
+        recordSound: cfg.eventActions?.record?.sound?.enabled === true,
+        recordOverlay: cfg.eventActions?.record?.overlay?.enabled === true
+      },
       includeTopContributors: cfg.privacy?.includeTopContributors === true,
       includeContributorNames: cfg.privacy?.includeContributorNames === true,
       includeHypeTrainPoints: cfg.display?.includeHypeTrainPoints !== false,
@@ -1659,6 +2037,7 @@ function buildStatus() {
       registered: state.registeredOnBus,
       subscriptions: state.subscriptions
     },
+    overlay: publicOverlayStatus(),
     runtime: {
       loadedAt: state.loadedAt,
       updatedAt: state.updatedAt,
@@ -1667,6 +2046,7 @@ function buildStatus() {
       lastEndedRun: state.lastEndedRun,
       lastPreview: state.lastPreview,
       lastEndActions: state.lastEndActions,
+      lastEventActions: state.lastEventActions,
       counters: state.counters,
       lastError: state.lastError
     },
@@ -1769,6 +2149,26 @@ function registerRoutes(app) {
   });
 
   get(["/api/hypetrain/stats", "/hypetrain/stats"], (_req, res) => res.json(buildStats()));
+  get(["/api/hypetrain/overlay/status", "/hypetrain/overlay/status"], (_req, res) => res.json({ ok: true, module: MODULE_NAME, moduleVersion: MODULE_VERSION, moduleBuild: MODULE_BUILD, overlay: publicOverlayStatus() }));
+  post(["/api/hypetrain/overlay/register", "/hypetrain/overlay/register"], (req, res) => {
+    try {
+      const result = markOverlaySeen(req.body || {}, req, "register");
+      publishOverlayLifecycle("register", { clientId: result.clientId, overlay: result.overlay, at: result.at });
+      publishStatus("overlay_register");
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ ok: false, module: MODULE_NAME, error: err && err.message ? err.message : String(err) });
+    }
+  });
+  post(["/api/hypetrain/overlay/heartbeat", "/hypetrain/overlay/heartbeat"], (req, res) => {
+    try {
+      const result = markOverlaySeen(req.body || {}, req, "heartbeat");
+      publishOverlayLifecycle("heartbeat", { clientId: result.clientId, connectedCount: result.overlay.connectedCount, at: result.at });
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ ok: false, module: MODULE_NAME, error: err && err.message ? err.message : String(err) });
+    }
+  });
 
   const previewHandler = (req, res) => {
     try {
@@ -1824,6 +2224,33 @@ function registerRoutes(app) {
     }
   });
 
+
+
+  post(["/api/hypetrain/test/event-actions", "/hypetrain/test/event-actions"], async (req, res) => {
+    try {
+      const input = { ...(req.query || {}), ...(req.body || {}) };
+      if (safeString(input.confirm) !== "1") {
+        res.status(400).json({ ok: false, module: MODULE_NAME, error: "confirm_required", hint: "POST /api/hypetrain/test/event-actions?confirm=1", productiveActions: false });
+        return;
+      }
+      const productive = boolValue(input.productive, false) || boolValue(input.dryRun, true) === false;
+      if (productive && safeString(input.confirmProductive) !== "HYPETRAIN_PRODUCTIVE_ACTIONS") {
+        res.status(400).json({ ok: false, module: MODULE_NAME, error: "confirm_productive_required", hint: "Set confirmProductive=HYPETRAIN_PRODUCTIVE_ACTIONS to run real sound/overlay event actions.", productiveActions: false });
+        return;
+      }
+      const actionType = safeString(input.actionType || input.eventType || "start");
+      if (!["start", "levelUp", "end", "record"].includes(actionType)) {
+        res.status(400).json({ ok: false, module: MODULE_NAME, error: "invalid_action_type", allowed: ["start", "levelUp", "end", "record"] });
+        return;
+      }
+      const memory = buildSyntheticMemory(input);
+      const hypeTrain = { id: memory.trainId, level: memory.level, total: memory.pointsTotal, startedAt: memory.startedAt, endedAt: memory.endedAt, cooldownEndsAt: memory.cooldownEndsAt, type: memory.hypeType };
+      const result = await executeEventActions(actionType, memory, hypeTrain, { manualTest: true, level: memory.level }, { dryRun: !productive, trigger: productive ? "manual_productive_event_action_test" : "manual_dry_run_event_action_test" });
+      res.status(result.ok ? 200 : 500).json({ ok: result.ok, module: MODULE_NAME, productiveActions: productive, result, status: buildStatus() });
+    } catch (err) {
+      res.status(500).json({ ok: false, module: MODULE_NAME, error: err && err.message ? err.message : String(err) });
+    }
+  });
 
   const liveReadinessHandler = async (req, res) => {
     try {
