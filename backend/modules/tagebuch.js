@@ -11,8 +11,8 @@ const settings = require('./helpers/helper_settings');
 const texts = require('./helpers/helper_texts');
 
 const MODULE_NAME = 'tagebuch';
-const MODULE_VERSION = '0.1.1';
-const MODULE_BUILD = 'STEP_HT2_8_TAGEBUCH_STREAM_STATE_ENTRIES';
+const MODULE_VERSION = '0.1.2';
+const MODULE_BUILD = 'STEP_HT2_9_TAGEBUCH_SYSTEM_WEBHOOK_NAME';
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
@@ -978,9 +978,14 @@ async function postDiaryEntry(ctx, { authorDisplay, authorLogin, message, system
   const safeSystemUsername = safeString(systemUsername);
 
   const webhookPayload = {
-    content: `*${cleanMessage}*`,
-    username: system && safeSystemUsername ? safeSystemUsername : `${posterName} schreibt folgendes ins Tagebuch:`
+    content: `*${cleanMessage}*`
   };
+
+  if (system && safeSystemUsername) {
+    webhookPayload.username = safeSystemUsername;
+  } else if (!system) {
+    webhookPayload.username = `${posterName} schreibt folgendes ins Tagebuch:`;
+  }
 
   if (!system && twitchUser?.avatarUrl) {
     webhookPayload.avatar_url = twitchUser.avatarUrl;

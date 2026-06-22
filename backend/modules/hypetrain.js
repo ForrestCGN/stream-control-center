@@ -1,7 +1,7 @@
 "use strict";
 
 /**
- * HypeTrain Fachmodul HT2.3
+ * HypeTrain Fachmodul HT2.9
  *
  * Zweck:
  * - vorhandene Twitch-Events aus dem Communication-Bus abonnieren
@@ -24,8 +24,8 @@ const texts = require("./helpers/helper_texts");
 const communicationBus = require("./communication_bus");
 
 const MODULE_NAME = "hypetrain";
-const MODULE_VERSION = "0.1.5";
-const MODULE_BUILD = "STEP_HT2_7_HYPETRAIN_DIARY_DISCORD_CLARITY";
+const MODULE_VERSION = "0.1.6";
+const MODULE_BUILD = "STEP_HT2_9_HYPETRAIN_TAGEBUCH_POSTER_NAME";
 const MODULE_ID = `module:${MODULE_NAME}`;
 const SCHEMA_VERSION = 1;
 const SETTINGS_TABLE = "hypetrain_settings";
@@ -1000,7 +1000,9 @@ function buildEndActionPlan(memory, hypeTrain = {}, preview = null) {
         enabled: cfg.diary?.enabled === true && cfg.diary?.writeOnEnd === true,
         configuredEnabled: cfg.diary?.enabled === true,
         writeOnEnd: cfg.diary?.writeOnEnd === true,
-        systemUsername: safeString(cfg.diary?.systemUsername, "CGN-HypeTrain"),
+        systemUsername: "",
+        configuredSystemUsername: safeString(cfg.diary?.systemUsername),
+        usesTagebuchWebhookName: true,
         apiUrl: safeString(cfg.diary?.apiUrl, "http://127.0.0.1:8080/api/tagebuch/entry")
       },
       recordSound: {
@@ -1060,10 +1062,8 @@ async function runDiaryEndAction(message, memory, hypeTrain, preview) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       authorLogin: "hypetrain",
-      authorDisplay: safeString(cfg.diary?.systemUsername, "CGN-HypeTrain"),
       message,
-      system: true,
-      systemUsername: safeString(cfg.diary?.systemUsername, "CGN-HypeTrain")
+      system: true
     })
   });
   const text = await response.text().catch(() => "");
