@@ -1,6 +1,6 @@
 # CURRENT STATUS
 
-Stand: RDAP1 + DASHUI1 / Dashboard-v2 Designrichtung dokumentiert
+Stand: RDAP2.DOC1 / Remote-Dashboard-Agent Architekturentscheidungen dokumentiert  
 Datum: 2026-06-22
 
 ## Aktueller Runtime-Stand
@@ -16,33 +16,69 @@ Central Event Overlay:
 - Overlay ist am Communication Bus verbunden.
 - Kein separates HypeTrain-Overlay-System wird gebaut.
 
-## RDAP1 / Remote Dashboard Agent Plan
-
-Dokumentiert:
-
-- `docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md`
-- `docs/current/DASHBOARD_ROLES_PERMISSIONS_MATRIX.md`
-
-Festgelegt:
-
-- Priorität bleibt die sichere Webserver↔Stream-PC-Anbindung.
-- Webserver wird öffentliche Zentrale.
-- Stream-PC wird lokaler Agent/Ausführer.
-- Verbindung später aktiv vom Stream-PC zum Webserver per WSS/WebSocket.
-- Keine Portfreigabe am Stream-PC.
-- Remote-Actions nur über Allowlist.
-- Jede Remote-Aktion braucht Rechteprüfung, requestId, expiresAt, Ergebnisantwort und Audit.
-- Multi-User und Bearbeitungs-Locks werden von Anfang an eingeplant.
-- Lokale Dashboard-Rollen/Rechte entscheiden konkret.
-- Spezialrolle `Sound-Profi` ist geplant.
-
-## DASHUI1 / Dashboard-v2 Design- und Frontend-Richtung
+## RDAP2 / Remote Dashboard Agent Entscheidungen
 
 Neu dokumentiert:
 
-- `docs/current/DASHBOARD_V2_DESIGN_FRONTEND_PLAN.md`
+- `docs/current/REMOTE_DASHBOARD_AGENT_RDAP2_DECISIONS.md`
 
-Dieser Stand hält die bestätigte Dashboard-v2-Designrichtung aus den isolierten Design-Tests v8 bis v13 fest.
+Aktualisiert:
+
+- `docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md`
+
+Festgelegt:
+
+- Remote-Modboard-Subdomain: `modboard.forrestcgn.de`.
+- Öffentliche Zentrale läuft später auf Hetzner.
+- Hetzner nutzt ISPConfig mit nginx.
+- Let's Encrypt läuft über ISPConfig.
+- Node-App läuft intern auf dem Hetzner-Server, bevorzugt `127.0.0.1:3000`.
+- Öffentlich nur HTTPS/WSS, kein öffentlicher Node-Port.
+- Stream-PC-Agent verbindet sich aktiv per WSS zum Webserver.
+- Keine Portfreigabe am Stream-PC.
+- Stream-PC-Agent wird als separater Node-Prozess geplant.
+- Bestehendes lokales Backend bleibt produktive Runtime auf `127.0.0.1:8080`.
+- Login, User, Rollen, Permissions und Modulfreigaben werden führend auf dem Webserver verwaltet.
+- Webserver fragt Agent nicht für grundsätzliche Login-/Rechteentscheidungen.
+- Wenn Agent offline ist, bleiben Login/Lesen möglich, produktive Bearbeitung und Aktionen sind gesperrt.
+- Keine Offline-Queue und keine automatische spätere Ausführung.
+- Texte und Configs bleiben produktiv führend auf dem Stream-PC.
+- NAS/MariaDB wird optional als private lokale Backup-/Media-/Meta-Schicht eingeplant, aber nicht als öffentliche Zentrale und nicht als Ersatz für den Agent.
+- Produktive SQLite bleibt unangetastet.
+- Für Multi-User-Bearbeitung wird ein zentrales Edit-Session-/Lock-System geplant.
+- Lokales Dashboard und Remote-Modboard sollen langfristig denselben Edit-Session-/Lock-Mechanismus nutzen.
+
+## RDAP3 / nächster technischer Planungsstand
+
+RDAP3 soll den Minimal-Agent planen.
+
+RDAP3 darf zunächst nur:
+
+- Verbindung
+- Auth
+- Heartbeat
+- Status
+- `agent.ping`
+- `agent.status.request`
+- Audit für Request/Result
+
+Nicht in RDAP3:
+
+- Sound
+- OBS
+- Overlay
+- Media
+- Texte
+- Configs
+- Commands/Kanalpunkte
+- DB
+- Datei-/Shell-/Prozessaktionen
+
+## DASHUI1 / Dashboard-v2 Design- und Frontend-Richtung
+
+Dokumentiert:
+
+- `docs/current/DASHBOARD_V2_DESIGN_FRONTEND_PLAN.md`
 
 Bestätigte Designrichtung:
 
@@ -58,20 +94,15 @@ Bestätigte Designrichtung:
 - Der aktive Tab steht inline hinter dem Modulnamen, getrennt mit `•`.
 - Normale Streamer-/Mod-Seiten bleiben einheitlich, einfach und ohne technischen Schnickschnack.
 - Technische Details, tiefe Configs, Diagnose, Rohdaten und Spezialaktionen liegen im Admin.
-
-Frontend-Richtung:
-
-- Aufgrund der Projektgröße ist `React + Vite` die bevorzugte Richtung für Dashboard-v2.
-- Kein Creative-Tim-/Vision-UI-Code kopieren.
-- Creative Tim / Vision UI dient nur als Design- und Komponenten-Inspiration.
-- Eigenes CGN-Designsystem mit wiederverwendbaren Komponenten.
-- Module sollen über Registry/Definitionen leicht erweiterbar und umstrukturierbar bleiben.
+- `React + Vite` bleibt bevorzugte Frontend-Richtung.
+- Kein Creative-Tim-/Vision-UI-Code übernehmen.
+- Eigenes CGN-Designsystem und Modul-/Navigation-Registry planen.
 
 Wichtigster bestätigter Design-Teststand aus dem Chat:
 
 - `DASHBOARD_V2_DESIGN_TEST_V13_TOPBAR_TAB_INLINE.zip`
 
-## Nicht geändert durch DASHUI1
+## Nicht geändert durch RDAP2.DOC1
 
 - kein Backend-Code
 - kein produktives Dashboard
@@ -82,14 +113,14 @@ Wichtigster bestätigter Design-Teststand aus dem Chat:
 - kein Auth-/Permission-Code
 - keine Runtime-Datei
 - keine React-/Vite-Projektdateien
+- kein Node-Neustart nötig
 
 ## Dokumentation
 
 Neu/aktualisiert:
 
+- `docs/current/REMOTE_DASHBOARD_AGENT_RDAP2_DECISIONS.md`
 - `docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md`
-- `docs/current/DASHBOARD_ROLES_PERMISSIONS_MATRIX.md`
-- `docs/current/DASHBOARD_V2_DESIGN_FRONTEND_PLAN.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`

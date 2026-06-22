@@ -1,46 +1,44 @@
 # NEXT STEPS
 
-Stand: RDAP1 + DASHUI1 / Dashboard-v2 Designrichtung dokumentiert
+Stand: RDAP2.DOC1 / Remote-Dashboard-Agent Architekturentscheidungen dokumentiert  
 Datum: 2026-06-22
 
 ## Nächster sinnvoller Schritt
-
-RDAP2 / offene Architekturfragen für Webserver-Agent klären
-
-Ziel:
-
-- klären, was dauerhaft auf dem Webserver liegt
-- klären, was dauerhaft auf dem Stream-PC bleibt
-- klären, welche Datenbank für welche Daten führend ist
-- klären, wie Media, Texte und Configs später synchronisiert werden
-- klären, ob der Agent Teil des bestehenden Backends oder ein separater Prozess wird
-- klären, welche Webserver-Technik/Domain/HTTPS-WSS-Basis genutzt wird
-
-## Danach sinnvoll
 
 RDAP3 / Minimal-Agent-Konzept planen
 
 Ziel:
 
 - kleinste Agent-Version planen
-- nur Verbindung, Anmeldung, Heartbeat, Status und `agent.ping`
-- Request/Result/Audit-Struktur finalisieren
-- Allowlist-Schema planen
-- keine Sound-/OBS-/Media-Aktionen vor dem Minimaltest
+- separater Node-Agent-Prozess
+- Verbindung vom Stream-PC-Agent zum Webserver per WSS
+- Auth mit `agentId` + Secret
+- Heartbeat
+- Basisstatus
+- `agent.ping`
+- `agent.status.request`
+- Request/Result/Audit-Struktur konkretisieren
+- Agent-Config-Format planen
+- keine produktiven Aktionen
+- keine Sound-/OBS-/Media-/Config-/Text-Actions
 
-## Danach
+## Danach sinnvoll
 
-RDAP4 / Permission- und Lock-Datenmodell planen
+RDAP4 / Permission- und Edit-Session-/Lock-Datenmodell planen
 
 Ziel:
 
 - Rollen-/Permission-Modell technisch planen
 - Modulfreigaben planen
-- Locks mit Heartbeat/Timeout planen
+- zentrale Edit-Sessions planen
+- Lock-Heartbeat/Timeout planen
+- `resourceKey`-Schema finalisieren
+- `editSessionId`, `lockId`, `clientId`, `requestId`, `auditId`, `correlationId` planen
 - Audit-Events für Locks planen
+- Konfliktverhalten bei `resourceVersion` planen
 - noch keine DB-Migration ohne explizites `go`
 
-## Dashboard-v2 Frontend nach RDAP-Grundlagen
+## Danach
 
 DASHUI2 / Frontend-Tech-Entscheidung konkretisieren
 
@@ -48,6 +46,8 @@ Ziel:
 
 - `React + Vite` als bevorzugte Richtung prüfen und final bestätigen
 - Build-/Deploy-Ziel nach `htdocs/dashboard-v2/` planen
+- lokale Dashboard-v2-Nutzung auf Stream-PC einplanen
+- Remote-Modboard unter `modboard.forrestcgn.de` einplanen
 - Modul-Registry und Navigation-Registry planen
 - CGN-Komponentensystem planen
 - API-/WebSocket-/Lock-Clients sauber trennen
@@ -61,6 +61,28 @@ Ziel:
 - eine Beispielseite, z. B. Remote Agent oder Übersicht
 - keine produktive Modulmigration
 - kein alter Dashboard-Umbau ohne separaten Step
+
+## Bestätigte RDAP2-Architektur
+
+Siehe:
+
+- `docs/current/REMOTE_DASHBOARD_AGENT_RDAP2_DECISIONS.md`
+
+Festgelegte RDAP2-Regeln:
+
+- Subdomain: `modboard.forrestcgn.de`
+- Webserver: Hetzner + ISPConfig + nginx + Let's Encrypt
+- Node-App: intern, bevorzugt `127.0.0.1:3000`
+- Stream-PC-Agent: separater Node-Prozess
+- lokales Backend: `127.0.0.1:8080`
+- Login/User/Rollen/Permissions: führend Webserver
+- Agent nicht für Login-/Rechteentscheidung abfragen
+- Agent offline: Login/Lesen ja, produktive Bearbeitung/Aktionen nein
+- keine Offline-Queue
+- Texte/Configs: produktiv führend Stream-PC
+- NAS/MariaDB: optional lokale Backup-/Media-/Meta-Schicht
+- produktive SQLite bleibt unangetastet
+- Multi-User-Bearbeitung über zentrales Edit-Session-/Lock-System
 
 ## Bestätigte Designbasis für spätere Frontend-Arbeit
 
@@ -95,7 +117,8 @@ HypeTrain / Central Event Overlay:
 ## Nicht als nächstes nebenbei machen
 
 - kein produktiver Dashboard-v2-Code ohne Agent-/Security-Plan
-- kein Permission-Code ohne Datenmodell-Plan
+- kein Agent-Code ohne RDAP3-Minimal-Agent-Plan
+- kein Permission-Code ohne RDAP4-Datenmodell-Plan
 - keine DB-Migration ohne separaten Step
 - keine OBS-Quellen automatisch ändern
 - keine produktive Remote-Agent-Verbindung ohne Minimaltest

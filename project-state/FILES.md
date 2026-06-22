@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP1 + DASHUI1 / Dashboard-v2 Designrichtung dokumentiert
+Stand: RDAP2.DOC1 / Remote-Dashboard-Agent Architekturentscheidungen dokumentiert  
 Datum: 2026-06-22
 
 ## Art des aktuellen Doku-Stands
@@ -11,53 +11,40 @@ Es werden keine Runtime-Dateien geändert.
 
 ## Neu / aktualisiert
 
+- `docs/current/REMOTE_DASHBOARD_AGENT_RDAP2_DECISIONS.md`
 - `docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md`
-- `docs/current/DASHBOARD_ROLES_PERMISSIONS_MATRIX.md`
-- `docs/current/DASHBOARD_V2_DESIGN_FRONTEND_PLAN.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 
-## Neue Design-/Frontend-Plan-Datei
+## Neue RDAP2-Plan-Datei
 
-### `docs/current/DASHBOARD_V2_DESIGN_FRONTEND_PLAN.md`
+### `docs/current/REMOTE_DASHBOARD_AGENT_RDAP2_DECISIONS.md`
 
 Enthält:
 
-- bestätigte Dashboard-v2 Designrichtung
-- CGN-Dark-/Neon-/Galaxy-Stil
-- Vision-UI-artige Designinspiration ohne Codeübernahme
-- Topbar-Regeln
-- Sidebar-Regeln
-- Modul-Navi-/Tab-Regeln
-- einheitlichen Seitenaufbau für Streamer-/Mod-Seiten
-- Admin-Abgrenzung für technische Bereiche
-- React/Vite als bevorzugte Frontend-Richtung
-- CGN-Komponentensystem
-- Modul-Registry-Idee
-- wichtige Komponentenliste
-- relevante Design-Teststände v8 bis v13
+- finalen RDAP2-Entscheidungsstand
+- Subdomain `modboard.forrestcgn.de`
+- Hetzner / ISPConfig / nginx / Let's Encrypt
+- Node-App intern auf `127.0.0.1:3000`
+- separater Stream-PC-Agent-Prozess
+- lokales Backend auf `127.0.0.1:8080`
+- Offline-Regel
+- Datenhoheit Webserver / Stream-PC / NAS
+- NAS/MariaDB-Rolle
+- Remote-Actions v1
+- Login-/Rechte-Regel
+- Edit-Session-/Lock-System
+- Resource-Key- und ID-Konzept
+- nächste Schritte RDAP3/RDAP4/DASHUI2
 
-## Wichtigster Design-Teststand aus dem Chat
+## Aktualisierte RDAP1-Plan-Datei
 
-- `DASHBOARD_V2_DESIGN_TEST_V13_TOPBAR_TAB_INLINE.zip`
+### `docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md`
 
-Dieser ZIP-Stand wurde im Chat erzeugt, aber nicht als Runtime-Datei ins Repo übernommen.
-
-## Bestätigte UI-Regeln aus v13
-
-- Sidebar = Hauptkategorie → Modul
-- keine dritte Sidebar-Ebene
-- Modul-Navi/Tabs innerhalb der Modulseite
-- Topbar zeigt `Hauptbereich` und `Modul • aktiver Tab`
-- aktiver Tab steht inline hinter dem Modulnamen
-- Topbar fixed mit Scroll-Rand-Effekt
-- Sidebar fixed auf Desktop
-- Sidebar Drawer unter ca. 1180px
-- normale Seiten bleiben streamer-/modfreundlich
-- Admin bündelt Technik, tiefe Configs, Diagnose, Rechte und Audit
+Wurde auf RDAP2-Verweis aktualisiert.
 
 ## Wichtige Runtime-Dateien, die durch diesen Doku-Stand NICHT geändert werden
 
@@ -70,71 +57,28 @@ Dieser ZIP-Stand wurde im Chat erzeugt, aber nicht als Runtime-Datei ins Repo ü
 - `data/*`
 - `D:\Streaming\stramAssets\data\sqlite\app.sqlite`
 
-## Wichtige vorhandene Runtime-Dateien aus dem letzten HT4.x-Stand
+## Weiterhin relevante Plan-Dateien
 
-- `htdocs/overlays/central_event_overlay.html`
-- `htdocs/overlays/shared/overlay_bus_client.js`
-- `backend/modules/hypetrain.js`
-- `backend/modules/communication_bus.js`
-- `backend/modules/helpers/helper_communication.js`
-- `backend/modules/sound_system.js`
-- `htdocs/dashboard/modules/hypetrain.js`
-- `htdocs/dashboard/modules/hypetrain.css`
-
-## Plan-Dateien
-
-### `docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md`
-
-Enthält:
-
-- Ziel
-- Architektur
-- Webserver-Aufgaben
-- Stream-PC-Agent-Aufgaben
-- WSS/WebSocket-Verbindung
-- Agent-Authentifizierung
-- erste erlaubte Agent-Actions
-- Statusmeldungen
-- Reconnect/Offline-Verhalten
-- Sicherheitsregeln
-- Audit-Log
-- offene Fragen
-
-### `docs/current/DASHBOARD_ROLES_PERMISSIONS_MATRIX.md`
-
-Enthält:
-
-- Owner
-- Admin
-- Lead-Mod
-- Mod
-- Readonly
-- Sound-Profi
-- mögliche Media-Manager-Rolle
-- Twitch-Rollen-Mapping
-- einzelne Permissions
-- Modulfreigaben
-- Schutzstufen
-- Regeln für Texte/Configs/Media/Commands/Kanalpunkte/Overlays/Logs/Admin/Locks
+- `docs/current/DASHBOARD_ROLES_PERMISSIONS_MATRIX.md`
+- `docs/current/DASHBOARD_V2_DESIGN_FRONTEND_PLAN.md`
 
 ## Relevante lokale Pfade
 
 - Repo: `D:\Git\stream-control-center`
 - Live-Ziel: `D:\Streaming\stramAssets`
 - Produktive DB: `D:\Streaming\stramAssets\data\sqlite\app.sqlite`
+- lokales Backend: `http://127.0.0.1:8080`
+- lokales Dashboard: `http://127.0.0.1:8080/dashboard`
 
-## Relevante URLs
+## Geplante Remote-Ziele
 
-Aktueller lokaler Stand:
-
-- `http://127.0.0.1:8080`
-- `http://127.0.0.1:8080/dashboard`
-- `http://127.0.0.1:8080/overlays/central_event_overlay.html`
-- `http://127.0.0.1:8080/api/communication/status`
+- Remote-Modboard: `https://modboard.forrestcgn.de`
+- Hetzner Node intern: bevorzugt `127.0.0.1:3000`
+- öffentlich nur HTTPS/WSS
 
 ## Node-Neustart
 
-Für DASHUI1 nicht nötig.
+Für RDAP2.DOC1 nicht nötig.
 
 Grund:
 
@@ -144,3 +88,4 @@ Grund:
 - keine Overlay-HTML-Datei
 - keine Config
 - keine DB
+- kein Agent-Code

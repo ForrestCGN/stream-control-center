@@ -1,7 +1,7 @@
 # REMOTE DASHBOARD AGENT PLAN
 
-Stand: 2026-06-22
-Step: RDAP1 / Remote Dashboard Agent Plan
+Stand: 2026-06-22  
+Step: RDAP1 / Remote Dashboard Agent Plan + RDAP2-Verweis  
 Status: Planung, keine Umsetzung
 
 ## 1. Ziel
@@ -20,22 +20,45 @@ Keine direkte Mod-Verbindung zum Stream-PC.
 
 Dieser Plan beschreibt nur die Zielarchitektur und Regeln. Er implementiert noch keinen Agent-Code.
 
----
+## 2. Aktueller Entscheidungsstand
 
-## 2. Architektur
+RDAP1 hat die Zielrichtung festgelegt.
+
+RDAP2 konkretisiert die offenen Architekturentscheidungen in:
+
+```text
+docs/current/REMOTE_DASHBOARD_AGENT_RDAP2_DECISIONS.md
+```
+
+Wichtigster RDAP2-Stand:
+
+```text
+Subdomain: modboard.forrestcgn.de
+Webserver: Hetzner mit ISPConfig + nginx + Let's Encrypt
+Node-App: intern, bevorzugt 127.0.0.1:3000
+Agent: separater Node-Prozess auf dem Stream-PC
+lokales Backend: 127.0.0.1:8080
+NAS/MariaDB: optional lokale Backup-/Media-/Meta-Schicht
+Offline-Regel: keine produktive Bearbeitung/Aktion ohne Agent
+Locks: zentrales Edit-Session-/Lock-System
+```
+
+Diese Datei bleibt der grobe Architekturplan. Die konkreten RDAP2-Entscheidungen stehen in der RDAP2-Datei.
+
+## 3. Architektur
 
 Geplanter Aufbau:
 
 ```text
 Mods / Sound-Profi / Forrest
         ↓
-Web-Dashboard auf dem Webserver
+Remote-Modboard auf dem Webserver
         ↓
 Login / Rechteprüfung / API / Audit
         ↓
 WSS / WebSocket-Verbindung
         ↓
-Stream-PC-Agent
+separater Stream-PC-Agent
         ↓
 lokales stream-control-center / OBS / Sound / Media / Overlays
 ```
@@ -43,16 +66,15 @@ lokales stream-control-center / OBS / Sound / Media / Overlays
 Festgelegt:
 
 - Webserver ist die öffentliche Zentrale.
-- Stream-PC ist lokaler Agent / Ausführer.
-- Stream-PC verbindet sich aktiv zum Webserver.
+- Stream-PC ist lokaler Ausführer.
+- Stream-PC-Agent verbindet sich aktiv zum Webserver.
 - Keine Portfreigabe am Stream-PC.
 - Dynamische Heim-IP ist egal.
 - Mods greifen nicht direkt auf den Stream-PC zu.
 - Alle relevanten Aktionen laufen über Rechteprüfung und Audit.
+- Produktive Änderungen am Live-System laufen nur bei aktivem Agent.
 
----
-
-## 3. Webserver-Aufgaben
+## 4. Webserver-Aufgaben
 
 Der Webserver übernimmt später:
 
@@ -61,15 +83,14 @@ Der Webserver übernimmt später:
 - lokale Dashboard-Rollen
 - einzelne Permissions
 - Modulfreigaben
-- Dashboard-v2-API
+- Remote-Modboard / Dashboard-v2-API
 - Agent-Verwaltung
 - Agent-Status
-- Remote-Command-Queue
+- Remote-Action-Requests
 - Audit-Log
 - Media-Upload-Verwaltung
-- zentrale Textverwaltung
-- zentrale Config-/Einstellungsverwaltung
-- Lock-System für Multi-User-Bearbeitung
+- Bearbeitungsverwaltung
+- zentrales Edit-Session-/Lock-System
 - Statusverteilung an alle offenen Dashboards
 
 Wichtig:
@@ -79,9 +100,9 @@ Dashboard-Buttons sind keine Sicherheit.
 Sicherheit muss serverseitig geprüft werden.
 ```
 
----
+Der Webserver fragt den Stream-PC-Agent nicht für grundsätzliche Login- oder Rechteentscheidungen.
 
-## 4. Stream-PC-Agent-Aufgaben
+## 5. Stream-PC-Agent-Aufgaben
 
 Der Stream-PC-Agent übernimmt später:
 
@@ -91,7 +112,7 @@ Der Stream-PC-Agent übernimmt später:
 - lokalen Status melden
 - erlaubte Befehle empfangen
 - Payload gegen lokale Allowlist prüfen
-- Aktion lokal ausführen
+- erlaubte lokale Backend-API aufrufen
 - Ergebnis zurückmelden
 - Fehler zurückmelden
 - lokale Runtime schützen
@@ -107,9 +128,7 @@ Der Agent darf nicht:
 - raw config writes ausführen
 - DB-Befehle frei entgegennehmen
 
----
-
-## 5. WebSocket / WSS-Verbindung
+## 6. WebSocket / WSS-Verbindung
 
 Grundregel:
 
@@ -147,9 +166,7 @@ status
 localRuntimeStatus
 ```
 
----
-
-## 6. Agent-Authentifizierung
+## 7. Agent-Authentifizierung
 
 Minimaler geplanter Start:
 
@@ -173,37 +190,42 @@ Wichtig:
 - Agent kann serverseitig deaktiviert werden.
 - Agent-Aktionen dürfen nur für den jeweils freigegebenen Agent laufen.
 
----
+## 8. Erlaubte erste Agent-Actions
 
-## 7. Erlaubte erste Agent-Actions
-
-Für die erste technische Agent-Version klein starten.
-
-Sinnvolle erste Allowlist:
+RDAP3 Minimal-Agent:
 
 ```text
 agent.ping
 agent.status.request
+```
 
+Remote-Actions v1 nach stabilem Minimaltest nur lesend/statusbezogen:
+
+```text
+agent.ping
+agent.status.request
+agent.capabilities.request
+local.backend.status.request
+obs.status.request
 sound.status.request
+overlay.status.request
+```
+
+Noch nicht in v1:
+
+```text
+sound.play.live
+sound.test.live
 sound.pause
 sound.resume
 sound.stop_current
-sound.test
-
-overlay.status.request
-overlay.show
-overlay.hide
-
-obs.status.request
-```
-
-Noch nicht in die erste Runde:
-
-```text
+overlay.show.live
+overlay.hide.live
+obs.scene.switch
 media.delete
 media.write
 config.write
+texts.write
 commands.write
 channelpoints.write
 db.*
@@ -219,22 +241,20 @@ Erst Verbindung, Auth, Rechteprüfung, Ergebnisantwort und Audit sauber testen.
 Dann schrittweise kritischere Aktionen freigeben.
 ```
 
----
-
-## 8. Remote-Command-Struktur
+## 9. Remote-Command-Struktur
 
 Jeder Remote-Befehl braucht mindestens:
 
 ```json
 {
   "requestId": "uuid",
-  "action": "sound.test",
+  "action": "agent.ping",
   "payload": {},
   "actorUserId": "local-user-id",
   "actorDisplayName": "ForrestCGN",
   "issuedAt": "2026-06-22T12:00:00.000Z",
   "expiresAt": "2026-06-22T12:00:10.000Z",
-  "requiredPermission": "sounds.test",
+  "requiredPermission": "agent.actions.execute",
   "targetAgentId": "stream-pc-main"
 }
 ```
@@ -262,9 +282,7 @@ Der Agent prüft zusätzlich:
 - `expiresAt` ist gültig.
 - `requestId` wurde nicht bereits verarbeitet.
 
----
-
-## 9. Statusmeldungen
+## 10. Statusmeldungen
 
 Der Agent sollte regelmäßig Status senden:
 
@@ -298,9 +316,7 @@ lastCommandAt
 lastErrorAt
 ```
 
----
-
-## 10. Reconnect / Offline-Verhalten
+## 11. Reconnect / Offline-Verhalten
 
 Regeln:
 
@@ -308,11 +324,13 @@ Regeln:
 - Webserver markiert Agent nach Timeout als `offline`.
 - Dashboard zeigt Remote-Status klar an.
 - Remote-Aktionen werden blockiert, wenn kein passender Agent online ist.
+- Produktionsrelevante Bearbeitung wird blockiert, wenn Agent offline ist.
 - Abgelaufene Requests werden nicht mehr ausgeführt.
 - Nach Reconnect sendet Agent vollständigen Status.
 - Offene Dashboards bekommen Agent-Statusupdates.
 - Keine Aktion wird blind als erfolgreich behandelt.
 - Ergebnisantwort ist Pflicht.
+- Es gibt keine Offline-Queue und keine automatische spätere Ausführung.
 
 Beispielstatus:
 
@@ -325,9 +343,46 @@ auth_failed
 version_mismatch
 ```
 
----
+## 12. Edit-Session-/Lock-System
 
-## 11. Sicherheitsregeln
+Für Multi-User-Bearbeitung wird ein zentrales Edit-Session-/Lock-System geplant.
+
+Jede Bearbeitung bekommt:
+
+```text
+editSessionId
+lockId
+resourceKey
+resourceType
+resourceVersion
+ownerUserId
+ownerDisplayName
+clientId
+source: local-dashboard | remote-modboard
+agentRequired: true/false
+createdAt
+heartbeatAt
+expiresAt
+status
+```
+
+Jede produktive Änderung bekommt zusätzlich:
+
+```text
+requestId
+auditId
+correlationId
+```
+
+Produktionsrelevante Bearbeitung ist nur erlaubt, wenn:
+
+- User passende Permission hat
+- Modul freigegeben ist
+- Agent online ist
+- aktueller lokaler Stand geladen wurde
+- Resource nicht von jemand anderem gelockt ist
+
+## 13. Sicherheitsregeln
 
 Zwingende Regeln:
 
@@ -345,9 +400,7 @@ Zwingende Regeln:
 - Jede produktive Aktion ins Audit-Log.
 - Secrets nie im Klartext anzeigen oder loggen.
 
----
-
-## 12. Audit-Log
+## 14. Audit-Log
 
 Jede produktive Remote-Aktion muss auditierbar sein.
 
@@ -365,6 +418,8 @@ Ergebnis
 Fehler
 Dauer
 requestId
+editSessionId falls relevant
+resourceKey falls relevant
 ip/userAgent falls sinnvoll
 ```
 
@@ -385,9 +440,7 @@ Audit-Ziel:
 - Retention später konfigurierbar
 - kritische Aktionen besonders sichtbar
 
----
-
-## 13. Minimaler erster technischer Test später
+## 15. Minimaler erster technischer Test später
 
 Noch keine Umsetzung in diesem Step.
 
@@ -402,33 +455,9 @@ Ein späterer Minimal-Test sollte sein:
 7. Dashboard zeigt offline.
 8. Remote-Aktion wird sauber blockiert.
 
-Erst danach sollten Sound-/Overlay-/OBS-Actions produktiv angebunden werden.
+Erst danach sollten weitere Status-Actions geplant werden.
 
----
-
-## 14. Offene Fragen
-
-Noch zu klären:
-
-1. Läuft der öffentliche Webserver später ebenfalls mit Node.js?
-2. Welche Domain/Subdomain wird genutzt?
-3. Wie wird HTTPS/WSS bereitgestellt?
-4. Welche Daten bleiben primär lokal auf dem Stream-PC?
-5. Welche Daten werden führend auf dem Webserver?
-6. Wie werden Media-Dateien synchronisiert?
-7. Soll der Agent im bestehenden Backend laufen oder als separater Prozess?
-8. Wie viele Stream-PCs/Agents sollen perspektivisch unterstützt werden?
-9. Gibt es später einen Test-/Staging-Agent neben dem Live-Agent?
-10. Soll Agent-Secret manuell in Config liegen oder über Setup-Flow gekoppelt werden?
-11. Welche Agent-Actions kommen wirklich in Version 1?
-12. Wie werden abgebrochene/fehlgeschlagene Requests im Dashboard dargestellt?
-13. Welche Aktionen brauchen zusätzliche Bestätigung?
-14. Wie werden Media-Uploads geprüft und synchronisiert?
-15. Wie werden Papierkorb/Löschung bei Media umgesetzt?
-
----
-
-## 15. Nicht Teil dieses Steps
+## 16. Nicht Teil dieses Steps
 
 Nicht Teil dieses Planungssteps:
 

@@ -1,39 +1,52 @@
 # TODO
 
-Stand: RDAP1 + DASHUI1 / Dashboard-v2 Designrichtung dokumentiert
+Stand: RDAP2.DOC1 / Remote-Dashboard-Agent Architekturentscheidungen dokumentiert  
 Datum: 2026-06-22
 
 ## Remote Dashboard / Webserver-Agent
 
-- Architekturfragen für Webserver↔Stream-PC-Agent klären.
-- Entscheiden, was dauerhaft auf dem Webserver liegt.
-- Entscheiden, was dauerhaft auf dem Stream-PC bleibt.
-- Führende Datenquelle je Datenart planen:
-  - User/Rollen/Rechte
-  - Texte
-  - Configs
-  - Media
-  - Audit
-  - Runtime-Status
-- HTTPS/WSS-Basis klären.
-- Domain/Subdomain klären.
-- Agent-Betriebsform klären:
-  - bestehendes Backend-Modul
+Erledigt / entschieden in RDAP2:
+
+- Webserver↔Stream-PC-Agent Grundarchitektur geklärt.
+- Subdomain festgelegt: `modboard.forrestcgn.de`.
+- Hetzner + ISPConfig + nginx + Let's Encrypt als Webserver-Basis festgelegt.
+- Node-App intern auf Hetzner geplant, bevorzugt `127.0.0.1:3000`.
+- Stream-PC-Agent als separater Node-Prozess geplant.
+- Bestehendes lokales Backend bleibt Runtime auf `127.0.0.1:8080`.
+- Login/User/Rollen/Permissions/Modulfreigaben führen auf dem Webserver.
+- Agent wird nicht für grundsätzliche Login-/Rechteentscheidung abgefragt.
+- Agent offline bedeutet: produktive Bearbeitung und Aktionen gesperrt.
+- Keine Offline-Queue und keine automatische spätere Ausführung.
+- Texte/Configs produktiv führend auf dem Stream-PC.
+- NAS/MariaDB optional als private lokale Backup-/Media-/Meta-Schicht eingeplant.
+- Produktive SQLite bleibt unangetastet.
+- Remote-Actions v1 nur lesend/statusbezogen nach RDAP3.
+- Zentrales Edit-Session-/Lock-System als Multi-User-Basis geplant.
+
+Noch zu planen für RDAP3:
+
+- Minimal-Agent-Konzept:
   - separater Node-Prozess
-  - später evtl. Service
-- Minimal-Agent-Version planen:
-  - Anmeldung
-  - Heartbeat
-  - Status
-  - `agent.ping`
-  - Ergebnisantwort
-  - Audit
-- Agent-Allowlist konkret finalisieren.
-- Payload-Schemas für Agent-Actions planen.
-- Offline-/Reconnect-Verhalten finalisieren.
-- Agent-Statusanzeige fürs spätere Dashboard planen.
+  - Config-Datei
+  - `agentId`
+  - `agentName`
+  - `serverUrl`
+  - `agentSecret`
+  - `localBackendUrl`
+  - Allowlist
+- WSS-Verbindung planen.
+- Auth/Handshake planen.
+- Heartbeat planen.
+- `agent.ping` planen.
+- `agent.status.request` planen.
+- Ergebnisantwort planen.
+- Audit-Voreintrag und Audit-Abschluss planen.
+- Offline-/Reconnect-Verhalten konkretisieren.
+- Keine Sound-/OBS-/Media-/Config-/Text-Actions in RDAP3.
 
 ## Rollen / Permissions / Multi-User
+
+Noch zu planen für RDAP4:
 
 - Rollenmatrix aus `docs/current/DASHBOARD_ROLES_PERMISSIONS_MATRIX.md` prüfen und finalisieren.
 - Lokale Dashboard-Rollen gegen Twitch-Rollen-Mapping prüfen.
@@ -42,58 +55,50 @@ Datum: 2026-06-22
 - Permission-Gruppen finalisieren.
 - Modulfreigaben finalisieren.
 - Schutzstufen finalisieren.
-- Lock-System technisch planen:
-  - Lock-Key
+- Edit-Session-/Lock-System technisch planen:
+  - `resourceKey`
+  - `resourceType`
+  - `resourceVersion`
+  - `editSessionId`
+  - `lockId`
+  - `clientId`
+  - `source`
+  - `agentRequired`
   - Heartbeat
   - Timeout
   - Übernahme
   - Audit
 - Klären, welche Rollen Locks übernehmen dürfen.
 - Klären, welche Bereiche zwingend Locks brauchen.
+- Konfliktverhalten bei veralteter `resourceVersion` planen.
+- Verhalten bei Agent-Verlust während Bearbeitung planen.
+- Lokales Dashboard und Remote-Modboard auf denselben Lock-/Edit-Session-Mechanismus planen.
 
 ## Dashboard-v2 Design / Frontend
 
 - `docs/current/DASHBOARD_V2_DESIGN_FRONTEND_PLAN.md` als aktuelle Designbasis verwenden.
 - `React + Vite` als bevorzugte Frontend-Richtung technisch prüfen/finalisieren.
 - Build-/Deploy-Ziel nach `htdocs/dashboard-v2/` planen.
-- Eigenes CGN-Designsystem planen:
-  - Cards
-  - Buttons
-  - Chips
-  - Tabellen
-  - Pagination
-  - Timeline
-  - Switches
-  - Modals
-  - Toasts
-  - Progress
-  - ModuleTabs
-  - PageHeader
+- Remote-Ziel `modboard.forrestcgn.de` einplanen.
+- Lokale Nutzung unter `127.0.0.1:8080/dashboard-v2` einplanen.
+- Eigenes CGN-Designsystem planen.
 - Modul-Registry planen.
 - Navigation-Registry planen.
-- Sidebar-Regel festhalten:
-  - Hauptkategorie → Modul
-  - keine dritte Sidebar-Ebene
+- Sidebar-Regel festhalten: Hauptkategorie → Modul, keine dritte Sidebar-Ebene.
 - Modul-Navi/Tabs innerhalb der Modulseite planen.
-- Topbar-Standortanzeige übernehmen:
-  - `Hauptbereich`
-  - `Modul • aktiver Tab`
-- Normale Modul-Seiten als einheitliches Muster planen:
-  - PageHeader
-  - Modul-Tabs
-  - KPI-/Status-Zeile
-  - Hauptkarte mit wichtigen Aktionen
-  - Verlauf/Timeline
-  - einfache Optionen nur wenn sinnvoll
-- Admin-Bereich für technische Dinge planen:
-  - Rollen/Rechte
-  - Locks
-  - Audit
-  - Diagnose
-  - Texte
-  - Configs
+- Admin-Bereich für technische Dinge planen: Rollen/Rechte, Edit-Sessions/Locks, Audit, Diagnose, Texte, Configs.
 - Keine Creative-Tim-/Vision-UI-Codebasis übernehmen.
-- Creative Tim / Vision UI nur als Inspiration verwenden.
+
+## NAS / MariaDB
+
+Später separat planen:
+
+- Backup-Konzept für Repo, Config, htdocs, backend, data, SQLite und Media.
+- SQLite-Backup nicht blind im laufenden Betrieb kopieren.
+- NAS als Media-Archiv / Media-Master planen.
+- Stream-PC lokale Live-Kopien planen.
+- MariaDB optional für Snapshots, Versionen, Meta-Daten, Sync-Status, lokale Audit-Kopie, Backup-Index.
+- Keine Migration bestehender SQLite-Daten ohne separaten Plan.
 
 ## HypeTrain / Central Event Overlay
 
@@ -109,13 +114,6 @@ Datum: 2026-06-22
 - Level-Up-Sound auswählen und aktivieren, sobald ein passendes Medium vorhanden ist.
 - Ende-Sound auswählen und aktivieren, sobald ein passendes Medium vorhanden ist.
 
-## Dashboard / Security / größere Refactors
-
-- Dashboard-Cleanup-/Refactor-Step separat planen.
-- Userverwaltung/Anmeldung/Permissions separat planen.
-- Produktive API-Routen später serverseitig permissionfähig absichern.
-- Audit-Logging für produktive Dashboard-/Mod-/Admin-Aktionen weiter vorbereiten.
-
 ## Dauerhafte Schutzregeln
 
 - Keine bestehenden Funktionen entfernen.
@@ -124,3 +122,5 @@ Datum: 2026-06-22
 - Tests/Diagnose getrennt von normaler Konfiguration halten.
 - Remote-Actions nur über Allowlist.
 - Jede produktive Remote-Aktion braucht Rechteprüfung und Audit.
+- Keine Offline-Queue für produktive Aktionen.
+- Keine automatische spätere Ausführung nach Agent-Reconnect.
