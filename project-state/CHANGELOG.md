@@ -1,11 +1,7 @@
 # Changelog
 
-## HT3.2 – HypeTrain Event-Action Config
+## HT3.3.3
 
-- HypeTrain auf `0.2.3` / `STEP_HT3_2_1_HYPETRAIN_EVENT_SOUND_HAS_MEDIA_HOTFIX` angehoben.
-- Neue Routen für Event-Action-Konfiguration ergänzt:
-  - `GET /api/hypetrain/event-actions`
-  - `POST /api/hypetrain/event-actions`
-- SoundSystem-Felder für Start, Level-Up, Ende und Rekord vollständig vorbereitet.
-- Overlay-Event-Felder inklusive Channel und TTL vorbereitet.
-- Standard bleibt sicher: alle neuen Sounds/Overlay-Events aus.
+- Fix: Event-Actions werden nicht mehr unten an die Übersicht angehängt.
+- Event-Actions-Tab nutzt Capture-Handler und blendet andere HypeTrain-Tab-Inhalte aus.
+- Beim Wechsel auf andere Tabs wird der Event-Actions-Container entfernt.

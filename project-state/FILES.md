@@ -1,14 +1,12 @@
-# Files – HT3.2
+# Files – HT3.3.3
 
-Geänderte Dateien:
+Geändert:
 
 ```text
-backend/modules/hypetrain.js
-htdocs/overlays/hypetrain/hypetrain_overlay.html
-docs/modules/hypetrain.md
-docs/modules/tagebuch.md
-docs/current/HT3_2_HYPETRAIN_EVENT_ACTION_CONFIG.md
-docs/current/CURRENT_CHAT_HANDOFF_HYPETRAIN_HT3_2_2026-06-22.md
+htdocs/dashboard/index.html
+htdocs/dashboard/modules/hypetrain_event_actions.js
+htdocs/dashboard/modules/hypetrain_event_actions.css
+docs/current/HT3_3_2_HYPETRAIN_DASHBOARD_EVENT_ACTIONS_TAB_ONLY.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -19,8 +17,7 @@ project-state/FILES.md
 Nicht geändert:
 
 ```text
+backend/modules/hypetrain.js
 backend/modules/sound_system.js
-backend/modules/tagebuch.js
-backend/modules/communication_bus.js
-Datenbankdatei
+Datenbank
 ```

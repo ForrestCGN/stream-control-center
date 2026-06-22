@@ -1,16 +1,6 @@
-# Next Steps
+# Next Steps – HT3.3.3
 
-## Nächster sinnvoller Schritt
-
-Dashboard-UI für HypeTrain Event-Actions vorbereiten:
-
-- Start / Level-Up / Ende / Rekord als Bereiche anzeigen
-- Sound aktivieren/deaktivieren
-- Media-ID über vorhandenes Media-System auswählen
-- Overlay-Event aktivieren/deaktivieren
-- Testbuttons für Dry-Run und produktiven Test mit Bestätigung
-
-Nicht vergessen:
-- Sound-System bleibt Owner.
-- Keine direkte Audioausgabe im Overlay.
-- Keine fertige Overlay-Animation bauen, bevor Layout/Design besprochen ist.
+1. Dashboard mit Cachebuster öffnen.
+2. Übersicht prüfen: kein Event-Actions-Block unten.
+3. Event-Actions prüfen: eigener Tab-Inhalt ohne Übersicht.
+4. Danach StepDone.
