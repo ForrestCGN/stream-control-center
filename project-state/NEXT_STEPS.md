@@ -1,15 +1,20 @@
-# Next Steps – HT3.6
+# Next Steps – HT3.8
 
-1. HT3.6 einspielen.
-2. Dashboard hart neu laden.
-3. Prüfen:
-   - Übersicht sauber.
-   - Event-Actions ohne Test-/Dry-Run-Buttons.
-   - Tests/Prüfungen nur im Tests-Tab.
-   - Keine `hypetrain_event_actions.*` Dateien vorhanden.
-4. Danach Event-Actions praktisch testen:
-   - Speichern.
-   - Media-Auswahl.
-   - Sound an/aus.
-   - Overlay-Bus an/aus.
-5. Danach echte HypeTrain-Sounds auswählen.
+1. HT3.8 einspielen.
+2. Dashboard mit Cachebuster öffnen.
+3. HypeTrain → Übersicht prüfen:
+   - Start = Sound bereit.
+   - Rekord = Sound bereit.
+   - Stufenaufstieg = geplant/offen.
+   - Ende = geplant/offen.
+4. HypeTrain → Event-Actions prüfen:
+   - Start/Rekord bleiben aktiv.
+   - Level-Up/Ende bleiben aus.
+5. Danach StepDone.
+
+Später:
+
+- Level-Up-Sound ergänzen, sobald Sound vorhanden ist.
+- Ende-Sound ergänzen, sobald Sound vorhanden ist.
+- Zentrales Stream-/Event-Overlay mit HypeTrain-Template/Modus bauen.
+- Live-Test mit echtem HypeTrain.

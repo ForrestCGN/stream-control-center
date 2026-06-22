@@ -126,14 +126,20 @@
           </div>
         </section>
         <section class="ht-card glass">
-          <h3>Event-Actions</h3>
+          <h3>Beim nächsten echten HypeTrain aktiv</h3>
+          <div class="ht-live-action-list">
+            ${renderLiveActionPill('start', 'Start')}
+            ${renderLiveActionPill('levelUp', 'Stufenaufstieg')}
+            ${renderLiveActionPill('end', 'Ende')}
+            ${renderLiveActionPill('record', 'Rekord')}
+          </div>
           <dl class="ht-dl compact">
             <dt>Aktive Aktionen</dt><dd>${esc(eaSummary.activeActions)} von ${esc(eaSummary.totalActions)}</dd>
             <dt>Sound bereit</dt><dd>${esc(eaSummary.readySounds)} Sound-Konfiguration(en)</dd>
             <dt>Zentrales Overlay</dt><dd>${esc(eaSummary.activeOverlays)} Bus-Event(s)</dd>
-            <dt>Status</dt><dd>${eaSummary.activeActions ? 'vorbereitet' : 'alles aus'}</dd>
+            <dt>Offen</dt><dd>${esc(eaSummary.plannedOpen)} geplant/offen</dd>
           </dl>
-          <div class="ht-note">Details liegen im Tab <strong>Event-Actions</strong>. Die Übersicht bleibt nur Zusammenfassung.</div>
+          <div class="ht-note">Details und Medienauswahl liegen im Tab <strong>Event-Actions</strong>. Diese Übersicht zeigt nur, was beim nächsten echten HypeTrain aktiv wäre.</div>
         </section>
         <section class="ht-card glass">
           <h3>Zentrales Overlay & Runtime</h3>
@@ -356,8 +362,24 @@
       activeActions: actions.filter(item => item.soundActive || item.overlayActive).length,
       readySounds: actions.filter(item => item.soundActive && item.hasMedia).length,
       activeOverlays: actions.filter(item => item.overlayActive).length,
-      incomplete: actions.filter(item => (item.soundActive || item.overlayActive) && !item.ready).length
+      incomplete: actions.filter(item => (item.soundActive || item.overlayActive) && !item.ready).length,
+      plannedOpen: actions.filter(item => !(item.soundActive || item.overlayActive)).length
     };
+  }
+
+  function liveActionText(info){
+    if (info.soundActive && info.hasMedia && info.overlayActive) return 'Sound + Overlay bereit';
+    if (info.soundActive && info.hasMedia) return 'Sound bereit';
+    if (info.soundActive && !info.hasMedia) return 'Sound aktiv, Medium fehlt';
+    if (info.overlayActive) return 'Overlay-Bus aktiv';
+    return 'geplant / offen';
+  }
+
+  function renderLiveActionPill(key, label){
+    const info = eventActionReadyState(key);
+    const active = info.soundActive || info.overlayActive;
+    const cls = active && info.ready ? 'ok' : (active ? 'warn' : 'idle');
+    return `<div class="ht-live-action ${cls}"><strong>${esc(label)}</strong><span>${esc(liveActionText(info))}</span></div>`;
   }
 
   function eventActionFieldId(action, part){
@@ -396,8 +418,14 @@
           <section class="ht-ea-subcard">
             <h5>Sound</h5>
             <label class="ht-ea-check"><input type="checkbox" data-ht-ea-field="sound.enabled" ${bool(sound.enabled) ? 'checked' : ''}> Sound aktiv</label>
-            <label>Medium<input id="${esc(eventActionFieldId(action.key, 'mediaId'))}" type="number" min="0" step="1" data-ht-ea-field="sound.mediaId" value="${esc(sound.mediaId || 0)}"></label>
-            <div class="ht-ea-media" data-media-field data-module-key="hypetrain" data-category-key="hypetrain_${esc(action.key)}" data-allowed-types="audio" data-title="${esc(action.label)} Sound auswählen" data-value-input="#${esc(eventActionFieldId(action.key, 'mediaId'))}"></div>
+            <input id="${esc(eventActionFieldId(action.key, 'mediaId'))}" type="hidden" data-ht-ea-field="sound.mediaId" value="${esc(sound.mediaId || 0)}">
+            <div class="ht-ea-media" data-media-field data-module-key="hypetrain" data-category-key="${esc(action.key)}" data-allowed-types="audio" data-title="${esc(action.label)} Sound auswählen oder hochladen" data-value-input="#${esc(eventActionFieldId(action.key, 'mediaId'))}">
+              <div class="ht-ea-media-head">
+                <strong>Sound auswählen / hochladen</strong>
+                <small>Zentrales Media-Fenster · Modul <code>hypetrain</code> · Kategorie <code>${esc(action.key)}</code></small>
+              </div>
+              <div class="ht-ea-selected-media">Media-ID: <code data-ht-ea-media-id-label="${esc(action.key)}">${esc(sound.mediaId || 0)}</code></div>
+            </div>
             <label>Bezeichnung<input type="text" data-ht-ea-field="sound.label" value="${esc(sound.label || action.label)}"></label>
             <details class="ht-ea-advanced">
               <summary>Erweiterte Sound-Einstellungen</summary>
@@ -448,7 +476,7 @@
           </div>
         </div>
         <div class="ht-status-row ht-ea-status">
-          <span class="ht-badge">HT3.6</span>
+          <span class="ht-badge">HT3.8</span>
           <span class="ht-badge">Owner: ${esc(soundSystem.owner || 'sound_system')}</span>
           <span class="ht-badge">Aktiv: ${esc(summary.activeActions)} von ${esc(summary.totalActions)}</span>
           <span class="ht-badge ${summary.incomplete ? 'warn' : 'ok'}">${summary.incomplete ? `${esc(summary.incomplete)} unvollständig` : 'Konfig sauber'}</span>
@@ -458,7 +486,7 @@
         ${state.eventActionsError ? `<div class="ht-error">${esc(state.eventActionsError)}</div>` : ''}
         ${state.eventActionsLastSavedAt ? `<div class="ht-success">Event-Actions gespeichert: ${esc(state.eventActionsLastSavedAt)}</div>` : ''}
         <div class="ht-ea-grid">${eventActionDefs.map(renderEventActionCard).join('')}</div>
-        <div class="ht-note">Dieser Tab ist nur für Konfiguration. HypeTrain sendet Bus-Events an das zentrale Overlay-System. Die finale HypeTrain-Anzeige entsteht später dort als Template/Modus, nicht als parallele Overlay-Insel. Tests und Diagnose liegen getrennt im Tab <strong>Tests</strong>.</div>
+        <div class="ht-note">Dieser Tab ist nur für Konfiguration. Sounds werden über das zentrale Media-Fenster ausgewählt oder hochgeladen und als Media-ID gespeichert. HypeTrain sendet Bus-Events an das zentrale Overlay-System. Die finale HypeTrain-Anzeige entsteht später dort als Template/Modus, nicht als parallele Overlay-Insel. Tests und Diagnose liegen getrennt im Tab <strong>Tests</strong>.</div>
       </section>
     `;
   }
@@ -529,6 +557,14 @@
         const action = btn.dataset.htEaAction;
         if (action === 'reload') return loadEventActions(true);
         if (action === 'save') return saveEventActions();
+      });
+    });
+    root.querySelectorAll('[data-ht-ea-action-key]').forEach(card => {
+      card.addEventListener('media-field:change', event => {
+        const actionKey = card.dataset.htEaActionKey || '';
+        const mediaId = event.detail?.mediaId || '0';
+        const label = card.querySelector(`[data-ht-ea-media-id-label="${actionKey}"]`);
+        if (label) label.textContent = mediaId || '0';
       });
     });
     try { window.MediaField?.initAll(root); } catch (_) {}
@@ -659,7 +695,7 @@
     el.innerHTML = `
       <div class="hypetrain-shell">
         <div class="ht-topline">
-          <div><h1>🚂 HypeTrain</h1><p>DB-basiertes HypeTrain-Fachmodul für Status, Config, Event-Actions, Texte, Statistik und Tests.</p></div>
+          <div><h1>🚂 HypeTrain</h1><p>DB-basiertes HypeTrain-Fachmodul für Status, Config, Event-Actions, Texte, Statistik und Prüfungen.</p></div>
           <button type="button" data-ht-action="reload">Aktualisieren</button>
         </div>
         ${renderTabs()}

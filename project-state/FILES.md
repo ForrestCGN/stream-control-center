@@ -1,4 +1,4 @@
-# Files – HT3.6
+# Files – HT3.8
 
 Geändert:
 
@@ -6,7 +6,7 @@ Geändert:
 htdocs/dashboard/modules/hypetrain.js
 htdocs/dashboard/modules/hypetrain.css
 docs/modules/hypetrain.md
-docs/current/HT3_6_HYPETRAIN_DASHBOARD_DIAGNOSE_WORDING_CLEANUP.md
+docs/current/HT3_8_HYPETRAIN_LIVE_STATUS_BEDIENBARKEIT.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -19,13 +19,7 @@ Nicht geändert:
 ```text
 backend/modules/hypetrain.js
 backend/modules/sound_system.js
+backend/modules/media.js
 htdocs/dashboard/index.html
 Datenbank
-```
-
-Entfernt/bleibt entfernt:
-
-```text
-htdocs/dashboard/modules/hypetrain_event_actions.js
-htdocs/dashboard/modules/hypetrain_event_actions.css
 ```

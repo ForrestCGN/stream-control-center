@@ -1,8 +1,8 @@
 # TODO – HypeTrain
 
-- [ ] HT3.6 Dashboard-Wording/Diagnose-Cleanup einspielen und prüfen.
-- [ ] Event-Actions-Speichern im Dashboard testen.
-- [ ] Media-Auswahl pro Aktion testen.
-- [ ] SoundSystem-Aufruf mit echter Media-ID kontrolliert testen.
-- [ ] Overlay-Bus-Event mit zentralem Overlay-System später anbinden.
+- [ ] HT3.8 Dashboard Live-Status prüfen.
+- [ ] HT3.8 StepDone nach Sichtprüfung.
+- [ ] Später Level-Up-Sound per HypeTrain Event-Actions ergänzen.
+- [ ] Später Ende-Sound per HypeTrain Event-Actions ergänzen.
+- [ ] Später zentrales Overlay-System mit HypeTrain-Template/Modus bauen.
 - [ ] Live-Test mit echtem HypeTrain durchführen.
