@@ -1,25 +1,65 @@
 # FILES
 
-Stand: RDAP1 / Remote Dashboard Agent Plan
+Stand: RDAP1 + DASHUI1 / Dashboard-v2 Designrichtung dokumentiert
 Datum: 2026-06-22
 
-## In diesem ZIP enthalten
+## Art des aktuellen Doku-Stands
+
+Reiner Doku-/Planungsstand.
+
+Es werden keine Runtime-Dateien geändert.
+
+## Neu / aktualisiert
 
 - `docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md`
 - `docs/current/DASHBOARD_ROLES_PERMISSIONS_MATRIX.md`
+- `docs/current/DASHBOARD_V2_DESIGN_FRONTEND_PLAN.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
 
-## Art des Steps
+## Neue Design-/Frontend-Plan-Datei
 
-Reiner Doku-/Planungsstep.
+### `docs/current/DASHBOARD_V2_DESIGN_FRONTEND_PLAN.md`
 
-Es werden keine Runtime-Dateien geändert.
+Enthält:
 
-## Wichtige Runtime-Dateien, die durch dieses Doku-ZIP NICHT geändert werden
+- bestätigte Dashboard-v2 Designrichtung
+- CGN-Dark-/Neon-/Galaxy-Stil
+- Vision-UI-artige Designinspiration ohne Codeübernahme
+- Topbar-Regeln
+- Sidebar-Regeln
+- Modul-Navi-/Tab-Regeln
+- einheitlichen Seitenaufbau für Streamer-/Mod-Seiten
+- Admin-Abgrenzung für technische Bereiche
+- React/Vite als bevorzugte Frontend-Richtung
+- CGN-Komponentensystem
+- Modul-Registry-Idee
+- wichtige Komponentenliste
+- relevante Design-Teststände v8 bis v13
+
+## Wichtigster Design-Teststand aus dem Chat
+
+- `DASHBOARD_V2_DESIGN_TEST_V13_TOPBAR_TAB_INLINE.zip`
+
+Dieser ZIP-Stand wurde im Chat erzeugt, aber nicht als Runtime-Datei ins Repo übernommen.
+
+## Bestätigte UI-Regeln aus v13
+
+- Sidebar = Hauptkategorie → Modul
+- keine dritte Sidebar-Ebene
+- Modul-Navi/Tabs innerhalb der Modulseite
+- Topbar zeigt `Hauptbereich` und `Modul • aktiver Tab`
+- aktiver Tab steht inline hinter dem Modulnamen
+- Topbar fixed mit Scroll-Rand-Effekt
+- Sidebar fixed auf Desktop
+- Sidebar Drawer unter ca. 1180px
+- normale Seiten bleiben streamer-/modfreundlich
+- Admin bündelt Technik, tiefe Configs, Diagnose, Rechte und Audit
+
+## Wichtige Runtime-Dateien, die durch diesen Doku-Stand NICHT geändert werden
 
 - `server.js`
 - `backend/modules/*`
@@ -41,7 +81,7 @@ Es werden keine Runtime-Dateien geändert.
 - `htdocs/dashboard/modules/hypetrain.js`
 - `htdocs/dashboard/modules/hypetrain.css`
 
-## Neue Plan-Dateien
+## Plan-Dateien
 
 ### `docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md`
 
@@ -94,7 +134,7 @@ Aktueller lokaler Stand:
 
 ## Node-Neustart
 
-Für RDAP1 nicht nötig.
+Für DASHUI1 nicht nötig.
 
 Grund:
 
