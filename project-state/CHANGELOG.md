@@ -1,5 +1,36 @@
 # CHANGELOG
 
+## DASHUI1 / Dashboard-v2 Design- und Frontend-Richtung – 2026-06-22
+
+- Neue Plan-Datei ergänzt:
+  - `docs/current/DASHBOARD_V2_DESIGN_FRONTEND_PLAN.md`
+- Projektstatus aktualisiert:
+  - `project-state/CURRENT_STATUS.md`
+  - `project-state/NEXT_STEPS.md`
+  - `project-state/TODO.md`
+  - `project-state/FILES.md`
+- Festgehalten:
+  - bestätigte Designrichtung aus den isolierten Design-Tests v8 bis v13
+  - wichtigster Chat-Teststand: `DASHBOARD_V2_DESIGN_TEST_V13_TOPBAR_TAB_INLINE.zip`
+  - CGN-Dark-/Neon-/Galaxy-Stil
+  - Vision-UI-/Creative-Tim nur als Inspiration, kein Code/Template übernommen
+  - Topbar fixed mit Scroll-Rand-Effekt
+  - Topbar zeigt `Hauptbereich` und `Modul • aktiver Tab`
+  - aktiver Tab steht inline hinter dem Modulnamen
+  - Sidebar fixed auf Desktop, Drawer unter ca. 1180px
+  - Sidebar = Hauptkategorie → Modul
+  - keine dritte Sidebar-Ebene
+  - Modul-Navi/Tabs innerhalb der Modulseite
+  - normale Streamer-/Mod-Seiten bleiben einheitlich und einfach
+  - Admin bündelt Technik, tiefe Config, Diagnose, Rechte und Audit
+  - `React + Vite` ist wegen Projektgröße die bevorzugte Frontend-Richtung
+  - eigenes CGN-Designsystem und Modul-/Navigation-Registry sollen geplant werden
+- Kein Backend geändert.
+- Kein produktives Dashboard geändert.
+- Keine DB geändert.
+- Keine Config geändert.
+- Keine Runtime-Datei geändert.
+
 ## RDAP1 / Remote Dashboard Agent Plan – 2026-06-22
 
 - Neue Plan-Datei ergänzt:
@@ -16,7 +47,6 @@
   - Priorität ist sichere Webserver↔Stream-PC-Anbindung.
   - Stream-PC verbindet sich später aktiv per WSS/WebSocket zum Webserver.
   - Keine Portfreigabe am Stream-PC.
-  - Keine freien Shell-/Datei-/Prozessbefehle.
   - Remote-Actions nur über Allowlist.
   - Rechteprüfung, requestId, expiresAt, Ergebnisantwort und Audit sind Pflicht.
   - Multi-User und Bearbeitungs-Locks sind Pflichtbestandteil der Planung.
