@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CGN Central Event Overlay</title>
+  <style>
+    :root {
+      --cgn-bg: rgba(8, 10, 22, 0.78);
+      --cgn-panel: rgba(15, 18, 38, 0.88);
+      --cgn-border: rgba(176, 64, 255, 0.72);
+      --cgn-border-soft: rgba(70, 179, 255, 0.56);
+      --cgn-text: #f7f7ff;
+      --cgn-muted: #b9c2dc;
+      --cgn-accent: #b945ff;
+      --cgn-blue: #44c7ff;
+      --cgn-danger: #ff5e89;
+      --cgn-ok: #62f5b1;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: transparent;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--cgn-text);
+    }
+
+    body.debug {
+      background: rgba(0, 0, 0, 0.24);
+    }
+
+    .stage {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .card {
+      width: min(980px, calc(100vw - 96px));
+      min-height: 180px;
+      padding: 28px 34px;
+      border: 2px solid var(--cgn-border);
+      border-radius: 28px;
+      background:
+        radial-gradient(circle at 12% 20%, rgba(185, 69, 255, 0.22), transparent 34%),
+        radial-gradient(circle at 88% 82%, rgba(68, 199, 255, 0.18), transparent 34%),
+        var(--cgn-panel);
+      box-shadow:
+        0 0 28px rgba(185, 69, 255, 0.52),
+        0 0 60px rgba(68, 199, 255, 0.18),
+        inset 0 0 26px rgba(68, 199, 255, 0.08);
+      opacity: 0;
+      transform: translateY(28px) scale(0.98);
+      transition: opacity 220ms ease, transform 220ms ease;
+    }
+
+    .card.visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    .eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--cgn-blue);
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      text-shadow: 0 0 12px rgba(68, 199, 255, 0.58);
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      background: var(--cgn-accent);
+      box-shadow: 0 0 14px rgba(185, 69, 255, 0.95);
+      flex: 0 0 auto;
+    }
+
+    .title {
+      margin-top: 14px;
+      font-size: 46px;
+      line-height: 1.05;
+      font-weight: 900;
+      text-shadow:
+        0 0 18px rgba(185, 69, 255, 0.64),
+        0 0 26px rgba(68, 199, 255, 0.26);
+    }
+
+    .message {
+      margin-top: 14px;
+      color: var(--cgn-muted);
+      font-size: 24px;
+      line-height: 1.32;
+      font-weight: 700;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 18px;
+      color: rgba(247, 247, 255, 0.76);
+      font-size: 14px;
+    }
+
+    .pill {
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .debug-panel {
+      position: fixed;
+      left: 18px;
+      bottom: 18px;
+      width: min(760px, calc(100vw - 36px));
+      max-height: 42vh;
+      overflow: auto;
+      padding: 14px 16px;
+      border: 1px solid rgba(68, 199, 255, 0.42);
+      border-radius: 14px;
+      background: rgba(4, 7, 16, 0.86);
+      box-shadow: 0 0 22px rgba(68, 199, 255, 0.12);
+      color: #d8eaff;
+      font: 12px/1.42 Consolas, Monaco, monospace;
+      white-space: pre-wrap;
+      pointer-events: auto;
+      display: none;
+    }
+
+    body.debug .debug-panel {
+      display: block;
+    }
+
+    .status {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      display: none;
+      gap: 8px;
+      align-items: center;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(4, 7, 16, 0.76);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--cgn-muted);
+      font: 12px/1.2 Arial, Helvetica, sans-serif;
+    }
+
+    body.debug .status {
+      display: flex;
+    }
+
+    .status .indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--cgn-danger);
+      box-shadow: 0 0 10px rgba(255, 94, 137, 0.7);
+    }
+
+    .status.connected .indicator {
+      background: var(--cgn-ok);
+      box-shadow: 0 0 10px rgba(98, 245, 177, 0.7);
+    }
+  </style>
+</head>
+<body>
+  <main class="stage" aria-live="polite">
+    <section id="card" class="card" role="status">
+      <div class="eyebrow"><span class="dot"></span><span id="eventType">Central Event</span></div>
+      <div id="title" class="title">Warte auf Event</div>
+      <div id="message" class="message">Communication Bus verbunden? Öffne mit ?debug=1 für technische Details.</div>
+      <div id="meta" class="meta"></div>
+    </section>
+  </main>
+
+  <aside id="debugPanel" class="debug-panel">Initialisiere...</aside>
+  <aside id="status" class="status"><span class="indicator"></span><span id="statusText">offline</span></aside>
+
+  <script>
+    window.CGN_OVERLAY_BUS = {
+      clientId: 'overlay:central_event_overlay',
+      clientType: 'overlay',
+      mode: 'obs',
+      module: 'central_event_overlay',
+      name: 'Central Event Overlay',
+      version: '0.1.0',
+      capabilities: [
+        'overlay.heartbeat',
+        'central_event_overlay',
+        'hypetrain.display',
+        'generic.message'
+      ],
+      meta: {
+        overlay: 'central_event_overlay',
+        step: 'HT4.0',
+        role: 'central_event_display'
+      }
+    };
+  </script>
+  <script src="/overlays/shared/overlay_bus_client.js" data-overlay-id="central_event_overlay" data-module="central_event_overlay" data-name="Central Event Overlay" data-version="0.1.0"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      const params = new URLSearchParams(window.location.search || '');
+      const DEBUG = params.get('debug') === '1' || params.get('debug') === 'true';
+      const AUTOSHOW = params.get('autoshow') === '1' || params.get('show') === '1';
+      const SHOW_MS = clampInt(params.get('durationMs') || params.get('duration'), 1800, 60000, 8000);
+      const ACCEPTED_EVENTS = new Set([
+        'hypetrain.start',
+        'hypetrain.level_up',
+        'hypetrain.levelup',
+        'hypetrain.end',
+        'hypetrain.record',
+        'generic.message'
+      ]);
+
+      const body = document.body;
+      const card = document.getElementById('card');
+      const eventTypeEl = document.getElementById('eventType');
+      const titleEl = document.getElementById('title');
+      const messageEl = document.getElementById('message');
+      const metaEl = document.getElementById('meta');
+      const debugPanel = document.getElementById('debugPanel');
+      const statusEl = document.getElementById('status');
+      const statusTextEl = document.getElementById('statusText');
+
+      let hideTimer = null;
+      let lastEvent = null;
+
+      if (DEBUG) {
+        body.classList.add('debug');
+      }
+
+      if (AUTOSHOW || DEBUG) {
+        showCard({
+          eventName: 'generic.message',
+          title: 'Central Event Overlay',
+          message: 'Overlay geladen. Warte auf Communication-Bus-Events.',
+          meta: ['HT4.0', DEBUG ? 'debug=1' : 'preview']
+        }, DEBUG ? 0 : 4000);
+      }
+
+      window.addEventListener('cgn:overlay-bus-open', function (event) {
+        updateStatus(true, event.detail);
+        writeDebug('BUS OPEN', event.detail);
+      });
+
+      window.addEventListener('cgn:overlay-bus-close', function (event) {
+        updateStatus(false, event.detail);
+        writeDebug('BUS CLOSE', event.detail);
+      });
+
+      window.addEventListener('cgn:overlay-bus-message', function (event) {
+        const raw = event.detail || {};
+        const normalized = normalizeBusEvent(raw);
+        lastEvent = raw;
+        writeDebug('BUS MESSAGE', raw);
+
+        if (!shouldHandle(normalized)) {
+          writeDebug('IGNORED', normalized);
+          return;
+        }
+
+        showCard(normalized, normalized.durationMs);
+      });
+
+      window.CGNCentralEventOverlay = {
+        show: function (payload) {
+          const normalized = normalizeBusEvent(payload || {});
+          showCard(normalized, normalized.durationMs);
+        },
+        hide: hideCard,
+        lastEvent: function () {
+          return lastEvent;
+        }
+      };
+
+      function normalizeBusEvent(raw) {
+        const payload = raw.payload || raw.data || raw.detail || raw.body || {};
+        const meta = raw.meta || payload.meta || {};
+        const channel = firstString(raw.channel, raw.topic, raw.event, raw.type, payload.channel, payload.topic, payload.event, payload.type, meta.channel, meta.topic);
+        const action = firstString(raw.action, payload.action, meta.action);
+        const eventName = canonicalEventName(channel, action, raw, payload, meta);
+        const title = firstString(
+          raw.title,
+          payload.title,
+          payload.heading,
+          payload.label,
+          meta.title,
+          defaultTitle(eventName)
+        );
+        const message = firstString(
+          raw.message,
+          raw.text,
+          payload.message,
+          payload.text,
+          payload.description,
+          payload.body,
+          meta.message,
+          defaultMessage(eventName, payload)
+        );
+        const durationMs = clampInt(raw.durationMs || payload.durationMs || meta.durationMs, 0, 60000, SHOW_MS);
+        const metaItems = buildMetaItems(eventName, raw, payload, meta);
+
+        return {
+          eventName,
+          channel,
+          action,
+          title,
+          message,
+          durationMs,
+          meta: metaItems,
+          raw
+        };
+      }
+
+      function canonicalEventName(channel, action, raw, payload, meta) {
+        const explicit = firstString(raw.eventName, raw.name, payload.eventName, payload.name, meta.eventName, '');
+        const candidate = String(explicit || channel || '').trim().toLowerCase().replace(/:/g, '.');
+        if (candidate === 'hypetrain.levelup') return 'hypetrain.level_up';
+        if (ACCEPTED_EVENTS.has(candidate)) return candidate;
+
+        const rawModule = firstString(raw.module, payload.module, meta.module, '');
+        const rawKind = firstString(raw.kind, payload.kind, payload.eventType, meta.kind, meta.eventType, '');
+        const moduleName = String(rawModule || '').toLowerCase();
+        const kind = String(rawKind || action || '').toLowerCase().replace(/[-\s]/g, '_');
+
+        if (moduleName.includes('hypetrain') || candidate.includes('hypetrain') || candidate.includes('hype_train')) {
+          if (kind.includes('record') || candidate.includes('record')) return 'hypetrain.record';
+          if (kind.includes('level') || candidate.includes('level')) return 'hypetrain.level_up';
+          if (kind.includes('end') || kind.includes('complete') || candidate.includes('end') || candidate.includes('complete')) return 'hypetrain.end';
+          if (kind.includes('start') || candidate.includes('start')) return 'hypetrain.start';
+        }
+
+        if (candidate === 'communication.test' || candidate === 'test' || String(action || '').toLowerCase() === 'show') {
+          return 'generic.message';
+        }
+
+        return candidate || 'generic.message';
+      }
+
+      function shouldHandle(normalized) {
+        if (!normalized || !normalized.eventName) return false;
+        if (ACCEPTED_EVENTS.has(normalized.eventName)) return true;
+        return normalized.eventName === 'generic.message';
+      }
+
+      function showCard(normalized, durationMs) {
+        window.clearTimeout(hideTimer);
+        eventTypeEl.textContent = displayEventName(normalized.eventName);
+        titleEl.textContent = normalized.title || defaultTitle(normalized.eventName);
+        messageEl.textContent = normalized.message || defaultMessage(normalized.eventName, {});
+        renderMeta(normalized.meta || []);
+        card.classList.add('visible');
+
+        if (durationMs > 0) {
+          hideTimer = window.setTimeout(hideCard, durationMs);
+        }
+      }
+
+      function hideCard() {
+        window.clearTimeout(hideTimer);
+        hideTimer = null;
+        card.classList.remove('visible');
+      }
+
+      function renderMeta(items) {
+        metaEl.innerHTML = '';
+        (items || []).filter(Boolean).slice(0, 8).forEach(function (item) {
+          const el = document.createElement('span');
+          el.className = 'pill';
+          el.textContent = String(item);
+          metaEl.appendChild(el);
+        });
+      }
+
+      function buildMetaItems(eventName, raw, payload, meta) {
+        const items = [];
+        items.push(eventName);
+        const id = firstString(raw.id, payload.id, meta.id, '');
+        const level = firstString(raw.level, payload.level, payload.currentLevel, meta.level, '');
+        const total = firstString(raw.total, payload.total, payload.totalPoints, payload.totalAmount, meta.total, '');
+        const source = firstString(raw.source, payload.source, meta.source, raw.module, payload.module, '');
+        if (level) items.push('Level ' + level);
+        if (total) items.push('Total ' + total);
+        if (source) items.push('Quelle: ' + source);
+        if (id && DEBUG) items.push('ID: ' + id);
+        items.push(new Date().toLocaleTimeString('de-DE'));
+        return items;
+      }
+
+      function defaultTitle(eventName) {
+        switch (eventName) {
+          case 'hypetrain.start': return 'HypeTrain gestartet';
+          case 'hypetrain.level_up': return 'HypeTrain Level-Up';
+          case 'hypetrain.end': return 'HypeTrain beendet';
+          case 'hypetrain.record': return 'HypeTrain Rekord';
+          case 'generic.message': return 'Stream-Hinweis';
+          default: return 'Central Event';
+        }
+      }
+
+      function defaultMessage(eventName, payload) {
+        const level = firstString(payload.level, payload.currentLevel, '');
+        switch (eventName) {
+          case 'hypetrain.start': return 'Der HypeTrain ist losgerollt.';
+          case 'hypetrain.level_up': return level ? 'Neues Level erreicht: ' + level : 'Ein neues HypeTrain-Level wurde erreicht.';
+          case 'hypetrain.end': return 'Der HypeTrain ist beendet.';
+          case 'hypetrain.record': return 'Neuer HypeTrain-Rekord erkannt.';
+          case 'generic.message': return 'Neue Meldung vom Communication Bus.';
+          default: return 'Neues Event empfangen.';
+        }
+      }
+
+      function displayEventName(eventName) {
+        return String(eventName || 'central.event').replace(/_/g, ' ');
+      }
+
+      function updateStatus(connected, detail) {
+        statusEl.classList.toggle('connected', !!connected);
+        statusTextEl.textContent = connected ? 'verbunden' : 'offline';
+        if (DEBUG && detail) {
+          statusTextEl.textContent += ' · ' + (detail.clientId || 'central_event_overlay');
+        }
+      }
+
+      function writeDebug(label, data) {
+        if (!DEBUG) return;
+        let busStatus = null;
+        try {
+          busStatus = window.CGNOverlayBusClient && window.CGNOverlayBusClient.status ? window.CGNOverlayBusClient.status() : null;
+        } catch (_) {}
+        const output = {
+          at: new Date().toISOString(),
+          label,
+          busStatus,
+          data
+        };
+        debugPanel.textContent = JSON.stringify(output, null, 2);
+      }
+
+      function firstString() {
+        for (let i = 0; i < arguments.length; i += 1) {
+          const value = arguments[i];
+          if (value === undefined || value === null) continue;
+          const text = String(value).trim();
+          if (text) return text;
+        }
+        return '';
+      }
+
+      function clampInt(value, min, max, fallback) {
+        const n = Number.parseInt(String(value ?? ''), 10);
+        if (!Number.isFinite(n)) return fallback;
+        return Math.max(min, Math.min(max, n));
+      }
+    })();
+  </script>
+</body>
+</html>
