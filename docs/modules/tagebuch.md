@@ -94,3 +94,8 @@ Bedeutung:
 - Produktive DB nicht ersetzen, löschen oder überschreiben.
 - Bestehenden Tagebuch-Fallback nicht entfernen.
 - Keine Funktionalität entfernen.
+
+
+## Hinweis HT3.2
+
+Keine Änderung am Tagebuch-Modul. HypeTrain-Tagebucheinträge nutzen weiterhin den normalen Tagebuch-Webhook-Namen (`CGN Posty` im bestätigten Setup).

@@ -1,47 +1,31 @@
-# CURRENT STATUS – stream-control-center
+# Current Status – stream-control-center
 
-## HT3.1 – HypeTrain Overlay Registration & Heartbeat
+## HT3.2 – HypeTrain Event-Action Config vorbereitet
 
-Aktueller bestätigbarer Arbeitsstand nach HT3.1:
+HypeTrain:
+- Version: `0.2.3`
+- Build: `STEP_HT3_2_1_HYPETRAIN_EVENT_SOUND_HAS_MEDIA_HOTFIX`
 
-```text
-HypeTrain: 0.2.1 / STEP_HT3_1_HYPETRAIN_OVERLAY_REGISTER_HEARTBEAT
-Tagebuch:  0.1.2 / STEP_HT2_9_TAGEBUCH_SYSTEM_WEBHOOK_NAME
-```
+Tagebuch bleibt aus HT2.9 bestätigt:
+- Discord sichtbar über Tagebuch: `CGN Posty`
+- Direkt-Discord HypeTrain: deaktiviert/skipped
+- Rekord-Sound: deaktiviert/skipped
 
-HT3.1 baut auf HT3.0 auf:
+HT3.2 ergänzt:
+- `GET /api/hypetrain/event-actions`
+- `POST /api/hypetrain/event-actions`
+- vollständige SoundSystem-Felder pro HypeTrain-Eventtyp
+- Media-Verknüpfung über `mediaId`/`soundId`
+- Overlay-Event-Konfiguration pro Eventtyp
 
-- HypeTrain-Event-Actions für Start, Stufenaufstieg, Ende und Rekord sind vorbereitet.
-- Sound-Ausführung läuft ausschließlich über das bestehende `sound_system`.
-- Overlay-Events werden technisch über den Communication-Bus vorbereitet.
-- `htdocs/overlays/hypetrain/hypetrain_overlay.html` ist ein leeres/transparentes Overlay-Grundgerüst mit Debug-Ansicht.
-- Neu in HT3.1: Overlay-Anmeldung, Heartbeat und Backend-Overlay-Status.
-- Alle neuen Event-Sounds und Overlay-Events bleiben standardmäßig AUS.
-- HT2.9 bleibt gültig: HypeTrain-Tagebucheinträge überschreiben den Tagebuch-Webhook-Namen nicht; Discord sichtbar: `CGN Posty`.
+Eventtypen:
+- Start
+- Stufenaufstieg / Level-Up
+- Ende
+- Rekord
 
-Neue Routen:
-
-```text
-POST /api/hypetrain/overlay/register
-POST /api/hypetrain/overlay/heartbeat
-GET  /api/hypetrain/overlay/status
-```
-
-Wichtige Tests:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/hypetrain/status" | Select-Object moduleVersion,moduleBuild
-Invoke-RestMethod "http://127.0.0.1:8080/api/hypetrain/overlay/status" | ConvertTo-Json -Depth 5
-```
-
-Overlay-Testseite:
-
-```text
-http://127.0.0.1:8080/overlays/hypetrain/hypetrain_overlay.html?debug=1
-```
-
-Nächste sinnvolle Schritte:
-
-1. HT3.1 testen: Overlay öffnen, Register/Heartbeat prüfen.
-2. Danach Dashboard-Konfiguration für Start-/LevelUp-/End-/Record-Sounds über Media-System planen.
-3. Später echtes HypeTrain-Overlay-Design/Animation bauen.
+Sicherheitsstandard:
+- Alle neuen Sounds sind aus.
+- Alle neuen Overlay-Events sind aus.
+- Playback bleibt ausschließlich beim `sound_system`.
+- Overlay bleibt technische Basis ohne fertiges Design.

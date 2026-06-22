@@ -1,3 +1,60 @@
+# Modul-Doku: HypeTrain
+
+Version: `0.2.3`
+Build: `STEP_HT3_2_1_HYPETRAIN_EVENT_SOUND_HAS_MEDIA_HOTFIX`
+
+## HT3.2 – Event-Action Config Vorbereitung
+
+HT3.2 ergänzt die vorbereiteten HypeTrain-Event-Aktionen um eine backendseitige, dashboardfreundliche Konfigurationsroute.
+
+Routen:
+
+```text
+GET  /api/hypetrain/event-actions
+POST /api/hypetrain/event-actions
+```
+
+Konfigurierbare Event-Typen:
+
+```text
+start
+levelUp
+end
+record
+```
+
+Pro Event-Typ vorbereitet:
+
+```text
+sound.enabled
+sound.mediaId
+sound.soundId
+sound.label
+sound.priority
+sound.volume
+sound.target
+sound.outputTarget
+sound.queueIfBusy
+sound.dropIfBusy
+sound.canInterrupt
+sound.canBeInterrupted
+sound.parallelAllowed
+overlay.enabled
+overlay.event
+overlay.ttlMs
+```
+
+Wichtig:
+
+- HypeTrain spielt keine Sounds selbst ab.
+- Sounds laufen immer über das bestehende `sound_system`.
+- Media-Auswahl erfolgt später über das bestehende Media-System und wird hier als `mediaId` gespeichert.
+- Overlay-Events laufen über Communication-Bus.
+- Das technische Overlay-Grundgerüst aus HT3.1 bleibt leer/transparent und sendet Register/Heartbeat.
+- Standardmäßig sind alle neuen Event-Sounds und Overlay-Events aus.
+
+## Vorheriger Stand
+
 # HypeTrain-Modul
 
 Version: `0.2.1`

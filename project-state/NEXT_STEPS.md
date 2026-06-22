@@ -1,33 +1,16 @@
-# NEXT STEPS
+# Next Steps
 
-## Direkt nach HT3.1
+## Nächster sinnvoller Schritt
 
-1. Overlay mit Debug öffnen:
+Dashboard-UI für HypeTrain Event-Actions vorbereiten:
 
-```text
-http://127.0.0.1:8080/overlays/hypetrain/hypetrain_overlay.html?debug=1
-```
+- Start / Level-Up / Ende / Rekord als Bereiche anzeigen
+- Sound aktivieren/deaktivieren
+- Media-ID über vorhandenes Media-System auswählen
+- Overlay-Event aktivieren/deaktivieren
+- Testbuttons für Dry-Run und produktiven Test mit Bestätigung
 
-2. Backend-Status prüfen:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/hypetrain/status" | Select-Object moduleVersion,moduleBuild
-Invoke-RestMethod "http://127.0.0.1:8080/api/hypetrain/overlay/status" | ConvertTo-Json -Depth 5
-```
-
-3. Erwartung:
-
-```text
-moduleVersion = 0.2.1
-moduleBuild = STEP_HT3_1_HYPETRAIN_OVERLAY_REGISTER_HEARTBEAT
-overlay.registered = true
-overlay.connected = true
-overlay.lastHeartbeatAt ist gesetzt
-```
-
-## Danach
-
-- Dashboard-Konfiguration für HypeTrain-Event-Sounds planen.
-- Media-System-Auswahl verwenden, keine harte Dateipfad-Eingabe.
-- Sound-System bleibt Playback-/Queue-Owner.
-- Später echtes Overlay-Design/Animation getrennt bauen.
+Nicht vergessen:
+- Sound-System bleibt Owner.
+- Keine direkte Audioausgabe im Overlay.
+- Keine fertige Overlay-Animation bauen, bevor Layout/Design besprochen ist.

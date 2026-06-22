@@ -1,26 +1,11 @@
-# CHANGELOG
+# Changelog
 
-## HT3.1 – HypeTrain Overlay Registration & Heartbeat
+## HT3.2 – HypeTrain Event-Action Config
 
-- HypeTrain-Modul auf `0.2.1` / `STEP_HT3_1_HYPETRAIN_OVERLAY_REGISTER_HEARTBEAT` gehoben.
-- Neue Overlay-Routen ergänzt:
-  - `POST /api/hypetrain/overlay/register`
-  - `POST /api/hypetrain/overlay/heartbeat`
-  - `GET /api/hypetrain/overlay/status`
-- Overlay-Status in `/api/hypetrain/status` ergänzt.
-- Overlay-Grundgerüst sendet Register und regelmäßigen Heartbeat.
-- Keine DB-Änderung.
-- Keine fertige Overlay-Animation.
-- Keine Änderung an Tagebuch-/Discord-/Sound-Produktivstandard.
-
-## HT3.0 – HypeTrain Event-Actions und Overlay-Basis
-
-- Event-Actions für Start, Stufenaufstieg, Ende und Rekord vorbereitet.
-- Sound-Aufträge laufen über `sound_system`.
-- Overlay-Events laufen vorbereitet über Communication-Bus.
-- Alle neuen Sounds/Overlays standardmäßig deaktiviert.
-
-## HT2.9 – HypeTrain/Tagebuch PosterName
-
-- HypeTrain-Tagebucheinträge überschreiben den Tagebuch-Webhook-Namen nicht mehr.
-- Discord sichtbar bestätigt als `CGN Posty`.
+- HypeTrain auf `0.2.3` / `STEP_HT3_2_1_HYPETRAIN_EVENT_SOUND_HAS_MEDIA_HOTFIX` angehoben.
+- Neue Routen für Event-Action-Konfiguration ergänzt:
+  - `GET /api/hypetrain/event-actions`
+  - `POST /api/hypetrain/event-actions`
+- SoundSystem-Felder für Start, Level-Up, Ende und Rekord vollständig vorbereitet.
+- Overlay-Event-Felder inklusive Channel und TTL vorbereitet.
+- Standard bleibt sicher: alle neuen Sounds/Overlay-Events aus.
