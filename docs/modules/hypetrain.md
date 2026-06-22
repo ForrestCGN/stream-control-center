@@ -70,3 +70,13 @@ htdocs/dashboard/modules/hypetrain.css
 - Das zentrale Stream-/Event-Overlay rendert daraus später die HypeTrain-Anzeige als Template/Modus für Start, Stufenaufstieg, Ende und Rekord.
 - Die bisherige HypeTrain-Overlay-Datei bleibt nur technische Basis/Diagnose für Anmeldung, Heartbeat und Bus-Empfang.
 - Dashboard-Wording wurde auf „Zentrales Overlay / Bus“ korrigiert.
+
+
+## HT3.6 Dashboard-Wording / Diagnose-Cleanup
+
+- Event-Actions bleiben im normalen HypeTrain-Modul (`hypetrain.js`/`hypetrain.css`).
+- Keine separaten `hypetrain_event_actions.*` Dateien.
+- Event-Actions-Tab bleibt normale Konfiguration: Sound, Medium, Overlay-Bus-Event, Status.
+- Tests/Prüfungen liegen getrennt im Tab `Tests` und werden nicht in den normalen Event-Actions-Karten angezeigt.
+- User-facing Wording wurde von Dry-Run/Entwicklerbegriffen auf `Prüfen`, `Prüfung` und `Diagnose` umgestellt.
+- Backend bleibt unverändert bei `0.2.3 / STEP_HT3_2_1_HYPETRAIN_EVENT_SOUND_HAS_MEDIA_HOTFIX`.

@@ -1,13 +1,20 @@
-# Current Status – HT3.5.2
+# Current Status – HT3.6
 
-HypeTrain Event-Actions sind im normalen HypeTrain-Dashboardmodul integriert. HT3.5.2 korrigiert das Overlay-Wording: Es soll später eine finale HypeTrain-Anzeige geben, aber als Template/Modus im zentralen Stream-/Event-Overlay, nicht als eigenes paralleles HypeTrain-Overlay-System.
+HypeTrain Dashboard ist auf HT3.6 aktualisiert.
 
-Backend unverändert: `0.2.3 / STEP_HT3_2_1_HYPETRAIN_EVENT_SOUND_HAS_MEDIA_HOTFIX`.
+Fertig:
+- Event-Actions sind im normalen HypeTrain-Modul integriert.
+- Keine separaten `hypetrain_event_actions.js/css` Dateien.
+- Event-Actions sind eigener Tab für normale Konfiguration.
+- Tests/Prüfungen liegen getrennt im Tests-Tab.
+- Dashboard-Wording nutzt `Prüfen`/`Diagnose` statt sichtbarem Dry-Run-Kram.
+- Finale HypeTrain-Anzeige ist als Template/Modus im zentralen Overlay-System geplant.
 
-Dashboard:
-- Event-Actions im normalen `hypetrain.js`/`hypetrain.css`.
-- Keine separaten `hypetrain_event_actions.*` Dateien mehr.
-- Overlay-Schalter bedeutet: Bus-Event an zentrales Overlay-System senden.
-- Finale HypeTrain-Anzeige später im zentralen Overlay-System als Template/Modus.
+Backend unverändert:
+- `0.2.3 / STEP_HT3_2_1_HYPETRAIN_EVENT_SOUND_HAS_MEDIA_HOTFIX`
 
-Kein Node-Neustart nötig.
+Nicht fertig:
+- echte Sound-Medien auswählen
+- Event-Actions speichern/funktional im Dashboard testen
+- zentrales Overlay-System mit HypeTrain-Template bauen
+- Live-Test mit echtem HypeTrain

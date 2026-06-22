@@ -1,11 +1,13 @@
 # Changelog
 
+## HT3.6
+
+- Dashboard-Wording bereinigt: keine sichtbaren Dry-Run-Begriffe in der normalen Bedienung.
+- Event-Actions bleiben normale Konfiguration.
+- Tests/Prüfungen liegen getrennt im Tests-Tab.
+- Keine separaten HypeTrain-Event-Actions-Module.
+- Keine Backend- oder DB-Änderung.
+
 ## HT3.5.2
 
-- Wording korrigiert: finale HypeTrain-Anzeige ist geplant, aber als Template/Modus im zentralen Overlay-System.
-- Keine Formulierung mehr, die ein eigenes paralleles finales HypeTrain-Overlay-System als Ziel suggeriert.
-- Backend, DB und Sound-System unverändert.
-
-## HT3.5.1
-
-- Dashboard-Wording korrigiert: Overlay-Optionen senden Bus-Events an ein zentrales Overlay-System.
+- Overlay-Architektur-Wording korrigiert: finale HypeTrain-Anzeige als Template/Modus im zentralen Overlay-System, kein paralleles Overlay-System.

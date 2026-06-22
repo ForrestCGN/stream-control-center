@@ -1,6 +1,15 @@
-# Next Steps – HT3.5.2
+# Next Steps – HT3.6
 
-1. Dashboard mit Cachebuster öffnen.
-2. Event-Actions-Tab prüfen: Wording muss klar sagen, dass Bus-Events an ein zentrales Overlay-System gehen.
-3. Prüfen, dass kein eigenes paralleles finales HypeTrain-Overlay-System suggeriert wird.
-4. Später zentrales Stream-/Event-Overlay planen, das HypeTrain als Template/Modus anzeigen kann.
+1. HT3.6 einspielen.
+2. Dashboard hart neu laden.
+3. Prüfen:
+   - Übersicht sauber.
+   - Event-Actions ohne Test-/Dry-Run-Buttons.
+   - Tests/Prüfungen nur im Tests-Tab.
+   - Keine `hypetrain_event_actions.*` Dateien vorhanden.
+4. Danach Event-Actions praktisch testen:
+   - Speichern.
+   - Media-Auswahl.
+   - Sound an/aus.
+   - Overlay-Bus an/aus.
+5. Danach echte HypeTrain-Sounds auswählen.

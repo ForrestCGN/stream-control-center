@@ -1,7 +1,8 @@
 # TODO – HypeTrain
 
-- [ ] HT3.5.2 Wording prüfen.
-- [ ] Event-Actions-Tab Bedienbarkeit prüfen.
-- [ ] Später zentrales Stream-/Event-Overlay planen.
-- [ ] HypeTrain-Anzeige dort als Template/Modus umsetzen.
-- [ ] Später echte Media-Auswahl/Produktivtest-Regeln finalisieren.
+- [ ] HT3.6 Dashboard-Wording/Diagnose-Cleanup einspielen und prüfen.
+- [ ] Event-Actions-Speichern im Dashboard testen.
+- [ ] Media-Auswahl pro Aktion testen.
+- [ ] SoundSystem-Aufruf mit echter Media-ID kontrolliert testen.
+- [ ] Overlay-Bus-Event mit zentralem Overlay-System später anbinden.
+- [ ] Live-Test mit echtem HypeTrain durchführen.

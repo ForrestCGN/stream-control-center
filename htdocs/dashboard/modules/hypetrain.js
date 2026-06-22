@@ -178,7 +178,7 @@
             <h3>Produktive End-Aktionen</h3>
             <p>Tagebuch/Discord ist der Standardweg. Direkt-Discord ist ein separater Zusatzweg und bleibt normalerweise aus.</p>
           </div>
-          <button type="button" data-ht-action="end-actions-dry-run">End-Actions Dry-Run</button>
+          <button type="button" data-ht-action="end-actions-dry-run">End-Actions prüfen</button>
           <button type="button" data-ht-action="live-readiness">Live-Readiness prüfen</button>
         </div>
         <div class="ht-action-grid">
@@ -187,13 +187,12 @@
           <div class="ht-action-card"><span>Rekord-Sound</span><strong>${cfgText('recordSound')}</strong>${actionState(actions.recordSound)}</div>
         </div>
         <dl class="ht-dl compact">
-          <dt>Letzter Test</dt><dd>${result ? esc(result.trigger || (result.dryRun ? 'dry-run' : 'produktiver Lauf')) : '-'}</dd>
-          <dt>Dry-Run</dt><dd>${result ? (result.dryRun ? 'ja' : 'nein') : '-'}</dd>
+          <dt>Letzte Prüfung</dt><dd>${result ? esc(result.trigger || 'technische Prüfung') : '-'}</dd>
           <dt>Planungen</dt><dd>${esc(counters.endActionsPlanned || 0)}</dd>
           <dt>Ausgeführt</dt><dd>Direkt-Discord ${esc(counters.discordPosted || 0)} · Tagebuch/Discord ${esc(counters.diaryPosted || 0)} · Rekord-Sound ${esc(counters.recordSoundRequested || 0)}</dd>
           <dt>Fehler</dt><dd>${esc(counters.endActionErrors || 0)}</dd>
         </dl>
-        ${result ? `<details class="ht-details"><summary>Letztes End-Actions-Ergebnis anzeigen</summary><pre>${esc(JSON.stringify(result, null, 2))}</pre></details>` : ''}
+        ${result ? `<details class="ht-details"><summary>Letzte End-Actions-Prüfung anzeigen</summary><pre>${esc(JSON.stringify(result, null, 2))}</pre></details>` : ''}
       </section>
     `;
   }
@@ -449,7 +448,7 @@
           </div>
         </div>
         <div class="ht-status-row ht-ea-status">
-          <span class="ht-badge">HT3.5.1</span>
+          <span class="ht-badge">HT3.6</span>
           <span class="ht-badge">Owner: ${esc(soundSystem.owner || 'sound_system')}</span>
           <span class="ht-badge">Aktiv: ${esc(summary.activeActions)} von ${esc(summary.totalActions)}</span>
           <span class="ht-badge ${summary.incomplete ? 'warn' : 'ok'}">${summary.incomplete ? `${esc(summary.incomplete)} unvollständig` : 'Konfig sauber'}</span>
@@ -601,8 +600,8 @@
     const preview = state.preview || state.status?.runtime?.lastPreview || null;
     return `
       <div class="ht-card glass">
-        <h3>Tests & Diagnose</h3>
-        <p>Hier liegen technische Prüfungen getrennt von der normalen Konfiguration. Produktive Aktionen werden nicht ohne separaten Confirm ausgelöst.</p>
+        <h3>Prüfungen & Diagnose</h3>
+        <p>Hier liegen Prüfungen getrennt von der normalen Konfiguration. Produktive Aktionen werden nicht ohne separate Bestätigung ausgelöst.</p>
         <div class="ht-test-grid">
           <button type="button" data-ht-action="preview-normal">Normale Preview</button>
           <button type="button" data-ht-action="preview-raid-record">Raid + Rekord Preview</button>
@@ -613,16 +612,16 @@
           <button type="button" data-ht-action="event-action-test" data-ht-event-action="record">Rekord prüfen</button>
           <button type="button" data-ht-action="live-readiness">Live-Readiness prüfen</button>
           <button type="button" data-ht-action="load-activation-profiles">Aktivierungsprofile laden</button>
-          <button type="button" data-ht-action="synthetic-test">Synthetischen DB-Test schreiben</button>
+          <button type="button" data-ht-action="synthetic-test">DB-Diagnoseeintrag erstellen</button>
           <button type="button" data-ht-action="open-media">Media-System öffnen</button>
           <button type="button" data-ht-action="reload">Status neu laden</button>
         </div>
-        <div class="ht-note">Tests sind Diagnosewerkzeuge. Die normale Bedienung bleibt in Config und Event-Actions.</div>
+        <div class="ht-note">Prüfungen und Diagnose bleiben getrennt von der normalen Bedienung. Die normale Konfiguration liegt in Config und Event-Actions.</div>
         <div class="ht-preview-box">
           <h4>Letzte Preview</h4>
           ${preview?.message ? `<pre>${esc(preview.message)}</pre>` : '<p>Noch keine Preview in diesem Dashboardlauf.</p>'}
         </div>
-        ${state.eventActionsLastTest ? `<details class="ht-details"><summary>Letzter Event-Action-Test</summary><pre>${esc(JSON.stringify(state.eventActionsLastTest, null, 2))}</pre></details>` : ''}
+        ${state.eventActionsLastTest ? `<details class="ht-details"><summary>Letzte Event-Action-Prüfung</summary><pre>${esc(JSON.stringify(state.eventActionsLastTest, null, 2))}</pre></details>` : ''}
         ${endActionResult() ? `<details class="ht-details"><summary>Letzte End-Actions-Prüfung</summary><pre>${esc(JSON.stringify(endActionResult(), null, 2))}</pre></details>` : ''}
         ${state.liveReadiness ? `<div class="ht-preview-box"><h4>Live-Readiness</h4>${renderReadinessSummary(state.liveReadiness)}<pre>${esc(JSON.stringify(state.liveReadiness, null, 2))}</pre></div>` : ''}
         ${renderActivationProfiles()}
