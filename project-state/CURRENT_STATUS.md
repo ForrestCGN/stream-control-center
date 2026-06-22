@@ -1,82 +1,87 @@
 # CURRENT STATUS
 
-Stand: RDAP1 / Remote Dashboard Agent Plan
+Stand: RDAP1 + DASHUI1 / Dashboard-v2 Designrichtung dokumentiert
 Datum: 2026-06-22
 
-## Aktueller bestätigter Runtime-Stand
+## Aktueller Runtime-Stand
 
-Das Projekt `stream-control-center` hat für HypeTrain die zentrale Overlay-Basis vorbereitet.
+Der bestätigte Runtime-Stand aus RDAP1/HT4.3 bleibt unverändert.
 
-Bestätigt aus dem vorherigen Stand HT4.3:
-
-- HypeTrain Backend bleibt auf `0.2.3 / STEP_HT3_2_1_HYPETRAIN_EVENT_SOUND_HAS_MEDIA_HOTFIX`.
-- Start-Sound ist aktiv: `mediaId 1618`, `hasMedia true`.
-- Rekord-Sound ist aktiv: `mediaId 1602`, `hasMedia true`.
-- Level-Up und Ende sind fachlich noch offen, weil dafür noch keine Sounds/Medien ausgewählt wurden.
-- Tagebuch-Endeintrag bleibt aktiv und unabhängig von Sound-/Overlay-Aktionen.
-- Sound läuft weiterhin über `sound_system`.
-- Kein separates HypeTrain-Overlay-System wird gebaut.
-
-## Central Event Overlay
-
-Neue zentrale Overlay-Datei aus HT4.x:
+Central Event Overlay:
 
 - `htdocs/overlays/central_event_overlay.html`
-
-Aktueller Overlay-Stand:
-
 - Version `0.1.3`
 - Step `HT4.3`
+- HypeTrain Start, Level-Up, Ende und Rekord wurden sichtbar getestet.
+- Overlay ist am Communication Bus verbunden.
+- Kein separates HypeTrain-Overlay-System wird gebaut.
 
-Bestätigt:
+## RDAP1 / Remote Dashboard Agent Plan
 
-- `overlay:central_event_overlay` ist am Communication Bus verbunden.
-- Status `connected: True`.
-- Status `online`.
-- Heartbeat aktiv.
-- HypeTrain `start` sichtbar getestet.
-- HypeTrain `level_up` sichtbar getestet.
-- HypeTrain `end` sichtbar getestet.
-- HypeTrain `record` sichtbar getestet.
-- Payload-Anzeige ist robust vorbereitet.
-- Erste CGN-Basisoptik ist eingebaut.
-
-## Neuer Planungsstand RDAP1
-
-Neu geplant und dokumentiert:
+Dokumentiert:
 
 - `docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md`
 - `docs/current/DASHBOARD_ROLES_PERMISSIONS_MATRIX.md`
 
-RDAP1 ist ein reiner Planungs-/Doku-Step für Dashboard-v2 und die spätere sichere Webserver↔Stream-PC-Anbindung.
-
 Festgelegt:
 
-- Dashboard-v2 startet nicht mit Design oder Bootstrap.
-- Priorität ist sichere Webserver↔Stream-PC-Anbindung.
+- Priorität bleibt die sichere Webserver↔Stream-PC-Anbindung.
 - Webserver wird öffentliche Zentrale.
 - Stream-PC wird lokaler Agent/Ausführer.
-- Verbindung läuft später aktiv vom Stream-PC zum Webserver per WSS/WebSocket.
+- Verbindung später aktiv vom Stream-PC zum Webserver per WSS/WebSocket.
 - Keine Portfreigabe am Stream-PC.
-- Keine freien Shell-/Datei-/Prozessbefehle.
 - Remote-Actions nur über Allowlist.
 - Jede Remote-Aktion braucht Rechteprüfung, requestId, expiresAt, Ergebnisantwort und Audit.
 - Multi-User und Bearbeitungs-Locks werden von Anfang an eingeplant.
-- Twitch-Rollen werden berücksichtigt, lokale Dashboard-Rechte entscheiden aber konkret.
+- Lokale Dashboard-Rollen/Rechte entscheiden konkret.
 - Spezialrolle `Sound-Profi` ist geplant.
-- Optionale Rolle `Media-Manager` ist vorgemerkt.
 
-## Nicht geändert durch RDAP1
+## DASHUI1 / Dashboard-v2 Design- und Frontend-Richtung
+
+Neu dokumentiert:
+
+- `docs/current/DASHBOARD_V2_DESIGN_FRONTEND_PLAN.md`
+
+Dieser Stand hält die bestätigte Dashboard-v2-Designrichtung aus den isolierten Design-Tests v8 bis v13 fest.
+
+Bestätigte Designrichtung:
+
+- CGN-Dark-/Neon-/Galaxy-Stil.
+- Ruhiger blau/lila Vision-UI-artiger Hintergrund mit dezenter Dot-/Star-Struktur.
+- Glassmorphism-Karten, Neon-Lila/Cyan/Blau, hohe Lesbarkeit.
+- Topbar fixed mit Scroll-Rand-Effekt.
+- Sidebar fixed auf Desktop, Drawer unter ca. 1180px.
+- Sidebar-Regel: Hauptkategorie → Modul.
+- Keine dritte Sidebar-Ebene.
+- Modul-Navi/Tabs innerhalb der Modulseite.
+- Topbar zeigt `Hauptbereich` und darunter `Modul • aktiver Tab`.
+- Der aktive Tab steht inline hinter dem Modulnamen, getrennt mit `•`.
+- Normale Streamer-/Mod-Seiten bleiben einheitlich, einfach und ohne technischen Schnickschnack.
+- Technische Details, tiefe Configs, Diagnose, Rohdaten und Spezialaktionen liegen im Admin.
+
+Frontend-Richtung:
+
+- Aufgrund der Projektgröße ist `React + Vite` die bevorzugte Richtung für Dashboard-v2.
+- Kein Creative-Tim-/Vision-UI-Code kopieren.
+- Creative Tim / Vision UI dient nur als Design- und Komponenten-Inspiration.
+- Eigenes CGN-Designsystem mit wiederverwendbaren Komponenten.
+- Module sollen über Registry/Definitionen leicht erweiterbar und umstrukturierbar bleiben.
+
+Wichtigster bestätigter Design-Teststand aus dem Chat:
+
+- `DASHBOARD_V2_DESIGN_TEST_V13_TOPBAR_TAB_INLINE.zip`
+
+## Nicht geändert durch DASHUI1
 
 - kein Backend-Code
-- kein Dashboard-Code
+- kein produktives Dashboard
 - keine DB-Änderung
 - keine Config-Änderung
 - keine OBS-Änderung
 - kein Agent-Code
 - kein Auth-/Permission-Code
 - keine Runtime-Datei
-- kein Bootstrap-/Design-Entscheid
+- keine React-/Vite-Projektdateien
 
 ## Dokumentation
 
@@ -84,6 +89,7 @@ Neu/aktualisiert:
 
 - `docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md`
 - `docs/current/DASHBOARD_ROLES_PERMISSIONS_MATRIX.md`
+- `docs/current/DASHBOARD_V2_DESIGN_FRONTEND_PLAN.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
