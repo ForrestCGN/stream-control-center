@@ -394,3 +394,11 @@ Geänderte Dateien:
 - `htdocs/dashboard/modules/hypetrain.js` - Dashboard-Button fuer Live-Readiness.
 - `htdocs/dashboard/modules/hypetrain.css` - kleine Statusdarstellung fuer Readiness.
 - `docs/modules/hypetrain.md` - Modul-Doku HT2.5.
+
+## HT2.6 geänderte Dateien
+
+- `backend/modules/hypetrain.js` – Aktivierungsprofile und Routen `GET/POST /api/hypetrain/activation-profiles`.
+- `htdocs/dashboard/modules/hypetrain.js` – Dashboard-Anzeige und Buttons für Aktivierungsprofile.
+- `htdocs/dashboard/modules/hypetrain.css` – Styling für Aktivierungsprofile.
+- `docs/modules/hypetrain.md` – Dokumentation der HT2.6-Profile und Schutzregeln.
+- `project-state/*.md` – Projektstand, nächste Schritte, TODO und Changelog aktualisiert.

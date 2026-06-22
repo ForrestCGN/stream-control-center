@@ -14,6 +14,8 @@
     preview: null,
     lastEndActionResult: null,
     liveReadiness: null,
+    activationProfiles: null,
+    activationResult: null,
     lastError: '',
     lastSavedAt: '',
     lastTestAt: ''
@@ -116,6 +118,7 @@
           </div>
         </section>
         ${renderEndActionSummary()}
+        ${renderActivationProfiles()}
         <section class="ht-card glass wide">
           <h3>Runtime</h3>
           <dl class="ht-dl compact">
@@ -215,6 +218,7 @@
         <div class="ht-safety-box">
           <strong>Aktivierungslogik:</strong> Discord sendet nur bei <code>discord.enabled=true</code> und <code>discord.writeOnEnd=true</code>. Tagebuch schreibt nur bei <code>diary.enabled=true</code> und <code>diary.writeOnEnd=true</code>. Rekord-Sound läuft nur bei <code>sound.recordSoundEnabled=true</code> und gültiger Media-ID/Sound-ID. Namen/Top-Unterstützer bleiben standardmäßig aus.
         </div>
+        ${renderActivationProfiles()}
         <div class="ht-config-grid">
           ${grouped.map(cat => renderCategory(cat)).join('') || '<p>Keine Settings gefunden.</p>'}
         </div>
@@ -258,6 +262,40 @@
       else out[key] = input.value;
     });
     return out;
+  }
+
+  function renderActivationProfiles(){
+    const data = state.activationProfiles || {};
+    const profiles = Array.isArray(data.profiles) ? data.profiles : [];
+    const current = data.current || {};
+    return `
+      <section class="ht-card glass wide ht-activation-card">
+        <div class="ht-card-head">
+          <div>
+            <h3>Sichere Aktivierungsprofile</h3>
+            <p>Für den Live-Test immer nur eine produktive Aktion aktivieren: erst Tagebuch, dann Discord, dann Rekord-Sound.</p>
+          </div>
+          <button type="button" data-ht-action="load-activation-profiles">Profile neu laden</button>
+        </div>
+        <div class="ht-action-grid">
+          <div class="ht-action-card"><span>Aktuell Tagebuch</span><strong>${current.diaryEndEnabled ? 'aktiv' : 'aus'}</strong></div>
+          <div class="ht-action-card"><span>Aktuell Discord</span><strong>${current.discordEndEnabled ? 'aktiv' : 'aus'}</strong></div>
+          <div class="ht-action-card"><span>Aktuell Rekord-Sound</span><strong>${current.recordSoundEnabled ? 'aktiv' : 'aus'}</strong><small>Media ${esc(current.mediaId || 0)} · ${esc(current.soundId || '-')}</small></div>
+        </div>
+        <div class="ht-profile-grid">
+          ${profiles.map(profile => `
+            <article class="ht-profile ${profile.readyToApply ? '' : 'not-ready'}">
+              <h4>${esc(profile.label || profile.id)}</h4>
+              <p>${esc(profile.description || '')}</p>
+              ${profile.readyToApply ? '<span class="ht-badge ok">bereit</span>' : `<span class="ht-badge warn">fehlt: ${esc((profile.missing || []).join(', ') || 'Config')}</span>`}
+              <button type="button" data-ht-action="apply-activation-profile" data-ht-profile="${esc(profile.id)}">Profil speichern</button>
+            </article>
+          `).join('') || '<p>Aktivierungsprofile noch nicht geladen.</p>'}
+        </div>
+        <div class="ht-note">Profile speichern nur Config-Schalter. Sie lösen keine Discord-, Tagebuch- oder Sound-Aktion aus. Ein produktiver End-Actions-Test braucht weiterhin den separaten Confirm.</div>
+        ${state.activationResult ? `<details class="ht-details" open><summary>Letztes Aktivierungsprofil-Ergebnis</summary><pre>${esc(JSON.stringify(state.activationResult, null, 2))}</pre></details>` : ''}
+      </section>
+    `;
   }
 
   function renderTexts(){
@@ -333,17 +371,19 @@
           <button type="button" data-ht-action="preview-raid-record">Raid + Rekord Preview</button>
           <button type="button" data-ht-action="end-actions-dry-run">End-Actions Dry-Run</button>
           <button type="button" data-ht-action="live-readiness">Live-Readiness prüfen</button>
+          <button type="button" data-ht-action="load-activation-profiles">Aktivierungsprofile laden</button>
           <button type="button" data-ht-action="synthetic-test">Synthetischen DB-Test schreiben</button>
           <button type="button" data-ht-action="open-media">Media-System öffnen</button>
           <button type="button" data-ht-action="reload">Status neu laden</button>
         </div>
-        <div class="ht-note">Produktive Tests bleiben absichtlich nicht als Ein-Klick-Button im Dashboard. Dafür ist weiterhin der zusätzliche Confirm <code>HYPETRAIN_PRODUCTIVE_ACTIONS</code> nötig.</div>
+        <div class="ht-note">Produktive Tests bleiben absichtlich nicht als Ein-Klick-Button im Dashboard. Aktivierungsprofile ändern nur Config-Schalter; echte End-Actions brauchen weiterhin den zusätzlichen Confirm <code>HYPETRAIN_PRODUCTIVE_ACTIONS</code>.</div>
         <div class="ht-preview-box">
           <h4>Letzte Preview</h4>
           ${preview?.message ? `<pre>${esc(preview.message)}</pre>` : '<p>Noch keine Preview in diesem Dashboardlauf.</p>'}
         </div>
         ${endActionResult() ? `<div class="ht-preview-box"><h4>Letzter End-Actions Dry-Run</h4><pre>${esc(JSON.stringify(endActionResult(), null, 2))}</pre></div>` : ''}
         ${state.liveReadiness ? `<div class="ht-preview-box"><h4>Live-Readiness</h4>${renderReadinessSummary(state.liveReadiness)}<pre>${esc(JSON.stringify(state.liveReadiness, null, 2))}</pre></div>` : ''}
+        ${renderActivationProfiles()}
       </div>
     `;
   }
@@ -397,7 +437,7 @@
       state.lastSavedAt = '';
       render();
     }));
-    el.querySelectorAll('[data-ht-action]').forEach(btn => btn.addEventListener('click', () => handleAction(btn.dataset.htAction || '')));
+    el.querySelectorAll('[data-ht-action]').forEach(btn => btn.addEventListener('click', () => handleAction(btn.dataset.htAction || '', btn))); 
   }
 
   async function loadAll(force){
@@ -406,16 +446,18 @@
     state.lastError = '';
     render();
     try {
-      const [status, config, texts, stats] = await Promise.all([
+      const [status, config, texts, stats, activation] = await Promise.all([
         api('/api/hypetrain/status'),
         api('/api/hypetrain/config'),
         api('/api/hypetrain/texts').catch(err => ({ ok:false, error: err.message })),
-        api('/api/hypetrain/stats').catch(err => ({ ok:false, error: err.message }))
+        api('/api/hypetrain/stats').catch(err => ({ ok:false, error: err.message })),
+        api('/api/hypetrain/activation-profiles').catch(err => ({ ok:false, error: err.message }))
       ]);
       state.status = status;
       state.config = config;
       state.texts = texts;
       state.stats = stats;
+      state.activationProfiles = activation;
       state.loaded = true;
     } catch (err) {
       state.lastError = err.message || String(err);
@@ -507,12 +549,52 @@
     }
   }
 
-  function handleAction(action){
+  async function loadActivationProfiles(){
+    state.lastError = '';
+    try {
+      const result = await api('/api/hypetrain/activation-profiles');
+      state.activationProfiles = result;
+      state.tab = state.tab === 'overview' ? 'overview' : 'tests';
+      render();
+    } catch (err) {
+      state.lastError = err.message || String(err);
+      render();
+    }
+  }
+
+  async function applyActivationProfile(profile){
+    const clean = String(profile || '').trim();
+    if (!clean) return;
+    const labels = { all_off: 'Alles aus', diary_only: 'Nur Tagebuch', discord_only: 'Nur Discord', record_sound_only: 'Nur Rekord-Sound' };
+    const label = labels[clean] || clean;
+    const ok = window.confirm(`Aktivierungsprofil speichern: ${label}?\n\nEs werden nur Config-Schalter geändert. Es wird keine produktive Aktion ausgelöst.`);
+    if (!ok) return;
+    state.lastError = '';
+    try {
+      const result = await api('/api/hypetrain/activation-profiles?confirm=1', {
+        method: 'POST',
+        body: JSON.stringify({ profile: clean, confirmApply: 'HYPETRAIN_ACTIVATION_PROFILE' })
+      });
+      state.activationResult = result;
+      state.activationProfiles = result.activation || state.activationProfiles;
+      state.status = result.status || state.status;
+      await loadAll(true);
+      state.tab = 'tests';
+      render();
+    } catch (err) {
+      state.lastError = err.message || String(err);
+      render();
+    }
+  }
+
+  function handleAction(action, btn){
     if (action === 'reload') return loadAll(true);
     if (action === 'save-config') return saveConfig();
     if (action === 'open-media') return openMediaWindow();
     if (action === 'end-actions-dry-run') return endActionsDryRun();
     if (action === 'live-readiness') return liveReadiness();
+    if (action === 'load-activation-profiles') return loadActivationProfiles();
+    if (action === 'apply-activation-profile') return applyActivationProfile(btn?.dataset?.htProfile || '');
     if (action === 'preview-normal') return makePreview({ level:2, points:2500, bits:1500, subs:1, resubs:1, giftSubs:1 });
     if (action === 'preview-raid-record') return makePreview({ raid:1, record:1, level:5, points:9600, bits:3500, subs:3, giftSubs:4 });
     if (action === 'synthetic-test') return syntheticTest();

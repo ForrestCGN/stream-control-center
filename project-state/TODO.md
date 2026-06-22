@@ -234,3 +234,14 @@ Stand: 2026-06-15 19:55
 - [ ] Tagebuch nur produktiv aktivieren, wenn Streamstatus/Regeln passen.
 - [ ] Rekord-Sound nur aktivieren, wenn Media-ID/Sound-ID vom Sound-System-Katalog gefunden wird.
 - [ ] Produktiven manuellen Test erst nach Readiness ohne relevante Warnungen durchfuehren.
+
+## HypeTrain – Produktive Einzeltests nach HT2.6
+
+- [ ] HT2.6 Aktivierungsprofile einspielen.
+- [ ] `all_off` testen.
+- [ ] `diary_only` setzen und prüfen, ob Tagebuch aktiv/Streamstatus passend ist.
+- [ ] Produktiven Tagebuch-Einzeltest nur mit zusätzlichem Confirm durchführen.
+- [ ] Danach `discord_only` mit Webhook/Channel prüfen.
+- [ ] Danach `record_sound_only` mit Media-ID/Sound-ID aus Media-System prüfen.
+- [ ] Nach jedem Test Status, Logs und End-Actions-Counter prüfen.
+- [ ] Dashboard später um geführten Assistenten für diese Reihenfolge erweitern.

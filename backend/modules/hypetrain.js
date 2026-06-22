@@ -24,8 +24,8 @@ const texts = require("./helpers/helper_texts");
 const communicationBus = require("./communication_bus");
 
 const MODULE_NAME = "hypetrain";
-const MODULE_VERSION = "0.1.3";
-const MODULE_BUILD = "STEP_HT2_5_HYPETRAIN_LIVE_READINESS";
+const MODULE_VERSION = "0.1.4";
+const MODULE_BUILD = "STEP_HT2_6_HYPETRAIN_ACTIVATION_PROFILES";
 const MODULE_ID = `module:${MODULE_NAME}`;
 const SCHEMA_VERSION = 1;
 const SETTINGS_TABLE = "hypetrain_settings";
@@ -171,6 +171,63 @@ const SETTING_DEFINITIONS = [
   { key: "tests.previewOnlyDefault", value: true, valueType: "boolean", category: "Tests", label: "Tests standardmäßig Vorschau", description: "Tests lösen standardmäßig keine produktiven Ausgaben aus." },
   { key: "tests.productiveSendRequiresConfirm", value: true, valueType: "boolean", category: "Tests", label: "Produktives Senden bestätigen", description: "Produktive Tests nur mit ausdrücklicher Bestätigung erlauben." }
 ];
+
+const ACTIVATION_PROFILE_CONFIRM = "HYPETRAIN_ACTIVATION_PROFILE";
+const ACTIVATION_PROFILES = {
+  all_off: {
+    id: "all_off",
+    label: "Alles aus",
+    description: "Schaltet Discord, Tagebuch und Rekord-Sound für HypeTrain-End-Aktionen aus.",
+    productiveRisk: false,
+    settings: {
+      "discord.enabled": false,
+      "discord.writeOnEnd": false,
+      "diary.enabled": false,
+      "diary.writeOnEnd": false,
+      "sound.recordSoundEnabled": false
+    }
+  },
+  diary_only: {
+    id: "diary_only",
+    label: "Nur Tagebuch",
+    description: "Aktiviert nur den Tagebuch-Systemeintrag beim HypeTrain-Ende. Discord und Rekord-Sound bleiben aus.",
+    productiveRisk: true,
+    settings: {
+      "discord.enabled": false,
+      "discord.writeOnEnd": false,
+      "diary.enabled": true,
+      "diary.writeOnEnd": true,
+      "sound.recordSoundEnabled": false
+    }
+  },
+  discord_only: {
+    id: "discord_only",
+    label: "Nur Discord",
+    description: "Aktiviert nur die Discord-Nachricht beim HypeTrain-Ende. Tagebuch und Rekord-Sound bleiben aus.",
+    productiveRisk: true,
+    settings: {
+      "discord.enabled": true,
+      "discord.writeOnEnd": true,
+      "diary.enabled": false,
+      "diary.writeOnEnd": false,
+      "sound.recordSoundEnabled": false
+    }
+  },
+  record_sound_only: {
+    id: "record_sound_only",
+    label: "Nur Rekord-Sound",
+    description: "Aktiviert nur den Rekord-Sound beim HypeTrain-Rekord. Discord und Tagebuch bleiben aus.",
+    productiveRisk: true,
+    requiresMedia: true,
+    settings: {
+      "discord.enabled": false,
+      "discord.writeOnEnd": false,
+      "diary.enabled": false,
+      "diary.writeOnEnd": false,
+      "sound.recordSoundEnabled": true
+    }
+  }
+};
 
 const DEFAULT_TEXTS = {
   "discord.normal_end": [
@@ -1263,6 +1320,125 @@ function updateSettings(payload = {}) {
 }
 
 
+function publicActivationProfile(profile) {
+  const cfg = getConfig();
+  const item = profile && isPlainObject(profile) ? profile : {};
+  const missing = [];
+  if (item.requiresMedia) {
+    const hasMedia = numberValue(cfg.sound?.mediaId, 0) > 0 || !!safeString(cfg.sound?.soundId);
+    if (!hasMedia) missing.push("sound.mediaId_or_sound.soundId");
+  }
+  return {
+    id: item.id || "",
+    label: item.label || item.id || "",
+    description: item.description || "",
+    productiveRisk: item.productiveRisk === true,
+    requiresMedia: item.requiresMedia === true,
+    readyToApply: missing.length === 0,
+    missing,
+    settings: jsonClone(item.settings || {}, {})
+  };
+}
+
+function buildActivationProfileStatus() {
+  const cfg = getConfig();
+  const current = {
+    discordEndEnabled: cfg.discord?.enabled === true && cfg.discord?.writeOnEnd === true,
+    diaryEndEnabled: cfg.diary?.enabled === true && cfg.diary?.writeOnEnd === true,
+    recordSoundEnabled: cfg.sound?.recordSoundEnabled === true,
+    mediaId: numberValue(cfg.sound?.mediaId, 0),
+    soundId: safeString(cfg.sound?.soundId),
+    discordMode: safeString(cfg.discord?.mode, "webhook"),
+    discordWebhookEnv: safeString(cfg.discord?.webhookUrlEnv, "DISCORD_WEBHOOK_HYPETRAIN"),
+    discordWebhookConfigured: envConfigured(safeString(cfg.discord?.webhookUrlEnv, "DISCORD_WEBHOOK_HYPETRAIN")),
+    diaryApiUrl: safeString(cfg.diary?.apiUrl, "http://127.0.0.1:8080/api/tagebuch/entry")
+  };
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    mode: "activation_profiles",
+    confirmApply: ACTIVATION_PROFILE_CONFIRM,
+    current,
+    recommendedOrder: ["diary_only", "discord_only", "record_sound_only"],
+    profiles: Object.values(ACTIVATION_PROFILES).map(publicActivationProfile),
+    safetyRules: {
+      oneActionAtATime: true,
+      applyRequiresConfirm: true,
+      productiveEndActionStillRequiresSeparateConfirm: true,
+      recordSoundRequiresConfiguredMediaOrSoundId: true,
+      noProductiveActionExecutedByProfileApply: true
+    },
+    generatedAt: nowIso()
+  };
+}
+
+function applyActivationProfile(input = {}) {
+  const profileId = safeString(input.profile || input.id || input.profileId || "").toLowerCase();
+  const profile = ACTIVATION_PROFILES[profileId];
+  if (!profile) {
+    return { ok: false, module: MODULE_NAME, error: "unknown_profile", allowedProfiles: Object.keys(ACTIVATION_PROFILES), productiveActionsExecuted: false };
+  }
+  if (safeString(input.confirm) !== "1" || safeString(input.confirmApply) !== ACTIVATION_PROFILE_CONFIRM) {
+    return {
+      ok: false,
+      module: MODULE_NAME,
+      error: "confirm_apply_required",
+      hint: `POST /api/hypetrain/activation-profiles?confirm=1 mit confirmApply=${ACTIVATION_PROFILE_CONFIRM}`,
+      profile: publicActivationProfile(profile),
+      productiveActionsExecuted: false
+    };
+  }
+  const publicProfile = publicActivationProfile(profile);
+  if (!publicProfile.readyToApply && boolValue(input.allowIncomplete, false) !== true) {
+    return {
+      ok: false,
+      module: MODULE_NAME,
+      error: "profile_not_ready",
+      profile: publicProfile,
+      hint: "Fehlende Einstellungen zuerst setzen oder bewusst allowIncomplete=true verwenden.",
+      productiveActionsExecuted: false
+    };
+  }
+  const defs = new Map(SETTING_DEFINITIONS.map(item => [item.key, item]));
+  const changed = [];
+  for (const [key, value] of Object.entries(profile.settings || {})) {
+    const def = defs.get(key);
+    if (!def) continue;
+    settings.setSetting(SETTINGS_TABLE, key, value, { valueType: def.valueType || "string", description: def.description || "" });
+    changed.push(key);
+  }
+  reloadConfig();
+  const status = buildActivationProfileStatus();
+  try {
+    if (busRef && typeof busRef.emit === "function") {
+      busRef.emit({
+        channel: "hypetrain.activation",
+        action: "profile_applied",
+        source: { type: "module", id: MODULE_NAME, module: MODULE_NAME },
+        target: { type: "module", id: MODULE_NAME, module: MODULE_NAME },
+        payload: { profile: profileId, changed, productiveActionsExecuted: false, at: nowIso() },
+        meta: { module: MODULE_NAME, moduleVersion: MODULE_VERSION, replayable: false, requireAck: false, ttlMs: 15000 }
+      });
+    }
+  } catch (_) {}
+  return {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    profile: publicActivationProfile(profile),
+    changed,
+    changedCount: changed.length,
+    productiveActionsExecuted: false,
+    message: `Aktivierungsprofil ${profile.label} wurde gespeichert. Es wurde keine produktive End-Aktion ausgeführt.`,
+    activation: status,
+    config: getConfig(),
+    status: buildStatus()
+  };
+}
+
 function enabledLabel(enabled) {
   return enabled ? "aktiv" : "aus";
 }
@@ -1652,6 +1828,23 @@ function registerRoutes(app) {
   get(["/api/hypetrain/live-readiness", "/hypetrain/live-readiness"], liveReadinessHandler);
   post(["/api/hypetrain/live-readiness", "/hypetrain/live-readiness"], liveReadinessHandler);
 
+  get(["/api/hypetrain/activation-profiles", "/hypetrain/activation-profiles"], (_req, res) => {
+    try {
+      res.json(buildActivationProfileStatus());
+    } catch (err) {
+      res.status(500).json({ ok: false, module: MODULE_NAME, error: err && err.message ? err.message : String(err), productiveActionsExecuted: false });
+    }
+  });
+  post(["/api/hypetrain/activation-profiles", "/hypetrain/activation-profiles"], (req, res) => {
+    try {
+      const input = { ...(req.query || {}), ...(req.body || {}) };
+      const result = applyActivationProfile(input);
+      res.status(result.ok ? 200 : 400).json(result);
+    } catch (err) {
+      res.status(500).json({ ok: false, module: MODULE_NAME, error: err && err.message ? err.message : String(err), productiveActionsExecuted: false });
+    }
+  });
+
   get(["/api/hypetrain/routes", "/hypetrain/routes"], (_req, res) => {
     res.json({
       ok: true,
@@ -1668,6 +1861,8 @@ function registerRoutes(app) {
         "POST /api/hypetrain/test/end-actions?confirm=1",
         "GET /api/hypetrain/live-readiness",
         "POST /api/hypetrain/live-readiness",
+        "GET /api/hypetrain/activation-profiles",
+        "POST /api/hypetrain/activation-profiles",
         "GET /api/hypetrain/routes"
       ],
       registered

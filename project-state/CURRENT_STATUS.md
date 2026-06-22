@@ -689,3 +689,20 @@ Produktive Aktionen bleiben standardmäßig deaktiviert.
 
 Aktueller geplanter Stand nach Einspielen: Backend `0.1.3 / STEP_HT2_5_HYPETRAIN_LIVE_READINESS`.
 Neue Read-only-Live-Readiness prueft vor produktiven Tests Discord, Tagebuch und Rekord-Sound, ohne produktive Aktionen auszufuehren. Dashboard-Tests enthalten `Live-Readiness pruefen`.
+
+## HT2.6 HypeTrain – Aktivierungsprofile vorbereitet
+
+Aktueller geplanter Stand nach Einspielen: `hypetrain` Version `0.1.4`, Build `STEP_HT2_6_HYPETRAIN_ACTIVATION_PROFILES`.
+
+Neu vorbereitet:
+
+- Sichere Aktivierungsprofile für produktive End-Actions.
+- Profile ändern nur Config-Schalter, lösen aber keine produktiven Aktionen aus.
+- Dashboard-Bereich für Aktivierungsprofile unter HypeTrain.
+- Reihenfolge für spätere Live-Prüfung: Tagebuch → Discord → Rekord-Sound.
+
+Bestehende Schutzregeln bleiben unverändert:
+
+- Echte produktive End-Actions benötigen weiterhin `confirmProductive=HYPETRAIN_PRODUCTIVE_ACTIONS`.
+- Discord/Tagebuch/Rekord-Sound bleiben nur aktiv, wenn die jeweiligen Config-Schalter bewusst gesetzt wurden.
+- Rekord-Sound nutzt weiterhin das bestehende Sound-/Media-System.

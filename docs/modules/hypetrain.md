@@ -285,3 +285,43 @@ summary.readyForProductiveTest zeigt, ob alle aktivierten Bereiche ohne Warnunge
 ```
 
 Schutzregel bleibt: Es gibt weiterhin keinen Ein-Klick-Produktivtest im Dashboard. Produktive Tests brauchen weiterhin `confirmProductive=HYPETRAIN_PRODUCTIVE_ACTIONS`.
+
+## HT2.6 – Sichere Aktivierungsprofile
+
+HT2.6 ergänzt eine sichere Vorbereitungsstufe für produktive HypeTrain-End-Aktionen.
+
+Neue Backend-Routen:
+
+- `GET /api/hypetrain/activation-profiles`
+- `POST /api/hypetrain/activation-profiles?confirm=1`
+
+Die Profile ändern nur Config-Schalter und lösen keine produktiven Discord-, Tagebuch- oder Sound-Aktionen aus.
+
+Verfügbare Profile:
+
+- `all_off` – Discord, Tagebuch und Rekord-Sound aus
+- `diary_only` – nur Tagebuch-Endeintrag aktiv
+- `discord_only` – nur Discord-Endnachricht aktiv
+- `record_sound_only` – nur Rekord-Sound aktiv; erfordert konfigurierte `sound.mediaId` oder `sound.soundId`
+
+Zum Anwenden eines Profils ist zusätzlich erforderlich:
+
+```powershell
+confirmApply = "HYPETRAIN_ACTIVATION_PROFILE"
+```
+
+Ein echter produktiver End-Actions-Test bleibt weiterhin separat geschützt und benötigt weiterhin:
+
+```powershell
+confirmProductive = "HYPETRAIN_PRODUCTIVE_ACTIONS"
+```
+
+Empfohlene Test-Reihenfolge:
+
+1. `diary_only` speichern
+2. Live-Readiness prüfen
+3. End-Actions Dry-Run prüfen
+4. Optional produktiven manuellen Einzeltest nur nach bewusster Bestätigung
+5. Danach `discord_only`
+6. Danach `record_sound_only`
+7. Zum Schluss wieder `all_off`, falls der Test abgeschlossen ist

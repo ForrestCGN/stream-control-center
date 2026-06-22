@@ -529,3 +529,13 @@ Keine Recovery-Automatik
 2. Falls Readiness Warnungen zeigt: Config/ENV/Media-System gezielt korrigieren.
 3. Danach bewusst einen produktiven manuellen Test mit `confirmProductive=HYPETRAIN_PRODUCTIVE_ACTIONS` planen.
 4. Erst danach echte Live-Schaltung fuer Discord/Tagebuch/Rekord-Sound entscheiden.
+
+## Nächster Schritt nach HT2.6
+
+1. HT2.6 einspielen und Backend-Version `0.1.4` prüfen.
+2. `GET /api/hypetrain/activation-profiles` prüfen.
+3. Profil `all_off` testen.
+4. Danach Profil `diary_only` setzen und Live-Readiness prüfen.
+5. Erst nach erfolgreicher Prüfung einen bewusst bestätigten produktiven Einzeltest planen.
+6. Danach separat `discord_only`, anschließend `record_sound_only` testen.
+7. Nach jedem produktiven Einzeltest Logs/Status prüfen und ggf. wieder `all_off` setzen.

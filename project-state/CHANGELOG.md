@@ -251,3 +251,13 @@
   - Media-System-Button öffnet die zentrale Medienverwaltung in einem eigenen Fenster.
 - Keine Backend-/DB-Änderung.
 - Keine produktive Aktion standardmäßig aktiviert.
+
+## STEP_HT2_6_HYPETRAIN_ACTIVATION_PROFILES
+
+- HypeTrain Backend auf `0.1.4` / `STEP_HT2_6_HYPETRAIN_ACTIVATION_PROFILES` erweitert.
+- Neue sichere Aktivierungsprofile ergänzt: `all_off`, `diary_only`, `discord_only`, `record_sound_only`.
+- Neue Routen ergänzt: `GET/POST /api/hypetrain/activation-profiles`.
+- Profil-Anwendung erfordert `confirm=1` und `confirmApply=HYPETRAIN_ACTIVATION_PROFILE`.
+- Profil-Anwendung ändert nur Config-Schalter und führt keine produktiven End-Actions aus.
+- Dashboard zeigt Aktivierungsprofile und aktuellen Aktivierungszustand an.
+- Empfohlene Reihenfolge dokumentiert: erst Tagebuch, dann Discord, dann Rekord-Sound einzeln testen.
