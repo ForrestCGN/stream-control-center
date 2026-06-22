@@ -201,7 +201,7 @@
       mode: 'obs',
       module: 'central_event_overlay',
       name: 'Central Event Overlay',
-      version: '0.1.1',
+      version: '0.1.2',
       capabilities: [
         'overlay.heartbeat',
         'central_event_overlay',
@@ -215,12 +215,12 @@
       ],
       meta: {
         overlay: 'central_event_overlay',
-        step: 'HT4.1',
+        step: 'HT4.2',
         role: 'central_event_display'
       }
     };
   </script>
-  <script src="/overlays/shared/overlay_bus_client.js" data-overlay-id="central_event_overlay" data-module="central_event_overlay" data-name="Central Event Overlay" data-version="0.1.1"></script>
+  <script src="/overlays/shared/overlay_bus_client.js" data-overlay-id="central_event_overlay" data-module="central_event_overlay" data-name="Central Event Overlay" data-version="0.1.2"></script>
   <script>
     (function () {
       'use strict';
@@ -265,7 +265,7 @@
           eventName: 'generic.message',
           title: 'Central Event Overlay',
           message: 'Overlay geladen. Warte auf Communication-Bus-Events.',
-          meta: ['HT4.0', DEBUG ? 'debug=1' : 'preview']
+          meta: ['HT4.2', DEBUG ? 'debug=1' : 'preview']
         }, DEBUG ? 0 : 4000);
       }
 
@@ -411,12 +411,20 @@
       function buildMetaItems(eventName, raw, payload, meta) {
         const items = [];
         items.push(eventName);
-        const id = firstString(raw.id, payload.id, meta.id, '');
-        const level = firstString(raw.level, payload.level, payload.currentLevel, meta.level, '');
-        const total = firstString(raw.total, payload.total, payload.totalPoints, payload.totalAmount, meta.total, '');
+
+        const id = firstString(raw.id, raw.eventId, payload.id, payload.eventId, meta.id, meta.eventId, '');
+        const level = firstString(raw.level, payload.level, payload.currentLevel, payload.levelCurrent, meta.level, meta.currentLevel, '');
+        const total = firstValue(raw.total, payload.total, payload.totalPoints, payload.totalAmount, payload.points, payload.currentTotal, meta.total, meta.totalPoints, '');
+        const goal = firstValue(raw.goal, raw.target, payload.goal, payload.target, payload.nextGoal, payload.levelGoal, payload.requiredPoints, meta.goal, meta.target, '');
+        const recordType = firstString(raw.recordType, raw.recordKind, payload.recordType, payload.recordKind, payload.kind, meta.recordType, meta.recordKind, '');
+        const contributorCount = firstValue(raw.contributorCount, raw.contributors, raw.participantCount, payload.contributorCount, payload.contributors, payload.participantCount, payload.supporterCount, meta.contributorCount, meta.participantCount, '');
         const source = firstString(raw.source, payload.source, meta.source, raw.module, payload.module, '');
+
         if (level) items.push('Level ' + level);
-        if (total) items.push('Total ' + total);
+        if (total !== '') items.push('Total ' + formatNumber(total));
+        if (goal !== '') items.push('Ziel ' + formatNumber(goal));
+        if (recordType) items.push('Rekord: ' + formatLabel(recordType));
+        if (contributorCount !== '') items.push('Supporter ' + formatNumber(contributorCount));
         if (source) items.push('Quelle: ' + source);
         if (id && DEBUG) items.push('ID: ' + id);
         items.push(new Date().toLocaleTimeString('de-DE'));
@@ -435,12 +443,31 @@
       }
 
       function defaultMessage(eventName, payload) {
-        const level = firstString(payload.level, payload.currentLevel, '');
+        const level = firstString(payload.level, payload.currentLevel, payload.levelCurrent, '');
+        const total = firstValue(payload.total, payload.totalPoints, payload.totalAmount, payload.points, payload.currentTotal, '');
+        const goal = firstValue(payload.goal, payload.target, payload.nextGoal, payload.levelGoal, payload.requiredPoints, '');
+        const recordType = firstString(payload.recordType, payload.recordKind, payload.kind, '');
+
         switch (eventName) {
-          case 'hypetrain.start': return 'Der HypeTrain ist losgerollt.';
-          case 'hypetrain.level_up': return level ? 'Neues Level erreicht: ' + level : 'Ein neues HypeTrain-Level wurde erreicht.';
-          case 'hypetrain.end': return 'Der HypeTrain ist beendet.';
-          case 'hypetrain.record': return 'Neuer HypeTrain-Rekord erkannt.';
+          case 'hypetrain.start': {
+            if (goal !== '') return 'Der HypeTrain ist losgerollt. Ziel: ' + formatNumber(goal) + '.';
+            return 'Der HypeTrain ist losgerollt.';
+          }
+          case 'hypetrain.level_up': {
+            if (level && total !== '') return 'Level ' + level + ' erreicht · Total: ' + formatNumber(total) + '.';
+            if (level) return 'Neues Level erreicht: ' + level + '.';
+            return 'Ein neues HypeTrain-Level wurde erreicht.';
+          }
+          case 'hypetrain.end': {
+            if (level && total !== '') return 'Beendet auf Level ' + level + ' · Total: ' + formatNumber(total) + '.';
+            if (total !== '') return 'Der HypeTrain ist beendet. Total: ' + formatNumber(total) + '.';
+            return 'Der HypeTrain ist beendet.';
+          }
+          case 'hypetrain.record': {
+            if (recordType && total !== '') return 'Neuer ' + formatLabel(recordType) + '-Rekord: ' + formatNumber(total) + '.';
+            if (total !== '') return 'Neuer HypeTrain-Rekord: ' + formatNumber(total) + '.';
+            return 'Neuer HypeTrain-Rekord erkannt.';
+          }
           case 'generic.message': return 'Neue Meldung vom Communication Bus.';
           default: return 'Neues Event empfangen.';
         }
@@ -473,6 +500,27 @@
         debugPanel.textContent = JSON.stringify(output, null, 2);
       }
 
+      function firstValue() {
+        for (let i = 0; i < arguments.length; i += 1) {
+          const value = arguments[i];
+          if (value === undefined || value === null) continue;
+          if (Array.isArray(value)) {
+            if (value.length > 0) return value.length;
+            continue;
+          }
+          if (typeof value === 'object') {
+            const count = value.count ?? value.total ?? value.amount ?? value.points ?? value.value;
+            if (count !== undefined && count !== null && String(count).trim() !== '') return count;
+            const size = Object.keys(value).length;
+            if (size > 0) return size;
+            continue;
+          }
+          const text = String(value).trim();
+          if (text) return value;
+        }
+        return '';
+      }
+
       function firstString() {
         for (let i = 0; i < arguments.length; i += 1) {
           const value = arguments[i];
@@ -481,6 +529,20 @@
           if (text) return text;
         }
         return '';
+      }
+
+      function formatNumber(value) {
+        const numeric = Number(String(value).replace(/[^0-9.,-]/g, '').replace(',', '.'));
+        if (Number.isFinite(numeric)) return numeric.toLocaleString('de-DE');
+        return String(value);
+      }
+
+      function formatLabel(value) {
+        return String(value || '')
+          .replace(/^hypetrain[._-]?/i, '')
+          .replace(/[._-]+/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim() || String(value || 'Rekord');
       }
 
       function clampInt(value, min, max, fallback) {
