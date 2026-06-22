@@ -18,12 +18,18 @@
     activationResult: null,
     lastError: '',
     lastSavedAt: '',
-    lastTestAt: ''
+    lastTestAt: '',
+    eventActions: null,
+    eventActionsLoading: false,
+    eventActionsError: '',
+    eventActionsLastSavedAt: '',
+    eventActionsLastTest: null
   };
 
   const tabs = [
     ['overview', 'Übersicht'],
     ['config', 'Config'],
+    ['eventActions', 'Event-Actions'],
     ['texts', 'Texte'],
     ['stats', 'Statistik'],
     ['tests', 'Tests']
@@ -298,6 +304,192 @@
     `;
   }
 
+
+  const eventActionDefs = [
+    { key: 'start', label: 'Start', api: 'start', hint: 'Beim Start eines HypeTrains.' },
+    { key: 'levelUp', label: 'Stufenaufstieg', api: 'level_up', hint: 'Wenn der HypeTrain ein neues Level erreicht.' },
+    { key: 'end', label: 'Ende', api: 'end', hint: 'Beim normalen Ende eines HypeTrains.' },
+    { key: 'record', label: 'Rekord', api: 'record', hint: 'Wenn ein HypeTrain-Rekord erkannt wird.' }
+  ];
+
+  function apiJson(path, options){
+    const opts = Object.assign({}, options || {});
+    opts.headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+    return api(path, opts);
+  }
+
+  function eventActionConfig(key){
+    return state.eventActions?.actions?.[key] || { sound: {}, overlay: {} };
+  }
+
+  function eventActionFieldId(action, part){
+    return `ht3ea_${action}_${part}`.replace(/[^a-zA-Z0-9_]/g, '_');
+  }
+
+  function eventActionOptionList(options, current){
+    return options.map(opt => `<option value="${esc(opt)}" ${String(current) === opt ? 'selected' : ''}>${esc(opt)}</option>`).join('');
+  }
+
+  function eventActionFlag(key, label, checked){
+    return `<label class="ht-ea-check small"><input type="checkbox" data-ht-ea-field="${esc(key)}" ${checked ? 'checked' : ''}> ${esc(label)}</label>`;
+  }
+
+  function renderEventActionCard(action){
+    const cfg = eventActionConfig(action.key);
+    const sound = cfg.sound || {};
+    const overlay = cfg.overlay || {};
+    const disabled = !sound.enabled;
+    return `
+      <article class="ht-ea-action" data-ht-ea-action-key="${esc(action.key)}">
+        <div class="ht-ea-action-head">
+          <div>
+            <h4>${esc(action.label)}</h4>
+            <p>${esc(action.hint)}</p>
+          </div>
+          <span class="ht-badge ${disabled ? 'warn' : 'ok'}">${disabled ? 'Sound aus' : 'Sound aktiv'}</span>
+        </div>
+
+        <div class="ht-ea-columns">
+          <section class="ht-ea-subcard">
+            <h5>SoundSystem</h5>
+            <label class="ht-ea-check"><input type="checkbox" data-ht-ea-field="sound.enabled" ${bool(sound.enabled) ? 'checked' : ''}> Sound aktiv</label>
+            <label>Media-ID<input id="${esc(eventActionFieldId(action.key, 'mediaId'))}" type="number" min="0" step="1" data-ht-ea-field="sound.mediaId" value="${esc(sound.mediaId || 0)}"></label>
+            <div class="ht-ea-media" data-media-field data-module-key="hypetrain" data-category-key="hypetrain_${esc(action.key)}" data-allowed-types="audio" data-title="${esc(action.label)} Sound auswählen" data-value-input="#${esc(eventActionFieldId(action.key, 'mediaId'))}"></div>
+            <label>Sound-ID<input type="text" data-ht-ea-field="sound.soundId" value="${esc(sound.soundId || '')}" placeholder="optional"></label>
+            <label>Label<input type="text" data-ht-ea-field="sound.label" value="${esc(sound.label || action.label)}"></label>
+            <div class="ht-ea-row two">
+              <label>Priorität<input type="number" data-ht-ea-field="sound.priority" value="${esc(sound.priority ?? 500)}"></label>
+              <label>Lautstärke<input type="number" min="0" max="100" data-ht-ea-field="sound.volume" value="${esc(sound.volume ?? 85)}"></label>
+            </div>
+            <div class="ht-ea-row two">
+              <label>Ziel<select data-ht-ea-field="sound.target">${eventActionOptionList(['stream','discord','both'], sound.target || 'stream')}</select></label>
+              <label>Output<select data-ht-ea-field="sound.outputTarget">${eventActionOptionList(['overlay','device','both'], sound.outputTarget || 'overlay')}</select></label>
+            </div>
+            <div class="ht-ea-flags">
+              ${eventActionFlag('sound.queueIfBusy', 'Queue wenn busy', sound.queueIfBusy !== false)}
+              ${eventActionFlag('sound.dropIfBusy', 'Verwerfen wenn busy', sound.dropIfBusy === true)}
+              ${eventActionFlag('sound.canInterrupt', 'Darf unterbrechen', sound.canInterrupt === true)}
+              ${eventActionFlag('sound.canBeInterrupted', 'Darf unterbrochen werden', sound.canBeInterrupted !== false)}
+              ${eventActionFlag('sound.parallelAllowed', 'Parallel erlaubt', sound.parallelAllowed === true)}
+            </div>
+          </section>
+
+          <section class="ht-ea-subcard">
+            <h5>Overlay-Event</h5>
+            <label class="ht-ea-check"><input type="checkbox" data-ht-ea-field="overlay.enabled" ${bool(overlay.enabled) ? 'checked' : ''}> Overlay-Event aktiv</label>
+            <label>Event<input type="text" data-ht-ea-field="overlay.event" value="${esc(overlay.event || `hypetrain.overlay.${action.key}`)}"></label>
+            <label>TTL ms<input type="number" min="1000" step="1000" data-ht-ea-field="overlay.ttlMs" value="${esc(overlay.ttlMs || 30000)}"></label>
+            ${action.key === 'levelUp' ? `<label class="ht-ea-check"><input type="checkbox" data-ht-ea-field="onlyOncePerLevel" ${cfg.onlyOncePerLevel !== false ? 'checked' : ''}> Stufe nur einmal pro Level auslösen</label>` : ''}
+            <button type="button" data-ht-ea-test="${esc(action.api)}">Dry-Run testen</button>
+          </section>
+        </div>
+      </article>`;
+  }
+
+  function renderEventActions(){
+    const soundSystem = state.eventActions?.soundSystem || {};
+    return `
+      <section class="ht-card glass wide ht-ea-card">
+        <div class="ht-card-head">
+          <div>
+            <h3>Event-Aktionen: Sound & Overlay</h3>
+            <p>Start, Stufenaufstieg, Ende und Rekord können vorbereitet werden. Sounds laufen ausschließlich über das bestehende <strong>sound_system</strong>; Medien kommen aus dem Media-System.</p>
+          </div>
+          <div class="ht-ea-actions">
+            <button type="button" data-ht-ea-action="reload">Neu laden</button>
+            <button type="button" class="primary" data-ht-ea-action="save">Speichern</button>
+          </div>
+        </div>
+        <div class="ht-status-row ht-ea-status">
+          <span class="ht-badge">HT3.4</span>
+          <span class="ht-badge">Owner: ${esc(soundSystem.owner || 'sound_system')}</span>
+          <span class="ht-badge">Endpoint: ${esc(soundSystem.endpoint || '/api/sound/play')}</span>
+          <span class="ht-badge warn">Standard: alles aus</span>
+        </div>
+        ${state.eventActionsLoading && !state.eventActions ? '<p>Lade HypeTrain Event-Actions...</p>' : ''}
+        ${state.eventActionsError ? `<div class="ht-error">${esc(state.eventActionsError)}</div>` : ''}
+        ${state.eventActionsLastSavedAt ? `<div class="ht-success">Event-Actions gespeichert: ${esc(state.eventActionsLastSavedAt)}</div>` : ''}
+        ${state.eventActionsLastTest ? `<details class="ht-details" open><summary>Letzter Dry-Run</summary><pre>${esc(JSON.stringify(state.eventActionsLastTest, null, 2))}</pre></details>` : ''}
+        <div class="ht-ea-grid">${eventActionDefs.map(renderEventActionCard).join('')}</div>
+        <div class="ht-note">Hinweis: Aktivieren löst noch nichts direkt aus. Es speichert nur die Config. Ein echter HypeTrain-Event oder ein Test ruft danach das Sound-System beziehungsweise das Overlay-Event auf.</div>
+      </section>
+    `;
+  }
+
+  function collectEventActionSettings(){
+    const out = {};
+    panel()?.querySelectorAll('[data-ht-ea-action-key]').forEach(card => {
+      const action = card.dataset.htEaActionKey;
+      if (!action) return;
+      card.querySelectorAll('[data-ht-ea-field]').forEach(input => {
+        const field = input.dataset.htEaField;
+        if (!field) return;
+        let value;
+        if (input.type === 'checkbox') value = !!input.checked;
+        else if (input.type === 'number') value = numberValue(input.value);
+        else value = input.value;
+        out[`eventActions.${action}.${field}`] = value;
+      });
+    });
+    return out;
+  }
+
+  async function loadEventActions(force){
+    if (state.eventActionsLoading && !force) return;
+    state.eventActionsLoading = true;
+    state.eventActionsError = '';
+    try {
+      state.eventActions = await api('/api/hypetrain/event-actions');
+    } catch (err) {
+      state.eventActionsError = err.message || String(err);
+    } finally {
+      state.eventActionsLoading = false;
+      if (state.tab === 'eventActions') render();
+    }
+  }
+
+  async function saveEventActions(){
+    state.eventActionsError = '';
+    try {
+      const result = await apiJson('/api/hypetrain/event-actions', { method: 'POST', body: JSON.stringify({ settings: collectEventActionSettings() }) });
+      state.eventActions = result.eventActions || result;
+      state.eventActionsLastSavedAt = new Date().toLocaleTimeString('de-DE');
+      await loadEventActions(true);
+    } catch (err) {
+      state.eventActionsError = err.message || String(err);
+      render();
+    }
+  }
+
+  async function testEventAction(actionType){
+    state.eventActionsError = '';
+    try {
+      const result = await apiJson('/api/hypetrain/test/event-actions?confirm=1', {
+        method: 'POST',
+        body: JSON.stringify({ actionType, level: actionType === 'level_up' ? 2 : 1, points: actionType === 'level_up' ? 2400 : 1200 })
+      });
+      state.eventActionsLastTest = result.result || result;
+      render();
+    } catch (err) {
+      state.eventActionsError = err.message || String(err);
+      render();
+    }
+  }
+
+  function bindEventActions(root){
+    root.querySelectorAll('[data-ht-ea-action]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const action = btn.dataset.htEaAction;
+        if (action === 'reload') return loadEventActions(true);
+        if (action === 'save') return saveEventActions();
+      });
+    });
+    root.querySelectorAll('[data-ht-ea-test]').forEach(btn => {
+      btn.addEventListener('click', () => testEventAction(btn.dataset.htEaTest || 'start'));
+    });
+    try { window.MediaField?.initAll(root); } catch (_) {}
+  }
+
   function renderTexts(){
     const payload = state.texts?.texts || state.texts || {};
     const rows = Array.isArray(payload.rows) ? payload.rows : (Array.isArray(payload.items) ? payload.items : []);
@@ -410,6 +602,7 @@
       return;
     }
     const body = state.tab === 'config' ? renderConfig()
+      : state.tab === 'eventActions' ? renderEventActions()
       : state.tab === 'texts' ? renderTexts()
       : state.tab === 'stats' ? renderStats()
       : state.tab === 'tests' ? renderTests()
@@ -417,7 +610,7 @@
     el.innerHTML = `
       <div class="hypetrain-shell">
         <div class="ht-topline">
-          <div><h1>🚂 HypeTrain</h1><p>DB-basiertes HypeTrain-Fachmodul für Status, Config, Texte, Statistik und Tests.</p></div>
+          <div><h1>🚂 HypeTrain</h1><p>DB-basiertes HypeTrain-Fachmodul für Status, Config, Event-Actions, Texte, Statistik und Tests.</p></div>
           <button type="button" data-ht-action="reload">Aktualisieren</button>
         </div>
         ${renderTabs()}
@@ -437,7 +630,11 @@
       state.lastSavedAt = '';
       render();
     }));
-    el.querySelectorAll('[data-ht-action]').forEach(btn => btn.addEventListener('click', () => handleAction(btn.dataset.htAction || '', btn))); 
+    el.querySelectorAll('[data-ht-action]').forEach(btn => btn.addEventListener('click', () => handleAction(btn.dataset.htAction || '', btn)));
+    if (state.tab === 'eventActions') {
+      if (!state.eventActions && !state.eventActionsLoading) loadEventActions(false);
+      bindEventActions(el);
+    }
   }
 
   async function loadAll(force){
@@ -446,18 +643,20 @@
     state.lastError = '';
     render();
     try {
-      const [status, config, texts, stats, activation] = await Promise.all([
+      const [status, config, texts, stats, activation, eventActions] = await Promise.all([
         api('/api/hypetrain/status'),
         api('/api/hypetrain/config'),
         api('/api/hypetrain/texts').catch(err => ({ ok:false, error: err.message })),
         api('/api/hypetrain/stats').catch(err => ({ ok:false, error: err.message })),
-        api('/api/hypetrain/activation-profiles').catch(err => ({ ok:false, error: err.message }))
+        api('/api/hypetrain/activation-profiles').catch(err => ({ ok:false, error: err.message })),
+        api('/api/hypetrain/event-actions').catch(err => ({ ok:false, error: err.message }))
       ]);
       state.status = status;
       state.config = config;
       state.texts = texts;
       state.stats = stats;
       state.activationProfiles = activation;
+      state.eventActions = eventActions;
       state.loaded = true;
     } catch (err) {
       state.lastError = err.message || String(err);

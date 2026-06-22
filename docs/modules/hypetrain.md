@@ -1,8 +1,8 @@
-# HypeTrain-Modul – aktueller Stand HT3.3.1
+# HypeTrain-Modul – aktueller Stand HT3.4
 
 Version Backend: `0.2.3`
 Build Backend: `STEP_HT3_2_1_HYPETRAIN_EVENT_SOUND_HAS_MEDIA_HOTFIX`
-Dashboard-Step: `HT3.3.1_HYPETRAIN_DASHBOARD_EVENT_ACTIONS_TAB`
+Dashboard-Step: `HT3.4_HYPETRAIN_DASHBOARD_MERGE_CLEANUP`
 
 ## Aktueller Stand
 
@@ -37,3 +37,17 @@ Alles bleibt standardmäßig deaktiviert. Aktivieren speichert nur Config und l�
 ## HT3.3.3 Dashboard-Fix
 
 Event-Actions sind ein eigener Tab-only Bereich. Der Block wird nicht mehr unten an die Übersicht gehängt. Backend bleibt unverändert.
+
+
+## HT3.4 Dashboard-Merge/Cleanup
+
+Die vorher separat eingebundenen Dateien `hypetrain_event_actions.js` und `hypetrain_event_actions.css` wurden wieder in das normale HypeTrain-Dashboard-Modul integriert.
+
+Aktive Dashboard-Dateien:
+
+```text
+htdocs/dashboard/modules/hypetrain.js
+htdocs/dashboard/modules/hypetrain.css
+```
+
+`index.html` lädt keine separaten HypeTrain-Event-Actions-Dateien mehr. Der Tab `Event-Actions` ist ein echter Tab innerhalb von `hypetrain.js`.
