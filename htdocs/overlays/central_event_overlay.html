@@ -41,28 +41,53 @@
       position: fixed;
       inset: 0;
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: center;
+      padding-top: 74px;
       pointer-events: none;
     }
 
     .card {
-      width: min(980px, calc(100vw - 96px));
-      min-height: 180px;
-      padding: 28px 34px;
+      position: relative;
+      width: min(1040px, calc(100vw - 112px));
+      min-height: 172px;
+      padding: 26px 34px 28px;
       border: 2px solid var(--cgn-border);
-      border-radius: 28px;
+      border-radius: 30px;
       background:
-        radial-gradient(circle at 12% 20%, rgba(185, 69, 255, 0.22), transparent 34%),
-        radial-gradient(circle at 88% 82%, rgba(68, 199, 255, 0.18), transparent 34%),
-        var(--cgn-panel);
+        linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.025)),
+        radial-gradient(circle at 8% 16%, rgba(185, 69, 255, 0.28), transparent 35%),
+        radial-gradient(circle at 92% 84%, rgba(68, 199, 255, 0.22), transparent 36%),
+        linear-gradient(180deg, rgba(15, 18, 38, 0.94), rgba(8, 10, 24, 0.90));
       box-shadow:
-        0 0 28px rgba(185, 69, 255, 0.52),
-        0 0 60px rgba(68, 199, 255, 0.18),
-        inset 0 0 26px rgba(68, 199, 255, 0.08);
+        0 0 30px rgba(185, 69, 255, 0.58),
+        0 0 72px rgba(68, 199, 255, 0.22),
+        0 18px 44px rgba(0, 0, 0, 0.42),
+        inset 0 0 30px rgba(68, 199, 255, 0.10);
       opacity: 0;
-      transform: translateY(28px) scale(0.98);
-      transition: opacity 220ms ease, transform 220ms ease;
+      transform: translateY(-22px) scale(0.985);
+      transition: opacity 240ms ease, transform 240ms ease;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 10px;
+      border-radius: 23px;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      pointer-events: none;
+    }
+
+    .card::after {
+      content: '';
+      position: absolute;
+      left: 34px;
+      right: 34px;
+      top: -2px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(68, 199, 255, 0.92), rgba(185, 69, 255, 0.92), transparent);
+      filter: drop-shadow(0 0 10px rgba(68, 199, 255, 0.78));
+      pointer-events: none;
     }
 
     .card.visible {
@@ -70,14 +95,41 @@
       transform: translateY(0) scale(1);
     }
 
+    .card.event-hypetrain-start {
+      --cgn-border: rgba(68, 199, 255, 0.82);
+      --cgn-accent: #44c7ff;
+    }
+
+    .card.event-hypetrain-level-up {
+      --cgn-border: rgba(98, 245, 177, 0.80);
+      --cgn-accent: #62f5b1;
+    }
+
+    .card.event-hypetrain-end {
+      --cgn-border: rgba(185, 69, 255, 0.72);
+      --cgn-accent: #b945ff;
+    }
+
+    .card.event-hypetrain-record {
+      --cgn-border: rgba(255, 207, 90, 0.86);
+      --cgn-accent: #ffcf5a;
+      --cgn-blue: #ffcf5a;
+    }
+
     .eyebrow {
-      display: flex;
+      position: relative;
+      display: inline-flex;
       align-items: center;
       gap: 10px;
+      min-height: 30px;
+      padding: 4px 12px 4px 4px;
+      border-radius: 999px;
       color: var(--cgn-blue);
-      font-size: 16px;
-      font-weight: 700;
-      letter-spacing: 0.1em;
+      background: rgba(255, 255, 255, 0.055);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.105em;
       text-transform: uppercase;
       text-shadow: 0 0 12px rgba(68, 199, 255, 0.58);
     }
@@ -92,21 +144,23 @@
     }
 
     .title {
-      margin-top: 14px;
-      font-size: 46px;
-      line-height: 1.05;
-      font-weight: 900;
+      margin-top: 16px;
+      font-size: clamp(34px, 3.1vw, 54px);
+      line-height: 1.04;
+      font-weight: 950;
+      letter-spacing: 0.01em;
       text-shadow:
-        0 0 18px rgba(185, 69, 255, 0.64),
-        0 0 26px rgba(68, 199, 255, 0.26);
+        0 0 18px rgba(185, 69, 255, 0.68),
+        0 0 26px rgba(68, 199, 255, 0.30);
     }
 
     .message {
+      max-width: 920px;
       margin-top: 14px;
       color: var(--cgn-muted);
-      font-size: 24px;
+      font-size: clamp(20px, 1.55vw, 26px);
       line-height: 1.32;
-      font-weight: 700;
+      font-weight: 750;
     }
 
     .meta {
@@ -121,8 +175,9 @@
     .pill {
       border: 1px solid rgba(255, 255, 255, 0.14);
       border-radius: 999px;
-      padding: 6px 10px;
-      background: rgba(255, 255, 255, 0.06);
+      padding: 6px 11px;
+      background: rgba(255, 255, 255, 0.065);
+      box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.035);
     }
 
     .debug-panel {
@@ -201,7 +256,7 @@
       mode: 'obs',
       module: 'central_event_overlay',
       name: 'Central Event Overlay',
-      version: '0.1.2',
+      version: '0.1.3',
       capabilities: [
         'overlay.heartbeat',
         'central_event_overlay',
@@ -215,12 +270,12 @@
       ],
       meta: {
         overlay: 'central_event_overlay',
-        step: 'HT4.2',
+        step: 'HT4.3',
         role: 'central_event_display'
       }
     };
   </script>
-  <script src="/overlays/shared/overlay_bus_client.js" data-overlay-id="central_event_overlay" data-module="central_event_overlay" data-name="Central Event Overlay" data-version="0.1.2"></script>
+  <script src="/overlays/shared/overlay_bus_client.js" data-overlay-id="central_event_overlay" data-module="central_event_overlay" data-name="Central Event Overlay" data-version="0.1.3"></script>
   <script>
     (function () {
       'use strict';
@@ -265,7 +320,7 @@
           eventName: 'generic.message',
           title: 'Central Event Overlay',
           message: 'Overlay geladen. Warte auf Communication-Bus-Events.',
-          meta: ['HT4.2', DEBUG ? 'debug=1' : 'preview']
+          meta: ['HT4.3', DEBUG ? 'debug=1' : 'preview']
         }, DEBUG ? 0 : 4000);
       }
 
@@ -381,6 +436,7 @@
 
       function showCard(normalized, durationMs) {
         window.clearTimeout(hideTimer);
+        setEventClass(normalized.eventName);
         eventTypeEl.textContent = displayEventName(normalized.eventName);
         titleEl.textContent = normalized.title || defaultTitle(normalized.eventName);
         messageEl.textContent = normalized.message || defaultMessage(normalized.eventName, {});
@@ -392,6 +448,21 @@
         }
       }
 
+
+      function setEventClass(eventName) {
+        card.classList.remove(
+          'event-hypetrain-start',
+          'event-hypetrain-level-up',
+          'event-hypetrain-end',
+          'event-hypetrain-record',
+          'event-generic-message'
+        );
+        const safe = String(eventName || 'generic.message')
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '');
+        card.classList.add('event-' + (safe || 'generic-message'));
+      }
       function hideCard() {
         window.clearTimeout(hideTimer);
         hideTimer = null;
