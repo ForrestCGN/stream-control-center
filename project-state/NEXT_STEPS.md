@@ -548,3 +548,8 @@ Keine Recovery-Automatik
 - `discord_only` ist nur noch als separater Zusatzweg benannt: `Nur Direkt-Discord`.
 - Keine produktive Aktion wird durch diese Änderung ausgelöst.
 
+
+## Nach HT2.8
+
+- Mit aktivem Stream-State-Override den produktiven HypeTrain-Tagebuch-Test erneut ausführen.
+- Erwartung: Tagebuch akzeptiert den Eintrag, Direkt-Discord und Rekord-Sound bleiben aus.

@@ -254,3 +254,8 @@ Stand: 2026-06-15 19:55
 - `discord_only` ist nur noch als separater Zusatzweg benannt: `Nur Direkt-Discord`.
 - Keine produktive Aktion wird durch diese Änderung ausgelöst.
 
+
+## HT2.8 Test
+
+- [ ] `/api/tagebuch/status` zeigt `effectiveActiveStreamForEntries=true`, wenn Stream-State-Override aktiv ist.
+- [ ] Produktiver HypeTrain-Tagebuch-Test schreibt bei aktivem Override ins Tagebuch.

@@ -11,10 +11,12 @@ const settings = require('./helpers/helper_settings');
 const texts = require('./helpers/helper_texts');
 
 const MODULE_NAME = 'tagebuch';
-const MODULE_VERSION = '0.1.0';
+const MODULE_VERSION = '0.1.1';
+const MODULE_BUILD = 'STEP_HT2_8_TAGEBUCH_STREAM_STATE_ENTRIES';
 const MODULE_META = {
   name: MODULE_NAME,
   version: MODULE_VERSION,
+  build: MODULE_BUILD,
   type: 'runtime',
   category: 'content',
   description: 'Streamtagebuch API, Discord-Posting und Text-/Settings-Verwaltung.',
@@ -225,6 +227,8 @@ function safePublicConfig(cfg) {
   return {
     enabled: Boolean(cfg.enabled),
     requireActiveStreamForEntries: Boolean(cfg.requireActiveStreamForEntries),
+    streamStateForEntries: true,
+    streamStateSource: 'twitch_events.getStreamState_with_tagebuch_fallback',
     postPageHeader: Boolean(cfg.postPageHeader),
     useDiscordWebhook: Boolean(cfg.useDiscordWebhook),
     hasWebhookUrl: Boolean(cfg.webhookUrl),
@@ -837,6 +841,47 @@ async function postWebhook(ctx, payload) {
   });
 }
 
+function getCentralStreamStateSnapshot() {
+  try {
+    const twitchEvents = require('./twitch_events');
+    if (!twitchEvents || typeof twitchEvents.getStreamState !== 'function') {
+      return { ok: false, available: false, live: false, source: 'twitch_events_unavailable', error: 'getStreamState_unavailable' };
+    }
+    const streamState = twitchEvents.getStreamState() || {};
+    const live = streamState.live === true || String(streamState.status || '').toLowerCase() === 'live';
+    return {
+      ok: true,
+      available: true,
+      live,
+      status: safeString(streamState.status || (live ? 'live' : 'offline')),
+      source: safeString(streamState.source || streamState.provider || 'twitch_events'),
+      sourceSummary: safeString(streamState.sourceSummary || ''),
+      confidence: safeString(streamState.confidence || ''),
+      streamId: safeString(streamState.streamId || ''),
+      streamSessionId: safeString(streamState.streamSessionId || streamState.streamSession?.streamSessionId || ''),
+      streamDayId: safeString(streamState.streamDayId || streamState.streamSession?.streamDayId || ''),
+      manualOverrideActive: streamState.manualOverride?.active === true,
+      manualOverrideLive: streamState.manualOverride?.live === true,
+      error: ''
+    };
+  } catch (err) {
+    return { ok: false, available: false, live: false, source: 'twitch_events_error', error: err && err.message ? err.message : String(err) };
+  }
+}
+
+function resolveEntryStreamGate(state = getState()) {
+  const central = getCentralStreamStateSnapshot();
+  const tagebuchActive = Boolean(state.active_stream);
+  const centralActive = central.ok === true && central.live === true;
+  return {
+    active: centralActive || tagebuchActive,
+    source: centralActive ? 'twitch_events_stream_state' : (tagebuchActive ? 'tagebuch_state' : 'none'),
+    tagebuchActive,
+    centralActive,
+    central,
+  };
+}
+
 async function createPageForDateIfNeeded(ctx, pageDate) {
   const cfg = getConfig();
   const state = getState();
@@ -905,11 +950,13 @@ async function postDiaryEntry(ctx, { authorDisplay, authorLogin, message, system
   const cfg = getConfig();
   const state = getState();
 
-  if (cfg.requireActiveStreamForEntries && !state.active_stream) {
+  const streamGate = resolveEntryStreamGate(state);
+  if (cfg.requireActiveStreamForEntries && !streamGate.active) {
     return {
       ok: false,
       error: 'stream_inactive',
       message: getMessages().streamInactive,
+      streamGate,
     };
   }
 
@@ -1064,6 +1111,7 @@ function nextPageNumberIfNewDate(state = getState()) {
 }
 
 function publicState(state = getState()) {
+  const streamGate = resolveEntryStreamGate(state);
   return {
     currentPageNumber: Number(state.current_page_number || 0),
     currentPageDate: state.current_page_date,
@@ -1072,6 +1120,9 @@ function publicState(state = getState()) {
     lastStreamStartedAt: state.last_stream_started_at,
     lastStreamEndedAt: state.last_stream_ended_at,
     activeStream: Boolean(state.active_stream),
+    effectiveActiveStreamForEntries: Boolean(streamGate.active),
+    entryStreamSource: streamGate.source,
+    centralStreamState: streamGate.central,
     hasEntriesForCurrentDate: Boolean(state.has_entries_for_current_date),
     endNoticePostedForCurrentDate: Boolean(state.end_notice_posted_for_current_date),
     updatedAt: state.updated_at
@@ -1162,6 +1213,8 @@ function buildStandardDiagnostics() {
     },
     state: {
       activeStream: Boolean(state.active_stream),
+      effectiveActiveStreamForEntries: Boolean(resolveEntryStreamGate(state).active),
+      entryStreamSource: resolveEntryStreamGate(state).source,
       currentPageNumber: Number(state.current_page_number || 0),
       currentPageDate: state.current_page_date || null,
       hasEntriesForCurrentDate: Boolean(state.has_entries_for_current_date),
@@ -1189,6 +1242,8 @@ function buildStatus() {
     ok: true,
     module: 'tagebuch',
     version: 2,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
     schemaVersion: database.getSchemaVersion(MODULE_NAME),
     databasePath: typeof database.getDbPath === 'function' ? database.getDbPath() : null,
     configPath: cfg.configPath,

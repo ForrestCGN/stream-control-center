@@ -715,3 +715,7 @@ Bestehende Schutzregeln bleiben unverändert:
 - `discord_only` ist nur noch als separater Zusatzweg benannt: `Nur Direkt-Discord`.
 - Keine produktive Aktion wird durch diese Änderung ausgelöst.
 
+
+## HT2.8 – Tagebuch Stream-State Entry Gate
+
+Aktueller Stand: Das Tagebuch kann für `requireActiveStreamForEntries` den zentralen Stream-State aus `twitch_events` verwenden. Dadurch wird der manuelle Stream-State-Override auch für produktive Tagebuch-Tests wirksam.

@@ -270,3 +270,10 @@
 - `discord_only` ist nur noch als separater Zusatzweg benannt: `Nur Direkt-Discord`.
 - Keine produktive Aktion wird durch diese Änderung ausgelöst.
 
+
+## HT2.8 – Tagebuch Stream-State Entry Gate
+
+- `backend/modules/tagebuch.js` auf `0.1.1 / STEP_HT2_8_TAGEBUCH_STREAM_STATE_ENTRIES` aktualisiert.
+- Tagebuch-Einträge berücksichtigen jetzt den zentralen Twitch-Events-Stream-State inklusive Override.
+- Bisheriger Tagebuch-State bleibt als Fallback erhalten.
+- Keine DB-/Discord-/HypeTrain-Funktionsänderung.

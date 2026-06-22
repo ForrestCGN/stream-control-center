@@ -411,3 +411,8 @@ Geänderte Dateien:
 - `discord_only` ist nur noch als separater Zusatzweg benannt: `Nur Direkt-Discord`.
 - Keine produktive Aktion wird durch diese Änderung ausgelöst.
 
+
+## HT2.8
+
+- `backend/modules/tagebuch.js` – Entry-Gate nutzt zentralen Stream-State mit Tagebuch-State-Fallback.
+- `docs/modules/tagebuch.md` – Dokumentation der Stream-State-Freigabe.
