@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP1 / Remote Dashboard Agent Plan
+Stand: RDAP1 + DASHUI1 / Dashboard-v2 Designrichtung dokumentiert
 Datum: 2026-06-22
 
 ## Remote Dashboard / Webserver-Agent
@@ -22,7 +22,7 @@ Datum: 2026-06-22
   - separater Node-Prozess
   - später evtl. Service
 - Minimal-Agent-Version planen:
-  - Auth
+  - Anmeldung
   - Heartbeat
   - Status
   - `agent.ping`
@@ -51,17 +51,49 @@ Datum: 2026-06-22
 - Klären, welche Rollen Locks übernehmen dürfen.
 - Klären, welche Bereiche zwingend Locks brauchen.
 
-## Dashboard-v2 Navigation / Struktur
+## Dashboard-v2 Design / Frontend
 
-- Erst nach Security-/Agent-/Rollenplanung:
-  - Dashboard-v2 Navigation planen.
-  - Accordion-Sidebar nach Material-Admin-Pro-Verhalten planen.
-  - Kategorie→Modul/Seite als maximale Sidebar-Tiefe festlegen.
-  - Moduldetails innerhalb der Modulseiten planen.
-  - Admin-Bereich für Texte, Einstellungen, Tests und Diagnose planen.
-  - Media als zentralen Hauptbereich planen.
-  - Overlays als zentralen Hauptbereich planen.
-  - Multi-Language-Struktur planen.
+- `docs/current/DASHBOARD_V2_DESIGN_FRONTEND_PLAN.md` als aktuelle Designbasis verwenden.
+- `React + Vite` als bevorzugte Frontend-Richtung technisch prüfen/finalisieren.
+- Build-/Deploy-Ziel nach `htdocs/dashboard-v2/` planen.
+- Eigenes CGN-Designsystem planen:
+  - Cards
+  - Buttons
+  - Chips
+  - Tabellen
+  - Pagination
+  - Timeline
+  - Switches
+  - Modals
+  - Toasts
+  - Progress
+  - ModuleTabs
+  - PageHeader
+- Modul-Registry planen.
+- Navigation-Registry planen.
+- Sidebar-Regel festhalten:
+  - Hauptkategorie → Modul
+  - keine dritte Sidebar-Ebene
+- Modul-Navi/Tabs innerhalb der Modulseite planen.
+- Topbar-Standortanzeige übernehmen:
+  - `Hauptbereich`
+  - `Modul • aktiver Tab`
+- Normale Modul-Seiten als einheitliches Muster planen:
+  - PageHeader
+  - Modul-Tabs
+  - KPI-/Status-Zeile
+  - Hauptkarte mit wichtigen Aktionen
+  - Verlauf/Timeline
+  - einfache Optionen nur wenn sinnvoll
+- Admin-Bereich für technische Dinge planen:
+  - Rollen/Rechte
+  - Locks
+  - Audit
+  - Diagnose
+  - Texte
+  - Configs
+- Keine Creative-Tim-/Vision-UI-Codebasis übernehmen.
+- Creative Tim / Vision UI nur als Inspiration verwenden.
 
 ## HypeTrain / Central Event Overlay
 
@@ -80,8 +112,8 @@ Datum: 2026-06-22
 ## Dashboard / Security / größere Refactors
 
 - Dashboard-Cleanup-/Refactor-Step separat planen.
-- Userverwaltung/Auth/Permissions separat planen.
-- Produktive API-Routen später serverseitig auth-/permissionfähig absichern.
+- Userverwaltung/Anmeldung/Permissions separat planen.
+- Produktive API-Routen später serverseitig permissionfähig absichern.
 - Audit-Logging für produktive Dashboard-/Mod-/Admin-Aktionen weiter vorbereiten.
 
 ## Dauerhafte Schutzregeln
@@ -90,6 +122,5 @@ Datum: 2026-06-22
 - Keine produktive DB löschen/ersetzen/droppen.
 - Keine Patch-/Apply-/Regex-/Append-Scripte.
 - Tests/Diagnose getrennt von normaler Konfiguration halten.
-- Keine freien Shell-/Datei-/Prozessbefehle im Remote-Agent.
 - Remote-Actions nur über Allowlist.
 - Jede produktive Remote-Aktion braucht Rechteprüfung und Audit.
