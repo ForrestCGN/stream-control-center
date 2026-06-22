@@ -201,21 +201,26 @@
       mode: 'obs',
       module: 'central_event_overlay',
       name: 'Central Event Overlay',
-      version: '0.1.0',
+      version: '0.1.1',
       capabilities: [
         'overlay.heartbeat',
         'central_event_overlay',
         'hypetrain.display',
+        'hypetrain.overlay.start',
+        'hypetrain.overlay.level_up',
+        'hypetrain.overlay.levelup',
+        'hypetrain.overlay.end',
+        'hypetrain.overlay.record',
         'generic.message'
       ],
       meta: {
         overlay: 'central_event_overlay',
-        step: 'HT4.0',
+        step: 'HT4.1',
         role: 'central_event_display'
       }
     };
   </script>
-  <script src="/overlays/shared/overlay_bus_client.js" data-overlay-id="central_event_overlay" data-module="central_event_overlay" data-name="Central Event Overlay" data-version="0.1.0"></script>
+  <script src="/overlays/shared/overlay_bus_client.js" data-overlay-id="central_event_overlay" data-module="central_event_overlay" data-name="Central Event Overlay" data-version="0.1.1"></script>
   <script>
     (function () {
       'use strict';
@@ -230,6 +235,11 @@
         'hypetrain.levelup',
         'hypetrain.end',
         'hypetrain.record',
+        'hypetrain.overlay.start',
+        'hypetrain.overlay.level_up',
+        'hypetrain.overlay.levelup',
+        'hypetrain.overlay.end',
+        'hypetrain.overlay.record',
         'generic.message'
       ]);
 
@@ -337,6 +347,11 @@
         const explicit = firstString(raw.eventName, raw.name, payload.eventName, payload.name, meta.eventName, '');
         const candidate = String(explicit || channel || '').trim().toLowerCase().replace(/:/g, '.');
         if (candidate === 'hypetrain.levelup') return 'hypetrain.level_up';
+        if (candidate === 'hypetrain.overlay.levelup') return 'hypetrain.level_up';
+        if (candidate === 'hypetrain.overlay.level_up') return 'hypetrain.level_up';
+        if (candidate === 'hypetrain.overlay.start') return 'hypetrain.start';
+        if (candidate === 'hypetrain.overlay.end') return 'hypetrain.end';
+        if (candidate === 'hypetrain.overlay.record') return 'hypetrain.record';
         if (ACCEPTED_EVENTS.has(candidate)) return candidate;
 
         const rawModule = firstString(raw.module, payload.module, meta.module, '');
