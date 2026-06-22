@@ -225,3 +225,12 @@ Stand: 2026-06-15 19:55
   - [ ] Tagebuch-Eintrag einzeln aktivieren und testen.
   - [ ] Rekord-Sound über Media-ID/Sound-ID einzeln aktivieren und testen.
 - [ ] Später HT3: Start-/Ende-/Level-Up-Alerts mit Sound/Video/Grafik über Media-System-Fenster/Modal.
+
+
+## HypeTrain - Live-Test-Vorbereitung
+
+- [ ] HT2.5 Live-Readiness einspielen und pruefen.
+- [ ] Discord-Webhook/Channel nur aktivieren, wenn Readiness ok ist.
+- [ ] Tagebuch nur produktiv aktivieren, wenn Streamstatus/Regeln passen.
+- [ ] Rekord-Sound nur aktivieren, wenn Media-ID/Sound-ID vom Sound-System-Katalog gefunden wird.
+- [ ] Produktiven manuellen Test erst nach Readiness ohne relevante Warnungen durchfuehren.

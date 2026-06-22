@@ -386,3 +386,11 @@ Geänderte Dateien:
 - `project-state/TODO.md`
 - `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
+
+
+## HypeTrain HT2.5 relevante Dateien
+
+- `backend/modules/hypetrain.js` - Backend 0.1.3 mit Live-Readiness-Route.
+- `htdocs/dashboard/modules/hypetrain.js` - Dashboard-Button fuer Live-Readiness.
+- `htdocs/dashboard/modules/hypetrain.css` - kleine Statusdarstellung fuer Readiness.
+- `docs/modules/hypetrain.md` - Modul-Doku HT2.5.

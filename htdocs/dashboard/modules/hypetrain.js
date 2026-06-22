@@ -13,6 +13,7 @@
     stats: null,
     preview: null,
     lastEndActionResult: null,
+    liveReadiness: null,
     lastError: '',
     lastSavedAt: '',
     lastTestAt: ''
@@ -159,6 +160,7 @@
             <p>Discord, Tagebuch und Rekord-Sound sind sicher schaltbar. Standard bleibt AUS.</p>
           </div>
           <button type="button" data-ht-action="end-actions-dry-run">End-Actions Dry-Run</button>
+          <button type="button" data-ht-action="live-readiness">Live-Readiness prüfen</button>
         </div>
         <div class="ht-action-grid">
           <div class="ht-action-card"><span>Discord am Ende</span><strong>${cfgText('discord')}</strong>${actionState(actions.discord)}</div>
@@ -330,6 +332,7 @@
           <button type="button" data-ht-action="preview-normal">Normale Preview</button>
           <button type="button" data-ht-action="preview-raid-record">Raid + Rekord Preview</button>
           <button type="button" data-ht-action="end-actions-dry-run">End-Actions Dry-Run</button>
+          <button type="button" data-ht-action="live-readiness">Live-Readiness prüfen</button>
           <button type="button" data-ht-action="synthetic-test">Synthetischen DB-Test schreiben</button>
           <button type="button" data-ht-action="open-media">Media-System öffnen</button>
           <button type="button" data-ht-action="reload">Status neu laden</button>
@@ -340,8 +343,23 @@
           ${preview?.message ? `<pre>${esc(preview.message)}</pre>` : '<p>Noch keine Preview in diesem Dashboardlauf.</p>'}
         </div>
         ${endActionResult() ? `<div class="ht-preview-box"><h4>Letzter End-Actions Dry-Run</h4><pre>${esc(JSON.stringify(endActionResult(), null, 2))}</pre></div>` : ''}
+        ${state.liveReadiness ? `<div class="ht-preview-box"><h4>Live-Readiness</h4>${renderReadinessSummary(state.liveReadiness)}<pre>${esc(JSON.stringify(state.liveReadiness, null, 2))}</pre></div>` : ''}
       </div>
     `;
+  }
+
+  function renderReadinessSummary(data){
+    const summary = data?.summary || {};
+    const ready = summary.readyForProductiveTest === true;
+    const checks = data?.checks || {};
+    const rows = Object.entries(checks).map(([area, list]) => {
+      const items = Array.isArray(list) ? list : [];
+      const warnings = items.filter(item => item.severity === 'warning').length;
+      const errors = items.filter(item => item.severity === 'error' || item.ok === false && item.severity !== 'info').length;
+      const label = area === 'recordSound' ? 'Rekord-Sound' : (area === 'diary' ? 'Tagebuch' : 'Discord');
+      return `<div class="ht-mini"><span>${esc(label)}</span><strong>${errors ? 'Fehler' : (warnings ? 'Warnung' : 'OK')}</strong><small>${esc(errors)} Fehler · ${esc(warnings)} Warnungen</small></div>`;
+    }).join('');
+    return `<div class="ht-note ${ready ? 'ok' : 'warn'}">${ready ? 'Bereit für manuellen Produktiv-Test.' : 'Noch nicht ohne Warnungen bereit. Erst Hinweise prüfen.'}</div><div class="ht-hero-grid">${rows}</div>`;
   }
 
   function render(){
@@ -474,11 +492,27 @@
     window.open('/dashboard', 'cgn-media-system', 'popup=yes,width=1400,height=900');
   }
 
+  async function liveReadiness(){
+    state.lastError = '';
+    try {
+      const body = { raid:true, record:true, level:5, points:9600, bits:3500, subs:3, resubs:1, giftSubs:4 };
+      const result = await api('/api/hypetrain/live-readiness', { method: 'POST', body: JSON.stringify(body) });
+      state.liveReadiness = result;
+      state.preview = result.preview || state.preview;
+      state.tab = 'tests';
+      render();
+    } catch (err) {
+      state.lastError = err.message || String(err);
+      render();
+    }
+  }
+
   function handleAction(action){
     if (action === 'reload') return loadAll(true);
     if (action === 'save-config') return saveConfig();
     if (action === 'open-media') return openMediaWindow();
     if (action === 'end-actions-dry-run') return endActionsDryRun();
+    if (action === 'live-readiness') return liveReadiness();
     if (action === 'preview-normal') return makePreview({ level:2, points:2500, bits:1500, subs:1, resubs:1, giftSubs:1 });
     if (action === 'preview-raid-record') return makePreview({ raid:1, record:1, level:5, points:9600, bits:3500, subs:3, giftSubs:4 });
     if (action === 'synthetic-test') return syntheticTest();

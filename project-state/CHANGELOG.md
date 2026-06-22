@@ -1,3 +1,12 @@
+
+## STEP_HT2_5_HYPETRAIN_LIVE_READINESS
+
+- HypeTrain Backend auf `0.1.3 / STEP_HT2_5_HYPETRAIN_LIVE_READINESS` erweitert.
+- Neue Read-only-Route `GET/POST /api/hypetrain/live-readiness` zur sicheren Live-Test-Vorbereitung.
+- Prueft Discord-Bridge/Webhook, Tagebuch-API/Streamstatus und Rekord-Sound-Medien ueber Sound-System-Katalog.
+- Dashboard-Tests um Button `Live-Readiness pruefen` erweitert.
+- Keine produktiven Aktionen, keine DB-Datenloeschung, keine Media-Upload-Insel.
+
 ## 2026-06-21 – STEP_HT2_3_HYPETRAIN_PRODUCTIVE_END_ACTIONS
 
 ### Added

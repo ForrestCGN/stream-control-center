@@ -24,8 +24,8 @@ const texts = require("./helpers/helper_texts");
 const communicationBus = require("./communication_bus");
 
 const MODULE_NAME = "hypetrain";
-const MODULE_VERSION = "0.1.2";
-const MODULE_BUILD = "STEP_HT2_3_HYPETRAIN_PRODUCTIVE_END_ACTIONS";
+const MODULE_VERSION = "0.1.3";
+const MODULE_BUILD = "STEP_HT2_5_HYPETRAIN_LIVE_READINESS";
 const MODULE_ID = `module:${MODULE_NAME}`;
 const SCHEMA_VERSION = 1;
 const SETTINGS_TABLE = "hypetrain_settings";
@@ -1262,6 +1262,186 @@ function updateSettings(payload = {}) {
   return { ok: true, module: MODULE_NAME, changed, changedCount: changed.length, config: getConfig(), settings: buildSettingsPayload() };
 }
 
+
+function enabledLabel(enabled) {
+  return enabled ? "aktiv" : "aus";
+}
+
+function liveCheckResult(name, ok, severity, message, extra = {}) {
+  return {
+    name,
+    ok: ok === true,
+    severity: severity || (ok ? "ok" : "warning"),
+    message: safeString(message),
+    ...extra
+  };
+}
+
+function envConfigured(envKey) {
+  const key = safeString(envKey);
+  return !!(key && process.env[key]);
+}
+
+function buildLiveReadinessPlan(input = {}) {
+  const memory = buildSyntheticMemory({
+    ...input,
+    raid: input.raid ?? true,
+    record: input.record ?? true,
+    recordReached: input.recordReached ?? input.record ?? true,
+    level: input.level ?? 5,
+    points: input.points ?? 9600,
+    bits: input.bits ?? 3500,
+    subs: input.subs ?? 3,
+    resubs: input.resubs ?? 1,
+    giftSubs: input.giftSubs ?? 4
+  });
+  const hypeTrain = {
+    id: memory.trainId,
+    level: memory.level,
+    total: memory.pointsTotal,
+    startedAt: memory.startedAt,
+    endedAt: memory.endedAt,
+    cooldownEndsAt: memory.cooldownEndsAt,
+    type: memory.hypeType
+  };
+  const preview = buildPreviewFromMemory(memory, hypeTrain, input.target || "discord");
+  const plan = buildEndActionPlan(memory, hypeTrain, preview);
+  return { memory, hypeTrain, preview, plan };
+}
+
+async function fetchJsonWithTimeout(url, options = {}, timeoutMs = 2000) {
+  if (typeof fetch !== "function") return { ok: false, error: "fetch_unavailable" };
+  const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+  let timer = null;
+  try {
+    if (controller) timer = setTimeout(() => controller.abort(), Math.max(250, Number(timeoutMs || 2000)));
+    const response = await fetch(url, { ...options, signal: controller ? controller.signal : undefined });
+    const text = await response.text().catch(() => "");
+    let data = null;
+    try { data = text ? JSON.parse(text) : null; } catch (_) { data = { raw: text }; }
+    return { ok: response.ok && !(data && data.ok === false), status: response.status, data, error: response.ok ? "" : `http_${response.status}` };
+  } catch (err) {
+    return { ok: false, error: err && err.message ? err.message : String(err) };
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+async function checkDiaryReadiness(plan) {
+  const cfg = getConfig();
+  const action = plan.actions.diary || {};
+  const checks = [];
+  const enabled = action.enabled === true;
+  checks.push(liveCheckResult("diary_enabled", enabled || action.configuredEnabled === false, enabled ? "ok" : "info", `Tagebuch ist ${enabledLabel(enabled)}.`, { configuredEnabled: !!action.configuredEnabled, writeOnEnd: !!action.writeOnEnd }));
+  const apiUrl = safeString(cfg.diary?.apiUrl, "http://127.0.0.1:8080/api/tagebuch/entry");
+  checks.push(liveCheckResult("diary_api_url", !!apiUrl, apiUrl ? "ok" : "warning", apiUrl ? "Tagebuch-API-URL ist gesetzt." : "Tagebuch-API-URL fehlt.", { apiUrl }));
+
+  let statusUrl = apiUrl.replace(/\/entry(?:\?.*)?$/i, "/status");
+  if (statusUrl === apiUrl && apiUrl.includes("/api/tagebuch")) statusUrl = "http://127.0.0.1:8080/api/tagebuch/status";
+  const status = await fetchJsonWithTimeout(statusUrl, { method: "GET" }, 2000);
+  checks.push(liveCheckResult("diary_status_route", status.ok === true, status.ok ? "ok" : (enabled ? "warning" : "info"), status.ok ? "Tagebuch-Statusroute erreichbar." : "Tagebuch-Statusroute nicht sicher erreichbar.", { statusUrl, error: status.error || "", statusCode: status.status || 0 }));
+
+  const activeStream = status && status.data && status.data.state ? status.data.state.activeStream === true : null;
+  checks.push(liveCheckResult("diary_active_stream", activeStream === true || !enabled, activeStream === true ? "ok" : (enabled ? "warning" : "info"), activeStream === true ? "Tagebuch meldet aktiven Stream." : "Für produktive Tagebuch-Einträge muss der Stream aktiv sein oder die Tagebuch-Regel entsprechend konfiguriert sein.", { activeStream }));
+  return checks;
+}
+
+async function checkSoundReadiness(plan) {
+  const cfg = getConfig();
+  const action = plan.actions.recordSound || {};
+  const checks = [];
+  const enabled = action.enabled === true;
+  checks.push(liveCheckResult("record_sound_enabled", enabled || action.configuredEnabled === false, enabled ? "ok" : "info", `Rekord-Sound ist ${enabledLabel(enabled)}.`, { configuredEnabled: !!action.configuredEnabled, reason: action.reason || "" }));
+  const mediaId = numberValue(cfg.sound?.mediaId, 0);
+  const soundId = safeString(cfg.sound?.soundId);
+  checks.push(liveCheckResult("record_sound_media", mediaId > 0 || !!soundId || !action.configuredEnabled, mediaId > 0 || !!soundId ? "ok" : (action.configuredEnabled ? "warning" : "info"), mediaId > 0 ? `Media-ID ${mediaId} ist gesetzt.` : (soundId ? `Sound-ID ${soundId} ist gesetzt.` : "Noch keine Media-ID/Sound-ID gesetzt."), { mediaId, soundId }));
+
+  if (mediaId > 0 || soundId) {
+    const query = mediaId > 0 ? `mediaId=${encodeURIComponent(mediaId)}` : `soundId=${encodeURIComponent(soundId)}`;
+    const catalog = await fetchJsonWithTimeout(`http://127.0.0.1:8080/api/sound/eventbus/command/catalog-status?${query}`, { method: "GET" }, 2500);
+    const found = !!(catalog.ok && catalog.data && catalog.data.summary && (catalog.data.summary.requestedMediaAssetFound || catalog.data.summary.requestedSoundPresetFound));
+    checks.push(liveCheckResult("record_sound_catalog", found, found ? "ok" : (action.configuredEnabled ? "warning" : "info"), found ? "Sound-System findet das konfigurierte Medium." : "Sound-System konnte das konfigurierte Medium noch nicht bestätigen.", { error: catalog.error || "", statusCode: catalog.status || 0, summary: catalog.data && catalog.data.summary ? catalog.data.summary : null }));
+  }
+  return checks;
+}
+
+async function checkDiscordReadiness(plan) {
+  const cfg = getConfig();
+  const action = plan.actions.discord || {};
+  const checks = [];
+  const enabled = action.enabled === true;
+  const bridge = getDiscordBridge();
+  const mode = safeString(cfg.discord?.mode, "webhook").toLowerCase() === "channel" ? "channel" : "webhook";
+  const webhookEnv = safeString(cfg.discord?.webhookUrlEnv, "DISCORD_WEBHOOK_HYPETRAIN");
+  checks.push(liveCheckResult("discord_enabled", enabled || action.configuredEnabled === false, enabled ? "ok" : "info", `Discord ist ${enabledLabel(enabled)}.`, { configuredEnabled: !!action.configuredEnabled, writeOnEnd: !!action.writeOnEnd }));
+  checks.push(liveCheckResult("discord_bridge", !!bridge, bridge ? "ok" : (enabled ? "warning" : "info"), bridge ? "Discord-Bridge ist verfügbar." : "Discord-Bridge nicht verfügbar.", {}));
+  if (mode === "webhook") {
+    const ok = envConfigured(webhookEnv);
+    checks.push(liveCheckResult("discord_webhook_env", ok || !enabled, ok ? "ok" : (enabled ? "warning" : "info"), ok ? `Webhook-ENV ${webhookEnv} ist gesetzt.` : `Webhook-ENV ${webhookEnv} ist nicht gesetzt.`, { webhookEnv, configured: ok }));
+  } else {
+    const channelId = safeString(cfg.discord?.channelId);
+    checks.push(liveCheckResult("discord_channel_id", !!channelId || !enabled, channelId ? "ok" : (enabled ? "warning" : "info"), channelId ? "Discord-Channel-ID ist gesetzt." : "Discord-Channel-ID fehlt.", { channelIdConfigured: !!channelId }));
+  }
+  checks.push(liveCheckResult("discord_message_length", numberValue(action.messageLength, 0) > 0 && numberValue(action.messageLength, 0) <= 1900, numberValue(action.messageLength, 0) <= 1900 ? "ok" : "warning", `Nachrichtenlänge: ${numberValue(action.messageLength, 0)} Zeichen.`, { messageLength: numberValue(action.messageLength, 0) }));
+  return checks;
+}
+
+function summarizeReadiness(checksByArea) {
+  const all = Object.values(checksByArea).flat();
+  const errors = all.filter(c => c.severity === "error" || c.ok === false && c.severity !== "info");
+  const warnings = all.filter(c => c.severity === "warning");
+  return {
+    total: all.length,
+    ok: all.filter(c => c.ok === true && c.severity === "ok").length,
+    info: all.filter(c => c.severity === "info").length,
+    warnings: warnings.length,
+    errors: errors.length,
+    readyForProductiveTest: errors.length === 0 && warnings.length === 0,
+    safeToDryRun: true
+  };
+}
+
+async function buildLiveReadiness(input = {}) {
+  const built = buildLiveReadinessPlan(input);
+  const checks = {
+    discord: await checkDiscordReadiness(built.plan),
+    diary: await checkDiaryReadiness(built.plan),
+    recordSound: await checkSoundReadiness(built.plan)
+  };
+  const summary = summarizeReadiness(checks);
+  const response = {
+    ok: true,
+    module: MODULE_NAME,
+    moduleVersion: MODULE_VERSION,
+    moduleBuild: MODULE_BUILD,
+    mode: "read_only_live_readiness",
+    productiveActionsExecuted: false,
+    preview: built.preview,
+    plan: built.plan,
+    checks,
+    summary,
+    commands: {
+      dryRun: `POST /api/hypetrain/test/end-actions?confirm=1`,
+      productiveManualTest: `POST /api/hypetrain/test/end-actions?confirm=1 mit productive=true und confirmProductive=HYPETRAIN_PRODUCTIVE_ACTIONS`,
+      warning: "Produktiven manuellen Test erst ausführen, wenn Readiness ohne Warnungen/Fehler ist."
+    },
+    generatedAt: nowIso()
+  };
+  try {
+    if (busRef && typeof busRef.emit === "function") {
+      busRef.emit({
+        channel: "hypetrain.live_readiness",
+        action: "checked",
+        source: { type: "module", id: MODULE_NAME, module: MODULE_NAME },
+        target: { type: "module", id: MODULE_NAME, module: MODULE_NAME },
+        payload: { summary, generatedAt: response.generatedAt },
+        meta: { module: MODULE_NAME, moduleVersion: MODULE_VERSION, replayable: false, requireAck: false, ttlMs: 15000 }
+      });
+    }
+  } catch (_) {}
+  return response;
+}
+
 function buildStatus() {
   const cfg = getConfig();
   const stats = buildStats();
@@ -1459,6 +1639,19 @@ function registerRoutes(app) {
     }
   });
 
+
+  const liveReadinessHandler = async (req, res) => {
+    try {
+      const input = { ...(req.query || {}), ...(req.body || {}) };
+      const result = await buildLiveReadiness(input);
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ ok: false, module: MODULE_NAME, error: err && err.message ? err.message : String(err), productiveActionsExecuted: false });
+    }
+  };
+  get(["/api/hypetrain/live-readiness", "/hypetrain/live-readiness"], liveReadinessHandler);
+  post(["/api/hypetrain/live-readiness", "/hypetrain/live-readiness"], liveReadinessHandler);
+
   get(["/api/hypetrain/routes", "/hypetrain/routes"], (_req, res) => {
     res.json({
       ok: true,
@@ -1473,6 +1666,8 @@ function registerRoutes(app) {
         "GET|POST /api/hypetrain/preview",
         "POST /api/hypetrain/test/synthetic?confirm=1",
         "POST /api/hypetrain/test/end-actions?confirm=1",
+        "GET /api/hypetrain/live-readiness",
+        "POST /api/hypetrain/live-readiness",
         "GET /api/hypetrain/routes"
       ],
       registered

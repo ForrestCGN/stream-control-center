@@ -683,3 +683,9 @@ Neu:
 - Media-System kann in eigenem Fenster geöffnet werden.
 
 Produktive Aktionen bleiben standardmäßig deaktiviert.
+
+
+## HypeTrain HT2.5
+
+Aktueller geplanter Stand nach Einspielen: Backend `0.1.3 / STEP_HT2_5_HYPETRAIN_LIVE_READINESS`.
+Neue Read-only-Live-Readiness prueft vor produktiven Tests Discord, Tagebuch und Rekord-Sound, ohne produktive Aktionen auszufuehren. Dashboard-Tests enthalten `Live-Readiness pruefen`.

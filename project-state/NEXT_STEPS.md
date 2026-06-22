@@ -521,3 +521,11 @@ Keine Recovery-Automatik
 3. Übersicht, Config und Tests prüfen.
 4. End-Actions-Dry-Run im Dashboard ausführen.
 5. Danach entscheiden, ob HT2.5 die schrittweise Produktiv-Aktivierung für Discord/Tagebuch/Rekord-Sound vorbereiten soll.
+
+
+## HypeTrain naechste Schritte nach HT2.5
+
+1. HT2.5 einspielen, Node neu starten und Live-Readiness pruefen.
+2. Falls Readiness Warnungen zeigt: Config/ENV/Media-System gezielt korrigieren.
+3. Danach bewusst einen produktiven manuellen Test mit `confirmProductive=HYPETRAIN_PRODUCTIVE_ACTIONS` planen.
+4. Erst danach echte Live-Schaltung fuer Discord/Tagebuch/Rekord-Sound entscheiden.

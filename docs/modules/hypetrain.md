@@ -1,9 +1,9 @@
 # HypeTrain-Modul
 
 Stand: 2026-06-21  
-Marker: `STEP_HT2_3_HYPETRAIN_PRODUCTIVE_END_ACTIONS`  
+Marker: `STEP_HT2_5_HYPETRAIN_LIVE_READINESS`  
 Modul: `hypetrain`  
-Version: `0.1.2`
+Version: `0.1.3`
 
 ## Ziel
 
@@ -13,7 +13,7 @@ Das Modul `hypetrain` ist das neue Fachmodul fuer HypeTrain-Status, DB-Config, T
 
 ## Aktueller Stand
 
-HT2.3 ergaenzt sichere, konfigurierbare End-Aktionen:
+HT2.5 ergaenzt eine sichere Live-Readiness-Pruefung fuer produktive End-Aktionen. HT2.3 hat die sicheren, konfigurierbaren End-Aktionen ergaenzt:
 
 ```text
 HypeTrain-Ende -> optional Discord-Nachricht
@@ -54,6 +54,7 @@ Das Modul veroeffentlicht Status/Diagnose ueber:
 ```text
 hypetrain.status.updated
 hypetrain.preview.generated
+hypetrain.live_readiness.checked
 hypetrain.end_actions.executed
 ```
 
@@ -159,6 +160,8 @@ GET  /api/hypetrain/preview
 POST /api/hypetrain/preview
 POST /api/hypetrain/test/synthetic?confirm=1
 POST /api/hypetrain/test/end-actions?confirm=1
+GET  /api/hypetrain/live-readiness
+POST /api/hypetrain/live-readiness
 GET  /api/hypetrain/routes
 ```
 
@@ -171,11 +174,11 @@ Invoke-RestMethod "http://127.0.0.1:8080/api/hypetrain/status" |
   Select-Object moduleVersion,moduleBuild
 ```
 
-Erwartung fuer HT2.3:
+Erwartung fuer HT2.5:
 
 ```text
-moduleVersion = 0.1.2
-moduleBuild   = STEP_HT2_3_HYPETRAIN_PRODUCTIVE_END_ACTIONS
+moduleVersion = 0.1.3
+moduleBuild   = STEP_HT2_5_HYPETRAIN_LIVE_READINESS
 ```
 
 Preview normal:
@@ -234,3 +237,51 @@ Sicherheitsregeln:
 - Produktive Discord-/Tagebuch-/Sound-Aktionen bleiben Backend-seitig weiterhin durch Config und Produktiv-Confirm geschützt.
 - Medienauswahl/Uploads werden nicht im HypeTrain-Modul gebaut, sondern bleiben beim zentralen Media-System.
 - Datenschutz-Defaults bleiben unverändert: keine Namen und keine Top-Unterstützer standardmäßig.
+
+
+## HT2.5 Live-Readiness
+
+Stand: `STEP_HT2_5_HYPETRAIN_LIVE_READINESS`
+Backend: `0.1.3`
+
+HT2.5 fuegt eine Read-only-Pruefung hinzu, bevor produktive HypeTrain-Endaktionen getestet oder scharf geschaltet werden. Die Pruefung fuehrt keine produktiven Aktionen aus.
+
+Geprueft werden:
+
+```text
+Discord-Bridge / Webhook-ENV oder Channel-ID
+Tagebuch-API und Stream-Aktiv-Status
+Rekord-Sound Media-ID oder Sound-ID ueber Sound-System-Katalog
+Nachrichtenlaenge und End-Actions-Plan
+```
+
+Neue Route:
+
+```text
+GET/POST /api/hypetrain/live-readiness
+```
+
+Dashboard:
+
+```text
+Control -> HypeTrain -> Tests -> Live-Readiness pruefen
+```
+
+PowerShell-Test:
+
+```powershell
+Invoke-RestMethod -Method Post "http://127.0.0.1:8080/api/hypetrain/live-readiness" `
+  -ContentType "application/json" `
+  -Body '{"raid":true,"record":true,"level":5,"points":9600,"bits":3500,"subs":3,"resubs":1,"giftSubs":4}' |
+  ConvertTo-Json -Depth 10
+```
+
+Erwartung:
+
+```text
+productiveActionsExecuted = false
+summary.safeToDryRun = true
+summary.readyForProductiveTest zeigt, ob alle aktivierten Bereiche ohne Warnungen bereit sind
+```
+
+Schutzregel bleibt: Es gibt weiterhin keinen Ein-Klick-Produktivtest im Dashboard. Produktive Tests brauchen weiterhin `confirmProductive=HYPETRAIN_PRODUCTIVE_ACTIONS`.
