@@ -667,3 +667,19 @@ Fix fuer Hype-Train-Rekord-Dashboard: Media-Auswahl wird beim `media-field:chang
 - Twitch-Events-Dashboard-Renderfehler im Hype-Train-Rekord-Tab behoben.
 - Ursache: `selectedMediaId` wurde im Template genutzt, aber im Render-Scope nicht gesetzt.
 - Backend-Status HT1 bleibt unverändert.
+
+## HypeTrain HT2.4 Dashboard-End-Actions-Steuerung
+
+Aktueller vorbereiteter Step: `STEP_HT2_4_HYPETRAIN_DASHBOARD_END_ACTION_CONTROLS`.
+
+Dieser Step erweitert nur das Dashboard-Modul `htdocs/dashboard/modules/hypetrain.js/css`.
+Der Backend-Stand bleibt `hypetrain 0.1.2 / STEP_HT2_3_HYPETRAIN_PRODUCTIVE_END_ACTIONS`.
+
+Neu:
+
+- Übersicht zeigt Discord-/Tagebuch-/Rekord-Sound-Aktionsstatus.
+- End-Actions-Dry-Run ist im Tests-Tab verfügbar.
+- Config-Tab erklärt die Aktivierungsbedingungen.
+- Media-System kann in eigenem Fenster geöffnet werden.
+
+Produktive Aktionen bleiben standardmäßig deaktiviert.

@@ -212,3 +212,25 @@ Diese Option nur bewusst und nach Config-Pruefung verwenden.
 - Medienauswahl/Uploads spaeter ueber zentrales Media-System-Fenster/Modal.
 - Produktive Discord-/Tagebuch-/Sound-Aktionen bleiben standardmaessig aus.
 - Top-Unterstuetzer-Namen bleiben standardmaessig aus.
+
+## HT2.4 Dashboard Config-/End-Actions-Schalter
+
+Stand: `STEP_HT2_4_HYPETRAIN_DASHBOARD_END_ACTION_CONTROLS`
+
+HT2.4 erweitert ausschließlich das HypeTrain-Dashboard. Der Backend-Stand `0.1.2 / STEP_HT2_3_HYPETRAIN_PRODUCTIVE_END_ACTIONS` bleibt unverändert.
+
+Neu im Dashboard:
+
+- Übersicht zeigt einen eigenen Block **Produktive End-Aktionen**.
+- Discord, Tagebuch und Rekord-Sound werden dort mit aktuellem Aktivierungsstatus angezeigt.
+- Der letzte End-Actions-Plan beziehungsweise Dry-Run kann aufgeklappt werden.
+- Tests-Tab enthält einen sicheren **End-Actions Dry-Run**.
+- Config-Tab erklärt die Aktivierungslogik direkt im Dashboard.
+- Media-System kann aus dem HypeTrain-Dashboard in einem eigenen Fenster geöffnet werden.
+
+Sicherheitsregeln:
+
+- Es gibt keinen Ein-Klick-Produktivtest im Dashboard.
+- Produktive Discord-/Tagebuch-/Sound-Aktionen bleiben Backend-seitig weiterhin durch Config und Produktiv-Confirm geschützt.
+- Medienauswahl/Uploads werden nicht im HypeTrain-Modul gebaut, sondern bleiben beim zentralen Media-System.
+- Datenschutz-Defaults bleiben unverändert: keine Namen und keine Top-Unterstützer standardmäßig.

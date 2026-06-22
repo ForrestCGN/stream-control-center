@@ -513,3 +513,11 @@ Keine Recovery-Automatik
 3. Sound erneut auswählen und speichern.
 4. `/api/twitch/events/hypetrain/status` prüfen: `recordSound.mediaId` muss > 0 sein.
 5. Danach synthetischen Hype-Train-Test mit neuer ID ausführen.
+
+## Nächste Schritte nach HT2.4
+
+1. HT2.4 einspielen und Dashboard prüfen.
+2. Control -> HypeTrain öffnen.
+3. Übersicht, Config und Tests prüfen.
+4. End-Actions-Dry-Run im Dashboard ausführen.
+5. Danach entscheiden, ob HT2.5 die schrittweise Produktiv-Aktivierung für Discord/Tagebuch/Rekord-Sound vorbereiten soll.

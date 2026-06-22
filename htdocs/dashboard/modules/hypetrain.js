@@ -12,6 +12,7 @@
     texts: null,
     stats: null,
     preview: null,
+    lastEndActionResult: null,
     lastError: '',
     lastSavedAt: '',
     lastTestAt: ''
@@ -113,6 +114,7 @@
             ${miniStat('GiftSubs', stats.giftSubs)}
           </div>
         </section>
+        ${renderEndActionSummary()}
         <section class="ht-card glass wide">
           <h3>Runtime</h3>
           <dl class="ht-dl compact">
@@ -128,6 +130,59 @@
 
   function miniStat(label, value){
     return `<div class="ht-stat"><span>${esc(label)}</span><strong>${esc(value ?? 0)}</strong></div>`;
+  }
+
+  function actionState(planAction){
+    const a = planAction || {};
+    if (a.enabled) return '<span class="ht-badge ok">würde ausführen</span>';
+    return `<span class="ht-badge warn">aus: ${esc(a.reason || 'nicht aktiv')}</span>`;
+  }
+
+  function endActionPlan(){
+    return state.status?.runtime?.lastEndActions?.plan || state.lastEndActionResult?.plan || null;
+  }
+
+  function endActionResult(){
+    return state.lastEndActionResult || state.status?.runtime?.lastEndActions || null;
+  }
+
+  function renderEndActionSummary(){
+    const result = endActionResult();
+    const plan = endActionPlan();
+    const actions = plan?.actions || {};
+    const counters = state.status?.runtime?.counters || {};
+    return `
+      <section class="ht-card glass wide">
+        <div class="ht-card-head">
+          <div>
+            <h3>Produktive End-Aktionen</h3>
+            <p>Discord, Tagebuch und Rekord-Sound sind sicher schaltbar. Standard bleibt AUS.</p>
+          </div>
+          <button type="button" data-ht-action="end-actions-dry-run">End-Actions Dry-Run</button>
+        </div>
+        <div class="ht-action-grid">
+          <div class="ht-action-card"><span>Discord am Ende</span><strong>${cfgText('discord')}</strong>${actionState(actions.discord)}</div>
+          <div class="ht-action-card"><span>Tagebuch am Ende</span><strong>${cfgText('diary')}</strong>${actionState(actions.diary)}</div>
+          <div class="ht-action-card"><span>Rekord-Sound</span><strong>${cfgText('recordSound')}</strong>${actionState(actions.recordSound)}</div>
+        </div>
+        <dl class="ht-dl compact">
+          <dt>Letzter Test</dt><dd>${result ? esc(result.trigger || (result.dryRun ? 'dry-run' : 'produktiver Lauf')) : '-'}</dd>
+          <dt>Dry-Run</dt><dd>${result ? (result.dryRun ? 'ja' : 'nein') : '-'}</dd>
+          <dt>Planungen</dt><dd>${esc(counters.endActionsPlanned || 0)}</dd>
+          <dt>Ausgeführt</dt><dd>Discord ${esc(counters.discordPosted || 0)} · Tagebuch ${esc(counters.diaryPosted || 0)} · Rekord-Sound ${esc(counters.recordSoundRequested || 0)}</dd>
+          <dt>Fehler</dt><dd>${esc(counters.endActionErrors || 0)}</dd>
+        </dl>
+        ${result ? `<details class="ht-details"><summary>Letztes End-Actions-Ergebnis anzeigen</summary><pre>${esc(JSON.stringify(result, null, 2))}</pre></details>` : ''}
+      </section>
+    `;
+  }
+
+  function cfgText(kind){
+    const cfg = state.status?.config || {};
+    if (kind === 'discord') return cfg.discordEnabled ? 'aktiv' : 'aus';
+    if (kind === 'diary') return cfg.diaryEnabled ? 'aktiv' : 'aus';
+    if (kind === 'recordSound') return cfg.recordSoundEnabled ? 'aktiv' : 'aus';
+    return '-';
   }
 
   function settingInput(setting){
@@ -151,7 +206,13 @@
           <div><h3>Config</h3><p>DB-basierte HypeTrain-Einstellungen. Medien-Uploads bleiben bewusst im Media-System.</p></div>
           <button type="button" class="primary" data-ht-action="save-config">Speichern</button>
         </div>
-        <div class="ht-note">Sounds, Videos und Grafiken werden später über das zentrale Media-System-Fenster/Modal ausgewählt. Keine eigene Upload-Insel im HypeTrain-Modul.</div>
+        <div class="ht-note ht-note-actions">
+          <span>Sounds, Videos und Grafiken werden über das zentrale Media-System verwaltet. Keine eigene Upload-Insel im HypeTrain-Modul.</span>
+          <button type="button" data-ht-action="open-media">Media-System im eigenen Fenster öffnen</button>
+        </div>
+        <div class="ht-safety-box">
+          <strong>Aktivierungslogik:</strong> Discord sendet nur bei <code>discord.enabled=true</code> und <code>discord.writeOnEnd=true</code>. Tagebuch schreibt nur bei <code>diary.enabled=true</code> und <code>diary.writeOnEnd=true</code>. Rekord-Sound läuft nur bei <code>sound.recordSoundEnabled=true</code> und gültiger Media-ID/Sound-ID. Namen/Top-Unterstützer bleiben standardmäßig aus.
+        </div>
         <div class="ht-config-grid">
           ${grouped.map(cat => renderCategory(cat)).join('') || '<p>Keine Settings gefunden.</p>'}
         </div>
@@ -204,7 +265,7 @@
     return `
       <div class="ht-card glass">
         <h3>Texte</h3>
-        <p>Textvarianten kommen aus dem DB-Textsystem. HT2.2 zeigt sie zuerst kontrolliert an; der volle Editor kommt später sauber über den bestehenden Texteditor-Standard.</p>
+        <p>Textvarianten kommen aus dem DB-Textsystem. HT2.4 zeigt die vorhandenen Textdaten kontrolliert an; der volle Editor bleibt später beim zentralen Texteditor-Standard.</p>
         ${categories.length ? `<div class="ht-status-row">${categories.map(cat => `<span class="ht-badge">${esc(cat.label || cat.name || cat.key || cat)}</span>`).join('')}</div>` : ''}
         <div class="ht-table-wrap">
           <table class="ht-table">
@@ -264,17 +325,21 @@
     return `
       <div class="ht-card glass">
         <h3>Tests</h3>
-        <p>Alle Tests sind Preview-/synthetische Tests. Produktive Discord-/Tagebuch-Sends werden hier nicht ausgelöst.</p>
+        <p>Alle Dashboard-Tests sind Preview-/Dry-Run-Tests. Produktive Discord-/Tagebuch-/Sound-Aktionen werden hier nicht ohne separaten Produktiv-Confirm ausgelöst.</p>
         <div class="ht-test-grid">
           <button type="button" data-ht-action="preview-normal">Normale Preview</button>
           <button type="button" data-ht-action="preview-raid-record">Raid + Rekord Preview</button>
+          <button type="button" data-ht-action="end-actions-dry-run">End-Actions Dry-Run</button>
           <button type="button" data-ht-action="synthetic-test">Synthetischen DB-Test schreiben</button>
+          <button type="button" data-ht-action="open-media">Media-System öffnen</button>
           <button type="button" data-ht-action="reload">Status neu laden</button>
         </div>
+        <div class="ht-note">Produktive Tests bleiben absichtlich nicht als Ein-Klick-Button im Dashboard. Dafür ist weiterhin der zusätzliche Confirm <code>HYPETRAIN_PRODUCTIVE_ACTIONS</code> nötig.</div>
         <div class="ht-preview-box">
           <h4>Letzte Preview</h4>
           ${preview?.message ? `<pre>${esc(preview.message)}</pre>` : '<p>Noch keine Preview in diesem Dashboardlauf.</p>'}
         </div>
+        ${endActionResult() ? `<div class="ht-preview-box"><h4>Letzter End-Actions Dry-Run</h4><pre>${esc(JSON.stringify(endActionResult(), null, 2))}</pre></div>` : ''}
       </div>
     `;
   }
@@ -385,9 +450,35 @@
     }
   }
 
+  async function endActionsDryRun(){
+    state.lastError = '';
+    try {
+      const body = { raid:true, record:true, level:5, points:9600, bits:3500, subs:3, giftSubs:4 };
+      const result = await api('/api/hypetrain/test/end-actions?confirm=1', { method: 'POST', body: JSON.stringify(body) });
+      state.preview = result.preview || state.preview;
+      state.lastEndActionResult = result.result || result;
+      state.status = result.status || state.status;
+      state.tab = 'tests';
+      render();
+    } catch (err) {
+      state.lastError = err.message || String(err);
+      render();
+    }
+  }
+
+  function openMediaWindow(){
+    try {
+      localStorage.setItem('cgn-dashboard-active-section', 'system');
+      localStorage.setItem('cgn-dashboard-active-module', 'media');
+    } catch (_) {}
+    window.open('/dashboard', 'cgn-media-system', 'popup=yes,width=1400,height=900');
+  }
+
   function handleAction(action){
     if (action === 'reload') return loadAll(true);
     if (action === 'save-config') return saveConfig();
+    if (action === 'open-media') return openMediaWindow();
+    if (action === 'end-actions-dry-run') return endActionsDryRun();
     if (action === 'preview-normal') return makePreview({ level:2, points:2500, bits:1500, subs:1, resubs:1, giftSubs:1 });
     if (action === 'preview-raid-record') return makePreview({ raid:1, record:1, level:5, points:9600, bits:3500, subs:3, giftSubs:4 });
     if (action === 'synthetic-test') return syntheticTest();

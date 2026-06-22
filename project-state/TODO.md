@@ -216,3 +216,12 @@ Stand: 2026-06-15 19:55
 - [ ] Nach FIX3 testen, ob Dashboard vollständig lädt.
 - [ ] Media-Auswahl speichern und `recordSound.mediaId` prüfen.
 - [ ] Rekord-Sound-Queue über Sound-System testen.
+
+## HypeTrain – nach HT2.4 offen
+
+- [ ] Dashboard-End-Actions-Dry-Run live prüfen.
+- [ ] Produktive Aktivierung später schrittweise durchführen:
+  - [ ] Discord-Ausgabe einzeln aktivieren und testen.
+  - [ ] Tagebuch-Eintrag einzeln aktivieren und testen.
+  - [ ] Rekord-Sound über Media-ID/Sound-ID einzeln aktivieren und testen.
+- [ ] Später HT3: Start-/Ende-/Level-Up-Alerts mit Sound/Video/Grafik über Media-System-Fenster/Modal.

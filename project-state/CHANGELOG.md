@@ -232,3 +232,13 @@
 ## STEP_HT1_FIX3_HYPETRAIN_DASHBOARD_RENDER_FIX
 - Fix: Twitch-Events-Dashboard blieb bei `Lade Twitch-Events...`, weil `selectedMediaId` im Hype-Train-Renderpfad nicht definiert war.
 - Keine Backend-/DB-/Sound-System-Änderung.
+
+## STEP_HT2_4_HYPETRAIN_DASHBOARD_END_ACTION_CONTROLS
+
+- HypeTrain-Dashboard erweitert:
+  - Übersicht mit Statusblock für produktive End-Aktionen.
+  - Tests-Tab mit sicherem End-Actions-Dry-Run.
+  - Config-Tab mit klarer Aktivierungslogik für Discord, Tagebuch und Rekord-Sound.
+  - Media-System-Button öffnet die zentrale Medienverwaltung in einem eigenen Fenster.
+- Keine Backend-/DB-Änderung.
+- Keine produktive Aktion standardmäßig aktiviert.
