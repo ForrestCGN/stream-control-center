@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP5E_REMOTE_MODBOARD_NODE_SERVICE_PLAN  
+Stand: RDAP5F_REMOTE_NODE_BASE_READONLY_PACKAGE  
 Datum: 2026-06-23
 
 ## Erledigt
@@ -16,35 +16,49 @@ Datum: 2026-06-23
 - [x] lokale SQLite bleibt unangetastet
 - [x] bekannte Webserver-Fakten konsolidiert
 - [x] Node/npm/git/MariaDB-Client als bereits bekannt dokumentiert
-- [x] MariaDB-Version per `mysql --version` bestaetigt: MariaDB 11.8.6, Client 15.2
-- [x] RDAP5D als separater großer Node-Check übersprungen/korrigiert
-- [x] RDAP5E Remote-Modboard-Node-Service-Plan erstellt
+- [x] MariaDB-Version auf Webserver bestaetigt: 11.8.6
+- [x] RDAP5D als separater grosser Node-Check uebersprungen/korrigiert
+- [x] RDAP5E Remote-Modboard Node-Service-Plan dokumentiert
+- [x] RDAP5F Remote-Node-Base-Readonly-Paket vorbereitet
 - [x] keine Migration ausgefuehrt
 - [x] kein npm install ausgefuehrt
 - [x] keine nginx-/Service-Aenderung ausgefuehrt
-- [x] keine produktive Remote-Node-App gestartet
 
 ## Als nächstes
 
-### RDAP5F / Remote Node Base Readonly Package
+### RDAP5G / Remote Node Server Install Plan
 
-- [ ] Scope fuer RDAP5F nennen
-- [ ] kleines read-only Node-Paket planen
-- [ ] echte Zielpfade im Repo verwenden
-- [ ] `.env.example` ohne echte Secrets vorbereiten
-- [ ] read-only Health-/Status-/Routes-API vorbereiten
-- [ ] MariaDB-Health nur read-only planen
-- [ ] keine DB-Migration ohne separates Go
+- [ ] Webserver-Zielpfad pruefen
+- [ ] Service-User planen
+- [ ] ENV-/Secret-Datei planen
+- [ ] npm install nur im separaten `remote-modboard/backend` planen
+- [ ] systemd-Service planen
+- [ ] nginx-Reverse-Proxy fuer `/api/remote/` planen
+- [ ] spaeteren `/ws/agent` Pfad nur vorbereiten, nicht aktiv produktiv nutzen
+- [ ] Healthcheck nach Start planen
+- [ ] Rollback/Undo planen
+- [ ] keine Installation ohne separates Go
 - [ ] kein npm install ohne separates Go
+- [ ] keine DB-Migration ohne separates Go
 - [ ] keine nginx-/Service-Aenderung ohne separates Go
-- [ ] keine Agent-Actions ohne separates Go
-- [ ] keine produktive Steuerung ohne Permission/Lock/Audit
+
+## Verbindlicher TODO aus RDAP5F
+
+### RDAP4B remote_agent.js auf RDAP5C3 korrigieren
+
+- [ ] `backend/modules/remote_agent.js` pruefen und spaeter auf RDAP5C3 Rollen-/Gruppenmodell korrigieren
+- [ ] `sound_profi` darf dort nicht mehr als Rolle gefuehrt werden
+- [ ] `sound_profi` darf dort kein festes globales Permission-Preset mehr sein
+- [ ] `sound_profi` muss als Gruppe/Markierung behandelt werden
+- [ ] Modulrechte muessen ueber `target_type` + `target_key` / Modulmatrix gedacht werden
+- [ ] Bestehende read-only RDAP4B-Routen duerfen bei der Korrektur nicht entfernt werden
+- [ ] Korrektur erst nach eigenem Scope und Forrests ausdruecklichem Go
 
 ## Dauerhaft beachten
 
-- [ ] bekannte Infos nicht unnötig doppelt und dreifach abfragen
-- [ ] keine produktive SQLite löschen/ersetzen
-- [ ] keine MariaDB-Migration ohne Backup-/Migrationsplan
+- [ ] bekannte Infos nicht unnoetig doppelt und dreifach abfragen
+- [ ] keine produktive SQLite loeschen/ersetzen
+- [ ] keine MariaDB ohne Backup-/Migrationsplan beschreiben
 - [ ] keine alten Dashboard-Dateien blind umbauen
 - [ ] keine Schreibfunktionen ohne Permission/Lock/Audit
 - [ ] keine produktiven Agent-Actions ohne Allowlist

@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP5E_REMOTE_MODBOARD_NODE_SERVICE_PLAN  
+Stand: RDAP5F_REMOTE_NODE_BASE_READONLY_PACKAGE  
 Datum: 2026-06-23
 
 ## Wichtigste Dateien zuerst
@@ -20,23 +20,46 @@ project-state/FILES.md
 docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md
 docs/current/REMOTE_DASHBOARD_AGENT_RDAP3_MINIMAL_AGENT_PLAN.md
 docs/current/REMOTE_DASHBOARD_RDAP4_PERMISSION_LOCK_MODEL.md
-docs/current/REMOTE_DASHBOARD_RDAP5_AUTH_USER_MODEL_PLAN.md
-docs/current/REMOTE_DASHBOARD_RDAP5A_TWITCH_BASE_ACCESS_NO_VIP_DASHBOARD.md
 docs/current/REMOTE_DASHBOARD_RDAP5B_AUTH_DB_SCHEMA_PLAN.md
-docs/current/REMOTE_DASHBOARD_RDAP5C_AUTH_DB_MIGRATION_DESIGN.md
-docs/current/REMOTE_DASHBOARD_RDAP5C2_SIMPLE_ROLE_AND_MODULE_PERMISSION_MODEL.md
 docs/current/REMOTE_DASHBOARD_RDAP5C3_DB_SCHEMA_ROLE_GROUP_REVISION.md
 docs/current/REMOTE_DASHBOARD_RDAP5C4_KNOWN_REMOTE_SERVER_FACTS.md
 docs/current/REMOTE_DASHBOARD_RDAP5E_REMOTE_MODBOARD_NODE_SERVICE_PLAN.md
+docs/current/REMOTE_DASHBOARD_RDAP5F_REMOTE_NODE_BASE_READONLY_PACKAGE.md
 docs/current/NEXT_CHAT_PROMPT_RDAP5E_REMOTE_NODE_SERVICE_PLAN.md
 ```
 
-Hinweis:
+## Neues Remote-Modboard-Paket aus RDAP5F
 
 ```text
-Einige RDAP5-Dateien wurden in diesem Chat als Upload bereitgestellt, weil sie ueber GitHub/dev unter den erwarteten Pfaden nicht abrufbar waren.
-Fuer weitere Umsetzung immer wieder echte Repo-/Dateistaende pruefen und fehlende Dateien exakt anfordern.
+remote-modboard/backend/package.json
+remote-modboard/backend/server.js
+remote-modboard/backend/.env.example
+remote-modboard/backend/README.md
+remote-modboard/backend/src/app.js
+remote-modboard/backend/src/routes/health.routes.js
+remote-modboard/backend/src/routes/status.routes.js
+remote-modboard/backend/src/routes/routes.routes.js
+remote-modboard/backend/src/services/config.service.js
+remote-modboard/backend/src/services/db-health.service.js
+remote-modboard/backend/src/security/safety.js
 ```
+
+## Bewusst nicht geänderte Dateien
+
+```text
+backend/server.js
+backend/modules/remote_agent.js
+package.json
+D:\Streaming\stramAssets\data\sqlite\app.sqlite
+```
+
+## Wichtiger Altstand / späterer Korrekturpunkt
+
+```text
+backend/modules/remote_agent.js
+```
+
+Diese Datei ist noch RDAP4B-Stand und fuehrt `sound_profi` als Rolle/Permission-Preset. Das ist seit RDAP5C3 ueberholt und steht verbindlich in TODO.md.
 
 ## Webserver-Fakten
 
@@ -45,7 +68,7 @@ Webserver: web.cgn.community
 Subdomain: mods.forrestcgn.de
 OS: Debian 13
 nginx vorhanden
-HTTPS / HTTP2 läuft
+HTTPS / HTTP2 laeuft
 mods.forrestcgn.de liefert 200 OK
 Node v20.19.2 vorhanden
 npm 9.2.0 vorhanden
@@ -57,8 +80,8 @@ MariaDB 11.8.6 vorhanden
 ## Webserver-DB
 
 ```text
-DB-Engine: MariaDB 11.8.6
-DB-Client: mysql client 15.2
+DB-Typ: MariaDB
+Version: 11.8.6
 DB-Name: c1stream_control
 DB-User: c3stream_control
 Remote Access: aus
@@ -74,45 +97,16 @@ Passwort nicht dokumentieren.
 D:\Streaming\stramAssets\data\sqlite\app.sqlite
 ```
 
-Nicht ersetzen, nicht löschen, nicht migrieren ohne separates Go.
+Nicht ersetzen, nicht loeschen, nicht migrieren ohne separates Go.
 
-## Revidierte Tabellen ab RDAP5C3
-
-```text
-schema_migrations
-dashboard_users
-dashboard_twitch_status
-dashboard_roles
-dashboard_user_roles
-dashboard_groups
-dashboard_user_groups
-dashboard_permissions
-dashboard_module_permission_matrix
-dashboard_user_permission_overrides
-dashboard_sessions
-dashboard_locks
-dashboard_audit_log
-agent_registry
-```
-
-## In diesem Doku-Update aktualisiert
-
-```text
-docs/current/REMOTE_DASHBOARD_RDAP5E_REMOTE_MODBOARD_NODE_SERVICE_PLAN.md
-project-state/CURRENT_STATUS.md
-project-state/NEXT_STEPS.md
-project-state/TODO.md
-project-state/FILES.md
-```
-
-## Hinweis für nächsten Schritt
+## Hinweis für nächsten Chat
 
 Nächster sinnvoller Schritt:
 
 ```text
-RDAP5F_REMOTE_NODE_BASE_READONLY_PACKAGE
+RDAP5G_REMOTE_NODE_SERVER_INSTALL_PLAN
 ```
 
-Nicht nochmal als Hauptstep Node/npm/git/MariaDB-Client prüfen; diese Infos sind bekannt. Frischer Gegencheck direkt vor Installation ist okay.
+Nicht nochmal als Hauptstep Node/npm/git/MariaDB-Client pruefen; diese Infos sind bekannt. Frischer Gegencheck direkt vor Installation ist okay.
 
 Keine DB-Migration, kein npm install, keine Secrets, keine nginx-/Service-Aenderung ohne separates Go.
