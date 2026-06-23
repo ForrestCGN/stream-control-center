@@ -8,9 +8,9 @@ try {
 }
 
 const MODULE = 'remote_agent';
-const MODULE_VERSION = '0.0.2';
-const MODULE_BUILD = 'RDAP4B_REMOTE_AGENT_PERMISSION_LOCK_AUDIT_READONLY';
-const STATUS_API_VERSION = 'rdap4b.v1';
+const MODULE_VERSION = '0.0.3';
+const MODULE_BUILD = 'RDAP5C3_REMOTE_AGENT_ROLE_GROUP_MARKER_REVISION_READONLY';
+const STATUS_API_VERSION = 'rdap5c3.v1';
 const LOADED_AT = new Date().toISOString();
 
 const MODULE_META = {
@@ -19,7 +19,7 @@ const MODULE_META = {
   build: MODULE_BUILD,
   type: 'runtime',
   category: 'remote-dashboard',
-  description: 'Read-only Remote-Agent status and security model contract for Dashboard-v2. No WSS agent runtime and no productive actions in RDAP4B.',
+  description: 'Read-only Remote-Agent status and security model contract for Dashboard-v2. No WSS agent runtime and no productive actions. RDAP5C3 keeps roles and groups separated.',
   routesPrefix: ['/api/remote-agent'],
   bus: {
     registered: false,
@@ -75,12 +75,6 @@ const ROLES = Object.freeze([
     criticalLimits: ['keine globalen Config-/Security-Rechte']
   },
   {
-    key: 'sound_profi',
-    label: 'Sound-Profi',
-    purpose: 'Begrenzte Sound-, Media-, Command- und Kanalpunkte-Pflege.',
-    criticalLimits: ['keine System-/Security-/Owner-Rechte', 'keine freien Dateipfade', 'keine Datenbankmigrationen']
-  },
-  {
     key: 'media_manager',
     label: 'Media Manager',
     purpose: 'Optionale Medienpflege, falls spaeter getrennt benoetigt.',
@@ -91,6 +85,32 @@ const ROLES = Object.freeze([
     label: 'Read-only',
     purpose: 'Nur-Lesen-Zugriff.',
     criticalLimits: ['keine produktiven Aktionen']
+  }
+]);
+
+const GROUP_MARKERS = Object.freeze([
+  {
+    key: 'sound_profi',
+    label: 'Sound-Profi',
+    type: 'group_marker',
+    purpose: 'Fachliche Markierung fuer Personen, die spaeter gezielt Sound-, Media-, Command- und Kanalpunkte-Bereiche bearbeiten duerfen.',
+    grantsPermissionsByItself: false,
+    isDashboardRole: false,
+    permissionSource: 'modulePermissionMatrix',
+    permissionTargetModel: 'target_type + target_key',
+    criticalLimits: [
+      'keine Rolle',
+      'kein globales Permission-Preset',
+      'keine System-/Security-/Owner-Rechte',
+      'keine freien Dateipfade',
+      'keine Datenbankmigrationen'
+    ],
+    plannedAllowedAreas: [
+      'media',
+      'sound',
+      'sound-commands',
+      'channelpoints-sound-media'
+    ]
   }
 ]);
 
@@ -136,11 +156,6 @@ const ROLE_PERMISSION_PRESETS = Object.freeze({
     'agent.status.read'
   ],
   mod: ['dashboard.read', 'locks.read', 'texts.read', 'config.read', 'media.read', 'sound.read', 'agent.status.read'],
-  sound_profi: [
-    'dashboard.read', 'locks.read', 'locks.create', 'locks.heartbeat', 'locks.release',
-    'media.read', 'media.upload', 'media.edit', 'media.delete', 'sound.read', 'sound.test',
-    'sound.command.edit', 'channelpoints.edit', 'texts.read', 'config.read', 'agent.status.read'
-  ],
   media_manager: ['dashboard.read', 'locks.read', 'locks.create', 'locks.heartbeat', 'locks.release', 'media.read', 'media.upload', 'media.edit', 'texts.read', 'agent.status.read'],
   readonly: ['dashboard.read', 'locks.read', 'texts.read', 'config.read', 'media.read', 'sound.read', 'agent.status.read']
 });
@@ -158,7 +173,7 @@ const LOCK_MODEL = Object.freeze({
   saveRequiresValidLock: true,
   sharedReadWhileLocked: true,
   notes: [
-    'RDAP4B stellt nur das Modell bereit; es setzt noch keine produktiven Locks.',
+    'RDAP5C3 stellt nur das Modell bereit; es setzt noch keine produktiven Locks.',
     'Speichern soll spaeter nur mit gueltigem Lock und passender Resource-Version erlaubt sein.',
     'Owner/Admin duerfen Locks spaeter uebernehmen; jede Uebernahme ist auditpflichtig.'
   ]
@@ -189,7 +204,7 @@ const AUDIT_MODEL = Object.freeze({
   ],
   sources: ['dashboard-local', 'remote-modboard', 'webserver', 'stream-pc-agent'],
   notes: [
-    'RDAP4B schreibt noch keine Audit-Daten.',
+    'RDAP5C3 schreibt noch keine Audit-Daten.',
     'Produktive Aenderungen muessen spaeter auditpflichtig sein.',
     'Sensible Werte duerfen nur maskiert oder zusammengefasst im Audit landen.'
   ]
@@ -286,7 +301,7 @@ function buildStatusResponse() {
     capabilities: { ...CAPABILITIES },
     safety: buildSafetyBlock(),
     warnings: [
-      'RDAP4B erweitert RDAP3A um read-only Permission-/Lock-/Audit-Modellrouten.',
+      'RDAP5C3 korrigiert das Modell: Rollen und Gruppen/Marker sind getrennt.',
       'Es existiert in diesem Step noch kein produktiver WSS-Agent.',
       'Alle produktiven Aktionen bleiben deaktiviert.'
     ],
@@ -296,16 +311,27 @@ function buildStatusResponse() {
 
 function buildPermissionsModelResponse() {
   return buildBaseResponse({
-    modelApiVersion: 'permissions.rdap4b.v1',
-    permissionDecisionRule: 'roles are presets; concrete permission keys decide',
+    modelApiVersion: 'permissions.rdap5c3.v1',
+    permissionDecisionRule: 'roles are presets; groups are markers; concrete permission keys and module matrix grants decide',
     twitchRolesAreNotDashboardRoles: true,
+    rolesAreSeparateFromGroups: true,
+    soundProfiIsRole: false,
+    soundProfiIsGroupMarker: true,
+    modulePermissionMatrixUsesTargetTypeAndTargetKey: true,
     roles: ROLES.map(clonePlain),
+    groups: GROUP_MARKERS.map(clonePlain),
+    groupMarkers: GROUP_MARKERS.map(clonePlain),
     permissions: PERMISSIONS.map(clonePlain),
     rolePermissionPresets: clonePlain(ROLE_PERMISSION_PRESETS),
-    specialRoles: {
+    groupPermissionPresets: {},
+    specialGroups: {
       sound_profi: {
         label: 'Sound-Profi',
-        may: [
+        type: 'group_marker',
+        grantsPermissionsByItself: false,
+        permissionSource: 'modulePermissionMatrix',
+        permissionTargetModel: 'target_type + target_key',
+        mayBeGrantedLaterForTargets: [
           'Media/Sounds hochladen',
           'Media/Sounds bearbeiten',
           'Sounds testen',
@@ -321,6 +347,12 @@ function buildPermissionsModelResponse() {
           'globale System-Konfiguration aendern'
         ]
       }
+    },
+    specialRoles: {},
+    legacyCompatibility: {
+      previousSoundProfiRoleRemoved: true,
+      soundProfiWasRoleInRdap4b: true,
+      soundProfiNowGroupMarker: true
     },
     warnings: [
       'Diese Route liefert nur das Modell. Es gibt noch keine produktive User-/Role-/Grant-Speicherung.',
@@ -341,7 +373,7 @@ function buildLocksStatusResponse() {
       takeoverPendingCount: 0
     },
     warnings: [
-      'RDAP4B liefert nur den geplanten Lock-Status. Es werden noch keine Locks erstellt oder gespeichert.',
+      'RDAP5C3 liefert nur den geplanten Lock-Status. Es werden noch keine Locks erstellt oder gespeichert.',
       'Produktives Speichern darf spaeter nur mit gueltigem Lock und Resource-Version erfolgen.'
     ]
   });
@@ -357,7 +389,7 @@ function buildAuditModelResponse() {
       retentionConfigurable: true
     },
     warnings: [
-      'RDAP4B schreibt noch keine Audit-Events.',
+      'RDAP5C3 schreibt noch keine Audit-Events.',
       'Produktive Remote-/Dashboard-Aktionen muessen spaeter Audit schreiben, bevor sie als fertig gelten.'
     ]
   });
@@ -374,7 +406,7 @@ function buildRoutesResponse() {
       {
         method: 'GET',
         path: '/api/remote-agent/permissions/model',
-        description: 'Read-only Rollen-/Permission-Modell fuer RDAP4B. Keine User-/Grant-Schreiboperation.'
+        description: 'Read-only Rollen-/Permission-Modell fuer RDAP5C3. Keine User-/Grant-Schreiboperation.'
       },
       {
         method: 'GET',
@@ -389,7 +421,7 @@ function buildRoutesResponse() {
       {
         method: 'GET',
         path: '/api/remote-agent/routes',
-        description: 'Read-only Routenuebersicht fuer RDAP4B.'
+        description: 'Read-only Routenuebersicht fuer RDAP5C3.'
       }
     ]
   });
@@ -429,6 +461,7 @@ module.exports = {
   init,
   buildStatusResponse,
   buildPermissionsModelResponse,
+  GROUP_MARKERS,
   buildLocksStatusResponse,
   buildAuditModelResponse
 };
