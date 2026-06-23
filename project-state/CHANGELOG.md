@@ -1,5 +1,40 @@
 # CHANGELOG
 
+## RDAP3.DOC1 / Minimal-Agent-Konzept – 2026-06-23
+
+- Neue Plan-Datei ergänzt:
+  - `docs/current/REMOTE_DASHBOARD_AGENT_RDAP3_MINIMAL_AGENT_PLAN.md`
+- Bestehenden Agent-Plan nachgezogen:
+  - `docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md`
+- RDAP2-Entscheidungsdatei mit Subdomain-Hinweis nachgezogen:
+  - `docs/current/REMOTE_DASHBOARD_AGENT_RDAP2_DECISIONS.md`
+- Projektstatus aktualisiert:
+  - `project-state/CURRENT_STATUS.md`
+  - `project-state/NEXT_STEPS.md`
+  - `project-state/TODO.md`
+  - `project-state/FILES.md`
+  - `project-state/CHANGELOG_RDAP3_MINIMAL_AGENT_PLAN_2026-06-23.md`
+- Festgehalten:
+  - Remote-Modboard-Ziel: `https://mods.forrestcgn.de`
+  - alte Planungs-Subdomain `modboard.forrestcgn.de` ist nicht mehr führend
+  - Stream-PC-Agent als separater Node-Prozess
+  - aktive WSS-Verbindung vom Stream-PC zum Webserver
+  - Auth mit `agentId` + Secret
+  - Heartbeat und Basisstatus
+  - minimale Actions `agent.ping` und `agent.status.request`
+  - Request-/Result-/Audit-Struktur
+  - Offline-/Reconnect-Verhalten
+  - keine Offline-Queue
+  - keine automatische spätere Ausführung nach Reconnect
+- Kein Backend geändert.
+- Kein Dashboard geändert.
+- Kein Frontend geändert.
+- Kein Agent-Code erstellt.
+- Keine DB geändert.
+- Keine Config geändert.
+- Keine Runtime-Datei geändert.
+- Kein Node-Neustart nötig.
+
 ## RDAP2.DOC1 / Remote-Dashboard-Agent Architekturentscheidungen – 2026-06-22
 
 - Neue Plan-Datei ergänzt:

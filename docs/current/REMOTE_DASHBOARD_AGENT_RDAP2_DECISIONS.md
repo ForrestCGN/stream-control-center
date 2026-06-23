@@ -1,7 +1,7 @@
 # REMOTE DASHBOARD AGENT RDAP2 DECISIONS
 
-Stand: 2026-06-22  
-Step: RDAP2.DOC1 / Architekturentscheidungen Webserver-Agent  
+Stand: 2026-06-23  
+Step: RDAP2.DOC1 / Architekturentscheidungen Webserver-Agent + RDAP3-Verweis  
 Status: Planung, keine Umsetzung
 
 ## 1. Zweck
@@ -10,145 +10,97 @@ Diese Datei hält die in RDAP2 entschiedene Architektur für das spätere Remote
 
 RDAP2 implementiert nichts.
 
-Nicht Teil dieses Steps:
-
-- kein Backend-Code
-- kein Agent-Code
-- kein Dashboard-v2-Code
-- keine React-/Vite-Dateien
-- keine DB-Migration
-- keine Config-Änderung
-- keine OBS-Änderung
-- keine produktive Remote-Verbindung
-- kein Node-Neustart
-
-## 2. Grundarchitektur
-
-Zielarchitektur:
+Aktueller Hinweis aus RDAP2.WEB1/RDAP3:
 
 ```text
-Webserver = öffentliche Dashboard-/Modboard-Zentrale
-Stream-PC-Agent = sichere Brücke zum lokalen System
-Stream-PC = produktive Runtime / Ausführer
-UGREEN NAS / MariaDB = private lokale Backup-/Media-/Meta-Schicht
+Der führende Remote-Modboard-Zielname ist mods.forrestcgn.de.
+Die frühere Planungs-Subdomain modboard.forrestcgn.de ist nicht mehr führend.
 ```
 
-Der Stream-PC verbindet sich aktiv per WSS/WebSocket zum Webserver.
-
-Nicht geplant:
-
-```text
-Webserver -> Heim-IP / Stream-PC-Portfreigabe
-Mods -> direkter Zugriff auf Stream-PC
-NAS -> öffentliche Dashboard-Zentrale
-```
-
-## 3. Öffentliche Zentrale
+## 2. Öffentliche Zentrale
 
 Festgelegt:
 
-```text
-Subdomain: modboard.forrestcgn.de
-Server: Hetzner
-Verwaltung: ISPConfig
-Webserver: nginx
-TLS/HTTPS: Let's Encrypt über ISPConfig
-Node-App: intern auf dem Hetzner-Server
-bevorzugter interner Port: 127.0.0.1:3000
-öffentlich: nur HTTPS/WSS
-```
+- Webserver wird öffentliche Dashboard-/Modboard-Zentrale.
+- Remote-Modboard läuft später unter `https://mods.forrestcgn.de`.
+- Webserver ist Hetzner mit ISPConfig, nginx und Let's Encrypt.
+- Node-App auf dem Webserver läuft später intern, bevorzugt `127.0.0.1:3000`.
+- Öffentlich erreichbar sind nur HTTPS/WSS.
+- Es wird kein öffentlicher Node-Port geöffnet.
 
-Wichtig:
-
-- Node wird nicht direkt öffentlich auf einem Port freigegeben.
-- nginx/ISPConfig übernimmt HTTPS/WSS Reverse Proxy.
-- WebSocket-Upgrade muss ISPConfig-kompatibel eingerichtet werden.
-- Keine manuellen nginx-Konfigurationsänderungen an ISPConfig vorbei, außer bewusst dokumentiert.
-
-## 4. Stream-PC-Agent
+## 3. Stream-PC-Agent
 
 Festgelegt:
 
-```text
-Der Stream-PC-Agent wird als separater Node-Prozess geplant.
-```
+- Stream-PC-Agent wird als separater Node-Prozess geplant.
+- Agent wird nicht als Modul im bestehenden lokalen Backend gebaut.
+- Agent verbindet sich aktiv per WSS zum Webserver.
+- Keine Portfreigabe am Stream-PC.
+- Dynamische Heim-IP ist egal.
+- Stream-PC bleibt produktive Runtime / Ausführer.
+- Bestehendes lokales Backend bleibt produktiv auf `http://127.0.0.1:8080`.
 
-Er ist nicht Teil des bestehenden lokalen `stream-control-center`-Backends.
+## 4. Login / Rechte / Rollen
 
-Das bestehende lokale Backend bleibt produktive Runtime:
+Festgelegt:
 
-```text
-lokales Backend: http://127.0.0.1:8080
-lokales Dashboard aktuell: http://127.0.0.1:8080/dashboard
-```
+- Login, User, Rollen, Permissions und Modulfreigaben werden führend auf dem Webserver verwaltet.
+- Der Agent wird nicht für grundsätzliche Login-/Rechteentscheidungen abgefragt.
+- Twitch-Rollen helfen höchstens bei Erkennung/Vorschlag.
+- Lokale Dashboard-Rollen und Permissions entscheiden konkret.
+- Dashboard-Buttons sind keine Sicherheit.
+- Backend/Webserver muss Rechte serverseitig prüfen.
+- Agent prüft lokal zusätzlich Allowlist und Payload.
 
-Der Agent verbindet sich aktiv per WSS mit dem Webserver und spricht später lokal mit dem bestehenden Backend.
+## 5. Agent offline
 
-Der Agent bekommt eigene lokale Config:
-
-```text
-agentId
-agentName
-serverUrl
-agentSecret
-localBackendUrl
-allowlist
-```
-
-Der Agent darf nicht:
-
-- freie Shell-Kommandos ausführen
-- beliebige Dateien schreiben
-- beliebige Dateien löschen
-- beliebige Pfade akzeptieren
-- beliebige Windows-Prozesse starten
-- freie URLs laden
-- raw config writes ausführen
-- direkte DB-Befehle entgegennehmen
-- produktive Aktionen ohne Allowlist ausführen
-
-## 5. RDAP3 Minimal-Agent
-
-RDAP3 darf nur den kleinsten technischen Weg testen.
+Wenn Agent offline ist:
 
 Erlaubt:
+
+- Login
+- lesende Dashboard-Ansicht
+- letzter bekannter Status
+- Webserver-eigene Admin-/Audit-Ansichten, falls Rechte passen
+
+Gesperrt:
+
+- produktive Bearbeitung
+- produktive Aktionen
+- Remote-Actions
+- Text-/Config-/Media-/Command-/Kanalpunkte-Änderungen
+- Overlay-Layout-Änderungen
+
+Festgelegt:
+
+- Keine Offline-Queue.
+- Keine automatische spätere Ausführung nach Reconnect.
+- Abgelaufene Requests werden nicht nachträglich ausgeführt.
+
+## 6. Datenhoheit
+
+Festgelegt:
+
+- Webserver führt Login, Rollen, Permissions, Modulfreigaben, Agent-Verwaltung und Audit für Remote-Zugriffe.
+- Stream-PC bleibt produktive Runtime und Ausführer.
+- Texte und Configs bleiben produktiv führend auf dem Stream-PC.
+- Produktive SQLite bleibt unangetastet.
+- NAS/MariaDB ist optional nur private lokale Backup-/Media-/Meta-Schicht.
+- NAS/MariaDB ersetzt nicht den Stream-PC-Agent.
+- NAS/MariaDB ersetzt nicht die produktive SQLite.
+
+## 7. Remote-Actions v1
+
+Nach RDAP3 und einem stabilen Minimaltest dürfen zunächst nur lesende/statusbezogene Actions geplant werden.
+
+RDAP3 Minimal-Agent:
 
 ```text
 agent.ping
 agent.status.request
 ```
 
-RDAP3-Ziel:
-
-- Agent startet lokal.
-- Agent liest lokale Config.
-- Agent verbindet per WSS zum Webserver.
-- Agent authentifiziert sich mit `agentId` + Secret.
-- Agent sendet Heartbeat.
-- Agent sendet Basisstatus.
-- Webserver kann `agent.ping` senden.
-- Agent antwortet mit `pong`.
-- Webserver schreibt Audit für Request und Ergebnis.
-- Agent reconnectet.
-- Webserver zeigt online/offline.
-
-Nicht in RDAP3:
-
-- Sound steuern
-- OBS steuern
-- Overlay steuern
-- Media schreiben
-- Texte schreiben
-- Configs schreiben
-- Commands/Kanalpunkte ändern
-- DB-Zugriff
-- Datei-/Shell-/Prozessaktionen
-
-## 6. Remote-Actions v1 nach RDAP3
-
-Nach stabilem RDAP3-Minimaltest dürfen Remote-Actions v1 nur lesend/statusbezogen sein.
-
-Erlaubt für v1:
+Später mögliche Remote-Actions v1:
 
 ```text
 agent.ping
@@ -160,7 +112,7 @@ sound.status.request
 overlay.status.request
 ```
 
-Ausgeschlossen für v1:
+Nicht in v1:
 
 ```text
 sound.play.live
@@ -168,12 +120,9 @@ sound.test.live
 sound.pause
 sound.resume
 sound.stop_current
-obs.scene.switch
-obs.source.show
-obs.source.hide
 overlay.show.live
 overlay.hide.live
-media.upload
+obs.scene.switch
 media.delete
 media.write
 config.write
@@ -181,262 +130,39 @@ texts.write
 commands.write
 channelpoints.write
 db.*
-file.*
 shell.*
 process.*
-raw_http.*
+file.*
 ```
 
-Grundregel:
-
-```text
-Erst Verbindung, Auth, Heartbeat, Status, Ergebnisantwort und Audit stabil testen.
-Dann schrittweise produktive Aktionen planen.
-```
-
-## 7. Offline-Regel
-
-Wenn Stream-PC oder Agent offline sind:
-
-Erlaubt:
-
-- Login am Webserver
-- Dashboard / Modboard lesend öffnen
-- letzter bekannter Status ansehen
-- Audit / Logs ansehen
-- Webserver-eigene Admin-Daten bearbeiten, sofern Rechte vorhanden sind
-
-Gesperrt:
-
-- produktive Aktionen
-- produktionsrelevante Bearbeitung
-- Texte bearbeiten
-- Configs bearbeiten
-- Media hochladen / zuordnen / löschen
-- Commands bearbeiten
-- Kanalpunkte bearbeiten
-- Overlay-Layouts bearbeiten
-- Stream-/Runtime-Modul-Einstellungen bearbeiten
-
-Es gibt keine Offline-Queue.
-
-Es gibt keine automatische spätere Ausführung.
-
-Das Dashboard muss klar anzeigen:
-
-```text
-Agent offline
-Live-System nicht erreichbar
-Bearbeitung und produktive Aktionen sind gesperrt
-```
-
-## 8. Login / User / Rollen / Permissions
+## 8. Multi-User / Edit-Sessions / Locks
 
 Festgelegt:
 
-```text
-Login, Benutzer, Rollen, Permissions und Modulfreigaben werden führend auf dem Webserver verwaltet.
-```
+- Für Multi-User-Bearbeitung wird ein zentrales Edit-Session-/Lock-System geplant.
+- Lokales Dashboard und Remote-Modboard sollen langfristig denselben Lock-Mechanismus nutzen.
+- Bearbeiten erzeugt einen Lock.
+- Andere User sehen gesperrte Resource nur lesend.
+- Lock hat Heartbeat und Timeout.
+- Speichern/Abbrechen/Logout gibt Lock frei.
+- Owner/Admin können Locks übernehmen.
+- Lock-Aktionen werden auditierbar.
 
-Der Webserver fragt den Stream-PC-Agent nicht für die grundsätzliche Login- oder Rechteentscheidung.
-
-Der Agent liefert nur:
-
-- Online-/Offline-Status
-- lokale Capabilities
-- lokale Modulverfügbarkeit
-- lokale Ausführbarkeitsprüfung
-- Ergebnisantworten auf erlaubte Remote-Actions
-
-Twitch-Rollen helfen nur bei der Erkennung oder Vorauswahl. Lokale Dashboard-Rollen entscheiden konkret.
-
-## 9. Datenhoheit
-
-### Webserver führt
-
-```text
-Login
-User
-Rollen
-Permissions
-Modulfreigaben
-Edit-Sessions / Locks
-Audit
-Agent-Status
-Remote-Requests
-Remote-Result-Verknüpfung
-Media-Verwaltungsmetadaten für das Modboard
-```
-
-### Stream-PC führt produktiv
-
-```text
-lokale Runtime
-OBS
-Sound-System
-Overlays
-lokales Backend
-produktive Texte
-produktive Configs
-produktive SQLite
-lokale Media-Verfügbarkeit
-Live-/Runtime-Status
-```
-
-### NAS / MariaDB optional
-
-```text
-Backup
-Media-Archiv / Media-Master
-Papierkorb / Archivversionen
-Snapshots
-Versionen
-Sync-Status
-lokale Audit-Kopie
-Meta-Daten
-```
-
-NAS/MariaDB ist kein Ersatz für den Stream-PC-Agent und kein sofortiger Ersatz für die produktive SQLite.
-
-## 10. Texte und Configs
-
-Festgelegt:
-
-```text
-Texte und Configs bleiben produktiv führend auf dem Stream-PC.
-```
-
-Der Webserver darf:
-
-- anzeigen
-- Bearbeitung vorbereiten
-- Rechte prüfen
-- Edit-Session / Lock erstellen
-- Audit vorbereiten
-- Änderungsrequest an Agent senden
-
-Der Webserver darf nicht:
-
-- produktive lokale Configs direkt überschreiben
-- Offline-Änderungen später automatisch aktivieren
-- bei offline Agent so tun, als wäre eine Änderung aktiv
-
-Produktive Änderung gilt erst nach erfolgreicher Agent-Antwort.
-
-## 11. Media-Dateien
-
-Festgelegt:
-
-```text
-NAS kann Media-Archiv / Media-Master sein.
-Stream-PC hält lokale produktive Live-Kopien.
-Webserver verwaltet Upload, Freigabe, Metadaten und Audit.
-Produktiv nutzbar ist Media erst nach Agent-Bestätigung.
-```
-
-Nicht geplant:
-
-```text
-OBS/Sound/Overlay liest live ausschließlich vom NAS.
-```
-
-Grund:
-
-```text
-Livebetrieb darf nicht hart von NAS/LAN abhängig sein.
-```
-
-## 12. Produktive SQLite und MariaDB
-
-Produktive SQLite bleibt unangetastet:
-
-```text
-D:\Streaming\stramAssets\data\sqlite\app.sqlite
-```
-
-Festgelegt:
-
-- keine sofortige Migration auf MariaDB
-- keine Ablösung bestehender SQLite ohne separaten Step
-- keine DB löschen / ersetzen / droppen
-- MariaDB auf NAS darf später für neue Meta-/Sync-/Snapshot-/Archivdaten geplant werden
-- jede Migration bestehender Daten braucht eigene Planung, Test und Freigabe
-
-## 13. Lokales Dashboard
-
-Lokale Arbeit am Dashboard bleibt möglich.
-
-```text
-Lokales Dashboard:
-http://127.0.0.1:8080/dashboard
-später optional:
-http://127.0.0.1:8080/dashboard-v2
-```
-
-Remote-Modboard:
-
-```text
-https://modboard.forrestcgn.de
-```
-
-Wichtige Regel:
-
-```text
-Es darf keine getrennte Remote-Wahrheit entstehen.
-```
-
-Produktive Texte, Configs, Runtime und lokale Medienverfügbarkeit bleiben auf dem Stream-PC führend.
-
-## 14. Zentrales Edit-Session-/Lock-System
-
-RDAP2 entscheidet: Es wird kein simples Lock-System geplant, sondern ein zentrales Edit-Session-/Lock-System.
-
-Ziel:
-
-```text
-Der Webserver weiß jederzeit:
-wer bearbeitet
-was bearbeitet wird
-von welchem Client
-auf welcher Version
-seit wann
-ob der User noch aktiv ist
-ob der Agent für diesen Bereich online sein muss
-ob gespeichert werden darf
-```
-
-Jede Bearbeitung bekommt:
-
-```text
-editSessionId
-lockId
-```
-
-Jeder bearbeitbare Bereich bekommt:
+Geplante Begriffe:
 
 ```text
 resourceKey
-```
-
-Jeder Browser / Client bekommt:
-
-```text
+resourceType
+resourceVersion
+editSessionId
+lockId
 clientId
-```
-
-Jede produktive Änderung bekommt:
-
-```text
 requestId
+auditId
+correlationId
 ```
 
-Jede nachvollziehbare Aktion bekommt:
-
-```text
-auditId / correlationId
-```
-
-## 15. Resource-Key-Beispiele
+Resource-Key-Beispiele:
 
 ```text
 texts:shot_alarm:chat_messages
@@ -448,145 +174,64 @@ command:sound:example
 channelpoints:vip30
 ```
 
-Dadurch wird nicht das ganze Dashboard gesperrt, sondern nur der konkrete Bereich.
-
-## 16. Pflichtfelder für Edit-Sessions
-
-```text
-editSessionId
-lockId
-resourceKey
-resourceType
-resourceVersion
-ownerUserId
-ownerDisplayName
-clientId
-source: local-dashboard | remote-modboard
-agentRequired: true/false
-createdAt
-heartbeatAt
-expiresAt
-status
-```
-
-Beim Speichern wird geprüft:
-
-- Lock gehört diesem User.
-- Lock gehört diesem Client.
-- Lock ist aktiv.
-- Resource-Version passt.
-- Agent ist online, falls `agentRequired=true`.
-- Payload ist gültig.
-- Permission ist vorhanden.
-- Agent bestätigt lokale Anwendung.
-
-Wenn `resourceVersion` nicht mehr passt:
-
-```text
-Speichern verweigern.
-Hinweis: Stand ist veraltet, bitte neu laden.
-```
-
-## 17. Heartbeat / Timeout
-
-Geplante Werte für spätere technische Planung:
-
-```text
-Heartbeat: ca. alle 15 Sekunden
-Warnung: nach ca. 45 Sekunden ohne Heartbeat
-Timeout: nach ca. 60 Sekunden ohne Heartbeat
-```
-
-Bei Timeout:
-
-- Edit-Session wird als abgelaufen markiert.
-- Lock wird auditierbar beendet.
-- Alter Editor darf nicht mehr speichern.
-- Andere User können den Bereich neu bearbeiten.
-
-## 18. Agent-Verlust während Bearbeitung
-
-Wenn der Agent während einer Bearbeitung offline geht:
-
-- UI zeigt Warnung.
-- Speichern produktiver Daten wird deaktiviert.
-- keine produktive Änderung möglich
-- keine Queue
-- keine automatische spätere Ausführung
-- Lock läuft aus oder wird auditierbar beendet
-- User muss nach Reconnect den aktuellen Stand neu laden und eine neue Edit-Session starten
-
-## 19. Webserver-eigene Admin-Daten
-
-Webserver-eigene Admin-Daten dürfen auch bei Agent offline bearbeitbar bleiben, sofern Rechte vorhanden sind.
-
-Dazu gehören:
-
-- User
-- Rollen
-- Permissions
-- Modulfreigaben
-- Webserver-Audit
-- Webserver-Systemdaten
-
-Nicht dazu gehören:
-
-- Stream-Texte
-- Stream-Configs
-- Media
-- Commands
-- Kanalpunkte
-- Overlay-Layouts
-- Runtime-Modul-Einstellungen
-
-## 20. Sicherheitsregeln
+## 9. Sicherheitsregeln
 
 Zwingend:
 
-- keine freien Befehle
-- keine freien Shell-Kommandos
-- keine freien Dateipfade
-- keine freie URL-Ausführung
-- keine direkten DB-Befehle
-- keine raw config writes
-- keine produktive Aktion ohne serverseitige Permission
-- keine produktive Aktion ohne Agent-Allowlist-Prüfung
-- jede Remote-Action mit `requestId`
-- jede Remote-Action mit `expiresAt`
-- jede Remote-Action mit Ergebnisantwort
-- jede produktive Aktion ins Audit
-- Secrets nie im Klartext anzeigen oder loggen
+- Keine freien Shell-Befehle.
+- Keine freien Dateioperationen.
+- Keine freie URL-Ausführung.
+- Keine direkten DB-Befehle.
+- Keine raw config writes.
+- Keine produktive Aktion ohne serverseitige Permission.
+- Keine produktive Aktion ohne lokale Agent-Allowlist.
+- Jede Aktion mit `requestId`.
+- Jede Aktion mit `expiresAt`.
+- Jede Aktion mit Ergebnisantwort.
+- Jede produktive Aktion ins Audit.
+- Secrets nicht im Klartext anzeigen oder loggen.
 
-## 21. Offene Punkte nach RDAP2
+## 10. Nächste Schritte
 
-Für RDAP3 / RDAP4 später klären:
+RDAP3:
 
-- exaktes Agent-Config-Format
-- Secret-Erstellung / Pairing-Flow
-- WSS-Endpunkt-Schema
-- Webserver-Datenbank-Schema
-- Edit-Session-Tabellenmodell
-- Audit-Tabellenmodell
-- Permission-/Modulfreigaben technisch finalisieren
-- Agent-Allowlist-Schema finalisieren
-- Payload-Schemas für Status-Actions
-- ISPConfig-kompatible WSS-Reverse-Proxy-Konfiguration
-- lokales Dashboard-v2 und Remote-Modboard Lock-Anbindung planen
+- Minimal-Agent-Konzept planen
+- Agent-Config planen
+- WSS-Verbindung planen
+- Auth mit `agentId` + Secret planen
+- Heartbeat planen
+- Basisstatus planen
+- `agent.ping` planen
+- `agent.status.request` planen
+- Request-/Result-/Audit-Struktur planen
+- Offline-/Reconnect-Verhalten planen
+- keine produktiven Aktionen
 
-## 22. Nächste Schritte
+RDAP4:
 
-Direkt danach sinnvoll:
+- Permission- und Edit-Session-/Lock-Datenmodell planen
+- Rollen-/Permission-Matrix technisch konkretisieren
+- Modulfreigaben planen
+- Lock-/Resource-Version-Konflikte planen
+- Audit für Locks planen
+- keine DB-Migration ohne separaten Step
 
-```text
-RDAP3 / Minimal-Agent-Konzept planen
-```
+DASHUI2:
 
-RDAP3 bleibt Planung, bis explizit Umsetzung freigegeben wird.
+- React + Vite als bevorzugte Frontend-Richtung konkretisieren
+- Dashboard-v2 Build-/Deploy-Ziel planen
+- CGN-Komponentensystem planen
+- Navigation-/Modul-Registry planen
+- keine produktive Frontend-Umsetzung ohne separaten Step
 
-Danach:
+## 11. Nicht geändert durch RDAP2/RDAP3-Doku
 
-```text
-RDAP4 / Permission- und Edit-Session-/Lock-Datenmodell planen
-DASHUI2 / React+Vite Frontend-Technikentscheidung finalisieren
-DASHUI3 / Minimaler React-Prototyp planen
-```
+- kein Backend-Code
+- kein Dashboard-Code
+- kein Frontend-Code
+- kein Agent-Code
+- keine DB-Änderung
+- keine Config-Änderung
+- keine OBS-Änderung
+- keine produktive Remote-Verbindung
+- kein Node-Neustart nötig

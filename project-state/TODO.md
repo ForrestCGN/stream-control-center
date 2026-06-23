@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP2.WEB1 / Webserver-Grundlage für Remote-Modboard geprüft  
+Stand: RDAP3.DOC1 / Minimal-Agent-Konzept dokumentiert  
 Datum: 2026-06-23
 
 ## Remote Dashboard / Webserver-Agent
@@ -28,29 +28,45 @@ Erledigt / entschieden:
 - Texte/Configs produktiv führend auf dem Stream-PC.
 - NAS/MariaDB optional als private lokale Backup-/Media-/Meta-Schicht eingeplant.
 - Produktive SQLite bleibt unangetastet.
-- Remote-Actions v1 nur lesend/statusbezogen nach RDAP3.
 - Zentrales Edit-Session-/Lock-System als Multi-User-Basis geplant.
 
-Noch zu planen für RDAP3:
+## RDAP3 / Minimal-Agent-Konzept
 
-- Minimal-Agent-Konzept:
-  - separater Node-Prozess
-  - Config-Datei
+Erledigt / geplant:
+
+- Minimal-Agent-Konzept dokumentiert in:
+  - `docs/current/REMOTE_DASHBOARD_AGENT_RDAP3_MINIMAL_AGENT_PLAN.md`
+- separater Node-Agent-Prozess geplant
+- Agent-Config geplant:
   - `agentId`
   - `agentName`
   - `serverUrl`
   - `agentSecret`
   - `localBackendUrl`
-  - Allowlist
-- WSS-Verbindung planen.
-- Auth/Handshake planen.
-- Heartbeat planen.
-- `agent.ping` planen.
-- `agent.status.request` planen.
-- Ergebnisantwort planen.
-- Audit-Voreintrag und Audit-Abschluss planen.
-- Offline-/Reconnect-Verhalten konkretisieren.
-- Keine Sound-/OBS-/Media-/Config-/Text-Actions in RDAP3.
+  - `heartbeatIntervalMs`
+  - `requestTimeoutMs`
+  - `reconnect`
+  - `allowlist`
+- WSS-Verbindung geplant
+- Auth/Handshake mit `agentId` + Secret geplant
+- Heartbeat geplant
+- Basisstatus geplant
+- `agent.ping` geplant
+- `agent.status.request` geplant
+- Request-Struktur geplant
+- Result-Struktur geplant
+- Audit-Voreintrag und Audit-Abschluss geplant
+- Offline-/Reconnect-Verhalten konkretisiert
+- Keine Sound-/OBS-/Media-/Config-/Text-Actions in RDAP3
+
+Noch offen für späteren Agent-Umsetzungsstep:
+
+- konkrete Agent-Dateistruktur planen
+- Secret-Speicherort final festlegen
+- Webserver-Agent-Registry planen
+- Webserver-WSS-Endpunkt planen
+- erste minimale Testumgebung planen
+- noch keinen produktiven Agent-Code erstellen, bis ein separater Umsetzungsstep freigegeben ist
 
 ## Webserver-Sicherheit später prüfen
 

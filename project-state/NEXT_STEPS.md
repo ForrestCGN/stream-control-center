@@ -1,51 +1,34 @@
 # NEXT STEPS
 
-Stand: RDAP2.WEB1 / Webserver-Grundlage für Remote-Modboard geprüft  
+Stand: RDAP3.DOC1 / Minimal-Agent-Konzept dokumentiert  
 Datum: 2026-06-23
 
 ## Nächster sinnvoller Schritt
-
-RDAP3 / Minimal-Agent-Konzept planen
-
-Ziel:
-
-- kleinste Agent-Version planen
-- separater Node-Agent-Prozess
-- Verbindung vom Stream-PC-Agent zum Webserver per WSS
-- Auth mit `agentId` + Secret
-- Heartbeat
-- Basisstatus
-- `agent.ping`
-- `agent.status.request`
-- Request/Result/Audit-Struktur konkretisieren
-- Agent-Config-Format planen
-- keine produktiven Aktionen
-- keine Sound-/OBS-/Media-/Config-/Text-Actions
-
-Wichtig:
-
-- Die Webserver-Grundlage ist jetzt vorbereitet.
-- `https://mods.forrestcgn.de` ist per HTTPS, IPv4 und IPv6 erreichbar.
-- Node.js/npm sind auf dem Webserver vorhanden.
-- RDAP3 soll trotzdem zuerst Planung bleiben und noch keinen produktiven Agent-Code erstellen.
-
-## Danach sinnvoll
 
 RDAP4 / Permission- und Edit-Session-/Lock-Datenmodell planen
 
 Ziel:
 
-- Rollen-/Permission-Modell technisch planen
+- Rollen-/Permission-Modell technisch konkretisieren
 - Modulfreigaben planen
 - zentrale Edit-Sessions planen
 - Lock-Heartbeat/Timeout planen
 - `resourceKey`-Schema finalisieren
+- `resourceType` und `resourceVersion` konkretisieren
 - `editSessionId`, `lockId`, `clientId`, `requestId`, `auditId`, `correlationId` planen
 - Audit-Events für Locks planen
-- Konfliktverhalten bei `resourceVersion` planen
+- Konfliktverhalten bei veralteter `resourceVersion` planen
+- Verhalten bei Agent-Verlust während Bearbeitung planen
+- lokales Dashboard und Remote-Modboard auf denselben Lock-/Edit-Session-Mechanismus planen
 - noch keine DB-Migration ohne explizites `go`
 
-## Danach
+Wichtig:
+
+- RDAP3 hat nur geplant, keinen Agent-Code erstellt.
+- RDAP4 soll ebenfalls zuerst Planung bleiben.
+- Ohne finalen Permission-/Lock-Plan darf kein produktiver Remote-Agent mit Schreibaktionen gebaut werden.
+
+## Danach sinnvoll
 
 DASHUI2 / Frontend-Tech-Entscheidung konkretisieren
 
@@ -68,6 +51,31 @@ Ziel:
 - eine Beispielseite, z. B. Remote Agent oder Übersicht
 - keine produktive Modulmigration
 - kein alter Dashboard-Umbau ohne separaten Step
+
+## Bestätigter RDAP3-Planungsstand
+
+Siehe:
+
+- `docs/current/REMOTE_DASHBOARD_AGENT_RDAP3_MINIMAL_AGENT_PLAN.md`
+
+Geplant / festgelegt:
+
+- Agent ist ein separater Node-Prozess.
+- Agent verbindet sich aktiv per WSS zum Webserver.
+- Remote-Ziel: `https://mods.forrestcgn.de`.
+- Webserver-Node-App später intern, bevorzugt `127.0.0.1:3000`.
+- Öffentlich nur HTTPS/WSS, kein öffentlicher Node-Port.
+- Lokales Backend bleibt `http://127.0.0.1:8080`.
+- Auth mit `agentId` + Secret.
+- Secret nicht ins Repo, nicht ins Frontend, nicht ins Audit.
+- Heartbeat und Basisstatus geplant.
+- Minimal erlaubte Actions:
+  - `agent.ping`
+  - `agent.status.request`
+- Request-/Result-/Audit-Struktur geplant.
+- Offline-/Reconnect-Verhalten geplant.
+- Keine Offline-Queue.
+- Keine automatische spätere Ausführung nach Reconnect.
 
 ## Bestätigte Webserver-Basis
 
@@ -93,6 +101,7 @@ Festgelegt / geprüft:
 Siehe:
 
 - `docs/current/REMOTE_DASHBOARD_AGENT_RDAP2_DECISIONS.md`
+- `docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md`
 
 Festgelegte RDAP2-Regeln:
 
@@ -143,7 +152,7 @@ HypeTrain / Central Event Overlay:
 ## Nicht als nächstes nebenbei machen
 
 - kein produktiver Dashboard-v2-Code ohne Agent-/Security-Plan
-- kein Agent-Code ohne RDAP3-Minimal-Agent-Plan
+- kein Agent-Code ohne bestätigten RDAP3-Plan und separaten Umsetzungsstep
 - kein Permission-Code ohne RDAP4-Datenmodell-Plan
 - keine DB-Migration ohne separaten Step
 - keine OBS-Quellen automatisch ändern

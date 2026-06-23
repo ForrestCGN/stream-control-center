@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP2.WEB1 / Webserver-Grundlage für Remote-Modboard geprüft  
+Stand: RDAP3.DOC1 / Minimal-Agent-Konzept dokumentiert  
 Datum: 2026-06-23
 
 ## Art des aktuellen Doku-Stands
@@ -11,57 +11,92 @@ Es wurden keine `stream-control-center`-Runtime-Dateien geändert.
 
 ## Neu / aktualisiert
 
-- `docs/current/REMOTE_DASHBOARD_WEB_SERVER_STATUS_2026-06-23.md`
-- `docs/current/START_HERE_FOR_NEW_CHAT.md`
+- `docs/current/REMOTE_DASHBOARD_AGENT_RDAP3_MINIMAL_AGENT_PLAN.md`
+- `docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md`
+- `docs/current/REMOTE_DASHBOARD_AGENT_RDAP2_DECISIONS.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
-- `project-state/CHANGELOG.md`
 - `project-state/FILES.md`
+- `project-state/CHANGELOG.md`
+- `project-state/CHANGELOG_RDAP3_MINIMAL_AGENT_PLAN_2026-06-23.md`
 
-## Neue Webserver-Status-Datei
+## Neue RDAP3-Plan-Datei
 
-### `docs/current/REMOTE_DASHBOARD_WEB_SERVER_STATUS_2026-06-23.md`
-
-Enthält:
-
-- geprüfte Webserver-Basis
-- neue Remote-Modboard-Subdomain `mods.forrestcgn.de`
-- DNS-/HTTPS-/IPv4-/IPv6-Status
-- nginx-/ISPConfig-/Let's-Encrypt-Status
-- Node.js/npm-Status
-- apt-/Rspamd-Key-Fix
-- Port-/Firewall-Hinweise
-- klare Abgrenzung: keine Projekt-Runtime-Umsetzung
-- nächsten Schritt RDAP3
-
-## Weiterhin relevante RDAP2-Plan-Dateien
-
-### `docs/current/REMOTE_DASHBOARD_AGENT_RDAP2_DECISIONS.md`
+### `docs/current/REMOTE_DASHBOARD_AGENT_RDAP3_MINIMAL_AGENT_PLAN.md`
 
 Enthält:
 
-- finalen RDAP2-Entscheidungsstand
-- Webserver / ISPConfig / nginx / Let's Encrypt
-- Node-App intern auf `127.0.0.1:3000`
-- separater Stream-PC-Agent-Prozess
-- lokales Backend auf `127.0.0.1:8080`
-- Offline-Regel
-- Datenhoheit Webserver / Stream-PC / NAS
-- NAS/MariaDB-Rolle
-- Remote-Actions v1
-- Login-/Rechte-Regel
-- Edit-Session-/Lock-System
-- Resource-Key- und ID-Konzept
-- nächste Schritte RDAP3/RDAP4/DASHUI2
+- Minimal-Agent-Zielbild
+- separater Node-Agent-Prozess
+- Agent-Config-Plan
+- WSS-Verbindung
+- Auth/Handshake mit `agentId` + Secret
+- Heartbeat
+- Basisstatus
+- `agent.ping`
+- `agent.status.request`
+- Request-Struktur
+- Result-Struktur
+- Audit-Vorbereitung
+- Offline-/Reconnect-Verhalten
+- klare Abgrenzung: keine produktiven Aktionen
+- klare Abgrenzung: kein Code in RDAP3
 
-Wichtig: Für die aktuelle Remote-Zieladresse gilt nach RDAP2.WEB1 `mods.forrestcgn.de`.
+## Aktualisierte RDAP2-Plan-Dateien
 
 ### `docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md`
 
-Grobe Agent-Architekturplanung mit RDAP2-Verweis.
+Aktualisiert:
 
-Wichtig: Für die aktuelle Remote-Zieladresse gilt nach RDAP2.WEB1 `mods.forrestcgn.de`.
+- alte Planungs-Subdomain im Entscheidungsblock auf `mods.forrestcgn.de` nachgezogen
+- RDAP3-Minimal-Agent-Verweis ergänzt
+- weiterhin grober Architekturplan
+
+### `docs/current/REMOTE_DASHBOARD_AGENT_RDAP2_DECISIONS.md`
+
+Aktualisiert:
+
+- Hinweis ergänzt, dass `mods.forrestcgn.de` der führende aktuelle Remote-Modboard-Zielname ist
+- alte Subdomain `modboard.forrestcgn.de` bleibt nur als historische Planungsreferenz relevant
+
+## Projektstatus-Dateien
+
+### `project-state/CURRENT_STATUS.md`
+
+Enthält aktuellen Stand:
+
+- RDAP3.DOC1 dokumentiert
+- RDAP2.WEB1 bleibt gültig
+- RDAP2-Architektur bleibt gültig
+- DASHUI1 Designbasis bleibt gültig
+- keine Runtime-/Code-/DB-/Config-Änderungen
+
+### `project-state/NEXT_STEPS.md`
+
+Aktualisiert auf nächsten sinnvollen Schritt:
+
+- RDAP4 / Permission- und Edit-Session-/Lock-Datenmodell planen
+
+### `project-state/TODO.md`
+
+Aktualisiert:
+
+- RDAP3-Minimal-Agent-Konzept als geplant markiert
+- offene Punkte für späteren Agent-Umsetzungsstep ergänzt
+- RDAP4/Rollen/Locks weiterhin offen
+
+### `project-state/FILES.md`
+
+Diese Datei.
+
+### `project-state/CHANGELOG.md`
+
+RDAP3.DOC1 als neuer Changelog-Eintrag ergänzt.
+
+### `project-state/CHANGELOG_RDAP3_MINIMAL_AGENT_PLAN_2026-06-23.md`
+
+Eigene changelogartige Detaildatei für diesen Step.
 
 ## Wichtige Runtime-Dateien, die durch diesen Doku-Stand NICHT geändert werden
 
@@ -76,6 +111,9 @@ Wichtig: Für die aktuelle Remote-Zieladresse gilt nach RDAP2.WEB1 `mods.forrest
 
 ## Weiterhin relevante Plan-Dateien
 
+- `docs/current/START_HERE_FOR_NEW_CHAT.md`
+- `docs/current/MASTER_PROMPT_stream_control_center_CLEAN_2026-06-21.txt`
+- `docs/current/REMOTE_DASHBOARD_WEB_SERVER_STATUS_2026-06-23.md`
 - `docs/current/DASHBOARD_ROLES_PERMISSIONS_MATRIX.md`
 - `docs/current/DASHBOARD_V2_DESIGN_FRONTEND_PLAN.md`
 
@@ -95,7 +133,7 @@ Wichtig: Für die aktuelle Remote-Zieladresse gilt nach RDAP2.WEB1 `mods.forrest
 
 ## Webserver-Stand
 
-Geprüft:
+Geprüft aus RDAP2.WEB1:
 
 - Host: `web`
 - OS: Debian 13 `trixie`
@@ -109,7 +147,7 @@ Geprüft:
 
 ## Node-Neustart
 
-Für RDAP2.WEB1 nicht nötig.
+Für RDAP3.DOC1 nicht nötig.
 
 Grund:
 

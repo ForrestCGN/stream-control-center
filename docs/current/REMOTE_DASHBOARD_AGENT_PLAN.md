@@ -1,7 +1,7 @@
 # REMOTE DASHBOARD AGENT PLAN
 
-Stand: 2026-06-22  
-Step: RDAP1 / Remote Dashboard Agent Plan + RDAP2-Verweis  
+Stand: 2026-06-23  
+Step: RDAP1 / Remote Dashboard Agent Plan + RDAP2/RDAP3-Verweis  
 Status: Planung, keine Umsetzung
 
 ## 1. Ziel
@@ -30,10 +30,16 @@ RDAP2 konkretisiert die offenen Architekturentscheidungen in:
 docs/current/REMOTE_DASHBOARD_AGENT_RDAP2_DECISIONS.md
 ```
 
-Wichtigster RDAP2-Stand:
+RDAP3 konkretisiert den Minimal-Agent-Plan in:
 
 ```text
-Subdomain: modboard.forrestcgn.de
+docs/current/REMOTE_DASHBOARD_AGENT_RDAP3_MINIMAL_AGENT_PLAN.md
+```
+
+Wichtigster aktueller Stand:
+
+```text
+Subdomain: mods.forrestcgn.de
 Webserver: Hetzner mit ISPConfig + nginx + Let's Encrypt
 Node-App: intern, bevorzugt 127.0.0.1:3000
 Agent: separater Node-Prozess auf dem Stream-PC
@@ -43,7 +49,12 @@ Offline-Regel: keine produktive Bearbeitung/Aktion ohne Agent
 Locks: zentrales Edit-Session-/Lock-System
 ```
 
-Diese Datei bleibt der grobe Architekturplan. Die konkreten RDAP2-Entscheidungen stehen in der RDAP2-Datei.
+Wichtig:
+
+- `mods.forrestcgn.de` ist der aktuelle führende Remote-Modboard-Zielname.
+- Die frühere Planungs-Subdomain `modboard.forrestcgn.de` ist nicht mehr führend.
+
+Diese Datei bleibt der grobe Architekturplan. Die konkreten RDAP2-Entscheidungen stehen in der RDAP2-Datei. Die konkrete Minimal-Agent-Planung steht in der RDAP3-Datei.
 
 ## 3. Architektur
 
@@ -315,6 +326,8 @@ lastHeartbeatAt
 lastCommandAt
 lastErrorAt
 ```
+
+RDAP3 selbst plant nur Basisstatus. Detailstatus zu OBS, Sound, Overlay und Media kommt später.
 
 ## 11. Reconnect / Offline-Verhalten
 
