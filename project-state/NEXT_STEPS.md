@@ -1,34 +1,47 @@
 # NEXT STEPS
 
-Stand: RDAP5G_REMOTE_NODE_SERVER_INSTALL_PLAN  
+Stand: RDAP5H_REMOTE_NODE_SERVER_INSTALL_PACKAGE  
 Datum: 2026-06-23
 
 ## Nächster sinnvoller Schritt
 
 ```text
-RDAP5H_REMOTE_NODE_SERVER_INSTALL_PACKAGE
+RDAP5I_REMOTE_SERVER_READONLY_INSTALL_EXECUTION
 ```
 
-## Ziel von RDAP5H
+## Ziel von RDAP5I
 
-RDAP5H soll aus dem RDAP5G-Plan ein konkretes Installationspaket bzw. konkrete Installationsanweisungen fuer `web.cgn.community` vorbereiten.
+RDAP5I soll die echte, kontrollierte Installation des RDAP5F/RDAP5H Remote-Modboard-Node-Basisdienstes auf `web.cgn.community` vorbereiten und ausfuehren, aber weiterhin nur read-only.
 
-Geplante Punkte:
+Ziel:
 
 ```text
-Webserver-Zielpfad final anhand echter Lesebefehle bestaetigen
-Service-User sccremote anlegen oder pruefen
-Remote-Modboard-Paket nach /opt/stream-control-center/remote-modboard/backend bringen
-ENV-/Secret-Datei unter /etc/stream-control-center/remote-modboard.env vorbereiten
-npm install --omit=dev nur im separaten remote-modboard/backend ausfuehren
-systemd-Service scc-remote-modboard.service vorbereiten
-nginx-Reverse-Proxy fuer /api/remote/ vorbereiten
-nginx -t vor reload pruefen
-Healthcheck lokal und ueber https://mods.forrestcgn.de pruefen
-Rollback/Undo griffbereit halten
+Remote-Modboard-Node-Service als read-only Basisdienst betreiben
+/api/remote/health
+/api/remote/status
+/api/remote/routes
 ```
 
-## Vor RDAP5H als Lesetest erlaubt
+## RDAP5I Reihenfolge
+
+```text
+1. Server-Lesetest ausfuehren
+2. Zielpfade pruefen/anlegen
+3. Service-User pruefen/anlegen
+4. Service-Code nach /opt/stream-control-center/remote-modboard/backend kopieren
+5. ENV-Datei auf Server aus Vorlage erstellen, Passwort nur direkt auf Server eintragen
+6. npm install --omit=dev nur im Remote-Paket ausfuehren
+7. npm run check ausfuehren
+8. lokalen Node-Dry-Run testen
+9. systemd-Service installieren/starten
+10. lokale Healthchecks ausfuehren
+11. nginx-Reverse-Proxy fuer /api/remote/ einbinden
+12. nginx -t und reload
+13. HTTPS-Healthchecks pruefen
+14. Rollback pruefbar halten
+```
+
+## Vor RDAP5I auszufuehrende Lesebefehle
 
 ```bash
 whoami
@@ -39,48 +52,47 @@ mysql --version
 which node
 ls -la /opt
 ls -la /etc/stream-control-center 2>/dev/null || true
-nginx -T 2>/dev/null | grep -n "mods.forrestcgn.de" -A 30 -B 10 || true
+nginx -T | grep -n "mods.forrestcgn.de" -A 30 -B 10
 ```
 
-Keine Installation ohne separates Go.
-
-## RDAP5H darf erst nach separatem Go
+## RDAP5I darf nach separatem Go
 
 ```text
-npm install im separaten remote-modboard/backend ausfuehren
-Service-User anlegen
-Dateien nach /opt kopieren
-/etc/stream-control-center/remote-modboard.env anlegen
-systemd-Service anlegen
-nginx-Site sichern und Reverse-Proxy einbauen
-Service starten
-Healthchecks ausfuehren
+Serverpfade pruefen/anlegen
+Service-User pruefen/anlegen
+Dateien auf Webserver kopieren
+npm install nur im separaten Remote-Paket ausfuehren
+systemd-Service installieren/starten
+nginx-Reverse-Proxy fuer /api/remote/ einbinden
+read-only Healthchecks ausfuehren
+Rollback ausfuehren, falls Test scheitert
 ```
 
-## RDAP5H darf nicht ohne separaten DB-/Auth-/Agent-Plan
+## RDAP5I darf nicht ohne eigenes separates Go
 
 ```text
 keine DB-Migration
 keine MariaDB-Schreibaktion
-keine lokale SQLite-Aenderung
-kein Login/Auth aktivieren
-keinen produktiven Agent aktivieren
-keine Agent-Actions aktivieren
+keine Auth-/Session-Erstellung
+keine Agent-Actions
 keine OBS-/Sound-/Overlay-/Command-Steuerung
-keine freie Shell-/Datei-/Prozesssteuerung
-keine Secrets ins Repo oder Frontend schreiben
+keine lokale SQLite-Aenderung
+keine Secrets im Repo oder Chat posten
+kein /ws/agent produktiv aktivieren
 ```
 
 ## Danach mögliche Schritte
 
 ```text
-RDAP5I_REMOTE_NODE_PROXY_HEALTH_TEST
-```
-
-oder spaeter:
-
-```text
 RDAP6_AUTH_DB_MIGRATION_PREP
 ```
 
-RDAP6 erst nach stabil laufendem Remote-Node-Basisdienst und separatem DB-Migrationsplan.
+Erst nach stabil laufendem read-only Remote-Node-Basisdienst und separatem DB-Migrationsplan.
+
+Oder:
+
+```text
+RDAP5J_REMOTE_NODE_MONITORING_AND_HARDENING
+```
+
+Nur falls vor Auth noch Logging/Monitoring/Hardening vertieft werden soll.

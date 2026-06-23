@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP5G_REMOTE_NODE_SERVER_INSTALL_PLAN  
+Stand: RDAP5H_REMOTE_NODE_SERVER_INSTALL_PACKAGE  
 Datum: 2026-06-23
 
 ## Erledigt
@@ -20,31 +20,30 @@ Datum: 2026-06-23
 - [x] RDAP5D als separater grosser Node-Check uebersprungen/korrigiert
 - [x] RDAP5E Remote-Modboard Node-Service-Plan dokumentiert
 - [x] RDAP5F Remote-Node-Base-Readonly-Paket vorbereitet
-- [x] RDAP5G Remote Node Server Install Plan dokumentiert
+- [x] RDAP5G Remote-Node-Server-Installationsplan dokumentiert
+- [x] RDAP5H Remote-Node-Server-Handoff-/Installationspaket vorbereitet
 - [x] keine Migration ausgefuehrt
 - [x] kein npm install ausgefuehrt
 - [x] keine nginx-/Service-Aenderung ausgefuehrt
 
 ## Als nächstes
 
-### RDAP5H / Remote Node Server Install Package
+### RDAP5I / Remote Server Readonly Install Execution
 
-- [ ] Webserver-Zielpfad final anhand echter Lesebefehle bestaetigen
-- [ ] Service-User `sccremote` pruefen/anlegen
+- [ ] Webserver-Lesetest ausfuehren
 - [ ] Zielpfad `/opt/stream-control-center/remote-modboard/backend` pruefen/anlegen
-- [ ] ENV-/Secret-Datei `/etc/stream-control-center/remote-modboard.env` vorbereiten
-- [ ] DB-Passwort nur serverseitig in ENV setzen, nicht posten/dokumentieren
-- [ ] `npm install --omit=dev` nur im separaten Remote-Paket planen/ausfuehren
-- [ ] systemd-Service `scc-remote-modboard.service` vorbereiten
-- [ ] nginx-Site vor Aenderung sichern
-- [ ] nginx-Reverse-Proxy fuer `/api/remote/` vorbereiten
-- [ ] spaeteren `/ws/agent` Pfad nur vorbereiten, nicht produktiv nutzen
-- [ ] `nginx -t` vor Reload ausfuehren
-- [ ] Healthcheck lokal `127.0.0.1:3010` pruefen
-- [ ] Healthcheck oeffentlich `https://mods.forrestcgn.de/api/remote/health` pruefen
-- [ ] Rollback/Undo dokumentieren und griffbereit halten
-- [ ] keine DB-Migration ohne separates Go
-- [ ] keine Agent-Actions ohne separates Go
+- [ ] Service-User `sccremote` pruefen/anlegen
+- [ ] ENV-/Secret-Datei `/etc/stream-control-center/remote-modboard.env` auf Server erstellen
+- [ ] Passwort nur direkt auf dem Server eintragen, nicht posten/dokumentieren
+- [ ] Service-Code auf Webserver kopieren
+- [ ] `npm install --omit=dev` nur im Remote-Paket ausfuehren
+- [ ] `npm run check` im Remote-Paket ausfuehren
+- [ ] lokalen Dry-Run auf `127.0.0.1:3010` testen
+- [ ] systemd-Service installieren/starten
+- [ ] lokale Healthchecks testen
+- [ ] nginx-Reverse-Proxy fuer `/api/remote/` einbinden
+- [ ] HTTPS-Healthchecks testen
+- [ ] Rollback/Undo pruefbar halten
 
 ## Verbindlicher TODO aus RDAP5F
 

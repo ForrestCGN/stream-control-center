@@ -1,32 +1,36 @@
 # CURRENT STATUS
 
-Stand: RDAP5G_REMOTE_NODE_SERVER_INSTALL_PLAN  
+Stand: RDAP5H_REMOTE_NODE_SERVER_INSTALL_PACKAGE  
 Datum: 2026-06-23
 
 ## Aktueller bestätigter Arbeitsstand
 
-RDAP5G dokumentiert den Installationsplan fuer das in RDAP5F vorbereitete separate Remote-Modboard-Node-Basispaket.
+RDAP5H erstellt ein kontrolliertes Handoff-/Installationspaket fuer den spaeteren Remote-Modboard-Node-Service auf `web.cgn.community` fuer `mods.forrestcgn.de`.
 
-Neue Basis aus RDAP5F:
+Fuehrender Service-Code bleibt:
 
 ```text
 remote-modboard/backend/
 ```
 
-RDAP5G ist reine Planung.
-
-## Enthalten in RDAP5G
+Neu hinzugekommen sind ausschliesslich Deploy-/Server-Handoff-Dateien:
 
 ```text
-Webserver-Zielpfad geplant
-Service-User-Konzept geplant
-ENV-/Secret-Datei geplant
-npm install nur im separaten remote-modboard/backend geplant
-systemd-Service-Konzept geplant
-nginx-Reverse-Proxy fuer /api/remote/ geplant
-optionaler /ws/agent Pfad fuer spaeter dokumentiert
-Healthchecks nach Start geplant
-Rollback/Undo geplant
+remote-modboard/deploy/README_REMOTE_SERVER_INSTALL.md
+remote-modboard/deploy/systemd/scc-remote-modboard.service.example
+remote-modboard/deploy/nginx/mods.forrestcgn.de.remote-api.example.conf
+remote-modboard/deploy/env/remote-modboard.env.example
+remote-modboard/deploy/scripts/README_COMMANDS.md
+```
+
+## Enthaltenes Zielbild
+
+```text
+Node-Service intern: 127.0.0.1:3010
+Service-Name: scc-remote-modboard.service
+Empfohlener Pfad: /opt/stream-control-center/remote-modboard/backend
+ENV-Datei: /etc/stream-control-center/remote-modboard.env
+nginx-Reverse-Proxy: /api/remote/ -> 127.0.0.1:3010/api/remote/
 ```
 
 ## Bekannter Webserver-/DB-Stand
@@ -63,13 +67,13 @@ sound_profi ist eine Gruppe / Markierung.
 Modulrechte werden pro Modul konfiguriert.
 ```
 
-## Nicht geändert durch RDAP5G
+## Nicht geändert durch RDAP5H
 
 ```text
 kein produktiver Node-Service gestartet
 kein npm install ausgefuehrt
-keine nginx-Aenderung
-keine systemd-Aenderung
+keine nginx-Aenderung ausgefuehrt
+keine systemd-Aenderung ausgefuehrt
 keine DB-Migration
 keine MariaDB-Schreibaktion
 keine lokale SQLite-Aenderung
@@ -78,7 +82,7 @@ kein WSS-Agent
 keine Agent-Actions
 keine OBS-/Sound-/Overlay-/Command-Steuerung
 keine Datei-/Shell-/Prozesssteuerung
-keine Secrets
+keine echten Secrets
 backend/server.js unveraendert
 backend/modules/remote_agent.js unveraendert
 Root-package.json unveraendert
@@ -88,16 +92,12 @@ Root-package.json unveraendert
 
 `backend/modules/remote_agent.js` ist noch RDAP4B-Stand und fuehrt `sound_profi` dort weiterhin als Rolle/Permission-Preset.
 
-Das ist seit RDAP5C3 fachlich ueberholt.
-
-Dieser Punkt bleibt verbindlich in TODO.md und wird nicht in RDAP5G repariert.
+Das ist seit RDAP5C3 fachlich ueberholt und bleibt als verbindlicher TODO bestehen.
 
 ## Nächster sinnvoller Schritt
 
 ```text
-RDAP5H_REMOTE_NODE_SERVER_INSTALL_PACKAGE
+RDAP5I_REMOTE_SERVER_READONLY_INSTALL_EXECUTION
 ```
 
-Ziel: konkretes Installationspaket/Anweisungen fuer Webserver-Pfad, ENV-Datei, npm install im separaten Remote-Paket, systemd und nginx-Reverse-Proxy vorbereiten.
-
-RDAP5H erst nach separatem Go.
+Ziel: Echte, kontrollierte Ausfuehrung auf dem Webserver nur nach separatem Go: Pfade pruefen, Service-User/ENV/Dateien/npm/systemd/nginx/Healthchecks Schritt fuer Schritt ausfuehren.

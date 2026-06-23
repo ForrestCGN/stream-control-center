@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP5G_REMOTE_NODE_SERVER_INSTALL_PLAN  
+Stand: RDAP5H_REMOTE_NODE_SERVER_INSTALL_PACKAGE  
 Datum: 2026-06-23
 
 ## Wichtigste Dateien zuerst
@@ -26,6 +26,7 @@ docs/current/REMOTE_DASHBOARD_RDAP5C4_KNOWN_REMOTE_SERVER_FACTS.md
 docs/current/REMOTE_DASHBOARD_RDAP5E_REMOTE_MODBOARD_NODE_SERVICE_PLAN.md
 docs/current/REMOTE_DASHBOARD_RDAP5F_REMOTE_NODE_BASE_READONLY_PACKAGE.md
 docs/current/REMOTE_DASHBOARD_RDAP5G_REMOTE_NODE_SERVER_INSTALL_PLAN.md
+docs/current/REMOTE_DASHBOARD_RDAP5H_REMOTE_NODE_SERVER_INSTALL_PACKAGE.md
 docs/current/NEXT_CHAT_PROMPT_RDAP5E_REMOTE_NODE_SERVICE_PLAN.md
 ```
 
@@ -45,14 +46,14 @@ remote-modboard/backend/src/services/db-health.service.js
 remote-modboard/backend/src/security/safety.js
 ```
 
-## RDAP5G Doku-Update
+## Neue Server-Handoff-Dateien aus RDAP5H
 
 ```text
-docs/current/REMOTE_DASHBOARD_RDAP5G_REMOTE_NODE_SERVER_INSTALL_PLAN.md
-project-state/CURRENT_STATUS.md
-project-state/NEXT_STEPS.md
-project-state/TODO.md
-project-state/FILES.md
+remote-modboard/deploy/README_REMOTE_SERVER_INSTALL.md
+remote-modboard/deploy/systemd/scc-remote-modboard.service.example
+remote-modboard/deploy/nginx/mods.forrestcgn.de.remote-api.example.conf
+remote-modboard/deploy/env/remote-modboard.env.example
+remote-modboard/deploy/scripts/README_COMMANDS.md
 ```
 
 ## Bewusst nicht geänderte Dateien
@@ -110,12 +111,12 @@ D:\Streaming\stramAssets\data\sqlite\app.sqlite
 
 Nicht ersetzen, nicht loeschen, nicht migrieren ohne separates Go.
 
-## Hinweis für nächsten Chat
+## Hinweis fuer naechsten Chat
 
 Nächster sinnvoller Schritt:
 
 ```text
-RDAP5H_REMOTE_NODE_SERVER_INSTALL_PACKAGE
+RDAP5I_REMOTE_SERVER_READONLY_INSTALL_EXECUTION
 ```
 
-Vor RDAP5H echte Webserver-Lesebefehle ausfuehren und Pfade pruefen. Keine DB-Migration, keine Secrets, keine produktiven Agent-Actions ohne separates Go.
+Keine DB-Migration, keine Secrets im Repo/Chat, keine produktiven Agent-Actions, kein `/ws/agent` produktiv ohne separates Go.
