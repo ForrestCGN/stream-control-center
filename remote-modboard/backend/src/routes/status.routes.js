@@ -14,7 +14,7 @@ function registerStatusRoutes(app, context) {
       service: 'remote-modboard',
       module: 'remote_node_base',
       moduleBuild: context.moduleBuild,
-      statusApiVersion: 'rdap7h.v1',
+      statusApiVersion: 'rdap7i.v1',
       readOnly: true,
       writeEnabled: false,
       actionEnabled: false,
@@ -45,14 +45,23 @@ function registerStatusRoutes(app, context) {
         },
         sessions: {
           ...publicConfig.auth.sessions,
+          storePrepared: true,
+          readOnlyValidationPrepared: true,
+          readOnlyValidationEnabled: true,
+          readsDashboardSessions: true,
           createSession: false,
-          setCookie: false
+          setCookie: false,
+          refreshSession: false,
+          updateLastSeen: false,
+          databaseWriteEnabled: false,
+          effectiveEnabled: false
         },
         notes: [
-          'RDAP7H stellt disabled/read-only OAuth Start-/Callback-Skeleton-Routen bereit.',
+          'RDAP7I bereitet den Session-Store-/Validation-Layer read-only vor.',
+          'dashboard_sessions wird nur per SELECT fuer Diagnose/Validierung gelesen.',
           'OAuth bleibt effektiv deaktiviert.',
           'Start und Callback loesen keinen Redirect zu Twitch und keinen Token-Tausch aus.',
-          'Es werden keine Cookies gesetzt und keine Sessions erstellt.'
+          'Es werden keine Cookies gesetzt, keine Sessions erstellt und keine Session-Zeilen aktualisiert.'
         ]
       },
       database: db,

@@ -6,12 +6,12 @@ const {
 } = require('../services/auth-status.service');
 
 function registerAuthStatusRoutes(app, context) {
-  app.get('/api/remote/auth/me', (req, res) => {
-    res.json(buildMeStatus({ context, req }));
+  app.get('/api/remote/auth/me', async (req, res) => {
+    res.json(await buildMeStatus({ context, req }));
   });
 
-  app.get('/api/remote/auth/session-status', (req, res) => {
-    res.json(buildSessionStatus({ context, req }));
+  app.get('/api/remote/auth/session-status', async (req, res) => {
+    res.json(await buildSessionStatus({ context, req }));
   });
 }
 

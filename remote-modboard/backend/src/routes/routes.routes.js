@@ -7,12 +7,13 @@ function registerRoutesRoutes(app, context) {
       service: 'remote-modboard',
       module: 'remote_node_base',
       moduleBuild: context.moduleBuild,
-      statusApiVersion: 'rdap7h.v1',
+      statusApiVersion: 'rdap7i.v1',
       readOnly: true,
       writeEnabled: false,
       authPrepared: true,
       authEnabled: false,
       sessionCreationEnabled: false,
+      sessionStoreReadOnlyValidationPrepared: true,
       routes: [
         {
           method: 'GET',
@@ -22,7 +23,7 @@ function registerRoutesRoutes(app, context) {
         {
           method: 'GET',
           path: '/api/remote/status',
-          description: 'Read-only service status, safety flags, DB config state, OAuth disabled state and planned agent state.'
+          description: 'Read-only service status, safety flags, DB config state, OAuth disabled state, session-store read-only validation state and planned agent state.'
         },
         {
           method: 'GET',
@@ -32,12 +33,12 @@ function registerRoutesRoutes(app, context) {
         {
           method: 'GET',
           path: '/api/remote/auth/me',
-          description: 'Read-only Auth-Status fuer aktuellen Request. Login ist deaktiviert, daher loggedIn=false. Keine Cookies, keine Sessions, keine Writes.'
+          description: 'Read-only Auth-Status fuer aktuellen Request. Login ist deaktiviert, daher loggedIn=false. Session wird nur diagnostisch validiert.'
         },
         {
           method: 'GET',
           path: '/api/remote/auth/session-status',
-          description: 'Read-only Session-Status fuer aktuellen Request. Keine Session-Erstellung und keine DB-Writes.'
+          description: 'RDAP7I read-only Session-Store-Validation gegen dashboard_sessions. Keine Session-Erstellung, keine Cookies, keine DB-Writes.'
         },
         {
           method: 'GET',
