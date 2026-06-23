@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP4C2_DASHBOARD_V2_REMOTE_AGENT_ADMIN_SPLIT_TESTED  
+Stand: RDAP5B_AUTH_DB_SCHEMA_PLAN_DOCUMENTED  
 Datum: 2026-06-23
 
 ## Wichtigste Dateien zuerst
@@ -20,42 +20,49 @@ project-state/FILES.md
 docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md
 docs/current/REMOTE_DASHBOARD_AGENT_RDAP3_MINIMAL_AGENT_PLAN.md
 docs/current/REMOTE_DASHBOARD_RDAP4_PERMISSION_LOCK_MODEL.md
-docs/current/NEXT_CHAT_PROMPT_RDAP5_AFTER_RDAP4C2.md
+docs/current/REMOTE_DASHBOARD_RDAP5_AUTH_USER_MODEL_PLAN.md
+docs/current/REMOTE_DASHBOARD_RDAP5A_TWITCH_BASE_ACCESS_NO_VIP_DASHBOARD.md
+docs/current/REMOTE_DASHBOARD_RDAP5B_AUTH_DB_SCHEMA_PLAN.md
+docs/current/NEXT_CHAT_PROMPT_RDAP5C_AFTER_RDAP5B.md
 ```
 
-## Backend / aktueller RDAP4B-Status
+## Webserver-DB
+
+```text
+Server: web.cgn.community
+Site: forrestcgn.de
+DB-Typ: MySQL/MariaDB
+DB-Name: c1stream_control
+DB-User: c3stream_control
+Remote Access: aus
+Charset: utf8mb4
+Backup: woechentlich
+```
+
+Passwort nicht dokumentieren.
+
+## Lokale produktive SQLite
+
+```text
+D:\Streaming\stramAssets\data\sqlite\app.sqlite
+```
+
+Nicht ersetzen, nicht loeschen, nicht migrieren ohne separates Go.
+
+## Backend relevante Dateien
 
 ```text
 backend/modules/remote_agent.js
 backend/server.js
 backend/core/paths.js
+backend/core/security.js
+backend/modules/helpers/helper_security.js
+backend/modules/helpers/helper_routes.js
+backend/modules/helpers/helper_config.js
+backend/modules/helpers/helper_state.js
 ```
 
-`remote_agent.js` enthält:
-
-```text
-GET /api/remote-agent/status
-GET /api/remote-agent/permissions/model
-GET /api/remote-agent/locks/status
-GET /api/remote-agent/audit/model
-GET /api/remote-agent/routes
-```
-
-## Dashboard-v2
-
-Quellcode:
-
-```text
-frontend/dashboard-v2/
-```
-
-Build-Output:
-
-```text
-htdocs/dashboard-v2/
-```
-
-Für RDAP4C/C2 besonders relevant:
+## Dashboard-v2 relevante Dateien
 
 ```text
 frontend/dashboard-v2/src/services/agentClient.js
@@ -68,50 +75,29 @@ frontend/dashboard-v2/src/app/navigation.js
 frontend/dashboard-v2/src/styles/*
 ```
 
-## Dashboard-v2 aktuelle Struktur nach RDAP4C2
+## RDAP5B geplante Tabellen
 
 ```text
-Live -> Stream-PC
-  frontend/dashboard-v2/src/modules/remote-agent/RemoteAgentPage.jsx
-
-Admin -> Benutzer & Rechte
-  frontend/dashboard-v2/src/modules/admin/AdminUsersPage.jsx
-
-Admin -> Locks
-  frontend/dashboard-v2/src/modules/admin/AdminLocksPage.jsx
-
-Admin -> Audit
-  frontend/dashboard-v2/src/modules/admin/AdminAuditPage.jsx
-```
-
-## Build-/Deploy-/Sync-Workflow
-
-```text
-build-dashboard-v2.cmd
-tools/deploy_repo_to_streamassets.ps1
-tools/sync_streamassets_to_repo.ps1
-tools/upload_streamassets_changes.ps1
-installstep.cmd
-testdeploy.cmd
-stepdone.cmd
-stepundo.cmd
-stepstatus.cmd
-```
-
-## Designreferenz
-
-```text
-docs/current/DASHBOARD_V2_DESIGN_REFERENCE_V13.md
-docs/current/DASHBOARD_V2_REACT_V13_ALIGNMENT.md
-docs/current/DASHBOARD_V2_BUILD_LOCAL_DELIVERY.md
-docs/current/DASHBOARD_V2_STATIC_ROUTE.md
+dashboard_users
+dashboard_twitch_status
+dashboard_roles
+dashboard_user_roles
+dashboard_permissions
+dashboard_role_permissions
+dashboard_user_permission_overrides
+dashboard_module_permission_matrix
+dashboard_sessions
+dashboard_locks
+dashboard_audit_log
+agent_registry
 ```
 
 ## In diesem Doku-Update aktualisiert
 
 ```text
+docs/current/REMOTE_DASHBOARD_RDAP5B_AUTH_DB_SCHEMA_PLAN.md
 docs/current/START_HERE_FOR_NEW_CHAT.md
-docs/current/NEXT_CHAT_PROMPT_RDAP5_AFTER_RDAP4C2.md
+docs/current/NEXT_CHAT_PROMPT_RDAP5C_AFTER_RDAP5B.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -120,4 +106,4 @@ project-state/FILES.md
 
 ## Hinweis für nächsten Chat
 
-Für RDAP5 zuerst die echten aktuellen Dateien prüfen. Kein Login/Auth/DB-Modell aus Erinnerung rekonstruieren. Keine DB-Migration ohne separaten Plan und separates Go. Übergabe-ZIPs bevorzugt unter `_handoff` erzeugen, nicht Desktop.
+Für RDAP5C zuerst klaeren, wie Node/ENV/Secrets auf dem Webserver laufen. Keine DB-Migration ohne Backup-/Rollback-/Secret-Plan. VIP ist kein Dashboard-Basiszugang. Lokale SQLite bleibt unangetastet.

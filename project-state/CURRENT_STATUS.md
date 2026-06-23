@@ -1,124 +1,113 @@
 # CURRENT STATUS
 
-Stand: RDAP4C2_DASHBOARD_V2_REMOTE_AGENT_ADMIN_SPLIT_TESTED  
+Stand: RDAP5B_AUTH_DB_SCHEMA_PLAN_DOCUMENTED  
 Datum: 2026-06-23
 
 ## Aktueller bestätigter Stand
 
-RDAP4B wurde eingespielt, Node wurde neu gestartet, die API wurde geprüft und der Step wurde per `stepdone.cmd` abgeschlossen.
+RDAP5B wurde als reiner Planungs-/Doku-Step erstellt. Es wurde nichts produktiv umgesetzt.
 
-RDAP4B erweitert das vorhandene Backend-Modul:
+RDAP5B dokumentiert das DB-/Schema-Konzept fuer:
 
-```text
-backend/modules/remote_agent.js
-```
+- User
+- Twitch-Status
+- lokale Rollen
+- Modulrechte
+- User-Allows
+- User-Denies
+- Sessions
+- Locks
+- Audit
+- Agent-Registry
 
-um read-only Modellrouten für Permissions, Locks und Audit. Es wurde bewusst **kein neues Backend-Modul** angelegt.
+## Webserver-DB
 
-RDAP4C/C2 hat danach Dashboard-v2 erweitert:
-
-- `agentClient.js` lädt die vorhandenen RDAP4B read-only Routen.
-- `Live -> Stream-PC` zeigt wieder nur die Betriebs-/Verbindungsübersicht.
-- Technische Sicherheitsmodelle wurden in vorhandene Admin-Bereiche verschoben:
-  - `Admin -> Benutzer & Rechte`
-  - `Admin -> Locks`
-  - `Admin -> Audit`
-
-## Bestätigte RDAP4B-Routen
+Auf dem Webserver wurde eine MySQL/MariaDB-Datenbank angelegt:
 
 ```text
-GET /api/remote-agent/status
-GET /api/remote-agent/permissions/model
-GET /api/remote-agent/locks/status
-GET /api/remote-agent/audit/model
-GET /api/remote-agent/routes
+Server: web.cgn.community
+Site: forrestcgn.de
+DB-Typ: MySQL/MariaDB
+DB-Name: c1stream_control
+DB-User: c3stream_control
+Remote Access: aus
+Charset: utf8mb4
+Backup: woechentlich
 ```
 
-Bestätigter Status:
+Passwort wurde nicht dokumentiert und darf nicht ins Repo oder Frontend.
+
+## Lokale SQLite
+
+Die lokale produktive SQLite bleibt unveraendert:
 
 ```text
-ok: true
-module: remote_agent
-moduleVersion: 0.0.2
-moduleBuild: RDAP4B_REMOTE_AGENT_PERMISSION_LOCK_AUDIT_READONLY
-statusApiVersion: rdap4b.v1
-readOnly: true
-writeEnabled: false
-actionEnabled: false
-productiveAgentRuntime: false
+D:\Streaming\stramAssets\data\sqlite\app.sqlite
 ```
 
-## Bestätigte Sicherheitslage
+RDAP5B ersetzt, migriert oder veraendert diese DB nicht.
 
-- `permissionsModel`, `locksStatus` und `auditModel` sind als read-only Capabilities aktiv.
-- Alle produktiven Capabilities bleiben deaktiviert.
-- Status bleibt `offline`, weil noch kein produktiver WSS-Agent existiert.
-- Es gibt keine Schreibroute.
-- Es gibt keine produktive Agent-Ausführung.
-- Es gibt keine DB-Migration und keine SQLite-Änderung.
-- Es gibt kein Login/Auth-System in Dashboard-v2.
-- Es gibt keine OBS-/Sound-/Overlay-/Media-/Text-/Config-/Command-Steuerung.
+## Pattern-Pruefung
 
-## Dashboard-v2 aktueller Aufbau
-
-### Live -> Stream-PC
-
-Betriebs-/Verbindungsübersicht:
-
-- Stream-PC Verbindung
-- Offline/Online-Status
-- Letzter Kontakt / Heartbeat
-- Lokaler Stream-PC
-- Remote-Modboard Ziel
-- Sicherheitsgrenzen als Kurzstatus
-- API-Zustand kurz
-
-### Admin -> Benutzer & Rechte
-
-Read-only Sicherheitsmodell:
-
-- Rollenmodell
-- Permissions-Modell
-- Spezialrolle `sound_profi`
-- Role-Permission-Presets
-- Hinweis: Twitch-Rollen sind nicht automatisch Dashboard-Rechte
-
-### Admin -> Locks
-
-Read-only Lock-Modell:
-
-- Lock-Nullstatus
-- Resource-Key-Format
-- Heartbeat/Timeout
-- Takeover-Regeln
-- aktive Locks aktuell 0
-
-### Admin -> Audit
-
-Read-only Audit-Modell:
-
-- Mindestfelder
-- Eventtypen
-- Quellen
-- Retention-Hinweis
-- Read-only API-Routen
-
-## Geänderte Dateien durch RDAP4C/C2
+Beim RDAP5B-Start wurden per GitHub-Code-Suche keine belastbaren Treffer gefunden fuer:
 
 ```text
-frontend/dashboard-v2/src/services/agentClient.js
-frontend/dashboard-v2/src/modules/remote-agent/RemoteAgentPage.jsx
-frontend/dashboard-v2/src/modules/admin/AdminUsersPage.jsx
-frontend/dashboard-v2/src/modules/admin/AdminLocksPage.jsx
-frontend/dashboard-v2/src/modules/admin/AdminAuditPage.jsx
-frontend/dashboard-v2/src/app/moduleRegistry.js
-frontend/dashboard-v2/src/app/navigation.js
+DatabaseSync
+CREATE TABLE IF NOT EXISTS
+sqlite
+app.sqlite
+better-sqlite3
 ```
 
-## Nicht geändert durch RDAP4C/C2
+Daraus folgt:
+
+- keine vorhandene DB-Migrationsdatei annehmen
+- kein DB-Helper erfinden
+- vor spaeterer Umsetzung echte Live-/Repo-Dateien erneut pruefen
+- falls DB-Code vorhanden ist, aber nicht in GitHub-Suche auftaucht: Datei gezielt anfordern
+
+## RDAP5A wichtige Entscheidungen
+
+```text
+Twitch MOD = Dashboard-Grundzugang moeglich
+Twitch STREAMER/Broadcaster = Dashboard-Grundzugang
+Twitch VIP = kein Dashboard-Grundzugang
+```
+
+Lokale Rollen/Freigaben:
+
+```text
+LEADMOD = manuell lokal
+ADMIN = manuell lokal
+OWNER = manuell lokal / Systemhoheit
+SOUND_PROFI = lokale Zusatzfreigabe
+User-Allow = direkte Zusatzfreigabe
+User-Deny = direkte Sperre
+```
+
+## RDAP5B geplante Tabellen
+
+```text
+dashboard_users
+dashboard_twitch_status
+dashboard_roles
+dashboard_user_roles
+dashboard_permissions
+dashboard_role_permissions
+dashboard_user_permission_overrides
+dashboard_module_permission_matrix
+dashboard_sessions
+dashboard_locks
+dashboard_audit_log
+agent_registry
+```
+
+## Nicht geändert durch RDAP5B
 
 - kein Backend-Code
+- kein Frontend-Code
 - keine produktive SQLite
+- keine MariaDB-Aenderung
 - keine DB-Migration
 - keine Schreibroute
 - kein produktiver WSS-Agent
@@ -126,15 +115,16 @@ frontend/dashboard-v2/src/app/navigation.js
 - keine OBS-/Sound-/Overlay-Steuerung
 - keine Commands-/Kanalpunkte-Steuerung
 - keine Datei-/Shell-/Prozesssteuerung
-- kein neues Hauptmodul
+- kein Login-Code
+- keine Secrets
 
 ## Wichtige Leitplanken
 
 - Keine produktive SQLite ersetzen oder löschen.
+- Webserver-DB fuer Remote-Modboard/Auth getrennt planen.
 - Keine Schreibfunktionen ohne Permission/Lock/Audit.
 - Keine Agent-Aktionen ohne Allowlist.
 - Keine freie Shell-/Datei-/Prozesssteuerung.
 - Frontend zeigt Rechte nur an; Backend entscheidet.
-- Bestehende Module nutzen, kein Modul-Wildwuchs.
-- Normale Live-Seiten streamer-/modfreundlich halten.
-- Technische Rechte-/Lock-/Audit-Dinge gehören in Admin.
+- Jedes Modul braucht eigene Permission-Matrix.
+- VIP ist kein Dashboard-Basiszugang.

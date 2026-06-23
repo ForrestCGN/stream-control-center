@@ -1,104 +1,89 @@
 # NEXT STEPS
 
-Stand: RDAP4C2_DASHBOARD_V2_REMOTE_AGENT_ADMIN_SPLIT_TESTED  
+Stand: RDAP5B_AUTH_DB_SCHEMA_PLAN_DOCUMENTED  
 Datum: 2026-06-23
 
 ## Nächster sinnvoller Schritt
 
 ```text
-RDAP5_REMOTE_AUTH_USER_MODEL_PLAN
+RDAP5C_AUTH_DB_MIGRATION_DESIGN
 ```
 
-## Ziel von RDAP5
+## Ziel von RDAP5C
 
-RDAP5 soll **nur planen**, wie Remote-Modboard/Login/User/Rollen/Grants später sauber umgesetzt werden.
+RDAP5C soll planen, wie die in RDAP5B beschriebenen Tabellen spaeter sicher in der Webserver-DB angelegt werden.
 
-Noch keine Umsetzung.
+Noch keine Ausfuehrung.
 
-Zu klären/planen:
+Zu klaeren/planen:
 
-- Login-Modell für `https://mods.forrestcgn.de`
-- lokale Dashboard-User
-- lokale Dashboard-Rollen
-- konkrete Permission-Grants
-- Verhältnis Twitch-Rollen zu lokalen Dashboard-Rechten
-- Owner/Admin/Mod/Sound-Profi/Readonly
-- sichere Session-/Token-Regeln
-- Agent-Secret-Verwaltung, aber niemals im Frontend
-- serverseitige Permission-Checks
-- Audit-Pflicht für Login, Permission-Check, Lock und produktive Aktionen
-- spätere DB-Struktur/Migration nur als separater Plan
+- Wo laeuft spaeter Node fuer `mods.forrestcgn.de`?
+- Wie bekommt Node sicheren Zugriff auf `c1stream_control`?
+- Wo liegen DB-Secrets sicher?
+- Welcher DB-Treiber wird fuer MySQL/MariaDB genutzt?
+- Wie werden Migrationen versioniert?
+- Wie wird vor Migration gesichert?
+- Wie wird Migration idempotent?
+- Wie wird Rollback dokumentiert?
+- Wie werden Seeds fuer Rollen/Permissions sauber eingespielt?
+- Wie bleibt lokale SQLite unangetastet?
 
-## Vor RDAP5 prüfen
+## Vor RDAP5C prüfen
 
 Zuerst echte aktuelle Dateien aus Repo/Live prüfen, insbesondere:
 
 ```text
 docs/current/START_HERE_FOR_NEW_CHAT.md
-docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md
-docs/current/REMOTE_DASHBOARD_AGENT_RDAP3_MINIMAL_AGENT_PLAN.md
-docs/current/REMOTE_DASHBOARD_RDAP4_PERMISSION_LOCK_MODEL.md
+docs/current/REMOTE_DASHBOARD_RDAP5B_AUTH_DB_SCHEMA_PLAN.md
 project-state/CURRENT_STATUS.md
 project-state/TODO.md
 project-state/FILES.md
-backend/modules/remote_agent.js
-backend/modules/helpers/helper_security.js
-backend/modules/helpers/helper_routes.js
 backend/modules/helpers/helper_config.js
-backend/modules/helpers/helper_state.js
+backend/modules/helpers/helper_security.js
 backend/core/security.js
-backend/core/config.js
 backend/core/paths.js
+package.json
 ```
 
-Falls Dateien fehlen oder anders heißen: exakt anfordern, nicht raten.
+Zusätzlich klaeren:
 
-## RDAP5 darf
+```text
+gibt es auf dem Webserver bereits Node?
+welche Node-Version?
+wo soll das Remote-Modboard laufen?
+wie werden ENV/Secrets dort gespeichert?
+```
 
-- Architektur und Datenmodell planen
-- vorhandene Security-/Config-/Route-/State-Helper prüfen
-- DB-Migrationsbedarf nur beschreiben
-- Rollen-/Permission-/Grant-Modell konkretisieren
-- Lock-/Audit-Anforderungen für spätere Schreibfunktionen konkretisieren
-- klare Abgrenzung Webserver vs. Stream-PC-Agent festlegen
+## RDAP5C darf
 
-## RDAP5 darf nicht
+- Migration-/Helper-Design planen
+- DB-Treiber vorschlagen
+- Secret-/ENV-Strategie planen
+- Seeds fuer Rollen/Permissions planen
+- Backup-/Rollback-Regeln planen
+- Install-/Testablauf planen
 
-- keine DB-Migration umsetzen
+## RDAP5C darf nicht
+
+- keine DB-Migration ausfuehren
 - keine produktive SQLite ändern
-- kein Login improvisieren
+- keine MariaDB schreiben
+- kein Login-Code bauen
 - keine Schreibbuttons einbauen
 - keine produktiven Aktionen auslösen
 - keine Agent-Actions produktiv schalten
-- keine OBS-/Sound-/Overlay-Steuerung
-- keine Commands/Kanalpunkte produktiv bearbeiten
-- keine SQLite ersetzen oder zurücksetzen
-- kein neues Modul ohne zwingenden Grund
 - keine Secrets ins Repo oder Frontend schreiben
-
-## Alternative, falls erst UI/Lesbarkeit geglättet werden soll
-
-```text
-DASHV2_ADMIN_SECURITY_VIEW_POLISH
-```
-
-Ziel:
-
-- Admin-Security-Seiten lesbarer machen.
-- Lange Presets einklappen oder kompakter darstellen.
-- Keine neue Funktion.
-- Keine API-/Backend-/DB-Änderung.
 
 ## Spätere mögliche Schritte
 
 ```text
-RDAP4D_PERMISSION_LOCK_DB_PLAN
+RDAP5D_AUTH_DB_MIGRATION_DRYRUN
 ```
 
-für konkrete DB-Planung zu Permissions, Locks und Audit, aber erst nach Sichtung bestehender DB-/Helper-Patterns und separatem Go.
+Nur wenn Zugriff/Secrets/Backup geklaert sind.
 
 ```text
 RDAP6_MINIMAL_REMOTE_AUTH_IMPLEMENTATION
 ```
 
-erst nach RDAP5-Plan, konkreter Datei-/DB-Prüfung und separatem Go.
+Erst nach DB-Migrationsdesign, echter Datei-/DB-Pruefung und separatem Go.

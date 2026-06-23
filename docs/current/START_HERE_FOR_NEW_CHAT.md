@@ -2,7 +2,7 @@
 
 Stand: 2026-06-23  
 Projekt: ForrestCGN / stream-control-center  
-Aktueller Stand: RDAP4C2_DASHBOARD_V2_REMOTE_AGENT_ADMIN_SPLIT_TESTED
+Aktueller Stand: RDAP5B_AUTH_DB_SCHEMA_PLAN_DOCUMENTED
 
 ## Diese Datei zuerst lesen
 
@@ -22,13 +22,12 @@ project-state/TODO.md
 project-state/FILES.md
 docs/current/DASHBOARD_V2_DESIGN_REFERENCE_V13.md
 docs/current/DASHBOARD_V2_REACT_V13_ALIGNMENT.md
-docs/current/DASHBOARD_V2_BUILD_LOCAL_DELIVERY.md
-docs/current/DASHBOARD_V2_STATIC_ROUTE.md
-docs/current/WF1_FRONTEND_GIT_WORKFLOW.md
 docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md
-docs/current/REMOTE_DASHBOARD_AGENT_RDAP3_MINIMAL_AGENT_PLAN.md
 docs/current/REMOTE_DASHBOARD_RDAP4_PERMISSION_LOCK_MODEL.md
-docs/current/NEXT_CHAT_PROMPT_RDAP5_AFTER_RDAP4C2.md
+docs/current/REMOTE_DASHBOARD_RDAP5_AUTH_USER_MODEL_PLAN.md
+docs/current/REMOTE_DASHBOARD_RDAP5A_TWITCH_BASE_ACCESS_NO_VIP_DASHBOARD.md
+docs/current/REMOTE_DASHBOARD_RDAP5B_AUTH_DB_SCHEMA_PLAN.md
+docs/current/NEXT_CHAT_PROMPT_RDAP5C_AFTER_RDAP5B.md
 ```
 
 ## Repository und Pfade
@@ -50,102 +49,63 @@ Downloads: %USERPROFILE%\Downloads
 ## Aktueller bestätigter Stand
 
 ```text
-RDAP4C2 Dashboard-v2 verteilt das RDAP4B Sicherheitsmodell sauber auf vorhandene Admin-Bereiche.
+RDAP5B dokumentiert das DB-/Schema-Konzept fuer Remote-Modboard/Auth/User/Rollen/Permissions/Sessions/Locks/Audit.
 ```
 
-Bestätigt:
-
-- Dashboard-v2 läuft lokal unter `/dashboard-v2/`.
-- Bestehendes Dashboard bleibt unter `/dashboard/` produktiv.
-- Dashboard-v2 Build-Output liegt unter `htdocs/dashboard-v2/`.
-- Deploy-Workflow nimmt `htdocs/dashboard-v2/` mit nach Live.
-- `backend/modules/remote_agent.js` bleibt das vorhandene Modul für Remote-/Stream-PC-Anbindung.
-- RDAP4B Backend/API bleibt unverändert.
-- RDAP4C/C2 ergänzt nur Dashboard-v2 Frontend-Anzeige.
-- `Live -> Stream-PC` ist wieder eine normale Betriebs-/Verbindungsübersicht.
-- Technische Security-Modellansichten liegen jetzt in vorhandenen Admin-Bereichen:
-  - `Admin -> Benutzer & Rechte`
-  - `Admin -> Locks`
-  - `Admin -> Audit`
-
-## Aktuelle RDAP4B API-Routen
+Webserver-DB vorhanden:
 
 ```text
-GET /api/remote-agent/status
-GET /api/remote-agent/permissions/model
-GET /api/remote-agent/locks/status
-GET /api/remote-agent/audit/model
-GET /api/remote-agent/routes
+Server: web.cgn.community
+DB-Typ: MySQL/MariaDB
+DB-Name: c1stream_control
+DB-User: c3stream_control
+Remote Access: aus
+Charset: utf8mb4
+Backup: woechentlich
 ```
 
-Bestätigte Sicherheitswerte:
+Passwort wird nicht dokumentiert und darf nicht ins Repo oder Frontend.
+
+Lokale SQLite bleibt unveraendert:
 
 ```text
-module: remote_agent
-moduleVersion: 0.0.2
-moduleBuild: RDAP4B_REMOTE_AGENT_PERMISSION_LOCK_AUDIT_READONLY
-statusApiVersion: rdap4b.v1
-readOnly: true
-writeEnabled: false
-actionEnabled: false
-productiveAgentRuntime: false
+D:\Streaming\stramAssets\data\sqlite\app.sqlite
 ```
 
-Der Offline-Status ist aktuell korrekt, weil noch kein produktiver WSS-Agent existiert.
-
-## Dashboard-v2 Struktur nach RDAP4C2
-
-### Live -> Stream-PC
-
-Soll nur Betriebsstatus zeigen:
+## RDAP5A Rollen-/Rechte-Grundsatz
 
 ```text
-Stream-PC Verbindung
-Offline/Online-Status
-Letzter Kontakt
-Heartbeat
-Lokaler Stream-PC
-Remote-Modboard Ziel
-Sicherheitsgrenzen als Kurzstatus
-API-Zustand kurz
+Twitch MOD = Dashboard-Grundzugang moeglich
+Twitch STREAMER/Broadcaster = Dashboard-Grundzugang
+Twitch VIP = Community-/Website-Status, kein Dashboard-Grundzugang
 ```
 
-### Admin -> Benutzer & Rechte
-
-Zeigt read-only:
+Lokale Rollen/Freigaben:
 
 ```text
-Permissions-Modell
-Rollenmodell
-Spezialrolle sound_profi
-Role-Permission-Presets
-Twitch-Rollen sind nicht automatisch Dashboard-Rechte
+LEADMOD = manuell lokal
+ADMIN = manuell lokal
+OWNER = manuell lokal / Systemhoheit
+SOUND_PROFI = lokale Zusatzfreigabe
+User-Allow = direkte Zusatzfreigabe
+User-Deny = direkte Sperre
 ```
 
-### Admin -> Locks
-
-Zeigt read-only:
+## RDAP5B geplante Tabellen
 
 ```text
-Lock-Modell
-Nullstatus
-Resource-Key-Format
-Heartbeat/Timeout
-Takeover-Regeln
-aktive Locks: aktuell 0
-```
-
-### Admin -> Audit
-
-Zeigt read-only:
-
-```text
-Audit-Modell
-Mindestfelder
-Eventtypen
-Quellen
-Retention-Hinweis
-Read-only API-Routen
+dashboard_users
+dashboard_twitch_status
+dashboard_roles
+dashboard_user_roles
+dashboard_permissions
+dashboard_role_permissions
+dashboard_user_permission_overrides
+dashboard_module_permission_matrix
+dashboard_sessions
+dashboard_locks
+dashboard_audit_log
+agent_registry
 ```
 
 ## Weiterhin bewusst nicht aktiv
@@ -160,52 +120,9 @@ keine Sound-Steuerung
 keine Overlay-Steuerung
 keine Commands-/Kanalpunkte-Steuerung
 keine Datei-/Shell-/Prozesssteuerung
-kein Login/Auth improvisiert
+kein Login/Auth-Code
+keine Secrets im Repo oder Frontend
 ```
-
-## Wichtige aktuelle Dateien
-
-```text
-backend/modules/remote_agent.js
-backend/server.js
-backend/core/paths.js
-
-frontend/dashboard-v2/src/services/agentClient.js
-frontend/dashboard-v2/src/modules/remote-agent/RemoteAgentPage.jsx
-frontend/dashboard-v2/src/modules/admin/AdminUsersPage.jsx
-frontend/dashboard-v2/src/modules/admin/AdminLocksPage.jsx
-frontend/dashboard-v2/src/modules/admin/AdminAuditPage.jsx
-frontend/dashboard-v2/src/app/moduleRegistry.js
-frontend/dashboard-v2/src/app/navigation.js
-
-frontend/dashboard-v2/
-htdocs/dashboard-v2/
-build-dashboard-v2.cmd
-testdeploy.cmd
-stepdone.cmd
-stepundo.cmd
-```
-
-## Verbindliche Designbasis
-
-Dashboard-v2 bleibt auf Designbasis V13 / Topbar Tab inline:
-
-```text
-docs/current/DASHBOARD_V2_DESIGN_REFERENCE_V13.md
-docs/current/DASHBOARD_V2_REACT_V13_ALIGNMENT.md
-```
-
-Wichtige Punkte:
-
-- Galaxy-/Glassmorphism-Hintergrund
-- feste Topbar
-- kompakte Sidebar als Accordion
-- Hauptkategorie -> Modul
-- keine dritte Sidebar-Ebene
-- Moduldetails innerhalb der Modulseite
-- ruhige dunkle CGN-Neon-Flächen
-- normale Bereiche streamer-/modfreundlich halten
-- technische Dinge gehören in Admin oder zentrale Admin-Dialoge
 
 ## Verbindliche Arbeitsweise
 
@@ -227,26 +144,12 @@ Wichtige Punkte:
 ## Nächster sinnvoller Schritt
 
 ```text
-RDAP5_REMOTE_AUTH_USER_MODEL_PLAN
+RDAP5C_AUTH_DB_MIGRATION_DESIGN
 ```
 
 Ziel:
 
-- Login-/User-/Rollen-/Grant-Modell für Remote-Modboard planen.
-- Noch keine Umsetzung.
-- Noch keine DB-Migration.
-- Noch keine produktive Schreibfunktion.
-- Zuerst bestehende DB-/Helper-/Security-Patterns prüfen.
-- Danach separater Plan und separates `go`.
-
-Alternative vor RDAP5, falls Forrest erst Optik/UX glätten möchte:
-
-```text
-DASHV2_ADMIN_SECURITY_VIEW_POLISH
-```
-
-Ziel:
-
-- Admin-Security-Seiten noch lesbarer machen.
-- Keine neue Funktion.
-- Keine API-/Backend-/DB-Änderung.
+- Migration-/Helper-Design fuer die Webserver-DB planen.
+- Noch keine Migration ausfuehren.
+- Vorher echte Server-/Node-/DB-Zugriffsmoeglichkeiten klaeren.
+- Secrets sicher planen.
