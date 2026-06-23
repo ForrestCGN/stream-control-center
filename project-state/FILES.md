@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP4A_PERMISSION_LOCK_AUDIT_MODEL_DOCS  
+Stand: RDAP4B_REMOTE_AGENT_PERMISSION_LOCK_AUDIT_READONLY  
 Datum: 2026-06-23
 
 ## Wichtigste Dateien zuerst
@@ -20,6 +20,24 @@ project-state/FILES.md
 docs/current/REMOTE_DASHBOARD_AGENT_PLAN.md
 docs/current/REMOTE_DASHBOARD_AGENT_RDAP3_MINIMAL_AGENT_PLAN.md
 docs/current/REMOTE_DASHBOARD_RDAP4_PERMISSION_LOCK_MODEL.md
+```
+
+## Backend / aktueller RDAP4B-Status
+
+```text
+backend/modules/remote_agent.js
+backend/server.js
+backend/core/paths.js
+```
+
+`remote_agent.js` enthält jetzt:
+
+```text
+GET /api/remote-agent/status
+GET /api/remote-agent/permissions/model
+GET /api/remote-agent/locks/status
+GET /api/remote-agent/audit/model
+GET /api/remote-agent/routes
 ```
 
 ## Dashboard-v2
@@ -52,14 +70,6 @@ testdeploy.cmd
 stepdone.cmd
 ```
 
-## Backend / aktueller RDAP3A-Status
-
-```text
-backend/modules/remote_agent.js
-backend/server.js
-backend/core/paths.js
-```
-
 ## Designreferenz
 
 ```text
@@ -69,9 +79,10 @@ docs/current/DASHBOARD_V2_BUILD_LOCAL_DELIVERY.md
 docs/current/DASHBOARD_V2_STATIC_ROUTE.md
 ```
 
-## In RDAP4A aktualisiert
+## In RDAP4B aktualisiert
 
 ```text
+backend/modules/remote_agent.js
 docs/current/REMOTE_DASHBOARD_RDAP4_PERMISSION_LOCK_MODEL.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
@@ -81,4 +92,4 @@ project-state/FILES.md
 
 ## Hinweis für nächsten Chat
 
-Für RDAP4B zuerst die echten aktuellen Repo-Dateien prüfen. Nicht aus alten Zwischenständen oder Erinnerungen ableiten.
+Für RDAP4C zuerst die echten aktuellen Frontend-Dateien prüfen. Kein Frontend aus Erinnerung rekonstruieren.

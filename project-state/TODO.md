@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP4A_PERMISSION_LOCK_AUDIT_MODEL_DOCS  
+Stand: RDAP4B_REMOTE_AGENT_PERMISSION_LOCK_AUDIT_READONLY  
 Datum: 2026-06-23
 
 ## Erledigt
@@ -16,22 +16,32 @@ Datum: 2026-06-23
 - [x] Dashboard-v2 Seite `Stream-PC Verbindung` zeigt echte API-Daten
 - [x] Deploy-Workflow nimmt `htdocs/dashboard-v2/` mit nach Live
 - [x] RDAP4A Rollen-/Permission-/Lock-/Audit-Modell dokumentiert
+- [x] RDAP4B im vorhandenen `remote_agent`-Modul umgesetzt
+- [x] RDAP4B read-only Routen für Permissions, Locks und Audit vorbereitet
+- [x] kein neues Modul für RDAP4B angelegt
+
+## Jetzt testen
+
+- [ ] Step-ZIP einspielen
+- [ ] Node neu starten
+- [ ] `/api/remote-agent/status` prüfen
+- [ ] `/api/remote-agent/permissions/model` prüfen
+- [ ] `/api/remote-agent/locks/status` prüfen
+- [ ] `/api/remote-agent/audit/model` prüfen
+- [ ] `/api/remote-agent/routes` prüfen
+- [ ] bestätigen, dass alle produktiven Capabilities aus bleiben
+- [ ] danach `stepdone.cmd` ausführen
 
 ## Als nächstes
 
-### RDAP4B / Permission-, Lock- und Audit-Schema planen
+### RDAP4C / Dashboard-v2 Anzeige für Sicherheitsmodell
 
-- [ ] echte Dateien aus aktuellem Repo-/Live-Stand prüfen
-- [ ] bestehende Helper und Patterns prüfen
-- [ ] Storage-/Tabellenentwurf für User/Rollen/Permissions planen
-- [ ] Storage-/Tabellenentwurf für Edit-Sessions und Locks planen
-- [ ] Storage-/Tabellenentwurf für Audit planen
-- [ ] API-Kontrakte für Locks und Edit-Sessions planen
-- [ ] API-Kontrakte für Agent-Action-Requests planen
-- [ ] Permission-Helper-Konzept planen
-- [ ] Dashboard-v2 Clients `permissionClient`, `lockClient`, `auditClient` planen
-- [ ] Migration ohne produktive SQLite-Gefahr planen
-- [ ] keine Umsetzung ohne separates `go`
+- [ ] echte Frontend-Dateien aus aktuellem Repo-/Live-Stand prüfen
+- [ ] vorhandene `RemoteAgentPage.jsx` nutzen
+- [ ] neue read-only API-Daten anzeigen
+- [ ] keine Schreibbuttons einbauen
+- [ ] keine produktiven Aktionen auslösen
+- [ ] UX sauber als `Stream-PC Verbindung` weiterführen
 
 ## Dauerhaft beachten
 
@@ -43,3 +53,4 @@ Datum: 2026-06-23
 - [ ] Designbasis v13 weiter einhalten
 - [ ] vorhandene Systeme/Helper nutzen statt Parallelstrukturen bauen
 - [ ] bei fehlenden Dateien exakt nachfragen
+- [ ] Übergabe-ZIPs bevorzugt unter `_handoff` statt Desktop erzeugen

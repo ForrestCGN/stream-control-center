@@ -1,23 +1,65 @@
 # CURRENT STATUS
 
-Stand: RDAP4A_PERMISSION_LOCK_AUDIT_MODEL_DOCS  
+Stand: RDAP4B_REMOTE_AGENT_PERMISSION_LOCK_AUDIT_READONLY  
 Datum: 2026-06-23
 
 ## Aktueller Stand
 
-RDAP4A ist ein reiner Doku-/Planungs-Step für das spätere Remote-Dashboard/Modboard.
+RDAP4B erweitert das vorhandene Backend-Modul `remote_agent.js` um read-only Modellrouten für Permissions, Locks und Audit.
 
-Dokumentiert wurde:
+Neu verfügbar nach Node-Neustart:
 
-- Rollenmodell für Owner/Admin/Lead-Mod/Mod/Sound-Profi/Read-only
-- konkrete Permission-Logik statt reiner Rollenprüfung
-- Schutzstufen für Ressourcen
-- Resource-Key- und Resource-Version-Modell
-- Edit-Session-/Lock-Modell mit Heartbeat, Timeout und Übernahme
-- Audit-Grundmodell
-- Agent-Allowlist- und Sicherheitsprinzipien
-- Verhalten bei Agent-Offline
-- nächster Planungsschritt RDAP4B
+```text
+GET /api/remote-agent/permissions/model
+GET /api/remote-agent/locks/status
+GET /api/remote-agent/audit/model
+```
+
+Bestehende Routen bleiben erhalten:
+
+```text
+GET /api/remote-agent/status
+GET /api/remote-agent/routes
+```
+
+## Bewusste Strukturentscheidung
+
+Es wurde **kein neues Modul** angelegt.
+
+`backend/modules/remote_agent.js` bleibt aktuell der zentrale Ort für:
+
+- Stream-PC-Verbindungsstatus
+- Remote-Dashboard-/Modboard-Anbindungsstatus
+- read-only Sicherheitsmodell für Permissions, Locks und Audit
+- spätere Agent-Sicherheitsgrenzen
+
+Ein neues Modul wird erst geprüft, wenn Login/User/Rollen/produktive Locks/Audit-Speicherung zu groß für `remote_agent` werden.
+
+## Technischer Inhalt RDAP4B
+
+- `MODULE_VERSION` auf `0.0.2` erhöht
+- `MODULE_BUILD` auf `RDAP4B_REMOTE_AGENT_PERMISSION_LOCK_AUDIT_READONLY` gesetzt
+- `STATUS_API_VERSION` auf `rdap4b.v1` gesetzt
+- Capabilities ergänzt:
+  - `permissionsModel: true`
+  - `locksStatus: true`
+  - `auditModel: true`
+- produktive Capabilities bleiben `false`
+- keine Schreibroute hinzugefügt
+- keine DB angefasst
+
+## Nicht geändert durch RDAP4B
+
+- kein neues Modul
+- kein Frontend-Code
+- keine React-Komponenten
+- keine DB-Migration
+- keine SQLite-Änderung
+- kein produktiver WSS-Agent
+- keine Agent-Actions
+- keine OBS-/Sound-/Overlay-Steuerung
+- keine Commands-/Kanalpunkte-Steuerung
+- keine Datei-/Shell-/Prozesssteuerung
 
 ## Vorheriger bestätigter Stand
 
@@ -31,23 +73,12 @@ RDAP3A/FIX1 und DASHUI6D wurden erfolgreich live geprüft:
 - Dashboard-v2 zeigt sichtbar `Stream-PC Verbindung`.
 - Status `offline` ist korrekt, da noch kein produktiver WSS-Agent existiert.
 
-## Nicht geändert durch RDAP4A
+## Nach Einspielen erforderlich
 
-- kein Backend-Code
-- kein Frontend-Code
-- keine API-Routen
-- keine DB
-- kein Agent
-- kein WSS
-- keine OBS-/Sound-/Overlay-Steuerung
-- keine produktiven Aktionen
-- kein Node-Neustart nötig
+Da Backend-Code geändert wurde:
 
-## Wichtige Leitplanken
+```text
+Node neu starten
+```
 
-- Keine produktive SQLite ersetzen oder löschen.
-- Keine Schreibfunktionen ohne Permission/Lock/Audit.
-- Keine Agent-Aktionen ohne Allowlist.
-- Keine freie Shell-/Datei-/Prozesssteuerung.
-- Frontend zeigt Rechte nur an; Backend entscheidet.
-- Lokales Dashboard und Remote-Modboard sollen langfristig denselben Lock-Mechanismus nutzen.
+Danach die neuen Routen per PowerShell testen.
