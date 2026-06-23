@@ -1,5 +1,6 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
+
 cd /d "%~dp0"
 
 set "COMMIT_MSG=%~1"
@@ -27,6 +28,7 @@ if not exist ".git" (
 )
 
 for /f "usebackq delims=" %%B in (`git branch --show-current`) do set "BRANCH=%%B"
+
 if /I not "%BRANCH%"=="dev" (
   echo [error] Aktueller Branch ist '%BRANCH%', erwartet: dev
   exit /b 1
@@ -34,7 +36,7 @@ if /I not "%BRANCH%"=="dev" (
 
 if "%COMMIT_MSG%"=="" (
   echo.
-  set /p COMMIT_MSG=Commit-Beschreibung eingeben: 
+  set /p COMMIT_MSG=Commit-Beschreibung eingeben:
 )
 
 if "%COMMIT_MSG%"=="" (
@@ -55,9 +57,11 @@ echo.
 echo ============================================================
 echo [stepdone] JS-Syntaxcheck geaenderter Dateien
 echo ============================================================
-findstr /I /R "^backend/.*\.js$ ^htdocs/.*\.js$" "%TMP_CHANGED%" > "%TMP_JS%" 2>nul
+
+findstr /I /R "^backend/.*\.js$ ^htdocs/.*\.js$ ^frontend/.*\.js$ ^frontend/.*\.jsx$" "%TMP_CHANGED%" > "%TMP_JS%" 2>nul
+
 if errorlevel 1 (
-  echo [info] Keine geaenderten JS-Dateien in backend/ oder htdocs/ gefunden.
+  echo [info] Keine geaenderten JS/JSX-Dateien in backend/, htdocs/ oder frontend/ gefunden.
 ) else (
   for /f "usebackq delims=" %%F in ("%TMP_JS%") do (
     if exist "%%F" (
@@ -72,12 +76,14 @@ echo.
 echo ============================================================
 echo [stepdone] Erlaubte Projektbereiche vormerken
 echo ============================================================
+
 if exist "backend" git add backend
 if exist "htdocs" git add htdocs
 if exist "config" git add config
 if exist "docs" git add docs
 if exist "project-state" git add project-state
 if exist "tools" git add tools
+if exist "frontend" git add frontend
 
 if exist "check.cmd" git add check.cmd
 if exist "commit.cmd" git add commit.cmd
@@ -95,6 +101,7 @@ echo.
 echo ============================================================
 echo [stepdone] Sicherheitscheck staged Dateien
 echo ============================================================
+
 git diff --cached --name-only > "%TMP_STAGED%"
 
 findstr /I /R "\.env$ \.sqlite$ \.sqlite3$ \.db$ \.zip$ \.7z$ \.bak$ \.old$ \.tmp$ \.temp$ token secret password credential" "%TMP_STAGED%" >nul
@@ -126,7 +133,6 @@ if not errorlevel 1 (
   git status --short
   git commit -m "%COMMIT_MSG%"
   if errorlevel 1 goto fail
-
   git push origin dev
   if errorlevel 1 goto fail
 )
@@ -148,11 +154,13 @@ echo.
 echo ============================================================
 echo [stepdone] Abschlussstatus
 echo ============================================================
+
 git status --short --untracked-files=all
 if errorlevel 1 goto fail
 
 echo.
 echo [ok] Fertig. GitHub/dev enthaelt jetzt den getesteten Stand.
+
 del "%TMP_CHANGED%" >nul 2>nul
 del "%TMP_STAGED%" >nul 2>nul
 del "%TMP_JS%" >nul 2>nul

@@ -1,32 +1,27 @@
 # NEXT STEPS
 
-Stand: DASHUI5 / React-Prototyp auf V13-Designbasis angeglichen  
+Stand: WF1 / Frontend Git Workflow korrigiert  
 Datum: 2026-06-23
 
-## Nächster sinnvoller Schritt
+## Sofort nächster Schritt nach Installation
 
-```text
-WF1 / Git-Workflow für frontend/dashboard-v2 prüfen und anpassen
+```powershell
+git status --short
 ```
 
-Grund:
+Dann:
 
-Beim vorherigen `stepdone` blieb der React-Quellcode untracked:
-
-```text
-?? frontend/dashboard-v2/...
+```powershell
+.\stepdone.cmd "WF1 frontend dashboard-v2 in Git-Workflow aufgenommen und React-Code nachgezogen"
 ```
 
-Das bedeutet, GitHub/dev enthielt zwar Doku/Projektstatus, aber nicht den eigentlichen React-Prototyp.
+Erwartung danach:
 
-Ziel WF1:
+```text
+kein ?? frontend/
+```
 
-- prüfen, welche Workflow-Skripte `git add` ausführen
-- `frontend/` bzw. gezielt `frontend/dashboard-v2/` in den erlaubten Commit-/Upload-Pfad aufnehmen
-- weiterhin blockierte Pfade wie `token`, `secret`, `.env`, `.sqlite`, `.db`, `.zip`, `.7z` schützen
-- keine Secrets erlauben
-- keine produktive Runtime ändern
-- nach StepDone darf kein `?? frontend/` übrig bleiben
+Falls weiterhin `?? frontend/` erscheint, nicht weiterbauen.
 
 ## Danach sinnvoll
 
@@ -36,6 +31,7 @@ DASHUI6 / Build- und lokaler Auslieferungsweg prüfen
 
 Ziel:
 
+- `cd frontend/dashboard-v2`
 - `npm.cmd install`
 - `npm.cmd run build`
 - prüfen, ob `htdocs/dashboard-v2/` korrekt entsteht
@@ -63,7 +59,7 @@ Regel:
 - keine Speichern-/Start-/Stop-/Löschen-Aktion
 - keine produktive Modulmigration
 
-## Nicht als nächstes nebenbei machen
+## Nicht nebenbei machen
 
 - kein produktives altes Dashboard ersetzen
 - keine Big-Bang-Migration
@@ -72,4 +68,3 @@ Regel:
 - kein Remote-Modboard-Deploy ohne Webserver-/Auth-Step
 - keine OBS-/Sound-/Media-/Command-Aktionen im Prototyp
 - keine produktive DB-Migration
-- keine Creative-Tim-/Vision-UI-Codebasis übernehmen

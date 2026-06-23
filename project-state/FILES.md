@@ -1,60 +1,41 @@
 # FILES
 
-Stand: DASHUI5 / React-Prototyp auf V13-Designbasis angeglichen  
+Stand: WF1 / Frontend Git Workflow korrigiert  
 Datum: 2026-06-23
 
 ## Neue/aktualisierte Dateien in diesem Step
 
-### Dashboard-v2 Quellcode
-
-- `frontend/dashboard-v2/src/App.jsx`
-- `frontend/dashboard-v2/src/app/navigation.js`
-- `frontend/dashboard-v2/src/app/moduleRegistry.js`
-- `frontend/dashboard-v2/src/layout/AppShell.jsx`
-- `frontend/dashboard-v2/src/layout/Sidebar.jsx`
-- `frontend/dashboard-v2/src/layout/Topbar.jsx`
-- `frontend/dashboard-v2/src/layout/PageHeader.jsx`
-- `frontend/dashboard-v2/src/layout/ModuleTabs.jsx`
-- `frontend/dashboard-v2/src/components/Card.jsx`
-- `frontend/dashboard-v2/src/components/StatusBadge.jsx`
-- `frontend/dashboard-v2/src/modules/overview/OverviewPage.jsx`
-- `frontend/dashboard-v2/src/modules/remote-agent/RemoteAgentPage.jsx`
-- `frontend/dashboard-v2/src/modules/shared/PlaceholderPage.jsx`
-- `frontend/dashboard-v2/src/styles/theme.css`
-- `frontend/dashboard-v2/src/styles/global.css`
-
-### Design-Referenz
-
-- `docs/reference/dashboard-v2-design-test-v13/README.md`
-- `docs/reference/dashboard-v2-design-test-v13/index.html`
-- `docs/reference/dashboard-v2-design-test-v13/login.html`
-- `docs/reference/dashboard-v2-design-test-v13/assets/dashboard-v2-design-test-v13.css`
-- `docs/reference/dashboard-v2-design-test-v13/assets/dashboard-v2-design-test-v13.js`
-
-### Doku/Projektstatus
-
-- `docs/current/DASHBOARD_V2_DESIGN_REFERENCE_V13.md`
-- `docs/current/DASHBOARD_V2_REACT_V13_ALIGNMENT.md`
+- `stepdone.cmd`
+- `tools/upload_streamassets_changes.ps1`
+- `docs/current/WF1_FRONTEND_GIT_WORKFLOW.md`
 - `project-state/CURRENT_STATUS.md`
 - `project-state/NEXT_STEPS.md`
 - `project-state/TODO.md`
 - `project-state/FILES.md`
 - `project-state/CHANGELOG.md`
-- `project-state/CHANGELOG_DASHUI5_REACT_V13_ALIGNMENT_2026-06-23.md`
+- `project-state/CHANGELOG_WF1_FRONTEND_GIT_WORKFLOW_2026-06-23.md`
 
-## Wichtig zum Workflow
+## Wichtig
 
-`frontend/dashboard-v2/` muss künftig in GitHub/dev landen.
+`frontend/dashboard-v2/` muss nach WF1 von `stepdone.cmd` mitgenommen werden.
 
-Beim vorherigen `stepdone` blieb `frontend/` untracked. Das muss in WF1 geprüft/korrigiert werden.
+## Dashboard-v2 Designbasis
+
+- `docs/current/DASHBOARD_V2_DESIGN_REFERENCE_V13.md`
+- `docs/reference/dashboard-v2-design-test-v13/`
+
+Quelle:
+
+```text
+DASHBOARD_V2_DESIGN_TEST_V13_TOPBAR_TAB_INLINE.zip
+```
 
 ## Bewusst nicht geändert
 
+- `backend/`
 - `htdocs/dashboard/`
 - `htdocs/dashboard-v2/`
-- `backend/`
 - `config/`
-- `htdocs/overlays/`
 - produktive SQLite
 - OBS
 - Webserver/systemd/nginx

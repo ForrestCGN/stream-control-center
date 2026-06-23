@@ -1,18 +1,26 @@
 # TODO
 
-Stand: DASHUI5 / React-Prototyp auf V13-Designbasis angeglichen  
+Stand: WF1 / Frontend Git Workflow korrigiert  
 Datum: 2026-06-23
 
-## Offen / als nächstes
+## Sofort prüfen
 
-### WF1 / Git-Workflow für frontend/dashboard-v2 prüfen und anpassen
+- [ ] WF1 installieren
+- [ ] `git status --short` prüfen
+- [ ] `stepdone.cmd` ausführen
+- [ ] prüfen, dass `frontend/dashboard-v2/` nicht mehr untracked ist
+- [ ] prüfen, dass GitHub/dev den React-Code enthält
 
-- [ ] Workflow-Skripte prüfen, die `git add` ausführen
-- [ ] klären, warum `frontend/` nach `stepdone` untracked blieb
-- [ ] `frontend/dashboard-v2/` in erlaubte Commit-/Upload-Pfade aufnehmen
-- [ ] Sicherheitsblocker für `token`, `secret`, `.env`, `.sqlite`, `.db`, `.zip`, `.7z` beibehalten
-- [ ] keine Secrets erlauben
-- [ ] nach StepDone prüfen, dass kein `?? frontend/` übrig bleibt
+## WF1 erledigt
+
+- [x] `stepdone.cmd` nimmt `frontend/` auf
+- [x] JS-Syntaxcheck für `frontend/**/*.js` und `frontend/**/*.jsx` ergänzt
+- [x] `tools/upload_streamassets_changes.ps1` kennt `frontend/dashboard-v2/`
+- [x] Commit-Hinweise nehmen `frontend` auf
+- [x] Sicherheitsblocker bleiben aktiv
+- [x] `node_modules`, `dist`, `.vite` bleiben ausgeschlossen
+
+## Danach
 
 ### DASHUI6 / Build- und lokaler Auslieferungsweg prüfen
 
@@ -25,35 +33,6 @@ Datum: 2026-06-23
 - [ ] altes Dashboard unter `/dashboard` gegenprüfen
 - [ ] kein Backend ändern
 - [ ] keine produktiven Aktionen ausführen
-
-## DASHUI5 erledigt
-
-- [x] V13-Design-ZIP als verbindliche Referenz übernommen
-- [x] Referenz unter `docs/reference/dashboard-v2-design-test-v13/` archiviert
-- [x] Topbar an v13 angenähert
-- [x] Modulname und aktiver Tab inline in der Topbar
-- [x] Suchfeld in der Topbar vorbereitet
-- [x] Status-Chips in der Topbar vorbereitet
-- [x] User-/Sprache-/Bell-Bereich vorbereitet
-- [x] Sidebar als kompaktes Accordion
-- [x] immer nur ein Sidebar-Bereich offen
-- [x] Content-Flächen näher an v13
-- [x] keine Backend-/DB-/OBS-Änderung
-
-## Dashboard-v2 Migration
-
-- [ ] jedes Modul vor Migration einzeln prüfen
-- [ ] alte Dashboard-Funktionen pro Modul vollständig auflisten
-- [ ] bestehende API-Endpunkte pro Modul prüfen
-- [ ] v2-Modulseiten zuerst read-only bauen
-- [ ] Schreibfunktionen erst nach Permission-/Lock-/Audit-Vorbereitung
-- [ ] Migrationsstatus je Modul führen:
-  - `not_started`
-  - `read_only`
-  - `write_beta`
-  - `v2_preferred`
-  - `legacy_retained`
-  - `legacy_deprecated`
 
 ## Nicht vergessen
 

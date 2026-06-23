@@ -1,36 +1,55 @@
 # CURRENT STATUS
 
-Stand: DASHUI5 / React-Prototyp auf V13-Designbasis angeglichen  
+Stand: WF1 / Frontend Git Workflow korrigiert  
 Datum: 2026-06-23
 
 ## Aktueller Dashboard-v2-Stand
 
-Aktueller Prototypstand:
+Dashboard-v2 befindet sich im Parallelaufbau.
+
+Technische Basis:
 
 ```text
-DASHUI5 / React-Prototyp auf V13-Designbasis angeglichen
+frontend/dashboard-v2/
+React + Vite
 ```
 
-Wichtig:
+Verbindliche Designbasis:
 
-- Die Design-ZIP `DASHBOARD_V2_DESIGN_TEST_V13_TOPBAR_TAB_INLINE.zip` ist ab jetzt verbindliche Designreferenz.
-- Die Referenz wurde unter `docs/reference/dashboard-v2-design-test-v13/` archiviert.
-- React/Vite bleibt die technische Frontend-Basis.
-- Die Optik wurde vom generischen Prototyp zurück auf die v13-Designlinie gezogen.
+```text
+DASHBOARD_V2_DESIGN_TEST_V13_TOPBAR_TAB_INLINE.zip
+```
 
-## Geändert durch DASHUI5
+Archiviert unter:
 
-- Topbar an v13 angenähert
-- Modulname und aktiver Tab inline in der Topbar
-- Suchfeld in der Topbar vorbereitet
-- Status-Chips in der Topbar vorbereitet
-- User-/Sprache-/Bell-Bereich vorbereitet
-- Sidebar als kompakter Accordion-Aufbau
-- Hauptkategorie -> Modul bleibt Regel
-- keine dritte Sidebar-Ebene
-- Galaxy-/Glassmorphism-Hintergrund näher an v13
-- Content-Flächen kompakter und ruhiger
-- Designreferenz unter `docs/reference/dashboard-v2-design-test-v13/` archiviert
+```text
+docs/reference/dashboard-v2-design-test-v13/
+```
+
+Dokumentiert unter:
+
+```text
+docs/current/DASHBOARD_V2_DESIGN_REFERENCE_V13.md
+```
+
+## Aktueller Workflow-Stand
+
+WF1 korrigiert den Git-/Upload-Workflow.
+
+Problem vorher:
+
+```text
+?? frontend/dashboard-v2/...
+```
+
+Der React-Code blieb nach `stepdone` untracked und wurde nicht nach GitHub/dev gepusht.
+
+Korrektur:
+
+- `stepdone.cmd` nimmt jetzt `frontend/` auf.
+- `tools/upload_streamassets_changes.ps1` kennt jetzt `frontend/dashboard-v2/`.
+- Sicherheitsblocker bleiben aktiv.
+- `node_modules`, `dist`, `.vite`, Secrets, DBs und Archive bleiben ausgeschlossen.
 
 ## Nicht geändert
 
@@ -45,22 +64,12 @@ Wichtig:
 - kein Reverse Proxy
 - kein systemd-Service
 
-## Bekannter Workflow-Punkt
-
-Beim vorherigen `stepdone` wurde sichtbar:
-
-```text
-?? frontend/dashboard-v2/...
-```
-
-Das bedeutet: `frontend/` wurde nicht automatisch committed.
-
-Für die nächsten Steps muss der Git-/Upload-Workflow angepasst oder bewusst geprüft werden, damit `frontend/dashboard-v2/` auf GitHub/dev landet.
-
 ## Nächster sinnvoller Schritt
 
+Nach Installation von WF1:
+
 ```text
-WF1 / Git-Workflow für frontend/dashboard-v2 prüfen und anpassen
+stepdone ausführen und prüfen, dass frontend/dashboard-v2 nach GitHub/dev kommt
 ```
 
 Danach:
