@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP6F_AUTH_DB_INTEGRATION_PLAN  
+Stand: RDAP6G_AUTH_BACKEND_READONLY_DB_LAYER  
 Datum: 2026-06-23
 
 ## Erledigt
@@ -39,6 +39,7 @@ Datum: 2026-06-23
 - [x] RDAP6E Test-DB-Ergebnis ausgewertet und dokumentiert
 - [x] RDAP6F_PREP_DOC_STATUS_SYNC vorbereitet: zentrale Projektstatus-Dokus auf echten Stand gebracht
 - [x] RDAP6F Auth DB Integration Plan dokumentiert
+- [x] RDAP6G Auth Backend Read-only DB Layer vorbereitet
 
 ## Wichtige Korrektur
 
@@ -85,3 +86,9 @@ Datum: 2026-06-23
 - [ ] Rollen und Gruppen getrennt halten
 - [ ] Secrets niemals ins Repo oder Frontend
 - [ ] bei fehlenden Dateien exakt nachfragen
+
+## Naechster RDAP-Schritt
+
+- [ ] RDAP6H_AUTH_DB_PRODUCTION_MIGRATION_RUNBOOK vorbereiten
+- [ ] Backup-/Restore-Ablauf fuer c3stream_control dokumentieren
+- [ ] Produktivmigration weiterhin sperren bis separates Go

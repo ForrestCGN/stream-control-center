@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP6F_AUTH_DB_INTEGRATION_PLAN  
+Stand: RDAP6G_AUTH_BACKEND_READONLY_DB_LAYER  
 Datum: 2026-06-23
 
 ## Wichtigste Dateien zuerst
@@ -33,6 +33,7 @@ docs/current/RDAP6C_AUTH_DB_MIGRATION_SCRIPT_PACKAGE.md
 docs/current/RDAP6D_TEST_DB_EXECUTION_GUIDE_PACKAGE.md
 docs/current/RDAP6E_TEST_DB_RESULT_EVALUATION_2026-06-23.md
 docs/current/RDAP6F_AUTH_DB_INTEGRATION_PLAN.md
+docs/current/RDAP6G_AUTH_BACKEND_READONLY_DB_LAYER.md
 ```
 
 ## Nicht vorhandene Zwischenstand-Dateien aus alten Prompts
@@ -197,6 +198,7 @@ Remote-Agent bleibt read-only.
 
 ```text
 docs/current/RDAP6F_AUTH_DB_INTEGRATION_PLAN.md
+docs/current/RDAP6G_AUTH_BACKEND_READONLY_DB_LAYER.md
 ```
 
 Legt fest:
@@ -206,4 +208,20 @@ scc_rdap6_test bleibt reine Testdatenbank.
 c3stream_control ist die geplante echte Remote-Modboard-/Auth-Ziel-DB.
 RDAP6G soll nur eine read-only DB-Schicht und Modellrouten vorbereiten.
 Keine Auth-Aktivierung und keine Migration durch RDAP6F.
+```
+
+## RDAP6G neue Remote-Modboard-Dateien
+
+```text
+remote-modboard/backend/src/services/db.service.js
+remote-modboard/backend/src/services/auth-db-read.service.js
+remote-modboard/backend/src/routes/auth-model.routes.js
+```
+
+## RDAP6G geaenderte Remote-Modboard-Dateien
+
+```text
+remote-modboard/backend/package.json
+remote-modboard/backend/src/app.js
+remote-modboard/backend/src/routes/routes.routes.js
 ```

@@ -2,7 +2,7 @@
 
 Stand: 2026-06-23  
 Projekt: ForrestCGN / stream-control-center  
-Aktueller Stand: RDAP6F_AUTH_DB_INTEGRATION_PLAN
+Aktueller Stand: RDAP6G_AUTH_BACKEND_READONLY_DB_LAYER
 
 ## Diese Datei zuerst lesen
 
@@ -22,6 +22,7 @@ project-state/TODO.md
 project-state/FILES.md
 docs/current/RDAP6E_TEST_DB_RESULT_EVALUATION_2026-06-23.md
 docs/current/RDAP6F_AUTH_DB_INTEGRATION_PLAN.md
+docs/current/RDAP6G_AUTH_BACKEND_READONLY_DB_LAYER.md
 docs/current/RDAP6C_AUTH_DB_MIGRATION_SCRIPT_PACKAGE.md
 docs/current/RDAP6D_TEST_DB_EXECUTION_GUIDE_PACKAGE.md
 ```
@@ -57,6 +58,7 @@ RDAP4B -> RDAP5C3 Remote-Agent Rollen/Gruppen-Korrektur
 RDAP6D Testdatenbanklauf auf Webserver bestanden
 RDAP6E Test-DB-Auswertung dokumentiert
 RDAP6F Auth DB Integration Plan dokumentiert
+RDAP6G Auth Backend Read-only DB Layer vorbereitet
 ```
 
 Wichtig: Einige ältere Prompt-/Status-Dateinamen aus Zwischenständen existieren nicht in GitHub/dev. Der belastbare aktuelle Doku-Stand basiert auf den vorhandenen Dateien in `docs/current` und `project-state`, besonders `RDAP6E_TEST_DB_RESULT_EVALUATION_2026-06-23.md`.
@@ -260,3 +262,9 @@ keine sound_profi-Rolle
 - Downloads liegen im normalen Downloads-Ordner.
 - `installstep.cmd` spielt ZIPs ein und startet `testdeploy.cmd`.
 - `stepdone.cmd` erst nach erfolgreichem Live-Test.
+
+## Naechster sinnvoller Schritt
+
+```text
+RDAP6H_AUTH_DB_PRODUCTION_MIGRATION_RUNBOOK
+```

@@ -1,6 +1,6 @@
 # NEXT STEPS
 
-Stand: RDAP6F_AUTH_DB_INTEGRATION_PLAN  
+Stand: RDAP6G_AUTH_BACKEND_READONLY_DB_LAYER  
 Datum: 2026-06-23
 
 ## Aktueller Stand
@@ -14,6 +14,7 @@ RDAP4B -> RDAP5C3 Remote-Agent Rollen/Gruppen-Korrektur
 RDAP6D Testdatenbanklauf auf Webserver bestanden
 RDAP6E Test-DB-Auswertung dokumentiert
 RDAP6F Auth DB Integration Plan dokumentiert
+RDAP6G Auth Backend Read-only DB Layer vorbereitet
 ```
 
 ## RDAP6F Entscheidung
@@ -38,46 +39,25 @@ Keine Agent-Actions.
 ## Sofort naechster sinnvoller Schritt
 
 ```text
-RDAP6G_AUTH_BACKEND_READONLY_DB_LAYER
+RDAP6H_AUTH_DB_PRODUCTION_MIGRATION_RUNBOOK
 ```
 
 Ziel:
 
 ```text
-Remote-Modboard bekommt eine sichere interne read-only DB-Schicht, um Auth-/Rollen-/Gruppen-/Permission-Modell-Daten aus MariaDB zu lesen und ueber Diagnose-/Modellrouten auszugeben.
+Sicheren Produktiv-Migrationsablauf fuer c3stream_control vorbereiten:
+Backup, Restore-Test, SQL-Ausfuehrung, Validation, Rollback und klare Stop-Punkte.
 ```
 
-RDAP6G darf weiterhin nicht aktivieren:
+Weiterhin nicht erlaubt:
 
 ```text
+keine Produktivmigration ohne separates Go
 kein Login
-keine Cookies
 keine Sessions
-keine Schreibaktionen
-keine Locks schreiben
-keine Audit-Eintraege schreiben
+keine Remote-Writes
 keine Agent-Actions
 keine OBS-/Sound-/Overlay-/Command-Steuerung
-```
-
-## Voraussichtlich betroffene Dateien fuer RDAP6G
-
-Vor Umsetzung muessen diese Dateien vollstaendig aus GitHub/dev geprueft werden:
-
-```text
-remote-modboard/backend/package.json
-remote-modboard/backend/src/app.js
-remote-modboard/backend/src/routes/routes.routes.js
-remote-modboard/backend/src/services/config.service.js
-remote-modboard/backend/src/services/db-health.service.js
-```
-
-Voraussichtlich neue Dateien:
-
-```text
-remote-modboard/backend/src/services/db.service.js
-remote-modboard/backend/src/services/auth-db-read.service.js
-remote-modboard/backend/src/routes/auth-model.routes.js
 ```
 
 ## Spaeter, nicht jetzt
@@ -93,3 +73,13 @@ Produktive Migration erst mit Backup, Restore-Weg, Validation und separatem Go.
 ## Arbeitsregel
 
 Nur EIN Arbeitsort pro Schritt. Keine Server-/PowerShell-/DB-Schritte mischen.
+
+## RDAP6G Ergebnis
+
+```text
+Neue read-only Route: GET /api/remote/auth/model
+Neue DB-Lese-Schicht: db.service.js + auth-db-read.service.js
+Keine Auth-Aktivierung
+Keine Migration
+Keine Writes
+```

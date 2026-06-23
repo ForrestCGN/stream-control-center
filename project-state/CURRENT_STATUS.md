@@ -1,11 +1,13 @@
 # CURRENT STATUS
 
-Stand: RDAP6F_AUTH_DB_INTEGRATION_PLAN  
+Stand: RDAP6G_AUTH_BACKEND_READONLY_DB_LAYER  
 Datum: 2026-06-23
 
 ## Aktueller bestaetigter Arbeitsstand
 
-RDAP6F wurde als Planungsstep dokumentiert. Der Plan legt fest, wie die getesteten Auth-/Rollen-/Gruppen-/Permission-/Session-/Lock-/Audit-Tabellen spaeter in die echte Remote-Modboard-/Webserver-Struktur eingebunden werden.
+RDAP6G wurde als read-only Backend-Erweiterung vorbereitet. Das Remote-Modboard bekommt eine interne read-only DB-Schicht und die Diagnose-Route `/api/remote/auth/model`, um das Auth-/Rollen-/Gruppen-/Permission-Modell aus MariaDB zu lesen.
+
+Dieser Stand aktiviert weiterhin keine Authentifizierung, keine Sessions, keine Writes und keine Agent-Actions.
 
 Fertig und getestet:
 
@@ -16,6 +18,7 @@ RDAP4B -> RDAP5C3 Remote-Agent Rollen/Gruppen-Korrektur
 RDAP6D Testdatenbanklauf auf Webserver bestanden
 RDAP6E Test-DB-Auswertung dokumentiert
 RDAP6F Auth DB Integration Plan dokumentiert
+RDAP6G Auth Backend Read-only DB Layer vorbereitet
 ```
 
 ## Remote-Modboard read-only live
@@ -221,3 +224,34 @@ Remote-Modboard bekommt eine sichere interne read-only DB-Schicht fuer Auth-Mode
 ```
 
 Weiterhin keine Auth-Aktivierung, keine Sessions, keine Writes und keine Agent-Actions.
+
+
+## RDAP6G neue read-only Route
+
+```text
+GET /api/remote/auth/model
+```
+
+Zweck:
+
+```text
+Auth-/Rollen-/Gruppen-/Permission-/Schema-Modell aus MariaDB read-only lesen.
+Fehlende Tabellen sauber melden.
+Keine Auth aktivieren.
+Keine Sessions erstellen.
+Keine Writes.
+```
+
+Neue Dateien:
+
+```text
+remote-modboard/backend/src/services/db.service.js
+remote-modboard/backend/src/services/auth-db-read.service.js
+remote-modboard/backend/src/routes/auth-model.routes.js
+```
+
+## Naechster sinnvoller Schritt
+
+```text
+RDAP6H_AUTH_DB_PRODUCTION_MIGRATION_RUNBOOK
+```
