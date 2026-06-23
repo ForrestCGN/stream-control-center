@@ -1,6 +1,6 @@
 # RDAP4 / Rechte-, Rollen-, Lock- und Audit-Modell
 
-Stand: RDAP4B_REMOTE_AGENT_PERMISSION_LOCK_AUDIT_READONLY  
+Stand: RDAP4B_REMOTE_AGENT_PERMISSION_LOCK_AUDIT_READONLY_TESTED  
 Datum: 2026-06-23  
 Projekt: ForrestCGN / stream-control-center / Remote-Dashboard & Modboard
 
@@ -149,6 +149,41 @@ Liefert:
 - geplante Quellen
 - Hinweis auf konfigurierbare Retention
 - Hinweis, dass noch keine Audit-Events geschrieben werden
+
+
+## Bestätigter Test nach RDAP4B
+
+Nach Einspielen, Node-Neustart und API-Prüfung wurden alle RDAP4B-Routen erfolgreich getestet.
+
+Bestätigte Routen:
+
+```text
+GET /api/remote-agent/status
+GET /api/remote-agent/permissions/model
+GET /api/remote-agent/locks/status
+GET /api/remote-agent/audit/model
+GET /api/remote-agent/routes
+```
+
+Bestätigte Sicherheitswerte:
+
+```text
+ok: true
+moduleVersion: 0.0.2
+moduleBuild: RDAP4B_REMOTE_AGENT_PERMISSION_LOCK_AUDIT_READONLY
+statusApiVersion: rdap4b.v1
+readOnly: true
+writeEnabled: false
+actionEnabled: false
+productiveAgentRuntime: false
+```
+
+Weiterhin korrekt:
+
+- `status.connectionState` bleibt `offline`, weil noch kein produktiver WSS-Agent existiert.
+- `permissionsModel`, `locksStatus` und `auditModel` sind als read-only Capabilities aktiv.
+- Produktive Capabilities wie OBS, Sound, Overlay, Media Write, Text Config Write, DB Write, File Write, Shell und Process Control bleiben deaktiviert.
+- Es gibt keine Schreibroute und keine produktive Agent-Ausführung.
 
 ## Rollenmodell
 

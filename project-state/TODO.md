@@ -1,6 +1,6 @@
 # TODO
 
-Stand: RDAP4B_REMOTE_AGENT_PERMISSION_LOCK_AUDIT_READONLY  
+Stand: RDAP4B_REMOTE_AGENT_PERMISSION_LOCK_AUDIT_READONLY_TESTED  
 Datum: 2026-06-23
 
 ## Erledigt
@@ -18,19 +18,11 @@ Datum: 2026-06-23
 - [x] RDAP4A Rollen-/Permission-/Lock-/Audit-Modell dokumentiert
 - [x] RDAP4B im vorhandenen `remote_agent`-Modul umgesetzt
 - [x] RDAP4B read-only Routen für Permissions, Locks und Audit vorbereitet
+- [x] RDAP4B API nach Node-Neustart getestet
+- [x] bestätigt: keine produktiven Capabilities aktiv
+- [x] bestätigt: keine Schreibroute, keine DB, kein WSS-Agent, keine Agent-Actions
 - [x] kein neues Modul für RDAP4B angelegt
-
-## Jetzt testen
-
-- [ ] Step-ZIP einspielen
-- [ ] Node neu starten
-- [ ] `/api/remote-agent/status` prüfen
-- [ ] `/api/remote-agent/permissions/model` prüfen
-- [ ] `/api/remote-agent/locks/status` prüfen
-- [ ] `/api/remote-agent/audit/model` prüfen
-- [ ] `/api/remote-agent/routes` prüfen
-- [ ] bestätigen, dass alle produktiven Capabilities aus bleiben
-- [ ] danach `stepdone.cmd` ausführen
+- [x] RDAP4B per `stepdone.cmd` abgeschlossen
 
 ## Als nächstes
 
@@ -38,10 +30,16 @@ Datum: 2026-06-23
 
 - [ ] echte Frontend-Dateien aus aktuellem Repo-/Live-Stand prüfen
 - [ ] vorhandene `RemoteAgentPage.jsx` nutzen
-- [ ] neue read-only API-Daten anzeigen
+- [ ] vorhandenen `agentClient` erweitern statt Parallelclient bauen
+- [ ] Permissions-Modell read-only anzeigen
+- [ ] Spezialrolle `sound_profi` sichtbar machen
+- [ ] Lock-Modell und Nullstatus read-only anzeigen
+- [ ] Audit-Modell read-only anzeigen
+- [ ] Sicherheitsgrenzen/Capabilities verständlich anzeigen
 - [ ] keine Schreibbuttons einbauen
 - [ ] keine produktiven Aktionen auslösen
 - [ ] UX sauber als `Stream-PC Verbindung` weiterführen
+- [ ] nach Build `build-dashboard-v2.cmd`, `installstep.cmd`, `testdeploy.cmd`, Live-Test, dann `stepdone.cmd`
 
 ## Dauerhaft beachten
 
@@ -52,5 +50,7 @@ Datum: 2026-06-23
 - [ ] keine freie Shell-/Datei-/Prozesssteuerung
 - [ ] Designbasis v13 weiter einhalten
 - [ ] vorhandene Systeme/Helper nutzen statt Parallelstrukturen bauen
+- [ ] kein Modul-Wildwuchs
 - [ ] bei fehlenden Dateien exakt nachfragen
 - [ ] Übergabe-ZIPs bevorzugt unter `_handoff` statt Desktop erzeugen
+- [ ] Downloads liegen im normalen Downloads-Ordner

@@ -2,7 +2,7 @@
 
 Stand: 2026-06-23  
 Projekt: ForrestCGN / stream-control-center  
-Aktueller Stand: DASHUI6C / Dashboard-v2 lokal erreichbar
+Aktueller Stand: RDAP4B_REMOTE_AGENT_PERMISSION_LOCK_AUDIT_READONLY_TESTED
 
 ## Diese Datei zuerst lesen
 
@@ -42,204 +42,139 @@ Altes Dashboard: http://127.0.0.1:8080/dashboard/
 Neues Dashboard-v2: http://127.0.0.1:8080/dashboard-v2/
 Produktive SQLite: D:\Streaming\stramAssets\data\sqlite\app.sqlite
 Remote-Modboard: https://mods.forrestcgn.de
+Übergabe-ZIPs bevorzugt: D:\Git\stream-control-center\_handoff\
+Downloads: %USERPROFILE%\Downloads
 ```
 
 ## Aktueller bestätigter Stand
 
 ```text
-DASHUI6C / dashboard-v2 Static Route ergänzt und erfolgreich getestet
+RDAP4B remote_agent read-only Permission-, Lock- und Audit-Modellrouten getestet und per stepdone abgeschlossen
 ```
 
 Bestätigt:
 
-- `http://127.0.0.1:8080/dashboard-v2/` läuft lokal.
-- `http://127.0.0.1:8080/dashboard/` bleibt das alte produktive Dashboard.
-- React/Vite-Quellcode liegt unter `frontend/dashboard-v2/`.
-- Build-Output liegt unter `htdocs/dashboard-v2/`.
-- Backend liefert `/dashboard-v2` über statische Route aus.
-- Node/Backend wurde nach DASHUI6C neu gestartet.
-- WF1 ist erledigt: `frontend/dashboard-v2/` wird vom Git-/StepDone-Workflow erfasst.
-- Designbasis ist V13 / Topbar Tab inline.
+- Dashboard-v2 läuft lokal unter `/dashboard-v2/`.
+- Bestehendes Dashboard bleibt unter `/dashboard/` produktiv.
+- Dashboard-v2 Build-Output liegt unter `htdocs/dashboard-v2/`.
+- Deploy-Workflow nimmt `htdocs/dashboard-v2/` mit nach Live.
+- Dashboard-v2 zeigt sichtbar `Stream-PC Verbindung`.
+- `backend/modules/remote_agent.js` ist weiterhin das vorhandene Modul für Remote-/Stream-PC-Anbindung; RDAP4B hat kein neues Modul angelegt.
+- Node wurde nach RDAP4B neu gestartet und die API-Routen wurden getestet.
+
+## Aktuelle RDAP4B API-Routen
+
+```text
+GET /api/remote-agent/status
+GET /api/remote-agent/permissions/model
+GET /api/remote-agent/locks/status
+GET /api/remote-agent/audit/model
+GET /api/remote-agent/routes
+```
+
+Bestätigte Sicherheitswerte:
+
+```text
+module: remote_agent
+moduleVersion: 0.0.2
+moduleBuild: RDAP4B_REMOTE_AGENT_PERMISSION_LOCK_AUDIT_READONLY
+statusApiVersion: rdap4b.v1
+readOnly: true
+writeEnabled: false
+actionEnabled: false
+productiveAgentRuntime: false
+```
+
+Der Offline-Status ist aktuell korrekt, weil noch kein produktiver WSS-Agent existiert.
+
+## Weiterhin bewusst nicht aktiv
+
+```text
+kein produktiver WSS-Agent
+keine Agent-Actions
+keine Schreibroute
+keine DB-Migration
+keine OBS-Steuerung
+keine Sound-Steuerung
+keine Overlay-Steuerung
+keine Commands-/Kanalpunkte-Steuerung
+keine Datei-/Shell-/Prozesssteuerung
+```
 
 ## Wichtige aktuelle Dateien
 
-### Dashboard-v2 Quellcode
-
 ```text
-frontend/dashboard-v2/
-```
-
-### Dashboard-v2 Build-Output
-
-```text
-htdocs/dashboard-v2/
-```
-
-### Build-Helper
-
-```text
-build-dashboard-v2.cmd
-```
-
-Dieser nutzt bewusst:
-
-```text
-npm.cmd
-```
-
-und in `.cmd` korrekt:
-
-```text
-call npm.cmd ...
-```
-
-### Backend Static Route
-
-```text
-backend/core/paths.js
+backend/modules/remote_agent.js
 backend/server.js
-```
-
-Neu in `paths.js`:
-
-```js
-DASHBOARD_V2_DIR: path.join(ROOT_DIR, "htdocs", "dashboard-v2"),
-```
-
-Neu in `server.js`:
-
-```js
-app.use("/dashboard-v2", express.static(paths.DASHBOARD_V2_DIR, PUBLIC_STATIC_OPTIONS));
-```
-
-und Index-Fallback für:
-
-```text
-/dashboard-v2
-/dashboard-v2/
+backend/core/paths.js
+frontend/dashboard-v2/
+htdocs/dashboard-v2/
+build-dashboard-v2.cmd
+tools/deploy_repo_to_streamassets.ps1
+tools/sync_streamassets_to_repo.ps1
+tools/upload_streamassets_changes.ps1
+testdeploy.cmd
+stepdone.cmd
 ```
 
 ## Verbindliche Designbasis
 
-Die verbindliche Designbasis für Dashboard-v2 ist:
-
-```text
-DASHBOARD_V2_DESIGN_TEST_V13_TOPBAR_TAB_INLINE.zip
-```
-
-Sie ist im Repo archiviert unter:
-
-```text
-docs/reference/dashboard-v2-design-test-v13/
-```
-
-Dokumentiert unter:
+Dashboard-v2 bleibt auf Designbasis V13 / Topbar Tab inline:
 
 ```text
 docs/current/DASHBOARD_V2_DESIGN_REFERENCE_V13.md
+docs/current/DASHBOARD_V2_REACT_V13_ALIGNMENT.md
 ```
 
-Wichtige Designpunkte:
+Wichtige Punkte:
 
 - Galaxy-/Glassmorphism-Hintergrund
 - feste Topbar
-- Topbar mit Breadcrumb links
-- aktiver Modul-Tab inline in der Topbar, z. B. `Remote Agent • Übersicht`
-- Suchfeld in der Topbar
-- Status-Chips in der Topbar
-- Sprachbutton, Benachrichtigung und Userbereich rechts
-- kompakte Sidebar
-- Sidebar als Accordion
+- kompakte Sidebar als Accordion
 - Hauptkategorie -> Modul
 - keine dritte Sidebar-Ebene
-- Modul-Tabs innerhalb der Modulseite
+- Moduldetails innerhalb der Modulseite
 - ruhige dunkle CGN-Neon-Flächen
-- keine generische Demo-Dashboard-Optik
 
-## Workflow-Stand
+## Verbindliche Arbeitsweise
 
-WF1 ist erledigt.
-
-Das Problem vorher:
-
-```text
-?? frontend/dashboard-v2/...
-```
-
-ist behoben.
-
-`stepdone.cmd` nimmt jetzt `frontend/` auf.  
-`tools/upload_streamassets_changes.ps1` kennt `frontend/dashboard-v2/`.
-
-Weiterhin verboten/zu schützen:
-
-```text
-node_modules
-dist
-.vite
-.env
-SQLite/DB-Dateien
-Archive
-Backups
-Secrets
-Token-/Secret-/Credential-Pfade
-```
+- Zuerst echte Dateien/Repo-/Live-Stand prüfen, nicht raten.
+- Vor Code-/ZIP-Änderungen Scope, betroffene Dateien, Nicht-Änderungen und Tests nennen.
+- Umsetzung erst nach Forrests ausdrücklichem `go`.
+- Bei fehlenden Dateien exakt diese Dateien anfordern.
+- Keine Funktionalität entfernen.
+- Keine produktive SQLite ersetzen, löschen oder neu bauen.
+- Keine DB-Migration ohne separaten Plan und separates Go.
+- Vorhandene Module/Helper nutzen; kein Modul-Wildwuchs.
+- ZIPs mit echten Zielpfaden ab Repo-Root liefern.
+- Übergabe-/Input-ZIPs bevorzugt unter `_handoff`, nicht Desktop.
+- Downloads liegen im normalen Downloads-Ordner.
+- `installstep.cmd` spielt ZIPs ein und startet `testdeploy.cmd`.
+- `stepdone.cmd` erst nach erfolgreichem Live-Test.
+- `stepundo.cmd` nutzen, wenn ein Teststand kaputt ist.
 
 ## Nächster sinnvoller Schritt
 
 ```text
-DASHUI7 / Erste read-only Statusseite mit echter API-Anbindung planen
+RDAP4C_DASHBOARD_V2_SECURITY_MODEL_VIEW
 ```
 
-Empfehlung:
+Ziel:
+
+- Dashboard-v2 zeigt die neuen RDAP4B read-only Modellrouten an.
+- Bestehende Seite `Live -> Stream-PC` / `Stream-PC Verbindung` weiter nutzen.
+- Keine neue Modulflut.
+- Zusatzbereiche für Rollen/Permissions, Locks, Audit und Sicherheitsgrenzen anzeigen.
+- Weiterhin keine Schreibbuttons und keine produktiven Aktionen.
+
+Vor RDAP4C zuerst die echten aktuellen Frontend-Dateien prüfen, insbesondere:
 
 ```text
-Remote Agent Status
+frontend/dashboard-v2/src/modules/remote-agent/RemoteAgentPage.jsx
+frontend/dashboard-v2/src/services/agentClient.js
+frontend/dashboard-v2/src/app/moduleRegistry.js
+frontend/dashboard-v2/src/app/navigation.js
+frontend/dashboard-v2/src/styles/*
+project-state/*
+docs/current/*
 ```
-
-Aber nur planen und zuerst read-only.
-
-Nicht direkt bauen, bis Forrest ausdrücklich `go` sagt.
-
-## DASHUI7-Regeln
-
-DASHUI7 soll zunächst planen:
-
-- Welche bestehende oder neue API wird für Remote-Agent-Status gebraucht?
-- Welche Daten zeigt die Seite?
-- Wie bleibt das read-only?
-- Was ist echter Status, was ist Placeholder?
-- Welche späteren Agent-/WSS-Infos werden vorbereitet?
-- Wie wird Offline/Online angezeigt?
-- Welche Fehler-/Loading-Zustände braucht die Seite?
-
-DASHUI7 darf nicht:
-
-- keine Agent-Aktion ausführen
-- kein produktives `agent.ping`
-- kein Start/Stop
-- keine Schreibfunktion
-- keine DB-Änderung
-- keine OBS-/Sound-/Media-/Overlay-Steuerung
-- keine Commands/Kanalpunkte
-- kein Login-System improvisieren
-- keine produktiven Locks schreiben
-
-## Arbeitsregeln
-
-- Nicht raten.
-- Fehlende Dateien konkret anfordern.
-- Vor jedem Step zuerst echten Repo-/Dateistand prüfen.
-- Umsetzung nur nach explizitem `go`.
-- Keine bestehende Funktionalität entfernen.
-- Keine produktive DB löschen, ersetzen oder droppen.
-- Keine Patch-/Apply-/Regex-/Append-Scripte.
-- Vollständige Dateien liefern, keine Schnipsel-Patches.
-- ZIPs mit echten Zielpfaden ab Repo-Root.
-- Bei Doku-Step klar sagen: kein Node-Neustart nötig.
-- Bei Backend-Step klar sagen: Node-Neustart nötig.
-- StepDone erst nach Einspielen/Deploy und Test.
-- Tests/Diagnose getrennt von normaler Konfiguration halten.
-- Keine alten Stände oder Parallelstrukturen erfinden.
-- Wenn GitHub-Ausgabe gekürzt/unvollständig ist, Datei vom Nutzer anfordern.
-- Schritt-für-Schritt arbeiten: erst prüfen/planen, dann auf `go` warten.

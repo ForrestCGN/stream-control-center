@@ -1,6 +1,6 @@
 # FILES
 
-Stand: RDAP4B_REMOTE_AGENT_PERMISSION_LOCK_AUDIT_READONLY  
+Stand: RDAP4B_REMOTE_AGENT_PERMISSION_LOCK_AUDIT_READONLY_TESTED  
 Datum: 2026-06-23
 
 ## Wichtigste Dateien zuerst
@@ -54,20 +54,26 @@ Build-Output:
 htdocs/dashboard-v2/
 ```
 
-Build-Helper:
+Für RDAP4C besonders relevant:
+
+```text
+frontend/dashboard-v2/src/modules/remote-agent/RemoteAgentPage.jsx
+frontend/dashboard-v2/src/services/agentClient.js
+frontend/dashboard-v2/src/app/moduleRegistry.js
+frontend/dashboard-v2/src/app/navigation.js
+frontend/dashboard-v2/src/styles/*
+```
+
+## Build-/Deploy-/Sync-Workflow
 
 ```text
 build-dashboard-v2.cmd
-```
-
-Deploy-/Sync-Workflow:
-
-```text
 tools/deploy_repo_to_streamassets.ps1
 tools/sync_streamassets_to_repo.ps1
 tools/upload_streamassets_changes.ps1
 testdeploy.cmd
 stepdone.cmd
+stepundo.cmd
 ```
 
 ## Designreferenz
@@ -79,11 +85,12 @@ docs/current/DASHBOARD_V2_BUILD_LOCAL_DELIVERY.md
 docs/current/DASHBOARD_V2_STATIC_ROUTE.md
 ```
 
-## In RDAP4B aktualisiert
+## In diesem Doku-Update aktualisiert
 
 ```text
-backend/modules/remote_agent.js
+docs/current/START_HERE_FOR_NEW_CHAT.md
 docs/current/REMOTE_DASHBOARD_RDAP4_PERMISSION_LOCK_MODEL.md
+docs/current/NEXT_CHAT_PROMPT_RDAP4C_AFTER_RDAP4B.md
 project-state/CURRENT_STATUS.md
 project-state/NEXT_STEPS.md
 project-state/TODO.md
@@ -92,4 +99,4 @@ project-state/FILES.md
 
 ## Hinweis für nächsten Chat
 
-Für RDAP4C zuerst die echten aktuellen Frontend-Dateien prüfen. Kein Frontend aus Erinnerung rekonstruieren.
+Für RDAP4C zuerst die echten aktuellen Frontend-Dateien prüfen. Kein Frontend aus Erinnerung rekonstruieren. Übergabe-ZIPs bevorzugt unter `_handoff` erzeugen, nicht Desktop.

@@ -1,29 +1,7 @@
 # NEXT STEPS
 
-Stand: RDAP4B_REMOTE_AGENT_PERMISSION_LOCK_AUDIT_READONLY  
+Stand: RDAP4B_REMOTE_AGENT_PERMISSION_LOCK_AUDIT_READONLY_TESTED  
 Datum: 2026-06-23
-
-## Direkt nach Einspielen testen
-
-Nach `installstep.cmd` und Node-Neustart:
-
-```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/remote-agent/status" | ConvertTo-Json -Depth 8
-Invoke-RestMethod "http://127.0.0.1:8080/api/remote-agent/permissions/model" | ConvertTo-Json -Depth 8
-Invoke-RestMethod "http://127.0.0.1:8080/api/remote-agent/locks/status" | ConvertTo-Json -Depth 8
-Invoke-RestMethod "http://127.0.0.1:8080/api/remote-agent/audit/model" | ConvertTo-Json -Depth 8
-Invoke-RestMethod "http://127.0.0.1:8080/api/remote-agent/routes" | ConvertTo-Json -Depth 8
-```
-
-Erwartung:
-
-- `ok: true`
-- `readOnly: true`
-- `writeEnabled: false`
-- `actionEnabled: false`
-- `productiveAgentRuntime: false`
-- Status weiter `offline`
-- keine produktiven Capabilities aktiviert
 
 ## Nächster sinnvoller Schritt
 
@@ -31,18 +9,65 @@ Erwartung:
 RDAP4C_DASHBOARD_V2_SECURITY_MODEL_VIEW
 ```
 
-Ziel:
+## Ziel von RDAP4C
 
-- Dashboard-v2 zeigt die neuen read-only Modellrouten an.
-- Stream-PC-Verbindung-Seite bekommt Zusatzbereiche für:
-  - Rollen/Permissions
-  - Locks
-  - Audit
-  - Sicherheitsgrenzen
-- weiterhin keine Schreibbuttons
-- weiterhin keine produktiven Agent-Aktionen
+Dashboard-v2 soll die mit RDAP4B bereitgestellten read-only Modellrouten sichtbar machen.
 
-## Alternative spätere Schritte
+Bestehende Seite weiter nutzen:
+
+```text
+Live -> Stream-PC
+Stream-PC Verbindung
+```
+
+Neue Anzeige-/Infobereiche:
+
+- Rollen/Permissions-Modell
+- Spezialrolle `sound_profi`
+- Lock-Modell und aktueller Lock-Nullstatus
+- Audit-Modell
+- Sicherheitsgrenzen / deaktivierte produktive Capabilities
+
+## Vor RDAP4C prüfen
+
+Zuerst echte aktuelle Dateien aus Repo/Live prüfen, insbesondere:
+
+```text
+frontend/dashboard-v2/src/modules/remote-agent/RemoteAgentPage.jsx
+frontend/dashboard-v2/src/services/agentClient.js
+frontend/dashboard-v2/src/app/moduleRegistry.js
+frontend/dashboard-v2/src/app/navigation.js
+frontend/dashboard-v2/src/styles/*
+backend/modules/remote_agent.js
+project-state/CURRENT_STATUS.md
+project-state/NEXT_STEPS.md
+project-state/TODO.md
+project-state/FILES.md
+docs/current/START_HERE_FOR_NEW_CHAT.md
+docs/current/REMOTE_DASHBOARD_RDAP4_PERMISSION_LOCK_MODEL.md
+```
+
+## RDAP4C darf
+
+- bestehende Stream-PC-Verbindung-Seite erweitern
+- vorhandenen API-Client erweitern
+- read-only Daten laden und anzeigen
+- Loading/Error-Zustände anzeigen
+- Design V13 weiter einhalten
+
+## RDAP4C darf nicht
+
+- keine Schreibbuttons einbauen
+- keine produktiven Aktionen auslösen
+- keine DB-Migration
+- kein Login improvisieren
+- keine Agent-Actions produktiv schalten
+- keine OBS-/Sound-/Overlay-Steuerung
+- keine Commands/Kanalpunkte produktiv bearbeiten
+- keine SQLite ersetzen oder zurücksetzen
+- kein neues Modul ohne zwingenden Grund
+
+## Spätere mögliche Schritte
 
 ```text
 RDAP5_REMOTE_AUTH_USER_MODEL_PLAN
@@ -56,14 +81,4 @@ Oder:
 RDAP4D_PERMISSION_LOCK_DB_PLAN
 ```
 
-für konkrete DB-Planung, aber erst nach Sichtung bestehender DB-/Helper-Patterns.
-
-## Weiterhin nicht machen
-
-- kein Login improvisieren
-- keine DB-Migration ohne separaten Go
-- keine Agent-Actions produktiv schalten
-- keine OBS-/Sound-/Overlay-Steuerung
-- keine Commands/Kanalpunkte produktiv bearbeiten
-- keine SQLite ersetzen oder zurücksetzen
-- keine neuen Module ohne klare fachliche Notwendigkeit
+für konkrete DB-Planung, aber erst nach Sichtung bestehender DB-/Helper-Patterns und separatem Go.
